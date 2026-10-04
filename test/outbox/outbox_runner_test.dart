@@ -138,7 +138,7 @@ void main() {
 
     // Ein Fehler, der nicht eindeutig endgültig ist (zu kurze Linie im
     // Fake ist ein StateError): zählen, bis der Zähler voll ist.
-    await box.append(job('c', coords: line(2)), uid: 'me');
+    await box.append(job('c', coords: const [11.0, 47.0, 11.0, 47.0003]), uid: 'me'); // 33 m
     for (var i = 1; i <= OutboxRunner.maxAttempts; i++) {
       await runner.run(uid: 'me');
       final c = box.jobs.singleWhere((j) => j.id == 'c');

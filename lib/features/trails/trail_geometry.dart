@@ -11,7 +11,7 @@ const double kEarthRadiusM = 6371000.0;
 const double kTrailMaxLengthM = 8000;
 
 /// Kürzer ist eine Zufahrt oder ein Fragment (Konzept 4.2).
-const double kTrailMinLengthM = 150;
+const double kTrailMinLengthM = 50;
 
 /// Schneller fährt kein Fahrrad im Median: eine gezeichnete Route mit
 /// erfundenen Zeiten. Dieselbe Grenze wie in tool/trail_match.py.

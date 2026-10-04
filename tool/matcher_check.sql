@@ -323,12 +323,12 @@ declare
   code text; msg text; ok boolean := false;
 begin
   begin
-    perform tb_test.contribute(ua, tb_test.line(100));
+    perform tb_test.contribute(ua, tb_test.line(40));
   exception when others then
     get stacked diagnostics code = returned_sqlstate, msg = message_text;
     ok := code = '22023' and msg like '%zu kurz%';
   end;
-  perform tb_test.check(ok, format('100 m werden abgelehnt (SQLSTATE %s: %s)', code, msg));
+  perform tb_test.check(ok, format('40 m werden abgelehnt (SQLSTATE %s: %s)', code, msg));
   ok := false;
   begin
     perform tb_test.contribute(ua, tb_test.line(1000), 'gpx');

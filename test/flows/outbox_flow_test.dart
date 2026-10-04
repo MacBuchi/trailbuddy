@@ -193,7 +193,7 @@ void main() {
     outbox.jobs.add(ContributeJob(
         id: 'job-short',
         createdAt: DateTime.now().toUtc(),
-        coords: line(2),
+        coords: const [11.0, 47.0, 11.0, 47.0003], // 33 m
         source: RecordingSource.import,
         name: 'Stummel'));
     await pumpApp(tester, backend, trails: trails, outbox: outbox);

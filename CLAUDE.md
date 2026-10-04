@@ -153,8 +153,9 @@ was öffentlich sein MUSS (Impressum, Datenschutzerklärung).
 
 - **Der Abgleich läuft in der Datenbank** (`contribute_recording`,
   Security Definer): Korridor 15 m, beidseitige Deckung ≥ 0,8, Fréchet auf
-  den Punkten IM Korridor ≤ 2·d, Mindestlänge 150 m, Abtastung 5 m —
-  gemessen an 584 Tracks. Nur „gleich" verschmilzt; Teil und Gabel werden
+  den Punkten IM Korridor ≤ 2·d, Mindestlänge 50 m (Patch 017, Betreiber
+  2026-10-04; gemessen waren 150 m), Abtastung 5 m — gemessen an 584
+  Tracks. Nur „gleich" verschmilzt; Teil und Gabel werden
   neuer Trail plus unsichtbare Kante (`app_internal.trail_overlaps`). Die
   RPC gibt nur die Trail-Kennung zurück, nie ob sie neu ist. Tageslimit
   500 Aufzeichnungen je Nutzer in 24 h (Patch 006, gemessen mit
@@ -676,7 +677,7 @@ was öffentlich sein MUSS (Impressum, Datenschutzerklärung).
     `vector_map_tiles`).
   - **Das Gefälle kommt aus der GPS-Höhe** (Median über 7 Punkte,
     Abfahrt von Gipfel bis Talsohle, Ende bei 15 m Gegenanstieg,
-    mindestens 30 Hm und 150 m; > 70 % der 5-m-Abtastpunkte abseits;
+    mindestens 30 Hm und die Mindestlänge eines Trails, `kTrailMinLengthM`; > 70 % der 5-m-Abtastpunkte abseits;
     Enden auf die Straße gestutzt). Beigesteuert wird die GPS-Höhe
     NICHT (`SplitRequest.stripElevation`, #28-Regel); Dateihöhen einer
     GPX-Fahrt schon. Ein Höhengitter gibt es in TrailBuddy nicht — das

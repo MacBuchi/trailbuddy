@@ -183,6 +183,9 @@ der Sammlung nicht als Paar vor; der Selbsttest hält den Fall.
 Fragment mit dem Namen eines echten Trails. Die Grenze ist eher zu
 niedrig als zu hoch, bleibt aber, bis Kandidaten aus Fahrten gemessen
 sind (die entstehen erst in Phase 2).
+**Seit Patch 017 (2026-10-04) 50 m**, Entscheidung des Betreibers: Kurze
+echte Trails (Jump-Line, kurze Steilpassage) fielen unter 150 m weg; das
+kürzeste Fragment im Bestand (13 m) bleibt auch unter 50 m.
 
 ## Folgen für das Konzept
 

@@ -86,7 +86,7 @@ beim Betreiber (Nextcloud), nicht im Repo. Zwei Dinge fürs Bauen:
   `sections`: Variante ja/nein, gesperrt ja/nein) und fügt nichts über
   Nummern hinweg zusammen — das wäre eine Behauptung über die Quelle.
   Ein Trail, der insgesamt unter der Mindestlänge des Abgleichs
-  (150 m) bleibt, fällt weg. Stand 2026-09-28: **181 Trails**, 4
+  (150 m, seit Patch 017 50 m) bleibt, fällt weg. Stand 2026-09-28: **181 Trails**, 4
   weggelassen.
 - **Der Status ist amtlich.** „gesperrt" kommt vom Land und wird so
   angezeigt — als Aussage der Quelle, nicht als Statusmeldung eines

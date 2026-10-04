@@ -54,7 +54,7 @@ DEFAULT_COV = 0.8
 FRECHET_FACTOR = 2.0      # "same" needs frechet <= factor * d
 FRECHET_D = DEFAULT_D      # corridor used to trim samples before Frechet
 FRECHET_MAX_POINTS = 1200  # cap for the O(n*m) DP
-MIN_TRAIL_M = 150.0
+MIN_TRAIL_M = 50.0
 PLANNED_SPEED_KMH = 60.0  # faster than this on a bike: not a recording
 
 

@@ -381,7 +381,7 @@ gibt **nur die Trail-Kennung** zurück. Ob sie neu ist, sagt sie nicht.
 | Korridor `d` | 15 m | GPS unter Blätterdach liegt 10–20 m daneben; 10 und 15 m liefern dieselben Gleich-Paare, ab 20 m kommen Gabeln als „gleich" dazu. |
 | Deckung „gleich" | ≥ 0,8 beidseitig | Die Verteilung hat eine Lücke: 26 Paare unter 0,7, 7 über 0,9, 4 dazwischen — und die sind Trail und Variante. |
 | Fréchet „gleich" | ≤ 2·d, **auf den Punkten im Korridor** | Alle Gleichen ≤ 19,4 m, der nächste Wert 84 m. Ohne den Zuschnitt treibt ein einzelner Sporn das Maximum auf 40–90 m bei namensgleichen Trails. |
-| Mindestlänge Trail | 150 m | Darunter ist es eine Zufahrt oder ein Fragment; 12 von 584 Dateien. |
+| Mindestlänge Trail | 50 m | Darunter ist es eine Zufahrt oder ein Fragment. Gemessen war 150 m (12 von 584 Dateien darunter); kurze echte Stücke — Jump-Line, Steilpassage zwischen zwei Forstwegen — fielen damit weg, deshalb 50 m seit Patch 017 (Betreiber, 2026-10-04). Das kürzeste Fragment im Bestand (13 m) bleibt darunter. |
 | Abtastung | 5 m | Kehren mit 10 m Radius bleiben sichtbar; Locus-Exporte sind auf 13 m gedünnt, gezeichnete Routen haben 100-m-Schenkel. |
 
 ### 4.3 Richtung
