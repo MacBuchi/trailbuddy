@@ -41,7 +41,7 @@ SOURCES = os.path.join(HERE, "official", "sources.json")
 SIMPLIFY_M = 3.0
 # Below the matcher's minimum trail length (concept 4.2) a piece is an
 # access or a fragment, not a trail.
-MIN_TRAIL_M = 150.0
+MIN_TRAIL_M = 50.0
 # Losing more than this share of a source's trails blocks publishing.
 MAX_DROP = 1 / 3
 USER_AGENT = "TrailBuddy official-trails (github.com/MacBuchi/TrailBuddy)"

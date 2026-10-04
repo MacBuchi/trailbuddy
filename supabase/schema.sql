@@ -474,7 +474,8 @@ revoke all on function app_internal.put_report(uuid, uuid, text, text, integer, 
 --   coverage_same     0.8  Lücke in der Verteilung zwischen 0,7 und 0,9
 --   frechet_factor    2    „gleich" ≤ 2·d; alle Gleichen ≤ 19,4 m, der
 --                          nächste Wert 84 m
---   min_trail_m       150  darunter Zufahrt oder Fragment
+--   min_trail_m       50   darunter Zufahrt oder Fragment (Patch 017,
+--                          Betreiber 2026-10-04; bis dahin 150)
 --   step_m            5    Kehren mit 10 m Radius bleiben sichtbar
 --   frechet_max_points 400 Kappe für die O(n·m)-DP in PL/pgSQL (unten)
 --   overlap_min       0.3  ab hier eine Kante in trail_overlaps (Gabel)
@@ -499,7 +500,7 @@ create type app_internal.match_params as (
 create or replace function app_internal.match_params()
 returns app_internal.match_params
 language sql immutable set search_path = '' as $$
-  select row(15.0, 0.8, 2.0, 150.0, 5.0, 400, 0.3, 0.7, 0.3, 500)::app_internal.match_params;
+  select row(15.0, 0.8, 2.0, 50.0, 5.0, 400, 0.3, 0.7, 0.3, 500)::app_internal.match_params;
 $$;
 
 -- Ergebnis eines Vergleichs Kandidat (a) gegen Bestand (b). `class` ist
@@ -1172,7 +1173,7 @@ revoke all on function app_internal.push_flush() from public, anon, authenticate
 -- einfachste Form, die sich aus Dart als JSON-Array übergeben lässt.
 --
 -- Ablauf:
---   1. Angemeldet? Quelle bekannt? Mindestens zwei Punkte? Länge ≥ 150 m?
+--   1. Angemeldet? Quelle bekannt? Mindestens zwei Punkte? Länge ≥ 50 m?
 --      Tageslimit (4.6)? Sonst Ausnahme mit klarem Text.
 --   2. Idempotenz: (user_id, client_id) schon da ⇒ dessen trail_id.
 --   3. Vorfilter (GiST): Trails, deren Aufzeichnungen dem Kandidaten
@@ -1879,5 +1880,6 @@ insert into public.applied_patches (filename) values
   ('patch_013_rating_reports.sql'),
   ('patch_014_push_content.sql'),
   ('patch_015_planned_ride_date.sql'),
-  ('patch_016_two_way.sql')
+  ('patch_016_two_way.sql'),
+  ('patch_017_min_trail_50.sql')
 on conflict do nothing;

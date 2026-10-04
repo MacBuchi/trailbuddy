@@ -21,7 +21,7 @@ set search_path = public, extensions;
 create or replace function app_internal.match_params()
 returns app_internal.match_params
 language sql immutable set search_path = '' as $$
-  select row(15.0, 0.8, 2.0, 150.0, 5.0, 400, 0.3, 0.7, 0.3, 100000)::app_internal.match_params;
+  select row(15.0, 0.8, 2.0, 50.0, 5.0, 400, 0.3, 0.7, 0.3, 100000)::app_internal.match_params;
 $$;
 
 create schema lm;

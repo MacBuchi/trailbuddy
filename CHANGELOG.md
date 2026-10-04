@@ -2,6 +2,15 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Kurze Trails
+
+*Version 0.82.2, 2026-10-04*
+
+- **Trails gibt es jetzt schon ab 50 m Länge** statt erst ab 150 m. Eine
+  kurze Jump-Line oder eine Steilpassage zwischen zwei Forstwegen lässt
+  sich damit beisteuern — beim Import, im Zerlege-Blatt und mit „Stück
+  selbst wählen".
+
 ## Speichern ohne Hänger
 
 *Version 0.82.1, 2026-10-02*

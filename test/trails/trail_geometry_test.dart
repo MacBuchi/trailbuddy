@@ -45,7 +45,9 @@ void main() {
         TrackKind.ride);
     // Ohne Höhen entscheidet die Länge — im Zweifel Trail.
     expect(classifyTrack(line(1000)), TrackKind.trail);
-    expect(classifyTrack(line(100)), TrackKind.fragment);
+    // Mindestlänge 50 m (Patch 017): eine kurze Jump-Line ist ein Trail.
+    expect(classifyTrack(line(60)), TrackKind.trail);
+    expect(classifyTrack(line(40)), TrackKind.fragment);
   });
 
   test('geplant: ohne Zeiten oder mit 200 km/h, gefahren mit 18 km/h', () {

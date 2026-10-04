@@ -185,7 +185,7 @@ bleiben im Konzept: Das Stück kommt aus eigenen Daten und ist gefahren.
    denselben Griffen (`RangeSlider`), Name, S-Grad, Charakter. Die Karte
    zeigt die Vorschau wie bei einem gefundenen Kandidaten. Braucht
    keinen gespeicherten Bereich — die Wege braucht nur die Heuristik.
-   Mindestlänge 150 m (Abgleich) gilt.
+   Mindestlänge 50 m (Abgleich, seit Patch 017; davor 150 m) gilt.
 2. **Markieren während der Aufnahme.** Ein Knopf „Trail beginnt“ /
    „Trail endet“ neben dem Aufnahmeknopf schreibt eine Marke in die
    JSON-Lines-Datei (im Service-Isolate, wie die Punkte). Das

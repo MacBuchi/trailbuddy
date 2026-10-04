@@ -188,8 +188,8 @@ void main() {
     // 500 m: ohne 2 × 300 m bliebe nichts — die Griffe stehen an den Enden.
     final short = manualSection(splitRide(points: ride(500, (_) => 500), trails: const [], roads: noRoads))!;
     expect((short.start, short.end), (0, 25));
-    expect(manualSection(splitRide(points: ride(100, (_) => 500), trails: const [], roads: noRoads)), isNull,
-        reason: 'kürzer als ein Trail (150 m)');
+    expect(manualSection(splitRide(points: ride(40, (_) => 500), trails: const [], roads: noRoads)), isNull,
+        reason: 'kürzer als ein Trail (50 m)');
   });
 
   group('Marken (#105)', () {
