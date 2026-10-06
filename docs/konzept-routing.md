@@ -60,7 +60,13 @@ Zwei Funktionen, eine Engine:
 Nicht-Ziele, damit sie nicht hineinwachsen:
 
 - **Keine Abbiegehinweise, keine Sprachausgabe** (Konzept 13). Die
-  Runde geht als GPX an die Navi-App des Nutzers.
+  Runde geht als GPX an die Navi-App des Nutzers. **Erlaubt seit
+  2026-10-05 (#232) ist ein Navigationsmodus, der nur ZEIGT:** Karte in
+  Fahrtrichtung gedreht, eigene Position, Route und Abstand zur Linie,
+  eine Dauerbenachrichtigung über den `location`-Dienst der Aufzeichnung
+  und ein Bild-im-Bild-Fenster (Android PiP — nicht
+  `SYSTEM_ALERT_WINDOW`, das Play nur eng zulässt). Sein Abschnitt in
+  diesem Dokument kommt vor dem ersten Code.
 - **Kein Routing über fremde Gegenden.** Gerechnet wird nur, wo ein
   gespeicherter Bereich liegt; ohne Bereich sagt das Blatt das und
   bietet die Übergabe an. Seit 0.74.0 über die Kacheln, die DA sind,

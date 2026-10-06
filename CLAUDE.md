@@ -16,6 +16,10 @@ Entscheidungen des Betreibers in Abschnitt 10, die Regel für den
 dezentralen Weg in Abschnitt 12). Die Schwellen des Abgleichs sind gemessen
 (`docs/trail-abgleich-messung.md`), nicht geraten. Wer Code ändert, der dem
 Konzept widerspricht, ändert das Konzept im selben PR — oder den Code.
+**Der Fahrplan ist #156** (Betreiber, 2026-10-05): Reihenfolge, Stand und
+die Einordnung neuer Issues werden dort direkt gepflegt, ohne PR; jedes
+eingeplante Issue hängt als Sub-Issue daran. `konzept-trails.md` §11 nennt
+nur die Phasen — ein PR dort nur, wenn eine Phase dazukommt oder wegfällt.
 Das Rework vom 2026-09-30 (`docs/konzept-rework.md`, #109) plant die
 nächsten Schritte am Modell; gebaut wird es Schritt für Schritt, und
 jeder zieht `konzept-trails.md` nach. Die Einführung (Tour, Kurzanleitung,
