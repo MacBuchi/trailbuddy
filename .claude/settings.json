@@ -1,0 +1,54 @@
+{
+  "enabledMcpjsonServers": ["dart"],
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|clear|compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/tool/session_status.py\"",
+            "timeout": 20
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/tool/context_nudge.py\" prompt",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/tool/context_nudge.py\" pr",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  },
+  "permissions": {
+    "allow": [
+      "Bash(flutter test *)",
+      "Bash(flutter analyze *)",
+      "Bash(git fetch origin)",
+      "Bash(python3 tool/session_status.py)",
+      "Bash(python3 tool/agent_docs.py)",
+      "mcp__dart__analyze_files",
+      "mcp__dart__lsp",
+      "mcp__dart__run_tests",
+      "mcp__dart__read_package_uris",
+      "mcp__dart__rip_grep_packages"
+    ]
+  }
+}

@@ -37,6 +37,9 @@ jobs:
         run: |
           python3 tool/agent_docs.py --self-test
           python3 tool/agent_docs.py
+          python3 tool/session_status.py --self-test
+          python3 tool/context_nudge.py --self-test
+          sh -n tool/dart_mcp.sh
       - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
         with:
           channel: stable
@@ -273,8 +276,9 @@ jobs:
           if [ "$(printf '%s\n' "${latest#v}" "$version" | sort -V | tail -1)" != "$version" ] \
              || [ "${latest#v}" = "$version" ]; then
             # Ausgenommen: *.md (außer CHANGELOG.md, die liegt als Asset im
-            # Binary), .github/, tool/, supabase/, docs/ — nichts davon
-            # landet je in einem Binary.
+            # Binary), .github/, tool/, supabase/, docs/, .claude/, .codex/, .mcp.json
+            # (Agenten-Konfiguration, #237) — nichts davon landet je in
+            # einem Binary.
             if [ "$EVENT_NAME" = "pull_request" ]; then
               range="origin/$BASE_REF...HEAD"
             else
@@ -282,7 +286,7 @@ jobs:
             fi
             changed=$(
               {
-                git diff --name-only "$range" -- . ':!*.md' ':!.github' ':!tool' ':!supabase' ':!docs' || true
+                git diff --name-only "$range" -- . ':!*.md' ':!.github' ':!tool' ':!supabase' ':!docs' ':!.claude' ':!.codex' ':!.mcp.json' || true
                 git diff --name-only "$range" -- CHANGELOG.md || true
               } | grep -v '^$' || true
             )
