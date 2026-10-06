@@ -875,94 +875,60 @@ Ebene außerhalb dieses Modells: `docs/konzept-offizielle-trails.md`
 Zustand, Link, Stück selbst wählen, Zwillinge, Zusammenführen):
 `docs/konzept-rework.md`, verfolgt in #109. Einführung (Kurzanleitung,
 Touren, „Entdecken"): `docs/konzept-onboarding.md`, #137. Jeder Schritt
-zieht die betroffene Stelle hier im selben PR nach.*
+zieht die betroffene Stelle im Konzept im selben PR nach.*
 
-*Die Reihenfolge je Issue steht in #156 (Fahrplan 2026-Q4) und wird dort
-abgehakt; hier steht, was die Phasen sind und welche davon stehen.*
+**Der lebende Fahrplan ist #156** (Betreiber, 2026-10-05): Reihenfolge,
+Stand und die Einordnung neuer Issues werden dort gepflegt, direkt und
+ohne PR — die Historie des Issues ist der Nachweis, und jedes eingeplante
+Issue hängt als Sub-Issue daran. Hier steht nur, welche Phasen es gibt
+und wofür sie stehen. Ein PR an diesem Abschnitt braucht es nur, wenn
+eine Phase dazukommt oder wegfällt — nicht für eine neue Issue-Nummer,
+ein Häkchen oder eine neue Reihenfolge.
 
-- **Phase 0 — Messen, bevor gebaut wird. ERLEDIGT am 2026-09-27**,
-  `tool/trail_match.py` gegen 584 Locus-Tracks, Ergebnis und Folgen in
-  `docs/trail-abgleich-messung.md`. Erst danach standen die Schwellen in
-  SQL.
-- **Phase 1 — Grundgerüst. ERLEDIGT (0.1.0–0.12.x):** Auth, Buddys,
-  Karte, CI und Schema-Werkzeuge aus PilzBuddy, PostGIS, Tabellen aus 3,
-  `contribute_recording`, GPX-Import, Trails auf der Karte, Trail-Blatt
-  mit Beitrag, Hinweise für Buddys (#7), Höhen (#14).
-- **Phase 2 — Aufzeichnen. ERLEDIGT (0.13.0–0.20.0):** Fahrt-Aufzeichnung
-  aus der Pilztour (#28), Zerlege-Blatt mit Kandidaten und Griffen, auch
-  für GPX-Fahrten (#29), Ausgangskorb auf Android (#30).
-- **Rework. ERLEDIGT bis auf den Abgleich (0.46.1–0.58.0):** geplante
-  Importe, Bewertung/Meldung/Zustand, Übernehmen beim ersten Befahren,
-  Link, Stück selbst wählen, Marken, Bestätigen durch Fahren, „noch
-  gültig?", Fahrdatum. **Offen:** Abgleich gegen mehrere Aufzeichnungen
-  mit Zwillingskanten (#106), Zusammenführen (#107, schließt #33), kurze
-  Importe stutzen (#108) — alle drei warten auf Daten mehrerer Nutzer;
-  mit einem Nutzer ist nichts zu messen (#114).
-- **Einführung. ERLEDIGT (0.59.0–0.64.0, #137)**, Marke „Serpentine C3"
-  (0.65.0).
+- **Phase 0 — Messen, bevor gebaut wird. ERLEDIGT** (2026-09-27):
+  `tool/trail_match.py` gegen 584 Tracks, `docs/trail-abgleich-messung.md`.
+- **Phase 1 — Grundgerüst. ERLEDIGT:** Auth, Buddys, Karte, Schema,
+  Abgleich, GPX-Import, Trail-Blatt, Hinweise, Höhen.
+- **Phase 2 — Aufzeichnen. ERLEDIGT:** Fahrt-Aufzeichnung, Zerlege-Blatt,
+  Ausgangskorb auf Android.
+- **Rework. ERLEDIGT bis auf den Abgleich:** Mehrere Aufzeichnungen je
+  Trail, Zusammenführen und kurze Importe stutzen warten auf Daten
+  mehrerer Nutzer.
+- **Einführung. ERLEDIGT:** Kurzanleitung, Touren, „Entdecken", Marke.
 - **Phase 3 — Offline und Austausch. ZUM TEIL:** Offline-Karten mit
-  eigenem Host, Bereichen und Werkzeugleiste (0.16.0–0.36.1, #31),
-  Zwischenspeicher des Netzes (0.15.0, #32), Push für Meldungen und
-  Hinweise, mit Inhalt (0.23.0 und 0.54.0, #34), Zusammenfassung nach dem
-  Verbinden (0.22.0, #33 Teil 1). **Offen:** Gesehene Online-Kacheln
-  bleiben liegen (#155), Nachrichten zwischen Buddys (#34 Rest),
-  Ausgangskorb und Zwischenspeicher im Browser (#153), Zusammenführen
-  (#107).
-- **Phase 3b — Alltagstauglich, vor den ersten Testern außerhalb der
-  Buddys (neu am 2026-10-01). ERLEDIGT bis auf Freigabe und Tester:** Start- und Endmarker auf der Karte
-  (#96, ERLEDIGT 0.66.0), Anfahrt zum Trailkopf per Übergabe an die
-  Navi-App (#151, ERLEDIGT 0.67.0),
-  GPX-Export von Fahrten und Trails (#150 — Entscheidung 10.4 setzt ihn
-  voraus; ERLEDIGT 0.68.0), Neuheiten-Vorschau bei der Freigabe (#152, ERLEDIGT),
-  `docs/play-console.md` und ein Entwurf der Nutzungsbedingungen (#39,
-  Teil; ERLEDIGT, `docs/nutzungsbedingungen-entwurf.md`, wartet auf die
-  Prüfung). Dann Freigabe und Tester; mit deren Daten beginnt der Abgleich
-  aus dem Rework.
-- **Phase 4 — Der Trail-zuerst-Planer. ERLEDIGT (0.69.0–0.74.0)**
-  (9, #158; Plan und Anforderungsprofil in `docs/konzept-routing.md`):
-  Messung (#35, `docs/routing-messung.md`), Höhenkacheln je Bereich,
-  Wegegraph aus den Bereichen mit Fahrerprofil, „Zum Trailkopf",
-  Rundenplaner, Kalibrierung aus eigenen Fahrten, zuletzt die Runde in
-  0.74.0 (Planer als Modus mit eigener Leiste, Planen über die
-  vorhandenen Kacheln, Trail-Richtung und Verbinder auf dem Graphen,
-  direkt oder spaßig). Danach: fehlende Kacheln mit Empfang vom Host
-  (ERLEDIGT 0.78.0, #187), steile Anstiege (ERLEDIGT 0.80.0, #194),
-  Rechnen im eigenen Isolate (0.80.1–0.80.2), M2/M4 an den eigenen
-  Fahrten gemessen, Vorlieben meiden/egal mit abgestuften Strafkurven
-  (ERLEDIGT 0.81.0), alte Fahrten per GPX-Import für die Kalibrierung
-  (ERLEDIGT 0.82.0). **Offen:** die Startwerte im Feld (#188), Treppen
-  bergauf mit festem Zuschlag (#210).
-- **Feldberichte zu 0.73.0 (neu am 2026-10-02), vor der Freigabe:**
-  Absturz in `AnimationController.stop` aus dem Digest (#62; 0.74.1
-  macht den nächsten Bericht genauer), kleine Kartenpunkte (ERLEDIGT in
-  0.74.2: kein Quadrat am Ende #179, Namen auf der Mittellinie #181,
-  Schilder ab Zoom 14 #184), Glühbirne oben rechts und
-  Kartenebenen getrennt von den Offline-Werkzeugen (ERLEDIGT in 0.75.0:
-  #180, #190),
-  Zurück-Taste nach Hierarchie (ERLEDIGT in 0.76.0, #175), Legende auf der Karte (ERLEDIGT in 0.77.0, #182),
-  Offline-Start und sofortige Rückmeldung beim Setzen (ERLEDIGT in
-  0.77.1, #183), Höhen aus dem Geländemodell anzeigen (ERLEDIGT in
-  0.79.0, #186, nur Anzeige und Export, nie gespeichert). **Offen:**
-  #62, sobald ein Bericht die Stelle nennt.
-- **Wegqualität (neu am 2026-10-02, Feldvergleich mit Locus und
-  OpenAndroMaps):** Unsere Kacheln (Protomaps) tragen für Wege nur die
-  Art, keinen Zustand — keine Güteklasse, keinen Belag, keine
-  Schwierigkeit. Erst messen, wie oft OSM diese Angaben in DACH hat und
-  wie groß ein eigenes Wege-Archiv wird (#211), dann das Archiv auf dem
-  eigenen Host samt Darstellung auf der Karte (#212), dann die Kosten im
-  Routing: schlechte Forstwege und schwierige Pfade bergauf teurer
-  (#213, gemessen an den eigenen Fahrten wie die Strafkurven).
-- **Phase 5 — Community.** Airtime und Ranking unter Buddys (#36), Fotos
-  am Trail (#37).
-- **Englisch** (#209, neu am 2026-10-02): die Oberfläche auf Englisch,
-  gewählt nach der Sprache des Geräts bzw. Browsers — vor Testern
+  eigenem Host, Zwischenspeicher, Push. Offen: Gesehenes bleibt liegen,
+  Nachrichten, Browser-Speicher.
+- **Phase 3b — Alltagstauglich, vor Testern außerhalb der Buddys.
+  ERLEDIGT bis auf Freigabe und Tester.**
+- **Phase 4 — Der Trail-zuerst-Planer. ERLEDIGT bis auf den Feldtest**
+  (9, `docs/konzept-routing.md`); danach der Ausbau aus den
+  Feldberichten (Höhenprofil im Ergebnis, ziehbare Zwischenpunkte).
+- **Feldberichte vor der Freigabe** — jede Runde Rückmeldungen aus dem
+  Feld zu einem Stand (zuletzt 0.73.0 und 0.82): Fehler und kleine
+  Bedienwünsche, abgearbeitet vor der nächsten Freigabe.
+- **Navigationsmodus** (neu am 2026-10-05, #232): eine Ansicht zum
+  Abfahren einer geplanten Route — Karte dreht mit, eigene Position,
+  Route und Abstand zur Linie, Dauerbenachrichtigung, Bild-im-Bild über
+  anderen Apps. Ohne Abbiegehinweise und Sprachausgabe (13). Erst der
+  Abschnitt im Routing-Konzept, dann der Bau.
+- **Wegqualität** (neu am 2026-10-02): Güteklasse, Belag und
+  Schwierigkeit der Wege messen, als Archiv auf dem eigenen Host
+  ausliefern, auf der Karte zeigen und im Routing bepreisen.
+- **Karte über DACH hinaus** (neu am 2026-10-05): erst den Bestand auf
+  dem Host prüfen und messen, was Europa bzw. die Welt kostet; dann
+  Regionen über eine Konfiguration und das Herunterladen einer ganzen
+  Region (ändert `docs/konzept-offline-karten.md` 5).
+- **Phase 5 — Community.** Airtime und Ranking unter Buddys, Fotos am
+  Trail.
+- **Englisch:** die Oberfläche nach der Sprache des Geräts — vor Testern
   außerhalb des deutschsprachigen Raums und vor dem Store-Eintrag.
-- **Play Store** (#39): rechtliche Prüfung, Store-Grafiken, Pro-Plan,
-  AAB-Probe, 1.0.0 — nach Phase 3. Danach die Entscheidung zum
-  dezentralen Weg (12, #38).
+- **Play Store:** rechtliche Prüfung, Store-Grafiken, Pro-Plan,
+  AAB-Probe, 1.0.0. Danach die Entscheidung zum dezentralen Weg (12).
+- **Arbeitsweise** (neu am 2026-10-05): Kernanforderungen als eigene
+  Datei, gegen die jedes Konzept und jeder Fix geprüft wird (#221), und
+  sparsamere Werkzeuge für die Entwicklung (#219).
 
-Der nächste Schritt sind die Feldberichte zu 0.73.0, dann Freigabe
-und Tester (#156, Stufe 1 Punkt 6).
+Was als Nächstes kommt, steht oben in #156.
 
 ## 12. Dezentral: der offene Weg
 
@@ -1069,7 +1035,13 @@ tun und nicht tun werden:
 
 **Was sie bewusst nicht ist.** Keine Navigation mit Abbiegehinweisen,
 keine Entdeckungs-Plattform für fremde Gegenden, kein Tourenarchiv in
-der Cloud, keine Statistik über alle. **Die eine Planungsfunktion ist
+der Cloud, keine Statistik über alle. **Seit 2026-10-05 mit einer Ausnahme**
+(Betreiber, #232): ein Navigationsmodus, der eine Route ZEIGT — Karte
+dreht mit, eigene Position, Route und Abstand zur Linie, eine
+Dauerbenachrichtigung und ein Bild-im-Bild-Fenster über anderen Apps.
+Abbiegehinweise und Sprachausgabe gibt es weiter nicht; die Übergabe an
+die Navi-App (#151, GPX) bleibt der Weg für alles darüber hinaus. Die
+Grenzen stehen in `docs/konzept-routing.md` bei den Nicht-Zielen. **Die eine Planungsfunktion ist
 der Trail-zuerst-Planer** (9, #158), weil ihn keine andere App hat:
 Komoot und Outdooractive planen von A nach B über öffentliche Wege,
 Trailforks zeigt Trails — keine davon plant „eine Runde mit möglichst
