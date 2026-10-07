@@ -2,7 +2,7 @@
 // gezeigt, nie gespeichert"). Dieselben Höhenkacheln wie die Planung
 // (Copernicus GLO-90, `height_tiles.dart`): erst die gespeicherten
 // Bereiche, mit Empfang dahinter der Host über den Sitzungsspeicher
-// (`OnlineHeights`, #187). Drei Abnehmer, eine Stelle:
+// (`OnlineHeights`, #187). Vier Abnehmer, eine Stelle:
 //
 // - **Anzeige**: Ein Trail ohne aufgezeichnete Höhen bekommt sein Profil
 //   aus dem Geländemodell ([terrainProfileProvider]), beschriftet mit
@@ -12,6 +12,9 @@
 //   `<extensions>` der Spur (`gpx_writer.dart`). Der Import liest
 //   markierte Höhen nie (`gpx.dart`) — sonst schriebe ein Re-Import der
 //   eigenen Datei Modellhöhen als aufgezeichnete auf den Server.
+// - **Planer** (#234): Das Ergebnis einer Runde und der Weg zum Trail
+//   zeigen ihr Profil entlang der geplanten Linie ([lineProfileProvider]).
+//   Die Engine kennt Höhen nur je Kante, ein Profil braucht sie je Punkt.
 // - **Import**: [compareToTerrain] prüft die Höhen einer Datei gegen das
 //   Modell. Liegen sie weit daneben (barometrischer Versatz, GPS-Sprünge),
 //   bietet der Import an, sie zu verwerfen; die Aufzeichnung geht dann
@@ -97,6 +100,15 @@ final terrainProfileProvider = FutureProvider.autoDispose.family<ElevationProfil
   if (line == null) return null;
   return ref.read(terrainHeightsProvider).profile(line);
 });
+
+/// Das Profil entlang einer geplanten Linie (#234) aus dem Geländemodell,
+/// in Fahrtrichtung; null, wo eine Kachel fehlt. Der Schlüssel ist die
+/// Liste selbst (Gleichheit = dieselbe Liste): Jedes neue Ergebnis bringt
+/// eine neue, und nur so lange es gezeigt wird, lebt die Rechnung. Mit
+/// Empfang kommen fehlende Kacheln aus dem Sitzungsspeicher, in den die
+/// Planung sie schon gelegt hat — kein zweiter Abruf.
+final lineProfileProvider = FutureProvider.autoDispose.family<ElevationProfile?, List<LatLng>>(
+    (ref, line) => ref.read(terrainHeightsProvider).profile(line));
 
 /// Wie die Höhen einer Datei zum Geländemodell passen (#186).
 class TerrainComparison {
