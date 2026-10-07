@@ -2,6 +2,16 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Ruhiger Start
+
+*Version 0.83.1, 2026-10-07*
+
+- **Das Logo beim Start zeichnet sich flüssig ein**, auch wenn die App
+  darunter gerade lädt. Bisher sprang die Linie, sobald das Laden die
+  Anzeige kurz aufhielt.
+- **Danach bleibt es kurz stehen und blendet über eine Sekunde aus** —
+  lange genug, um es zu lesen. Ein Tipp überspringt es wie bisher.
+
 ## Trail-Blatt: schließen und Anfahrt oben
 
 *Version 0.83.0, 2026-10-07*

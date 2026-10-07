@@ -527,8 +527,11 @@ Bewegung steht überall das Endbild, kein Takt läuft. Fünf Abweichungen:
 
 - **1p liegt ÜBER der App, nicht vor ihr**: Anmeldung, Karte und Trails
   laden darunter schon, der Splash kostet also keine eigene Wartezeit
-  (1,78 s, dann 0,25 s Ausblenden, einmal je Start). Ein Tipp überspringt
-  ihn; bei reduzierter Bewegung gibt es ihn gar nicht — ein stehendes
+  (1,78 s, dann steht das ganze Bild 0,6 s und blendet über 1 s aus —
+  seit 0.83.1, #235; einmal je Start). Seine Uhr geht je Bild höchstens
+  50 ms weiter: Hält die Startarbeit ein Bild auf, wartet die Zeichnung,
+  statt zu springen (#217); die App darunter zeichnet erst, wenn er
+  ausblendet. Ein Tipp überspringt ihn (0,25 s); bei reduzierter Bewegung gibt es ihn gar nicht — ein stehendes
   Logo vor der App wäre nur eine Pause. Grund ist der des Modus, nicht
   immer das Dunkel des Entwurfs. Der Test-Harness schaltet ihn ab
   (`startSplashEnabledProvider`).
