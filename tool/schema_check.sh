@@ -263,7 +263,7 @@ check_get_protected "trails ist gesperrt" \
 
 # feedback: Spalten, die App (Insert) und ein späterer Bot (Select) nutzen.
 check_get_protected "feedback-Spalten" \
-  "/rest/v1/feedback?select=id,user_id,type,message,app_version,processed_at,created_at&limit=1"
+  "/rest/v1/feedback?select=id,user_id,type,message,app_version,client_id,processed_at,created_at&limit=1"
 
 # error_reports: die Spalten, die ErrorReportRepository schreibt. anon darf
 # INSERT, aber nicht SELECT — also ebenfalls 42501 auf die Leseabfrage.

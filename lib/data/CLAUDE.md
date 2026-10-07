@@ -10,12 +10,21 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
 
 - **Ausgangskorb** (#30, `lib/data/outbox*.dart` +
   `lib/features/trails/outbox_providers.dart`, seit 0.14.0; PilzBuddy
-  #267 als Vorlage): Genau DREI Aufträge — Aufzeichnung beisteuern
+  #267 als Vorlage): Genau VIER Aufträge — Aufzeichnung beisteuern
   (`ContributeJob`, die Linie so, wie sie an die RPC ging, plus Name),
-  eigenen Beitrag speichern (`DetailsJob`) und melden (`ReportJob`, seit
-  0.49.0, samt Hinweis — „gesperrt" meldet man am Trail). Alles
+  eigenen Beitrag speichern (`DetailsJob`), melden (`ReportJob`, seit
+  0.49.0, samt Hinweis — „gesperrt" meldet man am Trail) und Feedback
+  (`FeedbackJob`, seit 0.86.0, #218). Alles
   andere (Höhen nachtragen, Hinweise allein, Löschen) scheitert weiter
-  sichtbar. Sechs Dinge, die man wissen muss:
+  sichtbar. **Feedback ist ein Auftrag, keine eigene Warteschlange**:
+  derselbe Korb, dasselbe Banner, dieselben Auslöser, `outbox/` steht
+  schon in den Backup-Ausschlüssen — eine zweite Warteschlange wäre
+  derselbe Mechanismus zweimal. Er hängt an keinem Trail: `withPendingJobs`
+  gibt bei einem reinen Feedback-Korb das Netz als DIESELBE Liste zurück,
+  `_applyPending` überschreibt damit keinen Fehlerzustand, und
+  `sendOutbox` lädt nur neu, wenn ein Trail-Auftrag hinausging (Test
+  zählt die Abrufe). Wartendes und Abgelehntes zeigt die Glühbirne, das
+  Banner verweist dorthin. Sechs Dinge, die man wissen muss:
   - **Nur `looksOffline` führt in den Korb** (`_queueIfOffline`). Ein
     Serverfehler muss sichtbar scheitern — sonst sammelte der Korb still
     Aufträge, die nie durchgehen, und ein kaputtes Deployment bliebe

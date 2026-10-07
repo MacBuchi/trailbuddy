@@ -1,6 +1,6 @@
 // Der Ausgangskorb (#30, Konzept 4.7 und 8): Aufträge, die ohne Empfang
 // entstanden sind, warten hier auf die nächste Verbindung. Baustein aus
-// PilzBuddy (#267 dort), auf zwei Aufträge zugeschnitten.
+// PilzBuddy (#267 dort), auf vier Aufträge zugeschnitten.
 //
 // **Warum es ihn braucht.** Beisteuern ging bis 0.13.0 direkt an die RPC
 // und scheiterte im Funkloch mit „Keine Verbindung" — die Aufzeichnung
@@ -22,12 +22,14 @@ import 'package:path_provider/path_provider.dart';
 
 import '../features/trails/trail_geometry.dart' show RecordingSource;
 import '../models/trail.dart';
+import 'feedback_repository.dart' show FeedbackType;
 
-/// Ein Auftrag im Korb. Genau DREI Arten — die Schreibwege, die draußen
-/// vorkommen: eine Aufzeichnung beisteuern, den eigenen Beitrag speichern
-/// und melden (seit 0.49.0, #101 — die Meldung stand bis dahin im
-/// Beitrag, und „gesperrt" meldet man am Trail, also ohne Netz). Höhen
-/// nachtragen, Hinweise allein, Löschen scheitern weiter sichtbar:
+/// Ein Auftrag im Korb. Genau VIER Arten — die Schreibwege, die draußen
+/// vorkommen: eine Aufzeichnung beisteuern, den eigenen Beitrag speichern,
+/// melden (seit 0.49.0, #101 — die Meldung stand bis dahin im Beitrag,
+/// und „gesperrt" meldet man am Trail, also ohne Netz) und Feedback (seit
+/// 0.86.0, #218 — der Wunsch kommt draußen, und verworfen ist er weg).
+/// Höhen nachtragen, Hinweise allein, Löschen scheitern weiter sichtbar:
 /// Schreibtischarbeit im WLAN.
 sealed class OutboxJob {
   const OutboxJob({
@@ -117,6 +119,18 @@ sealed class OutboxJob {
             condition: condition,
             onSite: json['on_site'] as bool? ?? false,
             note: json['note'] as String?,
+            attempts: attempts,
+            failure: failure,
+          );
+        case 'feedback':
+          final message = json['message'] as String?;
+          if (message == null || message.trim().isEmpty) return null;
+          return FeedbackJob(
+            id: id,
+            createdAt: createdAt,
+            type: json['type'] == 'bug' ? FeedbackType.bug : FeedbackType.feature,
+            message: message,
+            appVersion: json['app_version'] as String?,
             attempts: attempts,
             failure: failure,
           );
@@ -313,6 +327,55 @@ class ReportJob extends OutboxJob {
         condition: condition,
         onSite: onSite,
         note: note,
+        attempts: attempts ?? this.attempts,
+        failure: clearFailure ? null : (failure ?? this.failure),
+      );
+}
+
+/// Ein Wunsch oder eine Fehlermeldung an den Betreiber (#218), geschrieben
+/// ohne Empfang. [id] ist zugleich die `client_id` in `public.feedback`
+/// (Patch 018) — ein Nachholen nach abgerissener Antwort legt kein zweites
+/// öffentliches Issue an. Hängt an keinem Trail und steht deshalb weder
+/// auf der Karte noch in der Liste; Wartendes und Abgelehntes zeigt die
+/// Glühbirne.
+class FeedbackJob extends OutboxJob {
+  const FeedbackJob({
+    required super.id,
+    required super.createdAt,
+    required this.type,
+    required this.message,
+    this.appVersion,
+    super.attempts,
+    super.failure,
+  });
+
+  final FeedbackType type;
+  final String message;
+
+  /// Die Version beim SCHREIBEN, nicht beim Nachholen — die Meldung gilt
+  /// dem Stand, in dem es passiert ist.
+  final String? appVersion;
+
+  @override
+  Map<String, dynamic> toJson() => {
+        'kind': 'feedback',
+        'id': id,
+        'created_at': createdAt.toUtc().toIso8601String(),
+        'attempts': attempts,
+        'failure': failure,
+        'type': type == FeedbackType.bug ? 'bug' : 'feature',
+        'message': message,
+        'app_version': appVersion,
+      };
+
+  @override
+  FeedbackJob copyWith({int? attempts, String? failure, bool clearFailure = false}) =>
+      FeedbackJob(
+        id: id,
+        createdAt: createdAt,
+        type: type,
+        message: message,
+        appVersion: appVersion,
         attempts: attempts ?? this.attempts,
         failure: clearFailure ? null : (failure ?? this.failure),
       );

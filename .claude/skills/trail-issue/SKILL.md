@@ -38,7 +38,10 @@ den Plan schreiben („fertig, wenn …"), nicht abfragen.
 2. **Issue lesen, mit allen Kommentaren** (`gh api
    repos/{owner}/{repo}/issues/N` und `…/comments`). Entscheidungen des
    Betreibers stehen oft im TEXT des Issues; in #156 steht, wo es im
-   Fahrplan liegt.
+   Fahrplan liegt — und mit welchem Tag (☁️ 💻 ⚙️ 📱 👤, Legende dort).
+   Passt der Tag nicht zur laufenden Sitzung (z. B. 💻 messen in der
+   Cloud), das VOR dem Bauen sagen und nur den Teil machen, der hier geht
+   (Werkzeug schreiben, Workflow anlegen); den Rest benennen.
 3. **Branch frisch von `origin/main`.** Nie vom lokalen `main` und nie von
    einem Branch, dessen PR schon squash-gemergt ist — der trägt den Commit
    sonst doppelt. Gibt die Sitzung einen Branch vor, wird der neu von
@@ -94,6 +97,8 @@ den Plan schreiben („fertig, wenn …"), nicht abfragen.
 7. **Commit und PR** auf Englisch, Conventional Commits — der PR-Titel IST
    der Commit auf `main`. PR-Text nach `.github/pull_request_template.md`,
    Checkliste ehrlich abhaken, die gefahrene Gegenprobe nennen, `Closes #N`
-   in den Body. Gemergt wird vom Menschen. In #156 den Punkt abhaken.
+   in den Body. Gemergt wird vom Menschen. In #156 den Punkt abhaken
+   (der Umgebungs-Tag bleibt stehen); ein neu eingeplantes Issue bekommt
+   dort seinen Tag.
 8. **Schnitt anbieten:** Ist die Aufgabe mit dem PR erledigt, die Antwort
    mit einem Satz schließen: „Guter Moment für `/clear`." Abschnitt „Compact instructions" in der Root-`CLAUDE.md`.

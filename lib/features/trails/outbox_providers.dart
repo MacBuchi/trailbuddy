@@ -107,7 +107,10 @@ final failedJobCountProvider = Provider<int>((ref) =>
 /// laufender Beitrag vor, gilt der spätere in [jobs].
 List<Trail> withPendingJobs(List<Trail> server, List<OutboxJob> jobs,
     {required String myId, Set<String> sending = const {}}) {
-  if (jobs.isEmpty) return server;
+  // Feedback (#218) hängt an keinem Trail. Ein Korb, in dem nur Wünsche
+  // warten, gibt das Netz UNVERÄNDERT zurück — dieselbe Liste, damit die
+  // Karte nichts neu zeichnet.
+  if (!jobs.any((j) => j is! FeedbackJob)) return server;
   final detailsByTrail = <String, DetailsJob>{
     for (final j in jobs)
       if (j is DetailsJob) j.details.trailId: j,

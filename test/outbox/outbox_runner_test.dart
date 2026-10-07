@@ -5,11 +5,14 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' show PostgrestException;
 import 'package:trailbuddy/core/errors.dart';
+import 'package:trailbuddy/data/feedback_repository.dart';
 import 'package:trailbuddy/data/outbox.dart';
 import 'package:trailbuddy/data/outbox_runner.dart';
+import 'package:trailbuddy/features/trails/outbox_providers.dart' show withPendingJobs;
 import 'package:trailbuddy/features/trails/trail_geometry.dart';
 import 'package:trailbuddy/models/trail.dart';
 
+import '../fakes/fake_backend.dart';
 import '../fakes/fake_outbox.dart';
 import '../fakes/fake_trails.dart';
 
@@ -23,6 +26,7 @@ void main() {
   late FakeOutbox box;
   late List<(String, String, int?, Set<TrailTrait>)> adopted;
   late OutboxRunner runner;
+  late FakeBackend backend;
 
   ContributeJob job(String id,
           {List<double>? coords, String? name, Set<TrailTrait> traits = const {}}) =>
@@ -39,8 +43,11 @@ void main() {
     repo = FakeTrailRepository(myId: () => 'me');
     box = FakeOutbox();
     adopted = [];
+    backend = FakeBackend();
+    backend.signInAs(backend.addUser(username: 'me').id);
     runner = OutboxRunner(
         repository: repo,
+        feedback: FakeFeedbackRepository(backend),
         outbox: box,
         adoptDetails: (trailId, name, grade, traits, link, rating) async =>
             adopted.add((trailId, name, grade, traits)));
@@ -153,5 +160,44 @@ void main() {
     final second = await runner.run(uid: 'me');
     expect(second, (sent: 0, remaining: 0, failed: 0));
     expect((await first).sent, 1);
+  });
+
+  test('Feedback (#218): mit seiner Kennung, zweimal gesendet bleibt einer', () async {
+    final fb = FeedbackJob(
+        id: 'fb-1', createdAt: at, type: FeedbackType.bug, message: 'Karte leer', appVersion: '0.85.0');
+    await box.append(fb, uid: 'me');
+    expect((await runner.run(uid: 'me')).sent, 1);
+    // Die Antwort ging verloren, der Auftrag liegt noch einmal da.
+    await box.append(fb, uid: 'me');
+    expect((await runner.run(uid: 'me')).sent, 1);
+    expect(backend.feedback, hasLength(1));
+    expect(backend.feedback.single['client_id'], 'fb-1');
+    expect(backend.feedback.single['app_version'], '0.85.0');
+    expect(box.jobs, isEmpty);
+  });
+
+  test('Feedback ohne Netz: wartet, ohne Zähler', () async {
+    backend.offline = true;
+    await box.append(
+        FeedbackJob(id: 'fb-2', createdAt: at, type: FeedbackType.feature, message: 'Idee'), uid: 'me');
+    final r = await runner.run(uid: 'me');
+    expect(r, (sent: 0, remaining: 1, failed: 0));
+    expect(box.jobs.single.attempts, 0);
+  });
+
+  test('Feedback übersteht die Ablage: encode und decode', () {
+    final fb = FeedbackJob(
+        id: 'fb-3', createdAt: at, type: FeedbackType.bug, message: 'Text', appVersion: '0.86.0', attempts: 2,
+        failure: 'Abgelehnt');
+    final back = decodeOutbox(encodeOutbox([fb], uid: 'me'), uid: 'me').single as FeedbackJob;
+    expect(back.toJson(), fb.toJson());
+  });
+
+  test('nur Wünsche im Korb: das Netz bleibt dieselbe Liste (keine neue Karte)', () {
+    final server = <Trail>[];
+    final out = withPendingJobs(server,
+        [FeedbackJob(id: 'fb-4', createdAt: at, type: FeedbackType.feature, message: 'Idee')],
+        myId: 'me');
+    expect(identical(out, server), isTrue);
   });
 }

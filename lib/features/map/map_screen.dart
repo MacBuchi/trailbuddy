@@ -40,6 +40,7 @@ import '../offline_areas/area_providers.dart';
 import '../offline_areas/area_store.dart';
 import '../offline_areas/offline_tool_rail.dart';
 import '../trails/grade_shield.dart' show trailColorOf, trailLineStyleOf;
+import '../../data/outbox.dart';
 import '../trails/outbox_providers.dart';
 import '../trails/trail_list.dart';
 import '../trails/trail_providers.dart';
@@ -1350,6 +1351,16 @@ class _OutboxBanner extends ConsumerWidget {
     final count = ref.watch(pendingJobCountProvider);
     final failed = ref.watch(failedJobCountProvider);
     if (count == 0) return const SizedBox.shrink();
+    // Wo man über Abgelehntes entscheidet: Trail-Aufträge in der Liste,
+    // Feedback (#218) bei der Glühbirne — es hängt an keinem Trail.
+    final rejected = [
+      for (final j in ref.watch(outboxJobsProvider).valueOrNull ?? const <OutboxJob>[])
+        if (j.failure != null) j,
+    ];
+    final decideWhere = [
+      if (rejected.any((j) => j is! FeedbackJob)) 'in der Trail-Liste',
+      if (rejected.any((j) => j is FeedbackJob)) 'bei der Glühbirne',
+    ].join(' und ');
     final waiting = count - failed;
     final text = [
       if (waiting > 0) '$waiting ${waiting == 1 ? 'wartet' : 'warten'} auf Übertragung',
@@ -1366,7 +1377,7 @@ class _OutboxBanner extends ConsumerWidget {
             leading: Icon(failed > 0 ? Icons.error_outline : Icons.schedule),
             title: Text(text),
             subtitle: Text(failed > 0 && waiting == 0
-                ? 'Entscheiden in der Trail-Liste'
+                ? 'Entscheiden $decideWhere'
                 : 'Antippen zum Senden — sonst beim nächsten Netz'),
             onTap: () async {
               final messenger = ScaffoldMessenger.of(context);

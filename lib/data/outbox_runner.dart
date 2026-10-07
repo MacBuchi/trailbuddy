@@ -10,15 +10,24 @@ import 'package:supabase_flutter/supabase_flutter.dart' show PostgrestException;
 
 import '../core/errors.dart';
 import '../models/trail.dart' show TrailTrait;
+import 'feedback_repository.dart';
 import 'outbox.dart';
 import 'trail_repository.dart';
 
 typedef OutboxRunResult = ({int sent, int remaining, int failed});
 
 class OutboxRunner {
-  OutboxRunner({required this.repository, required this.outbox, required this.adoptDetails});
+  OutboxRunner({
+    required this.repository,
+    required this.feedback,
+    required this.outbox,
+    required this.adoptDetails,
+  });
 
   final TrailRepository repository;
+
+  /// Für [FeedbackJob] (#218).
+  final FeedbackRepository feedback;
   final Outbox outbox;
 
   /// Nach dem Beisteuern: den Namen (und den Link, #103) aus der Datei als
@@ -103,6 +112,9 @@ class OutboxRunner {
             if (note.isNotEmpty) {
               await repository.addNote(trailId: job.trailId, body: note);
             }
+          case FeedbackJob():
+            await feedback.submit(job.type, job.message,
+                appVersion: job.appVersion, clientId: job.id);
         }
         sent++;
       } catch (error) {

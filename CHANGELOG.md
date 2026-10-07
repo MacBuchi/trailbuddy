@@ -2,6 +2,18 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Feedback auch ohne Empfang
+
+*Version 0.86.0, 2026-10-07*
+
+- **Nichts geht mehr verloren**: Schreibst du über die Glühbirne einen
+  Wunsch oder einen Fehler, während du kein Netz hast, bleibt er auf dem
+  Gerät und geht von selbst raus, sobald wieder Empfang da ist — wie
+  Trails, die du draußen beisteuerst.
+- **Du siehst, was noch wartet**: Öffnest du die Glühbirne, steht oben,
+  welche Meldung noch nicht übertragen ist. Sollte eine abgelehnt worden
+  sein, kannst du sie dort noch einmal senden oder verwerfen.
+
 ## Meine Fahrten aufräumen
 
 *Version 0.85.0, 2026-10-07*
