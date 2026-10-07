@@ -157,12 +157,32 @@ class _ExampleTrailSheet extends StatelessWidget {
           children: [
             Row(
               children: [
-                Flexible(
-                  child: Text('BEISPIEL: BUCHENHANG',
-                      style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800)),
+                Expanded(
+                  child: Row(
+                    children: [
+                      Flexible(
+                        child: Text('BEISPIEL: BUCHENHANG',
+                            style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800)),
+                      ),
+                      const SizedBox(width: 8),
+                      const TourExampleBadge(),
+                    ],
+                  ),
                 ),
-                const SizedBox(width: 8),
-                const TourExampleBadge(),
+                // Wie im echten Blatt (#224): Anfahrt und Schließen im Kopf.
+                const CoachAnchor(
+                  id: SheetCoach.navigate,
+                  child: IconButton(
+                    tooltip: 'Anfahrt',
+                    onPressed: _nothing,
+                    icon: Icon(Icons.directions_outlined),
+                  ),
+                ),
+                const IconButton(
+                  tooltip: 'Schließen',
+                  onPressed: _nothing,
+                  icon: Icon(Icons.close),
+                ),
               ],
             ),
             Text('So sieht ein Trail aus, sobald du einen importiert oder '
@@ -243,32 +263,14 @@ class _ExampleTrailSheet extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(
-                  child: CoachAnchor(
-                    id: SheetCoach.trailHead,
-                    child: OutlinedButton.icon(
-                      style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
-                      onPressed: _nothing,
-                      icon: const Icon(Icons.route_outlined),
-                      label: const Text('Zum Trailkopf'),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: CoachAnchor(
-                    id: SheetCoach.navigate,
-                    child: OutlinedButton.icon(
-                      style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
-                      onPressed: _nothing,
-                      icon: const Icon(Icons.directions_outlined),
-                      label: const Text('Anfahrt'),
-                    ),
-                  ),
-                ),
-              ],
+            CoachAnchor(
+              id: SheetCoach.trailHead,
+              child: OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
+                onPressed: _nothing,
+                icon: const Icon(Icons.route_outlined),
+                label: const Text('Zum Trailkopf'),
+              ),
             ),
           ],
         ),

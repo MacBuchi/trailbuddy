@@ -272,7 +272,7 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     selbst"; `privacy_policy_test` prüft weiter den Teilstring.
 - **Anfahrt zum Trailkopf** (#151, seit 0.67.0,
   `lib/features/trails/trail_navigation.dart`; Vorlage PilzBuddy #367):
-  „Anfahrt" im Trail-Blatt reicht `Trail.start` als `geo:`-URI an
+  „Anfahrt" (seit 0.83.0 das Navi-Symbol im Kopf des Blatts, #224) reicht `Trail.start` als `geo:`-URI an
   Android, welche App ihn bekommt, entscheidet der System-Wähler. Drei
   Dinge, die man wissen muss:
   - **Ein `<queries>`-Eintrag VIEW/geo im Manifest.** Ohne ihn sieht
@@ -293,3 +293,13 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     (`Trail.hasName`).
   Kein Netzziel, keine Berechtigung, keine Weitergabe im Sinne von Data
   Safety (nutzerinitiiert, der Wähler ist die Bestätigung).
+- **Das Trail-Blatt schließt auf drei Wegen** (#215, seit 0.83.0,
+  `showTrailSheet`): X im Kopf, Zurück, und Ziehen nach unten auf dem
+  GANZEN Inhalt. Dafür steckt der Inhalt in einem
+  `DraggableScrollableSheet` (auf `kTrailSheetInitialSize` 0,75, schließt
+  unter `kTrailSheetMinSize` 0,3 über `shouldCloseOnMinExtent`), dessen
+  Controller die Scrollfläche bekommt — ohne ihn nimmt die Scrollfläche
+  jede senkrechte Geste, und nur der Griff schließt. `useSafeArea`, sonst
+  läuft ein langes Blatt unter die Statusleiste, und der Griff ist
+  unerreichbar. `test/flows/trail_sheet_close_flow_test.dart` (Gegenprobe
+  ohne Controller: zwei Tests rot).

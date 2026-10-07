@@ -44,10 +44,31 @@ Future<void> showTrailSheet(BuildContext context, Trail trail,
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
+    // Ohne läuft ein langes Blatt bis unter die Statusleiste, und der
+    // Griff liegt dort, wo kein Daumen hinkommt (#215).
+    useSafeArea: true,
     showDragHandle: true,
-    builder: (_) => _TrailSheet(trailId: trail.id, showOnMapButton: showOnMapButton),
+    // Ziehbar auf dem GANZEN Inhalt (#215): Eine Scrollfläche im Blatt
+    // nimmt sonst jede senkrechte Geste, und nur der Griff schließt. Ganz
+    // oben gescrollt schiebt Ziehen nach unten das Blatt hinaus; an der
+    // Untergrenze schließt es (`shouldCloseOnMinExtent`).
+    builder: (_) => DraggableScrollableSheet(
+      expand: false,
+      initialChildSize: kTrailSheetInitialSize,
+      minChildSize: kTrailSheetMinSize,
+      maxChildSize: 1,
+      builder: (_, controller) =>
+          _TrailSheet(trailId: trail.id, showOnMapButton: showOnMapButton, controller: controller),
+    ),
   );
 }
+
+/// Anteil der Höhe, mit dem das Blatt aufgeht — der Kopf, die Kennzahlen
+/// und das Höhenprofil; der Rest liegt einen Wisch darunter.
+const kTrailSheetInitialSize = 0.75;
+
+/// Darunter schließt das Blatt, wenn man es nach unten zieht.
+const kTrailSheetMinSize = 0.3;
 
 /// „gemeldet vor 3 Tagen" — das Alter einer Meldung im Blatt.
 String statusAge(DateTime at, {DateTime? now}) {
@@ -73,9 +94,10 @@ String formatMeanGrade(double descentPct) {
 }
 
 class _TrailSheet extends ConsumerStatefulWidget {
-  const _TrailSheet({required this.trailId, required this.showOnMapButton});
+  const _TrailSheet({required this.trailId, required this.showOnMapButton, required this.controller});
   final String trailId;
   final bool showOnMapButton;
+  final ScrollController controller;
 
   @override
   ConsumerState<_TrailSheet> createState() => _TrailSheetState();
@@ -107,9 +129,10 @@ class _TrailSheetState extends ConsumerState<_TrailSheet> {
   Widget build(BuildContext context) {
     final trail = ref.watch(trailByIdProvider(widget.trailId));
     if (trail == null) {
-      return const Padding(
-        padding: EdgeInsets.all(24),
-        child: Text('Dieser Trail ist nicht mehr sichtbar.'),
+      return ListView(
+        controller: widget.controller,
+        padding: const EdgeInsets.all(24),
+        children: const [Text('Dieser Trail ist nicht mehr sichtbar.')],
       );
     }
     _markSeen(trail);
@@ -131,6 +154,7 @@ class _TrailSheetState extends ConsumerState<_TrailSheet> {
     // quer gehaltenen Telefon liefe das Blatt sonst unten über.
     return SafeArea(
       child: SingleChildScrollView(
+        controller: widget.controller,
         padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -154,6 +178,25 @@ class _TrailSheetState extends ConsumerState<_TrailSheet> {
                     child: GradeShield(trail.grade!,
                         key: const ValueKey('grade-shield'), fontSize: 14, uphill: isUphill(trail)),
                   ),
+                // Anfahrt (#224) und Schließen (#215) im Kopf: Die Navi-App
+                // braucht man am Parkplatz, ohne erst ans Ende zu scrollen,
+                // und ein X schließt, wo Wischen und Zurück nicht gefunden
+                // werden.
+                CoachAnchor(
+                  id: SheetCoach.navigate,
+                  child: IconButton(
+                    key: const ValueKey('trail-navigate'),
+                    tooltip: 'Anfahrt',
+                    onPressed: () => navigateToTrailHead(context, trail),
+                    icon: const Icon(Icons.directions_outlined),
+                  ),
+                ),
+                IconButton(
+                  key: const ValueKey('trail-sheet-close'),
+                  tooltip: 'Schließen',
+                  onPressed: () => Navigator.of(context).pop(),
+                  icon: const Icon(Icons.close),
+                ),
               ],
             ),
             if (trail.otherNames.isNotEmpty)
@@ -410,10 +453,10 @@ class _TrailSheetState extends ConsumerState<_TrailSheet> {
                   ),
                 ],
               ),
-            // „Zum Trailkopf" (#158 Schritt 4) und Anfahrt (#151) in einer
-            // Zeile, zur Karte darunter: Drei Knöpfe nebeneinander passen
-            // auf ein kleines Telefon nicht. Beides gibt es auch für
-            // wartende Trails — Punkte haben sie, der Trailkopf steht fest.
+            // „Zum Trailkopf" (#158 Schritt 4) und „Karte" in einer Zeile;
+            // die Anfahrt (#151) steht seit #224 als Symbol im Kopf. Den
+            // Trailkopf gibt es auch für wartende Trails — Punkte haben
+            // sie, der Trailkopf steht fest.
             if (!trail.pending) const SizedBox(height: 8),
             Row(
               children: [
@@ -436,38 +479,28 @@ class _TrailSheetState extends ConsumerState<_TrailSheet> {
                     label: const Text('Zum Trailkopf'),
                   )),
                 ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: CoachAnchor(
-                    id: SheetCoach.navigate,
-                    child: OutlinedButton.icon(
-                    key: const ValueKey('trail-navigate'),
-                    style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
-                    onPressed: () => navigateToTrailHead(context, trail),
-                    icon: const Icon(Icons.directions_outlined),
-                    label: const Text('Anfahrt'),
-                  )),
-                ),
+                if (widget.showOnMapButton) ...[
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: CoachAnchor(
+                      id: SheetCoach.showOnMap,
+                      child: OutlinedButton.icon(
+                      key: const ValueKey('trail-show-on-map'),
+                      style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
+                      onPressed: () {
+                        // Erst der Reiter, dann der Wunsch (PilzBuddy #345).
+                        Navigator.of(context).pop();
+                        StatefulNavigationShell.maybeOf(context)
+                            ?.goBranch(kMapBranchIndex);
+                        ref.read(mapFocusTrailProvider.notifier).state = trail.id;
+                      },
+                      icon: const Icon(Icons.map),
+                      label: const Text('Karte'),
+                    )),
+                  ),
+                ],
               ],
             ),
-            if (widget.showOnMapButton) ...[
-              const SizedBox(height: 8),
-              CoachAnchor(
-                id: SheetCoach.showOnMap,
-                child: OutlinedButton.icon(
-                key: const ValueKey('trail-show-on-map'),
-                style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
-                onPressed: () {
-                  // Erst der Reiter, dann der Wunsch (PilzBuddy #345).
-                  Navigator.of(context).pop();
-                  StatefulNavigationShell.maybeOf(context)
-                      ?.goBranch(kMapBranchIndex);
-                  ref.read(mapFocusTrailProvider.notifier).state = trail.id;
-                },
-                icon: const Icon(Icons.map),
-                label: const Text('Karte'),
-              )),
-            ],
           ],
         ),
       ),

@@ -443,7 +443,11 @@ Schwierigkeit (E9) —, eine unbestätigte Meldung gedämpft mit „?"
   Kacheln. „Mein Beitrag" steht als Textknopf unter „Deine
   Einschätzung" (4f bearbeitet den Beitrag direkt im Blatt; der Dialog
   kann mehr — Name, Status, Sichtbarkeit). Das S-Grad-Schild neben dem
-  Titel (4f) steht seit 0.42.0 (Schritt 6a).
+  Titel (4f) steht seit 0.42.0 (Schritt 6a). Rechts im Kopf seit 0.83.0
+  das Navi-Symbol („Anfahrt", #224) und ein X (#215); unten stehen nur
+  noch „Zum Trailkopf" und „Karte" nebeneinander. Das Blatt ist auf dem
+  ganzen Inhalt ziehbar (geht mit drei Vierteln der Höhe auf, nach unten
+  gezogen schließt es).
 - **Trail-Liste (1j):** Karten mit 14 px Radius, Farbstreifen links =
   Beziehung (seit 0.42.0: Schwierigkeit), rechts ein Wort in der Farbe (NEUER HINWEIS, MEIN, GESPERRT,
   AUSGANGSKORB …), Zahlen in Mono. **Gebaut seit 0.38.0**
