@@ -502,6 +502,37 @@ Grenzen um wenige Kilometer; für Anteile spielt das keine Rolle.*
 Die Höhen zählen die ganzen Randkacheln, die Wege nur bis zum Rahmen;
 das Verhältnis ist also eher etwas zu klein als zu groß.
 
+## #212 — Das Wege-Archiv, kleiner gemacht (gemessen 2026-10-08, lokal)
+
+*`tool/way_archive.py build` auf denselben Auszügen wie #211 (DE, AT, CH,
+LI, IT-Nordost), ganze Länder statt Rahmen. Gebaut wird später von
+`way-data.yml` über die ganze Box der Karte, mit denselben Auszügen wie
+die Orte.*
+
+Was #211 „vor dem Bau prüfen" verlangte, ist umgesetzt: Nur Wege mit
+Güte, und von den Tags nur EINE Zahl, die Klasse (Forstweg gut/mittel/
+schlecht aus `tracktype`, Pfad leicht/mittel/schwer aus `mtb:scale`,
+sonst `sac_scale`). Damit ist je Kachel und Klasse ein Objekt übrig, und
+die Variante aus #211 (rund 200 MiB) schrumpft auf weniger als die Hälfte:
+
+| Variante | Größe | Kacheln | Punkte | Anteil an den Höhen |
+|---|---:|---:|---:|---:|
+| z13, Vereinfachung 1,5 Einheiten (≈ 1,8 m) | 92,3 MB | 53 615 | 37,3 Mio. | 63 % |
+| z13, Vereinfachung 3 Einheiten (≈ 3,6 m) | 80,8 MB | 53 615 | 29,6 Mio. | 55 % |
+| z12, Vereinfachung 1,5 Einheiten (≈ 2,4 m) | 65,6 MB | 13 779 | 29,0 Mio. | 45 % |
+
+4,19 Mio. Wege mit Güte, 77 000 mit einem Wert, der keiner ist; knapp
+5 Minuten, 2,2 GB Speicher. Höhen zum Vergleich: 146,8 MB für die ganze
+Box (95 494 Kacheln).
+
+**Gewählt: z13 mit 1,5.** Dieselbe Zoomstufe wie Höhen, Bereichsform und
+Straßengraph — #213 hängt die Güte Kachel für Kachel an die Kanten. Die
+gröbere Vereinfachung spart 12 %, läge aber mit 3,6 m außerhalb des
+3-m-Korridors, in dem #211 die Grundkarte gefunden hat. z12 spart mehr,
+lädt aber bei einem schmalen Bereich entlang der Trails die vierfache
+Fläche mit. Mit den Nachbarländern der Box wird es mehr; `way-data.yml`
+veröffentlicht nichts, was größer ist als die Höhen.
+
 ## Was aus dem Werkzeug bleibt
 
 - Der MVT-Decoder, der COG-Leser, Klassentabelle, Zeitmodell, Graph
