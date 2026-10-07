@@ -421,6 +421,87 @@ kann, zeigt sie: Der Plan ist nach dem Modell schneller und nicht
 länger, und kein Aufschlag der Tabelle rückt ihn näher an die Fahrt.
 Ob er sich fahren lässt, sagt der Feldtest (#188), nicht diese Zahl.
 
+## #211 — Wege-Tags in DACH (gemessen 2026-10-08, lokal)
+
+*Werkzeug `tool/way_tags.py` (Selbsttest in CI), lokal gefahren
+(Betreiber, 2026-10-07: Geofabrik ist aus der Cloud gesperrt, jeder
+CI-Lauf wären 4 GB Download). Geofabrik-Auszüge vom 2026-10-07: DE, AT,
+CH, LI, IT-Nordost; Grundkarte `dach-20261001.pmtiles`, Höhen
+`heights-20261001.pmtiles` vom eigenen Host. Vier 20-km-Rahmen:
+Schwarzwald, Harz, Tirol, Berner Oberland. Die Auszüge überlappen an den
+Grenzen um wenige Kilometer; für Anteile spielt das keine Rolle.*
+
+### Ergebnis
+
+1. **Die Wegqualität der Forstwege ist da, die Schwierigkeit der Pfade
+   nicht.** `tracktype` trägt 83 % der Forstweg-Länge (DE 86, AT 78,
+   CH 83, IT-NO 55 %), in der Hälfte der 0,5°-Zellen 72–89 %. Auf Pfaden
+   trägt `sac_scale` 22 % (DE 8, AT 46, CH 36 %) und `mtb:scale` 10 %;
+   in der mittleren Zelle 6 bzw. 7 %. `smoothness` ist überall dünn
+   (Forstweg 8 %, Pfad 11 %).
+2. **Der Abgleich gelingt über die Geometrie**: Die Pfad- und
+   Forstweglinien der Grundkarte finden zu 97–100 % schon innerhalb 3 m
+   einen OSM-Weg derselben Klasse, 99–100 % der Graphkanten (80 % ihrer
+   Länge im Korridor). Beide stammen aus demselben OSM; 8 m bringen
+   nichts dazu. Umgekehrt fehlen der Karte vor allem städtische
+   Fußwege (Tirol 62 %, Gehsteige). **Der Graph bleibt der der
+   Grundkarte; die Tags kommen per Geometrie dazu.**
+3. **Größe**: Ein z13-Archiv nur der getaggten Wege (Tags als kleine
+   Zahlen, Geometrie auf 1 Kacheleinheit vereinfacht) kostet je Rahmen
+   das 0,6- bis 2,1-Fache der Höhenkacheln desselben Rahmens, für DACH
+   hochgerechnet **rund 200 MiB** (über das Verhältnis zu den 140 MiB
+   Höhen 207 MiB, über Bytes je Weg-km 195 MiB). Alle Wege mit Klasse
+   (Variante b) wären nur 10–45 % mehr — wird nicht gebraucht, siehe 2.
+4. **Für #212**: trägt — Forstweg-Güte auf der Karte ist in DACH flächig
+   möglich; die Wegschwierigkeit nur dort, wo gemappt (Alpen ja,
+   Mittelgebirge kaum). Das Archiv ist größer als die Höhen; vor dem Bau
+   prüfen, was es kleiner macht (nur `tracktype`/`sac_scale`/`mtb:scale`,
+   gröbere Vereinfachung, z12). **Für #213**: Forstweg nach `tracktype`
+   zu bepreisen trägt; auf Pfaden ist „unbekannt" der Normalfall und
+   muss den heutigen Preis behalten.
+
+### Abdeckung (Anteil der Länge)
+
+| Wegart | km (alle) | Tag | DE | AT | CH | IT-NO | alle |
+|---|---:|---|---:|---:|---:|---:|---:|
+| track | 1 632 026 | tracktype | 86 % | 78 % | 83 % | 55 % | 83 % |
+| | | surface | 53 % | 25 % | 36 % | 35 % | 47 % |
+| | | smoothness | 10 % | 3 % | 4 % | 6 % | 8 % |
+| path | 433 761 | sac_scale | 8 % | 46 % | 36 % | 45 % | 22 % |
+| | | mtb:scale | 9 % | 8 % | 12 % | 18 % | 10 % |
+| | | mtb:scale:uphill | 2 % | 3 % | 3 % | 5 % | 2 % |
+| | | trail_visibility | 10 % | 29 % | 14 % | 27 % | 15 % |
+| | | surface | 72 % | 37 % | 32 % | 36 % | 57 % |
+| footway | 185 889 | surface | 64 % | 59 % | 51 % | 47 % | 61 % |
+| cycleway | 29 977 | surface | 87 % | 85 % | 83 % | 70 % | 81 % |
+| steps | 5 094 | surface | 56 % | 47 % | 39 % | 36 % | 51 % |
+
+`bridleway` (3 235 km) trägt fast nur `surface`; `sac_scale` und
+`mtb:scale` auf Fußwegen sind 0 %.
+
+### Werte (Anteil der getaggten Länge)
+
+- `tracktype`: grade1 14 %, grade2 29 %, grade3 27 %, grade4 18 %,
+  grade5 13 % — fast ein Drittel der getaggten Forstwege ist grade4/5.
+- `sac_scale` auf Pfaden: T1 34 %, T2 46 %, T3 12 %, T4–T6 7 %.
+- `mtb:scale` auf Pfaden: 0 26 %, 1 38 %, 2 23 %, 3 9 %, 4–6 5 %;
+  `:uphill` 0–5 fast gleich verteilt (11 000 km).
+- `smoothness` auf Forstwegen: bad und schlechter 60 %.
+- `surface` auf Forstwegen: natürlich 39 %, Schotter 25 %, befestigt
+  19 %, verdichtet 17 %.
+
+### Größe je Rahmen (z13, gzip)
+
+| Rahmen | Weg-km | nur getaggt | alle Wege | Höhen | getaggt / Höhen |
+|---|---:|---:|---:|---:|---:|
+| Schwarzwald | 2 839 | 221 KiB | 248 KiB | 137 KiB | 161 % |
+| Harz | 1 962 | 175 KiB | 192 KiB | 110 KiB | 158 % |
+| Tirol | 2 658 | 264 KiB | 320 KiB | 124 KiB | 212 % |
+| Berner Oberland | 1 034 | 82 KiB | 121 KiB | 130 KiB | 63 % |
+
+Die Höhen zählen die ganzen Randkacheln, die Wege nur bis zum Rahmen;
+das Verhältnis ist also eher etwas zu klein als zu groß.
+
 ## Was aus dem Werkzeug bleibt
 
 - Der MVT-Decoder, der COG-Leser, Klassentabelle, Zeitmodell, Graph
