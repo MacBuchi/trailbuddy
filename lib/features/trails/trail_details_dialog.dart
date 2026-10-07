@@ -60,7 +60,8 @@ class _DetailsDialogState extends State<_DetailsDialog> {
   late final _name = TextEditingController(text: widget.initial.name ?? '');
   late final _description =
       TextEditingController(text: widget.initial.description ?? '');
-  late final _link = TextEditingController(text: widget.initial.link ?? '');
+  late final _link =
+      TextEditingController(text: switch (widget.initial.link) { final l? => linkForDisplay(l), _ => '' });
   String? _linkError;
   late int? _grade = widget.initial.grade;
   late int? _rating = widget.initial.rating;

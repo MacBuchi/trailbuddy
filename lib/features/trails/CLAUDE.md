@@ -115,7 +115,14 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
   Das Blatt zeigt den Host (`linkHost`), geöffnet wird extern; die App
   ruft ihn nie ab. **Jeder, der `TrailDetails` neu baut** (Dialog, Fake),
   muss den Link mitgeben — sonst löscht Speichern ihn still.
-  `matcher_check.sql` Block 22.
+  `matcher_check.sql` Block 22. **Umlaute** (#223, seit 0.83.4): Dart
+  kodiert einen Host mit Umlauten mit Prozentzeichen („m%C3%BChle"),
+  der Browser schickt Punycode. Gespeichert wird die Form des Browsers
+  (Host über `hostToAscii` in `lib/core/idn.dart`, Pfad prozentkodiert),
+  gezeigt die der Adresszeile (`linkHost`, `linkForDisplay` im
+  Eingabefeld; nur Bytes über ASCII werden aufgelöst, „%20"/„%2F"
+  bleiben). Alte Zeilen mit Prozent-Host zeigt `linkHost` ebenso
+  lesbar; beim nächsten Speichern werden sie Punycode.
 - **Hinweise für Buddys** (#7, Patch 004 + 005, `trail_notes.dart`):
   freier Text zu einem Trail („Baum liegt quer"). Schreiben darf, wer
   den Trail SIEHT (`app_internal.can_see_trail`, dieselbe Regel wie
