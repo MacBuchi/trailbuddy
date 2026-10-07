@@ -127,14 +127,15 @@ void main() {
 
   testWidgets('aus dem Blatt auf die Karte: Weg, Summen, Vorschau, Profil, GPX', (tester) async {
     await start(tester, areaStore: await _areaWithTrack());
-    // Im Blatt stehen „Zum Trailkopf" und „Anfahrt" nebeneinander, „Karte"
-    // darunter — drei in einer Zeile passen auf kein kleines Telefon.
+    // Im Blatt stehen „Zum Trailkopf" und „Karte" nebeneinander; die
+    // Anfahrt ist seit #224 ein Symbol im Kopf, neben dem Namen.
     final head = find.byKey(const ValueKey('trail-head'));
     final navigate = find.byKey(const ValueKey('trail-navigate'));
     final map = find.byKey(const ValueKey('trail-show-on-map'));
     await tester.ensureVisible(map);
-    expect(tester.getCenter(head).dy, closeTo(tester.getCenter(navigate).dy, 1));
-    expect(tester.getTopLeft(map).dy, greaterThan(tester.getBottomLeft(head).dy));
+    expect(tester.getCenter(head).dy, closeTo(tester.getCenter(map).dy, 1));
+    expect(tester.getCenter(navigate).dy,
+        closeTo(tester.getCenter(find.byKey(const ValueKey('trail-sheet-title'))).dy, 24));
 
     await tapTrailHead(tester);
     expect(find.byKey(const ValueKey('trail-head-summary')), findsOneWidget);

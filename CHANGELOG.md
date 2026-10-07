@@ -2,6 +2,18 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Trail-Blatt: schließen und Anfahrt oben
+
+*Version 0.83.0, 2026-10-07*
+
+- **Das Blatt eines Trails lässt sich wieder schließen** — mit dem X
+  oben rechts, mit der Zurück-Taste und indem du es nach unten ziehst,
+  egal wo du es anfasst. Bisher ging Ziehen nur am kleinen Griff, und
+  bei langem Inhalt lag der unter der Statusleiste.
+- **Die Anfahrt sitzt jetzt als Navi-Symbol oben im Blatt**, neben dem
+  Namen — am Parkplatz musst du nicht mehr bis ganz nach unten scrollen.
+  Unten stehen nur noch „Zum Trailkopf" und „Karte".
+
 ## Kurze Trails
 
 *Version 0.82.2, 2026-10-04*

@@ -224,9 +224,9 @@ const kFeatureHighlights = <FeatureHighlight>[
     tab: HighlightTab.trails,
     icon: Icons.directions_outlined,
     title: 'Anfahrt zum Trail',
-    text: '„Anfahrt" im Blatt übergibt den Anfang des Trails an deine '
-        'Navi-App — welche, entscheidest du im Wähler. Ohne Navi-App landen '
-        'die Koordinaten in der Zwischenablage.',
+    text: 'Das Navi-Symbol oben im Blatt übergibt den Anfang des Trails an '
+        'deine Navi-App — welche, entscheidest du im Wähler. Ohne Navi-App '
+        'landen die Koordinaten in der Zwischenablage.',
     target: '/trails',
   ),
   FeatureHighlight(
