@@ -27,7 +27,15 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
   Zeilen, dann die eigenen Frames aus dem Rest). Eine
   vergangene Woche rendert `--digest-week 2026-W40` (liest nur), im
   Workflow über die Eingabe `digest_week` in die Run-Summary.
-  `--test-digest` läuft in CI mit. Vier Dinge, die man wissen muss:
+  `--test-digest` läuft in CI mit. **Ohne Empfang geht ein Wunsch in den
+  Ausgangskorb** (#218, seit 0.86.0, `FeedbackJob`, Einzelheiten in
+  `lib/data/CLAUDE.md`): Die Kennung entsteht vor dem ersten Versuch und
+  steht als `feedback.client_id` (unique, Patch 018) in der Zeile; ein
+  `23505` beim Nachholen heißt „stand schon", sonst stünde derselbe
+  Wunsch zweimal als öffentliches Issue da. Die Version ist die beim
+  SCHREIBEN. Kein Korb (Web) ⇒ der Netzfehler wie bisher. Der Dialog
+  zeigt oben, was noch wartet oder abgelehnt wurde, mit „Verwerfen" und
+  „Erneut versuchen". Vier Dinge, die man wissen muss:
   - **Kein Benutzername im Issue**, anders als PilzBuddy: Das Issue ist
     öffentlich, wer schrieb, steht nur in der Datenbank. `@`-Erwähnungen
     werden entschärft. Der Dialog bittet ausdrücklich um keine

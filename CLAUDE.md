@@ -20,6 +20,16 @@ Konzept widerspricht, ändert das Konzept im selben PR — oder den Code.
 die Einordnung neuer Issues werden dort direkt gepflegt, ohne PR; jedes
 eingeplante Issue hängt als Sub-Issue daran. `konzept-trails.md` §11 nennt
 nur die Phasen — ein PR dort nur, wenn eine Phase dazukommt oder wegfällt.
+**Jeder offene Punkt trägt seine Umgebung** (Betreiber, 2026-10-07;
+Legende im Kopf von #156): ☁️ Cloud-Sitzung, 💻 Rechner des Betreibers,
+⚙️ nur als Workflow, 📱 Abnahme am Gerät, 👤 Entscheidung/Dashboard —
+mehrere heißen „bauen hier, messen/abnehmen dort". Wer ein Issue
+einplant, setzt den Tag; wer merkt, dass er nicht stimmt, korrigiert ihn
+dort. Die Cloud hat Flutter (= CI), Chromium und Postgres + PostGIS
+(`tool/schema_local_test.sh`), aber **keinen** Docker-Stack (PostgREST
+und GoTrue erst im Dry Run), kein Gerät, keine Secrets und nichts
+Privates des Betreibers (Fahrten, DocuHub); Workflow-Artefakte sind von
+dort nicht abrufbar, Logs und Run-Summary schon.
 Das Rework vom 2026-09-30 (`docs/konzept-rework.md`, #109) plant die
 nächsten Schritte am Modell; gebaut wird es Schritt für Schritt, und
 jeder zieht `konzept-trails.md` nach. Die Einführung (Tour, Kurzanleitung,

@@ -245,9 +245,10 @@ class TrailsNotifier extends AsyncNotifier<List<Trail>>
       _composeWith(ref.read(outboxJobsProvider).valueOrNull ?? const [], myId);
 
   void _applyPending(List<OutboxJob> jobs, String myId) {
-    // Ohne je einen Server-Stand und ohne Aufträge gibt es nichts zu
-    // zeigen — der Fehlerzustand bleibt dann stehen.
-    if (!state.hasValue && jobs.isEmpty) return;
+    // Ohne je einen Server-Stand und ohne Trail-Aufträge gibt es nichts zu
+    // zeigen — der Fehlerzustand bleibt dann stehen. Feedback (#218) zählt
+    // nicht: Es steht auf keiner Karte.
+    if (!state.hasValue && !jobs.any((j) => j is! FeedbackJob)) return;
     state = AsyncData(_composeWith(jobs, myId));
   }
 
@@ -352,7 +353,15 @@ class TrailsNotifier extends AsyncNotifier<List<Trail>>
     if (jobs.isEmpty) return (sent: 0, remaining: 0, failed: 0);
     final result = await ref.read(outboxRunnerProvider).run(uid: uid);
     await ref.read(outboxJobsProvider.notifier).refresh();
-    if (result.sent > 0) await reloadAfterWrite('Trails nach dem Ausgangskorb laden');
+    // Neu geladen wird nur, wenn ein TRAIL-Auftrag hinausging: Ein
+    // nachgeholter Wunsch (#218) ändert am Netz nichts, und ein ganzes
+    // Neuladen kostet die Karte (siehe „Speichern ohne Neuladen des Netzes").
+    final trailJobsLeft =
+        (ref.read(outboxJobsProvider).valueOrNull ?? const []).where((j) => j is! FeedbackJob).length;
+    final trailJobsSent = jobs.where((j) => j is! FeedbackJob).length > trailJobsLeft;
+    if (result.sent > 0 && trailJobsSent) {
+      await reloadAfterWrite('Trails nach dem Ausgangskorb laden');
+    }
     return result;
   }
 
@@ -538,6 +547,7 @@ final trailsAwaitNetworkProvider = StateProvider<bool>((ref) => false);
 /// der den Bestand kennt und keinen bewusst eingetragenen überschreibt.
 final outboxRunnerProvider = Provider<OutboxRunner>((ref) => OutboxRunner(
       repository: ref.watch(trailRepositoryProvider),
+      feedback: ref.watch(feedbackRepositoryProvider),
       outbox: ref.watch(outboxProvider),
       adoptDetails: (trailId, name, grade, traits, link, rating) => ref
           .read(trailsProvider.notifier)

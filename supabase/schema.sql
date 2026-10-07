@@ -85,6 +85,9 @@ create table public.feedback (
   type text not null default 'feature' check (type in ('feature', 'bug')),
   message text not null check (char_length(message) between 3 and 2000),
   app_version text check (char_length(app_version) <= 40),
+  -- Kennung des Auftrags im Ausgangskorb (#218, Patch 018): ein
+  -- Wiederholversuch nach abgerissener Antwort legt keine zweite Zeile an.
+  client_id uuid unique,
   processed_at timestamptz,
   created_at timestamptz not null default now()
 );
@@ -1881,5 +1884,6 @@ insert into public.applied_patches (filename) values
   ('patch_014_push_content.sql'),
   ('patch_015_planned_ride_date.sql'),
   ('patch_016_two_way.sql'),
-  ('patch_017_min_trail_50.sql')
+  ('patch_017_min_trail_50.sql'),
+  ('patch_018_feedback_client_id.sql')
 on conflict do nothing;

@@ -619,13 +619,17 @@ class FakeFeedbackRepository implements FeedbackRepository {
 
   @override
   Future<void> submit(FeedbackType type, String message,
-      {String? appVersion}) async {
+      {String? appVersion, String? clientId}) async {
     backend.failIfOffline();
+    // `client_id unique` (Patch 018): Der Server antwortet 23505, das
+    // Repository liest es als „stand schon" — hier gleich ohne zweite Zeile.
+    if (clientId != null && backend.feedback.any((f) => f['client_id'] == clientId)) return;
     backend.feedback.add({
       'user_id': backend.currentUserId,
       'type': type == FeedbackType.bug ? 'bug' : 'feature',
       'message': message.trim(),
       'app_version': appVersion,
+      'client_id': clientId,
     });
   }
 }

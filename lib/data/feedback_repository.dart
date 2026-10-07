@@ -28,13 +28,25 @@ class FeedbackRepository {
   /// Sie kommt als PARAMETER und nicht aus `PackageInfo` im Repository:
   /// `appVersionProvider` hält sie ohnehin schon, und über den Parameter
   /// ist sie im Test überprüfbar statt immer null.
+  ///
+  /// [clientId] ist die Kennung des Auftrags im Ausgangskorb (#218, Patch
+  /// 018). Sie entsteht VOR dem ersten Versuch; kam die Zeile beim ersten
+  /// Mal an und nur die Antwort nicht, meldet der Server beim Nachholen
+  /// `23505` — das heißt „stand schon" und ist kein Fehler. Die einzigen
+  /// eindeutigen Spalten sind `id` (vom Server) und `client_id`.
   Future<void> submit(FeedbackType type, String message,
-      {String? appVersion}) async {
-    await _client.from('feedback').insert({
-      'user_id': _client.requireUid,
-      'type': type == FeedbackType.bug ? 'bug' : 'feature',
-      'message': message.trim(),
-      'app_version': appVersion,
-    });
+      {String? appVersion, String? clientId}) async {
+    try {
+      await _client.from('feedback').insert({
+        'user_id': _client.requireUid,
+        'type': type == FeedbackType.bug ? 'bug' : 'feature',
+        'message': message.trim(),
+        'app_version': appVersion,
+        'client_id': ?clientId,
+      });
+    } on PostgrestException catch (e) {
+      if (clientId != null && e.code == '23505') return;
+      rethrow;
+    }
   }
 }
