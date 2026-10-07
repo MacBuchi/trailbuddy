@@ -75,16 +75,16 @@ def prompt_advice(tokens, idle_min, last_level):
     if idle_min is not None and idle_min >= PAUSE_MIN and tokens >= PAUSE_KONTEXT:
         user = (f"Kontext {k}k nach {int(idle_min)} min Pause: Der Cache ist kalt, "
                 "diese Anfrage verarbeitet alles neu. Neue Aufgabe? Dann zuerst "
-                "/rename und /clear. Geht es weiter: /compact.")
+                "/clear. Geht es weiter: /compact.")
         agent = (f"Kontext {k}k, {int(idle_min)} min Pause. Ist die Anfrage eine "
                  "neue Aufgabe, dem Betreiber in einem Satz /clear empfehlen.")
         return user, agent, None
     level = tokens // KONTEXT_STUFE
     if tokens >= KONTEXT_WARN and level > (last_level or 0):
         user = (f"Kontext jetzt {k}k Tokens — jede Anfrage liest das komplett. "
-                "Aufgabe fertig: /rename, dann /clear. Gleiche Aufgabe: /compact.")
+                "Aufgabe fertig: /clear. Gleiche Aufgabe: /compact.")
         agent = (f"Kontext {k}k. Wenn die laufende Aufgabe mit dieser Antwort "
-                 "abgeschlossen ist, am Ende /clear empfehlen (vorher /rename); "
+                 "abgeschlossen ist, am Ende /clear empfehlen; "
                  "läuft sie weiter, /compact.")
         return user, agent, level
     return None
@@ -103,8 +103,8 @@ def creates_pr(command):
 def pr_advice(command):
     if not creates_pr(command):
         return None
-    return ("PR angelegt. Ist die Aufgabe damit fertig: /rename <thema>, dann "
-            "/clear — Ordner-CLAUDE.md und Lagebild bringen den Kontext beim "
+    return ("PR angelegt. Ist die Aufgabe damit fertig: /clear — "
+            "Ordner-CLAUDE.md und Lagebild bringen den Kontext beim "
             "nächsten Mal mit. /compact nur, wenn es mit derselben Aufgabe "
             "weitergeht.")
 
@@ -185,6 +185,12 @@ def self_test():
     assert pr_advice("gh pr view 12") is None and pr_advice(None) is None
     assert pr_advice("gh api -X POST repos/o/r/pulls --input pr.json")
     assert pr_advice("gh api repos/o/r/pulls/12") is None
+    # Kein /rename im Rat: In Cloud-Sitzungen gibt es kein /resume, und
+    # nach /clear trüge die NÄCHSTE Aufgabe den Namen der alten.
+    texts = [pr_advice("gh pr create")]
+    for adv in (prompt_advice(251_002, 5, 0), prompt_advice(80_000, 75, 0)):
+        texts += [adv[0], adv[1]]
+    assert all("/rename" not in t for t in texts), texts
     print("context_nudge self-test ok")
 
 
