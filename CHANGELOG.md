@@ -2,6 +2,17 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Planer gut sichtbar
+
+*Version 0.83.3, 2026-10-07*
+
+- **Gewählte Trails leuchten im Planer deutlich**: kräftiges Grün mit
+  dunklem Rand unter der Linie, Pflicht-Trails mit stärkerem Rand.
+  Bisher war die Auswahl so blass, dass man nach dem Umfahren eines
+  Gebiets nicht sah, was dazugekommen war.
+- **Die Startfahne hat einen dunklen Rand** und ist auf der hellen
+  Karte gut zu finden.
+
 ## Aktuelle Bausteine
 
 *Version 0.83.2, 2026-10-07*

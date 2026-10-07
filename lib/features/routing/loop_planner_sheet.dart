@@ -40,8 +40,38 @@ import 'route_search.dart' show steepNote;
 import 'trail_head_route.dart' show routeTimeLabel;
 
 /// Breite der leuchtenden Auswahl auf der Karte (#178) — breiter als eine
-/// Verbindung, schmaler als der Saum eines Trails in der Runde.
-const kLoopPickWidth = 8.0;
+/// Verbindung, schmaler als der Leuchtrand des ausgewählten Trails (16).
+/// Deckendes Lime mit dunkler Kontur wie dort (#233, wie #195): 55 %
+/// Lime ohne Kontur ging im weißen Saum der Trails unter — gewählt war,
+/// zu sehen war nichts.
+const kLoopPickWidth = 12.0;
+
+/// Kontur der Auswahl; Pflicht-Trails tragen sie stärker und deckend.
+const kLoopPickBorder = 2.0;
+const kLoopPickBorderMandatory = 3.5;
+
+/// Die Fahne des getippten Starts (#233): Lime auf hellem Grund braucht
+/// einen dunklen Rand — acht scharfe Schatten ringsum als Kontur, ein
+/// weicher als Schein.
+class LoopStartFlag extends StatelessWidget {
+  const LoopStartFlag({super.key, this.size = 32});
+
+  final double size;
+
+  static const _contour = AppColors.onBrand;
+
+  @override
+  Widget build(BuildContext context) => Icon(
+        Icons.flag,
+        size: size,
+        color: AppColors.brand,
+        shadows: [
+          for (final (dx, dy) in const [(-1.0, -1.0), (0.0, -1.5), (1.0, -1.0), (1.5, 0.0), (1.0, 1.0), (0.0, 1.5), (-1.0, 1.0), (-1.5, 0.0)])
+            Shadow(color: _contour, offset: Offset(dx, dy)),
+          Shadow(color: _contour.withValues(alpha: 0.6), blurRadius: 6),
+        ],
+      );
+}
 
 // ─── Parameter ──────────────────────────────────────────────────────────
 
@@ -706,8 +736,10 @@ List<MapViewPolyline> loopSelectionLines(Iterable<Trail> trails, LoopSession s) 
         if (s.selected.contains(t.id) && t.points.length >= 2)
           MapViewPolyline(
             points: t.directedPoints,
-            color: AppColors.brand.withValues(alpha: s.mandatory.contains(t.id) ? 0.8 : 0.55),
+            color: AppColors.brand,
             width: kLoopPickWidth,
+            borderColor: AppColors.onBrand.withValues(alpha: s.mandatory.contains(t.id) ? 1 : 0.7),
+            borderWidth: s.mandatory.contains(t.id) ? kLoopPickBorderMandatory : kLoopPickBorder,
           ),
     ];
 

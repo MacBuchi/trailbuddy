@@ -311,7 +311,10 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     ab Werk nichts gewählt; Liste (Radius `LoopPrefs.radiusKm`, 2–30 km,
     begrenzt NUR die Liste) und Gebiet (`AreaDrawOverlay(onRing:)`,
     `trailsInRing`: Mehrheit der Punkte drin) sind zwei weitere Wege zur
-    selben Menge. Rechnen öffnet das Ergebnis-Blatt
+    selben Menge. Die Auswahl leuchtet seit 0.83.3 deckend mit dunkler
+    Kontur (`kLoopPickWidth`/`kLoopPickBorder`, #233 — dieselbe Falle wie
+    #195: halbdurchsichtiges Lime verschwand im weißen Saum, der Feldbericht
+    hielt das Umfahren für wirkungslos); die Fahne ist `LoopStartFlag`. Rechnen öffnet das Ergebnis-Blatt
     (`showLoopResultPanel`); zu = Ergebnis weg, Modus bleibt
     (`closeMapPanel` schließt es mit, wenn der Planer zugeht). Szene der
     Touren: `MapCoach.loopRail`, Anker je Knopf
