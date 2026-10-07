@@ -212,11 +212,13 @@ void main() {
       await importFiles(tester, files, areaStore: await _areaWithTrack());
       await scrollTo(tester, find.textContaining('3 Fahrten mit Fahrzeiten'));
       expect(find.textContaining('3 Fahrten mit Fahrzeiten'), findsOneWidget);
-      // Vorgabe ist das eingestellte Profil (Bio); gefahren wurde mit E-Bike.
-      await scrollTo(tester, find.byKey(const ValueKey('import-ride-profile')));
-      await tester.tap(find.descendant(
-          of: find.byKey(const ValueKey('import-ride-profile')), matching: find.text('E-Bike')));
-      await settle(tester);
+      // Eingestellt ist Bio; gefahren wurde mit E-Bike (≈ 855 Hm/h), und das
+      // sagt die Steigrate jeder Fahrt (#227). Haben alle einen Vorschlag,
+      // entscheidet der Knopf nichts mehr und steht nicht da.
+      await scrollTo(tester, find.byKey(const ValueKey('import-ride-guess')));
+      expect(tester.widget<Text>(find.byKey(const ValueKey('import-ride-guess'))).data,
+          startsWith('Nach der Steigrate: 3 × E-Bike. So werden sie gespeichert —'));
+      expect(find.byKey(const ValueKey('import-ride-profile')), findsNothing);
       await tapKey(tester, 'import-save-rides');
       expect(tester.widget<Text>(find.byKey(const ValueKey('import-rides-result'))).data, '3 gespeichert');
       expect(rides.rides, hasLength(3));
@@ -237,6 +239,26 @@ void main() {
       final container = ProviderScope.containerOf(tester.element(find.byKey(const ValueKey('import-learn'))));
       expect(container.read(calibratedRiderProvider(RiderProfile.ebike)).climbTrackMPerH, closeTo(855, 1e-6));
       expect(container.read(calibratedRiderProvider(RiderProfile.bio)).climbTrackMPerH, RiderProfile.bio.climbTrackMPerH);
+    });
+
+    testWidgets('gemischt (#227): je Fahrt ihr Vorschlag, ohne Vorschlag gilt der Knopf', (tester) async {
+      // Fahrt 1 klettert wie ein E-Bike, Fahrt 2 hat keinen Aufstieg über
+      // 100 Hm — die Steigrate sagt dort nichts.
+      await importFiles(tester, [
+        PickedFile.text('schnell.gpx', _gpx(_climb(1), 'Schnell')),
+        PickedFile.text('flach.gpx', _gpx(_climb(2, hm: 60), 'Flach')),
+      ]);
+      await scrollTo(tester, find.byKey(const ValueKey('import-ride-guess')));
+      expect(tester.widget<Text>(find.byKey(const ValueKey('import-ride-guess'))).data,
+          startsWith('Nach der Steigrate: 1 × E-Bike, 1 ohne Vorschlag. So werden sie gespeichert, '
+              'die übrigen mit dem Rad unten'));
+      expect(find.text('Ohne Vorschlag gefahren mit'), findsOneWidget);
+      await scrollTo(tester, find.byKey(const ValueKey('import-ride-profile')));
+      await tester.tap(find.descendant(
+          of: find.byKey(const ValueKey('import-ride-profile')), matching: find.text('Bio-Bike')));
+      await settle(tester);
+      await tapKey(tester, 'import-save-rides');
+      expect({for (final r in rides.rides) r.name: r.profile}, {'Schnell': 'ebike', 'Flach': 'bio'});
     });
 
     testWidgets('eine eigene Aufzeichnung, als GPX wieder gewählt, liegt schon da', (tester) async {

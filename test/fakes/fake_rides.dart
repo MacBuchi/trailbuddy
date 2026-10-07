@@ -161,6 +161,24 @@ class FakeRideStore implements RideStore {
 
   @override
   Future<void> delete(String id) async => rides.removeWhere((r) => r.id == id);
+
+  @override
+  Future<bool> setProfile(String id, String profile) async {
+    final i = rides.indexWhere((r) => r.id == id);
+    if (i < 0 || rides[i].planned) return false;
+    final r = rides[i];
+    rides[i] = Ride(
+        id: r.id,
+        startedAt: r.startedAt,
+        endedAt: r.endedAt,
+        points: r.points,
+        events: r.events,
+        marks: r.marks,
+        profile: profile,
+        imported: r.imported,
+        name: r.name);
+    return true;
+  }
 }
 
 /// Die Brücke zum Service-Isolate im Test: merkt sich nur, was gesagt

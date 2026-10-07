@@ -2,6 +2,22 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Meine Fahrten aufräumen
+
+*Version 0.85.0, 2026-10-07*
+
+- **Das Rad an jeder Fahrt**: In „Meine Fahrten" steht bei jeder Fahrt,
+  ob sie mit dem Bio-Bike oder dem E-Bike gefahren wurde. Ein Tipp
+  darauf stellt es um — wichtig, weil das Fahrerprofil aus diesen
+  Fahrten lernt, wie schnell du bergauf kommst. Danach bietet die App an,
+  gleich neu zu lernen.
+- **Wischen und mehrere wählen**: Nach links wischen löscht eine Fahrt
+  (die App fragt vorher nach). Ein langer Druck wählt mehrere aus; dann
+  stellst du für alle das Rad ein oder löschst sie auf einmal.
+- **Vorschlag beim GPX-Import**: Holst du alte Fahrten per GPX herein,
+  schaut die App auf die Steigrate und schlägt je Fahrt Bio- oder
+  E-Bike vor. Ist es nicht eindeutig, gilt das Rad, das du wählst.
+
 ## Trail-Liste: Ausschnitt und S-Grad nach Wahl
 
 *Version 0.84.0, 2026-10-07*

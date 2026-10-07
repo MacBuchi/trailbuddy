@@ -309,10 +309,35 @@ class RidesNotifier extends AsyncNotifier<List<Ride>> {
     return ref.read(rideStoreProvider).list(uid: uid);
   }
 
-  Future<void> delete(String id) async {
-    await ref.read(rideStoreProvider).delete(id);
+  Future<void> delete(String id) => deleteMany([id]);
+
+  /// Mehrere Fahrten auf einmal (#227, Mehrfachauswahl): gelöscht wird
+  /// je Datei, neu gelesen EINMAL am Ende.
+  Future<void> deleteMany(Iterable<String> ids) async {
+    final store = ref.read(rideStoreProvider);
+    for (final id in ids) {
+      await store.delete(id);
+    }
     ref.invalidateSelf();
     await future;
+  }
+
+  /// Das Fahrerprofil gemessener Fahrten nachträglich setzen (#228):
+  /// falsch eingeordnet lernt eine Fahrt dem falschen Profil eine falsche
+  /// Steigrate bei. Geplante Fahrten bleiben, wie sie sind (ihre Dauer
+  /// ist mit dem Profil gerechnet). Gibt zurück, wie viele geschrieben
+  /// wurden.
+  Future<int> setProfile(Iterable<String> ids, RiderProfile profile) async {
+    final store = ref.read(rideStoreProvider);
+    var n = 0;
+    for (final id in ids) {
+      if (await store.setProfile(id, profile.name)) n++;
+    }
+    if (n > 0) {
+      ref.invalidateSelf();
+      await future;
+    }
+    return n;
   }
 
   /// Eine geplante Runde oder den Weg zum Trailkopf in „Meine Fahrten"
@@ -339,11 +364,13 @@ class RidesNotifier extends AsyncNotifier<List<Ride>> {
     return ride;
   }
 
-  /// Fahrten aus GPX-Dateien ablegen (#188), alle mit [profile]. Was
-  /// schon auf dem Gerät liegt (`rideOnDevice`, auch eine Datei derselben
-  /// Startsekunde), wird übersprungen und gezählt.
+  /// Fahrten aus GPX-Dateien ablegen (#188), jede mit ihrem eigenen
+  /// Profil (dem Vorschlag aus der Steigrate, #227) oder sonst mit
+  /// [profile]. Was schon auf dem Gerät liegt (`rideOnDevice`, auch eine
+  /// Datei derselben Startsekunde), wird übersprungen und gezählt.
   Future<ImportRidesResult> saveImported(
-      List<({String name, List<RidePoint> points})> tracks, {required String profile}) async {
+      List<({String name, List<RidePoint> points, String? profile})> tracks,
+      {required String profile}) async {
     final uid = ref.read(currentUserIdProvider);
     if (uid == null) return (saved: 0, existed: 0, failed: tracks.length);
     final store = ref.read(rideStoreProvider);
@@ -358,7 +385,7 @@ class RidesNotifier extends AsyncNotifier<List<Ride>> {
         existed++;
         continue;
       }
-      switch (await store.saveImported(uid: uid, name: t.name, points: t.points, profile: profile)) {
+      switch (await store.saveImported(uid: uid, name: t.name, points: t.points, profile: t.profile ?? profile)) {
         case ImportSave.saved:
           saved++;
           // Zwei Spuren derselben Datei mit gleichem Start zählen einmal.

@@ -171,6 +171,41 @@ void main() {
     expect(rides.single.endedAt, point(1).at);
   });
 
+  test('das Rad nachträglich setzen (#228): nur der Kopf ändert sich, geplante bleiben', () async {
+    final store = FileRideStore(baseDir: dir);
+    await store.begin(uid: 'me', startedAt: start, profile: 'bio');
+    for (var i = 0; i < 3; i++) {
+      await store.appendPoint(point(i));
+    }
+    await store.appendMark(RideMark(kind: RideMarkKind.values.first, at: start.add(const Duration(seconds: 5))));
+    final ride = await store.finish(uid: 'me', endedAt: start.add(const Duration(minutes: 5)));
+    final file = File('${dir.path}/${FileRideStore.dirName}/${ride!.id}.jsonl');
+    final before = await file.readAsString();
+
+    expect(await store.setProfile(ride.id, 'ebike'), isTrue);
+    final after = await file.readAsString();
+    // Alles nach der ersten Zeile Byte für Byte gleich.
+    expect(after.substring(after.indexOf('\n')), before.substring(before.indexOf('\n')));
+    final listed = (await store.list(uid: 'me')).single;
+    expect(listed.profile, 'ebike');
+    expect(listed.points, hasLength(3));
+    expect(listed.marks, hasLength(1));
+    expect(listed.endedAt, start.add(const Duration(minutes: 5)));
+    expect(Directory('${dir.path}/${FileRideStore.dirName}').listSync().where((e) => e.path.endsWith('.part')),
+        isEmpty);
+
+    // Eine geplante Fahrt: Dauer ist mit dem Profil gerechnet, sie bleibt.
+    final plan = await store.savePlanned(
+        uid: 'me', name: 'Runde', createdAt: start.add(const Duration(days: 1)),
+        points: [RidePoint(lat: 47, lng: 11, at: start, accuracyM: 0)],
+        duration: const Duration(hours: 1), profile: 'bio');
+    expect(await store.setProfile(plan!.id, 'ebike'), isFalse);
+    expect((await store.list(uid: 'me')).firstWhere((r) => r.planned).profile, 'bio');
+    // Kein Pfad, keine fremde Datei.
+    expect(await store.setProfile('../${ride.id}', 'bio'), isFalse);
+    expect(await store.setProfile('20990101T000000Z', 'bio'), isFalse);
+  });
+
   test('Liste: neueste zuerst, löschen entfernt genau eine', () async {
     final store = FileRideStore(baseDir: dir);
     for (final day in [1, 3, 2]) {

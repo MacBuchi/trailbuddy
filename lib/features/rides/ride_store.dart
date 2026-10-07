@@ -93,6 +93,13 @@ abstract interface class RideStore {
   Future<List<Ride>> list({required String uid});
 
   Future<void> delete(String id);
+
+  /// Setzt das Fahrerprofil einer gespeicherten, GEMESSENEN Fahrt neu
+  /// (#228): nur die Kopfzeile wird ersetzt, Punkte, Marken und Antworten
+  /// bleiben Byte für Byte. Eine geplante Fahrt behält ihr Profil — ihre
+  /// geschätzte Dauer ist damit gerechnet. Gibt zurück, ob geschrieben
+  /// wurde. Wirft nie.
+  Future<bool> setProfile(String id, String profile);
 }
 
 /// Was aus einer übernommenen Fahrt wurde.
@@ -431,6 +438,29 @@ class FileRideStore implements RideStore {
           if (await file.exists()) await file.delete();
         } catch (e, stackTrace) {
           logError('Fahrt löschen', e, stackTrace);
+        }
+      });
+
+  @override
+  Future<bool> setProfile(String id, String profile) => _serialized(() async {
+        if (!RegExp(r'^[0-9TZ]+$').hasMatch(id)) return false;
+        try {
+          final file = File('${(await _dir()).path}/$id.jsonl');
+          if (!await file.exists()) return false;
+          final text = await file.readAsString();
+          final cut = text.indexOf('\n');
+          final head = jsonDecode(cut < 0 ? text : text.substring(0, cut));
+          if (head is! Map<String, dynamic> || head['planned'] == true) return false;
+          head['profile'] = profile;
+          // Am Stück über `.part` + `rename`: Ein Abbruch mittendrin lässt
+          // die alte Datei stehen, nie eine halbe.
+          final part = File('${file.path}.part');
+          await part.writeAsString('${jsonEncode(head)}${cut < 0 ? '\n' : text.substring(cut)}', flush: true);
+          await part.rename(file.path);
+          return true;
+        } catch (e, stackTrace) {
+          logError('Fahrerprofil einer Fahrt ändern', e, stackTrace);
+          return false;
         }
       });
 

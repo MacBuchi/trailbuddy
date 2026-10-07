@@ -173,3 +173,31 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
       (sonst ginge dieselbe Strecke zweimal hinaus). Kandidat mit
       `marked`, vorangehakt, Griffe über die ganze Fahrt (`spansRide`),
       ohne Wege und ohne Höhen.
+- **„Meine Fahrten" aufräumen** (#228, #227, seit 0.85.0,
+  `rides_screen.dart`, `ride_profile_guess.dart` pur): das Rad je
+  Fahrt als Chip mit Menü, nach links wischen löscht, langer Druck
+  wählt mehrere (Rad setzen, löschen). Vier Dinge, die man wissen muss:
+  - **Das Rad ist Eingabe der Kalibrierung**: Falsch eingeordnet lernt
+    eine Fahrt dem falschen Profil eine falsche Steigrate bei. Umstellen
+    schreibt nur die KOPFZEILE der Datei neu (`RideStore.setProfile`,
+    `.part` + `rename`, Rest Byte für Byte); gelernt wird weiter auf
+    Knopfdruck, die SnackBar bietet „Neu lernen" an. Geplante Fahrten
+    bleiben (ihre Dauer ist mit dem Profil gerechnet) und haben keinen
+    Chip.
+  - **Gelöscht wird nur nach Nachfrage** — Menü, Wischen und Auswahl
+    teilen EINEN Dialog (`confirmRideDelete`); die Fahrt liegt nur hier.
+    Weggewischte Fahrten stehen bis zum Neulesen in `_gone`, sonst wäre
+    das `Dismissible` nach dem Wischen noch im Baum. Zurück beendet
+    zuerst die Auswahl (`PopScope`, #175).
+  - **Der Vorschlag beim GPX-Import gilt JE FAHRT** (Betreiber,
+    2026-10-07): Median der Steigraten aller Aufstiege (dieselben
+    `ascentSections` wie die Kalibrierung, ohne Wegegraph — soll ohne
+    Bereich gehen), gegen die Grenze √(Bio · E) der Bezugsraten
+    √(Forstweg · Pfad) aus den GELERNTEN Werten. Im Band ±10 % um die
+    Grenze, ohne Aufstieg oder ohne Höhen: kein Vorschlag, es gilt der
+    Knopf („Ohne Vorschlag gefahren mit"); haben alle einen, steht der
+    Knopf nicht da. In der Liste wird der Vorschlag für Fahrten ohne
+    Profil nur angezeigt, nie von selbst gesetzt.
+  - **Im Test liegt die vierte Fahrt unter dem Rand**: Die Zeilen sind
+    mit Chip höher, und `ListView` baut faul — `scrollTo` vor jedem
+    Tipp auf eine spätere Zeile.

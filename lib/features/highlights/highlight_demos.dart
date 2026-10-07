@@ -479,6 +479,15 @@ final kHighlightDemos = <String, HighlightDemo>{
       ),
     ]),
   ),
+  'rides-tidy': HighlightDemo(
+    route: '/profile',
+    script: _demo('rides-tidy', [
+      _profileRow('rides', 'In „Meine Fahrten"',
+          'An jeder Fahrt steht, ob mit Bio- oder E-Bike gefahren — ein Tipp stellt '
+              'es um, und das Fahrerprofil lernt danach richtig. Nach links wischen '
+              'löscht, ein langer Druck wählt mehrere.'),
+    ]),
+  ),
   'pick-section': HighlightDemo(
     route: '/profile',
     script: _demo('pick-section', [
