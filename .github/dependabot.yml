@@ -26,6 +26,12 @@ updates:
         update-types: ["version-update:semver-major"]
       - dependency-name: "riverpod"
         update-types: ["version-update:semver-major"]
+      # MapLibre ist exakt gepinnt (lib/features/map/CLAUDE.md): nativer
+      # Renderer, jede Version ist ein Gerätetest. 0.3.6 baute nicht —
+      # `maplibre_android` verlangt das Gradle-Plugin ktlint, das der Build
+      # nicht findet (#226). Angehoben wird von Hand, mit Gerät.
+      - dependency-name: "maplibre"
+      - dependency-name: "maplibre_android"
 
   - package-ecosystem: "github-actions"
     directory: "/"
