@@ -274,6 +274,33 @@ Future<void> settle(WidgetTester tester, {int frames = 8}) async {
   }
 }
 
+/// Den S-Grad-Bereich der Trail-Filter (#222) über die Oberfläche setzen:
+/// Chip antippen, im Blatt die Schieber ziehen, „Fertig". Gezogen wird
+/// von der Stelle des Daumens um so viele Stufen, wie fehlen — der
+/// Schieber rastet auf ganze Grade ein, ein paar Pixel Rand verzeihen.
+Future<void> setGradeRange(WidgetTester tester,
+    {int min = 0, int max = 5, String keyPrefix = 'trail'}) async {
+  await tester.tap(find.byKey(ValueKey('$keyPrefix-filter-grade')));
+  await settle(tester);
+  final slider = find.byKey(const ValueKey('grade-range-slider'));
+  Future<void> drag(double from, double to) async {
+    final rect = tester.getRect(slider);
+    const pad = 24.0;
+    final track = rect.width - 2 * pad;
+    final start = Offset(rect.left + pad + track * from / 5, rect.center.dy);
+    await tester.dragFrom(start, Offset(track * (to - from) / 5, 0));
+    await settle(tester);
+  }
+
+  final values = tester.widget<RangeSlider>(slider).values;
+  if (values.end != max) await drag(values.end, max.toDouble());
+  if (values.start != min) await drag(values.start, min.toDouble());
+  final now = tester.widget<RangeSlider>(slider).values;
+  expect((now.start, now.end), (min.toDouble(), max.toDouble()), reason: 'Schieber gezogen');
+  await tester.tap(find.byKey(const ValueKey('grade-range-done')));
+  await settle(tester);
+}
+
 /// Lässt die Wartezeit des „Erneut senden"-Knopfes ablaufen (ResendButton
 /// startet gesperrt, weil gerade eine Mail rausging). Sekundenweise pumpen,
 /// damit der Timer wirklich jede Sekunde feuert — ein Sprung um 60 s würde

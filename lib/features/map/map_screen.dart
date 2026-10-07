@@ -371,6 +371,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   void _onCameraIdle(MapViewCamera camera) {
     if (!mounted) return;
     setState(() => _camera = camera);
+    ref.read(mapVisibleBoundsProvider.notifier).state = camera.bounds;
   }
 
   /// Orte und offizielle Trails für den Ausschnitt nachladen — je

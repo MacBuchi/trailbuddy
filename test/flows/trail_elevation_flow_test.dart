@@ -113,8 +113,10 @@ void main() {
     await openTab(tester, 'Trails');
     await settle(tester, frames: 20);
     // Quer liegen Suche und Filter-Chips über dem ersten Trail; die Liste
-    // scrollt, geprüft wird hier das Blatt.
-    await tester.ensureVisible(find.text('Kurzer'));
+    // scrollt, geprüft wird hier das Blatt. Die faule Liste baut die Zeile
+    // erst beim Scrollen (die Chips sind in der Testschrift breit).
+    await tester.scrollUntilVisible(find.text('Kurzer'), 100,
+        scrollable: find.byType(Scrollable).hitTestable().first);
     await settle(tester);
     await tester.tap(find.text('Kurzer'));
     await settle(tester);

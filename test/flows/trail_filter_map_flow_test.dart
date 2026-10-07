@@ -50,8 +50,7 @@ void main() {
 
     await openTab(tester, 'Trails');
     await settle(tester, frames: 20);
-    await tester.tap(find.byKey(const ValueKey('trail-filter-easy')));
-    await settle(tester);
+    await setGradeRange(tester, max: 2);
     await openTab(tester, 'Karte');
     await settle(tester, frames: 20);
 
@@ -68,7 +67,7 @@ void main() {
     // Zurückgesetzt heißt: auch in der Liste.
     await openTab(tester, 'Trails');
     await settle(tester, frames: 20);
-    expect(tester.widget<FilterChip>(find.byKey(const ValueKey('trail-filter-easy'))).selected, isFalse);
+    expect(tester.widget<FilterChip>(find.byKey(const ValueKey('trail-filter-grade'))).selected, isFalse);
   });
 
   testWidgets('im Blatt der Karte gesetzt, gilt in der Liste', (tester) async {
@@ -95,7 +94,7 @@ void main() {
     await settle(tester, frames: 20);
     final container = ProviderScope.containerOf(tester.element(find.byType(MapScreen)));
     container.read(trailListFilterProvider.notifier).state =
-        container.read(trailListFilterProvider).copyWith(easyOnly: true);
+        container.read(trailListFilterProvider).copyWith(maxGrade: 2);
     await settle(tester, frames: 20);
     expect(drawn(tester), {'Roßkopf Süd'});
 

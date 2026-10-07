@@ -414,7 +414,7 @@ Schwierigkeit", mit der Breite als Beziehung (meiner 5, nur Buddy 3,5).
 die Beziehung zeigt die Karte gar nicht mehr (Betreiber, 2026-09-29) —
 alle Trails gleich breit.
 
-Liste (4e): Filter-Chips „Alle", „bis S2", „Flowig", „Jumps" (Suche, „Alle/Meine/Von Buddys", „bis S2" und die Sortierung gibt es seit 0.32.0, #66 — `trail_list.dart`; der Filter gilt seit 0.33.0 auch auf der Karte, `TrailFilterChips` im Blatt „Ebenen"; „Flowig"/„Jumps" seit 0.34.0, #72 — sie filtern über die angezeigten zwei Merkmale, nicht über jede einzelne Nennung); Zeile als
+Liste (4e): Filter-Chips „Alle", „bis S2", „Flowig", „Jumps" (Suche, „Alle/Meine/Von Buddys", „bis S2" und die Sortierung gibt es seit 0.32.0, #66; seit 0.84.0 ist „bis S2" ein einstellbarer S-Grad-Bereich und „Auf der Karte" filtert die Liste nach dem Kartenausschnitt, #222 — `trail_list.dart`; der Filter gilt seit 0.33.0 auch auf der Karte, `TrailFilterChips` im Blatt „Ebenen"; „Flowig"/„Jumps" seit 0.34.0, #72 — sie filtern über die angezeigten zwei Merkmale, nicht über jede einzelne Nennung); Zeile als
 Karte mit Farbstreifen links, Zahlen in Mono, Schild und Symbole rechts.
 Blatt (4f): Name, „Du und 2 Buddys", Charakter-Chips mit Anzahl, drei
 Kacheln Länge / Höhe / S-Grad oder Spanne, „Deine Einschätzung".

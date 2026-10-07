@@ -10,9 +10,11 @@
 // Karte (PilzBuddy #154: eine Karte, die still ausblendet, sieht aus, als
 // fehlten Trails).
 import 'package:flutter/foundation.dart';
+import 'package:latlong2/latlong.dart';
 
 import '../../core/search_text.dart';
 import '../../models/trail.dart';
+import '../map/map_view/map_view.dart' show MapViewBounds;
 import 'still_valid.dart';
 import 'trail_condition.dart' show trailConditionLabel;
 
@@ -45,14 +47,17 @@ enum TrailSort {
   final String label;
 }
 
-/// Höchster S-Grad für „bis S2".
-const kEasyMaxGrade = 2;
+/// Die Grenzen der Singletrail-Skala, S0 bis S5 — der Bereich, den der
+/// Filter ohne Einschränkung abdeckt.
+const kMinGrade = 0;
+const kMaxGrade = 5;
 
 @immutable
 class TrailListFilter {
   const TrailListFilter({
     this.owner = TrailOwnerFilter.all,
-    this.easyOnly = false,
+    this.minGrade = kMinGrade,
+    this.maxGrade = kMaxGrade,
     this.freshNotesOnly = false,
     this.reportedOnly = false,
     this.ratingOpenOnly = false,
@@ -62,11 +67,25 @@ class TrailListFilter {
 
   final TrailOwnerFilter owner;
 
-  /// „bis S2" — ein Trail OHNE Einschätzung fällt heraus: Der Filter
-  /// verspricht „leicht", und über einen Trail, den niemand eingeschätzt
-  /// hat, weiß die App das nicht. Im Zweifel die Warnung, wie beim
-  /// Median ([Trail.grade]). Wie viele es trifft, sagt die Liste.
-  final bool easyOnly;
+  /// Der S-Grad-Bereich (#222, vorher fest „bis S2"), beide Enden
+  /// eingeschlossen. Ist er enger als S0–S5, fällt ein Trail OHNE
+  /// Einschätzung heraus: Der Filter verspricht einen Grad, und über einen
+  /// Trail, den niemand eingeschätzt hat, weiß die App das nicht. Im
+  /// Zweifel die Warnung, wie beim Median ([Trail.grade]). Wie viele es
+  /// trifft, sagt die Liste.
+  final int minGrade;
+  final int maxGrade;
+
+  bool get gradeActive => minGrade > kMinGrade || maxGrade < kMaxGrade;
+
+  /// Der Bereich in Worten: „bis S2", „ab S3", „S1–S3", „nur S2" — und
+  /// „S0–S5", wenn er nichts einschränkt.
+  String get gradeText {
+    if (minGrade == maxGrade) return 'nur ${gradeLabel(minGrade)}';
+    if (minGrade == kMinGrade && maxGrade < kMaxGrade) return 'bis ${gradeLabel(maxGrade)}';
+    if (maxGrade == kMaxGrade && minGrade > kMinGrade) return 'ab ${gradeLabel(minGrade)}';
+    return '${gradeLabel(minGrade)}–${gradeLabel(maxGrade)}';
+  }
 
   /// Nur Trails mit einem neuen Hinweis eines Buddys (#7).
   final bool freshNotesOnly;
@@ -90,7 +109,7 @@ class TrailListFilter {
 
   bool get isActive =>
       owner != TrailOwnerFilter.all ||
-      easyOnly ||
+      gradeActive ||
       freshNotesOnly ||
       reportedOnly ||
       ratingOpenOnly ||
@@ -100,7 +119,7 @@ class TrailListFilter {
   /// Was gefiltert ist, in Worten — für die Zeile auf der Karte.
   String describe() => [
         if (owner != TrailOwnerFilter.all) owner.label,
-        if (easyOnly) 'bis S$kEasyMaxGrade',
+        if (gradeActive) gradeText,
         if (freshNotesOnly) 'neuer Hinweis',
         if (reportedOnly) 'gemeldet',
         if (ratingOpenOnly) 'Bewertung offen',
@@ -111,7 +130,8 @@ class TrailListFilter {
 
   TrailListFilter copyWith({
     TrailOwnerFilter? owner,
-    bool? easyOnly,
+    int? minGrade,
+    int? maxGrade,
     bool? freshNotesOnly,
     bool? reportedOnly,
     bool? ratingOpenOnly,
@@ -120,7 +140,8 @@ class TrailListFilter {
   }) =>
       TrailListFilter(
         owner: owner ?? this.owner,
-        easyOnly: easyOnly ?? this.easyOnly,
+        minGrade: minGrade ?? this.minGrade,
+        maxGrade: maxGrade ?? this.maxGrade,
         freshNotesOnly: freshNotesOnly ?? this.freshNotesOnly,
         reportedOnly: reportedOnly ?? this.reportedOnly,
         ratingOpenOnly: ratingOpenOnly ?? this.ratingOpenOnly,
@@ -132,7 +153,8 @@ class TrailListFilter {
   bool operator ==(Object other) =>
       other is TrailListFilter &&
       other.owner == owner &&
-      other.easyOnly == easyOnly &&
+      other.minGrade == minGrade &&
+      other.maxGrade == maxGrade &&
       other.freshNotesOnly == freshNotesOnly &&
       other.reportedOnly == reportedOnly &&
       other.ratingOpenOnly == ratingOpenOnly &&
@@ -140,7 +162,7 @@ class TrailListFilter {
       setEquals(other.traits, traits);
 
   @override
-  int get hashCode => Object.hash(owner, easyOnly, freshNotesOnly, reportedOnly,
+  int get hashCode => Object.hash(owner, minGrade, maxGrade, freshNotesOnly, reportedOnly,
       ratingOpenOnly, stillValidOnly, Object.hashAllUnordered(traits));
 }
 
@@ -154,7 +176,7 @@ typedef TrailListResult = ({
   /// Behauptung über die Eingabe.
   bool isGuess,
 
-  /// Wie viele „bis S2" nur deshalb verdeckt, weil niemand sie
+  /// Wie viele der Grad-Bereich nur deshalb verdeckt, weil niemand sie
   /// eingeschätzt hat.
   int hiddenUngraded,
 });
@@ -206,29 +228,74 @@ bool passesTrailFilter(Trail t, TrailListFilter filter,
     return false;
   }
   if (filter.traits.isNotEmpty && !t.topTraits.toSet().containsAll(filter.traits)) return false;
-  if (filter.easyOnly) {
+  if (filter.gradeActive) {
     final g = t.grade;
-    if (g == null || g > kEasyMaxGrade) return false;
+    if (g == null || g < filter.minGrade || g > filter.maxGrade) return false;
   }
   return true;
 }
 
-/// Fällt [t] NUR deshalb heraus, weil „bis S2" an ist und niemand ihn
-/// eingeschätzt hat? Die Liste zählt diese, damit „bis S2" nicht stumm
-/// verschluckt, was die App bloß nicht weiß.
+/// Fällt [t] NUR deshalb heraus, weil der Grad-Bereich eingeschränkt ist
+/// und niemand ihn eingeschätzt hat? Die Liste zählt diese, damit der
+/// Filter nicht stumm verschluckt, was die App bloß nicht weiß.
 bool hiddenOnlyForMissingGrade(Trail t, TrailListFilter filter,
         {Set<String> seenNotes = const {}, DateTime? now, Map<String, DateTime> snoozed = const {}}) =>
-    filter.easyOnly &&
+    filter.gradeActive &&
     t.grade == null &&
-    passesTrailFilter(t, filter.copyWith(easyOnly: false),
+    passesTrailFilter(t, filter.copyWith(minGrade: kMinGrade, maxGrade: kMaxGrade),
         seenNotes: seenNotes, now: now, snoozed: snoozed);
+
+/// Liegt ein Stück von [t] im Ausschnitt [b]? Ein Punkt darin genügt —
+/// oder eine Strecke, die ihn quert: Eine vereinfachte Linie hat lange
+/// gerade Stücke, und wer hineinzoomt, sieht oft nur deren Mitte.
+bool trailInBounds(Trail t, MapViewBounds b) {
+  final pts = t.points;
+  if (pts.isEmpty) return false;
+  if (pts.any(b.contains)) return true;
+  for (var i = 1; i < pts.length; i++) {
+    if (_segmentCrosses(pts[i - 1], pts[i], b)) return true;
+  }
+  return false;
+}
+
+/// Liang-Barsky in Grad — für einen Bildschirmausschnitt genau genug.
+bool _segmentCrosses(LatLng a, LatLng c, MapViewBounds b) {
+  final dx = c.longitude - a.longitude, dy = c.latitude - a.latitude;
+  var t0 = 0.0, t1 = 1.0;
+  for (final (p, q) in [
+    (-dx, a.longitude - b.west),
+    (dx, b.east - a.longitude),
+    (-dy, a.latitude - b.south),
+    (dy, b.north - a.latitude),
+  ]) {
+    if (p == 0) {
+      if (q < 0) return false;
+      continue;
+    }
+    final r = q / p;
+    if (p < 0) {
+      if (r > t1) return false;
+      if (r > t0) t0 = r;
+    } else {
+      if (r < t0) return false;
+      if (r < t1) t1 = r;
+    }
+  }
+  return true;
+}
 
 /// Filtern, suchen, sortieren — in dieser Reihenfolge. Die Suche läuft
 /// über das, was die Filter übrig lassen, damit „Meintest du …?" nie
 /// einen Trail vorschlägt, den die Chips gerade ausblenden.
+///
+/// [onMap] ist der Ausschnitt der Karte, wenn „Auf der Karte" an ist
+/// (#222) — nur für die Liste, deshalb nicht in [TrailListFilter]: Auf
+/// der Karte selbst hieße er „zeige, was du zeigst". Was außerhalb liegt,
+/// zählt auch nicht zu den Ungeschätzten.
 TrailListResult trailListOf(
   List<Trail> trails, {
   String query = '',
+  MapViewBounds? onMap,
   TrailListFilter filter = const TrailListFilter(),
   TrailSort sort = TrailSort.recent,
   Set<String> seenNotes = const {},
@@ -238,6 +305,7 @@ TrailListResult trailListOf(
   var hiddenUngraded = 0;
   final candidates = <Trail>[];
   for (final t in trails) {
+    if (onMap != null && !trailInBounds(t, onMap)) continue;
     if (passesTrailFilter(t, filter, seenNotes: seenNotes, now: now, snoozed: snoozed)) {
       candidates.add(t);
     } else if (hiddenOnlyForMissingGrade(t, filter,

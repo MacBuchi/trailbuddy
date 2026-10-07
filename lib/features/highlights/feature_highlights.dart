@@ -74,6 +74,17 @@ class FeatureHighlight {
 const kFeatureHighlights = <FeatureHighlight>[
   // ─── Highlights ──────────────────────────────────────────────────
   FeatureHighlight(
+    id: 'trail-list-filters',
+    since: '0.84.0',
+    kind: HighlightKind.highlight,
+    tab: HighlightTab.trails,
+    icon: Icons.tune,
+    title: 'Filter nach Ausschnitt und S-Grad',
+    text: '„Auf der Karte" zeigt in der Liste nur die Trails im Kartenausschnitt. '
+        'Den S-Grad stellst du als Bereich ein, etwa „ab S3" oder „S1–S3".',
+    target: '/trails',
+  ),
+  FeatureHighlight(
     id: 'ride-import',
     since: '0.82.0',
     kind: HighlightKind.highlight,

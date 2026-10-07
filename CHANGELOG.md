@@ -2,6 +2,19 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Trail-Liste: Ausschnitt und S-Grad nach Wahl
+
+*Version 0.84.0, 2026-10-07*
+
+- **„Auf der Karte"**: Ein neuer Chip in der Trail-Liste zeigt nur die
+  Trails, die gerade im Kartenausschnitt liegen. Schiebst du die Karte
+  weiter, zieht die Liste mit. Die Karte selbst blendet dabei nichts aus.
+- **Schwierigkeit als Bereich**: Statt fest „bis S2" stellst du den
+  S-Grad jetzt mit zwei Schiebern ein, zum Beispiel „ab S3" oder
+  „S1–S3". Das gilt wie bisher für Liste und Karte. Trails, die noch
+  niemand eingeschätzt hat, fallen dabei heraus, und die Liste sagt,
+  wie viele.
+
 ## Legende, die sagt, was gemeint ist
 
 *Version 0.83.5, 2026-10-07*

@@ -199,6 +199,18 @@ final kHighlightDemos = <String, HighlightDemo>{
       ),
     ]),
   ),
+  'trail-list-filters': HighlightDemo(
+    route: '/trails',
+    script: _demo('trail-list-filters', const [
+      CoachStep(
+        title: 'Ausschnitt und S-Grad',
+        text: '„Auf der Karte" lässt nur die Trails im Kartenausschnitt stehen — '
+            'die Liste zieht mit, wenn du die Karte bewegst. Der S-Grad-Chip '
+            'öffnet zwei Schieber für den Bereich. Er gilt auch auf der Karte.',
+        lit: [TrailsCoach.chips],
+      ),
+    ]),
+  ),
   'ride-import': HighlightDemo(
     route: '/trails',
     script: _demo('ride-import', const [
