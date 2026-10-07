@@ -86,7 +86,7 @@ was öffentlich sein MUSS (Impressum, Datenschutzerklärung).
 - **Version Guard** (ci.yml): Code-Änderung ohne Bump in `pubspec.yaml`
   blockiert den Merge, sobald es einen Release-Tag gibt. Ausgenommen sind
   `*.md` (außer `CHANGELOG.md`, die liegt als Asset im Binary), `.github/`,
-  `tool/`, `supabase/`, `docs/`. Er prüft, DASS gebumpt wurde; WELCHE Stelle
+  `tool/`, `supabase/`, `docs/`, `.claude/`, `.codex/`, `.mcp.json`. Er prüft, DASS gebumpt wurde; WELCHE Stelle
   nach den Regeln oben, ist Sache des PRs.
 - **Changelog**: `CHANGELOG.md` wird in der App unter „Was ist neu" gezeigt.
   `test/changelog_test.dart` verlangt die pubspec-Version darin. Erlaubte
@@ -183,6 +183,7 @@ Code liegt — nicht wieder hierher.
 | `lib/features/feedback/CLAUDE.md` | Feedback (die Glühbirne) · Fehlerbericht-Digest (`tool/feedback_bot.py`) |
 | `web/CLAUDE.md` | Kein Netzziel ohne Datenschutzerklärung · Web (Service Worker, Build) |
 | `android/CLAUDE.md` | Android (Flavors, Backup-Ausschlüsse) · Play Store vorbereitet, nicht eingereicht |
+| `test/CLAUDE.md` | Dart-MCP (`analyze_files`, `run_tests`, `lsp`: Pfad-Fallen, Messung) · Gegenprobe · Fallen im Harness (pumpApp, FakeSettings, Touren, Isolates, FakeMapView) |
 
 Was es bewusst noch nicht gibt:
 
@@ -215,3 +216,28 @@ format .`**. Harness `test/fakes/test_app.dart` (`pumpApp`) gegen die Fakes
 in `test/fakes/`, die die RLS-Regeln spiegeln (`fake_trails.dart` für die
 Trail-Sichtbarkeit). Kein Netz in Tests; Kartenkacheln kommen aus dem
 Fake-Tile-Provider.
+
+**Agenten-Werkzeug** (#237): `.mcp.json` hängt den offiziellen Dart- und
+Flutter-MCP-Server ein (`tool/dart_mcp.sh`, für Codex `.codex/config.toml`);
+wie man ihn benutzt und wo er still nichts prüft, steht in `test/CLAUDE.md`.
+`.claude/settings.json` startet jede Sitzung mit dem Lagebild
+(`tool/session_status.py`) und gibt lesende Befehle frei; der Skill
+`trail-issue` führt vom Issue zum PR.
+
+## Compact instructions
+
+Kontext und Sitzungen (#237, aus PilzBuddy #671). `/compact` und `/clear`
+kann nur der Betreiber auslösen; `tool/context_nudge.py` sagt ihm, wann es
+sich lohnt (Kontext ab 200k je 100k-Stufe, nach über 60 min Pause, nach
+`gh pr create`). Der Agent wiederholt den Rat am Ende einer Antwort, wenn
+die Aufgabe damit abgeschlossen ist. Faustregel: **Aufgabe fertig →
+`/rename`, dann `/clear`** (kostet nichts; Ordner-`CLAUDE.md` und Lagebild
+bringen den Kontext neu mit). **Gleiche Aufgabe, Kontext zu groß →
+`/compact`** (liest selbst den ganzen Verlauf, ist also nicht gratis).
+
+Beim Zusammenfassen BEHALTEN: Issue- und PR-Nummern, Branch, jede
+Entscheidung und Vorgabe des Betreibers im Wortlaut, offene Punkte und
+Zusagen („melde mich, wenn …"), geänderte Dateien, welche Tests und
+Gegenproben gelaufen sind und mit welchem Ergebnis, Messwerte.
+WEGLASSEN: Dateiinhalte und Tool-Ausgaben, die sich neu lesen lassen,
+verworfene Suchwege, Inhalte der Ordner-`CLAUDE.md` (laden neu).

@@ -1,0 +1,6 @@
+# MCP-Server für Codex (#237). Claude Code liest denselben Server aus
+# `.mcp.json`; welche Werkzeuge an sind und warum, steht in
+# tool/dart_mcp.sh — die EINE Stelle dafür.
+[mcp_servers.dart]
+command = "sh"
+args = ["tool/dart_mcp.sh"]
