@@ -231,8 +231,12 @@ kann nur der Betreiber auslösen; `tool/context_nudge.py` sagt ihm, wann es
 sich lohnt (Kontext ab 200k je 100k-Stufe, nach über 60 min Pause, nach
 `gh pr create`). Der Agent wiederholt den Rat am Ende einer Antwort, wenn
 die Aufgabe damit abgeschlossen ist. Faustregel: **Aufgabe fertig →
-`/rename`, dann `/clear`** (kostet nichts; Ordner-`CLAUDE.md` und Lagebild
-bringen den Kontext neu mit). **Gleiche Aufgabe, Kontext zu groß →
+`/clear`** (kostet nichts; Ordner-`CLAUDE.md` und Lagebild bringen den
+Kontext neu mit). **Kein `/rename` davor** (Betreiber, 2026-10-07): Ein
+Name spart nichts, er macht in der Kommandozeile nur einen alten Verlauf
+über `/resume` auffindbar; in einer Cloud-Sitzung gibt es das nicht, und
+nach `/clear` trüge die nächste Aufgabe den alten Namen. Was offen bleibt,
+gehört ins Issue, in den PR oder nach #156. **Gleiche Aufgabe, Kontext zu groß →
 `/compact`** (liest selbst den ganzen Verlauf, ist also nicht gratis).
 
 Beim Zusammenfassen BEHALTEN: Issue- und PR-Nummern, Branch, jede

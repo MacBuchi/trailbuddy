@@ -96,5 +96,4 @@ den Plan schreiben („fertig, wenn …"), nicht abfragen.
    Checkliste ehrlich abhaken, die gefahrene Gegenprobe nennen, `Closes #N`
    in den Body. Gemergt wird vom Menschen. In #156 den Punkt abhaken.
 8. **Schnitt anbieten:** Ist die Aufgabe mit dem PR erledigt, die Antwort
-   mit einem Satz schließen: „Guter Moment für `/rename <thema>` und
-   `/clear`." Abschnitt „Compact instructions" in der Root-`CLAUDE.md`.
+   mit einem Satz schließen: „Guter Moment für `/clear`." Abschnitt „Compact instructions" in der Root-`CLAUDE.md`.
