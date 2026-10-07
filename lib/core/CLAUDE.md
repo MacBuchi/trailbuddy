@@ -22,7 +22,16 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
   prüft das an einem Kind OHNE GlobalKey (mit einem wäre die Gegenprobe
   grün geblieben). Der Harness schaltet ihn ab
   (`startSplashEnabledProvider`), sonst schluckte er die ersten Tipps
-  jedes Flow-Tests. **Der Loader zeichnet je Durchlauf das GANZE
+  jedes Flow-Tests. **Die Uhr des Splashs ist gedeckelt** (#217, seit
+  0.83.1, `splashAdvance`): je Bild höchstens `kSplashMaxStep` (50 ms) —
+  ein `AnimationController` rechnet nach Wanduhr, und jedes Bild, das die
+  Startarbeit darunter aufhielt, ließ die Zeichnung springen. Solange er
+  deckt, steht die App in einem `Offstage` (immer DASSELBE, nur der
+  Schalter wechselt): gebaut und ausgelegt wird sie, gerastert nicht.
+  Danach steht das Bild `kSplashHold` (0,6 s) und blendet über
+  `kSplashFade` (1 s) aus (#235); ein Tipp über `kSplashSkipFade`.
+  Gemessen auf dem Gerät ist das NICHT — kein Gerät am Rechner; was die
+  Startarbeit im Einzelnen kostet, zeigt erst ein Profil-Build. **Der Loader zeichnet je Durchlauf das GANZE
   Zeichen** (seit 0.65.1, `loaderAt`): einzeichnen, stehen, zurück in die
   Spur blenden, 1,4 s. Der Läufer davor zeigte nie das ganze Zeichen und
   wirkte langsam (Betreiber). Ausgeblendet wird nur über dem ganzen

@@ -130,6 +130,17 @@ void main() {
       expect(splashAt(0.5).draw, closeTo(890 / 1300, 1e-9), reason: 'linear gezeichnet');
     });
 
+    test('ein langes Bild verlangsamt, statt zu springen (#217)', () {
+      const t = Duration(milliseconds: 400);
+      expect(splashAdvance(t, const Duration(milliseconds: 16)), t + const Duration(milliseconds: 16));
+      expect(splashAdvance(t, const Duration(milliseconds: 300)), t + kSplashMaxStep,
+          reason: 'ein Bild, das die Startarbeit aufhält, schiebt die Zeichnung nur ein Stück');
+      expect(splashAdvance(t, Duration.zero), t);
+      expect(kSplashFade, const Duration(seconds: 1), reason: '#235: über 1 s ausblenden');
+      expect(kSplashHold, greaterThanOrEqualTo(const Duration(milliseconds: 500)),
+          reason: 'das ganze Bild steht, bevor es geht');
+    });
+
     // Das Kind trägt KEINEN GlobalKey (anders als der Navigator unter
     // MaterialApp.home): Nur so zeigt der Test, dass der Splash die App
     // darunter nicht umhängt — ein GlobalKey rettete den Zustand sonst.
@@ -152,17 +163,25 @@ void main() {
       await tester.pumpWidget(app());
       expect(splash, findsOneWidget);
       expect(find.bySemanticsLabel('TrailBuddy'), findsWidgets);
-      // Die App darunter ist schon gebaut und hat ihren Zustand.
-      tester.state<_CounterState>(find.byType(_Counter)).bump();
-      // Bildweise weiter, bis Zeichnen (1,78 s) und Ausblenden (0,25 s)
-      // durch sind — jede Animation beginnt erst im Bild nach ihrem Start.
-      for (var i = 0; i < 16; i++) {
-        await tester.pump(const Duration(milliseconds: 100));
+      // Die App darunter ist schon gebaut und hat ihren Zustand — aber
+      // sie zeichnet nicht, solange der Splash deckt (#217).
+      final counter = find.byType(_Counter, skipOffstage: false);
+      tester.state<_CounterState>(counter).bump();
+      expect(find.byType(_Counter), findsNothing, reason: 'offstage unter dem deckenden Splash');
+      // Bildweise weiter (je 50 ms — die Uhr des Splashs geht je Bild
+      // höchstens so weit): Zeichnen 1,78 s, Stehen 0,6 s, Ausblenden 1 s.
+      Future<void> frames(int n) async {
+        for (var i = 0; i < n; i++) {
+          await tester.pump(const Duration(milliseconds: 50));
+        }
       }
-      expect(splash, findsOneWidget, reason: 'nach 1,6 s läuft er noch');
-      for (var i = 0; i < 8; i++) {
-        await tester.pump(const Duration(milliseconds: 100));
-      }
+      await frames(46);
+      expect(splash, findsOneWidget, reason: 'nach 2,3 s steht das Bild noch');
+      expect(find.byType(_Counter), findsNothing);
+      await frames(4);
+      expect(find.byType(_Counter), findsOneWidget, reason: 'beim Ausblenden ist die App darunter zu sehen');
+      expect(splash, findsOneWidget, reason: 'und blendet über 1 s aus');
+      await frames(22);
       expect(splash, findsNothing);
       expect(tester.state<_CounterState>(find.byType(_Counter)).count, 1, reason: 'derselbe Zustand — nichts neu eingehängt');
       expect(_tickers(), 0);
@@ -178,7 +197,8 @@ void main() {
           home: const _Counter(),
         ),
       ));
-      await tester.pump(kSplashDuration);
+      await tester.pump(const Duration(milliseconds: 50));
+      await tester.pump(const Duration(milliseconds: 50));
       final word = find.byType(TrailBuddyWordmark);
       expect(word, findsOneWidget);
       final style = DefaultTextStyle.of(tester.element(word)).style;
@@ -191,7 +211,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 200));
       await tester.tap(splash);
       await tester.pump(); // das Ausblenden beginnt im nächsten Bild
-      await tester.pump(kSplashFade + const Duration(milliseconds: 50));
+      await tester.pump(kSplashSkipFade + const Duration(milliseconds: 50));
       expect(splash, findsNothing);
     });
 
