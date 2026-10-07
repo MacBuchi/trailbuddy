@@ -81,6 +81,9 @@ abstract final class MapCoach {
   static const layersSheet = 'map.layersSheet';
   static const filterTrails = 'map.filter.trails';
   static const filterOfficial = 'map.filter.official';
+
+  /// Der Schalter „Wege" (#212): Forstweg-Güte und Pfad-Schwierigkeit.
+  static const filterWays = 'map.filter.ways';
   static const filterPois = 'map.filter.pois';
 
   /// Die Legende am linken Rand (#182) — Anker UND Szene (sie klappt sie
@@ -190,10 +193,10 @@ const kMapTourScript = CoachScript(
     ),
     CoachStep(
       title: 'Orte und offizielle Trails wählen',
-      text: 'Offizielle Trails an oder aus, Orte nach Gruppe. Was hier aus '
-          'ist, bleibt aus, bis du es wieder einschaltest.',
+      text: 'Offizielle Trails und die Güte der Wege an oder aus, Orte nach '
+          'Gruppe. Was hier aus ist, bleibt aus, bis du es wieder einschaltest.',
       scene: MapCoach.layersSheet,
-      lit: [MapCoach.filterOfficial, MapCoach.filterPois],
+      lit: [MapCoach.filterOfficial, MapCoach.filterWays, MapCoach.filterPois],
     ),
     CoachStep(
       title: 'Karten ohne Empfang',

@@ -27,6 +27,7 @@ import 'package:trailbuddy/features/map/map_view/flutter_map_view.dart';
 import 'package:trailbuddy/features/map/map_view/map_view.dart';
 import 'package:trailbuddy/features/keep_alive/keep_alive.dart';
 import 'package:trailbuddy/features/map/poi_source.dart';
+import 'package:trailbuddy/features/map/way_layer.dart';
 import 'package:trailbuddy/features/offline_areas/area_store.dart';
 import 'package:trailbuddy/features/map/position_provider.dart';
 import 'package:trailbuddy/features/official/official_trails_source.dart';
@@ -137,6 +138,9 @@ List<Override> overridesFor(FakeBackend backend,
       mapManifestLoaderProvider.overrideWithValue(() async => null),
       areaHeightsManifestLoaderProvider.overrideWithValue(() async => null),
       heightsManifestLoaderProvider.overrideWithValue(() async => null),
+      // Die Wege (#212) sind ab Werk an — ohne diese Zeile fragte jeder
+      // Kartentest den Host.
+      waysManifestLoaderProvider.overrideWithValue(() async => null),
       // Und keine Orte-Dateien vom Host: Eine Karte, die auf einen Trail
       // zoomt, liegt über Zoom 12 und fragte sonst wirklich an.
       poiSourceProvider.overrideWithValue(pois ?? FakePoiSource()),

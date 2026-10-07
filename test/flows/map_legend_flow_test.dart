@@ -48,7 +48,7 @@ void main() {
     }
     // Die Gruppen tragen Überschriften (#231): dass „abgerockt" ein
     // Zustand ist, steht da, statt erraten zu werden.
-    for (final title in ['SCHWIERIGKEIT', 'ZUSTAND', 'AM TRAIL']) {
+    for (final title in ['SCHWIERIGKEIT', 'ZUSTAND', 'AM TRAIL', 'FORSTWEG', 'PFAD']) {
       expect(find.descendant(of: panel, matching: find.text(title)), findsOneWidget, reason: title);
     }
     expect(tester.getRect(panel).width, kMapLegendWidth);
@@ -58,6 +58,28 @@ void main() {
     expect(panel, findsNothing);
     expect(tab, findsOneWidget);
     expect(settings.mapLegendOpen, isFalse);
+  });
+
+  testWidgets('die Wege (#212) stehen nur in der Legende, solange ihre Ebene an ist', (tester) async {
+    final settings = FakeSettings(mapLegendOpen: true, wayLayerEnabled: false);
+    await pumpApp(tester, backend, settings: settings);
+    await settle(tester, frames: 20);
+    expect(find.descendant(of: panel, matching: find.text('FORSTWEG')), findsNothing);
+    expect(find.descendant(of: panel, matching: find.text('S0')), findsOneWidget);
+
+    // Eingeschaltet im Blatt „Kartenebenen" — dieselbe Einstellung.
+    await tester.tap(find.byTooltip('Kartenebenen'));
+    await settle(tester);
+    final toggle = find.byKey(const ValueKey('way-layer-switch'));
+    await tester.ensureVisible(toggle);
+    await tester.tap(toggle);
+    await settle(tester);
+    expect(settings.wayLayerEnabled, isTrue);
+    await tester.tapAt(const Offset(200, 40));
+    await settle(tester);
+    for (final title in ['FORSTWEG', 'PFAD']) {
+      expect(find.descendant(of: panel, matching: find.text(title)), findsOneWidget, reason: title);
+    }
   });
 
   testWidgets('offen gemerkt ⇒ beim Start offen', (tester) async {

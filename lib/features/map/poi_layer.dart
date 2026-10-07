@@ -12,6 +12,7 @@ import '../trails/trail_providers.dart';
 import 'map_view/map_view.dart';
 import 'poi.dart';
 import 'poi_source.dart';
+import 'way_layer.dart';
 
 /// Die Orte als Stecknadeln — seit der Kartenfassade (#31) keine Ebene
 /// INNERHALB der Engine mehr, sondern zwei pure Schritte, die der
@@ -262,6 +263,7 @@ class _PoiFilterSheet extends ConsumerWidget {
     final groups = ref.watch(poiGroupsProvider);
     final hidden = ref.watch(poiHiddenKindsProvider);
     final official = ref.watch(officialTrailsEnabledProvider);
+    final ways = ref.watch(wayLayerEnabledProvider);
     final trails = ref.watch(trailsProvider).valueOrNull ?? const <Trail>[];
     final text = Theme.of(context).textTheme;
     return SafeArea(
@@ -308,6 +310,23 @@ class _PoiFilterSheet extends ConsumerWidget {
               value: official,
               onChanged: (v) => ref.read(officialTrailsEnabledProvider.notifier).set(v),
             )),
+            // Die Wege (#212): Güte der Forstwege, Schwierigkeit der Pfade —
+            // aus OSM, über der Basiskarte. Ab Werk an.
+            CoachAnchor(
+              id: MapCoach.filterWays,
+              child: SwitchListTile(
+                key: const ValueKey('way-layer-switch'),
+                secondary: const CircleAvatar(
+                  backgroundColor: AppColors.mapBackground,
+                  child: SizedBox(width: 26, height: 20, child: CustomPaint(painter: WaySwatchPainter())),
+                ),
+                title: const Text('Wege'),
+                subtitle: const Text('Forstwege nach Güte, Pfade nach Schwierigkeit — '
+                    'aus OpenStreetMap, ab Zoomstufe $kWaysZoom'),
+                value: ways,
+                onChanged: (v) => ref.read(wayLayerEnabledProvider.notifier).set(v),
+              ),
+            ),
             CoachAnchor(
               id: MapCoach.filterPois,
               child: Column(

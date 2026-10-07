@@ -357,6 +357,29 @@ void main() {
     }
   });
 
+  test('das Wege-Archiv (#212) kommt vom selben Host, im Format, das die App liest', () {
+    // way-data.yml schreibt `ways.json` + `ways-<build>.pmtiles`; die App
+    // liest beides unter `kMapTilesBase` (`kWaysManifestUrl`,
+    // `WaysManifest`) und zeichnet Kacheln mit genau diesem Format.
+    final data = File('.github/workflows/way-data.yml').readAsStringSync();
+    final providers = File('lib/features/map/map_providers.dart').readAsStringSync();
+    final host = RegExp(r"kMapTilesBase = '([^']+)'").firstMatch(providers)!.group(1)!;
+    expect(providers, contains("kWaysManifestUrl = '\$kMapTilesBase/ways.json'"));
+    expect(data, contains('PUBLIC_BASE: $host'));
+    final tool = File('tool/way_archive.py').readAsStringSync();
+    final dart = File('lib/features/map/way_layer.dart').readAsStringSync();
+    for (final (py, dt) in [('FORMAT', 'kWaysFormat'), ('ZOOM', 'kWaysZoom')]) {
+      final a = RegExp('^$py = (\\d+)', multiLine: true).firstMatch(tool)!.group(1);
+      final b = RegExp('const $dt = (\\d+);').firstMatch(dart)!.group(1);
+      expect(b, a, reason: '$dt gegen $py');
+    }
+    for (final (py, dt) in [('LAYER', 'kWaysLayer'), ('KEY', 'kWaysKey')]) {
+      final a = RegExp('^$py = "(\\w+)"', multiLine: true).firstMatch(tool)!.group(1);
+      final b = RegExp("const $dt = '(\\w+)';").firstMatch(dart)!.group(1);
+      expect(b, a, reason: '$dt gegen $py');
+    }
+  });
+
   test('die Orte kommen vom selben Host, je Zelle und Gruppe, und CI liest sie zurück', () {
     // poi-data.yml (Konzept 3.4, Weg 3): Manifest `pois.json` und
     // Dateien `pois-<build>/<zeile>_<spalte>.<gruppe>.json` neben dem

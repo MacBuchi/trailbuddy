@@ -2,6 +2,22 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Wie gut ist der Weg?
+
+*Version 0.89.0, 2026-10-08*
+
+- **Forstwege nach Güte, Pfade nach Schwierigkeit**: Ab Zoomstufe 13
+  liegt über den Wegen der Karte, was OpenStreetMap über sie weiß.
+  Durchgezogen und kräftig heißt ein guter Forstweg oder ein leichter
+  Pfad, gestrichelt mittel, gepunktet und blass ein schlechter Forstweg
+  oder ein schwerer Pfad. In der Legende stehen die Striche unter
+  „Forstweg" und „Pfad".
+- Wo in OpenStreetMap nichts eingetragen ist, bleibt der Weg, wie die
+  Karte ihn immer gezeichnet hat — bei Pfaden ist das noch der Normalfall.
+- Die Ebene ist ab Werk an; unter „Kartenebenen" schaltest du sie ab.
+  Die Daten kommen vom selben Kartenserver wie die Karte selbst, vorerst
+  nur mit Empfang.
+
 ## Höhenprofil der geplanten Runde
 
 *Version 0.88.0, 2026-10-07*

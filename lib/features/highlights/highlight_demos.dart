@@ -123,6 +123,26 @@ final kHighlightDemos = <String, HighlightDemo>{
       ),
     ]),
   ),
+  'way-quality': HighlightDemo(
+    route: '/',
+    script: _demo('way-quality', [
+      _from(kMapTourScript, 'Was die Karte zeigt'),
+      const CoachStep(
+        title: 'Die Güte der Wege',
+        text: 'Hier schaltest du sie ab und wieder an. Sie kommt aus OpenStreetMap — '
+            'wo dort nichts eingetragen ist, bleibt der Weg, wie die Karte ihn zeichnet.',
+        scene: MapCoach.layersSheet,
+        lit: [MapCoach.filterWays],
+      ),
+      const CoachStep(
+        title: 'Was die Striche heißen',
+        text: 'Unter „Forstweg" und „Pfad" steht in der Legende, welcher Strich '
+            'was bedeutet. Je durchbrochener, desto rauer.',
+        scene: MapCoach.legend,
+        lit: [MapCoach.legend],
+      ),
+    ]),
+  ),
   'map-legend': HighlightDemo(
     route: '/',
     script: _demo('map-legend', [

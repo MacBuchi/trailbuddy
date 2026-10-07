@@ -274,6 +274,45 @@ um den Bestand in der Textfarbe des Modus, `tileOutline`) und
 `area_draw.dart` (`draftLayers`, `kAreaInkLight`/`kAreaInkDark`). Auch
 der Strich beim Zeichnen folgt der Regel.
 
+## 5a. Wege nach Güte und Schwierigkeit (#212) — `lib/features/map/way_layer.dart`
+
+**Nur Strich und Breite, in den Grau-Braun-Tönen der Basiskarte, nie
+eine Trail-Farbe** (Betreiber, 2026-10-08). Die Ebene liegt über der
+Basiskarte und unter den Trails; ab Werk an, Schalter „Wege" in
+„Kartenebenen". Daten aus OSM (`tracktype`, `mtb:scale`, sonst
+`sac_scale`), vom eigenen Kartenhost, nur Zoom 13 — darunter zeigt keine
+Engine die Ebene, darüber wird hochskaliert.
+
+**Eine Regel für beide Wegarten: je durchbrochener und blasser, desto
+rauer.**
+
+| Klasse | MapLibre (Android) | Web (ohne Strich) | Breite z15 |
+|---|---|---|---|
+| Forstweg gut | durchgezogen `#7f6649` | dasselbe | 2,2 |
+| Forstweg mittel | Band `#d3c5b3`, Strich `#a58a6a` [3, 1,5] | `#a58a6a` | 1,8 |
+| Forstweg schlecht | Band `#ddd2c4`, Punkte `#a58a6a` [1, 2] | `#c7b49d` | 1,6 |
+| Pfad leicht | durchgezogen `#8f7860` | dasselbe | 1,4 |
+| Pfad mittelschwer | Band `#d8ccbd`, Strich `#a8907a` [3, 1,5] | `#b6a08a` | 1,1 |
+| Pfad schwer | Band `#e0d6ca`, Punkte `#a8907a` [1, 2] | `#cdbfae` | 1,0 |
+
+Drei Dinge, die die Tabelle erklären:
+
+- **Jede Breite liegt über der Basislinie** (Forstweg 1,4, Pfad 0,8 bei
+  z15, `tool/transform_map_style.py`). Schmaler, und die Basislinie
+  stünde neben der Ebene.
+- **Das Band** unter einem gestrichelten Strich deckt die Striche der
+  Basiskarte ab — sonst schienen sie durch die Lücken, und aus „gepunktet"
+  würde ein Muster, das es nicht gibt. Erst alle Bänder, dann alle
+  Striche.
+- **Im Web gibt es keinen Strich** (`vector_tile_renderer` verwirft
+  `line-dasharray`), dort tragen Breite und Helligkeit allein; die Web-Farbe
+  ist deshalb eine eigene Spalte. „Mittel" sieht dort aus wie ein
+  ungetaggter Weg, nur breiter — die Aussage tragen „gut" und „schlecht".
+
+Forstweg und Pfad unterscheiden sich wie in der Basiskarte über die
+Breite. Die Legende zeigt die sechs Proben unter „Forstweg" und „Pfad",
+gezeichnet wie MapLibre (`paintWayStroke`), nur solange die Ebene an ist.
+
 ## 6. Karte mit zwei Leisten (Turn 3, Spezifikation 3e)
 
 - **Rechts unten — immer:** Aufnahme 60 px (Lime; läuft die Fahrt: Orange
@@ -584,6 +623,7 @@ Routing kommt die Übergabe an eine Navi-App (#151, Konzept 9).
 | E4 | Tour im Zerlege-Blatt (#134) | 0.62.0 |
 | E5 | Touren für Trails und Buddys, Beispiele (#136) | 0.63.0 |
 | E6 | Neuheiten-Blatt, „Entdecken", „Zeig es mir" (#135) | 0.64.0 |
+| W1 | Wege nach Güte und Schwierigkeit (#212, Abschnitt 5a) | 0.89.0 |
 
 ## 12. Einführung: Hinweis-Maschine und Touren (#126)
 

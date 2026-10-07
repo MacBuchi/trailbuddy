@@ -19,6 +19,7 @@ import '../../offline_areas/area_providers.dart';
 import '../../official/official_trails_source.dart';
 import '../base_map_providers.dart';
 import '../online_map.dart';
+import '../way_layer.dart';
 import 'map_style_composer.dart';
 
 /// Die fünf Unicode-Bereiche, die für deutsche Kartenbeschriftung reichen.
@@ -94,7 +95,8 @@ String cssColor(int argb) => '#${(argb & 0xFFFFFF).toRadixString(16).padLeft(6, 
 /// gibt; die Online-Karte vom Host (`pmtiles://https://…`, Range-Anfragen
 /// macht maplibre-native selbst), sobald das Manifest da ist; und IMMER
 /// die gespeicherten Bereiche zuoberst, je Bereich eine `file://`-Quelle
-/// (#82, `area_providers.dart`). Ein Wechsel erzeugt einen neuen
+/// (#82, `area_providers.dart`), darüber die Wege (#212, `way_layer.dart`)
+/// — unter den Trails, die als eigene Ebenen danach kommen. Ein Wechsel erzeugt einen neuen
 /// Style-String; die Engine spielt ihn per `setStyle` ein.
 final maplibreStyleProvider = FutureProvider<String?>((ref) async {
   final noConnectivity = ref.watch(noConnectivityProvider);
@@ -106,17 +108,29 @@ final maplibreStyleProvider = FutureProvider<String?>((ref) async {
   // Beobachtet wird das FUTURE, nicht der Zustand: Der wechselt beim
   // Eintreffen, der Stil baute dann mitten im ersten Aufbau neu — und
   // dessen `.future` erfüllte sich ohne Zuhörer nie (im Test gefunden).
-  var arrived = false;
-  final manifestFuture =
-      ref.watch(mapManifestProvider.future).whenComplete(() => arrived = true);
-  final manifest = await withinOrNull(manifestFuture, kMapManifestPatience);
-  if (!arrived) {
-    var current = true;
-    ref.onDispose(() => current = false);
-    unawaited(manifestFuture.then((late) {
-      if (current && late != null) ref.invalidateSelf();
-    }));
+  //
+  // Dieselbe Geduld gilt für die Wege (#212), gleichzeitig gemessen: Ein
+  // langsamer Wege-Host hält die Karte nicht länger auf als die Karte
+  // selbst, und ein spätes Wege-Manifest baut den Stil neu.
+  var current = true;
+  ref.onDispose(() => current = false);
+  Future<T?> patiently<T>(Future<T?> future) {
+    var arrived = false;
+    final watched = future.whenComplete(() => arrived = true);
+    return withinOrNull(watched, kMapManifestPatience).then((value) {
+      if (!arrived) {
+        unawaited(watched.then((late) {
+          if (current && late != null) ref.invalidateSelf();
+        }));
+      }
+      return value;
+    });
   }
+
+  final manifestWait = patiently(ref.watch(mapManifestProvider.future));
+  final waysWait = patiently(ref.watch(waysManifestProvider.future));
+  final manifest = await manifestWait;
+  final ways = await waysWait;
   final io = ref.watch(maplibreStyleIoProvider);
   // Die Quellenangabe der Behörden — nur solange die Ebene an ist und
   // eine ihrer Regionen geladen. `select` auf den Text: Der Controller
@@ -180,6 +194,18 @@ final maplibreStyleProvider = FutureProvider<String?>((ref) async {
       glyphsUrl: glyphsUrl,
       backgroundColor: cssColor(AppColors.mapBackground.toARGB32()),
       sources: sources,
+      overlays: [
+        if (ways != null)
+          MapStyleOverlay(
+            source: MapStyleSource(
+              id: kWaysSourceId,
+              url: ways.archiveUri.toString(),
+              minZoom: kWaysZoom,
+              maxZoom: kWaysZoom,
+            ),
+            layers: wayStyleLayers(kWaysSourceId, dashes: true),
+          ),
+      ],
       extraAttributions: officialCredits.isEmpty ? const [] : officialCredits.split('\u0000'),
     );
   } catch (e, stackTrace) {

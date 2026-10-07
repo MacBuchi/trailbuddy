@@ -9,6 +9,7 @@ import '../../offline_areas/area_providers.dart';
 import '../base_map_providers.dart';
 import '../finite_camera_constraint.dart';
 import '../online_map.dart';
+import '../way_layer.dart';
 import 'line_labels.dart';
 import 'map_view.dart';
 
@@ -107,6 +108,9 @@ class _FlutterMapViewState extends ConsumerState<FlutterMapView>
     // Die gespeicherten Bereiche IMMER, zuoberst (#82) — dieselbe Regel
     // wie in der MapLibre-Engine, Begründung in area_providers.dart.
     final areas = ref.watch(areaMapStyleProvider).valueOrNull;
+    // Die Wege (#212) über allen Kartenschichten, unter den Trails —
+    // dieselbe Reihenfolge wie im MapLibre-Stil.
+    final ways = ref.watch(onlineWaysStyleProvider).valueOrNull;
 
     return FlutterMap(
       mapController: _mapController,
@@ -195,6 +199,17 @@ class _FlutterMapViewState extends ConsumerState<FlutterMapView>
             // Keine Ersatzkachel: Eine Kachel außerhalb des Bereichs fehlt
             // mit Absicht, und ihre gröbere Elternkachel aus dem Bereich
             // läge sonst über der schärferen Online-Kachel darunter.
+            maximumTileSubstitutionDifference: 0,
+          ),
+        if (ways != null)
+          vmt.VectorTileLayer(
+            key: ValueKey(ways.tileProviders),
+            tileProviders: ways.tileProviders,
+            theme: ways.theme,
+            layerMode: vmt.VectorTileLayerMode.vector,
+            maximumZoom: 19,
+            // Unter Zoom 13 gibt es keine Kachel; eine Ersatzkachel aus
+            // einer anderen Stufe gibt es also auch nicht.
             maximumTileSubstitutionDifference: 0,
           ),
         if (layers.polygons.isNotEmpty)
