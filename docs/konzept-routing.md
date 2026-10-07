@@ -194,7 +194,7 @@ und ob die Kante überhaupt gilt.
 | `minor_road` / `service` (ohne `driveway`, `parking_aisle`) | Zufahrt | 1,2 | 1,2 | Almzufahrten sind oft `service` |
 | `path` / `path`, `bridleway` | Wanderweg | 1,4 (Bio) / 2,0 (E) | 2,0 (Bio) / 2,5 (E) | zählt in beide Richtungen gegen „höchstens Wanderweg" |
 | `path` / `footway`, `pedestrian` | Fußweg | 2,0 | 2,5 | im Ort als Lücke brauchbar |
-| `path` / `steps` | Stufen | 3,0, schiebend | 3,0, schiebend | nur als letzte Brücke |
+| `path` / `steps` | Stufen | 3,0, schiebend, + 60 s je Treppe | 3,0, schiebend | nur als letzte Brücke; bergauf wird getragen (#210) |
 | `medium_road` (tertiary) | Landstraße | 1,6 | 1,6 | |
 | `major_road` / `secondary` | Hauptstraße | 2,5 | 2,5 | |
 | `major_road` / `primary` | Bundesstraße | 4,0 | 4,0 | nie ausgeschlossen (#158) |
@@ -217,6 +217,17 @@ verschenkte Höhe**: Jeder Meter, den eine Wegekante bergab geht, muss
 wieder erstiegen werden, bevor der nächste Trail kommt — er geht als
 „verschenkte Höhenmeter" in den Vergleich zweier Pläne und ins Blatt
 („120 hm auf Forstweg verschenkt").
+
+**Stufen bergauf kosten einen festen Aufschlag** (#210, seit 0.87.0,
+Betreiber: „Treppen bergauf stark meiden — da wird getragen"): 60 s
+Kosten je Stufen-Kante, die steigt, unabhängig von ihrer Länge — Tragen
+ist ein Halt, kein langsameres Tempo, und eine kurze Treppe gewann bis
+dahin gegen jeden Umweg unter 0,8 km Forstweg (Bio, 20 m mit 4 hm);
+jetzt erst ab rund 1 km. Bergab und ohne Höhen nichts; „Wanderwege:
+egal" macht ihn nicht billiger. Wird eine Kante geteilt (ein angehefteter
+Trailkopf), teilt sich der Aufschlag nach Länge, sonst zählte eine
+Treppe doppelt. Kosten, nicht Zeit; ob die Zahl trägt, zeigt die
+Feldprüfung in #188.
 
 **Steile Anstiege kosten extra** (#194 seit 0.80.0, seit 0.81.0 als
 Kurve, #188; gemessen in `docs/routing-messung.md`): Jeder Höhenmeter

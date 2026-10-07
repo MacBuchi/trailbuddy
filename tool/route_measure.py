@@ -151,6 +151,16 @@ STEEP_W_MAX = 30.0
 # have spent it. Trails and connectors carry none.
 DESCENT_COST = 0.3
 
+# Steps uphill (#210, operator field note 2026-10-02: "Treppen bergauf
+# stark meiden — da wird getragen"): carrying is a stop, not a slower
+# speed, so a steps edge that climbs (gain > loss) costs CARRY_S on top,
+# independent of its length. Downhill and without heights nothing (the
+# direction is unknown). A split shares it by length (Edge.carry), so an
+# attached trail head does not count one flight twice. With the class
+# factor ×3 a 20 m flight with 4 hm now loses against about 1 km of
+# forest track (bio) instead of 0.8 km. A cost, not minutes.
+CARRY_S = 60.0
+
 # Route preferences (#188): three switches, "avoid" (the default, the
 # full surcharge) or "don't mind" (this share of it). Never zero — a
 # rider who does not mind roads still takes the track when it is as fast.
@@ -232,10 +242,16 @@ def descent_cost_s(profile, cls, loss_m):
     return DESCENT_COST * loss_m / (_climb_rate(profile, cls) / 3600.0)
 
 
-def edge_cost_s(profile, cls, length_m, gain_m, loss_m, steep_w=0.0, prefs=None):
+def carry_cost_s(cls, gain_m, loss_m, share=1.0):
+    """CARRY_S for a steps edge uphill, its `share` after a split."""
+    return CARRY_S * share if CLASSES[cls][2] == "v_push" and gain_m > loss_m else 0.0
+
+
+def edge_cost_s(profile, cls, length_m, gain_m, loss_m, steep_w=0.0, prefs=None, carry=1.0):
     return (edge_time_s(profile, cls, length_m, gain_m, loss_m) * edge_factor(profile, cls, gain_m, loss_m, prefs)
             + steep_cost_s(profile, cls, steep_w, pref_strength(prefs, "steep"))
-            + descent_cost_s(profile, cls, loss_m))
+            + descent_cost_s(profile, cls, loss_m)
+            + carry_cost_s(cls, gain_m, loss_m, carry))
 
 
 def smooth_heights(heights, window=STEEP_SMOOTH):
@@ -894,6 +910,7 @@ class Edge:
     steep_down: float = 0.0                      # the same, b -> a
     steep_w_up: float = 0.0                      # weighted steep metres (steep_weight), a -> b
     steep_w_down: float = 0.0                    # the same, b -> a
+    carry: float = 1.0                           # share of CARRY_S after splits (#210)
     heights: list = field(default_factory=list)  # samples a -> b, for the Tirol report
     steps: list = None
 
@@ -982,7 +999,7 @@ class Graph:
         # Heights by length share, as the app does (splitEdge).
         n = self.edges[ni]
         share = n.length / (e.length + n.length) if e.length + n.length > 0 else 0.0
-        for attr in ("gain", "loss", "steep_up", "steep_down", "steep_w_up", "steep_w_down"):
+        for attr in ("gain", "loss", "steep_up", "steep_down", "steep_w_up", "steep_w_down", "carry"):
             v = getattr(e, attr)
             setattr(n, attr, v * share)
             setattr(e, attr, v * (1 - share))
@@ -1187,7 +1204,7 @@ def add_climbs(g, dem):
 def edge_cost(profile, e, forward, steep=True, prefs=None):
     gain, loss = (e.gain, e.loss) if forward else (e.loss, e.gain)
     steep_w = (e.steep_w_up if forward else e.steep_w_down) if steep else 0.0
-    return edge_cost_s(profile, e.cls, e.length, gain, loss, steep_w, prefs), gain, loss
+    return edge_cost_s(profile, e.cls, e.length, gain, loss, steep_w, prefs, e.carry), gain, loss
 
 
 def dijkstra(g, src, profile, limit=math.inf, target=None, heuristic=None, steep=True, keep=None, prefs=None):
@@ -2118,6 +2135,32 @@ def self_test():
            "steep, don't mind: 30 %")
     expect(edge_factor("bio", "hauptstrasse", 0, 0, {"roads": True}) == edge_factor("bio", "hauptstrasse", 0, 0) == 2.5,
            "avoid is the default")
+
+    # steps uphill are carried (#210) — mirrored in route_profile_test.dart
+    expect(carry_cost_s("stufen", 4, 0) == CARRY_S == 60.0, "a flight up costs the carry")
+    expect(carry_cost_s("stufen", 0, 4) == 0.0 and carry_cost_s("stufen", 0, 0) == 0.0, "down or without heights: none")
+    expect(carry_cost_s("forstweg", 4, 0) == 0.0 and carry_cost_s("fussweg", 4, 0) == 0.0, "only steps")
+    expect(abs(edge_cost_s("bio", "stufen", 20, 4, 0) - 276.0) < 1e-9, "20 m with 4 hm: 216 s plus the carry")
+    expect(abs(edge_cost_s("bio", "stufen", 20, 4, 0, carry=0.25) - 231.0) < 1e-9, "a split part carries its share")
+    expect(edge_cost_s("bio", "stufen", 20, 4, 0, prefs={"hiking": False}) == edge_cost_s("bio", "stufen", 20, 4, 0),
+           "not cheapened by \"hiking: don't mind\"")
+    g5 = Graph(47.0)
+    c0, c1, c2 = g5.node(47.0, 11.0), g5.node(47.00018, 11.0), g5.node(47.00009, 11.0 + 0.005933)
+    flight = g5.add_edge(c0, c1, "stufen", False, [(47.0, 11.0), (47.00018, 11.0)])
+    g5.edges[flight].gain = 4.0
+    for a_, b_ in ((c0, c2), (c2, c1)):
+        ei = g5.add_edge(a_, b_, "forstweg", False, [g5.latlon[a_], g5.latlon[b_]])
+        g5.edges[ei].gain = 2.0
+    expect(astar(g5, c0, c1, "bio")[2] != [flight], "a short flight up loses against 900 m of track")
+    saved_carry = CARRY_S
+    globals()["CARRY_S"] = 0.0
+    expect(astar(g5, c0, c1, "bio")[2] == [flight], "without the carry the flight is taken")
+    globals()["CARRY_S"] = saved_carry
+    mid5 = g5.split_edge(flight, (0, 0.5), 47.00009, 11.0)
+    parts = [e for e in g5.edges if e.cls == "stufen"]
+    expect(len(parts) == 2 and abs(sum(e.carry for e in parts) - 1.0) < 1e-9, "a split shares the carry by length")
+    expect(mid5 not in (c0, c1) and all(g5.edges[ei].cls == "forstweg" for ei in astar(g5, c0, c1, "bio")[2]),
+           "and the flight is still avoided")
 
     # hysteresis
     expect(hysteresis_climb([100, 105, 100, 105, 100, 150, 140, 200], 10) == (110.0, 10.0), "wiggles under 10 m vanish")
