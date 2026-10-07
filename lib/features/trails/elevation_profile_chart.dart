@@ -10,11 +10,20 @@ import 'trail_elevation.dart';
 ///
 /// Die Zahlen daneben stehen als Text im Baum (Semantics), nicht nur im
 /// Bild: Ein Bildschirmleser liest „Höhenprofil, 1 240 bis 820 Meter".
+///
+/// [compact] (#234, Ergebnis des Planers): niedriger und ohne die Zeile
+/// „Start … km" darunter — die Länge steht dort schon in der Summe, und
+/// das Profil zählt die Anschlüsse an Start und Ziel mit, die Summe nicht.
+/// Zwei verschiedene Längen übereinander läsen sich wie ein Fehler.
 class ElevationProfileChart extends StatelessWidget {
-  const ElevationProfileChart(this.profile, {super.key, this.height = 96});
+  const ElevationProfileChart(this.profile, {super.key, this.height = 96, this.compact = false});
+
+  /// Höhe der Zeichnung in der kompakten Form.
+  static const compactHeight = 64.0;
 
   final ElevationProfile profile;
   final double height;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
@@ -31,7 +40,7 @@ class ElevationProfileChart extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           SizedBox(
-            height: height,
+            height: compact ? compactHeight : height,
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -40,9 +49,17 @@ class ElevationProfileChart extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    // Verkleinert statt überzulaufen: In der kompakten Form
+                    // und mit großer Systemschrift passen zwei Zeilen sonst
+                    // nicht neben die Zeichnung.
                     children: [
-                      Text('$top m', style: small?.copyWith(color: muted)),
-                      Text('$bottom m', style: small?.copyWith(color: muted)),
+                      for (final t in ['$top m', '$bottom m'])
+                        Flexible(
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(t, style: small?.copyWith(color: muted)),
+                          ),
+                        ),
                     ],
                   ),
                 ),
@@ -61,16 +78,17 @@ class ElevationProfileChart extends StatelessWidget {
               ],
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.only(left: 50, top: 2),
-            child: Row(
-              children: [
-                Text('Start', style: small?.copyWith(color: muted)),
-                const Spacer(),
-                Text(_km(profile.lengthM), style: small?.copyWith(color: muted)),
-              ],
+          if (!compact)
+            Padding(
+              padding: const EdgeInsets.only(left: 50, top: 2),
+              child: Row(
+                children: [
+                  Text('Start', style: small?.copyWith(color: muted)),
+                  const Spacer(),
+                  Text(_km(profile.lengthM), style: small?.copyWith(color: muted)),
+                ],
+              ),
             ),
-          ),
         ],
       ),
     );

@@ -35,6 +35,7 @@ import 'loop_planner_providers.dart';
 import 'map_panel.dart';
 import 'road_graph.dart';
 import 'road_graph_loader.dart' show kOnlineFillMaxTiles;
+import 'route_elevation.dart';
 import 'route_profile.dart';
 import 'route_search.dart' show steepNote;
 import 'trail_head_route.dart' show routeTimeLabel;
@@ -558,6 +559,9 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
         '${s.mix.isEmpty ? '' : ' · ${_mixLine(s.mix)}'}',
         style: theme.textTheme.bodyMedium,
       ),
+      // Das Profil der Runde (#234) gleich darunter, kompakt: Eingeklappt
+      // gehört es mit Summe und Knöpfen zu dem, was zu sehen ist.
+      RouteElevationProfile(plan.points, key: const ValueKey('loop-elevation')),
       // Die Knöpfe gleich unter den Summen: Eingeklappt sind sie zu sehen,
       // die Runde darüber.
       const SizedBox(height: 8),

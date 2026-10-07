@@ -56,6 +56,7 @@ import 'map_panel.dart';
 import 'planning_graph.dart';
 import 'ride_calibrator.dart';
 import 'road_graph.dart';
+import 'route_elevation.dart';
 import 'route_profile.dart';
 import 'route_search.dart' show steepNote;
 import 'trail_head_providers.dart';
@@ -427,6 +428,8 @@ class _RouteSheetState extends ConsumerState<_RouteSheet> {
         Text(_mixLine(fun.summary!.mix), style: theme.textTheme.bodyMedium),
       ] else
         Text(_mixLine(route.summary.mix), style: theme.textTheme.bodyMedium),
+      // Das Profil des Wegs (#234), wie im Ergebnis der Runde.
+      RouteElevationProfile(fun?.points ?? route.points, key: const ValueKey('trail-head-elevation')),
       if (_mode == RouteMode.fun && _funEmpty) ...[
         const SizedBox(height: 8),
         Text(

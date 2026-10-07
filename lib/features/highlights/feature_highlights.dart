@@ -74,6 +74,18 @@ class FeatureHighlight {
 const kFeatureHighlights = <FeatureHighlight>[
   // ─── Highlights ──────────────────────────────────────────────────
   FeatureHighlight(
+    id: 'route-elevation',
+    since: '0.88.0',
+    kind: HighlightKind.highlight,
+    tab: HighlightTab.map,
+    icon: Icons.alt_route,
+    title: 'Höhenprofil der Runde',
+    text: 'Unter der Summe einer geplanten Runde steht jetzt ihr Höhenprofil, '
+        'kompakt über die ganze Strecke — ebenso beim Weg zum Trail. Die Höhen '
+        'kommen aus dem Geländemodell deiner Bereiche.',
+    target: '/',
+  ),
+  FeatureHighlight(
     id: 'rides-tidy',
     since: '0.85.0',
     kind: HighlightKind.highlight,
