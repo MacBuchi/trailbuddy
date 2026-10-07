@@ -41,7 +41,7 @@ const kTerrainElevationSource = 'terrain';
 /// Geländemodell"? Namensräume zählen nicht, wie überall hier.
 bool _terrainMarked(XmlElement parent) => parent
     .findElements('extensions')
-    .expand((e) => e.findElements(kElevationSourceTag, namespace: '*'))
+    .expand((e) => e.findElements(kElevationSourceTag, namespaceUri: '*'))
     .any((e) => e.innerText.trim() == kTerrainElevationSource);
 
 class GpxFormatException implements Exception {

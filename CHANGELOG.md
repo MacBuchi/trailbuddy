@@ -2,6 +2,13 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Aktuelle Bausteine
+
+*Version 0.83.2, 2026-10-07*
+
+- Die Bausteine für Anmeldung, Navigation in der App und GPX-Dateien
+  sind auf dem neuesten Stand. Sichtbar ändert sich nichts.
+
 ## Ruhiger Start
 
 *Version 0.83.1, 2026-10-07*
