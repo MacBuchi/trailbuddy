@@ -84,6 +84,19 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
   - **Spiegel des Werkzeugs**: `PREF_*`, `pref_strength`,
     `DESCENT_COST`, `steep_weight` in `tool/route_measure.py`; die
     Zahlen in `route_profile_test` sind dort gerechnet.
+- **Stufen bergauf werden getragen** (#210, seit 0.87.0): Eine
+  Stufen-Kante, die steigt, kostet `kCarryCostS` (60 s) obendrauf,
+  unabhängig von der Länge (`carryCostS`, `edgeCostS(carry:)`). Zwei
+  Dinge, die man wissen muss:
+  - **Der Aufschlag hängt am Weg, nicht an jedem Stück.**
+    `GraphEdge.carry` ist 1 und wird von `splitEdge` nach Länge geteilt
+    wie die Höhen — ein fester Betrag je Kante wäre sonst nach dem
+    Anheften eines Trailkopfs doppelt da, und die Route hinge davon ab,
+    welche Trails gewählt sind. Kreuzungen beim Bau des Graphen teilen
+    dagegen echt: Eine Treppe, die einen Weg quert, kostet zweimal.
+  - **Spiegel des Werkzeugs**: `CARRY_S`, `carry_cost_s`, `Edge.carry`
+    in `tool/route_measure.py`; die Zahlen in `route_profile_test` und
+    die Suche „Treppe gegen 900 m Forstweg" sind dort gerechnet.
 - **„Zum Trailkopf"** (Schritt 4, seit 0.71.0, `trail_head_route.dart`
   pur, `trail_head_sheet.dart`, `trail_head_providers.dart`): im
   Trail-Blatt neben „Anfahrt", vom eigenen Standort zum Anfang des

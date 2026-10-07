@@ -56,8 +56,8 @@ void main() {
         reason: 'bergab 25 km/h, dazu 0,3 der Steigzeit für die verschenkten 100 hm');
     expect(t(bio, WayClass.wanderweg, 1000, 0, 100), closeTo(360.0, 1e-6), reason: 'bergab wie Trail ohne Grad');
     expect(k(bio, WayClass.wanderweg, 1000, 0, 100), closeTo(1028.571429, 1e-5));
-    expect(k(bio, WayClass.stufen, 200, 50, 0), closeTo(2520.0, 1e-6));
-    expect(k(e, WayClass.stufen, 200, 50, 0), closeTo(3318.545455, 1e-5));
+    expect(k(bio, WayClass.stufen, 200, 50, 0), closeTo(2580.0, 1e-6), reason: 'mit dem Trage-Aufschlag (#210)');
+    expect(k(e, WayClass.stufen, 200, 50, 0), closeTo(3378.545455, 1e-5));
     expect(k(bio, WayClass.fussweg, 500, 0, 30), closeTo(655.071429, 1e-5));
     expect(k(bio, WayClass.nebenstrasse, 2000, 150, 20), closeTo(2064.0, 1e-6));
     // Trails bergab nach Grad.
@@ -104,6 +104,27 @@ void main() {
       expect(c.steep, c == WayClass.stufen ? 0 : c.isRoad || c == WayClass.radweg ? kSteepFactorPaved : kSteepFactorUnpaved,
           reason: c.label);
     }
+  });
+
+  test('Stufen bergauf werden getragen: dieselben Zahlen wie das Werkzeug (#210)', () {
+    const bio = RiderProfile.bio, e = RiderProfile.ebike;
+    expect(kCarryCostS, 60.0);
+    expect(carryCostS(WayClass.stufen, gainM: 4, lossM: 0), 60.0, reason: 'eine Treppe hinauf');
+    expect(carryCostS(WayClass.stufen, gainM: 0, lossM: 4), 0, reason: 'hinunter nicht');
+    expect(carryCostS(WayClass.stufen, gainM: 0, lossM: 0), 0, reason: 'ohne Höhen ist die Richtung unbekannt');
+    for (final c in WayClass.values.where((c) => c != WayClass.stufen)) {
+      expect(carryCostS(c, gainM: 4, lossM: 0), 0, reason: c.label);
+    }
+    expect(edgeCostS(bio, WayClass.stufen, lengthM: 20, gainM: 4, lossM: 0), closeTo(276.0, 1e-6),
+        reason: '216 s plus der Aufschlag, unabhängig von der Länge');
+    expect(edgeCostS(e, WayClass.stufen, lengthM: 20, gainM: 4, lossM: 0), closeTo(342.763636, 1e-5));
+    expect(edgeCostS(bio, WayClass.stufen, lengthM: 20, gainM: 0, lossM: 4), closeTo(86.4, 1e-6));
+    expect(edgeCostS(bio, WayClass.stufen, lengthM: 20, gainM: 4, lossM: 0, carry: 0.25), closeTo(231.0, 1e-6),
+        reason: 'ein geteiltes Stück trägt seinen Anteil');
+    expect(edgeCostS(bio.withPrefs(const RoutePrefs(avoidHiking: false)), WayClass.stufen, lengthM: 20, gainM: 4, lossM: 0),
+        closeTo(276.0, 1e-6), reason: '„Wanderwege: egal" macht das Tragen nicht billiger');
+    expect(edgeTimeS(bio, WayClass.stufen, lengthM: 20, gainM: 4, lossM: 0), closeTo(72.0, 1e-6),
+        reason: 'Kosten, keine Minuten');
   });
 
   test('Gewichtete Steilmeter: dieselben Vektoren wie das Werkzeug (#188)', () {

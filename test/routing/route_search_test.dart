@@ -112,6 +112,37 @@ void main() {
     expect(summarizePath(g, viaTrail.edges, a, bio).steepM, 0, reason: 'der Uphill-Trail zählt nicht als steil');
   });
 
+  test('Stufen bergauf (#210): die kurze Treppe verliert gegen 900 m Forstweg, bergab nicht', () {
+    // (0,0) → (0,20): 20 m Stufen mit 4 hm, oder 900 m Forstweg über
+    // (450, 10) mit denselben 4 hm. Ohne Aufschlag 216 s gegen 248 s —
+    // die Treppe gewänne; mit ihm 276 s.
+    final g = buildRoadGraph([
+      _way([(0, 0), (0, 20)], cls: WayClass.stufen),
+      _way([(0, 0), (450, 10), (0, 20)]),
+    ], lat0: 47.5).graph;
+    final a = g.attach(_m([(0, 0)]).single)!, b = g.attach(_m([(0, 20)]).single)!;
+    final flight = g.edges.indexWhere((e) => e.cls == WayClass.stufen);
+    for (final e in g.edges) {
+      final up = e.a == a; // a → b ist bergauf, beide Wege 4 hm
+      e
+        ..gain = up ? 4 : 0
+        ..loss = up ? 0 : 4
+        ..hasHeights = true;
+    }
+    expect(edgeCostFrom(g, flight, a, bio).cost, closeTo(276.0, 1e-6));
+    expect(shortestPath(g, a, b, bio)!.edges, isNot(contains(flight)), reason: 'hinauf wird getragen');
+    expect(shortestPath(g, b, a, bio)!.edges, [flight], reason: 'hinunter kein Aufschlag');
+
+    // Geteilt (ein Trailkopf auf der Treppe) bleibt es EIN Aufschlag.
+    final mid = g.splitEdge(flight, 0, _m([(0, 10)]).single);
+    final halves = [for (final (i, e) in g.edges.indexed) if (e.cls == WayClass.stufen) i];
+    expect(halves, hasLength(2));
+    expect(g.edges[halves[0]].carry + g.edges[halves[1]].carry, closeTo(1.0, 1e-9));
+    expect(edgeCostFrom(g, halves[0], a, bio).cost + edgeCostFrom(g, halves[1], mid, bio).cost, closeTo(276.0, 1e-6),
+        reason: 'die Hälften kosten zusammen, was die Treppe kostete');
+    expect(shortestPath(g, a, b, bio)!.edges.every((i) => g.edges[i].cls == WayClass.forstweg), isTrue);
+  });
+
   test('der Satz zu steilen Stücken erst ab ein paar Höhenmetern (#194)', () {
     expect(steepNote(0), isNull);
     expect(steepNote(kSteepNoteMinM - 0.1), isNull);

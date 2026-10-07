@@ -2,6 +2,16 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Planer: Treppen bergauf meiden
+
+*Version 0.87.0, 2026-10-07*
+
+- **Das Rad wird nicht mehr die Treppe hinaufgeschickt**: Wo es eine
+  Treppe hinaufginge, rechnet der Planer jetzt mit, dass du das Rad
+  trägst, und nimmt lieber einen Umweg über Forstweg — auch wenn die
+  Treppe nur kurz ist. Hinunter gilt das nicht, und ein Weg, den es nur
+  über die Treppe gibt, bleibt möglich.
+
 ## Feedback auch ohne Empfang
 
 *Version 0.86.0, 2026-10-07*

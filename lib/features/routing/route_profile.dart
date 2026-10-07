@@ -318,6 +318,17 @@ const kSteepWeightMax = 30.0;
 /// Verbinder tragen nichts.
 const kDescentCost = 0.3;
 
+/// Stufen bergauf (#210, Feldnotiz des Betreibers 2026-10-02: „Treppen
+/// bergauf stark meiden — da wird getragen"): Tragen ist ein Halt, kein
+/// langsameres Tempo. Eine Stufen-Kante, die steigt (Gewinn > Verlust),
+/// kostet deshalb diese Sekunden obendrauf, unabhängig von ihrer Länge;
+/// bergab und ohne Höhen nichts (die Richtung ist dann unbekannt). Eine
+/// Teilung gibt ihn nach Länge weiter ([GraphEdge.carry]), damit ein
+/// angehefteter Trailkopf eine Treppe nicht doppelt zählt. Kosten, keine
+/// Minuten. Mit dem Aufschlag ×3 verliert eine 20-m-Treppe mit 4 hm
+/// (Bio) jetzt gegen rund 1 km Forstweg statt gegen 0,8 km.
+const kCarryCostS = 60.0;
+
 /// Das Gewicht eines Höhenmeters bei [grade] — `steep_weight_at`.
 double steepWeightAt(double grade) {
   if (grade <= kSteepWeightFrom) return 0;
@@ -473,6 +484,11 @@ double steepCostS(RiderParams p, WayClass cls, double steepW) =>
 /// [kDescentCost] der Zeit, sie wieder hinaufzufahren.
 double descentCostS(RiderParams p, WayClass cls, double lossM) => kDescentCost * lossM / (_climbRate(p, cls) / 3600.0);
 
+/// Der Trage-Aufschlag ([kCarryCostS]) einer Stufen-Kante bergauf, nach
+/// einer Teilung ihr Anteil [share] — `carry_cost_s`.
+double carryCostS(WayClass cls, {required double gainM, required double lossM, double share = 1}) =>
+    cls.pushing && gainM > lossM ? kCarryCostS * share : 0;
+
 /// Die Zeit auf einem Trail bergab, nach S-Grad.
 double trailTimeS({required double lengthM, required int? grade}) =>
     lengthM / (trailDownKmh(grade) / 3.6);
@@ -491,15 +507,18 @@ double edgeFactor(RiderParams p, WayClass cls, {required double gainM, required 
 /// Kosten = Zeit × Aufschlag (Konzept-Routing 2.4): Der Aufschlag sagt,
 /// was die Zeit nicht sagt — eine Bundesstraße ist nicht langsam, sie
 /// ist falsch. Dazu der Steilaufschlag für [steepW] gewichtete
-/// Steilmeter (#194) und, mit [descent], der Preis der verschenkten
-/// Höhe (#188).
+/// Steilmeter (#194), mit [descent] der Preis der verschenkten Höhe
+/// (#188) und auf Stufen bergauf der Anteil [carry] des Trage-Aufschlags
+/// (#210).
 double edgeCostS(RiderParams p, WayClass cls,
         {required double lengthM,
         required double gainM,
         required double lossM,
         double steepW = 0,
-        bool descent = true}) =>
+        bool descent = true,
+        double carry = 1}) =>
     edgeTimeS(p, cls, lengthM: lengthM, gainM: gainM, lossM: lossM) *
         edgeFactor(p, cls, gainM: gainM, lossM: lossM) +
     steepCostS(p, cls, steepW) +
-    (descent ? descentCostS(p, cls, lossM) : 0);
+    (descent ? descentCostS(p, cls, lossM) : 0) +
+    carryCostS(cls, gainM: gainM, lossM: lossM, share: carry);

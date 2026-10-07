@@ -228,6 +228,10 @@ class GraphEdge {
   double steepWUp = 0;
   double steepWDown = 0;
 
+  /// Der Anteil am Trage-Aufschlag ([kCarryCostS], #210): 1 für einen
+  /// ganzen Weg, nach [RoadGraph.splitEdge] nach Länge geteilt.
+  double carry = 1;
+
   /// Falsch, solange keine Höhen gelesen wurden oder eine Probe der Kante
   /// keine Höhe hatte — dann rechnet die Kante flach, und der Graph sagt
   /// es ([RoadGraph.edgesWithoutHeights]).
@@ -352,6 +356,10 @@ class RoadGraph {
       ..blockForward = e.blockForward
       ..blockBackward = e.blockBackward
       ..hasHeights = e.hasHeights;
+    // Der Trage-Aufschlag gehört der ganzen Treppe, nicht jeder Hälfte.
+    final carryShare = e.length + edges[ni].length == 0 ? 0.0 : edges[ni].length / (e.length + edges[ni].length);
+    edges[ni].carry = e.carry * carryShare;
+    e.carry = e.carry * (1 - carryShare);
     if (e.gain > 0 || e.loss > 0 || e.steepUp > 0 || e.steepDown > 0 || e.steepWUp > 0 || e.steepWDown > 0) {
       // Höhen anteilig nach Länge — genauer weiß es niemand, und flach
       // wäre falscher.
