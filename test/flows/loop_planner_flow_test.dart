@@ -15,6 +15,9 @@ import 'package:latlong2/latlong.dart';
 import 'package:pmtiles/pmtiles.dart';
 import 'package:trailbuddy/core/gpx_share.dart';
 import 'package:trailbuddy/features/offline_areas/area_plan.dart';
+import 'package:trailbuddy/features/offline_areas/area_providers.dart' show areaHeightReaderProvider;
+import 'package:trailbuddy/features/offline_areas/height_tiles.dart';
+import 'package:trailbuddy/features/trails/elevation_profile_chart.dart';
 import 'package:trailbuddy/features/routing/trail_head_providers.dart' show RouteMode;
 import 'package:trailbuddy/features/offline_areas/area_store.dart';
 import 'package:trailbuddy/features/offline_areas/pmtiles_writer.dart';
@@ -28,6 +31,7 @@ import 'package:trailbuddy/features/trails/gpx.dart';
 import 'package:trailbuddy/models/trail.dart';
 
 import '../fakes/fake_backend.dart';
+import '../fakes/fake_heights.dart';
 import '../fakes/fake_settings.dart';
 import '../fakes/fake_map_view.dart';
 import 'package:trailbuddy/features/map/map_view/map_hit_test.dart' show projectToScreen;
@@ -151,7 +155,8 @@ void main() {
       FakePositionFix? positionFix,
       FakeSettings? settings,
       OnlineFill Function()? onlineFill,
-      LoopPlanRunner Function()? runner}) async {
+      LoopPlanRunner Function()? runner,
+      List<Override> extra = const []}) async {
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 3;
     addTearDown(tester.view.reset);
@@ -165,6 +170,7 @@ void main() {
           gpxShareProvider.overrideWithValue(recorder),
           if (onlineFill != null) onlineFillFactoryProvider.overrideWithValue(onlineFill),
           if (runner != null) loopPlanRunnerFactoryProvider.overrideWithValue(runner),
+          ...extra,
         ]);
     await settle(tester, frames: 20);
   }
@@ -225,6 +231,8 @@ void main() {
 
     await tapRail(tester, 'loop-rail-compute');
     expect(find.byKey(const ValueKey('loop-summary')), findsOneWidget);
+    expect(find.byKey(const ValueKey('elevation-profile')), findsNothing,
+        reason: 'der Bereich hat keine Höhen — kein Profil, kein erfundenes (#234)');
     // Hexentanz trägt 4 Sterne: Die zweite Abfahrt bringt noch 30 %, und
     // das Budget reicht — also zweimal, 1,3 km Trail-Meter, „noch einmal".
     expect(find.textContaining('1,3 km Trail'), findsOneWidget);
@@ -272,6 +280,50 @@ void main() {
     await tapRail(tester, 'loop-rail-close');
     expect(find.byKey(const ValueKey('loop-tool-rail')), findsNothing);
     expect(picked(tester), isEmpty);
+  });
+
+  group('Höhenprofil (#234)', () {
+    final areaHeights =
+        areaHeightReaderProvider.overrideWith((ref) async => HeightReader([MemoryHeightSource(slopeHeightTiles())]));
+
+    ElevationProfileChart chartIn(WidgetTester tester, String key) => tester.widget<ElevationProfileChart>(
+        find.descendant(of: find.byKey(ValueKey(key)), matching: find.byType(ElevationProfileChart)));
+
+    testWidgets('die Runde: kompakt unter der Summe, über den Knöpfen, entlang der ganzen Linie', (tester) async {
+      await start(tester, areaStore: await _areaWithTrack(), extra: [areaHeights]);
+      await openPlanner(tester);
+      await zoomToTrails(tester);
+      await tapMapAt(tester, const LatLng(48.004, _lon));
+      await settle(tester);
+      await tapRail(tester, 'loop-rail-compute');
+      await settle(tester, frames: 10);
+
+      final chart = chartIn(tester, 'loop-elevation');
+      expect(chart.compact, isTrue);
+      expect(find.descendant(of: find.byKey(const ValueKey('loop-elevation')), matching: find.text('Start')), findsNothing,
+          reason: 'kompakt: keine zweite Länge unter der Summe');
+      // Die Runde endet, wo sie beginnt — das Profil auch.
+      expect(chart.profile.startM, closeTo(chart.profile.endM, 1));
+      expect(chart.profile.startM, closeTo(await slopeHeightAt(LatLng(_fromLat, _lon)), 1));
+      expect(chart.profile.maxM - chart.profile.minM, greaterThan(50), reason: 'der Hang ist darin');
+      // Unter der Summe, über den Knöpfen.
+      final profileTop = tester.getTopLeft(find.byKey(const ValueKey('loop-elevation'))).dy;
+      expect(profileTop, greaterThan(tester.getTopLeft(find.byKey(const ValueKey('loop-summary'))).dy));
+      expect(profileTop, lessThan(tester.getTopLeft(find.byKey(const ValueKey('loop-save'))).dy));
+    });
+
+    testWidgets('„Route hierher": dasselbe Profil, in Fahrtrichtung', (tester) async {
+      await start(tester, areaStore: await _areaWithTrack(), extra: [areaHeights]);
+      await longPressMapAt(tester, const LatLng(48.009, _lon));
+      await settle(tester);
+      await tester.tap(find.byKey(const ValueKey('map-menu-to')));
+      await settle(tester, frames: 30);
+      expect(find.byKey(const ValueKey('trail-head-summary')), findsOneWidget);
+      final chart = chartIn(tester, 'trail-head-elevation');
+      expect(chart.compact, isTrue);
+      // Vom Standort im Süden nach Norden: der Hang fällt nach Norden.
+      expect(chart.profile.startM, greaterThan(chart.profile.endM + 30));
+    });
   });
 
   testWidgets('Rechnen wartet auf den Runner; Schließen gibt ihn frei, und ein spätes Ergebnis zählt nicht',

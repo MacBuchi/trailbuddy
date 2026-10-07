@@ -209,6 +209,26 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
   `Flexible` + `FittedBox(scaleDown)` und skaliert nur dort herunter,
   hochkant bleiben es 44 px (`map_shell_test`). Das Konzept hatte
   genau diese Messung verlangt.
+- **Höhenprofil im Ergebnis** (#234, seit 0.88.0, `route_elevation.dart`):
+  „Runde" und „Zum Trailkopf"/„Route hierher" zeigen unter der Summe
+  `ElevationProfileChart(compact: true)` entlang der GEZEICHNETEN Linie
+  (`plan.points`, beim spaßigen Weg `fun.points`). Drei Dinge, die man
+  wissen muss:
+  - **Die Höhen kommen nicht aus der Engine**, sondern aus dem
+    Geländemodell entlang der Linie (`lineProfileProvider` in
+    `terrain_heights.dart`, Proben alle 50 m, Bereiche zuerst, mit Empfang
+    der Sitzungsspeicher des Hosts — dort liegen die Kacheln der Planung
+    schon). Die Engine kennt Höhen nur je Kante; ein Profil daraus wäre je
+    Kante eine Gerade. Fehlt eine Kachel, gibt es kein Profil, nie ein
+    halbes.
+  - **Kompakt heißt ohne „Start … km"**: Das Profil zählt die Anschlüsse
+    an Start und Ziel mit, die Summe nicht — zwei Längen übereinander
+    läsen sich wie ein Fehler. Während gelesen wird, steht der Platz
+    schon da, damit die Knöpfe nicht rutschen.
+  - **`trail-head-profile` ist der Bio/E-Bike-Schalter**, das Profil heißt
+    `trail-head-elevation` (im Planer `loop-elevation`, `loop-profile` ist
+    dort ebenfalls der Schalter) — beim Bau kollidiert und nur als
+    „Duplicate keys" sichtbar.
 - **Kalibrierung aus eigenen Fahrten** (Schritt 6, seit 0.73.0,
   `ride_calibration.dart` pur, `ride_calibrator.dart`; Konzept-Routing
   2.1, Entscheidung 8.1 „Vorgaben zuerst, Lernen je Profil"). Fünf
