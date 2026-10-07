@@ -175,6 +175,20 @@ final kHighlightDemos = <String, HighlightDemo>{
       _noTrailYet,
     ]),
   ),
+  'route-elevation': HighlightDemo(
+    route: '/',
+    script: _demo('route-elevation', const [
+      CoachStep(
+        title: 'Das Profil im Ergebnis',
+        text: 'Plane eine Runde oder einen Weg zum Trail: Unter der Summe steht '
+            'das Höhenprofil, von Start bis Ziel. Fehlt einem Stück die Höhe, '
+            'bleibt es weg — erfunden wird nichts.',
+        lit: [MapCoach.loop],
+        gesture: CoachGesture.tap,
+        requires: [MapCoach.loop],
+      ),
+    ]),
+  ),
   'loop-planner': HighlightDemo(
     route: '/',
     script: _demo('loop-planner', [

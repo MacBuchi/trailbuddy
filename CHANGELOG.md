@@ -2,6 +2,18 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Höhenprofil der geplanten Runde
+
+*Version 0.88.0, 2026-10-07*
+
+- **Auf einen Blick, wo es hoch und runter geht**: Unter der Summe einer
+  geplanten Runde steht jetzt ihr Höhenprofil, kompakt über die ganze
+  Strecke vom Start bis zurück. Dasselbe gibt es beim Weg zum Trail und
+  bei „Route hierher".
+- Die Höhen kommen aus dem Geländemodell deiner gespeicherten Bereiche,
+  mit Empfang auch vom Kartenserver. Fehlt für ein Stück die Höhe, zeigt
+  die App lieber kein Profil als ein erfundenes.
+
 ## Planer: Treppen bergauf meiden
 
 *Version 0.87.0, 2026-10-07*
