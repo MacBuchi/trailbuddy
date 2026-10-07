@@ -891,7 +891,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
             width: 32,
             height: 32,
             alignment: Alignment.topCenter,
-            child: const Icon(Icons.flag, size: 32, color: AppColors.brand),
+            child: const LoopStartFlag(),
           ),
         // Die Nadel des langen Drucks (#177), solange sein Menü offen ist.
         if (_pressedPoint != null)

@@ -31,7 +31,7 @@ import '../fakes/fake_backend.dart';
 import '../fakes/fake_settings.dart';
 import '../fakes/fake_map_view.dart';
 import 'package:trailbuddy/features/map/map_view/map_hit_test.dart' show projectToScreen;
-import 'package:trailbuddy/features/routing/loop_planner_sheet.dart' show kLoopPickWidth;
+import 'package:trailbuddy/features/routing/loop_planner_sheet.dart' show LoopStartFlag, kLoopPickWidth;
 import '../fakes/fake_rides.dart';
 import '../fakes/fake_tiles.dart';
 import '../fakes/fake_trails.dart';
@@ -396,6 +396,14 @@ void main() {
     expect(find.byKey(const ValueKey('loop-pick-banner')), findsNothing);
     expect(find.byKey(const ValueKey('loop-start-pin')), findsOneWidget);
     expect(picked(tester), isEmpty);
+    // Die Fahne trägt eine dunkle Kontur (#233) — Lime allein ging im
+    // hellen Kartengrund unter.
+    final flag = tester.widget<Icon>(
+        find.descendant(of: find.byKey(const ValueKey('loop-start-pin')), matching: find.byType(Icon)));
+    expect(find.descendant(of: find.byKey(const ValueKey('loop-start-pin')), matching: find.byType(LoopStartFlag)),
+        findsOneWidget);
+    expect(flag.shadows, isNotEmpty);
+    expect(flag.shadows!.every((s) => s.color.computeLuminance() < 0.05), isTrue);
     await tapRail(tester, 'loop-rail-params');
     expect(find.textContaining('getippter Punkt'), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('loop-start-me')));
@@ -458,6 +466,12 @@ void main() {
     await drawAround();
     expect(find.byKey(const ValueKey('loop-draw')), findsNothing, reason: 'ein Strich, dann ist die Karte frei');
     expect(picked(tester), hasLength(1), reason: 'Hexentanz liegt drin, Sperrgebiet (300 m östlich) nicht');
+    // Sichtbar auf hellem Grund (#233): deckendes Lime mit dunkler Kontur,
+    // nicht 55 % ohne Rand, das im weißen Saum des Trails verschwand.
+    final glow = picked(tester).single;
+    expect(glow.color.a, 1.0);
+    expect(glow.borderWidth, greaterThan(0));
+    expect(glow.borderColor.computeLuminance(), lessThan(0.05));
     await tapRail(tester, 'loop-rail-area-remove');
     await drawAround();
     expect(picked(tester), isEmpty);
