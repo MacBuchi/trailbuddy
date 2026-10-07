@@ -305,7 +305,11 @@ der Strich beim Zeichnen folgt der Regel.
   Proben stünde sonst auf Schwarz), Kopfzeile „Legende" mit Pfeil nach
   links zum Zuklappen, darunter die Proben in vier Gruppen mit 8 px
   Luft: Schwierigkeit, Zustand, Rand, offiziell — dieselben Farben und
-  Muster wie die Karte (`map_legend.dart`). 124 px, weil die Blase der
+  Muster wie die Karte (`map_legend.dart`). Seit 0.83.5 (#231) mit
+  Überschriften in Versalien (Barlow, `muted`): „Schwierigkeit",
+  „Zustand", „Am Trail" (Rand und offiziell darunter). Jede Probe nennt,
+  was sie bedeutet, nicht wie sie aussieht: „ausgefahren", „abgerockt",
+  „kaum fahrbar", „Meldung", „neuer Hinweis", „offizieller Trail". 124 px, weil die Blase der
   Tour daneben passen muss (200 px auf einem 360-px-Telefon). Mit
   offener Leiste ist sie weg; auf oder zu merkt sich das Gerät.
 - **Oben:** ein Satz, was der nächste Strich tut; verschwindet, sobald kein

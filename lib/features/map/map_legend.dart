@@ -51,7 +51,10 @@ LegendSample _line(String label, int group, Color color,
     );
 
 /// Die Proben, in der Reihenfolge der Kurzanleitung: Schwierigkeit, dann
-/// Zustand, dann was UM die Linie liegt.
+/// Zustand, dann was UM die Linie liegt. Jede nennt, was sie BEDEUTET,
+/// mit den Wörtern des Melde-Dialogs — bis 0.83.x stand beim Zustand das
+/// Aussehen („bröckelig", „gestrichelt", „verblasst"), das die Probe
+/// ohnehin zeigt (#231, Betreiber 2026-10-07: Variante A).
 List<LegendSample> legendSamples() {
   const g = AppColors.mapGrades;
   const m = AppColors.mapLines;
@@ -63,14 +66,24 @@ List<LegendSample> legendSamples() {
     _line('S4/S5', 0, g.s3, borderDash: kHaloDashExpert),
     _line('ohne Grad', 0, g.ungraded),
     _line('Uphill', 0, g.uphill),
-    _line('bröckelig', 1, g.s1, dash: kLineDashWorn),
-    _line('gestrichelt', 1, g.s1, dash: kLineDashRough),
-    _line('verblasst', 1, g.s1, dash: kLineDashRough, opacity: 0.45),
-    _line('gemeldet', 2, g.s1, border: m.warning),
+    _line('ausgefahren', 1, g.s1, dash: kLineDashWorn),
+    _line('abgerockt', 1, g.s1, dash: kLineDashRough),
+    _line('kaum fahrbar', 1, g.s1, dash: kLineDashRough, opacity: 0.45),
+    _line('Meldung', 2, g.s1, border: m.warning),
     _line('neuer Hinweis', 2, g.s1, border: m.note),
-    _line('offiziell', 3, m.official, dash: const [6, 4]),
+    _line('offizieller Trail', 3, m.official, dash: const [6, 4]),
   ];
 }
+
+/// Die Überschrift über einer Gruppe; null heißt: nur Luft, keine neue
+/// Überschrift (offizielle Trails stehen unter „Am Trail"). Ohne sie
+/// musste man erraten, dass „abgerockt" ein Zustand ist (#231).
+String? legendGroupTitle(int group) => switch (group) {
+      0 => 'Schwierigkeit',
+      1 => 'Zustand',
+      2 => 'Am Trail',
+      _ => null,
+    };
 
 /// Zeichnet eine Probe als kurzes Linienstück.
 class LegendLinePainter extends CustomPainter {
@@ -209,6 +222,11 @@ class _Tab extends StatelessWidget {
   }
 }
 
+/// Die Überschrift vor Probe [i], wenn dort eine Gruppe mit eigener
+/// Überschrift beginnt.
+String? _titleAt(List<LegendSample> samples, int i) =>
+    i == 0 || samples[i].group != samples[i - 1].group ? legendGroupTitle(samples[i].group) : null;
+
 /// Auf: die Proben untereinander, oben „Legende" mit dem Weg zurück.
 class _Panel extends StatelessWidget {
   const _Panel({required this.onClose});
@@ -220,6 +238,8 @@ class _Panel extends StatelessWidget {
     final text = AppColors.light.text;
     final theme = Theme.of(context).textTheme;
     final label = theme.bodySmall?.copyWith(color: text);
+    final heading = theme.labelSmall?.copyWith(
+        color: AppColors.light.muted, letterSpacing: 0.8, fontWeight: FontWeight.w600);
     final samples = legendSamples();
     return Container(
       key: const ValueKey('map-legend-panel'),
@@ -265,10 +285,21 @@ class _Panel extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  for (var i = 0; i < samples.length; i++)
+                  for (var i = 0; i < samples.length; i++) ...[
+                    if (_titleAt(samples, i) case final title?)
+                      Padding(
+                        padding: EdgeInsets.only(top: i > 0 ? 8 : 0, bottom: 1),
+                        child: Text(title.toUpperCase(), style: heading),
+                      ),
                     Padding(
+                      // Luft zwischen Gruppen — unter einer Überschrift
+                      // hat die schon die Überschrift.
                       padding: EdgeInsets.only(
-                          top: i > 0 && samples[i].group != samples[i - 1].group ? 8 : 2),
+                          top: i > 0 &&
+                                  samples[i].group != samples[i - 1].group &&
+                                  _titleAt(samples, i) == null
+                              ? 8
+                              : 2),
                       child: Row(
                         children: [
                           CustomPaint(
@@ -279,6 +310,7 @@ class _Panel extends StatelessWidget {
                         ],
                       ),
                     ),
+                  ],
                 ],
               ),
             ),

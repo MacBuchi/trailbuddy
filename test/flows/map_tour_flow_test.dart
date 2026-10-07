@@ -323,9 +323,15 @@ void main() {
   });
 
   test('die Legende nennt, was die Kurzanleitung nennt', () {
-    for (final label in ['S0', 'S3', 'S4/S5', 'Uphill', 'bröckelig', 'gestrichelt', 'verblasst', 'gemeldet',
-      'neuer Hinweis', 'offiziell']) {
+    // Die Legende nennt die Bedeutung, die Tour verbindet sie mit dem
+    // Aussehen (#231).
+    final tour = kMapTourScript.steps.firstWhere((s) => s.title == 'Farbe heißt Schwierigkeit').text;
+    for (final label in ['S0', 'S3', 'S4/S5', 'Uphill', 'ausgefahren', 'abgerockt', 'kaum fahrbar', 'Meldung',
+      'neuer Hinweis', 'offizieller Trail']) {
       expect([for (final s in legendSamples()) s.label], contains(label));
+    }
+    for (final word in ['ausgefahren', 'abgerockt', 'kaum fahrbar', 'Meldung', 'neuer Hinweis']) {
+      expect(tour, contains(word), reason: word);
     }
   });
 }
