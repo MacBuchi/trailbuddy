@@ -143,8 +143,9 @@ const kTrailsTourScript = CoachScript(
     CoachStep(
       title: 'Suchen und eingrenzen',
       text: 'Gesucht wird über Name und Buddy, Tippfehler inklusive; die Chips '
-          'grenzen nach Schwierigkeit, Charakter oder Meldung ein. Daneben die '
-          'Sortierung. Der Filter gilt auch auf der Karte.',
+          'grenzen nach Kartenausschnitt, S-Grad-Bereich, Charakter oder Meldung '
+          'ein. Daneben die Sortierung. Bis auf den Ausschnitt gilt der Filter '
+          'auch auf der Karte.',
       lit: [TrailsCoach.search, TrailsCoach.chips],
     ),
     CoachStep(

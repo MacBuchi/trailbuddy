@@ -15,6 +15,7 @@ import '../../data/trail_cache.dart';
 import '../../data/trail_sharing.dart';
 import '../../data/trail_repository.dart';
 import '../../models/trail.dart';
+import '../map/map_view/map_view.dart' show MapViewBounds;
 import 'elevation_backfill.dart';
 import 'gpx.dart';
 import 'outbox_providers.dart';
@@ -607,6 +608,14 @@ final trailSortProvider = StateProvider<TrailSort>((ref) => TrailSort.recent);
 /// Der Trail-Filter (#66) — für Liste UND Karte (seit 0.33.0), für die
 /// Sitzung: Wer die App neu öffnet, sieht wieder alles.
 final trailListFilterProvider = StateProvider<TrailListFilter>((ref) => const TrailListFilter());
+
+/// „Auf der Karte" (#222): Die Liste zeigt nur, was im Ausschnitt der
+/// Karte liegt — nur für die Liste, für die Sitzung.
+final trailListOnMapProvider = StateProvider<bool>((ref) => false);
+
+/// Der Ausschnitt der Karte beim letzten Stillstand — geschrieben von der
+/// Karte, gelesen von „Auf der Karte". `null`, solange sie nie stand.
+final mapVisibleBoundsProvider = StateProvider<MapViewBounds?>((ref) => null);
 
 final mapFocusTrailProvider = StateProvider<String?>((ref) => null);
 

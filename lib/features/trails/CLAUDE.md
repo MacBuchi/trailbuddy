@@ -213,9 +213,18 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
   Satzzeichen), erst Teiltreffer, NUR wenn der leer ausgeht der
   Tippfehler-Ausgleich (`nearContainsDistance`, nur der beste Abstand),
   und die Liste sagt dann „Meintest du …?". Gesucht wird über Namen und
-  Buddy-Namen, nie über Hinweistexte. „bis S2" lässt Trails OHNE
-  Einschätzung weg (im Zweifel die Warnung) und zählt sie. Filter und
-  Sortierung gelten für die Sitzung. **Der Filter gilt seit 0.33.0 für
+  Buddy-Namen, nie über Hinweistexte. Der S-Grad ist seit 0.84.0 ein
+  Bereich (#222, vorher fest „bis S2"; `minGrade`/`maxGrade`, Chip öffnet
+  ein Blatt mit `RangeSlider`, Test-Helfer `setGradeRange`); ist er enger
+  als S0–S5, fallen Trails OHNE Einschätzung weg (im Zweifel die Warnung)
+  und werden gezählt. Filter und Sortierung gelten für die Sitzung.
+  **„Auf der Karte"** (#222) gehört NICHT in `TrailListFilter`: Er gilt
+  nur für die Liste (auf der Karte hieße er „zeige, was du zeigst", und
+  das Filter-Banner meldete ihn), eigener Provider
+  `trailListOnMapProvider`; die Karte schreibt ihren Ausschnitt bei jedem
+  Stillstand in `mapVisibleBoundsProvider`. Treffer ist ein Punkt im
+  Ausschnitt ODER eine Strecke, die ihn quert (`trailInBounds`) — eine
+  vereinfachte Linie hat lange gerade Stücke. **Der Filter gilt seit 0.33.0 für
   Liste UND Karte** (Betreiber, 2026-09-29): EIN Provider
   (`trailListFilterProvider`), EINE Regel (`passesTrailFilter`), EIN
   Chip-Widget (`TrailFilterChips`, in der Liste und im Blatt „Ebenen").

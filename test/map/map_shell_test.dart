@@ -70,7 +70,7 @@ void main() {
       // frei, mit mindestens 8 dp Luft.
       ProviderScope.containerOf(tester.element(find.byType(MapScreen)))
           .read(trailListFilterProvider.notifier)
-          .state = const TrailListFilter(easyOnly: true);
+          .state = const TrailListFilter(maxGrade: 2);
       await settle(tester);
       // Die Fläche der Karte, nicht das Widget samt Rand (`margin`).
       final banner = tester.getRect(find

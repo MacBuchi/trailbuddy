@@ -169,10 +169,13 @@ void main() {
     await settle(tester, frames: 20);
   }
 
-  /// Das Navi-Symbol der Zeile — die Zeile steht so tief, dass die untere
-  /// Hälfte des Symbols unter der Reiterleiste liegt; getippt wird oben.
+  /// Das Navi-Symbol der Zeile — die Zeile steht tief (in der Testschrift
+  /// nehmen die Filter-Chips viele Zeilen), also erst hinscrollen.
   Future<void> tapNav(WidgetTester tester) async {
-    final rect = tester.getRect(find.byKey(ValueKey('trail-nav-$hex')));
+    final nav = find.byKey(ValueKey('trail-nav-$hex'));
+    await tester.scrollUntilVisible(nav, 100, scrollable: find.byType(Scrollable).hitTestable().first);
+    await settle(tester);
+    final rect = tester.getRect(nav);
     await tester.tapAt(rect.topCenter + const Offset(0, 8));
   }
 

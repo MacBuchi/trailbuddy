@@ -150,9 +150,12 @@ class _TrailsScreenState extends ConsumerState<TrailsScreen> {
             final cachedAt = ref.watch(trailsCachedAtProvider);
             final sort = ref.watch(trailSortProvider);
             final filter = ref.watch(trailListFilterProvider);
+            final onMap =
+                ref.watch(trailListOnMapProvider) ? ref.watch(mapVisibleBoundsProvider) : null;
             final query = _search.text;
             final result = trailListOf(trails,
                 query: query,
+                onMap: onMap,
                 filter: filter,
                 sort: sort,
                 seenNotes: seen,
@@ -165,7 +168,7 @@ class _TrailsScreenState extends ConsumerState<TrailsScreen> {
             // Der Dreier-Schalter nur, wenn es beides gibt — sonst hätte
             // eine Hälfte immer „keine Trails".
             final mixed = trails.any((t) => t.isOwn) && trails.any((t) => !t.isOwn);
-            final searching = query.trim().isNotEmpty || filter.isActive;
+            final searching = query.trim().isNotEmpty || filter.isActive || onMap != null;
             return ListView(
               children: [
                 _Controls(
@@ -286,7 +289,8 @@ class _Controls extends ConsumerWidget {
               )),
             ],
           ),
-          CoachAnchor(id: TrailsCoach.chips, child: TrailFilterChips(showOwner: showOwner)),
+          CoachAnchor(
+              id: TrailsCoach.chips, child: TrailFilterChips(showOwner: showOwner, onMapChip: true)),
         ],
       ),
     );

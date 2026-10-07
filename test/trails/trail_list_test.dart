@@ -2,6 +2,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:trailbuddy/core/search_text.dart';
+import 'package:trailbuddy/features/map/map_view/map_view.dart';
 import 'package:trailbuddy/features/trails/trail_list.dart';
 import 'package:trailbuddy/features/trails/trail_geometry.dart';
 import 'package:trailbuddy/models/trail.dart';
@@ -118,9 +119,37 @@ void main() {
     });
 
     test('bis S2: ohne Einschätzung NICHT dabei — und gezählt', () {
-      final r = trailListOf(list, filter: const TrailListFilter(easyOnly: true), sort: TrailSort.name);
+      final r = trailListOf(list, filter: const TrailListFilter(maxGrade: 2), sort: TrailSort.name);
       expect(names(r), ['Gesperrt', 'Mein Flow', 'Mit Hinweis']);
       expect(r.hiddenUngraded, 1);
+    });
+
+    test('Grad-Bereich (#222): beide Enden eingeschlossen, untere Grenze wirkt', () {
+      String grades(TrailListFilter f) => [
+            for (final t in trailListOf(list, filter: f, sort: TrailSort.grade).trails) t.grade
+          ].join(',');
+      final all = grades(const TrailListFilter());
+      expect(all.split(',').where((g) => g.isNotEmpty), isNotEmpty);
+      for (final (lo, hi) in [(0, 2), (2, 5), (1, 1), (3, 4)]) {
+        final f = TrailListFilter(minGrade: lo, maxGrade: hi);
+        for (final t in trailListOf(list, filter: f).trails) {
+          expect(t.grade, inInclusiveRange(lo, hi), reason: '$lo–$hi: ${t.displayName}');
+        }
+        final expected = list.where((t) => t.grade != null && t.grade! >= lo && t.grade! <= hi);
+        expect(trailListOf(list, filter: f).trails.toSet(), expected.toSet(), reason: '$lo–$hi');
+      }
+      expect(const TrailListFilter(minGrade: 0, maxGrade: 5).isActive, isFalse,
+          reason: 'S0–S5 schränkt nichts ein — Ungeschätzte bleiben');
+      expect(trailListOf(list, filter: const TrailListFilter(minGrade: 0, maxGrade: 5)).trails,
+          hasLength(list.length));
+    });
+
+    test('Grad-Bereich in Worten', () {
+      expect(const TrailListFilter(maxGrade: 2).gradeText, 'bis S2');
+      expect(const TrailListFilter(minGrade: 3).gradeText, 'ab S3');
+      expect(const TrailListFilter(minGrade: 1, maxGrade: 3).gradeText, 'S1–S3');
+      expect(const TrailListFilter(minGrade: 2, maxGrade: 2).gradeText, 'nur S2');
+      expect(const TrailListFilter().gradeText, 'S0–S5');
     });
 
     test('neuer Hinweis und gemeldet', () {
@@ -153,12 +182,12 @@ void main() {
 
     test('describe nennt, was gefiltert ist — für die Zeile auf der Karte', () {
       expect(const TrailListFilter().describe(), '');
-      expect(const TrailListFilter(owner: TrailOwnerFilter.mine, easyOnly: true, reportedOnly: true).describe(),
+      expect(const TrailListFilter(owner: TrailOwnerFilter.mine, maxGrade: 2, reportedOnly: true).describe(),
           'Meine · bis S2 · gemeldet');
     });
 
     test('passesTrailFilter ist dieselbe Regel wie die Liste', () {
-      const f = TrailListFilter(easyOnly: true);
+      const f = TrailListFilter(minGrade: 1, maxGrade: 2);
       final kept = trailListOf(list, filter: f, now: now).trails.toSet();
       for (final t in list) {
         expect(passesTrailFilter(t, f, now: now), kept.contains(t), reason: t.displayName);
@@ -167,7 +196,33 @@ void main() {
 
     test('isActive', () {
       expect(const TrailListFilter().isActive, isFalse);
-      expect(const TrailListFilter(easyOnly: true).isActive, isTrue);
+      expect(const TrailListFilter(maxGrade: 2).isActive, isTrue);
+      expect(const TrailListFilter(minGrade: 1).isActive, isTrue);
+    });
+  });
+
+  group('Auf der Karte (#222)', () {
+    // Der Beleg läuft von 48.00 nach 48.01 auf 9.0 — ein gerades Stück
+    // mit nur zwei Punkten, wie eine vereinfachte Linie.
+    final t = trail('a', 'Gerade');
+    const inside = MapViewBounds(west: 8.99, east: 9.01, south: 47.99, north: 48.02);
+    const middle = MapViewBounds(west: 8.99, east: 9.01, south: 48.004, north: 48.006);
+    const beside = MapViewBounds(west: 9.01, east: 9.02, south: 47.99, north: 48.02);
+    const north = MapViewBounds(west: 8.99, east: 9.01, south: 48.02, north: 48.03);
+
+    test('ein Punkt im Ausschnitt oder eine Strecke, die ihn quert', () {
+      expect(trailInBounds(t, inside), isTrue);
+      expect(trailInBounds(t, middle), isTrue, reason: 'hineingezoomt: nur die Mitte sichtbar');
+      expect(trailInBounds(t, beside), isFalse);
+      expect(trailInBounds(t, north), isFalse);
+    });
+
+    test('außerhalb zählt auch nicht als ungeschätzt', () {
+      final r = trailListOf([t, trail('b', 'Geschätzt', grade: 1)],
+          onMap: north, filter: const TrailListFilter(maxGrade: 2));
+      expect(r.trails, isEmpty);
+      expect(r.hiddenUngraded, 0);
+      expect(trailListOf([t], onMap: inside, filter: const TrailListFilter(maxGrade: 2)).hiddenUngraded, 1);
     });
   });
 
