@@ -233,7 +233,12 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
   - **Eine Liste** (`legendSamples`) mit denselben Farben und Mustern
     wie die Karte (`mapGrades`, `mapLines`, `kLineDash*`,
     `kHaloDashExpert`) — ändert sich dort ein Muster, zieht sie mit. Auf
-    dem Landton der Karte, auch in der dunklen App.
+    dem Landton der Karte, auch in der dunklen App. **Wörter = Bedeutung**
+    (#231, seit 0.83.5, Betreiber: Variante A): Gruppen-Überschriften
+    (`legendGroupTitle`), beim Zustand die Wörter des Melde-Dialogs statt
+    des Aussehens. Tour-Schritt 3 und „Die Karte lesen" verbinden beides
+    („bröckelig heißt ausgefahren"); `map_tour_flow_test` hält Legende
+    und Tour zusammen.
   - **Auf oder zu merkt das Gerät** (`Settings.mapLegendOpen`,
     `map_legend_open`, Vorgabe zu; `FakeSettings` ebenso).
   - **Eine offene Leiste hat den Platz** (Offline-Karten, Planer) und

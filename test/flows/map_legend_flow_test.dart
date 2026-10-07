@@ -46,6 +46,11 @@ void main() {
     for (final s in legendSamples()) {
       expect(find.descendant(of: panel, matching: find.text(s.label)), findsOneWidget, reason: s.label);
     }
+    // Die Gruppen tragen Überschriften (#231): dass „abgerockt" ein
+    // Zustand ist, steht da, statt erraten zu werden.
+    for (final title in ['SCHWIERIGKEIT', 'ZUSTAND', 'AM TRAIL']) {
+      expect(find.descendant(of: panel, matching: find.text(title)), findsOneWidget, reason: title);
+    }
     expect(tester.getRect(panel).width, kMapLegendWidth);
 
     await tester.tap(find.byKey(const ValueKey('map-legend-close')));

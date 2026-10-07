@@ -171,9 +171,9 @@ const kMapTourScript = CoachScript(
     CoachStep(
       title: 'Farbe heißt Schwierigkeit',
       text: 'Jede Linie trägt die Schwierigkeit ihres Trails wie eine Piste. '
-          'Die Art der Linie sagt den Zustand: durchgezogen, bröckelig, '
-          'gestrichelt, verblasst. Ein orangener Rand heißt gemeldet, ein '
-          'gelber ein neuer Hinweis. Die Legende links am Rand klappt '
+          'Die Art der Linie sagt den Zustand: bröckelig heißt ausgefahren, '
+          'gestrichelt abgerockt, verblasst kaum fahrbar. Ein orangener Rand '
+          'heißt Meldung, ein gelber neuer Hinweis. Die Legende links am Rand klappt '
           'jederzeit auf und wieder zu.',
       // Die Linien zeichnet die Engine, sie sind keine Widgets — aber die
       // Legende auf der Karte ist eins (#182, seit 0.77.0). Bis dahin stand

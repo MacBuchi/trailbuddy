@@ -2,6 +2,17 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Legende, die sagt, was gemeint ist
+
+*Version 0.83.5, 2026-10-07*
+
+- **Die Legende auf der Karte nennt die Bedeutung**: Statt „bröckelig",
+  „gestrichelt" und „verblasst" steht dort jetzt „ausgefahren",
+  „abgerockt" und „kaum fahrbar", dieselben Wörter wie beim Melden.
+  Kleine Überschriften (Schwierigkeit, Zustand, Am Trail) ordnen die
+  Linien. Tour und Kurzanleitung erklären, welches Muster welcher
+  Zustand ist.
+
 ## Links mit Umlauten
 
 *Version 0.83.4, 2026-10-07*
