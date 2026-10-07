@@ -1,0 +1,253 @@
+name: Way Data
+
+# The way archive (#212): track grade and path difficulty from OSM, the
+# two things our Protomaps base map drops (measured in #211,
+# docs/routing-messung.md). ONE PMTiles archive next to the base map and
+# the height tiles, read by the app over the same Range-request path and
+# fetched with every stored area (tool/way_archive.py has the format).
+#
+# Same shape as height-data.yml: a dated file (`ways-<build>.pmtiles`)
+# that never changes, a small manifest (`ways.json`) that names it, the
+# previous build kept for one more run, and after the upload the PUBLIC
+# copy is read back the way the app reads it — 206 on a Range request,
+# `accept-ranges`, CORS, sampled tiles decoded. `pmtiles verify` (the
+# official tool) checks the structure first: the writer is our own
+# (tool/map_tiles.py).
+#
+# Same extracts and box as poi-data.yml: a stored area has way grades
+# wherever it has map. Each extract is cut down to the graded ways right
+# after its download and then deleted, so the disk holds one country at
+# a time.
+#
+# Two modes: `plan` builds and reports, uploads nothing; `publish`
+# builds, uploads, verifies. Monthly on the 3rd, the day after the
+# places.
+#
+# Secrets through `env:` into a detection step; `secrets.` is not
+# available in `if:` and GitHub silently drops the whole file
+# (PilzBuddy, 2026-08-13).
+#
+# No Version Guard concern: nothing here lands in a binary.
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "plan = build and report only, publish = build, upload, verify"
+        required: true
+        type: choice
+        options: ["plan", "publish"]
+        default: "plan"
+  schedule:
+    # Monthly, 3rd at 04:17 UTC — publish.
+    - cron: "17 4 3 * *"
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  MODE: ${{ inputs.mode || 'publish' }}
+  PMTILES_VERSION: "1.28.0"
+  # The map's area, west,south,east,north — the SAME box as DACH_BBOX in
+  # map-data.yml and height-data.yml and POI_BBOX in poi-data.yml.
+  WAYS_BBOX: "5.5,45.5,17.5,55.5"
+  # The same extracts as poi-data.yml: every country the box touches.
+  # Ways that two extracts both carry are written twice onto the same
+  # line — invisible on the map, a few kilobytes on the border.
+  EXTRACTS: >-
+    europe/dach europe/liechtenstein
+    europe/italy/nord-est europe/italy/nord-ovest
+    europe/france/alsace europe/france/lorraine europe/france/franche-comte
+    europe/france/rhone-alpes europe/france/champagne-ardenne europe/france/bourgogne
+    europe/slovenia europe/croatia europe/hungary europe/slovakia
+    europe/czech-republic europe/poland
+    europe/netherlands europe/belgium europe/luxembourg
+    europe/denmark europe/sweden
+  # Public values, deliberately in the file: the app carries the same
+  # host as a constant, and the privacy policy guard reads it from there.
+  R2_BUCKET: buddy-tiles
+  R2_PREFIX: trailbuddy
+  PUBLIC_BASE: https://tiles.mcbuchi.de/trailbuddy
+
+jobs:
+  ways:
+    name: Build, upload and verify the way archive
+    runs-on: ubuntu-latest
+    # ~20 GB of extracts to download and filter one by one, then the
+    # build and one upload of a few hundred MB.
+    timeout-minutes: 240
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Are the R2 secrets there?
+        id: r2
+        env:
+          ACCOUNT: ${{ secrets.R2_ACCOUNT_ID }}
+          KEY: ${{ secrets.R2_ACCESS_KEY_ID }}
+          SECRET: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+        run: |
+          if [ -n "$ACCOUNT" ] && [ -n "$KEY" ] && [ -n "$SECRET" ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            {
+              echo "## Way Data: no upload"
+              echo
+              echo "One of R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY is missing."
+              echo "Create an R2 API token (Object Read & Write, bucket \`$R2_BUCKET\`) in the"
+              echo "Cloudflare dashboard and store the three values as repository secrets."
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Install osmium and the pmtiles tool
+        if: env.MODE == 'plan' || steps.r2.outputs.present == 'true'
+        # osmium reads the PBFs (as in poi-data.yml); the official Go
+        # pmtiles verifies the archive our Python writer produced.
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq osmium-tool > /dev/null
+          osmium --version | head -1
+          url="https://github.com/protomaps/go-pmtiles/releases/download/v${PMTILES_VERSION}/go-pmtiles_${PMTILES_VERSION}_Linux_x86_64.tar.gz"
+          if ! curl -sSL --fail "$url" -o /tmp/pmtiles.tar.gz; then
+            echo "::error::Could not download $url — check PMTILES_VERSION against the go-pmtiles releases."
+            exit 1
+          fi
+          tar -xzf /tmp/pmtiles.tar.gz -C /tmp pmtiles
+          sudo install -m 0755 /tmp/pmtiles /usr/local/bin/pmtiles
+          pmtiles version
+          python3 tool/way_archive.py --self-test
+
+      - name: Download and pre-filter the extracts
+        if: env.MODE == 'plan' || steps.r2.outputs.present == 'true'
+        # One country at a time: download, keep only the graded tracks
+        # and paths with their nodes, delete the original. A misspelt
+        # extract is a 404 and fails the run here, not a silently
+        # missing country.
+        run: |
+          set -euo pipefail
+          rm -rf build/ways-src && mkdir -p build/ways-src
+          df -h . | tail -1
+          for extract in $EXTRACTS; do
+            name=$(echo "$extract" | sed 's|^europe/||; s|/|-|g')
+            url="https://download.geofabrik.de/${extract}-latest.osm.pbf"
+            echo "$url"
+            curl -sSL --fail --retry 3 --retry-delay 10 -o "build/ways-src/${name}.full.osm.pbf" "$url"
+            ls -l "build/ways-src/${name}.full.osm.pbf"
+            python3 tool/way_archive.py prefilter "build/ways-src/${name}.full.osm.pbf" \
+              "build/ways-src/${name}.osm.pbf"
+            rm "build/ways-src/${name}.full.osm.pbf"
+            ls -l "build/ways-src/${name}.osm.pbf"
+          done
+
+      - name: Build and check the archive
+        if: env.MODE == 'plan' || steps.r2.outputs.present == 'true'
+        run: |
+          set -euo pipefail
+          export BUILD="$(date -u +%Y%m%d)"
+          echo "BUILD=$BUILD" >> "$GITHUB_ENV"
+          echo "file=ways-${BUILD}.pmtiles" >> "$GITHUB_ENV"
+          heights=$(curl -sSL --fail --max-time 60 "$PUBLIC_BASE/heights.json" \
+                      | python3 -c 'import json, sys; print(json.load(sys.stdin)["bytes"])')
+          echo "HEIGHT_BYTES=$heights" >> "$GITHUB_ENV"
+          rm -rf build/ways && mkdir -p build/ways
+          pbfs=()
+          for f in build/ways-src/*.osm.pbf; do pbfs+=(--pbf "$f"); done
+          python3 tool/way_archive.py build "${pbfs[@]}" --bbox "$WAYS_BBOX" --build "$BUILD" \
+            --out build/ways --height-bytes "$heights" --summary "$GITHUB_STEP_SUMMARY"
+          rm -rf build/ways-src
+          ls -l build/ways
+          pmtiles verify "build/ways/ways-${BUILD}.pmtiles"
+          pmtiles show "build/ways/ways-${BUILD}.pmtiles"
+          python3 tool/way_archive.py check --source "build/ways/ways-${BUILD}.pmtiles" --samples 64
+          # A build far below the expected count is a broken run (an
+          # extract that came truncated, a bbox typo), not a quieter
+          # month. And the archive is fetched with every stored area: if
+          # it grows past the heights, that is a decision for the
+          # operator, not something a scheduled run publishes.
+          python3 - <<'PY'
+          import json, os, sys
+          m = json.load(open("build/ways/ways.json"))
+          heights = int(os.environ["HEIGHT_BYTES"])
+          # Measured 2026-10-08 on DE, AT, CH, LI and IT north-east alone:
+          # 53 615 tiles, 92.3 MB (63 % of the heights). The whole box
+          # with the neighbours is more, never less.
+          min_tiles, max_height_share = 50000, 1.0
+          if m["tiles"] < min_tiles:
+              print(f"::error::Only {m['tiles']} way tiles — DACH alone has about 53 600; not publishing.")
+              sys.exit(1)
+          if m["bytes"] > max_height_share * heights:
+              print(f"::error::The way archive ({m['bytes']} B) is larger than {max_height_share:.0%} of the heights ({heights} B); not publishing.")
+              sys.exit(1)
+          print(f"{m['tiles']} tiles, {m['bytes']} bytes ({100 * m['bytes'] / heights:.0f} % of the heights)")
+          PY
+
+      - name: Upload to R2
+        if: env.MODE == 'publish' && steps.r2.outputs.present == 'true'
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          AWS_DEFAULT_REGION: auto
+          AWS_EC2_METADATA_DISABLED: "true"
+        # The dated archive first, immutable and long-cached; the manifest
+        # last and short-cached — it is the pointer that flips. Older
+        # builds than the previous one are removed afterwards. `.eu.` in
+        # the endpoint: the bucket has EU jurisdiction.
+        run: |
+          set -euo pipefail
+          endpoint="https://${R2_ACCOUNT_ID}.eu.r2.cloudflarestorage.com"
+          aws --endpoint-url "$endpoint" s3 cp "build/ways/$file" \
+            "s3://${R2_BUCKET}/${R2_PREFIX}/$file" \
+            --content-type application/octet-stream \
+            --cache-control "public, max-age=31536000, immutable" --no-progress
+          aws --endpoint-url "$endpoint" s3 cp build/ways/ways.json \
+            "s3://${R2_BUCKET}/${R2_PREFIX}/ways.json" \
+            --content-type application/json \
+            --cache-control "public, max-age=300" --no-progress
+          builds=$(aws --endpoint-url "$endpoint" s3 ls "s3://${R2_BUCKET}/${R2_PREFIX}/" \
+                    | sed -n 's/.* \(ways-[0-9]\{8\}\.pmtiles\)$/\1/p' | sort)
+          keep2=$(echo "$builds" | tail -2)
+          for old in $builds; do
+            if ! echo "$keep2" | grep -qx "$old"; then
+              aws --endpoint-url "$endpoint" s3 rm "s3://${R2_BUCKET}/${R2_PREFIX}/$old"
+              echo "removed $old"
+            fi
+          done
+
+      - name: Verify the public copy the way the app reads it
+        if: env.MODE == 'publish' && steps.r2.outputs.present == 'true'
+        # As in height-data.yml: 206 + accept-ranges + CORS for the app's
+        # origin, the manifest names THIS build (cache-busting query: the
+        # edge copy may be up to 300 s old), sampled tiles read over Range
+        # decode. A Cloudflare bot challenge is named as such (#55).
+        run: |
+          set -euo pipefail
+          url="$PUBLIC_BASE/$file"
+          headers=$(curl -sSL -D - -o /dev/null -r 0-15 --max-time 60 \
+                      -H "Origin: https://macbuchi.github.io" "$url" | tr -d '\r' | tr 'A-Z' 'a-z')
+          echo "$headers"
+          if echo "$headers" | grep -q '^cf-mitigated: challenge'; then
+            ray=$(echo "$headers" | sed -n 's/^cf-ray: *//p')
+            echo "::error::$url: Cloudflare challenged the request (cf-ray $ray) — a zone setting, see #55; the bucket and the upload are fine."
+            exit 1
+          fi
+          echo "$headers" | grep -q '^http/[0-9.]* 206' || { echo "::error::$url: no 206 on a Range request — the app cannot read this host"; exit 1; }
+          echo "$headers" | grep -q '^accept-ranges: bytes' || { echo "::error::$url: no accept-ranges: bytes"; exit 1; }
+          echo "$headers" | grep -q '^access-control-allow-origin:' || { echo "::error::$url: no access-control-allow-origin — set the bucket's CORS rule"; exit 1; }
+          curl -sSL --max-time 60 -o build/ways/public-manifest.json "$PUBLIC_BASE/ways.json?verify=$BUILD"
+          python3 - <<'PY'
+          import json
+          local = json.load(open("build/ways/ways.json"))
+          public = json.load(open("build/ways/public-manifest.json"))
+          assert public == local, "the public manifest is not the one just uploaded"
+          PY
+          python3 tool/way_archive.py check --source "$url" --samples 24
+          {
+            echo "- \`$url\` ($(stat -c %s "build/ways/$file" | numfmt --to=iec-i --suffix=B))"
+            echo "- manifest \`$PUBLIC_BASE/ways.json\`"
+            echo "- 206 + accept-ranges + CORS verified, 24 tiles over Range decoded"
+          } >> "$GITHUB_STEP_SUMMARY"
