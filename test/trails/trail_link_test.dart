@@ -1,6 +1,7 @@
 // Der Link zur Quelle (#103): was die Datenbank annimmt, was aus einer
 // GPX-Datei vorgeschlagen wird, und was die App davon zeigt.
 import 'package:flutter_test/flutter_test.dart';
+import 'package:trailbuddy/core/idn.dart';
 import 'package:trailbuddy/features/trails/gpx.dart';
 import 'package:trailbuddy/features/trails/trail_link.dart';
 import 'package:trailbuddy/models/trail.dart';
@@ -30,6 +31,39 @@ void main() {
   test('linkHost zeigt den Host ohne www', () {
     expect(linkHost('https://www.verein.example/strecken/1'), 'verein.example');
     expect(linkHost('https://trails.verein.example'), 'trails.verein.example');
+  });
+
+  group('Umlaute (#223)', () {
+    test('Punycode wie RFC 3492 und der Browser', () {
+      expect(hostToAscii('bücher.example'), 'xn--bcher-kva.example');
+      expect(hostToAscii('MÜNCHEN.example'), 'xn--mnchen-3ya.example', reason: 'klein geschrieben');
+      expect(hostToAscii('verein.example'), 'verein.example');
+      expect(hostToUnicode('xn--bcher-kva.example'), 'bücher.example');
+      expect(hostToUnicode('xn--mnchen-3ya.example'), 'münchen.example');
+      expect(hostToUnicode('xn--!!.example'), 'xn--!!.example', reason: 'kaputt bleibt, wie es ist');
+      for (final h in ['straße-trails.example', 'öko.ärger.example', 'ñandú.example']) {
+        expect(hostToUnicode(hostToAscii(h)), h);
+      }
+    });
+
+    test('gespeichert wird die Form des Browsers: Host in Punycode, Pfad kodiert', () {
+      expect(sanitizeLink('https://www.Mühle-Trails.example/Strecken/Bärental?x=1'),
+          'https://www.xn--mhle-trails-thb.example/Strecken/B%C3%A4rental');
+      expect(sanitizeLink('mühle.example'), 'https://xn--mhle-0ra.example');
+      expect(sanitizeLink('https://xn--mhle-0ra.example/a'), 'https://xn--mhle-0ra.example/a');
+    });
+
+    test('gezeigt wird, was die Adresszeile zeigt', () {
+      const stored = 'https://www.xn--mhle-trails-thb.example/Strecken/B%C3%A4rental';
+      expect(linkHost(stored), 'mühle-trails.example');
+      expect(linkForDisplay(stored), 'https://www.mühle-trails.example/Strecken/Bärental');
+      expect(sanitizeLink(linkForDisplay(stored)), stored, reason: 'das Feld speichert unverändert zurück');
+      expect(linkHost('https://m%C3%BChle.example/'), 'mühle.example',
+          reason: 'alte Zeilen mit prozentkodiertem Host');
+      expect(linkForDisplay('https://verein.example/a%20b%2Fc'), 'https://verein.example/a%20b%2Fc',
+          reason: 'ASCII-Escapes bleiben');
+      expect(linkForDisplay('https://verein.example/%FF'), 'https://verein.example/%FF');
+    });
   });
 
   group('GPX', () {

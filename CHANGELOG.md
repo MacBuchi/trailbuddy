@@ -2,6 +2,15 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Links mit Umlauten
+
+*Version 0.83.4, 2026-10-07*
+
+- **Links mit ä, ö, ü sehen aus wie im Browser**: Am Trail steht
+  „mühle-trails.de" statt einer Reihe von Prozentzeichen, und beim
+  Bearbeiten steht der ganze Link lesbar im Feld. Umlaute darf man
+  direkt eintippen.
+
 ## Planer gut sichtbar
 
 *Version 0.83.3, 2026-10-07*
