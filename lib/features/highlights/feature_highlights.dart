@@ -74,6 +74,18 @@ class FeatureHighlight {
 const kFeatureHighlights = <FeatureHighlight>[
   // ─── Highlights ──────────────────────────────────────────────────
   FeatureHighlight(
+    id: 'rides-tidy',
+    since: '0.85.0',
+    kind: HighlightKind.highlight,
+    tab: HighlightTab.profile,
+    icon: Icons.electric_bike_outlined,
+    title: 'Meine Fahrten aufräumen',
+    text: 'An jeder Fahrt steht ihr Rad, ein Tipp stellt es um. Nach links wischen '
+        'löscht, ein langer Druck wählt mehrere. Beim GPX-Import schlägt die App '
+        'das Rad nach der Steigrate vor.',
+    target: '/profile/rides',
+  ),
+  FeatureHighlight(
     id: 'trail-list-filters',
     since: '0.84.0',
     kind: HighlightKind.highlight,

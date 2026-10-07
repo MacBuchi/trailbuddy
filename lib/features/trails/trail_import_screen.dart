@@ -13,6 +13,7 @@ import '../profile/profile_providers.dart';
 import '../rides/ride_import.dart';
 import '../rides/ride_providers.dart';
 import '../rides/ride_split_sheet.dart';
+import '../rides/ride_profile_guess.dart';
 import '../routing/ride_calibrator.dart';
 import '../routing/route_profile.dart';
 import 'elevation_backfill.dart';
@@ -170,6 +171,16 @@ class _TrailImportScreenState extends ConsumerState<TrailImportScreen> {
   String? _learnText;
   bool _learning = false;
 
+  /// Der Vorschlag aus der Steigrate je Fahrt (#227), einmal gerechnet:
+  /// `null` heißt „kein klarer Vorschlag", dann gilt der Knopf.
+  final _profileGuesses = Map<ImportCandidate, RiderProfile?>.identity();
+
+  RiderProfile? _guessFor(ImportCandidate c) => _profileGuesses.putIfAbsent(
+      c,
+      () => guessRideProfile(ridePointsOf(c.uploadTrack),
+          bio: ref.read(calibratedRiderProvider(RiderProfile.bio)),
+          ebike: ref.read(calibratedRiderProvider(RiderProfile.ebike))));
+
   /// Aufgezeichnete Fahrten der Auswahl — nur die taugen fürs Lernen.
   List<ImportCandidate> get _rideCandidates => [
         for (final c in _candidates)
@@ -180,7 +191,7 @@ class _TrailImportScreenState extends ConsumerState<TrailImportScreen> {
     final RiderProfile profile = _rideProfile ?? ref.read(riderProfileProvider);
     final tracks = [
       for (final c in _rideCandidates)
-        (name: c.track.name, points: ridePointsOf(c.uploadTrack)),
+        (name: c.track.name, points: ridePointsOf(c.uploadTrack), profile: _guessFor(c)?.name),
     ];
     setState(() {
       _busy = true;
@@ -580,6 +591,13 @@ class _TrailImportScreenState extends ConsumerState<TrailImportScreen> {
     final heightless = rides.where((c) => c.uploadTrack.points.any((p) => p.ele == null)).length;
     final RiderProfile profile = _rideProfile ?? ref.watch(riderProfileProvider);
     final r = _ridesResult;
+    final guesses = [for (final c in rides) _guessFor(c)];
+    final unguessed = guesses.where((g) => g == null).length;
+    final guessText = [
+      for (final p in RiderProfile.values)
+        if (guesses.where((g) => g == p).length case final k when k > 0) '$k × ${p.label}',
+      if (unguessed > 0 && unguessed < n) '$unguessed ohne Vorschlag',
+    ];
     return [
       const SizedBox(height: 24),
       Text('Fahrten für dein Fahrerprofil', style: theme.textTheme.titleSmall),
@@ -591,24 +609,38 @@ class _TrailImportScreenState extends ConsumerState<TrailImportScreen> {
         '${heightless > 0 ? ' $heightless davon ohne Höhen — sie lernen nichts.' : ''}',
         style: theme.textTheme.bodyMedium,
       ),
-      const SizedBox(height: 8),
-      Text('Gefahren mit', style: theme.textTheme.labelLarge),
-      const SizedBox(height: 4),
-      SizedBox(
-        width: double.infinity,
-        child: SegmentedButton<RiderProfile>(
-          key: const ValueKey('import-ride-profile'),
-          showSelectedIcon: false,
-          segments: const [
-            ButtonSegment(
-                value: RiderProfile.bio, icon: Icon(Icons.pedal_bike_outlined), label: Text('Bio-Bike')),
-            ButtonSegment(
-                value: RiderProfile.ebike, icon: Icon(Icons.electric_bike_outlined), label: Text('E-Bike')),
-          ],
-          selected: {profile},
-          onSelectionChanged: _busy ? null : (v) => setState(() => _rideProfile = v.single),
+      if (unguessed < n) ...[
+        const SizedBox(height: 8),
+        Text(
+          'Nach der Steigrate: ${guessText.join(', ')}. So werden sie gespeichert'
+          '${unguessed > 0 ? ', die übrigen mit dem Rad unten' : ''} — ändern '
+          'kannst du es danach unter „Meine Fahrten".',
+          key: const ValueKey('import-ride-guess'),
+          style: theme.textTheme.bodyMedium,
         ),
-      ),
+      ],
+      // Haben alle einen Vorschlag, entscheidet der Knopf nichts mehr.
+      if (unguessed > 0) ...[
+        const SizedBox(height: 8),
+        Text(unguessed == n ? 'Gefahren mit' : 'Ohne Vorschlag gefahren mit',
+            style: theme.textTheme.labelLarge),
+        const SizedBox(height: 4),
+        SizedBox(
+          width: double.infinity,
+          child: SegmentedButton<RiderProfile>(
+            key: const ValueKey('import-ride-profile'),
+            showSelectedIcon: false,
+            segments: const [
+              ButtonSegment(
+                  value: RiderProfile.bio, icon: Icon(Icons.pedal_bike_outlined), label: Text('Bio-Bike')),
+              ButtonSegment(
+                  value: RiderProfile.ebike, icon: Icon(Icons.electric_bike_outlined), label: Text('E-Bike')),
+            ],
+            selected: {profile},
+            onSelectionChanged: _busy ? null : (v) => setState(() => _rideProfile = v.single),
+          ),
+        ),
+      ],
       const SizedBox(height: 8),
       FilledButton.tonalIcon(
         key: const ValueKey('import-save-rides'),
