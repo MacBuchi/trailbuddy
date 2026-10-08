@@ -2492,7 +2492,7 @@ def self_test():
     road6 = g6.add_edge(r0, r1, "nebenstrasse", False, [(47.0003, 11.0), (47.0003, 11.004)])
     ways6 = [(7, None, [(11.0, 47.00001), (11.002, 47.00001)]),       # 1.1 m beside the track
              (8, 3, [(11.002, 47.0), (11.003, 47.0)]),                # half the path: no majority
-             (6, None, [(11.0025, 47.00004), (11.004, 47.00004)]),     # 4.4 m off: too far
+             (6, None, [(11.0025, 47.0 + 4e-5), (11.004, 47.0 + 4e-5)]),  # 4.4 m off: too far
              (5, None, [(11.0, 47.00031), (11.004, 47.00031)])]       # a path class beside the road
     expect(add_way_quality(g6, ways6) == 1 and g6.edges[poor].way == 7 and g6.edges[path6].way is None
            and g6.edges[road6].way is None,
