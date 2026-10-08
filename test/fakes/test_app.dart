@@ -141,6 +141,7 @@ List<Override> overridesFor(FakeBackend backend,
       // Die Wege (#212) sind ab Werk an — ohne diese Zeile fragte jeder
       // Kartentest den Host.
       waysManifestLoaderProvider.overrideWithValue(() async => null),
+      areaWaysManifestLoaderProvider.overrideWithValue(() async => null),
       // Und keine Orte-Dateien vom Host: Eine Karte, die auf einen Trail
       // zoomt, liegt über Zoom 12 und fragte sonst wirklich an.
       poiSourceProvider.overrideWithValue(pois ?? FakePoiSource()),

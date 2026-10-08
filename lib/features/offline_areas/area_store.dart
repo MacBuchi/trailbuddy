@@ -1,6 +1,7 @@
 // Die Ablage gespeicherter Bereiche (Konzept 3.2): je Bereich EIN
 // PMTiles-Archiv (Zoom 8 bis zum Zoom des Hosts), seit 0.69.0 ein
-// zweites mit den Höhenkacheln (`height_tiles.dart`), die Orte-Dateien
+// zweites mit den Höhenkacheln (`height_tiles.dart`), seit 0.90.0 ein
+// drittes mit den Wegen (`way_layer.dart`, #212), die Orte-Dateien
 // seiner Rasterzellen und ein Eintrag im Index. Auf dem Telefon Dateien
 // unter `offline_maps/areas/` (vom Backup ausgenommen — jederzeit neu
 // ladbar, und ein Bereich sprengt Googles 25 MB), im Browser IndexedDB
@@ -33,6 +34,9 @@ class StoredArea {
     this.heightTiles = 0,
     this.heightBytes = 0,
     this.heightsBuild,
+    this.wayTiles = 0,
+    this.wayBytes = 0,
+    this.waysBuild,
   }) : shape = shape ?? RectShape(bounds);
 
   final String id;
@@ -73,6 +77,21 @@ class StoredArea {
 
   bool get hasHeights => heightTiles > 0;
 
+  /// Die Wege-Kacheln im dritten Archiv (seit 0.90.0, #212): Güte und
+  /// Schwierigkeit für die Ebene „Wege" ohne Empfang. [waysBuild] steht,
+  /// sobald beim Speichern ein Wege-Manifest da war — auch mit 0 Kacheln
+  /// (ein Bereich, in dem OSM nichts weiß); null heißt: vor 0.90.0 oder
+  /// ohne Manifest gespeichert, „Aktualisieren" holt sie nach.
+  final int wayTiles;
+  final int wayBytes;
+  final String? waysBuild;
+
+  bool get hasWays => wayTiles > 0;
+
+  /// Alles, was der Bereich auf dem Gerät belegt (ohne die kleinen
+  /// Orte-Dateien).
+  int get totalBytes => bytes + heightBytes + wayBytes;
+
   Map<String, dynamic> toJson() => {
         'id': id,
         'name': name,
@@ -89,6 +108,9 @@ class StoredArea {
         'height_tiles': heightTiles,
         'height_bytes': heightBytes,
         'heights_build': heightsBuild,
+        'way_tiles': wayTiles,
+        'way_bytes': wayBytes,
+        'ways_build': waysBuild,
       };
 
   factory StoredArea.fromJson(Map<String, dynamic> j) => StoredArea(
@@ -107,6 +129,9 @@ class StoredArea {
         heightTiles: j['height_tiles'] as int? ?? 0,
         heightBytes: j['height_bytes'] as int? ?? 0,
         heightsBuild: j['heights_build'] as String?,
+        wayTiles: j['way_tiles'] as int? ?? 0,
+        wayBytes: j['way_bytes'] as int? ?? 0,
+        waysBuild: j['ways_build'] as String?,
       );
 }
 
@@ -145,7 +170,14 @@ abstract interface class AreaStore {
   /// von Kacheln keine Höhenkachel übrig lässt.
   Future<void> deleteHeights(String id);
 
-  /// Löscht Archiv, Höhen, Orte-Dateien und den Index-Eintrag.
+  /// Das dritte Archiv: die Wege (seit 0.90.0, #212), dieselben Wege wie
+  /// bei den Höhen.
+  Future<void> putWays(String id, Uint8List bytes);
+  Future<String?> waysPath(String id);
+  Future<Uint8List?> readWays(String id);
+  Future<void> deleteWays(String id);
+
+  /// Löscht Archiv, Höhen, Wege, Orte-Dateien und den Index-Eintrag.
   Future<void> delete(String id);
 }
 
@@ -154,6 +186,7 @@ class MemoryAreaStore implements AreaStore {
   List<StoredArea> areas = [];
   final archives = <String, Uint8List>{};
   final heights = <String, Uint8List>{};
+  final ways = <String, Uint8List>{};
   final poiFiles = <String, Map<String, String>>{};
 
   @override
@@ -197,10 +230,23 @@ class MemoryAreaStore implements AreaStore {
   Future<void> deleteHeights(String id) async => heights.remove(id);
 
   @override
+  Future<void> putWays(String id, Uint8List bytes) async => ways[id] = bytes;
+
+  @override
+  Future<String?> waysPath(String id) async => null;
+
+  @override
+  Future<Uint8List?> readWays(String id) async => ways[id];
+
+  @override
+  Future<void> deleteWays(String id) async => ways.remove(id);
+
+  @override
   Future<void> delete(String id) async {
     areas = [for (final a in areas) if (a.id != id) a];
     archives.remove(id);
     heights.remove(id);
+    ways.remove(id);
     poiFiles.remove(id);
   }
 }

@@ -17,6 +17,12 @@
 // Kachel hat, liefert sein Archiv nichts, und die Online-Karte scheint
 // durch. Doppelt gezeichnet wird also nichts Sichtbares, nur die Online-
 // Kachel unter dem Bereich umsonst geladen.
+//
+// Die Wege der Bereiche (#212, seit 0.90.0) liegen genauso IMMER über der
+// Wege-Ebene vom Host: Ihre Bänder decken die Online-Striche darunter, wo
+// derselbe Weg liegt — dieselbe Regel wie bei der Karte. Die Wege-Ebene
+// selbst hat keine deckende Fläche; wo kein Bereich ist, scheint die
+// Online-Ebene durch.
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
@@ -25,6 +31,7 @@ import 'package:http/http.dart' as http;
 import 'package:pmtiles/pmtiles.dart';
 import 'package:vector_map_tiles/vector_map_tiles.dart';
 
+import '../../core/connectivity.dart';
 import '../../core/errors.dart';
 import '../keep_alive/keep_alive.dart';
 import '../map/base_map_providers.dart';
@@ -32,6 +39,7 @@ import '../map/online_map.dart';
 import '../map/pmtiles_tile_provider.dart';
 import '../map/poi.dart';
 import '../map/poi_source.dart';
+import '../map/way_layer.dart';
 import 'area_downloader.dart';
 import 'area_plan.dart';
 import 'area_store.dart';
@@ -96,6 +104,26 @@ final areaHeightsManifestLoaderProvider =
           }
         });
 
+/// Das Wege-Manifest für den Download — unabhängig vom Schalter der
+/// Ebene (Betreiber, 2026-10-08: ein Bereich holt die Wege immer). Null,
+/// wenn keins da ist; die Naht für Tests, der Harness setzt sie auf null.
+final areaWaysManifestLoaderProvider =
+    Provider<Future<WaysManifest?> Function()>((ref) => () async {
+          try {
+            return await fetchWaysManifest();
+          } catch (_) {
+            // Kein Bau, kein Netz, fremdes Format: ohne Wege weiter.
+            return null;
+          }
+        });
+
+/// Ob der Host Wege hat, für „Meine Bereiche" (Knopf „Aktualisieren"
+/// an Bereichen, die noch keine geholt haben). Ohne Empfang keine Frage.
+final areaWaysAvailableProvider = FutureProvider<WaysManifest?>((ref) async {
+  if (ref.watch(noConnectivityProvider)) return null;
+  return ref.watch(areaWaysManifestLoaderProvider)();
+});
+
 /// Höhen aus den gespeicherten Bereichen — der erste Bereich, der die
 /// Kachel hat, liefert. Beobachten öffnet die Archive (nur Verzeichnisse,
 /// Kacheln kommen beim Lesen); wer nichts rechnet, beobachtet nicht.
@@ -159,11 +187,14 @@ class AreaDownloadNotifier extends Notifier<AreaDownloadState> {
     state = const AreaDownloadState(phase: AreaDownloadPhase.planning);
     final archive = await ref.read(areaSourceOpenerProvider)(manifest.archiveUri);
     PmTilesArchive? heights;
+    PmTilesArchive? ways;
     try {
       final poiManifest = await ref.read(areaPoiManifestLoaderProvider)();
       final fetchPoi = ref.read(areaPoiFileLoaderProvider);
       final heightsManifest = await ref.read(areaHeightsManifestLoaderProvider)();
-      heights = await _openHeights(heightsManifest);
+      heights = await _openSide(heightsManifest?.archiveUri, 'Höhenarchiv öffnen');
+      final waysManifest = await ref.read(areaWaysManifestLoaderProvider)();
+      ways = await _openSide(waysManifest?.archiveUri, 'Wege-Archiv öffnen');
       final downloader = AreaDownloader(
           archive: archive,
           manifest: manifest,
@@ -172,7 +203,9 @@ class AreaDownloadNotifier extends Notifier<AreaDownloadState> {
           fetchPoiFile: (fileName) =>
               poiManifest == null ? Future.value(null) : fetchPoi(poiManifest, fileName),
           heights: heights,
-          heightsManifest: heightsManifest);
+          heightsManifest: heightsManifest,
+          ways: ways,
+          waysManifest: waysManifest);
       final plan = await downloader.plan(shape, withPois: true);
       state = AreaDownloadState(phase: AreaDownloadPhase.idle, plan: plan);
       return plan;
@@ -182,17 +215,19 @@ class AreaDownloadNotifier extends Notifier<AreaDownloadState> {
     } finally {
       await archive.close();
       await heights?.close();
+      await ways?.close();
     }
   }
 
-  /// Das Höhenarchiv des Hosts — null ohne Manifest, und null, wenn es
-  /// nicht aufgeht: Ein Bereich ohne Höhen ist besser als keiner.
-  Future<PmTilesArchive?> _openHeights(HeightsManifest? manifest) async {
-    if (manifest == null) return null;
+  /// Ein Begleitarchiv des Hosts (Höhen, Wege) — null ohne Manifest, und
+  /// null, wenn es nicht aufgeht: Ein Bereich ohne Höhen oder Wege ist
+  /// besser als keiner.
+  Future<PmTilesArchive?> _openSide(Uri? uri, String what) async {
+    if (uri == null) return null;
     try {
-      return await ref.read(areaSourceOpenerProvider)(manifest.archiveUri);
+      return await ref.read(areaSourceOpenerProvider)(uri);
     } catch (e, s) {
-      if (!looksOffline(e)) logError('Höhenarchiv öffnen', e, s);
+      if (!looksOffline(e)) logError(what, e, s);
       return null;
     }
   }
@@ -213,12 +248,19 @@ class AreaDownloadNotifier extends Notifier<AreaDownloadState> {
     await coordinator.start(_keepAliveKey, '$name — 0 %', title: 'Bereich wird gespeichert');
     PmTilesArchive? archive;
     PmTilesArchive? heights;
+    PmTilesArchive? ways;
     try {
       archive = await ref.read(areaSourceOpenerProvider)(manifest.archiveUri);
       final poiManifest = await ref.read(areaPoiManifestLoaderProvider)();
       final fetchPoi = ref.read(areaPoiFileLoaderProvider);
       final heightsManifest = await ref.read(areaHeightsManifestLoaderProvider)();
-      heights = plan.hasHeights ? await _openHeights(heightsManifest) : null;
+      heights = plan.hasHeights ? await _openSide(heightsManifest?.archiveUri, 'Höhenarchiv öffnen') : null;
+      final waysManifest = await ref.read(areaWaysManifestLoaderProvider)();
+      // Gegen den Bau, mit dem gemessen wurde: Ein neuerer Bau hätte
+      // andere Kacheln, als der Plan nennt.
+      ways = plan.hasWays && waysManifest?.build == plan.waysBuild
+          ? await _openSide(waysManifest?.archiveUri, 'Wege-Archiv öffnen')
+          : null;
       final downloader = AreaDownloader(
         archive: archive,
         manifest: manifest,
@@ -227,6 +269,8 @@ class AreaDownloadNotifier extends Notifier<AreaDownloadState> {
         fetchPoiFile: (fileName) => poiManifest == null ? Future.value(null) : fetchPoi(poiManifest, fileName),
         heights: heights,
         heightsManifest: heightsManifest,
+        ways: ways,
+        waysManifest: waysManifest,
       );
       final area = await downloader.download(
         plan,
@@ -240,6 +284,7 @@ class AreaDownloadNotifier extends Notifier<AreaDownloadState> {
             AreaPhase.tiles => '$name — $percent %',
             AreaPhase.pois => '$name — Orte',
             AreaPhase.heights => '$name — Höhen',
+            AreaPhase.ways => '$name — Wege',
             AreaPhase.writing => '$name — wird geschrieben',
           };
           unawaited(coordinator.update(_keepAliveKey, text));
@@ -264,6 +309,7 @@ class AreaDownloadNotifier extends Notifier<AreaDownloadState> {
     } finally {
       await archive?.close();
       await heights?.close();
+      await ways?.close();
       await coordinator.stop(_keepAliveKey);
     }
   }
@@ -303,12 +349,16 @@ Future<PmTilesVectorTileProvider?> _openArea(AreaStore store, StoredArea area) a
   return PmTilesVectorTileProvider.openBytes(bytes);
 }
 
+/// Ein geöffnetes Archiv eines Bereichs mit seinem Zoombereich — das
+/// Kartenarchiv (Zoom 8 bis zum Zoom des Hosts) oder die Wege (nur 13).
+typedef OpenedAreaArchive = ({int minZoom, int maxZoom, PmTilesVectorTileProvider provider});
+
 /// Mehrere Bereiche als EINE Kachelquelle: Die erste, die die Kachel
 /// hat, liefert; keine ⇒ 404 wie bei einer Kachel außerhalb.
 class MultiAreaTileProvider extends VectorTileProvider {
-  MultiAreaTileProvider(this._areas);
+  MultiAreaTileProvider(this._areas) : assert(_areas.isNotEmpty);
 
-  final List<({StoredArea area, PmTilesVectorTileProvider provider})> _areas;
+  final List<OpenedAreaArchive> _areas;
 
   Future<void> close() async {
     for (final a in _areas) {
@@ -320,7 +370,7 @@ class MultiAreaTileProvider extends VectorTileProvider {
   Future<Uint8List> provide(TileIdentity tile) async {
     ProviderException? last;
     for (final a in _areas) {
-      if (tile.z < a.area.minZoom || tile.z > a.area.maxZoom) continue;
+      if (tile.z < a.minZoom || tile.z > a.maxZoom) continue;
       try {
         return await a.provider.provide(tile);
       } on ProviderException catch (e) {
@@ -333,16 +383,10 @@ class MultiAreaTileProvider extends VectorTileProvider {
   }
 
   @override
-  int get minimumZoom => kAreaMinZoom;
+  int get minimumZoom => _areas.map((a) => a.minZoom).reduce((a, b) => a < b ? a : b);
 
   @override
-  int get maximumZoom {
-    var max = kAreaMinZoom;
-    for (final a in _areas) {
-      if (a.area.maxZoom > max) max = a.area.maxZoom;
-    }
-    return max;
-  }
+  int get maximumZoom => _areas.map((a) => a.maxZoom).reduce((a, b) => a > b ? a : b);
 
   @override
   TileOffset get tileOffset => TileOffset.DEFAULT;
@@ -359,11 +403,11 @@ final areaMapStyleProvider = FutureProvider<BaseMapStyle?>((ref) async {
   if (areas.isEmpty) return null;
   final store = ref.watch(areaStoreProvider);
   final open = ref.watch(areaArchiveOpenerProvider);
-  final opened = <({StoredArea area, PmTilesVectorTileProvider provider})>[];
+  final opened = <OpenedAreaArchive>[];
   for (final area in areas) {
     try {
       final provider = await open(store, area);
-      if (provider != null) opened.add((area: area, provider: provider));
+      if (provider != null) opened.add((minZoom: area.minZoom, maxZoom: area.maxZoom, provider: provider));
     } catch (e, s) {
       logError('Bereich öffnen', e, s);
     }
@@ -373,6 +417,57 @@ final areaMapStyleProvider = FutureProvider<BaseMapStyle?>((ref) async {
   ref.onDispose(multi.close);
   final theme = await ref.watch(baseThemeWithoutBackgroundProvider.future);
   return BaseMapStyle(theme: theme, tileProviders: TileProviders({'protomaps': multi}));
+});
+
+/// Die Wege-Archive der Bereiche mit Pfad — für MapLibre (`file://`),
+/// leer, solange die Ebene aus ist. Leer im Browser.
+final areaWaysPathsProvider = FutureProvider<List<({StoredArea area, String path})>>((ref) async {
+  if (!ref.watch(wayLayerEnabledProvider)) return const [];
+  final areas = await ref.watch(storedAreasProvider.future);
+  final store = ref.watch(areaStoreProvider);
+  return [
+    for (final area in areas)
+      if (area.hasWays)
+        if (await store.waysPath(area.id) case final path?) (area: area, path: path),
+  ];
+});
+
+/// Öffnet das Wege-Archiv eines Bereichs für die flutter_map-Engine —
+/// die Naht für Tests.
+final areaWaysOpenerProvider =
+    Provider<Future<PmTilesVectorTileProvider?> Function(AreaStore store, StoredArea area)>(
+        (ref) => _openWays);
+
+Future<PmTilesVectorTileProvider?> _openWays(AreaStore store, StoredArea area) async {
+  final path = await store.waysPath(area.id);
+  if (path != null) return PmTilesVectorTileProvider.open(path);
+  final bytes = await store.readWays(area.id);
+  if (bytes == null) return null;
+  return PmTilesVectorTileProvider.openBytes(bytes);
+}
+
+/// Die Wege der Bereiche als Ebene der flutter_map-Engine — über der
+/// Wege-Ebene vom Host, mit demselben Thema (Quelle [kWaysSourceId]).
+/// Null, wenn die Ebene aus ist oder kein Bereich Wege trägt.
+final areaWaysStyleProvider = FutureProvider<BaseMapStyle?>((ref) async {
+  if (!ref.watch(wayLayerEnabledProvider)) return null;
+  final areas = await ref.watch(storedAreasProvider.future);
+  final store = ref.watch(areaStoreProvider);
+  final open = ref.watch(areaWaysOpenerProvider);
+  final opened = <OpenedAreaArchive>[];
+  for (final area in areas) {
+    if (!area.hasWays) continue;
+    try {
+      final provider = await open(store, area);
+      if (provider != null) opened.add((minZoom: kWaysZoom, maxZoom: kWaysZoom, provider: provider));
+    } catch (e, s) {
+      logError('Wege eines Bereichs öffnen', e, s);
+    }
+  }
+  if (opened.isEmpty) return null;
+  final multi = MultiAreaTileProvider(opened);
+  ref.onDispose(multi.close);
+  return BaseMapStyle(theme: wayTheme(), tileProviders: TileProviders({kWaysSourceId: multi}));
 });
 
 /// „Auf der Karte zeigen" aus der Liste: der Wunsch, den die Karte beim

@@ -10,6 +10,7 @@ import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pmtiles/pmtiles.dart';
 import 'package:trailbuddy/features/map/poi.dart';
+import 'package:trailbuddy/features/map/way_layer.dart';
 import 'package:trailbuddy/features/offline_areas/area_plan.dart';
 import 'package:trailbuddy/features/offline_areas/area_store.dart';
 import 'package:trailbuddy/features/offline_areas/area_trim.dart';
@@ -28,7 +29,11 @@ void main() {
   final shape = TileSetShape(zoom: _z, keys: keys);
 
   Future<StoredArea> seed(
-      {String id = 'a', TileSetShape? s, List<String> poiFiles = const [], bool heights = false}) async {
+      {String id = 'a',
+      TileSetShape? s,
+      List<String> poiFiles = const [],
+      bool heights = false,
+      Set<int> wayColumns = const {}}) async {
     final sh = s ?? shape;
     final tiles = sh.tiles(maxZoom: _z);
     var heightTiles = 0, heightBytes = 0;
@@ -46,6 +51,24 @@ void main() {
       await store.putHeights(id, hb);
       heightTiles = z13.length;
       heightBytes = hb.length;
+    }
+    // Wege nur in den Spalten [wayColumns] (Versatz zu x) — wie im
+    // Host-Archiv fehlen Kacheln ohne getaggte Wege.
+    var wayTiles = 0, wayBytes = 0;
+    if (wayColumns.isNotEmpty) {
+      final wanted = [
+        for (final t in sh.tiles(minZoom: kWaysZoom, maxZoom: kWaysZoom))
+          if (wayColumns.contains(t.x - x)) t,
+      ];
+      final wb = writePmTiles(
+        tiles: [for (final t in wanted) TileToWrite(t.z, t.x, t.y, Uint8List.fromList(utf8.encode('w${t.x}')))],
+        tileCompression: Compression.none,
+        bounds: TileBounds(west: sh.hull.west, south: sh.hull.south, east: sh.hull.east, north: sh.hull.north),
+        metadata: waysMetadata('Bereich $id', '20261007'),
+      );
+      await store.putWays(id, wb);
+      wayTiles = wanted.length;
+      wayBytes = wb.length;
     }
     final bytes = writePmTiles(
       tiles: [
@@ -70,6 +93,9 @@ void main() {
       heightTiles: heightTiles,
       heightBytes: heightBytes,
       heightsBuild: heights ? '20261001' : null,
+      wayTiles: wayTiles,
+      wayBytes: wayBytes,
+      waysBuild: wayColumns.isEmpty ? null : '20261007',
     );
     await store.saveIndex([...await store.list(), area]);
     return area;
@@ -132,6 +158,34 @@ void main() {
     await trimmer.apply(all);
     expect(await store.readHeights('a'), isNull);
     expect(await store.list(), isEmpty, reason: '„m" hat dieselbe Form und geht mit');
+  });
+
+  test('die Wege folgen den Kacheln (#212); bleibt keine, fällt nur ihr Archiv weg, der Bau bleibt', () async {
+    final area = await seed(wayColumns: {0, 2});
+    final trimmer = AreaTrimmer(store);
+    final removes = {TileSetShape.keyOf(x + 2, y, _z), TileSetShape.keyOf(x + 3, y, _z)};
+    final plan = await trimmer.plan([area], removes);
+    expect(plan.trims.single.keepWays.map((t) => t.x).toSet(), {x});
+    final mapOnly = (await AreaTrimmer(store).plan([await seed(id: 'm')], removes)).freedBytes;
+    expect(plan.freedBytes, greaterThan(mapOnly), reason: 'die Wege-Bytes zählen mit');
+    await trimmer.apply(plan);
+    final after = (await store.list()).firstWhere((a) => a.id == 'a');
+    expect(after.wayTiles, 1);
+    final wb = (await store.readWays('a'))!;
+    expect(after.wayBytes, wb.length);
+    final archive = await PmTilesArchive.fromBytes(wb);
+    expect(archive.header.numberOfAddressedTiles, 1);
+    expect(utf8.decode((await archive.tile(ZXY(_z, x, y).toTileId())).compressedBytes()), 'w$x');
+    await archive.close();
+
+    // Die letzte Wege-Kachel raus, Kartenkachel x+1 bleibt.
+    final last = await trimmer.plan([after], {TileSetShape.keyOf(x, y, _z)});
+    await trimmer.apply(last);
+    final rest = (await store.list()).firstWhere((a) => a.id == 'a');
+    expect(rest.tiles, greaterThan(0));
+    expect(rest.hasWays, isFalse);
+    expect(rest.waysBuild, '20261007', reason: 'geholt ist geholt — kein Angebot zum Nachladen');
+    expect(await store.readWays('a'), isNull);
   });
 
   test('bleibt keine Höhenkachel, verschwindet nur das Höhenarchiv, der Bereich bleibt', () async {

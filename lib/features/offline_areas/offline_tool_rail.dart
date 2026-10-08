@@ -339,6 +339,7 @@ class _SaveDraftDialogState extends ConsumerState<_SaveDraftDialog> {
       AreaPhase.tiles => 'Kacheln ${p.done} von ${p.total}',
       AreaPhase.pois => 'Orte ${p.done} von ${p.total}',
       AreaPhase.heights => 'Höhen ${p.done} von ${p.total}',
+      AreaPhase.ways => 'Wege ${p.done} von ${p.total}',
       AreaPhase.writing => 'Archiv wird geschrieben …',
     };
   }
@@ -367,7 +368,7 @@ class _SaveDraftDialogState extends ConsumerState<_SaveDraftDialog> {
       body = const Row(children: [
         SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)),
         SizedBox(width: 12),
-        Expanded(child: Text('Größe, Orte und Höhen werden gemessen …')),
+        Expanded(child: Text('Größe, Orte, Höhen und Wege werden gemessen …')),
       ]);
     } else {
       final pois = plan?.poiCount;
@@ -378,7 +379,10 @@ class _SaveDraftDialogState extends ConsumerState<_SaveDraftDialog> {
                 ? 'Dazu: hier liegt keine Karte — außerhalb von Deutschland, Österreich und der Schweiz.'
                 : 'Lädt ${formatBytes(plan.totalBytes)} · ${plan.tiles.length} Kacheln'
                     '${pois == null ? ' · ohne Orte' : ' · $pois ${pois == 1 ? 'Ort' : 'Orte'}'}'
-                    '${plan.hasHeights ? ' · Höhen' : ' · ohne Höhen'}',
+                    '${plan.hasHeights ? ' · Höhen' : ' · ohne Höhen'}'
+                    // Ohne Wege-Kachel nichts: Einem kleinen Bereich, in
+                    // dem OSM nichts weiß, fehlt nichts.
+                    '${plan.hasWays ? ' · Wege' : ''}',
             key: const ValueKey('area-size'),
             style: text.titleMedium,
           ),

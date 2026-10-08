@@ -11,6 +11,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:pmtiles/pmtiles.dart';
 import 'package:trailbuddy/features/map/online_map.dart';
 import 'package:trailbuddy/features/map/poi.dart';
+import 'package:trailbuddy/features/map/way_layer.dart';
 import 'package:trailbuddy/features/offline_areas/area_downloader.dart';
 import 'package:trailbuddy/features/offline_areas/area_plan.dart';
 import 'package:trailbuddy/features/offline_areas/area_store.dart';
@@ -63,6 +64,25 @@ Future<PmTilesArchive> _heightsSource() async {
       metadata: heightsMetadata('Host', '20261001')));
 }
 
+const _waysManifest = WaysManifest(file: 'ways-20261007.pmtiles', bytes: 1, build: '20261007');
+
+/// Das Wege-Archiv des Hosts: z13, aber nur jede zweite Spalte — Kacheln
+/// ohne getaggte Wege fehlen im echten Archiv auch. Mit [only] nur die
+/// Kacheln, die es nennt (leer: ein Archiv, das hier nichts hat).
+Future<PmTilesArchive> _waysSource({Set<TileXYZ>? only}) async {
+  const wide = AreaBounds(south: 47.0, west: 10.0, north: 48.5, east: 12.5);
+  final tiles = [
+    for (final t in tilesCovering(wide, minZoom: kWaysZoom, maxZoom: kWaysZoom))
+      if (only == null ? t.x.isEven : only.contains(t))
+        TileToWrite(t.z, t.x, t.y, Uint8List.fromList(utf8.encode('w${t.x}/${t.y}'))),
+  ];
+  return PmTilesArchive.fromBytes(writePmTiles(
+      tiles: tiles.isEmpty ? [TileToWrite(kWaysZoom, 0, 0, Uint8List.fromList([1]))] : tiles,
+      tileCompression: Compression.gzip,
+      bounds: const TileBounds(west: 10, south: 47, east: 12.5, north: 48.5),
+      metadata: waysMetadata('Host', '20261007')));
+}
+
 void main() {
   late PmTilesArchive source;
   late MemoryAreaStore store;
@@ -74,13 +94,16 @@ void main() {
     poiAsked = [];
   });
 
-  AreaDownloader make({PoiManifest? poiManifest, PmTilesArchive? heights}) => AreaDownloader(
+  AreaDownloader make({PoiManifest? poiManifest, PmTilesArchive? heights, PmTilesArchive? ways}) =>
+      AreaDownloader(
         archive: source,
         manifest: _manifest,
         store: store,
         poiManifest: poiManifest,
         heights: heights,
         heightsManifest: heights == null ? null : _heightsManifest,
+        ways: ways,
+        waysManifest: ways == null ? null : _waysManifest,
         fetchPoiFile: (name) async {
           poiAsked.add(name);
           return name.endsWith('.water.json') ? '{"format":1,"pois":[]}' : null;
@@ -278,6 +301,70 @@ void main() {
     await without.download(await without.plan(const RectShape(_bounds)), name: 'A', id: 'x');
     expect(await store.readHeights('x'), isNull);
     expect((await store.list()).single.hasHeights, isFalse);
+  });
+
+  test('mit Wege-Archiv (#212): nur die z13-Kacheln, die der Host hat, als drittes Archiv', () async {
+    final ways = await _waysSource();
+    addTearDown(ways.close);
+    final downloader = make(ways: ways);
+    const shape = RectShape(_bounds);
+    final plan = await downloader.plan(shape);
+    final z13 = shape.tiles(minZoom: kWaysZoom, maxZoom: kWaysZoom);
+    expect(plan.wayTiles.toSet(), {for (final t in z13) if (t.x.isEven) t},
+        reason: 'Kacheln ohne getaggte Wege fehlen im Host-Archiv und im Plan');
+    expect(plan.wayTiles.length, lessThan(z13.length));
+    expect(plan.hasWays, isTrue);
+    expect(plan.waysBuild, '20261007');
+    var expected = 0;
+    for (final t in plan.wayTiles) {
+      expected += (await ways.lookup(tileIdOf(t)))!.length;
+    }
+    expect(plan.wayBytes, expected);
+    expect(plan.totalBytes, plan.bytes + plan.wayBytes, reason: 'ohne Orte und Höhen gemessen');
+
+    final progress = <AreaProgress>[];
+    final area = await downloader.download(plan, name: 'Mit Wegen', onProgress: progress.add);
+    expect(progress.map((p) => p.phase), contains(AreaPhase.ways));
+    expect(area.wayTiles, plan.wayTiles.length);
+    expect(area.waysBuild, '20261007');
+    final stored = await store.readWays(area.id);
+    expect(stored, isNotNull);
+    expect(area.wayBytes, stored!.length);
+    expect(area.totalBytes, area.bytes + area.wayBytes);
+    // Die Kachel kommt Byte für Byte, wie der Host sie hatte.
+    final back = await PmTilesArchive.fromBytes(stored);
+    addTearDown(back.close);
+    final probe = plan.wayTiles.first;
+    expect(utf8.decode((await back.tile(tileIdOf(probe))).compressedBytes()), 'w${probe.x}/${probe.y}');
+    final json = StoredArea.fromJson(area.toJson());
+    expect(json.wayTiles, area.wayTiles);
+    expect(json.wayBytes, area.wayBytes);
+    expect(json.waysBuild, '20261007');
+  });
+
+  test('Wege-Archiv ohne Kachel im Bereich: kein drittes Archiv, aber der Bau gilt als geholt', () async {
+    final ways = await _waysSource(only: const {});
+    addTearDown(ways.close);
+    final downloader = make(ways: ways);
+    final plan = await downloader.plan(const RectShape(_bounds));
+    expect(plan.hasWays, isFalse);
+    final area = await downloader.download(plan, name: 'Leer');
+    expect(area.hasWays, isFalse);
+    expect(area.waysBuild, '20261007', reason: 'sonst böte „Meine Bereiche" ewig „Wege verfügbar" an');
+    expect(store.ways, isEmpty);
+  });
+
+  test('ohne Wege-Archiv: kein Bau, und ein neu geholter Bereich verliert seine alten Wege', () async {
+    final ways = await _waysSource();
+    addTearDown(ways.close);
+    final withW = make(ways: ways);
+    await withW.download(await withW.plan(const RectShape(_bounds)), name: 'A', id: 'x');
+    expect(await store.readWays('x'), isNotNull);
+    final without = make();
+    final area = await without.download(await without.plan(const RectShape(_bounds)), name: 'A', id: 'x');
+    expect(area.waysBuild, isNull);
+    expect(await store.readWays('x'), isNull);
+    expect((await store.list()).single.hasWays, isFalse);
   });
 
   test('ein zweiter Bereich mit derselben Id ersetzt den ersten im Index', () async {

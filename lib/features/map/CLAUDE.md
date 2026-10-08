@@ -281,4 +281,6 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     Funkloch gehen still durch, damit nicht jede Installation im Digest
     steht, solange `way-data.yml` nicht veröffentlicht hat. Der Harness
     hängt `waysManifestLoaderProvider` auf null — ohne die Zeile fragte
-    jeder Kartentest den Host. Offline (gespeicherte Bereiche) ist PR 3.
+    jeder Kartentest den Host. Offline kommen die Wege aus den
+    gespeicherten Bereichen (seit 0.90.0, `lib/features/offline_areas/CLAUDE.md`),
+    als oberste Wege-Quelle in beiden Engines.

@@ -17,6 +17,7 @@ import 'package:trailbuddy/features/map/map_view/map_view.dart';
 import 'package:trailbuddy/features/map/online_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:trailbuddy/features/map/poi.dart';
+import 'package:trailbuddy/features/map/way_layer.dart';
 import 'package:trailbuddy/features/offline_areas/area_draw.dart';
 import 'package:trailbuddy/features/offline_areas/area_overlay.dart';
 import 'package:trailbuddy/features/offline_areas/area_plan.dart';
@@ -52,6 +53,21 @@ Uint8List _sourceBytes() {
   );
 }
 
+/// Das Wege-Archiv des „Hosts" (#212): z13 rund um den Trail.
+Uint8List _waysBytes() {
+  const wide = AreaBounds(south: 47.9, west: 8.9, north: 48.1, east: 9.1);
+  return writePmTiles(
+    tiles: [
+      for (final t in tilesCovering(wide, minZoom: kWaysZoom, maxZoom: kWaysZoom))
+        TileToWrite(t.z, t.x, t.y, Uint8List.fromList(utf8.encode('w${t.x}/${t.y}'))),
+    ],
+    tileCompression: Compression.none,
+    bounds: const TileBounds(west: 8.9, south: 47.9, east: 9.1, north: 48.1),
+  );
+}
+
+const _waysManifest = WaysManifest(file: 'ways-20261007.pmtiles', bytes: 1, build: '20261007');
+
 void main() {
   late FakeBackend backend;
   late FakeTrailRepository trails;
@@ -74,17 +90,21 @@ void main() {
       '{"id":"n1","kind":"spring","lat":48.0,"lng":9.0},'
       '{"id":"n2","kind":"spring","lat":48.001,"lng":9.001}]}';
 
-  Future<void> start(WidgetTester tester, {bool host = true, bool pois = false, String? appearance}) async {
+  Future<void> start(WidgetTester tester,
+      {bool host = true, bool pois = false, bool ways = false, bool wayLayer = true, String? appearance}) async {
     final source = _sourceBytes();
+    final waysSource = _waysBytes();
     final cells = poiCellsCovering(47.5, 8.5, 48.5, 9.5);
     await pumpApp(tester, backend,
         trails: trails,
         areaStore: store,
         keepAlive: keepAlive,
-        settings: FakeSettings(appearance: appearance),
+        settings: FakeSettings(appearance: appearance, wayLayerEnabled: wayLayer),
         extraOverrides: [
           mapManifestLoaderProvider.overrideWithValue(() async => host ? _manifest : null),
-          areaSourceOpenerProvider.overrideWithValue((_) => PmTilesArchive.fromBytes(source)),
+          areaSourceOpenerProvider.overrideWithValue((uri) =>
+              PmTilesArchive.fromBytes(uri.path.endsWith(_waysManifest.file) ? waysSource : source)),
+          areaWaysManifestLoaderProvider.overrideWithValue(() async => ways ? _waysManifest : null),
           areaPoiManifestLoaderProvider.overrideWithValue(() async => pois
               ? PoiManifest(build: '20260928', prefix: 'pois-20260928', cells: {PoiGroup.water: cells.toSet()})
               : null),
@@ -444,6 +464,49 @@ void main() {
     await openTools(tester);
     expect(draftTiles(tester), 0);
     expect(find.byKey(const ValueKey('area-draw-surface')), findsNothing);
+  });
+
+  testWidgets('Wege (#212): ein Bereich ohne Wege bekommt das Angebot, ein neuer bringt sie gleich mit',
+      (tester) async {
+    await store.putArchive('old', _sourceBytes());
+    await store.saveIndex([oldArea()]);
+    await start(tester, ways: true);
+    await openTab(tester, 'Profil');
+    await scrollTo(tester, find.text('Meine Bereiche'));
+    await tester.tap(find.text('Meine Bereiche'));
+    await settle(tester);
+    expect(find.textContaining('Wege verfügbar'), findsOneWidget,
+        reason: 'derselbe Kartenstand, aber noch ohne Wege gespeichert');
+    expect(find.textContaining('Neuerer Kartenstand'), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('area-update-old')));
+    await settle(tester, frames: 40);
+    final area = (await store.list()).single;
+    expect(area.hasWays, isTrue);
+    expect(area.waysBuild, '20261007');
+    expect(await store.readWays('old'), isNotNull);
+    expect(find.textContaining('Wege verfügbar'), findsNothing);
+    expect(find.textContaining('mit Wegen'), findsOneWidget);
+  });
+
+  testWidgets('Wege (#212): der Dialog nennt sie, und sie kommen mit, auch bei ausgeschalteter Ebene',
+      (tester) async {
+    await start(tester, ways: true, wayLayer: false);
+    fakeMap(tester).move(const LatLng(48.0, 9.0), 12);
+    await settle(tester);
+    await openTools(tester);
+    await tapRail(tester, 'rail-snapshot');
+    await tapRail(tester, 'area-draw-save');
+    await settle(tester, frames: 20);
+    final size = (tester.widget(find.byKey(const ValueKey('area-size'))) as Text).data!;
+    expect(size, endsWith(' · ohne Höhen · Wege'));
+    await tester.enterText(find.byKey(const ValueKey('area-name')), 'Mit Wegen');
+    await tester.tap(find.byKey(const ValueKey('area-save')));
+    await settle(tester, frames: 30);
+    final saved = (await store.list()).single;
+    expect(saved.hasWays, isTrue, reason: 'Betreiber: ein Bereich holt die Wege immer');
+    final archive = await PmTilesArchive.fromBytes((await store.readWays(saved.id))!);
+    expect(archive.header.numberOfAddressedTiles, saved.wayTiles);
+    await archive.close();
   });
 
   testWidgets('ein älterer Bereich bekommt das Angebot, auf den neuen Stand zu kommen',

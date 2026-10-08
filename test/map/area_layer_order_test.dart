@@ -64,11 +64,13 @@ BaseMapStyle _style() => BaseMapStyle(
     );
 
 void main() {
-  Future<({BaseMapStyle online, BaseMapStyle areas, BaseMapStyle ways})> pump(WidgetTester tester,
+  Future<({BaseMapStyle online, BaseMapStyle areas, BaseMapStyle ways, BaseMapStyle areaWays})> pump(
+      WidgetTester tester,
       {required bool noConnectivity}) async {
     final online = _style();
     final areas = _style();
     final ways = _style();
+    final areaWays = _style();
     const config = MapViewConfig(
       initialCenter: LatLng(47.6, 11.9),
       initialZoom: 12,
@@ -83,6 +85,7 @@ void main() {
         baseMapStyleProvider.overrideWith((ref) async => null),
         areaMapStyleProvider.overrideWith((ref) async => areas),
         onlineWaysStyleProvider.overrideWith((ref) async => ways),
+        areaWaysStyleProvider.overrideWith((ref) async => areaWays),
       ],
       child: MaterialApp(
         home: FlutterMapView(
@@ -94,7 +97,7 @@ void main() {
     ));
     await tester.pump();
     await tester.pump();
-    return (online: online, areas: areas, ways: ways);
+    return (online: online, areas: areas, ways: ways, areaWays: areaWays);
   }
 
   List<Key?> tileLayerKeys(WidgetTester tester) =>
@@ -106,9 +109,15 @@ void main() {
         (tester) async {
       final s = await pump(tester, noConnectivity: noConnectivity);
       expect(tileLayerKeys(tester),
-          [ValueKey(s.online.tileProviders), ValueKey(s.areas.tileProviders), ValueKey(s.ways.tileProviders)],
+          [
+            ValueKey(s.online.tileProviders),
+            ValueKey(s.areas.tileProviders),
+            ValueKey(s.ways.tileProviders),
+            ValueKey(s.areaWays.tileProviders),
+          ],
           reason: 'Reihenfolge = Schichtung: der Bereich über der Karte, die Wege (#212) über '
-              'beiden — die deckende Fläche eines Bereichs deckte sie sonst zu');
+              'beiden — die deckende Fläche eines Bereichs deckte sie sonst zu —, die Wege '
+              'der Bereiche zuoberst, wie die Bereiche über der Online-Karte');
       final area = tester.widget<vmt.VectorTileLayer>(
           find.byKey(ValueKey(s.areas.tileProviders)));
       expect(area.maximumTileSubstitutionDifference, 0,
