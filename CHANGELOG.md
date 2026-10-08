@@ -2,6 +2,22 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Der Planer kennt schlechte Wege
+
+*Version 0.92.0, 2026-10-08*
+
+- **Bergauf lieber über den guten Forstweg**: Runde und Weg zum Trail
+  wissen jetzt, wie gut ein Forstweg ist und wie schwer ein Pfad. Ein
+  holpriger, grober oder matschiger Forstweg kostet bergauf deutlich
+  mehr, ein schwerer Pfad zählt bergauf als geschoben. Bergab ändert
+  sich nichts.
+- Gemessen an echten Fahrten: Wer selbst plant, fährt schlechte
+  Forstwege kaum hinauf — der Planer nahm sie bisher doppelt so oft,
+  jetzt etwa so selten wie die Fahrten.
+- Wo OpenStreetMap nichts über einen Weg weiß, plant der Planer wie
+  bisher. Die Güte kommt aus deinen gespeicherten Bereichen und, mit
+  Empfang, vom selben Kartenserver wie die Karte.
+
 ## Wie gut ist der Weg?
 
 *Versionen 0.89.0–0.91.0, 2026-10-08*

@@ -248,6 +248,30 @@ die Kalibrierung bleiben unberührt. Bis 0.80.x zählten nur die Meter
 5 hm über der Grenze), ohne Zahl — gezählt ist nur, was über der Grenze
 steigt, und „12 hm steil" läse sich wie die Länge der Rampe.
 
+**Schlechte Wege kosten bergauf** (#213, seit 0.92.0, Vorschlag des
+Betreibers 2026-10-02; gemessen in `docs/routing-messung.md`): Forstwege
+und Wanderwege bekommen ihre Güte aus dem Wege-Archiv (#212, Format 2;
+per Geometrie, 3 m, Mehrheit der Proben je 10 m), aus den Bereichen und
+— für online nachgeladene Kacheln — vom Host. Abgestuft, nie ein
+Schalter, Kosten, nicht Zeit:
+
+| Weg | bergauf und eben | bergab |
+|---|---|---|
+| Forstweg gut / mittel / ohne Güte | wie bisher | wie bisher |
+| Forstweg schlecht (grade4) | Steigteil ×1,3, Strecke ×1,15 | nichts |
+| Forstweg sehr schlecht (grade5, holprig, Matsch) | Steigteil ×2, Strecke ×1,3 | nichts |
+| Pfad schwer (S3/T3) | geschoben (`push_rate`, `v_push`) | nichts |
+| Pfad sehr schwer (ab S4/T4) | doppelt geschoben | nichts |
+| Pfad mit `mtb:scale:uphill` | 0–1 wie jeder Pfad, 2 Steigteil ×1,5, 3 geschoben, ab 4 doppelt | nichts |
+
+`mtb:scale:uphill` geht vor der Klasse, wo es steht (nur 2 % der Pfade).
+Unbekannt ist bei Pfaden der Normalfall und kostet, was es kostete. Die
+eigenen Fahrten des Betreibers klettern zu 3 % auf schlechten Forstwegen,
+die im Netz drumherum 19 % ausmachen; der Plan ohne Güte nahm 8–10 %,
+mit ihr 4 %. Die Kosten der Fahrt gegen den Plan bleiben gleich (Median
+1,37 → 1,36 Bio, 1,30 → 1,28 E). Ein vierter Schalter („schlechte Wege
+egal") erst, wenn das Feld danach fragt.
+
 **Verschenkte Höhe kostet** (seit 0.81.0, #188, Betreiber: „Bergab ist
 teurer"): Ein Höhenmeter bergab auf einer Wegekante kostet **0,3**
 seiner Steigzeit — er muss wieder hinauf, bevor der nächste Trail
@@ -292,6 +316,11 @@ keine `incline`, keine `width`. Drei Folgen:
   nicht trennen. Deshalb der Regler „höchstens Wanderweg" und die
   Nennung im Ergebnis — und deshalb misst #35, wie oft die eigenen
   Fahrten überhaupt über `path` bergauf gehen.
+- **Seit #212/#213 trägt das eigene Wege-Archiv** `tracktype`,
+  `smoothness`, `surface=mud`, `sac_scale`, `mtb:scale` und
+  `mtb:scale:uphill` als Klassen (`tool/way_archive.py`) — der Weg, den
+  der nächste Punkt als „nächsten Schritt" beschrieb, als PMTiles statt
+  JSON. Die Kosten in 2.4.
 - **Wenn die Messung zeigt, dass es nicht reicht**, ist die Antwort
   unsere Pipeline: `map-data.yml` schneidet aus dem Protomaps-Planetbau
   und kann die Felder nicht ergänzen; eine eigene Datei je Region

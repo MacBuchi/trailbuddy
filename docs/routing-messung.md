@@ -551,3 +551,68 @@ sind also kein Randfall.
   (Zellenraster seither), Lauf 3 zeigte den Verbindungs-Fehler, Lauf 4
   ist dieser Bericht. Die Reihenfolge steht hier, damit die nächste
   Messung nicht dieselben Umwege geht.
+
+## #213 — Wegegüte im Routing (gemessen 2026-10-08, lokal)
+
+*`tool/route_measure.py ways` an 30 Fahrten des Betreibers aus Strava
+(Betreiber, 2026-10-08: „Nutze Strava MCP, da hast du Fahrten und die
+sind gelabelt"; die 47 Fahrten von #188 lagen nicht mehr vor): 21 mit
+`MountainBikeRide`, 9 mit `EMountainBikeRide`/`EBikeRide`, 2022–2026,
+je mindestens 250 hm und rund 15 hm/km — die flachen Pendelfahrten sagen
+über Anstiege nichts. Kacheln `dach-20261001.pmtiles` vom Host, Wege-Archiv
+Format 2 aus dem lokalen Bau (93,2 MB), Trails der Sammlung (584). Die
+Fahrten lagen nur auf dem Rechner des Laufs; hier stehen Kennzahlen,
+keine Orte.*
+
+Drei Viertel der Forstweg- und Pfadkanten in den Rahmen tragen eine
+Klasse (Bio 76 %).
+
+### Wie die Aufstiege fahren
+
+Länge der Aufstiege (≥ 100 hm am Stück) je Weg, gegen die Länge des
+Netzes in denselben Rahmen:
+
+| Weg | Bio: Aufstiege / Netz | E: Aufstiege / Netz |
+|---|---:|---:|
+| Forstweg gut | 53 % / 28 % | 53 % / 26 % |
+| Forstweg mittel | 2 % / 6 % | 3 % / 5 % |
+| Forstweg schlecht | 0 % / 9 % | 1 % / 10 % |
+| Forstweg sehr schlecht | 3 % / 10 % | 2 % / 9 % |
+| Pfad leicht | 4 % / 2 % | 3 % / 2 % |
+| Pfad mittel, schwer, sehr schwer | 0 % / 0 % | 0 % / 1 % |
+| Pfad ohne Schwierigkeit | 8 % / 6 % | 3 % / 6 % |
+| Straßen, Radwege, Rest | 24 % / 39 % | 29 % / 40 % |
+
+**Der Fahrer meidet schlechte Forstwege bergauf**: Sie sind ein Fünftel
+des Netzes und tragen 3 % der Aufstiege; gute Forstwege doppelt so viel,
+wie ihr Anteil am Netz erwarten ließe. Schwere Pfade kommen in diesen
+Gegenden kaum vor (keine `sac_scale` im Mittelgebirge, #211) — dazu
+sagt die Messung nichts, der Preis dort ist gesetzt.
+
+### Kosten gefahren / geplant
+
+Wie bei den Strafkurven (0.81.0): Fahrtstart → erster bekannter
+Trailkopf, die Fahrt auf dem Graphen gegen den Plan, je Variante; dazu
+der Anteil schlechter und sehr schlechter Forstwege an der Länge, die
+der Plan bergauf fährt.
+
+| Variante | Bio (17 Fälle): Median / Plan anders / schlecht bergauf | E (7 Fälle) |
+|---|---|---|
+| ohne Wegegüte (bis 0.91) | 1,37 / – / 8 % | 1,30 / – / 10 % |
+| **Vorschlag (gebaut)** | **1,36 / 10 / 4 %** | **1,28 / 3 / 4 %** |
+| sehr schlecht ×1,5 (schlecht ×1,15) | 1,33 / 8 / 4 % | 1,29 / 3 / 4 % |
+| sehr schlecht ×3 (schlecht ×1,6) | 1,43 / 11 / 3 % | 1,27 / 3 / 4 % |
+| nur Forstwege, Pfade ohne Aufschlag | 1,36 / 10 / 4 % | 1,28 / 3 / 4 % |
+| Pfade doppelt geschoben | 1,36 / 10 / 4 % | 1,28 / 3 / 4 % |
+
+Gefahren: schlecht + sehr schlecht bergauf Bio 8 %, E 3 % dieser Fälle.
+
+**Gebaut: der Vorschlag** (Steigteil ×2 und Strecke ×1,3 auf sehr
+schlechten, ×1,3 und ×1,15 auf schlechten Forstwegen; Pfade ab S3/T3
+geschoben, ab S4/T4 doppelt; `mtb:scale:uphill` vor der Klasse). Er
+halbiert die schlechten Forstwege im Plan, auf den Anteil, den der
+Fahrer selbst fährt, und lässt die Kosten der Fahrt gegen den Plan, wie
+sie waren — die Wegegüte ändert, WELCHER Forstweg hinaufführt, nicht
+den Umweg, den M4 seit #188 zeigt. ×3 wird bei Bio schlechter (1,43),
+×1,5 ändert weniger Pläne. Die Pfad-Varianten unterscheiden sich hier
+nicht, weil die Pfade dieser Fahrten ungetaggt sind.

@@ -87,3 +87,68 @@ Uint8List mvtTile(List<RoadLine> lines) {
   }
   return tile.writeToBuffer();
 }
+
+/// Eine Kachel des Wege-Archivs (#213, Format 2): Ebene `ways`, je Linie
+/// `k` und optional `u` als uint — von Hand kodiert wie
+/// `encode_tile` in `tool/way_archive.py`, weil `VectorTile_Value` dafür
+/// `Int64` aus einem Paket verlangt, das hier nicht direkt abhängt.
+Uint8List waysTile(List<({int k, int? u, List<(int, int)> px})> lines) {
+  void varint(List<int> out, int v) {
+    while (v >= 0x80) {
+      out.add((v & 0x7f) | 0x80);
+      v >>= 7;
+    }
+    out.add(v);
+  }
+
+  void field(List<int> out, int no, List<int> bytes) {
+    varint(out, (no << 3) | 2);
+    varint(out, bytes.length);
+    out.addAll(bytes);
+  }
+
+  final numbers = <int>{for (final l in lines) ...[l.k, ?l.u]}.toList()..sort();
+  final layer = <int>[];
+  varint(layer, (15 << 3) | 0);
+  varint(layer, 2);
+  field(layer, 1, 'ways'.codeUnits);
+  for (final l in lines) {
+    final tags = <int>[];
+    varint(tags, 0);
+    varint(tags, numbers.indexOf(l.k));
+    if (l.u case final u?) {
+      varint(tags, 1);
+      varint(tags, numbers.indexOf(u));
+    }
+    final geom = <int>[];
+    var x = 0, y = 0;
+    for (var i = 0; i < l.px.length; i++) {
+      if (i == 0) varint(geom, (1 << 3) | 1);
+      if (i == 1) varint(geom, ((l.px.length - 1) << 3) | 2);
+      final (px, py) = l.px[i];
+      varint(geom, Command.zigZagEncode(px - x));
+      varint(geom, Command.zigZagEncode(py - y));
+      x = px;
+      y = py;
+    }
+    final f = <int>[];
+    field(f, 2, tags);
+    varint(f, (3 << 3) | 0);
+    varint(f, 2); // LINESTRING
+    field(f, 4, geom);
+    field(layer, 2, f);
+  }
+  field(layer, 3, 'k'.codeUnits);
+  field(layer, 3, 'u'.codeUnits);
+  for (final n in numbers) {
+    final v = <int>[];
+    varint(v, (5 << 3) | 0);
+    varint(v, n);
+    field(layer, 4, v);
+  }
+  varint(layer, (5 << 3) | 0);
+  varint(layer, kTileExtent);
+  final tile = <int>[];
+  field(tile, 3, layer);
+  return Uint8List.fromList(tile);
+}

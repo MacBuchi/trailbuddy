@@ -82,6 +82,7 @@ Future<PlanningGraph> loadPlanningGraph(Ref ref, LatBox box, {bool fillOnline = 
   }
   final store = ref.read(areaStoreProvider);
   final open = ref.read(areaArchiveOpenerProvider);
+  final openWays = ref.read(areaWaysOpenerProvider);
   final online = fillOnline && !ref.read(noConnectivityProvider) ? ref.read(onlineFillFactoryProvider)() : null;
   if (online != null) {
     // Die Höhen der nachgeladenen Kacheln kommen als LETZTE Quelle dazu;
@@ -98,6 +99,8 @@ Future<PlanningGraph> loadPlanningGraph(Ref ref, LatBox box, {bool fillOnline = 
       marginM: kTrailHeadMarginM,
       requireComplete: false,
       fetchOnline: online?.fetch,
+      openWays: (a) => openWays(store, a),
+      fetchWaysOnline: online?.fetchWays,
     );
   } catch (e, s) {
     logError('Wege für die Planung lesen', e, s);

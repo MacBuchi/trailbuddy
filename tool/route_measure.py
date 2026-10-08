@@ -161,6 +161,54 @@ DESCENT_COST = 0.3
 # forest track (bio) instead of 0.8 km. A cost, not minutes.
 CARRY_S = 60.0
 
+# Way quality (#213, operator proposal 2026-10-02: "schlechte Forstwege
+# deutlich teurer, z. B. doppelte Steigung"; graded, never a switch). The
+# classes are those of the way archive, format 2 (tool/way_archive.py):
+# 3 track poor (grade4), 7 track very poor (grade5, rough, mud), 6 path
+# hard (S3/T3), 8 path very hard (S4+/T4+), and on paths `u` =
+# mtb:scale:uphill. Like the steep surcharge a COST, not minutes — the
+# time model stays what the rides calibrate. Downhill nothing (the
+# descent cost of 0.81.0 stays); unknown costs what it cost before.
+#   track: (factor on the climb term, factor on the distance term) uphill
+#          and on the flat; the surcharge is (factor − 1) × the term.
+#   path uphill: pushed — the cost of pushing the edge (push_rate,
+#          v_push) times the factor, instead of riding it.
+WAY_TRACK = {3: (1.3, 1.15), 7: (2.0, 1.3)}
+WAY_PATH_PUSH = {6: 1.0, 8: 2.0}
+# mtb:scale:uphill is the better signal where it is set: 0–1 ride as
+# any path, 2 half the climb again, 3 push, 4+ push twice.
+WAY_UPHILL_CLIMB = {2: 1.5}
+WAY_UPHILL_PUSH = {3: 1.0, 4: 2.0, 5: 2.0}
+WAY_TRACK_CLASSES = (1, 2, 3, 7)
+WAY_PATH_CLASSES = (4, 5, 6, 8)
+WAY_MATCH_M = 3.0        # #211: the base map lies within 3 m of its OSM way
+WAY_SAMPLE_M = 10.0      # an edge is sampled this often for its class
+WAY_MAJORITY = 0.5       # share of samples one class needs to name the edge
+
+
+def way_cost_s(profile, cls, length_m, gain_m, loss_m, way=None, uphill=None):
+    """The way-quality surcharge of one edge in one direction (#213)."""
+    if loss_m > gain_m:
+        return 0.0
+    p = PROFILES[profile]
+    if cls == "forstweg" and way in WAY_TRACK:
+        f_climb, f_dist = WAY_TRACK[way]
+        climb = gain_m / (p["climb_track"] / 3600.0)
+        dist = length_m / (p["v_flat"] / 3.6)
+        return (f_climb - 1.0) * climb + (f_dist - 1.0) * dist
+    if cls == "wanderweg" and gain_m > loss_m:
+        if uphill is not None:
+            if uphill in WAY_UPHILL_CLIMB:
+                return (WAY_UPHILL_CLIMB[uphill] - 1.0) * gain_m / (p["climb_path"] / 3600.0)
+            push = WAY_UPHILL_PUSH.get(uphill)
+        else:
+            push = WAY_PATH_PUSH.get(way)
+        if push:
+            pushed = length_m / (p["v_push"] / 3.6) + gain_m / (p["push_rate"] / 3600.0)
+            return max(0.0, push * pushed - edge_time_s(profile, cls, length_m, gain_m, loss_m))
+    return 0.0
+
+
 # Route preferences (#188): three switches, "avoid" (the default, the
 # full surcharge) or "don't mind" (this share of it). Never zero — a
 # rider who does not mind roads still takes the track when it is as fast.
@@ -247,11 +295,16 @@ def carry_cost_s(cls, gain_m, loss_m, share=1.0):
     return CARRY_S * share if CLASSES[cls][2] == "v_push" and gain_m > loss_m else 0.0
 
 
-def edge_cost_s(profile, cls, length_m, gain_m, loss_m, steep_w=0.0, prefs=None, carry=1.0):
+WAY_COST = True   # measurement switch: the variant without way quality
+
+
+def edge_cost_s(profile, cls, length_m, gain_m, loss_m, steep_w=0.0, prefs=None, carry=1.0,
+                way=None, uphill=None):
     return (edge_time_s(profile, cls, length_m, gain_m, loss_m) * edge_factor(profile, cls, gain_m, loss_m, prefs)
             + steep_cost_s(profile, cls, steep_w, pref_strength(prefs, "steep"))
             + descent_cost_s(profile, cls, loss_m)
-            + carry_cost_s(cls, gain_m, loss_m, carry))
+            + carry_cost_s(cls, gain_m, loss_m, carry)
+            + (way_cost_s(profile, cls, length_m, gain_m, loss_m, way, uphill) if WAY_COST else 0.0))
 
 
 def smooth_heights(heights, window=STEEP_SMOOTH):
@@ -911,6 +964,8 @@ class Edge:
     steep_w_up: float = 0.0                      # weighted steep metres (steep_weight), a -> b
     steep_w_down: float = 0.0                    # the same, b -> a
     carry: float = 1.0                           # share of CARRY_S after splits (#210)
+    way: int = None                              # way archive class (#213), None = unknown
+    uphill: int = None                           # mtb:scale:uphill on paths (#213)
     heights: list = field(default_factory=list)  # samples a -> b, for the Tirol report
     steps: list = None
 
@@ -996,6 +1051,7 @@ class Graph:
         e.length = trail_match.polyline_length([self.xy(*p) for p in first])
         self.adj[mid].append(ei)
         ni = self.add_edge(mid, old_b, e.cls, e.oneway, second, e.level)
+        self.edges[ni].way, self.edges[ni].uphill = e.way, e.uphill
         # Heights by length share, as the app does (splitEdge).
         n = self.edges[ni]
         share = n.length / (e.length + n.length) if e.length + n.length > 0 else 0.0
@@ -1201,10 +1257,88 @@ def add_climbs(g, dem):
         e.steep_w_up, e.steep_w_down = steep_weight(heights, steps) if steps is not None else (0.0, 0.0)
 
 
+def ways_from_tile(tile_bytes, z, x, y):
+    """[(k, u, [(lon, lat), ...])] of one tile of the way archive (format 2)."""
+    out = []
+    for extent, props, lines in decode_mvt_lines(tile_bytes, "ways"):
+        k, u = props.get("k"), props.get("u")
+        for line in lines:
+            pts = [tile_to_lonlat(z, x, y, px, py, extent) for px, py in line]
+            if len(pts) >= 2:
+                out.append((k, u, pts))
+    return out
+
+
+def load_way_lines(ways_archive, bbox):
+    """The way archive's lines inside bbox (its one zoom, ROAD_ZOOM)."""
+    out = []
+    for z, x, y, data in tiles_for_bbox(ways_archive, bbox):
+        out.extend(ways_from_tile(data, z, x, y))
+    return out
+
+
+def add_way_quality(g, way_lines, match_m=WAY_MATCH_M, step_m=WAY_SAMPLE_M, majority=WAY_MAJORITY):
+    """Names each forest track and hiking path of the graph by the way
+    archive (#213): samples every `step_m`, the nearest archive line of
+    the same kind within `match_m`; a class that holds more than
+    `majority` of the samples is the edge's (`Edge.way`), likewise `u`.
+    Returns how many edges got a class."""
+    cell = 25.0
+    grid = {}
+    segs = []
+    for k, u, pts in way_lines:
+        if k not in WAY_TRACK_CLASSES and k not in WAY_PATH_CLASSES:
+            continue
+        xy = [g.xy(la, lo) for lo, la in pts]
+        for a, b in zip(xy, xy[1:]):
+            si = len(segs)
+            segs.append((k, u, a, b))
+            for cx in range(int(min(a[0], b[0]) // cell), int(max(a[0], b[0]) // cell) + 1):
+                for cy in range(int(min(a[1], b[1]) // cell), int(max(a[1], b[1]) // cell) + 1):
+                    grid.setdefault((cx, cy), []).append(si)
+
+    def nearest(pt, kinds):
+        cx, cy = int(pt[0] // cell), int(pt[1] // cell)
+        best = None
+        for dx in (-1, 0, 1):
+            for dy in (-1, 0, 1):
+                for si in grid.get((cx + dx, cy + dy), ()):
+                    k, u, a, b = segs[si]
+                    if k not in kinds:
+                        continue
+                    d, _ = trail_match._point_segment(pt, a, b)
+                    if d <= match_m and (best is None or d < best[0]):
+                        best = (d, k, u)
+        return best
+
+    named = 0
+    for e in g.edges:
+        kinds = WAY_TRACK_CLASSES if e.cls == "forstweg" else WAY_PATH_CLASSES if e.cls == "wanderweg" else None
+        if kinds is None:
+            continue
+        samples = trail_match.resample([g.xy(*p) for p in e.latlon], step_m)
+        if not samples:
+            continue
+        ks, us = {}, {}
+        for pt in samples:
+            hit = nearest(pt, kinds)
+            if hit:
+                ks[hit[1]] = ks.get(hit[1], 0) + 1
+                if hit[2] is not None:
+                    us[hit[2]] = us.get(hit[2], 0) + 1
+        n = len(samples)
+        k, c = max(ks.items(), key=lambda kv: kv[1]) if ks else (None, 0)
+        e.way = k if c > majority * n else None
+        u, c = max(us.items(), key=lambda kv: kv[1]) if us else (None, 0)
+        e.uphill = u if c > majority * n else None
+        named += e.way is not None
+    return named
+
+
 def edge_cost(profile, e, forward, steep=True, prefs=None):
     gain, loss = (e.gain, e.loss) if forward else (e.loss, e.gain)
     steep_w = (e.steep_w_up if forward else e.steep_w_down) if steep else 0.0
-    return edge_cost_s(profile, e.cls, e.length, gain, loss, steep_w, prefs, e.carry), gain, loss
+    return edge_cost_s(profile, e.cls, e.length, gain, loss, steep_w, prefs, e.carry, e.way, e.uphill), gain, loss
 
 
 def dijkstra(g, src, profile, limit=math.inf, target=None, heuristic=None, steep=True, keep=None, prefs=None):
@@ -1944,6 +2078,174 @@ def measure_rides(trail_tracks, ride_tracks, archive, dem, profile):
     return "\n".join(report) + "\n"
 
 
+WAY_LABELS = {1: "Forstweg gut", 2: "Forstweg mittel", 3: "Forstweg schlecht", 7: "Forstweg sehr schlecht",
+              4: "Pfad leicht", 5: "Pfad mittel", 6: "Pfad schwer", 8: "Pfad sehr schwer"}
+
+
+def way_label(e):
+    if e.cls == "forstweg":
+        return WAY_LABELS.get(e.way, "Forstweg ohne Güte")
+    if e.cls == "wanderweg":
+        return WAY_LABELS.get(e.way, "Pfad ohne Schwierigkeit")
+    return "andere"
+
+
+def path_cost_s(g, path, src, profile):
+    n, c = src, 0.0
+    for ei in path:
+        e = g.edges[ei]
+        forward = e.a == n
+        c += edge_cost(profile, e, forward)[0]
+        n = e.b if forward else e.a
+    return c
+
+
+def uphill_way_mix(g, path, src):
+    """Length per way label of the edges a path climbs (gain > loss)."""
+    n, mix = src, {}
+    for ei in path:
+        e = g.edges[ei]
+        forward = e.a == n
+        gn, ls = (e.gain, e.loss) if forward else (e.loss, e.gain)
+        if gn > ls:
+            mix[way_label(e)] = mix.get(way_label(e), 0.0) + e.length
+        n = e.b if forward else e.a
+    return mix
+
+
+WAY_VARIANTS = [
+    ("ohne Wegegüte (bis 0.90)", {"WAY_COST": False}),
+    ("Vorschlag", {}),
+    ("Forstweg sehr schlecht ×1,5", {"WAY_TRACK": {3: (1.15, 1.07), 7: (1.5, 1.15)}}),
+    ("Forstweg sehr schlecht ×3", {"WAY_TRACK": {3: (1.6, 1.3), 7: (3.0, 1.6)}}),
+    ("nur Forstwege", {"WAY_PATH_PUSH": {}, "WAY_UPHILL_CLIMB": {}, "WAY_UPHILL_PUSH": {}}),
+    ("Pfade doppelt geschoben", {"WAY_PATH_PUSH": {6: 2.0, 8: 4.0}, "WAY_UPHILL_PUSH": {3: 2.0, 4: 4.0, 5: 4.0}}),
+]
+
+
+def _with_variant(settings, fn):
+    saved = {k: globals()[k] for k in settings}
+    globals().update(settings)
+    try:
+        return fn()
+    finally:
+        globals().update(saved)
+
+
+def measure_ways(trail_tracks, ride_tracks, archive, ways_archive, dem, profile):
+    """#213: how the rides climb on graded ways, and which way pricing
+    puts the plan closest to the ride (cost ridden / planned)."""
+    climb_mix, net_mix = {}, {}
+    cases = []          # per M4 case: {variant: (ratio, plan uphill mix, plan edge set)}
+    ridden_up = {}
+    named = edges_w = 0
+    for ride in ride_tracks:
+        if ride.n < 10:
+            continue
+        lat0 = statistics.fmean(ride.lat)
+        margin = 0.02
+        bbox = (min(ride.lon) - margin, min(ride.lat) - margin, max(ride.lon) + margin, max(ride.lat) + margin)
+        lines, _ = load_lines(archive, bbox)
+        if not lines:
+            continue
+        g, _, _ = build_graph(lines, lat0, split_crossings=True)
+        add_climbs(g, dem)
+        named += add_way_quality(g, load_way_lines(ways_archive, bbox))
+        edges_w += sum(e.cls in ("forstweg", "wanderweg") for e in g.edges)
+        for e in g.edges:
+            net_mix[way_label(e)] = net_mix.get(way_label(e), 0.0) + e.length
+        for s_, e_, _gain in ride_sections(ride):
+            sub = trail_match.Track("s", "", ride.lat[s_:e_ + 1], ride.lon[s_:e_ + 1], ride.ele[s_:e_ + 1], ride.time[s_:e_ + 1])
+            xy = trail_match.resample(trail_match.project(sub, lat0), 5.0)
+            for x, y in xy:
+                la, lo = math.degrees(y / R_EARTH), math.degrees(x / (R_EARTH * math.cos(math.radians(lat0))))
+                hit = g.nearest(la, lo, 15.0)
+                lab = way_label(g.edges[hit[1]]) if hit else "abseits"
+                climb_mix[lab] = climb_mix.get(lab, 0.0) + 5.0
+        # M4 as in measure_rides: ride start -> head of the first known trail.
+        known = []
+        for t in trail_tracks:
+            pr = trail_match.compare(t, ride, 15.0)
+            if pr is not None and pr.coverage(15.0)[0] >= 0.8:
+                known.append(t)
+        if not known:
+            continue
+        ride_xy = trail_match.project(ride, lat0)
+        grid_r = trail_match.SegmentGrid(ride_xy, 15.0)
+        k = math.cos(math.radians(lat0))
+
+        def arc_of(la, lo):
+            return grid_r.nearest((math.radians(lo) * R_EARTH * k, math.radians(la) * R_EARTH), 15.0)[1]
+        firsts = sorted(((arc_of(t.lat[0], t.lon[0]), t) for t in known), key=lambda x: (math.isnan(x[0]), x[0]))
+        arc, trail = firsts[0]
+        if math.isnan(arc) or arc < 300:
+            continue
+        src = g.attach(ride.lat[0], ride.lon[0])
+        dst = g.attach(trail.lat[0], trail.lon[0])
+        if src is None or dst is None:
+            continue
+        cum, idx = 0.0, 0
+        for i, (a, b) in enumerate(zip(ride_xy, ride_xy[1:])):
+            cum += math.hypot(b[0] - a[0], b[1] - a[1])
+            if cum >= arc:
+                idx = i + 1
+                break
+        ridden = trail_match.Track("r", "", ride.lat[:idx + 1], ride.lon[:idx + 1], ride.ele[:idx + 1], ride.time[:idx + 1])
+        trail_match._derive(ridden)
+        keep = ridden_edges(g, ridden, lat0)
+        case = {}
+        for name, settings in WAY_VARIANTS:
+            def run():
+                plan = astar(g, src, dst, profile)
+                own = astar(g, src, dst, profile, keep=keep)
+                if plan is None or own is None:
+                    return None
+                pc = path_cost_s(g, plan[2], src, profile)
+                oc = path_cost_s(g, own[2], src, profile)
+                return (oc / pc if pc > 0 else 1.0, uphill_way_mix(g, plan[2], src), frozenset(plan[2]),
+                        uphill_way_mix(g, own[2], src))
+            r = _with_variant(settings, run)
+            if r is not None:
+                case[name] = r
+        if len(case) == len(WAY_VARIANTS):
+            cases.append(case)
+            for lab, l in case["Vorschlag"][3].items():
+                ridden_up[lab] = ridden_up.get(lab, 0.0) + l
+    order = list(WAY_LABELS.values()) + ["Forstweg ohne Güte", "Pfad ohne Schwierigkeit", "andere", "abseits"]
+    report = ["# Wegegüte im Routing (#213): eigene Fahrten", "",
+              f"*`tool/route_measure.py ways`, Profil `{profile}`, {len(ride_tracks)} Fahrten, "
+              f"{len(trail_tracks)} Trails der Sammlung, Wege-Archiv Format 2. Kennzahlen, keine Orte.*", "",
+              f"Forstweg- und Pfadkanten mit Klasse: {named} von {edges_w} ({pct(named / edges_w) if edges_w else '–'}).", "",
+              "## Wie die Aufstiege fahren (≥ 100 hm am Stück) — und was das Netz drumherum hat", "",
+              "| Weg | Aufstiege | Netz (Länge) |", "|---|---:|---:|"]
+    tc, tn = sum(climb_mix.values()) or 1.0, sum(net_mix.values()) or 1.0
+    for lab in order:
+        if lab in climb_mix or lab in net_mix:
+            report.append(f"| {lab} | {pct(climb_mix.get(lab, 0.0) / tc)} | {pct(net_mix.get(lab, 0.0) / tn)} |")
+    report += ["", f"## Kosten gefahren / geplant (Fahrtstart → erster bekannter Trailkopf, {len(cases)} Fälle)", "",
+               "| Variante | Median | Mittel | ≤ 1,20 | Plan anders als ohne | bergauf schlecht+sehr schlecht / Pfad schwer+sehr schwer |",
+               "|---|---:|---:|---:|---:|---:|"]
+    poor = ("Forstweg schlecht", "Forstweg sehr schlecht")
+    hard = ("Pfad schwer", "Pfad sehr schwer")
+    for name, _ in WAY_VARIANTS:
+        ratios = [c[name][0] for c in cases]
+        if not ratios:
+            continue
+        changed = sum(c[name][2] != c[WAY_VARIANTS[0][0]][2] for c in cases)
+        up = {}
+        for c in cases:
+            for lab, l in c[name][1].items():
+                up[lab] = up.get(lab, 0.0) + l
+        tu = sum(up.values()) or 1.0
+        report.append(f"| {name} | {statistics.median(ratios):.2f} | {statistics.fmean(ratios):.2f} | "
+                      f"{sum(r <= 1.2 for r in ratios)} | {changed} | "
+                      f"{pct(sum(up.get(x, 0.0) for x in poor) / tu)} / {pct(sum(up.get(x, 0.0) for x in hard) / tu)} |")
+    tr = sum(ridden_up.values()) or 1.0
+    report += ["", f"Gefahren (bergauf): schlecht+sehr schlecht {pct(sum(ridden_up.get(x, 0.0) for x in poor) / tr)}, "
+               f"Pfad schwer+sehr schwer {pct(sum(ridden_up.get(x, 0.0) for x in hard) / tr)}."]
+    return "\n".join(report) + "\n"
+
+
 def load_gpx_dir(path):
     if os.path.isdir(path):
         tracks = []
@@ -2162,6 +2464,47 @@ def self_test():
     expect(mid5 not in (c0, c1) and all(g5.edges[ei].cls == "forstweg" for ei in astar(g5, c0, c1, "bio")[2]),
            "and the flight is still avoided")
 
+    # way quality (#213)
+    expect(abs(way_cost_s("bio", "forstweg", 1000, 100, 0, 7) - 872.0) < 1e-9, "very poor track up: climb again + 30 % distance")
+    expect(abs(way_cost_s("bio", "forstweg", 1000, 100, 0, 3) - 276.0) < 1e-9, "poor track up: 30 % climb, 15 % distance")
+    expect(abs(way_cost_s("bio", "forstweg", 1000, 0, 0, 7) - 72.0) < 1e-9, "on the flat only the distance term")
+    expect(way_cost_s("bio", "forstweg", 1000, 0, 100, 7) == 0.0, "downhill nothing")
+    expect(way_cost_s("bio", "forstweg", 1000, 100, 0, 1) == 0.0 and way_cost_s("bio", "forstweg", 1000, 100, 0) == 0.0,
+           "good and unknown tracks cost what they did")
+    expect(abs(way_cost_s("bio", "wanderweg", 1000, 100, 0, 6) - (2400.0 - 450.0 - 100 / (350 / 3600))) < 1e-6,
+           "hard path up: pushed instead of ridden")
+    expect(abs(way_cost_s("bio", "wanderweg", 1000, 100, 0, 8) - (4800.0 - 450.0 - 100 / (350 / 3600))) < 1e-6,
+           "very hard path up: pushed twice")
+    expect(way_cost_s("bio", "wanderweg", 1000, 0, 100, 8) == 0.0 and way_cost_s("bio", "wanderweg", 1000, 0, 0, 8) == 0.0,
+           "paths: down and flat nothing")
+    expect(way_cost_s("bio", "wanderweg", 1000, 100, 0, 8, 1) == 0.0, "mtb:scale:uphill 1 overrides the class")
+    expect(abs(way_cost_s("bio", "wanderweg", 1000, 100, 0, None, 2) - 0.5 * 100 / (350 / 3600)) < 1e-9,
+           "mtb:scale:uphill 2: half the climb again")
+    expect(way_cost_s("bio", "forstweg", 1000, 100, 0, 6) == 0.0 and way_cost_s("bio", "fussweg", 1000, 100, 0, 8) == 0.0,
+           "a class only counts on its own kind of way")
+    expect(abs(edge_cost_s("bio", "forstweg", 1000, 100, 0, way=7) - edge_cost_s("bio", "forstweg", 1000, 100, 0) - 872.0) < 1e-9,
+           "edge_cost_s adds the surcharge")
+    g6 = Graph(47.0)
+    w0, w1, w2 = g6.node(47.0, 11.0), g6.node(47.0, 11.002), g6.node(47.0, 11.004)
+    poor = g6.add_edge(w0, w1, "forstweg", False, [(47.0, 11.0), (47.0, 11.002)])
+    path6 = g6.add_edge(w1, w2, "wanderweg", False, [(47.0, 11.002), (47.0, 11.004)])
+    r0, r1 = g6.node(47.0003, 11.0), g6.node(47.0003, 11.004)
+    road6 = g6.add_edge(r0, r1, "nebenstrasse", False, [(47.0003, 11.0), (47.0003, 11.004)])
+    ways6 = [(7, None, [(11.0, 47.00001), (11.002, 47.00001)]),       # 1.1 m beside the track
+             (8, 3, [(11.002, 47.0), (11.003, 47.0)]),                # half the path: no majority
+             (6, None, [(11.0025, 47.00004), (11.004, 47.00004)]),     # 4.4 m off: too far
+             (5, None, [(11.0, 47.00031), (11.004, 47.00031)])]       # a path class beside the road
+    expect(add_way_quality(g6, ways6) == 1 and g6.edges[poor].way == 7 and g6.edges[path6].way is None
+           and g6.edges[road6].way is None,
+           "a track takes the class within 3 m; half a path is no majority; roads take none")
+    ways6b = [(8, 3, [(11.002, 47.0), (11.0039, 47.0)])]
+    add_way_quality(g6, ways6b)
+    expect(g6.edges[path6].way == 8 and g6.edges[path6].uphill == 3 and g6.edges[poor].way is None,
+           "most of the path: class and uphill grade; a track never takes a path class")
+    g6.split_edge(path6, (0, 0.5), 47.0, 11.003)
+    expect([e.way for e in g6.edges if e.cls == "wanderweg"] == [8, 8]
+           and [e.uphill for e in g6.edges if e.cls == "wanderweg"] == [3, 3], "a split keeps class and uphill grade")
+
     # hysteresis
     expect(hysteresis_climb([100, 105, 100, 105, 100, 150, 140, 200], 10) == (110.0, 10.0), "wiggles under 10 m vanish")
     expect(hysteresis_climb([200, 100], 10) == (0.0, 100.0), "pure descent")
@@ -2329,7 +2672,7 @@ def self_test():
 
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    ap.add_argument("mode", nargs="?", choices=["tirol", "rides"])
+    ap.add_argument("mode", nargs="?", choices=["tirol", "rides", "ways"])
     ap.add_argument("--self-test", action="store_true")
     ap.add_argument("--out", default="build/route", help="report and DEM cache directory")
     ap.add_argument("--source", help="PMTiles archive (path or URL); default: the host via dach.json")
@@ -2338,13 +2681,14 @@ def main(argv=None):
     ap.add_argument("--profile", choices=sorted(PROFILES), default="bio")
     ap.add_argument("--trails", help="rides: GPX collection (zip or directory)")
     ap.add_argument("--rides", help="rides: directory of exported ride GPX files")
+    ap.add_argument("--ways", help="ways: way archive (path or URL); default: the host via ways.json")
     ap.add_argument("--summary", help="append the report to this file (GITHUB_STEP_SUMMARY)")
     args = ap.parse_args(argv)
     if args.self_test:
         self_test()
         return 0
     if not args.mode:
-        ap.error("mode required: tirol | rides (or --self-test)")
+        ap.error("mode required: tirol | rides | ways (or --self-test)")
     os.makedirs(args.out, exist_ok=True)
     dem = DemStore(os.path.join(args.out, "dem"))
     archive = host_archive(args.source)
@@ -2359,6 +2703,15 @@ def main(argv=None):
         with open(os.path.join(args.out, "tirol.json"), "w") as fh:
             json.dump([{k: v for k, v in r.items() if k != "examples"} | {"examples": [
                 {k2: v2 for k2, v2 in ex.items() if k2 != "latlon"} for ex in r["examples"]]} for r in results], fh, indent=1)
+    elif args.mode == "ways":
+        if not args.trails or not args.rides:
+            ap.error("ways mode needs --trails and --rides")
+        if args.ways:
+            ways_archive = map_tiles.Archive(map_tiles.open_source(args.ways))
+        else:
+            manifest = json.loads(fetch_bytes(f"{PUBLIC_BASE}/ways.json"))
+            ways_archive = map_tiles.Archive(map_tiles.HttpSource(f"{PUBLIC_BASE}/{manifest['file']}"))
+        text = measure_ways(load_gpx_dir(args.trails), load_gpx_dir(args.rides), archive, ways_archive, dem, args.profile)
     else:
         if not args.trails or not args.rides:
             ap.error("rides mode needs --trails and --rides")

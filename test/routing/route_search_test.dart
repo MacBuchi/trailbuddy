@@ -58,6 +58,30 @@ void main() {
     expect(s.timeS, closeTo(s.lengthM / (15 / 3.6), 1e-6));
   });
 
+  test('Wegegüte (#213): bergauf gewinnt der gute Umweg, bergab der sehr schlechte direkte Forstweg', () {
+    // (0,0) → (1000,0): direkt 1 km Forstweg mit 100 hm, sehr schlecht (7);
+    // der Umweg über (500, 400) hat ≈ 1,28 km und 100 hm, gut. Bio:
+    // direkt 1 040 s + 872 s Aufschlag, Umweg ≈ 1 107 s.
+    final g = buildRoadGraph([
+      _way([(0, 0), (1000, 0)]),
+      _way([(0, 0), (500, 400), (1000, 0)]),
+    ], lat0: 47.5).graph;
+    final a = g.attach(_m([(0, 0)]).single)!, b = g.attach(_m([(1000, 0)]).single)!;
+    final direct = g.edges.indexWhere((e) => e.points.length == 2);
+    for (final e in g.edges) {
+      final up = e.a == a;
+      e
+        ..gain = up ? 100 : 0
+        ..loss = up ? 0 : 100
+        ..hasHeights = true
+        ..way = 1;
+    }
+    expect(g.edges[shortestPath(g, a, b, bio)!.edges.single].points, hasLength(2), reason: 'gleich gut: direkt');
+    g.edges[direct].way = 7;
+    expect(g.edges[shortestPath(g, a, b, bio)!.edges.single].points, hasLength(3), reason: 'sehr schlecht bergauf: Umweg');
+    expect(g.edges[shortestPath(g, b, a, bio)!.edges.single].points, hasLength(2), reason: 'bergab kein Aufschlag');
+  });
+
   test('Steilaufschlag (#194): die steile Abkürzung verliert, bergab und auf dem Uphill-Trail nicht', () {
     // (0,0) → (0,600): direkt 600 m Forstweg mit 140 hm, davon 60 über 15 %
     // — gewichtet (#188) jeder der 140 hm mit seinen 23 %, rund 150;
@@ -317,6 +341,77 @@ void main() {
       expect(partial.graph, isNull);
       expect(partial.tilesNeeded, 2);
       expect(partial.tilesFound, 1);
+    });
+
+    group('Wegegüte (#213)', () {
+      final ways = waysTile([
+        (k: 7, u: null, px: [(0, 2048), (4096, 2048)]),
+      ]);
+
+      test('aus dem Wege-Archiv eines Bereichs: der Forstweg ist sehr schlecht, die Straße nicht', () async {
+        final store = await seed(withTile: true);
+        await store.putWays(
+            'a',
+            writePmTiles(
+              tiles: [TileToWrite(13, t.x, t.y, ways)],
+              tileCompression: Compression.none,
+              bounds: TileBounds(west: bounds.west, south: bounds.south, east: bounds.east, north: bounds.north),
+            ));
+        final area = (await store.list()).single;
+        final withWays = StoredArea(
+          id: area.id,
+          name: area.name,
+          bounds: area.bounds,
+          minZoom: area.minZoom,
+          maxZoom: area.maxZoom,
+          build: area.build,
+          tiles: area.tiles,
+          bytes: area.bytes,
+          savedAt: area.savedAt,
+          wayTiles: 1,
+          waysBuild: '20261008',
+        );
+        final r = await loadRoadGraph(
+          areas: [withWays],
+          box: box,
+          open: openFrom(store),
+          openWays: (a) async {
+            final bytes = await store.readWays(a.id);
+            return bytes == null ? null : PmTilesVectorTileProvider.openBytes(bytes);
+          },
+        );
+        final g = r.graph!;
+        expect({for (final e in g.edges) if (e.cls == WayClass.forstweg) e.way}, {7});
+        expect({for (final e in g.edges) if (e.cls != WayClass.forstweg) e.way}, {null});
+        // Ohne Archiv bleibt die Güte unbekannt.
+        final plain = await loadRoadGraph(areas: [withWays], box: box, open: openFrom(store));
+        expect({for (final e in plain.graph!.edges) e.way}, {null});
+      });
+
+      test('vom Host nur für die nachgeladenen Kacheln; ein Netzfehler kostet nur die Güte', () async {
+        final asked = <int>[];
+        final r = await loadRoadGraph(
+          areas: const [],
+          box: box,
+          open: (_) async => null,
+          fetchOnline: (_) async => tile,
+          fetchWaysOnline: (k) async {
+            asked.add(k.x);
+            return ways;
+          },
+        );
+        expect(asked, [t.x]);
+        expect({for (final e in r.graph!.edges) if (e.cls == WayClass.forstweg) e.way}, {7});
+        final broken = await loadRoadGraph(
+          areas: const [],
+          box: box,
+          open: (_) async => null,
+          fetchOnline: (_) async => tile,
+          fetchWaysOnline: (_) async => throw StateError('kein Netz'),
+        );
+        expect(broken.graph, isNotNull);
+        expect({for (final e in broken.graph!.edges) e.way}, {null});
+      });
     });
 
     group('online ergänzt (#187)', () {

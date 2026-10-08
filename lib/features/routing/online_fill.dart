@@ -2,7 +2,8 @@
 // 0.78.0). Die Planung rechnet über die Kacheln der gespeicherten
 // Bereiche; mit Empfang kommen die fehlenden aus DEMSELBEN Archiv, aus
 // dem die Bereiche geschnitten sind (`dach-<build>.pmtiles`, Ebene
-// `roads`) und aus dem Höhenarchiv (`heights-<build>.pmtiles`), per
+// `roads`), aus dem Höhenarchiv (`heights-<build>.pmtiles`) und seit
+// #213 aus dem Wege-Archiv (`ways-<build>.pmtiles`, die Güte), per
 // Range-Anfrage wie beim Speichern eines Bereichs. Kein neues Netzziel:
 // Die Online-Karte holt dieselben Kacheln.
 //
@@ -30,7 +31,7 @@ import '../../core/errors.dart';
 import '../map/online_map.dart';
 import '../map/pmtiles_tile_provider.dart';
 import '../offline_areas/area_plan.dart';
-import '../offline_areas/area_providers.dart' show areaSourceOpenerProvider;
+import '../offline_areas/area_providers.dart' show areaSourceOpenerProvider, areaWaysManifestLoaderProvider;
 import '../offline_areas/height_tiles.dart';
 
 /// Höchstens so lange wartet ein Schritt des Nachladens (Manifest, Archiv
@@ -48,6 +49,7 @@ class OnlineTileCache {
   // der älteste.
   final _roads = <int, Uint8List?>{};
   final _heights = <int, HeightTile?>{};
+  final _ways = <int, Uint8List?>{};
 
   static int _key(int x, int y) => (x << kHeightTileZoom) | y;
 
@@ -59,7 +61,11 @@ class OnlineTileCache {
   HeightTile? heights(int x, int y) => _heights[_key(x, y)];
   void putHeights(int x, int y, HeightTile? tile) => _put(_heights, _key(x, y), tile);
 
-  int get length => _roads.length + _heights.length;
+  bool hasWays(TileXYZ t) => _ways.containsKey(_key(t.x, t.y));
+  Uint8List? ways(TileXYZ t) => _ways[_key(t.x, t.y)];
+  void putWays(TileXYZ t, Uint8List? bytes) => _put(_ways, _key(t.x, t.y), bytes);
+
+  int get length => _roads.length + _heights.length + _ways.length;
 
   static void _put<V>(Map<int, V> map, int key, V value) {
     map.remove(key);
@@ -149,6 +155,7 @@ class OnlineFill {
     required this.openRoads,
     required Future<PmTilesArchive?> Function() openHeights,
     required this.cache,
+    this.openWays,
     this.timeout = kOnlineFillTimeout,
   }) {
     _heights = OnlineHeights(
@@ -161,10 +168,15 @@ class OnlineFill {
 
   /// Öffnet das Kartenarchiv des Hosts; null ohne Manifest.
   final Future<PmTilesVectorTileProvider?> Function() openRoads;
+
+  /// Öffnet das Wege-Archiv des Hosts (#213); null ohne Manifest oder
+  /// ohne Naht — dann bleibt die Güte der nachgeladenen Kacheln unbekannt.
+  final Future<PmTilesVectorTileProvider?> Function()? openWays;
   final OnlineTileCache cache;
   final Duration timeout;
 
   Future<PmTilesVectorTileProvider?>? _roads;
+  Future<PmTilesVectorTileProvider?>? _ways;
   late final OnlineHeights _heights;
 
   /// Die Kacheln, die diese Planung vom Host hat — nur für sie fragt
@@ -199,15 +211,38 @@ class OnlineFill {
     return bytes;
   }
 
+  /// Die Kachel [t] des Wege-Archivs (#213) — nur für Kacheln, die diese
+  /// Planung vom Host hat (der Lader fragt nur nach denen). Null: keine
+  /// getaggten Wege dort (das Archiv hat Lücken) oder kein Archiv. Wirft
+  /// bei Netzfehler oder Frist.
+  Future<Uint8List?> fetchWays(TileXYZ t) async {
+    if (cache.hasWays(t)) return cache.ways(t);
+    final open = openWays;
+    if (open == null) return null;
+    final archive = await (_ways ??= open().timeout(timeout));
+    if (archive == null) return null;
+    Uint8List? bytes;
+    try {
+      bytes = await archive.provide(TileIdentity(t.z, t.x, t.y)).timeout(timeout);
+    } on ProviderException catch (e) {
+      if (e.statusCode != 404) rethrow;
+      bytes = null;
+    }
+    cache.putWays(t, bytes);
+    return bytes;
+  }
+
   /// Höhen für die nachgeladenen Kacheln — die letzte Quelle des Lesers.
   /// Geschlossen wird über [close], einmal für beide Archive.
   HeightTileSource get heights => _NoClose(_heights);
 
   Future<void> close() async {
-    try {
-      await (await _roads)?.close();
-    } catch (_) {
-      // Nie geöffnet oder schon weg — nichts zu schließen.
+    for (final archive in [_roads, _ways]) {
+      try {
+        await (await archive)?.close();
+      } catch (_) {
+        // Nie geöffnet oder schon weg — nichts zu schließen.
+      }
     }
     await _heights.close();
   }
@@ -240,6 +275,12 @@ final onlineFillFactoryProvider = Provider<OnlineFill Function()>((ref) => () =>
         return ref.read(onlineArchiveOpenerProvider)(manifest.archiveUri);
       },
       openHeights: _openHostHeights(ref),
+      openWays: () async {
+        // Unabhängig vom Schalter der Ebene, wie die Bereiche (#212 PR 3).
+        final manifest = await ref.read(areaWaysManifestLoaderProvider)();
+        if (manifest == null) return null;
+        return ref.read(onlineArchiveOpenerProvider)(manifest.archiveUri);
+      },
       cache: ref.read(onlineTileCacheProvider),
     ));
 

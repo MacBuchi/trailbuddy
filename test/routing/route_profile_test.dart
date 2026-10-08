@@ -127,6 +127,35 @@ void main() {
         reason: 'Kosten, keine Minuten');
   });
 
+  test('Wegegüte: dieselben Zahlen wie das Werkzeug (#213)', () {
+    // (Klasse, Länge, Gewinn, Verlust, way, uphill) → (way_cost_s, edge_cost_s)
+    // für Bio und E-Bike, gerechnet in tool/route_measure.py am 2026-10-08.
+    const cases = <(WayClass, double, double, double, int?, int?, double, double, double, double)>[
+      (WayClass.forstweg, 1000, 100, 0, 7, null, 872.0, 1912.0, 477.529412, 1081.058824),
+      (WayClass.forstweg, 1000, 100, 0, 3, null, 276.0, 1316.0, 154.058824, 757.588235),
+      (WayClass.forstweg, 1000, 0, 0, 7, null, 72.0, 312.0, 54.0, 234.0),
+      (WayClass.forstweg, 800, 0, 60, 7, null, 0.0, 259.2, 0.0, 191.435294),
+      (WayClass.wanderweg, 1000, 100, 0, 6, null, 921.428571, 2991.428571, 2162.517483, 3990.20979),
+      (WayClass.wanderweg, 1000, 100, 0, 8, null, 3321.428571, 5391.428571, 5238.881119, 7066.573427),
+      (WayClass.wanderweg, 1000, 100, 0, null, 2, 514.285714, 2584.285714, 276.923077, 2104.615385),
+      (WayClass.wanderweg, 500, 60, 0, 4, 3, 477.857143, 1656.857143, 1189.51049, 2214.125874),
+      (WayClass.wanderweg, 1000, 100, 0, 8, 1, 0.0, 2070.0, 0.0, 1827.692308),
+      (WayClass.wanderweg, 300, 10, 0, 8, null, 722.142857, 1055.142857, 1027.888112, 1354.657343),
+    ];
+    for (final (cls, l, g, ls, way, up, wBio, cBio, wE, cE) in cases) {
+      for (final (p, w, c) in [(RiderProfile.bio, wBio, cBio), (RiderProfile.ebike, wE, cE)]) {
+        final why = '${p.name} ${cls.name} $l/$g/$ls way $way u $up';
+        expect(wayCostS(p, cls, lengthM: l, gainM: g, lossM: ls, way: way, uphill: up), closeTo(w, 1e-5), reason: why);
+        expect(edgeCostS(p, cls, lengthM: l, gainM: g, lossM: ls, way: way, uphill: up), closeTo(c, 1e-5), reason: why);
+      }
+    }
+    // Unbekannt, gut und die falsche Wegart kosten, was sie immer kosteten.
+    for (final (cls, way) in [(WayClass.forstweg, null), (WayClass.forstweg, 1), (WayClass.forstweg, 6),
+      (WayClass.fussweg, 8), (WayClass.nebenstrasse, 7)]) {
+      expect(wayCostS(RiderProfile.bio, cls, lengthM: 1000, gainM: 100, lossM: 0, way: way), 0, reason: '$cls $way');
+    }
+  });
+
   test('Gewichtete Steilmeter: dieselben Vektoren wie das Werkzeug (#188)', () {
     expect(steepWeightAt(0.05), 0);
     expect(steepWeightAt(0.10), 0, reason: 'bis 10 % nichts');

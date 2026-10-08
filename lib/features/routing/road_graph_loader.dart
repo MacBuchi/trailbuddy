@@ -37,8 +37,8 @@ typedef RoadGraphLoadResult = ({
 });
 
 /// Höchstens so viele z13-Kacheln holt eine Planung vom Host (#187), je
-/// Kachel dazu höchstens ihre Höhenkachel — also höchstens doppelt so
-/// viele Range-Anfragen. 75 Kacheln sind bei 47° N rund 25 × 25 km, mehr
+/// Kachel dazu höchstens ihre Höhenkachel und ihre Wege-Kachel (#213) —
+/// also höchstens dreimal so viele Range-Anfragen. 75 Kacheln sind bei 47° N rund 25 × 25 km, mehr
 /// als der Rahmen einer Runde mit 12 km Reichweite meist braucht.
 const kOnlineFillMaxTiles = 75;
 
@@ -60,6 +60,14 @@ typedef OnlineTileFetcher = Future<Uint8List?> Function(TileXYZ tile);
 /// [fetchOnline] ist die letzte Quelle für Kacheln, die kein Bereich hat
 /// (#187): die nächsten zur Mitte von [box] zuerst, höchstens
 /// [maxOnline]; wirft sie, bleibt es bei dem, was schon da ist.
+///
+/// Seit #213 bekommen Forstwege und Wanderwege ihre Güte aus dem
+/// Wege-Archiv ([addWayQuality]): [openWays] öffnet das Archiv eines
+/// Bereichs (null ohne), [fetchWaysOnline] ist wieder die letzte Quelle,
+/// gefragt nur für Kacheln, die schon online nachgeladen wurden — ohne
+/// beides bleibt jede Güte unbekannt und kostet, was sie immer kostete.
+/// Das Archiv hat Lücken (nur Kacheln mit getaggten Wegen): Eine fehlende
+/// Kachel heißt „nichts bekannt", nicht „Fehler".
 Future<RoadGraphLoadResult> loadRoadGraph({
   required List<StoredArea> areas,
   required LatBox box,
@@ -69,6 +77,8 @@ Future<RoadGraphLoadResult> loadRoadGraph({
   bool requireComplete = true,
   OnlineTileFetcher? fetchOnline,
   int maxOnline = kOnlineFillMaxTiles,
+  Future<PmTilesVectorTileProvider?> Function(StoredArea area)? openWays,
+  OnlineTileFetcher? fetchWaysOnline,
 }) async {
   final dLat = marginM / 111320.0;
   final bounds = AreaBounds(
@@ -101,6 +111,7 @@ Future<RoadGraphLoadResult> loadRoadGraph({
   final opened = <PmTilesVectorTileProvider>[];
   final lines = <WayLine>[];
   final missing = <TileXYZ>[];
+  final fromHost = <TileXYZ>[];
   var found = 0;
   try {
     for (final a in candidates) {
@@ -149,6 +160,7 @@ Future<RoadGraphLoadResult> loadRoadGraph({
       lines.addAll(wayLinesFromTile(bytes, z: t.z, x: t.x, y: t.y));
       found++;
       online++;
+      fromHost.add(t);
     }
   }
   if (found == 0) return none(RoadCoverage.none, 0);
@@ -156,6 +168,19 @@ Future<RoadGraphLoadResult> loadRoadGraph({
   if (partial && requireComplete) return none(RoadCoverage.partial, found);
   final build = buildRoadGraph(lines, lat0: (box.s + box.n) / 2);
   if (heights != null) await addClimbs(build.graph, heights);
+  if (openWays != null || fetchWaysOnline != null) {
+    final grades = await _wayGrades(
+      tiles: tiles,
+      areas: [
+        for (final a in candidates)
+          if (a.hasWays) a,
+      ],
+      openWays: openWays,
+      fromHost: fromHost,
+      fetchWaysOnline: fetchWaysOnline,
+    );
+    addWayQuality(build.graph, grades);
+  }
   return (
     graph: build.graph,
     coverage: partial ? RoadCoverage.partial : RoadCoverage.complete,
@@ -168,6 +193,60 @@ Future<RoadGraphLoadResult> loadRoadGraph({
     onlineCapped: capped,
     onlineBroken: broken,
   );
+}
+
+/// Die Linien des Wege-Archivs über [tiles]: aus den Bereichen, die es
+/// tragen, für die vom Host nachgeladenen Kacheln ([fromHost]) vom Host.
+/// Ein Fehler kostet nur die Güte, nie den Graphen.
+Future<List<WayGradeLine>> _wayGrades({
+  required List<TileXYZ> tiles,
+  required List<StoredArea> areas,
+  required Future<PmTilesVectorTileProvider?> Function(StoredArea area)? openWays,
+  required List<TileXYZ> fromHost,
+  required OnlineTileFetcher? fetchWaysOnline,
+}) async {
+  final out = <WayGradeLine>[];
+  final opened = <PmTilesVectorTileProvider>[];
+  try {
+    if (openWays != null) {
+      for (final a in areas) {
+        try {
+          final p = await openWays(a);
+          if (p != null) opened.add(p);
+        } catch (_) {
+          // Ein Wege-Archiv, das nicht aufgeht: Güte dort unbekannt.
+        }
+      }
+    }
+    if (opened.isNotEmpty) {
+      for (final t in tiles) {
+        for (final p in opened) {
+          try {
+            final bytes = await p.provide(TileIdentity(t.z, t.x, t.y));
+            out.addAll(wayGradeLinesFromTile(bytes, z: t.z, x: t.x, y: t.y));
+            break;
+          } on ProviderException {
+            continue;
+          }
+        }
+      }
+    }
+  } finally {
+    for (final p in opened) {
+      await p.close();
+    }
+  }
+  if (fetchWaysOnline != null) {
+    for (final t in fromHost) {
+      try {
+        final bytes = await fetchWaysOnline(t);
+        if (bytes != null) out.addAll(wayGradeLinesFromTile(bytes, z: t.z, x: t.x, y: t.y));
+      } catch (_) {
+        break; // Netz weg: Was da ist, reicht; der Rest bleibt unbekannt.
+      }
+    }
+  }
+  return out;
 }
 
 /// Abstand zur Kachel in der Mitte des Rahmens, in Kachelbreiten zum

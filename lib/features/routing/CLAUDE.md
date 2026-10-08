@@ -97,6 +97,29 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
   - **Spiegel des Werkzeugs**: `CARRY_S`, `carry_cost_s`, `Edge.carry`
     in `tool/route_measure.py`; die Zahlen in `route_profile_test` und
     die Suche „Treppe gegen 900 m Forstweg" sind dort gerechnet.
+- **Wegegüte** (#213, seit 0.92.0; Konzept-Routing 2.4, Messung in
+  `docs/routing-messung.md`): `wayCostS` (Spiegel von `way_cost_s`,
+  Vektoren in `route_profile_test`) bepreist Forstwege 3/7 und Pfade 6/8
+  bzw. `mtb:scale:uphill` bergauf, als Kosten. Vier Dinge, die man
+  wissen muss:
+  - **Die Güte kommt per Geometrie an die Kante** (`addWayQuality`,
+    3 m, Proben je 10 m, Mehrheit > 50 %), nicht über eine OSM-Kennung —
+    die Basiskarte hat keine. Nur ein Forstweg nimmt eine Forstweg-Klasse,
+    nur ein Wanderweg eine Pfad-Klasse; Fußwege tragen im Archiv nichts.
+  - **Zwei Quellen wie die Kacheln** (`loadRoadGraph(openWays:,
+    fetchWaysOnline:)`): das dritte Archiv der Bereiche
+    (`areaWaysOpenerProvider`), für online nachgeladene Kacheln das
+    Wege-Archiv vom Host (`OnlineFill.fetchWays`, Manifest über
+    `areaWaysManifestLoaderProvider`, also unabhängig vom Schalter der
+    Ebene). Jeder Fehler kostet nur die Güte, nie den Graphen; das
+    Archiv hat Lücken, eine fehlende Kachel heißt „nichts bekannt".
+  - **`splitEdge` vererbt `way`/`uphill`** an beide Hälften (Test in
+    `road_graph_test`) — sonst verlöre ein angehefteter Trailkopf die
+    Güte des Rests.
+  - **Alte Bereiche (Format 1, 0.90.0)** haben grade5 in Klasse 3 und
+    T4+ in 6: Sie planen dort milder, bis „Aktualisieren" das neue
+    Archiv holt. Der Isolate des Planers bekommt die Felder mit der
+    Kopie des Graphen, ohne eigene Serialisierung.
 - **„Zum Trailkopf"** (Schritt 4, seit 0.71.0, `trail_head_route.dart`
   pur, `trail_head_sheet.dart`, `trail_head_providers.dart`): im
   Trail-Blatt neben „Anfahrt", vom eigenen Standort zum Anfang des
