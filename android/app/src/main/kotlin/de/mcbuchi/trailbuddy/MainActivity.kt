@@ -4,13 +4,24 @@ import android.app.ActivityManager
 import android.app.ApplicationExitInfo
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
+import android.app.PictureInPictureParams
+import android.app.RemoteAction
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
+import android.content.pm.PackageManager
+import android.content.res.Configuration
+import android.graphics.drawable.Icon
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
+import android.util.Rational
 import android.view.WindowManager
+import androidx.annotation.RequiresApi
+import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
@@ -21,11 +32,12 @@ import java.io.InputStream
 import java.util.zip.GZIPInputStream
 
 /**
- * Der einzige native Code im Projekt (Muster PilzBuddy): drei
+ * Der einzige native Code im Projekt (Muster PilzBuddy): vier
  * MethodChannels — die geladene Update-APK an den System-Installer geben,
- * lesen, warum die App beim letzten Mal beendet wurde (#40), und den
- * Bildschirm in der Navigation anlassen (#232) — und der
- * Benachrichtigungs-Kanal für Push (#34).
+ * lesen, warum die App beim letzten Mal beendet wurde (#40), den
+ * Bildschirm in der Navigation anlassen und die Navigation als
+ * Bild-im-Bild (beide #232) — und der Benachrichtigungs-Kanal für Push
+ * (#34).
  *
  * Beendigungsgründe: Android führt seit Version 11 selbst Buch darüber,
  * und eine App darf ihre EIGENEN Einträge ohne jede Berechtigung lesen.
@@ -54,6 +66,16 @@ class MainActivity : FlutterActivity() {
          *  gilt nur, solange es sichtbar ist — keine Berechtigung. */
         const val SCREEN_CHANNEL = "de.mcbuchi.trailbuddy/screen"
 
+        /** Bild-im-Bild in der Navigation (#232, Konzept-Routing 9.6); der
+         *  Name steht in `lib/core/picture_in_picture_io.dart`. */
+        const val PIP_CHANNEL = "de.mcbuchi.trailbuddy/pip"
+
+        /** „Beenden" im Fenster: ein Broadcast nur an uns selbst. */
+        const val PIP_STOP_ACTION = "de.mcbuchi.trailbuddy.PIP_STOP"
+
+        /** Hochkant, wie man das Telefon am Lenker hält (9.6). */
+        val PIP_ASPECT = Rational(3, 4)
+
         /**
          * Genug für den Haupt-Thread — und zugleich die Grenze der Spalte
          * `stack` (4000 Zeichen; `ErrorReportRepository` schneidet auf
@@ -78,6 +100,10 @@ class MainActivity : FlutterActivity() {
      */
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Nicht exportiert: Nur die eigene RemoteAction des Fensters ruft ihn.
+        ContextCompat.registerReceiver(
+            this, pipStopReceiver, IntentFilter(PIP_STOP_ACTION), ContextCompat.RECEIVER_NOT_EXPORTED,
+        )
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
         val channel = NotificationChannel(
             getString(R.string.notification_channel_id),
@@ -99,6 +125,77 @@ class MainActivity : FlutterActivity() {
      * Dart ruft das nur, wenn kein Navigator mehr etwas zu schließen hat
      * (`AppShell` in `router.dart`).
      */
+    override fun onDestroy() {
+        unregisterReceiver(pipStopReceiver)
+        super.onDestroy()
+    }
+
+    // ---- Bild-im-Bild (#232, Konzept-Routing 9.6) ----
+
+    private var pipChannel: MethodChannel? = null
+
+    /** Nur bei laufender Navigation; Dart schaltet es mit ihr an und aus. */
+    private var pipAllowed = false
+
+    private val pipStopReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            pipChannel?.invokeMethod("stop", null)
+        }
+    }
+
+    /** Ab Android 8 — und nur, wo das Gerät es anbietet (manche Go-Geräte nicht). */
+    private fun pipSupported(): Boolean =
+        Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
+            packageManager.hasSystemFeature(PackageManager.FEATURE_PICTURE_IN_PICTURE)
+
+    /**
+     * Ab Android 12 geht es von selbst ins Fenster, sobald man nach Hause
+     * wischt (`setAutoEnterEnabled`); darunter über [onUserLeaveHint]. Die
+     * eine Aktion ist „Beenden"; ein Tipp aufs Fenster holt die App zurück.
+     */
+    @RequiresApi(Build.VERSION_CODES.O)
+    private fun pipParams(): PictureInPictureParams {
+        val stop = RemoteAction(
+            Icon.createWithResource(this, android.R.drawable.ic_menu_close_clear_cancel),
+            "Beenden",
+            "Navigation beenden",
+            PendingIntent.getBroadcast(
+                this, 0, Intent(PIP_STOP_ACTION).setPackage(packageName), PendingIntent.FLAG_IMMUTABLE,
+            ),
+        )
+        return PictureInPictureParams.Builder()
+            .setAspectRatio(PIP_ASPECT)
+            .setActions(listOf(stop))
+            .apply { if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) setAutoEnterEnabled(pipAllowed) }
+            .build()
+    }
+
+    private fun allowPip(on: Boolean) {
+        pipAllowed = on
+        if (!pipSupported()) return
+        setPictureInPictureParams(pipParams())
+        // Navigation vorbei, während die App klein ist: Das Fenster zeigte
+        // nur noch eine Karte ohne Route — zu.
+        if (!on && isInPictureInPictureMode) moveTaskToBack(true)
+    }
+
+    override fun onUserLeaveHint() {
+        super.onUserLeaveHint()
+        if (pipAllowed && pipSupported() && Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
+            try {
+                enterPictureInPictureMode(pipParams())
+            } catch (e: IllegalStateException) {
+                // Vom Nutzer für die App abgeschaltet: Dann ist die
+                // Benachrichtigung die Anzeige.
+            }
+        }
+    }
+
+    override fun onPictureInPictureModeChanged(isInPictureInPictureMode: Boolean, newConfig: Configuration) {
+        super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
+        pipChannel?.invokeMethod("changed", mapOf("inPip" to isInPictureInPictureMode))
+    }
+
     override fun popSystemNavigator(): Boolean {
         moveTaskToBack(true)
         return true
@@ -151,6 +248,18 @@ class MainActivity : FlutterActivity() {
                     else -> result.notImplemented()
                 }
             }
+
+        pipChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, PIP_CHANNEL).apply {
+            setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "allow" -> {
+                        allowPip(call.argument<Boolean>("on") == true)
+                        result.success(null)
+                    }
+                    else -> result.notImplemented()
+                }
+            }
+        }
     }
 
     /** Ab Android 8 eine Freigabe je App; darunter immer erlaubt (minSdk 24). */

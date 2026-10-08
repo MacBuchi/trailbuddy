@@ -201,7 +201,12 @@ dieselbe Benachrichtigung: Der Nutzer tippt „Navigieren", die
 Benachrichtigung zeigt alle fünf Sekunden Rest und Abstand zur Route,
 bis er „Navigation beenden" tippt (dort oder in der App) oder eine Minute
 nach der Ankunft. Die Position bleibt auf dem Gerät. Ein zweites Video
-braucht es nicht, ein Satz in der Begründung genügt.
+braucht es nicht, ein Satz in der Begründung genügt. **Bild-im-Bild**
+(#232, seit 0.97.0): Wischt der Nutzer während einer Navigation nach
+Hause, zeigt dieselbe Activity die Karte als schwebendes Fenster
+(`supportsPictureInPicture`). Keine Berechtigung, ausdrücklich NICHT
+`SYSTEM_ALERT_WINDOW`; Dienst, Benachrichtigung und Standort bleiben,
+wie sie sind — die Position verlässt das Gerät auch hier nicht.
 
 **`FOREGROUND_SERVICE_DATA_SYNC`** — Aufgabe **„Verarbeitung im Netzwerk →
 Sonstiger"**: nutzergestarteter Download eines Kartenbereichs für
@@ -286,6 +291,8 @@ UNTERWEGS
 • Bereiche der Karte speichern und ohne Empfang weiterfahren.
 • Orte auf der Karte: Wasser, Einkehr, Rad-Service.
 • Anfahrt: der Trailkopf geht an die Navi-App deiner Wahl.
+• Runden über deine Trails planen und navigieren: Die Karte dreht mit, auf
+  Wunsch als kleines Fenster über anderen Apps — ohne Abbiegehinweise.
 • Fahrten und Trails als GPX exportieren — deine Daten bleiben deine.
 
 Kein Werbebanner, kein Tracking, keine In-App-Käufe. TrailBuddy ist ein privates

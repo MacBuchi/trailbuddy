@@ -74,6 +74,18 @@ class FeatureHighlight {
 const kFeatureHighlights = <FeatureHighlight>[
   // ─── Highlights ──────────────────────────────────────────────────
   FeatureHighlight(
+    id: 'nav-pip',
+    since: '0.97.0',
+    kind: HighlightKind.highlight,
+    tab: HighlightTab.map,
+    icon: Icons.picture_in_picture_alt_outlined,
+    title: 'Navigation im kleinen Fenster',
+    text: 'Wischst du beim Navigieren nach Hause, bleibt die Karte als kleines '
+        'Fenster über den anderen Apps — mit Route, Rest und Höhenmetern. '
+        '„Beenden" geht direkt im Fenster.',
+    target: '/',
+  ),
+  FeatureHighlight(
     id: 'nav-notice',
     since: '0.96.0',
     kind: HighlightKind.highlight,

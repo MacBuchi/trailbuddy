@@ -942,8 +942,12 @@ Dokument allein.
    die Navigation selbst (Knopf, oder eine Minute nach „Angekommen"),
    und startet die App neu, während er navigiert, geht die Folgeansicht
    ohne Rückfrage ab seinem Stand weiter. — ☁️ · 📱
-3. **Bild-im-Bild** (9.6): Manifest, Kanal, schmale Fassung,
-   `play-console.md`; Manifest-Test. — ☁️ · 📱
+3. **Bild-im-Bild** (9.6, 0.97.0): Manifest, Kanal, schmale Fassung,
+   `play-console.md`; Manifest-Test. Beim Bau dazu: Im Fenster fehlt
+   auch die Reiterleiste, und es geht auf die Karte, falls die
+   Navigation auf einem anderen Reiter weiterlief; endet die Navigation,
+   während die App klein ist, schließt das Fenster
+   (`moveTaskToBack`). — ☁️ · 📱
 
 Jeder Schritt bringt seinen Neuheiten-Eintrag; die Kurzanleitung bekommt
 keinen eigenen Abschnitt (Obergrenze sechs, 4), sondern einen Satz bei

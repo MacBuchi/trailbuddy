@@ -39,6 +39,13 @@
         android:icon="@mipmap/ic_launcher"
         android:fullBackupContent="@xml/full_backup_content"
         android:dataExtractionRules="@xml/backup_rules">
+        <!-- supportsPictureInPicture: die Navigation als schwebendes
+             Fenster (#232, Konzept-Routing 9.6), nur solange sie läuft
+             (MainActivity, Kanal `pip`). Keine Berechtigung — anders als
+             SYSTEM_ALERT_WINDOW, das Play nur eng freigibt. Die
+             configChanges um screenSize|smallestScreenSize|screenLayout|
+             orientation braucht das Fenster, damit die Activity beim
+             Schrumpfen nicht neu startet. -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -46,6 +53,7 @@
             android:taskAffinity=""
             android:theme="@style/LaunchTheme"
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
+            android:supportsPictureInPicture="true"
             android:hardwareAccelerated="true"
             android:windowSoftInputMode="adjustResize">
             <meta-data

@@ -195,6 +195,20 @@ final kHighlightDemos = <String, HighlightDemo>{
       _noTrailYet,
     ]),
   ),
+  'nav-pip': HighlightDemo(
+    route: '/',
+    script: _demo('nav-pip', const [
+      CoachStep(
+        title: 'Navigation im kleinen Fenster',
+        text: 'Navigiere eine Runde oder einen Weg zum Trail und wische nach Hause: '
+            'Die Karte bleibt als kleines Fenster über den anderen Apps, ein Tipp '
+            'darauf holt TrailBuddy zurück.',
+        lit: [MapCoach.loop],
+        gesture: CoachGesture.tap,
+        requires: [MapCoach.loop],
+      ),
+    ]),
+  ),
   'nav-notice': HighlightDemo(
     route: '/',
     script: _demo('nav-notice', const [

@@ -4,7 +4,7 @@
 
 ## Navigieren
 
-*Versionen 0.94.0 bis 0.96.0, 2026-10-08*
+*Versionen 0.94.0 bis 0.97.0, 2026-10-08*
 
 - **Folgeansicht**: Im Ergebnis einer Runde und eines Wegs zum Trail
   steht jetzt „Navigieren", in „Meine Fahrten" im Menü jeder Fahrt
@@ -37,6 +37,11 @@
   die Benachrichtigung holt die Karte zurück. Läuft die Aufzeichnung
   mit, bleibt es eine Benachrichtigung, nicht zwei. Im Browser gibt es
   das nicht.
+- **Kleines Fenster** (0.97.0): Wischst du während der Navigation nach
+  Hause, schrumpft die Karte in ein Fenster über den anderen Apps —
+  die Route dreht weiter mit, oben stehen Rest, Höhenmeter und ob du
+  daneben bist. „Beenden" geht direkt im Fenster, ein Tipp darauf holt
+  die App zurück. Ab Android 8; im Browser gibt es das nicht.
 
 ## Den Weg von Hand ziehen
 

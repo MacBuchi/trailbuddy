@@ -9,6 +9,7 @@ import 'package:latlong2/latlong.dart';
 import '../../core/app_colors.dart';
 import '../../core/connectivity.dart';
 import '../../core/geo.dart';
+import '../../core/picture_in_picture.dart';
 import '../../core/widgets/motion.dart';
 import '../../core/widgets/safety_note.dart';
 import '../../models/trail.dart';
@@ -147,6 +148,10 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     // die Karte, solange die App lebt. Der Port dafür entsteht in
     // `main()` (`initRideCommunication`).
     FlutterForegroundTask.addTaskDataCallback(_onRideTick);
+    // Bild-im-Bild (#232, 9.6): klein oder groß, und „Beenden" im Fenster.
+    ref.read(pictureInPictureProvider).listen(onMode: _onPipMode, onStop: () {
+      if (mounted) ref.read(navigationProvider.notifier).stop();
+    });
     _registerCoachScenes();
     // Ein Fokus-Wunsch, der VOR dem Aufbau gestellt wurde (Route
     // `/trail/<id>` aus einer Push): `ref.listen` sieht nur Änderungen.
@@ -354,6 +359,19 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     if (point == null) return;
     ref.read(rideProvider.notifier).acceptTick(point);
     unawaited(ref.read(rideProvider.notifier).stopIfExpired());
+  }
+
+  /// Klein geworden: auf die Karte (die Navigation kann auf einem anderen
+  /// Reiter weiterlaufen) und die Kamera auf die neue Höhe; groß
+  /// geworden: dasselbe zurück.
+  void _onPipMode(bool inPip) {
+    if (!mounted) return;
+    ref.read(pipModeProvider.notifier).state = inPip;
+    if (ref.read(navigationProvider) == null) return;
+    if (inPip) GoRouter.of(context).go('/');
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _follow();
+    });
   }
 
   @override
@@ -919,6 +937,8 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     // „Norden" sofort, nicht erst beim nächsten Fix; nach dem Ende wieder
     // genordet — außerhalb der Folgeansicht dreht die Karte nie.
     ref.listen(navigationProvider, (prev, next) {
+      // Ins Fenster nur, solange navigiert wird (9.6).
+      if ((prev == null) != (next == null)) unawaited(ref.read(pictureInPictureProvider).allow(next != null));
       if (prev != null && next == null) {
         _controller.move(_controller.center, _controller.zoom);
       } else if (prev != null && next != null && prev.north != next.north) {
@@ -1153,6 +1173,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
           if (nav != null)
             NavOverlay(
               session: nav,
+              compact: ref.watch(pipModeProvider),
               onStop: () => ref.read(navigationProvider.notifier).stop(),
             ),
           if (nav == null) ...[
