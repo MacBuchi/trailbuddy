@@ -12,4 +12,6 @@
     <exclude domain="file" path="rides"/>
     <exclude domain="file" path="updates"/>
     <exclude domain="file" path="official_trails"/>
+    <exclude domain="file" path="mbgl-offline.db"/>
+    <exclude domain="file" path="mbgl-offline.db-journal"/>
 </full-backup-content>

@@ -2,6 +2,18 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Gesehenes bleibt liegen
+
+*Version 0.99.0, 2026-10-08*
+
+- **Die Karte merkt sich, was du angesehen hast**: Auf dem Telefon
+  bleiben die Kartenstücke, die du mit Empfang geladen hast, auf dem
+  Gerät, bis zu 100 MB, die ältesten gehen zuerst. Wer am Vorabend die
+  Gegend ansieht, hat sie im Wald auch ohne Netz, samt Forstwegen und
+  Pfaden. Wo nichts liegt, zeigt die Karte wie bisher die grobe
+  Übersicht. Für ganze Gebiete bleiben die gespeicherten Bereiche der
+  sichere Weg; im Browser kommt das später.
+
 ## Forstweg oder Pfad auf einen Blick
 
 *Version 0.98.0, 2026-10-08*

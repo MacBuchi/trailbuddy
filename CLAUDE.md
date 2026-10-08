@@ -179,7 +179,7 @@ Code liegt — nicht wieder hierher.
 |---|---|
 | `supabase/CLAUDE.md` | Der Abgleich läuft in der Datenbank · `trails` hat keinen Client-Grant · Beitrag löschen |
 | `lib/features/trails/CLAUDE.md` | Importregel · Höhen · Schwierigkeit · Charakter · Farbe = Schwierigkeit · Link zur Quelle · Hinweise für Buddys · Bewertung, Meldung, Zustand · Suche, Filter, Sortierung der Trail-Liste · Übernehmen beim ersten Befahren · GPX-Export von Fahrten und Trails · Anfahrt zum Trailkopf |
-| `lib/features/map/CLAUDE.md` | Orte auf der Karte · Glatte Linien und Namen am Trail · Eigene Position · Karten-Engine und Fassade (#31) · Die Tastatur überlagert, sie schiebt nicht · Die Legende auf der Karte · Die Ebene „Wege" (#212) |
+| `lib/features/map/CLAUDE.md` | Orte auf der Karte · Glatte Linien und Namen am Trail · Eigene Position · Karten-Engine und Fassade (#31) · Die Tastatur überlagert, sie schiebt nicht · Die Legende auf der Karte · Die Ebene „Wege" (#212) · Gesehenes bleibt liegen (#155) |
 | `lib/features/offline_areas/CLAUDE.md` | Gespeicherte Bereiche, Werkzeugleiste, Zeichnen (#67, #82) · Höhenkacheln je Bereich (`tool/height_tiles.py`, `height-data.yml`) |
 | `lib/features/official/CLAUDE.md` | Offizielle Trails in der App |
 | `lib/features/friends/CLAUDE.md` | Nach dem Annehmen einer Buddy-Anfrage |
@@ -198,8 +198,8 @@ Code liegt — nicht wieder hierher.
 Was es bewusst noch nicht gibt:
 
 - **Noch nicht da, bewusst** (jeweils eigener PR, Muster in PilzBuddy):
-  der Kachel-Zwischenspeicher der Online-Karte („Gesehenes bleibt
-  liegen", Konzept 3.2), Ausgangskorb und
+  „Gesehenes bleibt liegen" im Browser (Konzept 3.2; auf Android seit
+  0.99.0, #155), Ausgangskorb und
   Zwischenspeicher im Browser, Nachrichten zwischen Buddys (#34, Rest),
   Meldung zu einem einzelnen Trail.
 

@@ -15,6 +15,7 @@ import '../../../core/app_colors.dart';
 import '../../../core/connectivity.dart';
 import '../../../core/errors.dart';
 import '../../../core/patience.dart';
+import '../../../core/settings.dart';
 import '../../offline_areas/area_providers.dart';
 import '../../official/official_trails_source.dart';
 import '../base_map_providers.dart';
@@ -99,6 +100,13 @@ String cssColor(int argb) => '#${(argb & 0xFFFFFF).toRadixString(16).padLeft(6, 
 /// vom Host und darüber die Wege der Bereiche, je Bereich eine
 /// `file://`-Quelle — unter den Trails, die als eigene Ebenen danach kommen. Ein Wechsel erzeugt einen neuen
 /// Style-String; die Engine spielt ihn per `setStyle` ein.
+///
+/// „Gesehenes bleibt liegen" (#155): Kommt kein frisches Manifest (kein
+/// Empfang, ein Balken ohne Daten, Host weg), nennt der Stil die Archive
+/// aus dem zuletzt GEMERKTEN Manifest, über der Übersicht. MapLibre liest
+/// dann aus seinem Zwischenspeicher, was schon einmal geladen war (seit
+/// 13.3 auch PMTiles-Bereiche, `android/app/build.gradle.kts`); wo nichts
+/// liegt, scheint die Übersicht durch.
 final maplibreStyleProvider = FutureProvider<String?>((ref) async {
   final noConnectivity = ref.watch(noConnectivityProvider);
   // Nicht unbegrenzt auf das Manifest warten (#183): MapLibre zeichnet
@@ -130,8 +138,20 @@ final maplibreStyleProvider = FutureProvider<String?>((ref) async {
 
   final manifestWait = patiently(ref.watch(mapManifestProvider.future));
   final waysWait = patiently(ref.watch(waysManifestProvider.future));
-  final manifest = await manifestWait;
-  final ways = await waysWait;
+  final fresh = await manifestWait;
+  final freshWays = await waysWait;
+  final settings = ref.watch(settingsProvider);
+  final manifest = fresh ?? _remembered(settings.seenMapManifest, MapManifest.fromJson);
+  final ways = freshWays ??
+      (ref.watch(wayLayerEnabledProvider)
+          ? _remembered(settings.seenWaysManifest, WaysManifest.fromJson)
+          : null);
+  if (fresh != null) {
+    _remember(settings.seenMapManifest, fresh.toJson(), settings.setSeenMapManifest);
+  }
+  if (freshWays != null) {
+    _remember(settings.seenWaysManifest, freshWays.toJson(), settings.setSeenWaysManifest);
+  }
   final io = ref.watch(maplibreStyleIoProvider);
   // Die Quellenangabe der Behörden — nur solange die Ebene an ist und
   // eine ihrer Regionen geladen. `select` auf den Text: Der Controller
@@ -146,7 +166,10 @@ final maplibreStyleProvider = FutureProvider<String?>((ref) async {
     final glyphsUrl = await io.materializeGlyphs();
 
     final sources = <MapStyleSource>[];
-    if (noConnectivity || manifest == null) {
+    // Die Übersicht liegt unter allem, solange kein FRISCHES Manifest da
+    // ist — auch unter einem gemerkten: Dessen Kacheln kommen nur aus dem
+    // Zwischenspeicher, und wo keine liegt, wäre sonst nackter Landton.
+    if (noConnectivity || fresh == null) {
       final overviewPath = await io.materializeOverview();
       final overviewZoom = await io.readZoomRange(overviewPath);
       sources.add(MapStyleSource(
@@ -157,6 +180,7 @@ final maplibreStyleProvider = FutureProvider<String?>((ref) async {
       ));
     }
     if (manifest != null) {
+      // Frisch oder gemerkt (#155), siehe oben.
       // Zoombereich aus dem Manifest, nicht aus dem Archiv-Header: Den
       // zu lesen wäre eine Range-Anfrage, die die Engine gleich selbst
       // macht. `map-data.yml` schreibt beide aus derselben Bestellung.
@@ -230,3 +254,23 @@ final maplibreStyleProvider = FutureProvider<String?>((ref) async {
     return null;
   }
 });
+
+/// Liest ein gemerktes Manifest (#155) — mit derselben Prüfung wie vom
+/// Host. Was nicht mehr passt (ein anderes Wege-Format nach einem Update),
+/// heißt still „keins".
+T? _remembered<T>(String? json, T Function(Map<String, dynamic>) parse) {
+  if (json == null) return null;
+  try {
+    return parse(jsonDecode(json) as Map<String, dynamic>);
+  } catch (_) {
+    return null;
+  }
+}
+
+/// Merkt ein frisches Manifest, nur wenn es sich geändert hat (einmal im
+/// Monat, nicht bei jedem Neubau des Stils).
+void _remember(String? before, Map<String, dynamic> manifest, Future<void> Function(String) write) {
+  final json = jsonEncode(manifest);
+  if (json == before) return;
+  unawaited(write(json).catchError((Object e, StackTrace s) => logError('Karten-Manifest merken', e, s)));
+}

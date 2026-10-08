@@ -45,6 +45,11 @@ class MapManifest {
       sourceBuild: j['source_build'] as String,
     );
   }
+
+  /// Zum Merken auf dem Gerät (#155) — liest sich mit [MapManifest.fromJson]
+  /// zurück, mit derselben Prüfung.
+  Map<String, dynamic> toJson() =>
+      {'file': file, 'maxzoom': maxZoom, 'bytes': bytes, 'source_build': sourceBuild};
 }
 
 /// Das Manifest der Höhenkacheln (`heights.json`, geschrieben von
@@ -116,6 +121,16 @@ const kMapManifestTimeout = Duration(seconds: 10);
 /// Funkloch sofort etwas zeigt, lang genug, dass sie mit Netz nicht erst
 /// die Übersicht und dann die Online-Karte zeichnet.
 const kMapManifestPatience = Duration(milliseconds: 1500);
+
+/// „Gesehenes bleibt liegen" (#155, Konzept offline-karten 3.2): So viel
+/// darf MapLibre auf Android von der Online-Karte und den Wegen behalten,
+/// die älteste Kachel geht zuerst. Gemessen am 2026-10-08 auf
+/// `dach-20261001.pmtiles`: ein Ausschnitt von 20 × 20 km über Zoom 8–13
+/// kostet 2,9–4,1 MB (Alpen, Schwarzwald, Stadtrand), ein Tag mit viel
+/// Schieben über 50 × 50 km grob 20–25 MB — 100 MB tragen also gut
+/// zwanzig solche Tage (Betreiber, 2026-10-08; das Konzept hatte 200 MB
+/// geschätzt).
+const kSeenTilesCacheBytes = 100 * 1024 * 1024;
 
 /// Holt das Manifest vom Host — die Naht, die Tests ersetzen (kein Netz).
 Future<MapManifest?> fetchMapManifest() async {

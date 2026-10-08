@@ -190,6 +190,11 @@ class WaysManifest {
     }
     return WaysManifest(file: file, bytes: j['bytes'] as int, build: j['build'] as String);
   }
+
+  /// Zum Merken auf dem Gerät (#155), mit Format und Zoom der App — ein
+  /// gemerktes Manifest gilt nur für die Fassung, die es geschrieben hat.
+  Map<String, dynamic> toJson() =>
+      {'file': file, 'format': kWaysFormat, 'zoom': kWaysZoom, 'bytes': bytes, 'build': build};
 }
 
 /// Holt das Manifest vom Host; wirft bei allem, was nicht passt.

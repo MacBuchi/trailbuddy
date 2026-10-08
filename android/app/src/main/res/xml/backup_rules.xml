@@ -15,6 +15,9 @@
   * outbox/ — Aufträge des Ausgangskorbs: Aufzeichnungen, die auf die
     Übertragung warten. Hier stehen Linien, BEVOR sie irgendwo anders
     stehen.
+  * mbgl-offline.db — MapLibres Kachel-Zwischenspeicher, „Gesehenes
+    bleibt liegen" (#155), bis 100 MB, jederzeit neu ladbar. Er zeigt,
+    welche Gegenden angesehen wurden.
 -->
 <data-extraction-rules>
     <cloud-backup>
@@ -25,6 +28,8 @@
         <exclude domain="file" path="rides"/>
         <exclude domain="file" path="updates"/>
         <exclude domain="file" path="official_trails"/>
+        <exclude domain="file" path="mbgl-offline.db"/>
+        <exclude domain="file" path="mbgl-offline.db-journal"/>
     </cloud-backup>
     <device-transfer>
         <exclude domain="sharedpref" path="FlutterSharedPreferences.xml"/>
@@ -34,5 +39,7 @@
         <exclude domain="file" path="rides"/>
         <exclude domain="file" path="updates"/>
         <exclude domain="file" path="official_trails"/>
+        <exclude domain="file" path="mbgl-offline.db"/>
+        <exclude domain="file" path="mbgl-offline.db-journal"/>
     </device-transfer>
 </data-extraction-rules>

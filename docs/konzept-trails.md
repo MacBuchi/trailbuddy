@@ -896,8 +896,8 @@ ein Häkchen oder eine neue Reihenfolge.
   mehrerer Nutzer.
 - **Einführung. ERLEDIGT:** Kurzanleitung, Touren, „Entdecken", Marke.
 - **Phase 3 — Offline und Austausch. ZUM TEIL:** Offline-Karten mit
-  eigenem Host, Zwischenspeicher, Push. Offen: Gesehenes bleibt liegen,
-  Nachrichten, Browser-Speicher.
+  eigenem Host, Zwischenspeicher, Push, Gesehenes bleibt liegen (Android,
+  #155). Offen: Nachrichten, Browser-Speicher (auch Gesehenes im Browser).
 - **Phase 3b — Alltagstauglich, vor Testern außerhalb der Buddys.
   ERLEDIGT bis auf Freigabe und Tester.**
 - **Phase 4 — Der Trail-zuerst-Planer. ERLEDIGT bis auf den Feldtest**
