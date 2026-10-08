@@ -929,10 +929,11 @@ Dokument allein.
      zurück, abseits, Ziel), Drehung in der Fassade beider Engines,
      Ansicht, Einstieg aus Ergebnis und „Meine Fahrten", Aufzeichnen-
      und Bildschirm-Schalter. Läuft im Web genauso. — ☁️ · 📱 Abnahme
-   - **1b**: „Zurück zur Route" (A* zum Punkt 200 m voraus, 9.3) und
-     „zuletzt navigiert" oben in „Meine Fahrten" (9.2) — bis dahin
-     startet ein versehentlich beendetes Ergebnis neu aus dem Blatt,
-     eine Fahrt aus ihrem Menü. — ☁️ · 📱
+   - **1b** (0.95.0): „Zurück zur Route" (A* zum Punkt 200 m voraus,
+     9.3) und „zuletzt navigiert" oben in „Meine Fahrten" (9.2) — nur
+     im Speicher, weiter ab dem Stand beim Beenden (nach der Ankunft ab
+     Start): Eine Route beginnt oft an der Haustür, und in den
+     Einstellungen ginge sie mit in die Sicherung des Geräts. — ☁️ · 📱
 2. **Benachrichtigung** (9.5): Routen-Datei, Rechnung im Dienst,
    Knopf „Beenden"; `keep_alive_test` für Navigation ohne Aufzeichnung.
    — ☁️ · 📱

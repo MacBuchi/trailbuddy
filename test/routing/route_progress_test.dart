@@ -115,6 +115,16 @@ void main() {
       expect(t.update(_at(940, 4)).arrived, isTrue);
     });
 
+    test('resumes where it ended: out and back stays on the way back', () {
+      // „Zuletzt navigiert" auf dem Rückweg: Ab Start gezählt läge man
+      // auf dem Hinweg, 1,4 km zu viel vor sich.
+      final r = NavRoute.of([_at(0), _at(500), _at(1000), _at(500, 1), _at(0, 1)])!;
+      expect(NavTracker(r).update(_at(300, 3)).alongM, closeTo(300, 2));
+      final resumed = NavTracker(r, startAlongM: 1650).update(_at(300, 3));
+      expect(resumed.alongM, closeTo(1700, 3));
+      expect(resumed.remainingM, closeTo(300, 3));
+    });
+
     test('a loop does not arrive at its start', () {
       final loop = NavRoute.of([_at(0), _at(1000), _at(1000, 1000), _at(0, 1000), _at(0, 10)])!;
       expect(loop.isLoop, isTrue);

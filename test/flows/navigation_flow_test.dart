@@ -2,20 +2,31 @@
 // echte Oberfläche: aus „Meine Fahrten" auf die Karte, Start-Dialog mit
 // Aufzeichnen und Bildschirm, die Karte dreht nach dem Kurs, die Leiste
 // zählt herunter, abseits wird gewarnt, „Norden" nordet, am Ziel endet die
-// Navigation nach einer Minute — die Aufzeichnung läuft weiter.
+// Navigation nach einer Minute — die Aufzeichnung läuft weiter. „Zurück
+// zur Route" über einen gespeicherten Bereich (Muster
+// `trail_head_flow_test`), ohne Bereich ein Satz; „zuletzt navigiert" in
+// „Meine Fahrten" geht weiter.
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:pmtiles/pmtiles.dart';
 import 'package:trailbuddy/core/screen_awake.dart';
+import 'package:trailbuddy/features/map/map_view/map_view.dart';
+import 'package:trailbuddy/features/offline_areas/area_plan.dart';
+import 'package:trailbuddy/features/offline_areas/area_store.dart';
+import 'package:trailbuddy/features/offline_areas/pmtiles_writer.dart';
 import 'package:trailbuddy/features/rides/ride_track.dart';
-import 'package:trailbuddy/features/routing/nav_providers.dart' show kNavArrivedLinger;
+import 'package:trailbuddy/features/routing/nav_providers.dart' show kNavArrivedLinger, lastNavProvider;
 
 import '../fakes/fake_backend.dart';
 import '../fakes/fake_map_view.dart';
 import '../fakes/fake_rides.dart';
+import '../fakes/fake_tiles.dart';
 import '../fakes/test_app.dart';
 
 class _FakeScreenAwake implements ScreenAwake {
@@ -31,6 +42,61 @@ class _FakeScreenAwake implements ScreenAwake {
 /// Eine geplante Runde nach Osten: 20 Abschnitte à 0,001° Länge.
 const _lat = 47.0;
 double _lng(int i) => 11 + i / 1000;
+
+/// Für „Zurück zur Route": ein Forstweg nach Norden in EINER z13-Kachel
+/// (wie in `trail_head_flow_test`), die Route liegt auf seinem nördlichen
+/// Teil, der Standort 67 m südlich davon auf demselben Weg.
+final _tile = tileAt(48.0, 9.0, 13);
+const _n = 1 << 13;
+const _wayLng = 9.0;
+final _bounds = tileBounds(13, _tile.x, _tile.y);
+final _southLat = math.max(_bounds.south + 0.0004, 48.0 - 0.003);
+final _routeStartLat = _southLat + 0.0006;
+
+(int, int) _px(double lat, double lon) {
+  final x = ((lon + 180) / 360 * _n - _tile.x) * kTileExtent;
+  final r = lat * math.pi / 180;
+  final y = ((1 - math.log(math.tan(r) + 1 / math.cos(r)) / math.pi) / 2 * _n - _tile.y) * kTileExtent;
+  return (x.round(), y.round());
+}
+
+Future<MemoryAreaStore> _areaWithTrack() async {
+  final store = MemoryAreaStore();
+  final tiles = <TileToWrite>[];
+  for (var dx = -1; dx <= 1; dx++) {
+    for (var dy = -1; dy <= 1; dy++) {
+      final own = dx == 0 && dy == 0;
+      tiles.add(TileToWrite(
+        13,
+        _tile.x + dx,
+        _tile.y + dy,
+        mvtTile(own
+            ? [road([_px(_southLat - 0.0002, _wayLng), _px(48.0 + 0.0005, _wayLng)], 'path', kindDetail: 'track')]
+            : []),
+      ));
+    }
+  }
+  final bytes = writePmTiles(
+    tiles: tiles,
+    tileCompression: Compression.none,
+    bounds: const TileBounds(west: 8.9, south: 47.9, east: 9.1, north: 48.1),
+  );
+  await store.putArchive('a', bytes);
+  await store.saveIndex([
+    StoredArea(
+      id: 'a',
+      name: 'Hausrunde',
+      bounds: const AreaBounds(south: 47.9, west: 8.9, north: 48.1, east: 9.1),
+      minZoom: 13,
+      maxZoom: 13,
+      build: '20260928',
+      tiles: tiles.length,
+      bytes: bytes.length,
+      savedAt: DateTime.utc(2026, 9, 28),
+    ),
+  ]);
+  return store;
+}
 
 void main() {
   late FakeBackend backend;
@@ -64,7 +130,8 @@ void main() {
     await settle(tester, frames: 2);
   }
 
-  Future<void> startFromRides(WidgetTester tester, {bool phone = false}) async {
+  Future<void> startFromRides(WidgetTester tester,
+      {bool phone = false, MemoryAreaStore? areaStore, LatLng start = const LatLng(_lat, 11)}) async {
     if (phone) {
       tester.view.physicalSize = const Size(1080, 2400);
       tester.view.devicePixelRatio = 3;
@@ -75,9 +142,11 @@ void main() {
     await pumpApp(tester, backend,
         rideStore: store,
         rideService: service,
-        rideFix: FakeRideFix()..next = RidePoint(lat: _lat, lng: _lng(0), at: DateTime.now().toUtc(), accuracyM: 5),
+        areaStore: areaStore,
+        rideFix: FakeRideFix()
+          ..next = RidePoint(lat: start.latitude, lng: start.longitude, at: DateTime.now().toUtc(), accuracyM: 5),
         positionStream: fixes.stream,
-        positionFix: FakePositionFix(fakePosition(_lat, _lng(0), heading: 90, speed: 0)),
+        positionFix: FakePositionFix(fakePosition(start.latitude, start.longitude, heading: 90, speed: 0)),
         extraOverrides: [screenAwakeProvider.overrideWithValue(screen)]);
     await openProfilePage(tester, 'rides');
     await settle(tester);
@@ -133,6 +202,13 @@ void main() {
     expect(textIn('nav-off'), contains('neben der Route'));
     expect(textIn('nav-off'), contains('67 m'));
     expect(find.byKey(const ValueKey('nav-off-arrow')), findsOneWidget);
+    // „Zurück zur Route" ohne Bereich: ein Satz in der Leiste, der Knopf
+    // bleibt für einen zweiten Versuch.
+    expect(find.byKey(const ValueKey('nav-rejoin-note')), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('nav-rejoin')));
+    await settle(tester);
+    expect(textIn('nav-bar'), contains('Hier kennt die App keine Wege'));
+    expect(find.byKey(const ValueKey('nav-rejoin')), findsOneWidget);
 
     // „Norden": genordet, sofort.
     await tester.tap(find.byKey(const ValueKey('nav-north')));
@@ -154,6 +230,15 @@ void main() {
     expect(fakeMap(tester).bearing, 0);
     // Die Aufzeichnung endet nicht mit der Navigation (9.4).
     expect(service.running, isTrue);
+
+    // „Zuletzt navigiert": nach der Ankunft wieder ab Start.
+    // „Meine Fahrten" liegt noch offen im Reiter „Profil".
+    await openTab(tester, 'Profil');
+    await settle(tester);
+    expect(find.byKey(const ValueKey('nav-last')), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('nav-last-resume')));
+    await settle(tester);
+    expect(find.byKey(const ValueKey('nav-go')), findsOneWidget);
   });
 
   testWidgets('taps on the map do nothing while navigating; Beenden asks nothing', (tester) async {
@@ -176,5 +261,82 @@ void main() {
     expect(find.byType(AlertDialog), findsNothing);
     expect(find.byKey(const ValueKey('nav-bar')), findsNothing);
     expect(screen.calls, [true, false]);
+  });
+
+  testWidgets('Zurück zur Route: a dashed way onto the route ahead, gone once back on it', (tester) async {
+    store.rides
+      ..clear()
+      ..add(Ride(
+        id: '20261008T090000Z',
+        startedAt: DateTime.utc(2026, 10, 8, 9),
+        endedAt: DateTime.utc(2026, 10, 8, 10),
+        points: [
+          for (var lat = _routeStartLat; lat <= 48.0004; lat += 0.0002)
+            RidePoint(lat: lat, lng: _wayLng, at: DateTime.utc(2026, 10, 8, 9), accuracyM: 0),
+        ],
+        planned: true,
+        name: 'Hausrunde',
+      ));
+    await startFromRides(tester, areaStore: await _areaWithTrack(), start: LatLng(_southLat, _wayLng));
+    await tester.tap(find.byKey(const ValueKey('nav-go')));
+    await settle(tester);
+    // Erst der zweite Fix daneben macht abseits — dann kommt der Knopf.
+    expect(find.byKey(const ValueKey('nav-rejoin')), findsNothing);
+    await fix(tester, _southLat, _wayLng, heading: 0);
+    expect(textIn('nav-off'), contains('neben der Route'));
+
+    List<MapViewPolyline> dashed() =>
+        [for (final l in fakeMapLayers(tester).polylines) if (l.dash != null) l];
+    expect(dashed(), isEmpty);
+    await tester.tap(find.byKey(const ValueKey('nav-rejoin')));
+    await settle(tester, frames: 20);
+    expect(find.byKey(const ValueKey('nav-rejoin-note')), findsNothing);
+    // Vom Standort über den Weg nach Norden auf die Route, 200 m voraus.
+    final back = dashed().single.points;
+    expect(back.first.latitude, closeTo(_southLat, 1e-6));
+    expect(back.last.latitude, greaterThan(_routeStartLat + 0.001));
+    expect(back.every((p) => (p.longitude - _wayLng).abs() < 1e-4), isTrue);
+    // Ein Stück liegt — der Knopf ist weg.
+    expect(find.byKey(const ValueKey('nav-rejoin')), findsNothing);
+
+    // Wieder auf der Route: Das Stück fällt weg.
+    await fix(tester, _routeStartLat + 0.0002, _wayLng, heading: 0);
+    expect(dashed(), isEmpty);
+    expect(textIn('nav-off'), contains('zur Route'));
+  });
+
+  testWidgets('zuletzt navigiert goes on where Beenden left off', (tester) async {
+    await startFromRides(tester);
+    await tester.tap(find.byKey(const ValueKey('nav-record')));
+    await settle(tester, frames: 2);
+    await tester.tap(find.byKey(const ValueKey('nav-go')));
+    await settle(tester);
+    await fix(tester, _lat, _lng(10));
+    expect(textIn('nav-remaining'), contains('758 m'));
+    await tester.tap(find.byKey(const ValueKey('nav-stop')));
+    await settle(tester);
+
+    // „Meine Fahrten" liegt noch offen im Reiter „Profil".
+    await openTab(tester, 'Profil');
+    await settle(tester);
+    expect(find.byKey(const ValueKey('nav-last')), findsOneWidget);
+    expect(textIn('nav-last'), contains('Hausrunde'));
+    // Gemerkt ist der Stand beim Beenden — dort geht es weiter (auf einer
+    // geraden Linie sähe man es nicht, die ganze Linie fände ihn auch;
+    // hin und zurück zeigt es `route_progress_test`).
+    final container = ProviderScope.containerOf(tester.element(find.byKey(const ValueKey('nav-last'))));
+    expect(container.read(lastNavProvider)!.startAlongM, closeTo(758, 5));
+    await tester.tap(find.byKey(const ValueKey('nav-last-resume')));
+    await settle(tester);
+    await tester.tap(find.byKey(const ValueKey('nav-go')));
+    await settle(tester);
+    expect(find.byKey(const ValueKey('nav-bar')), findsOneWidget);
+    await fix(tester, _lat, _lng(12));
+    expect(textIn('nav-remaining'), contains('607 m'));
+    // Solange navigiert wird, steht die Karte nicht in der Liste.
+    // „Meine Fahrten" liegt noch offen im Reiter „Profil".
+    await openTab(tester, 'Profil');
+    await settle(tester);
+    expect(find.byKey(const ValueKey('nav-last')), findsNothing);
   });
 }
