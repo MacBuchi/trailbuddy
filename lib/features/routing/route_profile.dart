@@ -8,7 +8,8 @@
 // Zahl für Zahl der Spiegel von `PROFILES`, `CLASSES`, `classify`,
 // `edge_time_s`, `edge_factor`, `edge_cost_s` und — seit #194 —
 // `STEEP_*`, `steep_excess` und `steep_cost_s`, seit #188 auch
-// `steep_weight`, `descent_cost_s` und der Vorlieben (`PREF_*`) in
+// `steep_weight`, `descent_cost_s` und der Vorlieben (`PREF_*`), seit
+// #213 `WAY_*` und `way_cost_s` in
 // `tool/route_measure.py` — das Werkzeug ist die Referenz, mit der die
 // Engine gemessen wurde (docs/routing-messung.md), und
 // `test/routing/route_profile_test.dart` hält die Zahlen beider Seiten
@@ -329,6 +330,58 @@ const kDescentCost = 0.3;
 /// (Bio) jetzt gegen rund 1 km Forstweg statt gegen 0,8 km.
 const kCarryCostS = 60.0;
 
+/// Wegegüte (#213, Vorschlag des Betreibers 2026-10-02: „schlechte
+/// Forstwege deutlich teurer, z. B. doppelte Steigung"; abgestuft, nie
+/// ein Schalter). Die Klassen sind die des Wege-Archivs, Format 2
+/// (`kWaysFormat`): 3 Forstweg schlecht (grade4), 7 sehr schlecht
+/// (grade5, holprig, Matsch), 6 Pfad schwer (S3/T3), 8 sehr schwer
+/// (ab S4/T4); an Pfaden `u` = `mtb:scale:uphill` ([GraphEdge.uphill]).
+/// Wie der Steilaufschlag Kosten, keine Minuten. Bergab nichts, unbekannt
+/// kostet, was es immer kostete. Spiegel von `WAY_*` und `way_cost_s`.
+///
+/// Forstweg: (Faktor auf den Steigteil, Faktor auf den Streckenteil)
+/// bergauf und in der Ebene; der Aufschlag ist (Faktor − 1) × Teil.
+const kWayTrack = <int, (double, double)>{3: (1.3, 1.15), 7: (2.0, 1.3)};
+
+/// Pfad bergauf: geschoben — die Zeit des Schiebens mal Faktor statt der
+/// des Fahrens.
+const kWayPathPush = <int, double>{6: 1.0, 8: 2.0};
+
+/// `mtb:scale:uphill` sagt es besser, wo es steht: 0–1 wie jeder Pfad,
+/// 2 die Steigzeit halb noch einmal, 3 schieben, ab 4 doppelt schieben.
+const kWayUphillClimb = <int, double>{2: 1.5};
+const kWayUphillPush = <int, double>{3: 1.0, 4: 2.0, 5: 2.0};
+
+/// Der Aufschlag für die Wegegüte einer Kante in einer Richtung (#213)
+/// — `way_cost_s`.
+double wayCostS(RiderParams p, WayClass cls,
+    {required double lengthM, required double gainM, required double lossM, int? way, int? uphill}) {
+  if (lossM > gainM) return 0;
+  if (cls == WayClass.forstweg) {
+    final f = kWayTrack[way];
+    if (f == null) return 0;
+    final climb = gainM / (p.climbTrackMPerH / 3600.0);
+    final dist = lengthM / (p.vFlatKmh / 3.6);
+    return (f.$1 - 1) * climb + (f.$2 - 1) * dist;
+  }
+  if (cls == WayClass.wanderweg && gainM > lossM) {
+    final double? push;
+    if (uphill != null) {
+      final c = kWayUphillClimb[uphill];
+      if (c != null) return (c - 1) * gainM / (p.climbPathMPerH / 3600.0);
+      push = kWayUphillPush[uphill];
+    } else {
+      push = kWayPathPush[way];
+    }
+    if (push != null && push > 0) {
+      final pushed = lengthM / (p.vPushKmh / 3.6) + gainM / (p.pushRateMPerH / 3600.0);
+      final extra = push * pushed - edgeTimeS(p, cls, lengthM: lengthM, gainM: gainM, lossM: lossM);
+      return extra > 0 ? extra : 0;
+    }
+  }
+  return 0;
+}
+
 /// Das Gewicht eines Höhenmeters bei [grade] — `steep_weight_at`.
 double steepWeightAt(double grade) {
   if (grade <= kSteepWeightFrom) return 0;
@@ -508,17 +561,20 @@ double edgeFactor(RiderParams p, WayClass cls, {required double gainM, required 
 /// was die Zeit nicht sagt — eine Bundesstraße ist nicht langsam, sie
 /// ist falsch. Dazu der Steilaufschlag für [steepW] gewichtete
 /// Steilmeter (#194), mit [descent] der Preis der verschenkten Höhe
-/// (#188) und auf Stufen bergauf der Anteil [carry] des Trage-Aufschlags
-/// (#210).
+/// (#188), auf Stufen bergauf der Anteil [carry] des Trage-Aufschlags
+/// (#210) und die Wegegüte [way]/[uphill] (#213, [wayCostS]).
 double edgeCostS(RiderParams p, WayClass cls,
         {required double lengthM,
         required double gainM,
         required double lossM,
         double steepW = 0,
         bool descent = true,
-        double carry = 1}) =>
+        double carry = 1,
+        int? way,
+        int? uphill}) =>
     edgeTimeS(p, cls, lengthM: lengthM, gainM: gainM, lossM: lossM) *
         edgeFactor(p, cls, gainM: gainM, lossM: lossM) +
     steepCostS(p, cls, steepW) +
     (descent ? descentCostS(p, cls, lossM) : 0) +
-    carryCostS(cls, gainM: gainM, lossM: lossM, share: carry);
+    carryCostS(cls, gainM: gainM, lossM: lossM, share: carry) +
+    wayCostS(p, cls, lengthM: lengthM, gainM: gainM, lossM: lossM, way: way, uphill: uphill);

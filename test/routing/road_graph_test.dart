@@ -218,4 +218,57 @@ void main() {
     expect(g.edges.first.steepUp, closeTo(g.edges.last.steepUp, whole * 0.02));
     expect(g.edges.fold<double>(0, (s, e) => s + e.steepWUp), closeTo(wholeW, 1e-6));
   });
+
+  group('Wegegüte (#213) — dieselben Fälle wie der Self-Test des Werkzeugs', () {
+    WayGradeLine grade(int k, List<(double, double)> xy, {int? u}) => WayGradeLine(way: k, uphill: u, points: _m(xy));
+
+    RoadGraph graph() {
+      final g = RoadGraph(47.5);
+      final track = _m([(0, 0), (150, 0)]), path = _m([(150, 0), (300, 0)]), road = _m([(0, 33), (300, 33)]);
+      g.addEdge(g.node(track.first), g.node(track.last), WayClass.forstweg, false, track);
+      g.addEdge(g.node(path.first), g.node(path.last), WayClass.wanderweg, false, path);
+      g.addEdge(g.node(road.first), g.node(road.last), WayClass.nebenstrasse, false, road);
+      return g;
+    }
+
+    test('ein Forstweg nimmt die Klasse in 3 m, ein halber Pfad ist keine Mehrheit, Straßen nie', () {
+      final g = graph();
+      final named = addWayQuality(g, [
+        grade(7, [(0, 1.1), (150, 1.1)]),
+        grade(8, [(150, 0), (225, 0)], u: 3),
+        grade(6, [(190, 4.4), (300, 4.4)]),
+        grade(5, [(0, 34.1), (300, 34.1)]),
+      ]);
+      expect(named, 1);
+      expect([for (final e in g.edges) e.way], [7, null, null]);
+    });
+
+    test('der größte Teil eines Pfads: Klasse und Uphill-Grad; ein Forstweg nimmt nie eine Pfad-Klasse', () {
+      final g = graph();
+      addWayQuality(g, [grade(8, [(150, 0), (298, 0)], u: 3), grade(4, [(0, 0), (150, 0)])]);
+      expect(g.edges[1].way, 8);
+      expect(g.edges[1].uphill, 3);
+      expect(g.edges[0].way, isNull);
+      g.splitEdge(1, 0, _m([(225, 0)]).single);
+      expect([for (final e in g.edges) if (e.cls == WayClass.wanderweg) (e.way, e.uphill)], [(8, 3), (8, 3)],
+          reason: 'eine Teilung behält Klasse und Uphill-Grad');
+    });
+
+    test('liest die Kachel des Wege-Archivs: k, u und die Lage', () {
+      final t = tileAt(48.0, 9.0, 13);
+      final lines = wayGradeLinesFromTile(
+          waysTile([
+            (k: 7, u: null, px: [(0, 2048), (4096, 2048)]),
+            (k: 8, u: 4, px: [(2048, 0), (2048, 4096)]),
+          ]),
+          z: 13,
+          x: t.x,
+          y: t.y);
+      expect([for (final l in lines) (l.way, l.uphill)], [(7, null), (8, 4)]);
+      final b = tileBounds(13, t.x, t.y);
+      expect(lines.first.points.first.longitude, closeTo(b.west, 1e-9));
+      expect(lines.first.points.last.longitude, closeTo(b.east, 1e-9));
+      expect(wayGradeLinesFromTile(Uint8List.fromList([1, 2, 3]), z: 13, x: t.x, y: t.y), isEmpty);
+    });
+  });
 }

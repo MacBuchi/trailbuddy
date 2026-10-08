@@ -104,6 +104,131 @@ List<WayLine> wayLinesFromTile(Uint8List mvt, {required int z, required int x, r
   return out;
 }
 
+/// Eine Linie des Wege-Archivs (#213, Format 2): Klasse `k`, an Pfaden
+/// `u` (`mtb:scale:uphill`), in Grad.
+class WayGradeLine {
+  const WayGradeLine({required this.way, required this.points, this.uphill});
+
+  final int way;
+  final int? uphill;
+  final List<LatLng> points;
+}
+
+/// Die Linien einer Kachel des Wege-Archivs (Ebene `ways`) — `ways_from_tile`
+/// im Werkzeug. Nicht zugeschnitten: Der Puffer über den Rand schadet
+/// beim Abgleich nicht, er hilft an der Kachelgrenze.
+List<WayGradeLine> wayGradeLinesFromTile(Uint8List mvt, {required int z, required int x, required int y}) {
+  final VectorTile tile;
+  try {
+    tile = VectorTile.fromBytes(bytes: mvt);
+  } catch (_) {
+    return const [];
+  }
+  final n = 1 << z;
+  final out = <WayGradeLine>[];
+  for (final layer in tile.layers) {
+    if (layer.name != 'ways') continue;
+    final extent = layer.extent.toDouble();
+    for (final f in layer.features) {
+      if (f.type != VectorTileGeomType.LINESTRING) continue;
+      final props = f.decodeProperties();
+      final k = props['k']?.dartIntValue?.toInt();
+      if (k == null) continue;
+      final u = props['u']?.dartIntValue?.toInt();
+      for (final line in f.decodeLineString()) {
+        final pts = [for (final p in line) _tileToLatLng(x + p[0] / extent, y + p[1] / extent, n)];
+        if (pts.length >= 2) out.add(WayGradeLine(way: k, uphill: u, points: pts));
+      }
+    }
+  }
+  return out;
+}
+
+/// Klassen des Archivs je Wegart (#213): nur ein Forstweg nimmt eine
+/// Forstweg-Klasse an, nur ein Wanderweg eine Pfad-Klasse.
+const kWayTrackClasses = {1, 2, 3, 7};
+const kWayPathClasses = {4, 5, 6, 8};
+
+/// #211: Die Linien der Basiskarte liegen innerhalb 3 m ihres OSM-Wegs.
+const kWayMatchM = 3.0;
+
+/// So oft wird eine Kante abgetastet …
+const kWaySampleM = 10.0;
+
+/// … und so viel der Proben braucht eine Klasse, um die Kante zu benennen.
+const kWayMajority = 0.5;
+
+/// Benennt jeden Forstweg und Wanderweg des Graphen nach dem Wege-Archiv
+/// (#213) — `add_way_quality` im Werkzeug: Proben alle [kWaySampleM], je
+/// Probe die nächste Archivlinie derselben Wegart innerhalb [kWayMatchM];
+/// eine Klasse mit mehr als [kWayMajority] der Proben wird
+/// [GraphEdge.way], ebenso `u` ([GraphEdge.uphill]). Liefert, wie viele
+/// Kanten eine Klasse bekamen.
+int addWayQuality(RoadGraph g, Iterable<WayGradeLine> lines) {
+  const cell = 25.0;
+  final grid = <(int, int), List<int>>{};
+  final segs = <(int, int?, math.Point<double>, math.Point<double>)>[];
+  for (final l in lines) {
+    if (!kWayTrackClasses.contains(l.way) && !kWayPathClasses.contains(l.way)) continue;
+    final xy = g.proj.line(l.points);
+    for (var i = 1; i < xy.length; i++) {
+      final a = xy[i - 1], b = xy[i];
+      final si = segs.length;
+      segs.add((l.way, l.uphill, a, b));
+      for (var cx = (math.min(a.x, b.x) / cell).floor(); cx <= (math.max(a.x, b.x) / cell).floor(); cx++) {
+        for (var cy = (math.min(a.y, b.y) / cell).floor(); cy <= (math.max(a.y, b.y) / cell).floor(); cy++) {
+          (grid[(cx, cy)] ??= []).add(si);
+        }
+      }
+    }
+  }
+  if (segs.isEmpty) return 0;
+  (int, int?)? nearest(math.Point<double> p, Set<int> kinds) {
+    final cx = (p.x / cell).floor(), cy = (p.y / cell).floor();
+    (double, int, int?)? best;
+    for (var dx = -1; dx <= 1; dx++) {
+      for (var dy = -1; dy <= 1; dy++) {
+        for (final si in grid[(cx + dx, cy + dy)] ?? const <int>[]) {
+          final (k, u, a, b) = segs[si];
+          if (!kinds.contains(k)) continue;
+          final d = pointSegmentDistance(p, a, b);
+          if (d <= kWayMatchM && (best == null || d < best.$1)) best = (d, k, u);
+        }
+      }
+    }
+    return best == null ? null : (best.$2, best.$3);
+  }
+
+  var named = 0;
+  for (final e in g.edges) {
+    final kinds = e.cls == WayClass.forstweg
+        ? kWayTrackClasses
+        : e.cls == WayClass.wanderweg
+            ? kWayPathClasses
+            : null;
+    if (kinds == null) continue;
+    final samples = resampleXy(g.proj.line(e.points), kWaySampleM);
+    if (samples.isEmpty) continue;
+    final ks = <int, int>{}, us = <int, int>{};
+    for (final p in samples) {
+      final hit = nearest(p, kinds);
+      if (hit == null) continue;
+      ks[hit.$1] = (ks[hit.$1] ?? 0) + 1;
+      if (hit.$2 case final u?) us[u] = (us[u] ?? 0) + 1;
+    }
+    int? winner(Map<int, int> counts) {
+      if (counts.isEmpty) return null;
+      final top = counts.entries.reduce((a, b) => b.value > a.value ? b : a);
+      return top.value > kWayMajority * samples.length ? top.key : null;
+    }
+
+    e.way = winner(ks);
+    e.uphill = winner(us);
+    if (e.way != null) named++;
+  }
+  return named;
+}
+
 bool _truthy(VectorTileValue? v) {
   if (v == null) return false;
   if (v.dartBoolValue case final b?) return b;
@@ -232,6 +357,13 @@ class GraphEdge {
   /// ganzen Weg, nach [RoadGraph.splitEdge] nach Länge geteilt.
   double carry = 1;
 
+  /// Die Klasse im Wege-Archiv (#213, Format 2: 1–3 und 7 Forstweg, 4–6
+  /// und 8 Pfad), null = unbekannt — gesetzt von [addWayQuality].
+  int? way;
+
+  /// `mtb:scale:uphill` 0–5 auf einem Pfad (#213), sonst null.
+  int? uphill;
+
   /// Falsch, solange keine Höhen gelesen wurden oder eine Probe der Kante
   /// keine Höhe hatte — dann rechnet die Kante flach, und der Graph sagt
   /// es ([RoadGraph.edgesWithoutHeights]).
@@ -355,7 +487,9 @@ class RoadGraph {
       ..trail = e.trail
       ..blockForward = e.blockForward
       ..blockBackward = e.blockBackward
-      ..hasHeights = e.hasHeights;
+      ..hasHeights = e.hasHeights
+      ..way = e.way
+      ..uphill = e.uphill;
     // Der Trage-Aufschlag gehört der ganzen Treppe, nicht jeder Hälfte.
     final carryShare = e.length + edges[ni].length == 0 ? 0.0 : edges[ni].length / (e.length + edges[ni].length);
     edges[ni].carry = e.carry * carryShare;

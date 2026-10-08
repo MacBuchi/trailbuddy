@@ -62,7 +62,9 @@ class SearchResult {
       lossM: loss,
       steepW: forward ? e.steepWUp : e.steepWDown,
       descent: e.trail == null,
-      carry: e.carry);
+      carry: e.carry,
+      way: e.way,
+      uphill: e.uphill);
   return (cost: cost, gain: gain, loss: loss, steep: steep);
 }
 
