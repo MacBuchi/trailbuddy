@@ -218,6 +218,10 @@ ohne sie geht.
 | Netz für den Bereich | einmalig, Größe vorher angezeigt | dasselbe, Vordergrunddienst |
 | Höhen je Bereich | ~2,4 KB je z13-Kachel in den Alpen, ~1,4 KB im Flachland (gemessen 2026-10-01) | dasselbe |
 
+Was die Karte über DACH hinaus kostet (Kanada, Europa, Welt bis z13;
+Bucket, Runner, Bauzeit), steht gemessen in `docs/karte-welt-messung.md`
+(#220, 18b in #156).
+
 ## 5. Was NICHT kommt
 
 - Keine Bundesland-Regionen (PilzBuddys Katalog). Ein Mechanismus für

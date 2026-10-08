@@ -52,6 +52,11 @@ on:
         required: false
         type: string
         default: "12 13 14"
+      plan_select:
+        description: "plan: measure countries instead of the DACH box — KEY=VALUES on Natural Earth (e.g. ISO_A2_EH=CA), or world"
+        required: false
+        type: string
+        default: ""
   schedule:
     # Monthly, 1st at 03:17 UTC — publish with the defaults.
     - cron: "17 3 1 * *"
@@ -76,6 +81,14 @@ env:
   MODE: ${{ inputs.mode || 'publish' }}
   MAXZOOM: ${{ inputs.maxzoom || '13' }}
   PLAN_ZOOMS: ${{ inputs.plan_zooms || '12 13 14' }}
+  # Empty = the DACH box. Otherwise the map beyond DACH (#220): a
+  # selection of Natural Earth countries (public domain, pinned by tag AND
+  # checksum — a border file that changes under a measurement changes the
+  # measurement), or the whole world. Plan only; publish stays DACH until
+  # regions exist (18c in #156).
+  PLAN_SELECT: ${{ inputs.plan_select || '' }}
+  NE_COUNTRIES_URL: https://raw.githubusercontent.com/nvkelso/natural-earth-vector/v5.1.2/geojson/ne_50m_admin_0_countries.geojson
+  NE_COUNTRIES_SHA256: 3e458fc036ad0a66411f2c1e6cac49c5d7bfb81cb1123bc513b22511a2b7fdeb
   # Public values, deliberately in the file and not in repository
   # variables: the app carries the same host as a constant, and the
   # privacy policy guard reads it from there.
@@ -145,17 +158,31 @@ jobs:
           SOURCE: ${{ steps.source.outputs.url }}
         run: |
           set -euo pipefail
+          area=("--bbox=$DACH_BBOX")
+          label="bbox \`$DACH_BBOX\`"
+          if [ "$PLAN_SELECT" = "world" ]; then
+            # The whole Web Mercator square as one polygon: a bbox of the
+            # world would enumerate 89 million z13 ids.
+            echo '{"type":"Polygon","coordinates":[[[-180,-85.0511],[180,-85.0511],[180,85.0511],[-180,85.0511],[-180,-85.0511]]]}' > /tmp/world.geojson
+            area=("--region=/tmp/world.geojson")
+            label="the whole world"
+          elif [ -n "$PLAN_SELECT" ]; then
+            curl -sSL --fail --max-time 120 "$NE_COUNTRIES_URL" -o /tmp/countries.geojson
+            echo "$NE_COUNTRIES_SHA256  /tmp/countries.geojson" | sha256sum -c -
+            area=("--region=/tmp/countries.geojson" "--select=$PLAN_SELECT")
+            label="Natural Earth countries \`$PLAN_SELECT\`"
+          fi
           {
             echo "## Map extract plan"
             echo
-            echo "Source: \`$SOURCE\`, bbox \`$DACH_BBOX\`"
+            echo "Source: \`$SOURCE\`, $label"
             echo
             echo "| asked | measured | estimated file | measuring cost |"
             echo "|---|---|---|---|"
           } >> "$GITHUB_STEP_SUMMARY"
           for zoom in $PLAN_ZOOMS; do
             out=$(python3 tool/map_tiles.py plan --source "$SOURCE" \
-                    "--bbox=$DACH_BBOX" "--maxzoom=$zoom" --max-bytes 100000000000 || true)
+                    "${area[@]}" "--maxzoom=$zoom" --max-bytes 100000000000 || true)
             span=$(echo "$out" | sed -n 's/^zoom *\(.*\)$/\1/p' | head -1)
             size=$(echo "$out" | sed -n 's/^estimated file size *\(.*\)$/\1/p' | head -1)
             cost=$(echo "$out" | sed -n 's/^read \(.*\)$/\1/p' | head -1)
