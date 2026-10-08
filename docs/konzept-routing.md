@@ -620,6 +620,26 @@ Messung und spiegelt Kostentabelle und Zeitmodell; wie bei
   wartende auch nicht. Das Ergebnis kommt als Blatt von unten (kein
   Modal); zu heißt Ergebnis weg, Leiste und Auswahl bleiben. Zurück geht
   stufenweise: Start-Tipp, Zeichnen, Planer.
+- **Zwischenpunkte zum Ziehen** (#234, seit 0.93.0; Feldbericht 0.82.2:
+  „Gummipunkte, die man ziehen kann, um die Wegführung manuell zu
+  tunen"): In jedem Ergebnis — Runde, „Zum Trailkopf"/„Route hierher",
+  direkt oder spaßig — setzt ein Tipp auf eine VERBINDUNG (nicht auf
+  einen Trail) dort einen Punkt; Ziehen verschiebt ihn, ein Tipp auf ihn
+  nimmt ihn weg (mit Rückgängig). Ein Punkt gehört zu einem Teilstück
+  zwischen zwei festen Halten (Start, Trail-Ende, Trail-Anfang, Ziel)
+  und liegt darin in Fahrtrichtung. Gerechnet wird je Abschnitt A*,
+  Punkt für Punkt (`pathThrough`). **Bei der Runde steht die Folge der
+  Trails dann fest** (`LoopTune`): Die Optimierung aus Abschnitt 3 läuft
+  nicht mehr, nur die Teilstücke folgen den Punkten; Budgets prüft
+  niemand, das Blatt sagt, wenn die Runde darüber liegt. „Zurücksetzen"
+  rechnet frei, ebenso jede Änderung an Reglern, Auswahl, Profil oder
+  Weg. Führt durch einen Punkt kein Weg (30 m ohne Weg, Einbahn, Insel),
+  springt er zurück, und die Karte sagt es. Gespeichert und exportiert
+  wird die fertige Linie, nicht die Punkte. Liegen zwei Teilstücke auf
+  demselben Weg (hin und zurück), trifft der Tipp das zuletzt
+  gezeichnete — der Punkt liegt auf beiden. Bewusst nicht: die Linie
+  selbst ziehen, ohne vorher zu tippen — das nähme jedem Verschieben der
+  Karte, das auf der Route beginnt, die Geste.
 - **Gespeicherte Runde** = geplante Fahrt in „Meine Fahrten" (Konzept
   5.2; `Ride.planned`, mit Namen, Punkte ohne Zeit und Höhe, Dauer =
   Schätzung) — **ohne Schere**: Abweichung vom Satz oben. Zerlegt wird,

@@ -252,6 +252,32 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     `trail-head-elevation` (im Planer `loop-elevation`, `loop-profile` ist
     dort ebenfalls der Schalter) — beim Bau kollidiert und nur als
     „Duplicate keys" sichtbar.
+- **Zwischenpunkte zum Ziehen** (#234, seit 0.93.0, `route_vias.dart`
+  pur, `route_via_providers.dart`, `via_handles.dart`; Konzept-Routing
+  4): Tipp auf eine Verbindung setzt einen Punkt, Ziehen verschiebt,
+  Tipp entfernt. Fünf Dinge, die man wissen muss:
+  - **Die Karte ändert, der Besitzer rechnet** (`routeViaProvider`,
+    `ViaOwner.route`/`loop`): Blatt „Route" und Planer hören auf die
+    Punkte und rechnen, sobald sie von denen ihres gezeigten Ergebnisses
+    abweichen. Geht es nicht, stellen sie die alten zurück (`reject`,
+    `rejections` zählt — die Karte zeigt `via-rejected`). Ein späterer
+    Zug verwirft das Ergebnis eines früheren (`_tuneSeq`).
+  - **Marker nehmen keine Gesten an** (beide Engines), deshalb liegen
+    über der Karte nur 44-dp-Griffe an der Lage vom letzten Stillstand
+    (`ViaHandles`, ein `Stack` ohne Hintergrund: alles andere geht zur
+    Karte durch). `DragStartBehavior.down`: Ohne kam der Punkt um die
+    Schwelle der Geste zu kurz an (im Flow-Test gefunden, Gegenprobe rot).
+  - **Getunt heißt feste Folge** (`planLoop(tune:)`, `LoopTune.of`): kein
+    Greedy, keine lokale Suche, keine Budgets; `LoopSection.leg` sagt,
+    zu welchem Teilstück eine Verbindung gehört, der Tipp trägt die ganze
+    Linie des Teilstücks (`RouteLegHit`) für die Reihenfolge.
+  - **Das Anheften der Punkte teilt Kanten** — im Rechen-Isolate verfällt
+    damit der Suchspeicher (`RoadGraph.revision`), und die erste freie
+    Rechnung nach „Zurücksetzen" dauert so lange wie die erste überhaupt.
+  - **Eingepasst wird nicht neu**, solange getunt ist (`LoopSession.tuned`):
+    Die Karte bleibt, wo der Finger den Punkt hingelegt hat. Eingeklappt
+    liegt „Zurücksetzen" unter dem Rand des Blatts — die Flow-Tests ziehen
+    es vorher hoch.
 - **Kalibrierung aus eigenen Fahrten** (Schritt 6, seit 0.73.0,
   `ride_calibration.dart` pur, `ride_calibrator.dart`; Konzept-Routing
   2.1, Entscheidung 8.1 „Vorgaben zuerst, Lernen je Profil"). Fünf

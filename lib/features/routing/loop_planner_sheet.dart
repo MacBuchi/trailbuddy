@@ -38,6 +38,8 @@ import 'road_graph_loader.dart' show kOnlineFillMaxTiles;
 import 'route_elevation.dart';
 import 'route_profile.dart';
 import 'route_search.dart' show steepNote;
+import 'route_vias.dart';
+import 'via_handles.dart';
 import 'trail_head_route.dart' show routeTimeLabel;
 
 /// Breite der leuchtenden Auswahl auf der Karte (#178) — breiter als eine
@@ -467,6 +469,8 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
   Future<void> _maybeFit(LoopSession s) async {
     final plan = s.plan;
     if (!mounted || plan == null || plan.outcome != LoopOutcome.ok || identical(plan, _fitted)) return;
+    // Getunt (#234): Die Karte bleibt, wo der Finger den Punkt hingelegt hat.
+    if (s.tuned) return;
     _fitted = plan;
     await widget.panel.resizeTo(kMapPanelResult);
     if (!mounted) return;
@@ -531,6 +535,9 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
     );
   }
 
+  bool _fitsBudget(LoopSummary s, LoopBudget b) =>
+      s.timeS <= b.plannedTimeS + 1 && s.gainM <= b.climbM + 1 && s.hikingM <= b.hikingM + 1;
+
   String _shortSummary(LoopSummary s) =>
       '${formatMeters(s.lengthM)} · ${s.gainM.round()} hm · etwa ${routeTimeLabel(s.timeS)}';
 
@@ -562,6 +569,17 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
       // Das Profil der Runde (#234) gleich darunter, kompakt: Eingeklappt
       // gehört es mit Summe und Knöpfen zu dem, was zu sehen ist.
       RouteElevationProfile(plan.points, key: const ValueKey('loop-elevation')),
+      RouteTuneNote(
+        tuned: session.tuned,
+        onReset: () => unawaited(ref.read(loopPlannerProvider.notifier).resetTuning()),
+        keyPrefix: 'loop',
+      ),
+      if (session.tuned && !_fitsBudget(s, session.prefs.budget))
+        Text(
+          key: const ValueKey('loop-tuned-over'),
+          'So gezogen liegt die Runde über deinem Budget.',
+          style: theme.textTheme.bodySmall?.copyWith(color: palette.warningText),
+        ),
       // Die Knöpfe gleich unter den Summen: Eingeklappt sind sie zu sehen,
       // die Runde darüber.
       const SizedBox(height: 8),
@@ -709,6 +727,9 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
         LoopOutcome.ok => '',
         LoopOutcome.startOffNetwork => 'In ${kGraphAttachM.round()} m um den Start liegt kein Weg aus der Karte.',
         LoopOutcome.endOffNetwork => 'In ${kGraphAttachM.round()} m um das Ziel liegt kein Weg aus der Karte.',
+        // Wird nie gezeigt: Ein getuntes Ergebnis, das nicht geht, ersetzt
+        // das gezeigte nicht (#234).
+        LoopOutcome.viaFailed => 'Durch die Zwischenpunkte führt kein Weg.',
         LoopOutcome.empty => 'Kein gewählter Trail passt in die Runde — die Gründe stehen je Trail. '
             'Mehr Zeit oder Höhenmeter unter Parameter, oder ein anderer Start.',
       };
@@ -753,6 +774,10 @@ List<MapViewPolyline> loopSelectionLines(Iterable<Trail> trails, LoopSession s) 
 List<MapViewPolyline> loopPreviewLines(LoopPlan plan) {
   if (plan.outcome != LoopOutcome.ok) return const [];
   final c = AppColors.mapLines.ride;
+  final legs = legLinesOf([
+    for (final s in plan.sections)
+      if (s.leg != null) (s.leg!, s.points),
+  ]);
   return [
     MapViewPolyline(points: plan.points, color: c.withValues(alpha: 0.35), width: 2),
     for (final s in plan.sections)
@@ -766,6 +791,8 @@ List<MapViewPolyline> loopPreviewLines(LoopPlan plan) {
           dash: s.hiking ? const [10, 8] : null,
           borderColor: AppColors.mapLines.halo,
           borderWidth: AppColors.mapLines.haloBorderWidth,
+          // Ein Tipp setzt einen Zwischenpunkt (#234).
+          hitValue: s.leg == null ? null : RouteLegHit(s.leg!, legs[s.leg]!),
         ),
   ];
 }

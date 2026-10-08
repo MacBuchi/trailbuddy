@@ -53,7 +53,9 @@ void main() {
   Future<List<String>> run(WidgetTester tester, String id) async {
     await openDiscover(tester);
     final button = find.byKey(ValueKey('show-$id'));
-    await tester.scrollUntilVisible(button, 300,
+    // Mehr als die Vorgabe von 50 Zügen: Auf 360×740 ist „Entdecken" seit
+    // 0.93.0 länger als 50 × 300 px — der letzte Eintrag kam nie ins Bild.
+    await tester.scrollUntilVisible(button, 300, maxScrolls: 120,
         scrollable: find.descendant(of: find.byKey(const ValueKey('discover-list')), matching: find.byType(Scrollable)));
     await tester.ensureVisible(button);
     await settle(tester, frames: 3);

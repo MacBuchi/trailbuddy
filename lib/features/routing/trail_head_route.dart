@@ -16,6 +16,7 @@ import '../trails/gpx.dart';
 import 'road_graph.dart';
 import 'route_profile.dart';
 import 'route_search.dart';
+import 'route_vias.dart';
 
 /// Rand um den Rahmen aus Standort und Trailkopf, in dem Kacheln gelesen
 /// werden: Ein Umweg um einen Hang liegt selten im engen Rechteck der
@@ -34,6 +35,9 @@ enum TrailHeadOutcome {
 
   /// Beide hängen am Graphen, aber nicht aneinander (Einbahn, Insel).
   noPath,
+
+  /// In [kGraphAttachM] um einen Zwischenpunkt (#234) liegt kein Weg.
+  viaOffNetwork,
 }
 
 /// Ein Stück der Route mit EINER Wegklasse — die Vorschau zeichnet
@@ -80,14 +84,23 @@ class TrailHeadPlan {
   final TrailHeadRoute? route;
 }
 
-/// Plant den Weg von [from] zum Trailkopf [head] auf [g] mit [profile].
-TrailHeadPlan planTrailHeadRoute(RoadGraph g, LatLng from, LatLng head, RiderParams profile) {
+/// Plant den Weg von [from] zum Trailkopf [head] auf [g] mit [profile],
+/// mit [via] durch die Zwischenpunkte des einen Teilstücks (#234).
+TrailHeadPlan planTrailHeadRoute(RoadGraph g, LatLng from, LatLng head, RiderParams profile,
+    {List<LatLng> via = const []}) {
   final src = g.attach(from);
   if (src == null) return const TrailHeadPlan(TrailHeadOutcome.startOffNetwork);
   final dst = g.attach(head);
   if (dst == null) return const TrailHeadPlan(TrailHeadOutcome.headOffNetwork);
   final List<int> edges;
-  if (src == dst) {
+  if (via.isNotEmpty) {
+    final r = pathThrough(g, src, dst, via, profile);
+    if (r.edges == null) {
+      return TrailHeadPlan(
+          r.failure == ViaFailure.offNetwork ? TrailHeadOutcome.viaOffNetwork : TrailHeadOutcome.noPath);
+    }
+    edges = r.edges!;
+  } else if (src == dst) {
     edges = const [];
   } else {
     final r = shortestPath(g, src, dst, profile);

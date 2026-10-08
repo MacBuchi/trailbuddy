@@ -52,6 +52,7 @@ import '../trails/trail_navigation.dart';
 import '../trails/trail_providers.dart';
 import 'loop_planner.dart';
 import 'loop_planner_providers.dart';
+import 'loop_planner_sheet.dart' show loopPreviewLines;
 import 'map_panel.dart';
 import 'planning_graph.dart';
 import 'ride_calibrator.dart';
@@ -59,6 +60,9 @@ import 'road_graph.dart';
 import 'route_elevation.dart';
 import 'route_profile.dart';
 import 'route_search.dart' show steepNote;
+import 'route_via_providers.dart';
+import 'route_vias.dart';
+import 'via_handles.dart';
 import 'trail_head_providers.dart';
 import 'trail_head_route.dart';
 
@@ -92,6 +96,7 @@ Future<void> showRouteSheet(ScaffoldState scaffold, RouteTarget target, {RouteMo
     builder: (context, scroll, panel) => _RouteSheet(target: target, mode: mode, scroll: scroll, panel: panel),
   );
   container.read(trailHeadPreviewProvider.notifier).state = const [];
+  container.read(routeViaProvider.notifier).end(ViaOwner.route);
 }
 
 /// „Zum Trailkopf" — der bisherige Einstieg.
@@ -129,6 +134,12 @@ class _RouteSheetState extends ConsumerState<_RouteSheet> {
   LoopPlan? _fun;
   bool _funEmpty = false;
   bool _fitted = false;
+
+  /// Die Zwischenpunkte, mit denen das gezeigte Ergebnis gerechnet ist
+  /// (#234), und ob es von Hand getunt ist.
+  RouteVias _vias = RouteVias.none;
+  bool _tuned = false;
+  int _tuneSeq = 0;
 
   bool get _isTrail => widget.target.trail != null;
 
@@ -216,18 +227,12 @@ class _RouteSheetState extends ConsumerState<_RouteSheet> {
       var funEmpty = false;
       final direct = plan.route;
       if (_mode == RouteMode.fun && direct != null) {
-        final hikingKm = prefs.hikingKm;
-        final t = direct.summary.timeS, c = direct.summary.gainM;
         final result = planLoop(
           graph,
           start: from,
           end: widget.target.point,
           profile: rider,
-          budget: LoopBudget(
-            timeS: math.max(t * kFunTimeFactor, t + kFunExtraS) / (1 - kLoopTimeReserve),
-            climbM: math.max(c * kFunClimbFactor, c + kFunExtraClimbM),
-            hikingM: math.max(hikingKm * 1000, direct.summary.hikingM),
-          ),
+          budget: _funBudget(direct, prefs),
           pool: [for (final t in _funPool(from)) poolTrailOf(t)],
           returnToStart: false,
         );
@@ -238,14 +243,23 @@ class _RouteSheetState extends ConsumerState<_RouteSheet> {
         }
       }
       if (!mounted) return;
+      _tuneSeq++;
       setState(() {
         _phase = _Phase.done;
         _plan = plan;
         _fun = fun;
         _funEmpty = funEmpty;
         _blocker = null;
+        _vias = RouteVias.none;
+        _tuned = false;
       });
       final lines = fun != null ? funPreviewLines(fun) : previewLinesOf(plan.route);
+      // Frei gerechnet: Zwischenpunkte fangen neu an (#234).
+      if (lines.isNotEmpty) {
+        ref.read(routeViaProvider.notifier).begin(ViaOwner.route);
+      } else {
+        ref.read(routeViaProvider.notifier).end(ViaOwner.route);
+      }
       if (lines.isEmpty) return;
       if (!_fitted) await widget.panel.resizeTo(kMapPanelResult);
       if (!mounted) return;
@@ -261,6 +275,73 @@ class _RouteSheetState extends ConsumerState<_RouteSheet> {
         _phase = _Phase.done;
         _blocker = _Blocker.failed;
       });
+    }
+  }
+
+  LoopBudget _funBudget(TrailHeadRoute direct, LoopPrefs prefs) {
+    final t = direct.summary.timeS, c = direct.summary.gainM;
+    return LoopBudget(
+      timeS: math.max(t * kFunTimeFactor, t + kFunExtraS) / (1 - kLoopTimeReserve),
+      climbM: math.max(c * kFunClimbFactor, c + kFunExtraClimbM),
+      hikingM: math.max(prefs.hikingKm * 1000, direct.summary.hikingM),
+    );
+  }
+
+  /// Dieselbe Route durch [vias] (#234): der direkte Weg mit Punkten im
+  /// einen Teilstück, der spaßige mit fester Folge der Trails. Das
+  /// Ergebnis bleibt stehen, bis das neue da ist; geht es nicht, kommen
+  /// die alten Punkte zurück.
+  Future<void> _retune(RouteVias vias) async {
+    final graph = _loaded?.graph;
+    final from = _from;
+    final direct = _plan?.route;
+    if (graph == null || from == null || direct == null || _phase != _Phase.done) {
+      ref.read(routeViaProvider.notifier).reject(_vias);
+      return;
+    }
+    final seq = ++_tuneSeq;
+    // Ein Bild, damit der Punkt dort steht, wo er losgelassen wurde.
+    await WidgetsBinding.instance.endOfFrame;
+    if (!mounted || seq != _tuneSeq) return;
+    final prefs = LoopPrefs.parse(ref.read(settingsProvider).loopPlannerPrefs, _profile);
+    final rider = ref.read(calibratedRiderProvider(_profile)).withPrefs(prefs.route);
+    try {
+      final fun = _fun;
+      TrailHeadPlan? plan;
+      LoopPlan? tunedFun;
+      if (fun != null) {
+        tunedFun = planLoop(
+          graph,
+          start: from,
+          end: widget.target.point,
+          profile: rider,
+          budget: _funBudget(direct, prefs),
+          pool: [for (final t in _funPool(from)) poolTrailOf(t)],
+          returnToStart: false,
+          tune: LoopTune.of(fun, vias),
+        );
+        if (tunedFun.outcome != LoopOutcome.ok) tunedFun = null;
+      } else {
+        plan = planTrailHeadRoute(graph, from, widget.target.point, rider, via: vias.of(0));
+        if (plan.route == null) plan = null;
+      }
+      if (!mounted || seq != _tuneSeq) return;
+      if (plan == null && tunedFun == null) {
+        ref.read(routeViaProvider.notifier).reject(_vias);
+        return;
+      }
+      setState(() {
+        if (plan != null) _plan = plan;
+        if (tunedFun != null) _fun = tunedFun;
+        _vias = vias;
+        _tuned = true;
+      });
+      ref.read(trailHeadPreviewProvider.notifier).state =
+          tunedFun != null ? funPreviewLines(tunedFun) : previewLinesOf(plan!.route);
+    } catch (e, s) {
+      logError('Route tunen', e, s);
+      if (!mounted || seq != _tuneSeq) return;
+      ref.read(routeViaProvider.notifier).reject(_vias);
     }
   }
 
@@ -305,6 +386,11 @@ class _RouteSheetState extends ConsumerState<_RouteSheet> {
 
   @override
   Widget build(BuildContext context) {
+    // Die Karte ändert die Punkte, hier wird gerechnet (#234).
+    ref.listen(routeViaProvider, (_, next) {
+      if (next == null || next.owner != ViaOwner.route || next.vias == _vias) return;
+      unawaited(_retune(next.vias));
+    });
     final target = widget.target;
     final hasRoute = _points != null;
     return ListView(
@@ -430,6 +516,7 @@ class _RouteSheetState extends ConsumerState<_RouteSheet> {
         Text(_mixLine(route.summary.mix), style: theme.textTheme.bodyMedium),
       // Das Profil des Wegs (#234), wie im Ergebnis der Runde.
       RouteElevationProfile(fun?.points ?? route.points, key: const ValueKey('trail-head-elevation')),
+      RouteTuneNote(tuned: _tuned, onReset: () => unawaited(_replan()), keyPrefix: 'trail-head'),
       if (_mode == RouteMode.fun && _funEmpty) ...[
         const SizedBox(height: 8),
         Text(
@@ -523,6 +610,7 @@ class _RouteSheetState extends ConsumerState<_RouteSheet> {
         TrailHeadOutcome.headOffNetwork => _isTrail
             ? 'In ${kGraphAttachM.round()} m um den Trailkopf liegt kein Weg aus der Karte.'
             : 'In ${kGraphAttachM.round()} m um das Ziel liegt kein Weg aus der Karte.',
+        TrailHeadOutcome.viaOffNetwork => 'In ${kGraphAttachM.round()} m um einen Zwischenpunkt liegt kein Weg.',
         TrailHeadOutcome.noPath => 'Die Wege in deinen Bereichen verbinden Standort und '
             '${_isTrail ? 'Trailkopf' : 'Ziel'} nicht — vielleicht fehlt ein Stück Bereich dazwischen.',
       };
@@ -540,6 +628,8 @@ String _mixLine(Map<WayClass, double> mix) {
 List<MapViewPolyline> previewLinesOf(TrailHeadRoute? route) {
   if (route == null) return const [];
   final c = AppColors.mapLines.ride;
+  // Ein Teilstück (0): ein Tipp setzt dort einen Zwischenpunkt (#234).
+  final hit = RouteLegHit(0, route.points);
   return [
     MapViewPolyline(
       points: route.points,
@@ -554,26 +644,10 @@ List<MapViewPolyline> previewLinesOf(TrailHeadRoute? route) {
         dash: s.hiking ? const [10, 8] : null,
         borderColor: AppColors.mapLines.halo,
         borderWidth: AppColors.mapLines.haloBorderWidth,
+        hitValue: hit,
       ),
   ];
 }
 
-/// Der spaßige Weg: dieselbe Sprache wie die Runde (`loopPreviewLines`).
-List<MapViewPolyline> funPreviewLines(LoopPlan plan) {
-  final c = AppColors.mapLines.ride;
-  return [
-    MapViewPolyline(points: plan.points, color: c.withValues(alpha: 0.35), width: 2),
-    for (final s in plan.sections)
-      if (s.isTrail)
-        MapViewPolyline(points: s.points, color: c.withValues(alpha: 0.45), width: 9)
-      else
-        MapViewPolyline(
-          points: s.points,
-          color: c,
-          width: 5,
-          dash: s.hiking ? const [10, 8] : null,
-          borderColor: AppColors.mapLines.halo,
-          borderWidth: AppColors.mapLines.haloBorderWidth,
-        ),
-  ];
-}
+/// Der spaßige Weg: dieselbe Sprache wie die Runde.
+List<MapViewPolyline> funPreviewLines(LoopPlan plan) => loopPreviewLines(plan);

@@ -8,8 +8,11 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:pmtiles/pmtiles.dart';
 import 'package:trailbuddy/core/gpx_share.dart';
+import 'package:trailbuddy/features/map/map_view/map_hit_test.dart' show projectToScreen;
+import 'package:trailbuddy/features/map/map_view/map_view.dart';
 import 'package:trailbuddy/features/offline_areas/area_plan.dart';
 import 'package:trailbuddy/features/offline_areas/area_store.dart';
 import 'package:trailbuddy/features/offline_areas/pmtiles_writer.dart';
@@ -210,6 +213,72 @@ void main() {
     await settle(tester);
     expect(find.byKey(const ValueKey('trail-head-summary')), findsNothing);
     expect(routeLines(tester), isEmpty);
+  });
+
+  testWidgets('Zwischenpunkt (#234): Tipp auf die Linie, ziehen, zurück, entfernen', (tester) async {
+    await start(tester, areaStore: await _areaWithTrack());
+    await tapTrailHead(tester);
+    expect(find.byKey(const ValueKey('trail-head-tune-hint')), findsOneWidget);
+    expect(find.byKey(const ValueKey('via-handle-0-0')), findsNothing);
+    Iterable<MapViewMarker> viaMarks() =>
+        fakeMapLayers(tester).markers.where((m) => '${m.key}'.contains("'via-"));
+
+    // Ein Tipp auf die Verbindung zwischen Standort und Trailkopf.
+    final mid = LatLng((_fromLat + 48.0) / 2, _lon);
+    await tapMapAt(tester, mid);
+    await settle(tester);
+    expect(viaMarks(), hasLength(1));
+    expect(viaMarks().single.point, mid);
+    expect(find.byKey(const ValueKey('via-handle-0-0')), findsOneWidget);
+    expect(find.byKey(const ValueKey('trail-head-tuned')), findsOneWidget);
+    expect(routeLines(tester), hasLength(1), reason: 'die Route liegt weiter auf der Karte');
+
+    // Weit weg von jedem Weg gezogen: zurück an den Platz, mit Satz.
+    await tester.drag(find.byKey(const ValueKey('via-handle-0-0')), const Offset(300, 0));
+    await settle(tester);
+    expect(find.byKey(const ValueKey('via-rejected')), findsOneWidget);
+    expect(viaMarks().single.point, mid);
+
+    // Ein Stück den Weg entlang gezogen: der Punkt wandert mit.
+    await tester.drag(find.byKey(const ValueKey('via-handle-0-0')), const Offset(0, -40));
+    await settle(tester);
+    // Die ganzen 40 px, nicht 40 minus die Schwelle der Geste: Der Punkt
+    // bleibt unter dem Finger.
+    final cam = fakeMap(tester).camera;
+    final shift = projectToScreen(cam, viaMarks().single.point) - projectToScreen(cam, mid);
+    expect(shift.dy, closeTo(-40, 1));
+    expect(shift.dx, closeTo(0, 1));
+
+    // Ein Tipp auf den Punkt nimmt ihn weg, Rückgängig holt ihn zurück.
+    final moved = viaMarks().single.point;
+    await tester.tap(find.byKey(const ValueKey('via-handle-0-0')));
+    await settle(tester);
+    expect(viaMarks(), isEmpty);
+    expect(find.byKey(const ValueKey('via-removed')), findsOneWidget);
+    await tester.tap(find.text('Rückgängig'));
+    await settle(tester);
+    expect(viaMarks().single.point, moved);
+
+    // Zurücksetzen rechnet frei: keine Punkte, wieder der Hinweis. Erst
+    // das Blatt hochziehen — eingeklappt liegt die Zeile unter dem Rand.
+    await tester.drag(
+        find.descendant(of: find.byType(DraggableScrollableSheet), matching: find.byType(Scrollable)).first,
+        const Offset(0, -400));
+    await settle(tester, frames: 4);
+    await tester.ensureVisible(find.byKey(const ValueKey('trail-head-tune-reset')));
+    await tester.tap(find.byKey(const ValueKey('trail-head-tune-reset')));
+    await settle(tester);
+    expect(viaMarks(), isEmpty);
+    expect(find.byKey(const ValueKey('trail-head-tune-hint')), findsOneWidget);
+
+    // Blatt zu ⇒ keine Griffe mehr.
+    await tapMapAt(tester, mid);
+    await settle(tester);
+    expect(viaMarks(), hasLength(1));
+    await tester.tap(find.byKey(const ValueKey('trail-head-close')));
+    await settle(tester);
+    expect(viaMarks(), isEmpty);
+    expect(find.byKey(const ValueKey('via-handles')), findsNothing);
   });
 
   testWidgets('ohne gespeicherten Bereich: ein Satz und die Anfahrt, kein GPX', (tester) async {

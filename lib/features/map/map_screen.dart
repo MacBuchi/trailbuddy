@@ -26,6 +26,9 @@ import '../routing/loop_planner_providers.dart';
 import '../routing/loop_planner_sheet.dart';
 import '../routing/loop_tool_rail.dart';
 import '../routing/map_panel.dart';
+import '../routing/route_via_providers.dart';
+import '../routing/route_vias.dart';
+import '../routing/via_handles.dart';
 import '../routing/trail_head_providers.dart';
 import '../routing/trail_head_sheet.dart';
 import '../trails/trail_navigation.dart' show formatCoordinates, navigateToPoint;
@@ -455,11 +458,30 @@ class _MapScreenState extends ConsumerState<MapScreen> {
 
   bool _loopPanelOpen = false;
 
+  /// Ein Tipp auf einen Zwischenpunkt nimmt ihn weg — mit Rückgängig.
+  void _removeVia(ViaRef r) {
+    final notifier = ref.read(routeViaProvider.notifier);
+    final before = ref.read(routeViaProvider)?.vias;
+    if (before == null) return;
+    notifier.remove(r);
+    ScaffoldMessenger.of(context)
+      ..clearSnackBars()
+      ..showSnackBar(SnackBar(
+        key: const ValueKey('via-removed'),
+        content: const Text('Zwischenpunkt entfernt.'),
+        action: SnackBarAction(label: 'Rückgängig', onPressed: () => notifier.set(before)),
+      ));
+  }
+
   void _onHit(Object hit, MapTap tap) {
     // Auch ein Tipp auf eine Linie ist ein Punkt, solange der Planer
     // seinen Start sucht — ein Trailkopf ist ein guter Start.
     if (_takeLoopStart(tap)) return;
     switch (hit) {
+      // Ein Tipp auf die Verbindung eines Ergebnisses: ein Zwischenpunkt
+      // (#234), solange sein Ergebnis die Punkte annimmt.
+      case final RouteLegHit h:
+        ref.read(routeViaProvider.notifier).insert(h, tap.point);
       case final Trail t:
         // Im Planer wählt ein Tipp den Trail an oder ab (#178).
         if (ref.read(loopPlannerProvider).open) {
@@ -686,6 +708,13 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     final loop = ref.watch(loopPlannerProvider);
     final loopPicking = loop.open && loop.pickingStart;
     final loopPlan = loop.open ? loop.plan : null;
+    // Zwischenpunkte (#234), solange ihr Ergebnis auf der Karte liegt.
+    final viaEdit = ref.watch(routeViaProvider);
+    final vias = switch (viaEdit) {
+      ViaEdit(owner: ViaOwner.loop, :final vias) when loopPlan != null => vias,
+      ViaEdit(owner: ViaOwner.route, :final vias) when trailHeadPreview.isNotEmpty => vias,
+      _ => null,
+    };
     final panelInset = ref.watch(mapPanelInsetProvider);
     // Der ausgewählte Trail (#178) — weg, wenn er nicht mehr gezeigt wird
     // (Filter, gelöscht).
@@ -768,6 +797,15 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       });
     });
     // „Auf der Karte zeigen" aus „Meine Bereiche" (Konzept-Schritt 3).
+    // Ein Zwischenpunkt, durch den kein Weg geht, springt zurück (#234).
+    ref.listen(routeViaProvider, (prev, next) {
+      if (prev == null || next == null || next.rejections <= prev.rejections) return;
+      ScaffoldMessenger.of(context)
+        ..clearSnackBars()
+        ..showSnackBar(const SnackBar(
+            key: ValueKey('via-rejected'),
+            content: Text('Dort führt kein Weg durch — der Punkt ist zurück an seinem Platz.')));
+    });
     ref.listen(mapFocusAreaProvider, (_, area) {
       if (area == null) return;
       _fittedOnce = true;
@@ -895,6 +933,8 @@ class _MapScreenState extends ConsumerState<MapScreen> {
             alignment: Alignment.topCenter,
             child: const LoopStartFlag(),
           ),
+        // Die Zwischenpunkte der Route (#234) — angefasst über die Griffe.
+        if (vias != null) ...viaMarkers(vias),
         // Die Nadel des langen Drucks (#177), solange sein Menü offen ist.
         if (_pressedPoint != null)
           MapViewMarker(
@@ -1009,6 +1049,18 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                             ? 'In dem Gebiet liegt kein wählbarer Trail.'
                             : '$n ${n == 1 ? 'Trail' : 'Trails'} ${loop.drawTool == AreaDrawTool.add ? 'dazu' : 'weg'}.')));
                 },
+              ),
+            ),
+          // Die Griffe der Zwischenpunkte (#234): nur sie fangen
+          // Berührungen, der Rest geht zur Karte durch.
+          if (vias != null && camera != null && drawTool == null && loop.drawTool == null)
+            Positioned.fill(
+              child: ViaHandles(
+                key: const ValueKey('via-handles'),
+                camera: camera,
+                vias: vias,
+                onMove: (r, p) => ref.read(routeViaProvider.notifier).move(r, p),
+                onRemove: _removeVia,
               ),
             ),
           if (trailsAsync.isLoading && trails.isEmpty)

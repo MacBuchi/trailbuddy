@@ -35,6 +35,7 @@ class LoopRequest {
     required this.pool,
     this.returnToStart = true,
     this.searchBudget = kLoopSearchBudget,
+    this.tune,
   });
 
   final LatLng start;
@@ -44,6 +45,9 @@ class LoopRequest {
   final bool returnToStart;
   final Duration searchBudget;
 
+  /// Von Hand getunt (#234): feste Folge, Teilstücke durch Zwischenpunkte.
+  final LoopTune? tune;
+
   LoopPlan planOn(RoadGraph g, {LoopSearchCache? cache}) => planLoop(g,
       start: start,
       profile: profile,
@@ -51,7 +55,8 @@ class LoopRequest {
       pool: pool,
       returnToStart: returnToStart,
       searchBudget: searchBudget,
-      cache: cache);
+      cache: cache,
+      tune: tune);
 }
 
 abstract interface class LoopPlanRunner {
