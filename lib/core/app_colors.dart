@@ -34,6 +34,16 @@ abstract final class AppColors {
   /// background-Ebene im Style).
   static const mapBackground = Color(0xFFE2DFDA);
 
+  /// Die Höhenlinien (#271) — kühles Graublau gegen die warme Karte, aus
+  /// PilzBuddy übernommen: Die Wege sind Braun (Design 5a), die Trails
+  /// tragen die Pistenfarben; ein Braun hier hieße „Pfad", ein Blau „S1".
+  /// Dezent wird es über Deckkraft und Breite (`contour_layer.dart`),
+  /// nicht über eine blassere Farbe — die verschwände auf Waldgrün.
+  static const contourLine = Color(0xFF5B6B7A);
+
+  /// Die Zahlen an den Hauptlinien, mit weißem Hof.
+  static const contourLabel = Color(0xFF44515C);
+
   /// Die Linienfarben AUF DER KARTE. Die Karte ist (noch) immer der
   /// helle Protomaps-Stil, auch im dunklen Modus der App — deshalb gilt
   /// dort der helle Satz samt weißem Saum, nicht der des App-Modus: Lime

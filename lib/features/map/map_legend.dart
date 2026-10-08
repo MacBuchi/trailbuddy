@@ -24,6 +24,8 @@ import '../../core/app_colors.dart';
 import '../../core/settings.dart';
 import '../../core/widgets/motion.dart';
 import '../trails/grade_shield.dart';
+import 'contour_layer.dart';
+import 'contour_providers.dart';
 import 'map_buttons.dart';
 import 'way_layer.dart';
 
@@ -41,10 +43,16 @@ typedef LegendSample = ({
   List<double>? borderDash,
   double opacity,
   WayClass? way,
+  bool contour,
 });
 
 LegendSample _line(String label, int group, Color color,
-        {List<double>? dash, Color? border, List<double>? borderDash, double opacity = 1, WayClass? way}) =>
+        {List<double>? dash,
+        Color? border,
+        List<double>? borderDash,
+        double opacity = 1,
+        WayClass? way,
+        bool contour = false}) =>
     (
       label: label,
       group: group,
@@ -54,6 +62,7 @@ LegendSample _line(String label, int group, Color color,
       borderDash: borderDash,
       opacity: opacity,
       way: way,
+      contour: contour,
     );
 
 /// Die Gruppe der Wege-Proben je Wegart: Forstweg 4, Pfad 5.
@@ -67,8 +76,10 @@ int _wayGroup(WayKind kind) => kind == WayKind.track ? 4 : 5;
 ///
 /// Die Wege (#212) stehen am Ende und nur, solange ihre Ebene an ist
 /// ([ways]) — eine Probe für etwas, das die Karte gerade nicht zeigt,
-/// ließe suchen.
-List<LegendSample> legendSamples({bool ways = true}) {
+/// ließe suchen. Ebenso die Höhenlinien (#271): nur, solange welche
+/// liegen, mit dem Abstand, den die Karte WIRKLICH zeigt ([contourM]) —
+/// er folgt dem Gelände, also muss ihn jemand sagen.
+List<LegendSample> legendSamples({bool ways = true, int? contourM}) {
   const g = AppColors.mapGrades;
   const m = AppColors.mapLines;
   return [
@@ -87,6 +98,11 @@ List<LegendSample> legendSamples({bool ways = true}) {
     _line('offizieller Trail', 3, m.official, dash: const [6, 4]),
     if (ways)
       for (final c in WayClass.values) _line(c.label, _wayGroup(c.kind), c.color, way: c),
+    if (contourM != null) ...[
+      _line('alle $contourM m', 6, AppColors.contourLine, opacity: kContourOpacity, contour: true),
+      _line('Zahl alle ${contourIndexStepM(contourM)} m', 6, AppColors.contourLine,
+          opacity: kContourIndexOpacity, contour: true),
+    ],
   ];
 }
 
@@ -99,6 +115,7 @@ String? legendGroupTitle(int group) => switch (group) {
       2 => 'Am Trail',
       4 => 'Forstweg',
       5 => 'Pfad',
+      6 => 'Höhenlinien',
       _ => null,
     };
 
@@ -122,6 +139,14 @@ class LegendLinePainter extends CustomPainter {
     final b = Offset(size.width - 2, y);
     if (sample.way case final way?) {
       paintWayStroke(canvas, a, b, way, way.width * _wayScale);
+      return;
+    }
+    if (sample.contour) {
+      // Ohne Saum, so dünn wie auf der Karte — doppelt so breit, damit man
+      // die Probe in der Legende überhaupt sieht.
+      final index = sample.opacity == kContourIndexOpacity;
+      _stroke(canvas, a, b, sample.color.withValues(alpha: sample.opacity),
+          2 * (index ? kContourIndexWidth : kContourWidth), null);
       return;
     }
     // Erst der Saum (weiß, auf Wunsch gestrichelt), dann ein farbiger
@@ -176,12 +201,17 @@ class MapLegend extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final open = ref.watch(mapLegendOpenProvider);
     final ways = ref.watch(wayLayerEnabledProvider);
+    // Nur beobachtet, wenn der Schalter an ist — sonst läse die Legende
+    // nichts, und der Provider prüft den Schalter ohnehin zuerst.
+    final contourM = ref.watch(contourLayerEnabledProvider)
+        ? ref.watch(contourStateProvider).valueOrNull?.contours?.equidistanceM
+        : null;
     void toggle() => ref.read(mapLegendOpenProvider.notifier).set(!open);
     return AnimatedSize(
       duration: reduceMotion(context) ? Duration.zero : const Duration(milliseconds: 180),
       curve: Curves.easeOutCubic,
       alignment: Alignment.centerLeft,
-      child: open ? _Panel(onClose: toggle, ways: ways) : _Tab(onOpen: toggle),
+      child: open ? _Panel(onClose: toggle, ways: ways, contourM: contourM) : _Tab(onOpen: toggle),
     );
   }
 }
@@ -256,10 +286,11 @@ String? _titleAt(List<LegendSample> samples, int i) =>
 
 /// Auf: die Proben untereinander, oben „Legende" mit dem Weg zurück.
 class _Panel extends StatelessWidget {
-  const _Panel({required this.onClose, required this.ways});
+  const _Panel({required this.onClose, required this.ways, this.contourM});
 
   final VoidCallback onClose;
   final bool ways;
+  final int? contourM;
 
   @override
   Widget build(BuildContext context) {
@@ -268,7 +299,7 @@ class _Panel extends StatelessWidget {
     final label = theme.bodySmall?.copyWith(color: text);
     final heading = theme.labelSmall?.copyWith(
         color: AppColors.light.muted, letterSpacing: 0.8, fontWeight: FontWeight.w600);
-    final samples = legendSamples(ways: ways);
+    final samples = legendSamples(ways: ways, contourM: contourM);
     return Container(
       key: const ValueKey('map-legend-panel'),
       width: kMapLegendWidth,

@@ -9,6 +9,7 @@ import '../../models/trail.dart';
 import '../official/official_trails_source.dart';
 import '../trails/trail_filter_chips.dart';
 import '../trails/trail_providers.dart';
+import 'contour_providers.dart';
 import 'map_view/map_view.dart';
 import 'poi.dart';
 import 'poi_source.dart';
@@ -264,6 +265,7 @@ class _PoiFilterSheet extends ConsumerWidget {
     final hidden = ref.watch(poiHiddenKindsProvider);
     final official = ref.watch(officialTrailsEnabledProvider);
     final ways = ref.watch(wayLayerEnabledProvider);
+    final contours = ref.watch(contourLayerEnabledProvider);
     final trails = ref.watch(trailsProvider).valueOrNull ?? const <Trail>[];
     final text = Theme.of(context).textTheme;
     return SafeArea(
@@ -325,6 +327,27 @@ class _PoiFilterSheet extends ConsumerWidget {
                     'aus OpenStreetMap, ab Zoomstufe $kWaysZoom'),
                 value: ways,
                 onChanged: (v) => ref.read(wayLayerEnabledProvider.notifier).set(v),
+              ),
+            ),
+            // Die Höhenlinien (#271, Betreiber: „pack es in die Ebenen") —
+            // aus den Höhenkacheln, dezent unter den Wegen. Ab Werk aus.
+            // Der Untertitel sagt, was die Karte gerade zeigt oder warum
+            // nicht (zu weit draußen, keine Höhen hier).
+            CoachAnchor(
+              id: MapCoach.filterContours,
+              child: SwitchListTile(
+                key: const ValueKey('contour-layer-switch'),
+                secondary: const CircleAvatar(
+                  backgroundColor: AppColors.mapBackground,
+                  child: SizedBox(width: 26, height: 20, child: CustomPaint(painter: ContourSwatchPainter())),
+                ),
+                title: const Text('Höhenlinien'),
+                subtitle: Text(
+                  contours ? contourStatusText(ref.watch(contourStateProvider)) : 'Aus dem Geländemodell, dezent unter den Wegen',
+                  key: const ValueKey('contour-layer-status'),
+                ),
+                value: contours,
+                onChanged: (v) => ref.read(contourLayerEnabledProvider.notifier).set(v),
               ),
             ),
             CoachAnchor(
@@ -404,4 +427,29 @@ class _PoiFilterSheet extends ConsumerWidget {
       ),
     );
   }
+}
+
+
+/// Das Bild am Schalter „Höhenlinien": drei Linien übereinander, die
+/// mittlere kräftiger — wie auf der Karte.
+class ContourSwatchPainter extends CustomPainter {
+  const ContourSwatchPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    for (final (i, y) in [0.22, 0.5, 0.78].indexed) {
+      final index = i == 1;
+      final paint = Paint()
+        ..color = AppColors.contourLine.withValues(alpha: index ? 0.9 : 0.6)
+        ..strokeWidth = index ? 1.6 : 1.0
+        ..style = PaintingStyle.stroke;
+      final path = Path()
+        ..moveTo(1, size.height * y + 2)
+        ..quadraticBezierTo(size.width / 2, size.height * y - 4, size.width - 1, size.height * y + 1);
+      canvas.drawPath(path, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(ContourSwatchPainter oldDelegate) => false;
 }

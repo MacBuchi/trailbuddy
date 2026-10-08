@@ -9,6 +9,7 @@ import 'dart:ui';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:maplibre/maplibre.dart' as ml;
+import 'package:trailbuddy/features/map/contours.dart';
 import 'package:trailbuddy/features/map/map_view/keyed_layers.dart';
 import 'package:trailbuddy/features/map/map_view/map_view.dart';
 import 'package:trailbuddy/features/map/map_view/maplibre_map_view.dart';
@@ -208,6 +209,39 @@ void main() {
       sync.reset();
       await sync.sync(fresh, [(key: 'x', layer: l1), (key: 'y', layer: l2)]);
       expect(fresh.order, hasLength(2));
+    });
+
+    test('Höhenlinien (#271): eigener Abgleich unter dem Anker, nie über den Trails', () async {
+      final style = RecordingStyle();
+      style.order.addAll(['earth', 'ways/track', 'labels']);
+      final trails = KeyedLayerSync();
+      final contours = KeyedLayerSync(firstSlot: kContourFirstSlot);
+      await trails.sync(style, [(key: 'x', layer: line(a))]);
+      final layers = contourKeyedLayers(const MapViewContours(key: 'k1', lines: [
+        ContourLine(level: 500, points: a, cells: 9),
+        ContourLine(level: 600, points: b, cells: 9, index: true),
+      ]));
+      await contours.sync(style, layers, below: 'ways/track');
+      final ids = [for (final k in layers) 'maplibre-layer-${kContourFirstSlot + layers.length - 1 - layers.indexOf(k)}'];
+      expect(style.order.sublist(1, 4), unorderedEquals(ids), reason: 'zwischen Fläche und Wegen');
+      expect(style.order.indexOf('ways/track'), greaterThan(style.order.indexOf(ids.first)));
+      expect(style.order.last, 'maplibre-layer-0', reason: 'die Trails bleiben zuoberst');
+      // Neue Linien: nur die Quellen, nichts wandert.
+      style.calls.clear();
+      await contours.sync(
+          style,
+          contourKeyedLayers(const MapViewContours(key: 'k2', lines: [
+            ContourLine(level: 500, points: b, cells: 9),
+            ContourLine(level: 600, points: a, cells: 9, index: true),
+          ])),
+          below: 'ways/track');
+      expect(style.calls.every((c) => c.startsWith('update ')), isTrue, reason: '${style.calls}');
+      // Ohne Anker unter die unterste eigene Ebene, nicht zuoberst.
+      final bare = RecordingStyle();
+      final t2 = KeyedLayerSync();
+      await t2.sync(bare, [(key: 'x', layer: line(a))]);
+      await KeyedLayerSync(firstSlot: kContourFirstSlot).sync(bare, layers, below: t2.bottomLayerId);
+      expect(bare.order.last, 'maplibre-layer-0');
     });
 
     test('scheitert ein Schritt, wird er gemeldet und beim nächsten Mal neu angelegt', () async {

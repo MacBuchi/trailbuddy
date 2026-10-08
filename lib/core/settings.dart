@@ -111,6 +111,12 @@ abstract interface class Settings {
 
   Future<void> setWayLayerEnabled(bool value);
 
+  /// Sind die Höhenlinien an (#271)? Vorgabe: aus — sie liest Höhenkacheln
+  /// und rechnet je Stillstand der Karte.
+  bool get contourLayerEnabled;
+
+  Future<void> setContourLayerEnabled(bool value);
+
   /// Ist die Legende auf der Karte aufgeklappt (#182)? Vorgabe: zu.
   bool get mapLegendOpen;
 
@@ -238,6 +244,14 @@ class PrefsSettings implements Settings {
 
   @override
   Future<void> setWayLayerEnabled(bool value) => _prefs.setBool(_wayLayerEnabledKey, value);
+
+  static const _contourLayerEnabledKey = 'contour_layer_enabled';
+
+  @override
+  bool get contourLayerEnabled => _prefs.getBool(_contourLayerEnabledKey) ?? false;
+
+  @override
+  Future<void> setContourLayerEnabled(bool value) => _prefs.setBool(_contourLayerEnabledKey, value);
 
   static const _mapLegendOpenKey = 'map_legend_open';
 

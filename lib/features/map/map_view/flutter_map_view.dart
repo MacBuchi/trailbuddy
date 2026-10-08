@@ -4,9 +4,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:vector_map_tiles/vector_map_tiles.dart' as vmt;
 
+import '../../../core/app_colors.dart';
 import '../../../core/connectivity.dart';
 import '../../offline_areas/area_providers.dart';
 import '../base_map_providers.dart';
+import '../contour_layer.dart';
 import '../finite_camera_constraint.dart';
 import '../online_map.dart';
 import '../way_layer.dart';
@@ -214,6 +216,35 @@ class _FlutterMapViewState extends ConsumerState<FlutterMapView>
             // läge sonst über der schärferen Online-Kachel darunter.
             maximumTileSubstitutionDifference: 0,
           ),
+        // Die Höhenlinien (#271) über der Karte, UNTER den Wegen — wie in
+        // MapLibre. Die Zahlen gleich dazu, damit Wege und Trails sie
+        // überdecken statt umgekehrt.
+        if (layers.contours case final contours?) ...[
+          PolylineLayer(polylines: [
+            for (final line in contours.lines)
+              Polyline(
+                points: line.points,
+                color: AppColors.contourLine
+                    .withValues(alpha: line.index ? kContourIndexOpacity : kContourOpacity),
+                strokeWidth: line.index ? kContourIndexWidth : kContourWidth,
+              ),
+          ]),
+          if (contours.labels.isNotEmpty)
+            IgnorePointer(
+              child: MarkerLayer(markers: [
+                for (final label in contours.labels)
+                  Marker(
+                    point: label.point,
+                    width: 44,
+                    height: 20,
+                    child: Transform.rotate(
+                      angle: label.angleRadians,
+                      child: Center(child: ContourLabelText('${label.level}')),
+                    ),
+                  ),
+              ]),
+            ),
+        ],
         if (ways != null)
           vmt.VectorTileLayer(
             key: ValueKey(ways.tileProviders),
@@ -384,6 +415,30 @@ class _HaloText extends StatelessWidget {
                 ..strokeWidth = 2 * kLineLabelHaloWidth
                 ..color = Colors.white)),
       Text(text, maxLines: 1, style: base.copyWith(color: const Color(0xFF131A16))),
+    ]);
+  }
+}
+
+
+/// Die Zahl an einer Höhenlinie: klein, Graublau, mit weißem Hof — wie
+/// MapLibre sie setzt (`ContourLabelLayer`).
+class ContourLabelText extends StatelessWidget {
+  const ContourLabelText(this.text, {super.key});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    const base = TextStyle(fontSize: kContourLabelSize, height: 1, letterSpacing: 0.3);
+    return Stack(children: [
+      Text(text,
+          maxLines: 1,
+          style: base.copyWith(
+              foreground: Paint()
+                ..style = PaintingStyle.stroke
+                ..strokeWidth = 2.8
+                ..color = Colors.white)),
+      Text(text, maxLines: 1, style: base.copyWith(color: AppColors.contourLabel)),
     ]);
   }
 }

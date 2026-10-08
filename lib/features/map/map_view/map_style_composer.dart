@@ -180,3 +180,25 @@ Object? _rewriteFonts(Object? node) {
   }
   return node;
 }
+
+/// Unter welche Ebene des Stils die Höhenlinien (#271) gehören: unter
+/// alles, was über der Karte selbst liegt — die Wege ([overlayPrefix]
+/// als Anfang ihrer Quellen-Kennung), die Beschriftungen (Symbol-Ebenen)
+/// und die Rasterquellen. Gesucht wird die zusammenhängende Folge solcher
+/// Ebenen am ENDE des Stils; die erste davon ist der Anker. Damit liegen
+/// die Linien über den Flächen jeder Kartenquelle (auch über den
+/// deckenden der gespeicherten Bereiche, #82) und unter Wegen und Namen.
+/// Null, wenn der Stil mit einer Kartenfläche endet — dann gehören die
+/// Linien zuoberst in den Stil.
+String? contourAnchorIn(String style, {required String overlayPrefix}) {
+  final layers = (jsonDecode(style) as Map<String, dynamic>)['layers'] as List<dynamic>;
+  String? anchor;
+  for (final layer in layers.reversed.cast<Map<String, dynamic>>()) {
+    final type = layer['type'];
+    final source = layer['source'];
+    final above = type == 'symbol' || type == 'raster' || (source is String && source.startsWith(overlayPrefix));
+    if (!above) break;
+    anchor = layer['id'] as String?;
+  }
+  return anchor;
+}

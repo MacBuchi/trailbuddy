@@ -18,12 +18,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:maplibre/maplibre.dart' as ml;
 
+import '../../../core/app_colors.dart';
 import '../../../core/errors.dart';
+import '../contour_layer.dart';
+import '../contours.dart' show ContourLine;
 import '../online_map.dart' show kSeenTilesCacheBytes;
+import '../way_layer.dart' show kWaysSourceId;
 import 'flutter_map_view.dart';
 import 'keyed_layers.dart';
 import 'map_attribution.dart';
 import 'map_hit_test.dart';
+import 'map_style_composer.dart' show contourAnchorIn;
 import 'map_view.dart';
 import 'maplibre_style_provider.dart';
 
@@ -74,6 +79,33 @@ class _MapLibreMapViewState extends ConsumerState<MapLibreMapView>
   List<KeyedLayer> _desired = const [];
   bool _syncScheduled = false;
 
+  /// Die Höhenlinien (#271) — ein eigener Abgleich mit eigenen Plätzen,
+  /// weil sie UNTER die Wege-Ebene des Stils gehören und nicht wie die
+  /// übrigen Ebenen zuoberst.
+  final _contourSync = KeyedLayerSync(firstSlot: kContourFirstSlot);
+  List<KeyedLayer> _contourDesired = const [];
+
+  /// Die Ebenen der letzten Linien, solange ihre Kennung gleich bleibt —
+  /// dieselben Objekte, also überträgt der Abgleich nichts.
+  ({String key, List<KeyedLayer> layers})? _contourCache;
+
+  /// Der Anker im aktuellen Stil, je Stil einmal gesucht.
+  ({String style, String? anchor})? _anchorOf;
+
+  String? get _contourAnchor {
+    final style = _appliedStyle;
+    if (style == null) return null;
+    if (_anchorOf case (style: final s, :final anchor) when identical(s, style)) return anchor;
+    String? anchor;
+    try {
+      anchor = contourAnchorIn(style, overlayPrefix: kWaysSourceId);
+    } catch (e, s) {
+      logError('Anker der Höhenlinien suchen', e, s);
+    }
+    _anchorOf = (style: style, anchor: anchor);
+    return anchor;
+  }
+
   /// Nach dem Bild abgleichen, einmal je Bild: Der Aufbau beschreibt nur,
   /// die Karte wird danach angefasst.
   void _scheduleSync() {
@@ -83,8 +115,24 @@ class _MapLibreMapViewState extends ConsumerState<MapLibreMapView>
       _syncScheduled = false;
       final style = _style;
       if (!mounted || style == null) return;
-      unawaited(_layerSync.sync(style, _desired));
+      _syncAll(style);
     });
+  }
+
+  void _syncAll(ml.StyleController style) {
+    unawaited(_layerSync.sync(style, _desired));
+    // Ohne Anker (ein Stil, der mit einer Fläche endet) unter die eigenen
+    // Ebenen, nie über sie: Zuoberst lägen die Linien über den Trails.
+    unawaited(_contourSync.sync(style, _contourDesired, below: _contourAnchor ?? _layerSync.bottomLayerId));
+  }
+
+  List<KeyedLayer> _contourLayersFor(MapViewContours? contours) {
+    if (contours == null) return const [];
+    final cached = _contourCache;
+    if (cached != null && cached.key == contours.key) return cached.layers;
+    final layers = contourKeyedLayers(contours);
+    _contourCache = (key: contours.key, layers: layers);
+    return layers;
   }
 
   /// Kamerawunsch aus der Zeit zwischen Einbau und Map-Ready (z. B. der
@@ -447,6 +495,7 @@ class _MapLibreMapViewState extends ConsumerState<MapLibreMapView>
 
     final layers = widget.layers;
     _desired = keyedLayers(layers, _lineCache);
+    _contourDesired = _contourLayersFor(layers.contours);
     _scheduleSync();
     // Startkamera aus der Fassade, nicht aus der Config: Ein `move()` vor
     // Map-Ready landet im Fallback-Zustand des Controllers.
@@ -467,7 +516,8 @@ class _MapLibreMapViewState extends ConsumerState<MapLibreMapView>
         // Ebenen mitgenommen, also alles neu anlegen.
         _style = style;
         _layerSync.reset();
-        unawaited(_layerSync.sync(style, _desired));
+        _contourSync.reset();
+        _syncAll(style);
       },
       onMapCreated: (controller) {
         _ml = controller;
@@ -664,6 +714,109 @@ class LineLabelLayer extends ml.Layer<ml.Feature<ml.LineString>> {
         'text-size': 12,
         'text-max-angle': 35,
         'symbol-spacing': 300,
+        'text-keep-upright': true,
+      };
+
+  @override
+  ml.StyleLayer createStyleLayer(int index) => ml.SymbolStyleLayer(
+        id: getLayerId(index),
+        sourceId: getSourceId(index),
+        paint: getPaint(),
+        layout: getLayout(),
+        minZoom: minZoom,
+        maxZoom: maxZoom,
+      );
+}
+
+
+/// Die Plätze der Höhenlinien beginnen hier — weit hinter allem, was der
+/// Abgleich der übrigen Ebenen je vergibt, damit keine Kennung doppelt ist.
+const kContourFirstSlot = 1 << 20;
+
+/// Die Ebenen der Höhenlinien (#271), unten zuerst: normale Linien,
+/// Hauptlinien, Zahlen.
+List<KeyedLayer> contourKeyedLayers(MapViewContours contours) {
+  ml.Feature<ml.LineString> feature(ContourLine l) => ml.Feature(
+        geometry: ml.LineString.build([
+          for (final p in l.points) ...[p.longitude, p.latitude],
+        ]),
+        properties: {'m': l.level},
+      );
+  final normal = [for (final l in contours.lines) if (!l.index) feature(l)];
+  final index = [for (final l in contours.lines) if (l.index) feature(l)];
+  return [
+    (
+      key: 'contour:normal',
+      layer: ContourLineLayer(
+          features: normal, color: AppColors.contourLine, width: kContourWidth, opacity: kContourOpacity),
+    ),
+    (
+      key: 'contour:index',
+      layer: ContourLineLayer(
+          features: index, color: AppColors.contourLine, width: kContourIndexWidth, opacity: kContourIndexOpacity),
+    ),
+    (key: 'contour:labels', layer: ContourLabelLayer(features: index)),
+  ];
+}
+
+String _hex(Color c) => '#${(c.toARGB32() & 0xFFFFFF).toRadixString(16).padLeft(6, '0')}';
+
+/// Eine Höhenlinien-Ebene mit gebrochener Breite und eigener Deckkraft —
+/// `ml.PolylineLayer` nimmt die Breite nur ganzzahlig, und 1 px wäre für
+/// „dezent" schon zu kräftig.
+class ContourLineLayer extends ml.Layer<ml.Feature<ml.LineString>> {
+  const ContourLineLayer({
+    required List<ml.Feature<ml.LineString>> features,
+    required this.color,
+    required this.width,
+    required this.opacity,
+  }) : super(list: features);
+
+  final Color color;
+  final double width;
+  final double opacity;
+
+  @override
+  Map<String, Object> getPaint() => {'line-color': _hex(color), 'line-opacity': opacity, 'line-width': width};
+
+  @override
+  Map<String, Object> getLayout() => const {'line-join': 'round', 'line-cap': 'round'};
+
+  @override
+  ml.StyleLayer createStyleLayer(int index) => ml.LineStyleLayer(
+        id: getLayerId(index),
+        sourceId: getSourceId(index),
+        paint: getPaint(),
+        layout: getLayout(),
+        minZoom: minZoom,
+        maxZoom: maxZoom,
+      );
+}
+
+/// Die Zahlen ENTLANG der Hauptlinien, wie Straßennamen: MapLibre dreht
+/// sie mit der Kurve, nie kopfüber, und lässt sie weg, wo sie mit anderem
+/// kollidieren. Selten (`symbol-spacing`), klein, mit weißem Hof.
+class ContourLabelLayer extends ml.Layer<ml.Feature<ml.LineString>> {
+  const ContourLabelLayer({required List<ml.Feature<ml.LineString>> features}) : super(list: features);
+
+  @override
+  Map<String, Object> getPaint() => {
+        'text-color': _hex(AppColors.contourLabel),
+        'text-halo-color': '#FFFFFF',
+        'text-halo-width': 1.4,
+      };
+
+  @override
+  Map<String, Object> getLayout() => {
+        'symbol-placement': 'line',
+        // Token-Schreibweise: Ausdrücke gehen in 0.3.5 durch toJObject().
+        'text-field': '{m}',
+        // Der Ordner in `assets/map_glyphs/`, nicht „Noto Sans Medium" —
+        // diese Ebene entsteht am Composer vorbei (wie `LineLabelLayer`).
+        'text-font': const ['noto-sans-medium'],
+        'text-size': kContourLabelSize,
+        'symbol-spacing': 420,
+        'text-max-angle': 30,
         'text-keep-upright': true,
       };
 
