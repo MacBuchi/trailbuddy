@@ -16,6 +16,8 @@
 //   Öffnen des Planers.
 // - **Rechnen geht nie still schief**: Jeder Ausgang hat eine Phase oder
 //   einen Grund ([LoopBlocker]), ein Fehler wird gemeldet.
+import 'dart:async';
+
 import 'package:flutter/widgets.dart' show WidgetsBinding;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
@@ -34,6 +36,8 @@ import 'planning_graph.dart';
 import 'ride_calibrator.dart';
 import 'road_graph.dart';
 import 'route_profile.dart';
+import 'route_via_providers.dart';
+import 'route_vias.dart';
 import 'trail_overlay.dart';
 
 enum LoopPhase { idle, locating, loading, computing, result }
@@ -55,6 +59,7 @@ class LoopSession {
     this.plan,
     this.planStart,
     this.coverageNote,
+    this.tuned = false,
   });
 
   /// Der Planer-Modus ist an: Leiste links, Tipps wählen Trails.
@@ -86,6 +91,10 @@ class LoopSession {
   /// (`planningCoverageNote`); null, wenn alles aus den Bereichen kam.
   final String? coverageNote;
 
+  /// Die Runde ist von Hand getunt (#234): feste Folge, Teilstücke durch
+  /// Zwischenpunkte. „Zurücksetzen" rechnet wieder frei.
+  final bool tuned;
+
   bool get busy => phase == LoopPhase.locating || phase == LoopPhase.loading || phase == LoopPhase.computing;
 
   LoopSession copyWith({
@@ -107,6 +116,7 @@ class LoopSession {
     LatLng? planStart,
     String? coverageNote,
     bool clearCoverageNote = false,
+    bool? tuned,
   }) =>
       LoopSession(
         open: open ?? this.open,
@@ -122,6 +132,7 @@ class LoopSession {
         plan: clearPlan ? null : (plan ?? this.plan),
         planStart: clearPlan ? null : (planStart ?? this.planStart),
         coverageNote: clearCoverageNote ? null : (coverageNote ?? this.coverageNote),
+        tuned: clearPlan ? (tuned ?? false) : (tuned ?? this.tuned),
       );
 }
 
@@ -148,9 +159,18 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
   /// ankommt, gehört zu einer Rechnung, die niemand mehr sehen will.
   int _generation = 0;
 
+  /// Die Zwischenpunkte, mit denen [LoopSession.plan] gerechnet ist.
+  RouteVias _vias = RouteVias.none;
+  int _tuneSeq = 0;
+
   @override
   LoopSession build() {
     ref.onDispose(() => _runner?.dispose());
+    // Die Karte ändert die Punkte, hier wird gerechnet (#234).
+    ref.listen(routeViaProvider, (_, next) {
+      if (next == null || next.owner != ViaOwner.loop || next.vias == _vias) return;
+      unawaited(_retune(next.vias));
+    });
     final profile = ref.read(riderProfileProvider);
     return LoopSession(prefs: LoopPrefs.parse(ref.read(settingsProvider).loopPlannerPrefs, profile), profile: profile);
   }
@@ -166,6 +186,7 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
   /// Den Modus schließen. Die Auswahl bleibt für die Sitzung — wer
   /// wiederkommt, findet seine Trails noch angewählt.
   void close() {
+    ref.read(routeViaProvider.notifier).end(ViaOwner.loop);
     _generation++;
     _runner?.dispose();
     _runner = null;
@@ -264,6 +285,7 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
 
   /// Das Ergebnis weglegen (Blatt zu); Modus und Auswahl bleiben.
   void clearResult() {
+    ref.read(routeViaProvider.notifier).end(ViaOwner.loop);
     // Eine Rechnung, die noch läuft, gehört zu diesem Ergebnis.
     _generation++;
     state = state.copyWith(clearPlan: true, clearBlocker: true, phase: LoopPhase.idle);
@@ -283,6 +305,9 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
   /// Rechnen. Jeder Ausgang ist eine Phase oder ein Grund.
   Future<void> compute() async {
     if (state.busy) return;
+    // Frei gerechnet: Die Punkte der alten Runde gelten nicht mehr.
+    ref.read(routeViaProvider.notifier).end(ViaOwner.loop);
+    _vias = RouteVias.none;
     final chosen = [
       for (final t in _trails)
         if (state.selected.contains(t.id) && !t.pending && t.points.length >= 2) t,
@@ -349,6 +374,7 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
       );
       if (generation != _generation) return;
       state = state.copyWith(phase: LoopPhase.result, plan: plan, planStart: start);
+      if (plan.outcome == LoopOutcome.ok) ref.read(routeViaProvider.notifier).begin(ViaOwner.loop);
     } catch (e, s) {
       // Geschlossen, während er rechnete: kein Fehler, nur zu spät.
       if (generation != _generation) return;
@@ -356,6 +382,54 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
       state = state.copyWith(phase: LoopPhase.result, blocker: LoopBlocker.failed);
     }
   }
+
+  /// Die Runde mit fester Folge durch [vias] neu (#234). Das Ergebnis
+  /// bleibt stehen, bis das neue da ist — ein Zug am Punkt soll die Linie
+  /// umlegen, nicht das Blatt leeren. Geht es nicht, kommen die alten
+  /// Punkte zurück.
+  Future<void> _retune(RouteVias vias) async {
+    final plan = state.plan;
+    final start = state.planStart;
+    final graph = _graph;
+    if (plan == null || plan.outcome != LoopOutcome.ok || start == null || graph == null || state.busy) {
+      ref.read(routeViaProvider.notifier).reject(_vias);
+      return;
+    }
+    final generation = _generation;
+    final seq = ++_tuneSeq;
+    try {
+      final next = await (_runner ??= ref.read(loopPlanRunnerFactoryProvider)()).plan(
+        graph,
+        LoopRequest(
+          start: start,
+          profile: ref.read(calibratedRiderProvider(state.profile)).withPrefs(state.prefs.route),
+          budget: state.prefs.budget,
+          pool: [
+            for (final t in _trails)
+              if (state.selected.contains(t.id) && !t.pending && t.points.length >= 2)
+                poolTrailOf(t, mandatory: state.mandatory.contains(t.id)),
+          ],
+          returnToStart: state.prefs.returnToStart,
+          tune: LoopTune.of(plan, vias),
+        ),
+      );
+      // Ein späterer Zug hat schon eine neue Rechnung geschickt.
+      if (generation != _generation || seq != _tuneSeq) return;
+      if (next.outcome != LoopOutcome.ok) {
+        ref.read(routeViaProvider.notifier).reject(_vias);
+        return;
+      }
+      _vias = vias;
+      state = state.copyWith(plan: next, tuned: true);
+    } catch (e, s) {
+      if (generation != _generation || seq != _tuneSeq) return;
+      logError('Runde tunen', e, s);
+      ref.read(routeViaProvider.notifier).reject(_vias);
+    }
+  }
+
+  /// Zurück zur frei gerechneten Runde.
+  Future<void> resetTuning() => compute();
 }
 
 final loopPlannerProvider = NotifierProvider<LoopPlannerNotifier, LoopSession>(LoopPlannerNotifier.new);

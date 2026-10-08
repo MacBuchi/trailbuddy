@@ -29,6 +29,7 @@ import 'package:trailbuddy/features/routing/online_fill.dart';
 import 'package:trailbuddy/features/routing/road_graph.dart' show RoadGraph;
 import 'package:trailbuddy/features/trails/gpx.dart';
 import 'package:trailbuddy/models/trail.dart';
+import 'package:trailbuddy/features/map/map_view/map_view.dart' show MapViewMarker;
 
 import '../fakes/fake_backend.dart';
 import '../fakes/fake_heights.dart';
@@ -324,6 +325,65 @@ void main() {
       // Vom Standort im Süden nach Norden: der Hang fällt nach Norden.
       expect(chart.profile.startM, greaterThan(chart.profile.endM + 30));
     });
+  });
+
+  testWidgets('Zwischenpunkt in der Runde (#234): feste Folge, getunt, zurück, frei gerechnet', (tester) async {
+    await start(tester, areaStore: await _areaWithTrack());
+    await openPlanner(tester);
+    await zoomToTrails(tester);
+    await tapMapAt(tester, const LatLng(48.004, _lon));
+    await settle(tester);
+    await tapRail(tester, 'loop-rail-compute');
+    await settle(tester, frames: 10);
+    expect(find.byKey(const ValueKey('loop-tune-hint')), findsOneWidget);
+    Iterable<MapViewMarker> viaMarks() =>
+        fakeMapLayers(tester).markers.where((m) => '${m.key}'.contains("'via-"));
+    final stops = ProviderScope.containerOf(tester.element(find.byType(MaterialApp))).read(loopPlannerProvider).plan!.stops.map((s) => s.trail.id).toList();
+
+    // Ein Tipp auf die Verbindung zwischen Start und Trail. Hin- und
+    // Rückweg liegen hier auf demselben Forstweg (zwei Abfahrten, drei
+    // Teilstücke): Die oberste Linie gewinnt — der Rückweg, Teilstück 2.
+    final mid = LatLng((_fromLat + 48.0) / 2, _lon);
+    await tapMapAt(tester, mid);
+    await settle(tester);
+    expect(viaMarks().single.key, const ValueKey('via-2-0'));
+    const handle = ValueKey('via-handle-2-0');
+    final session = ProviderScope.containerOf(tester.element(find.byType(MaterialApp))).read(loopPlannerProvider);
+    expect(session.tuned, isTrue);
+    expect(session.plan!.stops.map((s) => s.trail.id), stops, reason: 'die Folge steht fest');
+    expect(find.byKey(const ValueKey('loop-tuned')), findsOneWidget);
+    expect(find.byKey(const ValueKey('loop-summary')), findsOneWidget);
+
+    // Neben jeden Weg gezogen: zurück, mit Satz; die Runde bleibt.
+    await tester.drag(find.byKey(handle), const Offset(300, 0));
+    await settle(tester);
+    expect(find.byKey(const ValueKey('via-rejected')), findsOneWidget);
+    expect(viaMarks().single.point, mid);
+    expect(find.byKey(const ValueKey('loop-summary')), findsOneWidget);
+
+    // Zurücksetzen rechnet frei: keine Punkte, nicht mehr getunt. Erst
+    // das Blatt hochziehen — eingeklappt liegt die Zeile unter dem Rand.
+    await tester.drag(
+        find.descendant(of: find.byType(DraggableScrollableSheet), matching: find.byType(Scrollable)).first,
+        const Offset(0, -400));
+    await settle(tester, frames: 4);
+    await tester.ensureVisible(find.byKey(const ValueKey('loop-tune-reset')));
+    await tester.tap(find.byKey(const ValueKey('loop-tune-reset')));
+    await settle(tester, frames: 10);
+    expect(viaMarks(), isEmpty);
+    expect(ProviderScope.containerOf(tester.element(find.byType(MaterialApp))).read(loopPlannerProvider).tuned, isFalse);
+    expect(find.byKey(const ValueKey('loop-tune-hint')), findsOneWidget);
+
+    // Blatt zu: Die Punkte fallen weg.
+    await tapMapAt(tester, mid);
+    await settle(tester);
+    expect(viaMarks(), hasLength(1));
+    await tester.scrollUntilVisible(find.byKey(const ValueKey('loop-close')), -200,
+        scrollable:
+            find.descendant(of: find.byType(DraggableScrollableSheet), matching: find.byType(Scrollable)).first);
+    await tester.tap(find.byKey(const ValueKey('loop-close')));
+    await settle(tester);
+    expect(viaMarks(), isEmpty);
   });
 
   testWidgets('Rechnen wartet auf den Runner; Schließen gibt ihn frei, und ein spätes Ergebnis zählt nicht',

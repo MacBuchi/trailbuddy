@@ -35,6 +35,7 @@ import '../trails/trail_geometry.dart' show haversineM;
 import 'road_graph.dart';
 import 'route_profile.dart';
 import 'route_search.dart';
+import 'route_vias.dart';
 import 'trail_head_route.dart' show RouteSection, sectionsOf;
 import 'trail_overlay.dart';
 
@@ -118,6 +119,25 @@ enum LoopOutcome {
   /// Kein Trail des Pools passt in die Runde — die Gründe stehen je
   /// Trail in [LoopPlan.excluded].
   empty,
+
+  /// Von Hand getunt ([LoopTune]), aber ein Zwischenpunkt liegt abseits
+  /// jedes Wegs, oder durch die Punkte führt kein Weg.
+  viaFailed,
+}
+
+/// Die Runde von Hand getunt (#234): Die Folge der Trails steht fest
+/// ([order], Kennungen, eine zweite Abfahrt zweimal), gesucht werden nur
+/// die Teilstücke — durch ihre Zwischenpunkte ([vias]). Budgets prüft
+/// niemand: Den Weg hat der Fahrer gewählt, das Blatt sagt die Summen.
+class LoopTune {
+  const LoopTune({required this.order, this.vias = RouteVias.none});
+
+  /// Aus einer gerechneten Runde: ihre Folge, mit [vias].
+  factory LoopTune.of(LoopPlan plan, RouteVias vias) =>
+      LoopTune(order: [for (final s in plan.stops) s.trail.id], vias: vias);
+
+  final List<String> order;
+  final RouteVias vias;
 }
 
 /// Warum ein Trail NICHT in der Runde ist.
@@ -148,6 +168,7 @@ class LoopSection {
     this.trail,
     this.secondPass = false,
     this.onTrail,
+    this.leg,
   });
 
   final List<LatLng> points;
@@ -160,6 +181,10 @@ class LoopSection {
 
   /// Dieser Trail steht zum zweiten Mal in der Runde.
   final bool secondPass;
+
+  /// Bei einer Verbindung: das Teilstück (0 = vom Start zum ersten Trail)
+  /// — wohin ein Zwischenpunkt gehört, der auf sie getippt wird (#234).
+  final int? leg;
 
   bool get isTrail => trail != null;
 
@@ -354,6 +379,7 @@ LoopPlan planLoop(
   Map<String, LoopExclusion> excluded = const {},
   Duration searchBudget = kLoopSearchBudget,
   LoopSearchCache? cache,
+  LoopTune? tune,
 }) {
   final out = Map<String, LoopExclusion>.of(excluded);
   final src = g.attach(start);
@@ -392,7 +418,7 @@ LoopPlan planLoop(
   final searches = (cache ?? LoopSearchCache()).._bind(g, (_riderKey(profile), budget.timeS));
   final planner =
       _Planner(g, start, src, dst, end ?? start, profile, budget, pool, heads, tails, out, searches);
-  return planner.run(searchBudget);
+  return tune == null ? planner.run(searchBudget) : planner.runTuned(tune);
 }
 
 class _Planner {
@@ -607,6 +633,53 @@ class _Planner {
     return _assemble(route);
   }
 
+  /// Die festgelegte Folge, jedes Teilstück durch seine Zwischenpunkte.
+  /// Die Suchen laufen frisch (A* je Abschnitt): Das Anheften der Punkte
+  /// teilt Kanten, und der Speicher gilt danach ohnehin nicht mehr.
+  LoopPlan runTuned(LoopTune tune) {
+    final index = {for (var i = 0; i < pool.length; i++) pool[i].id: i};
+    final seq = [
+      for (final id in tune.order)
+        if (index[id] case final i? when usable(i)) i,
+    ];
+    if (seq.isEmpty) return LoopPlan(LoopOutcome.empty, excluded: excluded);
+    final froms = <int>[], tos = <int>[];
+    var at = src;
+    for (final i in seq) {
+      froms.add(at);
+      tos.add(heads[i]!);
+      at = tails[i]!;
+    }
+    if (dst != null) {
+      froms.add(at);
+      tos.add(dst!);
+    }
+    final legs = <_Conn>[];
+    for (var k = 0; k < froms.length; k++) {
+      final r = pathThrough(g, froms[k], tos[k], tune.vias.of(k), p);
+      if (r.edges == null) return LoopPlan(LoopOutcome.viaFailed, excluded: excluded);
+      legs.add(_Conn(froms[k], r.edges!, summarizePath(g, r.edges!, froms[k], p)));
+    }
+    var time = 0.0, climb = 0.0, hiking = 0.0, wasted = 0.0, trailM = 0.0;
+    final seen = <int>{};
+    for (final i in seq) {
+      final t = pool[i];
+      time += t.timeS;
+      climb += t.gainM;
+      trailM += seen.add(i) ? t.lengthM : t.secondPassM;
+    }
+    for (final c in legs) {
+      time += c.summary.timeS;
+      climb += c.summary.gainM;
+      hiking += c.summary.hikingM;
+      wasted += c.summary.lossM;
+    }
+    for (var i = 0; i < pool.length; i++) {
+      if (!seq.contains(i)) excluded.putIfAbsent(pool[i].id, () => LoopExclusion.budget);
+    }
+    return _assemble(_Route(seq, legs, time, climb, hiking, wasted, trailM));
+  }
+
   LoopPlan _assemble(_Route route) {
     if (route.seq.isEmpty) return LoopPlan(LoopOutcome.empty, excluded: excluded);
     final sections = <LoopSection>[];
@@ -621,9 +694,10 @@ class _Planner {
     final stops = <LoopStop>[];
     var leg = 0;
     void connect(int from) {
-      final c = route.legs[leg++];
+      final k = leg++;
+      final c = route.legs[k];
       for (final s in sectionsOf(g, c.edges, from)) {
-        sections.add(LoopSection(points: s.points, lengthM: s.lengthM, cls: s.cls, onTrail: s.trail));
+        sections.add(LoopSection(points: s.points, lengthM: s.lengthM, cls: s.cls, onTrail: s.trail, leg: k));
         final up = s.trail;
         if (up != null && up.connector) {
           // Uphill-Trails und Verbinder stehen für sich, nicht unter der

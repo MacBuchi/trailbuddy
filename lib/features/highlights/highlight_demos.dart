@@ -195,6 +195,20 @@ final kHighlightDemos = <String, HighlightDemo>{
       _noTrailYet,
     ]),
   ),
+  'route-vias': HighlightDemo(
+    route: '/',
+    script: _demo('route-vias', const [
+      CoachStep(
+        title: 'Zwischenpunkte im Ergebnis',
+        text: 'Plane eine Runde oder einen Weg zum Trail. Ein Tipp auf die Linie '
+            'setzt einen Punkt; zieh ihn dorthin, wo der Weg langgehen soll. Bei '
+            'der Runde bleibt die Reihenfolge der Trails dabei, wie sie ist.',
+        lit: [MapCoach.loop],
+        gesture: CoachGesture.tap,
+        requires: [MapCoach.loop],
+      ),
+    ]),
+  ),
   'route-elevation': HighlightDemo(
     route: '/',
     script: _demo('route-elevation', const [

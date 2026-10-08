@@ -2,6 +2,20 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Den Weg von Hand ziehen
+
+*Version 0.93.0, 2026-10-08*
+
+- **Zwischenpunkte**: Ein Tipp auf die Linie einer geplanten Runde
+  oder eines Wegs zum Trail setzt dort einen Punkt. Zieh ihn dorthin,
+  wo der Weg langgehen soll — beim Loslassen rechnet die App den Weg
+  durch ihn neu. Ein Tipp auf den Punkt nimmt ihn wieder weg, mit
+  „Rückgängig".
+- Bei der Runde bleibt die Reihenfolge der Trails, wie sie ist; nur die
+  Verbindungen folgen deinen Punkten. Liegt die Runde danach über deinem
+  Budget, sagt es das Blatt. „Zurücksetzen" rechnet wieder frei.
+- Führt durch einen Punkt kein Weg, springt er an seinen Platz zurück.
+
 ## Der Planer kennt schlechte Wege
 
 *Version 0.92.0, 2026-10-08*

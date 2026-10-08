@@ -74,6 +74,18 @@ class FeatureHighlight {
 const kFeatureHighlights = <FeatureHighlight>[
   // ─── Highlights ──────────────────────────────────────────────────
   FeatureHighlight(
+    id: 'route-vias',
+    since: '0.93.0',
+    kind: HighlightKind.highlight,
+    tab: HighlightTab.map,
+    icon: Icons.alt_route,
+    title: 'Den Weg von Hand ziehen',
+    text: 'Tippe auf die Linie einer geplanten Runde oder eines Wegs zum Trail: '
+        'Dort sitzt ein Zwischenpunkt, den du ziehen kannst, und der Weg führt '
+        'durch ihn. Ein Tipp auf den Punkt nimmt ihn wieder weg.',
+    target: '/',
+  ),
+  FeatureHighlight(
     id: 'way-quality',
     since: '0.89.0',
     kind: HighlightKind.highlight,
