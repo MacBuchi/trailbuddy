@@ -44,6 +44,12 @@ on:
         type: choice
         options: ["plan", "publish"]
         default: "plan"
+      plan_region:
+        description: "plan: measure another region instead of the DACH box (#220); publish stays DACH"
+        required: false
+        type: choice
+        options: ["dach", "canada"]
+        default: "dach"
   schedule:
     # Monthly, 2nd at 03:47 UTC — publish.
     - cron: "47 3 2 * *"
@@ -57,6 +63,10 @@ permissions:
 
 env:
   MODE: ${{ inputs.mode || 'publish' }}
+  # Plan only (#220, 18b in #156): measure a region outside DACH with
+  # the same build, nothing uploaded. Publish stays DACH until regions
+  # exist (18c) — the step "Pick the region" refuses anything else.
+  PLAN_REGION: ${{ inputs.plan_region || 'dach' }}
   # The map's area, west,south,east,north — the SAME box as DACH_BBOX in
   # map-data.yml and the bundled overview (tool/generated_assets.json);
   # test/release_workflow_test.dart holds the three together. Places
@@ -114,6 +124,27 @@ jobs:
             } >> "$GITHUB_STEP_SUMMARY"
           fi
 
+      - name: Pick the region
+        # DACH is the env block above. Another region swaps extracts and
+        # box for this run and reports only: its sizes are the
+        # measurement, the DACH guards below do not apply to it. The box
+        # is Canada's Natural Earth outline, rounded outwards.
+        run: |
+          set -euo pipefail
+          case "$PLAN_REGION" in
+            dach) ;;
+            canada)
+              if [ "$MODE" != "plan" ]; then
+                echo "::error::plan_region=$PLAN_REGION is a measurement — publish stays DACH until regions exist (18c in #156)."
+                exit 1
+              fi
+              echo "EXTRACTS=north-america/canada" >> "$GITHUB_ENV"
+              echo "POI_BBOX=-141.1,41.6,-52.5,83.2" >> "$GITHUB_ENV"
+              echo "## Plan for $PLAN_REGION (measurement, nothing uploaded)" >> "$GITHUB_STEP_SUMMARY"
+              ;;
+            *) echo "::error::unknown plan_region $PLAN_REGION"; exit 1 ;;
+          esac
+
       - name: Install osmium
         if: env.MODE == 'plan' || steps.r2.outputs.present == 'true'
         # The official OSM reader does the 5 GB part; tool/poi_extract.py
@@ -164,6 +195,10 @@ jobs:
           cat build/pois/summary.md >> "$GITHUB_STEP_SUMMARY"
           # Tiny outputs are a broken extract, not a quiet month: the run
           # must not replace a full build with an empty one.
+          # Another region is a measurement: its count is the result.
+          if [ "$PLAN_REGION" != "dach" ]; then
+            exit 0
+          fi
           python3 - <<'PY'
           import json, sys
           m = json.load(open("build/pois/pois.json"))

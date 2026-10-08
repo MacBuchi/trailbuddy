@@ -6,7 +6,8 @@ z0–15, 128,8 GB Kacheldaten) mit `tool/map_tiles.py plan`: Es liest nur
 Header und Verzeichnisse — bis z13 sind das 34 MB in 318 Anfragen, die
 Kacheln selbst nie. Ländergrenzen aus Natural Earth 1:50 m (v5.1.2,
 gemeinfrei). Wiederholbar in CI: `map-data.yml`, Modus `plan`, Eingabe
-`plan_select` (z. B. `ISO_A2_EH=CA` oder `world`).*
+`plan_select` (z. B. `ISO_A2_EH=CA` oder `world`); Wege und Orte mit
+`way-data.yml` / `poi-data.yml`, Modus `plan`, `plan_region = canada`.*
 
 ## Ergebnis in fünf Sätzen
 
@@ -68,14 +69,38 @@ Drei Dinge, die man daraus lesen kann:
 |---|---|---|---|
 | Karte | `map-data.yml`, Rechteck | `pmtiles extract --region` kann Polygone; der Workflow gibt heute nur `--bbox` | 4,3 GB, Schnitt ~2,5 min (DACH: 2,8 GB in 90 s, Upload 37 s) |
 | Höhen | `height-data.yml`, Rechteck, 147 MB | nur `--bbox`; Kanadas Rechteck schlösse die Nordstaaten der USA ein — braucht eine Polygon-Auswahl oder eine Liste von DEM-Zellen | 2,16 Mio. Kacheln, ~3–5 GB, 4,5–6 h — Aufteilung nötig |
-| Wege | `way-data.yml`, Geofabrik-Auszüge + Rechteck, 126 MB | ja: der **Auszug** bestimmt das Gebiet, das Rechteck schneidet nur zu. `north-america/canada` existiert bei Geofabrik | nicht gemessen (Geofabrik ist aus der Cloud nicht erreichbar) — ⚙️ `plan` |
-| Orte | `poi-data.yml`, dieselben Auszüge, 165 MB | ja, wie Wege | nicht gemessen — ⚙️ |
+| Wege | `way-data.yml`, Geofabrik-Auszüge + Rechteck, 126 MB | ja: der **Auszug** bestimmt das Gebiet, das Rechteck schneidet nur zu. `north-america/canada` existiert bei Geofabrik | **4,1 MB**, 19 398 Kacheln, 62 235 benotete Wege — rund 3 % des DACH-Archivs; Auszug + Filter 7 min, Bau 12 s |
+| Orte | `poi-data.yml`, dieselben Auszüge, 165 MB | ja, wie Wege | **21,9 MB**, 254 320 Orte in 10 730 Dateien; Auszug + Filter 19 min, Bau 13 s |
 | Übersicht | im Binary, DACH z0–7, 8,6 MB | `pmtiles extract --bbox` | 34 MB bis z7 — als Download je Region statt im Binary |
 
 **In der App ist alles DACH**: `dach.json` als feste Manifest-Adresse
 (`map_providers.dart`), dazu `heights.json`, `ways.json`, `pois.json`
 ohne Regionsbezug und `overview_dach.pmtiles` als Asset. Das ist der
 Umbau von 18c (ein Manifest je Region).
+
+## Wege und Orte für Kanada
+
+Gemessen am 2026-10-08 in CI (`way-data.yml` Lauf 37854995432,
+`poi-data.yml` Lauf 37854998079, beide `mode = plan`,
+`plan_region = canada`): Geofabrik-Auszug `north-america/canada`, Rechteck
+−141,1 / 41,6 / −52,5 / 83,2, nichts hochgeladen.
+
+- **Wege: 4,1 MB statt 119 MB in DACH.** 62 235 Wege tragen eine
+  verwertbare Note (`tracktype`, `sac_scale`, `mtb:scale` …), 9 854
+  weitere sind Kandidaten ohne. Der vorgefilterte Auszug hat 12,9 MB.
+  Das heißt nicht, dass Kanada keine Wege hat — die Grundkarte zeichnet
+  sie —, sondern dass sie dort kaum benotet sind. Die Ebene „Wege" und
+  die Preise der Planung für Wegqualität (#213) hätten in Kanada also
+  fast überall „unbekannt" und damit wenig zu sagen; das Archiv selbst
+  kostet nichts.
+- **Orte: 21,9 MB, 254 320 Orte** in 10 730 Zellendateien (DACH-Rechteck
+  heute 165 MB im Bucket). 63 % davon sind Parkplätze (159 607), dann
+  Restaurants (32 667), Toiletten (15 113), Unterstände (13 578) und
+  Cafés (12 546); Trinkwasser 6 784, Reparaturstationen 901,
+  Radläden 953. Die Mindestzahl des DACH-Laufs (100 000) würde Kanada
+  also auch erfüllen.
+- **Zeit**: Der Download des Auszugs ist der Hauptteil (7 bzw. 19 min),
+  der Bau dauert Sekunden. Beides passt bequem in einen Job.
 
 ## Speicher im Bucket
 
@@ -88,9 +113,6 @@ Class-B-Frage (#55) schon.
 
 ## Was diese Messung NICHT sagt
 
-- **Wege und Orte außerhalb Europas**: Die Geofabrik-Auszüge waren aus
-  dieser Umgebung nicht abrufbar. Beide Workflows haben einen
-  `plan`-Modus; für Kanada braucht es dort nur einen anderen Auszug.
 - **Class-B je Sitzung**: braucht echte Sitzungen und das Dashboard.
 - **Der Rand**: Regionen werden bei z10 gerastert (`REGION_COVER_ZOOM`),
   eine Region ist also bis zu eine z10-Kachel breiter als ihre Grenze —

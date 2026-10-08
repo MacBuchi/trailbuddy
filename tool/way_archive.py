@@ -530,6 +530,9 @@ def self_test():
           and calls[1][-7] == calls[0][calls[0].index("-o") + 1],
           "osmium: the grade filter reads the highway filter's output")
     check(left == ["export.json"], "osmium: intermediate files removed")
+    check(glue_bbox(["build", "--bbox", "-141.1,41.6,-52.5,83.2", "--out", "x"])
+          == ["build", "--bbox=-141.1,41.6,-52.5,83.2", "--out", "x"],
+          "a box west of Greenwich reaches argparse as a value (#220)")
 
     if not ok:
         sys.exit(1)
@@ -537,6 +540,17 @@ def self_test():
 
 
 # ------------------------------------------------------------- main
+
+def glue_bbox(argv):
+    """`--bbox W,S,E,N` -> `--bbox=W,S,E,N`. argparse reads a value with a
+    leading minus as an option, and every box west of Greenwich has one
+    (Canada for #220); the workflows keep the plain spelling."""
+    out = list(argv)
+    for i in range(len(out) - 1):
+        if out[i] == "--bbox":
+            out[i:i + 2] = [f"--bbox={out[i + 1]}", None]
+    return [a for a in out if a is not None]
+
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__,
@@ -558,7 +572,7 @@ def main(argv=None):
     c = sub.add_parser("check", help="read an archive back the way the app does")
     c.add_argument("--source", required=True)
     c.add_argument("--samples", type=int, default=24)
-    args = parser.parse_args(argv)
+    args = parser.parse_args(glue_bbox(sys.argv[1:] if argv is None else argv))
 
     if args.self_test:
         self_test()
