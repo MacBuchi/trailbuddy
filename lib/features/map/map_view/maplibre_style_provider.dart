@@ -141,16 +141,16 @@ final maplibreStyleProvider = FutureProvider<String?>((ref) async {
   final fresh = await manifestWait;
   final freshWays = await waysWait;
   final settings = ref.watch(settingsProvider);
-  final manifest = fresh ?? _remembered(settings.seenMapManifest, MapManifest.fromJson);
+  final manifest = fresh ?? rememberedManifest(settings.seenMapManifest, MapManifest.fromJson);
   final ways = freshWays ??
       (ref.watch(wayLayerEnabledProvider)
-          ? _remembered(settings.seenWaysManifest, WaysManifest.fromJson)
+          ? rememberedManifest(settings.seenWaysManifest, WaysManifest.fromJson)
           : null);
   if (fresh != null) {
-    _remember(settings.seenMapManifest, fresh.toJson(), settings.setSeenMapManifest);
+    rememberManifest(settings.seenMapManifest, fresh.toJson(), settings.setSeenMapManifest);
   }
   if (freshWays != null) {
-    _remember(settings.seenWaysManifest, freshWays.toJson(), settings.setSeenWaysManifest);
+    rememberManifest(settings.seenWaysManifest, freshWays.toJson(), settings.setSeenWaysManifest);
   }
   final io = ref.watch(maplibreStyleIoProvider);
   // Die Quellenangabe der Behörden — nur solange die Ebene an ist und
@@ -255,23 +255,3 @@ final maplibreStyleProvider = FutureProvider<String?>((ref) async {
     return null;
   }
 });
-
-/// Liest ein gemerktes Manifest (#155) — mit derselben Prüfung wie vom
-/// Host. Was nicht mehr passt (ein anderes Wege-Format nach einem Update),
-/// heißt still „keins".
-T? _remembered<T>(String? json, T Function(Map<String, dynamic>) parse) {
-  if (json == null) return null;
-  try {
-    return parse(jsonDecode(json) as Map<String, dynamic>);
-  } catch (_) {
-    return null;
-  }
-}
-
-/// Merkt ein frisches Manifest, nur wenn es sich geändert hat (einmal im
-/// Monat, nicht bei jedem Neubau des Stils).
-void _remember(String? before, Map<String, dynamic> manifest, Future<void> Function(String) write) {
-  final json = jsonEncode(manifest);
-  if (json == before) return;
-  unawaited(write(json).catchError((Object e, StackTrace s) => logError('Karten-Manifest merken', e, s)));
-}

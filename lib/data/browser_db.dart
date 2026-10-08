@@ -8,7 +8,8 @@ import 'package:idb_shim/idb_shim.dart';
 const kBrowserDbName = 'trailbuddy';
 
 /// v1: gespeicherte Kartenbereiche (Konzept-Schritt 3).
-const kBrowserDbVersion = 1;
+/// v2: gesehene Kacheln der Online-Karte (#155).
+const kBrowserDbVersion = 2;
 
 /// Der Index der Bereiche (ein Eintrag, die Liste als JSON-Text).
 const kAreaIndexStore = 'area_index';
@@ -19,7 +20,15 @@ const kAreaArchiveStore = 'area_archives';
 /// Die Orte-Dateien der Bereiche (Schlüssel `<id>/<datei>`, Wert: Text).
 const kAreaPoiStore = 'area_pois';
 
-const _stores = [kAreaIndexStore, kAreaArchiveStore, kAreaPoiStore];
+/// Gesehene Kacheln (Schlüssel `<archiv>/z/x/y`, Wert: Bytes, wie im
+/// Archiv komprimiert) — `seen_tiles.dart`.
+const kSeenTileStore = 'seen_tiles';
+
+/// Ihr Index (gleicher Schlüssel, Wert: Text `Bytes|Zeit|gzip`) — klein,
+/// beim ersten Zugriff ganz gelesen, damit ein Fehlgriff nichts kostet.
+const kSeenTileIndexStore = 'seen_tile_index';
+
+const _stores = [kAreaIndexStore, kAreaArchiveStore, kAreaPoiStore, kSeenTileStore, kSeenTileIndexStore];
 
 /// EINE Verbindung je Sitzung, egal wie viele Speicher sie benutzen.
 class BrowserDb {

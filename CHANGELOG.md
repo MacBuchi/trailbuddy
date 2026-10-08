@@ -2,6 +2,19 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Gesehenes bleibt liegen — auch im Browser
+
+*Version 0.101.0, 2026-10-08*
+
+- **Die Web-App merkt sich jetzt ebenfalls, was du angesehen hast**:
+  Kartenstücke und Wege, die du mit Empfang geladen hast, bleiben im
+  Speicher des Browsers, bis zu 100 MB, die am längsten nicht
+  gebrauchten gehen zuerst. Ohne Netz zeigt die Karte sie über der
+  groben Übersicht. Und weil ein Stück, das schon liegt, nicht noch
+  einmal geholt wird, baut sich eine bekannte Gegend schneller auf. Der
+  Browser darf seinen Speicher selbst räumen — für ganze Gebiete
+  bleiben die gespeicherten Bereiche der sichere Weg.
+
 ## Höhenlinien
 
 *Version 0.100.0, 2026-10-08*

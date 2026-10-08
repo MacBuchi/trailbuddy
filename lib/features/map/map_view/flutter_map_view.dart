@@ -115,7 +115,12 @@ class _FlutterMapViewState extends ConsumerState<FlutterMapView>
     // Die Übersicht nur, wenn sie gebraucht wird: ohne Empfang oder ohne
     // Online-Karte — siehe base_map_providers.dart. Dieselbe Regel wie in
     // der MapLibre-Engine (maplibre_style_provider.dart).
-    final showBaseMap = online == null || ref.watch(noConnectivityProvider);
+    // Liefert die Online-Karte nur gesehene Kacheln (Browser, #155: kein
+    // frisches Manifest), liegt die Übersicht darunter und scheint durch,
+    // wo nichts liegt.
+    final showBaseMap = online == null ||
+        seenOnlyProviders(online.tileProviders) ||
+        ref.watch(noConnectivityProvider);
     final baseStyle =
         showBaseMap ? ref.watch(baseMapStyleProvider).valueOrNull : null;
     // Die gespeicherten Bereiche IMMER, zuoberst (#82) — dieselbe Regel
