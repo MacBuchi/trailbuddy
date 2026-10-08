@@ -111,6 +111,10 @@ sprengt das Freikontingent; Kanada mit Karte (2 × 4,3 GB) und Höhen
 Monat über dem Freikontingent. Speicher entscheidet also nichts — Runner, Bauzeit und die
 Class-B-Frage (#55) schon.
 
+Was daraus gebaut wird, steht in `docs/konzept-regionen.md` (18c): Kanada
+südlich 55° N (1,99 GB Karte, gemessen wie oben), damit DACH und Kanada
+zusammen im Free-Kontingent bleiben.
+
 ## Was diese Messung NICHT sagt
 
 - **Class-B je Sitzung**: braucht echte Sitzungen und das Dashboard.
