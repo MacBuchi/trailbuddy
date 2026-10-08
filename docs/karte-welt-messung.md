@@ -100,8 +100,7 @@ Gemessen am 2026-10-08 in CI (`way-data.yml` Lauf 37854995432,
   Radläden 953. Die Mindestzahl des DACH-Laufs (100 000) würde Kanada
   also auch erfüllen.
 - **Zeit**: Der Download des Auszugs ist der Hauptteil (7 bzw. 19 min),
-  der Bau dauert Sekunden. Beides passt
-  bequem in einen Job.
+  der Bau dauert Sekunden. Beides passt bequem in einen Job.
 
 ## Speicher im Bucket
 
