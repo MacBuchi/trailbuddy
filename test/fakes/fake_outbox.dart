@@ -10,6 +10,10 @@ class FakeOutbox implements Outbox {
   /// schreiben": Dann muss der ursprüngliche Netzfehler durchkommen.
   bool failOnAppend = false;
 
+  /// Was `isDurable` sagt — `false` steht für den Browser, der den
+  /// Speicher nicht zusichert (#153).
+  bool durable = true;
+
   int appends = 0;
   int replaces = 0;
 
@@ -33,4 +37,7 @@ class FakeOutbox implements Outbox {
       ..clear()
       ..addAll(next);
   }
+
+  @override
+  Future<bool> isDurable() async => durable;
 }

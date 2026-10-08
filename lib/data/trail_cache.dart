@@ -148,20 +148,24 @@ Future<String> encodeTrailCacheInSlices({
   }
 }
 
-/// Die Datei im App-Verzeichnis (Android). `trail_cache/` steht in beiden
-/// Backup-Ausschlüssen: Googles Cloud ist in der Datenschutzerklärung
-/// kein Empfänger.
-class FileTrailCache implements TrailCache {
-  FileTrailCache({Directory? baseDir}) : _baseDirOverride = baseDir;
+/// Was jede Ablage der Kopie gemeinsam hat: Schreiben und Löschen laufen
+/// nacheinander, ein überholtes Schreiben fällt weg, und nichts wirft.
+/// Die Ablage selbst — Datei oder IndexedDB (`trail_cache_idb.dart`) —
+/// kennt nur Text.
+abstract class QueuedTrailCache implements TrailCache {
+  /// Legt [text] ab. Darf werfen; geschluckt wird hier.
+  Future<void> storeText(String text);
 
-  final Directory? _baseDirOverride;
+  /// Der abgelegte Text oder `null`. Darf werfen; geschluckt wird hier.
+  Future<String?> loadText();
 
-  static const dirName = 'trail_cache';
+  /// Entfernt die Kopie. Darf werfen; geschluckt wird hier.
+  Future<void> removeText();
 
   /// Schreiben und Löschen laufen nacheinander: Das Schreiben gibt
   /// zwischendurch den Haupt-Thread frei ([encodeTrailCacheInSlices]),
-  /// und zwei Läufe zugleich teilten sich sonst die `.part`-Datei — oder
-  /// ein Schreiben legte die Kopie nach dem Abmelden wieder an.
+  /// und zwei Läufe zugleich teilten sich sonst die Ablage — oder ein
+  /// Schreiben legte die Kopie nach dem Abmelden wieder an.
   Future<void> _queue = Future.value();
 
   /// Zählt die Aufträge: Ein Schreiben, hinter dem schon ein neueres oder
@@ -175,16 +179,6 @@ class FileTrailCache implements TrailCache {
     return next;
   }
 
-  Future<File> _file() async {
-    final base = _baseDirOverride ?? await getApplicationSupportDirectory();
-    final dir = Directory('${base.path}/$dirName');
-    if (!await dir.exists()) await dir.create(recursive: true);
-    return File('${dir.path}/network.json');
-  }
-
-  /// `.part` + `rename`: Ein Abbruch mitten im Schreiben darf keine halbe
-  /// Datei hinterlassen — das wäre genau der Zustand, den die Kopie
-  /// beseitigen soll.
   @override
   Future<void> write({required String uid, required TrailSnapshot snapshot, required DateTime savedAt}) =>
       _enqueue((generation) async {
@@ -192,22 +186,19 @@ class FileTrailCache implements TrailCache {
           if (generation != _generation) return;
           final text = await encodeTrailCacheInSlices(uid: uid, snapshot: snapshot, savedAt: savedAt);
           if (generation != _generation) return;
-          final file = await _file();
-          final temp = File('${file.path}.part');
-          await temp.writeAsString(text, flush: true);
-          await temp.rename(file.path);
+          await storeText(text);
         } catch (_) {
-          // Volle Platte, fehlende Rechte: Dann gibt es eben keine Kopie. Der
-          // Abruf war erfolgreich und darf daran nicht scheitern.
+          // Volle Platte, fehlende Rechte, voller Browser-Speicher: Dann
+          // gibt es eben keine Kopie. Der Abruf war erfolgreich und darf
+          // daran nicht scheitern.
         }
       });
 
   @override
   Future<({TrailSnapshot snapshot, DateTime savedAt})?> read({required String uid}) async {
     try {
-      final file = await _file();
-      if (!await file.exists()) return null;
-      return decodeTrailCache(await file.readAsString(), uid: uid);
+      final text = await loadText();
+      return text == null ? null : decodeTrailCache(text, uid: uid);
     } catch (_) {
       // Unlesbar heißt „keine Kopie". Kein `logError`: ein Bericht je Start.
       return null;
@@ -219,17 +210,58 @@ class FileTrailCache implements TrailCache {
   @override
   Future<void> clear() => _enqueue((_) async {
         try {
-          final file = await _file();
-          if (await file.exists()) await file.delete();
+          await removeText();
         } catch (_) {
           // Ein Löschfehler darf das Abmelden nicht aufhalten.
         }
       });
 }
 
-/// Kein Ort zum Ablegen: der Web-Zweig, bewusst (#32; IndexedDB wie in
-/// PilzBuddy #385 ist ein eigener Schritt) — und der Fall in Tests, die
-/// keine Kopie wollen.
+/// Die Datei im App-Verzeichnis (Android). `trail_cache/` steht in beiden
+/// Backup-Ausschlüssen: Googles Cloud ist in der Datenschutzerklärung
+/// kein Empfänger.
+class FileTrailCache extends QueuedTrailCache {
+  FileTrailCache({Directory? baseDir}) : _baseDirOverride = baseDir;
+
+  final Directory? _baseDirOverride;
+
+  static const dirName = 'trail_cache';
+
+  Future<File> _file() async {
+    final base = _baseDirOverride ?? await getApplicationSupportDirectory();
+    final dir = Directory('${base.path}/$dirName');
+    if (!await dir.exists()) await dir.create(recursive: true);
+    return File('${dir.path}/network.json');
+  }
+
+  /// `.part` + `rename`: Ein Abbruch mitten im Schreiben darf keine halbe
+  /// Datei hinterlassen — das wäre genau der Zustand, den die Kopie
+  /// beseitigen soll.
+  @override
+  Future<void> storeText(String text) async {
+    final file = await _file();
+    final temp = File('${file.path}.part');
+    await temp.writeAsString(text, flush: true);
+    await temp.rename(file.path);
+  }
+
+  @override
+  Future<String?> loadText() async {
+    final file = await _file();
+    if (!await file.exists()) return null;
+    return file.readAsString();
+  }
+
+  @override
+  Future<void> removeText() async {
+    final file = await _file();
+    if (await file.exists()) await file.delete();
+  }
+}
+
+/// Kein Ort zum Ablegen: der Browser ohne IndexedDB (privater Modus,
+/// `file://`; mit IndexedDB gilt seit #153 `IdbTrailCache`) — und der
+/// Fall in Tests, die keine Kopie wollen.
 class NoTrailCache implements TrailCache {
   const NoTrailCache();
 

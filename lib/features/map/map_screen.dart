@@ -1587,6 +1587,11 @@ class _OutboxBanner extends ConsumerWidget {
       if (rejected.any((j) => j is FeedbackJob)) 'bei der Glühbirne',
     ].join(' und ');
     final waiting = count - failed;
+    // Nur im Browser (#153): Er darf seinen Speicher unter Druck räumen,
+    // und anders als bei der Kopie des Netzes wäre hier das Original weg.
+    // Verschwiegen wäre das der schlechteste Ausgang. Auf Android sagt
+    // die Datei immer „zugesichert", die Zeile erscheint dort nie.
+    final notDurable = ref.watch(outboxDurableProvider).valueOrNull == false;
     final text = [
       if (waiting > 0) '$waiting ${waiting == 1 ? 'wartet' : 'warten'} auf Übertragung',
       if (failed > 0) '$failed abgelehnt',
@@ -1601,9 +1606,21 @@ class _OutboxBanner extends ConsumerWidget {
             dense: true,
             leading: Icon(failed > 0 ? Icons.error_outline : Icons.schedule),
             title: Text(text),
-            subtitle: Text(failed > 0 && waiting == 0
-                ? 'Entscheiden $decideWhere'
-                : 'Antippen zum Senden — sonst beim nächsten Netz'),
+            subtitle: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(failed > 0 && waiting == 0
+                    ? 'Entscheiden $decideWhere'
+                    : 'Antippen zum Senden — sonst beim nächsten Netz'),
+                if (notDurable)
+                  Text(
+                    'Dein Browser sichert diesen Speicher nicht zu — sende, sobald du Empfang hast.',
+                    key: const ValueKey('outbox-not-durable'),
+                    style: TextStyle(color: AppPalette.of(context).warningText),
+                  ),
+              ],
+            ),
             onTap: () async {
               final messenger = ScaffoldMessenger.of(context);
               final r = await ref.read(trailsProvider.notifier).sendOutbox();
