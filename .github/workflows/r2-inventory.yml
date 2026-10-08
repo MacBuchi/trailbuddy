@@ -1,0 +1,121 @@
+name: R2 Inventory
+
+# What lies in the R2 bucket and whether it should (#230, roadmap 18a).
+#
+# map-data, height-data, way-data and poi-data each upload a dated build
+# plus a manifest and remove what is older than their two newest builds.
+# Nothing looked at the result: a run that stops between upload and
+# manifest leaves a build nobody names, an unfinished multipart upload
+# keeps its parts, and a measurement could leave a file in the prefix.
+# This run lists the whole bucket, reads the four manifests from the
+# bucket itself (not through the edge cache) and writes the report of
+# tool/r2_inventory.py into the run summary: builds per family and their
+# state, objects no family claims, objects stored twice, unfinished
+# uploads, and the total against the free storage — the base for
+# measuring the map beyond DACH (#220, 18b).
+#
+# Read only: list and get, never put or delete. The token is the data
+# workflows' (Object Read & Write) because R2 has no second one here;
+# what to remove is decided from the report, by hand.
+#
+# Monthly on the 4th, after the data workflows of the 1st to the 3rd. A
+# run during an upload shows the state in between — start it again
+# afterwards.
+#
+# Secrets go through `env:` into a detection step; `secrets.` is not
+# available in `if:` (PilzBuddy, 2026-08-13).
+#
+# No Version Guard concern: nothing here lands in a binary.
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "41 6 4 * *"
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  # Public values, as in the data workflows.
+  R2_BUCKET: buddy-tiles
+  R2_PREFIX: trailbuddy
+
+jobs:
+  inventory:
+    name: List the bucket and report
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Are the R2 secrets there?
+        id: r2
+        env:
+          ACCOUNT: ${{ secrets.R2_ACCOUNT_ID }}
+          KEY: ${{ secrets.R2_ACCESS_KEY_ID }}
+          SECRET: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+        run: |
+          if [ -n "$ACCOUNT" ] && [ -n "$KEY" ] && [ -n "$SECRET" ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            {
+              echo "## R2 Inventory: nothing listed"
+              echo
+              echo "One of R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY is missing —"
+              echo "the same three secrets the data workflows use."
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Self-test of the report
+        run: python3 tool/r2_inventory.py --self-test > /dev/null
+
+      - name: List the bucket and fetch the manifests
+        if: steps.r2.outputs.present == 'true'
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          AWS_DEFAULT_REGION: auto
+          AWS_EC2_METADATA_DISABLED: "true"
+        # The CLI pages through the listing by itself (1000 keys a call,
+        # Class A operations — a few dozen for the places' cells). `.eu.`
+        # in the endpoint: the bucket has EU jurisdiction. A missing
+        # manifest is not a failure here; the report says what it means.
+        run: |
+          set -euo pipefail
+          endpoint="https://${R2_ACCOUNT_ID}.eu.r2.cloudflarestorage.com"
+          mkdir -p build/inventory/manifests
+          aws --endpoint-url "$endpoint" s3api list-objects-v2 \
+            --bucket "$R2_BUCKET" --output json > build/inventory/listing.json
+          # Unfinished uploads are a side question: if R2 refuses the call,
+          # the report goes on without them and the log says so.
+          aws --endpoint-url "$endpoint" s3api list-multipart-uploads \
+            --bucket "$R2_BUCKET" --output json > build/inventory/uploads.json \
+            || { echo "::warning::list-multipart-uploads failed — the report lists none"; : > build/inventory/uploads.json; }
+          for m in dach.json heights.json ways.json pois.json; do
+            aws --endpoint-url "$endpoint" s3 cp --no-progress --only-show-errors \
+              "s3://${R2_BUCKET}/${R2_PREFIX}/$m" "build/inventory/manifests/$m" \
+              || echo "no $m in the bucket"
+          done
+
+      - name: Report
+        if: steps.r2.outputs.present == 'true'
+        # Into the summary first, then the exit code: a manifest that
+        # names a build the bucket lacks fails the run, and the summary
+        # still says why.
+        run: |
+          set -uo pipefail
+          python3 tool/r2_inventory.py report \
+            --listing build/inventory/listing.json \
+            --uploads build/inventory/uploads.json \
+            --manifests build/inventory/manifests \
+            --prefix "$R2_PREFIX" --bucket "$R2_BUCKET" \
+            --json build/inventory/inventory.json > build/inventory/report.md
+          status=$?
+          cat build/inventory/report.md >> "$GITHUB_STEP_SUMMARY"
+          cat build/inventory/report.md
+          exit $status
