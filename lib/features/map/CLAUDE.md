@@ -248,3 +248,37 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     (Schritt 3 leuchtet sie aus; die Blase braucht 200 dp, auf einem
     360-dp-Telefon). `test/flows/map_legend_flow_test.dart` misst sie
     hochkant und quer.
+- **Die Ebene „Wege"** (#212 PR 2, seit 0.89.0, `way_layer.dart`;
+  Aussehen `docs/design/README.md` 5a): Forstweg-Güte und
+  Pfad-Schwierigkeit aus OSM, ein drittes Archiv vom eigenen Host
+  (`ways.json` → `ways-<build>.pmtiles`, gebaut von `way-data.yml` /
+  `tool/way_archive.py`). Ab Werk an, Schalter „Wege" in „Kartenebenen"
+  (`Settings.wayLayerEnabled`, `way_layer_enabled`). Fünf Dinge, die man
+  wissen muss:
+  - **Das Format steht zweimal** — `kWaysFormat`/`kWaysZoom`/
+    `kWaysLayer`/`kWaysKey` hier, `FORMAT`/`ZOOM`/`LAYER`/`KEY` und die
+    Klassen-Codes im Werkzeug; `test/release_workflow_test.dart` und
+    `test/map/way_layer_test.dart` halten beide Seiten zusammen. Ein
+    fremdes Format lehnt das Manifest ab ⇒ keine Ebene.
+  - **Nur Zoom 13 im Archiv**: Darunter zeigt keine Engine etwas
+    (MapLibre-Quelle min = max = 13, vector_map_tiles liefert unter dem
+    `minimumZoom` des Providers leere Kacheln), darüber wird
+    hochskaliert. Keine Ersatzkachel (`maximumTileSubstitutionDifference: 0`).
+  - **Über ALLEN Kartenquellen, unter den Trails** — auch über den
+    gespeicherten Bereichen, deren deckende `earth`-Fläche sie sonst
+    zudeckte. MapLibre: `MapStyleOverlay` im Composer nach allen
+    Vektorquellen; flutter_map: eigene `VectorTileLayer` nach der der
+    Bereiche. `area_layer_order_test` und `maplibre_style_provider_test`
+    halten beide fest.
+  - **Zwei Fassungen derselben Tabelle** (`wayStyleLayers(dashes:)`):
+    MapLibre mit Band und Strich, flutter_map ohne Strich, weil
+    `vector_tile_renderer` `line-dasharray` verwirft — dort trägt die
+    Helligkeit (`webColor`). Wer eine Klasse ändert, prüft beide und die
+    Breite gegen die Basislinie (Test liest den Stil).
+  - **Das Wege-Manifest wartet so lange wie das der Karte** und
+    gleichzeitig (`patiently` in `maplibre_style_provider.dart`); kommt es
+    später, baut der Stil neu. 404 (noch kein Bau), fremdes Format und
+    Funkloch gehen still durch, damit nicht jede Installation im Digest
+    steht, solange `way-data.yml` nicht veröffentlicht hat. Der Harness
+    hängt `waysManifestLoaderProvider` auf null — ohne die Zeile fragte
+    jeder Kartentest den Host. Offline (gespeicherte Bereiche) ist PR 3.

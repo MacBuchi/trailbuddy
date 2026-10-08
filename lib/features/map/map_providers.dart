@@ -27,3 +27,8 @@ const kPoiManifestUrl = '$kMapTilesBase/pois.json';
 /// gilt. Dieselbe Zeiger-Idee; die Kacheln kommen mit einem Bereich
 /// (`lib/features/offline_areas/height_tiles.dart`).
 const kHeightsManifestUrl = '$kMapTilesBase/heights.json';
+
+/// Das Manifest des Wege-Archivs (`ways.json`, geschrieben von
+/// `way-data.yml`, #212): welches `ways-<build>.pmtiles` gilt. Dieselbe
+/// Zeiger-Idee; gelesen in `way_layer.dart`.
+const kWaysManifestUrl = '$kMapTilesBase/ways.json';

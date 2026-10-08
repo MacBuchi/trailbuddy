@@ -14,6 +14,7 @@ import 'package:trailbuddy/core/connectivity.dart';
 import 'package:trailbuddy/core/settings.dart';
 import 'package:trailbuddy/features/map/map_view/maplibre_style_provider.dart';
 import 'package:trailbuddy/features/map/online_map.dart';
+import 'package:trailbuddy/features/map/way_layer.dart';
 import 'package:trailbuddy/features/offline_areas/area_plan.dart';
 import 'package:trailbuddy/features/offline_areas/area_store.dart';
 import 'package:trailbuddy/features/offline_areas/area_store_io.dart';
@@ -67,6 +68,7 @@ void main() {
     bool officialOn = false,
     FakeOfficialTrailsSource? official,
     AreaStore? areaStore,
+    WaysManifest? ways,
   }) {
     final io = _FakeIo();
     final container = ProviderContainer(overrides: [
@@ -75,6 +77,7 @@ void main() {
       noConnectivityProvider.overrideWithValue(noConnectivity),
       mapManifestLoaderProvider.overrideWithValue(() async => manifest),
       settingsProvider.overrideWithValue(FakeSettings(officialTrailsEnabled: officialOn)),
+      waysManifestLoaderProvider.overrideWithValue(() async => ways),
       officialTrailsSourceProvider.overrideWithValue(official ?? FakeOfficialTrailsSource()),
       officialTrailsCacheProvider.overrideWithValue(MemoryOfficialTrailsCache()),
     ]);
@@ -111,6 +114,7 @@ void main() {
         return _manifest;
       }),
       settingsProvider.overrideWithValue(FakeSettings()),
+      waysManifestLoaderProvider.overrideWithValue(() async => null),
       officialTrailsSourceProvider.overrideWithValue(FakeOfficialTrailsSource()),
       officialTrailsCacheProvider.overrideWithValue(MemoryOfficialTrailsCache()),
     ]);
@@ -138,6 +142,7 @@ void main() {
       noConnectivityProvider.overrideWithValue(false),
       mapManifestLoaderProvider.overrideWithValue(() => late.future),
       settingsProvider.overrideWithValue(FakeSettings()),
+      waysManifestLoaderProvider.overrideWithValue(() async => null),
       officialTrailsSourceProvider.overrideWithValue(FakeOfficialTrailsSource()),
       officialTrailsCacheProvider.overrideWithValue(MemoryOfficialTrailsCache()),
     ]);
@@ -233,6 +238,92 @@ void main() {
       final store = MemoryAreaStore();
       await store.putArchive('a1', Uint8List.fromList([1, 2, 3]));
       final (c, _) = make(noConnectivity: true, areaStore: store);
+      expect(sourceIds(await styleOf(c)), ['overview']);
+    });
+  });
+
+  group('Wege (#212)', () {
+    const ways = WaysManifest(file: 'ways-20261101.pmtiles', bytes: 92300000, build: '20261101');
+
+    test('über allen Kartenquellen, auch über den Bereichen, mit eigenen Ebenen', () async {
+      final dir = await Directory.systemTemp.createTemp('areas');
+      addTearDown(() => dir.delete(recursive: true));
+      final store = FileAreaStore(baseDir: dir);
+      await store.putArchive('a1', Uint8List.fromList([1, 2, 3]));
+      await store.saveIndex([
+        StoredArea(
+          id: 'a1',
+          name: 'Isartrails',
+          bounds: const AreaBounds(south: 47.9, west: 11.6, north: 47.95, east: 11.7),
+          minZoom: 8,
+          maxZoom: 13,
+          build: '20260928',
+          tiles: 42,
+          bytes: 3,
+          savedAt: DateTime.utc(2026, 9, 28),
+        ),
+      ]);
+      final (c, _) = make(noConnectivity: false, areaStore: store, ways: ways);
+      final style = await styleOf(c);
+      expect(sourceIds(style), ['online', 'area-a1', kWaysSourceId]);
+      final src = (style['sources'] as Map)[kWaysSourceId] as Map;
+      expect(src['url'], 'pmtiles://https://tiles.mcbuchi.de/trailbuddy/ways-20261101.pmtiles');
+      expect([src['minzoom'], src['maxzoom']], [kWaysZoom, kWaysZoom]);
+      expect(src.containsKey('attribution'), isFalse, reason: 'OSM steht schon an der Karte');
+      final layers = (style['layers'] as List).cast<Map<String, dynamic>>();
+      final ids = layers.map((l) => l['id']).toList();
+      final firstWay = ids.indexWhere((id) => (id as String).startsWith('$kWaysSourceId/'));
+      expect(firstWay, greaterThan(ids.indexOf('area-a1/earth')),
+          reason: 'die deckende Fläche eines Bereichs deckte die Wege sonst zu');
+      expect(ids.sublist(firstWay), [for (final l in wayStyleLayers(kWaysSourceId, dashes: true)) l['id']],
+          reason: 'MapLibre bekommt die Fassung MIT Strich');
+    });
+
+    test('Schalter aus: kein Abruf, keine Quelle', () async {
+      var asked = 0;
+      final container = ProviderContainer(overrides: [
+        maplibreStyleIoProvider.overrideWithValue(_FakeIo()),
+        areaStoreProvider.overrideWithValue(MemoryAreaStore()),
+        noConnectivityProvider.overrideWithValue(false),
+        mapManifestLoaderProvider.overrideWithValue(() async => _manifest),
+        settingsProvider.overrideWithValue(FakeSettings(wayLayerEnabled: false)),
+        waysManifestLoaderProvider.overrideWithValue(() async {
+          asked++;
+          return ways;
+        }),
+        officialTrailsSourceProvider.overrideWithValue(FakeOfficialTrailsSource()),
+        officialTrailsCacheProvider.overrideWithValue(MemoryOfficialTrailsCache()),
+      ]);
+      addTearDown(container.dispose);
+      expect(sourceIds(await styleOf(container)), ['online']);
+      expect(asked, 0, reason: 'aus heißt: keine Anfrage');
+    });
+
+    test('ein spätes Wege-Manifest hält die Karte nicht auf und baut den Stil neu', () async {
+      final late = Completer<WaysManifest?>();
+      final container = ProviderContainer(overrides: [
+        maplibreStyleIoProvider.overrideWithValue(_FakeIo()),
+        areaStoreProvider.overrideWithValue(MemoryAreaStore()),
+        noConnectivityProvider.overrideWithValue(false),
+        mapManifestLoaderProvider.overrideWithValue(() async => _manifest),
+        settingsProvider.overrideWithValue(FakeSettings()),
+        waysManifestLoaderProvider.overrideWithValue(() => late.future),
+        officialTrailsSourceProvider.overrideWithValue(FakeOfficialTrailsSource()),
+        officialTrailsCacheProvider.overrideWithValue(MemoryOfficialTrailsCache()),
+      ]);
+      addTearDown(container.dispose);
+      final sub = container.listen(maplibreStyleProvider, (_, _) {});
+      addTearDown(sub.close);
+      final watch = Stopwatch()..start();
+      expect(sourceIds(await styleOf(container)), ['online']);
+      expect(watch.elapsed, lessThan(kMapManifestPatience + const Duration(seconds: 1)));
+      late.complete(ways);
+      await Future<void>.delayed(Duration.zero);
+      expect(sourceIds(await styleOf(container)), ['online', kWaysSourceId]);
+    });
+
+    test('ohne Empfang: kein Abruf', () async {
+      final (c, _) = make(noConnectivity: true, ways: ways);
       expect(sourceIds(await styleOf(c)), ['overview']);
     });
   });

@@ -42,11 +42,24 @@ class MapRasterSource {
   final int maxZoom;
 }
 
+/// Eine Vektorquelle mit EIGENEN Ebenen statt denen der Basiskarte — die
+/// Wege-Ebene (#212). Liegt über allen Kartenquellen, also auch über den
+/// gespeicherten Bereichen, deren deckende Fläche sie sonst zudeckte.
+class MapStyleOverlay {
+  const MapStyleOverlay({required this.source, required this.layers});
+
+  final MapStyleSource source;
+
+  /// Die fertigen Ebenen; ihr `source` ist [MapStyleSource.id].
+  final List<Map<String, dynamic>> layers;
+}
+
 const kMapAttribution = '© OpenStreetMap contributors · Protomaps';
 
 /// Setzt aus dem erzeugten Protomaps-Basis-Style und den Quellen EIN
 /// Style-Dokument zusammen: eine background-Ebene im Landton, dann für
 /// jede Vektorquelle alle Nicht-background-Ebenen des Basis-Styles, dann
+/// die [overlays] mit ihren eigenen Ebenen, dann
 /// die Rasterquellen als oberste Kartenschicht — wo eine Online-Kachel
 /// lädt, deckt sie den fremden Kartenstil darunter ab (PilzBuddy #137).
 ///
@@ -62,6 +75,7 @@ String composeMapLibreStyle({
   required String backgroundColor,
   required List<MapStyleSource> sources,
   List<MapRasterSource> rasterSources = const [],
+  List<MapStyleOverlay> overlays = const [],
   List<String> extraAttributions = const [],
 }) {
   final baseLayers = baseStyle['layers'] as List<dynamic>? ?? const [];
@@ -95,6 +109,19 @@ String composeMapLibreStyle({
       'attribution': ?attribution,
     };
     layers.addAll(_layersFor(baseLayers, source.id));
+  }
+
+  for (final overlay in overlays) {
+    final source = overlay.source;
+    final attribution = attributionOnce(kMapAttribution);
+    styleSources[source.id] = {
+      'type': 'vector',
+      'url': 'pmtiles://${source.url}',
+      'minzoom': source.minZoom,
+      'maxzoom': source.maxZoom,
+      'attribution': ?attribution,
+    };
+    layers.addAll(overlay.layers);
   }
 
   for (final raster in rasterSources) {

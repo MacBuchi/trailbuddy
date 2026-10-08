@@ -25,9 +25,12 @@ import '../../core/settings.dart';
 import '../../core/widgets/motion.dart';
 import '../trails/grade_shield.dart';
 import 'map_buttons.dart';
+import 'way_layer.dart';
 
 /// Eine Probe: Farbe, Strich der Linie, Saum, Deckkraft — und die Gruppe
 /// (Schwierigkeit, Zustand, Rand, offiziell), nach der die Karte Luft lässt.
+/// Eine Wege-Probe (#212) trägt ihre Klasse in [way] und wird gezeichnet
+/// wie die Ebene — ohne weißen Saum, mit Band und Strich.
 typedef LegendSample = ({
   String label,
   int group,
@@ -36,10 +39,11 @@ typedef LegendSample = ({
   Color? border,
   List<double>? borderDash,
   double opacity,
+  WayClass? way,
 });
 
 LegendSample _line(String label, int group, Color color,
-        {List<double>? dash, Color? border, List<double>? borderDash, double opacity = 1}) =>
+        {List<double>? dash, Color? border, List<double>? borderDash, double opacity = 1, WayClass? way}) =>
     (
       label: label,
       group: group,
@@ -48,14 +52,22 @@ LegendSample _line(String label, int group, Color color,
       border: border,
       borderDash: borderDash,
       opacity: opacity,
+      way: way,
     );
+
+/// Die Gruppe der Wege-Proben je Wegart: Forstweg 4, Pfad 5.
+int _wayGroup(WayKind kind) => kind == WayKind.track ? 4 : 5;
 
 /// Die Proben, in der Reihenfolge der Kurzanleitung: Schwierigkeit, dann
 /// Zustand, dann was UM die Linie liegt. Jede nennt, was sie BEDEUTET,
 /// mit den Wörtern des Melde-Dialogs — bis 0.83.x stand beim Zustand das
 /// Aussehen („bröckelig", „gestrichelt", „verblasst"), das die Probe
 /// ohnehin zeigt (#231, Betreiber 2026-10-07: Variante A).
-List<LegendSample> legendSamples() {
+///
+/// Die Wege (#212) stehen am Ende und nur, solange ihre Ebene an ist
+/// ([ways]) — eine Probe für etwas, das die Karte gerade nicht zeigt,
+/// ließe suchen.
+List<LegendSample> legendSamples({bool ways = true}) {
   const g = AppColors.mapGrades;
   const m = AppColors.mapLines;
   return [
@@ -72,6 +84,8 @@ List<LegendSample> legendSamples() {
     _line('Meldung', 2, g.s1, border: m.warning),
     _line('neuer Hinweis', 2, g.s1, border: m.note),
     _line('offizieller Trail', 3, m.official, dash: const [6, 4]),
+    if (ways)
+      for (final c in WayClass.values) _line(c.label, _wayGroup(c.kind), c.color, way: c),
   ];
 }
 
@@ -82,6 +96,8 @@ String? legendGroupTitle(int group) => switch (group) {
       0 => 'Schwierigkeit',
       1 => 'Zustand',
       2 => 'Am Trail',
+      4 => 'Forstweg',
+      5 => 'Pfad',
       _ => null,
     };
 
@@ -93,11 +109,19 @@ class LegendLinePainter extends CustomPainter {
 
   static const _width = 3.0;
 
+  /// Breite einer Wege-Probe: die Ebene bei etwa Zoom 16, wo man sie
+  /// liest — schmaler als ein Trail, wie auf der Karte.
+  static const _wayWidth = 2.4;
+
   @override
   void paint(Canvas canvas, Size size) {
     final y = size.height / 2;
     final a = Offset(2, y);
     final b = Offset(size.width - 2, y);
+    if (sample.way case final way?) {
+      paintWayStroke(canvas, a, b, way, _wayWidth * way.width / WayClass.trackGood.width);
+      return;
+    }
     // Erst der Saum (weiß, auf Wunsch gestrichelt), dann ein farbiger
     // Rand, dann die Linie — dieselbe Reihenfolge wie auf der Karte.
     _stroke(canvas, a, b, AppColors.mapLines.halo!, _width + 4, sample.borderDash);
@@ -149,12 +173,13 @@ class MapLegend extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final open = ref.watch(mapLegendOpenProvider);
+    final ways = ref.watch(wayLayerEnabledProvider);
     void toggle() => ref.read(mapLegendOpenProvider.notifier).set(!open);
     return AnimatedSize(
       duration: reduceMotion(context) ? Duration.zero : const Duration(milliseconds: 180),
       curve: Curves.easeOutCubic,
       alignment: Alignment.centerLeft,
-      child: open ? _Panel(onClose: toggle) : _Tab(onOpen: toggle),
+      child: open ? _Panel(onClose: toggle, ways: ways) : _Tab(onOpen: toggle),
     );
   }
 }
@@ -229,9 +254,10 @@ String? _titleAt(List<LegendSample> samples, int i) =>
 
 /// Auf: die Proben untereinander, oben „Legende" mit dem Weg zurück.
 class _Panel extends StatelessWidget {
-  const _Panel({required this.onClose});
+  const _Panel({required this.onClose, required this.ways});
 
   final VoidCallback onClose;
+  final bool ways;
 
   @override
   Widget build(BuildContext context) {
@@ -240,7 +266,7 @@ class _Panel extends StatelessWidget {
     final label = theme.bodySmall?.copyWith(color: text);
     final heading = theme.labelSmall?.copyWith(
         color: AppColors.light.muted, letterSpacing: 0.8, fontWeight: FontWeight.w600);
-    final samples = legendSamples();
+    final samples = legendSamples(ways: ways);
     return Container(
       key: const ValueKey('map-legend-panel'),
       width: kMapLegendWidth,

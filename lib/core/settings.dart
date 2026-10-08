@@ -93,6 +93,12 @@ abstract interface class Settings {
 
   Future<void> setOfficialTrailsEnabled(bool value);
 
+  /// Ist die Ebene „Wege" an (#212: Forstweg-Güte und Pfad-Schwierigkeit
+  /// aus OSM)? Vorgabe: an (Betreiber, 2026-10-08).
+  bool get wayLayerEnabled;
+
+  Future<void> setWayLayerEnabled(bool value);
+
   /// Ist die Legende auf der Karte aufgeklappt (#182)? Vorgabe: zu.
   bool get mapLegendOpen;
 
@@ -206,6 +212,14 @@ class PrefsSettings implements Settings {
   @override
   bool get officialTrailsEnabled =>
       _prefs.getBool(_officialTrailsEnabledKey) ?? true;
+
+  static const _wayLayerEnabledKey = 'way_layer_enabled';
+
+  @override
+  bool get wayLayerEnabled => _prefs.getBool(_wayLayerEnabledKey) ?? true;
+
+  @override
+  Future<void> setWayLayerEnabled(bool value) => _prefs.setBool(_wayLayerEnabledKey, value);
 
   static const _mapLegendOpenKey = 'map_legend_open';
 

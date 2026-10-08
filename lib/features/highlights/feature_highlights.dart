@@ -74,6 +74,19 @@ class FeatureHighlight {
 const kFeatureHighlights = <FeatureHighlight>[
   // ─── Highlights ──────────────────────────────────────────────────
   FeatureHighlight(
+    id: 'way-quality',
+    since: '0.89.0',
+    kind: HighlightKind.highlight,
+    tab: HighlightTab.map,
+    icon: Icons.layers_outlined,
+    title: 'Wie gut ist der Weg?',
+    text: 'Ab Zoomstufe 13 zeigt die Karte, wie gut ein Forstweg ist und wie schwer '
+        'ein Pfad: durchgezogen gut oder leicht, gestrichelt mittel, gepunktet '
+        'schlecht oder schwer. Die Angaben stammen aus OpenStreetMap; unter „Kartenebenen" '
+        'schaltest du sie ab.',
+    target: '/',
+  ),
+  FeatureHighlight(
     id: 'route-elevation',
     since: '0.88.0',
     kind: HighlightKind.highlight,
