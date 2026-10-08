@@ -9,7 +9,7 @@ Abschnitt 6.*
 Offiziell ausgewiesene Singletrails und Bikeparks — vom Land, von einem
 Verein mit Genehmigung, vom Betreiber eines Bikeparks — erscheinen als
 **eigene Ebene** auf der Karte, getrennt von den Trails des Buddy-Netzes.
-Ein CI-Job holt die Quellen wöchentlich, filtert auf Singletrails, bringt
+Ein CI-Job holt die Quellen täglich, filtert auf Singletrails, bringt
 sie in ein gemeinsames Format und veröffentlicht sie als statische
 GeoJSON-Dateien je Region. Die App lädt die Region, die sie gerade zeigt,
 merkt sie sich und zeichnet sie als abschaltbare Ebene mit eigenem Blatt
@@ -104,7 +104,8 @@ beim Betreiber (Nextcloud), nicht im Repo. Zwei Dinge fürs Bauen:
   Werkzeuge) holt jede Quelle, filtert, bringt sie in das Format unten,
   vereinfacht die Linien (dieselbe Toleranz wie der Import) und schreibt
   je Region eine Datei plus einen Index.
-- `official-trails.yml`, wöchentlich und von Hand auslösbar. Ergebnis
+- `official-trails.yml`, täglich (seit #41 — Sperren veralten schneller
+  als Trails) und von Hand auslösbar. Ergebnis
   ist der Branch **`official-trails-data`** (nur Daten, nie von Hand),
   die App liest ihn über `raw.githubusercontent.com` — der Host kommt
   mit der App-Ebene in die Datenschutzerklärung. **Nicht als Release:**
@@ -114,8 +115,14 @@ beim Betreiber (Nextcloud), nicht im Repo. Zwei Dinge fürs Bauen:
 - **Wächter:** Eine Quelle, die nicht antwortet, behält ihre letzte
   Datei (Run-Summary sagt es). Eine Quelle, die plötzlich mehr als ein
   Drittel ihrer Trails verliert, wird NICHT veröffentlicht — ein
-  kaputter Export soll keine Region leeren. Jede Datei trägt Stand und
-  Quelle.
+  kaputter Export soll keine Region leeren. Ebenso wenig eine Quelle,
+  die auf einmal mehr als ein Drittel ihrer Trails sperrt (#41): Der Lauf
+  wird rot, und erst nach einem Blick in die Quelle veröffentlicht ihn
+  ein Handlauf mit `allow_mass_closure` (ein Saisonende ist ein echter
+  Fall). Ein Statuswert, den der Leser nicht kennt, lässt die frühere
+  Datei stehen und macht den Lauf rot — als „offen" gelesen, gäbe ein
+  umbenanntes Feld still jede Sperre frei, und das ist die teure
+  Richtung. Jede Datei trägt Stand und Quelle.
 - `--self-test` mit kleinen Beispieldaten je Leser, in CI (Tool
   self-tests) und vor jedem Lauf.
 
@@ -166,8 +173,17 @@ niemand abgegeben hat. Das Blatt zeigt den Originalwert.
 - Die Quellenangaben der geladenen Regionen stehen in der
   Karten-Attribution, solange die Ebene an ist.
 - Gesperrte Teile sind grau, nicht orange: Orange ist die Meldung eines
-  Buddys. Das Blatt nennt Status und Schwierigkeit immer mit der Quelle
-  („Gesperrt laut Land Tirol").
+  Buddys. Das Blatt nennt Status und Schwierigkeit immer mit der Quelle,
+  eine Sperre mit deren Stand („Gesperrt laut Land Tirol, Stand
+  28.09.2026" — der jüngste Stand der Abschnitte des Trails).
+- **Sperre im Trail-Blatt** (#41): Deckt ein Trail des Netzes eine
+  offizielle Linie mit Sperre, warnt die Zeile nur, wenn ein gesperrter
+  Abschnitt AUF dem Trail liegt — gedeckt zu 0,8 oder auf mindestens
+  50 m (ein Queren deckt im Korridor höchstens rund 30 m). Dann grau mit
+  Sperrsymbol: „gesperrt laut …, Stand …" (bei „teilweise gesperrt":
+  „Abschnitt gesperrt …"). Liegt die Sperre woanders (meist eine
+  Variante), sagt die Zeile „anderer Abschnitt gesperrt laut …" und
+  warnt nicht.
 
 ## 6. Zurückgestellt (Entscheidung 2026-09-28)
 
@@ -183,10 +199,11 @@ niemand abgegeben hat. Das Blatt zeigt den Originalwert.
 
 ## 7. Später
 
-- **Sperrungen** aus offiziellen Quellen (Schweiz täglich) als Warnung
-  an offiziellen Linien — und, wenn ein Trail des Netzes eine gesperrte
-  offizielle Linie deckt, als Hinweis im Trail-Blatt. Anders als der
-  Status eines Buddys kommt diese Meldung von der Quelle und sagt das.
+- **Sperrungen** aus offiziellen Quellen als Warnung an offiziellen
+  Linien und im Trail-Blatt — **für Tirol gebaut** (#41, 0.103.0, siehe
+  5.1 und 5.3). Die Schweiz (Sperrungen/Umleitungen Mountainbikeland,
+  täglich) folgt erst mit ihren Trails, also nach Abschnitt 6.2: Eine
+  Sperre ohne die Linie, an der sie gilt, hat keinen Ort.
 - Weitere Regionen, sobald eine Quelle die Bedingungen aus Abschnitt 4
   erfüllt.
 
@@ -203,5 +220,8 @@ niemand abgegeben hat. Das Blatt zeigt den Originalwert.
    „Teil des offiziellen Trails", „enthält den offiziellen Trail"),
    ohne Fréchet — es wird nichts verschmolzen. Varianten zählen nicht
    gegen „derselbe"; eine amtliche Sperre steht mit Quelle dabei.
-5. Weitere Quellen, sobald eine die Bedingungen erfüllt; Vereine und
+5. Sperren der Quelle mit Stand, Warnung im Trail-Blatt nur, wenn der
+   gesperrte Abschnitt darauf liegt; täglicher Lauf, Wächter gegen
+   Massensperren und unbekannte Statuswerte. **Erledigt, 0.103.0** (#41).
+6. Weitere Quellen, sobald eine die Bedingungen erfüllt; Vereine und
    Schweiz nach Abschnitt 6.

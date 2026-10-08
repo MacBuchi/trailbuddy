@@ -65,7 +65,7 @@ String fakeIndex({String updated = '2026-09-01'}) => jsonEncode({
 /// Ein offizieller Trail genau auf der Linie, die `seedTrail` mit den
 /// Vorgaben anlegt (Länge 9,0 von Breite 48,0 bis 48,009) — für „Auch
 /// ausgeschildert als …".
-Map<String, Object> fakeOnRoots({String status = 'closed'}) => {
+Map<String, Object> fakeOnRoots({String status = 'closed', String? updated}) => {
       'type': 'Feature',
       'id': 'testland:3',
       'geometry': {
@@ -81,6 +81,7 @@ Map<String, Object> fakeOnRoots({String status = 'closed'}) => {
         'status': status,
         'sections': [{'variant': false, 'closed': status == 'closed'}],
         'source': 'testland',
+        'updated': ?updated,
       },
     };
 

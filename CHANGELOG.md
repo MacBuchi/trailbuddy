@@ -2,6 +2,19 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Sperren offizieller Trails mit Datum
+
+*Version 0.103.0, 2026-10-08*
+
+- **Gesperrt — und seit wann**: Sperrt das Land Tirol einen offiziellen
+  Trail, nennt das Blatt jetzt auch den Stand der Quelle, etwa
+  „Gesperrt laut Land Tirol, Stand 28.09.2026".
+- **Die Warnung im Trail-Blatt trifft genauer**: Deckt einer deiner
+  Trails einen offiziellen, warnt die Zeile nur noch, wenn der
+  gesperrte Abschnitt wirklich auf deinem Trail liegt. Ist nur eine
+  Variante daneben gesperrt, steht dort „anderer Abschnitt gesperrt".
+- Die Sperren werden jetzt täglich statt wöchentlich abgerufen.
+
 ## Ohne Empfang auch in der Web-App
 
 *Version 0.102.0, 2026-10-08*

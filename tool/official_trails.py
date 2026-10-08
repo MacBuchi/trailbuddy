@@ -15,7 +15,13 @@ Guards (concept 5.1):
   - a source that cannot be fetched keeps its previous file (--previous)
     and is reported; without a previous file the run fails;
   - a source that suddenly loses more than a third of its trails is NOT
-    published — a broken export must not empty a region; the run fails.
+    published — a broken export must not empty a region; the run fails;
+  - a source that suddenly closes more than a third of its trails is NOT
+    published without a look (#41): the run fails, and a rerun with
+    --allow-mass-closure publishes it (a season end is a real case);
+  - a status value the reader does not know keeps the previous file and
+    fails the run: read as "open", a renamed field would silently reopen
+    every closed trail — the harmful direction.
 
 Usage:
   python3 tool/official_trails.py --out out/ [--previous data/] \
@@ -44,6 +50,9 @@ SIMPLIFY_M = 3.0
 MIN_TRAIL_M = 50.0
 # Losing more than this share of a source's trails blocks publishing.
 MAX_DROP = 1 / 3
+# Closing more than this share of a source's trails in one run blocks
+# publishing until someone looked (--allow-mass-closure).
+MAX_NEW_CLOSED = 1 / 3
 USER_AGENT = "TrailBuddy official-trails (github.com/MacBuchi/TrailBuddy)"
 
 
@@ -104,6 +113,22 @@ def lines_of(geometry):
 LEVELS = {"leicht": "easy", "mittelschwierig": "medium", "schwierig": "hard"}
 
 
+class SourceFormatError(Exception):
+    """The source answered, but in a form the reader does not know."""
+
+
+# Tirol's STATUS, the only two values seen (2026-10-08: 218 / 20 of 238).
+TIROL_STATUS = {"offen": False, "gesperrt": True}
+
+
+def _tirol_closed(p):
+    status = p.get("STATUS")
+    if status not in TIROL_STATUS:
+        raise SourceFormatError(f"unbekannter STATUS {status!r} "
+                                f"(Route {p.get('ROUTENNUMMER')})")
+    return TIROL_STATUS[status]
+
+
 def _tirol_date(s):
     if not s:
         return None
@@ -135,7 +160,7 @@ def read_tirol_wfs(collection, source_id):
         head = main[0]["properties"]
         parts, meta = [], []
         for f in sections:
-            closed = f["properties"].get("STATUS") == "gesperrt"
+            closed = _tirol_closed(f["properties"])
             variant = f not in main
             for line in lines_of(f.get("geometry")):
                 if len(line) >= 2:
@@ -143,7 +168,7 @@ def read_tirol_wfs(collection, source_id):
                     meta.append({"variant": variant, "closed": closed})
         if not parts:
             continue
-        main_closed = [f["properties"].get("STATUS") == "gesperrt" for f in main]
+        main_closed = [_tirol_closed(f["properties"]) for f in main]
         any_closed = any(m["closed"] for m in meta)
         status = ("closed" if all(main_closed)
                   else "partly_closed" if any_closed else "open")
@@ -219,7 +244,16 @@ def fetch(url):
         return json.loads(r.read().decode("utf-8"))
 
 
-def run(out_dir, previous_dir=None, inputs=None, config=None, fetcher=fetch):
+def newly_closed(features, prev_features):
+    """Trails that were open in the previous file and are not now. New
+    trails do not count — there is nothing they were before."""
+    before = {f["id"]: f["properties"].get("status") for f in prev_features}
+    return [f for f in features
+            if before.get(f["id"]) == "open" and f["properties"].get("status") != "open"]
+
+
+def run(out_dir, previous_dir=None, inputs=None, config=None, fetcher=fetch,
+        allow_mass_closure=False):
     """Returns (ok, report lines)."""
     config = config or json.load(open(SOURCES, encoding="utf-8"))
     inputs = inputs or {}
@@ -238,17 +272,35 @@ def run(out_dir, previous_dir=None, inputs=None, config=None, fetcher=fetch):
             raw = (json.load(open(inputs[sid], encoding="utf-8")) if sid in inputs
                    else fetcher(src["fetch"]))
             features, dropped = build_region(READERS[src["reader"]](raw, sid), sid)
+            fresh = True
+        except SourceFormatError as e:
+            if prev is None:
+                report.append(f"❌ {sid}: {e}, keine frühere Datei")
+                ok = False
+                continue
+            report.append(f"❌ {sid}: {e} — frühere Datei bleibt, Leser anpassen")
+            ok = False
+            features, dropped, fresh = prev["features"], 0, False
         except Exception as e:  # noqa: BLE001 — any failure means "keep the old file"
             if prev is None:
                 report.append(f"❌ {sid}: nicht abrufbar ({e}), keine frühere Datei")
                 ok = False
                 continue
             report.append(f"⚠️ {sid}: nicht abrufbar ({e}) — frühere Datei bleibt")
-            features, dropped = prev["features"], 0
+            features, dropped, fresh = prev["features"], 0, False
+
+        closing = newly_closed(features, prev["features"]) if fresh and prev else []
 
         if prev is not None and len(features) < len(prev["features"]) * (1 - MAX_DROP):
             report.append(f"❌ {sid}: {len(features)} statt {len(prev['features'])} Trails "
                           f"— mehr als ein Drittel weg, NICHT veröffentlicht")
+            ok = False
+            features = prev["features"]
+        elif (closing and len(closing) > len(prev["features"]) * MAX_NEW_CLOSED
+              and not allow_mass_closure):
+            report.append(f"❌ {sid}: {len(closing)} von {len(prev['features'])} Trails "
+                          f"auf einmal gesperrt — NICHT veröffentlicht. Erst bei der Quelle "
+                          f"nachsehen, dann mit allow_mass_closure neu starten")
             ok = False
             features = prev["features"]
         elif not features:
@@ -258,7 +310,8 @@ def run(out_dir, previous_dir=None, inputs=None, config=None, fetcher=fetch):
         else:
             closed = sum(1 for f in features if f["properties"].get("status") != "open")
             report.append(f"✓ {sid}: {len(features)} Trails ({closed} ganz oder teilweise "
-                          f"gesperrt), {dropped} unter {int(MIN_TRAIL_M)} m weggelassen")
+                          f"gesperrt, {len(closing)} davon neu), {dropped} unter "
+                          f"{int(MIN_TRAIL_M)} m weggelassen")
 
         with open(os.path.join(out_dir, fname), "w", encoding="utf-8") as fh:
             fh.write(dump({"type": "FeatureCollection", "features": features}))
@@ -357,6 +410,42 @@ def self_test():
         # No previous file and unreachable: fails.
         ok, rep = run(os.path.join(d, "4"), config=cfg, fetcher=boom)
         assert not ok
+
+        # Closing more than a third at once: not published without a look.
+        def with_status(c, status):
+            return {"features": [
+                {**f, "properties": {**f["properties"], "STATUS": status}}
+                for f in c["features"]]}
+        out_open = os.path.join(d, "open")
+        run(out_open, config=cfg, fetcher=lambda _: with_status(coll, "offen"))
+        opened = open(os.path.join(out_open, "tirol.geojson")).read()
+        many = with_status(coll, "gesperrt")
+        ok, rep = run(out3, previous_dir=out_open, config=cfg, fetcher=lambda _: many)
+        assert not ok and "2 von 2 Trails auf einmal gesperrt" in rep[0], rep
+        assert open(os.path.join(out3, "tirol.geojson")).read() == opened
+        # ... and published after a look.
+        ok, rep = run(out3, previous_dir=out_open, config=cfg, fetcher=lambda _: many,
+                      allow_mass_closure=True)
+        assert ok and "2 davon neu" in rep[0], rep
+        assert '"status":"open"' not in open(os.path.join(out3, "tirol.geojson")).read()
+        # Closures that were already there are not new.
+        ok, rep = run(out3, previous_dir=out1, config=cfg, fetcher=lambda _: many)
+        assert ok and "0 davon neu" in rep[0], rep
+        # Only open -> not open counts; a trail that is new has no "before".
+        assert len(newly_closed(
+            [{"id": "a", "properties": {"status": "closed"}},
+             {"id": "z", "properties": {"status": "closed"}}],
+            [{"id": x, "properties": {"status": "open"}} for x in "abcd"])) == 1
+
+        # An unknown status keeps the previous file and fails the run —
+        # read as "open" it would reopen every closed trail.
+        odd = {"features": [{**coll["features"][1],
+                             "properties": {**coll["features"][1]["properties"],
+                                            "STATUS": "Gesperrt (Forst)"}},
+                            *coll["features"][:1], *coll["features"][2:]]}
+        ok, rep = run(out3, previous_dir=out1, config=cfg, fetcher=lambda _: odd)
+        assert not ok and "unbekannter STATUS" in rep[0], rep
+        assert open(os.path.join(out3, "tirol.geojson")).read() == first
     print("official_trails self-test: ok")
 
 
@@ -367,6 +456,8 @@ def main():
     ap.add_argument("--input", action="append", default=[],
                     help="NAME=PATH: read a source from a local file instead")
     ap.add_argument("--summary", help="append a Markdown report here")
+    ap.add_argument("--allow-mass-closure", action="store_true",
+                    help="publish even if more than a third closes at once (after a look)")
     ap.add_argument("--self-test", action="store_true")
     a = ap.parse_args()
     if a.self_test:
@@ -375,7 +466,7 @@ def main():
     if not a.out:
         ap.error("--out fehlt")
     inputs = dict(s.split("=", 1) for s in a.input)
-    ok, report = run(a.out, a.previous, inputs)
+    ok, report = run(a.out, a.previous, inputs, allow_mass_closure=a.allow_mass_closure)
     text = "## Offizielle Trails\n\n" + "\n".join(f"- {r}" for r in report) + "\n"
     print(text)
     if a.summary:

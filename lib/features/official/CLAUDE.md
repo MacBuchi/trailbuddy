@@ -32,3 +32,12 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
   Zerlege-Blatt. Ohne Fréchet (nichts wird verschmolzen); Varianten
   zählen nicht gegen „derselbe". Das Blatt lädt die Region des Trails
   selbst nach.
+- **Sperren der Quelle** (#41, seit 0.103.0): Der Lauf ist täglich, eine
+  Massensperre (> 1/3 der Trails auf einmal) und ein unbekannter
+  `STATUS` werden NICHT veröffentlicht (Lauf rot; Massensperre nach
+  einem Blick per `allow_mass_closure`). Die Zeile im Trail-Blatt warnt
+  nur, wenn ein gesperrter Abschnitt AUF dem Trail liegt
+  (`OfficialMatch.onClosed`: Deckung ≥ 0,8 oder ≥ `kOfficialClosedMinM`
+  = 50 m), sonst „anderer Abschnitt gesperrt". Der Stand ist das
+  `updated` des Trails (jüngster Abschnitt). Grau mit `Icons.block`,
+  nie orange — das ist die Meldung eines Buddys.

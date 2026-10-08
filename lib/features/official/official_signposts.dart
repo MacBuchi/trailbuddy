@@ -15,11 +15,17 @@ String officialOverlapLine(OfficialOverlap overlap, String name) => switch (over
       OfficialOverlap.contains => 'Enthält den offiziellen Trail „$name"',
     };
 
-String? _closure(OfficialStatus s) => switch (s) {
-      OfficialStatus.open => null,
-      OfficialStatus.partlyClosed => 'teilweise gesperrt',
-      OfficialStatus.closed => 'gesperrt',
-    };
+/// Die Sperre der Quelle zu einem gedeckten offiziellen Trail (#41) —
+/// immer mit der Quelle, und mit Stand, wenn sie einen nennt. Liegt der
+/// gesperrte Abschnitt NICHT auf dem Trail des Netzes, sagt der Satz das,
+/// statt ihn zu sperren; liegt er darauf, ist das die Warnung.
+String? officialClosureLine(OfficialMatch m, String by) {
+  if (m.trail.status == OfficialStatus.open) return null;
+  if (!m.onClosed) return 'anderer Abschnitt gesperrt laut $by';
+  final what = m.trail.status == OfficialStatus.closed ? 'gesperrt' : 'Abschnitt gesperrt';
+  final at = m.trail.updated;
+  return '$what laut $by${at == null ? '' : ', Stand ${formatIsoDateDe(at)}'}';
+}
 
 /// „Auch ausgeschildert als …" im Trail-Blatt (#13, Schritt 4): die
 /// offiziellen Trails, die [line] deckt, je eine Zeile, ein Tipp öffnet
@@ -79,8 +85,12 @@ class _OfficialSignpostsState extends ConsumerState<OfficialSignposts> {
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 4),
               child: Row(children: [
-                Icon(Icons.verified_outlined,
-                    size: 18, color: AppPalette.of(context).map.official),
+                // Gesperrt ist grau wie die Linie, nicht orange — Orange
+                // ist die Meldung eines Buddys (Konzept offizielle 5.3).
+                m.onClosed
+                    ? Icon(Icons.block, size: 18, color: Colors.grey.shade700)
+                    : Icon(Icons.verified_outlined,
+                        size: 18, color: AppPalette.of(context).map.official),
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(
@@ -88,8 +98,8 @@ class _OfficialSignpostsState extends ConsumerState<OfficialSignposts> {
                       officialOverlapLine(m.overlap, m.trail.name),
                       // Gesperrt kommt von der Quelle, nicht von einem
                       // Buddy — der Satz sagt, von wem.
-                      if (_closure(m.trail.status) case final c?)
-                        '$c laut ${state.sourceOf(m.trail)?.attribution ?? 'Quelle'}',
+                      ?officialClosureLine(
+                          m, state.sourceOf(m.trail)?.attribution ?? 'Quelle'),
                     ].join(' · '),
                     style: text.bodyMedium,
                   ),

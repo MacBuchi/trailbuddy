@@ -5,6 +5,7 @@ import 'dart:math' as math;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:trailbuddy/features/official/official_match.dart';
+import 'package:trailbuddy/features/official/official_signposts.dart';
 import 'package:trailbuddy/features/official/official_trails.dart';
 
 /// Meter östlich/nördlich eines ausgedachten Nullpunkts.
@@ -16,15 +17,28 @@ List<LatLng> _line(double x0, double x1, {double y = 0}) => [
       for (var x = x0; x <= x1 + 1e-9; x += 20) _at(x, y),
     ];
 
-OfficialTrail _official(List<List<LatLng>> parts, {List<bool>? variants}) => OfficialTrail(
+OfficialTrail _official(List<List<LatLng>> parts,
+        {List<bool>? variants, List<bool>? closed, String? updated}) =>
+    OfficialTrail(
       id: 'test:1',
       name: 'Amtlich',
       sourceId: 'test',
+      status: closed == null || !closed.contains(true)
+          ? OfficialStatus.open
+          : closed.every((c) => c)
+              ? OfficialStatus.closed
+              : OfficialStatus.partlyClosed,
+      updated: updated,
       sections: [
         for (var i = 0; i < parts.length; i++)
-          OfficialSection(points: parts[i], variant: variants?[i] ?? false),
+          OfficialSection(
+              points: parts[i],
+              variant: variants?[i] ?? false,
+              closed: closed?[i] ?? false),
       ],
     );
+
+OfficialMatch _match(List<LatLng> net, OfficialTrail t) => matchOfficial(net, [t]).single;
 
 OfficialOverlap? _overlap(List<LatLng> net, OfficialTrail t) =>
     matchOfficial(net, [t]).map((m) => m.overlap).firstOrNull;
@@ -82,5 +96,54 @@ void main() {
     // Punkt des Netzes „außerhalb".
     expect(_overlap(_line(0, 600), _official([[_at(0, 0), _at(600, 0)]])),
         OfficialOverlap.same);
+  });
+
+  group('Sperre der Quelle auf dem Trail (#41)', () {
+    test('gesperrte Hauptroute, derselbe Trail: darauf, mit Stand', () {
+      final m = _match(_line(0, 600, y: 8),
+          _official([_line(0, 600)], closed: [true], updated: '2026-09-28'));
+      expect(m.onClosed, isTrue);
+      expect(officialClosureLine(m, 'Land Tirol'), 'gesperrt laut Land Tirol, Stand 28.09.2026');
+    });
+
+    test('gesperrte Variante liegt woanders: nicht darauf, und der Satz sagt es', () {
+      final m = _match(
+          _line(0, 600),
+          _official([_line(0, 600), _line(0, 400, y: 200)],
+              variants: [false, true], closed: [false, true]));
+      expect(m.onClosed, isFalse);
+      expect(officialClosureLine(m, 'Land Tirol'), 'anderer Abschnitt gesperrt laut Land Tirol');
+    });
+
+    test('gesperrte Variante liegt auf dem Trail: Abschnitt gesperrt', () {
+      // Der Trail des Netzes fährt die Variante; die Hauptroute ist offen.
+      final m = _match(
+          _line(0, 400, y: 200),
+          _official([_line(0, 600), _line(0, 400, y: 200)],
+              variants: [false, true], closed: [false, true]));
+      expect(m.onClosed, isTrue);
+      expect(officialClosureLine(m, 'Land Tirol'), 'Abschnitt gesperrt laut Land Tirol');
+    });
+
+    test('ein gesperrtes Stück, das der Trail nur quert: nicht darauf', () {
+      // Hauptroute offen entlang y = 0; gesperrte Variante quer dazu.
+      final cross = [for (var y = -300.0; y <= 300; y += 20) _at(300, y)];
+      final m = _match(_line(0, 600),
+          _official([_line(0, 600), cross], variants: [false, true], closed: [false, true]));
+      expect(m.onClosed, isFalse);
+    });
+
+    test('kurzes gesperrtes Stück (30 m) ganz auf dem Trail: darauf', () {
+      final m = _match(
+          _line(0, 600),
+          _official([_line(0, 600), [_at(100, 0), _at(130, 0)]],
+              variants: [false, true], closed: [false, true]));
+      expect(m.onClosed, isTrue);
+    });
+
+    test('offen: kein Satz', () {
+      expect(officialClosureLine(_match(_line(0, 600), _official([_line(0, 600)])), 'X'),
+          isNull);
+    });
   });
 }
