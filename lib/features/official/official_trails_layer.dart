@@ -52,13 +52,17 @@ List<MapViewPolyline> officialPolylines(OfficialTrailsState state) => [
     ];
 
 /// Die Aussage über den Status — immer mit der Quelle, denn sie kommt von
-/// dort und nicht von einem Buddy.
-String officialStatusLine(OfficialStatus status, String by) => switch (status) {
-      OfficialStatus.open => 'Freigegeben laut $by.',
-      OfficialStatus.partlyClosed =>
-        'Teilweise gesperrt laut $by — die gesperrten Teile sind grau.',
-      OfficialStatus.closed => 'Gesperrt laut $by.',
-    };
+/// dort und nicht von einem Buddy; eine Sperre mit dem Stand der Quelle
+/// (#41: „gesperrt laut Quelle, Stand Datum", nie ein Urteil der App).
+String officialStatusLine(OfficialStatus status, String by, {String? updated}) {
+  final at = updated == null ? '' : ', Stand ${formatIsoDateDe(updated)}';
+  return switch (status) {
+    OfficialStatus.open => 'Freigegeben laut $by.',
+    OfficialStatus.partlyClosed =>
+      'Teilweise gesperrt laut $by$at — die gesperrten Teile sind grau.',
+    OfficialStatus.closed => 'Gesperrt laut $by$at.',
+  };
+}
 
 /// Das Blatt eines offiziellen Trails: was die Quelle sagt, und von wem.
 /// Keine Beiträge, keine Hinweise, kein Status eines Buddys — dafür gibt
@@ -116,7 +120,7 @@ class _OfficialTrailSheet extends ConsumerWidget {
                 ),
                 const SizedBox(width: 6),
                 Expanded(
-                    child: Text(officialStatusLine(trail.status, by),
+                    child: Text(officialStatusLine(trail.status, by, updated: trail.updated),
                         style: text.bodyMedium)),
               ]),
               if (trail.description != null) ...[

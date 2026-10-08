@@ -13,13 +13,25 @@ name: Official Trails
 # Wächter im Werkzeug: Eine Quelle, die nicht antwortet, behält ihre
 # frühere Datei (grün, Run-Summary sagt es). Verliert eine Quelle mehr als
 # ein Drittel ihrer Trails, wird sie NICHT veröffentlicht und der Lauf
-# wird rot — ein kaputter Export soll keine Region leeren. Gepusht wird
-# nur, wenn sich etwas geändert hat (die Dateien tragen keinen Zeitstempel
-# des Laufs).
+# wird rot — ein kaputter Export soll keine Region leeren. Ebenso, wenn
+# auf einmal mehr als ein Drittel gesperrt wird (#41): Erst bei der Quelle
+# nachsehen, dann von Hand mit `allow_mass_closure` starten (ein
+# Saisonende ist ein echter Fall). Ein unbekannter Statuswert lässt die
+# frühere Datei stehen und wird rot — als „offen“ gelesen, gäbe er jede
+# Sperre frei. Gepusht wird nur, wenn sich etwas geändert hat (die Dateien
+# tragen keinen Zeitstempel des Laufs).
+#
+# Täglich seit #41: Sperren veralten schneller als Trails. Ein Lauf ohne
+# Änderung pusht nichts, und die App holt eine Region nur bei neuem Stand.
 on:
   schedule:
-    - cron: "23 4 * * 1" # montags
+    - cron: "23 4 * * *"
   workflow_dispatch:
+    inputs:
+      allow_mass_closure:
+        description: "Massensperre veröffentlichen (nur nach Blick in die Quelle)"
+        type: boolean
+        default: false
 
 concurrency:
   group: ${{ github.workflow }}
@@ -46,7 +58,9 @@ jobs:
             git worktree add --orphan -b official-trails-data data
           fi
       - name: Quellen abrufen und bauen
-        run: python3 tool/official_trails.py --out out --previous data --summary "$GITHUB_STEP_SUMMARY"
+        env:
+          ALLOW_MASS_CLOSURE: ${{ inputs.allow_mass_closure && '--allow-mass-closure' || '' }}
+        run: python3 tool/official_trails.py --out out --previous data --summary "$GITHUB_STEP_SUMMARY" $ALLOW_MASS_CLOSURE
       - name: Veröffentlichen, wenn sich etwas geändert hat
         working-directory: data
         run: |

@@ -131,22 +131,27 @@ void main() {
     expect(find.text('Flowline neu'), findsOneWidget);
   });
 
-  testWidgets('Trail-Blatt: auch ausgeschildert als …, mit Sperre der Quelle',
+  testWidgets('Trail-Blatt: auch ausgeschildert als …, mit Sperre und Stand der Quelle',
       (tester) async {
-    source.files['testland.geojson'] = fakeRegion(extra: [fakeOnRoots()]);
+    source.files['testland.geojson'] =
+        fakeRegion(extra: [fakeOnRoots(updated: '2026-09-28')]);
     await start(tester);
     await openTab(tester, 'Trails');
     await tester.tap(find.text('Roots'));
     await settle(tester);
-    expect(find.text('Auch ausgeschildert als „Wurzelpfad" · gesperrt laut Land Testland'),
+    // #41: Die Sperre liegt auf dem Trail — grau, mit Quelle und Stand.
+    expect(
+        find.text('Auch ausgeschildert als „Wurzelpfad" · '
+            'gesperrt laut Land Testland, Stand 28.09.2026'),
         findsOneWidget);
+    expect(find.byIcon(Icons.block), findsOneWidget);
     // Flowline liegt daneben, nicht darauf.
     expect(find.textContaining('Flowline'), findsNothing);
 
     await tester.tap(find.byKey(const ValueKey('official-testland:3')));
     await settle(tester);
     expect(find.text('Schwierigkeit laut Quelle: leicht'), findsOneWidget);
-    expect(find.text('Gesperrt laut Land Testland.'), findsOneWidget);
+    expect(find.text('Gesperrt laut Land Testland, Stand 28.09.2026.'), findsOneWidget);
   });
 
   testWidgets('Trail-Blatt aus der Liste lädt die Region nach', (tester) async {
