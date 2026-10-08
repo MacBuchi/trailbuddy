@@ -16,13 +16,16 @@
 
 ## Forstweg oder Pfad auf einen Blick
 
-*Version 0.98.0, 2026-10-08*
+*Versionen 0.98.0 und 0.99.1, 2026-10-08*
 
 - **Forstwege sind jetzt eine Doppellinie**: zwei schmale Fahrspuren
   mit hellem Streifen in der Mitte, wie in einer Wanderkarte. Pfade
   bleiben eine einfache Linie. Wie gut der Forstweg ist, zeigen weiter
   die Spuren: durchgezogen heißt gut, gestrichelt mittel, gepunktet
   schlecht. Die Legende zeichnet es genauso.
+- **Namen stehen wieder über den Wegen**: Orts-, Flur- und
+  Straßennamen lagen unter der Wege-Ebene und wurden von Forstwegen
+  durchgestrichen. Auf dem Telefon stehen sie jetzt obenauf.
 
 ## Navigieren
 
