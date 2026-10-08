@@ -177,6 +177,7 @@ final maplibreStyleProvider = FutureProvider<String?>((ref) async {
         url: 'file://$overviewPath',
         minZoom: overviewZoom.min,
         maxZoom: overviewZoom.max,
+        labelsOnTop: false,
       ));
     }
     if (manifest != null) {

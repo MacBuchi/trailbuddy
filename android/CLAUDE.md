@@ -12,7 +12,8 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
   In-App-Update-Weg) und `play` (ohne), gleiche `applicationId`
   `de.mcbuchi.trailbuddy`. Jeder Build braucht `--flavor`. Backup-Ausschlüsse
   in `res/xml/`: Session-Token, `offline_maps/`, `outbox/`, `trail_cache/`,
-  `rides/`, `updates/`, `official_trails/`.
+  `rides/`, `updates/`, `official_trails/`, `mbgl-offline.db` (MapLibres
+  Kachel-Zwischenspeicher, #155).
 - **Play Store vorbereitet, nicht eingereicht** (#39 Teil, seit
   2026-10-01): `docs/play-console.md` beantwortet Data Safety,
   Berechtigungen, die beiden Vordergrunddienst-Deklarationen und das
