@@ -69,6 +69,7 @@ void main() {
     FakeOfficialTrailsSource? official,
     AreaStore? areaStore,
     WaysManifest? ways,
+    FakeSettings? settings,
   }) {
     final io = _FakeIo();
     final container = ProviderContainer(overrides: [
@@ -76,7 +77,7 @@ void main() {
       areaStoreProvider.overrideWithValue(areaStore ?? MemoryAreaStore()),
       noConnectivityProvider.overrideWithValue(noConnectivity),
       mapManifestLoaderProvider.overrideWithValue(() async => manifest),
-      settingsProvider.overrideWithValue(FakeSettings(officialTrailsEnabled: officialOn)),
+      settingsProvider.overrideWithValue(settings ?? FakeSettings(officialTrailsEnabled: officialOn)),
       waysManifestLoaderProvider.overrideWithValue(() async => ways),
       officialTrailsSourceProvider.overrideWithValue(official ?? FakeOfficialTrailsSource()),
       officialTrailsCacheProvider.overrideWithValue(MemoryOfficialTrailsCache()),
@@ -387,6 +388,73 @@ void main() {
         addTearDown(container.dispose);
         expect(sourceIds(await styleOf(container)), ['overview', 'area-a1']);
       });
+    });
+  });
+
+  group('Gesehenes bleibt liegen (#155)', () {
+    const ways = WaysManifest(file: 'ways-20261101.pmtiles', bytes: 92300000, build: '20261101');
+    String url(Map<String, dynamic> style, String id) => ((style['sources'] as Map)[id] as Map)['url'] as String;
+
+    test('mit Empfang wird das Manifest von Karte und Wegen gemerkt', () async {
+      final settings = FakeSettings();
+      final (c, _) = make(noConnectivity: false, ways: ways, settings: settings);
+      await styleOf(c);
+      await Future<void>.delayed(Duration.zero);
+      expect(MapManifest.fromJson(jsonDecode(settings.seenMapManifest!) as Map<String, dynamic>).file,
+          'dach-20260928.pmtiles');
+      expect(WaysManifest.fromJson(jsonDecode(settings.seenWaysManifest!) as Map<String, dynamic>).file,
+          'ways-20261101.pmtiles');
+    });
+
+    test('ohne Empfang nennt der Stil die gemerkten Archive, über der Übersicht — '
+        'MapLibre liest sie aus seinem Zwischenspeicher', () async {
+      final settings = FakeSettings(
+        seenMapManifest: jsonEncode(_manifest.toJson()),
+        seenWaysManifest: jsonEncode(ways.toJson()),
+      );
+      final (c, _) = make(noConnectivity: true, settings: settings);
+      final style = await styleOf(c);
+      expect(sourceIds(style), ['overview', 'online', kWaysSourceId],
+          reason: 'die Übersicht darunter: wo nichts gemerkt ist, scheint sie durch');
+      expect(url(style, 'online'), 'pmtiles://https://tiles.mcbuchi.de/trailbuddy/dach-20260928.pmtiles');
+      expect(url(style, kWaysSourceId), 'pmtiles://https://tiles.mcbuchi.de/trailbuddy/ways-20261101.pmtiles');
+    });
+
+    test('Host weg (ein Balken ohne Daten): ebenso', () async {
+      final settings = FakeSettings(seenMapManifest: jsonEncode(_manifest.toJson()));
+      final (c, _) = make(noConnectivity: false, manifest: null, settings: settings);
+      expect(sourceIds(await styleOf(c)), ['overview', 'online']);
+    });
+
+    test('ein frisches Manifest gilt vor dem gemerkten, ohne Übersicht', () async {
+      final settings = FakeSettings(seenMapManifest: jsonEncode(const MapManifest(
+              file: 'dach-20260801.pmtiles', maxZoom: 13, bytes: 1, sourceBuild: '20260801')
+          .toJson()));
+      final (c, _) = make(noConnectivity: false, settings: settings);
+      final style = await styleOf(c);
+      expect(sourceIds(style), ['online']);
+      expect(url(style, 'online'), endsWith('/dach-20260928.pmtiles'));
+      await Future<void>.delayed(Duration.zero);
+      expect(settings.seenMapManifest, contains('dach-20260928.pmtiles'));
+    });
+
+    test('Wege-Schalter aus: auch keine gemerkten Wege', () async {
+      final settings = FakeSettings(
+        wayLayerEnabled: false,
+        seenMapManifest: jsonEncode(_manifest.toJson()),
+        seenWaysManifest: jsonEncode(ways.toJson()),
+      );
+      final (c, _) = make(noConnectivity: true, settings: settings);
+      expect(sourceIds(await styleOf(c)), ['overview', 'online']);
+    });
+
+    test('Gemerktes, das nicht mehr passt (fremdes Wege-Format, Unsinn), heißt still keins', () async {
+      final settings = FakeSettings(
+        seenMapManifest: '{kaputt',
+        seenWaysManifest: jsonEncode({...ways.toJson(), 'format': kWaysFormat + 1}),
+      );
+      final (c, _) = make(noConnectivity: true, settings: settings);
+      expect(sourceIds(await styleOf(c)), ['overview']);
     });
   });
 }

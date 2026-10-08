@@ -87,6 +87,18 @@ abstract interface class Settings {
 
   Future<void> setRiderCalibration(String? value);
 
+  /// Die zuletzt vom Host gelesenen Manifeste von Karte und Wegen (#155),
+  /// als JSON. Ohne Empfang nennt der MapLibre-Stil damit trotzdem die
+  /// Online-Archive, und MapLibre liefert, was in seinem Zwischenspeicher
+  /// liegt („Gesehenes bleibt liegen"). Null heißt: noch nie geholt.
+  String? get seenMapManifest;
+
+  Future<void> setSeenMapManifest(String value);
+
+  String? get seenWaysManifest;
+
+  Future<void> setSeenWaysManifest(String value);
+
   /// Ist die Ebene „Offizielle Trails" an (#13)? Vorgabe: an
   /// (Entscheidung des Betreibers, Konzept offizielle Trails 2.5).
   bool get officialTrailsEnabled;
@@ -291,6 +303,22 @@ class PrefsSettings implements Settings {
   Future<void> setRiderCalibration(String? value) => value == null
       ? _prefs.remove(_riderCalibrationKey)
       : _prefs.setString(_riderCalibrationKey, value);
+
+  static const _seenMapManifestKey = 'seen_map_manifest';
+
+  @override
+  String? get seenMapManifest => _prefs.getString(_seenMapManifestKey);
+
+  @override
+  Future<void> setSeenMapManifest(String value) => _prefs.setString(_seenMapManifestKey, value);
+
+  static const _seenWaysManifestKey = 'seen_ways_manifest';
+
+  @override
+  String? get seenWaysManifest => _prefs.getString(_seenWaysManifestKey);
+
+  @override
+  Future<void> setSeenWaysManifest(String value) => _prefs.setString(_seenWaysManifestKey, value);
 
   static const _appearanceKey = 'appearance';
 

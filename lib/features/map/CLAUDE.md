@@ -304,3 +304,36 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     jeder Kartentest den Host. Offline kommen die Wege aus den
     gespeicherten Bereichen (seit 0.90.0, `lib/features/offline_areas/CLAUDE.md`),
     als oberste Wege-Quelle in beiden Engines.
+- **Gesehenes bleibt liegen** (#155, seit 0.99.0, nur Android; Konzept
+  `docs/konzept-offline-karten.md` 3.2): Was MapLibre vom Host geladen
+  hat (Karte UND Wege), bleibt in SEINEM Ambient Cache
+  (`mbgl-offline.db` in `filesDir`, Backup-Ausschluss), höchstens
+  `kSeenTilesCacheBytes` (100 MB, gemessen), die älteste Kachel zuerst.
+  Kein eigener Kachel-Lieferant — MapLibre hat keinen. Vier Dinge, die
+  man wissen muss:
+  - **Erst MapLibre Native 13.3 speichert PMTiles-Bereiche**
+    (maplibre-native #4290: Schlüssel `url?_mlnRange=a-b`). Das Plugin
+    0.3.5 verlangt `13.0.+`; `android/app/build.gradle.kts` erzwingt
+    13.5.3 per `resolutionStrategy.force`, `android_manifest_test` hält
+    es fest, solange das Plugin 0.3.5 ist. Geprüft (2026-10-08): Die
+    jnigen-Bindungen von 0.3.5 lösen in 13.0 und 13.5.3 dieselben 1603
+    MapLibre-Methoden auf. Wer das Plugin hebt, nimmt die Zeile heraus.
+  - **Ohne Empfang muss die Quelle im Stil STEHEN**, sonst fragt
+    MapLibre seinen Cache nie. Der Stil merkt sich deshalb das letzte
+    frische Manifest von Karte und Wegen (`Settings.seenMapManifest`,
+    `seenWaysManifest`, nur bei Änderung geschrieben) und nimmt es, wenn
+    keins kommt (Funkloch, Balken ohne Daten, Host weg) — dann über der
+    Übersicht, die durchscheint, wo nichts liegt. Frisch heißt wie
+    bisher: keine Übersicht. Ein gemerktes Wege-Manifest fremden Formats
+    gilt als keins. `mapManifestProvider` bleibt „frisch oder null" —
+    Bereiche, Planer und „Meine Bereiche" brauchen das Netz ohnehin.
+  - **MapLibre liefert auch abgelaufene Kacheln**: Unsere Antworten
+    tragen kein `Cache-Control: must-revalidate`, `isUsable()` ist also
+    wahr; mit Netz fragt MapLibre trotzdem nach (eine Class-B-Operation
+    je Kachel wie vorher, #55).
+  - **Die Grenze setzt die MapLibre-Ansicht einmal je Lauf**
+    (`OfflineManager.setMaximumAmbientCacheSize`); scheitert das, gilt
+    MapLibres Vorgabe (50 MB). Im Widget-Test nicht prüfbar (Platform
+    View), Gate ist das Gerät. Im Browser gibt es das noch nicht — dort
+    braucht flutter_map einen eigenen Speicher in IndexedDB (eigener PR
+    zu #155).

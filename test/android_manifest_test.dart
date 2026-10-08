@@ -263,8 +263,22 @@ void main() {
     expect(rules, legacy);
     expect(rules, containsAll(['sharedpref:FlutterSharedPreferences.xml',
         'file:rides', 'file:trail_cache', 'file:outbox', 'file:updates',
-        'file:official_trails']));
+        'file:official_trails', 'file:mbgl-offline.db']));
     expect(manifest, contains('@xml/backup_rules'));
     expect(manifest, contains('@xml/full_backup_content'));
+  });
+
+  test('MapLibre Native mindestens 13.3, solange das Plugin 13.0 verlangt (#155)', () {
+    // Erst 13.3 legt PMTiles-Bereiche in den Ambient Cache — ohne das
+    // bliebe „Gesehenes bleibt liegen" auf Android still wirkungslos.
+    final force = RegExp(r'resolutionStrategy\.force\("org\.maplibre\.gl:android-sdk-opengl:(\d+)\.(\d+)\.\d+"\)')
+        .firstMatch(gradle);
+    final pubspec = File('pubspec.yaml').readAsStringSync();
+    final plugin = RegExp(r'^  maplibre_android: (\S+)', multiLine: true).firstMatch(pubspec)!.group(1);
+    if (plugin == '0.3.5') {
+      expect(force, isNotNull, reason: 'maplibre_android 0.3.5 zieht 13.0.+ — ohne force kein PMTiles-Cache');
+      final (major, minor) = (int.parse(force!.group(1)!), int.parse(force.group(2)!));
+      expect(major > 13 || (major == 13 && minor >= 3), isTrue);
+    }
   });
 }

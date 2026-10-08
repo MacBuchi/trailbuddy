@@ -181,8 +181,10 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
       gelöscht; ein neuerer Kartenstand wird dort angeboten (Knopf,
       derselbe Rahmen unter derselben Id), nicht aufgezwungen und nicht
       an „freies Netz" gebunden — wer tippt, entscheidet.
-    - **„Gesehenes bleibt liegen" (Konzept 3.2) gibt es noch nicht**:
-      kein Kachel-Zwischenspeicher der Online-Karte. Ein eigener Schritt.
+    - **„Gesehenes bleibt liegen" (Konzept 3.2) ist KEIN Bereich**: Auf
+      Android hält MapLibres Ambient Cache, was online geladen war (seit
+      0.99.0, `lib/features/map/CLAUDE.md`), nicht der `AreaStore`;
+      nichts davon steht in „Meine Bereiche". Im Browser fehlt es noch.
     Der Einstieg ist seit 0.75.0 der eigene Knopf „Offline-Karten"
     (#190; bis dahin der Ebenen-Knopf, weil die Spalte auf einem kleinen
     Telefon quer überlief — der Platz kam mit der Glühbirne frei, die

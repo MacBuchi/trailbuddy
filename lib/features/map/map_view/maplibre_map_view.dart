@@ -19,6 +19,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:maplibre/maplibre.dart' as ml;
 
 import '../../../core/errors.dart';
+import '../online_map.dart' show kSeenTilesCacheBytes;
 import 'flutter_map_view.dart';
 import 'keyed_layers.dart';
 import 'map_attribution.dart';
@@ -325,6 +326,29 @@ class _MapLibreMapViewState extends ConsumerState<MapLibreMapView>
   void initState() {
     super.initState();
     widget.controller.attach(this);
+    unawaited(_sizeSeenTilesCache());
+  }
+
+  /// Einmal je App-Lauf: die Obergrenze für „Gesehenes bleibt liegen"
+  /// (#155). Der Speicher selbst ist MapLibres Ambient Cache
+  /// (`mbgl-offline.db` im App-Verzeichnis, vom Backup ausgenommen); er
+  /// verdrängt die älteste Kachel zuerst. Scheitert das Setzen, bleibt
+  /// MapLibres Vorgabe (50 MB) — die Karte geht trotzdem.
+  static bool _cacheSized = false;
+
+  static Future<void> _sizeSeenTilesCache() async {
+    if (_cacheSized) return;
+    _cacheSized = true;
+    try {
+      final manager = await ml.OfflineManager.createInstance();
+      try {
+        await manager.setMaximumAmbientCacheSize(bytes: kSeenTilesCacheBytes);
+      } finally {
+        manager.dispose();
+      }
+    } catch (e, s) {
+      logError('Kartenzwischenspeicher begrenzen', e, s);
+    }
   }
 
   @override

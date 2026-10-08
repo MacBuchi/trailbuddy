@@ -4,7 +4,7 @@ publish_to: 'none'
 
 # Beide Teile erhöhen (z. B. 0.1.0+1 → 0.1.1+2). Ein Bump auf main taggt und
 # baut ein Prerelease (release.yml); ohne Bump kein Release (Version Guard).
-version: 0.98.0+122
+version: 0.99.0+123
 
 environment:
   sdk: ^3.11.0
@@ -48,7 +48,8 @@ dependencies:
   # Die Android-Seite AUSDRÜCKLICH auf 0.3.5: 0.3.6 wendet in seinem
   # build.gradle.kts das ktlint-Plugin ohne Version an, und Gradle findet
   # es dann in keinem Plugin-Repository — der APK-Build bricht ab, bevor
-  # eine Zeile Kotlin kompiliert. PilzBuddy baut mit 0.3.5.
+  # eine Zeile Kotlin kompiliert. PilzBuddy baut mit 0.3.5. Die native
+  # SDK darunter erzwingt android/app/build.gradle.kts auf 13.5.3 (#155).
   maplibre_android: 0.3.5
 
   supabase_flutter: ^2.18.0
