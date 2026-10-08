@@ -1,0 +1,35 @@
+{
+  "format": 1,
+  "_comment": "The regions of the map host (docs/konzept-regionen.md, 18c in #156). One source for every data workflow; tool/regions.py turns a row into a workflow's inputs and writes the index regions.json on the host. DACH keeps its old paths at the root (apps up to 0.103 read them); every other region lives under its id. Regions never overlap.",
+  "regions": [
+    {
+      "id": "dach",
+      "name": "DACH",
+      "bbox": [5.5, 45.5, 17.5, 55.5],
+      "map": {"bbox": true},
+      "overview": null,
+      "extracts": [
+        "europe/dach", "europe/liechtenstein",
+        "europe/italy/nord-est", "europe/italy/nord-ovest",
+        "europe/france/alsace", "europe/france/lorraine", "europe/france/franche-comte",
+        "europe/france/rhone-alpes", "europe/france/champagne-ardenne", "europe/france/bourgogne",
+        "europe/slovenia", "europe/croatia", "europe/hungary", "europe/slovakia",
+        "europe/czech-republic", "europe/poland",
+        "europe/netherlands", "europe/belgium", "europe/luxembourg",
+        "europe/denmark", "europe/sweden"
+      ],
+      "min_places": 100000,
+      "min_way_tiles": 50000
+    },
+    {
+      "id": "ca",
+      "name": "Kanada",
+      "bbox": [-133.2, 41.6, -52.6, 55.0],
+      "map": {"select": "ISO_A2_EH=CA", "north": 55.0},
+      "overview": {"select": "ISO_A2_EH=CA", "maxzoom": 7},
+      "extracts": ["north-america/canada"],
+      "min_places": 100000,
+      "min_way_tiles": 10000
+    }
+  ]
+}

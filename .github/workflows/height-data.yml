@@ -6,8 +6,9 @@ name: Height Data
 # PMTiles archive next to the basemap and read by the app over the same
 # Range-request path (tool/height_tiles.py has the format).
 #
-# Same shape as map-data.yml: a dated file (`heights-<build>.pmtiles`)
-# that never changes, a small manifest (`heights.json`) that names it,
+# Same shape as map-data.yml: a dated file (`heights-<build>.pmtiles`,
+# `ca/heights-<build>.pmtiles` for Canada) that never changes, a small
+# manifest (`heights.json`, `ca/heights.json`) that names it,
 # the previous build kept for one more run, and after the upload the
 # PUBLIC copy is read back the way the app reads it — 206 on a Range
 # request, `accept-ranges`, CORS, and sampled tiles against a fresh read
@@ -18,8 +19,11 @@ name: Height Data
 #
 # Only by hand: the DEM is static. A new build is due when the map's box
 # or the tile format changes (then the app's reader changes in the same
-# PR). `plan` reads a few DEM cells and projects size and time; `publish`
-# builds everything (about 140 DEM cells of 5 MB, 98 640 tiles).
+# PR), and once per new region (tool/regions.json). `plan` reads a few DEM
+# cells and projects size and time; `publish` builds everything (DACH:
+# about 140 DEM cells of 5 MB, 98 640 tiles). A polygon region (Canada)
+# builds only the tiles inside its outline, not its whole box — the box
+# holds the northern United States.
 #
 # Secrets (R2 API token, Object Read & Write on the bucket) go through
 # `env:` into a detection step; `secrets.` is not available in `if:` and
@@ -40,6 +44,12 @@ on:
         required: false
         type: string
         default: "3"
+      region:
+        description: "Which region of tool/regions.json (docs/konzept-regionen.md)"
+        required: false
+        type: choice
+        options: ["dach", "ca"]
+        default: "dach"
 
 concurrency:
   group: ${{ github.workflow }}
@@ -53,7 +63,13 @@ env:
   # The map's area, west,south,east,north — the SAME box as DACH_BBOX in
   # map-data.yml and POI_BBOX in poi-data.yml; test/release_workflow_test.dart
   # holds them together. A stored area has heights wherever it has map.
+  # "Pick the region" replaces it with the box of another region.
   DACH_BBOX: "5.5,45.5,17.5,55.5"
+  REGION: ${{ inputs.region || 'dach' }}
+  # The border file that cuts the polygon regions — the same pin as in
+  # map-data.yml, so heights and map follow the same outline.
+  NE_COUNTRIES_URL: https://raw.githubusercontent.com/nvkelso/natural-earth-vector/v5.1.2/geojson/ne_50m_admin_0_countries.geojson
+  NE_COUNTRIES_SHA256: 3e458fc036ad0a66411f2c1e6cac49c5d7bfb81cb1123bc513b22511a2b7fdeb
   MODE: ${{ inputs.mode || 'plan' }}
   SAMPLE_CELLS: ${{ inputs.sample_cells || '3' }}
   # Public values, deliberately in the file: the app carries the same
@@ -66,9 +82,12 @@ jobs:
   heights:
     name: Build, upload and verify the height tiles
     runs-on: ubuntu-latest
-    # ~700 MB of DEM to download, 98 640 tiles to sample and compress,
-    # one ~250 MB upload, then the read-back.
-    timeout-minutes: 120
+    # DACH: ~700 MB of DEM to download, 98 640 tiles to sample and
+    # compress, one ~250 MB upload, then the read-back. Southern Canada:
+    # ~470 000 tiles, projected ~1.4 h (docs/konzept-regionen.md) — the
+    # limit leaves room; a plan run that projects more than 4 h means
+    # splitting the build first.
+    timeout-minutes: 300
     steps:
       - uses: actions/checkout@v7
 
@@ -92,6 +111,20 @@ jobs:
             } >> "$GITHUB_STEP_SUMMARY"
           fi
 
+      - name: Pick the region
+        # tool/regions.json is the one list: for DACH the values above,
+        # for Canada its box, the capped outline and the paths under `ca/`.
+        run: |
+          set -euo pipefail
+          args=()
+          if [ "$REGION" != "dach" ]; then
+            curl -sSL --fail --max-time 120 "$NE_COUNTRIES_URL" -o /tmp/countries.geojson
+            echo "$NE_COUNTRIES_SHA256  /tmp/countries.geojson" | sha256sum -c -
+            args=(--countries /tmp/countries.geojson --out-dir /tmp/region)
+          fi
+          python3 tool/regions.py env "$REGION" --workflow heights "${args[@]}" | tee -a "$GITHUB_ENV"
+          echo "## Region \`$REGION\`" >> "$GITHUB_STEP_SUMMARY"
+
       - name: Install numpy and run the self-test with it
         # The tool's self-test runs in CI without numpy (stdlib, like
         # every tool here); `build` needs it — 237 million bilinear reads.
@@ -106,7 +139,9 @@ jobs:
         if: env.MODE == 'plan'
         run: |
           set -euo pipefail
-          python3 tool/height_tiles.py plan --bbox "$DACH_BBOX" \
+          region=()
+          [ -z "$HEIGHTS_REGION" ] || region=(--region "$HEIGHTS_REGION")
+          python3 tool/height_tiles.py plan --bbox "$DACH_BBOX" "${region[@]}" \
             --sample-cells "$SAMPLE_CELLS" --dem-cache build/dem --summary "$GITHUB_STEP_SUMMARY"
 
       - name: Install the pmtiles tool
@@ -132,7 +167,9 @@ jobs:
           echo "BUILD=$BUILD" >> "$GITHUB_ENV"
           echo "file=heights-${BUILD}.pmtiles" >> "$GITHUB_ENV"
           rm -rf build/heights && mkdir -p build/heights
-          python3 tool/height_tiles.py build --bbox "$DACH_BBOX" --build "$BUILD" \
+          region=()
+          [ -z "$HEIGHTS_REGION" ] || region=(--region "$HEIGHTS_REGION")
+          python3 tool/height_tiles.py build --bbox "$DACH_BBOX" --build "$BUILD" "${region[@]}" \
             --out build/heights --dem-cache build/dem --summary "$GITHUB_STEP_SUMMARY"
           ls -l build/heights
           # Structure by the official tool, content by our own check:
@@ -144,11 +181,14 @@ jobs:
             --all --samples 48 --dem-cache build/dem
           # A build far below the expected count is a broken run (a DEM
           # cell that failed to decode, a bbox typo), not a smaller map.
+          # DACH: about 98 000; southern Canada: about 470 000 map tiles at
+          # z13, fewer with heights (lakes have none).
           python3 - <<'PY'
-          import json, sys
+          import json, os, sys
           m = json.load(open("build/heights/heights.json"))
-          if m["tiles"] < 90000:
-              print(f"::error::Only {m['tiles']} height tiles — expected about 98 000 for the DACH box; not publishing.")
+          expected = {"dach": 90000, "ca": 300000}[os.environ["REGION"]]
+          if m["tiles"] < expected:
+              print(f"::error::Only {m['tiles']} height tiles — expected at least {expected} for {os.environ['REGION']}; not publishing.")
               sys.exit(1)
           print(f"{m['tiles']} tiles, {m['bytes']} bytes")
           PY
@@ -168,21 +208,23 @@ jobs:
         run: |
           set -euo pipefail
           endpoint="https://${R2_ACCOUNT_ID}.eu.r2.cloudflarestorage.com"
+          # `file` in the manifest is relative to its folder: the root for
+          # DACH, `ca/` for Canada.
           aws --endpoint-url "$endpoint" s3 cp "build/heights/$file" \
-            "s3://${R2_BUCKET}/${R2_PREFIX}/$file" \
+            "s3://${R2_BUCKET}/${R2_PREFIX}/${REGION_DIR}$file" \
             --content-type application/octet-stream \
             --cache-control "public, max-age=31536000, immutable" --no-progress
           aws --endpoint-url "$endpoint" s3 cp build/heights/heights.json \
-            "s3://${R2_BUCKET}/${R2_PREFIX}/heights.json" \
+            "s3://${R2_BUCKET}/${R2_PREFIX}/$HEIGHTS_MANIFEST" \
             --content-type application/json \
             --cache-control "public, max-age=300" --no-progress
-          builds=$(aws --endpoint-url "$endpoint" s3 ls "s3://${R2_BUCKET}/${R2_PREFIX}/" \
+          builds=$(aws --endpoint-url "$endpoint" s3 ls "s3://${R2_BUCKET}/${R2_PREFIX}/${REGION_DIR}" \
                     | sed -n 's/.* \(heights-[0-9]\{8\}\.pmtiles\)$/\1/p' | sort)
           keep2=$(echo "$builds" | tail -2)
           for old in $builds; do
             if ! echo "$keep2" | grep -qx "$old"; then
-              aws --endpoint-url "$endpoint" s3 rm "s3://${R2_BUCKET}/${R2_PREFIX}/$old"
-              echo "removed $old"
+              aws --endpoint-url "$endpoint" s3 rm "s3://${R2_BUCKET}/${R2_PREFIX}/${REGION_DIR}$old"
+              echo "removed ${REGION_DIR}$old"
             fi
           done
 
@@ -196,7 +238,7 @@ jobs:
         # challenge is named as such (map-data.yml, 2026-09-28).
         run: |
           set -euo pipefail
-          url="$PUBLIC_BASE/$file"
+          url="$PUBLIC_BASE/${REGION_DIR}$file"
           headers=$(curl -sSL -D - -o /dev/null -r 0-15 --max-time 60 \
                       -H "Origin: https://macbuchi.github.io" "$url" | tr -d '\r' | tr 'A-Z' 'a-z')
           echo "$headers"
@@ -208,7 +250,7 @@ jobs:
           echo "$headers" | grep -q '^http/[0-9.]* 206' || { echo "::error::$url: no 206 on a Range request — the app cannot read this host"; exit 1; }
           echo "$headers" | grep -q '^accept-ranges: bytes' || { echo "::error::$url: no accept-ranges: bytes"; exit 1; }
           echo "$headers" | grep -q '^access-control-allow-origin:' || { echo "::error::$url: no access-control-allow-origin — set the bucket's CORS rule"; exit 1; }
-          curl -sSL --max-time 60 -o build/heights/public-manifest.json "$PUBLIC_BASE/heights.json?verify=$BUILD"
+          curl -sSL --max-time 60 -o build/heights/public-manifest.json "$PUBLIC_BASE/$HEIGHTS_MANIFEST?verify=$BUILD"
           python3 - <<'PY'
           import json
           local = json.load(open("build/heights/heights.json"))
@@ -219,6 +261,23 @@ jobs:
             --dem-cache build/dem --summary "$GITHUB_STEP_SUMMARY"
           {
             echo "- \`$url\` ($(stat -c %s "build/heights/$file" | numfmt --to=iec-i --suffix=B))"
-            echo "- manifest \`$PUBLIC_BASE/heights.json\`"
+            echo "- manifest \`$PUBLIC_BASE/$HEIGHTS_MANIFEST\`"
             echo "- 206 + accept-ranges + CORS verified, 24 tiles over Range equal the DEM"
           } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Update the region index
+        if: env.MODE == 'publish' && steps.r2.outputs.present == 'true'
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          AWS_DEFAULT_REGION: auto
+          AWS_EC2_METADATA_DISABLED: "true"
+        # As in map-data.yml: from the PUBLIC host, after the verify.
+        run: |
+          set -euo pipefail
+          python3 tool/regions.py index --public-base "$PUBLIC_BASE" --out build/regions.json
+          aws --endpoint-url "https://${R2_ACCOUNT_ID}.eu.r2.cloudflarestorage.com" s3 cp build/regions.json \
+            "s3://${R2_BUCKET}/${R2_PREFIX}/regions.json" \
+            --content-type application/json \
+            --cache-control "public, max-age=300" --no-progress

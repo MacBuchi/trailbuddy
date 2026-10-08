@@ -7,16 +7,16 @@ name: R2 Inventory
 # Nothing looked at the result: a run that stops between upload and
 # manifest leaves a build nobody names, an unfinished multipart upload
 # keeps its parts, and a measurement could leave a file in the prefix.
-# This run lists the whole bucket, reads the four manifests from the
-# bucket itself (not through the edge cache) and writes the report of
+# This run lists the whole bucket, reads every region's manifests
+# (tool/regions.json) from the bucket itself (not through the edge cache) and writes the report of
 # tool/r2_inventory.py into the run summary: builds per family and their
 # state, objects no family claims, objects stored twice, unfinished
 # uploads, and the total against the free storage — the base for
 # measuring the map beyond DACH (#220, 18b).
 #
 # Read only: list and get, never put or delete. The token is the data
-# workflows' (Object Read & Write) because R2 has no second one here;
-# what to remove is decided from the report, by hand.
+# workflows' (Object Read & Write) because R2 has no second one here.
+# Removing is r2-prune.yml's job (daily, from the same analysis).
 #
 # Monthly on the 4th, after the data workflows of the 1st to the 3rd. A
 # run during an upload shows the state in between — start it again
@@ -96,7 +96,9 @@ jobs:
           aws --endpoint-url "$endpoint" s3api list-multipart-uploads \
             --bucket "$R2_BUCKET" --output json > build/inventory/uploads.json \
             || { echo "::warning::list-multipart-uploads failed — the report lists none"; : > build/inventory/uploads.json; }
-          for m in dach.json heights.json ways.json pois.json; do
+          # Every region's manifests (tool/regions.json), `ca/map.json` …
+          for m in $(python3 tool/r2_inventory.py manifests); do
+            mkdir -p "$(dirname "build/inventory/manifests/$m")"
             aws --endpoint-url "$endpoint" s3 cp --no-progress --only-show-errors \
               "s3://${R2_BUCKET}/${R2_PREFIX}/$m" "build/inventory/manifests/$m" \
               || echo "no $m in the bucket"

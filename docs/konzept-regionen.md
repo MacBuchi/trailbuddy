@@ -86,13 +86,13 @@ Der Bucket im Dauerzustand, je Ebene eine Datei:
 | | DACH | Kanada (bis 55° N) |
 |---|---:|---:|
 | Karte | 2,8 GB | 2,0 GB |
-| Höhen | 0,15 GB | ~0,6–0,7 GB (geschätzt aus 470 000 Kacheln × 1,2–1,5 KB; der `plan`-Lauf misst es) |
+| Höhen | 0,15 GB | ~0,52 GB (gemessen: 6 DEM-Zellen gebaut, 1 190 B je Kachel, 458 736 Kacheln im Polygon) |
 | Wege | 0,13 GB | 0,005 GB |
 | Orte | 0,17 GB | 0,02 GB |
 | Übersicht | im Binary | 0,034 GB |
-| **zusammen** | **3,3 GB** | **~2,7–2,8 GB** |
+| **zusammen** | **3,3 GB** | **~2,6 GB** |
 
-**Rund 6,1 GB im Dauerzustand.** Das reicht nur, wenn sich eine Regel
+**Rund 5,9 GB im Dauerzustand.** Das reicht nur, wenn sich eine Regel
 ändert: Heute bleibt die Vorgängerdatei einen ganzen Lauf lang liegen,
 also einen Monat (`map-data.yml`, „sessions in flight keep the previous
 file"). Mit Kanada wären das zwei Karten je Region und zusammen gut
@@ -100,26 +100,37 @@ file"). Mit Kanada wären das zwei Karten je Region und zusammen gut
 
 **Neu: Die Vorgängerdatei geht nach zwei Tagen.** Eine Sitzung, die ihre
 Verzeichnisse gemerkt hat, lebt Stunden, nicht Wochen; nach dem Wechsel
-des Zeigers holt jede neue Sitzung das neue Manifest. Ein kleiner
-Workflow `r2-prune.yml` (täglich, nur löschend) entfernt jede Datei, die
-kein aktuelles Manifest nennt und deren Nachfolger seit mehr als 48 h
-gilt. Er nutzt dieselbe Liste wie das Inventar (#230), und „nennt kein
-Manifest" ist dieselbe Prüfung, die das Inventar heute schon rot macht,
-nur umgekehrt.
+des Zeigers holt jede neue Sitzung das neue Manifest. `r2-prune.yml`
+(täglich) löscht, was `tool/r2_inventory.py prune` aus derselben Analyse
+wie das Inventar (#230) nennt: ältere Bauten sofort, den Vorgänger,
+sobald der aktuelle Bau 48 h oben ist, und Waisen (hochgeladen, aber nie
+im Manifest), sobald sie selbst 48 h alt sind. Eine Familie, deren
+Manifest nichts nennt, was im Bucket liegt, fasst er nicht an — ohne
+aktuellen Bau gibt es keinen Bezugspunkt. Gelöscht wird nach Schlüssel,
+nie nach Präfix, und danach schreibt er den Index neu.
 
 R2 rechnet Speicher als Monatsmittel ab (GB-Monat). Zwei Tage mit der
 Vorgängerkarte einer Region kosten im Mittel rund 0,15–0,2 GB. Weil die
 Regionen an verschiedenen Tagen bauen (Abschnitt 2), liegt nie mehr als
-eine Vorgängerdatei gleichzeitig da: **Spitze ~8,9 GB für zwei Tage,
-Mittel ~6,3 GB.** Das Monats-Inventar (#230) zeigt den Stand; wird es
+eine Vorgängerdatei gleichzeitig da: **Spitze ~8,7 GB für zwei Tage,
+Mittel ~6,2 GB.** Das Monats-Inventar (#230) zeigt den Stand; wird es
 knapp, ist die nächste Stellschraube der Breitengrad, nicht der Zoom —
 z13 braucht der Planer für sein Wegenetz (#158).
 
-**Die Höhen passen damit in einen Job.** 470 000 Kacheln gegen 98 640 im
-DACH-Lauf (17 min) sind linear hochgerechnet rund 1,4 h. Die Teilung,
-die der Betreiber für 4,5–6 h freigegeben hat, ist also erst nötig,
-wenn der `plan`-Lauf mehr als 4 h ansagt. Dann baut ein Matrix-Job je
-Breitenstreifen ein Archiv, und das Manifest nennt die Teile.
+**Die Höhen passen damit in einen Job.** `height_tiles.py plan` aus der
+Cloud (2026-10-08, sechs Zellen in Saskatchewan gebaut): 458 736 Kacheln
+in 663 DEM-Zellen, rund 520 MB, 72–127 min je nach Netz — gegen 17 min
+für DACH. Die Teilung, die der Betreiber für 4,5–6 h freigegeben hat,
+ist also erst nötig, wenn ein Lauf an die 5 h des Jobs kommt. Dann baut
+ein Matrix-Job je Breitenstreifen ein Archiv, und das Manifest nennt die
+Teile.
+
+**Nebenbefund beim Messen:** Der DEM-Bucket antwortete für Zellen, die er
+listet, gelegentlich mit 404 (N53 W108, beim nächsten Versuch 206). Das
+Werkzeug merkte sich jede 404 dauerhaft als „Meer", ein Flackern wurde so
+zum Loch in den Höhen. Seit 18c gleicht es eine 404 mit der Liste des
+Buckets ab: nicht gelistet ist Meer, gelistet wird wiederholt, und eine
+Zelle, die nie kommt, bricht den Lauf ab.
 
 ## 4. Auf dem Host
 
@@ -143,9 +154,13 @@ wurde, gibt es für die App nicht. Kein neues Netzziel (derselbe Host),
 also keine Änderung an der Datenschutzerklärung; sie nennt den Host und
 nicht die Region.
 
-Die Manifeste behalten ihre Form. Nur die Namensprüfung der App lässt
-ein Unterverzeichnis zu (`^(?:[a-z]{2,8}/)?<art>-\d{8}\.pmtiles$`),
-weiter ohne `..` und ohne Schrägstrich am Anfang.
+Die Manifeste behalten ihre Form, und **`file` (bei den Orten `prefix`)
+gilt relativ zum Ordner des Manifests**: `ca/map.json` nennt
+`map-<build>.pmtiles`, nicht `ca/map-…`. Für DACH ist der Ordner die
+Wurzel, die alten Manifeste ändern sich also nicht, und die
+Namensprüfung der App braucht nur die neuen Namen (`map-`, `overview-`)
+zuzulassen — nie einen Schrägstrich. Das Unterverzeichnis kommt aus dem
+Index (`dir`).
 
 ## 5. In der App
 
@@ -189,11 +204,17 @@ Kartenregion dort hätte er bisher nur keine Karte unter sich gehabt.
 
 1. **Dieses Konzept** (docs, kein Bump).
 2. **`tool/regions.json` und die Workflows** (`.github/`, `tool/`, kein
-   Bump): Eingabe `region`, Zeitplan je Region, Kanada mit Polygon und
-   Kappe, `regions.json` auf dem Host, `r2-prune.yml`. DACH baut danach
-   byte-gleich weiter (gleiche Pfade, gleiche Box), ein `plan`-Lauf je
-   Ebene für Kanada misst Höhen und Bauzeit. Danach veröffentlicht der
-   Betreiber Kanada (`publish`, die R2-Secrets hat nur CI).
+   Bump): Eingabe `region` und ein zweiter Zeitplan je Workflow (Kanada
+   am 15. bis 17.), Kanada mit Polygon und Kappe (`map_tiles.py check
+   --region` prüft den Schnitt nur INNERHALB des Polygons, wo jeder
+   ehrliche Schnitt gleich ist; `height_tiles.py --region`), Übersicht
+   im selben Lauf wie die Karte, `regions.json` auf dem Host,
+   `r2-prune.yml`. DACH baut danach byte-gleich weiter (gleiche Pfade,
+   gleiche Box; `tool/regions.py --self-test` hält Datei und Workflows
+   zusammen). Danach veröffentlicht der Betreiber Kanada (`publish`, die
+   R2-Secrets hat nur CI); die Höhen von Hand, wie für DACH. Das
+   DACH-Manifest trägt danach zusätzlich `region`, das ältere Apps
+   überlesen.
 3. **Die App liest Regionen** (feat ⇒ MINOR): Index, Quellen je Region,
    Begleitebenen je Position, `StoredArea.region`. Tests mit zwei
    Regionen im Harness; mit nur DACH im Index dasselbe Bild wie 0.103.
@@ -206,8 +227,9 @@ Nach 3 und 4 ist 🚀 C fällig, zusammen mit 18d.
 
 ## 7. Offen
 
-- **Höhen in Kanada**: Die Schätzung (0,6–0,7 GB, ~1,4 h) misst erst der
-  `plan`-Lauf in Schritt 2. Liegt er über 4 h, kommt die Teilung.
+- **Höhen in Kanada**: aus der Cloud hochgerechnet 520 MB und 72–127 min;
+  der erste echte Lauf in CI sagt die Zahl, die zählt. Kommt er an die
+  5 h des Jobs, kommt die Teilung.
 - **Wege in Kanada** sagen wenig (3 % benotet, 18b). Sie werden trotzdem
   gebaut, weil sie fast nichts kosten und die Ebene sonst ein Sonderfall
   wäre; die Legende sagt ohnehin „unbekannt".

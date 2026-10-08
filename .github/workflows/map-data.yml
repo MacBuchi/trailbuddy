@@ -3,8 +3,9 @@ name: Map Data
 # The vector basemap the app reads online (#31, step 2 of
 # docs/konzept-offline-karten.md).
 #
-# Cuts DACH (Germany, Austria, Switzerland) out of the daily Protomaps
-# planet build with the official `pmtiles` tool, proves the extract
+# Cuts a region (tool/regions.json, docs/konzept-regionen.md: DACH, and
+# southern Canada since 18c) out of the daily Protomaps planet build
+# with the official `pmtiles` tool, proves the extract
 # against its source, uploads it to Cloudflare R2 and then proves the
 # PUBLIC copy on tiles.mcbuchi.de over exactly the path the app takes:
 # Range requests with an Origin header. The app never sees an archive
@@ -16,11 +17,16 @@ name: Map Data
 # 5.5 GB for z14; the cut can be repeated at 14 later without touching
 # the app.
 #
-# Dated file names (`dach-<build>.pmtiles`) plus a small manifest
-# (`dach.json`) that names the current file: an app session caches the
+# Dated file names (`dach-<build>.pmtiles`, `ca/map-<build>.pmtiles`)
+# plus a small manifest (`dach.json`, `ca/map.json`) that names the
+# current file: an app session caches the
 # archive's directories, and overwriting the archive under it would make
 # those offsets point into a different file. The previous archive stays
-# for one more run, so sessions in flight keep working.
+# until r2-prune.yml removes it two days later, so sessions in flight
+# keep working. A region with an overview (Canada) gets it cut in the
+# same run: z0-7 of the whole country, a download in the app (the DACH
+# overview ships in the binary). The last step rewrites the index
+# `regions.json` from what the host holds.
 #
 # Two modes, `plan` measures only (headers and directories, a few MB) and
 # publishes nothing; `publish` cuts and uploads. A monthly schedule keeps
@@ -52,14 +58,23 @@ on:
         required: false
         type: string
         default: "12 13 14"
+      region:
+        description: "Which region of tool/regions.json (docs/konzept-regionen.md)"
+        required: false
+        type: choice
+        options: ["dach", "ca"]
+        default: "dach"
       plan_select:
         description: "plan: measure countries instead of the DACH box — KEY=VALUES on Natural Earth (e.g. ISO_A2_EH=CA), or world"
         required: false
         type: string
         default: ""
   schedule:
-    # Monthly, 1st at 03:17 UTC — publish with the defaults.
+    # Monthly, publish with the defaults: DACH on the 1st, Canada on the
+    # 15th — one region at a time, so at most one previous archive lies
+    # in the bucket (docs/konzept-regionen.md, section 3).
     - cron: "17 3 1 * *"
+    - cron: "17 3 15 * *"
 
 # Never two runs at once: publish rewrites the manifest, and two runs
 # would race on which archive it ends up naming.
@@ -76,16 +91,22 @@ env:
   PMTILES_VERSION: "1.28.0"
   # West, south, east, north. `--bbox=…` with the equals sign: argparse
   # reads a leading minus as an option, and DACH only escapes that by
-  # starting east of Greenwich.
+  # starting east of Greenwich. DACH's box, the same as in
+  # tool/regions.json (its self-test holds them together); "Pick the
+  # region" replaces it with the box of another region.
   DACH_BBOX: "5.5,45.5,17.5,55.5"
   MODE: ${{ inputs.mode || 'publish' }}
+  # The region of this run. A schedule carries no inputs, so the 15th's
+  # cron names Canada; everything else is DACH. "Pick the region" turns
+  # it into box, polygon and paths (tool/regions.py).
+  REGION: ${{ inputs.region || (github.event.schedule == '17 3 15 * *' && 'ca') || 'dach' }}
   MAXZOOM: ${{ inputs.maxzoom || '13' }}
   PLAN_ZOOMS: ${{ inputs.plan_zooms || '12 13 14' }}
-  # Empty = the DACH box. Otherwise the map beyond DACH (#220): a
-  # selection of Natural Earth countries (public domain, pinned by tag AND
-  # checksum — a border file that changes under a measurement changes the
-  # measurement), or the whole world. Plan only; publish stays DACH until
-  # regions exist (18c in #156).
+  # Empty = the region. Otherwise the map beyond it (#220): a selection
+  # of Natural Earth countries (public domain, pinned by tag AND checksum
+  # — a border file that changes under a measurement changes the
+  # measurement), or the whole world. Plan only. The same border file
+  # cuts the polygon regions (Canada).
   PLAN_SELECT: ${{ inputs.plan_select || '' }}
   NE_COUNTRIES_URL: https://raw.githubusercontent.com/nvkelso/natural-earth-vector/v5.1.2/geojson/ne_50m_admin_0_countries.geojson
   NE_COUNTRIES_SHA256: 3e458fc036ad0a66411f2c1e6cac49c5d7bfb81cb1123bc513b22511a2b7fdeb
@@ -98,7 +119,7 @@ env:
 
 jobs:
   maps:
-    name: Cut, upload and verify the DACH basemap
+    name: Cut, upload and verify the basemap of a region
     runs-on: ubuntu-latest
     # A z13 extract reads about 3 GB through Range requests, the upload
     # sends them again.
@@ -125,6 +146,22 @@ jobs:
               echo "Cloudflare dashboard and store the three values as repository secrets."
             } >> "$GITHUB_STEP_SUMMARY"
           fi
+
+      - name: Pick the region
+        # tool/regions.json is the one list. For DACH this sets the values
+        # the env block already holds (a DACH run stays what it was);
+        # another region gets its box, its polygon (Natural Earth, capped
+        # at a latitude) and its paths under `<id>/`.
+        run: |
+          set -euo pipefail
+          args=()
+          if [ "$REGION" != "dach" ]; then
+            curl -sSL --fail --max-time 120 "$NE_COUNTRIES_URL" -o /tmp/countries.geojson
+            echo "$NE_COUNTRIES_SHA256  /tmp/countries.geojson" | sha256sum -c -
+            args=(--countries /tmp/countries.geojson --out-dir /tmp/region)
+          fi
+          python3 tool/regions.py env "$REGION" --workflow map "${args[@]}" | tee -a "$GITHUB_ENV"
+          echo "## Region \`$REGION\`" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Find the newest Protomaps daily build
         id: source
@@ -160,6 +197,10 @@ jobs:
           set -euo pipefail
           area=("--bbox=$DACH_BBOX")
           label="bbox \`$DACH_BBOX\`"
+          if [ -n "$REGION_POLYGON" ]; then
+            area=("--region=$REGION_POLYGON")
+            label="region \`$REGION\` (polygon from tool/regions.json)"
+          fi
           if [ "$PLAN_SELECT" = "world" ]; then
             # The whole Web Mercator square as one polygon: a bbox of the
             # world would enumerate 89 million z13 ids.
@@ -219,16 +260,22 @@ jobs:
           # first publish run failed here with KeyError: 'file' after a
           # successful extract).
           export file="dach-${SOURCE_BUILD}.pmtiles"
+          [ "$REGION" = "dach" ] || file="${MAP_STEM}-${SOURCE_BUILD}.pmtiles"
           echo "file=$file" >> "$GITHUB_ENV"
+          # A box for DACH, the capped country outline for Canada — the
+          # check below proves the extract against the same area.
+          area=("--bbox=$DACH_BBOX")
+          [ -z "$REGION_POLYGON" ] || area=("--region=$REGION_POLYGON")
+          mkdir -p "$(dirname "build/maps/$file")"
           pmtiles extract "$SOURCE" "build/maps/$file" \
-            "--bbox=$DACH_BBOX" "--maxzoom=$MAXZOOM"
+            "${area[@]}" "--maxzoom=$MAXZOOM"
           # An extract that holds the wrong tiles is a valid archive; in
           # the app that reads as "the map is blank here". Proven here
           # against what was ORDERED (bbox, maxzoom), not the file's own
           # header — a wrongly cut archive states its wrong bbox without
           # contradicting itself.
           python3 tool/map_tiles.py check --source "$SOURCE" \
-            --extract "build/maps/$file" "--bbox=$DACH_BBOX" \
+            --extract "build/maps/$file" "${area[@]}" \
             "--maxzoom=$MAXZOOM" --samples=80
           python3 - <<'PY'
           import hashlib, json, os, time
@@ -239,17 +286,59 @@ jobs:
                   digest.update(chunk)
           manifest = {
               "format": 1,
-              "file": os.environ["file"],
+              # Relative to the manifest's folder: `dach-…` at the root,
+              # `map-…` next to `ca/map.json`.
+              "file": os.path.basename(os.environ["file"]),
               "bytes": os.path.getsize(path),
               "sha256": digest.hexdigest(),
               "maxzoom": int(os.environ["MAXZOOM"]),
               "bbox": [float(v) for v in os.environ["DACH_BBOX"].split(",")],
+              "region": os.environ["REGION"],
               "source": os.environ["SOURCE"],
               "source_build": os.environ["SOURCE_BUILD"],
               "generated_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
               "attribution": "© OpenStreetMap contributors · Protomaps (ODbL)",
           }
-          with open("build/maps/dach.json", "w") as handle:
+          with open(f"build/maps/{os.environ['MAP_MANIFEST']}", "w") as handle:
+              json.dump(manifest, handle, indent=2, sort_keys=True)
+          print(json.dumps(manifest, indent=2))
+          PY
+
+      - name: Cut and check the overview
+        if: env.MODE == 'publish' && steps.r2.outputs.present == 'true' && env.OVERVIEW_STEM != ''
+        # z0-7 of the whole country, also north of the map's cap: offline,
+        # zoomed out, the app shows land, water and the big roads there.
+        # The DACH overview ships in the binary instead (concept 1.3).
+        env:
+          SOURCE: ${{ steps.source.outputs.url }}
+          SOURCE_BUILD: ${{ steps.source.outputs.build }}
+        run: |
+          set -euo pipefail
+          export overview="${OVERVIEW_STEM}-${SOURCE_BUILD}.pmtiles"
+          echo "overview=$overview" >> "$GITHUB_ENV"
+          pmtiles extract "$SOURCE" "build/maps/$overview" \
+            "--region=$OVERVIEW_POLYGON" "--maxzoom=$OVERVIEW_MAXZOOM"
+          python3 tool/map_tiles.py check --source "$SOURCE" \
+            --extract "build/maps/$overview" "--region=$OVERVIEW_POLYGON" \
+            "--maxzoom=$OVERVIEW_MAXZOOM" --samples=40
+          python3 - <<'PY'
+          import hashlib, json, os, time
+          path = f"build/maps/{os.environ['overview']}"
+          with open(path, "rb") as handle:
+              digest = hashlib.sha256(handle.read()).hexdigest()
+          manifest = {
+              "format": 1,
+              "file": os.path.basename(os.environ["overview"]),
+              "bytes": os.path.getsize(path),
+              "sha256": digest,
+              "maxzoom": int(os.environ["OVERVIEW_MAXZOOM"]),
+              "region": os.environ["REGION"],
+              "source": os.environ["SOURCE"],
+              "source_build": os.environ["SOURCE_BUILD"],
+              "generated_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+              "attribution": "© OpenStreetMap contributors · Protomaps (ODbL)",
+          }
+          with open(f"build/maps/{os.environ['OVERVIEW_MANIFEST']}", "w") as handle:
               json.dump(manifest, handle, indent=2, sort_keys=True)
           print(json.dumps(manifest, indent=2))
           PY
@@ -265,7 +354,8 @@ jobs:
         # The archive first, immutable and long-cached (its name carries
         # the build); the manifest last and short-cached — it is the
         # pointer that flips. Older archives beyond the previous one are
-        # removed afterwards: sessions in flight keep the previous file.
+        # removed afterwards: sessions in flight keep the previous file
+        # (r2-prune.yml removes that one, too, after two days).
         # `.eu.` in the endpoint: the bucket was created with EU
         # jurisdiction (operator, 2026-09-28), and such a bucket exists only
         # behind the EU endpoint — the plain one answers "no such bucket".
@@ -276,18 +366,34 @@ jobs:
             "s3://${R2_BUCKET}/${R2_PREFIX}/$file" \
             --content-type application/octet-stream \
             --cache-control "public, max-age=31536000, immutable" --no-progress
-          aws --endpoint-url "$endpoint" s3 cp build/maps/dach.json \
-            "s3://${R2_BUCKET}/${R2_PREFIX}/dach.json" \
+          if [ -n "${overview:-}" ]; then
+            aws --endpoint-url "$endpoint" s3 cp "build/maps/$overview" \
+              "s3://${R2_BUCKET}/${R2_PREFIX}/$overview" \
+              --content-type application/octet-stream \
+              --cache-control "public, max-age=31536000, immutable" --no-progress
+            aws --endpoint-url "$endpoint" s3 cp "build/maps/$OVERVIEW_MANIFEST" \
+              "s3://${R2_BUCKET}/${R2_PREFIX}/$OVERVIEW_MANIFEST" \
+              --content-type application/json \
+              --cache-control "public, max-age=300" --no-progress
+          fi
+          aws --endpoint-url "$endpoint" s3 cp "build/maps/$MAP_MANIFEST" \
+            "s3://${R2_BUCKET}/${R2_PREFIX}/$MAP_MANIFEST" \
             --content-type application/json \
             --cache-control "public, max-age=300" --no-progress
-          keep2=$(aws --endpoint-url "$endpoint" s3 ls "s3://${R2_BUCKET}/${R2_PREFIX}/" \
-                   | awk '{print $4}' | grep -E '^dach-[0-9]{8}\.pmtiles$' | sort | tail -2)
-          for old in $(aws --endpoint-url "$endpoint" s3 ls "s3://${R2_BUCKET}/${R2_PREFIX}/" \
-                        | awk '{print $4}' | grep -E '^dach-[0-9]{8}\.pmtiles$'); do
-            if ! echo "$keep2" | grep -qx "$old"; then
-              aws --endpoint-url "$endpoint" s3 rm "s3://${R2_BUCKET}/${R2_PREFIX}/$old"
-              echo "removed $old"
-            fi
+          # The region's own folder: `dach-…` at the root, `map-…` and
+          # `overview-…` under `ca/`.
+          stems=("$(basename "$MAP_STEM")")
+          [ -z "$OVERVIEW_STEM" ] || stems+=("$(basename "$OVERVIEW_STEM")")
+          for stem in "${stems[@]}"; do
+            names=$(aws --endpoint-url "$endpoint" s3 ls "s3://${R2_BUCKET}/${R2_PREFIX}/${REGION_DIR}" \
+                      | awk '{print $4}' | grep -E "^${stem}-[0-9]{8}\.pmtiles$" | sort || true)
+            keep2=$(echo "$names" | tail -2)
+            for old in $names; do
+              if ! echo "$keep2" | grep -qx "$old"; then
+                aws --endpoint-url "$endpoint" s3 rm "s3://${R2_BUCKET}/${R2_PREFIX}/${REGION_DIR}$old"
+                echo "removed ${REGION_DIR}$old"
+              fi
+            done
           done
 
       - name: Verify the public copy the way the app reads it
@@ -320,13 +426,42 @@ jobs:
           echo "$headers" | grep -q '^http/[0-9.]* 206' || { echo "::error::$url: no 206 on a Range request — the app cannot read this host"; exit 1; }
           echo "$headers" | grep -q '^accept-ranges: bytes' || { echo "::error::$url: no accept-ranges: bytes"; exit 1; }
           echo "$headers" | grep -q '^access-control-allow-origin:' || { echo "::error::$url: no access-control-allow-origin — set the bucket's CORS rule (GET/HEAD, range headers exposed)"; exit 1; }
-          curl -sSL --max-time 60 "$PUBLIC_BASE/dach.json" | python3 -c 'import json,sys; m=json.load(sys.stdin); assert m["file"]==sys.argv[1], m' "$file"
+          curl -sSL --max-time 60 "$PUBLIC_BASE/$MAP_MANIFEST?verify=$file" | python3 -c 'import json,os,sys; m=json.load(sys.stdin); assert m["file"]==os.path.basename(sys.argv[1]), m' "$file"
+          area=("--bbox=$DACH_BBOX")
+          [ -z "$REGION_POLYGON" ] || area=("--region=$REGION_POLYGON")
           python3 tool/map_tiles.py check --source "$SOURCE" \
-            --extract "$url" "--bbox=$DACH_BBOX" "--maxzoom=$MAXZOOM" --samples=40
+            --extract "$url" "${area[@]}" "--maxzoom=$MAXZOOM" --samples=40
+          if [ -n "${overview:-}" ]; then
+            curl -sSL --max-time 60 "$PUBLIC_BASE/$OVERVIEW_MANIFEST?verify=$overview" | python3 -c 'import json,os,sys; m=json.load(sys.stdin); assert m["file"]==os.path.basename(sys.argv[1]), m' "$overview"
+            python3 tool/map_tiles.py check --source "$SOURCE" \
+              --extract "$PUBLIC_BASE/$overview" "--region=$OVERVIEW_POLYGON" \
+              "--maxzoom=$OVERVIEW_MAXZOOM" --samples=24
+          fi
           {
             echo "## Basemap published"
             echo
             echo "- \`$url\` ($(stat -c %s "build/maps/$file" | numfmt --to=iec-i --suffix=B)), zoom 0–$MAXZOOM"
-            echo "- manifest \`$PUBLIC_BASE/dach.json\`"
+            echo "- manifest \`$PUBLIC_BASE/$MAP_MANIFEST\`"
+            [ -z "${overview:-}" ] || echo "- overview \`$PUBLIC_BASE/$overview\` ($(stat -c %s "build/maps/$overview" | numfmt --to=iec-i --suffix=B)), zoom 0–$OVERVIEW_MAXZOOM"
             echo "- 206 + accept-ranges + CORS verified, $(echo 40) sampled tiles match the source"
           } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Update the region index
+        if: env.MODE == 'publish' && steps.r2.outputs.present == 'true'
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          AWS_DEFAULT_REGION: auto
+          AWS_EC2_METADATA_DISABLED: "true"
+        # `regions.json` lists the regions whose map manifest is on the
+        # host, with the manifests each one has — written from the PUBLIC
+        # host after the verify, so it never names something the app
+        # cannot read.
+        run: |
+          set -euo pipefail
+          python3 tool/regions.py index --public-base "$PUBLIC_BASE" --out build/regions.json
+          aws --endpoint-url "https://${R2_ACCOUNT_ID}.eu.r2.cloudflarestorage.com" s3 cp build/regions.json \
+            "s3://${R2_BUCKET}/${R2_PREFIX}/regions.json" \
+            --content-type application/json \
+            --cache-control "public, max-age=300" --no-progress

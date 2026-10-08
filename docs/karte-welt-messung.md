@@ -7,7 +7,9 @@ Header und Verzeichnisse — bis z13 sind das 34 MB in 318 Anfragen, die
 Kacheln selbst nie. Ländergrenzen aus Natural Earth 1:50 m (v5.1.2,
 gemeinfrei). Wiederholbar in CI: `map-data.yml`, Modus `plan`, Eingabe
 `plan_select` (z. B. `ISO_A2_EH=CA` oder `world`); Wege und Orte mit
-`way-data.yml` / `poi-data.yml`, Modus `plan`, `plan_region = canada`.*
+`way-data.yml` / `poi-data.yml`, Modus `plan`, `plan_region = canada`
+(seit 18c heißt die Eingabe `region`, Wert `ca`, und schneidet bei
+55° N — `docs/konzept-regionen.md`).*
 
 ## Ergebnis in fünf Sätzen
 

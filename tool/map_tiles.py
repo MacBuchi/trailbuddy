@@ -508,6 +508,11 @@ def region_cover(rings, z):
     crosses the antimeridian is expected split there, as Natural Earth
     and Geofabrik ship them.
     """
+    return _region_tiles(rings, z)[1]
+
+
+def _region_tiles(rings, z):
+    """(tiles the edges touch, all tiles) at zoom z — see `region_cover`."""
     n = 1 << z
     tiles = set()
     edges = []
@@ -521,8 +526,9 @@ def region_cover(rings, z):
                 f = i / steps
                 tiles.add((min(n - 1, int(x0 + (x1 - x0) * f)),
                            min(n - 1, int(y0 + (y1 - y0) * f))))
+    border = set(tiles)
     if not tiles:
-        return tiles
+        return border, tiles
     rows = [ty for _, ty in tiles]
     for ty in range(min(rows), max(rows) + 1):
         y = ty + 0.5
@@ -532,7 +538,46 @@ def region_cover(rings, z):
         for left, right in zip(xs[0::2], xs[1::2]):
             for tx in range(max(0, int(left)), min(n - 1, int(right)) + 1):
                 tiles.add((tx, ty))
-    return tiles
+    return border, tiles
+
+
+def region_coverage_sample(rings, minzoom, maxzoom, budget, rng,
+                           cover_zoom=REGION_COVER_ZOOM):
+    """Like `coverage_sample`, for a polygon: tile ids spread over the
+    zooms, drawn only from INSIDE the region.
+
+    Inside means: under a cover tile no edge touches. Every descendant of
+    such a tile lies wholly in the polygon, so ANY honest cut of the
+    region holds it — ours (rasterised at z10, up to a tile too big) and
+    `pmtiles extract --region` (exact per zoom) alike. Drawing from the
+    whole cover instead would fail a correct extract along the border,
+    where the two rasterisations differ; drawing from the bbox would fail
+    it everywhere the bbox is not the country (Canada's box holds the
+    northern United States).
+    """
+    zooms = list(range(minzoom, maxzoom + 1))
+    if not zooms:
+        return []
+    cz = min(cover_zoom, maxzoom)
+    border, cover = _region_tiles(rings, cz)
+    inside = sorted(cover - border)
+    if not inside:
+        raise SystemExit(f"--region: no tile at z{cz} lies wholly inside the "
+                         "polygon — too small to prove coverage at this zoom")
+    per_zoom = max(1, budget // len(zooms))
+    picked = []
+    for z in zooms:
+        chosen = []
+        for _ in range(per_zoom):
+            tx, ty = rng.choice(inside)
+            if z >= cz:
+                k = 1 << (z - cz)
+                chosen.append((tx * k + rng.randrange(k), ty * k + rng.randrange(k)))
+            else:
+                chosen.append((tx >> (cz - z), ty >> (cz - z)))
+        for x, y in dict.fromkeys(chosen):
+            picked.append(zxy_to_tile_id(z, x, y))
+    return picked
 
 
 def _merge_ranges(ranges):
@@ -977,7 +1022,18 @@ def command_check(args):
     the docstring above promises to catch — a wrong bbox — was the one it
     could not see.
     """
-    bbox = parse_bbox(args.bbox)
+    region = getattr(args, "region", None)
+    if (args.bbox is None) == (region is None):
+        raise SystemExit("check wants exactly one of --bbox and --region")
+    if region is None:
+        bbox = parse_bbox(args.bbox)
+        area = f"bbox      {','.join(str(v) for v in bbox)}"
+    else:
+        with open(region) as handle:
+            select = getattr(args, "select", None)
+            rings = region_rings(json.load(handle),
+                                 parse_select(select) if select else None)
+        area = f"region    {region}" + (f" ({select})" if select else "")
     extract = Archive(open_source(args.extract))
     source = Archive(open_source(args.source))
     rng = random.Random(args.seed)
@@ -1007,7 +1063,10 @@ def command_check(args):
     # z10", und danach befragt, fehlte ihm nichts.
     top = min(args.maxzoom, source.header.max_zoom)
     bottom = max(0, source.header.min_zoom)
-    wanted = coverage_sample(bbox, bottom, top, args.samples, rng)
+    if region is None:
+        wanted = coverage_sample(bbox, bottom, top, args.samples, rng)
+    else:
+        wanted = region_coverage_sample(rings, bottom, top, args.samples, rng)
     empty = 0
     for tile_id in wanted:
         z, x, y = tile_id_to_zxy(tile_id)
@@ -1021,7 +1080,7 @@ def command_check(args):
         mine = extract.find(tile_id)
         if mine is None:
             mismatches.append(
-                f"z{z}/{x}/{y} is in the source inside the bbox but MISSING "
+                f"z{z}/{x}/{y} is in the source inside the area but MISSING "
                 "from the extract")
             continue
         if extract.tile_bytes(mine) != source.tile_bytes(theirs):
@@ -1030,7 +1089,7 @@ def command_check(args):
 
     print(f"extract   {extract.source.name}")
     print(f"source    {source.source.name}")
-    print(f"bbox      {','.join(str(v) for v in bbox)} z{bottom}-z{top}")
+    print(f"{area} z{bottom}-z{top}")
     print(f"inclusion {len(ids)} addressed, {len(inclusion)} sampled")
     print(f"coverage  {len(wanted)} sampled, {proven} present in the source"
           f" ({empty} empty there)")
@@ -1232,6 +1291,7 @@ def self_test():
     _test_leaf_pointer_is_not_a_tile()
     _test_check_fails_on_a_wrong_tile()
     _test_check_fails_on_the_wrong_region()
+    _test_check_proves_a_region_cut()
     _test_bbox_rejects_nonsense()
     _test_http_source_insists_on_range()
     print("map_tiles self-test: ok")
@@ -1589,6 +1649,56 @@ def _test_check_fails_on_the_wrong_region():
         assert code == 0, f"a complete extract must pass:\n{output}"
 
 
+def _test_check_proves_a_region_cut():
+    """A polygon cut (Canada, #220/18c) is proven from inside the polygon.
+
+    The western half of the world as a region: the half extract passes
+    it, the complete extract passes it too (more is not wrong), and the
+    half extract fails against the whole world — the same three guards as
+    for a bbox, so the region path cannot pass by never sampling.
+    """
+    source_tiles = _fixture_tiles()
+    west_only = {key: value for key, value in source_tiles.items()
+                 if key[0] <= 3 and key[1] < (1 << key[0]) / 2}
+    everything = {key: value for key, value in source_tiles.items()
+                  if key[0] <= 3}
+    west = {"type": "Polygon", "coordinates": [[[-179.9, -85], [-0.1, -85],
+                                                [-0.1, 85], [-179.9, 85], [-179.9, -85]]]}
+    world = {"type": "Polygon", "coordinates": [[[-179.9, -85], [179.9, -85],
+                                                 [179.9, 85], [-179.9, 85], [-179.9, -85]]]}
+    with tempfile.TemporaryDirectory() as folder:
+        paths = {}
+        for name, data in (("source", source_tiles), ("half", west_only),
+                           ("full", everything)):
+            paths[name] = os.path.join(folder, f"{name}.pmtiles")
+            with open(paths[name], "wb") as handle:
+                handle.write(_build_archive(data, leaf_size=8))
+        for name, geo in (("west", west), ("world", world)):
+            paths[name] = os.path.join(folder, f"{name}.geojson")
+            with open(paths[name], "w") as handle:
+                json.dump(geo, handle)
+
+        def run(extract, region):
+            args = argparse.Namespace(
+                source=paths["source"], extract=paths[extract], samples=400,
+                seed=7, bbox=None, region=paths[region], select=None, maxzoom=3)
+            with contextlib.redirect_stdout(io.StringIO()) as captured:
+                code = command_check(args)
+            return code, captured.getvalue()
+
+        code, output = run("half", "world")
+        assert code == 1 and "MISSING" in output, output
+        code, output = run("half", "west")
+        assert code == 0, f"the western half must pass a western region:\n{output}"
+        code, output = run("full", "west")
+        assert code == 0, f"a bigger extract is not a wrong one:\n{output}"
+        # Drawn from inside only: nothing east of the polygon is asked.
+        rings = region_rings(west)
+        for tile_id in region_coverage_sample(rings, 0, 3, 200, random.Random(1)):
+            z, x, _ = tile_id_to_zxy(tile_id)
+            assert z == 0 or x < (1 << z) / 2, (z, x)
+
+
 def _test_bbox_rejects_nonsense():
     """A typo must stop the run, not produce a plausible size.
 
@@ -1705,8 +1815,12 @@ def main():
     # fragen: Ein bei der falschen Bbox geschnittenes Archiv behauptet
     # widerspruchsfrei die falsche Bbox. Geprüft wird gegen das, was
     # bestellt war — `tool/map_areas.json`.
-    check.add_argument("--bbox", required=True,
+    check.add_argument("--bbox",
                        help="west,south,east,north the extract should cover")
+    check.add_argument("--region",
+                       help="GeoJSON the extract was cut with (pmtiles extract --region)")
+    check.add_argument("--select",
+                       help="KEY=V1,V2: only the region's features with that property")
     check.add_argument("--maxzoom", type=int, required=True,
                        help="highest zoom the extract was asked for")
     check.add_argument("--samples", type=int, default=24)

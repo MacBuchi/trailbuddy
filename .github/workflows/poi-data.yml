@@ -24,10 +24,12 @@ name: POI Data
 #
 # Dated prefixes (`pois-<build>/`) plus a short-cached manifest that
 # names the current one, like the basemap: a session holds the manifest
-# it read, and the previous build stays for one more run.
+# it read, and the previous build stays until r2-prune.yml removes it.
+# One pair per region of tool/regions.json, Canada's under `ca/`.
 #
 # Two modes: `plan` builds and reports, uploads nothing; `publish`
-# builds, uploads, verifies. Monthly on the 2nd, the day after the
+# builds, uploads, verifies. Monthly: DACH on the 2nd, Canada on the
+# 16th; DACH the day after the
 # basemap.
 #
 # Secrets through `env:` into a detection step; `secrets.` is not
@@ -44,15 +46,16 @@ on:
         type: choice
         options: ["plan", "publish"]
         default: "plan"
-      plan_region:
-        description: "plan: measure another region instead of the DACH box (#220); publish stays DACH"
+      region:
+        description: "Which region of tool/regions.json (docs/konzept-regionen.md)"
         required: false
         type: choice
-        options: ["dach", "canada"]
+        options: ["dach", "ca"]
         default: "dach"
   schedule:
-    # Monthly, 2nd at 03:47 UTC — publish.
+    # Monthly, publish: DACH on the 2nd, Canada on the 16th (03:47 UTC).
     - cron: "47 3 2 * *"
+    - cron: "47 3 16 * *"
 
 concurrency:
   group: ${{ github.workflow }}
@@ -63,14 +66,15 @@ permissions:
 
 env:
   MODE: ${{ inputs.mode || 'publish' }}
-  # Plan only (#220, 18b in #156): measure a region outside DACH with
-  # the same build, nothing uploaded. Publish stays DACH until regions
-  # exist (18c) — the step "Pick the region" refuses anything else.
-  PLAN_REGION: ${{ inputs.plan_region || 'dach' }}
+  # The region of this run (tool/regions.json). A schedule carries no
+  # inputs, so the 16th's cron names Canada.
+  REGION: ${{ inputs.region || (github.event.schedule == '47 3 16 * *' && 'ca') || 'dach' }}
   # The map's area, west,south,east,north — the SAME box as DACH_BBOX in
   # map-data.yml and the bundled overview (tool/generated_assets.json);
   # test/release_workflow_test.dart holds the three together. Places
   # outside are dropped by the tool: the extracts are whole countries.
+  # Box and extracts are DACH's (tool/regions.json holds the same, its
+  # self-test checks it); "Pick the region" replaces both for another.
   POI_BBOX: "5.5,45.5,17.5,55.5"
   # Geofabrik extracts: every country the box touches. DACH is one file
   # (Germany, Austria, Switzerland), Liechtenstein its own; Italy and
@@ -125,25 +129,13 @@ jobs:
           fi
 
       - name: Pick the region
-        # DACH is the env block above. Another region swaps extracts and
-        # box for this run and reports only: its sizes are the
-        # measurement, the DACH guards below do not apply to it. The box
-        # is Canada's Natural Earth outline, rounded outwards.
+        # tool/regions.json is the one list: for DACH the values above,
+        # for Canada its extract, its box (the map's cap at 55° N) and
+        # the paths under `ca/`.
         run: |
           set -euo pipefail
-          case "$PLAN_REGION" in
-            dach) ;;
-            canada)
-              if [ "$MODE" != "plan" ]; then
-                echo "::error::plan_region=$PLAN_REGION is a measurement — publish stays DACH until regions exist (18c in #156)."
-                exit 1
-              fi
-              echo "EXTRACTS=north-america/canada" >> "$GITHUB_ENV"
-              echo "POI_BBOX=-141.1,41.6,-52.5,83.2" >> "$GITHUB_ENV"
-              echo "## Plan for $PLAN_REGION (measurement, nothing uploaded)" >> "$GITHUB_STEP_SUMMARY"
-              ;;
-            *) echo "::error::unknown plan_region $PLAN_REGION"; exit 1 ;;
-          esac
+          python3 tool/regions.py env "$REGION" --workflow pois | tee -a "$GITHUB_ENV"
+          echo "## Region \`$REGION\`" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Install osmium
         if: env.MODE == 'plan' || steps.r2.outputs.present == 'true'
@@ -194,16 +186,13 @@ jobs:
           rm -rf build/pois-src
           cat build/pois/summary.md >> "$GITHUB_STEP_SUMMARY"
           # Tiny outputs are a broken extract, not a quiet month: the run
-          # must not replace a full build with an empty one.
-          # Another region is a measurement: its count is the result.
-          if [ "$PLAN_REGION" != "dach" ]; then
-            exit 0
-          fi
+          # must not replace a full build with an empty one. The minimum
+          # is per region (tool/regions.json; Canada measured 254 320, 18b).
           python3 - <<'PY'
-          import json, sys
+          import json, os, sys
           m = json.load(open("build/pois/pois.json"))
           total = sum(m["counts"].values())
-          if total < 100000 or m["files"] < 1000:
+          if total < int(os.environ["MIN_PLACES"]) or m["files"] < 1000:
               print(f"::error::Only {total} places in {m['files']} files — an extract is broken or truncated; not publishing.")
               sys.exit(1)
           print(f"{total} places in {m['files']} files")
@@ -225,22 +214,24 @@ jobs:
         run: |
           set -euo pipefail
           endpoint="https://${R2_ACCOUNT_ID}.eu.r2.cloudflarestorage.com"
+          # `prefix` in the manifest is relative to its folder: the root
+          # for DACH, `ca/` for Canada.
           aws --endpoint-url "$endpoint" s3 sync "build/pois/pois-${BUILD}/" \
-            "s3://${R2_BUCKET}/${R2_PREFIX}/pois-${BUILD}/" \
+            "s3://${R2_BUCKET}/${R2_PREFIX}/${REGION_DIR}pois-${BUILD}/" \
             --content-type application/json \
             --cache-control "public, max-age=31536000, immutable" --no-progress --only-show-errors
           aws --endpoint-url "$endpoint" s3 cp build/pois/pois.json \
-            "s3://${R2_BUCKET}/${R2_PREFIX}/pois.json" \
+            "s3://${R2_BUCKET}/${R2_PREFIX}/$POIS_MANIFEST" \
             --content-type application/json \
             --cache-control "public, max-age=300" --no-progress
-          builds=$(aws --endpoint-url "$endpoint" s3 ls "s3://${R2_BUCKET}/${R2_PREFIX}/" \
+          builds=$(aws --endpoint-url "$endpoint" s3 ls "s3://${R2_BUCKET}/${R2_PREFIX}/${REGION_DIR}" \
                     | sed -n 's/^ *PRE \(pois-[0-9]\{8\}\)\/$/\1/p' | sort)
           keep2=$(echo "$builds" | tail -2)
           for old in $builds; do
             if ! echo "$keep2" | grep -qx "$old"; then
               aws --endpoint-url "$endpoint" s3 rm --recursive --only-show-errors \
-                "s3://${R2_BUCKET}/${R2_PREFIX}/$old/"
-              echo "removed $old/"
+                "s3://${R2_BUCKET}/${R2_PREFIX}/${REGION_DIR}$old/"
+              echo "removed ${REGION_DIR}$old/"
             fi
           done
 
@@ -256,7 +247,7 @@ jobs:
         # tolerates that — this check must not.
         run: |
           set -euo pipefail
-          url="$PUBLIC_BASE/pois.json?verify=$BUILD"
+          url="$PUBLIC_BASE/$POIS_MANIFEST?verify=$BUILD"
           headers=$(curl -sSL -D - -o build/pois/public-manifest.json --max-time 60 \
                       -H "Origin: https://macbuchi.github.io" "$url" | tr -d '\r' | tr 'A-Z' 'a-z')
           echo "$headers"
@@ -272,7 +263,8 @@ jobs:
           local = json.load(open("build/pois/pois.json"))
           public = json.load(open("build/pois/public-manifest.json"))
           assert public == local, "the public manifest is not the one just uploaded"
-          base = os.environ["PUBLIC_BASE"]
+          base = os.environ["PUBLIC_BASE"] + "/" + os.environ["REGION_DIR"].rstrip("/")
+          base = base.rstrip("/")
           checked = 0
           for group, cells in local["cells"].items():
               if not cells:
@@ -299,6 +291,23 @@ jobs:
           {
             echo "## Places published"
             echo
-            echo "- \`$PUBLIC_BASE/pois-$BUILD/\`, manifest \`$PUBLIC_BASE/pois.json\`"
+            echo "- \`$PUBLIC_BASE/${REGION_DIR}pois-$BUILD/\`, manifest \`$PUBLIC_BASE/$POIS_MANIFEST\`"
             echo "- 200 + CORS verified on the manifest, one cell file per group byte-identical"
           } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Update the region index
+        if: env.MODE == 'publish' && steps.r2.outputs.present == 'true'
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          AWS_DEFAULT_REGION: auto
+          AWS_EC2_METADATA_DISABLED: "true"
+        # As in map-data.yml: from the PUBLIC host, after the verify.
+        run: |
+          set -euo pipefail
+          python3 tool/regions.py index --public-base "$PUBLIC_BASE" --out build/regions.json
+          aws --endpoint-url "https://${R2_ACCOUNT_ID}.eu.r2.cloudflarestorage.com" s3 cp build/regions.json \
+            "s3://${R2_BUCKET}/${R2_PREFIX}/regions.json" \
+            --content-type application/json \
+            --cache-control "public, max-age=300" --no-progress

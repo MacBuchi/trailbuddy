@@ -213,9 +213,17 @@ def cog_to_array(cog):
     return out
 
 
-def fetch_cog(name, cache_dir, fetch=None):
+def fetch_cog(name, cache_dir, fetch=None, listed=None, wait=time.sleep):
     """COG bytes from the cache or the bucket; None when the bucket has no
-    such cell (sea). A `.missing` marker remembers the 404 for re-runs."""
+    such cell (sea). A `.missing` marker remembers the 404 for re-runs.
+
+    A 404 alone is not proof of sea. Measuring Canada (2026-10-08) the
+    bucket answered 404 for cells it lists — N53 W108 in Saskatchewan,
+    206 on the next try — and the marker turned a flicker into a
+    permanent hole in the heights, counted as "sea" in the summary. So a
+    404 is checked against the bucket's listing: not listed is sea; listed
+    is retried with backoff, and a cell that stays unreadable fails the
+    run instead of being left out."""
     os.makedirs(cache_dir, exist_ok=True)
     path = os.path.join(cache_dir, name + ".tif")
     missing = path + ".missing"
@@ -225,18 +233,45 @@ def fetch_cog(name, cache_dir, fetch=None):
     if os.path.exists(missing):
         return None
     url = f"{rm.DEM_BUCKET}{name}/{name}.tif"
-    try:
-        data = (fetch or _fetch)(url)
-    except urllib.error.HTTPError as e:
-        if e.code in (403, 404):
-            with open(missing, "w") as fh:
-                fh.write(url)
-            return None
-        raise
+    if listed is None:
+        # An injected fetch is a fixture: its 404 is sea by construction.
+        listed = _listed if fetch is None else (lambda _name: False)
+    data = None
+    for attempt in range(5):
+        try:
+            data = (fetch or _fetch)(url)
+            break
+        except urllib.error.HTTPError as e:
+            if e.code not in (403, 404):
+                raise
+            if attempt == 0 and not listed(name):
+                with open(missing, "w") as fh:
+                    fh.write(url)
+                return None
+            if attempt == 4:
+                raise RuntimeError(f"{name}: listed in the DEM bucket, but {e.code} on "
+                                   "every read — not leaving a hole in the heights")
+            wait(2 ** (attempt + 1))
     with open(path + ".part", "wb") as fh:
         fh.write(data)
     os.replace(path + ".part", path)
     return data
+
+
+def _listed(name):
+    """Whether the bucket lists the cell's COG — the answer to "sea or a
+    flicker" (see fetch_cog). Retried itself: a listing that does not
+    come back is no evidence of sea either."""
+    url = f"{rm.DEM_BUCKET}?list-type=2&max-keys=1&prefix={name}/{name}.tif"
+    for attempt in range(4):
+        try:
+            body = _fetch(url).decode("utf-8", "replace")
+            return f"<Key>{name}/{name}.tif</Key>" in body
+        except (urllib.error.URLError, OSError):
+            if attempt == 3:
+                raise
+            time.sleep(2 ** (attempt + 1))
+    return False
 
 
 def _fetch(url):
@@ -249,8 +284,8 @@ class DemCells:
     """Cells by (floor(lat), floor(lon)), decoded once, a few kept (LRU):
     a z13 tile touches at most four cells, and `build` walks cell by cell."""
 
-    def __init__(self, cache_dir, fetch=None, keep=24):
-        self.cache_dir, self.fetch, self.keep = cache_dir, fetch, keep
+    def __init__(self, cache_dir, fetch=None, keep=24, listed=None):
+        self.cache_dir, self.fetch, self.keep, self.listed = cache_dir, fetch, keep, listed
         self.cells = {}
         self.order = []
         self.fetched = 0
@@ -265,7 +300,7 @@ class DemCells:
             self.order.append(key)
             return self.cells[key]
         name = rm.dem_tile_name(la + 0.5, lo + 0.5)
-        data = fetch_cog(name, self.cache_dir, self.fetch)
+        data = fetch_cog(name, self.cache_dir, self.fetch, self.listed)
         if data is None:
             self.missing.add(key)
             return None
@@ -355,14 +390,34 @@ def cells_for_bbox(bbox):
             for lo in range(int(math.floor(west)), int(math.ceil(east)))]
 
 
-def tiles_by_cell(bbox, zoom=ZOOM):
-    """{(la, lo): [(x, y), …]} — every tile of the bbox, filed under the
-    cell its centre lies in (so each tile is built exactly once and the
-    cell cache stays small)."""
+def region_filter(path, zoom=ZOOM):
+    """A test (x, y) -> bool for the tiles of a polygon region (#220, 18c),
+    or None for the whole bbox. Rasterised like the map's plan: a tile
+    belongs when its z10 ancestor touches the polygon, so the heights
+    reach up to one z10 tile beyond the border (~25 km in Canada) —
+    where the map is cut exactly. Too much at the border is the harmless
+    direction; rasterising the polygon at z13 instead would scan 3 800
+    rows against every edge of a coastline, minutes for nothing."""
+    if not path:
+        return None
+    with open(path, encoding="utf-8") as fh:
+        rings = map_tiles.region_rings(json.load(fh))
+    cz = min(map_tiles.REGION_COVER_ZOOM, zoom)
+    cover = map_tiles.region_cover(rings, cz)
+    shift = zoom - cz
+    return lambda x, y: (x >> shift, y >> shift) in cover
+
+
+def tiles_by_cell(bbox, zoom=ZOOM, inside=None):
+    """{(la, lo): [(x, y), …]} — every tile of the bbox (and of the region,
+    if `inside` is given), filed under the cell its centre lies in (so
+    each tile is built exactly once and the cell cache stays small)."""
     ids = map_tiles.bbox_tile_ids(bbox, zoom, zoom)[zoom]
     out = {}
     for tile_id in ids:
         _, x, y = map_tiles.tile_id_to_zxy(tile_id)
+        if inside is not None and not inside(x, y):
+            continue
         lat = tile_lat(y + 0.5, zoom)
         lon = tile_lon(x + 0.5, zoom)
         out.setdefault((int(math.floor(lat)), int(math.floor(lon))), []).append((x, y))
@@ -371,9 +426,9 @@ def tiles_by_cell(bbox, zoom=ZOOM):
     return out
 
 
-def build_tiles(bbox, cell_of, zoom=ZOOM, cells=None, log=None):
+def build_tiles(bbox, cell_of, zoom=ZOOM, cells=None, log=None, inside=None):
     """{(z, x, y): bytes} for the bbox (or only `cells`), plus stats."""
-    by_cell = tiles_by_cell(bbox, zoom)
+    by_cell = tiles_by_cell(bbox, zoom, inside)
     todo = sorted(by_cell) if cells is None else [c for c in sorted(by_cell) if c in cells]
     tiles = {}
     stats = {"tiles": 0, "empty": 0, "cells": len(todo), "cells_missing": 0, "bytes": 0,
@@ -698,6 +753,48 @@ def self_test():
         _expect(False, "no tiles must not write")
     except ValueError:
         pass
+    # A region (#220, 18c): only tiles whose z10 ancestor touches the
+    # polygon, the rest of the bbox is not built. A western strip of the
+    # box keeps the western tiles and none east of its z10 margin.
+    box = (10.0, 47.0, 12.0, 47.5)
+    with tempfile.TemporaryDirectory() as tmp:
+        path = os.path.join(tmp, "west.geojson")
+        with open(path, "w") as fh:
+            json.dump({"type": "Polygon", "coordinates": [[[10.0, 47.0], [10.3, 47.0],
+                       [10.3, 47.5], [10.0, 47.5], [10.0, 47.0]]]}, fh)
+        inside = region_filter(path)
+        whole = sum(len(v) for v in tiles_by_cell(box).values())
+        part = tiles_by_cell(box, inside=inside)
+        kept = [t for v in part.values() for t in v]
+        _expect(0 < len(kept) < whole / 2, f"region keeps {len(kept)} of {whole}")
+        margin = 360.0 / (1 << map_tiles.REGION_COVER_ZOOM)
+        _expect(all(tile_lon(x, ZOOM) < 10.3 + margin for x, _ in kept), "nothing east of the margin")
+        _expect(region_filter(None) is None, "no region, no filter")
+    # A 404 for a listed cell is a flicker, not sea: retried, and never
+    # remembered as missing; an unlisted 404 is sea at once.
+    with tempfile.TemporaryDirectory() as tmp:
+        calls = []
+
+        def flicker(url):
+            calls.append(url)
+            if len(calls) < 3:
+                raise urllib.error.HTTPError(url, 404, "flicker", None, None)
+            return b"COG"
+        got = fetch_cog("cellA", tmp, flicker, listed=lambda n: True, wait=lambda s: None)
+        _expect(got == b"COG" and len(calls) == 3, f"listed cell retried: {calls}")
+        _expect(not os.path.exists(os.path.join(tmp, "cellA.tif.missing")), "no marker for a flicker")
+
+        def gone(url):
+            raise urllib.error.HTTPError(url, 404, "nope", None, None)
+        _expect(fetch_cog("cellB", tmp, gone, listed=lambda n: False) is None, "unlisted 404 is sea")
+        _expect(os.path.exists(os.path.join(tmp, "cellB.tif.missing")), "sea is remembered")
+        try:
+            fetch_cog("cellC", tmp, gone, listed=lambda n: True, wait=lambda s: None)
+            _expect(False, "a listed cell that never reads must fail")
+        except RuntimeError:
+            pass
+    _expect(glue_bbox(["build", "--bbox", "-133.2,41.6,-52.6,55", "--build", "x"])
+            == ["build", "--bbox=-133.2,41.6,-52.6,55", "--build", "x"], "a box west of Greenwich")
     print("self-test ok" + ("" if np is not None else " (plain path only, numpy not installed)"))
 
 
@@ -710,6 +807,18 @@ def parse_bbox(text):
     return tuple(parts)
 
 
+def glue_bbox(argv):
+    """`--bbox W,S,E,N` -> `--bbox=W,S,E,N`. argparse reads a value with a
+    leading minus as an option, and every box west of Greenwich has one
+    (Canada, 18c); height-data.yml keeps the plain spelling. The same
+    helper as in way_archive.py and poi_extract.py."""
+    out = list(argv)
+    for i in range(len(out) - 1):
+        if out[i] == "--bbox":
+            out[i:i + 2] = [f"--bbox={out[i + 1]}", None]
+    return [a for a in out if a is not None]
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("--self-test", action="store_true")
@@ -717,6 +826,7 @@ def main():
     for name in ("plan", "build"):
         p = sub.add_parser(name)
         p.add_argument("--bbox", type=parse_bbox, required=True, help="west,south,east,north")
+        p.add_argument("--region", help="GeoJSON polygon: only the tiles inside it (#220)")
         p.add_argument("--dem-cache", default="build/dem")
         p.add_argument("--summary")
         p.add_argument("--zoom", type=int, default=ZOOM)
@@ -732,7 +842,7 @@ def main():
     c.add_argument("--seed", type=int, default=20261001)
     c.add_argument("--all", action="store_true", help="decode every tile (local archives)")
     c.add_argument("--summary")
-    args = parser.parse_args()
+    args = parser.parse_args(glue_bbox(sys.argv[1:]))
 
     if args.self_test:
         self_test()
@@ -742,14 +852,15 @@ def main():
     log = lambda s: print(s, flush=True)  # noqa: E731
     if args.cmd == "plan":
         cells = DemCells(args.dem_cache)
-        by_cell = tiles_by_cell(args.bbox, args.zoom)
+        inside = region_filter(args.region, args.zoom)
+        by_cell = tiles_by_cell(args.bbox, args.zoom, inside)
         total = sum(len(v) for v in by_cell.values())
         # The sample cells: the densest ones in tiles, from the middle of
         # the box, so a coastal cell does not make the projection cheap.
         ordered = sorted(by_cell, key=lambda k: (-len(by_cell[k]), abs(k[0] - (args.bbox[1] + args.bbox[3]) / 2)))
         chosen = set(ordered[:args.sample_cells])
         log(f"{total} tiles at z{args.zoom} in {len(by_cell)} cells; sampling {sorted(chosen)}")
-        tiles, stats = build_tiles(args.bbox, cells, args.zoom, cells=chosen, log=log)
+        tiles, stats = build_tiles(args.bbox, cells, args.zoom, cells=chosen, log=log, inside=inside)
         per_tile = stats["bytes"] / max(1, stats["tiles"])
         per_cell_s = stats["seconds"] / max(1, stats["cells"])
         projected = {"tiles": total, "bytes": int(total * per_tile),
@@ -757,7 +868,8 @@ def main():
         md = summary_md(stats, projected=projected)
     elif args.cmd == "build":
         cells = DemCells(args.dem_cache)
-        tiles, stats = build_tiles(args.bbox, cells, args.zoom, log=log)
+        tiles, stats = build_tiles(args.bbox, cells, args.zoom, log=log,
+                                   inside=region_filter(args.region, args.zoom))
         manifest = write_archive(tiles, args.bbox, args.build, args.out, stats)
         md = summary_md(stats, manifest)
     else:
