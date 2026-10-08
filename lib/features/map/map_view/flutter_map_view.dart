@@ -75,10 +75,21 @@ class _FlutterMapViewState extends ConsumerState<FlutterMapView>
 
   // ---- MapViewCameraDelegate ----
   @override
-  void move(LatLng center, double zoom) => _mapController.move(center, zoom);
+  void move(LatLng center, double zoom, {double bearing = 0}) {
+    // flutter_map dreht die KARTE: Damit [bearing] oben steht, um genau
+    // so viel zurück.
+    final rotation = -bearing;
+    if (rotation == 0 && _mapController.camera.rotation == 0) {
+      _mapController.move(center, zoom);
+    } else {
+      _mapController.moveAndRotate(center, zoom, rotation);
+    }
+  }
 
   @override
   void fit(List<LatLng> points, {required double padding, required double maxZoom, double bottomInset = 0}) {
+    // Eingepasst wird genordet — gedreht sind nur die Fixe der Navigation.
+    if (_mapController.camera.rotation != 0) _mapController.rotate(0);
     _mapController.fitCamera(CameraFit.bounds(
       bounds: LatLngBounds.fromPoints(points),
       padding: EdgeInsets.fromLTRB(padding, padding, padding, padding + bottomInset),

@@ -33,6 +33,7 @@ import 'loop_planner.dart';
 import 'loop_planner_controller.dart';
 import 'loop_planner_providers.dart';
 import 'map_panel.dart';
+import 'nav_providers.dart';
 import 'road_graph.dart';
 import 'road_graph_loader.dart' show kOnlineFillMaxTiles;
 import 'route_elevation.dart';
@@ -583,27 +584,39 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
       // Die Knöpfe gleich unter den Summen: Eingeklappt sind sie zu sehen,
       // die Runde darüber.
       const SizedBox(height: 8),
+      // „Navigieren" vorn (#232): Wer die Runde fahren will, braucht den
+      // Rest nicht. Speichern und GPX darunter.
       Row(children: [
         Expanded(
           child: FilledButton.icon(
-            key: const ValueKey('loop-save'),
+            key: const ValueKey('loop-navigate'),
             style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(48)),
-            onPressed: () => _saveRide(session, plan),
-            icon: const Icon(Icons.bookmark_add_outlined),
-            label: const Text('Als Fahrt speichern'),
+            onPressed: () => ref.read(navRequestProvider.notifier).state =
+                NavRequest(points: plan.points, title: loopName(plan)),
+            icon: const Icon(Icons.navigation_outlined),
+            label: const Text('Navigieren'),
           ),
         ),
         const SizedBox(width: 8),
         Expanded(
           child: OutlinedButton.icon(
-            key: const ValueKey('loop-gpx'),
+            key: const ValueKey('loop-save'),
             style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
-            onPressed: () => _exportGpx(plan),
-            icon: const Icon(Icons.share_outlined),
-            label: const Text('Als GPX'),
+            onPressed: () => _saveRide(session, plan),
+            icon: const Icon(Icons.bookmark_add_outlined),
+            label: const Text('Speichern'),
           ),
         ),
       ]),
+      Align(
+        alignment: Alignment.centerLeft,
+        child: TextButton.icon(
+          key: const ValueKey('loop-gpx'),
+          onPressed: () => _exportGpx(plan),
+          icon: const Icon(Icons.share_outlined),
+          label: const Text('Als GPX'),
+        ),
+      ),
       if (s.trailUpM > 0) ...[
         const SizedBox(height: 4),
         Text(

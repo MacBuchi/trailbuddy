@@ -50,16 +50,17 @@ import 'fake_trails.dart';
 import 'fake_keep_alive.dart';
 
 /// Test-Position ohne Geolocator-Plugin (alle Pflichtfelder gefüllt).
-Position fakePosition(double lat, double lon, {double accuracy = 8}) => Position(
+/// [heading]/[speed] für die Folgeansicht der Navigation (#232).
+Position fakePosition(double lat, double lon, {double accuracy = 8, double heading = 0, double speed = 0}) => Position(
       latitude: lat,
       longitude: lon,
       timestamp: DateTime(2026, 9, 28, 12),
       accuracy: accuracy,
       altitude: 0,
       altitudeAccuracy: 0,
-      heading: 0,
+      heading: heading,
       headingAccuracy: 0,
-      speed: 0,
+      speed: speed,
       speedAccuracy: 0,
     );
 
@@ -86,6 +87,7 @@ List<Override> overridesFor(FakeBackend backend,
         FakeOfficialTrailsSource? official,
         MemoryOfficialTrailsCache? officialCache,
         Position? position,
+        Stream<Position?>? positionStream,
         FakePositionFix? positionFix,
         FakeRideStore? rideStore,
         FakeRideFix? rideFix,
@@ -152,8 +154,10 @@ List<Override> overridesFor(FakeBackend backend,
       officialTrailsCacheProvider
           .overrideWithValue(officialCache ?? MemoryOfficialTrailsCache()),
       // Kein Plattform-Kanal für den Standort: Die Position kommt aus dem
-      // Test (Vorgabe: keine, wie ohne Berechtigung).
-      positionStreamProvider.overrideWith((ref) => Stream.value(position)),
+      // Test (Vorgabe: keine, wie ohne Berechtigung). Ein Strom für Tests,
+      // die Fixe nacheinander brauchen — als Broadcast, weil
+      // `ref.invalidate` ihn neu abonniert.
+      positionStreamProvider.overrideWith((ref) => positionStream ?? Stream.value(position)),
       positionFixProvider
           .overrideWithValue((positionFix ?? FakePositionFix(position)).call),
       // Die Fahrt (#28): im Speicher statt auf der Platte, ohne
@@ -217,6 +221,7 @@ Future<void> pumpApp(WidgetTester tester, FakeBackend backend,
     FakeOfficialTrailsSource? official,
     MemoryOfficialTrailsCache? officialCache,
     Position? position,
+    Stream<Position?>? positionStream,
     FakePositionFix? positionFix,
     FakeRideStore? rideStore,
     FakeRideFix? rideFix,
@@ -242,6 +247,7 @@ Future<void> pumpApp(WidgetTester tester, FakeBackend backend,
         official: official,
         officialCache: officialCache,
         position: position,
+        positionStream: positionStream,
         positionFix: positionFix,
         rideStore: rideStore,
         rideFix: rideFix,

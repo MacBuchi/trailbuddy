@@ -252,7 +252,7 @@ class _RecordingDelegate implements MapViewCameraDelegate {
   @override
   double zoom = 12;
   @override
-  void move(LatLng c, double z) {
+  void move(LatLng c, double z, {double bearing = 0}) {
     center = c;
     zoom = z;
   }

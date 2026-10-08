@@ -74,6 +74,18 @@ class FeatureHighlight {
 const kFeatureHighlights = <FeatureHighlight>[
   // ─── Highlights ──────────────────────────────────────────────────
   FeatureHighlight(
+    id: 'navigation',
+    since: '0.94.0',
+    kind: HighlightKind.highlight,
+    tab: HighlightTab.map,
+    icon: Icons.navigation_outlined,
+    title: 'Navigieren',
+    text: 'Im Ergebnis einer Runde oder eines Wegs, und bei jeder Fahrt in „Meine '
+        'Fahrten": Die Karte dreht mit, oben stehen Rest, Höhenmeter und der '
+        'Abstand zur Route — ohne Abbiegehinweise.',
+    target: '/',
+  ),
+  FeatureHighlight(
     id: 'route-vias',
     since: '0.93.0',
     kind: HighlightKind.highlight,

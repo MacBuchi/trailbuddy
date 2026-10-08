@@ -98,7 +98,9 @@ const kHelpSteps = <HelpStep>[
         'du die Fahrt in jede andere App laden. Vorher planst du mit dem '
         'Runden-Knopf eine Runde: Trails antippen (noch einmal heißt ab), links '
         'Parameter, Liste und Gebiet, dann rechnen — offline, aus deinen '
-        'gespeicherten Bereichen; sie liegt dann unter „Meine Fahrten". Dort '
+        'gespeicherten Bereichen; sie liegt dann unter „Meine Fahrten". '
+        '„Navigieren" zeigt sie unterwegs: Die Karte dreht mit, oben stehen Rest '
+        'und Abstand zur Route. In „Meine Fahrten" '
         'steht an jeder Fahrt ihr Rad — ein Tipp stellt es um; nach links '
         'wischen löscht, ein langer Druck wählt mehrere. In der Web-App gibt es '
         'keine Aufzeichnung.',

@@ -34,6 +34,16 @@ void main() {
     expect(kotlin, contains('FileProvider.getUriForFile'));
   });
 
+  test('der Bildschirm-Kanal heißt in Kotlin und Dart gleich (#232)', () {
+    final kotlin = File('android/app/src/main/kotlin/${appId.replaceAll('.', '/')}/MainActivity.kt').readAsStringSync();
+    final dart = File('lib/core/screen_awake_io.dart').readAsStringSync();
+    const channel = 'de.mcbuchi.trailbuddy/screen';
+    expect(kotlin, contains('"$channel"'));
+    expect(dart, contains("'$channel'"));
+    // Das Fenster-Flag: gilt nur, solange die App sichtbar ist.
+    expect(kotlin, contains('FLAG_KEEP_SCREEN_ON'));
+  });
+
   test('Zurück auf der Karte legt die App in den Hintergrund, statt sie zu beenden', () {
     // #175: Flutter ruft ohne Überschreibung `finish()` — die Karte
     // startete danach von vorn. Der Weg dorthin ist Dart (AppShell); hier

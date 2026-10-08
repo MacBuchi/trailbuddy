@@ -10,6 +10,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
+import android.view.WindowManager
 import androidx.core.content.FileProvider
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
@@ -20,9 +21,10 @@ import java.io.InputStream
 import java.util.zip.GZIPInputStream
 
 /**
- * Der einzige native Code im Projekt (Muster PilzBuddy): zwei
+ * Der einzige native Code im Projekt (Muster PilzBuddy): drei
  * MethodChannels — die geladene Update-APK an den System-Installer geben,
- * und lesen, warum die App beim letzten Mal beendet wurde (#40) — und der
+ * lesen, warum die App beim letzten Mal beendet wurde (#40), und den
+ * Bildschirm in der Navigation anlassen (#232) — und der
  * Benachrichtigungs-Kanal für Push (#34).
  *
  * Beendigungsgründe: Android führt seit Version 11 selbst Buch darüber,
@@ -46,6 +48,11 @@ class MainActivity : FlutterActivity() {
 
         /** Beendigungsgründe; der Name steht in `lib/data/exit_info_repository.dart`. */
         const val EXIT_CHANNEL = "de.mcbuchi.trailbuddy/exit_info"
+
+        /** Bildschirm an in der Folgeansicht (#232); der Name steht in
+         *  `lib/core/screen_awake_io.dart`. Das Flag hängt am Fenster und
+         *  gilt nur, solange es sichtbar ist — keine Berechtigung. */
+        const val SCREEN_CHANNEL = "de.mcbuchi.trailbuddy/screen"
 
         /**
          * Genug für den Haupt-Thread — und zugleich die Grenze der Spalte
@@ -126,6 +133,21 @@ class MainActivity : FlutterActivity() {
                         result.success(exitReasons(call.argument<Int>("limit") ?: 10))
                     "exitTrace" ->
                         result.success(exitTrace(call.argument<Long>("timestamp") ?: 0L))
+                    else -> result.notImplemented()
+                }
+            }
+
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, SCREEN_CHANNEL)
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "keepOn" -> {
+                        if (call.argument<Boolean>("on") == true) {
+                            window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                        } else {
+                            window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                        }
+                        result.success(null)
+                    }
                     else -> result.notImplemented()
                 }
             }

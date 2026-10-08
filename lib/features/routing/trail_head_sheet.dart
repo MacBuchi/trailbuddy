@@ -54,6 +54,7 @@ import 'loop_planner.dart';
 import 'loop_planner_providers.dart';
 import 'loop_planner_sheet.dart' show loopPreviewLines;
 import 'map_panel.dart';
+import 'nav_providers.dart';
 import 'planning_graph.dart';
 import 'ride_calibrator.dart';
 import 'road_graph.dart';
@@ -412,14 +413,17 @@ class _RouteSheetState extends ConsumerState<_RouteSheet> {
               const SizedBox(height: 16),
               Row(
                 children: [
+                  // „Navigieren" vorn (#232): die eigene Folgeansicht; die
+                  // Navi-App bleibt „Anfahrt" daneben.
                   if (hasRoute) ...[
                     Expanded(
                       child: FilledButton.icon(
-                        key: const ValueKey('trail-head-gpx'),
+                        key: const ValueKey('trail-head-follow'),
                         style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(48)),
-                        onPressed: _exportGpx,
-                        icon: const Icon(Icons.share_outlined),
-                        label: const Text('Als GPX'),
+                        onPressed: () => ref.read(navRequestProvider.notifier).state =
+                            NavRequest(points: _points!, title: _rideName),
+                        icon: const Icon(Icons.navigation_outlined),
+                        label: const Text('Navigieren'),
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -438,12 +442,20 @@ class _RouteSheetState extends ConsumerState<_RouteSheet> {
                 ],
               ),
               if (hasRoute)
-                TextButton.icon(
-                  key: const ValueKey('trail-head-save'),
-                  onPressed: _saveRide,
-                  icon: const Icon(Icons.bookmark_add_outlined),
-                  label: const Text('Als Fahrt speichern'),
-                ),
+                Wrap(children: [
+                  TextButton.icon(
+                    key: const ValueKey('trail-head-save'),
+                    onPressed: _saveRide,
+                    icon: const Icon(Icons.bookmark_add_outlined),
+                    label: const Text('Als Fahrt speichern'),
+                  ),
+                  TextButton.icon(
+                    key: const ValueKey('trail-head-gpx'),
+                    onPressed: _exportGpx,
+                    icon: const Icon(Icons.share_outlined),
+                    label: const Text('Als GPX'),
+                  ),
+                ]),
               Text(
                 'Ein Vorschlag aus Kartendaten, ohne Abbiegehinweise — fahre nach Sicht.',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).hintColor),

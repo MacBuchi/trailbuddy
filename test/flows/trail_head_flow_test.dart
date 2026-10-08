@@ -281,6 +281,32 @@ void main() {
     expect(find.byKey(const ValueKey('via-handles')), findsNothing);
   });
 
+  testWidgets('„Navigieren" (#232): Blatt zu, die Folgeansicht fährt dieselbe Linie', (tester) async {
+    await start(tester, areaStore: await _areaWithTrack());
+    await tapTrailHead(tester);
+    final whole = fakeMapLayers(tester).polylines.where((l) => l.width == 2).single.points;
+    // Erst hochziehen: Halb offen liegt die Knopfzeile unter dem Rand.
+    final list = find
+        .descendant(of: find.byType(DraggableScrollableSheet), matching: find.byType(Scrollable))
+        .first;
+    await tester.drag(list, const Offset(0, -400));
+    await settle(tester, frames: 4);
+    await tester.ensureVisible(find.byKey(const ValueKey('trail-head-follow')));
+    await tester.tap(find.byKey(const ValueKey('trail-head-follow')));
+    await settle(tester);
+    // Aufzeichnen aus — sonst bräuchte der Test einen Fix des Dienstes.
+    await tester.tap(find.byKey(const ValueKey('nav-record')));
+    await settle(tester, frames: 2);
+    await tester.tap(find.byKey(const ValueKey('nav-go')));
+    await settle(tester);
+    expect(find.byKey(const ValueKey('trail-head-summary')), findsNothing);
+    expect(find.byKey(const ValueKey('nav-bar')), findsOneWidget);
+    final route = fakeMapLayers(tester).polylines.where((l) => l.width == 6).single.points;
+    expect(route.last, whole.last);
+    // Der Trail läuft nach Norden: Norden oben.
+    expect(fakeMap(tester).bearing, closeTo(0, 5)); // Kachelpixel: ein, zwei Grad
+  });
+
   testWidgets('ohne gespeicherten Bereich: ein Satz und die Anfahrt, kein GPX', (tester) async {
     await start(tester);
     await tapTrailHead(tester);

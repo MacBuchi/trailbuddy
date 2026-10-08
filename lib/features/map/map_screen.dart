@@ -26,6 +26,9 @@ import '../routing/loop_planner_providers.dart';
 import '../routing/loop_planner_sheet.dart';
 import '../routing/loop_tool_rail.dart';
 import '../routing/map_panel.dart';
+import '../routing/nav_providers.dart';
+import '../routing/nav_view.dart';
+import '../routing/route_progress.dart' show followCenter, kNavZoom;
 import '../routing/route_via_providers.dart';
 import '../routing/route_vias.dart';
 import '../routing/via_handles.dart';
@@ -529,6 +532,67 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     ref.invalidate(positionStreamProvider);
   }
 
+  /// Navigation starten (#232, Konzept-Routing 9.4): erst fragen
+  /// (Aufzeichnen, Bildschirm), dann der Standort — die einzige Stelle,
+  /// die dafür nach der Berechtigung fragt, ist wie bei „Meine Position"
+  /// der Fix. Ohne Standort keine Folgeansicht.
+  Future<void> _startNavigation(NavRequest request) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final rides = ref.read(rideProvider.notifier);
+    final canRecord = ref.read(rideRecordingAvailableProvider) && !rides.isRunning;
+    final choice = await showNavStartSheet(context, title: request.title, canRecord: canRecord);
+    if (choice == null || !mounted) return;
+    final fix = await ref.read(positionFixProvider)();
+    if (!mounted) return;
+    if (fix == null) {
+      messenger.showSnackBar(const SnackBar(
+          content: Text('Ohne Standort keine Navigation — Standort ist aus '
+              'oder für TrailBuddy nicht erlaubt.')));
+      return;
+    }
+    // Die Karte gehört jetzt der Route: Blätter, Planer und Auswahl zu.
+    if (ref.read(offlineOverlayProvider)) {
+      await _closeTools();
+      if (!mounted || ref.read(offlineOverlayProvider)) return;
+    }
+    closeMapPanel();
+    if (ref.read(loopPlannerProvider).open) _closeLoopPlanner();
+    setState(() => _selectedTrailId = null);
+    if (choice.record) {
+      final result = await rides.start();
+      if (!mounted) return;
+      if (result != RideStartResult.started) {
+        // Die Navigation läuft trotzdem — nur ohne Aufzeichnung.
+        messenger.showSnackBar(const SnackBar(content: Text('Die Aufzeichnung ließ sich nicht starten.')));
+      }
+    }
+    final nav = ref.read(navigationProvider.notifier);
+    if (!nav.start(request.points, request.title)) return;
+    _fittedOnce = true;
+    _navZoom = kNavZoom;
+    nav.onFix(LatLng(fix.latitude, fix.longitude), headingDeg: fix.heading, speedMps: fix.speed);
+    ref.invalidate(positionStreamProvider);
+    _follow();
+  }
+
+  /// Der Zoom der Folgeansicht: [kNavZoom] beim Start, danach der, den die
+  /// zwei Finger gelassen haben — gelesen beim nächsten Fix.
+  double? _navZoom;
+
+  /// Die Kamera auf den letzten Fix: gedreht nach dem Kurs, die Position
+  /// im unteren Drittel. Mit „Norden" genordet und mittig.
+  void _follow() {
+    final session = ref.read(navigationProvider);
+    final state = session?.state;
+    if (session == null || state == null) return;
+    final zoom = _navZoom ?? _controller.zoom;
+    _navZoom = null;
+    final bearing = session.bearingDeg;
+    final height = _camera?.size.height ?? MediaQuery.sizeOf(context).height;
+    final center = session.north ? state.position : followCenter(state.position, bearing, zoom, height);
+    _controller.move(center, zoom, bearing: bearing);
+  }
+
   void _fitTo(List<Trail> trails) => _fitPoints([for (final t in trails) ...t.points]);
 
   /// Einpassen — in die Fläche ÜBER einem offenen Routen-Blatt
@@ -723,6 +787,9 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         : trails.where((t) => t.id == _selectedTrailId).firstOrNull;
     final canRecord = ref.watch(rideRecordingAvailableProvider);
     final cachedAt = ref.watch(trailsCachedAtProvider);
+    // Die Folgeansicht der Navigation (#232): Solange sie läuft, gehört
+    // die Karte der Route — keine Taps, keine Leisten, keine Knöpfe.
+    final nav = ref.watch(navigationProvider);
 
     // Einmal auf das Netz zoomen, sobald es da ist; danach nie wieder
     // von selbst — wer die Karte verschoben hat, will nicht zurückgeholt
@@ -805,6 +872,30 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         ..showSnackBar(const SnackBar(
             key: ValueKey('via-rejected'),
             content: Text('Dort führt kein Weg durch — der Punkt ist zurück an seinem Platz.')));
+    });
+    // „Navigieren" aus einem Ergebnis-Blatt oder aus „Meine Fahrten".
+    ref.listen(navRequestProvider, (_, request) {
+      if (request == null) return;
+      ref.read(navRequestProvider.notifier).state = null;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) unawaited(_startNavigation(request));
+      });
+    });
+    // Jeder Fix rückt den Stand weiter und die Kamera nach.
+    ref.listen(positionStreamProvider, (_, next) {
+      final p = next.valueOrNull;
+      if (p == null || !ref.read(navigationProvider.notifier).isRunning) return;
+      ref.read(navigationProvider.notifier).onFix(LatLng(p.latitude, p.longitude), headingDeg: p.heading, speedMps: p.speed);
+      _follow();
+    });
+    // „Norden" sofort, nicht erst beim nächsten Fix; nach dem Ende wieder
+    // genordet — außerhalb der Folgeansicht dreht die Karte nie.
+    ref.listen(navigationProvider, (prev, next) {
+      if (prev != null && next == null) {
+        _controller.move(_controller.center, _controller.zoom);
+      } else if (prev != null && next != null && prev.north != next.north) {
+        _follow();
+      }
     });
     ref.listen(mapFocusAreaProvider, (_, area) {
       if (area == null) return;
@@ -895,6 +986,9 @@ class _MapScreenState extends ConsumerState<MapScreen> {
             borderWidth: kSelectionGlowBorder,
           ),
         if (ride != null && ride.points.length >= 2) _ridePolyline(ride.points),
+        // Die Route der Navigation unter dem Netz: Trails auf ihr behalten
+        // ihre Farbe (Konzept-Routing 9.2).
+        if (nav != null) ...navRouteLines(nav),
         for (final t in shownTrails)
           MapViewPolyline(
             // Geglättet für das Bild (`line_smoothing.dart`) — gerechnet
@@ -1016,14 +1110,24 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                   for (final src in official.loadedSources)
                     '${src.attribution} (${src.license})',
               ],
-              onHit: _onHit,
-              onTap: _onMapTap,
-              onLongPress: _onLongPress,
+              // In der Folgeansicht tun Taps nichts: Die Trefferprüfung
+              // rechnet ohne Drehung (Konzept-Routing 9.2).
+              onHit: nav == null ? _onHit : null,
+              onTap: nav == null ? _onMapTap : null,
+              onLongPress: nav == null ? _onLongPress : null,
               onCameraIdle: _onCameraIdle,
             ),
             controller: _controller,
             layers: layers,
           ),
+          // Nicht positioniert, wie die Leisten unten: Seine SafeAreas
+          // spannen den Stack auf, auch wo die Karte das nicht tut.
+          if (nav != null)
+            NavOverlay(
+              session: nav,
+              onStop: () => ref.read(navigationProvider.notifier).stop(),
+            ),
+          if (nav == null) ...[
           // Solange ein Werkzeug auf seinen Strich wartet, liegt die
           // Zeichenfläche über der Karte und hält sie fest.
           if (drawTool != null && camera != null)
@@ -1386,6 +1490,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
               ),
             ),
           ),
+          ],
         ],
       ),
       ),
