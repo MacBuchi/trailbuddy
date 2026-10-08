@@ -65,8 +65,8 @@ Nicht-Ziele, damit sie nicht hineinwachsen:
   Fahrtrichtung gedreht, eigene Position, Route und Abstand zur Linie,
   eine Dauerbenachrichtigung über den `location`-Dienst der Aufzeichnung
   und ein Bild-im-Bild-Fenster (Android PiP — nicht
-  `SYSTEM_ALERT_WINDOW`, das Play nur eng zulässt). Sein Abschnitt in
-  diesem Dokument kommt vor dem ersten Code.
+  `SYSTEM_ALERT_WINDOW`, das Play nur eng zulässt). Die Regeln stehen in
+  Abschnitt 9.
 - **Kein Routing über fremde Gegenden.** Gerechnet wird nur, wo ein
   gespeicherter Bereich liegt; ohne Bereich sagt das Blatt das und
   bietet die Übergabe an. Seit 0.74.0 über die Kacheln, die DA sind,
@@ -665,6 +665,9 @@ Messung und spiegelt Kostentabelle und Zeitmodell; wie bei
 | 6 | Kalibrierung aus eigenen Fahrten, je Profil (Steigrate je Klasse, Flachgeschwindigkeit), im Profil sichtbar („Bio-Bike: 520 hm/h aus 14 Fahrten") und zurücksetzbar; `Ride.profile` kommt mit Schritt 3 — **gebaut, 0.73.0** (`ride_calibration.dart` pur als Spiegel von `ride_sections`/`class_mix_along` im Werkzeug, `ride_calibrator.dart`; auf Knopfdruck unter „Fahrerprofil", Median je Klassengruppe ab drei Aufstiegen, plausible Spanne; die Planer lesen `calibratedRiderProvider`); seit 0.82.0 auch aus Fahrten, die der GPX-Import mit Profil in „Meine Fahrten" übernimmt (#188) | #158 | feat |
 | 7 | Rund machen nach dem ersten Feldeinsatz: Blätter ohne Modal und über der Karte eingepasst, Planung über den vorhandenen Teil der Kacheln, Trail-Richtung und Verbinder auf dem Graphen (Patch 016 „in beide Richtungen"), Direkt/Spaßig, Navi-Symbol, langer Druck, Auswählen statt öffnen — **gebaut, 0.74.0** | #174 #176 #177 #178 #185 | feat |
 | 8 | Fehlende Wege- und Höhenkacheln mit Empfang vom eigenen Host, gedeckelt, nur für die Sitzung, abschaltbar (2.7) — **gebaut, 0.78.0** | #187 | feat |
+| 9 | Navigationsmodus: Folgeansicht (Karte dreht mit, Fortschritt, Abstand, „Zurück zur Route", Bildschirm an), Einstieg aus Ergebnis und „Meine Fahrten" (9.1–9.4) | #232 | feat |
+| 10 | Dauerbenachrichtigung mit Fortschritt aus dem Dienst (9.5) | #232 | feat |
+| 11 | Bild-im-Bild auf Android (9.6) | #232 | feat |
 
 Schritt 1 entscheidet, ob 2–5 so gebaut werden oder ob vorher die
 Pipeline (2.5, letzter Punkt) dran ist. Schritte 3–5 brauchen keine
@@ -753,3 +756,183 @@ Vorschläge, bis die Messung oder die eigenen Fahrten andere liefern.
 9. **BRouter**: nein, keine Hintertür (0).
 10. **Reihenfolge**: Schritt 1 (Messung) vor allem anderen; Schritte
     3–5 erst nach dem Bericht — die Regel aus #35.
+
+## 9. Navigationsmodus (#232)
+
+*Feldbericht 0.82.2 (2026-10-04): „einfacher Navigationsbildschirm, der
+über anderen Apps überlagert dargestellt werden kann, als auch minimal
+in der Statusleiste; die Karte dreht sich, zeigt die eigene Position
+und die Wegstrecke." Zugelassen vom Betreiber am 2026-10-05,
+einschließlich des schwebenden Fensters (Konzept 13 seither gelockert);
+die drei offenen Fragen entschieden am 2026-10-08 (9.7). Dieser
+Abschnitt kommt vor dem ersten Code, wie in 1 zugesagt.*
+
+Der Modus ZEIGT eine Route, er führt nicht. Keine Abbiegehinweise,
+keine Sprachausgabe, kein Ton bei einer Abweichung — wer das will,
+nimmt die GPX-Übergabe an die eigene Navi-App (#150, #151). Was er
+kann, ist die Frage beantworten, die man unterwegs stellt: „Bin ich
+noch drauf, und wie weit ist es noch?"
+
+### 9.1 Was navigiert wird
+
+Jede Linie, die TrailBuddy selbst geplant hat oder als Fahrt kennt:
+
+- das **Ergebnis im Blatt** — Runde, „Zum Trailkopf", „Route bis hier",
+  direkt oder spaßig, auch nach dem Ziehen von Zwischenpunkten;
+  Knopf „Navigieren" neben „Als Fahrt speichern",
+- eine **geplante Fahrt** in „Meine Fahrten" (`Ride.planned`),
+- eine **eigene oder importierte Fahrt** (dieselbe Runde noch einmal).
+
+Ein Trail allein ist keine Route — dorthin führt „Zum Trailkopf", und
+auf dem Trail selbst zeigt die Karte ihn ohnehin. Fremde Linien gibt es
+nicht (Konzept 12): Navigiert wird, was auf dem Gerät liegt.
+
+### 9.2 Die Folgeansicht
+
+Eine eigene Ansicht über der Karte, kein neuer Bildschirm mit eigener
+Karte — dieselbe `MapView`-Fassade, derselbe Stil, dieselben Bereiche
+offline.
+
+- **Die Karte dreht mit der Fahrtrichtung**, die eigene Position sitzt
+  im unteren Drittel, Zoom 16 als Vorgabe (zwei Finger ändern ihn, die
+  Drehung bleibt). Die Richtung kommt aus dem GPS-Kurs
+  (`Position.heading`), nicht vom Kompass — der Kompass zittert am
+  Lenker und braucht ein neues Paket. Unter 2 m/s gilt der letzte Kurs
+  weiter (im Stand dreht der GPS-Kurs zufällig). Ein Knopf „Norden"
+  schaltet die Drehung für diese Navigation ab.
+- **Die Route** in der Farbe des Ergebnisses, der gefahrene Teil blass.
+  Trails auf der Route behalten ihre Farbe (Schwierigkeit, Design 7).
+- **Oben eine Leiste mit drei Zahlen**: Rest in km, Rest in hm bergauf,
+  Abstand zur Linie in m. Zahlen in JetBrains Mono, wie überall.
+  Die geschätzte Restzeit nicht: Das Zeitmodell ist ±30 % (7), und eine
+  Uhr, die beim Aufstieg nachgeht, liest man als Fehler.
+- **Unten** „Zurück zur Route" (nur abseits, 9.3), „Norden", der
+  Bildschirm-Schalter (9.4) und „Beenden". Beenden fragt nicht — aus
+  Versehen beendet ist mit einem Tipp wieder an (dieselbe Route liegt
+  noch als „zuletzt navigiert" oben in „Meine Fahrten").
+- **Taps auf die Karte tun in der Folgeansicht nichts.** Die
+  Treffer-Prüfung (`map_hit_test.dart`) rechnet ohne Drehung; sie zu
+  drehen lohnt erst, wenn jemand unterwegs einen Trail antippen will.
+  Bis dahin ist das eine Abweichung, die man sieht, keine Falle.
+- **Die Engines.** `MapViewCamera` bekommt eine Drehung (`bearing`),
+  MapLibre setzt sie über `moveCamera` (die Regel aus #68 bleibt: Dauer
+  > 0 oder gar keine Animation), flutter_map über
+  `MapController.rotate`. Außerhalb der Folgeansicht bleibt die Karte
+  genordet und `InteractiveFlag.rotate` aus (Notiz „Eigene Position").
+
+### 9.3 Fortschritt und Abstand
+
+- **Wo auf der Route man ist**, rechnet eine pure Funktion
+  (`routeProgress`): die Position auf die Linie projiziert, gesucht nur
+  in einem Fenster VORAUS vom letzten Stand (800 m), damit eine Runde,
+  die denselben Weg hin und zurück nimmt, nicht auf die Rückfahrt
+  springt. Erst wenn das Fenster nichts unter 30 m findet, wird die
+  ganze Linie gesucht. Rest-km und Rest-hm sind Summen ab dort (hm aus
+  den Höhen der Linie, wie im Ergebnis; ohne Höhen nur km).
+- **Abseits** heißt mehr als 30 m neben der Linie, zwei Fixe in Folge
+  (dieselben 30 m wie „kein Weg" bei den Zwischenpunkten, 4). Dann wird
+  der Abstand in Warnfarbe gezeigt, und ein Pfeil am Rand zeigt zum
+  nächsten Punkt der Linie voraus. Kein Ton, keine Vibration.
+- **„Zurück zur Route"** (Betreiber, 2026-10-08: zeigen plus Knopf,
+  kein automatisches Neurechnen): ein A* vom Standort zum nächsten Punkt
+  der Linie, der mindestens 200 m voraus liegt — offline, über
+  denselben Graphen und dasselbe Profil wie die Planung. Das Stück
+  erscheint gestrichelt vor der Route; ist man wieder drauf, fällt es
+  weg. Findet sich kein Weg (kein Bereich, kein Empfang), sagt die
+  Leiste es in einem Satz.
+- **Am Ziel** (unter 30 m vom Ende, oder bei einer Runde der letzte
+  Abschnitt erreicht) sagt die Leiste „Angekommen", und die Navigation
+  endet nach einer Minute oder mit einem Tipp. Läuft die Aufzeichnung
+  mit, läuft sie weiter — beendet wird sie wie immer selbst.
+
+### 9.4 Aufzeichnen und Bildschirm
+
+- **Aufzeichnen** (Betreiber, 2026-10-08: Schalter, Vorgabe an): Beim
+  Start steht „Fahrt mit aufzeichnen" an. Dann startet die Navigation
+  die Aufzeichnung wie der Knopf auf der Karte — dieselbe Fahrt,
+  derselbe Dienst, danach dasselbe Zerlege-Blatt. Ist schon eine
+  Aufzeichnung an, gibt es keinen Schalter, sie läuft einfach weiter.
+  Beim Beenden der Navigation läuft die Aufzeichnung weiter; umgekehrt
+  beendet das Beenden der Aufzeichnung auch die Navigation nicht.
+- **Bildschirm an** (Betreiber, 2026-10-08: Schalter, Vorgabe an,
+  gemerkt in `Settings`): solange die Folgeansicht vorne ist. Android
+  über `FLAG_KEEP_SCREEN_ON` am Fenster (ein Methodenkanal, kein
+  Paket), im Web über die Screen-Wake-Lock-API, wo der Browser sie hat
+  — sonst fehlt der Schalter. Im Bild-im-Bild und mit der App im
+  Hintergrund gilt er nicht: Dann ist die Benachrichtigung die Anzeige.
+
+### 9.5 Die Dauerbenachrichtigung
+
+Der Dienst ist der vorhandene (`KeepAliveCoordinator`, Typ `location`,
+`lib/features/rides/CLAUDE.md`) — kein zweiter Dienst, keine zweite
+Benachrichtigung. Läuft eine Navigation, trägt seine Benachrichtigung
+die Leiste aus 9.2 als Text: „Noch 12,4 km · 640 hm · auf der Route"
+bzw. „… · 45 m neben der Route". Die Zahlen rechnet der Dienst-Isolate
+mit derselben puren Funktion aus seinen eigenen Fixen (Takt 5 s,
+`kRideTickInterval`), nicht die App — die kann weggewischt sein. Die
+Route bekommt er wie die Bestätigungsziele: als Datei
+(`rides/nav_route.json`, per `.part` + `rename`), geschrieben beim
+Start, gelöscht beim Beenden. Ein Tipp auf die Benachrichtigung öffnet
+die Folgeansicht; ein Knopf „Navigation beenden". Die Rückfrage zum
+Trail-Zustand (Bestätigen durch Fahren) bleibt eine eigene Mitteilung
+wie heute.
+
+Ohne Aufzeichnung läuft der Dienst für die Navigation allein — Typ
+`location`, dieselbe Offenlegung, weiter **kein**
+`ACCESS_BACKGROUND_LOCATION`. Im Web gibt es keinen Dienst und keine
+Benachrichtigung: Die Folgeansicht läuft, solange der Tab vorne ist.
+
+### 9.6 Bild-im-Bild (Android)
+
+Das „Überlagern" aus dem Feldbericht ist Android Picture-in-Picture,
+nicht `SYSTEM_ALERT_WINDOW` — das verlangt eine Sonderfreigabe, die Play
+nur eng gewährt; PiP braucht keine.
+
+- **Manifest**: `android:supportsPictureInPicture="true"` an der
+  Activity, `configChanges` um `screenSize|smallestScreenSize|
+  screenLayout|orientation` (stehen schon). Der Manifest-Test hält es
+  fest.
+- **Hinein** geht es nur bei laufender Navigation: ab Android 12 über
+  `setAutoEnterEnabled` (Wischen nach Hause), darunter über
+  `onUserLeaveHint`. Ein Methodenkanal in `MainActivity`, kein Paket —
+  es sind drei Aufrufe. Unter Android 8 (API 26) gibt es kein PiP; dann
+  ist die Benachrichtigung alles.
+- **Was im Fenster steht**: dieselbe Folgeansicht ohne Knöpfe und ohne
+  Leiste oben, dafür die drei Zahlen klein über der Karte. Flutter
+  rendert im Fenster dieselbe Activity; die App erfährt über den Kanal,
+  dass sie klein ist, und baut die schmale Fassung. Seitenverhältnis 3:4
+  hochkant.
+- **Eine Aktion im Fenster**: „Beenden" als `RemoteAction`. Ein Tipp
+  auf das Fenster holt die App zurück, wie bei jedem PiP.
+- **Play**: Kein neues Recht, aber ein Satz in `docs/play-console.md`
+  (Funktionsbeschreibung) und im Datenschutz-Abschnitt zum Standort —
+  der Standort bleibt auf dem Gerät, wie bei der Aufzeichnung.
+
+### 9.7 Entscheidungen des Betreibers (2026-10-08)
+
+1. **Aufzeichnen**: Schalter beim Start, Vorgabe an (9.4).
+2. **Abseits**: zeigen plus Knopf „Zurück zur Route", kein
+   automatisches Neurechnen (9.3).
+3. **Bildschirm an**: Schalter, Vorgabe an, nur in der Folgeansicht
+   (9.4).
+
+Die Zahlen (30 m, zwei Fixe, 800 m Fenster, 200 m voraus, Zoom 16,
+2 m/s) sind Startwerte; sie ändert der Feldeinsatz, nicht dieses
+Dokument allein.
+
+### 9.8 Umsetzung (gestapelt, je ein PR, Schritte 9–11 in 5)
+
+1. **Folgeansicht** (9.1–9.4): `routeProgress` pur mit Tests (Runde hin
+   und zurück, abseits, Ziel), Drehung in der Fassade beider Engines,
+   Ansicht, Einstieg aus Ergebnis und „Meine Fahrten", Aufzeichnen- und
+   Bildschirm-Schalter, „Zurück zur Route". Läuft im Web genauso. — ☁️
+   · 📱 Abnahme
+2. **Benachrichtigung** (9.5): Routen-Datei, Rechnung im Dienst,
+   Knopf „Beenden"; `keep_alive_test` für Navigation ohne Aufzeichnung.
+   — ☁️ · 📱
+3. **Bild-im-Bild** (9.6): Manifest, Kanal, schmale Fassung,
+   `play-console.md`; Manifest-Test. — ☁️ · 📱
+
+Jeder Schritt bringt seinen Neuheiten-Eintrag; die Kurzanleitung bekommt
+keinen eigenen Abschnitt (Obergrenze sechs, 4), sondern einen Satz bei
+„Fahrt aufzeichnen und zerlegen".
