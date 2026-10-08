@@ -524,6 +524,8 @@ def self_test():
             raise AssertionError(f"--bbox {bad!r} must be refused")
     assert in_bbox(45.5, 5.5, (5.5, 45.5, 17.5, 55.5)), "the edge is on the map"
     assert not in_bbox(45.49, 9.0, (5.5, 45.5, 17.5, 55.5))
+    assert glue_bbox(["build", "--bbox", "-141.1,41.6,-52.5,83.2", "a.pbf"]) == \
+        ["build", "--bbox=-141.1,41.6,-52.5,83.2", "a.pbf"], "a box west of Greenwich"
     with tempfile.TemporaryDirectory() as tmp:
         clipped = build(list(read_geojsonseq(io.StringIO(_FIXTURE))), kinds, groups,
                         "20260928", tmp, ["dach"], bbox=(5.5, 45.5, 11.0, 55.5))
@@ -560,6 +562,17 @@ def self_test():
 
 # ------------------------------------------------------------------ main
 
+def glue_bbox(argv):
+    """`--bbox W,S,E,N` -> `--bbox=W,S,E,N`. argparse reads a value with a
+    leading minus as an option, and every box west of Greenwich has one
+    (Canada for #220); the workflows keep the plain spelling."""
+    out = list(argv)
+    for i in range(len(out) - 1):
+        if out[i] == "--bbox":
+            out[i:i + 2] = [f"--bbox={out[i + 1]}", None]
+    return [a for a in out if a is not None]
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -573,7 +586,7 @@ def main():
     b.add_argument("--geojsonseq", help="read features from this file instead of running osmium")
     b.add_argument("pbf", nargs="*", help="Geofabrik .osm.pbf extracts")
     sub.add_parser("filter-expression", help="print the osmium tags-filter selectors")
-    args = parser.parse_args()
+    args = parser.parse_args(glue_bbox(sys.argv[1:]))
 
     if args.self_test:
         self_test()

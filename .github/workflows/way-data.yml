@@ -37,6 +37,12 @@ on:
         type: choice
         options: ["plan", "publish"]
         default: "plan"
+      plan_region:
+        description: "plan: measure another region instead of the DACH box (#220); publish stays DACH"
+        required: false
+        type: choice
+        options: ["dach", "canada"]
+        default: "dach"
   schedule:
     # Monthly, 3rd at 04:17 UTC — publish.
     - cron: "17 4 3 * *"
@@ -50,6 +56,10 @@ permissions:
 
 env:
   MODE: ${{ inputs.mode || 'publish' }}
+  # Plan only (#220, 18b in #156): measure a region outside DACH with
+  # the same build, nothing uploaded. Publish stays DACH until regions
+  # exist (18c) — the step "Pick the region" refuses anything else.
+  PLAN_REGION: ${{ inputs.plan_region || 'dach' }}
   PMTILES_VERSION: "1.28.0"
   # The map's area, west,south,east,north — the SAME box as DACH_BBOX in
   # map-data.yml and height-data.yml and POI_BBOX in poi-data.yml.
@@ -102,6 +112,27 @@ jobs:
             } >> "$GITHUB_STEP_SUMMARY"
           fi
 
+      - name: Pick the region
+        # DACH is the env block above. Another region swaps extracts and
+        # box for this run and reports only: its sizes are the
+        # measurement, the DACH guards below do not apply to it. The box
+        # is Canada's Natural Earth outline, rounded outwards.
+        run: |
+          set -euo pipefail
+          case "$PLAN_REGION" in
+            dach) ;;
+            canada)
+              if [ "$MODE" != "plan" ]; then
+                echo "::error::plan_region=$PLAN_REGION is a measurement — publish stays DACH until regions exist (18c in #156)."
+                exit 1
+              fi
+              echo "EXTRACTS=north-america/canada" >> "$GITHUB_ENV"
+              echo "WAYS_BBOX=-141.1,41.6,-52.5,83.2" >> "$GITHUB_ENV"
+              echo "## Plan for $PLAN_REGION (measurement, nothing uploaded)" >> "$GITHUB_STEP_SUMMARY"
+              ;;
+            *) echo "::error::unknown plan_region $PLAN_REGION"; exit 1 ;;
+          esac
+
       - name: Install osmium and the pmtiles tool
         if: env.MODE == 'plan' || steps.r2.outputs.present == 'true'
         # osmium reads the PBFs (as in poi-data.yml); the official Go
@@ -152,11 +183,15 @@ jobs:
           echo "file=ways-${BUILD}.pmtiles" >> "$GITHUB_ENV"
           heights=$(curl -sSL --fail --max-time 60 "$PUBLIC_BASE/heights.json" \
                       | python3 -c 'import json, sys; print(json.load(sys.stdin)["bytes"])')
+          # The comparison is against the DACH heights; for another
+          # region it would be a number about nothing.
+          compare=(--height-bytes "$heights")
+          [ "$PLAN_REGION" = "dach" ] || compare=()
           rm -rf build/ways && mkdir -p build/ways
           pbfs=()
           for f in build/ways-src/*.osm.pbf; do pbfs+=(--pbf "$f"); done
           python3 tool/way_archive.py build "${pbfs[@]}" --bbox "$WAYS_BBOX" --build "$BUILD" \
-            --out build/ways --height-bytes "$heights" --summary "$GITHUB_STEP_SUMMARY"
+            --out build/ways "${compare[@]}" --summary "$GITHUB_STEP_SUMMARY"
           rm -rf build/ways-src
           ls -l build/ways
           pmtiles verify "build/ways/ways-${BUILD}.pmtiles"
@@ -167,6 +202,9 @@ jobs:
           # month. And the archive is fetched with every stored area: if
           # it grows past the heights, that is a decision for the
           # operator, not something a scheduled run publishes.
+          if [ "$PLAN_REGION" != "dach" ]; then
+            exit 0
+          fi
           HEIGHT_BYTES="$heights" python3 - <<'PY'
           import json, os, sys
           m = json.load(open("build/ways/ways.json"))
