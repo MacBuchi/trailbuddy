@@ -89,7 +89,7 @@ class _MapLibreMapViewState extends ConsumerState<MapLibreMapView>
   /// Kamerawunsch aus der Zeit zwischen Einbau und Map-Ready (z. B. der
   /// Zoom auf das Netz beim Start): wird bei `onMapCreated` nachgeholt,
   /// statt still verloren zu gehen.
-  (LatLng, double)? _pendingMove;
+  (LatLng, double, double)? _pendingMove;
   ({List<LatLng> points, double padding, double maxZoom, double bottomInset})? _pendingFit;
 
   /// Sichtfenster vom letzten Kamera-Idle — Grundlage des
@@ -336,14 +336,14 @@ class _MapLibreMapViewState extends ConsumerState<MapLibreMapView>
   // MapViewCameraDelegate — die Kamera der Fassade.
 
   @override
-  void move(LatLng center, double zoom) {
+  void move(LatLng center, double zoom, {double bearing = 0}) {
     final controller = _ml;
     if (controller == null) {
-      _pendingMove = (center, zoom);
+      _pendingMove = (center, zoom, bearing);
       _pendingFit = null;
       return;
     }
-    _moveNow(controller, center, zoom, 'Karte bewegen');
+    _moveNow(controller, center, zoom, 'Karte bewegen', bearing: bearing);
   }
 
   @override
@@ -366,11 +366,13 @@ class _MapLibreMapViewState extends ConsumerState<MapLibreMapView>
   /// Setzt die Kamera (256er-Zoom der Fassade) ohne Animation. Ein
   /// Fehler der Engine ist kein unbehandelter Fehler: Die Kamera steht
   /// dann eben woanders, gemeldet wird er mit Kontext.
-  void _moveNow(ml.MapController controller, LatLng center, double zoom, String context) {
+  /// [bearing] immer mit: Ohne bliebe eine gedrehte Karte nach der
+  /// Navigation gedreht, und Gesten drehen sie nicht zurück.
+  void _moveNow(ml.MapController controller, LatLng center, double zoom, String context, {double bearing = 0}) {
     unawaited(() async {
       try {
         // MapLibre zählt in 512er-Kacheln: eine Stufe weniger.
-        await controller.moveCamera(center: _geo(center), zoom: zoom - 1);
+        await controller.moveCamera(center: _geo(center), zoom: zoom - 1, bearing: bearing);
       } catch (e, s) {
         logError(context, e, s);
       }
@@ -450,7 +452,7 @@ class _MapLibreMapViewState extends ConsumerState<MapLibreMapView>
         final pendingFit = _pendingFit;
         _pendingMove = null;
         _pendingFit = null;
-        if (pendingMove != null) move(pendingMove.$1, pendingMove.$2);
+        if (pendingMove != null) move(pendingMove.$1, pendingMove.$2, bearing: pendingMove.$3);
         if (pendingFit != null) {
           fit(pendingFit.points,
               padding: pendingFit.padding, maxZoom: pendingFit.maxZoom, bottomInset: pendingFit.bottomInset);

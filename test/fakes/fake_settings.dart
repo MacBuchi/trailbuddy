@@ -13,6 +13,7 @@ class FakeSettings implements Settings {
       this.officialTrailsEnabled = true,
       this.wayLayerEnabled = true,
       this.mapLegendOpen = false,
+      this.navKeepScreenOn = true,
       this.pushToken,
       this.appearance,
       this.riderProfile,
@@ -67,6 +68,14 @@ class FakeSettings implements Settings {
   @override
   Future<void> setMapLegendOpen(bool value) async {
     mapLegendOpen = value;
+  }
+
+  @override
+  bool navKeepScreenOn;
+
+  @override
+  Future<void> setNavKeepScreenOn(bool value) async {
+    navKeepScreenOn = value;
   }
 
   @override

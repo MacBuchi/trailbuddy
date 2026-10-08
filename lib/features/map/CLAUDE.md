@@ -93,9 +93,17 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
   Disclosure). Nur Vordergrund (`ACCESS_FINE/COARSE_LOCATION`, kein
   Background); die Position verlässt das Gerät nicht. Punkt in
   `MapPalette.ride` (nicht Blau — Blau heißt S1), Punkt und
-  Kreis fangen keine Tipps ab. Die Karte dreht sich nicht
-  (`InteractiveFlag.rotate` aus). Der Harness hängt `fakePosition` /
-  `FakePositionFix` ein.
+  Kreis fangen keine Tipps ab. Gesten drehen die Karte nie
+  (`InteractiveFlag.rotate` aus, MapLibre `rotate: false`); gedreht wird
+  nur über `MapViewController.move(bearing:)` in der Folgeansicht der
+  Navigation (#232, `lib/features/routing/CLAUDE.md`), und JEDE andere
+  Bewegung und jedes Einpassen nordet wieder ein. Gedreht meldet
+  flutter_map ein größeres Sichtfenster (die Hülle des gedrehten
+  Rechtecks), die gerechnete Zoomstufe liegt dann bis etwa eine Stufe
+  zu tief — für Orte und offizielle Trails egal, für Taps nicht: Die
+  sind in der Folgeansicht aus. Der Harness hängt `fakePosition` /
+  `FakePositionFix` ein, für Fixe nacheinander `positionStream`
+  (Broadcast — `ref.invalidate` abonniert neu).
 - **Karten-Engine und Fassade** (#31 Schritt 1, `lib/features/map/map_view/`,
   seit 0.16.0; PilzBuddy als Vorlage): `MapScreen` beschreibt nur noch,
   WAS die Karte zeigt (`MapViewLayers`: Kreise < Linien < Marker), und

@@ -74,8 +74,9 @@ class FakeMapViewState extends State<FakeMapView>
 
   // ---- MapViewCameraDelegate ----
   @override
-  void move(LatLng center, double zoom) {
+  void move(LatLng center, double zoom, {double bearing = 0}) {
     _center = center;
+    this.bearing = bearing;
     // Wie die echte Karte: Zoom-Grenzen gelten auch für programmatische
     // Bewegungen.
     _zoom = zoom.clamp(widget.config.minZoom, widget.config.maxZoom);
@@ -87,12 +88,17 @@ class FakeMapViewState extends State<FakeMapView>
     // DIESELBE Rechnung wie die MapLibre-Engine (#68) — der Fake prüft
     // sie damit bei jedem Einpassen mit.
     lastFitBottomInset = bottomInset;
+    bearing = 0;
     final cam = cameraToFit(points, _size,
         padding: padding, maxZoom: maxZoom, minZoom: widget.config.minZoom, bottomInset: bottomInset);
     _center = cam.center;
     _zoom = cam.zoom.clamp(widget.config.minZoom, widget.config.maxZoom);
     _idleAfterFrame();
   }
+
+  /// Die Drehung der letzten Bewegung (#232) — die Fake zeichnet sie
+  /// nicht, Tests lesen sie hier.
+  double bearing = 0;
 
   @override
   LatLng get center => _center;

@@ -798,8 +798,10 @@ offline.
   Drehung bleibt). Die Richtung kommt aus dem GPS-Kurs
   (`Position.heading`), nicht vom Kompass — der Kompass zittert am
   Lenker und braucht ein neues Paket. Unter 2 m/s gilt der letzte Kurs
-  weiter (im Stand dreht der GPS-Kurs zufällig). Ein Knopf „Norden"
-  schaltet die Drehung für diese Navigation ab.
+  weiter (im Stand dreht der GPS-Kurs zufällig); vor dem ersten Kurs
+  gilt die Richtung der Linie über 50 m voraus (ein kurzer Anschluss
+  zurück an den Weg stellte die Karte sonst auf den Kopf). Ein Knopf
+  „Norden" schaltet die Drehung für diese Navigation ab.
 - **Die Route** in der Farbe des Ergebnisses, der gefahrene Teil blass.
   Trails auf der Route behalten ihre Farbe (Schwierigkeit, Design 7).
 - **Oben eine Leiste mit drei Zahlen**: Rest in km, Rest in hm bergauf,
@@ -922,11 +924,15 @@ Dokument allein.
 
 ### 9.8 Umsetzung (gestapelt, je ein PR, Schritte 9–11 in 5)
 
-1. **Folgeansicht** (9.1–9.4): `routeProgress` pur mit Tests (Runde hin
-   und zurück, abseits, Ziel), Drehung in der Fassade beider Engines,
-   Ansicht, Einstieg aus Ergebnis und „Meine Fahrten", Aufzeichnen- und
-   Bildschirm-Schalter, „Zurück zur Route". Läuft im Web genauso. — ☁️
-   · 📱 Abnahme
+1. **Folgeansicht** (9.1–9.4), beim Bau in zwei PRs geschnitten:
+   - **1a** (0.94.0): `routeProgress` pur mit Tests (Runde hin und
+     zurück, abseits, Ziel), Drehung in der Fassade beider Engines,
+     Ansicht, Einstieg aus Ergebnis und „Meine Fahrten", Aufzeichnen-
+     und Bildschirm-Schalter. Läuft im Web genauso. — ☁️ · 📱 Abnahme
+   - **1b**: „Zurück zur Route" (A* zum Punkt 200 m voraus, 9.3) und
+     „zuletzt navigiert" oben in „Meine Fahrten" (9.2) — bis dahin
+     startet ein versehentlich beendetes Ergebnis neu aus dem Blatt,
+     eine Fahrt aus ihrem Menü. — ☁️ · 📱
 2. **Benachrichtigung** (9.5): Routen-Datei, Rechnung im Dienst,
    Knopf „Beenden"; `keep_alive_test` für Navigation ohne Aufzeichnung.
    — ☁️ · 📱

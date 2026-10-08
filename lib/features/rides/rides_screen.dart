@@ -12,12 +12,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:latlong2/latlong.dart';
 
 import '../../core/geo.dart';
 import '../../core/gpx_share.dart';
 import '../../core/router_branches.dart';
 import '../../core/widgets/motion.dart';
 import '../help/help_link.dart';
+import '../routing/nav_providers.dart';
 import '../routing/ride_calibrator.dart';
 import '../routing/route_profile.dart';
 import '../trails/gpx_writer.dart';
@@ -271,6 +273,15 @@ class _RideTile extends ConsumerWidget {
         xml: writeGpx(name: track.name, points: track.points));
   }
 
+  /// Erst der Reiter, dann der Wunsch — die Karte fragt und startet.
+  void _navigate(BuildContext context, WidgetRef ref) {
+    StatefulNavigationShell.of(context).goBranch(kMapBranchIndex);
+    ref.read(navRequestProvider.notifier).state = NavRequest(
+      points: [for (final p in ride.points) LatLng(p.lat, p.lng)],
+      title: ride.planned ? (ride.name ?? 'Geplante Fahrt') : 'Fahrt vom ${_day.format(ride.startedAt.toLocal())}',
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     // Eine geplante Fahrt (#158 Schritt 5) ist eine Linie, keine Messung:
@@ -319,10 +330,18 @@ class _RideTile extends ConsumerWidget {
                 key: ValueKey('ride-menu-${ride.id}'),
                 tooltip: 'Mehr',
                 onSelected: (value) => switch (value) {
+                  'navigate' => _navigate(context, ref),
                   'export' => _export(context, ref),
                   _ => _delete(context, ref),
                 },
                 itemBuilder: (context) => [
+                  // Dieselbe Runde noch einmal, oder die geplante (#232).
+                  if (ride.points.length >= 2)
+                    PopupMenuItem(
+                      key: ValueKey('ride-navigate-${ride.id}'),
+                      value: 'navigate',
+                      child: const ListTile(leading: Icon(Icons.navigation_outlined), title: Text('Navigieren')),
+                    ),
                   PopupMenuItem(
                     key: ValueKey('ride-export-${ride.id}'),
                     value: 'export',

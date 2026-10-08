@@ -325,7 +325,10 @@ class MapViewLayers {
 /// Kamerazugriff der Engine — sie hängt sich beim Einbau per
 /// [MapViewController.attach] ein.
 abstract class MapViewCameraDelegate {
-  void move(LatLng center, double zoom);
+  /// [bearing]: wohin oben zeigt, in Grad ab Norden. Nur die Folgeansicht
+  /// der Navigation dreht (#232, Konzept-Routing 9.2); jede andere
+  /// Bewegung nordet die Karte wieder ein, und Gesten drehen nie.
+  void move(LatLng center, double zoom, {double bearing = 0});
 
   /// Alle Punkte ins Bild — mit Rand und einer Obergrenze für den Zoom,
   /// damit ein 200-m-Trail nicht auf Hausnummern-Maßstab landet.
@@ -369,16 +372,18 @@ class MapViewController {
     if (identical(_delegate, delegate)) _delegate = null;
   }
 
-  void move(LatLng center, double zoom) {
+  void move(LatLng center, double zoom, {double bearing = 0}) {
     final delegate = _delegate;
     if (delegate == null) {
       // Karte noch nicht da: Wunsch als neuen „Startzustand" merken.
+      // Die Drehung nicht — bis zum ersten Fix der Folgeansicht ist das
+      // eine Sekunde, und der nächste Fix dreht ohnehin.
       _center = center;
       _zoom = zoom;
       _pendingFit = null;
       return;
     }
-    delegate.move(center, zoom);
+    delegate.move(center, zoom, bearing: bearing);
   }
 
   void fit(List<LatLng> points, {double padding = 40, double maxZoom = 15, double bottomInset = 0}) {

@@ -104,6 +104,12 @@ abstract interface class Settings {
 
   Future<void> setMapLegendOpen(bool value);
 
+  /// Bleibt der Bildschirm in der Folgeansicht der Navigation an (#232,
+  /// Konzept-Routing 9.4)? Vorgabe: an (Betreiber, 2026-10-08).
+  bool get navKeepScreenOn;
+
+  Future<void> setNavKeepScreenOn(bool value);
+
   /// Das FCM-Token, mit dem dieses Gerät in `push_devices` steht — oder
   /// null, solange niemand Push eingeschaltet hat (#34).
   ///
@@ -228,6 +234,14 @@ class PrefsSettings implements Settings {
 
   @override
   Future<void> setMapLegendOpen(bool value) => _prefs.setBool(_mapLegendOpenKey, value);
+
+  static const _navKeepScreenOnKey = 'nav_keep_screen_on';
+
+  @override
+  bool get navKeepScreenOn => _prefs.getBool(_navKeepScreenOnKey) ?? true;
+
+  @override
+  Future<void> setNavKeepScreenOn(bool value) => _prefs.setBool(_navKeepScreenOnKey, value);
 
   static const _pushTokenKey = 'push_token';
 

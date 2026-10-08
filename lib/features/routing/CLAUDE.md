@@ -401,3 +401,34 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     (`closeMapPanel` schließt es mit, wenn der Planer zugeht). Szene der
     Touren: `MapCoach.loopRail`, Anker je Knopf
     `MapCoach.loopRailButton(key)`.
+- **Die Folgeansicht der Navigation** (#232 Schritt 1a, seit 0.94.0,
+  `route_progress.dart` pur, `nav_providers.dart`, `nav_view.dart`;
+  Konzept-Routing 9). Fünf Dinge, die man wissen muss:
+  - **Der Wunsch kommt von außen, die Karte löst ein**
+    (`navRequestProvider`, Muster `trailHeadRequestProvider`): Ergebnis-
+    Blätter und „Meine Fahrten" stellen ihn, `MapScreen` fragt
+    (`showNavStartSheet`: Aufzeichnen nur ohne laufende Fahrt, Bildschirm
+    nur mit `ScreenAwake.supported`), holt den EINEN Fix und schließt
+    Blatt, Planer und Auswahl. Ohne Fix keine Navigation.
+  - **Der Stand sucht zuerst im Fenster voraus** (800 m, 30 m zurück),
+    erst dann die ganze Linie; abseits bleibt der Stand des Fensters und
+    nur der Abstand ist der zur ganzen Linie — sonst spränge eine Runde
+    hin und zurück auf die Rückfahrt (`route_progress_test`, Gegenprobe
+    ohne Fenster: rot).
+  - **Die Richtung ohne GPS-Kurs ist die der Linie über 50 m voraus**
+    (`kNavHeadingLookM`), nicht die des ersten Abschnitts: „Zum
+    Trailkopf" beginnt oft mit ein paar Metern Anschluss zurück, und die
+    Karte stand auf dem Kopf (im Flow-Test gefunden).
+  - **Die Überlagerung ist NICHT positioniert** (`NavOverlay` direkt im
+    Stack): Solange sie läuft, fehlen die übrigen Leisten, und mit
+    `Positioned.fill` allein schrumpfte der Stack auf die Größe der
+    Fake-Karte — die Knöpfe lagen oben links (im Flow-Test gefunden).
+  - **Höhenmeter, die noch kommen**, aus dem Geländemodell entlang der
+    Linie (`TerrainHeights.profile`, beim Start einmal gelesen,
+    `climbAfter` mit derselben Hysterese wie das Ergebnis); fehlt eine
+    Kachel, zeigt die Leiste nur km. Bildschirm an über
+    `lib/core/screen_awake.dart` (Android `FLAG_KEEP_SCREEN_ON` per Kanal
+    `de.mcbuchi.trailbuddy/screen`, Web Screen Wake Lock, neu geholt beim
+    Zurückkommen in den Tab), gemerkt in `Settings.navKeepScreenOn`
+    (Vorgabe an, `FakeSettings` ebenso). „Zurück zur Route" und „zuletzt
+    navigiert" sind Schritt 1b.

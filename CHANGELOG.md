@@ -2,6 +2,26 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Navigieren
+
+*Version 0.94.0, 2026-10-08*
+
+- **Folgeansicht**: Im Ergebnis einer Runde und eines Wegs zum Trail
+  steht jetzt „Navigieren", in „Meine Fahrten" im Menü jeder Fahrt
+  ebenso. Die Karte dreht sich mit der Fahrtrichtung, deine Position
+  sitzt im unteren Drittel, die Route ist hervorgehoben und der
+  gefahrene Teil wird blass.
+- **Oben drei Zahlen**: wie weit es noch ist, wie viele Höhenmeter
+  bergauf noch kommen und wie weit du neben der Route bist. Bist du
+  mehr als 30 m daneben, steht der Abstand in Warnfarbe, und ein Pfeil
+  zeigt zur Route. Abbiegehinweise und Ton gibt es bewusst nicht —
+  fahre nach Sicht.
+- **„Norden"** schaltet die Drehung ab. Am Ziel steht „Angekommen",
+  die Navigation endet nach einer Minute von selbst.
+- **Beim Start** fragt die App, ob die Fahrt mit aufgezeichnet werden
+  soll und ob der Bildschirm anbleibt — beides ist vorgewählt. Beenden
+  der Navigation beendet die Aufzeichnung nicht.
+
 ## Den Weg von Hand ziehen
 
 *Version 0.93.0, 2026-10-08*
