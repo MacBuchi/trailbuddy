@@ -111,6 +111,8 @@ class _FlutterMapViewState extends ConsumerState<FlutterMapView>
     // Die Wege (#212) über allen Kartenschichten, unter den Trails —
     // dieselbe Reihenfolge wie im MapLibre-Stil.
     final ways = ref.watch(onlineWaysStyleProvider).valueOrNull;
+    // Darüber die Wege der gespeicherten Bereiche, mit und ohne Empfang.
+    final areaWays = ref.watch(areaWaysStyleProvider).valueOrNull;
 
     return FlutterMap(
       mapController: _mapController,
@@ -210,6 +212,15 @@ class _FlutterMapViewState extends ConsumerState<FlutterMapView>
             maximumZoom: 19,
             // Unter Zoom 13 gibt es keine Kachel; eine Ersatzkachel aus
             // einer anderen Stufe gibt es also auch nicht.
+            maximumTileSubstitutionDifference: 0,
+          ),
+        if (areaWays != null)
+          vmt.VectorTileLayer(
+            key: ValueKey(areaWays.tileProviders),
+            tileProviders: areaWays.tileProviders,
+            theme: areaWays.theme,
+            layerMode: vmt.VectorTileLayerMode.vector,
+            maximumZoom: 19,
             maximumTileSubstitutionDifference: 0,
           ),
         if (layers.polygons.isNotEmpty)

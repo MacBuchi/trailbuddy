@@ -326,5 +326,67 @@ void main() {
       final (c, _) = make(noConnectivity: true, ways: ways);
       expect(sourceIds(await styleOf(c)), ['overview']);
     });
+
+    group('aus gespeicherten Bereichen (#212, PR 3)', () {
+      Future<FileAreaStore> storeWithWays() async {
+        final dir = await Directory.systemTemp.createTemp('areas');
+        addTearDown(() => dir.delete(recursive: true));
+        final store = FileAreaStore(baseDir: dir);
+        await store.putArchive('a1', Uint8List.fromList([1, 2, 3]));
+        await store.putWays('a1', Uint8List.fromList([4, 5]));
+        await store.saveIndex([
+          StoredArea(
+            id: 'a1',
+            name: 'Isartrails',
+            bounds: const AreaBounds(south: 47.9, west: 11.6, north: 47.95, east: 11.7),
+            minZoom: 8,
+            maxZoom: 13,
+            build: '20260928',
+            tiles: 42,
+            bytes: 3,
+            savedAt: DateTime.utc(2026, 9, 28),
+            wayTiles: 1,
+            wayBytes: 2,
+            waysBuild: '20261101',
+          ),
+        ]);
+        return store;
+      }
+
+      const areaWays = '$kWaysSourceId-area-a1';
+
+      test('ohne Empfang: die Wege des Bereichs als file://-Quelle über dem Bereich', () async {
+        final (c, _) = make(noConnectivity: true, areaStore: await storeWithWays(), ways: ways);
+        final style = await styleOf(c);
+        expect(sourceIds(style), ['overview', 'area-a1', areaWays]);
+        final src = (style['sources'] as Map)[areaWays] as Map;
+        expect(src['url'], allOf(startsWith('pmtiles://file://'), endsWith('/a1.ways.pmtiles')));
+        expect([src['minzoom'], src['maxzoom']], [kWaysZoom, kWaysZoom]);
+        final ids = (style['layers'] as List).map((l) => (l as Map)['id']).toList();
+        expect(ids.indexWhere((id) => (id as String).startsWith('$areaWays/')), greaterThan(ids.indexOf('area-a1/earth')));
+        expect(ids.where((id) => (id as String).startsWith('$areaWays/')),
+            [for (final l in wayStyleLayers(areaWays, dashes: true)) l['id']]);
+      });
+
+      test('mit Empfang: über den Wegen vom Host', () async {
+        final (c, _) = make(noConnectivity: false, areaStore: await storeWithWays(), ways: ways);
+        expect(sourceIds(await styleOf(c)), ['online', 'area-a1', kWaysSourceId, areaWays]);
+      });
+
+      test('Schalter aus: auch die Wege der Bereiche nicht', () async {
+        final container = ProviderContainer(overrides: [
+          maplibreStyleIoProvider.overrideWithValue(_FakeIo()),
+          areaStoreProvider.overrideWithValue(await storeWithWays()),
+          noConnectivityProvider.overrideWithValue(true),
+          mapManifestLoaderProvider.overrideWithValue(() async => null),
+          settingsProvider.overrideWithValue(FakeSettings(wayLayerEnabled: false)),
+          waysManifestLoaderProvider.overrideWithValue(() async => null),
+          officialTrailsSourceProvider.overrideWithValue(FakeOfficialTrailsSource()),
+          officialTrailsCacheProvider.overrideWithValue(MemoryOfficialTrailsCache()),
+        ]);
+        addTearDown(container.dispose);
+        expect(sourceIds(await styleOf(container)), ['overview', 'area-a1']);
+      });
+    });
   });
 }

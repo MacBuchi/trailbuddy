@@ -44,6 +44,17 @@ const kWaysKey = 'k';
 /// Die Quelle im Stil beider Engines.
 const kWaysSourceId = 'ways';
 
+/// Die Metadaten eines Wege-Archivs, das ein gespeicherter Bereich auf
+/// dem Gerät schreibt (`area_downloader.dart`, `area_trim.dart`).
+Map<String, dynamic> waysMetadata(String name, String? build) => {
+      'name': name,
+      'format': kWaysFormat,
+      'zoom': kWaysZoom,
+      'layer': kWaysLayer,
+      'build': ?build,
+      'attribution': '© OpenStreetMap contributors (ODbL)',
+    };
+
 /// Forstweg oder Pfad — die Basiskarte unterscheidet beide schon (Farbe,
 /// Breite), die Ebene übernimmt das.
 enum WayKind { track, path }

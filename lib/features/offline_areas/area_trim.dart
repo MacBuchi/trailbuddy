@@ -8,12 +8,14 @@
 // Gerechnet wird in den Kacheln der Formen ([kAreaShapeZoom]): Eine
 // gröbere Kachel (Zoom 8…12) bleibt, solange noch eine ihrer Kinder im
 // Bereich liegt — sonst fehlte beim Herauszoomen die Übersicht über den
-// Rest.
+// Rest. Die Begleitarchive (Höhen, seit 0.90.0 Wege) folgen den Kacheln
+// der Form bei Zoom 13.
 import 'dart:typed_data';
 
 import 'package:pmtiles/pmtiles.dart';
 
 import '../map/poi.dart';
+import '../map/way_layer.dart';
 import 'area_plan.dart';
 import 'area_store.dart';
 import 'height_tiles.dart';
@@ -28,6 +30,7 @@ class AreaTrim {
     required this.freedTiles,
     required this.freedBytes,
     this.keepHeights = const [],
+    this.keepWays = const [],
   });
 
   final StoredArea area;
@@ -39,12 +42,15 @@ class AreaTrim {
   final List<TileXYZ> keep;
   final int freedTiles;
 
-  /// Frei werdende Bytes beider Archive (Karte und Höhen).
+  /// Frei werdende Bytes aller Archive (Karte, Höhen, Wege).
   final int freedBytes;
 
   /// Die Höhenkacheln, die im zweiten Archiv bleiben (leer: keine mehr,
   /// oder der Bereich hatte nie welche).
   final List<TileXYZ> keepHeights;
+
+  /// Die Wege-Kacheln, die im dritten Archiv bleiben.
+  final List<TileXYZ> keepWays;
 }
 
 /// Der Plan des Entfernens über alle betroffenen Bereiche.
@@ -71,14 +77,62 @@ class AreaTrimmer {
     return PmTilesArchive.fromBytes(bytes);
   }
 
-  /// Das Höhenarchiv, null wenn der Bereich keins trägt — ein Index, der
-  /// Höhen nennt, deren Archiv fehlt, zählt wie keins (es ist nachladbar).
-  Future<PmTilesArchive?> _openHeights(StoredArea area) async {
-    if (!area.hasHeights) return null;
-    final path = await store.heightsPath(area.id);
+  late final _heights = _SideArchive(
+    label: 'Höhen',
+    zoom: kHeightTileZoom,
+    has: (a) => a.hasHeights,
+    path: store.heightsPath,
+    read: store.readHeights,
+    put: store.putHeights,
+    delete: store.deleteHeights,
+    metadata: (a) => heightsMetadata(a.name, a.heightsBuild),
+  );
+
+  late final _ways = _SideArchive(
+    label: 'Wege',
+    zoom: kWaysZoom,
+    has: (a) => a.hasWays,
+    path: store.waysPath,
+    read: store.readWays,
+    put: store.putWays,
+    delete: store.deleteWays,
+    metadata: (a) => waysMetadata(a.name, a.waysBuild),
+  );
+
+  /// Das Begleitarchiv, null wenn der Bereich keins trägt — ein Index,
+  /// der eins nennt, dessen Datei fehlt, zählt wie keins (es ist
+  /// nachladbar).
+  Future<PmTilesArchive?> _openSide(_SideArchive side, StoredArea area) async {
+    if (!side.has(area)) return null;
+    final path = await side.path(area.id);
     if (path != null) return PmTilesArchive.from(path);
-    final bytes = await store.readHeights(area.id);
+    final bytes = await side.read(area.id);
     return bytes == null ? null : PmTilesArchive.fromBytes(bytes);
+  }
+
+  /// Welche Kacheln eines Begleitarchivs bleiben und wie viele Bytes
+  /// frei werden: eine Kachel je z13-Kachel, die in [shape] bleibt.
+  Future<({List<TileXYZ> keep, int freed})> _planSide(
+      _SideArchive side, StoredArea area, TileSetShape? shape) async {
+    final keep = <TileXYZ>[];
+    var freed = 0;
+    final archive = await _openSide(side, area);
+    if (archive == null) return (keep: keep, freed: freed);
+    try {
+      final wanted = shape?.tiles(minZoom: side.zoom, maxZoom: side.zoom).toSet() ?? const {};
+      for (final t in area.shape.tiles(minZoom: side.zoom, maxZoom: side.zoom)) {
+        final entry = await archive.lookup(tileIdOf(t));
+        if (entry == null) continue;
+        if (wanted.contains(t)) {
+          keep.add(t);
+        } else {
+          freed += entry.length;
+        }
+      }
+    } finally {
+      await archive.close();
+    }
+    return (keep: keep, freed: freed);
   }
 
   /// Was [removes] (Kacheln bei [kAreaShapeZoom]) mit den Bereichen
@@ -107,34 +161,17 @@ class AreaTrimmer {
             freedBytes += entry.length;
           }
         }
-        // Die Höhen folgen den Kacheln der Form: eine Höhenkachel je
-        // z13-Kachel, die bleibt.
-        final keepHeights = <TileXYZ>[];
-        var freedHeightBytes = 0;
-        final hArchive = await _openHeights(area);
-        if (hArchive != null) {
-          try {
-            final wantedH = shape?.tiles(minZoom: kHeightTileZoom, maxZoom: kHeightTileZoom).toSet() ?? const {};
-            for (final t in area.shape.tiles(minZoom: kHeightTileZoom, maxZoom: kHeightTileZoom)) {
-              final entry = await hArchive.lookup(tileIdOf(t));
-              if (entry == null) continue;
-              if (wantedH.contains(t)) {
-                keepHeights.add(t);
-              } else {
-                freedHeightBytes += entry.length;
-              }
-            }
-          } finally {
-            await hArchive.close();
-          }
-        }
+        // Höhen und Wege folgen den Kacheln der Form.
+        final heights = await _planSide(_heights, area, shape);
+        final ways = await _planSide(_ways, area, shape);
         trims.add(AreaTrim(
           area: area,
           shape: keep.isEmpty ? null : shape,
           keep: keep,
           freedTiles: freedTiles,
-          freedBytes: keep.isEmpty ? area.bytes + area.heightBytes : freedBytes + freedHeightBytes,
-          keepHeights: keep.isEmpty ? const [] : keepHeights,
+          freedBytes: keep.isEmpty ? area.totalBytes : freedBytes + heights.freed + ways.freed,
+          keepHeights: keep.isEmpty ? const [] : heights.keep,
+          keepWays: keep.isEmpty ? const [] : ways.keep,
         ));
       } finally {
         await archive.close();
@@ -196,7 +233,8 @@ class AreaTrimmer {
         await check.close();
       }
       await store.putArchive(area.id, bytes);
-      final heightBytes = await _rewriteHeights(area, trim);
+      final heightBytes = await _rewriteSide(_heights, area, trim.shape!, trim.keepHeights);
+      final wayBytes = await _rewriteSide(_ways, area, trim.shape!, trim.keepWays);
       // Orte-Dateien nur noch für Zellen, die der Bereich noch berührt.
       final cells = shape.poiCells().toSet();
       final wantedPoi = {
@@ -219,6 +257,10 @@ class AreaTrimmer {
         heightTiles: trim.keepHeights.length,
         heightBytes: heightBytes,
         heightsBuild: trim.keepHeights.isEmpty ? null : area.heightsBuild,
+        wayTiles: trim.keepWays.length,
+        wayBytes: wayBytes,
+        // Der Bau bleibt auch ohne Wege-Kachel: geholt ist geholt.
+        waysBuild: area.waysBuild,
       );
     }
     final next = <StoredArea>[
@@ -228,50 +270,74 @@ class AreaTrimmer {
     await store.saveIndex(next);
   }
 
-  /// Schreibt das Höhenarchiv ohne die wegfallenden Kacheln neu (oder
+  /// Schreibt ein Begleitarchiv ohne die wegfallenden Kacheln neu (oder
   /// nimmt es weg, wenn keine bleibt); liefert seine neue Größe.
-  Future<int> _rewriteHeights(StoredArea area, AreaTrim trim) async {
-    final hArchive = await _openHeights(area);
-    if (hArchive == null) return 0;
-    if (trim.keepHeights.isEmpty) {
-      await hArchive.close();
-      await store.deleteHeights(area.id);
+  Future<int> _rewriteSide(_SideArchive side, StoredArea area, TileSetShape shape, List<TileXYZ> keep) async {
+    final archive = await _openSide(side, area);
+    if (archive == null) return 0;
+    if (keep.isEmpty) {
+      await archive.close();
+      await side.delete(area.id);
       return 0;
     }
     final Uint8List bytes;
     try {
-      final ids = {for (final t in trim.keepHeights) tileIdOf(t): t};
+      final ids = {for (final t in keep) tileIdOf(t): t};
       final kept = <TileToWrite>[];
       final sorted = ids.keys.toList()..sort();
       for (var start = 0; start < sorted.length; start += 256) {
         final chunk = sorted.sublist(start, start + 256 > sorted.length ? sorted.length : start + 256);
-        await for (final tile in hArchive.tiles(chunk)) {
+        await for (final tile in archive.tiles(chunk)) {
           final t = ids[tile.id]!;
           kept.add(TileToWrite(t.z, t.x, t.y, Uint8List.fromList(tile.compressedBytes())));
         }
       }
-      final hull = trim.shape!.hull;
+      final hull = shape.hull;
       bytes = writePmTiles(
         tiles: kept,
-        tileCompression: hArchive.header.tileCompression,
+        tileCompression: archive.header.tileCompression,
         bounds: TileBounds(west: hull.west, south: hull.south, east: hull.east, north: hull.north),
-        metadata: heightsMetadata(area.name, area.heightsBuild),
+        metadata: side.metadata(area),
       );
-      if (kept.length != trim.keepHeights.length) {
-        throw StateError('${area.name}: ${kept.length} statt ${trim.keepHeights.length} Höhenkacheln gelesen');
+      if (kept.length != keep.length) {
+        throw StateError('${area.name}: ${kept.length} statt ${keep.length} Kacheln (${side.label}) gelesen');
       }
     } finally {
-      await hArchive.close();
+      await archive.close();
     }
     final check = await PmTilesArchive.fromBytes(bytes);
     try {
-      if (check.header.numberOfAddressedTiles != trim.keepHeights.length) {
-        throw StateError('${area.name}: neues Höhenarchiv zählt falsch');
+      if (check.header.numberOfAddressedTiles != keep.length) {
+        throw StateError('${area.name}: neues Archiv (${side.label}) zählt falsch');
       }
     } finally {
       await check.close();
     }
-    await store.putHeights(area.id, bytes);
+    await side.put(area.id, bytes);
     return bytes.length;
   }
+}
+
+/// Ein Begleitarchiv des Bereichs (Höhen, Wege): eine Kachel je
+/// z13-Kachel der Form, eigene Ablage-Wege.
+class _SideArchive {
+  const _SideArchive({
+    required this.label,
+    required this.zoom,
+    required this.has,
+    required this.path,
+    required this.read,
+    required this.put,
+    required this.delete,
+    required this.metadata,
+  });
+
+  final String label;
+  final int zoom;
+  final bool Function(StoredArea area) has;
+  final Future<String?> Function(String id) path;
+  final Future<Uint8List?> Function(String id) read;
+  final Future<void> Function(String id, Uint8List bytes) put;
+  final Future<void> Function(String id) delete;
+  final Map<String, dynamic> Function(StoredArea area) metadata;
 }

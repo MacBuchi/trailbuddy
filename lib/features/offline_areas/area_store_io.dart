@@ -1,6 +1,7 @@
 // Die Ablage gespeicherter Bereiche als Dateien (Android): Index
 // `areas.json`, je Bereich `<id>.pmtiles` (geschrieben über `.part` +
-// rename), `<id>.heights.pmtiles` für die Höhenkacheln und
+// rename), `<id>.heights.pmtiles` für die Höhenkacheln,
+// `<id>.ways.pmtiles` für die Wege und
 // `<id>/pois/<datei>` für die Orte-Zellen. Unter
 // `offline_maps/areas/` im App-Verzeichnis, also vom Backup ausgenommen.
 import 'dart:convert';
@@ -28,6 +29,8 @@ class FileAreaStore implements AreaStore {
   Future<File> _archive(String id) async => File('${(await _dir()).path}/$id.pmtiles');
 
   Future<File> _heights(String id) async => File('${(await _dir()).path}/$id.heights.pmtiles');
+
+  Future<File> _ways(String id) async => File('${(await _dir()).path}/$id.ways.pmtiles');
 
   Future<File> _poi(String id, String name) async => File('${(await _dir()).path}/$id/pois/$name');
 
@@ -93,6 +96,24 @@ class FileAreaStore implements AreaStore {
   Future<void> deleteHeights(String id) async => _remove(await _heights(id));
 
   @override
+  Future<void> putWays(String id, Uint8List bytes) => _write(_ways(id), bytes);
+
+  @override
+  Future<String?> waysPath(String id) async {
+    final file = await _ways(id);
+    return await file.exists() ? file.path : null;
+  }
+
+  @override
+  Future<Uint8List?> readWays(String id) async {
+    final file = await _ways(id);
+    return await file.exists() ? await file.readAsBytes() : null;
+  }
+
+  @override
+  Future<void> deleteWays(String id) async => _remove(await _ways(id));
+
+  @override
   Future<String?> archivePath(String id) async {
     final file = await _archive(id);
     return await file.exists() ? file.path : null;
@@ -127,6 +148,7 @@ class FileAreaStore implements AreaStore {
     await saveIndex([for (final a in areas) if (a.id != id) a]);
     await _remove(await _archive(id));
     await _remove(await _heights(id));
+    await _remove(await _ways(id));
     final poiDir = Directory('${(await _dir()).path}/$id');
     if (await poiDir.exists()) await poiDir.delete(recursive: true);
   }

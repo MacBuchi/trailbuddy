@@ -59,6 +59,24 @@ void main() {
     expect(back.heightsBuild, isNull);
   });
 
+  test('Wege (#212): Rundlauf, und ein Eintrag von vor 0.90.0 lädt ohne Wege und ohne Bau', () {
+    final a = StoredArea.fromJson({
+      ..._area('w').toJson(),
+      'way_tiles': 5,
+      'way_bytes': 900,
+      'ways_build': '20261007',
+    });
+    final back = StoredArea.fromJson(a.toJson());
+    expect([back.wayTiles, back.wayBytes, back.waysBuild, back.hasWays], [5, 900, '20261007', true]);
+    expect(back.totalBytes, 1234567 + 900);
+    final old = _area('alt').toJson()
+      ..remove('way_tiles')
+      ..remove('way_bytes')
+      ..remove('ways_build');
+    final oldBack = StoredArea.fromJson(old);
+    expect([oldBack.hasWays, oldBack.wayBytes, oldBack.waysBuild], [false, 0, null]);
+  });
+
   test('ein Index-Eintrag ohne Form (vor 0.24.0) lädt mit dem Rahmen als Form', () {
     final json = _area('alt').toJson()..remove('shape');
     final back = StoredArea.fromJson(json);
@@ -90,6 +108,17 @@ void main() {
     expect(await store.readHeights('a1'), isNull);
     expect(await store.readArchive('a1'), bytes);
     await store.putHeights('a1', heights);
+    // Das dritte Archiv: Wege, ebenso getrennt.
+    expect(await store.readWays('a1'), isNull);
+    final ways = Uint8List.fromList(List.generate(80, (i) => i));
+    await store.putWays('a1', ways);
+    expect(await store.readWays('a1'), ways);
+    expect((await store.waysPath('a1')) != null, hasPath);
+    expect(await store.readHeights('a1'), heights, reason: 'Höhen und Wege liegen getrennt');
+    await store.deleteWays('a1');
+    expect(await store.readWays('a1'), isNull);
+    expect(await store.readHeights('a1'), heights);
+    await store.putWays('a1', ways);
     // Ein zweiter Bereich, dann der erste weg: Archiv, Höhen, Orte, Eintrag.
     await store.putArchive('a2', bytes);
     await store.saveIndex([_area('a1', poiFiles: const ['479_77.water.json']), _area('a2')]);
@@ -99,6 +128,8 @@ void main() {
     expect(await store.archivePath('a1'), isNull);
     expect(await store.readHeights('a1'), isNull);
     expect(await store.heightsPath('a1'), isNull);
+    expect(await store.readWays('a1'), isNull);
+    expect(await store.waysPath('a1'), isNull);
     expect(await store.readPoiFile('479_77.water.json'), isNull);
     expect(await store.readArchive('a2'), isNotNull);
   }
@@ -110,6 +141,7 @@ void main() {
     expect(await File('${dir.path}/a2.pmtiles').exists(), isTrue);
     expect(await File('${dir.path}/a2.pmtiles.part').exists(), isFalse);
     expect(await File('${dir.path}/a1.heights.pmtiles').exists(), isFalse);
+    expect(await File('${dir.path}/a1.ways.pmtiles').exists(), isFalse);
     // Ein kaputter Index heißt keine Bereiche, kein Absturz.
     await File('${dir.path}/areas.json').writeAsString('{');
     expect(await FileAreaStore(baseDir: dir).list(), isEmpty);

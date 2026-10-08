@@ -9,12 +9,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pmtiles/pmtiles.dart';
 import 'package:trailbuddy/core/connectivity.dart';
+import 'package:trailbuddy/core/settings.dart';
 import 'package:trailbuddy/features/map/online_map.dart';
+import 'package:trailbuddy/features/map/way_layer.dart';
 import 'package:trailbuddy/features/offline_areas/area_plan.dart';
 import 'package:trailbuddy/features/offline_areas/area_providers.dart';
 import 'package:trailbuddy/features/offline_areas/area_store.dart';
 import 'package:trailbuddy/features/offline_areas/pmtiles_writer.dart';
 import 'package:vector_map_tiles/vector_map_tiles.dart';
+
+import '../fakes/fake_settings.dart';
 
 const _manifest = MapManifest(file: 'dach-20260928.pmtiles', maxZoom: 13, bytes: 1, sourceBuild: '20260928');
 
@@ -47,6 +51,7 @@ void main() {
       noConnectivityProvider.overrideWithValue(noConnectivity),
       mapManifestLoaderProvider.overrideWithValue(() async => manifest),
       areaStoreProvider.overrideWithValue(store ?? MemoryAreaStore()),
+      settingsProvider.overrideWithValue(FakeSettings()),
     ]);
     addTearDown(c.dispose);
     return c;
@@ -65,7 +70,7 @@ void main() {
     // die Kachelquelle selbst braucht ihn nicht.
     final opened = [
       for (final a in await store.list())
-        (area: a, provider: (await c.read(areaArchiveOpenerProvider)(store, a))!),
+        (minZoom: a.minZoom, maxZoom: a.maxZoom, provider: (await c.read(areaArchiveOpenerProvider)(store, a))!),
     ];
     final multi = MultiAreaTileProvider(opened);
     expect(multi.minimumZoom, kAreaMinZoom);
@@ -80,6 +85,37 @@ void main() {
     await expectLater(multi.provide(TileIdentity(12, 0, 0)), throwsA(isA<ProviderException>()),
         reason: 'über dem Zoom der Bereiche');
     await multi.close();
+  });
+
+  test('die Wege der Bereiche (#212): EINE Quelle nur bei Zoom 13, nur aus Bereichen mit Wegen, aus mit dem Schalter', () async {
+    const west = AreaBounds(south: 47.9, west: 11.0, north: 48.0, east: 11.2);
+    final store = MemoryAreaStore();
+    final inWest = tileAt(47.95, 11.1, kWaysZoom);
+    await store.putWays(
+        'w',
+        writePmTiles(
+          tiles: [TileToWrite(kWaysZoom, inWest.x, inWest.y, Uint8List.fromList(utf8.encode('weg')))],
+          tileCompression: Compression.none,
+          bounds: TileBounds(west: west.west, south: west.south, east: west.east, north: west.north),
+        ));
+    final withWays = StoredArea.fromJson({..._area('w', west).toJson(), 'way_tiles': 1, 'way_bytes': 1});
+    await store.saveIndex([withWays, _area('plain', west)]);
+
+    final c = make(noConnectivity: true, store: store);
+    final style = await c.read(areaWaysStyleProvider.future);
+    expect(style, isNotNull);
+    final multi = style!.tileProviders.tileProviderBySource[kWaysSourceId]!;
+    expect([multi.minimumZoom, multi.maximumZoom], [kWaysZoom, kWaysZoom]);
+    expect(utf8.decode(await multi.provide(TileIdentity(kWaysZoom, inWest.x, inWest.y))), 'weg');
+    await expectLater(multi.provide(TileIdentity(kWaysZoom, inWest.x + 1, inWest.y)), throwsA(isA<ProviderException>()));
+
+    final off = ProviderContainer(overrides: [
+      noConnectivityProvider.overrideWithValue(true),
+      areaStoreProvider.overrideWithValue(store),
+      settingsProvider.overrideWithValue(FakeSettings(wayLayerEnabled: false)),
+    ]);
+    addTearDown(off.dispose);
+    expect(await off.read(areaWaysStyleProvider.future), isNull);
   });
 
   test('ohne Bereiche keine Schicht; ein Bereich ohne Archiv fällt still weg', () async {

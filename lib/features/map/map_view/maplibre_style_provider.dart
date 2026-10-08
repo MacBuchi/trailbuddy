@@ -96,7 +96,8 @@ String cssColor(int argb) => '#${(argb & 0xFFFFFF).toRadixString(16).padLeft(6, 
 /// macht maplibre-native selbst), sobald das Manifest da ist; und IMMER
 /// die gespeicherten Bereiche zuoberst, je Bereich eine `file://`-Quelle
 /// (#82, `area_providers.dart`), darüber die Wege (#212, `way_layer.dart`)
-/// — unter den Trails, die als eigene Ebenen danach kommen. Ein Wechsel erzeugt einen neuen
+/// vom Host und darüber die Wege der Bereiche, je Bereich eine
+/// `file://`-Quelle — unter den Trails, die als eigene Ebenen danach kommen. Ein Wechsel erzeugt einen neuen
 /// Style-String; die Engine spielt ihn per `setStyle` ein.
 final maplibreStyleProvider = FutureProvider<String?>((ref) async {
   final noConnectivity = ref.watch(noConnectivityProvider);
@@ -188,6 +189,21 @@ final maplibreStyleProvider = FutureProvider<String?>((ref) async {
     } catch (e, stackTrace) {
       logError('Bereiche für den Style lesen', e, stackTrace);
     }
+    // Die Wege der Bereiche über denen vom Host, mit und ohne Empfang —
+    // dieselbe Regel wie bei der Karte: Ihre Bänder decken die Striche
+    // darunter, wo derselbe Weg liegt.
+    final areaWays = <MapStyleOverlay>[];
+    try {
+      for (final entry in await ref.watch(areaWaysPathsProvider.future)) {
+        final id = '$kWaysSourceId-area-${entry.area.id}';
+        areaWays.add(MapStyleOverlay(
+          source: MapStyleSource(id: id, url: 'file://${entry.path}', minZoom: kWaysZoom, maxZoom: kWaysZoom),
+          layers: wayStyleLayers(id, dashes: true),
+        ));
+      }
+    } catch (e, stackTrace) {
+      logError('Wege der Bereiche für den Style lesen', e, stackTrace);
+    }
 
     return composeMapLibreStyle(
       baseStyle: base,
@@ -205,6 +221,7 @@ final maplibreStyleProvider = FutureProvider<String?>((ref) async {
             ),
             layers: wayStyleLayers(kWaysSourceId, dashes: true),
           ),
+        ...areaWays,
       ],
       extraAttributions: officialCredits.isEmpty ? const [] : officialCredits.split('\u0000'),
     );

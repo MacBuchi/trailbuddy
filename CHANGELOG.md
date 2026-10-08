@@ -4,7 +4,7 @@
 
 ## Wie gut ist der Weg?
 
-*Version 0.89.0, 2026-10-08*
+*Versionen 0.89.0–0.90.0, 2026-10-08*
 
 - **Forstwege nach Güte, Pfade nach Schwierigkeit**: Ab Zoomstufe 13
   liegt über den Wegen der Karte, was OpenStreetMap über sie weiß.
@@ -15,8 +15,13 @@
 - Wo in OpenStreetMap nichts eingetragen ist, bleibt der Weg, wie die
   Karte ihn immer gezeichnet hat — bei Pfaden ist das noch der Normalfall.
 - Die Ebene ist ab Werk an; unter „Kartenebenen" schaltest du sie ab.
-  Die Daten kommen vom selben Kartenserver wie die Karte selbst, vorerst
-  nur mit Empfang.
+  Die Daten kommen vom selben Kartenserver wie die Karte selbst.
+- **Auch ohne Empfang** (0.90.0): Ein gespeicherter Bereich nimmt die
+  Wege jetzt mit, wie Orte und Höhen — der Dialog vor dem Speichern
+  nennt sie, und die Größe zählt sie mit. Das gilt auch, wenn die Ebene
+  gerade aus ist; schaltest du sie im Wald ein, sind sie da.
+- Bereiche von früher zeigen unter „Meine Bereiche" „Wege verfügbar";
+  ein Tipp auf „Aktualisieren" holt sie nach.
 
 ## Höhenprofil der geplanten Runde
 

@@ -268,8 +268,34 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     Feldtest (#188) prüft sie. Beisteuern wartet auf laufende
     Vergleiche (Flow-Test mit Gegenprobe).
   Entfernen von Kacheln (Radierer) schreibt das Höhenarchiv genauso neu
-  wie das Kartenarchiv (`AreaTrimmer._rewriteHeights`); bleibt keine,
+  wie das Kartenarchiv (`AreaTrimmer._rewriteSide`); bleibt keine,
   fällt nur das Höhenarchiv weg. Der Harness setzt beide Höhen-Loader
   auf null — der Dialog sagt dann „ohne Höhen", und der Flow-Test
   erwartet genau das. Sichtbar wird von den Höhen noch nichts, deshalb
   kein Eintrag in „Entdecken"; der kommt mit dem Planer (Schritt 3–5).
+- **Wege je Bereich** (#212 PR 3, seit 0.90.0; die Ebene selbst:
+  `lib/features/map/CLAUDE.md`, „Die Ebene Wege"): Ein Bereich holt die
+  z13-Kacheln des Wege-Archivs wie die Höhen und legt sie als DRITTES
+  Archiv neben sich (`AreaStore.putWays`, `<id>.ways.pmtiles`, im Browser
+  `<id>/ways`; `StoredArea.wayTiles`). Vier Dinge, die man wissen muss:
+  - **Immer, unabhängig vom Schalter** (Betreiber, 2026-10-08):
+    `areaWaysManifestLoaderProvider` fragt den Host auch bei
+    ausgeschalteter Ebene; nur die ANZEIGE hängt am Schalter
+    (`areaWaysPathsProvider`, `areaWaysStyleProvider`). Der Harness setzt
+    den Loader auf null.
+  - **Das Archiv hat Lücken**: nur Kacheln mit getaggten Wegen. Ein
+    Bereich, in dem OSM nichts weiß, hat 0 Wege-Kacheln und KEIN drittes
+    Archiv, aber `waysBuild` — „geholt" heißt `waysBuild != null`, nicht
+    `hasWays`; sonst böte „Meine Bereiche" ewig „Wege verfügbar" an. Der
+    Dialog nennt „Wege" nur, wenn welche kommen. Der Download nimmt das
+    Archiv nur, wenn sein Bau noch der des Plans ist.
+  - **Die Wege der Bereiche liegen über denen vom Host**, mit und ohne
+    Empfang, wie die Bereiche über der Online-Karte (#82): MapLibre je
+    Bereich ein `MapStyleOverlay` `ways-area-<id>` nach dem vom Host,
+    flutter_map eine eigene `VectorTileLayer` mit `MultiAreaTileProvider`
+    (seit 0.90.0 mit Zoombereich je Archiv, `OpenedAreaArchive`). Die
+    Bänder des oberen decken die Striche des unteren, wo derselbe Weg
+    liegt; doppelt sieht man nichts.
+  - **Entfernen** schreibt Höhen und Wege über denselben Weg neu
+    (`_SideArchive` in `area_trim.dart`); bleibt keine Wege-Kachel, fällt
+    nur das Archiv weg, der Bau bleibt.
