@@ -28,6 +28,9 @@ Usage:
     python3 tool/map_tiles.py info    --source <url|path>
     python3 tool/map_tiles.py plan    --source <url|path> \\
                                       --bbox 5.5,45.5,17.5,55.5 --maxzoom 12
+    python3 tool/map_tiles.py plan    --source <url|path> \\
+                                      --region countries.geojson --select ISO_A2_EH=CA \\
+                                      --maxzoom 13
     python3 tool/map_tiles.py check   --source <url|path> --extract out.pmtiles
     python3 tool/map_tiles.py --self-test        # no network
 
@@ -39,9 +42,11 @@ top level badly, and the top level is the whole cost. Measure, never
 estimate.
 """
 import argparse
+import bisect
 import contextlib
 import gzip
 import hashlib
+import http.client
 import io
 import json
 import math
@@ -51,6 +56,8 @@ import struct
 import sys
 import tempfile
 import threading
+import time
+import urllib.error
 import urllib.request
 
 # PMTiles v3 header: 127 bytes, little endian, no padding.
@@ -106,6 +113,9 @@ class HttpSource:
     slice locally: the point of this class is that the bytes never travel.
     """
 
+    ATTEMPTS = 5
+    BACKOFF = 2.0
+
     def __init__(self, url):
         self.name = url
         self.url = url
@@ -125,14 +135,33 @@ class HttpSource:
                 "User-Agent": "trailbuddy-map-tiles/1.0",
             },
         )
-        with urllib.request.urlopen(request, timeout=120) as response:
-            if response.status != 206:
-                raise IOError(
-                    f"{self.url}: Range request answered {response.status}, "
-                    "not 206 — this host cannot serve partial reads, and "
-                    "fetching the whole archive is not an option here"
-                )
-            data = response.read()
+        for attempt in range(self.ATTEMPTS):
+            try:
+                with urllib.request.urlopen(request, timeout=120) as response:
+                    status = response.status
+                    data = response.read() if status == 206 else b""
+                break
+            except urllib.error.HTTPError as error:
+                # A 4xx is an answer, not a hiccup: asking again gets the
+                # same one.
+                if error.code < 500 or attempt + 1 == self.ATTEMPTS:
+                    raise
+            except (urllib.error.URLError, ConnectionError, TimeoutError,
+                    http.client.IncompleteRead):
+                # Walking a planet build's directories up to z13 is ~300
+                # sequential reads; a single dropped TLS session must not
+                # throw away the other 299 (measured for #220, 2026-10-08).
+                if attempt + 1 == self.ATTEMPTS:
+                    raise
+            time.sleep(self.BACKOFF * (2 ** attempt))
+        if status != 206:
+            # Outside the retry: a server that ignores Range ignores it
+            # every time.
+            raise IOError(
+                f"{self.url}: Range request answered {status}, "
+                "not 206 — this host cannot serve partial reads, and "
+                "fetching the whole archive is not an option here"
+            )
         if len(data) != length:
             raise IOError(
                 f"{self.url}: wanted {length} bytes at {offset}, got {len(data)}"
@@ -416,6 +445,140 @@ def ranges_intersect(ranges, low, high):
 
 
 # ---------------------------------------------------------------------------
+# Regions: country-shaped areas instead of a rectangle (#220).
+# ---------------------------------------------------------------------------
+
+# The zoom at which a region is rasterised. Every deeper tile belongs to
+# the region exactly when its ancestor here does — on the Hilbert curve
+# the descendants of one tile are ONE contiguous id range per zoom, so a
+# z13 region of Canada is ~60 000 ranges instead of 5 million ids. The
+# price is a margin of at most one z10 tile (39 km at the equator, 15 km
+# at 67° N) along the border: a plan over a region errs towards too big,
+# which is the harmless direction for a size estimate.
+REGION_COVER_ZOOM = 10
+
+
+def _merc_y(lat, n):
+    lat = max(-85.0511, min(85.0511, lat))
+    return (1.0 - math.asinh(math.tan(math.radians(lat))) / math.pi) / 2.0 * n
+
+
+def region_rings(geojson, select=None):
+    """Every ring of the (Multi)Polygons in a GeoJSON document.
+
+    `select` is (key, {values}): only features whose property matches.
+    A selection that matches nothing is an error, not an empty region —
+    an empty region plans to zero bytes, and zero looks like an answer.
+    """
+    if geojson.get("type") == "FeatureCollection":
+        features = geojson.get("features") or []
+    elif geojson.get("type") == "Feature":
+        features = [geojson]
+    else:
+        features = [{"type": "Feature", "properties": {}, "geometry": geojson}]
+    if select is not None:
+        key, values = select
+        features = [f for f in features
+                    if str((f.get("properties") or {}).get(key)) in values]
+    rings = []
+    for feature in features:
+        geometry = feature.get("geometry") or {}
+        kind = geometry.get("type")
+        if kind == "Polygon":
+            polygons = [geometry["coordinates"]]
+        elif kind == "MultiPolygon":
+            polygons = geometry["coordinates"]
+        else:
+            continue
+        for polygon in polygons:
+            rings.extend(ring for ring in polygon if len(ring) >= 4)
+    if not rings:
+        raise SystemExit("--region: no polygon "
+                         + (f"with {select[0]} in {sorted(select[1])}" if select else "in the file"))
+    return rings
+
+
+def region_cover(rings, z):
+    """{(x, y)} at zoom z: every tile the polygons touch.
+
+    Two passes. Each edge is walked densely, so a fjord or an island
+    narrower than a tile still claims its tile; then a scanline through
+    each tile row fills the interior by the even-odd rule (holes stay
+    holes). Rings are in degrees, as GeoJSON has them; a polygon that
+    crosses the antimeridian is expected split there, as Natural Earth
+    and Geofabrik ship them.
+    """
+    n = 1 << z
+    tiles = set()
+    edges = []
+    for ring in rings:
+        points = [((lon + 180.0) / 360.0 * n, _merc_y(lat, n))
+                  for lon, lat in (pt[:2] for pt in ring)]
+        for (x0, y0), (x1, y1) in zip(points, points[1:]):
+            edges.append((x0, y0, x1, y1))
+            steps = int(max(abs(x1 - x0), abs(y1 - y0)) * 4) + 1
+            for i in range(steps + 1):
+                f = i / steps
+                tiles.add((min(n - 1, int(x0 + (x1 - x0) * f)),
+                           min(n - 1, int(y0 + (y1 - y0) * f))))
+    if not tiles:
+        return tiles
+    rows = [ty for _, ty in tiles]
+    for ty in range(min(rows), max(rows) + 1):
+        y = ty + 0.5
+        xs = sorted(x0 + (y - y0) * (x1 - x0) / (y1 - y0)
+                    for x0, y0, x1, y1 in edges
+                    if (y0 <= y < y1) or (y1 <= y < y0))
+        for left, right in zip(xs[0::2], xs[1::2]):
+            for tx in range(max(0, int(left)), min(n - 1, int(right)) + 1):
+                tiles.add((tx, ty))
+    return tiles
+
+
+def _merge_ranges(ranges):
+    merged = []
+    for start, end in sorted(ranges):
+        if merged and merged[-1][1] + 1 >= start:
+            if end > merged[-1][1]:
+                merged[-1] = (merged[-1][0], end)
+        else:
+            merged.append((start, end))
+    return merged
+
+
+def region_ranges(rings, minzoom, maxzoom, cover_zoom=REGION_COVER_ZOOM):
+    """({zoom: sorted inclusive id ranges}, tiles in the cover)."""
+    cover_zoom = min(cover_zoom, maxzoom)
+    cover = region_cover(rings, cover_zoom)
+    base_cover = zoom_base(cover_zoom)
+    hilbert = sorted(zxy_to_tile_id(cover_zoom, x, y) - base_cover
+                     for x, y in cover)
+    per_zoom = {}
+    for z in range(minzoom, maxzoom + 1):
+        base = zoom_base(z)
+        if z >= cover_zoom:
+            k = 4 ** (z - cover_zoom)
+            per_zoom[z] = _merge_ranges(
+                (base + h * k, base + (h + 1) * k - 1) for h in hilbert)
+        else:
+            k = 4 ** (cover_zoom - z)
+            per_zoom[z] = _merge_ranges(
+                (base + p, base + p) for p in {h // k for h in hilbert})
+    return per_zoom, len(cover)
+
+
+def ranges_overlap(ranges, starts, low, high):
+    """How many ids of [low, high] lie in the ranges (sorted, disjoint)."""
+    index = bisect.bisect_right(starts, high) - 1
+    total = 0
+    while index >= 0 and ranges[index][1] >= low:
+        start, end = ranges[index]
+        total += min(end, high) - max(start, low) + 1
+        index -= 1
+    return total
+
+
+# ---------------------------------------------------------------------------
 # The archive.
 # ---------------------------------------------------------------------------
 
@@ -624,36 +787,64 @@ def plan_extract(archive, bbox, minzoom, maxzoom):
     checkable only by reading a table.
     """
     wanted = bbox_tile_ids(bbox, minzoom, maxzoom)
-    all_ids = set()
-    for ids in wanted.values():
-        all_ids |= ids
-    wanted_ranges = ranges_of(all_ids)
-
-    tiles = {z: 0 for z in range(minzoom, maxzoom + 1)}
-    byte_count = {z: 0 for z in range(minzoom, maxzoom + 1)}
-    counted = set()
-
-    for entry in archive.walk(wanted_ranges):
-        for tile_id in range(entry.tile_id, entry.tile_id + entry.run_length):
-            if tile_id not in all_ids:
-                continue
-            z = zoom_of(tile_id)
-            tiles[z] += 1
-            # Contents are shared: a run of identical tiles is stored once,
-            # and so is a tile repeated elsewhere. Counting the bytes per
-            # occurrence would inflate the estimate above what an extract
-            # actually costs — and this estimate is the whole point.
-            if entry.offset not in counted:
-                counted.add(entry.offset)
-                byte_count[z] += entry.length
-
+    per_zoom = {z: ranges_of(ids) for z, ids in wanted.items()}
+    tiles, byte_count = plan_ranges(archive, per_zoom)
     possible = {z: len(ids) for z, ids in wanted.items()}
     return tiles, byte_count, possible
 
 
+def plan_ranges(archive, per_zoom):
+    """Tiles and bytes per zoom for {zoom: sorted inclusive id ranges}.
+
+    Counted by range arithmetic, never tile by tile: a planet build holds
+    runs of millions of identical ocean tiles, and a region of Canada at
+    z13 is five million ids — a set of them costs gigabytes, a loop over
+    them minutes (#220).
+    """
+    zooms = sorted(per_zoom)
+    ranges = [r for z in zooms for r in per_zoom[z]]
+    starts = [r[0] for r in ranges]
+    bases = [zoom_base(z) for z in range(0, zooms[-1] + 2)]
+    tiles = {z: 0 for z in zooms}
+    byte_count = {z: 0 for z in zooms}
+    counted = set()
+
+    for entry in archive.walk(ranges):
+        last = entry.tile_id + entry.run_length - 1
+        low = entry.tile_id
+        z = bisect.bisect_right(bases, low) - 1
+        while low <= last and z <= zooms[-1]:
+            high = min(last, bases[z + 1] - 1)
+            inside = ranges_overlap(ranges, starts, low, high)
+            if inside:
+                tiles[z] += inside
+                # Contents are shared: a run of identical tiles is stored
+                # once, and so is a tile repeated elsewhere. Counting the
+                # bytes per occurrence would inflate the estimate above
+                # what an extract actually costs — and this estimate is
+                # the whole point.
+                if entry.offset not in counted:
+                    counted.add(entry.offset)
+                    byte_count[z] += entry.length
+            low = high + 1
+            z += 1
+    return tiles, byte_count
+
+
+def parse_select(text):
+    """`KEY=V1,V2` -> (key, {values})."""
+    key, sep, values = text.partition("=")
+    if not sep or not key or not values:
+        raise SystemExit(f"--select wants KEY=VALUE[,VALUE…], got {text!r}")
+    return key, set(values.split(","))
+
+
 def command_plan(args):
     """Measures bytes per zoom for a bbox. The number that decides #496."""
-    bbox = parse_bbox(args.bbox)
+    if (args.bbox is None) == (args.region is None):
+        raise SystemExit("plan wants exactly one of --bbox and --region")
+    if args.select and not args.region:
+        raise SystemExit("--select picks features of --region")
     archive = Archive(open_source(args.source))
     header = archive.header
     minzoom = max(args.minzoom, header.min_zoom)
@@ -663,17 +854,33 @@ def command_plan(args):
             f"archive holds z{header.min_zoom}-z{header.max_zoom}, "
             f"asked for z{args.minzoom}-z{args.maxzoom}")
 
-    tiles, byte_count, possible_per_zoom = plan_extract(
-        archive, bbox, minzoom, maxzoom)
+    if args.bbox is not None:
+        bbox = parse_bbox(args.bbox)
+        tiles, byte_count, possible_per_zoom = plan_extract(
+            archive, bbox, minzoom, maxzoom)
+        west, south, east, north = bbox
+        area = f"bbox       {west},{south},{east},{north}"
+    else:
+        with open(args.region) as handle:
+            geojson = json.load(handle)
+        select = parse_select(args.select) if args.select else None
+        per_zoom, cover = region_ranges(
+            region_rings(geojson, select), minzoom, maxzoom)
+        tiles, byte_count = plan_ranges(archive, per_zoom)
+        possible_per_zoom = {z: sum(e - s + 1 for s, e in r)
+                             for z, r in per_zoom.items()}
+        cover_zoom = min(REGION_COVER_ZOOM, maxzoom)
+        area = (f"region     {args.region}"
+                + (f" ({args.select})" if args.select else "")
+                + f", {cover} tiles at z{cover_zoom}")
 
     total = sum(byte_count.values())
     possible = sum(possible_per_zoom.values())
     present = sum(tiles.values())
     missing = possible - present
 
-    west, south, east, north = bbox
     print(f"source     {archive.source.name}")
-    print(f"bbox       {west},{south},{east},{north}")
+    print(area)
     print(f"zoom       z{minzoom}-z{maxzoom}")
     print()
     print("  zoom    tiles        bytes   step   cumulative")
@@ -1019,6 +1226,9 @@ def self_test():
     _test_ranges()
     _test_archive_roundtrip()
     _test_plan_counts_shared_content_once()
+    _test_region_matches_an_aligned_bbox()
+    _test_region_keeps_holes_and_refuses_empty_selections()
+    _test_plan_counts_part_of_a_run()
     _test_leaf_pointer_is_not_a_tile()
     _test_check_fails_on_a_wrong_tile()
     _test_check_fails_on_the_wrong_region()
@@ -1187,6 +1397,81 @@ def _test_plan_counts_shared_content_once():
     assert possible[2] == 16, possible
     assert byte_count[2] == len(shared) + len(other), (
         byte_count[2], len(shared) + len(other))
+
+
+def _square(west, south, east, north):
+    return [[west, south], [east, south], [east, north], [west, north],
+            [west, south]]
+
+
+def _test_region_matches_an_aligned_bbox():
+    """A region that IS a tile-aligned rectangle plans like that bbox.
+
+    The two paths share nothing but the archive walk: the bbox enumerates
+    ids, the region rasterises and expands Hilbert ranges. If the range
+    expansion were off by one tile, or ancestors were missed below the
+    cover zoom, the totals would part here.
+    """
+    archive = Archive(_BytesSource(_build_archive(_fixture_tiles(), leaf_size=16)))
+    box = (-89.9, -66.4, 89.9, 66.4)  # z2 tiles x1..2, y1..2, shrunk inside
+    rings = [_square(*box)]
+    per_zoom, cover = region_ranges(rings, 0, 4)
+    assert cover == 64, cover  # rasterised at z4 = min(cover zoom, maxzoom)
+    by_region = plan_ranges(archive, per_zoom)
+    tiles, byte_count, possible = plan_extract(archive, box, 0, 4)
+    assert by_region == (tiles, byte_count), (by_region, tiles, byte_count)
+    assert {z: sum(e - s + 1 for s, e in r) for z, r in per_zoom.items()} == possible
+
+    # Rasterised coarser than asked, the deeper zooms are the cover's
+    # descendants — one contiguous range per cover tile.
+    per_zoom, cover = region_ranges(rings, 0, 4, cover_zoom=2)
+    assert cover == 4, cover
+    assert sum(e - s + 1 for s, e in per_zoom[4]) == 64
+    expected = bbox_tile_ids(box, 4, 4)[4]
+    covered = {i for s, e in per_zoom[4] for i in range(s, e + 1)}
+    assert covered == expected
+
+
+def _test_region_keeps_holes_and_refuses_empty_selections():
+    outer = _square(-179.9, -84.9, 179.9, 84.9)
+    hole = _square(-89.9, -66.4, 89.9, 66.4)  # z3 tiles 2..5 touched by the edges
+    cover = region_cover([outer, hole], 3)
+    # The hole's edges claim their tiles; only the four tiles strictly
+    # inside it (3..4 x 3..4) drop out.
+    assert len(cover) == 60, len(cover)
+    assert (3, 3) not in cover and (2, 2) in cover
+
+    collection = {"type": "FeatureCollection", "features": [
+        {"type": "Feature", "properties": {"ISO": "CA"},
+         "geometry": {"type": "Polygon", "coordinates": [outer]}},
+        {"type": "Feature", "properties": {"ISO": "US"},
+         "geometry": {"type": "MultiPolygon", "coordinates": [[hole]]}},
+    ]}
+    assert region_rings(collection, ("ISO", {"US"})) == [hole]
+    assert len(region_rings(collection)) == 2
+    try:
+        region_rings(collection, ("ISO", {"XX"}))
+    except SystemExit as error:
+        assert "XX" in str(error), error
+    else:
+        raise AssertionError("an empty selection must not plan to zero bytes")
+
+
+def _test_plan_counts_part_of_a_run():
+    """A run reaching out of the region counts only the tiles inside it.
+
+    A planet build stores the open ocean as runs of millions of identical
+    tiles; counting a whole run because one tile touches the region would
+    make every coastal region the size of an ocean.
+    """
+    tiles = {(2, x, y): b"ocean" for x in range(4) for y in range(4)}
+    archive = Archive(_BytesSource(_build_archive(tiles)))
+    runs = [e for e in archive.walk() if e.run_length > 0]
+    assert [e.run_length for e in runs] == [16], runs
+    base = zoom_base(2)
+    counted, byte_count = plan_ranges(archive, {2: [(base + 3, base + 6)]})
+    assert counted == {2: 4}, counted
+    assert byte_count == {2: len(b"ocean")}, byte_count
 
 
 def _test_leaf_pointer_is_not_a_tile():
@@ -1400,10 +1685,13 @@ def main():
     info = sub.add_parser("info", help="header, zoom range, bounds, layers")
     info.add_argument("--source", required=True)
 
-    plan = sub.add_parser("plan", help="bytes per zoom for a bbox")
+    plan = sub.add_parser("plan", help="bytes per zoom for a bbox or region")
     plan.add_argument("--source", required=True)
-    plan.add_argument("--bbox", required=True,
-                      help="west,south,east,north in degrees")
+    plan.add_argument("--bbox", help="west,south,east,north in degrees")
+    plan.add_argument("--region",
+                      help="GeoJSON with (Multi)Polygons, e.g. country borders")
+    plan.add_argument("--select",
+                      help="KEY=V1,V2: only the region's features with that property")
     plan.add_argument("--minzoom", type=int, default=0)
     plan.add_argument("--maxzoom", type=int, required=True)
     plan.add_argument("--max-bytes", type=int, default=RAW_FILE_LIMIT,
