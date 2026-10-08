@@ -11,16 +11,18 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
 
+import '../../data/browser_storage.dart';
 import '../../data/outbox.dart';
+import '../../data/outbox_idb.dart';
 import '../../data/providers.dart';
 import '../../models/trail.dart';
 import 'trail_geometry.dart';
 
-/// Datei auf Android, im Browser bewusst KEIN Korb (#30): Dort wirft
-/// `append`, und der Netzfehler erscheint wie bisher. IndexedDB wie in
-/// PilzBuddy (#386) ist ein eigener Schritt.
+/// Datei auf Android, IndexedDB im Browser (#153). Ohne IndexedDB
+/// (privater Modus, `file://`) kein Korb: Dort wirft `append`, und der
+/// Netzfehler erscheint wie vor #30.
 final outboxProvider =
-    Provider<Outbox>((ref) => kIsWeb ? const NoOutbox() : FileOutbox());
+    Provider<Outbox>((ref) => chooseOutbox(web: kIsWeb, factory: browserIdbFactory()));
 
 /// Die Aufträge im Korb — gelesen beim Start, geändert nur über diesen
 /// Notifier, damit Anzeige und Datei nie auseinanderlaufen.
@@ -85,6 +87,18 @@ final outboxJobsProvider =
     AsyncNotifierProvider<OutboxJobsNotifier, List<OutboxJob>>(OutboxJobsNotifier.new);
 
 /// Wie viele Aufträge warten — die Zahl im Banner.
+/// Sichert die Ablage des Korbs zu, ihn nicht von selbst zu räumen?
+/// Auf Android immer. Im Browser die Antwort auf
+/// `navigator.storage.persisted()` — gefragt erst, wenn etwas wartet,
+/// und neu, sobald sich der Korb ändert (dann ist die Bitte vom ersten
+/// Ablegen beantwortet). Solange die Antwort aussteht, kein Hinweis: Einer,
+/// der kurz aufblitzt und wieder geht, wäre schlechter als einer, der
+/// einen Moment später kommt.
+final outboxDurableProvider = FutureProvider<bool>((ref) async {
+  if (ref.watch(pendingJobCountProvider) == 0) return true;
+  return ref.watch(outboxProvider).isDurable();
+});
+
 final pendingJobCountProvider =
     Provider<int>((ref) => ref.watch(outboxJobsProvider).valueOrNull?.length ?? 0);
 

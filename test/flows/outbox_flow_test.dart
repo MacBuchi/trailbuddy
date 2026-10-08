@@ -186,6 +186,43 @@ void main() {
     await drainSnackbars(tester);
   });
 
+  // Ein Browser darf seinen Speicher unter Druck räumen (#153). Weil der
+  // Korb das ORIGINAL trägt, wäre die Aufzeichnung dann lautlos weg —
+  // also sagt es die Karte. Auf Android sagt die Datei immer „zugesichert".
+  group('Zusicherung des Speichers', () {
+    final notDurable = find.byKey(const ValueKey('outbox-not-durable'));
+
+    testWidgets('nicht zugesichert: erst wenn etwas wartet, dann im Banner', (tester) async {
+      outbox.durable = false;
+      await pumpApp(tester, backend, trails: trails, outbox: outbox);
+      await settle(tester, frames: 8);
+      expect(notDurable, findsNothing,
+          reason: 'solange nichts wartet, gibt es nichts zu verlieren');
+      await tester.pumpWidget(const SizedBox());
+
+      await importOffline(tester);
+      await drainSnackbars(tester);
+      await tester.tap(find.byType(BackButton));
+      await settle(tester, frames: 20);
+      await openTab(tester, 'Karte');
+      await settle(tester, frames: 8);
+      expect(banner, findsOneWidget);
+      expect(notDurable, findsOneWidget);
+      expect(find.textContaining('Dein Browser sichert diesen Speicher nicht zu'), findsOneWidget);
+    });
+
+    testWidgets('zugesichert: kein Hinweis, auch wenn etwas wartet', (tester) async {
+      await importOffline(tester);
+      await drainSnackbars(tester);
+      await tester.tap(find.byType(BackButton));
+      await settle(tester, frames: 20);
+      await openTab(tester, 'Karte');
+      await settle(tester, frames: 8);
+      expect(banner, findsOneWidget);
+      expect(notDurable, findsNothing);
+    });
+  });
+
   testWidgets('abgelehnt vom Server: steht mit Grund da, bis jemand entscheidet',
       (tester) async {
     outbox.uid = annaId;

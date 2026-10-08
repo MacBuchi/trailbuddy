@@ -198,7 +198,7 @@ Code liegt — nicht wieder hierher.
 Was es bewusst noch nicht gibt:
 
 - **Noch nicht da, bewusst** (jeweils eigener PR, Muster in PilzBuddy):
-  Ausgangskorb und Zwischenspeicher im Browser (#153), Nachrichten zwischen Buddys (#34, Rest),
+  Nachrichten zwischen Buddys (#34, Rest),
   Meldung zu einem einzelnen Trail.
 
 ## Code-Konventionen

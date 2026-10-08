@@ -2,6 +2,21 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Ohne Empfang auch in der Web-App
+
+*Version 0.102.0, 2026-10-08*
+
+- **Die Web-App behält deine Trails**: Sie legt das Netz deiner Trails
+  im Speicher des Browsers ab. Startest du sie ohne Empfang neu, zeigt
+  sie den letzten Stand — mit Datum, damit du weißt, wie alt er ist.
+- **Den Ausgangskorb gibt es jetzt auch im Browser**: Steuerst du ohne
+  Netz eine Aufzeichnung bei, speicherst deine Einschätzung, meldest
+  etwas oder schickst Feedback, wartet der Auftrag im Browser und geht
+  raus, sobald wieder Verbindung besteht. Beim ersten Mal bittet die App
+  den Browser, diesen Speicher nicht von selbst zu räumen. Sagt er nein,
+  steht das auf der Karte — dann am besten senden, sobald du Empfang
+  hast.
+
 ## Gesehenes bleibt liegen — auch im Browser
 
 *Version 0.101.0, 2026-10-08*

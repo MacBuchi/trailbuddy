@@ -419,6 +419,11 @@ abstract interface class Outbox {
   /// Schreibt den ganzen Korb neu — der Weg der Wiedervorlage: „erledigt"
   /// und „Zähler hochgesetzt" werden GEMEINSAM gültig.
   Future<void> replaceAll(List<OutboxJob> jobs, {required String uid});
+
+  /// Sichert die Ablage zu, dass niemand sie von sich aus räumt? Eine
+  /// Datei ja; ein Browser darf unter Speicherdruck aufräumen, und dann
+  /// wäre das Original weg (#153, `outbox_idb.dart`).
+  Future<bool> isDurable();
 }
 
 /// Der Korb als Datei im App-Verzeichnis (Android). `outbox/` steht in
@@ -482,12 +487,15 @@ class FileOutbox implements Outbox {
     await temp.writeAsString(encodeOutbox(jobs, uid: uid), flush: true);
     await temp.rename(file.path);
   }
+
+  @override
+  Future<bool> isDurable() async => true;
 }
 
 /// Kein Ort zum Ablegen, also kein Korb: [append] wirft, und der Aufrufer
-/// meldet den ursprünglichen Netzfehler — wie vor diesem Feature. Das ist
-/// der Web-Zweig, bewusst (#30: „explicitly no outbox on web for now";
-/// PilzBuddy hat dort IndexedDB, #386).
+/// meldet den ursprünglichen Netzfehler — wie vor diesem Feature. Seit
+/// #153 nur noch der Browser OHNE IndexedDB (privater Modus, `file://`);
+/// mit IndexedDB gilt `IdbOutbox`.
 class NoOutbox implements Outbox {
   const NoOutbox();
 
@@ -500,6 +508,10 @@ class NoOutbox implements Outbox {
 
   @override
   Future<void> replaceAll(List<OutboxJob> jobs, {required String uid}) async {}
+
+  /// Hier liegt nie etwas, also kann auch nichts verfallen.
+  @override
+  Future<bool> isDurable() async => true;
 }
 
 class OutboxUnavailable implements Exception {

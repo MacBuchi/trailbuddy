@@ -9,7 +9,8 @@ const kBrowserDbName = 'trailbuddy';
 
 /// v1: gespeicherte Kartenbereiche (Konzept-Schritt 3).
 /// v2: gesehene Kacheln der Online-Karte (#155).
-const kBrowserDbVersion = 2;
+/// v3: Ausgangskorb und Kopie des Netzes (#153).
+const kBrowserDbVersion = 3;
 
 /// Der Index der Bereiche (ein Eintrag, die Liste als JSON-Text).
 const kAreaIndexStore = 'area_index';
@@ -28,7 +29,23 @@ const kSeenTileStore = 'seen_tiles';
 /// beim ersten Zugriff ganz gelesen, damit ein Fehlgriff nichts kostet.
 const kSeenTileIndexStore = 'seen_tile_index';
 
-const _stores = [kAreaIndexStore, kAreaArchiveStore, kAreaPoiStore, kSeenTileStore, kSeenTileIndexStore];
+/// Der Ausgangskorb (ein Eintrag `jobs`, derselbe JSON-Text wie
+/// `outbox/jobs.json` auf Android) — `outbox_idb.dart`.
+const kOutboxStore = 'outbox';
+
+/// Die Kopie des Netzes (ein Eintrag `network`, derselbe JSON-Text wie
+/// `trail_cache/network.json`) — `trail_cache_idb.dart`.
+const kTrailCacheStore = 'trail_cache';
+
+const _stores = [
+  kAreaIndexStore,
+  kAreaArchiveStore,
+  kAreaPoiStore,
+  kSeenTileStore,
+  kSeenTileIndexStore,
+  kOutboxStore,
+  kTrailCacheStore,
+];
 
 /// EINE Verbindung je Sitzung, egal wie viele Speicher sie benutzen.
 class BrowserDb {

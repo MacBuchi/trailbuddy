@@ -68,12 +68,14 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     optimistisches Update an Read-after-write vorbei: Der Wert ist als
     nicht übertragen gekennzeichnet, und der Server-Stand kommt danach
     wie immer durch Neuladen. `test/flows/write_feedback_flow_test.dart`.
-  - **Kein Korb im Web, ausdrücklich** (`NoOutbox`, `append` wirft): Dort
-    kommt der Netzfehler wie bisher. IndexedDB (PilzBuddy #386) ist ein
-    eigener Schritt. `outbox/` steht in beiden Backup-Ausschlüssen; beim
-    Abmelden bleibt der Korb liegen — er ist an das Konto gebunden
-    (`uid` im Kopf), ein fremdes sieht nichts. Der Harness hängt
-    `FakeOutbox` und einen `connectivityProvider` ohne Wechsel ein.
+  - **Im Browser liegt der Korb in IndexedDB** (#153, seit 0.102.0,
+    `outbox_idb.dart`, siehe unten „Korb und Kopie im Browser"). Nur ohne
+    IndexedDB (privater Modus, `file://`) gilt `NoOutbox`: `append`
+    wirft, der Netzfehler kommt wie vor #30. `outbox/` steht in beiden
+    Backup-Ausschlüssen; beim Abmelden bleibt der Korb liegen — er ist an
+    das Konto gebunden (`uid` im Kopf), ein fremdes sieht nichts. Der
+    Harness hängt `FakeOutbox` (mit `durable`) und einen
+    `connectivityProvider` ohne Wechsel ein.
 - **Zwischenspeicher des Netzes** (#32, `lib/data/trail_cache.dart`, seit
   0.15.0; PilzBuddy `spot_cache.dart` als Vorlage): Beim erfolgreichen
   Abruf schreibt `fetchWithCache` die drei Tabellen als EINE JSON-Datei
@@ -105,9 +107,45 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     behält den ProviderScope und ist KEIN Kaltstart — vorher
     `pumpWidget(SizedBox())`.
   - **Abmelden und Kontolöschung räumen die Kopie ab** (Profil), der
-    Ausgangskorb bleibt. Kein Korb/keine Kopie im Web, bewusst; IndexedDB
-    (PilzBuddy #385) ist ein eigener Schritt. Der Harness hängt
-    `FakeTrailCache` ein.
+    Ausgangskorb bleibt. Im Browser liegt die Kopie seit 0.102.0 in
+    IndexedDB (`trail_cache_idb.dart`); Warteschlange, Generationen und
+    „wirft nie" stehen EINMAL in `QueuedTrailCache`, Datei und IndexedDB
+    liefern nur Text. Der Harness hängt `FakeTrailCache` ein.
+- **Korb und Kopie im Browser** (#153, seit 0.102.0; PilzBuddy #385/#386
+  als Vorlage): `chooseOutbox`/`chooseTrailCache` entscheiden
+  (prüfbar — `kIsWeb` ist im Test immer falsch), `browserIdbFactory()`
+  in `browser_storage.dart` liefert den Zugang. Fünf Dinge, die man
+  wissen muss:
+  - **Name und Version der Datenbank besitzt `browser_db.dart`** (v3:
+    `outbox`, `trail_cache` neben Bereichen und gesehenen Kacheln). Zwei
+    Speicher mit verschiedenen Versionen blockierten den Upgrade im
+    selben Tab, dauerhaft und stumm.
+  - **Abgelegt wird derselbe JSON-TEXT wie in der Datei**, je Speicher
+    unter einem festen Schlüssel (`jobs`, `network`), das Konto IM
+    Eintrag. Als Objekt käme `Map<String, Object?>` zurück, und das ist
+    dem `Map<String, dynamic>` der `fromJson` nicht zuweisbar.
+  - **Nie die Speicher-Fassung als Rückfall**: `browserIdbFactory()` ist
+    `idbFactoryNative` oder `null`, nicht `idbFactoryBrowser` (der fällt
+    still auf den Speicher zurück, wenn der native Zugang wirft). Ein
+    Korb, der jeden Neustart vergisst, sähe aus wie einer, der bleibt.
+    Gesehene Kacheln und Bereiche nehmen noch `idbFactoryBrowser` — in
+    idb_shim 2.9.9 liefert der in jedem Browser mit IndexedDB dieselbe
+    native Fassung; umgestellt wird beim nächsten Anfassen.
+  - **Der Browser darf räumen, deshalb bittet der KORB um Dauer**: einmal
+    je Sitzung beim ersten `append` (`navigator.storage.persist()`), nie
+    beim Start (Firefox fragt nach), NICHT abgewartet — eine unbeantwortete
+    Nachfrage hielte sonst das Ablegen auf. Abgelegt wird auch bei
+    Ablehnung; `outboxDurableProvider` (nur solange etwas wartet, neu bei
+    jeder Korb-Änderung) lässt das Korb-Banner es sagen („Dein Browser
+    sichert diesen Speicher nicht zu …"). Die Kopie bittet nicht: Sie ist
+    nur eine Kopie.
+  - **Geprüft im echten Chrome**: `test/web/outbox_trail_cache_browser_test.dart`
+    (dart2js) verlangt `persistent` des Zugangs — ein stiller Rückfall auf
+    den Speicher sähe sonst grün aus (Gegenprobe gefahren). Die Logik
+    prüfen `test/outbox/outbox_idb_test.dart` und
+    `test/trails/trail_cache_idb_test.dart` auf der VM mit
+    `newIdbFactoryMemory()`; `test/fakes/broken_idb_factory.dart` steht
+    für „kein IndexedDB".
 - **Speichern ohne Neuladen des Netzes** (seit 0.82.1, Feldbericht
   2026-10-02 „abgestürzt beim Eintragen von Trail-Details, z. B. URL oder
   Sterne"; im Digest 2026-W40 ein ANR aus 0.82.0, Haupt-Thread 5 s in

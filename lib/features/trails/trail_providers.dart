@@ -8,10 +8,12 @@ import '../../core/connectivity.dart';
 import '../../core/errors.dart';
 import '../../core/read_after_write.dart';
 import '../../core/settings.dart';
+import '../../data/browser_storage.dart';
 import '../../data/outbox.dart';
 import '../../data/outbox_runner.dart';
 import '../../data/providers.dart';
 import '../../data/trail_cache.dart';
+import '../../data/trail_cache_idb.dart';
 import '../../data/trail_sharing.dart';
 import '../../data/trail_repository.dart';
 import '../../models/trail.dart';
@@ -520,10 +522,10 @@ class TrailsNotifier extends AsyncNotifier<List<Trail>>
 final trailsProvider =
     AsyncNotifierProvider<TrailsNotifier, List<Trail>>(TrailsNotifier.new);
 
-/// Die Kopie des Netzes (#32): Datei auf Android, im Browser bewusst
-/// keine (IndexedDB wie PilzBuddy #385 ist ein eigener Schritt).
+/// Die Kopie des Netzes (#32): Datei auf Android, IndexedDB im Browser
+/// (#153); ohne IndexedDB keine.
 final trailCacheProvider =
-    Provider<TrailCache>((ref) => kIsWeb ? const NoTrailCache() : FileTrailCache());
+    Provider<TrailCache>((ref) => chooseTrailCache(web: kIsWeb, factory: browserIdbFactory()));
 
 /// Wann der angezeigte Stand geholt wurde — `null`, solange er frisch aus
 /// dem Netz kommt. Karte und Liste sagen es, sonst hielte man einen alten
