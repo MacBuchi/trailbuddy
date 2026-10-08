@@ -4,7 +4,7 @@
 
 ## Wie gut ist der Weg?
 
-*Versionen 0.89.0–0.90.0, 2026-10-08*
+*Versionen 0.89.0–0.91.0, 2026-10-08*
 
 - **Forstwege nach Güte, Pfade nach Schwierigkeit**: Ab Zoomstufe 13
   liegt über den Wegen der Karte, was OpenStreetMap über sie weiß.
@@ -22,6 +22,11 @@
   gerade aus ist; schaltest du sie im Wald ein, sind sie da.
 - Bereiche von früher zeigen unter „Meine Bereiche" „Wege verfügbar";
   ein Tipp auf „Aktualisieren" holt sie nach.
+- **Feiner abgestuft** (0.91.0): Ganz schlechte Forstwege (grobes
+  Geröll, tiefe Spurrinnen, Matsch) und sehr schwere Pfade haben jetzt
+  eine eigene, noch blassere Stufe mit weiter auseinanderliegenden
+  Punkten. Das ist die Grundlage dafür, dass der Planer solche Wege
+  bergauf bald meidet.
 
 ## Höhenprofil der geplanten Runde
 

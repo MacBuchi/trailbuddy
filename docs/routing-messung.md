@@ -533,6 +533,14 @@ lädt aber bei einem schmalen Bereich entlang der Trails die vierfache
 Fläche mit. Mit den Nachbarländern der Box wird es mehr; `way-data.yml`
 veröffentlicht nichts, was größer ist als die Höhen.
 
+**Format 2 (#213, 2026-10-08, lokal auf denselben Auszügen):** dazu
+„Forstweg sehr schlecht" (grade5, `smoothness` ab bad, `surface=mud`),
+„Pfad sehr schwer" (ab S4/T4) und `mtb:scale:uphill` als zweite Zahl an
+Pfaden. 4,19 Mio. Wege mit Güte (+4 300), **93,2 MB** (+1 %), 53 620
+Kacheln. Von 200 zufällig gelesenen Kacheln tragen 179 die Klasse 7
+(grade4: 177, Pfad sehr schwer: 15) — grade5 und holprige Forstwege
+sind also kein Randfall.
+
 ## Was aus dem Werkzeug bleibt
 
 - Der MVT-Decoder, der COG-Leser, Klassentabelle, Zeitmodell, Graph

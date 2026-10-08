@@ -259,7 +259,14 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     `kWaysLayer`/`kWaysKey` hier, `FORMAT`/`ZOOM`/`LAYER`/`KEY` und die
     Klassen-Codes im Werkzeug; `test/release_workflow_test.dart` und
     `test/map/way_layer_test.dart` halten beide Seiten zusammen. Ein
-    fremdes Format lehnt das Manifest ab ⇒ keine Ebene.
+    fremdes Format lehnt das Manifest ab ⇒ keine Ebene. **Seit 0.91.0
+    Format 2** (#213): 7 „Forstweg sehr schlecht" (grade5, `smoothness`
+    ab bad, `surface=mud`) und 8 „Pfad sehr schwer" (ab S4/T4), an
+    Pfaden `u` = `mtb:scale:uphill` für das Routing; 1–6 behielten ihre
+    Codes. Deshalb zeichnet die App alte Bereichs-Archive (Format 1,
+    0.90.0) unverändert richtig, nur gröber — die werden beim Öffnen
+    nicht geprüft. Umgekehrt sehen Apps bis 0.90.0 nach dem Neubau von
+    `way-data.yml` keine Ebene mehr (Manifest abgelehnt, still).
   - **Nur Zoom 13 im Archiv**: Darunter zeigt keine Engine etwas
     (MapLibre-Quelle min = max = 13, vector_map_tiles liefert unter dem
     `minimumZoom` des Providers leere Kacheln), darüber wird
