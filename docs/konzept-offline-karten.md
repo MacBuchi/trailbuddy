@@ -336,6 +336,30 @@ eine Nutzungsbenachrichtigung im Cloudflare-Konto, und dieser Absatz.
 Wer den Schalter wieder umlegt, macht die Karte für alle aus, ohne
 dass CI es vor dem nächsten Monatslauf sieht.
 
+**Was im Bucket liegt, sagt `r2-inventory.yml`** (#230, seit dem
+2026-10-08; monatlich am 4., nach den Datenläufen vom 1. bis 3., und
+von Hand). Vier Workflows schreiben je einen datierten Stand plus
+Manifest und räumen „alles außer den zwei neuesten" ab — nachgesehen
+hat das niemand. Ein Lauf, der nach dem Hochladen und vor dem Manifest
+abbricht, hinterlässt einen Stand, den keiner nennt, und dann sind „die
+zwei neuesten" nicht mehr „der aktuelle und der davor".
+`tool/r2_inventory.py` liest die Auflistung des ganzen Buckets und die
+vier Manifeste AUS DEM BUCKET (nicht über den Edge-Cache) und schreibt
+in die Run-Summary: je Familie die Stände mit Zustand (aktuell / davor /
+veraltet / verwaist), was im Präfix keiner Familie gehört, doppelt
+Abgelegtes (gleiche Größe und ETag), unfertige Multipart-Uploads und
+die Summe gegen die 10 GB freien Speicher. Fremde Präfixe (PilzBuddy)
+werden gezählt, nicht bewertet. **Er liest nur** — der Selbsttest
+verbietet `rm`, `sync`, `put`/`delete` und ein `s3 cp` in den Bucket
+im Workflow; was weg soll, entscheidet der Betreiber aus dem Bericht.
+**Rot** wird der Lauf nur, wenn ein Manifest einen Stand nennt, den der
+Bucket nicht vollständig hält (Datei fehlt, Größe oder Dateizahl weicht
+ab): Dann liest die App einen kaputten Stand. Zwillinge zwischen dem
+aktuellen und dem vorigen Stand einer Familie sind erwartbar (das DEM
+ist statisch, die meisten Ort-Zellen bleiben gleich) und gehen mit dem
+älteren Stand. Die Größen je Familie sind die Ausgangszahl für die
+Messung jenseits von DACH (#220).
+
 1. **Der Host.** Drei Ausgänge, wie in PilzBuddy #496 beschrieben:
    - **Objektspeicher (Cloudflare R2)**: kein Größenlimit je Datei, CORS
      und Range einstellbar, DACH Zoom 14 in EINER Datei. Kostet ein
