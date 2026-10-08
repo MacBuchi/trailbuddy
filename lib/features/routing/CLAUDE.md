@@ -476,3 +476,27 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     (Neustart des Geräts), wird aufgeräumt statt geöffnet. Der Harness
     hängt `FakeNavServiceBridge` ein — ohne ginge jeder Navigations-Test
     an `path_provider`.
+- **Bild-im-Bild** (#232 Schritt 3, seit 0.97.0, `lib/core/picture_in_picture*.dart`,
+  Kanal `de.mcbuchi.trailbuddy/pip` in `MainActivity`; Konzept-Routing
+  9.6). Vier Dinge:
+  - **Erlaubt nur, solange navigiert wird**: `MapScreen` ruft
+    `allow(true/false)` beim Wechsel von `navigationProvider` zwischen
+    null und nicht null — auch eine nach dem Neustart zurückgeholte
+    Navigation kommt so hin. Ab Android 12 geht es über
+    `setAutoEnterEnabled` von selbst ins Fenster, darunter in
+    `onUserLeaveHint`; ohne `FEATURE_PICTURE_IN_PICTURE` (Go-Geräte) gar
+    nicht.
+  - **Klein heißt `pipModeProvider`**: `NavOverlay(compact: true)` zeigt
+    nur die Zahlen in einer Zeile (`nav-pip`, `Text.rich` — im Test über
+    `textSpan.toPlainText()` lesen), die Hülle (`AppShell`) lässt die
+    Reiterleiste weg, und der Bildschirm-Schalter gilt nicht (9.4).
+    Beim Kleinwerden geht es auf die Karte (`go('/')`).
+  - **„Beenden" im Fenster** ist eine `RemoteAction` mit einem Broadcast
+    nur an die App (`setPackage`, Empfänger `RECEIVER_NOT_EXPORTED`); er
+    kommt als `stop` über den Kanal und endet wie der Knopf. Endet die
+    Navigation, während die App klein ist, macht `allow(false)` das
+    Fenster zu (`moveTaskToBack`) — es zeigte sonst eine Karte ohne Route.
+  - **Kein Test-Netz für Kotlin**: `android_manifest_test` hält Kanalname,
+    `supportsPictureInPicture`, die configChanges und das Fehlen von
+    `SYSTEM_ALERT_WINDOW` fest; ob es kompiliert, sagt nur
+    `flutter build apk --debug --flavor github`.

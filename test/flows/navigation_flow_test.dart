@@ -7,7 +7,8 @@
 // `trail_head_flow_test`), ohne Bereich ein Satz; „zuletzt navigiert" in
 // „Meine Fahrten" geht weiter. Der Dienst (9.5): Melder am Koordinator
 // mit Knopf, „Navigation beenden" aus der Benachrichtigung, Zurückholen
-// nach einem Neustart der App.
+// nach einem Neustart der App. Das Bild-im-Bild (9.6): nur bei laufender
+// Navigation erlaubt, klein nur die Zahlen, „Beenden" im Fenster.
 import 'dart:async';
 import 'dart:math' as math;
 
@@ -18,6 +19,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:pmtiles/pmtiles.dart';
+import 'package:trailbuddy/core/picture_in_picture.dart';
 import 'package:trailbuddy/core/screen_awake.dart';
 import 'package:trailbuddy/features/map/map_view/map_view.dart';
 import 'package:trailbuddy/features/offline_areas/area_plan.dart';
@@ -43,6 +45,26 @@ class _FakeScreenAwake implements ScreenAwake {
 
   @override
   Future<void> keepOn(bool on) async => calls.add(on);
+}
+
+/// Spielt das Fenster: merkt, was erlaubt wird, und meldet wie der Kanal.
+class _FakePip implements PictureInPicture {
+  final allowed = <bool>[];
+  void Function(bool inPip)? _onMode;
+  VoidCallback? _onStop;
+
+  void enter() => _onMode!(true);
+  void leave() => _onMode!(false);
+  void tapStop() => _onStop!();
+
+  @override
+  Future<void> allow(bool on) async => allowed.add(on);
+
+  @override
+  void listen({required void Function(bool inPip) onMode, required VoidCallback onStop}) {
+    _onMode = onMode;
+    _onStop = onStop;
+  }
 }
 
 /// Eine geplante Runde nach Osten: 20 Abschnitte à 0,001° Länge.
@@ -141,7 +163,8 @@ void main() {
       MemoryAreaStore? areaStore,
       LatLng start = const LatLng(_lat, 11),
       FakeKeepAlive? keepAlive,
-      FakeNavServiceBridge? navBridge}) async {
+      FakeNavServiceBridge? navBridge,
+      _FakePip? pip}) async {
     if (phone) {
       tester.view.physicalSize = const Size(1080, 2400);
       tester.view.devicePixelRatio = 3;
@@ -159,7 +182,10 @@ void main() {
           ..next = RidePoint(lat: start.latitude, lng: start.longitude, at: DateTime.now().toUtc(), accuracyM: 5),
         positionStream: fixes.stream,
         positionFix: FakePositionFix(fakePosition(start.latitude, start.longitude, heading: 90, speed: 0)),
-        extraOverrides: [screenAwakeProvider.overrideWithValue(screen)]);
+        extraOverrides: [
+          screenAwakeProvider.overrideWithValue(screen),
+          if (pip != null) pictureInPictureProvider.overrideWithValue(pip),
+        ]);
     await openProfilePage(tester, 'rides');
     await settle(tester);
     await tester.tap(find.byKey(const ValueKey('ride-menu-20261008T090000Z')));
@@ -170,7 +196,7 @@ void main() {
 
   String textIn(String key) => [
         for (final t in find.descendant(of: find.byKey(ValueKey(key)), matching: find.byType(Text)).evaluate())
-          (t.widget as Text).data ?? ''
+          (t.widget as Text).data ?? (t.widget as Text).textSpan?.toPlainText() ?? ''
       ].join(' ');
 
   testWidgets('from „Meine Fahrten": turns with the course, counts down, warns off the route, ends at the goal',
@@ -405,5 +431,45 @@ void main() {
     expect(bridge.armed!.startAlongM, 600);
     await fix(tester, _lat, _lng(10));
     expect(textIn('nav-remaining'), contains('758 m'));
+  });
+
+  testWidgets('picture-in-picture: allowed only while navigating, small shows the numbers, Beenden in the window',
+      (tester) async {
+    final pip = _FakePip();
+    await startFromRides(tester, pip: pip);
+    expect(pip.allowed, isEmpty, reason: 'ohne Navigation kein Fenster');
+    await tester.tap(find.byKey(const ValueKey('nav-go')));
+    await settle(tester);
+    expect(pip.allowed, [true]);
+
+    // Klein: keine Leiste, keine Knöpfe, keine Reiterleiste — die Zahlen
+    // in einer Zeile, und der Bildschirm darf aus (9.4).
+    pip.enter();
+    await settle(tester);
+    expect(find.byKey(const ValueKey('nav-pip')), findsOneWidget);
+    expect(find.byKey(const ValueKey('nav-bar')), findsNothing);
+    expect(find.byKey(const ValueKey('nav-stop')), findsNothing);
+    expect(find.byType(NavigationBar), findsNothing);
+    expect(textIn('nav-pip'), contains('1,5 km'));
+    expect(screen.calls.last, isFalse);
+    await fix(tester, _lat + 0.0006, _lng(12));
+    await fix(tester, _lat + 0.0006, _lng(12));
+    expect(textIn('nav-pip'), contains('67 m daneben'));
+
+    // Wieder groß: alles zurück, der Bildschirm wieder an.
+    pip.leave();
+    await settle(tester);
+    expect(find.byKey(const ValueKey('nav-bar')), findsOneWidget);
+    expect(find.byType(NavigationBar), findsOneWidget);
+    expect(screen.calls.last, isTrue);
+
+    // „Beenden" im Fenster beendet wie der Knopf, und das Fenster ist
+    // danach nicht mehr erlaubt.
+    pip.enter();
+    await settle(tester);
+    pip.tapStop();
+    await settle(tester);
+    expect(find.byKey(const ValueKey('nav-pip')), findsNothing);
+    expect(pip.allowed, [true, false]);
   });
 }

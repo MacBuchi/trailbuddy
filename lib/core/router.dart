@@ -22,6 +22,7 @@ import '../features/trails/still_valid_screen.dart';
 import '../features/trails/trail_import_screen.dart';
 import '../features/trails/trail_providers.dart' show mapFocusTrailProvider;
 import '../features/trails/trails_screen.dart';
+import 'picture_in_picture.dart';
 import 'router_branches.dart';
 import 'widgets/keyboard_inset_below_bar.dart';
 
@@ -157,13 +158,13 @@ final routerProvider = Provider<GoRouter>((ref) {
   );
 });
 
-class AppShell extends StatelessWidget {
+class AppShell extends ConsumerWidget {
   const AppShell({super.key, required this.navigationShell});
 
   final StatefulNavigationShell navigationShell;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     // Zurück nach Hierarchie (#175): Blätter, Dialoge und Unterseiten
     // schließt der Navigator ihres Reiters zuerst; an der Wurzel eines
     // anderen Reiters führt Zurück auf die Karte, erst dort verlässt es
@@ -199,7 +200,9 @@ class AppShell extends StatelessWidget {
       // Leistenhöhe über dem Rand — ein Reiter-Scaffold darf nur um den
       // Rest der Tastatur schrumpfen.
       body: KeyboardInsetBelowBar(child: navigationShell),
-      bottomNavigationBar: CoachAnchor(
+      // Im Bild-im-Bild (#232, 9.6) ist die App nur noch Karte: keine
+      // Reiterleiste, die das kleine Fenster zur Hälfte füllte.
+      bottomNavigationBar: ref.watch(pipModeProvider) ? null : CoachAnchor(
         id: NavCoach.bar,
         child: NavigationBar(
           selectedIndex: navigationShell.currentIndex,

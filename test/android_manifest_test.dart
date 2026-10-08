@@ -44,6 +44,26 @@ void main() {
     expect(kotlin, contains('FLAG_KEEP_SCREEN_ON'));
   });
 
+  test('Bild-im-Bild: Kanal in Kotlin und Dart gleich, Activity darf ins Fenster (#232)', () {
+    final kotlin = File('android/app/src/main/kotlin/${appId.replaceAll('.', '/')}/MainActivity.kt').readAsStringSync();
+    final dart = File('lib/core/picture_in_picture_io.dart').readAsStringSync();
+    const channel = 'de.mcbuchi.trailbuddy/pip';
+    expect(kotlin, contains('"$channel"'));
+    expect(dart, contains("'$channel'"));
+    // Ohne das Attribut wirft `enterPictureInPictureMode`; ohne die
+    // configChanges startete die Activity beim Schrumpfen neu.
+    final activity = RegExp(r'<activity[^>]*android:name="\.MainActivity"[^>]*>').firstMatch(manifest)!.group(0)!;
+    expect(activity, contains('android:supportsPictureInPicture="true"'));
+    final changes = RegExp(r'android:configChanges="([^"]+)"').firstMatch(activity)!.group(1)!.split('|');
+    expect(changes, containsAll(['screenSize', 'smallestScreenSize', 'screenLayout', 'orientation']));
+    // Hinein von selbst ab Android 12, darunter beim Verlassen; der Knopf
+    // im Fenster geht nur an uns selbst. Kein Overlay-Recht (9.6).
+    expect(kotlin, contains('setAutoEnterEnabled'));
+    expect(kotlin, contains('override fun onUserLeaveHint'));
+    expect(kotlin, contains('RECEIVER_NOT_EXPORTED'));
+    expect(manifest, isNot(contains('android.permission.SYSTEM_ALERT_WINDOW')));
+  });
+
   test('Zurück auf der Karte legt die App in den Hintergrund, statt sie zu beenden', () {
     // #175: Flutter ruft ohne Überschreibung `finish()` — die Karte
     // startete danach von vorn. Der Weg dorthin ist Dart (AppShell); hier

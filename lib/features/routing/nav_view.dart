@@ -130,11 +130,17 @@ class _NavStartSheetState extends ConsumerState<_NavStartSheet> {
 
 /// Leiste oben, Knöpfe unten; hält den Bildschirm an, solange sie steht
 /// und der Schalter an ist.
+///
+/// [compact] ist die Fassung für das Bild-im-Bild (9.6): keine Knöpfe,
+/// keine Karte als Leiste, die drei Zahlen klein über der Karte — und der
+/// Bildschirm-Schalter gilt nicht, dann ist die Benachrichtigung die
+/// Anzeige (9.4).
 class NavOverlay extends ConsumerStatefulWidget {
-  const NavOverlay({super.key, required this.session, required this.onStop});
+  const NavOverlay({super.key, required this.session, required this.onStop, this.compact = false});
 
   final NavSession session;
   final VoidCallback onStop;
+  final bool compact;
 
   @override
   ConsumerState<NavOverlay> createState() => _NavOverlayState();
@@ -147,7 +153,15 @@ class _NavOverlayState extends ConsumerState<NavOverlay> {
   @override
   void initState() {
     super.initState();
-    if (ref.read(navKeepScreenOnProvider)) unawaited(_screen.keepOn(true));
+    if (ref.read(navKeepScreenOnProvider) && !widget.compact) unawaited(_screen.keepOn(true));
+  }
+
+  @override
+  void didUpdateWidget(NavOverlay old) {
+    super.didUpdateWidget(old);
+    if (old.compact != widget.compact) {
+      unawaited(_screen.keepOn(!widget.compact && ref.read(navKeepScreenOnProvider)));
+    }
   }
 
   @override
@@ -158,10 +172,11 @@ class _NavOverlayState extends ConsumerState<NavOverlay> {
 
   @override
   Widget build(BuildContext context) {
-    ref.listen(navKeepScreenOnProvider, (_, on) => unawaited(_screen.keepOn(on)));
+    ref.listen(navKeepScreenOnProvider, (_, on) => unawaited(_screen.keepOn(on && !widget.compact)));
     final session = widget.session;
     final keepOn = ref.watch(navKeepScreenOnProvider);
     final arrived = session.state?.arrived ?? false;
+    if (widget.compact) return _PipNumbers(session: session);
     // „Zurück zur Route" nur abseits (9.3) und solange kein Stück liegt.
     final offer = !arrived && (session.state?.offRoute ?? false) && session.rejoin != NavRejoin.shown;
     return Stack(children: [
@@ -223,6 +238,58 @@ class _NavOverlayState extends ConsumerState<NavOverlay> {
         ),
       ),
     ]);
+  }
+}
+
+/// Das Fenster ist ~150 dp breit: die drei Zahlen ohne Beschriftung in
+/// einer Zeile, abseits der Abstand in Warnfarbe; am Ziel ein Wort.
+class _PipNumbers extends StatelessWidget {
+  const _PipNumbers({required this.session});
+
+  final NavSession session;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final palette = AppPalette.of(context);
+    final state = session.state;
+    final climb = session.remainingClimbM;
+    final off = state?.offRoute ?? false;
+    final style = theme.textTheme.labelLarge?.copyWith(fontFamily: AppFonts.mono);
+    final arrived = state?.arrived ?? false;
+    return Align(
+      alignment: Alignment.topCenter,
+      child: Padding(
+        padding: const EdgeInsets.all(4),
+        child: DecoratedBox(
+          key: const ValueKey('nav-pip'),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surface.withValues(alpha: 0.9),
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: arrived
+                  ? Text('Angekommen', style: style)
+                  : Text.rich(
+                      TextSpan(children: [
+                        TextSpan(text: formatMeters(session.remainingM)),
+                        if (climb != null) TextSpan(text: ' · ${climb.round()} hm'),
+                        if (off && state != null)
+                          TextSpan(
+                              text: ' · ${formatMeters(state.offM)} daneben',
+                              style: TextStyle(color: palette.warningText)),
+                      ]),
+                      style: style,
+                      maxLines: 1,
+                    ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
 
