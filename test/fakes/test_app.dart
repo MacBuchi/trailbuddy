@@ -21,6 +21,8 @@ import 'package:trailbuddy/core/update_check.dart';
 import 'package:trailbuddy/core/widgets/start_splash.dart';
 import 'package:trailbuddy/data/providers.dart';
 import 'package:trailbuddy/features/map/base_map_providers.dart';
+import 'package:trailbuddy/features/map/contour_layer.dart' show computeContours;
+import 'package:trailbuddy/features/map/contour_providers.dart';
 import 'package:trailbuddy/features/map/online_map.dart';
 import 'package:trailbuddy/features/offline_areas/area_providers.dart';
 import 'package:trailbuddy/features/map/map_view/flutter_map_view.dart';
@@ -187,6 +189,8 @@ List<Override> overridesFor(FakeBackend backend,
       keepAliveProvider.overrideWithValue(keepAlive ?? FakeKeepAlive()),
       // Ein echter Rechen-Isolate antwortet in der Test-Zone nie (#188).
       loopPlanRunnerFactoryProvider.overrideWithValue(InlineLoopPlanRunner.new),
+      // Dasselbe für die Höhenlinien (#271): an Ort und Stelle rechnen.
+      contourComputeProvider.overrideWithValue((job) async => computeContours(job)),
       connectivityProvider.overrideWith(
           (ref) => connectivity ?? Stream.value(const [ConnectivityResult.wifi])),
       updateInfoProvider.overrideWith((ref) => Future.value(null)),

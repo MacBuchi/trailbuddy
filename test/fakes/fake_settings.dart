@@ -12,6 +12,7 @@ class FakeSettings implements Settings {
       this.stillValidSnoozes,
       this.officialTrailsEnabled = true,
       this.wayLayerEnabled = true,
+      this.contourLayerEnabled = false,
       this.mapLegendOpen = false,
       this.navKeepScreenOn = true,
       this.pushToken,
@@ -62,6 +63,14 @@ class FakeSettings implements Settings {
   @override
   Future<void> setWayLayerEnabled(bool value) async {
     wayLayerEnabled = value;
+  }
+
+  @override
+  bool contourLayerEnabled;
+
+  @override
+  Future<void> setContourLayerEnabled(bool value) async {
+    contourLayerEnabled = value;
   }
 
   @override

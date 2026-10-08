@@ -74,6 +74,18 @@ class FeatureHighlight {
 const kFeatureHighlights = <FeatureHighlight>[
   // ─── Highlights ──────────────────────────────────────────────────
   FeatureHighlight(
+    id: 'contours',
+    since: '0.100.0',
+    kind: HighlightKind.highlight,
+    tab: HighlightTab.map,
+    icon: Icons.layers_outlined,
+    title: 'Höhenlinien',
+    text: 'Unter „Kartenebenen" schaltest du Höhenlinien dazu — dezent unter Wegen '
+        'und Trails, beschriftet etwa alle 100 m. Sie kommen aus dem Geländemodell, '
+        'in gespeicherten Bereichen auch ohne Empfang.',
+    target: '/',
+  ),
+  FeatureHighlight(
     id: 'nav-pip',
     since: '0.97.0',
     kind: HighlightKind.highlight,

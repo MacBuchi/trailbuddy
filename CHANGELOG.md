@@ -2,6 +2,18 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Höhenlinien
+
+*Version 0.100.0, 2026-10-08*
+
+- **Höhenlinien auf der Karte**: Unter „Kartenebenen" schaltest du sie
+  dazu. Sie liegen dezent unter Wegen und Trails, die kräftigeren tragen
+  ihre Höhe. Wie dicht sie liegen, richtet sich nach dem Gelände: im
+  Hügelland alle 10 oder 20 m, in den Alpen alle 50 oder 100 m — die
+  Legende sagt, welcher Abstand gerade gilt. Sie kommen aus demselben
+  Geländemodell wie die Höhenprofile, in gespeicherten Bereichen also
+  auch ohne Empfang. Weit herausgezoomt erscheinen keine.
+
 ## Gesehenes bleibt liegen
 
 *Version 0.99.0, 2026-10-08*

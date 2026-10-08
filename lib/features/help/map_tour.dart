@@ -84,6 +84,9 @@ abstract final class MapCoach {
 
   /// Der Schalter „Wege" (#212): Forstweg-Güte und Pfad-Schwierigkeit.
   static const filterWays = 'map.filter.ways';
+
+  /// Der Schalter „Höhenlinien" (#271).
+  static const filterContours = 'map.filter.contours';
   static const filterPois = 'map.filter.pois';
 
   /// Die Legende am linken Rand (#182) — Anker UND Szene (sie klappt sie

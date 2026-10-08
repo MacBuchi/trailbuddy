@@ -345,3 +345,59 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     View), Gate ist das Gerät. Im Browser gibt es das noch nicht — dort
     braucht flutter_map einen eigenen Speicher in IndexedDB (eigener PR
     zu #155).
+- **Höhenlinien** (#271, seit 0.100.0, `contours.dart` = PilzBuddys
+  Maschine Zeile für Zeile, `contour_layer.dart` pur, `contour_providers.dart`;
+  Aussehen `docs/design/README.md` 5b): aus den Höhenkacheln, die Planer,
+  Trail-Profil und Navigation ohnehin lesen — offline aus den Bereichen,
+  online vom Host über `OnlineHeights` und den Sitzungsspeicher. Kein
+  neues Netzziel, kein Asset. Schalter „Höhenlinien" in „Kartenebenen"
+  (`Settings.contourLayerEnabled`, `contour_layer_enabled`, Vorgabe aus;
+  `FakeSettings` ebenso). Sieben Dinge, die man wissen muss:
+  - **Das Fenster IST eine Menge von z13-Kacheln** (alle, die der
+    Ausschnitt berührt, plus die Nachbarin, wenn der Rand näher als 1,5
+    Proben an einer Kante liegt), und die Proben liegen auf EINEM
+    Weltraster (`gx = Kachel-x · 48 + Spalte`). Schieben innerhalb
+    derselben Kacheln liest und rechnet nichts neu (`contourInputOf`,
+    Maßstab auf Achtelstufen gerastert; Flow-Test zählt die Lesungen).
+  - **Geglättet wird über das ganze Fenster, behalten nur das Innere**
+    (`contourFieldFrom`): Am äußersten Ring hinge das 3 × 3 davon ab, wo
+    das Fenster endet, und die Linien sprängen am alten Rand, sobald eine
+    Kachelreihe dazukommt. Test: jede verbleibende Probe hat in jedem
+    Fenster denselben Wert (Gegenprobe ohne den Schnitt: rot).
+  - **Glätten ist an, und das ist angesehen** (2026-10-08, echte Kacheln
+    vom Host, Brandenburg, Pfälzerwald, Innsbruck): Das Geländemodell ist
+    ein Oberflächenmodell, Waldkanten machen 10–20-m-Stufen, ungeglättet
+    104 statt 59 Linien im Flachen, die Mehrzahl Störringe. In den Alpen
+    kostet es wenig Form.
+  - **Die Regeln sind PilzBuddys** (Äquidistanz aus dem 75. Perzentil des
+    Reliefs, ≥ 20 px zwischen Nachbarlinien, Schwellen in Pixeln und
+    Metern je Pixel, nie Zoomstufen), mit drei Abweichungen: 10 m als
+    feinste Stufe (ganze Meter statt 20-m-Stufen), Hauptlinien höchstens
+    jede zweite (in den Alpen war sonst alles kräftig), und zwei
+    Grenzen: über `kContourMaxMetersPerPixel` (40) oder
+    `kContourMaxTiles` (64, eine KOSTENgrenze — jede Kachel ohne Bereich
+    ist online eine R2-Class-B-Anfrage, #55) heißt es „Erst näher
+    heranzoomen", ohne eine Kachel zu lesen.
+  - **Die Reihenfolge der Prüfungen in `contourStateProvider` IST die
+    Zusage**: erst der Schalter, dann die Grenzen, dann die Kacheln.
+    Beobachten ist laden; Gegenprobe ohne die Schalter-Zeile: zwei
+    Flow-Tests rot.
+  - **In MapLibre ein EIGENER Abgleich unter der Wege-Ebene**
+    (`KeyedLayerSync(firstSlot: kContourFirstSlot)`, `below:`): Die
+    übrigen eigenen Ebenen liegen zuoberst, die Höhenlinien gehören unter
+    Wege und Namen. Der Anker ist die erste Ebene der Folge aus Wegen,
+    Symbolen und Rastern am Ende des Stils (`contourAnchorIn`), also über
+    den deckenden Flächen der Bereiche (#82) — vor UND nach #272 (Namen
+    über den Wegen). Fehlt er, unter die unterste eigene Ebene, nie
+    zuoberst. Eigene Plätze ab 2^20, weil die Kennungen aus dem Platz
+    kommen. `ContourLineLayer` statt `ml.PolylineLayer`: Das Paket nimmt
+    die Breite nur ganzzahlig. Die Ebenen bleiben dieselben Objekte,
+    solange `TerrainContours.key` gleich ist — sonst übertrüge jeder
+    Neuaufbau das GeoJSON neu.
+  - **In flutter_map** eine `PolylineLayer` VOR den Wege-Schichten, die
+    Zahlen als gedrehte Marker gleich dahinter (`ContourLabelText`); kein
+    Text entlang der Linie (`contourLabels` rechnet die Plätze). Gerechnet
+    wird mit `compute` (Web inline); der Harness ersetzt die Naht
+    `contourComputeProvider`, weil ein echter Isolate in der Test-Zone nie
+    antwortet. Gemessen im JIT: 9 Kacheln Alpen 16 ms, 4 Kacheln 7–8 ms;
+    auf dem Gerät noch nicht.

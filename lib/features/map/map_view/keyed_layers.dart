@@ -121,8 +121,26 @@ List<LayerOp> planLayerOps(OnMap onMap, List<KeyedLayer> desired, int Function()
 /// Führt [planLayerOps] gegen die Karte aus. Ein neuer Stil (`setStyle`)
 /// nimmt alle eigenen Ebenen mit — danach [reset] und neu abgleichen.
 class KeyedLayerSync {
+  /// [firstSlot] trennt zwei Abgleiche auf derselben Karte: Die Kennungen
+  /// der Ebenen kommen aus dem Platz (`maplibre-layer-<slot>`), und die
+  /// Höhenlinien (#271) haben einen eigenen Abgleich unter der Wege-Ebene.
+  KeyedLayerSync({int firstSlot = 0}) : _slots = firstSlot;
+
   final OnMap _onMap = {};
-  int _slots = 0;
+  int _slots;
+
+  /// Die Kennungen des letzten Wunschs, unten zuerst.
+  List<String> _order = const [];
+
+  /// Die Ebenen-Kennung der UNTERSTEN eigenen Ebene, die schon auf der
+  /// Karte liegt — null ohne.
+  String? get bottomLayerId {
+    for (final key in _order) {
+      final on = _onMap[key];
+      if (on != null) return on.layer.getLayerId(on.slot);
+    }
+    return null;
+  }
 
   /// Wie viele Schritte der letzte Abgleich brauchte — für Tests und die
   /// Messung, nicht für die Logik.
@@ -131,7 +149,7 @@ class KeyedLayerSync {
   /// Läuft gerade ein Abgleich, wartet der nächste Wunsch, und nur der
   /// jüngste zählt.
   bool _running = false;
-  ({ml.StyleController style, List<KeyedLayer> desired})? _queued;
+  ({ml.StyleController style, List<KeyedLayer> desired, String? below})? _queued;
 
   /// Zählt die Stile: Ein Abgleich, der noch gegen den alten Stil läuft,
   /// hört auf, sobald ein neuer geladen ist — sonst schriebe er in den
@@ -144,28 +162,31 @@ class KeyedLayerSync {
     _onMap.clear();
   }
 
-  Future<void> sync(ml.StyleController style, List<KeyedLayer> desired) async {
-    _queued = (style: style, desired: desired);
+  /// [below]: Die oberste Ebene des Wunschs liegt unter dieser Ebene des
+  /// Stils statt zuoberst (die Höhenlinien unter den Wegen).
+  Future<void> sync(ml.StyleController style, List<KeyedLayer> desired, {String? below}) async {
+    _queued = (style: style, desired: desired, below: below);
     if (_running) return;
     _running = true;
     try {
       for (var next = _queued; next != null; next = _queued) {
         _queued = null;
-        await _apply(next.style, next.desired);
+        await _apply(next.style, next.desired, next.below);
       }
     } finally {
       _running = false;
     }
   }
 
-  Future<void> _apply(ml.StyleController style, List<KeyedLayer> desired) async {
+  Future<void> _apply(ml.StyleController style, List<KeyedLayer> desired, String? below) async {
     final epoch = _epoch;
+    _order = [for (final d in desired) d.key];
     final ops = planLayerOps(_onMap, desired, () => _slots++);
     lastOps = ops.length;
     for (final op in ops) {
       if (epoch != _epoch) return;
       try {
-        await _run(style, op);
+        await _run(style, op, below);
       } catch (e, s) {
         if (epoch != _epoch) return;
         logError('Kartenebene abgleichen', e, s);
@@ -178,7 +199,7 @@ class KeyedLayerSync {
     }
   }
 
-  static Future<void> _run(ml.StyleController style, LayerOp op) async {
+  static Future<void> _run(ml.StyleController style, LayerOp op, String? below) async {
     final layer = op.layer;
     final slot = op.slot;
     String data() => ml.FeatureCollection(layer.list).toText();
@@ -186,14 +207,14 @@ class KeyedLayerSync {
       case AddLayerOp(:final belowSlot, :final belowLayer):
         await style.addSource(ml.GeoJsonSource(id: layer.getSourceId(slot), data: data()));
         await style.addLayer(layer.createStyleLayer(slot),
-            belowLayerId: belowSlot == null ? null : belowLayer!.getLayerId(belowSlot));
+            belowLayerId: belowSlot == null ? below : belowLayer!.getLayerId(belowSlot));
       case UpdateSourceOp():
         await style.updateGeoJsonSource(id: layer.getSourceId(slot), data: data());
       case RestyleOp(:final updateSource, :final belowSlot, :final belowLayer):
         await style.removeLayer(layer.getLayerId(slot));
         if (updateSource) await style.updateGeoJsonSource(id: layer.getSourceId(slot), data: data());
         await style.addLayer(layer.createStyleLayer(slot),
-            belowLayerId: belowSlot == null ? null : belowLayer!.getLayerId(belowSlot));
+            belowLayerId: belowSlot == null ? below : belowLayer!.getLayerId(belowSlot));
       case RemoveLayerOp():
         await style.removeLayer(layer.getLayerId(slot));
         await style.removeSource(layer.getSourceId(slot));

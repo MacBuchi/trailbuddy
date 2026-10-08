@@ -323,6 +323,32 @@ Reihenfolge: Bänder, Forstwege, ihre Mittelstreifen, dann die Pfade —
 ein Pfad, der einen Forstweg kreuzt, liegt über dem Streifen. Die Legende zeigt die acht Proben unter „Forstweg" und „Pfad",
 gezeichnet wie MapLibre (`paintWayStroke`), nur solange die Ebene an ist.
 
+## 5b. Höhenlinien (#271) — `lib/features/map/contour_layer.dart`
+
+**Dezent, kühl, unter allem, was man fährt** (Betreiber, 2026-10-08:
+„relativ dezent", Schalter in „Kartenebenen", kein eigener Knopf). Ab
+Werk aus.
+
+| | Farbe | Deckkraft | Breite (px, jede Zoomstufe) |
+|---|---|---|---|
+| Linie | `#5b6b7a` (`AppColors.contourLine`) | 0,35 | 0,8 |
+| Hauptlinie | dasselbe | 0,55 | 1,2 |
+| Zahl | `#44515c` (`AppColors.contourLabel`), weißer Hof 1,4 | — | 10,5 pt |
+
+- **Graublau, weil Braun und Blau vergeben sind**: Braun heißt „Weg"
+  (5a), Blau heißt S1. Die Farbe ist PilzBuddys.
+- **Schmaler als jeder Pfad** (0,9 bei z15): Eine Höhenlinie darf nie wie
+  ein Weg aussehen. Dezent wird es über Deckkraft und Breite, nicht über
+  eine blassere Farbe — die verschwände auf Waldgrün.
+- **Reihenfolge**: über den Flächen der Karte (auch der Bereiche), unter
+  Wegen, Namen und Trails — in beiden Engines.
+- **Hauptlinien mindestens alle 100 m und höchstens jede zweite** (10 →
+  100, 50 → 100, 100 → 200). Mit „jede Linie ab 100 m" waren in den Alpen
+  alle Linien kräftig und beschriftet. Die Zahlen setzt MapLibre entlang
+  der Linie, flutter_map gedreht in die Linie (selten, ~420 px Abstand).
+- Die Legende zeigt zwei Proben unter „Höhenlinien" mit dem Abstand, der
+  gerade gilt — nur, solange welche liegen.
+
 ## 6. Karte mit zwei Leisten (Turn 3, Spezifikation 3e)
 
 - **Rechts unten — immer:** Aufnahme 60 px (Lime; läuft die Fahrt: Orange

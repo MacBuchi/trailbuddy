@@ -148,6 +148,46 @@ void main() {
     expect(osm.containsKey('attribution'), isFalse);
   });
 
+  test('Höhenlinien (#271) gehören unter Wege, Namen und Raster — über jede Kartenfläche', () {
+    String compose({bool ways = true, bool raster = false}) => composeMapLibreStyle(
+          baseStyle: _baseStyle(),
+          glyphsUrl: 'file:///glyphs/{fontstack}/{range}.pbf',
+          backgroundColor: '#e2dfda',
+          sources: const [
+            MapStyleSource(id: 'online', url: 'https://example.invalid/a.pmtiles', minZoom: 0, maxZoom: 13),
+            MapStyleSource(id: 'area-1', url: 'file:///b.pmtiles', minZoom: 8, maxZoom: 13),
+          ],
+          rasterSources: raster
+              ? const [MapRasterSource(id: 'osm', urlTemplate: 'https://example.invalid/{z}/{x}/{y}.png', maxZoom: 19)]
+              : const [],
+          overlays: ways
+              ? const [
+                  MapStyleOverlay(
+                    source: MapStyleSource(id: 'ways', url: 'https://example.invalid/w.pmtiles', minZoom: 13, maxZoom: 13),
+                    layers: [
+                      {'id': 'ways/track', 'type': 'line', 'source': 'ways', 'source-layer': 'ways'},
+                    ],
+                  ),
+                ]
+              : const [],
+        );
+    for (final (ways, raster) in [(true, false), (false, false), (true, true)]) {
+      final style = compose(ways: ways, raster: raster);
+      final layers = _layers(jsonDecode(style) as Map<String, dynamic>);
+      final anchor = contourAnchorIn(style, overlayPrefix: 'ways');
+      expect(anchor, isNotNull, reason: 'Wege $ways, Raster $raster');
+      final at = layers.indexWhere((l) => l['id'] == anchor);
+      // Darüber nur Wege, Namen und Raster …
+      for (final l in layers.skip(at)) {
+        expect(l['type'] == 'symbol' || l['type'] == 'raster' || (l['source'] as String?)?.startsWith('ways') == true,
+            isTrue, reason: '${l['id']} über dem Anker');
+      }
+      // … darunter die letzte Fläche der obersten Kartenquelle (der Bereich).
+      expect(layers[at - 1]['type'], isNot('symbol'));
+      expect(layers[at - 1]['source'], 'area-1', reason: 'über den deckenden Flächen der Bereiche (#82)');
+    }
+  });
+
   test('Namen stehen über den Wegen, nicht darunter (Feldbericht 0.98.0) — '
       'außer denen der Übersicht', () {
     const area = MapStyleSource(id: 'area-a1', url: 'file:///a1.pmtiles', minZoom: 8, maxZoom: 13);
@@ -181,3 +221,4 @@ void main() {
     ]);
   });
 }
+

@@ -123,6 +123,19 @@ final kHighlightDemos = <String, HighlightDemo>{
       ),
     ]),
   ),
+  'contours': HighlightDemo(
+    route: '/',
+    script: _demo('contours', [
+      _from(kMapTourScript, 'Was die Karte zeigt'),
+      const CoachStep(
+        title: 'Linien gleicher Höhe',
+        text: 'Hier schaltest du sie an. Je enger sie liegen, desto steiler — '
+            'der Abstand passt sich dem Gelände an, die Legende nennt ihn.',
+        scene: MapCoach.layersSheet,
+        lit: [MapCoach.filterContours],
+      ),
+    ]),
+  ),
   'way-quality': HighlightDemo(
     route: '/',
     script: _demo('way-quality', [

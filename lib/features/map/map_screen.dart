@@ -57,6 +57,8 @@ import '../trails/trail_sheet.dart';
 import '../update/update_banner.dart';
 import 'map_buttons.dart';
 import 'map_legend.dart';
+import 'contour_layer.dart' show groundResolution;
+import 'contour_providers.dart';
 import 'map_view/map_view.dart';
 import 'poi.dart';
 import 'line_smoothing.dart';
@@ -411,6 +413,14 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     if (!mounted) return;
     setState(() => _camera = camera);
     ref.read(mapVisibleBoundsProvider.notifier).state = camera.bounds;
+    // Der Maßstab der Höhenlinien (#271) — in Metern je Pixel, nie als
+    // Zoomstufe (die beiden Engines zählen Zoom verschieden).
+    final b = camera.bounds;
+    ref.read(contourViewProvider.notifier).state = (
+      bounds: b,
+      metersPerPixel: groundResolution(
+          west: b.west, east: b.east, south: b.south, north: b.north, widthPixels: camera.size.width),
+    );
   }
 
   /// Orte und offizielle Trails für den Ausschnitt nachladen — je
@@ -983,7 +993,16 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     final drawTool = draft?.tool;
     final pending = draft != null && camera != null ? draftLayers(draft, camera) : null;
 
+    // Die Höhenlinien (#271): nur, solange der Schalter an ist — der
+    // Provider liest vorher nichts. Im Bild-im-Bild-Fenster keine (zu
+    // klein, Konzept-Routing 9.6).
+    final contourState = ref.watch(contourStateProvider).valueOrNull;
+    final contours = contourState?.contours;
+    final showContours = contours != null && contours.lines.isNotEmpty && !ref.watch(pipModeProvider);
     final layers = MapViewLayers(
+      contours: showContours
+          ? MapViewContours(key: contours.key, lines: contours.lines, labels: ref.watch(contourLabelsProvider))
+          : null,
       polygons: [
         ?mask,
         ...?pending?.polygons,

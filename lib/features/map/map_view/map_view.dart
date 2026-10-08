@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
 
+import '../contour_layer.dart' show ContourLabel;
+import '../contours.dart' show ContourLine;
 import 'flutter_map_view.dart';
 import 'map_hit_test.dart';
 // Web darf `package:maplibre` nie sehen — der Stub liefert dieselbe
@@ -310,16 +312,37 @@ class MapViewCircle {
 /// darüber lesbar.
 class MapViewLayers {
   const MapViewLayers({
+    this.contours,
     this.polygons = const [],
     this.circles = const [],
     this.polylines = const [],
     this.markers = const [],
   });
 
+  /// Die Höhenlinien (#271) — NICHT bei den übrigen Linien, weil sie
+  /// UNTER der Ebene „Wege" liegen und nicht über der ganzen Karte: in
+  /// MapLibre unter der ersten Wege-Ebene des Stils, in flutter_map vor den
+  /// Wege-Schichten. Keine Kennung, kein Tipp.
+  final MapViewContours? contours;
+
   final List<MapViewPolygon> polygons;
   final List<MapViewCircle> circles;
   final List<MapViewPolyline> polylines;
   final List<MapViewMarker> markers;
+}
+
+/// Die Höhenlinien eines Fensters, wie die Engines sie zeichnen:
+/// [ContourLine.index] heißt Hauptlinie (kräftiger, mit Zahl). MapLibre
+/// setzt die Zahlen selbst entlang der Linie; flutter_map nimmt [labels]
+/// (Punkt und Winkel), weil es keinen Text entlang einer Linie kann.
+class MapViewContours {
+  const MapViewContours({required this.key, required this.lines, this.labels = const []});
+
+  /// Ändert sich nur mit Fenster, Äquidistanz oder Maßstab — die
+  /// MapLibre-Seite überträgt die Linien nur dann neu.
+  final String key;
+  final List<ContourLine> lines;
+  final List<ContourLabel> labels;
 }
 
 /// Kamerazugriff der Engine — sie hängt sich beim Einbau per
