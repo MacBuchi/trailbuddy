@@ -934,9 +934,14 @@ Dokument allein.
      im Speicher, weiter ab dem Stand beim Beenden (nach der Ankunft ab
      Start): Eine Route beginnt oft an der Haustür, und in den
      Einstellungen ginge sie mit in die Sicherung des Geräts. — ☁️ · 📱
-2. **Benachrichtigung** (9.5): Routen-Datei, Rechnung im Dienst,
-   Knopf „Beenden"; `keep_alive_test` für Navigation ohne Aufzeichnung.
-   — ☁️ · 📱
+2. **Benachrichtigung** (9.5, 0.96.0): Routen-Datei, Rechnung im
+   Dienst, Knopf „Navigation beenden"; `keep_alive_test` für Navigation
+   ohne Aufzeichnung. Beim Bau dazu: Fahrt und Navigation teilen EINEN
+   Fix je Takt, der Takt gilt je Melder (das Ende der Fahrt nahm ihn
+   sonst der Navigation); ist die App weggewischt, beendet der Dienst
+   die Navigation selbst (Knopf, oder eine Minute nach „Angekommen"),
+   und startet die App neu, während er navigiert, geht die Folgeansicht
+   ohne Rückfrage ab seinem Stand weiter. — ☁️ · 📱
 3. **Bild-im-Bild** (9.6): Manifest, Kanal, schmale Fassung,
    `play-console.md`; Manifest-Test. — ☁️ · 📱
 

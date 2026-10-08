@@ -74,6 +74,18 @@ class FeatureHighlight {
 const kFeatureHighlights = <FeatureHighlight>[
   // ─── Highlights ──────────────────────────────────────────────────
   FeatureHighlight(
+    id: 'nav-notice',
+    since: '0.96.0',
+    kind: HighlightKind.highlight,
+    tab: HighlightTab.map,
+    icon: Icons.notifications_active_outlined,
+    title: 'Navigation in der Benachrichtigung',
+    text: 'Telefon in der Tasche oder andere App vorne: Die Benachrichtigung zeigt, '
+        'wie weit es noch ist und ob du auf der Route bist. „Navigation beenden" '
+        'geht direkt dort.',
+    target: '/',
+  ),
+  FeatureHighlight(
     id: 'nav-rejoin',
     since: '0.95.0',
     kind: HighlightKind.highlight,

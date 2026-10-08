@@ -4,7 +4,7 @@
 
 ## Navigieren
 
-*Versionen 0.94.0 und 0.95.0, 2026-10-08*
+*Versionen 0.94.0 bis 0.96.0, 2026-10-08*
 
 - **Folgeansicht**: Im Ergebnis einer Runde und eines Wegs zum Trail
   steht jetzt „Navigieren", in „Meine Fahrten" im Menü jeder Fahrt
@@ -29,6 +29,14 @@
   die Leiste. Neu gerechnet wird nie von selbst.
 - **„Zuletzt navigiert"** (0.95.0): Oben in „Meine Fahrten" geht eine
   beendete Navigation mit einem Tipp weiter, dort, wo du aufgehört hast.
+- **In der Benachrichtigung** (0.96.0): Steckt das Telefon in der
+  Tasche oder ist eine andere App vorne, zeigt die Benachrichtigung,
+  wie weit es noch ist, die Höhenmeter und ob du auf der Route bist —
+  alle fünf Sekunden neu, auch wenn du TrailBuddy aus der Übersicht
+  gewischt hast. „Navigation beenden" geht direkt dort, ein Tipp auf
+  die Benachrichtigung holt die Karte zurück. Läuft die Aufzeichnung
+  mit, bleibt es eine Benachrichtigung, nicht zwei. Im Browser gibt es
+  das nicht.
 
 ## Den Weg von Hand ziehen
 

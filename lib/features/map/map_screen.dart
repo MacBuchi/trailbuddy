@@ -26,7 +26,9 @@ import '../routing/loop_planner_providers.dart';
 import '../routing/loop_planner_sheet.dart';
 import '../routing/loop_tool_rail.dart';
 import '../routing/map_panel.dart';
+import '../routing/nav_notice.dart' show kNavMessageOpen, kNavMessageStop;
 import '../routing/nav_providers.dart';
+import '../routing/nav_service.dart';
 import '../routing/nav_view.dart';
 import '../routing/route_progress.dart' show followCenter, kNavZoom;
 import '../routing/route_via_providers.dart';
@@ -136,6 +138,9 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     // Eine Fahrt, die der Prozess-Kill unterbrochen hat, läuft weiter
     // (#28): Der Service hat derweil in die Datei geschrieben.
     unawaited(ref.read(rideProvider.notifier).restore());
+    // Ebenso eine Navigation, die der Dienst weitergeführt hat (#232,
+    // 9.5) — ohne Rückfrage, sie lief ja.
+    unawaited(_restoreNavigation());
     // Was im Ausgangskorb liegt, geht beim Start raus (#30).
     unawaited(ref.read(trailsProvider.notifier).sendOutbox());
     // Die Rückrichtung vom Service-Isolate: jeder Messpunkt kommt auf
@@ -336,6 +341,15 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   }
 
   void _onRideTick(Object data) {
+    // „Navigation beenden" in der Benachrichtigung, ein Tipp darauf (#232).
+    if (data == kNavMessageStop) {
+      ref.read(navigationProvider.notifier).stop();
+      return;
+    }
+    if (data == kNavMessageOpen) {
+      if (ref.read(navigationProvider) != null) GoRouter.of(context).go('/');
+      return;
+    }
     final point = decodeRideTick(data);
     if (point == null) return;
     ref.read(rideProvider.notifier).acceptTick(point);
@@ -567,12 +581,26 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       }
     }
     final nav = ref.read(navigationProvider.notifier);
-    if (!nav.start(request.points, request.title, startAlongM: request.startAlongM)) return;
+    if (!_beginNavigation(request.points, request.title, request.startAlongM)) return;
+    nav.onFix(LatLng(fix.latitude, fix.longitude), headingDeg: fix.heading, speedMps: fix.speed);
+    _follow();
+  }
+
+  bool _beginNavigation(List<LatLng> points, String title, double startAlongM) {
+    if (!ref.read(navigationProvider.notifier).start(points, title, startAlongM: startAlongM)) return false;
     _fittedOnce = true;
     _navZoom = kNavZoom;
-    nav.onFix(LatLng(fix.latitude, fix.longitude), headingDeg: fix.heading, speedMps: fix.speed);
     ref.invalidate(positionStreamProvider);
-    _follow();
+    return true;
+  }
+
+  /// Die App startet neu, während der Dienst navigiert (weggewischt, vom
+  /// System beendet): weiter ab seinem Stand. Die Kamera folgt mit dem
+  /// ersten Fix des Positionsstroms.
+  Future<void> _restoreNavigation() async {
+    final route = await ref.read(navServiceBridgeProvider).restore();
+    if (route == null || !mounted || ref.read(navigationProvider) != null) return;
+    _beginNavigation(route.points, route.title, route.startAlongM);
   }
 
   /// Der Zoom der Folgeansicht: [kNavZoom] beim Start, danach der, den die

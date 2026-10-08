@@ -34,7 +34,9 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     EINEN Service über den `KeepAliveCoordinator` — zwei `stop()` auf
     einem Service waren die Falle. Ändert sich die Typmenge, startet er
     den Service neu (`updateService` kann Typen nicht ändern); der Takt
-    gehört dem Service-Isolate und hat genau einen Verbraucher. Das
+    gehört dem Service-Isolate und gilt seit 0.96.0 je Melder — die
+    Navigation misst dort ebenfalls (`lib/features/routing/CLAUDE.md`,
+    „Die Navigation im Dienst"), mit demselben Fix wie die Fahrt. Das
     Manifest deklariert `dataSync|location` als Obermenge, genannt wird
     je Start nur, was der Lauf braucht. `test/keep_alive_test.dart`.
   - **Die GPS-Höhe wird ROH mitgeschrieben** (`RidePoint.altM`) und
