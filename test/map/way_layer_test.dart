@@ -53,14 +53,19 @@ void main() {
   });
 
   group('Stil-Ebenen', () {
-    test('MapLibre: erst alle Bänder, dann je Klasse ein Strich, gefiltert nach `k`', () {
+    test('MapLibre: erst alle Bänder, dann Forstwege samt Mittelstreifen, zuletzt Pfade', () {
       final layers = wayStyleLayers('ways', dashes: true);
       final bands = [for (final c in WayClass.values) if (c.band != null) c];
-      expect(layers, hasLength(bands.length + WayClass.values.length));
-      expect([for (final l in layers.take(bands.length)) l['id']], [for (final c in bands) 'ways/band-${c.name}']);
-      for (final (i, c) in WayClass.values.indexed) {
-        final l = layers[bands.length + i];
-        expect(l['id'], 'ways/line-${c.name}');
+      final tracks = [for (final c in WayClass.values) if (c.kind == WayKind.track) c];
+      final paths = [for (final c in WayClass.values) if (c.kind == WayKind.path) c];
+      expect([for (final l in layers) l['id']], [
+        for (final c in bands) 'ways/band-${c.name}',
+        for (final c in tracks) 'ways/line-${c.name}',
+        for (final c in tracks) 'ways/core-${c.name}',
+        for (final c in paths) 'ways/line-${c.name}',
+      ]);
+      for (final c in WayClass.values) {
+        final l = layers.firstWhere((l) => l['id'] == 'ways/line-${c.name}');
         expect(l['filter'], ['==', ['get', kWaysKey], c.code]);
         expect(l['source-layer'], kWaysLayer);
         expect(l['minzoom'], kWaysZoom);
@@ -68,9 +73,45 @@ void main() {
       }
     });
 
+    test('Forstweg ist eine Doppellinie, Pfad eine Linie (#263)', () {
+      double widthAt15(Map<String, dynamic> l) {
+        final w = (l['paint'] as Map)['line-width'] as List;
+        return (w[w.indexOf(15) + 1] as num).toDouble();
+      }
+
+      for (final dashes in [true, false]) {
+        final layers = wayStyleLayers('ways', dashes: dashes);
+        for (final c in WayClass.values) {
+          final core = layers.where((l) => l['id'] == 'ways/core-${c.name}');
+          if (c.kind == WayKind.path) {
+            expect(core, isEmpty, reason: c.name);
+            continue;
+          }
+          final line = layers.firstWhere((l) => l['id'] == 'ways/line-${c.name}');
+          expect(core.single['filter'], line['filter']);
+          expect((core.single['paint'] as Map).containsKey('line-dasharray'), isFalse);
+          // Zwei Spuren bleiben sichtbar, jede so breit wie ein Fünftel.
+          final rut = (widthAt15(line) - widthAt15(core.single)) / 2;
+          expect(rut, greaterThan(widthAt15(line) / 5), reason: c.name);
+          expect(widthAt15(core.single), greaterThan(rut), reason: c.name);
+        }
+      }
+      // Der Streifen ist heller als jede Spur und als das Land der Karte.
+      final style = jsonDecode(File(kMapStyleAsset).readAsStringSync()) as Map<String, dynamic>;
+      final earth = (style['layers'] as List).cast<Map<String, dynamic>>().firstWhere((l) => l['id'] == 'earth');
+      final land = Color(int.parse(((earth['paint'] as Map)['fill-color'] as String).substring(1), radix: 16) | 0xFF000000);
+      for (final c in WayClass.values.where((c) => c.core != null)) {
+        expect(c.core!.computeLuminance(), greaterThan(land.computeLuminance()), reason: c.name);
+        for (final rut in [c.color, c.webColor, ?c.band]) {
+          expect(c.core!.computeLuminance(), greaterThan(rut.computeLuminance()), reason: c.name);
+        }
+      }
+    });
+
     test('Web: eine durchgezogene Linie je Klasse, kein Strich', () {
       final layers = wayStyleLayers('ways', dashes: false);
-      expect(layers, hasLength(WayClass.values.length));
+      final cores = WayClass.values.where((c) => c.core != null).length;
+      expect(layers, hasLength(WayClass.values.length + cores));
       for (final l in layers) {
         expect((l['paint'] as Map).containsKey('line-dasharray'), isFalse, reason: '${l['id']}');
       }
@@ -121,7 +162,7 @@ void main() {
           c.toARGB32(),
       };
       for (final c in WayClass.values) {
-        for (final color in [c.color, c.webColor, ?c.band]) {
+        for (final color in [c.color, c.webColor, ?c.band, ?c.core]) {
           expect(trail, isNot(contains(color.toARGB32())), reason: c.name);
           // Grau-Braun: keine kräftige Farbe.
           expect(HSLColor.fromColor(color).saturation, lessThan(0.3), reason: c.name);
@@ -130,7 +171,7 @@ void main() {
     });
 
     test('flutter_map liest das Thema', () {
-      expect(wayTheme().layers, hasLength(WayClass.values.length));
+      expect(wayTheme().layers, hasLength(wayStyleLayers(kWaysSourceId, dashes: false).length));
     });
   });
 

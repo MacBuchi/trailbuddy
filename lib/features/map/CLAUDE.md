@@ -289,7 +289,12 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     MapLibre mit Band und Strich, flutter_map ohne Strich, weil
     `vector_tile_renderer` `line-dasharray` verwirft — dort trägt die
     Helligkeit (`webColor`). Wer eine Klasse ändert, prüft beide und die
-    Breite gegen die Basislinie (Test liest den Stil).
+    Breite gegen die Basislinie (Test liest den Stil). **Forstwege sind
+    seit 0.98.0 eine Doppellinie** (#263): ein heller, deckender
+    Mittelstreifen (`kWayTrackCore`, `kWayCoreShare`) auf dem Strich, in
+    BEIDEN Engines — `vector_tile_renderer` kennt weder `line-offset`
+    noch `line-opacity`, zwei versetzte oder halb durchsichtige Linien
+    gingen dort nicht.
   - **Das Wege-Manifest wartet so lange wie das der Karte** und
     gleichzeitig (`patiently` in `maplibre_style_provider.dart`); kommt es
     später, baut der Stil neu. 404 (noch kein Bau), fremdes Format und

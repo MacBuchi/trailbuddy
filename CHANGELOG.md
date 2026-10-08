@@ -2,6 +2,16 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Forstweg oder Pfad auf einen Blick
+
+*Version 0.98.0, 2026-10-08*
+
+- **Forstwege sind jetzt eine Doppellinie**: zwei schmale Fahrspuren
+  mit hellem Streifen in der Mitte, wie in einer Wanderkarte. Pfade
+  bleiben eine einfache Linie. Wie gut der Forstweg ist, zeigen weiter
+  die Spuren: durchgezogen heißt gut, gestrichelt mittel, gepunktet
+  schlecht. Die Legende zeichnet es genauso.
+
 ## Navigieren
 
 *Versionen 0.94.0 bis 0.97.0, 2026-10-08*
