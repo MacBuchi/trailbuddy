@@ -44,6 +44,10 @@ const kNavHeadingLookM = 50.0;
 /// Wohin der Pfeil abseits zeigt: so weit voraus auf der Linie.
 const kNavRejoinAheadM = 50.0;
 
+/// „Zurück zur Route" führt so weit voraus auf die Linie (9.3): Der
+/// nächste Punkt liegt oft hinter einem, und man führe zurück.
+const kNavRejoinTargetM = 200.0;
+
 /// Die Linie, die navigiert wird, mit der Distanz ab Start je Punkt.
 class NavRoute {
   NavRoute._(this.points, this.cumM);
@@ -236,10 +240,13 @@ class NavState {
 /// Führt den Stand von Fix zu Fix: Fenster, Zähler für „abseits", der
 /// letzte gültige Kurs. Eine Instanz je Navigation.
 class NavTracker {
-  NavTracker(this.route);
+  /// [startAlongM]: wo der Stand anfängt — „zuletzt navigiert" geht dort
+  /// weiter, wo die Navigation endete, sonst spränge eine Runde hin und
+  /// zurück womöglich auf die Hinfahrt.
+  NavTracker(this.route, {double startAlongM = 0}) : _along = startAlongM.clamp(0, route.lengthM).toDouble();
 
   final NavRoute route;
-  double _along = 0;
+  double _along;
   int _offCount = 0;
   double? _heading;
   bool _arrived = false;

@@ -195,6 +195,20 @@ final kHighlightDemos = <String, HighlightDemo>{
       _noTrailYet,
     ]),
   ),
+  'nav-rejoin': HighlightDemo(
+    route: '/',
+    script: _demo('nav-rejoin', const [
+      CoachStep(
+        title: 'Zurück zur Route',
+        text: 'Navigiere eine Runde oder einen Weg zum Trail. Bist du mehr als '
+            '30 m daneben, steht unten „Zurück zur Route": Der Weg dorthin liegt '
+            'dann gestrichelt vor der Route.',
+        lit: [MapCoach.loop],
+        gesture: CoachGesture.tap,
+        requires: [MapCoach.loop],
+      ),
+    ]),
+  ),
   'navigation': HighlightDemo(
     route: '/',
     script: _demo('navigation', const [

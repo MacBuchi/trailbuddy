@@ -74,6 +74,18 @@ class FeatureHighlight {
 const kFeatureHighlights = <FeatureHighlight>[
   // ─── Highlights ──────────────────────────────────────────────────
   FeatureHighlight(
+    id: 'nav-rejoin',
+    since: '0.95.0',
+    kind: HighlightKind.highlight,
+    tab: HighlightTab.map,
+    icon: Icons.u_turn_left,
+    title: 'Zurück zur Route',
+    text: 'Neben der Route beim Navigieren: Ein Tipp zeigt den Weg zurück, 200 m '
+        'voraus statt zum nächsten Punkt. Eine beendete Navigation geht oben in '
+        '„Meine Fahrten" weiter.',
+    target: '/',
+  ),
+  FeatureHighlight(
     id: 'navigation',
     since: '0.94.0',
     kind: HighlightKind.highlight,

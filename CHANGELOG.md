@@ -4,7 +4,7 @@
 
 ## Navigieren
 
-*Version 0.94.0, 2026-10-08*
+*Versionen 0.94.0 und 0.95.0, 2026-10-08*
 
 - **Folgeansicht**: Im Ergebnis einer Runde und eines Wegs zum Trail
   steht jetzt „Navigieren", in „Meine Fahrten" im Menü jeder Fahrt
@@ -21,6 +21,14 @@
 - **Beim Start** fragt die App, ob die Fahrt mit aufgezeichnet werden
   soll und ob der Bildschirm anbleibt — beides ist vorgewählt. Beenden
   der Navigation beendet die Aufzeichnung nicht.
+- **„Zurück zur Route"** (0.95.0): Bist du neben der Route, sucht ein
+  Tipp den Weg zurück — nicht zum nächsten Punkt, sondern 200 m voraus,
+  damit du nicht umkehrst. Das Stück liegt gestrichelt vor der Route
+  und verschwindet, sobald du wieder drauf bist. Gerechnet wird über
+  deine Bereiche wie bei der Planung; findet sich kein Weg, sagt es
+  die Leiste. Neu gerechnet wird nie von selbst.
+- **„Zuletzt navigiert"** (0.95.0): Oben in „Meine Fahrten" geht eine
+  beendete Navigation mit einem Tipp weiter, dort, wo du aufgehört hast.
 
 ## Den Weg von Hand ziehen
 

@@ -567,7 +567,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       }
     }
     final nav = ref.read(navigationProvider.notifier);
-    if (!nav.start(request.points, request.title)) return;
+    if (!nav.start(request.points, request.title, startAlongM: request.startAlongM)) return;
     _fittedOnce = true;
     _navZoom = kNavZoom;
     nav.onFix(LatLng(fix.latitude, fix.longitude), headingDeg: fix.heading, speedMps: fix.speed);

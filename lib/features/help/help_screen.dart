@@ -100,8 +100,9 @@ const kHelpSteps = <HelpStep>[
         'Parameter, Liste und Gebiet, dann rechnen — offline, aus deinen '
         'gespeicherten Bereichen; sie liegt dann unter „Meine Fahrten". '
         '„Navigieren" zeigt sie unterwegs: Die Karte dreht mit, oben stehen Rest '
-        'und Abstand zur Route. In „Meine Fahrten" '
-        'steht an jeder Fahrt ihr Rad — ein Tipp stellt es um; nach links '
+        'und Abstand zur Route, daneben führt „Zurück zur Route" wieder hin. In '
+        '„Meine Fahrten" geht eine beendete Navigation oben weiter; an '
+        'jeder Fahrt steht ihr Rad — ein Tipp stellt es um; nach links '
         'wischen löscht, ein langer Druck wählt mehrere. In der Web-App gibt es '
         'keine Aufzeichnung.',
   ),

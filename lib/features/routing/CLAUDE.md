@@ -430,5 +430,17 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     `lib/core/screen_awake.dart` (Android `FLAG_KEEP_SCREEN_ON` per Kanal
     `de.mcbuchi.trailbuddy/screen`, Web Screen Wake Lock, neu geholt beim
     Zurückkommen in den Tab), gemerkt in `Settings.navKeepScreenOn`
-    (Vorgabe an, `FakeSettings` ebenso). „Zurück zur Route" und „zuletzt
-    navigiert" sind Schritt 1b.
+    (Vorgabe an, `FakeSettings` ebenso).
+  - **„Zurück zur Route" und „zuletzt navigiert"** (Schritt 1b, seit
+    0.95.0): `NavController.rejoin` rechnet mit `planTrailHeadRoute` vom
+    Standort zum Punkt `kNavRejoinTargetM` (200 m) voraus, Graph und
+    Profil wie das Blatt „Zum Trailkopf"; das Ergebnis fällt weg, sobald
+    ein Fix wieder auf der Linie liegt — auch wenn er während der
+    Rechnung kommt (`after.rejoin != computing` ⇒ verworfen). Ohne Graph
+    oder mit dem Standort an keinem Weg heißt es `noArea`, sonst `noPath`;
+    die Leiste sagt es (`nav-rejoin-note`), der Knopf bleibt für einen
+    zweiten Versuch. `lastNavProvider` merkt die Route beim Beenden NUR IM
+    SPEICHER (Haustür; Einstellungen gingen in die Sicherung) samt Stand
+    (`NavTracker(startAlongM:)`) — auf einer geraden Linie findet die
+    Suche über die ganze Linie den Stand ohnehin, sichtbar wird es erst
+    hin und zurück (`route_progress_test`).

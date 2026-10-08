@@ -16,8 +16,9 @@ import '../map/map_view/map_view.dart';
 import 'nav_providers.dart';
 
 /// Die Route auf der Karte: der gefahrene Teil blass, der Rest in der
-/// Farbe des Ergebnisses mit weißem Saum. Liegt unter dem Netz — Trails
-/// auf der Route behalten ihre Farbe (Design 7).
+/// Farbe des Ergebnisses mit weißem Saum, davor gestrichelt das Stück
+/// „Zurück zur Route". Liegt unter dem Netz — Trails auf der Route
+/// behalten ihre Farbe (Design 7).
 List<MapViewPolyline> navRouteLines(NavSession session) {
   final c = AppColors.mapLines.ride;
   final along = session.state?.alongM ?? 0;
@@ -31,6 +32,15 @@ List<MapViewPolyline> navRouteLines(NavSession session) {
       borderColor: AppColors.mapLines.halo,
       borderWidth: AppColors.mapLines.haloBorderWidth,
     ),
+    if (session.rejoinLine case final back? when back.length >= 2)
+      MapViewPolyline(
+        points: back,
+        color: c,
+        width: 5,
+        dash: const [10, 8],
+        borderColor: AppColors.mapLines.halo,
+        borderWidth: AppColors.mapLines.haloBorderWidth,
+      ),
   ];
 }
 
@@ -151,13 +161,16 @@ class _NavOverlayState extends ConsumerState<NavOverlay> {
     ref.listen(navKeepScreenOnProvider, (_, on) => unawaited(_screen.keepOn(on)));
     final session = widget.session;
     final keepOn = ref.watch(navKeepScreenOnProvider);
+    final arrived = session.state?.arrived ?? false;
+    // „Zurück zur Route" nur abseits (9.3) und solange kein Stück liegt.
+    final offer = !arrived && (session.state?.offRoute ?? false) && session.rejoin != NavRejoin.shown;
     return Stack(children: [
       SafeArea(
         child: Align(
           alignment: Alignment.topCenter,
           child: Padding(
             padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
-            child: session.state?.arrived ?? false
+            child: arrived
                 ? _ArrivedBar(onStop: widget.onStop)
                 : _NavBar(session: session),
           ),
@@ -168,32 +181,41 @@ class _NavOverlayState extends ConsumerState<NavOverlay> {
           alignment: Alignment.bottomCenter,
           child: Padding(
             padding: const EdgeInsets.all(12),
-            child: Row(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                MapRoundButton(
-                  key: const ValueKey('nav-north'),
-                  tooltip: session.north ? 'Mit der Fahrtrichtung drehen' : 'Norden oben',
-                  icon: Icons.explore_outlined,
-                  active: session.north,
-                  onPressed: () => ref.read(navigationProvider.notifier).toggleNorth(),
-                ),
-                if (_screen.supported) ...[
-                  const SizedBox(width: 10),
-                  MapRoundButton(
-                    key: const ValueKey('nav-screen-toggle'),
-                    tooltip: keepOn ? 'Bildschirm darf ausgehen' : 'Bildschirm anlassen',
-                    icon: keepOn ? Icons.light_mode : Icons.light_mode_outlined,
-                    active: keepOn,
-                    onPressed: () => ref.read(navKeepScreenOnProvider.notifier).set(!keepOn),
-                  ),
+                if (offer) ...[
+                  _RejoinButton(computing: session.rejoin == NavRejoin.computing),
+                  const SizedBox(height: 10),
                 ],
-                const Spacer(),
-                FilledButton.icon(
-                  key: const ValueKey('nav-stop'),
-                  style: FilledButton.styleFrom(minimumSize: const Size(0, 48)),
-                  onPressed: widget.onStop,
-                  icon: const Icon(Icons.close),
-                  label: const Text('Beenden'),
+                Row(
+                  children: [
+                    MapRoundButton(
+                      key: const ValueKey('nav-north'),
+                      tooltip: session.north ? 'Mit der Fahrtrichtung drehen' : 'Norden oben',
+                      icon: Icons.explore_outlined,
+                      active: session.north,
+                      onPressed: () => ref.read(navigationProvider.notifier).toggleNorth(),
+                    ),
+                    if (_screen.supported) ...[
+                      const SizedBox(width: 10),
+                      MapRoundButton(
+                        key: const ValueKey('nav-screen-toggle'),
+                        tooltip: keepOn ? 'Bildschirm darf ausgehen' : 'Bildschirm anlassen',
+                        icon: keepOn ? Icons.light_mode : Icons.light_mode_outlined,
+                        active: keepOn,
+                        onPressed: () => ref.read(navKeepScreenOnProvider.notifier).set(!keepOn),
+                      ),
+                    ],
+                    const Spacer(),
+                    FilledButton.icon(
+                      key: const ValueKey('nav-stop'),
+                      style: FilledButton.styleFrom(minimumSize: const Size(0, 48)),
+                      onPressed: widget.onStop,
+                      icon: const Icon(Icons.close),
+                      label: const Text('Beenden'),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -202,6 +224,23 @@ class _NavOverlayState extends ConsumerState<NavOverlay> {
       ),
     ]);
   }
+}
+
+class _RejoinButton extends ConsumerWidget {
+  const _RejoinButton({required this.computing});
+
+  final bool computing;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) => FilledButton.tonalIcon(
+        key: const ValueKey('nav-rejoin'),
+        style: FilledButton.styleFrom(minimumSize: const Size(0, 48)),
+        onPressed: computing ? null : () => unawaited(ref.read(navigationProvider.notifier).rejoin()),
+        icon: computing
+            ? const SizedBox.square(dimension: 18, child: CircularProgressIndicator(strokeWidth: 2))
+            : const Icon(Icons.u_turn_left),
+        label: const Text('Zurück zur Route'),
+      );
 }
 
 /// Drei Zahlen: Rest in km, Rest bergauf, Abstand zur Linie. Keine
@@ -218,32 +257,53 @@ class _NavBar extends StatelessWidget {
     final state = session.state;
     final climb = session.remainingClimbM;
     final off = state?.offRoute ?? false;
+    // Fand „Zurück zur Route" nichts, sagt es die Leiste in einem Satz (9.3).
+    final note = switch (session.rejoin) {
+      NavRejoin.noArea => 'Hier kennt die App keine Wege — fahre nach Sicht zur Route.',
+      NavRejoin.noPath => 'Kein Weg zurück gefunden — fahre nach Sicht zur Route.',
+      _ => null,
+    };
     return Card(
       key: const ValueKey('nav-bar'),
       margin: EdgeInsets.zero,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-        child: Row(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Expanded(child: _NavNumber(key: const ValueKey('nav-remaining'), value: formatMeters(session.remainingM), label: 'noch')),
-            if (climb != null)
-              Expanded(
-                  child: _NavNumber(key: const ValueKey('nav-climb'), value: '${climb.round()} hm', label: 'bergauf')),
-            Expanded(
-              child: _NavNumber(
-                key: const ValueKey('nav-off'),
-                value: state == null ? '–' : formatMeters(state.offM),
-                label: off ? 'neben der Route' : 'zur Route',
-                color: off ? palette.warningText : null,
-                // Abseits zeigt ein Pfeil zur Linie voraus — gedreht gegen
-                // die Karte, damit er auf dem Schirm stimmt.
-                arrowDeg: off && state != null
-                    ? bearingDegrees(state.position.latitude, state.position.longitude, state.rejoin.latitude,
-                            state.rejoin.longitude) -
-                        session.bearingDeg
-                    : null,
-              ),
+            Row(
+              children: [
+                Expanded(child: _NavNumber(key: const ValueKey('nav-remaining'), value: formatMeters(session.remainingM), label: 'noch')),
+                if (climb != null)
+                  Expanded(
+                      child: _NavNumber(key: const ValueKey('nav-climb'), value: '${climb.round()} hm', label: 'bergauf')),
+                Expanded(
+                  child: _NavNumber(
+                    key: const ValueKey('nav-off'),
+                    value: state == null ? '–' : formatMeters(state.offM),
+                    label: off ? 'neben der Route' : 'zur Route',
+                    color: off ? palette.warningText : null,
+                    // Abseits zeigt ein Pfeil zur Linie voraus — gedreht gegen
+                    // die Karte, damit er auf dem Schirm stimmt.
+                    arrowDeg: off && state != null
+                        ? bearingDegrees(state.position.latitude, state.position.longitude, state.rejoin.latitude,
+                                state.rejoin.longitude) -
+                            session.bearingDeg
+                        : null,
+                  ),
+                ),
+              ],
             ),
+            if (note != null)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
+                child: Text(
+                  note,
+                  key: const ValueKey('nav-rejoin-note'),
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: palette.warningText),
+                ),
+              ),
           ],
         ),
       ),

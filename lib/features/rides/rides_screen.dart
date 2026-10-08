@@ -138,6 +138,7 @@ class _RidesScreenState extends ConsumerState<RidesScreen> {
               return ListView(
                 padding: const EdgeInsets.all(24),
                 children: const [
+                  _LastNavCard(padding: EdgeInsets.only(bottom: 16)),
                   Text(
                     'Noch keine Fahrt. Starte eine auf der Karte mit dem '
                     'Aufnahme-Knopf — sie bleibt auf deinem Gerät.',
@@ -149,6 +150,7 @@ class _RidesScreenState extends ConsumerState<RidesScreen> {
             }
             return ListView(
               children: [
+                const _LastNavCard(padding: EdgeInsets.fromLTRB(16, 12, 16, 0)),
                 const Padding(
                   padding: EdgeInsets.fromLTRB(16, 12, 16, 4),
                   child: Text(
@@ -175,6 +177,41 @@ class _RidesScreenState extends ConsumerState<RidesScreen> {
               ],
             );
           },
+        ),
+      ),
+    );
+  }
+}
+
+/// „Zuletzt navigiert" (Konzept-Routing 9.2): Beenden fragt nicht, also
+/// geht es hier mit einem Tipp weiter — dort, wo die Navigation endete.
+/// Nur solange keine läuft.
+class _LastNavCard extends ConsumerWidget {
+  const _LastNavCard({required this.padding});
+
+  final EdgeInsets padding;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final last = ref.watch(lastNavProvider);
+    if (last == null || ref.watch(navigationProvider) != null) return const SizedBox.shrink();
+    return Padding(
+      padding: padding,
+      child: Card(
+        key: const ValueKey('nav-last'),
+        margin: EdgeInsets.zero,
+        child: ListTile(
+          leading: const Icon(Icons.navigation_outlined),
+          title: const Text('Zuletzt navigiert'),
+          subtitle: Text(last.title, maxLines: 1, overflow: TextOverflow.ellipsis),
+          trailing: FilledButton.tonal(
+            key: const ValueKey('nav-last-resume'),
+            onPressed: () {
+              StatefulNavigationShell.of(context).goBranch(kMapBranchIndex);
+              ref.read(navRequestProvider.notifier).state = last;
+            },
+            child: const Text('Weiter'),
+          ),
         ),
       ),
     );
