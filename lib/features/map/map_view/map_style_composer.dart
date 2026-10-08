@@ -19,6 +19,7 @@ class MapStyleSource {
     required this.url,
     required this.minZoom,
     required this.maxZoom,
+    this.labelsOnTop = true,
   });
 
   final String id;
@@ -27,6 +28,12 @@ class MapStyleSource {
   final String url;
   final int minZoom;
   final int maxZoom;
+
+  /// Ob die Beschriftungen (Symbol-Ebenen) dieser Quelle über die
+  /// [MapStyleOverlay]s gehoben werden (Feldbericht 0.98.0: die Namen lagen
+  /// unter den Wegen). Nein nur für die Übersicht: Ihre Zoom-7-Kacheln
+  /// ließen gestreckte Straßennamen über der Detailkarte stehen.
+  final bool labelsOnTop;
 }
 
 /// Eine Online-Raster-Quelle (Kachel-URL-Vorlage, z. B. OSM).
@@ -59,7 +66,10 @@ const kMapAttribution = '© OpenStreetMap contributors · Protomaps';
 /// Setzt aus dem erzeugten Protomaps-Basis-Style und den Quellen EIN
 /// Style-Dokument zusammen: eine background-Ebene im Landton, dann für
 /// jede Vektorquelle alle Nicht-background-Ebenen des Basis-Styles, dann
-/// die [overlays] mit ihren eigenen Ebenen, dann
+/// die [overlays] mit ihren eigenen Ebenen, dann die Beschriftungen der
+/// Quellen mit [MapStyleSource.labelsOnTop] in Quellen-Reihenfolge —
+/// Namen stehen über den Wegen, nicht darunter; dieselben Namen aus
+/// Online-Karte und Bereich verdrängt MapLibres Kollisionsprüfung —, dann
 /// die Rasterquellen als oberste Kartenschicht — wo eine Online-Kachel
 /// lädt, deckt sie den fremden Kartenstil darunter ab (PilzBuddy #137).
 ///
@@ -99,6 +109,7 @@ String composeMapLibreStyle({
     },
   ];
 
+  final labels = <Map<String, dynamic>>[];
   for (final source in sources) {
     final attribution = attributionOnce(kMapAttribution);
     styleSources[source.id] = {
@@ -108,7 +119,9 @@ String composeMapLibreStyle({
       'maxzoom': source.maxZoom,
       'attribution': ?attribution,
     };
-    layers.addAll(_layersFor(baseLayers, source.id));
+    for (final layer in _layersFor(baseLayers, source.id)) {
+      (source.labelsOnTop && layer['type'] == 'symbol' ? labels : layers).add(layer);
+    }
   }
 
   for (final overlay in overlays) {
@@ -123,6 +136,7 @@ String composeMapLibreStyle({
     };
     layers.addAll(overlay.layers);
   }
+  layers.addAll(labels);
 
   for (final raster in rasterSources) {
     final attribution = attributionOnce(kMapAttribution);

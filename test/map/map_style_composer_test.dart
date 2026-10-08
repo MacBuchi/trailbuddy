@@ -43,6 +43,7 @@ const _overview = MapStyleSource(
   url: 'file:///data/app/offline_maps/overview_dach.pmtiles',
   minZoom: 0,
   maxZoom: 7,
+  labelsOnTop: false,
 );
 
 const _online = MapStyleSource(
@@ -145,5 +146,38 @@ void main() {
     expect(overview['attribution'], '© OpenStreetMap contributors · Protomaps · Land Tirol (CC BY 4.0)');
     final osm = (style['sources'] as Map)['osm'] as Map;
     expect(osm.containsKey('attribution'), isFalse);
+  });
+
+  test('Namen stehen über den Wegen, nicht darunter (Feldbericht 0.98.0) — '
+      'außer denen der Übersicht', () {
+    const area = MapStyleSource(id: 'area-a1', url: 'file:///a1.pmtiles', minZoom: 8, maxZoom: 13);
+    final ids = _layers(jsonDecode(composeMapLibreStyle(
+      baseStyle: _baseStyle(),
+      glyphsUrl: 'file:///glyphs/{fontstack}/{range}.pbf',
+      backgroundColor: '#e2dfda',
+      sources: const [
+        MapStyleSource(id: 'overview', url: 'file:///o.pmtiles', minZoom: 0, maxZoom: 7, labelsOnTop: false),
+        _online,
+        area,
+      ],
+      overlays: const [
+        MapStyleOverlay(
+          source: MapStyleSource(id: 'ways', url: 'https://x/ways.pmtiles', minZoom: 13, maxZoom: 13),
+          layers: [
+            {'id': 'ways/line', 'type': 'line', 'source': 'ways'},
+          ],
+        ),
+      ],
+    )) as Map<String, dynamic>).map((l) => l['id']).toList();
+    expect(ids, [
+      'hintergrund',
+      'overview/earth',
+      'overview/places',
+      'online/earth',
+      'area-a1/earth',
+      'ways/line',
+      'online/places',
+      'area-a1/places',
+    ]);
   });
 }

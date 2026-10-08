@@ -284,7 +284,15 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     zudeckte. MapLibre: `MapStyleOverlay` im Composer nach allen
     Vektorquellen; flutter_map: eigene `VectorTileLayer` nach der der
     Bereiche. `area_layer_order_test` und `maplibre_style_provider_test`
-    halten beide fest.
+    halten beide fest. **Unter den Namen der Karte** (MapLibre seit
+    0.99.1, Feldbericht 0.98.0 — der gedeckte Mittelstreifen strich jeden
+    Namen durch): Der Composer hebt die Symbol-Ebenen der Online-Karte und
+    der Bereiche hinter die Overlays (`MapStyleSource.labelsOnTop`; nicht
+    die der Übersicht, deren Zoom-7-Namen gestreckt über der Detailkarte
+    stünden); gleiche Namen aus zwei Quellen verdrängt MapLibres
+    Kollisionsprüfung. **flutter_map noch nicht**: Dort bräuchte es eine
+    zweite Kachelschicht nur für Namen, also jede Range-Anfrage doppelt —
+    kommt mit dem Kachelspeicher im Browser (#155).
   - **Zwei Fassungen derselben Tabelle** (`wayStyleLayers(dashes:)`):
     MapLibre mit Band und Strich, flutter_map ohne Strich, weil
     `vector_tile_renderer` `line-dasharray` verwirft — dort trägt die
