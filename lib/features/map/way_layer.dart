@@ -247,18 +247,28 @@ vtr.Theme wayTheme() => vtr.ThemeReader().read({
 
 /// Die Ebene für die flutter_map-Engine: Archiv vom Host per Range,
 /// Quelle [kWaysSourceId]. Null, solange es kein Manifest gibt oder das
-/// Archiv nicht aufgeht.
+/// Archiv nicht aufgeht. Im Browser mit Speicher gesehener Kacheln
+/// (#155): ohne frisches Manifest das gemerkte, solange die Ebene an ist.
 final onlineWaysStyleProvider = FutureProvider<BaseMapStyle?>((ref) async {
-  final manifest = await ref.watch(waysManifestProvider.future);
-  if (manifest == null) return null;
-  try {
-    final archive = await ref.watch(onlineArchiveOpenerProvider)(manifest.archiveUri);
-    ref.onDispose(archive.close);
-    return BaseMapStyle(theme: wayTheme(), tileProviders: TileProviders({kWaysSourceId: archive}));
-  } catch (e, s) {
-    if (!looksOffline(e)) logError('Wege-Archiv öffnen', e, s);
-    return null;
+  final fresh = await ref.watch(waysManifestProvider.future);
+  WaysManifest? manifest = fresh;
+  if (ref.watch(seenTileStoreProvider) != null && ref.watch(wayLayerEnabledProvider)) {
+    final settings = ref.watch(settingsProvider);
+    if (fresh != null) {
+      rememberManifest(settings.seenWaysManifest, fresh.toJson(), settings.setSeenWaysManifest);
+    }
+    manifest ??= rememberedManifest(settings.seenWaysManifest, WaysManifest.fromJson);
   }
+  if (manifest == null) return null;
+  final archive = await openHostArchive(ref,
+      file: manifest.file,
+      uri: manifest.archiveUri,
+      fresh: fresh != null,
+      minZoom: kWaysZoom,
+      maxZoom: kWaysZoom,
+      label: 'Wege-Archiv öffnen');
+  if (archive == null) return null;
+  return BaseMapStyle(theme: wayTheme(), tileProviders: TileProviders({kWaysSourceId: archive}));
 });
 
 /// Zeichnet ein Stück Weg in einer Klasse, wie MapLibre es zeichnet: das

@@ -107,8 +107,13 @@ OSM-Rasterkacheln entfallen damit auch online. Ein Netzhost weniger
   `tool/map_tiles.py plan` gegen `dach-20261001.pmtiles`): 20 × 20 km
   über Zoom 8–13 kosten 2,9–4,1 MB, ein Tag mit viel Schieben über
   50 × 50 km grob 20–25 MB; 100 MB (Betreiber) tragen gut zwanzig
-  solche Tage. Der Browser (flutter_map) bekommt es mit eigenem
-  Kachelspeicher in IndexedDB, ein eigener PR.
+  solche Tage. **Im Browser seit 0.101.0** mit eigenem Kachelspeicher
+  in IndexedDB (`seen_tiles.dart`): komprimiert wie im Archiv, Schlüssel
+  `<archiv>/z/x/y`, dieselben 100 MB, die am längsten nicht gebrauchte
+  Kachel zuerst. Weil Archive mit Datum unveränderlich sind, fragt der
+  Lieferant ZUERST den Speicher, auch mit Netz — das spart je Kachel
+  eine Range-Anfrage (#55); ohne frisches Manifest nimmt die Karte das
+  gemerkte und zeigt, was liegt, über der Übersicht.
 - **Der Browser darf räumen**: `navigator.storage.persist()` beim ersten
   Speichern eines Bereichs erfragen (Muster Ausgangskorb in PilzBuddy),
   nicht beim Start; Safari räumt nach sieben Tagen ohne Nutzung. Die
@@ -241,9 +246,10 @@ ohne sie geht.
    PMTiles-Archiv aus dem eigenen Schreiber, Ablage als Datei bzw. in
    IndexedDB, Auswahl (Ausschnitt oder um die Trails), Größe vorher aus
    dem Verzeichnis, Fortschritt und Abbruch, Orte-Zellen mit dabei,
-   Liste „Meine Bereiche" mit Aktualisieren und Löschen. Noch offen aus
-   3.2: „Gesehenes bleibt liegen" im Browser (auf Android seit 0.99.0)
-   und der Hinweis bei geräumtem Browser-Speicher (Abschnitt 7).
+   Liste „Meine Bereiche" mit Aktualisieren und Löschen. „Gesehenes
+   bleibt liegen" seit 0.99.0 (Android) und 0.101.0 (Browser). Noch
+   offen aus 3.2: der Hinweis bei geräumtem Browser-Speicher
+   (Abschnitt 7).
 4. **Orte vom eigenen Host** (**seit 0.18.0**, Messung und Entscheidung
    in 3.4): `poi-data.yml`, `tool/poi_extract.py`, Manifest `pois.json`.
    Offline werden sie mit Schritt 3: die Dateien der Zellen eines
@@ -308,9 +314,10 @@ Bereichskachel deckt mit ihrer `earth`-Fläche die Online-Karte darunter
 zu, wo keine liegt, scheint diese durch. Sichtbar doppelt wird nichts. (3) Ein neuerer Kartenstand wird in
 „Meine Bereiche" angeboten, unabhängig davon, ob das Netz frei ist —
 wer tippt, entscheidet; `isActiveNetworkMetered` bräuchte einen
-eigenen Plattform-Kanal. Noch nicht gebaut: „Gesehenes bleibt liegen"
-im Browser (auf Android seit 0.99.0, #155, über MapLibres Ambient
-Cache, siehe 3.2) und `navigator.storage.persist()`.
+eigenen Plattform-Kanal. „Gesehenes bleibt liegen" gibt es seit 0.99.0
+auf Android (MapLibres Ambient Cache) und seit 0.101.0 im Browser
+(eigener Speicher in IndexedDB, #155, siehe 3.2). Noch nicht gebaut:
+`navigator.storage.persist()`.
 
 **Bot Fight Mode ist für die Zone `mcbuchi.de` AUS** (Betreiber,
 2026-09-28, Issue #55). Cloudflares Free-Plan kennt den Schalter nur

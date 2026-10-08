@@ -4,6 +4,8 @@ import 'dart:typed_data';
 import 'package:pmtiles/pmtiles.dart';
 import 'package:vector_map_tiles/vector_map_tiles.dart';
 
+import 'seen_tiles.dart' show SeenTile;
+
 /// Liefert Vector-Tiles aus einem PMTiles-Archiv an vector_map_tiles
 /// (PilzBuddy-Adapter; das fertige Paket vector_map_tiles_pmtiles kann
 /// flutter_map 8 noch nicht).
@@ -49,10 +51,26 @@ class PmTilesVectorTileProvider extends VectorTileProvider {
   Future<void> close() => _archive.close();
 
   @override
-  Future<Uint8List> provide(TileIdentity tile) async {
+  Future<Uint8List> provide(TileIdentity tile) => _guarded(tile, () async {
+        final t = await _archive.tile(ZXY(tile.z, tile.x, tile.y).toTileId());
+        return Uint8List.fromList(t.bytes());
+      });
+
+  /// Die Kachel, wie sie im Archiv liegt — für den Speicher gesehener
+  /// Kacheln im Browser (#155), der komprimiert ablegt. Eine Kompression
+  /// außer gzip wird gleich ausgepackt (Protomaps schreibt gzip).
+  Future<SeenTile> rawTile(TileIdentity tile) => _guarded(tile, () async {
+        final t = await _archive.tile(ZXY(tile.z, tile.x, tile.y).toTileId());
+        return switch (t.compression) {
+          Compression.gzip => SeenTile(Uint8List.fromList(t.compressedBytes()), gzip: true),
+          Compression.none => SeenTile(Uint8List.fromList(t.compressedBytes()), gzip: false),
+          _ => SeenTile(Uint8List.fromList(t.bytes()), gzip: false),
+        };
+      });
+
+  Future<T> _guarded<T>(TileIdentity tile, Future<T> Function() read) async {
     try {
-      final t = await _archive.tile(ZXY(tile.z, tile.x, tile.y).toTileId());
-      return Uint8List.fromList(t.bytes());
+      return await read();
     } on TileNotFoundException {
       throw ProviderException(
         message: 'Tile ${tile.key()} nicht im Archiv',

@@ -48,6 +48,11 @@ jobs:
       - run: flutter pub get
       - run: flutter analyze
       - run: flutter test
+      # Die einzigen Tests, die einen Web-Zweig wirklich fahren: dart2js in
+      # Chrome, echte IndexedDB (`@TestOn('browser')`, die VM überspringt
+      # sie). Der Runner liefert dort keine Assets — nur assetfreier Code.
+      - name: Web-Test auf dart2js
+        run: flutter test --platform chrome test/web/
       # Die Skripte in tool/ haben Selbsttests, aber niemanden, der sie
       # ausführt — sie verrotten sonst still (PilzBuddy #151). Alle laufen
       # ohne Netz, ohne Schlüssel, in Sekunden.

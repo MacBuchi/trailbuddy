@@ -79,6 +79,14 @@ Gegenprobe der Vorgabe.
 - **Plattform-Kanäle mocken** (`setMockMethodCallHandler`): Unter
   `FakeAsync` löst sich die Antwort eines nicht gemockten Kanals nie auf —
   der Knopf bleibt folgenlos, ohne Fehler.
+- **Web-Zweige laufen nur unter dart2js** (`test/web/`, `@TestOn('browser')`,
+  CI-Schritt „Web-Test auf dart2js"; lokal `CHROME_EXECUTABLE` auf das
+  Chromium unter `/opt/pw-browsers` setzen, dann `flutter test --platform
+  chrome test/web/`). Auf der VM ist `kIsWeb` falsch; die Speicher-Fassung
+  von idb_shim gibt Werte anders zurück als der Browser. Der Runner
+  liefert dort KEINE Assets (`rootBundle` endet im Timeout) — nur
+  assetfreier Code. Ein grüner Lauf beweist nur etwas mit einem Nachweis,
+  dass der Web-Weg lief (`idbFactoryBrowser.persistent`).
 
 ## Werkzeug
 

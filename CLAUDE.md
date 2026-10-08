@@ -198,9 +198,7 @@ Code liegt — nicht wieder hierher.
 Was es bewusst noch nicht gibt:
 
 - **Noch nicht da, bewusst** (jeweils eigener PR, Muster in PilzBuddy):
-  „Gesehenes bleibt liegen" im Browser (Konzept 3.2; auf Android seit
-  0.99.0, #155), Ausgangskorb und
-  Zwischenspeicher im Browser, Nachrichten zwischen Buddys (#34, Rest),
+  Ausgangskorb und Zwischenspeicher im Browser (#153), Nachrichten zwischen Buddys (#34, Rest),
   Meldung zu einem einzelnen Trail.
 
 ## Code-Konventionen

@@ -291,8 +291,10 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     die der Übersicht, deren Zoom-7-Namen gestreckt über der Detailkarte
     stünden); gleiche Namen aus zwei Quellen verdrängt MapLibres
     Kollisionsprüfung. **flutter_map noch nicht**: Dort bräuchte es eine
-    zweite Kachelschicht nur für Namen, also jede Range-Anfrage doppelt —
-    kommt mit dem Kachelspeicher im Browser (#155).
+    zweite Kachelschicht nur für Namen. Seit dem Kachelspeicher im Browser
+    (#155, 0.101.0) liest sie liegende Kacheln aus dem Speicher; beim
+    ersten Ansehen fragten beide Schichten den Host — das braucht noch
+    ein Zusammenlegen gleichzeitiger Anfragen im Lieferanten.
   - **Zwei Fassungen derselben Tabelle** (`wayStyleLayers(dashes:)`):
     MapLibre mit Band und Strich, flutter_map ohne Strich, weil
     `vector_tile_renderer` `line-dasharray` verwirft — dort trägt die
@@ -312,7 +314,7 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     jeder Kartentest den Host. Offline kommen die Wege aus den
     gespeicherten Bereichen (seit 0.90.0, `lib/features/offline_areas/CLAUDE.md`),
     als oberste Wege-Quelle in beiden Engines.
-- **Gesehenes bleibt liegen** (#155, seit 0.99.0, nur Android; Konzept
+- **Gesehenes bleibt liegen** (#155, seit 0.99.0 auf Android; Konzept
   `docs/konzept-offline-karten.md` 3.2): Was MapLibre vom Host geladen
   hat (Karte UND Wege), bleibt in SEINEM Ambient Cache
   (`mbgl-offline.db` in `filesDir`, Backup-Ausschluss), höchstens
@@ -342,9 +344,39 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
   - **Die Grenze setzt die MapLibre-Ansicht einmal je Lauf**
     (`OfflineManager.setMaximumAmbientCacheSize`); scheitert das, gilt
     MapLibres Vorgabe (50 MB). Im Widget-Test nicht prüfbar (Platform
-    View), Gate ist das Gerät. Im Browser gibt es das noch nicht — dort
-    braucht flutter_map einen eigenen Speicher in IndexedDB (eigener PR
-    zu #155).
+    View), Gate ist das Gerät.
+  **Im Browser seit 0.101.0** (`seen_tiles.dart`, flutter_map): ein
+  eigener Speicher in IndexedDB, weil flutter_map keinen hat. Fünf Dinge,
+  die man wissen muss:
+  - **Erst der Speicher, dann der Host — auch mit Netz.** Der Schlüssel
+    ist `<archiv>/z/x/y`, und Archive mit Datum sind unveränderlich; eine
+    liegende Kachel ist nie veraltet, und jede gesparte Range-Anfrage ist
+    eine R2-Class-B-Operation weniger (#55). Ein neuer Bau hat neue
+    Schlüssel, die alten werden nicht mehr gebraucht und gehen zuerst.
+  - **Abgelegt wird KOMPRIMIERT** (`PmTilesVectorTileProvider.rawTile`,
+    gzip wie im Archiv), damit die 100 MB dasselbe heißen wie die Messung
+    an den Archivgrößen; ausgepackt wird beim Liefern, mit demselben
+    `GZipDecoder` wie `pmtiles` im Web. Achtung im Test: `writePmTiles`
+    legt Kacheln ab, wie sie kommen — gzip also VORHER.
+  - **Der Index liegt im Speicher** (Größe, Zeit, gzip je Kachel, als
+    Text — keine Typfragen beim Zurücklesen), beim ersten Zugriff einmal
+    ganz gelesen: Ein Fehlgriff kostet danach nichts, geräumt wird aus
+    ihm heraus (über der Grenze bis 90 %). „Zuletzt gebraucht" wird
+    höchstens stündlich neu geschrieben. Zwei Tabs führen je ihren Index;
+    das kostet höchstens eine Kachel, nie eine falsche.
+  - **Dieselbe Regel wie im MapLibre-Stil**, an EINER Stelle
+    (`openHostArchive`): frisches Manifest ⇒ Host plus Speicher, und es
+    wird gemerkt; keins (Funkloch, Host weg, Archiv geht nicht auf) ⇒ das
+    gemerkte, nur der Speicher (`seenOnly`), und darunter die Übersicht
+    (`seenOnlyProviders` in `flutter_map_view.dart`). Die Wege nur,
+    solange ihr Schalter an ist.
+  - **Nur im Browser** (`seenTileStoreProvider`, bedingter Import): Auf
+    Android und auf der Test-VM gibt es keinen Speicher, und der
+    flutter_map-Rückfall bleibt, wie er war. Geprüft auf der VM mit
+    `newIdbFactoryMemory()` (`test/map/seen_tiles_test.dart`) und in einer
+    ECHTEN IndexedDB unter dart2js (`test/web/`, CI-Schritt „Web-Test auf
+    dart2js", `idbFactoryBrowser.persistent` als Nachweis). Ein privater
+    Modus ohne IndexedDB ist ein leerer Speicher, kein Fehler.
 - **Höhenlinien** (#271, seit 0.100.0, `contours.dart` = PilzBuddys
   Maschine Zeile für Zeile, `contour_layer.dart` pur, `contour_providers.dart`;
   Aussehen `docs/design/README.md` 5b): aus den Höhenkacheln, die Planer,

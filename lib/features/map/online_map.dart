@@ -1,15 +1,19 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
-import 'package:vector_map_tiles/vector_map_tiles.dart' show TileProviders;
+import 'package:vector_map_tiles/vector_map_tiles.dart' show TileProviders, VectorTileProvider;
 
 import '../../core/connectivity.dart';
 import '../../core/errors.dart';
+import '../../core/settings.dart';
 import '../offline_areas/height_tiles.dart' show kHeightGrid, kHeightTileZoom, kHeightsFormat;
 import 'base_map_providers.dart';
 import 'map_providers.dart';
 import 'pmtiles_tile_provider.dart';
+import 'seen_tiles.dart';
+import 'seen_tiles_web.dart' if (dart.library.io) 'seen_tiles_io.dart';
 
 /// Das Manifest des Kartenhosts (`dach.json`, geschrieben von
 /// `map-data.yml`): welche Datei gerade gilt und bis zu welchem Zoom sie
@@ -166,17 +170,99 @@ final onlineArchiveOpenerProvider =
     Provider<Future<PmTilesVectorTileProvider> Function(Uri)>(
         (ref) => PmTilesVectorTileProvider.openUri);
 
+/// Der Speicher gesehener Kacheln (#155) — im Browser IndexedDB, sonst
+/// keiner (Android: MapLibres Ambient Cache). Die Naht für Tests.
+final seenTileStoreProvider = Provider<SeenTileStore?>((ref) => createSeenTileStore());
+
+/// Liest ein gemerktes Manifest (#155) — mit derselben Prüfung wie vom
+/// Host. Was nicht mehr passt (ein anderes Wege-Format nach einem Update),
+/// heißt still „keins".
+T? rememberedManifest<T>(String? json, T Function(Map<String, dynamic>) parse) {
+  if (json == null) return null;
+  try {
+    return parse(jsonDecode(json) as Map<String, dynamic>);
+  } catch (_) {
+    return null;
+  }
+}
+
+/// Merkt ein frisches Manifest, nur wenn es sich geändert hat (einmal im
+/// Monat, nicht bei jedem Neubau des Stils). Beide Engines schreiben
+/// dieselben Schlüssel mit demselben Text.
+void rememberManifest(String? before, Map<String, dynamic> manifest, Future<void> Function(String) write) {
+  final json = jsonEncode(manifest);
+  if (json == before) return;
+  unawaited(write(json).catchError((Object e, StackTrace s) => logError('Karten-Manifest merken', e, s)));
+}
+
+/// Öffnet ein Archiv des Hosts für flutter_map — mit Speicher gesehener
+/// Kacheln, wo es einen gibt (#155). Ohne frisches Manifest ([fresh]
+/// false) oder wenn das Archiv nicht aufgeht, liefert der Speicher allein
+/// ([SeenTilesVectorTileProvider.seenOnly]). Null: nichts zu zeigen.
+Future<VectorTileProvider?> openHostArchive(
+  Ref ref, {
+  required String file,
+  required Uri uri,
+  required bool fresh,
+  required int minZoom,
+  required int maxZoom,
+  required String label,
+}) async {
+  final store = ref.watch(seenTileStoreProvider);
+  PmTilesVectorTileProvider? online;
+  if (fresh) {
+    try {
+      online = await ref.watch(onlineArchiveOpenerProvider)(uri);
+    } catch (e, s) {
+      if (!looksOffline(e)) logError(label, e, s);
+      if (store == null) return null;
+    }
+  }
+  if (store == null) {
+    if (online != null) ref.onDispose(online.close);
+    return online;
+  }
+  final provider = SeenTilesVectorTileProvider(
+      archive: file, store: store, online: online, minZoom: minZoom, maxZoom: maxZoom);
+  ref.onDispose(provider.close);
+  return provider;
+}
+
+/// Ob eine Quelle nur gesehene Kacheln liefert — dann liegt die Übersicht
+/// darunter (dieselbe Regel wie im MapLibre-Stil: Übersicht, solange kein
+/// FRISCHES Manifest da ist).
+bool seenOnlyProviders(TileProviders providers) => providers.tileProviderBySource.values
+    .any((p) => p is SeenTilesVectorTileProvider && p.seenOnly);
+
 /// Die Online-Vektorkarte für die flutter_map-Engine: Archiv vom Host
 /// plus das Thema OHNE `background`-Ebene, damit die Übersicht darunter
 /// durchscheint, wo eine Kachel (noch) fehlt. Null, solange es kein
 /// Manifest gibt oder das Archiv nicht aufgeht — dann bleibt die
 /// Übersicht die Karte, ohne Fehlermeldung.
+///
+/// Im Browser (#155) mit Speicher gesehener Kacheln: Ohne frisches
+/// Manifest nimmt sie das gemerkte und zeigt, was liegt, über der
+/// Übersicht.
 final onlineMapStyleProvider = FutureProvider<BaseMapStyle?>((ref) async {
-  final manifest = await ref.watch(mapManifestProvider.future);
+  final fresh = await ref.watch(mapManifestProvider.future);
+  MapManifest? manifest = fresh;
+  if (ref.watch(seenTileStoreProvider) != null) {
+    final settings = ref.watch(settingsProvider);
+    if (fresh != null) {
+      rememberManifest(settings.seenMapManifest, fresh.toJson(), settings.setSeenMapManifest);
+    }
+    manifest ??= rememberedManifest(settings.seenMapManifest, MapManifest.fromJson);
+  }
   if (manifest == null) return null;
   try {
-    final archive = await ref.watch(onlineArchiveOpenerProvider)(manifest.archiveUri);
-    ref.onDispose(archive.close);
+    final archive = await openHostArchive(ref,
+        file: manifest.file,
+        uri: manifest.archiveUri,
+        fresh: fresh != null,
+        minZoom: 0,
+        maxZoom: manifest.maxZoom,
+        label: 'Online-Karte öffnen');
+    if (archive == null) return null;
     final theme = await ref.watch(baseThemeWithoutBackgroundProvider.future);
     return BaseMapStyle(theme: theme, tileProviders: TileProviders({'protomaps': archive}));
   } catch (e, s) {
