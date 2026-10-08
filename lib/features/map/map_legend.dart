@@ -30,7 +30,8 @@ import 'way_layer.dart';
 /// Eine Probe: Farbe, Strich der Linie, Saum, Deckkraft — und die Gruppe
 /// (Schwierigkeit, Zustand, Rand, offiziell), nach der die Karte Luft lässt.
 /// Eine Wege-Probe (#212) trägt ihre Klasse in [way] und wird gezeichnet
-/// wie die Ebene — ohne weißen Saum, mit Band und Strich.
+/// wie die Ebene — ohne weißen Saum, mit Band und Strich, der Forstweg mit
+/// Mittelstreifen.
 typedef LegendSample = ({
   String label,
   int group,
@@ -109,9 +110,10 @@ class LegendLinePainter extends CustomPainter {
 
   static const _width = 3.0;
 
-  /// Breite einer Wege-Probe: die Ebene bei etwa Zoom 16, wo man sie
-  /// liest — schmaler als ein Trail, wie auf der Karte.
-  static const _wayWidth = 2.4;
+  /// Wege-Proben: die Ebene bei etwa Zoom 16, wo man sie liest — ein
+  /// Pfad schmaler als ein Trail, ein Forstweg breit genug für zwei
+  /// Spuren und den Mittelstreifen (#263), wie auf der Karte.
+  static const _wayScale = 1.75;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -119,7 +121,7 @@ class LegendLinePainter extends CustomPainter {
     final a = Offset(2, y);
     final b = Offset(size.width - 2, y);
     if (sample.way case final way?) {
-      paintWayStroke(canvas, a, b, way, _wayWidth * way.width / WayClass.trackGood.width);
+      paintWayStroke(canvas, a, b, way, way.width * _wayScale);
       return;
     }
     // Erst der Saum (weiß, auf Wunsch gestrichelt), dann ein farbiger

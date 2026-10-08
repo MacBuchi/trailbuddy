@@ -9,7 +9,8 @@
 // **Aussehen** (Betreiber, 2026-10-08; `docs/design/README.md` Abschnitt
 // 5a): nur Strich und Breite, in den Grau-Braun-Tönen der Basiskarte, nie
 // eine Trail-Farbe. Durchgezogen und kräftig heißt gut/leicht, gestrichelt
-// mittel, gepunktet und blass schlecht/schwer. Im Web gibt es keinen Strich
+// mittel, gepunktet und blass schlecht/schwer. Forstwege sind eine
+// Doppellinie mit hellem Mittelstreifen, Pfade eine Linie (#263). Im Web gibt es keinen Strich
 // (`vector_tile_renderer` verwirft `line-dasharray`), dort tragen Breite
 // und Helligkeit allein — deshalb zwei Fassungen derselben Tabelle
 // ([wayStyleLayers] mit `dashes`).
@@ -63,6 +64,10 @@ Map<String, dynamic> waysMetadata(String name, String? build) => {
 /// Breite), die Ebene übernimmt das.
 enum WayKind { track, path }
 
+/// Der Mittelstreifen aller Forstwege (#263): fast weiß, heller als das
+/// Land der Karte — die Güte tragen die Spuren.
+const kWayTrackCore = Color(0xFFF3F1EC);
+
 /// Die acht Klassen des Archivs (`k`), je mit ihrem Aussehen. Die
 /// Reihenfolge ist die der Legende; die Codes sind die des Werkzeugs (1–6
 /// aus Format 1, 7 und 8 seit Format 2).
@@ -73,16 +78,16 @@ enum WayKind { track, path }
 /// Zoom 15 immer ÜBER der Basislinie (Forstweg 1,4, Pfad 0,8), sonst
 /// stünde sie neben der Ebene.
 enum WayClass {
-  trackGood(1, WayKind.track, 'gut', Color(0xFF7F6649), null, Color(0xFF7F6649), 2.2, null),
-  trackMedium(2, WayKind.track, 'mittel', Color(0xFFA58A6A), Color(0xFFD3C5B3), Color(0xFFA58A6A), 1.8, [3, 1.5]),
-  trackPoor(3, WayKind.track, 'schlecht', Color(0xFFA58A6A), Color(0xFFDDD2C4), Color(0xFFC7B49D), 1.6, [1, 2]),
-  trackVeryPoor(7, WayKind.track, 'sehr schlecht', Color(0xFFB39C80), Color(0xFFE4DBCF), Color(0xFFD3C4B1), 1.5, [1, 3.5]),
-  pathEasy(4, WayKind.path, 'leicht', Color(0xFF8F7860), null, Color(0xFF8F7860), 1.4, null),
-  pathMedium(5, WayKind.path, 'mittelschwer', Color(0xFFA8907A), Color(0xFFD8CCBD), Color(0xFFB6A08A), 1.1, [3, 1.5]),
-  pathHard(6, WayKind.path, 'schwer', Color(0xFFA8907A), Color(0xFFE0D6CA), Color(0xFFCDBFAE), 1.0, [1, 2]),
-  pathVeryHard(8, WayKind.path, 'sehr schwer', Color(0xFFB5A08B), Color(0xFFE6DED4), Color(0xFFD9CDBF), 0.9, [1, 3.5]);
+  trackGood(1, WayKind.track, 'gut', Color(0xFF7F6649), null, Color(0xFF7F6649), 3.0, null, kWayTrackCore),
+  trackMedium(2, WayKind.track, 'mittel', Color(0xFFA58A6A), Color(0xFFD3C5B3), Color(0xFFA58A6A), 2.8, [3, 1.5], kWayTrackCore),
+  trackPoor(3, WayKind.track, 'schlecht', Color(0xFFA58A6A), Color(0xFFDDD2C4), Color(0xFFC7B49D), 2.6, [1, 2], kWayTrackCore),
+  trackVeryPoor(7, WayKind.track, 'sehr schlecht', Color(0xFFB39C80), Color(0xFFE4DBCF), Color(0xFFD3C4B1), 2.4, [1, 3.5], kWayTrackCore),
+  pathEasy(4, WayKind.path, 'leicht', Color(0xFF8F7860), null, Color(0xFF8F7860), 1.4, null, null),
+  pathMedium(5, WayKind.path, 'mittelschwer', Color(0xFFA8907A), Color(0xFFD8CCBD), Color(0xFFB6A08A), 1.1, [3, 1.5], null),
+  pathHard(6, WayKind.path, 'schwer', Color(0xFFA8907A), Color(0xFFE0D6CA), Color(0xFFCDBFAE), 1.0, [1, 2], null),
+  pathVeryHard(8, WayKind.path, 'sehr schwer', Color(0xFFB5A08B), Color(0xFFE6DED4), Color(0xFFD9CDBF), 0.9, [1, 3.5], null);
 
-  const WayClass(this.code, this.kind, this.label, this.color, this.band, this.webColor, this.width, this.dash);
+  const WayClass(this.code, this.kind, this.label, this.color, this.band, this.webColor, this.width, this.dash, this.core);
 
   /// Der Wert von `k` im Archiv.
   final int code;
@@ -99,7 +104,19 @@ enum WayClass {
 
   /// Strichmuster in Vielfachen der Breite (MapLibre); null = durchgezogen.
   final List<double>? dash;
+
+  /// Der Mittelstreifen eines Forstwegs (#263, Betreiber 2026-10-08:
+  /// Variante „Topo-Karte"): eine helle Linie mitten auf dem Strich, übrig
+  /// bleiben zwei schmale Fahrspuren in Farbe und Muster der Güte. Null bei
+  /// Pfaden, die eine Linie bleiben. Deckend statt halb durchsichtig,
+  /// weil `vector_tile_renderer` `line-opacity` nicht liest — so sehen
+  /// beide Engines dasselbe.
+  final Color? core;
 }
+
+/// Der Anteil des Mittelstreifens an der Breite eines Forstwegs; jede
+/// Spur hat die Hälfte des Rests.
+const kWayCoreShare = 0.55;
 
 /// Die Breite über den Zoom, wie die Wege der Basiskarte
 /// (`tool/transform_map_style.py`, exponentiell 1,6).
@@ -113,10 +130,11 @@ String _css(Color c) => '#${(c.toARGB32() & 0xFFFFFF).toRadixString(16).padLeft(
 /// Die Stil-Ebenen der Wege für eine Quelle [sourceId]. Mit [dashes]
 /// (MapLibre) je gestrichelter Klasse ein Band und darüber der Strich;
 /// ohne (flutter_map im Web) EINE durchgezogene Linie in [WayClass.webColor].
-/// Erst alle Bänder, dann alle Striche — ein Band darf keinen Strich
-/// einer Nachbarklasse zudecken, wo zwei Wege sich treffen.
+/// Erst alle Bänder, dann die Forstwege samt Mittelstreifen, zuletzt die
+/// Pfade — ein Band darf keinen Strich einer Nachbarklasse zudecken, und
+/// ein Mittelstreifen keinen Pfad, der den Forstweg kreuzt.
 List<Map<String, dynamic>> wayStyleLayers(String sourceId, {required bool dashes}) {
-  Map<String, dynamic> line(String id, WayClass c, Color color, {List<double>? dash}) => {
+  Map<String, dynamic> line(String id, WayClass c, Color color, double width, {List<double>? dash}) => {
         'id': '$sourceId/$id-${c.name}',
         'type': 'line',
         'source': sourceId,
@@ -126,17 +144,23 @@ List<Map<String, dynamic>> wayStyleLayers(String sourceId, {required bool dashes
         'layout': {'line-cap': 'butt', 'line-join': 'round'},
         'paint': {
           'line-color': _css(color),
-          'line-width': _width(c.width),
+          'line-width': _width(width),
           'line-dasharray': ?dash,
         },
       };
-  if (!dashes) {
-    return [for (final c in WayClass.values) line('line', c, c.webColor)];
-  }
+  Iterable<Map<String, dynamic>> strokes(WayKind kind) => [
+        for (final c in WayClass.values)
+          if (c.kind == kind)
+            dashes ? line('line', c, c.color, c.width, dash: c.dash) : line('line', c, c.webColor, c.width),
+      ];
   return [
+    if (dashes)
+      for (final c in WayClass.values)
+        if (c.band case final band?) line('band', c, band, c.width),
+    ...strokes(WayKind.track),
     for (final c in WayClass.values)
-      if (c.band case final band?) line('band', c, band),
-    for (final c in WayClass.values) line('line', c, c.color, dash: c.dash),
+      if (c.core case final core?) line('core', c, core, c.width * kWayCoreShare),
+    ...strokes(WayKind.path),
   ];
 }
 
@@ -233,7 +257,8 @@ final onlineWaysStyleProvider = FutureProvider<BaseMapStyle?>((ref) async {
 });
 
 /// Zeichnet ein Stück Weg in einer Klasse, wie MapLibre es zeichnet: das
-/// Band, darüber der Strich, das Muster in Vielfachen der Breite. Für
+/// Band, darüber der Strich, das Muster in Vielfachen der Breite, beim
+/// Forstweg obenauf der Mittelstreifen. Für
 /// Legende und Schalter — dieselbe Tabelle wie die Karte.
 void paintWayStroke(Canvas canvas, Offset a, Offset b, WayClass c, double width) {
   void stroke(Color color, List<double>? dash) {
@@ -257,6 +282,12 @@ void paintWayStroke(Canvas canvas, Offset a, Offset b, WayClass c, double width)
 
   if (c.band case final band?) stroke(band, null);
   stroke(c.color, c.dash);
+  if (c.core case final core?) {
+    canvas.drawLine(a, b, Paint()
+      ..color = core
+      ..strokeWidth = width * kWayCoreShare
+      ..strokeCap = StrokeCap.butt);
+  }
 }
 
 /// Das Bild am Schalter „Wege": die drei Forstweg-Klassen untereinander.
@@ -268,7 +299,7 @@ class WaySwatchPainter extends CustomPainter {
     const rows = [WayClass.trackGood, WayClass.trackMedium, WayClass.trackPoor];
     for (var i = 0; i < rows.length; i++) {
       final y = size.height * (i + 0.5) / rows.length;
-      paintWayStroke(canvas, Offset(0, y), Offset(size.width, y), rows[i], 3);
+      paintWayStroke(canvas, Offset(0, y), Offset(size.width, y), rows[i], 4.5);
     }
   }
 
