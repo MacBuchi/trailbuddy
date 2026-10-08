@@ -152,7 +152,6 @@ jobs:
           echo "file=ways-${BUILD}.pmtiles" >> "$GITHUB_ENV"
           heights=$(curl -sSL --fail --max-time 60 "$PUBLIC_BASE/heights.json" \
                       | python3 -c 'import json, sys; print(json.load(sys.stdin)["bytes"])')
-          echo "HEIGHT_BYTES=$heights" >> "$GITHUB_ENV"
           rm -rf build/ways && mkdir -p build/ways
           pbfs=()
           for f in build/ways-src/*.osm.pbf; do pbfs+=(--pbf "$f"); done
@@ -168,13 +167,14 @@ jobs:
           # month. And the archive is fetched with every stored area: if
           # it grows past the heights, that is a decision for the
           # operator, not something a scheduled run publishes.
-          python3 - <<'PY'
+          HEIGHT_BYTES="$heights" python3 - <<'PY'
           import json, os, sys
           m = json.load(open("build/ways/ways.json"))
           heights = int(os.environ["HEIGHT_BYTES"])
           # Measured 2026-10-08 on DE, AT, CH, LI and IT north-east alone:
           # 53 615 tiles, 92.3 MB (63 % of the heights). The whole box
-          # with the neighbours is more, never less.
+          # with the neighbours (first run 2026-10-08): 83 968 tiles,
+          # 119.2 MB (85 %).
           min_tiles, max_height_share = 50000, 1.0
           if m["tiles"] < min_tiles:
               print(f"::error::Only {m['tiles']} way tiles — DACH alone has about 53 600; not publishing.")
