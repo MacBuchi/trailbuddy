@@ -23,7 +23,7 @@ Map<String, dynamic> _toolManifest() => {
       'build': '20261101',
       'bytes': 92300000,
       'file': 'ways-20261101.pmtiles',
-      'format': 1,
+      'format': 2,
       'sha256': 'ab' * 32,
       'source': 'OpenStreetMap',
       'tiles': 53615,
@@ -42,7 +42,9 @@ void main() {
     test('lehnt fremde Namen, Formate und Zoomstufen ab', () {
       for (final bad in [
         {..._toolManifest(), 'file': '../dach-20261101.pmtiles'},
-        {..._toolManifest(), 'format': 2},
+        // Format 1 (bis 0.90.0) kannte 7 und 8 nicht.
+        {..._toolManifest(), 'format': 1},
+        {..._toolManifest(), 'format': 3},
         {..._toolManifest(), 'zoom': 12},
       ]) {
         expect(() => WaysManifest.fromJson(bad), throwsFormatException, reason: '$bad');

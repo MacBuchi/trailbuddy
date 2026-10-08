@@ -29,10 +29,13 @@ import 'map_providers.dart';
 import 'online_map.dart';
 
 /// Das Kachelformat des Archivs — gespiegelt aus `tool/way_archive.py`
-/// (`FORMAT`, `ZOOM`, `LAYER`, `KEY`); `test/release_workflow_test.dart`
-/// hält beide Seiten zusammen. Ein anderes Format lehnt das Manifest ab:
-/// dann keine Ebene, keine falsch gelesene.
-const kWaysFormat = 1;
+/// (`FORMAT`, `ZOOM`, `LAYER`, `KEY`, `UPHILL_KEY`);
+/// `test/release_workflow_test.dart` hält beide Seiten zusammen. Ein
+/// anderes Format lehnt das Manifest ab: dann keine Ebene, keine falsch
+/// gelesene. Format 2 (#213) teilt „Forstweg schlecht" und „Pfad schwer"
+/// je in zwei Klassen und trägt an Pfaden `u` (`mtb:scale:uphill`) für
+/// das Routing.
+const kWaysFormat = 2;
 
 /// Die eine Zoomstufe des Archivs. Darunter zeigt keine Engine die Ebene
 /// (ein Archiv mit nur z13 kann nicht verkleinert werden), darüber wird
@@ -40,6 +43,7 @@ const kWaysFormat = 1;
 const kWaysZoom = 13;
 const kWaysLayer = 'ways';
 const kWaysKey = 'k';
+const kWaysUphillKey = 'u';
 
 /// Die Quelle im Stil beider Engines.
 const kWaysSourceId = 'ways';
@@ -59,8 +63,9 @@ Map<String, dynamic> waysMetadata(String name, String? build) => {
 /// Breite), die Ebene übernimmt das.
 enum WayKind { track, path }
 
-/// Die sechs Klassen des Archivs (`k`), je mit ihrem Aussehen. Die
-/// Reihenfolge ist die der Legende.
+/// Die acht Klassen des Archivs (`k`), je mit ihrem Aussehen. Die
+/// Reihenfolge ist die der Legende; die Codes sind die des Werkzeugs (1–6
+/// aus Format 1, 7 und 8 seit Format 2).
 ///
 /// [color] ist der Strich, [band] das Band darunter, das die gestrichelte
 /// Linie der Basiskarte abdeckt (sonst schienen deren Striche durch die
@@ -71,9 +76,11 @@ enum WayClass {
   trackGood(1, WayKind.track, 'gut', Color(0xFF7F6649), null, Color(0xFF7F6649), 2.2, null),
   trackMedium(2, WayKind.track, 'mittel', Color(0xFFA58A6A), Color(0xFFD3C5B3), Color(0xFFA58A6A), 1.8, [3, 1.5]),
   trackPoor(3, WayKind.track, 'schlecht', Color(0xFFA58A6A), Color(0xFFDDD2C4), Color(0xFFC7B49D), 1.6, [1, 2]),
+  trackVeryPoor(7, WayKind.track, 'sehr schlecht', Color(0xFFB39C80), Color(0xFFE4DBCF), Color(0xFFD3C4B1), 1.5, [1, 3.5]),
   pathEasy(4, WayKind.path, 'leicht', Color(0xFF8F7860), null, Color(0xFF8F7860), 1.4, null),
   pathMedium(5, WayKind.path, 'mittelschwer', Color(0xFFA8907A), Color(0xFFD8CCBD), Color(0xFFB6A08A), 1.1, [3, 1.5]),
-  pathHard(6, WayKind.path, 'schwer', Color(0xFFA8907A), Color(0xFFE0D6CA), Color(0xFFCDBFAE), 1.0, [1, 2]);
+  pathHard(6, WayKind.path, 'schwer', Color(0xFFA8907A), Color(0xFFE0D6CA), Color(0xFFCDBFAE), 1.0, [1, 2]),
+  pathVeryHard(8, WayKind.path, 'sehr schwer', Color(0xFFB5A08B), Color(0xFFE6DED4), Color(0xFFD9CDBF), 0.9, [1, 3.5]);
 
   const WayClass(this.code, this.kind, this.label, this.color, this.band, this.webColor, this.width, this.dash);
 

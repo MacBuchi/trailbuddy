@@ -279,7 +279,8 @@ der Strich beim Zeichnen folgt der Regel.
 **Nur Strich und Breite, in den Grau-Braun-Tönen der Basiskarte, nie
 eine Trail-Farbe** (Betreiber, 2026-10-08). Die Ebene liegt über der
 Basiskarte und unter den Trails; ab Werk an, Schalter „Wege" in
-„Kartenebenen". Daten aus OSM (`tracktype`, `mtb:scale`, sonst
+„Kartenebenen". Daten aus OSM (`tracktype`, beim Forstweg dazu
+`smoothness` ab „bad" und `surface=mud`; `mtb:scale`, sonst
 `sac_scale`), vom eigenen Kartenhost, nur Zoom 13 — darunter zeigt keine
 Engine die Ebene, darüber wird hochskaliert.
 
@@ -290,10 +291,12 @@ rauer.**
 |---|---|---|---|
 | Forstweg gut | durchgezogen `#7f6649` | dasselbe | 2,2 |
 | Forstweg mittel | Band `#d3c5b3`, Strich `#a58a6a` [3, 1,5] | `#a58a6a` | 1,8 |
-| Forstweg schlecht | Band `#ddd2c4`, Punkte `#a58a6a` [1, 2] | `#c7b49d` | 1,6 |
+| Forstweg schlecht (grade4) | Band `#ddd2c4`, Punkte `#a58a6a` [1, 2] | `#c7b49d` | 1,6 |
+| Forstweg sehr schlecht (grade5, holprig, Matsch) | Band `#e4dbcf`, Punkte `#b39c80` [1, 3,5] | `#d3c4b1` | 1,5 |
 | Pfad leicht | durchgezogen `#8f7860` | dasselbe | 1,4 |
 | Pfad mittelschwer | Band `#d8ccbd`, Strich `#a8907a` [3, 1,5] | `#b6a08a` | 1,1 |
-| Pfad schwer | Band `#e0d6ca`, Punkte `#a8907a` [1, 2] | `#cdbfae` | 1,0 |
+| Pfad schwer (S3 / T3) | Band `#e0d6ca`, Punkte `#a8907a` [1, 2] | `#cdbfae` | 1,0 |
+| Pfad sehr schwer (ab S4 / T4) | Band `#e6ded4`, Punkte `#b5a08b` [1, 3,5] | `#d9cdbf` | 0,9 |
 
 Drei Dinge, die die Tabelle erklären:
 
@@ -310,7 +313,7 @@ Drei Dinge, die die Tabelle erklären:
   ungetaggter Weg, nur breiter — die Aussage tragen „gut" und „schlecht".
 
 Forstweg und Pfad unterscheiden sich wie in der Basiskarte über die
-Breite. Die Legende zeigt die sechs Proben unter „Forstweg" und „Pfad",
+Breite. Die Legende zeigt die acht Proben unter „Forstweg" und „Pfad",
 gezeichnet wie MapLibre (`paintWayStroke`), nur solange die Ebene an ist.
 
 ## 6. Karte mit zwei Leisten (Turn 3, Spezifikation 3e)

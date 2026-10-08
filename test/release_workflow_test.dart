@@ -373,7 +373,7 @@ void main() {
       final b = RegExp('const $dt = (\\d+);').firstMatch(dart)!.group(1);
       expect(b, a, reason: '$dt gegen $py');
     }
-    for (final (py, dt) in [('LAYER', 'kWaysLayer'), ('KEY', 'kWaysKey')]) {
+    for (final (py, dt) in [('LAYER', 'kWaysLayer'), ('KEY', 'kWaysKey'), ('UPHILL_KEY', 'kWaysUphillKey')]) {
       final a = RegExp('^$py = "(\\w+)"', multiLine: true).firstMatch(tool)!.group(1);
       final b = RegExp("const $dt = '(\\w+)';").firstMatch(dart)!.group(1);
       expect(b, a, reason: '$dt gegen $py');
