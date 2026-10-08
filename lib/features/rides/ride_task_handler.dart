@@ -17,6 +17,7 @@ import 'dart:io';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:geolocator/geolocator.dart';
 
+import '../routing/nav_notice.dart';
 import 'ride_confirm.dart';
 import 'ride_confirm_notify.dart';
 import 'ride_store.dart';
@@ -184,6 +185,24 @@ Future<Position?> _fix() async {
   }
 }
 
+/// Ein Takt des Dienstes: Fahrt und Navigation (#232) teilen sich EINEN
+/// Fix — zwei GPS-Abfragen je Takt kosteten Akku und lieferten zwei
+/// leicht verschiedene Punkte. Gefragt wird erst, wenn eines von beiden
+/// läuft. Wirft nie.
+Future<void> serviceTick({Future<Position?> Function()? fix}) async {
+  try {
+    final recording = await FlutterForegroundTask.getData<bool>(key: kRideDataActive) == true;
+    final navigating = await FlutterForegroundTask.getData<bool>(key: kNavDataActive) == true;
+    if (!recording && !navigating) return;
+    Future<Position?>? once;
+    Future<Position?> shared() => once ??= (fix ?? _fix)();
+    if (recording) await recordRideTick(fix: shared);
+    if (navigating) await navTick(fix: shared, recording: recording);
+  } catch (_) {
+    // Der nächste Takt versucht es wieder.
+  }
+}
+
 /// Der Task-Handler des Service: misst je Takt, solange die Brücke
 /// „aktiv" sagt.
 class RideTaskHandler extends TaskHandler {
@@ -194,8 +213,19 @@ class RideTaskHandler extends TaskHandler {
   void onRepeatEvent(DateTime timestamp) {
     // Nicht abgewartet: `onRepeatEvent` ist synchron, der nächste Takt
     // kommt erst nach dem eingestellten Abstand.
-    recordRideTick();
+    serviceTick();
   }
+
+  /// „Navigation beenden" (#232) — auch wenn die App weggewischt ist.
+  @override
+  void onNotificationButtonPressed(String id) {
+    if (id == kNavStopButton) stopNavFromService();
+  }
+
+  /// Der Tipp öffnet die App von selbst (Launch-Intent des Pakets); läuft
+  /// sie noch, soll sie die Karte zeigen, nicht den letzten Reiter.
+  @override
+  void onNotificationPressed() => FlutterForegroundTask.sendDataToMain(kNavMessageOpen);
 
   @override
   Future<void> onDestroy(DateTime timestamp, bool isTimeout) async {}

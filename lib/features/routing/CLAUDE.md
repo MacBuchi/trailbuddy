@@ -444,3 +444,35 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     (`NavTracker(startAlongM:)`) — auf einer geraden Linie findet die
     Suche über die ganze Linie den Stand ohnehin, sichtbar wird es erst
     hin und zurück (`route_progress_test`).
+- **Die Navigation im Dienst** (#232 Schritt 2, seit 0.96.0,
+  `nav_notice.dart` im Service-Isolate, `nav_service.dart` in der App;
+  Konzept-Routing 9.5). Fünf Dinge, die man wissen muss:
+  - **Ein dritter Melder am EINEN Dienst** (`NavKeepAlive`, Schlüssel
+    `nav`, Typ `location`, Knopf `kNavStopButton`): Der Takt gilt seither
+    JE MELDER (`KeepAliveCoordinator.setRepeat(key, …)`, es gilt der
+    kürzeste) — bis 0.95.0 gab es einen, und das Ende der Fahrt hätte der
+    Navigation den Takt genommen. Knöpfe je Melder; `null` an
+    `updateService` ließe dem Paket die alten, deshalb immer eine Liste.
+  - **Die Route geht als Datei hinüber** (`rides/nav_route.json`, `.part`
+    + `rename`), gelesen wird nur bei neuer Fassung `nav_rev` in der
+    Brücke — nicht je Takt. Dieselbe Linie noch einmal (das Höhenprofil
+    kam nach) behält im Dienst ihren Stand; eine neue fängt neu an
+    (`nav_notice_test`, Gegenprobe rot).
+  - **Ein Fix je Takt für Fahrt UND Navigation** (`serviceTick` in
+    `ride_task_handler.dart`); gefragt wird erst, wenn eines von beiden
+    läuft. Der Text („Noch 12,4 km · 640 hm · auf der Route") wird je
+    Takt geschrieben und überschreibt, was der Koordinator gesetzt hat —
+    auch den Fortschritt eines Downloads, bis zu dessen nächstem Prozent.
+  - **„Navigation beenden" geht ohne App** (`stopNavFromService`):
+    Brücke aus, Datei weg, ohne Fahrt der ganze Dienst. Lebt die App,
+    beendet sie über die Nachricht `kNavMessageStop` wie mit dem Knopf;
+    der Koordinator erneuert den Dienst dann über `start`, nicht
+    `update` — ein laufender Download stünde sonst ohne Dienst da, und
+    zwar mit den Typen der Übrigen, nicht mit `location`. Eine Minute
+    nach „Angekommen" endet die Navigation auch im Dienst.
+  - **Startet die App neu, während der Dienst navigiert**, holt
+    `MapScreen` sie ohne Rückfrage zurück (`NavServiceBridge.restore`,
+    Stand `nav_along`); steht die Brücke an, läuft aber kein Dienst
+    (Neustart des Geräts), wird aufgeräumt statt geöffnet. Der Harness
+    hängt `FakeNavServiceBridge` ein — ohne ginge jeder Navigations-Test
+    an `path_provider`.

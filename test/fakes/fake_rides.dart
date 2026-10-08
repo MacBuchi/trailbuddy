@@ -7,6 +7,8 @@ import 'package:trailbuddy/features/rides/ride_providers.dart';
 import 'package:trailbuddy/features/rides/ride_service.dart';
 import 'package:trailbuddy/features/rides/ride_store.dart';
 import 'package:trailbuddy/features/rides/ride_track.dart';
+import 'package:trailbuddy/features/routing/nav_notice.dart';
+import 'package:trailbuddy/features/routing/nav_service.dart';
 
 class FakeRideStore implements RideStore {
   String? uid;
@@ -230,5 +232,37 @@ class FakeRideFix {
   Future<RidePoint?> call() async {
     calls++;
     return next;
+  }
+}
+
+/// Die Brücke der Navigation zum Dienst (#232, 9.5) im Speicher: was
+/// zuletzt abgelegt wurde, ob sie an ist, und was ein Neustart der App
+/// zurückholen soll ([pending]).
+class FakeNavServiceBridge implements NavServiceBridge {
+  FakeNavServiceBridge({this.pending});
+
+  NavRouteData? pending;
+  NavRouteData? armed;
+  int arms = 0;
+  bool active = false;
+
+  @override
+  Future<void> arm(NavRouteData route) async {
+    arms++;
+    armed = route;
+    active = true;
+  }
+
+  @override
+  Future<void> disarm() async {
+    active = false;
+    armed = null;
+  }
+
+  @override
+  Future<NavRouteData?> restore() async {
+    final route = pending;
+    pending = null;
+    return route;
   }
 }

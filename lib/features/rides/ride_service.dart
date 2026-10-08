@@ -20,6 +20,11 @@ abstract interface class RideService {
   Future<void> stop();
 }
 
+/// Titel und Text der Fahrt — die App setzt sie beim Start, der Dienst
+/// beim Ende einer Navigation, die über einer Fahrt lief (#232).
+const kRideNoticeTitle = 'Fahrt wird aufgezeichnet';
+const kRideNoticeText = 'TrailBuddy zeichnet deinen Weg auf. Die Fahrt bleibt auf dem Gerät.';
+
 /// Legt den Port an, über den das Service-Isolate den Main-Isolate
 /// erreicht. **Gehört in `main()`, vor `runApp`** — ohne ihn ist die
 /// Rückrichtung stumm: `sendDataToMain` findet `null` und verwirft die
@@ -38,12 +43,12 @@ class CoordinatedRideService implements RideService {
   @override
   Future<void> start({required String title, required String text, required Duration every}) async {
     await _coordinator.start(_key, text, title: title, types: const {KeepAliveType.location});
-    await _coordinator.setRepeat(every);
+    await _coordinator.setRepeat(_key, every);
   }
 
   @override
   Future<void> stop() async {
-    await _coordinator.setRepeat(null);
+    await _coordinator.setRepeat(_key, null);
     await _coordinator.stop(_key);
   }
 }

@@ -237,8 +237,8 @@ class RideNotifier extends Notifier<RecordedRide?> {
   Future<void> _arm(String uid, DateTime startedAt) async {
     await ref.read(rideServiceBridgeProvider).arm(uid: uid, startedAt: startedAt);
     await ref.read(rideServiceProvider).start(
-          title: 'Fahrt wird aufgezeichnet',
-          text: 'TrailBuddy zeichnet deinen Weg auf. Die Fahrt bleibt auf dem Gerät.',
+          title: kRideNoticeTitle,
+          text: kRideNoticeText,
           every: kRideTickInterval,
         );
   }

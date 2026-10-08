@@ -10,9 +10,11 @@ class FakeKeepAlive implements KeepAlive {
   final titles = <String>[];
   Set<KeepAliveType> types = const {};
   Duration? repeat;
+  List<KeepAliveButton> buttons = const [];
 
   @override
-  Future<void> start(String title, String text, Set<KeepAliveType> types) async {
+  Future<void> start(String title, String text, Set<KeepAliveType> types,
+      {List<KeepAliveButton> buttons = const []}) async {
     if (!running) {
       starts++;
       this.types = types;
@@ -20,17 +22,22 @@ class FakeKeepAlive implements KeepAlive {
     running = true;
     titles.add(title);
     texts.add(text);
+    this.buttons = buttons;
   }
 
   @override
-  Future<void> update(String title, String text) async {
+  Future<void> update(String title, String text, {List<KeepAliveButton> buttons = const []}) async {
     titles.add(title);
     texts.add(text);
+    this.buttons = buttons;
   }
 
   @override
   Future<void> setRepeat(Duration? every) async => repeat = every;
 
   @override
-  Future<void> stop() async => running = false;
+  Future<void> stop() async {
+    running = false;
+    repeat = null;
+  }
 }

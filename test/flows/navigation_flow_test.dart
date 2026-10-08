@@ -5,11 +5,14 @@
 // Navigation nach einer Minute — die Aufzeichnung läuft weiter. „Zurück
 // zur Route" über einen gespeicherten Bereich (Muster
 // `trail_head_flow_test`), ohne Bereich ein Satz; „zuletzt navigiert" in
-// „Meine Fahrten" geht weiter.
+// „Meine Fahrten" geht weiter. Der Dienst (9.5): Melder am Koordinator
+// mit Knopf, „Navigation beenden" aus der Benachrichtigung, Zurückholen
+// nach einem Neustart der App.
 import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:geolocator/geolocator.dart';
@@ -20,10 +23,13 @@ import 'package:trailbuddy/features/map/map_view/map_view.dart';
 import 'package:trailbuddy/features/offline_areas/area_plan.dart';
 import 'package:trailbuddy/features/offline_areas/area_store.dart';
 import 'package:trailbuddy/features/offline_areas/pmtiles_writer.dart';
+import 'package:trailbuddy/features/keep_alive/keep_alive.dart';
 import 'package:trailbuddy/features/rides/ride_track.dart';
+import 'package:trailbuddy/features/routing/nav_notice.dart';
 import 'package:trailbuddy/features/routing/nav_providers.dart' show kNavArrivedLinger, lastNavProvider;
 
 import '../fakes/fake_backend.dart';
+import '../fakes/fake_keep_alive.dart';
 import '../fakes/fake_map_view.dart';
 import '../fakes/fake_rides.dart';
 import '../fakes/fake_tiles.dart';
@@ -131,7 +137,11 @@ void main() {
   }
 
   Future<void> startFromRides(WidgetTester tester,
-      {bool phone = false, MemoryAreaStore? areaStore, LatLng start = const LatLng(_lat, 11)}) async {
+      {bool phone = false,
+      MemoryAreaStore? areaStore,
+      LatLng start = const LatLng(_lat, 11),
+      FakeKeepAlive? keepAlive,
+      FakeNavServiceBridge? navBridge}) async {
     if (phone) {
       tester.view.physicalSize = const Size(1080, 2400);
       tester.view.devicePixelRatio = 3;
@@ -143,6 +153,8 @@ void main() {
         rideStore: store,
         rideService: service,
         areaStore: areaStore,
+        keepAlive: keepAlive,
+        navBridge: navBridge,
         rideFix: FakeRideFix()
           ..next = RidePoint(lat: start.latitude, lng: start.longitude, at: DateTime.now().toUtc(), accuracyM: 5),
         positionStream: fixes.stream,
@@ -338,5 +350,60 @@ void main() {
     await openTab(tester, 'Profil');
     await settle(tester);
     expect(find.byKey(const ValueKey('nav-last')), findsNothing);
+  });
+
+  testWidgets('the service carries the navigation: location, a stop button, and Beenden from the notification',
+      (tester) async {
+    final keepAlive = FakeKeepAlive();
+    final bridge = FakeNavServiceBridge();
+    await startFromRides(tester, keepAlive: keepAlive, navBridge: bridge);
+    await tester.tap(find.byKey(const ValueKey('nav-record')));
+    await settle(tester, frames: 2);
+    await tester.tap(find.byKey(const ValueKey('nav-go')));
+    await settle(tester);
+
+    // Ohne Aufzeichnung läuft der Dienst für die Navigation allein (9.5).
+    expect(service.starts, 0);
+    expect(keepAlive.running, isTrue);
+    expect(keepAlive.types, {KeepAliveType.location});
+    expect(keepAlive.repeat, const Duration(seconds: 5));
+    expect(keepAlive.buttons.map((b) => b.id), [kNavStopButton]);
+    expect(bridge.active, isTrue);
+    expect(bridge.armed!.points, hasLength(21));
+    expect(bridge.armed!.title, 'Hausrunde');
+
+    // „Navigation beenden" in der Benachrichtigung: Der Dienst meldet es,
+    // die App beendet wie mit dem Knopf.
+    for (final callback in FlutterForegroundTask.dataCallbacks.toList()) {
+      callback(kNavMessageStop);
+    }
+    await settle(tester);
+    expect(find.byKey(const ValueKey('nav-bar')), findsNothing);
+    expect(find.byKey(const ValueKey('layers-button')), findsOneWidget);
+    expect(keepAlive.running, isFalse);
+    expect(bridge.active, isFalse);
+  });
+
+  testWidgets('a navigation the service kept going comes back after the app restarts', (tester) async {
+    final keepAlive = FakeKeepAlive();
+    final points = [for (var i = 0; i <= 20; i++) LatLng(_lat, _lng(i))];
+    final bridge = FakeNavServiceBridge(
+        pending: NavRouteData(points: points, title: 'Hausrunde', startAlongM: 600));
+    await pumpApp(tester, backend,
+        rideStore: store,
+        rideService: service,
+        keepAlive: keepAlive,
+        navBridge: bridge,
+        positionStream: fixes.stream,
+        extraOverrides: [screenAwakeProvider.overrideWithValue(screen)]);
+    await settle(tester);
+
+    // Ohne Rückfrage — sie lief ja.
+    expect(find.byKey(const ValueKey('nav-go')), findsNothing);
+    expect(find.byKey(const ValueKey('nav-bar')), findsOneWidget);
+    expect(keepAlive.running, isTrue);
+    expect(bridge.armed!.startAlongM, 600);
+    await fix(tester, _lat, _lng(10));
+    expect(textIn('nav-remaining'), contains('758 m'));
   });
 }

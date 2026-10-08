@@ -58,13 +58,19 @@ class _ForegroundKeepAlive implements KeepAlive {
     _initialized = true;
   }
 
+  /// Leer heißt „keine Knöpfe" — `null` ließe dem Paket die alten.
+  static List<NotificationButton> _buttons(List<KeepAliveButton> buttons) =>
+      [for (final b in buttons) NotificationButton(id: b.id, text: b.text)];
+
   @override
-  Future<void> start(String title, String text, Set<KeepAliveType> types) async {
+  Future<void> start(String title, String text, Set<KeepAliveType> types,
+      {List<KeepAliveButton> buttons = const []}) async {
     if (!_supported) return;
     try {
       _initOnce();
       if (await FlutterForegroundTask.isRunningService) {
-        await FlutterForegroundTask.updateService(notificationTitle: title, notificationText: text);
+        await FlutterForegroundTask.updateService(
+            notificationTitle: title, notificationText: text, notificationButtons: _buttons(buttons));
         return;
       }
       // Ohne die Berechtigung läuft der Service trotzdem, nur ohne
@@ -87,6 +93,7 @@ class _ForegroundKeepAlive implements KeepAlive {
         notificationIcon: const NotificationIcon(metaDataName: keepAliveNotificationIconMetaData),
         notificationTitle: title,
         notificationText: text,
+        notificationButtons: _buttons(buttons),
         callback: startKeepAliveService,
       );
     } catch (e, stackTrace) {
@@ -95,11 +102,12 @@ class _ForegroundKeepAlive implements KeepAlive {
   }
 
   @override
-  Future<void> update(String title, String text) async {
+  Future<void> update(String title, String text, {List<KeepAliveButton> buttons = const []}) async {
     if (!_supported) return;
     try {
       if (!await FlutterForegroundTask.isRunningService) return;
-      await FlutterForegroundTask.updateService(notificationTitle: title, notificationText: text);
+      await FlutterForegroundTask.updateService(
+          notificationTitle: title, notificationText: text, notificationButtons: _buttons(buttons));
     } catch (e, stackTrace) {
       logError('Foreground-Service: Meldung aktualisieren', e, stackTrace);
     }

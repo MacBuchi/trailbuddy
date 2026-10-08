@@ -37,6 +37,10 @@ const kNavHeadingMinSpeedMps = 2.0;
 /// Der Zoom der Folgeansicht beim Start (256er-Stufen der Fassade).
 const kNavZoom = 16.0;
 
+/// Nach „Angekommen" endet die Navigation von selbst (9.3) — in der App
+/// und, ist die weggewischt, im Dienst (`nav_notice.dart`).
+const kNavArrivedLinger = Duration(minutes: 1);
+
 /// Über so viele Meter voraus gilt die Richtung der Linie, solange das
 /// GPS keinen Kurs hat.
 const kNavHeadingLookM = 50.0;

@@ -160,9 +160,9 @@ bundletool dump manifest --bundle trailbuddy-v<version>.aab | grep uses-permissi
 | `ACCESS_FINE_LOCATION` | „Meine Position", Fahrt aufzeichnen, „Ich bin vor Ort" | Manifest |
 | `ACCESS_COARSE_LOCATION` | dasselbe, grob (Android verlangt beide zusammen) | Manifest |
 | `FOREGROUND_SERVICE` | Fahrt und Bereichs-Download halten den Prozess wach | Manifest, `flutter_foreground_task` |
-| `FOREGROUND_SERVICE_LOCATION` | Typ des Dienstes während einer Fahrt (#28) | Manifest, `geolocator_android` |
+| `FOREGROUND_SERVICE_LOCATION` | Typ des Dienstes während einer Fahrt (#28) und einer Navigation (#232) | Manifest, `geolocator_android` |
 | `FOREGROUND_SERVICE_DATA_SYNC` | Typ des Dienstes beim Speichern eines Kartenbereichs | Manifest |
-| `POST_NOTIFICATIONS` | Dauerbenachrichtigung der Fahrt, Fortschritt des Downloads, Rückfrage „Stimmt die Meldung?" (#116), Push | Manifest und vier Plugins |
+| `POST_NOTIFICATIONS` | Dauerbenachrichtigung der Fahrt und der Navigation, Fortschritt des Downloads, Rückfrage „Stimmt die Meldung?" (#116), Push | Manifest und vier Plugins |
 | `VIBRATE` | Rückfrage während der Fahrt im Kanal `trailbuddy_meldungen` | Manifest, `flutter_local_notifications` |
 | `ACCESS_NETWORK_STATE` | Verbindung zurück ⇒ Ausgangskorb senden; ohne Empfang kein Kartenabruf | `connectivity_plus`, `firebase_messaging` |
 | `WAKE_LOCK` | Fahrt und Download über den Bildschirm-Timeout hinaus | `flutter_foreground_task`, `firebase_messaging` |
@@ -196,7 +196,12 @@ Tasche, bis er „Fahrt beenden" tippt (spätestens nach zwölf Stunden). Die
 Dauerbenachrichtigung steht die ganze Zeit. Gemessen wird im Isolate des
 Dienstes, weil das Main-Isolate beim Wegwischen stirbt (#28). Das Video
 zeigt: Knopf in der App, Benachrichtigung in der Statusleiste, Home, Rückkehr,
-„Fahrt beenden".
+„Fahrt beenden". **Navigation** (#232, seit 0.96.0) nutzt denselben Dienst und
+dieselbe Benachrichtigung: Der Nutzer tippt „Navigieren", die
+Benachrichtigung zeigt alle fünf Sekunden Rest und Abstand zur Route,
+bis er „Navigation beenden" tippt (dort oder in der App) oder eine Minute
+nach der Ankunft. Die Position bleibt auf dem Gerät. Ein zweites Video
+braucht es nicht, ein Satz in der Begründung genügt.
 
 **`FOREGROUND_SERVICE_DATA_SYNC`** — Aufgabe **„Verarbeitung im Netzwerk →
 Sonstiger"**: nutzergestarteter Download eines Kartenbereichs für

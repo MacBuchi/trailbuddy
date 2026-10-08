@@ -26,6 +26,7 @@ import 'package:trailbuddy/features/offline_areas/area_providers.dart';
 import 'package:trailbuddy/features/map/map_view/flutter_map_view.dart';
 import 'package:trailbuddy/features/map/map_view/map_view.dart';
 import 'package:trailbuddy/features/keep_alive/keep_alive.dart';
+import 'package:trailbuddy/features/routing/nav_service.dart';
 import 'package:trailbuddy/features/map/poi_source.dart';
 import 'package:trailbuddy/features/map/way_layer.dart';
 import 'package:trailbuddy/features/offline_areas/area_store.dart';
@@ -93,6 +94,7 @@ List<Override> overridesFor(FakeBackend backend,
         FakeRideFix? rideFix,
         FakeRideServiceBridge? rideBridge,
         FakeRideService? rideService,
+        FakeNavServiceBridge? navBridge,
         FakeOutbox? outbox,
         FakeTrailCache? trailCache,
         MemoryAreaStore? areaStore,
@@ -168,6 +170,9 @@ List<Override> overridesFor(FakeBackend backend,
       rideFixProvider.overrideWithValue((rideFix ?? FakeRideFix()).call),
       rideServiceBridgeProvider.overrideWithValue(rideBridge ?? FakeRideServiceBridge()),
       rideServiceProvider.overrideWithValue(rideService ?? FakeRideService()),
+      // Die Navigation im Dienst (#232) legt eine Datei ab — ohne die
+      // Naht ginge jeder Navigations-Test an `path_provider`.
+      navServiceBridgeProvider.overrideWithValue(navBridge ?? FakeNavServiceBridge()),
       ridePermissionProvider.overrideWithValue(() async => null),
       // Der Ausgangskorb (#30) im Speicher; der Netzwechsel kommt aus dem
       // Test (Vorgabe: WLAN, ohne Wechsel).
@@ -227,6 +232,7 @@ Future<void> pumpApp(WidgetTester tester, FakeBackend backend,
     FakeRideFix? rideFix,
     FakeRideServiceBridge? rideBridge,
     FakeRideService? rideService,
+    FakeNavServiceBridge? navBridge,
     FakeOutbox? outbox,
     FakeTrailCache? trailCache,
     MemoryAreaStore? areaStore,
@@ -253,6 +259,7 @@ Future<void> pumpApp(WidgetTester tester, FakeBackend backend,
         rideFix: rideFix,
         rideBridge: rideBridge,
         rideService: rideService,
+        navBridge: navBridge,
         outbox: outbox,
         trailCache: trailCache,
         areaStore: areaStore,

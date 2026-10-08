@@ -195,6 +195,20 @@ final kHighlightDemos = <String, HighlightDemo>{
       _noTrailYet,
     ]),
   ),
+  'nav-notice': HighlightDemo(
+    route: '/',
+    script: _demo('nav-notice', const [
+      CoachStep(
+        title: 'Navigation in der Benachrichtigung',
+        text: 'Navigiere eine Runde oder einen Weg zum Trail und wechsle in eine '
+            'andere App: Oben in der Benachrichtigung stehen Rest, Höhenmeter und '
+            'ob du auf der Route bist — alle fünf Sekunden neu.',
+        lit: [MapCoach.loop],
+        gesture: CoachGesture.tap,
+        requires: [MapCoach.loop],
+      ),
+    ]),
+  ),
   'nav-rejoin': HighlightDemo(
     route: '/',
     script: _demo('nav-rejoin', const [

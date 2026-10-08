@@ -12,14 +12,15 @@ import '../../core/settings.dart';
 import '../profile/profile_providers.dart';
 import '../trails/terrain_heights.dart';
 import 'loop_planner.dart' show LoopPrefs;
+import 'nav_notice.dart' show NavRouteData;
+import 'nav_service.dart';
 import 'planning_graph.dart';
 import 'ride_calibrator.dart';
 import 'route_profile.dart' show RiderParamsPrefs;
 import 'route_progress.dart';
 import 'trail_head_route.dart';
 
-/// Nach „Angekommen" endet die Navigation von selbst (9.3).
-const kNavArrivedLinger = Duration(minutes: 1);
+export 'route_progress.dart' show kNavArrivedLinger;
 
 /// Was navigiert werden soll — gestellt von einem Ergebnis-Blatt oder aus
 /// „Meine Fahrten", eingelöst von der Karte (Muster
@@ -126,6 +127,17 @@ class NavSession {
 class NavController extends Notifier<NavSession?> {
   NavTracker? _tracker;
   Timer? _linger;
+  double _startAlongM = 0;
+
+  /// Dienst und Brücke (9.5) in einer Kette: Beenden und sofort wieder
+  /// Starten („zuletzt navigiert") löschte sonst die frische Datei.
+  Future<void> _service = Future.value();
+
+  void _queue(Future<void> Function() job) {
+    _service = _service.then((_) => job()).catchError((Object e, StackTrace s) {
+      logError('Navigation: Dienst', e, s);
+    });
+  }
 
   @override
   NavSession? build() {
@@ -142,8 +154,15 @@ class NavController extends Notifier<NavSession?> {
     if (route == null) return false;
     _linger?.cancel();
     _tracker = NavTracker(route, startAlongM: startAlongM);
+    _startAlongM = startAlongM;
     final session = NavSession(route: route, title: title);
     state = session;
+    final bridge = ref.read(navServiceBridgeProvider);
+    final keepAlive = ref.read(navKeepAliveProvider);
+    _queue(() async {
+      await bridge.arm(NavRouteData(points: route.points, title: title, startAlongM: startAlongM));
+      await keepAlive.start();
+    });
     unawaited(_loadClimb(session));
     return true;
   }
@@ -154,6 +173,15 @@ class NavController extends Notifier<NavSession?> {
       // Inzwischen beendet oder eine andere Navigation: nichts mehr tun.
       if (profile == null || !identical(state?.route, session.route)) return;
       state = state!.copyWith(climbDistM: profile.distM, climbEleM: profile.eleM);
+      // Der Dienst rechnet die Höhenmeter für die Benachrichtigung selbst;
+      // dieselbe Linie behält dort ihren Stand.
+      final bridge = ref.read(navServiceBridgeProvider);
+      _queue(() => bridge.arm(NavRouteData(
+          points: session.route.points,
+          title: session.title,
+          startAlongM: _startAlongM,
+          climbDistM: profile.distM,
+          climbEleM: profile.eleM)));
     } catch (_) {
       // Ohne Höhen zeigt die Leiste nur km — das Lesen meldet seine
       // Fehler selbst (`TerrainHeights`).
@@ -224,10 +252,19 @@ class NavController extends Notifier<NavSession?> {
 
   /// Beenden fragt nicht (9.2). Eine Aufzeichnung läuft weiter; die
   /// Route bleibt als „zuletzt navigiert" — nach der Ankunft wieder ab
-  /// Start, sonst ab dem letzten Stand.
+  /// Start, sonst ab dem letzten Stand. Auch der Weg für „Navigation
+  /// beenden" in der Benachrichtigung (Nachricht vom Dienst).
   void stop() {
     final session = state;
     if (session != null) {
+      final bridge = ref.read(navServiceBridgeProvider);
+      final keepAlive = ref.read(navKeepAliveProvider);
+      _queue(() async {
+        // Erst die Brücke aus, dann der Melder: Der Dienst soll keinen
+        // Takt mehr auf eine Route rechnen, die es nicht mehr gibt.
+        await bridge.disarm();
+        await keepAlive.stop();
+      });
       final now = session.state;
       ref.read(lastNavProvider.notifier).state = NavRequest(
         points: session.route.points,

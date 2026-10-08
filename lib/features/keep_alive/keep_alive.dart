@@ -13,6 +13,10 @@ import 'keep_alive_stub.dart' if (dart.library.io) 'keep_alive_service.dart';
 /// Fahrt `location` — und wer beides gleichzeitig tut, braucht beides.
 enum KeepAliveType { dataSync, location }
 
+/// Ein Knopf in der Dauerbenachrichtigung („Navigation beenden", #232).
+/// Gedrückt wird er im Service-Isolate (`TaskHandler.onNotificationButtonPressed`).
+typedef KeepAliveButton = ({String id, String text});
+
 /// Hält den App-Prozess wach, solange ein Bereich lädt oder eine Fahrt
 /// aufzeichnet. Ohne das friert Android den Prozess ein, sobald der
 /// Nutzer in eine andere App wechselt: Der Download läuft im
@@ -20,11 +24,14 @@ enum KeepAliveType { dataSync, location }
 /// Die Fahrt misst dagegen IM Service-Isolate, weil das das Wegwischen
 /// der App überlebt; sie braucht den Takt (`setRepeat`).
 abstract class KeepAlive {
-  /// Startet den Service. Läuft er schon, werden nur Titel und Text
-  /// erneuert — die Typen bleiben dann, wie sie waren (siehe Koordinator).
-  Future<void> start(String title, String text, Set<KeepAliveType> types);
+  /// Startet den Service. Läuft er schon, werden nur Titel, Text und
+  /// Knöpfe erneuert — die Typen bleiben dann, wie sie waren (siehe
+  /// Koordinator).
+  Future<void> start(String title, String text, Set<KeepAliveType> types,
+      {List<KeepAliveButton> buttons = const []});
 
-  Future<void> update(String title, String text);
+  /// Neuer Titel und Text; [buttons] ersetzt die Knöpfe (leer = keine).
+  Future<void> update(String title, String text, {List<KeepAliveButton> buttons = const []});
 
   /// Der Wiederhol-Takt des Service-Isolates; null heißt kein Takt (der
   /// Zustand für Downloads).
@@ -53,7 +60,9 @@ class KeepAliveCoordinator {
 
   final KeepAlive _keepAlive;
 
-  final _needs = <String, ({String title, String text, Set<KeepAliveType> types})>{};
+  final _needs = <String,
+      ({String title, String text, Set<KeepAliveType> types, List<KeepAliveButton> buttons})>{};
+  final _repeats = <String, Duration>{};
   Set<KeepAliveType> _runningTypes = const {};
 
   /// Meldet einen Verbraucher an und startet den Service, falls er ruht.
@@ -66,15 +75,20 @@ class KeepAliveCoordinator {
     String text, {
     required String title,
     Set<KeepAliveType> types = const {KeepAliveType.dataSync},
+    List<KeepAliveButton> buttons = const [],
   }) async {
-    _needs[key] = (title: title, text: text, types: types);
+    _needs[key] = (title: title, text: text, types: types, buttons: buttons);
     final wanted = _wantedTypes();
     if (_runningTypes.isNotEmpty && !_sameTypes(_runningTypes, wanted)) {
       await _keepAlive.stop();
       _runningTypes = const {};
     }
+    final restarted = _runningTypes.isEmpty;
     _runningTypes = wanted;
-    await _keepAlive.start(_title(), _combined(), wanted);
+    await _keepAlive.start(_title(), _combined(), wanted, buttons: _buttons());
+    // Ein frischer Service kommt ohne Takt hoch; ein Melder, der ihn
+    // schon gesetzt hatte, verlöre ihn sonst beim Neustart der Typen.
+    if (restarted && _repeats.isNotEmpty) await _keepAlive.setRepeat(_repeat());
   }
 
   /// Neuer Text dieses Melders. Unbekannte Schlüssel und unveränderte
@@ -83,25 +97,52 @@ class KeepAliveCoordinator {
   Future<void> update(String key, String text) async {
     final need = _needs[key];
     if (need == null || need.text == text) return;
-    _needs[key] = (title: need.title, text: text, types: need.types);
-    await _keepAlive.update(_title(), _combined());
+    _needs[key] = (title: need.title, text: text, types: need.types, buttons: need.buttons);
+    await _keepAlive.update(_title(), _combined(), buttons: _buttons());
   }
 
   /// Meldet einen Verbraucher ab. Der Service endet erst, wenn der
   /// letzte gegangen ist.
+  ///
+  /// Bleiben Melder übrig, wird der Service über `start` erneuert, nicht
+  /// über `update`: „Navigation beenden" in der Benachrichtigung (#232)
+  /// beendet ihn drüben im Service-Isolate womöglich schon, und ein
+  /// laufender Download stünde dann ohne Service da. `start` auf einem
+  /// laufenden Service ist nur ein Update.
   Future<void> stop(String key) async {
+    final hadRepeat = _repeats.remove(key) != null;
     if (_needs.remove(key) == null) return;
     if (_needs.isEmpty) {
       await _keepAlive.stop();
       _runningTypes = const {};
       return;
     }
-    await _keepAlive.update(_title(), _combined());
+    // Die Typen der Übrigen: Läuft der Dienst noch, bleibt es ein Update
+    // (die Typen ändert das nicht); war er weg, startet er nur mit dem,
+    // was noch gebraucht wird — `location` für einen Download wäre
+    // gegenüber Play eine falsche Angabe.
+    _runningTypes = _wantedTypes();
+    await _keepAlive.start(_title(), _combined(), _runningTypes, buttons: _buttons());
+    // Neu gestartet hätte er keinen Takt — den der übrigen Melder setzen.
+    if (hadRepeat || _repeats.isNotEmpty) await _keepAlive.setRepeat(_repeat());
   }
 
-  /// Der Takt gehört dem Service-Isolate, und genau EIN Verbraucher
-  /// braucht ihn (die Fahrt) — deshalb nicht je Melder gezählt.
-  Future<void> setRepeat(Duration? every) => _keepAlive.setRepeat(every);
+  /// Der Takt des Service-Isolates, je Melder: Fahrt und Navigation
+  /// (#232) messen beide darin. Es gilt der kürzeste; null meldet den
+  /// eigenen ab — bis 0.95.0 gab es nur einen, und das Ende der Fahrt
+  /// hätte der Navigation den Takt genommen.
+  Future<void> setRepeat(String key, Duration? every) async {
+    if (every == null) {
+      _repeats.remove(key);
+    } else {
+      _repeats[key] = every;
+    }
+    await _keepAlive.setRepeat(_repeat());
+  }
+
+  Duration? _repeat() => _repeats.isEmpty
+      ? null
+      : _repeats.values.reduce((a, b) => a <= b ? a : b);
 
   bool get isEmpty => _needs.isEmpty;
 
@@ -115,6 +156,10 @@ class KeepAliveCoordinator {
   String _title() => _needs.length == 1 ? _needs.values.single.title : 'TrailBuddy arbeitet';
 
   String _combined() => [for (final need in _needs.values) need.text].join(' · ');
+
+  List<KeepAliveButton> _buttons() => [
+        for (final need in _needs.values) ...need.buttons,
+      ];
 }
 
 /// Der Koordinator lebt so lange wie der ProviderScope — die gemeinsame

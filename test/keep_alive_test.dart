@@ -5,6 +5,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:trailbuddy/features/keep_alive/keep_alive.dart';
 import 'package:trailbuddy/features/rides/ride_service.dart';
+import 'package:trailbuddy/features/routing/nav_notice.dart';
+import 'package:trailbuddy/features/routing/nav_service.dart';
 
 import 'fakes/fake_keep_alive.dart';
 
@@ -66,5 +68,51 @@ void main() {
     await ride.stop();
     expect(service.repeat, isNull);
     expect(service.running, isFalse);
+  });
+
+  // #232, Konzept-Routing 9.5: Die Navigation ist ein dritter Melder.
+  test('Navigation ohne Fahrt: location, Takt, Knopf „Navigation beenden"', () async {
+    final nav = NavKeepAlive(coordinator);
+    await nav.start();
+    expect(service.running, isTrue);
+    expect(service.types, {KeepAliveType.location});
+    expect(service.repeat, const Duration(seconds: 5));
+    expect(service.buttons, [(id: kNavStopButton, text: kNavStopButtonText)]);
+    await nav.stop();
+    expect(service.running, isFalse);
+    expect(service.repeat, isNull);
+  });
+
+  test('Fahrt und Navigation teilen den Takt: Das Ende der Fahrt nimmt ihn der Navigation nicht', () async {
+    final ride = CoordinatedRideService(coordinator);
+    final nav = NavKeepAlive(coordinator);
+    await ride.start(title: kRideNoticeTitle, text: kRideNoticeText, every: const Duration(seconds: 5));
+    await nav.start();
+    expect(service.starts, 1, reason: 'gleiche Typen, kein Neustart');
+    expect(service.buttons.map((b) => b.id), [kNavStopButton]);
+
+    await ride.stop();
+    expect(service.running, isTrue);
+    expect(service.repeat, const Duration(seconds: 5), reason: 'die Navigation misst weiter');
+
+    // Umgekehrt: Navigation weg, Fahrt bleibt — ohne Knopf.
+    await ride.start(title: kRideNoticeTitle, text: kRideNoticeText, every: const Duration(seconds: 5));
+    await nav.stop();
+    expect(service.running, isTrue);
+    expect(service.repeat, const Duration(seconds: 5));
+    expect(service.buttons, isEmpty);
+    expect(service.titles.last, kRideNoticeTitle);
+  });
+
+  test('hat der Dienst sich selbst beendet („Navigation beenden"), holt ein Download ihn zurück', () async {
+    final nav = NavKeepAlive(coordinator);
+    await nav.start();
+    await coordinator.start('areas', 'Isartrails — 10 %', title: 'Bereich wird gespeichert');
+    // Drüben im Service-Isolate: keine Fahrt ⇒ stopService.
+    await service.stop();
+    await nav.stop();
+    expect(service.running, isTrue, reason: 'der Download braucht den Prozess weiter');
+    expect(service.types, {KeepAliveType.dataSync});
+    expect(service.repeat, isNull);
   });
 }
