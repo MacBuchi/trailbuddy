@@ -24,6 +24,7 @@ import 'package:trailbuddy/features/map/way_layer.dart';
 import 'package:trailbuddy/features/offline_areas/area_plan.dart';
 import 'package:trailbuddy/features/offline_areas/area_providers.dart';
 import 'package:trailbuddy/features/offline_areas/area_store.dart';
+import 'package:trailbuddy/features/offline_areas/tile_store.dart';
 import 'package:trailbuddy/features/offline_areas/height_tiles.dart';
 import 'package:trailbuddy/features/offline_areas/pmtiles_writer.dart';
 import 'package:trailbuddy/features/official/official_trails_source.dart';
@@ -193,6 +194,7 @@ void main() {
     final c = ProviderContainer(overrides: [
       maplibreStyleIoProvider.overrideWithValue(_FakeIo()),
       areaStoreProvider.overrideWithValue(MemoryAreaStore()),
+      tileStoreProvider.overrideWithValue(MemoryTileStore()),
       noConnectivityProvider.overrideWithValue(false),
       regionsLoaderProvider.overrideWithValue(() async => jsonEncode(_index())),
       mapManifestLoaderProvider.overrideWithValue(() async => _dachMap),
@@ -327,6 +329,7 @@ void main() {
           return PmTilesArchive.fromBytes(source);
         }),
         areaStoreProvider.overrideWithValue(MemoryAreaStore()),
+        tileStoreProvider.overrideWithValue(MemoryTileStore()),
         keepAliveProvider.overrideWithValue(FakeKeepAlive()),
         settingsProvider.overrideWithValue(FakeSettings()),
       ]);

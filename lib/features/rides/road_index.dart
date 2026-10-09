@@ -101,6 +101,13 @@ class RoadIndex {
   bool nearRoad(math.Point<double> xy) => _grid.within(xy, kRoadCorridorM);
 }
 
+/// Je Quelle ([key]) der erste Bereich — ohne [key] alle.
+List<StoredArea> distinctSources(List<StoredArea> areas, String Function(StoredArea area)? key) {
+  if (key == null) return areas;
+  final seen = <String>{};
+  return [for (final a in areas) if (seen.add(key(a))) a];
+}
+
 /// Wie gut die gespeicherten Bereiche die Fahrt decken.
 enum RoadCoverage {
   /// Jede Kachel der Fahrt liegt in einem Bereich: Die Wege sind bekannt.
@@ -119,11 +126,15 @@ typedef RoadLoadResult = ({RoadIndex? index, RoadCoverage coverage, int tilesNee
 /// Liest die Straßen aller z13-Kacheln, die [box] (plus Korridor) berührt,
 /// aus den Bereichen, die sie tragen. [open] liefert je Bereich die
 /// Kachelquelle (die Naht der Bereichs-Provider); geschlossen wird hier.
+/// [sourceKey] sagt, welche Bereiche DIESELBE Quelle haben (seit #229 die
+/// Region: ein Kachelspeicher für alle ihre Bereiche) — die wird dann nur
+/// einmal gefragt.
 Future<RoadLoadResult> loadRoads({
   required List<StoredArea> areas,
   required LatBox box,
-  required Future<PmTilesVectorTileProvider?> Function(StoredArea area) open,
+  required Future<ClosableVectorTileProvider?> Function(StoredArea area) open,
   required FlatProjection projection,
+  String Function(StoredArea area)? sourceKey,
 }) async {
   final margin = kRoadCorridorM / 111320.0;
   final bounds = AreaBounds(
@@ -133,14 +144,14 @@ Future<RoadLoadResult> loadRoads({
     east: box.e + margin * 2,
   );
   final tiles = tilesCovering(bounds, minZoom: kRoadTileZoom, maxZoom: kRoadTileZoom);
-  final candidates = [
+  final candidates = distinctSources([
     for (final a in areas)
       if (a.maxZoom >= kRoadTileZoom && a.bounds.intersects(bounds)) a,
-  ];
+  ], sourceKey);
   if (candidates.isEmpty || tiles.isEmpty) {
     return (index: null, coverage: RoadCoverage.none, tilesNeeded: tiles.length, tilesFound: 0);
   }
-  final opened = <PmTilesVectorTileProvider>[];
+  final opened = <ClosableVectorTileProvider>[];
   final lines = <List<LatLng>>[];
   var found = 0;
   try {

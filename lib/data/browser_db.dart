@@ -10,7 +10,8 @@ const kBrowserDbName = 'trailbuddy';
 /// v1: gespeicherte Kartenbereiche (Konzept-Schritt 3).
 /// v2: gesehene Kacheln der Online-Karte (#155).
 /// v3: Ausgangskorb und Kopie des Netzes (#153).
-const kBrowserDbVersion = 3;
+/// v4: der Kachelspeicher der Bereiche (#229, `tile_store_idb.dart`).
+const kBrowserDbVersion = 4;
 
 /// Der Index der Bereiche (ein Eintrag, die Liste als JSON-Text).
 const kAreaIndexStore = 'area_index';
@@ -37,6 +38,15 @@ const kOutboxStore = 'outbox';
 /// `trail_cache/network.json`) — `trail_cache_idb.dart`.
 const kTrailCacheStore = 'trail_cache';
 
+/// Der Kachelspeicher der Bereiche (#229): Schlüssel
+/// `<region>/<ebene>/<kachel-id>`, Wert: Bytes, wie im Host-Archiv
+/// komprimiert.
+const kAreaTileStore = 'area_tiles';
+
+/// Sein Index (gleicher Schlüssel, Wert: Text `Bytes|Bau`) — gelesen,
+/// ohne die Bytes anzufassen.
+const kAreaTileIndexStore = 'area_tile_index';
+
 const _stores = [
   kAreaIndexStore,
   kAreaArchiveStore,
@@ -45,6 +55,8 @@ const _stores = [
   kSeenTileIndexStore,
   kOutboxStore,
   kTrailCacheStore,
+  kAreaTileStore,
+  kAreaTileIndexStore,
 ];
 
 /// EINE Verbindung je Sitzung, egal wie viele Speicher sie benutzen.
@@ -79,6 +91,20 @@ class BrowserDb {
 
   Future<T> writeStore<T>(String store, Future<T> Function(ObjectStore) action) =>
       _inStore(store, idbModeReadWrite, action);
+
+  /// Mehrere Speicher in EINER Transaktion — alles oder nichts.
+  Future<T> writeStores<T>(List<String> stores, Future<T> Function(Transaction) action) async {
+    final db = await open();
+    final txn = db.transactionList(stores, idbModeReadWrite);
+    try {
+      final result = await action(txn);
+      await txn.completed;
+      return result;
+    } catch (e) {
+      forget();
+      rethrow;
+    }
+  }
 
   Future<T> _inStore<T>(String store, String mode, Future<T> Function(ObjectStore) action) async {
     final db = await open();

@@ -266,6 +266,7 @@ class _RideSplitSheetState extends ConsumerState<_RideSplitSheet> {
         box: LatBox.of(latLng),
         open: (a) => open(store, a),
         projection: projection,
+        sourceKey: (a) => a.region,
       );
     } catch (e, s) {
       logError('Wege für das Zerlege-Blatt lesen', e, s);

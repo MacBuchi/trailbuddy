@@ -1,8 +1,9 @@
-// Der Download eines Bereichs (Konzept 3.2), gegen ein Quellarchiv aus
-// dem eigenen Schreiber: Der Plan zählt und misst, der Download holt
-// über den `tiles()`-Strom, legt ein Archiv ab, das der Leser beider
-// Engines öffnet, nimmt die Orte-Zellen mit, meldet Fortschritt, und ein
-// Abbruch hinterlässt nichts.
+// Der Download eines Bereichs (Konzept 3.2, seit 0.106.0 Abschnitt 8),
+// gegen ein Quellarchiv aus dem eigenen Schreiber: Der Plan zählt und
+// misst — nur, was im Kachelspeicher fehlt —, der Download holt über den
+// `tiles()`-Strom und legt Block für Block in den Speicher (#229), nimmt
+// die Orte-Zellen mit, meldet Fortschritt, und ein Abbruch lässt einen
+// unvollständigen Bereich zurück, den „Fortsetzen" zu Ende holt.
 import 'dart:convert';
 import 'dart:typed_data';
 
@@ -17,6 +18,8 @@ import 'package:trailbuddy/features/offline_areas/area_plan.dart';
 import 'package:trailbuddy/features/offline_areas/area_store.dart';
 import 'package:trailbuddy/features/offline_areas/height_tiles.dart';
 import 'package:trailbuddy/features/offline_areas/pmtiles_writer.dart';
+import 'package:trailbuddy/features/offline_areas/tile_store.dart';
+import 'package:trailbuddy/features/offline_areas/tile_store_sources.dart';
 
 const _manifest = MapManifest(
   file: 'dach-20260928.pmtiles',
@@ -86,19 +89,27 @@ Future<PmTilesArchive> _waysSource({Set<TileXYZ>? only}) async {
 void main() {
   late PmTilesArchive source;
   late MemoryAreaStore store;
+  late MemoryTileStore tiles;
   late List<String> poiAsked;
 
   setUp(() async {
     source = await _source();
     store = MemoryAreaStore();
+    tiles = MemoryTileStore();
     poiAsked = [];
   });
 
-  AreaDownloader make({PoiManifest? poiManifest, PmTilesArchive? heights, PmTilesArchive? ways}) =>
+  AreaDownloader make(
+          {PoiManifest? poiManifest,
+          PmTilesArchive? heights,
+          PmTilesArchive? ways,
+          MapManifest manifest = _manifest,
+          TileStore? into}) =>
       AreaDownloader(
         archive: source,
-        manifest: _manifest,
+        manifest: manifest,
         store: store,
+        tiles: into ?? tiles,
         poiManifest: poiManifest,
         heights: heights,
         heightsManifest: heights == null ? null : _heightsManifest,
@@ -121,14 +132,18 @@ void main() {
       expected += (await source.lookup(tileIdOf(t)))!.length;
     }
     expect(plan.bytes, expected);
+    expect(plan.map.covered, plan.tiles.length, reason: 'leerer Speicher: alles fehlt');
+    expect(plan.map.coveredBytes, expected);
+    expect(plan.hasMap, isTrue);
     // Außerhalb der Quelle: keine Kachel, keine Bytes — kein Fehler.
     final sea = await make().plan(const RectShape(AreaBounds(south: 30, west: -30, north: 30.1, east: -29.9)));
     expect(sea.tiles, isEmpty);
     expect(sea.bytes, 0);
+    expect(sea.hasMap, isFalse);
   });
 
   test('eine Kachelmenge holt genau ihre Kacheln und nur die Orte-Zellen der Kacheln', () async {
-    // Zwei Trails weit auseinander: Das Archiv trägt zwei Streifen, die
+    // Zwei Trails weit auseinander: Der Speicher trägt zwei Streifen, die
     // Orte-Zellen sind die der Kacheln, nicht die des Rahmens dazwischen.
     final near = [for (var i = 0; i <= 5; i++) LatLng(47.90 + i * 0.005, 11.60)];
     final far = [for (var i = 0; i <= 5; i++) LatLng(47.90 + i * 0.005, 12.40)];
@@ -150,6 +165,7 @@ void main() {
     expect(area.tiles, plan.tiles.length);
     expect(area.poiFiles.length, shape.poiCells().length);
     expect(area.poiFiles.length, lessThan(allCells.length));
+    expect((await tiles.index('dach', TileLayer.map)).length, plan.tiles.length);
     // Der Index-Rundlauf behält die Form — „Aktualisieren" braucht sie.
     final back = StoredArea.fromJson(area.toJson());
     expect((back.shape as TileSetShape).keys, shape.keys);
@@ -158,15 +174,12 @@ void main() {
 
   test('zu groß wird abgelehnt, bevor eine Kachel nachgeschlagen ist', () async {
     const dach = AreaBounds(south: 45.5, west: 5.5, north: 55.5, east: 17.5);
-    final downloader = AreaDownloader(
-        archive: source,
-        manifest: const MapManifest(file: 'dach-20260928.pmtiles', maxZoom: 13, bytes: 1, sourceBuild: '20260928'),
-        store: store,
-        fetchPoiFile: (_) async => null);
+    final downloader = make(
+        manifest: const MapManifest(file: 'dach-20260928.pmtiles', maxZoom: 13, bytes: 1, sourceBuild: '20260928'));
     expect(() => downloader.plan(const RectShape(dach)), throwsA(isA<AreaTooLarge>()));
   });
 
-  test('der Download legt ein lesbares Archiv ab, samt Orte-Zellen und Index', () async {
+  test('der Download legt jede Kachel in den Speicher, dazu Orte-Zellen und Index', () async {
     final cells = poiCellsCovering(_bounds.south, _bounds.west, _bounds.north, _bounds.east);
     final poiManifest = PoiManifest(
       build: '20260928',
@@ -185,28 +198,76 @@ void main() {
     expect(area.maxZoom, 10);
     expect(area.savedAt, DateTime.utc(2026, 9, 28, 19));
     expect(area.poiBuild, '20260928');
-    // Wasser für jede Zelle, Einkehr nur für die eine; die 404 fehlen.
+    expect(area.format, kStoredAreaFormat);
+    expect(area.complete, isTrue);
+    // Der Bereich nennt alle Zellen der Form, die das Manifest kennt; die
+    // 404 (Einkehr) kommt nicht auf das Gerät.
     expect(area.poiFiles, [
       for (final c in cells) poiCellFileName(c, PoiGroup.water),
+      poiCellFileName(cells.first, PoiGroup.food),
     ]..sort());
     expect(poiAsked, hasLength(cells.length + 1));
     expect(await store.readPoiFile(poiCellFileName(cells.first, PoiGroup.water)), contains('"pois"'));
+    expect(await store.readPoiFile(poiCellFileName(cells.first, PoiGroup.food)), isNull);
 
-    // Das Archiv: jede geplante Kachel, Byte für Byte wie die Quelle.
-    final stored = await PmTilesArchive.fromBytes((await store.readArchive(area.id))!);
-    expect(stored.header.numberOfAddressedTiles, plan.tiles.length);
+    // Der Speicher: jede geplante Kachel, Byte für Byte wie die Quelle,
+    // mit dem Bau des Hosts.
+    final index = await tiles.index('dach', TileLayer.map);
+    expect(index.length, plan.tiles.length);
     for (final t in plan.tiles) {
       final id = tileIdOf(t);
-      expect((await stored.tile(id)).compressedBytes(), (await source.tile(id)).compressedBytes());
+      expect(await tiles.read('dach', TileLayer.map, t.z, t.x, t.y), (await source.tile(id)).compressedBytes());
+      expect(index[id]!.build, '20260928');
     }
-    expect(area.bytes, greaterThan(0));
+    expect(area.bytes, plan.bytes);
     expect((await store.list()).single.id, area.id);
+    expect(store.archives, isEmpty, reason: 'kein Archiv je Bereich mehr');
+    // In Blöcken (chunkSize 7), nicht auf einmal.
+    expect(tiles.puts, (plan.tiles.length / 7).ceil());
 
-    // Der Fortschritt: Kacheln, dann Orte, dann Schreiben, monoton.
+    // Der Fortschritt: Kacheln, dann Orte, monoton.
     expect(progress.first.phase, AreaPhase.tiles);
     expect(progress.where((p) => p.phase == AreaPhase.tiles).last.done, plan.tiles.length);
     expect(progress.any((p) => p.phase == AreaPhase.pois), isTrue);
-    expect(progress.last.phase, AreaPhase.writing);
+  });
+
+  test('ein zweiter Bereich über derselben Gegend lädt nur, was fehlt (#229)', () async {
+    final downloader = make();
+    const inner = RectShape(_bounds);
+    const outer = RectShape(AreaBounds(south: 47.85, west: 11.5, north: 48.0, east: 11.8));
+    final first = await downloader.plan(inner);
+    await downloader.download(first, name: 'Innen');
+    final second = await downloader.plan(outer);
+    final all = outer.tiles(maxZoom: 10).toSet();
+    final have = inner.tiles(maxZoom: 10).toSet();
+    expect(second.map.covered, all.length);
+    expect(second.tiles.toSet(), all.difference(have), reason: 'liegende Kacheln kommen nicht noch einmal');
+    expect(second.map.stored, have.length);
+    final puts = tiles.puts;
+    final area = await downloader.download(second, name: 'Außen');
+    expect(tiles.puts - puts, (second.tiles.length / 7).ceil());
+    expect(area.tiles, all.length, reason: 'der Bereich deckt alles, auch das Geteilte');
+    expect((await tiles.index('dach', TileLayer.map)).length, all.length, reason: 'jede Kachel einmal');
+    // Liegt schon alles: nichts zu laden, aber ein Verweis.
+    final again = await downloader.plan(inner);
+    expect(again.tiles, isEmpty);
+    expect(again.nothingToFetch, isTrue);
+    expect(again.hasMap, isTrue);
+  });
+
+  test('Aktualisieren holt die Kacheln älterer Bauten neu, je Kachel', () async {
+    final downloader = make();
+    const shape = RectShape(_bounds);
+    await downloader.download(await downloader.plan(shape), name: 'A', id: 'x');
+    const newer = MapManifest(file: 'dach-20261101.pmtiles', maxZoom: 10, bytes: 1, sourceBuild: '20261101');
+    final fresh = make(manifest: newer);
+    expect((await fresh.plan(shape)).tiles, isEmpty, reason: 'ohne Aktualisieren fehlt nichts');
+    final plan = await fresh.plan(shape, refresh: true);
+    expect(plan.tiles.length, plan.map.covered, reason: 'jede liegende Kachel ist älter');
+    final area = await fresh.download(plan, name: 'A', id: 'x');
+    expect(area.build, '20261101');
+    expect({for (final i in (await tiles.index('dach', TileLayer.map)).values) i.build}, {'20261101'});
+    expect((await fresh.plan(shape, refresh: true)).tiles, isEmpty, reason: 'jetzt ist keine älter');
   });
 
   test('Messen mit Orten (0.27.0): zählt die Orte, und der Download holt sie nicht noch einmal', () async {
@@ -224,6 +285,7 @@ void main() {
       archive: source,
       manifest: _manifest,
       store: store,
+      tiles: tiles,
       poiManifest: poiManifest,
       fetchPoiFile: (name) async {
         poiAsked.add(name);
@@ -238,11 +300,16 @@ void main() {
     final area = await downloader.download(plan, name: 'Mit Orten');
     expect(poiAsked, hasLength(1), reason: 'die Dateien kamen schon mit dem Plan');
     expect(area.poiFiles, [poiCellFileName(cells.first, PoiGroup.water)]);
+    // Eine liegende Orte-Datei kommt beim nächsten Bereich nicht noch einmal.
+    final next = await downloader.plan(const RectShape(_bounds), withPois: true);
+    expect(next.poiFiles, isEmpty);
+    expect(next.poiNames, area.poiFiles);
+    expect(poiAsked, hasLength(1));
     // Ohne Orte gemessen: keine Zahl.
     expect((await make().plan(const RectShape(_bounds))).poiCount, isNull);
   });
 
-  test('mit Höhenarchiv: der Plan zählt die Höhenkacheln der z13-Form, der Download legt das zweite Archiv ab', () async {
+  test('mit Höhenarchiv: der Plan zählt die Höhenkacheln der z13-Form, der Download legt sie in ihre Ebene', () async {
     final heights = await _heightsSource();
     addTearDown(heights.close);
     final downloader = make(heights: heights);
@@ -263,11 +330,10 @@ void main() {
     expect(progress.map((p) => p.phase), contains(AreaPhase.heights));
     expect(area.heightTiles, z13.length);
     expect(area.heightsBuild, '20261001');
-    final stored = await store.readHeights(area.id);
-    expect(stored, isNotNull);
-    expect(area.heightBytes, stored!.length);
-    // Gelesen wie die Routenplanung es tun wird: Höhe aus dem Bereich.
-    final reader = HeightReader([ArchiveHeightSource(await PmTilesArchive.fromBytes(stored))]);
+    expect(area.heightBytes, expected);
+    expect((await tiles.index('dach', TileLayer.heights)).length, z13.length);
+    // Gelesen wie die Routenplanung: Höhe aus dem Speicher der Region.
+    final reader = HeightReader([StoreHeightSource(tiles, 'dach')]);
     addTearDown(reader.close);
     final origin = tileAt(47.0, 10.0, kHeightTileZoom);
     final probe = tileAt(_bounds.south, _bounds.west, kHeightTileZoom);
@@ -280,30 +346,17 @@ void main() {
     expect(back.heightTiles, area.heightTiles);
   });
 
-  test('ohne Höhenarchiv: kein Höhenplan, kein zweites Archiv, der Index sagt 0', () async {
+  test('ohne Höhenarchiv: kein Höhenplan, nichts in der Ebene, der Index sagt 0', () async {
     final downloader = make();
     final plan = await downloader.plan(const RectShape(_bounds));
     expect(plan.hasHeights, isFalse);
     expect(plan.heightBytes, 0);
     final area = await downloader.download(plan, name: 'Ohne Höhen');
     expect(area.hasHeights, isFalse);
-    expect(await store.readHeights(area.id), isNull);
-    expect(store.heights, isEmpty);
+    expect(await tiles.index('dach', TileLayer.heights), isEmpty);
   });
 
-  test('derselbe Bereich unter derselben Id ohne Höhen neu geholt verliert sein Höhenarchiv', () async {
-    final heights = await _heightsSource();
-    addTearDown(heights.close);
-    final withH = make(heights: heights);
-    await withH.download(await withH.plan(const RectShape(_bounds)), name: 'A', id: 'x');
-    expect(await store.readHeights('x'), isNotNull);
-    final without = make();
-    await without.download(await without.plan(const RectShape(_bounds)), name: 'A', id: 'x');
-    expect(await store.readHeights('x'), isNull);
-    expect((await store.list()).single.hasHeights, isFalse);
-  });
-
-  test('mit Wege-Archiv (#212): nur die z13-Kacheln, die der Host hat, als drittes Archiv', () async {
+  test('mit Wege-Archiv (#212): nur die z13-Kacheln, die der Host hat, in ihre Ebene', () async {
     final ways = await _waysSource();
     addTearDown(ways.close);
     final downloader = make(ways: ways);
@@ -327,22 +380,20 @@ void main() {
     expect(progress.map((p) => p.phase), contains(AreaPhase.ways));
     expect(area.wayTiles, plan.wayTiles.length);
     expect(area.waysBuild, '20261007');
-    final stored = await store.readWays(area.id);
-    expect(stored, isNotNull);
-    expect(area.wayBytes, stored!.length);
+    expect(area.wayBytes, expected);
     expect(area.totalBytes, area.bytes + area.wayBytes);
     // Die Kachel kommt Byte für Byte, wie der Host sie hatte.
-    final back = await PmTilesArchive.fromBytes(stored);
-    addTearDown(back.close);
     final probe = plan.wayTiles.first;
-    expect(utf8.decode((await back.tile(tileIdOf(probe))).compressedBytes()), 'w${probe.x}/${probe.y}');
+    final stored = await tiles.read('dach', TileLayer.ways, probe.z, probe.x, probe.y);
+    expect(utf8.decode(unpackStoredTile(stored!)), 'w${probe.x}/${probe.y}');
+    expect((await tiles.index('dach', TileLayer.ways))[tileIdOf(probe)]!.build, '20261007');
     final json = StoredArea.fromJson(area.toJson());
     expect(json.wayTiles, area.wayTiles);
     expect(json.wayBytes, area.wayBytes);
     expect(json.waysBuild, '20261007');
   });
 
-  test('Wege-Archiv ohne Kachel im Bereich: kein drittes Archiv, aber der Bau gilt als geholt', () async {
+  test('Wege-Archiv ohne Kachel im Bereich: nichts in der Ebene, aber der Bau gilt als geholt', () async {
     final ways = await _waysSource(only: const {});
     addTearDown(ways.close);
     final downloader = make(ways: ways);
@@ -351,20 +402,7 @@ void main() {
     final area = await downloader.download(plan, name: 'Leer');
     expect(area.hasWays, isFalse);
     expect(area.waysBuild, '20261007', reason: 'sonst böte „Meine Bereiche" ewig „Wege verfügbar" an');
-    expect(store.ways, isEmpty);
-  });
-
-  test('ohne Wege-Archiv: kein Bau, und ein neu geholter Bereich verliert seine alten Wege', () async {
-    final ways = await _waysSource();
-    addTearDown(ways.close);
-    final withW = make(ways: ways);
-    await withW.download(await withW.plan(const RectShape(_bounds)), name: 'A', id: 'x');
-    expect(await store.readWays('x'), isNotNull);
-    final without = make();
-    final area = await without.download(await without.plan(const RectShape(_bounds)), name: 'A', id: 'x');
-    expect(area.waysBuild, isNull);
-    expect(await store.readWays('x'), isNull);
-    expect((await store.list()).single.hasWays, isFalse);
+    expect(await tiles.index('dach', TileLayer.ways), isEmpty);
   });
 
   test('ein zweiter Bereich mit derselben Id ersetzt den ersten im Index', () async {
@@ -376,14 +414,44 @@ void main() {
     expect(areas.map((a) => a.name), ['B']);
   });
 
-  test('Abbruch: nichts geschrieben, nichts im Index', () async {
+  test('Abbruch: der Bereich bleibt unvollständig mit dem, was liegt; Fortsetzen holt nur den Rest', () async {
     final downloader = make();
-    final plan = await downloader.plan(const RectShape(_bounds));
+    final plan = await downloader.plan(const RectShape(AreaBounds(south: 47.5, west: 11.0, north: 48.2, east: 12.0)));
+    expect(plan.tiles.length, greaterThan(14), reason: 'mindestens drei Blöcke');
     var calls = 0;
     await expectLater(
-        downloader.download(plan, name: 'Abbruch', isCancelled: () => ++calls > 1),
+        downloader.download(plan, name: 'Abbruch', id: 'p', isCancelled: () => ++calls > 2),
         throwsA(isA<AreaCancelled>()));
-    expect(store.archives, isEmpty);
-    expect(await store.list(), isEmpty);
+    final pending = (await store.list()).single;
+    expect(pending.id, 'p');
+    expect(pending.complete, isFalse, reason: 'der Verweis entsteht VOR dem Download');
+    expect(pending.format, kStoredAreaFormat);
+    final kept = (await tiles.index('dach', TileLayer.map)).length;
+    expect(kept, 14, reason: 'zwei Blöcke à 7 sind geschrieben und bleiben');
+    // Fortsetzen: derselbe Plan noch einmal holt nur, was fehlt.
+    final rest = await downloader.plan(pending.shape);
+    expect(rest.tiles.length, plan.tiles.length - kept);
+    final done = await downloader.download(rest, name: 'Abbruch', id: 'p');
+    expect(done.complete, isTrue);
+    expect(done.tiles, plan.tiles.length, reason: 'gedeckt ist alles, auch das vor dem Abbruch');
+    expect((await tiles.index('dach', TileLayer.map)).length, plan.tiles.length);
   });
+
+  test('eine Kachel, die anders aus dem Speicher kommt, bricht den Download ab', () async {
+    final broken = _BrokenTileStore();
+    final downloader = make(into: broken);
+    final plan = await downloader.plan(const RectShape(_bounds));
+    await expectLater(downloader.download(plan, name: 'Kaputt'), throwsA(isA<AreaVerifyFailed>()));
+    expect((await store.list()).single.complete, isFalse);
+  });
+}
+
+/// Ein Speicher, der beim Lesen ein Byte kippt.
+class _BrokenTileStore extends MemoryTileStore {
+  @override
+  Future<Uint8List?> read(String region, TileLayer layer, int z, int x, int y) async {
+    final bytes = await super.read(region, layer, z, x, y);
+    if (bytes == null) return null;
+    return Uint8List.fromList([...bytes]..[0] ^= 1);
+  }
 }

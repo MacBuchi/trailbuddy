@@ -24,6 +24,7 @@ import 'package:trailbuddy/features/map/way_layer.dart';
 import 'package:trailbuddy/features/offline_areas/area_plan.dart';
 import 'package:trailbuddy/features/offline_areas/area_providers.dart';
 import 'package:trailbuddy/features/offline_areas/area_store.dart';
+import 'package:trailbuddy/features/offline_areas/tile_store.dart';
 import 'package:trailbuddy/features/offline_areas/area_store_idb.dart';
 import 'package:trailbuddy/features/offline_areas/area_store_io.dart';
 import 'package:trailbuddy/features/offline_areas/areas_screen.dart';
@@ -156,6 +157,7 @@ void main() {
         areaWaysManifestLoaderProvider.overrideWithValue(() async => null),
         areaSourceOpenerProvider.overrideWithValue((uri) => PmTilesArchive.fromBytes(source)),
         areaStoreProvider.overrideWithValue(store ?? MemoryAreaStore()),
+        tileStoreProvider.overrideWithValue(MemoryTileStore()),
         keepAliveProvider.overrideWithValue(FakeKeepAlive()),
         settingsProvider.overrideWithValue(FakeSettings()),
       ]);
@@ -301,6 +303,7 @@ void main() {
       final c = ProviderContainer(overrides: [
         maplibreStyleIoProvider.overrideWithValue(_FakeIo()),
         areaStoreProvider.overrideWithValue(store),
+        tileStoreProvider.overrideWithValue(MemoryTileStore()),
         noConnectivityProvider.overrideWithValue(noConnectivity),
         regionsLoaderProvider.overrideWithValue(() async => jsonEncode(_index)),
         mapManifestLoaderProvider.overrideWithValue(() async => _dachMap),
@@ -369,6 +372,7 @@ void main() {
           heightsManifestLoaderProvider.overrideWithValue(() async => null),
           areaWaysManifestLoaderProvider.overrideWithValue(() async => null),
           areaStoreProvider.overrideWithValue(store),
+          tileStoreProvider.overrideWithValue(MemoryTileStore()),
           keepAliveProvider.overrideWithValue(FakeKeepAlive()),
           settingsProvider.overrideWithValue(FakeSettings()),
         ],

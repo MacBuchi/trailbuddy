@@ -6,10 +6,16 @@ import 'package:vector_map_tiles/vector_map_tiles.dart';
 
 import 'seen_tiles.dart' show SeenTile;
 
+/// Eine Kachelquelle, die man schließt, wenn ihre Schicht geht — ein
+/// Archiv (Dateihandle) oder der Kachelspeicher der Bereiche (#229).
+abstract class ClosableVectorTileProvider extends VectorTileProvider {
+  Future<void> close();
+}
+
 /// Liefert Vector-Tiles aus einem PMTiles-Archiv an vector_map_tiles
 /// (PilzBuddy-Adapter; das fertige Paket vector_map_tiles_pmtiles kann
 /// flutter_map 8 noch nicht).
-class PmTilesVectorTileProvider extends VectorTileProvider {
+class PmTilesVectorTileProvider extends ClosableVectorTileProvider {
   PmTilesVectorTileProvider._(this._archive, this._minZoom, this._maxZoom);
 
   final PmTilesArchive _archive;
@@ -48,6 +54,7 @@ class PmTilesVectorTileProvider extends VectorTileProvider {
 
   /// Gibt das Dateihandle frei — beim Neuaufbau aufrufen, sonst leaken
   /// Handles.
+  @override
   Future<void> close() => _archive.close();
 
   @override

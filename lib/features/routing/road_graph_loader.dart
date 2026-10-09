@@ -20,7 +20,7 @@ import '../map/pmtiles_tile_provider.dart';
 import '../offline_areas/area_plan.dart';
 import '../offline_areas/area_store.dart';
 import '../offline_areas/height_tiles.dart';
-import '../rides/road_index.dart' show RoadCoverage;
+import '../rides/road_index.dart' show RoadCoverage, distinctSources;
 import 'road_graph.dart';
 
 typedef RoadGraphLoadResult = ({
@@ -71,14 +71,15 @@ typedef OnlineTileFetcher = Future<Uint8List?> Function(TileXYZ tile);
 Future<RoadGraphLoadResult> loadRoadGraph({
   required List<StoredArea> areas,
   required LatBox box,
-  required Future<PmTilesVectorTileProvider?> Function(StoredArea area) open,
+  required Future<ClosableVectorTileProvider?> Function(StoredArea area) open,
   HeightReader? heights,
   double marginM = 0,
   bool requireComplete = true,
   OnlineTileFetcher? fetchOnline,
   int maxOnline = kOnlineFillMaxTiles,
-  Future<PmTilesVectorTileProvider?> Function(StoredArea area)? openWays,
+  Future<ClosableVectorTileProvider?> Function(StoredArea area)? openWays,
   OnlineTileFetcher? fetchWaysOnline,
+  String Function(StoredArea area)? sourceKey,
 }) async {
   final dLat = marginM / 111320.0;
   final bounds = AreaBounds(
@@ -88,10 +89,12 @@ Future<RoadGraphLoadResult> loadRoadGraph({
     east: box.e + dLat * 2,
   );
   final tiles = tilesCovering(bounds, minZoom: kRoadGraphZoom, maxZoom: kRoadGraphZoom);
-  final candidates = [
+  // Seit #229 haben alle Bereiche einer Region EINE Quelle ([sourceKey]).
+  final inBox = [
     for (final a in areas)
       if (a.maxZoom >= kRoadGraphZoom && a.bounds.intersects(bounds)) a,
   ];
+  final candidates = distinctSources(inBox, sourceKey);
   var online = 0;
   var capped = false;
   var broken = false;
@@ -108,7 +111,7 @@ Future<RoadGraphLoadResult> loadRoadGraph({
         onlineBroken: broken,
       );
   if ((candidates.isEmpty && fetchOnline == null) || tiles.isEmpty) return none(RoadCoverage.none, 0);
-  final opened = <PmTilesVectorTileProvider>[];
+  final opened = <ClosableVectorTileProvider>[];
   final lines = <WayLine>[];
   final missing = <TileXYZ>[];
   final fromHost = <TileXYZ>[];
@@ -171,10 +174,10 @@ Future<RoadGraphLoadResult> loadRoadGraph({
   if (openWays != null || fetchWaysOnline != null) {
     final grades = await _wayGrades(
       tiles: tiles,
-      areas: [
-        for (final a in candidates)
+      areas: distinctSources([
+        for (final a in inBox)
           if (a.hasWays) a,
-      ],
+      ], sourceKey),
       openWays: openWays,
       fromHost: fromHost,
       fetchWaysOnline: fetchWaysOnline,
@@ -201,12 +204,12 @@ Future<RoadGraphLoadResult> loadRoadGraph({
 Future<List<WayGradeLine>> _wayGrades({
   required List<TileXYZ> tiles,
   required List<StoredArea> areas,
-  required Future<PmTilesVectorTileProvider?> Function(StoredArea area)? openWays,
+  required Future<ClosableVectorTileProvider?> Function(StoredArea area)? openWays,
   required List<TileXYZ> fromHost,
   required OnlineTileFetcher? fetchWaysOnline,
 }) async {
   final out = <WayGradeLine>[];
-  final opened = <PmTilesVectorTileProvider>[];
+  final opened = <ClosableVectorTileProvider>[];
   try {
     if (openWays != null) {
       for (final a in areas) {

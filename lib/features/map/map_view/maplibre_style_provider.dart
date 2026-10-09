@@ -263,12 +263,14 @@ final maplibreStyleProvider = FutureProvider<String?>((ref) async {
     // Ein Bereich, der nicht lesbar ist, nimmt der Karte nicht den Rest:
     // gemeldet, und weiter ohne ihn.
     try {
-      for (final entry in await ref.watch(areaArchivePathsProvider.future)) {
+      // Seit 0.106.0 (#229) EINE Quelle je Region: der Kachelspeicher als
+      // MBTiles, den MapLibre nativ liest — nicht mehr eine je Bereich.
+      for (final entry in await ref.watch(areaMapPathsProvider.future)) {
         sources.add(MapStyleSource(
-          id: 'area-${entry.area.id}',
-          url: 'file://${entry.path}',
-          minZoom: entry.area.minZoom,
-          maxZoom: entry.area.maxZoom,
+          id: 'area-${entry.region}',
+          url: 'mbtiles://${entry.path}',
+          minZoom: entry.minZoom,
+          maxZoom: entry.maxZoom,
         ));
       }
     } catch (e, stackTrace) {
@@ -280,9 +282,9 @@ final maplibreStyleProvider = FutureProvider<String?>((ref) async {
     final areaWays = <MapStyleOverlay>[];
     try {
       for (final entry in await ref.watch(areaWaysPathsProvider.future)) {
-        final id = '$kWaysSourceId-area-${entry.area.id}';
+        final id = '$kWaysSourceId-area-${entry.region}';
         areaWays.add(MapStyleOverlay(
-          source: MapStyleSource(id: id, url: 'file://${entry.path}', minZoom: kWaysZoom, maxZoom: kWaysZoom),
+          source: MapStyleSource(id: id, url: 'mbtiles://${entry.path}', minZoom: kWaysZoom, maxZoom: kWaysZoom),
           layers: wayStyleLayers(id, dashes: true),
         ));
       }

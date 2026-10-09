@@ -1,7 +1,13 @@
 // Die gespeicherten Bereiche in der App (Konzept 3.2): die Liste, der
 // laufende Download (mit Fortschritt, Abbruch und dem Vordergrunddienst
-// über den KeepAlive-Koordinator), und die geöffneten Archive für die
-// Karte — für flutter_map als Kachelquellen, für MapLibre als Pfade.
+// über den KeepAlive-Koordinator), und der Kachelspeicher für die Karte —
+// für flutter_map als Kachelquellen, für MapLibre als Pfade.
+//
+// Seit 0.106.0 (#229, Konzept 8) sind Bereiche Verweise auf EINEN
+// Kachelspeicher je Region und Ebene: Die Karte hat eine Quelle je Region,
+// nicht eine je Bereich; Löschen nimmt nur, was kein anderer Bereich deckt
+// (`tile_refs.dart`), und beim ersten Laden der Liste wird der Altbestand
+// übernommen (`area_migration.dart`).
 //
 // Die Bereiche liegen IMMER auf der Karte, zuoberst (#82) — in beiden
 // Engines, mit und ohne Empfang. Bis 0.36.x waren sie nur die Karte,
@@ -43,26 +49,42 @@ import '../map/poi.dart';
 import '../map/poi_source.dart';
 import '../map/way_layer.dart';
 import 'area_downloader.dart';
+import 'area_migration.dart';
 import 'area_plan.dart';
 import 'area_store.dart';
 import 'area_trim.dart';
 import 'height_tiles.dart';
 import 'region_overview.dart';
+import 'tile_refs.dart';
+import 'tile_store.dart';
+import 'tile_store_sources.dart';
 
 /// Die Liste aus dem Index, in Speicherreihenfolge.
 class StoredAreasNotifier extends AsyncNotifier<List<StoredArea>> {
+  /// Beim ersten Lesen wird der Altbestand übernommen (#229) — lokal,
+  /// einmal; danach ist es ein Blick in den Index.
   @override
-  Future<List<StoredArea>> build() => ref.watch(areaStoreProvider).list();
+  Future<List<StoredArea>> build() =>
+      migrateLegacyAreas(ref.watch(areaStoreProvider), ref.watch(tileStoreProvider));
 
   Future<void> refresh() async {
     state = AsyncData(await ref.read(areaStoreProvider).list());
     ref.invalidate(storedOverviewsProvider);
   }
 
-  /// Löscht den Bereich — und mit dem letzten seiner Region deren
-  /// Übersicht (#220 Schritt 4): Sie kam mit ihm, sie geht mit ihm.
+  /// Löscht den Bereich — seine Kacheln nur, soweit kein anderer Bereich
+  /// sie deckt (#229) — und mit dem letzten seiner Region deren Übersicht
+  /// (#220 Schritt 4): Sie kam mit ihm, sie geht mit ihm.
   Future<void> delete(String id) async {
-    await ref.read(areaStoreProvider).delete(id);
+    final store = ref.read(areaStoreProvider);
+    final gone = (await store.list()).where((a) => a.id == id).toList();
+    await store.delete(id);
+    if (gone.isNotEmpty) {
+      final tiles = ref.read(tileStoreProvider);
+      final orphans = await orphansAfter(
+          store: tiles, remaining: await store.list(), regions: {gone.first.region}, gone: gone);
+      await removeOrphans(tiles, store, orphans);
+    }
     await _dropOrphanOverviews();
     await refresh();
   }
@@ -85,10 +107,10 @@ class StoredAreasNotifier extends AsyncNotifier<List<StoredArea>> {
   /// Was das Entfernen von [removes] (Kacheln bei Zoom 13) aus den
   /// gespeicherten Bereichen macht — lokal gemessen, ohne Netz.
   Future<TrimPlan> planTrim(Set<int> removes) async =>
-      AreaTrimmer(ref.read(areaStoreProvider)).plan(await future, removes);
+      AreaTrimmer(ref.read(areaStoreProvider), ref.read(tileStoreProvider)).plan(await future, removes);
 
   Future<void> applyTrim(TrimPlan plan) async {
-    await AreaTrimmer(ref.read(areaStoreProvider)).apply(plan);
+    await AreaTrimmer(ref.read(areaStoreProvider), ref.read(tileStoreProvider)).apply(plan);
     // Der Radierer kann den letzten Bereich einer Region leeren.
     await _dropOrphanOverviews();
     await refresh();
@@ -97,6 +119,45 @@ class StoredAreasNotifier extends AsyncNotifier<List<StoredArea>> {
 
 final storedAreasProvider =
     AsyncNotifierProvider<StoredAreasNotifier, List<StoredArea>>(StoredAreasNotifier.new);
+
+/// Was ein Bereich ALLEIN belegt (#229): die Bytes, die sein Löschen frei
+/// gäbe — Kacheln, die ein anderer Bereich auch deckt, zählen nicht.
+/// Gemessen aus dem Index des Speichers, für „Meine Bereiche".
+final areaExclusiveBytesProvider = FutureProvider.family<int, String>((ref, id) async {
+  final areas = await ref.watch(storedAreasProvider.future);
+  final area = areas.where((a) => a.id == id).firstOrNull;
+  if (area == null) return 0;
+  final orphans = await orphansAfter(
+    store: ref.watch(tileStoreProvider),
+    remaining: [for (final a in areas) if (a.id != id) a],
+    regions: {area.region},
+    gone: [area],
+  );
+  return orphanBytes(orphans);
+});
+
+/// Was alle Bereiche zusammen belegen — jede liegende Kachel einmal, über
+/// alle Regionen und Ebenen (ohne die kleinen Orte-Dateien).
+final areaStoredBytesProvider = FutureProvider<int>((ref) async {
+  final areas = await ref.watch(storedAreasProvider.future);
+  final tiles = ref.watch(tileStoreProvider);
+  var total = 0;
+  for (final region in areaRegionsOf(areas)) {
+    for (final layer in TileLayer.values) {
+      for (final info in (await tiles.index(region, layer)).values) {
+        total += info.bytes;
+      }
+    }
+  }
+  return total;
+});
+
+/// Die Regionen, in denen Bereiche liegen — je eine Quelle auf der Karte.
+List<String> areaRegionsOf(List<StoredArea> areas) => {for (final a in areas) a.region}.toList()..sort();
+
+/// Der höchste Zoom der Bereiche einer Region (der des Hosts beim Laden).
+int areaMaxZoomIn(List<StoredArea> areas, String region) =>
+    areas.where((a) => a.region == region).fold(kAreaMinZoom, (m, a) => a.maxZoom > m ? a.maxZoom : m);
 
 /// Die gespeicherten Übersichten der Regionen (#220 Schritt 4).
 final storedOverviewsProvider =
@@ -273,23 +334,14 @@ class OutsideRegions implements Exception {
   String toString() => message;
 }
 
-/// Höhen aus den gespeicherten Bereichen — der erste Bereich, der die
-/// Kachel hat, liefert. Beobachten öffnet die Archive (nur Verzeichnisse,
-/// Kacheln kommen beim Lesen); wer nichts rechnet, beobachtet nicht.
+/// Höhen aus den gespeicherten Bereichen — je Region der Kachelspeicher
+/// (#229). Kacheln kommen beim Lesen; wer nichts rechnet, beobachtet nicht.
 final areaHeightReaderProvider = FutureProvider<HeightReader>((ref) async {
   final areas = await ref.watch(storedAreasProvider.future);
-  final store = ref.watch(areaStoreProvider);
-  final sources = <HeightTileSource>[];
-  for (final area in areas) {
-    if (!area.hasHeights) continue;
-    final path = await store.heightsPath(area.id);
-    if (path != null) {
-      sources.add(ArchiveHeightSource(await PmTilesArchive.from(path)));
-      continue;
-    }
-    final bytes = await store.readHeights(area.id);
-    if (bytes != null) sources.add(ArchiveHeightSource(await PmTilesArchive.fromBytes(bytes)));
-  }
+  final tiles = ref.watch(tileStoreProvider);
+  final sources = <HeightTileSource>[
+    for (final region in areaRegionsOf([for (final a in areas) if (a.hasHeights) a])) StoreHeightSource(tiles, region),
+  ];
   final reader = HeightReader(sources);
   ref.onDispose(reader.close);
   return reader;
@@ -329,8 +381,10 @@ class AreaDownloadNotifier extends Notifier<AreaDownloadState> {
   /// Der Plan für [shape]: wirft [AreaTooLarge], liefert Kacheln, Bytes
   /// und — seit 0.27.0 — die Orte samt Anzahl (der Dialog vor dem
   /// Speichern nennt sie; der Download holt sie dann nicht noch einmal).
-  /// Braucht das Manifest — ohne Empfang gibt es keinen Plan.
-  Future<AreaPlan> plan(AreaShape shape) async {
+  /// Braucht das Manifest — ohne Empfang gibt es keinen Plan. Gezählt
+  /// wird nur, was im Kachelspeicher fehlt (#229); mit [refresh] auch,
+  /// was aus einem älteren Bau liegt (Aktualisieren).
+  Future<AreaPlan> plan(AreaShape shape, {bool refresh = false}) async {
     // Ohne Empfang kennt die App vielleicht nur DACH — „hier gibt es keine
     // Karte" wäre dann eine falsche Auskunft über Kanada.
     if (ref.read(noConnectivityProvider)) throw StateError('Kein Kartenhost erreichbar');
@@ -358,6 +412,7 @@ class AreaDownloadNotifier extends Notifier<AreaDownloadState> {
           archive: archive,
           manifest: manifest,
           store: ref.read(areaStoreProvider),
+          tiles: ref.read(tileStoreProvider),
           poiManifest: poiManifest,
           fetchPoiFile: (fileName) =>
               poiManifest == null ? Future.value(null) : fetchPoi(poiManifest, fileName),
@@ -368,7 +423,7 @@ class AreaDownloadNotifier extends Notifier<AreaDownloadState> {
           region: region.id,
           overview: hosts.overview,
           fetchOverview: ref.read(overviewFetcherProvider));
-      final plan = await downloader.plan(shape, withPois: true);
+      final plan = await downloader.plan(shape, withPois: true, refresh: refresh);
       state = AreaDownloadState(phase: AreaDownloadPhase.idle, plan: plan);
       return plan;
     } catch (e) {
@@ -430,6 +485,7 @@ class AreaDownloadNotifier extends Notifier<AreaDownloadState> {
         archive: archive,
         manifest: manifest,
         store: ref.read(areaStoreProvider),
+        tiles: ref.read(tileStoreProvider),
         poiManifest: poiManifest,
         fetchPoiFile: (fileName) => poiManifest == null ? Future.value(null) : fetchPoi(poiManifest, fileName),
         heights: heights,
@@ -464,17 +520,22 @@ class AreaDownloadNotifier extends Notifier<AreaDownloadState> {
       state = AreaDownloadState(phase: AreaDownloadPhase.done, name: name, plan: plan, result: area);
       return area;
     } on AreaCancelled {
+      // Was schon geschrieben ist, bleibt (Konzept 8.2): Der Bereich steht
+      // als unvollständig in der Liste, „Fortsetzen" holt den Rest.
+      await ref.read(storedAreasProvider.notifier).refresh();
       state = const AreaDownloadState();
       return null;
     } catch (e, s) {
       if (!looksOffline(e)) logError('Bereich speichern', e, s);
+      await ref.read(storedAreasProvider.notifier).refresh();
       state = AreaDownloadState(
           phase: AreaDownloadPhase.failed,
           name: name,
           plan: plan,
           error: looksOffline(e)
-              ? 'Die Verbindung ist abgerissen. Nichts gespeichert — noch einmal versuchen, sobald Empfang da ist.'
-              : 'Der Bereich ließ sich nicht speichern.');
+              ? 'Die Verbindung ist abgerissen. Was schon geladen ist, bleibt — „Fortsetzen" in '
+                  '„Meine Bereiche" holt den Rest, sobald Empfang da ist.'
+              : 'Der Bereich ließ sich nicht ganz speichern. Was schon geladen ist, bleibt.');
       return null;
     } finally {
       await archive?.close();
@@ -555,37 +616,37 @@ class AreaDownloadNotifier extends Notifier<AreaDownloadState> {
 final areaDownloadProvider =
     NotifierProvider<AreaDownloadNotifier, AreaDownloadState>(AreaDownloadNotifier.new);
 
-/// Die Archive der Bereiche mit Pfad — für MapLibre (`file://`). Leer im
-/// Browser (dort gibt es keine Pfade, und keine MapLibre-Engine).
-final areaArchivePathsProvider = FutureProvider<List<({StoredArea area, String path})>>((ref) async {
+/// Der Kartenspeicher je Region mit Pfad — für MapLibre (`mbtiles://`,
+/// #229): EINE Quelle je Region statt einer je Bereich. Leer im Browser
+/// (dort gibt es keine Pfade, und keine MapLibre-Engine).
+final areaMapPathsProvider =
+    FutureProvider<List<({String region, String path, int minZoom, int maxZoom})>>((ref) async {
   final areas = await ref.watch(storedAreasProvider.future);
-  final store = ref.watch(areaStoreProvider);
+  final tiles = ref.watch(tileStoreProvider);
   return [
-    for (final area in areas)
-      if (await store.archivePath(area.id) case final path?) (area: area, path: path),
+    for (final region in areaRegionsOf(areas))
+      if (await tiles.path(region, TileLayer.map) case final path?)
+        (region: region, path: path, minZoom: kAreaMinZoom, maxZoom: areaMaxZoomIn(areas, region)),
   ];
 });
 
-/// Öffnet ein gespeichertes Archiv für die flutter_map-Engine — die
-/// Naht für Tests.
+/// Die Kartenkacheln eines Bereichs als Quelle — der Speicher SEINER
+/// Region; zwei Bereiche einer Region liefern dieselbe Antwort. Die Naht
+/// für Tests und für die Leser im Dart-Code (Wege-Index, Planer).
 final areaArchiveOpenerProvider =
-    Provider<Future<PmTilesVectorTileProvider?> Function(AreaStore store, StoredArea area)>(
-        (ref) => _openArea);
+    Provider<Future<ClosableVectorTileProvider?> Function(AreaStore store, StoredArea area)>((ref) {
+  final tiles = ref.watch(tileStoreProvider);
+  return (store, area) async =>
+      StoreTileProvider(tiles, area.region, TileLayer.map, minZoom: area.minZoom, maxZoom: area.maxZoom);
+});
 
-Future<PmTilesVectorTileProvider?> _openArea(AreaStore store, StoredArea area) async {
-  final path = await store.archivePath(area.id);
-  if (path != null) return PmTilesVectorTileProvider.open(path);
-  final bytes = await store.readArchive(area.id);
-  if (bytes == null) return null;
-  return PmTilesVectorTileProvider.openBytes(bytes);
-}
+/// Ein geöffnetes Archiv mit seinem Zoombereich — eine Region der
+/// Bereiche (Zoom 8 bis zum Zoom des Hosts), ihre Wege (nur 13) oder eine
+/// Übersicht.
+typedef OpenedAreaArchive = ({int minZoom, int maxZoom, ClosableVectorTileProvider provider});
 
-/// Ein geöffnetes Archiv eines Bereichs mit seinem Zoombereich — das
-/// Kartenarchiv (Zoom 8 bis zum Zoom des Hosts) oder die Wege (nur 13).
-typedef OpenedAreaArchive = ({int minZoom, int maxZoom, PmTilesVectorTileProvider provider});
-
-/// Mehrere Bereiche als EINE Kachelquelle: Die erste, die die Kachel
-/// hat, liefert; keine ⇒ 404 wie bei einer Kachel außerhalb.
+/// Mehrere Quellen als EINE: Die erste, die die Kachel hat, liefert;
+/// keine ⇒ 404 wie bei einer Kachel außerhalb.
 class MultiAreaTileProvider extends VectorTileProvider {
   MultiAreaTileProvider(this._areas) : assert(_areas.isNotEmpty);
 
@@ -626,56 +687,48 @@ class MultiAreaTileProvider extends VectorTileProvider {
   TileProviderType get type => TileProviderType.vector;
 }
 
-/// Die Bereiche als Kartenschicht der flutter_map-Engine — null, wenn
-/// es keine gibt oder keines aufgeht. Thema OHNE `background`, damit die
+/// Die Bereiche als Kartenschicht der flutter_map-Engine — je Region der
+/// Speicher; null, wenn es keine gibt. Thema OHNE `background`, damit die
 /// Übersicht darunter durchscheint, wo kein Bereich liegt.
 final areaMapStyleProvider = FutureProvider<BaseMapStyle?>((ref) async {
   final areas = await ref.watch(storedAreasProvider.future);
   if (areas.isEmpty) return null;
-  final store = ref.watch(areaStoreProvider);
-  final open = ref.watch(areaArchiveOpenerProvider);
-  final opened = <OpenedAreaArchive>[];
-  for (final area in areas) {
-    try {
-      final provider = await open(store, area);
-      if (provider != null) opened.add((minZoom: area.minZoom, maxZoom: area.maxZoom, provider: provider));
-    } catch (e, s) {
-      logError('Bereich öffnen', e, s);
-    }
-  }
-  if (opened.isEmpty) return null;
+  final tiles = ref.watch(tileStoreProvider);
+  final opened = <OpenedAreaArchive>[
+    for (final region in areaRegionsOf(areas))
+      (
+        minZoom: kAreaMinZoom,
+        maxZoom: areaMaxZoomIn(areas, region),
+        provider: StoreTileProvider(tiles, region, TileLayer.map,
+            minZoom: kAreaMinZoom, maxZoom: areaMaxZoomIn(areas, region)),
+      ),
+  ];
   final multi = MultiAreaTileProvider(opened);
   ref.onDispose(multi.close);
   final theme = await ref.watch(baseThemeWithoutBackgroundProvider.future);
   return BaseMapStyle(theme: theme, tileProviders: TileProviders({'protomaps': multi}));
 });
 
-/// Die Wege-Archive der Bereiche mit Pfad — für MapLibre (`file://`),
+/// Der Wege-Speicher je Region mit Pfad — für MapLibre (`mbtiles://`),
 /// leer, solange die Ebene aus ist. Leer im Browser.
-final areaWaysPathsProvider = FutureProvider<List<({StoredArea area, String path})>>((ref) async {
+final areaWaysPathsProvider = FutureProvider<List<({String region, String path})>>((ref) async {
   if (!ref.watch(wayLayerEnabledProvider)) return const [];
   final areas = await ref.watch(storedAreasProvider.future);
-  final store = ref.watch(areaStoreProvider);
+  final tiles = ref.watch(tileStoreProvider);
   return [
-    for (final area in areas)
-      if (area.hasWays)
-        if (await store.waysPath(area.id) case final path?) (area: area, path: path),
+    for (final region in areaRegionsOf([for (final a in areas) if (a.hasWays) a]))
+      if (await tiles.path(region, TileLayer.ways) case final path?) (region: region, path: path),
   ];
 });
 
-/// Öffnet das Wege-Archiv eines Bereichs für die flutter_map-Engine —
-/// die Naht für Tests.
+/// Die Wege eines Bereichs als Quelle — der Speicher seiner Region. Die
+/// Naht für Tests und die Wegegüte des Planers.
 final areaWaysOpenerProvider =
-    Provider<Future<PmTilesVectorTileProvider?> Function(AreaStore store, StoredArea area)>(
-        (ref) => _openWays);
-
-Future<PmTilesVectorTileProvider?> _openWays(AreaStore store, StoredArea area) async {
-  final path = await store.waysPath(area.id);
-  if (path != null) return PmTilesVectorTileProvider.open(path);
-  final bytes = await store.readWays(area.id);
-  if (bytes == null) return null;
-  return PmTilesVectorTileProvider.openBytes(bytes);
-}
+    Provider<Future<ClosableVectorTileProvider?> Function(AreaStore store, StoredArea area)>((ref) {
+  final tiles = ref.watch(tileStoreProvider);
+  return (store, area) async =>
+      area.hasWays ? StoreTileProvider(tiles, area.region, TileLayer.ways, minZoom: kWaysZoom, maxZoom: kWaysZoom) : null;
+});
 
 /// Die Wege der Bereiche als Ebene der flutter_map-Engine — über der
 /// Wege-Ebene vom Host, mit demselben Thema (Quelle [kWaysSourceId]).
@@ -683,20 +736,17 @@ Future<PmTilesVectorTileProvider?> _openWays(AreaStore store, StoredArea area) a
 final areaWaysStyleProvider = FutureProvider<BaseMapStyle?>((ref) async {
   if (!ref.watch(wayLayerEnabledProvider)) return null;
   final areas = await ref.watch(storedAreasProvider.future);
-  final store = ref.watch(areaStoreProvider);
-  final open = ref.watch(areaWaysOpenerProvider);
-  final opened = <OpenedAreaArchive>[];
-  for (final area in areas) {
-    if (!area.hasWays) continue;
-    try {
-      final provider = await open(store, area);
-      if (provider != null) opened.add((minZoom: kWaysZoom, maxZoom: kWaysZoom, provider: provider));
-    } catch (e, s) {
-      logError('Wege eines Bereichs öffnen', e, s);
-    }
-  }
-  if (opened.isEmpty) return null;
-  final multi = MultiAreaTileProvider(opened);
+  final regions = areaRegionsOf([for (final a in areas) if (a.hasWays) a]);
+  if (regions.isEmpty) return null;
+  final tiles = ref.watch(tileStoreProvider);
+  final multi = MultiAreaTileProvider([
+    for (final region in regions)
+      (
+        minZoom: kWaysZoom,
+        maxZoom: kWaysZoom,
+        provider: StoreTileProvider(tiles, region, TileLayer.ways, minZoom: kWaysZoom, maxZoom: kWaysZoom),
+      ),
+  ]);
   ref.onDispose(multi.close);
   return BaseMapStyle(theme: wayTheme(), tileProviders: TileProviders({kWaysSourceId: multi}));
 });

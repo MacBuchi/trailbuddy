@@ -1,6 +1,9 @@
 // „Meine Bereiche" (Konzept 3.2): was auf dem Gerät liegt — Name, Größe,
 // Kartenstand, auf der Karte zeigen, aktualisieren, löschen. Bereiche
 // werden nie verdrängt; was bleibt, muss man sehen und loswerden können.
+// Seit 0.106.0 (#229) teilen Bereiche ihre Kacheln: Die Zeile nennt, was
+// ein Bereich ALLEIN belegt — das, was sein Löschen frei gibt —, und ein
+// abgebrochener Download steht als „unvollständig" mit „Fortsetzen" da.
 // Seit 0.105.0 auch die Übersicht einer Region (#220 Schritt 4): eine
 // eigene Zeile mit Größe und Löschen-Knopf, und wo sie fehlt oder älter
 // ist, ein Knopf, der nur sie holt.
@@ -53,10 +56,7 @@ class AreasScreen extends ConsumerWidget {
               ),
             );
           }
-          var total = 0;
-          for (final a in areas) {
-            total += a.totalBytes;
-          }
+          var total = ref.watch(areaStoredBytesProvider).valueOrNull ?? 0;
           for (final o in overviews) {
             total += o.bytes;
           }
@@ -74,7 +74,8 @@ class AreasScreen extends ConsumerWidget {
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
                 child: Text(
                   'Bereiche liegen nur auf diesem Gerät (${formatBytes(total)}) und '
-                  'werden nie von selbst gelöscht. Ohne Empfang sind sie die Karte.',
+                  'werden nie von selbst gelöscht. Ohne Empfang sind sie die Karte. Wo sich '
+                  'Bereiche überschneiden, liegt jede Kachel nur einmal.',
                 ),
               ),
               if (download.phase == AreaDownloadPhase.running)
@@ -154,14 +155,17 @@ class _AreaTile extends ConsumerWidget {
             .where((o) => o.region == area.region)
             .firstOrNull
         : null;
+    // Nur was KEIN anderer Bereich deckt, geht (#229).
+    final alone = await ref.read(areaExclusiveBytesProvider(area.id).future);
+    if (!context.mounted) return;
     final ok = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: Text('„${area.name}" löschen?'),
         content: Text(overview == null
-            ? '${formatBytes(area.totalBytes)} werden vom Gerät gelöscht. '
-                'Ohne Empfang bleibt dort dann nur die Übersichtskarte.'
-            : '${formatBytes(area.totalBytes + overview.bytes)} werden vom Gerät gelöscht — '
+            ? '${formatBytes(alone)} werden vom Gerät gelöscht — was ein anderer Bereich '
+                'auch braucht, bleibt. Ohne Empfang bleibt sonst nur die Übersichtskarte.'
+            : '${formatBytes(alone + overview.bytes)} werden vom Gerät gelöscht — '
                 'es ist der letzte Bereich dort, die Übersichtskarte der Region geht mit.'),
         actions: [
           TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Abbrechen')),
@@ -173,14 +177,15 @@ class _AreaTile extends ConsumerWidget {
     await ref.read(storedAreasProvider.notifier).delete(area.id);
   }
 
-  /// Dieselbe Form mit dem neuen Kartenstand noch einmal holen — unter
-  /// derselben Id, der alte Bereich wird ersetzt. Angeboten, nicht
-  /// aufgezwungen; ob das Netz frei ist, entscheidet, wer tippt.
-  Future<void> _update(BuildContext context, WidgetRef ref) async {
+  /// Dieselbe Form noch einmal planen, unter derselben Id: mit [refresh]
+  /// die Kacheln älterer Bauten neu (Aktualisieren), sonst nur, was fehlt
+  /// (Fortsetzen nach einem Abbruch). Angeboten, nicht aufgezwungen; ob das
+  /// Netz frei ist, entscheidet, wer tippt.
+  Future<void> _update(BuildContext context, WidgetRef ref, {bool refresh = true}) async {
     final messenger = ScaffoldMessenger.of(context);
     final notifier = ref.read(areaDownloadProvider.notifier);
     try {
-      final plan = await notifier.plan(area.shape);
+      final plan = await notifier.plan(area.shape, refresh: refresh);
       await notifier.start(plan, name: area.name, id: area.id);
     } on AreaTooLarge {
       messenger.showSnackBar(const SnackBar(content: Text('Der Bereich ist für den neuen Stand zu groß.')));
@@ -195,20 +200,29 @@ class _AreaTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final busy = ref.watch(areaDownloadProvider.select((s) => s.busy));
-    final offer = _offer;
+    final pending = !area.complete;
+    final offer = pending ? 'Unvollständig — „Fortsetzen" holt den Rest' : _offer;
+    final alone = ref.watch(areaExclusiveBytesProvider(area.id)).valueOrNull;
     return ListTile(
       key: ValueKey('area-${area.id}'),
-      leading: const Icon(Icons.map_outlined),
+      leading: Icon(pending ? Icons.downloading : Icons.map_outlined),
       title: Text(area.name),
-      subtitle: Text('${formatBytes(area.totalBytes)} · ${area.tiles} Kacheln · '
-          'Stand ${buildLabel(area.build)}'
-          '${area.poiFiles.isEmpty ? '' : ' · mit Orten'}'
-          '${area.hasHeights ? ' · mit Höhen' : ''}'
-          '${area.hasWays ? ' · mit Wegen' : ''}'
+      subtitle: Text('${alone == null ? '' : '${formatBytes(alone)} allein · '}'
+          '${pending ? '' : '${area.tiles} Kacheln · Stand ${buildLabel(area.build)}'}'
+          '${area.poiFiles.isEmpty || pending ? '' : ' · mit Orten'}'
+          '${area.hasHeights && !pending ? ' · mit Höhen' : ''}'
+          '${area.hasWays && !pending ? ' · mit Wegen' : ''}'
           '${offer == null ? '' : '\n$offer'}'),
       isThreeLine: offer != null,
       trailing: Row(mainAxisSize: MainAxisSize.min, children: [
-        if (offer != null)
+        if (pending)
+          IconButton(
+            key: ValueKey('area-resume-${area.id}'),
+            tooltip: 'Fortsetzen',
+            icon: const Icon(Icons.download),
+            onPressed: busy ? null : () => _update(context, ref, refresh: false),
+          )
+        else if (offer != null)
           IconButton(
             key: ValueKey('area-update-${area.id}'),
             tooltip: 'Auf den neuen Stand bringen',

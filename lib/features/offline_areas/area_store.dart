@@ -1,14 +1,22 @@
-// Die Ablage gespeicherter Bereiche (Konzept 3.2): je Bereich EIN
-// PMTiles-Archiv (Zoom 8 bis zum Zoom des Hosts), seit 0.69.0 ein
-// zweites mit den Höhenkacheln (`height_tiles.dart`), seit 0.90.0 ein
-// drittes mit den Wegen (`way_layer.dart`, #212), die Orte-Dateien
-// seiner Rasterzellen und ein Eintrag im Index. Auf dem Telefon Dateien
-// unter `offline_maps/areas/` (vom Backup ausgenommen — jederzeit neu
-// ladbar, und ein Bereich sprengt Googles 25 MB), im Browser IndexedDB
+// Die Ablage gespeicherter Bereiche (Konzept 3.2, seit 0.106.0 Abschnitt
+// 8): der Index der Bereiche, die Orte-Dateien und die Übersichten der
+// Regionen. Die Kacheln selbst liegen seit 0.106.0 (#229) NICHT mehr hier,
+// sondern im Kachelspeicher (`tile_store.dart`) — je Region und Ebene
+// jede Kachel einmal. Ein Bereich ist nur noch ein Verweis: Name, Region,
+// Form. Auf dem Telefon Dateien unter `offline_maps/areas/` (vom Backup
+// ausgenommen — jederzeit neu ladbar), im Browser IndexedDB
 // (`area_store_idb.dart`), im Test der Speicher.
 //
 // Bereiche sind Absicht: Sie werden nie verdrängt, nur auf Wunsch
 // gelöscht (Liste „Meine Bereiche").
+//
+// **Die Orte-Dateien liegen je Name EINMAL** (seit 0.106.0); ein Bereich
+// nennt die Namen, die er braucht (`StoredArea.poiFiles`), und eine Datei
+// geht erst, wenn kein Bereich sie mehr nennt (`tile_refs.dart`).
+//
+// **Der Altbestand** (bis 0.105.x: je Bereich ein Archiv für Karte, Höhen
+// und Wege, Orte-Dateien je Bereich) bleibt lesbar, bis die Übernahme
+// (`area_migration.dart`) ihn in den Kachelspeicher gelegt hat.
 //
 // Seit 0.105.0 liegt daneben die Übersicht einer Region (#220 Schritt 4,
 // `docs/konzept-regionen.md` §5): Zoom 0–7 als EINE Datei je Region, die
@@ -45,7 +53,22 @@ class StoredArea {
     this.wayBytes = 0,
     this.waysBuild,
     this.region = kDachRegionId,
+    this.format = 1,
+    this.complete = true,
   }) : shape = shape ?? RectShape(bounds);
+
+  /// 2 ([kStoredAreaFormat]): ein Verweis auf den Kachelspeicher (seit
+  /// 0.106.0). 1: ein Bereich mit eigenen Archiven, der noch übernommen
+  /// wird — die Vorgabe, weil ein Index-Eintrag von vor 0.106.0 das Feld
+  /// nicht kennt; wer einen Verweis anlegt, nennt das Format.
+  final int format;
+
+  bool get legacy => format < kStoredAreaFormat;
+
+  /// Falsch, solange der Download des Bereichs nicht durch ist (Konzept
+  /// 8.2): Der Verweis entsteht VOR dem Download, ein Abbruch lässt die
+  /// geschriebenen Kacheln liegen, und „Fortsetzen" holt den Rest.
+  final bool complete;
 
   final String id;
   final String name;
@@ -101,9 +124,52 @@ class StoredArea {
   /// Einträge vor 0.104.0 tragen keine: Dort war es DACH.
   final String region;
 
-  /// Alles, was der Bereich auf dem Gerät belegt (ohne die kleinen
-  /// Orte-Dateien).
+  /// Was der Bereich beim Speichern deckte, ohne die kleinen
+  /// Orte-Dateien — nicht, was er ALLEIN belegt: Bereiche teilen Kacheln
+  /// (`areaExclusiveBytesProvider`).
   int get totalBytes => bytes + heightBytes + wayBytes;
+
+  StoredArea copyWith({
+    String? name,
+    AreaShape? shape,
+    String? build,
+    int? tiles,
+    int? bytes,
+    DateTime? savedAt,
+    List<String>? poiFiles,
+    String? poiBuild,
+    int? heightTiles,
+    int? heightBytes,
+    String? heightsBuild,
+    int? wayTiles,
+    int? wayBytes,
+    String? waysBuild,
+    int? format,
+    bool? complete,
+  }) =>
+      StoredArea(
+        id: id,
+        name: name ?? this.name,
+        bounds: shape?.hull ?? bounds,
+        shape: shape ?? this.shape,
+        minZoom: minZoom,
+        maxZoom: maxZoom,
+        build: build ?? this.build,
+        tiles: tiles ?? this.tiles,
+        bytes: bytes ?? this.bytes,
+        savedAt: savedAt ?? this.savedAt,
+        poiFiles: poiFiles ?? this.poiFiles,
+        poiBuild: poiBuild ?? this.poiBuild,
+        heightTiles: heightTiles ?? this.heightTiles,
+        heightBytes: heightBytes ?? this.heightBytes,
+        heightsBuild: heightsBuild ?? this.heightsBuild,
+        wayTiles: wayTiles ?? this.wayTiles,
+        wayBytes: wayBytes ?? this.wayBytes,
+        waysBuild: waysBuild ?? this.waysBuild,
+        region: region,
+        format: format ?? this.format,
+        complete: complete ?? this.complete,
+      );
 
   Map<String, dynamic> toJson() => {
         'id': id,
@@ -125,6 +191,8 @@ class StoredArea {
         'way_bytes': wayBytes,
         'ways_build': waysBuild,
         'region': region,
+        'format': format,
+        'complete': complete,
       };
 
   factory StoredArea.fromJson(Map<String, dynamic> j) => StoredArea(
@@ -147,8 +215,13 @@ class StoredArea {
         wayBytes: j['way_bytes'] as int? ?? 0,
         waysBuild: j['ways_build'] as String?,
         region: j['region'] as String? ?? kDachRegionId,
+        format: j['format'] as int? ?? 1,
+        complete: j['complete'] as bool? ?? true,
       );
 }
+
+/// Das Format eines Index-Eintrags, den 0.106.0 schreibt.
+const kStoredAreaFormat = 2;
 
 /// Die gespeicherte Übersicht einer Region (Zoom 0–[maxZoom]).
 class StoredOverview {
@@ -191,16 +264,34 @@ class StoredOverview {
   }
 }
 
-/// Was die Ablage kann. Archive kommen als Ganzes (ein Bereich ist
-/// Dutzende bis wenige hundert MB; geschrieben wird einmal, am Ende des
-/// Downloads); gelesen wird auf dem Telefon über den PFAD (MapLibre und
-/// `FileAt` lesen faul), im Browser über die Bytes.
+/// Was die Ablage kann: der Index, die Orte-Dateien, die Übersichten —
+/// und lesend der Altbestand bis 0.105.x.
 abstract interface class AreaStore {
   Future<List<StoredArea>> list();
 
   /// Schreibt den Index ganz neu — die eine Stelle, an der ein Bereich
   /// sichtbar wird oder verschwindet.
   Future<void> saveIndex(List<StoredArea> areas);
+
+  /// Eine Orte-Datei (`<zeile>_<spalte>.<gruppe>.json`), je Name EINMAL;
+  /// eine liegende wird ersetzt.
+  Future<void> putPoiFile(String name, String text);
+
+  /// Die Orte-Datei [name], null, wenn sie nicht liegt.
+  Future<String?> readPoiFile(String name);
+
+  /// Nimmt Orte-Dateien weg — die, die kein Bereich mehr nennt.
+  Future<void> deletePoiFiles(Iterable<String> names);
+
+  /// Nimmt den Eintrag aus dem Index und den Altbestand des Bereichs
+  /// weg. Die Kacheln im Speicher räumt, wer löscht (`tile_refs.dart`):
+  /// Sie können einem anderen Bereich gehören.
+  Future<void> delete(String id);
+
+  // --- Altbestand (bis 0.105.x): je Bereich eigene Archive -------------
+  //
+  // Geschrieben nur noch von Tests (als Bestand, den die Übernahme
+  // vorfindet); gelesen von der Übernahme.
 
   Future<void> putArchive(String id, Uint8List bytes);
 
@@ -210,33 +301,24 @@ abstract interface class AreaStore {
   /// Die Bytes des Archivs — der Weg im Browser; null, wenn es fehlt.
   Future<Uint8List?> readArchive(String id);
 
-  Future<void> putPoiFile(String id, String name, String text);
-
-  /// Die Orte-Datei [name] aus irgendeinem Bereich, der sie trägt.
-  Future<String?> readPoiFile(String name);
-
-  /// Das zweite Archiv eines Bereichs: seine Höhenkacheln (seit 0.69.0).
-  /// Dieselben Wege wie beim Kartenarchiv — Pfad auf dem Telefon, Bytes
-  /// im Browser.
   Future<void> putHeights(String id, Uint8List bytes);
   Future<String?> heightsPath(String id);
   Future<Uint8List?> readHeights(String id);
 
-  /// Nimmt nur die Höhen weg (der Bereich bleibt) — wenn das Entfernen
-  /// von Kacheln keine Höhenkachel übrig lässt.
-  Future<void> deleteHeights(String id);
-
-  /// Das dritte Archiv: die Wege (seit 0.90.0, #212), dieselben Wege wie
-  /// bei den Höhen.
   Future<void> putWays(String id, Uint8List bytes);
   Future<String?> waysPath(String id);
   Future<Uint8List?> readWays(String id);
-  Future<void> deleteWays(String id);
 
-  /// Löscht Archiv, Höhen, Wege, Orte-Dateien und den Index-Eintrag.
-  Future<void> delete(String id);
+  /// Die Orte-Datei [name] im Ordner des Bereichs [id].
+  Future<void> putLegacyPoiFile(String id, String name, String text);
+  Future<String?> readLegacyPoiFile(String id, String name);
 
-  /// Die Übersichten der Regionen (seit 0.105.0) — ein eigener Index.
+  /// Nimmt Archive und Orte-Ordner des Bereichs weg, den Index-Eintrag
+  /// nicht — nach der Übernahme.
+  Future<void> deleteLegacy(String id);
+
+  // --- Die Übersichten der Regionen (seit 0.105.0), ein eigener Index ---
+
   Future<List<StoredOverview>> overviews();
 
   /// Legt die Übersicht einer Region ab (ersetzt eine ältere): erst die
@@ -262,7 +344,8 @@ class MemoryAreaStore implements AreaStore {
   final archives = <String, Uint8List>{};
   final heights = <String, Uint8List>{};
   final ways = <String, Uint8List>{};
-  final poiFiles = <String, Map<String, String>>{};
+  final legacyPoiFiles = <String, Map<String, String>>{};
+  final poiFiles = <String, String>{};
   List<StoredOverview> overviewIndex = [];
   final overviewBytes = <String, Uint8List>{};
 
@@ -271,6 +354,25 @@ class MemoryAreaStore implements AreaStore {
 
   @override
   Future<void> saveIndex(List<StoredArea> areas) async => this.areas = List.of(areas);
+
+  @override
+  Future<void> putPoiFile(String name, String text) async => poiFiles[name] = text;
+
+  @override
+  Future<String?> readPoiFile(String name) async => poiFiles[name];
+
+  @override
+  Future<void> deletePoiFiles(Iterable<String> names) async {
+    for (final n in names) {
+      poiFiles.remove(n);
+    }
+  }
+
+  @override
+  Future<void> delete(String id) async {
+    areas = [for (final a in areas) if (a.id != id) a];
+    await deleteLegacy(id);
+  }
 
   @override
   Future<void> putArchive(String id, Uint8List bytes) async => archives[id] = bytes;
@@ -282,19 +384,6 @@ class MemoryAreaStore implements AreaStore {
   Future<Uint8List?> readArchive(String id) async => archives[id];
 
   @override
-  Future<void> putPoiFile(String id, String name, String text) async =>
-      (poiFiles[id] ??= {})[name] = text;
-
-  @override
-  Future<String?> readPoiFile(String name) async {
-    for (final area in areas) {
-      final text = poiFiles[area.id]?[name];
-      if (text != null && area.poiFiles.contains(name)) return text;
-    }
-    return null;
-  }
-
-  @override
   Future<void> putHeights(String id, Uint8List bytes) async => heights[id] = bytes;
 
   @override
@@ -302,9 +391,6 @@ class MemoryAreaStore implements AreaStore {
 
   @override
   Future<Uint8List?> readHeights(String id) async => heights[id];
-
-  @override
-  Future<void> deleteHeights(String id) async => heights.remove(id);
 
   @override
   Future<void> putWays(String id, Uint8List bytes) async => ways[id] = bytes;
@@ -316,15 +402,18 @@ class MemoryAreaStore implements AreaStore {
   Future<Uint8List?> readWays(String id) async => ways[id];
 
   @override
-  Future<void> deleteWays(String id) async => ways.remove(id);
+  Future<void> putLegacyPoiFile(String id, String name, String text) async =>
+      (legacyPoiFiles[id] ??= {})[name] = text;
 
   @override
-  Future<void> delete(String id) async {
-    areas = [for (final a in areas) if (a.id != id) a];
+  Future<String?> readLegacyPoiFile(String id, String name) async => legacyPoiFiles[id]?[name];
+
+  @override
+  Future<void> deleteLegacy(String id) async {
     archives.remove(id);
     heights.remove(id);
     ways.remove(id);
-    poiFiles.remove(id);
+    legacyPoiFiles.remove(id);
   }
 
   @override

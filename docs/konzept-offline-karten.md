@@ -556,7 +556,13 @@ Inventar (#230) zählt das Bündel zum Bau.
    IndexedDB im Browser, Übernahme der heutigen Bereiche, Bereiche als
    Verweise, Löschen und Radierer nach Verweis, eine Quelle je Region in
    beiden Engines, Wege-Index und Planer lesen den Speicher. Sichtbar
-   neu ist nur „lädt nur, was fehlt" und „gibt … frei".
+   neu ist nur „lädt nur, was fehlt" und „gibt … frei". **Gebaut in
+   0.106.0**; was dabei vom Plan abwich, steht in
+   `lib/features/offline_areas/CLAUDE.md` („Der Kachelspeicher"): Das
+   Alter je Kachel trägt schon „Aktualisieren" eines Bereichs (es holt nur
+   ältere Kacheln seiner Form neu) — Schritt 4 bringt die Übersicht je
+   Region; die Hervorhebung der Leiste rechnet weiter aus den Formen, ein
+   unvollständiger Bereich erscheint dort also schon hell.
 4. **Alter je Kachel**: „veraltet" und „Aktualisieren" je Region (feat).
 5. **Die ganze Region speichern** (Android, feat) — schließt #229;
    danach ist 🚀 C fällig.

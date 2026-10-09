@@ -18,7 +18,8 @@ import 'package:trailbuddy/features/map/online_map.dart';
 import 'package:trailbuddy/features/map/way_layer.dart';
 import 'package:trailbuddy/features/offline_areas/area_plan.dart';
 import 'package:trailbuddy/features/offline_areas/area_store.dart';
-import 'package:trailbuddy/features/offline_areas/area_store_io.dart';
+import 'package:trailbuddy/features/offline_areas/tile_store.dart';
+import 'package:trailbuddy/features/offline_areas/tile_store_io.dart';
 import 'package:trailbuddy/features/official/official_trails_source.dart';
 
 import '../fakes/fake_official_trails.dart';
@@ -69,6 +70,7 @@ void main() {
     bool officialOn = false,
     FakeOfficialTrailsSource? official,
     AreaStore? areaStore,
+    TileStore? tileStore,
     WaysManifest? ways,
     FakeSettings? settings,
   }) {
@@ -76,6 +78,7 @@ void main() {
     final container = ProviderContainer(overrides: [
       maplibreStyleIoProvider.overrideWithValue(io),
       areaStoreProvider.overrideWithValue(areaStore ?? MemoryAreaStore()),
+      tileStoreProvider.overrideWithValue(tileStore ?? MemoryTileStore()),
       noConnectivityProvider.overrideWithValue(noConnectivity),
       regionsLoaderProvider.overrideWithValue(() async => null),
       mapManifestLoaderProvider.overrideWithValue(() async => manifest),
@@ -188,61 +191,86 @@ void main() {
         '© OpenStreetMap contributors · Protomaps · Land Testland (CC0 1.0)');
   });
 
-  group('gespeicherte Bereiche (Konzept-Schritt 3)', () {
-    Future<FileAreaStore> storeWithArea() async {
-      final dir = await Directory.systemTemp.createTemp('areas');
-      addTearDown(() => dir.delete(recursive: true));
-      final store = FileAreaStore(baseDir: dir);
-      await store.putArchive('a1', Uint8List.fromList([1, 2, 3]));
-      await store.saveIndex([
-        StoredArea(
-          id: 'a1',
-          name: 'Isartrails',
-          bounds: const AreaBounds(south: 47.9, west: 11.6, north: 47.95, east: 11.7),
-          minZoom: 8,
-          maxZoom: 13,
-          build: '20260928',
-          tiles: 42,
-          bytes: 3,
-          savedAt: DateTime.utc(2026, 9, 28),
-        ),
-      ]);
-      return store;
+  /// Ein Bereich als Verweis (#229) und seine Kacheln im MBTiles-Speicher
+  /// — die Datei, deren Pfad MapLibre als `mbtiles://` bekommt.
+  Future<(MemoryAreaStore, SqliteTileStore)> storeWithArea({bool withWays = false}) async {
+    final dir = await Directory.systemTemp.createTemp('tiles');
+    final tiles = SqliteTileStore(baseDir: dir);
+    addTearDown(() async {
+      tiles.close();
+      await dir.delete(recursive: true);
+    });
+    await tiles.put('dach', TileLayer.map, [StoreTile(13, 4380, 2860, Uint8List.fromList([1, 2, 3]), '20260928')]);
+    if (withWays) {
+      await tiles.put('dach', TileLayer.ways, [StoreTile(13, 4380, 2860, Uint8List.fromList([4, 5]), '20261101')]);
     }
+    final store = MemoryAreaStore();
+    await store.saveIndex([
+      StoredArea(
+        id: 'a1',
+        name: 'Isartrails',
+        bounds: const AreaBounds(south: 47.9, west: 11.6, north: 47.95, east: 11.7),
+        minZoom: 8,
+        maxZoom: 13,
+        build: '20260928',
+        tiles: 42,
+        bytes: 3,
+        savedAt: DateTime.utc(2026, 9, 28),
+        wayTiles: withWays ? 1 : 0,
+        wayBytes: withWays ? 2 : 0,
+        waysBuild: withWays ? '20261101' : null,
+        format: kStoredAreaFormat,
+      ),
+    ]);
+    return (store, tiles);
+  }
 
-    test('ohne Empfang liegen sie als file://-Quellen über der Übersicht', () async {
-      final (c, _) = make(noConnectivity: true, areaStore: await storeWithArea());
+  group('gespeicherte Bereiche (Konzept-Schritt 3)', () {
+    test('ohne Empfang liegt der Speicher der Region als mbtiles://-Quelle über der Übersicht (#229)', () async {
+      final (store, tiles) = await storeWithArea();
+      final (c, _) = make(noConnectivity: true, areaStore: store, tileStore: tiles);
       final style = await styleOf(c);
-      expect(sourceIds(style), ['overview', 'area-a1']);
-      final area = (style['sources'] as Map)['area-a1'] as Map;
-      expect(area['url'], allOf(startsWith('pmtiles://file://'), endsWith('/a1.pmtiles')));
+      expect(sourceIds(style), ['overview', 'area-dach'], reason: 'EINE Quelle je Region, nicht je Bereich');
+      final area = (style['sources'] as Map)['area-dach'] as Map;
+      expect(area['url'], allOf(startsWith('mbtiles:///'), endsWith('/dach/map.mbtiles')));
       expect(area['minzoom'], 8);
       expect(area['maxzoom'], 13);
       // Und die Ebenen des Basis-Styles gibt es für die Quelle noch einmal.
-      expect((style['layers'] as List).any((l) => (l as Map)['id'] == 'area-a1/earth'), isTrue);
+      expect((style['layers'] as List).any((l) => (l as Map)['id'] == 'area-dach/earth'), isTrue);
+    });
+
+    test('zwei Bereiche einer Region bleiben EINE Quelle', () async {
+      final (store, tiles) = await storeWithArea();
+      final one = (await store.list()).single;
+      await store.saveIndex([one, StoredArea.fromJson({...one.toJson(), 'id': 'a2'})]);
+      final (c, _) = make(noConnectivity: true, areaStore: store, tileStore: tiles);
+      expect(sourceIds(await styleOf(c)), ['overview', 'area-dach']);
     });
 
     test('mit Empfang liegen sie ÜBER der Online-Karte (#82)', () async {
       // Bis 0.36.x nur ['online']: Bei schwachem Empfang meldet das
       // Telefon ein Netz, die Online-Kacheln kommen nie — und die
       // gespeicherten wurden gar nicht gefragt.
-      final (c, _) = make(noConnectivity: false, areaStore: await storeWithArea());
+      final (store, tiles) = await storeWithArea();
+      final (c, _) = make(noConnectivity: false, areaStore: store, tileStore: tiles);
       final style = await styleOf(c);
-      expect(sourceIds(style), ['online', 'area-a1'], reason: 'Reihenfolge = Schichtung');
+      expect(sourceIds(style), ['online', 'area-dach'], reason: 'Reihenfolge = Schichtung');
       final ids = (style['layers'] as List).map((l) => (l as Map)['id']).toList();
-      expect(ids.indexOf('area-a1/earth'), greaterThan(ids.indexOf('online/earth')),
+      expect(ids.indexOf('area-dach/earth'), greaterThan(ids.indexOf('online/earth')),
           reason: 'die deckende Fläche des Bereichs liegt über der Online-Karte');
     });
 
     test('ohne Manifest (Host weg): Übersicht, dann der Bereich', () async {
-      final (c, _) = make(noConnectivity: false, manifest: null, areaStore: await storeWithArea());
-      expect(sourceIds(await styleOf(c)), ['overview', 'area-a1']);
+      final (store, tiles) = await storeWithArea();
+      final (c, _) = make(noConnectivity: false, manifest: null, areaStore: store, tileStore: tiles);
+      expect(sourceIds(await styleOf(c)), ['overview', 'area-dach']);
     });
 
-    test('ohne Pfad (Browser) keine Quelle — der Canvas-Renderer liest die Bytes', () async {
-      final store = MemoryAreaStore();
-      await store.putArchive('a1', Uint8List.fromList([1, 2, 3]));
-      final (c, _) = make(noConnectivity: true, areaStore: store);
+    test('ohne Pfad (Browser) keine Quelle — der Canvas-Renderer liest den Speicher', () async {
+      final (store, _) = await storeWithArea();
+      final memory = MemoryTileStore();
+      await memory.put('dach', TileLayer.map, [StoreTile(13, 4380, 2860, Uint8List.fromList([1]), 'b')]);
+      final (c, _) = make(noConnectivity: true, areaStore: store, tileStore: memory);
       expect(sourceIds(await styleOf(c)), ['overview']);
     });
   });
@@ -251,26 +279,10 @@ void main() {
     const ways = WaysManifest(file: 'ways-20261101.pmtiles', bytes: 92300000, build: '20261101');
 
     test('über allen Kartenquellen, auch über den Bereichen, mit eigenen Ebenen', () async {
-      final dir = await Directory.systemTemp.createTemp('areas');
-      addTearDown(() => dir.delete(recursive: true));
-      final store = FileAreaStore(baseDir: dir);
-      await store.putArchive('a1', Uint8List.fromList([1, 2, 3]));
-      await store.saveIndex([
-        StoredArea(
-          id: 'a1',
-          name: 'Isartrails',
-          bounds: const AreaBounds(south: 47.9, west: 11.6, north: 47.95, east: 11.7),
-          minZoom: 8,
-          maxZoom: 13,
-          build: '20260928',
-          tiles: 42,
-          bytes: 3,
-          savedAt: DateTime.utc(2026, 9, 28),
-        ),
-      ]);
-      final (c, _) = make(noConnectivity: false, areaStore: store, ways: ways);
+      final (store, tiles) = await storeWithArea();
+      final (c, _) = make(noConnectivity: false, areaStore: store, tileStore: tiles, ways: ways);
       final style = await styleOf(c);
-      expect(sourceIds(style), ['online', 'area-a1', kWaysSourceId]);
+      expect(sourceIds(style), ['online', 'area-dach', kWaysSourceId]);
       final src = (style['sources'] as Map)[kWaysSourceId] as Map;
       expect(src['url'], 'pmtiles://https://tiles.mcbuchi.de/trailbuddy/ways-20261101.pmtiles');
       expect([src['minzoom'], src['maxzoom']], [kWaysZoom, kWaysZoom]);
@@ -278,7 +290,7 @@ void main() {
       final layers = (style['layers'] as List).cast<Map<String, dynamic>>();
       final ids = layers.map((l) => l['id']).toList();
       final firstWay = ids.indexWhere((id) => (id as String).startsWith('$kWaysSourceId/'));
-      expect(firstWay, greaterThan(ids.indexOf('area-a1/earth')),
+      expect(firstWay, greaterThan(ids.indexOf('area-dach/earth')),
           reason: 'die deckende Fläche eines Bereichs deckte die Wege sonst zu');
       expect(ids.sublist(firstWay), [for (final l in wayStyleLayers(kWaysSourceId, dashes: true)) l['id']],
           reason: 'MapLibre bekommt die Fassung MIT Strich');
@@ -335,65 +347,37 @@ void main() {
     });
 
     group('aus gespeicherten Bereichen (#212, PR 3)', () {
-      Future<FileAreaStore> storeWithWays() async {
-        final dir = await Directory.systemTemp.createTemp('areas');
-        addTearDown(() => dir.delete(recursive: true));
-        final store = FileAreaStore(baseDir: dir);
-        await store.putArchive('a1', Uint8List.fromList([1, 2, 3]));
-        await store.putWays('a1', Uint8List.fromList([4, 5]));
-        await store.saveIndex([
-          StoredArea(
-            id: 'a1',
-            name: 'Isartrails',
-            bounds: const AreaBounds(south: 47.9, west: 11.6, north: 47.95, east: 11.7),
-            minZoom: 8,
-            maxZoom: 13,
-            build: '20260928',
-            tiles: 42,
-            bytes: 3,
-            savedAt: DateTime.utc(2026, 9, 28),
-            wayTiles: 1,
-            wayBytes: 2,
-            waysBuild: '20261101',
-          ),
-        ]);
-        return store;
-      }
+      const areaWays = '$kWaysSourceId-area-dach';
 
-      const areaWays = '$kWaysSourceId-area-a1';
-
-      test('ohne Empfang: die Wege des Bereichs als file://-Quelle über dem Bereich', () async {
-        final (c, _) = make(noConnectivity: true, areaStore: await storeWithWays(), ways: ways);
+      test('ohne Empfang: die Wege der Region als mbtiles://-Quelle über dem Bereich', () async {
+        final (store, tiles) = await storeWithArea(withWays: true);
+        final (c, _) = make(noConnectivity: true, areaStore: store, tileStore: tiles, ways: ways);
         final style = await styleOf(c);
-        expect(sourceIds(style), ['overview', 'area-a1', areaWays]);
+        expect(sourceIds(style), ['overview', 'area-dach', areaWays]);
         final src = (style['sources'] as Map)[areaWays] as Map;
-        expect(src['url'], allOf(startsWith('pmtiles://file://'), endsWith('/a1.ways.pmtiles')));
+        expect(src['url'], allOf(startsWith('mbtiles:///'), endsWith('/dach/ways.mbtiles')));
         expect([src['minzoom'], src['maxzoom']], [kWaysZoom, kWaysZoom]);
         final ids = (style['layers'] as List).map((l) => (l as Map)['id']).toList();
-        expect(ids.indexWhere((id) => (id as String).startsWith('$areaWays/')), greaterThan(ids.indexOf('area-a1/earth')));
+        expect(ids.indexWhere((id) => (id as String).startsWith('$areaWays/')), greaterThan(ids.indexOf('area-dach/earth')));
         expect(ids.where((id) => (id as String).startsWith('$areaWays/')),
             [for (final l in wayStyleLayers(areaWays, dashes: true)) l['id']]);
       });
 
       test('mit Empfang: über den Wegen vom Host', () async {
-        final (c, _) = make(noConnectivity: false, areaStore: await storeWithWays(), ways: ways);
-        expect(sourceIds(await styleOf(c)), ['online', 'area-a1', kWaysSourceId, areaWays]);
+        final (store, tiles) = await storeWithArea(withWays: true);
+        final (c, _) = make(noConnectivity: false, areaStore: store, tileStore: tiles, ways: ways);
+        expect(sourceIds(await styleOf(c)), ['online', 'area-dach', kWaysSourceId, areaWays]);
       });
 
       test('Schalter aus: auch die Wege der Bereiche nicht', () async {
-        final container = ProviderContainer(overrides: [
-          maplibreStyleIoProvider.overrideWithValue(_FakeIo()),
-          areaStoreProvider.overrideWithValue(await storeWithWays()),
-          noConnectivityProvider.overrideWithValue(true),
-          regionsLoaderProvider.overrideWithValue(() async => null),
-          mapManifestLoaderProvider.overrideWithValue(() async => null),
-          settingsProvider.overrideWithValue(FakeSettings(wayLayerEnabled: false)),
-          waysManifestLoaderProvider.overrideWithValue(() async => null),
-          officialTrailsSourceProvider.overrideWithValue(FakeOfficialTrailsSource()),
-          officialTrailsCacheProvider.overrideWithValue(MemoryOfficialTrailsCache()),
-        ]);
-        addTearDown(container.dispose);
-        expect(sourceIds(await styleOf(container)), ['overview', 'area-a1']);
+        final (store, tiles) = await storeWithArea(withWays: true);
+        final (c, _) = make(
+            noConnectivity: true,
+            manifest: null,
+            areaStore: store,
+            tileStore: tiles,
+            settings: FakeSettings(wayLayerEnabled: false));
+        expect(sourceIds(await styleOf(c)), ['overview', 'area-dach']);
       });
     });
   });
