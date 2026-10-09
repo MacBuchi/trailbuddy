@@ -7,7 +7,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/router_branches.dart';
 import '../../core/widgets/motion.dart';
-import '../map/online_map.dart';
+import '../map/map_regions.dart';
 import 'area_downloader.dart';
 import 'area_plan.dart';
 import 'area_providers.dart';
@@ -20,9 +20,9 @@ class AreasScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final areasAsync = ref.watch(storedAreasProvider);
     final download = ref.watch(areaDownloadProvider);
-    final manifest = ref.watch(mapManifestProvider).valueOrNull;
-    final heights = ref.watch(heightsManifestProvider).valueOrNull;
-    final ways = ref.watch(areaWaysAvailableProvider).valueOrNull;
+    // Je Bereich gegen die Manifeste SEINER Region (#220). Eine Region,
+    // die der Index gerade nicht nennt, bietet nichts an.
+    final regions = ref.watch(mapRegionsProvider).valueOrNull ?? const [kDachRegion];
     return Scaffold(
       appBar: AppBar(title: const Text('Meine Bereiche')),
       body: areasAsync.when(
@@ -64,10 +64,16 @@ class AreasScreen extends ConsumerWidget {
                   subtitle: LinearProgressIndicator(value: download.progress?.fraction),
                 ),
               for (final a in areas)
-                _AreaTile(a,
-                    newerBuild: manifest != null && manifest.sourceBuild.compareTo(a.build) > 0,
-                    heightsMissing: heights != null && !a.hasHeights,
-                    waysMissing: ways != null && a.waysBuild == null),
+                if (regions.where((r) => r.id == a.region).firstOrNull case final region?)
+                  _AreaTile(a,
+                      newerBuild: (ref.watch(regionMapManifestProvider(region)).valueOrNull?.sourceBuild ?? '')
+                              .compareTo(a.build) >
+                          0,
+                      heightsMissing:
+                          ref.watch(regionHeightsManifestProvider(region)).valueOrNull != null && !a.hasHeights,
+                      waysMissing: ref.watch(areaWaysAvailableProvider(region)).valueOrNull != null && a.waysBuild == null)
+                else
+                  _AreaTile(a, newerBuild: false, heightsMissing: false, waysMissing: false),
             ],
           );
         },
@@ -135,6 +141,8 @@ class _AreaTile extends ConsumerWidget {
       await notifier.start(plan, name: area.name, id: area.id);
     } on AreaTooLarge {
       messenger.showSnackBar(const SnackBar(content: Text('Der Bereich ist für den neuen Stand zu groß.')));
+    } on OutsideRegions catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text(e.message)));
     } catch (_) {
       messenger.showSnackBar(
           const SnackBar(content: Text('Der Kartenhost ist gerade nicht erreichbar.')));

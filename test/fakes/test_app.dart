@@ -23,6 +23,7 @@ import 'package:trailbuddy/data/providers.dart';
 import 'package:trailbuddy/features/map/base_map_providers.dart';
 import 'package:trailbuddy/features/map/contour_layer.dart' show computeContours;
 import 'package:trailbuddy/features/map/contour_providers.dart';
+import 'package:trailbuddy/features/map/map_regions.dart';
 import 'package:trailbuddy/features/map/online_map.dart';
 import 'package:trailbuddy/features/offline_areas/area_providers.dart';
 import 'package:trailbuddy/features/map/map_view/flutter_map_view.dart';
@@ -142,6 +143,10 @@ List<Override> overridesFor(FakeBackend backend,
       // Kein Netz in Tests: kein Manifest vom Kartenhost, also keine
       // Online-Karte — und die Übersicht kommt aus keinem Asset (oben).
       mapManifestLoaderProvider.overrideWithValue(() async => null),
+      // Kein Regionen-Index (#220): DACH allein, wie bis 0.103 — und kein
+      // Manifest einer anderen Region.
+      regionsLoaderProvider.overrideWithValue(() async => null),
+      regionManifestLoaderProvider.overrideWithValue((_) async => null),
       areaHeightsManifestLoaderProvider.overrideWithValue(() async => null),
       heightsManifestLoaderProvider.overrideWithValue(() async => null),
       // Die Wege (#212) sind ab Werk an — ohne diese Zeile fragte jeder

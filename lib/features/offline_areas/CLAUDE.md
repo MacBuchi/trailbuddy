@@ -301,3 +301,15 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
   - **Entfernen** schreibt Höhen und Wege über denselben Weg neu
     (`_SideArchive` in `area_trim.dart`); bleibt keine Wege-Kachel, fällt
     nur das Archiv weg, der Bau bleibt.
+- **Bereiche je Region** (#220 Schritt 3, seit 0.104.0;
+  `lib/features/map/CLAUDE.md`, „Regionen des Kartenhosts"): Ein Bereich
+  gehört der Region, deren Rahmen seine Form schneidet, und trägt sie
+  (`StoredArea.region`, fehlt ⇒ `dach`). Messen, Laden und
+  „Aktualisieren" gehen gegen die Manifeste dieser Region
+  (`_hostManifests` in `area_providers.dart`: für DACH die bisherigen
+  Nähte, sonst `RegionManifests`); „Meine Bereiche" vergleicht je Bereich
+  mit seiner Region (`areaWaysAvailableProvider` ist dafür eine Familie).
+  Außerhalb aller Regionen wirft `plan` `OutsideRegions`, und Dialog wie
+  Liste sagen in einem Satz, für welche Regionen es Karten gibt — ohne
+  einen Abruf. Ein Bereich über den Rand seiner Region wird nicht
+  geteilt. Der Radierer behält die Region (`area_trim.dart`).

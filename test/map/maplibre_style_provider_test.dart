@@ -13,6 +13,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:trailbuddy/core/connectivity.dart';
 import 'package:trailbuddy/core/settings.dart';
 import 'package:trailbuddy/features/map/map_view/maplibre_style_provider.dart';
+import 'package:trailbuddy/features/map/map_regions.dart';
 import 'package:trailbuddy/features/map/online_map.dart';
 import 'package:trailbuddy/features/map/way_layer.dart';
 import 'package:trailbuddy/features/offline_areas/area_plan.dart';
@@ -76,6 +77,7 @@ void main() {
       maplibreStyleIoProvider.overrideWithValue(io),
       areaStoreProvider.overrideWithValue(areaStore ?? MemoryAreaStore()),
       noConnectivityProvider.overrideWithValue(noConnectivity),
+      regionsLoaderProvider.overrideWithValue(() async => null),
       mapManifestLoaderProvider.overrideWithValue(() async => manifest),
       settingsProvider.overrideWithValue(settings ?? FakeSettings(officialTrailsEnabled: officialOn)),
       waysManifestLoaderProvider.overrideWithValue(() async => ways),
@@ -110,6 +112,7 @@ void main() {
       maplibreStyleIoProvider.overrideWithValue(io),
       areaStoreProvider.overrideWithValue(MemoryAreaStore()),
       noConnectivityProvider.overrideWithValue(true),
+      regionsLoaderProvider.overrideWithValue(() async => null),
       mapManifestLoaderProvider.overrideWithValue(() async {
         asked++;
         return _manifest;
@@ -141,6 +144,7 @@ void main() {
       maplibreStyleIoProvider.overrideWithValue(io),
       areaStoreProvider.overrideWithValue(MemoryAreaStore()),
       noConnectivityProvider.overrideWithValue(false),
+      regionsLoaderProvider.overrideWithValue(() async => null),
       mapManifestLoaderProvider.overrideWithValue(() => late.future),
       settingsProvider.overrideWithValue(FakeSettings()),
       waysManifestLoaderProvider.overrideWithValue(() async => null),
@@ -286,6 +290,7 @@ void main() {
         maplibreStyleIoProvider.overrideWithValue(_FakeIo()),
         areaStoreProvider.overrideWithValue(MemoryAreaStore()),
         noConnectivityProvider.overrideWithValue(false),
+        regionsLoaderProvider.overrideWithValue(() async => null),
         mapManifestLoaderProvider.overrideWithValue(() async => _manifest),
         settingsProvider.overrideWithValue(FakeSettings(wayLayerEnabled: false)),
         waysManifestLoaderProvider.overrideWithValue(() async {
@@ -306,6 +311,7 @@ void main() {
         maplibreStyleIoProvider.overrideWithValue(_FakeIo()),
         areaStoreProvider.overrideWithValue(MemoryAreaStore()),
         noConnectivityProvider.overrideWithValue(false),
+        regionsLoaderProvider.overrideWithValue(() async => null),
         mapManifestLoaderProvider.overrideWithValue(() async => _manifest),
         settingsProvider.overrideWithValue(FakeSettings()),
         waysManifestLoaderProvider.overrideWithValue(() => late.future),
@@ -379,6 +385,7 @@ void main() {
           maplibreStyleIoProvider.overrideWithValue(_FakeIo()),
           areaStoreProvider.overrideWithValue(await storeWithWays()),
           noConnectivityProvider.overrideWithValue(true),
+          regionsLoaderProvider.overrideWithValue(() async => null),
           mapManifestLoaderProvider.overrideWithValue(() async => null),
           settingsProvider.overrideWithValue(FakeSettings(wayLayerEnabled: false)),
           waysManifestLoaderProvider.overrideWithValue(() async => null),

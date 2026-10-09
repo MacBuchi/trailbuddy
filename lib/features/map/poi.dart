@@ -226,7 +226,7 @@ String poiCellFileName(PoiCell cell, PoiGroup group) =>
 /// welche Zellen je Gruppe überhaupt eine Datei haben. Eine Zelle, die
 /// hier nicht steht, ist leer — die App fragt dann gar nicht erst.
 class PoiManifest {
-  const PoiManifest({required this.build, required this.prefix, required this.cells});
+  const PoiManifest({required this.build, required this.prefix, required this.cells, this.dir = ''});
 
   /// `JJJJMMTT` des Baus.
   final String build;
@@ -236,12 +236,22 @@ class PoiManifest {
 
   final Map<PoiGroup, Set<PoiCell>> cells;
 
+  /// Der Ordner der Region (#220): leer für DACH, sonst `<id>/`; das
+  /// Präfix ist relativ dazu.
+  final String dir;
+
+  /// Der Ordner des Baus unter dem Kartenhost, `[<id>/]pois-<build>`.
+  String get folder => '$dir$prefix';
+
   bool has(PoiCell cell, PoiGroup group) => cells[group]?.contains(cell) ?? false;
 
   /// Liest das Manifest; wirft bei allem, was nicht passt. Das Präfix
   /// wird geprüft, weil es zu einem Pfad wird. Gruppen, die diese
   /// App-Version nicht kennt, fallen still weg.
-  factory PoiManifest.fromJson(Map<String, dynamic> j) {
+  factory PoiManifest.fromJson(Map<String, dynamic> j, {String dir = ''}) {
+    if (dir.isNotEmpty && !RegExp(r'^[a-z]{2,8}/$').hasMatch(dir)) {
+      throw FormatException('Unerwarteter Regionsordner: $dir');
+    }
     if (j['format'] != 1) throw FormatException('Orte-Manifest: Format ${j['format']}');
     final prefix = j['prefix'] as String;
     if (!RegExp(r'^pois-\d{8}$').hasMatch(prefix)) {
@@ -251,6 +261,7 @@ class PoiManifest {
     return PoiManifest(
       build: j['build'] as String,
       prefix: prefix,
+      dir: dir,
       cells: {
         for (final g in PoiGroup.values)
           g: {for (final c in (raw[g.name] as List? ?? const [])) c as String},

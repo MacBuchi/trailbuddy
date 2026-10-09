@@ -34,7 +34,9 @@ import 'package:vector_map_tiles/vector_map_tiles.dart';
 import '../../core/connectivity.dart';
 import '../../core/errors.dart';
 import '../keep_alive/keep_alive.dart';
+import '../../core/line_geometry.dart';
 import '../map/base_map_providers.dart';
+import '../map/map_regions.dart';
 import '../map/online_map.dart';
 import '../map/pmtiles_tile_provider.dart';
 import '../map/poi.dart';
@@ -118,11 +120,57 @@ final areaWaysManifestLoaderProvider =
         });
 
 /// Ob der Host Wege hat, für „Meine Bereiche" (Knopf „Aktualisieren"
-/// an Bereichen, die noch keine geholt haben). Ohne Empfang keine Frage.
-final areaWaysAvailableProvider = FutureProvider<WaysManifest?>((ref) async {
+/// an Bereichen, die noch keine geholt haben) — je Region (#220). Ohne
+/// Empfang keine Frage.
+final areaWaysAvailableProvider = FutureProvider.family<WaysManifest?, MapRegion>((ref, region) async {
   if (ref.watch(noConnectivityProvider)) return null;
-  return ref.watch(areaWaysManifestLoaderProvider)();
+  if (region.isDach) return ref.watch(areaWaysManifestLoaderProvider)();
+  return RegionManifests(ref.watch(regionManifestLoaderProvider), region).ways();
 });
+
+/// Die Manifeste, gegen die ein Bereich der Region [region] gemessen und
+/// geladen wird (#220): für DACH die bisherigen Nähte, sonst die Dateien
+/// im Ordner der Region. Jede Begleitebene darf fehlen — dann kommt der
+/// Bereich ohne sie.
+typedef AreaHostManifests = ({
+  MapManifest? map,
+  PoiManifest? pois,
+  HeightsManifest? heights,
+  WaysManifest? ways,
+});
+
+Future<AreaHostManifests> _hostManifests(Ref ref, MapRegion region) async {
+  final map = await ref.read(regionMapManifestProvider(region).future);
+  if (region.isDach) {
+    return (
+      map: map,
+      pois: await ref.read(areaPoiManifestLoaderProvider)(),
+      heights: await ref.read(areaHeightsManifestLoaderProvider)(),
+      ways: await ref.read(areaWaysManifestLoaderProvider)(),
+    );
+  }
+  final manifests = RegionManifests(ref.read(regionManifestLoaderProvider), region);
+  return (
+    map: map,
+    pois: await manifests.pois(),
+    heights: await manifests.heights(),
+    ways: await manifests.ways(),
+  );
+}
+
+/// Eine Form außerhalb aller Regionen des Hosts (#220): Dort gibt es
+/// nichts zu speichern. Die Oberfläche sagt es in einem Satz.
+class OutsideRegions implements Exception {
+  const OutsideRegions(this.names);
+
+  /// Die Regionen, die es gibt, für den Satz.
+  final List<String> names;
+
+  String get message => 'Hier gibt es keine Karte zum Speichern — Karten gibt es für ${names.join(', ')}.';
+
+  @override
+  String toString() => message;
+}
 
 /// Höhen aus den gespeicherten Bereichen — der erste Bereich, der die
 /// Kachel hat, liefert. Beobachten öffnet die Archive (nur Verzeichnisse,
@@ -182,18 +230,28 @@ class AreaDownloadNotifier extends Notifier<AreaDownloadState> {
   /// Speichern nennt sie; der Download holt sie dann nicht noch einmal).
   /// Braucht das Manifest — ohne Empfang gibt es keinen Plan.
   Future<AreaPlan> plan(AreaShape shape) async {
-    final manifest = await ref.read(mapManifestProvider.future);
+    // Ohne Empfang kennt die App vielleicht nur DACH — „hier gibt es keine
+    // Karte" wäre dann eine falsche Auskunft über Kanada.
+    if (ref.read(noConnectivityProvider)) throw StateError('Kein Kartenhost erreichbar');
+    final regions = await ref.read(mapRegionsProvider.future);
+    final hull = shape.hull;
+    // Die Region nach der Lage (#220): die erste, deren Rahmen die Form
+    // schneidet. Regionen überlappen nie, und ein Bereich ist klein.
+    final region = regionFor(regions, LatBox(hull.south, hull.west, hull.north, hull.east));
+    if (region == null) throw OutsideRegions([for (final r in regions) r.name]);
+    final hosts = await _hostManifests(ref, region);
+    final manifest = hosts.map;
     if (manifest == null) throw StateError('Kein Kartenhost erreichbar');
     state = const AreaDownloadState(phase: AreaDownloadPhase.planning);
     final archive = await ref.read(areaSourceOpenerProvider)(manifest.archiveUri);
     PmTilesArchive? heights;
     PmTilesArchive? ways;
     try {
-      final poiManifest = await ref.read(areaPoiManifestLoaderProvider)();
+      final poiManifest = hosts.pois;
       final fetchPoi = ref.read(areaPoiFileLoaderProvider);
-      final heightsManifest = await ref.read(areaHeightsManifestLoaderProvider)();
+      final heightsManifest = hosts.heights;
       heights = await _openSide(heightsManifest?.archiveUri, 'Höhenarchiv öffnen');
-      final waysManifest = await ref.read(areaWaysManifestLoaderProvider)();
+      final waysManifest = hosts.ways;
       ways = await _openSide(waysManifest?.archiveUri, 'Wege-Archiv öffnen');
       final downloader = AreaDownloader(
           archive: archive,
@@ -205,7 +263,8 @@ class AreaDownloadNotifier extends Notifier<AreaDownloadState> {
           heights: heights,
           heightsManifest: heightsManifest,
           ways: ways,
-          waysManifest: waysManifest);
+          waysManifest: waysManifest,
+          region: region.id);
       final plan = await downloader.plan(shape, withPois: true);
       state = AreaDownloadState(phase: AreaDownloadPhase.idle, plan: plan);
       return plan;
@@ -238,7 +297,10 @@ class AreaDownloadNotifier extends Notifier<AreaDownloadState> {
   Future<StoredArea?> start(AreaPlan plan, {required String name, String? id}) async {
     if (state.busy) return null;
     _cancelled = false;
-    final manifest = await ref.read(mapManifestProvider.future);
+    final regions = await ref.read(mapRegionsProvider.future);
+    final region = regions.where((r) => r.id == plan.region).firstOrNull;
+    final hosts = region == null ? null : await _hostManifests(ref, region);
+    final manifest = hosts?.map;
     if (manifest == null) {
       state = AreaDownloadState(phase: AreaDownloadPhase.failed, error: 'Kein Kartenhost erreichbar', plan: plan);
       return null;
@@ -251,11 +313,11 @@ class AreaDownloadNotifier extends Notifier<AreaDownloadState> {
     PmTilesArchive? ways;
     try {
       archive = await ref.read(areaSourceOpenerProvider)(manifest.archiveUri);
-      final poiManifest = await ref.read(areaPoiManifestLoaderProvider)();
+      final poiManifest = hosts!.pois;
       final fetchPoi = ref.read(areaPoiFileLoaderProvider);
-      final heightsManifest = await ref.read(areaHeightsManifestLoaderProvider)();
+      final heightsManifest = hosts.heights;
       heights = plan.hasHeights ? await _openSide(heightsManifest?.archiveUri, 'Höhenarchiv öffnen') : null;
-      final waysManifest = await ref.read(areaWaysManifestLoaderProvider)();
+      final waysManifest = hosts.ways;
       // Gegen den Bau, mit dem gemessen wurde: Ein neuerer Bau hätte
       // andere Kacheln, als der Plan nennt.
       ways = plan.hasWays && waysManifest?.build == plan.waysBuild
@@ -271,6 +333,7 @@ class AreaDownloadNotifier extends Notifier<AreaDownloadState> {
         heightsManifest: heightsManifest,
         ways: ways,
         waysManifest: waysManifest,
+        region: plan.region,
       );
       final area = await downloader.download(
         plan,

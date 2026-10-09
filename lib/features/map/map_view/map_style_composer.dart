@@ -20,9 +20,14 @@ class MapStyleSource {
     required this.minZoom,
     required this.maxZoom,
     this.labelsOnTop = true,
+    this.bounds,
   });
 
   final String id;
+
+  /// Der Rahmen der Region (#220) als `[west, süd, ost, nord]`: Außerhalb
+  /// fragt MapLibre die Quelle gar nicht erst. Null: überall.
+  final List<double>? bounds;
 
   /// `file:///…` oder `https://…`; MapLibre bekommt `pmtiles://` davor.
   final String url;
@@ -117,6 +122,7 @@ String composeMapLibreStyle({
       'url': 'pmtiles://${source.url}',
       'minzoom': source.minZoom,
       'maxzoom': source.maxZoom,
+      'bounds': ?source.bounds,
       'attribution': ?attribution,
     };
     for (final layer in _layersFor(baseLayers, source.id)) {
@@ -132,6 +138,7 @@ String composeMapLibreStyle({
       'url': 'pmtiles://${source.url}',
       'minzoom': source.minZoom,
       'maxzoom': source.maxZoom,
+      'bounds': ?source.bounds,
       'attribution': ?attribution,
     };
     layers.addAll(overlay.layers);

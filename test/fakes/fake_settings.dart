@@ -23,6 +23,8 @@ class FakeSettings implements Settings {
       this.riderCalibration,
       this.seenMapManifest,
       this.seenWaysManifest,
+      this.seenRegions,
+      this.seenRegionManifests,
       // „Schon gesehen" ist die Vorgabe (#126): Jeder Flow-Test pumpt die
       // App auf die Karte, und mit `false` läge über jedem der Hinweis.
       // Tests für Hinweis und Tour geben ihre Einstellungen ausdrücklich mit.
@@ -141,6 +143,22 @@ class FakeSettings implements Settings {
   @override
   Future<void> setSeenWaysManifest(String value) async {
     seenWaysManifest = value;
+  }
+
+  @override
+  String? seenRegions;
+
+  @override
+  Future<void> setSeenRegions(String value) async {
+    seenRegions = value;
+  }
+
+  @override
+  String? seenRegionManifests;
+
+  @override
+  Future<void> setSeenRegionManifests(String value) async {
+    seenRegionManifests = value;
   }
 
   @override

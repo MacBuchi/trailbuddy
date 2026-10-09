@@ -13,6 +13,7 @@ import 'dart:typed_data';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../map/map_regions.dart' show kDachRegionId;
 import 'area_plan.dart';
 import 'area_store_web.dart' if (dart.library.io) 'area_store_io.dart';
 
@@ -37,6 +38,7 @@ class StoredArea {
     this.wayTiles = 0,
     this.wayBytes = 0,
     this.waysBuild,
+    this.region = kDachRegionId,
   }) : shape = shape ?? RectShape(bounds);
 
   final String id;
@@ -88,6 +90,11 @@ class StoredArea {
 
   bool get hasWays => wayTiles > 0;
 
+  /// Die Region des Hosts, aus der der Bereich stammt (#220,
+  /// `map_regions.dart`) — gegen ihre Manifeste wird er aktualisiert.
+  /// Einträge vor 0.104.0 tragen keine: Dort war es DACH.
+  final String region;
+
   /// Alles, was der Bereich auf dem Gerät belegt (ohne die kleinen
   /// Orte-Dateien).
   int get totalBytes => bytes + heightBytes + wayBytes;
@@ -111,6 +118,7 @@ class StoredArea {
         'way_tiles': wayTiles,
         'way_bytes': wayBytes,
         'ways_build': waysBuild,
+        'region': region,
       };
 
   factory StoredArea.fromJson(Map<String, dynamic> j) => StoredArea(
@@ -132,6 +140,7 @@ class StoredArea {
         wayTiles: j['way_tiles'] as int? ?? 0,
         wayBytes: j['way_bytes'] as int? ?? 0,
         waysBuild: j['ways_build'] as String?,
+        region: j['region'] as String? ?? kDachRegionId,
       );
 }
 

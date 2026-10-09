@@ -19,6 +19,7 @@ import '../../../core/settings.dart';
 import '../../offline_areas/area_providers.dart';
 import '../../official/official_trails_source.dart';
 import '../base_map_providers.dart';
+import '../map_regions.dart';
 import '../online_map.dart';
 import '../way_layer.dart';
 import 'map_style_composer.dart';
@@ -88,6 +89,8 @@ final maplibreStyleIoProvider = Provider<MapLibreStyleIo>((ref) => MapLibreStyle
 /// flutter_map-Engine, damit die Landflächen beider Engines gleich aussehen.
 String cssColor(int argb) => '#${(argb & 0xFFFFFF).toRadixString(16).padLeft(6, '0')}';
 
+List<double> _bounds(MapRegion r) => [r.box.w, r.box.s, r.box.e, r.box.n];
+
 /// Das fertige Style-Dokument — oder null, wenn etwas fehlt: Dann fällt die
 /// MapLibre-Engine auf flutter_map zurück (maplibre_map_view.dart).
 ///
@@ -138,9 +141,31 @@ final maplibreStyleProvider = FutureProvider<String?>((ref) async {
 
   final manifestWait = patiently(ref.watch(mapManifestProvider.future));
   final waysWait = patiently(ref.watch(waysManifestProvider.future));
+  // Die übrigen Regionen (#220) mit derselben Geduld: erst der Index,
+  // dann je Region Karte und Wege. DACH wartet auf keine von ihnen.
+  final regions = await regionsPatiently(ref);
+  final others = [for (final r in regions) if (!r.isDach) r];
+  final otherMaps = [for (final r in others) patiently(ref.watch(regionMapManifestProvider(r).future))];
+  final otherWays = [for (final r in others) patiently(ref.watch(regionWaysManifestProvider(r).future))];
   final fresh = await manifestWait;
   final freshWays = await waysWait;
   final settings = ref.watch(settingsProvider);
+  final regionSources = <({MapRegion region, MapManifest? map, WaysManifest? ways})>[];
+  for (var i = 0; i < others.length; i++) {
+    final region = others[i];
+    final map = await otherMaps[i];
+    final ways = await otherWays[i];
+    if (map != null) rememberRegionManifest(settings, region, RegionLayer.map, map.toJson());
+    if (ways != null) rememberRegionManifest(settings, region, RegionLayer.ways, ways.toJson());
+    regionSources.add((
+      region: region,
+      map: map ?? rememberedRegionManifest(settings, region, RegionLayer.map, MapManifest.fromJson),
+      ways: ways ??
+          (ref.watch(wayLayerEnabledProvider)
+              ? rememberedRegionManifest(settings, region, RegionLayer.ways, WaysManifest.fromJson)
+              : null),
+    ));
+  }
   final manifest = fresh ?? rememberedManifest(settings.seenMapManifest, MapManifest.fromJson);
   final ways = freshWays ??
       (ref.watch(wayLayerEnabledProvider)
@@ -190,7 +215,21 @@ final maplibreStyleProvider = FutureProvider<String?>((ref) async {
         url: manifest.archiveUri.toString(),
         minZoom: 0,
         maxZoom: manifest.maxZoom,
+        bounds: _bounds(kDachRegion),
       ));
+    }
+    // Je weitere Region ihre Online-Karte, mit Rahmen (#220): MapLibre
+    // fragt eine Quelle außerhalb ihres Rahmens nicht.
+    for (final r in regionSources) {
+      if (r.map case final map?) {
+        sources.add(MapStyleSource(
+          id: 'online-${r.region.id}',
+          url: map.archiveUri.toString(),
+          minZoom: 0,
+          maxZoom: map.maxZoom,
+          bounds: _bounds(r.region),
+        ));
+      }
     }
     // Die gespeicherten Bereiche (Zoom 8 aufwärts) zuoberst, mit und ohne
     // Empfang (#82): Ihre deckende `earth`-Fläche verdeckt darunter die
@@ -243,9 +282,22 @@ final maplibreStyleProvider = FutureProvider<String?>((ref) async {
               url: ways.archiveUri.toString(),
               minZoom: kWaysZoom,
               maxZoom: kWaysZoom,
+              bounds: _bounds(kDachRegion),
             ),
             layers: wayStyleLayers(kWaysSourceId, dashes: true),
           ),
+        for (final r in regionSources)
+          if (r.ways case final regionWays?)
+            MapStyleOverlay(
+              source: MapStyleSource(
+                id: '$kWaysSourceId-region-${r.region.id}',
+                url: regionWays.archiveUri.toString(),
+                minZoom: kWaysZoom,
+                maxZoom: kWaysZoom,
+                bounds: _bounds(r.region),
+              ),
+              layers: wayStyleLayers('$kWaysSourceId-region-${r.region.id}', dashes: true),
+            ),
         ...areaWays,
       ],
       extraAttributions: officialCredits.isEmpty ? const [] : officialCredits.split('\u0000'),

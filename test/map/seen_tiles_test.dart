@@ -18,6 +18,7 @@ import 'package:trailbuddy/core/settings.dart';
 import 'package:trailbuddy/features/map/base_map_providers.dart';
 import 'package:trailbuddy/features/map/map_view/flutter_map_view.dart';
 import 'package:trailbuddy/features/map/map_view/map_view.dart';
+import 'package:trailbuddy/features/map/map_regions.dart';
 import 'package:trailbuddy/features/map/online_map.dart';
 import 'package:trailbuddy/features/map/pmtiles_tile_provider.dart';
 import 'package:trailbuddy/features/map/seen_tiles.dart';
@@ -155,6 +156,7 @@ void main() {
         noConnectivityProvider.overrideWithValue(offline),
         seenTileStoreProvider.overrideWithValue(store),
         settingsProvider.overrideWithValue(settings ?? FakeSettings(wayLayerEnabled: wayLayer)),
+        regionsLoaderProvider.overrideWithValue(() async => null),
         mapManifestLoaderProvider.overrideWithValue(() async => _manifest),
         waysManifestLoaderProvider.overrideWithValue(() async => _ways),
         onlineArchiveOpenerProvider.overrideWithValue((_) => PmTilesVectorTileProvider.openBytes(_archive())),

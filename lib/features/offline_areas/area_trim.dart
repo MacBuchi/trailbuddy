@@ -261,6 +261,7 @@ class AreaTrimmer {
         wayBytes: wayBytes,
         // Der Bau bleibt auch ohne Wege-Kachel: geholt ist geholt.
         waysBuild: area.waysBuild,
+        region: area.region,
       );
     }
     final next = <StoredArea>[

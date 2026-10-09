@@ -7,9 +7,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 
 import '../../core/errors.dart';
+import '../../core/line_geometry.dart';
 import '../../core/settings.dart';
 import '../offline_areas/area_store.dart';
 import 'map_providers.dart';
+import 'map_regions.dart';
 import 'poi.dart';
 
 /// Woher die Orte kommen. Eine Schnittstelle, damit Tests ein Fake
@@ -27,9 +29,13 @@ abstract interface class PoiSource {
 /// Fahrten oder das Konto. Derselbe Host steht schon für die Karte in
 /// der Datenschutzerklärung.
 class HostPoiSource implements PoiSource {
-  HostPoiSource({http.Client? client, Future<String?> Function(String name)? readLocal})
-      : _client = client ?? http.Client(),
-        _readLocal = readLocal;
+  HostPoiSource({
+    http.Client? client,
+    Future<String?> Function(String name)? readLocal,
+    Future<List<MapRegion>> Function()? regions,
+  })  : _client = client ?? http.Client(),
+        _readLocal = readLocal,
+        _regions = regions;
 
   final http.Client _client;
 
@@ -38,9 +44,13 @@ class HostPoiSource implements PoiSource {
   /// was die Karte zeigt.
   final Future<String?> Function(String name)? _readLocal;
 
-  /// Das Manifest dieses App-Laufs. Scheitert der Abruf, bleibt es null
-  /// und der nächste Wunsch versucht es wieder.
-  PoiManifest? _manifest;
+  /// Die Regionen des Hosts (#220) — eine Zelle fragt das Manifest der
+  /// Region, in deren Rahmen sie liegt. Ohne: DACH allein.
+  final Future<List<MapRegion>> Function()? _regions;
+
+  /// Die Manifeste dieses App-Laufs, je Region. Scheitert ein Abruf,
+  /// fehlt es und der nächste Wunsch versucht es wieder.
+  final _manifests = <String, PoiManifest>{};
 
   /// So viele Dateien auf einmal — ein Tablet auf Zoom 12 mit allen
   /// Gruppen braucht bis zu 64, die einzeln nacheinander eine Weile
@@ -49,10 +59,18 @@ class HostPoiSource implements PoiSource {
 
   static const _timeout = Duration(seconds: 20);
 
-  Future<PoiManifest> _loadManifest() async {
-    final cached = _manifest;
+  /// Das Manifest der Region; null, wenn die Region keine Orte hat.
+  Future<PoiManifest?> _loadManifest(MapRegion region) async {
+    final cached = _manifests[region.id];
     if (cached != null) return cached;
-    return _manifest = await fetchPoiManifest(_client);
+    if (region.isDach) return _manifests[region.id] = await fetchPoiManifest(_client);
+    final uri = region.manifestUri(RegionLayer.pois);
+    if (uri == null) return null;
+    final res = await _client.get(uri).timeout(_timeout);
+    if (res.statusCode != 200) throw PoiUnavailable(res.statusCode);
+    return _manifests[region.id] = PoiManifest.fromJson(
+        jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>,
+        dir: region.dir);
   }
 
   @override
@@ -72,15 +90,27 @@ class HostPoiSource implements PoiSource {
       }
     }
     if (remaining.isEmpty) return out;
-    final manifest = await _loadManifest();
-    final wanted = [
-      for (final (c, g) in remaining)
-        if (manifest.has(c, g)) (c, g),
-    ];
+    // Je Zelle die Region, deren Rahmen sie schneidet (#220); eine Zelle
+    // außerhalb aller fragt nichts.
+    final regions = await (_regions?.call() ?? Future.value(const [kDachRegion]));
+    final wanted = <(PoiManifest, PoiCell, PoiGroup)>[];
+    final byRegion = <MapRegion, List<(PoiCell, PoiGroup)>>{};
+    for (final (c, g) in remaining) {
+      final b = poiCellsBounds([c]);
+      final region = regionFor(regions, LatBox(b.s, b.w, b.n, b.e));
+      if (region != null) (byRegion[region] ??= []).add((c, g));
+    }
+    for (final MapEntry(key: region, value: cells) in byRegion.entries) {
+      final manifest = await _loadManifest(region);
+      if (manifest == null) continue;
+      for (final (c, g) in cells) {
+        if (manifest.has(c, g)) wanted.add((manifest, c, g));
+      }
+    }
     for (var i = 0; i < wanted.length; i += _parallel) {
       final batch = wanted.sublist(i, math.min(i + _parallel, wanted.length));
       final results = await Future.wait([
-        for (final (c, g) in batch) _fetchCell(manifest, c, g),
+        for (final (m, c, g) in batch) _fetchCell(m, c, g),
       ]);
       for (final r in results) {
         out.addAll(r);
@@ -90,7 +120,7 @@ class HostPoiSource implements PoiSource {
   }
 
   Future<List<Poi>> _fetchCell(PoiManifest m, PoiCell cell, PoiGroup g) async {
-    final uri = Uri.parse('$kMapTilesBase/${m.prefix}/${poiCellFileName(cell, g)}');
+    final uri = Uri.parse('$kMapTilesBase/${m.folder}/${poiCellFileName(cell, g)}');
     final res = await _client.get(uri).timeout(_timeout);
     // Eine Datei, die das Manifest nennt und die nicht da ist: der Bau
     // wurde gerade abgelöst und das alte Präfix ist schon weg. Leer, und
@@ -114,7 +144,7 @@ Future<PoiManifest> fetchPoiManifest(http.Client client) async {
 /// dem Manifest verschwunden), [PoiUnavailable] bei allem anderen.
 Future<String?> fetchPoiFileFromHost(http.Client client, PoiManifest manifest, String name) async {
   final res = await client
-      .get(Uri.parse('$kMapTilesBase/${manifest.prefix}/$name'))
+      .get(Uri.parse('$kMapTilesBase/${manifest.folder}/$name'))
       .timeout(const Duration(seconds: 20));
   if (res.statusCode == 404) return null;
   if (res.statusCode != 200) throw PoiUnavailable(res.statusCode);
@@ -131,8 +161,9 @@ class PoiUnavailable implements Exception {
   String toString() => 'Der Orte-Host antwortet mit $statusCode';
 }
 
-final poiSourceProvider = Provider<PoiSource>(
-    (ref) => HostPoiSource(readLocal: ref.watch(areaStoreProvider).readPoiFile));
+final poiSourceProvider = Provider<PoiSource>((ref) => HostPoiSource(
+    readLocal: ref.watch(areaStoreProvider).readPoiFile,
+    regions: () => ref.read(mapRegionsProvider.future)));
 
 /// Die eingeschalteten Gruppen — gerätelokal gemerkt, wie
 /// [RememberedFlag]: Der Zustand springt sofort, das Merken läuft nach.

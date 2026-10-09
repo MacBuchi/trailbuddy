@@ -32,3 +32,10 @@ const kHeightsManifestUrl = '$kMapTilesBase/heights.json';
 /// `way-data.yml`, #212): welches `ways-<build>.pmtiles` gilt. Dieselbe
 /// Zeiger-Idee; gelesen in `way_layer.dart`.
 const kWaysManifestUrl = '$kMapTilesBase/ways.json';
+
+/// Der Regionen-Index (`regions.json`, #220, geschrieben von jedem
+/// Daten-Workflow nach seinem Upload, `tool/regions.py index`): welche
+/// Regionen außer DACH es gibt, ihr Rahmen und welche Manifeste dort
+/// liegen. DACH steht weiter an der Wurzel und kennt die App ohne ihn
+/// (`kDachRegion` in `map_regions.dart`).
+const kRegionsIndexUrl = '$kMapTilesBase/regions.json';

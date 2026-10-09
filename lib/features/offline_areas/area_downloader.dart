@@ -27,6 +27,7 @@ import 'dart:typed_data';
 
 import 'package:pmtiles/pmtiles.dart';
 
+import '../map/map_regions.dart' show kDachRegionId;
 import '../map/online_map.dart';
 import '../map/way_layer.dart';
 import '../map/poi.dart';
@@ -49,7 +50,11 @@ class AreaPlan {
     this.wayTiles = const [],
     this.wayBytes = 0,
     this.waysBuild,
+    this.region = kDachRegionId,
   });
+
+  /// Die Region des Hosts, gegen die gemessen wurde (#220).
+  final String region;
 
   /// Die Form, die geplant wurde — wird mit dem Bereich gemerkt, damit
   /// „Aktualisieren" dieselbe Form noch einmal holt.
@@ -148,7 +153,11 @@ class AreaDownloader {
     this.waysManifest,
     this.chunkSize = 256,
     this.now,
+    this.region = kDachRegionId,
   });
+
+  /// Die Region, aus deren Archiven der Bereich kommt (#220).
+  final String region;
 
   /// Das Archiv des Hosts, über Range-Anfragen geöffnet.
   final PmTilesArchive archive;
@@ -225,6 +234,7 @@ class AreaDownloader {
       wayTiles: wayTiles,
       wayBytes: wayBytes,
       waysBuild: w == null ? null : waysManifest?.build,
+      region: region,
     );
   }
 
@@ -395,6 +405,7 @@ class AreaDownloader {
       wayTiles: wayTiles.length,
       wayBytes: wayBytes,
       waysBuild: waysBuild,
+      region: plan.region,
     );
     final others = [for (final a in await store.list()) if (a.id != areaId) a];
     await store.saveIndex([...others, area]);

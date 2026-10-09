@@ -169,7 +169,7 @@ void main() {
         settings: settings,
         extraOverrides: [
           gpxShareProvider.overrideWithValue(recorder),
-          if (onlineFill != null) onlineFillFactoryProvider.overrideWithValue(onlineFill),
+          if (onlineFill != null) onlineFillFactoryProvider.overrideWithValue((_) => onlineFill()),
           if (runner != null) loopPlanRunnerFactoryProvider.overrideWithValue(runner),
           ...extra,
         ]);
