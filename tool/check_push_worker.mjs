@@ -194,14 +194,30 @@ try {
   const shown = `navigator.serviceWorker.getRegistration('${APP}${WORKER}')
       .then((r) => r.getNotifications())
       .then((ns) => ns.map((n) => ({title: n.title, body: n.body, data: n.data})))`;
-  const clearShown = `navigator.serviceWorker.getRegistration('${APP}${WORKER}')
-      .then((r) => r.getNotifications()).then((ns) => ns.forEach((n) => n.close()))`;
 
   const {targetInfos: all} = await send('Target.getTargets');
   const workerTarget = all.find((t) =>
       t.type === 'service_worker' && t.url.endsWith(WORKER));
   const {sessionId: sw} = await send('Target.attachToTarget',
       {targetId: workerTarget.targetId, flatten: true});
+
+  // **Gelesen wird erst, wenn `showNotification` fertig ist — und dann
+  // einmal.** `getNotifications()` gleicht in Chrome den Speicher mit den
+  // angezeigten Meldungen ab und LÖSCHT, was noch nicht angezeigt ist.
+  // Fällt eine Abfrage in das Fenster zwischen Speichern und Anzeigen,
+  // ist die Meldung weg, obwohl `showNotification` Erfolg meldet. Bis
+  // 2026-10-09 wartete der Prüfer, indem er alle 250 ms abfragte, und
+  // scheiterte so etwa jeden zwanzigsten Lauf (TrailBuddy #290). Gemessen:
+  // dichtes Abfragen während des Zeigens verliert 16 von 40 Meldungen,
+  // eine Abfrage nach dem Abschluss 0 von 80. Der Zähler ist Gerüst wie
+  // der gestellte Fokus unten; was der Worker zeigt, bleibt seine Sache.
+  await run(`self.__shown = 0;
+    const show = self.registration.showNotification.bind(self.registration);
+    self.registration.showNotification = (...a) =>
+        show(...a).then((v) => { self.__shown++; return v; });
+    true`, sw);
+  const shownCount = () => run('self.__shown', sw);
+  const shownWith = (body) => `${shown}.then((ns) => ns.find((n) => n.body === '${body}'))`;
 
   // 1 — App vorne: keine Systembenachrichtigung, die App bekommt sie.
   //
@@ -228,7 +244,7 @@ try {
       got?.data?.route === '/trail/abc',
       `fokussierte App bekommt die Meldung (${JSON.stringify(got)})`);
   await sleep(500);
-  check((await run(shown)).length === 0,
+  check((await shownCount()) === 0,
       'keine Systembenachrichtigung, solange die App im Fokus ist');
   await realFocus();
 
@@ -236,11 +252,12 @@ try {
   // Chrome von sich aus): Die Meldung erscheint im System.
   await run('__got.length = 0');
   await push('Tippen zeigt den Trail');
-  await waitFor(`${shown}.then((ns) => ns.length > 0)`,
+  await waitFor('self.__shown === 1',
+      'App offen, aber nicht im Fokus: der Worker zeigt die Meldung', sw);
+  check(!!(await run(shownWith('Tippen zeigt den Trail'))),
       'App offen, aber nicht im Fokus: die Meldung erscheint im System');
   check((await run('__got.length')) === 0,
       'eine unfokussierte App bekommt keine zweite Fassung als Leiste');
-  await run(clearShown);
 
   // 2 — nur die NACHBAR-App ist offen und vorne. Genau hier schluckte das
   // Firebase-SDK die Meldung: „ein Fenster der Domain sichtbar".
@@ -251,16 +268,15 @@ try {
   await navigate(SIBLING);
   await focusAll();
   await push('An 2 Trails');
-  await waitFor(`${shown}.then((ns) => ns.length > 0)`,
-      'die Meldung erscheint, obwohl die Nachbar-App vorne ist');
-  const [n] = await run(shown);
+  await waitFor('self.__shown === 2',
+      'der Worker zeigt die Meldung, obwohl die Nachbar-App vorne ist', sw);
+  const n = await run(shownWith('An 2 Trails'));
   check(n?.title === 'Neuer Hinweis von einem Buddy' && n?.body === 'An 2 Trails' &&
       n?.data?.route === '/trail/abc',
       `Systembenachrichtigung mit Titel, Text und Ziel (${JSON.stringify(n)})`);
   check((await run('__got.length')) === 0,
       'die Nachbar-App bekommt die Meldung NICHT');
   await realFocus();
-  await run(clearShown);
 
   // 3 — der Tipp. Ausgelöst im Worker selbst, weil sich eine
   // Systembenachrichtigung nicht per Protokoll anklicken lässt; geprüft
