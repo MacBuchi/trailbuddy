@@ -141,13 +141,16 @@ MapViewPolygon? offlineCoverageMask(List<StoredArea> areas, MapViewBounds view) 
     {Color? outlineColor}) {
   if (view.east <= view.west || view.north <= view.south) return (mask: null, outline: const []);
   var box = offlineOverlayBox(view);
-  var byZoom = _tilesByZoom(areas, box);
+  var regions = _regionRects(areas, box);
+  var byZoom = _tilesByZoom(areas, box, regions);
   var holes = _holes(byZoom);
   if (holes.length > kOfflineOverlayMaxHoles) {
     box = offlineOverlayBox(view, margin: false);
-    byZoom = _tilesByZoom(areas, box);
+    regions = _regionRects(areas, box);
+    byZoom = _tilesByZoom(areas, box, regions);
     holes = _holes(byZoom);
   }
+  holes = [...holes, for (final r in regions) rectRing(r)];
   final outline = <MapViewPolyline>[];
   if (outlineColor != null) {
     for (final tiles in byZoom.values) {
@@ -172,14 +175,44 @@ List<List<LatLng>> _holes(Map<int, Set<TileXYZ>> byZoom) => [
         for (final r in mergeTileRects(tiles)) rectRing(r),
     ];
 
+/// Die ganzen Regionen (Schritt 5) im Ausschnitt [box]: je EIN Rechteck,
+/// auf das Kachelraster von [kAreaShapeZoom] gerastet — als Kacheln wären
+/// es weit draußen hunderttausende.
+List<AreaBounds> _regionRects(List<StoredArea> areas, AreaBounds box) {
+  final out = <AreaBounds>[];
+  for (final a in areas) {
+    if (a.shape case final RegionShape r) {
+      final b = r.bounds;
+      if (!b.intersects(box)) continue;
+      const z = kAreaShapeZoom;
+      final nw = tileAt(math.min(b.north, box.north), math.max(b.west, box.west), z);
+      final se = tileAt(math.max(b.south, box.south), math.min(b.east, box.east), z);
+      final top = tileBounds(z, nw.x, nw.y), bottom = tileBounds(z, se.x, se.y);
+      out.add(AreaBounds(south: bottom.south, west: top.west, north: top.north, east: bottom.east));
+    }
+  }
+  return out;
+}
+
+bool _within(TileXYZ t, List<AreaBounds> rects) {
+  if (rects.isEmpty) return false;
+  final b = tileBounds(t.z, t.x, t.y);
+  const eps = 1e-9;
+  return rects.any((r) =>
+      b.south >= r.south - eps && b.north <= r.north + eps && b.west >= r.west - eps && b.east <= r.east + eps);
+}
+
 /// Die Kacheln der Bereiche in [box], je Zoom gesammelt: Bereiche mit
 /// verschiedenem Zoom (ein alter bis 10) liegen sonst doppelt übereinander.
-Map<int, Set<TileXYZ>> _tilesByZoom(List<StoredArea> areas, AreaBounds box) {
+/// Was in einer ganzen Region liegt, fällt weg — ihr Rechteck ist schon
+/// ein Loch, und zwei Löcher übereinander füllten sich wieder.
+Map<int, Set<TileXYZ>> _tilesByZoom(List<StoredArea> areas, AreaBounds box, List<AreaBounds> regions) {
   final byZoom = <int, Set<TileXYZ>>{};
   for (final a in areas) {
+    if (a.shape is RegionShape) continue;
     final z = offlineOverlayZoomOf(a);
     if (z < a.minZoom) continue;
-    (byZoom[z] ??= {}).addAll(a.shape.tilesWithin(box, z));
+    (byZoom[z] ??= {}).addAll(a.shape.tilesWithin(box, z).where((t) => !_within(t, regions)));
   }
   return byZoom;
 }

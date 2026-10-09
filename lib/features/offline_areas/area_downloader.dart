@@ -29,6 +29,7 @@ import '../../core/errors.dart';
 
 import 'package:pmtiles/pmtiles.dart';
 
+import '../map/map_providers.dart' show kMapTilesBase;
 import '../map/map_regions.dart' show kDachRegionId;
 import '../map/online_map.dart';
 import '../map/way_layer.dart';
@@ -36,6 +37,7 @@ import '../map/poi.dart';
 import 'area_plan.dart';
 import 'area_store.dart';
 import 'height_tiles.dart';
+import 'poi_bundle.dart';
 import 'region_overview.dart';
 import 'tile_refs.dart';
 import 'tile_store.dart';
@@ -73,7 +75,12 @@ class AreaPlan {
     this.waysBuild,
     this.region = kDachRegionId,
     this.overview,
+    this.poiBundle,
   });
+
+  /// Das Orte-Bündel der Region, das statt einzelner Dateien kommt — nur
+  /// für die ganze Region (Schritt 5, Konzept 8.6). Null sonst.
+  final PoiBundle? poiBundle;
 
   /// Die Region des Hosts, gegen die gemessen wurde (#220).
   final String region;
@@ -116,8 +123,9 @@ class AreaPlan {
   int? get poiCount => poiFiles?.values.fold<int>(0, (sum, text) => sum + _countPois(text));
 
   /// Bytes der Orte-Dateien, als UTF-8 gezählt.
-  int get poiBytes =>
-      poiFiles == null ? 0 : poiFiles!.values.fold<int>(0, (sum, t) => sum + utf8.encode(t).length);
+  int get poiBytes => poiFiles == null
+      ? poiBundle?.bytes ?? 0
+      : poiFiles!.values.fold<int>(0, (sum, t) => sum + utf8.encode(t).length);
 
   /// Die Höhenkacheln (z13). Leer ohne Höhenarchiv.
   final LayerPlan heights;
@@ -144,7 +152,12 @@ class AreaPlan {
 
   /// Liegt schon alles, was die Form braucht?
   bool get nothingToFetch =>
-      map.fetch.isEmpty && heights.fetch.isEmpty && ways.fetch.isEmpty && (poiFiles?.isEmpty ?? true) && overview == null;
+      map.fetch.isEmpty &&
+      heights.fetch.isEmpty &&
+      ways.fetch.isEmpty &&
+      (poiFiles?.isEmpty ?? true) &&
+      poiBundle == null &&
+      overview == null;
 
   /// Alles zusammen, was auf das Gerät kommt.
   int get totalBytes => bytes + poiBytes + heightBytes + wayBytes + overviewBytes;
@@ -232,6 +245,11 @@ class RegionRefreshPlan {
   bool get isEmpty => staleTiles == 0 && poiNames.isEmpty;
 }
 
+/// Kacheln je Block für die ganze Region (Schritt 5): DACH-Karte rund
+/// 17 KB je Kachel ⇒ rund 35 MB je Range-Anfrage, darunter die 64 MB aus
+/// dem Konzept (8.4) — der Block liegt bis zum Schreiben im Speicher.
+const kRegionChunkTiles = 2048;
+
 enum AreaPhase { tiles, pois, heights, ways, overview, writing }
 
 class AreaDownloader {
@@ -251,7 +269,18 @@ class AreaDownloader {
     this.region = kDachRegionId,
     this.overview,
     this.fetchOverview,
+    this.fetchPoiBundle,
+    this.regionChunkSize = kRegionChunkTiles,
   });
+
+  /// Holt das Orte-Bündel (ganze Datei) — null: die ganze Region holt
+  /// ihre Orte Datei für Datei.
+  final OverviewFetcher? fetchPoiBundle;
+
+  /// So viele Kacheln je Block, wenn die ganze Region kommt: Die Kacheln
+  /// liegen dort lückenlos nach Hilbert-Kurve, ein Block ist also EINE
+  /// Range-Anfrage — DACH in rund 60 statt 600 („spart auch Zugriff", #55).
+  final int regionChunkSize;
 
   /// Die Region, aus deren Archiven der Bereich kommt (#220).
   final String region;
@@ -322,7 +351,10 @@ class AreaDownloader {
   /// „Aktualisieren".
   Future<AreaPlan> plan(AreaShape shape, {bool withPois = false, bool refresh = false}) async {
     final maxZoom = manifest.maxZoom;
-    final count = shape.countTiles(maxZoom: maxZoom);
+    final whole = shape is RegionShape;
+    // Die Grenze gilt für GEZEICHNETE Bereiche (Konzept 8.8) — wer mehr
+    // will, nimmt die ganze Region.
+    final count = whole ? 0 : shape.countTiles(maxZoom: maxZoom);
     if (count > kAreaMaxTiles) throw AreaTooLarge(count);
     final map = await _planLayer(archive, TileLayer.map, shape.tiles(maxZoom: maxZoom),
         refreshBefore: refresh ? manifest.sourceBuild : null);
@@ -337,12 +369,16 @@ class AreaDownloader {
         : await _planLayer(w, TileLayer.ways, shape.tiles(minZoom: kWaysZoom, maxZoom: kWaysZoom),
             refreshBefore: refresh ? waysManifest?.build : null);
     final names = _poiNames(shape);
+    // Die ganze Region misst ihre Orte nicht vorab (zehntausende Dateien):
+    // Sie kommen beim Download, als Bündel, wenn der Bau eins hat.
+    final bundle = whole && fetchPoiBundle != null ? poiManifest?.bundle : null;
     return AreaPlan(
       shape: shape,
       bounds: shape.hull,
       maxZoom: maxZoom,
       map: map,
-      poiFiles: withPois ? await _fetchPois(names, refresh: refresh) : null,
+      poiFiles: withPois && !whole ? await _fetchPois(names, refresh: refresh) : null,
+      poiBundle: bundle,
       poiNames: names,
       heights: heightPlan,
       ways: wayPlan,
@@ -358,6 +394,13 @@ class AreaDownloader {
   List<String> _poiNames(AreaShape shape) {
     final pm = poiManifest;
     if (pm == null) return const [];
+    // Die ganze Region: alles, was das Manifest der Region nennt.
+    if (shape is RegionShape) {
+      return [
+        for (final g in PoiGroup.values)
+          for (final c in pm.cells[g] ?? const <PoiCell>{}) poiCellFileName(c, g),
+      ]..sort();
+    }
     return [
       for (final cell in shape.poiCells())
         for (final g in PoiGroup.values)
@@ -390,7 +433,10 @@ class AreaDownloader {
   /// Kompression. Nach jedem Block eine Gegenprobe: die mittlere Kachel
   /// kommt aus dem Speicher Byte für Byte zurück.
   Future<int> _fetchInto(PmTilesArchive source, TileLayer layer, List<TileXYZ> wanted, String build,
-      {required void Function() check, required void Function(int done, int total) onProgress}) async {
+      {required void Function() check,
+      required void Function(int done, int total) onProgress,
+      int? chunk}) async {
+    final chunkSize = chunk ?? this.chunkSize;
     final byId = {for (final t in wanted) tileIdOf(t): t};
     final ids = byId.keys.toList()..sort();
     var done = 0;
@@ -482,22 +528,38 @@ class AreaDownloader {
     );
     await _saveEntry(area);
 
+    final chunk = plan.shape is RegionShape ? regionChunkSize : chunkSize;
     await _fetchInto(archive, TileLayer.map, plan.tiles, manifest.sourceBuild,
         check: check,
+        chunk: chunk,
         onProgress: (done, total) =>
             onProgress?.call(AreaProgress(phase: AreaPhase.tiles, done: done, total: total)));
 
-    // Die Orte: vom Messen mitgebracht oder jetzt geholt.
-    final poiFiles = plan.poiFiles ??
-        await _fetchPois(
-              plan.poiNames,
-              check: check,
-              onProgress: (done, total) =>
-                  onProgress?.call(AreaProgress(phase: AreaPhase.pois, done: done, total: total)),
-            ) ??
-        const <String, String>{};
-    for (final e in poiFiles.entries) {
-      await store.putPoiFile(e.key, e.value);
+    // Die Orte: als Bündel (ganze Region), vom Messen mitgebracht oder
+    // jetzt geholt.
+    final bundle = plan.poiBundle;
+    final pmFolder = pm?.folder;
+    if (bundle != null && pmFolder != null && fetchPoiBundle != null) {
+      final bytes = await fetchPoiBundle!(Uri.parse('$kMapTilesBase/$pmFolder/${bundle.file}'),
+          check: check,
+          onProgress: (done, total) => onProgress
+              ?.call(AreaProgress(phase: AreaPhase.pois, done: done, total: total > 0 ? total : bundle.bytes)));
+      if (bytes == null) throw const PoiBundleMismatch('nicht auf dem Host');
+      await for (final (name, text) in readPoiBundle(bytes, bundle, pm!.build)) {
+        await store.putPoiFile(name, text);
+      }
+    } else {
+      final poiFiles = plan.poiFiles ??
+          await _fetchPois(
+                plan.poiNames,
+                check: check,
+                onProgress: (done, total) =>
+                    onProgress?.call(AreaProgress(phase: AreaPhase.pois, done: done, total: total)),
+              ) ??
+          const <String, String>{};
+      for (final e in poiFiles.entries) {
+        await store.putPoiFile(e.key, e.value);
+      }
     }
 
     // Die Höhen: nur, wenn der Plan welche hat UND das Archiv noch da ist.
@@ -506,6 +568,7 @@ class AreaDownloader {
     if (h != null && plan.heightTiles.isNotEmpty) {
       await _fetchInto(h, TileLayer.heights, plan.heightTiles, heightsManifest?.build ?? manifest.sourceBuild,
           check: check,
+          chunk: chunk,
           onProgress: (done, total) =>
               onProgress?.call(AreaProgress(phase: AreaPhase.heights, done: done, total: total)));
     }
@@ -518,6 +581,7 @@ class AreaDownloader {
     if (w != null && plan.wayTiles.isNotEmpty && wayBuild != null) {
       await _fetchInto(w, TileLayer.ways, plan.wayTiles, wayBuild,
           check: check,
+          chunk: chunk,
           onProgress: (done, total) =>
               onProgress?.call(AreaProgress(phase: AreaPhase.ways, done: done, total: total)));
       waysFetched = true;
@@ -580,7 +644,8 @@ class AreaDownloader {
     final drop = <TileLayer, List<int>>{};
     Future<LayerPlan> layer(PmTilesArchive? source, TileLayer l, String? build) async {
       if (source == null || build == null) return LayerPlan.none;
-      final stale = staleTiles(await tiles.index(region, l), referencedTileIds(here, l), build);
+      final index = await tiles.index(region, l);
+      final stale = staleTiles(index, referencedIn(here, l, index), build);
       final fetch = <TileXYZ>[];
       final gone = <int>[];
       var bytes = 0;

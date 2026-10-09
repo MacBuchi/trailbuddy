@@ -157,10 +157,33 @@ class AreaDraft {
 
 /// Der gespeicherte Bestand als Kacheln bei [kAreaShapeZoom] — gegen ihn
 /// rechnet der Entwurf („kommt dazu" nur, was nicht schon liegt).
+///
+/// Die ganze Region (`RegionShape`) steht NICHT darin — sie wären hundert-
+/// tausende Schlüssel; gegen sie rechnet [storedRegionBoundsProvider].
 final storedTileKeysProvider = Provider<Set<int>>((ref) {
   final areas = ref.watch(storedAreasProvider).valueOrNull ?? const [];
-  return {for (final a in areas) ...a.shape.keysAt(kAreaShapeZoom)};
+  return {
+    for (final a in areas)
+      if (a.shape is! RegionShape) ...a.shape.keysAt(kAreaShapeZoom),
+  };
 });
+
+/// Die Rahmen der gespeicherten ganzen Regionen: Was darin liegt, kommt
+/// nicht dazu — es liegt schon. Der Radierer lässt sie aus; eine Region
+/// geht nur im Ganzen (in „Meine Bereiche").
+final storedRegionBoundsProvider = Provider<List<AreaBounds>>((ref) {
+  final areas = ref.watch(storedAreasProvider).valueOrNull ?? const [];
+  return [for (final a in areas) if (a.shape case final RegionShape r) r.bounds];
+});
+
+/// Liegt die Kachel [key] (bei [kAreaShapeZoom]) ganz in einem der
+/// Rahmen [regions]?
+bool insideRegions(int key, List<AreaBounds> regions) {
+  if (regions.isEmpty) return false;
+  const z = kAreaShapeZoom;
+  final b = tileBounds(z, key >> z, key & ((1 << z) - 1));
+  return regions.any((r) => b.south >= r.south && b.north <= r.north && b.west >= r.west && b.east <= r.east);
+}
 
 /// Der Entwurf — null heißt leer. Er lebt, solange die Werkzeugleiste
 /// „Ebenen" offen ist; beim Schließen wird er verworfen (mit Rückfrage,
@@ -200,8 +223,9 @@ class AreaDraftNotifier extends Notifier<AreaDraft?> {
   void addAll(Set<int> keys) {
     final d = _draft;
     final stored = ref.read(storedTileKeysProvider);
+    final regions = ref.read(storedRegionBoundsProvider);
     state = d._step(
-      {...d.adds, ...keys.where((k) => !stored.contains(k))},
+      {...d.adds, ...keys.where((k) => !stored.contains(k) && !insideRegions(k, regions))},
       {...d.removes}..removeAll(keys),
     );
   }

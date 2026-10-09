@@ -198,7 +198,7 @@ final regionTileAgeProvider = FutureProvider.family<RegionTileAge, MapRegion>((r
   ]) {
     final index = await tiles.index(region.id, layer);
     if (index.isEmpty) continue;
-    final referenced = referencedTileIds(areas, layer);
+    final referenced = referencedIn(areas, layer, index);
     if (layer == TileLayer.map) stored = referenced.where(index.containsKey).length;
     final s = staleTiles(index, referenced, build);
     stale += s.ids.length;
@@ -277,6 +277,15 @@ final areaOverviewStyleProvider = FutureProvider<BaseMapStyle?>((ref) async {
   final theme = await ref.watch(baseThemeWithoutBackgroundProvider.future);
   return BaseMapStyle(theme: theme, tileProviders: TileProviders({'protomaps': multi}));
 });
+
+/// Holt das Orte-Bündel einer Region als ganze Datei (Schritt 5) — die
+/// Naht für Tests; der Harness setzt sie auf eine, die nichts holt.
+final poiBundleFetcherProvider = Provider<OverviewFetcher>((ref) => fetchOverviewFile);
+
+/// Ob „Ganze Region speichern" angeboten wird: nur auf dem Telefon
+/// (Betreiber, 2026-10-09 — DACH sind rund 3,2 GB, das passt nicht
+/// verlässlich in einen Browser). Die Naht für Tests.
+final wholeRegionSupportedProvider = Provider<bool>((ref) => !kIsWeb);
 
 /// Öffnet das Archiv des Hosts für den Download — die Naht für Tests.
 final areaSourceOpenerProvider =
@@ -474,7 +483,8 @@ class AreaDownloadNotifier extends Notifier<AreaDownloadState> {
           waysManifest: waysManifest,
           region: region.id,
           overview: hosts.overview,
-          fetchOverview: ref.read(overviewFetcherProvider));
+          fetchOverview: ref.read(overviewFetcherProvider),
+          fetchPoiBundle: ref.read(poiBundleFetcherProvider));
       final plan = await downloader.plan(shape, withPois: true, refresh: refresh);
       state = AreaDownloadState(phase: AreaDownloadPhase.idle, plan: plan);
       return plan;
@@ -548,6 +558,7 @@ class AreaDownloadNotifier extends Notifier<AreaDownloadState> {
         // Die Übersicht, die gemessen wurde — Dateien mit Datum ändern sich nicht.
         overview: plan.overview,
         fetchOverview: ref.read(overviewFetcherProvider),
+          fetchPoiBundle: ref.read(poiBundleFetcherProvider),
       );
       final area = await downloader.download(
         plan,

@@ -2,6 +2,23 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Die ganze Region offline
+
+*Version 0.108.0, 2026-10-09*
+
+- **Ganz DACH oder ganz Südkanada aufs Telefon**: In „Meine Bereiche"
+  steht je Region „ganz speichern" — die ganze Karte bis Zoom 13 samt
+  Orten, Höhen und Wegen. Vorher sagt die App, wie viel es ist, und warnt
+  über Mobilfunk. Was deine Bereiche schon haben, kommt nicht noch
+  einmal.
+- Das dauert eine Weile und läuft weiter, wenn du die App wechselst.
+  Bricht es ab, bleibt alles Geladene liegen, und „Fortsetzen" holt den
+  Rest.
+- Löschst du die Region später, bleiben die Kacheln deiner anderen
+  Bereiche dort liegen. Mit dem Radierer lässt sich eine ganze Region
+  nicht verkleinern — sie geht nur im Ganzen.
+- Nur in der Android-App; im Browser bleiben gezeichnete Bereiche.
+
 ## Gespeicherte Bereiche teilen sich ihre Kacheln
 
 *Versionen 0.106.0 und 0.107.0, 2026-10-09*

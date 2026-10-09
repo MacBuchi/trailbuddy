@@ -71,6 +71,9 @@ class AreaTrimmer {
     if (removes.isEmpty) return const TrimPlan([]);
     final trims = <AreaTrim>[];
     for (final area in areas) {
+      // Die ganze Region geht nur im Ganzen (Konzept 8.2, Schritt 5): Als
+      // Kachelmenge wäre sie hunderttausende Schlüssel.
+      if (area.shape is RegionShape) continue;
       final keys = area.shape.keysAt(kAreaShapeZoom);
       if (!keys.any(removes.contains)) continue;
       final remaining = keys.difference(removes);

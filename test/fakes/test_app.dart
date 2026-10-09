@@ -152,6 +152,7 @@ List<Override> overridesFor(FakeBackend backend,
       regionManifestLoaderProvider.overrideWithValue((_) async => null),
       // Und keine Übersicht einer Region als Datei (#220 Schritt 4).
       overviewFetcherProvider.overrideWithValue((_, {onProgress, check}) async => null),
+      poiBundleFetcherProvider.overrideWithValue((_, {onProgress, check}) async => null),
       areaHeightsManifestLoaderProvider.overrideWithValue(() async => null),
       heightsManifestLoaderProvider.overrideWithValue(() async => null),
       // Die Wege (#212) sind ab Werk an — ohne diese Zeile fragte jeder

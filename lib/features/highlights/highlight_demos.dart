@@ -99,6 +99,15 @@ CoachStep _profileRow(String id, String title, String text) => CoachStep(
 
 final kHighlightDemos = <String, HighlightDemo>{
   // ─── Highlights ────────────────────────────────────────────────
+  'whole-region': HighlightDemo(
+    route: '/profile',
+    script: _demo('whole-region', [
+      _profileRow('areas', 'In „Meine Bereiche"',
+          'Dort steht je Region „ganz speichern" — auf dem Telefon, mit der Größe vorher. '
+          'Darüber zählt eine Zeile je Region, wie viele Kacheln älter sind als der '
+          'aktuelle Stand.'),
+    ]),
+  ),
   'online-fill': HighlightDemo(
     route: '/',
     script: _demo('online-fill', [
