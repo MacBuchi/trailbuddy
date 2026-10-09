@@ -270,6 +270,82 @@ void main() {
     expect((await fresh.plan(shape, refresh: true)).tiles, isEmpty, reason: 'jetzt ist keine älter');
   });
 
+  const newer = MapManifest(file: 'dach-20261101.pmtiles', maxZoom: 10, bytes: 1, sourceBuild: '20261101');
+
+  test('Aktualisieren je Region (#229 Schritt 4): jede veraltete Kachel einmal, danach tragen alle Bereiche den Bau',
+      () async {
+    final downloader = make();
+    const inner = RectShape(_bounds);
+    const outer = RectShape(AreaBounds(south: 47.85, west: 11.5, north: 48.0, east: 11.8));
+    await downloader.download(await downloader.plan(inner), name: 'Innen', id: 'i');
+    await downloader.download(await downloader.plan(outer), name: 'Außen', id: 'o');
+    final union = {...inner.tiles(maxZoom: 10), ...outer.tiles(maxZoom: 10)};
+    final fresh = make(manifest: newer);
+    final plan = await fresh.planRefresh(await store.list());
+    expect(plan.map.covered, union.length, reason: 'die Vereinigung, nicht die Summe der Bereiche');
+    expect(plan.map.fetch.toSet(), union);
+    expect(plan.map.fetchBytes, greaterThan(0), reason: 'gemessen am Verzeichnis des neuen Baus');
+    expect(plan.staleTiles, union.length);
+    final puts = tiles.puts;
+    final updated = await fresh.refreshRegion(plan);
+    expect(tiles.puts - puts, (union.length / 7).ceil(), reason: 'jede Kachel einmal geholt');
+    expect({for (final i in (await tiles.index('dach', TileLayer.map)).values) i.build}, {'20261101'});
+    expect({for (final a in updated) a.build}, {'20261101'});
+    expect({for (final a in await store.list()) a.build}, {'20261101'});
+    expect((await fresh.planRefresh(await store.list())).isEmpty, isTrue, reason: 'jetzt ist keine älter');
+  });
+
+  test('ein abgebrochenes Aktualisieren lässt das Geholte liegen, die Bereiche behalten ihren Bau', () async {
+    final downloader = make();
+    const shape = RectShape(AreaBounds(south: 47.5, west: 11.0, north: 48.2, east: 12.0));
+    await downloader.download(await downloader.plan(shape), name: 'Groß', id: 'g');
+    final fresh = make(manifest: newer);
+    final plan = await fresh.planRefresh(await store.list());
+    expect(plan.map.fetch.length, greaterThan(14));
+    var calls = 0;
+    await expectLater(fresh.refreshRegion(plan, isCancelled: () => ++calls > 2), throwsA(isA<AreaCancelled>()));
+    final builds = [for (final i in (await tiles.index('dach', TileLayer.map)).values) i.build];
+    expect(builds.where((b) => b == '20261101').length, 14, reason: 'zwei Blöcke à 7 sind neu');
+    expect((await store.list()).single.build, '20260928', reason: 'erst wenn alles da ist, gilt der neue Bau');
+    final rest = await fresh.planRefresh(await store.list());
+    expect(rest.map.covered, plan.map.covered - 14, reason: 'nur noch der Rest ist veraltet');
+  });
+
+  test('eine veraltete Kachel, die der neue Bau nicht mehr hat, geht beim Aktualisieren', () async {
+    // Wege-Kacheln eines älteren Baus; der neue (20261007) hat nur jede zweite Spalte.
+    final shape = const RectShape(_bounds);
+    final z13 = shape.tiles(minZoom: kWaysZoom, maxZoom: kWaysZoom);
+    await tiles.put('dach', TileLayer.ways, [for (final t in z13) StoreTile(t.z, t.x, t.y, Uint8List(3), '20261001')]);
+    await store.saveIndex([
+      StoredArea(
+        id: 'w',
+        name: 'Wege',
+        bounds: _bounds,
+        shape: shape,
+        minZoom: 8,
+        maxZoom: 10,
+        build: '20260928',
+        tiles: 0,
+        bytes: 0,
+        savedAt: DateTime.utc(2026, 9, 28),
+        waysBuild: '20261001',
+        format: kStoredAreaFormat,
+        complete: true,
+      ),
+    ]);
+    final downloader = make(ways: await _waysSource());
+    final plan = await downloader.planRefresh(await store.list());
+    final kept = {for (final t in z13) if (t.x.isEven) t};
+    expect(plan.ways.covered, z13.length);
+    expect(plan.ways.fetch.toSet(), kept);
+    expect(plan.drop[TileLayer.ways]?.length, z13.length - kept.length);
+    final updated = await downloader.refreshRegion(plan);
+    final index = await tiles.index('dach', TileLayer.ways);
+    expect(index.length, kept.length, reason: 'was der Host nicht mehr hat, bleibt nicht für immer alt liegen');
+    expect({for (final i in index.values) i.build}, {'20261007'});
+    expect(updated.single.waysBuild, '20261007');
+  });
+
   test('Messen mit Orten (0.27.0): zählt die Orte, und der Download holt sie nicht noch einmal', () async {
     final cells = poiCellsCovering(_bounds.south, _bounds.west, _bounds.north, _bounds.east);
     final poiManifest = PoiManifest(

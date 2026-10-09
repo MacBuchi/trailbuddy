@@ -4,7 +4,7 @@
 
 ## Gespeicherte Bereiche teilen sich ihre Kacheln
 
-*Version 0.106.0, 2026-10-09*
+*Versionen 0.106.0 und 0.107.0, 2026-10-09*
 
 - **Jede Kachel liegt nur noch einmal auf dem Gerät**: Überschneiden sich
   zwei Bereiche, lädt der zweite nur noch, was der erste nicht schon hat.
@@ -18,6 +18,12 @@
   Rest.
 - Deine bisherigen Bereiche zieht die App beim ersten Start selbst um,
   ohne Netz — du musst nichts neu laden.
+- **Aktualisieren je Region, nur was alt ist**: „Meine Bereiche" sagt
+  oben je Region, wie viele deiner Kacheln älter sind als der aktuelle
+  Kartenstand. „Aktualisieren" nennt vorher die Größe, warnt über
+  Mobilfunk und holt dann nur diese Kacheln — für alle Bereiche dort auf
+  einmal. Von selbst passiert das nie. Ein laufender Download lässt sich
+  dort jetzt auch abbrechen.
 
 ## Karte jetzt auch in Südkanada
 

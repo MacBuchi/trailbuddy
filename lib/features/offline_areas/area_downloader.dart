@@ -37,6 +37,7 @@ import 'area_plan.dart';
 import 'area_store.dart';
 import 'height_tiles.dart';
 import 'region_overview.dart';
+import 'tile_refs.dart';
 import 'tile_store.dart';
 
 /// Die Kacheln einer Ebene im Plan: was zu holen ist, was die Form deckt.
@@ -189,6 +190,46 @@ class AreaProgress {
   final int total;
 
   double get fraction => total == 0 ? 1 : done / total;
+}
+
+/// „Aktualisieren" einer Region (Konzept 8.2, Schritt 4): die liegenden
+/// Kacheln, die eine Form der Region deckt und die aus einem älteren Bau
+/// stammen als der des Hosts — über alle Bereiche zusammen, jede Kachel
+/// einmal. Was fehlt, ist nicht veraltet; das holt „Fortsetzen" eines
+/// Bereichs.
+class RegionRefreshPlan {
+  const RegionRefreshPlan({
+    required this.region,
+    this.map = LayerPlan.none,
+    this.heights = LayerPlan.none,
+    this.ways = LayerPlan.none,
+    this.drop = const {},
+    this.poiNames = const [],
+  });
+
+  final String region;
+
+  /// Je Ebene: [LayerPlan.fetch] wird neu geholt (Bytes aus dem
+  /// Verzeichnis des neuen Baus), [LayerPlan.covered] sind die veralteten
+  /// Kacheln, wie sie liegen.
+  final LayerPlan map;
+  final LayerPlan heights;
+  final LayerPlan ways;
+
+  /// Veraltete Kacheln, die der neue Bau nicht mehr hat (Wege ohne Tags,
+  /// eine Kachel am Rand) — sie gehen, sonst blieben sie für immer alt.
+  final Map<TileLayer, List<int>> drop;
+
+  /// Die Orte-Dateien von Bereichen mit älterem Orte-Bau.
+  final List<String> poiNames;
+
+  /// Wie viele Kacheln veraltet sind, über alle Ebenen.
+  int get staleTiles => map.covered + heights.covered + ways.covered;
+
+  /// Was neu geholt wird, über alle Ebenen (ohne die kleinen Orte-Dateien).
+  int get fetchBytes => map.fetchBytes + heights.fetchBytes + ways.fetchBytes;
+
+  bool get isEmpty => staleTiles == 0 && poiNames.isEmpty;
 }
 
 enum AreaPhase { tiles, pois, heights, ways, overview, writing }
@@ -528,6 +569,114 @@ class AreaDownloader {
     );
     await _saveEntry(done);
     return done;
+  }
+
+  /// Der Plan für „Aktualisieren" der Region aus [areas] (die anderer
+  /// Regionen fallen weg): je Ebene die veralteten Kacheln der Formen
+  /// (`staleTiles`), gemessen mit den Längen im Verzeichnis des neuen
+  /// Baus. Eine Ebene ohne Archiv oder Manifest bleibt, wie sie ist.
+  Future<RegionRefreshPlan> planRefresh(List<StoredArea> areas) async {
+    final here = [for (final a in areas) if (a.region == region) a];
+    final drop = <TileLayer, List<int>>{};
+    Future<LayerPlan> layer(PmTilesArchive? source, TileLayer l, String? build) async {
+      if (source == null || build == null) return LayerPlan.none;
+      final stale = staleTiles(await tiles.index(region, l), referencedTileIds(here, l), build);
+      final fetch = <TileXYZ>[];
+      final gone = <int>[];
+      var bytes = 0;
+      for (final id in stale.ids) {
+        final entry = await source.lookup(id);
+        if (entry == null) {
+          gone.add(id);
+          continue;
+        }
+        final t = ZXY.fromTileId(id);
+        fetch.add((z: t.z, x: t.x, y: t.y));
+        bytes += entry.length;
+      }
+      if (gone.isNotEmpty) drop[l] = gone;
+      return LayerPlan(fetch: fetch, fetchBytes: bytes, covered: stale.ids.length, coveredBytes: stale.bytes);
+    }
+
+    final map = await layer(archive, TileLayer.map, manifest.sourceBuild);
+    final heightPlan = await layer(heights, TileLayer.heights, heightsManifest?.build);
+    final wayPlan = await layer(ways, TileLayer.ways, waysManifest?.build);
+    final pm = poiManifest;
+    final poiNames = pm == null
+        ? const <String>[]
+        : ({
+            for (final a in here)
+              if (a.poiBuild == null || a.poiBuild!.compareTo(pm.build) < 0) ...a.poiFiles,
+          }.toList()
+          ..sort());
+    return RegionRefreshPlan(
+        region: region, map: map, heights: heightPlan, ways: wayPlan, drop: drop, poiNames: poiNames);
+  }
+
+  /// Holt, was [plan] nennt, in den Speicher der Region — keine Liste von
+  /// Bereichen, kein neuer Verweis. Erst wenn alles da ist, tragen die
+  /// Bereiche der Region den neuen Bau; ein Abbruch lässt das schon
+  /// Geholte liegen, und die Zählung zeigt danach nur noch den Rest.
+  Future<List<StoredArea>> refreshRegion(
+    RegionRefreshPlan plan, {
+    void Function(AreaProgress progress)? onProgress,
+    bool Function()? isCancelled,
+  }) async {
+    void check() {
+      if (isCancelled?.call() ?? false) throw const AreaCancelled();
+    }
+
+    void progress(AreaPhase phase, int done, int total) =>
+        onProgress?.call(AreaProgress(phase: phase, done: done, total: total));
+
+    await _fetchInto(archive, TileLayer.map, plan.map.fetch, manifest.sourceBuild,
+        check: check, onProgress: (d, t) => progress(AreaPhase.tiles, d, t));
+    final h = heights;
+    final hb = heightsManifest?.build;
+    if (h != null && hb != null && plan.heights.fetch.isNotEmpty) {
+      await _fetchInto(h, TileLayer.heights, plan.heights.fetch, hb,
+          check: check, onProgress: (d, t) => progress(AreaPhase.heights, d, t));
+    }
+    final w = ways;
+    final wb = waysManifest?.build;
+    if (w != null && wb != null && plan.ways.fetch.isNotEmpty) {
+      await _fetchInto(w, TileLayer.ways, plan.ways.fetch, wb,
+          check: check, onProgress: (d, t) => progress(AreaPhase.ways, d, t));
+    }
+    for (final e in plan.drop.entries) {
+      await tiles.remove(region, e.key, e.value);
+    }
+    final poiFiles = plan.poiNames.isEmpty
+        ? const <String, String>{}
+        : await _fetchPois(plan.poiNames,
+                refresh: true, check: check, onProgress: (d, t) => progress(AreaPhase.pois, d, t)) ??
+            const <String, String>{};
+    for (final e in poiFiles.entries) {
+      await store.putPoiFile(e.key, e.value);
+    }
+
+    check();
+    // Alles da: Die Bereiche der Region tragen jetzt den neuen Bau.
+    final pm = poiManifest;
+    final refreshedPois = {...plan.poiNames};
+    final all = await store.list();
+    final updated = [
+      for (final a in all)
+        if (a.region != region)
+          a
+        else
+          a.copyWith(
+            build: a.build.compareTo(manifest.sourceBuild) < 0 ? manifest.sourceBuild : null,
+            heightsBuild: hb != null && a.heightsBuild != null && a.heightsBuild!.compareTo(hb) < 0 ? hb : null,
+            waysBuild: wb != null && a.waysBuild != null && a.waysBuild!.compareTo(wb) < 0 ? wb : null,
+            poiBuild: pm != null && a.poiFiles.isNotEmpty && a.poiFiles.every(refreshedPois.contains) &&
+                    (a.poiBuild == null || a.poiBuild!.compareTo(pm.build) < 0)
+                ? pm.build
+                : null,
+          ),
+    ];
+    await store.saveIndex(updated);
+    return [for (final a in updated) if (a.region == region) a];
   }
 
   Future<void> _saveEntry(StoredArea area) async {
