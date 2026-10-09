@@ -35,6 +35,12 @@ regions) and reach further than the map — without the cut, Paris would
 be in the build because Alsace is on the map. A place just across the
 edge is not a loss: the map shows nothing there either.
 
+Every build also carries the whole region in ONE file (#229, concept
+offline maps 8.6): `pois-<build>/bundle.tsv.gz`, a header line and one
+`<name>\\t<content>` line per cell file, named in the manifest as
+`bundle` with its size and sha256. A phone that stores the whole region
+fetches that instead of thousands of cells.
+
 Usage:
   python3 tool/poi_extract.py build --build 20260928 --out build/pois \
       [--bbox W,S,E,N] [--summary summary.md] a.osm.pbf [b.osm.pbf ...]
@@ -47,6 +53,8 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import gzip
+import hashlib
 import io
 import json
 import math
@@ -68,6 +76,15 @@ CELL_LON = 0.15
 FORMAT = 1
 
 ATTRIBUTION = "© OpenStreetMap contributors (ODbL)"
+
+# The whole region in one file (#229, concept-offline-karten 8.6): every
+# cell file as one line `<name>\t<content>` after a header line, gzip with
+# a fixed mtime so two runs give the same bytes. It lies INSIDE the dated
+# prefix, so pruning a build takes it along, and its name can never be a
+# cell file's (`<row>_<col>.<group>.json`). A line per file, not one JSON
+# document: the phone splits it while it decompresses, without holding
+# 165 MB of text (DACH) in memory at once.
+BUNDLE_NAME = "bundle.tsv.gz"
 
 
 # ------------------------------------------------------------------ kinds
@@ -300,6 +317,7 @@ def build(features, kinds, groups, build_id, out_dir, sources=(), bbox=None):
     os.makedirs(target)
     cells = {g: [] for g in groups}
     total_bytes = 0
+    bundle_lines = []
     for (cell, group), records in sorted(by_file.items()):
         payload = {
             "format": FORMAT,
@@ -314,10 +332,13 @@ def build(features, kinds, groups, build_id, out_dir, sources=(), bbox=None):
             handle.write(text)
         total_bytes += len(text.encode("utf-8"))
         cells[group].append(cell)
+        bundle_lines.append(f"{cell_file(cell, group)}\t{text}")
+    bundle = write_bundle(os.path.join(target, BUNDLE_NAME), build_id, bundle_lines)
     manifest = {
         "format": FORMAT,
         "build": build_id,
         "prefix": prefix,
+        "bundle": bundle,
         "attribution": ATTRIBUTION,
         "bbox": list(bbox) if bbox is not None else None,
         "sources": sorted(sources),
@@ -339,6 +360,38 @@ def build(features, kinds, groups, build_id, out_dir, sources=(), bbox=None):
     return manifest
 
 
+def write_bundle(path, build_id, lines):
+    """The cell files of a build as one gzip file (BUNDLE_NAME). Each
+    content is one line already (`dump` is compact, JSON escapes every
+    newline), so `name\\tcontent` per line is unambiguous. Returns what
+    the manifest says about it — `file` relative to the prefix."""
+    header = dump({"format": FORMAT, "build": build_id, "files": len(lines)})
+    raw = (header + "".join(lines)).encode("utf-8")
+    buffer = io.BytesIO()
+    with gzip.GzipFile(filename="", mode="wb", fileobj=buffer, mtime=0,
+                       compresslevel=9) as handle:
+        handle.write(raw)
+    data = buffer.getvalue()
+    with open(path, "wb") as handle:
+        handle.write(data)
+    return {"file": BUNDLE_NAME, "files": len(lines), "bytes": len(data),
+            "raw_bytes": len(raw), "sha256": hashlib.sha256(data).hexdigest()}
+
+
+def read_bundle(path):
+    """The bundle back as {name: content} — what the app does, here for
+    the self-test and the workflow's check."""
+    with gzip.open(path, "rt", encoding="utf-8", newline="\n") as handle:
+        header = json.loads(handle.readline())
+        files = {}
+        for line in handle:
+            name, _, content = line.partition("\t")
+            files[name] = content
+    if header.get("format") != FORMAT or header.get("files") != len(files):
+        raise SystemExit(f"{path}: header {header} does not match {len(files)} files")
+    return header, files
+
+
 def summary_md(manifest, kinds):
     lines = [
         f"## Places built: `{manifest['prefix']}`",
@@ -349,6 +402,9 @@ def summary_md(manifest, kinds):
         f"{manifest['dropped']['no_position']} without a position, "
         f"{manifest['dropped']['no_id']} without an id, "
         f"{manifest['dropped'].get('outside', 0)} outside the map",
+        f"- bundle for a whole region: `{manifest['bundle']['file']}`, "
+        f"{manifest['bundle']['bytes'] / 1e6:.1f} MB "
+        f"({manifest['bundle']['raw_bytes'] / 1e6:.1f} MB unpacked)",
         f"- area: {','.join(str(v) for v in manifest['bbox']) if manifest.get('bbox') else 'unbounded'}",
         f"- sources: {', '.join(manifest['sources']) or '-'}",
         "",
@@ -475,7 +531,20 @@ def self_test():
         names = sorted(os.listdir(prefix))
         assert names == ["472_75.water.json", "475_60.food.json",
                          "475_60.water.json", "476_60.bikeService.json",
-                         "476_61.other.json"], names
+                         "476_61.other.json", BUNDLE_NAME], names
+        # The bundle holds every cell file, byte for byte, and nothing else.
+        header, bundled = read_bundle(os.path.join(prefix, BUNDLE_NAME))
+        assert header == {"format": 1, "build": "20260928", "files": 5}, header
+        assert sorted(bundled) == names[:-1], sorted(bundled)
+        for n, content in bundled.items():
+            with open(os.path.join(prefix, n), encoding="utf-8") as h:
+                assert content == h.read(), n
+        with open(os.path.join(prefix, BUNDLE_NAME), "rb") as h:
+            raw = h.read()
+        assert manifest["bundle"] == {"file": BUNDLE_NAME, "files": 5, "bytes": len(raw),
+                                      "raw_bytes": manifest["bundle"]["raw_bytes"],
+                                      "sha256": hashlib.sha256(raw).hexdigest()}, manifest["bundle"]
+        assert manifest["files"] == 5, "the bundle is not a cell file"
         # What the app reads, field for field.
         with open(os.path.join(prefix, "475_60.food.json"), encoding="utf-8") as h:
             food = json.load(h)
@@ -510,6 +579,7 @@ def self_test():
         assert first == second
         md = summary_md(manifest, kinds)
         assert "| water | 2 | spring | 1 |" in md, md
+        assert f"- bundle for a whole region: `{BUNDLE_NAME}`" in md, md
 
     # The map's area (#73): outside is dropped and counted, the edge
     # itself is inside. A box that ends at 11.0 E keeps everything at

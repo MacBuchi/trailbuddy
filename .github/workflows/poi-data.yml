@@ -218,8 +218,16 @@ jobs:
           # for DACH, `ca/` for Canada.
           aws --endpoint-url "$endpoint" s3 sync "build/pois/pois-${BUILD}/" \
             "s3://${R2_BUCKET}/${R2_PREFIX}/${REGION_DIR}pois-${BUILD}/" \
-            --content-type application/json \
+            --exclude bundle.tsv.gz --content-type application/json \
             --cache-control "public, max-age=31536000, immutable" --no-progress --only-show-errors
+          # The whole region in one file (#229) lies in the same folder, so
+          # pruning a build takes it along; gzip as a body, NOT as a
+          # Content-Encoding — a client that unpacks it on the fly would
+          # see other bytes than the manifest's sha256 says.
+          aws --endpoint-url "$endpoint" s3 cp "build/pois/pois-${BUILD}/bundle.tsv.gz" \
+            "s3://${R2_BUCKET}/${R2_PREFIX}/${REGION_DIR}pois-${BUILD}/bundle.tsv.gz" \
+            --content-type application/gzip \
+            --cache-control "public, max-age=31536000, immutable" --no-progress
           aws --endpoint-url "$endpoint" s3 cp build/pois/pois.json \
             "s3://${R2_BUCKET}/${R2_PREFIX}/$POIS_MANIFEST" \
             --content-type application/json \
@@ -287,12 +295,32 @@ jobs:
               checked += 1
               print(f"ok  {name} ({len(body)} bytes)")
           assert checked == 4, f"only {checked} groups had a cell to check"
+          # The bundle: the bytes the manifest names, and it unpacks to
+          # exactly the cell files that were uploaded (#229).
+          import hashlib
+          sys.path.insert(0, "tool")
+          import poi_extract
+          bundle = local["bundle"]
+          req = urllib.request.Request(f"{base}/{local['prefix']}/{bundle['file']}",
+                                       headers={"User-Agent": "TrailBuddy poi-data verify (github.com/MacBuchi/trailbuddy)"})
+          with urllib.request.urlopen(req, timeout=300) as r:
+              body = r.read()
+          assert len(body) == bundle["bytes"], f"bundle: {len(body)} bytes, the manifest says {bundle['bytes']}"
+          assert hashlib.sha256(body).hexdigest() == bundle["sha256"], "bundle: sha256 differs"
+          path = "build/pois/public-bundle.tsv.gz"
+          with open(path, "wb") as h:
+              h.write(body)
+          _, files = poi_extract.read_bundle(path)
+          cell_names = sorted(n for n in os.listdir(f"build/pois/{local['prefix']}") if n != bundle["file"])
+          assert sorted(files) == cell_names, "bundle: other files than the cells"
+          print(f"ok  {bundle['file']} ({len(body)} bytes, {len(files)} files)")
           PY
           {
             echo "## Places published"
             echo
             echo "- \`$PUBLIC_BASE/${REGION_DIR}pois-$BUILD/\`, manifest \`$PUBLIC_BASE/$POIS_MANIFEST\`"
             echo "- 200 + CORS verified on the manifest, one cell file per group byte-identical"
+            echo "- bundle for a whole region: bytes and sha256 as in the manifest, unpacks to every cell file"
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Update the region index
