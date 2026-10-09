@@ -56,14 +56,14 @@ dependencies:
   flutter_riverpod: ^2.6.1
   go_router: ^18.0.2
   intl: ^0.20.2
-  shared_preferences: ^2.5.5
-  package_info_plus: ^10.2.1
-  url_launcher: ^6.3.2
+  shared_preferences: ^2.5.6
+  package_info_plus: ^10.2.2
+  url_launcher: ^6.3.3
   http: ^1.6.0
   # GPX-Import: Dateiauswahl auf Android und Web, XML-Parser.
   file_selector: ^1.0.3
   xml: ^7.1.0
-  share_plus: ^13.3.0
+  share_plus: ^13.3.1
   path_provider: ^2.1.5
   archive: ^3.4.10
   geolocator: ^14.0.2
@@ -76,7 +76,7 @@ dependencies:
   connectivity_plus: ^7.3.1
   # Gespeicherte Kartenbereiche im Browser (Konzept-Schritt 3): IndexedDB
   # über idb_shim, dieselbe Implementierung läuft im Test im Speicher.
-  idb_shim: ^2.9.2
+  idb_shim: ^2.9.11
   # Push-Benachrichtigungen (#34): Firebase Cloud Messaging, sonst nichts
   # von Firebase — kein Analytics, kein Crashlytics. Push ist ein
   # NEBENFEATURE: Jeder Fehlerpfad in lib/core/push_messaging.dart endet
