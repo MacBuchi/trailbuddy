@@ -317,6 +317,7 @@ void main() {
       );
       final c = ProviderContainer(overrides: [
         noConnectivityProvider.overrideWithValue(false),
+        onMobileDataProvider.overrideWithValue(false),
         regionsLoaderProvider.overrideWithValue(() async => jsonEncode(_index())),
         mapManifestLoaderProvider.overrideWithValue(() async => _dachMap),
         regionManifestLoaderProvider.overrideWithValue(

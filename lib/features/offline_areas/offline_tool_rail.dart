@@ -364,7 +364,8 @@ class _SaveDraftDialogState extends ConsumerState<_SaveDraftDialog> {
         LinearProgressIndicator(value: _trimming ? null : download.progress?.fraction),
         if (!_trimming) ...[
           const SizedBox(height: 4),
-          Text(_progressLine(download.progress), style: text.bodySmall),
+          Text(download.waiting ? 'Wartet auf Empfang — geht von selbst weiter.' : _progressLine(download.progress),
+              style: text.bodySmall),
         ],
       ]);
     } else if (_measuring) {

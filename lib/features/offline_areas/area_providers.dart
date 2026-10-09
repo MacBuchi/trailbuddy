@@ -417,9 +417,13 @@ class AreaDownloadState {
     this.result,
     this.error,
     this.refreshing = false,
+    this.waiting = false,
   });
 
   final AreaDownloadPhase phase;
+
+  /// Wartet ein abgerissener Download auf Empfang (seit 0.108.2)?
+  final bool waiting;
 
   /// Läuft „Aktualisieren" einer Region statt eines Bereichs (Schritt 4)?
   final bool refreshing;
@@ -432,9 +436,21 @@ class AreaDownloadState {
   bool get busy => phase == AreaDownloadPhase.planning || phase == AreaDownloadPhase.running;
 }
 
+/// So oft wartet ein abgerissener Download auf das Netz, bevor er aufgibt
+/// — mit [areaResumeDelayProvider] zusammen rund 37 Minuten.
+const kAreaResumeAttempts = 40;
+
+/// Die Pause vor dem [attempt]-ten Wiederaufnehmen: 5, 10, 20, 40 s,
+/// danach jede Minute. Die Naht für Tests.
+final areaResumeDelayProvider = Provider<Future<void> Function(int attempt)>(
+    (ref) => (attempt) => Future.delayed(Duration(seconds: attempt >= 4 ? 60 : 5 << attempt)));
+
 class AreaDownloadNotifier extends Notifier<AreaDownloadState> {
   static const _keepAliveKey = 'area';
   bool _cancelled = false;
+
+  /// Hat der laufende Versuch mindestens einen Block abgelegt?
+  bool _progressed = false;
 
   @override
   AreaDownloadState build() => const AreaDownloadState();
@@ -445,7 +461,22 @@ class AreaDownloadNotifier extends Notifier<AreaDownloadState> {
   /// Braucht das Manifest — ohne Empfang gibt es keinen Plan. Gezählt
   /// wird nur, was im Kachelspeicher fehlt (#229); mit [refresh] auch,
   /// was aus einem älteren Bau liegt (Aktualisieren).
+  ///
+  /// Die ganze Region misst unter dem Service (seit 0.108.2): Das Messen
+  /// liest das ganze Verzeichnis des Hosts, und wer dabei die App wechselt,
+  /// fände sie sonst eingefroren vor.
   Future<AreaPlan> plan(AreaShape shape, {bool refresh = false}) async {
+    if (shape is! RegionShape) return _plan(shape, refresh: refresh);
+    final coordinator = ref.read(keepAliveCoordinatorProvider);
+    await coordinator.start(_keepAliveKey, 'Größe wird gemessen', title: 'Region wird gemessen');
+    try {
+      return await _plan(shape, refresh: refresh);
+    } finally {
+      await coordinator.stop(_keepAliveKey);
+    }
+  }
+
+  Future<AreaPlan> _plan(AreaShape shape, {bool refresh = false, bool quiet = false}) async {
     // Ohne Empfang kennt die App vielleicht nur DACH — „hier gibt es keine
     // Karte" wäre dann eine falsche Auskunft über Kanada.
     if (ref.read(noConnectivityProvider)) throw StateError('Kein Kartenhost erreichbar');
@@ -458,7 +489,7 @@ class AreaDownloadNotifier extends Notifier<AreaDownloadState> {
     final hosts = await _hostManifests(ref, region);
     final manifest = hosts.map;
     if (manifest == null) throw StateError('Kein Kartenhost erreichbar');
-    state = const AreaDownloadState(phase: AreaDownloadPhase.planning);
+    if (!quiet) state = const AreaDownloadState(phase: AreaDownloadPhase.planning);
     final archive = await ref.read(areaSourceOpenerProvider)(manifest.archiveUri);
     PmTilesArchive? heights;
     PmTilesArchive? ways;
@@ -486,10 +517,10 @@ class AreaDownloadNotifier extends Notifier<AreaDownloadState> {
           fetchOverview: ref.read(overviewFetcherProvider),
           fetchPoiBundle: ref.read(poiBundleFetcherProvider));
       final plan = await downloader.plan(shape, withPois: true, refresh: refresh);
-      state = AreaDownloadState(phase: AreaDownloadPhase.idle, plan: plan);
+      if (!quiet) state = AreaDownloadState(phase: AreaDownloadPhase.idle, plan: plan);
       return plan;
     } catch (e) {
-      state = const AreaDownloadState();
+      if (!quiet) state = const AreaDownloadState();
       rethrow;
     } finally {
       await archive.close();
@@ -513,21 +544,113 @@ class AreaDownloadNotifier extends Notifier<AreaDownloadState> {
 
   /// Holt und speichert. Läuft im Main-Isolate; der Koordinator hält
   /// den Prozess auf Android wach. Ein Fehler landet im Zustand (die
-  /// Oberfläche zeigt ihn), nie beim Aufrufer.
-  Future<StoredArea?> start(AreaPlan plan, {required String name, String? id}) async {
+  /// Oberfläche zeigt ihn), nie beim Aufrufer. Mit [refresh] plant ein
+  /// Wiederaufnehmen wie „Aktualisieren".
+  ///
+  /// **Reißt die Verbindung ab, wartet er und macht von selbst weiter**
+  /// (seit 0.108.2, wie PilzBuddys Karten-Download): Die ganze Region sind
+  /// Gigabytes, und ein Funkloch oder WLAN-Wechsel unterwegs beendete
+  /// sie bis dahin, bis jemand „Fortsetzen" tippte. Weiter geht es mit
+  /// demselben Bereich und einem neuen Plan (nur, was fehlt). Über
+  /// Mobilfunk nur, wenn er dort auch angefangen hat — gefragt wurde nach
+  /// dem Netz beim Tippen. Nach [kAreaResumeAttempts] Versuchen ohne Netz
+  /// gibt er auf; ein anderer Fehler beendet ihn sofort, wie bisher.
+  Future<StoredArea?> start(AreaPlan plan, {required String name, String? id, bool refresh = false}) async {
     if (state.busy) return null;
     _cancelled = false;
+    // Die Id steht vorher fest: Ein Wiederaufnehmen schreibt in DENSELBEN
+    // Bereich, nicht in einen zweiten.
+    final areaId = id ?? newAreaId(DateTime.now().toUtc());
+    final allowMobile = ref.read(onMobileDataProvider);
+    final coordinator = ref.read(keepAliveCoordinatorProvider);
+    await coordinator.start(_keepAliveKey, '$name — 0 %', title: 'Bereich wird gespeichert');
+    try {
+      var current = plan;
+      var waits = 0;
+      while (true) {
+        state = AreaDownloadState(phase: AreaDownloadPhase.running, name: name, plan: current, progress: state.progress);
+        Object error;
+        StackTrace trace;
+        _progressed = false;
+        try {
+          final area = await _downloadOnce(current, name: name, id: areaId, coordinator: coordinator);
+          if (area == null) {
+            state = AreaDownloadState(
+                phase: AreaDownloadPhase.failed, error: 'Kein Kartenhost erreichbar', plan: current);
+            return null;
+          }
+          await ref.read(storedAreasProvider.notifier).refresh();
+          state = AreaDownloadState(phase: AreaDownloadPhase.done, name: name, plan: current, result: area);
+          return area;
+        } on AreaCancelled {
+          return await _cancelledDownload();
+        } catch (e, s) {
+          error = e;
+          trace = s;
+        }
+        // Ist dieser Versuch vorangekommen, beginnt die Geduld von vorn —
+        // die Grenze gilt für ein Funkloch, nicht für alle zusammen.
+        if (_progressed) waits = 0;
+        if (!looksOffline(error) || _cancelled) {
+          if (_cancelled) return await _cancelledDownload();
+          return await _failedDownload(error, trace, name: name, plan: current);
+        }
+        // Warten, bis das Netz zurück ist, dann neu planen (nur, was fehlt).
+        AreaPlan? next;
+        while (next == null) {
+          if (waits >= kAreaResumeAttempts) return await _failedDownload(error, trace, name: name, plan: current);
+          state = AreaDownloadState(
+              phase: AreaDownloadPhase.running, name: name, plan: current, progress: state.progress, waiting: true);
+          unawaited(coordinator.update(_keepAliveKey, '$name — wartet auf Empfang'));
+          await ref.read(areaResumeDelayProvider)(waits++);
+          if (_cancelled) return await _cancelledDownload();
+          if (ref.read(noConnectivityProvider) || (!allowMobile && ref.read(onMobileDataProvider))) continue;
+          try {
+            next = await _plan(current.shape, refresh: refresh, quiet: true);
+          } catch (e, s) {
+            // Ohne Empfang wirft das Messen ein StateError („kein Host") —
+            // weiter warten; alles andere ist kein Funkloch.
+            if (!looksOffline(e) && e is! StateError) return await _failedDownload(e, s, name: name, plan: current);
+          }
+        }
+        current = next;
+      }
+    } finally {
+      await coordinator.stop(_keepAliveKey);
+    }
+  }
+
+  Future<StoredArea?> _cancelledDownload() async {
+    // Was schon geschrieben ist, bleibt (Konzept 8.2): Der Bereich steht
+    // als unvollständig in der Liste, „Fortsetzen" holt den Rest.
+    await ref.read(storedAreasProvider.notifier).refresh();
+    state = const AreaDownloadState();
+    return null;
+  }
+
+  Future<StoredArea?> _failedDownload(Object e, StackTrace s, {required String name, required AreaPlan plan}) async {
+    if (!looksOffline(e)) logError('Bereich speichern', e, s);
+    await ref.read(storedAreasProvider.notifier).refresh();
+    state = AreaDownloadState(
+        phase: AreaDownloadPhase.failed,
+        name: name,
+        plan: plan,
+        error: looksOffline(e)
+            ? 'Die Verbindung ist abgerissen. Was schon geladen ist, bleibt — „Fortsetzen" in '
+                '„Meine Bereiche" holt den Rest, sobald Empfang da ist.'
+            : 'Der Bereich ließ sich nicht ganz speichern. Was schon geladen ist, bleibt.');
+    return null;
+  }
+
+  /// Ein Versuch: Archive öffnen, laden, schließen. Null, wenn der
+  /// Kartenhost der Region kein Manifest liefert.
+  Future<StoredArea?> _downloadOnce(AreaPlan plan,
+      {required String name, required String id, required KeepAliveCoordinator coordinator}) async {
     final regions = await ref.read(mapRegionsProvider.future);
     final region = regions.where((r) => r.id == plan.region).firstOrNull;
     final hosts = region == null ? null : await _hostManifests(ref, region);
     final manifest = hosts?.map;
-    if (manifest == null) {
-      state = AreaDownloadState(phase: AreaDownloadPhase.failed, error: 'Kein Kartenhost erreichbar', plan: plan);
-      return null;
-    }
-    state = AreaDownloadState(phase: AreaDownloadPhase.running, name: name, plan: plan);
-    final coordinator = ref.read(keepAliveCoordinatorProvider);
-    await coordinator.start(_keepAliveKey, '$name — 0 %', title: 'Bereich wird gespeichert');
+    if (manifest == null) return null;
     PmTilesArchive? archive;
     PmTilesArchive? heights;
     PmTilesArchive? ways;
@@ -560,12 +683,25 @@ class AreaDownloadNotifier extends Notifier<AreaDownloadState> {
         fetchOverview: ref.read(overviewFetcherProvider),
           fetchPoiBundle: ref.read(poiBundleFetcherProvider),
       );
-      final area = await downloader.download(
+      return await downloader.download(
         plan,
         name: name,
         id: id,
         isCancelled: () => _cancelled,
-        onProgress: (p) {
+        onProgress: (raw) {
+          if (raw.done > 0) _progressed = true;
+          // Der Anteil der Karte zählt, was schon liegt, mit (seit
+          // 0.108.2): Nach einem Wiederaufnehmen plant der Download nur
+          // den Rest, und die Meldung fiele sonst auf 0 % zurück.
+          final have = plan.map.coveredBytes - plan.map.fetchBytes;
+          final p = raw.phase == AreaPhase.tiles && plan.map.coveredBytes > 0 && raw.totalBytes > 0
+              ? AreaProgress(
+                  phase: raw.phase,
+                  done: raw.done,
+                  total: raw.total,
+                  doneBytes: have + raw.doneBytes,
+                  totalBytes: have + raw.totalBytes)
+              : raw;
           state = AreaDownloadState(phase: AreaDownloadPhase.running, name: name, plan: plan, progress: p);
           final percent = (p.fraction * 100).round();
           final text = switch (p.phase) {
@@ -579,32 +715,10 @@ class AreaDownloadNotifier extends Notifier<AreaDownloadState> {
           unawaited(coordinator.update(_keepAliveKey, text));
         },
       );
-      await ref.read(storedAreasProvider.notifier).refresh();
-      state = AreaDownloadState(phase: AreaDownloadPhase.done, name: name, plan: plan, result: area);
-      return area;
-    } on AreaCancelled {
-      // Was schon geschrieben ist, bleibt (Konzept 8.2): Der Bereich steht
-      // als unvollständig in der Liste, „Fortsetzen" holt den Rest.
-      await ref.read(storedAreasProvider.notifier).refresh();
-      state = const AreaDownloadState();
-      return null;
-    } catch (e, s) {
-      if (!looksOffline(e)) logError('Bereich speichern', e, s);
-      await ref.read(storedAreasProvider.notifier).refresh();
-      state = AreaDownloadState(
-          phase: AreaDownloadPhase.failed,
-          name: name,
-          plan: plan,
-          error: looksOffline(e)
-              ? 'Die Verbindung ist abgerissen. Was schon geladen ist, bleibt — „Fortsetzen" in '
-                  '„Meine Bereiche" holt den Rest, sobald Empfang da ist.'
-              : 'Der Bereich ließ sich nicht ganz speichern. Was schon geladen ist, bleibt.');
-      return null;
     } finally {
       await archive?.close();
       await heights?.close();
       await ways?.close();
-      await coordinator.stop(_keepAliveKey);
     }
   }
 

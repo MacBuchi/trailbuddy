@@ -96,7 +96,24 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     eigener Block), und der Fortschritt zählt Bytes
     (`AreaProgress.doneBytes`): Am DACH-Archiv 20261001 waren die ersten
     2048 Kacheln (Zoom 0–11) 232 MB in EINER Range-Anfrage, ganz im
-    Speicher — am Gerät stand die Meldung auf 0 %. Gemessen werden die Orte NICHT vorab
+    Speicher — am Gerät stand die Meldung auf 0 %. **Seit 0.108.2 macht
+    ein abgerissener Download von selbst weiter** (`AreaDownloadNotifier.start`,
+    PilzBuddys Karten-Download als Vorbild): nur bei `looksOffline`, Pause
+    aus `areaResumeDelayProvider` (5 s … 60 s), dann NEU PLANEN (nur, was
+    fehlt) und in DENSELBEN Bereich schreiben (die Id steht vor dem ersten
+    Versuch fest). Über Mobilfunk nur, wenn er dort angefangen hat; nach
+    `kAreaResumeAttempts` Pausen ohne Netz gibt er auf, ein abgelegter
+    Block setzt die Zählung zurück. Ein Block ohne neue Kachel binnen
+    `kBlockStallTimeout` (60 s) zählt als Funkloch — eine stehende
+    Verbindung meldete sonst nie einen Fehler. **Ein eigener Wächter
+    (`_readWatched`), nicht `Stream.timeout`:** Über dem Strom von
+    `PmTilesArchive.tiles` lieferte `timeout` unter FakeAsync sein Ende
+    nie — acht Flow-Tests mit Speichern hingen. Der Anteil der Karte rechnet
+    das schon Liegende mit (`coveredBytes − fetchBytes`), sonst fiele er
+    nach jedem Wiederaufnehmen auf 0 %. Die ganze Region MISST unter dem
+    Service (Titel „Region wird gemessen"), ein Ausschnitt nicht.
+    `test/offline_areas/area_resume_test.dart`, jede Zusicherung mit
+    Gegenprobe. Gemessen werden die Orte NICHT vorab
     (`poiFiles` null). Der Harness setzt `poiBundleFetcherProvider` auf
     null.
   Der Harness hängt `MemoryTileStore` ein (`pumpApp(tileStore:)`); wer
