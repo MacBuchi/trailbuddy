@@ -4,7 +4,7 @@ publish_to: 'none'
 
 # Beide Teile erhöhen (z. B. 0.1.0+1 → 0.1.1+2). Ein Bump auf main taggt und
 # baut ein Prerelease (release.yml); ohne Bump kein Release (Version Guard).
-version: 0.104.0+129
+version: 0.105.0+130
 
 environment:
   sdk: ^3.11.0
@@ -60,6 +60,9 @@ dependencies:
   package_info_plus: ^10.2.1
   url_launcher: ^6.3.2
   http: ^1.6.0
+  # Die Übersicht einer Region kommt als ganze Datei (#220 Schritt 4) und
+  # wird gegen die Prüfsumme ihres Manifests gelesen.
+  crypto: ^3.0.7
   # GPX-Import: Dateiauswahl auf Android und Web, XML-Parser.
   file_selector: ^1.0.3
   xml: ^7.1.0

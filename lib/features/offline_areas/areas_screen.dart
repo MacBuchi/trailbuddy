@@ -1,6 +1,9 @@
 // „Meine Bereiche" (Konzept 3.2): was auf dem Gerät liegt — Name, Größe,
 // Kartenstand, auf der Karte zeigen, aktualisieren, löschen. Bereiche
 // werden nie verdrängt; was bleibt, muss man sehen und loswerden können.
+// Seit 0.105.0 auch die Übersicht einer Region (#220 Schritt 4): eine
+// eigene Zeile mit Größe und Löschen-Knopf, und wo sie fehlt oder älter
+// ist, ein Knopf, der nur sie holt.
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -8,10 +11,16 @@ import 'package:go_router/go_router.dart';
 import '../../core/router_branches.dart';
 import '../../core/widgets/motion.dart';
 import '../map/map_regions.dart';
+import '../map/online_map.dart';
 import 'area_downloader.dart';
 import 'area_plan.dart';
 import 'area_providers.dart';
 import 'area_store.dart';
+
+/// `JJJJMMTT` als `TT.MM.JJJJ`.
+String buildLabel(String build) => build.length == 8
+    ? '${build.substring(6, 8)}.${build.substring(4, 6)}.${build.substring(0, 4)}'
+    : build;
 
 class AreasScreen extends ConsumerWidget {
   const AreasScreen({super.key});
@@ -23,6 +32,7 @@ class AreasScreen extends ConsumerWidget {
     // Je Bereich gegen die Manifeste SEINER Region (#220). Eine Region,
     // die der Index gerade nicht nennt, bietet nichts an.
     final regions = ref.watch(mapRegionsProvider).valueOrNull ?? const [kDachRegion];
+    final overviews = ref.watch(storedOverviewsProvider).valueOrNull ?? const <StoredOverview>[];
     return Scaffold(
       appBar: AppBar(title: const Text('Meine Bereiche')),
       body: areasAsync.when(
@@ -32,7 +42,7 @@ class AreasScreen extends ConsumerWidget {
           child: Text('Die Bereiche ließen sich nicht lesen.'),
         ),
         data: (areas) {
-          if (areas.isEmpty) {
+          if (areas.isEmpty && overviews.isEmpty) {
             return const Padding(
               padding: EdgeInsets.all(24),
               child: Text(
@@ -47,6 +57,17 @@ class AreasScreen extends ConsumerWidget {
           for (final a in areas) {
             total += a.totalBytes;
           }
+          for (final o in overviews) {
+            total += o.bytes;
+          }
+          // Je Region außer DACH (Übersicht im Binary) eine Zeile, sobald
+          // dort ein Bereich oder eine Übersicht liegt.
+          final overviewRegions = [
+            for (final r in regions)
+              if (!r.isDach &&
+                  (areas.any((a) => a.region == r.id) || overviews.any((o) => o.region == r.id)))
+                r,
+          ];
           return ListView(
             children: [
               Padding(
@@ -74,6 +95,19 @@ class AreasScreen extends ConsumerWidget {
                       waysMissing: ref.watch(areaWaysAvailableProvider(region)).valueOrNull != null && a.waysBuild == null)
                 else
                   _AreaTile(a, newerBuild: false, heightsMissing: false, waysMissing: false),
+              for (final r in overviewRegions)
+                _OverviewTile(
+                  regionId: r.id,
+                  name: r.name,
+                  region: r,
+                  stored: overviews.where((o) => o.region == r.id).firstOrNull,
+                  available: ref.watch(regionOverviewAvailableProvider(r)).valueOrNull,
+                ),
+              // Eine Übersicht, deren Region der Index gerade nicht nennt:
+              // sehen und löschen muss man sie trotzdem können.
+              for (final o in overviews)
+                if (!regions.any((r) => r.id == o.region))
+                  _OverviewTile(regionId: o.region, name: o.region.toUpperCase(), stored: o, available: null),
             ],
           );
         },
@@ -109,17 +143,26 @@ class _AreaTile extends ConsumerWidget {
                   ? 'Wege verfügbar'
                   : null;
 
-  static String _buildLabel(String build) => build.length == 8
-      ? '${build.substring(6, 8)}.${build.substring(4, 6)}.${build.substring(0, 4)}'
-      : build;
 
   Future<void> _delete(BuildContext context, WidgetRef ref) async {
+    // Der letzte Bereich einer Region nimmt ihre Übersicht mit (#220
+    // Schritt 4) — der Dialog sagt es, mit Größe.
+    final areas = ref.read(storedAreasProvider).valueOrNull ?? const <StoredArea>[];
+    final last = !areas.any((a) => a.id != area.id && a.region == area.region);
+    final overview = last
+        ? (ref.read(storedOverviewsProvider).valueOrNull ?? const <StoredOverview>[])
+            .where((o) => o.region == area.region)
+            .firstOrNull
+        : null;
     final ok = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: Text('„${area.name}" löschen?'),
-        content: Text('${formatBytes(area.totalBytes)} werden vom Gerät gelöscht. '
-            'Ohne Empfang bleibt dort dann nur die Übersichtskarte.'),
+        content: Text(overview == null
+            ? '${formatBytes(area.totalBytes)} werden vom Gerät gelöscht. '
+                'Ohne Empfang bleibt dort dann nur die Übersichtskarte.'
+            : '${formatBytes(area.totalBytes + overview.bytes)} werden vom Gerät gelöscht — '
+                'es ist der letzte Bereich dort, die Übersichtskarte der Region geht mit.'),
         actions: [
           TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Abbrechen')),
           FilledButton(onPressed: () => Navigator.of(context).pop(true), child: const Text('Löschen')),
@@ -158,7 +201,7 @@ class _AreaTile extends ConsumerWidget {
       leading: const Icon(Icons.map_outlined),
       title: Text(area.name),
       subtitle: Text('${formatBytes(area.totalBytes)} · ${area.tiles} Kacheln · '
-          'Stand ${_buildLabel(area.build)}'
+          'Stand ${buildLabel(area.build)}'
           '${area.poiFiles.isEmpty ? '' : ' · mit Orten'}'
           '${area.hasHeights ? ' · mit Höhen' : ''}'
           '${area.hasWays ? ' · mit Wegen' : ''}'
@@ -184,6 +227,92 @@ class _AreaTile extends ConsumerWidget {
         StatefulNavigationShell.of(context).goBranch(kMapBranchIndex);
         ref.read(mapFocusAreaProvider.notifier).state = area;
       },
+    );
+  }
+}
+
+/// Die Übersicht einer Region (#220 Schritt 4): Größe und Stand, Löschen —
+/// oder, wenn sie fehlt oder ein neuerer Bau da ist, Holen.
+class _OverviewTile extends ConsumerWidget {
+  const _OverviewTile(
+      {required this.regionId, required this.name, this.region, required this.stored, required this.available});
+
+  final String regionId;
+  final String name;
+
+  /// Die Region aus dem Index — null, wenn er sie gerade nicht nennt
+  /// (dann gibt es nur Löschen).
+  final MapRegion? region;
+  final StoredOverview? stored;
+
+  /// Die Übersicht auf dem Host — null ohne Empfang oder wenn es keine gibt.
+  final OverviewManifest? available;
+
+  Future<void> _delete(BuildContext context, WidgetRef ref) async {
+    final o = stored!;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Übersicht $name löschen?'),
+        content: Text('${formatBytes(o.bytes)} werden vom Gerät gelöscht. Die Bereiche bleiben; '
+            'ohne Empfang liegt um sie herum dann keine Karte mehr.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Abbrechen')),
+          FilledButton(onPressed: () => Navigator.of(context).pop(true), child: const Text('Löschen')),
+        ],
+      ),
+    );
+    if (ok != true || !context.mounted) return;
+    await ref.read(storedAreasProvider.notifier).deleteOverview(o.region);
+  }
+
+  Future<void> _fetch(BuildContext context, WidgetRef ref) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final ok = await ref.read(areaDownloadProvider.notifier).fetchOverview(region!);
+    if (!ok) {
+      final error = ref.read(areaDownloadProvider).error;
+      if (error != null) messenger.showSnackBar(SnackBar(content: Text(error)));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final busy = ref.watch(areaDownloadProvider.select((s) => s.busy));
+    final o = stored;
+    final a = available;
+    final wanted = region != null && overviewWanted([?o], regionId, a);
+    final String subtitle;
+    if (o != null) {
+      subtitle = '${formatBytes(o.bytes)} · Zoom 0–${o.maxZoom} · Stand ${buildLabel(o.build)}'
+          '${wanted ? '\nNeuerer Stand verfügbar' : ''}';
+    } else if (a != null) {
+      subtitle = 'Nicht auf dem Gerät (${formatBytes(a.bytes)}) — ohne Empfang liegt '
+          'um die Bereiche sonst keine Karte.';
+    } else {
+      subtitle = 'Nicht auf dem Gerät — kommt mit dem nächsten Bereich dort, sobald Empfang da ist.';
+    }
+    return ListTile(
+      key: ValueKey('overview-$regionId'),
+      leading: const Icon(Icons.public),
+      title: Text('Übersicht $name'),
+      subtitle: Text(subtitle),
+      isThreeLine: o != null && wanted,
+      trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+        if (wanted)
+          IconButton(
+            key: ValueKey('overview-fetch-$regionId'),
+            tooltip: o == null ? 'Übersicht laden' : 'Auf den neuen Stand bringen',
+            icon: Icon(o == null ? Icons.download : Icons.update),
+            onPressed: busy ? null : () => _fetch(context, ref),
+          ),
+        if (o != null)
+          IconButton(
+            key: ValueKey('overview-delete-$regionId'),
+            tooltip: 'Übersicht löschen',
+            icon: const Icon(Icons.delete_outline),
+            onPressed: busy ? null : () => _delete(context, ref),
+          ),
+      ]),
     );
   }
 }

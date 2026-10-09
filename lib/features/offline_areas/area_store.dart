@@ -9,6 +9,12 @@
 //
 // Bereiche sind Absicht: Sie werden nie verdrängt, nur auf Wunsch
 // gelöscht (Liste „Meine Bereiche").
+//
+// Seit 0.105.0 liegt daneben die Übersicht einer Region (#220 Schritt 4,
+// `docs/konzept-regionen.md` §5): Zoom 0–7 als EINE Datei je Region, die
+// mit dem ersten Bereich dort kommt — DACH hat seine im Binary. Sie hat
+// einen eigenen kleinen Index, weil sie keinem Bereich gehört, sondern
+// allen einer Region; sie geht mit dem letzten von ihnen.
 import 'dart:typed_data';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -144,6 +150,47 @@ class StoredArea {
       );
 }
 
+/// Die gespeicherte Übersicht einer Region (Zoom 0–[maxZoom]).
+class StoredOverview {
+  const StoredOverview({
+    required this.region,
+    required this.build,
+    required this.bytes,
+    required this.maxZoom,
+    required this.savedAt,
+  });
+
+  /// Die Kennung der Region (`ca`) — nie DACH.
+  final String region;
+
+  /// Der Protomaps-Bau (`JJJJMMTT`).
+  final String build;
+  final int bytes;
+  final int maxZoom;
+  final DateTime savedAt;
+
+  Map<String, dynamic> toJson() => {
+        'region': region,
+        'build': build,
+        'bytes': bytes,
+        'max_zoom': maxZoom,
+        'saved_at': savedAt.toUtc().toIso8601String(),
+      };
+
+  factory StoredOverview.fromJson(Map<String, dynamic> j) {
+    final region = j['region'] as String;
+    // Die Kennung wird Teil eines Dateinamens.
+    if (!RegExp(r'^[a-z]{2,8}$').hasMatch(region)) throw FormatException('Region $region');
+    return StoredOverview(
+      region: region,
+      build: j['build'] as String,
+      bytes: j['bytes'] as int,
+      maxZoom: j['max_zoom'] as int,
+      savedAt: DateTime.parse(j['saved_at'] as String),
+    );
+  }
+}
+
 /// Was die Ablage kann. Archive kommen als Ganzes (ein Bereich ist
 /// Dutzende bis wenige hundert MB; geschrieben wird einmal, am Ende des
 /// Downloads); gelesen wird auf dem Telefon über den PFAD (MapLibre und
@@ -188,7 +235,26 @@ abstract interface class AreaStore {
 
   /// Löscht Archiv, Höhen, Wege, Orte-Dateien und den Index-Eintrag.
   Future<void> delete(String id);
+
+  /// Die Übersichten der Regionen (seit 0.105.0) — ein eigener Index.
+  Future<List<StoredOverview>> overviews();
+
+  /// Legt die Übersicht einer Region ab (ersetzt eine ältere): erst die
+  /// Datei, dann der Index.
+  Future<void> putOverview(StoredOverview overview, Uint8List bytes);
+
+  /// Pfad auf dem Telefon, Bytes im Browser — wie beim Kartenarchiv.
+  Future<String?> overviewPath(String region);
+  Future<Uint8List?> readOverview(String region);
+
+  /// Nimmt Datei und Index-Eintrag weg.
+  Future<void> deleteOverview(String region);
 }
+
+/// Die Übersichten im Index ohne [region], mit [add] am Ende — für alle
+/// drei Ablagen dieselbe Regel.
+List<StoredOverview> replaceOverview(List<StoredOverview> all, String region, [StoredOverview? add]) =>
+    [for (final o in all) if (o.region != region) o, ?add];
 
 /// Im Speicher — für Tests und als Rückfall ohne Speicher.
 class MemoryAreaStore implements AreaStore {
@@ -197,6 +263,8 @@ class MemoryAreaStore implements AreaStore {
   final heights = <String, Uint8List>{};
   final ways = <String, Uint8List>{};
   final poiFiles = <String, Map<String, String>>{};
+  List<StoredOverview> overviewIndex = [];
+  final overviewBytes = <String, Uint8List>{};
 
   @override
   Future<List<StoredArea>> list() async => List.unmodifiable(areas);
@@ -257,6 +325,27 @@ class MemoryAreaStore implements AreaStore {
     heights.remove(id);
     ways.remove(id);
     poiFiles.remove(id);
+  }
+
+  @override
+  Future<List<StoredOverview>> overviews() async => List.unmodifiable(overviewIndex);
+
+  @override
+  Future<void> putOverview(StoredOverview overview, Uint8List bytes) async {
+    overviewBytes[overview.region] = bytes;
+    overviewIndex = replaceOverview(overviewIndex, overview.region, overview);
+  }
+
+  @override
+  Future<String?> overviewPath(String region) async => null;
+
+  @override
+  Future<Uint8List?> readOverview(String region) async => overviewBytes[region];
+
+  @override
+  Future<void> deleteOverview(String region) async {
+    overviewIndex = replaceOverview(overviewIndex, region);
+    overviewBytes.remove(region);
   }
 }
 

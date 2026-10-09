@@ -150,7 +150,7 @@ final maplibreStyleProvider = FutureProvider<String?>((ref) async {
   final fresh = await manifestWait;
   final freshWays = await waysWait;
   final settings = ref.watch(settingsProvider);
-  final regionSources = <({MapRegion region, MapManifest? map, WaysManifest? ways})>[];
+  final regionSources = <({MapRegion region, MapManifest? map, WaysManifest? ways, bool fresh})>[];
   for (var i = 0; i < others.length; i++) {
     final region = others[i];
     final map = await otherMaps[i];
@@ -164,6 +164,7 @@ final maplibreStyleProvider = FutureProvider<String?>((ref) async {
           (ref.watch(wayLayerEnabledProvider)
               ? rememberedRegionManifest(settings, region, RegionLayer.ways, WaysManifest.fromJson)
               : null),
+      fresh: map != null,
     ));
   }
   final manifest = fresh ?? rememberedManifest(settings.seenMapManifest, MapManifest.fromJson);
@@ -204,6 +205,26 @@ final maplibreStyleProvider = FutureProvider<String?>((ref) async {
         maxZoom: overviewZoom.max,
         labelsOnTop: false,
       ));
+    }
+    // Die gespeicherten Übersichten der Regionen (#220 Schritt 4) gleich
+    // darüber, nach derselben Regel je Region: solange kein frisches
+    // Manifest DIESER Region da ist. Regionen überlappen nicht, und wo eine
+    // Übersicht keine Kachel hat, scheint die darunter durch.
+    try {
+      for (final entry in await ref.watch(areaOverviewPathsProvider.future)) {
+        final region = entry.overview.region;
+        final fresh = regionSources.where((r) => r.region.id == region).firstOrNull?.fresh ?? false;
+        if (!noConnectivity && fresh) continue;
+        sources.add(MapStyleSource(
+          id: 'overview-$region',
+          url: 'file://${entry.path}',
+          minZoom: 0,
+          maxZoom: entry.overview.maxZoom,
+          labelsOnTop: false,
+        ));
+      }
+    } catch (e, stackTrace) {
+      logError('Übersichten der Regionen für den Style lesen', e, stackTrace);
     }
     if (manifest != null) {
       // Frisch oder gemerkt (#155), siehe oben.

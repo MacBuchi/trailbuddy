@@ -19,11 +19,18 @@
 // Bereich holt sie immer, auch wenn die Ebene gerade aus ist
 // (Betreiber, 2026-10-08) — wer sie im Wald einschaltet, soll sie haben.
 //
+// Seit 0.105.0 die Übersicht der Region (#220 Schritt 4,
+// `region_overview.dart`): Der erste Bereich in einer Region ohne
+// mitgelieferte Übersicht holt sie als ganze Datei mit; der Plan nennt sie
+// samt Größe. Sie gehört keinem Bereich, sondern der Region.
+//
 // Läuft im Main-Isolate; auf Android hält der KeepAlive-Koordinator den
 // Prozess wach (Vordergrunddienst `dataSync`), im Browser der Tab. Wer
 // abbricht, bekommt nichts Halbes: Geschrieben wird erst am Ende.
 import 'dart:convert';
 import 'dart:typed_data';
+
+import '../../core/errors.dart';
 
 import 'package:pmtiles/pmtiles.dart';
 
@@ -35,6 +42,7 @@ import 'area_plan.dart';
 import 'area_store.dart';
 import 'height_tiles.dart';
 import 'pmtiles_writer.dart';
+import 'region_overview.dart';
 
 /// Der Plan: was geholt würde, und wie viel das ist.
 class AreaPlan {
@@ -51,10 +59,18 @@ class AreaPlan {
     this.wayBytes = 0,
     this.waysBuild,
     this.region = kDachRegionId,
+    this.overview,
   });
 
   /// Die Region des Hosts, gegen die gemessen wurde (#220).
   final String region;
+
+  /// Die Übersicht der Region, die mitkommt (#220 Schritt 4) — null, wenn
+  /// sie schon liegt, die Region keine hat (DACH: im Binary) oder der Host
+  /// keine nennt.
+  final OverviewManifest? overview;
+
+  int get overviewBytes => overview?.bytes ?? 0;
 
   /// Die Form, die geplant wurde — wird mit dem Bereich gemerkt, damit
   /// „Aktualisieren" dieselbe Form noch einmal holt.
@@ -102,7 +118,7 @@ class AreaPlan {
   bool get hasWays => wayTiles.isNotEmpty;
 
   /// Alles zusammen, was auf das Gerät kommt.
-  int get totalBytes => bytes + poiBytes + heightBytes + wayBytes;
+  int get totalBytes => bytes + poiBytes + heightBytes + wayBytes + overviewBytes;
 
   static int _countPois(String text) {
     try {
@@ -138,7 +154,7 @@ class AreaProgress {
   double get fraction => total == 0 ? 1 : done / total;
 }
 
-enum AreaPhase { tiles, pois, heights, ways, writing }
+enum AreaPhase { tiles, pois, heights, ways, overview, writing }
 
 class AreaDownloader {
   AreaDownloader({
@@ -154,10 +170,17 @@ class AreaDownloader {
     this.chunkSize = 256,
     this.now,
     this.region = kDachRegionId,
+    this.overview,
+    this.fetchOverview,
   });
 
   /// Die Region, aus deren Archiven der Bereich kommt (#220).
   final String region;
+
+  /// Die Übersicht der Region, wenn sie mitkommen soll (#220 Schritt 4),
+  /// und wie sie geholt wird.
+  final OverviewManifest? overview;
+  final OverviewFetcher? fetchOverview;
 
   /// Das Archiv des Hosts, über Range-Anfragen geöffnet.
   final PmTilesArchive archive;
@@ -235,6 +258,7 @@ class AreaDownloader {
       wayBytes: wayBytes,
       waysBuild: w == null ? null : waysManifest?.build,
       region: region,
+      overview: fetchOverview == null ? null : overview,
     );
   }
 
@@ -333,6 +357,28 @@ class AreaDownloader {
                 onProgress?.call(AreaProgress(phase: AreaPhase.ways, done: done, total: total)));
     final waysBuild = plan.wayTiles.isEmpty || wayTiles.isNotEmpty ? plan.waysBuild : null;
 
+    // Die Übersicht der Region (#220 Schritt 4), als ganze Datei. Ein
+    // Funkloch oder Abbruch hier lässt wie überall nichts zurück; eine
+    // Datei, die nicht zu ihrem Manifest passt, kostet nur die Übersicht —
+    // der nächste Bereich der Region versucht es wieder.
+    Uint8List? overviewBytes;
+    final ov = plan.overview;
+    final fetch = fetchOverview;
+    if (ov != null && fetch != null) {
+      final got = await fetch(ov.archiveUri,
+          check: check,
+          onProgress: (done, total) => onProgress?.call(
+              AreaProgress(phase: AreaPhase.overview, done: done, total: total > 0 ? total : ov.bytes)));
+      if (got != null) {
+        try {
+          await checkOverview(ov, got);
+          overviewBytes = got;
+        } on OverviewMismatch catch (e, s) {
+          logError('Übersicht der Region ${plan.region} prüfen', e, s);
+        }
+      }
+    }
+
     check();
     onProgress?.call(const AreaProgress(phase: AreaPhase.writing, done: 0, total: 1));
     final areaId = id ?? _newId();
@@ -384,6 +430,17 @@ class AreaDownloader {
     }
     for (final e in poiFiles.entries) {
       await store.putPoiFile(areaId, e.key, e.value);
+    }
+    if (overviewBytes != null) {
+      await store.putOverview(
+          StoredOverview(
+            region: plan.region,
+            build: ov!.sourceBuild,
+            bytes: overviewBytes.length,
+            maxZoom: ov.maxZoom,
+            savedAt: (now ?? DateTime.now)().toUtc(),
+          ),
+          overviewBytes);
     }
 
     final area = StoredArea(

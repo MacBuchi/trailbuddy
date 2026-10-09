@@ -348,6 +348,7 @@ MapManifest _map(Map<String, dynamic> j, String dir) => MapManifest.fromJson(j, 
 WaysManifest _ways(Map<String, dynamic> j, String dir) => WaysManifest.fromJson(j, dir: dir);
 HeightsManifest _heights(Map<String, dynamic> j, String dir) => HeightsManifest.fromJson(j, dir: dir);
 PoiManifest _pois(Map<String, dynamic> j, String dir) => PoiManifest.fromJson(j, dir: dir);
+OverviewManifest _overview(Map<String, dynamic> j, String dir) => OverviewManifest.fromJson(j, dir: dir);
 
 /// Das Karten-Manifest einer Region — für DACH der bisherige Provider.
 final regionMapManifestProvider = FutureProvider.family<MapManifest?, MapRegion>((ref, region) {
@@ -384,6 +385,10 @@ class RegionManifests {
   Future<WaysManifest?> ways() => loadRegionManifest(_load, region, RegionLayer.ways, _ways);
   Future<HeightsManifest?> heights() => loadRegionManifest(_load, region, RegionLayer.heights, _heights);
   Future<PoiManifest?> pois() => loadRegionManifest(_load, region, RegionLayer.pois, _pois);
+
+  /// Die Übersicht der Region (Schritt 4) — null, wenn der Index keine
+  /// nennt oder noch keine gebaut ist.
+  Future<OverviewManifest?> overview() => loadRegionManifest(_load, region, RegionLayer.overview, _overview);
 }
 
 /// „Gesehenes bleibt liegen" je Region (#155): das gemerkte Manifest

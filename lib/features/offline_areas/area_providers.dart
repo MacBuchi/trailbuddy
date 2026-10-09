@@ -47,17 +47,39 @@ import 'area_plan.dart';
 import 'area_store.dart';
 import 'area_trim.dart';
 import 'height_tiles.dart';
+import 'region_overview.dart';
 
 /// Die Liste aus dem Index, in Speicherreihenfolge.
 class StoredAreasNotifier extends AsyncNotifier<List<StoredArea>> {
   @override
   Future<List<StoredArea>> build() => ref.watch(areaStoreProvider).list();
 
-  Future<void> refresh() async => state = AsyncData(await ref.read(areaStoreProvider).list());
+  Future<void> refresh() async {
+    state = AsyncData(await ref.read(areaStoreProvider).list());
+    ref.invalidate(storedOverviewsProvider);
+  }
 
+  /// Löscht den Bereich — und mit dem letzten seiner Region deren
+  /// Übersicht (#220 Schritt 4): Sie kam mit ihm, sie geht mit ihm.
   Future<void> delete(String id) async {
     await ref.read(areaStoreProvider).delete(id);
+    await _dropOrphanOverviews();
     await refresh();
+  }
+
+  /// Nimmt die Übersicht einer Region von Hand weg; die Bereiche bleiben.
+  /// Der nächste Bereich dort holt sie wieder.
+  Future<void> deleteOverview(String region) async {
+    await ref.read(areaStoreProvider).deleteOverview(region);
+    await refresh();
+  }
+
+  Future<void> _dropOrphanOverviews() async {
+    final store = ref.read(areaStoreProvider);
+    final regions = {for (final a in await store.list()) a.region};
+    for (final o in await store.overviews()) {
+      if (!regions.contains(o.region)) await store.deleteOverview(o.region);
+    }
   }
 
   /// Was das Entfernen von [removes] (Kacheln bei Zoom 13) aus den
@@ -67,12 +89,85 @@ class StoredAreasNotifier extends AsyncNotifier<List<StoredArea>> {
 
   Future<void> applyTrim(TrimPlan plan) async {
     await AreaTrimmer(ref.read(areaStoreProvider)).apply(plan);
+    // Der Radierer kann den letzten Bereich einer Region leeren.
+    await _dropOrphanOverviews();
     await refresh();
   }
 }
 
 final storedAreasProvider =
     AsyncNotifierProvider<StoredAreasNotifier, List<StoredArea>>(StoredAreasNotifier.new);
+
+/// Die gespeicherten Übersichten der Regionen (#220 Schritt 4).
+final storedOverviewsProvider =
+    FutureProvider<List<StoredOverview>>((ref) => ref.watch(areaStoreProvider).overviews());
+
+/// Die Übersicht einer Region auf dem Host, für „Meine Bereiche" (Angebot,
+/// wenn sie fehlt oder ein neuerer Bau da ist). Null für DACH (im Binary),
+/// ohne Empfang und wenn der Index keine nennt.
+final regionOverviewAvailableProvider = FutureProvider.family<OverviewManifest?, MapRegion>((ref, region) async {
+  if (region.isDach || ref.watch(noConnectivityProvider)) return null;
+  return RegionManifests(ref.watch(regionManifestLoaderProvider), region).overview();
+});
+
+/// Ob ein Bereich der Region [region] die Übersicht [available] mitbringen
+/// soll: wenn sie nicht liegt oder älter ist. Eine Regel für Plan und
+/// „Meine Bereiche".
+bool overviewWanted(List<StoredOverview> stored, String region, OverviewManifest? available) {
+  if (available == null) return false;
+  final have = stored.where((o) => o.region == region).firstOrNull;
+  return have == null || have.build.compareTo(available.sourceBuild) < 0;
+}
+
+/// Die Übersichten mit Pfad — für MapLibre (`file://`). Leer im Browser.
+final areaOverviewPathsProvider = FutureProvider<List<({StoredOverview overview, String path})>>((ref) async {
+  final overviews = await ref.watch(storedOverviewsProvider.future);
+  final store = ref.watch(areaStoreProvider);
+  return [
+    for (final o in overviews)
+      if (await store.overviewPath(o.region) case final path?) (overview: o, path: path),
+  ];
+});
+
+/// Öffnet die Übersicht einer Region für die flutter_map-Engine — die
+/// Naht für Tests.
+final areaOverviewOpenerProvider =
+    Provider<Future<PmTilesVectorTileProvider?> Function(AreaStore store, StoredOverview overview)>(
+        (ref) => _openOverview);
+
+Future<PmTilesVectorTileProvider?> _openOverview(AreaStore store, StoredOverview overview) async {
+  final path = await store.overviewPath(overview.region);
+  if (path != null) return PmTilesVectorTileProvider.open(path);
+  final bytes = await store.readOverview(overview.region);
+  if (bytes == null) return null;
+  return PmTilesVectorTileProvider.openBytes(bytes);
+}
+
+/// Die Übersichten der Regionen als Schicht der flutter_map-Engine, über
+/// der DACH-Übersicht und unter allem anderen — dieselbe Regel wie dort:
+/// gezeigt nur, solange die Übersicht gebraucht wird. Thema OHNE
+/// `background`, sonst deckte sie die DACH-Übersicht zu. Null ohne
+/// gespeicherte.
+final areaOverviewStyleProvider = FutureProvider<BaseMapStyle?>((ref) async {
+  final overviews = await ref.watch(storedOverviewsProvider.future);
+  if (overviews.isEmpty) return null;
+  final store = ref.watch(areaStoreProvider);
+  final open = ref.watch(areaOverviewOpenerProvider);
+  final opened = <OpenedAreaArchive>[];
+  for (final o in overviews) {
+    try {
+      final provider = await open(store, o);
+      if (provider != null) opened.add((minZoom: 0, maxZoom: o.maxZoom, provider: provider));
+    } catch (e, s) {
+      logError('Übersicht einer Region öffnen', e, s);
+    }
+  }
+  if (opened.isEmpty) return null;
+  final multi = MultiAreaTileProvider(opened);
+  ref.onDispose(multi.close);
+  final theme = await ref.watch(baseThemeWithoutBackgroundProvider.future);
+  return BaseMapStyle(theme: theme, tileProviders: TileProviders({'protomaps': multi}));
+});
 
 /// Öffnet das Archiv des Hosts für den Download — die Naht für Tests.
 final areaSourceOpenerProvider =
@@ -137,6 +232,7 @@ typedef AreaHostManifests = ({
   PoiManifest? pois,
   HeightsManifest? heights,
   WaysManifest? ways,
+  OverviewManifest? overview,
 });
 
 Future<AreaHostManifests> _hostManifests(Ref ref, MapRegion region) async {
@@ -147,14 +243,19 @@ Future<AreaHostManifests> _hostManifests(Ref ref, MapRegion region) async {
       pois: await ref.read(areaPoiManifestLoaderProvider)(),
       heights: await ref.read(areaHeightsManifestLoaderProvider)(),
       ways: await ref.read(areaWaysManifestLoaderProvider)(),
+      // Die DACH-Übersicht liegt im Binary.
+      overview: null,
     );
   }
   final manifests = RegionManifests(ref.read(regionManifestLoaderProvider), region);
+  final overview = await manifests.overview();
   return (
     map: map,
     pois: await manifests.pois(),
     heights: await manifests.heights(),
     ways: await manifests.ways(),
+    // Nur, wenn sie noch nicht (oder älter) auf dem Gerät liegt.
+    overview: overviewWanted(await ref.read(areaStoreProvider).overviews(), region.id, overview) ? overview : null,
   );
 }
 
@@ -264,7 +365,9 @@ class AreaDownloadNotifier extends Notifier<AreaDownloadState> {
           heightsManifest: heightsManifest,
           ways: ways,
           waysManifest: waysManifest,
-          region: region.id);
+          region: region.id,
+          overview: hosts.overview,
+          fetchOverview: ref.read(overviewFetcherProvider));
       final plan = await downloader.plan(shape, withPois: true);
       state = AreaDownloadState(phase: AreaDownloadPhase.idle, plan: plan);
       return plan;
@@ -334,6 +437,9 @@ class AreaDownloadNotifier extends Notifier<AreaDownloadState> {
         ways: ways,
         waysManifest: waysManifest,
         region: plan.region,
+        // Die Übersicht, die gemessen wurde — Dateien mit Datum ändern sich nicht.
+        overview: plan.overview,
+        fetchOverview: ref.read(overviewFetcherProvider),
       );
       final area = await downloader.download(
         plan,
@@ -348,6 +454,7 @@ class AreaDownloadNotifier extends Notifier<AreaDownloadState> {
             AreaPhase.pois => '$name — Orte',
             AreaPhase.heights => '$name — Höhen',
             AreaPhase.ways => '$name — Wege',
+            AreaPhase.overview => '$name — Übersicht',
             AreaPhase.writing => '$name — wird geschrieben',
           };
           unawaited(coordinator.update(_keepAliveKey, text));
@@ -373,6 +480,67 @@ class AreaDownloadNotifier extends Notifier<AreaDownloadState> {
       await archive?.close();
       await heights?.close();
       await ways?.close();
+      await coordinator.stop(_keepAliveKey);
+    }
+  }
+
+  /// Nur die Übersicht einer Region holen (#220 Schritt 4) — aus „Meine
+  /// Bereiche", wenn sie fehlt (von Hand gelöscht, beim Speichern nicht
+  /// gekommen) oder ein neuerer Bau da ist, ohne einen Bereich neu zu
+  /// laden. Ein Fehler landet im Zustand, wie beim Bereich.
+  Future<bool> fetchOverview(MapRegion region) async {
+    if (state.busy || region.isDach) return false;
+    _cancelled = false;
+    final name = 'Übersicht ${region.name}';
+    final manifest = ref.read(noConnectivityProvider)
+        ? null
+        : await RegionManifests(ref.read(regionManifestLoaderProvider), region).overview();
+    if (manifest == null) {
+      state = const AreaDownloadState(phase: AreaDownloadPhase.failed, error: 'Kein Kartenhost erreichbar');
+      return false;
+    }
+    state = AreaDownloadState(phase: AreaDownloadPhase.running, name: name);
+    final coordinator = ref.read(keepAliveCoordinatorProvider);
+    await coordinator.start(_keepAliveKey, '$name — 0 %', title: 'Übersicht wird gespeichert');
+    try {
+      final bytes = await ref.read(overviewFetcherProvider)(
+        manifest.archiveUri,
+        check: () {
+          if (_cancelled) throw const AreaCancelled();
+        },
+        onProgress: (done, total) {
+          final p = AreaProgress(phase: AreaPhase.overview, done: done, total: total > 0 ? total : manifest.bytes);
+          state = AreaDownloadState(phase: AreaDownloadPhase.running, name: name, progress: p);
+          unawaited(coordinator.update(_keepAliveKey, '$name — ${(p.fraction * 100).round()} %'));
+        },
+      );
+      if (bytes == null) throw const OverviewMismatch('nicht auf dem Host');
+      await checkOverview(manifest, bytes);
+      await ref.read(areaStoreProvider).putOverview(
+          StoredOverview(
+            region: region.id,
+            build: manifest.sourceBuild,
+            bytes: bytes.length,
+            maxZoom: manifest.maxZoom,
+            savedAt: DateTime.now().toUtc(),
+          ),
+          bytes);
+      await ref.read(storedAreasProvider.notifier).refresh();
+      state = AreaDownloadState(phase: AreaDownloadPhase.done, name: name);
+      return true;
+    } on AreaCancelled {
+      state = const AreaDownloadState();
+      return false;
+    } catch (e, s) {
+      if (!looksOffline(e)) logError('Übersicht speichern', e, s);
+      state = AreaDownloadState(
+          phase: AreaDownloadPhase.failed,
+          name: name,
+          error: looksOffline(e)
+              ? 'Die Verbindung ist abgerissen. Nichts gespeichert — noch einmal versuchen, sobald Empfang da ist.'
+              : 'Die Übersicht ließ sich nicht speichern.');
+      return false;
+    } finally {
       await coordinator.stop(_keepAliveKey);
     }
   }

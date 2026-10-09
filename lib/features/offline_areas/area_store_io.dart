@@ -2,7 +2,8 @@
 // `areas.json`, je Bereich `<id>.pmtiles` (geschrieben über `.part` +
 // rename), `<id>.heights.pmtiles` für die Höhenkacheln,
 // `<id>.ways.pmtiles` für die Wege und
-// `<id>/pois/<datei>` für die Orte-Zellen. Unter
+// `<id>/pois/<datei>` für die Orte-Zellen, dazu je Region
+// `overview-<region>.pmtiles` mit dem Index `overviews.json`. Unter
 // `offline_maps/areas/` im App-Verzeichnis, also vom Backup ausgenommen.
 import 'dart:convert';
 import 'dart:io';
@@ -31,6 +32,10 @@ class FileAreaStore implements AreaStore {
   Future<File> _heights(String id) async => File('${(await _dir()).path}/$id.heights.pmtiles');
 
   Future<File> _ways(String id) async => File('${(await _dir()).path}/$id.ways.pmtiles');
+
+  Future<File> _overviewIndex() async => File('${(await _dir()).path}/overviews.json');
+
+  Future<File> _overview(String region) async => File('${(await _dir()).path}/overview-$region.pmtiles');
 
   Future<File> _poi(String id, String name) async => File('${(await _dir()).path}/$id/pois/$name');
 
@@ -151,6 +156,51 @@ class FileAreaStore implements AreaStore {
     await _remove(await _ways(id));
     final poiDir = Directory('${(await _dir()).path}/$id');
     if (await poiDir.exists()) await poiDir.delete(recursive: true);
+  }
+
+  @override
+  Future<List<StoredOverview>> overviews() async {
+    final file = await _overviewIndex();
+    if (!await file.exists()) return const [];
+    try {
+      final json = jsonDecode(await file.readAsString()) as List;
+      return [for (final j in json) StoredOverview.fromJson(j as Map<String, dynamic>)];
+    } catch (_) {
+      // Wie beim Index der Bereiche: unlesbar heißt keine, nicht Absturz.
+      return const [];
+    }
+  }
+
+  Future<void> _saveOverviews(List<StoredOverview> all) async {
+    final file = await _overviewIndex();
+    await file.parent.create(recursive: true);
+    final part = File('${file.path}.part');
+    await part.writeAsString(jsonEncode([for (final o in all) o.toJson()]));
+    await part.rename(file.path);
+  }
+
+  @override
+  Future<void> putOverview(StoredOverview overview, Uint8List bytes) async {
+    await _write(_overview(overview.region), bytes);
+    await _saveOverviews(replaceOverview(await overviews(), overview.region, overview));
+  }
+
+  @override
+  Future<String?> overviewPath(String region) async {
+    final file = await _overview(region);
+    return await file.exists() ? file.path : null;
+  }
+
+  @override
+  Future<Uint8List?> readOverview(String region) async {
+    final file = await _overview(region);
+    return await file.exists() ? await file.readAsBytes() : null;
+  }
+
+  @override
+  Future<void> deleteOverview(String region) async {
+    await _saveOverviews(replaceOverview(await overviews(), region));
+    await _remove(await _overview(region));
   }
 }
 

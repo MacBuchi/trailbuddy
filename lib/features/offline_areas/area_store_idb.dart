@@ -20,6 +20,13 @@ class IdbAreaStore implements AreaStore {
 
   static const _indexKey = 'areas';
 
+  // Die Übersichten der Regionen (seit 0.105.0): ihr Index im selben
+  // Speicher wie der der Bereiche, die Bytes bei den Archiven — kein neuer
+  // Speicher, keine neue DB-Version. Kein Bereich heißt so: Deren Ids
+  // tragen keinen Schrägstrich.
+  static const _overviewIndexKey = 'overviews';
+  static String _overviewKey(String region) => 'overview/$region';
+
   @override
   Future<List<StoredArea>> list() async {
     try {
@@ -122,5 +129,42 @@ class IdbAreaStore implements AreaStore {
         await _db.writeStore(kAreaPoiStore, (s) => s.delete('${area.id}/$name'));
       }
     }
+  }
+
+  @override
+  Future<List<StoredOverview>> overviews() async {
+    try {
+      final text = await _db.readStore(kAreaIndexStore, (s) => s.getObject(_overviewIndexKey));
+      if (text is! String) return const [];
+      return [for (final j in jsonDecode(text) as List) StoredOverview.fromJson(j as Map<String, dynamic>)];
+    } catch (_) {
+      return const [];
+    }
+  }
+
+  Future<void> _saveOverviews(List<StoredOverview> all) => _db.writeStore(
+      kAreaIndexStore, (s) => s.put(jsonEncode([for (final o in all) o.toJson()]), _overviewIndexKey));
+
+  @override
+  Future<void> putOverview(StoredOverview overview, Uint8List bytes) async {
+    await _db.writeStore(kAreaArchiveStore, (s) => s.put(bytes, _overviewKey(overview.region)));
+    await _saveOverviews(replaceOverview(await overviews(), overview.region, overview));
+  }
+
+  @override
+  Future<String?> overviewPath(String region) async => null;
+
+  @override
+  Future<Uint8List?> readOverview(String region) async {
+    final value = await _db.readStore(kAreaArchiveStore, (s) => s.getObject(_overviewKey(region)));
+    if (value is Uint8List) return value;
+    if (value is List<int>) return Uint8List.fromList(value);
+    return null;
+  }
+
+  @override
+  Future<void> deleteOverview(String region) async {
+    await _saveOverviews(replaceOverview(await overviews(), region));
+    await _db.writeStore(kAreaArchiveStore, (s) => s.delete(_overviewKey(region)));
   }
 }
