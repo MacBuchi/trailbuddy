@@ -28,6 +28,8 @@ import 'package:pmtiles/pmtiles.dart';
 import 'package:vector_map_tiles/vector_map_tiles.dart' show ProviderException, TileIdentity;
 
 import '../../core/errors.dart';
+import '../../core/line_geometry.dart';
+import '../map/map_regions.dart';
 import '../map/online_map.dart';
 import '../map/pmtiles_tile_provider.dart';
 import '../offline_areas/area_plan.dart';
@@ -259,32 +261,75 @@ class _NoClose implements HeightTileSource {
   Future<void> close() async {}
 }
 
-/// Öffnet das Höhenarchiv des Hosts über sein Manifest; null ohne.
-Future<PmTilesArchive?> Function() _openHostHeights(Ref ref) => () async {
-      final manifest = await ref.read(heightsManifestProvider.future);
+/// Höhen vom Host je Region (#220): Jede Kachel fragt das Höhenarchiv
+/// der Region, deren Rahmen sie schneidet; außerhalb aller gibt es
+/// keine, ohne Anfrage. Je Region eine Quelle aus [open], erst bei
+/// Bedarf angelegt.
+class RegionHeights implements HeightTileSource {
+  RegionHeights({required this.regions, required this.open});
+
+  final Future<List<MapRegion>> Function() regions;
+  final HeightTileSource Function(MapRegion region) open;
+  final _sources = <String, HeightTileSource>{};
+
+  @override
+  Future<HeightTile?> tile(int x, int y) async {
+    final region = regionFor(await regions(), tileBox(kHeightTileZoom, x, y));
+    if (region == null) return null;
+    return (_sources[region.id] ??= open(region)).tile(x, y);
+  }
+
+  @override
+  Future<void> close() async {
+    for (final source in _sources.values) {
+      await source.close();
+    }
+  }
+}
+
+/// Öffnet das Höhenarchiv einer Region über ihr Manifest; null ohne.
+Future<PmTilesArchive?> Function() _openHostHeights(Ref ref, MapRegion region) => () async {
+      final manifest = await ref.read(regionHeightsManifestProvider(region).future);
       if (manifest == null) return null;
       return ref.read(areaSourceOpenerProvider)(manifest.archiveUri);
     };
 
-/// Baut das Nachladen für eine Planung aus den Manifesten des Hosts —
-/// die Naht, die Tests ersetzen.
-final onlineFillFactoryProvider = Provider<OnlineFill Function()>((ref) => () => OnlineFill(
-      openRoads: () async {
-        final manifest = await ref.read(mapManifestProvider.future);
-        if (manifest == null) return null;
-        return ref.read(onlineArchiveOpenerProvider)(manifest.archiveUri);
-      },
-      openHeights: _openHostHeights(ref),
-      openWays: () async {
-        // Unabhängig vom Schalter der Ebene, wie die Bereiche (#212 PR 3).
-        final manifest = await ref.read(areaWaysManifestLoaderProvider)();
-        if (manifest == null) return null;
-        return ref.read(onlineArchiveOpenerProvider)(manifest.archiveUri);
-      },
-      cache: ref.read(onlineTileCacheProvider),
-    ));
+/// Baut das Nachladen für eine Planung im Rahmen [box] aus den
+/// Manifesten des Hosts — die Naht, die Tests ersetzen. Die Region ist
+/// die, deren Rahmen [box] schneidet (#220); außerhalb aller gibt es
+/// nichts nachzuladen.
+final onlineFillFactoryProvider = Provider<OnlineFill Function(LatBox box)>((ref) => (box) {
+      Future<MapRegion?> region() async => regionFor(await ref.read(mapRegionsProvider.future), box);
+      return OnlineFill(
+        openRoads: () async {
+          final r = await region();
+          if (r == null) return null;
+          final manifest = await ref.read(regionMapManifestProvider(r).future);
+          if (manifest == null) return null;
+          return ref.read(onlineArchiveOpenerProvider)(manifest.archiveUri);
+        },
+        openHeights: () async {
+          final r = await region();
+          return r == null ? null : _openHostHeights(ref, r)();
+        },
+        openWays: () async {
+          // Unabhängig vom Schalter der Ebene, wie die Bereiche (#212 PR 3).
+          final r = await region();
+          if (r == null) return null;
+          final manifest = r.isDach
+              ? await ref.read(areaWaysManifestLoaderProvider)()
+              : await RegionManifests(ref.read(regionManifestLoaderProvider), r).ways();
+          if (manifest == null) return null;
+          return ref.read(onlineArchiveOpenerProvider)(manifest.archiveUri);
+        },
+        cache: ref.read(onlineTileCacheProvider),
+      );
+    });
 
 /// Höhen vom Host für jede Kachel (#186) — dieselbe Naht für Tests. Der
-/// Aufrufer schließt die Quelle nach Gebrauch.
-final onlineHeightsFactoryProvider = Provider<OnlineHeights Function()>(
-    (ref) => () => OnlineHeights(open: _openHostHeights(ref), cache: ref.read(onlineTileCacheProvider)));
+/// Aufrufer schließt die Quelle nach Gebrauch. Je Region ihr Archiv
+/// (#220, [RegionHeights]).
+final onlineHeightsFactoryProvider = Provider<HeightTileSource Function()>((ref) => () => RegionHeights(
+      regions: () => ref.read(mapRegionsProvider.future),
+      open: (region) => OnlineHeights(open: _openHostHeights(ref, region), cache: ref.read(onlineTileCacheProvider)),
+    ));

@@ -279,6 +279,8 @@ class _SaveDraftDialogState extends ConsumerState<_SaveDraftDialog> {
       }
     } on AreaTooLarge catch (e) {
       if (mounted) setState(() => _error = 'Zu viel auf einmal: ${e.tiles} Kacheln, erlaubt sind $kAreaMaxTiles.');
+    } on OutsideRegions catch (e) {
+      if (mounted) setState(() => _error = e.message);
     } catch (e) {
       if (!mounted) return;
       setState(() => _error = looksOffline(e) || e is StateError

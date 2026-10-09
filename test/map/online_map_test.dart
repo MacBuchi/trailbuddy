@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:trailbuddy/core/connectivity.dart';
 import 'package:trailbuddy/features/map/map_providers.dart';
+import 'package:trailbuddy/features/map/map_regions.dart';
 import 'package:trailbuddy/features/map/online_map.dart';
 
 void main() {
@@ -71,6 +72,7 @@ void main() {
     ProviderContainer make(bool offline) {
       final c = ProviderContainer(overrides: [
         noConnectivityProvider.overrideWithValue(offline),
+        regionsLoaderProvider.overrideWithValue(() async => null),
         mapManifestLoaderProvider.overrideWithValue(() async {
           asked++;
           return const MapManifest(
@@ -90,6 +92,7 @@ void main() {
   test('ein kaputtes Manifest oder ein toter Host heißt null, nie ein Wurf', () async {
     final c = ProviderContainer(overrides: [
       noConnectivityProvider.overrideWithValue(false),
+      regionsLoaderProvider.overrideWithValue(() async => null),
       mapManifestLoaderProvider.overrideWithValue(() async => throw const FormatException('x')),
     ]);
     addTearDown(c.dispose);

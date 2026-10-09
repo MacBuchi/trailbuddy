@@ -83,7 +83,7 @@ Future<PlanningGraph> loadPlanningGraph(Ref ref, LatBox box, {bool fillOnline = 
   final store = ref.read(areaStoreProvider);
   final open = ref.read(areaArchiveOpenerProvider);
   final openWays = ref.read(areaWaysOpenerProvider);
-  final online = fillOnline && !ref.read(noConnectivityProvider) ? ref.read(onlineFillFactoryProvider)() : null;
+  final online = fillOnline && !ref.read(noConnectivityProvider) ? ref.read(onlineFillFactoryProvider)(box) : null;
   if (online != null) {
     // Die Höhen der nachgeladenen Kacheln kommen als LETZTE Quelle dazu;
     // der Leser der Bereiche gehört seinem Provider und bleibt offen.

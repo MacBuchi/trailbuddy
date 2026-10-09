@@ -2,6 +2,22 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Karte jetzt auch in Südkanada
+
+*Version 0.104.0, 2026-10-09*
+
+- **Die Karte reicht bis nach Kanada**: Im Süden Kanadas, bis zum
+  55. Breitengrad, zeigt die App jetzt dieselbe Karte wie in DACH. Sie
+  sucht sich von selbst aus, wo du gerade schaust — einen Wähler gibt es
+  nicht.
+- **Bereiche speichern geht dort auch**: Ein Bereich in Kanada kommt
+  aus der kanadischen Karte und bleibt auf dem Gerät wie jeder andere.
+  Wo es keine Karte gibt, sagt die App beim Speichern in einem Satz,
+  für welche Gegenden es welche gibt.
+- Wege, Orte und Höhen kommen dort dazu, sobald sie für Kanada gebaut
+  sind. Eine Übersichtskarte für Kanada ohne Empfang folgt in einer
+  der nächsten Versionen.
+
 ## Sperren offizieller Trails mit Datum
 
 *Version 0.103.0, 2026-10-08*

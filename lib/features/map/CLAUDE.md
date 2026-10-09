@@ -433,3 +433,39 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     `contourComputeProvider`, weil ein echter Isolate in der Test-Zone nie
     antwortet. Gemessen im JIT: 9 Kacheln Alpen 16 ms, 4 Kacheln 7–8 ms;
     auf dem Gerät noch nicht.
+- **Regionen des Kartenhosts** (#220 Schritt 3, seit 0.104.0,
+  `map_regions.dart`; Konzept `docs/konzept-regionen.md` §5): Welche
+  Regionen es außer DACH gibt, sagt `regions.json` auf dem Host
+  (`mapRegionsProvider`, gemerkt in `Settings.seenRegions`); jede Ebene
+  wählt ihre Region nach der Lage. Sechs Dinge, die man wissen muss:
+  - **DACH kommt aus dem Binary** (`kDachRegion`), nie aus dem Index —
+    für DACH bleiben `mapManifestProvider`, `waysManifestProvider`,
+    `heightsManifestProvider` und die `area…ManifestLoader` die Quelle,
+    die Familien (`regionMapManifestProvider` & Co.) reichen für DACH nur
+    an sie durch. Ohne Index (der Harness hat keinen) ist die App 0.103:
+    jeder Bestandstest lief ohne Änderung.
+  - **Der Index ist streng** (`parseRegionIndex`): Pfade genau
+    `<id>/<ebene>.json`, Ordner `<id>/`, keine Überlappung; eine falsche
+    Zeile verwirft den ganzen Index. Die Manifeste prüfen den Ordner
+    (`checkRegionDir`) und den Namen (`dach-…` an der Wurzel, `map-…` im
+    Ordner, nie über Kreuz) — beides wird Teil einer Adresse.
+  - **Index und Manifeste anderer Regionen haben dieselbe Geduld wie das
+    DACH-Manifest** (`regionsPatiently`, #183): Kommt der Index nicht in
+    1,5 s, zeichnet der Stil mit den gemerkten Regionen, und ein später,
+    ANDERER Index baut ihn neu. DACH startet vorher und wartet nie.
+  - **MapLibre: eine Quelle je Region mit `bounds`** (`online`,
+    `online-<id>`, Wege `ways-region-<id>` — der Präfix `ways` hält den
+    Anker der Höhenlinien). **flutter_map: EINE Quelle**
+    (`RegionTileProvider`), die je Kachel die erste Region fragt, deren
+    Rahmen sie schneidet; mit nur einer bekannten Region deren Archiv
+    selbst (`regionSource`). `seenOnlyProviders` schaut hinein.
+  - **Begleitebenen nach Lage**: Orte je Zelle (`HostPoiSource`, je Region
+    ein Manifest im Speicher), Höhen je Kachel (`RegionHeights` hinter
+    `onlineHeightsFactoryProvider`), der Planer nach dem Rahmen der
+    Planung (`onlineFillFactoryProvider(box)`). Außerhalb aller Regionen
+    fragt keine Ebene; eine Region ohne Ebene im Index auch nicht.
+  - **Kein Netz in Tests**: Der Harness setzt `regionsLoaderProvider` und
+    `regionManifestLoaderProvider` auf null. Wer einen `ProviderContainer`
+    ohne Harness baut und Karte, Orte, Höhen oder Bereiche liest, setzt
+    `regionsLoaderProvider` selbst — sonst fragt der Test den echten
+    Host (beim Bau mit einer Netz-Probe in den Ladern gesucht).

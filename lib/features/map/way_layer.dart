@@ -19,7 +19,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
-import 'package:vector_map_tiles/vector_map_tiles.dart' show TileProviders;
+import 'package:vector_map_tiles/vector_map_tiles.dart' show TileProviders, VectorTileProvider;
 import 'package:vector_tile_renderer/vector_tile_renderer.dart' as vtr;
 
 import '../../core/connectivity.dart';
@@ -27,6 +27,7 @@ import '../../core/errors.dart';
 import '../../core/settings.dart';
 import 'base_map_providers.dart';
 import 'map_providers.dart';
+import 'map_regions.dart';
 import 'online_map.dart';
 
 /// Das Kachelformat des Archivs — gespiegelt aus `tool/way_archive.py`
@@ -167,7 +168,7 @@ List<Map<String, dynamic>> wayStyleLayers(String sourceId, {required bool dashes
 /// Das Manifest des Wege-Archivs (`ways.json`, geschrieben von
 /// `way-data.yml`): welche Datei gilt, mit welchem Format.
 class WaysManifest {
-  const WaysManifest({required this.file, required this.bytes, required this.build});
+  const WaysManifest({required this.file, required this.bytes, required this.build, this.dir = ''});
 
   final String file;
   final int bytes;
@@ -175,26 +176,36 @@ class WaysManifest {
   /// Das Datum des Baus (`JJJJMMTT`).
   final String build;
 
-  Uri get archiveUri => Uri.parse('$kMapTilesBase/$file');
+  /// Der Ordner der Region (#220), siehe [MapManifest.dir].
+  final String dir;
+
+  Uri get archiveUri => Uri.parse('$kMapTilesBase/$dir$file');
 
   /// Wirft bei allem, was nicht passt. Der Dateiname wird geprüft, weil
   /// er zu einem Pfad wird; Format und Zoom, weil die Stil-Ebenen genau
   /// diese Kacheln erwarten.
-  factory WaysManifest.fromJson(Map<String, dynamic> j) {
+  factory WaysManifest.fromJson(Map<String, dynamic> j, {String dir = ''}) {
     final file = j['file'] as String;
+    final folder = checkRegionDir(j['dir'] as String? ?? dir);
     if (!RegExp(r'^ways-\d{8}\.pmtiles$').hasMatch(file)) {
       throw FormatException('Unerwarteter Archivname: $file');
     }
     if (j['format'] != kWaysFormat || j['zoom'] != kWaysZoom) {
       throw FormatException('Wegeformat ${j['format']}/${j['zoom']} unbekannt');
     }
-    return WaysManifest(file: file, bytes: j['bytes'] as int, build: j['build'] as String);
+    return WaysManifest(file: file, bytes: j['bytes'] as int, build: j['build'] as String, dir: folder);
   }
 
   /// Zum Merken auf dem Gerät (#155), mit Format und Zoom der App — ein
   /// gemerktes Manifest gilt nur für die Fassung, die es geschrieben hat.
-  Map<String, dynamic> toJson() =>
-      {'file': file, 'format': kWaysFormat, 'zoom': kWaysZoom, 'bytes': bytes, 'build': build};
+  Map<String, dynamic> toJson() => {
+        'file': file,
+        'format': kWaysFormat,
+        'zoom': kWaysZoom,
+        'bytes': bytes,
+        'build': build,
+        if (dir.isNotEmpty) 'dir': dir,
+      };
 }
 
 /// Holt das Manifest vom Host; wirft bei allem, was nicht passt.
@@ -245,28 +256,46 @@ vtr.Theme wayTheme() => vtr.ThemeReader().read({
       'layers': wayStyleLayers(kWaysSourceId, dashes: false),
     });
 
-/// Die Ebene für die flutter_map-Engine: Archiv vom Host per Range,
-/// Quelle [kWaysSourceId]. Null, solange es kein Manifest gibt oder das
-/// Archiv nicht aufgeht. Im Browser mit Speicher gesehener Kacheln
-/// (#155): ohne frisches Manifest das gemerkte, solange die Ebene an ist.
-final onlineWaysStyleProvider = FutureProvider<BaseMapStyle?>((ref) async {
-  final fresh = await ref.watch(waysManifestProvider.future);
+/// Das Wege-Archiv EINER Region für flutter_map — frisch, im Browser
+/// sonst das gemerkte (#155, je Region), solange die Ebene an ist.
+Future<VectorTileProvider?> _regionWaysArchive(Ref ref, MapRegion region) async {
+  final fresh = await ref.watch(regionWaysManifestProvider(region).future);
   WaysManifest? manifest = fresh;
   if (ref.watch(seenTileStoreProvider) != null && ref.watch(wayLayerEnabledProvider)) {
     final settings = ref.watch(settingsProvider);
-    if (fresh != null) {
-      rememberManifest(settings.seenWaysManifest, fresh.toJson(), settings.setSeenWaysManifest);
+    if (region.isDach) {
+      if (fresh != null) {
+        rememberManifest(settings.seenWaysManifest, fresh.toJson(), settings.setSeenWaysManifest);
+      }
+      manifest ??= rememberedManifest(settings.seenWaysManifest, WaysManifest.fromJson);
+    } else {
+      if (fresh != null) rememberRegionManifest(settings, region, RegionLayer.ways, fresh.toJson());
+      manifest ??= rememberedRegionManifest(settings, region, RegionLayer.ways, WaysManifest.fromJson);
     }
-    manifest ??= rememberedManifest(settings.seenWaysManifest, WaysManifest.fromJson);
   }
   if (manifest == null) return null;
-  final archive = await openHostArchive(ref,
-      file: manifest.file,
+  return openHostArchive(ref,
+      file: '${manifest.dir}${manifest.file}',
       uri: manifest.archiveUri,
       fresh: fresh != null,
       minZoom: kWaysZoom,
       maxZoom: kWaysZoom,
       label: 'Wege-Archiv öffnen');
+}
+
+/// Die Ebene für die flutter_map-Engine: Archiv vom Host per Range,
+/// Quelle [kWaysSourceId]. Null, solange es kein Manifest gibt oder das
+/// Archiv nicht aufgeht. Im Browser mit Speicher gesehener Kacheln
+/// (#155): ohne frisches Manifest das gemerkte, solange die Ebene an ist.
+/// Je Region ein Archiv (#220), verteilt nach Lage wie die Karte.
+final onlineWaysStyleProvider = FutureProvider<BaseMapStyle?>((ref) async {
+  final (dach, regions) = await (_regionWaysArchive(ref, kDachRegion), regionsPatiently(ref)).wait;
+  final opened = [
+    (region: kDachRegion, provider: dach),
+    for (final region in regions)
+      if (!region.isDach) (region: region, provider: await _regionWaysArchive(ref, region)),
+  ];
+  final archive = regionSource(regions, opened);
   if (archive == null) return null;
   return BaseMapStyle(theme: wayTheme(), tileProviders: TileProviders({kWaysSourceId: archive}));
 });

@@ -10,6 +10,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:pmtiles/pmtiles.dart';
 import 'package:trailbuddy/core/connectivity.dart';
 import 'package:trailbuddy/core/settings.dart';
+import 'package:trailbuddy/features/map/map_regions.dart';
 import 'package:trailbuddy/features/map/online_map.dart';
 import 'package:trailbuddy/features/map/way_layer.dart';
 import 'package:trailbuddy/features/offline_areas/area_plan.dart';
@@ -49,6 +50,7 @@ void main() {
   ProviderContainer make({required bool noConnectivity, MapManifest? manifest = _manifest, AreaStore? store}) {
     final c = ProviderContainer(overrides: [
       noConnectivityProvider.overrideWithValue(noConnectivity),
+      regionsLoaderProvider.overrideWithValue(() async => null),
       mapManifestLoaderProvider.overrideWithValue(() async => manifest),
       areaStoreProvider.overrideWithValue(store ?? MemoryAreaStore()),
       settingsProvider.overrideWithValue(FakeSettings()),

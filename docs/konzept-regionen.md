@@ -164,37 +164,55 @@ Index (`dir`).
 
 ## 5. In der App
 
-Alles hängt an EINEM neuen Provider, `regionsProvider` (der Index, mit
-Frist wie das Kartenmanifest, gemerkt wie die Manifeste in #155). Ohne
-Index, also ohne Empfang, vor dem ersten Abruf oder bei kaputtem Host,
-gilt die eingebaute Liste mit genau DACH und den alten Pfaden: Die App
-benimmt sich dann wie 0.103.
+Gebaut in 0.104.0 (Schritt 3), bis auf die Übersicht je Region
+(Schritt 4). Alles hängt an EINEM Provider, `mapRegionsProvider` in
+`lib/features/map/map_regions.dart` (der Index mit derselben Frist wie
+das Kartenmanifest, gemerkt in `Settings.seenRegions`). **DACH kommt
+immer aus dem Binary** (`kDachRegion`, alte Pfade an der Wurzel), auch
+wenn der Index es nennt; für DACH bleiben die bisherigen Provider die
+Quelle. Ohne Index, also ohne Empfang, vor dem ersten Abruf, bei
+kaputtem Host oder fremdem Format, gilt der gemerkte Index, sonst DACH
+allein: Die App benimmt sich dann wie 0.103.
 
+- **Der Index ist streng.** Jeder Pfad muss genau der sein, den
+  `tool/regions.py` schreibt (`<id>/<ebene>.json`, Ordner `<id>/`), die
+  Rahmen dürfen sich nicht schneiden. Passt eine Zeile nicht, gilt der
+  ganze Index nicht — lieber eine Region zu wenig als eine halb gelesene.
 - **Online-Karte:** eine Quelle je Region, jede mit ihrem `bbox` als
-  `bounds`. MapLibre fragt außerhalb davon nichts, und die Range-Anfragen
-  einer Region beginnen erst, wenn sie im Bild ist. Der Composer kann
-  das schon: Bereiche sind heute bereits eigene Quellen mit eigenen
-  Ebenen. flutter_map bekommt je Region einen Lieferanten. Die Übersicht
-  einer Region liegt online wie offline unter ihrer Karte.
+  `bounds` (MapLibre: `online` für DACH, `online-<id>` daneben).
+  MapLibre fragt außerhalb davon nichts, und die Range-Anfragen einer
+  Region beginnen erst, wenn sie im Bild ist. flutter_map hat EINE
+  Kachelquelle, die je Kachel das Archiv der Region fragt, deren Rahmen
+  sie schneidet (`RegionTileProvider`); mit nur einer bekannten Region
+  ist es deren Archiv selbst. Index und Manifeste anderer Regionen
+  warten so lange wie das DACH-Manifest (#183, `regionsPatiently`) —
+  DACH wartet nie auf sie.
 - **Wege, Höhen, Orte, Nachladen des Planers (#187):** je Position die
   Region, in der sie liegt. Das Raster der Orte (0,1° × 0,15°) und die
   z13-Kacheln von Wegen und Höhen sind weltweit dieselben, es ändert
-  sich also nur, welches Manifest gefragt wird.
-- **Gespeicherte Bereiche:** `StoredArea` bekommt `region` (fehlt das
-  Feld, gilt `dach`, alle heutigen Bereiche). Geplant, geladen und
-  aktualisiert wird gegen die Manifeste DIESER Region. Ein Bereich, der
-  über den Rand seiner Region reicht, wird nicht geteilt; was jenseits
-  liegt, fehlt im Archiv, und die Größe vorher sagt es schon richtig,
-  weil sie aus dem Verzeichnis kommt.
-- **Übersicht je Region:** Der erste Bereich in einer Region ohne
-  mitgelieferte Übersicht lädt sie dazu (Größe im Dialog). „Meine
-  Bereiche" zeigt sie als eigene Zeile; gelöscht wird sie mit dem
-  letzten Bereich der Region oder von Hand. Sie gehört in dieselben
-  Backup-Ausschlüsse wie die Bereiche.
-- **Gesehenes bleibt liegen (#155):** Die Schlüssel tragen schon heute den
-  Archivnamen, und der trägt jetzt das Verzeichnis der Region — der
-  Browser-Speicher und MapLibres Ambient Cache unterscheiden die
-  Regionen also von selbst. Gemerkt wird das Manifest je Region.
+  sich also nur, welches Manifest gefragt wird. Wege als eigene Quelle
+  `ways-region-<id>`; Höhen über `RegionHeights` (je Kachel); die Orte
+  je Zelle; der Planer nach dem Rahmen der Planung. Außerhalb aller
+  Regionen fragt keine Ebene.
+- **Gespeicherte Bereiche:** `StoredArea` trägt `region` (fehlt das
+  Feld, gilt `dach`, alle Bereiche vor 0.104.0). Geplant, geladen und
+  aktualisiert wird gegen die Manifeste DIESER Region; die Region ist
+  die, deren Rahmen die Form schneidet. Außerhalb aller sagt der Dialog
+  in einem Satz, für welche Regionen es Karten gibt (`OutsideRegions`).
+  Ein Bereich, der über den Rand seiner Region reicht, wird nicht
+  geteilt; was jenseits liegt, fehlt im Archiv, und die Größe vorher
+  sagt es schon richtig, weil sie aus dem Verzeichnis kommt.
+- **Übersicht je Region** (Schritt 4, noch nicht gebaut): Der erste
+  Bereich in einer Region ohne mitgelieferte Übersicht lädt sie dazu
+  (Größe im Dialog). „Meine Bereiche" zeigt sie als eigene Zeile;
+  gelöscht wird sie mit dem letzten Bereich der Region oder von Hand.
+  Sie gehört in dieselben Backup-Ausschlüsse wie die Bereiche. Bis dahin
+  liegt in Kanada ohne Empfang unter den Bereichen der Hintergrundton.
+- **Gesehenes bleibt liegen (#155):** Die Schlüssel tragen den
+  Archivnamen samt Ordner der Region — der Browser-Speicher und MapLibres
+  Ambient Cache unterscheiden die Regionen also von selbst. Gemerkt wird
+  das Manifest je Region (`Settings.seenRegionManifests`, für DACH
+  weiter `seenMapManifest`/`seenWaysManifest`).
 
 Was sich NICHT ändert: Trails, Fahrten, Abgleich und Buddys kennen keine
 Regionen. Ein Trail in Kanada ist ein Trail wie jeder andere; ohne
@@ -215,9 +233,11 @@ Kartenregion dort hätte er bisher nur keine Karte unter sich gehabt.
    R2-Secrets hat nur CI); die Höhen von Hand, wie für DACH. Das
    DACH-Manifest trägt danach zusätzlich `region`, das ältere Apps
    überlesen.
-3. **Die App liest Regionen** (feat ⇒ MINOR): Index, Quellen je Region,
-   Begleitebenen je Position, `StoredArea.region`. Tests mit zwei
-   Regionen im Harness; mit nur DACH im Index dasselbe Bild wie 0.103.
+3. **Die App liest Regionen** (feat ⇒ MINOR, 0.104.0): Index, Quellen je
+   Region, Begleitebenen je Position, `StoredArea.region`. Tests mit zwei
+   Regionen (`test/map/map_regions_test.dart`); mit nur DACH im Index
+   dasselbe Bild wie 0.103 — der Harness hat keinen Index, und jeder
+   Bestandstest lief unverändert.
 4. **Die Übersicht je Region** (feat ⇒ MINOR): Download mit dem ersten
    Bereich, Zeile in „Meine Bereiche", Backup-Ausschluss.
 5. **18d (#229) danach:** eine ganze Region auf einmal speichern —

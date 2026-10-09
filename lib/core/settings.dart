@@ -99,6 +99,20 @@ abstract interface class Settings {
 
   Future<void> setSeenWaysManifest(String value);
 
+  /// Der zuletzt gelesene Regionen-Index (#220, `regions.json`, nur die
+  /// Regionen außer DACH — die liegt im Binary), als JSON. Ohne Empfang
+  /// kennt die App damit die Regionen des letzten Mals.
+  String? get seenRegions;
+
+  Future<void> setSeenRegions(String value);
+
+  /// Die zuletzt gelesenen Manifeste der Regionen außer DACH (#155 je
+  /// Region), als EIN JSON-Objekt `"<id>/<ebene>" → Manifest`. DACH
+  /// behält [seenMapManifest] und [seenWaysManifest].
+  String? get seenRegionManifests;
+
+  Future<void> setSeenRegionManifests(String value);
+
   /// Ist die Ebene „Offizielle Trails" an (#13)? Vorgabe: an
   /// (Entscheidung des Betreibers, Konzept offizielle Trails 2.5).
   bool get officialTrailsEnabled;
@@ -333,6 +347,22 @@ class PrefsSettings implements Settings {
 
   @override
   Future<void> setSeenWaysManifest(String value) => _prefs.setString(_seenWaysManifestKey, value);
+
+  static const _seenRegionsKey = 'seen_regions';
+
+  @override
+  String? get seenRegions => _prefs.getString(_seenRegionsKey);
+
+  @override
+  Future<void> setSeenRegions(String value) => _prefs.setString(_seenRegionsKey, value);
+
+  static const _seenRegionManifestsKey = 'seen_region_manifests';
+
+  @override
+  String? get seenRegionManifests => _prefs.getString(_seenRegionManifestsKey);
+
+  @override
+  Future<void> setSeenRegionManifests(String value) => _prefs.setString(_seenRegionManifestsKey, value);
 
   static const _appearanceKey = 'appearance';
 
