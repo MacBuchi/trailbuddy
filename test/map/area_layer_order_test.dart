@@ -66,7 +66,7 @@ BaseMapStyle _style() => BaseMapStyle(
 void main() {
   Future<({BaseMapStyle online, BaseMapStyle areas, BaseMapStyle ways, BaseMapStyle areaWays})> pump(
       WidgetTester tester,
-      {required bool noConnectivity}) async {
+      {required bool noConnectivity, bool withOverviews = false}) async {
     final online = _style();
     final areas = _style();
     final ways = _style();
@@ -82,7 +82,8 @@ void main() {
       overrides: [
         noConnectivityProvider.overrideWithValue(noConnectivity),
         onlineMapStyleProvider.overrideWith((ref) async => online),
-        baseMapStyleProvider.overrideWith((ref) async => null),
+        baseMapStyleProvider.overrideWith((ref) async => withOverviews ? _style() : null),
+        areaOverviewStyleProvider.overrideWith((ref) async => withOverviews ? _style() : null),
         areaMapStyleProvider.overrideWith((ref) async => areas),
         onlineWaysStyleProvider.overrideWith((ref) async => ways),
         areaWaysStyleProvider.overrideWith((ref) async => areaWays),
@@ -123,6 +124,27 @@ void main() {
       expect(area.maximumTileSubstitutionDifference, 0,
           reason: 'eine gröbere Bereichskachel läge sonst über der schärferen Online-Kachel');
       // Die vmt-Schichten laufen mit Zeitgebern; abbauen, bevor der Test endet.
+      await tester.pumpWidget(const SizedBox());
+      await tester.pump(const Duration(minutes: 1));
+    });
+  }
+
+  // #220 Schritt 4: Die Übersicht einer Region liegt über der DACH-
+  // Übersicht und unter allem anderen — und nur, solange die Übersicht
+  // überhaupt gebraucht wird (hier: ohne Empfang).
+  for (final noConnectivity in [false, true]) {
+    testWidgets('die Übersichten der Regionen: ${noConnectivity ? 'über der DACH-Übersicht' : 'mit Empfang keine'}',
+        (tester) async {
+      await pump(tester, noConnectivity: noConnectivity, withOverviews: true);
+      final keys = tileLayerKeys(tester);
+      if (noConnectivity) {
+        expect(keys.take(2), const [ValueKey('base-map'), ValueKey('region-overviews')]);
+        final layer = tester.widget<vmt.VectorTileLayer>(find.byKey(const ValueKey('region-overviews')));
+        expect(layer.layerMode, vmt.VectorTileLayerMode.raster);
+      } else {
+        expect(keys, isNot(contains(const ValueKey('region-overviews'))));
+        expect(keys, isNot(contains(const ValueKey('base-map'))));
+      }
       await tester.pumpWidget(const SizedBox());
       await tester.pump(const Duration(minutes: 1));
     });

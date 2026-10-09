@@ -342,6 +342,7 @@ class _SaveDraftDialogState extends ConsumerState<_SaveDraftDialog> {
       AreaPhase.pois => 'Orte ${p.done} von ${p.total}',
       AreaPhase.heights => 'Höhen ${p.done} von ${p.total}',
       AreaPhase.ways => 'Wege ${p.done} von ${p.total}',
+      AreaPhase.overview => 'Übersicht ${formatBytes(p.done)} von ${formatBytes(p.total)}',
       AreaPhase.writing => 'Archiv wird geschrieben …',
     };
   }
@@ -384,7 +385,11 @@ class _SaveDraftDialogState extends ConsumerState<_SaveDraftDialog> {
                     '${plan.hasHeights ? ' · Höhen' : ' · ohne Höhen'}'
                     // Ohne Wege-Kachel nichts: Einem kleinen Bereich, in
                     // dem OSM nichts weiß, fehlt nichts.
-                    '${plan.hasWays ? ' · Wege' : ''}',
+                    '${plan.hasWays ? ' · Wege' : ''}'
+                    // Die Übersicht der Region kommt mit dem ersten Bereich
+                    // dort (#220 Schritt 4) — mit Größe, sie ist der größte
+                    // Posten eines kleinen Bereichs.
+                    '${plan.overview == null ? '' : ' · Übersicht ${formatBytes(plan.overviewBytes)}'}',
             key: const ValueKey('area-size'),
             style: text.titleMedium,
           ),

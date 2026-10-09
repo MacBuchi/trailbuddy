@@ -118,6 +118,59 @@ class HeightsManifest {
   }
 }
 
+/// Das Manifest der Übersicht einer Region (#220 Schritt 4,
+/// `<id>/overview.json`, geschrieben von `map-data.yml` im selben Lauf wie
+/// die Karte): Zoom 0–7 als EINE Datei, die mit dem ersten Bereich der
+/// Region ganz geladen wird. DACH hat keins — seine Übersicht liegt im
+/// Binary —, deshalb gibt es sie nur in einem Regionsordner.
+class OverviewManifest {
+  const OverviewManifest({
+    required this.file,
+    required this.bytes,
+    required this.sha256,
+    required this.maxZoom,
+    required this.sourceBuild,
+    required this.dir,
+  });
+
+  final String file;
+  final int bytes;
+
+  /// Die Prüfsumme der Datei (hex) — die ganze Datei kommt in einem Stück,
+  /// und gelesen wird sie erst, wenn sie stimmt.
+  final String sha256;
+  final int maxZoom;
+
+  /// Der Protomaps-Bau (`JJJJMMTT`), derselbe wie der der Karte.
+  final String sourceBuild;
+  final String dir;
+
+  Uri get archiveUri => Uri.parse('$kMapTilesBase/$dir$file');
+
+  /// Wirft bei allem, was nicht passt — Name und Ordner werden Teil einer
+  /// Adresse, und eine Übersicht an der Wurzel gibt es nicht.
+  factory OverviewManifest.fromJson(Map<String, dynamic> j, {String dir = ''}) {
+    final file = j['file'] as String;
+    final folder = checkRegionDir(dir);
+    if (folder.isEmpty) throw const FormatException('Eine Übersicht gibt es nur im Ordner einer Region');
+    if (!RegExp(r'^overview-\d{8}\.pmtiles$').hasMatch(file)) {
+      throw FormatException('Unerwarteter Archivname: $file');
+    }
+    final sha = j['sha256'] as String;
+    if (!RegExp(r'^[0-9a-f]{64}$').hasMatch(sha)) throw FormatException('Unerwartete Prüfsumme: $sha');
+    final maxZoom = j['maxzoom'] as int;
+    if (maxZoom < 0 || maxZoom > 10) throw FormatException('Unerwarteter Zoom der Übersicht: $maxZoom');
+    return OverviewManifest(
+      file: file,
+      bytes: j['bytes'] as int,
+      sha256: sha,
+      maxZoom: maxZoom,
+      sourceBuild: j['source_build'] as String,
+      dir: folder,
+    );
+  }
+}
+
 /// Holt das Höhen-Manifest vom Host; wirft bei allem, was nicht passt.
 Future<HeightsManifest?> fetchHeightsManifest() async {
   final response = await http.get(Uri.parse(kHeightsManifestUrl));

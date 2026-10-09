@@ -123,6 +123,10 @@ class _FlutterMapViewState extends ConsumerState<FlutterMapView>
         ref.watch(noConnectivityProvider);
     final baseStyle =
         showBaseMap ? ref.watch(baseMapStyleProvider).valueOrNull : null;
+    // Darüber die gespeicherten Übersichten anderer Regionen (#220
+    // Schritt 4), nach derselben Regel.
+    final regionOverviews =
+        showBaseMap ? ref.watch(areaOverviewStyleProvider).valueOrNull : null;
     // Die gespeicherten Bereiche IMMER, zuoberst (#82) — dieselbe Regel
     // wie in der MapLibre-Engine, Begründung in area_providers.dart.
     final areas = ref.watch(areaMapStyleProvider).valueOrNull;
@@ -191,6 +195,14 @@ class _FlutterMapViewState extends ConsumerState<FlutterMapView>
             // Raster, nicht Vektor (PilzBuddy #119): Der Vektor-Modus
             // rendert bei jeder Zwischen-Zoomstufe neu, und diese Schicht
             // endet bei Zoom 7 — es gibt keine Schärfe zu verlieren.
+            layerMode: vmt.VectorTileLayerMode.raster,
+            maximumTileSubstitutionDifference: 1,
+          ),
+        if (regionOverviews != null)
+          vmt.VectorTileLayer(
+            key: const ValueKey('region-overviews'),
+            tileProviders: regionOverviews.tileProviders,
+            theme: regionOverviews.theme,
             layerMode: vmt.VectorTileLayerMode.raster,
             maximumTileSubstitutionDifference: 1,
           ),

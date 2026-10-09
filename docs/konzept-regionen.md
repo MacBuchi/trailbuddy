@@ -164,8 +164,8 @@ Index (`dir`).
 
 ## 5. In der App
 
-Gebaut in 0.104.0 (Schritt 3), bis auf die Übersicht je Region
-(Schritt 4). Alles hängt an EINEM Provider, `mapRegionsProvider` in
+Gebaut in 0.104.0 (Schritt 3) und 0.105.0 (Schritt 4, die Übersicht je
+Region). Alles hängt an EINEM Provider, `mapRegionsProvider` in
 `lib/features/map/map_regions.dart` (der Index mit derselben Frist wie
 das Kartenmanifest, gemerkt in `Settings.seenRegions`). **DACH kommt
 immer aus dem Binary** (`kDachRegion`, alte Pfade an der Wurzel), auch
@@ -202,12 +202,23 @@ allein: Die App benimmt sich dann wie 0.103.
   Ein Bereich, der über den Rand seiner Region reicht, wird nicht
   geteilt; was jenseits liegt, fehlt im Archiv, und die Größe vorher
   sagt es schon richtig, weil sie aus dem Verzeichnis kommt.
-- **Übersicht je Region** (Schritt 4, noch nicht gebaut): Der erste
-  Bereich in einer Region ohne mitgelieferte Übersicht lädt sie dazu
-  (Größe im Dialog). „Meine Bereiche" zeigt sie als eigene Zeile;
-  gelöscht wird sie mit dem letzten Bereich der Region oder von Hand.
-  Sie gehört in dieselben Backup-Ausschlüsse wie die Bereiche. Bis dahin
-  liegt in Kanada ohne Empfang unter den Bereichen der Hintergrundton.
+- **Übersicht je Region** (Schritt 4, seit 0.105.0,
+  `lib/features/offline_areas/region_overview.dart`): Der erste Bereich
+  in einer Region ohne mitgelieferte Übersicht lädt sie dazu, ebenso
+  einer, wenn der Host einen neueren Bau nennt (Größe im Dialog). Sie
+  kommt als GANZE Datei (ein Abruf statt tausender Range-Anfragen) und
+  wird erst abgelegt, wenn Länge, `sha256` und Archiv-Header zum
+  Manifest passen; passt sie nicht, kommt der Bereich ohne sie. Sie
+  liegt neben den Bereichen (`overview-<id>.pmtiles`, also in denselben
+  Backup-Ausschlüssen), mit eigenem kleinen Index, weil sie keinem
+  Bereich gehört. „Meine Bereiche" zeigt sie als eigene Zeile mit
+  Löschen und — fehlt sie oder ist sie älter — einem Knopf, der NUR sie
+  holt. Gelöscht wird sie mit dem letzten Bereich der Region (auch über
+  den Radierer) oder von Hand. Auf der Karte liegt sie über der
+  DACH-Übersicht und unter allem anderen, nach derselben Regel wie
+  diese: solange es kein frisches Kartenmanifest DIESER Region gibt
+  (MapLibre `overview-<id>`, flutter_map eine eigene Schicht ohne
+  `background`).
 - **Gesehenes bleibt liegen (#155):** Die Schlüssel tragen den
   Archivnamen samt Ordner der Region — der Browser-Speicher und MapLibres
   Ambient Cache unterscheiden die Regionen also von selbst. Gemerkt wird
@@ -238,8 +249,8 @@ Kartenregion dort hätte er bisher nur keine Karte unter sich gehabt.
    Regionen (`test/map/map_regions_test.dart`); mit nur DACH im Index
    dasselbe Bild wie 0.103 — der Harness hat keinen Index, und jeder
    Bestandstest lief unverändert.
-4. **Die Übersicht je Region** (feat ⇒ MINOR): Download mit dem ersten
-   Bereich, Zeile in „Meine Bereiche", Backup-Ausschluss.
+4. **Die Übersicht je Region** (feat ⇒ MINOR, 0.105.0): Download mit
+   dem ersten Bereich, Zeile in „Meine Bereiche", Backup-Ausschluss.
 5. **18d (#229) danach:** eine ganze Region auf einmal speichern —
    dafür ändert sich §5 von `konzept-offline-karten.md`, nicht hier.
 

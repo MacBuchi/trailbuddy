@@ -4,7 +4,7 @@
 
 ## Karte jetzt auch in Südkanada
 
-*Version 0.104.0, 2026-10-09*
+*Versionen 0.104.0 und 0.105.0, 2026-10-09*
 
 - **Die Karte reicht bis nach Kanada**: Im Süden Kanadas, bis zum
   55. Breitengrad, zeigt die App jetzt dieselbe Karte wie in DACH. Sie
@@ -15,8 +15,14 @@
   Wo es keine Karte gibt, sagt die App beim Speichern in einem Satz,
   für welche Gegenden es welche gibt.
 - Wege, Orte und Höhen holt die App dort genauso nach Lage, sobald der
-  Kartenhost sie für Kanada bereithält. Eine Übersichtskarte für Kanada
-  ohne Empfang folgt in einer der nächsten Versionen.
+  Kartenhost sie für Kanada bereithält.
+- **Übersichtskarte für Kanada**: Der erste Bereich, den du in Kanada
+  speicherst, bringt eine grobe Karte von ganz Kanada mit (rund 35 MB,
+  der Dialog nennt die Größe). Ohne Empfang liegt um deine Bereiche dann
+  Land, Wasser, Orte und große Straßen statt einer leeren Fläche — wie in
+  DACH, wo diese Karte schon in der App steckt. Unter „Meine Bereiche"
+  steht sie als eigene Zeile zum Löschen; mit deinem letzten Bereich in
+  Kanada geht sie von selbst.
 
 ## Sperren offizieller Trails mit Datum
 

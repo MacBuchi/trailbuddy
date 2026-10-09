@@ -313,3 +313,34 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
   Liste sagen in einem Satz, für welche Regionen es Karten gibt — ohne
   einen Abruf. Ein Bereich über den Rand seiner Region wird nicht
   geteilt. Der Radierer behält die Region (`area_trim.dart`).
+- **Die Übersicht je Region** (#220 Schritt 4, seit 0.105.0,
+  `region_overview.dart`; Konzept `docs/konzept-regionen.md` §5): Zoom
+  0–7 einer Region außer DACH (Kanada 35 MB), mit dem ersten Bereich
+  dort. Fünf Dinge, die man wissen muss:
+  - **Eine Regel für „mitholen"** (`overviewWanted`): nicht da oder
+    älter als `source_build` im Manifest. Plan (`_hostManifests`) und
+    „Meine Bereiche" fragen dieselbe Funktion. DACH nie — im Binary.
+  - **Ganze Datei, geprüft vor dem Ablegen** (`checkOverview`: Länge,
+    `sha256` — dafür ist `crypto` direkte Abhängigkeit —, Header-Zoom).
+    Geholt wird im Download VOR dem Schreiben: Ein Funkloch oder Abbruch
+    dort lässt wie überall nichts zurück; eine Datei, die nicht passt
+    (`OverviewMismatch`), kostet nur die Übersicht und wird gemeldet.
+  - **Eigener Index, nicht im Bereich** (`StoredOverview`,
+    `AreaStore.overviews`/`putOverview`/…): Datei
+    `overview-<id>.pmtiles` + `overviews.json` neben den Bereichen, im
+    Browser `overview/<id>` bei den Archiven und `overviews` beim Index —
+    kein neuer Speicher, keine neue DB-Version. Die Region wird Teil
+    eines Dateinamens und ist deshalb geprüft.
+  - **Sie geht mit dem letzten Bereich ihrer Region**
+    (`_dropOrphanOverviews` nach `delete` UND `applyTrim`); von Hand
+    gelöscht holt der Knopf in „Meine Bereiche" nur sie wieder
+    (`AreaDownloadNotifier.fetchOverview`), kein Bereich wird neu
+    geladen.
+  - **Auf der Karte wie die DACH-Übersicht**: nur, solange es kein
+    frisches Kartenmanifest der Region gibt; MapLibre als
+    `overview-<id>` direkt nach `overview`, flutter_map als Schicht
+    `region-overviews` nach `base-map`, Thema OHNE `background` (sonst
+    deckte sie die DACH-Übersicht zu). Der Harness setzt
+    `overviewFetcherProvider` auf null. Tests:
+    `test/map/region_overview_test.dart`, flutter_map in
+    `area_layer_order_test.dart`.

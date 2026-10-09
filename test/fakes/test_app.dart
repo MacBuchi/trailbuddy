@@ -33,6 +33,7 @@ import 'package:trailbuddy/features/routing/nav_service.dart';
 import 'package:trailbuddy/features/map/poi_source.dart';
 import 'package:trailbuddy/features/map/way_layer.dart';
 import 'package:trailbuddy/features/offline_areas/area_store.dart';
+import 'package:trailbuddy/features/offline_areas/region_overview.dart';
 import 'package:trailbuddy/features/map/position_provider.dart';
 import 'package:trailbuddy/features/official/official_trails_source.dart';
 import 'package:trailbuddy/features/rides/ride_confirm_notify.dart';
@@ -147,6 +148,8 @@ List<Override> overridesFor(FakeBackend backend,
       // Manifest einer anderen Region.
       regionsLoaderProvider.overrideWithValue(() async => null),
       regionManifestLoaderProvider.overrideWithValue((_) async => null),
+      // Und keine Übersicht einer Region als Datei (#220 Schritt 4).
+      overviewFetcherProvider.overrideWithValue((_, {onProgress, check}) async => null),
       areaHeightsManifestLoaderProvider.overrideWithValue(() async => null),
       heightsManifestLoaderProvider.overrideWithValue(() async => null),
       // Die Wege (#212) sind ab Werk an — ohne diese Zeile fragte jeder
