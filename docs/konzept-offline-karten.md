@@ -530,15 +530,28 @@ Region — eine `RegionShape` zählt dabei wie jeder andere.
 Die Zellendateien bleiben der Speicher der Orte, die Formen decken
 Zellen statt Kacheln, gelöscht wird eine Zellendatei erst, wenn keine
 Form ihre Zelle mehr berührt. Für die ganze Region schreibt
-`poi-data.yml` je Region zusätzlich ein Bündel (`pois-<build>.json.gz`
-neben den Zellen, im Manifest mit Größe und `sha256`), das die App in
-die Zellendateien zerlegt — ein Abruf statt 25 093.
+`poi-data.yml` je Region zusätzlich ein Bündel, das die App in die
+Zellendateien zerlegt — ein Abruf statt 25 093. **Gebaut am
+2026-10-09** (`tool/poi_extract.py`, `BUNDLE_NAME`):
+`pois-<build>/bundle.tsv.gz`, also IM Ordner des Baus (das Abräumen
+eines alten Baus nimmt es mit), im Manifest als `bundle` mit `file`
+(relativ zum Ordner), `files`, `bytes`, `raw_bytes` und `sha256`;
+`files`/`bytes` des Manifests zählen weiter nur die Zellen, und ältere
+Apps überlesen das Feld. Inhalt: eine Kopfzeile (JSON: `format`, `build`,
+`files`), dann je Zellendatei eine Zeile `<name>\t<inhalt>` — der Inhalt
+ist Byte für Byte die Zellendatei, die ohnehin eine Zeile ist. Zeilen
+statt eines JSON-Dokuments, damit das Telefon beim Entpacken zerlegt,
+ohne 165 MB Text (DACH) auf einmal zu halten. gzip als Inhalt
+(`application/gzip`), nicht als `Content-Encoding`: Ein Client, der im
+Flug entpackt, sähe andere Bytes, als `sha256` sagt. Der Workflow prüft
+die öffentliche Kopie (Länge, `sha256`, entpackt genau die Zellen), das
+Inventar (#230) zählt das Bündel zum Bau.
 
 ### 8.7 Reihenfolge
 
 1. **Dieses Konzept** (docs, kein Bump).
 2. **Das Orte-Bündel** in `tool/poi_extract.py` und `poi-data.yml`
-   (kein Bump), danach je Region ein Lauf.
+   (kein Bump), danach je Region ein Lauf (8.6).
 3. **Der Kachelspeicher** (feat ⇒ MINOR): MBTiles auf Android,
    IndexedDB im Browser, Übernahme der heutigen Bereiche, Bereiche als
    Verweise, Löschen und Radierer nach Verweis, eine Quelle je Region in

@@ -184,10 +184,19 @@ def analyse(objects: list[dict], uploads: list[dict], manifests: dict,
                 else:
                     current = m.group(2)
                     want_bytes = manifest.get("bytes")
+                    want_files = manifest.get("files") if fam["folder"] else 1
+                    # The places bundle (#229) lies in the build's folder
+                    # but is no cell file: `files` and `bytes` count the
+                    # cells, the bundle names its own size.
+                    bundle = manifest.get("bundle") if fam["folder"] else None
+                    if isinstance(bundle, dict):
+                        if want_bytes is not None:
+                            want_bytes = int(want_bytes) + int(bundle.get("bytes", 0))
+                        if want_files is not None:
+                            want_files = int(want_files) + 1
                     if want_bytes is not None and int(want_bytes) != held["bytes"]:
                         errors.append(f"{fam['manifest']}: `{named}` holds {held['bytes']} "
                                       f"bytes, the manifest says {want_bytes}")
-                    want_files = manifest.get("files") if fam["folder"] else 1
                     if want_files is not None and int(want_files) != held["objects"]:
                         errors.append(f"{fam['manifest']}: `{named}` holds {held['objects']} "
                                       f"objects, the manifest says {want_files}")
@@ -458,6 +467,17 @@ def self_test():
     assert "NOT in the bucket" in r["errors"][0]
     assert "holds 50 bytes, the manifest says 51" in r["errors"][1]
     assert "holds 2 objects, the manifest says 3" in r["errors"][2]
+    # The places bundle sits in the build's folder and counts on top of
+    # the cells (#229): with it the build is whole, without it not.
+    bundled = dict(listing)
+    bundled["Contents"] = listing["Contents"] + [
+        obj("trailbuddy/pois-20261009/bundle.tsv.gz", 5, "b1")]
+    with_bundle = {**manifests, "pois.json": {"prefix": "pois-20261009", "files": 2, "bytes": 16,
+                                              "bundle": {"file": "bundle.tsv.gz", "bytes": 5}}}
+    assert analyse(load_objects(bundled), [], with_bundle)["errors"] == []
+    rb = analyse(load_objects(listing), [], with_bundle)["errors"]
+    assert len(rb) == 2 and "holds 16 bytes, the manifest says 21" in rb[0], rb
+    assert "holds 2 objects, the manifest says 3" in rb[1], rb
     # With no build named, nothing is called stale or orphaned.
     assert {b["state"] for b in next(f for f in r["families"] if f["name"] == "map")["builds"]} \
         == {"unnamed"}
