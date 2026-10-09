@@ -227,7 +227,11 @@ Free-Kontingent von R2 —, steht in `docs/konzept-regionen.md` (18c).
 ## 5. Was NICHT kommt
 
 - Keine Bundesland-Regionen (PilzBuddys Katalog). Ein Mechanismus für
-  beide Plattformen ist mehr wert als zwei Gebietsbegriffe.
+  beide Plattformen ist mehr wert als zwei Gebietsbegriffe. **Seit #229
+  (Abschnitt 8) gibt es trotzdem „die ganze Region"** — aber nicht als
+  zweiten Gebietsbegriff mit eigenem Download, sondern als eine weitere
+  FORM über demselben Kachelspeicher: „alle Kacheln der Region". Einen
+  Katalog von Teilgebieten gibt es weiterhin nicht.
 - Kein eigener Kachel-Server, keine Serverlogik. Der Host liefert Bytes
   auf Range-Anfragen, mehr nicht.
 - Keine OSM-Raster offline, auf keiner Plattform.
@@ -263,6 +267,9 @@ Free-Kontingent von R2 —, steht in `docs/konzept-regionen.md` (18c).
 5. **#29 mit der Wege-Ebene** (**seit 0.20.0**): `road_index.dart`
    liest die z13-Kacheln der Fahrt aus den Bereichen; jede Kachel muss
    in einem liegen, sonst gelten die Wege als unbekannt.
+
+6. **Ein Kachelspeicher, Bereiche als Verweise, die ganze Region**
+   (#229, 18d in #156): Abschnitt 8.
 
 Jeder Schritt ein PR, jeder mit Datenschutzerklärung und CLAUDE.md im
 selben PR, wo sich ein Netzziel oder eine Datenkategorie ändert.
@@ -383,3 +390,175 @@ Messung jenseits von DACH (#220).
    13 drin, feine Details ab 14).
 3. **iPhone im Browser**: zählt es? Safari räumt IndexedDB nach sieben
    Tagen ohne Nutzung; die Karte kann es sagen, nicht verhindern.
+
+## 8. Ein Kachelspeicher, Bereiche als Verweise, die ganze Region (#229)
+
+**Stand:** 2026-10-09 · **Issue:** #229 (Feldwunsch aus 0.82.1:
+„Erlaube vollständigen Karten-Download, spart auch Zugriff") ·
+**Fahrplan:** 18d in #156. Ändert §5 und die Ablage aus 3.2 und
+Abschnitt 7 („je Bereich EIN Archiv").
+
+### 8.1 Was der Betreiber entschieden hat (2026-10-09)
+
+1. **Keine zwei getrennten Dinge.** Wörtlich: „Ich hätte es so
+   kombiniert, dass es keine 2 getrennten Sachen und Downloads sind. Die
+   Region heißt einfach alle Kacheln … Und wenn man mehrere Bereiche
+   hat, wird es nicht mehrfach abgelegt, sondern nur additiv die
+   fehlenden Kacheln geladen in einem Kachelspeicher. Also die Summe
+   über die Bereiche ergibt das, was heruntergeladen wird. Hat man einen
+   Bereich um die Trails und lädt dann komplett DACH als Paket und
+   löscht es dann, werden nur die Kacheln entfernt, die von keinem
+   Bereich referenziert werden. Das Alter und Update der Kacheln sollte
+   dann natürlich je Kachel stattfinden."
+2. **Die ganze Region nur auf Android.** DACH sind rund 3,2 GB
+   (Karte 2,80 GB, Höhen 147 MB, Wege 126 MB, Orte 165 MB; Kanada rund
+   2,5 GB) — das passt nicht verlässlich in den Speicher eines Browsers.
+   Im Browser bleiben gezeichnete Bereiche, über DENSELBEN Speicher
+   (8.3).
+3. **Die Orte einer Region kommen als ein Bündel** (8.6), nicht als
+   25 093 einzelne Zellendateien.
+
+### 8.2 Das Modell
+
+- **Je Region und Ebene ein Kachelspeicher**: Karte, Höhen, Wege. Eine
+  Kachel liegt darin genau EINMAL, mit den Bytes aus dem Host-Archiv
+  (unverändert, dieselbe Kompression) und dem Bau, aus dem sie stammt
+  (`JJJJMMTT`). Die Orte liegen wie heute je Rasterzelle und Gruppe —
+  das ist schon ein Speicher mit einem Eintrag je Schlüssel.
+- **Ein Bereich ist nur noch ein Verweis**: Name, Region, FORM — wie
+  heute der Eintrag im Index, ohne eigenes Archiv. Die Formen bleiben
+  (`RectShape`, `TileSetShape`, Stift und Radierer), dazu kommt eine:
+  **`RegionShape` = alle Kacheln der Region** (Zoom 8 bis zum Zoom des
+  Hosts, die das Verzeichnis des Host-Archivs nennt). „Ganze Region
+  speichern" ist damit ein Bereich wie jeder andere, nur mit dieser
+  Form.
+- **Was liegen soll, ist die Vereinigung der Formen** (je Zoom wie heute
+  über `AreaShape.keysAt`; eine gröbere Kachel gehört dazu, sobald eine
+  Form sie berührt). Daraus folgen die drei Regeln des Betreibers:
+  - **Speichern lädt nur, was fehlt.** Der Dialog nennt Größe und
+    Kacheln der FEHLENDEN — wer DACH speichert und schon Bereiche dort
+    hat, sieht die Ersparnis, wer einen Bereich in einer gespeicherten
+    Region zeichnet, sieht „liegt schon".
+  - **Löschen entfernt nur, was keine andere Form mehr deckt.**
+    „Meine Bereiche" nennt je Bereich, was er ALLEIN belegt („gibt
+    … frei"), daneben, was er insgesamt deckt.
+  - **Der Radierer** nimmt Kacheln aus Formen; weg sind sie erst, wenn
+    keine Form sie mehr deckt. Er braucht kein Netz und schreibt kein
+    Archiv mehr neu — er löscht Zeilen.
+- **Alter und Aktualisieren je Kachel.** Veraltet ist eine Kachel, deren
+  Bau älter ist als der aktuelle des Hosts (Karte: `source_build`,
+  Höhen und Wege: `build`). „Meine Bereiche" sagt je Region, wie viele
+  gedeckte Kacheln veraltet sind und wie groß ihr Ersatz ist, und
+  bietet „Aktualisieren" an — geholt werden nur diese Kacheln. Nie von
+  selbst (§7: wer tippt, entscheidet), und bei Mobilfunk mit Warnung.
+  Bis zum Aktualisieren können Nachbarkacheln aus verschiedenen Bauten
+  stammen; eine Straße, die zwischen zwei Bauten neu gezeichnet wurde,
+  kann an einer Kachelgrenze kurz springen. Das ist der Preis der
+  Regel, und „Aktualisieren" schließt ihn.
+- **Unvollständig ist ein Zustand, kein Fehler.** Ein Verweis entsteht
+  VOR dem Download, als „unvollständig"; ein Abbruch, ein Funkloch, ein
+  voller Speicher lassen die bis dahin geschriebenen Kacheln liegen, und
+  „Fortsetzen" holt nur den Rest. Die Leiste zeigt als gespeichert, was
+  liegt — nicht, was ein Verweis verspricht. Heute hinterlässt ein
+  Abbruch nichts; bei 3 GB wäre das nicht zumutbar. Kacheln, die nach
+  einem Löschen keiner Form mehr gehören, gehen sofort.
+
+### 8.3 Die Ablage je Plattform
+
+- **Android: MBTiles (SQLite) je Region und Ebene**,
+  `offline_maps/store/<region>/{map,heights,ways}.mbtiles` (im selben
+  Backup-Ausschluss wie heute `offline_maps/`). MapLibre liest
+  `mbtiles://` NATIV (nachgesehen in 13.5.3:
+  `platform/default/src/mbgl/storage/mbtiles_file_source.cpp` steht in
+  `android.cmake`; Abfrage `SELECT tile_data FROM tiles WHERE
+  zoom_level … tile_row …` mit TMS-Zeile, öffnet die Datei NUR LESEND
+  und hält sie offen, entpackt gzip selbst; aus der Tabelle `metadata`
+  braucht es `format = pbf` und `minzoom`/`maxzoom`, `bounds` gibt es
+  bei `pbf` nicht an die Quelle weiter). Statt einer Quelle je Bereich
+  hat die Karte damit EINE je Region und Ebene — weniger Quellen, und
+  „Bereiche liegen zuoberst" (#82) bleibt dieselbe Regel. Die eigene
+  Spalte `build` steht in der Tabelle `tiles`; MapLibre fragt nur
+  `tile_data`. Dart liest und schreibt dieselbe Datei über SQLite
+  (neue Abhängigkeit, Lizenz in `tool/license_config.yaml` prüfen) im
+  WAL-Modus, damit MapLibre beim Schreiben weiterlesen kann.
+- **Browser: IndexedDB**, ein Speicher je Ebene mit Schlüssel
+  `<region>/z/x/y` (Bytes und Bau), neben dem Kachelspeicher von #155;
+  Besitzer von Name und Version bleibt `lib/data/browser_db.dart`.
+  flutter_map liest über einen Kachel-Lieferanten aus dem Speicher
+  statt über `MultiAreaTileProvider` und `fromBytes` — kein ganzes
+  Archiv mehr im Speicher des Tabs.
+- **Test: der Speicher im Arbeitsspeicher** wie heute.
+- Wer im Dart-Code eine Kachel braucht (Wege-Index des Zerlege-Blatts,
+  Höhen und Graph des Planers), fragt den Speicher der Region — nicht
+  mehr die Archive der Bereiche einzeln.
+
+### 8.4 Der Download
+
+- **Fehlende Kacheln, zusammenhängend geholt**: geplant wird wie heute
+  aus dem Verzeichnis des Host-Archivs (exakte Größe), nur gegen den
+  Speicher abgezogen. Die Kacheln liegen nach Hilbert-Kurve, also bleibt
+  es bei wenigen großen Range-Anfragen; geschrieben wird blockweise in
+  einer Transaktion, jede Kachel mit der Länge geprüft, die das
+  Verzeichnis nennt.
+- **Die ganze Region** liest den Datenteil des Archivs in Stücken von
+  bis zu 64 MB (DACH rund 45 Anfragen statt einer je Kachel — das ist
+  „spart auch Zugriff", #55), Höhen und Wege ebenso, die Orte als ein
+  Bündel. Auf Android unter dem KeepAlive-Koordinator (`dataSync`),
+  mit Fortschritt, Abbruch und Fortsetzen; vorher die Größe und bei
+  Mobilfunk die Warnung (`connectivity_plus` kennt den Transportweg).
+  Ein voller Speicher bricht ab, als wäre es ein Funkloch, und sagt es.
+- **Gegengelesen** wird je Block: eine Stichprobe der geschriebenen
+  Kacheln aus dem Speicher zurück, Bytes gleich mit dem Host. Eine
+  Prüfsumme über die ganze Datei gibt es beim Lesen in Stücken nicht —
+  die Länge jeder Kachel aus dem Verzeichnis und die Stichprobe ersetzen
+  sie.
+
+### 8.5 Was mit den heutigen Bereichen passiert
+
+Beim ersten Start der neuen Version werden die Archive der vorhandenen
+Bereiche (Karte, Höhen, Wege) **lokal in den Speicher übernommen**: jede
+Kachel mit dem Bau ihres Bereichs, ohne Netz. Erst wenn alle Kacheln
+eines Bereichs im Speicher stehen und eine Stichprobe stimmt, wird sein
+Eintrag zum Verweis und sein Archiv gelöscht; bricht die Übernahme ab,
+liest die App beim nächsten Start weiter, wo sie war. Die Formen
+bleiben, wie sie sind. Die Übersicht je Region (#284) ist kein Bereich
+und bleibt eine Datei; sie geht weiter mit dem letzten Bereich ihrer
+Region — eine `RegionShape` zählt dabei wie jeder andere.
+
+### 8.6 Die Orte
+
+Die Zellendateien bleiben der Speicher der Orte, die Formen decken
+Zellen statt Kacheln, gelöscht wird eine Zellendatei erst, wenn keine
+Form ihre Zelle mehr berührt. Für die ganze Region schreibt
+`poi-data.yml` je Region zusätzlich ein Bündel (`pois-<build>.json.gz`
+neben den Zellen, im Manifest mit Größe und `sha256`), das die App in
+die Zellendateien zerlegt — ein Abruf statt 25 093.
+
+### 8.7 Reihenfolge
+
+1. **Dieses Konzept** (docs, kein Bump).
+2. **Das Orte-Bündel** in `tool/poi_extract.py` und `poi-data.yml`
+   (kein Bump), danach je Region ein Lauf.
+3. **Der Kachelspeicher** (feat ⇒ MINOR): MBTiles auf Android,
+   IndexedDB im Browser, Übernahme der heutigen Bereiche, Bereiche als
+   Verweise, Löschen und Radierer nach Verweis, eine Quelle je Region in
+   beiden Engines, Wege-Index und Planer lesen den Speicher. Sichtbar
+   neu ist nur „lädt nur, was fehlt" und „gibt … frei".
+4. **Alter je Kachel**: „veraltet" und „Aktualisieren" je Region (feat).
+5. **Die ganze Region speichern** (Android, feat) — schließt #229;
+   danach ist 🚀 C fällig.
+
+### 8.8 Offen, beim Bau zu klären
+
+- **MapLibre und ein wachsender Speicher**: Die Datei ist nur lesend
+  offen und bleibt offen; ob neu geschriebene Kacheln ohne Neuladen des
+  Stils erscheinen und was eine fehlende Zeile zeichnet (erwartet: die
+  Ebene darunter), wird am Gerät nachgesehen (📱), bevor Schritt 3
+  gemergt wird.
+- **Freier Platz vorher**: Android kennt ihn (`StatFs`), Dart nicht;
+  ein Kanal in `MainActivity.kt` wäre nativer Code ohne Test. Bis dahin
+  sagt der Dialog die Größe, und ein voller Speicher ist ein sauberer
+  Abbruch (8.4).
+- **Die Grenze von 40 000 Kacheln** (`kAreaMaxTiles`) bleibt für
+  GEZEICHNETE Bereiche — ein versehentlicher Strich über halb DACH soll
+  nicht ein Gigabyte laden. Wer mehr will, nimmt die ganze Region.

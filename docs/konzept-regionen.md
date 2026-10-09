@@ -252,7 +252,10 @@ Kartenregion dort hätte er bisher nur keine Karte unter sich gehabt.
 4. **Die Übersicht je Region** (feat ⇒ MINOR, 0.105.0): Download mit
    dem ersten Bereich, Zeile in „Meine Bereiche", Backup-Ausschluss.
 5. **18d (#229) danach:** eine ganze Region auf einmal speichern —
-   dafür ändert sich §5 von `konzept-offline-karten.md`, nicht hier.
+   nicht als zweiter Download neben den Bereichen, sondern als Form
+   „alle Kacheln der Region" über einem gemeinsamen Kachelspeicher je
+   Region und Ebene (Betreiber, 2026-10-09). Plan und Reihenfolge in
+   `konzept-offline-karten.md` Abschnitt 8.
 
 Nach 3 und 4 ist 🚀 C fällig, zusammen mit 18d.
 
