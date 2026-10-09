@@ -225,8 +225,40 @@ String poiCellFileName(PoiCell cell, PoiGroup group) =>
 /// Das Manifest `pois.json` des Kartenhosts: welcher Bau gerade gilt und
 /// welche Zellen je Gruppe überhaupt eine Datei haben. Eine Zelle, die
 /// hier nicht steht, ist leer — die App fragt dann gar nicht erst.
+/// Das Bündel aller Zellendateien eines Baus (#229, Konzept 8.6):
+/// `pois-<build>/bundle.tsv.gz`, für „Ganze Region speichern" — ein Abruf
+/// statt zehntausender. Gzip als Inhalt; [sha256] gilt für diese Bytes.
+class PoiBundle {
+  const PoiBundle({required this.file, required this.files, required this.bytes, required this.sha256});
+
+  /// Relativ zum Ordner des Baus.
+  final String file;
+
+  /// Wie viele Zellendateien darin stehen.
+  final int files;
+  final int bytes;
+  final String sha256;
+
+  static PoiBundle? fromJson(Object? j) {
+    if (j is! Map<String, dynamic>) return null;
+    final file = j['file'];
+    final sha = j['sha256'];
+    if (file is! String || !RegExp(r'^[a-z0-9_.-]+\.gz$').hasMatch(file)) return null;
+    if (sha is! String || !RegExp(r'^[0-9a-f]{64}$').hasMatch(sha)) return null;
+    final files = j['files'], bytes = j['bytes'];
+    if (files is! int || bytes is! int) return null;
+    return PoiBundle(file: file, files: files, bytes: bytes, sha256: sha);
+  }
+}
+
 class PoiManifest {
-  const PoiManifest({required this.build, required this.prefix, required this.cells, this.dir = ''});
+  const PoiManifest(
+      {required this.build, required this.prefix, required this.cells, this.dir = '', this.bundle});
+
+  /// Das Bündel des Baus — null bei einem Bau von vor dem 2026-10-09 oder
+  /// einem Feld, das nicht passt (dann holt die ganze Region Datei für
+  /// Datei).
+  final PoiBundle? bundle;
 
   /// `JJJJMMTT` des Baus.
   final String build;
@@ -262,6 +294,7 @@ class PoiManifest {
       build: j['build'] as String,
       prefix: prefix,
       dir: dir,
+      bundle: PoiBundle.fromJson(j['bundle']),
       cells: {
         for (final g in PoiGroup.values)
           g: {for (final c in (raw[g.name] as List? ?? const [])) c as String},

@@ -4,6 +4,8 @@
 // Seit 0.106.0 (#229) teilen Bereiche ihre Kacheln: Die Zeile nennt, was
 // ein Bereich ALLEIN belegt — das, was sein Löschen frei gibt —, und ein
 // abgebrochener Download steht als „unvollständig" mit „Fortsetzen" da.
+// Seit 0.108.0 (#229 Schritt 5) auf dem Telefon „Ganze Region speichern":
+// ein Bereich wie jeder andere, nur mit der Form „alle Kacheln der Region".
 // Seit 0.107.0 (#229 Schritt 4) das Alter je Kachel, je Region: eine Zeile
 // sagt, wie viele Kacheln älter sind als der Stand des Hosts, und
 // „Aktualisieren" holt nur sie — über alle Bereiche der Region zusammen.
@@ -49,7 +51,26 @@ class AreasScreen extends ConsumerWidget {
           child: Text('Die Bereiche ließen sich nicht lesen.'),
         ),
         data: (areas) {
+          // Die ganze Region, wo sie noch nicht liegt (nur auf dem Telefon).
+          final wholeOffers = ref.watch(wholeRegionSupportedProvider)
+              ? [
+                  for (final r in regions)
+                    if (!areas.any((a) => a.region == r.id && a.shape is RegionShape)) _WholeRegionTile(r),
+                ]
+              : const <Widget>[];
           if (areas.isEmpty && overviews.isEmpty) {
+            if (wholeOffers.isNotEmpty) {
+              return ListView(children: [
+                const Padding(
+                  padding: EdgeInsets.fromLTRB(16, 12, 16, 4),
+                  child: Text(
+                    'Noch kein Bereich. Speichere einen auf der Karte (Knopf „Offline-Karten") — '
+                    'oder gleich die ganze Region, für den Wald ohne Empfang.',
+                  ),
+                ),
+                ...wholeOffers,
+              ]);
+            }
             return const Padding(
               padding: EdgeInsets.all(24),
               child: Text(
@@ -117,6 +138,7 @@ class AreasScreen extends ConsumerWidget {
                   stored: overviews.where((o) => o.region == r.id).firstOrNull,
                   available: ref.watch(regionOverviewAvailableProvider(r)).valueOrNull,
                 ),
+              ...wholeOffers,
               // Eine Übersicht, deren Region der Index gerade nicht nennt:
               // sehen und löschen muss man sie trotzdem können.
               for (final o in overviews)
@@ -251,6 +273,96 @@ class _AreaTile extends ConsumerWidget {
         StatefulNavigationShell.of(context).goBranch(kMapBranchIndex);
         ref.read(mapFocusAreaProvider.notifier).state = area;
       },
+    );
+  }
+}
+
+/// „Ganze Region speichern" (#229 Schritt 5, Konzept 8.2): ein Bereich mit
+/// der Form `RegionShape` — alle Kacheln der Region bis zum Zoom des Hosts,
+/// mit Orten (als Bündel), Höhen und Wegen. Vorher die gemessene Größe,
+/// über Mobilfunk mit Warnung; geladen wird nur, was nicht schon liegt.
+/// Nur auf dem Telefon (Betreiber, 2026-10-09).
+class _WholeRegionTile extends ConsumerStatefulWidget {
+  const _WholeRegionTile(this.region);
+
+  final MapRegion region;
+
+  @override
+  ConsumerState<_WholeRegionTile> createState() => _WholeRegionTileState();
+}
+
+class _WholeRegionTileState extends ConsumerState<_WholeRegionTile> {
+  /// Das Messen liest das ganze Verzeichnis des Hosts — das dauert.
+  bool _measuring = false;
+
+  MapRegion get region => widget.region;
+
+  Future<void> _save() async {
+    final messenger = ScaffoldMessenger.of(context);
+    final notifier = ref.read(areaDownloadProvider.notifier);
+    final box = region.box;
+    final shape = RegionShape(region: region.id, bounds: AreaBounds(south: box.s, west: box.w, north: box.n, east: box.e));
+    final AreaPlan plan;
+    setState(() => _measuring = true);
+    try {
+      plan = await notifier.plan(shape);
+    } catch (_) {
+      messenger.showSnackBar(const SnackBar(content: Text('Der Kartenhost ist gerade nicht erreichbar.')));
+      return;
+    } finally {
+      if (mounted) setState(() => _measuring = false);
+    }
+    if (!mounted) return;
+    final mobile = ref.read(onMobileDataProvider);
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('${region.name} ganz speichern?'),
+        content: Text('Lädt ${formatBytes(plan.totalBytes)} · ${plan.tiles.length} Kacheln'
+            '${plan.map.stored > 0 ? ' (${plan.map.stored} liegen schon)' : ''}'
+            '${plan.poiBundle != null || plan.poiNames.isNotEmpty ? ' · mit Orten' : ''}'
+            '${plan.hasHeights ? ' · mit Höhen' : ''}'
+            '${plan.hasWays ? ' · mit Wegen' : ''}.\n\n'
+            'Das dauert eine Weile und läuft weiter, wenn du die App wechselst. Bricht es ab, '
+            'bleibt alles Geladene, und „Fortsetzen" holt den Rest.'
+            '${mobile ? '\n\nDu bist über Mobilfunk verbunden — das geht vom Datenvolumen ab.' : ''}'),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Abbrechen')),
+          FilledButton(onPressed: () => Navigator.of(context).pop(true), child: const Text('Speichern')),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+    final area = await notifier.start(plan, name: '${region.name} komplett');
+    if (area == null) {
+      final error = ref.read(areaDownloadProvider).error;
+      if (error != null) messenger.showSnackBar(SnackBar(content: Text(error)));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final busy = ref.watch(areaDownloadProvider.select((s) => s.busy));
+    final map = ref.watch(regionMapManifestProvider(region)).valueOrNull;
+    final heights = ref.watch(regionHeightsManifestProvider(region)).valueOrNull;
+    final ways = ref.watch(areaWaysAvailableProvider(region)).valueOrNull;
+    final size = map == null ? null : map.bytes + (heights?.bytes ?? 0) + (ways?.bytes ?? 0);
+    return ListTile(
+      key: ValueKey('whole-${region.id}'),
+      leading: const Icon(Icons.download_for_offline_outlined),
+      title: Text('${region.name} ganz speichern'),
+      subtitle: _measuring
+          ? const LinearProgressIndicator()
+          : Text(size == null
+              ? 'Die ganze Karte bis Zoom 13 samt Orten, Höhen und Wegen — braucht Empfang.'
+              : 'Die ganze Karte bis Zoom 13 samt Orten, Höhen und Wegen — rund ${formatBytes(size)}; '
+                  'was schon liegt, kommt nicht noch einmal.'),
+      trailing: IconButton(
+        key: ValueKey('whole-save-${region.id}'),
+        tooltip: 'Ganze Region speichern',
+        icon: const Icon(Icons.download),
+        onPressed: busy || _measuring || map == null ? null : _save,
+      ),
     );
   }
 }

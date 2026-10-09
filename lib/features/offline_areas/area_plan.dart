@@ -195,6 +195,10 @@ sealed class AreaShape {
             zoom: j['zoom'] as int,
             keys: {for (final k in j['keys'] as List) k as int},
           ),
+        'region' => RegionShape(
+            region: j['region'] as String,
+            bounds: AreaBounds.fromJson(j['bounds'] as Map<String, dynamic>),
+          ),
         _ => RectShape(AreaBounds.fromJson(j['bounds'] as Map<String, dynamic>)),
       };
 
@@ -278,6 +282,28 @@ class RectShape extends AreaShape {
 
   @override
   Map<String, dynamic> toJson() => {'type': 'rect', 'bounds': bounds.toJson()};
+}
+
+/// Die ganze Region (#229, Konzept 8.2): alle Kacheln, die das Archiv des
+/// Hosts im Rahmen der Region nennt, Zoom 8 bis zum Zoom des Hosts. Nach
+/// außen ein Rahmen wie [RectShape] — die Kacheln, die der Host nicht hat
+/// (Meer, außerhalb der Umrisslinie), fallen beim Planen weg wie immer.
+///
+/// Drei Dinge sind anders, weil die Form Millionen Kacheln deckt (Kanada
+/// bei Zoom 13 rund 930 000): Sie hat keine Obergrenze ([kAreaMaxTiles]
+/// gilt für gezeichnete), Verweise und Alter rechnen für eine Region mit
+/// ihr gegen den ganzen Index statt gegen ihre Kacheln
+/// (`tile_refs.dart`), und Entwurf und Radierer lassen sie aus — sie ist
+/// nur im Ganzen zu löschen. [keysAt] würde deshalb niemand rufen; es
+/// rechnet trotzdem richtig.
+class RegionShape extends RectShape {
+  const RegionShape({required this.region, required AreaBounds bounds}) : super(bounds);
+
+  /// Die Region des Hosts (`dach`, `ca`).
+  final String region;
+
+  @override
+  Map<String, dynamic> toJson() => {'type': 'region', 'region': region, 'bounds': bounds.toJson()};
 }
 
 /// Eine Menge Kacheln bei [zoom] (Schlüssel aus [keyOf]) — die Form

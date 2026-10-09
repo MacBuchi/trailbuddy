@@ -14,7 +14,7 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
   Ebene (Karte, Höhen, Wege) EIN Speicher (`tile_store.dart`), jede
   Kachel einmal, mit den Bytes des Host-Archivs und ihrem Bau. Ein
   Bereich ist nur noch Name, Region, Form (`StoredArea.format` 2); was
-  liegen soll, ist die Vereinigung der Formen (`tile_refs.dart`). Neun
+  liegen soll, ist die Vereinigung der Formen (`tile_refs.dart`). Zehn
   Dinge, die man wissen muss:
   - **Android: MBTiles** (`tile_store_io.dart`,
     `offline_maps/store/<region>/<ebene>.mbtiles`, im Backup-Ausschluss
@@ -77,6 +77,23 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     lässt das Neue liegen, die Zählung zeigt den Rest. Mobilfunk-Warnung
     über `onMobileDataProvider` (nur der Transportweg; ein Hotspot heißt
     WLAN). Am Bereich steht nur noch „Höhen/Wege verfügbar".
+  - **Die ganze Region** (Schritt 5, seit 0.108.0, nur Android —
+    `wholeRegionSupportedProvider`): ein Bereich mit `RegionShape` (Unterart
+    von `RectShape` über `MapRegion.box`, ohne `kAreaMaxTiles`). Weil die
+    Form Millionen Kacheln deckt, ruft niemand ihr `keysAt`/`tiles` außer
+    dem Plan: Verweise und Alter gegen den Index (`coversWholeRegion`,
+    `referencedIn` in `tile_refs.dart` — `orphansAfter` überspringt eine
+    Region mit ganzer Region), Entwurf und Radierer lassen sie aus
+    (`storedRegionBoundsProvider`, `insideRegions`, `AreaTrimmer.plan`), die
+    Hervorhebung ist EIN gerastertes Loch (`_regionRects` in
+    `area_overlay.dart`; Kacheln anderer Bereiche darin fallen weg, sonst
+    füllten sich zwei Löcher wieder). Download in Blöcken von
+    `kRegionChunkTiles` (2048, eine Range-Anfrage je Block), die Orte als
+    Bündel (`poi_bundle.dart`, `PoiManifest.bundle`, Länge + `sha256`,
+    Kopfzeile mit Bau, entpackt im Strom über `dart:io`; ein Fehler lässt
+    den Bereich unvollständig). Gemessen werden die Orte NICHT vorab
+    (`poiFiles` null). Der Harness setzt `poiBundleFetcherProvider` auf
+    null.
   Der Harness hängt `MemoryTileStore` ein (`pumpApp(tileStore:)`); wer
   einen `ProviderContainer` ohne Harness baut und Bereiche liest, setzt
   `tileStoreProvider` selbst — sonst öffnet er eine SQLite-Datei unter

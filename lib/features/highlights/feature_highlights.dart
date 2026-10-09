@@ -74,6 +74,18 @@ class FeatureHighlight {
 const kFeatureHighlights = <FeatureHighlight>[
   // ─── Highlights ──────────────────────────────────────────────────
   FeatureHighlight(
+    id: 'whole-region',
+    since: '0.108.0',
+    kind: HighlightKind.highlight,
+    tab: HighlightTab.profile,
+    icon: Icons.download_for_offline_outlined,
+    title: 'Die ganze Region offline',
+    text: 'In „Meine Bereiche" speicherst du auf dem Telefon die ganze Karte einer '
+        'Region, samt Orten, Höhen und Wegen. Was deine Bereiche schon haben, kommt '
+        'nicht noch einmal; „Aktualisieren" holt später nur, was alt ist.',
+    target: '/profile/areas',
+  ),
+  FeatureHighlight(
     id: 'contours',
     since: '0.100.0',
     kind: HighlightKind.highlight,

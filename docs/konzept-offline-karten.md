@@ -575,7 +575,20 @@ Inventar (#230) zählt das Bündel zum Bau.
    am Bereich ist weg (Höhen und Wege nachholen bleibt dort). Die
    Übersicht je Region hat seit 0.105.0 ihre eigene Zeile.
 5. **Die ganze Region speichern** (Android, feat) — schließt #229;
-   danach ist 🚀 C fällig.
+   danach ist 🚀 C fällig. **Gebaut in 0.108.0**: `RegionShape` (ein
+   Rahmen wie `RectShape`, Kacheln, die der Host nicht hat, fallen beim
+   Planen weg), Eintrag „<Region> ganz speichern" in „Meine Bereiche"
+   (`wholeRegionSupportedProvider`, nur ohne `kIsWeb`). Abweichungen vom
+   Plan: Blöcke von `kRegionChunkTiles` (2048) Kacheln statt 64 MB
+   (DACH rund 35 MB je Range-Anfrage, der Block liegt bis zum Schreiben
+   im Speicher); ohne Bündel im Manifest (Bau vor dem 2026-10-09) kommen
+   die Orte Datei für Datei. Drei Regeln, die das Konzept nicht nannte:
+   Verweise und Alter rechnen für eine Region mit ganzer Region gegen den
+   Index (`coversWholeRegion`, `referencedIn`) — als Kachelmenge wären es
+   in Kanada rund 930 000 bei Zoom 13; Entwurf und Radierer lassen sie
+   aus (`storedRegionBoundsProvider`, `insideRegions`; sie geht nur im
+   Ganzen); die Hervorhebung zeigt sie als EIN auf Zoom 13 gerastertes
+   Loch, ohne Rand, und Kacheln anderer Bereiche darin fallen dort weg.
 
 ### 8.8 Offen, beim Bau zu klären
 

@@ -34,6 +34,16 @@ Set<int> referencedTileIds(Iterable<StoredArea> areas, TileLayer layer) {
   return out;
 }
 
+/// Liegt die ganze Region (`RegionShape`, Schritt 5) unter [areas]? Dann
+/// gehört ihr jede Kachel, die in der Region liegt — gerechnet wird gegen
+/// den Index, nicht gegen eine Million Kacheln der Form.
+bool coversWholeRegion(Iterable<StoredArea> areas) => areas.any((a) => a.shape is RegionShape);
+
+/// Die Kachel-Ids, die [areas] (EINER Region) in [layer] decken, gegen
+/// den liegenden [index] — mit der ganzen Region einfach alle liegenden.
+Set<int> referencedIn(Iterable<StoredArea> areas, TileLayer layer, Map<int, StoredTileInfo> index) =>
+    coversWholeRegion(areas) ? index.keys.toSet() : referencedTileIds(areas, layer);
+
 /// Was in einer Region und Ebene niemandem mehr gehört.
 class LayerOrphans {
   const LayerOrphans(this.region, this.layer, this.ids, this.bytes);
@@ -57,6 +67,8 @@ Future<({List<LayerOrphans> tiles, List<String> poiFiles})> orphansAfter({
   final out = <LayerOrphans>[];
   for (final region in regions) {
     final here = [for (final a in remaining) if (a.region == region) a];
+    // Die ganze Region deckt alles, was dort liegt.
+    if (coversWholeRegion(here)) continue;
     for (final layer in TileLayer.values) {
       final index = await store.index(region, layer);
       if (index.isEmpty) continue;

@@ -5,7 +5,10 @@
 // die Orte-Zellen mit, meldet Fortschritt, und ein Abbruch lässt einen
 // unvollständigen Bereich zurück, den „Fortsetzen" zu Ende holt.
 import 'dart:convert';
+import 'dart:io' show gzip;
 import 'dart:typed_data';
+
+import 'package:crypto/crypto.dart' as crypto;
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:latlong2/latlong.dart';
@@ -18,6 +21,8 @@ import 'package:trailbuddy/features/offline_areas/area_plan.dart';
 import 'package:trailbuddy/features/offline_areas/area_store.dart';
 import 'package:trailbuddy/features/offline_areas/height_tiles.dart';
 import 'package:trailbuddy/features/offline_areas/pmtiles_writer.dart';
+import 'package:trailbuddy/features/offline_areas/poi_bundle.dart';
+import 'package:trailbuddy/features/offline_areas/region_overview.dart';
 import 'package:trailbuddy/features/offline_areas/tile_store.dart';
 import 'package:trailbuddy/features/offline_areas/tile_store_sources.dart';
 
@@ -104,7 +109,9 @@ void main() {
           PmTilesArchive? heights,
           PmTilesArchive? ways,
           MapManifest manifest = _manifest,
-          TileStore? into}) =>
+          TileStore? into,
+          OverviewFetcher? fetchPoiBundle,
+          int regionChunkSize = kRegionChunkTiles}) =>
       AreaDownloader(
         archive: source,
         manifest: manifest,
@@ -120,6 +127,8 @@ void main() {
           return name.endsWith('.water.json') ? '{"format":1,"pois":[]}' : null;
         },
         chunkSize: 7,
+        regionChunkSize: regionChunkSize,
+        fetchPoiBundle: fetchPoiBundle,
         now: () => DateTime.utc(2026, 9, 28, 19),
       );
 
@@ -344,6 +353,68 @@ void main() {
     expect(index.length, kept.length, reason: 'was der Host nicht mehr hat, bleibt nicht für immer alt liegen');
     expect({for (final i in index.values) i.build}, {'20261007'});
     expect(updated.single.waysBuild, '20261007');
+  });
+
+  test('die ganze Region (Schritt 5): keine Grenze, große Blöcke, die Orte als ein Bündel', () async {
+    // Größer als kAreaMaxTiles bei Zoom 12 — gezeichnet wäre das abgelehnt.
+    const big = AreaBounds(south: 40.0, west: 0.0, north: 55.0, east: 20.0);
+    const deep = MapManifest(file: 'dach-20260928.pmtiles', maxZoom: 12, bytes: 1, sourceBuild: '20260928');
+    expect(() => make(manifest: deep).plan(const RectShape(big)), throwsA(isA<AreaTooLarge>()));
+    final cells = poiCellsCovering(47.9, 11.6, 47.95, 11.7).take(2).toList();
+    final files = {for (final c in cells) poiCellFileName(c, PoiGroup.water): '{"format":1,"pois":[]}\n'};
+    final raw = StringBuffer('${jsonEncode({'build': '20260928', 'files': files.length, 'format': 1})}\n');
+    for (final e in files.entries) {
+      raw.write('${e.key}\t${e.value}');
+    }
+    final bytes = Uint8List.fromList(gzip.encode(utf8.encode(raw.toString())));
+    final pm = PoiManifest(
+      build: '20260928',
+      prefix: 'pois-20260928',
+      cells: {PoiGroup.water: cells.toSet()},
+      bundle: PoiBundle(
+          file: 'bundle.tsv.gz', files: files.length, bytes: bytes.length, sha256: crypto.sha256.convert(bytes).toString()),
+    );
+    final asked = <Uri>[];
+    final downloader = make(
+      poiManifest: pm,
+      regionChunkSize: 50,
+      fetchPoiBundle: (uri, {onProgress, check}) async {
+        asked.add(uri);
+        return bytes;
+      },
+    );
+    const shape = RegionShape(region: 'dach', bounds: AreaBounds(south: 47.0, west: 10.0, north: 48.5, east: 12.5));
+    final plan = await downloader.plan(shape, withPois: true);
+    expect(plan.poiFiles, isNull, reason: 'keine zehntausend Dateien schon beim Messen');
+    expect(plan.poiBundle, isNotNull);
+    expect(plan.poiNames.toSet(), files.keys.toSet(), reason: 'alles, was das Manifest der Region nennt');
+    expect(plan.totalBytes, plan.bytes + bytes.length);
+    final puts = tiles.puts;
+    final area = await downloader.download(plan, name: 'DACH komplett');
+    expect(tiles.puts - puts, (plan.tiles.length / 50).ceil(), reason: 'Blöcke der Region, nicht der Bereiche');
+    expect(poiAsked, isEmpty, reason: 'keine einzelne Orte-Datei');
+    expect(asked.single.path, endsWith('/pois-20260928/bundle.tsv.gz'));
+    for (final e in files.entries) {
+      expect(await store.readPoiFile(e.key), e.value);
+    }
+    expect(area.shape, isA<RegionShape>());
+    expect(area.complete, isTrue);
+    expect((await store.list()).single.shape, isA<RegionShape>(), reason: 'die Form steht so im Index');
+  });
+
+  test('ein Bündel, das nicht passt, lässt die Region unvollständig', () async {
+    final pm = PoiManifest(
+      build: '20260928',
+      prefix: 'pois-20260928',
+      cells: const {},
+      bundle: PoiBundle(file: 'bundle.tsv.gz', files: 1, bytes: 3, sha256: 'a' * 64),
+    );
+    final downloader = make(
+        poiManifest: pm, fetchPoiBundle: (uri, {onProgress, check}) async => Uint8List.fromList([1, 2, 3]));
+    const shape = RegionShape(region: 'dach', bounds: _bounds);
+    await expectLater(downloader.download(await downloader.plan(shape), name: 'R', id: 'r'),
+        throwsA(isA<PoiBundleMismatch>()));
+    expect((await store.list()).single.complete, isFalse);
   });
 
   test('Messen mit Orten (0.27.0): zählt die Orte, und der Download holt sie nicht noch einmal', () async {

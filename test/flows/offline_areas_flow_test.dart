@@ -103,7 +103,8 @@ void main() {
       bool ways = false,
       bool wayLayer = true,
       String? appearance,
-      Stream<List<ConnectivityResult>>? connectivity}) async {
+      Stream<List<ConnectivityResult>>? connectivity,
+      bool wholeRegion = true}) async {
     final source = _sourceBytes();
     final waysSource = _waysBytes();
     final cells = poiCellsCovering(47.5, 8.5, 48.5, 9.5);
@@ -123,6 +124,7 @@ void main() {
               ? PoiManifest(build: '20260928', prefix: 'pois-20260928', cells: {PoiGroup.water: cells.toSet()})
               : null),
           areaPoiFileLoaderProvider.overrideWithValue((_, _) async => twoSprings),
+          wholeRegionSupportedProvider.overrideWithValue(wholeRegion),
         ]);
     await settle(tester, frames: 20);
   }
@@ -554,6 +556,41 @@ void main() {
     expect(find.byKey(const ValueKey('region-refresh-dach')), findsNothing);
   });
 
+  Future<void> openAreas(WidgetTester tester) async {
+    await openTab(tester, 'Profil');
+    await scrollTo(tester, find.text('Meine Bereiche'));
+    await tester.tap(find.text('Meine Bereiche'));
+    await settle(tester, frames: 20);
+  }
+
+  testWidgets('die ganze Region (#229 Schritt 5): gemessen, gefragt, gespeichert — danach kein Angebot mehr',
+      (tester) async {
+    await start(tester);
+    await openAreas(tester);
+    expect(find.textContaining('oder gleich die ganze Region'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('whole-save-dach')));
+    await settle(tester, frames: 40);
+    expect(find.text('DACH ganz speichern?'), findsOneWidget);
+    expect(find.textContaining('„Fortsetzen" holt den Rest'), findsOneWidget);
+    await tester.tap(find.widgetWithText(FilledButton, 'Speichern'));
+    await settle(tester, frames: 60);
+    final saved = (await store.list()).single;
+    expect(saved.name, 'DACH komplett');
+    expect(saved.shape, isA<RegionShape>());
+    expect(saved.complete, isTrue);
+    expect((await tiles.index('dach', TileLayer.map)).length, saved.tiles,
+        reason: 'jede Kachel, die der Host in der Region hat');
+    expect(find.byKey(const ValueKey('whole-dach')), findsNothing, reason: 'die Region liegt schon');
+    expect(find.byKey(ValueKey('area-${saved.id}')), findsOneWidget);
+  });
+
+  testWidgets('im Browser gibt es die ganze Region nicht (Betreiber, 2026-10-09)', (tester) async {
+    await start(tester, wholeRegion: false);
+    await openAreas(tester);
+    expect(find.byKey(const ValueKey('whole-dach')), findsNothing);
+    expect(find.textContaining('Noch kein Bereich. Speichere einen auf der Karte: Knopf'), findsOneWidget);
+  });
+
   testWidgets('über Mobilfunk warnt der Dialog vor dem Datenvolumen', (tester) async {
     await store.putArchive('old', _sourceBytes());
     await store.saveIndex([oldArea(build: '20260801')]);
@@ -593,13 +630,6 @@ void main() {
     );
     await store.saveIndex([...await store.list(), area]);
     return area;
-  }
-
-  Future<void> openAreas(WidgetTester tester) async {
-    await openTab(tester, 'Profil');
-    await scrollTo(tester, find.text('Meine Bereiche'));
-    await tester.tap(find.text('Meine Bereiche'));
-    await settle(tester, frames: 20);
   }
 
   testWidgets('zwei Bereiche teilen ihre Kacheln (#229): „allein" in der Liste, Löschen nimmt nur, was keiner braucht',
