@@ -111,7 +111,8 @@ void main() {
           MapManifest manifest = _manifest,
           TileStore? into,
           OverviewFetcher? fetchPoiBundle,
-          int regionChunkSize = kRegionChunkTiles}) =>
+          int regionChunkSize = kRegionChunkTiles,
+          int chunkBytes = kChunkBytes}) =>
       AreaDownloader(
         archive: source,
         manifest: manifest,
@@ -128,6 +129,7 @@ void main() {
         },
         chunkSize: 7,
         regionChunkSize: regionChunkSize,
+        chunkBytes: chunkBytes,
         fetchPoiBundle: fetchPoiBundle,
         now: () => DateTime.utc(2026, 9, 28, 19),
       );
@@ -400,6 +402,28 @@ void main() {
     expect(area.shape, isA<RegionShape>());
     expect(area.complete, isTrue);
     expect((await store.list()).single.shape, isA<RegionShape>(), reason: 'die Form steht so im Index');
+  });
+
+  test('Blöcke sind nach Bytes begrenzt, der Fortschritt zählt Bytes (0.108.1)', () async {
+    // Am Gerät stand „DACH ganz speichern" auf 0 %: 2048 Kacheln der
+    // groben Zoomstufen sind 232 MB in einer Anfrage.
+    const shape = RegionShape(region: 'dach', bounds: _bounds);
+    final downloader = make(regionChunkSize: 50, chunkBytes: 1);
+    final plan = await downloader.plan(shape);
+    expect(plan.tiles.length, greaterThan(2));
+    final seen = <AreaProgress>[];
+    final puts = tiles.puts;
+    await downloader.download(plan, name: 'R', onProgress: seen.add);
+    expect(tiles.puts - puts, plan.tiles.length, reason: 'jede Kachel ist größer als die Grenze, also ein Block je Kachel');
+    final map = [for (final p in seen) if (p.phase == AreaPhase.tiles) p];
+    expect(map.first.totalBytes, plan.bytes);
+    expect(map.last.doneBytes, plan.bytes);
+    expect(map.last.fraction, 1);
+    for (var i = 1; i < map.length; i++) {
+      expect(map[i].doneBytes, greaterThan(map[i - 1].doneBytes));
+    }
+    final half = [for (final p in map) if (p.done == p.total ~/ 2) p].firstOrNull;
+    if (half != null) expect(half.fraction, half.doneBytes / plan.bytes, reason: 'Anteil nach Bytes, nicht nach Anzahl');
   });
 
   test('ein Bündel, das nicht passt, lässt die Region unvollständig', () async {

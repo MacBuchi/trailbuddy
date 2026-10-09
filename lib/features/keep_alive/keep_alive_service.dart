@@ -77,7 +77,10 @@ class _ForegroundKeepAlive implements KeepAlive {
       // sichtbare Meldung — ein abgelehnter Dialog ist kein Grund
       // abzubrechen.
       await FlutterForegroundTask.requestNotificationPermission();
-      await FlutterForegroundTask.startService(
+      // Seit flutter_foreground_task 9 WIRFT `startService` nicht mehr,
+      // ein Fehlschlag kommt nur im Ergebnis — bis 0.108.0 ging er hier
+      // still unter.
+      final result = await FlutterForegroundTask.startService(
         serviceId: _serviceId,
         // Je Start entschieden: Ein Download nennt `dataSync`, eine Fahrt
         // `location`. Einen Typ zu nennen, den dieser Lauf nicht braucht,
@@ -96,6 +99,9 @@ class _ForegroundKeepAlive implements KeepAlive {
         notificationButtons: _buttons(buttons),
         callback: startKeepAliveService,
       );
+      if (result case ServiceRequestFailure(:final error)) {
+        logError('Foreground-Service starten', error, StackTrace.current);
+      }
     } catch (e, stackTrace) {
       logError('Foreground-Service starten', e, stackTrace);
     }

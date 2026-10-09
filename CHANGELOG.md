@@ -4,7 +4,7 @@
 
 ## Die ganze Region offline
 
-*Version 0.108.0, 2026-10-09*
+*Versionen 0.108.0 und 0.108.1, 2026-10-09*
 
 - **Ganz DACH oder ganz Südkanada aufs Telefon**: In „Meine Bereiche"
   steht je Region „ganz speichern" — die ganze Karte bis Zoom 13 samt
@@ -18,6 +18,10 @@
   Bereiche dort liegen. Mit dem Radierer lässt sich eine ganze Region
   nicht verkleinern — sie geht nur im Ganzen.
 - Nur in der Android-App; im Browser bleiben gezeichnete Bereiche.
+- **Korrigiert (0.108.1):** Der Download blieb bei 0 % stehen. Er holte
+  am Anfang über 200 MB in einem Stück und hielt sie im Speicher. Jetzt
+  kommt die Karte in kleinen Häppchen, und die Prozentzahl wächst mit
+  den geladenen Megabytes.
 
 ## Gespeicherte Bereiche teilen sich ihre Kacheln
 

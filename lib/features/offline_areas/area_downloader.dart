@@ -196,13 +196,19 @@ class AreaVerifyFailed implements Exception {
 }
 
 /// Der Fortschritt: [done] von [total] in der Phase (Kacheln, dann Orte).
+/// Bei Kacheln zählt der Anteil nach Bytes ([doneBytes] von [totalBytes]):
+/// Die groben Zoomstufen sind wenige, aber riesige Kacheln — nach Anzahl
+/// stand „Ganz speichern" für DACH über die ersten 230 MB auf 0 %.
 class AreaProgress {
-  const AreaProgress({required this.phase, required this.done, required this.total});
+  const AreaProgress(
+      {required this.phase, required this.done, required this.total, this.doneBytes = 0, this.totalBytes = 0});
   final AreaPhase phase;
   final int done;
   final int total;
+  final int doneBytes;
+  final int totalBytes;
 
-  double get fraction => total == 0 ? 1 : done / total;
+  double get fraction => totalBytes > 0 ? doneBytes / totalBytes : (total == 0 ? 1 : done / total);
 }
 
 /// „Aktualisieren" einer Region (Konzept 8.2, Schritt 4): die liegenden
@@ -245,10 +251,18 @@ class RegionRefreshPlan {
   bool get isEmpty => staleTiles == 0 && poiNames.isEmpty;
 }
 
-/// Kacheln je Block für die ganze Region (Schritt 5): DACH-Karte rund
-/// 17 KB je Kachel ⇒ rund 35 MB je Range-Anfrage, darunter die 64 MB aus
-/// dem Konzept (8.4) — der Block liegt bis zum Schreiben im Speicher.
+/// Kacheln je Block für die ganze Region (Schritt 5) — höchstens; die
+/// Grenze, die zählt, ist [kChunkBytes].
 const kRegionChunkTiles = 2048;
+
+/// Bytes je Block, höchstens (seit 0.108.1): Der Block liegt bis zum
+/// Schreiben im Speicher, und die Kachelzahl allein sagt über seine Größe
+/// nichts. Gemessen am DACH-Archiv 20261001: 2048 Kacheln sind bei Zoom 13
+/// rund 40 MB, die ersten Blöcke (Zoom 0–11) aber 78–232 MB in EINER
+/// Range-Anfrage — am Gerät stand der Download auf 0 %. 16 MB sind für
+/// DACH (2,8 GB) rund 180 Anfragen; eine einzelne größere Kachel bildet
+/// ihren eigenen Block.
+const kChunkBytes = 16 << 20;
 
 enum AreaPhase { tiles, pois, heights, ways, overview, writing }
 
@@ -271,7 +285,11 @@ class AreaDownloader {
     this.fetchOverview,
     this.fetchPoiBundle,
     this.regionChunkSize = kRegionChunkTiles,
+    this.chunkBytes = kChunkBytes,
   });
+
+  /// Bytes je Block, höchstens ([kChunkBytes]).
+  final int chunkBytes;
 
   /// Holt das Orte-Bündel (ganze Datei) — null: die ganze Region holt
   /// ihre Orte Datei für Datei.
@@ -434,28 +452,45 @@ class AreaDownloader {
   /// kommt aus dem Speicher Byte für Byte zurück.
   Future<int> _fetchInto(PmTilesArchive source, TileLayer layer, List<TileXYZ> wanted, String build,
       {required void Function() check,
-      required void Function(int done, int total) onProgress,
+      required void Function(int done, int total, int doneBytes, int totalBytes) onProgress,
       int? chunk}) async {
     final chunkSize = chunk ?? this.chunkSize;
     final byId = {for (final t in wanted) tileIdOf(t): t};
     final ids = byId.keys.toList()..sort();
-    var done = 0;
-    onProgress(0, ids.length);
-    for (var start = 0; start < ids.length; start += chunkSize) {
+    // Erst die Längen aller Kacheln (das Verzeichnis kennt sie; die Blätter
+    // sind nach dem ersten Zugriff im Speicher): daraus die Blöcke und die
+    // Bytes für den Fortschritt.
+    final lengths = <int>[];
+    var totalBytes = 0;
+    for (final id in ids) {
+      final length = (await source.lookup(id))?.length ?? 0;
+      lengths.add(length);
+      totalBytes += length;
+    }
+    var done = 0, doneBytes = 0;
+    onProgress(0, ids.length, 0, totalBytes);
+    var start = 0;
+    while (start < ids.length) {
       check();
-      final chunk = ids.sublist(start, start + chunkSize > ids.length ? ids.length : start + chunkSize);
+      var end = start, bytes = 0;
+      while (end < ids.length && end - start < chunkSize && (end == start || bytes + lengths[end] <= chunkBytes)) {
+        bytes += lengths[end];
+        end++;
+      }
       final block = <StoreTile>[];
       // Eine leere Kachel (0 Bytes) lässt der Mehrfach-Leser des Pakets
       // nicht zu (`Range`: begin < end) — sie ist leer, also ohne Lesen.
       final read = <int>[];
-      for (final id in chunk) {
-        if ((await source.lookup(id))?.length == 0) {
+      for (var i = start; i < end; i++) {
+        final id = ids[i];
+        if (lengths[i] == 0) {
           final t = byId[id]!;
           block.add(StoreTile(t.z, t.x, t.y, Uint8List(0), build));
         } else {
           read.add(id);
         }
       }
+      start = end;
       if (read.isNotEmpty) {
         await for (final tile in source.tiles(read)) {
           final t = byId[tile.id]!;
@@ -470,7 +505,8 @@ class AreaDownloader {
         throw AreaVerifyFailed('Kachel ${probe.z}/${probe.x}/${probe.y} kommt aus dem Speicher anders zurück');
       }
       done += block.length;
-      onProgress(done, ids.length);
+      doneBytes += bytes;
+      onProgress(done, ids.length, doneBytes, totalBytes);
     }
     return done;
   }
@@ -532,8 +568,8 @@ class AreaDownloader {
     await _fetchInto(archive, TileLayer.map, plan.tiles, manifest.sourceBuild,
         check: check,
         chunk: chunk,
-        onProgress: (done, total) =>
-            onProgress?.call(AreaProgress(phase: AreaPhase.tiles, done: done, total: total)));
+        onProgress: (done, total, doneBytes, totalBytes) => onProgress?.call(AreaProgress(
+            phase: AreaPhase.tiles, done: done, total: total, doneBytes: doneBytes, totalBytes: totalBytes)));
 
     // Die Orte: als Bündel (ganze Region), vom Messen mitgebracht oder
     // jetzt geholt.
@@ -569,8 +605,8 @@ class AreaDownloader {
       await _fetchInto(h, TileLayer.heights, plan.heightTiles, heightsManifest?.build ?? manifest.sourceBuild,
           check: check,
           chunk: chunk,
-          onProgress: (done, total) =>
-              onProgress?.call(AreaProgress(phase: AreaPhase.heights, done: done, total: total)));
+          onProgress: (done, total, doneBytes, totalBytes) => onProgress?.call(AreaProgress(
+              phase: AreaPhase.heights, done: done, total: total, doneBytes: doneBytes, totalBytes: totalBytes)));
     }
 
     // Die Wege ebenso. Ist das Archiv beim Download nicht mehr da, kommt
@@ -582,8 +618,8 @@ class AreaDownloader {
       await _fetchInto(w, TileLayer.ways, plan.wayTiles, wayBuild,
           check: check,
           chunk: chunk,
-          onProgress: (done, total) =>
-              onProgress?.call(AreaProgress(phase: AreaPhase.ways, done: done, total: total)));
+          onProgress: (done, total, doneBytes, totalBytes) => onProgress?.call(AreaProgress(
+              phase: AreaPhase.ways, done: done, total: total, doneBytes: doneBytes, totalBytes: totalBytes)));
       waysFetched = true;
     }
 
@@ -691,22 +727,23 @@ class AreaDownloader {
       if (isCancelled?.call() ?? false) throw const AreaCancelled();
     }
 
-    void progress(AreaPhase phase, int done, int total) =>
-        onProgress?.call(AreaProgress(phase: phase, done: done, total: total));
+    void progress(AreaPhase phase, int done, int total, [int doneBytes = 0, int totalBytes = 0]) =>
+        onProgress?.call(
+            AreaProgress(phase: phase, done: done, total: total, doneBytes: doneBytes, totalBytes: totalBytes));
 
     await _fetchInto(archive, TileLayer.map, plan.map.fetch, manifest.sourceBuild,
-        check: check, onProgress: (d, t) => progress(AreaPhase.tiles, d, t));
+        check: check, onProgress: (d, t, db, tb) => progress(AreaPhase.tiles, d, t, db, tb));
     final h = heights;
     final hb = heightsManifest?.build;
     if (h != null && hb != null && plan.heights.fetch.isNotEmpty) {
       await _fetchInto(h, TileLayer.heights, plan.heights.fetch, hb,
-          check: check, onProgress: (d, t) => progress(AreaPhase.heights, d, t));
+          check: check, onProgress: (d, t, db, tb) => progress(AreaPhase.heights, d, t, db, tb));
     }
     final w = ways;
     final wb = waysManifest?.build;
     if (w != null && wb != null && plan.ways.fetch.isNotEmpty) {
       await _fetchInto(w, TileLayer.ways, plan.ways.fetch, wb,
-          check: check, onProgress: (d, t) => progress(AreaPhase.ways, d, t));
+          check: check, onProgress: (d, t, db, tb) => progress(AreaPhase.ways, d, t, db, tb));
     }
     for (final e in plan.drop.entries) {
       await tiles.remove(region, e.key, e.value);
