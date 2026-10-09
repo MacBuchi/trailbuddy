@@ -91,7 +91,12 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     `kRegionChunkTiles` (2048, eine Range-Anfrage je Block), die Orte als
     Bündel (`poi_bundle.dart`, `PoiManifest.bundle`, Länge + `sha256`,
     Kopfzeile mit Bau, entpackt im Strom über `dart:io`; ein Fehler lässt
-    den Bereich unvollständig). Gemessen werden die Orte NICHT vorab
+    den Bereich unvollständig). **Blöcke sind seit 0.108.1 zusätzlich nach
+    Bytes begrenzt** (`kChunkBytes`, 16 MB; eine größere Kachel ist ihr
+    eigener Block), und der Fortschritt zählt Bytes
+    (`AreaProgress.doneBytes`): Am DACH-Archiv 20261001 waren die ersten
+    2048 Kacheln (Zoom 0–11) 232 MB in EINER Range-Anfrage, ganz im
+    Speicher — am Gerät stand die Meldung auf 0 %. Gemessen werden die Orte NICHT vorab
     (`poiFiles` null). Der Harness setzt `poiBundleFetcherProvider` auf
     null.
   Der Harness hängt `MemoryTileStore` ein (`pumpApp(tileStore:)`); wer
