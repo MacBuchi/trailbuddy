@@ -110,7 +110,9 @@ class AreasScreen extends ConsumerWidget {
                   title: Text(download.refreshing
                       ? '${download.name} wird aktualisiert …'
                       : '„${download.name}" wird gespeichert …'),
-                  subtitle: LinearProgressIndicator(value: download.progress?.fraction),
+                  subtitle: download.waiting
+                      ? const Text('Wartet auf Empfang — geht von selbst weiter.')
+                      : LinearProgressIndicator(value: download.progress?.fraction),
                   trailing: IconButton(
                     key: const ValueKey('area-download-cancel'),
                     tooltip: 'Abbrechen',
@@ -218,7 +220,7 @@ class _AreaTile extends ConsumerWidget {
     final notifier = ref.read(areaDownloadProvider.notifier);
     try {
       final plan = await notifier.plan(area.shape, refresh: refresh);
-      await notifier.start(plan, name: area.name, id: area.id);
+      await notifier.start(plan, name: area.name, id: area.id, refresh: refresh);
     } on AreaTooLarge {
       messenger.showSnackBar(const SnackBar(content: Text('Der Bereich ist für den neuen Stand zu groß.')));
     } on OutsideRegions catch (e) {

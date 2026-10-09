@@ -4,7 +4,7 @@
 
 ## Die ganze Region offline
 
-*Versionen 0.108.0 und 0.108.1, 2026-10-09*
+*Versionen 0.108.0 bis 0.108.2, 2026-10-09*
 
 - **Ganz DACH oder ganz Südkanada aufs Telefon**: In „Meine Bereiche"
   steht je Region „ganz speichern" — die ganze Karte bis Zoom 13 samt
@@ -22,6 +22,13 @@
   am Anfang über 200 MB in einem Stück und hielt sie im Speicher. Jetzt
   kommt die Karte in kleinen Häppchen, und die Prozentzahl wächst mit
   den geladenen Megabytes.
+- **Neu in 0.108.2:** Reißt unterwegs die Verbindung ab, wartet der
+  Download und macht von selbst weiter, sobald wieder Empfang da ist —
+  „Fortsetzen" braucht es nur noch, wenn eine gute halbe Stunde lang
+  nichts geht. Hast du im WLAN angefangen, geht es nicht über Mobilfunk
+  weiter. Die Prozentzahl zählt dabei mit, was schon liegt, und fängt
+  nicht wieder bei null an. Auch das Messen vor dem Speichern läuft
+  jetzt weiter, wenn du die App wechselst.
 
 ## Gespeicherte Bereiche teilen sich ihre Kacheln
 

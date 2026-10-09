@@ -22,6 +22,7 @@
 //
 // Läuft im Main-Isolate; auf Android hält der KeepAlive-Koordinator den
 // Prozess wach (Vordergrunddienst `dataSync`), im Browser der Tab.
+import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
@@ -266,6 +267,17 @@ const kChunkBytes = 16 << 20;
 
 enum AreaPhase { tiles, pois, heights, ways, overview, writing }
 
+/// Die Id eines neuen Bereichs — auch für den Aufrufer, der sie vor dem
+/// ersten Versuch braucht (Wiederaufnehmen in denselben Bereich).
+String newAreaId(DateTime at) => 'area-${at.millisecondsSinceEpoch.toRadixString(36)}';
+
+/// So lange darf ein Block ohne neue Kachel bleiben (seit 0.108.2): Eine
+/// Verbindung, die steht, ohne zu reißen („ein Balken"), meldet sonst
+/// nie einen Fehler, und der Download wartete für immer. Danach zählt es
+/// als Funkloch und wird wieder aufgenommen. Die hängende Anfrage selbst
+/// läuft im Paket weiter, bis der Server sie beendet.
+const kBlockStallTimeout = Duration(seconds: 60);
+
 class AreaDownloader {
   AreaDownloader({
     required this.archive,
@@ -286,7 +298,11 @@ class AreaDownloader {
     this.fetchPoiBundle,
     this.regionChunkSize = kRegionChunkTiles,
     this.chunkBytes = kChunkBytes,
+    this.stallTimeout = kBlockStallTimeout,
   });
+
+  /// [kBlockStallTimeout]; die Naht für Tests.
+  final Duration stallTimeout;
 
   /// Bytes je Block, höchstens ([kChunkBytes]).
   final int chunkBytes;
@@ -492,10 +508,10 @@ class AreaDownloader {
       }
       start = end;
       if (read.isNotEmpty) {
-        await for (final tile in source.tiles(read)) {
+        await _readWatched(source.tiles(read), (tile) {
           final t = byId[tile.id]!;
           block.add(StoreTile(t.z, t.x, t.y, Uint8List.fromList(tile.compressedBytes()), build));
-        }
+        });
       }
       if (block.isEmpty) continue;
       await tiles.put(region, layer, block);
@@ -509,6 +525,40 @@ class AreaDownloader {
       onProgress(done, ids.length, doneBytes, totalBytes);
     }
     return done;
+  }
+
+  /// Liest [tiles] ganz und wirft eine [TimeoutException], sobald
+  /// [stallTimeout] lang keine Kachel kam. Ein eigener Wächter statt
+  /// `Stream.timeout`: Über dem Strom des Pakets lieferte der unter
+  /// FakeAsync sein Ende nie, und jeder Flow-Test mit Speichern hing.
+  Future<void> _readWatched(Stream<Tile> tiles, void Function(Tile tile) onTile) {
+    final done = Completer<void>();
+    late final StreamSubscription<Tile> sub;
+    Timer? timer;
+    void fail(Object e, [StackTrace? s]) {
+      timer?.cancel();
+      unawaited(sub.cancel());
+      if (!done.isCompleted) done.completeError(e, s);
+    }
+
+    void arm() {
+      timer?.cancel();
+      timer = Timer(stallTimeout, () => fail(TimeoutException('Block ohne neue Kachel', stallTimeout)));
+    }
+
+    sub = tiles.listen((tile) {
+      arm();
+      try {
+        onTile(tile);
+      } catch (e, s) {
+        fail(e, s);
+      }
+    }, onError: fail, onDone: () {
+      timer?.cancel();
+      if (!done.isCompleted) done.complete();
+    });
+    arm();
+    return done.future;
   }
 
   static bool _same(Uint8List a, Uint8List b) {
@@ -787,5 +837,5 @@ class AreaDownloader {
     await store.saveIndex(i < 0 ? [...all, area] : [...all.sublist(0, i), area, ...all.sublist(i + 1)]);
   }
 
-  String _newId(DateTime at) => 'area-${at.millisecondsSinceEpoch.toRadixString(36)}';
+  String _newId(DateTime at) => newAreaId(at);
 }
