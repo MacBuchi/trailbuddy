@@ -4,7 +4,7 @@
 
 ## Karte jetzt auch in Südkanada
 
-*Versionen 0.104.0 und 0.105.0, 2026-10-09*
+*Versionen 0.104.0, 0.105.0 und 0.105.1, 2026-10-09*
 
 - **Die Karte reicht bis nach Kanada**: Im Süden Kanadas, bis zum
   55. Breitengrad, zeigt die App jetzt dieselbe Karte wie in DACH. Sie
