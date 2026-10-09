@@ -1,10 +1,11 @@
 // Die Ablage gespeicherter Bereiche als Dateien (Android): Index
-// `areas.json`, je Bereich `<id>.pmtiles` (geschrieben über `.part` +
-// rename), `<id>.heights.pmtiles` für die Höhenkacheln,
-// `<id>.ways.pmtiles` für die Wege und
-// `<id>/pois/<datei>` für die Orte-Zellen, dazu je Region
-// `overview-<region>.pmtiles` mit dem Index `overviews.json`. Unter
-// `offline_maps/areas/` im App-Verzeichnis, also vom Backup ausgenommen.
+// `areas.json`, die Orte-Dateien je Name einmal unter `pois/<datei>`, dazu
+// je Region `overview-<region>.pmtiles` mit dem Index `overviews.json`.
+// Der Altbestand bis 0.105.x: je Bereich `<id>.pmtiles`,
+// `<id>.heights.pmtiles`, `<id>.ways.pmtiles` und `<id>/pois/<datei>`.
+// Unter `offline_maps/areas/` im App-Verzeichnis, also vom Backup
+// ausgenommen; die Kacheln liegen seit 0.106.0 nebenan im Kachelspeicher
+// (`tile_store_io.dart`, `offline_maps/store/`).
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
@@ -37,7 +38,13 @@ class FileAreaStore implements AreaStore {
 
   Future<File> _overview(String region) async => File('${(await _dir()).path}/overview-$region.pmtiles');
 
-  Future<File> _poi(String id, String name) async => File('${(await _dir()).path}/$id/pois/$name');
+  Future<File> _legacyPoi(String id, String name) async => File('${(await _dir()).path}/$id/pois/$name');
+
+  Future<File> _poi(String name) async {
+    // Der Name wird Teil eines Pfads.
+    if (name.contains('/') || name.startsWith('.')) throw ArgumentError.value(name, 'name');
+    return File('${(await _dir()).path}/pois/$name');
+  }
 
   @override
   Future<List<StoredArea>> list() async {
@@ -98,9 +105,6 @@ class FileAreaStore implements AreaStore {
   }
 
   @override
-  Future<void> deleteHeights(String id) async => _remove(await _heights(id));
-
-  @override
   Future<void> putWays(String id, Uint8List bytes) => _write(_ways(id), bytes);
 
   @override
@@ -116,9 +120,6 @@ class FileAreaStore implements AreaStore {
   }
 
   @override
-  Future<void> deleteWays(String id) async => _remove(await _ways(id));
-
-  @override
   Future<String?> archivePath(String id) async {
     final file = await _archive(id);
     return await file.exists() ? file.path : null;
@@ -131,26 +132,47 @@ class FileAreaStore implements AreaStore {
   }
 
   @override
-  Future<void> putPoiFile(String id, String name, String text) async {
-    final file = await _poi(id, name);
+  Future<void> putPoiFile(String name, String text) async {
+    final file = await _poi(name);
     await file.parent.create(recursive: true);
     await file.writeAsString(text);
   }
 
   @override
   Future<String?> readPoiFile(String name) async {
-    for (final area in await list()) {
-      if (!area.poiFiles.contains(name)) continue;
-      final file = await _poi(area.id, name);
-      if (await file.exists()) return file.readAsString();
+    final file = await _poi(name);
+    return await file.exists() ? file.readAsString() : null;
+  }
+
+  @override
+  Future<void> deletePoiFiles(Iterable<String> names) async {
+    for (final n in names) {
+      await _remove(await _poi(n));
     }
-    return null;
+  }
+
+  @override
+  Future<void> putLegacyPoiFile(String id, String name, String text) async {
+    final file = await _legacyPoi(id, name);
+    await file.parent.create(recursive: true);
+    await file.writeAsString(text);
+  }
+
+  @override
+  Future<String?> readLegacyPoiFile(String id, String name) async {
+    final file = await _legacyPoi(id, name);
+    return await file.exists() ? file.readAsString() : null;
   }
 
   @override
   Future<void> delete(String id) async {
     final areas = await list();
     await saveIndex([for (final a in areas) if (a.id != id) a]);
+    await deleteLegacy(id);
+  }
+
+  @override
+  Future<void> deleteLegacy(String id) async {
     await _remove(await _archive(id));
     await _remove(await _heights(id));
     await _remove(await _ways(id));

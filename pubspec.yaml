@@ -4,7 +4,7 @@ publish_to: 'none'
 
 # Beide Teile erhöhen (z. B. 0.1.0+1 → 0.1.1+2). Ein Bump auf main taggt und
 # baut ein Prerelease (release.yml); ohne Bump kein Release (Version Guard).
-version: 0.105.1+131
+version: 0.106.0+132
 
 environment:
   sdk: ^3.11.0
@@ -93,6 +93,11 @@ dependencies:
   # transitiven Version zu hängen.
   web: ^1.1.1
   flutter_local_notifications: ^22.3.1
+  # Der Kachelspeicher der Bereiche auf dem Telefon (#229): MBTiles, die
+  # MapLibre nativ liest (`tile_store_io.dart`). Bringt SQLite über einen
+  # Build-Hook mit; nur auf `dart:io` importiert, der Web-Build sieht es
+  # nie. 3.6.0 statt 3.7.0: die jüngere war beim Einbau neun Tage alt.
+  sqlite3: ^3.6.0
 
 dev_dependencies:
   flutter_test:

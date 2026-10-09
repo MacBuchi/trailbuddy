@@ -1,10 +1,11 @@
 // Die Ablage gespeicherter Bereiche im Browser: IndexedDB über
-// `idb_shim`. Ein Archiv liegt als EIN Bytes-Eintrag, gelesen mit
-// `PmTilesArchive.fromBytes` (im Browser gibt es keine faule Datei; ein
-// Bereich von einigen Dutzend MB liegt dann im Speicher — der Preis der
-// Plattform, PilzBuddy 1.114.2). Der Browser darf seinen Speicher räumen;
-// beim ersten Speichern eines Bereichs bittet die Oberfläche einmal um
-// `navigator.storage.persist()` (Konzept 3.2).
+// `idb_shim` — Index, Orte-Dateien, Übersichten. Die Kacheln liegen seit
+// 0.106.0 im Kachelspeicher (`tile_store_idb.dart`), je Kachel ein Eintrag
+// statt eines Archivs, das zum Lesen ganz in den Speicher musste. Der
+// Altbestand (je Bereich ein Archiv als EIN Bytes-Eintrag) bleibt lesbar,
+// bis die Übernahme ihn umgelegt hat. Der Browser darf seinen Speicher
+// räumen; beim ersten Speichern eines Bereichs bittet die Oberfläche
+// einmal um `navigator.storage.persist()` (Konzept 3.2).
 import 'dart:convert';
 import 'dart:typed_data';
 
@@ -76,10 +77,6 @@ class IdbAreaStore implements AreaStore {
     return null;
   }
 
-  @override
-  Future<void> deleteHeights(String id) =>
-      _db.writeStore(kAreaArchiveStore, (s) => s.delete(_heightsKey(id)));
-
   // Die Wege ebenso (seit 0.90.0, #212).
   static String _waysKey(String id) => '$id/ways';
 
@@ -98,37 +95,61 @@ class IdbAreaStore implements AreaStore {
     return null;
   }
 
-  @override
-  Future<void> deleteWays(String id) =>
-      _db.writeStore(kAreaArchiveStore, (s) => s.delete(_waysKey(id)));
+  // Die Orte-Dateien seit 0.106.0 je Name einmal, Schlüssel `pois:<name>`
+  // — der Altbestand trug `<id>/<name>`, ein Name enthält keinen
+  // Doppelpunkt und keinen Schrägstrich.
+  static String _poiKey(String name) => 'pois:$name';
 
   @override
-  Future<void> putPoiFile(String id, String name, String text) =>
-      _db.writeStore(kAreaPoiStore, (s) => s.put(text, '$id/$name'));
+  Future<void> putPoiFile(String name, String text) =>
+      _db.writeStore(kAreaPoiStore, (s) => s.put(text, _poiKey(name)));
 
   @override
   Future<String?> readPoiFile(String name) async {
-    for (final area in await list()) {
-      if (!area.poiFiles.contains(name)) continue;
-      final value = await _db.readStore(kAreaPoiStore, (s) => s.getObject('${area.id}/$name'));
-      if (value is String) return value;
-    }
-    return null;
+    final value = await _db.readStore(kAreaPoiStore, (s) => s.getObject(_poiKey(name)));
+    return value is String ? value : null;
+  }
+
+  @override
+  Future<void> deletePoiFiles(Iterable<String> names) async {
+    final keys = [for (final n in names) _poiKey(n)];
+    if (keys.isEmpty) return;
+    await _db.writeStore(kAreaPoiStore, (s) async {
+      for (final k in keys) {
+        await s.delete(k);
+      }
+    });
+  }
+
+  @override
+  Future<void> putLegacyPoiFile(String id, String name, String text) =>
+      _db.writeStore(kAreaPoiStore, (s) => s.put(text, '$id/$name'));
+
+  @override
+  Future<String?> readLegacyPoiFile(String id, String name) async {
+    final value = await _db.readStore(kAreaPoiStore, (s) => s.getObject('$id/$name'));
+    return value is String ? value : null;
   }
 
   @override
   Future<void> delete(String id) async {
     final areas = await list();
-    final gone = areas.where((a) => a.id == id).toList();
     await saveIndex([for (final a in areas) if (a.id != id) a]);
+    await deleteLegacy(id);
+  }
+
+  @override
+  Future<void> deleteLegacy(String id) async {
     await _db.writeStore(kAreaArchiveStore, (s) => s.delete(id));
     await _db.writeStore(kAreaArchiveStore, (s) => s.delete(_heightsKey(id)));
     await _db.writeStore(kAreaArchiveStore, (s) => s.delete(_waysKey(id)));
-    for (final area in gone) {
-      for (final name in area.poiFiles) {
-        await _db.writeStore(kAreaPoiStore, (s) => s.delete('${area.id}/$name'));
+    // Die Orte des Altbestands lagen unter `<id>/…`.
+    final prefix = '$id/';
+    await _db.writeStore(kAreaPoiStore, (s) async {
+      for (final key in await s.getAllKeys(KeyRange.bound(prefix, '$prefix\uffff'))) {
+        await s.delete(key);
       }
-    }
+    });
   }
 
   @override

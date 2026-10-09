@@ -85,6 +85,7 @@ class RiderCalibrationsNotifier extends Notifier<RiderCalibrations> {
           open: (a) => open(store, a),
           marginM: kCalibCorridorM * 2,
           requireComplete: false,
+          sourceKey: (a) => a.region,
         );
       } catch (e, s) {
         logError('Wege zum Lernen lesen', e, s);

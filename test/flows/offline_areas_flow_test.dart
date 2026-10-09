@@ -4,7 +4,10 @@
 // dunkelt ab, was nicht liegt; Ausschnitt, Fläche dazu/weg und die Trails
 // füllen einen Entwurf; „Speichern" misst Größe und Orte, fragt und lädt;
 // X, Knopf und Zurück schließen — mit Rückfrage bei Änderungen.
-// Dazu „Meine Bereiche" (Liste, Löschen, Aktualisieren).
+// Dazu „Meine Bereiche" (Liste, Löschen, Aktualisieren). Seit 0.106.0
+// (#229) liegen die Kacheln in EINEM Speicher je Region: Bereiche teilen
+// sie, Löschen nimmt nur, was keiner mehr braucht, ein abgebrochener
+// Download steht als „unvollständig" da.
 import 'dart:convert';
 import 'dart:typed_data';
 
@@ -24,6 +27,7 @@ import 'package:trailbuddy/features/offline_areas/area_plan.dart';
 import 'package:trailbuddy/features/offline_areas/area_providers.dart';
 import 'package:trailbuddy/features/offline_areas/area_store.dart';
 import 'package:trailbuddy/features/offline_areas/pmtiles_writer.dart';
+import 'package:trailbuddy/features/offline_areas/tile_store.dart';
 
 import '../fakes/fake_backend.dart';
 import '../fakes/fake_keep_alive.dart';
@@ -72,6 +76,7 @@ void main() {
   late FakeBackend backend;
   late FakeTrailRepository trails;
   late MemoryAreaStore store;
+  late MemoryTileStore tiles;
   late FakeKeepAlive keepAlive;
 
   setUp(() {
@@ -82,6 +87,7 @@ void main() {
         myId: () => backend.currentUserId ?? '', areFriends: backend.areFriends);
     trails.seedTrail(backend.currentUserId!, name: 'Roots');
     store = MemoryAreaStore();
+    tiles = MemoryTileStore();
     keepAlive = FakeKeepAlive();
   });
 
@@ -98,6 +104,7 @@ void main() {
     await pumpApp(tester, backend,
         trails: trails,
         areaStore: store,
+        tileStore: tiles,
         keepAlive: keepAlive,
         settings: FakeSettings(appearance: appearance, wayLayerEnabled: wayLayer),
         extraOverrides: [
@@ -304,8 +311,9 @@ void main() {
     expect(saved.maxZoom, 10);
     expect(saved.shape, isA<TileSetShape>());
     expect(saved.poiFiles, isNotEmpty);
-    final archive = await PmTilesArchive.fromBytes((await store.readArchive(saved.id))!);
-    expect(archive.header.numberOfAddressedTiles, saved.tiles);
+    expect(saved.complete, isTrue);
+    expect((await tiles.index('dach', TileLayer.map)).length, saved.tiles,
+        reason: 'jede Kachel einmal im Speicher der Region');
     // Der Entwurf ist erledigt, die Leiste bleibt offen, die neuen
     // Kacheln sind hell.
     expect(draftTiles(tester), 0);
@@ -322,6 +330,7 @@ void main() {
     await settle(tester);
     expect(find.text('Roots-Runde'), findsNothing);
     expect(await store.list(), isEmpty);
+    expect(await tiles.index('dach', TileLayer.map), isEmpty, reason: 'niemand braucht sie mehr');
   });
 
   testWidgets('ohne Kartenhost gibt es keinen Bereich, und der Dialog sagt es', (tester) async {
@@ -418,6 +427,7 @@ void main() {
     expect(find.text('Änderungen speichern?'), findsNothing);
     expect(await store.list(), isEmpty);
     expect(await store.readArchive('old'), isNull);
+    expect(await tiles.index('dach', TileLayer.map), isEmpty);
     expect(removedTiles(tester), 0);
     expect(fakeMapLayers(tester).polygons.first.holes, isEmpty, reason: 'nichts liegt mehr — alles dunkel');
     expect(keepAlive.starts, 0, reason: 'nichts geladen');
@@ -483,7 +493,7 @@ void main() {
     final area = (await store.list()).single;
     expect(area.hasWays, isTrue);
     expect(area.waysBuild, '20261007');
-    expect(await store.readWays('old'), isNotNull);
+    expect(await tiles.index('dach', TileLayer.ways), isNotEmpty);
     expect(find.textContaining('Wege verfügbar'), findsNothing);
     expect(find.textContaining('mit Wegen'), findsOneWidget);
   });
@@ -504,9 +514,7 @@ void main() {
     await settle(tester, frames: 30);
     final saved = (await store.list()).single;
     expect(saved.hasWays, isTrue, reason: 'Betreiber: ein Bereich holt die Wege immer');
-    final archive = await PmTilesArchive.fromBytes((await store.readWays(saved.id))!);
-    expect(archive.header.numberOfAddressedTiles, saved.wayTiles);
-    await archive.close();
+    expect((await tiles.index('dach', TileLayer.ways)).length, saved.wayTiles);
   });
 
   testWidgets('ein älterer Bereich bekommt das Angebot, auf den neuen Stand zu kommen',
@@ -525,5 +533,89 @@ void main() {
     expect(areas.single.id, 'old', reason: 'ersetzt unter derselben Id');
     expect(areas.single.build, '20260928');
     expect(find.textContaining('Neuerer Kartenstand'), findsNothing);
+  });
+
+  /// Ein Bereich als Verweis (#229), seine Kacheln (Zoom 8–10, 1 000 Byte
+  /// je Kachel) im Speicher.
+  Future<StoredArea> seedRef(String id, AreaBounds b, {bool complete = true}) async {
+    final shape = RectShape(b);
+    final ts = shape.tiles(maxZoom: 10);
+    if (complete) {
+      await tiles.put('dach', TileLayer.map, [for (final t in ts) StoreTile(t.z, t.x, t.y, Uint8List(1000), '20260928')]);
+    }
+    final area = StoredArea(
+      id: id,
+      name: 'Bereich $id',
+      bounds: b,
+      minZoom: 8,
+      maxZoom: 10,
+      build: '20260928',
+      tiles: ts.length,
+      bytes: ts.length * 1000,
+      savedAt: DateTime.utc(2026, 9, 28),
+      format: kStoredAreaFormat,
+      complete: complete,
+    );
+    await store.saveIndex([...await store.list(), area]);
+    return area;
+  }
+
+  Future<void> openAreas(WidgetTester tester) async {
+    await openTab(tester, 'Profil');
+    await scrollTo(tester, find.text('Meine Bereiche'));
+    await tester.tap(find.text('Meine Bereiche'));
+    await settle(tester, frames: 20);
+  }
+
+  testWidgets('zwei Bereiche teilen ihre Kacheln (#229): „allein" in der Liste, Löschen nimmt nur, was keiner braucht',
+      (tester) async {
+    // Weit genug auseinander, dass sie bei Zoom 9 und 10 eigene Kacheln
+    // haben, und nah genug, dass sie sich die bei Zoom 8 teilen.
+    const a = AreaBounds(south: 47.99, west: 8.60, north: 48.02, east: 8.65);
+    const b = AreaBounds(south: 47.99, west: 9.30, north: 48.02, east: 9.35);
+    await seedRef('a', a);
+    await seedRef('b', b);
+    final shared = {
+      for (final t in const RectShape(a).tiles(maxZoom: 10)) tileIdOf(t),
+    }.intersection({for (final t in const RectShape(b).tiles(maxZoom: 10)) tileIdOf(t)});
+    final onlyA = {for (final t in const RectShape(a).tiles(maxZoom: 10)) tileIdOf(t)}.difference(shared);
+    expect(shared, isNotEmpty);
+    expect(onlyA, isNotEmpty);
+    await start(tester);
+    await openAreas(tester);
+    expect(
+        find.descendant(
+            of: find.byKey(const ValueKey('area-a')),
+            matching: find.textContaining('${formatBytes(onlyA.length * 1000)} allein')),
+        findsOneWidget,
+        reason: 'A belegt allein nur, was B nicht auch deckt');
+    expect(onlyA.length, lessThan(const RectShape(a).tiles(maxZoom: 10).length));
+
+    await tester.tap(find.byKey(const ValueKey('area-delete-a')));
+    await settle(tester);
+    expect(find.textContaining('${formatBytes(onlyA.length * 1000)} werden vom Gerät gelöscht'), findsOneWidget);
+    await tester.tap(find.text('Löschen'));
+    await settle(tester, frames: 20);
+    final left = (await tiles.index('dach', TileLayer.map)).keys.toSet();
+    expect(left.containsAll(shared), isTrue, reason: 'B braucht sie noch');
+    expect(left.intersection(onlyA), isEmpty);
+    expect((await store.list()).single.id, 'b');
+  });
+
+  testWidgets('ein unvollständiger Bereich (#229): „Fortsetzen" holt den Rest, danach ist er vollständig',
+      (tester) async {
+    final pending = await seedRef('p', const AreaBounds(south: 47.99, west: 8.99, north: 48.02, east: 9.01),
+        complete: false);
+    await start(tester);
+    await openAreas(tester);
+    expect(find.textContaining('Unvollständig'), findsOneWidget);
+    expect(find.byKey(const ValueKey('area-update-p')), findsNothing, reason: 'kein Aktualisieren, Fortsetzen');
+    await tester.tap(find.byKey(const ValueKey('area-resume-p')));
+    await settle(tester, frames: 40);
+    final done = (await store.list()).single;
+    expect(done.id, 'p');
+    expect(done.complete, isTrue);
+    expect((await tiles.index('dach', TileLayer.map)).length, pending.tiles);
+    expect(find.textContaining('Unvollständig'), findsNothing);
   });
 }

@@ -8,8 +8,73 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
 
 ## Technik-Notizen
 
+- **Der Kachelspeicher, Bereiche als Verweise** (#229, seit 0.106.0;
+  Konzept `docs/konzept-offline-karten.md` Abschnitt 8; Betreiber,
+  2026-10-09: „keine 2 getrennten Sachen und Downloads"): Je Region und
+  Ebene (Karte, Höhen, Wege) EIN Speicher (`tile_store.dart`), jede
+  Kachel einmal, mit den Bytes des Host-Archivs und ihrem Bau. Ein
+  Bereich ist nur noch Name, Region, Form (`StoredArea.format` 2); was
+  liegen soll, ist die Vereinigung der Formen (`tile_refs.dart`). Acht
+  Dinge, die man wissen muss:
+  - **Android: MBTiles** (`tile_store_io.dart`,
+    `offline_maps/store/<region>/<ebene>.mbtiles`, im Backup-Ausschluss
+    von `offline_maps/`). MapLibre liest sie nativ als `mbtiles://` —
+    EINE Quelle je Region (`area-<region>`, Wege `ways-area-<region>`;
+    `mapLibreSourceUrl` lässt `mbtiles://` stehen). TMS-Zeile, `format`
+    und `minzoom`/`maxzoom` in `metadata`, WAL, `auto_vacuum =
+    INCREMENTAL`. **Die Datei wird nie gelöscht**, auch leer nicht:
+    MapLibre hält ihren Pfad offen. SQLite über das Paket `sqlite3`
+    (FFI, Build-Hook bringt die Bibliothek mit; im Test die des Systems).
+  - **Browser: IndexedDB** (`tile_store_idb.dart`, `area_tiles` +
+    `area_tile_index`, `kBrowserDbVersion` 4), flutter_map liest über
+    `StoreTileProvider` — kein Archiv mehr ganz im Speicher. Ein
+    dart2js-Test prüft die echte IndexedDB (`test/web/tile_store_browser_test.dart`).
+  - **Speichern lädt nur, was fehlt** (`AreaDownloader._planLayer`:
+    Host-Verzeichnis minus Index). `LayerPlan` trennt `fetch` von
+    `covered`; der Bereich trägt `covered` als seine Größe. „Aktualisieren"
+    ist `plan(refresh: true)`: auch Kacheln älterer Bauten — das Alter
+    steht JE KACHEL im Index.
+  - **Der Verweis entsteht VOR dem Download** (`complete: false`), jeder
+    Block geht sofort in den Speicher und wird mit einer Stichprobe
+    zurückgelesen (`AreaVerifyFailed`). Ein Abbruch lässt das Geschriebene
+    liegen; „Meine Bereiche" zeigt „Unvollständig" und „Fortsetzen"
+    (`area-resume-<id>`, `plan(refresh: false)`). Unvollständige zählen
+    als Verweis — sonst nähme das nächste Löschen ihre Kacheln mit.
+  - **Löschen und Radierer nehmen nur, was keine Form mehr deckt**
+    (`orphansAfter`, je Zoom über `AreaShape.tiles` wie beim Planen).
+    „Meine Bereiche" nennt je Bereich, was er ALLEIN belegt
+    (`areaExclusiveBytesProvider`), oben die Summe des Speichers
+    (`areaStoredBytesProvider`). Der Radierer schreibt kein Archiv mehr
+    neu, er verkleinert Formen und löscht Zeilen.
+  - **Orte-Dateien je Name EINMAL** (`AreaStore.putPoiFile(name, …)`,
+    Android `pois/<datei>`, Browser `pois:<datei>`); der Bereich nennt
+    seine Namen, gelöscht wird, was keiner mehr nennt. Liegende Dateien
+    holt ein zweiter Bereich nicht noch einmal.
+  - **Die Leser fragen je Region**: Höhen `StoreHeightSource`, Wege-Index
+    und Planer über `areaArchiveOpenerProvider`/`areaWaysOpenerProvider`
+    (Speicher der Region des Bereichs) mit `sourceKey: (a) => a.region`
+    in `loadRoads`/`loadRoadGraph` — sonst fragte jeder Bereich derselben
+    Region dieselbe Quelle noch einmal.
+  - **Der Altbestand wird übernommen** (`area_migration.dart`): Die erste
+    Liste (`StoredAreasNotifier.build`) legt die Archive jedes Bereichs mit
+    `format` 1 lokal in den Speicher, mit dem Bau des Bereichs, dann die
+    Orte-Dateien, dann Verweis, dann erst `deleteLegacy`. Scheitert es,
+    bleibt der Eintrag Altbestand, der nächste Start versucht es wieder.
+    **`StoredArea` ohne `format` ist Altbestand** — so liest ein Eintrag
+    von vor 0.106.0, und so legen die meisten Tests ihre Bereiche an: Sie
+    seeden Archive und laufen damit durch die Übernahme. **Leere Kacheln
+    (0 Bytes)** lässt der Mehrfach-Leser `PmTilesArchive.tiles()` nicht zu
+    (Assert `begin < end`); Übernahme und Download legen sie ohne Lesen ab.
+  Der Harness hängt `MemoryTileStore` ein (`pumpApp(tileStore:)`); wer
+  einen `ProviderContainer` ohne Harness baut und Bereiche liest, setzt
+  `tileStoreProvider` selbst — sonst öffnet er eine SQLite-Datei unter
+  `path_provider`. Offen (Konzept 8.8): ob MapLibre neu geschriebene
+  Kacheln ohne Neuladen des Stils zeigt — Gate ist das Gerät.
+
   - **Gespeicherte Bereiche** (Konzept-Schritt 3, seit 0.19.0,
-    `lib/features/offline_areas/`): Ein Bereich ist EIN PMTiles-Archiv
+    `lib/features/offline_areas/`; **seit 0.106.0 im Kachelspeicher, siehe
+    oben** — was hier über Archive je Bereich steht, ist der Weg bis
+    0.105.x und der Altbestand, den die Übernahme liest): Ein Bereich war EIN PMTiles-Archiv
     (Zoom 8 bis zum Zoom des Hosts), geschrieben auf dem Gerät von
     `pmtiles_writer.dart` aus Kacheln, die die App per Range aus dem
     Host-Archiv geholt hat (Bytes unverändert, dieselbe Kompression) —
@@ -117,9 +182,10 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
         Strich beim Zeichnen folgt derselben Regel (hell dazu, dunkel
         weg, mit Saum in der Gegenhelligkeit). Die Linien tragen keine
         Kennung und liegen unter allen Trails — ein Tipp geht hindurch.
-      - **Entfernen braucht kein Netz** (`AreaTrimmer`): Das eigene
-        Archiv wird ohne die Kacheln neu geschrieben (derselbe
-        Schreiber, gegengelesen, bevor es das alte ersetzt), eine
+      - **Entfernen braucht kein Netz** (`AreaTrimmer`): Seit 0.106.0
+        verkleinert er die Formen und löscht aus dem Kachelspeicher nur,
+        was keine Form mehr deckt (bis 0.105.x schrieb er das eigene
+        Archiv neu); eine
         gröbere Kachel bleibt, solange darunter noch etwas liegt; die
         Form wird zur `TileSetShape`, Orte-Dateien leerer Zellen fallen
         aus dem Index (die Datei bleibt liegen, gelesen wird nur, was
@@ -175,8 +241,10 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
       Verzeichnis und Kacheln nur bei gzip und liest „none" roh
       (nachgesehen im nativen Code).
     - **Der Download läuft im Main-Isolate**, auf Android unter dem
-      KeepAlive-Koordinator (`dataSync`); Abbruch zwischen den Blöcken,
-      geschrieben wird erst am Ende — ein Abbruch hinterlässt nichts.
+      KeepAlive-Koordinator (`dataSync`); Abbruch zwischen den Blöcken.
+      Bis 0.105.x wurde erst am Ende geschrieben; seit 0.106.0 Block für
+      Block in den Kachelspeicher, ein Abbruch lässt einen unvollständigen
+      Bereich zurück (siehe oben).
     - **Bereiche werden nie verdrängt**, nur in „Meine Bereiche"
       gelöscht; ein neuerer Kartenstand wird dort angeboten (Knopf,
       derselbe Rahmen unter derselben Id), nicht aufgezwungen und nicht

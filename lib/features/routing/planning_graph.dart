@@ -101,6 +101,7 @@ Future<PlanningGraph> loadPlanningGraph(Ref ref, LatBox box, {bool fillOnline = 
       fetchOnline: online?.fetch,
       openWays: (a) => openWays(store, a),
       fetchWaysOnline: online?.fetchWays,
+      sourceKey: (a) => a.region,
     );
   } catch (e, s) {
     logError('Wege für die Planung lesen', e, s);

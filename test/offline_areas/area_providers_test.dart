@@ -1,7 +1,7 @@
-// Die Bereiche in der App: wann sie die Karte sind (kein Empfang oder
-// kein Manifest — dieselbe Regel wie die Übersicht, in beiden Engines),
-// und wie mehrere Bereiche zu EINER Kachelquelle der flutter_map-Engine
-// werden.
+// Die Bereiche in der App: wie mehrere Bereiche zu EINER Kachelquelle der
+// flutter_map-Engine werden — seit 0.106.0 (#229) über den Kachelspeicher
+// ihrer Region, in den die Liste beim ersten Lesen den Altbestand
+// übernimmt.
 import 'dart:convert';
 import 'dart:typed_data';
 
@@ -17,6 +17,7 @@ import 'package:trailbuddy/features/offline_areas/area_plan.dart';
 import 'package:trailbuddy/features/offline_areas/area_providers.dart';
 import 'package:trailbuddy/features/offline_areas/area_store.dart';
 import 'package:trailbuddy/features/offline_areas/pmtiles_writer.dart';
+import 'package:trailbuddy/features/offline_areas/tile_store.dart';
 import 'package:vector_map_tiles/vector_map_tiles.dart';
 
 import '../fakes/fake_settings.dart';
@@ -53,6 +54,7 @@ void main() {
       regionsLoaderProvider.overrideWithValue(() async => null),
       mapManifestLoaderProvider.overrideWithValue(() async => manifest),
       areaStoreProvider.overrideWithValue(store ?? MemoryAreaStore()),
+      tileStoreProvider.overrideWithValue(MemoryTileStore()),
       settingsProvider.overrideWithValue(FakeSettings()),
     ]);
     addTearDown(c.dispose);
@@ -68,10 +70,14 @@ void main() {
     await store.saveIndex([_area('w', west), _area('e', east)]);
 
     final c = make(noConnectivity: true, store: store);
+    // Die Liste übernimmt beide Archive in den Speicher der Region.
+    final areas = await c.read(storedAreasProvider.future);
+    expect(areas.every((a) => !a.legacy), isTrue);
+    expect(store.archives, isEmpty, reason: 'der Altbestand ist nach der Übernahme weg');
     // Der Stil kommt aus dem Asset — das der Test-Runner nicht liefert;
     // die Kachelquelle selbst braucht ihn nicht.
     final opened = [
-      for (final a in await store.list())
+      for (final a in areas)
         (minZoom: a.minZoom, maxZoom: a.maxZoom, provider: (await c.read(areaArchiveOpenerProvider)(store, a))!),
     ];
     final multi = MultiAreaTileProvider(opened);
@@ -104,6 +110,7 @@ void main() {
     await store.saveIndex([withWays, _area('plain', west)]);
 
     final c = make(noConnectivity: true, store: store);
+    await c.read(storedAreasProvider.future);
     final style = await c.read(areaWaysStyleProvider.future);
     expect(style, isNotNull);
     final multi = style!.tileProviders.tileProviderBySource[kWaysSourceId]!;
@@ -114,21 +121,24 @@ void main() {
     final off = ProviderContainer(overrides: [
       noConnectivityProvider.overrideWithValue(true),
       areaStoreProvider.overrideWithValue(store),
+      tileStoreProvider.overrideWithValue(MemoryTileStore()),
       settingsProvider.overrideWithValue(FakeSettings(wayLayerEnabled: false)),
     ]);
     addTearDown(off.dispose);
     expect(await off.read(areaWaysStyleProvider.future), isNull);
   });
 
-  test('ohne Bereiche keine Schicht; ein Bereich ohne Archiv fällt still weg', () async {
+  test('ohne Bereiche keine Schicht; ein Bereich ohne Kacheln liefert „fehlt" statt einer Kachel', () async {
     final c = make(noConnectivity: true);
     expect(await c.read(areaMapStyleProvider.future), isNull);
 
     final store = MemoryAreaStore();
     await store.saveIndex([_area('ghost', const AreaBounds(south: 47, west: 11, north: 48, east: 12))]);
     final c2 = make(noConnectivity: true, store: store);
-    expect(await c2.read(areaMapStyleProvider.future), isNull);
-    // Der Öffner wurde gefragt und hatte nichts.
-    expect(await c2.read(areaArchiveOpenerProvider)(store, (await store.list()).single), isNull);
+    final ghost = (await c2.read(storedAreasProvider.future)).single;
+    expect(ghost.legacy, isFalse, reason: 'ohne Archiv gibt es nichts zu übernehmen — der Eintrag bleibt');
+    final source = (await c2.read(areaArchiveOpenerProvider)(store, ghost))!;
+    final t = tileAt(47.5, 11.5, 9);
+    await expectLater(source.provide(TileIdentity(9, t.x, t.y)), throwsA(isA<ProviderException>()));
   });
 }

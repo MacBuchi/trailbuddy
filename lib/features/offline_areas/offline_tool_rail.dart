@@ -295,7 +295,7 @@ class _SaveDraftDialogState extends ConsumerState<_SaveDraftDialog> {
   bool get _ready =>
       !_measuring &&
       _error == null &&
-      (!_hasAdds || (_plan != null && _plan!.tiles.isNotEmpty) || (_hasRemoves && _plan != null)) &&
+      (!_hasAdds || (_plan != null && _plan!.hasMap) || (_hasRemoves && _plan != null)) &&
       (!_hasRemoves || _trim != null);
 
   Future<void> _save() async {
@@ -319,7 +319,7 @@ class _SaveDraftDialogState extends ConsumerState<_SaveDraftDialog> {
       setState(() => _trimming = false);
     }
     final plan = _plan;
-    if (plan != null && plan.tiles.isNotEmpty) {
+    if (plan != null && plan.hasMap) {
       final name = _name.text.trim().isEmpty ? 'Bereich' : _name.text.trim();
       final area = await ref.read(areaDownloadProvider.notifier).start(plan, name: name);
       if (area == null) {
@@ -343,7 +343,7 @@ class _SaveDraftDialogState extends ConsumerState<_SaveDraftDialog> {
       AreaPhase.heights => 'Höhen ${p.done} von ${p.total}',
       AreaPhase.ways => 'Wege ${p.done} von ${p.total}',
       AreaPhase.overview => 'Übersicht ${formatBytes(p.done)} von ${formatBytes(p.total)}',
-      AreaPhase.writing => 'Archiv wird geschrieben …',
+      AreaPhase.writing => 'Wird abgelegt …',
     };
   }
 
@@ -378,9 +378,14 @@ class _SaveDraftDialogState extends ConsumerState<_SaveDraftDialog> {
       body = Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
         if (plan != null)
           Text(
-            plan.tiles.isEmpty
-                ? 'Dazu: hier liegt keine Karte — außerhalb von Deutschland, Österreich und der Schweiz.'
-                : 'Lädt ${formatBytes(plan.totalBytes)} · ${plan.tiles.length} Kacheln'
+            !plan.hasMap
+                ? 'Dazu: hier liegt keine Karte — außerhalb der Regionen des Kartenhosts.'
+                : plan.nothingToFetch
+                    // Lädt nur, was fehlt (#229): Alles liegt schon, der
+                    // neue Bereich ist ein Verweis darauf.
+                    ? 'Liegt schon auf dem Gerät · ${plan.map.covered} Kacheln — nichts zu laden'
+                    : 'Lädt ${formatBytes(plan.totalBytes)} · ${plan.tiles.length} Kacheln'
+                    '${plan.map.stored == 0 ? '' : ' (${plan.map.stored} liegen schon)'}'
                     '${pois == null ? ' · ohne Orte' : ' · $pois ${pois == 1 ? 'Ort' : 'Orte'}'}'
                     '${plan.hasHeights ? ' · Höhen' : ' · ohne Höhen'}'
                     // Ohne Wege-Kachel nichts: Einem kleinen Bereich, in
@@ -404,7 +409,7 @@ class _SaveDraftDialogState extends ConsumerState<_SaveDraftDialog> {
           const SizedBox(height: 8),
           Text(_error!, style: errorStyle),
         ],
-        if (plan != null && plan.tiles.isNotEmpty) ...[
+        if (plan != null && plan.hasMap) ...[
           const SizedBox(height: 12),
           TextField(
             key: const ValueKey('area-name'),

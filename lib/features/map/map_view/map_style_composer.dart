@@ -30,6 +30,8 @@ class MapStyleSource {
   final List<double>? bounds;
 
   /// `file:///…` oder `https://…`; MapLibre bekommt `pmtiles://` davor.
+  /// Ein `mbtiles://…` (der Kachelspeicher der Bereiche, #229) geht, wie
+  /// er ist.
   final String url;
   final int minZoom;
   final int maxZoom;
@@ -67,6 +69,10 @@ class MapStyleOverlay {
 }
 
 const kMapAttribution = '© OpenStreetMap contributors · Protomaps';
+
+/// Die Adresse, die MapLibre bekommt: PMTiles mit `pmtiles://` davor,
+/// der Kachelspeicher als `mbtiles://`, wie er ist.
+String mapLibreSourceUrl(String url) => url.startsWith('mbtiles://') ? url : 'pmtiles://$url';
 
 /// Setzt aus dem erzeugten Protomaps-Basis-Style und den Quellen EIN
 /// Style-Dokument zusammen: eine background-Ebene im Landton, dann für
@@ -119,7 +125,7 @@ String composeMapLibreStyle({
     final attribution = attributionOnce(kMapAttribution);
     styleSources[source.id] = {
       'type': 'vector',
-      'url': 'pmtiles://${source.url}',
+      'url': mapLibreSourceUrl(source.url),
       'minzoom': source.minZoom,
       'maxzoom': source.maxZoom,
       'bounds': ?source.bounds,
@@ -135,7 +141,7 @@ String composeMapLibreStyle({
     final attribution = attributionOnce(kMapAttribution);
     styleSources[source.id] = {
       'type': 'vector',
-      'url': 'pmtiles://${source.url}',
+      'url': mapLibreSourceUrl(source.url),
       'minzoom': source.minZoom,
       'maxzoom': source.maxZoom,
       'bounds': ?source.bounds,

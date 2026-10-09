@@ -2,6 +2,23 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Gespeicherte Bereiche teilen sich ihre Kacheln
+
+*Version 0.106.0, 2026-10-09*
+
+- **Jede Kachel liegt nur noch einmal auf dem Gerät**: Überschneiden sich
+  zwei Bereiche, lädt der zweite nur noch, was der erste nicht schon hat.
+  Der Dialog vor dem Speichern sagt, wie viele Kacheln schon liegen.
+- **Löschen nimmt nur, was kein anderer Bereich braucht**: „Meine
+  Bereiche" zeigt je Bereich, was er allein belegt — genau so viel gibt
+  sein Löschen frei. Dasselbe gilt für den Radierer.
+- **Ein abgebrochener Download ist nicht mehr verloren**: Bricht die
+  Verbindung ab oder tippst du auf Abbrechen, bleibt der Bereich als
+  „unvollständig" mit allem, was schon geladen ist. „Fortsetzen" holt den
+  Rest.
+- Deine bisherigen Bereiche zieht die App beim ersten Start selbst um,
+  ohne Netz — du musst nichts neu laden.
+
 ## Karte jetzt auch in Südkanada
 
 *Versionen 0.104.0, 0.105.0 und 0.105.1, 2026-10-09*

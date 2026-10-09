@@ -33,6 +33,7 @@ import 'package:trailbuddy/features/routing/nav_service.dart';
 import 'package:trailbuddy/features/map/poi_source.dart';
 import 'package:trailbuddy/features/map/way_layer.dart';
 import 'package:trailbuddy/features/offline_areas/area_store.dart';
+import 'package:trailbuddy/features/offline_areas/tile_store.dart';
 import 'package:trailbuddy/features/offline_areas/region_overview.dart';
 import 'package:trailbuddy/features/map/position_provider.dart';
 import 'package:trailbuddy/features/official/official_trails_source.dart';
@@ -102,6 +103,7 @@ List<Override> overridesFor(FakeBackend backend,
         FakeOutbox? outbox,
         FakeTrailCache? trailCache,
         MemoryAreaStore? areaStore,
+        MemoryTileStore? tileStore,
         FakeKeepAlive? keepAlive,
         Stream<List<ConnectivityResult>>? connectivity,
         FakePushRepository? push,
@@ -194,6 +196,9 @@ List<Override> overridesFor(FakeBackend backend,
       // Foreground-Service als Fake — ohne beides ginge der Kartenstart
       // an `path_provider` und den Plattform-Kanal.
       areaStoreProvider.overrideWithValue(areaStore ?? MemoryAreaStore()),
+      // Der Kachelspeicher der Bereiche (#229) — ohne die Zeile öffnete
+      // jeder Kartentest eine SQLite-Datei unter `path_provider`.
+      tileStoreProvider.overrideWithValue(tileStore ?? MemoryTileStore()),
       keepAliveProvider.overrideWithValue(keepAlive ?? FakeKeepAlive()),
       // Ein echter Rechen-Isolate antwortet in der Test-Zone nie (#188).
       loopPlanRunnerFactoryProvider.overrideWithValue(InlineLoopPlanRunner.new),
@@ -248,6 +253,7 @@ Future<void> pumpApp(WidgetTester tester, FakeBackend backend,
     FakeOutbox? outbox,
     FakeTrailCache? trailCache,
     MemoryAreaStore? areaStore,
+    MemoryTileStore? tileStore,
     FakeKeepAlive? keepAlive,
     Stream<List<ConnectivityResult>>? connectivity,
     FakePushRepository? push,
@@ -275,6 +281,7 @@ Future<void> pumpApp(WidgetTester tester, FakeBackend backend,
         outbox: outbox,
         trailCache: trailCache,
         areaStore: areaStore,
+        tileStore: tileStore,
         keepAlive: keepAlive,
         connectivity: connectivity,
         push: push,

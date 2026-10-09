@@ -1,7 +1,8 @@
 // Die Ablage gespeicherter Bereiche: Dateien (Android), IndexedDB
 // (Browser, hier die Speicher-Fassung derselben Implementierung) und der
 // Test-Speicher verhalten sich gleich — Index, Archiv, Orte-Dateien,
-// Löschen räumt alles ab.
+// Löschen nimmt den Eintrag und den Altbestand; die Orte-Dateien liegen
+// seit 0.106.0 je Name einmal.
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -85,53 +86,59 @@ void main() {
     expect(back.toJson()['shape'], isNotNull, reason: 'beim nächsten Schreiben trägt er sie');
   });
 
+  test('Format und Zustand (#229): Rundlauf; ein Eintrag von vor 0.106.0 ist Altbestand und vollständig', () {
+    final ref = _area('r').copyWith(format: kStoredAreaFormat, complete: false);
+    final back = StoredArea.fromJson(ref.toJson());
+    expect([back.format, back.legacy, back.complete], [kStoredAreaFormat, false, false]);
+    final old = StoredArea.fromJson(_area('alt').toJson()
+      ..remove('format')
+      ..remove('complete'));
+    expect([old.format, old.legacy, old.complete], [1, true, true]);
+  });
+
   Future<void> exercise(AreaStore store, {required bool hasPath}) async {
     expect(await store.list(), isEmpty);
-    final bytes = Uint8List.fromList(List.generate(300, (i) => i % 251));
-    await store.putArchive('a1', bytes);
-    await store.putPoiFile('a1', '479_77.water.json', '{"pois":[]}');
+    // Die Orte-Dateien je Name EINMAL (#229), unabhängig vom Bereich.
+    await store.putPoiFile('479_77.water.json', '{"pois":[]}');
+    await store.putPoiFile('479_78.water.json', '{"pois":[1]}');
     await store.saveIndex([_area('a1', poiFiles: const ['479_77.water.json'])]);
     expect((await store.list()).single.id, 'a1');
-    expect(await store.readArchive('a1'), bytes);
-    expect((await store.archivePath('a1')) != null, hasPath);
     expect(await store.readPoiFile('479_77.water.json'), '{"pois":[]}');
     expect(await store.readPoiFile('0_0.food.json'), isNull);
-    // Das zweite Archiv: Höhen, getrennt ablegbar und wegnehmbar.
-    expect(await store.readHeights('a1'), isNull);
-    expect(await store.heightsPath('a1'), isNull);
+    await store.deletePoiFiles(['479_78.water.json']);
+    expect(await store.readPoiFile('479_78.water.json'), isNull);
+    expect(await store.readPoiFile('479_77.water.json'), '{"pois":[]}', reason: 'nur, was genannt ist');
+    // Der Altbestand: drei Archive und Orte je Bereich, lesbar bis zur Übernahme.
+    final bytes = Uint8List.fromList(List.generate(300, (i) => i % 251));
     final heights = Uint8List.fromList(List.generate(120, (i) => 255 - i % 200));
+    final ways = Uint8List.fromList(List.generate(80, (i) => i));
+    await store.putArchive('a1', bytes);
     await store.putHeights('a1', heights);
+    await store.putWays('a1', ways);
+    await store.putLegacyPoiFile('a1', '479_77.water.json', '{"alt":1}');
+    expect(await store.readArchive('a1'), bytes);
+    expect((await store.archivePath('a1')) != null, hasPath);
     expect(await store.readHeights('a1'), heights);
     expect((await store.heightsPath('a1')) != null, hasPath);
-    expect(await store.readArchive('a1'), bytes, reason: 'das Kartenarchiv bleibt, was es war');
-    await store.deleteHeights('a1');
-    expect(await store.readHeights('a1'), isNull);
-    expect(await store.readArchive('a1'), bytes);
-    await store.putHeights('a1', heights);
-    // Das dritte Archiv: Wege, ebenso getrennt.
-    expect(await store.readWays('a1'), isNull);
-    final ways = Uint8List.fromList(List.generate(80, (i) => i));
-    await store.putWays('a1', ways);
     expect(await store.readWays('a1'), ways);
     expect((await store.waysPath('a1')) != null, hasPath);
-    expect(await store.readHeights('a1'), heights, reason: 'Höhen und Wege liegen getrennt');
-    await store.deleteWays('a1');
-    expect(await store.readWays('a1'), isNull);
-    expect(await store.readHeights('a1'), heights);
-    await store.putWays('a1', ways);
-    // Ein zweiter Bereich, dann der erste weg: Archiv, Höhen, Orte, Eintrag.
+    expect(await store.readLegacyPoiFile('a1', '479_77.water.json'), '{"alt":1}');
+    expect(await store.readPoiFile('479_77.water.json'), '{"pois":[]}', reason: 'Altbestand und neue Ablage getrennt');
+    // Nach der Übernahme geht der Altbestand, der Eintrag bleibt.
     await store.putArchive('a2', bytes);
-    await store.saveIndex([_area('a1', poiFiles: const ['479_77.water.json']), _area('a2')]);
-    await store.delete('a1');
-    expect((await store.list()).map((a) => a.id), ['a2']);
+    await store.deleteLegacy('a1');
+    expect((await store.list()).single.id, 'a1');
     expect(await store.readArchive('a1'), isNull);
     expect(await store.archivePath('a1'), isNull);
     expect(await store.readHeights('a1'), isNull);
-    expect(await store.heightsPath('a1'), isNull);
     expect(await store.readWays('a1'), isNull);
-    expect(await store.waysPath('a1'), isNull);
-    expect(await store.readPoiFile('479_77.water.json'), isNull);
-    expect(await store.readArchive('a2'), isNotNull);
+    expect(await store.readLegacyPoiFile('a1', '479_77.water.json'), isNull);
+    expect(await store.readArchive('a2'), isNotNull, reason: 'nur der genannte Bereich');
+    // Löschen nimmt den Eintrag; die Orte-Datei räumt, wer löscht (tile_refs).
+    await store.saveIndex([_area('a1', poiFiles: const ['479_77.water.json']), _area('a2')]);
+    await store.delete('a1');
+    expect((await store.list()).map((a) => a.id), ['a2']);
+    expect(await store.readPoiFile('479_77.water.json'), isNotNull);
   }
 
   test('Dateien auf dem Telefon', () async {
@@ -142,6 +149,8 @@ void main() {
     expect(await File('${dir.path}/a2.pmtiles.part').exists(), isFalse);
     expect(await File('${dir.path}/a1.heights.pmtiles').exists(), isFalse);
     expect(await File('${dir.path}/a1.ways.pmtiles').exists(), isFalse);
+    expect(await File('${dir.path}/pois/479_77.water.json').exists(), isTrue);
+    expect(() => FileAreaStore(baseDir: dir).putPoiFile('../x.json', ''), throwsArgumentError);
     // Ein kaputter Index heißt keine Bereiche, kein Absturz.
     await File('${dir.path}/areas.json').writeAsString('{');
     expect(await FileAreaStore(baseDir: dir).list(), isEmpty);
