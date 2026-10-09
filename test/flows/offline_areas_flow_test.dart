@@ -11,6 +11,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pmtiles/pmtiles.dart';
@@ -97,7 +98,12 @@ void main() {
       '{"id":"n2","kind":"spring","lat":48.001,"lng":9.001}]}';
 
   Future<void> start(WidgetTester tester,
-      {bool host = true, bool pois = false, bool ways = false, bool wayLayer = true, String? appearance}) async {
+      {bool host = true,
+      bool pois = false,
+      bool ways = false,
+      bool wayLayer = true,
+      String? appearance,
+      Stream<List<ConnectivityResult>>? connectivity}) async {
     final source = _sourceBytes();
     final waysSource = _waysBytes();
     final cells = poiCellsCovering(47.5, 8.5, 48.5, 9.5);
@@ -106,6 +112,7 @@ void main() {
         areaStore: store,
         tileStore: tiles,
         keepAlive: keepAlive,
+        connectivity: connectivity,
         settings: FakeSettings(appearance: appearance, wayLayerEnabled: wayLayer),
         extraOverrides: [
           mapManifestLoaderProvider.overrideWithValue(() async => host ? _manifest : null),
@@ -517,7 +524,7 @@ void main() {
     expect((await tiles.index('dach', TileLayer.ways)).length, saved.wayTiles);
   });
 
-  testWidgets('ein älterer Bereich bekommt das Angebot, auf den neuen Stand zu kommen',
+  testWidgets('Alter je Kachel (#229 Schritt 4): die Region zählt die veralteten, „Aktualisieren" holt nur sie',
       (tester) async {
     await store.putArchive('old', _sourceBytes());
     await store.saveIndex([oldArea(build: '20260801')]);
@@ -525,14 +532,42 @@ void main() {
     await openTab(tester, 'Profil');
     await scrollTo(tester, find.text('Meine Bereiche'));
     await tester.tap(find.text('Meine Bereiche'));
-    await settle(tester);
-    expect(find.textContaining('Neuerer Kartenstand verfügbar'), findsOneWidget);
-    await tester.tap(find.byKey(const ValueKey('area-update-old')));
+    await settle(tester, frames: 20);
+    final row = find.byKey(const ValueKey('region-dach'));
+    expect(find.descendant(of: row, matching: find.textContaining('3 davon älter als der Stand vom 28.09.2026')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey('area-update-old')), findsNothing,
+        reason: 'der neue Stand steht an der Region, nicht am Bereich');
+    await tester.tap(find.byKey(const ValueKey('region-refresh-dach')));
+    await settle(tester, frames: 20);
+    expect(find.text('Karte DACH aktualisieren?'), findsOneWidget);
+    expect(find.textContaining('3 Kacheln werden ersetzt'), findsOneWidget);
+    expect(find.textContaining('Mobilfunk'), findsNothing, reason: 'im WLAN keine Warnung');
+    await tester.tap(find.widgetWithText(FilledButton, 'Aktualisieren'));
     await settle(tester, frames: 40);
     final areas = await store.list();
-    expect(areas.single.id, 'old', reason: 'ersetzt unter derselben Id');
+    expect(areas.single.id, 'old', reason: 'der Bereich bleibt, nur seine Kacheln sind neu');
     expect(areas.single.build, '20260928');
-    expect(find.textContaining('Neuerer Kartenstand'), findsNothing);
+    expect({for (final i in (await tiles.index('dach', TileLayer.map)).values) i.build}, {'20260928'});
+    expect(find.descendant(of: row, matching: find.textContaining('Alle auf dem Stand vom 28.09.2026')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey('region-refresh-dach')), findsNothing);
+  });
+
+  testWidgets('über Mobilfunk warnt der Dialog vor dem Datenvolumen', (tester) async {
+    await store.putArchive('old', _sourceBytes());
+    await store.saveIndex([oldArea(build: '20260801')]);
+    await start(tester, connectivity: Stream.value(const [ConnectivityResult.mobile]));
+    await openTab(tester, 'Profil');
+    await scrollTo(tester, find.text('Meine Bereiche'));
+    await tester.tap(find.text('Meine Bereiche'));
+    await settle(tester, frames: 20);
+    await tester.tap(find.byKey(const ValueKey('region-refresh-dach')));
+    await settle(tester, frames: 20);
+    expect(find.textContaining('über Mobilfunk verbunden'), findsOneWidget);
+    await tester.tap(find.text('Abbrechen'));
+    await settle(tester);
+    expect((await store.list()).single.build, '20260801', reason: 'abgebrochen heißt: nichts geholt');
   });
 
   /// Ein Bereich als Verweis (#229), seine Kacheln (Zoom 8–10, 1 000 Byte

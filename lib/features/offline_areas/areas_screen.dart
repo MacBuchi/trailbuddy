@@ -4,6 +4,9 @@
 // Seit 0.106.0 (#229) teilen Bereiche ihre Kacheln: Die Zeile nennt, was
 // ein Bereich ALLEIN belegt — das, was sein Löschen frei gibt —, und ein
 // abgebrochener Download steht als „unvollständig" mit „Fortsetzen" da.
+// Seit 0.107.0 (#229 Schritt 4) das Alter je Kachel, je Region: eine Zeile
+// sagt, wie viele Kacheln älter sind als der Stand des Hosts, und
+// „Aktualisieren" holt nur sie — über alle Bereiche der Region zusammen.
 // Seit 0.105.0 auch die Übersicht einer Region (#220 Schritt 4): eine
 // eigene Zeile mit Größe und Löschen-Knopf, und wo sie fehlt oder älter
 // ist, ein Knopf, der nur sie holt.
@@ -11,6 +14,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/connectivity.dart';
 import '../../core/router_branches.dart';
 import '../../core/widgets/motion.dart';
 import '../map/map_regions.dart';
@@ -82,20 +86,29 @@ class AreasScreen extends ConsumerWidget {
                 ListTile(
                   leading: const SizedBox(
                       width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2)),
-                  title: Text('„${download.name}" wird gespeichert …'),
+                  title: Text(download.refreshing
+                      ? '${download.name} wird aktualisiert …'
+                      : '„${download.name}" wird gespeichert …'),
                   subtitle: LinearProgressIndicator(value: download.progress?.fraction),
+                  trailing: IconButton(
+                    key: const ValueKey('area-download-cancel'),
+                    tooltip: 'Abbrechen',
+                    icon: const Icon(Icons.close),
+                    onPressed: () => ref.read(areaDownloadProvider.notifier).cancel(),
+                  ),
                 ),
+              // Je Region mit Bereichen das Alter ihrer Kacheln (#229
+              // Schritt 4): Aktualisiert wird die Region, nicht der Bereich.
+              for (final r in regions)
+                if (areas.any((a) => a.region == r.id)) _RegionTile(r),
               for (final a in areas)
                 if (regions.where((r) => r.id == a.region).firstOrNull case final region?)
                   _AreaTile(a,
-                      newerBuild: (ref.watch(regionMapManifestProvider(region)).valueOrNull?.sourceBuild ?? '')
-                              .compareTo(a.build) >
-                          0,
                       heightsMissing:
                           ref.watch(regionHeightsManifestProvider(region)).valueOrNull != null && !a.hasHeights,
                       waysMissing: ref.watch(areaWaysAvailableProvider(region)).valueOrNull != null && a.waysBuild == null)
                 else
-                  _AreaTile(a, newerBuild: false, heightsMissing: false, waysMissing: false),
+                  _AreaTile(a, heightsMissing: false, waysMissing: false),
               for (final r in overviewRegions)
                 _OverviewTile(
                   regionId: r.id,
@@ -118,12 +131,9 @@ class AreasScreen extends ConsumerWidget {
 }
 
 class _AreaTile extends ConsumerWidget {
-  const _AreaTile(this.area, {required this.newerBuild, required this.heightsMissing, required this.waysMissing});
+  const _AreaTile(this.area, {required this.heightsMissing, required this.waysMissing});
 
   final StoredArea area;
-
-  /// Der Host hat einen neueren Kartenstand als dieser Bereich.
-  final bool newerBuild;
 
   /// Der Host hat Höhenkacheln, dieser Bereich (von vor 0.69.0 oder
   /// ohne Manifest gespeichert) noch keine — „Aktualisieren" holt sie.
@@ -133,10 +143,10 @@ class _AreaTile extends ConsumerWidget {
   /// noch nicht geholt — „Aktualisieren" holt sie.
   final bool waysMissing;
 
-  /// Was „Aktualisieren" brächte, als zweite Zeile; null: nichts.
-  String? get _offer => newerBuild
-      ? 'Neuerer Kartenstand verfügbar'
-      : heightsMissing && waysMissing
+  /// Was „Aktualisieren" brächte, als zweite Zeile; null: nichts. Ein
+  /// neuerer Kartenstand steht seit 0.107.0 an der Region (#229 Schritt 4)
+  /// — die Kacheln gehören ihr, nicht dem Bereich.
+  String? get _offer => heightsMissing && waysMissing
           ? 'Höhen und Wege verfügbar'
           : heightsMissing
               ? 'Höhendaten verfügbar'
@@ -178,8 +188,8 @@ class _AreaTile extends ConsumerWidget {
   }
 
   /// Dieselbe Form noch einmal planen, unter derselben Id: mit [refresh]
-  /// die Kacheln älterer Bauten neu (Aktualisieren), sonst nur, was fehlt
-  /// (Fortsetzen nach einem Abbruch). Angeboten, nicht aufgezwungen; ob das
+  /// auch die Kacheln älterer Bauten (Höhen oder Wege nachholen), sonst nur,
+  /// was fehlt (Fortsetzen nach einem Abbruch). Angeboten, nicht aufgezwungen; ob das
   /// Netz frei ist, entscheidet, wer tippt.
   Future<void> _update(BuildContext context, WidgetRef ref, {bool refresh = true}) async {
     final messenger = ScaffoldMessenger.of(context);
@@ -241,6 +251,86 @@ class _AreaTile extends ConsumerWidget {
         StatefulNavigationShell.of(context).goBranch(kMapBranchIndex);
         ref.read(mapFocusAreaProvider.notifier).state = area;
       },
+    );
+  }
+}
+
+/// Das Alter der Kacheln einer Region (#229 Schritt 4, Konzept 8.2): wie
+/// viele die Formen decken und wie viele davon älter sind als der Stand
+/// des Hosts — gezählt aus dem Index, ohne Netz. „Aktualisieren" misst
+/// erst (Größe aus dem Verzeichnis des neuen Baus), fragt dann und holt
+/// nur die veralteten. Nie von selbst: Wer tippt, entscheidet (§7), und
+/// über Mobilfunk sagt der Dialog es dazu.
+class _RegionTile extends ConsumerWidget {
+  const _RegionTile(this.region);
+
+  final MapRegion region;
+
+  Future<void> _refresh(BuildContext context, WidgetRef ref) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final notifier = ref.read(areaDownloadProvider.notifier);
+    final RegionRefreshPlan plan;
+    try {
+      plan = await notifier.planRegionRefresh(region);
+    } catch (_) {
+      messenger.showSnackBar(const SnackBar(content: Text('Der Kartenhost ist gerade nicht erreichbar.')));
+      return;
+    }
+    if (!context.mounted) return;
+    if (plan.isEmpty) {
+      messenger.showSnackBar(const SnackBar(content: Text('Alles liegt schon auf dem neuen Stand.')));
+      return;
+    }
+    final mobile = ref.read(onMobileDataProvider);
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Karte ${region.name} aktualisieren?'),
+        content: Text('${plan.staleTiles} Kacheln werden ersetzt — ${formatBytes(plan.fetchBytes)} aus dem Netz'
+            '${plan.poiNames.isEmpty ? '' : ', dazu die Orte'}. Die Bereiche bleiben, wie sie sind; nur '
+            'ältere Kacheln kommen neu.'
+            '${mobile ? '\n\nDu bist über Mobilfunk verbunden — das geht vom Datenvolumen ab.' : ''}'),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Abbrechen')),
+          FilledButton(onPressed: () => Navigator.of(context).pop(true), child: const Text('Aktualisieren')),
+        ],
+      ),
+    );
+    if (ok != true || !context.mounted) return;
+    final done = await notifier.startRegionRefresh(region, plan);
+    if (!done) {
+      final error = ref.read(areaDownloadProvider).error;
+      if (error != null) messenger.showSnackBar(SnackBar(content: Text(error)));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final age = ref.watch(regionTileAgeProvider(region)).valueOrNull;
+    if (age == null || age.tiles == 0) return const SizedBox.shrink();
+    final busy = ref.watch(areaDownloadProvider.select((s) => s.busy));
+    final build = age.build;
+    final String state;
+    if (age.stale > 0) {
+      state = '${age.stale} davon älter als der Stand ${build == null ? 'des Kartenhosts' : 'vom ${buildLabel(build)}'}'
+          ' — „Aktualisieren" holt nur sie';
+    } else {
+      state = build == null ? 'Stand des Kartenhosts gerade unbekannt' : 'Alle auf dem Stand vom ${buildLabel(build)}';
+    }
+    return ListTile(
+      key: ValueKey('region-${region.id}'),
+      leading: const Icon(Icons.layers_outlined),
+      title: Text('Karte ${region.name}'),
+      subtitle: Text('${age.tiles} Kacheln auf dem Gerät\n$state'),
+      isThreeLine: true,
+      trailing: age.stale > 0
+          ? IconButton(
+              key: ValueKey('region-refresh-${region.id}'),
+              tooltip: 'Veraltete Kacheln aktualisieren',
+              icon: const Icon(Icons.update),
+              onPressed: busy ? null : () => _refresh(context, ref),
+            )
+          : null,
     );
   }
 }

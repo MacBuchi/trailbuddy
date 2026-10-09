@@ -564,6 +564,16 @@ Inventar (#230) zählt das Bündel zum Bau.
    Region; die Hervorhebung der Leiste rechnet weiter aus den Formen, ein
    unvollständiger Bereich erscheint dort also schon hell.
 4. **Alter je Kachel**: „veraltet" und „Aktualisieren" je Region (feat).
+   **Gebaut in 0.107.0**: Eine Zeile je Region in „Meine Bereiche" zählt
+   aus dem Index, ohne Netz, die gedeckten Kacheln und die veralteten
+   (`staleTiles`, `regionTileAgeProvider`); „Aktualisieren" misst gegen
+   das Verzeichnis des neuen Baus, nennt die Größe, warnt über Mobilfunk
+   (`onMobileDataProvider`, Transportweg) und holt nur sie, jede Kachel
+   einmal (`AreaDownloader.planRefresh`/`refreshRegion`). Eine veraltete
+   Kachel, die der neue Bau nicht mehr hat, geht. Die Bereiche tragen den
+   neuen Bau erst, wenn alles da ist; das Angebot „Neuerer Kartenstand"
+   am Bereich ist weg (Höhen und Wege nachholen bleibt dort). Die
+   Übersicht je Region hat seit 0.105.0 ihre eigene Zeile.
 5. **Die ganze Region speichern** (Android, feat) — schließt #229;
    danach ist 🚀 C fällig.
 

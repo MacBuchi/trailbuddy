@@ -14,7 +14,7 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
   Ebene (Karte, Höhen, Wege) EIN Speicher (`tile_store.dart`), jede
   Kachel einmal, mit den Bytes des Host-Archivs und ihrem Bau. Ein
   Bereich ist nur noch Name, Region, Form (`StoredArea.format` 2); was
-  liegen soll, ist die Vereinigung der Formen (`tile_refs.dart`). Acht
+  liegen soll, ist die Vereinigung der Formen (`tile_refs.dart`). Neun
   Dinge, die man wissen muss:
   - **Android: MBTiles** (`tile_store_io.dart`,
     `offline_maps/store/<region>/<ebene>.mbtiles`, im Backup-Ausschluss
@@ -65,6 +65,18 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     seeden Archive und laufen damit durch die Übernahme. **Leere Kacheln
     (0 Bytes)** lässt der Mehrfach-Leser `PmTilesArchive.tiles()` nicht zu
     (Assert `begin < end`); Übernahme und Download legen sie ohne Lesen ab.
+  - **Alter je Kachel, aktualisiert je Region** (Schritt 4, seit 0.107.0):
+    `staleTiles` (`tile_refs.dart`) zählt LIEGENDE, gedeckte Kacheln aus
+    einem älteren Bau — Fehlendes ist nicht veraltet, das ist
+    „Fortsetzen". `regionTileAgeProvider` rechnet das für die Zeile
+    `region-<id>` in „Meine Bereiche" ohne Netz, gegen die Manifeste, die
+    die App ohnehin hat. `planRefresh`/`refreshRegion` holen über alle
+    Bereiche der Region jede veraltete Kachel einmal; was der neue Bau
+    nicht mehr hat (`drop`, z. B. Wege ohne Tags), geht — sonst bliebe es
+    für immer alt. Den Bau der Bereiche setzt erst das Ende; ein Abbruch
+    lässt das Neue liegen, die Zählung zeigt den Rest. Mobilfunk-Warnung
+    über `onMobileDataProvider` (nur der Transportweg; ein Hotspot heißt
+    WLAN). Am Bereich steht nur noch „Höhen/Wege verfügbar".
   Der Harness hängt `MemoryTileStore` ein (`pumpApp(tileStore:)`); wer
   einen `ProviderContainer` ohne Harness baut und Bereiche liest, setzt
   `tileStoreProvider` selbst — sonst öffnet er eine SQLite-Datei unter
@@ -246,8 +258,8 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
       Block in den Kachelspeicher, ein Abbruch lässt einen unvollständigen
       Bereich zurück (siehe oben).
     - **Bereiche werden nie verdrängt**, nur in „Meine Bereiche"
-      gelöscht; ein neuerer Kartenstand wird dort angeboten (Knopf,
-      derselbe Rahmen unter derselben Id), nicht aufgezwungen und nicht
+      gelöscht; ein neuerer Kartenstand wird dort angeboten (seit
+      0.107.0 an der Region, siehe oben), nicht aufgezwungen und nicht
       an „freies Netz" gebunden — wer tippt, entscheidet.
     - **„Gesehenes bleibt liegen" (Konzept 3.2) ist KEIN Bereich**: Auf
       Android hält MapLibres Ambient Cache, was online geladen war (seit

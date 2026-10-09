@@ -159,6 +159,54 @@ List<String> areaRegionsOf(List<StoredArea> areas) => {for (final a in areas) a.
 int areaMaxZoomIn(List<StoredArea> areas, String region) =>
     areas.where((a) => a.region == region).fold(kAreaMinZoom, (m, a) => a.maxZoom > m ? a.maxZoom : m);
 
+/// Das Alter je Kachel, je Region zusammengefasst (Konzept 8.2, Schritt 4):
+/// wie viele Kacheln die Formen der Region decken und wie viele davon aus
+/// einem älteren Bau stammen als der des Hosts — aus dem Index, ohne Netz,
+/// gegen die Manifeste, die die App ohnehin hat. Ohne Manifest einer Ebene
+/// zählt sie nicht als veraltet.
+@immutable
+class RegionTileAge {
+  const RegionTileAge({required this.tiles, required this.stale, required this.staleBytes, this.build});
+
+  /// Liegende Kacheln der Karte, die eine Form der Region deckt.
+  final int tiles;
+
+  /// Davon veraltet, über alle Ebenen (Karte, Höhen, Wege).
+  final int stale;
+
+  /// Ihre Bytes, wie sie liegen — der Ersatz kommt beim Planen.
+  final int staleBytes;
+
+  /// Der Kartenstand des Hosts; null ohne Manifest.
+  final String? build;
+}
+
+final regionTileAgeProvider = FutureProvider.family<RegionTileAge, MapRegion>((ref, region) async {
+  final areas = [
+    for (final a in await ref.watch(storedAreasProvider.future))
+      if (a.region == region.id) a,
+  ];
+  final tiles = ref.watch(tileStoreProvider);
+  final map = await ref.watch(regionMapManifestProvider(region).future);
+  final heights = await ref.watch(regionHeightsManifestProvider(region).future);
+  final ways = await ref.watch(areaWaysAvailableProvider(region).future);
+  var stored = 0, stale = 0, staleBytes = 0;
+  for (final (layer, build) in [
+    (TileLayer.map, map?.sourceBuild),
+    (TileLayer.heights, heights?.build),
+    (TileLayer.ways, ways?.build),
+  ]) {
+    final index = await tiles.index(region.id, layer);
+    if (index.isEmpty) continue;
+    final referenced = referencedTileIds(areas, layer);
+    if (layer == TileLayer.map) stored = referenced.where(index.containsKey).length;
+    final s = staleTiles(index, referenced, build);
+    stale += s.ids.length;
+    staleBytes += s.bytes;
+  }
+  return RegionTileAge(tiles: stored, stale: stale, staleBytes: staleBytes, build: map?.sourceBuild);
+});
+
 /// Die gespeicherten Übersichten der Regionen (#220 Schritt 4).
 final storedOverviewsProvider =
     FutureProvider<List<StoredOverview>>((ref) => ref.watch(areaStoreProvider).overviews());
@@ -359,9 +407,13 @@ class AreaDownloadState {
     this.progress,
     this.result,
     this.error,
+    this.refreshing = false,
   });
 
   final AreaDownloadPhase phase;
+
+  /// Läuft „Aktualisieren" einer Region statt eines Bereichs (Schritt 4)?
+  final bool refreshing;
   final String? name;
   final AreaPlan? plan;
   final AreaProgress? progress;
@@ -602,6 +654,100 @@ class AreaDownloadNotifier extends Notifier<AreaDownloadState> {
               : 'Die Übersicht ließ sich nicht speichern.');
       return false;
     } finally {
+      await coordinator.stop(_keepAliveKey);
+    }
+  }
+
+  /// Die Archive des Hosts für die Region [region], als Downloader — oder
+  /// null ohne Kartenmanifest. Wer ihn bekommt, schließt [close].
+  Future<({AreaDownloader downloader, Future<void> Function() close})?> _regionDownloader(MapRegion region) async {
+    final hosts = await _hostManifests(ref, region);
+    final manifest = hosts.map;
+    if (manifest == null) return null;
+    final archive = await ref.read(areaSourceOpenerProvider)(manifest.archiveUri);
+    final heights = await _openSide(hosts.heights?.archiveUri, 'Höhenarchiv öffnen');
+    final ways = await _openSide(hosts.ways?.archiveUri, 'Wege-Archiv öffnen');
+    final poiManifest = hosts.pois;
+    final fetchPoi = ref.read(areaPoiFileLoaderProvider);
+    return (
+      downloader: AreaDownloader(
+        archive: archive,
+        manifest: manifest,
+        store: ref.read(areaStoreProvider),
+        tiles: ref.read(tileStoreProvider),
+        poiManifest: poiManifest,
+        fetchPoiFile: (fileName) => poiManifest == null ? Future.value(null) : fetchPoi(poiManifest, fileName),
+        heights: heights,
+        heightsManifest: hosts.heights,
+        ways: ways,
+        waysManifest: hosts.ways,
+        region: region.id,
+      ),
+      close: () async {
+        await archive.close();
+        await heights?.close();
+        await ways?.close();
+      },
+    );
+  }
+
+  /// Was „Aktualisieren" der Region [region] holen würde (Konzept 8.2,
+  /// Schritt 4) — gemessen gegen das Verzeichnis des neuen Baus. Braucht
+  /// Empfang wie jeder Plan.
+  Future<RegionRefreshPlan> planRegionRefresh(MapRegion region) async {
+    if (ref.read(noConnectivityProvider)) throw StateError('Kein Kartenhost erreichbar');
+    final host = await _regionDownloader(region);
+    if (host == null) throw StateError('Kein Kartenhost erreichbar');
+    try {
+      return await host.downloader.planRefresh(await ref.read(storedAreasProvider.future));
+    } finally {
+      await host.close();
+    }
+  }
+
+  /// Holt die veralteten Kacheln der Region — unter dem Koordinator wie
+  /// ein Bereich, mit Fortschritt und Abbruch. Ein Abbruch lässt das schon
+  /// Geholte liegen; ein Fehler landet im Zustand.
+  Future<bool> startRegionRefresh(MapRegion region, RegionRefreshPlan plan) async {
+    if (state.busy) return false;
+    _cancelled = false;
+    final name = 'Karte ${region.name}';
+    state = AreaDownloadState(phase: AreaDownloadPhase.running, name: name, refreshing: true);
+    final coordinator = ref.read(keepAliveCoordinatorProvider);
+    await coordinator.start(_keepAliveKey, '$name — 0 %', title: 'Karte wird aktualisiert');
+    Future<void> Function()? close;
+    try {
+      final host = await _regionDownloader(region);
+      if (host == null) throw StateError('Kein Kartenhost erreichbar');
+      close = host.close;
+      await host.downloader.refreshRegion(
+        plan,
+        isCancelled: () => _cancelled,
+        onProgress: (p) {
+          state = AreaDownloadState(phase: AreaDownloadPhase.running, name: name, progress: p, refreshing: true);
+          unawaited(coordinator.update(_keepAliveKey, '$name — ${(p.fraction * 100).round()} %'));
+        },
+      );
+      await ref.read(storedAreasProvider.notifier).refresh();
+      state = AreaDownloadState(phase: AreaDownloadPhase.done, name: name);
+      return true;
+    } on AreaCancelled {
+      await ref.read(storedAreasProvider.notifier).refresh();
+      state = const AreaDownloadState();
+      return false;
+    } catch (e, s) {
+      if (!looksOffline(e)) logError('Region aktualisieren', e, s);
+      await ref.read(storedAreasProvider.notifier).refresh();
+      state = AreaDownloadState(
+          phase: AreaDownloadPhase.failed,
+          name: name,
+          error: looksOffline(e)
+              ? 'Die Verbindung ist abgerissen. Was schon neu geladen ist, bleibt — „Aktualisieren" '
+                  'holt den Rest, sobald Empfang da ist.'
+              : 'Die Karte ließ sich nicht ganz aktualisieren. Was schon neu geladen ist, bleibt.');
+      return false;
+    } finally {
+      await close?.call();
       await coordinator.stop(_keepAliveKey);
     }
   }

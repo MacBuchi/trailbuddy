@@ -17,3 +17,14 @@ final noConnectivityProvider = Provider<bool>((ref) {
   if (results == null) return false;
   return results.isEmpty || results.every((r) => r == ConnectivityResult.none);
 });
+
+/// Mobilfunk und kein WLAN/LAN? Für die Warnung vor großen Downloads
+/// (Konzept Offline-Karten 8.2: „bei Mobilfunk mit Warnung"). Der
+/// Transportweg ist nicht die Rechnung — ein Hotspot heißt hier WLAN —,
+/// aber er ist, was `connectivity_plus` weiß. Unbekannt heißt: keine
+/// Warnung.
+final onMobileDataProvider = Provider<bool>((ref) {
+  final results = ref.watch(connectivityProvider).valueOrNull ?? const [];
+  return results.contains(ConnectivityResult.mobile) &&
+      !results.any((r) => r == ConnectivityResult.wifi || r == ConnectivityResult.ethernet);
+});

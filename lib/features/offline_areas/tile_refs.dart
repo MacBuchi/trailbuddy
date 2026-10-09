@@ -98,3 +98,22 @@ int orphanBytes(({List<LayerOrphans> tiles, List<String> poiFiles}) orphans) =>
 
 int orphanMapTiles(({List<LayerOrphans> tiles, List<String> poiFiles}) orphans) =>
     orphans.tiles.where((o) => o.layer == TileLayer.map).fold(0, (s, o) => s + o.ids.length);
+
+/// Die liegenden Kacheln aus einem Bau älter als [build], die eine Form
+/// noch deckt (Konzept 8.2, „Alter je Kachel"): Kachel-Ids und ihre Bytes,
+/// wie sie liegen. Was nicht liegt, ist nicht veraltet, sondern fehlt —
+/// das holt „Fortsetzen", nicht „Aktualisieren". Ohne [build] (kein
+/// Manifest) ist nichts veraltet.
+({List<int> ids, int bytes}) staleTiles(Map<int, StoredTileInfo> index, Set<int> referenced, String? build) {
+  if (build == null) return (ids: const <int>[], bytes: 0);
+  final ids = <int>[];
+  var bytes = 0;
+  for (final id in referenced) {
+    final have = index[id];
+    if (have == null || have.build.compareTo(build) >= 0) continue;
+    ids.add(id);
+    bytes += have.bytes;
+  }
+  ids.sort();
+  return (ids: ids, bytes: bytes);
+}
