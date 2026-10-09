@@ -165,7 +165,7 @@ void main() {
       expect(() => MapManifest.fromJson(_caMapJson, dir: '../'), throwsFormatException);
       expect(WaysManifest.fromJson(_caWaysJson, dir: 'ca/').archiveUri.toString(),
           '$kMapTilesBase/ca/ways-20261017.pmtiles');
-      final pois = PoiManifest.fromJson({'format': 1, 'build': '20261016', 'prefix': 'pois-20261016', 'cells': {}},
+      final pois = PoiManifest.fromJson({'format': 1, 'build': '20261016', 'prefix': 'pois-20261016', 'cells': <String, dynamic>{}},
           dir: 'ca/');
       expect(pois.folder, 'ca/pois-20261016');
     });

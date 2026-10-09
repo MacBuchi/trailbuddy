@@ -14,9 +14,9 @@
   aus der kanadischen Karte und bleibt auf dem Gerät wie jeder andere.
   Wo es keine Karte gibt, sagt die App beim Speichern in einem Satz,
   für welche Gegenden es welche gibt.
-- Wege, Orte und Höhen kommen dort dazu, sobald sie für Kanada gebaut
-  sind. Eine Übersichtskarte für Kanada ohne Empfang folgt in einer
-  der nächsten Versionen.
+- Wege, Orte und Höhen holt die App dort genauso nach Lage, sobald der
+  Kartenhost sie für Kanada bereithält. Eine Übersichtskarte für Kanada
+  ohne Empfang folgt in einer der nächsten Versionen.
 
 ## Sperren offizieller Trails mit Datum
 
