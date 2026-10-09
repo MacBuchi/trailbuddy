@@ -1,0 +1,154 @@
+name: R2 Prune
+
+# Keeps the R2 bucket inside the free storage (docs/konzept-regionen.md,
+# section 3; 18c in #156): a region's previous build goes two days after
+# its successor went up, not a month later.
+#
+# Every data workflow keeps the build before the current one, because an
+# app session holds the manifest it read and the directory offsets of
+# that archive — overwriting it would point them into another file. A
+# session lives hours, not weeks; with two regions, two maps each would
+# not fit into the 10 GB. This run lists the bucket, reads every
+# region's manifests from the bucket itself, and deletes what
+# `tool/r2_inventory.py prune` names:
+#
+# - stale builds (older than the previous one) at once;
+# - the previous build once the current one has been up for 48 h;
+# - orphans (newer than the manifest — a run that uploaded and stopped)
+#   once they are 48 h old themselves; younger, a run may be uploading.
+#
+# A family whose manifest names nothing the bucket holds is not touched:
+# without a current build there is no reference point. The deletions go
+# by explicit key (`delete-objects`, at most 1000 per call), never by
+# prefix. Afterwards the region index `regions.json` is rewritten from
+# the public host, which also heals a race between two data workflows.
+#
+# Daily at 05:23 UTC, after the data workflows' 03:17–04:47.
+#
+# Secrets go through `env:` into a detection step; `secrets.` is not
+# available in `if:` (PilzBuddy, 2026-08-13).
+#
+# No Version Guard concern: nothing here lands in a binary.
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "List what would go, delete nothing"
+        required: false
+        type: boolean
+        default: false
+  schedule:
+    - cron: "23 5 * * *"
+
+# Not alongside a data workflow's upload would be better still, but the
+# 48 h grace already covers a run in flight.
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  R2_BUCKET: buddy-tiles
+  R2_PREFIX: trailbuddy
+  PUBLIC_BASE: https://tiles.mcbuchi.de/trailbuddy
+  DRY_RUN: ${{ inputs.dry_run || false }}
+
+jobs:
+  prune:
+    name: Remove previous builds after 48 h
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Are the R2 secrets there?
+        id: r2
+        env:
+          ACCOUNT: ${{ secrets.R2_ACCOUNT_ID }}
+          KEY: ${{ secrets.R2_ACCESS_KEY_ID }}
+          SECRET: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+        run: |
+          if [ -n "$ACCOUNT" ] && [ -n "$KEY" ] && [ -n "$SECRET" ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            {
+              echo "## R2 Prune: nothing done"
+              echo
+              echo "One of R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY is missing —"
+              echo "the same three secrets the data workflows use."
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Self-tests
+        run: |
+          python3 tool/r2_inventory.py --self-test > /dev/null
+          python3 tool/regions.py --self-test > /dev/null
+
+      - name: List the bucket, read the manifests, plan
+        if: steps.r2.outputs.present == 'true'
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          AWS_DEFAULT_REGION: auto
+          AWS_EC2_METADATA_DISABLED: "true"
+        run: |
+          set -euo pipefail
+          endpoint="https://${R2_ACCOUNT_ID}.eu.r2.cloudflarestorage.com"
+          mkdir -p build/prune/manifests
+          aws --endpoint-url "$endpoint" s3api list-objects-v2 \
+            --bucket "$R2_BUCKET" --output json > build/prune/listing.json
+          for m in $(python3 tool/r2_inventory.py manifests); do
+            mkdir -p "$(dirname "build/prune/manifests/$m")"
+            aws --endpoint-url "$endpoint" s3 cp --no-progress --only-show-errors \
+              "s3://${R2_BUCKET}/${R2_PREFIX}/$m" "build/prune/manifests/$m" \
+              || echo "no $m in the bucket"
+          done
+          python3 tool/r2_inventory.py prune --listing build/prune/listing.json \
+            --manifests build/prune/manifests --prefix "$R2_PREFIX" \
+            --out build/prune/batches --summary "$GITHUB_STEP_SUMMARY"
+
+      - name: Delete
+        if: steps.r2.outputs.present == 'true' && env.DRY_RUN != 'true'
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          AWS_DEFAULT_REGION: auto
+          AWS_EC2_METADATA_DISABLED: "true"
+        run: |
+          set -euo pipefail
+          endpoint="https://${R2_ACCOUNT_ID}.eu.r2.cloudflarestorage.com"
+          shopt -s nullglob
+          for batch in build/prune/batches/batch-*.json; do
+            aws --endpoint-url "$endpoint" s3api delete-objects \
+              --bucket "$R2_BUCKET" --delete "file://$batch" --output json > "$batch.result"
+            python3 - "$batch.result" <<'PY'
+          import json, sys
+          text = open(sys.argv[1]).read().strip()
+          errors = (json.loads(text) if text else {}).get("Errors") or []
+          for e in errors:
+              print(f"::error::{e.get('Key')}: {e.get('Code')} {e.get('Message')}")
+          sys.exit(1 if errors else 0)
+          PY
+            echo "deleted $(python3 -c 'import json,sys; print(len(json.load(open(sys.argv[1]))["Objects"]))' "$batch") objects"
+          done
+
+      - name: Update the region index
+        if: steps.r2.outputs.present == 'true' && env.DRY_RUN != 'true'
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          AWS_DEFAULT_REGION: auto
+          AWS_EC2_METADATA_DISABLED: "true"
+        run: |
+          set -euo pipefail
+          python3 tool/regions.py index --public-base "$PUBLIC_BASE" --out build/regions.json
+          aws --endpoint-url "https://${R2_ACCOUNT_ID}.eu.r2.cloudflarestorage.com" s3 cp build/regions.json \
+            "s3://${R2_BUCKET}/${R2_PREFIX}/regions.json" \
+            --content-type application/json \
+            --cache-control "public, max-age=300" --no-progress

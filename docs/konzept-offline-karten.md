@@ -220,7 +220,9 @@ ohne sie geht.
 
 Was die Karte über DACH hinaus kostet (Kanada, Europa, Welt bis z13;
 Bucket, Runner, Bauzeit), steht gemessen in `docs/karte-welt-messung.md`
-(#220, 18b in #156).
+(#220, 18b in #156). Wie sie dorthin kommt — Regionen per
+Konfiguration, Kanada südlich 55° N als erste, alles im
+Free-Kontingent von R2 —, steht in `docs/konzept-regionen.md` (18c).
 
 ## 5. Was NICHT kommt
 

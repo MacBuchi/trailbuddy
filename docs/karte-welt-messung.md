@@ -7,7 +7,9 @@ Header und Verzeichnisse — bis z13 sind das 34 MB in 318 Anfragen, die
 Kacheln selbst nie. Ländergrenzen aus Natural Earth 1:50 m (v5.1.2,
 gemeinfrei). Wiederholbar in CI: `map-data.yml`, Modus `plan`, Eingabe
 `plan_select` (z. B. `ISO_A2_EH=CA` oder `world`); Wege und Orte mit
-`way-data.yml` / `poi-data.yml`, Modus `plan`, `plan_region = canada`.*
+`way-data.yml` / `poi-data.yml`, Modus `plan`, `plan_region = canada`
+(seit 18c heißt die Eingabe `region`, Wert `ca`, und schneidet bei
+55° N — `docs/konzept-regionen.md`).*
 
 ## Ergebnis in fünf Sätzen
 
@@ -110,6 +112,10 @@ sprengt das Freikontingent; Kanada mit Karte (2 × 4,3 GB) und Höhen
 (~3–5 GB) liegt bei rund 12–14 GB zusätzlich, also etwa 0,15 $ im
 Monat über dem Freikontingent. Speicher entscheidet also nichts — Runner, Bauzeit und die
 Class-B-Frage (#55) schon.
+
+Was daraus gebaut wird, steht in `docs/konzept-regionen.md` (18c): Kanada
+südlich 55° N (1,99 GB Karte, gemessen wie oben), damit DACH und Kanada
+zusammen im Free-Kontingent bleiben.
 
 ## Was diese Messung NICHT sagt
 

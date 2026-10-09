@@ -7,8 +7,9 @@ name: Way Data
 # fetched with every stored area (tool/way_archive.py has the format).
 #
 # Same shape as height-data.yml: a dated file (`ways-<build>.pmtiles`)
-# that never changes, a small manifest (`ways.json`) that names it, the
-# previous build kept for one more run, and after the upload the PUBLIC
+# that never changes, a small manifest (`ways.json`) that names it — one
+# pair per region of tool/regions.json, Canada's under `ca/` — the
+# previous build kept until r2-prune.yml removes it, and after the upload the PUBLIC
 # copy is read back the way the app reads it — 206 on a Range request,
 # `accept-ranges`, CORS, sampled tiles decoded. `pmtiles verify` (the
 # official tool) checks the structure first: the writer is our own
@@ -20,8 +21,8 @@ name: Way Data
 # a time.
 #
 # Two modes: `plan` builds and reports, uploads nothing; `publish`
-# builds, uploads, verifies. Monthly on the 3rd, the day after the
-# places.
+# builds, uploads, verifies. Monthly: DACH on the 3rd, the day after
+# the places, Canada on the 17th.
 #
 # Secrets through `env:` into a detection step; `secrets.` is not
 # available in `if:` and GitHub silently drops the whole file
@@ -37,15 +38,16 @@ on:
         type: choice
         options: ["plan", "publish"]
         default: "plan"
-      plan_region:
-        description: "plan: measure another region instead of the DACH box (#220); publish stays DACH"
+      region:
+        description: "Which region of tool/regions.json (docs/konzept-regionen.md)"
         required: false
         type: choice
-        options: ["dach", "canada"]
+        options: ["dach", "ca"]
         default: "dach"
   schedule:
-    # Monthly, 3rd at 04:17 UTC — publish.
+    # Monthly, publish: DACH on the 3rd, Canada on the 17th (04:17 UTC).
     - cron: "17 4 3 * *"
+    - cron: "17 4 17 * *"
 
 concurrency:
   group: ${{ github.workflow }}
@@ -56,13 +58,14 @@ permissions:
 
 env:
   MODE: ${{ inputs.mode || 'publish' }}
-  # Plan only (#220, 18b in #156): measure a region outside DACH with
-  # the same build, nothing uploaded. Publish stays DACH until regions
-  # exist (18c) — the step "Pick the region" refuses anything else.
-  PLAN_REGION: ${{ inputs.plan_region || 'dach' }}
+  # The region of this run (tool/regions.json). A schedule carries no
+  # inputs, so the 17th's cron names Canada.
+  REGION: ${{ inputs.region || (github.event.schedule == '17 4 17 * *' && 'ca') || 'dach' }}
   PMTILES_VERSION: "1.28.0"
   # The map's area, west,south,east,north — the SAME box as DACH_BBOX in
-  # map-data.yml and height-data.yml and POI_BBOX in poi-data.yml.
+  # map-data.yml and height-data.yml and POI_BBOX in poi-data.yml. Box
+  # and extracts are DACH's (tool/regions.json holds the same, its
+  # self-test checks it); "Pick the region" replaces both for another.
   WAYS_BBOX: "5.5,45.5,17.5,55.5"
   # The same extracts as poi-data.yml: every country the box touches.
   # Ways that two extracts both carry are written twice onto the same
@@ -113,25 +116,13 @@ jobs:
           fi
 
       - name: Pick the region
-        # DACH is the env block above. Another region swaps extracts and
-        # box for this run and reports only: its sizes are the
-        # measurement, the DACH guards below do not apply to it. The box
-        # is Canada's Natural Earth outline, rounded outwards.
+        # tool/regions.json is the one list: for DACH the values above,
+        # for Canada its extract, its box (the map's cap at 55° N) and
+        # the paths under `ca/`.
         run: |
           set -euo pipefail
-          case "$PLAN_REGION" in
-            dach) ;;
-            canada)
-              if [ "$MODE" != "plan" ]; then
-                echo "::error::plan_region=$PLAN_REGION is a measurement — publish stays DACH until regions exist (18c in #156)."
-                exit 1
-              fi
-              echo "EXTRACTS=north-america/canada" >> "$GITHUB_ENV"
-              echo "WAYS_BBOX=-141.1,41.6,-52.5,83.2" >> "$GITHUB_ENV"
-              echo "## Plan for $PLAN_REGION (measurement, nothing uploaded)" >> "$GITHUB_STEP_SUMMARY"
-              ;;
-            *) echo "::error::unknown plan_region $PLAN_REGION"; exit 1 ;;
-          esac
+          python3 tool/regions.py env "$REGION" --workflow ways | tee -a "$GITHUB_ENV"
+          echo "## Region \`$REGION\`" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Install osmium and the pmtiles tool
         if: env.MODE == 'plan' || steps.r2.outputs.present == 'true'
@@ -186,7 +177,7 @@ jobs:
           # The comparison is against the DACH heights; for another
           # region it would be a number about nothing.
           compare=(--height-bytes "$heights")
-          [ "$PLAN_REGION" = "dach" ] || compare=()
+          [ "$REGION" = "dach" ] || compare=()
           rm -rf build/ways && mkdir -p build/ways
           pbfs=()
           for f in build/ways-src/*.osm.pbf; do pbfs+=(--pbf "$f"); done
@@ -201,10 +192,9 @@ jobs:
           # extract that came truncated, a bbox typo), not a quieter
           # month. And the archive is fetched with every stored area: if
           # it grows past the heights, that is a decision for the
-          # operator, not something a scheduled run publishes.
-          if [ "$PLAN_REGION" != "dach" ]; then
-            exit 0
-          fi
+          # operator, not something a scheduled run publishes. The share
+          # of the heights is a DACH rule; every region has its minimum
+          # in tool/regions.json (Canada measured 19 398 tiles, 18b).
           HEIGHT_BYTES="$heights" python3 - <<'PY'
           import json, os, sys
           m = json.load(open("build/ways/ways.json"))
@@ -213,10 +203,13 @@ jobs:
           # 53 615 tiles, 92.3 MB (63 % of the heights). The whole box
           # with the neighbours (first run 2026-10-08): 83 968 tiles,
           # 119.2 MB (85 %).
-          min_tiles, max_height_share = 50000, 1.0
+          min_tiles, max_height_share = int(os.environ["MIN_WAY_TILES"]), 1.0
           if m["tiles"] < min_tiles:
-              print(f"::error::Only {m['tiles']} way tiles — DACH alone has about 53 600; not publishing.")
+              print(f"::error::Only {m['tiles']} way tiles — {os.environ['REGION']} expects at least {min_tiles}; not publishing.")
               sys.exit(1)
+          if os.environ["REGION"] != "dach":
+              print(f"{m['tiles']} tiles, {m['bytes']} bytes")
+              sys.exit(0)
           if m["bytes"] > max_height_share * heights:
               print(f"::error::The way archive ({m['bytes']} B) is larger than {max_height_share:.0%} of the heights ({heights} B); not publishing.")
               sys.exit(1)
@@ -238,21 +231,23 @@ jobs:
         run: |
           set -euo pipefail
           endpoint="https://${R2_ACCOUNT_ID}.eu.r2.cloudflarestorage.com"
+          # `file` in the manifest is relative to its folder: the root for
+          # DACH, `ca/` for Canada.
           aws --endpoint-url "$endpoint" s3 cp "build/ways/$file" \
-            "s3://${R2_BUCKET}/${R2_PREFIX}/$file" \
+            "s3://${R2_BUCKET}/${R2_PREFIX}/${REGION_DIR}$file" \
             --content-type application/octet-stream \
             --cache-control "public, max-age=31536000, immutable" --no-progress
           aws --endpoint-url "$endpoint" s3 cp build/ways/ways.json \
-            "s3://${R2_BUCKET}/${R2_PREFIX}/ways.json" \
+            "s3://${R2_BUCKET}/${R2_PREFIX}/$WAYS_MANIFEST" \
             --content-type application/json \
             --cache-control "public, max-age=300" --no-progress
-          builds=$(aws --endpoint-url "$endpoint" s3 ls "s3://${R2_BUCKET}/${R2_PREFIX}/" \
+          builds=$(aws --endpoint-url "$endpoint" s3 ls "s3://${R2_BUCKET}/${R2_PREFIX}/${REGION_DIR}" \
                     | sed -n 's/.* \(ways-[0-9]\{8\}\.pmtiles\)$/\1/p' | sort)
           keep2=$(echo "$builds" | tail -2)
           for old in $builds; do
             if ! echo "$keep2" | grep -qx "$old"; then
-              aws --endpoint-url "$endpoint" s3 rm "s3://${R2_BUCKET}/${R2_PREFIX}/$old"
-              echo "removed $old"
+              aws --endpoint-url "$endpoint" s3 rm "s3://${R2_BUCKET}/${R2_PREFIX}/${REGION_DIR}$old"
+              echo "removed ${REGION_DIR}$old"
             fi
           done
 
@@ -264,7 +259,7 @@ jobs:
         # decode. A Cloudflare bot challenge is named as such (#55).
         run: |
           set -euo pipefail
-          url="$PUBLIC_BASE/$file"
+          url="$PUBLIC_BASE/${REGION_DIR}$file"
           headers=$(curl -sSL -D - -o /dev/null -r 0-15 --max-time 60 \
                       -H "Origin: https://macbuchi.github.io" "$url" | tr -d '\r' | tr 'A-Z' 'a-z')
           echo "$headers"
@@ -276,7 +271,7 @@ jobs:
           echo "$headers" | grep -q '^http/[0-9.]* 206' || { echo "::error::$url: no 206 on a Range request — the app cannot read this host"; exit 1; }
           echo "$headers" | grep -q '^accept-ranges: bytes' || { echo "::error::$url: no accept-ranges: bytes"; exit 1; }
           echo "$headers" | grep -q '^access-control-allow-origin:' || { echo "::error::$url: no access-control-allow-origin — set the bucket's CORS rule"; exit 1; }
-          curl -sSL --max-time 60 -o build/ways/public-manifest.json "$PUBLIC_BASE/ways.json?verify=$BUILD"
+          curl -sSL --max-time 60 -o build/ways/public-manifest.json "$PUBLIC_BASE/$WAYS_MANIFEST?verify=$BUILD"
           python3 - <<'PY'
           import json
           local = json.load(open("build/ways/ways.json"))
@@ -286,6 +281,23 @@ jobs:
           python3 tool/way_archive.py check --source "$url" --samples 24
           {
             echo "- \`$url\` ($(stat -c %s "build/ways/$file" | numfmt --to=iec-i --suffix=B))"
-            echo "- manifest \`$PUBLIC_BASE/ways.json\`"
+            echo "- manifest \`$PUBLIC_BASE/$WAYS_MANIFEST\`"
             echo "- 206 + accept-ranges + CORS verified, 24 tiles over Range decoded"
           } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Update the region index
+        if: env.MODE == 'publish' && steps.r2.outputs.present == 'true'
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          AWS_DEFAULT_REGION: auto
+          AWS_EC2_METADATA_DISABLED: "true"
+        # As in map-data.yml: from the PUBLIC host, after the verify.
+        run: |
+          set -euo pipefail
+          python3 tool/regions.py index --public-base "$PUBLIC_BASE" --out build/regions.json
+          aws --endpoint-url "https://${R2_ACCOUNT_ID}.eu.r2.cloudflarestorage.com" s3 cp build/regions.json \
+            "s3://${R2_BUCKET}/${R2_PREFIX}/regions.json" \
+            --content-type application/json \
+            --cache-control "public, max-age=300" --no-progress
