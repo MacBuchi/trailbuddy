@@ -139,3 +139,10 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     `trailbuddy-push` (`kPushBridgeType`, ein Test hält beide zusammen).
     `tool/check_push_worker.mjs` prüft ihn im echten Chrome (Job „Build
     Web"). `www.gstatic.com` ist `afterConsent` im Datenschutz-Wächter.
+    **Falle beim Prüfen: `getNotifications()` löscht in Chrome, was
+    gespeichert, aber noch nicht angezeigt ist.** Wer auf eine Meldung
+    wartet, indem er abfragt, verliert sie gelegentlich, obwohl
+    `showNotification` Erfolg meldet (rund jeder zwanzigste Lauf, in CI an
+    #290; dichtes Abfragen beim Zeigen: 16 von 40 verloren). Der Prüfer
+    zählt deshalb im Worker mit, wann `showNotification` fertig ist, und
+    liest erst danach, einmal. Der Prüfer in PilzBuddy hat dieselbe Falle.
