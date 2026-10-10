@@ -28,9 +28,19 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
   - **Der Test-Helfer rechnet Meter über DIESELBE Projektion wie der
     Graph** (`FlatProjection`, R = 6 371 km). Mit 111 320 m je Grad
     waren „1 000 m" im Graphen 998,9 m — fünf Tests rot um ein Promille.
-  - **Höhen je Kante über `HeightReader.climbAlong`** (`addClimbs`); eine
-    Kante ohne Höhe bleibt flach und zählt (`edgesWithoutHeights`,
-    `PathSummary.heightsComplete`). Dabei gefunden: Ein Punkt genau auf
+  - **Höhen je Kante über `profileAlong` und `edgeClimb`** (`addClimbs`);
+    eine Kante ohne Höhe bleibt flach und zählt (`edgesWithoutHeights`,
+    `PathSummary.heightsComplete`). **Nicht `hysteresisClimb` allein**
+    (bis 0.108.3): Die 10 m Hysterese sind für eine ganze Linie gemessen;
+    je Kante verschluckten sie jede Kante darunter, und „Route hierher"
+    zeigte 0 hm bergauf und bergab über einem steigenden Profil — samt
+    zu kurzer Zeit und einem Planer, der sanfte lange Anstiege nicht ins
+    Höhenbudget zählte. `edgeClimb` gibt den Rest bis zur letzten Probe
+    dazu (Anstieg − Abstieg = Höhenunterschied der Kante), Spiegel
+    `edge_climb` im Werkzeug; Test mit 16 Stücken zu 6 m in
+    `road_graph_test`, Gegenprobe rot. Zahlen in
+    `docs/routing-messung.md` von vor 0.108.4 sind mit der alten Zählung
+    gerechnet. Dabei gefunden: Ein Punkt genau auf
     einer Kachelkante landet je nach letztem Bit in der Nachbarkachel,
     auch nördlich/westlich — `heightAt` liest seither die Nachbarn an
     BEIDEN Rändern.

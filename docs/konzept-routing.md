@@ -361,7 +361,12 @@ Bereich vom eigenen Host. Die Höhe einer
 Kante wird nicht an den Enden, sondern alle 50 m entlang der Linie
 abgetastet und mit einer Hysterese von 10 m zu Anstieg/Abstieg summiert
 (die 3 m der Trail-Höhen gelten für aufgezeichnete Höhen, nicht für ein
-Gitter). Die Trailkanten behalten ihre aufgezeichneten Höhen.
+Gitter). **Seit 0.108.4 zählt dazu der Rest bis zum Ende der Kante**
+(`edgeClimb`/`edge_climb`), so dass Anstieg minus Abstieg der
+Höhenunterschied der Kante ist: Gemessen (M3) war die Hysterese über
+ganze Trail-Linien; je Kante angewandt verschluckte sie jede Kante unter
+10 m, und eine Route aus kurzen Kanten zwischen Kreuzungen stieg „0 hm"
+neben einem Profil mit deutlichem Anstieg (Feldbericht 0.108.2). Die Trailkanten behalten ihre aufgezeichneten Höhen.
 
 **Gebaut (Schritt 2, seit 0.69.0)** — und nicht als „1 Byte je Zelle",
 das war die Schätzung: Ein Byte hielte in einer Alpenkachel mit 2 000 m

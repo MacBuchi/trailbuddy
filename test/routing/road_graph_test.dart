@@ -14,6 +14,7 @@ import 'package:trailbuddy/features/offline_areas/area_plan.dart';
 import 'package:trailbuddy/features/offline_areas/height_tiles.dart';
 import 'package:trailbuddy/features/routing/road_graph.dart';
 import 'package:trailbuddy/features/routing/route_profile.dart';
+import 'package:trailbuddy/features/routing/route_search.dart';
 
 import '../fakes/fake_tiles.dart';
 
@@ -217,6 +218,40 @@ void main() {
     expect(g.edges.fold<double>(0, (s, e) => s + e.steepUp), closeTo(whole, 1e-6));
     expect(g.edges.first.steepUp, closeTo(g.edges.last.steepUp, whole * 0.02));
     expect(g.edges.fold<double>(0, (s, e) => s + e.steepWUp), closeTo(wholeW, 1e-6));
+  });
+
+  test('kurze Kanten verlieren ihre Höhenmeter nicht an die Hysterese (Anstieg aus vielen Kreuzungen)', () async {
+    // Feldbericht 0.108.2: „Route hierher" zeigte 0 hm bergauf und bergab,
+    // das Profil darunter einen deutlichen Anstieg. 2 m je Probe nach Osten
+    // (knapp 3 %), der Weg in Stücken von einem Sechzehntel der Kachel —
+    // je Stück rund 6 m, unter den 10 m der Hysterese.
+    final origin = tileAt(47.5, 11.5, kHeightTileZoom);
+    final values = [
+      for (var j = 0; j < kHeightGrid; j++)
+        for (var i = 0; i < kHeightGrid; i++) 1000 + i * 2,
+    ];
+    final reader = HeightReader([
+      MemoryHeightSource({(x: origin.x, y: origin.y): HeightTile(Int16List.fromList(values))}),
+    ]);
+    final b = tileBounds(kHeightTileZoom, origin.x, origin.y);
+    final midLat = (b.north + b.south) / 2;
+    final g = RoadGraph(midLat);
+    const pieces = 16;
+    LatLng at(int k) => LatLng(midLat, b.west + (b.east - b.west) * k / pieces);
+    for (var k = 0; k < pieces; k++) {
+      g.addEdge(g.node(at(k)), g.node(at(k + 1)), WayClass.forstweg, false, [at(k), at(k + 1)]);
+    }
+    await addClimbs(g, reader);
+    for (final e in g.edges) {
+      expect(e.gain, closeTo(96 / pieces, 0.5));
+      expect(e.loss, closeTo(0, 1e-9));
+    }
+    final there = summarizePath(g, [for (var k = 0; k < pieces; k++) k], g.node(at(0)), RiderProfile.bio);
+    expect(there.gainM, closeTo(96, 1));
+    expect(there.lossM, closeTo(0, 1e-9));
+    final back = summarizePath(g, [for (var k = pieces - 1; k >= 0; k--) k], g.node(at(pieces)), RiderProfile.bio);
+    expect(back.gainM, closeTo(0, 1e-9));
+    expect(back.lossM, closeTo(96, 1));
   });
 
   group('Wegegüte (#213) — dieselben Fälle wie der Self-Test des Werkzeugs', () {

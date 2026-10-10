@@ -111,6 +111,18 @@ void main() {
     expect(hysteresisClimb([100, 104, 108, 112], 10), (12.0, 0.0), reason: 'ein Anstieg aus kleinen Schritten zählt');
   });
 
+  test('edgeClimb: die Hysterese plus der Rest bis zum Ende — die Testvektoren des Werkzeugs', () {
+    expect(edgeClimb([100, 104, 108], 10), (8.0, 0.0), reason: 'eine Kante unter der Schwelle behält ihren Anstieg');
+    expect(edgeClimb([100, 130, 125], 10), (30.0, 5.0), reason: 'der Rest nach der letzten Wende zählt');
+    expect(edgeClimb([100, 105, 100, 105, 100, 150, 140, 200], 10), (110.0, 10.0), reason: 'Zacken fallen weiter weg');
+    expect(edgeClimb([100], 10), (0.0, 0.0));
+    var sum = 0.0;
+    for (var i = 0; i < 25; i++) {
+      sum += edgeClimb([100.0 + 4 * i, 104.0 + 4 * i], 10).$1;
+    }
+    expect(sum, 100.0, reason: '25 kurze Kanten zu 4 m steigen 100 m, nicht 0');
+  });
+
   test('samplesAlong: alle 50 m, erster und letzter Punkt, in Metern gerechnet', () {
     final line = [const LatLng(47.0, 11.0), LatLng(47.0, 11.0 + 1000 / (111320 * math.cos(47 * math.pi / 180)))];
     final samples = samplesAlong(line, 50);
