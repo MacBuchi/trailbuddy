@@ -2,6 +2,20 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Höhenmeter der Route stimmen wieder
+
+*Version 0.108.4, 2026-10-10*
+
+- **Korrigiert:** Im Ergebnis von „Zum Trailkopf", „Route hierher" und
+  der Runde standen oft 0 hm bergauf und 0 hm bergab, obwohl das
+  Höhenprofil darunter klar steigt. Die App hat jedes Wegstück zwischen
+  zwei Kreuzungen einzeln gezählt und alles unter 10 m als Messrauschen
+  verworfen — bei vielen kurzen Stücken blieb so fast nichts übrig.
+  Jetzt zählt jedes Stück mit, was es wirklich steigt und fällt.
+- Damit stimmen auch die geschätzte Zeit und die Grenze „Höchstens …
+  hm bergauf" im Planer besser: Bisher galt eine sanfte, aber lange
+  Steigung dort als flach.
+
 ## Die ganze Region offline
 
 *Versionen 0.108.0 bis 0.108.3, 2026-10-09 bis 2026-10-10*

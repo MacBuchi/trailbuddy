@@ -732,8 +732,8 @@ List<({LatLng at, int edgeA, int edgeB})> findCrossings(RoadGraph g) {
 }
 
 /// Liest je Kante Anstieg und Abstieg aus den Höhenkacheln (alle 50 m,
-/// 10 m Hysterese — `HeightReader.climbAlong`). Eine Kante ohne Höhe an
-/// einer Probe bleibt flach und ist als solche markiert.
+/// 10 m Hysterese plus der Rest bis zum Ende — [edgeClimb]). Eine Kante
+/// ohne Höhe an einer Probe bleibt flach und ist als solche markiert.
 Future<void> addClimbs(RoadGraph g, HeightReader heights) async {
   for (final e in g.edges) {
     final profile = await heights.profileAlong(e.points);
@@ -741,7 +741,7 @@ Future<void> addClimbs(RoadGraph g, HeightReader heights) async {
       e.hasHeights = false;
       continue;
     }
-    final (gain, loss) = hysteresisClimb(profile.heights, kClimbHysteresisM);
+    final (gain, loss) = edgeClimb(profile.heights, kClimbHysteresisM);
     final steep = steepExcess(profile.heights, profile.stepsM);
     final weighted = steepWeight(profile.heights, profile.stepsM);
     e

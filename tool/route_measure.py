@@ -913,6 +913,18 @@ def climb_along(dem, latlon, step_m=SAMPLE_M, hysteresis_m=HYSTERESIS_M):
     return hysteresis_climb(heights, hysteresis_m)
 
 
+def edge_climb(heights, threshold):
+    """(gain, loss) of ONE edge: hysteresis_climb plus the rest up to the last
+    sample, so gain - loss is the edge's height difference. The hysteresis is
+    meant for a whole line; per edge it swallowed every edge under the
+    threshold, and a route of short edges between junctions climbed 0 m."""
+    gain, loss = hysteresis_climb(heights, threshold)
+    if len(heights) < 2:
+        return gain, loss
+    rest = heights[-1] - heights[0] - (gain - loss)
+    return (gain + rest, loss) if rest > 0 else (gain, loss - rest)
+
+
 def hysteresis_climb(heights, threshold):
     """Sums rises and falls, ignoring wiggles smaller than the threshold."""
     if len(heights) < 2:
@@ -1251,7 +1263,7 @@ def find_crossings(g):
 def add_climbs(g, dem):
     for e in g.edges:
         heights, steps = profile_along(dem, e.latlon)
-        e.gain, e.loss = hysteresis_climb(heights, HYSTERESIS_M)
+        e.gain, e.loss = edge_climb(heights, HYSTERESIS_M)
         e.heights, e.steps = heights, steps
         e.steep_up, e.steep_down = steep_excess(heights, steps) if steps is not None else (0.0, 0.0)
         e.steep_w_up, e.steep_w_down = steep_weight(heights, steps) if steps is not None else (0.0, 0.0)
@@ -2509,6 +2521,11 @@ def self_test():
     expect(hysteresis_climb([100, 105, 100, 105, 100, 150, 140, 200], 10) == (110.0, 10.0), "wiggles under 10 m vanish")
     expect(hysteresis_climb([200, 100], 10) == (0.0, 100.0), "pure descent")
     expect(hysteresis_climb([100, 200, 100], 10) == (100.0, 100.0), "up and down")
+    expect(edge_climb([100, 104, 108], 10) == (8.0, 0.0), "an edge under the threshold keeps its climb")
+    expect(edge_climb([100, 130, 125], 10) == (30.0, 5.0), "the rest after the last turn counts")
+    expect(edge_climb([100, 105, 100, 105, 100, 150, 140, 200], 10) == (110.0, 10.0), "wiggles still vanish")
+    expect(sum(edge_climb([100 + 4 * i, 104 + 4 * i], 10)[0] for i in range(25)) == 100.0,
+           "25 short edges of 4 m climb 100 m, not 0")
 
     # MVT round trip
     z, x, y, ta, tb = _synthetic_tiles()

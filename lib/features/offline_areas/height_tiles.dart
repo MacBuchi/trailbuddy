@@ -308,6 +308,19 @@ List<LatLng> samplesAlong(List<LatLng> line, double stepM) {
   return [for (final p in resampleXy(proj.line(line), stepM)) proj.latLng(p)];
 }
 
+/// Anstieg und Abstieg EINER Kante: [hysteresisClimb], dazu der Rest bis
+/// zur letzten Probe — so ist Anstieg minus Abstieg genau der
+/// Höhenunterschied der Kante. Die Hysterese gilt für eine ganze Linie;
+/// je Kante angewandt verschluckte sie jede Kante unter [threshold], und
+/// eine Route aus kurzen Kanten zwischen Kreuzungen stieg „0 hm", während
+/// ihr Profil daneben 150 hm zeigte. Spiegel von `edge_climb` im Werkzeug.
+(double, double) edgeClimb(List<double> heights, double threshold) {
+  final (gain, loss) = hysteresisClimb(heights, threshold);
+  if (heights.length < 2) return (gain, loss);
+  final rest = heights.last - heights.first - (gain - loss);
+  return rest > 0 ? (gain + rest, loss) : (gain, loss - rest);
+}
+
 /// Summiert Anstiege und Abstiege und ignoriert Zacken unter
 /// [threshold] — Spiegel von `hysteresis_climb` im Werkzeug, mit dessen
 /// Testvektoren im Test.
