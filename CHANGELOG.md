@@ -4,7 +4,7 @@
 
 ## Die ganze Region offline
 
-*Versionen 0.108.0 bis 0.108.2, 2026-10-09*
+*Versionen 0.108.0 bis 0.108.3, 2026-10-09 bis 2026-10-10*
 
 - **Ganz DACH oder ganz Südkanada aufs Telefon**: In „Meine Bereiche"
   steht je Region „ganz speichern" — die ganze Karte bis Zoom 13 samt
@@ -29,6 +29,10 @@
   weiter. Die Prozentzahl zählt dabei mit, was schon liegt, und fängt
   nicht wieder bei null an. Auch das Messen vor dem Speichern läuft
   jetzt weiter, wenn du die App wechselst.
+- **Korrigiert (0.108.3):** Beim Speichern einer ganzen Region kamen
+  die Orte nicht mit — die App hielt das Bündel wegen der Rad-Service-Orte
+  für kaputt, und der Bereich blieb unvollständig. Jetzt kommen alle
+  Orte an.
 
 ## Gespeicherte Bereiche teilen sich ihre Kacheln
 
