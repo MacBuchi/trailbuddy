@@ -119,6 +119,9 @@ void main() {
     const files = {
       '476_74.water.json': '{"format":1,"pois":[]}\n',
       '-12_-940.food.json': '{"format":1,"pois":[{"id":"n1"}]}\n',
+      // camelCase wie `PoiGroup.bikeService` — `[a-z]+` kippte daran
+      // das ganze Bündel (#293).
+      '455_37.bikeService.json': '{"format":1,"pois":[]}\n',
     };
 
     test('liefert jede Zellendatei Byte für Byte, mit Zeilenende', () async {
@@ -135,8 +138,17 @@ void main() {
       final flipped = Uint8List.fromList(b.bytes)..[20] ^= 1;
       await fails(flipped, b.meta, '20261009');
       await fails(b.bytes, b.meta, '20261001');
-      final short = _bundle('20261009', files, claim: 3);
+      final short = _bundle('20261009', files, claim: files.length + 1);
       await fails(short.bytes, short.meta, '20261009');
+    });
+
+    test('nimmt jeden Namen, den die App selbst bildet (#293)', () async {
+      final names = {
+        for (final g in PoiGroup.values) poiCellFileName('455,-37', g): '{"format":1,"pois":[]}\n',
+      };
+      final b = _bundle('20261009', names);
+      final got = [await for (final (n, _) in readPoiBundle(b.bytes, b.meta, '20261009')) n];
+      expect(got.toSet(), names.keys.toSet());
     });
 
     test('ein fremder Dateiname wird nie ein Pfad', () async {

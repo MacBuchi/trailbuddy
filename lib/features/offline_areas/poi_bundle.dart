@@ -25,7 +25,13 @@ class PoiBundleMismatch implements Exception {
   String toString() => 'Orte-Bündel passt nicht: $message';
 }
 
-final _name = RegExp(r'^-?\d+_-?\d+\.[a-z]+\.json$');
+/// Ein Name, wie ihn `poiCellFileName` bildet. Die Gruppe ist der
+/// `name` aus [PoiGroup] — camelCase (`bikeService`): `[a-z]+` lehnte
+/// jede Rad-Service-Zelle ab und damit das ganze Bündel (#293). Nur
+/// Buchstaben, kein Punkt und kein Strich, damit nie ein Pfad entsteht;
+/// eine Gruppe, die erst ein neueres Werkzeug kennt, liegt dann still im
+/// Speicher, statt die ganze Region zu kippen.
+final _name = RegExp(r'^-?\d+_-?\d+\.[A-Za-z]+\.json$');
 
 /// Prüft Länge und Prüfsumme gegen [bundle] und liefert die Zellendateien
 /// als (Name, Inhalt) — erst, wenn die Kopfzeile zum Bau [build] passt;

@@ -91,8 +91,12 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     `kRegionChunkTiles` (2048, eine Range-Anfrage je Block), die Orte als
     Bündel (`poi_bundle.dart`, `PoiManifest.bundle`, Länge + `sha256`,
     Kopfzeile mit Bau, entpackt im Strom über `dart:io`; ein Fehler lässt
-    den Bereich unvollständig). **Blöcke sind seit 0.108.1 zusätzlich nach
-    Bytes begrenzt** (`kChunkBytes`, 16 MB; eine größere Kachel ist ihr
+    den Bereich unvollständig; **der Dateiname folgt `poiCellFileName`,
+    die Gruppe ist camelCase** — bis 0.108.2 verlangte das Muster
+    `[a-z]+` und lehnte an `bikeService` jedes Bündel ab, #293; der Test
+    bildet die Namen jetzt aus `PoiGroup.values`, denn das Python-
+    `read_bundle` prüft sie nicht). **Blöcke sind seit 0.108.1 zusätzlich
+    nach Bytes begrenzt** (`kChunkBytes`, 16 MB; eine größere Kachel ist ihr
     eigener Block), und der Fortschritt zählt Bytes
     (`AreaProgress.doneBytes`): Am DACH-Archiv 20261001 waren die ersten
     2048 Kacheln (Zoom 0–11) 232 MB in EINER Range-Anfrage, ganz im
