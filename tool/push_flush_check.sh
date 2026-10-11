@@ -56,12 +56,15 @@ insert into public.trails (id) values ('$T1'), ('$T2');
 insert into public.trail_recordings (trail_id, user_id, geom, source, quality) values
   ('$T1', '$A', 'SRID=4326;LINESTRING(9 48, 9.01 48)', 'app', 0.5),
   ('$T2', '$A', 'SRID=4326;LINESTRING(9 48.1, 9.01 48.1)', 'app', 0.5);
-insert into public.trail_details (trail_id, user_id, name, visibility, status) values
-  ('$T1', '$A', 'Hang', 'buddies', 'open'),
-  ('$T2', '$A', 'Kamm', 'buddies', 'open'),
+insert into public.trail_details (trail_id, user_id, name, visibility) values
+  ('$T1', '$A', 'Hang', 'buddies'),
+  ('$T2', '$A', 'Kamm', 'buddies'),
   -- Bert hat T1 selbst benannt: SEIN Name steht in seiner Meldung
   -- (Patch 014, wie Trail.displayName in der App).
-  ('$T1', '$B', 'Mein Hang', 'buddies', 'open');
+  ('$T1', '$B', 'Mein Hang', 'buddies');
+-- Annas Meldungen gehen über die EINE Schreibstelle (put_report), wie
+-- report_trail sie für jemanden schreibt, der den Trail gefahren ist:
+-- bestätigt. Bis Patch 025 kamen sie hier über trail_details.status.
 -- Aliase (Patch 014): Bert nennt Anna „Anni", Carl nennt sie „Chefin".
 -- In Berts Meldung steht „Anni" — nie Carls Alias.
 insert into public.friend_aliases (owner_id, friend_id, alias) values
@@ -70,14 +73,11 @@ select 'OUTBOX_AFTER_SEED=' || count(*) from app_internal.push_outbox;
 
 -- 1. Anna meldet T1 gesperrt: Bert und Carl bekommen eine Zeile, Anna
 --    selbst und Dave nicht.
-update public.trail_details set status = 'closed', status_at = now()
-  where trail_id = '$T1' and user_id = '$A';
+select app_internal.put_report('$A', '$T1', 'status', 'closed', null, true, now(), null);
 select 'OUTBOX_AFTER_STATUS=' || string_agg(recipient_id::text || ':' || kind || ':' || coalesce(status, '-'), ',' order by recipient_id)
   from app_internal.push_outbox;
--- Dieselbe Meldung noch einmal (nur status_at springt): keine neue Zeile,
--- und die Fälligkeit wird geschoben, nicht neu angelegt.
-update public.trail_details set status_at = now()
-  where trail_id = '$T1' and user_id = '$A';
+-- Dieselbe Meldung noch einmal: keine neue Zeile im Korb.
+select app_internal.put_report('$A', '$T1', 'status', 'closed', null, true, now(), null);
 select 'OUTBOX_AFTER_REPEAT=' || count(*) from app_internal.push_outbox;
 -- Entprellt: Vor der Frist geht nichts hinaus.
 select 'SENT_EARLY=' || app_internal.push_flush();
@@ -96,8 +96,7 @@ select 'SENT2=' || app_internal.push_flush();
 select 'BODY2=' || convert_from(body, 'utf8') from net.http_request_queue order by id desc limit 1;
 
 -- 3. Status UND Hinweis am selben Trail, fällig zugleich.
-update public.trail_details set status = 'open', status_at = now()
-  where trail_id = '$T1' and user_id = '$A';
+select app_internal.put_report('$A', '$T1', 'status', 'open', null, true, now(), null);
 insert into public.trail_notes (trail_id, user_id, body) values ('$T1', '$A', 'wieder frei');
 update app_internal.push_outbox set due_at = now() - interval '1 minute';
 select 'SENT3=' || app_internal.push_flush();
@@ -113,14 +112,12 @@ select 'BODY4=' || convert_from(body, 'utf8') from net.http_request_queue order 
 
 -- 3d. Ohne Alias steht der Benutzername.
 delete from public.friend_aliases where owner_id = '$B';
-update public.trail_details set status = 'destroyed', status_at = now()
-  where trail_id = '$T2' and user_id = '$A';
+select app_internal.put_report('$A', '$T2', 'status', 'destroyed', null, true, now(), null);
 update app_internal.push_outbox set due_at = now() - interval '1 minute';
 select 'SENT5=' || app_internal.push_flush();
 select 'BODY5=' || convert_from(body, 'utf8') from net.http_request_queue order by id desc limit 1;
 -- Zurück, damit Fall 4 von „zerstört" auf „zerstört" nichts auslöst.
-update public.trail_details set status = 'open', status_at = now()
-  where trail_id = '$T2' and user_id = '$A';
+select app_internal.put_report('$A', '$T2', 'status', 'open', null, true, now(), null);
 delete from app_internal.push_outbox;
 
 -- 3e. Ein zurückgezogener Hinweis nimmt seine Meldung mit.
@@ -171,14 +168,14 @@ select 'MSG_WITHDRAWN=' || count(*) from app_internal.push_messages;
 -- 4. Privat: Kein Buddy sieht den Beitrag, also erfährt keiner etwas.
 update public.trail_details set visibility = 'private'
   where trail_id = '$T2' and user_id = '$A';
-update public.trail_details set status = 'destroyed', status_at = now()
-  where trail_id = '$T2' and user_id = '$A';
+select app_internal.put_report('$A', '$T2', 'status', 'destroyed', null, true, now(), null);
 insert into public.trail_notes (trail_id, user_id, body) values ('$T2', '$A', 'privat');
 select 'OUTBOX_PRIVATE=' || count(*) from app_internal.push_outbox;
 
 -- 5. Ohne Geheimnisse räumt der Versand nur ab.
-update public.trail_details set visibility = 'buddies', status = 'changed', status_at = now()
+update public.trail_details set visibility = 'buddies'
   where trail_id = '$T2' and user_id = '$A';
+select app_internal.put_report('$A', '$T2', 'status', 'changed', null, true, now(), null);
 delete from vault.secrets where name = 'push_job_secret';
 update app_internal.push_outbox set due_at = now() - interval '1 minute';
 insert into public.buddy_messages (sender_id, recipient_id, body) values ('$B', '$A', 'ohne Versand');
@@ -204,7 +201,7 @@ expect() {
   fi
 }
 
-expect "Anlegen eines Beitrags mit Status offen löst nichts aus" "$(value OUTBOX_AFTER_SEED)" "0"
+expect "Anlegen eines Beitrags löst nichts aus" "$(value OUTBOX_AFTER_SEED)" "0"
 expect "Statuswechsel: Bert und Carl bekommen eine Zeile, Anna und Dave nicht" \
   "$(value OUTBOX_AFTER_STATUS)" "$B:trail_status:closed,$C:trail_status:closed"
 expect "erneutes Melden desselben Status legt keine Zeile an" "$(value OUTBOX_AFTER_REPEAT)" "2"

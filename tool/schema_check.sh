@@ -242,11 +242,11 @@ check_get_protected "buddy_messages-Spalten (Nachrichten)" \
 check_get_protected "recordings_visible-Spalten (Aufzeichnungen)" \
   "/rest/v1/recordings_visible?select=id,trail_id,user_id,source,recorded_at,reversed,quality,created_at,geojson,length_m,ele&limit=1"
 
-# trail_details: die Spalten des Beitrags (TrailRepository). status und
-# status_at liest die App seit Patch 013 nicht mehr, Clients bis 0.48.0
-# schon — deshalb stehen sie weiter hier.
+# trail_details: die Spalten des Beitrags (TrailRepository). kind und
+# status/status_at sind seit Patch 024/025 weg (#154) — Clients bis
+# 0.48.0 sperrt minimum_supported_version aus (Patch 023).
 check_get_protected "trail_details-Spalten (Beiträge)" \
-  "/rest/v1/trail_details?select=trail_id,user_id,name,description,grade,traits,rating,two_way,link,visibility,status,status_at,created_at,updated_at&limit=1"
+  "/rest/v1/trail_details?select=trail_id,user_id,name,description,grade,traits,rating,two_way,link,visibility,created_at,updated_at&limit=1"
 
 # trail_reports (Patch 013): Meldungen und Zustände, exakt die Query aus
 # TrailRepository.fetchReports samt Embed über den Constraint-NAMEN.

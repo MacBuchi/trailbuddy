@@ -126,14 +126,13 @@ create table public.trail_details (
   description text,
   grade smallint check (grade between 0 and 5),   -- Singletrail-Skala S0–S5
   -- Charakter (#72, Patch 009): Mehrfachwahl statt der früheren Einzelwahl
-  -- „Art“ (kind, bleibt für Clients bis 0.33.0 und wird später entfernt).
+  -- „Art“ (kind, entfernt mit Patch 024, #154).
   traits text[] not null default '{}'
     check (traits <@ array['flowy', 'jumps', 'rocky', 'steep', 'uphill', 'natural', 'connection']),
   rating smallint check (rating between 1 and 5),  -- Bewertung, Patch 013
   visibility text not null default 'buddies' check (visibility in ('buddies', 'private')),
-  -- status/status_at: veraltet seit Patch 013, nur noch für alte Clients
-  status text not null default 'open' check (status in ('open', 'closed', 'destroyed', 'changed')),
-  status_at timestamptz,
+  -- die Meldung steht in trail_reports; status/status_at hat Patch 025
+  -- entfernt (#154)
   updated_at timestamptz not null default now(),
   primary key (trail_id, user_id)
 );
@@ -273,9 +272,9 @@ Karte steht, ist aus sichtbaren Beiträgen gerechnet:**
   kann, wer was gemeldet hat (Name bzw. Alias im Blatt); die jüngste
   bestätigte und die jüngste unbestätigte je Person, Trail und Art
   bleiben länger — die angezeigte muss auch nach einem Jahr noch da
-  sein. Alte Clients (bis 0.48.0) lesen und schreiben weiter
-  `trail_details.status`; Trigger gleichen in beide Richtungen ab
-  (erweitern → ausliefern → entfernen).
+  sein. Bis Patch 025 (#154) stand die Meldung für Clients bis 0.48.0
+  zusätzlich in `trail_details.status`; seit Patch 023 sperrt
+  `minimum_supported_version` (0.49.0) sie aus, und die Spalte ist weg.
 - **Zustand** (#101, Patch 013) = 1–5, von „kaum fahrbar" bis „top
   gepflegt" (`trail_condition.dart`), im selben Verlauf wie die Meldung
   und nach derselben Regel bestätigt und angezeigt: die jüngste

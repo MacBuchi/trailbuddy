@@ -70,12 +70,11 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
   farblos — die Farbe gehört der Schwierigkeit). Die Filter „Flowig"/„Jumps"
   prüfen die ANGEZEIGTEN zwei, nicht jede Nennung. Vier Dinge, die man
   wissen muss:
-  - **`kind` bleibt vorerst stehen** (erweitern → ausliefern →
-    entfernen): Clients bis 0.33.0 lesen und schreiben weiter nur sie,
-    ihre Änderungen erreichen `traits` nicht. Die App schreibt `kind` nicht
-    mehr (`toRow`), sonst überschriebe sie, was ein alter Client liest.
-    Entfernt wird die Spalte in einem eigenen Patch, wenn
-    `minimum_supported_version` über 0.33.0 steht.
+  - **`kind` ist weg** (Patch 024, #154 — das „entfernen" zu Patch 009):
+    Clients bis 0.33.0 lasen und schrieben nur sie; seit Patch 023 sperrt
+    `minimum_supported_version` 0.49.0 sie aus. Die Fallbacks auf `kind`
+    in `fromJson`/`fromLegacyKind` bleiben — sie lesen lokale Kopien und
+    Körbe von vor 0.34.0, nicht die Spalte.
   - **Patch 009 übernimmt die alte Art** (flow → flowy, jump → jumps,
     tech → rocky, natural, connection) und `fromJson` fällt auf dieselbe
     Zuordnung zurück, wenn `traits` fehlt (Zwischenspeicher, Ausgangskorb
@@ -174,13 +173,11 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     bestätigtes „offen" ist; nie bei `planned`. `report_trail` kappt
     `reported_at` ebenfalls auf jetzt — eine Zeit in der Zukunft gewönne
     sonst jeden Vergleich.
-  - **Alte Clients (bis 0.48.0)** lesen und schreiben weiter
-    `trail_details.status`/`status_at`: `reports_from_details` macht
-    daraus eine Meldung, `reports_to_details` schreibt eine BESTÄTIGTE
-    Meldung an den Beitrag zurück; `pg_trigger_depth()` hält die beiden
-    auseinander. Die App schreibt `status` nicht mehr (`toRow`), liest
-    es nicht mehr. Entfernt wird es in einem eigenen Patch, wenn
-    `minimum_supported_version` über 0.48.0 steht.
+  - **`trail_details.status`/`status_at` sind weg** (Patch 025, #154):
+    Bis dahin glichen zwei Trigger für Clients bis 0.48.0 in beide
+    Richtungen ab; seit Patch 023 sperrt `minimum_supported_version`
+    0.49.0 diese Clients aus. Die Meldung steht nur noch in
+    `trail_reports`.
   - **Liste** (seit 0.50.0): Sterne in der Zeile, `TrailSort.rating`;
     Wörter aus `trailRowTags` — eine abweichende jüngere unbestätigte
     Meldung als „GESPERRT?" (gedämpft), der BESTÄTIGTE Zustand ab
