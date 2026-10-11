@@ -1372,4 +1372,111 @@ begin
   perform tb_test.check(m.name = 'Offen', 'ein privater Name an A zählt nicht: Doras Name füllt ihren leeren Beitrag');
 end $$;
 
+\echo -- 27. Nachrichten zwischen Buddys (Patch 021, #34)
+-- Hanna (H) hat Ivo (I) angefragt, offen; Jana (J) kennt keinen der
+-- beiden. Die Grenzen stehen nur hier — die App zeigt sie bloß vorab.
+insert into auth.users (id, email, raw_user_meta_data) values
+  ('88888888-8888-4888-8888-888888888888', 'h@example.org', '{"username":"hanna"}'),
+  ('99999999-9999-4999-8999-999999999999', 'i@example.org', '{"username":"ivo"}'),
+  ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', 'j@example.org', '{"username":"jana"}');
+insert into public.friendships (requester_id, addressee_id, status) values
+  ('88888888-8888-4888-8888-888888888888', '99999999-9999-4999-8999-999999999999', 'pending');
+
+-- Wie viele Zeilen sieht [uid] mit [sql] (ein select count(*))?
+create or replace function tb_test.count_as(uid uuid, sql text)
+returns bigint language plpgsql as $$
+declare
+  n bigint;
+begin
+  perform tb_test.as_user(uid);
+  execute sql into n;
+  perform tb_test.as_owner();
+  return n;
+end $$;
+
+do $$
+declare
+  uh uuid := '88888888-8888-4888-8888-888888888888';
+  ui uuid := '99999999-9999-4999-8999-999999999999';
+  uj uuid := 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+  send text := 'insert into public.buddy_messages (recipient_id, body) values (%L, %L)';
+  code text;
+  m uuid;
+begin
+  -- (1) Offene Anfrage: drei Nachrichten je Absender, die vierte nicht.
+  perform tb_test.exec_as(uh, format(send, ui, 'Ich bin die vom Bikepark'));
+  perform tb_test.exec_as(uh, format(send, ui, 'zwei'));
+  perform tb_test.exec_as(uh, format(send, ui, 'drei'));
+  code := tb_test.state_of(uh, format(send, ui, 'vier'));
+  perform tb_test.check(code = '42501', format('offene Anfrage: die vierte Nachricht wird abgelehnt (%s)', code));
+  -- Die Grenze gilt je Absender: Ivo darf trotzdem antworten.
+  perform tb_test.exec_as(ui, format(send, uh, 'Hallo Hanna'));
+  perform tb_test.check(tb_test.count_as(uh, 'select count(*) from public.buddy_messages') = 4,
+                        'Hanna sieht ihre drei und Ivos Antwort');
+
+  -- (2) Ohne Anfrage keine Nachricht, und fremde Verläufe sieht niemand.
+  code := tb_test.state_of(uj, format(send, uh, 'Hallo?'));
+  perform tb_test.check(code = '42501', format('ohne Anfrage keine Nachricht (%s)', code));
+  perform tb_test.check(tb_test.count_as(uj, 'select count(*) from public.buddy_messages') = 0,
+                        'Jana sieht keine fremden Nachrichten');
+
+  -- (3) Spalten-Grants: Anlegen nur mit Empfänger und Text, ändern nur read_at.
+  -- Ivo darf noch schreiben (eine von drei) — sonst verwehrte schon die
+  -- Policy, und der Fall prüfte den Grant nicht.
+  code := tb_test.state_of(ui, format('insert into public.buddy_messages (recipient_id, body, created_at) values (%L, %L, now() + interval ''1 year'')', uh, 'später'));
+  perform tb_test.check(code = '42501', format('created_at lässt sich nicht setzen (%s)', code));
+  code := tb_test.state_of(ui, format('update public.buddy_messages set body = %L where recipient_id = %L', 'anders', ui));
+  perform tb_test.check(code = '42501', format('den Text ändert niemand (%s)', code));
+
+  -- (4) Gelesen markieren nur, was an mich ging.
+  perform tb_test.exec_as(uh, 'update public.buddy_messages set read_at = now()');
+  perform tb_test.check(not exists (select 1 from public.buddy_messages where sender_id = uh and read_at is not null),
+                        'Hanna markiert ihre eigenen nicht als gelesen …');
+  perform tb_test.check((select read_at from public.buddy_messages where sender_id = ui) is not null,
+                        '… wohl aber Ivos Antwort an sie');
+  perform tb_test.exec_as(uj, 'update public.buddy_messages set read_at = now()');
+  perform tb_test.check((select count(*) from public.buddy_messages where read_at is not null) = 1,
+                        'Jana markiert nichts');
+  perform tb_test.exec_as(ui, format('update public.buddy_messages set read_at = now() where recipient_id = %L', ui));
+  perform tb_test.check((select count(*) from public.buddy_messages where recipient_id = ui and read_at is not null) = 3,
+                        'Ivo markiert seine drei als gelesen');
+
+  -- (5) Löschen nur die eigenen.
+  select id into m from public.buddy_messages where sender_id = uh order by created_at limit 1;
+  perform tb_test.exec_as(ui, format('delete from public.buddy_messages where id = %L', m));
+  perform tb_test.check(exists (select 1 from public.buddy_messages where id = m), 'Ivo löscht Hannas Nachricht nicht');
+  perform tb_test.exec_as(uh, format('delete from public.buddy_messages where id = %L', m));
+  perform tb_test.check(not exists (select 1 from public.buddy_messages where id = m), 'Hanna nimmt ihre eigene zurück');
+  -- Zurückgenommen zählt nicht mehr: Wieder Platz für eine.
+  perform tb_test.exec_as(uh, format(send, ui, 'noch mal drei'));
+
+  -- (6) Angenommen ⇒ unbegrenzt.
+  perform tb_test.exec_as(ui, format('update public.friendships set status = %L where addressee_id = %L', 'accepted', ui));
+  perform tb_test.exec_as(uh, format(send, ui, 'vier'));
+  perform tb_test.exec_as(uh, format(send, ui, 'fünf'));
+  perform tb_test.check(tb_test.count_as(ui, format('select count(*) from public.buddy_messages where sender_id = %L', uh)) = 5,
+                        'als Buddys gilt keine Grenze');
+
+  -- (7) 30 Tage: Abgelaufenes sieht niemand, der Job räumt es.
+  insert into public.buddy_messages (sender_id, recipient_id, body, created_at, expires_at)
+    values (uh, ui, 'alt', now() - interval '31 days', now() - interval '1 day');
+  perform tb_test.check(tb_test.count_as(ui, format('select count(*) from public.buddy_messages where body = %L', 'alt')) = 0,
+                        'eine abgelaufene Nachricht ist unsichtbar');
+  perform tb_test.check(app_internal.sweep_expired_messages() = 1, 'der Aufräumjob löscht genau die abgelaufene');
+  code := null;
+  begin
+    insert into public.buddy_messages (sender_id, recipient_id, body, created_at, expires_at)
+      values (uh, ui, 'ewig', now(), now() + interval '31 days');
+  exception when check_violation then
+    code := '23514';
+  end;
+  perform tb_test.check(code = '23514', 'länger als 30 Tage verbietet der Check');
+
+  -- (8) Ende der Freundschaft löscht beide Seiten.
+  perform tb_test.exec_as(ui, format('delete from public.friendships where addressee_id = %L', ui));
+  perform tb_test.check(not exists (select 1 from public.buddy_messages
+                                     where (sender_id = uh and recipient_id = ui) or (sender_id = ui and recipient_id = uh)),
+                        'entfreundet: der Verlauf ist auf beiden Seiten weg');
+end $$;
+
 \echo -- Alle Prüfungen bestanden.

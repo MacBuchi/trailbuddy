@@ -182,7 +182,7 @@ Code liegt — nicht wieder hierher.
 | `lib/features/map/CLAUDE.md` | Orte auf der Karte · Glatte Linien und Namen am Trail · Eigene Position · Karten-Engine und Fassade (#31) · Die Tastatur überlagert, sie schiebt nicht · Die Legende auf der Karte · Die Ebene „Wege" (#212) · Gesehenes bleibt liegen (#155) · Höhenlinien (#271) · Regionen des Kartenhosts (#220) |
 | `lib/features/offline_areas/CLAUDE.md` | Der Kachelspeicher, Bereiche als Verweise (#229) · Gespeicherte Bereiche, Werkzeugleiste, Zeichnen (#67, #82) · Höhenkacheln je Bereich (`tool/height_tiles.py`, `height-data.yml`) · Bereiche je Region · Übersicht je Region (#220) |
 | `lib/features/official/CLAUDE.md` | Offizielle Trails in der App |
-| `lib/features/friends/CLAUDE.md` | Nach dem Annehmen einer Buddy-Anfrage |
+| `lib/features/friends/CLAUDE.md` | Nach dem Annehmen einer Buddy-Anfrage · Nachrichten zwischen Buddys (#34) |
 | `lib/features/rides/CLAUDE.md` | Fahrt aufzeichnen · Bestätigen durch Fahren · Das Zerlege-Blatt |
 | `lib/features/routing/CLAUDE.md` | Die Routing-Engine, Schritt 3: Graph, Profil, Suche · Steile Anstiege · Vorlieben und verschenkte Höhe · „Zum Trailkopf" · Der Rundenplaner · Kalibrierung aus eigenen Fahrten · Navigation rund · Die Folgeansicht der Navigation |
 | `lib/data/CLAUDE.md` | Ausgangskorb · Zwischenspeicher des Netzes · Speichern ohne Neuladen des Netzes · Beendigungsgründe |
@@ -198,7 +198,7 @@ Code liegt — nicht wieder hierher.
 Was es bewusst noch nicht gibt:
 
 - **Noch nicht da, bewusst** (jeweils eigener PR, Muster in PilzBuddy):
-  Nachrichten zwischen Buddys (#34, Rest),
+  Benachrichtigung bei einer neuen Nachricht (#34, Rest),
   Meldung zu einem einzelnen Trail.
 
 ## Code-Konventionen

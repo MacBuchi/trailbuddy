@@ -10,7 +10,9 @@ import '../features/coach/coach.dart';
 import '../features/auth/login_screen.dart';
 import '../features/auth/signup_screen.dart';
 import '../features/changelog/changelog_screen.dart';
+import '../features/friends/conversation_screen.dart';
 import '../features/friends/friends_screen.dart';
+import '../features/friends/message_providers.dart';
 import '../features/help/help_screen.dart';
 import '../features/highlights/discover_screen.dart';
 import '../features/help/map_tour.dart' show NavCoach;
@@ -101,7 +103,20 @@ final routerProvider = Provider<GoRouter>((ref) {
           StatefulShellBranch(routes: [
             GoRoute(
                 path: '/friends',
-                builder: (context, state) => const FriendsScreen()),
+                builder: (context, state) => const FriendsScreen(),
+                // Der Verlauf mit einem Buddy (#34) als Unterroute: Die
+                // Reiterleiste bleibt, und der Weg zurück ist der übliche.
+                // Der Schlüssel, damit der nächste Verlauf nicht das
+                // Element samt Textfeld des vorigen übernimmt.
+                routes: [
+                  GoRoute(
+                      path: 'chat/:id',
+                      builder: (context, state) {
+                        final id = state.pathParameters['id'] ?? '';
+                        return ConversationScreen(
+                            key: ValueKey(id), otherId: id);
+                      }),
+                ]),
           ]),
           StatefulShellBranch(routes: [
             GoRoute(
@@ -232,8 +247,8 @@ class AppShell extends ConsumerWidget {
             CoachAnchor(
                 id: NavCoach.buddys,
                 child: NavigationDestination(
-                    icon: Icon(Icons.group_outlined),
-                    selectedIcon: Icon(Icons.group),
+                    icon: BuddysNavIcon(selected: false),
+                    selectedIcon: BuddysNavIcon(selected: true),
                     label: 'Buddys')),
             CoachAnchor(
                 id: NavCoach.profile,
@@ -245,6 +260,29 @@ class AppShell extends ConsumerWidget {
         ),
       ),
     ),
+    );
+  }
+}
+
+/// Das Symbol des Reiters „Buddys" — mit der Zahl ungelesener Nachrichten
+/// (#34). Zugleich die Stelle, an der die Nachrichten schon beim Start
+/// geholt werden; eine Zeile je Nachricht aus 30 Tagen, und ohne sie gäbe
+/// es die Zahl nicht.
+class BuddysNavIcon extends ConsumerWidget {
+  const BuddysNavIcon({super.key, required this.selected});
+
+  final bool selected;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final unread =
+        ref.watch(unreadMessagesProvider).values.fold(0, (a, b) => a + b);
+    final icon = Icon(selected ? Icons.group : Icons.group_outlined);
+    if (unread == 0) return icon;
+    return Badge(
+      key: const Key('buddys-unread-badge'),
+      label: Text('$unread'),
+      child: icon,
     );
   }
 }

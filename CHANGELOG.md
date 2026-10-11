@@ -2,6 +2,22 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Nachrichten an deine Buddys
+
+*Version 0.111.0, 2026-10-11*
+
+- **Neu:** Unter „Buddys" steht neben jedem Buddy eine Sprechblase. Sie
+  öffnet eure Nachrichten — einfach ein Feld und ein Verlauf, bis zu 500
+  Zeichen je Nachricht.
+- Schon bei einer offenen Anfrage gehen bis zu drei Nachrichten, damit
+  man weiß, wer da fragt. Die App sagt vorher, wie viele noch gehen.
+- Ungelesenes zeigt eine Zahl an der Sprechblase und am Reiter „Buddys".
+- Nachrichten verschwinden nach 30 Tagen. Wer eine Anfrage ablehnt oder
+  einen Buddy entfernt, löscht den Verlauf für beide. Eine eigene
+  Nachricht nimmst du mit einem langen Tipp zurück.
+- Die Nachrichten sind nicht Ende-zu-Ende-verschlüsselt — das steht auch
+  so in der Datenschutzerklärung.
+
 ## Sind das dieselben?
 
 *Version 0.110.0, 2026-10-11*

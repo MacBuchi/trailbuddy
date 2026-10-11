@@ -321,6 +321,14 @@ class ExampleBuddyTile extends StatelessWidget {
                 onPressed: _nothing,
               ),
             ),
+            const CoachAnchor(
+              id: BuddysCoach.message,
+              child: IconButton(
+                tooltip: 'Nachrichten',
+                icon: Icon(Icons.chat_bubble_outline),
+                onPressed: _nothing,
+              ),
+            ),
           ],
         ),
       ),

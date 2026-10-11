@@ -63,3 +63,30 @@ begin
   end if;
   raise notice 'grants_check reports: ok';
 end $$;
+
+-- Nachrichten (patch_021): anon bekommt nichts, und authenticated nur die
+-- Spalten, die die 30 Tage nicht aushebeln — ein Tabellen-INSERT oder
+-- -UPDATE schlüge jeden Spalten-Grant (auto_expose_new_tables).
+do $$
+begin
+  if has_table_privilege('anon', 'public.buddy_messages', 'select')
+     or has_table_privilege('anon', 'public.buddy_messages', 'insert') then
+    raise exception 'anon darf an buddy_messages — Nachrichten wären offen';
+  end if;
+  if has_table_privilege('authenticated', 'public.buddy_messages', 'insert')
+     or has_column_privilege('authenticated', 'public.buddy_messages', 'created_at', 'insert')
+     or has_column_privilege('authenticated', 'public.buddy_messages', 'expires_at', 'insert')
+     or has_column_privilege('authenticated', 'public.buddy_messages', 'sender_id', 'insert') then
+    raise exception 'authenticated darf buddy_messages mit eigener Frist oder fremdem Absender anlegen';
+  end if;
+  if has_table_privilege('authenticated', 'public.buddy_messages', 'update')
+     or has_column_privilege('authenticated', 'public.buddy_messages', 'body', 'update') then
+    raise exception 'authenticated darf an buddy_messages mehr als read_at ändern';
+  end if;
+  if not (has_column_privilege('authenticated', 'public.buddy_messages', 'recipient_id', 'insert')
+          and has_column_privilege('authenticated', 'public.buddy_messages', 'body', 'insert')
+          and has_column_privilege('authenticated', 'public.buddy_messages', 'read_at', 'update')) then
+    raise exception 'authenticated fehlen die Spalten-Grants für Nachrichten';
+  end if;
+  raise notice 'grants_check messages: ok';
+end $$;

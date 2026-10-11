@@ -5,6 +5,7 @@ import 'app_config_repository.dart';
 import 'auth_repository.dart';
 import 'feedback_repository.dart';
 import 'friend_repository.dart';
+import 'message_repository.dart';
 import 'profile_repository.dart';
 import 'push_repository.dart';
 
@@ -19,6 +20,9 @@ final profileRepositoryProvider =
 
 final friendRepositoryProvider =
     Provider((ref) => FriendRepository(ref.watch(supabaseClientProvider)));
+
+final messageRepositoryProvider =
+    Provider((ref) => MessageRepository(ref.watch(supabaseClientProvider)));
 
 final feedbackRepositoryProvider =
     Provider((ref) => FeedbackRepository(ref.watch(supabaseClientProvider)));
