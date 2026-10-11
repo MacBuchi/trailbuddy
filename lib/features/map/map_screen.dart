@@ -50,6 +50,7 @@ import '../offline_areas/area_store.dart';
 import '../offline_areas/offline_tool_rail.dart';
 import '../trails/grade_shield.dart' show trailColorOf, trailLineStyleOf;
 import '../../data/outbox.dart';
+import '../trails/merge_proposal_card.dart' show mapComparePairProvider;
 import '../trails/outbox_providers.dart';
 import '../trails/trail_list.dart';
 import '../trails/trail_providers.dart';
@@ -825,6 +826,14 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     final focusRide = ref.watch(mapFocusRideProvider);
     final splitPreview = ref.watch(rideSplitPreviewProvider);
     final trailHeadPreview = ref.watch(trailHeadPreviewProvider);
+    // „Beide ansehen" (#107 Schritt 3): zwei Trails, die vielleicht einer
+    // sind — beide leuchten, oben steht, welche es sind.
+    final comparePair = ref.watch(mapComparePairProvider);
+    Trail? compareFind(String id) =>
+        trails.where((t) => t.id == id).firstOrNull ?? trails.where((t) => t.answersTo(id)).firstOrNull;
+    final compare = comparePair == null
+        ? null
+        : (duplicate: compareFind(comparePair.duplicate), target: compareFind(comparePair.target));
     final loop = ref.watch(loopPlannerProvider);
     final loopPicking = loop.open && loop.pickingStart;
     final loopPlan = loop.open ? loop.plan : null;
@@ -870,6 +879,20 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     ref.listen(mapFocusTrailProvider, (_, id) {
       if (id == null) return;
       _takeFocusWish();
+    });
+    // „Beide ansehen" (#107): auf beide einpassen, nach dem Bild — der
+    // Wunsch kommt aus einem Blatt, das gerade schließt.
+    ref.listen(mapComparePairProvider, (_, pair) {
+      if (pair == null) return;
+      final list = ref.read(trailsProvider).valueOrNull ?? const <Trail>[];
+      final both = [
+        for (final id in [pair.duplicate, pair.target]) ?list.where((t) => t.answersTo(id)).firstOrNull,
+      ];
+      if (both.isEmpty) return;
+      _fittedOnce = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _fitTo(both);
+      });
     });
     // „Zum Trailkopf" (#158 Schritt 4): Das Trail-Blatt stellt den Wunsch,
     // die Karte rechnet und zeigt — die Vorschau gehört hierher. Nach dem
@@ -1044,6 +1067,21 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         // Linie selbst behält ihre Farbe. Deckendes Lime mit dunkler
         // Kontur (#195): Jeder Trail trägt schon einen weißen Saum, und
         // Lime allein hebt sich vom hellen Kartengrund kaum ab.
+        // Der Vergleich (#107): der behaltene in Marke, der andere in der
+        // Farbe der Kandidaten — beide unter dem Netz, die Linien selbst
+        // behalten ihre Farbe.
+        for (final (t, glow) in [
+          (compare?.target, AppColors.brand),
+          (compare?.duplicate, AppColors.mapLines.candidate),
+        ])
+          if (t != null && t.points.length >= 2)
+            MapViewPolyline(
+              points: _smoothed(t),
+              color: glow,
+              width: kSelectionGlowWidth,
+              borderColor: AppColors.onBrand.withValues(alpha: 0.7),
+              borderWidth: kSelectionGlowBorder,
+            ),
         if (selected != null && selected.points.length >= 2)
           MapViewPolyline(
             points: _smoothed(selected),
@@ -1281,6 +1319,24 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                           key: const ValueKey('loop-pick-cancel'),
                           onPressed: () => ref.read(loopPlannerProvider.notifier).cancelStartPick(),
                           child: const Text('Abbrechen'),
+                        ),
+                      ),
+                    ),
+                  if (compare != null && (compare.duplicate != null || compare.target != null))
+                    Card(
+                      key: const ValueKey('merge-compare-banner'),
+                      margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                      child: ListTile(
+                        dense: true,
+                        leading: const Icon(Icons.merge_type),
+                        title: Text('Sind das dieselben? „${compare.duplicate?.displayName ?? '–'}" '
+                            'und „${compare.target?.displayName ?? '–'}"'),
+                        subtitle: const Text('Antworten kannst du im Blatt eines der beiden.'),
+                        trailing: IconButton(
+                          key: const ValueKey('merge-compare-close'),
+                          tooltip: 'Vergleich beenden',
+                          icon: const Icon(Icons.close),
+                          onPressed: () => ref.read(mapComparePairProvider.notifier).state = null,
                         ),
                       ),
                     ),

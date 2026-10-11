@@ -1798,6 +1798,21 @@ revoke all on function app_internal.merge_near(geometry, geometry) from public, 
 -- dem Ziel, ohne zu prüfen: B kann nach dem ersten unsichtbar sein. Gibt
 -- den behaltenen Trail zurück. B selbst bleibt, solange jemand anderes
 -- daran etwas hat; sonst holt ihn sweep_orphan_trails.
+-- Trägt [trail] für [uid] schon einen Namen aus einem Beitrag, den er
+-- sieht — einem eigenen oder dem eines direkten Buddys, der nicht privat
+-- ist (dieselbe Regel wie `td_friend_select`)? Dann gilt beim
+-- Zusammenführen dieser Name, nicht der des Duplikats (Patch 020).
+create or replace function app_internal.named_for(uid uuid, trail uuid)
+returns boolean language sql stable security definer set search_path = public as $$
+  select exists (
+    select 1 from trail_details d
+     where d.trail_id = trail
+       and nullif(btrim(d.name), '') is not null
+       and (d.user_id = uid
+         or (d.visibility = 'buddies' and app_internal.are_friends(d.user_id, uid))));
+$$;
+revoke all on function app_internal.named_for(uuid, uuid) from public, anon, authenticated;
+
 create or replace function public.merge_own_into(duplicate_id uuid, target_id uuid)
 returns uuid
 language plpgsql security definer set search_path = public, extensions as $$
@@ -1864,7 +1879,11 @@ begin
     select * into da from trail_details d where d.trail_id = target and d.user_id = uid;
     if found then
       update trail_details d
-         set name = coalesce(da.name, db.name),
+         set name = case
+               when nullif(btrim(da.name), '') is not null then da.name
+               when app_internal.named_for(uid, target) then null
+               else db.name
+             end,
              description = coalesce(da.description, db.description),
              grade = coalesce(da.grade, db.grade),
              traits = case when cardinality(da.traits) = 0 then db.traits else da.traits end,
@@ -1875,7 +1894,9 @@ begin
        where d.trail_id = target and d.user_id = uid;
       delete from trail_details d where d.trail_id = dup and d.user_id = uid;
     else
-      update trail_details d set trail_id = target
+      update trail_details d
+         set trail_id = target,
+             name = case when app_internal.named_for(uid, target) then null else d.name end
        where d.trail_id = dup and d.user_id = uid;
     end if;
   end if;
@@ -2342,5 +2363,6 @@ insert into public.applied_patches (filename) values
   ('patch_016_two_way.sql'),
   ('patch_017_min_trail_50.sql'),
   ('patch_018_feedback_client_id.sql'),
-  ('patch_019_trail_merges.sql')
+  ('patch_019_trail_merges.sql'),
+  ('patch_020_merge_keeps_target_name.sql')
 on conflict do nothing;

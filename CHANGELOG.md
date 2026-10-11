@@ -2,6 +2,26 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Sind das dieselben?
+
+*Version 0.110.0, 2026-10-11*
+
+- **Neu:** Hält ein Buddy einen deiner Trails für einen anderen, oder
+  liegen zwei Trails fast aufeinander, fragt die App nach — im Blatt
+  des Trails und im Profil unter „Sind das dieselben?", mit der Zahl
+  der Paare.
+- „Derselbe" führt die beiden zusammen, vorgeschlagen ist der Trail,
+  den dein Buddy behalten hat. „Verschieden" merkt sich die App, die
+  Frage kommt dann nicht wieder — und „Rückgängig" holt sie zurück.
+- „Beide ansehen" zeigt die zwei Linien auf der Karte, hervorgehoben.
+- Ist deine Aufzeichnung die lange Fassung mit Anfahrt, gibt es
+  zusätzlich „Auf gemeinsamen Teil kürzen": Das Zerlege-Blatt öffnet
+  sich mit deiner Spur, das gemeinsame Stück geht an den anderen Trail,
+  danach kannst du die lange Fassung löschen.
+- **Korrigiert:** Nach dem Zusammenführen hieß der behaltene Trail bei
+  dir manchmal wieder wie das Duplikat. Jetzt gilt sein Name; deine
+  Einschätzung, Sterne und Charakter ziehen trotzdem mit.
+
 ## Doppelte Trails zusammenführen
 
 *Version 0.109.0, 2026-10-11*

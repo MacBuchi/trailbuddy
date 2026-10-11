@@ -52,6 +52,7 @@ class SplitRequest {
     this.rideId,
     this.marks = const [],
     this.rodeAt,
+    this.replacesTrailId,
   });
 
   /// Aus einer eigenen Fahrt. Die GPS-Höhe geht als Höhe hinein — für die
@@ -89,6 +90,12 @@ class SplitRequest {
 
   /// Eingetragenes Fahrdatum einer geplanten Datei (#120), sonst null.
   final DateTime? rodeAt;
+
+  /// „Auf gemeinsamen Teil kürzen" (#107 Schritt 3): Die Spur ist meine
+  /// lange Aufzeichnung an diesem Trail. Ist das Stück beigesteuert, bietet
+  /// das Blatt an, meinen Beitrag dort zu löschen — sonst stünde die lange
+  /// Fassung weiter daneben.
+  final String? replacesTrailId;
 
   /// Höhen aus dem GPS werden nicht beigesteuert, Höhen aus der Datei schon.
   bool get stripElevation => source == RecordingSource.app;
@@ -482,7 +489,49 @@ class _RideSplitSheetState extends ConsumerState<_RideSplitSheet> {
         '${fresh ? '' : ' — sichtbar, sobald die Liste wieder lädt.'}',
       ),
     ));
-    if (failed == 0 && !limitHit) navigator.pop(false);
+    if (failed == 0 && !limitHit) {
+      // Kürzen (#107): Erst wenn das Stück WIRKLICH beim Server ist, darf
+      // die lange Fassung gehen — ein wartendes im Korb könnte noch
+      // scheitern, und dann wäre beides weg.
+      final replaces = widget.request.replacesTrailId;
+      if (replaces != null && ok > 0 && queued == 0) await _offerWithdraw(replaces);
+      navigator.pop(false);
+    }
+  }
+
+  /// Nach dem Kürzen: die lange Fassung löschen? Dieselbe Löschung wie im
+  /// Trail-Blatt (`withdraw_contribution`).
+  Future<void> _offerWithdraw(String trailId) async {
+    if (!mounted) return;
+    final name = ref.read(trailByIdProvider(trailId))?.displayName ?? 'Trail ohne Namen';
+    final messenger = ScaffoldMessenger.of(context);
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Die lange Fassung löschen?'),
+        content: Text('Das Stück ist beigesteuert. Deine Aufzeichnung an „$name" mit dem Rest '
+            'lässt sich jetzt löschen — mit deinem Beitrag, deinen Meldungen und Hinweisen dort.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Behalten'),
+          ),
+          FilledButton(
+            key: const ValueKey('split-trim-withdraw'),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Löschen'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+    try {
+      await ref.read(trailsProvider.notifier).withdraw(trailId);
+      messenger.showSnackBar(const SnackBar(content: Text('Die lange Fassung ist gelöscht')));
+    } catch (e, st) {
+      logError('Lange Fassung löschen', e, st);
+      messenger.showSnackBar(SnackBar(content: Text(friendlyError(e))));
+    }
   }
 
   @override

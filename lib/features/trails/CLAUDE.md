@@ -352,9 +352,38 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     und geht NICHT nach `error_reports`.
   - **Die Zuordnungen liegen im Zwischenspeicher** (`merges` im
     `TrailSnapshot`, Rundlauf-Test; eine Kopie von vor 0.109.0 liest
-    sich ohne). Vorschlag, „verschieden" und Overlap-Kanten werden schon
-    gelesen und gespeichert, angezeigt erst in Schritt 3.
+    sich ohne). Die rohen Zeilen für die Vorschläge reicht
+    `trailMergeRowsProvider` durch (`TrailsNotifier.mergeRows`).
   `test/trails/trail_merge_test.dart`, `test/flows/trail_merge_flow_test.dart`
   (Gegenproben: Umhängen aus, eigene Zeile ohne Vorrang, Fehlerbericht
   bei Ablehnung, Kopie ohne `merges`, Schwelle 0, Doppelbeitrag, Expando
   aus — jede rot).
+- **„Sind das dieselben?"** (#107 Schritt 3, seit 0.110.0;
+  `merge_proposals.dart` pur, `merge_proposal_card.dart`; Betreiber
+  2026-10-11: Blatt + Profilzeile, Overlaps nur grob beieinander).
+  Vier Dinge, die man wissen muss:
+  - **Zwei Quellen, je Paar ein Vorschlag**: `proposed` (ein Buddy hat
+    erklärt, ich habe am Duplikat etwas — ungeprüft, er hat die Nähe beim
+    Erklären bestanden) schlägt `overlap` (nur mit `mergeNearShare` ≥
+    `kMergeNearShare`, Ziel nach `defaultKeep`). Kennungen löst
+    `answersTo` auf; was bei mir schon einer ist, fällt weg.
+  - **„Kürzen" heißt: meine Linie deckt die andere im Korridor des
+    Abgleichs, nicht umgekehrt** (`trimmableOf`, `lineCovers` mit
+    `kMatchCorridorM`/`kMatchCoverage`) — dieselben Zahlen, mit denen
+    der Server das Stück an den anderen Trail hängt. Das Zerlege-Blatt
+    bekommt `SplitRequest.replacesTrailId` und bietet das Löschen der
+    langen Fassung erst an, wenn ALLES beim Server ist (nichts im Korb,
+    nichts gescheitert) — sonst wäre bei einem Fehlschlag beides weg.
+  - **„Verschieden" liest nur die Zuordnungen nach**
+    (`_rereadAfterWrite(merges: true)`), kein ganzes Neuladen. Der
+    Notifier wird VOR dem Schreiben geholt: Danach ist die Karte
+    abgebaut, und „Rückgängig" in der SnackBar griffe auf ein totes
+    `ref` (im Test gefunden, Gegenprobe rot).
+  - **„Beide ansehen"** ist ein Wunsch an die Karte
+    (`mapComparePairProvider`): einpassen, beide als Leuchtlinie unter
+    dem Netz (behaltener in Marke, der andere in `candidate`), oben ein
+    Banner mit X. Geantwortet wird im Blatt eines der beiden.
+  `test/trails/merge_proposals_test.dart`,
+  `test/flows/merge_proposals_flow_test.dart` (Gegenproben: Nähe-Filter
+  aus, `replacesTrailId` weg, Profilzeile immer, Name von B immer,
+  totes `ref`, Kürzen ohne Gegenrichtung — jede rot).

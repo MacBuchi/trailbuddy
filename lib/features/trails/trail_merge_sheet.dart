@@ -13,6 +13,7 @@ import '../../core/geo.dart' show formatMeters;
 import '../../core/read_after_write.dart';
 import '../../models/trail.dart';
 import '../friends/buddy_alias.dart';
+import 'merge_proposal_card.dart';
 import 'trail_merge_candidates.dart';
 import 'trail_providers.dart';
 
@@ -39,6 +40,7 @@ class TrailMergeSection extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     if (trail.pending) return const SizedBox.shrink();
     final candidates = ref.watch(mergeCandidatesProvider(trail.id));
+    final proposals = ref.watch(mergeProposalsForProvider(trail.id));
     final names = ref.watch(buddyNamesViewProvider);
     final theme = Theme.of(context);
     String who(String userId) => names.of(
@@ -47,6 +49,8 @@ class TrailMergeSection extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
+        // „Sind das dieselben?" (#107 Schritt 3) — zuoberst, es ist eine Frage.
+        for (final p in proposals) MergeProposalCard(proposal: p, fromSheet: true),
         for (final m in trail.mergedFrom)
           Row(
             key: ValueKey('trail-merged-${m.id}'),
@@ -97,23 +101,31 @@ Future<void> declareDuplicate(BuildContext context, WidgetRef ref, Trail trail) 
     builder: (sheetContext) => _CandidateList(trail: trail, candidates: candidates),
   );
   if (other == null || !context.mounted) return;
+  await mergePair(context, ref, trail, other, closeSheet: true);
+}
+
+/// Zwei Trails zusammenführen: erst „Welcher bleibt?" ([preset] oder
+/// [defaultKeep]), dann `merge_own_into`. [closeSheet]: Der Aufruf kommt
+/// aus dem Trail-Blatt, das danach zugeht — wie nach dem Löschen; stand es
+/// für das Duplikat, gibt es den Trail bei mir nicht mehr. Gibt zurück, ob
+/// zusammengeführt wurde.
+Future<bool> mergePair(BuildContext context, WidgetRef ref, Trail a, Trail b,
+    {Trail? preset, bool closeSheet = false}) async {
   final keep = await showDialog<Trail>(
     context: context,
-    builder: (_) => _KeepDialog(a: trail, b: other),
+    builder: (_) => _KeepDialog(a: a, b: b, preset: preset),
   );
-  if (keep == null || !context.mounted) return;
-  final duplicate = keep.id == trail.id ? other : trail;
+  if (keep == null || !context.mounted) return false;
+  final duplicate = keep.id == a.id ? b : a;
   final messenger = ScaffoldMessenger.of(context);
   final navigator = Navigator.of(context);
   try {
     final result = await ref.read(trailsProvider.notifier).mergeInto(duplicate.id, keep.id);
-    // Das Blatt zu, wie nach dem Löschen: Stand es für das Duplikat, gibt
-    // es den Trail bei mir nicht mehr — und der behaltene steht auf der
-    // Karte, mit allem, was umgezogen ist.
-    navigator.pop();
+    if (closeSheet) navigator.pop();
     messenger.showSnackBar(SnackBar(
         content: Text('Zusammengeführt — ${_quoted(keep.displayName)} bleibt'
             '${result.fresh ? '' : staleAfterWriteHint}')));
+    return true;
   } on MergeRejectedException catch (e) {
     // Kein Fehlerbericht: Der Server hat entschieden, nichts ist kaputt.
     messenger.showSnackBar(SnackBar(content: Text(friendlyError(e))));
@@ -121,6 +133,7 @@ Future<void> declareDuplicate(BuildContext context, WidgetRef ref, Trail trail) 
     logError('Duplikat zusammenführen', e, st);
     messenger.showSnackBar(SnackBar(content: Text(friendlyError(e))));
   }
+  return false;
 }
 
 /// „Trennen": die eigene Zuordnung lösen.
@@ -212,18 +225,19 @@ String _contributors(Trail t) {
   return n == 1 ? '1 Buddy' : '$n Buddys';
 }
 
-/// „Welcher bleibt?" — vorbelegt mit [defaultKeep].
+/// „Welcher bleibt?" — vorbelegt mit [preset], sonst [defaultKeep].
 class _KeepDialog extends StatefulWidget {
-  const _KeepDialog({required this.a, required this.b});
+  const _KeepDialog({required this.a, required this.b, this.preset});
   final Trail a;
   final Trail b;
+  final Trail? preset;
 
   @override
   State<_KeepDialog> createState() => _KeepDialogState();
 }
 
 class _KeepDialogState extends State<_KeepDialog> {
-  late Trail _keep = defaultKeep(widget.a, widget.b);
+  late Trail _keep = widget.preset ?? defaultKeep(widget.a, widget.b);
 
   @override
   Widget build(BuildContext context) {

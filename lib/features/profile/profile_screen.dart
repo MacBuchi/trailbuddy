@@ -29,6 +29,7 @@ import '../rides/ride_providers.dart' show rideRecordingAvailableProvider, rides
 import '../routing/ride_calibration.dart';
 import '../routing/ride_calibrator.dart';
 import '../routing/route_profile.dart';
+import '../trails/merge_proposal_card.dart' show mergeProposalsProvider;
 import '../trails/trail_providers.dart' show stillValidQuestionsProvider, trailCacheProvider, trailsProvider;
 import 'account_dialogs.dart';
 import 'profile_providers.dart';
@@ -48,6 +49,7 @@ class ProfileScreen extends ConsumerWidget {
     final push = ref.watch(pushEnabledProvider);
     final mode = ref.watch(appearanceProvider);
     final stillValid = ref.watch(stillValidQuestionsProvider).length;
+    final proposals = ref.watch(mergeProposalsProvider).length;
 
     return Scaffold(
       appBar: AppBar(
@@ -110,6 +112,15 @@ class ProfileScreen extends ConsumerWidget {
               title: 'Noch gültig?',
               value: stillValid == 1 ? '1 Angabe zu prüfen' : '$stillValid Angaben zu prüfen',
               onTap: () => context.push('/profile/still-valid'),
+            ),
+          // #107: „Sind das dieselben?" — nur, wenn es etwas zu prüfen gibt.
+          if (proposals > 0)
+            _ProfileRow(
+              id: 'merge-proposals',
+              icon: Icons.merge_type,
+              title: 'Sind das dieselben?',
+              value: proposals == 1 ? '1 Paar zu prüfen' : '$proposals Paare zu prüfen',
+              onTap: () => context.push('/profile/merge-proposals'),
             ),
           _ProfileRow(
             id: 'areas',

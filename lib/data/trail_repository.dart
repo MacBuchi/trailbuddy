@@ -85,6 +85,15 @@ abstract class TrailRepository {
   /// Löst meine Zuordnung von [duplicateId] (`unmerge_trail`). Umgezogene
   /// eigene Aufzeichnungen bleiben am behaltenen Trail.
   Future<void> unmerge(String duplicateId);
+
+  /// „[a] und [b] sind verschiedene Trails" — für mich (`mark_distinct`):
+  /// Der Vorschlag kommt nicht wieder, eine eigene Zuordnung zwischen
+  /// beiden fällt weg. Wirft [MergeRejectedException], wenn ich einen der
+  /// beiden nicht mehr sehe.
+  Future<void> markDistinct(String a, String b);
+
+  /// Das „verschieden" zurücknehmen (`unmark_distinct`).
+  Future<void> unmarkDistinct(String a, String b);
 }
 
 /// Die Spalten der Sicht `recordings_visible` — dieselbe Liste prüft
@@ -256,5 +265,22 @@ class SupabaseTrailRepository implements TrailRepository {
   Future<void> unmerge(String duplicateId) async {
     _client.requireUid;
     await _client.rpc<dynamic>('unmerge_trail', params: {'duplicate_id': duplicateId});
+  }
+
+  @override
+  Future<void> markDistinct(String a, String b) async {
+    _client.requireUid;
+    try {
+      await _client.rpc<dynamic>('mark_distinct', params: {'trail_a': a, 'trail_b': b});
+    } on PostgrestException catch (e) {
+      if (e.code == 'P0002') throw const MergeRejectedException(MergeRejection.gone);
+      rethrow;
+    }
+  }
+
+  @override
+  Future<void> unmarkDistinct(String a, String b) async {
+    _client.requireUid;
+    await _client.rpc<dynamic>('unmark_distinct', params: {'trail_a': a, 'trail_b': b});
   }
 }

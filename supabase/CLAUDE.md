@@ -64,4 +64,10 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     inzwischen gefegt (`sweep_orphan_trails`), fällt die Zuordnung per
     Cascade mit, und der Aufruf antwortet `P0002` wie für jede unbekannte
     Kennung; ein Korb-Auftrag muss das als „erledigt" lesen.
-  `matcher_check.sql` Block 25.
+  `matcher_check.sql` Block 25. **Der Name des behaltenen Trails gilt**
+  (Patch 020, `app_internal.named_for`): Ein Name zieht von B nur mit,
+  wenn A für den Aufrufer namenlos ist — kein eigener, kein sichtbarer
+  Buddy-Name (Regel wie `td_friend_select`); Grad, Charakter, Sterne,
+  Link bleiben wie in Patch 019. Ohne das hieß A nach dem Zusammenführen
+  bei mir wieder wie B, weil der eigene Name in der Anzeige vorgeht.
+  Block 26, Gegenprobe mit der Funktion aus 019: rot.

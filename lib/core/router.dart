@@ -19,6 +19,7 @@ import '../features/profile/profile_screen.dart';
 import '../features/offline_areas/areas_screen.dart';
 import '../features/rides/rides_screen.dart';
 import '../features/trails/still_valid_screen.dart';
+import '../features/trails/merge_proposal_card.dart';
 import '../features/trails/trail_import_screen.dart';
 import '../features/trails/trail_providers.dart' show mapFocusTrailProvider;
 import '../features/trails/trails_screen.dart';
@@ -119,6 +120,9 @@ final routerProvider = Provider<GoRouter>((ref) {
                   GoRoute(
                       path: 'still-valid',
                       builder: (context, state) => const StillValidScreen()),
+                  GoRoute(
+                      path: 'merge-proposals',
+                      builder: (context, state) => const MergeProposalsScreen()),
                   GoRoute(
                       path: 'areas',
                       builder: (context, state) => const AreasScreen()),

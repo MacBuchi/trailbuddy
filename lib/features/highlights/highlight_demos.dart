@@ -597,6 +597,25 @@ final kHighlightDemos = <String, HighlightDemo>{
   // und ein Anker im Blatt darf nicht in `requires` stehen (er entsteht
   // erst mit der Szene). Deshalb zeigt die Vorführung auf den Export, unter
   // dem er steht.
+  'merge-proposals': HighlightDemo(
+    route: '/profile',
+    script: _demo('merge-proposals', [
+      CoachStep(
+        title: 'Paare prüfen',
+        text: 'Die Zahl sagt, wie viele Trail-Paare vielleicht einer sind. Ein Tipp, dann je '
+            'Paar: derselbe, verschieden oder beide auf der Karte ansehen.',
+        lit: [ProfileCoach.row('merge-proposals')],
+        requires: [ProfileCoach.row('merge-proposals')],
+      ),
+      CoachStep(
+        title: 'Gerade kein Paar',
+        text: 'Hält ein Buddy einen deiner Trails für einen anderen oder liegen zwei fast '
+            'aufeinander, steht hier im Profil „Sind das dieselben?" mit der Zahl — und im '
+            'Blatt des Trails dieselbe Frage.',
+        unless: [ProfileCoach.row('merge-proposals')],
+      ),
+    ]),
+  ),
   'trail-merge': HighlightDemo(
     route: '/trails',
     script: _demo('trail-merge', const [

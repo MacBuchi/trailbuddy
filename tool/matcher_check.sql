@@ -1330,4 +1330,46 @@ begin
   perform tb_test.check(code = '42501', format('anon darf trail_merges nicht ausführen (%s)', code));
 end $$;
 
+\echo -- 26. Beim Zusammenführen gilt der Name des behaltenen Trails (Patch 020, #107)
+-- Dora und Emil aus Block 25 sind Buddys. Dora hat an A keinen eigenen
+-- Beitrag: Ihr Name von B darf A bei ihr nicht umbenennen, wenn A schon
+-- einen Namen trägt, den sie sieht — ihre Einschätzung zieht trotzdem mit.
+do $$
+declare
+  ud uuid := '44444444-4444-4444-8444-444444444444';
+  ue uuid := '55555555-5555-4555-8555-555555555555';
+  a uuid; b uuid;
+  m record;
+begin
+  -- (1) A heißt für Dora schon „Wald" (Emils Beitrag).
+  a := tb_test.contribute(ue, tb_test.line(800, y0 => 160000), 'import');
+  perform tb_test.exec_as(ue, format('update public.trail_details set name = %L where trail_id = %L and user_id = %L', 'Wald', a, ue));
+  b := tb_test.contribute(ud, tb_test.shift(tb_test.line(800, y0 => 160000), 0, 25), 'import');
+  perform tb_test.exec_as(ud, format('update public.trail_details set name = %L, grade = 2 where trail_id = %L and user_id = %L', 'Wald unten', b, ud));
+  perform tb_test.check(tb_test.merge_as(ud, b, a) = a, 'Patch 020: zusammengeführt');
+  select * into m from public.trail_details where trail_id = a and user_id = ud;
+  perform tb_test.check(m.name is null and m.grade = 2,
+                        'A trägt schon einen sichtbaren Namen: Doras Name fällt weg, ihr Grad zieht mit');
+
+  -- (2) A ist für Dora namenlos: Ihr Name von B füllt ihn.
+  a := tb_test.contribute(ue, tb_test.line(800, y0 => 170000), 'import');
+  b := tb_test.contribute(ud, tb_test.shift(tb_test.line(800, y0 => 170000), 0, 25), 'import');
+  perform tb_test.exec_as(ud, format('update public.trail_details set name = %L where trail_id = %L and user_id = %L', 'Stück', b, ud));
+  perform tb_test.merge_as(ud, b, a);
+  select * into m from public.trail_details where trail_id = a and user_id = ud;
+  perform tb_test.check(m.name = 'Stück', 'A ist namenlos: Doras Name von B füllt ihn');
+
+  -- (3) Emils Name an A ist privat — Dora sieht ihn nicht, also zählt er nicht.
+  a := tb_test.contribute(ue, tb_test.line(800, y0 => 180000), 'import');
+  perform tb_test.exec_as(ue, format('update public.trail_details set name = %L, visibility = %L where trail_id = %L and user_id = %L',
+                                     'Geheim', 'private', a, ue));
+  -- Dora sieht A nur über eine eigene Aufzeichnung (Emils ist privat).
+  perform tb_test.contribute(ud, tb_test.jitter(tb_test.line(800, y0 => 180000), 3.0, 0.61), 'import');
+  b := tb_test.contribute(ud, tb_test.shift(tb_test.line(800, y0 => 180000), 0, 25), 'import');
+  perform tb_test.exec_as(ud, format('update public.trail_details set name = %L where trail_id = %L and user_id = %L', 'Offen', b, ud));
+  perform tb_test.merge_as(ud, b, a);
+  select * into m from public.trail_details where trail_id = a and user_id = ud;
+  perform tb_test.check(m.name = 'Offen', 'ein privater Name an A zählt nicht: Doras Name füllt ihren leeren Beitrag');
+end $$;
+
 \echo -- Alle Prüfungen bestanden.
