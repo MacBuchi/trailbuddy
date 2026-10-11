@@ -51,6 +51,11 @@ Gegenprobe der Vorgabe.
 - **Ein zweiter `pumpApp` ist kein Kaltstart.** Derselbe `ProviderScope`
   behält seinen Container; vorher `await tester.pumpWidget(const
   SizedBox());` (`lib/data/CLAUDE.md`, Zwischenspeicher).
+- **Das Testgerät spricht Deutsch** (`pumpApp`, Parameter
+  `deviceLocales`; ab Werk meldet flutter_test `en_US`). Ein Test unter
+  Englisch übergibt `appLocaleProvider`; ein eigenes `MaterialApp` mit
+  umgezogenem Widget braucht die `AppLocalizations`-Delegates
+  (`lib/l10n/CLAUDE.md`).
 - **`FakeSettings` setzt die Einführung ab Werk auf „gesehen"**
   (`safetyNoteSeen`, `mapTourSeen`, `seenCoachTours`,
   `highlightsSeenVersion`), die App auf „neu". Tests für Hinweis, Touren

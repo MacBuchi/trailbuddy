@@ -1,0 +1,7 @@
+{
+  "@@locale": "de",
+  "previewRibbon": "Entwicklungsstand — nicht freigegeben",
+  "@previewRibbon": {
+    "description": "Streifen über der Web-Vorschau (preview.yml): Dieser Stand ist automatisch deployt und nicht freigegeben."
+  }
+}

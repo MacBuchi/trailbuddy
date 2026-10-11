@@ -4,7 +4,7 @@
 
 ## Ein Foto zum Hinweis
 
-*Version 0.113.0, 2026-10-11*
+*Versionen 0.113.0 und 0.113.1, 2026-10-11*
 
 - **Neu:** Beim Hinweis schreiben im Trail-Blatt hängst du ein Foto an —
   aus der Galerie oder direkt mit der Kamera. Der Baum quer über dem

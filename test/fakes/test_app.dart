@@ -269,8 +269,14 @@ Future<void> pumpApp(WidgetTester tester, FakeBackend backend,
     FakePushRepository? push,
     Stream<RemoteMessage>? pushMessages,
     bool useRealMap = false,
+    List<Locale> deviceLocales = const [Locale('de', 'DE')],
     List<Override> extraOverrides = const []}) async {
   addTearDown(backend.dispose);
+  // Das Testgerät spricht Deutsch (#209). Ab Werk meldet flutter_test
+  // `en_US` — folgt die App der Gerätesprache, fänden die Tests ihre
+  // deutschen Texte sonst nicht mehr (test/l10n_test.dart).
+  tester.platformDispatcher.localesTestValue = deviceLocales;
+  addTearDown(tester.platformDispatcher.clearLocalesTestValue);
   await tester.pumpWidget(ProviderScope(
     overrides: overridesFor(backend,
         appConfig: appConfig,
