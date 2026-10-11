@@ -5,8 +5,9 @@
   Struktur aus PilzBuddy; jeder Abschnitt beschreibt, was die App WIRKLICH
   tut. `test/privacy_policy_test.dart` prüft jeden Host, den der Code
   anspricht, gegen diese Seite: Ein neues Netzziel ohne Absatz hier macht
-  CI rot. Was hier NICHT steht, tut die App nicht — kommt es dazu
-  (Fotos, Nachrichten), kommt der Absatz im selben PR.
+  CI rot. Was hier NICHT steht, tut die App nicht — kommt etwas dazu,
+  kommt der Absatz im selben PR (Nachrichten mit #34, Fotos am Hinweis
+  mit #37).
 
   Entwurf zur juristischen Prüfung vor dem Play-Store-Eintrag (Konzept,
   Entscheidung 7).
@@ -116,6 +117,16 @@
           auch sehen; nicht, wenn dein Beitrag zu diesem Trail auf „Nur
           für mich" steht</td>
         <td>Vertrag</td></tr>
+    <tr><td>Ein Foto zu deinem Hinweis, wenn du eines anhängst: das Bild
+          (höchstens 1024 Pixel an der längsten Kante) und eine kleine
+          Vorschau. <strong>Ohne Aufnahmedaten</strong>: Ort, Zeit und
+          Kamera, die ein Telefon in das Bild schreibt, entfernt die App
+          vor dem Hochladen und prüft das Ergebnis. Was auf dem Bild zu
+          sehen ist, bleibt zu sehen — ein erkennbarer Ort ist erkennbar.</td>
+        <td>Zeigen, wie es am Trail gerade aussieht — sichtbar für genau
+          die, die deinen Hinweis sehen; nicht öffentlich, ohne Link von
+          außen</td>
+        <td>Vertrag</td></tr>
     <tr><td>Zusammengeführte Trails: dass für dich ein Trail ein Duplikat
           eines anderen ist, oder dass zwei Trails verschieden sind, und
           wann du das gesagt hast. Deine eigenen Aufzeichnungen, dein
@@ -174,7 +185,8 @@
 
   <h2>Wer die Daten verarbeitet</h2>
   <h3>Supabase (Auftragsverarbeiter)</h3>
-  <p>Datenbank und Anmeldung laufen bei Supabase Inc. auf Servern in der
+  <p>Datenbank, Anmeldung und die Fotos am Hinweis (in einem nicht
+    öffentlichen Speicher) laufen bei Supabase Inc. auf Servern in der
     Region EU-Central (AWS, Frankfurt am Main). Supabase verarbeitet die Daten
     ausschließlich im Auftrag; die Zugriffsregeln (wer welche Zeile sieht)
     werden in der Datenbank selbst durchgesetzt. Die App verbindet sich
@@ -360,6 +372,10 @@
       bleibt länger stehen, bis du oder ein Buddy, der ihn sieht, ihn
       entfernt oder du das Konto löschst. Welche Hinweise du schon gelesen
       hast, merkt sich nur dein Gerät.</li>
+    <li>Fotos zu Hinweisen: 90 Tage, auch am Hinweis, der länger stehen
+      bleibt. Früher gelöscht wird es mit seinem Hinweis — wenn du oder
+      ein Buddy ihn entfernt, du deinen Beitrag oder dein Konto löschst;
+      der Speicher wird alle zwei Stunden aufgeräumt.</li>
     <li>Nachrichten an Buddys: 30 Tage ab dem Senden, dann automatisch
       gelöscht. Sofort gelöscht werden sie für beide Seiten, wenn eine
       Anfrage abgelehnt oder zurückgezogen oder ein Buddy entfernt wird;

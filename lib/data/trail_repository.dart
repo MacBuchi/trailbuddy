@@ -1,6 +1,9 @@
+import 'dart:typed_data';
+
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../core/errors.dart';
+import '../core/photo_pipeline.dart';
 import '../features/trails/trail_geometry.dart';
 import '../models/trail.dart';
 import '../models/trail_merge.dart';
@@ -43,7 +46,20 @@ abstract class TrailRepository {
 
   /// Ein Hinweis zu einem Trail, den ich selbst belegt habe — sonst lehnt
   /// die RLS ab.
-  Future<void> addNote({required String trailId, required String body});
+  /// Gibt die Kennung des neuen Hinweises zurück — das Foto (#37) hängt
+  /// sich daran.
+  Future<String> addNote({required String trailId, required String body});
+
+  /// Ein Foto an den EIGENEN Hinweis [noteId] (#37, Patch 026): erst Bild
+  /// und Vorschau in den Bucket, dann die Zeile — ein Objekt ohne Zeile
+  /// liest niemand, eine Zeile ohne Objekt zeigte ein Loch. Der Schlüssel
+  /// ist `<user_id>/<photoId>`. Nimmt nur ein [PreparedPhoto]: Der Weg an
+  /// `preparePhoto` vorbei, der die Ortsangaben entfernt, existiert nicht.
+  Future<void> addNotePhoto({required String noteId, required String photoId, required PreparedPhoto photo});
+
+  /// Die Bytes eines Fotos am Hinweis ([NotePhoto.thumbPath] oder
+  /// [NotePhoto.fullPath]). Lesen darf, wer die Zeile sieht.
+  Future<Uint8List> notePhotoBytes(String path);
 
   Future<void> deleteNote(String id);
 
@@ -116,7 +132,14 @@ const kReportColumns =
 /// `tool/schema_check.sh` fragt genau diese Liste ab.
 const kNoteColumns =
     'id, trail_id, user_id, body, created_at, '
-    'author:profiles!trail_notes_user_id_fkey(username)';
+    'author:profiles!trail_notes_user_id_fkey(username), '
+    // Das Foto (#37, Patch 026) — mit Fremdschlüssel-Hinweis, weil
+    // trail_note_photos auf trail_notes UND profiles zeigt und PostgREST
+    // sonst eine Verbindungstabelle vermuten könnte (PilzBuddy, PGRST201).
+    'photo:trail_note_photos!trail_note_photos_note_id_fkey(key, expires_at)';
+
+/// Der private Bucket der Fotos am Hinweis (Patch 026).
+const kNotePhotoBucket = 'trail-note-photos';
 
 class SupabaseTrailRepository implements TrailRepository {
   SupabaseTrailRepository(this._client);
@@ -190,11 +213,32 @@ class SupabaseTrailRepository implements TrailRepository {
   }
 
   @override
-  Future<void> addNote({required String trailId, required String body}) async {
+  Future<String> addNote({required String trailId, required String body}) async {
     final uid = _client.requireUid;
-    await _client
+    final row = await _client
         .from('trail_notes')
-        .insert({'trail_id': trailId, 'user_id': uid, 'body': body});
+        .insert({'trail_id': trailId, 'user_id': uid, 'body': body})
+        .select('id')
+        .single();
+    return row['id'] as String;
+  }
+
+  @override
+  Future<void> addNotePhoto(
+      {required String noteId, required String photoId, required PreparedPhoto photo}) async {
+    final uid = _client.requireUid;
+    final key = '$uid/$photoId';
+    final bucket = _client.storage.from(kNotePhotoBucket);
+    const options = FileOptions(contentType: 'image/jpeg');
+    await bucket.uploadBinary('$key.jpg', photo.full, fileOptions: options);
+    await bucket.uploadBinary('${key}_s.jpg', photo.thumb, fileOptions: options);
+    await _client.from('trail_note_photos').insert({'note_id': noteId, 'user_id': uid, 'key': key});
+  }
+
+  @override
+  Future<Uint8List> notePhotoBytes(String path) {
+    _client.requireUid;
+    return _client.storage.from(kNotePhotoBucket).download(path);
   }
 
   @override

@@ -40,7 +40,8 @@ void main() {
   );
   final note = TrailNote(
       id: 'note-1', trailId: 'trail-1', userId: 'bob', body: 'Baum quer',
-      createdAt: at.toLocal(), username: 'bob');
+      createdAt: at.toLocal(), username: 'bob',
+      photo: NotePhoto(key: 'bob/photo-1', expiresAt: at.add(const Duration(days: 90)).toLocal()));
   final statusReport = TrailReport(
       id: 'rep-1', trailId: 'trail-1', userId: 'bob', kind: ReportKind.status,
       status: TrailStatus.closed, confirmed: true, reportedAt: at.toLocal(), username: 'bob');
@@ -104,6 +105,10 @@ void main() {
     expect(n.body, 'Baum quer');
     expect(n.username, 'bob');
     expect(n.createdAt, note.createdAt);
+    // Das Foto am Hinweis (#37): ohne Empfang bleibt die Vorschau stehen,
+    // solange das Gerät sie noch hat — die Zeile muss die Kopie überleben.
+    expect(n.photo?.key, 'bob/photo-1');
+    expect(n.photo?.expiresAt, note.photo!.expiresAt);
     // Die Zuordnungen von Duplikaten (#107): ohne sie stünde ein
     // zusammengeführter Trail ohne Empfang wieder doppelt da.
     final m1 = back.snapshot.merges[0];
@@ -116,6 +121,16 @@ void main() {
     expect(m2.kind, TrailMergeKind.distinct);
     expect(m2.reversed, isFalse);
     expect(m2.byUsers, isEmpty);
+  });
+
+  test('ein Hinweis aus einer Kopie von vor 0.113.0 (ohne Foto) liest sich ohne Foto', () {
+    final row = Map<String, dynamic>.of(noteToRow(note))..remove('photo');
+    expect(TrailNote.fromJson(row).photo, isNull);
+    // Und PostgREST darf die Beziehung auch als Liste liefern.
+    final listed = Map<String, dynamic>.of(noteToRow(note))
+      ..['photo'] = [note.photo!.toRow()];
+    expect(TrailNote.fromJson(listed).photo?.key, 'bob/photo-1');
+    expect(TrailNote.fromJson(Map<String, dynamic>.of(listed)..['photo'] = []).photo, isNull);
   });
 
   test('eine Kopie von vor 0.109.0 (ohne Zuordnungen) liest sich ohne Zuordnungen', () {

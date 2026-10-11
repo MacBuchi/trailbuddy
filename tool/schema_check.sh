@@ -255,8 +255,15 @@ check_get_protected "trail_reports-Embed (Meldungen)" \
 
 # trail_notes: Hinweise für Buddys (Patch 004), exakt die Query aus
 # TrailRepository.fetchNotes samt Embed über den Constraint-NAMEN.
-check_get_protected "trail_notes-Embed (Hinweise)" \
+# Seit 0.113.0 mit dem Foto (Patch 026, #37); die Fassung ohne bleibt,
+# solange 0.112.x und älter im Feld sind — beide müssen gehen.
+check_get_protected "trail_notes-Embed (Hinweise, bis 0.112)" \
   "/rest/v1/trail_notes?select=id,trail_id,user_id,body,created_at,author:profiles!trail_notes_user_id_fkey(username)&limit=1"
+check_get_protected "trail_notes-Embed (Hinweise mit Foto)" \
+  "/rest/v1/trail_notes?select=id,trail_id,user_id,body,created_at,author:profiles!trail_notes_user_id_fkey(username),photo:trail_note_photos!trail_note_photos_note_id_fkey(key,expires_at)&limit=1"
+# trail_note_photos: die Spalten, die addNotePhoto schreibt.
+check_get_protected "trail_note_photos (Fotos am Hinweis)" \
+  "/rest/v1/trail_note_photos?select=id,note_id,user_id,key,created_at,expires_at&limit=1"
 
 # trails: für NIEMANDEN lesbar (Konzept 4.6) — nicht einmal mit Konto.
 # Hier lässt sich nur anon prüfen; dass auch authenticated 42501 bekommt,

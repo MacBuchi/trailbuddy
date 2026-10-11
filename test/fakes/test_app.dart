@@ -15,6 +15,8 @@ import 'package:geolocator/geolocator.dart';
 import 'package:trailbuddy/app.dart';
 import 'package:trailbuddy/core/app_info.dart';
 import 'package:trailbuddy/core/connectivity.dart';
+import 'package:trailbuddy/core/photo_pipeline.dart';
+import 'package:trailbuddy/core/photo_providers.dart';
 import 'package:trailbuddy/core/push_messaging.dart';
 import 'package:trailbuddy/core/settings.dart';
 import 'package:trailbuddy/core/update_check.dart';
@@ -230,6 +232,12 @@ List<Override> overridesFor(FakeBackend backend,
       appConfigRepositoryProvider
           .overrideWithValue(appConfig ?? FakeAppConfigRepository()),
       appVersionProvider.overrideWith((ref) => Future.value(appVersion)),
+      // Foto am Hinweis (#37): kein Plattform-Kanal im Test (der Wähler
+      // bricht ab, bis ein Test ein Bild vorgibt), und die Pipeline läuft
+      // direkt — `compute` braucht ein echtes Isolate, das es unter
+      // FakeAsync nicht gibt. Es bleibt DIESELBE `preparePhoto`.
+      photoPickerProvider.overrideWithValue((_) async => null),
+      photoPreparerProvider.overrideWithValue((bytes) async => preparePhoto(bytes)),
       // Zuletzt, damit ein Test gezielt etwas aus der Liste oben ersetzen
       // kann — bei Riverpod gewinnt der spätere Eintrag.
       ...extra,

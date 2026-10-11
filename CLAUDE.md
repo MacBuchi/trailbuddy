@@ -178,7 +178,7 @@ Code liegt — nicht wieder hierher.
 | Datei | Themen |
 |---|---|
 | `supabase/CLAUDE.md` | Der Abgleich läuft in der Datenbank · `trails` hat keinen Client-Grant · Beitrag löschen · Duplikate zusammenführen · Fotos am Hinweis |
-| `lib/features/trails/CLAUDE.md` | Importregel · Höhen · Schwierigkeit · Charakter · Farbe = Schwierigkeit · Link zur Quelle · Hinweise für Buddys · Bewertung, Meldung, Zustand · Suche, Filter, Sortierung der Trail-Liste · Übernehmen beim ersten Befahren · GPX-Export von Fahrten und Trails · Anfahrt zum Trailkopf · Duplikate zusammenführen in der App · „Sind das dieselben?" |
+| `lib/features/trails/CLAUDE.md` | Importregel · Höhen · Schwierigkeit · Charakter · Farbe = Schwierigkeit · Link zur Quelle · Hinweise für Buddys · Ein Foto am Hinweis · Bewertung, Meldung, Zustand · Suche, Filter, Sortierung der Trail-Liste · Übernehmen beim ersten Befahren · GPX-Export von Fahrten und Trails · Anfahrt zum Trailkopf · Duplikate zusammenführen in der App · „Sind das dieselben?" |
 | `lib/features/map/CLAUDE.md` | Orte auf der Karte · Glatte Linien und Namen am Trail · Eigene Position · Karten-Engine und Fassade (#31) · Die Tastatur überlagert, sie schiebt nicht · Die Legende auf der Karte · Die Ebene „Wege" (#212) · Gesehenes bleibt liegen (#155) · Höhenlinien (#271) · Regionen des Kartenhosts (#220) |
 | `lib/features/offline_areas/CLAUDE.md` | Der Kachelspeicher, Bereiche als Verweise (#229) · Gespeicherte Bereiche, Werkzeugleiste, Zeichnen (#67, #82) · Höhenkacheln je Bereich (`tool/height_tiles.py`, `height-data.yml`) · Bereiche je Region · Übersicht je Region (#220) |
 | `lib/features/official/CLAUDE.md` | Offizielle Trails in der App |
