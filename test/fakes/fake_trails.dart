@@ -478,6 +478,15 @@ class FakeTrailRepository implements TrailRepository {
       !details.any((d) =>
           d.userId == person && d.trailId == trailId && d.visibility == TrailVisibility.private);
 
+  /// Spiegelt `app_internal.named_for` (Patch 020): Trägt [trailId] für
+  /// [uid] schon einen Namen — eigener Beitrag oder ein nicht privater
+  /// eines direkten Buddys?
+  bool _namedFor(String uid, String trailId) => details.any((d) =>
+      d.trailId == trailId &&
+      (d.name ?? '').trim().isNotEmpty &&
+      (d.userId == uid ||
+          (d.visibility == TrailVisibility.buddies && (areFriends?.call(uid, d.userId) ?? false))));
+
   /// Spiegelt `app_internal.owns_contribution`.
   bool _owns(String uid, String trailId) =>
       recordings.any((r) => r.userId == uid && r.trailId == trailId) ||
@@ -522,18 +531,32 @@ class FakeTrailRepository implements TrailRepository {
       final r = recordings[i];
       if (r.userId == me && r.trailId == dup) recordings[i] = r.movedTo(target, flip: flip);
     }
-    // 2. Beitrag: A gewinnt, leere Felder füllt B, privat gewinnt.
+    // 2. Beitrag: A gewinnt, leere Felder füllt B, privat gewinnt. Der
+    // Name von B nur, wenn A für mich noch keinen trägt (Patch 020).
     final db = details.where((d) => d.trailId == dup && d.userId == me).firstOrNull;
     if (db != null) {
       final da = details.where((d) => d.trailId == target && d.userId == me).firstOrNull;
+      final named = _namedFor(me, target);
       details.remove(db);
       if (da == null) {
-        details.add(db.withTrailId(target));
+        details.add(TrailDetails(
+          trailId: target,
+          userId: me,
+          name: named ? null : db.name,
+          description: db.description,
+          grade: db.grade,
+          traits: db.traits,
+          rating: db.rating,
+          link: db.link,
+          twoWay: db.twoWay,
+          visibility: db.visibility,
+          updatedAt: DateTime.now(),
+        ));
       } else {
         details[details.indexOf(da)] = TrailDetails(
           trailId: target,
           userId: me,
-          name: da.name ?? db.name,
+          name: (da.name ?? '').trim().isNotEmpty ? da.name : (named ? null : db.name),
           description: da.description ?? db.description,
           grade: da.grade ?? db.grade,
           traits: da.traits.isEmpty ? db.traits : da.traits,
@@ -570,6 +593,38 @@ class FakeTrailRepository implements TrailRepository {
     return target;
   }
 
+  /// Kanten aus dem Abgleich (`app_internal.trail_overlaps`), geordnet
+  /// a < b — im Fake von Hand gesetzt ([seedOverlap]).
+  final overlaps = <({String a, String b})>[];
+
+  void seedOverlap(String x, String y) =>
+      overlaps.add(x.compareTo(y) < 0 ? (a: x, b: y) : (a: y, b: x));
+
+  /// Spiegelt `mark_distinct` (Patch 019): nur für zwei Trails, die ich
+  /// beide sehe; eine eigene Zuordnung zwischen ihnen fällt weg; doppelt
+  /// ist dasselbe.
+  @override
+  Future<void> markDistinct(String a, String b) async {
+    final me = myId();
+    if (a == b) throw StateError('22023: zwei verschiedene Trails erwartet');
+    if (!_canSeeTrail(a) || !_canSeeTrail(b)) {
+      throw const MergeRejectedException(MergeRejection.gone);
+    }
+    final lo = a.compareTo(b) < 0 ? a : b, hi = lo == a ? b : a;
+    if (!distinct.any((d) => d.userId == me && d.a == lo && d.b == hi)) {
+      distinct.add((userId: me, a: lo, b: hi));
+    }
+    aliases.removeWhere((x) =>
+        x.userId == me && {x.trailId, x.sameAs}.containsAll({a, b}));
+  }
+
+  /// Spiegelt `unmark_distinct`.
+  @override
+  Future<void> unmarkDistinct(String a, String b) async {
+    final me = myId();
+    distinct.removeWhere((d) => d.userId == me && {d.a, d.b}.containsAll({a, b}));
+  }
+
   /// Spiegelt `unmerge_trail`.
   @override
   Future<void> unmerge(String duplicateId) async {
@@ -577,8 +632,8 @@ class FakeTrailRepository implements TrailRepository {
     aliases.removeWhere((a) => a.userId == me && a.trailId == duplicateId);
   }
 
-  /// Spiegelt `trail_merges()` (Patch 019) ohne die Overlap-Kanten (die
-  /// legt nur der Abgleich in der Datenbank an).
+  /// Spiegelt `trail_merges()` (Patch 019); die Overlap-Kanten legt im
+  /// Fake [seedOverlap] an, in der Datenbank der Abgleich.
   @override
   Future<List<TrailMerge>> fetchMerges() async {
     if (failFetch != null) throw failFetch!;
@@ -629,6 +684,13 @@ class FakeTrailRepository implements TrailRepository {
         TrailMerge(trailId: d.a, sameAs: d.b, kind: TrailMergeKind.distinct),
       for (final j in judged.values)
         if (j.kind == TrailMergeKind.proposed || !isDistinct(vetoes, j.trailId, j.sameAs)) j,
+      for (final o in overlaps)
+        if (seen(o.a) &&
+            seen(o.b) &&
+            (_owns(me, o.a) || _owns(me, o.b)) &&
+            !own.any((x) => {x.trailId, x.sameAs}.containsAll({o.a, o.b})) &&
+            !isDistinct(ownDistinct, o.a, o.b))
+          TrailMerge(trailId: o.a, sameAs: o.b, kind: TrailMergeKind.overlap),
     ];
     return rows;
   }

@@ -667,8 +667,29 @@ Gegenrichtungen löst das Gerät auf (eigene zuerst, bei einem Kreis
 bleibt der älteste Trail mit fremder Zuordnung stehen). Was zu B gehört,
 steht unter A, Aufzeichnungen mit ihrer Richtung relativ zu A; hat
 jemand an beiden einen Beitrag, gilt der an A. Kein Ausgangskorb — wie
-beim Löschen scheitert es ohne Netz sichtbar. Der Vorschlag „Sind das
-dieselben?" und „verschieden" kommen in Schritt 3.
+beim Löschen scheitert es ohne Netz sichtbar.
+
+**„Sind das dieselben?"** (seit 0.110.0, #107 Schritt 3; Betreiber
+2026-10-11: im Blatt UND als Profilzeile mit Zahl, keine Markierung auf
+der Karte, kein Push): Vorgeschlagen werden Erklärungen direkter Buddys
+zu einem Trail, an dem ich selbst etwas habe, und Overlap-Kanten — diese
+nur, wenn die beiden auch grob beieinander liegen (sonst wären Gabeln
+und Nachbarn mit 30 % Deckung Fehlalarme). Antworten: „Derselbe"
+(zusammenführen, vorbelegt mit dem Trail, den der Buddy behalten hat),
+„Verschieden" (`mark_distinct`, mit Rückgängig), „Beide ansehen" (beide
+Linien hervorgehoben auf der Karte). Deckt meine längere Linie die
+andere im Korridor des Abgleichs ganz, ist sie die Fassung mit Anfahrt:
+„Auf gemeinsamen Teil kürzen" öffnet das Zerlege-Blatt mit meiner
+Aufzeichnung, das gemeinsame Stück geht an den anderen Trail, danach
+bietet das Blatt an, die lange zu löschen — erst, wenn das Stück
+wirklich beim Server ist.
+
+**Der Name des behaltenen Trails gilt** (Patch 020): Hatte ich an A
+keinen Namen, zog Patch 019 meinen Namen von B mit, und weil der eigene
+Name in der Anzeige vorgeht, hieß A bei mir wieder wie B. Seither füllt
+B den Namen nur, wenn A für mich namenlos ist (kein eigener und kein
+sichtbarer Buddy-Name); Grad, Charakter, Sterne und Link ziehen wie
+vorher mit.
 
 Beim **Entfreunden** verschwinden die Trails, die nur über diesen
 Buddy sichtbar waren; eigene Beiträge bleiben, auch die zu Trails, die
@@ -960,9 +981,9 @@ ein Häkchen oder eine neue Reihenfolge.
   Ausgangskorb auf Android.
 - **Rework. ERLEDIGT bis auf den Abgleich:** Mehrere Aufzeichnungen je
   Trail und kurze Importe stutzen warten auf Daten mehrerer Nutzer;
-  Zusammenführen ist im Bau (6.1, #107; selbst erklären seit 0.109.0,
-  der Vorschlag an Buddys folgt) — eigene Duplikate aus GPX-Importen
-  brauchen keine fremden Daten.
+  Zusammenführen ist gebaut (6.1, #107; selbst erklären seit 0.109.0,
+  „Sind das dieselben?" seit 0.110.0) — eigene Duplikate aus
+  GPX-Importen brauchen keine fremden Daten.
 - **Einführung. ERLEDIGT:** Kurzanleitung, Touren, „Entdecken", Marke.
 - **Phase 3 — Offline und Austausch. ZUM TEIL:** Offline-Karten mit
   eigenem Host, Zwischenspeicher, Push, Gesehenes bleibt liegen (Android

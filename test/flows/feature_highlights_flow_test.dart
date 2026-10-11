@@ -93,7 +93,9 @@ void main() {
     await pumpApp(tester, signedIn());
     await openProfilePage(tester, 'discover');
     final seen = <String>{};
-    for (var i = 0; i < 60; i++) {
+    // Wischen, bis jeder Eintrag einmal gebaut war — eine feste Zahl
+    // Wischer reichte nicht mehr, sobald die Liste wuchs (#107).
+    for (var i = 0; i < 200 && seen.length < kFeatureHighlights.length; i++) {
       for (final h in kFeatureHighlights) {
         if (find.byKey(ValueKey('discover-${h.id}')).evaluate().isNotEmpty) seen.add(h.id);
       }

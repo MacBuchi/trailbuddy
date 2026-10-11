@@ -524,6 +524,17 @@ const kFeatureHighlights = <FeatureHighlight>[
   ),
   // ─── Tipps ───────────────────────────────────────────────────────
   FeatureHighlight(
+    id: 'merge-proposals',
+    since: '0.110.0',
+    kind: HighlightKind.tip,
+    tab: HighlightTab.trails,
+    icon: Icons.merge_type,
+    title: 'Sind das dieselben?',
+    text: 'Hält ein Buddy deinen Trail für einen anderen oder liegen zwei fast aufeinander, '
+        'fragt die App nach: derselbe, verschieden, oder beide auf der Karte ansehen.',
+    target: '/profile',
+  ),
+  FeatureHighlight(
     id: 'trail-merge',
     since: '0.109.0',
     kind: HighlightKind.tip,

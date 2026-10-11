@@ -186,7 +186,7 @@ class TrailsNotifier extends AsyncNotifier<List<Trail>>
   /// Wert darunter. Ohne frischen Server-Stand (Kopie, anderes Konto)
   /// lädt es ganz neu.
   Future<bool> _rereadAfterWrite(String what,
-      {bool details = false, bool notes = false, bool reports = false}) async {
+      {bool details = false, bool notes = false, bool reports = false, bool merges = false}) async {
     final myId = ref.read(currentUserIdProvider);
     final fetchedAt = _fetchedAt;
     if (myId == null || fetchedAt == null || _snapshotFor(myId) == null || !state.hasValue) {
@@ -198,6 +198,7 @@ class TrailsNotifier extends AsyncNotifier<List<Trail>>
         if (details) repo.fetchDetails(),
         if (notes) repo.fetchNotes(),
         if (reports) repo.fetchReports(),
+        if (merges) repo.fetchMerges(),
       ]);
       // Erst NACH dem Abruf auf den Stand legen: Ein Neuladen dazwischen
       // hat ihn vielleicht schon ersetzt.
@@ -209,7 +210,7 @@ class TrailsNotifier extends AsyncNotifier<List<Trail>>
         details: details ? fresh[i++] as List<TrailDetails> : base.details,
         notes: notes ? fresh[i++] as List<TrailNote> : base.notes,
         reports: reports ? fresh[i++] as List<TrailReport> : base.reports,
-        merges: base.merges,
+        merges: merges ? fresh[i++] as List<TrailMerge> : base.merges,
       );
       _server = _fromSnapshot(next, myId);
       unawaited(ref.read(trailCacheProvider).write(uid: myId, snapshot: _snapshot!, savedAt: fetchedAt));
@@ -534,6 +535,27 @@ class TrailsNotifier extends AsyncNotifier<List<Trail>>
     return reloadAfterWrite('Zusammenführung lösen');
   }
 
+  /// „[a] und [b] sind verschiedene Trails" (#107 Schritt 3): Der
+  /// Vorschlag kommt nicht wieder. Nachgelesen werden nur die Zuordnungen —
+  /// an Linien und Beiträgen ändert sich nichts. Kein Ausgangskorb.
+  Future<bool> markDistinct(String a, String b) async {
+    await ref.read(trailRepositoryProvider).markDistinct(a, b);
+    return _rereadAfterWrite('Verschieden merken', merges: true);
+  }
+
+  /// Das „verschieden" zurücknehmen.
+  Future<bool> unmarkDistinct(String a, String b) async {
+    await ref.read(trailRepositoryProvider).unmarkDistinct(a, b);
+    return _rereadAfterWrite('Verschieden zurücknehmen', merges: true);
+  }
+
+  /// Die Zeilen aus `trail_merges()` des angezeigten Stands (#107) — für
+  /// die Vorschläge; die Zuordnungen selbst stecken schon in den Trails.
+  List<TrailMerge> get mergeRows {
+    final myId = ref.read(currentUserIdProvider);
+    return (myId == null ? null : _snapshotFor(myId)?.merges) ?? const [];
+  }
+
   /// Höhen einer eigenen Aufzeichnung nachtragen (#16). Kein Neuladen
   /// hier: Der Import lädt einmal am Ende, nicht nach jeder Datei.
   Future<bool> attachElevation(ExistingRecording existing) {
@@ -572,6 +594,13 @@ final trailsCachedAtProvider =
 /// aber noch (#183). Dann sagen Karte und Liste nicht „Kein Empfang",
 /// sondern dass gleich der frische Stand kommt.
 final trailsAwaitNetworkProvider = StateProvider<bool>((ref) => false);
+
+/// Die Zeilen aus `trail_merges()` zum angezeigten Netz (#107) — neu,
+/// sobald sich das Netz ändert.
+final trailMergeRowsProvider = Provider<List<TrailMerge>>((ref) {
+  ref.watch(trailsProvider);
+  return ref.read(trailsProvider.notifier).mergeRows;
+});
 
 /// Die Wiedervorlage (#30). Den Namen übernimmt sie über den Notifier,
 /// der den Bestand kennt und keinen bewusst eingetragenen überschreibt.
