@@ -20,12 +20,14 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:ui' show Locale;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/errors.dart';
+import '../../l10n/l10n.dart';
 import 'ride_confirm.dart';
 import 'ride_store.dart';
 
@@ -124,7 +126,10 @@ Future<void> _init({DidReceiveNotificationResponseCallback? onResponse}) async {
 Future<void> showConfirmNotice(ConfirmTarget target, {required String payload}) async {
   try {
     await _init();
-    final notice = confirmNoticeOf(target);
+    // Kein BuildContext im Service-Isolate: die Sprache der App, fest
+    // Deutsch bis #209 sie freigibt (`appLocaleProvider`). Welche Sprache
+    // die Benachrichtigung dann spricht, entscheidet die Stufe der Fahrten.
+    final notice = confirmNoticeOf(lookupAppLocalizations(const Locale('de')), target);
     await _plugin.show(
       id: confirmNotificationId(target.trailId),
       title: notice.title,

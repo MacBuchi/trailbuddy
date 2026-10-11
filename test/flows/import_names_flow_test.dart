@@ -81,7 +81,7 @@ void main() {
 
     expect(trails.contributeCalls, 1, reason: 'keine zweite Aufzeichnung');
     expect(myName(), _decoded);
-    expect(find.text('0 beigesteuert, 1 Namen übernommen, 0 fehlgeschlagen.'),
+    expect(find.text('0 beigesteuert, 1 Name übernommen, 0 fehlgeschlagen.'),
         findsOneWidget);
   });
 }

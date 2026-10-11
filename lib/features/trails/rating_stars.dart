@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/app_colors.dart';
+import '../../l10n/l10n.dart';
 import '../../models/trail.dart';
 
 /// Die Sterne einer Bewertung: [value] volle von [kRatingMax]. [faded]
@@ -60,7 +61,7 @@ class RatingPicker extends StatelessWidget {
           IconButton(
             key: ValueKey('$keyPrefix-$i'),
             visualDensity: VisualDensity.compact,
-            tooltip: '$i von $kRatingMax Sternen',
+            tooltip: context.l10n.ratingStarTooltip(i, kRatingMax),
             onPressed: onChanged == null ? null : () => onChanged!(value == i ? null : i),
             icon: Icon(
               value != null && i <= value! ? Icons.star_rounded : Icons.star_outline_rounded,

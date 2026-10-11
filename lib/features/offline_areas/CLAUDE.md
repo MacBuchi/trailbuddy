@@ -375,7 +375,7 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
   - **Das Profil rechnet wie gemessen**: Proben alle 50 m, 10 m
     Hysterese (`ElevationProfile.terrain`, `hysteresisClimb`), kein
     steilstes Stück. Die Kachel trägt „≈", das Profil
-    `kTerrainLabel`. Liste, Sortierung und Planer lesen weiter nur
+    `heightsTerrainLabel` (ARB). Liste, Sortierung und Planer lesen weiter nur
     aufgezeichnete Höhen — dort hieße es Netz je Zeile.
   - **Markiert hinaus, nie zurück herein**: Der Export schreibt
     `<extensions><tb:elevationSource>terrain` (Namensraum

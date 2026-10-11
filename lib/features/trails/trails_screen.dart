@@ -8,6 +8,7 @@ import '../../core/app_colors.dart';
 import '../../core/app_theme.dart' show AppFonts;
 import '../../core/errors.dart';
 import '../../core/widgets/motion.dart';
+import '../../l10n/l10n.dart';
 import '../../models/trail.dart';
 import '../friends/buddy_alias.dart' show buddyNamesViewProvider;
 import '../coach/coach.dart';
@@ -76,6 +77,7 @@ class _TrailsScreenState extends ConsumerState<TrailsScreen> {
     // eine leere Suche ist kein leeres Konto.
     _showsExample = ref.watch(coachExamplesProvider) && (trailsAsync.valueOrNull?.isEmpty ?? false);
     if (_showsExample) _tourTrail = null;
+    final l = context.l10n;
     return TabTourStarter(
       script: kTrailsTourScript,
       child: Scaffold(
@@ -83,7 +85,7 @@ class _TrailsScreenState extends ConsumerState<TrailsScreen> {
         // Der Reiter-Kopf aus dem Entwurf (1j): groß, in Versalien, rechts
         // der Bestand in Mono.
         toolbarHeight: 64,
-        title: Text('TRAILS',
+        title: Text(l.trailsTitle,
             style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w800)),
         actions: [
           if (trailsAsync.valueOrNull case final all? when all.isNotEmpty)
@@ -100,7 +102,7 @@ class _TrailsScreenState extends ConsumerState<TrailsScreen> {
             id: TrailsCoach.import,
             child: IconButton(
               key: const ValueKey('trail-import-button'),
-              tooltip: 'GPX importieren',
+              tooltip: l.trailsImportTooltip,
               icon: const Icon(Icons.file_upload_outlined),
               onPressed: () => context.push('/profile/import'),
             ),
@@ -136,13 +138,10 @@ class _TrailsScreenState extends ConsumerState<TrailsScreen> {
             if (trails.isEmpty) {
               return ListView(
                 padding: const EdgeInsets.all(24),
-                children: const [
-                  Text(
-                    'Noch keine Trails. Importiere deine GPX-Dateien (Symbol '
-                    'oben rechts) oder verbinde dich mit Buddys.',
-                  ),
-                  SizedBox(height: 8),
-                  HelpLinkButton(),
+                children: [
+                  Text(l.trailsEmpty),
+                  const SizedBox(height: 8),
+                  const HelpLinkButton(),
                 ],
               );
             }
@@ -189,22 +188,20 @@ class _TrailsScreenState extends ConsumerState<TrailsScreen> {
                     padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
                     child: Text(
                       ref.watch(trailsAwaitNetworkProvider)
-                          ? 'Stand vom ${formatCachedAt(cachedAt)} — das Netz antwortet noch, '
-                              'der frische Stand kommt gleich.'
-                          : 'Kein Empfang — Stand vom ${formatCachedAt(cachedAt)}. '
-                              'Neue Beiträge deiner Buddys kommen mit dem nächsten Netz.',
+                          ? l.trailsCachedAwaitNetwork(formatCachedAt(cachedAt))
+                          : l.trailsCachedOffline(formatCachedAt(cachedAt)),
                       key: const ValueKey('cached-notice-list'),
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
                   ),
                 // Der Ausgangskorb (#30) zuerst: Was wartet, soll man
                 // sehen — sonst steuert man dieselbe Datei zweimal bei.
-                if (pending.isNotEmpty) _Header('Wartet auf Übertragung (${pending.length})'),
+                if (pending.isNotEmpty) _Header(l.trailsHeaderPending(pending.length)),
                 for (final t in pending) _TrailTile(t, fresh: false),
-                if (own.isNotEmpty) _Header('Meine Trails (${own.length})'),
+                if (own.isNotEmpty) _Header(l.trailsHeaderOwn(own.length)),
                 for (final t in own)
                   _TrailTile(t, fresh: t.hasFreshNote(seen: seen), coach: t == _tourTrail),
-                if (buddies.isNotEmpty) _Header('Von Buddys (${buddies.length})'),
+                if (buddies.isNotEmpty) _Header(l.trailsHeaderBuddies(buddies.length)),
                 for (final t in buddies)
                   _TrailTile(t, fresh: t.hasFreshNote(seen: seen), coach: t == _tourTrail),
               ],
@@ -234,6 +231,7 @@ class _Controls extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l = context.l10n;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
       child: Column(
@@ -255,12 +253,12 @@ class _Controls extends ConsumerWidget {
                     isDense: true,
                     border: const OutlineInputBorder(),
                     prefixIcon: const Icon(Icons.search),
-                    hintText: 'Trail oder Buddy',
+                    hintText: l.trailsSearchHint,
                     suffixIcon: search.text.isEmpty
                         ? null
                         : IconButton(
                             icon: const Icon(Icons.clear),
-                            tooltip: 'Suche leeren',
+                            tooltip: l.trailsSearchClear,
                             onPressed: () {
                               search.clear();
                               onSearch();
@@ -273,7 +271,7 @@ class _Controls extends ConsumerWidget {
                 id: TrailsCoach.sort,
                 child: PopupMenuButton<TrailSort>(
                 key: const ValueKey('trail-sort'),
-                tooltip: 'Sortieren: ${sort.label}',
+                tooltip: l.trailsSortTooltip(sort.label(l)),
                 icon: const Icon(Icons.sort),
                 initialValue: sort,
                 onSelected: (v) => ref.read(trailSortProvider.notifier).state = v,
@@ -283,7 +281,7 @@ class _Controls extends ConsumerWidget {
                       key: ValueKey('trail-sort-${v.name}'),
                       value: v,
                       checked: v == sort,
-                      child: Text(v.label),
+                      child: Text(v.label(l)),
                     ),
                 ],
               )),
@@ -307,13 +305,12 @@ class _Summary extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = context.l10n;
     final text = count == 0
-        ? 'Keine Trails für diese Suche.'
+        ? l.trailsSearchNone
         : isGuess
-            ? 'Kein Trail heißt so. Meintest du …?'
-            : count == 1
-                ? 'Ein Trail gefunden.'
-                : '$count Trails gefunden.';
+            ? l.trailsSearchGuess
+            : l.trailsSearchFound(count);
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
       child: Text.rich(
@@ -321,9 +318,7 @@ class _Summary extends StatelessWidget {
           TextSpan(text: text),
           if (hiddenUngraded > 0)
             TextSpan(
-              text: hiddenUngraded == 1
-                  ? ' Ein Trail ohne Einschätzung ist nicht dabei.'
-                  : ' $hiddenUngraded Trails ohne Einschätzung sind nicht dabei.',
+              text: ' ${l.trailsSearchHiddenUngraded(hiddenUngraded)}',
               style: TextStyle(color: AppPalette.of(context).muted),
             ),
         ]),
@@ -369,11 +364,12 @@ class _TrailTile extends ConsumerWidget {
     final palette = AppPalette.of(context);
     final theme = Theme.of(context);
     final names = ref.watch(buddyNamesViewProvider);
+    final l = context.l10n;
     final numbers = <String>[
       formatLength(trail.lengthM),
-      if (trail.elevation != null) '↓ ${trail.elevation!.lossM.round()} Hm',
+      if (trail.elevation != null) l.trailsRowDescent(trail.elevation!.lossM.round()),
     ];
-    final tags = trailRowTags(trail,
+    final tags = trailRowTags(l, trail,
         freshNote: fresh, nameOf: (id, username) => names.of(id, username));
     Color tagColor(TrailRowTagKind k) => switch (k) {
           TrailRowTagKind.pending => palette.muted,
@@ -434,8 +430,8 @@ class _TrailTile extends ConsumerWidget {
             if (trail.rating != null || trail.ratingOpen)
               Semantics(
                 label: trail.rating == null
-                    ? 'Noch nicht bewertet'
-                    : 'Bewertung ${trail.rating} von $kRatingMax Sternen',
+                    ? l.trailsRatingNone
+                    : l.trailsRatingSemantics(trail.rating!, kRatingMax),
                 excludeSemantics: true,
                 child: Padding(
                   padding: const EdgeInsets.only(top: 2),

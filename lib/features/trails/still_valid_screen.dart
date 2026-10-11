@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/errors.dart';
+import '../../l10n/l10n.dart';
 import '../../models/trail.dart';
 import 'still_valid.dart';
 import 'trail_condition.dart';
@@ -19,23 +20,22 @@ class StillValidScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final questions = ref.watch(stillValidQuestionsProvider);
     final theme = Theme.of(context);
+    final l = context.l10n;
     return Scaffold(
-      appBar: AppBar(title: const Text('Noch gültig?')),
+      appBar: AppBar(title: Text(l.stillValidTitle)),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
         children: [
           Text(
-            'Deine Meldungen und Zustände, die älter als ${kStillValidAfter.inDays} '
-            'Tage sind. Stimmt es noch? „Weiß nicht" lässt alles, wie es ist, '
-            'und fragt in ${kStillValidSnooze.inDays} Tagen wieder.',
+            l.stillValidIntro(kStillValidAfter.inDays, kStillValidSnooze.inDays),
             style: theme.textTheme.bodyMedium,
           ),
           const SizedBox(height: 8),
           if (questions.isEmpty)
-            const Padding(
-              key: ValueKey('still-valid-empty'),
-              padding: EdgeInsets.symmetric(vertical: 24),
-              child: Text('Nichts zu prüfen — deine Angaben sind aktuell.'),
+            Padding(
+              key: const ValueKey('still-valid-empty'),
+              padding: const EdgeInsets.symmetric(vertical: 24),
+              child: Text(l.stillValidEmpty),
             ),
           for (final q in questions) _QuestionCard(q),
         ],
@@ -63,6 +63,7 @@ class _QuestionCardState extends ConsumerState<_QuestionCard> {
   /// wie immer — wer den Trail gefahren hat. Ohne Netz in den Korb.
   Future<void> _send({TrailStatus? status, int? condition}) async {
     final messenger = ScaffoldMessenger.of(context);
+    final l = context.l10n;
     setState(() => _busy = true);
     try {
       final outcome = await ref
@@ -70,8 +71,8 @@ class _QuestionCardState extends ConsumerState<_QuestionCard> {
           .report(q.trail.id, status: status, condition: condition, onSite: false);
       messenger.showSnackBar(SnackBar(
           content: Text(outcome == WriteOutcome.queued
-              ? 'Gespeichert — geht beim nächsten Netz raus.'
-              : 'Danke, ist aktualisiert.')));
+              ? l.stillValidQueued
+              : l.stillValidUpdated)));
     } catch (e, st) {
       logError('Noch gültig? beantworten', e, st);
       messenger.showSnackBar(SnackBar(content: Text(friendlyError(e))));
@@ -91,7 +92,7 @@ class _QuestionCardState extends ConsumerState<_QuestionCard> {
     final picked = await showDialog<int>(
       context: context,
       builder: (context) => SimpleDialog(
-        title: const Text('Wie ist er jetzt?'),
+        title: Text(context.l10n.stillValidConditionTitle),
         children: [
           for (final c in kTrailConditions)
             SimpleDialogOption(
@@ -99,8 +100,8 @@ class _QuestionCardState extends ConsumerState<_QuestionCard> {
               onPressed: () => Navigator.of(context).pop(c.value),
               child: ListTile(
                 contentPadding: EdgeInsets.zero,
-                title: Text(c.label),
-                subtitle: Text(c.description),
+                title: Text(c.label(context.l10n)),
+                subtitle: Text(c.description(context.l10n)),
               ),
             ),
         ],
@@ -115,7 +116,8 @@ class _QuestionCardState extends ConsumerState<_QuestionCard> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final what = q.kind == ReportKind.status ? 'Meldung' : 'Zustand';
+    final l = context.l10n;
+    final value = reportValueLabel(l, q.report), age = reportAgeLabel(l, q.report.reportedAt);
     return Card(
       key: ValueKey('still-valid-$_key'),
       margin: const EdgeInsets.only(top: 8),
@@ -127,15 +129,16 @@ class _QuestionCardState extends ConsumerState<_QuestionCard> {
             ListTile(
               contentPadding: EdgeInsets.zero,
               title: Text(q.trail.displayName),
-              subtitle: Text('$what: ${reportValueLabel(q.report)} · '
-                  '${reportAgeLabel(q.report.reportedAt)}'),
+              subtitle: Text(q.kind == ReportKind.status
+                  ? l.stillValidStatusLine(value, age)
+                  : l.stillValidConditionLine(value, age)),
               trailing: IconButton(
-                tooltip: 'Auf der Karte zeigen',
+                tooltip: l.stillValidShowOnMap,
                 icon: const Icon(Icons.map_outlined),
                 onPressed: () => context.go('/trail/${q.trail.id}'),
               ),
             ),
-            Text('Stimmt das noch?', style: theme.textTheme.bodyMedium),
+            Text(l.stillValidQuestion, style: theme.textTheme.bodyMedium),
             const SizedBox(height: 4),
             Wrap(
               spacing: 8,
@@ -143,17 +146,17 @@ class _QuestionCardState extends ConsumerState<_QuestionCard> {
                 FilledButton.tonal(
                   key: ValueKey('still-valid-yes-$_key'),
                   onPressed: _busy ? null : _yes,
-                  child: const Text('Ja'),
+                  child: Text(l.stillValidYes),
                 ),
                 OutlinedButton(
                   key: ValueKey('still-valid-no-$_key'),
                   onPressed: _busy ? null : _no,
-                  child: Text(q.kind == ReportKind.status ? 'Nein, wieder offen' : 'Nein…'),
+                  child: Text(q.kind == ReportKind.status ? l.stillValidNoReopen : l.stillValidNo),
                 ),
                 TextButton(
                   key: ValueKey('still-valid-unknown-$_key'),
                   onPressed: _busy ? null : _dontKnow,
-                  child: const Text('Weiß nicht'),
+                  child: Text(l.stillValidDontKnow),
                 ),
               ],
             ),

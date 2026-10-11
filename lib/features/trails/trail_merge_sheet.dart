@@ -11,6 +11,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/errors.dart';
 import '../../core/geo.dart' show formatMeters;
 import '../../core/read_after_write.dart';
+import '../../l10n/l10n.dart';
 import '../../models/trail.dart';
 import '../friends/buddy_alias.dart';
 import 'merge_proposal_card.dart';
@@ -26,9 +27,6 @@ final mergeCandidatesProvider = Provider.family<List<MergeCandidate>, String>((r
   return mergeCandidates(trail, all);
 });
 
-/// Wie der Name eines Trails in einem Satz steht.
-String _quoted(String name) => '„$name"';
-
 /// Der Abschnitt im Trail-Blatt: die Duplikate, die bei mir unter diesem
 /// Trail stehen, und der Knopf „Duplikat …", wenn ein Trail nah genug
 /// daneben liegt. Ohne beides: nichts.
@@ -43,6 +41,7 @@ class TrailMergeSection extends ConsumerWidget {
     final proposals = ref.watch(mergeProposalsForProvider(trail.id));
     final names = ref.watch(buddyNamesViewProvider);
     final theme = Theme.of(context);
+    final l = context.l10n;
     String who(String userId) => names.of(
         userId, trail.details.where((d) => d.userId == userId).firstOrNull?.username);
     return Column(
@@ -59,8 +58,8 @@ class TrailMergeSection extends ConsumerWidget {
               const SizedBox(width: 6),
               Expanded(
                 child: Text(
-                  'Zusammengeführt: ${_quoted(m.name ?? 'Trail ohne Namen')} — '
-                  '${m.byMe ? 'von dir' : 'von ${m.byUsers.map(who).join(', ')}'}',
+                  l.mergeMergedFrom(m.name ?? l.mergeUnnamedTrail,
+                      m.byMe ? l.mergeByMe : l.mergeByUsers(m.byUsers.map(who).join(', '))),
                   style: theme.textTheme.bodySmall,
                 ),
               ),
@@ -68,7 +67,7 @@ class TrailMergeSection extends ConsumerWidget {
                 TextButton(
                   key: ValueKey('trail-unmerge-${m.id}'),
                   onPressed: () => unmergeTrail(context, ref, m),
-                  child: const Text('Trennen'),
+                  child: Text(l.mergeUnmerge),
                 ),
             ],
           ),
@@ -80,7 +79,7 @@ class TrailMergeSection extends ConsumerWidget {
               style: TextButton.styleFrom(padding: EdgeInsets.zero),
               onPressed: () => declareDuplicate(context, ref, trail),
               icon: const Icon(Icons.merge_type, size: 18),
-              label: const Text('Ist ein Duplikat …'),
+              label: Text(l.mergeDeclare),
             ),
           ),
       ],
@@ -119,11 +118,12 @@ Future<bool> mergePair(BuildContext context, WidgetRef ref, Trail a, Trail b,
   final duplicate = keep.id == a.id ? b : a;
   final messenger = ScaffoldMessenger.of(context);
   final navigator = Navigator.of(context);
+  final l = context.l10n;
   try {
     final result = await ref.read(trailsProvider.notifier).mergeInto(duplicate.id, keep.id);
     if (closeSheet) navigator.pop();
     messenger.showSnackBar(SnackBar(
-        content: Text('Zusammengeführt — ${_quoted(keep.displayName)} bleibt'
+        content: Text('${l.mergeDone(keep.displayName)}'
             '${result.fresh ? '' : staleAfterWriteHint}')));
     return true;
   } on MergeRejectedException catch (e) {
@@ -138,22 +138,21 @@ Future<bool> mergePair(BuildContext context, WidgetRef ref, Trail a, Trail b,
 
 /// „Trennen": die eigene Zuordnung lösen.
 Future<void> unmergeTrail(BuildContext context, WidgetRef ref, MergedTrail m) async {
+  final l = context.l10n;
   final ok = await showDialog<bool>(
     context: context,
     builder: (dialogContext) => AlertDialog(
-      title: const Text('Wieder trennen?'),
-      content: Text('${_quoted(m.name ?? 'Trail ohne Namen')} erscheint wieder als eigener '
-          'Trail, wo jemand anderes etwas daran hat. Deine eigenen Aufzeichnungen, '
-          'dein Beitrag und deine Hinweise bleiben hier.'),
+      title: Text(l.mergeUnmergeTitle),
+      content: Text(l.mergeUnmergeBody(m.name ?? l.mergeUnnamedTrail)),
       actions: [
         TextButton(
           onPressed: () => Navigator.of(dialogContext).pop(false),
-          child: const Text('Abbrechen'),
+          child: Text(l.commonCancel),
         ),
         FilledButton(
           key: const ValueKey('trail-unmerge-confirm'),
           onPressed: () => Navigator.of(dialogContext).pop(true),
-          child: const Text('Trennen'),
+          child: Text(l.mergeUnmerge),
         ),
       ],
     ),
@@ -163,7 +162,7 @@ Future<void> unmergeTrail(BuildContext context, WidgetRef ref, MergedTrail m) as
   try {
     final fresh = await ref.read(trailsProvider.notifier).unmerge(m.id);
     messenger.showSnackBar(
-        SnackBar(content: Text('Getrennt${fresh ? '' : staleAfterWriteHint}')));
+        SnackBar(content: Text('${l.mergeUnmerged}${fresh ? '' : staleAfterWriteHint}')));
   } catch (e, st) {
     logError('Zusammenführung lösen', e, st);
     messenger.showSnackBar(SnackBar(content: Text(friendlyError(e))));
@@ -179,6 +178,7 @@ class _CandidateList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l = context.l10n;
     return SafeArea(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -186,14 +186,12 @@ class _CandidateList extends StatelessWidget {
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 4),
-            child: Text('Derselbe Trail wie …', style: theme.textTheme.titleMedium),
+            child: Text(l.mergeCandidatesTitle, style: theme.textTheme.titleMedium),
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
             child: Text(
-              'Hier stehen Trails, die grob neben ${_quoted(trail.displayName)} liegen — '
-              'mindestens die Hälfte der kürzeren Linie höchstens '
-              '${kMergeNearM.round()} m daneben.',
+              l.mergeCandidatesIntro(trail.displayName, kMergeNearM.round()),
               style: theme.textTheme.bodySmall,
             ),
           ),
@@ -205,9 +203,8 @@ class _CandidateList extends StatelessWidget {
                   ListTile(
                     key: ValueKey('merge-candidate-${c.trail.id}'),
                     title: Text(c.trail.displayName),
-                    subtitle: Text('${formatMeters(c.trail.lengthM)} · '
-                        '${(c.share * 100).round()} % liegen nebeneinander · '
-                        '${_contributors(c.trail)}'),
+                    subtitle: Text(l.mergeCandidateSubtitle(formatMeters(c.trail.lengthM),
+                        (c.share * 100).round(), _contributors(l, c.trail))),
                     onTap: () => Navigator.of(context).pop(c.trail),
                   ),
               ],
@@ -219,10 +216,10 @@ class _CandidateList extends StatelessWidget {
   }
 }
 
-String _contributors(Trail t) {
+String _contributors(AppLocalizations l, Trail t) {
   final n = visibleContributors(t);
-  if (t.isOwn) return n == 1 ? 'nur deiner' : 'deiner und ${n - 1} weitere';
-  return n == 1 ? '1 Buddy' : '$n Buddys';
+  if (t.isOwn) return l.mergeContributorsOwn(n - 1);
+  return l.mergeContributorsBuddies(n);
 }
 
 /// „Welcher bleibt?" — vorbelegt mit [preset], sonst [defaultKeep].
@@ -243,8 +240,10 @@ class _KeepDialogState extends State<_KeepDialog> {
   Widget build(BuildContext context) {
     final duplicate = _keep.id == widget.a.id ? widget.b : widget.a;
     final buddiesSee = duplicate.recordings.any((r) => r.userId != duplicate.myId);
+    final l = context.l10n;
+    final body = l.mergeKeepBody(duplicate.displayName, _keep.displayName);
     return AlertDialog(
-      title: const Text('Welcher Trail bleibt?'),
+      title: Text(l.mergeKeepTitle),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -262,32 +261,25 @@ class _KeepDialogState extends State<_KeepDialog> {
                       value: t.id,
                       contentPadding: EdgeInsets.zero,
                       title: Text(t.displayName),
-                      subtitle: Text(_contributors(t)),
+                      subtitle: Text(_contributors(l, t)),
                     ),
                 ],
               ),
             ),
             const SizedBox(height: 8),
-            Text(
-              'Deine Aufzeichnungen, dein Beitrag, deine Hinweise und Meldungen ziehen von '
-              '${_quoted(duplicate.displayName)} nach ${_quoted(_keep.displayName)}; '
-              'Name und Einschätzung von ${_quoted(_keep.displayName)} gelten, leere Felder '
-              'füllt das Duplikat. '
-              '${buddiesSee ? 'Buddys, die beide sehen und am Duplikat nichts haben, sehen es '
-                  'ebenfalls darunter; wer selbst etwas daran hat, entscheidet selbst.' : ''}',
-            ),
+            Text(buddiesSee ? '$body ${l.mergeKeepBuddies}' : body),
           ],
         ),
       ),
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Abbrechen'),
+          child: Text(l.commonCancel),
         ),
         FilledButton(
           key: const ValueKey('merge-confirm'),
           onPressed: () => Navigator.of(context).pop(_keep),
-          child: const Text('Zusammenführen'),
+          child: Text(l.mergeConfirm),
         ),
       ],
     );

@@ -3,6 +3,8 @@ import 'dart:typed_data';
 
 import 'package:archive/archive.dart';
 
+import '../../l10n/l10n.dart';
+
 /// Eine ausgewählte Datei, wie sie aus der Dateiauswahl kommt — Name und
 /// rohe Bytes. Ob GPX oder Zip, entscheidet erst [gpxFilesFrom].
 class PickedFile {
@@ -32,8 +34,9 @@ class PickedGpx {
 /// (siehe `gpxPickerProvider`), also landet dort auch mal ein Foto.
 ///
 /// Zip wird am Magic `PK\x03\x04` erkannt, nicht an der Endung: Manche
-/// Dateimanager reichen den Namen ohne Endung durch.
-({List<PickedGpx> files, List<String> errors}) gpxFilesFrom(PickedFile file) {
+/// Dateimanager reichen den Namen ohne Endung durch. Die Fehlerzeilen
+/// stehen so auf dem Schirm, daher [l] (#209).
+({List<PickedGpx> files, List<String> errors}) gpxFilesFrom(AppLocalizations l, PickedFile file) {
   if (_isZip(file.bytes)) {
     final Archive archive;
     try {
@@ -41,12 +44,12 @@ class PickedGpx {
     } catch (_) {
       // Das Archiv selbst ist kaputt; der Grund aus dem Decoder hilft
       // niemandem, der Dateiname schon.
-      return (files: const [], errors: ['${file.name}: Zip-Archiv ist leer oder nicht lesbar.']);
+      return (files: const [], errors: [l.gpxZipUnreadable(file.name)]);
     }
     // Ein Zip-Kopf mit Müll dahinter wirft nicht, er ergibt ein leeres
     // Archiv — für den Nutzer dasselbe wie „nicht lesbar".
     if (archive.files.isEmpty) {
-      return (files: const [], errors: ['${file.name}: Zip-Archiv ist leer oder nicht lesbar.']);
+      return (files: const [], errors: [l.gpxZipUnreadable(file.name)]);
     }
     final files = <PickedGpx>[];
     for (final entry in archive.files) {
@@ -54,12 +57,12 @@ class PickedGpx {
       files.add(PickedGpx(name: _baseName(entry.name), text: _decode(entry.content as List<int>)));
     }
     if (files.isEmpty) {
-      return (files: const [], errors: ['${file.name}: keine GPX-Datei im Archiv.']);
+      return (files: const [], errors: [l.gpxZipNoGpx(file.name)]);
     }
     return (files: files, errors: const []);
   }
   if (!file.name.toLowerCase().endsWith('.gpx') && !_looksLikeXml(file.bytes)) {
-    return (files: const [], errors: ['${file.name}: weder GPX noch Zip.']);
+    return (files: const [], errors: [l.gpxNotGpxOrZip(file.name)]);
   }
   return (files: [PickedGpx(name: file.name, text: _decode(file.bytes))], errors: const []);
 }

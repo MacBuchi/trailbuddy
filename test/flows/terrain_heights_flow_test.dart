@@ -18,11 +18,11 @@ import 'package:trailbuddy/features/offline_areas/height_tiles.dart';
 import 'package:trailbuddy/features/routing/online_fill.dart';
 import 'package:trailbuddy/features/trails/gpx_files.dart';
 import 'package:trailbuddy/features/trails/gpx_writer.dart';
-import 'package:trailbuddy/features/trails/terrain_heights.dart';
 import 'package:trailbuddy/features/trails/trail_import_screen.dart';
 
 import '../fakes/fake_backend.dart';
 import '../fakes/fake_heights.dart';
+import '../fakes/l10n_de.dart';
 import '../fakes/fake_trails.dart';
 import '../fakes/test_app.dart';
 
@@ -62,7 +62,7 @@ void main() {
       await openSheet(tester, 'Hang', extra: [areaHeights]);
 
       expect(find.byKey(const ValueKey('elevation-profile')), findsOneWidget);
-      expect(find.textContaining(kTerrainLabel), findsOneWidget);
+      expect(find.textContaining(l10nDe.heightsTerrainLabel), findsOneWidget);
       expect(find.textContaining('≈↓'), findsOneWidget, reason: 'die Kachel sagt, dass es geschätzt ist');
       expect(find.textContaining('Hat deine GPX-Datei Höhen'), findsOneWidget, reason: 'eigener Trail: echte nachtragen');
       expect(find.textContaining('Keine Höhenangaben'), findsNothing);
@@ -73,7 +73,7 @@ void main() {
       trails.seedTrail(annaId, name: 'Gemessen', ele: [700, 640, 590]);
       await openSheet(tester, 'Gemessen', extra: [areaHeights]);
       expect(find.byKey(const ValueKey('elevation-profile')), findsOneWidget);
-      expect(find.textContaining(kTerrainLabel), findsNothing);
+      expect(find.textContaining(l10nDe.heightsTerrainLabel), findsNothing);
       expect(find.textContaining('≈'), findsNothing);
     });
 
@@ -88,14 +88,14 @@ void main() {
           ));
       trails.seedTrail(annaId, name: 'Hang');
       await openSheet(tester, 'Hang', extra: [online]);
-      expect(find.textContaining(kTerrainLabel), findsOneWidget);
+      expect(find.textContaining(l10nDe.heightsTerrainLabel), findsOneWidget);
       expect(opens, 1);
 
       await tester.pumpWidget(const SizedBox());
       opens = 0;
       await openSheet(tester, 'Hang',
           extra: [online], connectivity: Stream.value(const [ConnectivityResult.none]));
-      expect(find.textContaining(kTerrainLabel), findsNothing);
+      expect(find.textContaining(l10nDe.heightsTerrainLabel), findsNothing);
       expect(find.textContaining('Keine Höhenangaben'), findsOneWidget);
       expect(opens, 0, reason: 'ohne Empfang fragt das Blatt den Host nicht');
     });

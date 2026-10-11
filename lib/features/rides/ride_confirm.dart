@@ -21,6 +21,7 @@ import 'dart:convert';
 import 'package:latlong2/latlong.dart';
 
 import '../../core/line_geometry.dart';
+import '../../l10n/l10n.dart';
 import '../../models/trail.dart';
 import '../trails/trail_condition.dart';
 import 'ride_track.dart';
@@ -192,11 +193,11 @@ enum ConfirmChoice {
 /// 2026-09-30): Sie ist lokal, nichts davon geht über einen Server.
 typedef ConfirmNotice = ({String title, String body, List<(ConfirmChoice, String)> actions});
 
-ConfirmNotice confirmNoticeOf(ConfirmTarget t) {
+ConfirmNotice confirmNoticeOf(AppLocalizations l, ConfirmTarget t) {
   final parts = <String>[
     if (t.status != null)
       t.status == TrailStatus.open ? 'wieder frei gemeldet' : 'gemeldet: ${t.status!.label.toLowerCase()}',
-    if (t.condition != null) 'Zustand: ${trailConditionLabel(t.condition!)}',
+    if (t.condition != null) 'Zustand: ${trailConditionLabel(l, t.condition!)}',
   ];
   final warns = t.status != null && t.status!.warns;
   return (

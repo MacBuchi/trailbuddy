@@ -11,6 +11,7 @@ import '../../core/geo.dart' show formatMeters;
 import '../../core/gpx_share.dart';
 import '../../core/read_after_write.dart';
 import '../../core/router_branches.dart';
+import '../../l10n/l10n.dart';
 import '../../models/trail.dart';
 import '../coach/coach.dart';
 import '../help/map_tour.dart' show SheetCoach;
@@ -72,9 +73,10 @@ const kTrailSheetInitialSize = 0.75;
 const kTrailSheetMinSize = 0.3;
 
 /// „gemeldet vor 3 Tagen" — das Alter einer Meldung im Blatt.
-String statusAge(DateTime at, {DateTime? now}) {
-  final age = reportAgeLabel(at, now: now);
-  return age == 'heute' || age == 'gestern' ? '$age gemeldet' : 'gemeldet $age';
+String statusAge(AppLocalizations l, DateTime at, {DateTime? now}) {
+  final age = reportAgeLabel(l, at, now: now);
+  final days = (now ?? DateTime.now()).difference(at).inDays;
+  return days <= 1 ? l.sheetReportedRecently(age) : l.sheetReportedAgo(age);
 }
 
 /// „3,4 km" bzw. „850 m" — [formatMeters], die EINE Schreibweise der App
@@ -83,15 +85,15 @@ String formatLength(double m) => formatMeters(m);
 
 /// „↓ 420 Hm · ↑ 35 Hm" — bergab zuerst, weil ein Trail bergab gefahren
 /// wird. Dieselbe Zeile im Import-Blatt und im Trail-Blatt.
-String formatElevation(({double gain, double loss}) el) =>
-    '↓ ${el.loss.round()} Hm · ↑ ${el.gain.round()} Hm';
+String formatElevation(AppLocalizations l, ({double gain, double loss}) el) =>
+    l.elevationDownUp(el.loss.round(), el.gain.round());
 
 /// „Ø 14 % Gefälle" bzw. „Ø 3 % Steigung"; unter einem halben Prozent
 /// „Ø eben" statt einer Null mit Vorzeichen.
-String formatMeanGrade(double descentPct) {
+String formatMeanGrade(AppLocalizations l, double descentPct) {
   final v = descentPct.abs().round();
-  if (v == 0) return 'Ø eben';
-  return descentPct > 0 ? 'Ø $v % Gefälle' : 'Ø $v % Steigung';
+  if (v == 0) return l.elevationMeanFlat;
+  return descentPct > 0 ? l.elevationMeanDescent(v) : l.elevationMeanAscent(v);
 }
 
 class _TrailSheet extends ConsumerStatefulWidget {
@@ -129,11 +131,12 @@ class _TrailSheetState extends ConsumerState<_TrailSheet> {
   @override
   Widget build(BuildContext context) {
     final trail = ref.watch(trailByIdProvider(widget.trailId));
+    final l = context.l10n;
     if (trail == null) {
       return ListView(
         controller: widget.controller,
         padding: const EdgeInsets.all(24),
-        children: const [Text('Dieser Trail ist nicht mehr sichtbar.')],
+        children: [Text(l.sheetGone)],
       );
     }
     _markSeen(trail);
@@ -148,7 +151,7 @@ class _TrailSheetState extends ConsumerState<_TrailSheet> {
     final elevation = trail.elevation ?? terrain?.valueOrNull;
     final contributors = trail.contributionsOrdered
         .where((d) => d.userId != trail.myId)
-        .map((d) => d.username ?? 'Buddy')
+        .map((d) => d.username ?? l.sheetBuddy)
         .toList();
 
     // Scrollbar, seit das Höhenprofil drinsteht: Auf einem kleinen oder
@@ -187,35 +190,34 @@ class _TrailSheetState extends ConsumerState<_TrailSheet> {
                   id: SheetCoach.navigate,
                   child: IconButton(
                     key: const ValueKey('trail-navigate'),
-                    tooltip: 'Anfahrt',
+                    tooltip: l.sheetNavigate,
                     onPressed: () => navigateToTrailHead(context, trail),
                     icon: const Icon(Icons.directions_outlined),
                   ),
                 ),
                 IconButton(
                   key: const ValueKey('trail-sheet-close'),
-                  tooltip: 'Schließen',
+                  tooltip: l.commonClose,
                   onPressed: () => Navigator.of(context).pop(),
                   icon: const Icon(Icons.close),
                 ),
               ],
             ),
             if (trail.otherNames.isNotEmpty)
-              Text('auch: ${trail.otherNames.join(', ')}',
+              Text(l.sheetAlsoNamed(trail.otherNames.join(', ')),
                   style: theme.textTheme.bodyMedium?.copyWith(color: palette.muted)),
             Text(
               trail.isOwn
                   ? (buddies == 0
-                      ? 'Nur du hast diesen Trail belegt.'
-                      : 'Du und $buddies ${buddies == 1 ? 'Buddy' : 'Buddys'} '
-                          '(${contributors.join(', ')}).')
-                  : 'Belegt von ${contributors.isEmpty ? '$buddies Buddys' : contributors.join(', ')} '
-                      '— du bist ihn noch nicht gefahren.',
+                      ? l.sheetOnlyYou
+                      : l.sheetYouAndBuddies(buddies, contributors.join(', ')))
+                  : l.sheetRecordedBy(
+                      contributors.isEmpty ? l.sheetBuddyCount(buddies) : contributors.join(', ')),
               style: theme.textTheme.bodyMedium?.copyWith(color: palette.muted),
             ),
             // Nur geplant (#100, Konzept 4.6): Eine Datei ohne Fahrzeiten
             // ist eine Behauptung, keine Fahrt — Buddys sollen das sehen.
-            if (plannedNotice(trail) case final planned?)
+            if (plannedNotice(l, trail) case final planned?)
               Text(planned,
                   key: const ValueKey('trail-planned'),
                   style: theme.textTheme.bodyMedium?.copyWith(color: palette.muted)),
@@ -229,8 +231,8 @@ class _TrailSheetState extends ConsumerState<_TrailSheet> {
                 padding: const EdgeInsets.only(top: 4),
                 child: Text(
                     trail.sendingDetails
-                        ? 'Dein Beitrag wird übertragen …'
-                        : 'Dein Beitrag wartet auf Übertragung.',
+                        ? l.sheetDetailsSending
+                        : l.sheetDetailsQueued,
                     key: const ValueKey('pending-details'),
                     style: theme.textTheme.bodySmall
                         ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
@@ -255,7 +257,7 @@ class _TrailSheetState extends ConsumerState<_TrailSheet> {
                       key: const ValueKey('status-chip'),
                       avatar: const Icon(Icons.warning_amber, size: 18),
                       backgroundColor: palette.map.warning.withValues(alpha: 0.25),
-                      label: Text('${c.status!.label} · ${statusAge(c.reportedAt)}'),
+                      label: Text('${c.status!.label} · ${statusAge(context.l10n, c.reportedAt)}'),
                     ),
                   if (shownStatus.unconfirmed case final u?)
                     Opacity(
@@ -263,14 +265,14 @@ class _TrailSheetState extends ConsumerState<_TrailSheet> {
                       child: Chip(
                         key: const ValueKey('status-chip-unconfirmed'),
                         avatar: Icon(u.status!.warns ? Icons.warning_amber : Icons.help_outline, size: 18),
-                        label: Text('${u.status!.label}? · zu bestätigen'),
+                        label: Text(l.sheetStatusUnconfirmed(u.status!.label)),
                       ),
                     ),
                   // Die höchstens zwei häufigsten, mit der Zahl der Beiträge,
                   // die sie nennen.
                   for (final t in trail.topTraits)
                     Tooltip(
-                      message: t.description,
+                      message: t.description(l),
                       child: Chip(
                         key: ValueKey('trait-chip-${t.db}'),
                         avatar: Icon(t.icon, size: 18),
@@ -290,33 +292,32 @@ class _TrailSheetState extends ConsumerState<_TrailSheet> {
             const SizedBox(height: 8),
             if (elevation != null)
               _Panel(
-                label: 'HÖHENPROFIL',
+                label: l.sheetPanelProfile,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     ElevationProfileChart(elevation),
                     const SizedBox(height: 4),
-                    Text(_profileCaption(elevation),
+                    Text(_profileCaption(l, elevation),
                         key: const ValueKey('profile-caption'),
                         style: theme.textTheme.bodySmall?.copyWith(color: palette.muted)),
                     // Geländehöhen sind eine Anzeige, kein Beitrag: Wer die
                     // Datei mit Höhen hat, trägt die echten nach.
                     if (elevation.fromTerrain && trail.isOwn)
-                      Text('Hat deine GPX-Datei Höhen, importiere sie noch einmal — sie werden nachgetragen.',
+                      Text(l.sheetTerrainReimport,
                           style: theme.textTheme.bodySmall?.copyWith(color: palette.muted)),
                   ],
                 ),
               )
             else if (terrain?.isLoading ?? false)
-              Text('Höhen werden aus dem Geländemodell gelesen …',
+              Text(l.sheetTerrainLoading,
                   key: const ValueKey('terrain-loading'),
                   style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant))
             else
               Text(
                   trail.isOwn
-                      ? 'Keine Höhenangaben. Hat deine GPX-Datei welche, '
-                          'importiere sie noch einmal — sie werden nachgetragen.'
-                      : 'Keine Höhenangaben.',
+                      ? l.sheetNoElevationOwn
+                      : l.sheetNoElevation,
                   style: theme.textTheme.bodySmall
                       ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
             if (mine?.description != null && mine!.description!.trim().isNotEmpty)
@@ -361,7 +362,7 @@ class _TrailSheetState extends ConsumerState<_TrailSheet> {
                               terrainHeights: track.terrainHeights));
                     },
                     icon: const Icon(Icons.share_outlined, size: 18),
-                    label: const Text('Als GPX exportieren'),
+                    label: Text(l.sheetExportGpx),
                   ),
                 ),
               ),
@@ -402,7 +403,7 @@ class _TrailSheetState extends ConsumerState<_TrailSheet> {
                       key: const ValueKey('trail-takeover'),
                       onPressed: () => showTrailDetailsDialog(context, ref, trail, takeOver: true),
                       icon: const Icon(Icons.bookmark_add_outlined),
-                      label: const Text('Übernehmen'),
+                      label: Text(l.sheetTakeOver),
                     ),
                   CoachAnchor(
                     id: SheetCoach.contribution,
@@ -410,7 +411,7 @@ class _TrailSheetState extends ConsumerState<_TrailSheet> {
                       key: const ValueKey('trail-contribution'),
                       onPressed: () => showTrailDetailsDialog(context, ref, trail),
                       icon: const Icon(Icons.edit),
-                      label: const Text('Mein Beitrag'),
+                      label: Text(l.sheetContribution),
                     ),
                   ),
                   // Nicht, solange ein Beitrag im Ausgangskorb wartet: Der
@@ -420,7 +421,7 @@ class _TrailSheetState extends ConsumerState<_TrailSheet> {
                       key: const ValueKey('trail-withdraw'),
                       onPressed: () => withdrawContribution(context, ref, trail),
                       icon: const Icon(Icons.delete_outline),
-                      label: const Text('Löschen'),
+                      label: Text(l.commonDelete),
                     ),
                 ],
               ),
@@ -440,7 +441,7 @@ class _TrailSheetState extends ConsumerState<_TrailSheet> {
                       style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(48)),
                       onPressed: () => addTrailNote(context, ref, trail),
                       icon: const Icon(Icons.add_comment_outlined),
-                      label: const Text('Hinweis schreiben'),
+                      label: Text(l.noteAdd),
                     )),
                   ),
                   const SizedBox(width: 8),
@@ -452,7 +453,7 @@ class _TrailSheetState extends ConsumerState<_TrailSheet> {
                       style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
                       onPressed: () => reportTrail(context, ref, trail),
                       icon: const Icon(Icons.flag_outlined),
-                      label: const Text('Melden'),
+                      label: Text(l.sheetReport),
                     )),
                   ),
                 ],
@@ -480,7 +481,7 @@ class _TrailSheetState extends ConsumerState<_TrailSheet> {
                       request.state = (trailId: trail.id, mode: RouteMode.direct);
                     },
                     icon: const Icon(Icons.route_outlined),
-                    label: const Text('Zum Trailkopf'),
+                    label: Text(l.sheetTrailHead),
                   )),
                 ),
                 if (widget.showOnMapButton) ...[
@@ -499,7 +500,7 @@ class _TrailSheetState extends ConsumerState<_TrailSheet> {
                         ref.read(mapFocusTrailProvider.notifier).state = trail.id;
                       },
                       icon: const Icon(Icons.map),
-                      label: const Text('Karte'),
+                      label: Text(l.sheetShowOnMap),
                     )),
                   ),
                 ],
@@ -515,49 +516,45 @@ class _TrailSheetState extends ConsumerState<_TrailSheet> {
 /// Wer den Trail nur GEPLANT hat (Datei ohne Fahrzeiten), in einem Satz;
 /// null, wenn jeder Beitragende ihn gefahren ist. Sind alle sichtbaren
 /// Belege geplant, sagt es der Satz für den ganzen Trail.
-String? plannedNotice(Trail trail) {
+String? plannedNotice(AppLocalizations l, Trail trail) {
   if (trail.pending) return null;
-  if (trail.allPlanned) {
-    return 'Nur geplant: Jeder Beleg hier kommt aus einer Datei ohne '
-        'Fahrzeiten — gefahren hat ihn niemand nachweislich.';
-  }
+  if (trail.allPlanned) return l.sheetPlannedAll;
   final who = [
     for (final d in trail.contributionsOrdered)
       if (trail.onlyPlanned(d.userId))
-        d.userId == trail.myId ? 'du' : (d.username ?? 'Buddy'),
+        d.userId == trail.myId ? l.sheetPlannedYou : (d.username ?? l.sheetBuddy),
   ];
   if (who.isEmpty) return null;
-  return 'Nur geplant, nicht gefahren: ${who.join(', ')}.';
+  return l.sheetPlannedBy(who.join(', '));
 }
 
 /// Was nach dem Löschen bleibt, in einem Satz. „Bleibt" nur, wenn ich
 /// eine fremde Aufzeichnung SEHE; was ein Fremder privat belegt, kenne ich
 /// nicht — für mich verschwindet der Trail dann trotzdem.
-String withdrawConsequence(Trail trail) =>
+String withdrawConsequence(AppLocalizations l, Trail trail) =>
     trail.recordings.any((r) => r.userId != trail.myId)
-        ? 'Der Trail bleibt für deine Buddys, die ihn auch belegt haben.'
-        : 'Der Trail verschwindet von deiner Karte.';
+        ? l.sheetWithdrawStays
+        : l.sheetWithdrawVanishes;
 
 /// „Löschen" im Blatt: eigene Aufzeichnungen, Einschätzung, Charakter,
 /// Bewertung, Meldungen und Hinweise zu diesem Trail (Konzept 4, „Löschen
 /// und DSGVO").
 Future<void> withdrawContribution(BuildContext context, WidgetRef ref, Trail trail) async {
+  final l = context.l10n;
   final ok = await showDialog<bool>(
     context: context,
     builder: (dialogContext) => AlertDialog(
-      title: const Text('Meinen Beitrag löschen?'),
-      content: Text('Deine Aufzeichnungen, deine Einschätzung, deine '
-          'Meldungen und deine Hinweise zu diesem Trail werden gelöscht. '
-          '${withdrawConsequence(trail)}'),
+      title: Text(l.sheetWithdrawTitle),
+      content: Text(l.sheetWithdrawBody(withdrawConsequence(l, trail))),
       actions: [
         TextButton(
           onPressed: () => Navigator.of(dialogContext).pop(false),
-          child: const Text('Abbrechen'),
+          child: Text(l.commonCancel),
         ),
         FilledButton(
           key: const ValueKey('trail-withdraw-confirm'),
           onPressed: () => Navigator.of(dialogContext).pop(true),
-          child: const Text('Löschen'),
+          child: Text(l.commonDelete),
         ),
       ],
     ),
@@ -569,7 +566,7 @@ Future<void> withdrawContribution(BuildContext context, WidgetRef ref, Trail tra
     final fresh = await ref.read(trailsProvider.notifier).withdraw(trail.id);
     navigator.pop();
     messenger.showSnackBar(SnackBar(
-        content: Text('Beitrag gelöscht${fresh ? '' : staleAfterWriteHint}')));
+        content: Text('${l.sheetWithdrawn}${fresh ? '' : staleAfterWriteHint}')));
   } catch (e, st) {
     logError('Beitrag zurückziehen', e, st);
     messenger.showSnackBar(SnackBar(content: Text(friendlyError(e))));
@@ -585,6 +582,7 @@ class _PendingNotice extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final l = context.l10n;
     final failure = trail.pendingFailure;
     return Padding(
       padding: const EdgeInsets.only(top: 4),
@@ -593,8 +591,8 @@ class _PendingNotice extends ConsumerWidget {
         children: [
           Text(
             failure == null
-                ? 'Wartet auf Übertragung — geht raus, sobald wieder Netz da ist.'
-                : 'Konnte nicht beigesteuert werden: $failure',
+                ? l.sheetPendingWaiting
+                : l.sheetPendingFailed(failure),
             key: const ValueKey('pending-notice'),
             style: theme.textTheme.bodyMedium?.copyWith(
                 color: failure == null
@@ -611,14 +609,14 @@ class _PendingNotice extends ConsumerWidget {
                     ref.read(outboxJobsProvider.notifier).retry(trail.id);
                     Navigator.of(context).pop();
                   },
-                  child: const Text('Erneut versuchen'),
+                  child: Text(l.sheetPendingRetry),
                 ),
               TextButton(
                 onPressed: () {
                   ref.read(outboxJobsProvider.notifier).discard(trail.id);
                   Navigator.of(context).pop();
                 },
-                child: const Text('Aus dem Ausgangskorb entfernen'),
+                child: Text(l.sheetPendingDiscard),
               ),
             ],
           ),
@@ -628,15 +626,15 @@ class _PendingNotice extends ConsumerWidget {
   }
 }
 
-String _profileCaption(ElevationProfile p) {
+String _profileCaption(AppLocalizations l, ElevationProfile p) {
   final steepest = p.steepestDescentPct;
   final parts = <String>[
-    if (p.fromTerrain) kTerrainLabel,
-    'In Trail-Richtung',
-    formatMeanGrade(p.meanDescentPct),
+    if (p.fromTerrain) l.heightsTerrainLabel,
+    l.sheetProfileDirection,
+    formatMeanGrade(l, p.meanDescentPct),
   ];
   if (steepest != null && steepest > 0) {
-    parts.add('steilstes Stück ${steepest.round()} % auf ${kSteepestWindowM.round()} m');
+    parts.add(l.sheetProfileSteepest(steepest.round(), kSteepestWindowM.round()));
   }
   return parts.join(' · ');
 }
@@ -644,7 +642,7 @@ String _profileCaption(ElevationProfile p) {
 /// „S2 · S1–S3 · 4 Einschätzungen" — Median, Spanne (nur wenn es eine
 /// gibt) und wie viele es sind. Eine Einschätzung ist eine Meinung, vier
 /// sind ein Bild; die Zahl sagt, welches von beiden man sieht.
-String? gradeSummary(Trail trail) {
+String? gradeSummary(AppLocalizations l, Trail trail) {
   final median = trail.grade;
   final range = trail.gradeRange;
   if (median == null || range == null) return null;
@@ -652,7 +650,7 @@ String? gradeSummary(Trail trail) {
   return [
     gradeLabel(median),
     if (range.min != range.max) '${gradeLabel(range.min)}–${gradeLabel(range.max)}',
-    '$n ${n == 1 ? 'Einschätzung' : 'Einschätzungen'}',
+    l.gradeVoteCount(n),
   ].join(' · ');
 }
 
@@ -664,6 +662,7 @@ Future<void> showGradeVotesSheet(BuildContext context, Trail trail) {
     showDragHandle: true,
     builder: (sheetContext) {
       final theme = Theme.of(sheetContext);
+      final l = sheetContext.l10n;
       return SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
@@ -671,9 +670,9 @@ Future<void> showGradeVotesSheet(BuildContext context, Trail trail) {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Schwierigkeit', style: theme.textTheme.titleLarge),
+              Text(l.gradeVotesTitle, style: theme.textTheme.titleLarge),
               const SizedBox(height: 4),
-              Text(gradeSummary(trail) ?? 'Noch keine Einschätzung',
+              Text(gradeSummary(l, trail) ?? l.gradeNoVotes,
                   style: theme.textTheme.bodyMedium),
               const SizedBox(height: 8),
               for (final d in trail.gradeVotes)
@@ -684,14 +683,14 @@ Future<void> showGradeVotesSheet(BuildContext context, Trail trail) {
                     radius: 18,
                     child: Text(gradeLabel(d.grade!)),
                   ),
-                  title: Text(d.userId == trail.myId ? 'Du' : (d.username ?? 'Buddy')),
-                  subtitle: Text(singletrailGrade(d.grade!).short),
+                  title: Text(d.userId == trail.myId ? l.sheetYou : (d.username ?? l.sheetBuddy)),
+                  subtitle: Text(singletrailGrade(d.grade!).short(l)),
                 ),
               TextButton.icon(
                 onPressed: () =>
                     showSingletrailScaleSheet(sheetContext, highlight: trail.grade),
                 icon: const Icon(Icons.help_outline),
-                label: const Text('Was bedeuten S0 bis S5?'),
+                label: Text(l.gradeWhatMeans),
               ),
             ],
           ),
@@ -721,6 +720,7 @@ class _OwnGradePickerState extends ConsumerState<OwnGradePicker> {
         TrailDetails(trailId: trail.id, userId: trail.myId);
     setState(() => _saving = true);
     final messenger = ScaffoldMessenger.of(context);
+    final l = context.l10n;
     try {
       final outcome = await ref.read(trailsProvider.notifier).saveDetails(
           grade == null ? current.copyWith(clearGrade: true) : current.copyWith(grade: grade));
@@ -728,8 +728,8 @@ class _OwnGradePickerState extends ConsumerState<OwnGradePicker> {
         case WriteOutcome.done:
           break;
         case WriteOutcome.doneStale:
-          messenger.showSnackBar(const SnackBar(
-              content: Text('Einschätzung gespeichert$staleAfterWriteHint')));
+          messenger.showSnackBar(SnackBar(
+              content: Text('${l.gradeSaved}$staleAfterWriteHint')));
         case WriteOutcome.queued:
           messenger.showSnackBar(const SnackBar(content: Text(kQueuedHint)));
       }
@@ -745,12 +745,13 @@ class _OwnGradePickerState extends ConsumerState<OwnGradePicker> {
   Widget build(BuildContext context) {
     final mine = widget.trail.myDetails?.grade;
     final theme = Theme.of(context);
+    final l = context.l10n;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
-            Text('Deine Einschätzung', style: theme.textTheme.titleSmall),
+            Text(l.gradeYours, style: theme.textTheme.titleSmall),
             SingletrailScaleButton(highlight: mine),
           ],
         ),
@@ -766,7 +767,7 @@ class _OwnGradePickerState extends ConsumerState<OwnGradePicker> {
                 child: ChoiceChip(
                   key: ValueKey('own-grade-${g.value}'),
                   label: Text(g.label),
-                  tooltip: g.short,
+                  tooltip: g.short(l),
                   selected: mine == g.value,
                   onSelected: _saving
                       ? null
@@ -839,6 +840,7 @@ class _MetricTiles extends StatelessWidget {
     final elevation = this.elevation;
     final grade = trail.grade;
     final range = trail.gradeRange;
+    final l = context.l10n;
 
     Widget tile(String label, String semantics, List<InlineSpan> value, {Key? key, VoidCallback? onTap}) =>
         Expanded(
@@ -859,20 +861,22 @@ class _MetricTiles extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          tile('LÄNGE', formatLength(trail.lengthM), [TextSpan(text: formatLength(trail.lengthM))],
+          tile(l.sheetPanelLength, formatLength(trail.lengthM), [TextSpan(text: formatLength(trail.lengthM))],
               key: const ValueKey('metric-length')),
           const SizedBox(width: 8),
           tile(
-            'HÖHE',
-            elevation == null
-                ? 'Keine Höhenangaben'
-                : '${formatElevation((gain: elevation.gainM, loss: elevation.lossM))}'
-                    '${elevation.fromTerrain ? ' aus dem Geländemodell' : ''}',
+            l.sheetPanelElevation,
+            switch (elevation) {
+              null => l.sheetNoElevationTile,
+              final ElevationProfile e when e.fromTerrain =>
+                l.sheetElevationFromTerrain(formatElevation(l, (gain: e.gainM, loss: e.lossM))),
+              final ElevationProfile e => formatElevation(l, (gain: e.gainM, loss: e.lossM)),
+            },
             elevation == null
                 ? [TextSpan(text: '—', style: TextStyle(color: palette.muted))]
                 : [
                     TextSpan(text: '${elevation.fromTerrain ? '≈' : ''}↓${elevation.lossM.round()}'),
-                    TextSpan(text: ' Hm', style: small),
+                    TextSpan(text: ' ${l.elevationUnit}', style: small),
                   ],
             key: const ValueKey('metric-elevation'),
           ),
@@ -880,8 +884,8 @@ class _MetricTiles extends StatelessWidget {
           CoachAnchor(
             id: SheetCoach.grade,
             child: tile(
-            'S-GRAD',
-            gradeSummary(trail) ?? 'Noch keine Einschätzung',
+            l.sheetPanelGrade,
+            gradeSummary(l, trail) ?? l.gradeNoVotes,
             grade == null || range == null
                 ? [TextSpan(text: '—', style: TextStyle(color: palette.muted))]
                 : [
@@ -921,15 +925,17 @@ class _OpinionTiles extends ConsumerWidget {
     final votes = trail.ratingVotes.length;
     final condition = trail.shownCondition;
     final shown = condition.unconfirmed ?? condition.confirmed;
+    final l = context.l10n;
 
     final ratingSemantics = rating == null
-        ? (trail.ratingOpen ? 'Noch nicht bewertet, auch nicht von dir' : 'Noch keine Bewertung')
-        : 'Bewertung $rating von $kRatingMax Sternen, $votes ${votes == 1 ? 'Stimme' : 'Stimmen'}';
+        ? (trail.ratingOpen ? l.ratingOpen : l.ratingNone)
+        : l.ratingSemantics(rating, kRatingMax, l.ratingVotes(votes));
     final conditionSemantics = [
       if (condition.confirmed case final c?)
-        '${trailCondition(c.condition!).label}, ${reportAgeLabel(c.reportedAt)}',
+        '${trailCondition(c.condition!).label(l)}, ${reportAgeLabel(l, c.reportedAt)}',
       if (condition.unconfirmed case final u?)
-        '${trailCondition(u.condition!).label}, ${reportAgeLabel(u.reportedAt)}, zu bestätigen',
+        l.conditionUnconfirmedSemantics(
+            trailCondition(u.condition!).label(l), reportAgeLabel(l, u.reportedAt)),
     ].join('; ');
 
     return IntrinsicHeight(
@@ -943,7 +949,7 @@ class _OpinionTiles extends ConsumerWidget {
               excludeSemantics: true,
               child: _Panel(
                 panelKey: const ValueKey('metric-rating'),
-                label: 'BEWERTUNG',
+                label: l.sheetPanelRating,
                 onTap: votes == 0 ? null : () => showRatingVotesSheet(context, ref, trail),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -951,7 +957,7 @@ class _OpinionTiles extends ConsumerWidget {
                     // Eigener Trail ohne eigene Bewertung: verblasste Sterne
                     // — das IST „Bewertung offen" (Rework E4).
                     RatingStars(rating, size: 20, faded: rating == null || trail.ratingOpen),
-                    Text(rating == null ? '—' : '$rating von $kRatingMax · $votes×', style: small),
+                    Text(rating == null ? '—' : l.ratingShort(rating, kRatingMax, votes), style: small),
                   ],
                 ),
               ),
@@ -960,12 +966,12 @@ class _OpinionTiles extends ConsumerWidget {
           const SizedBox(width: 8),
           Expanded(
             child: Semantics(
-              label: conditionSemantics.isEmpty ? 'Kein Zustand gemeldet' : 'Zustand: $conditionSemantics',
+              label: conditionSemantics.isEmpty ? l.conditionNone : l.conditionSemantics(conditionSemantics),
               button: shown != null,
               excludeSemantics: true,
               child: _Panel(
                 panelKey: const ValueKey('metric-condition'),
-                label: 'ZUSTAND',
+                label: l.sheetPanelCondition,
                 onTap: shown == null ? null : () => showConditionVotesSheet(context, ref, trail),
                 child: shown == null
                     ? Text('—', style: big.copyWith(color: palette.muted))
@@ -975,8 +981,8 @@ class _OpinionTiles extends ConsumerWidget {
                           if (condition.confirmed case final c?)
                             Text.rich(
                               TextSpan(children: [
-                                TextSpan(text: trailCondition(c.condition!).label),
-                                TextSpan(text: ' · ${reportAgeLabel(c.reportedAt)}', style: small),
+                                TextSpan(text: trailCondition(c.condition!).label(l)),
+                                TextSpan(text: ' · ${reportAgeLabel(l, c.reportedAt)}', style: small),
                               ]),
                               style: theme.textTheme.titleMedium,
                             ),
@@ -984,7 +990,8 @@ class _OpinionTiles extends ConsumerWidget {
                             Opacity(
                               opacity: 0.6,
                               child: Text(
-                                  '${trailCondition(u.condition!).label}? · ${reportAgeLabel(u.reportedAt)} · zu bestätigen',
+                                  l.conditionUnconfirmed(
+                                      trailCondition(u.condition!).label(l), reportAgeLabel(l, u.reportedAt)),
                                   key: const ValueKey('condition-unconfirmed'),
                                   style: theme.textTheme.bodySmall),
                             ),

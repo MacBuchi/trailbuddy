@@ -7,6 +7,7 @@ import '../../core/photo_pipeline.dart';
 import '../../core/photo_providers.dart';
 import '../../core/read_after_write.dart';
 import '../../core/widgets/photo_attachment.dart';
+import '../../l10n/l10n.dart';
 import '../../models/trail.dart';
 import 'trail_providers.dart';
 import 'trail_sheet.dart';
@@ -43,24 +44,25 @@ class TrailNotesSection extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final notes = trail.notesShown();
     final theme = Theme.of(context);
+    final l = context.l10n;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
-            Text('Hinweise', style: theme.textTheme.titleSmall),
+            Text(l.noteTitle, style: theme.textTheme.titleSmall),
             const Spacer(),
             if (showAdd)
               TextButton.icon(
                 key: const ValueKey('add-note'),
                 onPressed: () => addTrailNote(context, ref, trail),
                 icon: const Icon(Icons.add_comment_outlined),
-                label: const Text('Hinweis schreiben'),
+                label: Text(l.noteAdd),
               ),
           ],
         ),
         if (notes.isEmpty)
-          Text('Noch keine. Ein Baum quer, ein neuer Drop? Deine Buddys sehen es hier.',
+          Text(l.noteEmpty,
               style: theme.textTheme.bodySmall
                   ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
         for (final n in notes)
@@ -83,6 +85,7 @@ Future<void> addTrailNote(BuildContext context, WidgetRef ref, Trail trail) asyn
   final draft = await showNoteDialog(context, private: private);
   if (draft == null || !context.mounted) return;
   final messenger = ScaffoldMessenger.of(context);
+  final l = context.l10n;
   try {
     final result =
         await ref.read(trailsProvider.notifier).addNote(trail.id, draft.body, photo: draft.photo);
@@ -92,10 +95,10 @@ Future<void> addTrailNote(BuildContext context, WidgetRef ref, Trail trail) asyn
         content: Text(photoError != null
             // Beides sagen: Der Hinweis steht — sonst schriebe man ihn
             // ein zweites Mal —, das Foto nicht.
-            ? 'Hinweis gespeichert, das Foto aber nicht: ${friendlyError(photoError)}'
+            ? l.notePhotoFailed(friendlyError(photoError))
             : draft.photo != null
-                ? 'Hinweis mit Foto gespeichert$stale'
-                : 'Hinweis gespeichert$stale')));
+                ? '${l.noteSavedWithPhoto}$stale'
+                : '${l.noteSaved}$stale')));
   } catch (e, st) {
     logError('Hinweis speichern', e, st);
     messenger.showSnackBar(SnackBar(content: Text(friendlyError(e))));
@@ -111,7 +114,8 @@ class _NoteTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final who = mine ? 'Du' : (note.username ?? 'Buddy');
+    final l = context.l10n;
+    final who = mine ? l.sheetYou : (note.username ?? l.sheetBuddy);
     return Container(
       key: ValueKey('note-${note.id}'),
       margin: const EdgeInsets.only(top: 6),
@@ -134,7 +138,7 @@ class _NoteTile extends ConsumerWidget {
               children: [
                 Text(note.body),
                 const SizedBox(height: 2),
-                Text('$who · ${statusAge(note.createdAt)}',
+                Text('$who · ${statusAge(context.l10n, note.createdAt)}',
                     style: fresh
                         ? theme.textTheme.bodySmall?.copyWith(
                             color: AppPalette.of(context).noteText, fontWeight: FontWeight.w600)
@@ -150,14 +154,14 @@ class _NoteTile extends ConsumerWidget {
             ),
           if (mine)
             IconButton(
-              tooltip: 'Hinweis löschen',
+              tooltip: l.noteDelete,
               visualDensity: VisualDensity.compact,
               icon: const Icon(Icons.delete_outline),
               onPressed: () => _delete(context, ref),
             )
           else
             IconButton(
-              tooltip: 'Erledigt — Hinweis entfernen',
+              tooltip: l.noteResolve,
               visualDensity: VisualDensity.compact,
               icon: const Icon(Icons.check_circle_outline),
               onPressed: () => _delete(context, ref),
@@ -168,23 +172,26 @@ class _NoteTile extends ConsumerWidget {
   }
 
   Future<void> _delete(BuildContext context, WidgetRef ref) async {
+    final l = context.l10n;
+    final name = note.username ?? l.noteYourBuddy;
     final ok = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: Text(mine ? 'Hinweis löschen?' : 'Als erledigt entfernen?'),
-        content: Text(mine
-            ? '„${note.body}"${note.photo != null ? '\n\nDas Foto geht mit.' : ''}'
-            : '„${note.body}"\n\nDer Hinweis verschwindet für alle, die ihn '
-                'sehen — auch für ${note.username ?? 'deinen Buddy'}'
-                '${note.photo != null ? ', samt Foto' : ''}.'),
+        title: Text(mine ? l.noteDeleteTitle : l.noteResolveTitle),
+        content: Text(switch ((mine, note.photo != null)) {
+          (true, false) => l.noteDeleteBody(note.body),
+          (true, true) => l.noteDeleteBodyPhoto(note.body),
+          (false, false) => l.noteResolveBody(note.body, name),
+          (false, true) => l.noteResolveBodyPhoto(note.body, name),
+        }),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text('Abbrechen'),
+            child: Text(l.commonCancel),
           ),
           FilledButton(
             onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: Text(mine ? 'Löschen' : 'Entfernen'),
+            child: Text(mine ? l.commonDelete : l.noteRemove),
           ),
         ],
       ),
@@ -194,7 +201,7 @@ class _NoteTile extends ConsumerWidget {
     try {
       final fresh = await ref.read(trailsProvider.notifier).deleteNote(note.id);
       messenger.showSnackBar(SnackBar(
-          content: Text('Hinweis entfernt${fresh ? '' : staleAfterWriteHint}')));
+          content: Text('${l.noteRemoved}${fresh ? '' : staleAfterWriteHint}')));
     } catch (e, st) {
       logError('Hinweis löschen', e, st);
       messenger.showSnackBar(SnackBar(content: Text(friendlyError(e))));
@@ -204,9 +211,8 @@ class _NoteTile extends ConsumerWidget {
 
 /// Wer den Hinweis sieht, in einem Satz — dieselbe Regel wie für den
 /// Beitrag. Bei privatem Beitrag sagt er ehrlich, dass es niemand ist.
-String noteAudience({required bool private}) => private
-    ? 'Dein Beitrag steht auf „Nur für mich" — dann siehst nur du den Hinweis.'
-    : 'Sehen deine Buddys, die diesen Trail auch sehen.';
+String noteAudience(AppLocalizations l, {required bool private}) =>
+    private ? l.noteAudiencePrivate : l.noteAudienceBuddies;
 
 /// Was der Dialog zurückgibt: der Text und, wenn angehängt, das schon
 /// entkernte Foto (#37).
@@ -214,9 +220,8 @@ typedef NoteDraft = ({String body, PreparedPhoto? photo});
 
 /// Der Satz neben dem angehängten Foto: wer es sieht, wie lange, und was
 /// nicht darin steht — und was trotzdem bleibt.
-String notePhotoNote({required bool private}) =>
-    '${private ? 'Nur du siehst es' : 'Sehen dieselben wie den Hinweis'}, $kNotePhotoDays Tage lang. '
-    'Ortsangaben im Bild werden entfernt — ein erkennbarer Ort bleibt erkennbar.';
+String notePhotoNote(AppLocalizations l, {required bool private}) =>
+    private ? l.notePhotoPrivate(kNotePhotoDays) : l.notePhotoShared(kNotePhotoDays);
 
 /// Ein neuer Hinweis, oder null bei Abbruch.
 Future<NoteDraft?> showNoteDialog(BuildContext context, {required bool private}) {
@@ -246,8 +251,9 @@ class _NoteDialogState extends ConsumerState<_NoteDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final l = context.l10n;
     return AlertDialog(
-      title: const Text('Hinweis für Buddys'),
+      title: Text(l.noteDialogTitle),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -259,19 +265,19 @@ class _NoteDialogState extends ConsumerState<_NoteDialog> {
             maxLines: 4,
             maxLength: kNoteMaxLength,
             textCapitalization: TextCapitalization.sentences,
-            decoration: const InputDecoration(
-              hintText: 'z. B. Baum liegt quer nach der zweiten Kehre',
+            decoration: InputDecoration(
+              hintText: l.noteHint,
             ),
             onChanged: (_) => setState(() {}),
           ),
-          Text(noteAudience(private: widget.private),
+          Text(noteAudience(l, private: widget.private),
               style: Theme.of(context).textTheme.bodySmall),
           const SizedBox(height: 8),
           PhotoAttachment(
             pick: ref.read(photoPickerProvider),
             prepare: ref.read(photoPreparerProvider),
             photo: _photo,
-            attachedNote: notePhotoNote(private: widget.private),
+            attachedNote: notePhotoNote(l, private: widget.private),
             onChanged: (photo) => setState(() => _photo = photo),
           ),
         ],
@@ -279,13 +285,13 @@ class _NoteDialogState extends ConsumerState<_NoteDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Abbrechen'),
+          child: Text(l.commonCancel),
         ),
         FilledButton(
           onPressed: _text.text.trim().isEmpty
               ? null
               : () => Navigator.of(context).pop((body: _text.text.trim(), photo: _photo)),
-          child: const Text('Speichern'),
+          child: Text(l.commonSave),
         ),
       ],
     );
@@ -317,7 +323,7 @@ class NotePhotoThumb extends ConsumerWidget {
     );
     return Semantics(
       button: true,
-      label: 'Foto zum Hinweis öffnen',
+      label: context.l10n.notePhotoOpen,
       child: InkWell(
         key: ValueKey('note-photo-${note.id}'),
         borderRadius: BorderRadius.circular(8),
@@ -369,7 +375,7 @@ class _NotePhotoView extends ConsumerWidget {
           Align(
             alignment: Alignment.centerRight,
             child: IconButton(
-              tooltip: 'Schließen',
+              tooltip: context.l10n.commonClose,
               icon: const Icon(Icons.close),
               onPressed: () => Navigator.of(context).pop(),
             ),
@@ -381,14 +387,14 @@ class _NotePhotoView extends ConsumerWidget {
             child: shown != null
                 ? InteractiveViewer(
                     child: Image.memory(shown,
-                        fit: BoxFit.contain, gaplessPlayback: true, semanticLabel: 'Foto zum Hinweis'),
+                        fit: BoxFit.contain, gaplessPlayback: true, semanticLabel: context.l10n.notePhotoLabel),
                   )
                 : const SizedBox(height: 200, child: Center(child: CircularProgressIndicator())),
           ),
           if (full.hasError)
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-              child: Text('Das Bild in voller Größe lädt gerade nicht — ${friendlyError(full.error!)}',
+              child: Text(context.l10n.notePhotoFullFailed(friendlyError(full.error!)),
                   style: Theme.of(context).textTheme.bodySmall),
             ),
           Padding(

@@ -7,6 +7,7 @@ import 'package:latlong2/latlong.dart';
 
 import '../../core/errors.dart';
 import '../../data/providers.dart';
+import '../../l10n/l10n.dart';
 import '../../core/router_branches.dart';
 import '../../models/trail.dart';
 import '../profile/profile_providers.dart';
@@ -214,17 +215,16 @@ class _TrailImportScreenState extends ConsumerState<TrailImportScreen> {
 
   Future<void> _learnNow() async {
     setState(() => _learning = true);
-    String text;
+    String? text;
     try {
       text = learnResultText(await ref.read(riderCalibrationsProvider.notifier).learn());
     } catch (e, st) {
       logError('Aus Fahrten lernen', e, st);
-      text = 'Das Lernen ist fehlgeschlagen.';
     }
     if (!mounted) return;
     setState(() {
       _learning = false;
-      _learnText = text;
+      _learnText = text ?? context.l10n.importLearnFailed;
     });
   }
 
@@ -234,14 +234,15 @@ class _TrailImportScreenState extends ConsumerState<TrailImportScreen> {
       picked = await ref.read(gpxPickerProvider)();
     } catch (e, st) {
       logError('GPX auswählen', e, st);
-      if (mounted) setState(() => _errors.add('Dateiauswahl fehlgeschlagen.'));
+      if (mounted) setState(() => _errors.add(context.l10n.importPickFailed));
       return;
     }
     if (!mounted) return;
+    final l = context.l10n;
     final files = <PickedGpx>[];
     final unreadable = <String>[];
     for (final p in picked) {
-      final r = gpxFilesFrom(p);
+      final r = gpxFilesFrom(l, p);
       files.addAll(r.files);
       unreadable.addAll(r.errors);
     }
@@ -408,51 +409,47 @@ class _TrailImportScreenState extends ConsumerState<TrailImportScreen> {
       _busy = false;
       _result = (ok: ok, queued: queued, backfilled: backfilled, named: named, failed: failed);
       if (limitHit) {
-        _errors.add('Für heute ist das Limit erreicht. Die übrigen bleiben '
-            'angehakt — morgen einfach noch einmal „beisteuern".');
+        _errors.add(context.l10n.importDailyLimit);
       }
       // Gescheiterte bleiben angehakt stehen — ein zweiter Versuch ist
       // ein Tipp, und die Kennung des Auftrags macht ihn idempotent.
       _candidates.removeWhere(succeeded.contains);
       _selected.removeWhere(succeeded.contains);
     });
+    final l = context.l10n;
+    final summary = [
+      l.importSnackContributed(ok),
+      if (queued > 0) l.importSnackQueued(queued),
+      if (backfilled > 0) l.importSnackBackfilled(backfilled),
+      if (named > 0) l.importSnackNamed(named),
+      if (failed > 0) l.importFailedCount(failed),
+    ].join(', ');
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(
-        '$ok ${ok == 1 ? 'Trail' : 'Trails'} beigesteuert'
-        '${queued > 0 ? ', $queued ${queued == 1 ? 'wartet' : 'warten'} im Ausgangskorb auf Netz' : ''}'
-        '${backfilled > 0 ? ', $backfilled mit nachgetragenen Höhen' : ''}'
-        '${named > 0 ? ', $named ${named == 1 ? 'Name' : 'Namen'} übernommen' : ''}'
-        '${failed > 0 ? ', $failed fehlgeschlagen' : ''}'
-        '${fresh ? '' : ' — sichtbar, sobald die Liste wieder lädt.'}',
-      ),
+      content: Text(fresh ? summary : l.importSnackStale(summary)),
     ));
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l = context.l10n;
     final selectable =
         _candidates.where((c) => c.contributable && c.existing == null).length;
     final backfills = _candidates.where((c) => c.completesExisting).length;
     return Scaffold(
-      appBar: AppBar(title: const Text('GPX importieren')),
+      appBar: AppBar(title: Text(l.importTitle)),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           Text(
-            'Kurze Spuren, die überwiegend bergab führen, werden als Trail '
-            'beigesteuert. Ganze Fahrten (ab 8 km oder mit mehr Auf- als '
-            'Abstieg) zerlegst du auf der Karte in bekannte Trails und '
-            'Kandidaten — die Schere neben der Spur. Was du beisteuerst, '
-            'sehen deine Buddys; der Server gleicht es still mit bekannten '
-            'Trails ab.',
+            l.importIntro,
             style: theme.textTheme.bodyMedium,
           ),
           const SizedBox(height: 12),
           FilledButton.icon(
             onPressed: _busy ? null : _pick,
             icon: const Icon(Icons.folder_open),
-            label: const Text('GPX- oder Zip-Dateien wählen'),
+            label: Text(l.importPickButton),
           ),
           for (final e in _errors)
             Padding(
@@ -463,11 +460,13 @@ class _TrailImportScreenState extends ConsumerState<TrailImportScreen> {
             Padding(
               padding: const EdgeInsets.only(top: 12),
               child: Text(
-                '${_result!.ok} beigesteuert, '
-                '${_result!.queued > 0 ? '${_result!.queued} im Ausgangskorb, ' : ''}'
-                '${_result!.backfilled > 0 ? '${_result!.backfilled} Höhen nachgetragen, ' : ''}'
-                '${_result!.named > 0 ? '${_result!.named} Namen übernommen, ' : ''}'
-                '${_result!.failed} fehlgeschlagen.',
+                '${[
+                  l.importResultContributed(_result!.ok),
+                  if (_result!.queued > 0) l.importResultQueued(_result!.queued),
+                  if (_result!.backfilled > 0) l.importResultBackfilled(_result!.backfilled),
+                  if (_result!.named > 0) l.importResultNamed(_result!.named),
+                  l.importFailedCount(_result!.failed),
+                ].join(', ')}.',
                 style: theme.textTheme.titleSmall,
               ),
             ),
@@ -481,21 +480,22 @@ class _TrailImportScreenState extends ConsumerState<TrailImportScreen> {
                 leading: const Icon(Icons.group_outlined),
                 title: Text(t.displayName),
                 subtitle: Text(offersTakeOver(t) || t.ratingOpen
-                    ? 'Kanntest du schon über deine Buddys — übernimm ihn mit deinen Sternen.'
-                    : 'Übernommen.'),
+                    ? l.importTakeOverHint
+                    : l.importTakenOver),
                 trailing: offersTakeOver(t) || t.ratingOpen
                     ? FilledButton.tonal(
                         key: ValueKey('import-takeover-open-$id'),
                         onPressed: () => showTrailDetailsDialog(context, ref, t, takeOver: true),
-                        child: const Text('Übernehmen'),
+                        child: Text(l.importTakeOverButton),
                       )
                     : null,
               ),
           if (_candidates.isNotEmpty) ...[
             const SizedBox(height: 16),
             Text(
-                '${_candidates.length} Spuren gefunden, $selectable davon als Trail'
-                '${backfills > 0 ? ', $backfills zum Nachtragen' : ''}',
+                backfills > 0
+                    ? l.importFoundWithBackfill(_candidates.length, selectable, backfills)
+                    : l.importFound(_candidates.length, selectable),
                 style: theme.textTheme.titleSmall),
             for (final c in _candidates) ...[
               CheckboxListTile(
@@ -509,14 +509,14 @@ class _TrailImportScreenState extends ConsumerState<TrailImportScreen> {
                   }
                 }),
                 title: Text(c.track.name),
-                subtitle: Text(_describe(c)),
+                subtitle: Text(_describe(l, c)),
                 controlAffinity: ListTileControlAffinity.leading,
                 // Eine Fahrt geht durch das Zerlege-Blatt (Konzept 5.2),
                 // auf der Karte — dort sieht man, was die Griffe tun.
                 secondary: c.existing == null && c.kind == TrackKind.ride
                     ? IconButton(
                         key: ValueKey('import-split-${c.clientId}'),
-                        tooltip: 'Fahrt zerlegen',
+                        tooltip: l.importSplitRide,
                         icon: const Icon(Icons.content_cut),
                         onPressed: _busy
                             ? null
@@ -538,8 +538,8 @@ class _TrailImportScreenState extends ConsumerState<TrailImportScreen> {
                     dense: true,
                     value: c.discardHeights,
                     onChanged: _busy ? null : (v) => setState(() => _setDiscard(c, v ?? false)),
-                    title: const Text('Höhen der Datei verwerfen, Geländemodell anzeigen'),
-                    subtitle: Text(t.reason),
+                    title: Text(l.importDiscardHeights),
+                    subtitle: Text(t.reason(l)),
                     controlAffinity: ListTileControlAffinity.leading,
                   ),
                 ),
@@ -555,8 +555,8 @@ class _TrailImportScreenState extends ConsumerState<TrailImportScreen> {
                       onPressed: _busy ? null : () => _pickRideDate(c),
                       icon: const Icon(Icons.event_outlined, size: 18),
                       label: Text(c.rodeAt == null
-                          ? 'Gefahren am …'
-                          : 'Gefahren am ${formatRideDate(c.rodeAt!)} · ändern'),
+                          ? l.importRideDate
+                          : l.importRideDateChange(formatRideDate(c.rodeAt!))),
                     ),
                   ),
                 ),
@@ -572,8 +572,8 @@ class _TrailImportScreenState extends ConsumerState<TrailImportScreen> {
               onPressed: _busy || _selected.isEmpty ? null : _contribute,
               icon: const Icon(Icons.cloud_upload_outlined),
               label: Text(_selected.any((c) => c.completesExisting)
-                  ? '${_selected.length} übernehmen'
-                  : '${_selected.length} beisteuern'),
+                  ? l.importAdoptButton(_selected.length)
+                  : l.importContributeButton(_selected.length)),
             ),
             if (_rideCandidates.isNotEmpty && ref.watch(rideRecordingAvailableProvider))
               ..._ridesSection(theme),
@@ -586,6 +586,7 @@ class _TrailImportScreenState extends ConsumerState<TrailImportScreen> {
   /// Fahrten aufs Gerät, damit das Fahrerprofil aus ihnen lernt (#188).
   /// Nur auf Android — im Browser gibt es „Meine Fahrten" nicht.
   List<Widget> _ridesSection(ThemeData theme) {
+    final l = context.l10n;
     final rides = _rideCandidates;
     final n = rides.length;
     final heightless = rides.where((c) => c.uploadTrack.points.any((p) => p.ele == null)).length;
@@ -596,25 +597,24 @@ class _TrailImportScreenState extends ConsumerState<TrailImportScreen> {
     final guessText = [
       for (final p in RiderProfile.values)
         if (guesses.where((g) => g == p).length case final k when k > 0) '$k × ${p.label}',
-      if (unguessed > 0 && unguessed < n) '$unguessed ohne Vorschlag',
+      if (unguessed > 0 && unguessed < n) l.importRideGuessUnguessed(unguessed),
     ];
     return [
       const SizedBox(height: 24),
-      Text('Fahrten für dein Fahrerprofil', style: theme.textTheme.titleSmall),
+      Text(l.importRidesTitle, style: theme.textTheme.titleSmall),
       const SizedBox(height: 4),
       Text(
-        '$n ${n == 1 ? 'Fahrt' : 'Fahrten'} mit Fahrzeiten. Gespeichert liegen sie unter '
-        '„Meine Fahrten", und das Fahrerprofil lernt aus ihnen, wie schnell du bergauf '
-        'kommst. Sie bleiben auf diesem Gerät.'
-        '${heightless > 0 ? ' $heightless davon ohne Höhen — sie lernen nichts.' : ''}',
+        heightless > 0
+            ? '${l.importRidesIntro(n)} ${l.importRidesHeightless(heightless)}'
+            : l.importRidesIntro(n),
         style: theme.textTheme.bodyMedium,
       ),
       if (unguessed < n) ...[
         const SizedBox(height: 8),
         Text(
-          'Nach der Steigrate: ${guessText.join(', ')}. So werden sie gespeichert'
-          '${unguessed > 0 ? ', die übrigen mit dem Rad unten' : ''} — ändern '
-          'kannst du es danach unter „Meine Fahrten".',
+          unguessed > 0
+              ? l.importRideGuessRest(guessText.join(', '))
+              : l.importRideGuess(guessText.join(', ')),
           key: const ValueKey('import-ride-guess'),
           style: theme.textTheme.bodyMedium,
         ),
@@ -622,7 +622,7 @@ class _TrailImportScreenState extends ConsumerState<TrailImportScreen> {
       // Haben alle einen Vorschlag, entscheidet der Knopf nichts mehr.
       if (unguessed > 0) ...[
         const SizedBox(height: 8),
-        Text(unguessed == n ? 'Gefahren mit' : 'Ohne Vorschlag gefahren mit',
+        Text(unguessed == n ? l.importRideProfileAll : l.importRideProfileRest,
             style: theme.textTheme.labelLarge),
         const SizedBox(height: 4),
         SizedBox(
@@ -630,11 +630,16 @@ class _TrailImportScreenState extends ConsumerState<TrailImportScreen> {
           child: SegmentedButton<RiderProfile>(
             key: const ValueKey('import-ride-profile'),
             showSelectedIcon: false,
-            segments: const [
+            // Die Namen der Räder trägt das Profil selbst (`RiderProfile.label`).
+            segments: [
               ButtonSegment(
-                  value: RiderProfile.bio, icon: Icon(Icons.pedal_bike_outlined), label: Text('Bio-Bike')),
+                  value: RiderProfile.bio,
+                  icon: const Icon(Icons.pedal_bike_outlined),
+                  label: Text(RiderProfile.bio.label)),
               ButtonSegment(
-                  value: RiderProfile.ebike, icon: Icon(Icons.electric_bike_outlined), label: Text('E-Bike')),
+                  value: RiderProfile.ebike,
+                  icon: const Icon(Icons.electric_bike_outlined),
+                  label: Text(RiderProfile.ebike.label)),
             ],
             selected: {profile},
             onSelectionChanged: _busy ? null : (v) => setState(() => _rideProfile = v.single),
@@ -646,15 +651,15 @@ class _TrailImportScreenState extends ConsumerState<TrailImportScreen> {
         key: const ValueKey('import-save-rides'),
         onPressed: _busy ? null : _saveRides,
         icon: const Icon(Icons.directions_bike),
-        label: Text('$n als ${n == 1 ? 'Fahrt' : 'Fahrten'} speichern'),
+        label: Text(l.importSaveRides(n)),
       ),
       if (r != null) ...[
         const SizedBox(height: 8),
         Text(
           [
-            '${r.saved} gespeichert',
-            if (r.existed > 0) '${r.existed} schon auf dem Gerät',
-            if (r.failed > 0) '${r.failed} fehlgeschlagen',
+            l.importRidesSaved(r.saved),
+            if (r.existed > 0) l.importRidesExisted(r.existed),
+            if (r.failed > 0) l.importFailedCount(r.failed),
           ].join(' · '),
           key: const ValueKey('import-rides-result'),
           style: theme.textTheme.titleSmall,
@@ -668,7 +673,7 @@ class _TrailImportScreenState extends ConsumerState<TrailImportScreen> {
               icon: _learning
                   ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
                   : const Icon(Icons.school_outlined),
-              label: const Text('Fahrerprofil jetzt lernen lassen'),
+              label: Text(l.importLearnNow),
             ),
           ),
         if (_learnText case final t?)
@@ -686,45 +691,45 @@ class _TrailImportScreenState extends ConsumerState<TrailImportScreen> {
       initialDate: c.rodeAt ?? now,
       firstDate: DateTime(2000),
       lastDate: now,
-      helpText: 'Wann bist du ihn gefahren?',
+      helpText: context.l10n.importRideDateQuestion,
     );
     if (picked == null || !mounted) return;
     setState(() => c.rodeAt = DateTime(picked.year, picked.month, picked.day, 12));
   }
 
-  String _describe(ImportCandidate c) {
+  String _describe(AppLocalizations l, ImportCandidate c) {
     final parts = <String>[formatLength(c.lengthM)];
     final existing = c.existing;
     if (existing != null) {
       parts.add(c.discardHeights
           ? (c.adoptsName
-              ? 'schon beigesteuert — Name wird übernommen, Höhen der Datei verworfen'
-              : 'schon beigesteuert — Höhen der Datei verworfen')
+              ? l.importExistingDiscardAdopt
+              : l.importExistingDiscard)
           : c.backfill && c.adoptsName
-          ? 'schon beigesteuert — Höhen und Name werden nachgetragen'
+          ? l.importExistingBackfillAdopt
           : c.backfill
-              ? 'schon beigesteuert — Höhen werden nachgetragen'
+              ? l.importExistingBackfill
               : c.adoptsName
-                  ? 'schon beigesteuert — Name wird übernommen'
+                  ? l.importExistingAdopt
                   : existing.recording.ele != null
-                      ? 'schon beigesteuert'
-                      : 'schon beigesteuert, die Datei hat keine Höhen');
+                      ? l.importExisting
+                      : l.importExistingNoHeights);
       return parts.join(' · ');
     }
     final el = c.elevation;
-    if (el != null) parts.add(formatElevation(el));
-    if (c.discardHeights) parts.add('ohne Höhen der Datei');
+    if (el != null) parts.add(formatElevation(l, el));
+    if (c.discardHeights) parts.add(l.importWithoutFileHeights);
     parts.add(switch (c.source) {
       RecordingSource.planned => c.rodeAt == null
-          ? 'geplant (keine Fahrzeiten)'
-          : 'gezeichnet, gefahren am ${formatRideDate(c.rodeAt!)}',
-      RecordingSource.import => 'aufgezeichnet',
-      RecordingSource.app => 'aufgezeichnet',
+          ? l.importSourcePlanned
+          : l.importSourceDrawnRidden(formatRideDate(c.rodeAt!)),
+      RecordingSource.import => l.importSourceRecorded,
+      RecordingSource.app => l.importSourceRecorded,
     });
     parts.add(switch (c.kind) {
-      TrackKind.trail => 'Trail',
-      TrackKind.ride => 'Fahrt — auf der Karte zerlegen',
-      TrackKind.fragment => 'zu kurz für einen Trail',
+      TrackKind.trail => l.importKindTrail,
+      TrackKind.ride => l.importKindRide,
+      TrackKind.fragment => l.importKindFragment,
     });
     return parts.join(' · ');
   }

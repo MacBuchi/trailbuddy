@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/app_colors.dart';
+import '../../l10n/l10n.dart';
 import '../../models/trail.dart';
 
 /// Wie stark ein eigener Wert verblasst, solange er noch nicht auf dem
@@ -23,7 +24,7 @@ class PendingValueCaption extends StatelessWidget {
   Widget build(BuildContext context) {
     if (!trail.pendingDetails || !hasValue) return const SizedBox.shrink();
     return Text(
-      trail.sendingDetails ? 'wird übertragen …' : 'nur auf dem Gerät — wartet auf Übertragung',
+      trail.sendingDetails ? context.l10n.sheetValueSending : context.l10n.sheetValueQueued,
       style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppPalette.of(context).muted),
     );
   }

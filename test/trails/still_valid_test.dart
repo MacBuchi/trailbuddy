@@ -4,6 +4,7 @@ import 'package:trailbuddy/features/trails/still_valid.dart';
 import 'package:trailbuddy/features/trails/trail_list.dart';
 import 'package:trailbuddy/models/trail.dart';
 
+import '../fakes/l10n_de.dart';
 import 'trail_model_test.dart' show rec, rep;
 
 void main() {
@@ -83,7 +84,7 @@ void main() {
     final c = trail([rep('c', 'me', ago(5), status: TrailStatus.closed)], id: 'c');
     const f = TrailListFilter(stillValidOnly: true);
     expect([for (final t in [a, b, c]) if (passesTrailFilter(t, f, now: now)) t.id], ['a', 'b']);
-    expect(f.describe(), 'noch gültig?');
+    expect(f.describe(l10nDe), 'noch gültig?');
     expect([for (final q in stillValidQuestions([a, b, c], now: now)) q.trail.id], ['b', 'a']);
   });
 }

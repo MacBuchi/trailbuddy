@@ -8,6 +8,8 @@ import 'package:trailbuddy/features/trails/trail_list.dart';
 import 'package:trailbuddy/features/trails/trail_traits.dart';
 import 'package:trailbuddy/models/trail.dart';
 
+import '../fakes/l10n_de.dart';
+
 Trail trailWith(List<Set<TrailTrait>> contributions) => Trail(
       id: 't',
       myId: 'me',
@@ -96,7 +98,7 @@ void main() {
       expect({for (final t in TrailTrait.values) t.icon}, hasLength(TrailTrait.values.length));
       expect({for (final t in TrailTrait.values) t.label}, hasLength(TrailTrait.values.length));
       for (final t in TrailTrait.values) {
-        expect(t.description, isNotEmpty, reason: t.db);
+        expect(t.description(l10nDe), isNotEmpty, reason: t.db);
       }
     });
   });
@@ -128,7 +130,7 @@ void main() {
 
     test('describe, isActive und Gleichheit', () {
       const f = TrailListFilter(traits: {TrailTrait.jumps, TrailTrait.flowy});
-      expect(f.describe(), 'Flowig · Jump-Line');
+      expect(f.describe(l10nDe), 'Flowig · Jump-Line');
       expect(f.isActive, isTrue);
       expect(f, const TrailListFilter(traits: {TrailTrait.flowy, TrailTrait.jumps}));
       expect(f.hashCode, const TrailListFilter(traits: {TrailTrait.flowy, TrailTrait.jumps}).hashCode);

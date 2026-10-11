@@ -8,6 +8,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../l10n/l10n.dart';
 import '../../models/trail.dart';
 import 'singletrail_scale.dart';
 import 'trail_list.dart';
@@ -39,6 +40,7 @@ class TrailFilterChips extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final filter = ref.watch(trailListFilterProvider);
     void set(TrailListFilter f) => ref.read(trailListFilterProvider.notifier).state = f;
+    final l = context.l10n;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
@@ -49,7 +51,7 @@ class TrailFilterChips extends ConsumerWidget {
             key: ValueKey('$keyPrefix-owner'),
             showSelectedIcon: false,
             segments: [
-              for (final v in TrailOwnerFilter.values) ButtonSegment(value: v, label: Text(v.label)),
+              for (final v in TrailOwnerFilter.values) ButtonSegment(value: v, label: Text(v.label(l))),
             ],
             selected: {filter.owner},
             onSelectionChanged: (s) => set(filter.copyWith(owner: s.first)),
@@ -66,13 +68,13 @@ class TrailFilterChips extends ConsumerWidget {
               FilterChip(
                 key: ValueKey('$keyPrefix-filter-on-map'),
                 avatar: const Icon(Icons.crop_free, size: 18),
-                label: const Text('Auf der Karte'),
+                label: Text(l.filterChipOnMap),
                 selected: ref.watch(trailListOnMapProvider),
                 onSelected: (v) => ref.read(trailListOnMapProvider.notifier).state = v,
               ),
             FilterChip(
               key: ValueKey('$keyPrefix-filter-grade'),
-              label: Text(filter.gradeActive ? filter.gradeText : 'S-Grad'),
+              label: Text(filter.gradeActive ? filter.gradeText(l) : l.filterChipGrade),
               // Kein Häkchen: Der Chip öffnet ein Blatt, er schaltet nicht.
               showCheckmark: false,
               avatar: const Icon(Icons.tune, size: 18),
@@ -81,7 +83,7 @@ class TrailFilterChips extends ConsumerWidget {
             ),
             FilterChip(
               key: ValueKey('$keyPrefix-filter-fresh'),
-              label: const Text('Neuer Hinweis'),
+              label: Text(l.filterChipFreshNote),
               selected: filter.freshNotesOnly,
               onSelected: (v) => set(filter.copyWith(freshNotesOnly: v)),
             ),
@@ -90,14 +92,14 @@ class TrailFilterChips extends ConsumerWidget {
               TrailTraitChip(
                 t,
                 key: ValueKey('$keyPrefix-filter-${t.db}'),
-                label: t == TrailTrait.jumps ? 'Jumps' : null,
+                label: t == TrailTrait.jumps ? l.filterChipJumps : null,
                 selected: filter.traits.contains(t),
                 onSelected: (v) => set(filter.copyWith(
                     traits: v ? {...filter.traits, t} : ({...filter.traits}..remove(t)))),
               ),
             FilterChip(
               key: ValueKey('$keyPrefix-filter-reported'),
-              label: const Text('Gemeldet'),
+              label: Text(l.filterChipReported),
               selected: filter.reportedOnly,
               onSelected: (v) => set(filter.copyWith(reportedOnly: v)),
             ),
@@ -105,7 +107,7 @@ class TrailFilterChips extends ConsumerWidget {
             // verblasste Sterne zeigen.
             FilterChip(
               key: ValueKey('$keyPrefix-filter-rating-open'),
-              label: const Text('Bewertung offen'),
+              label: Text(l.filterChipRatingOpen),
               selected: filter.ratingOpenOnly,
               onSelected: (v) => set(filter.copyWith(ratingOpenOnly: v)),
             ),
@@ -116,7 +118,7 @@ class TrailFilterChips extends ConsumerWidget {
             if (filter.stillValidOnly || ref.watch(stillValidQuestionsProvider).isNotEmpty)
               FilterChip(
                 key: ValueKey('$keyPrefix-filter-still-valid'),
-                label: const Text('Noch gültig?'),
+                label: Text(l.filterChipStillValid),
                 selected: filter.stillValidOnly,
                 onSelected: (v) => set(filter.copyWith(stillValidOnly: v)),
               ),
@@ -145,6 +147,7 @@ class _GradeRangeSheet extends ConsumerWidget {
     final filter = ref.watch(trailListFilterProvider);
     void set(TrailListFilter f) => ref.read(trailListFilterProvider.notifier).state = f;
     final theme = Theme.of(context);
+    final l = context.l10n;
     final lo = singletrailGrade(filter.minGrade), hi = singletrailGrade(filter.maxGrade);
     // Scrollbar: Quer auf dem Telefon ist das Blatt höher als der Platz.
     return SafeArea(
@@ -154,7 +157,7 @@ class _GradeRangeSheet extends ConsumerWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text('Schwierigkeit: ${filter.gradeText}',
+            Text(l.filterGradeSheetTitle(filter.gradeText(l)),
                 key: const ValueKey('grade-range-title'), style: theme.textTheme.titleMedium),
             const SizedBox(height: 8),
             RangeSlider(
@@ -179,13 +182,15 @@ class _GradeRangeSheet extends ConsumerWidget {
             ),
             const SizedBox(height: 12),
             Text(
-              lo == hi ? '${lo.label}: ${lo.short}' : '${lo.label}: ${lo.short}\n${hi.label}: ${hi.short}',
+              lo == hi
+                  ? '${lo.label}: ${lo.short(context.l10n)}'
+                  : '${lo.label}: ${lo.short(context.l10n)}\n${hi.label}: ${hi.short(context.l10n)}',
               style: theme.textTheme.bodyMedium,
             ),
             if (filter.gradeActive) ...[
               const SizedBox(height: 8),
               Text(
-                'Trails, die noch niemand eingeschätzt hat, sind nicht dabei.',
+                l.filterGradeSheetUngraded,
                 style: theme.textTheme.bodySmall,
               ),
             ],
@@ -198,12 +203,12 @@ class _GradeRangeSheet extends ConsumerWidget {
                   onPressed: filter.gradeActive
                       ? () => set(filter.copyWith(minGrade: kMinGrade, maxGrade: kMaxGrade))
                       : null,
-                  child: const Text('Alle Grade'),
+                  child: Text(l.filterGradeSheetReset),
                 ),
                 FilledButton(
                   key: const ValueKey('grade-range-done'),
                   onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('Fertig'),
+                  child: Text(l.commonDone),
                 ),
               ],
             ),

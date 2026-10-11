@@ -11,6 +11,8 @@ import 'package:trailbuddy/features/trails/trail_elevation.dart';
 import 'package:trailbuddy/features/trails/trail_geometry.dart';
 import 'package:trailbuddy/features/trails/trail_sheet.dart';
 
+import '../fakes/l10n_de.dart';
+
 const _vectors = <(List<double>, double, double, double)>[
   ([100, 101, 100, 101, 100, 90], 0, 2, 12),
   ([100, 101, 100, 101, 100, 90], 2, 0, 10),
@@ -96,10 +98,10 @@ void main() {
   });
 
   test('Anzeige: bergab zuerst, eben statt Null mit Vorzeichen', () {
-    expect(formatElevation((gain: 35.4, loss: 419.6)), '↓ 420 Hm · ↑ 35 Hm');
-    expect(formatMeanGrade(14.2), 'Ø 14 % Gefälle');
-    expect(formatMeanGrade(-3.4), 'Ø 3 % Steigung');
-    expect(formatMeanGrade(0.3), 'Ø eben');
+    expect(formatElevation(l10nDe, (gain: 35.4, loss: 419.6)), '↓ 420 Hm · ↑ 35 Hm');
+    expect(formatMeanGrade(l10nDe, 14.2), 'Ø 14 % Gefälle');
+    expect(formatMeanGrade(l10nDe, -3.4), 'Ø 3 % Steigung');
+    expect(formatMeanGrade(l10nDe, 0.3), 'Ø eben');
   });
 
   test('flacher Verbinder wird nicht zur Steilwand gestreckt', () {

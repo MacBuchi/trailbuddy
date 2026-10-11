@@ -8,6 +8,7 @@ import 'package:trailbuddy/features/trails/singletrail_scale.dart';
 
 import '../fakes/fake_backend.dart';
 import '../fakes/fake_trails.dart';
+import '../fakes/l10n_de.dart';
 import '../fakes/test_app.dart';
 
 void main() {
@@ -62,7 +63,7 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('grade-chip')));
     await settle(tester);
     expect(find.text('bob'), findsOneWidget);
-    expect(find.text(singletrailGrade(2).short), findsOneWidget);
+    expect(find.text(singletrailGrade(2).short(l10nDe)), findsOneWidget);
 
     await tester.tap(find.text('Was bedeuten S0 bis S5?'));
     await settle(tester);
@@ -70,7 +71,7 @@ void main() {
     for (final g in kSingletrailScale) {
       expect(find.byKey(ValueKey('sts-${g.value}')), findsOneWidget);
     }
-    expect(find.text(singletrailGrade(5).description), findsOneWidget);
+    expect(find.text(singletrailGrade(5).description(l10nDe)), findsOneWidget);
   });
 
   testWidgets('beim Angeben im Beitrag: Kurzfassung in der Auswahl, „?" öffnet die Skala',
@@ -83,15 +84,15 @@ void main() {
     // „Keine Angabe" über den Typ — das Feld ist eine Auswahl, kein Text.
     await tester.tap(find.widgetWithText(DropdownButtonFormField<int?>, 'Keine Angabe'));
     await settle(tester);
-    expect(find.text('S3 · ${singletrailGrade(3).short}'), findsWidgets);
-    await tester.tap(find.text('S3 · ${singletrailGrade(3).short}').last);
+    expect(find.text('S3 · ${singletrailGrade(3).short(l10nDe)}'), findsWidgets);
+    await tester.tap(find.text('S3 · ${singletrailGrade(3).short(l10nDe)}').last);
     await settle(tester);
 
     await tester.tap(find.descendant(
         of: dialog, matching: find.byTooltip('Singletrail-Skala erklären')));
     await settle(tester);
     expect(find.text('Singletrail-Skala'), findsOneWidget);
-    expect(find.text(singletrailGrade(3).description), findsOneWidget);
+    expect(find.text(singletrailGrade(3).description(l10nDe)), findsOneWidget);
   });
 
   testWidgets('fremder Trail, den ich nicht gefahren bin: keine eigene Einschätzung',

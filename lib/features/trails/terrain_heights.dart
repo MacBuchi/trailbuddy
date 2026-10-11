@@ -6,7 +6,7 @@
 //
 // - **Anzeige**: Ein Trail ohne aufgezeichnete Höhen bekommt sein Profil
 //   aus dem Geländemodell ([terrainProfileProvider]), beschriftet mit
-//   [kTerrainLabel]. M3 hat entlang einer Linie ~5 % Medianfehler im
+//   `heightsTerrainLabel` (ARB). M3 hat entlang einer Linie ~5 % Medianfehler im
 //   Abstieg gemessen — genug für die Anzeige.
 // - **Export**: Die GPX-Datei trägt dann die Geländehöhen, markiert in
 //   `<extensions>` der Spur (`gpx_writer.dart`). Der Import liest
@@ -28,14 +28,12 @@ import 'package:latlong2/latlong.dart';
 
 import '../../core/connectivity.dart';
 import '../../core/errors.dart';
+import '../../l10n/l10n.dart';
 import '../offline_areas/area_providers.dart' show areaHeightReaderProvider;
 import '../offline_areas/height_tiles.dart';
 import '../routing/online_fill.dart' show onlineHeightsFactoryProvider;
 import 'trail_elevation.dart';
 import 'trail_providers.dart' show trailByIdProvider;
-
-/// Die Beschriftung, wo Geländehöhen statt aufgezeichneter stehen.
-const kTerrainLabel = 'Höhen aus dem Geländemodell (90 m)';
 
 /// Die Höhe jedes Punkts aus [reader] — null, sobald einer keine hat.
 Future<List<double>?> terrainHeightsAt(HeightReader reader, List<LatLng> points) async {
@@ -129,13 +127,16 @@ class TerrainComparison {
   bool get suspicious => offsetSuspicious || spreadSuspicious;
 
   /// Der Satz im Import: was auffiel, in ganzen Metern.
-  String get reason {
-    final parts = <String>[
-      if (offsetSuspicious)
-        'liegen im Mittel ${offsetM.abs().round()} m ${offsetM > 0 ? 'über' : 'unter'} dem Gelände',
-      if (spreadSuspicious) 'springen bis ${spreadM.round()} m daneben',
-    ];
-    return 'Die Höhen der Datei ${parts.join(' und ')}.';
+  String reason(AppLocalizations l) {
+    final offset = offsetM.abs().round(), spread = spreadM.round();
+    final above = offsetM > 0;
+    return switch ((offsetSuspicious, spreadSuspicious)) {
+      (true, true) => above
+          ? l.heightsReasonAboveAndSpread(offset, spread)
+          : l.heightsReasonBelowAndSpread(offset, spread),
+      (true, false) => above ? l.heightsReasonAbove(offset) : l.heightsReasonBelow(offset),
+      _ => l.heightsReasonSpread(spread),
+    };
   }
 }
 

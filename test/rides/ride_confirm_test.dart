@@ -16,6 +16,7 @@ import 'package:trailbuddy/features/trails/trail_geometry.dart' show RecordingSo
 import 'package:trailbuddy/models/trail.dart';
 
 import '../fakes/fake_rides.dart';
+import '../fakes/l10n_de.dart';
 
 void main() {
   final t0 = DateTime.utc(2026, 9, 30, 10);
@@ -124,17 +125,17 @@ void main() {
 
   group('was die Benachrichtigung sagt', () {
     test('gesperrt mit Zustand: drei Knöpfe, der Name ist der Titel', () {
-      final n = confirmNoticeOf(target(condition: 2));
+      final n = confirmNoticeOf(l10nDe, target(condition: 2));
       expect(n.title, 'Hexenkessel');
       expect(n.body, 'Gemeldet: gesperrt · Zustand: Abgerockt — stimmt das?');
       expect(n.actions.map((a) => a.$2), ['Stimmt', 'Trail ist frei', 'Ändern…']);
     });
 
     test('„wieder frei" braucht kein „Trail ist frei"; Zustand allein auch nicht', () {
-      final open = confirmNoticeOf(target(status: TrailStatus.open));
+      final open = confirmNoticeOf(l10nDe, target(status: TrailStatus.open));
       expect(open.body, 'Wieder frei gemeldet — stimmt das?');
       expect(open.actions.map((a) => a.$1), [ConfirmChoice.confirm, ConfirmChoice.change]);
-      final cond = confirmNoticeOf(target(status: null, condition: 5));
+      final cond = confirmNoticeOf(l10nDe, target(status: null, condition: 5));
       expect(cond.body, 'Zustand: Top gepflegt — stimmt das?');
       expect(cond.actions.map((a) => a.$1), [ConfirmChoice.confirm, ConfirmChoice.change]);
     });

@@ -12,6 +12,7 @@ import 'package:go_router/go_router.dart' show StatefulNavigationShell;
 import '../../core/errors.dart';
 import '../../core/read_after_write.dart';
 import '../../core/router_branches.dart';
+import '../../l10n/l10n.dart';
 import '../friends/buddy_alias.dart';
 import '../rides/ride_split_sheet.dart' show SplitRequest, mapSplitRequestProvider;
 import 'gpx.dart';
@@ -36,8 +37,6 @@ final mergeProposalsForProvider = Provider.family<List<MergeProposal>, String>((
 /// hervor und sagt es oben, mit X zum Beenden.
 final mapComparePairProvider = StateProvider<({String duplicate, String target})?>((ref) => null);
 
-String _quoted(String name) => '„$name"';
-
 /// Der Vorschlag als Karte. [fromSheet]: steht im Trail-Blatt, das bei
 /// „Beide ansehen", „Kürzen" und nach dem Zusammenführen zugeht.
 class MergeProposalCard extends ConsumerStatefulWidget {
@@ -55,19 +54,18 @@ class _MergeProposalCardState extends ConsumerState<MergeProposalCard> {
 
   MergeProposal get p => widget.proposal;
 
-  String _lead() {
+  String _lead(AppLocalizations l) {
     final names = ref.watch(buddyNamesViewProvider);
     String who(String userId) {
       final d = [...p.duplicate.details, ...p.target.details].where((d) => d.userId == userId).firstOrNull;
       return names.of(userId, d?.username);
     }
 
-    final pair = '${_quoted(p.duplicate.displayName)} und ${_quoted(p.target.displayName)}';
+    final a = p.duplicate.displayName, b = p.target.displayName;
     return switch (p.source) {
-      ProposalSource.declared => '${p.byUsers.map(who).join(', ')} '
-          '${p.byUsers.length == 1 ? 'hält' : 'halten'} $pair für denselben Trail.',
-      ProposalSource.overlap => '$pair liegen fast aufeinander — '
-          '${(p.share * 100).round()} % der kürzeren Linie nebeneinander.',
+      ProposalSource.declared =>
+        l.mergeProposalDeclared(p.byUsers.length, p.byUsers.map(who).join(', '), a, b),
+      ProposalSource.overlap => l.mergeProposalOverlap(a, b, (p.share * 100).round()),
     };
   }
 
@@ -85,13 +83,14 @@ class _MergeProposalCardState extends ConsumerState<MergeProposalCard> {
     // VOR dem Schreiben geholt: Danach ist der Vorschlag weg, diese Karte
     // abgebaut — und „Rückgängig" griffe auf ein totes `ref`.
     final notifier = ref.read(trailsProvider.notifier);
+    final l = context.l10n;
     setState(() => _busy = true);
     try {
       final fresh = await notifier.markDistinct(a, b);
       messenger.showSnackBar(SnackBar(
-        content: Text('Gemerkt: verschiedene Trails${fresh ? '' : staleAfterWriteHint}'),
+        content: Text('${l.mergeDistinctDone}${fresh ? '' : staleAfterWriteHint}'),
         action: SnackBarAction(
-          label: 'Rückgängig',
+          label: l.commonUndo,
           onPressed: () async {
             try {
               await notifier.unmarkDistinct(a, b);
@@ -149,6 +148,7 @@ class _MergeProposalCardState extends ConsumerState<MergeProposalCard> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l = context.l10n;
     return Card(
       key: ValueKey('merge-proposal-${p.key}'),
       margin: const EdgeInsets.symmetric(vertical: 6),
@@ -161,33 +161,33 @@ class _MergeProposalCardState extends ConsumerState<MergeProposalCard> {
             Row(children: [
               const Icon(Icons.merge_type, size: 18),
               const SizedBox(width: 6),
-              Text('Sind das dieselben?', style: theme.textTheme.titleSmall),
+              Text(l.mergeProposalTitle, style: theme.textTheme.titleSmall),
             ]),
             const SizedBox(height: 4),
-            Text(_lead(), style: theme.textTheme.bodySmall),
+            Text(_lead(l), style: theme.textTheme.bodySmall),
             Wrap(
               spacing: 4,
               children: [
                 FilledButton.tonal(
                   key: ValueKey('merge-proposal-same-${p.key}'),
                   onPressed: _busy ? null : _same,
-                  child: const Text('Derselbe'),
+                  child: Text(l.mergeProposalSame),
                 ),
                 TextButton(
                   key: ValueKey('merge-proposal-distinct-${p.key}'),
                   onPressed: _busy ? null : _distinct,
-                  child: const Text('Verschieden'),
+                  child: Text(l.mergeProposalDistinct),
                 ),
                 TextButton(
                   key: ValueKey('merge-proposal-compare-${p.key}'),
                   onPressed: _busy ? null : _compare,
-                  child: const Text('Beide ansehen'),
+                  child: Text(l.mergeProposalCompare),
                 ),
                 if (p.trimmable != null)
                   TextButton(
                     key: ValueKey('merge-proposal-trim-${p.key}'),
                     onPressed: _busy ? null : _trim,
-                    child: const Text('Auf gemeinsamen Teil kürzen'),
+                    child: Text(l.mergeProposalTrim),
                   ),
               ],
             ),
@@ -205,23 +205,22 @@ class MergeProposalsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final proposals = ref.watch(mergeProposalsProvider);
+    final l = context.l10n;
     return Scaffold(
-      appBar: AppBar(title: const Text('Sind das dieselben?')),
+      appBar: AppBar(title: Text(l.mergeProposalTitle)),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
         children: [
           Text(
-            'Trails, die fast aufeinander liegen — ein Buddy hält sie für denselben, '
-            'oder der Abgleich hat sie nebeneinander gefunden. „Verschieden" merkt '
-            'sich die App, der Vorschlag kommt dann nicht wieder.',
+            l.mergeProposalsIntro,
             style: Theme.of(context).textTheme.bodyMedium,
           ),
           const SizedBox(height: 8),
           if (proposals.isEmpty)
-            const Padding(
-              key: ValueKey('merge-proposals-empty'),
-              padding: EdgeInsets.symmetric(vertical: 24),
-              child: Text('Nichts zu prüfen — keine doppelten Trails in Sicht.'),
+            Padding(
+              key: const ValueKey('merge-proposals-empty'),
+              padding: const EdgeInsets.symmetric(vertical: 24),
+              child: Text(l.mergeProposalsEmpty),
             ),
           for (final p in proposals) MergeProposalCard(proposal: p),
         ],

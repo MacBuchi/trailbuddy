@@ -10,6 +10,8 @@ import 'package:trailbuddy/core/widgets/safety_note.dart';
 import 'package:trailbuddy/features/help/help_screen.dart';
 import 'package:trailbuddy/features/trails/trail_report.dart';
 
+import 'fakes/l10n_de.dart';
+
 void main() {
   HelpStep step(String title) => kHelpSteps.firstWhere((s) => s.title == title);
 
@@ -37,6 +39,8 @@ void main() {
     // um, zieht die Anleitung mit, und der Test hält fest, dass das Wort
     // überhaupt darin vorkommt.
     expect(kReportFieldLabel, 'Meldung');
+    // Der Dialog liest das Wort seit #209 aus den ARB-Dateien.
+    expect(l10nDe.reportFieldLabel, kReportFieldLabel);
     expect(step('Dein Beitrag zum Trail').text, contains(kReportFieldLabel));
     expect(kHelpSteps.any((s) => s.text.contains('Status')), isFalse,
         reason: 'das alte Wort ist zurück');

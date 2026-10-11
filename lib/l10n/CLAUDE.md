@@ -41,8 +41,19 @@ entsteht zuerst dort) und `app_en.arb`; gelesen mit `context.l10n.<key>`
   Blätter 0.113.2 — alles unter `lib/features/map/` samt Blatt
   „Kartenebenen", Orte-Blatt, Legende und den Leisten des Karten-Screens
   (auch die des Planers, der Fahrt und des Ausgangskorbs, die dort
-  stehen). Noch keiner Stufe zugeordnet: `lib/features/offline_areas/`
-  und `lib/features/official/` (das Blatt eines offiziellen Trails).
+  stehen); (c) Trails, Trail-Blatt und Import 0.113.3 — alles unter
+  `lib/features/trails/` (Liste, Filter, Blatt, Hinweise, Meldungen,
+  „Noch gültig?", Zusammenführen, GPX-Import, Singletrail-Skala). Noch
+  deutsch, weil außerhalb: die Getter `TrailTrait`/`TrailStatus`/
+  `TrailVisibility.label` in `lib/models/trail.dart`, `RiderProfile.label`
+  (Stufe d), `staleAfterWriteHint`, `kQueuedHint` und `friendlyError` in
+  `lib/core/`, die Meldungen von `GpxFormatException`. Die Bestätigungs-
+  Benachrichtigung (`ride_confirm_notify.dart`, Service-Isolate ohne
+  `BuildContext`) holt ihre Texte fest über
+  `lookupAppLocalizations(Locale('de'))` — wie sie die Sprache wählt,
+  entscheidet Stufe (d). Noch keiner Stufe zugeordnet:
+  `lib/features/offline_areas/` und `lib/features/official/` (das Blatt
+  eines offiziellen Trails).
 - **Was deutsch bleibt, auch nach dem Umzug:** die `label:` von
   `RememberedFlag`, `openHostArchive`, `_moveNow` und Co. — das sind
   Kontexte für `error_reports` (Wochendigest des Betreibers), keine
@@ -58,10 +69,16 @@ entsteht zuerst dort) und `app_en.arb`; gelesen mit `context.l10n.<key>`
   (`test/fakes/l10n_de.dart`).
 - **Platzhalter bekommen fertig formatierte Werte**, solange ihr Helfer
   noch nicht umgezogen ist: `formatMeters`, `rideDurationLabel`,
-  `formatBytes`, `TrailListFilter.describe()` und `formatCachedAt`
-  (Datum als `28.9., 10:12`) sind deutsch, bis ihre Stufe kommt (c, d).
+  `formatRideDate`, `formatBytes` und `formatCachedAt` (Datum als
+  `28.9., 10:12`) sind deutsch, bis ihre Stufe kommt (d; `formatMeters`
+  liegt in `lib/core/geo.dart` und gehört keiner Stufe).
   Ein Satz mit Zahl ist ein ICU-Plural in der ARB-Datei, nie
   `n == 1 ? 'Trail' : 'Trails'` im Code.
+- **Kein Zweig aus einem einzelnen Wort** (`=0{MEIN}`, `select`):
+  `test/l10n_test.dart` liest Platzhalter mit einem einfachen Muster und
+  hielte `{MEIN}` für einen. Stattdessen zwei Schlüssel und die Wahl im
+  Code (`listTagMine` / `listTagMineWithBuddies`) oder ganze Sätze je Fall
+  (`heightsReason*`).
 - **Touren und Vorführungen** übernehmen Schritte über `_from(…, title)`
   mit dem deutschen Titel. Beim Umzug von `lib/features/help/` und
   `highlights/` müssen sie über einen Schlüssel zueinander finden, nicht

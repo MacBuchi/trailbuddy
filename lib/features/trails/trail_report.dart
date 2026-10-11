@@ -18,6 +18,7 @@ import '../../core/errors.dart';
 import '../../core/geo.dart' show formatMeters;
 import '../../core/line_geometry.dart';
 import '../../core/read_after_write.dart';
+import '../../l10n/l10n.dart';
 import '../../models/trail.dart';
 import '../friends/buddy_alias.dart';
 import '../map/position_provider.dart';
@@ -32,27 +33,29 @@ import 'trail_providers.dart';
 const kOnSiteMaxM = 200.0;
 
 /// Die Beschriftung der Meldung im Dialog (bis 0.48.0 „Status", Rework
-/// E7). Offen, weil die Kurzanleitung dasselbe Wort benutzt und
-/// `help_texts_test.dart` beide zusammenhält — ändert sich die
-/// Beschriftung, bricht der Test, nicht still der Text.
+/// E7), auf Deutsch — für die Kurzanleitung, die noch nicht umgezogen ist
+/// (#209, Stufe f). Der Dialog selbst liest `reportFieldLabel` aus den
+/// ARB-Dateien; `help_texts_test.dart` hält Konstante, ARB-Text und
+/// Anleitung zusammen — ändert sich die Beschriftung, bricht der Test,
+/// nicht still der Text.
 const kReportFieldLabel = 'Meldung';
 
 /// „heute", „gestern", „vor 3 Tagen", „vor 4 Monaten" — das Alter einer
 /// Meldung, ohne das Verb (das sagt die Zeile).
-String reportAgeLabel(DateTime at, {DateTime? now}) {
+String reportAgeLabel(AppLocalizations l, DateTime at, {DateTime? now}) {
   final days = (now ?? DateTime.now()).difference(at).inDays;
-  if (days <= 0) return 'heute';
-  if (days == 1) return 'gestern';
-  if (days < 60) return 'vor $days Tagen';
+  if (days <= 0) return l.reportAgeToday;
+  if (days == 1) return l.reportAgeYesterday;
+  if (days < 60) return l.reportAgeDays(days);
   final months = (days / 30.4).round();
-  if (months < 24) return 'vor $months Monaten';
-  return 'vor ${(days / 365).floor()} Jahren';
+  if (months < 24) return l.reportAgeMonths(months);
+  return l.reportAgeYears((days / 365).floor());
 }
 
 /// Was eine Meldung sagt, in Worten: „Gesperrt" bzw. „Ausgefahren".
-String reportValueLabel(TrailReport r) => r.kind == ReportKind.status
+String reportValueLabel(AppLocalizations l, TrailReport r) => r.kind == ReportKind.status
     ? r.status!.label
-    : trailCondition(r.condition!).label;
+    : trailCondition(r.condition!).label(l);
 
 /// Das Ergebnis des Melde-Dialogs.
 typedef ReportInput = ({TrailStatus? status, int? condition, bool onSite, String? note});
@@ -65,6 +68,7 @@ Future<void> reportTrail(BuildContext context, WidgetRef ref, Trail trail) async
   );
   if (input == null || !context.mounted) return;
   final messenger = ScaffoldMessenger.of(context);
+  final l = context.l10n;
   try {
     final outcome = await ref.read(trailsProvider.notifier).report(trail.id,
         status: input.status,
@@ -73,8 +77,8 @@ Future<void> reportTrail(BuildContext context, WidgetRef ref, Trail trail) async
         note: input.note);
     messenger.showSnackBar(SnackBar(
         content: Text(switch (outcome) {
-      WriteOutcome.done => 'Gemeldet',
-      WriteOutcome.doneStale => 'Gemeldet$staleAfterWriteHint',
+      WriteOutcome.done => l.reportDone,
+      WriteOutcome.doneStale => '${l.reportDone}$staleAfterWriteHint',
       WriteOutcome.queued => kQueuedHint,
     })));
   } catch (e, st) {
@@ -130,15 +134,13 @@ class _ReportDialogState extends ConsumerState<_ReportDialog> {
     }
   }
 
-  String get _confirmationText {
-    if (_ridden) return 'Du bist ihn gefahren — deine Meldung gilt als bestätigt.';
+  String _confirmationText(AppLocalizations l) {
+    if (_ridden) return l.reportConfirmedRidden;
     return switch (_site) {
-      _Site.onSite => 'Vor Ort (${formatMeters(_distance!)} zur Linie) — deine Meldung gilt als bestätigt.',
-      _Site.away => '${formatMeters(_distance!)} entfernt — deine Meldung steht als „zu bestätigen" da, '
-          'bis jemand vor Ort ist.',
-      _Site.noFix => 'Keine Position — deine Meldung steht als „zu bestätigen" da.',
-      _ => 'Nicht gefahren: Ohne Prüfung vor Ort steht deine Meldung als „zu bestätigen" da. '
-          'Zum Server geht nur, OB du vor Ort bist, nie wo.',
+      _Site.onSite => l.reportConfirmedOnSite(formatMeters(_distance!)),
+      _Site.away => l.reportUnconfirmedAway(formatMeters(_distance!)),
+      _Site.noFix => l.reportUnconfirmedNoFix,
+      _ => l.reportUnconfirmedUnchecked,
     };
   }
 
@@ -146,15 +148,16 @@ class _ReportDialogState extends ConsumerState<_ReportDialog> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final palette = AppPalette.of(context);
+    final l = context.l10n;
     final chosen = _status != null || _condition != null;
     return AlertDialog(
-      title: const Text('Melden'),
+      title: Text(l.reportDialogTitle),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(kReportFieldLabel, style: theme.textTheme.bodySmall),
+            Text(l.reportFieldLabel, style: theme.textTheme.bodySmall),
             const SizedBox(height: 4),
             Wrap(
               spacing: 6,
@@ -170,7 +173,7 @@ class _ReportDialogState extends ConsumerState<_ReportDialog> {
               ],
             ),
             const SizedBox(height: 12),
-            Text('Zustand', style: theme.textTheme.bodySmall),
+            Text(l.reportCondition, style: theme.textTheme.bodySmall),
             const SizedBox(height: 4),
             Wrap(
               spacing: 6,
@@ -179,8 +182,8 @@ class _ReportDialogState extends ConsumerState<_ReportDialog> {
                 for (final c in kTrailConditions)
                   ChoiceChip(
                     key: ValueKey('report-condition-${c.value}'),
-                    label: Text(c.label),
-                    tooltip: c.description,
+                    label: Text(c.label(context.l10n)),
+                    tooltip: c.description(context.l10n),
                     selected: _condition == c.value,
                     onSelected: (on) => setState(() => _condition = on ? c.value : null),
                   ),
@@ -196,14 +199,12 @@ class _ReportDialogState extends ConsumerState<_ReportDialog> {
                 maxLines: 2,
                 textCapitalization: TextCapitalization.sentences,
                 decoration: InputDecoration(
-                  labelText: 'Hinweis für Buddys (optional)',
-                  hintText: _status == TrailStatus.open
-                      ? 'z. B. Baum ist weggeräumt'
-                      : 'z. B. Baum liegt quer nach der zweiten Kehre',
+                  labelText: l.reportNoteLabel,
+                  hintText: _status == TrailStatus.open ? l.reportNoteHintOpen : l.reportNoteHintWarn,
                 ),
               ),
             const SizedBox(height: 8),
-            Text(_confirmationText,
+            Text(_confirmationText(l),
                 key: const ValueKey('report-confirmation'),
                 style: theme.textTheme.bodySmall?.copyWith(color: palette.muted)),
             if (!_ridden && _site != _Site.onSite)
@@ -214,7 +215,7 @@ class _ReportDialogState extends ConsumerState<_ReportDialog> {
                   style: TextButton.styleFrom(padding: EdgeInsets.zero),
                   onPressed: _site == _Site.checking ? null : _checkSite,
                   icon: const Icon(Icons.my_location, size: 18),
-                  label: Text(_site == _Site.checking ? 'Position wird geprüft …' : 'Ich bin vor Ort'),
+                  label: Text(_site == _Site.checking ? l.reportCheckingPosition : l.reportOnSite),
                 ),
               ),
           ],
@@ -223,7 +224,7 @@ class _ReportDialogState extends ConsumerState<_ReportDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Abbrechen'),
+          child: Text(l.commonCancel),
         ),
         FilledButton(
           key: const ValueKey('report-submit'),
@@ -238,7 +239,7 @@ class _ReportDialogState extends ConsumerState<_ReportDialog> {
                     note: note.isEmpty ? null : note,
                   ));
                 },
-          child: const Text('Melden'),
+          child: Text(l.reportSubmit),
         ),
       ],
     );
@@ -247,8 +248,8 @@ class _ReportDialogState extends ConsumerState<_ReportDialog> {
 
 /// Wer den Trail gemeldet hat, in einem Namen: „Du", der Alias, der
 /// Benutzername.
-String reporterName(TrailReport r, Trail trail, BuddyNames names) =>
-    r.userId == trail.myId ? 'Du' : names.of(r.userId, r.username);
+String reporterName(AppLocalizations l, TrailReport r, Trail trail, BuddyNames names) =>
+    r.userId == trail.myId ? l.reportYou : names.of(r.userId, r.username);
 
 /// Der Verlauf im Blatt (Betreiber, 2026-09-30: „zur Nachvollziehbarkeit
 /// … auch des Buddy Namen/Alias, der es gemeldet hat"): alles aus 90
@@ -265,11 +266,12 @@ class TrailReportsSection extends ConsumerWidget {
     final theme = Theme.of(context);
     final palette = AppPalette.of(context);
     final names = ref.watch(buddyNamesViewProvider);
+    final l = context.l10n;
     return Column(
       key: const ValueKey('trail-reports'),
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('MELDUNGEN',
+        Text(l.reportHistoryTitle,
             style: theme.textTheme.labelSmall?.copyWith(
                 color: palette.muted, fontWeight: FontWeight.w700, letterSpacing: 0.8)),
         for (final r in shown)
@@ -284,17 +286,18 @@ class TrailReportsSection extends ConsumerWidget {
                       ? (r.status!.warns ? Icons.warning_amber : Icons.check_circle_outline)
                       : Icons.terrain,
                   size: 20),
-              title: Text(
-                  '${r.kind == ReportKind.status ? 'Meldung' : 'Zustand'}: ${reportValueLabel(r)}'),
+              title: Text(r.kind == ReportKind.status
+                  ? l.reportHistoryStatus(reportValueLabel(l, r))
+                  : l.reportHistoryCondition(reportValueLabel(l, r))),
               subtitle: Text([
-                reporterName(r, trail, names),
-                reportAgeLabel(r.reportedAt),
+                reporterName(l, r, trail, names),
+                reportAgeLabel(l, r.reportedAt),
                 if (r.sending)
-                  'wird übertragen'
+                  l.reportSending
                 else if (r.pending)
-                  'wartet auf Übertragung'
+                  l.reportWaiting
                 else if (!r.confirmed)
-                  'zu bestätigen',
+                  l.reportUnconfirmed,
               ].join(' · ')),
             ),
           ),
@@ -322,6 +325,7 @@ class _OwnRatingPickerState extends ConsumerState<OwnRatingPicker> {
     final current = trail.myDetails ?? TrailDetails(trailId: trail.id, userId: trail.myId);
     setState(() => _saving = true);
     final messenger = ScaffoldMessenger.of(context);
+    final l = context.l10n;
     try {
       final outcome = await ref.read(trailsProvider.notifier).saveDetails(
           rating == null ? current.copyWith(clearRating: true) : current.copyWith(rating: rating));
@@ -329,8 +333,8 @@ class _OwnRatingPickerState extends ConsumerState<OwnRatingPicker> {
         case WriteOutcome.done:
           break;
         case WriteOutcome.doneStale:
-          messenger.showSnackBar(const SnackBar(
-              content: Text('Bewertung gespeichert$staleAfterWriteHint')));
+          messenger.showSnackBar(SnackBar(
+              content: Text('${l.reportRatingSaved}$staleAfterWriteHint')));
         case WriteOutcome.queued:
           messenger.showSnackBar(const SnackBar(content: Text(kQueuedHint)));
       }
@@ -346,16 +350,17 @@ class _OwnRatingPickerState extends ConsumerState<OwnRatingPicker> {
   Widget build(BuildContext context) {
     final mine = widget.trail.myDetails?.rating;
     final palette = AppPalette.of(context);
+    final l = context.l10n;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Deine Bewertung', style: Theme.of(context).textTheme.titleSmall),
+        Text(l.reportOwnRating, style: Theme.of(context).textTheme.titleSmall),
         Row(
           children: [
             for (var i = kRatingMin; i <= kRatingMax; i++)
               IconButton(
                 key: ValueKey('own-rating-$i'),
-                tooltip: '$i von $kRatingMax Sternen',
+                tooltip: l.reportStarTooltip(i, kRatingMax),
                 visualDensity: VisualDensity.compact,
                 onPressed: _saving ? null : () => _set(mine == i ? null : i),
                 icon: Icon(
@@ -386,7 +391,9 @@ Future<void> showRatingVotesSheet(BuildContext context, WidgetRef ref, Trail tra
     showDragHandle: true,
     builder: (sheetContext) {
       final theme = Theme.of(sheetContext);
+      final l = sheetContext.l10n;
       final n = trail.ratingVotes.length;
+      final median = trail.rating;
       return SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
@@ -394,15 +401,18 @@ Future<void> showRatingVotesSheet(BuildContext context, WidgetRef ref, Trail tra
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Bewertung', style: theme.textTheme.titleLarge),
-              Text(n == 0 ? 'Noch keine Bewertung' : 'Median ${trail.rating} von $kRatingMax · $n×',
+              Text(l.reportRatingTitle, style: theme.textTheme.titleLarge),
+              Text(
+                  n == 0 || median == null
+                      ? l.reportRatingNone
+                      : l.reportRatingMedian(median, kRatingMax, n),
                   style: theme.textTheme.bodyMedium),
               const SizedBox(height: 8),
               for (final d in trail.ratingVotes)
                 ListTile(
                   dense: true,
                   contentPadding: EdgeInsets.zero,
-                  title: Text(d.userId == trail.myId ? 'Du' : names.of(d.userId, d.username)),
+                  title: Text(d.userId == trail.myId ? l.reportYou : names.of(d.userId, d.username)),
                   trailing: RatingStars(d.rating),
                 ),
             ],
@@ -428,6 +438,7 @@ Future<void> showConditionVotesSheet(BuildContext context, WidgetRef ref, Trail 
     showDragHandle: true,
     builder: (sheetContext) {
       final theme = Theme.of(sheetContext);
+      final l = sheetContext.l10n;
       return SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
@@ -435,7 +446,7 @@ Future<void> showConditionVotesSheet(BuildContext context, WidgetRef ref, Trail 
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Zustand', style: theme.textTheme.titleLarge),
+              Text(l.reportCondition, style: theme.textTheme.titleLarge),
               const SizedBox(height: 8),
               for (final r in votes)
                 Opacity(
@@ -443,16 +454,16 @@ Future<void> showConditionVotesSheet(BuildContext context, WidgetRef ref, Trail 
                   child: ListTile(
                     dense: true,
                     contentPadding: EdgeInsets.zero,
-                    title: Text(reporterName(r, trail, names)),
+                    title: Text(reporterName(l, r, trail, names)),
                     subtitle: Text([
-                      trailCondition(r.condition!).label,
-                      reportAgeLabel(r.reportedAt),
-                      if (!r.confirmed) 'zu bestätigen',
+                      trailCondition(r.condition!).label(l),
+                      reportAgeLabel(l, r.reportedAt),
+                      if (!r.confirmed) l.reportUnconfirmed,
                     ].join(' · ')),
                   ),
                 ),
               for (final c in kTrailConditions)
-                Text('${c.label}: ${c.description}', style: theme.textTheme.bodySmall),
+                Text('${c.label(context.l10n)}: ${c.description(context.l10n)}', style: theme.textTheme.bodySmall),
             ],
           ),
         ),

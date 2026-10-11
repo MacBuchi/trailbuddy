@@ -13,6 +13,7 @@ import 'package:flutter/foundation.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../../core/search_text.dart';
+import '../../l10n/l10n.dart';
 import '../../models/trail.dart';
 import '../map/map_view/map_view.dart' show MapViewBounds;
 import 'still_valid.dart';
@@ -20,31 +21,42 @@ import 'trail_condition.dart' show trailConditionLabel;
 
 /// Wessen Trails.
 enum TrailOwnerFilter {
-  all('Alle'),
-  mine('Meine'),
-  buddies('Von Buddys');
+  all,
+  mine,
+  buddies;
 
-  const TrailOwnerFilter(this.label);
-  final String label;
+  /// Der Name im Umschalter (#209: aus den ARB-Dateien).
+  String label(AppLocalizations l) => switch (this) {
+        all => l.filterOwnerAll,
+        mine => l.filterOwnerMine,
+        buddies => l.filterOwnerBuddies,
+      };
 }
 
 enum TrailSort {
   /// Jüngster Beleg, Beitrag, Hinweis oder Meldung zuerst.
-  recent('Zuletzt aktiv'),
-  name('Name'),
-  length('Länge'),
-  descent('Abfahrt (Hm)'),
+  recent,
+  name,
+  length,
+  descent,
 
   /// Leicht zuerst; ohne Einschätzung ans Ende.
-  grade('Schwierigkeit'),
+  grade,
 
   /// Beste Bewertung zuerst (#101, Rework 3.1: „Sortieren nach … in der
   /// eigenen Liste: ja"); ohne Bewertung ans Ende. Nur die Sicht aus
   /// dem eigenen Netz — eine Rangliste darüber hinaus gibt es nie.
-  rating('Bewertung');
+  rating;
 
-  const TrailSort(this.label);
-  final String label;
+  /// Der Name im Sortier-Menü (#209: aus den ARB-Dateien).
+  String label(AppLocalizations l) => switch (this) {
+        recent => l.listSortRecent,
+        name => l.listSortName,
+        length => l.listSortLength,
+        descent => l.listSortDescent,
+        grade => l.listSortGrade,
+        rating => l.listSortRating,
+      };
 }
 
 /// Die Grenzen der Singletrail-Skala, S0 bis S5 — der Bereich, den der
@@ -80,11 +92,11 @@ class TrailListFilter {
 
   /// Der Bereich in Worten: „bis S2", „ab S3", „S1–S3", „nur S2" — und
   /// „S0–S5", wenn er nichts einschränkt.
-  String get gradeText {
-    if (minGrade == maxGrade) return 'nur ${gradeLabel(minGrade)}';
-    if (minGrade == kMinGrade && maxGrade < kMaxGrade) return 'bis ${gradeLabel(maxGrade)}';
-    if (maxGrade == kMaxGrade && minGrade > kMinGrade) return 'ab ${gradeLabel(minGrade)}';
-    return '${gradeLabel(minGrade)}–${gradeLabel(maxGrade)}';
+  String gradeText(AppLocalizations l) {
+    if (minGrade == maxGrade) return l.filterGradeOnly(gradeLabel(minGrade));
+    if (minGrade == kMinGrade && maxGrade < kMaxGrade) return l.filterGradeUpTo(gradeLabel(maxGrade));
+    if (maxGrade == kMaxGrade && minGrade > kMinGrade) return l.filterGradeFrom(gradeLabel(minGrade));
+    return l.filterGradeRange(gradeLabel(minGrade), gradeLabel(maxGrade));
   }
 
   /// Nur Trails mit einem neuen Hinweis eines Buddys (#7).
@@ -117,13 +129,13 @@ class TrailListFilter {
       traits.isNotEmpty;
 
   /// Was gefiltert ist, in Worten — für die Zeile auf der Karte.
-  String describe() => [
-        if (owner != TrailOwnerFilter.all) owner.label,
-        if (gradeActive) gradeText,
-        if (freshNotesOnly) 'neuer Hinweis',
-        if (reportedOnly) 'gemeldet',
-        if (ratingOpenOnly) 'Bewertung offen',
-        if (stillValidOnly) 'noch gültig?',
+  String describe(AppLocalizations l) => [
+        if (owner != TrailOwnerFilter.all) owner.label(l),
+        if (gradeActive) gradeText(l),
+        if (freshNotesOnly) l.filterDescribeFreshNote,
+        if (reportedOnly) l.filterDescribeReported,
+        if (ratingOpenOnly) l.filterDescribeRatingOpen,
+        if (stillValidOnly) l.filterDescribeStillValid,
         for (final t in TrailTrait.values)
           if (traits.contains(t)) t.label,
       ].join(' · ');
@@ -402,6 +414,7 @@ const kConditionWordMax = 2;
 ///
 /// [nameOf] löst einen Buddy auf (Alias vor Name, `BuddyNames.of`).
 List<({String text, TrailRowTagKind kind})> trailRowTags(
+  AppLocalizations l,
   Trail t, {
   required bool freshNote,
   required String Function(String userId, String? username) nameOf,
@@ -410,7 +423,7 @@ List<({String text, TrailRowTagKind kind})> trailRowTags(
     final failure = t.pendingFailure;
     return [
       failure == null
-          ? (text: 'WARTET AUF ÜBERTRAGUNG', kind: TrailRowTagKind.pending)
+          ? (text: l.listTagPending, kind: TrailRowTagKind.pending)
           // Eine Ablehnung ist ein Satz, kein Etikett — nicht in Versalien.
           : (text: failure, kind: TrailRowTagKind.failure),
     ];
@@ -420,7 +433,7 @@ List<({String text, TrailRowTagKind kind})> trailRowTags(
   final tags = <({String text, TrailRowTagKind kind})>[
     if (t.pendingDetails)
       (
-        text: t.sendingDetails ? 'BEITRAG WIRD ÜBERTRAGEN' : 'BEITRAG WARTET AUF ÜBERTRAGUNG',
+        text: t.sendingDetails ? l.listTagDetailsSending : l.listTagDetailsPending,
         kind: TrailRowTagKind.pending
       ),
     if (t.status.warns) (text: t.status.label.toUpperCase(), kind: TrailRowTagKind.warning),
@@ -428,11 +441,11 @@ List<({String text, TrailRowTagKind kind})> trailRowTags(
     // bestätigte: gedämpft, mit Fragezeichen („GESPERRT?").
     if (unconfirmed != null && unconfirmed != t.status)
       (text: '${unconfirmed.label.toUpperCase()}?', kind: TrailRowTagKind.unconfirmed),
-    if (freshNote) (text: 'NEUER HINWEIS', kind: TrailRowTagKind.note),
+    if (freshNote) (text: l.listTagFreshNote, kind: TrailRowTagKind.note),
     // Der Zustand hinter Meldung und Hinweis, nur wenn er schlecht ist —
     // „Gut" in jeder Zeile wäre Lärm.
     if (condition != null && condition <= kConditionWordMax)
-      (text: trailConditionLabel(condition).toUpperCase(), kind: TrailRowTagKind.condition),
+      (text: trailConditionLabel(l, condition).toUpperCase(), kind: TrailRowTagKind.condition),
   ];
   if (tags.isNotEmpty) return tags;
 
@@ -444,7 +457,7 @@ List<({String text, TrailRowTagKind kind})> trailRowTags(
     final n = buddies.length;
     return [
       (
-        text: n == 0 ? 'MEIN' : 'MEIN · $n ${n == 1 ? 'BUDDY' : 'BUDDYS'}',
+        text: n == 0 ? l.listTagMine : l.listTagMineWithBuddies(n),
         kind: TrailRowTagKind.mine,
       ),
     ];

@@ -20,6 +20,7 @@ import 'package:flutter/services.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../l10n/l10n.dart';
 import '../../models/trail.dart';
 
 /// Das URI-Schema, mit dem Android nach einer Karten-App fragt.
@@ -125,20 +126,26 @@ String? navigationLabelOf(Trail trail) => trail.hasName ? trail.displayName : nu
 /// dahinter wäre für niemanden. Die beiden Rückfälle dagegen sähen ohne
 /// Meldung aus wie ein Knopf, der nichts tut.
 Future<void> navigateToTrailHead(BuildContext context, Trail trail) =>
-    navigateToPoint(context, trail.start, name: navigationLabelOf(trail), what: 'des Trailkopfs');
+    navigateToPoint(context, trail.start, name: navigationLabelOf(trail), trailHead: true);
 
 /// Dasselbe für einen beliebigen Punkt (#177: „Route bis hier" mit der
-/// Navi-App). [what] steht im Satz der Rückfälle („Koordinaten des …").
-Future<void> navigateToPoint(BuildContext context, LatLng point, {String? name, String what = 'des Ziels'}) async {
+/// Navi-App). [trailHead] wählt den Satz der Rückfälle („Koordinaten des
+/// Trailkopfs …" statt „… des Ziels …") — ganze Sätze in den ARB-Dateien,
+/// kein Satzteil, den eine andere Sprache anders beugt (#209).
+Future<void> navigateToPoint(BuildContext context, LatLng point, {String? name, bool trailHead = false}) async {
   final messenger = ScaffoldMessenger.of(context);
+  final l = context.l10n;
   final outcome = await openInNavigationApp(lat: point.latitude, lng: point.longitude, label: name);
   if (outcome == NavigationOutcome.opened) return;
   final coordinates = formatCoordinates(point.latitude, point.longitude);
   messenger
     ..clearSnackBars()
     ..showSnackBar(SnackBar(
-      content: Text(outcome == NavigationOutcome.copiedNoApp
-          ? 'Keine Navi-App gefunden — Koordinaten $what kopiert: $coordinates'
-          : 'Koordinaten $what kopiert: $coordinates'),
+      content: Text(switch ((outcome == NavigationOutcome.copiedNoApp, trailHead)) {
+        (true, true) => l.navNoAppTrailHead(coordinates),
+        (true, false) => l.navNoAppTarget(coordinates),
+        (false, true) => l.navCopiedTrailHead(coordinates),
+        (false, false) => l.navCopiedTarget(coordinates),
+      }),
     ));
 }

@@ -14,6 +14,7 @@ import 'package:trailbuddy/features/trails/trail_import_screen.dart';
 import 'package:trailbuddy/models/trail.dart';
 
 import '../fakes/fake_heights.dart';
+import '../fakes/l10n_de.dart';
 
 const _line = [LatLng(48.0, 9.0), LatLng(48.005, 9.0), LatLng(48.009, 9.0)];
 
@@ -74,8 +75,8 @@ void main() {
       final c = compareToTerrain([for (final m in model) m + 120], model)!;
       expect(c.offsetM, closeTo(120, 1e-9));
       expect(c.suspicious, isTrue);
-      expect(c.reason, 'Die Höhen der Datei liegen im Mittel 120 m über dem Gelände.');
-      expect(compareToTerrain([for (final m in model) m - 80], model)!.reason, contains('80 m unter'));
+      expect(c.reason(l10nDe), 'Die Höhen der Datei liegen im Mittel 120 m über dem Gelände.');
+      expect(compareToTerrain([for (final m in model) m - 80], model)!.reason(l10nDe), contains('80 m unter'));
     });
 
     test('Sprünge fallen auf, auch ohne Versatz', () {
@@ -83,7 +84,7 @@ void main() {
       final c = compareToTerrain(file, model)!;
       expect(c.offsetSuspicious, isFalse);
       expect(c.spreadSuspicious, isTrue);
-      expect(c.reason, startsWith('Die Höhen der Datei springen bis'));
+      expect(c.reason(l10nDe), startsWith('Die Höhen der Datei springen bis'));
     });
 
     test('ohne Paare kein Vergleich', () {
