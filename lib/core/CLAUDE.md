@@ -80,7 +80,7 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
   - **Entprellt**: (Empfänger, Art, Trail) ist der Schlüssel in
     `app_internal.push_outbox`, fünf Minuten Ruhe, gedeckelt auf 30
     Minuten; je Empfänger EINE Meldung je Lauf. Ein erneutes Melden
-    desselben Status (nur `status_at`) löst nichts aus; zurück auf
+    desselben Status löst nichts aus; zurück auf
     „offen" schon (die gute Nachricht). Privat heißt: niemand.
   - **Ohne Vault-Geheimnisse räumt `push_flush` nur ab** — die drei
     Geheimnisse (`push_functions_url`, `push_job_secret`,

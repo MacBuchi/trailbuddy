@@ -201,8 +201,10 @@ begin
   perform tb_test.check((select count(*) from public.trail_recordings where trail_id = t) = 1, 'genau eine Aufzeichnung');
   perform tb_test.check((select quality from public.trail_recordings where trail_id = t) = 0.6::real, 'Qualität 0,6 für source=app');
   perform tb_test.check(exists (select 1 from public.trail_details where trail_id = t and user_id = ua
-                                  and visibility = 'buddies' and status = 'open'),
-                        'Beitrag angelegt: buddies, offen');
+                                  and visibility = 'buddies'),
+                        'Beitrag angelegt: buddies');
+  perform tb_test.check(not exists (select 1 from public.trail_reports where trail_id = t),
+                        'keine Meldung: ohne Meldung gilt offen');
   -- Die Testpunkte entstehen auf der Kugel (wie im Werkzeug), die Sicht
   -- misst auf dem Sphäroid: bei 48° N rund 0,3 % Unterschied.
   perform tb_test.check((select abs(length_m - 1000) < 10 from public.recordings_visible where trail_id = t),
@@ -533,32 +535,38 @@ begin
   perform tb_test.check((select count(*) from public.trail_recordings where trail_id = t1) = 3, 'drei Aufzeichnungen, ein Trail');
 end $$;
 
-\echo -- 15. Status: neue Aufzeichnung setzt den eigenen Beitrag auf offen, eine geplante nicht (Patch 011)
+\echo -- 15. Status: neue Aufzeichnung setzt die eigene Meldung auf offen, eine geplante nicht (Patch 011)
 do $$
 declare
   ua uuid := '11111111-1111-4111-8111-111111111111';
   t uuid := tb_test.t('half');
+  rep text := 'select public.report_trail(%L::uuid, %L::text, null::integer, false, %L::timestamptz, null::uuid)';
+  -- Die eigene jüngste Meldung — seit Patch 025 die einzige Stelle, an
+  -- der sie steht (vorher auch trail_details.status).
+  last_status text := 'select status from public.trail_reports where trail_id = %L and user_id = %L and kind = ''status'' order by reported_at desc, created_at desc limit 1';
+  shown text;
 begin
   -- Seit Patch 013 zählt eine Fahrt zu IHREM Datum und nur, wenn sie
   -- jünger ist als die Meldung. In einem DO-Block ist now() überall
   -- gleich, deshalb stehen die Zeiten hier ausdrücklich da.
-  perform tb_test.exec_as(ua, format('update public.trail_details set status = %L, status_at = now() - interval ''3 minutes'' where trail_id = %L and user_id = %L', 'closed', t, ua));
-  perform tb_test.check((select status from public.trail_details where trail_id = t and user_id = ua) = 'closed', 'Beitrag auf gesperrt gesetzt');
+  perform tb_test.exec_as(ua, format(rep, t, 'closed', now() - interval '3 minutes'));
+  execute format(last_status, t, ua) into shown;
+  perform tb_test.check(shown = 'closed', 'gesperrt gemeldet');
   perform tb_test.check(tb_test.contribute(ua, tb_test.jitter(tb_test.line(500), 3.0, 0.42), at => now() - interval '2 minutes') = t,
                         'Hälfte erneut gefahren ⇒ derselbe Trail');
-  perform tb_test.check((select status from public.trail_details where trail_id = t and user_id = ua) = 'open',
-                        'wer fährt, hat offen vorgefunden: Status wieder offen (Entscheidung 6)');
+  execute format(last_status, t, ua) into shown;
+  perform tb_test.check(shown = 'open', 'wer fährt, hat offen vorgefunden: Meldung wieder offen (Entscheidung 6)');
 
   -- Patch 011 (#100): Eine Datei ohne Fahrzeiten belegt keine Fahrt.
-  perform tb_test.exec_as(ua, format('update public.trail_details set status = %L, status_at = now() - interval ''1 minute'' where trail_id = %L and user_id = %L', 'closed', t, ua));
+  perform tb_test.exec_as(ua, format(rep, t, 'closed', now() - interval '1 minute'));
   perform tb_test.check(tb_test.contribute(ua, tb_test.jitter(tb_test.line(500), 3.0, 0.43), 'planned') = t,
                         'geplanter Import derselben Hälfte ⇒ derselbe Trail');
-  perform tb_test.check((select status from public.trail_details where trail_id = t and user_id = ua) = 'closed',
-                        'geplant ist nicht gefahren: Status bleibt gesperrt (Patch 011)');
+  execute format(last_status, t, ua) into shown;
+  perform tb_test.check(shown = 'closed', 'geplant ist nicht gefahren: Meldung bleibt gesperrt (Patch 011)');
   perform tb_test.check(tb_test.contribute(ua, tb_test.jitter(tb_test.line(500), 3.0, 0.44), 'import', at => now()) = t,
                         'Import mit Fahrzeiten ⇒ derselbe Trail');
-  perform tb_test.check((select status from public.trail_details where trail_id = t and user_id = ua) = 'open',
-                        'Import mit Fahrzeiten ist eine Fahrt: Status wieder offen');
+  execute format(last_status, t, ua) into shown;
+  perform tb_test.check(shown = 'open', 'Import mit Fahrzeiten ist eine Fahrt: Meldung wieder offen');
 end $$;
 
 \echo -- 16. Höhen je Punkt (Patch 002, Issue #14)
@@ -947,12 +955,11 @@ begin
   end loop;
   -- Ein alter Client schreibt per upsert nur seine Spalten: die Bewertung bleibt.
   perform tb_test.exec_as(ua, format(
-    'insert into public.trail_details (trail_id, user_id, name, grade, traits, link, visibility, status, status_at) '
-    'values (%L, %L, %L, 2, %L, null, %L, %L, null) '
+    'insert into public.trail_details (trail_id, user_id, name, grade, traits, link, visibility) '
+    'values (%L, %L, %L, 2, %L, null, %L) '
     'on conflict (trail_id, user_id) do update set name = excluded.name, grade = excluded.grade, '
-    'traits = excluded.traits, link = excluded.link, visibility = excluded.visibility, '
-    'status = excluded.status, status_at = excluded.status_at',
-    t, ua, 'Alter Client', '{flowy}', 'buddies', 'open'));
+    'traits = excluded.traits, link = excluded.link, visibility = excluded.visibility',
+    t, ua, 'Alter Client', '{flowy}', 'buddies'));
   perform tb_test.check((select rating from public.trail_details where trail_id = t and user_id = ua) = 4,
                         'Upsert eines alten Clients (ohne rating) lässt die Bewertung stehen');
 
@@ -968,22 +975,15 @@ begin
                         'vor Ort: Meldung und Zustand bestätigt, je eine Zeile');
   perform tb_test.check(exists (select 1 from app_internal.push_outbox where trail_id = t and recipient_id = ua and kind = 'trail_status'),
                         'eine bestätigte Meldung „gesperrt" geht an Anna');
-  -- Bernd hat keinen Beitrag: Der Abgleich zum alten Status legt keinen an.
   perform tb_test.check(not exists (select 1 from public.trail_details where trail_id = t and user_id = ub),
                         'Melden legt keinen Beitrag an');
 
-  -- Anna ist gefahren: bestätigt auch von zu Hause, und am Beitrag steht
-  -- der alte Status für Clients bis 0.48.0.
+  -- Anna ist gefahren: bestätigt auch von zu Hause.
   perform tb_test.exec_as(ua, format(rep, t, 'changed', null, false, null, null));
   perform tb_test.check((select confirmed from public.trail_reports where trail_id = t and user_id = ua and kind = 'status'),
                         'gefahren: bestätigt, auch ohne vor Ort');
-  perform tb_test.check((select status from public.trail_details where trail_id = t and user_id = ua) = 'changed',
-                        'bestätigte Meldung landet am Beitrag (alte Clients)');
-  -- Ein alter Client meldet am Beitrag: Es entsteht eine Meldung.
-  perform tb_test.exec_as(ua, format('update public.trail_details set status = %L, status_at = now() + interval ''1 hour'' where trail_id = %L and user_id = %L',
-                                     'destroyed', t, ua));
-  perform tb_test.check((select count(*) from public.trail_reports where trail_id = t and user_id = ua and status = 'destroyed') = 1,
-                        'Status am Beitrag (alter Client) wird zur Meldung');
+  -- Eine Zeit aus der Zukunft (falsche Uhr am Gerät) gewänne jeden Vergleich.
+  perform tb_test.exec_as(ua, format(rep, t, 'destroyed', null, false, now() + interval '1 hour', null));
   perform tb_test.check((select reported_at <= now() from public.trail_reports where trail_id = t and user_id = ua and status = 'destroyed'),
                         'eine Zeit in der Zukunft wird auf jetzt gekappt');
   -- Eine Fahrt von vor zwei Jahren verdrängt keine Meldung von heute.
@@ -1501,6 +1501,31 @@ begin
   perform tb_test.check((select count(*) from app_internal.push_messages) = 0, 'entfreundet: nichts wartet mehr');
   perform tb_test.check(tb_test.state_of(uh, 'select count(*) from app_internal.push_messages') = '42501',
                         'die Schlange ist für authenticated nicht lesbar');
+end $$;
+
+\echo -- 29. Altlasten der Clients bis 0.48.0 sind weg (Patch 023–025, #154)
+do $$
+declare
+  cols text;
+  fns text;
+  min_v int[];
+begin
+  select string_agg(column_name, ', ' order by column_name) into cols
+    from information_schema.columns
+   where table_schema = 'public' and table_name = 'trail_details'
+     and column_name in ('kind', 'status', 'status_at');
+  perform tb_test.check(cols is null, format('trail_details ohne kind/status/status_at (%s)', coalesce(cols, '–')));
+  select string_agg(p.proname, ', ' order by p.proname) into fns
+    from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+   where n.nspname = 'app_internal' and p.proname in ('reports_from_details', 'reports_to_details');
+  perform tb_test.check(fns is null, format('Abgleich Beitrag ↔ Meldung entfernt (%s)', coalesce(fns, '–')));
+  perform tb_test.check(not exists (select 1 from pg_trigger
+                                     where tgname in ('trail_details_reports', 'trail_reports_details')),
+                        'beide Trigger entfernt');
+  -- Wer älter als 0.49.0 ist, fragt status ab und bekäme nur noch Fehler:
+  -- Er muss die Sperre sehen, nicht eine kaputte Liste.
+  select string_to_array(minimum_supported_version, '.')::int[] into min_v from public.app_config;
+  perform tb_test.check(min_v >= array[0, 49, 0], format('minimum_supported_version mindestens 0.49.0 (%s)', array_to_string(min_v, '.')));
 end $$;
 
 \echo -- Alle Prüfungen bestanden.

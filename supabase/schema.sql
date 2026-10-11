@@ -148,7 +148,9 @@ create table public.app_config (
     check (minimum_supported_version ~ '^[0-9]+\.[0-9]+\.[0-9]+$'),
   updated_at timestamptz not null default now()
 );
-insert into public.app_config (id) values (true);
+-- 0.49.0 seit Patch 023 (#154): Ältere Clients lesen Spalten von
+-- trail_details, die Patch 024/025 entfernt haben.
+insert into public.app_config (id, minimum_supported_version) values (true, '0.49.0');
 
 -- ============================================================
 -- Tabellen: Trails (Konzept Abschnitt 3)
@@ -216,10 +218,8 @@ create table public.trail_details (
   name text check (name is null or char_length(name) between 1 and 80),
   description text check (description is null or char_length(description) <= 2000),
   grade smallint check (grade between 0 and 5),   -- Singletrail-Skala S0–S5
-  -- Veraltet seit Patch 009: nur für Clients bis 0.33.0, ersetzt durch
-  -- traits (erweitern → ausliefern → entfernen).
-  kind text check (kind in ('natural', 'flow', 'tech', 'jump', 'connection')),
-  -- Der Charakter (Patch 009, Issue #72): Mehrfachwahl je Beitrag.
+  -- Der Charakter (Patch 009, Issue #72): Mehrfachwahl je Beitrag. Die
+  -- frühere Einzelwahl `kind` hat Patch 024 entfernt (#154).
   traits text[] not null default '{}'
     constraint trail_details_traits_check check (
       traits <@ array['flowy', 'jumps', 'rocky', 'steep', 'uphill', 'natural', 'connection']::text[]
@@ -231,13 +231,9 @@ create table public.trail_details (
   -- In beide Richtungen fahrbar (Patch 016, #174): Ohne diese Angabe
   -- fährt der Planer den Trail nie gegen seine Richtung. Vorgabe aus.
   two_way boolean not null default false,
+  -- Die Meldung („gesperrt" …) steht seit Patch 013 in trail_reports;
+  -- status/status_at am Beitrag hat Patch 025 entfernt (#154).
   visibility text not null default 'buddies' check (visibility in ('buddies', 'private')),
-  -- Veraltet seit Patch 013: Die Meldung steht in trail_reports. status
-  -- und status_at bleiben für Clients bis 0.48.0 und werden in beide
-  -- Richtungen abgeglichen (reports_from_details, reports_to_details) —
-  -- erweitern → ausliefern → entfernen.
-  status text not null default 'open' check (status in ('open', 'closed', 'destroyed', 'changed')),
-  status_at timestamptz,
   -- Verweis auf die Quelle (Patch 012, #103): eine Vereinsseite o. Ä.,
   -- vorgeschlagen aus dem <link> der GPX-Datei. Nur https, ohne Query
   -- und Fragment — Freigabelinks von Tourenportalen tragen dort Tokens.
@@ -251,12 +247,8 @@ create table public.trail_details (
   primary key (trail_id, user_id)
 );
 create index trail_details_user_idx on public.trail_details (user_id);
-comment on column public.trail_details.kind is
-  'Veraltet seit Patch 009 (Issue #72): nur noch für Clients bis 0.33.0; ersetzt durch traits.';
 comment on column public.trail_details.two_way is
   'Patch 016 (#174): in beide Richtungen fahrbar — der Planer fährt den Trail sonst nie gegen seine Richtung.';
-comment on column public.trail_details.status is
-  'Veraltet seit Patch 013: die Meldung steht in trail_reports; bleibt für Clients bis 0.48.0 und wird abgeglichen.';
 
 -- Hinweise zu einem Trail für Buddys (Patch 004/005, Issue #7): „Baum
 -- liegt quer". Schreiben darf jeder, der den Trail sieht; mehrere je
@@ -535,8 +527,8 @@ $$;
 revoke all on function app_internal.has_ridden(uuid, uuid) from public, anon, authenticated;
 
 -- Die EINE Schreibstelle für Meldungen und Zustände (Patch 013): der
--- RPC report_trail, der Abgleich aus trail_details (alte Clients) und
--- contribute_recording schreiben hierüber. Eine bekannte client_id ist
+-- RPC report_trail und contribute_recording schreiben hierüber (bis
+-- Patch 025 auch der Abgleich aus trail_details.status). Eine bekannte client_id ist
 -- ein zweiter Versuch desselben Auftrags und legt nichts an. Gibt zurück,
 -- ob eine Zeile entstanden ist.
 create or replace function app_internal.put_report(
@@ -857,51 +849,6 @@ begin
 end $$;
 revoke all on function app_internal.sweep_old_reports() from public, anon, authenticated;
 
--- ---------------------------------------------------------------------
--- Meldung ↔ trail_details.status (Patch 013): Clients bis 0.48.0 lesen
--- und schreiben die Meldung nur am Beitrag. Beide Richtungen, damit
--- keiner etwas verpasst — erweitern → ausliefern → entfernen.
--- ---------------------------------------------------------------------
-
--- Alt → neu: Ändert jemand status oder status_at am Beitrag (ein alter
--- Client), entsteht eine Meldung. `pg_trigger_depth() > 1` heißt: Die
--- Änderung kam selbst aus reports_to_details — dann gibt es die Meldung
--- schon, und ohne die Sperre liefen die beiden Trigger im Kreis.
-create or replace function app_internal.reports_from_details()
-returns trigger
-language plpgsql security definer set search_path = public, app_internal as $$
-begin
-  if pg_trigger_depth() > 1 then return new; end if;
-  if new.status = 'open' and new.status_at is null then return new; end if;
-  if tg_op = 'UPDATE'
-     and new.status is not distinct from old.status
-     and new.status_at is not distinct from old.status_at then
-    return new;
-  end if;
-  perform app_internal.put_report(new.user_id, new.trail_id, 'status', new.status, null,
-                                  app_internal.has_ridden(new.user_id, new.trail_id),
-                                  coalesce(new.status_at, now()), null);
-  return new;
-end $$;
-revoke all on function app_internal.reports_from_details() from public, anon, authenticated;
-
--- Neu → alt: Eine BESTÄTIGTE Meldung landet am Beitrag des Meldenden,
--- wenn er einen hat und sie jünger ist. Unbestätigte nicht — ein alter
--- Client kennt kein „zu bestätigen" und zeigte sie als Tatsache.
-create or replace function app_internal.reports_to_details()
-returns trigger
-language plpgsql security definer set search_path = public as $$
-begin
-  if new.kind = 'status' and new.confirmed then
-    update trail_details d
-       set status = new.status, status_at = new.reported_at
-     where d.trail_id = new.trail_id and d.user_id = new.user_id
-       and new.reported_at > coalesce(d.status_at, '-infinity'::timestamptz);
-  end if;
-  return new;
-end $$;
-revoke all on function app_internal.reports_to_details() from public, anon, authenticated;
-
 -- updated_at am Beitrag pflegt die Datenbank, nicht der Client.
 create or replace function app_internal.touch_updated_at()
 returns trigger language plpgsql set search_path = '' as $$
@@ -913,12 +860,6 @@ revoke all on function app_internal.touch_updated_at() from public, anon, authen
 create trigger trail_details_touch
   before update on public.trail_details
   for each row execute function app_internal.touch_updated_at();
-create trigger trail_details_reports
-  after insert or update of status, status_at on public.trail_details
-  for each row execute function app_internal.reports_from_details();
-create trigger trail_reports_details
-  after insert on public.trail_reports
-  for each row execute function app_internal.reports_to_details();
 
 -- Aliase: Ende der Freundschaft löscht sie beider Seiten (PilzBuddy
 -- Patch 032; Definer, weil die delete-Policy jedem nur die EIGENEN gibt).
@@ -2514,5 +2455,8 @@ insert into public.applied_patches (filename) values
   ('patch_019_trail_merges.sql'),
   ('patch_020_merge_keeps_target_name.sql'),
   ('patch_021_buddy_messages.sql'),
-  ('patch_022_message_push.sql')
+  ('patch_022_message_push.sql'),
+  ('patch_023_min_version_049.sql'),
+  ('patch_024_drop_kind.sql'),
+  ('patch_025_drop_details_status.sql')
 on conflict do nothing;
