@@ -2,6 +2,27 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Doppelte Trails zusammenführen
+
+*Version 0.109.0, 2026-10-11*
+
+- **Neu:** Liegt ein Trail knapp neben einem anderen — zum Beispiel, weil
+  eine GPX-Datei ein paar Meter daneben aufgezeichnet ist oder eine
+  Anfahrt mitbringt —, steht im Trail-Blatt „Ist ein Duplikat …". Du
+  wählst den anderen Trail und welcher von beiden bleibt; vorgeschlagen
+  ist der mit mehr Beiträgen, sonst der ältere.
+- Danach ziehen deine Aufzeichnungen, dein Beitrag, deine Hinweise und
+  Meldungen zu dem Trail, der bleibt. Dessen Name und Einschätzung
+  gelten, leere Felder füllt das Duplikat.
+- Angeboten wird es nur, wenn die beiden grob beieinander liegen:
+  mindestens die Hälfte der kürzeren Linie höchstens 50 m daneben.
+- Deine Buddys, die beide Trails sehen und am Duplikat selbst nichts
+  haben, sehen es ebenfalls darunter. Wer selbst etwas daran hat,
+  behält es, bis er selbst entscheidet.
+- Im Blatt steht danach „Zusammengeführt: …", mit „Trennen", um es
+  rückgängig zu machen. Ohne Empfang geht es nicht — die App sagt es,
+  statt es später nachzuholen.
+
 ## Höhenmeter der Route stimmen wieder
 
 *Version 0.108.4, 2026-10-10*

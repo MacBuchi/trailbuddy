@@ -27,6 +27,7 @@ import 'trail_export.dart';
 import 'trail_geometry.dart';
 import 'trail_details_dialog.dart';
 import 'trail_link.dart';
+import 'trail_merge_sheet.dart';
 import 'trail_navigation.dart';
 import 'trail_notes.dart';
 import 'rating_stars.dart';
@@ -364,6 +365,9 @@ class _TrailSheetState extends ConsumerState<_TrailSheet> {
                   ),
                 ),
               ),
+            // Duplikate (#107): was bei mir unter diesem Trail steht, und
+            // „Ist ein Duplikat …", wenn einer nah genug daneben liegt.
+            TrailMergeSection(trail: trail),
             if (!trail.pending) ...[
               const SizedBox(height: 12),
               TrailNotesSection(trail: trail, seenBefore: _seenBefore, showAdd: false),

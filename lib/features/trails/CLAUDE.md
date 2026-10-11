@@ -319,3 +319,42 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
   läuft ein langes Blatt unter die Statusleiste, und der Griff ist
   unerreichbar. `test/flows/trail_sheet_close_flow_test.dart` (Gegenprobe
   ohne Controller: zwei Tests rot).
+- **Duplikate zusammenführen in der App** (#107 Schritt 2, seit 0.109.0;
+  Regel in `docs/konzept-trails.md` 6.1, Datenbank in
+  `supabase/CLAUDE.md`). „Ist ein Duplikat …" im Blatt
+  (`trail_merge_sheet.dart`), Kandidaten und „wer bleibt" pur in
+  `trail_merge_candidates.dart`, Zuordnungen in `lib/models/trail_merge.dart`.
+  Fünf Dinge, die man wissen muss:
+  - **„Grob beieinander" rechnet das Gerät wie `merge_near`**
+    (`mergeNearShare`: kürzere Linie alle 5 m abgetastet, Anteil
+    höchstens `kMergeNearM` = 50 m neben der anderen, Schwelle
+    `kMergeNearShare` = 0,5; beide geschätzt). Wer eine Zahl ändert,
+    ändert die Datenbank mit. Gerechnet wird mit `Trail.points` — der
+    besten sichtbaren Linie, wie `visible_line`. Der Knopf erscheint nur
+    mit einem Kandidaten (`mergeCandidatesProvider`, Rahmen-Vorfilter).
+  - **`buildTrails(merges:)` hängt um, `resolveMerges` entscheidet**:
+    nur `own` und `folded` verschieben, eigene vor fremden, mehrere
+    fremde Ziele nach Zahl der Erklärenden, dann der ältere Trail; Ketten
+    bis zum Ende (Richtung per XOR), ein Kreis bricht am ältesten Trail
+    mit fremder Kante — nie an einer eigenen. Hat jemand an A und B einen
+    Beitrag, gilt der an A. Die umgehängten Zeilen bleiben über ein
+    `Expando` je Ziel DASSELBE Objekt, sonst baute jedes Neuladen jeden
+    zusammengeführten Trail neu (Test „als DENSELBEN").
+  - **`Trail.mergedFrom` und `answersTo`**: Das Blatt nennt, was unter dem
+    Trail steht („von dir" mit „Trennen", sonst „von <Buddy>");
+    `trailByIdProvider` und `withPendingJobs` lösen eine alte Kennung
+    über `answersTo` auf (Push, Fokus, ein wartender Auftrag für B). Eine
+    B-Kennung, an der niemand mehr etwas hat, liefert der Server nicht
+    mehr — das Blatt schließt deshalb nach dem Zusammenführen, wie nach
+    dem Löschen.
+  - **Kein Ausgangskorb**, wie beim Löschen; ein `MergeRejectedException`
+    (22023 nicht nah genug, P0002 weg) ist eine Entscheidung des Servers
+    und geht NICHT nach `error_reports`.
+  - **Die Zuordnungen liegen im Zwischenspeicher** (`merges` im
+    `TrailSnapshot`, Rundlauf-Test; eine Kopie von vor 0.109.0 liest
+    sich ohne). Vorschlag, „verschieden" und Overlap-Kanten werden schon
+    gelesen und gespeichert, angezeigt erst in Schritt 3.
+  `test/trails/trail_merge_test.dart`, `test/flows/trail_merge_flow_test.dart`
+  (Gegenproben: Umhängen aus, eigene Zeile ohne Vorrang, Fehlerbericht
+  bei Ablehnung, Kopie ohne `merges`, Schwelle 0, Doppelbeitrag, Expando
+  aus — jede rot).

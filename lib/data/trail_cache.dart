@@ -25,14 +25,18 @@ import 'package:path_provider/path_provider.dart';
 
 import '../core/errors.dart';
 import '../models/trail.dart';
+import '../models/trail_merge.dart';
 
 /// Was das Netz auf einen Schlag liefert: die vier Tabellen des Netzes
-/// (die Meldungen seit Patch 013).
+/// (die Meldungen seit Patch 013) und die Zuordnungen von Duplikaten
+/// (`trail_merges()`, Patch 019, #107) — die gehören in die Kopie, sonst
+/// stünde ein zusammengeführter Trail ohne Empfang wieder doppelt da.
 typedef TrailSnapshot = ({
   List<TrailRecording> recordings,
   List<TrailDetails> details,
   List<TrailNote> notes,
   List<TrailReport> reports,
+  List<TrailMerge> merges,
 });
 
 /// Ein Abruf mit Herkunft: `cachedAt == null` heißt frisch aus dem Netz.
@@ -85,6 +89,7 @@ String encodeTrailCache({required String uid, required TrailSnapshot snapshot, r
       'details': [for (final d in snapshot.details) detailsToRow(d)],
       'notes': [for (final n in snapshot.notes) noteToRow(n)],
       'reports': [for (final r in snapshot.reports) r.toRow()],
+      'merges': [for (final m in snapshot.merges) m.toRow()],
     });
 
 /// Derselbe Text wie [encodeTrailCache], aber in Häppchen: Nach jeweils
@@ -117,6 +122,8 @@ Future<String> encodeTrailCacheInSlices({
     ..write(jsonEncode([for (final n in snapshot.notes) noteToRow(n)]))
     ..write(',"reports":')
     ..write(jsonEncode([for (final r in snapshot.reports) r.toRow()]))
+    ..write(',"merges":')
+    ..write(jsonEncode([for (final m in snapshot.merges) m.toRow()]))
     ..write('}');
   return out.toString();
 }
@@ -140,6 +147,8 @@ Future<String> encodeTrailCacheInSlices({
         notes: [for (final n in rows('notes')) TrailNote.fromJson(n)],
         // Fehlt bei einer Kopie von vor 0.49.0: dann eben keine Meldungen.
         reports: [for (final r in rows('reports')) ?TrailReport.fromJson(r)],
+        // Fehlt bei einer Kopie von vor 0.109.0: dann eben keine Zuordnungen.
+        merges: [for (final m in rows('merges')) ?TrailMerge.fromJson(m)],
       ),
       savedAt: savedAt.toLocal(),
     );

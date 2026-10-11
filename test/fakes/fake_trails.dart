@@ -3,8 +3,13 @@ import 'package:trailbuddy/core/errors.dart';
 import 'package:trailbuddy/data/trail_repository.dart';
 import 'package:trailbuddy/features/trails/trail_geometry.dart';
 import 'package:trailbuddy/features/trails/trail_link.dart';
+import 'package:trailbuddy/features/trails/trail_merge_candidates.dart';
 import 'package:trailbuddy/features/trails/trail_providers.dart';
 import 'package:trailbuddy/models/trail.dart';
+import 'package:trailbuddy/models/trail_merge.dart';
+
+/// Eine Zeile aus `app_internal.trail_aliases` (Patch 019).
+typedef FakeAlias = ({String userId, String trailId, String sameAs, bool reversed, DateTime createdAt});
 
 /// Spiegelt die RLS der Trail-Tabellen (Konzept 3): sichtbar ist ein
 /// Beleg, wenn er mir gehört oder einem Buddy, dessen Beitrag zu diesem
@@ -445,6 +450,199 @@ class FakeTrailRepository implements TrailRepository {
     reports.removeWhere((x) => x.trailId == trailId && x.userId == me);
     details.removeWhere((d) => d.trailId == trailId && d.userId == me);
     return n;
+  }
+
+  /// `app_internal.trail_aliases` und `trail_distinct` (Patch 019, #107).
+  final aliases = <FakeAlias>[];
+  final distinct = <({String userId, String a, String b})>[];
+  int mergeCalls = 0;
+  Object? failNextMerge;
+
+  /// Die beste Linie von [trailId], die ICH sehe — wie
+  /// `app_internal.visible_line` (höchste Qualität, dann die ältere).
+  TrailRecording? _visibleLine(String trailId) {
+    final seen = [
+      for (final r in recordings)
+        if (r.trailId == trailId && _visible(r.userId, trailId)) r,
+    ]..sort((a, b) {
+        final q = b.quality.compareTo(a.quality);
+        return q != 0 ? q : a.createdAt.compareTo(b.createdAt);
+      });
+    return seen.firstOrNull;
+  }
+
+  /// Spiegelt `app_internal.shares_on`: [person] hat an [trailId] eine
+  /// Aufzeichnung, deren Beitrag nicht privat ist.
+  bool _sharesOn(String person, String trailId) =>
+      recordings.any((r) => r.userId == person && r.trailId == trailId) &&
+      !details.any((d) =>
+          d.userId == person && d.trailId == trailId && d.visibility == TrailVisibility.private);
+
+  /// Spiegelt `app_internal.owns_contribution`.
+  bool _owns(String uid, String trailId) =>
+      recordings.any((r) => r.userId == uid && r.trailId == trailId) ||
+      details.any((d) => d.userId == uid && d.trailId == trailId);
+
+  /// Spiegelt `merge_own_into` (Patch 019). Die Richtung von B zu A
+  /// schätzt der Fake aus den Enden der Linien (die Datenbank aus den
+  /// Fußpunkten, `merge_near`); die Nähe rechnet er wie die App.
+  @override
+  Future<String> mergeInto({required String duplicateId, required String targetId}) async {
+    mergeCalls++;
+    if (failNextMerge != null) {
+      final e = failNextMerge!;
+      failNextMerge = null;
+      throw e;
+    }
+    final me = myId();
+    var target = targetId;
+    final dup = duplicateId;
+    if (dup == target) throw const MergeRejectedException(MergeRejection.notNear);
+    final known = aliases.where((a) => a.userId == me && a.trailId == dup).firstOrNull;
+    if (known != null) return known.sameAs;
+    final hop = aliases.where((a) => a.userId == me && a.trailId == target).firstOrNull;
+    if (hop != null) {
+      target = hop.sameAs;
+      if (target == dup) throw const MergeRejectedException(MergeRejection.notNear);
+    }
+    if (!_canSeeTrail(dup) || !_canSeeTrail(target)) {
+      throw const MergeRejectedException(MergeRejection.gone);
+    }
+    final la = _visibleLine(target)!, lb = _visibleLine(dup)!;
+    if (mergeNearShare(lb.points, la.points) < kMergeNearShare) {
+      throw const MergeRejectedException(MergeRejection.notNear);
+    }
+    LatLng startOf(TrailRecording r) => r.reversed ? r.points.last : r.points.first;
+    LatLng endOf(TrailRecording r) => r.reversed ? r.points.first : r.points.last;
+    double dist(LatLng p, LatLng q) => haversineM(p.latitude, p.longitude, q.latitude, q.longitude);
+    final flip = dist(startOf(lb), startOf(la)) > dist(startOf(lb), endOf(la));
+
+    // 1. Aufzeichnungen.
+    for (var i = 0; i < recordings.length; i++) {
+      final r = recordings[i];
+      if (r.userId == me && r.trailId == dup) recordings[i] = r.movedTo(target, flip: flip);
+    }
+    // 2. Beitrag: A gewinnt, leere Felder füllt B, privat gewinnt.
+    final db = details.where((d) => d.trailId == dup && d.userId == me).firstOrNull;
+    if (db != null) {
+      final da = details.where((d) => d.trailId == target && d.userId == me).firstOrNull;
+      details.remove(db);
+      if (da == null) {
+        details.add(db.withTrailId(target));
+      } else {
+        details[details.indexOf(da)] = TrailDetails(
+          trailId: target,
+          userId: me,
+          name: da.name ?? db.name,
+          description: da.description ?? db.description,
+          grade: da.grade ?? db.grade,
+          traits: da.traits.isEmpty ? db.traits : da.traits,
+          rating: da.rating ?? db.rating,
+          link: da.link ?? db.link,
+          twoWay: da.twoWay || db.twoWay,
+          visibility: TrailVisibility.private == da.visibility || TrailVisibility.private == db.visibility
+              ? TrailVisibility.private
+              : TrailVisibility.buddies,
+          updatedAt: DateTime.now(),
+        );
+      }
+    }
+    // 3. Hinweise und Meldungen.
+    for (var i = 0; i < notes.length; i++) {
+      if (notes[i].userId == me && notes[i].trailId == dup) notes[i] = notes[i].withTrailId(target);
+    }
+    for (var i = 0; i < reports.length; i++) {
+      if (reports[i].userId == me && reports[i].trailId == dup) {
+        reports[i] = reports[i].withTrailId(target);
+      }
+    }
+    // 4. Eigene Ketten X → B zeigen auf A; die neue Zuordnung.
+    for (var i = 0; i < aliases.length; i++) {
+      final a = aliases[i];
+      if (a.userId == me && a.sameAs == dup) {
+        aliases[i] = (userId: me, trailId: a.trailId, sameAs: target,
+            reversed: a.reversed != flip, createdAt: a.createdAt);
+      }
+    }
+    aliases.add((userId: me, trailId: dup, sameAs: target, reversed: flip, createdAt: DateTime.now()));
+    // 5. Ein eigenes „verschieden" fällt weg.
+    distinct.removeWhere((d) => d.userId == me && {d.a, d.b}.containsAll({dup, target}));
+    return target;
+  }
+
+  /// Spiegelt `unmerge_trail`.
+  @override
+  Future<void> unmerge(String duplicateId) async {
+    final me = myId();
+    aliases.removeWhere((a) => a.userId == me && a.trailId == duplicateId);
+  }
+
+  /// Spiegelt `trail_merges()` (Patch 019) ohne die Overlap-Kanten (die
+  /// legt nur der Abgleich in der Datenbank an).
+  @override
+  Future<List<TrailMerge>> fetchMerges() async {
+    if (failFetch != null) throw failFetch!;
+    final me = myId();
+    bool seen(String id) => _canSeeTrail(id);
+    bool buddy(String u) => u != me && (areFriends?.call(me, u) ?? false);
+    final own = [
+      for (final a in aliases)
+        if (a.userId == me && seen(a.trailId) && seen(a.sameAs)) a,
+    ];
+    final ownDistinct = [
+      for (final d in distinct)
+        if (d.userId == me && seen(d.a) && seen(d.b)) d,
+    ];
+    bool isDistinct(Iterable<({String userId, String a, String b})> rows, String x, String y) =>
+        rows.any((d) => {d.a, d.b}.containsAll({x, y}));
+    final claims = [
+      for (final a in aliases)
+        if (buddy(a.userId) &&
+            seen(a.trailId) &&
+            seen(a.sameAs) &&
+            (_sharesOn(a.userId, a.trailId) || _sharesOn(a.userId, a.sameAs)) &&
+            !own.any((o) => o.trailId == a.trailId || (o.trailId == a.sameAs && o.sameAs == a.trailId)) &&
+            !isDistinct(ownDistinct, a.trailId, a.sameAs))
+          a,
+    ]..sort((x, y) => x.createdAt.compareTo(y.createdAt));
+    final vetoes = [
+      for (final d in distinct)
+        if (buddy(d.userId) && (_sharesOn(d.userId, d.a) || _sharesOn(d.userId, d.b))) d,
+    ];
+    final judged = <String, TrailMerge>{};
+    for (final c in claims) {
+      final key = '${c.trailId}|${c.sameAs}';
+      final kind = _owns(me, c.trailId) ? TrailMergeKind.proposed : TrailMergeKind.folded;
+      final prev = judged[key];
+      judged[key] = TrailMerge(
+        trailId: c.trailId,
+        sameAs: c.sameAs,
+        kind: kind,
+        reversed: prev?.reversed ?? c.reversed,
+        byUsers: [...?prev?.byUsers, c.userId],
+      );
+    }
+    final rows = <TrailMerge>[
+      for (final o in own)
+        TrailMerge(trailId: o.trailId, sameAs: o.sameAs, kind: TrailMergeKind.own, reversed: o.reversed),
+      for (final d in ownDistinct)
+        TrailMerge(trailId: d.a, sameAs: d.b, kind: TrailMergeKind.distinct),
+      for (final j in judged.values)
+        if (j.kind == TrailMergeKind.proposed || !isDistinct(vetoes, j.trailId, j.sameAs)) j,
+    ];
+    return rows;
+  }
+
+  /// Eine Erklärung „[trailId] ist ein Duplikat von [sameAs]" von
+  /// [userId], ohne Prüfung — für Ausgangslagen mit Buddys.
+  void seedAlias(String userId, String trailId, String sameAs, {bool reversed = false, DateTime? at}) {
+    aliases.add((
+      userId: userId,
+      trailId: trailId,
+      sameAs: sameAs,
+      reversed: reversed,
+      createdAt: at ?? DateTime.now(),
+    ));
   }
 
   /// Ein Hinweis von [userId], ohne Prüfung — für Ausgangslagen in Tests.

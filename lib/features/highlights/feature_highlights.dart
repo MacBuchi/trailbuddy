@@ -524,6 +524,17 @@ const kFeatureHighlights = <FeatureHighlight>[
   ),
   // ─── Tipps ───────────────────────────────────────────────────────
   FeatureHighlight(
+    id: 'trail-merge',
+    since: '0.109.0',
+    kind: HighlightKind.tip,
+    tab: HighlightTab.trails,
+    icon: Icons.merge_type,
+    title: 'Doppelte Trails zusammenführen',
+    text: 'Liegt ein Trail knapp neben einem anderen — etwa nach einem GPX-Import —, '
+        'steht im Blatt „Ist ein Duplikat …". Deine Aufzeichnungen ziehen zu dem, der bleibt.',
+    target: '/trails',
+  ),
+  FeatureHighlight(
     id: 'tours',
     since: '0.63.0',
     kind: HighlightKind.tip,

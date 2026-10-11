@@ -593,6 +593,26 @@ final kHighlightDemos = <String, HighlightDemo>{
     ]),
   ),
   // ─── Tipps ─────────────────────────────────────────────────────
+  // Der Knopf selbst steht nur, wenn ein Trail nah genug daneben liegt —
+  // und ein Anker im Blatt darf nicht in `requires` stehen (er entsteht
+  // erst mit der Szene). Deshalb zeigt die Vorführung auf den Export, unter
+  // dem er steht.
+  'trail-merge': HighlightDemo(
+    route: '/trails',
+    script: _demo('trail-merge', const [
+      _openTrailFirst,
+      CoachStep(
+        title: 'Zwei Linien, ein Trail',
+        text: 'Liegt ein anderer Trail grob daneben, steht unter dem Export '
+            '„Ist ein Duplikat …". Du wählst, welcher bleibt; deine Aufzeichnungen, '
+            'dein Beitrag und deine Hinweise ziehen dorthin. „Trennen" macht es rückgängig.',
+        scene: TrailsCoach.sheet,
+        lit: [SheetCoach.export],
+        requires: [TrailsCoach.row],
+      ),
+      _noTrailYet,
+    ]),
+  ),
   'tours': HighlightDemo(
     route: '/profile/help',
     script: _demo('tours', const [

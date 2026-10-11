@@ -7,6 +7,7 @@ import 'package:trailbuddy/data/trail_cache.dart';
 import 'package:trailbuddy/data/trail_sharing.dart';
 import 'package:trailbuddy/features/trails/trail_geometry.dart';
 import 'package:trailbuddy/models/trail.dart';
+import 'package:trailbuddy/models/trail_merge.dart';
 
 TrailRecording rec(String trailId, {double lat = 48, List<double>? ele}) => TrailRecording(
       id: 'r-$trailId',
@@ -31,6 +32,7 @@ TrailSnapshot snap({int rating = 3, double lat = 48}) => (
       ],
       notes: [TrailNote(id: 'n1', trailId: 'b', userId: 'me', body: 'Baum', createdAt: DateTime.utc(2026, 9, 1))],
       reports: <TrailReport>[],
+      merges: <TrailMerge>[],
     );
 
 List<Trail> trailsOf(TrailSnapshot s, [List<Trail> previous = const []]) => buildTrails(
