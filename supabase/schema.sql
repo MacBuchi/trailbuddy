@@ -77,6 +77,31 @@ create table public.friend_aliases (
 );
 create index friend_aliases_friend_idx on public.friend_aliases (friend_id);
 
+-- Nachrichten zwischen Buddys (Patch 021, #34; PilzBuddy Patch 030).
+-- Bestätigte Buddys unbegrenzt, bei offener Anfrage höchstens drei je
+-- Absender (`may_message`); 30 Tage, erzwungen über Spalten-Grants und
+-- den Check; Ende der Freundschaft löscht beide Seiten (Trigger unten).
+-- Nicht Ende-zu-Ende-verschlüsselt (Datenschutzerklärung). Personen auf
+-- auth.users aus demselben Grund wie bei friend_aliases.
+create table public.buddy_messages (
+  id uuid primary key default gen_random_uuid(),
+  sender_id uuid not null default auth.uid()
+    references auth.users(id) on delete cascade,
+  recipient_id uuid not null references auth.users(id) on delete cascade,
+  body text not null check (char_length(btrim(body)) between 1 and 500),
+  created_at timestamptz not null default now(),
+  expires_at timestamptz not null default now() + interval '30 days',
+  read_at timestamptz,
+  check (sender_id <> recipient_id),
+  check (expires_at <= created_at + interval '30 days')
+);
+create index buddy_messages_pair_idx
+  on public.buddy_messages (sender_id, recipient_id, created_at);
+create index buddy_messages_recipient_idx
+  on public.buddy_messages (recipient_id);
+create index buddy_messages_expires_idx
+  on public.buddy_messages (expires_at);
+
 -- Feedback aus der App. Ohne Bilder und ohne Arten (das war PilzBuddy);
 -- `processed_at` setzt der Feedback-Bot, wenn er daraus ein Issue macht.
 create table public.feedback (
@@ -445,6 +470,20 @@ returns boolean language sql stable security definer set search_path = public as
     select 1 from friendships
     where (requester_id = a and addressee_id = b)
        or (requester_id = b and addressee_id = a));
+$$;
+
+-- Darf ich [other] schreiben? Angenommen ⇒ ja; offen ⇒ solange ich
+-- weniger als drei Nachrichten an [other] geschickt habe; sonst nein
+-- (Patch 021). Das Limit steht nur hier — die App zeigt es bloß vorab.
+create or replace function app_internal.may_message(other uuid)
+returns boolean language sql stable security definer set search_path = public as $$
+  select case
+    when app_internal.are_friends(auth.uid(), other) then true
+    when app_internal.involved_in_friendship(auth.uid(), other)
+      then (select count(*) from buddy_messages m
+             where m.sender_id = auth.uid() and m.recipient_id = other) < 3
+    else false
+  end;
 $$;
 
 -- Teilt [contributor] seinen Beitrag zu [trail] mit Buddys? Die
@@ -887,6 +926,36 @@ revoke all on function app_internal.aliases_on_unfriend() from public, anon, aut
 create trigger friendships_delete_aliases
   after delete on public.friendships
   for each row execute function app_internal.aliases_on_unfriend();
+
+-- Nachrichten: dasselbe für beide Richtungen des Verlaufs (Patch 021).
+create or replace function app_internal.messages_on_unfriend()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  delete from buddy_messages m
+  where (m.sender_id = old.requester_id and m.recipient_id = old.addressee_id)
+     or (m.sender_id = old.addressee_id and m.recipient_id = old.requester_id);
+  return old;
+end;
+$$;
+revoke all on function app_internal.messages_on_unfriend() from public, anon, authenticated;
+create trigger friendships_delete_messages
+  after delete on public.friendships
+  for each row execute function app_internal.messages_on_unfriend();
+
+-- Abgelaufene Nachrichten löschen (Patch 021). Die select-Policy blendet
+-- sie schon vorher aus; der Job hält nur die Tabelle klein.
+create or replace function app_internal.sweep_expired_messages()
+returns integer
+language plpgsql security definer set search_path = public as $$
+declare
+  n integer;
+begin
+  delete from buddy_messages where expires_at < now();
+  get diagnostics n = row_count;
+  return n;
+end;
+$$;
+revoke all on function app_internal.sweep_expired_messages() from public, anon, authenticated;
 
 -- ============================================================
 -- Push (Patch 008, #34): Fälligkeit, Empfänger, Auslöser, Versand
@@ -2106,6 +2175,7 @@ with (security_invoker = true) as
 alter table public.profiles          enable row level security;
 alter table public.friendships       enable row level security;
 alter table public.friend_aliases    enable row level security;
+alter table public.buddy_messages    enable row level security;
 alter table public.feedback          enable row level security;
 alter table public.error_reports     enable row level security;
 alter table public.app_config        enable row level security;
@@ -2174,6 +2244,21 @@ create policy fa_update on public.friend_aliases for update
     and app_internal.are_friends(owner_id, friend_id));
 create policy fa_delete on public.friend_aliases for delete
   using (owner_id = auth.uid());
+
+-- buddy_messages (Patch 021): lesen, was ich geschickt oder bekommen habe
+-- und was nicht abgelaufen ist; schreiben, solange `may_message` es
+-- erlaubt; gelesen markieren nur, was an mich ging; löschen nur eigene.
+create policy bm_select on public.buddy_messages for select
+  using ((sender_id = auth.uid() or recipient_id = auth.uid())
+     and expires_at > now());
+create policy bm_insert on public.buddy_messages for insert
+  with check (sender_id = auth.uid()
+    and app_internal.may_message(recipient_id));
+create policy bm_read on public.buddy_messages for update
+  using (recipient_id = auth.uid())
+  with check (recipient_id = auth.uid());
+create policy bm_delete on public.buddy_messages for delete
+  using (sender_id = auth.uid());
 
 -- feedback: eigene Wünsche einreichen und nachlesen
 create policy feedback_insert on public.feedback for insert
@@ -2265,6 +2350,11 @@ revoke all on all sequences in schema public from anon, authenticated;
 grant select, update on public.profiles to authenticated;
 grant select, insert, update, delete on public.friendships to authenticated;
 grant select, insert, update, delete on public.friend_aliases to authenticated;
+-- Spalten-Grants (Patch 021): anlegen nur Empfänger und Text, ändern nur
+-- `read_at` — sonst ließe sich `created_at` und damit die Frist verschieben.
+grant select, delete on public.buddy_messages to authenticated;
+grant insert (recipient_id, body) on public.buddy_messages to authenticated;
+grant update (read_at) on public.buddy_messages to authenticated;
 grant select on public.app_config to anon, authenticated;
 grant insert on public.error_reports to anon, authenticated;
 grant insert, select on public.feedback to authenticated;
@@ -2308,11 +2398,13 @@ begin
               'select app_internal.sweep_old_notes()')$cron$;
     execute $cron$select cron.schedule('reports-sweep', '41 3 * * *',
               'select app_internal.sweep_old_reports()')$cron$;
+    execute $cron$select cron.schedule('messages-sweep', '47 3 * * *',
+              'select app_internal.sweep_expired_messages()')$cron$;
     -- Jede Minute; ohne fällige Zeilen passiert nichts (Patch 008).
     execute $cron$select cron.schedule('push-flush', '* * * * *',
               'select app_internal.push_flush()')$cron$;
   else
-    raise notice 'pg_cron nicht verfügbar — sweep_orphan_trails(), sweep_old_notes(), sweep_old_reports() und push_flush() sind nicht eingeplant (lokaler Testlauf).';
+    raise notice 'pg_cron nicht verfügbar — sweep_orphan_trails(), sweep_old_notes(), sweep_old_reports(), sweep_expired_messages() und push_flush() sind nicht eingeplant (lokaler Testlauf).';
   end if;
 end $$;
 
@@ -2364,5 +2456,6 @@ insert into public.applied_patches (filename) values
   ('patch_017_min_trail_50.sql'),
   ('patch_018_feedback_client_id.sql'),
   ('patch_019_trail_merges.sql'),
-  ('patch_020_merge_keeps_target_name.sql')
+  ('patch_020_merge_keeps_target_name.sql'),
+  ('patch_021_buddy_messages.sql')
 on conflict do nothing;

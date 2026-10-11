@@ -63,9 +63,14 @@ abstract final class BuddysCoach {
   static const search = 'buddys.search';
   static const requests = 'buddys.requests';
 
-  /// Die erste Zeile unter „Meine Buddys" und ihr Stift.
+  /// Die erste Zeile unter „Meine Buddys", ihr Stift und ihre Sprechblase.
   static const row = 'buddys.row';
   static const alias = 'buddys.alias';
+  static const message = 'buddys.message';
+
+  /// Szene: der Verlauf mit dem ersten Buddy, mit dem Eingabefeld (#34).
+  static const chat = 'buddys.chat';
+  static const chatInput = 'buddys.chat.input';
 }
 
 /// Die Anker der Kurzanleitung — für die Vorführungen aus „Entdecken"
@@ -193,9 +198,10 @@ const kBuddysTourScript = CoachScript(
     CoachStep(
       title: 'Ein Buddy in der Liste',
       text: '„n gemeinsam" zählt Trails, die ihr beide kennt. Der Stift gibt dem '
-          'Buddy einen Namen, den nur du siehst.',
+          'Buddy einen Namen, den nur du siehst; die Sprechblase öffnet eure '
+          'Nachrichten.',
       lit: [BuddysCoach.row],
-      ring: [BuddysCoach.alias],
+      ring: [BuddysCoach.alias, BuddysCoach.message],
       requires: [BuddysCoach.row],
     ),
     CoachStep(

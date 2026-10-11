@@ -6,6 +6,7 @@ import '../../models/friendship.dart';
 import '../trails/trail_providers.dart';
 import 'buddy_alias.dart';
 import 'connect_summary.dart';
+import 'message_providers.dart';
 
 class FriendshipsNotifier extends AsyncNotifier<List<FriendshipEntry>>
     with ReadAfterWrite<List<FriendshipEntry>> {
@@ -45,9 +46,11 @@ class FriendshipsNotifier extends AsyncNotifier<List<FriendshipEntry>>
   Future<void> remove(String friendshipId) async {
     await ref.read(friendRepositoryProvider).remove(friendshipId);
     await reloadAfterWrite('Freundschaften neu laden');
-    // Ablehnen, zurückziehen, entfernen: Die Datenbank löscht den Alias
-    // beider Seiten (Trigger) — die Liste muss es mitbekommen.
+    // Ablehnen, zurückziehen, entfernen: Die Datenbank löscht Alias und
+    // Nachrichten beider Seiten (Trigger) — die Listen müssen es
+    // mitbekommen, sonst bliebe die Zahl am Reiter stehen.
     ref.invalidate(buddyAliasesProvider);
+    ref.invalidate(messagesProvider);
   }
 }
 

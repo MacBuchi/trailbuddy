@@ -233,6 +233,9 @@ check_get_protected "friendships-Embed" \
 # friend_aliases: die Spalten aus FriendRepository.aliasColumns.
 check_get_protected "friend_aliases-Spalten (Aliase)" \
   "/rest/v1/friend_aliases?select=owner_id,friend_id,alias,updated_at&limit=1"
+# buddy_messages: die Spalten aus MessageRepository.columns (Patch 021).
+check_get_protected "buddy_messages-Spalten (Nachrichten)" \
+  "/rest/v1/buddy_messages?select=id,sender_id,recipient_id,body,created_at,expires_at,read_at&limit=1"
 
 # recordings_visible: die Sicht, aus der die App die Linien liest
 # (GeoJSON + Länge, Konzept Abschnitt 3). Grant nur für authenticated.

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../core/app_colors.dart';
@@ -21,6 +22,7 @@ import 'buddy_alias.dart';
 import 'buddy_alias_dialog.dart';
 import 'connect_summary.dart';
 import 'friend_providers.dart';
+import 'message_providers.dart';
 
 class FriendsScreen extends ConsumerStatefulWidget {
   const FriendsScreen({super.key});
@@ -36,8 +38,32 @@ class _FriendsScreenState extends ConsumerState<FriendsScreen> {
   bool _searched = false;
   ({String name, ConnectSummary summary})? _connected;
 
+  /// Der erste angenommene Buddy — seinen Verlauf öffnet die Vorführung
+  /// „Nachrichten" (#34).
+  String? _firstBuddyId;
+  VoidCallback? _unregisterScene;
+
+  @override
+  void initState() {
+    super.initState();
+    _unregisterScene = ref.read(coachRegistryProvider).registerScene(BuddysCoach.chat, () async {
+      final id = _firstBuddyId;
+      if (id == null || !mounted) return () {};
+      final router = GoRouter.of(context);
+      final path = '/friends/chat/$id';
+      router.go(path);
+      // Zurück nur, wenn der Verlauf noch vorne ist.
+      return () {
+        if (router.routerDelegate.currentConfiguration.uri.path == path) {
+          router.go('/friends');
+        }
+      };
+    });
+  }
+
   @override
   void dispose() {
+    _unregisterScene?.call();
     _searchController.dispose();
     super.dispose();
   }
@@ -119,7 +145,8 @@ class _FriendsScreenState extends ConsumerState<FriendsScreen> {
       builder: (context) => AlertDialog(
         title: Text('$shownName als Buddy entfernen?'),
         content: const Text(
-            'Ihr seht danach gegenseitig keine geteilten Trails mehr.'),
+            'Ihr seht danach gegenseitig keine geteilten Trails mehr, und '
+            'eure Nachrichten werden für beide gelöscht.'),
         actions: [
           TextButton(
               onPressed: () => Navigator.of(context).pop(false),
@@ -147,6 +174,7 @@ class _FriendsScreenState extends ConsumerState<FriendsScreen> {
     final incoming = friendships.where((f) => f.isIncomingFor(uid)).toList();
     final outgoing = friendships.where((f) => f.isOutgoingFor(uid)).toList();
     final accepted = friendships.where((f) => f.isAccepted).toList();
+    _firstBuddyId = accepted.firstOrNull?.otherId(uid);
     final names = ref.watch(buddyNamesViewProvider);
     // „n gemeinsam" aus dem, was ohnehin geladen ist (Konzept 12: nur
     // zählen, was ich sehe). Ohne Trails steht die Zeile ohne Zahl da.
@@ -274,6 +302,9 @@ class _FriendsScreenState extends ConsumerState<FriendsScreen> {
                 _RequestCard(
                   name: f.otherUsername(uid),
                   colorKey: f.otherId(uid),
+                  // Wer anfragt, darf drei Nachrichten dazulegen — und
+                  // wer angefragt wird, zurückfragen (Patch 021).
+                  message: MessageButton(otherId: f.otherId(uid)),
                   primary: FilledButton(
                     onPressed: () => _accept(f),
                     style: FilledButton.styleFrom(
@@ -296,6 +327,7 @@ class _FriendsScreenState extends ConsumerState<FriendsScreen> {
                   name: f.otherUsername(uid),
                   colorKey: f.otherId(uid),
                   subtitle: 'Ausstehend',
+                  message: MessageButton(otherId: f.otherId(uid)),
                   cancel: _SquareIconButton(
                     onPressed: () => ref.read(friendshipsProvider.notifier).remove(f.id),
                     icon: Icons.close,
@@ -549,6 +581,7 @@ class _RequestCard extends StatelessWidget {
     required this.cancel,
     this.primary,
     this.subtitle,
+    this.message,
   });
 
   final String name;
@@ -556,6 +589,7 @@ class _RequestCard extends StatelessWidget {
   final Widget cancel;
   final Widget? primary;
   final String? subtitle;
+  final Widget? message;
 
   @override
   Widget build(BuildContext context) {
@@ -586,6 +620,7 @@ class _RequestCard extends StatelessWidget {
                 ],
               ),
             ),
+            ?message,
             if (primary != null) ...[primary!, const SizedBox(width: 8)],
             cancel,
           ],
@@ -623,8 +658,9 @@ class _SquareIconButton extends StatelessWidget {
 }
 
 /// Ein Buddy: oben Alias oder Name, darunter „14 gemeinsam" und — mit
-/// Alias — der Name. Rechts Alias und Entfernen; einen Chevron wie im
-/// Entwurf gibt es nicht, weil es (noch) keine Seite je Buddy gibt.
+/// Alias — der Name. Rechts Alias, Nachrichten und Entfernen; einen
+/// Chevron wie im Entwurf gibt es nicht, weil es keine Seite je Buddy
+/// gibt — der Verlauf ist die Sprechblase.
 class _BuddyRow extends StatelessWidget {
   const _BuddyRow({
     required this.id,
@@ -677,6 +713,9 @@ class _BuddyRow extends StatelessWidget {
           coach
               ? CoachAnchor(id: BuddysCoach.alias, child: AliasButton(friendId: id, username: username))
               : AliasButton(friendId: id, username: username),
+          coach
+              ? CoachAnchor(id: BuddysCoach.message, child: MessageButton(otherId: id))
+              : MessageButton(otherId: id),
           IconButton(
             onPressed: onRemove,
             icon: Icon(Icons.person_remove_outlined, color: palette.muted),
@@ -686,5 +725,27 @@ class _BuddyRow extends StatelessWidget {
       ),
     );
     return coach ? CoachAnchor(id: BuddysCoach.row, child: row) : row;
+  }
+}
+
+Key messageButtonKey(String otherId) => ValueKey('message-button-$otherId');
+
+/// Der Weg in den Verlauf mit einem Buddy (#34) — mit Zahl, solange
+/// Ungelesenes da ist.
+class MessageButton extends ConsumerWidget {
+  const MessageButton({super.key, required this.otherId});
+
+  final String otherId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final unread = ref.watch(unreadMessagesProvider)[otherId] ?? 0;
+    final icon = Icon(Icons.chat_bubble_outline, color: AppPalette.of(context).muted);
+    return IconButton(
+      key: messageButtonKey(otherId),
+      tooltip: unread == 0 ? 'Nachrichten' : '$unread ungelesen',
+      onPressed: () => context.go('/friends/chat/$otherId'),
+      icon: unread == 0 ? icon : Badge(label: Text('$unread'), child: icon),
+    );
   }
 }

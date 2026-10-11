@@ -133,6 +133,7 @@ List<Override> overridesFor(FakeBackend backend,
       profileRepositoryProvider
           .overrideWithValue(FakeProfileRepository(backend)),
       friendRepositoryProvider.overrideWithValue(FakeFriendRepository(backend)),
+      messageRepositoryProvider.overrideWithValue(FakeMessageRepository(backend)),
       feedbackRepositoryProvider
           .overrideWithValue(FakeFeedbackRepository(backend)),
       // Die Karte beobachtet die Trails, und die kämen sonst aus

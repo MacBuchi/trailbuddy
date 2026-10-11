@@ -50,12 +50,14 @@ verarbeitet*, *erforderlich oder optional* — plus die Zwecke.
 | **Persönliche Infos → Name** | Ja | Nein¹ | Erforderlich | App-Funktionalität, Kontoverwaltung | `profiles.username` (Pflicht, über das Präfix suchbar) und `display_name` |
 | **Persönliche Infos → Nutzer-IDs** | Ja | Nein | Erforderlich | App-Funktionalität, Kontoverwaltung | `profiles.id` (UUID aus `auth.users`) |
 | **App-Aktivität → Andere nutzergenerierte Inhalte** | Ja | **Ja²** (nur Feedback) | Optional | App-Funktionalität, Entwicklerkommunikation | Beiträge zu Trails (`trail_details`: Name, Beschreibung, S-Grad, Charakter, Sterne, Sichtbarkeit, Link), Meldungen und Zustand (`trail_reports`), Hinweise (`trail_notes`), Zuordnungen von Duplikaten (`trail_aliases`, `trail_distinct`; #107 — sichtbar für direkte Buddys, die beide Trails sehen), Aliase für Buddys (`friend_aliases`, nur für den Vergebenden sichtbar) — alles *nicht geteilt*¹. Feedback (`feedback`: Text, Typ, App-Version) wird als öffentliches GitHub-Issue veröffentlicht, ohne Benutzernamen — *geteilt*² |
+| **Nachrichten → Andere In-App-Nachrichten** | Ja | Nein¹ | Optional | App-Funktionalität | `buddy_messages` (#34, Patch 021): Text, Absender, Empfänger, Zeitpunkt, gelesen. Nur Absender und Empfänger sehen sie, 30 Tage, nicht Ende-zu-Ende-verschlüsselt (Datenschutzerklärung). Schreiben nur unter Buddys oder bei offener Anfrage (höchstens drei je Seite) |
 | **App-Info und -Leistung → Absturzprotokolle** | Ja | Nein | Erforderlich | App-Funktionalität | `error_reports`: Kontext, Fehlertyp, Meldung, Stack, App-Version, Plattform, ggf. Nutzer-id. Dazu beim nächsten Start Androids eigene Beendigungsgründe (ANR, Absturz, nativer Absturz mit Tombstone) — keine Position, keine Trails |
 | **App-Info und -Leistung → Diagnose** | Ja | Nein | Erforderlich | App-Funktionalität | Speicherwerte (RSS/PSS in MB) und der Haupt-Thread-Auszug, die mit einem Beendigungsgrund kommen (`AppExit.summary`) |
 | **Geräte- oder andere IDs** | Ja⁴ | **Ja⁴** | Optional | App-Funktionalität | `push_devices.token` — die FCM-Gerätekennung, sobald jemand Benachrichtigungen einschaltet |
 
 **Ausdrücklich NICHT erhoben** — im Formular leer lassen: Fotos, Videos,
-Audio, Kontakte, Kalender, Nachrichten, Finanzdaten, Gesundheits- und
+Audio, Kontakte, Kalender, E-Mails und SMS (die Nachrichten zwischen
+Buddys stehen oben unter „Andere In-App-Nachrichten"), Finanzdaten, Gesundheits- und
 Fitnessdaten (siehe ⁵), Web-Browsing-Verlauf, installierte Apps, keine
 Advertising-ID (`error_reports.platform` ist „android"/„web").
 
@@ -327,7 +329,7 @@ Ehrlich antworten, sonst passt die Bewertung nicht zum Binary:
 - Gewalt, Sexualität, Drogen, Glücksspiel: **nein**.
 - **Können Nutzer miteinander interagieren oder Inhalte austauschen?**
   **Ja** — Buddy-Verbindungen, geteilte Trails, Meldungen und Hinweise,
-  Feedback.
+  Nachrichten zwischen zwei Buddys (#34), Feedback.
 - **Können Nutzer ihren Standort mit anderen teilen?** **Ja** —
   beigesteuerte Trail-Linien sind für Buddys sichtbar. Kein Live-Standort.
 - Nutzergenerierte Inhalte werden nicht moderiert; Feedback wird

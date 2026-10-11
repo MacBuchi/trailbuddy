@@ -74,6 +74,18 @@ class FeatureHighlight {
 const kFeatureHighlights = <FeatureHighlight>[
   // ─── Highlights ──────────────────────────────────────────────────
   FeatureHighlight(
+    id: 'messages',
+    since: '0.111.0',
+    kind: HighlightKind.highlight,
+    tab: HighlightTab.buddys,
+    icon: Icons.chat_bubble_outline,
+    title: 'Nachrichten an deine Buddys',
+    text: 'Die Sprechblase neben einem Buddy öffnet eure Nachrichten — bei einer '
+        'offenen Anfrage schon bis zu drei, damit man weiß, wer fragt. Nach 30 '
+        'Tagen sind sie weg.',
+    target: '/friends',
+  ),
+  FeatureHighlight(
     id: 'whole-region',
     since: '0.108.0',
     kind: HighlightKind.highlight,

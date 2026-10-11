@@ -713,6 +713,29 @@ final kHighlightDemos = <String, HighlightDemo>{
     route: '/',
     script: _demo('my-position', [_from(kMapTourScript, 'Zu dir und zu uns')]),
   ),
+  'messages': HighlightDemo(
+    route: '/friends',
+    script: _demo('messages', const [
+      CoachStep(
+        title: 'Zum Verlauf',
+        text: 'Die Sprechblase neben einem Buddy öffnet eure Nachrichten. Steht '
+            'eine Zahl daran, ist etwas ungelesen.',
+        lit: [BuddysCoach.message],
+        ring: [],
+        gesture: CoachGesture.tap,
+        requires: [BuddysCoach.message],
+      ),
+      CoachStep(
+        title: 'Schreib los',
+        text: 'Bis zu 500 Zeichen. Nach 30 Tagen verschwinden Nachrichten wieder, '
+            'und wer einen Buddy entfernt, löscht den Verlauf für beide.',
+        scene: BuddysCoach.chat,
+        lit: [BuddysCoach.chatInput],
+        requires: [BuddysCoach.message],
+      ),
+      _findBuddyFirst,
+    ]),
+  ),
   'buddy-alias': HighlightDemo(
     route: '/friends',
     script: _demo('buddy-alias', [
