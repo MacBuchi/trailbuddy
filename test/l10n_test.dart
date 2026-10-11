@@ -11,10 +11,14 @@ import 'package:trailbuddy/core/app_distribution.dart';
 import 'package:trailbuddy/features/map/map_legend.dart';
 import 'package:trailbuddy/features/map/poi.dart';
 import 'package:trailbuddy/features/map/way_layer.dart';
+import 'package:trailbuddy/features/trails/singletrail_scale.dart';
+import 'package:trailbuddy/features/trails/trail_condition.dart';
+import 'package:trailbuddy/features/trails/trail_list.dart';
 import 'package:trailbuddy/l10n/l10n.dart';
 
 import 'fakes/fake_backend.dart';
 import 'fakes/fake_settings.dart';
+import 'fakes/fake_trails.dart';
 import 'fakes/test_app.dart';
 
 Map<String, dynamic> _arb(String lang) =>
@@ -201,6 +205,70 @@ void main() {
         final legend = [for (final s in legendSamples(l)) s.label];
         expect(legend.toSet(), hasLength(legend.length), reason: '$locale: Legende');
         expect({for (final c in WayClass.values) c.label(l)}, hasLength(WayClass.values.length));
+      }
+    });
+  });
+
+  // Stufe (c): Trails, Trail-Blatt und Import. Wie oben: Ein Text, der
+  // beim Umzug im Code stehen blieb, wäre hier deutsch.
+  group('die Trails auf Englisch', () {
+    Future<void> pumpTrails(WidgetTester tester) async {
+      final backend = FakeBackend();
+      final anna = backend.addUser(username: 'anna');
+      backend.signInAs(anna.id);
+      final trails = FakeTrailRepository(
+          myId: () => backend.currentUserId ?? '', areFriends: backend.areFriends);
+      trails.seedTrail(anna.id, name: 'Roßkopf Süd', grade: 1);
+      trails.seedTrail(anna.id, name: 'Hexentanz', lat: 48.1, grade: 4);
+      await pumpApp(tester, backend,
+          trails: trails,
+          settings: FakeSettings(),
+          extraOverrides: [appLocaleProvider.overrideWithValue(const Locale('en'))]);
+      await settle(tester, frames: 20);
+      await openTab(tester, 'Trails');
+      await settle(tester, frames: 20);
+    }
+
+    testWidgets('Liste, Suche und Filter', (tester) async {
+      await pumpTrails(tester);
+      for (final text in ['S grade', 'New note', 'Reported', 'Rating open', 'My trails (2)']) {
+        expect(find.text(text), findsOneWidget, reason: text);
+      }
+      expect(find.text('MINE'), findsNWidgets(2));
+      expect(find.text('S-Grad'), findsNothing);
+      expect(find.text('MEIN'), findsNothing);
+      await tester.enterText(find.byKey(const ValueKey('trail-search')), 'rosskopf sued');
+      await settle(tester);
+      expect(find.text('One trail found.'), findsOneWidget);
+      expect(find.byTooltip('Clear search'), findsOneWidget);
+      expect(find.text('Ein Trail gefunden.'), findsNothing);
+    });
+
+    testWidgets('das Trail-Blatt', (tester) async {
+      await pumpTrails(tester);
+      await tester.tap(find.text('Hexentanz'));
+      await settle(tester);
+      for (final text in ['Only you have recorded this trail.', 'LENGTH', 'ELEVATION', 'S GRADE']) {
+        expect(find.text(text), findsOneWidget, reason: text);
+      }
+      expect(find.text('LÄNGE'), findsNothing);
+    });
+
+    test('Skala, Zustand, Sortierung und Besitz sind in beiden Sprachen benannt und verschieden', () {
+      for (final locale in AppLocalizations.supportedLocales) {
+        final l = lookupAppLocalizations(locale);
+        final groups = <String, List<String>>{
+          'Skala kurz': [for (final g in kSingletrailScale) g.short(l)],
+          'Skala lang': [for (final g in kSingletrailScale) g.description(l)],
+          'Zustand': [for (final c in kTrailConditions) c.label(l)],
+          'Zustand lang': [for (final c in kTrailConditions) c.description(l)],
+          'Sortierung': [for (final s in TrailSort.values) s.label(l)],
+          'Besitz': [for (final o in TrailOwnerFilter.values) o.label(l)],
+        };
+        for (final MapEntry(key: what, value: names) in groups.entries) {
+          expect(names.where((n) => n.trim().isEmpty), isEmpty, reason: '$locale: $what');
+          expect(names.toSet(), hasLength(names.length), reason: '$locale: $what');
+        }
       }
     });
   });
