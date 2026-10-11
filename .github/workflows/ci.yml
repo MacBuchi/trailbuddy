@@ -150,8 +150,8 @@ jobs:
   # Probelauf gegen einen lokalen Supabase-Stack (supabase/config.toml): beide
   # Wege, die es in der Wirklichkeit gibt — Bestand (Basis-Schema, dann nur
   # die Patches dieses PRs) und Frischinstallation (nur schema.sql). Dazu der
-  # Abgleich mit echten Linien (tool/matcher_check.sql) und die Auth-Flows
-  # gegen echtes GoTrue. Erst wenn beides grün ist, fasst der Schema Check
+  # Abgleich mit echten Linien (tool/matcher_check.sql), die Auth-Flows
+  # gegen echtes GoTrue und die Hinweis-Fotos gegen echten Storage. Erst wenn beides grün ist, fasst der Schema Check
   # die Live-Datenbank an.
   schema-dry-run:
     name: Schema Dry Run
@@ -206,6 +206,11 @@ jobs:
         env:
           SUPABASE_DB_URL: postgresql://postgres:postgres@127.0.0.1:54522/postgres
         run: bash tool/push_flush_check.sh
+      # Storage gibt es lokal nur als Shim; die Policies auf
+      # storage.objects und das Abräumen des Bots sieht erst der echte
+      # Dienst (Patch 026, #37).
+      - name: Hinweis-Fotos end-to-end prüfen (Bestand)
+        run: bash tool/photo_access_check.sh
       - name: Datenbank auf null zurücksetzen
         run: supabase db reset
       # Derselbe Weg wie beim ersten Lauf gegen ein leeres Live-Projekt:
@@ -229,6 +234,8 @@ jobs:
         run: psql "postgresql://postgres:postgres@127.0.0.1:54522/postgres" -v ON_ERROR_STOP=1 -q -f tool/grants_check.sql
       - name: Auth-Mail-Flows end-to-end prüfen
         run: bash tool/auth_reset_check.sh
+      - name: Hinweis-Fotos end-to-end prüfen (Frischinstallation)
+        run: bash tool/photo_access_check.sh
 
   # Spielt neue Patches dieses PRs in die Live-Datenbank ein (beim ersten
   # Lauf gegen das leere Projekt: schema.sql) und prüft danach die

@@ -319,6 +319,15 @@ Karte steht, ist aus sichtbaren Beiträgen gerechnet:**
   Empfänger sie sieht (sein Name für den Trail, sein Alias für den
   Buddy), das Statuswort, beim Hinweis der Text (140 Zeichen); nie eine
   Koordinate, nie der Zustand. Ziel bleibt die opake Trail-Kennung.
+  **Ein Foto am Hinweis** (#37, Betreiber 2026-10-11: am Hinweis, nicht
+  am Beitrag, eines je Hinweis): Der Hinweis ist das, was sich ändert,
+  das Bild sagt, wie es dort gerade aussieht. Es erbt alles vom Hinweis
+  — wer ihn sieht, sieht das Foto; „erledigt", „privat", Rückzug und
+  Aufräumen nehmen es mit. Eigene Frist 90 Tage, auch für den jüngsten
+  Hinweis, der sonst bleibt: Ein Bild vom Baum ist nach drei Monaten
+  keine Auskunft mehr, und der Speicher bleibt konstant. Die Fundstelle
+  steckt in den Metadaten jedes Fotos und wird vor dem Hochladen
+  entfernt; ein erkennbarer Ort bleibt erkennbar.
 
 Eine zentrale Sicht (`trails_visible`) rechnet das serverseitig, damit
 Karte, Liste und Blatt dieselbe Antwort geben — dieselbe Regel wie in
@@ -1010,7 +1019,7 @@ ein Häkchen oder eine neue Reihenfolge.
   Regionen über eine Konfiguration und das Herunterladen einer ganzen
   Region (ändert `docs/konzept-offline-karten.md` 5).
 - **Phase 5 — Community.** Airtime und Ranking unter Buddys, Fotos am
-  Trail.
+  Trail (als Foto am Hinweis, #37, Abschnitt 3).
 - **Englisch:** die Oberfläche nach der Sprache des Geräts — vor Testern
   außerhalb des deutschsprachigen Raums und vor dem Store-Eintrag.
 - **Play Store:** rechtliche Prüfung, Store-Grafiken, Pro-Plan,

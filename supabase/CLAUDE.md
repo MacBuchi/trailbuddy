@@ -71,3 +71,35 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
   Link bleiben wie in Patch 019. Ohne das hieß A nach dem Zusammenführen
   bei mir wieder wie B, weil der eigene Name in der Anzeige vorgeht.
   Block 26, Gegenprobe mit der Funktion aus 019: rot.
+- **Fotos am Hinweis** (Patch 026, #37; Vorlage PilzBuddy Patch 026,
+  Fundfotos #532): EIN Foto je Hinweis (`trail_note_photos.note_id`
+  unique), Bytes im privaten Bucket `trail-note-photos` (`<user_id>/<id>.jpg`
+  + Vorschau `_s.jpg`), je Foto eine Zeile mit Schlüssel und Ablauf. Fünf
+  Dinge, die man wissen muss:
+  - **Die Sichtbarkeit ist geerbt.** `tnp_friend_select` fragt nur, ob der
+    Hinweis lesbar ist (`notes_select` greift im Subselect); die
+    Storage-Policy `note_photos_read` fragt nur, ob die Zeile lesbar ist.
+    Keine zweite Freigabe. Ein Objekt ohne Zeile liest niemand — die App
+    lädt deshalb erst die Objekte, dann die Zeile.
+  - **90 Tage als Default UND Constraint**, auch für den jüngsten Hinweis,
+    den `sweep_old_notes` stehen lässt — sonst wüchse der Bucket mit der
+    Zahl der Trails. Abgelaufene sieht nur noch der Autor, bis der Bot
+    räumt.
+  - **Abgeräumt wird per ABGLEICH** im Feedback-Bot (`sweep_note_photos`,
+    alle zwei Stunden): abgelaufene Zeilen löschen, dann jedes Objekt ohne
+    lebende Zeile, Schonfrist 1 h für Uploads im Aufbau. Das fängt auch
+    Zeilen, die per Cascade mit ihrem Hinweis gingen („erledigt",
+    Rückzug, Aufräumen), ohne Trigger auf `storage.objects`.
+  - **Der Patch nimmt die Vorgabe-Rechte zurück** (`revoke all … from
+    anon, authenticated`), bevor er gewährt: Im Bestandsweg hatte anon
+    ohne die Zeile GRANT ALL auf der Tabelle, die Frischinstallation
+    nicht. Gefunden von `matcher_check.sql` Block 30 über
+    `schema_local_test.sh` mit `TB_BASE_SCHEMA` — beide Wege laufen
+    lassen, nicht nur die Frischinstallation.
+  - **Storage gibt es lokal nur als Shim** (`tool/auth_shim.sql`:
+    `storage.buckets`, `storage.objects`, `storage.foldername`). Block 30
+    prüft die Tabelle und dass Bucket und Policies stehen; ihr VERHALTEN
+    prüft `tool/photo_access_check.sh` im Dry Run gegen den echten
+    Dienst (Upload in den eigenen/fremden Ordner, Lesen als Buddy und
+    Fremder, „erledigt", Abräumen durch den Bot). Der Dry Run startet
+    dafür `storage-api` mit (`config.toml`, `ci_supabase_start.sh`).

@@ -22,10 +22,10 @@
 ###      - edge-runtime   (push_flush_check.sh schickt absichtlich an
 ###                        eine Adresse, die ins Leere zeigt — die
 ###                        Function selbst wird im Dry Run nie gerufen)
-###      - storage-api    (keine Buckets — anders als PilzBuddy; kommt
-###                        Storage, hier UND in config.toml einschalten)
-###    Es BLEIBEN: db (mit PostGIS), kong, gotrue, postgrest und mailpit
-###    (`auth_reset_check.sh` liest dort die Codes).
+###    Es BLEIBEN: db (mit PostGIS), kong, gotrue, postgrest, mailpit
+###    (`auth_reset_check.sh` liest dort die Codes) und seit Patch 026
+###    storage-api (Bucket der Hinweis-Fotos; `photo_access_check.sh`
+###    prüft seine Policies).
 ###    ⚠️ `-x` will die IMAGE-Namen. Die Namen aus `supabase start --help`
 ###    nimmt die CLI stillschweigend an und startet die Dienste trotzdem
 ###    (in FWApp mit `docker ps` nachgesehen).
@@ -36,7 +36,7 @@ set -euo pipefail
 unset SUPABASE_INTERNAL_IMAGE_REGISTRY
 
 for versuch in 1 2 3; do
-  if supabase start -x imgproxy,postgres-meta,vector,edge-runtime,storage-api,logflare,realtime,studio; then
+  if supabase start -x imgproxy,postgres-meta,vector,edge-runtime,logflare,realtime,studio; then
     exit 0
   fi
   echo "::warning::supabase start scheiterte (Versuch $versuch/3) — neuer Versuch in $((versuch * 30)) s"
