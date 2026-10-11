@@ -16,6 +16,12 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
   Tick der **Fehlerbericht-Digest** (#40, seit 0.21.0): ein Issue je
   ISO-Woche (Label `ops`, Titel `Error reports JJJJ-Wnn`), bei jedem
   Lauf neu geschrieben statt kommentiert; keine Fehler ⇒ kein Issue.
+  **Ein geschlossenes Wochen-Issue bleibt zu** (`digest_action`): Der Bot
+  sucht auch unter den geschlossenen und öffnet es nur wieder, wenn die
+  Zahl der Berichte gestiegen ist. Vorher suchte er nur offene, und jedes
+  „Close when triaged" mitten in der Woche brachte zwei Stunden später
+  eine Kopie (W41: #293 durch den Fix geschlossen, #298 mit denselben
+  zwei Berichten; in PilzBuddy neun solche Kopien).
   Jede Gruppe zeigt den obersten Frame im EIGENEN Code (`top_frame`,
   `package:trailbuddy/`), sonst den obersten überhaupt (ANR-Dump), und
   bei Framework-Fehlern die PHASE (seit 0.74.1: `flutterErrorStack`
