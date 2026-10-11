@@ -198,7 +198,6 @@ Code liegt — nicht wieder hierher.
 Was es bewusst noch nicht gibt:
 
 - **Noch nicht da, bewusst** (jeweils eigener PR, Muster in PilzBuddy):
-  Benachrichtigung bei einer neuen Nachricht (#34, Rest),
   Meldung zu einem einzelnen Trail.
 
 ## Code-Konventionen

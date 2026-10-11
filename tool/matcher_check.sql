@@ -1479,4 +1479,28 @@ begin
                         'entfreundet: der Verlauf ist auf beiden Seiten weg');
 end $$;
 
+\echo -- 28. Nachrichten warten auf den Push (Patch 022, #34)
+-- push_flush selbst braucht Vault und pg_net — das prüft
+-- tool/push_flush_check.sh im Dry Run. Hier die Schlange: Jede neue
+-- Nachricht legt eine Zeile an, Zurücknehmen und Entfreunden nehmen sie mit.
+do $$
+declare
+  uh uuid := '88888888-8888-4888-8888-888888888888';
+  ui uuid := '99999999-9999-4999-8999-999999999999';
+  m uuid;
+begin
+  delete from app_internal.push_messages;
+  insert into public.friendships (requester_id, addressee_id, status) values (uh, ui, 'accepted');
+  perform tb_test.exec_as(uh, format('insert into public.buddy_messages (recipient_id, body) values (%L, %L)', ui, 'eins'));
+  perform tb_test.exec_as(uh, format('insert into public.buddy_messages (recipient_id, body) values (%L, %L)', ui, 'zwei'));
+  perform tb_test.check((select count(*) from app_internal.push_messages) = 2, 'jede Nachricht wartet in der Schlange');
+  select id into m from public.buddy_messages where body = 'eins';
+  perform tb_test.exec_as(uh, format('delete from public.buddy_messages where id = %L', m));
+  perform tb_test.check((select count(*) from app_internal.push_messages) = 1, 'zurückgenommen: ihre Zeile ist weg');
+  perform tb_test.exec_as(ui, format('delete from public.friendships where addressee_id = %L', ui));
+  perform tb_test.check((select count(*) from app_internal.push_messages) = 0, 'entfreundet: nichts wartet mehr');
+  perform tb_test.check(tb_test.state_of(uh, 'select count(*) from app_internal.push_messages') = '42501',
+                        'die Schlange ist für authenticated nicht lesbar');
+end $$;
+
 \echo -- Alle Prüfungen bestanden.

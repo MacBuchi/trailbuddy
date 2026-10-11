@@ -15,6 +15,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../features/friends/message_providers.dart';
 import '../../features/rides/ride_confirm_notify.dart';
 import '../../features/trails/trail_providers.dart';
 import '../errors.dart';
@@ -74,13 +75,19 @@ class _PushListenerState extends ConsumerState<PushListener> {
   /// Folgt dem Ziel einer Meldung — nur, wenn es auf der Erlaubnisliste
   /// steht (`pushRouteOf`). Vorher frisch holen: Die Meldung sagt ja
   /// gerade, dass es Neues gibt. `/trail/<id>` löst der Router auf (er
-  /// setzt den Fokus der Karte), `/trails` ist die Liste.
+  /// setzt den Fokus der Karte), `/trails` ist die Liste,
+  /// `/friends/chat/<id>` der Verlauf mit einem Buddy.
   void _open(RemoteMessage message) {
     final route = pushRouteOf(message.data);
     if (route == null || !mounted) return;
-    ref.invalidate(trailsProvider);
+    _refresh(route);
     ref.read(routerProvider).go(route);
   }
+
+  /// Was die Meldung ankündigt, ist ab jetzt alt: Nachrichten oder Trails.
+  void _refresh(String route) => isPushChatRoute(route)
+      ? ref.invalidate(messagesProvider)
+      : ref.invalidate(trailsProvider);
 
   void _show(RemoteMessage message) {
     final notification = message.notification;
@@ -88,7 +95,14 @@ class _PushListenerState extends ConsumerState<PushListener> {
     // Was die Meldung ankündigt, soll die Liste auch zeigen: Der Stand
     // ist ab jetzt alt.
     final route = pushRouteOf(message.data);
-    if (route != null) ref.invalidate(trailsProvider);
+    if (route != null) _refresh(route);
+    // Steht der Verlauf schon offen, ist die Nachricht dort zu lesen,
+    // sobald er neu geladen hat — eine SnackBar darüber wäre doppelt.
+    if (route != null &&
+        isPushChatRoute(route) &&
+        ref.read(routerProvider).routerDelegate.currentConfiguration.uri.path == route) {
+      return;
+    }
     final body = notification.body;
     if (body == null || body.isEmpty) return;
     // Der TITEL trägt die Aussage („Ein Buddy meldet einen Trail als

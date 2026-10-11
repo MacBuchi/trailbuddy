@@ -2,6 +2,17 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Benachrichtigung bei neuen Nachrichten
+
+*Version 0.112.0, 2026-10-11*
+
+- **Neu:** Mit eingeschalteten Benachrichtigungen (Profil →
+  Benachrichtigungen) meldet sich die App, wenn dir ein Buddy schreibt —
+  mit seinem Namen (oder dem, den du ihm gegeben hast) und dem Text.
+  Mehrere Nachrichten auf einmal kommen als eine Benachrichtigung.
+- Ein Tipp darauf öffnet euren Verlauf. Steht er schon offen, erscheint
+  die Nachricht einfach darin.
+
 ## Nachrichten an deine Buddys
 
 *Version 0.111.0, 2026-10-11*

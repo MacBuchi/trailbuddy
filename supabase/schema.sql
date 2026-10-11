@@ -453,6 +453,15 @@ create table app_internal.push_outbox (
 );
 create index push_outbox_due_idx on app_internal.push_outbox (due_at);
 
+-- Nachrichten warten in einer eigenen Schlange (Patch 022): Der Schlüssel
+-- von push_outbox braucht einen Trail. Per Cascade an der Nachricht —
+-- zurückgenommen oder mit der Freundschaft gelöscht, geht nichts hinaus.
+create table app_internal.push_messages (
+  message_id uuid primary key
+    references public.buddy_messages(id) on delete cascade,
+  created_at timestamptz not null default now()
+);
+
 create or replace function app_internal.are_friends(a uuid, b uuid)
 returns boolean language sql stable security definer set search_path = public as $$
   select exists (
@@ -1132,6 +1141,20 @@ create trigger push_on_report_trg after insert on public.trail_reports
 create trigger push_on_note_trg after insert on public.trail_notes
   for each row execute function app_internal.push_on_note();
 
+-- Jede neue Nachricht wartet auf den nächsten Lauf (Patch 022).
+create or replace function app_internal.push_on_message()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  insert into app_internal.push_messages (message_id) values (new.id)
+    on conflict do nothing;
+  return new;
+end;
+$$;
+revoke all on function app_internal.push_on_message() from public, anon, authenticated;
+create trigger push_on_message_trg
+  after insert on public.buddy_messages
+  for each row execute function app_internal.push_on_message();
+
 -- ------------------------------------------------------------ Der Versand
 --
 -- Die drei Geheimnisse stehen im VAULT und nicht hier — ein Patch liegt
@@ -1145,6 +1168,8 @@ create trigger push_on_note_trg after insert on public.trail_notes
 -- Je Empfänger EINE Meldung, auch wenn mehrere Trails fällig sind.
 -- Genau ein Trail ⇒ das Ziel ist der Trail (`/trail/<id>`), sonst die
 -- Liste (`/trails`); die App prüft den Pfad gegen eine Erlaubnisliste.
+-- Nachrichten (Patch 022) kommen dazu: je Empfänger und Absender eine
+-- Meldung, ohne Frist, Ziel der Verlauf (`/friends/chat/<id>`).
 -- tool/push_flush_check.sh ruft diese Funktion im Schema Dry Run
 -- WIRKLICH auf (zurückgerollt): PL/pgSQL prüft den Rumpf erst beim
 -- Aufruf, und ein Fehler hier legte live jede Minute still alles lahm.
@@ -1171,6 +1196,7 @@ begin
   -- Lauf feuerte einen Schwall über Meldungen von vorgestern ab.
   if base_url is null or job_secret is null or service_key is null then
     delete from app_internal.push_outbox where due_at <= now();
+    delete from app_internal.push_messages;
     return 0;
   end if;
 
@@ -1255,8 +1281,35 @@ begin
     from named m
     join public.push_devices d on d.user_id = m.recipient_id;
 
-  if payload is null then return 0; end if;
-  select jsonb_array_length(payload) into sent;
+  -- Nachrichten (Patch 022): je Empfänger und Absender EINE Meldung,
+  -- ohne Frist. Titel der Name, den der Empfänger dem Absender gegeben
+  -- hat (sonst dessen Benutzername), bei mehreren mit der Zahl; Text die
+  -- jüngste Nachricht, gekürzt auf 180 Zeichen; Ziel der Verlauf.
+  with due_msgs as (
+    delete from app_internal.push_messages q
+     using public.buddy_messages b
+     where b.id = q.message_id
+    returning b.sender_id, b.recipient_id, b.body, b.created_at
+  ),
+  per_sender as (
+    select recipient_id, sender_id, count(*) as n,
+           (array_agg(body order by created_at desc))[1] as newest
+      from due_msgs group by recipient_id, sender_id
+  )
+  select coalesce(payload, '[]'::jsonb) || coalesce(jsonb_agg(jsonb_build_object(
+           'token', d.token,
+           'title', coalesce(app_internal.push_name_for(s.recipient_id, s.sender_id), 'Ein Buddy')
+                    || case when s.n > 1 then ' · ' || s.n || ' Nachrichten' else '' end,
+           'body', case when char_length(s.newest) > 180
+                        then left(s.newest, 179) || '…'
+                        else s.newest end,
+           'route', '/friends/chat/' || s.sender_id)), '[]'::jsonb)
+    into payload
+    from per_sender s
+    join public.push_devices d on d.user_id = s.recipient_id;
+
+  sent := jsonb_array_length(payload);
+  if sent = 0 then return 0; end if;
 
   -- Asynchron (pg_net): Die Antwort landet in net._http_response, der
   -- Cron-Lauf wartet nicht. Ein fehlgeschlagener Versand ist verloren —
@@ -2189,6 +2242,7 @@ alter table app_internal.trail_aliases  enable row level security;
 alter table app_internal.trail_distinct enable row level security;
 alter table public.push_devices      enable row level security;
 alter table app_internal.push_outbox    enable row level security;
+alter table app_internal.push_messages  enable row level security;
 
 -- Ausdrücklich gesperrt (PilzBuddy Patch 037): RLS ohne Policy verweigert
 -- ohnehin alles, aber der Security Advisor meldet es dauerhaft, und
@@ -2199,6 +2253,8 @@ create policy trails_no_client on public.trails
 create policy trail_overlaps_no_client on app_internal.trail_overlaps
   for all to anon, authenticated using (false) with check (false);
 create policy push_outbox_no_client on app_internal.push_outbox
+  for all to anon, authenticated using (false) with check (false);
+create policy push_messages_no_client on app_internal.push_messages
   for all to anon, authenticated using (false) with check (false);
 create policy trail_aliases_no_client on app_internal.trail_aliases
   for all to anon, authenticated using (false) with check (false);
@@ -2457,5 +2513,6 @@ insert into public.applied_patches (filename) values
   ('patch_018_feedback_client_id.sql'),
   ('patch_019_trail_merges.sql'),
   ('patch_020_merge_keeps_target_name.sql'),
-  ('patch_021_buddy_messages.sql')
+  ('patch_021_buddy_messages.sql'),
+  ('patch_022_message_push.sql')
 on conflict do nothing;
