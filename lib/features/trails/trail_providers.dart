@@ -1,11 +1,12 @@
 import 'dart:async';
 import 'dart:math';
 
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show Uint8List, kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/connectivity.dart';
 import '../../core/errors.dart';
+import '../../core/photo_pipeline.dart';
 import '../../core/read_after_write.dart';
 import '../../core/settings.dart';
 import '../../data/browser_storage.dart';
@@ -28,6 +29,21 @@ import 'trail_list.dart';
 
 final trailRepositoryProvider = Provider<TrailRepository>(
     (ref) => SupabaseTrailRepository(ref.watch(supabaseClientProvider)));
+
+/// Was aus „Hinweis speichern" geworden ist (#37): [fresh] wie bei
+/// `reloadAfterWrite`, [photoError] gesetzt, wenn der Hinweis steht, sein
+/// Foto aber nicht.
+typedef NoteWriteResult = ({bool fresh, Object? photoError});
+
+/// Die Vorschau eines Fotos am Hinweis (#37), je Pfad einmal je Sitzung —
+/// ~12 KB, und das Blatt öffnet sich oft.
+final notePhotoThumbProvider = FutureProvider.family<Uint8List, String>(
+    (ref, path) => ref.watch(trailRepositoryProvider).notePhotoBytes(path));
+
+/// Das volle Bild (~150 KB), erst auf Tipp und nur, solange es offen ist —
+/// das ist der Egress-Hebel (PilzBuddy #532).
+final notePhotoFullProvider = FutureProvider.autoDispose.family<Uint8List, String>(
+    (ref, path) => ref.watch(trailRepositoryProvider).notePhotoBytes(path));
 
 /// Was aus einem Schreibvorgang geworden ist (#30).
 enum WriteOutcome {
@@ -492,11 +508,28 @@ class TrailsNotifier extends AsyncNotifier<List<Trail>>
     }
   }
 
-  Future<bool> addNote(String trailId, String body) async {
-    await ref
-        .read(trailRepositoryProvider)
-        .addNote(trailId: trailId, body: body.trim());
-    return _rereadAfterWrite('Hinweis speichern', notes: true);
+  /// Schreibt einen Hinweis, mit [photo] dazu das Foto (#37). **Der
+  /// Hinweis ist das Original**: Scheitert das Foto, steht er trotzdem,
+  /// und das Ergebnis sagt beides ([NoteWriteResult.photoError]) — ein
+  /// Wurf hier hieße „nichts gespeichert", und der Nutzer schriebe den
+  /// Hinweis ein zweites Mal. Kein Ausgangskorb: ohne Netz scheitert das
+  /// Schreiben sichtbar wie bisher.
+  Future<NoteWriteResult> addNote(String trailId, String body, {PreparedPhoto? photo}) async {
+    final repo = ref.read(trailRepositoryProvider);
+    final noteId = await repo.addNote(trailId: trailId, body: body.trim());
+    Object? photoError;
+    if (photo != null) {
+      try {
+        await repo.addNotePhoto(noteId: noteId, photoId: newClientId(), photo: photo);
+      } catch (e, st) {
+        // Gemeldet nur, was nicht nach fehlendem Netz aussieht — ein
+        // Funkloch zwischen Hinweis und Foto ist kein Fehler der App.
+        if (!looksOffline(e)) logError('Foto am Hinweis hochladen', e, st);
+        photoError = e;
+      }
+    }
+    final fresh = await _rereadAfterWrite('Hinweis speichern', notes: true);
+    return (fresh: fresh, photoError: photoError);
   }
 
   Future<bool> deleteNote(String id) async {

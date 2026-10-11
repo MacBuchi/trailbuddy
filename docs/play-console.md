@@ -50,12 +50,13 @@ verarbeitet*, *erforderlich oder optional* — plus die Zwecke.
 | **Persönliche Infos → Name** | Ja | Nein¹ | Erforderlich | App-Funktionalität, Kontoverwaltung | `profiles.username` (Pflicht, über das Präfix suchbar) und `display_name` |
 | **Persönliche Infos → Nutzer-IDs** | Ja | Nein | Erforderlich | App-Funktionalität, Kontoverwaltung | `profiles.id` (UUID aus `auth.users`) |
 | **App-Aktivität → Andere nutzergenerierte Inhalte** | Ja | **Ja²** (nur Feedback) | Optional | App-Funktionalität, Entwicklerkommunikation | Beiträge zu Trails (`trail_details`: Name, Beschreibung, S-Grad, Charakter, Sterne, Sichtbarkeit, Link), Meldungen und Zustand (`trail_reports`), Hinweise (`trail_notes`), Zuordnungen von Duplikaten (`trail_aliases`, `trail_distinct`; #107 — sichtbar für direkte Buddys, die beide Trails sehen), Aliase für Buddys (`friend_aliases`, nur für den Vergebenden sichtbar) — alles *nicht geteilt*¹. Feedback (`feedback`: Text, Typ, App-Version) wird als öffentliches GitHub-Issue veröffentlicht, ohne Benutzernamen — *geteilt*² |
+| **Fotos und Videos → Fotos** | Ja | Nein¹ | Optional | App-Funktionalität | Ein Foto je Hinweis (#37, Patch 026): Bild ≤ 1024 px und Vorschau, ohne EXIF/XMP (entfernt und geprüft in `lib/core/photo_pipeline.dart`), im privaten Bucket `trail-note-photos`. Sichtbar für genau die, die den Hinweis sehen; 90 Tage, mit dem Hinweis gelöscht |
 | **Nachrichten → Andere In-App-Nachrichten** | Ja | Nein¹ | Optional | App-Funktionalität | `buddy_messages` (#34, Patch 021): Text, Absender, Empfänger, Zeitpunkt, gelesen. Nur Absender und Empfänger sehen sie, 30 Tage, nicht Ende-zu-Ende-verschlüsselt (Datenschutzerklärung). Schreiben nur unter Buddys oder bei offener Anfrage (höchstens drei je Seite). Mit eingeschalteten Benachrichtigungen geht der Text gekürzt über FCM (Patch 022, siehe ⁴) |
 | **App-Info und -Leistung → Absturzprotokolle** | Ja | Nein | Erforderlich | App-Funktionalität | `error_reports`: Kontext, Fehlertyp, Meldung, Stack, App-Version, Plattform, ggf. Nutzer-id. Dazu beim nächsten Start Androids eigene Beendigungsgründe (ANR, Absturz, nativer Absturz mit Tombstone) — keine Position, keine Trails |
 | **App-Info und -Leistung → Diagnose** | Ja | Nein | Erforderlich | App-Funktionalität | Speicherwerte (RSS/PSS in MB) und der Haupt-Thread-Auszug, die mit einem Beendigungsgrund kommen (`AppExit.summary`) |
 | **Geräte- oder andere IDs** | Ja⁴ | **Ja⁴** | Optional | App-Funktionalität | `push_devices.token` — die FCM-Gerätekennung, sobald jemand Benachrichtigungen einschaltet |
 
-**Ausdrücklich NICHT erhoben** — im Formular leer lassen: Fotos, Videos,
+**Ausdrücklich NICHT erhoben** — im Formular leer lassen: Videos,
 Audio, Kontakte, Kalender, E-Mails und SMS (die Nachrichten zwischen
 Buddys stehen oben unter „Andere In-App-Nachrichten"), Finanzdaten, Gesundheits- und
 Fitnessdaten (siehe ⁵), Web-Browsing-Verlauf, installierte Apps, keine
@@ -176,7 +177,10 @@ bundletool dump manifest --bundle trailbuddy-v<version>.aab | grep uses-permissi
 **Entfernt:** `RECEIVE_BOOT_COMPLETED` (`flutter_foreground_task` bringt es
 für einen Autostart mit, den die App nicht nutzt) per `tools:node="remove"`.
 **Fehlt bewusst:** `ACCESS_BACKGROUND_LOCATION`, `CAMERA`, alle
-Speicher-Berechtigungen. `test/android_manifest_test.dart` hält die
+Speicher-Berechtigungen — auch seit dem Foto am Hinweis (#37):
+`image_picker` nimmt die Kamera über den System-Intent und die Galerie
+über den Photo Picker, beides ohne Berechtigung, und sein
+Plugin-Manifest deklariert keine (in PilzBuddy geprüft, 2026-09-22). `test/android_manifest_test.dart` hält die
 Entfernungen und den Service-Typ `dataSync|location` fest.
 
 **Zwei Flavors, eine `applicationId`** (`de.mcbuchi.trailbuddy`, wie in

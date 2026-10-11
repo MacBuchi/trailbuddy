@@ -138,6 +138,39 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
   Hinweis" in der Liste; eigene zählen nie. Beim Melden bietet der
   Dialog einen Hinweis an. Entscheidungen des Betreibers
   vom 2026-09-28; `matcher_check.sql` Block 20 prüft RLS und Aufräumen.
+- **Ein Foto am Hinweis** (#37, seit 0.113.0; Datenbank in
+  `supabase/CLAUDE.md`, Patch 026; Vorlage PilzBuddy #532): EIN Foto je
+  Hinweis, angehängt im Dialog „Hinweis für Buddys"
+  (`PhotoAttachment`), gezeigt als 64-dp-Vorschau am Hinweis
+  (`NotePhotoThumb`), groß auf Tipp. Fünf Dinge, die man wissen muss:
+  - **Die Ortsangaben gehen in `lib/core/photo_pipeline.dart`, und nur
+    dort.** `image_picker` kopiert auf Android die GPS-Tags zurück,
+    `package:image` reicht EXIF durch — `preparePhoto` leert es und LIEST
+    das Ergebnis (`jpegForeignMarkers`, Erlaubnisliste der Segmente).
+    Das Repository nimmt nur ein `PreparedPhoto`; der Fake wirft, wenn
+    trotzdem Metadaten ankommen. Gegenprobe ohne die eine Zeile: drei
+    Tests in `test/core/photo_pipeline_test.dart` rot.
+  - **Der Hinweis ist das Original.** `addNote` schreibt erst den
+    Hinweis (gibt seit 0.113.0 die Kennung zurück), dann das Foto;
+    scheitert das Foto, steht der Hinweis, und die Meldung sagt beides
+    (`NoteWriteResult.photoError`). Kein Ausgangskorb — ohne Netz
+    scheitert das Schreiben wie bisher sichtbar.
+  - **Die Vorschau ist der Egress-Hebel**: Das Blatt lädt nur `_s.jpg`
+    (~12 KB, je Pfad einmal je Sitzung, `notePhotoThumbProvider`), das
+    Bild (~150 KB) erst auf Tipp und nur, solange es offen ist
+    (`notePhotoFullProvider`, autoDispose). Ein Test zählt die Abrufe.
+  - **Gezeigt wird `shownPhoto()`**, nicht `photo`: Der Autor sieht ein
+    abgelaufenes Foto bis zum Abräumen noch in der Zeile, die Anzeige
+    nicht. Die Zeile liegt im Zwischenspeicher (`noteToRow` mit `photo`),
+    die Bytes nicht — ohne Empfang steht die Vorschau, solange sie in
+    dieser Sitzung schon geladen war, sonst ein stilles Symbol.
+  - **`xml` steht auf 6, nicht 7** (seit 0.113.0): `image` 4.3 verlangt
+    xml 6, jede jüngere image-Fassung archive 4, und das ginge nur mit
+    pmtiles 2 und einem Umbau des Kartenstapels. Der einzige Unterschied
+    im Code war `findElements(namespace:)` statt `namespaceUri:` in
+    `gpx.dart`. Wer xml wieder hebt, hebt image, archive und pmtiles mit.
+  `test/flows/note_photo_flow_test.dart` (Gegenproben: Ablauf
+  ignoriert, Fotofehler wirft, Vorschau lädt das volle Bild — jede rot).
 - **Bewertung, Meldung, Zustand** (#101, Patch 013, seit 0.49.0;
   `trail_report.dart`, `trail_condition.dart`, Rework Abschnitt 9).
   Die Bewertung (1–5 Sterne) steht im Beitrag (`trail_details.rating`),

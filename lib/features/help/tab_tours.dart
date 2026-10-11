@@ -138,7 +138,8 @@ const kTrailsTourScript = CoachScript(
     ),
     CoachStep(
       title: 'Etwas Aktuelles erzählen',
-      text: 'Ein Hinweis sagt, was gerade ist: umgestürzter Baum, neue Sprünge. '
+      text: 'Ein Hinweis sagt, was gerade ist: umgestürzter Baum, neue Sprünge, '
+          'auf Wunsch mit Foto. '
           'Buddys sehen ihn mit gelbem Rand, bis sie ihn gelesen haben. Eine '
           'Sperre oder den Zustand meldest du daneben.',
       scene: TrailsCoach.sheet,

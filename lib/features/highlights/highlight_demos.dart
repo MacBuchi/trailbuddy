@@ -584,6 +584,16 @@ final kHighlightDemos = <String, HighlightDemo>{
       _from(kMapTourScript, 'Orte und offizielle Trails wählen'),
     ]),
   ),
+  // Das Foto hängt man im Dialog an, den „Hinweis schreiben" öffnet — die
+  // Vorführung zeigt auf denselben Knopf wie die der Hinweise.
+  'note-photos': HighlightDemo(
+    route: '/trails',
+    script: _demo('note-photos', [
+      _openTrailFirst,
+      _from(kTrailsTourScript, 'Etwas Aktuelles erzählen'),
+      _noTrailYet,
+    ]),
+  ),
   'trail-notes': HighlightDemo(
     route: '/trails',
     script: _demo('trail-notes', [

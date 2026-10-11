@@ -2,6 +2,21 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Ein Foto zum Hinweis
+
+*Version 0.113.0, 2026-10-11*
+
+- **Neu:** Beim Hinweis schreiben im Trail-Blatt hängst du ein Foto an —
+  aus der Galerie oder direkt mit der Kamera. Der Baum quer über dem
+  Trail sagt im Bild mehr als in drei Sätzen.
+- Das Foto sehen genau die Buddys, die auch deinen Hinweis sehen. Im
+  Blatt steht eine kleine Vorschau, ein Tipp darauf zeigt es groß.
+- Ortsangaben, Aufnahmezeit und Kamera, die das Telefon ins Bild
+  schreibt, entfernt die App vor dem Hochladen. Was auf dem Bild zu
+  sehen ist, bleibt natürlich zu sehen.
+- Nach 90 Tagen verschwindet das Foto von selbst, früher mit seinem
+  Hinweis — etwa wenn jemand ihn als erledigt entfernt.
+
 ## Benachrichtigung bei neuen Nachrichten
 
 *Version 0.112.0, 2026-10-11*

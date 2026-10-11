@@ -1,4 +1,7 @@
+import 'dart:typed_data';
+
 import 'package:latlong2/latlong.dart';
+import 'package:trailbuddy/core/photo_pipeline.dart';
 import 'package:trailbuddy/core/errors.dart';
 import 'package:trailbuddy/data/trail_repository.dart';
 import 'package:trailbuddy/features/trails/trail_geometry.dart';
@@ -401,27 +404,101 @@ class FakeTrailRepository implements TrailRepository {
             body: n.body,
             createdAt: n.createdAt,
             username: usernames[n.userId],
+            photo: _photoVisible(n) ? notePhotos[n.id] : null,
           ),
     ];
+  }
+
+  /// Fotos am Hinweis (Patch 026) je Hinweis-Kennung — die Zeilen.
+  final notePhotos = <String, NotePhoto>{};
+
+  /// Der Bucket `trail-note-photos`: Pfad → Bytes.
+  final notePhotoObjects = <String, Uint8List>{};
+
+  /// Wie oft ein Objekt abgerufen wurde, je Pfad — für den Egress-Hebel
+  /// (Vorschau im Blatt, Bild erst auf Tipp).
+  final notePhotoDownloads = <String, int>{};
+
+  /// Lässt den nächsten Upload scheitern (Netz weg zwischen Hinweis und Foto).
+  Object? failNextPhotoUpload;
+
+  /// Spiegelt `tnp_owner_all`/`tnp_friend_select`: eigene immer, fremde nur
+  /// vor dem Ablauf und solange der Hinweis lesbar ist — die Freigabe
+  /// kommt aus [_noteVisible], nicht von hier.
+  bool _photoVisible(TrailNote n) {
+    final p = notePhotos[n.id];
+    if (p == null || !_noteVisible(n)) return false;
+    return n.userId == myId() || p.expiresAt.isAfter(DateTime.now());
+  }
+
+  /// Spiegelt die Storage-Policies und die Constraints von Patch 026:
+  /// nur am eigenen Hinweis, eins je Hinweis, Objekte vor der Zeile.
+  @override
+  Future<void> addNotePhoto(
+      {required String noteId, required String photoId, required PreparedPhoto photo}) async {
+    final me = myId();
+    if (failNextPhotoUpload != null) {
+      final e = failNextPhotoUpload!;
+      failNextPhotoUpload = null;
+      throw e;
+    }
+    final note = notes.where((n) => n.id == noteId).firstOrNull;
+    if (note == null || note.userId != me) throw StateError('42501: nicht dein Hinweis');
+    if (notePhotos.containsKey(noteId)) throw StateError('23505: schon ein Foto');
+    if (jpegForeignMarkers(photo.full).isNotEmpty || jpegForeignMarkers(photo.thumb).isNotEmpty) {
+      // Kein Riegel des Servers — ein Wächter des Tests: Was hier ankommt,
+      // muss durch preparePhoto gegangen sein.
+      throw StateError('Foto mit Metadaten hochgeladen');
+    }
+    final key = '$me/$photoId';
+    notePhotoObjects['$key.jpg'] = photo.full;
+    notePhotoObjects['${key}_s.jpg'] = photo.thumb;
+    final now = DateTime.now();
+    notePhotos[noteId] = NotePhoto(key: key, expiresAt: now.add(const Duration(days: 90)));
+  }
+
+  /// Spiegelt `note_photos_read`: lesbar ist ein Objekt nur, wenn ich die
+  /// Zeile dazu sehe.
+  @override
+  Future<Uint8List> notePhotoBytes(String path) async {
+    notePhotoDownloads[path] = (notePhotoDownloads[path] ?? 0) + 1;
+    final readable = notes.any((n) =>
+        _photoVisible(n) &&
+        (notePhotos[n.id]!.fullPath == path || notePhotos[n.id]!.thumbPath == path));
+    final bytes = notePhotoObjects[path];
+    if (!readable || bytes == null) throw StateError('Object not found: $path');
+    return bytes;
+  }
+
+  /// Ein Foto an einem vorhandenen Hinweis, ohne Prüfung — für Ausgangslagen.
+  void seedNotePhoto(String noteId, Uint8List full, Uint8List thumb, {DateTime? expiresAt}) {
+    final note = notes.firstWhere((n) => n.id == noteId);
+    final key = '${note.userId}/photo-${newClientId()}';
+    notePhotoObjects['$key.jpg'] = full;
+    notePhotoObjects['${key}_s.jpg'] = thumb;
+    notePhotos[noteId] =
+        NotePhoto(key: key, expiresAt: expiresAt ?? DateTime.now().add(const Duration(days: 90)));
   }
 
   /// Spiegelt `notes_insert` und den Check der Tabelle: nur, wer den
   /// Trail sieht, 1–500 Zeichen.
   @override
-  Future<void> addNote({required String trailId, required String body}) async {
+  Future<String> addNote({required String trailId, required String body}) async {
     final me = myId();
     if (!_canSeeTrail(trailId)) {
       throw StateError('42501: Trail nicht sichtbar');
     }
     final len = body.trim().length;
     if (len < 1 || len > 500) throw StateError('23514: Länge $len');
+    final id = 'note-${newClientId()}';
     notes.add(TrailNote(
-      id: 'note-${newClientId()}',
+      id: id,
       trailId: trailId,
       userId: me,
       body: body,
       createdAt: DateTime.now(),
     ));
+    return id;
   }
 
   /// Spiegelt `notes_delete`: entfernen darf, wer den Hinweis sieht;
@@ -429,6 +506,14 @@ class FakeTrailRepository implements TrailRepository {
   @override
   Future<void> deleteNote(String id) async {
     notes.removeWhere((n) => n.id == id && _noteVisible(n));
+    _cascadeNotePhotos();
+  }
+
+  /// `on delete cascade` der Foto-Zeile: Geht der Hinweis, geht sie mit.
+  /// Die Objekte bleiben liegen, bis der Bot abgleicht — wie live.
+  void _cascadeNotePhotos() {
+    final alive = {for (final n in notes) n.id};
+    notePhotos.removeWhere((noteId, _) => !alive.contains(noteId));
   }
 
   Object? failNextWithdraw;
@@ -447,6 +532,7 @@ class FakeTrailRepository implements TrailRepository {
     final n = recordings.where((r) => r.trailId == trailId && r.userId == me).length;
     recordings.removeWhere((r) => r.trailId == trailId && r.userId == me);
     notes.removeWhere((x) => x.trailId == trailId && x.userId == me);
+    _cascadeNotePhotos();
     reports.removeWhere((x) => x.trailId == trailId && x.userId == me);
     details.removeWhere((d) => d.trailId == trailId && d.userId == me);
     return n;
@@ -708,14 +794,16 @@ class FakeTrailRepository implements TrailRepository {
   }
 
   /// Ein Hinweis von [userId], ohne Prüfung — für Ausgangslagen in Tests.
-  void seedNote(String userId, String trailId, String body, {DateTime? at}) {
+  String seedNote(String userId, String trailId, String body, {DateTime? at}) {
+    final id = 'note-${newClientId()}';
     notes.add(TrailNote(
-      id: 'note-${newClientId()}',
+      id: id,
       trailId: trailId,
       userId: userId,
       body: body,
       createdAt: at ?? DateTime.now(),
     ));
+    return id;
   }
 
   /// Ein fertiger Beleg von [userId] für Tests — eine 1-km-Linie nach

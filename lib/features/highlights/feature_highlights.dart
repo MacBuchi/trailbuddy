@@ -74,6 +74,18 @@ class FeatureHighlight {
 const kFeatureHighlights = <FeatureHighlight>[
   // ─── Highlights ──────────────────────────────────────────────────
   FeatureHighlight(
+    id: 'note-photos',
+    since: '0.113.0',
+    kind: HighlightKind.highlight,
+    tab: HighlightTab.trails,
+    icon: Icons.add_a_photo_outlined,
+    title: 'Ein Foto zum Hinweis',
+    text: 'Der Baum quer über dem Trail, die neue Rampe: An einen Hinweis hängst '
+        'du jetzt ein Foto. Es sehen dieselben Buddys wie den Hinweis, 90 Tage '
+        'lang — ohne Ortsangaben im Bild.',
+    target: '/trails',
+  ),
+  FeatureHighlight(
     id: 'messages',
     since: '0.111.0',
     kind: HighlightKind.highlight,

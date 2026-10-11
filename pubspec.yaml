@@ -4,7 +4,7 @@ publish_to: 'none'
 
 # Beide Teile erhöhen (z. B. 0.1.0+1 → 0.1.1+2). Ein Bump auf main taggt und
 # baut ein Prerelease (release.yml); ohne Bump kein Release (Version Guard).
-version: 0.112.0+142
+version: 0.113.0+143
 
 environment:
   sdk: ^3.11.0
@@ -65,7 +65,10 @@ dependencies:
   crypto: ^3.0.7
   # GPX-Import: Dateiauswahl auf Android und Web, XML-Parser.
   file_selector: ^1.0.3
-  xml: ^7.1.0
+  # 6.x statt 7.x (#37): `image` 4.3 verlangt xml 6, und jede jüngere
+  # image-Fassung verlangt archive 4 (siehe dort). Die GPX-Leser und
+  # -Schreiber nutzen nichts, was erst 7 hat — die GPX-Tests prüfen das.
+  xml: ^6.6.1
   share_plus: ^13.3.1
   path_provider: ^2.1.5
   archive: ^3.4.10
@@ -98,6 +101,20 @@ dependencies:
   # Build-Hook mit; nur auf `dart:io` importiert, der Web-Build sieht es
   # nie. 3.6.0 statt 3.7.0: die jüngere war beim Einbau neun Tage alt.
   sqlite3: ^3.6.0
+  # Ein Foto am Hinweis (#37): Kamera oder Galerie. KEINE neue
+  # Android-Berechtigung — Kamera-Intent und Photo Picker kommen ohne aus,
+  # das Plugin-Manifest deklariert keine (PilzBuddy, geprüft 2026-09-22).
+  # Was es NICHT tut: Metadaten entfernen. Seine Android-Verkleinerung
+  # kopiert alle GPS-Tags ins verkleinerte Bild zurück
+  # (`ExifDataCopier.java`) — deshalb kodiert lib/core/photo_pipeline.dart
+  # selbst neu und prüft das Ergebnis.
+  # 1.2.3 wie PilzBuddy; 1.2.4 war beim Einbau fünf Tage alt.
+  image_picker: 1.2.3
+  # Der Kodierer dafür — reines Dart, läuft im Isolate und auf der Test-VM.
+  # 4.3.0 wie PilzBuddy: Jede jüngere Fassung verlangt archive 4, und das
+  # ginge nur mit pmtiles 2 und damit einem Umbau des Kartenstapels
+  # (vector_tile, latlong2). Deshalb steht xml wieder auf 6 (siehe dort).
+  image: ^4.3.0
 
 dev_dependencies:
   flutter_test:

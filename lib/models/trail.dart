@@ -501,6 +501,7 @@ class TrailNote {
     required this.body,
     required this.createdAt,
     this.username,
+    this.photo,
   });
 
   final String id;
@@ -512,9 +513,26 @@ class TrailNote {
   /// Aus dem Embed `author:profiles(...)`.
   final String? username;
 
+  /// Das Foto dazu (#37, Patch 026) — auch ein abgelaufenes, das der Autor
+  /// bis zum Abräumen noch sieht. Angezeigt wird [shownPhoto].
+  final NotePhoto? photo;
+
+  /// Das Foto, solange es gilt. Fremde bekommen ein abgelaufenes gar nicht
+  /// erst (`tnp_friend_select`), der Autor schon — bis der Bot räumt.
+  NotePhoto? shownPhoto({DateTime? now}) {
+    final p = photo;
+    return p != null && p.expiresAt.isAfter(now ?? DateTime.now()) ? p : null;
+  }
+
   /// Derselbe Hinweis unter einem anderen Trail (#107), nur für die Anzeige.
   TrailNote withTrailId(String trailId) => TrailNote(
-      id: id, trailId: trailId, userId: userId, body: body, createdAt: createdAt, username: username);
+      id: id,
+      trailId: trailId,
+      userId: userId,
+      body: body,
+      createdAt: createdAt,
+      username: username,
+      photo: photo);
 
   factory TrailNote.fromJson(Map<String, dynamic> json) {
     final author = json['author'];
@@ -525,8 +543,40 @@ class TrailNote {
       body: json['body'] as String,
       createdAt: DateTime.parse(json['created_at'] as String).toLocal(),
       username: author is Map ? author['username'] as String? : null,
+      photo: NotePhoto.fromEmbed(json['photo']),
     );
   }
+}
+
+/// Ein Foto am Hinweis (#37, Patch 026): EINES je Hinweis, die Bytes im
+/// Bucket `trail-note-photos` unter [key] (`<user_id>/<id>`), Bild und
+/// Vorschau als zwei JPEGs. Sichtbar für genau die, die den Hinweis sehen;
+/// 90 Tage, dann räumt der Feedback-Bot ab.
+class NotePhoto {
+  const NotePhoto({required this.key, required this.expiresAt});
+
+  final String key;
+  final DateTime expiresAt;
+
+  /// Das Bild mit 1024er Kante — geladen erst auf Tipp.
+  String get fullPath => '$key.jpg';
+
+  /// Die Vorschau mit 200er Kante — das, was das Blatt lädt.
+  String get thumbPath => '${key}_s.jpg';
+
+  /// Aus dem Embed `photo:trail_note_photos(...)`. PostgREST liefert die
+  /// eins-zu-eins-Beziehung (`note_id unique`) als Objekt; eine Liste
+  /// nimmt der Leser trotzdem, falls ein Dienst sie anders erkennt.
+  static NotePhoto? fromEmbed(Object? raw) {
+    final row = raw is List ? (raw.isEmpty ? null : raw.first) : raw;
+    if (row is! Map) return null;
+    final key = row['key'];
+    final expires = row['expires_at'];
+    if (key is! String || expires is! String) return null;
+    return NotePhoto(key: key, expiresAt: DateTime.parse(expires).toLocal());
+  }
+
+  Map<String, dynamic> toRow() => {'key': key, 'expires_at': expiresAt.toUtc().toIso8601String()};
 }
 
 /// So lange gilt ein Hinweis eines Buddys als neu: Liste und Karte heben

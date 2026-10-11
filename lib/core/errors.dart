@@ -7,6 +7,8 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'photo_pipeline.dart';
+
 /// Empfänger für Fehlerberichte. `main()` hängt hier das Schreiben nach
 /// Supabase ein (siehe `ErrorReportRepository`); in Tests bleibt der Haken
 /// leer, damit `flutter test` ohne Netz auskommt.
@@ -255,6 +257,13 @@ String friendlyError(Object error) {
   }
   if (looksOffline(error)) {
     return 'Keine Verbindung — bitte Internet prüfen.';
+  }
+  // Ein Bild, das die Pipeline nicht lesen kann (#37): Ihr Satz ist schon
+  // für den Nutzer geschrieben.
+  if (error is PhotoPipelineException) return error.message;
+  if (error is StorageException) {
+    return 'Das Foto ließ sich nicht hochladen (${error.statusCode ?? 'unbekannt'}) — '
+        'bitte später erneut versuchen.';
   }
   if (error is NotSignedInException) {
     return 'Nicht mehr angemeldet — bitte neu anmelden.';
