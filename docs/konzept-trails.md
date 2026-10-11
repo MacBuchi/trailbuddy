@@ -985,11 +985,11 @@ ein Häkchen oder eine neue Reihenfolge.
   „Sind das dieselben?" seit 0.110.0) — eigene Duplikate aus
   GPX-Importen brauchen keine fremden Daten.
 - **Einführung. ERLEDIGT:** Kurzanleitung, Touren, „Entdecken", Marke.
-- **Phase 3 — Offline und Austausch. ZUM TEIL:** Offline-Karten mit
+- **Phase 3 — Offline und Austausch. ERLEDIGT:** Offline-Karten mit
   eigenem Host, Zwischenspeicher, Push, Gesehenes bleibt liegen (Android
   und Browser, #155), Ausgangskorb und Zwischenspeicher auch im Browser
-  (#153), Nachrichten zwischen Buddys (#34, seit 0.111.0). Offen: die
-  Benachrichtigung bei einer neuen Nachricht.
+  (#153), Nachrichten zwischen Buddys samt Benachrichtigung (#34, seit
+  0.111.0/0.112.0).
 - **Phase 3b — Alltagstauglich, vor Testern außerhalb der Buddys.
   ERLEDIGT bis auf Freigabe und Tester.**
 - **Phase 4 — Der Trail-zuerst-Planer. ERLEDIGT bis auf den Feldtest**

@@ -57,7 +57,7 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
   an die direkten Buddys des Autors, die
   den Trail und seinen Beitrag sehen (`app_internal.push_recipients`,
   Spiegel von `td_friend_select`/`notes_select`; je Buddy-Beziehung
-  eine Zeile im Korb, keine Rechnung über alle, Konzept 12). Acht Dinge,
+  eine Zeile im Korb, keine Rechnung über alle, Konzept 12). Neun Dinge,
   die man wissen muss:
   - **Die Meldung trägt Inhalt, aber nie einen Ort** (seit 0.54.0,
     Patch 014, Betreiber 2026-09-30: „anonym genug"): Trailname, Name
@@ -146,3 +146,16 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     #290; dichtes Abfragen beim Zeigen: 16 von 40 verloren). Der Prüfer
     zählt deshalb im Worker mit, wann `showNotification` fertig ist, und
     liest erst danach, einmal. Der Prüfer in PilzBuddy hat dieselbe Falle.
+  - **Nachrichten (seit 0.112.0, Patch 022)** gehen NICHT durch
+    `push_outbox` (dessen Schlüssel braucht einen Trail), sondern durch
+    `app_internal.push_messages`, per Cascade an der Nachricht —
+    zurückgenommen oder mit der Freundschaft gelöscht, geht nichts
+    hinaus. Ohne Frist (nächster Lauf); je Empfänger und Absender EINE
+    Meldung: Titel `push_name_for` (Alias des Empfängers), bei mehreren
+    „· n Nachrichten", Text die jüngste, 180 Zeichen; Ziel
+    `/friends/chat/<uuid>` (`isPushChatRoute`). Der Listener lädt bei
+    diesem Ziel `messagesProvider` statt der Trails neu und zeigt keine
+    SnackBar, wenn genau dieser Verlauf vorne ist. `push_flush_check.sh`
+    Fall 6, lokal ohne Supabase-Stack mit Attrappen für Vault und pg_net
+    gefahren (Gegenprobe: älteste statt jüngste, Benutzername statt
+    Alias, Schlange ohne Geheimnisse nicht geleert — alle drei rot).

@@ -31,6 +31,7 @@ begin;
 -- Sauberer Korb: matcher_check.sql läuft davor in derselben Datenbank
 -- und hinterlässt eigene Statuswechsel und Hinweise (also Zeilen).
 delete from app_internal.push_outbox;
+delete from app_internal.push_messages;
 select vault.create_secret('http://127.0.0.1:9/functions/v1', 'push_functions_url');
 select vault.create_secret('dry-run', 'push_job_secret');
 select vault.create_secret('dry-run', 'push_service_key');
@@ -145,6 +146,28 @@ select 'OUTBOX_ONSITE=' || coalesce(string_agg(recipient_id::text || ':' || kind
   from app_internal.push_outbox;
 delete from app_internal.push_outbox;
 
+-- 6. Nachrichten (Patch 022): Bert schreibt Anna zweimal, Dave (nur eine
+--    offene Anfrage) einmal. Anna nennt Bert „Bertl". Keine Frist: der
+--    nächste Lauf schickt; je Absender EINE Meldung, Text die jüngste.
+delete from app_internal.push_outbox;
+insert into public.friend_aliases (owner_id, friend_id, alias) values ('$A', '$B', 'Bertl');
+-- Die ältere eine Minute früher (eine Transaktion hat nur EIN now());
+-- expires_at mit, sonst verböte der 30-Tage-Check die Zeile.
+insert into public.buddy_messages (sender_id, recipient_id, body, created_at, expires_at) values
+  ('$B', '$A', 'erste', now() - interval '1 minute', now() + interval '29 days'),
+  ('$B', '$A', 'Morgen Hang? ' || repeat('y', 300), now(), now() + interval '30 days'),
+  ('$D', '$A', 'Ich bin Dave', now(), now() + interval '30 days');
+select 'MSG_QUEUE=' || count(*) from app_internal.push_messages;
+select 'SENT_MSG=' || app_internal.push_flush();
+select 'BODY_MSG=' || convert_from(body, 'utf8') from net.http_request_queue order by id desc limit 1;
+select 'MSG_QUEUE_AFTER=' || count(*) from app_internal.push_messages;
+-- Zurückgenommen, bevor der Lauf kam: keine Meldung.
+insert into public.buddy_messages (id, sender_id, recipient_id, body) values
+  ('33333333-0000-0000-0000-000000000001', '$B', '$A', 'doch nicht');
+select 'MSG_QUEUED=' || count(*) from app_internal.push_messages;
+delete from public.buddy_messages where id = '33333333-0000-0000-0000-000000000001';
+select 'MSG_WITHDRAWN=' || count(*) from app_internal.push_messages;
+
 -- 4. Privat: Kein Buddy sieht den Beitrag, also erfährt keiner etwas.
 update public.trail_details set visibility = 'private'
   where trail_id = '$T2' and user_id = '$A';
@@ -158,8 +181,10 @@ update public.trail_details set visibility = 'buddies', status = 'changed', stat
   where trail_id = '$T2' and user_id = '$A';
 delete from vault.secrets where name = 'push_job_secret';
 update app_internal.push_outbox set due_at = now() - interval '1 minute';
+insert into public.buddy_messages (sender_id, recipient_id, body) values ('$B', '$A', 'ohne Versand');
 select 'SENT_NOSECRET=' || app_internal.push_flush();
 select 'OUTBOX_NOSECRET=' || count(*) from app_internal.push_outbox;
+select 'MSG_NOSECRET=' || count(*) from app_internal.push_messages;
 rollback;
 SQL
 )
@@ -226,8 +251,26 @@ expect "zurückgezogen: keine Meldung mehr" "$(value OUTBOX_NOTE_WITHDRAWN)" "0"
 
 expect "unbestätigte Meldung (von zu Hause): keine Push" "$(value OUTBOX_UNCONFIRMED)" "0"
 expect "vor Ort bestätigt: Anna bekommt eine Zeile, der Zustand keine" "$(value OUTBOX_ONSITE)" "$A:trail_status:closed"
+expect "eine Nachricht wartet je Zeile in der Schlange" "$(value MSG_QUEUE)" "3"
+expect "Nachrichten: eine Meldung je Absender" "$(value SENT_MSG)" "2"
+body_msg=$(value BODY_MSG)
+msg_b=$(printf '%s' "$body_msg" | jq -c --arg r "/friends/chat/$B" '.messages[] | select(.route == $r)')
+msg_d=$(printf '%s' "$body_msg" | jq -c --arg r "/friends/chat/$D" '.messages[] | select(.route == $r)')
+expect "an Annas Gerät" "$(jq -r .token <<<"$msg_b")" "tok-anna"
+expect "Titel: Annas Alias für Bert und die Zahl" "$(jq -r .title <<<"$msg_b")" "Bertl · 2 Nachrichten"
+expect "Text: die jüngste, auf 180 Zeichen gekürzt" "$(jq -r '.body | length' <<<"$msg_b")" "180"
+case "$(jq -r .body <<<"$msg_b")" in "Morgen Hang? "*…) echo "✓ die jüngste Nachricht steht vorn, das Ende trägt …";;
+  *) echo "::error::push_flush: Nachrichtentext fehlt oder ist falsch gekürzt: $msg_b"; fail=1;; esac
+expect "offene Anfrage: der Benutzername" "$(jq -r .title <<<"$msg_d")" "push_dave"
+expect "eine einzelne Nachricht steht ganz da" "$(jq -r .body <<<"$msg_d")" "Ich bin Dave"
+case "$body_msg" in *erste*) echo "::error::push_flush: eine ältere Nachricht steht in der Nutzlast: $body_msg"; fail=1;;
+  *) echo "✓ nur die jüngste Nachricht je Absender in der Nutzlast";; esac
+expect "die Schlange ist danach leer" "$(value MSG_QUEUE_AFTER)" "0"
+expect "eine neue Nachricht wartet" "$(value MSG_QUEUED)" "1"
+expect "zurückgenommen: keine Meldung mehr" "$(value MSG_WITHDRAWN)" "0"
 expect "privater Beitrag: niemand erfährt etwas" "$(value OUTBOX_PRIVATE)" "0"
 expect "ohne Geheimnisse wird nichts verschickt" "$(value SENT_NOSECRET)" "0"
 expect "aber abgeräumt" "$(value OUTBOX_NOSECRET)" "0"
+expect "auch die Nachrichten-Schlange" "$(value MSG_NOSECRET)" "0"
 
 exit $fail

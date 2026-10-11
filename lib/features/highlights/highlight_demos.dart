@@ -727,8 +727,9 @@ final kHighlightDemos = <String, HighlightDemo>{
       ),
       CoachStep(
         title: 'Schreib los',
-        text: 'Bis zu 500 Zeichen. Nach 30 Tagen verschwinden Nachrichten wieder, '
-            'und wer einen Buddy entfernt, löscht den Verlauf für beide.',
+        text: 'Bis zu 500 Zeichen. Mit eingeschalteten Benachrichtigungen kommt '
+            'eine Antwort auch an, wenn die App zu ist; nach 30 Tagen '
+            'verschwinden Nachrichten wieder.',
         scene: BuddysCoach.chat,
         lit: [BuddysCoach.chatInput],
         requires: [BuddysCoach.message],

@@ -878,10 +878,12 @@ class _PushSection extends ConsumerWidget {
           title: const Text('Benachrichtigungen'),
           subtitle: const Text(
               'Wenn ein Buddy zu einem Trail, den du siehst, etwas meldet '
-              '(bestätigt, also vor Ort oder gefahren) oder einen Hinweis '
-              'schreibt. Gilt nur für dieses Gerät. In der Benachrichtigung '
-              'stehen der Trailname, der Name des Buddys und was er meldet '
-              '(beim Hinweis der Text) — nie ein Ort. Sie läuft über Google.'),
+              '(bestätigt, also vor Ort oder gefahren), einen Hinweis '
+              'schreibt oder dir eine Nachricht schickt. Gilt nur für '
+              'dieses Gerät. In der Benachrichtigung stehen der Trailname, '
+              'der Name des Buddys und was er meldet (beim Hinweis und bei '
+              'einer Nachricht der Text) — nie ein Ort. Sie läuft über '
+              'Google.'),
           value: enabled,
           onChanged: (value) async {
             final problem =
