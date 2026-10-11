@@ -8,8 +8,8 @@
 # Bewusst minimal: nur Datenbank, Auth, PostgREST. schema.sql braucht Auth
 # zwingend (references auth.users, auth.uid() in Policies, Trigger auf
 # auth.users) und PostGIS (bringt das Postgres-Image mit) — alles andere
-# kostet auf dem CI-Runner nur Startzeit. Kein Storage (keine Fotos); die
-# Edge Runtime steht für `send-push` in der Konfiguration, läuft im Dry
+# kostet auf dem CI-Runner nur Startzeit. Storage seit Patch 026
+# (Hinweis-Fotos, #37); die Edge Runtime steht für `send-push` in der Konfiguration, läuft im Dry
 # Run aber nicht (siehe unten).
 project_id = "TrailBuddy"
 
@@ -99,12 +99,11 @@ enabled = false
 enabled = false
 
 [storage]
-# Aus: Es gibt keine Buckets. Kommen Fotos (PilzBuddy Patch 026 als
-# Muster), braucht schema.sql `storage.buckets`, und das Schema legen die
-# Migrationen des Storage-Dienstes beim Start an — dann hier einschalten
-# und storage-api aus der Ausschlussliste in tool/ci_supabase_start.sh
-# nehmen.
-enabled = false
+# Seit Patch 026 (#37) AN: schema.sql legt den Bucket `trail-note-photos`
+# und Policies auf `storage.objects` an — beides braucht das
+# storage-Schema, und das legen die Migrationen des Storage-Dienstes beim
+# Start an. tool/photo_access_check.sh prüft die Policies dagegen.
+enabled = true
 
 [edge_runtime]
 # An, seit es die Function `send-push` gibt (Patch 008, #34). Der Dry Run

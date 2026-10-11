@@ -18,7 +18,12 @@ Differences to PilzBuddy, both on purpose:
 - No username in the issue. The issue is public; who wrote it stays in
   the database (user_id), where only the operator reads it. The digest
   shows contexts, types, messages and the top frame — never a user id.
-- No species PRs, no photos.
+- No species PRs, no feedback photos.
+
+On the same tick it sweeps the photos at trail notes (#37, patch 026):
+expired rows first, then every object in the bucket `trail-note-photos`
+without a live row — by reconciliation, so rows that went with their note
+(cascade) and uploads whose row never came are caught the same way.
 
 @-mentions in the text are defused: a public issue must not ping people
 because someone typed their handle into the app.
@@ -26,6 +31,8 @@ because someone typed their handle into the app.
 Required environment: SUPABASE_SERVICE_ROLE_KEY, GH_TOKEN (the workflow
 provides both). The project URL comes from lib/core/supabase_config.dart,
 the same file the app and tool/schema_check.sh read, so it cannot drift.
+BOT_SUPABASE_URL overrides it — only for the Schema Dry Run, which runs
+the photo sweep against the local stack (tool/photo_access_check.sh).
 
 Self-tests without any network access:
     python3 tool/feedback_bot.py --self-test
@@ -33,6 +40,9 @@ Self-tests without any network access:
 
 A past week, read-only (rows stay 90 days):
     python3 tool/feedback_bot.py --digest-week 2026-W40
+
+Only the photo sweep (needs SUPABASE_SERVICE_ROLE_KEY):
+    python3 tool/feedback_bot.py --sweep-note-photos
 """
 import json
 import os
@@ -53,6 +63,9 @@ APP_FRAME = "package:trailbuddy/"
 
 
 def supabase_url() -> str:
+    override = os.environ.get("BOT_SUPABASE_URL")
+    if override:
+        return override.rstrip("/")
     with open(CONFIG, encoding="utf-8") as f:
         m = re.search(r"'SUPABASE_URL',\s*defaultValue:\s*'([^']+)'", f.read())
     if not m or not m.group(1).startswith("https://"):
@@ -359,11 +372,112 @@ def purge_error_reports() -> None:
     print(f"error_reports older than {ERROR_REPORT_RETENTION_DAYS} days deleted.")
 
 
+# Fotos am Hinweis (#37, Patch 026): Zeilen laufen nach 90 Tagen ab oder
+# gehen mit ihrem Hinweis (Cascade), die Bytes liegen im Bucket. Beides
+# räumt derselbe Tick ab — per ABGLEICH, nicht per Reihenfolge: Jedes
+# Objekt, zu dem keine lebende Zeile mehr gehört, fliegt. Das fängt drei
+# Fälle mit einem Griff: abgelaufene Zeilen, gelöschte Zeilen („erledigt",
+# Rückzug, Aufräumen, Konto) und Uploads, deren Zeile nie geschrieben
+# wurde (Netz weg zwischen Objekt und Zeile). Übernommen aus PilzBuddy
+# (Fundfotos, #532).
+NOTE_PHOTO_BUCKET = "trail-note-photos"
+# Ein Objekt, das jünger ist als das, gilt als „im Aufbau": hochgeladen,
+# die Zeile folgt gleich. Ohne die Schonfrist löschte ein Tick, der
+# zwischen die beiden Schritte fällt, ein Foto mitten im Teilen.
+PHOTO_ORPHAN_GRACE = timedelta(hours=1)
+
+
+def photo_key_of(path: str) -> str:
+    """`<uid>/<id>.jpg` und `<uid>/<id>_s.jpg` gehören zum Schlüssel `<uid>/<id>`."""
+    if path.endswith("_s.jpg"):
+        return path[:-6]
+    if path.endswith(".jpg"):
+        return path[:-4]
+    return path
+
+
+def photo_sweep_plan(live_keys: set[str], objects: list[tuple[str, datetime | None]],
+                     now: datetime, grace: timedelta = PHOTO_ORPHAN_GRACE) -> list[str]:
+    """Welche Objekte weg müssen: ohne lebende Zeile — und nicht ganz frisch.
+
+    Rein, damit der Selbsttest sie ohne Netz prüfen kann. `created` ist
+    None, wenn der Dienst keine Zeit meldet; dann gilt das Objekt als alt —
+    ein Objekt ohne Zeile UND ohne Alter ist keines, das jemand gerade
+    hochlädt."""
+    doomed = []
+    for path, created in objects:
+        if photo_key_of(path) in live_keys:
+            continue
+        if created is not None and now - created < grace:
+            continue
+        doomed.append(path)
+    return doomed
+
+
+def _parse_ts(value) -> datetime | None:
+    if not value:
+        return None
+    try:
+        return datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    except ValueError:
+        return None
+
+
+def _storage_list(bucket: str, prefix: str) -> list[dict]:
+    return api("POST", f"/storage/v1/object/list/{bucket}",
+               {"prefix": prefix, "limit": 1000, "offset": 0}) or []
+
+
+def list_bucket_objects(bucket: str) -> list[tuple[str, datetime | None]]:
+    """Alle Objekte mit Pfad und Erstellzeit.
+
+    Die Liste antwortet je EBENE: Auf der obersten stehen die Ordner (ein
+    Eintrag ohne `id`), darin die Dateien mit ihrem Namen ohne Ordner. Ein
+    Ordner je Nutzer, also ein Aufruf je Nutzer plus einer."""
+    out: list[tuple[str, datetime | None]] = []
+    for entry in _storage_list(bucket, ""):
+        if entry.get("id") is None:
+            folder = entry["name"]
+            for obj in _storage_list(bucket, folder):
+                if obj.get("id") is None:
+                    continue
+                out.append((f"{folder}/{obj['name']}", _parse_ts(obj.get("created_at"))))
+        else:
+            out.append((entry["name"], _parse_ts(entry.get("created_at"))))
+    return out
+
+
+def expired_photos_path(now: datetime) -> str:
+    # Wie bei purge_path: „Z" statt „+00:00", sonst hieße das „+" in der
+    # Adresse Leerzeichen, und PostgREST antwortete 400.
+    stamp = now.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return "/rest/v1/trail_note_photos?expires_at=lt." + urllib.parse.quote(stamp, safe="")
+
+
+def sweep_note_photos(grace: timedelta = PHOTO_ORPHAN_GRACE) -> None:
+    now = datetime.now(timezone.utc)
+    api("DELETE", expired_photos_path(now))
+    live = {row["key"] for row in (api("GET", "/rest/v1/trail_note_photos?select=key") or [])}
+    objects = list_bucket_objects(NOTE_PHOTO_BUCKET)
+    doomed = photo_sweep_plan(live, objects, now, grace)
+    if doomed:
+        api("DELETE", f"/storage/v1/object/{NOTE_PHOTO_BUCKET}", {"prefixes": doomed})
+    print(f"Hinweis-Fotos: {len(live)} Zeilen, {len(objects)} Objekte, {len(doomed)} entfernt.")
+
+
 def main() -> None:
     # Before the early return below — otherwise digest and purge would
     # only run on the rare tick that also has unprocessed feedback.
     report_error_digest()
     purge_error_reports()
+    # Ein Aussetzer des Storage-Dienstes darf die Issues nicht aufhalten:
+    # Der nächste Tick räumt nach, und abgelaufene Fotos liest schon jetzt
+    # niemand mehr (tnp_friend_select). SystemExit gehört dazu — so meldet
+    # api() einen HTTP-Fehler.
+    try:
+        sweep_note_photos()
+    except (Exception, SystemExit) as e:  # noqa: BLE001 — jede Ursache ist hier gleich
+        print(f"::warning::Hinweis-Fotos nicht abgeräumt: {e}")
 
     rows = api("GET", "/rest/v1/feedback?processed_at=is.null&order=created_at"
                       "&select=id,type,message,created_at,app_version")
@@ -409,6 +523,20 @@ def self_test() -> None:
     assert "+" not in path and path.endswith("lt.2026-06-29T18%3A00%3A00Z"), path
 
     assert supabase_url().startswith("https://") and supabase_url().endswith(".supabase.co")
+
+    # Fotos am Hinweis: Abgleich statt Reihenfolge, Schonfrist für Uploads.
+    now = datetime(2026, 10, 11, 12, 0, tzinfo=timezone.utc)
+    old, fresh = now - timedelta(hours=3), now - timedelta(minutes=5)
+    assert photo_key_of("u1/a.jpg") == "u1/a" and photo_key_of("u1/a_s.jpg") == "u1/a"
+    objects = [("u1/a.jpg", old), ("u1/a_s.jpg", old),     # lebende Zeile
+               ("u1/b.jpg", old), ("u1/b_s.jpg", old),     # Zeile weg (Hinweis erledigt)
+               ("u2/c.jpg", fresh),                        # Upload im Aufbau
+               ("u2/d.jpg", None)]                         # ohne Zeit, ohne Zeile
+    plan = photo_sweep_plan({"u1/a"}, objects, now)
+    assert plan == ["u1/b.jpg", "u1/b_s.jpg", "u2/d.jpg"], plan
+    assert photo_sweep_plan({"u1/a"}, objects, now, timedelta(0)) == plan[:2] + ["u2/c.jpg", "u2/d.jpg"]
+    path = expired_photos_path(now)
+    assert "+" not in path and path.endswith("lt.2026-10-11T12%3A00%3A00Z"), path
     print("feedback_bot self-test: ok")
 
 
@@ -501,6 +629,11 @@ if __name__ == "__main__":
         self_test_digest()
     elif len(sys.argv) == 3 and sys.argv[1] == "--digest-week":
         print_past_digest(sys.argv[2])
+    elif sys.argv[1:] == ["--sweep-note-photos"]:
+        # PHOTO_GRACE_SECONDS nur für den Dry Run: Dort ist jedes Objekt
+        # Sekunden alt, und ohne 0 bewiese der Lauf nichts.
+        sweep_note_photos(timedelta(seconds=int(os.environ.get(
+            "PHOTO_GRACE_SECONDS", PHOTO_ORPHAN_GRACE.total_seconds()))))
     elif not sys.argv[1:]:
         main()
     else:

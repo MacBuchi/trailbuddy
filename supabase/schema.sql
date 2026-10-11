@@ -268,6 +268,26 @@ create table public.trail_notes (
 create index trail_notes_trail_idx on public.trail_notes (trail_id);
 create index trail_notes_user_idx on public.trail_notes (trail_id, user_id);
 
+-- Ein Foto am Hinweis (Patch 026, #37; Betreiber 2026-10-11: am Hinweis,
+-- eines je Hinweis). Die Bytes liegen im Bucket `trail-note-photos`
+-- (Bild `<key>.jpg`, Vorschau `<key>_s.jpg`), hier nur Schlüssel und
+-- Ablauf. Sichtbarkeit geerbt vom Hinweis, Frist 90 Tage als Default UND
+-- Constraint — auch für den jüngsten Hinweis, den sweep_old_notes()
+-- stehen lässt. Abgeräumt vom Feedback-Bot per Abgleich.
+create table public.trail_note_photos (
+  id uuid primary key default gen_random_uuid(),
+  note_id uuid not null unique references public.trail_notes(id) on delete cascade,
+  user_id uuid not null references public.profiles(id) on delete cascade,
+  key text not null unique,
+  created_at timestamptz not null default now(),
+  expires_at timestamptz not null default (now() + interval '90 days'),
+  constraint trail_note_photos_frist
+    check (expires_at <= created_at + interval '90 days'),
+  constraint trail_note_photos_key_owner
+    check (key like (user_id::text || '/%'))
+);
+create index trail_note_photos_expires_idx on public.trail_note_photos (expires_at);
+
 -- Meldungen und Zustände (Patch 013, #101; docs/konzept-rework.md,
 -- Abschnitt 9): „gesperrt", „offen" … (kind 'status', in der App
 -- „Meldung") und der Zustand 1–5 (kind 'condition'). Ein VERLAUF, eine
@@ -2177,6 +2197,7 @@ alter table public.trails            enable row level security;
 alter table public.trail_recordings  enable row level security;
 alter table public.trail_details     enable row level security;
 alter table public.trail_notes       enable row level security;
+alter table public.trail_note_photos enable row level security;
 alter table public.trail_reports     enable row level security;
 alter table app_internal.trail_overlaps enable row level security;
 alter table app_internal.trail_aliases  enable row level security;
@@ -2318,6 +2339,19 @@ create policy notes_delete on public.trail_notes for delete
          and app_internal.contributor_shares(user_id, trail_id)
          and app_internal.can_see_trail(auth.uid(), trail_id)));
 
+-- trail_note_photos (Patch 026, #37): eigene voll verwalten, anlegen nur
+-- am EIGENEN Hinweis; fremde sehen, solange nicht abgelaufen und der
+-- HINWEIS lesbar ist — die Freigabe steht in notes_select, nicht hier.
+create policy tnp_owner_all on public.trail_note_photos for all
+  using (user_id = auth.uid())
+  with check (user_id = auth.uid()
+    and exists (select 1 from public.trail_notes n
+                where n.id = note_id and n.user_id = auth.uid()));
+create policy tnp_friend_select on public.trail_note_photos for select
+  using (user_id <> auth.uid()
+     and expires_at > now()
+     and exists (select 1 from public.trail_notes n where n.id = note_id));
+
 -- trail_reports (Patch 013): sehen wie die Hinweise — der Meldende und
 -- seine direkten Buddys, die den Trail selbst sehen, nicht bei „privat".
 -- Schreiben nur über report_trail() (kein insert-Grant), löschen die
@@ -2358,6 +2392,7 @@ grant insert, select on public.feedback to authenticated;
 grant select, delete on public.trail_recordings to authenticated;   -- insert nur per RPC
 grant select, insert, update, delete on public.trail_details to authenticated;
 grant select, insert, delete on public.trail_notes to authenticated;
+grant select, insert, delete on public.trail_note_photos to authenticated;
 grant select, delete on public.trail_reports to authenticated;       -- insert nur per RPC
 grant select on public.recordings_visible to authenticated;
 grant select, insert, update, delete on public.push_devices to authenticated;
@@ -2372,6 +2407,35 @@ grant select, update on public.feedback to service_role;
 grant select, delete on public.error_reports to service_role;
 -- send-push (Patch 008) räumt tote Token mit dem Service-Schlüssel ab.
 grant select, delete on public.push_devices to service_role;
+-- Der Bot räumt Hinweis-Fotos ab (Patch 026): abgelaufene Zeilen löschen,
+-- lebende Schlüssel lesen, Objekte ohne Zeile aus dem Bucket.
+grant select, delete on public.trail_note_photos to service_role;
+
+-- ============================================================
+-- Storage: Hinweis-Fotos (Patch 026, #37)
+-- ============================================================
+-- Privater Bucket, keine öffentliche URL. Größe und Typ als Riegel des
+-- Servers (zwei JPEGs, ≤ 1024 px, ~150 KB). Hochladen und löschen nur im
+-- eigenen Ordner (`<user_id>/…`); lesen genau die Objekte, zu denen eine
+-- Zeile in trail_note_photos lesbar ist — ein Objekt ohne Zeile liest
+-- niemand, deshalb lädt die App erst die Objekte, dann die Zeile. Der
+-- lokale Matcher-Test bekommt das storage-Schema aus tool/auth_shim.sql.
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('trail-note-photos', 'trail-note-photos', false, 600000, array['image/jpeg'])
+on conflict (id) do nothing;
+create policy note_photos_upload on storage.objects for insert
+  to authenticated
+  with check (bucket_id = 'trail-note-photos'
+    and (storage.foldername(name))[1] = auth.uid()::text);
+create policy note_photos_read on storage.objects for select
+  to authenticated
+  using (bucket_id = 'trail-note-photos'
+    and exists (select 1 from public.trail_note_photos p
+                where name in (p.key || '.jpg', p.key || '_s.jpg')));
+create policy note_photos_remove on storage.objects for delete
+  to authenticated
+  using (bucket_id = 'trail-note-photos'
+    and (storage.foldername(name))[1] = auth.uid()::text);
 
 -- ============================================================
 -- Aufräumjobs und Push-Versand (nur wo pg_cron verfügbar ist)
@@ -2458,5 +2522,6 @@ insert into public.applied_patches (filename) values
   ('patch_022_message_push.sql'),
   ('patch_023_min_version_049.sql'),
   ('patch_024_drop_kind.sql'),
-  ('patch_025_drop_details_status.sql')
+  ('patch_025_drop_details_status.sql'),
+  ('patch_026_note_photos.sql')
 on conflict do nothing;

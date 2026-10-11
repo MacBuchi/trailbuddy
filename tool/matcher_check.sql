@@ -1528,4 +1528,84 @@ begin
   perform tb_test.check(min_v >= array[0, 49, 0], format('minimum_supported_version mindestens 0.49.0 (%s)', array_to_string(min_v, '.')));
 end $$;
 
+\echo -- 30. Ein Foto am Hinweis (Patch 026, #37)
+-- Die Zeile erbt die Sichtbarkeit des Hinweises; die Storage-Policies
+-- prüft tool/photo_access_check.sh gegen den echten Storage-Dienst (hier
+-- stünde lokal nur der Shim dahinter).
+do $$
+declare
+  ua uuid := '11111111-1111-4111-8111-111111111111';
+  ub uuid := '22222222-2222-4222-8222-222222222222';
+  uc uuid := '33333333-3333-4333-8333-333333333333';
+  t uuid; na uuid; nb uuid; code text; ok boolean; st text;
+  cnt text := 'select count(*) from public.trail_note_photos where note_id = %L';
+  ins text := 'insert into public.trail_note_photos (note_id, user_id, key) values (%L, %L, %L)';
+begin
+  perform tb_test.check(app_internal.are_friends(ua, ub) and not app_internal.are_friends(ua, uc),
+                        'Anna und Bernd sind Buddys, Carla nicht');
+  t := tb_test.contribute(ua, tb_test.line(400, y0 => 190000));
+  perform tb_test.check(app_internal.can_see_trail(ub, t) and not app_internal.can_see_trail(uc, t),
+                        'Bernd sieht Annas neuen Trail, Carla nicht');
+  insert into public.trail_notes (trail_id, user_id, body) values (t, ua, 'Baum liegt quer') returning id into na;
+  insert into public.trail_notes (trail_id, user_id, body) values (t, ub, 'Umfahrung links') returning id into nb;
+
+  perform tb_test.exec_as(ua, format(ins, na, ua, ua || '/foto-a'));
+  perform tb_test.check(tb_test.count_as(ua, format(cnt, na)) = 1, 'Anna sieht ihr Foto');
+  perform tb_test.check(tb_test.count_as(ub, format(cnt, na)) = 1, 'Bernd sieht das Foto an Annas Hinweis');
+  perform tb_test.check(tb_test.count_as(uc, format(cnt, na)) = 0, 'Carla sieht es nicht');
+
+  -- Abgelehnt: am fremden Hinweis, fremder Ordner, zweites Foto, Frist zu lang.
+  foreach code in array array['fremder Hinweis', 'fremder Ordner', 'zweites Foto', 'Frist zu lang'] loop
+    ok := false;
+    begin
+      perform tb_test.exec_as(ua, case code
+        when 'fremder Hinweis' then format(ins, nb, ua, ua || '/foto-x')
+        when 'fremder Ordner' then format(ins, na, ua, ub || '/foto-x')
+        when 'zweites Foto' then format(ins, na, ua, ua || '/foto-y')
+        else format('insert into public.trail_note_photos (note_id, user_id, key, expires_at) '
+                    'values (%L, %L, %L, now() + interval ''91 days'')', na, ua, ua || '/foto-z')
+      end);
+    exception when others then
+      st := sqlstate;
+      ok := st = case code when 'fremder Hinweis' then '42501'
+                           when 'zweites Foto' then '23505' else '23514' end;
+    end;
+    perform tb_test.as_owner();
+    perform tb_test.check(ok, format('Foto „%s" abgelehnt (%s)', code, coalesce(st, 'kein Fehler')));
+    st := null;
+  end loop;
+
+  -- Bernd kann Annas Foto nicht direkt löschen (still gefiltert) …
+  perform tb_test.exec_as(ub, format('delete from public.trail_note_photos where note_id = %L', na));
+  perform tb_test.check((select count(*) from public.trail_note_photos where note_id = na) = 1,
+                        'Bernd löscht Annas Foto nicht direkt');
+  -- … „privat" nimmt es aus seiner Sicht, wie den Hinweis.
+  perform tb_test.exec_as(ua, format('update public.trail_details set visibility = %L where trail_id = %L and user_id = %L', 'private', t, ua));
+  perform tb_test.check(tb_test.count_as(ub, format(cnt, na)) = 0, 'privat: Bernd sieht das Foto nicht mehr');
+  perform tb_test.exec_as(ua, format('update public.trail_details set visibility = %L where trail_id = %L and user_id = %L', 'buddies', t, ua));
+  -- Abgelaufen: Fremde sehen es nicht mehr, Anna bis zum Abräumen schon.
+  update public.trail_note_photos set created_at = now() - interval '91 days',
+                                      expires_at = now() - interval '1 day' where note_id = na;
+  perform tb_test.check(tb_test.count_as(ub, format(cnt, na)) = 0, 'abgelaufen: Bernd sieht es nicht');
+  perform tb_test.check(tb_test.count_as(ua, format(cnt, na)) = 1, 'abgelaufen: Anna sieht es bis zum Abräumen');
+  update public.trail_note_photos set created_at = now(), expires_at = now() + interval '90 days' where note_id = na;
+  -- „Erledigt": Bernd entfernt Annas Hinweis — das Foto geht mit.
+  perform tb_test.exec_as(ub, format('delete from public.trail_notes where id = %L', na));
+  perform tb_test.check(not exists (select 1 from public.trail_note_photos where note_id = na),
+                        'Hinweis erledigt: die Foto-Zeile ist weg (Cascade)');
+
+  -- Bucket und Storage-Policies stehen (ihr Verhalten: photo_access_check.sh).
+  perform tb_test.check(exists (select 1 from storage.buckets
+                                 where id = 'trail-note-photos' and not public
+                                   and allowed_mime_types = array['image/jpeg']),
+                        'Bucket trail-note-photos: privat, nur JPEG');
+  perform tb_test.check((select count(*) from pg_policies where schemaname = 'storage' and tablename = 'objects'
+                          and policyname in ('note_photos_upload', 'note_photos_read', 'note_photos_remove')) = 3,
+                        'drei Storage-Policies für Hinweis-Fotos');
+  perform tb_test.check(has_table_privilege('service_role', 'public.trail_note_photos', 'select')
+                        and has_table_privilege('service_role', 'public.trail_note_photos', 'delete')
+                        and not has_table_privilege('anon', 'public.trail_note_photos', 'select'),
+                        'der Bot darf abräumen, anon sieht nichts');
+end $$;
+
 \echo -- Alle Prüfungen bestanden.
