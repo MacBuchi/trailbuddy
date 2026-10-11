@@ -275,6 +275,22 @@ Eingriff am Trail.** Niemand verändert die Daten eines anderen.
 - **Rückgängig:** Die persönliche Zuordnung lässt sich lösen; umgezogene
   eigene Aufzeichnungen bleiben, wo sie sind.
 
+**Nachtrag 2026-10-11 (Betreiber, Wortlaut in #107; ausgeführt in
+`konzept-trails.md` 6.1).** Was sich gegenüber dem Text oben ändert:
+
+- **Eigene Duplikate zählen** („durch GPX-Import"): Das Zusammenführen
+  wartet nicht auf Daten mehrerer Nutzer.
+- **Frei wählen** nicht ab Deckung 0,3, sondern wenn beide Trails grob
+  beieinander liegen: ≥ 50 % der kürzeren Linie innerhalb von 50 m (der
+  15-m-Korridor trüge den Fall „knapp daneben" nicht).
+- **Die Zuordnung ist nicht nur für mich lesbar**, sondern wird an
+  direkte Buddys weitergereicht: Wer an B selbst etwas hat, bekommt
+  einen Vorschlag; wer beide sieht und an B nichts hat, sieht B unter A.
+  Gelesen wird nur über eine RPC, die je Leser filtert — direkt ist die
+  Tabelle für keinen Client lesbar.
+- **Widerspruch:** Ein „verschieden" eines Beteiligten hält B für
+  Unbeteiligte stehen; Gegenrichtungen löst der ältere Trail.
+
 ## 8. Was sich am Konzept ändert
 
 | Stelle in `konzept-trails.md` | Änderung |
@@ -543,8 +559,11 @@ bekommen ihren PR erst danach.
 
 ### Schritt 8 — Zusammenführen
 
-- Patch 015: `merge_own_into`, `trail_aliases` (RLS: nur eigene Zeilen),
-  RPC für Vorschläge (nur Paare, die der Aufrufer beide sieht).
+- Patch 019 (die 015 war inzwischen vergeben): `merge_own_into`,
+  `trail_aliases` und `trail_distinct` in `app_internal` ohne
+  Client-Grant, `trail_merges()` für Vorschläge und Zuordnungen (nur
+  Paare, die der Aufrufer beide sieht), dazu der Abgleich gegen die
+  eigenen Aufzeichnungen (Nachtrag 2026-10-11 in Abschnitt 7).
 - `buildTrails` wendet die Zuordnungen an; Blatt „Sind das dieselben?“
   mit beiden Linien auf der Karte; „auf gemeinsamen Teil kürzen“ öffnet
   das Zerlege-Blatt.

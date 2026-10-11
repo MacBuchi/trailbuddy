@@ -365,6 +365,17 @@ check_rpc_protected "withdraw_contribution-RPC" "withdraw_contribution" \
 # Melden (Patch 013): nur für Angemeldete, alle Namen im Body.
 check_rpc_protected "report_trail-RPC" "report_trail" \
   '{"trail_id":"00000000-0000-4000-8000-000000000000","status":"closed","condition":null,"on_site":false,"reported_at":null,"client_id":null}'
+# Duplikate zusammenführen (Patch 019, #107): alle nur für Angemeldete,
+# alle Namen im Body.
+check_rpc_protected "merge_own_into-RPC" "merge_own_into" \
+  '{"duplicate_id":"00000000-0000-4000-8000-000000000000","target_id":"00000000-0000-4000-8000-000000000001"}'
+check_rpc_protected "unmerge_trail-RPC" "unmerge_trail" \
+  '{"duplicate_id":"00000000-0000-4000-8000-000000000000"}'
+check_rpc_protected "mark_distinct-RPC" "mark_distinct" \
+  '{"trail_a":"00000000-0000-4000-8000-000000000000","trail_b":"00000000-0000-4000-8000-000000000001"}'
+check_rpc_protected "unmark_distinct-RPC" "unmark_distinct" \
+  '{"trail_a":"00000000-0000-4000-8000-000000000000","trail_b":"00000000-0000-4000-8000-000000000001"}'
+check_rpc_protected "trail_merges-RPC" "trail_merges" '{}'
 
 if [ "$fail" -ne 0 ]; then
   echo "::error::Schema passt nicht zu den App-Queries. Fehlt ein supabase/patch_NNN_*.sql bzw. wurde er noch nicht eingespielt (tool/db_migrate.sh, Secret SUPABASE_DB_URL)?"

@@ -1110,4 +1110,224 @@ begin
                         'wer mit Datum gefahren ist, meldet bestätigt');
 end $$;
 
+\echo -- 25. Duplikate zusammenführen (Patch 019, #107)
+-- Eigene Konten, weit weg von den Linien oben: Dora (D), Emil (E) und
+-- Fritz (F) sind untereinander Buddys; Gina (G) kennt niemanden.
+insert into auth.users (id, email, raw_user_meta_data) values
+  ('44444444-4444-4444-8444-444444444444', 'd@example.org', '{"username":"dora"}'),
+  ('55555555-5555-4555-8555-555555555555', 'e@example.org', '{"username":"emil"}'),
+  ('66666666-6666-4666-8666-666666666666', 'f@example.org', '{"username":"fritz"}'),
+  ('77777777-7777-4777-8777-777777777777', 'g@example.org', '{"username":"gina"}');
+insert into public.friendships (requester_id, addressee_id, status) values
+  ('44444444-4444-4444-8444-444444444444', '55555555-5555-4555-8555-555555555555', 'accepted'),
+  ('44444444-4444-4444-8444-444444444444', '66666666-6666-4666-8666-666666666666', 'accepted'),
+  ('55555555-5555-4555-8555-555555555555', '66666666-6666-4666-8666-666666666666', 'accepted');
+
+create or replace function tb_test.merges_as(uid uuid)
+returns table (trail_id uuid, same_as uuid, reversed boolean, kind text, by_users uuid[])
+language plpgsql as $$
+begin
+  perform tb_test.as_user(uid);
+  return query select * from public.trail_merges();
+  perform tb_test.as_owner();
+end $$;
+
+create or replace function tb_test.merge_as(uid uuid, dup uuid, keep uuid)
+returns uuid language plpgsql as $$
+declare
+  t uuid;
+begin
+  perform tb_test.as_user(uid);
+  t := public.merge_own_into(dup, keep);
+  perform tb_test.as_owner();
+  return t;
+end $$;
+
+-- Wirft die RPC, kommt der SQLSTATE zurück, sonst null.
+create or replace function tb_test.state_of(uid uuid, sql text)
+returns text language plpgsql as $$
+declare
+  code text;
+begin
+  begin
+    perform tb_test.exec_as(uid, sql);
+  exception when others then
+    get stacked diagnostics code = returned_sqlstate;
+    execute 'reset role';
+  end;
+  return code;
+end $$;
+
+do $$
+declare
+  ud uuid := '44444444-4444-4444-8444-444444444444';
+  ue uuid := '55555555-5555-4555-8555-555555555555';
+  uf uuid := '66666666-6666-4666-8666-666666666666';
+  ug uuid := '77777777-7777-4777-8777-777777777777';
+  l1 double precision[] := tb_test.line(800, y0 => 120000);
+  l2 double precision[] := tb_test.shift(tb_test.line(800, y0 => 120000), 0, 25);
+  t1 uuid; t2 uuid; t uuid;
+  n bigint;
+  code text;
+  m record;
+begin
+  -- Zwei eigene Importe derselben Strecke, 25 m auseinander: zwei Trails.
+  t1 := tb_test.contribute(ud, l1, 'import');
+  t2 := tb_test.contribute(ud, l2, 'import');
+  perform tb_test.check(t1 <> t2, '25 m parallel: zwei Trails (außerhalb des Korridors)');
+  perform tb_test.exec_as(ud, format('update public.trail_details set name = %L where trail_id = %L and user_id = %L', 'Hexentanz', t1, ud));
+  perform tb_test.exec_as(ud, format('update public.trail_details set name = %L, grade = 3, traits = %L where trail_id = %L and user_id = %L',
+                                     'Roots', '{flowy}', t2, ud));
+  perform tb_test.exec_as(ud, format('insert into public.trail_notes (trail_id, user_id, body) values (%L, %L, %L)', t2, ud, 'Baum quer'));
+  perform tb_test.exec_as(ud, format('select public.report_trail(%L::uuid, %L::text)', t2, 'closed'));
+  -- Fritz fährt die B-Linie, Emil die A-Linie.
+  perform tb_test.check(tb_test.contribute(uf, tb_test.jitter(l2, 3.0, 0.31)) = t2, 'Fritz fährt B: hängt an B');
+  perform tb_test.check(tb_test.contribute(ue, tb_test.jitter(l1, 3.0, 0.32)) = t1, 'Emil fährt A: hängt an A');
+
+  -- Gina sieht keinen der beiden: dieselbe Antwort wie für eine erfundene Kennung.
+  code := tb_test.state_of(ug, format('select public.merge_own_into(%L, %L)', t2, t1));
+  perform tb_test.check(code = 'P0002', format('Fremde: merge_own_into antwortet „nicht gefunden" (%s)', code));
+  code := tb_test.state_of(ug, format('select public.merge_own_into(%L, %L)', gen_random_uuid(), t1));
+  perform tb_test.check(code = 'P0002', format('erfundene Kennung: dieselbe Antwort (%s)', code));
+  perform tb_test.check((select count(*) from tb_test.merges_as(ug)) = 0, 'Fremde: trail_merges sagt nichts');
+  code := tb_test.state_of(ud, format('select public.merge_own_into(%L, %L)', t1, t1));
+  perform tb_test.check(code = '22023', format('derselbe Trail zweimal: abgelehnt (%s)', code));
+
+  -- Dora: „B ist ein Duplikat von A".
+  perform tb_test.check(tb_test.merge_as(ud, t2, t1) = t1, 'merge_own_into gibt den behaltenen Trail zurück');
+  perform tb_test.check(not exists (select 1 from public.trail_recordings where trail_id = t2 and user_id = ud)
+                        and (select count(*) from public.trail_recordings where trail_id = t1 and user_id = ud) = 2,
+                        'Doras Aufzeichnungen hängen jetzt an A');
+  perform tb_test.check((select count(*) from public.trail_recordings where trail_id = t2) = 1,
+                        'Fritz behält seine Aufzeichnung an B (niemand ändert fremde Daten)');
+  perform tb_test.check(not exists (select 1 from public.trail_details where trail_id = t2 and user_id = ud),
+                        'Doras Beitrag an B ist weg');
+  select * into m from public.trail_details where trail_id = t1 and user_id = ud;
+  perform tb_test.check(m.name = 'Hexentanz' and m.grade = 3 and m.traits = '{flowy}',
+                        'Beitrag verschmolzen: A gewinnt den Namen, B füllt Grad und Charakter');
+  perform tb_test.check(exists (select 1 from public.trail_notes where trail_id = t1 and user_id = ud and body = 'Baum quer')
+                        and exists (select 1 from public.trail_reports where trail_id = t1 and user_id = ud and status = 'closed'),
+                        'Hinweis und Meldung sind mit umgezogen');
+  perform tb_test.check(tb_test.merge_as(ud, t2, t1) = t1, 'zweiter Aufruf (Ausgangskorb): dieselbe Antwort');
+
+  -- Was jeder darüber erfährt.
+  perform tb_test.check((select count(*) from tb_test.merges_as(ud) x where x.kind = 'own' and x.trail_id = t2 and x.same_as = t1) = 1
+                        and (select count(*) from tb_test.merges_as(ud)) = 1,
+                        'Dora: genau ihre eigene Zuordnung');
+  perform tb_test.check((select count(*) from tb_test.merges_as(uf) x
+                          where x.kind = 'proposed' and x.trail_id = t2 and x.same_as = t1 and x.by_users = array[ud]) = 1,
+                        'Fritz (hat an B selbst etwas): Vorschlag von Dora');
+  perform tb_test.check((select count(*) from tb_test.merges_as(ue) x
+                          where x.kind = 'folded' and x.trail_id = t2 and x.same_as = t1 and not x.reversed) = 1,
+                        'Emil (sieht beide, hat an B nichts): B verschwindet unter A');
+  perform tb_test.check((select count(*) from tb_test.merges_as(ug)) = 0, 'Gina: weiterhin nichts');
+
+  -- Privat: Doras Erklärung zählt nicht, solange ihre Beiträge privat sind.
+  perform tb_test.exec_as(ud, format('update public.trail_details set visibility = %L where trail_id = %L and user_id = %L', 'private', t1, ud));
+  perform tb_test.check((select count(*) from tb_test.merges_as(ue)) = 0,
+                        'privat: Emil sieht A weiter (eigene Fahrt), erfährt aber nichts von Doras Erklärung');
+  perform tb_test.exec_as(ud, format('update public.trail_details set visibility = %L where trail_id = %L and user_id = %L', 'buddies', t1, ud));
+
+  -- Einspruch: Fritz (Besitzer von B) sagt „verschieden" — B bleibt für Emil stehen.
+  perform tb_test.exec_as(uf, format('select public.mark_distinct(%L, %L)', t1, t2));
+  perform tb_test.check((select count(*) from tb_test.merges_as(ue)) = 0, 'Einspruch des Besitzers: bei Emil faltet nichts');
+  perform tb_test.check((select count(*) from tb_test.merges_as(uf) x where x.kind = 'distinct') = 1
+                        and (select count(*) from tb_test.merges_as(uf) x where x.kind = 'proposed') = 0,
+                        'Fritz: sein „verschieden" steht, der Vorschlag ist weg');
+  perform tb_test.exec_as(uf, format('select public.unmark_distinct(%L, %L)', t2, t1));
+  perform tb_test.check((select count(*) from tb_test.merges_as(ue) x where x.kind = 'folded') = 1, 'Einspruch zurückgenommen: B faltet wieder');
+
+  -- Doras spätere Fahrt auf der B-Linie landet an A — nach ihrer eigenen Erklärung.
+  t := tb_test.contribute(ud, tb_test.jitter(l2, 3.0, 0.33));
+  perform tb_test.check(t = t1, 'Doras neue Fahrt auf der B-Linie hängt an A');
+  -- Fritz nicht: Seine Fahrt auf der B-Linie bleibt an B (keine Umleitung für alle, E5).
+  perform tb_test.check(tb_test.contribute(uf, tb_test.jitter(l2, 3.0, 0.34)) = t2, 'Fritz’ neue Fahrt bleibt an B');
+
+  -- Emil erklärt B selbst zum Duplikat, ohne daran etwas zu haben: Es zieht
+  -- nichts um, aber seine erste Fahrt auf der B-Linie landet an A — über
+  -- die Zuordnung, denn eine eigene Linie dort hat er nicht.
+  perform tb_test.check(tb_test.merge_as(ue, t2, t1) = t1, 'Emil erklärt B zum Duplikat');
+  perform tb_test.check((select count(*) from tb_test.merges_as(ue) x where x.kind = 'own') = 1
+                        and (select count(*) from tb_test.merges_as(ue) x where x.kind = 'folded') = 0,
+                        'Emil: die eigene Zeile ersetzt die stille Zuordnung');
+  perform tb_test.check(tb_test.contribute(ue, tb_test.jitter(l2, 3.0, 0.37)) = t1, 'Emils Fahrt auf der B-Linie hängt an A');
+
+  -- Fritz nimmt den Vorschlag an: B ist leer und geht mit dem Aufräumjob.
+  perform tb_test.check(tb_test.merge_as(uf, t2, t1) = t1, 'Fritz führt zusammen');
+  perform tb_test.check(not exists (select 1 from public.trail_recordings where trail_id = t2)
+                        and not exists (select 1 from public.trail_details where trail_id = t2),
+                        'an B hängt nichts mehr');
+  perform app_internal.sweep_orphan_trails();
+  perform tb_test.check(not exists (select 1 from public.trails where id = t2)
+                        and not exists (select 1 from app_internal.trail_aliases where trail_id = t2),
+                        'B ist weg, die Zuordnungen mit ihm');
+  perform tb_test.check((select count(*) from tb_test.merges_as(ue)) = 0, 'Emil: nichts mehr zu falten');
+  perform tb_test.check(tb_test.contribute(uf, tb_test.jitter(l2, 3.0, 0.35)) = t1,
+                        'Fritz’ nächste Fahrt auf der B-Linie trifft seine eigene umgezogene Linie an A');
+end $$;
+
+do $$
+declare
+  ud uuid := '44444444-4444-4444-8444-444444444444';
+  ue uuid := '55555555-5555-4555-8555-555555555555';
+  l5 double precision[] := tb_test.line(600, y0 => 140000);
+  t3 uuid; t4 uuid; t5 uuid; t6 uuid; t7 uuid; t8 uuid;
+  code text;
+begin
+  -- Zu weit auseinander (200 m): kein Zusammenführen.
+  t3 := tb_test.contribute(ud, tb_test.line(800, y0 => 130000), 'import');
+  t4 := tb_test.contribute(ud, tb_test.line(800, y0 => 130200), 'import');
+  code := tb_test.state_of(ud, format('select public.merge_own_into(%L, %L)', t4, t3));
+  perform tb_test.check(code = '22023', format('200 m auseinander: abgelehnt (%s)', code));
+  perform tb_test.check(exists (select 1 from public.trail_recordings where trail_id = t4 and user_id = ud),
+                        'nach der Ablehnung ist nichts umgezogen');
+
+  -- Gegenrichtung: B läuft 25 m daneben andersherum.
+  t5 := tb_test.contribute(ud, l5, 'import');
+  t6 := tb_test.contribute(ud, tb_test.reverse_xy(tb_test.shift(l5, 0, 25)), 'import');
+  perform tb_test.check(tb_test.merge_as(ud, t6, t5) = t5, 'Gegenrichtung: zusammengeführt');
+  perform tb_test.check((select bool_and(reversed) from app_internal.trail_aliases where user_id = ud and trail_id = t6)
+                        and exists (select 1 from public.trail_recordings where trail_id = t5 and user_id = ud and reversed),
+                        'Zuordnung und umgezogene Aufzeichnung tragen „gegen A"');
+  perform tb_test.check(tb_test.contribute(ud, tb_test.jitter(tb_test.reverse_xy(tb_test.shift(l5, 0, 25)), 3.0, 0.36)) = t5,
+                        'neue Fahrt auf der B-Linie: an A');
+  -- Die Importe tragen `import`, die neue Fahrt `app` (created_at ist im
+  -- Block für alle gleich).
+  perform tb_test.check((select reversed from public.trail_recordings where trail_id = t5 and user_id = ud and source = 'app'),
+                        'die neue Fahrt läuft gegen A');
+
+  -- Overlap-Kante zwischen zwei eigenen Trails (Teil): Vorrat für „Sind das dieselben?".
+  t7 := tb_test.contribute(ud, tb_test.line(800, y0 => 150000));
+  t8 := tb_test.contribute(ud, tb_test.line(400, y0 => 150000));
+  perform tb_test.check(t7 <> t8, 'die Hälfte wird ein eigener Trail');
+  perform tb_test.check((select count(*) from tb_test.merges_as(ud) x where x.kind = 'overlap' and x.trail_id = t8 and x.same_as = t7) = 1,
+                        'Dora: die Kante als Vorschlag');
+  perform tb_test.check((select count(*) from tb_test.merges_as(ue) x where x.kind = 'overlap') = 0,
+                        'Emil (an keinem der beiden beteiligt): keine Kante');
+  perform tb_test.exec_as(ud, format('select public.mark_distinct(%L, %L)', t8, t7));
+  perform tb_test.check((select count(*) from tb_test.merges_as(ud) x where x.kind = 'overlap') = 0,
+                        '„verschieden" nimmt die Kante aus dem Vorschlag');
+end $$;
+
+do $$
+declare
+  ud uuid := '44444444-4444-4444-8444-444444444444';
+  code text;
+begin
+  code := tb_test.state_of(ud, 'select count(*) from app_internal.trail_aliases');
+  perform tb_test.check(code = '42501', format('trail_aliases ist für authenticated nicht lesbar (%s)', code));
+  code := tb_test.state_of(ud, 'select count(*) from app_internal.trail_distinct');
+  perform tb_test.check(code = '42501', format('trail_distinct ist für authenticated nicht lesbar (%s)', code));
+  code := null;
+  begin
+    perform set_config('request.jwt.claims', '', true);
+    execute 'set local role anon';
+    perform * from public.trail_merges();
+  exception when others then
+    code := sqlstate;
+  end;
+  execute 'reset role';
+  perform tb_test.check(code = '42501', format('anon darf trail_merges nicht ausführen (%s)', code));
+end $$;
+
 \echo -- Alle Prüfungen bestanden.
