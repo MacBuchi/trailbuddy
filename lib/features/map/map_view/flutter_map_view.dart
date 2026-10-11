@@ -14,6 +14,7 @@ import '../online_map.dart';
 import '../way_layer.dart';
 import 'line_labels.dart';
 import 'map_view.dart';
+import '../../../l10n/l10n.dart';
 
 /// Die flutter_map-Engine: der Web-Pfad und der Rückfall auf Android,
 /// wenn der MapLibre-Style nicht baut. Online die Vektorkarte vom Host
@@ -370,7 +371,7 @@ class _FlutterMapViewState extends ConsumerState<FlutterMapView>
             alignment: AttributionAlignment.bottomLeft,
             animationConfig: const ScaleRAWA(),
             attributions: [
-              const TextSourceAttribution('OpenStreetMap-Mitwirkende'),
+              TextSourceAttribution(context.l10n.mapAttributionOsm),
               const TextSourceAttribution('Protomaps', prependCopyright: false),
               for (final text in config.attributions)
                 TextSourceAttribution(text, prependCopyright: false),

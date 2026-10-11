@@ -37,6 +37,31 @@ entsteht zuerst dort) und `app_en.arb`; gelesen mit `context.l10n.<key>`
   alles, was die übersetzende Person vom Ort des Textes weiß.
   `test/l10n_test.dart` prüft das, dieselben Schlüssel in beiden Dateien
   und dieselben Platzhalter.
+- **Stand der Stufen:** (a) Gerüst 0.113.1; (b) Karte, Kartenknöpfe und
+  Blätter 0.113.2 — alles unter `lib/features/map/` samt Blatt
+  „Kartenebenen", Orte-Blatt, Legende und den Leisten des Karten-Screens
+  (auch die des Planers, der Fahrt und des Ausgangskorbs, die dort
+  stehen). Noch keiner Stufe zugeordnet: `lib/features/offline_areas/`
+  und `lib/features/official/` (das Blatt eines offiziellen Trails).
+- **Was deutsch bleibt, auch nach dem Umzug:** die `label:` von
+  `RememberedFlag`, `openHostArchive`, `_moveNow` und Co. — das sind
+  Kontexte für `error_reports` (Wochendigest des Betreibers), keine
+  Oberfläche. Ebenso Ausnahmetexte (`StateError`, `toString` von
+  Fehlern).
+- **Enums mit Namen auf dem Schirm** (`PoiGroup`, `PoiKind`, `WayClass`)
+  tragen keinen Text mehr im Konstruktor, sondern `label(l)` mit einem
+  `switch` — gen-l10n kennt keinen Zugriff über den Namen, und der
+  `switch` ist erschöpfend: Eine neue Art ohne Text baut nicht.
+- **Pure Helfer, die Text bauen, nehmen `AppLocalizations l` als ersten
+  Parameter** (`legendSamples`, `legendGroupTitle`, `contourStatusText`).
+  Ihre Tests holen die deutschen Texte aus `l10nDe`
+  (`test/fakes/l10n_de.dart`).
+- **Platzhalter bekommen fertig formatierte Werte**, solange ihr Helfer
+  noch nicht umgezogen ist: `formatMeters`, `rideDurationLabel`,
+  `formatBytes`, `TrailListFilter.describe()` und `formatCachedAt`
+  (Datum als `28.9., 10:12`) sind deutsch, bis ihre Stufe kommt (c, d).
+  Ein Satz mit Zahl ist ein ICU-Plural in der ARB-Datei, nie
+  `n == 1 ? 'Trail' : 'Trails'` im Code.
 - **Touren und Vorführungen** übernehmen Schritte über `_from(…, title)`
   mit dem deutschen Titel. Beim Umzug von `lib/features/help/` und
   `highlights/` müssen sie über einen Schlüssel zueinander finden, nicht

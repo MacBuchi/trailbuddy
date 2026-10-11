@@ -23,6 +23,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/app_colors.dart';
 import '../../core/settings.dart';
 import '../../core/widgets/motion.dart';
+import '../../l10n/l10n.dart';
 import '../trails/grade_shield.dart';
 import 'contour_layer.dart';
 import 'contour_providers.dart';
@@ -79,7 +80,7 @@ int _wayGroup(WayKind kind) => kind == WayKind.track ? 4 : 5;
 /// ließe suchen. Ebenso die Höhenlinien (#271): nur, solange welche
 /// liegen, mit dem Abstand, den die Karte WIRKLICH zeigt ([contourM]) —
 /// er folgt dem Gelände, also muss ihn jemand sagen.
-List<LegendSample> legendSamples({bool ways = true, int? contourM}) {
+List<LegendSample> legendSamples(AppLocalizations l, {bool ways = true, int? contourM}) {
   const g = AppColors.mapGrades;
   const m = AppColors.mapLines;
   return [
@@ -88,19 +89,19 @@ List<LegendSample> legendSamples({bool ways = true, int? contourM}) {
     _line('S2', 0, g.s2),
     _line('S3', 0, g.s3),
     _line('S4/S5', 0, g.s3, borderDash: kHaloDashExpert),
-    _line('ohne Grad', 0, g.ungraded),
-    _line('Uphill', 0, g.uphill),
-    _line('ausgefahren', 1, g.s1, dash: kLineDashWorn),
-    _line('abgerockt', 1, g.s1, dash: kLineDashRough),
-    _line('kaum fahrbar', 1, g.s1, dash: kLineDashRough, opacity: 0.45),
-    _line('Meldung', 2, g.s1, border: m.warning),
-    _line('neuer Hinweis', 2, g.s1, border: m.note),
-    _line('offizieller Trail', 3, m.official, dash: const [6, 4]),
+    _line(l.legendUngraded, 0, g.ungraded),
+    _line(l.legendUphill, 0, g.uphill),
+    _line(l.legendWorn, 1, g.s1, dash: kLineDashWorn),
+    _line(l.legendRough, 1, g.s1, dash: kLineDashRough),
+    _line(l.legendBarelyRideable, 1, g.s1, dash: kLineDashRough, opacity: 0.45),
+    _line(l.legendReport, 2, g.s1, border: m.warning),
+    _line(l.legendNewNote, 2, g.s1, border: m.note),
+    _line(l.legendOfficial, 3, m.official, dash: const [6, 4]),
     if (ways)
-      for (final c in WayClass.values) _line(c.label, _wayGroup(c.kind), c.color, way: c),
+      for (final c in WayClass.values) _line(c.label(l), _wayGroup(c.kind), c.color, way: c),
     if (contourM != null) ...[
-      _line('alle $contourM m', 6, AppColors.contourLine, opacity: kContourOpacity, contour: true),
-      _line('Zahl alle ${contourIndexStepM(contourM)} m', 6, AppColors.contourLine,
+      _line(l.legendContourEvery(contourM), 6, AppColors.contourLine, opacity: kContourOpacity, contour: true),
+      _line(l.legendContourIndex(contourIndexStepM(contourM)), 6, AppColors.contourLine,
           opacity: kContourIndexOpacity, contour: true),
     ],
   ];
@@ -109,13 +110,13 @@ List<LegendSample> legendSamples({bool ways = true, int? contourM}) {
 /// Die Überschrift über einer Gruppe; null heißt: nur Luft, keine neue
 /// Überschrift (offizielle Trails stehen unter „Am Trail"). Ohne sie
 /// musste man erraten, dass „abgerockt" ein Zustand ist (#231).
-String? legendGroupTitle(int group) => switch (group) {
-      0 => 'Schwierigkeit',
-      1 => 'Zustand',
-      2 => 'Am Trail',
-      4 => 'Forstweg',
-      5 => 'Pfad',
-      6 => 'Höhenlinien',
+String? legendGroupTitle(AppLocalizations l, int group) => switch (group) {
+      0 => l.legendGroupGrade,
+      1 => l.legendGroupCondition,
+      2 => l.legendGroupOnTrail,
+      4 => l.legendGroupTrack,
+      5 => l.legendGroupPath,
+      6 => l.contourLines,
       _ => null,
     };
 
@@ -232,9 +233,9 @@ class _Tab extends StatelessWidget {
     const g = AppColors.mapGrades;
     return Semantics(
       button: true,
-      label: 'Legende zeigen',
+      label: context.l10n.legendShow,
       child: Tooltip(
-        message: 'Legende zeigen',
+        message: context.l10n.legendShow,
         child: GestureDetector(
           key: const ValueKey('map-legend-tab'),
           behavior: HitTestBehavior.opaque,
@@ -281,8 +282,8 @@ class _Tab extends StatelessWidget {
 
 /// Die Überschrift vor Probe [i], wenn dort eine Gruppe mit eigener
 /// Überschrift beginnt.
-String? _titleAt(List<LegendSample> samples, int i) =>
-    i == 0 || samples[i].group != samples[i - 1].group ? legendGroupTitle(samples[i].group) : null;
+String? _titleAt(AppLocalizations l, List<LegendSample> samples, int i) =>
+    i == 0 || samples[i].group != samples[i - 1].group ? legendGroupTitle(l, samples[i].group) : null;
 
 /// Auf: die Proben untereinander, oben „Legende" mit dem Weg zurück.
 class _Panel extends StatelessWidget {
@@ -299,7 +300,8 @@ class _Panel extends StatelessWidget {
     final label = theme.bodySmall?.copyWith(color: text);
     final heading = theme.labelSmall?.copyWith(
         color: AppColors.light.muted, letterSpacing: 0.8, fontWeight: FontWeight.w600);
-    final samples = legendSamples(ways: ways, contourM: contourM);
+    final l = context.l10n;
+    final samples = legendSamples(l, ways: ways, contourM: contourM);
     return Container(
       key: const ValueKey('map-legend-panel'),
       width: kMapLegendWidth,
@@ -314,7 +316,7 @@ class _Panel extends StatelessWidget {
         children: [
           Semantics(
             button: true,
-            label: 'Legende einklappen',
+            label: l.legendCollapse,
             child: InkWell(
               key: const ValueKey('map-legend-close'),
               onTap: onClose,
@@ -327,7 +329,7 @@ class _Panel extends StatelessWidget {
                     children: [
                       Expanded(
                         child: ExcludeSemantics(
-                          child: Text('Legende',
+                          child: Text(l.legendTitle,
                               style: theme.labelLarge?.copyWith(color: text)),
                         ),
                       ),
@@ -345,7 +347,7 @@ class _Panel extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   for (var i = 0; i < samples.length; i++) ...[
-                    if (_titleAt(samples, i) case final title?)
+                    if (_titleAt(l, samples, i) case final title?)
                       Padding(
                         padding: EdgeInsets.only(top: i > 0 ? 8 : 0, bottom: 1),
                         child: Text(title.toUpperCase(), style: heading),
@@ -356,7 +358,7 @@ class _Panel extends StatelessWidget {
                       padding: EdgeInsets.only(
                           top: i > 0 &&
                                   samples[i].group != samples[i - 1].group &&
-                                  _titleAt(samples, i) == null
+                                  _titleAt(l, samples, i) == null
                               ? 8
                               : 2),
                       child: Row(

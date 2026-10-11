@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/app_colors.dart';
+import '../../l10n/l10n.dart';
 import '../coach/coach.dart';
 import '../help/map_tour.dart' show MapCoach;
 import '../../models/trail.dart';
@@ -70,7 +71,7 @@ class PoiPin extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Semantics(
-        label: kind.label,
+        label: kind.label(context.l10n),
         child: SizedBox(
           width: width,
           height: height,
@@ -196,11 +197,11 @@ Future<void> showPoiSheet(BuildContext context, Poi poi) =>
       showDragHandle: true,
       builder: (context) {
         final text = Theme.of(context).textTheme;
+        final l = context.l10n;
         final water = switch ((poi.kind, poi.drinkable)) {
-          (_, true) => 'Trinkwasser laut OpenStreetMap.',
-          (_, false) => 'Laut OpenStreetMap kein Trinkwasser.',
-          (PoiKind.spring || PoiKind.waterPoint, null) =>
-            'Ob das Wasser trinkbar ist, steht nicht fest.',
+          (_, true) => l.poiDrinkable,
+          (_, false) => l.poiNotDrinkable,
+          (PoiKind.spring || PoiKind.waterPoint, null) => l.poiDrinkableUnknown,
           _ => null,
         };
         return SafeArea(
@@ -214,20 +215,20 @@ Future<void> showPoiSheet(BuildContext context, Poi poi) =>
                   PoiPin(kind: poi.kind),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: Text(poi.name ?? poi.kind.label,
+                    child: Text(poi.name ?? poi.kind.label(l),
                         style: text.titleLarge),
                   ),
                 ]),
                 const SizedBox(height: 8),
-                if (poi.name != null) Text(poi.kind.label, style: text.bodyMedium),
+                if (poi.name != null) Text(poi.kind.label(l), style: text.bodyMedium),
                 if (poi.openingHours != null)
-                  Text('Öffnungszeiten: ${poi.openingHours}',
+                  Text(l.poiOpeningHours(poi.openingHours!),
                       style: text.bodyMedium),
                 if (water != null) Text(water, style: text.bodyMedium),
                 const SizedBox(height: 8),
                 TextButton.icon(
                   icon: const Icon(Icons.open_in_new),
-                  label: const Text('Auf OpenStreetMap ansehen'),
+                  label: Text(l.poiOpenOsm),
                   onPressed: () => launchUrl(
                       Uri.parse('https://www.openstreetmap.org/${poi.id}'),
                       mode: LaunchMode.externalApplication),
@@ -268,6 +269,7 @@ class _PoiFilterSheet extends ConsumerWidget {
     final contours = ref.watch(contourLayerEnabledProvider);
     final trails = ref.watch(trailsProvider).valueOrNull ?? const <Trail>[];
     final text = Theme.of(context).textTheme;
+    final l = context.l10n;
     return SafeArea(
       child: SingleChildScrollView(
         child: Column(
@@ -279,7 +281,7 @@ class _PoiFilterSheet extends ConsumerWidget {
             if (trails.isNotEmpty) ...[
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
-                child: Text('Trails', style: text.titleLarge),
+                child: Text(l.layersTrails, style: text.titleLarge),
               ),
               CoachAnchor(
                 id: MapCoach.filterTrails,
@@ -294,7 +296,7 @@ class _PoiFilterSheet extends ConsumerWidget {
             ],
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
-              child: Text('Ebenen', style: text.titleLarge),
+              child: Text(l.layersTitle, style: text.titleLarge),
             ),
             // Die Anker der Karten-Tour (#132): der Schalter und die
             // Gruppen der Orte, jeweils mit Überschrift.
@@ -306,9 +308,8 @@ class _PoiFilterSheet extends ConsumerWidget {
                 backgroundColor: AppPalette.of(context).map.official,
                 child: const Icon(Icons.verified_outlined, color: Colors.white, size: 20),
               ),
-              title: const Text('Offizielle Trails'),
-              subtitle: const Text('Vom Land ausgewiesene Singletrails, '
-                  'gestrichelt — bisher Tirol'),
+              title: Text(l.layersOfficial),
+              subtitle: Text(l.layersOfficialSubtitle),
               value: official,
               onChanged: (v) => ref.read(officialTrailsEnabledProvider.notifier).set(v),
             )),
@@ -322,9 +323,8 @@ class _PoiFilterSheet extends ConsumerWidget {
                   backgroundColor: AppColors.mapBackground,
                   child: SizedBox(width: 26, height: 20, child: CustomPaint(painter: WaySwatchPainter())),
                 ),
-                title: const Text('Wege'),
-                subtitle: const Text('Forstwege nach Güte, Pfade nach Schwierigkeit — '
-                    'aus OpenStreetMap, ab Zoomstufe $kWaysZoom'),
+                title: Text(l.layersWays),
+                subtitle: Text(l.layersWaysSubtitle(kWaysZoom)),
                 value: ways,
                 onChanged: (v) => ref.read(wayLayerEnabledProvider.notifier).set(v),
               ),
@@ -341,9 +341,9 @@ class _PoiFilterSheet extends ConsumerWidget {
                   backgroundColor: AppColors.mapBackground,
                   child: SizedBox(width: 26, height: 20, child: CustomPaint(painter: ContourSwatchPainter())),
                 ),
-                title: const Text('Höhenlinien'),
+                title: Text(l.contourLines),
                 subtitle: Text(
-                  contours ? contourStatusText(ref.watch(contourStateProvider)) : 'Aus dem Geländemodell, dezent unter den Wegen',
+                  contours ? contourStatusText(l, ref.watch(contourStateProvider)) : l.contourStatusIdle,
                   key: const ValueKey('contour-layer-status'),
                 ),
                 value: contours,
@@ -358,7 +358,7 @@ class _PoiFilterSheet extends ConsumerWidget {
                 children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
-              child: Text('Orte auf der Karte', style: text.titleLarge),
+              child: Text(l.layersPois, style: text.titleLarge),
             ),
             for (final g in PoiGroup.values) ...[
               SwitchListTile(
@@ -370,8 +370,8 @@ class _PoiFilterSheet extends ConsumerWidget {
                       size: 20,
                       background: g.color),
                 ),
-                title: Text(g.label),
-                subtitle: Text(g.examples),
+                title: Text(g.label(l)),
+                subtitle: Text(g.examples(l)),
                 value: groups.contains(g),
                 onChanged: (_) => ref.read(poiGroupsProvider.notifier).toggle(g),
               ),
@@ -399,7 +399,7 @@ class _PoiFilterSheet extends ConsumerWidget {
                                   background:
                                       hidden.contains(k) ? Colors.grey : g.color),
                             ),
-                            label: Text(k.label),
+                            label: Text(k.label(l)),
                             selected: !hidden.contains(k),
                             showCheckmark: false,
                             onSelected: (_) =>
@@ -415,10 +415,7 @@ class _PoiFilterSheet extends ConsumerWidget {
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
               child: Text(
-                'Orte erscheinen ab Zoomstufe ${kPoiMinZoom.round()}. Sie kommen '
-                'aus OpenStreetMap, als fertige Dateien vom Kartenspeicher der '
-                'App (tiles.mcbuchi.de): Dafür gehen die Rasterzellen des '
-                'Ausschnitts dorthin — keine Trails, keine Fahrten, kein Konto.',
+                l.layersPoisFooter(kPoiMinZoom.round()),
                 style: text.bodySmall,
               ),
             ),

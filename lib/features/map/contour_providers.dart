@@ -14,6 +14,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/connectivity.dart';
 import '../../core/errors.dart';
 import '../../core/settings.dart';
+import '../../l10n/l10n.dart';
 import '../offline_areas/area_providers.dart' show areaHeightReaderProvider;
 import '../offline_areas/height_tiles.dart';
 import '../routing/online_fill.dart' show onlineHeightsFactoryProvider;
@@ -152,14 +153,14 @@ final contourLabelsProvider = Provider<List<ContourLabel>>((ref) {
 
 /// Der Satz unter dem Schalter und in der Legende — eine Stelle, damit
 /// beide dasselbe sagen.
-String contourStatusText(AsyncValue<ContourState> state) {
+String contourStatusText(AppLocalizations l, AsyncValue<ContourState> state) {
   final s = state.valueOrNull;
-  if (s == null) return state.isLoading ? 'Wird berechnet …' : 'Aus dem Geländemodell, dezent unter den Wegen';
+  if (s == null) return state.isLoading ? l.contourStatusComputing : l.contourStatusIdle;
   return switch (s.status) {
-    ContourStatus.off || ContourStatus.waiting => 'Aus dem Geländemodell, dezent unter den Wegen',
-    ContourStatus.tooFarOut => 'Erst näher heranzoomen',
-    ContourStatus.noHeights => 'Hier keine Höhen — Bereich speichern oder mit Empfang ansehen',
-    ContourStatus.shown => 'Alle ${s.contours!.equidistanceM} m, beschriftet alle '
-        '${contourIndexStepM(s.contours!.equidistanceM)} m',
+    ContourStatus.off || ContourStatus.waiting => l.contourStatusIdle,
+    ContourStatus.tooFarOut => l.contourStatusTooFarOut,
+    ContourStatus.noHeights => l.contourStatusNoHeights,
+    ContourStatus.shown =>
+      l.contourStatusShown(s.contours!.equidistanceM, contourIndexStepM(s.contours!.equidistanceM)),
   };
 }

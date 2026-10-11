@@ -22,6 +22,7 @@ import 'package:trailbuddy/features/map/map_view/map_view.dart';
 import 'package:trailbuddy/features/map/online_map.dart';
 import 'package:trailbuddy/features/map/way_layer.dart';
 import 'package:trailbuddy/features/offline_areas/area_providers.dart';
+import 'package:trailbuddy/l10n/l10n.dart';
 import 'package:vector_map_tiles/vector_map_tiles.dart' as vmt;
 import 'package:vector_tile_renderer/vector_tile_renderer.dart' as vtr;
 
@@ -89,6 +90,9 @@ void main() {
         areaWaysStyleProvider.overrideWith((ref) async => areaWays),
       ],
       child: MaterialApp(
+        locale: const Locale('de'),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         home: FlutterMapView(
           config: config,
           controller: MapViewController(initialCenter: config.initialCenter, initialZoom: 12),

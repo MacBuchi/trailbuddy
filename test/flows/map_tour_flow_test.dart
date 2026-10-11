@@ -30,6 +30,7 @@ import '../fakes/fake_backend.dart';
 import '../fakes/fake_settings.dart';
 import '../fakes/fake_trails.dart';
 import '../fakes/test_app.dart';
+import '../fakes/l10n_de.dart';
 
 CoachPainter painter(WidgetTester tester) => tester
     .widgetList<CustomPaint>(find.byType(CustomPaint))
@@ -328,7 +329,7 @@ void main() {
     final tour = kMapTourScript.steps.firstWhere((s) => s.title == 'Farbe heißt Schwierigkeit').text;
     for (final label in ['S0', 'S3', 'S4/S5', 'Uphill', 'ausgefahren', 'abgerockt', 'kaum fahrbar', 'Meldung',
       'neuer Hinweis', 'offizieller Trail']) {
-      expect([for (final s in legendSamples()) s.label], contains(label));
+      expect([for (final s in legendSamples(l10nDe)) s.label], contains(label));
     }
     for (final word in ['ausgefahren', 'abgerockt', 'kaum fahrbar', 'Meldung', 'neuer Hinweis']) {
       expect(tour, contains(word), reason: word);

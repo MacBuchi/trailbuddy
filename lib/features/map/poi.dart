@@ -4,6 +4,8 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
 
+import '../../l10n/l10n.dart';
+
 /// Orte auf der Karte (Issue #12): Einkehr, Wasser, Rad-Service und
 /// Sonstiges aus OpenStreetMap — seit 0.18.0 als fertige Dateien je
 /// Rasterzelle und Gruppe auf dem eigenen Kartenhost (`tiles.mcbuchi.de`,
@@ -18,17 +20,28 @@ import 'package:latlong2/latlong.dart';
 
 /// Die Gruppen, die man im Filter an- und ausschaltet.
 enum PoiGroup {
-  food('Einkehr', 'Biergarten, Café, Hütte, Gasthaus', Color(0xFF8D5524)),
-  water('Wasser', 'Trinkwasser, Wasserstellen, Quellen', Color(0xFF0277BD)),
-  bikeService('Rad-Service', 'Reparaturstation, Radladen, E-Bike-Laden',
-      Color(0xFF455A64)),
-  other('Sonstiges', 'Unterstand, Toilette, Aussichtspunkt, Parkplatz',
-      Color(0xFF6D4C9F));
+  food(Color(0xFF8D5524)),
+  water(Color(0xFF0277BD)),
+  bikeService(Color(0xFF455A64)),
+  other(Color(0xFF6D4C9F));
 
-  const PoiGroup(this.label, this.examples, this.color);
+  const PoiGroup(this.color);
 
-  final String label;
-  final String examples;
+  /// Der Name im Filter (#209: aus den ARB-Dateien).
+  String label(AppLocalizations l) => switch (this) {
+        food => l.poiGroupFood,
+        water => l.poiGroupWater,
+        bikeService => l.poiGroupBikeService,
+        other => l.poiGroupOther,
+      };
+
+  /// Die Beispiele unter dem Namen.
+  String examples(AppLocalizations l) => switch (this) {
+        food => l.poiGroupFoodExamples,
+        water => l.poiGroupWaterExamples,
+        bikeService => l.poiGroupBikeServiceExamples,
+        other => l.poiGroupOtherExamples,
+      };
 
   /// Die Farbe der Stecknadel. Bewusst keine der Trail-Farben (Grün,
   /// Blau, Orange): Die sagen auf dieser Karte, was ICH mit einem Trail
@@ -48,63 +61,80 @@ enum PoiGroup {
 enum PoiKind {
   // In OSM gibt es beides: den eigenständigen Biergarten und das Gasthaus
   // (seltener die Kneipe) mit `biergarten=yes` — in München 54 zu 8.
-  biergarten(PoiGroup.food, 'Biergarten', Icons.sports_bar, [
+  biergarten(PoiGroup.food, Icons.sports_bar, [
     {'amenity': 'biergarten'},
     {'biergarten': 'yes'},
     {'beer_garden': 'yes'},
   ]),
   // Kein Material-Symbol für ein Kuchenstück — `PoiGlyph` zeichnet es.
-  cafe(PoiGroup.food, 'Café', null, [
+  cafe(PoiGroup.food, null, [
     {'amenity': 'cafe'},
   ]),
-  pub(PoiGroup.food, 'Kneipe', Icons.sports_bar, [
+  pub(PoiGroup.food, Icons.sports_bar, [
     {'amenity': 'pub'},
   ]),
-  restaurant(PoiGroup.food, 'Gasthaus', Icons.restaurant, [
+  restaurant(PoiGroup.food, Icons.restaurant, [
     {'amenity': 'restaurant'},
   ]),
-  hut(PoiGroup.food, 'Hütte', Icons.cabin, [
+  hut(PoiGroup.food, Icons.cabin, [
     {'tourism': 'alpine_hut'},
   ]),
-  drinkingWater(PoiGroup.water, 'Trinkwasser', Icons.water_drop, [
+  drinkingWater(PoiGroup.water, Icons.water_drop, [
     {'amenity': 'drinking_water'},
   ]),
-  waterPoint(PoiGroup.water, 'Wasserstelle', Icons.water_drop, [
+  waterPoint(PoiGroup.water, Icons.water_drop, [
     {'amenity': 'water_point'},
   ]),
-  spring(PoiGroup.water, 'Quelle', Icons.local_drink, [
+  spring(PoiGroup.water, Icons.local_drink, [
     {'natural': 'spring'},
   ]),
-  repairStation(PoiGroup.bikeService, 'Reparaturstation', Icons.build, [
+  repairStation(PoiGroup.bikeService, Icons.build, [
     {'amenity': 'bicycle_repair_station'},
   ]),
-  bikeShop(PoiGroup.bikeService, 'Radladen', Icons.pedal_bike, [
+  bikeShop(PoiGroup.bikeService, Icons.pedal_bike, [
     {'shop': 'bicycle'},
   ]),
   // Ladesäulen gibt es an jedem Supermarkt — hier nur die fürs Rad.
-  eBikeCharging(PoiGroup.bikeService, 'E-Bike-Ladestation',
-      Icons.electric_bike, [
+  eBikeCharging(PoiGroup.bikeService, Icons.electric_bike, [
     {'amenity': 'charging_station', 'bicycle': 'yes'},
   ]),
-  shelter(PoiGroup.other, 'Unterstand', Icons.roofing, [
+  shelter(PoiGroup.other, Icons.roofing, [
     {'amenity': 'shelter'},
   ]),
-  toilets(PoiGroup.other, 'Toilette', Icons.wc, [
+  toilets(PoiGroup.other, Icons.wc, [
     {'amenity': 'toilets'},
   ]),
-  viewpoint(PoiGroup.other, 'Aussichtspunkt', Icons.landscape, [
+  viewpoint(PoiGroup.other, Icons.landscape, [
     {'tourism': 'viewpoint'},
   ]),
   // Private Parkplätze (Firmen, Anwohner) helfen niemandem.
-  parking(PoiGroup.other, 'Parkplatz', Icons.local_parking, [
+  parking(PoiGroup.other, Icons.local_parking, [
     {'amenity': 'parking'},
   ], excludeAccess: true);
 
-  const PoiKind(this.group, this.label, this.icon, this.rules,
+  const PoiKind(this.group, this.icon, this.rules,
       {this.excludeAccess = false});
 
   final PoiGroup group;
-  final String label;
+
+  /// Der Name der Art (#209: aus den ARB-Dateien).
+  String label(AppLocalizations l) => switch (this) {
+        biergarten => l.poiKindBiergarten,
+        cafe => l.poiKindCafe,
+        pub => l.poiKindPub,
+        restaurant => l.poiKindRestaurant,
+        hut => l.poiKindHut,
+        drinkingWater => l.poiKindDrinkingWater,
+        waterPoint => l.poiKindWaterPoint,
+        spring => l.poiKindSpring,
+        repairStation => l.poiKindRepairStation,
+        bikeShop => l.poiKindBikeShop,
+        eBikeCharging => l.poiKindEBikeCharging,
+        shelter => l.poiKindShelter,
+        toilets => l.poiKindToilets,
+        viewpoint => l.poiKindViewpoint,
+        parking => l.poiKindParking,
+      };
 
   /// Das Symbol in der Nadel; null heißt gezeichnet (`PoiGlyph`).
   final IconData? icon;

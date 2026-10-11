@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/app_colors.dart';
 import '../map_buttons.dart';
+import '../../../l10n/l10n.dart';
 
 /// Die Zeilen des Hinweises: Karte und Daten fest, dazu [extra] (die
 /// Quellen der offiziellen Trails), jede genau einmal.
@@ -44,7 +45,7 @@ class _MapAttributionState extends State<MapAttribution> {
             children: [
               IconButton(
                 key: const ValueKey('map-attribution'),
-                tooltip: 'Kartenquellen',
+                tooltip: context.l10n.mapAttributionTooltip,
                 iconSize: 18,
                 style: IconButton.styleFrom(
                   fixedSize: const Size.square(kMapButtonSize),

@@ -15,6 +15,7 @@ import 'package:trailbuddy/features/map/map_legend.dart';
 import 'package:trailbuddy/features/map/way_layer.dart';
 
 import '../fakes/fake_settings.dart';
+import '../fakes/l10n_de.dart';
 
 /// Das Manifest, wie `tool/way_archive.py write_archive` es schreibt.
 Map<String, dynamic> _toolManifest() => {
@@ -222,11 +223,11 @@ void main() {
   });
 
   test('die Legende zeigt die Wege nur, solange die Ebene an ist', () {
-    final on = legendSamples();
+    final on = legendSamples(l10nDe);
     expect([for (final s in on) if (s.way != null) s.way], WayClass.values);
-    expect([for (final s in legendSamples(ways: false)) if (s.way != null) s], isEmpty);
-    expect(legendGroupTitle(on.firstWhere((s) => s.way == WayClass.trackGood).group), 'Forstweg');
-    expect(legendGroupTitle(on.firstWhere((s) => s.way == WayClass.pathEasy).group), 'Pfad');
+    expect([for (final s in legendSamples(l10nDe, ways: false)) if (s.way != null) s], isEmpty);
+    expect(legendGroupTitle(l10nDe, on.firstWhere((s) => s.way == WayClass.trackGood).group), 'Forstweg');
+    expect(legendGroupTitle(l10nDe, on.firstWhere((s) => s.way == WayClass.pathEasy).group), 'Pfad');
     final labels = [for (final s in on) s.label];
     expect(labels.toSet(), hasLength(labels.length), reason: 'jede Probe einmal auffindbar');
   });

@@ -8,9 +8,13 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:trailbuddy/core/app_distribution.dart';
+import 'package:trailbuddy/features/map/map_legend.dart';
+import 'package:trailbuddy/features/map/poi.dart';
+import 'package:trailbuddy/features/map/way_layer.dart';
 import 'package:trailbuddy/l10n/l10n.dart';
 
 import 'fakes/fake_backend.dart';
+import 'fakes/fake_settings.dart';
 import 'fakes/test_app.dart';
 
 Map<String, dynamic> _arb(String lang) =>
@@ -144,6 +148,60 @@ void main() {
         appLocaleProvider.overrideWithValue(null),
       ]);
       expect(find.text(_german), findsOneWidget);
+    });
+  });
+
+  // Stufe (b): Karte, Kartenknöpfe und Blätter. Ein Text, der beim Umzug
+  // im Code stehen blieb, wäre hier deutsch.
+  group('die Karte auf Englisch', () {
+    Future<void> pumpMap(WidgetTester tester) async {
+      final backend = FakeBackend();
+      backend.signInAs(backend.addUser(username: 'anna').id);
+      await pumpApp(tester, backend,
+          settings: FakeSettings(),
+          extraOverrides: [appLocaleProvider.overrideWithValue(const Locale('en'))]);
+      await settle(tester, frames: 20);
+    }
+
+    testWidgets('Knöpfe und Legende', (tester) async {
+      await pumpMap(tester);
+      for (final tip in ['Map layers', 'Offline maps', 'Plan a loop', 'My location', 'Record a ride']) {
+        expect(find.byTooltip(tip), findsOneWidget, reason: tip);
+      }
+      expect(find.byTooltip('Kartenebenen'), findsNothing);
+      await tester.tap(find.byKey(const ValueKey('map-legend-tab')));
+      await settle(tester);
+      for (final text in ['Legend', 'DIFFICULTY', 'CONDITION', 'worn', 'no grade']) {
+        expect(find.text(text), findsOneWidget, reason: text);
+      }
+      expect(find.text('SCHWIERIGKEIT'), findsNothing);
+    });
+
+    testWidgets('das Blatt „Kartenebenen"', (tester) async {
+      await pumpMap(tester);
+      await tester.tap(find.byKey(const ValueKey('layers-button')));
+      await settle(tester);
+      // Ab Werk ist nur „Wasser" an — darunter stehen seine Arten.
+      for (final text in ['Layers', 'Official trails', 'Ways', 'Contour lines', 'Places on the map', 'Water',
+        'Drinking water', 'Spring']) {
+        expect(find.text(text), findsOneWidget, reason: text);
+      }
+      expect(find.text('Orte auf der Karte'), findsNothing);
+    });
+
+    test('Arten und Klassen sind in beiden Sprachen benannt und verschieden', () {
+      for (final locale in AppLocalizations.supportedLocales) {
+        final l = lookupAppLocalizations(locale);
+        final names = [
+          for (final g in PoiGroup.values) g.label(l),
+          for (final k in PoiKind.values) k.label(l),
+        ];
+        expect(names.where((n) => n.trim().isEmpty), isEmpty, reason: '$locale');
+        expect(names.toSet(), hasLength(names.length), reason: '$locale: Orte');
+        final legend = [for (final s in legendSamples(l)) s.label];
+        expect(legend.toSet(), hasLength(legend.length), reason: '$locale: Legende');
+        expect({for (final c in WayClass.values) c.label(l)}, hasLength(WayClass.values.length));
+      }
     });
   });
 }
