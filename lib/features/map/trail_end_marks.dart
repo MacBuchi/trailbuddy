@@ -16,6 +16,8 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../../l10n/l10n.dart';
+
 /// Kantenlänge der Marke auf der Karte (Bildpunkte).
 const kTrailMarkSize = 14.0;
 
@@ -29,7 +31,7 @@ class TrailStartDot extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Semantics(
-        label: 'Trailanfang',
+        label: context.l10n.mapTrailStart,
         child: CustomPaint(
           size: const Size.square(kTrailMarkSize),
           painter: _StartPainter(color, bearingDeg),

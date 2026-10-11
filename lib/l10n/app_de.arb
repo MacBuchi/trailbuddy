@@ -3,5 +3,684 @@
   "previewRibbon": "Entwicklungsstand — nicht freigegeben",
   "@previewRibbon": {
     "description": "Streifen über der Web-Vorschau (preview.yml): Dieser Stand ist automatisch deployt und nicht freigegeben."
+  },
+  "commonCancel": "Abbrechen",
+  "@commonCancel": {
+    "description": "Knopf: einen Vorgang abbrechen."
+  },
+  "commonUndo": "Rückgängig",
+  "@commonUndo": {
+    "description": "Aktion in einer Leiste: die letzte Änderung zurücknehmen."
+  },
+  "mapViewportTooLarge": "Der Ausschnitt ist zu groß — erst näher heranzoomen.",
+  "@mapViewportTooLarge": {
+    "description": "Leiste beim Offline-Bereich: der Kartenausschnitt hat zu viele Kacheln."
+  },
+  "mapAreaChangesSaved": "Änderungen gespeichert.",
+  "@mapAreaChangesSaved": {
+    "description": "Leiste nach dem Speichern eines geänderten Offline-Bereichs."
+  },
+  "mapAreaSaved": "„{name}\" gespeichert: {size}.",
+  "@mapAreaSaved": {
+    "description": "Leiste nach dem Speichern eines neuen Offline-Bereichs; size ist die formatierte Größe (z. B. 12 MB).",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "mapStrokeTooLarge": "Zu groß gezeichnet — erst näher heranzoomen.",
+  "@mapStrokeTooLarge": {
+    "description": "Leiste: der gezeichnete Offline-Bereich hat zu viele Kacheln."
+  },
+  "mapFilterResetForFocus": "Filter zurückgesetzt, damit der Trail zu sehen ist.",
+  "@mapFilterResetForFocus": {
+    "description": "Leiste: Der Trail-Filter blendete den Trail aus, zu dem die App springen sollte."
+  },
+  "mapViaRemoved": "Zwischenpunkt entfernt.",
+  "@mapViaRemoved": {
+    "description": "Leiste nach dem Antippen eines Zwischenpunkts der Route."
+  },
+  "mapViaRejected": "Dort führt kein Weg durch — der Punkt ist zurück an seinem Platz.",
+  "@mapViaRejected": {
+    "description": "Leiste: Ein verschobener Zwischenpunkt liegt abseits aller Wege."
+  },
+  "mapLoopConnector": "„{name}\" ist ein Uphill-Trail oder Verbinder — die Runde nutzt ihn von selbst bergauf.",
+  "@mapLoopConnector": {
+    "description": "Rundenplaner: Dieser Trail lässt sich nicht wählen.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "mapLoopPending": "„{name}\" wartet noch auf Übertragung.",
+  "@mapLoopPending": {
+    "description": "Rundenplaner: Der Trail liegt noch im Ausgangskorb.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "mapLoopDrawAdd": "Gebiet umfahren — die Trails darin kommen dazu",
+  "@mapLoopDrawAdd": {
+    "description": "Hinweis beim Zeichnen im Rundenplaner (Werkzeug „dazu\")."
+  },
+  "mapLoopDrawRemove": "Gebiet umfahren — die Trails darin fallen weg",
+  "@mapLoopDrawRemove": {
+    "description": "Hinweis beim Zeichnen im Rundenplaner (Werkzeug „weg\")."
+  },
+  "mapLoopDrawNone": "In dem Gebiet liegt kein wählbarer Trail.",
+  "@mapLoopDrawNone": {
+    "description": "Leiste nach dem Zeichnen im Rundenplaner, ohne Treffer."
+  },
+  "mapLoopDrawAdded": "{count, plural, =1{1 Trail dazu.} other{{count} Trails dazu.}}",
+  "@mapLoopDrawAdded": {
+    "description": "Leiste nach dem Zeichnen im Rundenplaner: so viele Trails kamen dazu.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "mapLoopDrawRemoved": "{count, plural, =1{1 Trail weg.} other{{count} Trails weg.}}",
+  "@mapLoopDrawRemoved": {
+    "description": "Leiste nach dem Zeichnen im Rundenplaner: so viele Trails fielen weg.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "mapLoopHint": "Tippe die Trails an, die in die Runde sollen — oder nimm Liste oder Gebiet links.",
+  "@mapLoopHint": {
+    "description": "Banner im Rundenplaner, solange nichts gewählt ist."
+  },
+  "mapLoopPickStart": "Tippe auf die Karte, wo die Runde beginnt.",
+  "@mapLoopPickStart": {
+    "description": "Banner: Der Rundenplaner wartet auf seinen Startpunkt."
+  },
+  "mapCompareTitle": "Sind das dieselben? „{first}\" und „{second}\"",
+  "@mapCompareTitle": {
+    "description": "Banner beim Vergleich zweier Trails auf der Karte.",
+    "placeholders": {
+      "first": {
+        "type": "String"
+      },
+      "second": {
+        "type": "String"
+      }
+    }
+  },
+  "mapCompareSubtitle": "Antworten kannst du im Blatt eines der beiden.",
+  "@mapCompareSubtitle": {
+    "description": "Zweite Zeile des Vergleichs-Banners."
+  },
+  "mapCompareClose": "Vergleich beenden",
+  "@mapCompareClose": {
+    "description": "Tooltip am X des Vergleichs-Banners."
+  },
+  "mapFeedbackTooltip": "Idee oder Fehler melden",
+  "@mapFeedbackTooltip": {
+    "description": "Tooltip der Glühbirne oben rechts."
+  },
+  "mapOfficialUnavailable": "Offizielle Trails gerade nicht erreichbar",
+  "@mapOfficialUnavailable": {
+    "description": "Hinweis auf der Karte: Die Ebene „Offizielle Trails\" ließ sich nicht laden."
+  },
+  "mapCachedSlow": "Trails vom {at} — das Netz antwortet noch",
+  "@mapCachedSlow": {
+    "description": "Hinweis: Die Karte zeigt den gespeicherten Stand, der Abruf läuft noch. at ist Tag und Uhrzeit.",
+    "placeholders": {
+      "at": {
+        "type": "String"
+      }
+    }
+  },
+  "mapCachedOffline": "Kein Empfang — Trails vom {at}",
+  "@mapCachedOffline": {
+    "description": "Hinweis: Ohne Empfang zeigt die Karte den gespeicherten Stand. at ist Tag und Uhrzeit.",
+    "placeholders": {
+      "at": {
+        "type": "String"
+      }
+    }
+  },
+  "mapPoisUnavailable": "Orte gerade nicht erreichbar",
+  "@mapPoisUnavailable": {
+    "description": "Hinweis auf der Karte: Die Orte (Hütten, Wasser …) ließen sich nicht laden."
+  },
+  "mapLayersTooltip": "Kartenebenen",
+  "@mapLayersTooltip": {
+    "description": "Tooltip des Kartenknopfs, der das Blatt „Kartenebenen\" öffnet."
+  },
+  "mapOfflineTooltip": "Offline-Karten",
+  "@mapOfflineTooltip": {
+    "description": "Tooltip des Kartenknopfs für die Offline-Karten."
+  },
+  "mapLoopTooltip": "Runde planen",
+  "@mapLoopTooltip": {
+    "description": "Tooltip des Kartenknopfs für den Rundenplaner."
+  },
+  "mapLocateTooltip": "Meine Position",
+  "@mapLocateTooltip": {
+    "description": "Tooltip des Kartenknopfs, der auf die eigene Position springt."
+  },
+  "mapPositionUnavailable": "Position nicht verfügbar — Standort ist aus oder für TrailBuddy nicht erlaubt.",
+  "@mapPositionUnavailable": {
+    "description": "Leiste nach „Meine Position\" ohne Standort."
+  },
+  "mapPositionDot": "Deine Position",
+  "@mapPositionDot": {
+    "description": "Bildschirmleser: der Positionspunkt auf der Karte."
+  },
+  "mapPositionDotRecording": "Deine Position, Fahrt läuft",
+  "@mapPositionDotRecording": {
+    "description": "Bildschirmleser: der Positionspunkt, während eine Fahrt aufgezeichnet wird."
+  },
+  "mapMenuRouteFrom": "Route ab hier",
+  "@mapMenuRouteFrom": {
+    "description": "Menü beim langen Druck auf die Karte: Rundenplaner mit diesem Start."
+  },
+  "mapMenuRouteTo": "Route bis hier",
+  "@mapMenuRouteTo": {
+    "description": "Menü beim langen Druck auf die Karte: Weg vom Standort hierher."
+  },
+  "mapMenuExternalNav": "Mit der Navi-App hierher",
+  "@mapMenuExternalNav": {
+    "description": "Menü beim langen Druck auf die Karte: an eine andere App übergeben."
+  },
+  "mapNavNoPosition": "Ohne Standort keine Navigation — Standort ist aus oder für TrailBuddy nicht erlaubt.",
+  "@mapNavNoPosition": {
+    "description": "Leiste: Navigation braucht den Standort."
+  },
+  "mapNavRecordFailed": "Die Aufzeichnung ließ sich nicht starten.",
+  "@mapNavRecordFailed": {
+    "description": "Leiste: Navigation läuft, die gewünschte Aufzeichnung nicht."
+  },
+  "mapEmptyHint": "Noch keine Trails. Importiere deine GPX-Dateien im Profil oder verbinde dich mit Buddys — du siehst, was sie gefahren sind.",
+  "@mapEmptyHint": {
+    "description": "Karte ohne Trails: wie welche dazukommen. Antippen öffnet die Kurzanleitung."
+  },
+  "mapQuickGuide": "Kurzanleitung",
+  "@mapQuickGuide": {
+    "description": "Bildschirmleser: Symbol, das die Kurzanleitung öffnet."
+  },
+  "mapQuickCardClose": "Auswahl aufheben",
+  "@mapQuickCardClose": {
+    "description": "Tooltip am X der Schnellkarte eines ausgewählten Trails."
+  },
+  "mapTrailStart": "Trailanfang",
+  "@mapTrailStart": {
+    "description": "Bildschirmleser: Markierung am Anfang eines Trails."
+  },
+  "mapAttributionTooltip": "Kartenquellen",
+  "@mapAttributionTooltip": {
+    "description": "Tooltip des Info-Knopfs unten links (Namensnennung der Karte)."
+  },
+  "mapAttributionOsm": "OpenStreetMap-Mitwirkende",
+  "@mapAttributionOsm": {
+    "description": "Namensnennung der Kartendaten (Web-Karte)."
+  },
+  "mapFilterBannerTitle": "Gefiltert: {filter}",
+  "@mapFilterBannerTitle": {
+    "description": "Banner bei aktivem Trail-Filter; filter beschreibt ihn.",
+    "placeholders": {
+      "filter": {
+        "type": "String"
+      }
+    }
+  },
+  "mapFilterBannerCount": "{total, plural, =1{{shown} von 1 Trail} other{{shown} von {total} Trails}}",
+  "@mapFilterBannerCount": {
+    "description": "Zweite Zeile des Filter-Banners: so viele Trails zeigt die Karte.",
+    "placeholders": {
+      "shown": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "mapFilterReset": "Filter zurücksetzen",
+  "@mapFilterReset": {
+    "description": "Tooltip am X des Filter-Banners."
+  },
+  "outboxWaiting": "{count, plural, =1{1 wartet auf Übertragung} other{{count} warten auf Übertragung}}",
+  "@outboxWaiting": {
+    "description": "Banner: so viele Aufträge liegen im Ausgangskorb.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "outboxRejected": "{count} abgelehnt",
+  "@outboxRejected": {
+    "description": "Banner: so viele Aufträge hat der Server abgelehnt.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "outboxTapToSend": "Antippen zum Senden — sonst beim nächsten Netz",
+  "@outboxTapToSend": {
+    "description": "Zweite Zeile des Ausgangskorb-Banners."
+  },
+  "outboxDecideTrails": "Entscheiden in der Trail-Liste",
+  "@outboxDecideTrails": {
+    "description": "Zweite Zeile, wenn nur abgelehnte Trail-Aufträge übrig sind."
+  },
+  "outboxDecideFeedback": "Entscheiden bei der Glühbirne",
+  "@outboxDecideFeedback": {
+    "description": "Zweite Zeile, wenn nur abgelehntes Feedback übrig ist."
+  },
+  "outboxDecideBoth": "Entscheiden in der Trail-Liste und bei der Glühbirne",
+  "@outboxDecideBoth": {
+    "description": "Zweite Zeile, wenn beides abgelehnt wurde."
+  },
+  "outboxNotDurable": "Dein Browser sichert diesen Speicher nicht zu — sende, sobald du Empfang hast.",
+  "@outboxNotDurable": {
+    "description": "Nur im Browser: Der Ausgangskorb kann geräumt werden."
+  },
+  "outboxSent": "{count} übertragen",
+  "@outboxSent": {
+    "description": "Leiste nach dem Senden des Ausgangskorbs.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "outboxNoNetwork": "Noch kein Netz — bleibt im Ausgangskorb.",
+  "@outboxNoNetwork": {
+    "description": "Leiste: Senden ging nicht, die Aufträge bleiben liegen."
+  },
+  "rideRecordTooltip": "Fahrt aufzeichnen",
+  "@rideRecordTooltip": {
+    "description": "Tooltip des großen Aufnahmeknopfs."
+  },
+  "rideStopTooltip": "Fahrt beenden",
+  "@rideStopTooltip": {
+    "description": "Tooltip des Aufnahmeknopfs während einer Fahrt."
+  },
+  "rideStarted": "Fahrt läuft — der Weg wird aufgezeichnet, auch wenn das Telefon in der Tasche steckt.",
+  "@rideStarted": {
+    "description": "Leiste nach dem Start einer Fahrt."
+  },
+  "rideNoPermission": "Ohne Standortberechtigung lässt sich keine Fahrt aufzeichnen.",
+  "@rideNoPermission": {
+    "description": "Leiste: Start ohne Berechtigung."
+  },
+  "rideNoService": "Der Standortdienst ist ausgeschaltet.",
+  "@rideNoService": {
+    "description": "Leiste: Start bei ausgeschaltetem Standortdienst."
+  },
+  "rideStartFailed": "Die Fahrt ließ sich nicht starten.",
+  "@rideStartFailed": {
+    "description": "Leiste: Start aus anderem Grund gescheitert."
+  },
+  "rideEndedEmpty": "Fahrt beendet — es kam kein Standort zustande, nichts gespeichert.",
+  "@rideEndedEmpty": {
+    "description": "Leiste: Die beendete Fahrt hatte keine Punkte."
+  },
+  "rideMarkStartTooltip": "Trail beginnt",
+  "@rideMarkStartTooltip": {
+    "description": "Tooltip des Markenknopfs während einer Fahrt: Anfang setzen."
+  },
+  "rideMarkEndTooltip": "Trail endet",
+  "@rideMarkEndTooltip": {
+    "description": "Tooltip des Markenknopfs während einer Fahrt: Ende setzen."
+  },
+  "rideMarkStart": "Trail beginnt — markiert. Am Ende noch einmal tippen.",
+  "@rideMarkStart": {
+    "description": "Leiste nach dem Setzen einer Anfangsmarke."
+  },
+  "rideMarkEnd": "Trail endet — markiert. Das Stück steht nach der Fahrt im Zerlege-Blatt.",
+  "@rideMarkEnd": {
+    "description": "Leiste nach dem Setzen einer Endmarke."
+  },
+  "rideMarkFailed": "Die Marke ließ sich nicht speichern.",
+  "@rideMarkFailed": {
+    "description": "Leiste: Marke nicht gespeichert."
+  },
+  "rideRunningStatus": "Fahrt läuft · {length} · {duration}",
+  "@rideRunningStatus": {
+    "description": "Karte auf der Karte während der Aufnahme; length und duration sind fertig formatiert.",
+    "placeholders": {
+      "length": {
+        "type": "String"
+      },
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "rideFocusStatus": "Fahrt · {length} · {duration}",
+  "@rideFocusStatus": {
+    "description": "Karte zu einer gespeicherten Fahrt auf der Karte.",
+    "placeholders": {
+      "length": {
+        "type": "String"
+      },
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "rideFocusHide": "Fahrt ausblenden",
+  "@rideFocusHide": {
+    "description": "Tooltip am X der Fahrt-Karte."
+  },
+  "legendTitle": "Legende",
+  "@legendTitle": {
+    "description": "Überschrift der aufgeklappten Kartenlegende."
+  },
+  "legendShow": "Legende zeigen",
+  "@legendShow": {
+    "description": "Lasche der zugeklappten Legende (Tooltip, Bildschirmleser)."
+  },
+  "legendCollapse": "Legende einklappen",
+  "@legendCollapse": {
+    "description": "Bildschirmleser: Kopf der aufgeklappten Legende."
+  },
+  "legendGroupGrade": "Schwierigkeit",
+  "@legendGroupGrade": {
+    "description": "Legende: Überschrift über den S-Graden."
+  },
+  "legendGroupCondition": "Zustand",
+  "@legendGroupCondition": {
+    "description": "Legende: Überschrift über dem Zustand des Trails."
+  },
+  "legendGroupOnTrail": "Am Trail",
+  "@legendGroupOnTrail": {
+    "description": "Legende: Überschrift über Meldung, Hinweis und offiziellem Trail."
+  },
+  "legendGroupTrack": "Forstweg",
+  "@legendGroupTrack": {
+    "description": "Legende: Überschrift über den Klassen der Forstwege."
+  },
+  "legendGroupPath": "Pfad",
+  "@legendGroupPath": {
+    "description": "Legende: Überschrift über den Klassen der Pfade."
+  },
+  "legendUngraded": "ohne Grad",
+  "@legendUngraded": {
+    "description": "Legende: Trail ohne S-Grad."
+  },
+  "legendUphill": "Uphill",
+  "@legendUphill": {
+    "description": "Legende: Uphill-Trail."
+  },
+  "legendWorn": "ausgefahren",
+  "@legendWorn": {
+    "description": "Legende, Zustand: dasselbe Wort wie im Melde-Dialog."
+  },
+  "legendRough": "abgerockt",
+  "@legendRough": {
+    "description": "Legende, Zustand: dasselbe Wort wie im Melde-Dialog."
+  },
+  "legendBarelyRideable": "kaum fahrbar",
+  "@legendBarelyRideable": {
+    "description": "Legende, Zustand: dasselbe Wort wie im Melde-Dialog."
+  },
+  "legendReport": "Meldung",
+  "@legendReport": {
+    "description": "Legende: Trail mit offener Meldung (Rand)."
+  },
+  "legendNewNote": "neuer Hinweis",
+  "@legendNewNote": {
+    "description": "Legende: Trail mit ungelesenem Hinweis (Rand)."
+  },
+  "legendOfficial": "offizieller Trail",
+  "@legendOfficial": {
+    "description": "Legende: offizieller Trail (gestrichelt)."
+  },
+  "legendContourEvery": "alle {meters} m",
+  "@legendContourEvery": {
+    "description": "Legende, Höhenlinien: Abstand der Linien.",
+    "placeholders": {
+      "meters": {
+        "type": "int"
+      }
+    }
+  },
+  "legendContourIndex": "Zahl alle {meters} m",
+  "@legendContourIndex": {
+    "description": "Legende, Höhenlinien: Abstand der beschrifteten Linien.",
+    "placeholders": {
+      "meters": {
+        "type": "int"
+      }
+    }
+  },
+  "wayTrackGood": "gut",
+  "@wayTrackGood": {
+    "description": "Forstweg-Güte in der Legende."
+  },
+  "wayTrackMedium": "mittel",
+  "@wayTrackMedium": {
+    "description": "Forstweg-Güte in der Legende."
+  },
+  "wayTrackPoor": "schlecht",
+  "@wayTrackPoor": {
+    "description": "Forstweg-Güte in der Legende."
+  },
+  "wayTrackVeryPoor": "sehr schlecht",
+  "@wayTrackVeryPoor": {
+    "description": "Forstweg-Güte in der Legende."
+  },
+  "wayPathEasy": "leicht",
+  "@wayPathEasy": {
+    "description": "Pfad-Schwierigkeit in der Legende."
+  },
+  "wayPathMedium": "mittelschwer",
+  "@wayPathMedium": {
+    "description": "Pfad-Schwierigkeit in der Legende."
+  },
+  "wayPathHard": "schwer",
+  "@wayPathHard": {
+    "description": "Pfad-Schwierigkeit in der Legende."
+  },
+  "wayPathVeryHard": "sehr schwer",
+  "@wayPathVeryHard": {
+    "description": "Pfad-Schwierigkeit in der Legende."
+  },
+  "contourLines": "Höhenlinien",
+  "@contourLines": {
+    "description": "Name der Ebene: Schalter in „Kartenebenen\" und Überschrift in der Legende."
+  },
+  "contourStatusComputing": "Wird berechnet …",
+  "@contourStatusComputing": {
+    "description": "Untertitel des Schalters „Höhenlinien\": Die Linien werden gerechnet."
+  },
+  "contourStatusIdle": "Aus dem Geländemodell, dezent unter den Wegen",
+  "@contourStatusIdle": {
+    "description": "Untertitel des Schalters „Höhenlinien\", solange keine gezeigt werden."
+  },
+  "contourStatusTooFarOut": "Erst näher heranzoomen",
+  "@contourStatusTooFarOut": {
+    "description": "Untertitel des Schalters „Höhenlinien\": zu weit draußen."
+  },
+  "contourStatusNoHeights": "Hier keine Höhen — Bereich speichern oder mit Empfang ansehen",
+  "@contourStatusNoHeights": {
+    "description": "Untertitel des Schalters „Höhenlinien\": keine Höhenkacheln."
+  },
+  "contourStatusShown": "Alle {every} m, beschriftet alle {labelled} m",
+  "@contourStatusShown": {
+    "description": "Untertitel des Schalters „Höhenlinien\", während sie gezeigt werden.",
+    "placeholders": {
+      "every": {
+        "type": "int"
+      },
+      "labelled": {
+        "type": "int"
+      }
+    }
+  },
+  "poiGroupFood": "Einkehr",
+  "@poiGroupFood": {
+    "description": "Gruppe von Orten auf der Karte."
+  },
+  "poiGroupFoodExamples": "Biergarten, Café, Hütte, Gasthaus",
+  "@poiGroupFoodExamples": {
+    "description": "Beispiele unter der Gruppe „Einkehr\"."
+  },
+  "poiGroupWater": "Wasser",
+  "@poiGroupWater": {
+    "description": "Gruppe von Orten auf der Karte."
+  },
+  "poiGroupWaterExamples": "Trinkwasser, Wasserstellen, Quellen",
+  "@poiGroupWaterExamples": {
+    "description": "Beispiele unter der Gruppe „Wasser\"."
+  },
+  "poiGroupBikeService": "Rad-Service",
+  "@poiGroupBikeService": {
+    "description": "Gruppe von Orten auf der Karte."
+  },
+  "poiGroupBikeServiceExamples": "Reparaturstation, Radladen, E-Bike-Laden",
+  "@poiGroupBikeServiceExamples": {
+    "description": "Beispiele unter der Gruppe „Rad-Service\"."
+  },
+  "poiGroupOther": "Sonstiges",
+  "@poiGroupOther": {
+    "description": "Gruppe von Orten auf der Karte."
+  },
+  "poiGroupOtherExamples": "Unterstand, Toilette, Aussichtspunkt, Parkplatz",
+  "@poiGroupOtherExamples": {
+    "description": "Beispiele unter der Gruppe „Sonstiges\"."
+  },
+  "poiKindBiergarten": "Biergarten",
+  "@poiKindBiergarten": {
+    "description": "Art eines Ortes auf der Karte (Nadel, Blatt, Filter-Chip)."
+  },
+  "poiKindCafe": "Café",
+  "@poiKindCafe": {
+    "description": "Art eines Ortes auf der Karte (Nadel, Blatt, Filter-Chip)."
+  },
+  "poiKindPub": "Kneipe",
+  "@poiKindPub": {
+    "description": "Art eines Ortes auf der Karte (Nadel, Blatt, Filter-Chip)."
+  },
+  "poiKindRestaurant": "Gasthaus",
+  "@poiKindRestaurant": {
+    "description": "Art eines Ortes auf der Karte (Nadel, Blatt, Filter-Chip)."
+  },
+  "poiKindHut": "Hütte",
+  "@poiKindHut": {
+    "description": "Art eines Ortes auf der Karte (Nadel, Blatt, Filter-Chip)."
+  },
+  "poiKindDrinkingWater": "Trinkwasser",
+  "@poiKindDrinkingWater": {
+    "description": "Art eines Ortes auf der Karte (Nadel, Blatt, Filter-Chip)."
+  },
+  "poiKindWaterPoint": "Wasserstelle",
+  "@poiKindWaterPoint": {
+    "description": "Art eines Ortes auf der Karte (Nadel, Blatt, Filter-Chip)."
+  },
+  "poiKindSpring": "Quelle",
+  "@poiKindSpring": {
+    "description": "Art eines Ortes auf der Karte (Nadel, Blatt, Filter-Chip)."
+  },
+  "poiKindRepairStation": "Reparaturstation",
+  "@poiKindRepairStation": {
+    "description": "Art eines Ortes auf der Karte (Nadel, Blatt, Filter-Chip)."
+  },
+  "poiKindBikeShop": "Radladen",
+  "@poiKindBikeShop": {
+    "description": "Art eines Ortes auf der Karte (Nadel, Blatt, Filter-Chip)."
+  },
+  "poiKindEBikeCharging": "E-Bike-Ladestation",
+  "@poiKindEBikeCharging": {
+    "description": "Art eines Ortes auf der Karte (Nadel, Blatt, Filter-Chip)."
+  },
+  "poiKindShelter": "Unterstand",
+  "@poiKindShelter": {
+    "description": "Art eines Ortes auf der Karte (Nadel, Blatt, Filter-Chip)."
+  },
+  "poiKindToilets": "Toilette",
+  "@poiKindToilets": {
+    "description": "Art eines Ortes auf der Karte (Nadel, Blatt, Filter-Chip)."
+  },
+  "poiKindViewpoint": "Aussichtspunkt",
+  "@poiKindViewpoint": {
+    "description": "Art eines Ortes auf der Karte (Nadel, Blatt, Filter-Chip)."
+  },
+  "poiKindParking": "Parkplatz",
+  "@poiKindParking": {
+    "description": "Art eines Ortes auf der Karte (Nadel, Blatt, Filter-Chip)."
+  },
+  "poiDrinkable": "Trinkwasser laut OpenStreetMap.",
+  "@poiDrinkable": {
+    "description": "Blatt eines Ortes: Das Wasser ist trinkbar."
+  },
+  "poiNotDrinkable": "Laut OpenStreetMap kein Trinkwasser.",
+  "@poiNotDrinkable": {
+    "description": "Blatt eines Ortes: Das Wasser ist nicht trinkbar."
+  },
+  "poiDrinkableUnknown": "Ob das Wasser trinkbar ist, steht nicht fest.",
+  "@poiDrinkableUnknown": {
+    "description": "Blatt einer Quelle oder Wasserstelle ohne Angabe."
+  },
+  "poiOpeningHours": "Öffnungszeiten: {hours}",
+  "@poiOpeningHours": {
+    "description": "Blatt eines Ortes; hours kommt roh aus OpenStreetMap.",
+    "placeholders": {
+      "hours": {
+        "type": "String"
+      }
+    }
+  },
+  "poiOpenOsm": "Auf OpenStreetMap ansehen",
+  "@poiOpenOsm": {
+    "description": "Blatt eines Ortes: Link zu openstreetmap.org."
+  },
+  "layersTrails": "Trails",
+  "@layersTrails": {
+    "description": "Blatt „Kartenebenen\": Überschrift über dem Trail-Filter."
+  },
+  "layersTitle": "Ebenen",
+  "@layersTitle": {
+    "description": "Blatt „Kartenebenen\": Überschrift über den Schaltern."
+  },
+  "layersOfficial": "Offizielle Trails",
+  "@layersOfficial": {
+    "description": "Schalter der Ebene „Offizielle Trails\"."
+  },
+  "layersOfficialSubtitle": "Vom Land ausgewiesene Singletrails, gestrichelt — bisher Tirol",
+  "@layersOfficialSubtitle": {
+    "description": "Untertitel des Schalters „Offizielle Trails\"."
+  },
+  "layersWays": "Wege",
+  "@layersWays": {
+    "description": "Schalter der Ebene „Wege\"."
+  },
+  "layersWaysSubtitle": "Forstwege nach Güte, Pfade nach Schwierigkeit — aus OpenStreetMap, ab Zoomstufe {zoom}",
+  "@layersWaysSubtitle": {
+    "description": "Untertitel des Schalters „Wege\".",
+    "placeholders": {
+      "zoom": {
+        "type": "int"
+      }
+    }
+  },
+  "layersPois": "Orte auf der Karte",
+  "@layersPois": {
+    "description": "Blatt „Kartenebenen\": Überschrift über den Gruppen von Orten."
+  },
+  "layersPoisFooter": "Orte erscheinen ab Zoomstufe {zoom}. Sie kommen aus OpenStreetMap, als fertige Dateien vom Kartenspeicher der App (tiles.mcbuchi.de): Dafür gehen die Rasterzellen des Ausschnitts dorthin — keine Trails, keine Fahrten, kein Konto.",
+  "@layersPoisFooter": {
+    "description": "Fußzeile des Blatts „Kartenebenen\": woher die Orte kommen und was dafür übertragen wird (Datenschutz).",
+    "placeholders": {
+      "zoom": {
+        "type": "int"
+      }
+    }
   }
 }

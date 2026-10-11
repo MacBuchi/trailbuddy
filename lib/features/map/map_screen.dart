@@ -50,6 +50,7 @@ import '../offline_areas/area_store.dart';
 import '../offline_areas/offline_tool_rail.dart';
 import '../trails/grade_shield.dart' show trailColorOf, trailLineStyleOf;
 import '../../data/outbox.dart';
+import '../../l10n/l10n.dart';
 import '../trails/merge_proposal_card.dart' show mapComparePairProvider;
 import '../trails/outbox_providers.dart';
 import '../trails/trail_list.dart';
@@ -281,8 +282,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     final b = camera.bounds;
     final keys = tilesInBounds(AreaBounds(south: b.south, west: b.west, north: b.north, east: b.east));
     if (keys == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Der Ausschnitt ist zu groß — erst näher heranzoomen.')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.l10n.mapViewportTooLarge)));
       return;
     }
     ref.read(areaDraftProvider.notifier).addAll(keys);
@@ -299,14 +299,13 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   /// Entwurf leer, die Leiste bleibt offen und zeigt den neuen Bestand.
   Future<void> _saveDraft(AreaDraft draft) async {
     final messenger = ScaffoldMessenger.of(context);
+    final l = context.l10n;
     final saved = await showSaveDraftDialog(context, draft);
     if (!saved || !mounted) return;
     ref.read(areaDraftProvider.notifier).clear();
     final area = draft.adds.isEmpty ? null : ref.read(areaDownloadProvider).result;
     messenger.showSnackBar(SnackBar(
-        content: Text(area == null
-            ? 'Änderungen gespeichert.'
-            : '„${area.name}" gespeichert: ${formatBytes(area.bytes)}.')));
+        content: Text(area == null ? l.mapAreaChangesSaved : l.mapAreaSaved(area.name, formatBytes(area.bytes)))));
   }
 
   /// Ein fertiger Strich (Stufe C): seine Kacheln in den Entwurf — oder,
@@ -315,8 +314,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     final draft = ref.read(areaDraftProvider.notifier);
     if (keys == null) {
       draft.disarm();
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Zu groß gezeichnet — erst näher heranzoomen.')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.l10n.mapStrokeTooLarge)));
       return;
     }
     draft.applyStroke(keys);
@@ -337,9 +335,9 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     if (!passesTrailFilter(t, filter,
         seenNotes: ref.read(seenNotesProvider), snoozed: ref.read(stillValidSnoozesProvider))) {
       ref.read(trailListFilterProvider.notifier).state = const TrailListFilter();
-      ScaffoldMessenger.maybeOf(context)?.showSnackBar(const SnackBar(
-          key: ValueKey('filter-reset-for-focus'),
-          content: Text('Filter zurückgesetzt, damit der Trail zu sehen ist.')));
+      ScaffoldMessenger.maybeOf(context)?.showSnackBar(SnackBar(
+          key: const ValueKey('filter-reset-for-focus'),
+          content: Text(context.l10n.mapFilterResetForFocus)));
     }
     _fittedOnce = true;
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -514,8 +512,8 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       ..clearSnackBars()
       ..showSnackBar(SnackBar(
         key: const ValueKey('via-removed'),
-        content: const Text('Zwischenpunkt entfernt.'),
-        action: SnackBarAction(label: 'Rückgängig', onPressed: () => notifier.set(before)),
+        content: Text(context.l10n.mapViaRemoved),
+        action: SnackBarAction(label: context.l10n.commonUndo, onPressed: () => notifier.set(before)),
       ));
   }
 
@@ -538,8 +536,8 @@ class _MapScreenState extends ConsumerState<MapScreen> {
               ..showSnackBar(SnackBar(
                   key: const ValueKey('loop-not-pickable'),
                   content: Text(result == LoopToggle.connector
-                      ? '„${t.displayName}" ist ein Uphill-Trail oder Verbinder — die Runde nutzt ihn von selbst bergauf.'
-                      : '„${t.displayName}" wartet noch auf Übertragung.')));
+                      ? context.l10n.mapLoopConnector(t.displayName)
+                      : context.l10n.mapLoopPending(t.displayName))));
           }
           return;
         }
@@ -561,12 +559,11 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   /// fragt (`positionFixProvider`). Danach läuft der Punkt mit.
   Future<void> _locateMe() async {
     final messenger = ScaffoldMessenger.of(context);
+    final l = context.l10n;
     final fix = await ref.read(positionFixProvider)();
     if (!mounted) return;
     if (fix == null) {
-      messenger.showSnackBar(const SnackBar(
-          content: Text('Position nicht verfügbar — Standort ist aus '
-              'oder für TrailBuddy nicht erlaubt.')));
+      messenger.showSnackBar(SnackBar(content: Text(l.mapPositionUnavailable)));
       return;
     }
     _fittedOnce = true;
@@ -581,6 +578,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   /// der Fix. Ohne Standort keine Folgeansicht.
   Future<void> _startNavigation(NavRequest request) async {
     final messenger = ScaffoldMessenger.of(context);
+    final l = context.l10n;
     final rides = ref.read(rideProvider.notifier);
     final canRecord = ref.read(rideRecordingAvailableProvider) && !rides.isRunning;
     final choice = await showNavStartSheet(context, title: request.title, canRecord: canRecord);
@@ -588,9 +586,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     final fix = await ref.read(positionFixProvider)();
     if (!mounted) return;
     if (fix == null) {
-      messenger.showSnackBar(const SnackBar(
-          content: Text('Ohne Standort keine Navigation — Standort ist aus '
-              'oder für TrailBuddy nicht erlaubt.')));
+      messenger.showSnackBar(SnackBar(content: Text(l.mapNavNoPosition)));
       return;
     }
     // Die Karte gehört jetzt der Route: Blätter, Planer und Auswahl zu.
@@ -606,7 +602,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       if (!mounted) return;
       if (result != RideStartResult.started) {
         // Die Navigation läuft trotzdem — nur ohne Aufzeichnung.
-        messenger.showSnackBar(const SnackBar(content: Text('Die Aufzeichnung ließ sich nicht starten.')));
+        messenger.showSnackBar(SnackBar(content: Text(l.mapNavRecordFailed)));
       }
     }
     final nav = ref.read(navigationProvider.notifier);
@@ -669,18 +665,16 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   /// gespeichert, BEVOR das Blatt aufgeht — wer es wegwischt, behält.
   Future<void> _toggleRide() async {
     final messenger = ScaffoldMessenger.of(context);
+    final l = context.l10n;
     final notifier = ref.read(rideProvider.notifier);
     if (!notifier.isRunning) {
       final result = await notifier.start();
       if (!mounted) return;
       final text = switch (result) {
-        RideStartResult.started =>
-          'Fahrt läuft — der Weg wird aufgezeichnet, auch wenn das Telefon '
-              'in der Tasche steckt.',
-        RideStartResult.noPermission =>
-          'Ohne Standortberechtigung lässt sich keine Fahrt aufzeichnen.',
-        RideStartResult.noService => 'Der Standortdienst ist ausgeschaltet.',
-        RideStartResult.failed => 'Die Fahrt ließ sich nicht starten.',
+        RideStartResult.started => l.rideStarted,
+        RideStartResult.noPermission => l.rideNoPermission,
+        RideStartResult.noService => l.rideNoService,
+        RideStartResult.failed => l.rideStartFailed,
       };
       messenger.showSnackBar(SnackBar(content: Text(text)));
       return;
@@ -693,9 +687,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       // eine Frage ohne Gegenstand.
       await ref.read(ridesProvider.notifier).delete(ride.id);
       if (!mounted) return;
-      messenger.showSnackBar(const SnackBar(
-          content: Text('Fahrt beendet — es kam kein Standort zustande, '
-              'nichts gespeichert.')));
+      messenger.showSnackBar(SnackBar(content: Text(l.rideEndedEmpty)));
       return;
     }
     _fittedOnce = true;
@@ -710,15 +702,16 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   /// Trail sieht man den Rand am Knopf nicht immer.
   Future<void> _toggleMark() async {
     final messenger = ScaffoldMessenger.of(context);
+    final l = context.l10n;
     final mark = await ref.read(rideProvider.notifier).toggleMark();
     if (!mounted) return;
     messenger
       ..clearSnackBars()
       ..showSnackBar(SnackBar(
           content: Text(switch (mark?.kind) {
-        RideMarkKind.start => 'Trail beginnt — markiert. Am Ende noch einmal tippen.',
-        RideMarkKind.end => 'Trail endet — markiert. Das Stück steht nach der Fahrt im Zerlege-Blatt.',
-        null => 'Die Marke ließ sich nicht speichern.',
+        RideMarkKind.start => l.rideMarkStart,
+        RideMarkKind.end => l.rideMarkEnd,
+        null => l.rideMarkFailed,
       })));
   }
 
@@ -754,24 +747,25 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       _selectedTrailId = null;
     });
     final overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
+    final l = context.l10n;
     final choice = await showMenu<String>(
       context: context,
       position: RelativeRect.fromRect(at & const Size(1, 1), Offset.zero & overlay.size),
-      items: const [
+      items: [
         PopupMenuItem(
-          key: ValueKey('map-menu-from'),
+          key: const ValueKey('map-menu-from'),
           value: 'from',
-          child: ListTile(leading: Icon(Icons.trip_origin), title: Text('Route ab hier')),
+          child: ListTile(leading: const Icon(Icons.trip_origin), title: Text(l.mapMenuRouteFrom)),
         ),
         PopupMenuItem(
-          key: ValueKey('map-menu-to'),
+          key: const ValueKey('map-menu-to'),
           value: 'to',
-          child: ListTile(leading: Icon(Icons.place_outlined), title: Text('Route bis hier')),
+          child: ListTile(leading: const Icon(Icons.place_outlined), title: Text(l.mapMenuRouteTo)),
         ),
         PopupMenuItem(
-          key: ValueKey('map-menu-external'),
+          key: const ValueKey('map-menu-external'),
           value: 'external',
-          child: ListTile(leading: Icon(Icons.directions_outlined), title: Text('Mit der Navi-App hierher')),
+          child: ListTile(leading: const Icon(Icons.directions_outlined), title: Text(l.mapMenuExternalNav)),
         ),
       ],
     );
@@ -948,9 +942,9 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       if (prev == null || next == null || next.rejections <= prev.rejections) return;
       ScaffoldMessenger.of(context)
         ..clearSnackBars()
-        ..showSnackBar(const SnackBar(
-            key: ValueKey('via-rejected'),
-            content: Text('Dort führt kein Weg durch — der Punkt ist zurück an seinem Platz.')));
+        ..showSnackBar(SnackBar(
+            key: const ValueKey('via-rejected'),
+            content: Text(context.l10n.mapViaRejected)));
     });
     // „Navigieren" aus einem Ergebnis-Blatt oder aus „Meine Fahrten".
     ref.listen(navRequestProvider, (_, request) {
@@ -1247,17 +1241,17 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                 key: const ValueKey('loop-draw'),
                 camera: camera,
                 tool: loop.drawTool!,
-                hint: loop.drawTool == AreaDrawTool.add
-                    ? 'Gebiet umfahren — die Trails darin kommen dazu'
-                    : 'Gebiet umfahren — die Trails darin fallen weg',
+                hint: loop.drawTool == AreaDrawTool.add ? context.l10n.mapLoopDrawAdd : context.l10n.mapLoopDrawRemove,
                 onRing: (ring) {
                   final n = ref.read(loopPlannerProvider.notifier).applyRing(ring);
                   ScaffoldMessenger.of(context)
                     ..clearSnackBars()
                     ..showSnackBar(SnackBar(
                         content: Text(n == 0
-                            ? 'In dem Gebiet liegt kein wählbarer Trail.'
-                            : '$n ${n == 1 ? 'Trail' : 'Trails'} ${loop.drawTool == AreaDrawTool.add ? 'dazu' : 'weg'}.')));
+                            ? context.l10n.mapLoopDrawNone
+                            : loop.drawTool == AreaDrawTool.add
+                                ? context.l10n.mapLoopDrawAdded(n)
+                                : context.l10n.mapLoopDrawRemoved(n))));
                 },
               ),
             ),
@@ -1296,14 +1290,13 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                   const _OutboxBanner(),
                   // Im Planer, solange nichts gewählt ist: wie es geht.
                   if (loop.open && !loopPicking && loop.drawTool == null && loop.selected.isEmpty)
-                    const Card(
-                      key: ValueKey('loop-hint'),
-                      margin: EdgeInsets.fromLTRB(16, 8, 16, 0),
+                    Card(
+                      key: const ValueKey('loop-hint'),
+                      margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
                       child: ListTile(
                         dense: true,
-                        leading: Icon(Icons.alt_route),
-                        title: Text('Tippe die Trails an, die in die Runde sollen — '
-                            'oder nimm Liste oder Gebiet links.'),
+                        leading: const Icon(Icons.alt_route),
+                        title: Text(context.l10n.mapLoopHint),
                       ),
                     ),
                   // Der Planer wartet auf seinen Start (#158 Schritt 5).
@@ -1314,11 +1307,11 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                       child: ListTile(
                         dense: true,
                         leading: const Icon(Icons.touch_app_outlined),
-                        title: const Text('Tippe auf die Karte, wo die Runde beginnt.'),
+                        title: Text(context.l10n.mapLoopPickStart),
                         trailing: TextButton(
                           key: const ValueKey('loop-pick-cancel'),
                           onPressed: () => ref.read(loopPlannerProvider.notifier).cancelStartPick(),
-                          child: const Text('Abbrechen'),
+                          child: Text(context.l10n.commonCancel),
                         ),
                       ),
                     ),
@@ -1329,12 +1322,12 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                       child: ListTile(
                         dense: true,
                         leading: const Icon(Icons.merge_type),
-                        title: Text('Sind das dieselben? „${compare.duplicate?.displayName ?? '–'}" '
-                            'und „${compare.target?.displayName ?? '–'}"'),
-                        subtitle: const Text('Antworten kannst du im Blatt eines der beiden.'),
+                        title: Text(context.l10n.mapCompareTitle(
+                            compare.duplicate?.displayName ?? '–', compare.target?.displayName ?? '–')),
+                        subtitle: Text(context.l10n.mapCompareSubtitle),
                         trailing: IconButton(
                           key: const ValueKey('merge-compare-close'),
-                          tooltip: 'Vergleich beenden',
+                          tooltip: context.l10n.mapCompareClose,
                           icon: const Icon(Icons.close),
                           onPressed: () => ref.read(mapComparePairProvider.notifier).state = null,
                         ),
@@ -1360,7 +1353,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                   id: MapCoach.feedback,
                   child: MapRoundButton(
                     key: const ValueKey('feedback-button'),
-                    tooltip: 'Idee oder Fehler melden',
+                    tooltip: context.l10n.mapFeedbackTooltip,
                     icon: Icons.lightbulb_outline,
                     onPressed: () => showFeedbackFlow(context, ref),
                   ),
@@ -1473,11 +1466,11 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     if (officialOn && official.unavailable)
-                      const Card(
+                      Card(
                         child: Padding(
-                          padding: EdgeInsets.symmetric(
+                          padding: const EdgeInsets.symmetric(
                               horizontal: 10, vertical: 6),
-                          child: Text('Offizielle Trails gerade nicht erreichbar'),
+                          child: Text(context.l10n.mapOfficialUnavailable),
                         ),
                       ),
                     // Ohne Empfang kommt das Netz aus der Kopie (#32). Das
@@ -1488,16 +1481,16 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                         child: Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                           child: Text(ref.watch(trailsAwaitNetworkProvider)
-                              ? 'Trails vom ${formatCachedAt(cachedAt)} — das Netz antwortet noch'
-                              : 'Kein Empfang — Trails vom ${formatCachedAt(cachedAt)}'),
+                              ? context.l10n.mapCachedSlow(formatCachedAt(cachedAt))
+                              : context.l10n.mapCachedOffline(formatCachedAt(cachedAt))),
                         ),
                       ),
                     if (poiUnavailable)
-                      const Card(
+                      Card(
                         child: Padding(
-                          padding: EdgeInsets.symmetric(
+                          padding: const EdgeInsets.symmetric(
                               horizontal: 10, vertical: 6),
-                          child: Text('Orte gerade nicht erreichbar'),
+                          child: Text(context.l10n.mapPoisUnavailable),
                         ),
                       ),
                     // Von oben nach unten (seit 0.75.0, #190): Kartenebenen,
@@ -1529,7 +1522,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                             id: MapCoach.layers,
                             child: MapRoundButton(
                               key: const ValueKey('layers-button'),
-                              tooltip: 'Kartenebenen',
+                              tooltip: context.l10n.mapLayersTooltip,
                               icon: Icons.layers_outlined,
                               onPressed: () => showMapLayersSheet(context),
                             ),
@@ -1543,7 +1536,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                             id: MapCoach.offline,
                             child: MapRoundButton(
                               key: const ValueKey('offline-button'),
-                              tooltip: 'Offline-Karten',
+                              tooltip: context.l10n.mapOfflineTooltip,
                               icon: Icons.download_for_offline_outlined,
                               active: toolsOpen,
                               onPressed: toolsOpen
@@ -1561,7 +1554,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                             id: MapCoach.loop,
                             child: MapRoundButton(
                               key: const ValueKey('loop-button'),
-                              tooltip: 'Runde planen',
+                              tooltip: context.l10n.mapLoopTooltip,
                               icon: Icons.alt_route,
                               // Öffnet und schließt den Planer — wie der
                               // Knopf „Offline-Karten" seine Leiste.
@@ -1574,7 +1567,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                             id: MapCoach.locate,
                             child: MapRoundButton(
                               key: const ValueKey('locate-button'),
-                              tooltip: 'Meine Position',
+                              tooltip: context.l10n.mapLocateTooltip,
                               icon: Icons.my_location,
                               onPressed: _locateMe,
                             ),
@@ -1587,7 +1580,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                             const SizedBox(height: 14),
                             MapRoundButton(
                               key: const ValueKey('ride-mark-button'),
-                              tooltip: markedTrailOpen(ride.marks) ? 'Trail endet' : 'Trail beginnt',
+                              tooltip: markedTrailOpen(ride.marks) ? context.l10n.rideMarkEndTooltip : context.l10n.rideMarkStartTooltip,
                               icon: markedTrailOpen(ride.marks) ? Icons.sports_score : Icons.flag_outlined,
                               active: markedTrailOpen(ride.marks),
                               onPressed: _toggleMark,
@@ -1638,10 +1631,14 @@ class _OutboxBanner extends ConsumerWidget {
       for (final j in ref.watch(outboxJobsProvider).valueOrNull ?? const <OutboxJob>[])
         if (j.failure != null) j,
     ];
-    final decideWhere = [
-      if (rejected.any((j) => j is! FeedbackJob)) 'in der Trail-Liste',
-      if (rejected.any((j) => j is FeedbackJob)) 'bei der Glühbirne',
-    ].join(' und ');
+    final l = context.l10n;
+    final decideTrails = rejected.any((j) => j is! FeedbackJob);
+    final decideFeedback = rejected.any((j) => j is FeedbackJob);
+    final decide = decideTrails && decideFeedback
+        ? l.outboxDecideBoth
+        : decideFeedback
+            ? l.outboxDecideFeedback
+            : l.outboxDecideTrails;
     final waiting = count - failed;
     // Nur im Browser (#153): Er darf seinen Speicher unter Druck räumen,
     // und anders als bei der Kopie des Netzes wäre hier das Original weg.
@@ -1649,8 +1646,8 @@ class _OutboxBanner extends ConsumerWidget {
     // die Datei immer „zugesichert", die Zeile erscheint dort nie.
     final notDurable = ref.watch(outboxDurableProvider).valueOrNull == false;
     final text = [
-      if (waiting > 0) '$waiting ${waiting == 1 ? 'wartet' : 'warten'} auf Übertragung',
-      if (failed > 0) '$failed abgelehnt',
+      if (waiting > 0) l.outboxWaiting(waiting),
+      if (failed > 0) l.outboxRejected(failed),
     ].join(' · ');
     return SafeArea(
       child: Align(
@@ -1666,12 +1663,10 @@ class _OutboxBanner extends ConsumerWidget {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(failed > 0 && waiting == 0
-                    ? 'Entscheiden $decideWhere'
-                    : 'Antippen zum Senden — sonst beim nächsten Netz'),
+                Text(failed > 0 && waiting == 0 ? decide : l.outboxTapToSend),
                 if (notDurable)
                   Text(
-                    'Dein Browser sichert diesen Speicher nicht zu — sende, sobald du Empfang hast.',
+                    l.outboxNotDurable,
                     key: const ValueKey('outbox-not-durable'),
                     style: TextStyle(color: AppPalette.of(context).warningText),
                   ),
@@ -1681,9 +1676,7 @@ class _OutboxBanner extends ConsumerWidget {
               final messenger = ScaffoldMessenger.of(context);
               final r = await ref.read(trailsProvider.notifier).sendOutbox();
               messenger.showSnackBar(SnackBar(
-                  content: Text(r.sent > 0
-                      ? '${r.sent} übertragen'
-                      : 'Noch kein Netz — bleibt im Ausgangskorb.')));
+                  content: Text(r.sent > 0 ? l.outboxSent(r.sent) : l.outboxNoNetwork)));
             },
           ),
         ),
@@ -1709,11 +1702,11 @@ class _TrailFilterBanner extends ConsumerWidget {
         child: ListTile(
           dense: true,
           leading: const Icon(Icons.filter_alt_outlined),
-          title: Text('Gefiltert: ${filter.describe()}'),
-          subtitle: Text('$shown von $total ${total == 1 ? 'Trail' : 'Trails'}'),
+          title: Text(context.l10n.mapFilterBannerTitle(filter.describe())),
+          subtitle: Text(context.l10n.mapFilterBannerCount(shown, total)),
           trailing: IconButton(
             key: const ValueKey('map-filter-reset'),
-            tooltip: 'Filter zurücksetzen',
+            tooltip: context.l10n.mapFilterReset,
             icon: const Icon(Icons.close),
             onPressed: () => ref.read(trailListFilterProvider.notifier).state = const TrailListFilter(),
           ),
@@ -1757,7 +1750,7 @@ class _RideStatusCard extends StatelessWidget {
           children: [
             Icon(Icons.fiber_manual_record, size: 14, color: AppColors.mapLines.warning),
             const SizedBox(width: 8),
-            Text('Fahrt läuft · ${formatMeters(length)} · ${rideDurationLabel(duration)}'),
+            Text(context.l10n.rideRunningStatus(formatMeters(length), rideDurationLabel(duration))),
           ],
         ),
       ),
@@ -1779,10 +1772,9 @@ class _FocusRideCard extends ConsumerWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('Fahrt · ${formatMeters(ride.lengthM)} · '
-                  '${rideDurationLabel(ride.duration)}'),
+              Text(context.l10n.rideFocusStatus(formatMeters(ride.lengthM), rideDurationLabel(ride.duration))),
               IconButton(
-                tooltip: 'Fahrt ausblenden',
+                tooltip: context.l10n.rideFocusHide,
                 icon: const Icon(Icons.close, size: 18),
                 onPressed: () => ref.read(mapFocusRideProvider.notifier).state = null,
               ),
@@ -1823,7 +1815,7 @@ class _PositionDot extends StatelessWidget {
       ),
     );
     return Semantics(
-      label: pulsing ? 'Deine Position, Fahrt läuft' : 'Deine Position',
+      label: pulsing ? context.l10n.mapPositionDotRecording : context.l10n.mapPositionDot,
       child: pulsing
           ? Stack(alignment: Alignment.center, children: [const RidePulse(), dot])
           : dot,
@@ -1924,14 +1916,13 @@ class _EmptyHint extends StatelessWidget {
                 children: [
                   Expanded(
                     child: Text(
-                      'Noch keine Trails. Importiere deine GPX-Dateien im Profil '
-                      'oder verbinde dich mit Buddys — du siehst, was sie gefahren sind.',
+                      context.l10n.mapEmptyHint,
                       style: theme.textTheme.bodyMedium,
                     ),
                   ),
                   const SizedBox(width: 8),
                   Icon(Icons.help_outline, color: AppPalette.of(context).accentText,
-                      semanticLabel: 'Kurzanleitung'),
+                      semanticLabel: context.l10n.mapQuickGuide),
                 ],
               ),
             ),

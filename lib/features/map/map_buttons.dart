@@ -6,6 +6,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/app_colors.dart';
+import '../../l10n/l10n.dart';
 
 /// Kantenlänge der runden Kartenknöpfe und der Leistenknöpfe.
 const kMapButtonSize = 44.0;
@@ -79,7 +80,7 @@ class RecordButton extends StatelessWidget {
     return DecoratedBox(
       decoration: const BoxDecoration(shape: BoxShape.circle, boxShadow: _shadow),
       child: IconButton(
-        tooltip: recording ? 'Fahrt beenden' : 'Fahrt aufzeichnen',
+        tooltip: recording ? context.l10n.rideStopTooltip : context.l10n.rideRecordTooltip,
         onPressed: onPressed,
         icon: Icon(recording ? Icons.stop_rounded : Icons.circle, size: recording ? 30 : 22),
         style: IconButton.styleFrom(

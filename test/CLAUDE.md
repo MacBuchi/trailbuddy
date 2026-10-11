@@ -55,7 +55,9 @@ Gegenprobe der Vorgabe.
   `deviceLocales`; ab Werk meldet flutter_test `en_US`). Ein Test unter
   Englisch übergibt `appLocaleProvider`; ein eigenes `MaterialApp` mit
   umgezogenem Widget braucht die `AppLocalizations`-Delegates
-  (`lib/l10n/CLAUDE.md`).
+  (`lib/l10n/CLAUDE.md`); ohne sie wirft der Test „Null check operator"
+  aus `AppLocalizations.of`. Pure Helfer mit Text bekommen `l10nDe`
+  (`test/fakes/l10n_de.dart`).
 - **`FakeSettings` setzt die Einführung ab Werk auf „gesehen"**
   (`safetyNoteSeen`, `mapTourSeen`, `seenCoachTours`,
   `highlightsSeenVersion`), die App auf „neu". Tests für Hinweis, Touren

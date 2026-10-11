@@ -11,6 +11,7 @@ import 'package:trailbuddy/features/map/map_screen.dart';
 import '../fakes/fake_backend.dart';
 import '../fakes/fake_settings.dart';
 import '../fakes/test_app.dart';
+import '../fakes/l10n_de.dart';
 
 void main() {
   late FakeBackend backend;
@@ -43,7 +44,7 @@ void main() {
     await settle(tester);
     expect(panel, findsOneWidget);
     expect(settings.mapLegendOpen, isTrue, reason: 'gemerkt');
-    for (final s in legendSamples()) {
+    for (final s in legendSamples(l10nDe)) {
       expect(find.descendant(of: panel, matching: find.text(s.label)), findsOneWidget, reason: s.label);
     }
     // Die Gruppen tragen Überschriften (#231): dass „abgerockt" ein

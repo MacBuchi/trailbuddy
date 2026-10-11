@@ -15,6 +15,7 @@ import '../../core/geo.dart' show formatMeters;
 import '../../models/trail.dart';
 import '../routing/navigate_choice.dart';
 import '../trails/grade_shield.dart';
+import '../../l10n/l10n.dart';
 
 class TrailQuickCard extends StatelessWidget {
   const TrailQuickCard({super.key, required this.trail, required this.onOpen, required this.onClose});
@@ -70,7 +71,7 @@ class TrailQuickCard extends StatelessWidget {
               const Icon(Icons.chevron_right),
               IconButton(
                 key: const ValueKey('trail-quick-close'),
-                tooltip: 'Auswahl aufheben',
+                tooltip: context.l10n.mapQuickCardClose,
                 icon: const Icon(Icons.close),
                 onPressed: onClose,
               ),

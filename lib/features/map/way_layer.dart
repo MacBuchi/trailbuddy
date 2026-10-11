@@ -25,6 +25,7 @@ import 'package:vector_tile_renderer/vector_tile_renderer.dart' as vtr;
 import '../../core/connectivity.dart';
 import '../../core/errors.dart';
 import '../../core/settings.dart';
+import '../../l10n/l10n.dart';
 import 'base_map_providers.dart';
 import 'map_providers.dart';
 import 'map_regions.dart';
@@ -79,23 +80,33 @@ const kWayTrackCore = Color(0xFFF3F1EC);
 /// Zoom 15 immer ÜBER der Basislinie (Forstweg 1,4, Pfad 0,8), sonst
 /// stünde sie neben der Ebene.
 enum WayClass {
-  trackGood(1, WayKind.track, 'gut', Color(0xFF7F6649), null, Color(0xFF7F6649), 3.0, null, kWayTrackCore),
-  trackMedium(2, WayKind.track, 'mittel', Color(0xFFA58A6A), Color(0xFFD3C5B3), Color(0xFFA58A6A), 2.8, [3, 1.5], kWayTrackCore),
-  trackPoor(3, WayKind.track, 'schlecht', Color(0xFFA58A6A), Color(0xFFDDD2C4), Color(0xFFC7B49D), 2.6, [1, 2], kWayTrackCore),
-  trackVeryPoor(7, WayKind.track, 'sehr schlecht', Color(0xFFB39C80), Color(0xFFE4DBCF), Color(0xFFD3C4B1), 2.4, [1, 3.5], kWayTrackCore),
-  pathEasy(4, WayKind.path, 'leicht', Color(0xFF8F7860), null, Color(0xFF8F7860), 1.4, null, null),
-  pathMedium(5, WayKind.path, 'mittelschwer', Color(0xFFA8907A), Color(0xFFD8CCBD), Color(0xFFB6A08A), 1.1, [3, 1.5], null),
-  pathHard(6, WayKind.path, 'schwer', Color(0xFFA8907A), Color(0xFFE0D6CA), Color(0xFFCDBFAE), 1.0, [1, 2], null),
-  pathVeryHard(8, WayKind.path, 'sehr schwer', Color(0xFFB5A08B), Color(0xFFE6DED4), Color(0xFFD9CDBF), 0.9, [1, 3.5], null);
+  trackGood(1, WayKind.track, Color(0xFF7F6649), null, Color(0xFF7F6649), 3.0, null, kWayTrackCore),
+  trackMedium(2, WayKind.track, Color(0xFFA58A6A), Color(0xFFD3C5B3), Color(0xFFA58A6A), 2.8, [3, 1.5], kWayTrackCore),
+  trackPoor(3, WayKind.track, Color(0xFFA58A6A), Color(0xFFDDD2C4), Color(0xFFC7B49D), 2.6, [1, 2], kWayTrackCore),
+  trackVeryPoor(7, WayKind.track, Color(0xFFB39C80), Color(0xFFE4DBCF), Color(0xFFD3C4B1), 2.4, [1, 3.5], kWayTrackCore),
+  pathEasy(4, WayKind.path, Color(0xFF8F7860), null, Color(0xFF8F7860), 1.4, null, null),
+  pathMedium(5, WayKind.path, Color(0xFFA8907A), Color(0xFFD8CCBD), Color(0xFFB6A08A), 1.1, [3, 1.5], null),
+  pathHard(6, WayKind.path, Color(0xFFA8907A), Color(0xFFE0D6CA), Color(0xFFCDBFAE), 1.0, [1, 2], null),
+  pathVeryHard(8, WayKind.path, Color(0xFFB5A08B), Color(0xFFE6DED4), Color(0xFFD9CDBF), 0.9, [1, 3.5], null);
 
-  const WayClass(this.code, this.kind, this.label, this.color, this.band, this.webColor, this.width, this.dash, this.core);
+  const WayClass(this.code, this.kind, this.color, this.band, this.webColor, this.width, this.dash, this.core);
 
   /// Der Wert von `k` im Archiv.
   final int code;
   final WayKind kind;
 
-  /// Das Wort der Legende, unter der Überschrift der Wegart.
-  final String label;
+  /// Das Wort der Legende, unter der Überschrift der Wegart (#209: aus den
+  /// ARB-Dateien).
+  String label(AppLocalizations l) => switch (this) {
+        trackGood => l.wayTrackGood,
+        trackMedium => l.wayTrackMedium,
+        trackPoor => l.wayTrackPoor,
+        trackVeryPoor => l.wayTrackVeryPoor,
+        pathEasy => l.wayPathEasy,
+        pathMedium => l.wayPathMedium,
+        pathHard => l.wayPathHard,
+        pathVeryHard => l.wayPathVeryHard,
+      };
   final Color color;
   final Color? band;
   final Color webColor;
