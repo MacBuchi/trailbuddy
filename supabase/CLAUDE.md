@@ -34,3 +34,34 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
   (nächtlich). Kein Ausgangskorb — ohne Netz scheitert es sichtbar; und
   kein Knopf, solange ein eigener Beitrag im Korb wartet (der legte die
   Zeile beim Nachholen wieder an). `matcher_check.sql` Block 21.
+- **Duplikate zusammenführen** (Patch 019, #107; Regel in
+  `docs/konzept-trails.md` 6.1): `merge_own_into(duplicate_id,
+  target_id)` zieht die EIGENEN Aufzeichnungen, den Beitrag (A gewinnt,
+  leere Felder füllt B, privat gewinnt), Hinweise und Meldungen von B
+  nach A und legt die Zuordnung in `app_internal.trail_aliases` an;
+  „verschieden" steht in `app_internal.trail_distinct`. Beide Tabellen
+  ohne Client-Grant — gelesen wird nur über `trail_merges()`, das je
+  Leser filtert (nur Paare, die er beide sieht; Erklärungen nur von
+  direkten Buddys, die an einem der beiden sichtbar beitragen). Vier
+  Dinge, die man wissen muss:
+  - **„Grob beieinander" ist eine eigene Schwelle**, nicht die des
+    Abgleichs: ≥ 50 % der kürzeren Linie innerhalb von 50 m
+    (`merge_near`, geschätzt, nicht gemessen). Der Client rechnet für
+    seine Auswahl dieselben Zahlen; wer sie ändert, ändert beide.
+  - **`reversed` an der Zuordnung** sagt, ob B gegen A läuft — aus den
+    Linien bestimmt und um die Richtung jeder Vertreterin korrigiert.
+    Umgezogene und spätere Aufzeichnungen tragen damit ihre Richtung
+    relativ zu A, sonst führe der Planer sie verkehrt herum.
+  - **Der Abgleich vergleicht seit Patch 019 auch mit den EIGENEN
+    Aufzeichnungen** des Aufrufers, nicht nur mit der Vertreterin je
+    Trail: Nach dem Zusammenführen hängt die B-Linie an A, ist dort aber
+    nicht die Vertreterin — ohne das legte die nächste Fahrt auf ihr
+    wieder einen eigenen Trail an. Hängt der Abgleich an ein eigenes
+    Duplikat, leitet die eigene Zuordnung um (nie eine fremde, E5).
+  - **Ein zweiter Aufruf ist ein Erfolg** (Ausgangskorb): Steht die
+    Zuordnung schon, antwortet `merge_own_into` mit dem Ziel, ohne zu
+    prüfen — B kann nach dem ersten Aufruf unsichtbar sein. Ist B
+    inzwischen gefegt (`sweep_orphan_trails`), fällt die Zuordnung per
+    Cascade mit, und der Aufruf antwortet `P0002` wie für jede unbekannte
+    Kennung; ein Korb-Auftrag muss das als „erledigt" lesen.
+  `matcher_check.sql` Block 25.

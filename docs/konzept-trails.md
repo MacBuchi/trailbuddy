@@ -417,9 +417,9 @@ Nachbarschaftskante** (`app_internal.trail_overlaps`). Zwei Gründe:
   sichtbaren Netz, nie aus fremden Trails.**
 - **Eine falsche Verschmelzung ist teurer als eine Dublette.** Zwei
   Trails, die eigentlich einer sind, kann man später zusammenführen
-  (Werkzeug wie „Spots zusammenführen" in PilzBuddy, nur innerhalb des
-  eigenen Netzes, wo beide sichtbar sind). Einen falsch verschmolzenen
-  Trail wieder zu trennen, ist eine Handarbeit mit Datenverlust.
+  (Abschnitt 6.1, nur innerhalb des eigenen Netzes, wo beide sichtbar
+  sind). Einen falsch verschmolzenen Trail wieder zu trennen, ist eine
+  Handarbeit mit Datenverlust.
 
 Die Overlap-Kanten sind der Vorrat für später: Wenn zwei Nutzer sich
 verbinden und die App zwei sichtbare Trails mit einer Kante findet,
@@ -602,6 +602,61 @@ Nichts, was gelöst werden müsste. Nach dem Annehmen:
   nicht zu wissen.)
 - Overlap-Kanten zwischen zwei jetzt sichtbaren Trails werden als
   Vorschlag gezeigt: „Sind das dieselben? Beide Linien ansehen".
+
+### 6.1 Duplikate zusammenführen (#107, Patch 019)
+
+Entscheidungen des Betreibers vom 2026-10-11 (Wortlaut in #107), auf
+der Regel aus `docs/konzept-rework.md` §7. Duplikate entstehen nicht
+nur zwischen Buddys: **„Man kann auch selbst Duplikate haben durch
+GPX-Import"** — eine Datei mit Anfahrt oder eine Linie knapp neben dem
+Korridor wird ein eigener Trail.
+
+**Zusammenführen ist eine Aussage in MEINEM Beitrag, kein Eingriff am
+Trail.** „B ist ein Duplikat von A" heißt: Meine Aufzeichnungen, mein
+Beitrag (A gewinnt, leere Felder füllt B, privat gewinnt), meine
+Hinweise und Meldungen ziehen von B nach A; für das, was andere an B
+haben, steht meine Zuordnung B → A. Hing an B nur Eigenes, ist B danach
+leer und geht mit dem Aufräumjob.
+
+**Selbst wählen** geht nur, wenn beide Trails **grob beieinander**
+liegen: mindestens die Hälfte der kürzeren Linie höchstens 50 m neben
+der anderen. Bewusst weiter als der 15-m-Korridor des Abgleichs —
+gemeint sind genau die Paare knapp daneben; eine Linie, die durchgehend
+20 m parallel läuft, hätte im Korridor die Deckung null. Geprüft auf
+dem Gerät (Auswahl) und in der Datenbank (`merge_own_into`). Die Zahlen
+sind geschätzt, nicht gemessen.
+
+**Weitergereicht** wird die Erklärung an direkte Buddys, je nachdem,
+was sie haben:
+
+| Wer | Was er sieht |
+|---|---|
+| ich | B verschwindet, alles Eigene steht an A |
+| Buddy mit eigenem Beitrag an B, der A sieht | Vorschlag „Jan hält B und A für denselben Trail" — er entscheidet, bis dahin bleibt B |
+| Buddy, der beide sieht, an B aber nichts hat | B erscheint unter A, ohne Frage |
+| wer nicht beide sieht | nichts, und er erfährt nichts |
+
+Es zählen nur Erklärungen direkter Buddys, die an einem der beiden
+Trails **sichtbar** beitragen — ein privater Beitrag gibt nichts weiter,
+sonst verriete die Erklärung, dass es ihn gibt. Bei Widerspruch gilt:
+Sagt ein Buddy, der an einem der beiden beiträgt, „das sind
+verschiedene", bleibt B für Unbeteiligte stehen; erklären zwei Buddys
+die Gegenrichtungen (B → A und A → B), gewinnt der ältere Trail; die
+eigene Entscheidung geht jeder fremden vor. „Verschieden" wird je
+Nutzer gemerkt, der Vorschlag kommt dann nicht wieder.
+
+**Der Abgleich lernt nur persönlich** (E5): Hängt er meine neue Fahrt
+an einen Trail, den ICH zum Duplikat erklärt habe, landet sie an A;
+eine Fahrt eines anderen bleibt, wo der Abgleich sie hinhängt. Und er
+vergleicht seit Patch 019 auch mit meinen eigenen Aufzeichnungen, nicht
+nur mit der Vertreterin je Trail — sonst legte die nächste Fahrt auf
+der umgezogenen B-Linie wieder einen eigenen Trail an.
+
+**Rückgängig:** Die Zuordnung lässt sich lösen; B erscheint wieder, wo
+andere etwas daran haben, umgezogene eigene Aufzeichnungen bleiben an A.
+
+Overlap-Kanten zwischen zwei sichtbaren Trails, von denen ich einen
+selbst habe, sind der Vorrat für „Sind das dieselben?" (oben).
 
 Beim **Entfreunden** verschwinden die Trails, die nur über diesen
 Buddy sichtbar waren; eigene Beiträge bleiben, auch die zu Trails, die
@@ -892,8 +947,9 @@ ein Häkchen oder eine neue Reihenfolge.
 - **Phase 2 — Aufzeichnen. ERLEDIGT:** Fahrt-Aufzeichnung, Zerlege-Blatt,
   Ausgangskorb auf Android.
 - **Rework. ERLEDIGT bis auf den Abgleich:** Mehrere Aufzeichnungen je
-  Trail, Zusammenführen und kurze Importe stutzen warten auf Daten
-  mehrerer Nutzer.
+  Trail und kurze Importe stutzen warten auf Daten mehrerer Nutzer;
+  Zusammenführen ist im Bau (6.1, #107) — eigene Duplikate aus
+  GPX-Importen brauchen keine fremden Daten.
 - **Einführung. ERLEDIGT:** Kurzanleitung, Touren, „Entdecken", Marke.
 - **Phase 3 — Offline und Austausch. ZUM TEIL:** Offline-Karten mit
   eigenem Host, Zwischenspeicher, Push, Gesehenes bleibt liegen (Android
