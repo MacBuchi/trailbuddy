@@ -30,6 +30,10 @@ migrate_working_dir/
 /build/
 /coverage/
 
+# Sprachen der Oberfläche (#209): erzeugt `flutter pub get` aus den
+# ARB-Dateien. Eingecheckt veraltete eine Kopie still (lib/l10n/CLAUDE.md).
+/lib/l10n/app_localizations*.dart
+
 # Symbolication and obfuscation
 app.*.symbols
 app.*.map.json

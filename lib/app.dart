@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/app_colors.dart';
@@ -10,6 +9,7 @@ import 'core/widgets/push_listener.dart';
 import 'core/widgets/start_splash.dart';
 import 'core/widgets/update_gate.dart';
 import 'features/coach/coach.dart';
+import 'l10n/l10n.dart';
 
 class TrailBuddyApp extends ConsumerWidget {
   const TrailBuddyApp({super.key});
@@ -59,13 +59,14 @@ class TrailBuddyApp extends ConsumerWidget {
       theme: buildAppTheme(AppColors.light),
       darkTheme: buildAppTheme(AppColors.dark),
       themeMode: ref.watch(appearanceProvider),
-      locale: const Locale('de'),
-      supportedLocales: const [Locale('de')],
-      localizationsDelegates: const [
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
+      // Sprache (#209): vorerst fest Deutsch, siehe [appLocaleProvider].
+      // Ist sie offen, entscheidet [resolveAppLocale] über die Liste des
+      // Geräts — mit Englisch statt der ersten unterstützten als Rückfall.
+      locale: ref.watch(appLocaleProvider),
+      supportedLocales: AppLocalizations.supportedLocales,
+      localeListResolutionCallback: (preferred, _) =>
+          resolveAppLocale(preferred),
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
       debugShowCheckedModeBanner: false,
     );
   }

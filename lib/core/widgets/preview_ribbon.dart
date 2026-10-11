@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../l10n/l10n.dart';
 import '../app_distribution.dart';
 
 /// Markiert den automatisch deployten Entwicklungsstand (Vorschau-Kanal).
@@ -44,7 +45,7 @@ class PreviewRibbon extends ConsumerWidget {
                   const SizedBox(width: 6),
                   Flexible(
                     child: Text(
-                      'Entwicklungsstand — nicht freigegeben',
+                      context.l10n.previewRibbon,
                       style: Theme.of(context)
                           .textTheme
                           .labelSmall

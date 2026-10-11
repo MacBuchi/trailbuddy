@@ -1,0 +1,10 @@
+# Sprachen der Oberfläche (#209): `flutter gen-l10n` erzeugt daraus
+# `lib/l10n/app_localizations*.dart` — von selbst bei `flutter pub get`,
+# `flutter test` und jedem Build (`generate: true` in pubspec.yaml).
+# Die Vorlage ist DEUTSCH: Die App ist deutsch gewachsen, jeder neue Text
+# entsteht zuerst dort. Regeln: lib/l10n/CLAUDE.md.
+arb-dir: lib/l10n
+template-arb-file: app_de.arb
+output-localization-file: app_localizations.dart
+output-class: AppLocalizations
+nullable-getter: false
