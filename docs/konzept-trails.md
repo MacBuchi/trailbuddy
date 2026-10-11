@@ -658,6 +658,18 @@ andere etwas daran haben, umgezogene eigene Aufzeichnungen bleiben an A.
 Overlap-Kanten zwischen zwei sichtbaren Trails, von denen ich einen
 selbst habe, sind der Vorrat für „Sind das dieselben?" (oben).
 
+**In der App** (seit 0.109.0, #107 Schritt 2): „Ist ein Duplikat …" im
+Trail-Blatt, sobald ein sichtbarer Trail grob daneben liegt (dieselbe
+Rechnung auf dem Gerät); man wählt den Partner und welcher bleibt
+(vorbelegt: mehr sichtbare Beiträge, sonst der ältere). Die Zuordnungen
+aus `trail_merges()` liegen mit im Zwischenspeicher; Ketten und
+Gegenrichtungen löst das Gerät auf (eigene zuerst, bei einem Kreis
+bleibt der älteste Trail mit fremder Zuordnung stehen). Was zu B gehört,
+steht unter A, Aufzeichnungen mit ihrer Richtung relativ zu A; hat
+jemand an beiden einen Beitrag, gilt der an A. Kein Ausgangskorb — wie
+beim Löschen scheitert es ohne Netz sichtbar. Der Vorschlag „Sind das
+dieselben?" und „verschieden" kommen in Schritt 3.
+
 Beim **Entfreunden** verschwinden die Trails, die nur über diesen
 Buddy sichtbar waren; eigene Beiträge bleiben, auch die zu Trails, die
 der Buddy zuerst hatte. Symmetrisch zu PilzBuddy: jeder behält, was er
@@ -948,8 +960,9 @@ ein Häkchen oder eine neue Reihenfolge.
   Ausgangskorb auf Android.
 - **Rework. ERLEDIGT bis auf den Abgleich:** Mehrere Aufzeichnungen je
   Trail und kurze Importe stutzen warten auf Daten mehrerer Nutzer;
-  Zusammenführen ist im Bau (6.1, #107) — eigene Duplikate aus
-  GPX-Importen brauchen keine fremden Daten.
+  Zusammenführen ist im Bau (6.1, #107; selbst erklären seit 0.109.0,
+  der Vorschlag an Buddys folgt) — eigene Duplikate aus GPX-Importen
+  brauchen keine fremden Daten.
 - **Einführung. ERLEDIGT:** Kurzanleitung, Touren, „Entdecken", Marke.
 - **Phase 3 — Offline und Austausch. ZUM TEIL:** Offline-Karten mit
   eigenem Host, Zwischenspeicher, Push, Gesehenes bleibt liegen (Android

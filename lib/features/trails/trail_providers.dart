@@ -17,6 +17,7 @@ import '../../data/trail_cache_idb.dart';
 import '../../data/trail_sharing.dart';
 import '../../data/trail_repository.dart';
 import '../../models/trail.dart';
+import '../../models/trail_merge.dart';
 import '../map/map_view/map_view.dart' show MapViewBounds;
 import 'elevation_backfill.dart';
 import 'gpx.dart';
@@ -92,6 +93,7 @@ class TrailsNotifier extends AsyncNotifier<List<Trail>>
         repo.fetchDetails(),
         repo.fetchNotes(),
         repo.fetchReports(),
+        repo.fetchMerges(),
       ]);
       // Was sich nicht geändert hat, bleibt dasselbe Objekt — auch für die
       // Kopie auf dem Gerät, die einen unveränderten Stand dann nicht neu
@@ -101,6 +103,7 @@ class TrailsNotifier extends AsyncNotifier<List<Trail>>
         details: results[1] as List<TrailDetails>,
         notes: results[2] as List<TrailNote>,
         reports: results[3] as List<TrailReport>,
+        merges: results[4] as List<TrailMerge>,
       ));
     }
 
@@ -206,6 +209,7 @@ class TrailsNotifier extends AsyncNotifier<List<Trail>>
         details: details ? fresh[i++] as List<TrailDetails> : base.details,
         notes: notes ? fresh[i++] as List<TrailNote> : base.notes,
         reports: reports ? fresh[i++] as List<TrailReport> : base.reports,
+        merges: base.merges,
       );
       _server = _fromSnapshot(next, myId);
       unawaited(ref.read(trailCacheProvider).write(uid: myId, snapshot: _snapshot!, savedAt: fetchedAt));
@@ -228,6 +232,7 @@ class TrailsNotifier extends AsyncNotifier<List<Trail>>
       details: shared.details,
       notes: shared.notes,
       reports: shared.reports,
+      merges: shared.merges,
       myId: myId,
       previous: previous,
     );
@@ -506,6 +511,29 @@ class TrailsNotifier extends AsyncNotifier<List<Trail>>
     return reloadAfterWrite('Beitrag zurückziehen');
   }
 
+  /// „[duplicateId] ist ein Duplikat von [targetId]" (#107, Konzept 6.1):
+  /// meine Aufzeichnungen, mein Beitrag, meine Hinweise und Meldungen
+  /// ziehen um, für das, was andere an B haben, steht meine Zuordnung.
+  /// Danach lädt das ganze Netz neu — die Linien haben den Trail
+  /// gewechselt. Kein Ausgangskorb, wie beim Löschen: ohne Netz scheitert
+  /// es sichtbar. Wirft, wenn das Schreiben scheitert
+  /// ([MergeRejectedException], wenn der Server ablehnt); das Ergebnis
+  /// sagt, ob die Anzeige danach frisch ist.
+  Future<({String keptId, bool fresh})> mergeInto(String duplicateId, String targetId) async {
+    final kept = await ref
+        .read(trailRepositoryProvider)
+        .mergeInto(duplicateId: duplicateId, targetId: targetId);
+    return (keptId: kept, fresh: await reloadAfterWrite('Duplikat zusammenführen'));
+  }
+
+  /// Meine Zuordnung von [duplicateId] lösen: Er erscheint wieder, wo
+  /// jemand anderes etwas daran hat; umgezogene eigene Aufzeichnungen
+  /// bleiben am behaltenen Trail.
+  Future<bool> unmerge(String duplicateId) async {
+    await ref.read(trailRepositoryProvider).unmerge(duplicateId);
+    return reloadAfterWrite('Zusammenführung lösen');
+  }
+
   /// Höhen einer eigenen Aufzeichnung nachtragen (#16). Kein Neuladen
   /// hier: Der Import lädt einmal am Ende, nicht nach jeder Datei.
   Future<bool> attachElevation(ExistingRecording existing) {
@@ -556,8 +584,15 @@ final outboxRunnerProvider = Provider<OutboxRunner>((ref) => OutboxRunner(
           .adoptDetails(trailId, name, grade: grade, traits: traits, link: link, rating: rating),
     ));
 
-final trailByIdProvider = Provider.family<Trail?, String>((ref, id) =>
-    ref.watch(trailsProvider).valueOrNull?.where((t) => t.id == id).firstOrNull);
+/// Der Trail mit [id] — oder der, unter dem er als Duplikat steht (#107):
+/// Eine Kennung von früher (Push, Fokus, ein offenes Blatt) zeigt nach
+/// dem Zusammenführen sonst ins Leere.
+final trailByIdProvider = Provider.family<Trail?, String>((ref, id) {
+  final trails = ref.watch(trailsProvider).valueOrNull;
+  if (trails == null) return null;
+  return trails.where((t) => t.id == id).firstOrNull ??
+      trails.where((t) => t.answersTo(id)).firstOrNull;
+});
 
 /// Die Hinweise, die auf DIESEM Gerät schon im Trail-Blatt zu sehen
 /// waren (#7): Sie heben den Trail in Karte und Liste nicht mehr hervor.

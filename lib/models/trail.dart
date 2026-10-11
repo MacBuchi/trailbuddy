@@ -4,6 +4,7 @@ import 'package:latlong2/latlong.dart';
 
 import '../features/trails/trail_elevation.dart';
 import '../features/trails/trail_geometry.dart';
+import 'trail_merge.dart';
 
 /// Ein Beleg: „ich bin das gefahren" (Konzept 3). Die Linie kommt aus
 /// der Sicht `recordings_visible` als GeoJSON und wird hier zu Punkten.
@@ -42,6 +43,23 @@ class TrailRecording {
   /// Fahrdatum (Patch 015, #120). Dieselbe Regel wie `has_ridden` auf dem
   /// Server; die Linie einer geplanten bleibt trotzdem gezeichnet.
   bool get ridden => source != RecordingSource.planned || recordedAt != null;
+
+  /// Dieselbe Aufzeichnung unter einem anderen Trail (#107): ein Duplikat,
+  /// das bei mir unter [trailId] steht. [flip]: B läuft gegen A, die
+  /// Richtung zum Trail dreht sich mit. Die Punkte bleiben dieselbe Liste.
+  TrailRecording movedTo(String trailId, {required bool flip}) => TrailRecording(
+        id: id,
+        trailId: trailId,
+        userId: userId,
+        source: source,
+        recordedAt: recordedAt,
+        reversed: reversed != flip,
+        quality: quality,
+        createdAt: createdAt,
+        points: points,
+        lengthM: lengthM,
+        ele: ele,
+      );
 
   factory TrailRecording.fromJson(Map<String, dynamic> json) {
     // `st_asgeojson` liefert Text. Je nachdem, ob die Sicht ihn nach json
@@ -261,6 +279,23 @@ class TrailDetails {
         // gleicht sie für ältere Clients an den Beitrag ab.
       };
 
+  /// Derselbe Beitrag unter einem anderen Trail (#107) — nur für die
+  /// Anzeige; geschrieben wird er nie so.
+  TrailDetails withTrailId(String trailId) => TrailDetails(
+        trailId: trailId,
+        userId: userId,
+        username: username,
+        name: name,
+        description: description,
+        grade: grade,
+        traits: traits,
+        rating: rating,
+        twoWay: twoWay,
+        link: link,
+        visibility: visibility,
+        updatedAt: updatedAt,
+      );
+
   TrailDetails copyWith({
     String? name,
     String? description,
@@ -383,6 +418,21 @@ class TrailReport {
     );
   }
 
+  /// Dieselbe Meldung unter einem anderen Trail (#107), nur für die Anzeige.
+  TrailReport withTrailId(String trailId) => TrailReport(
+        id: id,
+        trailId: trailId,
+        userId: userId,
+        kind: kind,
+        confirmed: confirmed,
+        reportedAt: reportedAt,
+        status: status,
+        condition: condition,
+        username: username,
+        pending: pending,
+        sending: sending,
+      );
+
   Map<String, dynamic> toRow() => {
         'id': id,
         'trail_id': trailId,
@@ -462,6 +512,10 @@ class TrailNote {
   /// Aus dem Embed `author:profiles(...)`.
   final String? username;
 
+  /// Derselbe Hinweis unter einem anderen Trail (#107), nur für die Anzeige.
+  TrailNote withTrailId(String trailId) => TrailNote(
+      id: id, trailId: trailId, userId: userId, body: body, createdAt: createdAt, username: username);
+
   factory TrailNote.fromJson(Map<String, dynamic> json) {
     final author = json['author'];
     return TrailNote(
@@ -501,6 +555,7 @@ class Trail {
     this.pendingFailure,
     this.pendingDetails = false,
     this.sendingDetails = false,
+    this.mergedFrom = const [],
   }) : assert(recordings.isNotEmpty, 'ein Trail ohne sichtbaren Beleg');
 
   final String id;
@@ -531,6 +586,17 @@ class Trail {
   /// Die sichtbaren Hinweise, in beliebiger Reihenfolge — angezeigt über
   /// [notesShown].
   final List<TrailNote> notes;
+
+  /// Trails, die bei mir unter diesem stehen (#107, Konzept 6.1): von mir
+  /// selbst oder von direkten Buddys zum Duplikat erklärt. Ihre sichtbaren
+  /// Belege, Beiträge, Hinweise und Meldungen stecken schon in den Listen
+  /// hier; das Blatt nennt sie und lässt die eigenen lösen.
+  final List<MergedTrail> mergedFrom;
+
+  /// Stand [id] einmal für diesen Trail — er selbst oder ein Duplikat,
+  /// das bei mir unter ihm steht? Für Kennungen von früher (Push, Fokus,
+  /// ein offenes Blatt), die nach dem Zusammenführen ins Leere zeigten.
+  bool answersTo(String trailId) => id == trailId || mergedFrom.any((m) => m.id == trailId);
 
   /// Die sichtbaren Meldungen und Zustände (#101), in beliebiger
   /// Reihenfolge — angezeigt über [shownStatus], [shownCondition] und
@@ -817,9 +883,42 @@ class Trail {
       {for (final r in recordings) if (r.userId != myId) r.userId};
 }
 
+/// Ein Duplikat, das bei mir unter einem anderen Trail steht (#107).
+class MergedTrail {
+  const MergedTrail({required this.id, required this.byMe, this.name, this.byUsers = const []});
+
+  /// Die Kennung des Duplikats.
+  final String id;
+
+  /// Der Name, unter dem es sichtbar war — der erste sichtbare Beitrag mit
+  /// Namen; null ohne.
+  final String? name;
+
+  /// Meine eigene Zuordnung — lösbar (`unmerge_trail`). Sonst hat ein
+  /// direkter Buddy es erklärt ([byUsers]).
+  final bool byMe;
+  final List<String> byUsers;
+
+  @override
+  bool operator ==(Object other) =>
+      other is MergedTrail &&
+      other.id == id &&
+      other.name == name &&
+      other.byMe == byMe &&
+      _sameValues(other.byUsers, byUsers);
+
+  @override
+  int get hashCode => Object.hash(id, name, byMe, Object.hashAll(byUsers));
+}
+
 /// Gruppiert die beiden Abfragen zu Trails. Beiträge ohne sichtbaren
 /// Beleg fallen weg: Sichtbar ist, was jemand GEFAHREN ist (Konzept 6),
 /// nicht, worüber jemand etwas gesagt hat.
+///
+/// [merges] sind die Zeilen aus `trail_merges()` (#107): Was zu einem
+/// Duplikat gehört, steht unter dem behaltenen Trail ([resolveMerges]) —
+/// Aufzeichnungen mit ihrer Richtung relativ zu ihm, und hat jemand an
+/// beiden einen Beitrag, gilt der am behaltenen.
 ///
 /// [previous] ist der Stand davor: Ein Trail, dessen Belege, Beiträge,
 /// Hinweise und Meldungen dieselben OBJEKTE sind (`shareSnapshot`), kommt
@@ -830,9 +929,44 @@ List<Trail> buildTrails({
   required String myId,
   List<TrailNote> notes = const [],
   List<TrailReport> reports = const [],
+  List<TrailMerge> merges = const [],
   Iterable<Trail> previous = const [],
 }) {
   final before = {for (final t in previous) if (!t.pending && t.myId == myId) t.id: t};
+  final targets = _mergeTargets(merges, recordings);
+  final mergedFrom = <String, List<MergedTrail>>{};
+  if (targets.isNotEmpty) {
+    for (final e in targets.entries) {
+      if (!recordings.any((r) => r.trailId == e.key)) continue;
+      final name = details
+          .where((d) => d.trailId == e.key && (d.name ?? '').trim().isNotEmpty)
+          .map((d) => d.name!.trim())
+          .firstOrNull;
+      (mergedFrom[e.value.to] ??= []).add(MergedTrail(
+          id: e.key, name: name, byMe: e.value.byMe, byUsers: e.value.byUsers));
+    }
+    recordings = [
+      for (final r in recordings)
+        if (targets[r.trailId] case final t?) _movedRecording(r, t) else r,
+    ];
+    // Hat jemand an beiden einen Beitrag, gilt der am behaltenen Trail.
+    final kept = {for (final d in details) if (!targets.containsKey(d.trailId)) '${d.trailId}|${d.userId}'};
+    details = [
+      for (final d in details)
+        if (targets[d.trailId] case final t?)
+          ...[if (kept.add('${t.to}|${d.userId}')) _moved(d, t.to, () => d.withTrailId(t.to))]
+        else
+          d,
+    ];
+    notes = [
+      for (final n in notes)
+        if (targets[n.trailId] case final t?) _moved(n, t.to, () => n.withTrailId(t.to)) else n,
+    ];
+    reports = [
+      for (final r in reports)
+        if (targets[r.trailId] case final t?) _moved(r, t.to, () => r.withTrailId(t.to)) else r,
+    ];
+  }
   final byTrail = <String, List<TrailRecording>>{};
   for (final r in recordings) {
     byTrail.putIfAbsent(r.trailId, () => []).add(r);
@@ -853,21 +987,63 @@ List<Trail> buildTrails({
     final d = detailsByTrail[id] ?? const <TrailDetails>[];
     final n = notesByTrail[id] ?? const <TrailNote>[];
     final r = reportsByTrail[id] ?? const <TrailReport>[];
+    final m = mergedFrom[id] ?? const <MergedTrail>[];
     final old = before[id];
     if (old != null &&
         !old.pendingDetails &&
         _sameObjects(old.recordings, recs) &&
         _sameObjects(old.details, d) &&
         _sameObjects(old.notes, n) &&
-        _sameObjects(old.reports, r)) {
+        _sameObjects(old.reports, r) &&
+        _sameValues(old.mergedFrom, m)) {
       return old;
     }
-    return Trail(id: id, recordings: recs, details: d, myId: myId, notes: n, reports: r);
+    return Trail(
+        id: id, recordings: recs, details: d, myId: myId, notes: n, reports: r, mergedFrom: m);
   }
 
   return [
     for (final e in byTrail.entries) make(e.key, e.value),
   ]..sort((a, b) => a.displayName.toLowerCase().compareTo(b.displayName.toLowerCase()));
+}
+
+/// [resolveMerges] mit dem Alter jedes Trails aus seiner ältesten
+/// sichtbaren Aufzeichnung.
+Map<String, MergeTarget> _mergeTargets(List<TrailMerge> merges, List<TrailRecording> recordings) {
+  if (!merges.any((m) => m.kind == TrailMergeKind.own || m.kind == TrailMergeKind.folded)) {
+    return const {};
+  }
+  final firstSeen = <String, DateTime>{};
+  for (final r in recordings) {
+    final t = firstSeen[r.trailId];
+    if (t == null || r.createdAt.isBefore(t)) firstSeen[r.trailId] = r.createdAt;
+  }
+  return resolveMerges(merges, ageOf: (id) => firstSeen[id]);
+}
+
+/// Die umgehängte Fassung einer Zeile bleibt je Ziel DASSELBE Objekt —
+/// sonst baute jedes Neuladen jeden zusammengeführten Trail neu, samt
+/// geglätteter Linie und Höhenprofil (siehe `trail_sharing.dart`). Die
+/// Zeilen selbst teilt `shareSnapshot` über die Abrufe hinweg.
+final _movedRows = Expando<(String, bool, Object)>('trail-merge');
+
+T _moved<T extends Object>(T row, String to, T Function() copy, {bool flip = false}) {
+  final hit = _movedRows[row];
+  if (hit != null && hit.$1 == to && hit.$2 == flip) return hit.$3 as T;
+  final made = copy();
+  _movedRows[row] = (to, flip, made);
+  return made;
+}
+
+TrailRecording _movedRecording(TrailRecording r, MergeTarget t) =>
+    _moved(r, t.to, flip: t.reversed, () => r.movedTo(t.to, flip: t.reversed));
+
+bool _sameValues<T>(List<T> a, List<T> b) {
+  if (a.length != b.length) return false;
+  for (var i = 0; i < a.length; i++) {
+    if (a[i] != b[i]) return false;
+  }
+  return true;
 }
 
 bool _sameObjects<T>(List<T> a, List<T> b) {

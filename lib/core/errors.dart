@@ -157,6 +157,29 @@ class DailyLimitException implements Exception {
   String toString() => 'DailyLimitException: Tageslimit für Aufzeichnungen erreicht';
 }
 
+/// Der Server nimmt eine Zuordnung „B ist ein Duplikat von A" nicht an
+/// (`merge_own_into`, Patch 019, #107). Eigener Typ, damit der Text sagt,
+/// WARUM — „Serverfehler (22023)" schickte jemanden auf die falsche Fährte.
+class MergeRejectedException implements Exception {
+  const MergeRejectedException(this.reason);
+
+  final MergeRejection reason;
+
+  @override
+  String toString() => 'MergeRejectedException: ${reason.name}';
+}
+
+enum MergeRejection {
+  /// SQLSTATE 22023: Die beiden liegen nicht grob beieinander (≥ 50 % der
+  /// kürzeren Linie innerhalb von 50 m) — die Auswahl auf dem Gerät
+  /// rechnet dasselbe, hier ging also eine Linie anders aus als gezeigt.
+  notNear,
+
+  /// SQLSTATE P0002: Einer der beiden ist nicht mehr da oder nicht mehr
+  /// sichtbar — dieselbe Antwort für beides (4.6).
+  gone,
+}
+
 /// Sieht dieser Fehler nach fehlendem Empfang aus?
 ///
 /// Bewusst eng: Ein Schema- oder Rechtefehler darf sich nie hinter einer
@@ -241,6 +264,14 @@ String friendlyError(Object error) {
   // deshalb nennt der Text beide Möglichkeiten, statt eine zu raten.
   if (error is DailyLimitException) {
     return 'Für heute ist das Limit erreicht — morgen geht es weiter.';
+  }
+  if (error is MergeRejectedException) {
+    return switch (error.reason) {
+      MergeRejection.notNear => 'Die beiden Trails liegen nicht nah genug beieinander, '
+          'um derselbe zu sein.',
+      MergeRejection.gone => 'Einen der beiden Trails gibt es nicht mehr oder er wird '
+          'nicht mehr mit dir geteilt.',
+    };
   }
   if (error is WriteRejectedException) {
     return 'Das ließ sich nicht speichern — der Eintrag gehört dir nicht '

@@ -11,6 +11,7 @@ import 'package:trailbuddy/data/trail_cache.dart';
 import 'package:trailbuddy/data/trail_cache_idb.dart';
 import 'package:trailbuddy/features/trails/trail_geometry.dart';
 import 'package:trailbuddy/models/trail.dart';
+import 'package:trailbuddy/models/trail_merge.dart';
 
 import '../fakes/broken_idb_factory.dart';
 
@@ -26,7 +27,7 @@ void main() {
     trailId: 'trail-1', userId: 'me', name: 'Roots', grade: 3, traits: const {TrailTrait.rocky},
     updatedAt: at.toLocal(),
   );
-  final TrailSnapshot snapshot = (recordings: [recording], details: [details], notes: const [], reports: const []);
+  final TrailSnapshot snapshot = (recordings: [recording], details: [details], notes: const [], reports: const [], merges: const <TrailMerge>[]);
 
   test('schreiben, in neuer Sitzung lesen, nur fürs eigene Konto, löschen', () async {
     final factory = newIdbFactoryMemory();

@@ -134,8 +134,12 @@ List<Trail> withPendingJobs(List<Trail> server, List<OutboxJob> jobs,
     if (j is ReportJob) reportsByTrail.putIfAbsent(j.trailId, () => []).add(j);
   }
   Trail overlay(Trail t) {
-    final details = detailsByTrail[t.id];
-    final reports = reportsByTrail[t.id];
+    // Ein Auftrag für ein Duplikat, das inzwischen unter [t] steht (#107),
+    // gehört auch hierher — sonst verschwände er von der Anzeige.
+    final ids = [t.id, for (final m in t.mergedFrom) m.id];
+    final details = [for (final id in ids) ?detailsByTrail[id]].firstOrNull;
+    final reportList = [for (final id in ids) ...?reportsByTrail[id]];
+    final reports = reportList.isEmpty ? null : reportList;
     if (details == null && reports == null) return t;
     return Trail(
       id: t.id,
@@ -173,6 +177,7 @@ List<Trail> withPendingJobs(List<Trail> server, List<OutboxJob> jobs,
       ],
       pendingDetails: details != null || t.pendingDetails,
       sendingDetails: details != null && sending.contains(details.id),
+      mergedFrom: t.mergedFrom,
     );
   }
 

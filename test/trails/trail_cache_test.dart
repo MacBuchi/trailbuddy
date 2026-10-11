@@ -8,6 +8,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:trailbuddy/data/trail_cache.dart';
 import 'package:trailbuddy/features/trails/trail_geometry.dart';
 import 'package:trailbuddy/models/trail.dart';
+import 'package:trailbuddy/models/trail_merge.dart';
 
 import '../fakes/fake_trail_cache.dart';
 
@@ -51,6 +52,11 @@ void main() {
     details: [details],
     notes: [note],
     reports: [statusReport, conditionReport],
+    merges: [
+      const TrailMerge(trailId: 'trail-2', sameAs: 'trail-1', kind: TrailMergeKind.folded,
+          reversed: true, byUsers: ['bob', 'carla']),
+      const TrailMerge(trailId: 'trail-1', sameAs: 'trail-3', kind: TrailMergeKind.distinct),
+    ],
   );
 
   test('Rundlauf: die Kopie liest sich wie das Netz', () {
@@ -98,6 +104,27 @@ void main() {
     expect(n.body, 'Baum quer');
     expect(n.username, 'bob');
     expect(n.createdAt, note.createdAt);
+    // Die Zuordnungen von Duplikaten (#107): ohne sie stünde ein
+    // zusammengeführter Trail ohne Empfang wieder doppelt da.
+    final m1 = back.snapshot.merges[0];
+    expect(m1.trailId, 'trail-2');
+    expect(m1.sameAs, 'trail-1');
+    expect(m1.kind, TrailMergeKind.folded);
+    expect(m1.reversed, isTrue);
+    expect(m1.byUsers, ['bob', 'carla']);
+    final m2 = back.snapshot.merges[1];
+    expect(m2.kind, TrailMergeKind.distinct);
+    expect(m2.reversed, isFalse);
+    expect(m2.byUsers, isEmpty);
+  });
+
+  test('eine Kopie von vor 0.109.0 (ohne Zuordnungen) liest sich ohne Zuordnungen', () {
+    final text = encodeTrailCache(uid: 'me', snapshot: snapshot, savedAt: at)
+        .replaceAll(RegExp(r',"merges":\[.*\]\}$'), '}');
+    expect(text, isNot(contains('merges')));
+    final back = decodeTrailCache(text, uid: 'me')!;
+    expect(back.snapshot.merges, isEmpty);
+    expect(back.snapshot.reports, hasLength(2));
   });
 
   test('eine Kopie von vor 0.49.0 (ohne Meldungen) liest sich ohne Meldungen', () {

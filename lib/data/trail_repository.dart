@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/errors.dart';
 import '../features/trails/trail_geometry.dart';
 import '../models/trail.dart';
+import '../models/trail_merge.dart';
 import 'session.dart';
 
 /// Die Naht zur Datenbank für Trails (Konzept 3 und 4). Zwei Abfragen
@@ -68,6 +69,22 @@ abstract class TrailRepository {
   /// einer Transaktion. Der Trail bleibt, solange ein anderer ihn belegt.
   /// Gibt die Zahl der gelöschten Aufzeichnungen zurück.
   Future<int> withdraw(String trailId);
+
+  /// Was ich über Duplikate wissen darf (`trail_merges()`, Patch 019,
+  /// #107): eigene Zuordnungen, Vorschläge und stille Zuordnungen aus
+  /// Erklärungen direkter Buddys, Overlap-Kanten — nur Paare, die ich
+  /// beide sehe.
+  Future<List<TrailMerge>> fetchMerges();
+
+  /// „[duplicateId] ist ein Duplikat von [targetId]" — für mich
+  /// (`merge_own_into`): meine Aufzeichnungen, mein Beitrag, meine
+  /// Hinweise und Meldungen ziehen um. Gibt den behaltenen Trail zurück;
+  /// wirft [MergeRejectedException], wenn der Server ablehnt.
+  Future<String> mergeInto({required String duplicateId, required String targetId});
+
+  /// Löst meine Zuordnung von [duplicateId] (`unmerge_trail`). Umgezogene
+  /// eigene Aufzeichnungen bleiben am behaltenen Trail.
+  Future<void> unmerge(String duplicateId);
 }
 
 /// Die Spalten der Sicht `recordings_visible` — dieselbe Liste prüft
@@ -210,5 +227,34 @@ class SupabaseTrailRepository implements TrailRepository {
     final result = await _client
         .rpc<dynamic>('withdraw_contribution', params: {'trail_id': trailId});
     return (result as num).toInt();
+  }
+
+  @override
+  Future<List<TrailMerge>> fetchMerges() async {
+    _client.requireUid;
+    // Die Spalten (`trail_id, same_as, reversed, kind, by_users`) prüft
+    // `tool/matcher_check.sql` Block 25 als Rückgabe der Funktion.
+    final rows = await _client.rpc<List<dynamic>>('trail_merges');
+    return [for (final r in rows) ?TrailMerge.fromJson(r as Map<String, dynamic>)];
+  }
+
+  @override
+  Future<String> mergeInto({required String duplicateId, required String targetId}) async {
+    _client.requireUid;
+    try {
+      final result = await _client.rpc<dynamic>('merge_own_into',
+          params: {'duplicate_id': duplicateId, 'target_id': targetId});
+      return result as String;
+    } on PostgrestException catch (e) {
+      if (e.code == '22023') throw const MergeRejectedException(MergeRejection.notNear);
+      if (e.code == 'P0002') throw const MergeRejectedException(MergeRejection.gone);
+      rethrow;
+    }
+  }
+
+  @override
+  Future<void> unmerge(String duplicateId) async {
+    _client.requireUid;
+    await _client.rpc<dynamic>('unmerge_trail', params: {'duplicate_id': duplicateId});
   }
 }

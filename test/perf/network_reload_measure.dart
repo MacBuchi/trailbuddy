@@ -22,6 +22,7 @@ import 'package:trailbuddy/features/map/map_view/keyed_layers.dart';
 import 'package:trailbuddy/features/map/map_view/map_view.dart';
 import 'package:trailbuddy/features/map/map_view/maplibre_map_view.dart';
 import 'package:trailbuddy/models/trail.dart';
+import 'package:trailbuddy/models/trail_merge.dart';
 
 List<Map<String, dynamic>> rows(int trails, int pts) {
   final rnd = Random(1);
@@ -72,6 +73,7 @@ void main() {
           details: details(rating),
           notes: <TrailNote>[],
           reports: <TrailReport>[],
+          merges: <TrailMerge>[],
         );
     final sw = Stopwatch()..start();
     int lap() {
@@ -112,7 +114,7 @@ void main() {
 
     // AB 0.82.1: nur die Beiträge nachgelesen, der Rest geteilt; der
     // Abgleich nach Kennung überträgt nur, was sich geändert hat.
-    final s3 = shareSnapshot(s1, (recordings: s1.recordings, details: details(5), notes: s1.notes, reports: s1.reports));
+    final s3 = shareSnapshot(s1, (recordings: s1.recordings, details: details(5), notes: s1.notes, reports: s1.reports, merges: s1.merges));
     final t3 = buildTrails(recordings: s3.recordings, details: s3.details, myId: 'u0', previous: t1);
     for (final t in t3) {
       t.elevation;
@@ -123,7 +125,7 @@ void main() {
 
     // Und ein S-Grad, der die Farbe der Linie ändert: zwei Fächer neu.
     final graded = [for (final d in s3.details) d.trailId == 't0' ? d.copyWith(grade: 3) : d];
-    final s4 = shareSnapshot(s3, (recordings: s3.recordings, details: graded, notes: s3.notes, reports: s3.reports));
+    final s4 = shareSnapshot(s3, (recordings: s3.recordings, details: graded, notes: s3.notes, reports: s3.reports, merges: s3.merges));
     final t4 = buildTrails(recordings: s4.recordings, details: s4.details, myId: 'u0', previous: t3);
     final gradeOps = planLayerOps(onMap, mapLibreKeyedLayers(MapViewLayers(polylines: linesOf(t4, smoothed)), cache), () => slots++);
     final gradeBytes = textBytes([for (final o in gradeOps) if (o is! RemoveLayerOp) o.layer]);
