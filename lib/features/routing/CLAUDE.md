@@ -458,7 +458,7 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     hin und zurück (`route_progress_test`).
 - **Navigation nach Abschnitten** (#312 N1, seit 0.114.0,
   `nav_sections.dart` pur, Phasen in `route_progress.dart`, Ansicht
-  `nav_view.dart`; Konzept-Routing 9.9, Design 13). Fünf Dinge, die man
+  `nav_view.dart`; Konzept-Routing 9.9, Design 13). Sechs Dinge, die man
   wissen muss:
   - **Die Lage eines Trails auf der Linie wird GESUCHT, nicht
     aufsummiert** (`_locate`): `plan.points` trägt vor und hinter den
@@ -489,6 +489,15 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     (im Band), `nav-dist`/`nav-climb`/`nav-ramp` (Anfahrt). Eine
     Routen-Datei der Fassung 2 trägt `secs`; der Dienst liest sie, nutzt
     sie aber erst mit N3.
+  - **„Trail geschafft" (N2, seit 0.115.0) rechnet `NavTrailWatch`**
+    (pur, in `route_progress.dart`) je Fix im Controller; die Bilanz
+    hängt an `NavSession.trailDone`, ein Timer im Controller nimmt sie
+    nach `kNavTrailDoneLinger` wieder weg (`dismissTrailDone`, auch
+    „Weiter"). Die Zeit ist die des GPS-Fixes (`onFix(at:)`), nicht
+    `DateTime.now()` — im Harness tragen die Fixe eine eigene Zeit
+    (`fakePosition(at:)`). Das Blatt (`nav-done`, Zustände
+    `nav-done-condition-<n>`, `nav-done-next`) meldet beim Tipp sofort,
+    wie `SplitConfirmRow`.
 - **Die Navigation im Dienst** (#232 Schritt 2, seit 0.96.0,
   `nav_notice.dart` im Service-Isolate, `nav_service.dart` in der App;
   Konzept-Routing 9.5). Fünf Dinge, die man wissen muss:

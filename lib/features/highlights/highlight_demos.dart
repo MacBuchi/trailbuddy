@@ -217,6 +217,20 @@ final kHighlightDemos = <String, HighlightDemo>{
       _noTrailYet,
     ]),
   ),
+  'nav-trail-end': HighlightDemo(
+    route: '/',
+    script: _demo('nav-trail-end', const [
+      CoachStep(
+        title: 'Trail geschafft',
+        text: 'Navigiere eine Runde über Trails: Am Ende jedes Trails stehen '
+            'Zeit, Höhenmeter bergab und Top-Speed. Ein Tipp sagt deinen Buddys, '
+            'wie er heute war — „Weiter" zeigt den nächsten Abschnitt.',
+        lit: [MapCoach.loop],
+        gesture: CoachGesture.tap,
+        requires: [MapCoach.loop],
+      ),
+    ]),
+  ),
   'nav-sections': HighlightDemo(
     route: '/',
     script: _demo('nav-sections', const [

@@ -19,13 +19,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/app_colors.dart';
 import '../../core/app_theme.dart';
+import '../../core/errors.dart';
 import '../../core/geo.dart';
 import '../../core/screen_awake.dart';
+import '../../data/providers.dart' show currentUserIdProvider;
 import '../../l10n/l10n.dart';
 import '../map/map_buttons.dart';
 import '../map/map_view/map_view.dart';
 import '../trails/grade_shield.dart';
 import '../trails/trail_condition.dart';
+import '../trails/trail_providers.dart' show WriteOutcome, trailsProvider;
 import '../trails/trail_report.dart' show reportAgeLabel;
 import 'nav_providers.dart';
 import 'route_progress.dart';
@@ -322,6 +325,12 @@ class _NavOverlayState extends ConsumerState<NavOverlay> {
             ),
           ),
         ),
+        // Am Ende eines Trails (9.9): die Bilanz über Band und Knöpfen.
+        if (session.trailDone case final done? when !off)
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: _TrailDoneSheet(key: ObjectKey(done), done: done, next: phase),
+          ),
       ]),
     );
   }
@@ -1036,4 +1045,267 @@ class _ArrivedBar extends StatelessWidget {
       ),
     );
   }
+}
+
+/// „6:42 min" oder „1:02:10 h".
+String navDoneTime(AppLocalizations l, Duration d) {
+  String two(int n) => n.toString().padLeft(2, '0');
+  final h = d.inHours, m = d.inMinutes % 60, sec = d.inSeconds % 60;
+  return h > 0 ? l.navDoneHours('$h:${two(m)}:${two(sec)}') : l.navDoneMinutes('${d.inMinutes}:${two(sec)}');
+}
+
+/// Was der Knopf „Weiter" sagt: den nächsten Abschnitt, wenn einer kommt.
+String navDoneNextLabel(AppLocalizations l, NavPhase next) {
+  if (next.kind != NavPhaseKind.approach || next.distM <= 0) return l.navDoneClose;
+  final climb = next.climbM;
+  return climb == null || climb < 1
+      ? l.navDoneNext(formatMeters(next.distM))
+      : l.navDoneNextClimb(formatMeters(next.distM), climb.round());
+}
+
+/// „Trail geschafft" (9.9, Entwurf 1a): Zeit, bergab, Top-Speed, Länge,
+/// die Frage nach dem Zustand und der nächste Abschnitt als Knopf. Geht
+/// nach [kNavTrailDoneLinger] von selbst (der Controller). Ohne
+/// Sensor-Kacheln — Airtime und Co. kommen mit #36.
+class _TrailDoneSheet extends ConsumerStatefulWidget {
+  const _TrailDoneSheet({super.key, required this.done, required this.next});
+
+  final NavTrailDone done;
+  final NavPhase next;
+
+  @override
+  ConsumerState<_TrailDoneSheet> createState() => _TrailDoneSheetState();
+}
+
+class _TrailDoneSheetState extends ConsumerState<_TrailDoneSheet> {
+  int? _condition;
+  bool _sending = false;
+  WriteOutcome? _outcome;
+  bool _failed = false;
+
+  /// Gesendet wird SOFORT beim Tipp, wie im Zerlege-Blatt: „vor Ort", zur
+  /// Zeit des Trail-Endes, über den Ausgangskorb ohne Empfang.
+  Future<void> _report(int condition) async {
+    setState(() {
+      _condition = condition;
+      _sending = true;
+      _failed = false;
+    });
+    try {
+      final outcome = await ref
+          .read(trailsProvider.notifier)
+          .report(widget.done.section.trailId, condition: condition, onSite: true, at: widget.done.endedAt);
+      if (!mounted) return;
+      setState(() {
+        _outcome = outcome;
+        _sending = false;
+      });
+    } catch (e, s) {
+      logError('Trail geschafft: Zustand melden', e, s);
+      if (!mounted) return;
+      setState(() {
+        _sending = false;
+        _failed = true;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = context.l10n;
+    final done = widget.done;
+    final section = done.section;
+    final signedIn = ref.watch(currentUserIdProvider) != null;
+    final sent = _outcome != null;
+    return Container(
+      key: const ValueKey('nav-done'),
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: _p.ground,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+        boxShadow: const [BoxShadow(blurRadius: 20, offset: Offset(0, -6), color: Color(0x40000000))],
+      ),
+      child: SafeArea(
+        top: false,
+        child: Material(
+          type: MaterialType.transparency,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(18, 10, 18, 18),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Center(
+                  child: Container(
+                    width: 32,
+                    height: 4,
+                    decoration: BoxDecoration(color: _p.muted.withValues(alpha: 0.4), borderRadius: BorderRadius.circular(2)),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _Label(l.navDoneTitle, color: AppColors.brand),
+                          const SizedBox(height: 2),
+                          _TrailName(section.name, size: 26),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      navDoneTime(l, done.duration),
+                      key: const ValueKey('nav-done-time'),
+                      style: AppFonts.numbers(TextStyle(fontSize: 13, color: _p.muted)),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(children: [
+                  Expanded(
+                    child: _DoneTile(
+                      key: const ValueKey('nav-done-loss'),
+                      label: l.navDoneLoss,
+                      value: done.lossM == null ? '–' : '↓${done.lossM!.round()}',
+                      unit: l.navUnitHm,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _DoneTile(
+                      key: const ValueKey('nav-done-speed'),
+                      label: l.navDoneSpeed,
+                      value: done.maxSpeedMps == null ? '–' : '${(done.maxSpeedMps! * 3.6).round()}',
+                      unit: l.navUnitKmh,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Builder(builder: (context) {
+                      final (value, unit) = _splitUnit(l, section.lengthM);
+                      return _DoneTile(
+                          key: const ValueKey('nav-done-length'), label: l.navDoneLength, value: value, unit: unit);
+                    }),
+                  ),
+                ]),
+                if (signedIn) ...[
+                  const SizedBox(height: 12),
+                  _Label(l.navDoneAsk),
+                  const SizedBox(height: 6),
+                  Wrap(spacing: 6, runSpacing: 6, children: [
+                    for (final c in kTrailConditions.where((c) => c.value >= 2))
+                      _ConditionChoice(
+                        key: ValueKey('nav-done-condition-${c.value}'),
+                        label: c.label(l),
+                        tooltip: c.description(l),
+                        selected: _condition == c.value,
+                        onTap: _sending || sent ? null : () => _report(c.value),
+                      ),
+                  ]),
+                  if (sent || _failed) ...[
+                    const SizedBox(height: 6),
+                    Text(
+                      _failed
+                          ? l.confirmFailed
+                          : _outcome == WriteOutcome.queued
+                              ? l.confirmSentQueued
+                              : l.confirmSent,
+                      key: const ValueKey('nav-done-sent'),
+                      style: TextStyle(fontSize: 13, color: _failed ? _p.warningText : _p.muted),
+                    ),
+                  ],
+                ],
+                const SizedBox(height: 14),
+                FilledButton.icon(
+                  key: const ValueKey('nav-done-next'),
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size.fromHeight(52),
+                    backgroundColor: AppColors.brand,
+                    foregroundColor: AppColors.onBrand,
+                    shape: const StadiumBorder(),
+                    textStyle: const TextStyle(
+                        fontFamily: AppFonts.display, fontWeight: FontWeight.w700, fontSize: 16, letterSpacing: 0.8),
+                  ),
+                  onPressed: () => ref.read(navigationProvider.notifier).dismissTrailDone(),
+                  icon: const Icon(Icons.navigation, size: 20),
+                  label: Text(navDoneNextLabel(l, widget.next).toUpperCase()),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Eine Kachel der Bilanz: Beschriftung, Zahl, Einheit.
+class _DoneTile extends StatelessWidget {
+  const _DoneTile({super.key, required this.label, required this.value, required this.unit});
+
+  final String label;
+  final String value;
+  final String unit;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.fromLTRB(10, 9, 10, 9),
+        decoration: BoxDecoration(color: _p.surface, borderRadius: BorderRadius.circular(12)),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, letterSpacing: 0.8, color: _p.muted)),
+            const SizedBox(height: 2),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(value, style: AppFonts.numbers(TextStyle(fontSize: 22, height: 1.15, color: _p.text))),
+            ),
+            Text(unit, style: TextStyle(fontSize: 11, color: _p.muted)),
+          ],
+        ),
+      );
+}
+
+/// Ein Zustand zum Antippen: Rand, gewählt in Lime.
+class _ConditionChoice extends StatelessWidget {
+  const _ConditionChoice(
+      {super.key, required this.label, required this.tooltip, required this.selected, required this.onTap});
+
+  final String label;
+  final String tooltip;
+  final bool selected;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) => Tooltip(
+        message: tooltip,
+        child: Semantics(
+          selected: selected,
+          button: true,
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(10),
+            child: Container(
+              constraints: const BoxConstraints(minHeight: 44),
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              decoration: BoxDecoration(
+                color: selected ? _p.surface2 : null,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: selected ? AppColors.brand : _p.line, width: selected ? 1.5 : 1),
+              ),
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                Text(label, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: _p.text)),
+              ]),
+            ),
+          ),
+        ),
+      );
 }

@@ -22,7 +22,7 @@ import 'route_profile.dart' show RiderParamsPrefs;
 import 'route_progress.dart';
 import 'trail_head_route.dart';
 
-export 'route_progress.dart' show kNavArrivedLinger;
+export 'route_progress.dart' show kNavArrivedLinger, kNavTrailDoneLinger;
 
 /// Was navigiert werden soll — gestellt von einem Ergebnis-Blatt oder aus
 /// „Meine Fahrten", eingelöst von der Karte (Muster
@@ -86,6 +86,7 @@ class NavSession {
     this.north = false,
     this.rejoin = NavRejoin.none,
     this.rejoinLine,
+    this.trailDone,
   });
 
   final NavRoute route;
@@ -110,6 +111,10 @@ class NavSession {
   /// auf die Linie. Fällt weg, sobald man wieder drauf ist.
   final NavRejoin rejoin;
   final List<LatLng>? rejoinLine;
+
+  /// Die Bilanz des Trails, der gerade zu Ende gefahren ist (9.9) — das
+  /// Blatt „Trail geschafft" steht, solange sie da ist.
+  final NavTrailDone? trailDone;
 
   double get remainingM => state?.remainingM ?? route.lengthM;
   double? get remainingClimbM => climbAfter(climbDistM, climbEleM, state?.alongM ?? 0);
@@ -148,6 +153,7 @@ class NavSession {
         north: north ?? this.north,
         rejoin: rejoin,
         rejoinLine: rejoinLine,
+        trailDone: trailDone,
       );
 
   /// Ein neuer Stand von „Zurück zur Route" — das Stück nur bei [NavRejoin.shown].
@@ -161,12 +167,29 @@ class NavSession {
         north: north,
         rejoin: rejoin,
         rejoinLine: rejoin == NavRejoin.shown ? line : null,
+        trailDone: trailDone,
+      );
+
+  /// Mit oder ohne Bilanz am Trail-Ende.
+  NavSession withTrailDone(NavTrailDone? done) => NavSession(
+        route: route,
+        title: title,
+        sections: sections,
+        state: state,
+        climbDistM: climbDistM,
+        climbEleM: climbEleM,
+        north: north,
+        rejoin: rejoin,
+        rejoinLine: rejoinLine,
+        trailDone: done,
       );
 }
 
 class NavController extends Notifier<NavSession?> {
   NavTracker? _tracker;
+  NavTrailWatch? _trails;
   Timer? _linger;
+  Timer? _doneLinger;
   double _startAlongM = 0;
 
   /// Dienst und Brücke (9.5) in einer Kette: Beenden und sofort wieder
@@ -181,7 +204,10 @@ class NavController extends Notifier<NavSession?> {
 
   @override
   NavSession? build() {
-    ref.onDispose(() => _linger?.cancel());
+    ref.onDispose(() {
+      _linger?.cancel();
+      _doneLinger?.cancel();
+    });
     return null;
   }
 
@@ -193,7 +219,9 @@ class NavController extends Notifier<NavSession?> {
     final route = NavRoute.of(points);
     if (route == null) return false;
     _linger?.cancel();
+    _doneLinger?.cancel();
     _tracker = NavTracker(route, startAlongM: startAlongM);
+    _trails = NavTrailWatch();
     _startAlongM = startAlongM;
     final session = NavSession(route: route, title: title, sections: sections ?? const NavSections.empty());
     state = session;
@@ -230,8 +258,9 @@ class NavController extends Notifier<NavSession?> {
     }
   }
 
-  /// Ein Fix der eigenen Position. [headingDeg]/[speedMps] wie vom GPS.
-  void onFix(LatLng p, {double? headingDeg, double? speedMps}) {
+  /// Ein Fix der eigenen Position. [headingDeg]/[speedMps] wie vom GPS,
+  /// [at] seine Zeit (ohne: jetzt).
+  void onFix(LatLng p, {double? headingDeg, double? speedMps, DateTime? at}) {
     final tracker = _tracker;
     final session = state;
     if (tracker == null || session == null) return;
@@ -239,7 +268,15 @@ class NavController extends Notifier<NavSession?> {
     final next = tracker.update(p, headingDeg: headingDeg, speedMps: speedMps);
     // Wieder auf der Linie: Das Stück zurück und sein Satz fallen weg.
     final back = !next.offRoute && session.rejoin != NavRejoin.none;
-    state = (back ? session.withRejoin(NavRejoin.none) : session).copyWith(state: next);
+    var updated = (back ? session.withRejoin(NavRejoin.none) : session).copyWith(state: next);
+    final done = _trails?.update(next, session.sections, at ?? DateTime.now(),
+        speedMps: speedMps, climbDistM: session.climbDistM, climbEleM: session.climbEleM);
+    if (done != null) {
+      updated = updated.withTrailDone(done);
+      _doneLinger?.cancel();
+      _doneLinger = Timer(kNavTrailDoneLinger, dismissTrailDone);
+    }
+    state = updated;
     if (next.arrived && !wasArrived) {
       _linger = Timer(kNavArrivedLinger, stop);
     }
@@ -287,6 +324,14 @@ class NavController extends Notifier<NavSession?> {
     state = after.withRejoin(result, line);
   }
 
+  /// „Weiter" im Blatt „Trail geschafft" — oder die 20 s sind um.
+  void dismissTrailDone() {
+    _doneLinger?.cancel();
+    _doneLinger = null;
+    final session = state;
+    if (session?.trailDone != null) state = session!.withTrailDone(null);
+  }
+
   void toggleNorth() {
     final session = state;
     if (session != null) state = session.copyWith(north: !session.north);
@@ -317,7 +362,10 @@ class NavController extends Notifier<NavSession?> {
     }
     _linger?.cancel();
     _linger = null;
+    _doneLinger?.cancel();
+    _doneLinger = null;
     _tracker = null;
+    _trails = null;
     state = null;
   }
 }

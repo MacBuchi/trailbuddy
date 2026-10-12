@@ -59,10 +59,12 @@ import 'fake_keep_alive.dart';
 
 /// Test-Position ohne Geolocator-Plugin (alle Pflichtfelder gefüllt).
 /// [heading]/[speed] für die Folgeansicht der Navigation (#232).
-Position fakePosition(double lat, double lon, {double accuracy = 8, double heading = 0, double speed = 0}) => Position(
+Position fakePosition(double lat, double lon,
+        {double accuracy = 8, double heading = 0, double speed = 0, DateTime? at}) =>
+    Position(
       latitude: lat,
       longitude: lon,
-      timestamp: DateTime(2026, 9, 28, 12),
+      timestamp: at ?? DateTime(2026, 9, 28, 12),
       accuracy: accuracy,
       altitude: 0,
       altitudeAccuracy: 0,

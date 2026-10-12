@@ -216,6 +216,60 @@ void main() {
     });
   });
 
+  group('NavTrailWatch (Trail geschafft)', () {
+    // Trail A von 300 bis 1100 m, 400 hm bergab laut Netz; das Profil
+    // fällt auf ihm 0,5 m je Meter.
+    final a = const NavTrailSection(startM: 300, endM: 1100, trailId: 'a', name: 'Rosskopf Süd', lossM: 400);
+    final sections = NavSections([a]);
+    final t0 = DateTime.utc(2026, 10, 13, 10);
+    final dist = [for (var m = 0.0; m <= 1500; m += 50) m];
+    final ele = [for (final m in dist) 1000 - 0.5 * (m.clamp(300, 1100) - 300)];
+
+    NavTrailDone? ride(NavTrailWatch w, List<(double, int, double)> fixes) {
+      NavTrailDone? done;
+      for (final (along, s, speed) in fixes) {
+        done = w.update(_state(along), sections, t0.add(Duration(seconds: s)),
+                speedMps: speed, climbDistM: dist, climbEleM: ele) ??
+            done;
+      }
+      return done;
+    }
+
+    test('ganz gefahren: Zeit ab der Einfahrt, Top-Speed, bergab aus dem Profil', () {
+      final w = NavTrailWatch();
+      final done = ride(w, [(100, 0, 4), (310, 30, 3), (700, 100, 12.5), (1000, 200, 8), (1095, 240, 6)])!;
+      expect(done.section, same(a));
+      expect(done.duration, const Duration(seconds: 210));
+      expect(done.endedAt, t0.add(const Duration(seconds: 240)));
+      expect(done.maxSpeedMps, 12.5, reason: 'das Tempo VOR dem Trail zählt nicht');
+      expect(done.lossM, closeTo(392.5, 30), reason: 'aus dem Profil, ab der Einfahrt');
+      // Nur einmal.
+      expect(w.update(_state(1200), sections, t0.add(const Duration(seconds: 260))), isNull);
+    });
+
+    test('mitten auf dem Trail eingestiegen: weniger als die Hälfte, keine Bilanz', () {
+      expect(ride(NavTrailWatch(), [(800, 0, 5), (1000, 30, 5), (1200, 60, 5)]), isNull);
+      // Genau ab der Hälfte zählt es.
+      expect(ride(NavTrailWatch(), [(700, 0, 5), (1200, 60, 5)]), isNotNull);
+    });
+
+    test('zurück vor den Kopf zählt nicht; ohne Profil gilt der Wert des Netzes', () {
+      expect(ride(NavTrailWatch(), [(400, 0, 5), (200, 30, 5), (1200, 60, 5)]), isNull);
+      final w = NavTrailWatch();
+      w.update(_state(320), sections, t0);
+      final done = w.update(_state(1150), sections, t0.add(const Duration(minutes: 5)))!;
+      expect(done.lossM, 400);
+      expect(done.maxSpeedMps, isNull);
+    });
+
+    test('endet der Trail am Ziel, kommt die Bilanz mit der Ankunft', () {
+      final w = NavTrailWatch();
+      w.update(_state(320), sections, t0);
+      expect(w.update(_state(900), sections, t0.add(const Duration(minutes: 2))), isNull);
+      expect(w.update(_state(1000, arrived: true), sections, t0.add(const Duration(minutes: 3))), isNotNull);
+    });
+  });
+
   group('Profil-Helfer', () {
     final dist = <double>[0, 50, 100, 150, 200];
     final ele = <double>[600, 620, 610, 640, 630];

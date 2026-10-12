@@ -963,7 +963,7 @@ Dokument allein.
 4. **Nach Abschnitten** (9.9, #312, gestapelt): **N1** (0.114.0)
    Abschnitte aus Planer, Trailkopf-Weg und Fahrt, Phasen, die Karten
    Anfahrt / Abseits / Trailkopf / Trail, Routenband, Reiterleiste weg;
-   **N2** „Trail geschafft" am Trail-Ende; **N3** Bild-im-Bild 3:4 mit
+   **N2** (0.115.0) „Trail geschafft" am Trail-Ende; **N3** Bild-im-Bild 3:4 mit
    dem Abschnitt und die zweizeilige Benachrichtigung. — ☁️ · 📱
 
 Jeder Schritt bringt seinen Neuheiten-Eintrag; die Kurzanleitung bekommt
@@ -1004,17 +1004,23 @@ selbst, die Hinweise der Buddys am Ort, danach die Werte.*
 - **Ein Hinweis hat keinen Ort**: Der Entwurf zeigt „in 300 m — Baum
   quer"; die App zeigt Autor und Text, sobald man auf dem Trail ist.
   Ein Ort am Hinweis wäre ein Schema-Thema, nicht Teil dieses Schritts.
-- **Trail-Ende** (N2): Verlässt der Stand einen Trail, den man wirklich
-  gefahren ist, steht kurz die Bilanz (Zeit, ↓hm, Top-Speed aus GPS),
-  ein Tipp für den Zustand (geht als bestätigte Meldung hinaus, wie
-  „Bestätigen durch Fahren") und der nächste Abschnitt als Knopf;
-  schließt nach 20 s von selbst. Trail-Werte aus Sensoren (Airtime, G,
-  Manual) kommen mit #36, nicht hier.
+- **Trail-Ende** (N2, seit 0.115.0): Verlässt der Stand einen Trail,
+  den man wirklich gefahren ist, steht kurz die Bilanz (Zeit ab der
+  Einfahrt, ↓hm aus dem Profil — sonst der Wert des Trails —,
+  Top-Speed aus dem GPS, Länge), ein Tipp für den Zustand (geht sofort
+  als Meldung vor Ort zur Zeit des Trail-Endes hinaus, über den
+  Ausgangskorb, wie im Zerlege-Blatt) und der nächste Abschnitt als
+  Knopf; schließt nach 20 s von selbst. **Wirklich gefahren** heißt:
+  zwischen Einfahrt und Ende (10 m davor genügen, die Ankunft auch)
+  mindestens die Hälfte des Trails — wer mitten auf dem Trail
+  einsteigt, bekommt keine Bilanz, wer vor den Kopf zurückfährt, fängt
+  neu an. Trail-Werte aus Sensoren (Airtime, G, Manual) kommen mit
+  #36, nicht hier.
 - **Im Dienst** (N3) rechnet dieselbe Funktion dieselbe Phase aus der
   Routen-Datei (Fassung 2 trägt die Abschnitte); die Benachrichtigung
   sagt „2,4 km · ↑310 hm bis Rosskopf Süd", auf dem Trail „Rosskopf Süd
   · noch 1,8 km · ↓240 hm". Im kleinen Fenster steht die Abschnitts-
   Karte unter der Karte (3:4).
 
-Die Zahlen (100 m, 30 m, 2 m/s, 12 %, 20 s) sind Startwerte wie in
+Die Zahlen (100 m, 30 m, 2 m/s, 12 %, 20 s, 50 %, 10 m) sind Startwerte wie in
 9.7; sie ändert der Feldeinsatz.

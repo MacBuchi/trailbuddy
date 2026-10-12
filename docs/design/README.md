@@ -671,7 +671,7 @@ ebenfalls zu #36.
 | E6 | Neuheiten-Blatt, „Entdecken", „Zeig es mir" (#135) | 0.64.0 |
 | W1 | Wege nach Güte und Schwierigkeit (#212, Abschnitt 5a) | 0.89.0 |
 | N1 | Navigation nach Abschnitten: Anfahrt, Trailkopf, Trail, Routenband (#312, Abschnitt 13) | 0.114.0 |
-| N2 | „Trail geschafft" am Trail-Ende (#312) | — |
+| N2 | „Trail geschafft" am Trail-Ende (#312, Abschnitt 13) | 0.115.0 |
 | N3 | Bild-im-Bild 3:4 mit Abschnitt, zweizeilige Benachrichtigung (#312) | — |
 
 ## 12. Einführung: Hinweis-Maschine und Touren (#126)
@@ -789,8 +789,14 @@ Untertitel „2 Trails · 18,6 km".
   Schalter „Trail-Werte messen" und die Halterungswahl im Start-Blatt
   kommen mit #36** (Betreiber, 2026-10-13) — sie brauchen Sensorik im
   Dienst und gemessene Schwellen.
-- **Trail-Ende (1a, „TRAIL GESCHAFFT") ist N2**, ohne Sensor-Kacheln:
-  Zeit auf dem Trail, ↓hm, Top-Speed aus GPS, Zustands-Tipp, „Weiter".
+- **Trail-Ende (1a, „TRAIL GESCHAFFT") ist N2** (seit 0.115.0), ohne
+  Sensor-Kacheln und ohne Buddy-Rang: drei Kacheln statt sechs —
+  BERGAB, TOP-SPEED (GPS), LÄNGE —, die Zeit rechts im Kopf, vier
+  Zustände (Top, Gut, Ausgefahren, Abgerockt; „kaum fahrbar" fragt das
+  Blatt nicht, das ist ein Fall für die Meldung), „Weiter" als
+  Lime-Pille mit dem nächsten Abschnitt. Das Blatt liegt über Band und
+  Knöpfen, die Karte oben bleibt. Die Zustände fragt es nur
+  angemeldet; Knöpfe 44 px hoch statt der 34 px des Entwurfs.
 - **Bild-im-Bild (1b/1c) und Benachrichtigung (1d) sind N3**; bis dahin
   zeigt das Fenster die bisherige Zahlenzeile, dunkel. Das
   Android-16-Live-Update mit Segmenten baut `flutter_foreground_task`

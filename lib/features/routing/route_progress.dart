@@ -429,3 +429,93 @@ NavPhase navPhaseOf(
     ramp: rampAhead(climbDistM, climbEleM, along, toM),
   );
 }
+
+/// So viel eines Trails muss zwischen Einfahrt und Ende gefahren sein,
+/// damit sein Ende eine Bilanz bekommt (9.9) — wer mitten auf dem Trail
+/// die Navigation startet, hat ihn nicht „geschafft".
+const kNavTrailDoneShare = 0.5;
+
+/// So nah am Ende gilt der Trail als zu Ende gefahren (die Fixe kommen
+/// je Sekunde, das letzte Stück fehlt sonst oft).
+const kNavTrailEndM = 10.0;
+
+/// So lange steht das Blatt „Trail geschafft", dann geht es von selbst.
+const kNavTrailDoneLinger = Duration(seconds: 20);
+
+/// Die Bilanz eines gefahrenen Trails (9.9, ohne Sensoren — die kommen
+/// mit #36).
+class NavTrailDone {
+  const NavTrailDone({
+    required this.section,
+    required this.duration,
+    required this.endedAt,
+    this.maxSpeedMps,
+    this.lossM,
+  });
+
+  final NavTrailSection section;
+
+  /// Von der Einfahrt bis zum Ende.
+  final Duration duration;
+
+  /// Wann das Ende kam — die Zeit der Zustandsmeldung.
+  final DateTime endedAt;
+
+  /// Das höchste Tempo der Fixe auf dem Trail; null, wenn keiner eines
+  /// trug.
+  final double? maxSpeedMps;
+
+  /// Höhenmeter bergab auf dem gefahrenen Stück; null ohne Profil und
+  /// ohne Wert des Trails.
+  final double? lossM;
+}
+
+/// Folgt der Fahrt über die Trails einer Route und meldet das Ende eines
+/// Trails, der wirklich gefahren wurde. Eine Instanz je Navigation.
+class NavTrailWatch {
+  NavTrailSection? _section;
+  DateTime? _enteredAt;
+  double _enteredAlongM = 0;
+  double? _maxSpeed;
+
+  /// Ein neuer Stand zur Zeit [at]; die Bilanz, wenn damit ein Trail zu
+  /// Ende ist, sonst null.
+  NavTrailDone? update(
+    NavState state,
+    NavSections sections,
+    DateTime at, {
+    double? speedMps,
+    List<double>? climbDistM,
+    List<double>? climbEleM,
+  }) {
+    final along = state.alongM;
+    final run = _section;
+    if (run != null && along < run.startM) {
+      // Zurück vor den Kopf: Das zählt nicht als Fahrt.
+      _section = null;
+    } else if (run != null && (along >= run.endM - kNavTrailEndM || state.arrived || sections.at(along) != run)) {
+      _section = null;
+      final from = _enteredAlongM;
+      final to = math.min(along, run.endM);
+      if (to - from < run.lengthM * kNavTrailDoneShare) return null;
+      return NavTrailDone(
+        section: run,
+        duration: at.difference(_enteredAt!),
+        endedAt: at,
+        maxSpeedMps: _maxSpeed,
+        lossM: climbBetween(climbDistM, climbEleM, from, to)?.loss ?? run.lossM,
+      );
+    }
+    final on = sections.at(along);
+    if (_section == null && on != null && on.lengthM > 0 && !state.arrived && along < on.endM - kNavTrailEndM) {
+      _section = on;
+      _enteredAt = at;
+      _enteredAlongM = along;
+      _maxSpeed = null;
+    }
+    if (_section != null && speedMps != null && speedMps >= 0 && speedMps.isFinite) {
+      _maxSpeed = math.max(_maxSpeed ?? 0, speedMps);
+    }
+    return null;
+  }
+}

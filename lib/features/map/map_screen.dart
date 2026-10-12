@@ -619,7 +619,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     }
     final nav = ref.read(navigationProvider.notifier);
     if (!_beginNavigation(request.points, request.title, request.startAlongM, request.sections)) return;
-    nav.onFix(LatLng(fix.latitude, fix.longitude), headingDeg: fix.heading, speedMps: fix.speed);
+    nav.onFix(LatLng(fix.latitude, fix.longitude), headingDeg: fix.heading, speedMps: fix.speed, at: fix.timestamp);
     _follow();
   }
 
@@ -974,7 +974,9 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     ref.listen(positionStreamProvider, (_, next) {
       final p = next.valueOrNull;
       if (p == null || !ref.read(navigationProvider.notifier).isRunning) return;
-      ref.read(navigationProvider.notifier).onFix(LatLng(p.latitude, p.longitude), headingDeg: p.heading, speedMps: p.speed);
+      ref
+          .read(navigationProvider.notifier)
+          .onFix(LatLng(p.latitude, p.longitude), headingDeg: p.heading, speedMps: p.speed, at: p.timestamp);
       _follow();
     });
     // „Norden" sofort, nicht erst beim nächsten Fix; nach dem Ende wieder

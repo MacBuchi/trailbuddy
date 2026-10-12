@@ -74,6 +74,18 @@ class FeatureHighlight {
 const kFeatureHighlights = <FeatureHighlight>[
   // ─── Highlights ──────────────────────────────────────────────────
   FeatureHighlight(
+    id: 'nav-trail-end',
+    since: '0.115.0',
+    kind: HighlightKind.highlight,
+    tab: HighlightTab.map,
+    icon: Icons.emoji_events_outlined,
+    title: 'Trail geschafft',
+    text: 'Am Ende eines Trails beim Navigieren: deine Zeit darauf, die '
+        'Höhenmeter bergab, dein Top-Speed — und ein Tipp, wie er heute war. '
+        'Das sehen deine Buddys als Zustand.',
+    target: '/',
+  ),
+  FeatureHighlight(
     id: 'nav-sections',
     since: '0.114.0',
     kind: HighlightKind.highlight,
