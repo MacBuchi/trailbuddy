@@ -196,17 +196,17 @@ typedef ConfirmNotice = ({String title, String body, List<(ConfirmChoice, String
 ConfirmNotice confirmNoticeOf(AppLocalizations l, ConfirmTarget t) {
   final parts = <String>[
     if (t.status != null)
-      t.status == TrailStatus.open ? 'wieder frei gemeldet' : 'gemeldet: ${t.status!.label.toLowerCase()}',
-    if (t.condition != null) 'Zustand: ${trailConditionLabel(l, t.condition!)}',
+      t.status == TrailStatus.open ? l.confirmReportedOpen : l.confirmReportedStatus(t.status!.label.toLowerCase()),
+    if (t.condition != null) l.confirmCondition(trailConditionLabel(l, t.condition!)),
   ];
   final warns = t.status != null && t.status!.warns;
   return (
     title: t.name,
-    body: '${_capitalize(parts.join(' · '))} — stimmt das?',
+    body: l.confirmQuestion(_capitalize(parts.join(' · '))),
     actions: [
-      (ConfirmChoice.confirm, 'Stimmt'),
-      if (warns) (ConfirmChoice.free, 'Trail ist frei'),
-      (ConfirmChoice.change, 'Ändern…'),
+      (ConfirmChoice.confirm, l.confirmYes),
+      if (warns) (ConfirmChoice.free, l.confirmFree),
+      (ConfirmChoice.change, l.confirmChange),
     ],
   );
 }

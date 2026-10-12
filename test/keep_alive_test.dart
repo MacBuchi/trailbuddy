@@ -9,6 +9,7 @@ import 'package:trailbuddy/features/routing/nav_notice.dart';
 import 'package:trailbuddy/features/routing/nav_service.dart';
 
 import 'fakes/fake_keep_alive.dart';
+import 'fakes/l10n_de.dart';
 
 void main() {
   late FakeKeepAlive service;
@@ -86,7 +87,7 @@ void main() {
   test('Fahrt und Navigation teilen den Takt: Das Ende der Fahrt nimmt ihn der Navigation nicht', () async {
     final ride = CoordinatedRideService(coordinator);
     final nav = NavKeepAlive(coordinator);
-    await ride.start(title: kRideNoticeTitle, text: kRideNoticeText, every: const Duration(seconds: 5));
+    await ride.start(title: l10nDe.rideNoticeTitle, text: l10nDe.rideNoticeText, every: const Duration(seconds: 5));
     await nav.start();
     expect(service.starts, 1, reason: 'gleiche Typen, kein Neustart');
     expect(service.buttons.map((b) => b.id), [kNavStopButton]);
@@ -96,12 +97,12 @@ void main() {
     expect(service.repeat, const Duration(seconds: 5), reason: 'die Navigation misst weiter');
 
     // Umgekehrt: Navigation weg, Fahrt bleibt — ohne Knopf.
-    await ride.start(title: kRideNoticeTitle, text: kRideNoticeText, every: const Duration(seconds: 5));
+    await ride.start(title: l10nDe.rideNoticeTitle, text: l10nDe.rideNoticeText, every: const Duration(seconds: 5));
     await nav.stop();
     expect(service.running, isTrue);
     expect(service.repeat, const Duration(seconds: 5));
     expect(service.buttons, isEmpty);
-    expect(service.titles.last, kRideNoticeTitle);
+    expect(service.titles.last, l10nDe.rideNoticeTitle);
   });
 
   test('hat der Dienst sich selbst beendet („Navigation beenden"), holt ein Download ihn zurück', () async {

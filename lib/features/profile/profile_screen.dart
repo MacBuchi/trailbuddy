@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' show AuthException;
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../l10n/l10n.dart';
 import '../../core/app_colors.dart';
 import '../../core/app_distribution.dart';
 import '../../core/app_info.dart';
@@ -143,7 +144,7 @@ class ProfileScreen extends ConsumerWidget {
             id: 'rider',
             icon: Icons.pedal_bike_outlined,
             title: 'Fahrerprofil',
-            value: ref.watch(riderProfileProvider).label,
+            value: ref.watch(riderProfileProvider).label(context.l10n),
             onTap: () => context.push('/profile/rider'),
           ),
           _ProfileRow(
@@ -739,6 +740,7 @@ class _RiderProfileSectionState extends ConsumerState<_RiderProfileSection> {
   /// einem Satz danach, der sagt, was gezählt hat.
   Future<void> _learn() async {
     final messenger = ScaffoldMessenger.of(context);
+    final l10n = context.l10n;
     setState(() => _learning = true);
     LearnResult r;
     try {
@@ -747,7 +749,7 @@ class _RiderProfileSectionState extends ConsumerState<_RiderProfileSection> {
       if (mounted) setState(() => _learning = false);
     }
     if (!mounted) return;
-    messenger.showSnackBar(SnackBar(content: Text(learnResultText(r))));
+    messenger.showSnackBar(SnackBar(content: Text(learnResultText(l10n, r))));
   }
 
   @override
@@ -826,7 +828,7 @@ class _RiderProfileSectionState extends ConsumerState<_RiderProfileSection> {
             TextButton(
               key: const ValueKey('rider-reset'),
               onPressed: () => ref.read(riderCalibrationsProvider.notifier).reset(profile),
-              child: Text('${profile.label} zurücksetzen'),
+              child: Text('${profile.label(context.l10n)} zurücksetzen'),
             ),
         ]),
         const SizedBox(height: 4),
@@ -844,7 +846,7 @@ class _RiderProfileSectionState extends ConsumerState<_RiderProfileSection> {
   /// „Bio-Bike: Forstweg 520 hm/h · flach 14 km/h — aus 14 Fahrten (31
   /// Aufstiege), Stand 1.10.2026" oder „Bio-Bike: Vorgaben".
   String _calibLine(RiderProfile p, RiderCalibration c) {
-    if (c.isEmpty) return '${p.label}: Vorgaben — noch nichts gelernt.';
+    if (c.isEmpty) return '${p.label(context.l10n)}: Vorgaben — noch nichts gelernt.';
     final parts = [
       if (c.climbTrackMPerH != null) 'Forstweg ${c.climbTrackMPerH!.round()} hm/h',
       if (c.climbPathMPerH != null) 'Pfad ${c.climbPathMPerH!.round()} hm/h',
@@ -853,7 +855,7 @@ class _RiderProfileSectionState extends ConsumerState<_RiderProfileSection> {
     ];
     final at = c.at?.toLocal();
     final when = at == null ? '' : ', Stand ${at.day}.${at.month}.${at.year}';
-    return '${p.label}: ${parts.join(' · ')} — aus ${c.rides} ${c.rides == 1 ? 'Fahrt' : 'Fahrten'} '
+    return '${p.label(context.l10n)}: ${parts.join(' · ')} — aus ${c.rides} ${c.rides == 1 ? 'Fahrt' : 'Fahrten'} '
         '(${c.sections} ${c.sections == 1 ? 'Aufstieg' : 'Aufstiege'})$when';
   }
 }

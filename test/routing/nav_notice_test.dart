@@ -10,10 +10,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:trailbuddy/features/rides/ride_service.dart';
 import 'package:trailbuddy/features/rides/ride_task_handler.dart';
 import 'package:trailbuddy/features/routing/nav_notice.dart';
 import 'package:trailbuddy/features/routing/route_progress.dart';
+import '../fakes/l10n_de.dart';
 
 /// Eine gerade Linie nach Osten: 20 Abschnitte à 0,001° (≈ 76 m).
 const _lat = 47.0;
@@ -193,7 +193,7 @@ void main() {
       await stopNavFromService(
           stopService: () async => fail('die Fahrt braucht den Dienst'),
           showRide: (title, text) async => shown.add(title));
-      expect(shown, [kRideNoticeTitle]);
+      expect(shown, [l10nDe.rideNoticeTitle]);
     });
   });
 }

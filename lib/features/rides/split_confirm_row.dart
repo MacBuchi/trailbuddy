@@ -76,12 +76,12 @@ class _SplitConfirmRowState extends ConsumerState<SplitConfirmRow> {
         _Stage.sent => Text(
             key: ValueKey('$_k-sent'),
             _outcome == WriteOutcome.queued
-                ? 'Gemeldet — geht raus, sobald Empfang da ist.'
-                : 'Gemeldet — danke.',
+                ? context.l10n.confirmSentQueued
+                : context.l10n.confirmSent,
             style: muted),
         _Stage.failed => Text(
             key: ValueKey('$_k-failed'),
-            'Melden hat nicht geklappt. Im Trail-Blatt geht es noch einmal.',
+            context.l10n.confirmFailed,
             style: muted?.copyWith(color: palette.warningText)),
         _Stage.sending => const LinearProgressIndicator(),
         _Stage.ask => Column(
@@ -108,7 +108,7 @@ class _SplitConfirmRowState extends ConsumerState<SplitConfirmRow> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               if (widget.target.status != null) ...[
-                Text('Meldung', style: muted),
+                Text(context.l10n.reportFieldLabel, style: muted),
                 Wrap(spacing: 6, runSpacing: 4, children: [
                   for (final s in TrailStatus.values)
                     ChoiceChip(
@@ -121,7 +121,7 @@ class _SplitConfirmRowState extends ConsumerState<SplitConfirmRow> {
               ],
               if (widget.target.condition != null) ...[
                 const SizedBox(height: 4),
-                Text('Zustand', style: muted),
+                Text(context.l10n.reportCondition, style: muted),
                 Wrap(spacing: 6, runSpacing: 4, children: [
                   for (final c in kTrailConditions)
                     ChoiceChip(
@@ -140,12 +140,12 @@ class _SplitConfirmRowState extends ConsumerState<SplitConfirmRow> {
                   onPressed: () => _send(
                       status: widget.target.status != null ? _status : null,
                       condition: widget.target.condition != null ? _condition : null),
-                  child: const Text('Melden'),
+                  child: Text(context.l10n.reportSubmit),
                 ),
                 const SizedBox(width: 8),
                 TextButton(
                   onPressed: () => setState(() => _stage = _Stage.ask),
-                  child: const Text('Zurück'),
+                  child: Text(context.l10n.commonBack),
                 ),
               ]),
             ],

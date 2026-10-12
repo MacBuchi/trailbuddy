@@ -16,8 +16,8 @@ import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 
+import '../../l10n/l10n.dart';
 import '../../core/geo.dart' show formatMeters;
-import '../rides/ride_service.dart' show kRideNoticeText, kRideNoticeTitle;
 import '../rides/ride_store.dart' show FileRideStore;
 import '../rides/ride_task_handler.dart' show kRideDataActive, kRideDataDir;
 import 'route_progress.dart';
@@ -252,7 +252,8 @@ Future<void> stopNavFromService({
     FlutterForegroundTask.sendDataToMain(kNavMessageStop);
     final recording = await FlutterForegroundTask.getData<bool>(key: kRideDataActive) == true;
     if (recording) {
-      await (showRide ?? _showRide)(kRideNoticeTitle, kRideNoticeText);
+      final l = serviceL10n();
+      await (showRide ?? _showRide)(l.rideNoticeTitle, l.rideNoticeText);
     } else {
       await (stopService ?? _stopService)();
     }

@@ -32,6 +32,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
 
+import '../../l10n/l10n.dart';
 import '../../core/app_colors.dart';
 import '../../core/app_theme.dart' show AppFonts;
 import '../../core/errors.dart';
@@ -577,7 +578,7 @@ class _RouteSheetState extends ConsumerState<_RouteSheet> {
       SegmentedButton<RiderProfile>(
         key: const ValueKey('trail-head-profile'),
         segments: [
-          for (final p in RiderProfile.values) ButtonSegment(value: p, label: Text(p.label)),
+          for (final p in RiderProfile.values) ButtonSegment(value: p, label: Text(p.label(context.l10n))),
         ],
         selected: {_profile},
         showSelectedIcon: false,

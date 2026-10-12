@@ -18,6 +18,7 @@ import 'package:latlong2/latlong.dart';
 import '../../core/errors.dart';
 import '../../core/line_geometry.dart';
 import '../../core/settings.dart';
+import '../../l10n/l10n.dart';
 import '../../data/providers.dart';
 import '../offline_areas/area_providers.dart';
 import '../offline_areas/area_store.dart';
@@ -115,27 +116,16 @@ class RiderCalibrationsNotifier extends Notifier<RiderCalibrations> {
 
 /// Der Satz nach einem Lernlauf — EINER für das Fahrerprofil und den
 /// GPX-Import, der danach gleich lernen lässt.
-String learnResultText(LearnResult r) {
+String learnResultText(AppLocalizations l, LearnResult r) {
   final learned = [
     for (final p in RiderProfile.values)
       if ((r.ridesByProfile[p] ?? 0) > 0)
-        '${p.label} aus ${r.ridesByProfile[p]} ${r.ridesByProfile[p] == 1 ? 'Fahrt' : 'Fahrten'} '
-            '(${r.sectionsByProfile[p] ?? 0} Aufstiege)',
+        l.learnPart(p.label(l), r.ridesByProfile[p]!, r.sectionsByProfile[p] ?? 0),
   ];
-  if (r.rides == 0) {
-    return 'Keine Fahrt auf diesem Gerät — gelernt wird aus deinen Aufzeichnungen '
-        'und aus Fahrten, die du per GPX-Import übernommen hast.';
-  }
-  if (r.usable == 0) {
-    return 'Keine Fahrt mit Profil und Höhen — Aufzeichnungen seit 0.70.0 tragen '
-        'beides, ältere Fahrten übernimmst du per GPX-Import mit Profil.';
-  }
-  if (learned.isEmpty) {
-    return r.withoutArea == r.usable
-        ? 'Kein gespeicherter Bereich deckt deine Fahrten — ohne Wege lässt sich kein Aufstieg einordnen.'
-        : 'Kein Aufstieg über 100 Höhenmeter am Stück gefunden — nichts zu lernen.';
-  }
-  return 'Gelernt: ${learned.join(' · ')}.';
+  if (r.rides == 0) return l.learnNoRides;
+  if (r.usable == 0) return l.learnNoUsable;
+  if (learned.isEmpty) return r.withoutArea == r.usable ? l.learnNoArea : l.learnNoClimb;
+  return l.learnDone(learned.join(' · '));
 }
 
 final riderCalibrationsProvider =

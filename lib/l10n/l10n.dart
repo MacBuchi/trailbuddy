@@ -1,3 +1,5 @@
+import 'dart:ui' show PlatformDispatcher;
+
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -23,7 +25,23 @@ extension AppLocalizationsContext on BuildContext {
 ///
 /// Ein Provider und keine Konstante: Nur so kann ein Test die App unter
 /// einer anderen Sprache starten (`test/l10n_test.dart`).
-final appLocaleProvider = Provider<Locale?>((ref) => const Locale('de'));
+final appLocaleProvider = Provider<Locale?>((ref) => pinnedAppLocale);
+
+/// Die feste Sprache der App, solange die Übersetzung nicht trägt (#209);
+/// `null` heißt: die des Geräts. EINE Stelle für Oberfläche und Dienst —
+/// [serviceL10n] liest sie auch, damit Benachrichtigung und App nie
+/// verschiedene Sprachen sprechen.
+Locale? get pinnedAppLocale => const Locale('de');
+
+/// Die Texte außerhalb des Widget-Baums: Benachrichtigungen der Aufnahme
+/// und der Navigation, die im Service-Isolate entstehen — dort gibt es
+/// weder `BuildContext` noch Riverpod. Dieselbe Wahl wie die App:
+/// [pinnedAppLocale], sonst die Gerätesprache über [resolveAppLocale].
+///
+/// Ein Sprachschalter im Profil (offen in #209) müsste seine Wahl hierher
+/// mitgeben (etwa über die Daten des Dienstes); bis dahin gibt es keinen.
+AppLocalizations serviceL10n() => lookupAppLocalizations(
+    pinnedAppLocale ?? resolveAppLocale(PlatformDispatcher.instance.locales));
 
 /// Wählt aus den bevorzugten Sprachen des Geräts die der App: die erste,
 /// die die App kann; sonst Englisch.

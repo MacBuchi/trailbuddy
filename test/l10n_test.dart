@@ -11,12 +11,18 @@ import 'package:trailbuddy/core/app_distribution.dart';
 import 'package:trailbuddy/features/map/map_legend.dart';
 import 'package:trailbuddy/features/map/poi.dart';
 import 'package:trailbuddy/features/map/way_layer.dart';
+import 'package:trailbuddy/features/rides/ride_confirm.dart';
+import 'package:trailbuddy/features/rides/ride_track.dart';
+import 'package:trailbuddy/models/trail.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:trailbuddy/features/trails/singletrail_scale.dart';
 import 'package:trailbuddy/features/trails/trail_condition.dart';
 import 'package:trailbuddy/features/trails/trail_list.dart';
 import 'package:trailbuddy/l10n/l10n.dart';
 
 import 'fakes/fake_backend.dart';
+import 'fakes/fake_rides.dart';
 import 'fakes/fake_settings.dart';
 import 'fakes/fake_trails.dart';
 import 'fakes/test_app.dart';
@@ -270,6 +276,60 @@ void main() {
           expect(names.toSet(), hasLength(names.length), reason: '$locale: $what');
         }
       }
+    });
+  });
+
+  // Stufe (d1): Fahrten, Zerlege-Blatt und die Texte des Dienstes.
+  group('Fahrten auf Englisch', () {
+    test('Benachrichtigung und App sprechen dieselbe Sprache', () {
+      // Der Dienst hat keinen BuildContext; spräche er eine andere Sprache
+      // als die Oberfläche, stünde die Frage unterwegs auf Englisch über
+      // einer deutschen App.
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      expect(container.read(appLocaleProvider), pinnedAppLocale);
+      expect(serviceL10n().localeName, pinnedAppLocale!.languageCode);
+    });
+
+    test('die Frage unterwegs', () {
+      final notice = confirmNoticeOf(
+          lookupAppLocalizations(const Locale('en')),
+          ConfirmTarget(
+              trailId: 't1',
+              name: 'Hausrunde',
+              line: const [LatLng(47, 11), LatLng(47.001, 11)],
+              status: TrailStatus.closed,
+              condition: 2));
+      expect(notice.body, endsWith('is that right?'));
+      expect([for (final a in notice.actions) a.$2], ['That’s right', 'Trail is open', 'Change…']);
+    });
+
+    testWidgets('„Meine Fahrten"', (tester) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 3;
+      addTearDown(tester.view.reset);
+      final backend = FakeBackend();
+      final anna = backend.addUser(username: 'anna');
+      backend.signInAs(anna.id);
+      final t0 = DateTime.utc(2026, 9, 21, 9);
+      final pts = [
+        for (var i = 0; i <= 60; i++)
+          RidePoint(lat: 47 + i / 10000, lng: 11, at: t0.add(Duration(seconds: 10 * i)), accuracyM: 5, altM: 500),
+      ];
+      final store = FakeRideStore()
+        ..uid = anna.id
+        ..rides.add(Ride(id: '20260921T090000Z', startedAt: t0, endedAt: pts.last.at, points: pts, profile: 'bio'));
+      await pumpApp(tester, backend,
+          rideStore: store,
+          extraOverrides: [appLocaleProvider.overrideWithValue(const Locale('en'))]);
+      await openProfilePage(tester, 'rides');
+      await settle(tester);
+      expect(find.text('My rides'), findsOneWidget);
+      expect(find.text('Meine Fahrten'), findsNothing);
+      expect(find.textContaining('61 points'), findsOneWidget);
+      expect(find.text('Bike'), findsOneWidget, reason: 'das Rad am Chip');
+      // Das Datum folgt der Sprache (Muster aus der ARB-Datei).
+      expect(find.textContaining('September 21, 2026'), findsOneWidget);
     });
   });
 }

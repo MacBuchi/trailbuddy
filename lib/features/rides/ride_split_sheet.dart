@@ -193,8 +193,6 @@ class _TakeOverDraft {
 }
 
 class _RideSplitSheetState extends ConsumerState<_RideSplitSheet> {
-  static final _date = DateFormat('d. MMMM', 'de');
-
   RideSplit? _split;
   bool _loading = true;
   final _knownSelected = <int>{};
@@ -296,11 +294,13 @@ class _RideSplitSheetState extends ConsumerState<_RideSplitSheet> {
         final trail = split.known[i].trail;
         if (needsTakeOver(trail)) _takeOvers[i] = _TakeOverDraft(takeOverOf(trail));
       }
-      final date = _date.format((points.first.time ?? DateTime.now()).toLocal());
+      final l = context.l10n;
+      final date = DateFormat(l.splitDatePattern, l.localeName)
+          .format((points.first.time ?? DateTime.now()).toLocal());
       _dateLabel = date;
       for (var i = 0; i < split.candidates.length; i++) {
-        _drafts.add(_CandidateDraft(
-            split.candidates[i], split.candidates.length == 1 ? 'Trail vom $date' : 'Trail ${i + 1} vom $date'));
+        _drafts.add(_CandidateDraft(split.candidates[i],
+            split.candidates.length == 1 ? l.splitCandidateName(date) : l.splitCandidateNameNumbered(i + 1, date)));
       }
     });
     _pushPreview();
@@ -314,8 +314,9 @@ class _RideSplitSheetState extends ConsumerState<_RideSplitSheet> {
     if (m == null) return;
     final open = _drafts.where((d) => !d.discarded).length;
     setState(() {
+      final l = context.l10n;
       _drafts.add(_CandidateDraft(
-          m.section, open == 0 ? 'Trail vom $_dateLabel' : 'Trail ${open + 1} vom $_dateLabel',
+          m.section, open == 0 ? l.splitCandidateName(_dateLabel) : l.splitCandidateNameNumbered(open + 1, _dateLabel),
           start: m.start, end: m.end));
     });
     _pushPreview();
@@ -504,23 +505,23 @@ class _RideSplitSheetState extends ConsumerState<_RideSplitSheet> {
   /// Trail-Blatt (`withdraw_contribution`).
   Future<void> _offerWithdraw(String trailId) async {
     if (!mounted) return;
-    final name = ref.read(trailByIdProvider(trailId))?.displayName ?? 'Trail ohne Namen';
+    final l = context.l10n;
+    final name = ref.read(trailByIdProvider(trailId))?.displayName ?? l.splitTrailNoName;
     final messenger = ScaffoldMessenger.of(context);
     final ok = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Die lange Fassung löschen?'),
-        content: Text('Das Stück ist beigesteuert. Deine Aufzeichnung an „$name" mit dem Rest '
-            'lässt sich jetzt löschen — mit deinem Beitrag, deinen Meldungen und Hinweisen dort.'),
+        title: Text(l.splitWithdrawTitle),
+        content: Text(l.splitWithdrawBody(name)),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text('Behalten'),
+            child: Text(l.commonKeep),
           ),
           FilledButton(
             key: const ValueKey('split-trim-withdraw'),
             onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: const Text('Löschen'),
+            child: Text(l.commonDelete),
           ),
         ],
       ),
@@ -528,7 +529,7 @@ class _RideSplitSheetState extends ConsumerState<_RideSplitSheet> {
     if (ok != true || !mounted) return;
     try {
       await ref.read(trailsProvider.notifier).withdraw(trailId);
-      messenger.showSnackBar(const SnackBar(content: Text('Die lange Fassung ist gelöscht')));
+      messenger.showSnackBar(SnackBar(content: Text(l.splitWithdrawDone)));
     } catch (e, st) {
       logError('Lange Fassung löschen', e, st);
       messenger.showSnackBar(SnackBar(content: Text(friendlyError(e))));
@@ -538,6 +539,7 @@ class _RideSplitSheetState extends ConsumerState<_RideSplitSheet> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l = context.l10n;
     final split = _split;
     final track = widget.request.track;
     final totalM = split?.totalM ?? trackLengthM(track.points);
@@ -566,11 +568,11 @@ class _RideSplitSheetState extends ConsumerState<_RideSplitSheet> {
         scrollCacheExtent: touring ? const ScrollCacheExtent.pixels(100000) : null,
         padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
         children: [
-          Text(widget.offerDiscard ? 'Fahrt beendet' : 'Fahrt zerlegen',
+          Text(widget.offerDiscard ? l.splitTitleEnded : l.splitTitle,
               style: theme.textTheme.titleLarge),
           const SizedBox(height: 4),
           Text(
-            '${formatLength(totalM)} · ${track.points.length} Punkte'
+            '${formatLength(totalM)} · ${l.commonPoints(track.points.length)}'
             '${widget.rideDuration != null ? ' · ${rideDurationLabel(widget.rideDuration!)}' : ''}',
             style: theme.textTheme.bodyLarge,
           ),
@@ -578,11 +580,11 @@ class _RideSplitSheetState extends ConsumerState<_RideSplitSheet> {
           if (_loading) ...[
             const LinearProgressIndicator(),
             const SizedBox(height: 8),
-            const Text('Die Fahrt wird zerlegt: bekannte Trails, Kandidaten, Rest …'),
+            Text(l.splitLoading),
           ] else if (split != null) ...[
             if (split.known.isNotEmpty) ...[
-              Text('Wieder gefahren', style: theme.textTheme.titleMedium),
-              const Text('Vorangehakt — als Beleg beigesteuert, das hält den Trail aktuell.'),
+              Text(l.splitKnownTitle, style: theme.textTheme.titleMedium),
+              Text(l.splitKnownHint),
               if (_takeOvers.values.any((t) => !t.confirmed && t.canConfirm))
                 Align(
                   alignment: Alignment.centerLeft,
@@ -596,7 +598,7 @@ class _RideSplitSheetState extends ConsumerState<_RideSplitSheet> {
                               }
                             }),
                     icon: const Icon(Icons.done_all),
-                    label: const Text('Alle übernehmen'),
+                    label: Text(l.splitTakeOverAll),
                   ),
                 ),
               for (var i = 0; i < split.known.length; i++) ...[
@@ -627,7 +629,7 @@ class _RideSplitSheetState extends ConsumerState<_RideSplitSheet> {
               ],
               const SizedBox(height: 12),
             ],
-            Text('Kandidaten für neue Trails', style: theme.textTheme.titleMedium),
+            Text(l.splitCandidatesTitle, style: theme.textTheme.titleMedium),
             if (split.roads != RoadCoverage.complete)
               CoachAnchor(
                 id: SplitCoach.noRoads,
@@ -635,29 +637,19 @@ class _RideSplitSheetState extends ConsumerState<_RideSplitSheet> {
                 padding: const EdgeInsets.only(top: 4),
                 child: Text(
                   key: const ValueKey('split-no-roads'),
-                  split.roads == RoadCoverage.partial
-                      ? 'Die Wege kennt die App hier nur zum Teil: Ein gespeicherter '
-                          'Bereich deckt die Fahrt nicht ganz. Von selbst findet sie '
-                          'Kandidaten erst, wenn ein Bereich bis Zoomstufe 13 '
-                          'die ganze Fahrt trägt (Knopf „Offline-Karten" auf der Karte → '
-                          'Ausschnitt oder Fläche wählen → Speichern).'
-                      : 'Die Wege kennt die App hier nicht: Es gibt keinen '
-                          'gespeicherten Bereich über der Fahrt. Von selbst findet sie '
-                          'Kandidaten erst damit — Knopf „Offline-Karten" auf der Karte → '
-                          'Ausschnitt oder Fläche wählen → Speichern, dann die Fahrt aus '
-                          '„Meine Fahrten" noch einmal zerlegen.',
+                  split.roads == RoadCoverage.partial ? l.splitRoadsPartial : l.splitRoadsNone,
                   style: theme.textTheme.bodyMedium,
                 ),
               ))
             else if (!split.hasElevation)
-              const Padding(
-                padding: EdgeInsets.only(top: 4),
-                child: Text('Ohne Höhen lässt sich kein Gefälle finden — die Spur trägt keine.'),
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Text(l.splitNoElevation),
               )
             else if (_drafts.every((d) => d.discarded))
-              const Padding(
-                padding: EdgeInsets.only(top: 4),
-                child: Text('Kein Stück mit anhaltendem Gefälle abseits von Wegen.'),
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Text(l.splitNoCandidates),
               ),
             for (var i = 0; i < _drafts.length; i++)
               if (!_drafts[i].discarded) _candidateCard(i, theme, anchored: i == firstCandidate),
@@ -678,12 +670,12 @@ class _RideSplitSheetState extends ConsumerState<_RideSplitSheet> {
                           key: const ValueKey('split-pick-section'),
                           onPressed: _busy ? null : _addManual,
                           icon: const Icon(Icons.content_cut),
-                          label: const Text('Stück selbst wählen'),
+                          label: Text(l.splitPickSection),
                         ),
                       ),
                     ),
                     Expanded(
-                      child: Text('Für alles, was die Suche nicht findet.',
+                      child: Text(l.splitPickHint,
                           style: theme.textTheme.bodySmall),
                     ),
                   ],
@@ -691,16 +683,15 @@ class _RideSplitSheetState extends ConsumerState<_RideSplitSheet> {
               ),
             const SizedBox(height: 12),
             Text(
-              'Rest: ${formatLength(split.restM)} Anfahrt, Forstweg, Straße — wird nicht angeboten.'
-              '${split.droppedInaccurate > 0 ? ' ${split.droppedInaccurate} unscharfe Punkte ausgelassen.' : ''}',
+              '${l.splitRest(formatLength(split.restM))}'
+              '${split.droppedInaccurate > 0 ? ' ${l.splitDropped(split.droppedInaccurate)}' : ''}',
               style: theme.textTheme.bodySmall,
             ),
             if (widget.request.rideId != null)
               Padding(
                 padding: const EdgeInsets.only(top: 8),
                 child: Text(
-                  'Die Fahrt bleibt als Ganzes auf deinem Gerät („Meine Fahrten"); '
-                  'beigesteuert werden nur die gewählten Stücke.',
+                  l.splitStaysOnDevice,
                   style: theme.textTheme.bodySmall,
                 ),
               ),
@@ -721,7 +712,7 @@ class _RideSplitSheetState extends ConsumerState<_RideSplitSheet> {
               if (widget.offerDiscard)
                 TextButton(
                   onPressed: _busy ? null : () => Navigator.of(context).pop(true),
-                  child: const Text('Verwerfen'),
+                  child: Text(l.splitDiscard),
                 ),
               const Spacer(),
               CoachAnchor(
@@ -734,8 +725,8 @@ class _RideSplitSheetState extends ConsumerState<_RideSplitSheet> {
                         ? () => Navigator.of(context).pop(false)
                         : _contribute,
                 child: Text(_selectedCount == 0
-                    ? (widget.offerDiscard ? 'Behalten' : 'Schließen')
-                    : '$_selectedCount beisteuern'),
+                    ? (widget.offerDiscard ? l.commonKeep : l.commonClose)
+                    : l.splitContribute(_selectedCount)),
               )),
             ],
             ),
@@ -753,7 +744,8 @@ class _RideSplitSheetState extends ConsumerState<_RideSplitSheet> {
     final t = _takeOvers[i]!;
     final palette = AppPalette.of(context);
     final hint = theme.textTheme.bodySmall?.copyWith(color: palette.muted);
-    const fromNet = 'Vorschlag aus dem Netz';
+    final l = context.l10n;
+    final fromNet = l.splitFromNet;
     if (t.confirmed) {
       final grade = t.grade;
       return Padding(
@@ -763,7 +755,7 @@ class _RideSplitSheetState extends ConsumerState<_RideSplitSheet> {
             Expanded(
               child: Text(
                 key: ValueKey('split-takeover-done-$i'),
-                'Übernommen: ${t.nameField.text.trim().isEmpty ? 'ohne Namen' : t.nameField.text.trim()}'
+                '${l.splitTakenOver(t.nameField.text.trim().isEmpty ? l.splitNoName : t.nameField.text.trim())}'
                 '${grade != null ? ' · ${singletrailGrade(grade).label}' : ''}'
                 ' · ${'★' * (t.rating ?? 0)}'
                 '${t.condition != null ? ' · ${trailConditionLabel(context.l10n, t.condition!)}' : ''}',
@@ -773,7 +765,7 @@ class _RideSplitSheetState extends ConsumerState<_RideSplitSheet> {
             TextButton(
               key: ValueKey('split-takeover-edit-$i'),
               onPressed: _busy ? null : () => setState(() => t.confirmed = false),
-              child: const Text('Ändern'),
+              child: Text(l.commonChange),
             ),
           ],
         ),
@@ -788,9 +780,7 @@ class _RideSplitSheetState extends ConsumerState<_RideSplitSheet> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Zum ersten Mal gefahren — mach ihn dir zu eigen. Dann bleibt er '
-              'dir, auch wenn der Buddy seinen Beitrag löscht. Ohne Bewertung '
-              'wird das Stück nicht beigesteuert.',
+              l.splitTakeOverHint,
               style: theme.textTheme.bodySmall,
             ),
             TextField(
@@ -798,7 +788,7 @@ class _RideSplitSheetState extends ConsumerState<_RideSplitSheet> {
               controller: t.nameField,
               enabled: !_busy,
               maxLength: 80,
-              decoration: const InputDecoration(labelText: 'Name', counterText: ''),
+              decoration: InputDecoration(labelText: context.l10n.detailsName, counterText: ''),
               textCapitalization: TextCapitalization.sentences,
             ),
             Row(
@@ -809,12 +799,12 @@ class _RideSplitSheetState extends ConsumerState<_RideSplitSheet> {
                     initialValue: t.grade,
                     isExpanded: true,
                     decoration: InputDecoration(
-                      labelText: 'Schwierigkeit (Singletrail-Skala)',
+                      labelText: context.l10n.detailsGrade,
                       isDense: true,
                       helperText: t.grade != null && t.grade == t.prefill.grade ? fromNet : null,
                     ),
                     items: [
-                      const DropdownMenuItem<int?>(value: null, child: Text('Keine Angabe')),
+                      DropdownMenuItem<int?>(value: null, child: Text(context.l10n.detailsNoGrade)),
                       for (final g in kSingletrailScale)
                         DropdownMenuItem<int?>(
                           value: g.value,
@@ -846,7 +836,7 @@ class _RideSplitSheetState extends ConsumerState<_RideSplitSheet> {
               ),
             ),
             const SizedBox(height: 8),
-            Text('Bewertung', style: theme.textTheme.labelLarge),
+            Text(l.detailsRating, style: theme.textTheme.labelLarge),
             Row(
               children: [
                 RatingPicker(
@@ -858,7 +848,7 @@ class _RideSplitSheetState extends ConsumerState<_RideSplitSheet> {
                   Flexible(child: Text(fromNet, style: hint)),
               ],
             ),
-            Text('Zustand heute (freiwillig)', style: theme.textTheme.labelLarge),
+            Text(l.splitConditionToday, style: theme.textTheme.labelLarge),
             Wrap(
               spacing: 6,
               runSpacing: 4,
@@ -876,19 +866,19 @@ class _RideSplitSheetState extends ConsumerState<_RideSplitSheet> {
               ],
             ),
             if (t.condition != null && t.condition == t.prefill.condition)
-              Text('Zuletzt bestätigt gemeldet', style: hint),
+              Text(l.splitLastConfirmed, style: hint),
             const SizedBox(height: 8),
             Row(
               children: [
                 FilledButton.tonal(
                   key: ValueKey('split-takeover-confirm-$i'),
                   onPressed: _busy || !t.canConfirm ? null : () => setState(() => t.confirmed = true),
-                  child: const Text('Übernehmen'),
+                  child: Text(l.sheetTakeOver),
                 ),
                 const SizedBox(width: 8),
                 if (!t.canConfirm)
                   Expanded(
-                    child: Text('Erst Sterne vergeben — wie gefällt er dir?',
+                    child: Text(l.splitRateFirst,
                         key: ValueKey('split-takeover-needs-rating-$i'), style: hint),
                   ),
               ],
@@ -939,13 +929,13 @@ class _RideSplitSheetState extends ConsumerState<_RideSplitSheet> {
                     controller: d.nameField,
                     enabled: !_busy,
                     maxLength: 80,
-                    decoration: const InputDecoration(labelText: 'Name', counterText: ''),
+                    decoration: InputDecoration(labelText: context.l10n.detailsName, counterText: ''),
                     textCapitalization: TextCapitalization.sentences,
                   ),
                 ),
                 IconButton(
                   key: ValueKey('split-candidate-discard-$i'),
-                  tooltip: 'Kandidat verwerfen',
+                  tooltip: context.l10n.splitDiscardCandidate,
                   icon: const Icon(Icons.close),
                   onPressed: _busy
                       ? null
@@ -959,12 +949,14 @@ class _RideSplitSheetState extends ConsumerState<_RideSplitSheet> {
             Padding(
               padding: const EdgeInsets.only(left: 12),
               child: Text(
-                '${formatLength(lengthM)}'
-                '${loss != null ? ' · ↓ ${loss.round()} Hm' : ''}'
-                '${share != null ? ' · ${(share * 100).round()} % abseits von Wegen' : ''}'
-                '${s.manual ? ' · selbst gewählt' : ''}'
-                '${s.marked ? ' · unterwegs markiert' : ''}'
-                '${tooShort ? ' · zu kurz für einen Trail' : ''}',
+                [
+                  formatLength(lengthM),
+                  if (loss != null) context.l10n.splitPartLoss(loss.round()),
+                  if (share != null) context.l10n.splitPartOffRoad((share * 100).round()),
+                  if (s.manual) context.l10n.splitPartManual,
+                  if (s.marked) context.l10n.splitPartMarked,
+                  if (tooShort) context.l10n.splitPartTooShort,
+                ].join(' · '),
                 style: theme.textTheme.bodySmall,
               ),
             ),
@@ -974,10 +966,10 @@ class _RideSplitSheetState extends ConsumerState<_RideSplitSheet> {
                 child: Text(
                   key: ValueKey('split-candidate-home-$i'),
                   home.nearStart && home.nearEnd
-                      ? 'Beginnt und endet nahe Start und Ziel deiner Fahrt.'
+                      ? context.l10n.splitNearBoth
                       : home.nearStart
-                          ? 'Beginnt nahe deinem Start.'
-                          : 'Endet nahe deinem Ziel.',
+                          ? context.l10n.splitNearStart
+                          : context.l10n.splitNearEnd,
                   style: theme.textTheme.bodySmall?.copyWith(color: AppPalette.of(context).warningText),
                 ),
               )),
@@ -1003,10 +995,10 @@ class _RideSplitSheetState extends ConsumerState<_RideSplitSheet> {
                     key: ValueKey('split-candidate-grade-$i'),
                     initialValue: d.grade,
                     isExpanded: true,
-                    decoration: const InputDecoration(
-                        labelText: 'Schwierigkeit (Singletrail-Skala)', isDense: true),
+                    decoration: InputDecoration(
+                        labelText: context.l10n.detailsGrade, isDense: true),
                     items: [
-                      const DropdownMenuItem<int?>(value: null, child: Text('Keine Angabe')),
+                      DropdownMenuItem<int?>(value: null, child: Text(context.l10n.detailsNoGrade)),
                       for (final g in kSingletrailScale)
                         DropdownMenuItem<int?>(
                           value: g.value,

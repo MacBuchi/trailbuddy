@@ -20,10 +20,10 @@ abstract interface class RideService {
   Future<void> stop();
 }
 
-/// Titel und Text der Fahrt — die App setzt sie beim Start, der Dienst
-/// beim Ende einer Navigation, die über einer Fahrt lief (#232).
-const kRideNoticeTitle = 'Fahrt wird aufgezeichnet';
-const kRideNoticeText = 'TrailBuddy zeichnet deinen Weg auf. Die Fahrt bleibt auf dem Gerät.';
+// Titel und Text der Fahrt (`rideNoticeTitle`, `rideNoticeText` in den
+// ARB-Dateien, #209) — die App setzt sie beim Start, der Dienst beim Ende
+// einer Navigation, die über einer Fahrt lief (#232); beide über
+// `serviceL10n()`, damit sie dieselbe Sprache sprechen.
 
 /// Legt den Port an, über den das Service-Isolate den Main-Isolate
 /// erreicht. **Gehört in `main()`, vor `runApp`** — ohne ihn ist die

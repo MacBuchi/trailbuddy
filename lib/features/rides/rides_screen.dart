@@ -18,6 +18,7 @@ import '../../core/geo.dart';
 import '../../core/gpx_share.dart';
 import '../../core/router_branches.dart';
 import '../../core/widgets/motion.dart';
+import '../../l10n/l10n.dart';
 import '../help/help_link.dart';
 import '../routing/nav_providers.dart';
 import '../routing/ride_calibrator.dart';
@@ -61,7 +62,7 @@ class _RidesScreenState extends ConsumerState<RidesScreen> {
     if (chosen.isEmpty) return;
     final n = chosen.length;
     final ok = await confirmRideDelete(context,
-        title: n == 1 ? 'Fahrt löschen?' : '$n Fahrten löschen?',
+        title: context.l10n.ridesDeleteTitle(n),
         planned: chosen.every((r) => r.planned));
     if (ok != true || !mounted) return;
     final ids = [for (final r in chosen) r.id];
@@ -98,15 +99,15 @@ class _RidesScreenState extends ConsumerState<RidesScreen> {
             ? AppBar(
                 leading: IconButton(
                   key: const ValueKey('rides-selection-close'),
-                  tooltip: 'Auswahl beenden',
+                  tooltip: context.l10n.ridesSelectionClose,
                   icon: const Icon(Icons.close),
                   onPressed: _clearSelection,
                 ),
-                title: Text('${_selected.length} ausgewählt'),
+                title: Text(context.l10n.ridesSelected(_selected.length)),
                 actions: [
                   PopupMenuButton<RiderProfile>(
                     key: const ValueKey('rides-selection-profile'),
-                    tooltip: 'Rad festlegen',
+                    tooltip: context.l10n.ridesSetBike,
                     enabled: measuredSelected,
                     icon: const Icon(Icons.directions_bike),
                     onSelected: (p) => _setProfileSelected(rides, p),
@@ -114,51 +115,43 @@ class _RidesScreenState extends ConsumerState<RidesScreen> {
                       for (final p in RiderProfile.values)
                         PopupMenuItem(
                           value: p,
-                          child: ListTile(leading: Icon(riderProfileIcon(p)), title: Text('Als ${p.label}')),
+                          child: ListTile(leading: Icon(riderProfileIcon(p)), title: Text(context.l10n.ridesAsProfile(p.label(context.l10n)))),
                         ),
                     ],
                   ),
                   IconButton(
                     key: const ValueKey('rides-selection-delete'),
-                    tooltip: 'Ausgewählte löschen',
+                    tooltip: context.l10n.ridesDeleteSelected,
                     icon: const Icon(Icons.delete_outline),
                     onPressed: () => _deleteSelected(rides),
                   ),
                 ],
               )
-            : AppBar(title: const Text('Meine Fahrten')),
+            : AppBar(title: Text(context.l10n.ridesTitle)),
         body: ridesAsync.when(
           loading: () => const CenteredTrailLoader(),
-          error: (e, _) => const Padding(
-            padding: EdgeInsets.all(24),
-            child: Text('Die Fahrten ließen sich nicht lesen.'),
+          error: (e, _) => Padding(
+            padding: const EdgeInsets.all(24),
+            child: Text(context.l10n.ridesLoadFailed),
           ),
           data: (_) {
             if (rides.isEmpty) {
               return ListView(
                 padding: const EdgeInsets.all(24),
-                children: const [
-                  _LastNavCard(padding: EdgeInsets.only(bottom: 16)),
-                  Text(
-                    'Noch keine Fahrt. Starte eine auf der Karte mit dem '
-                    'Aufnahme-Knopf — sie bleibt auf deinem Gerät.',
-                  ),
-                  SizedBox(height: 8),
-                  HelpLinkButton(),
+                children: [
+                  const _LastNavCard(padding: EdgeInsets.only(bottom: 16)),
+                  Text(context.l10n.ridesEmpty),
+                  const SizedBox(height: 8),
+                  const HelpLinkButton(),
                 ],
               );
             }
             return ListView(
               children: [
                 const _LastNavCard(padding: EdgeInsets.fromLTRB(16, 12, 16, 0)),
-                const Padding(
-                  padding: EdgeInsets.fromLTRB(16, 12, 16, 4),
-                  child: Text(
-                    'Fahrten liegen nur auf diesem Gerät. Beigesteuert wird '
-                    'nie eine ganze Fahrt, nur ein Stück, das einen Trail belegt '
-                    '— „Zerlegen" zeigt, welche. Nach links wischen löscht, '
-                    'langer Druck wählt mehrere.',
-                  ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                  child: Text(context.l10n.ridesIntro),
                 ),
                 for (final r in rides)
                   _RideTile(
@@ -202,7 +195,7 @@ class _LastNavCard extends ConsumerWidget {
         margin: EdgeInsets.zero,
         child: ListTile(
           leading: const Icon(Icons.navigation_outlined),
-          title: const Text('Zuletzt navigiert'),
+          title: Text(context.l10n.ridesLastNav),
           subtitle: Text(last.title, maxLines: 1, overflow: TextOverflow.ellipsis),
           trailing: FilledButton.tonal(
             key: const ValueKey('nav-last-resume'),
@@ -210,7 +203,7 @@ class _LastNavCard extends ConsumerWidget {
               StatefulNavigationShell.of(context).goBranch(kMapBranchIndex);
               ref.read(navRequestProvider.notifier).state = last;
             },
-            child: const Text('Weiter'),
+            child: Text(context.l10n.ridesLastNavResume),
           ),
         ),
       ),
@@ -230,18 +223,15 @@ Future<bool?> confirmRideDelete(BuildContext context, {required String title, re
       context: context,
       builder: (context) => AlertDialog(
         title: Text(title),
-        content: Text(planned
-            ? 'Die geplante Runde wird vom Gerät gelöscht.'
-            : 'Die Aufzeichnung wird vom Gerät gelöscht. '
-                'Beigesteuerte Trails bleiben davon unberührt.'),
+        content: Text(planned ? context.l10n.ridesDeletePlannedBody : context.l10n.ridesDeleteBody),
         actions: [
           TextButton(
               onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Abbrechen')),
+              child: Text(context.l10n.commonCancel)),
           FilledButton(
               key: const ValueKey('ride-delete-confirm'),
               onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('Löschen')),
+              child: Text(context.l10n.commonDelete)),
         ],
       ),
     );
@@ -252,20 +242,19 @@ Future<bool?> confirmRideDelete(BuildContext context, {required String title, re
 Future<void> setRidesProfile(BuildContext context, WidgetRef ref, List<String> ids, RiderProfile profile) async {
   if (ids.isEmpty) return;
   final messenger = ScaffoldMessenger.of(context);
+  final l = context.l10n;
   final learner = ref.read(riderCalibrationsProvider.notifier);
   final n = await ref.read(ridesProvider.notifier).setProfile(ids, profile);
   messenger
     ..clearSnackBars()
     ..showSnackBar(SnackBar(
-      content: Text(n == 0
-          ? 'Das Rad ließ sich nicht ändern.'
-          : '${n == 1 ? 'Fahrt' : '$n Fahrten'} als ${profile.label} eingeordnet.'),
+      content: Text(n == 0 ? l.ridesProfileFailed : l.ridesProfileSet(n, profile.label(l))),
       action: n == 0
           ? null
           : SnackBarAction(
-              label: 'Neu lernen',
+              label: l.ridesRelearn,
               onPressed: () async {
-                final text = learnResultText(await learner.learn());
+                final text = learnResultText(l, await learner.learn());
                 messenger.showSnackBar(SnackBar(content: Text(text)));
               },
             ),
@@ -287,13 +276,15 @@ class _RideTile extends ConsumerWidget {
   final VoidCallback onToggle;
   final Future<void> Function() onDismissed;
 
-  static final _date = DateFormat('EEEE, d. MMMM yyyy, HH:mm', 'de');
-  static final _day = DateFormat('d. MMMM yyyy', 'de');
+  /// Datum und Tag in der Sprache der App; die Muster stehen in den
+  /// ARB-Dateien (`ridesDatePattern`, `ridesDayPattern`).
+  static DateFormat _date(AppLocalizations l) => DateFormat(l.ridesDatePattern, l.localeName);
+  static DateFormat _day(AppLocalizations l) => DateFormat(l.ridesDayPattern, l.localeName);
 
-  String get _deleteTitle => ride.planned ? 'Geplante Fahrt löschen?' : 'Fahrt löschen?';
+  String _deleteTitle(AppLocalizations l) => ride.planned ? l.ridesDeletePlannedTitle : l.ridesDeleteTitle(1);
 
   Future<void> _delete(BuildContext context, WidgetRef ref) async {
-    final ok = await confirmRideDelete(context, title: _deleteTitle, planned: ride.planned);
+    final ok = await confirmRideDelete(context, title: _deleteTitle(context.l10n), planned: ride.planned);
     if (ok != true || !context.mounted) return;
     await ref.read(ridesProvider.notifier).delete(ride.id);
     if (ref.read(mapFocusRideProvider)?.id == ride.id) {
@@ -315,7 +306,9 @@ class _RideTile extends ConsumerWidget {
     StatefulNavigationShell.of(context).goBranch(kMapBranchIndex);
     ref.read(navRequestProvider.notifier).state = NavRequest(
       points: [for (final p in ride.points) LatLng(p.lat, p.lng)],
-      title: ride.planned ? (ride.name ?? 'Geplante Fahrt') : 'Fahrt vom ${_day.format(ride.startedAt.toLocal())}',
+      title: ride.planned
+          ? (ride.name ?? context.l10n.ridesPlannedFallback)
+          : context.l10n.ridesRideOn(_day(context.l10n).format(ride.startedAt.toLocal())),
     );
   }
 
@@ -325,6 +318,7 @@ class _RideTile extends ConsumerWidget {
     // ihr Name statt des Datums, „etwa" vor der Zeit, keine Schere — zerlegt
     // wird, was gefahren wurde, und das ist dann eine eigene Aufzeichnung.
     final planned = ride.planned;
+    final l = context.l10n;
     final profile = RiderProfile.values.where((p) => p.name == ride.profile).firstOrNull;
     final tile = ListTile(
       key: ValueKey('ride-${ride.id}'),
@@ -333,16 +327,23 @@ class _RideTile extends ConsumerWidget {
           ? Icon(selected ? Icons.check_circle : Icons.radio_button_unchecked,
               key: ValueKey('ride-check-${ride.id}'))
           : Icon(planned ? Icons.route_outlined : Icons.directions_bike),
-      title: Text(planned ? (ride.name ?? 'Geplante Fahrt') : _date.format(ride.startedAt.toLocal())),
+      title: Text(planned ? (ride.name ?? l.ridesPlannedFallback) : _date(l).format(ride.startedAt.toLocal())),
       subtitle: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(planned
-              ? 'Geplant am ${_day.format(ride.startedAt.toLocal())} · ${formatMeters(ride.lengthM)} · '
-                  'etwa ${rideDurationLabel(ride.duration)}${profile != null ? ' · ${profile.label}' : ''}'
-              : '${ride.imported ? 'Aus GPX: ${ride.name ?? 'Datei'} · ' : ''}'
-                  '${formatMeters(ride.lengthM)} · '
-                  '${rideDurationLabel(ride.duration)} · ${ride.points.length} Punkte'),
+          Text([
+            if (planned) ...[
+              l.ridesPlannedOn(_day(l).format(ride.startedAt.toLocal())),
+              formatMeters(ride.lengthM),
+              l.ridesAbout(rideDurationLabel(ride.duration)),
+              if (profile != null) profile.label(l),
+            ] else ...[
+              if (ride.imported) l.ridesFromGpx(ride.name ?? l.ridesFileFallback),
+              formatMeters(ride.lengthM),
+              rideDurationLabel(ride.duration),
+              l.commonPoints(ride.points.length),
+            ],
+          ].join(' · ')),
           if (!planned) _ProfileChip(ride, profile, enabled: !selecting),
         ],
       ),
@@ -352,7 +353,7 @@ class _RideTile extends ConsumerWidget {
               if (!planned)
                 IconButton(
                   key: ValueKey('ride-split-${ride.id}'),
-                  tooltip: 'Fahrt zerlegen',
+                  tooltip: l.splitTitle,
                   icon: const Icon(Icons.content_cut),
                   onPressed: () {
                     // Erst der Reiter, dann der Wunsch — wie „auf der Karte zeigen".
@@ -365,7 +366,7 @@ class _RideTile extends ConsumerWidget {
               // nichts mehr übrig.
               PopupMenuButton<String>(
                 key: ValueKey('ride-menu-${ride.id}'),
-                tooltip: 'Mehr',
+                tooltip: l.commonMore,
                 onSelected: (value) => switch (value) {
                   'navigate' => _navigate(context, ref),
                   'export' => _export(context, ref),
@@ -377,19 +378,19 @@ class _RideTile extends ConsumerWidget {
                     PopupMenuItem(
                       key: ValueKey('ride-navigate-${ride.id}'),
                       value: 'navigate',
-                      child: const ListTile(leading: Icon(Icons.navigation_outlined), title: Text('Navigieren')),
+                      child: ListTile(leading: const Icon(Icons.navigation_outlined), title: Text(l.commonNavigate)),
                     ),
                   PopupMenuItem(
                     key: ValueKey('ride-export-${ride.id}'),
                     value: 'export',
-                    child: const ListTile(
-                        leading: Icon(Icons.share_outlined), title: Text('Als GPX exportieren')),
+                    child: ListTile(
+                        leading: const Icon(Icons.share_outlined), title: Text(l.sheetExportGpx)),
                   ),
                   PopupMenuItem(
                     value: 'delete',
                     child: ListTile(
                         leading: const Icon(Icons.delete_outline),
-                        title: Text(planned ? 'Geplante Fahrt löschen' : 'Fahrt löschen')),
+                        title: Text(planned ? l.ridesDeletePlannedMenu : l.ridesDeleteMenu)),
                   ),
                 ],
               ),
@@ -419,7 +420,7 @@ class _RideTile extends ConsumerWidget {
         ),
       ),
       confirmDismiss: (_) async =>
-          await confirmRideDelete(context, title: _deleteTitle, planned: planned) == true,
+          await confirmRideDelete(context, title: _deleteTitle(l), planned: planned) == true,
       onDismissed: (_) => onDismissed(),
       child: tile,
     );
@@ -444,12 +445,13 @@ class _ProfileChip extends ConsumerWidget {
         : guessRideProfile(ride.points,
             bio: ref.watch(calibratedRiderProvider(RiderProfile.bio)),
             ebike: ref.watch(calibratedRiderProvider(RiderProfile.ebike)));
-    final label = p?.label ?? (guess == null ? 'Rad wählen' : 'Rad wählen · passt zu ${guess.label}');
+    final l = context.l10n;
+    final label = p?.label(l) ?? (guess == null ? l.ridesChooseBike : l.ridesChooseBikeGuess(guess.label(l)));
     return Align(
       alignment: Alignment.centerLeft,
       child: PopupMenuButton<RiderProfile>(
         key: ValueKey('ride-profile-${ride.id}'),
-        tooltip: 'Rad dieser Fahrt',
+        tooltip: l.ridesBikeTooltip,
         enabled: enabled,
         initialValue: p,
         onSelected: (next) {
@@ -462,7 +464,7 @@ class _ProfileChip extends ConsumerWidget {
               value: v,
               child: ListTile(
                 leading: Icon(riderProfileIcon(v)),
-                title: Text(v.label),
+                title: Text(v.label(l)),
                 trailing: v == p ? const Icon(Icons.check) : null,
               ),
             ),

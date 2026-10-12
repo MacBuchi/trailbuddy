@@ -214,10 +214,11 @@ class _TrailImportScreenState extends ConsumerState<TrailImportScreen> {
   }
 
   Future<void> _learnNow() async {
+    final l = context.l10n;
     setState(() => _learning = true);
     String? text;
     try {
-      text = learnResultText(await ref.read(riderCalibrationsProvider.notifier).learn());
+      text = learnResultText(l, await ref.read(riderCalibrationsProvider.notifier).learn());
     } catch (e, st) {
       logError('Aus Fahrten lernen', e, st);
     }
@@ -596,7 +597,7 @@ class _TrailImportScreenState extends ConsumerState<TrailImportScreen> {
     final unguessed = guesses.where((g) => g == null).length;
     final guessText = [
       for (final p in RiderProfile.values)
-        if (guesses.where((g) => g == p).length case final k when k > 0) '$k × ${p.label}',
+        if (guesses.where((g) => g == p).length case final k when k > 0) '$k × ${p.label(context.l10n)}',
       if (unguessed > 0 && unguessed < n) l.importRideGuessUnguessed(unguessed),
     ];
     return [
@@ -630,16 +631,16 @@ class _TrailImportScreenState extends ConsumerState<TrailImportScreen> {
           child: SegmentedButton<RiderProfile>(
             key: const ValueKey('import-ride-profile'),
             showSelectedIcon: false,
-            // Die Namen der Räder trägt das Profil selbst (`RiderProfile.label`).
+            // Die Namen der Räder trägt das Profil selbst (`RiderProfile.label`, aus den ARB-Dateien).
             segments: [
               ButtonSegment(
                   value: RiderProfile.bio,
                   icon: const Icon(Icons.pedal_bike_outlined),
-                  label: Text(RiderProfile.bio.label)),
+                  label: Text(RiderProfile.bio.label(context.l10n))),
               ButtonSegment(
                   value: RiderProfile.ebike,
                   icon: const Icon(Icons.electric_bike_outlined),
-                  label: Text(RiderProfile.ebike.label)),
+                  label: Text(RiderProfile.ebike.label(context.l10n))),
             ],
             selected: {profile},
             onSelectionChanged: _busy ? null : (v) => setState(() => _rideProfile = v.single),
