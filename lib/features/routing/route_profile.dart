@@ -19,6 +19,8 @@
 
 import 'dart:math' as math;
 
+import '../../l10n/l10n.dart';
+
 /// Die Zahlen, mit denen das Zeitmodell rechnet — das Profil mit seinen
 /// Vorgaben ([RiderProfile]) oder das Profil mit gelernten Werten
 /// (`CalibratedRider`, Schritt 6). Die Engine fragt nur diese Schnitt-
@@ -125,7 +127,6 @@ class _PreferringRider implements RiderParams {
 /// Budget-Vorgabe. Wegerechte und die Trail-Seite bleiben gleich.
 enum RiderProfile implements RiderParams {
   bio(
-    label: 'Bio-Bike',
     climbTrackMPerH: 450,
     climbPathMPerH: 350,
     pushRateMPerH: 300,
@@ -138,7 +139,6 @@ enum RiderProfile implements RiderParams {
     budgetClimbM: 800,
   ),
   ebike(
-    label: 'E-Bike',
     climbTrackMPerH: 850,
     climbPathMPerH: 650,
     pushRateMPerH: 220,
@@ -152,7 +152,6 @@ enum RiderProfile implements RiderParams {
   );
 
   const RiderProfile({
-    required this.label,
     required this.climbTrackMPerH,
     required this.climbPathMPerH,
     required this.pushRateMPerH,
@@ -165,7 +164,11 @@ enum RiderProfile implements RiderParams {
     required this.budgetClimbM,
   });
 
-  final String label;
+  /// Der Name des Rads (#209: aus den ARB-Dateien).
+  String label(AppLocalizations l) => switch (this) {
+        bio => l.riderBio,
+        ebike => l.riderEbike,
+      };
 
   @override
   RiderProfile get profile => this;

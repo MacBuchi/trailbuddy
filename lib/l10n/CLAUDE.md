@@ -45,15 +45,28 @@ entsteht zuerst dort) und `app_en.arb`; gelesen mit `context.l10n.<key>`
   `lib/features/trails/` (Liste, Filter, Blatt, Hinweise, Meldungen,
   „Noch gültig?", Zusammenführen, GPX-Import, Singletrail-Skala). Noch
   deutsch, weil außerhalb: die Getter `TrailTrait`/`TrailStatus`/
-  `TrailVisibility.label` in `lib/models/trail.dart`, `RiderProfile.label`
-  (Stufe d), `staleAfterWriteHint`, `kQueuedHint` und `friendlyError` in
-  `lib/core/`, die Meldungen von `GpxFormatException`. Die Bestätigungs-
-  Benachrichtigung (`ride_confirm_notify.dart`, Service-Isolate ohne
-  `BuildContext`) holt ihre Texte fest über
-  `lookupAppLocalizations(Locale('de'))` — wie sie die Sprache wählt,
-  entscheidet Stufe (d). Noch keiner Stufe zugeordnet:
+  `TrailVisibility.label` in `lib/models/trail.dart`, `staleAfterWriteHint`, `kQueuedHint` und `friendlyError` in
+  `lib/core/`, die Meldungen von `GpxFormatException`; (d1) Fahrten,
+  Zerlege-Blatt und die Texte des Dienstes 0.113.4 — alles unter
+  `lib/features/rides/`, dazu `RiderProfile.label(l)` und
+  `learnResultText`. (d2) Rundenplaner, Weg zum Trailkopf und Navigation
+  folgt. Noch keiner Stufe zugeordnet:
   `lib/features/offline_areas/` und `lib/features/official/` (das Blatt
   eines offiziellen Trails).
+- **Texte des Dienstes** (Benachrichtigung der Aufnahme, Fragen
+  unterwegs, später die der Navigation) entstehen im Service-Isolate,
+  ohne `BuildContext` und ohne Riverpod. Sie holen ihre Texte über
+  `serviceL10n()` (`l10n.dart`), das dieselbe Regel liest wie
+  `appLocaleProvider`: `pinnedAppLocale`, sonst die Gerätesprache. Eine
+  Stelle für beide, damit Benachrichtigung und App nie verschiedene
+  Sprachen sprechen (`test/l10n_test.dart`). Ein Sprachschalter im
+  Profil müsste seine Wahl dem Dienst mitgeben. Die Kanalnamen in
+  `strings.xml` (`kConfirmChannelName`) bleiben außerhalb (#209 offen).
+- **Datumsmuster stehen in den ARB-Dateien** (`ridesDatePattern`,
+  `splitDatePattern`), gelesen mit `DateFormat(l.xxxPattern,
+  l.localeName)` — so bleibt das deutsche Bild Zeichen für Zeichen, und
+  Englisch bekommt seine Reihenfolge. Zahlen (`formatMeters` mit Komma)
+  und die Einheiten `min`/`h` sind noch nicht nach Sprache formatiert.
 - **Was deutsch bleibt, auch nach dem Umzug:** die `label:` von
   `RememberedFlag`, `openHostArchive`, `_moveNow` und Co. — das sind
   Kontexte für `error_reports` (Wochendigest des Betreibers), keine

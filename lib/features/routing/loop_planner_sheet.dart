@@ -19,6 +19,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
 
+import '../../l10n/l10n.dart';
 import '../../core/app_colors.dart';
 import '../../core/app_theme.dart' show AppFonts;
 import '../../core/geo.dart' show formatMeters;
@@ -136,7 +137,7 @@ class _ParamsSheet extends ConsumerWidget {
         const SizedBox(height: 8),
         SegmentedButton<RiderProfile>(
           key: const ValueKey('loop-profile'),
-          segments: [for (final p in RiderProfile.values) ButtonSegment(value: p, label: Text(p.label))],
+          segments: [for (final p in RiderProfile.values) ButtonSegment(value: p, label: Text(p.label(context.l10n)))],
           selected: {session.profile},
           showSelectedIcon: false,
           onSelectionChanged: (sel) => notifier.setProfile(sel.single),

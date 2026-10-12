@@ -2723,5 +2723,529 @@
         "type": "String"
       }
     }
+  },
+  "commonKeep": "Behalten",
+  "@commonKeep": {
+    "description": "Knopf: etwas behalten statt verwerfen oder löschen."
+  },
+  "commonChange": "Ändern",
+  "@commonChange": {
+    "description": "Knopf: eine getroffene Wahl wieder öffnen."
+  },
+  "commonBack": "Zurück",
+  "@commonBack": {
+    "description": "Knopf: einen Schritt zurück, ohne etwas zu tun."
+  },
+  "commonMore": "Mehr",
+  "@commonMore": {
+    "description": "Tooltip eines Menüs mit weiteren Aktionen."
+  },
+  "commonNavigate": "Navigieren",
+  "@commonNavigate": {
+    "description": "Aktion: die Navigation auf dieser Route starten."
+  },
+  "commonPoints": "{count, plural, =1{1 Punkt} other{{count} Punkte}}",
+  "@commonPoints": {
+    "description": "Anzahl der GPS-Punkte einer Fahrt oder Spur.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "riderBio": "Bio-Bike",
+  "@riderBio": {
+    "description": "Fahrerprofil: Rad ohne Motor (kurz, steht in Umschaltern)."
+  },
+  "riderEbike": "E-Bike",
+  "@riderEbike": {
+    "description": "Fahrerprofil: Rad mit Motor (kurz, steht in Umschaltern)."
+  },
+  "rideNoticeTitle": "Fahrt wird aufgezeichnet",
+  "@rideNoticeTitle": {
+    "description": "Titel der dauerhaften Benachrichtigung, solange eine Fahrt aufgezeichnet wird (Android)."
+  },
+  "rideNoticeText": "TrailBuddy zeichnet deinen Weg auf. Die Fahrt bleibt auf dem Gerät.",
+  "@rideNoticeText": {
+    "description": "Text der dauerhaften Benachrichtigung während der Aufnahme."
+  },
+  "confirmReportedOpen": "wieder frei gemeldet",
+  "@confirmReportedOpen": {
+    "description": "Benachrichtigung unterwegs: Ein Buddy hat den Trail wieder frei gemeldet. Wird klein in einen Satz eingefügt."
+  },
+  "confirmReportedStatus": "gemeldet: {status}",
+  "@confirmReportedStatus": {
+    "description": "Benachrichtigung unterwegs: was zum Trail gemeldet ist; status ist klein geschrieben (z. B. „gesperrt\").",
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "confirmCondition": "Zustand: {condition}",
+  "@confirmCondition": {
+    "description": "Benachrichtigung unterwegs: der gemeldete Zustand des Trails.",
+    "placeholders": {
+      "condition": {
+        "type": "String"
+      }
+    }
+  },
+  "confirmQuestion": "{facts} — stimmt das?",
+  "@confirmQuestion": {
+    "description": "Benachrichtigung unterwegs: die Frage nach dem Gemeldeten; facts ist die Aufzählung davor.",
+    "placeholders": {
+      "facts": {
+        "type": "String"
+      }
+    }
+  },
+  "confirmYes": "Stimmt",
+  "@confirmYes": {
+    "description": "Knopf in der Benachrichtigung: das Gemeldete bestätigen."
+  },
+  "confirmFree": "Trail ist frei",
+  "@confirmFree": {
+    "description": "Knopf in der Benachrichtigung: der gemeldete Trail ist wieder frei."
+  },
+  "confirmChange": "Ändern…",
+  "@confirmChange": {
+    "description": "Knopf in der Benachrichtigung: öffnet die App, um das Gemeldete zu ändern."
+  },
+  "confirmSentQueued": "Gemeldet — geht raus, sobald Empfang da ist.",
+  "@confirmSentQueued": {
+    "description": "Zerlege-Blatt: Antwort auf eine Frage von unterwegs, noch im Ausgangskorb."
+  },
+  "confirmSent": "Gemeldet — danke.",
+  "@confirmSent": {
+    "description": "Zerlege-Blatt: Antwort auf eine Frage von unterwegs ist gesendet."
+  },
+  "confirmFailed": "Melden hat nicht geklappt. Im Trail-Blatt geht es noch einmal.",
+  "@confirmFailed": {
+    "description": "Zerlege-Blatt: Antwort ließ sich nicht senden."
+  },
+  "splitTitle": "Fahrt zerlegen",
+  "@splitTitle": {
+    "description": "Titel des Zerlege-Blatts aus „Meine Fahrten\" und Tooltip des Knopfs dafür."
+  },
+  "splitTitleEnded": "Fahrt beendet",
+  "@splitTitleEnded": {
+    "description": "Titel des Zerlege-Blatts direkt nach dem Ende einer Aufnahme."
+  },
+  "splitLoading": "Die Fahrt wird zerlegt: bekannte Trails, Kandidaten, Rest …",
+  "@splitLoading": {
+    "description": "Zerlege-Blatt, solange gerechnet wird."
+  },
+  "splitKnownTitle": "Wieder gefahren",
+  "@splitKnownTitle": {
+    "description": "Zerlege-Blatt: Überschrift über bekannten Trails, die die Fahrt enthält."
+  },
+  "splitKnownHint": "Vorangehakt — als Beleg beigesteuert, das hält den Trail aktuell.",
+  "@splitKnownHint": {
+    "description": "Zerlege-Blatt: Erklärung unter „Wieder gefahren\"."
+  },
+  "splitTakeOverAll": "Alle übernehmen",
+  "@splitTakeOverAll": {
+    "description": "Zerlege-Blatt: alle zum ersten Mal gefahrenen Trails auf einmal übernehmen."
+  },
+  "splitCandidatesTitle": "Kandidaten für neue Trails",
+  "@splitCandidatesTitle": {
+    "description": "Zerlege-Blatt: Überschrift über den gefundenen neuen Stücken."
+  },
+  "splitRoadsPartial": "Die Wege kennt die App hier nur zum Teil: Ein gespeicherter Bereich deckt die Fahrt nicht ganz. Von selbst findet sie Kandidaten erst, wenn ein Bereich bis Zoomstufe 13 die ganze Fahrt trägt (Knopf „Offline-Karten\" auf der Karte → Ausschnitt oder Fläche wählen → Speichern).",
+  "@splitRoadsPartial": {
+    "description": "Zerlege-Blatt: Die Fahrt liegt nur teilweise in gespeicherten Bereichen."
+  },
+  "splitRoadsNone": "Die Wege kennt die App hier nicht: Es gibt keinen gespeicherten Bereich über der Fahrt. Von selbst findet sie Kandidaten erst damit — Knopf „Offline-Karten\" auf der Karte → Ausschnitt oder Fläche wählen → Speichern, dann die Fahrt aus „Meine Fahrten\" noch einmal zerlegen.",
+  "@splitRoadsNone": {
+    "description": "Zerlege-Blatt: Kein gespeicherter Bereich über der Fahrt."
+  },
+  "splitNoElevation": "Ohne Höhen lässt sich kein Gefälle finden — die Spur trägt keine.",
+  "@splitNoElevation": {
+    "description": "Zerlege-Blatt: Die Spur hat keine Höhenangaben."
+  },
+  "splitNoCandidates": "Kein Stück mit anhaltendem Gefälle abseits von Wegen.",
+  "@splitNoCandidates": {
+    "description": "Zerlege-Blatt: Die Suche fand keinen Kandidaten."
+  },
+  "splitPickSection": "Stück selbst wählen",
+  "@splitPickSection": {
+    "description": "Zerlege-Blatt: Knopf, um selbst ein Stück der Fahrt zu wählen."
+  },
+  "splitPickHint": "Für alles, was die Suche nicht findet.",
+  "@splitPickHint": {
+    "description": "Zerlege-Blatt: Erklärung neben „Stück selbst wählen\"."
+  },
+  "splitRest": "Rest: {length} Anfahrt, Forstweg, Straße — wird nicht angeboten.",
+  "@splitRest": {
+    "description": "Zerlege-Blatt: was von der Fahrt übrig bleibt; length ist formatiert (z. B. 3,2 km).",
+    "placeholders": {
+      "length": {
+        "type": "String"
+      }
+    }
+  },
+  "splitDropped": "{count, plural, =1{1 unscharfer Punkt ausgelassen.} other{{count} unscharfe Punkte ausgelassen.}}",
+  "@splitDropped": {
+    "description": "Zerlege-Blatt: so viele ungenaue GPS-Punkte wurden ausgelassen.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "splitStaysOnDevice": "Die Fahrt bleibt als Ganzes auf deinem Gerät („Meine Fahrten\"); beigesteuert werden nur die gewählten Stücke.",
+  "@splitStaysOnDevice": {
+    "description": "Zerlege-Blatt: Datenschutz-Hinweis unten."
+  },
+  "splitDiscard": "Verwerfen",
+  "@splitDiscard": {
+    "description": "Zerlege-Blatt nach einer Aufnahme: die Fahrt nicht behalten."
+  },
+  "splitContribute": "{count} beisteuern",
+  "@splitContribute": {
+    "description": "Zerlege-Blatt: Hauptknopf; count ist die Zahl der gewählten Stücke.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "splitCandidateName": "Trail vom {date}",
+  "@splitCandidateName": {
+    "description": "Vorgabe-Name eines neuen Kandidaten; date ist Tag und Monat der Fahrt.",
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "splitCandidateNameNumbered": "Trail {number} vom {date}",
+  "@splitCandidateNameNumbered": {
+    "description": "Vorgabe-Name, wenn die Fahrt mehrere Kandidaten hat.",
+    "placeholders": {
+      "number": {
+        "type": "int"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "splitDatePattern": "d. MMMM",
+  "@splitDatePattern": {
+    "description": "Datumsmuster (intl DateFormat) für den Tag im Vorgabe-Namen, z. B. „12. Oktober\". Nur Musterzeichen ändern."
+  },
+  "splitTrailNoName": "Trail ohne Namen",
+  "@splitTrailNoName": {
+    "description": "Ersatz, wenn ein Trail keinen Namen hat."
+  },
+  "splitWithdrawTitle": "Die lange Fassung löschen?",
+  "@splitWithdrawTitle": {
+    "description": "Dialog nach dem Kürzen eines Trails im Zerlege-Blatt."
+  },
+  "splitWithdrawBody": "Das Stück ist beigesteuert. Deine Aufzeichnung an „{name}\" mit dem Rest lässt sich jetzt löschen — mit deinem Beitrag, deinen Meldungen und Hinweisen dort.",
+  "@splitWithdrawBody": {
+    "description": "Text des Dialogs „Die lange Fassung löschen?\".",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "splitWithdrawDone": "Die lange Fassung ist gelöscht",
+  "@splitWithdrawDone": {
+    "description": "Leiste nach dem Löschen der langen Fassung."
+  },
+  "splitFromNet": "Vorschlag aus dem Netz",
+  "@splitFromNet": {
+    "description": "Zerlege-Blatt: Hinweis an einem vorbelegten Wert, der aus dem Trail-Netz kommt."
+  },
+  "splitTakenOver": "Übernommen: {name}",
+  "@splitTakenOver": {
+    "description": "Zerlege-Blatt: zugeklappte Zeile eines übernommenen Trails.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "splitNoName": "ohne Namen",
+  "@splitNoName": {
+    "description": "Zerlege-Blatt: Ersatz in „Übernommen: …\", wenn kein Name eingetragen ist."
+  },
+  "splitTakeOverHint": "Zum ersten Mal gefahren — mach ihn dir zu eigen. Dann bleibt er dir, auch wenn der Buddy seinen Beitrag löscht. Ohne Bewertung wird das Stück nicht beigesteuert.",
+  "@splitTakeOverHint": {
+    "description": "Zerlege-Blatt: Karte zum Übernehmen eines Buddy-Trails."
+  },
+  "splitConditionToday": "Zustand heute (freiwillig)",
+  "@splitConditionToday": {
+    "description": "Zerlege-Blatt: Überschrift über der Zustandswahl."
+  },
+  "splitLastConfirmed": "Zuletzt bestätigt gemeldet",
+  "@splitLastConfirmed": {
+    "description": "Zerlege-Blatt: Hinweis neben dem zuletzt bestätigten Zustand."
+  },
+  "splitRateFirst": "Erst Sterne vergeben — wie gefällt er dir?",
+  "@splitRateFirst": {
+    "description": "Zerlege-Blatt: Übernehmen geht erst mit Bewertung."
+  },
+  "splitDiscardCandidate": "Kandidat verwerfen",
+  "@splitDiscardCandidate": {
+    "description": "Tooltip am X eines Kandidaten."
+  },
+  "splitPartLoss": "↓ {meters} Hm",
+  "@splitPartLoss": {
+    "description": "Zerlege-Blatt: Höhenmeter bergab eines Kandidaten.",
+    "placeholders": {
+      "meters": {
+        "type": "int"
+      }
+    }
+  },
+  "splitPartOffRoad": "{percent} % abseits von Wegen",
+  "@splitPartOffRoad": {
+    "description": "Zerlege-Blatt: Anteil des Kandidaten abseits von Wegen.",
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "splitPartManual": "selbst gewählt",
+  "@splitPartManual": {
+    "description": "Zerlege-Blatt: Kandidat ist selbst gewählt."
+  },
+  "splitPartMarked": "unterwegs markiert",
+  "@splitPartMarked": {
+    "description": "Zerlege-Blatt: Kandidat kommt aus Marken während der Fahrt."
+  },
+  "splitPartTooShort": "zu kurz für einen Trail",
+  "@splitPartTooShort": {
+    "description": "Zerlege-Blatt: Kandidat ist zu kurz zum Beisteuern."
+  },
+  "splitNearBoth": "Beginnt und endet nahe Start und Ziel deiner Fahrt.",
+  "@splitNearBoth": {
+    "description": "Zerlege-Blatt: Kandidat berührt die Heimzone an beiden Enden."
+  },
+  "splitNearStart": "Beginnt nahe deinem Start.",
+  "@splitNearStart": {
+    "description": "Zerlege-Blatt: Kandidat beginnt in der Heimzone."
+  },
+  "splitNearEnd": "Endet nahe deinem Ziel.",
+  "@splitNearEnd": {
+    "description": "Zerlege-Blatt: Kandidat endet in der Heimzone."
+  },
+  "ridesTitle": "Meine Fahrten",
+  "@ridesTitle": {
+    "description": "Titel der Seite mit den Fahrten auf dem Gerät."
+  },
+  "ridesLoadFailed": "Die Fahrten ließen sich nicht lesen.",
+  "@ridesLoadFailed": {
+    "description": "„Meine Fahrten\": Lesefehler."
+  },
+  "ridesEmpty": "Noch keine Fahrt. Starte eine auf der Karte mit dem Aufnahme-Knopf — sie bleibt auf deinem Gerät.",
+  "@ridesEmpty": {
+    "description": "„Meine Fahrten\" ohne Fahrt."
+  },
+  "ridesIntro": "Fahrten liegen nur auf diesem Gerät. Beigesteuert wird nie eine ganze Fahrt, nur ein Stück, das einen Trail belegt — „Zerlegen\" zeigt, welche. Nach links wischen löscht, langer Druck wählt mehrere.",
+  "@ridesIntro": {
+    "description": "„Meine Fahrten\": Erklärung über der Liste."
+  },
+  "ridesLastNav": "Zuletzt navigiert",
+  "@ridesLastNav": {
+    "description": "„Meine Fahrten\": Karte mit der zuletzt navigierten Route."
+  },
+  "ridesLastNavResume": "Weiter",
+  "@ridesLastNavResume": {
+    "description": "Knopf: die zuletzt navigierte Route wieder aufnehmen."
+  },
+  "ridesSelectionClose": "Auswahl beenden",
+  "@ridesSelectionClose": {
+    "description": "Tooltip: die Mehrfachauswahl verlassen."
+  },
+  "ridesSelected": "{count} ausgewählt",
+  "@ridesSelected": {
+    "description": "Kopfzeile bei Mehrfachauswahl.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "ridesSetBike": "Rad festlegen",
+  "@ridesSetBike": {
+    "description": "Tooltip: Menü, um den gewählten Fahrten ein Rad zuzuordnen."
+  },
+  "ridesAsProfile": "Als {profile}",
+  "@ridesAsProfile": {
+    "description": "Menüeintrag: den gewählten Fahrten dieses Rad zuordnen.",
+    "placeholders": {
+      "profile": {
+        "type": "String"
+      }
+    }
+  },
+  "ridesDeleteSelected": "Ausgewählte löschen",
+  "@ridesDeleteSelected": {
+    "description": "Tooltip: die gewählten Fahrten löschen."
+  },
+  "ridesDeleteTitle": "{count, plural, =1{Fahrt löschen?} other{{count} Fahrten löschen?}}",
+  "@ridesDeleteTitle": {
+    "description": "Titel der Nachfrage vor dem Löschen.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "ridesDeletePlannedTitle": "Geplante Fahrt löschen?",
+  "@ridesDeletePlannedTitle": {
+    "description": "Titel der Nachfrage vor dem Löschen einer geplanten Fahrt."
+  },
+  "ridesDeleteBody": "Die Aufzeichnung wird vom Gerät gelöscht. Beigesteuerte Trails bleiben davon unberührt.",
+  "@ridesDeleteBody": {
+    "description": "Nachfrage vor dem Löschen einer Aufzeichnung."
+  },
+  "ridesDeletePlannedBody": "Die geplante Runde wird vom Gerät gelöscht.",
+  "@ridesDeletePlannedBody": {
+    "description": "Nachfrage vor dem Löschen einer geplanten Fahrt."
+  },
+  "ridesDeleteMenu": "Fahrt löschen",
+  "@ridesDeleteMenu": {
+    "description": "Menüeintrag an einer Fahrt."
+  },
+  "ridesDeletePlannedMenu": "Geplante Fahrt löschen",
+  "@ridesDeletePlannedMenu": {
+    "description": "Menüeintrag an einer geplanten Fahrt."
+  },
+  "ridesProfileFailed": "Das Rad ließ sich nicht ändern.",
+  "@ridesProfileFailed": {
+    "description": "Leiste: Zuordnung des Rads gescheitert."
+  },
+  "ridesProfileSet": "{count, plural, =1{Fahrt als {profile} eingeordnet.} other{{count} Fahrten als {profile} eingeordnet.}}",
+  "@ridesProfileSet": {
+    "description": "Leiste nach dem Zuordnen eines Rads.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "profile": {
+        "type": "String"
+      }
+    }
+  },
+  "ridesRelearn": "Neu lernen",
+  "@ridesRelearn": {
+    "description": "Aktion in der Leiste: das Fahrerprofil aus den Fahrten neu lernen."
+  },
+  "ridesDatePattern": "EEEE, d. MMMM yyyy, HH:mm",
+  "@ridesDatePattern": {
+    "description": "Datumsmuster (intl DateFormat) für eine Fahrt in der Liste. Nur Musterzeichen ändern."
+  },
+  "ridesDayPattern": "d. MMMM yyyy",
+  "@ridesDayPattern": {
+    "description": "Datumsmuster (intl DateFormat) für den Tag einer Fahrt. Nur Musterzeichen ändern."
+  },
+  "ridesPlannedFallback": "Geplante Fahrt",
+  "@ridesPlannedFallback": {
+    "description": "Name einer geplanten Fahrt ohne eigenen Namen."
+  },
+  "ridesRideOn": "Fahrt vom {day}",
+  "@ridesRideOn": {
+    "description": "Titel einer Fahrt, wenn sie navigiert wird.",
+    "placeholders": {
+      "day": {
+        "type": "String"
+      }
+    }
+  },
+  "ridesPlannedOn": "Geplant am {day}",
+  "@ridesPlannedOn": {
+    "description": "Zeile unter einer geplanten Fahrt.",
+    "placeholders": {
+      "day": {
+        "type": "String"
+      }
+    }
+  },
+  "ridesAbout": "etwa {duration}",
+  "@ridesAbout": {
+    "description": "Geschätzte Dauer einer geplanten Fahrt.",
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "ridesFromGpx": "Aus GPX: {name}",
+  "@ridesFromGpx": {
+    "description": "Zeile unter einer importierten Fahrt; name ist der Dateiname.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "ridesFileFallback": "Datei",
+  "@ridesFileFallback": {
+    "description": "Ersatz, wenn eine importierte Fahrt keinen Namen hat."
+  },
+  "ridesChooseBike": "Rad wählen",
+  "@ridesChooseBike": {
+    "description": "Knopf an einer Fahrt ohne Rad."
+  },
+  "ridesChooseBikeGuess": "Rad wählen · passt zu {profile}",
+  "@ridesChooseBikeGuess": {
+    "description": "Knopf an einer Fahrt ohne Rad, mit Vermutung.",
+    "placeholders": {
+      "profile": {
+        "type": "String"
+      }
+    }
+  },
+  "ridesBikeTooltip": "Rad dieser Fahrt",
+  "@ridesBikeTooltip": {
+    "description": "Tooltip des Rad-Knopfs an einer Fahrt."
+  },
+  "learnPart": "{profile} aus {rides, plural, =1{1 Fahrt} other{{rides} Fahrten}} ({sections} Aufstiege)",
+  "@learnPart": {
+    "description": "Teil des Satzes nach dem Lernen des Fahrerprofils, je Rad.",
+    "placeholders": {
+      "profile": {
+        "type": "String"
+      },
+      "rides": {
+        "type": "int"
+      },
+      "sections": {
+        "type": "int"
+      }
+    }
+  },
+  "learnDone": "Gelernt: {parts}.",
+  "@learnDone": {
+    "description": "Satz nach dem Lernen; parts sind die Teile je Rad, mit · getrennt.",
+    "placeholders": {
+      "parts": {
+        "type": "String"
+      }
+    }
+  },
+  "learnNoRides": "Keine Fahrt auf diesem Gerät — gelernt wird aus deinen Aufzeichnungen und aus Fahrten, die du per GPX-Import übernommen hast.",
+  "@learnNoRides": {
+    "description": "Lernen ohne jede Fahrt."
+  },
+  "learnNoUsable": "Keine Fahrt mit Profil und Höhen — Aufzeichnungen seit 0.70.0 tragen beides, ältere Fahrten übernimmst du per GPX-Import mit Profil.",
+  "@learnNoUsable": {
+    "description": "Lernen: keine Fahrt mit Rad und Höhen."
+  },
+  "learnNoArea": "Kein gespeicherter Bereich deckt deine Fahrten — ohne Wege lässt sich kein Aufstieg einordnen.",
+  "@learnNoArea": {
+    "description": "Lernen: keine Fahrt liegt in einem gespeicherten Bereich."
+  },
+  "learnNoClimb": "Kein Aufstieg über 100 Höhenmeter am Stück gefunden — nichts zu lernen.",
+  "@learnNoClimb": {
+    "description": "Lernen: kein ausreichend langer Aufstieg."
   }
 }

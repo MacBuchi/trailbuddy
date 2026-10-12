@@ -13,6 +13,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:path_provider/path_provider.dart';
 
+import '../../l10n/l10n.dart';
 import '../../core/errors.dart';
 import '../../core/settings.dart';
 import '../../data/providers.dart';
@@ -237,8 +238,8 @@ class RideNotifier extends Notifier<RecordedRide?> {
   Future<void> _arm(String uid, DateTime startedAt) async {
     await ref.read(rideServiceBridgeProvider).arm(uid: uid, startedAt: startedAt);
     await ref.read(rideServiceProvider).start(
-          title: kRideNoticeTitle,
-          text: kRideNoticeText,
+          title: serviceL10n().rideNoticeTitle,
+          text: serviceL10n().rideNoticeText,
           every: kRideTickInterval,
         );
   }
