@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/errors.dart';
 import '../../core/read_after_write.dart';
+import '../../l10n/l10n.dart';
 import '../../models/trail.dart';
 import 'singletrail_scale.dart';
 import 'trail_link.dart';
@@ -31,14 +32,15 @@ Future<void> showTrailDetailsDialog(
   );
   if (result == null || !context.mounted) return;
   final messenger = ScaffoldMessenger.of(context);
+  final l = context.l10n;
   try {
     final outcome = await ref
         .read(trailsProvider.notifier)
         .saveDetails(result);
     messenger.showSnackBar(SnackBar(
         content: Text(switch (outcome) {
-      WriteOutcome.done => 'Beitrag gespeichert',
-      WriteOutcome.doneStale => 'Beitrag gespeichert$staleAfterWriteHint',
+      WriteOutcome.done => l.detailsSaved,
+      WriteOutcome.doneStale => '${l.detailsSaved}$staleAfterWriteHint',
       WriteOutcome.queued => kQueuedHint,
     })));
   } catch (e, st) {
@@ -79,8 +81,9 @@ class _DetailsDialogState extends State<_DetailsDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final l = context.l10n;
     return AlertDialog(
-      title: Text(widget.takeOver ? 'Übernehmen' : 'Mein Beitrag'),
+      title: Text(widget.takeOver ? l.detailsTitleTakeOver : l.detailsTitle),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -90,16 +93,14 @@ class _DetailsDialogState extends State<_DetailsDialog> {
                 padding: const EdgeInsets.only(bottom: 8),
                 child: Text(
                   key: const ValueKey('details-takeover-intro'),
-                  'Vorschlag aus dem Netz: vorbelegt mit dem, was deine Buddys '
-                  'sagen. Mit deinen Sternen wird der Trail ganz deiner — er '
-                  'bleibt, auch wenn ein Buddy seinen Beitrag löscht.',
+                  l.detailsTakeOverIntro,
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
               ),
             TextField(
               controller: _name,
               maxLength: kTrailNameMaxLength,
-              decoration: const InputDecoration(labelText: 'Name'),
+              decoration: InputDecoration(labelText: l.detailsName),
               textCapitalization: TextCapitalization.sentences,
             ),
             const SizedBox(height: 8),
@@ -111,14 +112,13 @@ class _DetailsDialogState extends State<_DetailsDialog> {
                   child: DropdownButtonFormField<int?>(
                     initialValue: _grade,
                     isExpanded: true,
-                    decoration: const InputDecoration(
-                        labelText: 'Schwierigkeit (Singletrail-Skala)'),
+                    decoration: InputDecoration(labelText: l.detailsGrade),
                     items: [
-                      const DropdownMenuItem<int?>(value: null, child: Text('Keine Angabe')),
+                      DropdownMenuItem<int?>(value: null, child: Text(l.detailsNoGrade)),
                       for (final g in kSingletrailScale)
                         DropdownMenuItem<int?>(
                           value: g.value,
-                          child: Text('${g.label} · ${g.short}',
+                          child: Text('${g.label} · ${g.short(l)}',
                               overflow: TextOverflow.ellipsis),
                         ),
                     ],
@@ -133,7 +133,7 @@ class _DetailsDialogState extends State<_DetailsDialog> {
             // Was jedes Merkmal heißt, steht direkt am Chip.
             Align(
               alignment: Alignment.centerLeft,
-              child: Text('Charakter', style: Theme.of(context).textTheme.bodySmall),
+              child: Text(l.detailsTraits, style: Theme.of(context).textTheme.bodySmall),
             ),
             const SizedBox(height: 4),
             Wrap(
@@ -154,14 +154,14 @@ class _DetailsDialogState extends State<_DetailsDialog> {
             // Ein zweiter Tipp auf denselben Stern nimmt sie zurück.
             Align(
               alignment: Alignment.centerLeft,
-              child: Text('Bewertung', style: Theme.of(context).textTheme.bodySmall),
+              child: Text(l.detailsRating, style: Theme.of(context).textTheme.bodySmall),
             ),
             Row(
               children: [
                 for (var i = kRatingMin; i <= kRatingMax; i++)
                   IconButton(
                     key: ValueKey('details-rating-$i'),
-                    tooltip: '$i von $kRatingMax Sternen',
+                    tooltip: l.ratingStarTooltip(i, kRatingMax),
                     visualDensity: VisualDensity.compact,
                     onPressed: () => setState(() => _rating = _rating == i ? null : i),
                     icon: Icon(_rating != null && i <= _rating!
@@ -175,15 +175,15 @@ class _DetailsDialogState extends State<_DetailsDialog> {
             SwitchListTile(
               key: const ValueKey('details-two-way'),
               contentPadding: EdgeInsets.zero,
-              title: const Text('In beide Richtungen fahrbar'),
-              subtitle: const Text('Etwa ein flacher Singletrail. Sonst plant TrailBuddy ihn nur in seiner Richtung.'),
+              title: Text(l.detailsTwoWay),
+              subtitle: Text(l.detailsTwoWaySubtitle),
               value: _twoWay,
               onChanged: (v) => setState(() => _twoWay = v),
             ),
             const SizedBox(height: 8),
             DropdownButtonFormField<TrailVisibility>(
               initialValue: _visibility,
-              decoration: const InputDecoration(labelText: 'Sichtbarkeit'),
+              decoration: InputDecoration(labelText: l.detailsVisibility),
               items: [
                 for (final v in TrailVisibility.values)
                   DropdownMenuItem(value: v, child: Text(v.label)),
@@ -193,7 +193,7 @@ class _DetailsDialogState extends State<_DetailsDialog> {
             const SizedBox(height: 8),
             TextField(
               controller: _description,
-              decoration: const InputDecoration(labelText: 'Beschreibung'),
+              decoration: InputDecoration(labelText: l.detailsDescription),
               maxLines: 3,
               textCapitalization: TextCapitalization.sentences,
             ),
@@ -206,8 +206,8 @@ class _DetailsDialogState extends State<_DetailsDialog> {
               keyboardType: TextInputType.url,
               autocorrect: false,
               decoration: InputDecoration(
-                labelText: 'Link zur Quelle (optional)',
-                hintText: 'z. B. die Seite des Vereins',
+                labelText: l.detailsLink,
+                hintText: l.detailsLinkHint,
                 errorText: _linkError,
               ),
             ),
@@ -217,7 +217,7 @@ class _DetailsDialogState extends State<_DetailsDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Abbrechen'),
+          child: Text(l.commonCancel),
         ),
         FilledButton(
           key: const ValueKey('details-save'),
@@ -226,7 +226,7 @@ class _DetailsDialogState extends State<_DetailsDialog> {
             final linkText = _link.text.trim();
             final link = sanitizeLink(linkText);
             if (linkText.isNotEmpty && link == null) {
-              setState(() => _linkError = 'Nur https-Adressen, ohne Leerzeichen');
+              setState(() => _linkError = l.detailsLinkError);
               return;
             }
             // Jedes Feld mit: Wer hier eines vergisst, löscht es beim
@@ -247,7 +247,7 @@ class _DetailsDialogState extends State<_DetailsDialog> {
               visibility: _visibility,
             ));
           },
-          child: const Text('Speichern'),
+          child: Text(l.commonSave),
         ),
       ],
     );

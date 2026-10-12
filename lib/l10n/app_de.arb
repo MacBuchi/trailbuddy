@@ -12,6 +12,22 @@
   "@commonUndo": {
     "description": "Aktion in einer Leiste: die letzte Änderung zurücknehmen."
   },
+  "commonSave": "Speichern",
+  "@commonSave": {
+    "description": "Knopf: Eingaben speichern."
+  },
+  "commonDelete": "Löschen",
+  "@commonDelete": {
+    "description": "Knopf: etwas endgültig löschen."
+  },
+  "commonDone": "Fertig",
+  "@commonDone": {
+    "description": "Knopf: einen Vorgang abschließen."
+  },
+  "commonClose": "Schließen",
+  "@commonClose": {
+    "description": "Knopf oder Tooltip: ein Blatt oder einen Dialog schließen."
+  },
   "mapViewportTooLarge": "Der Ausschnitt ist zu groß — erst näher heranzoomen.",
   "@mapViewportTooLarge": {
     "description": "Leiste beim Offline-Bereich: der Kartenausschnitt hat zu viele Kacheln."
@@ -680,6 +696,2031 @@
     "placeholders": {
       "zoom": {
         "type": "int"
+      }
+    }
+  },
+  "scaleS0Short": "fester Boden, ohne Hindernisse",
+  "@scaleS0Short": {
+    "description": "Singletrail-Skala, Kurzfassung von S0 (Auswahllisten, Tooltip, Schild)."
+  },
+  "scaleS1Short": "kleine Wurzeln und Steine",
+  "@scaleS1Short": {
+    "description": "Singletrail-Skala, Kurzfassung von S1."
+  },
+  "scaleS2Short": "größere Wurzeln, flache Stufen",
+  "@scaleS2Short": {
+    "description": "Singletrail-Skala, Kurzfassung von S2."
+  },
+  "scaleS3Short": "verblockt, hohe Stufen, enge Kehren",
+  "@scaleS3Short": {
+    "description": "Singletrail-Skala, Kurzfassung von S3."
+  },
+  "scaleS4Short": "sehr steil, Spitzkehren",
+  "@scaleS4Short": {
+    "description": "Singletrail-Skala, Kurzfassung von S4."
+  },
+  "scaleS5Short": "extrem, kaum fahrbar",
+  "@scaleS5Short": {
+    "description": "Singletrail-Skala, Kurzfassung von S5."
+  },
+  "scaleS0Description": "Fester, griffiger Untergrund ohne Wurzeln oder Steine; flach bis mäßig steil, weite Kurven.",
+  "@scaleS0Description": {
+    "description": "Erklärblatt der Singletrail-Skala: Beschreibung von S0."
+  },
+  "scaleS1Description": "Kleine Wurzeln und Steine, stellenweise loser Untergrund, etwas engere Kurven — ohne besondere Fahrtechnik fahrbar.",
+  "@scaleS1Description": {
+    "description": "Erklärblatt der Singletrail-Skala: Beschreibung von S1."
+  },
+  "scaleS2Description": "Größere Wurzeln und Steine, flache Stufen und Absätze, engere Kurven, oft loser Boden. Braucht Übung im Gelände.",
+  "@scaleS2Description": {
+    "description": "Erklärblatt der Singletrail-Skala: Beschreibung von S2."
+  },
+  "scaleS3Description": "Verblockt, hohe Stufen und Absätze, enge Kehren, rutschiger Untergrund, steile Stücke. Braucht sichere Fahrtechnik.",
+  "@scaleS3Description": {
+    "description": "Erklärblatt der Singletrail-Skala: Beschreibung von S3."
+  },
+  "scaleS4Description": "Sehr steil und verblockt, Spitzkehren, die nur mit Umsetzen des Hinterrads gehen. Nur mit Trialtechnik.",
+  "@scaleS4Description": {
+    "description": "Erklärblatt der Singletrail-Skala: Beschreibung von S4."
+  },
+  "scaleS5Description": "Extrem steil und verblockt, mehrere Hindernisse hintereinander, kaum Anlauf- oder Bremsweg. Für sehr wenige fahrbar.",
+  "@scaleS5Description": {
+    "description": "Erklärblatt der Singletrail-Skala: Beschreibung von S5."
+  },
+  "scaleSheetTitle": "Singletrail-Skala",
+  "@scaleSheetTitle": {
+    "description": "Überschrift des Erklärblatts der Singletrail-Skala (S0 bis S5)."
+  },
+  "scaleSheetIntro": "Wie schwierig ein Trail fahrtechnisch ist — bei guten Bedingungen. Nässe, Laub oder Schnee machen jeden Trail schwerer; Länge und Höhenmeter zählen hier nicht.",
+  "@scaleSheetIntro": {
+    "description": "Erklärblatt der Singletrail-Skala: Einleitung unter der Überschrift."
+  },
+  "scaleSheetFooter": "In TrailBuddy schätzt jeder, der einen Trail gefahren ist, selbst ein. Angezeigt wird der Median deiner Buddys, bei Gleichstand der schwerere Grad, dazu die Spanne.",
+  "@scaleSheetFooter": {
+    "description": "Erklärblatt der Singletrail-Skala: Fußzeile, wie der angezeigte Grad entsteht."
+  },
+  "scaleExplain": "Singletrail-Skala erklären",
+  "@scaleExplain": {
+    "description": "Tooltip des „?\"-Knopfs neben jeder Auswahl eines S-Grads."
+  },
+  "conditionTop": "Top gepflegt",
+  "@conditionTop": {
+    "description": "Zustand eines Trails, Stufe 5 (beste)."
+  },
+  "conditionTopDescription": "Sauber, griffig, alles an seinem Platz.",
+  "@conditionTopDescription": {
+    "description": "Zustand Stufe 5: ein Satz für Auswahl und Bildschirmleser."
+  },
+  "conditionGood": "Gut",
+  "@conditionGood": {
+    "description": "Zustand eines Trails, Stufe 4."
+  },
+  "conditionGoodDescription": "Normale Spuren, nichts, das stört.",
+  "@conditionGoodDescription": {
+    "description": "Zustand Stufe 4: ein Satz für Auswahl und Bildschirmleser."
+  },
+  "conditionWorn": "Ausgefahren",
+  "@conditionWorn": {
+    "description": "Zustand eines Trails, Stufe 3."
+  },
+  "conditionWornDescription": "Bremswellen, ausgewaschene Rinnen, lose Steine.",
+  "@conditionWornDescription": {
+    "description": "Zustand Stufe 3: ein Satz für Auswahl und Bildschirmleser."
+  },
+  "conditionRough": "Abgerockt",
+  "@conditionRough": {
+    "description": "Zustand eines Trails, Stufe 2."
+  },
+  "conditionRoughDescription": "Wurzeln frei, Löcher, Wildwuchs.",
+  "@conditionRoughDescription": {
+    "description": "Zustand Stufe 2: ein Satz für Auswahl und Bildschirmleser."
+  },
+  "conditionBarelyRideable": "Kaum fahrbar",
+  "@conditionBarelyRideable": {
+    "description": "Zustand eines Trails, Stufe 1 (schlechteste)."
+  },
+  "conditionBarelyRideableDescription": "Nur mit Mühe fahrbar.",
+  "@conditionBarelyRideableDescription": {
+    "description": "Zustand Stufe 1: ein Satz für Auswahl und Bildschirmleser."
+  },
+  "sheetValueSending": "wird übertragen …",
+  "@sheetValueSending": {
+    "description": "Trail-Blatt: Zeile unter dem eigenen S-Grad bzw. den Sternen, solange der Beitrag übertragen wird."
+  },
+  "sheetValueQueued": "nur auf dem Gerät — wartet auf Übertragung",
+  "@sheetValueQueued": {
+    "description": "Trail-Blatt: Zeile unter dem eigenen S-Grad bzw. den Sternen, solange der Beitrag im Ausgangskorb wartet."
+  },
+  "ratingStarTooltip": "{value} von {max} Sternen",
+  "@ratingStarTooltip": {
+    "description": "Tooltip eines Sterns beim Bewerten.",
+    "placeholders": {
+      "value": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "traitFlowyDescription": "Wellen, Anlieger, Rhythmus",
+  "@traitFlowyDescription": {
+    "description": "Charakter „Flowig\": Beschreibung als Tooltip am Chip."
+  },
+  "traitJumpsDescription": "Kicker, Drops, Tables",
+  "@traitJumpsDescription": {
+    "description": "Charakter „Jump-Line\": Beschreibung als Tooltip am Chip."
+  },
+  "traitRockyDescription": "Steine, Wurzeln, Stufen",
+  "@traitRockyDescription": {
+    "description": "Charakter „Verblockt\": Beschreibung als Tooltip am Chip."
+  },
+  "traitSteepDescription": "anhaltendes Gefälle",
+  "@traitSteepDescription": {
+    "description": "Charakter „Steil\": Beschreibung als Tooltip am Chip."
+  },
+  "traitUphillDescription": "Auffahrt, auch bergauf fahrbar",
+  "@traitUphillDescription": {
+    "description": "Charakter „Uphill\": Beschreibung als Tooltip am Chip."
+  },
+  "traitNaturalDescription": "naturbelassen, nicht gebaut",
+  "@traitNaturalDescription": {
+    "description": "Charakter „Naturtrail\": Beschreibung als Tooltip am Chip."
+  },
+  "traitConnectionDescription": "verbindet Trails, Forst- oder Wirtschaftsweg",
+  "@traitConnectionDescription": {
+    "description": "Charakter „Verbindung\": Beschreibung als Tooltip am Chip."
+  },
+  "gradeUphill": "Uphill",
+  "@gradeUphill": {
+    "description": "Schild am Trail (Bildschirmleser): der Trail ist ein Uphill."
+  },
+  "gradeShieldSemantics": "Schwierigkeit {grade}: {short}",
+  "@gradeShieldSemantics": {
+    "description": "Schild am Trail (Bildschirmleser): S-Grad mit Kurzfassung, z. B. „Schwierigkeit S2: größere Wurzeln, flache Stufen\".",
+    "placeholders": {
+      "grade": {
+        "type": "String"
+      },
+      "short": {
+        "type": "String"
+      }
+    }
+  },
+  "elevationProfileSemantics": "Höhenprofil, von {start} auf {end} Meter, höchster Punkt {top}, tiefster {bottom}",
+  "@elevationProfileSemantics": {
+    "description": "Höhenprofil (Bildschirmleser): Start- und Endhöhe, höchster und tiefster Punkt in Metern.",
+    "placeholders": {
+      "start": {
+        "type": "int"
+      },
+      "end": {
+        "type": "int"
+      },
+      "top": {
+        "type": "int"
+      },
+      "bottom": {
+        "type": "int"
+      }
+    }
+  },
+  "elevationStart": "Start",
+  "@elevationStart": {
+    "description": "Höhenprofil: Beschriftung links unter der Zeichnung (Anfang der Strecke)."
+  },
+  "elevationDownUp": "↓ {loss} Hm · ↑ {gain} Hm",
+  "@elevationDownUp": {
+    "description": "Höhenmeter eines Trails: bergab zuerst, dann bergauf (Hm = Höhenmeter).",
+    "placeholders": {
+      "loss": {
+        "type": "int"
+      },
+      "gain": {
+        "type": "int"
+      }
+    }
+  },
+  "elevationUnit": "Hm",
+  "@elevationUnit": {
+    "description": "Einheit Höhenmeter in der Kachel „Höhe\" des Trail-Blatts."
+  },
+  "elevationMeanFlat": "Ø eben",
+  "@elevationMeanFlat": {
+    "description": "Höhenprofil: mittleres Gefälle unter einem halben Prozent."
+  },
+  "elevationMeanDescent": "Ø {percent} % Gefälle",
+  "@elevationMeanDescent": {
+    "description": "Höhenprofil: mittleres Gefälle in Prozent.",
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "elevationMeanAscent": "Ø {percent} % Steigung",
+  "@elevationMeanAscent": {
+    "description": "Höhenprofil: mittlere Steigung in Prozent.",
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "sheetGone": "Dieser Trail ist nicht mehr sichtbar.",
+  "@sheetGone": {
+    "description": "Trail-Blatt, wenn der Trail inzwischen verschwunden ist."
+  },
+  "sheetBuddy": "Buddy",
+  "@sheetBuddy": {
+    "description": "Name eines Buddys, wenn der Benutzername fehlt."
+  },
+  "sheetYou": "Du",
+  "@sheetYou": {
+    "description": "Trail-Blatt: man selbst als Urheber (Einschätzung, Hinweis)."
+  },
+  "sheetNavigate": "Anfahrt",
+  "@sheetNavigate": {
+    "description": "Trail-Blatt: Tooltip des Knopfs, der die Navi-App zum Trailkopf öffnet."
+  },
+  "sheetAlsoNamed": "auch: {names}",
+  "@sheetAlsoNamed": {
+    "description": "Trail-Blatt: die anderen Namen des Trails unter dem Titel.",
+    "placeholders": {
+      "names": {
+        "type": "String"
+      }
+    }
+  },
+  "sheetOnlyYou": "Nur du hast diesen Trail belegt.",
+  "@sheetOnlyYou": {
+    "description": "Trail-Blatt: wer den Trail kennt, wenn es nur man selbst ist."
+  },
+  "sheetYouAndBuddies": "{count, plural, =1{Du und 1 Buddy ({names}).} other{Du und {count} Buddys ({names}).}}",
+  "@sheetYouAndBuddies": {
+    "description": "Trail-Blatt: wer den Trail kennt — man selbst und Buddys; names sind ihre Namen.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "names": {
+        "type": "String"
+      }
+    }
+  },
+  "sheetBuddyCount": "{count, plural, =1{1 Buddy} other{{count} Buddys}}",
+  "@sheetBuddyCount": {
+    "description": "Trail-Blatt: Zahl der Buddys, die den Trail belegt haben, wenn ihre Namen fehlen.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "sheetRecordedBy": "Belegt von {who} — du bist ihn noch nicht gefahren.",
+  "@sheetRecordedBy": {
+    "description": "Trail-Blatt: wer den Trail kennt, wenn man ihn selbst nicht belegt hat; who sind Namen oder eine Zahl von Buddys.",
+    "placeholders": {
+      "who": {
+        "type": "String"
+      }
+    }
+  },
+  "sheetDetailsSending": "Dein Beitrag wird übertragen …",
+  "@sheetDetailsSending": {
+    "description": "Trail-Blatt: der eigene Beitrag ist unterwegs zum Server."
+  },
+  "sheetDetailsQueued": "Dein Beitrag wartet auf Übertragung.",
+  "@sheetDetailsQueued": {
+    "description": "Trail-Blatt: der eigene Beitrag wartet im Ausgangskorb."
+  },
+  "sheetStatusUnconfirmed": "{status}? · zu bestätigen",
+  "@sheetStatusUnconfirmed": {
+    "description": "Trail-Blatt: Chip einer unbestätigten Meldung; status ist z. B. „Gesperrt\".",
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "sheetPanelProfile": "HÖHENPROFIL",
+  "@sheetPanelProfile": {
+    "description": "Trail-Blatt: Überschrift der Kachel mit dem Höhenprofil (Versalien)."
+  },
+  "sheetTerrainReimport": "Hat deine GPX-Datei Höhen, importiere sie noch einmal — sie werden nachgetragen.",
+  "@sheetTerrainReimport": {
+    "description": "Trail-Blatt unter einem Höhenprofil aus dem Geländemodell (eigener Trail)."
+  },
+  "sheetTerrainLoading": "Höhen werden aus dem Geländemodell gelesen …",
+  "@sheetTerrainLoading": {
+    "description": "Trail-Blatt: Höhen werden noch geladen."
+  },
+  "sheetNoElevationOwn": "Keine Höhenangaben. Hat deine GPX-Datei welche, importiere sie noch einmal — sie werden nachgetragen.",
+  "@sheetNoElevationOwn": {
+    "description": "Trail-Blatt: eigener Trail ohne Höhen."
+  },
+  "sheetNoElevation": "Keine Höhenangaben.",
+  "@sheetNoElevation": {
+    "description": "Trail-Blatt: Trail ohne Höhen."
+  },
+  "sheetExportGpx": "Als GPX exportieren",
+  "@sheetExportGpx": {
+    "description": "Trail-Blatt: Knopf, der den Trail als GPX-Datei teilt."
+  },
+  "sheetTakeOver": "Übernehmen",
+  "@sheetTakeOver": {
+    "description": "Trail-Blatt: Knopf, der einen Beitrag mit den Angaben der Buddys vorbelegt übernimmt."
+  },
+  "sheetContribution": "Mein Beitrag",
+  "@sheetContribution": {
+    "description": "Trail-Blatt: Knopf, der den eigenen Beitrag (Name, Grad, Sterne …) bearbeitet."
+  },
+  "sheetReport": "Melden",
+  "@sheetReport": {
+    "description": "Trail-Blatt: Knopf, der eine Meldung (gesperrt, Zustand …) abgibt."
+  },
+  "sheetTrailHead": "Zum Trailkopf",
+  "@sheetTrailHead": {
+    "description": "Trail-Blatt: Knopf, der den Weg zum Anfang des Trails auf der Karte plant."
+  },
+  "sheetShowOnMap": "Karte",
+  "@sheetShowOnMap": {
+    "description": "Trail-Blatt: Knopf, der den Trail auf der Karte zeigt."
+  },
+  "sheetPlannedAll": "Nur geplant: Jeder Beleg hier kommt aus einer Datei ohne Fahrzeiten — gefahren hat ihn niemand nachweislich.",
+  "@sheetPlannedAll": {
+    "description": "Trail-Blatt: alle Belege sind geplant (GPX ohne Zeiten)."
+  },
+  "sheetPlannedBy": "Nur geplant, nicht gefahren: {names}.",
+  "@sheetPlannedBy": {
+    "description": "Trail-Blatt: wer den Trail nur geplant hat; names ist eine Liste von Namen.",
+    "placeholders": {
+      "names": {
+        "type": "String"
+      }
+    }
+  },
+  "sheetPlannedYou": "du",
+  "@sheetPlannedYou": {
+    "description": "Trail-Blatt: man selbst in der Liste „Nur geplant, nicht gefahren\"."
+  },
+  "sheetWithdrawStays": "Der Trail bleibt für deine Buddys, die ihn auch belegt haben.",
+  "@sheetWithdrawStays": {
+    "description": "Dialog „Meinen Beitrag löschen?\": was danach bleibt."
+  },
+  "sheetWithdrawVanishes": "Der Trail verschwindet von deiner Karte.",
+  "@sheetWithdrawVanishes": {
+    "description": "Dialog „Meinen Beitrag löschen?\": was danach bleibt, wenn sonst niemand ihn belegt hat."
+  },
+  "sheetWithdrawTitle": "Meinen Beitrag löschen?",
+  "@sheetWithdrawTitle": {
+    "description": "Titel des Dialogs, der den eigenen Beitrag zu einem Trail löscht."
+  },
+  "sheetWithdrawBody": "Deine Aufzeichnungen, deine Einschätzung, deine Meldungen und deine Hinweise zu diesem Trail werden gelöscht. {consequence}",
+  "@sheetWithdrawBody": {
+    "description": "Dialog „Meinen Beitrag löschen?\"; consequence sagt, ob der Trail bleibt.",
+    "placeholders": {
+      "consequence": {
+        "type": "String"
+      }
+    }
+  },
+  "sheetWithdrawn": "Beitrag gelöscht",
+  "@sheetWithdrawn": {
+    "description": "Snackbar nach dem Löschen des eigenen Beitrags."
+  },
+  "sheetPendingWaiting": "Wartet auf Übertragung — geht raus, sobald wieder Netz da ist.",
+  "@sheetPendingWaiting": {
+    "description": "Trail-Blatt: neuer Trail wartet im Ausgangskorb."
+  },
+  "sheetPendingFailed": "Konnte nicht beigesteuert werden: {reason}",
+  "@sheetPendingFailed": {
+    "description": "Trail-Blatt: Server hat den neuen Trail abgelehnt; reason ist die Begründung.",
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "sheetPendingRetry": "Erneut versuchen",
+  "@sheetPendingRetry": {
+    "description": "Trail-Blatt: Knopf, der einen abgelehnten Auftrag erneut sendet."
+  },
+  "sheetPendingDiscard": "Aus dem Ausgangskorb entfernen",
+  "@sheetPendingDiscard": {
+    "description": "Trail-Blatt: Knopf, der einen wartenden Auftrag verwirft."
+  },
+  "sheetProfileDirection": "In Trail-Richtung",
+  "@sheetProfileDirection": {
+    "description": "Bildunterschrift des Höhenprofils: das Profil folgt der Richtung des Trails."
+  },
+  "sheetProfileSteepest": "steilstes Stück {percent} % auf {windowM} m",
+  "@sheetProfileSteepest": {
+    "description": "Bildunterschrift des Höhenprofils: steilstes Gefälle über eine feste Strecke.",
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      },
+      "windowM": {
+        "type": "int"
+      }
+    }
+  },
+  "gradeVoteCount": "{count, plural, =1{1 Einschätzung} other{{count} Einschätzungen}}",
+  "@gradeVoteCount": {
+    "description": "Zahl der S-Grad-Einschätzungen, z. B. in „S2 · S1–S3 · 4 Einschätzungen\".",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "gradeVotesTitle": "Schwierigkeit",
+  "@gradeVotesTitle": {
+    "description": "Überschrift des Blatts, das zeigt, wer welchen S-Grad angegeben hat."
+  },
+  "gradeNoVotes": "Noch keine Einschätzung",
+  "@gradeNoVotes": {
+    "description": "S-Grad eines Trails, den noch niemand eingeschätzt hat."
+  },
+  "gradeWhatMeans": "Was bedeuten S0 bis S5?",
+  "@gradeWhatMeans": {
+    "description": "Blatt der Einschätzungen: Knopf zum Erklärblatt der Singletrail-Skala."
+  },
+  "gradeSaved": "Einschätzung gespeichert",
+  "@gradeSaved": {
+    "description": "Snackbar nach dem Speichern des eigenen S-Grads."
+  },
+  "gradeYours": "Deine Einschätzung",
+  "@gradeYours": {
+    "description": "Trail-Blatt: Überschrift über der Auswahl des eigenen S-Grads."
+  },
+  "sheetPanelLength": "LÄNGE",
+  "@sheetPanelLength": {
+    "description": "Trail-Blatt: Überschrift der Kachel Länge (Versalien)."
+  },
+  "sheetPanelElevation": "HÖHE",
+  "@sheetPanelElevation": {
+    "description": "Trail-Blatt: Überschrift der Kachel Höhenmeter (Versalien)."
+  },
+  "sheetElevationFromTerrain": "{value} aus dem Geländemodell",
+  "@sheetElevationFromTerrain": {
+    "description": "Trail-Blatt, Kachel Höhe (Bildschirmleser): Höhenmeter, die aus dem Geländemodell stammen.",
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "sheetPanelGrade": "S-GRAD",
+  "@sheetPanelGrade": {
+    "description": "Trail-Blatt: Überschrift der Kachel S-Grad (Versalien)."
+  },
+  "ratingOpen": "Noch nicht bewertet, auch nicht von dir",
+  "@ratingOpen": {
+    "description": "Trail-Blatt, Kachel Bewertung (Bildschirmleser): eigener Trail ohne Sterne."
+  },
+  "ratingNone": "Noch keine Bewertung",
+  "@ratingNone": {
+    "description": "Trail-Blatt, Kachel Bewertung (Bildschirmleser): niemand hat Sterne vergeben."
+  },
+  "ratingVotes": "{count, plural, =1{1 Stimme} other{{count} Stimmen}}",
+  "@ratingVotes": {
+    "description": "Zahl der Stimmen einer Bewertung.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "ratingSemantics": "Bewertung {rating} von {max} Sternen, {votes}",
+  "@ratingSemantics": {
+    "description": "Trail-Blatt, Kachel Bewertung (Bildschirmleser); votes ist z. B. „3 Stimmen\".",
+    "placeholders": {
+      "rating": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      },
+      "votes": {
+        "type": "String"
+      }
+    }
+  },
+  "ratingShort": "{rating} von {max} · {votes}×",
+  "@ratingShort": {
+    "description": "Trail-Blatt, Kachel Bewertung: Sterne und Zahl der Stimmen.",
+    "placeholders": {
+      "rating": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      },
+      "votes": {
+        "type": "int"
+      }
+    }
+  },
+  "conditionUnconfirmedSemantics": "{condition}, {age}, zu bestätigen",
+  "@conditionUnconfirmedSemantics": {
+    "description": "Trail-Blatt, Kachel Zustand (Bildschirmleser): unbestätigter Zustand mit Alter.",
+    "placeholders": {
+      "condition": {
+        "type": "String"
+      },
+      "age": {
+        "type": "String"
+      }
+    }
+  },
+  "conditionNone": "Kein Zustand gemeldet",
+  "@conditionNone": {
+    "description": "Trail-Blatt, Kachel Zustand (Bildschirmleser): nichts gemeldet."
+  },
+  "conditionSemantics": "Zustand: {condition}",
+  "@conditionSemantics": {
+    "description": "Trail-Blatt, Kachel Zustand (Bildschirmleser).",
+    "placeholders": {
+      "condition": {
+        "type": "String"
+      }
+    }
+  },
+  "conditionUnconfirmed": "{condition}? · {age} · zu bestätigen",
+  "@conditionUnconfirmed": {
+    "description": "Trail-Blatt, Kachel Zustand: unbestätigter Zustand mit Alter.",
+    "placeholders": {
+      "condition": {
+        "type": "String"
+      },
+      "age": {
+        "type": "String"
+      }
+    }
+  },
+  "sheetPanelRating": "BEWERTUNG",
+  "@sheetPanelRating": {
+    "description": "Trail-Blatt: Überschrift der Kachel Bewertung (Versalien)."
+  },
+  "sheetPanelCondition": "ZUSTAND",
+  "@sheetPanelCondition": {
+    "description": "Trail-Blatt: Überschrift der Kachel Zustand (Versalien)."
+  },
+  "noteTitle": "Hinweise",
+  "@noteTitle": {
+    "description": "Trail-Blatt: Überschrift der Hinweise für Buddys."
+  },
+  "noteAdd": "Hinweis schreiben",
+  "@noteAdd": {
+    "description": "Knopf, der einen Hinweis für Buddys zu einem Trail schreibt."
+  },
+  "noteEmpty": "Noch keine. Ein Baum quer, ein neuer Drop? Deine Buddys sehen es hier.",
+  "@noteEmpty": {
+    "description": "Trail-Blatt: noch keine Hinweise."
+  },
+  "notePhotoFailed": "Hinweis gespeichert, das Foto aber nicht: {error}",
+  "@notePhotoFailed": {
+    "description": "Snackbar: Hinweis gespeichert, Foto gescheitert; error ist die Fehlermeldung.",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "noteSavedWithPhoto": "Hinweis mit Foto gespeichert",
+  "@noteSavedWithPhoto": {
+    "description": "Snackbar nach dem Speichern eines Hinweises mit Foto."
+  },
+  "noteSaved": "Hinweis gespeichert",
+  "@noteSaved": {
+    "description": "Snackbar nach dem Speichern eines Hinweises."
+  },
+  "noteDelete": "Hinweis löschen",
+  "@noteDelete": {
+    "description": "Tooltip am eigenen Hinweis."
+  },
+  "noteResolve": "Erledigt — Hinweis entfernen",
+  "@noteResolve": {
+    "description": "Tooltip am Hinweis eines Buddys: wer vor Ort war, entfernt ihn."
+  },
+  "noteDeleteTitle": "Hinweis löschen?",
+  "@noteDeleteTitle": {
+    "description": "Titel des Dialogs, der den eigenen Hinweis löscht."
+  },
+  "noteResolveTitle": "Als erledigt entfernen?",
+  "@noteResolveTitle": {
+    "description": "Titel des Dialogs, der den Hinweis eines Buddys als erledigt entfernt."
+  },
+  "noteDeleteBody": "„{body}\"",
+  "@noteDeleteBody": {
+    "description": "Dialog „Hinweis löschen?\": der Text des Hinweises in Anführungszeichen.",
+    "placeholders": {
+      "body": {
+        "type": "String"
+      }
+    }
+  },
+  "noteDeleteBodyPhoto": "„{body}\"\n\nDas Foto geht mit.",
+  "@noteDeleteBodyPhoto": {
+    "description": "Dialog „Hinweis löschen?\" bei einem Hinweis mit Foto.",
+    "placeholders": {
+      "body": {
+        "type": "String"
+      }
+    }
+  },
+  "noteResolveBody": "„{body}\"\n\nDer Hinweis verschwindet für alle, die ihn sehen — auch für {name}.",
+  "@noteResolveBody": {
+    "description": "Dialog „Als erledigt entfernen?\"; name ist der Buddy, der ihn geschrieben hat.",
+    "placeholders": {
+      "body": {
+        "type": "String"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "noteResolveBodyPhoto": "„{body}\"\n\nDer Hinweis verschwindet für alle, die ihn sehen — auch für {name}, samt Foto.",
+  "@noteResolveBodyPhoto": {
+    "description": "Dialog „Als erledigt entfernen?\" bei einem Hinweis mit Foto.",
+    "placeholders": {
+      "body": {
+        "type": "String"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "noteYourBuddy": "deinen Buddy",
+  "@noteYourBuddy": {
+    "description": "Dialog „Als erledigt entfernen?\": der Buddy, wenn sein Name fehlt (Akkusativ: „auch für deinen Buddy\")."
+  },
+  "noteRemove": "Entfernen",
+  "@noteRemove": {
+    "description": "Dialog „Als erledigt entfernen?\": Knopf zum Bestätigen."
+  },
+  "noteRemoved": "Hinweis entfernt",
+  "@noteRemoved": {
+    "description": "Snackbar nach dem Entfernen eines Hinweises."
+  },
+  "noteAudiencePrivate": "Dein Beitrag steht auf „Nur für mich\" — dann siehst nur du den Hinweis.",
+  "@noteAudiencePrivate": {
+    "description": "Dialog „Hinweis für Buddys\": wer den Hinweis sieht, bei privatem Beitrag."
+  },
+  "noteAudienceBuddies": "Sehen deine Buddys, die diesen Trail auch sehen.",
+  "@noteAudienceBuddies": {
+    "description": "Dialog „Hinweis für Buddys\": wer den Hinweis sieht."
+  },
+  "notePhotoPrivate": "Nur du siehst es, {days} Tage lang. Ortsangaben im Bild werden entfernt — ein erkennbarer Ort bleibt erkennbar.",
+  "@notePhotoPrivate": {
+    "description": "Dialog „Hinweis für Buddys\": Satz neben dem angehängten Foto, privater Beitrag.",
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "notePhotoShared": "Sehen dieselben wie den Hinweis, {days} Tage lang. Ortsangaben im Bild werden entfernt — ein erkennbarer Ort bleibt erkennbar.",
+  "@notePhotoShared": {
+    "description": "Dialog „Hinweis für Buddys\": Satz neben dem angehängten Foto.",
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "noteDialogTitle": "Hinweis für Buddys",
+  "@noteDialogTitle": {
+    "description": "Titel des Dialogs, in dem man einen Hinweis zu einem Trail schreibt."
+  },
+  "noteHint": "z. B. Baum liegt quer nach der zweiten Kehre",
+  "@noteHint": {
+    "description": "Platzhalter im Textfeld eines neuen Hinweises."
+  },
+  "notePhotoOpen": "Foto zum Hinweis öffnen",
+  "@notePhotoOpen": {
+    "description": "Bildschirmleser: Vorschaubild am Hinweis, öffnet das Foto."
+  },
+  "notePhotoLabel": "Foto zum Hinweis",
+  "@notePhotoLabel": {
+    "description": "Bildschirmleser: das Foto in voller Größe."
+  },
+  "notePhotoFullFailed": "Das Bild in voller Größe lädt gerade nicht — {error}",
+  "@notePhotoFullFailed": {
+    "description": "Foto zum Hinweis: große Fassung lädt nicht; error ist die Fehlermeldung.",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "detailsSaved": "Beitrag gespeichert",
+  "@detailsSaved": {
+    "description": "Snackbar nach dem Speichern des eigenen Beitrags."
+  },
+  "detailsTitle": "Mein Beitrag",
+  "@detailsTitle": {
+    "description": "Titel des Dialogs mit dem eigenen Beitrag zu einem Trail."
+  },
+  "detailsTitleTakeOver": "Übernehmen",
+  "@detailsTitleTakeOver": {
+    "description": "Titel des Dialogs, wenn man einen Beitrag mit den Angaben der Buddys übernimmt."
+  },
+  "detailsTakeOverIntro": "Vorschlag aus dem Netz: vorbelegt mit dem, was deine Buddys sagen. Mit deinen Sternen wird der Trail ganz deiner — er bleibt, auch wenn ein Buddy seinen Beitrag löscht.",
+  "@detailsTakeOverIntro": {
+    "description": "Dialog „Übernehmen\": Erklärung oben."
+  },
+  "detailsName": "Name",
+  "@detailsName": {
+    "description": "Dialog „Mein Beitrag\": Feld für den Namen des Trails."
+  },
+  "detailsGrade": "Schwierigkeit (Singletrail-Skala)",
+  "@detailsGrade": {
+    "description": "Dialog „Mein Beitrag\": Auswahl des S-Grads."
+  },
+  "detailsNoGrade": "Keine Angabe",
+  "@detailsNoGrade": {
+    "description": "Dialog „Mein Beitrag\": kein S-Grad gewählt."
+  },
+  "detailsTraits": "Charakter",
+  "@detailsTraits": {
+    "description": "Dialog „Mein Beitrag\": Überschrift über den Merkmalen (flowig, verblockt …)."
+  },
+  "detailsRating": "Bewertung",
+  "@detailsRating": {
+    "description": "Dialog „Mein Beitrag\": Überschrift über den Sternen."
+  },
+  "detailsTwoWay": "In beide Richtungen fahrbar",
+  "@detailsTwoWay": {
+    "description": "Dialog „Mein Beitrag\": Schalter für die Richtung."
+  },
+  "detailsTwoWaySubtitle": "Etwa ein flacher Singletrail. Sonst plant TrailBuddy ihn nur in seiner Richtung.",
+  "@detailsTwoWaySubtitle": {
+    "description": "Dialog „Mein Beitrag\": Erklärung unter dem Schalter für die Richtung."
+  },
+  "detailsVisibility": "Sichtbarkeit",
+  "@detailsVisibility": {
+    "description": "Dialog „Mein Beitrag\": Auswahl, wer den Beitrag sieht."
+  },
+  "detailsDescription": "Beschreibung",
+  "@detailsDescription": {
+    "description": "Dialog „Mein Beitrag\": Feld für eine Beschreibung."
+  },
+  "detailsLink": "Link zur Quelle (optional)",
+  "@detailsLink": {
+    "description": "Dialog „Mein Beitrag\": Feld für einen Link."
+  },
+  "detailsLinkHint": "z. B. die Seite des Vereins",
+  "@detailsLinkHint": {
+    "description": "Dialog „Mein Beitrag\": Platzhalter im Feld für den Link."
+  },
+  "detailsLinkError": "Nur https-Adressen, ohne Leerzeichen",
+  "@detailsLinkError": {
+    "description": "Dialog „Mein Beitrag\": Fehler bei einem ungültigen Link."
+  },
+  "sheetNoElevationTile": "Keine Höhenangaben",
+  "@sheetNoElevationTile": {
+    "description": "Trail-Blatt, Kachel Höhe (Bildschirmleser): Trail ohne Höhen."
+  },
+  "gpxZipUnreadable": "{file}: Zip-Archiv ist leer oder nicht lesbar.",
+  "@gpxZipUnreadable": {
+    "description": "GPX-Import: Fehlerzeile, wenn ein gewähltes Zip-Archiv kaputt oder leer ist. {file} ist der Dateiname.",
+    "placeholders": {
+      "file": {
+        "type": "String"
+      }
+    }
+  },
+  "gpxZipNoGpx": "{file}: keine GPX-Datei im Archiv.",
+  "@gpxZipNoGpx": {
+    "description": "GPX-Import: Fehlerzeile, wenn ein Zip-Archiv keine .gpx-Datei enthält. {file} ist der Dateiname.",
+    "placeholders": {
+      "file": {
+        "type": "String"
+      }
+    }
+  },
+  "gpxNotGpxOrZip": "{file}: weder GPX noch Zip.",
+  "@gpxNotGpxOrZip": {
+    "description": "GPX-Import: Fehlerzeile, wenn die gewählte Datei weder GPX noch Zip ist (etwa ein Foto). {file} ist der Dateiname.",
+    "placeholders": {
+      "file": {
+        "type": "String"
+      }
+    }
+  },
+  "heightsTerrainLabel": "Höhen aus dem Geländemodell (90 m)",
+  "@heightsTerrainLabel": {
+    "description": "Beschriftung unter einem Höhenprofil, dessen Höhen aus dem Geländemodell (90-m-Raster) statt aus einer Aufzeichnung kommen."
+  },
+  "heightsReasonAbove": "Die Höhen der Datei liegen im Mittel {meters} m über dem Gelände.",
+  "@heightsReasonAbove": {
+    "description": "GPX-Import: warum die Höhen einer Datei verdächtig sind — die ganze Spur liegt über dem Geländemodell. {meters} in ganzen Metern.",
+    "placeholders": {
+      "meters": {
+        "type": "int"
+      }
+    }
+  },
+  "heightsReasonBelow": "Die Höhen der Datei liegen im Mittel {meters} m unter dem Gelände.",
+  "@heightsReasonBelow": {
+    "description": "GPX-Import: wie heightsReasonAbove, die Spur liegt unter dem Geländemodell.",
+    "placeholders": {
+      "meters": {
+        "type": "int"
+      }
+    }
+  },
+  "heightsReasonSpread": "Die Höhen der Datei springen bis {meters} m daneben.",
+  "@heightsReasonSpread": {
+    "description": "GPX-Import: warum die Höhen einer Datei verdächtig sind — einzelne Punkte springen weit neben das Geländemodell.",
+    "placeholders": {
+      "meters": {
+        "type": "int"
+      }
+    }
+  },
+  "heightsReasonAboveAndSpread": "Die Höhen der Datei liegen im Mittel {offset} m über dem Gelände und springen bis {spread} m daneben.",
+  "@heightsReasonAboveAndSpread": {
+    "description": "GPX-Import: beides zugleich — Versatz nach oben und Sprünge. Werte in ganzen Metern.",
+    "placeholders": {
+      "offset": {
+        "type": "int"
+      },
+      "spread": {
+        "type": "int"
+      }
+    }
+  },
+  "heightsReasonBelowAndSpread": "Die Höhen der Datei liegen im Mittel {offset} m unter dem Gelände und springen bis {spread} m daneben.",
+  "@heightsReasonBelowAndSpread": {
+    "description": "GPX-Import: beides zugleich — Versatz nach unten und Sprünge. Werte in ganzen Metern.",
+    "placeholders": {
+      "offset": {
+        "type": "int"
+      },
+      "spread": {
+        "type": "int"
+      }
+    }
+  },
+  "importTitle": "GPX importieren",
+  "@importTitle": {
+    "description": "Titel des Screens „GPX importieren\"."
+  },
+  "importIntro": "Kurze Spuren, die überwiegend bergab führen, werden als Trail beigesteuert. Ganze Fahrten (ab 8 km oder mit mehr Auf- als Abstieg) zerlegst du auf der Karte in bekannte Trails und Kandidaten — die Schere neben der Spur. Was du beisteuerst, sehen deine Buddys; der Server gleicht es still mit bekannten Trails ab.",
+  "@importIntro": {
+    "description": "GPX-Import: Erklärtext oben im Screen, was aus einer Datei wird."
+  },
+  "importPickButton": "GPX- oder Zip-Dateien wählen",
+  "@importPickButton": {
+    "description": "GPX-Import: Knopf, der die Dateiauswahl öffnet."
+  },
+  "importPickFailed": "Dateiauswahl fehlgeschlagen.",
+  "@importPickFailed": {
+    "description": "GPX-Import: Fehlerzeile, wenn die Dateiauswahl des Systems scheitert."
+  },
+  "importLearnFailed": "Das Lernen ist fehlgeschlagen.",
+  "@importLearnFailed": {
+    "description": "GPX-Import, Abschnitt Fahrten: das Fahrerprofil konnte nicht aus den Fahrten lernen."
+  },
+  "importDailyLimit": "Für heute ist das Limit erreicht. Die übrigen bleiben angehakt — morgen einfach noch einmal „beisteuern\".",
+  "@importDailyLimit": {
+    "description": "GPX-Import: Fehlerzeile, wenn das Tageslimit für neue Trails erreicht ist. „beisteuern\" meint den Knopf unten."
+  },
+  "importSnackContributed": "{count, plural, =1{{count} Trail beigesteuert} other{{count} Trails beigesteuert}}",
+  "@importSnackContributed": {
+    "description": "GPX-Import, Meldung nach dem Beisteuern: erster Teil, wie viele Trails beigesteuert wurden. Weitere Teile folgen mit Komma.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "importSnackQueued": "{count, plural, =1{{count} wartet im Ausgangskorb auf Netz} other{{count} warten im Ausgangskorb auf Netz}}",
+  "@importSnackQueued": {
+    "description": "GPX-Import, Meldung nach dem Beisteuern: Teil, wie viele ohne Netz im Ausgangskorb warten.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "importSnackBackfilled": "{count} mit nachgetragenen Höhen",
+  "@importSnackBackfilled": {
+    "description": "GPX-Import, Meldung nach dem Beisteuern: Teil, wie viele schon beigesteuerte Trails Höhen nachgetragen bekamen.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "importSnackNamed": "{count, plural, =1{{count} Name übernommen} other{{count} Namen übernommen}}",
+  "@importSnackNamed": {
+    "description": "GPX-Import, Meldung nach dem Beisteuern: Teil, wie viele Namen aus der Datei übernommen wurden.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "importFailedCount": "{count} fehlgeschlagen",
+  "@importFailedCount": {
+    "description": "GPX-Import: Teil einer Ergebniszeile, wie viele fehlgeschlagen sind (Trails oder Fahrten).",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "importSnackStale": "{summary} — sichtbar, sobald die Liste wieder lädt.",
+  "@importSnackStale": {
+    "description": "GPX-Import, Meldung nach dem Beisteuern, wenn die Liste danach nicht neu laden konnte. {summary} ist der Rest der Meldung.",
+    "placeholders": {
+      "summary": {
+        "type": "String"
+      }
+    }
+  },
+  "importResultContributed": "{count} beigesteuert",
+  "@importResultContributed": {
+    "description": "GPX-Import, Ergebniszeile im Screen: wie viele beigesteuert wurden.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "importResultQueued": "{count} im Ausgangskorb",
+  "@importResultQueued": {
+    "description": "GPX-Import, Ergebniszeile im Screen: wie viele im Ausgangskorb warten.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "importResultBackfilled": "{count} Höhen nachgetragen",
+  "@importResultBackfilled": {
+    "description": "GPX-Import, Ergebniszeile im Screen: bei wie vielen Höhen nachgetragen wurden.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "importResultNamed": "{count, plural, =1{{count} Name übernommen} other{{count} Namen übernommen}}",
+  "@importResultNamed": {
+    "description": "GPX-Import, Ergebniszeile im Screen: wie viele Namen übernommen wurden.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "importTakeOverHint": "Kanntest du schon über deine Buddys — übernimm ihn mit deinen Sternen.",
+  "@importTakeOverHint": {
+    "description": "GPX-Import, nach dem Beisteuern: Untertitel eines Trails, den man vorher nur über Buddys sah und jetzt übernehmen kann."
+  },
+  "importTakenOver": "Übernommen.",
+  "@importTakenOver": {
+    "description": "GPX-Import: Untertitel eines solchen Trails, nachdem er übernommen ist."
+  },
+  "importTakeOverButton": "Übernehmen",
+  "@importTakeOverButton": {
+    "description": "GPX-Import: Knopf, der den Dialog zum Übernehmen eines Trails öffnet."
+  },
+  "importFound": "{count, plural, =1{{count} Spur gefunden, {selectable} davon als Trail} other{{count} Spuren gefunden, {selectable} davon als Trail}}",
+  "@importFound": {
+    "description": "GPX-Import: Überschrift über der Liste der gefundenen Spuren — wie viele, und wie viele davon als Trail taugen.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "selectable": {
+        "type": "int"
+      }
+    }
+  },
+  "importFoundWithBackfill": "{count, plural, =1{{count} Spur gefunden, {selectable} davon als Trail, {backfills} zum Nachtragen} other{{count} Spuren gefunden, {selectable} davon als Trail, {backfills} zum Nachtragen}}",
+  "@importFoundWithBackfill": {
+    "description": "GPX-Import: wie importFound, dazu wie viele schon beigesteuerte Spuren Höhen oder Namen nachgetragen bekommen.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "selectable": {
+        "type": "int"
+      },
+      "backfills": {
+        "type": "int"
+      }
+    }
+  },
+  "importSplitRide": "Fahrt zerlegen",
+  "@importSplitRide": {
+    "description": "GPX-Import: Tooltip der Schere neben einer Fahrt — öffnet das Zerlege-Blatt auf der Karte."
+  },
+  "importDiscardHeights": "Höhen der Datei verwerfen, Geländemodell anzeigen",
+  "@importDiscardHeights": {
+    "description": "GPX-Import: Kästchen unter einer Spur, deren Höhen weit neben dem Geländemodell liegen."
+  },
+  "importRideDate": "Gefahren am …",
+  "@importRideDate": {
+    "description": "GPX-Import: Knopf unter einer Spur ohne Fahrzeiten, um das Fahrdatum einzutragen."
+  },
+  "importRideDateChange": "Gefahren am {date} · ändern",
+  "@importRideDateChange": {
+    "description": "GPX-Import: derselbe Knopf mit eingetragenem Datum. {date} ist das Datum (z. B. 12.9.2026).",
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "importRideDateQuestion": "Wann bist du ihn gefahren?",
+  "@importRideDateQuestion": {
+    "description": "GPX-Import: Überschrift der Datumsauswahl für das Fahrdatum eines Trails."
+  },
+  "importAdoptButton": "{count} übernehmen",
+  "@importAdoptButton": {
+    "description": "GPX-Import: Hauptknopf, wenn unter den gewählten Spuren schon beigesteuerte sind, die etwas nachgetragen bekommen.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "importContributeButton": "{count} beisteuern",
+  "@importContributeButton": {
+    "description": "GPX-Import: Hauptknopf, der die gewählten Spuren als Trails beisteuert.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "importRideGuessUnguessed": "{count} ohne Vorschlag",
+  "@importRideGuessUnguessed": {
+    "description": "GPX-Import, Abschnitt Fahrten: Teil der Aufzählung, für wie viele Fahrten die Steigrate kein Rad vorschlägt.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "importRidesTitle": "Fahrten für dein Fahrerprofil",
+  "@importRidesTitle": {
+    "description": "GPX-Import: Überschrift des Abschnitts, der Fahrten aufs Gerät speichert."
+  },
+  "importRidesIntro": "{count, plural, =1{{count} Fahrt mit Fahrzeiten. Gespeichert liegen sie unter „Meine Fahrten\", und das Fahrerprofil lernt aus ihnen, wie schnell du bergauf kommst. Sie bleiben auf diesem Gerät.} other{{count} Fahrten mit Fahrzeiten. Gespeichert liegen sie unter „Meine Fahrten\", und das Fahrerprofil lernt aus ihnen, wie schnell du bergauf kommst. Sie bleiben auf diesem Gerät.}}",
+  "@importRidesIntro": {
+    "description": "GPX-Import, Abschnitt Fahrten: Erklärtext, wie viele Fahrten mit Fahrzeiten in den Dateien sind und was mit ihnen geschieht.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "importRidesHeightless": "{count} davon ohne Höhen — sie lernen nichts.",
+  "@importRidesHeightless": {
+    "description": "GPX-Import, Abschnitt Fahrten: Zusatzsatz, wie viele der Fahrten keine Höhen haben.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "importRideGuess": "Nach der Steigrate: {guesses}. So werden sie gespeichert — ändern kannst du es danach unter „Meine Fahrten\".",
+  "@importRideGuess": {
+    "description": "GPX-Import, Abschnitt Fahrten: welches Rad die Steigrate je Fahrt vorschlägt. {guesses} ist eine Aufzählung wie „2 × E-Bike, 1 × Bio-Bike\".",
+    "placeholders": {
+      "guesses": {
+        "type": "String"
+      }
+    }
+  },
+  "importRideGuessRest": "Nach der Steigrate: {guesses}. So werden sie gespeichert, die übrigen mit dem Rad unten — ändern kannst du es danach unter „Meine Fahrten\".",
+  "@importRideGuessRest": {
+    "description": "GPX-Import, Abschnitt Fahrten: wie importRideGuess, wenn nicht jede Fahrt einen Vorschlag hat; die übrigen nehmen das Rad aus dem Knopf darunter.",
+    "placeholders": {
+      "guesses": {
+        "type": "String"
+      }
+    }
+  },
+  "importRideProfileAll": "Gefahren mit",
+  "@importRideProfileAll": {
+    "description": "GPX-Import, Abschnitt Fahrten: Beschriftung über der Wahl Bio-Bike/E-Bike."
+  },
+  "importRideProfileRest": "Ohne Vorschlag gefahren mit",
+  "@importRideProfileRest": {
+    "description": "GPX-Import, Abschnitt Fahrten: dieselbe Beschriftung, wenn nur ein Teil der Fahrten keinen Vorschlag hat."
+  },
+  "importSaveRides": "{count, plural, =1{{count} als Fahrt speichern} other{{count} als Fahrten speichern}}",
+  "@importSaveRides": {
+    "description": "GPX-Import, Abschnitt Fahrten: Knopf, der die Fahrten aufs Gerät speichert.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "importRidesSaved": "{count} gespeichert",
+  "@importRidesSaved": {
+    "description": "GPX-Import, Abschnitt Fahrten: Ergebnis, wie viele gespeichert wurden.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "importRidesExisted": "{count} schon auf dem Gerät",
+  "@importRidesExisted": {
+    "description": "GPX-Import, Abschnitt Fahrten: Ergebnis, wie viele schon auf dem Gerät lagen.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "importLearnNow": "Fahrerprofil jetzt lernen lassen",
+  "@importLearnNow": {
+    "description": "GPX-Import, Abschnitt Fahrten: Knopf, der das Fahrerprofil aus den gespeicherten Fahrten lernen lässt."
+  },
+  "importExistingDiscardAdopt": "schon beigesteuert — Name wird übernommen, Höhen der Datei verworfen",
+  "@importExistingDiscardAdopt": {
+    "description": "GPX-Import, Zeile unter einer Spur, die es schon als eigene Aufzeichnung gibt."
+  },
+  "importExistingDiscard": "schon beigesteuert — Höhen der Datei verworfen",
+  "@importExistingDiscard": {
+    "description": "GPX-Import, Zeile unter einer schon beigesteuerten Spur."
+  },
+  "importExistingBackfillAdopt": "schon beigesteuert — Höhen und Name werden nachgetragen",
+  "@importExistingBackfillAdopt": {
+    "description": "GPX-Import, Zeile unter einer schon beigesteuerten Spur."
+  },
+  "importExistingBackfill": "schon beigesteuert — Höhen werden nachgetragen",
+  "@importExistingBackfill": {
+    "description": "GPX-Import, Zeile unter einer schon beigesteuerten Spur."
+  },
+  "importExistingAdopt": "schon beigesteuert — Name wird übernommen",
+  "@importExistingAdopt": {
+    "description": "GPX-Import, Zeile unter einer schon beigesteuerten Spur."
+  },
+  "importExisting": "schon beigesteuert",
+  "@importExisting": {
+    "description": "GPX-Import, Zeile unter einer schon beigesteuerten Spur, an der nichts nachzutragen ist."
+  },
+  "importExistingNoHeights": "schon beigesteuert, die Datei hat keine Höhen",
+  "@importExistingNoHeights": {
+    "description": "GPX-Import, Zeile unter einer schon beigesteuerten Spur ohne Höhen in der Datei."
+  },
+  "importWithoutFileHeights": "ohne Höhen der Datei",
+  "@importWithoutFileHeights": {
+    "description": "GPX-Import, Teil der Zeile unter einer Spur, deren Höhen verworfen werden."
+  },
+  "importSourcePlanned": "geplant (keine Fahrzeiten)",
+  "@importSourcePlanned": {
+    "description": "GPX-Import, Teil der Zeile unter einer Spur ohne Zeitstempel."
+  },
+  "importSourceDrawnRidden": "gezeichnet, gefahren am {date}",
+  "@importSourceDrawnRidden": {
+    "description": "GPX-Import, Teil der Zeile unter einer gezeichneten Spur mit eingetragenem Fahrdatum.",
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "importSourceRecorded": "aufgezeichnet",
+  "@importSourceRecorded": {
+    "description": "GPX-Import, Teil der Zeile unter einer aufgezeichneten Spur (mit Zeitstempeln)."
+  },
+  "importKindTrail": "Trail",
+  "@importKindTrail": {
+    "description": "GPX-Import, Teil der Zeile: die Spur taugt als Trail."
+  },
+  "importKindRide": "Fahrt — auf der Karte zerlegen",
+  "@importKindRide": {
+    "description": "GPX-Import, Teil der Zeile: die Spur ist eine ganze Fahrt."
+  },
+  "importKindFragment": "zu kurz für einen Trail",
+  "@importKindFragment": {
+    "description": "GPX-Import, Teil der Zeile: die Spur ist zu kurz."
+  },
+  "trailsTitle": "TRAILS",
+  "@trailsTitle": {
+    "description": "Reiter „Trails\": Überschrift oben, in Versalien."
+  },
+  "trailsImportTooltip": "GPX importieren",
+  "@trailsImportTooltip": {
+    "description": "Reiter „Trails\": Tooltip des Knopfs oben rechts, der zum GPX-Import führt."
+  },
+  "trailsEmpty": "Noch keine Trails. Importiere deine GPX-Dateien (Symbol oben rechts) oder verbinde dich mit Buddys.",
+  "@trailsEmpty": {
+    "description": "Reiter „Trails\": Text, solange es gar keinen Trail gibt."
+  },
+  "trailsCachedAwaitNetwork": "Stand vom {cachedAt} — das Netz antwortet noch, der frische Stand kommt gleich.",
+  "@trailsCachedAwaitNetwork": {
+    "description": "Reiter „Trails\": Hinweis über der Liste, solange der gespeicherte Stand gezeigt wird und das Netz noch lädt. {cachedAt} ist Datum und Uhrzeit, z. B. „28.9., 10:12\".",
+    "placeholders": {
+      "cachedAt": {
+        "type": "String"
+      }
+    }
+  },
+  "trailsCachedOffline": "Kein Empfang — Stand vom {cachedAt}. Neue Beiträge deiner Buddys kommen mit dem nächsten Netz.",
+  "@trailsCachedOffline": {
+    "description": "Reiter „Trails\": Hinweis über der Liste ohne Empfang, gezeigt wird der gespeicherte Stand. {cachedAt} ist Datum und Uhrzeit, z. B. „28.9., 10:12\".",
+    "placeholders": {
+      "cachedAt": {
+        "type": "String"
+      }
+    }
+  },
+  "trailsHeaderPending": "Wartet auf Übertragung ({count})",
+  "@trailsHeaderPending": {
+    "description": "Reiter „Trails\": Abschnittsüberschrift der Trails im Ausgangskorb, mit Anzahl.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "trailsHeaderOwn": "Meine Trails ({count})",
+  "@trailsHeaderOwn": {
+    "description": "Reiter „Trails\": Abschnittsüberschrift der eigenen Trails, mit Anzahl.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "trailsHeaderBuddies": "Von Buddys ({count})",
+  "@trailsHeaderBuddies": {
+    "description": "Reiter „Trails\": Abschnittsüberschrift der Trails, die nur Buddys belegt haben, mit Anzahl.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "trailsSearchHint": "Trail oder Buddy",
+  "@trailsSearchHint": {
+    "description": "Reiter „Trails\": Platzhalter im Suchfeld."
+  },
+  "trailsSearchClear": "Suche leeren",
+  "@trailsSearchClear": {
+    "description": "Reiter „Trails\": Tooltip des Knopfs, der das Suchfeld leert."
+  },
+  "trailsSortTooltip": "Sortieren: {sort}",
+  "@trailsSortTooltip": {
+    "description": "Reiter „Trails\": Tooltip des Sortier-Knopfs; {sort} ist die gewählte Sortierung, z. B. „Name\".",
+    "placeholders": {
+      "sort": {
+        "type": "String"
+      }
+    }
+  },
+  "trailsSearchNone": "Keine Trails für diese Suche.",
+  "@trailsSearchNone": {
+    "description": "Reiter „Trails\": Zeile unter Suche und Filter, wenn nichts übrig bleibt."
+  },
+  "trailsSearchGuess": "Kein Trail heißt so. Meintest du …?",
+  "@trailsSearchGuess": {
+    "description": "Reiter „Trails\": Zeile unter der Suche, wenn kein Name passt und die Liste ähnliche Namen rät."
+  },
+  "trailsSearchFound": "{count, plural, =1{Ein Trail gefunden.} other{{count} Trails gefunden.}}",
+  "@trailsSearchFound": {
+    "description": "Reiter „Trails\": Zeile unter Suche und Filter, wie viele Trails übrig sind.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "trailsSearchHiddenUngraded": "{count, plural, =1{Ein Trail ohne Einschätzung ist nicht dabei.} other{{count} Trails ohne Einschätzung sind nicht dabei.}}",
+  "@trailsSearchHiddenUngraded": {
+    "description": "Reiter „Trails\": Nachsatz zur Trefferzeile, wenn der S-Grad-Filter Trails ohne Einschätzung ausblendet.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "trailsRowDescent": "↓ {meters} Hm",
+  "@trailsRowDescent": {
+    "description": "Zeile der Trail-Liste: Abfahrt in Höhenmetern hinter der Länge.",
+    "placeholders": {
+      "meters": {
+        "type": "int"
+      }
+    }
+  },
+  "trailsRatingNone": "Noch nicht bewertet",
+  "@trailsRatingNone": {
+    "description": "Zeile der Trail-Liste: Vorlese-Text der blassen Sterne, wenn es noch keine Bewertung gibt."
+  },
+  "trailsRatingSemantics": "{max, plural, =1{Bewertung {rating} von 1 Stern} other{Bewertung {rating} von {max} Sternen}}",
+  "@trailsRatingSemantics": {
+    "description": "Zeile der Trail-Liste: Vorlese-Text der Sterne, z. B. „Bewertung 4 von 5 Sternen\".",
+    "placeholders": {
+      "rating": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "listTagPending": "WARTET AUF ÜBERTRAGUNG",
+  "@listTagPending": {
+    "description": "Zeile der Trail-Liste: Wort in Versalien bei einem Trail im Ausgangskorb."
+  },
+  "listTagDetailsSending": "BEITRAG WIRD ÜBERTRAGEN",
+  "@listTagDetailsSending": {
+    "description": "Zeile der Trail-Liste: Wort in Versalien, während der eigene Beitrag (Name, Grad …) gerade hochgeladen wird."
+  },
+  "listTagDetailsPending": "BEITRAG WARTET AUF ÜBERTRAGUNG",
+  "@listTagDetailsPending": {
+    "description": "Zeile der Trail-Liste: Wort in Versalien, wenn der eigene Beitrag (Name, Grad …) im Ausgangskorb liegt."
+  },
+  "listTagFreshNote": "NEUER HINWEIS",
+  "@listTagFreshNote": {
+    "description": "Zeile der Trail-Liste: Wort in Versalien, wenn ein Buddy einen neuen Hinweis hinterlassen hat."
+  },
+  "listTagMine": "MEIN",
+  "@listTagMine": {
+    "description": "Zeile der Trail-Liste: Wort in Versalien bei einem eigenen Trail, den kein Buddy belegt hat."
+  },
+  "listTagMineWithBuddies": "{count, plural, =1{MEIN · 1 BUDDY} other{MEIN · {count} BUDDYS}}",
+  "@listTagMineWithBuddies": {
+    "description": "Zeile der Trail-Liste: Wort in Versalien bei einem eigenen Trail, mit der Zahl der Buddys, die ihn auch belegt haben.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "listSortRecent": "Zuletzt aktiv",
+  "@listSortRecent": {
+    "description": "Sortier-Menü der Trail-Liste: jüngste Aktivität zuerst."
+  },
+  "listSortName": "Name",
+  "@listSortName": {
+    "description": "Sortier-Menü der Trail-Liste: nach Name."
+  },
+  "listSortLength": "Länge",
+  "@listSortLength": {
+    "description": "Sortier-Menü der Trail-Liste: nach Länge."
+  },
+  "listSortDescent": "Abfahrt (Hm)",
+  "@listSortDescent": {
+    "description": "Sortier-Menü der Trail-Liste: nach Höhenmetern bergab."
+  },
+  "listSortGrade": "Schwierigkeit",
+  "@listSortGrade": {
+    "description": "Sortier-Menü der Trail-Liste: nach S-Grad, leicht zuerst."
+  },
+  "listSortRating": "Bewertung",
+  "@listSortRating": {
+    "description": "Sortier-Menü der Trail-Liste: beste Bewertung zuerst."
+  },
+  "filterOwnerAll": "Alle",
+  "@filterOwnerAll": {
+    "description": "Umschalter über der Trail-Liste (wessen Trails): alle."
+  },
+  "filterOwnerMine": "Meine",
+  "@filterOwnerMine": {
+    "description": "Umschalter über der Trail-Liste (wessen Trails): nur eigene."
+  },
+  "filterOwnerBuddies": "Von Buddys",
+  "@filterOwnerBuddies": {
+    "description": "Umschalter über der Trail-Liste (wessen Trails): nur die von Buddys."
+  },
+  "filterGradeOnly": "nur {grade}",
+  "@filterGradeOnly": {
+    "description": "Trail-Filter: S-Grad-Bereich in Worten, wenn er genau einen Grad umfasst; {grade} ist z. B. „S2\".",
+    "placeholders": {
+      "grade": {
+        "type": "String"
+      }
+    }
+  },
+  "filterGradeUpTo": "bis {grade}",
+  "@filterGradeUpTo": {
+    "description": "Trail-Filter: S-Grad-Bereich in Worten, nach oben begrenzt; {grade} ist z. B. „S2\".",
+    "placeholders": {
+      "grade": {
+        "type": "String"
+      }
+    }
+  },
+  "filterGradeFrom": "ab {grade}",
+  "@filterGradeFrom": {
+    "description": "Trail-Filter: S-Grad-Bereich in Worten, nach unten begrenzt; {grade} ist z. B. „S3\".",
+    "placeholders": {
+      "grade": {
+        "type": "String"
+      }
+    }
+  },
+  "filterGradeRange": "{from}–{to}",
+  "@filterGradeRange": {
+    "description": "Trail-Filter: S-Grad-Bereich mit beiden Grenzen, z. B. „S1–S3\".",
+    "placeholders": {
+      "from": {
+        "type": "String"
+      },
+      "to": {
+        "type": "String"
+      }
+    }
+  },
+  "filterDescribeFreshNote": "neuer Hinweis",
+  "@filterDescribeFreshNote": {
+    "description": "Zeile „Filter aktiv\" auf der Karte: Teil der Aufzählung für den Filter „Neuer Hinweis\" (klein, Teile mit „ · \" verbunden)."
+  },
+  "filterDescribeReported": "gemeldet",
+  "@filterDescribeReported": {
+    "description": "Zeile „Filter aktiv\" auf der Karte: Teil der Aufzählung für den Filter „Gemeldet\"."
+  },
+  "filterDescribeRatingOpen": "Bewertung offen",
+  "@filterDescribeRatingOpen": {
+    "description": "Zeile „Filter aktiv\" auf der Karte: Teil der Aufzählung für den Filter „Bewertung offen\" (eigene Trails ohne eigene Sterne)."
+  },
+  "filterDescribeStillValid": "noch gültig?",
+  "@filterDescribeStillValid": {
+    "description": "Zeile „Filter aktiv\" auf der Karte: Teil der Aufzählung für den Filter „Noch gültig?\"."
+  },
+  "filterChipOnMap": "Auf der Karte",
+  "@filterChipOnMap": {
+    "description": "Filter-Chip der Trail-Liste: nur Trails im sichtbaren Kartenausschnitt."
+  },
+  "filterChipGrade": "S-Grad",
+  "@filterChipGrade": {
+    "description": "Filter-Chip für den S-Grad-Bereich, solange er nichts einschränkt (S = Singletrail-Skala)."
+  },
+  "filterChipFreshNote": "Neuer Hinweis",
+  "@filterChipFreshNote": {
+    "description": "Filter-Chip: nur Trails mit einem neuen Hinweis eines Buddys."
+  },
+  "filterChipJumps": "Jumps",
+  "@filterChipJumps": {
+    "description": "Filter-Chip: kurzer Name des Merkmals „Jump-Line\"."
+  },
+  "filterChipReported": "Gemeldet",
+  "@filterChipReported": {
+    "description": "Filter-Chip: nur gemeldete Trails (gesperrt, zerstört …)."
+  },
+  "filterChipRatingOpen": "Bewertung offen",
+  "@filterChipRatingOpen": {
+    "description": "Filter-Chip: nur eigene Trails ohne eigene Bewertung."
+  },
+  "filterChipStillValid": "Noch gültig?",
+  "@filterChipStillValid": {
+    "description": "Filter-Chip: nur Trails mit eigenen Angaben, die älter als 30 Tage sind."
+  },
+  "filterGradeSheetTitle": "Schwierigkeit: {range}",
+  "@filterGradeSheetTitle": {
+    "description": "Blatt „S-Grad\": Überschrift mit dem gewählten Bereich, z. B. „bis S2\".",
+    "placeholders": {
+      "range": {
+        "type": "String"
+      }
+    }
+  },
+  "filterGradeSheetUngraded": "Trails, die noch niemand eingeschätzt hat, sind nicht dabei.",
+  "@filterGradeSheetUngraded": {
+    "description": "Blatt „S-Grad\": Hinweis, solange der Bereich etwas einschränkt."
+  },
+  "filterGradeSheetReset": "Alle Grade",
+  "@filterGradeSheetReset": {
+    "description": "Blatt „S-Grad\": Knopf, der den Bereich auf S0–S5 zurücksetzt."
+  },
+  "navNoAppTrailHead": "Keine Navi-App gefunden — Koordinaten des Trailkopfs kopiert: {coordinates}",
+  "@navNoAppTrailHead": {
+    "description": "SnackBar nach „Zum Trailkopf navigieren\" ohne passende Navi-App; {coordinates} ist „Breite, Länge\" mit sechs Nachkommastellen.",
+    "placeholders": {
+      "coordinates": {
+        "type": "String"
+      }
+    }
+  },
+  "navNoAppTarget": "Keine Navi-App gefunden — Koordinaten des Ziels kopiert: {coordinates}",
+  "@navNoAppTarget": {
+    "description": "SnackBar nach „Mit Navi-App hin\" zu einem Punkt ohne passende Navi-App; {coordinates} ist „Breite, Länge\" mit sechs Nachkommastellen.",
+    "placeholders": {
+      "coordinates": {
+        "type": "String"
+      }
+    }
+  },
+  "navCopiedTrailHead": "Koordinaten des Trailkopfs kopiert: {coordinates}",
+  "@navCopiedTrailHead": {
+    "description": "SnackBar im Browser nach „Zum Trailkopf navigieren\" (dort gibt es keinen App-Wähler); {coordinates} ist „Breite, Länge\" mit sechs Nachkommastellen.",
+    "placeholders": {
+      "coordinates": {
+        "type": "String"
+      }
+    }
+  },
+  "navCopiedTarget": "Koordinaten des Ziels kopiert: {coordinates}",
+  "@navCopiedTarget": {
+    "description": "SnackBar im Browser nach „Mit Navi-App hin\" zu einem Punkt; {coordinates} ist „Breite, Länge\" mit sechs Nachkommastellen.",
+    "placeholders": {
+      "coordinates": {
+        "type": "String"
+      }
+    }
+  },
+  "stillValidTitle": "Noch gültig?",
+  "@stillValidTitle": {
+    "description": "Seite „Noch gültig?\" (aus dem Profil): Titel."
+  },
+  "stillValidIntro": "Deine Meldungen und Zustände, die älter als {afterDays, plural, =1{1 Tag} other{{afterDays} Tage}} sind. Stimmt es noch? „Weiß nicht\" lässt alles, wie es ist, und fragt in {snoozeDays, plural, =1{1 Tag} other{{snoozeDays} Tagen}} wieder.",
+  "@stillValidIntro": {
+    "description": "Seite „Noch gültig?\": Erklärung oben. {afterDays} ist das Alter, ab dem gefragt wird (30), {snoozeDays} die Ruhezeit nach „Weiß nicht\" (14).",
+    "placeholders": {
+      "afterDays": {
+        "type": "int"
+      },
+      "snoozeDays": {
+        "type": "int"
+      }
+    }
+  },
+  "stillValidEmpty": "Nichts zu prüfen — deine Angaben sind aktuell.",
+  "@stillValidEmpty": {
+    "description": "Seite „Noch gültig?\": Text, wenn es keine offene Frage gibt."
+  },
+  "stillValidQueued": "Gespeichert — geht beim nächsten Netz raus.",
+  "@stillValidQueued": {
+    "description": "Seite „Noch gültig?\": SnackBar nach einer Antwort ohne Empfang (liegt im Ausgangskorb)."
+  },
+  "stillValidUpdated": "Danke, ist aktualisiert.",
+  "@stillValidUpdated": {
+    "description": "Seite „Noch gültig?\": SnackBar nach einer übertragenen Antwort."
+  },
+  "stillValidConditionTitle": "Wie ist er jetzt?",
+  "@stillValidConditionTitle": {
+    "description": "Seite „Noch gültig?\": Titel des Dialogs, in dem man nach „Nein…\" den jetzigen Zustand des Trails wählt („er\" = der Trail)."
+  },
+  "stillValidStatusLine": "Meldung: {value} · {age}",
+  "@stillValidStatusLine": {
+    "description": "Seite „Noch gültig?\": Untertitel einer Karte zu einer Meldung; {value} z. B. „Gesperrt\", {age} z. B. „vor 5 Wochen\".",
+    "placeholders": {
+      "value": {
+        "type": "String"
+      },
+      "age": {
+        "type": "String"
+      }
+    }
+  },
+  "stillValidConditionLine": "Zustand: {value} · {age}",
+  "@stillValidConditionLine": {
+    "description": "Seite „Noch gültig?\": Untertitel einer Karte zu einem Zustand; {value} z. B. „Matschig\", {age} z. B. „vor 5 Wochen\".",
+    "placeholders": {
+      "value": {
+        "type": "String"
+      },
+      "age": {
+        "type": "String"
+      }
+    }
+  },
+  "stillValidShowOnMap": "Auf der Karte zeigen",
+  "@stillValidShowOnMap": {
+    "description": "Seite „Noch gültig?\": Tooltip des Kartenknopfs einer Karte."
+  },
+  "stillValidQuestion": "Stimmt das noch?",
+  "@stillValidQuestion": {
+    "description": "Seite „Noch gültig?\": Frage über den Antwortknöpfen einer Karte."
+  },
+  "stillValidYes": "Ja",
+  "@stillValidYes": {
+    "description": "Seite „Noch gültig?\": Antwortknopf „stimmt noch\"."
+  },
+  "stillValidNoReopen": "Nein, wieder offen",
+  "@stillValidNoReopen": {
+    "description": "Seite „Noch gültig?\": Antwortknopf bei einer Meldung — der Trail ist wieder befahrbar."
+  },
+  "stillValidNo": "Nein…",
+  "@stillValidNo": {
+    "description": "Seite „Noch gültig?\": Antwortknopf bei einem Zustand — öffnet die Auswahl des jetzigen Zustands."
+  },
+  "stillValidDontKnow": "Weiß nicht",
+  "@stillValidDontKnow": {
+    "description": "Seite „Noch gültig?\": Antwortknopf, der die Frage für eine Weile ruhen lässt."
+  },
+  "reportAgeToday": "heute",
+  "@reportAgeToday": {
+    "description": "Alter einer Meldung: heute gemeldet (ohne Verb, die Zeile sagt es)."
+  },
+  "reportAgeYesterday": "gestern",
+  "@reportAgeYesterday": {
+    "description": "Alter einer Meldung: gestern gemeldet."
+  },
+  "reportAgeDays": "{days, plural, =1{vor 1 Tag} other{vor {days} Tagen}}",
+  "@reportAgeDays": {
+    "description": "Alter einer Meldung in Tagen (2 bis 59), ohne Verb.",
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "reportAgeMonths": "{months, plural, =1{vor 1 Monat} other{vor {months} Monaten}}",
+  "@reportAgeMonths": {
+    "description": "Alter einer Meldung in Monaten (ab 2 Monaten), ohne Verb.",
+    "placeholders": {
+      "months": {
+        "type": "int"
+      }
+    }
+  },
+  "reportAgeYears": "{years, plural, =1{vor 1 Jahr} other{vor {years} Jahren}}",
+  "@reportAgeYears": {
+    "description": "Alter einer Meldung in Jahren (ab etwa 2 Jahren), ohne Verb.",
+    "placeholders": {
+      "years": {
+        "type": "int"
+      }
+    }
+  },
+  "reportDone": "Gemeldet",
+  "@reportDone": {
+    "description": "Snackbar nach dem Melden eines Trails."
+  },
+  "reportDialogTitle": "Melden",
+  "@reportDialogTitle": {
+    "description": "Titel des Melde-Dialogs eines Trails (Meldung wie „gesperrt\" und Zustand 1–5)."
+  },
+  "reportFieldLabel": "Meldung",
+  "@reportFieldLabel": {
+    "description": "Melde-Dialog: Beschriftung über der Auswahl gesperrt/zerstört/verändert/offen. Dasselbe Wort steht in der Kurzanleitung."
+  },
+  "reportCondition": "Zustand",
+  "@reportCondition": {
+    "description": "Melde-Dialog: Beschriftung über dem Zustand 1–5; auch Titel des Blatts mit den Einzelstimmen zum Zustand."
+  },
+  "reportNoteLabel": "Hinweis für Buddys (optional)",
+  "@reportNoteLabel": {
+    "description": "Melde-Dialog: Feld für einen Hinweis, warum gemeldet wird."
+  },
+  "reportNoteHintOpen": "z. B. Baum ist weggeräumt",
+  "@reportNoteHintOpen": {
+    "description": "Melde-Dialog: Beispieltext im Hinweisfeld, wenn „offen\" gewählt ist."
+  },
+  "reportNoteHintWarn": "z. B. Baum liegt quer nach der zweiten Kehre",
+  "@reportNoteHintWarn": {
+    "description": "Melde-Dialog: Beispieltext im Hinweisfeld bei einer Warnung oder einem Zustand."
+  },
+  "reportConfirmedRidden": "Du bist ihn gefahren — deine Meldung gilt als bestätigt.",
+  "@reportConfirmedRidden": {
+    "description": "Melde-Dialog: Wer den Trail gefahren ist, meldet bestätigt."
+  },
+  "reportConfirmedOnSite": "Vor Ort ({distance} zur Linie) — deine Meldung gilt als bestätigt.",
+  "@reportConfirmedOnSite": {
+    "description": "Melde-Dialog: Position nah genug an der Linie. {distance} ist ein fertiger Abstand wie „120 m\".",
+    "placeholders": {
+      "distance": {
+        "type": "String"
+      }
+    }
+  },
+  "reportUnconfirmedAway": "{distance} entfernt — deine Meldung steht als „zu bestätigen\" da, bis jemand vor Ort ist.",
+  "@reportUnconfirmedAway": {
+    "description": "Melde-Dialog: Position zu weit von der Linie. {distance} ist ein fertiger Abstand wie „3,4 km\".",
+    "placeholders": {
+      "distance": {
+        "type": "String"
+      }
+    }
+  },
+  "reportUnconfirmedNoFix": "Keine Position — deine Meldung steht als „zu bestätigen\" da.",
+  "@reportUnconfirmedNoFix": {
+    "description": "Melde-Dialog: Die Position ließ sich nicht bestimmen."
+  },
+  "reportUnconfirmedUnchecked": "Nicht gefahren: Ohne Prüfung vor Ort steht deine Meldung als „zu bestätigen\" da. Zum Server geht nur, OB du vor Ort bist, nie wo.",
+  "@reportUnconfirmedUnchecked": {
+    "description": "Melde-Dialog: Trail nicht gefahren, Position noch nicht geprüft (Datenschutz: nur ja/nein geht zum Server)."
+  },
+  "reportCheckingPosition": "Position wird geprüft …",
+  "@reportCheckingPosition": {
+    "description": "Melde-Dialog: Knopf, während die Position geholt wird."
+  },
+  "reportOnSite": "Ich bin vor Ort",
+  "@reportOnSite": {
+    "description": "Melde-Dialog: Knopf, der einmal die Position holt und prüft, ob man am Trail ist."
+  },
+  "reportSubmit": "Melden",
+  "@reportSubmit": {
+    "description": "Melde-Dialog: Knopf zum Absenden."
+  },
+  "reportYou": "Du",
+  "@reportYou": {
+    "description": "Name der eigenen Person in Listen von Meldungen und Bewertungen."
+  },
+  "reportHistoryTitle": "MELDUNGEN",
+  "@reportHistoryTitle": {
+    "description": "Trail-Blatt: Überschrift über dem Verlauf der Meldungen (in Großbuchstaben)."
+  },
+  "reportHistoryStatus": "Meldung: {value}",
+  "@reportHistoryStatus": {
+    "description": "Trail-Blatt, Verlauf: eine Meldung, {value} ist z. B. „Gesperrt\".",
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "reportHistoryCondition": "Zustand: {value}",
+  "@reportHistoryCondition": {
+    "description": "Trail-Blatt, Verlauf: ein Zustand, {value} ist z. B. „Ausgefahren\".",
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "reportSending": "wird übertragen",
+  "@reportSending": {
+    "description": "Trail-Blatt, Verlauf: Meldung wird gerade zum Server geschickt."
+  },
+  "reportWaiting": "wartet auf Übertragung",
+  "@reportWaiting": {
+    "description": "Trail-Blatt, Verlauf: Meldung liegt im Ausgangskorb."
+  },
+  "reportUnconfirmed": "zu bestätigen",
+  "@reportUnconfirmed": {
+    "description": "Kennzeichen einer Meldung, die weder gefahren noch vor Ort bestätigt ist."
+  },
+  "reportRatingSaved": "Bewertung gespeichert",
+  "@reportRatingSaved": {
+    "description": "Snackbar nach dem Speichern der eigenen Sterne-Bewertung."
+  },
+  "reportOwnRating": "Deine Bewertung",
+  "@reportOwnRating": {
+    "description": "Trail-Blatt: Überschrift über den eigenen Sternen."
+  },
+  "reportStarTooltip": "{stars} von {max} Sternen",
+  "@reportStarTooltip": {
+    "description": "Tooltip eines Sterns bei der eigenen Bewertung.",
+    "placeholders": {
+      "stars": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "reportRatingTitle": "Bewertung",
+  "@reportRatingTitle": {
+    "description": "Titel des Blatts mit den Einzelstimmen der Bewertung."
+  },
+  "reportRatingNone": "Noch keine Bewertung",
+  "@reportRatingNone": {
+    "description": "Blatt der Bewertung: noch niemand hat Sterne vergeben."
+  },
+  "reportRatingMedian": "Median {rating} von {max} · {count}×",
+  "@reportRatingMedian": {
+    "description": "Blatt der Bewertung: Median der Sterne und Zahl der Stimmen.",
+    "placeholders": {
+      "rating": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "mergeUnnamedTrail": "Trail ohne Namen",
+  "@mergeUnnamedTrail": {
+    "description": "Name eines zusammengeführten Trails, der keinen Namen hat."
+  },
+  "mergeMergedFrom": "Zusammengeführt: „{name}\" — {by}",
+  "@mergeMergedFrom": {
+    "description": "Trail-Blatt: ein Duplikat, das unter diesem Trail steht. {by} ist „von dir\" bzw. „von anna, bob\".",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "by": {
+        "type": "String"
+      }
+    }
+  },
+  "mergeByMe": "von dir",
+  "@mergeByMe": {
+    "description": "Trail-Blatt: Wer zusammengeführt hat — man selbst."
+  },
+  "mergeByUsers": "von {names}",
+  "@mergeByUsers": {
+    "description": "Trail-Blatt: Wer zusammengeführt hat — Buddys, {names} ist eine Liste mit Komma.",
+    "placeholders": {
+      "names": {
+        "type": "String"
+      }
+    }
+  },
+  "mergeUnmerge": "Trennen",
+  "@mergeUnmerge": {
+    "description": "Knopf, der eine eigene Zusammenführung wieder löst (im Blatt und im Bestätigungsdialog)."
+  },
+  "mergeDeclare": "Ist ein Duplikat …",
+  "@mergeDeclare": {
+    "description": "Trail-Blatt: Knopf, der die Liste möglicher Partner zum Zusammenführen öffnet."
+  },
+  "mergeDone": "Zusammengeführt — „{name}\" bleibt",
+  "@mergeDone": {
+    "description": "Snackbar nach dem Zusammenführen zweier Trails.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "mergeUnmergeTitle": "Wieder trennen?",
+  "@mergeUnmergeTitle": {
+    "description": "Titel des Dialogs „Trennen\"."
+  },
+  "mergeUnmergeBody": "„{name}\" erscheint wieder als eigener Trail, wo jemand anderes etwas daran hat. Deine eigenen Aufzeichnungen, dein Beitrag und deine Hinweise bleiben hier.",
+  "@mergeUnmergeBody": {
+    "description": "Text des Dialogs „Trennen\".",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "mergeUnmerged": "Getrennt",
+  "@mergeUnmerged": {
+    "description": "Snackbar nach dem Trennen."
+  },
+  "mergeCandidatesTitle": "Derselbe Trail wie …",
+  "@mergeCandidatesTitle": {
+    "description": "Blatt „Ist ein Duplikat …\": Überschrift über der Liste der Partner."
+  },
+  "mergeCandidatesIntro": "Hier stehen Trails, die grob neben „{name}\" liegen — mindestens die Hälfte der kürzeren Linie höchstens {meters} m daneben.",
+  "@mergeCandidatesIntro": {
+    "description": "Blatt „Ist ein Duplikat …\": Erklärung, welche Trails in der Liste stehen.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "meters": {
+        "type": "int"
+      }
+    }
+  },
+  "mergeCandidateSubtitle": "{length} · {percent} % liegen nebeneinander · {contributors}",
+  "@mergeCandidateSubtitle": {
+    "description": "Blatt „Ist ein Duplikat …\": Zeile unter einem Partner. {length} ist eine fertige Länge, {contributors} z. B. „2 Buddys\".",
+    "placeholders": {
+      "length": {
+        "type": "String"
+      },
+      "percent": {
+        "type": "int"
+      },
+      "contributors": {
+        "type": "String"
+      }
+    }
+  },
+  "mergeContributorsOwn": "{others, plural, =0{nur deiner} other{deiner und {others} weitere}}",
+  "@mergeContributorsOwn": {
+    "description": "Wer zu einem eigenen Trail beiträgt: man selbst und {others} weitere Personen.",
+    "placeholders": {
+      "others": {
+        "type": "int"
+      }
+    }
+  },
+  "mergeContributorsBuddies": "{count, plural, =1{1 Buddy} other{{count} Buddys}}",
+  "@mergeContributorsBuddies": {
+    "description": "Wie viele Buddys zu einem fremden Trail beitragen.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "mergeKeepTitle": "Welcher Trail bleibt?",
+  "@mergeKeepTitle": {
+    "description": "Titel des Dialogs vor dem Zusammenführen."
+  },
+  "mergeKeepBody": "Deine Aufzeichnungen, dein Beitrag, deine Hinweise und Meldungen ziehen von „{duplicate}\" nach „{keep}\"; Name und Einschätzung von „{keep}\" gelten, leere Felder füllt das Duplikat.",
+  "@mergeKeepBody": {
+    "description": "Dialog „Welcher Trail bleibt?\": was beim Zusammenführen passiert.",
+    "placeholders": {
+      "duplicate": {
+        "type": "String"
+      },
+      "keep": {
+        "type": "String"
+      }
+    }
+  },
+  "mergeKeepBuddies": "Buddys, die beide sehen und am Duplikat nichts haben, sehen es ebenfalls darunter; wer selbst etwas daran hat, entscheidet selbst.",
+  "@mergeKeepBuddies": {
+    "description": "Dialog „Welcher Trail bleibt?\": Zusatz, wenn Buddys das Duplikat sehen."
+  },
+  "mergeConfirm": "Zusammenführen",
+  "@mergeConfirm": {
+    "description": "Dialog „Welcher Trail bleibt?\": Knopf zum Zusammenführen."
+  },
+  "mergeProposalTitle": "Sind das dieselben?",
+  "@mergeProposalTitle": {
+    "description": "Titel des Vorschlags, zwei Trails zusammenzuführen (Karte im Trail-Blatt und Seite im Profil)."
+  },
+  "mergeProposalDeclared": "{count, plural, =1{{names} hält „{a}\" und „{b}\" für denselben Trail.} other{{names} halten „{a}\" und „{b}\" für denselben Trail.}}",
+  "@mergeProposalDeclared": {
+    "description": "Vorschlag: Buddys halten zwei Trails für denselben. {names} ist eine Liste mit Komma, {count} ihre Länge.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "names": {
+        "type": "String"
+      },
+      "a": {
+        "type": "String"
+      },
+      "b": {
+        "type": "String"
+      }
+    }
+  },
+  "mergeProposalOverlap": "„{a}\" und „{b}\" liegen fast aufeinander — {percent} % der kürzeren Linie nebeneinander.",
+  "@mergeProposalOverlap": {
+    "description": "Vorschlag aus dem Abgleich: zwei Trails liegen fast aufeinander.",
+    "placeholders": {
+      "a": {
+        "type": "String"
+      },
+      "b": {
+        "type": "String"
+      },
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "mergeDistinctDone": "Gemerkt: verschiedene Trails",
+  "@mergeDistinctDone": {
+    "description": "Snackbar nach „Verschieden\"."
+  },
+  "mergeProposalSame": "Derselbe",
+  "@mergeProposalSame": {
+    "description": "Vorschlag: Antwort „derselbe Trail\" (führt zusammen)."
+  },
+  "mergeProposalDistinct": "Verschieden",
+  "@mergeProposalDistinct": {
+    "description": "Vorschlag: Antwort „verschiedene Trails\" (der Vorschlag kommt nicht wieder)."
+  },
+  "mergeProposalCompare": "Beide ansehen",
+  "@mergeProposalCompare": {
+    "description": "Vorschlag: zeigt beide Linien auf der Karte."
+  },
+  "mergeProposalTrim": "Auf gemeinsamen Teil kürzen",
+  "@mergeProposalTrim": {
+    "description": "Vorschlag: die eigene, längere Aufzeichnung auf den gemeinsamen Teil kürzen."
+  },
+  "mergeProposalsIntro": "Trails, die fast aufeinander liegen — ein Buddy hält sie für denselben, oder der Abgleich hat sie nebeneinander gefunden. „Verschieden\" merkt sich die App, der Vorschlag kommt dann nicht wieder.",
+  "@mergeProposalsIntro": {
+    "description": "Seite „Sind das dieselben?\" im Profil: Erklärung oben."
+  },
+  "mergeProposalsEmpty": "Nichts zu prüfen — keine doppelten Trails in Sicht.",
+  "@mergeProposalsEmpty": {
+    "description": "Seite „Sind das dieselben?\": keine Vorschläge."
+  },
+  "sheetReportedRecently": "{age} gemeldet",
+  "@sheetReportedRecently": {
+    "description": "Trail-Blatt und Hinweise: Alter einer Meldung, wenn sie von heute oder gestern ist; age ist „heute“ bzw. „gestern“ (reportAgeToday/reportAgeYesterday).",
+    "placeholders": {
+      "age": {
+        "type": "String"
+      }
+    }
+  },
+  "sheetReportedAgo": "gemeldet {age}",
+  "@sheetReportedAgo": {
+    "description": "Trail-Blatt und Hinweise: Alter einer älteren Meldung; age ist z. B. „vor 3 Tagen“ (reportAgeDays/Months/Years).",
+    "placeholders": {
+      "age": {
+        "type": "String"
       }
     }
   }

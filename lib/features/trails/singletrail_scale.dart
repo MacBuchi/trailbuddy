@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/app_colors.dart';
+import '../../l10n/l10n.dart';
 import 'grade_shield.dart';
 
 /// Die Singletrail-Skala (STS), S0 bis S5: die in DACH übliche Angabe,
@@ -12,38 +13,43 @@ import 'grade_shield.dart';
 /// Auswahl im Beitrag, Chips im Blatt, Erklärblatt. Zwei Fassungen der
 /// Beschreibung wären zwei Meinungen darüber, was S2 heißt.
 class SingletrailGrade {
-  const SingletrailGrade(this.value, this.short, this.description);
+  const SingletrailGrade(this.value);
 
   final int value;
 
-  /// Ein paar Wörter für Auswahllisten: „S2 · größere Wurzeln, Stufen".
-  final String short;
+  /// Ein paar Wörter für Auswahllisten: „S2 · größere Wurzeln, Stufen"
+  /// (#209: aus den ARB-Dateien).
+  String short(AppLocalizations l) => switch (value) {
+        0 => l.scaleS0Short,
+        1 => l.scaleS1Short,
+        2 => l.scaleS2Short,
+        3 => l.scaleS3Short,
+        4 => l.scaleS4Short,
+        5 => l.scaleS5Short,
+        _ => throw StateError('Kein S-Grad: $value'),
+      };
 
   /// Ein bis zwei Sätze für das Erklärblatt.
-  final String description;
+  String description(AppLocalizations l) => switch (value) {
+        0 => l.scaleS0Description,
+        1 => l.scaleS1Description,
+        2 => l.scaleS2Description,
+        3 => l.scaleS3Description,
+        4 => l.scaleS4Description,
+        5 => l.scaleS5Description,
+        _ => throw StateError('Kein S-Grad: $value'),
+      };
 
   String get label => 'S$value';
 }
 
 const kSingletrailScale = <SingletrailGrade>[
-  SingletrailGrade(0, 'fester Boden, ohne Hindernisse',
-      'Fester, griffiger Untergrund ohne Wurzeln oder Steine; flach bis '
-          'mäßig steil, weite Kurven.'),
-  SingletrailGrade(1, 'kleine Wurzeln und Steine',
-      'Kleine Wurzeln und Steine, stellenweise loser Untergrund, etwas '
-          'engere Kurven — ohne besondere Fahrtechnik fahrbar.'),
-  SingletrailGrade(2, 'größere Wurzeln, flache Stufen',
-      'Größere Wurzeln und Steine, flache Stufen und Absätze, engere '
-          'Kurven, oft loser Boden. Braucht Übung im Gelände.'),
-  SingletrailGrade(3, 'verblockt, hohe Stufen, enge Kehren',
-      'Verblockt, hohe Stufen und Absätze, enge Kehren, rutschiger '
-          'Untergrund, steile Stücke. Braucht sichere Fahrtechnik.'),
-  SingletrailGrade(4, 'sehr steil, Spitzkehren',
-      'Sehr steil und verblockt, Spitzkehren, die nur mit Umsetzen des '
-          'Hinterrads gehen. Nur mit Trialtechnik.'),
-  SingletrailGrade(5, 'extrem, kaum fahrbar',
-      'Extrem steil und verblockt, mehrere Hindernisse hintereinander, '
-          'kaum Anlauf- oder Bremsweg. Für sehr wenige fahrbar.'),
+  SingletrailGrade(0),
+  SingletrailGrade(1),
+  SingletrailGrade(2),
+  SingletrailGrade(3),
+  SingletrailGrade(4),
+  SingletrailGrade(5),
 ];
 
 SingletrailGrade singletrailGrade(int value) =>
@@ -68,6 +74,7 @@ class SingletrailScaleSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l = context.l10n;
     return SafeArea(
       child: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
@@ -75,12 +82,10 @@ class SingletrailScaleSheet extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Singletrail-Skala', style: theme.textTheme.titleLarge),
+            Text(l.scaleSheetTitle, style: theme.textTheme.titleLarge),
             const SizedBox(height: 4),
             Text(
-              'Wie schwierig ein Trail fahrtechnisch ist — bei guten '
-              'Bedingungen. Nässe, Laub oder Schnee machen jeden Trail '
-              'schwerer; Länge und Höhenmeter zählen hier nicht.',
+              l.scaleSheetIntro,
               style: theme.textTheme.bodyMedium,
             ),
             const SizedBox(height: 12),
@@ -115,15 +120,13 @@ class SingletrailScaleSheet extends StatelessWidget {
                         ),
                       ),
                     ),
-                    Expanded(child: Text(g.description)),
+                    Expanded(child: Text(g.description(l))),
                   ],
                 ),
               ),
             const SizedBox(height: 4),
             Text(
-              'In TrailBuddy schätzt jeder, der einen Trail gefahren ist, '
-              'selbst ein. Angezeigt wird der Median deiner Buddys, bei '
-              'Gleichstand der schwerere Grad, dazu die Spanne.',
+              l.scaleSheetFooter,
               style: theme.textTheme.bodySmall
                   ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
             ),
@@ -143,7 +146,7 @@ class SingletrailScaleButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => IconButton(
-        tooltip: 'Singletrail-Skala erklären',
+        tooltip: context.l10n.scaleExplain,
         icon: const Icon(Icons.help_outline),
         onPressed: () => showSingletrailScaleSheet(context, highlight: highlight),
       );

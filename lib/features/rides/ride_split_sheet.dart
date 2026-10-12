@@ -20,6 +20,7 @@ import 'package:latlong2/latlong.dart';
 import '../../core/app_colors.dart';
 import '../../core/errors.dart';
 import '../../core/line_geometry.dart';
+import '../../l10n/l10n.dart';
 import '../../models/trail.dart';
 import '../coach/coach.dart';
 import '../help/seen_tours.dart';
@@ -765,7 +766,7 @@ class _RideSplitSheetState extends ConsumerState<_RideSplitSheet> {
                 'Übernommen: ${t.nameField.text.trim().isEmpty ? 'ohne Namen' : t.nameField.text.trim()}'
                 '${grade != null ? ' · ${singletrailGrade(grade).label}' : ''}'
                 ' · ${'★' * (t.rating ?? 0)}'
-                '${t.condition != null ? ' · ${trailConditionLabel(t.condition!)}' : ''}',
+                '${t.condition != null ? ' · ${trailConditionLabel(context.l10n, t.condition!)}' : ''}',
                 style: hint,
               ),
             ),
@@ -817,7 +818,7 @@ class _RideSplitSheetState extends ConsumerState<_RideSplitSheet> {
                       for (final g in kSingletrailScale)
                         DropdownMenuItem<int?>(
                           value: g.value,
-                          child: Text('${g.label} · ${g.short}', overflow: TextOverflow.ellipsis),
+                          child: Text('${g.label} · ${g.short(context.l10n)}', overflow: TextOverflow.ellipsis),
                         ),
                     ],
                     onChanged: _busy ? null : (v) => setState(() => t.grade = v),
@@ -865,8 +866,8 @@ class _RideSplitSheetState extends ConsumerState<_RideSplitSheet> {
                 for (final c in kTrailConditions)
                   ChoiceChip(
                     key: ValueKey('split-takeover-condition-$i-${c.value}'),
-                    label: Text(c.label),
-                    tooltip: c.description,
+                    label: Text(c.label(context.l10n)),
+                    tooltip: c.description(context.l10n),
                     selected: t.condition == c.value,
                     onSelected: _busy
                         ? null
@@ -1009,7 +1010,7 @@ class _RideSplitSheetState extends ConsumerState<_RideSplitSheet> {
                       for (final g in kSingletrailScale)
                         DropdownMenuItem<int?>(
                           value: g.value,
-                          child: Text('${g.label} · ${g.short}', overflow: TextOverflow.ellipsis),
+                          child: Text('${g.label} · ${g.short(context.l10n)}', overflow: TextOverflow.ellipsis),
                         ),
                     ],
                     onChanged: _busy ? null : (v) => setState(() => d.grade = v),

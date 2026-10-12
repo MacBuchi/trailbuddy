@@ -8,6 +8,7 @@ import 'dart:typed_data';
 import 'package:archive/archive.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:trailbuddy/features/trails/gpx_files.dart';
+import '../fakes/l10n_de.dart';
 
 const _gpx = '<gpx version="1.1"><trk><name>A</name><trkseg>'
     '<trkpt lat="48.0" lon="9.0"/><trkpt lat="48.01" lon="9.0"/></trkseg></trk></gpx>';
@@ -20,7 +21,7 @@ Uint8List _zip(Map<String, String> entries) {
 
 void main() {
   test('eine GPX-Datei ist ein Text', () {
-    final r = gpxFilesFrom(PickedFile.text('a.gpx', _gpx));
+    final r = gpxFilesFrom(l10nDe, PickedFile.text('a.gpx', _gpx));
     expect(r.errors, isEmpty);
     expect(r.files.single.name, 'a.gpx');
     expect(r.files.single.text, _gpx);
@@ -28,12 +29,12 @@ void main() {
 
   test('ein BOM fällt weg, kaputte Bytes kosten nicht die Datei', () {
     final bytes = Uint8List.fromList([0xEF, 0xBB, 0xBF, ...utf8.encode(_gpx), 0xFF]);
-    final r = gpxFilesFrom(PickedFile(name: 'a.gpx', bytes: bytes));
+    final r = gpxFilesFrom(l10nDe, PickedFile(name: 'a.gpx', bytes: bytes));
     expect(r.files.single.text, startsWith('<gpx'));
   });
 
   test('ein Zip liefert jede GPX darin, unter ihrem eigenen Namen', () {
-    final r = gpxFilesFrom(PickedFile(
+    final r = gpxFilesFrom(l10nDe, PickedFile(
       name: 'Trails.zip',
       bytes: _zip({'a/eins.gpx': _gpx, 'zwei.GPX': _gpx, 'notiz.txt': 'x'}),
     ));
@@ -42,12 +43,12 @@ void main() {
   });
 
   test('Zip wird am Inhalt erkannt, nicht an der Endung', () {
-    final r = gpxFilesFrom(PickedFile(name: 'download', bytes: _zip({'x.gpx': _gpx})));
+    final r = gpxFilesFrom(l10nDe, PickedFile(name: 'download', bytes: _zip({'x.gpx': _gpx})));
     expect(r.files, hasLength(1));
   });
 
   test('macOS-Ressourcengabeln zählen nicht als GPX', () {
-    final r = gpxFilesFrom(PickedFile(
+    final r = gpxFilesFrom(l10nDe, PickedFile(
       name: 'mac.zip',
       bytes: _zip({'__MACOSX/._x.gpx': 'binär', 'x/._y.gpx': 'binär', 'x.gpx': _gpx}),
     ));
@@ -55,21 +56,21 @@ void main() {
   });
 
   test('ein Zip ohne GPX wird benannt', () {
-    final r = gpxFilesFrom(PickedFile(name: 'fotos.zip', bytes: _zip({'a.jpg': 'x'})));
+    final r = gpxFilesFrom(l10nDe, PickedFile(name: 'fotos.zip', bytes: _zip({'a.jpg': 'x'})));
     expect(r.files, isEmpty);
     expect(r.errors.single, 'fotos.zip: keine GPX-Datei im Archiv.');
   });
 
   test('ein kaputtes Zip wird benannt, nicht geworfen', () {
     final bytes = Uint8List.fromList([0x50, 0x4B, 0x03, 0x04, 1, 2, 3, 4, 5, 6]);
-    final r = gpxFilesFrom(PickedFile(name: 'kaputt.zip', bytes: bytes));
+    final r = gpxFilesFrom(l10nDe, PickedFile(name: 'kaputt.zip', bytes: bytes));
     expect(r.errors.single, 'kaputt.zip: Zip-Archiv ist leer oder nicht lesbar.');
   });
 
   test('Fremdes wird abgewiesen, XML ohne Endung darf zum Parser', () {
-    expect(gpxFilesFrom(PickedFile.text('bild.jpg', 'JFIF')).errors.single,
+    expect(gpxFilesFrom(l10nDe, PickedFile.text('bild.jpg', 'JFIF')).errors.single,
         'bild.jpg: weder GPX noch Zip.');
-    expect(gpxFilesFrom(PickedFile.text('export', '  $_gpx')).files, hasLength(1));
+    expect(gpxFilesFrom(l10nDe, PickedFile.text('export', '  $_gpx')).files, hasLength(1));
   });
 
   test('die Auswahl filtert auf Android nicht nach MIME-Typ', () {

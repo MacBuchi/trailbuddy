@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/app_colors.dart';
 import '../../core/geo.dart';
+import '../../l10n/l10n.dart';
 import '../map/map_view/map_view.dart';
 import '../trails/trail_sheet.dart' show formatElevation;
 import 'official_trails.dart';
@@ -88,7 +89,7 @@ class _OfficialTrailSheet extends ConsumerWidget {
     final facts = [
       if (trail.lengthM != null) formatMeters(trail.lengthM!),
       if (trail.downM != null && trail.upM != null)
-        formatElevation((gain: trail.upM!, loss: trail.downM!)),
+        formatElevation(context.l10n, (gain: trail.upM!, loss: trail.downM!)),
     ];
     final url = source?.url;
     return SafeArea(

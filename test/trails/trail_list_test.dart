@@ -7,6 +7,8 @@ import 'package:trailbuddy/features/trails/trail_list.dart';
 import 'package:trailbuddy/features/trails/trail_geometry.dart';
 import 'package:trailbuddy/models/trail.dart';
 
+import '../fakes/l10n_de.dart';
+
 TrailRecording rec(String trail, String user, {int day = 1, double lengthM = 1000, List<double>? ele}) =>
     TrailRecording(
       id: '$trail-$user-$day',
@@ -145,11 +147,11 @@ void main() {
     });
 
     test('Grad-Bereich in Worten', () {
-      expect(const TrailListFilter(maxGrade: 2).gradeText, 'bis S2');
-      expect(const TrailListFilter(minGrade: 3).gradeText, 'ab S3');
-      expect(const TrailListFilter(minGrade: 1, maxGrade: 3).gradeText, 'S1–S3');
-      expect(const TrailListFilter(minGrade: 2, maxGrade: 2).gradeText, 'nur S2');
-      expect(const TrailListFilter().gradeText, 'S0–S5');
+      expect(const TrailListFilter(maxGrade: 2).gradeText(l10nDe), 'bis S2');
+      expect(const TrailListFilter(minGrade: 3).gradeText(l10nDe), 'ab S3');
+      expect(const TrailListFilter(minGrade: 1, maxGrade: 3).gradeText(l10nDe), 'S1–S3');
+      expect(const TrailListFilter(minGrade: 2, maxGrade: 2).gradeText(l10nDe), 'nur S2');
+      expect(const TrailListFilter().gradeText(l10nDe), 'S0–S5');
     });
 
     test('neuer Hinweis und gemeldet', () {
@@ -172,7 +174,7 @@ void main() {
       expect(names(trailListOf([...list, rated], filter: f)).toSet(), {'Mein Flow', 'Ungeschätzt'},
           reason: 'Buddy-Trails und bewertete fallen weg');
       expect(f.isActive, isTrue);
-      expect(f.describe(), 'Bewertung offen');
+      expect(f.describe(l10nDe), 'Bewertung offen');
     });
 
     test('geraten wird nur unter dem, was die Filter übrig lassen', () {
@@ -181,8 +183,8 @@ void main() {
     });
 
     test('describe nennt, was gefiltert ist — für die Zeile auf der Karte', () {
-      expect(const TrailListFilter().describe(), '');
-      expect(const TrailListFilter(owner: TrailOwnerFilter.mine, maxGrade: 2, reportedOnly: true).describe(),
+      expect(const TrailListFilter().describe(l10nDe), '');
+      expect(const TrailListFilter(owner: TrailOwnerFilter.mine, maxGrade: 2, reportedOnly: true).describe(l10nDe),
           'Meine · bis S2 · gemeldet');
     });
 
@@ -265,7 +267,7 @@ void main() {
   group('Wort der Zeile (Design 1j)', () {
     String nameOf(String id, String? username) => username ?? 'Buddy';
     List<String> tags(Trail t, {bool fresh = false}) =>
-        [for (final x in trailRowTags(t, freshNote: fresh, nameOf: nameOf)) x.text];
+        [for (final x in trailRowTags(l10nDe, t, freshNote: fresh, nameOf: nameOf)) x.text];
 
     Trail shared(List<(String, String?)> users) => Trail(
           id: 't',
@@ -304,7 +306,7 @@ void main() {
 
     test('unbestätigt: gedämpft mit Fragezeichen, und nur, wenn es etwas anderes sagt (#101)', () {
       final t = reported([status(TrailStatus.closed, 1), status(TrailStatus.open, 5, confirmed: false)]);
-      expect(trailRowTags(t, freshNote: false, nameOf: nameOf),
+      expect(trailRowTags(l10nDe, t, freshNote: false, nameOf: nameOf),
           [(text: 'GESPERRT', kind: TrailRowTagKind.warning), (text: 'OFFEN?', kind: TrailRowTagKind.unconfirmed)]);
       expect(tags(reported([status(TrailStatus.closed, 5, confirmed: false)])), ['GESPERRT?'],
           reason: 'ohne bestätigte Meldung keine Warnung, nur die Frage');
@@ -322,12 +324,12 @@ void main() {
     test('wartend: nur das Warten — eine Ablehnung als Satz, nicht in Versalien', () {
       final waiting = Trail(
           id: 'p', myId: 'me', recordings: [rec('p', 'me')], details: const [], pending: true);
-      expect(trailRowTags(waiting, freshNote: true, nameOf: nameOf).single,
+      expect(trailRowTags(l10nDe, waiting, freshNote: true, nameOf: nameOf).single,
           (text: 'WARTET AUF ÜBERTRAGUNG', kind: TrailRowTagKind.pending));
       final rejected = Trail(
           id: 'p', myId: 'me', recordings: [rec('p', 'me')], details: const [],
           pending: true, pendingFailure: 'Zu kurz für einen Trail.');
-      expect(trailRowTags(rejected, freshNote: false, nameOf: nameOf).single,
+      expect(trailRowTags(l10nDe, rejected, freshNote: false, nameOf: nameOf).single,
           (text: 'Zu kurz für einen Trail.', kind: TrailRowTagKind.failure));
     });
   });

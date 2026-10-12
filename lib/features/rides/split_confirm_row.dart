@@ -11,6 +11,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/app_colors.dart';
 import '../../core/errors.dart';
+import '../../l10n/l10n.dart';
 import '../../models/trail.dart';
 import '../trails/trail_condition.dart';
 import '../trails/trail_providers.dart';
@@ -67,7 +68,7 @@ class _SplitConfirmRowState extends ConsumerState<SplitConfirmRow> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final palette = AppPalette.of(context);
-    final notice = confirmNoticeOf(widget.target);
+    final notice = confirmNoticeOf(context.l10n, widget.target);
     final muted = theme.textTheme.bodySmall?.copyWith(color: palette.muted);
     return Padding(
       padding: const EdgeInsets.only(left: 48, bottom: 8),
@@ -125,8 +126,8 @@ class _SplitConfirmRowState extends ConsumerState<SplitConfirmRow> {
                   for (final c in kTrailConditions)
                     ChoiceChip(
                       key: ValueKey('$_k-condition-${c.value}'),
-                      label: Text(c.label),
-                      tooltip: c.description,
+                      label: Text(c.label(context.l10n)),
+                      tooltip: c.description(context.l10n),
                       selected: _condition == c.value,
                       onSelected: (_) => setState(() => _condition = c.value),
                     ),

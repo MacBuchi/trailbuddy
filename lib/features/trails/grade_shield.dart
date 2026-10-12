@@ -12,6 +12,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/app_colors.dart';
 import '../../core/app_theme.dart';
+import '../../l10n/l10n.dart';
 import '../../models/trail.dart';
 import 'singletrail_scale.dart';
 import 'trail_traits.dart';
@@ -93,8 +94,8 @@ class GradeShield extends StatelessWidget {
     final shownTraits = [for (final t in traits) if (!(uphill && t == TrailTrait.uphill)) t];
     if (g == null && !uphill && shownTraits.isEmpty) return const SizedBox.shrink();
     final label = [
-      if (uphill) 'Uphill',
-      if (g != null) 'Schwierigkeit ${g.label}: ${g.short}',
+      if (uphill) context.l10n.gradeUphill,
+      if (g != null) context.l10n.gradeShieldSemantics(g.label, g.short(context.l10n)),
       for (final t in shownTraits) t.label,
     ].join(', ');
     return Semantics(

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/app_colors.dart';
+import '../../l10n/l10n.dart';
 import 'trail_elevation.dart';
 
 /// Das Höhenprofil im Trail-Blatt: Fläche unter der Linie, Höhe links,
@@ -33,8 +34,8 @@ class ElevationProfileChart extends StatelessWidget {
     final top = profile.maxM.round();
     final bottom = profile.minM.round();
     return Semantics(
-      label: 'Höhenprofil, von ${profile.startM.round()} auf '
-          '${profile.endM.round()} Meter, höchster Punkt $top, tiefster $bottom',
+      label: context.l10n.elevationProfileSemantics(
+          profile.startM.round(), profile.endM.round(), top, bottom),
       excludeSemantics: true,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -83,7 +84,7 @@ class ElevationProfileChart extends StatelessWidget {
               padding: const EdgeInsets.only(left: 50, top: 2),
               child: Row(
                 children: [
-                  Text('Start', style: small?.copyWith(color: muted)),
+                  Text(context.l10n.elevationStart, style: small?.copyWith(color: muted)),
                   const Spacer(),
                   Text(_km(profile.lengthM), style: small?.copyWith(color: muted)),
                 ],

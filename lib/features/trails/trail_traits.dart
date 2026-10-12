@@ -6,18 +6,20 @@
 import 'package:flutter/material.dart';
 
 import '../../core/app_colors.dart';
+import '../../l10n/l10n.dart';
 import '../../models/trail.dart';
 
 extension TrailTraitView on TrailTrait {
   /// Ein paar Wörter: was man dort erwartet (Design Turn 4).
-  String get description => switch (this) {
-        TrailTrait.flowy => 'Wellen, Anlieger, Rhythmus',
-        TrailTrait.jumps => 'Kicker, Drops, Tables',
-        TrailTrait.rocky => 'Steine, Wurzeln, Stufen',
-        TrailTrait.steep => 'anhaltendes Gefälle',
-        TrailTrait.uphill => 'Auffahrt, auch bergauf fahrbar',
-        TrailTrait.natural => 'naturbelassen, nicht gebaut',
-        TrailTrait.connection => 'verbindet Trails, Forst- oder Wirtschaftsweg',
+  /// #209: aus den ARB-Dateien.
+  String description(AppLocalizations l) => switch (this) {
+        TrailTrait.flowy => l.traitFlowyDescription,
+        TrailTrait.jumps => l.traitJumpsDescription,
+        TrailTrait.rocky => l.traitRockyDescription,
+        TrailTrait.steep => l.traitSteepDescription,
+        TrailTrait.uphill => l.traitUphillDescription,
+        TrailTrait.natural => l.traitNaturalDescription,
+        TrailTrait.connection => l.traitConnectionDescription,
       };
 
   /// Das Symbol — farblos: Die Farbe sagt, was ICH mit dem Trail zu tun
@@ -53,7 +55,7 @@ class TrailTraitChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final fg = selected ? AppColors.onBrand : null;
     return Tooltip(
-      message: trait.description,
+      message: trait.description(context.l10n),
       child: FilterChip(
         avatar: Icon(trait.icon, size: 18, color: fg),
         label: Text(label ?? trait.label, style: fg == null ? null : TextStyle(color: fg)),

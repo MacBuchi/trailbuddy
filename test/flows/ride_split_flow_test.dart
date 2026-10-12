@@ -26,6 +26,7 @@ import '../fakes/fake_map_view.dart';
 import '../fakes/fake_rides.dart';
 import '../fakes/fake_tiles.dart';
 import '../fakes/fake_trails.dart';
+import '../fakes/l10n_de.dart';
 import '../fakes/test_app.dart';
 
 /// Alles in Kachel-Pixeln der z13-Kachel um 48°/9°, damit Fahrt, Trail
@@ -189,7 +190,7 @@ void main() {
     await tester.enterText(find.byKey(const ValueKey('split-candidate-name-0')), 'Neue Linie');
     await tester.tap(find.widgetWithText(DropdownButtonFormField<int?>, 'Keine Angabe'));
     await settle(tester);
-    await tester.tap(find.text('S2 · ${singletrailGrade(2).short}').last);
+    await tester.tap(find.text('S2 · ${singletrailGrade(2).short(l10nDe)}').last);
     await settle(tester);
     // Der Charakter (#72): dieselben Chips wie in „Mein Beitrag".
     for (final t in [TrailTrait.flowy, TrailTrait.jumps]) {

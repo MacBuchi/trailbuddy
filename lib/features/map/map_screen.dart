@@ -1702,7 +1702,7 @@ class _TrailFilterBanner extends ConsumerWidget {
         child: ListTile(
           dense: true,
           leading: const Icon(Icons.filter_alt_outlined),
-          title: Text(context.l10n.mapFilterBannerTitle(filter.describe())),
+          title: Text(context.l10n.mapFilterBannerTitle(filter.describe(context.l10n))),
           subtitle: Text(context.l10n.mapFilterBannerCount(shown, total)),
           trailing: IconButton(
             key: const ValueKey('map-filter-reset'),

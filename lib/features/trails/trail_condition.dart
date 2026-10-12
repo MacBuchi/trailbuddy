@@ -1,3 +1,5 @@
+import '../../l10n/l10n.dart';
+
 /// Der Zustand eines Trails (#101, Rework 3.2 und 9): 5 ist der beste
 /// Wert, wie bei der Bewertung — dieselbe Richtung, sonst verwechselt man
 /// sie.
@@ -9,27 +11,41 @@
 ///
 /// EINE Quelle für jede Stelle, die einen Zustand zeigt oder abfragt.
 class TrailConditionLevel {
-  const TrailConditionLevel(this.value, this.label, this.description);
+  const TrailConditionLevel(this.value);
 
   final int value;
 
-  /// Das Wort: „Ausgefahren".
-  final String label;
+  /// Das Wort: „Ausgefahren" (#209: aus den ARB-Dateien).
+  String label(AppLocalizations l) => switch (value) {
+        5 => l.conditionTop,
+        4 => l.conditionGood,
+        3 => l.conditionWorn,
+        2 => l.conditionRough,
+        1 => l.conditionBarelyRideable,
+        _ => throw StateError('Kein Zustand: $value'),
+      };
 
   /// Ein Satz für Auswahl und Bildschirmleser.
-  final String description;
+  String description(AppLocalizations l) => switch (value) {
+        5 => l.conditionTopDescription,
+        4 => l.conditionGoodDescription,
+        3 => l.conditionWornDescription,
+        2 => l.conditionRoughDescription,
+        1 => l.conditionBarelyRideableDescription,
+        _ => throw StateError('Kein Zustand: $value'),
+      };
 }
 
 const kTrailConditions = <TrailConditionLevel>[
-  TrailConditionLevel(5, 'Top gepflegt', 'Sauber, griffig, alles an seinem Platz.'),
-  TrailConditionLevel(4, 'Gut', 'Normale Spuren, nichts, das stört.'),
-  TrailConditionLevel(3, 'Ausgefahren', 'Bremswellen, ausgewaschene Rinnen, lose Steine.'),
-  TrailConditionLevel(2, 'Abgerockt', 'Wurzeln frei, Löcher, Wildwuchs.'),
-  TrailConditionLevel(1, 'Kaum fahrbar', 'Nur mit Mühe fahrbar.'),
+  TrailConditionLevel(5),
+  TrailConditionLevel(4),
+  TrailConditionLevel(3),
+  TrailConditionLevel(2),
+  TrailConditionLevel(1),
 ];
 
 TrailConditionLevel trailCondition(int value) =>
     kTrailConditions.firstWhere((c) => c.value == value);
 
 /// Nur das Wort — für den Rechenteil der Liste, der ohne Widgets bleibt.
-String trailConditionLabel(int value) => trailCondition(value).label;
+String trailConditionLabel(AppLocalizations l, int value) => trailCondition(value).label(l);
