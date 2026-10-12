@@ -672,7 +672,7 @@ ebenfalls zu #36.
 | W1 | Wege nach Güte und Schwierigkeit (#212, Abschnitt 5a) | 0.89.0 |
 | N1 | Navigation nach Abschnitten: Anfahrt, Trailkopf, Trail, Routenband (#312, Abschnitt 13) | 0.114.0 |
 | N2 | „Trail geschafft" am Trail-Ende (#312, Abschnitt 13) | 0.115.0 |
-| N3 | Bild-im-Bild 3:4 mit Abschnitt, zweizeilige Benachrichtigung (#312) | — |
+| N3 | Bild-im-Bild 3:4 mit Abschnitt, „Minimieren“, zweizeilige Benachrichtigung (#312, Abschnitt 13) | 0.116.0 |
 
 ## 12. Einführung: Hinweis-Maschine und Touren (#126)
 
@@ -797,8 +797,14 @@ Untertitel „2 Trails · 18,6 km".
   Lime-Pille mit dem nächsten Abschnitt. Das Blatt liegt über Band und
   Knöpfen, die Karte oben bleibt. Die Zustände fragt es nur
   angemeldet; Knöpfe 44 px hoch statt der 34 px des Entwurfs.
-- **Bild-im-Bild (1b/1c) und Benachrichtigung (1d) sind N3**; bis dahin
-  zeigt das Fenster die bisherige Zahlenzeile, dunkel. Das
+- **Bild-im-Bild (1b/1c) und Benachrichtigung (1d) sind N3** (seit
+  0.116.0): Im Fenster liegt die Abschnitts-Karte am unteren Rand über
+  die volle Breite (keine schwebende Karte mit Rand — bei ~150 dp wäre
+  der Rand Platz für nichts), km 28 px, das Band 5 px ohne Namen;
+  abseits ein Warnrand oben. Jede Zeile schrumpft (`FittedBox`), statt
+  überzulaufen. „Minimieren" ist ein runder dunkler Knopf neben
+  „Bildschirm", nur wo das Gerät PiP kann. Die Benachrichtigung hat
+  Titel und Text als die zwei Zeilen des Entwurfs; das
   Android-16-Live-Update mit Segmenten baut `flutter_foreground_task`
   nicht, „Pausieren" gibt es im Modus nicht (Konzept 9).
 - Die Beschriftungen in Versalien sind Text in Versalien

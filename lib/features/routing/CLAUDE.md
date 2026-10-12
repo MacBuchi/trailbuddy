@@ -458,7 +458,7 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     hin und zurück (`route_progress_test`).
 - **Navigation nach Abschnitten** (#312 N1, seit 0.114.0,
   `nav_sections.dart` pur, Phasen in `route_progress.dart`, Ansicht
-  `nav_view.dart`; Konzept-Routing 9.9, Design 13). Sechs Dinge, die man
+  `nav_view.dart`; Konzept-Routing 9.9, Design 13). Sieben Dinge, die man
   wissen muss:
   - **Die Lage eines Trails auf der Linie wird GESUCHT, nicht
     aufsummiert** (`_locate`): `plan.points` trägt vor und hinter den
@@ -498,6 +498,15 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     (`fakePosition(at:)`). Das Blatt (`nav-done`, Zustände
     `nav-done-condition-<n>`, `nav-done-next`) meldet beim Tipp sofort,
     wie `SplitConfirmRow`.
+  - **Fenster und Benachrichtigung nach Abschnitten (N3, seit
+    0.116.0)**: `_PipCard` (`nav-pip`) ersetzt die Zahlenzeile; jede
+    Zeile steckt in `FittedBox(scaleDown)` — ohne lief sie bei 150 dp um
+    96 px über (Gegenprobe im Flow-Test mit 450 × 600 px bei 3×).
+    `NavNoticeWatcher.phaseOf` rechnet die Phase aus `secs`,
+    `navNotice` macht daraus Titel und Text über `serviceL10n()`.
+    „Minimieren" fragt `pipSupportedProvider`; jede Kanal-Methode, die
+    Dart ruft, muss in `MainActivity` stehen (`android_manifest_test`),
+    sonst endet sie still in `notImplemented`.
 - **Die Navigation im Dienst** (#232 Schritt 2, seit 0.96.0,
   `nav_notice.dart` im Service-Isolate, `nav_service.dart` in der App;
   Konzept-Routing 9.5). Fünf Dinge, die man wissen muss:
@@ -541,8 +550,8 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     `onUserLeaveHint`; ohne `FEATURE_PICTURE_IN_PICTURE` (Go-Geräte) gar
     nicht.
   - **Klein heißt `pipModeProvider`**: `NavOverlay(compact: true)` zeigt
-    nur die Zahlen in einer Zeile (`nav-pip`, `Text.rich` — im Test über
-    `textSpan.toPlainText()` lesen), die Hülle (`AppShell`) lässt die
+    unten den Abschnitt (`nav-pip`, seit 0.116.0; bis dahin die Zahlen in
+    einer Zeile), die Hülle (`AppShell`) lässt die
     Reiterleiste weg, und der Bildschirm-Schalter gilt nicht (9.4).
     Beim Kleinwerden geht es auf die Karte (`go('/')`).
   - **„Beenden" im Fenster** ist eine `RemoteAction` mit einem Broadcast

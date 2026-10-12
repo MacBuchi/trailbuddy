@@ -119,21 +119,40 @@ class NavRouteData {
   }
 }
 
-/// Die Leiste der Folgeansicht als eine Zeile: „Noch 12,4 km · 640 hm ·
-/// auf der Route" (9.5). Höhenmeter nur, wenn das Profil gelesen ist.
-String navNoticeText(NavState state, {double? climbM}) {
-  if (state.arrived) return 'Angekommen';
-  return [
-    'Noch ${formatMeters(state.remainingM)}',
-    if (climbM != null) '${climbM.round()} hm',
-    state.offRoute ? '${formatMeters(state.offM)} neben der Route' : 'auf der Route',
+/// Die Benachrichtigung in zwei Zeilen (9.5, 9.9, Entwurf 1d): oben der
+/// Abschnitt wie die Karte der Folgeansicht — „2,4 km · ↑310 hm bis
+/// Rosskopf Süd", auf dem Trail „Rosskopf Süd · noch 1,8 km · ↓240 hm" —,
+/// darunter die Rampe, ob man auf der Route ist und ob die Fahrt
+/// mitläuft (sonst stünde sie nirgends mehr). Höhenmeter nur mit Profil.
+({String title, String text}) navNotice(AppLocalizations l, NavState state, NavPhase phase,
+    {required bool recording}) {
+  final rec = recording ? l.navNoticeRecording : null;
+  if (state.arrived && phase.kind == NavPhaseKind.arrived) {
+    return (title: l.navArrivedTitle, text: rec ?? l.navArrivedSubtitle);
+  }
+  final dist = formatMeters(phase.distM);
+  final section = phase.section;
+  final title = switch (phase.kind) {
+    NavPhaseKind.onTrail => switch (phase.lossM) {
+        final loss? when loss >= 1 => l.navNoticeOnTrailLoss(section!.name, dist, loss.round()),
+        _ => l.navNoticeOnTrail(section!.name, dist),
+      },
+    NavPhaseKind.atHead => l.navNoticeAtHead(section!.name),
+    _ => switch ((phase.climbM, section)) {
+        (final climb?, final s?) when climb >= 1 => l.navNoticeToTrailClimb(dist, climb.round(), s.name),
+        (_, final s?) => l.navNoticeToTrail(dist, s.name),
+        (final climb?, null) when climb >= 1 => l.navNoticeToGoalClimb(dist, climb.round()),
+        _ => l.navNoticeToGoal(dist),
+      },
+  };
+  final ramp = phase.ramp;
+  final text = [
+    if (ramp != null && !state.offRoute) l.navRampAhead((ramp.grade * 100).round(), formatMeters(ramp.inM)),
+    state.offRoute ? l.navNoticeOffRoute(formatMeters(state.offM)) : l.navNoticeOnRoute,
+    ?rec,
   ].join(' · ');
+  return (title: title, text: text);
 }
-
-/// Der Titel: Läuft die Aufzeichnung mit, sagt er es — sonst stünde die
-/// Fahrt nirgends mehr in der Benachrichtigung.
-String navNoticeTitle({required bool recording}) =>
-    recording ? 'Navigation · Fahrt wird aufgezeichnet' : 'Navigation';
 
 /// Der Stand der Navigation im Dienst — einer je Isolate. Stirbt das
 /// Isolate, liest der nächste die Datei und fängt beim Stand der Datei an.
@@ -168,8 +187,15 @@ class NavNoticeWatcher {
     return _tracker?.update(p, headingDeg: headingDeg, speedMps: speedMps);
   }
 
-  /// Höhenmeter bergauf ab [alongM]; null ohne Profil.
-  double? climbAheadM(double alongM) => climbAfter(_data?.climbDistM, _data?.climbEleM, alongM);
+  /// Die Phase zum Stand (9.9) — aus den Abschnitten der Routen-Datei
+  /// (Fassung 2) und dem Profil; ohne Abschnitte die Anfahrt zum Ziel.
+  NavPhase phaseOf(NavState state) => navPhaseOf(
+        state,
+        _data?.sections ?? NavSections.none,
+        routeLengthM: _tracker?.route.lengthM ?? 0,
+        climbDistM: _data?.climbDistM,
+        climbEleM: _data?.climbEleM,
+      );
 
   /// Seit wann angekommen — nach [kNavArrivedLinger] endet die Navigation
   /// auch ohne App (9.3).
@@ -230,8 +256,8 @@ Future<NavState?> navTick({
         rev: rev, headingDeg: position.heading, speedMps: position.speed);
     if (state == null) return null;
     await FlutterForegroundTask.saveData(key: kNavDataAlong, value: state.alongM);
-    await (show ?? _show)(
-        navNoticeTitle(recording: recording), navNoticeText(state, climbM: watcher.climbAheadM(state.alongM)));
+    final notice = navNotice(serviceL10n(), state, watcher.phaseOf(state), recording: recording);
+    await (show ?? _show)(notice.title, notice.text);
     if (watcher.lingered(state, (now ?? DateTime.now)())) await (onLingered ?? stopNavFromService)();
     return state;
   } catch (_) {

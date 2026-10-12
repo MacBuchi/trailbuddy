@@ -52,15 +52,23 @@ class _FakeScreenAwake implements ScreenAwake {
 /// Spielt das Fenster: merkt, was erlaubt wird, und meldet wie der Kanal.
 class _FakePip implements PictureInPicture {
   final allowed = <bool>[];
+  var enters = 0;
   void Function(bool inPip)? _onMode;
   VoidCallback? _onStop;
 
-  void enter() => _onMode!(true);
-  void leave() => _onMode!(false);
+  /// Das System macht die App klein bzw. wieder groß.
+  void shrink() => _onMode!(true);
+  void grow() => _onMode!(false);
   void tapStop() => _onStop!();
 
   @override
   Future<void> allow(bool on) async => allowed.add(on);
+
+  @override
+  Future<bool> supported() async => true;
+
+  @override
+  Future<void> enter() async => enters++;
 
   @override
   void listen({required void Function(bool inPip) onMode, required VoidCallback onStop}) {
@@ -397,7 +405,8 @@ void main() {
         name: 'Hausrunde',
       ));
     // Auf dem Telefon (360 dp): Das Blatt passt mit allen Knöpfen.
-    await startFromRides(tester, phone: true, trails: trails, start: const LatLng(47.997, 9.0));
+    final pip = _FakePip();
+    await startFromRides(tester, phone: true, trails: trails, start: const LatLng(47.997, 9.0), pip: pip);
     await tester.tap(find.byKey(const ValueKey('nav-record')));
     await settle(tester, frames: 2);
     await tester.tap(find.byKey(const ValueKey('nav-go')));
@@ -406,6 +415,15 @@ void main() {
     // Erst nach zwei Dritteln eingestiegen: keine Bilanz.
     await fix(tester, 48.007, 9.0, heading: 0, speed: 5);
     expect(find.byKey(const ValueKey('nav-trail')), findsOneWidget);
+    // Im kleinen Fenster (#312 N3): der Trail mit Rest, ohne Überlauf.
+    tester.view.physicalSize = const Size(450, 600);
+    pip.shrink();
+    await settle(tester);
+    expect(textIn('nav-pip'), contains('ROSSKOPF SÜD'));
+    expect(textIn('nav-pip'), contains('m'));
+    tester.view.physicalSize = const Size(1080, 2400);
+    pip.grow();
+    await settle(tester);
     await fix(tester, 48.011, 9.0, heading: 0, speed: 5);
     expect(find.byKey(const ValueKey('nav-done')), findsNothing);
 
@@ -591,23 +609,34 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('nav-go')));
     await settle(tester);
     expect(pip.allowed, [true]);
+    // „Minimieren" (#312 N3): ins Fenster, ohne nach Hause zu wischen.
+    await tester.tap(find.byKey(const ValueKey('nav-minimize')));
+    await settle(tester, frames: 2);
+    expect(pip.enters, 1);
 
-    // Klein: keine Leiste, keine Knöpfe, keine Reiterleiste — die Zahlen
-    // in einer Zeile, und der Bildschirm darf aus (9.4).
-    pip.enter();
+    // Klein: keine Leiste, keine Knöpfe, keine Reiterleiste — unten der
+    // Abschnitt und das Band, und der Bildschirm darf aus (9.4). Das
+    // Fenster ist 3:4 und ~150 dp breit: nichts läuft über.
+    tester.view.physicalSize = const Size(450, 600);
+    tester.view.devicePixelRatio = 3;
+    addTearDown(tester.view.reset);
+    pip.shrink();
     await settle(tester);
     expect(find.byKey(const ValueKey('nav-pip')), findsOneWidget);
     expect(find.byKey(const ValueKey('nav-approach')), findsNothing);
     expect(find.byKey(const ValueKey('nav-stop')), findsNothing);
     expect(find.byType(NavigationBar), findsNothing);
+    expect(textIn('nav-pip'), contains('BIS ZUM ZIEL'));
     expect(textIn('nav-pip'), contains('1,5 km'));
+    expect(tester.getBottomLeft(find.byKey(const ValueKey('nav-pip'))).dy, 200, reason: 'unten im Fenster');
     expect(screen.calls.last, isFalse);
     await fix(tester, _lat + 0.0006, _lng(12));
     await fix(tester, _lat + 0.0006, _lng(12));
     expect(textIn('nav-pip'), contains('67 m daneben'));
 
     // Wieder groß: alles zurück, der Bildschirm wieder an.
-    pip.leave();
+    tester.view.reset();
+    pip.grow();
     await settle(tester);
     expect(find.byKey(const ValueKey('nav-off')), findsOneWidget);
     // Groß und navigierend: weiter ohne Reiterleiste (Vollbild).
@@ -616,7 +645,7 @@ void main() {
 
     // „Beenden" im Fenster beendet wie der Knopf, und das Fenster ist
     // danach nicht mehr erlaubt.
-    pip.enter();
+    pip.shrink();
     await settle(tester);
     pip.tapStop();
     await settle(tester);

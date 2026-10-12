@@ -631,5 +631,17 @@
   "navDoneAsk": "HOW WAS IT TODAY?",
   "navDoneNext": "Continue · {length}",
   "navDoneNextClimb": "Continue · {length} · ↑{climb} m",
-  "navDoneClose": "Continue"
+  "navDoneClose": "Continue",
+  "navMinimizeTooltip": "Minimise",
+  "navNoticeTitle": "Navigation",
+  "navNoticeToTrail": "{distance} to {trail}",
+  "navNoticeToTrailClimb": "{distance} · ↑{climb} m to {trail}",
+  "navNoticeToGoal": "{distance} to the finish",
+  "navNoticeToGoalClimb": "{distance} · ↑{climb} m to the finish",
+  "navNoticeAtHead": "At the trail head · {trail}",
+  "navNoticeOnTrail": "{trail} · {distance} to go",
+  "navNoticeOnTrailLoss": "{trail} · {distance} to go · ↓{loss} m",
+  "navNoticeOnRoute": "on the route",
+  "navNoticeOffRoute": "{distance} off the route",
+  "navNoticeRecording": "Recording ride"
 }

@@ -181,13 +181,17 @@ class MainActivity : FlutterActivity() {
 
     override fun onUserLeaveHint() {
         super.onUserLeaveHint()
-        if (pipAllowed && pipSupported() && Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
-            try {
-                enterPictureInPictureMode(pipParams())
-            } catch (e: IllegalStateException) {
-                // Vom Nutzer für die App abgeschaltet: Dann ist die
-                // Benachrichtigung die Anzeige.
-            }
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) enterPip()
+    }
+
+    /** Ins Fenster — beim Verlassen (unter Android 12) und über „Minimieren". */
+    private fun enterPip() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O || !pipAllowed || !pipSupported()) return
+        try {
+            enterPictureInPictureMode(pipParams())
+        } catch (e: IllegalStateException) {
+            // Vom Nutzer für die App abgeschaltet: Dann ist die
+            // Benachrichtigung die Anzeige.
         }
     }
 
@@ -254,6 +258,11 @@ class MainActivity : FlutterActivity() {
                 when (call.method) {
                     "allow" -> {
                         allowPip(call.argument<Boolean>("on") == true)
+                        result.success(null)
+                    }
+                    "supported" -> result.success(pipSupported())
+                    "enter" -> {
+                        enterPip()
                         result.success(null)
                     }
                     else -> result.notImplemented()

@@ -19,6 +19,14 @@ abstract interface class PictureInPicture {
   /// nichts mehr).
   Future<void> allow(bool on);
 
+  /// Kann das Gerät überhaupt ins Fenster (ab Android 8, und nur, wo das
+  /// Gerät es anbietet)? Davon hängt der Knopf „Minimieren" ab.
+  Future<bool> supported();
+
+  /// „Minimieren" (Entwurf 1a): jetzt ins Fenster, ohne nach Hause zu
+  /// wischen. Hat der Nutzer es für die App abgeschaltet, passiert nichts.
+  Future<void> enter();
+
   /// Die Rückrichtung: [onMode] beim Wechsel zwischen groß und klein,
   /// [onStop] beim Tipp auf „Beenden" im Fenster.
   void listen({required void Function(bool inPip) onMode, required VoidCallback onStop});
@@ -30,3 +38,6 @@ final pictureInPictureProvider = Provider<PictureInPicture>((ref) => createPictu
 /// Ist die App gerade das kleine Fenster? Dann baut die Karte die
 /// schmale Fassung der Folgeansicht und die Hülle keine Reiterleiste.
 final pipModeProvider = StateProvider<bool>((ref) => false);
+
+/// Ob es den Knopf „Minimieren" gibt — einmal je Sitzung gefragt.
+final pipSupportedProvider = FutureProvider<bool>((ref) => ref.watch(pictureInPictureProvider).supported());
