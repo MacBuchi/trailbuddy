@@ -12,6 +12,9 @@ import 'package:latlong2/latlong.dart';
 
 import '../../core/geo.dart' as geo;
 import '../offline_areas/height_tiles.dart' show hysteresisClimb, kClimbHysteresisM;
+import 'nav_sections.dart';
+
+export 'nav_sections.dart';
 
 /// Weiter weg als das heißt „abseits" — dieselben 30 m wie „kein Weg" bei
 /// den Zwischenpunkten (Konzept-Routing 4).
@@ -192,24 +195,62 @@ RouteFix? _nearest(NavRoute route, LatLng p, {required double from, required dou
 }
 
 /// Höhenmeter bergauf ab [alongM] — aus den Proben eines Profils entlang
-/// der Linie ([distM]/[eleM], dieselbe Hysterese wie im Ergebnis). Null
+/// der Linie ([distM]/[eleM], dieselbe Hysterese wie im Ergebnis), bis
+/// [untilM] (ohne: bis zum Ende). Null ohne Profil.
+double? climbAfter(List<double>? distM, List<double>? eleM, double alongM, {double? untilM}) =>
+    climbBetween(distM, eleM, alongM, untilM ?? double.infinity)?.gain;
+
+/// Anstieg und Abstieg zwischen [fromM] und [toM] auf dem Profil. Null
 /// ohne Profil.
-double? climbAfter(List<double>? distM, List<double>? eleM, double alongM) {
+({double gain, double loss})? climbBetween(List<double>? distM, List<double>? eleM, double fromM, double toM) {
+  final part = profilePart(distM, eleM, fromM, toM);
+  if (part == null) return null;
+  if (part.length < 2) return (gain: 0, loss: 0);
+  final (gain, loss) = hysteresisClimb(part, kClimbHysteresisM);
+  return (gain: gain, loss: loss);
+}
+
+/// Die Höhen des Profils zwischen [fromM] und [toM], an beiden Enden
+/// zwischen den Proben gelesen. Null ohne Profil, leer außerhalb.
+List<double>? profilePart(List<double>? distM, List<double>? eleM, double fromM, double toM) {
   if (distM == null || eleM == null || distM.length < 2 || distM.length != eleM.length) return null;
-  if (alongM >= distM.last) return 0;
-  final rest = <double>[];
-  for (var i = 0; i < distM.length; i++) {
-    if (distM[i] <= alongM) continue;
-    if (rest.isEmpty && i > 0) {
-      // Die Höhe am Stand selbst, zwischen den Proben gelesen.
-      final span = distM[i] - distM[i - 1];
-      final t = span <= 0 ? 0.0 : (alongM - distM[i - 1]) / span;
-      rest.add(eleM[i - 1] + (eleM[i] - eleM[i - 1]) * t);
+  if (fromM >= distM.last || toM <= fromM) return const [];
+  double at(double m) {
+    for (var i = 1; i < distM.length; i++) {
+      if (distM[i] >= m) {
+        final span = distM[i] - distM[i - 1];
+        final t = span <= 0 ? 0.0 : ((m - distM[i - 1]) / span).clamp(0.0, 1.0);
+        return eleM[i - 1] + (eleM[i] - eleM[i - 1]) * t;
+      }
     }
-    rest.add(eleM[i]);
+    return eleM.last;
   }
-  if (rest.length < 2) return 0;
-  return hysteresisClimb(rest, kClimbHysteresisM).$1;
+
+  final out = <double>[at(fromM)];
+  for (var i = 0; i < distM.length; i++) {
+    if (distM[i] <= fromM || distM[i] >= toM) continue;
+    out.add(eleM[i]);
+  }
+  out.add(toM >= distM.last ? eleM.last : at(toM));
+  return out;
+}
+
+/// Ab dieser Steigung heißt ein Stück „Rampe" (Entwurf 2026-10-12: orange
+/// ab 12 %).
+const kNavRampGrade = 0.12;
+
+/// Die erste Rampe voraus zwischen [fromM] und [toM]: ihre Steigung und
+/// wie weit sie entfernt beginnt. Null ohne Profil oder ohne Rampe.
+({double grade, double inM})? rampAhead(List<double>? distM, List<double>? eleM, double fromM, double toM) {
+  if (distM == null || eleM == null || distM.length < 2 || distM.length != eleM.length) return null;
+  for (var i = 1; i < distM.length; i++) {
+    if (distM[i] <= fromM || distM[i - 1] >= toM) continue;
+    final span = distM[i] - distM[i - 1];
+    if (span <= 0) continue;
+    final grade = (eleM[i] - eleM[i - 1]) / span;
+    if (grade >= kNavRampGrade) return (grade: grade, inM: math.max(0.0, distM[i - 1] - fromM));
+  }
+  return null;
 }
 
 /// Was die Folgeansicht zeigt — der Stand nach einem Fix.
@@ -223,6 +264,7 @@ class NavState {
     required this.headingDeg,
     required this.position,
     required this.rejoin,
+    this.moving = false,
   });
 
   final double alongM;
@@ -239,6 +281,10 @@ class NavState {
 
   /// Der Punkt der Linie voraus, auf den der Pfeil abseits zeigt.
   final LatLng rejoin;
+
+  /// In Fahrt (ab [kNavHeadingMinSpeedMps]) — am Trailkopf heißt stehen
+  /// „am Kopf", rollen „auf dem Trail" (9.9).
+  final bool moving;
 }
 
 /// Führt den Stand von Fix zu Fix: Fenster, Zähler für „abseits", der
@@ -283,6 +329,7 @@ class NavTracker {
       headingDeg: _heading ?? route.bearingAt(_along),
       position: p,
       rejoin: route.pointAt(_along + kNavRejoinAheadM),
+      moving: moving,
     );
   }
 }
@@ -295,4 +342,90 @@ LatLng followCenter(LatLng position, double bearingDeg, double zoom, double heig
   final ahead = heightPx / 6 * mPerPx;
   if (ahead <= 0) return position;
   return const Distance().offset(position, ahead, bearingDeg);
+}
+
+/// So weit vor dem Trailkopf beginnt „am Trailkopf" (9.9) …
+const kNavHeadBeforeM = 100.0;
+
+/// … und so weit dahinter endet es, solange man steht.
+const kNavHeadAfterM = 30.0;
+
+/// Was die Folgeansicht gerade fragt (9.9): die Anfahrt zum nächsten
+/// Trail (oder zum Ziel), der Moment am Trailkopf, der Trail selbst,
+/// angekommen.
+enum NavPhaseKind { approach, atHead, onTrail, arrived }
+
+/// Der Abschnitt, in dem man ist, mit den Zahlen dazu.
+class NavPhase {
+  const NavPhase({
+    required this.kind,
+    this.section,
+    required this.distM,
+    this.climbM,
+    this.lossM,
+    this.ramp,
+  });
+
+  final NavPhaseKind kind;
+
+  /// Der Trail der Phase: bei der Anfahrt der nächste (null heißt: das
+  /// Ziel), am Kopf und auf dem Trail dieser.
+  final NavTrailSection? section;
+
+  /// Anfahrt: Meter bis zum Trailkopf bzw. Ziel. Auf dem Trail: der Rest
+  /// des Trails. Sonst 0.
+  final double distM;
+
+  /// Anfahrt: Höhenmeter bergauf bis dorthin; null ohne Profil.
+  final double? climbM;
+
+  /// Auf dem Trail: Höhenmeter bergab, die noch kommen; null ohne Profil.
+  final double? lossM;
+
+  /// Anfahrt: die erste Rampe voraus.
+  final ({double grade, double inM})? ramp;
+
+  bool get toGoal => kind == NavPhaseKind.approach && section == null;
+}
+
+/// Die Phase zum Stand [state] auf einer Route der Länge [routeLengthM]
+/// mit [sections]; [climbDistM]/[climbEleM] das Profil entlang der Linie.
+NavPhase navPhaseOf(
+  NavState state,
+  NavSections sections, {
+  required double routeLengthM,
+  List<double>? climbDistM,
+  List<double>? climbEleM,
+}) {
+  final along = state.alongM;
+  if (state.arrived) {
+    // Am Ziel ein Trail (Weg zum Trailkopf): der Moment vor dem Droppen.
+    final head = sections.trails.where((t) => t.beyondRoute).firstOrNull;
+    return NavPhase(kind: head == null ? NavPhaseKind.arrived : NavPhaseKind.atHead, section: head, distM: 0);
+  }
+  final on = sections.at(along);
+  if (on != null && on.lengthM > 0) {
+    final nearHead = along <= on.startM + kNavHeadAfterM && !state.moving;
+    if (!nearHead) {
+      return NavPhase(
+        kind: NavPhaseKind.onTrail,
+        section: on,
+        distM: math.max(0.0, on.endM - along),
+        lossM: climbBetween(climbDistM, climbEleM, along, on.endM)?.loss,
+      );
+    }
+  }
+  final next = sections.nextFrom(along, slackM: on == null ? 0 : kNavHeadAfterM);
+  if (next != null && !next.beyondRoute && along >= next.startM - kNavHeadBeforeM && !state.moving) {
+    return NavPhase(kind: NavPhaseKind.atHead, section: next, distM: math.max(0.0, next.startM - along));
+  }
+  final toM = next?.startM ?? routeLengthM;
+  final dist = math.max(0.0, toM - along);
+  return NavPhase(
+    kind: NavPhaseKind.approach,
+    section: next,
+    distM: dist,
+    climbM: climbAfter(climbDistM, climbEleM, along, untilM: toM),
+    ramp: rampAhead(climbDistM, climbEleM, along, toM),
+  );
 }

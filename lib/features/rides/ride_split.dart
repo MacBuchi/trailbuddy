@@ -265,7 +265,7 @@ RideSplit splitRide({
   final cum = _cumulative(xy);
 
   // 2. Bekannte Trails.
-  final known = _knownSections(kept, latLng, xy, cum, trails, proj);
+  final known = knownTrailSectionsOf(latLng, trails, proj: proj, xy: xy, cum: cum);
 
   // 3. Kandidaten in den freien Stücken.
   final ele = _elevations(kept);
@@ -527,14 +527,22 @@ List<(int, int)> _freeRanges(int n, List<KnownTrailSection> known) {
   return out;
 }
 
-List<KnownTrailSection> _knownSections(
-  List<TrackPoint> pts,
+/// Die Trails des Netzes, die eine Linie gedeckt hat — dieselbe Regel wie
+/// „bekannt" im Zerlege-Blatt (Korridor [kMatchCorridorM], beidseitige
+/// Deckung [kMatchCoverage], Lücken bis [kSplitCorridorGap]). Auch die
+/// Navigation fragt so, welche Trails auf einer Fahrt liegen (#312).
+/// [proj], [xy] und [cum] darf mitgeben, wer sie schon hat.
+List<KnownTrailSection> knownTrailSectionsOf(
   List<LatLng> latLng,
-  List<math.Point<double>> xy,
-  List<double> cum,
-  List<Trail> trails,
-  FlatProjection proj,
-) {
+  List<Trail> trails, {
+  FlatProjection? proj,
+  List<math.Point<double>>? xy,
+  List<double>? cum,
+}) {
+  if (latLng.length < 2) return const [];
+  proj ??= FlatProjection.around(latLng);
+  xy ??= proj.line(latLng);
+  cum ??= _cumulative(xy);
   final rideBox = LatBox.of(latLng);
   final out = <KnownTrailSection>[];
   for (final t in trails) {

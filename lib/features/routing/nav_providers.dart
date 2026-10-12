@@ -9,7 +9,9 @@ import 'package:latlong2/latlong.dart';
 import '../../core/errors.dart';
 import '../../core/line_geometry.dart';
 import '../../core/settings.dart';
+import '../../models/trail.dart';
 import '../profile/profile_providers.dart';
+import '../trails/trail_providers.dart' show trailsProvider;
 import '../trails/terrain_heights.dart';
 import 'loop_planner.dart' show LoopPrefs;
 import 'nav_notice.dart' show NavRouteData;
@@ -27,7 +29,7 @@ export 'route_progress.dart' show kNavArrivedLinger;
 /// `trailHeadRequestProvider`): Die Karte fragt nach Aufzeichnen und
 /// Bildschirm, holt den Standort und startet.
 class NavRequest {
-  const NavRequest({required this.points, required this.title, this.startAlongM = 0});
+  const NavRequest({required this.points, required this.title, this.startAlongM = 0, this.sections});
 
   /// Die Linie in Fahrtrichtung, wie sie die Karte zeichnet.
   final List<LatLng> points;
@@ -35,9 +37,21 @@ class NavRequest {
 
   /// Wo der Stand anfängt — „zuletzt navigiert" geht dort weiter.
   final double startAlongM;
+
+  /// Die Trails auf der Linie (9.9). Null heißt: die Karte leitet sie aus
+  /// dem Netz ab (eine Fahrt kennt ihre Trails nicht).
+  final NavSections? sections;
 }
 
 final navRequestProvider = StateProvider<NavRequest?>((ref) => null);
+
+/// Ein Trail des Netzes nach Kennung, aus dem geladenen Stand — für die
+/// Abschnitte (9.9: Charakter, Zustand, Hinweis). Null, wenn er nicht
+/// (mehr) im Netz liegt; dann gelten die Werte des Planers.
+Trail? Function(String id) trailByIdOf(WidgetRef ref) {
+  final trails = ref.read(trailsProvider).valueOrNull ?? const <Trail>[];
+  return (id) => trails.where((t) => t.id == id).firstOrNull;
+}
 
 /// „Zuletzt navigiert" oben in „Meine Fahrten" (9.2): Beenden fragt
 /// nicht, also ist aus Versehen beendet mit einem Tipp wieder an. Nur im
@@ -65,6 +79,7 @@ class NavSession {
   const NavSession({
     required this.route,
     required this.title,
+    this.sections = const NavSections.empty(),
     this.state,
     this.climbDistM,
     this.climbEleM,
@@ -75,6 +90,9 @@ class NavSession {
 
   final NavRoute route;
   final String title;
+
+  /// Die Trails auf der Linie (9.9).
+  final NavSections sections;
 
   /// Der Stand nach dem letzten Fix; null bis zum ersten.
   final NavState? state;
@@ -99,10 +117,31 @@ class NavSession {
   /// Wohin oben zeigt.
   double get bearingDeg => north ? 0 : (state?.headingDeg ?? route.bearingAt(0));
 
+  /// Der Abschnitt, in dem man ist (9.9) — vor dem ersten Fix die Anfahrt
+  /// ab Start.
+  NavPhase get phase => navPhaseOf(
+        state ??
+            NavState(
+              alongM: 0,
+              remainingM: route.lengthM,
+              offM: 0,
+              offRoute: false,
+              arrived: false,
+              headingDeg: 0,
+              position: route.points.first,
+              rejoin: route.points.first,
+            ),
+        sections,
+        routeLengthM: route.lengthM,
+        climbDistM: climbDistM,
+        climbEleM: climbEleM,
+      );
+
   NavSession copyWith({NavState? state, List<double>? climbDistM, List<double>? climbEleM, bool? north}) =>
       NavSession(
         route: route,
         title: title,
+        sections: sections,
         state: state ?? this.state,
         climbDistM: climbDistM ?? this.climbDistM,
         climbEleM: climbEleM ?? this.climbEleM,
@@ -115,6 +154,7 @@ class NavSession {
   NavSession withRejoin(NavRejoin rejoin, [List<LatLng>? line]) => NavSession(
         route: route,
         title: title,
+        sections: sections,
         state: state,
         climbDistM: climbDistM,
         climbEleM: climbEleM,
@@ -149,18 +189,19 @@ class NavController extends Notifier<NavSession?> {
 
   /// Startet die Navigation auf [points] ab [startAlongM]; false, wenn die
   /// Linie keine Länge hat. Eine laufende wird ersetzt.
-  bool start(List<LatLng> points, String title, {double startAlongM = 0}) {
+  bool start(List<LatLng> points, String title, {double startAlongM = 0, NavSections? sections}) {
     final route = NavRoute.of(points);
     if (route == null) return false;
     _linger?.cancel();
     _tracker = NavTracker(route, startAlongM: startAlongM);
     _startAlongM = startAlongM;
-    final session = NavSession(route: route, title: title);
+    final session = NavSession(route: route, title: title, sections: sections ?? const NavSections.empty());
     state = session;
     final bridge = ref.read(navServiceBridgeProvider);
     final keepAlive = ref.read(navKeepAliveProvider);
     _queue(() async {
-      await bridge.arm(NavRouteData(points: route.points, title: title, startAlongM: startAlongM));
+      await bridge.arm(NavRouteData(
+          points: route.points, title: title, startAlongM: startAlongM, sections: session.sections));
       await keepAlive.start();
     });
     unawaited(_loadClimb(session));
@@ -180,6 +221,7 @@ class NavController extends Notifier<NavSession?> {
           points: session.route.points,
           title: session.title,
           startAlongM: _startAlongM,
+          sections: session.sections,
           climbDistM: profile.distM,
           climbEleM: profile.eleM)));
     } catch (_) {
@@ -270,6 +312,7 @@ class NavController extends Notifier<NavSession?> {
         points: session.route.points,
         title: session.title,
         startAlongM: now == null || now.arrived ? 0 : now.alongM,
+        sections: session.sections,
       );
     }
     _linger?.cancel();

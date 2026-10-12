@@ -49,8 +49,10 @@ entsteht zuerst dort) und `app_en.arb`; gelesen mit `context.l10n.<key>`
   `lib/core/`, die Meldungen von `GpxFormatException`; (d1) Fahrten,
   Zerlege-Blatt und die Texte des Dienstes 0.113.4 — alles unter
   `lib/features/rides/`, dazu `RiderProfile.label(l)` und
-  `learnResultText`. (d2) Rundenplaner, Weg zum Trailkopf und Navigation
-  folgt. Noch keiner Stufe zugeordnet:
+  `learnResultText`; (d2, Teil 1) die Folgeansicht der Navigation
+  0.114.0 (`nav_view.dart`, mit dem Umbau nach Abschnitten, #312);
+  Rundenplaner, Weg zum Trailkopf und die Dienst-Texte der Navigation
+  folgen. Noch keiner Stufe zugeordnet:
   `lib/features/offline_areas/` und `lib/features/official/` (das Blatt
   eines offiziellen Trails).
 - **Texte des Dienstes** (Benachrichtigung der Aufnahme, Fragen

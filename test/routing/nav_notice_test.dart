@@ -61,9 +61,25 @@ void main() {
       expect(withClimb.climbEleM, [600, 640]);
     });
 
+    test('Fassung 2 trägt die Abschnitte; eine Datei der Fassung 1 liest sich ohne (#312)', () {
+      final sections = NavSections([
+        const NavTrailSection(startM: 300, endM: 1100, trailId: 't1', name: 'Rosskopf Süd', grade: 2, lossM: 420),
+      ]);
+      final back = NavRouteData.decode(NavRouteData(points: _points, title: 'x', sections: sections).encode())!;
+      expect(back.sections.trails, hasLength(1));
+      expect(back.sections.trails.single.name, 'Rosskopf Süd');
+      expect(back.sections.trails.single.endM, 1100);
+      expect(back.sections.trails.single.lossM, 420);
+      final v1 = NavRouteData.decode('{"v":1,"title":"x","pts":[[47.0,11.0],[47.0,11.1]]}')!;
+      expect(v1.sections.isEmpty, isTrue);
+      // Ein kaputter Abschnitt fällt weg, die Route bleibt.
+      final odd = NavRouteData.decode('{"v":2,"title":"x","pts":[[47.0,11.0],[47.0,11.1]],"secs":[[5,2,"t","n"]]}')!;
+      expect(odd.sections.isEmpty, isTrue);
+    });
+
     test('anything odd reads as no route — half a route would be worse', () {
       expect(NavRouteData.decode('kaputt'), isNull);
-      expect(NavRouteData.decode('{"v":2,"pts":[[47,11],[47,11.1]]}'), isNull);
+      expect(NavRouteData.decode('{"v":3,"pts":[[47,11],[47,11.1]]}'), isNull);
       expect(NavRouteData.decode('{"v":1,"pts":[[47.0,11.0]]}'), isNull);
     });
   });

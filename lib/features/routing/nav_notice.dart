@@ -55,6 +55,7 @@ class NavRouteData {
     required this.points,
     required this.title,
     this.startAlongM = 0,
+    this.sections = const NavSections.empty(),
     this.climbDistM,
     this.climbEleM,
   });
@@ -62,19 +63,28 @@ class NavRouteData {
   final List<LatLng> points;
   final String title;
   final double startAlongM;
+
+  /// Die Trails auf der Linie (9.9) — seit Fassung 2 der Datei.
+  final NavSections sections;
   final List<double>? climbDistM;
   final List<double>? climbEleM;
 
   NavRouteData withStart(double alongM) => NavRouteData(
-      points: points, title: title, startAlongM: alongM, climbDistM: climbDistM, climbEleM: climbEleM);
+      points: points,
+      title: title,
+      startAlongM: alongM,
+      sections: sections,
+      climbDistM: climbDistM,
+      climbEleM: climbEleM);
 
   String encode() => jsonEncode({
-        'v': 1,
+        'v': 2,
         'title': title,
         'start': startAlongM,
         'pts': [
           for (final p in points) [p.latitude, p.longitude],
         ],
+        if (sections.trails.isNotEmpty) 'secs': sections.encode(),
         if (climbDistM != null && climbEleM != null) 'climb': {'d': climbDistM, 'e': climbEleM},
       });
 
@@ -83,7 +93,7 @@ class NavRouteData {
   static NavRouteData? decode(String text) {
     try {
       final json = jsonDecode(text);
-      if (json is! Map<String, dynamic> || json['v'] != 1) return null;
+      if (json is! Map<String, dynamic> || (json['v'] != 1 && json['v'] != 2)) return null;
       final pts = [
         for (final p in json['pts'] as List)
           LatLng((p as List)[0] as double, p[1] as double),
@@ -99,6 +109,7 @@ class NavRouteData {
         points: pts,
         title: json['title'] as String? ?? '',
         startAlongM: (json['start'] as num?)?.toDouble() ?? 0,
+        sections: NavSections.decode(json['secs']),
         climbDistM: paired ? d : null,
         climbEleM: paired ? e : null,
       );

@@ -35,6 +35,7 @@ import 'loop_planner_controller.dart';
 import 'loop_planner_providers.dart';
 import 'map_panel.dart';
 import 'nav_providers.dart';
+import 'nav_sections.dart';
 import 'road_graph.dart';
 import 'road_graph_loader.dart' show kOnlineFillMaxTiles;
 import 'route_elevation.dart';
@@ -592,8 +593,10 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
           child: FilledButton.icon(
             key: const ValueKey('loop-navigate'),
             style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(48)),
-            onPressed: () => ref.read(navRequestProvider.notifier).state =
-                NavRequest(points: plan.points, title: loopName(plan)),
+            onPressed: () => ref.read(navRequestProvider.notifier).state = NavRequest(
+                points: plan.points,
+                title: loopName(plan),
+                sections: navSectionsOfLoop(plan, trailById: trailByIdOf(ref))),
             icon: const Icon(Icons.navigation_outlined),
             label: const Text('Navigieren'),
           ),

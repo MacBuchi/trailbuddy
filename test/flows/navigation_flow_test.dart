@@ -29,12 +29,14 @@ import 'package:trailbuddy/features/keep_alive/keep_alive.dart';
 import 'package:trailbuddy/features/rides/ride_track.dart';
 import 'package:trailbuddy/features/routing/nav_notice.dart';
 import 'package:trailbuddy/features/routing/nav_providers.dart' show kNavArrivedLinger, lastNavProvider;
+import 'package:trailbuddy/models/trail.dart';
 
 import '../fakes/fake_backend.dart';
 import '../fakes/fake_keep_alive.dart';
 import '../fakes/fake_map_view.dart';
 import '../fakes/fake_rides.dart';
 import '../fakes/fake_tiles.dart';
+import '../fakes/fake_trails.dart';
 import '../fakes/test_app.dart';
 
 class _FakeScreenAwake implements ScreenAwake {
@@ -164,6 +166,7 @@ void main() {
       LatLng start = const LatLng(_lat, 11),
       FakeKeepAlive? keepAlive,
       FakeNavServiceBridge? navBridge,
+      FakeTrailRepository? trails,
       _FakePip? pip}) async {
     if (phone) {
       tester.view.physicalSize = const Size(1080, 2400);
@@ -173,6 +176,7 @@ void main() {
     // Standardgröße wie `ride_flow_test`: In der Testschrift ist die Karte
     // „Fahrt läuft …" auf 360 dp breiter als der Schirm.
     await pumpApp(tester, backend,
+        trails: trails,
         rideStore: store,
         rideService: service,
         areaStore: areaStore,
@@ -209,14 +213,20 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('nav-go')));
     await settle(tester);
 
-    // Auf der Karte: Leiste statt Knöpfen, die Aufzeichnung läuft, der
-    // Bildschirm bleibt an.
-    expect(find.byKey(const ValueKey('nav-bar')), findsOneWidget);
+    // Auf der Karte: die Anfahrt-Karte statt Knöpfen, unten das Band, keine
+    // Reiterleiste (Vollbild, Design 13); die Aufzeichnung läuft, der
+    // Bildschirm bleibt an. Ohne Trail auf der Linie zählt die Karte bis
+    // zum Ziel.
+    expect(find.byKey(const ValueKey('nav-approach')), findsOneWidget);
+    expect(textIn('nav-approach'), contains('BIS ZUM ZIEL'));
+    expect(find.byKey(const ValueKey('nav-band')), findsOneWidget);
+    expect(find.byType(NavigationBar), findsNothing);
     expect(find.byKey(const ValueKey('layers-button')), findsNothing);
     expect(find.byKey(const ValueKey('feedback-button')), findsNothing);
     expect(service.starts, 1);
     expect(screen.calls, [true]);
     expect(textIn('nav-remaining'), contains('1,5 km'));
+    expect(textIn('nav-dist'), contains('1,5'));
     // Im Stand gilt die Richtung der Linie: nach Osten, also Osten oben.
     expect(fakeMap(tester).bearing, closeTo(90, 1));
     expect(fakeMap(tester).zoom, 16);
@@ -228,24 +238,28 @@ void main() {
     // Fahren: der Rest schrumpft, der gefahrene Teil wird blass.
     await fix(tester, _lat, _lng(10));
     expect(textIn('nav-remaining'), contains('758 m'));
+    expect(textIn('nav-dist'), contains('758'));
     expect(fakeMapLayers(tester).polylines.where((l) => l.width == 5), hasLength(1));
     // Der GPS-Kurs gilt in Fahrt.
     await fix(tester, _lat, _lng(11), heading: 80);
     expect(fakeMap(tester).bearing, 80);
 
-    // Abseits: ein Ausreißer zählt nicht, der zweite Fix in Folge schon.
+    // Abseits: ein Ausreißer zählt nicht, der zweite Fix in Folge schon —
+    // dann schlägt die Abseits-Karte alles.
     await fix(tester, _lat + 0.0006, _lng(12));
-    expect(textIn('nav-off'), contains('zur Route'));
+    expect(find.byKey(const ValueKey('nav-off')), findsNothing);
+    expect(find.byKey(const ValueKey('nav-approach')), findsOneWidget);
     await fix(tester, _lat + 0.0006, _lng(12));
-    expect(textIn('nav-off'), contains('neben der Route'));
+    expect(find.byKey(const ValueKey('nav-approach')), findsNothing);
+    expect(textIn('nav-off'), contains('NEBEN DER ROUTE'));
     expect(textIn('nav-off'), contains('67 m'));
     expect(find.byKey(const ValueKey('nav-off-arrow')), findsOneWidget);
-    // „Zurück zur Route" ohne Bereich: ein Satz in der Leiste, der Knopf
+    // „Zurück zur Route" ohne Bereich: ein Satz unter der Karte, der Knopf
     // bleibt für einen zweiten Versuch.
     expect(find.byKey(const ValueKey('nav-rejoin-note')), findsNothing);
     await tester.tap(find.byKey(const ValueKey('nav-rejoin')));
     await settle(tester);
-    expect(textIn('nav-bar'), contains('Hier kennt die App keine Wege'));
+    expect(textIn('nav-rejoin-note'), contains('Hier kennt die App keine Wege'));
     expect(find.byKey(const ValueKey('nav-rejoin')), findsOneWidget);
 
     // „Norden": genordet, sofort.
@@ -263,8 +277,9 @@ void main() {
     expect(find.byKey(const ValueKey('nav-arrived')), findsOneWidget);
     await tester.pump(kNavArrivedLinger);
     await settle(tester);
-    expect(find.byKey(const ValueKey('nav-bar')), findsNothing);
+    expect(find.byKey(const ValueKey('nav-arrived')), findsNothing);
     expect(find.byKey(const ValueKey('layers-button')), findsOneWidget);
+    expect(find.byType(NavigationBar), findsOneWidget);
     expect(fakeMap(tester).bearing, 0);
     // Die Aufzeichnung endet nicht mit der Navigation (9.4).
     expect(service.running, isTrue);
@@ -277,6 +292,68 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('nav-last-resume')));
     await settle(tester);
     expect(find.byKey(const ValueKey('nav-go')), findsOneWidget);
+  });
+
+  testWidgets('by section (#312): a ride over a trail of the network — approach, head with the buddy note, trail, goal',
+      (tester) async {
+    // Der Trail des Netzes liegt auf 9° Ost von 48,000 bis 48,009; die
+    // Fahrt fährt von 47,997 nach 48,012 darüber hinweg. Jan hat einen
+    // Hinweis geschrieben.
+    final trails = FakeTrailRepository(myId: () => backend.currentUserId ?? '', areFriends: backend.areFriends);
+    final anna = backend.currentUserId!;
+    final jan = backend.addUser(username: 'jan');
+    backend.addFriendship(anna, jan.id);
+    final id = trails.seedTrail(anna, name: 'Rosskopf Süd', grade: 2, lat: 48.0, lon: 9.0);
+    trails.usernames[jan.id] = 'jan';
+    trails.notes.add(TrailNote(
+        id: 'n1', trailId: id, userId: jan.id, body: 'Nach der 2. Kehre liegt ein Baum quer.', createdAt: DateTime.now()));
+    final t0 = DateTime.utc(2026, 10, 8, 9);
+    store.rides
+      ..clear()
+      ..add(Ride(
+        id: '20261008T090000Z',
+        startedAt: t0,
+        endedAt: t0.add(const Duration(hours: 1)),
+        points: [
+          for (var lat = 47.997; lat <= 48.0121; lat += 0.0002) RidePoint(lat: lat, lng: 9.0, at: t0, accuracyM: 0),
+        ],
+        planned: true,
+        name: 'Hausrunde',
+      ));
+    await startFromRides(tester, trails: trails, start: const LatLng(47.997, 9.0));
+    // Das Start-Blatt nennt die Trails auf der Linie.
+    expect(textIn('nav-summary'), contains('1 Trail'));
+    await tester.tap(find.byKey(const ValueKey('nav-record')));
+    await settle(tester, frames: 2);
+    await tester.tap(find.byKey(const ValueKey('nav-go')));
+    await settle(tester);
+
+    // Anfahrt: bis zum Trailkopf, mit Namen; das Band trägt den Trail.
+    expect(textIn('nav-approach'), contains('BIS ZUM TRAILKOPF'));
+    expect(textIn('nav-approach'), contains('ROSSKOPF SÜD'));
+    expect(textIn('nav-dist'), contains('3'));
+    expect(textIn('nav-band'), contains('Rosskopf Süd'));
+    expect(textIn('nav-band'), contains('ROUTE · 1 TRAIL'));
+
+    // Am Trailkopf, stehend: Stufe, Hinweis von Jan.
+    await fix(tester, 47.9995, 9.0, heading: 0, speed: 0);
+    expect(find.byKey(const ValueKey('nav-head')), findsOneWidget);
+    expect(textIn('nav-head'), contains('AM TRAILKOPF'));
+    expect(textIn('nav-head'), contains('ROSSKOPF SÜD'));
+    expect(textIn('nav-head-note'), contains('HINWEIS · JAN'));
+    expect(textIn('nav-head-note'), contains('Baum quer'));
+
+    // Auf dem Trail, rollend: die schmale Leiste mit dem Rest und dem Hinweis.
+    await fix(tester, 48.003, 9.0, heading: 0, speed: 5);
+    expect(find.byKey(const ValueKey('nav-trail')), findsOneWidget);
+    expect(textIn('nav-trail'), contains('ROSSKOPF SÜD'));
+    expect(textIn('nav-trail-rest'), contains('m'));
+    expect(textIn('nav-trail-note'), contains('jan: Nach der 2. Kehre'));
+
+    // Dahinter: kein Trail mehr, bis zum Ziel.
+    await fix(tester, 48.011, 9.0, heading: 0, speed: 5);
+    expect(textIn('nav-approach'), contains('BIS ZUM ZIEL'));
+    expect(find.byKey(const ValueKey('nav-trail')), findsNothing);
   });
 
   testWidgets('taps on the map do nothing while navigating; Beenden asks nothing', (tester) async {
@@ -297,7 +374,7 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('nav-stop')));
     await settle(tester);
     expect(find.byType(AlertDialog), findsNothing);
-    expect(find.byKey(const ValueKey('nav-bar')), findsNothing);
+    expect(find.byKey(const ValueKey('nav-approach')), findsNothing);
     expect(screen.calls, [true, false]);
   });
 
@@ -321,7 +398,7 @@ void main() {
     // Erst der zweite Fix daneben macht abseits — dann kommt der Knopf.
     expect(find.byKey(const ValueKey('nav-rejoin')), findsNothing);
     await fix(tester, _southLat, _wayLng, heading: 0);
-    expect(textIn('nav-off'), contains('neben der Route'));
+    expect(textIn('nav-off'), contains('NEBEN DER ROUTE'));
 
     List<MapViewPolyline> dashed() =>
         [for (final l in fakeMapLayers(tester).polylines) if (l.dash != null) l];
@@ -340,7 +417,8 @@ void main() {
     // Wieder auf der Route: Das Stück fällt weg.
     await fix(tester, _routeStartLat + 0.0002, _wayLng, heading: 0);
     expect(dashed(), isEmpty);
-    expect(textIn('nav-off'), contains('zur Route'));
+    expect(find.byKey(const ValueKey('nav-off')), findsNothing);
+    expect(find.byKey(const ValueKey('nav-approach')), findsOneWidget);
   });
 
   testWidgets('zuletzt navigiert goes on where Beenden left off', (tester) async {
@@ -368,14 +446,20 @@ void main() {
     await settle(tester);
     await tester.tap(find.byKey(const ValueKey('nav-go')));
     await settle(tester);
-    expect(find.byKey(const ValueKey('nav-bar')), findsOneWidget);
+    expect(find.byKey(const ValueKey('nav-approach')), findsOneWidget);
     await fix(tester, _lat, _lng(12));
     expect(textIn('nav-remaining'), contains('607 m'));
-    // Solange navigiert wird, steht die Karte nicht in der Liste.
-    // „Meine Fahrten" liegt noch offen im Reiter „Profil".
+    // Solange navigiert wird, gibt es keine Reiterleiste (Vollbild) — und
+    // die Karte steht nicht in der Liste: Nach „Beenden" ist sie wieder da,
+    // ab dem neuen Stand.
+    expect(find.byType(NavigationBar), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('nav-stop')));
+    await settle(tester);
+    expect(find.byType(NavigationBar), findsOneWidget);
     await openTab(tester, 'Profil');
     await settle(tester);
-    expect(find.byKey(const ValueKey('nav-last')), findsNothing);
+    expect(find.byKey(const ValueKey('nav-last')), findsOneWidget);
+    expect(container.read(lastNavProvider)!.startAlongM, closeTo(910, 5));
   });
 
   testWidgets('the service carries the navigation: location, a stop button, and Beenden from the notification',
@@ -404,7 +488,7 @@ void main() {
       callback(kNavMessageStop);
     }
     await settle(tester);
-    expect(find.byKey(const ValueKey('nav-bar')), findsNothing);
+    expect(find.byKey(const ValueKey('nav-approach')), findsNothing);
     expect(find.byKey(const ValueKey('layers-button')), findsOneWidget);
     expect(keepAlive.running, isFalse);
     expect(bridge.active, isFalse);
@@ -426,7 +510,7 @@ void main() {
 
     // Ohne Rückfrage — sie lief ja.
     expect(find.byKey(const ValueKey('nav-go')), findsNothing);
-    expect(find.byKey(const ValueKey('nav-bar')), findsOneWidget);
+    expect(find.byKey(const ValueKey('nav-approach')), findsOneWidget);
     expect(keepAlive.running, isTrue);
     expect(bridge.armed!.startAlongM, 600);
     await fix(tester, _lat, _lng(10));
@@ -447,7 +531,7 @@ void main() {
     pip.enter();
     await settle(tester);
     expect(find.byKey(const ValueKey('nav-pip')), findsOneWidget);
-    expect(find.byKey(const ValueKey('nav-bar')), findsNothing);
+    expect(find.byKey(const ValueKey('nav-approach')), findsNothing);
     expect(find.byKey(const ValueKey('nav-stop')), findsNothing);
     expect(find.byType(NavigationBar), findsNothing);
     expect(textIn('nav-pip'), contains('1,5 km'));
@@ -459,8 +543,9 @@ void main() {
     // Wieder groß: alles zurück, der Bildschirm wieder an.
     pip.leave();
     await settle(tester);
-    expect(find.byKey(const ValueKey('nav-bar')), findsOneWidget);
-    expect(find.byType(NavigationBar), findsOneWidget);
+    expect(find.byKey(const ValueKey('nav-off')), findsOneWidget);
+    // Groß und navigierend: weiter ohne Reiterleiste (Vollbild).
+    expect(find.byType(NavigationBar), findsNothing);
     expect(screen.calls.last, isTrue);
 
     // „Beenden" im Fenster beendet wie der Knopf, und das Fenster ist

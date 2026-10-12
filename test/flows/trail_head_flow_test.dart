@@ -300,7 +300,7 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('nav-go')));
     await settle(tester);
     expect(find.byKey(const ValueKey('trail-head-summary')), findsNothing);
-    expect(find.byKey(const ValueKey('nav-bar')), findsOneWidget);
+    expect(find.byKey(const ValueKey('nav-approach')), findsOneWidget);
     final route = fakeMapLayers(tester).polylines.where((l) => l.width == 6).single.points;
     expect(route.last, whole.last);
     // Der Trail läuft nach Norden: Norden oben.
