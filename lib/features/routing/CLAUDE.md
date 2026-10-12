@@ -456,6 +456,39 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     (`NavTracker(startAlongM:)`) — auf einer geraden Linie findet die
     Suche über die ganze Linie den Stand ohnehin, sichtbar wird es erst
     hin und zurück (`route_progress_test`).
+- **Navigation nach Abschnitten** (#312 N1, seit 0.114.0,
+  `nav_sections.dart` pur, Phasen in `route_progress.dart`, Ansicht
+  `nav_view.dart`; Konzept-Routing 9.9, Design 13). Fünf Dinge, die man
+  wissen muss:
+  - **Die Lage eines Trails auf der Linie wird GESUCHT, nicht
+    aufsummiert** (`_locate`): `plan.points` trägt vor und hinter den
+    Abschnitten des Planers noch Anschlussstücke, Längen zu addieren
+    läge daneben. Gesucht wird vorwärts ab dem letzten Treffer — eine
+    Runde, die eine Stelle zweimal berührt, verwechselt die zweite sonst
+    mit der ersten.
+  - **Der Ziel-Trail des Trailkopf-Wegs liegt HINTER dem Ende**
+    (`beyondRoute`, Start = Ende = Länge): Er zählt im Band nicht, die
+    Anfahrt-Karte nennt ihn, und „angekommen" wird zur Trailkopf-Karte.
+  - **Fahrten bekommen ihre Trails aus dem Netz** (`navSectionsOfLine`
+    über `knownTrailSectionsOf`, die öffentlich gemachte Suche des
+    Zerlege-Blatts — gleiche Schwellen, gleiche Lückenregel); das tut
+    `MapScreen._startNavigation`, wenn die Anfrage keine Abschnitte
+    hat. Im Web ohne Netz: keine Abschnitte, die Anfahrt zählt bis zum
+    Ziel, das Band steht trotzdem.
+  - **Am Trailkopf heißt stehen** (`NavState.moving`, dieselben 2 m/s
+    wie der Kurs): 100 m davor bis 30 m dahinter. Wer mit Tempo über
+    den Kopf rollt, sieht sofort die Trail-Leiste — sonst flackerte
+    die Karte bei jedem Trail, der auf der Durchfahrt liegt.
+  - **Alle Texte der Ansicht aus ARB** (Stufe d2 von #209, Navigation
+    vorgezogen): `navToHead`, `navBandLoop` … Pure Helfer mit Text
+    (`navStartSummary`) nehmen `AppLocalizations`. Die Farben sind der
+    dunkle Satz FEST (`AppColors.dark`), in beiden Modi; ein Text ohne
+    eigene Farbe wäre im Hellen schwarz auf Schwarz — deshalb
+    `_NavTheme` um die ganze Lage. Schlüssel für Tests: `nav-approach`,
+    `nav-off`, `nav-head`, `nav-trail`, `nav-band`, `nav-remaining`
+    (im Band), `nav-dist`/`nav-climb`/`nav-ramp` (Anfahrt). Eine
+    Routen-Datei der Fassung 2 trägt `secs`; der Dienst liest sie, nutzt
+    sie aber erst mit N3.
 - **Die Navigation im Dienst** (#232 Schritt 2, seit 0.96.0,
   `nav_notice.dart` im Service-Isolate, `nav_service.dart` in der App;
   Konzept-Routing 9.5). Fünf Dinge, die man wissen muss:

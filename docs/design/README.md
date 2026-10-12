@@ -23,6 +23,14 @@ Das Design-Projekt, so unverändert wie möglich (Stand des letzten Syncs
 | `web/favicon.png`, `web/icons/Icon-512.png`, `web/icons/Icon-maskable-512.png` | die damaligen App-Symbole, die Claude Design aus dem Repo kopiert hatte (noch das Flutter-Standardsymbol) | byte-gleich aus Commit `8e10007` |
 | `notification_icon_512.png`, `notification_icon_96.png` | das Statusleisten-Symbol (1f): weiß, Alpha, 12 % Rand | **neu gerendert** mit `tool/brand_icons.py` (`symbol_svg(px, NOTIFICATION_SCALE, None, 0, color="#FFFFFF", size="M")`) — das Original kam nur als Text über die Schnittstelle, byte-genau war es nicht zu übernehmen; seit Turn 1h bzw. C3 die neue Form, ohne die Herkunftsdaten (C2PA) des Originals |
 
+**`navi/`** ist der zweite Entwurf: „Mountainbike-Navigation optimieren"
+(Sync 2026-10-12, Turn 0 = Ist-Zustand aus `nav_view.dart`, Turn 1 =
+der neue Modus; Abschnitt 13). So abgelegt, wie das Handoff-Bündel aus
+Claude Design kam (`README.md` des Bündels, `project/Navigation.dc.html`,
+`support.js`, `github.md`, die Kopie des Logos); nicht übernommen das
+Vorschaubild, und die sechs Schriften im Bündel sind byte-gleich mit
+`assets/fonts/` — dort liegen Symlinks statt 650 KB Kopie.
+
 **`trailbuddy-logo/`** ist der Handoff des Logos „Serpentine C3"
 (2026-10-01), so abgelegt, wie er aus Claude Design kam: `README.md`
 (Anweisungen), `reference/TrailBuddy Logo C3.dc.html` (die Leinwand mit
@@ -633,7 +641,9 @@ Bewegung steht überall das Endbild, kein Takt läuft. Fünf Abweichungen:
 
 Nachrichten (1m, #34 Rest), Fahrt-Zusammenfassung mit Airtime (1n, #36)
 und Routing zum Trailkopf (1o, #35) sind Entwürfe für später; vor dem
-Routing kommt die Übergabe an eine Navi-App (#151, Konzept 9).
+Routing kommt die Übergabe an eine Navi-App (#151, Konzept 9). Die
+Trail-Werte aus Sensoren im Navigations-Entwurf (Abschnitt 13) gehören
+ebenfalls zu #36.
 
 ## 11. Umsetzung
 
@@ -660,6 +670,9 @@ Routing kommt die Übergabe an eine Navi-App (#151, Konzept 9).
 | E5 | Touren für Trails und Buddys, Beispiele (#136) | 0.63.0 |
 | E6 | Neuheiten-Blatt, „Entdecken", „Zeig es mir" (#135) | 0.64.0 |
 | W1 | Wege nach Güte und Schwierigkeit (#212, Abschnitt 5a) | 0.89.0 |
+| N1 | Navigation nach Abschnitten: Anfahrt, Trailkopf, Trail, Routenband (#312, Abschnitt 13) | 0.114.0 |
+| N2 | „Trail geschafft" am Trail-Ende (#312) | — |
+| N3 | Bild-im-Bild 3:4 mit Abschnitt, zweizeilige Benachrichtigung (#312) | — |
 
 ## 12. Einführung: Hinweis-Maschine und Touren (#126)
 
@@ -727,3 +740,62 @@ Plan `docs/konzept-onboarding.md` Abschnitt 6; gebaut ab 0.60.0
   Bildschirmleser hört. Die Beispiele sind wie die echten Zeilen gebaut
   (Karte mit Streifen, Schild, Mono-Zahlen), die Knöpfe sehen aktiv aus,
   tun aber nichts.
+
+## 13. Navigation nach Abschnitten (Entwurf `navi/`, 1a–1e) — `lib/features/routing/nav_view.dart`
+
+*Betreiber, 2026-10-13: Die Folgeansicht aus #232 war „banal und nicht
+auf Mountainbiker zugeschnitten". Der Entwurf „Mountainbike-Navigation
+optimieren" (Sync 2026-10-12) stellt die Frage um: **„Was kommt als
+Nächstes?" statt „Wie weit noch?"** — ein Biker fährt von Trail zu
+Trail. Konzept-Routing 9.9 beschreibt das Modell, hier steht das
+Aussehen. Issue #312, drei gestapelte PRs (N1–N3 in Abschnitt 11).*
+
+**Alle Flächen der Folgeansicht sind dunkel, in beiden Modi** (Annahme
+des Entwurfs, übernommen): Sie liegen über der hellen Karte, in praller
+Sonne liest sich Lime auf Dunkel. Im Code ist das der dunkle Satz
+`AppColors.dark` fest statt `AppPalette.of` — Fläche `#0E1411`, Rand
+`#2A3630`, Text `#F2F4EF`, gedämpft `#9AA69D`, Marke `#B6F04A`, Warnung
+`#FF8A3D`, Hinweis `#FFD23F`, Stufenfarben des dunklen Satzes (S2
+`#F0605C`). Karten mit Radius 14, 1 px Rand, Schatten; die runden
+Knöpfe tragen `dark: true` (`MapRoundButton`), „Beenden" ist eine
+Lime-Pille. **Die Reiterleiste ist weg, solange navigiert wird**
+(Vollbild) — „Beenden" bringt sie zurück.
+
+**Oben steht der Abschnitt** (1a, je ein Zustand):
+
+| Zustand | Karte | Schlüssel |
+|---|---|---|
+| Anfahrt | „BIS ZUM TRAILKOPF" (ohne Trail voraus: „BIS ZUM ZIEL"), rechts Schild + Name in Versalien; km 44 px Mono, ↑hm in Lime; Mini-Profil 40 px (Fläche `surface2`, Linie Lime, Rampe ab 12 % in Warnfarbe, Punkt am Stand); Zeile: die Wege der Anfahrt („Forstweg, dann 300 m Wanderweg") und „■ Rampe 14 % in 1,1 km" | `nav-approach` |
+| Abseits (schlägt alles) | 2 px Rand in Warnfarbe, Pfeil 44 px zur Linie gedreht gegen die Karte, „NEBEN DER ROUTE", Abstand 36 px Mono, „Der Pfeil zeigt zur Linie." | `nav-off` |
+| Am Trailkopf | „AM TRAILKOPF" in Lime, Schild + Name 26 px, Chips (Länge, ↓hm, Charakter, „Zustand gut · vor 2 Tagen") auf `surface2`, der jüngste Hinweis eines Buddys im gelb umrandeten Kasten („HINWEIS · JAN · VOR 3 TAGEN") | `nav-head` |
+| Auf dem Trail | schmal: Schild + Name 20 px, rechts Rest und ↓hm 20 px Mono, Balken 6 px in Stufenfarbe (gefahrener Anteil), darunter der Hinweis als Zeile („Jan: Baum quer …") | `nav-trail` |
+| Angekommen | wie bisher, dunkel | `nav-arrived` |
+
+**Unten das Routenband** (`nav-band`): Kopf „RUNDE · 2 TRAILS" (Strecke:
+„ROUTE · …"), rechts „noch 12,6 km · ↑490 hm" in Mono; Segmente 8 px
+nach Länge — Anfahrten `#E8ECE6`, gefahrene Anfahrt `#2A3630`, Trails
+in Stufenfarbe, der Stand als 4-px-Strich in Lime; darunter die Namen
+der Trails, wo ≥ 40 px Platz ist, rechts „Ziel". Dann die Knopfzeile
+(Kompass, Bildschirm, „Beenden"); abseits darüber „Zurück zur Route"
+als dunkle Pille mit Lime-Text. Das Start-Blatt (1e) bekommt den
+Untertitel „2 Trails · 18,6 km".
+
+**Abweichungen vom Entwurf, bewusst:**
+
+- **Kein gelber Punkt im Balken, kein „in 300 m":** Ein Hinweis
+  (`TrailNote`) hat keinen Ort. Die Zeile nennt Autor und Text, sobald
+  man auf dem Trail ist; ein Ort am Hinweis wäre ein Schema-Thema.
+- **Trail-Werte (Airtime, Max G, Manual), AIR-Toast, Werte-Kacheln, der
+  Schalter „Trail-Werte messen" und die Halterungswahl im Start-Blatt
+  kommen mit #36** (Betreiber, 2026-10-13) — sie brauchen Sensorik im
+  Dienst und gemessene Schwellen.
+- **Trail-Ende (1a, „TRAIL GESCHAFFT") ist N2**, ohne Sensor-Kacheln:
+  Zeit auf dem Trail, ↓hm, Top-Speed aus GPS, Zustands-Tipp, „Weiter".
+- **Bild-im-Bild (1b/1c) und Benachrichtigung (1d) sind N3**; bis dahin
+  zeigt das Fenster die bisherige Zahlenzeile, dunkel. Das
+  Android-16-Live-Update mit Segmenten baut `flutter_foreground_task`
+  nicht, „Pausieren" gibt es im Modus nicht (Konzept 9).
+- Die Beschriftungen in Versalien sind Text in Versalien
+  (`toUpperCase`), nicht Kapitälchen; der Bildschirmleser hört sie wie
+  geschrieben.
+

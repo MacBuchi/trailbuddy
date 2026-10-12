@@ -3247,5 +3247,224 @@
   "learnNoClimb": "Kein Aufstieg über 100 Höhenmeter am Stück gefunden — nichts zu lernen.",
   "@learnNoClimb": {
     "description": "Lernen: kein ausreichend langer Aufstieg."
+  },
+  "navStartTitle": "Navigieren",
+  "@navStartTitle": {
+    "description": "Titel des Start-Blatts der Navigation."
+  },
+  "navStartSummary": "{trails, plural, =0{{length}} =1{1 Trail · {length}} other{{trails} Trails · {length}}}",
+  "@navStartSummary": {
+    "description": "Untertitel des Start-Blatts: Zahl der Trails auf der Route und ihre Länge (fertig formatiert, z. B. „18,6 km\").",
+    "placeholders": {
+      "trails": {
+        "type": "int"
+      },
+      "length": {
+        "type": "String"
+      }
+    }
+  },
+  "navRecordTitle": "Fahrt mit aufzeichnen",
+  "@navRecordTitle": {
+    "description": "Schalter im Start-Blatt: die Fahrt parallel aufzeichnen."
+  },
+  "navRecordSubtitle": "Wie der Knopf auf der Karte — danach zerlegst du sie wie immer.",
+  "@navRecordSubtitle": {
+    "description": "Erklärung unter dem Schalter „Fahrt mit aufzeichnen\"."
+  },
+  "navScreenTitle": "Bildschirm anlassen",
+  "@navScreenTitle": {
+    "description": "Schalter im Start-Blatt und Tooltip des Knopfs: Bildschirm bleibt an."
+  },
+  "navScreenSubtitle": "Solange die Navigation vorne ist.",
+  "@navScreenSubtitle": {
+    "description": "Erklärung unter dem Schalter „Bildschirm anlassen\"."
+  },
+  "navStartHint": "Die Karte zeigt die Route und dreht mit — ohne Abbiegehinweise, fahre nach Sicht.",
+  "@navStartHint": {
+    "description": "Hinweis im Start-Blatt, was die Navigation tut und was nicht."
+  },
+  "navStartButton": "Navigation starten",
+  "@navStartButton": {
+    "description": "Knopf im Start-Blatt."
+  },
+  "navRotateTooltip": "Mit der Fahrtrichtung drehen",
+  "@navRotateTooltip": {
+    "description": "Tooltip des Kompass-Knopfs, wenn die Karte genordet ist."
+  },
+  "navNorthTooltip": "Norden oben",
+  "@navNorthTooltip": {
+    "description": "Tooltip des Kompass-Knopfs, wenn die Karte mit der Fahrtrichtung dreht."
+  },
+  "navScreenOffTooltip": "Bildschirm darf ausgehen",
+  "@navScreenOffTooltip": {
+    "description": "Tooltip des Bildschirm-Knopfs, solange der Bildschirm angelassen wird."
+  },
+  "navStop": "Beenden",
+  "@navStop": {
+    "description": "Knopf: Navigation beenden."
+  },
+  "navRejoin": "Zurück zur Route",
+  "@navRejoin": {
+    "description": "Knopf abseits der Route: den Weg zurück rechnen."
+  },
+  "navRejoinNoArea": "Hier kennt die App keine Wege — fahre nach Sicht zur Route.",
+  "@navRejoinNoArea": {
+    "description": "Satz, wenn „Zurück zur Route\" keinen gespeicherten Bereich findet."
+  },
+  "navRejoinNoPath": "Kein Weg zurück gefunden — fahre nach Sicht zur Route.",
+  "@navRejoinNoPath": {
+    "description": "Satz, wenn „Zurück zur Route\" auf den Kacheln keinen Weg findet."
+  },
+  "navArrivedTitle": "Angekommen",
+  "@navArrivedTitle": {
+    "description": "Leiste am Ziel; auch im kleinen Fenster."
+  },
+  "navArrivedSubtitle": "Die Navigation endet gleich von selbst.",
+  "@navArrivedSubtitle": {
+    "description": "Unter „Angekommen\"."
+  },
+  "navPipOff": "{distance} daneben",
+  "@navPipOff": {
+    "description": "Im kleinen Fenster: Abstand neben der Route, fertig formatiert.",
+    "placeholders": {
+      "distance": {
+        "type": "String"
+      }
+    }
+  },
+  "navToHead": "BIS ZUM TRAILKOPF",
+  "@navToHead": {
+    "description": "Beschriftung der Anfahrt-Karte, Versalien: die Zahlen gelten bis zum nächsten Trailkopf."
+  },
+  "navToGoal": "BIS ZUM ZIEL",
+  "@navToGoal": {
+    "description": "Beschriftung der Anfahrt-Karte, Versalien: kein Trail mehr voraus, die Zahlen gelten bis zum Ziel."
+  },
+  "navUnitKm": "km",
+  "@navUnitKm": {
+    "description": "Einheit hinter der großen Zahl auf der Anfahrt-Karte."
+  },
+  "navUnitM": "m",
+  "@navUnitM": {
+    "description": "Einheit hinter der großen Zahl, wenn es unter einem Kilometer ist."
+  },
+  "navUnitHm": "hm",
+  "@navUnitHm": {
+    "description": "Einheit der Höhenmeter hinter der großen Zahl."
+  },
+  "navOffRoute": "NEBEN DER ROUTE",
+  "@navOffRoute": {
+    "description": "Beschriftung der Abseits-Karte, Versalien."
+  },
+  "navOffRouteHint": "Der Pfeil zeigt zur Linie.",
+  "@navOffRouteHint": {
+    "description": "Satz auf der Abseits-Karte."
+  },
+  "navAtHead": "AM TRAILKOPF",
+  "@navAtHead": {
+    "description": "Beschriftung der Trailkopf-Karte, Versalien."
+  },
+  "navConditionChip": "Zustand {condition} · {age}",
+  "@navConditionChip": {
+    "description": "Chip auf der Trailkopf-Karte: bestätigter Zustand (Wort) und sein Alter (z. B. „vor 2 Tagen\").",
+    "placeholders": {
+      "condition": {
+        "type": "String"
+      },
+      "age": {
+        "type": "String"
+      }
+    }
+  },
+  "navNoteHeader": "HINWEIS · {author} · {age}",
+  "@navNoteHeader": {
+    "description": "Kopf des Hinweis-Kastens, Versalien: Autor (Benutzername, Versalien) und Alter.",
+    "placeholders": {
+      "author": {
+        "type": "String"
+      },
+      "age": {
+        "type": "String"
+      }
+    }
+  },
+  "navNoteInline": "{author}: {text}",
+  "@navNoteInline": {
+    "description": "Hinweis in der Trail-Leiste: Autor und Text in einer Zeile.",
+    "placeholders": {
+      "author": {
+        "type": "String"
+      },
+      "text": {
+        "type": "String"
+      }
+    }
+  },
+  "navRampAhead": "Rampe {grade} % in {distance}",
+  "@navRampAhead": {
+    "description": "Zeile unter dem Mini-Profil: die erste steile Rampe voraus, grade ganzzahlig, distance fertig formatiert.",
+    "placeholders": {
+      "grade": {
+        "type": "int"
+      },
+      "distance": {
+        "type": "String"
+      }
+    }
+  },
+  "navWayThen": "dann {distance} {way}",
+  "@navWayThen": {
+    "description": "Teil der Weg-Zeile der Anfahrt („Forstweg, dann 300 m Wanderweg\"): distance fertig formatiert, way die Wegklasse.",
+    "placeholders": {
+      "distance": {
+        "type": "String"
+      },
+      "way": {
+        "type": "String"
+      }
+    }
+  },
+  "navBandLoop": "RUNDE",
+  "@navBandLoop": {
+    "description": "Kopf des Routenbands bei einer Runde, Versalien; dahinter steht „· n TRAILS\" (navBandTrails)."
+  },
+  "navBandTrails": "{trails, plural, =1{1 TRAIL} other{{trails} TRAILS}}",
+  "@navBandTrails": {
+    "description": "Zahl der Trails im Kopf des Routenbands, Versalien, hinter navBandLoop/navBandRoute.",
+    "placeholders": {
+      "trails": {
+        "type": "int"
+      }
+    }
+  },
+  "navBandRoute": "ROUTE",
+  "@navBandRoute": {
+    "description": "Kopf des Routenbands bei einer Strecke von A nach B, Versalien; dahinter navBandTrails."
+  },
+  "navBandRemaining": "noch {length}",
+  "@navBandRemaining": {
+    "description": "Rechts im Kopf des Routenbands: Rest der ganzen Route, fertig formatiert.",
+    "placeholders": {
+      "length": {
+        "type": "String"
+      }
+    }
+  },
+  "navBandRemainingClimb": "noch {length} · ↑{climb} hm",
+  "@navBandRemainingClimb": {
+    "description": "Rechts im Kopf des Routenbands: Rest der ganzen Route und Höhenmeter bergauf.",
+    "placeholders": {
+      "length": {
+        "type": "String"
+      },
+      "climb": {
+        "type": "int"
+      }
+    }
+  },
+  "navBandGoal": "Ziel",
+  "@navBandGoal": {
+    "description": "Beschriftung des letzten Stücks im Routenband."
   }
 }

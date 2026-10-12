@@ -74,6 +74,18 @@ class FeatureHighlight {
 const kFeatureHighlights = <FeatureHighlight>[
   // ─── Highlights ──────────────────────────────────────────────────
   FeatureHighlight(
+    id: 'nav-sections',
+    since: '0.114.0',
+    kind: HighlightKind.highlight,
+    tab: HighlightTab.map,
+    icon: Icons.alt_route,
+    title: 'Navigation von Trail zu Trail',
+    text: 'Beim Navigieren zählt die Karte bis zum nächsten Trailkopf: km, '
+        'Höhenmeter, die steile Rampe. Am Kopf stehen Stufe, Zustand und der '
+        'Hinweis deines Buddys, unten die ganze Runde als Band.',
+    target: '/',
+  ),
+  FeatureHighlight(
     id: 'note-photos',
     since: '0.113.0',
     kind: HighlightKind.highlight,

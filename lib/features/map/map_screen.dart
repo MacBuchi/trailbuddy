@@ -30,6 +30,7 @@ import '../routing/map_panel.dart';
 import '../routing/nav_notice.dart' show kNavMessageOpen, kNavMessageStop;
 import '../routing/nav_providers.dart';
 import '../routing/nav_service.dart';
+import '../routing/nav_sections.dart';
 import '../routing/nav_view.dart';
 import '../routing/route_progress.dart' show followCenter, kNavZoom;
 import '../routing/route_via_providers.dart';
@@ -581,7 +582,18 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     final l = context.l10n;
     final rides = ref.read(rideProvider.notifier);
     final canRecord = ref.read(rideRecordingAvailableProvider) && !rides.isRunning;
-    final choice = await showNavStartSheet(context, title: request.title, canRecord: canRecord);
+    // Eine Fahrt kennt ihre Trails nicht: die Karte leitet sie aus dem
+    // Netz ab (9.9), mit der Korridor-Regel des Zerlege-Blatts.
+    if (request.sections == null) {
+      final trails = ref.read(trailsProvider).valueOrNull ?? const <Trail>[];
+      request = NavRequest(
+          points: request.points,
+          title: request.title,
+          startAlongM: request.startAlongM,
+          sections: navSectionsOfLine(request.points, trails));
+    }
+    final choice = await showNavStartSheet(context,
+        title: request.title, canRecord: canRecord, summary: navStartSummary(l, request));
     if (choice == null || !mounted) return;
     final fix = await ref.read(positionFixProvider)();
     if (!mounted) return;
@@ -606,13 +618,17 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       }
     }
     final nav = ref.read(navigationProvider.notifier);
-    if (!_beginNavigation(request.points, request.title, request.startAlongM)) return;
+    if (!_beginNavigation(request.points, request.title, request.startAlongM, request.sections)) return;
     nav.onFix(LatLng(fix.latitude, fix.longitude), headingDeg: fix.heading, speedMps: fix.speed);
     _follow();
   }
 
-  bool _beginNavigation(List<LatLng> points, String title, double startAlongM) {
-    if (!ref.read(navigationProvider.notifier).start(points, title, startAlongM: startAlongM)) return false;
+  bool _beginNavigation(List<LatLng> points, String title, double startAlongM, NavSections? sections) {
+    if (!ref
+        .read(navigationProvider.notifier)
+        .start(points, title, startAlongM: startAlongM, sections: sections)) {
+      return false;
+    }
     _fittedOnce = true;
     _navZoom = kNavZoom;
     ref.invalidate(positionStreamProvider);
@@ -625,7 +641,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   Future<void> _restoreNavigation() async {
     final route = await ref.read(navServiceBridgeProvider).restore();
     if (route == null || !mounted || ref.read(navigationProvider) != null) return;
-    _beginNavigation(route.points, route.title, route.startAlongM);
+    _beginNavigation(route.points, route.title, route.startAlongM, route.sections);
   }
 
   /// Der Zoom der Folgeansicht: [kNavZoom] beim Start, danach der, den die

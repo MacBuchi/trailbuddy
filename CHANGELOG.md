@@ -2,6 +2,29 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Navigation von Trail zu Trail
+
+*Version 0.114.0, 2026-10-13*
+
+- **Neu:** Beim Navigieren fragt die Karte „Was kommt als Nächstes?" statt
+  „Wie weit noch?". Oben steht die Anfahrt zum nächsten Trailkopf — km,
+  Höhenmeter bergauf, ein kleines Profil mit der steilen Rampe und die
+  Wege dorthin. Am Trailkopf zeigt die Karte Stufe, Länge, Charakter,
+  Zustand und den letzten Hinweis deines Buddys, bevor du ihn brauchst.
+  Auf dem Trail wird die Leiste schmal: Rest des Trails, Höhenmeter
+  bergab, der Balken in der Stufenfarbe.
+- Die ganze Route steht unten als Band: Anfahrten hell, Trails in ihrer
+  Stufenfarbe, dein Stand als Strich. Rechts, wie weit es insgesamt noch
+  ist.
+- Die Trails kennt die Navigation aus der geplanten Runde; bei einer
+  Fahrt aus „Meine Fahrten" findet sie sie auf der Linie wie das
+  Zerlege-Blatt.
+- Die Leisten der Navigation sind jetzt immer dunkel, auch im hellen
+  Modus — in der Sonne liest sich das besser über der hellen Karte. Und
+  solange du navigierst, ist die Karte Vollbild: Die Reiterleiste kommt
+  mit „Beenden" zurück.
+- Der Entwurf dazu liegt im Repo unter docs/design/navi.
+
 ## Ein Foto zum Hinweis
 
 *Versionen 0.113.0 bis 0.113.4, 2026-10-11*

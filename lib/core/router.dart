@@ -20,6 +20,7 @@ import '../features/map/map_screen.dart';
 import '../features/profile/profile_screen.dart';
 import '../features/offline_areas/areas_screen.dart';
 import '../features/rides/rides_screen.dart';
+import '../features/routing/nav_providers.dart' show navigationProvider;
 import '../features/trails/still_valid_screen.dart';
 import '../features/trails/merge_proposal_card.dart';
 import '../features/trails/trail_import_screen.dart';
@@ -220,8 +221,13 @@ class AppShell extends ConsumerWidget {
       // Rest der Tastatur schrumpfen.
       body: KeyboardInsetBelowBar(child: navigationShell),
       // Im Bild-im-Bild (#232, 9.6) ist die App nur noch Karte: keine
-      // Reiterleiste, die das kleine Fenster zur Hälfte füllte.
-      bottomNavigationBar: ref.watch(pipModeProvider) ? null : CoachAnchor(
+      // Reiterleiste, die das kleine Fenster zur Hälfte füllte. Und
+      // solange navigiert wird, ist die Karte Vollbild (#312, Design 13):
+      // Die Leiste käme unter das Routenband, und wer fährt, wechselt
+      // keinen Reiter — „Beenden" bringt sie zurück.
+      bottomNavigationBar: ref.watch(pipModeProvider) || ref.watch(navigationProvider) != null
+          ? null
+          : CoachAnchor(
         id: NavCoach.bar,
         child: NavigationBar(
           selectedIndex: navigationShell.currentIndex,

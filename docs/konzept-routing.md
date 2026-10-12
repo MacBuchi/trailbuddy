@@ -809,12 +809,18 @@ offline.
   „Norden" schaltet die Drehung für diese Navigation ab.
 - **Die Route** in der Farbe des Ergebnisses, der gefahrene Teil blass.
   Trails auf der Route behalten ihre Farbe (Schwierigkeit, Design 7).
-- **Oben eine Leiste mit drei Zahlen**: Rest in km, Rest in hm bergauf,
-  Abstand zur Linie in m. Zahlen in JetBrains Mono, wie überall.
-  Die geschätzte Restzeit nicht: Das Zeitmodell ist ±30 % (7), und eine
-  Uhr, die beim Aufstieg nachgeht, liest man als Fehler.
-- **Unten** „Zurück zur Route" (nur abseits, 9.3), „Norden", der
-  Bildschirm-Schalter (9.4) und „Beenden". Beenden fragt nicht — aus
+- **Oben die Karte des Abschnitts** (seit 0.114.0, 9.9; bis dahin eine
+  Leiste mit drei Zahlen über die ganze Route): die Anfahrt zum nächsten
+  Trailkopf in km und hm, der Moment am Trailkopf, der Trail selbst.
+  Abseits schlägt alles (Abstand zur Linie in Warnfarbe). Zahlen in
+  JetBrains Mono, wie überall. Die geschätzte Restzeit nicht: Das
+  Zeitmodell ist ±30 % (7), und eine Uhr, die beim Aufstieg nachgeht,
+  liest man als Fehler. Der Rest der ganzen Route steht unten im
+  Routenband.
+- **Unten** das Routenband (9.9), „Zurück zur Route" (nur abseits, 9.3),
+  „Norden", der Bildschirm-Schalter (9.4) und „Beenden". Solange
+  navigiert wird, ist die Karte Vollbild — keine Reiterleiste (Design
+  13; „Beenden" bringt sie zurück). Beenden fragt nicht — aus
   Versehen beendet ist mit einem Tipp wieder an (dieselbe Route liegt
   noch als „zuletzt navigiert" oben in „Meine Fahrten").
 - **Taps auf die Karte tun in der Folgeansicht nichts.** Die
@@ -954,6 +960,61 @@ Dokument allein.
    während die App klein ist, schließt das Fenster
    (`moveTaskToBack`). — ☁️ · 📱
 
+4. **Nach Abschnitten** (9.9, #312, gestapelt): **N1** (0.114.0)
+   Abschnitte aus Planer, Trailkopf-Weg und Fahrt, Phasen, die Karten
+   Anfahrt / Abseits / Trailkopf / Trail, Routenband, Reiterleiste weg;
+   **N2** „Trail geschafft" am Trail-Ende; **N3** Bild-im-Bild 3:4 mit
+   dem Abschnitt und die zweizeilige Benachrichtigung. — ☁️ · 📱
+
 Jeder Schritt bringt seinen Neuheiten-Eintrag; die Kurzanleitung bekommt
 keinen eigenen Abschnitt (Obergrenze sechs, 4), sondern einen Satz bei
 „Fahrt aufzeichnen und zerlegen".
+
+### 9.9 Nach Abschnitten (#312)
+
+*Betreiber, 2026-10-13, aus dem Entwurf „Mountainbike-Navigation
+optimieren" (`docs/design/navi/`, Design 13): „Was kommt als Nächstes?"
+statt „Wie weit noch?" — ein Biker navigiert nicht von A nach B,
+sondern von Trail zu Trail. Bergauf zählt, wie weit und wie viele hm es
+bis zum nächsten Trailkopf sind und wie steil; bergab zählt der Trail
+selbst, die Hinweise der Buddys am Ort, danach die Werte.*
+
+- **Die Abschnitte** einer Route sind ihre Trails mit Lage auf der Linie
+  (`NavTrailSection`, `nav_sections.dart`): aus einer **geplanten
+  Runde** die Trail-Abschnitte des Planers; beim **Weg zum Trailkopf**
+  liegt kein Trail auf der Linie, der Ziel-Trail steht hinter ihrem Ende
+  (die Anfahrt zählt bis zum Kopf, am Ende steht „AM TRAILKOPF"); bei
+  einer **Fahrt** aus „Meine Fahrten" findet die App die Trails auf der
+  Linie über das Netz mit der Korridor-Regel des Zerlege-Blatts
+  (`knownTrailSectionsOf`: 15 m, 80 % beidseitig gedeckt). Ohne Trail
+  voraus zählt die Anfahrt bis zum Ziel. Was die Karten über den Trail
+  sagen (Stufe, Charakter, bestätigter Zustand, der jüngste sichtbare
+  Hinweis, ↓hm), kommt aus dem Netz zum Start der Navigation — nie
+  nachgeladen unterwegs.
+- **Die Phasen** (`navPhaseOf`, pur): **Anfahrt** bis zum nächsten
+  Trailkopf — km, hm bergauf bis dorthin (dasselbe Profil wie 9.3), die
+  erste Rampe ab 12 % voraus und die Wege der Anfahrt; **am Trailkopf**
+  von 100 m davor bis 30 m dahinter, solange man steht (unter 2 m/s) —
+  wer durchrollt, ist auf dem Trail; **auf dem Trail** der Rest des
+  Trails und die hm bergab, die noch kommen; danach die nächste Anfahrt;
+  **angekommen** wie in 9.3. Abseits (9.3) schlägt jede Phase.
+- **Das Routenband** zeigt die ganze Route nach Länge: Anfahrten,
+  Trails in Stufenfarbe, der Stand als Strich; rechts der Rest in km
+  und hm — die Zahlen von vor 0.114.0, nur kleiner.
+- **Ein Hinweis hat keinen Ort**: Der Entwurf zeigt „in 300 m — Baum
+  quer"; die App zeigt Autor und Text, sobald man auf dem Trail ist.
+  Ein Ort am Hinweis wäre ein Schema-Thema, nicht Teil dieses Schritts.
+- **Trail-Ende** (N2): Verlässt der Stand einen Trail, den man wirklich
+  gefahren ist, steht kurz die Bilanz (Zeit, ↓hm, Top-Speed aus GPS),
+  ein Tipp für den Zustand (geht als bestätigte Meldung hinaus, wie
+  „Bestätigen durch Fahren") und der nächste Abschnitt als Knopf;
+  schließt nach 20 s von selbst. Trail-Werte aus Sensoren (Airtime, G,
+  Manual) kommen mit #36, nicht hier.
+- **Im Dienst** (N3) rechnet dieselbe Funktion dieselbe Phase aus der
+  Routen-Datei (Fassung 2 trägt die Abschnitte); die Benachrichtigung
+  sagt „2,4 km · ↑310 hm bis Rosskopf Süd", auf dem Trail „Rosskopf Süd
+  · noch 1,8 km · ↓240 hm". Im kleinen Fenster steht die Abschnitts-
+  Karte unter der Karte (3:4).
+
+Die Zahlen (100 m, 30 m, 2 m/s, 12 %, 20 s) sind Startwerte wie in
+9.7; sie ändert der Feldeinsatz.

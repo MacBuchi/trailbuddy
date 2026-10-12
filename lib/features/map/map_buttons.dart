@@ -28,6 +28,7 @@ class MapRoundButton extends StatelessWidget {
     required this.icon,
     required this.onPressed,
     this.active = false,
+    this.dark = false,
   });
 
   final String tooltip;
@@ -37,9 +38,13 @@ class MapRoundButton extends StatelessWidget {
   /// Sein Menü ist offen: Rand in der Marke.
   final bool active;
 
+  /// Immer dunkel, egal welcher Modus — die Folgeansicht der Navigation
+  /// (Design 13: Leisten im Nav-Modus dunkel über der hellen Karte).
+  final bool dark;
+
   @override
   Widget build(BuildContext context) {
-    final p = AppPalette.of(context);
+    final p = dark ? AppColors.dark : AppPalette.of(context);
     return DecoratedBox(
       decoration: const BoxDecoration(shape: BoxShape.circle, boxShadow: _shadow),
       child: IconButton(

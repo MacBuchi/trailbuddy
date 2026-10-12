@@ -56,6 +56,7 @@ import 'loop_planner_providers.dart';
 import 'loop_planner_sheet.dart' show loopPreviewLines;
 import 'map_panel.dart';
 import 'nav_providers.dart';
+import 'nav_sections.dart';
 import 'planning_graph.dart';
 import 'ride_calibrator.dart';
 import 'road_graph.dart';
@@ -351,6 +352,17 @@ class _RouteSheetState extends ConsumerState<_RouteSheet> {
       _isTrail ? 'Zum Trailkopf: ${widget.target.title}' : 'Route: ${widget.target.title}';
 
   List<LatLng>? get _points => _fun?.points ?? _plan?.route?.points;
+
+  /// Die Abschnitte für die Navigation (9.9): beim spaßigen Weg die Trails
+  /// der Runde, sonst der Ziel-Trail hinter dem Ende der Linie.
+  NavSections _navSections() {
+    final fun = _fun;
+    if (fun != null) return navSectionsOfLoop(fun, trailById: trailByIdOf(ref));
+    final route = _plan?.route;
+    final target = widget.target.trail;
+    if (route == null || target == null) return NavSections.none;
+    return navSectionsOfTrailHead(route, target);
+  }
   double? get _timeS => _fun?.summary?.timeS ?? _plan?.route?.summary.timeS;
 
   /// Den Weg als geplante Fahrt in „Meine Fahrten" (#158 Schritt 5) —
@@ -422,7 +434,7 @@ class _RouteSheetState extends ConsumerState<_RouteSheet> {
                         key: const ValueKey('trail-head-follow'),
                         style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(48)),
                         onPressed: () => ref.read(navRequestProvider.notifier).state =
-                            NavRequest(points: _points!, title: _rideName),
+                            NavRequest(points: _points!, title: _rideName, sections: _navSections()),
                         icon: const Icon(Icons.navigation_outlined),
                         label: const Text('Navigieren'),
                       ),
