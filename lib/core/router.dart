@@ -26,6 +26,7 @@ import '../features/trails/merge_proposal_card.dart';
 import '../features/trails/trail_import_screen.dart';
 import '../features/trails/trail_providers.dart' show mapFocusTrailProvider;
 import '../features/trails/trails_screen.dart';
+import '../l10n/l10n.dart';
 import 'picture_in_picture.dart';
 import 'router_branches.dart';
 import 'widgets/keyboard_inset_below_bar.dart';
@@ -237,31 +238,31 @@ class AppShell extends ConsumerWidget {
           ),
           // Die Anker der Karten-Tour (#132): Sie nennt die Bereiche zum
           // Schluss, der Ring liegt je Bereich.
-          destinations: const [
+          destinations: [
             CoachAnchor(
                 id: NavCoach.map,
                 child: NavigationDestination(
-                    icon: Icon(Icons.map_outlined),
-                    selectedIcon: Icon(Icons.map),
-                    label: 'Karte')),
+                    icon: const Icon(Icons.map_outlined),
+                    selectedIcon: const Icon(Icons.map),
+                    label: context.l10n.tabMap)),
             CoachAnchor(
                 id: NavCoach.trails,
                 child: NavigationDestination(
-                    icon: Icon(Icons.route_outlined),
-                    selectedIcon: Icon(Icons.route),
-                    label: 'Trails')),
+                    icon: const Icon(Icons.route_outlined),
+                    selectedIcon: const Icon(Icons.route),
+                    label: context.l10n.tabTrails)),
             CoachAnchor(
                 id: NavCoach.buddys,
                 child: NavigationDestination(
-                    icon: BuddysNavIcon(selected: false),
-                    selectedIcon: BuddysNavIcon(selected: true),
-                    label: 'Buddys')),
+                    icon: const BuddysNavIcon(selected: false),
+                    selectedIcon: const BuddysNavIcon(selected: true),
+                    label: context.l10n.tabBuddys)),
             CoachAnchor(
                 id: NavCoach.profile,
                 child: NavigationDestination(
-                    icon: Icon(Icons.person_outline),
-                    selectedIcon: Icon(Icons.person),
-                    label: 'Profil')),
+                    icon: const Icon(Icons.person_outline),
+                    selectedIcon: const Icon(Icons.person),
+                    label: context.l10n.tabProfile)),
           ],
         ),
       ),

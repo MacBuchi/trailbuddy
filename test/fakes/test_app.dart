@@ -394,9 +394,10 @@ Finder findLabel(String label) =>
 
 /// Eine Unterseite des Profils öffnen (seit 0.41.0, Design 1l): Reiter
 /// „Profil", dann die Zeile [id] (`profile-<id>`: account,
-/// notifications, appearance, about, import, rides, areas).
-Future<void> openProfilePage(WidgetTester tester, String id) async {
-  await openTab(tester, 'Profil');
+/// notifications, appearance, about, import, rides, areas). [tab] ist der
+/// Name des Reiters — unter Englisch „Profile".
+Future<void> openProfilePage(WidgetTester tester, String id, {String tab = 'Profil'}) async {
+  await openTab(tester, tab);
   final row = find.byKey(ValueKey('profile-$id'));
   await scrollTo(tester, row);
   await tester.tap(row);

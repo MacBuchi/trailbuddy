@@ -16,6 +16,7 @@ import '../../core/errors.dart';
 import '../../core/push_messaging.dart';
 import '../../core/settings.dart';
 import '../../data/providers.dart';
+import '../../l10n/l10n.dart';
 
 /// Bekommt dieses Gerät Benachrichtigungen?
 ///
@@ -28,7 +29,7 @@ class PushEnabledNotifier extends Notifier<bool> {
 
   /// Schaltet um und meldet zurück, was daraus geworden ist: `null` bei
   /// Erfolg, sonst ein Satz für die Nutzerin.
-  Future<String?> set(bool value) async {
+  Future<String?> set(AppLocalizations l, bool value) async {
     final settings = ref.read(settingsProvider);
     if (!value) {
       final token = settings.pushToken;
@@ -52,8 +53,7 @@ class PushEnabledNotifier extends Notifier<bool> {
     if (token == null) {
       state = false;
       if (result.unavailable) {
-        return 'Benachrichtigungen sind in diesem Build noch nicht '
-            'eingerichtet.';
+        return l.pushUnavailable;
       }
       // **Push ist ein reiner ONLINE-Weg.** Ohne Verbindung gibt es kein
       // Token, und das ist keine Fehlfunktion — aber der Satz muss den
@@ -61,13 +61,11 @@ class PushEnabledNotifier extends Notifier<bool> {
       // sucht in den Android-Einstellungen nach einem Schalter, der dort
       // längst richtig steht.
       if (result.denied) {
-        return 'Benachrichtigungen sind nicht erlaubt. Das lässt sich in '
-            'den Android-Einstellungen ändern.';
+        return l.pushDenied;
       }
       return ref.read(noConnectivityProvider)
-          ? 'Dafür braucht es kurz eine Verbindung — offline lässt sich '
-              'das Gerät nicht eintragen.'
-          : 'Das hat nicht geklappt. Versuch es später noch einmal.';
+          ? l.pushOffline
+          : l.pushFailed;
     }
     try {
       await ref.read(pushRepositoryProvider).register(token);
@@ -84,9 +82,9 @@ class PushEnabledNotifier extends Notifier<bool> {
   /// „Schick mir einmal eine." Der Beweis, dass die Leitung trägt —
   /// ohne ihn müsste man auf eine echte Meldung eines Buddys warten, um
   /// zu merken, dass etwas klemmt.
-  Future<String?> sendTest() async {
+  Future<String?> sendTest(AppLocalizations l) async {
     final token = ref.read(settingsProvider).pushToken;
-    if (token == null) return 'Dieses Gerät ist nicht eingetragen.';
+    if (token == null) return l.pushNotRegistered;
     try {
       await ref.read(pushRepositoryProvider).sendTest(token);
       return null;
