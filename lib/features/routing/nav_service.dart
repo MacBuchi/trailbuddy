@@ -11,6 +11,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 
 import '../../core/errors.dart';
+import '../../l10n/l10n.dart' show serviceL10n;
 import '../keep_alive/keep_alive.dart';
 import '../rides/ride_providers.dart' show kRideTickInterval;
 import '../rides/ride_task_handler.dart' show kRideDataDir;
@@ -113,7 +114,7 @@ class NavKeepAlive {
 
   Future<void> start() async {
     await _coordinator.start(key, kNavNoticeWaiting,
-        title: navNoticeTitle(recording: false),
+        title: serviceL10n().navNoticeTitle,
         types: const {KeepAliveType.location},
         buttons: const [(id: kNavStopButton, text: kNavStopButtonText)]);
     await _coordinator.setRepeat(key, kRideTickInterval);

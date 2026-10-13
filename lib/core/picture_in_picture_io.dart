@@ -28,6 +28,27 @@ class _AndroidPictureInPicture implements PictureInPicture {
   }
 
   @override
+  Future<bool> supported() async {
+    if (!_supported) return false;
+    try {
+      return await _channel.invokeMethod<bool>('supported') ?? false;
+    } catch (e, s) {
+      logError('Bild-im-Bild prüfen', e, s);
+      return false;
+    }
+  }
+
+  @override
+  Future<void> enter() async {
+    if (!_supported) return;
+    try {
+      await _channel.invokeMethod<void>('enter');
+    } catch (e, s) {
+      logError('Bild-im-Bild öffnen', e, s);
+    }
+  }
+
+  @override
   void listen({required void Function(bool inPip) onMode, required VoidCallback onStop}) {
     if (!_supported) return;
     _channel.setMethodCallHandler((call) async {

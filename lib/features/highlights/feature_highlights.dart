@@ -74,6 +74,18 @@ class FeatureHighlight {
 const kFeatureHighlights = <FeatureHighlight>[
   // ─── Highlights ──────────────────────────────────────────────────
   FeatureHighlight(
+    id: 'nav-minimize',
+    since: '0.116.0',
+    kind: HighlightKind.highlight,
+    tab: HighlightTab.map,
+    icon: Icons.picture_in_picture_alt,
+    title: 'Minimieren',
+    text: 'Beim Navigieren legt „Minimieren" die Karte sofort ins kleine Fenster — '
+        'darunter der nächste Abschnitt. Die Benachrichtigung sagt ihn in zwei '
+        'Zeilen: wie weit und wie hoch bis zum Trailkopf, auf dem Trail der Rest.',
+    target: '/',
+  ),
+  FeatureHighlight(
     id: 'nav-trail-end',
     since: '0.115.0',
     kind: HighlightKind.highlight,
@@ -152,9 +164,9 @@ const kFeatureHighlights = <FeatureHighlight>[
     tab: HighlightTab.map,
     icon: Icons.picture_in_picture_alt_outlined,
     title: 'Navigation im kleinen Fenster',
-    text: 'Wischst du beim Navigieren nach Hause, bleibt die Karte als kleines '
-        'Fenster über den anderen Apps — mit Route, Rest und Höhenmetern. '
-        '„Beenden" geht direkt im Fenster.',
+    text: 'Wischst du beim Navigieren nach Hause — oder tippst „Minimieren" —, '
+        'bleibt die Karte als kleines Fenster über den anderen Apps, darunter '
+        'der nächste Abschnitt. „Beenden" geht direkt im Fenster.',
     target: '/',
   ),
   FeatureHighlight(
@@ -164,8 +176,9 @@ const kFeatureHighlights = <FeatureHighlight>[
     tab: HighlightTab.map,
     icon: Icons.notifications_active_outlined,
     title: 'Navigation in der Benachrichtigung',
-    text: 'Telefon in der Tasche oder andere App vorne: Die Benachrichtigung zeigt, '
-        'wie weit es noch ist und ob du auf der Route bist. „Navigation beenden" '
+    text: 'Telefon in der Tasche oder andere App vorne: Die Benachrichtigung zeigt '
+        'den nächsten Abschnitt — wie weit und wie hoch bis zum Trailkopf, auf '
+        'dem Trail der Rest — und ob du auf der Route bist. „Navigation beenden" '
         'geht direkt dort.',
     target: '/',
   ),

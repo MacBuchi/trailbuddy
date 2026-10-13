@@ -217,6 +217,20 @@ final kHighlightDemos = <String, HighlightDemo>{
       _noTrailYet,
     ]),
   ),
+  'nav-minimize': HighlightDemo(
+    route: '/',
+    script: _demo('nav-minimize', const [
+      CoachStep(
+        title: 'Minimieren',
+        text: 'Plane eine Runde und navigiere: Unten neben „Bildschirm" legt '
+            '„Minimieren" die Karte ins kleine Fenster, mit dem nächsten Abschnitt '
+            'darunter. Ein Tipp aufs Fenster holt TrailBuddy zurück.',
+        lit: [MapCoach.loop],
+        gesture: CoachGesture.tap,
+        requires: [MapCoach.loop],
+      ),
+    ]),
+  ),
   'nav-trail-end': HighlightDemo(
     route: '/',
     script: _demo('nav-trail-end', const [

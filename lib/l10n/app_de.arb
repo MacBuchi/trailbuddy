@@ -3533,5 +3533,114 @@
   "navDoneClose": "Weiter",
   "@navDoneClose": {
     "description": "Knopf im Blatt „Trail geschafft“, wenn kein Abschnitt mehr kommt."
+  },
+  "navMinimizeTooltip": "Minimieren",
+  "@navMinimizeTooltip": {
+    "description": "Knopf in der Navigation: die App als kleines Fenster über andere Apps legen (Bild-im-Bild)."
+  },
+  "navNoticeTitle": "Navigation",
+  "@navNoticeTitle": {
+    "description": "Titel der Benachrichtigung, bevor der erste Stand gerechnet ist."
+  },
+  "navNoticeToTrail": "{distance} bis {trail}",
+  "@navNoticeToTrail": {
+    "description": "Erste Zeile der Benachrichtigung bei der Anfahrt: Weg bis zum nächsten Trailkopf, ohne Höhenprofil.",
+    "placeholders": {
+      "distance": {
+        "type": "String"
+      },
+      "trail": {
+        "type": "String"
+      }
+    }
+  },
+  "navNoticeToTrailClimb": "{distance} · ↑{climb} hm bis {trail}",
+  "@navNoticeToTrailClimb": {
+    "description": "Erste Zeile der Benachrichtigung bei der Anfahrt: Weg und Höhenmeter bergauf bis zum nächsten Trailkopf.",
+    "placeholders": {
+      "distance": {
+        "type": "String"
+      },
+      "climb": {
+        "type": "int"
+      },
+      "trail": {
+        "type": "String"
+      }
+    }
+  },
+  "navNoticeToGoal": "{distance} bis zum Ziel",
+  "@navNoticeToGoal": {
+    "description": "Erste Zeile der Benachrichtigung, wenn kein Trail mehr kommt, ohne Höhenprofil.",
+    "placeholders": {
+      "distance": {
+        "type": "String"
+      }
+    }
+  },
+  "navNoticeToGoalClimb": "{distance} · ↑{climb} hm bis zum Ziel",
+  "@navNoticeToGoalClimb": {
+    "description": "Erste Zeile der Benachrichtigung, wenn kein Trail mehr kommt: Weg und Höhenmeter bergauf.",
+    "placeholders": {
+      "distance": {
+        "type": "String"
+      },
+      "climb": {
+        "type": "int"
+      }
+    }
+  },
+  "navNoticeAtHead": "Am Trailkopf · {trail}",
+  "@navNoticeAtHead": {
+    "description": "Erste Zeile der Benachrichtigung am Trailkopf.",
+    "placeholders": {
+      "trail": {
+        "type": "String"
+      }
+    }
+  },
+  "navNoticeOnTrail": "{trail} · noch {distance}",
+  "@navNoticeOnTrail": {
+    "description": "Erste Zeile der Benachrichtigung auf dem Trail, ohne Höhenprofil.",
+    "placeholders": {
+      "trail": {
+        "type": "String"
+      },
+      "distance": {
+        "type": "String"
+      }
+    }
+  },
+  "navNoticeOnTrailLoss": "{trail} · noch {distance} · ↓{loss} hm",
+  "@navNoticeOnTrailLoss": {
+    "description": "Erste Zeile der Benachrichtigung auf dem Trail: Rest und Höhenmeter bergab.",
+    "placeholders": {
+      "trail": {
+        "type": "String"
+      },
+      "distance": {
+        "type": "String"
+      },
+      "loss": {
+        "type": "int"
+      }
+    }
+  },
+  "navNoticeOnRoute": "auf der Route",
+  "@navNoticeOnRoute": {
+    "description": "Zweite Zeile der Benachrichtigung: man ist auf der Linie."
+  },
+  "navNoticeOffRoute": "{distance} neben der Route",
+  "@navNoticeOffRoute": {
+    "description": "Zweite Zeile der Benachrichtigung: so weit neben der Linie.",
+    "placeholders": {
+      "distance": {
+        "type": "String"
+      }
+    }
+  },
+  "navNoticeRecording": "Fahrt wird aufgezeichnet",
+  "@navNoticeRecording": {
+    "description": "Zusatz in der zweiten Zeile der Benachrichtigung, wenn die Fahrt mit aufgezeichnet wird."
   }
 }

@@ -84,30 +84,57 @@ void main() {
     });
   });
 
-  group('navNoticeText', () {
-    NavState state({double remaining = 12400, double off = 4, bool offRoute = false, bool arrived = false}) =>
+  group('navNotice (zwei Zeilen, #312 N3)', () {
+    NavState state({double along = 0, double remaining = 12400, double off = 4, bool offRoute = false, bool arrived = false}) =>
         NavState(
-            alongM: 0,
+            alongM: along,
             remainingM: remaining,
             offM: off,
             offRoute: offRoute,
             arrived: arrived,
             headingDeg: 0,
             position: _points.first,
-            rejoin: _points.first);
+            rejoin: _points.first,
+            moving: true);
+    const trail = NavTrailSection(startM: 2400, endM: 4200, trailId: 't', name: 'Rosskopf Süd', grade: 2);
 
-    test('the bar as one line (9.5)', () {
-      expect(navNoticeText(state(), climbM: 640.4), 'Noch 12,4 km · 640 hm · auf der Route');
-      expect(navNoticeText(state(off: 45, offRoute: true), climbM: 640),
-          'Noch 12,4 km · 640 hm · 45 m neben der Route');
-      // Ohne Höhenprofil nur km.
-      expect(navNoticeText(state(remaining: 800)), 'Noch 800 m · auf der Route');
-      expect(navNoticeText(state(arrived: true)), 'Angekommen');
+    test('Anfahrt: oben bis zum Trailkopf, unten Rampe und Route', () {
+      final n = navNotice(
+          l10nDe,
+          state(),
+          const NavPhase(
+              kind: NavPhaseKind.approach, section: trail, distM: 2400, climbM: 310.4, ramp: (grade: 0.14, inM: 1100)),
+          recording: false);
+      expect(n.title, '2,4 km · ↑310 hm bis Rosskopf Süd');
+      expect(n.text, 'Rampe 14 % in 1,1 km · auf der Route');
+      // Ohne Profil nur km; ohne Trail bis zum Ziel.
+      expect(navNotice(l10nDe, state(), const NavPhase(kind: NavPhaseKind.approach, section: trail, distM: 800),
+              recording: false)
+          .title, '800 m bis Rosskopf Süd');
+      expect(navNotice(l10nDe, state(), const NavPhase(kind: NavPhaseKind.approach, distM: 800, climbM: 40),
+              recording: false)
+          .title, '800 m · ↑40 hm bis zum Ziel');
     });
 
-    test('the title says when the ride is recorded too', () {
-      expect(navNoticeTitle(recording: false), 'Navigation');
-      expect(navNoticeTitle(recording: true), contains('Fahrt wird aufgezeichnet'));
+    test('auf dem Trail, am Kopf, abseits, mit Aufzeichnung, angekommen', () {
+      expect(
+          navNotice(l10nDe, state(along: 2400),
+                  const NavPhase(kind: NavPhaseKind.onTrail, section: trail, distM: 1800, lossM: 240), recording: false)
+              .title,
+          'Rosskopf Süd · noch 1,8 km · ↓240 hm');
+      expect(navNotice(l10nDe, state(), const NavPhase(kind: NavPhaseKind.atHead, section: trail, distM: 20),
+              recording: false)
+          .title, 'Am Trailkopf · Rosskopf Süd');
+      final off = navNotice(
+          l10nDe,
+          state(off: 120, offRoute: true),
+          const NavPhase(kind: NavPhaseKind.approach, section: trail, distM: 2400, ramp: (grade: 0.14, inM: 1100)),
+          recording: true);
+      expect(off.text, '120 m neben der Route · Fahrt wird aufgezeichnet',
+          reason: 'abseits zählt keine Rampe; die Aufzeichnung steht immer da');
+      final arrived =
+          navNotice(l10nDe, state(arrived: true), const NavPhase(kind: NavPhaseKind.arrived, distM: 0), recording: false);
+      expect(arrived.title, 'Angekommen');
     });
   });
 
@@ -120,7 +147,7 @@ void main() {
           recording: false,
           show: (title, text) async => shown.add('$title | $text'));
       expect(s, isNotNull);
-      expect(shown.single, 'Navigation | Noch 758 m · auf der Route');
+      expect(shown.single, '758 m bis zum Ziel | auf der Route');
       // Der Stand liegt in der Brücke — eine neu gestartete App geht dort weiter.
       expect(await FlutterForegroundTask.getData<double>(key: kNavDataAlong), closeTo(758, 5));
     });
@@ -131,19 +158,32 @@ void main() {
       final back = [..._points, for (var i = 19; i >= 0; i--) LatLng(_lat, _lng(i))];
       await arm(NavRouteData(points: back, title: 'hin und zurück'));
       final shown = <String>[];
-      Future<void> show(String title, String text) async => shown.add(text);
+      Future<void> show(String title, String text) async => shown.add(title);
       for (final i in [10, 18, 20]) {
         await navTick(fix: () async => _at(_lat, _lng(i)), recording: false, show: show);
       }
       // Jetzt auf dem Rückweg bei 18: 2 Abschnitte zurück gefahren.
       await arm(NavRouteData(points: back, title: 'hin und zurück', climbDistM: [0, 3000], climbEleM: [500, 600]));
       await navTick(fix: () async => _at(_lat, _lng(18)), recording: false, show: show);
-      expect(shown.last, startsWith('Noch 1,4 km'), reason: 'Stand blieb auf dem Rückweg');
+      expect(shown.last, startsWith('1,4 km'), reason: 'Stand blieb auf dem Rückweg');
       expect(shown.last, contains('hm'), reason: 'das Profil kam dazu');
 
       await arm(NavRouteData(points: _points, title: 'neu'));
       await navTick(fix: () async => _at(_lat, _lng(18)), recording: false, show: show);
-      expect(shown.last, startsWith('Noch 152 m'));
+      expect(shown.last, startsWith('152 m'));
+    });
+
+    test('Fassung 2: the notice names the trail ahead, then the trail itself (#312 N3)', () async {
+      await arm(NavRouteData(
+          points: _points,
+          title: 'Hausrunde',
+          sections: NavSections([const NavTrailSection(startM: 600, endM: 1200, trailId: 't', name: 'Rosskopf Süd')])));
+      final shown = <String>[];
+      Future<void> show(String title, String text) async => shown.add('$title | $text');
+      await navTick(fix: () async => _at(_lat, _lng(2)), recording: true, show: show);
+      expect(shown.last, startsWith('448 m bis Rosskopf Süd | auf der Route · Fahrt wird aufgezeichnet'));
+      await navTick(fix: () async => _at(_lat, _lng(10)), recording: false, show: show);
+      expect(shown.last, startsWith('Rosskopf Süd · noch 442 m | auf der Route'));
     });
 
     test('without a navigation the GPS is not even asked', () async {

@@ -62,6 +62,12 @@ void main() {
     expect(kotlin, contains('override fun onUserLeaveHint'));
     expect(kotlin, contains('RECEIVER_NOT_EXPORTED'));
     expect(manifest, isNot(contains('android.permission.SYSTEM_ALERT_WINDOW')));
+    // „Minimieren" (#312 N3): jede Methode, die Dart ruft, kennt Kotlin —
+    // eine fehlende endet still in `notImplemented`.
+    for (final method in ['allow', 'supported', 'enter']) {
+      expect(dart, contains("invokeMethod<${method == 'supported' ? 'bool' : 'void'}>('$method'"));
+      expect(kotlin, contains('"$method" ->'));
+    }
   });
 
   test('Zurück auf der Karte legt die App in den Hintergrund, statt sie zu beenden', () {

@@ -21,6 +21,7 @@ import '../../core/app_colors.dart';
 import '../../core/app_theme.dart';
 import '../../core/errors.dart';
 import '../../core/geo.dart';
+import '../../core/picture_in_picture.dart';
 import '../../core/screen_awake.dart';
 import '../../data/providers.dart' show currentUserIdProvider;
 import '../../l10n/l10n.dart';
@@ -217,7 +218,7 @@ class _NavOverlayState extends ConsumerState<NavOverlay> {
     final state = session.state;
     final arrived = state?.arrived ?? false;
     final off = !arrived && (state?.offRoute ?? false);
-    if (widget.compact) return _PipNumbers(session: session);
+    if (widget.compact) return _PipCard(session: session);
     final phase = session.phase;
     // „Zurück zur Route" nur abseits (9.3) und solange kein Stück liegt.
     final offer = off && session.rejoin != NavRejoin.shown;
@@ -302,6 +303,16 @@ class _NavOverlayState extends ConsumerState<NavOverlay> {
                           icon: keepOn ? Icons.light_mode : Icons.light_mode_outlined,
                           active: keepOn,
                           onPressed: () => ref.read(navKeepScreenOnProvider.notifier).set(!keepOn),
+                        ),
+                      ],
+                      if (ref.watch(pipSupportedProvider).valueOrNull ?? false) ...[
+                        const SizedBox(width: 10),
+                        MapRoundButton(
+                          key: const ValueKey('nav-minimize'),
+                          dark: true,
+                          tooltip: l.navMinimizeTooltip,
+                          icon: Icons.picture_in_picture_alt,
+                          onPressed: () => unawaited(ref.read(pictureInPictureProvider).enter()),
                         ),
                       ],
                       const Spacer(),
@@ -841,18 +852,9 @@ class _RouteBand extends StatelessWidget {
   Widget build(BuildContext context) {
     final l = context.l10n;
     final route = session.route;
-    final along = session.state?.alongM ?? 0;
     final trails = session.sections.ridden.toList();
     final total = route.lengthM;
-    // Die Stücke: Anfahrt, Trail, Anfahrt, …, bis zum Ziel.
-    final parts = <({double from, double to, NavTrailSection? trail})>[];
-    var cursor = 0.0;
-    for (final t in trails) {
-      if (t.startM > cursor) parts.add((from: cursor, to: t.startM, trail: null));
-      parts.add((from: t.startM, to: math.max(t.endM, t.startM), trail: t));
-      cursor = math.max(t.endM, cursor);
-    }
-    if (cursor < total || parts.isEmpty) parts.add((from: cursor, to: total, trail: null));
+    final parts = _bandParts(session);
     final climb = session.remainingClimbM;
     final remaining = climb == null
         ? l.navBandRemaining(formatMeters(session.remainingM))
@@ -879,47 +881,7 @@ class _RouteBand extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 7),
-          LayoutBuilder(builder: (context, c) {
-            final width = c.maxWidth;
-            double x(double m) => total <= 0 ? 0 : (m / total).clamp(0.0, 1.0) * width;
-            return SizedBox(
-              height: 14,
-              child: Stack(clipBehavior: Clip.none, children: [
-                Positioned(
-                  top: 3,
-                  left: 0,
-                  right: 0,
-                  height: 8,
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(4),
-                    child: Stack(children: [
-                      for (final p in parts)
-                        Positioned(
-                          left: x(p.from),
-                          width: math.max(0, x(p.to) - x(p.from) - (p == parts.last ? 0 : 2)),
-                          top: 0,
-                          bottom: 0,
-                          child: ColoredBox(
-                            color: p.trail != null
-                                ? (p.trail!.uphill ? _p.grade.uphill : _p.grade.of(p.trail!.grade))
-                                : (p.to <= along ? _p.line : _p.map.ride),
-                          ),
-                        ),
-                    ]),
-                  ),
-                ),
-                Positioned(
-                  left: x(along) - 2,
-                  top: 0,
-                  width: 4,
-                  height: 14,
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(color: AppColors.brand, borderRadius: BorderRadius.circular(2)),
-                  ),
-                ),
-              ]),
-            );
-          }),
+          _BandBar(session: session),
           const SizedBox(height: 4),
           LayoutBuilder(builder: (context, c) {
             final width = c.maxWidth;
@@ -945,49 +907,169 @@ class _RouteBand extends StatelessWidget {
   }
 }
 
-/// Das Fenster ist ~150 dp breit: die Zahlen ohne Beschriftung in einer
-/// Zeile, abseits der Abstand in Warnfarbe; am Ziel ein Wort.
-class _PipNumbers extends StatelessWidget {
-  const _PipNumbers({required this.session});
+/// Die Stücke des Bands: Anfahrt, Trail, Anfahrt, …, bis zum Ziel.
+List<({double from, double to, NavTrailSection? trail})> _bandParts(NavSession session) {
+  final total = session.route.lengthM;
+  final parts = <({double from, double to, NavTrailSection? trail})>[];
+  var cursor = 0.0;
+  for (final t in session.sections.ridden) {
+    if (t.startM > cursor) parts.add((from: cursor, to: t.startM, trail: null));
+    parts.add((from: t.startM, to: math.max(t.endM, t.startM), trail: t));
+    cursor = math.max(t.endM, cursor);
+  }
+  if (cursor < total || parts.isEmpty) parts.add((from: cursor, to: total, trail: null));
+  return parts;
+}
+
+/// Der Balken des Bands mit dem Stand als Strich — im Band 8 px, im
+/// kleinen Fenster 5 px.
+class _BandBar extends StatelessWidget {
+  const _BandBar({required this.session, this.height = 8});
+
+  final NavSession session;
+  final double height;
+
+  @override
+  Widget build(BuildContext context) {
+    final along = session.state?.alongM ?? 0;
+    final total = session.route.lengthM;
+    final parts = _bandParts(session);
+    return LayoutBuilder(builder: (context, c) {
+      final width = c.maxWidth;
+      double x(double m) => total <= 0 ? 0 : (m / total).clamp(0.0, 1.0) * width;
+      return SizedBox(
+        height: height + 6,
+        child: Stack(clipBehavior: Clip.none, children: [
+          Positioned(
+            top: 3,
+            left: 0,
+            right: 0,
+            height: height,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: Stack(children: [
+                for (final p in parts)
+                  Positioned(
+                    left: x(p.from),
+                    width: math.max(0, x(p.to) - x(p.from) - (p == parts.last ? 0 : 2)),
+                    top: 0,
+                    bottom: 0,
+                    child: ColoredBox(
+                      color: p.trail != null
+                          ? (p.trail!.uphill ? _p.grade.uphill : _p.grade.of(p.trail!.grade))
+                          : (p.to <= along ? _p.line : _p.map.ride),
+                    ),
+                  ),
+              ]),
+            ),
+          ),
+          Positioned(
+            left: x(along) - 2,
+            top: 0,
+            width: 4,
+            height: height + 6,
+            child: DecoratedBox(
+              decoration: BoxDecoration(color: AppColors.brand, borderRadius: BorderRadius.circular(2)),
+            ),
+          ),
+        ]),
+      );
+    });
+  }
+}
+
+/// Das kleine Fenster (9.6, Entwurf 1b/1c): 3:4, oben die Karte, unten
+/// der Abschnitt — Schild und Name, die Zahl des Abschnitts groß (Anfahrt
+/// km und ↑hm in Lime, auf dem Trail Rest und ↓hm mit Balken), darunter
+/// das Band ohne Namen. Abseits der Abstand in Warnfarbe, am Ziel ein
+/// Wort. Das Fenster ist ~150 dp breit: jede Zeile schrumpft, statt
+/// überzulaufen.
+class _PipCard extends StatelessWidget {
+  const _PipCard({required this.session});
 
   final NavSession session;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final l = context.l10n;
     final state = session.state;
-    final climb = session.remainingClimbM;
-    final off = state?.offRoute ?? false;
-    final style = theme.textTheme.labelLarge?.copyWith(fontFamily: AppFonts.mono, color: _p.text);
     final arrived = state?.arrived ?? false;
-    return Align(
-      alignment: Alignment.topCenter,
-      child: Padding(
-        padding: const EdgeInsets.all(4),
-        child: DecoratedBox(
-          key: const ValueKey('nav-pip'),
-          decoration: BoxDecoration(
-            color: _p.ground.withValues(alpha: 0.9),
-            borderRadius: BorderRadius.circular(6),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              child: arrived
-                  ? Text(l.navArrivedTitle, style: style)
-                  : Text.rich(
-                      TextSpan(children: [
-                        TextSpan(text: formatMeters(session.remainingM)),
-                        if (climb != null) TextSpan(text: ' · ${climb.round()} ${l.navUnitHm}'),
-                        if (off && state != null)
-                          TextSpan(text: ' · ${l.navPipOff(formatMeters(state.offM))}', style: TextStyle(color: _p.warningText)),
-                      ]),
-                      style: style,
-                      maxLines: 1,
-                    ),
+    final off = !arrived && (state?.offRoute ?? false);
+    final phase = session.phase;
+    final section = phase.section;
+    final big = AppFonts.numbers(TextStyle(fontSize: 28, height: 1, color: _p.text)).copyWith(letterSpacing: -0.5);
+    final small = AppFonts.numbers(const TextStyle(fontSize: 14, height: 1));
+    Widget line(Widget child) =>
+        FittedBox(fit: BoxFit.scaleDown, alignment: Alignment.centerLeft, child: child);
+    final List<Widget> rows;
+    if (off && state != null) {
+      rows = [
+        line(_Label(l.navOffRoute, color: _p.warningText)),
+        line(Text(l.navPipOff(formatMeters(state.offM)), style: big.copyWith(color: _p.warningText))),
+      ];
+    } else if (phase.kind == NavPhaseKind.arrived) {
+      rows = [line(Text(l.navArrivedTitle, style: big))];
+    } else {
+      final head = section == null
+          ? line(_Label(l.navToGoal))
+          : line(Row(mainAxisSize: MainAxisSize.min, children: [
+              GradeShield(section.grade, uphill: section.uphill, fontSize: 10, palette: _p.grade),
+              const SizedBox(width: 5),
+              _TrailName(section.name, size: 15),
+            ]));
+      rows = switch (phase.kind) {
+        NavPhaseKind.onTrail => [
+            head,
+            const SizedBox(height: 4),
+            line(Text.rich(TextSpan(children: [
+              TextSpan(text: formatMeters(phase.distM), style: big),
+              if (phase.lossM case final loss?) TextSpan(text: '  ↓${loss.round()} ${l.navUnitHm}', style: small),
+            ]))),
+            const SizedBox(height: 4),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(2),
+              child: SizedBox(
+                height: 4,
+                child: Stack(children: [
+                  Container(color: _p.line),
+                  FractionallySizedBox(
+                    widthFactor: section!.lengthM <= 0 ? 0 : (1 - phase.distM / section.lengthM).clamp(0.0, 1.0),
+                    child: Container(color: section.uphill ? _p.grade.uphill : _p.grade.of(section.grade)),
+                  ),
+                ]),
+              ),
             ),
+          ],
+        NavPhaseKind.atHead => [line(_Label(l.navAtHead, color: AppColors.brand)), const SizedBox(height: 3), head],
+        _ => [
+            head,
+            const SizedBox(height: 4),
+            line(Text.rich(TextSpan(children: [
+              TextSpan(text: formatMeters(phase.distM), style: big),
+              if (phase.climbM case final climb? when climb >= 1)
+                TextSpan(text: '  ↑${climb.round()} ${l.navUnitHm}', style: small.copyWith(color: AppColors.brand)),
+            ]))),
+          ],
+      };
+    }
+    return _NavTheme(
+      child: Align(
+        alignment: Alignment.bottomCenter,
+        child: Container(
+          key: const ValueKey('nav-pip'),
+          width: double.infinity,
+          padding: const EdgeInsets.fromLTRB(8, 6, 8, 6),
+          decoration: BoxDecoration(
+            color: _p.ground,
+            border: Border(top: BorderSide(color: off ? _p.warningText : _p.line, width: off ? 2 : 1)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              ...rows,
+              if (!arrived) ...[const SizedBox(height: 5), _BandBar(session: session, height: 5)],
+            ],
           ),
         ),
       ),

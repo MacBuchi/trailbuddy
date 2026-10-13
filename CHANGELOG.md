@@ -4,7 +4,7 @@
 
 ## Navigation von Trail zu Trail
 
-*Versionen 0.114.0 bis 0.115.0, 2026-10-13*
+*Versionen 0.114.0 bis 0.116.0, 2026-10-13*
 
 - **Neu:** Beim Navigieren fragt die Karte „Was kommt als Nächstes?" statt
   „Wie weit noch?". Oben steht die Anfahrt zum nächsten Trailkopf — km,
@@ -29,6 +29,15 @@
   Buddys sehen es als Zustand, gemeldet vor Ort. „Weiter" zeigt den
   nächsten Abschnitt; nach 20 Sekunden geht das Blatt von selbst. Es
   kommt nur, wenn du mindestens die Hälfte des Trails gefahren bist.
+- Im kleinen Fenster (Bild-im-Bild) steht jetzt unten der Abschnitt:
+  Trail und Stufe, km und Höhenmeter bis zum Trailkopf, auf dem Trail
+  der Rest mit Balken, darunter das Band. Neu ist der Knopf
+  „Minimieren": Er legt die Navigation sofort ins Fenster, ohne nach
+  Hause zu wischen.
+- Die Benachrichtigung sagt es in zwei Zeilen: oben „2,4 km · ↑310 hm
+  bis Rosskopf Süd" oder auf dem Trail „Rosskopf Süd · noch 1,8 km ·
+  ↓240 hm", unten die steile Rampe, ob du auf der Route bist und ob die
+  Fahrt mitläuft.
 - Der Entwurf dazu liegt im Repo unter docs/design/navi.
 
 ## Ein Foto zum Hinweis

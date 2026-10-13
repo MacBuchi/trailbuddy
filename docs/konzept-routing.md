@@ -879,8 +879,14 @@ offline.
 Der Dienst ist der vorhandene (`KeepAliveCoordinator`, Typ `location`,
 `lib/features/rides/CLAUDE.md`) — kein zweiter Dienst, keine zweite
 Benachrichtigung. Läuft eine Navigation, trägt seine Benachrichtigung
-die Leiste aus 9.2 als Text: „Noch 12,4 km · 640 hm · auf der Route"
-bzw. „… · 45 m neben der Route". Die Zahlen rechnet der Dienst-Isolate
+seit 0.116.0 den Abschnitt in zwei Zeilen (9.9): oben „2,4 km · ↑310
+hm bis Rosskopf Süd", am Kopf „Am Trailkopf · Rosskopf Süd", auf dem
+Trail „Rosskopf Süd · noch 1,8 km · ↓240 hm", ohne Trail „… bis zum
+Ziel"; unten die Rampe, „auf der Route" bzw. „120 m neben der Route"
+und „Fahrt wird aufgezeichnet", wenn sie mitläuft. Bis 0.115.0 war es
+eine Zeile über die ganze Route („Noch 12,4 km · 640 hm · auf der
+Route"). Die Texte kommen aus den ARB-Dateien über `serviceL10n()`.
+Die Zahlen rechnet der Dienst-Isolate
 mit derselben puren Funktion aus seinen eigenen Fixen (Takt 5 s,
 `kRideTickInterval`), nicht die App — die kann weggewischt sein. Die
 Route bekommt er wie die Bestätigungsziele: als Datei
@@ -911,12 +917,20 @@ nur eng gewährt; PiP braucht keine.
   es sind drei Aufrufe. Unter Android 8 (API 26) gibt es kein PiP; dann
   ist die Benachrichtigung alles.
 - **Was im Fenster steht**: dieselbe Folgeansicht ohne Knöpfe und ohne
-  Leiste oben, dafür die drei Zahlen klein über der Karte. Flutter
+  Karten oben; seit 0.116.0 (9.9, Entwurf 1b/1c) unten der Abschnitt —
+  Schild und Name, km groß und ↑hm in Lime bei der Anfahrt, Rest, ↓hm
+  und Balken auf dem Trail, abseits der Abstand in Warnfarbe — und das
+  Band ohne Namen; bis 0.115.0 die drei Zahlen klein über der Karte.
+  Jede Zeile schrumpft, statt überzulaufen (~150 dp breit). Flutter
   rendert im Fenster dieselbe Activity; die App erfährt über den Kanal,
   dass sie klein ist, und baut die schmale Fassung. Seitenverhältnis 3:4
   hochkant.
 - **Eine Aktion im Fenster**: „Beenden" als `RemoteAction`. Ein Tipp
   auf das Fenster holt die App zurück, wie bei jedem PiP.
+- **„Minimieren"** (seit 0.116.0, Entwurf 1a): ein Knopf in der
+  Knopfzeile geht sofort ins Fenster (Kanal-Methode `enter`, dieselben
+  Parameter). Es gibt ihn nur, wo das Gerät PiP anbietet (`supported`);
+  hat der Nutzer es für die App abgeschaltet, passiert nichts.
 - **Play**: Kein neues Recht, aber ein Satz in `docs/play-console.md`
   (Funktionsbeschreibung) und im Datenschutz-Abschnitt zum Standort —
   der Standort bleibt auf dem Gerät, wie bei der Aufzeichnung.
@@ -963,7 +977,7 @@ Dokument allein.
 4. **Nach Abschnitten** (9.9, #312, gestapelt): **N1** (0.114.0)
    Abschnitte aus Planer, Trailkopf-Weg und Fahrt, Phasen, die Karten
    Anfahrt / Abseits / Trailkopf / Trail, Routenband, Reiterleiste weg;
-   **N2** (0.115.0) „Trail geschafft" am Trail-Ende; **N3** Bild-im-Bild 3:4 mit
+   **N2** (0.115.0) „Trail geschafft" am Trail-Ende; **N3** (0.116.0) Bild-im-Bild 3:4 mit
    dem Abschnitt und die zweizeilige Benachrichtigung. — ☁️ · 📱
 
 Jeder Schritt bringt seinen Neuheiten-Eintrag; die Kurzanleitung bekommt
@@ -1016,11 +1030,13 @@ selbst, die Hinweise der Buddys am Ort, danach die Werte.*
   einsteigt, bekommt keine Bilanz, wer vor den Kopf zurückfährt, fängt
   neu an. Trail-Werte aus Sensoren (Airtime, G, Manual) kommen mit
   #36, nicht hier.
-- **Im Dienst** (N3) rechnet dieselbe Funktion dieselbe Phase aus der
-  Routen-Datei (Fassung 2 trägt die Abschnitte); die Benachrichtigung
-  sagt „2,4 km · ↑310 hm bis Rosskopf Süd", auf dem Trail „Rosskopf Süd
-  · noch 1,8 km · ↓240 hm". Im kleinen Fenster steht die Abschnitts-
-  Karte unter der Karte (3:4).
+- **Im Dienst** (N3, seit 0.116.0) rechnet dieselbe Funktion dieselbe
+  Phase aus der Routen-Datei (Fassung 2 trägt die Abschnitte; eine
+  Datei der Fassung 1 zählt bis zum Ziel); die Benachrichtigung sagt
+  „2,4 km · ↑310 hm bis Rosskopf Süd", auf dem Trail „Rosskopf Süd ·
+  noch 1,8 km · ↓240 hm" (9.5). Im kleinen Fenster steht die
+  Abschnitts-Karte unter der Karte (3:4, 9.6), dazu der Knopf
+  „Minimieren".
 
 Die Zahlen (100 m, 30 m, 2 m/s, 12 %, 20 s, 50 %, 10 m) sind Startwerte wie in
 9.7; sie ändert der Feldeinsatz.
