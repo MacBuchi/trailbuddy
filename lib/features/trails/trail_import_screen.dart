@@ -39,9 +39,11 @@ import 'trail_takeover.dart';
 /// in [gpxFilesFrom]. Im Browser filtert die Endung bequem vor.
 final gpxPickerProvider = Provider<Future<List<PickedFile>> Function()>((ref) {
   return () async {
-    const typeGroups = kIsWeb
-        ? [XTypeGroup(label: 'GPX oder Zip', extensions: ['gpx', 'zip'])]
-        : [XTypeGroup(label: 'Alle Dateien', mimeTypes: ['*/*'])];
+    // Ohne `BuildContext`: die Sprache wie beim Dienst (`serviceL10n`).
+    final l = serviceL10n();
+    final typeGroups = kIsWeb
+        ? [XTypeGroup(label: l.importPickerGpxOrZip, extensions: ['gpx', 'zip'])]
+        : [XTypeGroup(label: l.importPickerAllFiles, mimeTypes: ['*/*'])];
     final files = await openFiles(acceptedTypeGroups: typeGroups);
     return [
       for (final f in files) PickedFile(name: f.name, bytes: await f.readAsBytes()),

@@ -3,6 +3,7 @@ import 'package:flutter/services.dart' show rootBundle;
 
 import '../../core/app_colors.dart';
 import '../../core/widgets/motion.dart';
+import '../../l10n/l10n.dart';
 import 'changelog_parser.dart';
 
 /// Pfad der mitgelieferten Änderungsliste (Asset-Eintrag in `pubspec.yaml`).
@@ -21,16 +22,14 @@ class ChangelogScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Was ist neu')),
+      appBar: AppBar(title: Text(context.l10n.changelogTitle)),
       body: FutureBuilder<String>(
         future: rootBundle.loadString(changelogAsset),
         builder: (context, snapshot) {
           if (snapshot.hasError) {
             // Sollte nie passieren — die Datei ist mitgeliefert. Falls doch,
             // ist eine Erklärung besser als ein leerer Bildschirm.
-            return const _Message('Die Änderungsliste konnte nicht geladen '
-                'werden. Alle Änderungen stehen auch auf der Projektseite '
-                'unter „GitHub-Projekt & Dokumentation".');
+            return _Message(context.l10n.changelogLoadFailed);
           }
           final markdown = snapshot.data;
           if (markdown == null) {
