@@ -1,6 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
+import '../l10n/l10n.dart';
+
 /// Öffentliche Links der App — für Einladungen und Hilfetexte.
 class AppInfo {
   static const webAppUrl = 'https://macbuchi.github.io/trailbuddy/';
@@ -46,13 +48,10 @@ class AppInfo {
   static const impressumUrl =
       'https://macbuchi.github.io/trailbuddy/impressum.html';
 
-  static String inviteText(String? username) => [
-        'Komm zu TrailBuddy – wir teilen unsere Trails!',
-        'Web-App: $webAppUrl',
-        'Android-App: $apkDownloadUrl',
-        if (username != null && username.isNotEmpty)
-          'Registriere dich und such mich dort als „$username", dann können wir uns verbinden.',
-      ].join('\n');
+  static String inviteText(AppLocalizations l, String? username) =>
+      username != null && username.isNotEmpty
+          ? l.buddysInviteTextWithName(webAppUrl, apkDownloadUrl, username)
+          : l.buddysInviteText(webAppUrl, apkDownloadUrl);
 }
 
 /// Installierte App-Version für die „Über"-Sektion im Profil.

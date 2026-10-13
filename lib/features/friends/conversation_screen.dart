@@ -19,6 +19,7 @@ import '../../core/app_colors.dart';
 import '../../core/errors.dart';
 import '../../data/message_repository.dart';
 import '../../data/providers.dart';
+import '../../l10n/l10n.dart';
 import '../../models/buddy_message.dart';
 import '../coach/coach.dart';
 import '../help/tab_tours.dart' show BuddysCoach;
@@ -31,11 +32,6 @@ const kMessageFieldKey = Key('message-field');
 const kMessageSendKey = Key('message-send');
 const kMessageLimitKey = Key('message-limit');
 Key messageBubbleKey(String id) => ValueKey('message-$id');
-
-/// Was unter jedem Verlauf steht — an einer Stelle, damit Test und
-/// Bildschirm dasselbe meinen.
-const kMessagesNote = 'Nachrichten verschwinden nach $kMessageDays Tagen. '
-    'Sie sind nicht Ende-zu-Ende-verschlüsselt.';
 
 class ConversationScreen extends ConsumerStatefulWidget {
   const ConversationScreen({super.key, required this.otherId});
@@ -104,17 +100,18 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
     if (text.isEmpty || _sending) return;
     setState(() => _sending = true);
     final messenger = ScaffoldMessenger.of(context);
+    final l = context.l10n;
     try {
       await ref.read(messagesProvider.notifier).send(widget.otherId, text);
       _controller.clear();
-    } on MessageRejectedException catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text('$e')));
+    } on MessageRejectedException {
+      messenger.showSnackBar(SnackBar(content: Text(l.messagesRejected)));
       // Die Anfrage ist womöglich weg — die Liste soll es zeigen.
       ref.invalidate(friendshipsProvider);
     } catch (e, s) {
       logError('Nachricht senden', e, s);
-      messenger.showSnackBar(SnackBar(
-          content: Text('Nicht gesendet: ${friendlyError(e)}')));
+      messenger.showSnackBar(
+          SnackBar(content: Text(l.messagesNotSent(friendlyError(e)))));
     } finally {
       if (mounted) setState(() => _sending = false);
     }
@@ -124,15 +121,15 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Nachricht zurücknehmen?'),
-        content: const Text('Sie verschwindet auch bei deinem Buddy.'),
+        title: Text(context.l10n.messagesDeleteTitle),
+        content: Text(context.l10n.messagesDeleteBody),
         actions: [
           TextButton(
               onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Abbrechen')),
+              child: Text(context.l10n.commonCancel)),
           FilledButton(
               onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('Zurücknehmen')),
+              child: Text(context.l10n.messagesDeleteConfirm)),
         ],
       ),
     );
@@ -148,6 +145,7 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l = context.l10n;
     final theme = Theme.of(context);
     final uid = ref.watch(currentUserIdProvider) ?? '';
     final friendships =
@@ -160,7 +158,7 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
     final alias = names.aliasOf(widget.otherId);
     final name = alias ?? username;
     final left = friendship == null ? 0 : messagesLeft(friendship, all, uid);
-    final time = DateFormat('d.M. HH:mm');
+    final time = DateFormat(l.messagesTimePattern, l.localeName);
 
     // Neu Eingetroffenes auch als gelesen markieren, solange der
     // Verlauf offen ist.
@@ -173,16 +171,12 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
     });
 
     final String? limitLine = switch ((friendship, left)) {
-      (null, _) => 'Ihr seid nicht mehr verbunden — schreiben geht nicht '
-          'mehr.',
+      (null, _) => l.messagesLimitGone,
       (_, null) => null,
-      (_, 0) => 'Deine $kPendingMessageLimit Nachrichten sind geschrieben. '
-          'Weiter geht es, sobald ihr Buddys seid.',
+      (_, 0) => l.messagesLimitUsed(kPendingMessageLimit),
       (final f?, final n?) => f.isIncomingFor(uid)
-          ? 'Noch $n ${n == 1 ? 'Nachricht' : 'Nachrichten'}, bevor du '
-              'die Anfrage annimmst.'
-          : 'Noch $n ${n == 1 ? 'Nachricht' : 'Nachrichten'}, bis $name '
-              'die Anfrage annimmt.',
+          ? l.messagesLeftIncoming(n)
+          : l.messagesLeftOutgoing(n, name),
     };
     final canWrite = friendship != null && left != 0;
 
@@ -218,7 +212,7 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
                 children: [
                   Padding(
                     padding: const EdgeInsets.only(top: 12),
-                    child: Text(kMessagesNote,
+                    child: Text(l.messagesNote(kMessageDays),
                         textAlign: TextAlign.center,
                         style: theme.textTheme.bodySmall),
                   ),
@@ -234,7 +228,7 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
                     Padding(
                       padding: const EdgeInsets.all(24),
                       child: Text(
-                        'Noch keine Nachrichten mit $name.',
+                        l.messagesEmpty(name),
                         textAlign: TextAlign.center,
                         style: theme.textTheme.bodyMedium
                             ?.copyWith(color: AppPalette.of(context).muted),
@@ -268,9 +262,9 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
                         maxLines: 5,
                         maxLength: kMessageMaxLength,
                         textCapitalization: TextCapitalization.sentences,
-                        decoration: const InputDecoration(
-                          hintText: 'Nachricht',
-                          border: OutlineInputBorder(),
+                        decoration: InputDecoration(
+                          hintText: l.messagesHint,
+                          border: const OutlineInputBorder(),
                           counterText: '',
                           isDense: true,
                         ),
@@ -280,7 +274,7 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
                   const SizedBox(width: 4),
                   IconButton.filled(
                     key: kMessageSendKey,
-                    tooltip: 'Senden',
+                    tooltip: l.messagesSend,
                     onPressed: canWrite && !_sending ? _send : null,
                     icon: _sending
                         ? const SizedBox(

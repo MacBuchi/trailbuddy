@@ -13,6 +13,7 @@ import '../../core/widgets/motion.dart';
 import '../../data/providers.dart';
 import '../../models/friendship.dart';
 import '../coach/coach.dart';
+import '../../l10n/l10n.dart';
 import '../help/help_link.dart';
 import '../help/tab_tours.dart';
 import '../help/tour_examples.dart';
@@ -96,7 +97,7 @@ class _FriendsScreenState extends ConsumerState<FriendsScreen> {
   /// (z. B. Desktop-Browser), landet der Text in der Zwischenablage.
   Future<void> _invite() async {
     final username = ref.read(myProfileProvider).valueOrNull?.username;
-    final text = AppInfo.inviteText(username);
+    final text = AppInfo.inviteText(context.l10n, username);
     try {
       final result = await SharePlus.instance.share(ShareParams(text: text));
       if (result.status == ShareResultStatus.unavailable) {
@@ -105,7 +106,8 @@ class _FriendsScreenState extends ConsumerState<FriendsScreen> {
     } catch (_) {
       // Kein Fehlerfall: Desktop-Browser haben kein System-Teilen.
       await Clipboard.setData(ClipboardData(text: text));
-      _showMessage('Einladungstext in die Zwischenablage kopiert.');
+      if (!mounted) return;
+      _showMessage(context.l10n.buddysInviteCopied);
     }
   }
 
@@ -128,14 +130,15 @@ class _FriendsScreenState extends ConsumerState<FriendsScreen> {
   Future<void> _sendRequest(ProfileSearchResult result) async {
     try {
       await ref.read(friendshipsProvider.notifier).sendRequest(result.id);
-      _showMessage('Anfrage an ${result.username} gesendet.');
+      if (!mounted) return;
+      _showMessage(context.l10n.buddysRequestSent(result.username));
       setState(
           () => _results = _results.where((r) => r.id != result.id).toList());
     } catch (e, stackTrace) {
       logError('Freundschaftsanfrage', e, stackTrace);
       // Unique-Verletzung = Paar existiert schon — die häufigste Ursache.
-      _showMessage(
-          'Anfrage nicht möglich – vielleicht seid ihr schon verbunden?');
+      if (!mounted) return;
+      _showMessage(context.l10n.buddysRequestFailed);
     }
   }
 
@@ -143,17 +146,15 @@ class _FriendsScreenState extends ConsumerState<FriendsScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('$shownName als Buddy entfernen?'),
-        content: const Text(
-            'Ihr seht danach gegenseitig keine geteilten Trails mehr, und '
-            'eure Nachrichten werden für beide gelöscht.'),
+        title: Text(context.l10n.buddysRemoveTitle(shownName)),
+        content: Text(context.l10n.buddysRemoveBody),
         actions: [
           TextButton(
               onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Abbrechen')),
+              child: Text(context.l10n.commonCancel)),
           FilledButton(
               onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('Entfernen')),
+              child: Text(context.l10n.buddysRemoveConfirm)),
         ],
       ),
     );
@@ -165,6 +166,7 @@ class _FriendsScreenState extends ConsumerState<FriendsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l = context.l10n;
     final theme = Theme.of(context);
     final palette = AppPalette.of(context);
     final uid = ref.watch(currentUserIdProvider) ?? '';
@@ -194,7 +196,7 @@ class _FriendsScreenState extends ConsumerState<FriendsScreen> {
       child: Scaffold(
       appBar: AppBar(
         toolbarHeight: 64,
-        title: Text('BUDDYS',
+        title: Text(l.buddysTitle,
             style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w800)),
         actions: [
           CoachAnchor(
@@ -203,7 +205,7 @@ class _FriendsScreenState extends ConsumerState<FriendsScreen> {
               key: const ValueKey('invite-button'),
               onPressed: _invite,
               icon: const Icon(Icons.share),
-              tooltip: 'Buddys zu TrailBuddy einladen',
+              tooltip: l.buddysInvite,
             ),
           ),
           const SizedBox(width: 8),
@@ -224,8 +226,8 @@ class _FriendsScreenState extends ConsumerState<FriendsScreen> {
                     onSubmitted: (_) => _search(),
                     textInputAction: TextInputAction.search,
                     decoration: InputDecoration(
-                      labelText: 'Buddy finden',
-                      hintText: 'Benutzername oder genaue E-Mail',
+                      labelText: l.buddysSearchLabel,
+                      hintText: l.buddysSearchHint,
                       filled: true,
                       fillColor: palette.surface,
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
@@ -246,7 +248,7 @@ class _FriendsScreenState extends ConsumerState<FriendsScreen> {
                       : IconButton.outlined(
                           onPressed: _search,
                           icon: const Icon(Icons.search),
-                          tooltip: 'Suchen',
+                          tooltip: l.buddysSearchTooltip,
                           style: IconButton.styleFrom(
                             backgroundColor: palette.surface,
                             side: BorderSide(color: palette.line),
@@ -259,9 +261,9 @@ class _FriendsScreenState extends ConsumerState<FriendsScreen> {
             if (_searched) ...[
               const SizedBox(height: 8),
               if (_results.isEmpty)
-                const Padding(
-                  padding: EdgeInsets.all(8),
-                  child: Text('Niemanden gefunden.'),
+                Padding(
+                  padding: const EdgeInsets.all(8),
+                  child: Text(l.buddysSearchEmpty),
                 )
               else
                 for (final result in _results)
@@ -274,10 +276,10 @@ class _FriendsScreenState extends ConsumerState<FriendsScreen> {
                         ? Text(result.displayName!)
                         : null,
                     trailing: requestedIds.contains(result.id)
-                        ? const Text('Verbunden')
+                        ? Text(l.buddysAlreadyLinked)
                         : FilledButton(
                             onPressed: () => _sendRequest(result),
-                            child: const Text('Anfragen'),
+                            child: Text(l.buddysRequest),
                           ),
                   ),
             ],
@@ -297,7 +299,7 @@ class _FriendsScreenState extends ConsumerState<FriendsScreen> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
             if (incoming.isNotEmpty) ...[
-              _SectionLabel('ANFRAGEN AN DICH · ${incoming.length}'),
+              _SectionLabel(l.buddysIncomingHeader(incoming.length)),
               for (final f in incoming)
                 _RequestCard(
                   name: f.otherUsername(uid),
@@ -311,34 +313,34 @@ class _FriendsScreenState extends ConsumerState<FriendsScreen> {
                       minimumSize: const Size(0, 44),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
-                    child: const Text('Annehmen'),
+                    child: Text(l.buddysAccept),
                   ),
                   cancel: _SquareIconButton(
                     onPressed: () => ref.read(friendshipsProvider.notifier).remove(f.id),
                     icon: Icons.close,
-                    tooltip: 'Ablehnen',
+                    tooltip: l.buddysDecline,
                   ),
                 ),
             ],
             if (outgoing.isNotEmpty) ...[
-              _SectionLabel('GESENDETE ANFRAGEN · ${outgoing.length}'),
+              _SectionLabel(l.buddysOutgoingHeader(outgoing.length)),
               for (final f in outgoing)
                 _RequestCard(
                   name: f.otherUsername(uid),
                   colorKey: f.otherId(uid),
-                  subtitle: 'Ausstehend',
+                  subtitle: l.buddysPending,
                   message: MessageButton(otherId: f.otherId(uid)),
                   cancel: _SquareIconButton(
                     onPressed: () => ref.read(friendshipsProvider.notifier).remove(f.id),
                     icon: Icons.close,
-                    tooltip: 'Zurückziehen',
+                    tooltip: l.buddysWithdraw,
                   ),
                 ),
             ],
                   ],
                 ),
               ),
-            _SectionLabel(accepted.isEmpty ? 'MEINE BUDDYS' : 'MEINE BUDDYS · ${accepted.length}'),
+            _SectionLabel(accepted.isEmpty ? l.buddysMineHeader : l.buddysMineHeaderCount(accepted.length)),
             if (friendshipsAsync.isLoading && friendships.isEmpty)
               const Padding(
                 padding: EdgeInsets.all(16),
@@ -347,16 +349,15 @@ class _FriendsScreenState extends ConsumerState<FriendsScreen> {
             else if (example)
               const ExampleBuddyTile()
             else if (accepted.isEmpty) ...[
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 8),
-                child: Text('Noch keine Buddys verbunden. Suche oben nach '
-                    'Benutzername oder E-Mail!'),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Text(l.buddysEmpty),
               ),
               const SizedBox(height: 8),
               OutlinedButton.icon(
                 onPressed: _invite,
                 icon: const Icon(Icons.share),
-                label: const Text('Buddys zu TrailBuddy einladen'),
+                label: Text(l.buddysInvite),
                 style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
               ),
               const SizedBox(height: 4),
@@ -407,6 +408,7 @@ class _ConnectedCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = context.l10n;
     final theme = Theme.of(context);
     final palette = AppPalette.of(context);
     Widget number(int n, String label, Color color) => Expanded(
@@ -436,7 +438,7 @@ class _ConnectedCard extends StatelessWidget {
               const ConnectMergeMark(),
               const SizedBox(width: 8),
               Expanded(
-                child: Text('MIT ${name.toUpperCase()} VERBUNDEN',
+                child: Text(l.buddysConnectedTitle(name).toUpperCase(),
                     style: theme.textTheme.titleMedium?.copyWith(
                         fontFamily: AppFonts.display,
                         fontWeight: FontWeight.w700,
@@ -446,25 +448,25 @@ class _ConnectedCard extends StatelessWidget {
               IconButton(
                 onPressed: onClose,
                 icon: const Icon(Icons.close, size: 20),
-                tooltip: 'Schließen',
+                tooltip: l.commonClose,
               ),
             ],
           ),
           Semantics(
-            label: summary.sentence(name),
+            label: summary.sentence(l, name),
             excludeSemantics: true,
             child: summary.isEmpty
                 ? Padding(
                     padding: const EdgeInsets.only(right: 12),
-                    child: Text(summary.sentence(name),
+                    child: Text(summary.sentence(l, name),
                         style: theme.textTheme.bodyMedium?.copyWith(color: palette.muted)),
                   )
                 : Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      number(summary.shared, 'gemeinsam', palette.text),
-                      number(summary.newFromBuddy, 'neu von $name', palette.buddyText),
-                      number(summary.newForBuddy, 'neu für $name', palette.accentText),
+                      number(summary.shared, l.buddysConnectedShared, palette.text),
+                      number(summary.newFromBuddy, l.buddysConnectedNewFrom(name), palette.buddyText),
+                      number(summary.newForBuddy, l.buddysConnectedNewFor(name), palette.accentText),
                     ],
                   ),
           ),
@@ -704,7 +706,7 @@ class _BuddyRow extends StatelessWidget {
                   children: [
                     if (alias != null) Text(username, style: muted),
                     if (alias != null && shared != null) Text(' · ', style: muted),
-                    if (shared != null) Text('$shared gemeinsam', style: muted),
+                    if (shared != null) Text(context.l10n.buddysSharedCount(shared!), style: muted),
                   ],
                 ),
               ],
@@ -719,7 +721,7 @@ class _BuddyRow extends StatelessWidget {
           IconButton(
             onPressed: onRemove,
             icon: Icon(Icons.person_remove_outlined, color: palette.muted),
-            tooltip: 'Buddy entfernen',
+            tooltip: context.l10n.buddysRemoveTooltip,
           ),
         ],
       ),
@@ -743,7 +745,7 @@ class MessageButton extends ConsumerWidget {
     final icon = Icon(Icons.chat_bubble_outline, color: AppPalette.of(context).muted);
     return IconButton(
       key: messageButtonKey(otherId),
-      tooltip: unread == 0 ? 'Nachrichten' : '$unread ungelesen',
+      tooltip: unread == 0 ? context.l10n.buddysMessages : context.l10n.buddysUnread(unread),
       onPressed: () => context.go('/friends/chat/$otherId'),
       icon: unread == 0 ? icon : Badge(label: Text('$unread'), child: icon),
     );

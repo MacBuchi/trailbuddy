@@ -56,7 +56,14 @@ entsteht zuerst dort) und `app_en.arb`; gelesen mit `context.l10n.<key>`
   Dienst-Texte der Navigation 0.117.1 — damit ist
   `lib/features/routing/` ganz umgezogen (Schlüssel `loop*`, `route*`,
   `routing*`, `navChoice*`); `WayClass.label(l)` und `NavChoice.label(l)`
-  als `switch`. Namen von Runde und Weg (`loopName`, `routeName*`) gehen
+  als `switch`; (e1) Buddys 0.117.2 — alles unter `lib/features/friends/`
+  (Liste, Anfragen, Karte „Mit … verbunden", Alias-Dialog, Verlauf;
+  Schlüssel `buddys*`, `alias*`, `messages*`), dazu der Einladungstext
+  (`AppInfo.inviteText(l, …)`) und `ConnectSummary.sentence(l, …)`. Die
+  Leiste nach einem abgelehnten Senden kommt aus `messagesRejected`; das
+  `toString` von `MessageRejectedException` bleibt deutsch (Ausnahmetext).
+  Noch offen: (e2) Profil samt Kontodialogen, und der Reitername „Buddys"
+  in `router.dart` (Reiterleiste, keiner Stufe zugeordnet). Namen von Runde und Weg (`loopName`, `routeName*`) gehen
   in die gespeicherte Fahrt und die GPX-Datei — sie bleiben in der
   Sprache, in der geplant wurde. Noch keiner Stufe zugeordnet:
   `lib/features/offline_areas/` und `lib/features/official/` (das Blatt

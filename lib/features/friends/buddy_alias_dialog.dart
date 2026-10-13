@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/errors.dart';
 import '../../data/friend_repository.dart';
+import '../../l10n/l10n.dart';
 import 'buddy_alias.dart';
 
 const kAliasFieldKey = Key('alias-field');
@@ -24,7 +25,7 @@ class AliasButton extends ConsumerWidget {
     final alias = ref.watch(buddyNamesViewProvider).aliasOf(friendId);
     return IconButton(
       key: aliasButtonKey(friendId),
-      tooltip: alias == null ? 'Alias vergeben' : 'Alias ändern',
+      tooltip: alias == null ? context.l10n.aliasSet : context.l10n.aliasChange,
       icon: const Icon(Icons.edit_outlined),
       onPressed: () => showAliasDialog(context, ref,
           friendId: friendId, username: username),
@@ -71,8 +72,9 @@ class _AliasDialogState extends State<_AliasDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final l = context.l10n;
     return AlertDialog(
-      title: Text('Alias für ${widget.username}'),
+      title: Text(l.aliasTitle(widget.username)),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -83,9 +85,9 @@ class _AliasDialogState extends State<_AliasDialog> {
             autofocus: true,
             maxLength: kAliasMaxLength,
             textCapitalization: TextCapitalization.words,
-            decoration: const InputDecoration(
-              labelText: 'Alias',
-              hintText: 'z. B. Andi',
+            decoration: InputDecoration(
+              labelText: l.aliasLabel,
+              hintText: l.aliasHint,
             ),
             onSubmitted: (v) => Navigator.of(context).pop(v),
           ),
@@ -93,9 +95,7 @@ class _AliasDialogState extends State<_AliasDialog> {
           Text(
             // Die zwei Fragen, die man sich dabei stellt: Sieht er das?
             // Und was, wenn er sich umbenennt?
-            'Nur du siehst den Alias, auf allen deinen Geräten. Er bleibt, '
-            'auch wenn dein Buddy seinen Namen ändert. Leer lassen '
-            'entfernt ihn.',
+            l.aliasNote,
             style: Theme.of(context).textTheme.bodySmall,
           ),
         ],
@@ -103,11 +103,11 @@ class _AliasDialogState extends State<_AliasDialog> {
       actions: [
         TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Abbrechen')),
+            child: Text(l.commonCancel)),
         FilledButton(
             key: kAliasSaveKey,
             onPressed: () => Navigator.of(context).pop(_controller.text),
-            child: const Text('Speichern')),
+            child: Text(l.commonSave)),
       ],
     );
   }
