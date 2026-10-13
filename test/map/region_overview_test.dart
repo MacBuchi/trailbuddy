@@ -31,6 +31,7 @@ import 'package:trailbuddy/features/offline_areas/areas_screen.dart';
 import 'package:trailbuddy/features/offline_areas/pmtiles_writer.dart';
 import 'package:trailbuddy/features/offline_areas/region_overview.dart';
 import 'package:trailbuddy/features/official/official_trails_source.dart';
+import 'package:trailbuddy/l10n/l10n.dart';
 
 import '../fakes/fake_keep_alive.dart';
 import '../fakes/fake_official_trails.dart';
@@ -376,7 +377,11 @@ void main() {
           keepAliveProvider.overrideWithValue(FakeKeepAlive()),
           settingsProvider.overrideWithValue(FakeSettings()),
         ],
-        child: const MaterialApp(home: AreasScreen()),
+        child: const MaterialApp(
+            locale: Locale('de'),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: AreasScreen()),
       ));
       for (var i = 0; i < 10; i++) {
         await tester.pump(const Duration(milliseconds: 50));

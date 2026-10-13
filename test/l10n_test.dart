@@ -13,6 +13,7 @@ import 'package:trailbuddy/features/friends/connect_summary.dart';
 import 'package:trailbuddy/features/map/map_legend.dart';
 import 'package:trailbuddy/features/map/poi.dart';
 import 'package:trailbuddy/features/map/way_layer.dart';
+import 'package:trailbuddy/features/offline_areas/area_providers.dart' show OutsideRegions;
 import 'package:trailbuddy/features/rides/ride_confirm.dart';
 import 'package:trailbuddy/features/rides/ride_track.dart';
 import 'package:trailbuddy/features/routing/navigate_choice.dart';
@@ -587,6 +588,35 @@ void main() {
       expect(en.highlightSheetMore(1), 'Discover 1 more');
       expect(l10nDe.highlightSheetMore(4), '4 weitere entdecken');
       expect(en.demoOnlineFill1Text(16), contains('at most 16 tiles'));
+    });
+  });
+
+  // Stufe (g1): Offline-Karten — Meine Bereiche, Leiste, Speichern-Dialog
+  // und die Texte des Downloads.
+  group('Offline-Karten auf Englisch', () {
+    testWidgets('„Meine Bereiche" ohne Bereich', (tester) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.reset);
+      final backend = FakeBackend();
+      backend.signInAs(backend.addUser(username: 'anna').id);
+      await pumpApp(tester, backend,
+          extraOverrides: [appLocaleProvider.overrideWithValue(const Locale('en'))]);
+      await openProfilePage(tester, 'areas', tab: 'Profile');
+      expect(find.text('My areas'), findsOneWidget);
+      expect(find.textContaining('No area yet.'), findsOneWidget);
+      expect(find.textContaining('Noch kein Bereich'), findsNothing);
+      expect(find.textContaining('Save all of'), findsWidgets, reason: 'ganze Region, nur auf dem Telefon');
+    });
+
+    test('Sätze mit Zahlen', () {
+      final en = lookupAppLocalizations(const Locale('en'));
+      expect(en.areaSaveWholeAreas(1), '1 whole area');
+      expect(l10nDe.areaSaveWholeAreas(2), '2 Bereiche ganz');
+      expect(en.areasTilesAndBuild(1, '01.10.2026'), '1 tile · version 01.10.2026');
+      expect(l10nDe.areasLoads('12 MB', 3), 'Lädt 12 MB · 3 Kacheln');
+      expect(const OutsideRegions(['DACH', 'Canada']).message(en),
+          'There is no map to save here — maps exist for DACH, Canada.');
     });
   });
 }

@@ -6976,5 +6976,777 @@
   "demoAppearanceText": "Gilt für die App; die Karte bleibt hell, in der Sonne liest sie sich besser.",
   "@demoAppearanceText": {
     "description": "Vorführung „appearance“ (Entdecken → Zeig es mir): Text der Blase an der Profilzeile."
+  },
+  "areasTitle": "Meine Bereiche",
+  "@areasTitle": {
+    "description": "Titel der Seite „Meine Bereiche“ (gespeicherte Offline-Karten)."
+  },
+  "areasLoadError": "Die Bereiche ließen sich nicht lesen.",
+  "@areasLoadError": {
+    "description": "Meine Bereiche: Fehler beim Lesen der Liste."
+  },
+  "areasEmptyWithWhole": "Noch kein Bereich. Speichere einen auf der Karte (Knopf „Offline-Karten\") — oder gleich die ganze Region, für den Wald ohne Empfang.",
+  "@areasEmptyWithWhole": {
+    "description": "Meine Bereiche, leer, auf dem Telefon (darunter die Angebote „ganze Region“)."
+  },
+  "areasEmpty": "Noch kein Bereich. Speichere einen auf der Karte: Knopf „Offline-Karten\", dann Ausschnitt oder Fläche wählen und speichern — die Karte bis Zoomstufe 13 samt Orten, Höhen und Wegen bleibt dann auf dem Gerät, für den Wald ohne Empfang.",
+  "@areasEmpty": {
+    "description": "Meine Bereiche, leer."
+  },
+  "areasIntro": "Bereiche liegen nur auf diesem Gerät ({size}) und werden nie von selbst gelöscht. Ohne Empfang sind sie die Karte. Wo sich Bereiche überschneiden, liegt jede Kachel nur einmal.",
+  "@areasIntro": {
+    "description": "Kopfzeile von „Meine Bereiche“; size ist die formatierte Gesamtgröße.",
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "areasRefreshing": "{name} wird aktualisiert …",
+  "@areasRefreshing": {
+    "description": "Meine Bereiche: laufendes Aktualisieren einer Region; name z. B. „Karte DACH“.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "areasSaving": "„{name}\" wird gespeichert …",
+  "@areasSaving": {
+    "description": "Laufender Download eines Bereichs (Liste und Speichern-Dialog).",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "areasWaiting": "Wartet auf Empfang — geht von selbst weiter.",
+  "@areasWaiting": {
+    "description": "Laufender Download, der nach einem Funkloch auf das Netz wartet."
+  },
+  "areasOfferHeightsAndWays": "Höhen und Wege verfügbar",
+  "@areasOfferHeightsAndWays": {
+    "description": "Zweite Zeile eines Bereichs: „Aktualisieren“ brächte Höhen und Wege."
+  },
+  "areasOfferHeights": "Höhendaten verfügbar",
+  "@areasOfferHeights": {
+    "description": "Zweite Zeile eines Bereichs: „Aktualisieren“ brächte Höhen."
+  },
+  "areasOfferWays": "Wege verfügbar",
+  "@areasOfferWays": {
+    "description": "Zweite Zeile eines Bereichs: „Aktualisieren“ brächte die Wege."
+  },
+  "areasIncomplete": "Unvollständig — „Fortsetzen\" holt den Rest",
+  "@areasIncomplete": {
+    "description": "Zweite Zeile eines abgebrochenen Bereichs."
+  },
+  "areasDeleteTitle": "„{name}\" löschen?",
+  "@areasDeleteTitle": {
+    "description": "Dialog: Bereich löschen, Überschrift.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "areasDeleteText": "{size} werden vom Gerät gelöscht — was ein anderer Bereich auch braucht, bleibt. Ohne Empfang bleibt sonst nur die Übersichtskarte.",
+  "@areasDeleteText": {
+    "description": "Dialog: Bereich löschen; size ist die formatierte Größe.",
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "areasDeleteTextLast": "{size} werden vom Gerät gelöscht — es ist der letzte Bereich dort, die Übersichtskarte der Region geht mit.",
+  "@areasDeleteTextLast": {
+    "description": "Dialog: letzten Bereich einer Region löschen; size ist die formatierte Größe.",
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "areasTooLargeForUpdate": "Der Bereich ist für den neuen Stand zu groß.",
+  "@areasTooLargeForUpdate": {
+    "description": "Leiste: Bereich lässt sich nicht aktualisieren, zu viele Kacheln."
+  },
+  "areasHostUnreachable": "Der Kartenhost ist gerade nicht erreichbar.",
+  "@areasHostUnreachable": {
+    "description": "Leiste: Messen oder Aktualisieren ohne Verbindung zum Kartenhost."
+  },
+  "areasAlone": "{size} allein",
+  "@areasAlone": {
+    "description": "Teil der Zeile eines Bereichs: was nur dieser Bereich belegt; size formatiert.",
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "areasTilesAndBuild": "{tiles, plural, =1{1 Kachel · Stand {date}} other{{tiles} Kacheln · Stand {date}}}",
+  "@areasTilesAndBuild": {
+    "description": "Teil der Zeile eines Bereichs: Kachelzahl und Kartenstand (Datum).",
+    "placeholders": {
+      "tiles": {
+        "type": "int"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "areasWithPlaces": "mit Orten",
+  "@areasWithPlaces": {
+    "description": "Teil der Zeile eines Bereichs bzw. des Dialogs „ganze Region“."
+  },
+  "areasWithHeights": "mit Höhen",
+  "@areasWithHeights": {
+    "description": "Teil der Zeile eines Bereichs bzw. des Dialogs „ganze Region“."
+  },
+  "areasWithWays": "mit Wegen",
+  "@areasWithWays": {
+    "description": "Teil der Zeile eines Bereichs bzw. des Dialogs „ganze Region“."
+  },
+  "areasResume": "Fortsetzen",
+  "@areasResume": {
+    "description": "Knopf an einem unvollständigen Bereich."
+  },
+  "areasUpdate": "Auf den neuen Stand bringen",
+  "@areasUpdate": {
+    "description": "Knopf an einem Bereich bzw. einer Übersicht."
+  },
+  "areasDeleteArea": "Bereich löschen",
+  "@areasDeleteArea": {
+    "description": "Knopf an einem Bereich."
+  },
+  "areasWholeConfirmTitle": "{region} ganz speichern?",
+  "@areasWholeConfirmTitle": {
+    "description": "Dialog: ganze Region speichern, Überschrift; region ist ihr Name.",
+    "placeholders": {
+      "region": {
+        "type": "String"
+      }
+    }
+  },
+  "areasLoads": "{tiles, plural, =1{Lädt {size} · 1 Kachel} other{Lädt {size} · {tiles} Kacheln}}",
+  "@areasLoads": {
+    "description": "Speichern: was aus dem Netz kommt; size formatiert.",
+    "placeholders": {
+      "size": {
+        "type": "String"
+      },
+      "tiles": {
+        "type": "int"
+      }
+    }
+  },
+  "areasAlreadyStored": "({count} liegen schon)",
+  "@areasAlreadyStored": {
+    "description": "Zusatz: so viele Kacheln liegen schon auf dem Gerät.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "areasWholeConfirmNote": "Das dauert eine Weile und läuft weiter, wenn du die App wechselst. Bricht es ab, bleibt alles Geladene, und „Fortsetzen\" holt den Rest.",
+  "@areasWholeConfirmNote": {
+    "description": "Dialog: ganze Region speichern, Hinweis."
+  },
+  "areasMobileData": "Du bist über Mobilfunk verbunden — das geht vom Datenvolumen ab.",
+  "@areasMobileData": {
+    "description": "Warnung in Dialogen vor einem großen Download."
+  },
+  "areasWholeName": "{region} komplett",
+  "@areasWholeName": {
+    "description": "Name des Bereichs „ganze Region“; region ist ihr Name.",
+    "placeholders": {
+      "region": {
+        "type": "String"
+      }
+    }
+  },
+  "areasWholeTitle": "{region} ganz speichern",
+  "@areasWholeTitle": {
+    "description": "Zeile „ganze Region speichern“ in Meine Bereiche.",
+    "placeholders": {
+      "region": {
+        "type": "String"
+      }
+    }
+  },
+  "areasWholeSubtitle": "Die ganze Karte bis Zoom 13 samt Orten, Höhen und Wegen — braucht Empfang.",
+  "@areasWholeSubtitle": {
+    "description": "Zeile „ganze Region speichern“, Größe unbekannt."
+  },
+  "areasWholeSubtitleSize": "Die ganze Karte bis Zoom 13 samt Orten, Höhen und Wegen — rund {size}; was schon liegt, kommt nicht noch einmal.",
+  "@areasWholeSubtitleSize": {
+    "description": "Zeile „ganze Region speichern“; size formatiert.",
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "areasWholeTooltip": "Ganze Region speichern",
+  "@areasWholeTooltip": {
+    "description": "Knopf an der Zeile „ganze Region speichern“."
+  },
+  "areasAllUpToDate": "Alles liegt schon auf dem neuen Stand.",
+  "@areasAllUpToDate": {
+    "description": "Leiste: Aktualisieren einer Region, nichts zu tun."
+  },
+  "areasRegionRefreshTitle": "Karte {region} aktualisieren?",
+  "@areasRegionRefreshTitle": {
+    "description": "Dialog: Region aktualisieren, Überschrift.",
+    "placeholders": {
+      "region": {
+        "type": "String"
+      }
+    }
+  },
+  "areasRegionRefreshText": "{tiles, plural, =1{1 Kachel wird ersetzt — {size} aus dem Netz. Die Bereiche bleiben, wie sie sind; nur ältere Kacheln kommen neu.} other{{tiles} Kacheln werden ersetzt — {size} aus dem Netz. Die Bereiche bleiben, wie sie sind; nur ältere Kacheln kommen neu.}}",
+  "@areasRegionRefreshText": {
+    "description": "Dialog: Region aktualisieren; size formatiert.",
+    "placeholders": {
+      "tiles": {
+        "type": "int"
+      },
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "areasRegionRefreshTextPlaces": "{tiles, plural, =1{1 Kachel wird ersetzt — {size} aus dem Netz, dazu die Orte. Die Bereiche bleiben, wie sie sind; nur ältere Kacheln kommen neu.} other{{tiles} Kacheln werden ersetzt — {size} aus dem Netz, dazu die Orte. Die Bereiche bleiben, wie sie sind; nur ältere Kacheln kommen neu.}}",
+  "@areasRegionRefreshTextPlaces": {
+    "description": "Dialog: Region aktualisieren, mit Orten; size formatiert.",
+    "placeholders": {
+      "tiles": {
+        "type": "int"
+      },
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "areasRefreshAction": "Aktualisieren",
+  "@areasRefreshAction": {
+    "description": "Knopf im Dialog „Region aktualisieren“."
+  },
+  "areasRegionStale": "{count, plural, =1{1 davon älter als der Stand vom {date} — „Aktualisieren\" holt nur sie} other{{count} davon älter als der Stand vom {date} — „Aktualisieren\" holt nur sie}}",
+  "@areasRegionStale": {
+    "description": "Zeile einer Region: veraltete Kacheln; date ist der Stand des Hosts.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "areasRegionStaleHost": "{count, plural, =1{1 davon älter als der Stand des Kartenhosts — „Aktualisieren\" holt nur sie} other{{count} davon älter als der Stand des Kartenhosts — „Aktualisieren\" holt nur sie}}",
+  "@areasRegionStaleHost": {
+    "description": "Zeile einer Region: veraltete Kacheln, Stand des Hosts ohne Datum.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "areasRegionBuildUnknown": "Stand des Kartenhosts gerade unbekannt",
+  "@areasRegionBuildUnknown": {
+    "description": "Zeile einer Region: Stand des Hosts unbekannt."
+  },
+  "areasRegionAllCurrent": "Alle auf dem Stand vom {date}",
+  "@areasRegionAllCurrent": {
+    "description": "Zeile einer Region: alles aktuell.",
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "areasRegionTitle": "Karte {region}",
+  "@areasRegionTitle": {
+    "description": "Zeile einer Region in Meine Bereiche; auch Name beim Aktualisieren.",
+    "placeholders": {
+      "region": {
+        "type": "String"
+      }
+    }
+  },
+  "areasRegionTiles": "{count, plural, =1{1 Kachel auf dem Gerät} other{{count} Kacheln auf dem Gerät}}",
+  "@areasRegionTiles": {
+    "description": "Zeile einer Region: Anzahl der Kacheln.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "areasRegionRefreshTooltip": "Veraltete Kacheln aktualisieren",
+  "@areasRegionRefreshTooltip": {
+    "description": "Knopf an der Zeile einer Region."
+  },
+  "areasOverviewTitle": "Übersicht {name}",
+  "@areasOverviewTitle": {
+    "description": "Zeile der Übersichtskarte einer Region; auch Name beim Laden.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "areasOverviewDeleteTitle": "Übersicht {name} löschen?",
+  "@areasOverviewDeleteTitle": {
+    "description": "Dialog: Übersicht löschen, Überschrift.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "areasOverviewDeleteText": "{size} werden vom Gerät gelöscht. Die Bereiche bleiben; ohne Empfang liegt um sie herum dann keine Karte mehr.",
+  "@areasOverviewDeleteText": {
+    "description": "Dialog: Übersicht löschen; size formatiert.",
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "areasOverviewStored": "{size} · Zoom 0–{maxZoom} · Stand {date}",
+  "@areasOverviewStored": {
+    "description": "Zeile der Übersicht: Größe, Zoom, Stand.",
+    "placeholders": {
+      "size": {
+        "type": "String"
+      },
+      "maxZoom": {
+        "type": "int"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "areasOverviewNewer": "Neuerer Stand verfügbar",
+  "@areasOverviewNewer": {
+    "description": "Zeile der Übersicht: Host hat einen neueren Bau."
+  },
+  "areasOverviewMissing": "Nicht auf dem Gerät ({size}) — ohne Empfang liegt um die Bereiche sonst keine Karte.",
+  "@areasOverviewMissing": {
+    "description": "Zeile der Übersicht: fehlt, Host hat sie; size formatiert.",
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "areasOverviewMissingLater": "Nicht auf dem Gerät — kommt mit dem nächsten Bereich dort, sobald Empfang da ist.",
+  "@areasOverviewMissingLater": {
+    "description": "Zeile der Übersicht: fehlt, Host gerade nicht erreichbar."
+  },
+  "areasOverviewFetch": "Übersicht laden",
+  "@areasOverviewFetch": {
+    "description": "Knopf an der Zeile der Übersicht."
+  },
+  "areasOverviewDelete": "Übersicht löschen",
+  "@areasOverviewDelete": {
+    "description": "Knopf an der Zeile der Übersicht."
+  },
+  "areaRailSnapshot": "Ausschnitt dazunehmen",
+  "@areaRailSnapshot": {
+    "description": "Leiste Offline-Karten: Knopf."
+  },
+  "areaRailAdd": "Fläche dazunehmen",
+  "@areaRailAdd": {
+    "description": "Leiste Offline-Karten: Werkzeug zum Zeichnen."
+  },
+  "areaRailRemove": "Fläche wegnehmen",
+  "@areaRailRemove": {
+    "description": "Leiste Offline-Karten: Radierer."
+  },
+  "areaRailTrails": "Entlang meiner Trails dazunehmen",
+  "@areaRailTrails": {
+    "description": "Leiste Offline-Karten: Knopf."
+  },
+  "areaRailManage": "Meine Bereiche verwalten",
+  "@areaRailManage": {
+    "description": "Leiste Offline-Karten: Knopf."
+  },
+  "areaRailSaveTooLarge": "+{adds} Kacheln — zu viel auf einmal, erlaubt sind {max}",
+  "@areaRailSaveTooLarge": {
+    "description": "Leiste Offline-Karten: Speichern gesperrt, zu viele Kacheln.",
+    "placeholders": {
+      "adds": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "areaRailSaveEmpty": "Speichern — noch keine Änderung",
+  "@areaRailSaveEmpty": {
+    "description": "Leiste Offline-Karten: Speichern ohne Entwurf."
+  },
+  "areaRailSave": "Speichern (+{adds} / −{removes} Kacheln)",
+  "@areaRailSave": {
+    "description": "Leiste Offline-Karten: Speichern mit Entwurf.",
+    "placeholders": {
+      "adds": {
+        "type": "int"
+      },
+      "removes": {
+        "type": "int"
+      }
+    }
+  },
+  "areaDiscardTitle": "Entwurf verwerfen?",
+  "@areaDiscardTitle": {
+    "description": "Dialog beim Schließen der Leiste mit offenem Entwurf."
+  },
+  "areaDiscardText": "Die gewählten Kacheln sind noch nicht gespeichert.",
+  "@areaDiscardText": {
+    "description": "Dialog beim Schließen der Leiste mit offenem Entwurf."
+  },
+  "areaDiscardKeep": "Weiter bearbeiten",
+  "@areaDiscardKeep": {
+    "description": "Dialog „Entwurf verwerfen?“: Knopf."
+  },
+  "areaDiscardConfirm": "Verwerfen",
+  "@areaDiscardConfirm": {
+    "description": "Dialog „Entwurf verwerfen?“: Knopf."
+  },
+  "areaSaveTitle": "Änderungen speichern?",
+  "@areaSaveTitle": {
+    "description": "Speichern-Dialog der Offline-Karten: Überschrift."
+  },
+  "areaSaveDefaultName": "Bereich vom {date}",
+  "@areaSaveDefaultName": {
+    "description": "Vorschlag für den Namen eines neuen Bereichs; date nach areaSaveDatePattern.",
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "areaSaveDatePattern": "d. MMMM",
+  "@areaSaveDatePattern": {
+    "description": "Datumsmuster (intl DateFormat) für areaSaveDefaultName."
+  },
+  "areaSaveFallbackName": "Bereich",
+  "@areaSaveFallbackName": {
+    "description": "Name eines neuen Bereichs, wenn das Feld leer ist."
+  },
+  "areaSaveNameLabel": "Name des neuen Bereichs",
+  "@areaSaveNameLabel": {
+    "description": "Speichern-Dialog: Feld."
+  },
+  "areaSaveTooLarge": "Zu viel auf einmal: {tiles} Kacheln, erlaubt sind {max}.",
+  "@areaSaveTooLarge": {
+    "description": "Speichern-Dialog: Entwurf zu groß.",
+    "placeholders": {
+      "tiles": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "areaSaveOffline": "Ohne Empfang lässt sich nichts dazuladen — der Kartenhost ist nicht erreichbar. Entfernen geht auch offline: dazu nur wegnehmen, nichts dazunehmen.",
+  "@areaSaveOffline": {
+    "description": "Speichern-Dialog: Messen ohne Netz."
+  },
+  "areaSaveMeasureFailed": "Die Größe ließ sich nicht messen.",
+  "@areaSaveMeasureFailed": {
+    "description": "Speichern-Dialog: Messen gescheitert."
+  },
+  "areaSaveTrimFailed": "Das Entfernen ließ sich nicht speichern.",
+  "@areaSaveTrimFailed": {
+    "description": "Speichern-Dialog: Entfernen gescheitert."
+  },
+  "areaSaveTrimmedNotLoaded": "Entfernt ist gespeichert, das Laden nicht.",
+  "@areaSaveTrimmedNotLoaded": {
+    "description": "Leiste: Entfernen gespeichert, Download gescheitert."
+  },
+  "areaSaveTrimming": "Kacheln werden entfernt …",
+  "@areaSaveTrimming": {
+    "description": "Speichern-Dialog: Entfernen läuft."
+  },
+  "areaSaveMeasuring": "Größe, Orte, Höhen und Wege werden gemessen …",
+  "@areaSaveMeasuring": {
+    "description": "Speichern-Dialog: Messen läuft."
+  },
+  "areaSaveOutsideRegions": "Dazu: hier liegt keine Karte — außerhalb der Regionen des Kartenhosts.",
+  "@areaSaveOutsideRegions": {
+    "description": "Speichern-Dialog: der hinzugefügte Teil liegt außerhalb aller Regionen."
+  },
+  "areaSaveNothingToFetch": "{tiles, plural, =1{Liegt schon auf dem Gerät · 1 Kachel — nichts zu laden} other{Liegt schon auf dem Gerät · {tiles} Kacheln — nichts zu laden}}",
+  "@areaSaveNothingToFetch": {
+    "description": "Speichern-Dialog: alles liegt schon.",
+    "placeholders": {
+      "tiles": {
+        "type": "int"
+      }
+    }
+  },
+  "areaSaveNoPlaces": "ohne Orte",
+  "@areaSaveNoPlaces": {
+    "description": "Speichern-Dialog: Teil der Größenzeile."
+  },
+  "areaSavePlaces": "{count, plural, =1{1 Ort} other{{count} Orte}}",
+  "@areaSavePlaces": {
+    "description": "Speichern-Dialog: Teil der Größenzeile.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "areaSaveHeights": "Höhen",
+  "@areaSaveHeights": {
+    "description": "Speichern-Dialog: Teil der Größenzeile."
+  },
+  "areaSaveNoHeights": "ohne Höhen",
+  "@areaSaveNoHeights": {
+    "description": "Speichern-Dialog: Teil der Größenzeile."
+  },
+  "areaSaveWays": "Wege",
+  "@areaSaveWays": {
+    "description": "Speichern-Dialog: Teil der Größenzeile."
+  },
+  "areaSaveOverview": "Übersicht {size}",
+  "@areaSaveOverview": {
+    "description": "Speichern-Dialog: Teil der Größenzeile, Übersicht der Region; size formatiert.",
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "areaSaveFrees": "{tiles, plural, =1{Gibt {size} frei · 1 Kachel} other{Gibt {size} frei · {tiles} Kacheln}}",
+  "@areaSaveFrees": {
+    "description": "Speichern-Dialog: was das Entfernen frei gibt; size formatiert.",
+    "placeholders": {
+      "size": {
+        "type": "String"
+      },
+      "tiles": {
+        "type": "int"
+      }
+    }
+  },
+  "areaSaveWholeAreas": "{count, plural, =1{1 Bereich ganz} other{{count} Bereiche ganz}}",
+  "@areaSaveWholeAreas": {
+    "description": "Speichern-Dialog: so viele Bereiche fallen ganz weg.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "areaProgressConnecting": "Verbindung zum Kartenhost …",
+  "@areaProgressConnecting": {
+    "description": "Fortschritt des Downloads: Anfang."
+  },
+  "areaProgressTiles": "Kacheln {done} von {total}",
+  "@areaProgressTiles": {
+    "description": "Fortschritt des Downloads.",
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "areaProgressPlaces": "Orte {done} von {total}",
+  "@areaProgressPlaces": {
+    "description": "Fortschritt des Downloads.",
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "areaProgressHeights": "Höhen {done} von {total}",
+  "@areaProgressHeights": {
+    "description": "Fortschritt des Downloads.",
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "areaProgressWays": "Wege {done} von {total}",
+  "@areaProgressWays": {
+    "description": "Fortschritt des Downloads.",
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "areaProgressOverview": "Übersicht {done} von {total}",
+  "@areaProgressOverview": {
+    "description": "Fortschritt des Downloads; done/total sind formatierte Größen.",
+    "placeholders": {
+      "done": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "areaProgressWriting": "Wird abgelegt …",
+  "@areaProgressWriting": {
+    "description": "Fortschritt des Downloads: Schreiben."
+  },
+  "areaDrawHintAdd": "Mit dem Finger umfahren, was dazukommen soll",
+  "@areaDrawHintAdd": {
+    "description": "Hinweis über der Karte beim Zeichnen einer Fläche."
+  },
+  "areaDrawHintRemove": "Mit dem Finger umfahren oder überwischen, was weg soll",
+  "@areaDrawHintRemove": {
+    "description": "Hinweis über der Karte beim Radierer."
+  },
+  "areaOutsideRegions": "Hier gibt es keine Karte zum Speichern — Karten gibt es für {regions}.",
+  "@areaOutsideRegions": {
+    "description": "Satz, wenn eine Form außerhalb aller Regionen liegt; regions ist eine Liste von Namen.",
+    "placeholders": {
+      "regions": {
+        "type": "String"
+      }
+    }
+  },
+  "areaNoticeMeasuringTitle": "Region wird gemessen",
+  "@areaNoticeMeasuringTitle": {
+    "description": "Benachrichtigung beim Messen einer ganzen Region: Titel."
+  },
+  "areaNoticeMeasuringText": "Größe wird gemessen",
+  "@areaNoticeMeasuringText": {
+    "description": "Benachrichtigung beim Messen einer ganzen Region: Text."
+  },
+  "areaNoticeSavingTitle": "Bereich wird gespeichert",
+  "@areaNoticeSavingTitle": {
+    "description": "Benachrichtigung beim Download eines Bereichs: Titel."
+  },
+  "areaNoticeOverviewTitle": "Übersicht wird gespeichert",
+  "@areaNoticeOverviewTitle": {
+    "description": "Benachrichtigung beim Laden einer Übersicht: Titel."
+  },
+  "areaNoticeRefreshTitle": "Karte wird aktualisiert",
+  "@areaNoticeRefreshTitle": {
+    "description": "Benachrichtigung beim Aktualisieren einer Region: Titel."
+  },
+  "areaNoticePercent": "{name} — {percent} %",
+  "@areaNoticePercent": {
+    "description": "Benachrichtigung: Fortschritt in Prozent.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "areaNoticeWaiting": "{name} — wartet auf Empfang",
+  "@areaNoticeWaiting": {
+    "description": "Benachrichtigung: Download wartet auf das Netz.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "areaNoticePlaces": "{name} — Orte",
+  "@areaNoticePlaces": {
+    "description": "Benachrichtigung: Phase des Downloads.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "areaNoticeHeights": "{name} — Höhen",
+  "@areaNoticeHeights": {
+    "description": "Benachrichtigung: Phase des Downloads.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "areaNoticeWays": "{name} — Wege",
+  "@areaNoticeWays": {
+    "description": "Benachrichtigung: Phase des Downloads.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "areaNoticeOverview": "{name} — Übersicht",
+  "@areaNoticeOverview": {
+    "description": "Benachrichtigung: Phase des Downloads.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "areaNoticeWriting": "{name} — wird geschrieben",
+  "@areaNoticeWriting": {
+    "description": "Benachrichtigung: Phase des Downloads.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "areaErrorNoHost": "Kein Kartenhost erreichbar",
+  "@areaErrorNoHost": {
+    "description": "Fehler des Downloads: kein Manifest."
+  },
+  "areaErrorAreaOffline": "Die Verbindung ist abgerissen. Was schon geladen ist, bleibt — „Fortsetzen\" in „Meine Bereiche\" holt den Rest, sobald Empfang da ist.",
+  "@areaErrorAreaOffline": {
+    "description": "Fehler beim Speichern eines Bereichs ohne Netz."
+  },
+  "areaErrorAreaFailed": "Der Bereich ließ sich nicht ganz speichern. Was schon geladen ist, bleibt.",
+  "@areaErrorAreaFailed": {
+    "description": "Fehler beim Speichern eines Bereichs."
+  },
+  "areaErrorOverviewOffline": "Die Verbindung ist abgerissen. Nichts gespeichert — noch einmal versuchen, sobald Empfang da ist.",
+  "@areaErrorOverviewOffline": {
+    "description": "Fehler beim Laden einer Übersicht ohne Netz."
+  },
+  "areaErrorOverviewFailed": "Die Übersicht ließ sich nicht speichern.",
+  "@areaErrorOverviewFailed": {
+    "description": "Fehler beim Laden einer Übersicht."
+  },
+  "areaErrorRefreshOffline": "Die Verbindung ist abgerissen. Was schon neu geladen ist, bleibt — „Aktualisieren\" holt den Rest, sobald Empfang da ist.",
+  "@areaErrorRefreshOffline": {
+    "description": "Fehler beim Aktualisieren einer Region ohne Netz."
+  },
+  "areaErrorRefreshFailed": "Die Karte ließ sich nicht ganz aktualisieren. Was schon neu geladen ist, bleibt.",
+  "@areaErrorRefreshFailed": {
+    "description": "Fehler beim Aktualisieren einer Region."
   }
 }

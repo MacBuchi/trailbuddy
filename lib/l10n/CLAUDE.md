@@ -87,12 +87,22 @@ entsteht zuerst dort) und `app_en.arb`; gelesen mit `context.l10n.<key>`
   Blatt und Seite (`discover*`, `highlightSheet*`), die Gruppen über
   `HighlightTab.label(l)` aus `tab*`. `tool/highlights_preview.py` liest
   die Titel seither aus der `app_de.arb` des beförderten Tags (`--arb`).
-  Keiner Stufe zugeordnet:
-  Anmelden und Registrieren (`lib/features/auth/`). Namen von Runde und Weg (`loopName`, `routeName*`) gehen
+  (g1) Offline-Karten 0.117.7 — alles unter
+  `lib/features/offline_areas/` („Meine Bereiche“ mit Region, Übersicht
+  und „ganze Region“, die Leiste, „Entwurf verwerfen?“, der
+  Speichern-Dialog samt Fortschritt, der Hinweis beim Zeichnen;
+  Schlüssel `areas*`, `areaRail*`, `areaDiscard*`, `areaSave*`,
+  `areaProgress*`, `areaDrawHint*`). Der Download-Notifier hat keinen
+  `BuildContext`: Benachrichtigung (`areaNotice*`), Fehler im Zustand
+  (`areaError*`) und die Namen „Übersicht …“/„Karte …“ kommen aus
+  `serviceL10n()`, wie bei der Aufnahme. `OutsideRegions.message(l)`
+  nimmt `l`; ihr `toString` ist kein Satz mehr. Der Namensvorschlag
+  „Bereich vom …“ nimmt sein Datumsmuster aus `areaSaveDatePattern`.
+  Noch keiner Stufe zugeordnet (g2): Anmelden und Registrieren
+  (`lib/features/auth/`) und `lib/features/official/` (das Blatt eines
+  offiziellen Trails). Namen von Runde und Weg (`loopName`, `routeName*`) gehen
   in die gespeicherte Fahrt und die GPX-Datei — sie bleiben in der
-  Sprache, in der geplant wurde. Noch keiner Stufe zugeordnet:
-  `lib/features/offline_areas/` und `lib/features/official/` (das Blatt
-  eines offiziellen Trails).
+  Sprache, in der geplant wurde.
 - **Texte des Dienstes** (Benachrichtigung der Aufnahme, Fragen
   unterwegs, später die der Navigation) entstehen im Service-Isolate,
   ohne `BuildContext` und ohne Riverpod. Sie holen ihre Texte über

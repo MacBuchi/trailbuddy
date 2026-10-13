@@ -13,6 +13,7 @@ import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart' show LatLng;
 
 import '../../core/app_colors.dart';
+import '../../l10n/l10n.dart';
 import '../map/map_view/map_hit_test.dart';
 import '../map/map_view/map_view.dart';
 import 'area_draw.dart';
@@ -110,9 +111,7 @@ class _AreaDrawOverlayState extends State<AreaDrawOverlay> {
                 ),
                 child: Text(
                   widget.hint ??
-                      (add
-                          ? 'Mit dem Finger umfahren, was dazukommen soll'
-                          : 'Mit dem Finger umfahren oder überwischen, was weg soll'),
+                      (add ? context.l10n.areaDrawHintAdd : context.l10n.areaDrawHintRemove),
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
               ),

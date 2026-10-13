@@ -429,7 +429,7 @@ void main() {
     await settle(tester, frames: 20);
     final free = (tester.widget(find.byKey(const ValueKey('area-free'))) as Text).data!;
     expect(free, matches(RegExp(r'^Gibt \d+ Byte|^Gibt \d+ kB|^Gibt [\d,]+ MB')));
-    expect(free, contains('1 Bereich(e) ganz'));
+    expect(free, contains('1 Bereich ganz'));
     expect(find.byKey(const ValueKey('area-name')), findsNothing, reason: 'kein neuer Bereich, kein Name');
     await tester.tap(find.byKey(const ValueKey('area-save')));
     await settle(tester, frames: 20);
