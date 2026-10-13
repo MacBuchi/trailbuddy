@@ -4843,5 +4843,698 @@
   "messagesSend": "Senden",
   "@messagesSend": {
     "description": "Tooltip des Sendeknopfs."
+  },
+  "tabMap": "Karte",
+  "@tabMap": {
+    "description": "Reiterleiste unten: Reiter Karte."
+  },
+  "tabTrails": "Trails",
+  "@tabTrails": {
+    "description": "Reiterleiste unten: Reiter Trail-Liste."
+  },
+  "tabBuddys": "Buddys",
+  "@tabBuddys": {
+    "description": "Reiterleiste unten: Reiter Buddys."
+  },
+  "tabProfile": "Profil",
+  "@tabProfile": {
+    "description": "Reiterleiste unten: Reiter Profil."
+  },
+  "profileSignOut": "Abmelden",
+  "@profileSignOut": {
+    "description": "Profil: Tooltip des Abmelde-Knopfs oben rechts; auch Knopf im Dialog „Andere Geräte abmelden“."
+  },
+  "profileImportTitle": "Trails importieren",
+  "@profileImportTitle": {
+    "description": "Profil, Zeile: Titel des GPX-Imports."
+  },
+  "profileImportValue": "GPX aus anderen Apps in dein Netz holen",
+  "@profileImportValue": {
+    "description": "Profil, Zeile „Trails importieren“: Untertitel."
+  },
+  "profileRidesTitle": "Meine Fahrten",
+  "@profileRidesTitle": {
+    "description": "Profil, Zeile: eigene aufgezeichnete Fahrten."
+  },
+  "profileRidesValue": "Liegen nur auf diesem Gerät",
+  "@profileRidesValue": {
+    "description": "Profil, Zeile „Meine Fahrten“: Untertitel. Fahrten verlassen das Gerät nie."
+  },
+  "profileStillValidTitle": "Noch gültig?",
+  "@profileStillValidTitle": {
+    "description": "Profil, Zeile: eigene Angaben älter als 30 Tage prüfen."
+  },
+  "profileStillValidValue": "{count, plural, =1{1 Angabe zu prüfen} other{{count} Angaben zu prüfen}}",
+  "@profileStillValidValue": {
+    "description": "Profil, Zeile „Noch gültig?“: wie viele eigene Angaben zu prüfen sind.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "profileMergeTitle": "Sind das dieselben?",
+  "@profileMergeTitle": {
+    "description": "Profil, Zeile: Vorschläge, zwei Trails zusammenzuführen."
+  },
+  "profileMergeValue": "{count, plural, =1{1 Paar zu prüfen} other{{count} Paare zu prüfen}}",
+  "@profileMergeValue": {
+    "description": "Profil, Zeile „Sind das dieselben?“: wie viele Trail-Paare zu prüfen sind.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "profileAreasTitle": "Meine Bereiche",
+  "@profileAreasTitle": {
+    "description": "Profil, Zeile: gespeicherte Offline-Kartenbereiche."
+  },
+  "profileAreasValue": "Karten für unterwegs",
+  "@profileAreasValue": {
+    "description": "Profil, Zeile „Meine Bereiche“: Untertitel ohne gespeicherte Bereiche."
+  },
+  "profileAreasValueCount": "{count, plural, =1{Karten für unterwegs · 1 gespeichert} other{Karten für unterwegs · {count} gespeichert}}",
+  "@profileAreasValueCount": {
+    "description": "Profil, Zeile „Meine Bereiche“: Untertitel mit Zahl der gespeicherten Bereiche.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "profileNotificationsTitle": "Benachrichtigungen",
+  "@profileNotificationsTitle": {
+    "description": "Profil, Zeile und Seitentitel; auch der Schalter auf der Seite."
+  },
+  "profileOn": "Ein",
+  "@profileOn": {
+    "description": "Profil, Zeile „Benachrichtigungen“: eingeschaltet."
+  },
+  "profileOff": "Aus",
+  "@profileOff": {
+    "description": "Profil, Zeile „Benachrichtigungen“: ausgeschaltet."
+  },
+  "profileRiderTitle": "Fahrerprofil",
+  "@profileRiderTitle": {
+    "description": "Profil, Zeile und Seitentitel: Bio-Bike oder E-Bike für die Routenplanung."
+  },
+  "profileAppearanceTitle": "Erscheinungsbild",
+  "@profileAppearanceTitle": {
+    "description": "Profil, Zeile und Seitentitel: hell, dunkel oder wie das System."
+  },
+  "profileAppearanceSystem": "System",
+  "@profileAppearanceSystem": {
+    "description": "Seite „Erscheinungsbild“: Wahl „wie das System“."
+  },
+  "profileAppearanceLight": "Hell",
+  "@profileAppearanceLight": {
+    "description": "Erscheinungsbild hell (Zeile im Profil und Wahl auf der Seite)."
+  },
+  "profileAppearanceDark": "Dunkel",
+  "@profileAppearanceDark": {
+    "description": "Erscheinungsbild dunkel (Zeile im Profil und Wahl auf der Seite)."
+  },
+  "profileAppearanceSystemLight": "Hell · folgt dem System",
+  "@profileAppearanceSystemLight": {
+    "description": "Profil, Zeile „Erscheinungsbild“: folgt dem System, das gerade hell ist."
+  },
+  "profileAppearanceSystemDark": "Dunkel · folgt dem System",
+  "@profileAppearanceSystemDark": {
+    "description": "Profil, Zeile „Erscheinungsbild“: folgt dem System, das gerade dunkel ist."
+  },
+  "profileAppearanceDeviceOnly": "Gilt nur für dieses Gerät. Die Karte selbst bleibt hell.",
+  "@profileAppearanceDeviceOnly": {
+    "description": "Seite „Erscheinungsbild“: Hinweis unter der Wahl."
+  },
+  "profileAccountTitle": "Konto",
+  "@profileAccountTitle": {
+    "description": "Profil, Zeile und Seitentitel: Kontoverwaltung."
+  },
+  "profileAccountValue": "Name, E-Mail, Passwort, Geräte",
+  "@profileAccountValue": {
+    "description": "Profil, Zeile „Konto“: Untertitel."
+  },
+  "profileDiscoverTitle": "Entdecken",
+  "@profileDiscoverTitle": {
+    "description": "Profil, Zeile: alles, was die App kann, mit Neu-Punkt."
+  },
+  "profileDiscoverValue": "Was TrailBuddy kann",
+  "@profileDiscoverValue": {
+    "description": "Profil, Zeile „Entdecken“: Untertitel."
+  },
+  "profileHelpTitle": "Kurzanleitung",
+  "@profileHelpTitle": {
+    "description": "Profil, Zeile: die Kurzanleitung."
+  },
+  "profileHelpValue": "Das Wichtigste in sechs Schritten",
+  "@profileHelpValue": {
+    "description": "Profil, Zeile „Kurzanleitung“: Untertitel."
+  },
+  "profileAboutTitle": "Über TrailBuddy",
+  "@profileAboutTitle": {
+    "description": "Profil, Zeile und Seitentitel: Version, Links, Rechtliches."
+  },
+  "profileAboutValue": "Neuigkeiten, Datenschutz, Impressum, Lizenzen",
+  "@profileAboutValue": {
+    "description": "Profil, Zeile „Über TrailBuddy“: Untertitel."
+  },
+  "profileFooterMapData": "Kartendaten © OpenStreetMap · Protomaps",
+  "@profileFooterMapData": {
+    "description": "Profil, Fußzeile hinter der Version: Herkunft der Kartendaten."
+  },
+  "profileStatTrails": "{count, plural, =1{1 Trail} other{{count} Trails}}",
+  "@profileStatTrails": {
+    "description": "Profilkopf: Zahl der eigenen Trails.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "profileStatBuddys": "{count, plural, =1{1 Buddy} other{{count} Buddys}}",
+  "@profileStatBuddys": {
+    "description": "Profilkopf: Zahl der Buddys.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "profileStatRides": "{count, plural, =1{1 Fahrt} other{{count} Fahrten}}",
+  "@profileStatRides": {
+    "description": "Profilkopf: Zahl der Fahrten auf dem Gerät.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "accountCurrentPassword": "Aktuelles Passwort",
+  "@accountCurrentPassword": {
+    "description": "Konto: Feld für das aktuelle Passwort (Passwort ändern, E-Mail ändern)."
+  },
+  "accountPasswordTitle": "Passwort ändern",
+  "@accountPasswordTitle": {
+    "description": "Konto: Zeile und Dialogtitel."
+  },
+  "accountPasswordSubtitle": "Braucht dein aktuelles Passwort — so ist ein fremdes Gerät allein nicht genug",
+  "@accountPasswordSubtitle": {
+    "description": "Konto, Zeile „Passwort ändern“: Untertitel."
+  },
+  "accountPasswordNew": "Neues Passwort (mind. {min} Zeichen)",
+  "@accountPasswordNew": {
+    "description": "Dialog „Passwort ändern“: Feld für das neue Passwort.",
+    "placeholders": {
+      "min": {
+        "type": "int"
+      }
+    }
+  },
+  "accountPasswordRepeat": "Neues Passwort wiederholen",
+  "@accountPasswordRepeat": {
+    "description": "Dialog „Passwort ändern“: Feld zum Wiederholen."
+  },
+  "accountPasswordChanged": "Dein Passwort ist geändert.",
+  "@accountPasswordChanged": {
+    "description": "Leiste nach erfolgreichem Passwortwechsel."
+  },
+  "accountDeleteTitle": "Konto löschen",
+  "@accountDeleteTitle": {
+    "description": "Konto: Zeile ganz unten, rot."
+  },
+  "accountDeleteSubtitle": "Entfernt dich und alle deine Trails endgültig — ohne Karenzzeit.",
+  "@accountDeleteSubtitle": {
+    "description": "Konto, Zeile „Konto löschen“: Untertitel."
+  },
+  "accountDeleteDialogTitle": "Konto endgültig löschen?",
+  "@accountDeleteDialogTitle": {
+    "description": "Dialog zum Löschen des Kontos: Titel."
+  },
+  "accountDeleteWhat": "Sofort und unwiderruflich gelöscht werden: dein Profil, alle deine Trails und deine Buddy-Verbindungen.",
+  "@accountDeleteWhat": {
+    "description": "Dialog zum Löschen des Kontos: was gelöscht wird."
+  },
+  "accountDeleteBuddys": "Deine Trails verschwinden damit auch aus dem Netz deiner Buddys — geteilte Trails sind Kopien deiner Daten, keine eigenen.",
+  "@accountDeleteBuddys": {
+    "description": "Dialog zum Löschen des Kontos: Folge für die Buddys."
+  },
+  "accountDeleteFeedback": "Bereits abgeschicktes Feedback bleibt bestehen: es steht mit deinem Benutzernamen öffentlich im GitHub-Projekt und lässt sich von hier aus nicht zurückholen.",
+  "@accountDeleteFeedback": {
+    "description": "Dialog zum Löschen des Kontos: Feedback bleibt öffentlich auf GitHub."
+  },
+  "accountDeleteTypeName": "Tippe „{name}“ ein, um zu bestätigen:",
+  "@accountDeleteTypeName": {
+    "description": "Dialog zum Löschen des Kontos: Aufforderung, den eigenen Benutzernamen abzutippen.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "accountUsernameLabel": "Benutzername",
+  "@accountUsernameLabel": {
+    "description": "Dialog zum Löschen des Kontos: Feld für den Benutzernamen."
+  },
+  "accountDeleteConfirm": "Endgültig löschen",
+  "@accountDeleteConfirm": {
+    "description": "Dialog zum Löschen des Kontos: roter Knopf."
+  },
+  "accountUsernameTitle": "Benutzername ändern",
+  "@accountUsernameTitle": {
+    "description": "Konto: Zeile und Dialogtitel."
+  },
+  "accountUsernameEmpty": "Der Name, unter dem Buddys dich finden",
+  "@accountUsernameEmpty": {
+    "description": "Konto, Zeile „Benutzername ändern“: Untertitel, solange das Profil nicht geladen ist."
+  },
+  "accountUsernameNew": "Neuer Benutzername",
+  "@accountUsernameNew": {
+    "description": "Dialog „Benutzername ändern“: Feld."
+  },
+  "accountUsernameMin": "Mindestens {min} Zeichen",
+  "@accountUsernameMin": {
+    "description": "Dialog „Benutzername ändern“: Hilfe unter dem Feld.",
+    "placeholders": {
+      "min": {
+        "type": "int"
+      }
+    }
+  },
+  "accountUsernameSearchHint": "Buddys finden dich künftig unter dem neuen Namen.",
+  "@accountUsernameSearchHint": {
+    "description": "Dialog „Benutzername ändern“: Hinweis zur Buddy-Suche."
+  },
+  "accountUsernameChanged": "Dein Benutzername ist geändert.",
+  "@accountUsernameChanged": {
+    "description": "Leiste nach erfolgreichem Namenswechsel."
+  },
+  "accountEmailTitle": "E-Mail-Adresse ändern",
+  "@accountEmailTitle": {
+    "description": "Konto: Zeile und Dialogtitel."
+  },
+  "accountEmailEmpty": "Die Adresse deines Kontos",
+  "@accountEmailEmpty": {
+    "description": "Konto, Zeile „E-Mail-Adresse ändern“: Untertitel, solange keine Adresse bekannt ist."
+  },
+  "accountEmailCurrent": "Bisher: {email}",
+  "@accountEmailCurrent": {
+    "description": "Dialog „E-Mail-Adresse ändern“: die bisherige Adresse.",
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "accountEmailNew": "Neue E-Mail-Adresse",
+  "@accountEmailNew": {
+    "description": "Dialog „E-Mail-Adresse ändern“: Feld."
+  },
+  "accountEmailSearchHint": "Buddys finden dich danach über die neue Adresse — die alte kennt die Suche nicht mehr.",
+  "@accountEmailSearchHint": {
+    "description": "Dialog „E-Mail-Adresse ändern“: Hinweis zur Buddy-Suche, vor dem Wechsel."
+  },
+  "accountEmailCodesSent": "Zwei Mails sind unterwegs — eine an deine bisherige, eine an deine neue Adresse. Beide Codes gehören hierher.",
+  "@accountEmailCodesSent": {
+    "description": "Dialog „E-Mail-Adresse ändern“, zweite Phase: Hinweis oben."
+  },
+  "accountEmailOldCode": "Code an die bisherige Adresse",
+  "@accountEmailOldCode": {
+    "description": "Dialog „E-Mail-Adresse ändern“: Feld für den sechsstelligen Code."
+  },
+  "accountEmailNewCode": "Code an die neue Adresse",
+  "@accountEmailNewCode": {
+    "description": "Dialog „E-Mail-Adresse ändern“: Feld für den sechsstelligen Code."
+  },
+  "accountEmailResend": "Codes erneut senden",
+  "@accountEmailResend": {
+    "description": "Dialog „E-Mail-Adresse ändern“: Knopf zum erneuten Senden."
+  },
+  "accountEmailChanged": "Deine E-Mail-Adresse ist geändert.",
+  "@accountEmailChanged": {
+    "description": "Leiste nach erfolgreichem Adresswechsel."
+  },
+  "accountConfirm": "Bestätigen",
+  "@accountConfirm": {
+    "description": "Dialog „E-Mail-Adresse ändern“: Knopf in der zweiten Phase."
+  },
+  "accountNext": "Weiter",
+  "@accountNext": {
+    "description": "Dialog „E-Mail-Adresse ändern“: Knopf in der ersten Phase."
+  },
+  "accountSignOutOthersTitle": "Andere Geräte abmelden",
+  "@accountSignOutOthersTitle": {
+    "description": "Konto: Zeile und Dialogtitel."
+  },
+  "accountSignOutOthersSubtitle": "Beendet deine Anmeldung überall außer hier",
+  "@accountSignOutOthersSubtitle": {
+    "description": "Konto, Zeile „Andere Geräte abmelden“: Untertitel."
+  },
+  "accountSignOutOthersBody": "Auf allen anderen Geräten wird die Anmeldung beendet — dort ist danach eine neue Anmeldung nötig. Dieses Gerät bleibt angemeldet.",
+  "@accountSignOutOthersBody": {
+    "description": "Dialog „Andere Geräte abmelden“: Erklärung."
+  },
+  "accountSignOutOthersDone": "Alle anderen Geräte wurden abgemeldet.",
+  "@accountSignOutOthersDone": {
+    "description": "Leiste nach dem Abmelden der anderen Geräte."
+  },
+  "riderProfileIntro": "Das Profil ändert drei Dinge für die Routenplanung: wie schnell es bergauf geht, wie teuer ein Wanderweg bergauf ist und die Vorgabe für die Höhenmeter einer Runde. Bergab bleibt ein S2 ein S2.",
+  "@riderProfileIntro": {
+    "description": "Seite „Fahrerprofil“: Erklärung unter der Wahl Bio-Bike/E-Bike. S2 ist ein Grad der Singletrail-Skala."
+  },
+  "riderProfileClimbLine": "Steigrate Forstweg: {track} hm/h{trackLearned} · Pfad: {path} hm/h{pathLearned} · Schieben: {push} hm/h{pushLearned}",
+  "@riderProfileClimbLine": {
+    "description": "Seite „Fahrerprofil“: Steigraten in Höhenmetern pro Stunde. Die *Learned-Platzhalter sind leer oder riderProfileLearnedMark.",
+    "placeholders": {
+      "track": {
+        "type": "String"
+      },
+      "trackLearned": {
+        "type": "String"
+      },
+      "path": {
+        "type": "String"
+      },
+      "pathLearned": {
+        "type": "String"
+      },
+      "push": {
+        "type": "String"
+      },
+      "pushLearned": {
+        "type": "String"
+      }
+    }
+  },
+  "riderProfileFlatLine": "Flach: {flat} km/h{flatLearned} · Wanderweg bergauf: ×{factor} · Vorgabe: {budget} hm",
+  "@riderProfileFlatLine": {
+    "description": "Seite „Fahrerprofil“: Tempo im Flachen, Aufschlag für Wanderwege bergauf und die Höhenmeter-Vorgabe einer Runde.",
+    "placeholders": {
+      "flat": {
+        "type": "String"
+      },
+      "flatLearned": {
+        "type": "String"
+      },
+      "factor": {
+        "type": "String"
+      },
+      "budget": {
+        "type": "String"
+      }
+    }
+  },
+  "riderProfileLearnedMark": " (gelernt)",
+  "@riderProfileLearnedMark": {
+    "description": "Seite „Fahrerprofil“: Zusatz hinter einem Wert, der aus eigenen Fahrten gelernt ist. Beginnt mit einem Leerzeichen."
+  },
+  "riderProfileDeviceOnly": "Gilt nur für dieses Gerät. Viele fahren beides — umschalten geht jederzeit, auch im Planer. Jede Fahrt merkt sich das Profil beim Start.",
+  "@riderProfileDeviceOnly": {
+    "description": "Seite „Fahrerprofil“: Hinweis unter den Zahlen."
+  },
+  "riderProfileLearnedTitle": "Aus deinen Fahrten gelernt",
+  "@riderProfileLearnedTitle": {
+    "description": "Seite „Fahrerprofil“: Abschnittstitel der Kalibrierung."
+  },
+  "riderProfileLearn": "Aus meinen Fahrten lernen",
+  "@riderProfileLearn": {
+    "description": "Seite „Fahrerprofil“: Knopf, der die Kalibrierung startet."
+  },
+  "riderProfileReset": "{profile} zurücksetzen",
+  "@riderProfileReset": {
+    "description": "Seite „Fahrerprofil“: Knopf, der das Gelernte eines Profils verwirft. {profile} ist Bio-Bike oder E-Bike.",
+    "placeholders": {
+      "profile": {
+        "type": "String"
+      }
+    }
+  },
+  "riderProfileLearnExplain": "Aus Zeit und Höhe deiner Fahrten (Aufzeichnungen und per GPX-Import übernommene): je Fahrt die Aufstiege ab 100 Höhenmetern am Stück, eingeordnet über die Wege deiner gespeicherten Bereiche, der Median je Wegklasse ab drei Aufstiegen. Nie aus Fahrten anderer; nichts verlässt das Gerät.",
+  "@riderProfileLearnExplain": {
+    "description": "Seite „Fahrerprofil“: wie gelernt wird."
+  },
+  "riderProfileCalibDefaults": "{profile}: Vorgaben — noch nichts gelernt.",
+  "@riderProfileCalibDefaults": {
+    "description": "Seite „Fahrerprofil“: Zeile je Profil ohne gelernte Werte.",
+    "placeholders": {
+      "profile": {
+        "type": "String"
+      }
+    }
+  },
+  "riderProfileCalibTrack": "Forstweg {value} hm/h",
+  "@riderProfileCalibTrack": {
+    "description": "Seite „Fahrerprofil“: gelernte Steigrate auf Forstwegen.",
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "riderProfileCalibPath": "Pfad {value} hm/h",
+  "@riderProfileCalibPath": {
+    "description": "Seite „Fahrerprofil“: gelernte Steigrate auf Pfaden.",
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "riderProfileCalibPush": "Schieben {value} hm/h",
+  "@riderProfileCalibPush": {
+    "description": "Seite „Fahrerprofil“: gelernte Schieberate.",
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "riderProfileCalibFlat": "flach {value} km/h",
+  "@riderProfileCalibFlat": {
+    "description": "Seite „Fahrerprofil“: gelerntes Tempo im Flachen.",
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "riderProfileCalibRides": "{count, plural, =1{1 Fahrt} other{{count} Fahrten}}",
+  "@riderProfileCalibRides": {
+    "description": "Seite „Fahrerprofil“: aus wie vielen Fahrten gelernt wurde.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "riderProfileCalibClimbs": "{count, plural, =1{1 Aufstieg} other{{count} Aufstiege}}",
+  "@riderProfileCalibClimbs": {
+    "description": "Seite „Fahrerprofil“: aus wie vielen Aufstiegen gelernt wurde.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "riderProfileCalibLine": "{profile}: {values} — aus {rides} ({climbs})",
+  "@riderProfileCalibLine": {
+    "description": "Seite „Fahrerprofil“: Zeile je Profil mit gelernten Werten. {values} ist eine Aufzählung wie „Forstweg 520 hm/h · flach 14 km/h“, {rides} und {climbs} kommen aus riderProfileCalibRides/-Climbs.",
+    "placeholders": {
+      "profile": {
+        "type": "String"
+      },
+      "values": {
+        "type": "String"
+      },
+      "rides": {
+        "type": "String"
+      },
+      "climbs": {
+        "type": "String"
+      }
+    }
+  },
+  "riderProfileCalibLineAsOf": "{profile}: {values} — aus {rides} ({climbs}), Stand {date}",
+  "@riderProfileCalibLineAsOf": {
+    "description": "Wie riderProfileCalibLine, mit dem Datum des letzten Lernens.",
+    "placeholders": {
+      "profile": {
+        "type": "String"
+      },
+      "values": {
+        "type": "String"
+      },
+      "rides": {
+        "type": "String"
+      },
+      "climbs": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "pushSubtitle": "Wenn ein Buddy zu einem Trail, den du siehst, etwas meldet (bestätigt, also vor Ort oder gefahren), einen Hinweis schreibt oder dir eine Nachricht schickt. Gilt nur für dieses Gerät. In der Benachrichtigung stehen der Trailname, der Name des Buddys und was er meldet (beim Hinweis und bei einer Nachricht der Text) — nie ein Ort. Sie läuft über Google.",
+  "@pushSubtitle": {
+    "description": "Seite „Benachrichtigungen“: Erklärung unter dem Schalter. Datenschutzrelevant: nie ein Ort, läuft über Google."
+  },
+  "pushTestTitle": "Testnachricht senden",
+  "@pushTestTitle": {
+    "description": "Seite „Benachrichtigungen“: Zeile, die eine Testnachricht an dieses Gerät schickt."
+  },
+  "pushTestSubtitle": "Kommt sie an, funktioniert die ganze Kette bis zu diesem Gerät.",
+  "@pushTestSubtitle": {
+    "description": "Seite „Benachrichtigungen“: Untertitel der Testnachricht."
+  },
+  "pushTestSent": "Testnachricht ist unterwegs.",
+  "@pushTestSent": {
+    "description": "Leiste nach dem Senden der Testnachricht."
+  },
+  "pushUnavailable": "Benachrichtigungen sind in diesem Build noch nicht eingerichtet.",
+  "@pushUnavailable": {
+    "description": "Leiste beim Einschalten: dem Build fehlt die Push-Konfiguration."
+  },
+  "pushDenied": "Benachrichtigungen sind nicht erlaubt. Das lässt sich in den Android-Einstellungen ändern.",
+  "@pushDenied": {
+    "description": "Leiste beim Einschalten: das System hat die Berechtigung verweigert."
+  },
+  "pushOffline": "Dafür braucht es kurz eine Verbindung — offline lässt sich das Gerät nicht eintragen.",
+  "@pushOffline": {
+    "description": "Leiste beim Einschalten ohne Netz."
+  },
+  "pushFailed": "Das hat nicht geklappt. Versuch es später noch einmal.",
+  "@pushFailed": {
+    "description": "Leiste beim Einschalten: anderer Fehler."
+  },
+  "pushNotRegistered": "Dieses Gerät ist nicht eingetragen.",
+  "@pushNotRegistered": {
+    "description": "Leiste bei der Testnachricht: das Gerät hat kein Push-Token."
+  },
+  "aboutWebAlwaysCurrent": "Die Web-App ist immer aktuell.",
+  "@aboutWebAlwaysCurrent": {
+    "description": "Seite „Über TrailBuddy“: Update-Stand im Browser."
+  },
+  "aboutPlayStore": "Updates kommen über den Play Store.",
+  "@aboutPlayStore": {
+    "description": "Seite „Über TrailBuddy“: Update-Stand im Play-Build."
+  },
+  "aboutNewestVersion": "Neueste Version: v{version} — zum Herunterladen auf der Projektseite.",
+  "@aboutNewestVersion": {
+    "description": "Seite „Über TrailBuddy“: es gibt eine neuere Version.",
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "aboutUpToDate": "Du bist auf dem aktuellen Stand.",
+  "@aboutUpToDate": {
+    "description": "Seite „Über TrailBuddy“: keine neuere Version."
+  },
+  "aboutVersionLine": "Version {version} — {status}",
+  "@aboutVersionLine": {
+    "description": "Seite „Über TrailBuddy“: erste Zeile mit Version und Update-Stand.",
+    "placeholders": {
+      "version": {
+        "type": "String"
+      },
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "aboutPrereleaseTitle": "Vorabversionen erhalten",
+  "@aboutPrereleaseTitle": {
+    "description": "Seite „Über TrailBuddy“: Schalter für den Vorab-Kanal (Android)."
+  },
+  "aboutPrereleaseSubtitle": "Bietet auch Zwischenstände an, die noch nicht freigegeben sind — ungetestet und häufig. Gilt nur für dieses Gerät.",
+  "@aboutPrereleaseSubtitle": {
+    "description": "Seite „Über TrailBuddy“: Untertitel des Vorab-Schalters."
+  },
+  "aboutPreviewTitle": "Entwicklungsversion öffnen",
+  "@aboutPreviewTitle": {
+    "description": "Seite „Über TrailBuddy“ (Web): Link zur Web-Vorschau."
+  },
+  "aboutPreviewSubtitle": "Der neueste Zwischenstand — ungetestet und oft halbfertig. Öffnet eine eigene Adresse; dort musst du dich neu anmelden.",
+  "@aboutPreviewSubtitle": {
+    "description": "Seite „Über TrailBuddy“ (Web): Untertitel des Vorschau-Links."
+  },
+  "aboutStableTitle": "Zur freigegebenen Version",
+  "@aboutStableTitle": {
+    "description": "Seite „Über TrailBuddy“ (Web-Vorschau): Link zurück zur freigegebenen Web-App."
+  },
+  "aboutStableSubtitle": "Du benutzt gerade einen Entwicklungsstand. Die echte App liegt unter ihrer gewohnten Adresse.",
+  "@aboutStableSubtitle": {
+    "description": "Seite „Über TrailBuddy“ (Web-Vorschau): Untertitel des Rückwegs."
+  },
+  "aboutFeedbackTitle": "Idee oder Fehler melden",
+  "@aboutFeedbackTitle": {
+    "description": "Seite „Über TrailBuddy“: öffnet das Feedback."
+  },
+  "aboutFeedbackSubtitle": "Wird ein öffentlicher Eintrag auf GitHub",
+  "@aboutFeedbackSubtitle": {
+    "description": "Seite „Über TrailBuddy“: Untertitel des Feedbacks."
+  },
+  "aboutChangelogTitle": "Was ist neu",
+  "@aboutChangelogTitle": {
+    "description": "Seite „Über TrailBuddy“: öffnet den Changelog."
+  },
+  "aboutChangelogSubtitle": "Was sich in welcher Version geändert hat",
+  "@aboutChangelogSubtitle": {
+    "description": "Seite „Über TrailBuddy“: Untertitel des Changelogs."
+  },
+  "aboutSafetySubtitle": "Was TrailBuddy dir nicht abnehmen kann",
+  "@aboutSafetySubtitle": {
+    "description": "Seite „Über TrailBuddy“: Untertitel des Sicherheitshinweises."
+  },
+  "aboutGithubTitle": "GitHub-Projekt & Dokumentation",
+  "@aboutGithubTitle": {
+    "description": "Seite „Über TrailBuddy“: Link zum Quellcode."
+  },
+  "aboutWebAppTitle": "Web-App",
+  "@aboutWebAppTitle": {
+    "description": "Seite „Über TrailBuddy“: Link zur Web-App."
+  },
+  "aboutPrivacyTitle": "Datenschutzerklärung",
+  "@aboutPrivacyTitle": {
+    "description": "Seite „Über TrailBuddy“: Link zur Datenschutzerklärung."
+  },
+  "aboutPrivacySubtitle": "Was gespeichert wird — und was öffentlich ist",
+  "@aboutPrivacySubtitle": {
+    "description": "Seite „Über TrailBuddy“: Untertitel der Datenschutzerklärung."
+  },
+  "aboutImpressumTitle": "Impressum",
+  "@aboutImpressumTitle": {
+    "description": "Seite „Über TrailBuddy“: Link zum Impressum."
+  },
+  "aboutImpressumSubtitle": "Wer TrailBuddy anbietet",
+  "@aboutImpressumSubtitle": {
+    "description": "Seite „Über TrailBuddy“: Untertitel des Impressums."
+  },
+  "aboutLicensesTitle": "Open-Source-Lizenzen",
+  "@aboutLicensesTitle": {
+    "description": "Seite „Über TrailBuddy“: öffnet die Lizenzseite."
+  },
+  "aboutLicensesSubtitle": "TrailBuddy steht unter der MIT-Lizenz",
+  "@aboutLicensesSubtitle": {
+    "description": "Seite „Über TrailBuddy“: Untertitel der Lizenzen."
+  },
+  "aboutLegalese": "© 2026 MacBuchi — MIT-Lizenz",
+  "@aboutLegalese": {
+    "description": "Lizenzseite: Zeile unter dem App-Namen. MacBuchi ist das Pseudonym, kein Klarname."
+  },
+  "aboutMapData": "Kartendaten: © OpenStreetMap-Mitwirkende · Protomaps (ODbL)",
+  "@aboutMapData": {
+    "description": "Seite „Über TrailBuddy“: Herkunft der Kartendaten."
+  },
+  "aboutHeightData": "Höhendaten gespeicherter Bereiche: {attribution}",
+  "@aboutHeightData": {
+    "description": "Seite „Über TrailBuddy“: Herkunft der Höhendaten; {attribution} ist der Quellennachweis.",
+    "placeholders": {
+      "attribution": {
+        "type": "String"
+      }
+    }
   }
 }

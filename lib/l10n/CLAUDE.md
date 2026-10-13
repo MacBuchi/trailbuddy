@@ -62,8 +62,19 @@ entsteht zuerst dort) und `app_en.arb`; gelesen mit `context.l10n.<key>`
   (`AppInfo.inviteText(l, …)`) und `ConnectSummary.sentence(l, …)`. Die
   Leiste nach einem abgelehnten Senden kommt aus `messagesRejected`; das
   `toString` von `MessageRejectedException` bleibt deutsch (Ausnahmetext).
-  Noch offen: (e2) Profil samt Kontodialogen, und der Reitername „Buddys"
-  in `router.dart` (Reiterleiste, keiner Stufe zugeordnet). Namen von Runde und Weg (`loopName`, `routeName*`) gehen
+  (e2) Profil 0.117.3 — alles unter `lib/features/profile/` (Liste und
+  Kopf, Konto mit Passwort, E-Mail, Name, andere Geräte und Löschen,
+  Benachrichtigungen, Erscheinungsbild, Fahrerprofil, „Über TrailBuddy“;
+  Schlüssel `profile*`, `account*`, `riderProfile*`, `push*`, `about*`)
+  und die Reiterleiste in `router.dart` (`tab*`). Die Meldungen von
+  `PushEnabledNotifier.set(l, …)`/`sendTest(l)` nehmen `l` wie die puren
+  Helfer. Unter Englisch heißen die Reiter anders: Tests rufen
+  `openTab(tester, 'Profile')` bzw. `openProfilePage(…, tab: 'Profile')`.
+  Noch deutsch, weil in `lib/core/` und mit dem Login geteilt:
+  `changePasswordErrorMessage`, `emailChangeErrorMessage`,
+  `usernameProblem`, `usernameChangeErrorMessage`; ebenso
+  `kSafetyNoteTitle`/`kSafetyNote` (Stufe f). Keiner Stufe zugeordnet:
+  Anmelden und Registrieren (`lib/features/auth/`). Namen von Runde und Weg (`loopName`, `routeName*`) gehen
   in die gespeicherte Fahrt und die GPX-Datei — sie bleiben in der
   Sprache, in der geplant wurde. Noch keiner Stufe zugeordnet:
   `lib/features/offline_areas/` und `lib/features/official/` (das Blatt

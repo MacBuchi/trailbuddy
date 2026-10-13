@@ -13,6 +13,7 @@ import '../../core/widgets/form_notice.dart';
 import '../../core/widgets/password_field.dart';
 import '../../core/widgets/resend_button.dart';
 import '../../data/providers.dart';
+import '../../l10n/l10n.dart';
 import '../../models/profile.dart';
 import 'profile_providers.dart';
 
@@ -29,11 +30,11 @@ class ChangeUsernameTile extends ConsumerWidget {
     return ListTile(
       contentPadding: EdgeInsets.zero,
       leading: const Icon(Icons.badge_outlined),
-      title: const Text('Benutzername ändern'),
+      title: Text(context.l10n.accountUsernameTitle),
       // Der aktuelle Name, wie die E-Mail-Kachel die Adresse zeigt — seit
       // 0.41.0 steht die Kachel auf der Seite „Konto", nicht mehr unter
       // dem Profilkopf.
-      subtitle: Text(name ?? 'Der Name, unter dem Buddys dich finden'),
+      subtitle: Text(name ?? context.l10n.accountUsernameEmpty),
       trailing: const Icon(Icons.chevron_right),
       enabled: name != null,
       onTap: name == null
@@ -65,8 +66,8 @@ class ChangeEmailTile extends ConsumerWidget {
     return ListTile(
       contentPadding: EdgeInsets.zero,
       leading: const Icon(Icons.alternate_email),
-      title: const Text('E-Mail-Adresse ändern'),
-      subtitle: Text(email ?? 'Die Adresse deines Kontos'),
+      title: Text(context.l10n.accountEmailTitle),
+      subtitle: Text(email ?? context.l10n.accountEmailEmpty),
       trailing: const Icon(Icons.chevron_right),
       enabled: email != null,
       onTap: email == null
@@ -149,6 +150,7 @@ class _ChangeEmailDialogState extends ConsumerState<_ChangeEmailDialog> {
       _busy = true;
       _error = null;
     });
+    final l = context.l10n;
     try {
       final auth = ref.read(authRepositoryProvider);
       // Feste Reihenfolge: erst der Code der ALTEN Adresse (wird nur
@@ -161,7 +163,7 @@ class _ChangeEmailDialogState extends ConsumerState<_ChangeEmailDialog> {
       if (!mounted) return;
       Navigator.of(context).pop();
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Deine E-Mail-Adresse ist geändert.')),
+        SnackBar(content: Text(l.accountEmailChanged)),
       );
     } on AuthException catch (e) {
       if (mounted) setState(() => _error = emailChangeErrorMessage(e));
@@ -179,39 +181,38 @@ class _ChangeEmailDialogState extends ConsumerState<_ChangeEmailDialog> {
         .textTheme
         .bodySmall
         ?.copyWith(color: Theme.of(context).hintColor);
+    final l = context.l10n;
     return AlertDialog(
-      title: const Text('E-Mail-Adresse ändern'),
+      title: Text(l.accountEmailTitle),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: _codesPhase
               ? [
-                  const FormNotice(
-                    message: 'Zwei Mails sind unterwegs — eine an deine '
-                        'bisherige, eine an deine neue Adresse. Beide '
-                        'Codes gehören hierher.',
+                  FormNotice(
+                    message: l.accountEmailCodesSent,
                     tone: NoticeTone.info,
                   ),
                   const SizedBox(height: 12),
                   TextField(
                     controller: _oldCodeController,
                     keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                        labelText: 'Code an die bisherige Adresse'),
+                    decoration: InputDecoration(
+                        labelText: l.accountEmailOldCode),
                     onChanged: (_) => setState(() {}),
                   ),
                   const SizedBox(height: 12),
                   TextField(
                     controller: _newCodeController,
                     keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                        labelText: 'Code an die neue Adresse'),
+                    decoration: InputDecoration(
+                        labelText: l.accountEmailNewCode),
                     onChanged: (_) => setState(() {}),
                   ),
                   const SizedBox(height: 8),
                   ResendButton(
-                    label: 'Codes erneut senden',
+                    label: l.accountEmailResend,
                     onResend: _request,
                   ),
                   if (_error != null) ...[
@@ -220,11 +221,11 @@ class _ChangeEmailDialogState extends ConsumerState<_ChangeEmailDialog> {
                   ],
                 ]
               : [
-                  Text('Bisher: ${widget.current}', style: hint),
+                  Text(l.accountEmailCurrent(widget.current), style: hint),
                   const SizedBox(height: 12),
                   PasswordField(
                     controller: _passwordController,
-                    label: 'Aktuelles Passwort',
+                    label: l.accountCurrentPassword,
                     textInputAction: TextInputAction.next,
                     autofocus: true,
                     onChanged: (_) => setState(() {}),
@@ -233,16 +234,15 @@ class _ChangeEmailDialogState extends ConsumerState<_ChangeEmailDialog> {
                   TextField(
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
-                    decoration: const InputDecoration(
-                        labelText: 'Neue E-Mail-Adresse'),
+                    decoration: InputDecoration(
+                        labelText: l.accountEmailNew),
                     onChanged: (_) => setState(() {}),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     // Die Suche matcht auf die exakte Adresse — das
                     // gehört gesagt, BEVOR jemand wechselt.
-                    'Buddys finden dich danach über die neue Adresse — '
-                    'die alte kennt die Suche nicht mehr.',
+                    l.accountEmailSearchHint,
                     style: hint,
                   ),
                   if (_error != null) ...[
@@ -255,7 +255,7 @@ class _ChangeEmailDialogState extends ConsumerState<_ChangeEmailDialog> {
       actions: [
         TextButton(
           onPressed: _busy ? null : () => Navigator.of(context).pop(),
-          child: const Text('Abbrechen'),
+          child: Text(l.commonCancel),
         ),
         FilledButton(
           onPressed: _busy ||
@@ -267,7 +267,7 @@ class _ChangeEmailDialogState extends ConsumerState<_ChangeEmailDialog> {
                   width: 20,
                   height: 20,
                   child: CircularProgressIndicator(strokeWidth: 2))
-              : Text(_codesPhase ? 'Bestätigen' : 'Weiter'),
+              : Text(_codesPhase ? l.accountConfirm : l.accountNext),
         ),
       ],
     );
@@ -285,8 +285,8 @@ class SignOutOtherDevicesTile extends StatelessWidget {
     return ListTile(
       contentPadding: EdgeInsets.zero,
       leading: const Icon(Icons.phonelink_erase_outlined),
-      title: const Text('Andere Geräte abmelden'),
-      subtitle: const Text('Beendet deine Anmeldung überall außer hier'),
+      title: Text(context.l10n.accountSignOutOthersTitle),
+      subtitle: Text(context.l10n.accountSignOutOthersSubtitle),
       trailing: const Icon(Icons.chevron_right),
       onTap: () => showDialog<void>(
         context: context,
@@ -316,13 +316,13 @@ class _SignOutOtherDevicesDialogState
       _busy = true;
       _error = null;
     });
+    final l = context.l10n;
     try {
       await ref.read(authRepositoryProvider).signOutOtherDevices();
       if (!mounted) return;
       Navigator.of(context).pop();
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('Alle anderen Geräte wurden abgemeldet.')),
+        SnackBar(content: Text(l.accountSignOutOthersDone)),
       );
     } catch (e, stackTrace) {
       logError('Andere Geräte abmelden', e, stackTrace);
@@ -334,16 +334,14 @@ class _SignOutOtherDevicesDialogState
 
   @override
   Widget build(BuildContext context) {
+    final l = context.l10n;
     return AlertDialog(
-      title: const Text('Andere Geräte abmelden'),
+      title: Text(l.accountSignOutOthersTitle),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Text(
-              'Auf allen anderen Geräten wird die Anmeldung beendet — dort '
-              'ist danach eine neue Anmeldung nötig. Dieses Gerät bleibt '
-              'angemeldet.'),
+          Text(l.accountSignOutOthersBody),
           if (_error != null) ...[
             const SizedBox(height: 16),
             FormNotice(message: _error!, tone: NoticeTone.error),
@@ -353,7 +351,7 @@ class _SignOutOtherDevicesDialogState
       actions: [
         TextButton(
           onPressed: _busy ? null : () => Navigator.of(context).pop(),
-          child: const Text('Abbrechen'),
+          child: Text(l.commonCancel),
         ),
         FilledButton(
           onPressed: _busy ? null : _confirm,
@@ -362,7 +360,7 @@ class _SignOutOtherDevicesDialogState
                   width: 20,
                   height: 20,
                   child: CircularProgressIndicator(strokeWidth: 2))
-              : const Text('Abmelden'),
+              : Text(l.profileSignOut),
         ),
       ],
     );
@@ -408,6 +406,7 @@ class _ChangeUsernameDialogState extends ConsumerState<_ChangeUsernameDialog> {
       _busy = true;
       _error = null;
     });
+    final l = context.l10n;
     try {
       await ref
           .read(myProfileProvider.notifier)
@@ -415,7 +414,7 @@ class _ChangeUsernameDialogState extends ConsumerState<_ChangeUsernameDialog> {
       if (!mounted) return;
       Navigator.of(context).pop();
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Dein Benutzername ist geändert.')),
+        SnackBar(content: Text(l.accountUsernameChanged)),
       );
     } catch (e, stackTrace) {
       // Der vergebene Name ist der erwartbare Fall und KEIN Fall für
@@ -431,8 +430,9 @@ class _ChangeUsernameDialogState extends ConsumerState<_ChangeUsernameDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final l = context.l10n;
     return AlertDialog(
-      title: const Text('Benutzername ändern'),
+      title: Text(l.accountUsernameTitle),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -442,8 +442,8 @@ class _ChangeUsernameDialogState extends ConsumerState<_ChangeUsernameDialog> {
               controller: _controller,
               autofocus: true,
               decoration: InputDecoration(
-                labelText: 'Neuer Benutzername',
-                helperText: 'Mindestens $minUsernameLength Zeichen',
+                labelText: l.accountUsernameNew,
+                helperText: l.accountUsernameMin(minUsernameLength),
                 // Der Grund steht am Feld, nicht nur im grauen Knopf:
                 // Ein „Speichern", das ohne Erklärung tot ist, sieht wie
                 // ein Fehler der App aus.
@@ -456,7 +456,7 @@ class _ChangeUsernameDialogState extends ConsumerState<_ChangeUsernameDialog> {
             Text(
               // Die Suche läuft über das Namens-Präfix — das gehört
               // gesagt, bevor jemand seinen bekannten Namen aufgibt.
-              'Buddys finden dich künftig unter dem neuen Namen.',
+              l.accountUsernameSearchHint,
               style: Theme.of(context)
                   .textTheme
                   .bodySmall
@@ -472,7 +472,7 @@ class _ChangeUsernameDialogState extends ConsumerState<_ChangeUsernameDialog> {
       actions: [
         TextButton(
           onPressed: _busy ? null : () => Navigator.of(context).pop(),
-          child: const Text('Abbrechen'),
+          child: Text(l.commonCancel),
         ),
         FilledButton(
           onPressed: (!_canSave || _busy) ? null : _save,
@@ -481,7 +481,7 @@ class _ChangeUsernameDialogState extends ConsumerState<_ChangeUsernameDialog> {
                   width: 20,
                   height: 20,
                   child: CircularProgressIndicator(strokeWidth: 2))
-              : const Text('Speichern'),
+              : Text(l.commonSave),
         ),
       ],
     );

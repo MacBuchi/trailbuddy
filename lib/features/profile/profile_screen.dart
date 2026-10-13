@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart' show DateFormat;
 import 'package:supabase_flutter/supabase_flutter.dart' show AuthException;
 import 'package:url_launcher/url_launcher.dart';
 
@@ -51,6 +52,7 @@ class ProfileScreen extends ConsumerWidget {
     final mode = ref.watch(appearanceProvider);
     final stillValid = ref.watch(stillValidQuestionsProvider).length;
     final proposals = ref.watch(mergeProposalsProvider).length;
+    final l = context.l10n;
 
     return Scaffold(
       appBar: AppBar(
@@ -70,7 +72,7 @@ class ProfileScreen extends ConsumerWidget {
               await ref.read(authRepositoryProvider).signOut();
             },
             icon: const Icon(Icons.logout),
-            tooltip: 'Abmelden',
+            tooltip: l.profileSignOut,
           ),
           const SizedBox(width: 8),
         ],
@@ -93,15 +95,15 @@ class ProfileScreen extends ConsumerWidget {
           _ProfileRow(
             id: 'import',
             icon: Icons.file_download_outlined,
-            title: 'Trails importieren',
-            value: 'GPX aus anderen Apps in dein Netz holen',
+            title: l.profileImportTitle,
+            value: l.profileImportValue,
             onTap: () => context.push('/profile/import'),
           ),
           _ProfileRow(
             id: 'rides',
             icon: Icons.directions_bike,
-            title: 'Meine Fahrten',
-            value: 'Liegen nur auf diesem Gerät',
+            title: l.profileRidesTitle,
+            value: l.profileRidesValue,
             onTap: () => context.push('/profile/rides'),
           ),
           // #119: eigene Angaben, die älter als 30 Tage sind — nur, wenn
@@ -110,8 +112,8 @@ class ProfileScreen extends ConsumerWidget {
             _ProfileRow(
               id: 'still-valid',
               icon: Icons.fact_check_outlined,
-              title: 'Noch gültig?',
-              value: stillValid == 1 ? '1 Angabe zu prüfen' : '$stillValid Angaben zu prüfen',
+              title: l.profileStillValidTitle,
+              value: l.profileStillValidValue(stillValid),
               onTap: () => context.push('/profile/still-valid'),
             ),
           // #107: „Sind das dieselben?" — nur, wenn es etwas zu prüfen gibt.
@@ -119,60 +121,60 @@ class ProfileScreen extends ConsumerWidget {
             _ProfileRow(
               id: 'merge-proposals',
               icon: Icons.merge_type,
-              title: 'Sind das dieselben?',
-              value: proposals == 1 ? '1 Paar zu prüfen' : '$proposals Paare zu prüfen',
+              title: l.profileMergeTitle,
+              value: l.profileMergeValue(proposals),
               onTap: () => context.push('/profile/merge-proposals'),
             ),
           _ProfileRow(
             id: 'areas',
             icon: Icons.map_outlined,
-            title: 'Meine Bereiche',
+            title: l.profileAreasTitle,
             value: switch (areas?.length) {
-              null || 0 => 'Karten für unterwegs',
-              final n => 'Karten für unterwegs · $n gespeichert',
+              null || 0 => l.profileAreasValue,
+              final n => l.profileAreasValueCount(n),
             },
             onTap: () => context.push('/profile/areas'),
           ),
           _ProfileRow(
             id: 'notifications',
             icon: Icons.notifications_outlined,
-            title: 'Benachrichtigungen',
-            value: push ? 'Ein' : 'Aus',
+            title: l.profileNotificationsTitle,
+            value: push ? l.profileOn : l.profileOff,
             onTap: () => context.push('/profile/notifications'),
           ),
           _ProfileRow(
             id: 'rider',
             icon: Icons.pedal_bike_outlined,
-            title: 'Fahrerprofil',
-            value: ref.watch(riderProfileProvider).label(context.l10n),
+            title: l.profileRiderTitle,
+            value: ref.watch(riderProfileProvider).label(l),
             onTap: () => context.push('/profile/rider'),
           ),
           _ProfileRow(
             id: 'appearance',
             icon: Icons.contrast,
-            title: 'Erscheinungsbild',
+            title: l.profileAppearanceTitle,
             value: switch (mode) {
-              ThemeMode.light => 'Hell',
-              ThemeMode.dark => 'Dunkel',
+              ThemeMode.light => l.profileAppearanceLight,
+              ThemeMode.dark => l.profileAppearanceDark,
               ThemeMode.system => theme.brightness == Brightness.dark
-                  ? 'Dunkel · folgt dem System'
-                  : 'Hell · folgt dem System',
+                  ? l.profileAppearanceSystemDark
+                  : l.profileAppearanceSystemLight,
             },
             onTap: () => context.push('/profile/appearance'),
           ),
           _ProfileRow(
             id: 'account',
             icon: Icons.person_outline,
-            title: 'Konto',
-            value: 'Name, E-Mail, Passwort, Geräte',
+            title: l.profileAccountTitle,
+            value: l.profileAccountValue,
             onTap: () => context.push('/profile/account'),
           ),
           // „Entdecken" (#135): alles, was TrailBuddy kann, mit Neu-Punkt.
           _ProfileRow(
             id: 'discover',
             icon: Icons.lightbulb_outline,
-            title: 'Entdecken',
-            value: 'Was TrailBuddy kann',
+            title: l.profileDiscoverTitle,
+            value: l.profileDiscoverValue,
             badge: ref.watch(unseenHighlightCountProvider),
             onTap: () => context.push('/profile/discover'),
           ),
@@ -181,21 +183,21 @@ class ProfileScreen extends ConsumerWidget {
           _ProfileRow(
             id: 'help',
             icon: Icons.help_outline,
-            title: 'Kurzanleitung',
-            value: 'Das Wichtigste in sechs Schritten',
+            title: l.profileHelpTitle,
+            value: l.profileHelpValue,
             onTap: () => context.push('/profile/help'),
           ),
           _ProfileRow(
             id: 'about',
             icon: Icons.info_outline,
-            title: 'Über TrailBuddy',
-            value: 'Neuigkeiten, Datenschutz, Impressum, Lizenzen',
+            title: l.profileAboutTitle,
+            value: l.profileAboutValue,
             onTap: () => context.push('/profile/about'),
           ),
           const SizedBox(height: 24),
           Text(
             '${version == null ? '' : 'v$version · '}'
-            'Kartendaten © OpenStreetMap · Protomaps',
+            '${l.profileFooterMapData}',
             key: const ValueKey('profile-footer'),
             style: AppFonts.numbers(theme.textTheme.bodySmall).copyWith(color: palette.muted),
           ),
@@ -223,14 +225,14 @@ class _ProfileHeader extends ConsumerWidget {
     final rides = ref.watch(rideRecordingAvailableProvider)
         ? ref.watch(ridesProvider).valueOrNull
         : null;
-    String plural(int n, String one, String many) => '$n ${n == 1 ? one : many}';
+    final l = context.l10n;
     final stats = [
       if (trails != null)
-        plural(trails.where((t) => t.pending || t.recordings.any((r) => r.userId == uid)).length,
-            'Trail', 'Trails'),
+        l.profileStatTrails(
+            trails.where((t) => t.pending || t.recordings.any((r) => r.userId == uid)).length),
       if (friendships != null)
-        plural(friendships.where((f) => f.isAccepted).length, 'Buddy', 'Buddys'),
-      if (rides != null) plural(rides.length, 'Fahrt', 'Fahrten'),
+        l.profileStatBuddys(friendships.where((f) => f.isAccepted).length),
+      if (rides != null) l.profileStatRides(rides.length),
     ];
     return Row(
       children: [
@@ -369,7 +371,7 @@ class AccountScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final profile = ref.watch(myProfileProvider).valueOrNull;
-    return _ProfilePage(title: 'Konto', children: [
+    return _ProfilePage(title: context.l10n.profileAccountTitle, children: [
       ChangeUsernameTile(username: profile?.username),
       const ChangeEmailTile(),
       const _ChangePasswordTile(),
@@ -385,7 +387,7 @@ class NotificationsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) =>
-      const _ProfilePage(title: 'Benachrichtigungen', children: [_PushSection()]);
+      _ProfilePage(title: context.l10n.profileNotificationsTitle, children: const [_PushSection()]);
 }
 
 class AppearanceScreen extends StatelessWidget {
@@ -393,7 +395,7 @@ class AppearanceScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) =>
-      const _ProfilePage(title: 'Erscheinungsbild', children: [_AppearanceSection()]);
+      _ProfilePage(title: context.l10n.profileAppearanceTitle, children: const [_AppearanceSection()]);
 }
 
 class RiderProfileScreen extends StatelessWidget {
@@ -401,7 +403,7 @@ class RiderProfileScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) =>
-      const _ProfilePage(title: 'Fahrerprofil', children: [_RiderProfileSection()]);
+      _ProfilePage(title: context.l10n.profileRiderTitle, children: const [_RiderProfileSection()]);
 }
 
 class AboutScreen extends StatelessWidget {
@@ -409,7 +411,7 @@ class AboutScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) =>
-      const _ProfilePage(title: 'Über TrailBuddy', children: [_AboutSection()]);
+      _ProfilePage(title: context.l10n.profileAboutTitle, children: const [_AboutSection()]);
 }
 
 /// Passwort ändern für Angemeldete. Der Reset-Flow auf dem Login-Screen
@@ -422,10 +424,8 @@ class _ChangePasswordTile extends ConsumerWidget {
     return ListTile(
       contentPadding: EdgeInsets.zero,
       leading: const Icon(Icons.lock_outline),
-      title: const Text('Passwort ändern'),
-      subtitle: const Text(
-          'Braucht dein aktuelles Passwort — so ist ein fremdes Gerät '
-          'allein nicht genug'),
+      title: Text(context.l10n.accountPasswordTitle),
+      subtitle: Text(context.l10n.accountPasswordSubtitle),
       trailing: const Icon(Icons.chevron_right),
       onTap: () => showDialog<void>(
         context: context,
@@ -468,6 +468,7 @@ class _ChangePasswordDialogState extends ConsumerState<_ChangePasswordDialog> {
       _busy = true;
       _error = null;
     });
+    final l = context.l10n;
     try {
       await ref.read(authRepositoryProvider).changePassword(
             currentPassword: _currentController.text,
@@ -476,7 +477,7 @@ class _ChangePasswordDialogState extends ConsumerState<_ChangePasswordDialog> {
       if (!mounted) return;
       Navigator.of(context).pop();
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Dein Passwort ist geändert.')),
+        SnackBar(content: Text(l.accountPasswordChanged)),
       );
     } on AuthException catch (e) {
       if (mounted) setState(() => _error = changePasswordErrorMessage(e));
@@ -490,8 +491,9 @@ class _ChangePasswordDialogState extends ConsumerState<_ChangePasswordDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final l = context.l10n;
     return AlertDialog(
-      title: const Text('Passwort ändern'),
+      title: Text(l.accountPasswordTitle),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -499,7 +501,7 @@ class _ChangePasswordDialogState extends ConsumerState<_ChangePasswordDialog> {
           children: [
             PasswordField(
               controller: _currentController,
-              label: 'Aktuelles Passwort',
+              label: l.accountCurrentPassword,
               textInputAction: TextInputAction.next,
               autofocus: true,
               onChanged: (_) => setState(() {}),
@@ -507,14 +509,14 @@ class _ChangePasswordDialogState extends ConsumerState<_ChangePasswordDialog> {
             const SizedBox(height: 12),
             PasswordField(
               controller: _newController,
-              label: 'Neues Passwort (mind. $minPasswordLength Zeichen)',
+              label: l.accountPasswordNew(minPasswordLength),
               textInputAction: TextInputAction.next,
               onChanged: (_) => setState(() {}),
             ),
             const SizedBox(height: 12),
             PasswordField(
               controller: _repeatController,
-              label: 'Neues Passwort wiederholen',
+              label: l.accountPasswordRepeat,
               onSubmitted: (_) => (_canSave && !_busy) ? _save() : null,
               onChanged: (_) => setState(() {}),
             ),
@@ -532,7 +534,7 @@ class _ChangePasswordDialogState extends ConsumerState<_ChangePasswordDialog> {
       actions: [
         TextButton(
           onPressed: _busy ? null : () => Navigator.of(context).pop(),
-          child: const Text('Abbrechen'),
+          child: Text(l.commonCancel),
         ),
         FilledButton(
           onPressed: (!_canSave || _busy) ? null : _save,
@@ -541,7 +543,7 @@ class _ChangePasswordDialogState extends ConsumerState<_ChangePasswordDialog> {
                   width: 20,
                   height: 20,
                   child: CircularProgressIndicator(strokeWidth: 2))
-              : const Text('Speichern'),
+              : Text(l.commonSave),
         ),
       ],
     );
@@ -580,13 +582,13 @@ class _DeleteAccountTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final error = Theme.of(context).colorScheme.error;
+    final l = context.l10n;
     return ListTile(
       contentPadding: EdgeInsets.zero,
       dense: true,
       leading: Icon(Icons.no_accounts_outlined, color: error),
-      title: Text('Konto löschen', style: TextStyle(color: error)),
-      subtitle: const Text(
-          'Entfernt dich und alle deine Trails endgültig — ohne Karenzzeit.'),
+      title: Text(l.accountDeleteTitle, style: TextStyle(color: error)),
+      subtitle: Text(l.accountDeleteSubtitle),
       // Ohne geladenes Profil fehlt der Benutzername für die Bestätigung.
       enabled: username != null,
       onTap: () => _confirmAndDelete(context, ref),
@@ -619,39 +621,33 @@ class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final l = context.l10n;
     return AlertDialog(
-      title: const Text('Konto endgültig löschen?'),
+      title: Text(l.accountDeleteDialogTitle),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-                'Sofort und unwiderruflich gelöscht werden: dein Profil, '
-                'alle deine Trails und deine Buddy-Verbindungen.'),
+            Text(l.accountDeleteWhat),
             const SizedBox(height: 12),
-            const Text(
-                'Deine Trails verschwinden damit auch aus dem Netz deiner '
-                'Buddys — geteilte Trails sind Kopien deiner Daten, keine '
-                'eigenen.'),
+            Text(l.accountDeleteBuddys),
             const SizedBox(height: 12),
             Text(
-              'Bereits abgeschicktes Feedback bleibt bestehen: es steht mit '
-              'deinem Benutzernamen öffentlich im GitHub-Projekt und lässt '
-              'sich von hier aus nicht zurückholen.',
+              l.accountDeleteFeedback,
               style: Theme.of(context).textTheme.bodySmall,
             ),
             const SizedBox(height: 16),
-            Text('Tippe „${widget.username}" ein, um zu bestätigen:'),
+            Text(l.accountDeleteTypeName(widget.username)),
             const SizedBox(height: 8),
             TextField(
               controller: _controller,
               autofocus: true,
               autocorrect: false,
               enableSuggestions: false,
-              decoration: const InputDecoration(
-                labelText: 'Benutzername',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: l.accountUsernameLabel,
+                border: const OutlineInputBorder(),
               ),
               onChanged: (_) => setState(() {}),
             ),
@@ -662,7 +658,7 @@ class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
         TextButton(
           onPressed:
               _busy ? null : () => Navigator.of(context).pop(false),
-          child: const Text('Abbrechen'),
+          child: Text(l.commonCancel),
         ),
         FilledButton(
           style: FilledButton.styleFrom(
@@ -673,7 +669,7 @@ class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
                   setState(() => _busy = true);
                   Navigator.of(context).pop(true);
                 },
-          child: const Text('Endgültig löschen'),
+          child: Text(l.accountDeleteConfirm),
         ),
       ],
     );
@@ -688,6 +684,7 @@ class _AppearanceSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final mode = ref.watch(appearanceProvider);
+    final l = context.l10n;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -696,19 +693,19 @@ class _AppearanceSection extends ConsumerWidget {
           child: SegmentedButton<ThemeMode>(
             key: const ValueKey('appearance'),
             showSelectedIcon: false,
-            segments: const [
+            segments: [
               ButtonSegment(
                   value: ThemeMode.system,
-                  icon: Icon(Icons.brightness_auto_outlined),
-                  label: Text('System')),
+                  icon: const Icon(Icons.brightness_auto_outlined),
+                  label: Text(l.profileAppearanceSystem)),
               ButtonSegment(
                   value: ThemeMode.light,
-                  icon: Icon(Icons.light_mode_outlined),
-                  label: Text('Hell')),
+                  icon: const Icon(Icons.light_mode_outlined),
+                  label: Text(l.profileAppearanceLight)),
               ButtonSegment(
                   value: ThemeMode.dark,
-                  icon: Icon(Icons.dark_mode_outlined),
-                  label: Text('Dunkel')),
+                  icon: const Icon(Icons.dark_mode_outlined),
+                  label: Text(l.profileAppearanceDark)),
             ],
             selected: {mode},
             onSelectionChanged: (s) =>
@@ -716,7 +713,7 @@ class _AppearanceSection extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: 4),
-        Text('Gilt nur für dieses Gerät. Die Karte selbst bleibt hell.',
+        Text(l.profileAppearanceDeviceOnly,
             style: Theme.of(context).textTheme.bodySmall),
       ],
     );
@@ -759,7 +756,8 @@ class _RiderProfileSectionState extends ConsumerState<_RiderProfileSection> {
     final calibrations = ref.watch(riderCalibrationsProvider);
     final params = ref.watch(calibratedRiderProvider(profile));
     final cal = calibrations.of(profile);
-    String learned(double? v) => v == null ? '' : ' (gelernt)';
+    final l = context.l10n;
+    String learned(double? v) => v == null ? '' : l.riderProfileLearnedMark;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -768,15 +766,15 @@ class _RiderProfileSectionState extends ConsumerState<_RiderProfileSection> {
           child: SegmentedButton<RiderProfile>(
             key: const ValueKey('rider-profile'),
             showSelectedIcon: false,
-            segments: const [
+            segments: [
               ButtonSegment(
                   value: RiderProfile.bio,
-                  icon: Icon(Icons.pedal_bike_outlined),
-                  label: Text('Bio-Bike')),
+                  icon: const Icon(Icons.pedal_bike_outlined),
+                  label: Text(RiderProfile.bio.label(l))),
               ButtonSegment(
                   value: RiderProfile.ebike,
-                  icon: Icon(Icons.electric_bike_outlined),
-                  label: Text('E-Bike')),
+                  icon: const Icon(Icons.electric_bike_outlined),
+                  label: Text(RiderProfile.ebike.label(l))),
             ],
             selected: {profile},
             onSelectionChanged: (s) => ref.read(riderProfileProvider.notifier).set(s.single),
@@ -784,29 +782,27 @@ class _RiderProfileSectionState extends ConsumerState<_RiderProfileSection> {
         ),
         const SizedBox(height: 12),
         Text(
-          'Das Profil ändert drei Dinge für die Routenplanung: wie schnell es '
-          'bergauf geht, wie teuer ein Wanderweg bergauf ist und die Vorgabe '
-          'für die Höhenmeter einer Runde. Bergab bleibt ein S2 ein S2.',
+          l.riderProfileIntro,
           style: text.bodyMedium,
         ),
         const SizedBox(height: 12),
         Text(
-          'Steigrate Forstweg: ${params.climbTrackMPerH.round()} hm/h${learned(cal.climbTrackMPerH)} · Pfad: '
-          '${params.climbPathMPerH.round()} hm/h${learned(cal.climbPathMPerH)} · Schieben: '
-          '${params.pushRateMPerH.round()} hm/h${learned(cal.pushRateMPerH)}\n'
-          'Flach: ${params.vFlatKmh.round()} km/h${learned(cal.vFlatKmh)} · '
-          'Wanderweg bergauf: ×${profile.pathUpFactor} · Vorgabe: ${profile.budgetClimbM.round()} hm',
+          '${l.riderProfileClimbLine(
+            '${params.climbTrackMPerH.round()}', learned(cal.climbTrackMPerH),
+            '${params.climbPathMPerH.round()}', learned(cal.climbPathMPerH),
+            '${params.pushRateMPerH.round()}', learned(cal.pushRateMPerH),
+          )}\n'
+          '${l.riderProfileFlatLine('${params.vFlatKmh.round()}', learned(cal.vFlatKmh), '${profile.pathUpFactor}', '${profile.budgetClimbM.round()}')}',
           key: const ValueKey('rider-profile-numbers'),
           style: text.bodySmall,
         ),
         const SizedBox(height: 8),
         Text(
-          'Gilt nur für dieses Gerät. Viele fahren beides — umschalten geht jederzeit, '
-          'auch im Planer. Jede Fahrt merkt sich das Profil beim Start.',
+          l.riderProfileDeviceOnly,
           style: text.bodySmall,
         ),
         const SizedBox(height: 16),
-        Text('Aus deinen Fahrten gelernt', style: text.titleMedium),
+        Text(l.riderProfileLearnedTitle, style: text.titleMedium),
         const SizedBox(height: 4),
         for (final p in RiderProfile.values)
           Text(
@@ -822,21 +818,18 @@ class _RiderProfileSectionState extends ConsumerState<_RiderProfileSection> {
             icon: _learning
                 ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
                 : const Icon(Icons.school_outlined),
-            label: const Text('Aus meinen Fahrten lernen'),
+            label: Text(l.riderProfileLearn),
           ),
           if (!cal.isEmpty)
             TextButton(
               key: const ValueKey('rider-reset'),
               onPressed: () => ref.read(riderCalibrationsProvider.notifier).reset(profile),
-              child: Text('${profile.label(context.l10n)} zurücksetzen'),
+              child: Text(l.riderProfileReset(profile.label(l))),
             ),
         ]),
         const SizedBox(height: 4),
         Text(
-          'Aus Zeit und Höhe deiner Fahrten (Aufzeichnungen und per GPX-Import übernommene): '
-          'je Fahrt die Aufstiege ab 100 Höhenmetern '
-          'am Stück, eingeordnet über die Wege deiner gespeicherten Bereiche, der Median je '
-          'Wegklasse ab drei Aufstiegen. Nie aus Fahrten anderer; nichts verlässt das Gerät.',
+          l.riderProfileLearnExplain,
           style: text.bodySmall,
         ),
       ],
@@ -846,17 +839,21 @@ class _RiderProfileSectionState extends ConsumerState<_RiderProfileSection> {
   /// „Bio-Bike: Forstweg 520 hm/h · flach 14 km/h — aus 14 Fahrten (31
   /// Aufstiege), Stand 1.10.2026" oder „Bio-Bike: Vorgaben".
   String _calibLine(RiderProfile p, RiderCalibration c) {
-    if (c.isEmpty) return '${p.label(context.l10n)}: Vorgaben — noch nichts gelernt.';
-    final parts = [
-      if (c.climbTrackMPerH != null) 'Forstweg ${c.climbTrackMPerH!.round()} hm/h',
-      if (c.climbPathMPerH != null) 'Pfad ${c.climbPathMPerH!.round()} hm/h',
-      if (c.pushRateMPerH != null) 'Schieben ${c.pushRateMPerH!.round()} hm/h',
-      if (c.vFlatKmh != null) 'flach ${c.vFlatKmh!.round()} km/h',
-    ];
+    final l = context.l10n;
+    if (c.isEmpty) return l.riderProfileCalibDefaults(p.label(l));
+    final values = [
+      if (c.climbTrackMPerH != null) l.riderProfileCalibTrack('${c.climbTrackMPerH!.round()}'),
+      if (c.climbPathMPerH != null) l.riderProfileCalibPath('${c.climbPathMPerH!.round()}'),
+      if (c.pushRateMPerH != null) l.riderProfileCalibPush('${c.pushRateMPerH!.round()}'),
+      if (c.vFlatKmh != null) l.riderProfileCalibFlat('${c.vFlatKmh!.round()}'),
+    ].join(' · ');
+    final rides = l.riderProfileCalibRides(c.rides);
+    final climbs = l.riderProfileCalibClimbs(c.sections);
     final at = c.at?.toLocal();
-    final when = at == null ? '' : ', Stand ${at.day}.${at.month}.${at.year}';
-    return '${p.label(context.l10n)}: ${parts.join(' · ')} — aus ${c.rides} ${c.rides == 1 ? 'Fahrt' : 'Fahrten'} '
-        '(${c.sections} ${c.sections == 1 ? 'Aufstieg' : 'Aufstiege'})$when';
+    return at == null
+        ? l.riderProfileCalibLine(p.label(l), values, rides, climbs)
+        : l.riderProfileCalibLineAsOf(
+            p.label(l), values, rides, climbs, DateFormat.yMd(l.localeName).format(at));
   }
 }
 
@@ -871,25 +868,19 @@ class _PushSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final enabled = ref.watch(pushEnabledProvider);
+    final l = context.l10n;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SwitchListTile(
           contentPadding: EdgeInsets.zero,
           secondary: const Icon(Icons.notifications_outlined),
-          title: const Text('Benachrichtigungen'),
-          subtitle: const Text(
-              'Wenn ein Buddy zu einem Trail, den du siehst, etwas meldet '
-              '(bestätigt, also vor Ort oder gefahren), einen Hinweis '
-              'schreibt oder dir eine Nachricht schickt. Gilt nur für '
-              'dieses Gerät. In der Benachrichtigung stehen der Trailname, '
-              'der Name des Buddys und was er meldet (beim Hinweis und bei '
-              'einer Nachricht der Text) — nie ein Ort. Sie läuft über '
-              'Google.'),
+          title: Text(l.profileNotificationsTitle),
+          subtitle: Text(l.pushSubtitle),
           value: enabled,
           onChanged: (value) async {
             final problem =
-                await ref.read(pushEnabledProvider.notifier).set(value);
+                await ref.read(pushEnabledProvider.notifier).set(l, value);
             if (!context.mounted || problem == null) return;
             ScaffoldMessenger.of(context)
                 .showSnackBar(SnackBar(content: Text(problem)));
@@ -899,16 +890,14 @@ class _PushSection extends ConsumerWidget {
           ListTile(
             contentPadding: EdgeInsets.zero,
             leading: const Icon(Icons.send_outlined),
-            title: const Text('Testnachricht senden'),
-            subtitle: const Text(
-                'Kommt sie an, funktioniert die ganze Kette bis zu '
-                'diesem Gerät.'),
+            title: Text(l.pushTestTitle),
+            subtitle: Text(l.pushTestSubtitle),
             onTap: () async {
               final problem =
-                  await ref.read(pushEnabledProvider.notifier).sendTest();
+                  await ref.read(pushEnabledProvider.notifier).sendTest(l);
               if (!context.mounted) return;
               ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                  content: Text(problem ?? 'Testnachricht ist unterwegs.')));
+                  content: Text(problem ?? l.pushTestSent)));
             },
           ),
       ],
@@ -928,20 +917,20 @@ class _AboutSection extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final version = ref.watch(appVersionProvider).valueOrNull ?? '–';
     final updateInfo = ref.watch(updateInfoProvider).valueOrNull;
+    final l = context.l10n;
     final updateStatus = kIsWeb
-        ? 'Die Web-App ist immer aktuell.'
+        ? l.aboutWebAlwaysCurrent
         : !AppDistribution.showsUpdateHints
             // Play-Build: der Store aktualisiert selbst, die App prüft nichts.
-            ? 'Updates kommen über den Play Store.'
+            ? l.aboutPlayStore
             : updateInfo != null
-                ? 'Neueste Version: v${updateInfo.latestVersion} — zum '
-                    'Herunterladen auf der Projektseite.'
-                : 'Du bist auf dem aktuellen Stand.';
+                ? l.aboutNewestVersion(updateInfo.latestVersion)
+                : l.aboutUpToDate;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Version $version — $updateStatus',
+        Text(l.aboutVersionLine(version, updateStatus),
             style: Theme.of(context).textTheme.bodySmall),
         // Nur wo der Update-Weg überhaupt läuft. Im Web und im Play-Build
         // zeigte der Schalter auf nichts; der Provider hält denselben
@@ -952,10 +941,8 @@ class _AboutSection extends ConsumerWidget {
             contentPadding: EdgeInsets.zero,
             dense: true,
             secondary: const Icon(Icons.science_outlined),
-            title: const Text('Vorabversionen erhalten'),
-            subtitle: const Text(
-                'Bietet auch Zwischenstände an, die noch nicht freigegeben '
-                'sind — ungetestet und häufig. Gilt nur für dieses Gerät.'),
+            title: Text(l.aboutPrereleaseTitle),
+            subtitle: Text(l.aboutPrereleaseSubtitle),
             value: ref.watch(prereleaseUpdatesProvider),
             onChanged: (value) =>
                 ref.read(prereleaseUpdatesProvider.notifier).set(value),
@@ -970,11 +957,8 @@ class _AboutSection extends ConsumerWidget {
             contentPadding: EdgeInsets.zero,
             dense: true,
             leading: const Icon(Icons.science_outlined),
-            title: const Text('Entwicklungsversion öffnen'),
-            subtitle: const Text(
-                'Der neueste Zwischenstand — ungetestet und oft halbfertig. '
-                'Öffnet eine eigene Adresse; dort musst du dich neu '
-                'anmelden.'),
+            title: Text(l.aboutPreviewTitle),
+            subtitle: Text(l.aboutPreviewSubtitle),
             trailing: const Icon(Icons.open_in_new, size: 18),
             onTap: () => _open(AppInfo.previewAppUrl),
           ),
@@ -986,10 +970,8 @@ class _AboutSection extends ConsumerWidget {
             contentPadding: EdgeInsets.zero,
             dense: true,
             leading: const Icon(Icons.verified_outlined),
-            title: const Text('Zur freigegebenen Version'),
-            subtitle: const Text(
-                'Du benutzt gerade einen Entwicklungsstand. Die echte App '
-                'liegt unter ihrer gewohnten Adresse.'),
+            title: Text(l.aboutStableTitle),
+            subtitle: Text(l.aboutStableSubtitle),
             trailing: const Icon(Icons.open_in_new, size: 18),
             onTap: () => _open(AppInfo.webAppUrl),
           ),
@@ -997,16 +979,16 @@ class _AboutSection extends ConsumerWidget {
           contentPadding: EdgeInsets.zero,
           dense: true,
           leading: const Icon(Icons.lightbulb_outline),
-          title: const Text('Idee oder Fehler melden'),
-          subtitle: const Text('Wird ein öffentlicher Eintrag auf GitHub'),
+          title: Text(l.aboutFeedbackTitle),
+          subtitle: Text(l.aboutFeedbackSubtitle),
           onTap: () => showFeedbackFlow(context, ref),
         ),
         ListTile(
           contentPadding: EdgeInsets.zero,
           dense: true,
           leading: const Icon(Icons.auto_stories_outlined),
-          title: const Text('Was ist neu'),
-          subtitle: const Text('Was sich in welcher Version geändert hat'),
+          title: Text(l.aboutChangelogTitle),
+          subtitle: Text(l.aboutChangelogSubtitle),
           onTap: () => context.push('/profile/changelog'),
         ),
         // Der Hinweis vom ersten Start, dauerhaft nachlesbar (#131) — als
@@ -1017,14 +999,14 @@ class _AboutSection extends ConsumerWidget {
           dense: true,
           leading: const Icon(Icons.warning_amber_outlined),
           title: const Text(kSafetyNoteTitle),
-          subtitle: const Text('Was TrailBuddy dir nicht abnehmen kann'),
+          subtitle: Text(l.aboutSafetySubtitle),
           onTap: () => showInfoText(context, title: kSafetyNoteTitle, text: kSafetyNote),
         ),
         ListTile(
           contentPadding: EdgeInsets.zero,
           dense: true,
           leading: const Icon(Icons.code),
-          title: const Text('GitHub-Projekt & Dokumentation'),
+          title: Text(l.aboutGithubTitle),
           subtitle: const Text(AppInfo.githubUrl),
           onTap: () => _open(AppInfo.githubUrl),
         ),
@@ -1032,7 +1014,7 @@ class _AboutSection extends ConsumerWidget {
           contentPadding: EdgeInsets.zero,
           dense: true,
           leading: const Icon(Icons.public),
-          title: const Text('Web-App'),
+          title: Text(l.aboutWebAppTitle),
           subtitle: const Text(AppInfo.webAppUrl),
           onTap: () => _open(AppInfo.webAppUrl),
         ),
@@ -1040,41 +1022,41 @@ class _AboutSection extends ConsumerWidget {
           contentPadding: EdgeInsets.zero,
           dense: true,
           leading: const Icon(Icons.privacy_tip_outlined),
-          title: const Text('Datenschutzerklärung'),
-          subtitle: const Text('Was gespeichert wird — und was öffentlich ist'),
+          title: Text(l.aboutPrivacyTitle),
+          subtitle: Text(l.aboutPrivacySubtitle),
           onTap: () => _open(AppInfo.privacyUrl),
         ),
         ListTile(
           contentPadding: EdgeInsets.zero,
           dense: true,
           leading: const Icon(Icons.info_outline),
-          title: const Text('Impressum'),
-          subtitle: const Text('Wer TrailBuddy anbietet'),
+          title: Text(l.aboutImpressumTitle),
+          subtitle: Text(l.aboutImpressumSubtitle),
           onTap: () => _open(AppInfo.impressumUrl),
         ),
         ListTile(
           contentPadding: EdgeInsets.zero,
           dense: true,
           leading: const Icon(Icons.description_outlined),
-          title: const Text('Open-Source-Lizenzen'),
-          subtitle: const Text('TrailBuddy steht unter der MIT-Lizenz'),
+          title: Text(l.aboutLicensesTitle),
+          subtitle: Text(l.aboutLicensesSubtitle),
           onTap: () => showLicensePage(
             context: context,
             applicationName: 'TrailBuddy',
             applicationVersion: version,
             // Das Pseudonym wie in LICENSE: Der Klarname steht nur, wo er
             // Pflicht ist — Impressum und Datenschutzerklärung.
-            applicationLegalese: '© 2026 MacBuchi — MIT-Lizenz',
+            applicationLegalese: l.aboutLegalese,
           ),
         ),
         const SizedBox(height: 8),
         Text(
-          'Kartendaten: © OpenStreetMap-Mitwirkende · Protomaps (ODbL)',
+          l.aboutMapData,
           style: Theme.of(context).textTheme.bodySmall,
         ),
         const SizedBox(height: 4),
         Text(
-          'Höhendaten gespeicherter Bereiche: $kHeightsAttribution',
+          l.aboutHeightData(kHeightsAttribution),
           style: Theme.of(context).textTheme.bodySmall,
         ),
       ],

@@ -328,7 +328,7 @@ void main() {
       await pumpApp(tester, backend,
           rideStore: store,
           extraOverrides: [appLocaleProvider.overrideWithValue(const Locale('en'))]);
-      await openProfilePage(tester, 'rides');
+      await openProfilePage(tester, 'rides', tab: 'Profile');
       await settle(tester);
       expect(find.text('My rides'), findsOneWidget);
       expect(find.text('Meine Fahrten'), findsNothing);
@@ -398,7 +398,7 @@ void main() {
       backend.addFriendship(lea.id, me.id, status: 'pending');
       await pumpApp(tester, backend,
           extraOverrides: [appLocaleProvider.overrideWithValue(const Locale('en'))]);
-      await openTab(tester, 'Buddys');
+      await openTab(tester, 'Buddies');
       for (final text in ['BUDDIES', 'REQUESTS FOR YOU · 1', 'MY BUDDIES · 1', 'Accept', '0 shared']) {
         expect(find.text(text), findsOneWidget, reason: text);
       }
@@ -424,6 +424,71 @@ void main() {
       expect(AppInfo.inviteText(en, null), isNot(contains('Sign up')));
       expect(AppInfo.inviteText(en, 'anna'), allOf(contains(AppInfo.webAppUrl), contains('“anna”')));
       expect(AppInfo.inviteText(l10nDe, 'anna'), contains('such mich dort als „anna“'));
+    });
+  });
+
+  // Stufe (e2): Profil samt Unterseiten, Kontodialoge und die Reiterleiste.
+  group('Profil auf Englisch', () {
+    testWidgets('Reiter, Profilliste, Konto und Fahrerprofil', (tester) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.reset);
+      final backend = FakeBackend();
+      final me = backend.addUser(username: 'anna');
+      final jan = backend.addUser(username: 'jan');
+      backend.signInAs(me.id);
+      backend.addFriendship(jan.id, me.id);
+      await pumpApp(tester, backend,
+          extraOverrides: [appLocaleProvider.overrideWithValue(const Locale('en'))]);
+      for (final tab in ['Map', 'Trails', 'Buddies', 'Profile']) {
+        expect(find.descendant(of: find.byType(NavigationBar), matching: find.text(tab)), findsOneWidget,
+            reason: tab);
+      }
+      await openTab(tester, 'Profile');
+      expect(find.textContaining('1 buddy'), findsOneWidget, reason: 'Zahl im Kopf');
+      for (final text in ['Import trails', 'My rides', 'My areas', 'Notifications', 'Rider profile',
+          'Appearance', 'Account', 'Discover', 'Quick guide', 'About TrailBuddy']) {
+        await scrollTo(tester, find.text(text));
+        expect(find.text(text), findsOneWidget, reason: text);
+      }
+      expect(find.text('Meine Bereiche'), findsNothing);
+
+      await openProfilePage(tester, 'account', tab: 'Profile');
+      for (final text in ['Change username', 'Change email address', 'Change password',
+          'Sign out other devices', 'Delete account']) {
+        expect(find.text(text), findsOneWidget, reason: text);
+      }
+      await tester.tap(find.text('Delete account'));
+      await settle(tester);
+      expect(find.text('Type “anna” to confirm:'), findsOneWidget);
+      expect(find.text('Delete for good'), findsOneWidget);
+    });
+
+    testWidgets('Fahrerprofil', (tester) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.reset);
+      final backend = FakeBackend();
+      final me = backend.addUser(username: 'anna');
+      backend.signInAs(me.id);
+      await pumpApp(tester, backend,
+          extraOverrides: [appLocaleProvider.overrideWithValue(const Locale('en'))]);
+      await openProfilePage(tester, 'rider', tab: 'Profile');
+      expect(find.text('Learn from my rides'), findsOneWidget);
+      expect(find.text('Bike: defaults — nothing learned yet.'), findsOneWidget);
+      expect(find.textContaining('Climb rate forest road:'), findsOneWidget);
+      expect(find.textContaining('Steigrate'), findsNothing);
+    });
+
+    test('Sätze mit Zahlen', () {
+      final en = lookupAppLocalizations(const Locale('en'));
+      expect(en.profileStillValidValue(1), '1 entry to check');
+      expect(en.profileMergeValue(3), '3 pairs to check');
+      expect(l10nDe.profileStatBuddys(2), '2 Buddys');
+      expect(
+          l10nDe.riderProfileCalibLineAsOf('Bio-Bike', 'Forstweg 520 hm/h', l10nDe.riderProfileCalibRides(14),
+              l10nDe.riderProfileCalibClimbs(31), '1.10.2026'),
+          'Bio-Bike: Forstweg 520 hm/h — aus 14 Fahrten (31 Aufstiege), Stand 1.10.2026');
     });
   });
 }
