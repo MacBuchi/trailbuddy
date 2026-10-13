@@ -146,7 +146,8 @@ delete from app_internal.push_outbox;
 -- 7. Englisch (Patch 027): Berts Gerät läuft auf Englisch. Seit 3d hat
 --    Bert keinen Alias für Anna mehr, also steht ihr Benutzername.
 update public.push_devices set locale = 'en' where token = 'tok-bert';
-select app_internal.put_report('$A', '$T1', 'status', 'closed', null, true, now(), null);
+-- T2, nicht T1: An T1 hat Bert in 3b selbst „gesperrt" gemeldet.
+select app_internal.put_report('$A', '$T2', 'status', 'closed', null, true, now(), null);
 update app_internal.push_outbox set due_at = now() - interval '1 minute';
 select 'SENT_EN1=' || app_internal.push_flush();
 select 'BODY_EN1=' || convert_from(body, 'utf8') from net.http_request_queue order by id desc limit 1;
@@ -279,7 +280,7 @@ expect "vor Ort bestätigt: Anna bekommt eine Zeile, der Zustand keine" "$(value
 expect "Englisch: eine Meldung" "$(value SENT_EN1)" "1"
 msg_en1=$(value BODY_EN1 | jq -c '.messages[0]')
 expect "Englisch: an Berts Gerät" "$(jq -r .token <<<"$msg_en1")" "tok-bert"
-expect "Englisch: Titel mit Statuswort" "$(jq -r .title <<<"$msg_en1")" "push_anna reports “Mein Hang” as closed"
+expect "Englisch: Titel mit Statuswort" "$(jq -r .title <<<"$msg_en1")" "push_anna reports “Kamm” as closed"
 expect "Englisch: Text der Tipp" "$(jq -r .body <<<"$msg_en1")" "Tap to see the trail"
 msg_en2=$(value BODY_EN2 | jq -c '.messages[0]')
 expect "Englisch: zwei Hinweise, Titel" "$(jq -r .title <<<"$msg_en2")" "2 new notes from your buddies"
