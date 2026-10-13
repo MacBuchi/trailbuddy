@@ -3466,5 +3466,72 @@
   "navBandGoal": "Ziel",
   "@navBandGoal": {
     "description": "Beschriftung des letzten Stücks im Routenband."
+  },
+  "navDoneTitle": "TRAIL GESCHAFFT",
+  "@navDoneTitle": {
+    "description": "Kopf des Blatts am Ende eines gefahrenen Trails, Versalien."
+  },
+  "navDoneMinutes": "{time} min",
+  "@navDoneMinutes": {
+    "description": "Zeit auf dem Trail unter einer Stunde, Minuten:Sekunden fertig formatiert.",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "navDoneHours": "{time} h",
+  "@navDoneHours": {
+    "description": "Zeit auf dem Trail ab einer Stunde, Stunden:Minuten:Sekunden fertig formatiert.",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "navDoneLoss": "BERGAB",
+  "@navDoneLoss": {
+    "description": "Beschriftung der Kachel mit den Höhenmetern bergab im Blatt „Trail geschafft“, Versalien."
+  },
+  "navDoneSpeed": "TOP-SPEED",
+  "@navDoneSpeed": {
+    "description": "Beschriftung der Kachel mit dem höchsten Tempo auf dem Trail (aus dem GPS), Versalien."
+  },
+  "navDoneLength": "LÄNGE",
+  "@navDoneLength": {
+    "description": "Beschriftung der Kachel mit der Länge des Trails, Versalien."
+  },
+  "navUnitKmh": "km/h",
+  "@navUnitKmh": {
+    "description": "Einheit unter dem höchsten Tempo."
+  },
+  "navDoneAsk": "WIE WAR ER HEUTE?",
+  "@navDoneAsk": {
+    "description": "Frage über den Zustands-Knöpfen im Blatt „Trail geschafft“, Versalien."
+  },
+  "navDoneNext": "Weiter · {length}",
+  "@navDoneNext": {
+    "description": "Knopf im Blatt „Trail geschafft“: weiter zum nächsten Abschnitt, Länge fertig formatiert.",
+    "placeholders": {
+      "length": {
+        "type": "String"
+      }
+    }
+  },
+  "navDoneNextClimb": "Weiter · {length} · ↑{climb} hm",
+  "@navDoneNextClimb": {
+    "description": "Knopf im Blatt „Trail geschafft“: weiter zum nächsten Abschnitt mit Höhenmetern bergauf.",
+    "placeholders": {
+      "length": {
+        "type": "String"
+      },
+      "climb": {
+        "type": "int"
+      }
+    }
+  },
+  "navDoneClose": "Weiter",
+  "@navDoneClose": {
+    "description": "Knopf im Blatt „Trail geschafft“, wenn kein Abschnitt mehr kommt."
   }
 }

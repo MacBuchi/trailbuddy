@@ -4,7 +4,7 @@
 
 ## Navigation von Trail zu Trail
 
-*Version 0.114.0, 2026-10-13*
+*Versionen 0.114.0 bis 0.115.0, 2026-10-13*
 
 - **Neu:** Beim Navigieren fragt die Karte „Was kommt als Nächstes?" statt
   „Wie weit noch?". Oben steht die Anfahrt zum nächsten Trailkopf — km,
@@ -23,6 +23,12 @@
   Modus — in der Sonne liest sich das besser über der hellen Karte. Und
   solange du navigierst, ist die Karte Vollbild: Die Reiterleiste kommt
   mit „Beenden" zurück.
+- **Neu:** Am Ende eines Trails steht „Trail geschafft": deine Zeit
+  darauf, die Höhenmeter bergab, dein Top-Speed und die Länge. Ein Tipp
+  sagt, wie er heute war — Top, gut, ausgefahren, abgerockt —, und deine
+  Buddys sehen es als Zustand, gemeldet vor Ort. „Weiter" zeigt den
+  nächsten Abschnitt; nach 20 Sekunden geht das Blatt von selbst. Es
+  kommt nur, wenn du mindestens die Hälfte des Trails gefahren bist.
 - Der Entwurf dazu liegt im Repo unter docs/design/navi.
 
 ## Ein Foto zum Hinweis

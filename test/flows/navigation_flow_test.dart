@@ -28,7 +28,7 @@ import 'package:trailbuddy/features/offline_areas/pmtiles_writer.dart';
 import 'package:trailbuddy/features/keep_alive/keep_alive.dart';
 import 'package:trailbuddy/features/rides/ride_track.dart';
 import 'package:trailbuddy/features/routing/nav_notice.dart';
-import 'package:trailbuddy/features/routing/nav_providers.dart' show kNavArrivedLinger, lastNavProvider;
+import 'package:trailbuddy/features/routing/nav_providers.dart' show kNavArrivedLinger, kNavTrailDoneLinger, lastNavProvider;
 import 'package:trailbuddy/models/trail.dart';
 
 import '../fakes/fake_backend.dart';
@@ -155,8 +155,9 @@ void main() {
     addTearDown(fixes.close);
   });
 
-  Future<void> fix(WidgetTester tester, double lat, double lng, {double heading = 90, double speed = 5}) async {
-    fixes.add(fakePosition(lat, lng, heading: heading, speed: speed));
+  Future<void> fix(WidgetTester tester, double lat, double lng,
+      {double heading = 90, double speed = 5, DateTime? at}) async {
+    fixes.add(fakePosition(lat, lng, heading: heading, speed: speed, at: at));
     await settle(tester, frames: 2);
   }
 
@@ -344,16 +345,81 @@ void main() {
     expect(textIn('nav-head-note'), contains('Baum quer'));
 
     // Auf dem Trail, rollend: die schmale Leiste mit dem Rest und dem Hinweis.
-    await fix(tester, 48.003, 9.0, heading: 0, speed: 5);
+    final t = DateTime.utc(2026, 10, 13, 10);
+    await fix(tester, 48.003, 9.0, heading: 0, speed: 5, at: t);
     expect(find.byKey(const ValueKey('nav-trail')), findsOneWidget);
     expect(textIn('nav-trail'), contains('ROSSKOPF SÜD'));
     expect(textIn('nav-trail-rest'), contains('m'));
     expect(textIn('nav-trail-note'), contains('jan: Nach der 2. Kehre'));
+    expect(find.byKey(const ValueKey('nav-done')), findsNothing);
+    await fix(tester, 48.006, 9.0, heading: 0, speed: 11.4, at: t.add(const Duration(seconds: 50)));
 
-    // Dahinter: kein Trail mehr, bis zum Ziel.
-    await fix(tester, 48.011, 9.0, heading: 0, speed: 5);
+    // Dahinter: kein Trail mehr, bis zum Ziel — und die Bilanz (#312 N2):
+    // Zeit ab der Einfahrt, Top-Speed aus dem GPS, Länge.
+    await fix(tester, 48.011, 9.0, heading: 0, speed: 5, at: t.add(const Duration(seconds: 102)));
     expect(textIn('nav-approach'), contains('BIS ZUM ZIEL'));
     expect(find.byKey(const ValueKey('nav-trail')), findsNothing);
+    expect(textIn('nav-done'), contains('TRAIL GESCHAFFT'));
+    expect(textIn('nav-done'), contains('ROSSKOPF SÜD'));
+    expect(tester.widget<Text>(find.byKey(const ValueKey('nav-done-time'))).data, '1:42 min');
+    expect(textIn('nav-done-speed'), contains('41'));
+    expect(textIn('nav-done-length'), contains('km'));
+    expect(textIn('nav-done-next'), startsWith('WEITER · '));
+    // Der Tipp meldet den Zustand vor Ort, zur Zeit des Trail-Endes.
+    await tester.tap(find.byKey(const ValueKey('nav-done-condition-4')));
+    await settle(tester, frames: 2);
+    final report = trails.reports.single;
+    expect(report.trailId, id);
+    expect(report.condition, 4);
+    expect(report.confirmed, isTrue);
+    expect(tester.widget<Text>(find.byKey(const ValueKey('nav-done-sent'))).data, 'Gemeldet — danke.');
+    // „Weiter" schließt; Band und Knöpfe sind wieder da.
+    await tester.tap(find.byKey(const ValueKey('nav-done-next')));
+    await settle(tester, frames: 2);
+    expect(find.byKey(const ValueKey('nav-done')), findsNothing);
+    expect(find.byKey(const ValueKey('nav-band')), findsOneWidget);
+  });
+
+  testWidgets('Trail geschafft closes by itself after 20 s; half a trail gets none (#312 N2)', (tester) async {
+    final trails = FakeTrailRepository(myId: () => backend.currentUserId ?? '', areFriends: backend.areFriends);
+    trails.seedTrail(backend.currentUserId!, name: 'Rosskopf Süd', grade: 2, lat: 48.0, lon: 9.0);
+    final t0 = DateTime.utc(2026, 10, 8, 9);
+    store.rides
+      ..clear()
+      ..add(Ride(
+        id: '20261008T090000Z',
+        startedAt: t0,
+        endedAt: t0.add(const Duration(hours: 1)),
+        points: [
+          for (var lat = 47.997; lat <= 48.0121; lat += 0.0002) RidePoint(lat: lat, lng: 9.0, at: t0, accuracyM: 0),
+        ],
+        planned: true,
+        name: 'Hausrunde',
+      ));
+    // Auf dem Telefon (360 dp): Das Blatt passt mit allen Knöpfen.
+    await startFromRides(tester, phone: true, trails: trails, start: const LatLng(47.997, 9.0));
+    await tester.tap(find.byKey(const ValueKey('nav-record')));
+    await settle(tester, frames: 2);
+    await tester.tap(find.byKey(const ValueKey('nav-go')));
+    await settle(tester);
+
+    // Erst nach zwei Dritteln eingestiegen: keine Bilanz.
+    await fix(tester, 48.007, 9.0, heading: 0, speed: 5);
+    expect(find.byKey(const ValueKey('nav-trail')), findsOneWidget);
+    await fix(tester, 48.011, 9.0, heading: 0, speed: 5);
+    expect(find.byKey(const ValueKey('nav-done')), findsNothing);
+
+    // Zurück an den Anfang und ganz gefahren: die Bilanz, die von selbst geht.
+    await fix(tester, 48.0005, 9.0, heading: 0, speed: 5);
+    await fix(tester, 48.011, 9.0, heading: 0, speed: 5);
+    expect(find.byKey(const ValueKey('nav-done')), findsOneWidget);
+    expect(tester.getBottomRight(find.byKey(const ValueKey('nav-done-condition-2'))).dx, lessThanOrEqualTo(360));
+    expect(tester.getSize(find.byKey(const ValueKey('nav-done-condition-2'))).height, greaterThanOrEqualTo(44));
+    await tester.pump(kNavTrailDoneLinger - const Duration(seconds: 1));
+    expect(find.byKey(const ValueKey('nav-done')), findsOneWidget);
+    await tester.pump(const Duration(seconds: 1));
+    await settle(tester, frames: 2);
+    expect(find.byKey(const ValueKey('nav-done')), findsNothing);
   });
 
   testWidgets('taps on the map do nothing while navigating; Beenden asks nothing', (tester) async {

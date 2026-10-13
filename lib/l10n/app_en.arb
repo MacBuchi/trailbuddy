@@ -620,5 +620,16 @@
   "navBandTrails": "{trails, plural, =1{1 TRAIL} other{{trails} TRAILS}}",
   "navBandRemaining": "{length} to go",
   "navBandRemainingClimb": "{length} to go · ↑{climb} m",
-  "navBandGoal": "Goal"
+  "navBandGoal": "Goal",
+  "navDoneTitle": "TRAIL DONE",
+  "navDoneMinutes": "{time} min",
+  "navDoneHours": "{time} h",
+  "navDoneLoss": "DOWNHILL",
+  "navDoneSpeed": "TOP SPEED",
+  "navDoneLength": "LENGTH",
+  "navUnitKmh": "km/h",
+  "navDoneAsk": "HOW WAS IT TODAY?",
+  "navDoneNext": "Continue · {length}",
+  "navDoneNextClimb": "Continue · {length} · ↑{climb} m",
+  "navDoneClose": "Continue"
 }
