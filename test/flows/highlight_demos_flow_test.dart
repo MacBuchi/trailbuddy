@@ -96,7 +96,7 @@ void main() {
   });
 
   for (final h in kFeatureHighlights) {
-    testWidgets('„${h.title}": vorgeführt, danach nichts offen', (tester) async {
+    testWidgets('„${h.title(l10nDe)}": vorgeführt, danach nichts offen', (tester) async {
       await pumpApp(tester, world(), trails: trails);
       expect(await run(tester, h.id), isNotEmpty, reason: h.id);
     });

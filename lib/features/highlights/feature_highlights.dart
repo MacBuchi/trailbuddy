@@ -19,6 +19,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/update_check.dart' show isNewerVersion;
+import '../../l10n/l10n.dart';
 
 /// Highlight (ins Blatt) oder Tipp (nur „Entdecken").
 enum HighlightKind { highlight, tip }
@@ -26,13 +27,18 @@ enum HighlightKind { highlight, tip }
 /// Wo die Funktion wohnt — die Gruppen der Seite „Entdecken", in der
 /// Reihenfolge der Reiterleiste.
 enum HighlightTab {
-  map('Karte'),
-  trails('Trails'),
-  buddys('Buddys'),
-  profile('Profil');
+  map,
+  trails,
+  buddys,
+  profile;
 
-  const HighlightTab(this.label);
-  final String label;
+  /// Wie der Reiter in der Reiterleiste heißt (#209).
+  String label(AppLocalizations l) => switch (this) {
+        HighlightTab.map => l.tabMap,
+        HighlightTab.trails => l.tabTrails,
+        HighlightTab.buddys => l.tabBuddys,
+        HighlightTab.profile => l.tabProfile,
+      };
 }
 
 /// Ein Eintrag.
@@ -62,16 +68,19 @@ class FeatureHighlight {
   /// auf dem Knopf.
   final IconData icon;
 
-  final String title;
+  /// Titel und Text aus den ARB-Dateien (#209) — Funktionen, weil die
+  /// Liste ohne `BuildContext` steht und gen-l10n keinen Zugriff über den
+  /// Namen kennt. Schlüssel `highlight<Kennung>Title`/`…Text`.
+  final String Function(AppLocalizations l) title;
 
   /// Zwei, höchstens drei Sätze.
-  final String text;
+  final String Function(AppLocalizations l) text;
 
   /// Wohin „Ausprobieren" führt: eine Route der App.
   final String target;
 }
 
-const kFeatureHighlights = <FeatureHighlight>[
+final kFeatureHighlights = <FeatureHighlight>[
   // ─── Highlights ──────────────────────────────────────────────────
   FeatureHighlight(
     id: 'nav-minimize',
@@ -79,10 +88,8 @@ const kFeatureHighlights = <FeatureHighlight>[
     kind: HighlightKind.highlight,
     tab: HighlightTab.map,
     icon: Icons.picture_in_picture_alt,
-    title: 'Minimieren',
-    text: 'Beim Navigieren legt „Minimieren" die Karte sofort ins kleine Fenster — '
-        'darunter der nächste Abschnitt. Die Benachrichtigung sagt ihn in zwei '
-        'Zeilen: wie weit und wie hoch bis zum Trailkopf, auf dem Trail der Rest.',
+    title: (l) => l.highlightNavMinimizeTitle,
+    text: (l) => l.highlightNavMinimizeText,
     target: '/',
   ),
   FeatureHighlight(
@@ -91,10 +98,8 @@ const kFeatureHighlights = <FeatureHighlight>[
     kind: HighlightKind.highlight,
     tab: HighlightTab.map,
     icon: Icons.emoji_events_outlined,
-    title: 'Trail geschafft',
-    text: 'Am Ende eines Trails beim Navigieren: deine Zeit darauf, die '
-        'Höhenmeter bergab, dein Top-Speed — und ein Tipp, wie er heute war. '
-        'Das sehen deine Buddys als Zustand.',
+    title: (l) => l.highlightNavTrailEndTitle,
+    text: (l) => l.highlightNavTrailEndText,
     target: '/',
   ),
   FeatureHighlight(
@@ -103,10 +108,8 @@ const kFeatureHighlights = <FeatureHighlight>[
     kind: HighlightKind.highlight,
     tab: HighlightTab.map,
     icon: Icons.alt_route,
-    title: 'Navigation von Trail zu Trail',
-    text: 'Beim Navigieren zählt die Karte bis zum nächsten Trailkopf: km, '
-        'Höhenmeter, die steile Rampe. Am Kopf stehen Stufe, Zustand und der '
-        'Hinweis deines Buddys, unten die ganze Runde als Band.',
+    title: (l) => l.highlightNavSectionsTitle,
+    text: (l) => l.highlightNavSectionsText,
     target: '/',
   ),
   FeatureHighlight(
@@ -115,10 +118,8 @@ const kFeatureHighlights = <FeatureHighlight>[
     kind: HighlightKind.highlight,
     tab: HighlightTab.trails,
     icon: Icons.add_a_photo_outlined,
-    title: 'Ein Foto zum Hinweis',
-    text: 'Der Baum quer über dem Trail, die neue Rampe: An einen Hinweis hängst '
-        'du jetzt ein Foto. Es sehen dieselben Buddys wie den Hinweis, 90 Tage '
-        'lang — ohne Ortsangaben im Bild.',
+    title: (l) => l.highlightNotePhotosTitle,
+    text: (l) => l.highlightNotePhotosText,
     target: '/trails',
   ),
   FeatureHighlight(
@@ -127,10 +128,8 @@ const kFeatureHighlights = <FeatureHighlight>[
     kind: HighlightKind.highlight,
     tab: HighlightTab.buddys,
     icon: Icons.chat_bubble_outline,
-    title: 'Nachrichten an deine Buddys',
-    text: 'Die Sprechblase neben einem Buddy öffnet eure Nachrichten — bei einer '
-        'offenen Anfrage schon bis zu drei. Mit eingeschalteten Benachrichtigungen '
-        'kommt eine Antwort auch an, wenn die App zu ist.',
+    title: (l) => l.highlightMessagesTitle,
+    text: (l) => l.highlightMessagesText,
     target: '/friends',
   ),
   FeatureHighlight(
@@ -139,10 +138,8 @@ const kFeatureHighlights = <FeatureHighlight>[
     kind: HighlightKind.highlight,
     tab: HighlightTab.profile,
     icon: Icons.download_for_offline_outlined,
-    title: 'Die ganze Region offline',
-    text: 'In „Meine Bereiche" speicherst du auf dem Telefon die ganze Karte einer '
-        'Region, samt Orten, Höhen und Wegen. Was deine Bereiche schon haben, kommt '
-        'nicht noch einmal; „Aktualisieren" holt später nur, was alt ist.',
+    title: (l) => l.highlightWholeRegionTitle,
+    text: (l) => l.highlightWholeRegionText,
     target: '/profile/areas',
   ),
   FeatureHighlight(
@@ -151,10 +148,8 @@ const kFeatureHighlights = <FeatureHighlight>[
     kind: HighlightKind.highlight,
     tab: HighlightTab.map,
     icon: Icons.layers_outlined,
-    title: 'Höhenlinien',
-    text: 'Unter „Kartenebenen" schaltest du Höhenlinien dazu — dezent unter Wegen '
-        'und Trails, beschriftet etwa alle 100 m. Sie kommen aus dem Geländemodell, '
-        'in gespeicherten Bereichen auch ohne Empfang.',
+    title: (l) => l.highlightContoursTitle,
+    text: (l) => l.highlightContoursText,
     target: '/',
   ),
   FeatureHighlight(
@@ -163,10 +158,8 @@ const kFeatureHighlights = <FeatureHighlight>[
     kind: HighlightKind.highlight,
     tab: HighlightTab.map,
     icon: Icons.picture_in_picture_alt_outlined,
-    title: 'Navigation im kleinen Fenster',
-    text: 'Wischst du beim Navigieren nach Hause — oder tippst „Minimieren" —, '
-        'bleibt die Karte als kleines Fenster über den anderen Apps, darunter '
-        'der nächste Abschnitt. „Beenden" geht direkt im Fenster.',
+    title: (l) => l.highlightNavPipTitle,
+    text: (l) => l.highlightNavPipText,
     target: '/',
   ),
   FeatureHighlight(
@@ -175,11 +168,8 @@ const kFeatureHighlights = <FeatureHighlight>[
     kind: HighlightKind.highlight,
     tab: HighlightTab.map,
     icon: Icons.notifications_active_outlined,
-    title: 'Navigation in der Benachrichtigung',
-    text: 'Telefon in der Tasche oder andere App vorne: Die Benachrichtigung zeigt '
-        'den nächsten Abschnitt — wie weit und wie hoch bis zum Trailkopf, auf '
-        'dem Trail der Rest — und ob du auf der Route bist. „Navigation beenden" '
-        'geht direkt dort.',
+    title: (l) => l.highlightNavNoticeTitle,
+    text: (l) => l.highlightNavNoticeText,
     target: '/',
   ),
   FeatureHighlight(
@@ -188,10 +178,8 @@ const kFeatureHighlights = <FeatureHighlight>[
     kind: HighlightKind.highlight,
     tab: HighlightTab.map,
     icon: Icons.u_turn_left,
-    title: 'Zurück zur Route',
-    text: 'Neben der Route beim Navigieren: Ein Tipp zeigt den Weg zurück, 200 m '
-        'voraus statt zum nächsten Punkt. Eine beendete Navigation geht oben in '
-        '„Meine Fahrten" weiter.',
+    title: (l) => l.highlightNavRejoinTitle,
+    text: (l) => l.highlightNavRejoinText,
     target: '/',
   ),
   FeatureHighlight(
@@ -200,10 +188,8 @@ const kFeatureHighlights = <FeatureHighlight>[
     kind: HighlightKind.highlight,
     tab: HighlightTab.map,
     icon: Icons.navigation_outlined,
-    title: 'Navigieren',
-    text: 'Im Ergebnis einer Runde oder eines Wegs, und bei jeder Fahrt in „Meine '
-        'Fahrten": Die Karte dreht mit, oben stehen Rest, Höhenmeter und der '
-        'Abstand zur Route — ohne Abbiegehinweise.',
+    title: (l) => l.highlightNavigationTitle,
+    text: (l) => l.highlightNavigationText,
     target: '/',
   ),
   FeatureHighlight(
@@ -212,10 +198,8 @@ const kFeatureHighlights = <FeatureHighlight>[
     kind: HighlightKind.highlight,
     tab: HighlightTab.map,
     icon: Icons.alt_route,
-    title: 'Den Weg von Hand ziehen',
-    text: 'Tippe auf die Linie einer geplanten Runde oder eines Wegs zum Trail: '
-        'Dort sitzt ein Zwischenpunkt, den du ziehen kannst, und der Weg führt '
-        'durch ihn. Ein Tipp auf den Punkt nimmt ihn wieder weg.',
+    title: (l) => l.highlightRouteViasTitle,
+    text: (l) => l.highlightRouteViasText,
     target: '/',
   ),
   FeatureHighlight(
@@ -224,11 +208,8 @@ const kFeatureHighlights = <FeatureHighlight>[
     kind: HighlightKind.highlight,
     tab: HighlightTab.map,
     icon: Icons.layers_outlined,
-    title: 'Wie gut ist der Weg?',
-    text: 'Ab Zoomstufe 13 zeigt die Karte, wie gut ein Forstweg ist und wie schwer '
-        'ein Pfad: durchgezogen gut oder leicht, gestrichelt mittel, gepunktet '
-        'schlecht oder schwer. Die Angaben stammen aus OpenStreetMap; unter „Kartenebenen" '
-        'schaltest du sie ab.',
+    title: (l) => l.highlightWayQualityTitle,
+    text: (l) => l.highlightWayQualityText,
     target: '/',
   ),
   FeatureHighlight(
@@ -237,10 +218,8 @@ const kFeatureHighlights = <FeatureHighlight>[
     kind: HighlightKind.highlight,
     tab: HighlightTab.map,
     icon: Icons.alt_route,
-    title: 'Höhenprofil der Runde',
-    text: 'Unter der Summe einer geplanten Runde steht jetzt ihr Höhenprofil, '
-        'kompakt über die ganze Strecke — ebenso beim Weg zum Trail. Die Höhen '
-        'kommen aus dem Geländemodell deiner Bereiche.',
+    title: (l) => l.highlightRouteElevationTitle,
+    text: (l) => l.highlightRouteElevationText,
     target: '/',
   ),
   FeatureHighlight(
@@ -249,10 +228,8 @@ const kFeatureHighlights = <FeatureHighlight>[
     kind: HighlightKind.highlight,
     tab: HighlightTab.profile,
     icon: Icons.electric_bike_outlined,
-    title: 'Meine Fahrten aufräumen',
-    text: 'An jeder Fahrt steht ihr Rad, ein Tipp stellt es um. Nach links wischen '
-        'löscht, ein langer Druck wählt mehrere. Beim GPX-Import schlägt die App '
-        'das Rad nach der Steigrate vor.',
+    title: (l) => l.highlightRidesTidyTitle,
+    text: (l) => l.highlightRidesTidyText,
     target: '/profile/rides',
   ),
   FeatureHighlight(
@@ -261,9 +238,8 @@ const kFeatureHighlights = <FeatureHighlight>[
     kind: HighlightKind.highlight,
     tab: HighlightTab.trails,
     icon: Icons.tune,
-    title: 'Filter nach Ausschnitt und S-Grad',
-    text: '„Auf der Karte" zeigt in der Liste nur die Trails im Kartenausschnitt. '
-        'Den S-Grad stellst du als Bereich ein, etwa „ab S3" oder „S1–S3".',
+    title: (l) => l.highlightTrailListFiltersTitle,
+    text: (l) => l.highlightTrailListFiltersText,
     target: '/trails',
   ),
   FeatureHighlight(
@@ -272,10 +248,8 @@ const kFeatureHighlights = <FeatureHighlight>[
     kind: HighlightKind.highlight,
     tab: HighlightTab.trails,
     icon: Icons.file_upload_outlined,
-    title: 'Alte Fahrten zählen mit',
-    text: 'Fahrten aus anderen Apps holst du per GPX-Import in „Meine Fahrten" — '
-        'mit dem Rad, mit dem du sie gefahren bist. Das Fahrerprofil lernt dann '
-        'auch aus ihnen, wie schnell du bergauf kommst.',
+    title: (l) => l.highlightRideImportTitle,
+    text: (l) => l.highlightRideImportText,
     target: '/trails',
   ),
   FeatureHighlight(
@@ -284,10 +258,8 @@ const kFeatureHighlights = <FeatureHighlight>[
     kind: HighlightKind.highlight,
     tab: HighlightTab.map,
     icon: Icons.tune,
-    title: 'Wege nach deinem Geschmack',
-    text: 'Straßen, Wanderwege bergauf, steile Rampen: In den Parametern des '
-        'Planers sagst du je, ob du sie meidest oder ob sie dir egal sind. Das '
-        'gilt für Runden und den Weg zum Trail.',
+    title: (l) => l.highlightRoutePrefsTitle,
+    text: (l) => l.highlightRoutePrefsText,
     target: '/',
   ),
   FeatureHighlight(
@@ -296,10 +268,8 @@ const kFeatureHighlights = <FeatureHighlight>[
     kind: HighlightKind.highlight,
     tab: HighlightTab.map,
     icon: Icons.trending_up,
-    title: 'Steile Rampen meiden',
-    text: 'Runden und Wege zum Trail weichen sehr steilen Anstiegen aus, wo es '
-        'flacher geht — je steiler, desto stärker, auf Schotter und Pfad mehr '
-        'als auf Asphalt. Uphill-Trails bleiben gewollt.',
+    title: (l) => l.highlightSteepClimbsTitle,
+    text: (l) => l.highlightSteepClimbsText,
     target: '/',
   ),
   FeatureHighlight(
@@ -308,10 +278,8 @@ const kFeatureHighlights = <FeatureHighlight>[
     kind: HighlightKind.highlight,
     tab: HighlightTab.trails,
     icon: Icons.terrain,
-    title: 'Höhen aus dem Geländemodell',
-    text: 'Fehlen einem Trail die Höhen, zeigt das Blatt sein Profil aus dem '
-        'Geländemodell — beschriftet und nie gespeichert. Der Import prüft die '
-        'Höhen einer Datei und bietet an, schlechte zu verwerfen.',
+    title: (l) => l.highlightTerrainHeightsTitle,
+    text: (l) => l.highlightTerrainHeightsText,
     target: '/trails',
   ),
   FeatureHighlight(
@@ -320,10 +288,8 @@ const kFeatureHighlights = <FeatureHighlight>[
     kind: HighlightKind.highlight,
     tab: HighlightTab.map,
     icon: Icons.cloud_download_outlined,
-    title: 'Runden auch ohne Bereich',
-    text: 'Mit Empfang holt der Planer die Wege, die deinen Bereichen fehlen, '
-        'vom Kartenhost — eine Runde geht dann auch ohne gespeicherten Bereich. '
-        'Abschalten kannst du es unter Parameter.',
+    title: (l) => l.highlightOnlineFillTitle,
+    text: (l) => l.highlightOnlineFillText,
     target: '/',
   ),
   FeatureHighlight(
@@ -332,10 +298,8 @@ const kFeatureHighlights = <FeatureHighlight>[
     kind: HighlightKind.highlight,
     tab: HighlightTab.map,
     icon: Icons.legend_toggle,
-    title: 'Die Legende auf der Karte',
-    text: 'Links am Rand steht eine schmale Lasche mit den Pistenfarben. Ein '
-        'Tipp klappt die Legende auf — Farben, Linienarten, Ränder —, ein '
-        'zweiter wieder zu. Die App merkt sich, wie du sie magst.',
+    title: (l) => l.highlightMapLegendTitle,
+    text: (l) => l.highlightMapLegendText,
     target: '/',
   ),
   FeatureHighlight(
@@ -344,10 +308,8 @@ const kFeatureHighlights = <FeatureHighlight>[
     kind: HighlightKind.highlight,
     tab: HighlightTab.map,
     icon: Icons.layers_outlined,
-    title: 'Ebenen mit einem Tipp',
-    text: 'Der oberste Knopf rechts öffnet die Kartenebenen direkt: Trail-Filter, '
-        'offizielle Trails und Orte in einem Blatt. Die Offline-Karten haben '
-        'ihren eigenen Knopf darunter, die Glühbirne steht jetzt oben rechts.',
+    title: (l) => l.highlightMapLayersTitle,
+    text: (l) => l.highlightMapLayersText,
     target: '/',
   ),
   FeatureHighlight(
@@ -356,10 +318,8 @@ const kFeatureHighlights = <FeatureHighlight>[
     kind: HighlightKind.highlight,
     tab: HighlightTab.map,
     icon: Icons.touch_app_outlined,
-    title: 'Trail antippen, Route ab hier',
-    text: 'Ein Tipp hebt einen Trail hervor und zeigt unten eine kleine Karte; '
-        'ein zweiter öffnet sein Blatt. Ein langer Druck auf die Karte bietet '
-        '„Route ab hier" und „Route bis hier".',
+    title: (l) => l.highlightMapSelectTitle,
+    text: (l) => l.highlightMapSelectText,
     target: '/',
   ),
   FeatureHighlight(
@@ -368,10 +328,8 @@ const kFeatureHighlights = <FeatureHighlight>[
     kind: HighlightKind.highlight,
     tab: HighlightTab.trails,
     icon: Icons.navigation_outlined,
-    title: 'Zum Trail navigieren',
-    text: 'Das Navi-Symbol an jedem Trail: mit deiner Navi-App, oder in '
-        'TrailBuddy direkt oder spaßig — dann nimmt der Weg Trails mit. Was du '
-        'meistens willst, merkt es sich.',
+    title: (l) => l.highlightTrailNavTitle,
+    text: (l) => l.highlightTrailNavText,
     target: '/trails',
   ),
   FeatureHighlight(
@@ -380,10 +338,8 @@ const kFeatureHighlights = <FeatureHighlight>[
     kind: HighlightKind.highlight,
     tab: HighlightTab.map,
     icon: Icons.alt_route,
-    title: 'Runde planen',
-    text: 'Der Runden-Knopf öffnet den Planer: Trails antippen, links Start, '
-        'Parameter, Liste und Gebiet — die App verbindet sie bergab über die '
-        'Wege deiner Bereiche, offline. Als geplante Fahrt oder GPX.',
+    title: (l) => l.highlightLoopPlannerTitle,
+    text: (l) => l.highlightLoopPlannerText,
     target: '/',
   ),
   FeatureHighlight(
@@ -392,10 +348,8 @@ const kFeatureHighlights = <FeatureHighlight>[
     kind: HighlightKind.highlight,
     tab: HighlightTab.trails,
     icon: Icons.share_outlined,
-    title: 'Trails und Fahrten als GPX',
-    text: 'Jeder Trail und jede Fahrt lässt sich als GPX-Datei weitergeben — '
-        'an Komoot, Garmin, eine Navi-App oder als Sicherung. Trails im Blatt, '
-        'Fahrten unter „Meine Fahrten".',
+    title: (l) => l.highlightGpxExportTitle,
+    text: (l) => l.highlightGpxExportText,
     target: '/trails',
   ),
   FeatureHighlight(
@@ -404,10 +358,8 @@ const kFeatureHighlights = <FeatureHighlight>[
     kind: HighlightKind.highlight,
     tab: HighlightTab.trails,
     icon: Icons.route_outlined,
-    title: 'Zum Trailkopf, offline',
-    text: '„Zum Trailkopf" im Blatt rechnet den Weg von deinem Standort zum '
-        'Anfang des Trails — aus deinen gespeicherten Bereichen, ohne Netz: '
-        'Linie auf der Karte, Höhenmeter, Zeit, und ob ein Wanderweg dabei ist.',
+    title: (l) => l.highlightTrailHeadTitle,
+    text: (l) => l.highlightTrailHeadText,
     target: '/trails',
   ),
   FeatureHighlight(
@@ -416,10 +368,8 @@ const kFeatureHighlights = <FeatureHighlight>[
     kind: HighlightKind.highlight,
     tab: HighlightTab.trails,
     icon: Icons.directions_outlined,
-    title: 'Anfahrt zum Trail',
-    text: 'Das Navi-Symbol oben im Blatt übergibt den Anfang des Trails an '
-        'deine Navi-App — welche, entscheidest du im Wähler. Ohne Navi-App '
-        'landen die Koordinaten in der Zwischenablage.',
+    title: (l) => l.highlightNavigateTitle,
+    text: (l) => l.highlightNavigateText,
     target: '/trails',
   ),
   FeatureHighlight(
@@ -428,10 +378,8 @@ const kFeatureHighlights = <FeatureHighlight>[
     kind: HighlightKind.highlight,
     tab: HighlightTab.map,
     icon: Icons.trending_flat,
-    title: 'Anfang und Richtung',
-    text: 'Jeder Trail hat einen Punkt mit Pfeil am Anfang, in seiner '
-        'Farbe. So siehst du auf der Karte, wo es losgeht und in welche '
-        'Richtung.',
+    title: (l) => l.highlightTrailEndsTitle,
+    text: (l) => l.highlightTrailEndsText,
     target: '/',
   ),
   FeatureHighlight(
@@ -440,9 +388,8 @@ const kFeatureHighlights = <FeatureHighlight>[
     kind: HighlightKind.highlight,
     tab: HighlightTab.profile,
     icon: Icons.help_outline,
-    title: 'Die Kurzanleitung',
-    text: 'Das Wichtigste in sechs Schritten, mit den echten Symbolen — und '
-        'von dort startest du jede Tour noch einmal.',
+    title: (l) => l.highlightKurzanleitungTitle,
+    text: (l) => l.highlightKurzanleitungText,
     target: '/profile/help',
   ),
   FeatureHighlight(
@@ -451,9 +398,8 @@ const kFeatureHighlights = <FeatureHighlight>[
     kind: HighlightKind.highlight,
     tab: HighlightTab.trails,
     icon: Icons.fact_check_outlined,
-    title: 'Noch gültig?',
-    text: 'Sind deine Meldungen und Zustände älter als 30 Tage, fragt das '
-        'Profil nach: Ja, Nein oder Weiß nicht — dann in 14 Tagen wieder.',
+    title: (l) => l.highlightStillValidTitle,
+    text: (l) => l.highlightStillValidText,
     target: '/profile',
   ),
   FeatureHighlight(
@@ -462,10 +408,8 @@ const kFeatureHighlights = <FeatureHighlight>[
     kind: HighlightKind.highlight,
     tab: HighlightTab.map,
     icon: Icons.flag_outlined,
-    title: 'Trail beginnt, Trail endet',
-    text: 'Während einer Aufzeichnung steht über dem Aufnahmeknopf eine Fahne. '
-        'Am Anfang und am Ende eines Trails antippen — im Zerlege-Blatt ist '
-        'das Stück dann schon angehakt.',
+    title: (l) => l.highlightMarksTitle,
+    text: (l) => l.highlightMarksText,
     target: '/',
   ),
   FeatureHighlight(
@@ -474,10 +418,8 @@ const kFeatureHighlights = <FeatureHighlight>[
     kind: HighlightKind.highlight,
     tab: HighlightTab.trails,
     icon: Icons.bookmark_add_outlined,
-    title: 'Einen Buddy-Trail zu deinem machen',
-    text: 'Fährst du einen Trail deiner Buddys zum ersten Mal, übernimmst du '
-        'ihn im Zerlege-Blatt mit deinen Sternen. Dann bleibt er dir, auch '
-        'wenn der Buddy seinen Beitrag löscht.',
+    title: (l) => l.highlightTakeoverTitle,
+    text: (l) => l.highlightTakeoverText,
     target: '/trails',
   ),
   FeatureHighlight(
@@ -486,10 +428,8 @@ const kFeatureHighlights = <FeatureHighlight>[
     kind: HighlightKind.highlight,
     tab: HighlightTab.trails,
     icon: Icons.flag_outlined,
-    title: 'Melden, was gerade gilt',
-    text: '„Melden" im Blatt sagt, ob ein Trail gesperrt, zerstört oder '
-        'verändert ist, und wie er gerade aussieht — von kaum fahrbar bis top '
-        'gepflegt. Bestätigt ist es, wenn du ihn gefahren hast oder vor Ort bist.',
+    title: (l) => l.highlightReportsTitle,
+    text: (l) => l.highlightReportsText,
     target: '/trails',
   ),
   FeatureHighlight(
@@ -498,9 +438,8 @@ const kFeatureHighlights = <FeatureHighlight>[
     kind: HighlightKind.highlight,
     tab: HighlightTab.trails,
     icon: Icons.star_outline_rounded,
-    title: 'Sterne für Trails',
-    text: 'Trails, die du gefahren bist, bewertest du mit ein bis fünf Sternen. '
-        'Die Liste sortiert auf Wunsch danach.',
+    title: (l) => l.highlightRatingTitle,
+    text: (l) => l.highlightRatingText,
     target: '/trails',
   ),
   FeatureHighlight(
@@ -509,9 +448,8 @@ const kFeatureHighlights = <FeatureHighlight>[
     kind: HighlightKind.highlight,
     tab: HighlightTab.map,
     icon: Icons.palette_outlined,
-    title: 'Farbe heißt Schwierigkeit',
-    text: 'Wie auf der Piste: grün S0, blau S1, rot S2, schwarz ab S3. Die Art '
-        'der Linie sagt den Zustand, ein gestrichelter Saum S4 oder S5.',
+    title: (l) => l.highlightGradeColorsTitle,
+    text: (l) => l.highlightGradeColorsText,
     target: '/',
   ),
   FeatureHighlight(
@@ -520,9 +458,8 @@ const kFeatureHighlights = <FeatureHighlight>[
     kind: HighlightKind.highlight,
     tab: HighlightTab.buddys,
     icon: Icons.merge_type,
-    title: 'Verbinden heißt zusammenlegen',
-    text: 'Nimmst du eine Anfrage an, werden gleiche Trails EIN Trail mit zwei '
-        'Namen. Die Karte danach sagt, was ihr gemeinsam habt und was neu ist.',
+    title: (l) => l.highlightConnectMergeTitle,
+    text: (l) => l.highlightConnectMergeText,
     target: '/friends',
   ),
   FeatureHighlight(
@@ -531,10 +468,8 @@ const kFeatureHighlights = <FeatureHighlight>[
     kind: HighlightKind.highlight,
     tab: HighlightTab.trails,
     icon: Icons.content_cut,
-    title: 'Aus einer Fahrt werden Trails',
-    text: 'Eine ganze Runde zerlegst du mit der Schere: Bekannte Trails erkennt '
-        'die App wieder, neue schlägt sie vor. Zu Buddys gehen nur die '
-        'gewählten Stücke.',
+    title: (l) => l.highlightImportSplitTitle,
+    text: (l) => l.highlightImportSplitText,
     target: '/trails',
   ),
   FeatureHighlight(
@@ -543,10 +478,8 @@ const kFeatureHighlights = <FeatureHighlight>[
     kind: HighlightKind.highlight,
     tab: HighlightTab.map,
     icon: Icons.download_for_offline_outlined,
-    title: 'Karten für unterwegs',
-    text: 'Unter „Offline-Karten" zeichnest du einen Bereich, den die App '
-        'speichert — dann steht die Karte auch ohne Empfang. „Meine Bereiche" '
-        'im Profil verwaltet sie.',
+    title: (l) => l.highlightOfflineAreasTitle,
+    text: (l) => l.highlightOfflineAreasText,
     target: '/',
   ),
   FeatureHighlight(
@@ -555,9 +488,8 @@ const kFeatureHighlights = <FeatureHighlight>[
     kind: HighlightKind.highlight,
     tab: HighlightTab.map,
     icon: Icons.circle,
-    title: 'Eine Fahrt aufzeichnen',
-    text: 'In der Android-App zeichnet der große Knopf deine Fahrt auf, auch '
-        'ohne Empfang. Sie bleibt auf deinem Gerät, bis du sie zerlegst.',
+    title: (l) => l.highlightRideRecordTitle,
+    text: (l) => l.highlightRideRecordText,
     target: '/',
   ),
   FeatureHighlight(
@@ -566,9 +498,8 @@ const kFeatureHighlights = <FeatureHighlight>[
     kind: HighlightKind.highlight,
     tab: HighlightTab.map,
     icon: Icons.verified_outlined,
-    title: 'Offizielle Trails',
-    text: 'Vom Land ausgewiesene Singletrails, gestrichelt in Violett — mit '
-        'Status und Quelle. Ein- und ausschalten unter „Kartenebenen".',
+    title: (l) => l.highlightOfficialTrailsTitle,
+    text: (l) => l.highlightOfficialTrailsText,
     target: '/',
   ),
   FeatureHighlight(
@@ -577,10 +508,8 @@ const kFeatureHighlights = <FeatureHighlight>[
     kind: HighlightKind.highlight,
     tab: HighlightTab.trails,
     icon: Icons.add_comment_outlined,
-    title: 'Hinweise für Buddys',
-    text: '„Baum liegt quer": Ein Hinweis im Blatt erzählt deinen Buddys, was '
-        'gerade los ist. Bei ihnen leuchtet der Trail gelb, bis sie ihn gelesen '
-        'haben.',
+    title: (l) => l.highlightTrailNotesTitle,
+    text: (l) => l.highlightTrailNotesText,
     target: '/trails',
   ),
   // ─── Tipps ───────────────────────────────────────────────────────
@@ -590,9 +519,8 @@ const kFeatureHighlights = <FeatureHighlight>[
     kind: HighlightKind.tip,
     tab: HighlightTab.trails,
     icon: Icons.merge_type,
-    title: 'Sind das dieselben?',
-    text: 'Hält ein Buddy deinen Trail für einen anderen oder liegen zwei fast aufeinander, '
-        'fragt die App nach: derselbe, verschieden, oder beide auf der Karte ansehen.',
+    title: (l) => l.highlightMergeProposalsTitle,
+    text: (l) => l.highlightMergeProposalsText,
     target: '/profile',
   ),
   FeatureHighlight(
@@ -601,9 +529,8 @@ const kFeatureHighlights = <FeatureHighlight>[
     kind: HighlightKind.tip,
     tab: HighlightTab.trails,
     icon: Icons.merge_type,
-    title: 'Doppelte Trails zusammenführen',
-    text: 'Liegt ein Trail knapp neben einem anderen — etwa nach einem GPX-Import —, '
-        'steht im Blatt „Ist ein Duplikat …". Deine Aufzeichnungen ziehen zu dem, der bleibt.',
+    title: (l) => l.highlightTrailMergeTitle,
+    text: (l) => l.highlightTrailMergeText,
     target: '/trails',
   ),
   FeatureHighlight(
@@ -612,9 +539,8 @@ const kFeatureHighlights = <FeatureHighlight>[
     kind: HighlightKind.tip,
     tab: HighlightTab.profile,
     icon: Icons.play_circle_outline,
-    title: 'Touren noch einmal ansehen',
-    text: 'Karte, Trails, Buddys und das Zerlegen einer Fahrt erklären sich in '
-        'kurzen Touren. Neu starten: Profil → Kurzanleitung.',
+    title: (l) => l.highlightToursTitle,
+    text: (l) => l.highlightToursText,
     target: '/profile/help',
   ),
   FeatureHighlight(
@@ -623,10 +549,8 @@ const kFeatureHighlights = <FeatureHighlight>[
     kind: HighlightKind.tip,
     tab: HighlightTab.trails,
     icon: Icons.content_cut,
-    title: 'Ein Stück selbst wählen',
-    text: 'Findet die Suche im Zerlege-Blatt eine Jump-Line nicht, legt „Stück '
-        'selbst wählen" einen Kandidaten über die ganze Fahrt — die Griffe '
-        'machen den Rest.',
+    title: (l) => l.highlightPickSectionTitle,
+    text: (l) => l.highlightPickSectionText,
     target: '/profile/rides',
   ),
   FeatureHighlight(
@@ -635,9 +559,8 @@ const kFeatureHighlights = <FeatureHighlight>[
     kind: HighlightKind.tip,
     tab: HighlightTab.trails,
     icon: Icons.open_in_new,
-    title: 'Ein Link zur Quelle',
-    text: 'In „Mein Beitrag" kann ein Trail auf eine Seite zeigen, etwa die des '
-        'Vereins. Das Blatt nennt die Adresse, geöffnet wird im Browser.',
+    title: (l) => l.highlightTrailLinkTitle,
+    text: (l) => l.highlightTrailLinkText,
     target: '/trails',
   ),
   FeatureHighlight(
@@ -646,9 +569,8 @@ const kFeatureHighlights = <FeatureHighlight>[
     kind: HighlightKind.tip,
     tab: HighlightTab.trails,
     icon: Icons.edit_calendar_outlined,
-    title: 'Geplant oder gefahren',
-    text: 'Eine GPX-Datei ohne Fahrzeiten gilt als nur geplant. Bist du ihn '
-        'gefahren, trägst du beim Import „Gefahren am …" ein.',
+    title: (l) => l.highlightPlannedTitle,
+    text: (l) => l.highlightPlannedText,
     target: '/trails',
   ),
   FeatureHighlight(
@@ -657,10 +579,8 @@ const kFeatureHighlights = <FeatureHighlight>[
     kind: HighlightKind.tip,
     tab: HighlightTab.trails,
     icon: Icons.terrain_outlined,
-    title: 'Der Charakter eines Trails',
-    text: 'Flowig, Jump-Line, verblockt, steil, Uphill: Die zwei häufigsten '
-        'Angaben stehen am Schild — und die Filter „Flowig" und „Jumps" suchen '
-        'danach.',
+    title: (l) => l.highlightTraitsTitle,
+    text: (l) => l.highlightTraitsText,
     target: '/trails',
   ),
   FeatureHighlight(
@@ -669,9 +589,8 @@ const kFeatureHighlights = <FeatureHighlight>[
     kind: HighlightKind.tip,
     tab: HighlightTab.trails,
     icon: Icons.bar_chart,
-    title: 'Wer wie eingeschätzt hat',
-    text: 'Ein Tipp auf den S-Grad im Blatt zeigt alle Einschätzungen deines '
-        'Netzes — und was S0 bis S5 bedeuten.',
+    title: (l) => l.highlightGradeVotesTitle,
+    text: (l) => l.highlightGradeVotesText,
     target: '/trails',
   ),
   FeatureHighlight(
@@ -680,9 +599,8 @@ const kFeatureHighlights = <FeatureHighlight>[
     kind: HighlightKind.tip,
     tab: HighlightTab.trails,
     icon: Icons.visibility_off_outlined,
-    title: 'Nur für mich',
-    text: 'In „Mein Beitrag" hältst du einen Trail vor deinen Buddys verborgen. '
-        'Er bleibt auf deiner Karte.',
+    title: (l) => l.highlightVisibilityTitle,
+    text: (l) => l.highlightVisibilityText,
     target: '/trails',
   ),
   FeatureHighlight(
@@ -691,9 +609,8 @@ const kFeatureHighlights = <FeatureHighlight>[
     kind: HighlightKind.tip,
     tab: HighlightTab.map,
     icon: Icons.layers_outlined,
-    title: 'Orte auf der Karte',
-    text: 'Einkehr, Wasser, Rad-Service: Welche Orte die Karte zeigt, wählst du '
-        'unter „Kartenebenen", dem obersten Knopf rechts.',
+    title: (l) => l.highlightPoisTitle,
+    text: (l) => l.highlightPoisText,
     target: '/',
   ),
   FeatureHighlight(
@@ -702,9 +619,8 @@ const kFeatureHighlights = <FeatureHighlight>[
     kind: HighlightKind.tip,
     tab: HighlightTab.map,
     icon: Icons.my_location,
-    title: 'Wo bin ich?',
-    text: 'Der Positionsknopf holt die Karte zu dir. Dein Standort verlässt das '
-        'Gerät nie.',
+    title: (l) => l.highlightMyPositionTitle,
+    text: (l) => l.highlightMyPositionText,
     target: '/',
   ),
   FeatureHighlight(
@@ -713,9 +629,8 @@ const kFeatureHighlights = <FeatureHighlight>[
     kind: HighlightKind.tip,
     tab: HighlightTab.buddys,
     icon: Icons.edit_outlined,
-    title: 'Ein eigener Name für Buddys',
-    text: 'Der Stift neben einem Buddy gibt ihm einen Namen, den nur du siehst '
-        '— überall in der App.',
+    title: (l) => l.highlightBuddyAliasTitle,
+    text: (l) => l.highlightBuddyAliasText,
     target: '/friends',
   ),
   FeatureHighlight(
@@ -724,9 +639,8 @@ const kFeatureHighlights = <FeatureHighlight>[
     kind: HighlightKind.tip,
     tab: HighlightTab.buddys,
     icon: Icons.share,
-    title: 'Buddys einladen',
-    text: 'Oben rechts im Reiter „Buddys": ein Link zu TrailBuddy mit deinem '
-        'Benutzernamen, damit man dich gleich findet.',
+    title: (l) => l.highlightInviteTitle,
+    text: (l) => l.highlightInviteText,
     target: '/friends',
   ),
   FeatureHighlight(
@@ -735,9 +649,8 @@ const kFeatureHighlights = <FeatureHighlight>[
     kind: HighlightKind.tip,
     tab: HighlightTab.profile,
     icon: Icons.notifications_outlined,
-    title: 'Benachrichtigungen',
-    text: 'Meldet ein Buddy einen Trail oder schreibt einen Hinweis, sagt es dir '
-        'dein Telefon — einschalten im Profil.',
+    title: (l) => l.highlightNotificationsTitle,
+    text: (l) => l.highlightNotificationsText,
     target: '/profile/notifications',
   ),
   FeatureHighlight(
@@ -746,10 +659,8 @@ const kFeatureHighlights = <FeatureHighlight>[
     kind: HighlightKind.tip,
     tab: HighlightTab.profile,
     icon: Icons.school_outlined,
-    title: 'Gelernt aus deinen Fahrten',
-    text: 'Unter „Fahrerprofil": „Aus meinen Fahrten lernen" liest Zeit und '
-        'GPS-Höhe deiner Aufzeichnungen und stellt Steigrate und '
-        'Flachgeschwindigkeit je Profil auf dich ein. Zurücksetzen geht jederzeit.',
+    title: (l) => l.highlightRiderLearnTitle,
+    text: (l) => l.highlightRiderLearnText,
     target: '/profile/rider',
   ),
   FeatureHighlight(
@@ -758,10 +669,8 @@ const kFeatureHighlights = <FeatureHighlight>[
     kind: HighlightKind.tip,
     tab: HighlightTab.profile,
     icon: Icons.pedal_bike_outlined,
-    title: 'Bio-Bike oder E-Bike',
-    text: 'Unter „Fahrerprofil" im Profil: wie schnell es bergauf geht, wie '
-        'teuer ein Wanderweg ist, wie viele Höhenmeter eine Runde haben darf. '
-        'Die Routenplanung rechnet damit; jede Fahrt merkt es sich.',
+    title: (l) => l.highlightRiderProfileTitle,
+    text: (l) => l.highlightRiderProfileText,
     target: '/profile/rider',
   ),
   FeatureHighlight(
@@ -770,9 +679,8 @@ const kFeatureHighlights = <FeatureHighlight>[
     kind: HighlightKind.tip,
     tab: HighlightTab.profile,
     icon: Icons.contrast,
-    title: 'Hell oder dunkel',
-    text: 'Unter „Erscheinungsbild" im Profil — oder wie das System. Die Karte '
-        'bleibt hell, in der Sonne liest sie sich besser.',
+    title: (l) => l.highlightAppearanceTitle,
+    text: (l) => l.highlightAppearanceText,
     target: '/profile/appearance',
   ),
 ];
@@ -826,12 +734,13 @@ HighlightPlan planHighlights({
   required String? current,
   required String? seenVersion,
   required bool mapTourSeen,
-  List<FeatureHighlight> all = kFeatureHighlights,
+  List<FeatureHighlight>? all,
   List<String> recapLead = kRecapLead,
 }) {
+  final entries = all ?? kFeatureHighlights;
   if (current == null || !_isVersion(current)) return const HighlightNothing();
   final shipped = [
-    for (final h in all)
+    for (final h in entries)
       if (h.kind == HighlightKind.highlight && !isNewerVersion(h.since, current))
         h,
   ];
@@ -865,7 +774,7 @@ HighlightPlan planHighlights({
     // Jüngste zuerst; bei gleicher Version bleibt die Reihenfolge der
     // Liste (`sort` ist in Dart nicht stabil, daher der Index).
     ..sort((a, b) {
-      if (a.since == b.since) return all.indexOf(a) - all.indexOf(b);
+      if (a.since == b.since) return entries.indexOf(a) - entries.indexOf(b);
       return isNewerVersion(a.since, b.since) ? -1 : 1;
     });
   if (pending.isEmpty) return HighlightRecord(current);

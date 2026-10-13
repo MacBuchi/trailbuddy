@@ -51,44 +51,39 @@ CoachStep _from(CoachScript script, String id) => script.steps.firstWhere((s) =>
 
 // Bausteine, die mehrere Vorführungen teilen.
 
-const _openTrailFirst = CoachStep(
-  title: 'Einen Trail öffnen',
-  text: 'Ein Tipp auf die Zeile öffnet das Blatt — dasselbe wie auf der Karte.',
+CoachStep _openTrailFirst(AppLocalizations l) => CoachStep(
+  title: l.demoOpenTrailFirstTitle,
+  text: l.demoOpenTrailFirstText,
   lit: [TrailsCoach.row],
   ring: [],
   gesture: CoachGesture.tap,
   requires: [TrailsCoach.row],
 );
 
-const _noTrailYet = CoachStep(
-  title: 'Erst einen Trail holen',
-  text: 'Das geht an einem Trail. Hol dir einen über GPX aus einer anderen App, '
-      'zeichne eine Fahrt auf oder verbinde dich mit Buddys.',
+CoachStep _noTrailYet(AppLocalizations l) => CoachStep(
+  title: l.demoNoTrailYetTitle,
+  text: l.demoNoTrailYetText,
   lit: [TrailsCoach.import],
   unless: [TrailsCoach.row],
 );
 
-const _noOwnTrail = CoachStep(
-  title: 'An eigenen Trails',
-  text: 'Das geht an Trails, die du selbst beigesteuert hast — über GPX oder '
-      'aus einer aufgezeichneten Fahrt. Einen Buddy-Trail machst du beim ersten '
-      'Befahren zu deinem.',
+CoachStep _noOwnTrail(AppLocalizations l) => CoachStep(
+  title: l.demoNoOwnTrailTitle,
+  text: l.demoNoOwnTrailText,
   lit: [TrailsCoach.import],
   requires: [TrailsCoach.row],
   unless: [TrailsCoach.rowOwn],
 );
 
-const _androidOnly = CoachStep(
-  title: 'In der Android-App',
-  text: 'Aufgezeichnet wird in der Android-App — ein Browser bekommt im '
-      'Hintergrund keine Positionen.',
+CoachStep _androidOnly(AppLocalizations l) => CoachStep(
+  title: l.demoAndroidOnlyTitle,
+  text: l.demoAndroidOnlyText,
   unless: [MapCoach.record],
 );
 
-const _findBuddyFirst = CoachStep(
-  title: 'Erst einen Buddy finden',
-  text: 'Das geht mit deinen Buddys. Such hier nach einem Benutzernamen oder '
-      'einer genauen E-Mail-Adresse — oder lade jemanden ein.',
+CoachStep _findBuddyFirst(AppLocalizations l) => CoachStep(
+  title: l.demoFindBuddyFirstTitle,
+  text: l.demoFindBuddyFirstText,
   lit: [BuddysCoach.search],
   unless: [BuddysCoach.row],
 );
@@ -108,29 +103,22 @@ Map<String, HighlightDemo> highlightDemos(AppLocalizations l) => {
   'whole-region': HighlightDemo(
     route: '/profile',
     script: _demo('whole-region', [
-      _profileRow('areas', 'In „Meine Bereiche"',
-          'Dort steht je Region „ganz speichern" — auf dem Telefon, mit der Größe vorher. '
-          'Darüber zählt eine Zeile je Region, wie viele Kacheln älter sind als der '
-          'aktuelle Stand.'),
+      _profileRow('areas', l.demoWholeRegionTitle, l.demoWholeRegionText),
     ]),
   ),
   'online-fill': HighlightDemo(
     route: '/',
     script: _demo('online-fill', [
-      const CoachStep(
-        title: 'Wege vom Kartenhost',
-        text: 'Der Planer rechnet über die Wege deiner Bereiche. Mit Empfang '
-            'holt er, was fehlt, vom Kartenhost — höchstens $kOnlineFillMaxTiles '
-            'Kacheln je Planung, nur für diese Sitzung.',
+      CoachStep(
+        title: l.demoOnlineFill1Title,
+        text: l.demoOnlineFill1Text(kOnlineFillMaxTiles),
         lit: [MapCoach.loop],
         gesture: CoachGesture.tap,
         requires: [MapCoach.loop],
       ),
       CoachStep(
-        title: 'Offline prüfen',
-        text: 'Unter Parameter schaltest du „Fehlende Wege online ergänzen" ab — '
-            'dann rechnet er wie im Funkloch, und du siehst zu Hause, ob deine '
-            'Bereiche für die Runde reichen.',
+        title: l.demoOnlineFill2Title,
+        text: l.demoOnlineFill2Text,
         scene: MapCoach.loopRail,
         lit: const [MapCoach.loopRail],
         ring: [MapCoach.loopRailButton('loop-rail-params')],
@@ -142,10 +130,9 @@ Map<String, HighlightDemo> highlightDemos(AppLocalizations l) => {
     route: '/',
     script: _demo('contours', [
       _from(mapTourScript(l), 'map.layers'),
-      const CoachStep(
-        title: 'Linien gleicher Höhe',
-        text: 'Hier schaltest du sie an. Je enger sie liegen, desto steiler — '
-            'der Abstand passt sich dem Gelände an, die Legende nennt ihn.',
+      CoachStep(
+        title: l.demoContoursTitle,
+        text: l.demoContoursText,
         scene: MapCoach.layersSheet,
         lit: [MapCoach.filterContours],
       ),
@@ -155,17 +142,15 @@ Map<String, HighlightDemo> highlightDemos(AppLocalizations l) => {
     route: '/',
     script: _demo('way-quality', [
       _from(mapTourScript(l), 'map.layers'),
-      const CoachStep(
-        title: 'Die Güte der Wege',
-        text: 'Hier schaltest du sie ab und wieder an. Sie kommt aus OpenStreetMap — '
-            'wo dort nichts eingetragen ist, bleibt der Weg, wie die Karte ihn zeichnet.',
+      CoachStep(
+        title: l.demoWayQuality1Title,
+        text: l.demoWayQuality1Text,
         scene: MapCoach.layersSheet,
         lit: [MapCoach.filterWays],
       ),
-      const CoachStep(
-        title: 'Was die Striche heißen',
-        text: 'Unter „Forstweg" und „Pfad" steht in der Legende, welcher Strich '
-            'was bedeutet. Je durchbrochener, desto rauer.',
+      CoachStep(
+        title: l.demoWayQuality2Title,
+        text: l.demoWayQuality2Text,
         scene: MapCoach.legend,
         lit: [MapCoach.legend],
       ),
@@ -188,21 +173,17 @@ Map<String, HighlightDemo> highlightDemos(AppLocalizations l) => {
   ),
   'map-select': HighlightDemo(
     route: '/',
-    script: _demo('map-select', const [
+    script: _demo('map-select', [
       CoachStep(
-        title: 'Erst auswählen',
-        text: 'Ein Tipp auf einen Trail hebt ihn hervor, unten steht eine '
-            'kleine Karte mit Navi-Symbol. Ein Tipp auf sie — oder ein zweiter '
-            'auf den Trail — öffnet das Blatt; ein Tipp daneben hebt sie auf.',
+        title: l.demoMapSelect1Title,
+        text: l.demoMapSelect1Text,
         lit: [MapCoach.trailBadge],
         gesture: CoachGesture.tap,
         requires: [MapCoach.trailBadge],
       ),
       CoachStep(
-        title: 'Langer Druck auf die Karte',
-        text: 'Hält man den Finger auf eine Stelle, bietet die Karte „Route ab '
-            'hier" (eine Runde mit diesem Start), „Route bis hier" (der Weg von '
-            'deinem Standort) und die Navi-App an.',
+        title: l.demoMapSelect2Title,
+        text: l.demoMapSelect2Text,
         lit: [MapCoach.loop],
         requires: [MapCoach.loop],
       ),
@@ -210,27 +191,23 @@ Map<String, HighlightDemo> highlightDemos(AppLocalizations l) => {
   ),
   'trail-nav': HighlightDemo(
     route: '/trails',
-    script: _demo('trail-nav', const [
+    script: _demo('trail-nav', [
       CoachStep(
-        title: 'Das Navi-Symbol',
-        text: 'Mit deiner Navi-App, oder in TrailBuddy: direkt, oder spaßig — '
-            'dann nimmt der Weg Abfahrten mit. Einmal als Standard gemerkt, '
-            'fragt nur noch ein langer Druck.',
+        title: l.demoTrailNavTitle,
+        text: l.demoTrailNavText,
         lit: [TrailsCoach.nav],
         gesture: CoachGesture.tap,
         requires: [TrailsCoach.nav],
       ),
-      _noTrailYet,
+      _noTrailYet(l),
     ]),
   ),
   'nav-minimize': HighlightDemo(
     route: '/',
-    script: _demo('nav-minimize', const [
+    script: _demo('nav-minimize', [
       CoachStep(
-        title: 'Minimieren',
-        text: 'Plane eine Runde und navigiere: Unten neben „Bildschirm" legt '
-            '„Minimieren" die Karte ins kleine Fenster, mit dem nächsten Abschnitt '
-            'darunter. Ein Tipp aufs Fenster holt TrailBuddy zurück.',
+        title: l.demoNavMinimizeTitle,
+        text: l.demoNavMinimizeText,
         lit: [MapCoach.loop],
         gesture: CoachGesture.tap,
         requires: [MapCoach.loop],
@@ -239,12 +216,10 @@ Map<String, HighlightDemo> highlightDemos(AppLocalizations l) => {
   ),
   'nav-trail-end': HighlightDemo(
     route: '/',
-    script: _demo('nav-trail-end', const [
+    script: _demo('nav-trail-end', [
       CoachStep(
-        title: 'Trail geschafft',
-        text: 'Navigiere eine Runde über Trails: Am Ende jedes Trails stehen '
-            'Zeit, Höhenmeter bergab und Top-Speed. Ein Tipp sagt deinen Buddys, '
-            'wie er heute war — „Weiter" zeigt den nächsten Abschnitt.',
+        title: l.demoNavTrailEndTitle,
+        text: l.demoNavTrailEndText,
         lit: [MapCoach.loop],
         gesture: CoachGesture.tap,
         requires: [MapCoach.loop],
@@ -253,12 +228,10 @@ Map<String, HighlightDemo> highlightDemos(AppLocalizations l) => {
   ),
   'nav-sections': HighlightDemo(
     route: '/',
-    script: _demo('nav-sections', const [
+    script: _demo('nav-sections', [
       CoachStep(
-        title: 'Von Trail zu Trail',
-        text: 'Plane eine Runde und tippe „Navigieren": Oben steht, wie weit und '
-            'wie viele Höhenmeter es bis zum nächsten Trailkopf sind; am Kopf '
-            'Stufe, Zustand und der Hinweis deines Buddys. Unten die Runde als Band.',
+        title: l.demoNavSectionsTitle,
+        text: l.demoNavSectionsText,
         lit: [MapCoach.loop],
         gesture: CoachGesture.tap,
         requires: [MapCoach.loop],
@@ -267,12 +240,10 @@ Map<String, HighlightDemo> highlightDemos(AppLocalizations l) => {
   ),
   'nav-pip': HighlightDemo(
     route: '/',
-    script: _demo('nav-pip', const [
+    script: _demo('nav-pip', [
       CoachStep(
-        title: 'Navigation im kleinen Fenster',
-        text: 'Navigiere eine Runde oder einen Weg zum Trail und wische nach Hause: '
-            'Die Karte bleibt als kleines Fenster über den anderen Apps, ein Tipp '
-            'darauf holt TrailBuddy zurück.',
+        title: l.demoNavPipTitle,
+        text: l.demoNavPipText,
         lit: [MapCoach.loop],
         gesture: CoachGesture.tap,
         requires: [MapCoach.loop],
@@ -281,12 +252,10 @@ Map<String, HighlightDemo> highlightDemos(AppLocalizations l) => {
   ),
   'nav-notice': HighlightDemo(
     route: '/',
-    script: _demo('nav-notice', const [
+    script: _demo('nav-notice', [
       CoachStep(
-        title: 'Navigation in der Benachrichtigung',
-        text: 'Navigiere eine Runde oder einen Weg zum Trail und wechsle in eine '
-            'andere App: Oben in der Benachrichtigung stehen Rest, Höhenmeter und '
-            'ob du auf der Route bist — alle fünf Sekunden neu.',
+        title: l.demoNavNoticeTitle,
+        text: l.demoNavNoticeText,
         lit: [MapCoach.loop],
         gesture: CoachGesture.tap,
         requires: [MapCoach.loop],
@@ -295,12 +264,10 @@ Map<String, HighlightDemo> highlightDemos(AppLocalizations l) => {
   ),
   'nav-rejoin': HighlightDemo(
     route: '/',
-    script: _demo('nav-rejoin', const [
+    script: _demo('nav-rejoin', [
       CoachStep(
-        title: 'Zurück zur Route',
-        text: 'Navigiere eine Runde oder einen Weg zum Trail. Bist du mehr als '
-            '30 m daneben, steht unten „Zurück zur Route": Der Weg dorthin liegt '
-            'dann gestrichelt vor der Route.',
+        title: l.demoNavRejoinTitle,
+        text: l.demoNavRejoinText,
         lit: [MapCoach.loop],
         gesture: CoachGesture.tap,
         requires: [MapCoach.loop],
@@ -309,12 +276,10 @@ Map<String, HighlightDemo> highlightDemos(AppLocalizations l) => {
   ),
   'navigation': HighlightDemo(
     route: '/',
-    script: _demo('navigation', const [
+    script: _demo('navigation', [
       CoachStep(
-        title: 'Navigieren im Ergebnis',
-        text: 'Plane eine Runde oder einen Weg zum Trail, dann „Navigieren": Die '
-            'Karte dreht mit der Fahrtrichtung, oben stehen Rest, Höhenmeter und '
-            'der Abstand zur Route. Geplante Fahrten startest du im Menü der Fahrt.',
+        title: l.demoNavigationTitle,
+        text: l.demoNavigationText,
         lit: [MapCoach.loop],
         gesture: CoachGesture.tap,
         requires: [MapCoach.loop],
@@ -323,12 +288,10 @@ Map<String, HighlightDemo> highlightDemos(AppLocalizations l) => {
   ),
   'route-vias': HighlightDemo(
     route: '/',
-    script: _demo('route-vias', const [
+    script: _demo('route-vias', [
       CoachStep(
-        title: 'Zwischenpunkte im Ergebnis',
-        text: 'Plane eine Runde oder einen Weg zum Trail. Ein Tipp auf die Linie '
-            'setzt einen Punkt; zieh ihn dorthin, wo der Weg langgehen soll. Bei '
-            'der Runde bleibt die Reihenfolge der Trails dabei, wie sie ist.',
+        title: l.demoRouteViasTitle,
+        text: l.demoRouteViasText,
         lit: [MapCoach.loop],
         gesture: CoachGesture.tap,
         requires: [MapCoach.loop],
@@ -337,12 +300,10 @@ Map<String, HighlightDemo> highlightDemos(AppLocalizations l) => {
   ),
   'route-elevation': HighlightDemo(
     route: '/',
-    script: _demo('route-elevation', const [
+    script: _demo('route-elevation', [
       CoachStep(
-        title: 'Das Profil im Ergebnis',
-        text: 'Plane eine Runde oder einen Weg zum Trail: Unter der Summe steht '
-            'das Höhenprofil, von Start bis Ziel. Fehlt einem Stück die Höhe, '
-            'bleibt es weg — erfunden wird nichts.',
+        title: l.demoRouteElevationTitle,
+        text: l.demoRouteElevationText,
         lit: [MapCoach.loop],
         gesture: CoachGesture.tap,
         requires: [MapCoach.loop],
@@ -352,20 +313,16 @@ Map<String, HighlightDemo> highlightDemos(AppLocalizations l) => {
   'loop-planner': HighlightDemo(
     route: '/',
     script: _demo('loop-planner', [
-      const CoachStep(
-        title: 'Eine Runde aus deinen Trails',
-        text: 'Der Knopf öffnet den Planer: links eine eigene Leiste, und '
-            'jeder Trail, den du auf der Karte antippst, kommt in die Runde — '
-            'ein zweiter Tipp nimmt ihn wieder heraus.',
+      CoachStep(
+        title: l.demoLoopPlanner1Title,
+        text: l.demoLoopPlanner1Text,
         lit: [MapCoach.loop],
         gesture: CoachGesture.tap,
         requires: [MapCoach.loop],
       ),
       CoachStep(
-        title: 'Die Leiste des Planers',
-        text: 'Oben der Start (Standort oder getippt) und die Parameter — Zeit, '
-            'Höhenmeter, Wanderweg, Radius. Darunter die Liste und das Gebiet: '
-            'umfahren, und die Trails darin sind dabei. Ganz unten: rechnen.',
+        title: l.demoLoopPlanner2Title,
+        text: l.demoLoopPlanner2Text,
         scene: MapCoach.loopRail,
         lit: const [MapCoach.loopRail],
         ring: [MapCoach.loopRailButton('loop-rail-compute')],
@@ -375,37 +332,30 @@ Map<String, HighlightDemo> highlightDemos(AppLocalizations l) => {
   ),
   'trail-list-filters': HighlightDemo(
     route: '/trails',
-    script: _demo('trail-list-filters', const [
+    script: _demo('trail-list-filters', [
       CoachStep(
-        title: 'Ausschnitt und S-Grad',
-        text: '„Auf der Karte" lässt nur die Trails im Kartenausschnitt stehen — '
-            'die Liste zieht mit, wenn du die Karte bewegst. Der S-Grad-Chip '
-            'öffnet zwei Schieber für den Bereich. Er gilt auch auf der Karte.',
+        title: l.demoTrailListFiltersTitle,
+        text: l.demoTrailListFiltersText,
         lit: [TrailsCoach.chips],
       ),
     ]),
   ),
   'ride-import': HighlightDemo(
     route: '/trails',
-    script: _demo('ride-import', const [
+    script: _demo('ride-import', [
       CoachStep(
-        title: 'Fahrten aus anderen Apps',
-        text: 'Hier liest TrailBuddy GPX- oder Zip-Dateien. In der Android-App '
-            'steht unter den Spuren dann „Fahrten für dein Fahrerprofil": Rad '
-            'wählen, speichern, lernen lassen. Die Fahrten bleiben auf dem Gerät.',
+        title: l.demoRideImportTitle,
+        text: l.demoRideImportText,
         lit: [TrailsCoach.import],
       ),
     ]),
   ),
   'route-prefs': HighlightDemo(
     route: '/',
-    script: _demo('route-prefs', const [
+    script: _demo('route-prefs', [
       CoachStep(
-        title: 'Meiden oder egal',
-        text: 'Im Planer unter „Parameter": Straßen, Wanderwege bergauf und '
-            'steile Rampen je meiden oder egal. Egal heißt nicht umsonst — '
-            'nur ein Bruchteil des Aufschlags bleibt. Die Wahl merkt sich das '
-            'Gerät, und sie gilt auch für den Weg zum Trail.',
+        title: l.demoRoutePrefsTitle,
+        text: l.demoRoutePrefsText,
         lit: [MapCoach.loop],
         gesture: CoachGesture.tap,
         requires: [MapCoach.loop],
@@ -414,13 +364,10 @@ Map<String, HighlightDemo> highlightDemos(AppLocalizations l) => {
   ),
   'steep-climbs': HighlightDemo(
     route: '/',
-    script: _demo('steep-climbs', const [
+    script: _demo('steep-climbs', [
       CoachStep(
-        title: 'Flacher, wo es geht',
-        text: 'Planer und „Zum Trailkopf" zählen jeden Höhenmeter ab 10 % '
-            'Steigung extra, und je steiler, desto mehr — auf Schotter und '
-            'Pfad dreifach so viel wie auf Asphalt. Ein Umweg, der flacher '
-            'hinaufführt, gewinnt dann. Uphill-Trails zählen nie als zu steil.',
+        title: l.demoSteepClimbsTitle,
+        text: l.demoSteepClimbsText,
         lit: [MapCoach.loop],
         gesture: CoachGesture.tap,
         requires: [MapCoach.loop],
@@ -429,84 +376,72 @@ Map<String, HighlightDemo> highlightDemos(AppLocalizations l) => {
   ),
   'terrain-heights': HighlightDemo(
     route: '/trails',
-    script: _demo('terrain-heights', const [
-      _openTrailFirst,
+    script: _demo('terrain-heights', [
+      _openTrailFirst(l),
       CoachStep(
-        title: 'Höhen ohne Aufzeichnung',
-        text: 'Hat kein Beitrag Höhen, kommen sie aus dem Geländemodell (90 m): '
-            'mit Empfang vom Kartenhost, sonst aus deinen Bereichen. Die Kachel '
-            'trägt dann ein „≈", das Profil sagt es — gespeichert wird nichts.',
+        title: l.demoTerrainHeightsTitle,
+        text: l.demoTerrainHeightsText,
         scene: TrailsCoach.sheet,
         lit: [SheetCoach.metrics],
         requires: [TrailsCoach.row],
       ),
-      _noTrailYet,
+      _noTrailYet(l),
     ]),
   ),
   'gpx-export': HighlightDemo(
     route: '/trails',
-    script: _demo('gpx-export', const [
-      _openTrailFirst,
+    script: _demo('gpx-export', [
+      _openTrailFirst(l),
       CoachStep(
-        title: 'Die Linie als Datei',
-        text: 'Gibt den Trail als GPX-Datei weiter — über das Teilen-Menü an '
-            'jede App, die GPX liest. Nur die Linie mit Namen; keine Buddys, '
-            'keine Hinweise. Fahrten exportierst du unter „Meine Fahrten".',
+        title: l.demoGpxExportTitle,
+        text: l.demoGpxExportText,
         scene: TrailsCoach.sheet,
         lit: [SheetCoach.export],
         requires: [TrailsCoach.row],
       ),
-      _noTrailYet,
+      _noTrailYet(l),
     ]),
   ),
   'trail-head': HighlightDemo(
     route: '/trails',
-    script: _demo('trail-head', const [
-      _openTrailFirst,
+    script: _demo('trail-head', [
+      _openTrailFirst(l),
       CoachStep(
-        title: 'Der Weg aus deinen Bereichen',
-        text: 'Rechnet den Weg von deinem Standort zum Anfang des Trails — '
-            'offline, aus den Wegen in deinen gespeicherten Bereichen, nach '
-            'deinem Fahrerprofil. Die Karte zeigt die Linie, das Blatt '
-            'Höhenmeter und Zeit; als GPX geht sie an jede Navi-App.',
+        title: l.demoTrailHeadTitle,
+        text: l.demoTrailHeadText,
         scene: TrailsCoach.sheet,
         lit: [SheetCoach.trailHead],
         requires: [TrailsCoach.row],
       ),
-      _noTrailYet,
+      _noTrailYet(l),
     ]),
   ),
   'navigate': HighlightDemo(
     route: '/trails',
-    script: _demo('navigate', const [
-      _openTrailFirst,
+    script: _demo('navigate', [
+      _openTrailFirst(l),
       CoachStep(
-        title: 'In die Navi-App',
-        text: 'Übergibt den Anfang des Trails an deine Navi-App — du wählst, '
-            'welche. Die App selbst baut dabei keine Verbindung auf; ohne '
-            'Navi-App landen die Koordinaten in der Zwischenablage.',
+        title: l.demoNavigateTitle,
+        text: l.demoNavigateText,
         scene: TrailsCoach.sheet,
         lit: [SheetCoach.navigate],
         requires: [TrailsCoach.row],
       ),
-      _noTrailYet,
+      _noTrailYet(l),
     ]),
   ),
   'trail-ends': HighlightDemo(
     route: '/',
-    script: _demo('trail-ends', const [
+    script: _demo('trail-ends', [
       CoachStep(
-        title: 'Wo es losgeht',
-        text: 'Der Punkt am Anfang zeigt mit seinem Pfeil die Fahrtrichtung, '
-            'in der Farbe des Trails, ab der Zoomstufe der Schilder.',
+        title: l.demoTrailEnds1Title,
+        text: l.demoTrailEnds1Text,
         lit: [MapCoach.trailStart],
         requires: [MapCoach.trailStart],
       ),
       CoachStep(
-        title: 'Erst einen Trail holen',
-        text: 'Das zeigt die Karte an einem Trail. Hol dir einen über GPX aus '
-            'einer anderen App, zeichne eine Fahrt auf oder verbinde dich mit '
-            'Buddys.',
+        title: l.demoTrailEnds2Title,
+        text: l.demoTrailEnds2Text,
         lit: [MapCoach.empty],
         unless: [MapCoach.trailStart],
       ),
@@ -515,76 +450,68 @@ Map<String, HighlightDemo> highlightDemos(AppLocalizations l) => {
   'kurzanleitung': HighlightDemo(
     route: '/profile',
     script: _demo('kurzanleitung', [
-      _profileRow('help', 'Hier steht sie',
-          'Sechs Abschnitte mit den echten Symbolen, dazu die Knöpfe für jede Tour.'),
+      _profileRow('help', l.demoKurzanleitungTitle, l.demoKurzanleitungText),
     ]),
   ),
   'still-valid': HighlightDemo(
     route: '/profile',
     script: _demo('still-valid', [
       CoachStep(
-        title: 'Angaben prüfen',
-        text: 'Die Zahl sagt, wie viele deiner Meldungen und Zustände älter als '
-            '30 Tage sind. Ein Tipp, dann je Trail Ja, Nein oder Weiß nicht.',
+        title: l.demoStillValid1Title,
+        text: l.demoStillValid1Text,
         lit: [ProfileCoach.row('still-valid')],
         requires: [ProfileCoach.row('still-valid')],
       ),
       CoachStep(
-        title: 'Gerade nichts zu prüfen',
-        text: 'Ist eine deiner Angaben älter als 30 Tage, steht hier im Profil '
-            '„Noch gültig?" mit der Zahl.',
+        title: l.demoStillValid2Title,
+        text: l.demoStillValid2Text,
         unless: [ProfileCoach.row('still-valid')],
       ),
     ]),
   ),
   'marks': HighlightDemo(
     route: '/',
-    script: _demo('marks', const [
+    script: _demo('marks', [
       CoachStep(
-        title: 'Die Fahne kommt mit der Fahrt',
-        text: 'Läuft eine Aufzeichnung, steht über diesem Knopf eine Fahne: am '
-            'Anfang eines Trails antippen, am Ende noch einmal.',
+        title: l.demoMarksTitle,
+        text: l.demoMarksText,
         lit: [MapCoach.buttons],
         ring: [MapCoach.record],
         requires: [MapCoach.record],
       ),
-      _androidOnly,
+      _androidOnly(l),
     ]),
   ),
   'takeover': HighlightDemo(
     route: '/trails',
-    script: _demo('takeover', const [
+    script: _demo('takeover', [
       CoachStep(
-        title: 'Beim ersten Befahren',
-        text: 'Fährst du einen Trail deiner Buddys, klappt seine Zeile im '
-            'Zerlege-Blatt auf: vorbelegt aus dem Netz. Mit deinen Sternen wird er '
-            'deiner. Für Trails, die du schon hast, gibt es im Blatt „Übernehmen".',
+        title: l.demoTakeoverTitle,
+        text: l.demoTakeoverText,
       ),
     ]),
   ),
   'reports': HighlightDemo(
     route: '/trails',
-    script: _demo('reports', const [
-      _openTrailFirst,
+    script: _demo('reports', [
+      _openTrailFirst(l),
       CoachStep(
-        title: 'Hier melden',
-        text: 'Gesperrt, zerstört, verändert — und der Zustand. Bestätigt ist es, '
-            'wenn du ihn gefahren hast oder vor Ort bist; sonst steht es als „zu '
-            'bestätigen" da.',
+        title: l.demoReportsTitle,
+        text: l.demoReportsText,
         scene: TrailsCoach.sheet,
         lit: [SheetCoach.report],
         requires: [TrailsCoach.row],
       ),
-      _noTrailYet,
+      _noTrailYet(l),
     ]),
   ),
   'rating': HighlightDemo(
     route: '/trails',
     script: _demo('rating', [
-      _openTrailFirst,
+      _openTrailFirst(l),
       _from(trailsTourScript(l), 'trails.grade'),
-      _noOwnTrail,
-      _noTrailYet,
+      _noOwnTrail(l),
+      _noTrailYet(l),
     ]),
   ),
   'grade-colors': HighlightDemo(
@@ -593,18 +520,16 @@ Map<String, HighlightDemo> highlightDemos(AppLocalizations l) => {
   ),
   'connect-merge': HighlightDemo(
     route: '/friends',
-    script: _demo('connect-merge', const [
+    script: _demo('connect-merge', [
       CoachStep(
-        title: 'Eine Anfrage annehmen',
-        text: 'Nimmst du an, werden gleiche Trails EIN Trail mit zwei Namen. Danach '
-            'steht hier, was ihr gemeinsam habt und was neu dazukommt.',
+        title: l.demoConnectMerge1Title,
+        text: l.demoConnectMerge1Text,
         lit: [BuddysCoach.requests],
         requires: [BuddysCoach.requests],
       ),
       CoachStep(
-        title: 'Erst eine Anfrage',
-        text: 'Such einen Buddy über den Benutzernamen oder die genaue E-Mail und '
-            'frag an. Sobald er annimmt, legt die App eure Trails zusammen.',
+        title: l.demoConnectMerge2Title,
+        text: l.demoConnectMerge2Text,
         lit: [BuddysCoach.search],
         unless: [BuddysCoach.requests],
       ),
@@ -623,7 +548,7 @@ Map<String, HighlightDemo> highlightDemos(AppLocalizations l) => {
   ),
   'ride-record': HighlightDemo(
     route: '/',
-    script: _demo('ride-record', [_from(mapTourScript(l), 'map.record'), _androidOnly]),
+    script: _demo('ride-record', [_from(mapTourScript(l), 'map.record'), _androidOnly(l)]),
   ),
   'official-trails': HighlightDemo(
     route: '/',
@@ -637,17 +562,17 @@ Map<String, HighlightDemo> highlightDemos(AppLocalizations l) => {
   'note-photos': HighlightDemo(
     route: '/trails',
     script: _demo('note-photos', [
-      _openTrailFirst,
+      _openTrailFirst(l),
       _from(trailsTourScript(l), 'trails.note'),
-      _noTrailYet,
+      _noTrailYet(l),
     ]),
   ),
   'trail-notes': HighlightDemo(
     route: '/trails',
     script: _demo('trail-notes', [
-      _openTrailFirst,
+      _openTrailFirst(l),
       _from(trailsTourScript(l), 'trails.note'),
-      _noTrailYet,
+      _noTrailYet(l),
     ]),
   ),
   // ─── Tipps ─────────────────────────────────────────────────────
@@ -659,44 +584,38 @@ Map<String, HighlightDemo> highlightDemos(AppLocalizations l) => {
     route: '/profile',
     script: _demo('merge-proposals', [
       CoachStep(
-        title: 'Paare prüfen',
-        text: 'Die Zahl sagt, wie viele Trail-Paare vielleicht einer sind. Ein Tipp, dann je '
-            'Paar: derselbe, verschieden oder beide auf der Karte ansehen.',
+        title: l.demoMergeProposals1Title,
+        text: l.demoMergeProposals1Text,
         lit: [ProfileCoach.row('merge-proposals')],
         requires: [ProfileCoach.row('merge-proposals')],
       ),
       CoachStep(
-        title: 'Gerade kein Paar',
-        text: 'Hält ein Buddy einen deiner Trails für einen anderen oder liegen zwei fast '
-            'aufeinander, steht hier im Profil „Sind das dieselben?" mit der Zahl — und im '
-            'Blatt des Trails dieselbe Frage.',
+        title: l.demoMergeProposals2Title,
+        text: l.demoMergeProposals2Text,
         unless: [ProfileCoach.row('merge-proposals')],
       ),
     ]),
   ),
   'trail-merge': HighlightDemo(
     route: '/trails',
-    script: _demo('trail-merge', const [
-      _openTrailFirst,
+    script: _demo('trail-merge', [
+      _openTrailFirst(l),
       CoachStep(
-        title: 'Zwei Linien, ein Trail',
-        text: 'Liegt ein anderer Trail grob daneben, steht unter dem Export '
-            '„Ist ein Duplikat …". Du wählst, welcher bleibt; deine Aufzeichnungen, '
-            'dein Beitrag und deine Hinweise ziehen dorthin. „Trennen" macht es rückgängig.',
+        title: l.demoTrailMergeTitle,
+        text: l.demoTrailMergeText,
         scene: TrailsCoach.sheet,
         lit: [SheetCoach.export],
         requires: [TrailsCoach.row],
       ),
-      _noTrailYet,
+      _noTrailYet(l),
     ]),
   ),
   'tours': HighlightDemo(
     route: '/profile/help',
-    script: _demo('tours', const [
+    script: _demo('tours', [
       CoachStep(
-        title: 'Noch einmal ansehen',
-        text: 'Hier startest du die Touren für Trails und Buddys neu; darunter die '
-            'Tour zum Zerlegen einer Fahrt.',
+        title: l.demoToursTitle,
+        text: l.demoToursText,
         lit: [HelpCoach.tabTours],
         scrollIn: HelpCoach.list,
       ),
@@ -705,27 +624,22 @@ Map<String, HighlightDemo> highlightDemos(AppLocalizations l) => {
   'rides-tidy': HighlightDemo(
     route: '/profile',
     script: _demo('rides-tidy', [
-      _profileRow('rides', 'In „Meine Fahrten"',
-          'An jeder Fahrt steht, ob mit Bio- oder E-Bike gefahren — ein Tipp stellt '
-              'es um, und das Fahrerprofil lernt danach richtig. Nach links wischen '
-              'löscht, ein langer Druck wählt mehrere.'),
+      _profileRow('rides', l.demoRidesTidyTitle, l.demoRidesTidyText),
     ]),
   ),
   'pick-section': HighlightDemo(
     route: '/profile',
     script: _demo('pick-section', [
-      _profileRow('rides', 'Über „Meine Fahrten"',
-          'Die Schere neben einer Fahrt öffnet das Zerlege-Blatt; dort steht unter '
-              'den Kandidaten „Stück selbst wählen".'),
+      _profileRow('rides', l.demoPickSectionTitle, l.demoPickSectionText),
     ]),
   ),
   'trail-link': HighlightDemo(
     route: '/trails',
     script: _demo('trail-link', [
-      _openTrailFirst,
+      _openTrailFirst(l),
       _from(trailsTourScript(l), 'trails.contribution'),
-      _noOwnTrail,
-      _noTrailYet,
+      _noOwnTrail(l),
+      _noTrailYet(l),
     ]),
   ),
   'planned': HighlightDemo(
@@ -738,26 +652,25 @@ Map<String, HighlightDemo> highlightDemos(AppLocalizations l) => {
   ),
   'grade-votes': HighlightDemo(
     route: '/trails',
-    script: _demo('grade-votes', const [
-      _openTrailFirst,
+    script: _demo('grade-votes', [
+      _openTrailFirst(l),
       CoachStep(
-        title: 'Ein Tipp auf den Grad',
-        text: 'Die Kachel zeigt den Median deines Netzes; ein Tipp darauf listet '
-            'alle Einschätzungen und erklärt die Skala.',
+        title: l.demoGradeVotesTitle,
+        text: l.demoGradeVotesText,
         scene: TrailsCoach.sheet,
         lit: [SheetCoach.metrics],
         requires: [TrailsCoach.row],
       ),
-      _noTrailYet,
+      _noTrailYet(l),
     ]),
   ),
   'visibility': HighlightDemo(
     route: '/trails',
     script: _demo('visibility', [
-      _openTrailFirst,
+      _openTrailFirst(l),
       _from(trailsTourScript(l), 'trails.contribution'),
-      _noOwnTrail,
-      _noTrailYet,
+      _noOwnTrail(l),
+      _noTrailYet(l),
     ]),
   ),
   'pois': HighlightDemo(
@@ -773,33 +686,30 @@ Map<String, HighlightDemo> highlightDemos(AppLocalizations l) => {
   ),
   'messages': HighlightDemo(
     route: '/friends',
-    script: _demo('messages', const [
+    script: _demo('messages', [
       CoachStep(
-        title: 'Zum Verlauf',
-        text: 'Die Sprechblase neben einem Buddy öffnet eure Nachrichten. Steht '
-            'eine Zahl daran, ist etwas ungelesen.',
+        title: l.demoMessages1Title,
+        text: l.demoMessages1Text,
         lit: [BuddysCoach.message],
         ring: [],
         gesture: CoachGesture.tap,
         requires: [BuddysCoach.message],
       ),
       CoachStep(
-        title: 'Schreib los',
-        text: 'Bis zu 500 Zeichen. Mit eingeschalteten Benachrichtigungen kommt '
-            'eine Antwort auch an, wenn die App zu ist; nach 30 Tagen '
-            'verschwinden Nachrichten wieder.',
+        title: l.demoMessages2Title,
+        text: l.demoMessages2Text,
         scene: BuddysCoach.chat,
         lit: [BuddysCoach.chatInput],
         requires: [BuddysCoach.message],
       ),
-      _findBuddyFirst,
+      _findBuddyFirst(l),
     ]),
   ),
   'buddy-alias': HighlightDemo(
     route: '/friends',
     script: _demo('buddy-alias', [
       _from(buddysTourScript(l), 'buddys.row'),
-      _findBuddyFirst,
+      _findBuddyFirst(l),
     ]),
   ),
   'invite': HighlightDemo(
@@ -809,35 +719,25 @@ Map<String, HighlightDemo> highlightDemos(AppLocalizations l) => {
   'notifications': HighlightDemo(
     route: '/profile',
     script: _demo('notifications', [
-      _profileRow('notifications', 'Hier einschalten',
-          'Der Schalter sagt, was wirklich ankommt — auch, wenn der Browser oder '
-              'Android Benachrichtigungen nicht erlaubt.'),
+      _profileRow('notifications', l.demoNotificationsTitle, l.demoNotificationsText),
     ]),
   ),
   'rider-learn': HighlightDemo(
     route: '/profile',
     script: _demo('rider-learn', [
-      _profileRow('rider', 'Auf dich eingestellt',
-          'Unter „Fahrerprofil" lernt die App aus deinen Aufzeichnungen, wie '
-              'schnell du wirklich bergauf kommst — je Profil, nur aus deinen '
-              'Fahrten, nur auf diesem Gerät. Die Planer rechnen dann damit.'),
+      _profileRow('rider', l.demoRiderLearnTitle, l.demoRiderLearnText),
     ]),
   ),
   'rider-profile': HighlightDemo(
     route: '/profile',
     script: _demo('rider-profile', [
-      _profileRow('rider', 'Bio-Bike oder E-Bike',
-          'Das Profil ändert, wie schnell es bergauf geht, wie teuer ein '
-              'Wanderweg bergauf ist und wie viele Höhenmeter eine Runde haben '
-              'darf. Jede Fahrt merkt es sich beim Start.'),
+      _profileRow('rider', l.demoRiderProfileTitle, l.demoRiderProfileText),
     ]),
   ),
   'appearance': HighlightDemo(
     route: '/profile',
     script: _demo('appearance', [
-      _profileRow('appearance', 'Hell, dunkel oder wie das System',
-          'Gilt für die App; die Karte bleibt hell, in der Sonne liest sie sich '
-              'besser.'),
+      _profileRow('appearance', l.demoAppearanceTitle, l.demoAppearanceText),
     ]),
   ),
 };

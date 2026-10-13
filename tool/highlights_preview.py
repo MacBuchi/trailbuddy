@@ -30,6 +30,12 @@ kennt drei Fälle, und welcher gilt, hängt am letzten stabilen Stand:
 - ab `MEMORY_SINCE`: das gewöhnliche Blatt; „kein Highlight" ist dann
   ein Befund und steht als Warnung da.
 
+**Titel seit #209 in den ARB-Dateien.** Ein Eintrag trägt
+`title: (l) => l.highlight…Title`; der deutsche Text steht in
+`lib/l10n/app_de.arb` DESSELBEN Stands (`--arb`). Ältere Tags haben noch
+das Literal — beide Formen werden gelesen, weil `promote.yml` das
+Werkzeug von main auf einen beliebigen Tag ansetzt.
+
 `--self-test` (im Job „Analyze & Test") liest die ECHTE Datei: Zerbricht
 ihr Format, wird CI rot, statt dass der Hinweis still verschwindet. Er
 prüft auch, dass `promote.yml` das Werkzeug aus dem beförderten Tag
@@ -39,11 +45,13 @@ keinen Bump braucht.
 """
 
 import argparse
+import json
 import pathlib
 import re
 import sys
 
 SOURCE = pathlib.Path('lib/features/highlights/feature_highlights.dart')
+ARB = pathlib.Path('lib/l10n/app_de.arb')
 PROMOTE = pathlib.Path('.github/workflows/promote.yml')
 CI = pathlib.Path('.github/workflows/ci.yml')
 SHEET_MAX = 3  # kHighlightSheetMax
@@ -61,7 +69,8 @@ ENTRY = re.compile(
     r"FeatureHighlight\(\s*id:\s*'(?P<id>[^']+)',\s*"
     r"since:\s*'(?P<since>\d+\.\d+\.\d+)',\s*"
     r"kind:\s*HighlightKind\.(?P<kind>\w+),.*?"
-    r"title:\s*'(?P<title>(?:[^'\\]|\\.)*)'",
+    r"title:\s*(?:'(?P<title>(?:[^'\\]|\\.)*)'"
+    r"|\(l\)\s*=>\s*l\.(?P<key>\w+))",
     re.S)
 
 
@@ -69,13 +78,27 @@ def version_key(v):
     return tuple(int(p) for p in v.split('.'))
 
 
-def parse(text):
+def parse(text, arb=None):
+    """Die Einträge; `arb` (Schlüssel → deutscher Text) löst die Titel
+    auf, die seit #209 in `app_de.arb` stehen. Fehlt ein Schlüssel, steht
+    er selbst da — die Summary bleibt lesbar, statt abzubrechen."""
     out = []
     for m in ENTRY.finditer(text):
         e = m.groupdict()
-        e['title'] = re.sub(r"\\(.)", r'\1', e['title'])
+        key = e.pop('key')
+        if key is not None:
+            e['title'] = (arb or {}).get(key, key)
+        else:
+            e['title'] = re.sub(r"\\(.)", r'\1', e['title'])
         out.append(e)
     return out
+
+
+def read_arb(path):
+    try:
+        return json.loads(path.read_text(encoding='utf-8'))
+    except (OSError, ValueError):
+        return {}
 
 
 def report(entries, previous, version):
@@ -119,7 +142,8 @@ def report(entries, previous, version):
 
 def self_test():
     text = SOURCE.read_text(encoding='utf-8')
-    entries = parse(text)
+    arb = read_arb(ARB)
+    entries = parse(text, arb)
     assert len(entries) >= 15, f'nur {len(entries)} Einträge gelesen'
     ids = [e['id'] for e in entries]
     assert len(ids) == len(set(ids)), 'doppelte Kennung gelesen'
@@ -128,6 +152,9 @@ def self_test():
     # darf dem Muster entgehen, sonst fehlte er still in der Summary.
     declared = text.count('FeatureHighlight(\n')
     assert declared == len(entries), f'{declared} deklariert, {len(entries)} gelesen'
+    unresolved = [e['id'] for e in entries if e['title'] not in arb.values()
+                  and e['title'].startswith('highlight')]
+    assert not unresolved, f'Titel ohne Text in app_de.arb: {unresolved}'
     assert re.search(r'kHighlightSheetMax = %d;' % SHEET_MAX, text), \
         'SHEET_MAX läuft von kHighlightSheetMax weg'
 
@@ -155,6 +182,10 @@ def self_test():
     assert parse("FeatureHighlight(\n  id: 'x',\n  since: '1.0.0',\n"
                  "  kind: HighlightKind.tip,\n  title: 'Dein \\'Ding\\'',"
                  )[0]['title'] == "Dein 'Ding'"
+    keyed = "FeatureHighlight(\n  id: 'x',\n  since: '1.0.0',\n" \
+            "  kind: HighlightKind.tip,\n  title: (l) => l.highlightXTitle,"
+    assert parse(keyed, {'highlightXTitle': 'Ding'})[0]['title'] == 'Ding'
+    assert parse(keyed)[0]['title'] == 'highlightXTitle', 'ohne ARB: Schlüssel'
 
     # Die Verdrahtung: aus dem BEFÖRDERTEN Tag lesen, nicht aus main, und
     # ab dem letzten STABILEN Stand zählen.
@@ -163,6 +194,8 @@ def self_test():
         'promote.yml ruft die Vorschau nicht auf'
     assert 'git show "$TAG:lib/features/highlights/feature_highlights.dart"' \
         in promote, 'Vorschau liest nicht aus dem beförderten Tag'
+    assert 'git show "$TAG:lib/l10n/app_de.arb"' in promote and \
+        '--arb ' in promote, 'Titel nicht aus der ARB-Datei des Tags'
     assert 'select(.isPrerelease | not)' in promote, \
         'Untergrenze ist nicht der letzte stabile Stand'
     assert 'tool/highlights_preview.py --self-test' in \
@@ -175,6 +208,8 @@ def main():
     parser.add_argument('--version', help='beförderte Version, ohne v')
     parser.add_argument('--since', default='', help='letzter stabiler Stand')
     parser.add_argument('--source', type=pathlib.Path, default=SOURCE)
+    parser.add_argument('--arb', type=pathlib.Path, default=ARB,
+                        help='app_de.arb desselben Stands (Titel seit #209)')
     parser.add_argument('--self-test', action='store_true')
     args = parser.parse_args()
     if args.self_test:
@@ -186,7 +221,8 @@ def main():
         print(f'### Neuheiten-Blatt für {args.version}\n\n'
               '(Keine Highlight-Liste in diesem Stand.)')
         return
-    entries = parse(args.source.read_text(encoding='utf-8'))
+    entries = parse(args.source.read_text(encoding='utf-8'),
+                    read_arb(args.arb))
     sys.stdout.write(report(entries, args.since.lstrip('v'), args.version))
 
 

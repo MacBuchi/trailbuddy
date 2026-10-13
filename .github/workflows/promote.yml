@@ -110,9 +110,13 @@ jobs:
           set -euo pipefail
           git show "$TAG:lib/features/highlights/feature_highlights.dart" \
             > "$RUNNER_TEMP/feature_highlights.dart" 2>/dev/null || true
+          # Titel stehen seit #209 in der ARB-Datei — aus demselben Tag.
+          git show "$TAG:lib/l10n/app_de.arb" \
+            > "$RUNNER_TEMP/app_de.arb" 2>/dev/null || true
           python3 tool/highlights_preview.py \
             --version "$VERSION" --since "${PREV#v}" \
             --source "$RUNNER_TEMP/feature_highlights.dart" \
+            --arb "$RUNNER_TEMP/app_de.arb" \
             >> "$GITHUB_STEP_SUMMARY"
 
       - name: Release stabil schalten

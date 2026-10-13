@@ -5994,5 +5994,987 @@
   "safetyNote": "Du fährst auf eigene Verantwortung. TrailBuddy zeigt, was du und deine Buddys gefahren sind — es sagt nicht, ob ein Weg befahren werden darf oder gerade sicher ist. Beachte Sperrungen, Wegeregeln und Naturschutz vor Ort. Eine Meldung eines Buddys ist keine Freigabe, und keine Meldung heißt nicht, dass alles frei ist.",
   "@safetyNote": {
     "description": "Sicherheitshinweis (Dialog beim ersten Start, Kurzanleitung, „Über TrailBuddy“). Eine Auskunft, kein Haftungsausschluss: erst was die App tut, dann ihre Grenze; der letzte Satz gilt beiden Richtungen einer Meldung."
+  },
+  "discoverTitle": "Entdecken",
+  "@discoverTitle": {
+    "description": "Seite „Entdecken“ (Profil): Überschrift der Leiste."
+  },
+  "discoverLead": "Was TrailBuddy kann — auch das, was man beim Benutzen leicht übersieht. „Zeig es mir\" führt es kurz vor, „Ausprobieren\" führt direkt hin.",
+  "@discoverLead": {
+    "description": "Seite „Entdecken“: Einleitung über der Liste; nennt die beiden Knöpfe discoverShowMe und discoverTry."
+  },
+  "discoverBadgeTip": "Tipp",
+  "@discoverBadgeTip": {
+    "description": "Seite „Entdecken“: Marke an einem Eintrag, der ein Tipp ist (kein Highlight)."
+  },
+  "discoverBadgeNew": "Neu",
+  "@discoverBadgeNew": {
+    "description": "Seite „Entdecken“: Marke an einem Eintrag, den man noch nicht gesehen hat."
+  },
+  "discoverTry": "Ausprobieren",
+  "@discoverTry": {
+    "description": "Seite „Entdecken“: Knopf, der direkt zur Funktion springt."
+  },
+  "discoverShowMe": "Zeig es mir",
+  "@discoverShowMe": {
+    "description": "Seite „Entdecken“ und Neuheiten-Blatt: Knopf (bzw. Symbol-Beschriftung), der die Funktion kurz vorführt."
+  },
+  "highlightSheetRecapTitle": "Das kann TrailBuddy inzwischen",
+  "@highlightSheetRecapTitle": {
+    "description": "Neuheiten-Blatt nach einem Update: Überschrift beim einmaligen Rückblick für Bestandsnutzer."
+  },
+  "highlightSheetNewTitle": "Neu in TrailBuddy",
+  "@highlightSheetNewTitle": {
+    "description": "Neuheiten-Blatt nach einem Update: Überschrift."
+  },
+  "highlightSheetMore": "{count, plural, =1{1 weitere entdecken} other{{count} weitere entdecken}}",
+  "@highlightSheetMore": {
+    "description": "Neuheiten-Blatt: Knopf zur Seite „Entdecken“, wenn dort noch so viele weitere Neuheiten warten.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "highlightSheetAll": "Alle Funktionen und Tipps",
+  "@highlightSheetAll": {
+    "description": "Neuheiten-Blatt: Knopf zur Seite „Entdecken“, wenn keine weiteren Neuheiten warten."
+  },
+  "highlightSheetChangelog": "Alle Änderungen",
+  "@highlightSheetChangelog": {
+    "description": "Neuheiten-Blatt: Knopf zu „Was ist neu“ (Changelog)."
+  },
+  "highlightNavMinimizeTitle": "Minimieren",
+  "@highlightNavMinimizeTitle": {
+    "description": "Entdecken, Eintrag „nav-minimize“: Überschrift (auch im Neuheiten-Blatt nach einem Update)."
+  },
+  "highlightNavMinimizeText": "Beim Navigieren legt „Minimieren\" die Karte sofort ins kleine Fenster — darunter der nächste Abschnitt. Die Benachrichtigung sagt ihn in zwei Zeilen: wie weit und wie hoch bis zum Trailkopf, auf dem Trail der Rest.",
+  "@highlightNavMinimizeText": {
+    "description": "Entdecken, Eintrag „nav-minimize“: Text, zwei bis drei Sätze (auch im Neuheiten-Blatt)."
+  },
+  "highlightNavTrailEndTitle": "Trail geschafft",
+  "@highlightNavTrailEndTitle": {
+    "description": "Entdecken, Eintrag „nav-trail-end“: Überschrift (auch im Neuheiten-Blatt nach einem Update)."
+  },
+  "highlightNavTrailEndText": "Am Ende eines Trails beim Navigieren: deine Zeit darauf, die Höhenmeter bergab, dein Top-Speed — und ein Tipp, wie er heute war. Das sehen deine Buddys als Zustand.",
+  "@highlightNavTrailEndText": {
+    "description": "Entdecken, Eintrag „nav-trail-end“: Text, zwei bis drei Sätze (auch im Neuheiten-Blatt)."
+  },
+  "highlightNavSectionsTitle": "Navigation von Trail zu Trail",
+  "@highlightNavSectionsTitle": {
+    "description": "Entdecken, Eintrag „nav-sections“: Überschrift (auch im Neuheiten-Blatt nach einem Update)."
+  },
+  "highlightNavSectionsText": "Beim Navigieren zählt die Karte bis zum nächsten Trailkopf: km, Höhenmeter, die steile Rampe. Am Kopf stehen Stufe, Zustand und der Hinweis deines Buddys, unten die ganze Runde als Band.",
+  "@highlightNavSectionsText": {
+    "description": "Entdecken, Eintrag „nav-sections“: Text, zwei bis drei Sätze (auch im Neuheiten-Blatt)."
+  },
+  "highlightNotePhotosTitle": "Ein Foto zum Hinweis",
+  "@highlightNotePhotosTitle": {
+    "description": "Entdecken, Eintrag „note-photos“: Überschrift (auch im Neuheiten-Blatt nach einem Update)."
+  },
+  "highlightNotePhotosText": "Der Baum quer über dem Trail, die neue Rampe: An einen Hinweis hängst du jetzt ein Foto. Es sehen dieselben Buddys wie den Hinweis, 90 Tage lang — ohne Ortsangaben im Bild.",
+  "@highlightNotePhotosText": {
+    "description": "Entdecken, Eintrag „note-photos“: Text, zwei bis drei Sätze (auch im Neuheiten-Blatt)."
+  },
+  "highlightMessagesTitle": "Nachrichten an deine Buddys",
+  "@highlightMessagesTitle": {
+    "description": "Entdecken, Eintrag „messages“: Überschrift (auch im Neuheiten-Blatt nach einem Update)."
+  },
+  "highlightMessagesText": "Die Sprechblase neben einem Buddy öffnet eure Nachrichten — bei einer offenen Anfrage schon bis zu drei. Mit eingeschalteten Benachrichtigungen kommt eine Antwort auch an, wenn die App zu ist.",
+  "@highlightMessagesText": {
+    "description": "Entdecken, Eintrag „messages“: Text, zwei bis drei Sätze (auch im Neuheiten-Blatt)."
+  },
+  "highlightWholeRegionTitle": "Die ganze Region offline",
+  "@highlightWholeRegionTitle": {
+    "description": "Entdecken, Eintrag „whole-region“: Überschrift (auch im Neuheiten-Blatt nach einem Update)."
+  },
+  "highlightWholeRegionText": "In „Meine Bereiche\" speicherst du auf dem Telefon die ganze Karte einer Region, samt Orten, Höhen und Wegen. Was deine Bereiche schon haben, kommt nicht noch einmal; „Aktualisieren\" holt später nur, was alt ist.",
+  "@highlightWholeRegionText": {
+    "description": "Entdecken, Eintrag „whole-region“: Text, zwei bis drei Sätze (auch im Neuheiten-Blatt)."
+  },
+  "highlightContoursTitle": "Höhenlinien",
+  "@highlightContoursTitle": {
+    "description": "Entdecken, Eintrag „contours“: Überschrift (auch im Neuheiten-Blatt nach einem Update)."
+  },
+  "highlightContoursText": "Unter „Kartenebenen\" schaltest du Höhenlinien dazu — dezent unter Wegen und Trails, beschriftet etwa alle 100 m. Sie kommen aus dem Geländemodell, in gespeicherten Bereichen auch ohne Empfang.",
+  "@highlightContoursText": {
+    "description": "Entdecken, Eintrag „contours“: Text, zwei bis drei Sätze (auch im Neuheiten-Blatt)."
+  },
+  "highlightNavPipTitle": "Navigation im kleinen Fenster",
+  "@highlightNavPipTitle": {
+    "description": "Entdecken, Eintrag „nav-pip“: Überschrift (auch im Neuheiten-Blatt nach einem Update)."
+  },
+  "highlightNavPipText": "Wischst du beim Navigieren nach Hause — oder tippst „Minimieren\" —, bleibt die Karte als kleines Fenster über den anderen Apps, darunter der nächste Abschnitt. „Beenden\" geht direkt im Fenster.",
+  "@highlightNavPipText": {
+    "description": "Entdecken, Eintrag „nav-pip“: Text, zwei bis drei Sätze (auch im Neuheiten-Blatt)."
+  },
+  "highlightNavNoticeTitle": "Navigation in der Benachrichtigung",
+  "@highlightNavNoticeTitle": {
+    "description": "Entdecken, Eintrag „nav-notice“: Überschrift (auch im Neuheiten-Blatt nach einem Update)."
+  },
+  "highlightNavNoticeText": "Telefon in der Tasche oder andere App vorne: Die Benachrichtigung zeigt den nächsten Abschnitt — wie weit und wie hoch bis zum Trailkopf, auf dem Trail der Rest — und ob du auf der Route bist. „Navigation beenden\" geht direkt dort.",
+  "@highlightNavNoticeText": {
+    "description": "Entdecken, Eintrag „nav-notice“: Text, zwei bis drei Sätze (auch im Neuheiten-Blatt)."
+  },
+  "highlightNavRejoinTitle": "Zurück zur Route",
+  "@highlightNavRejoinTitle": {
+    "description": "Entdecken, Eintrag „nav-rejoin“: Überschrift (auch im Neuheiten-Blatt nach einem Update)."
+  },
+  "highlightNavRejoinText": "Neben der Route beim Navigieren: Ein Tipp zeigt den Weg zurück, 200 m voraus statt zum nächsten Punkt. Eine beendete Navigation geht oben in „Meine Fahrten\" weiter.",
+  "@highlightNavRejoinText": {
+    "description": "Entdecken, Eintrag „nav-rejoin“: Text, zwei bis drei Sätze (auch im Neuheiten-Blatt)."
+  },
+  "highlightNavigationTitle": "Navigieren",
+  "@highlightNavigationTitle": {
+    "description": "Entdecken, Eintrag „navigation“: Überschrift (auch im Neuheiten-Blatt nach einem Update)."
+  },
+  "highlightNavigationText": "Im Ergebnis einer Runde oder eines Wegs, und bei jeder Fahrt in „Meine Fahrten\": Die Karte dreht mit, oben stehen Rest, Höhenmeter und der Abstand zur Route — ohne Abbiegehinweise.",
+  "@highlightNavigationText": {
+    "description": "Entdecken, Eintrag „navigation“: Text, zwei bis drei Sätze (auch im Neuheiten-Blatt)."
+  },
+  "highlightRouteViasTitle": "Den Weg von Hand ziehen",
+  "@highlightRouteViasTitle": {
+    "description": "Entdecken, Eintrag „route-vias“: Überschrift (auch im Neuheiten-Blatt nach einem Update)."
+  },
+  "highlightRouteViasText": "Tippe auf die Linie einer geplanten Runde oder eines Wegs zum Trail: Dort sitzt ein Zwischenpunkt, den du ziehen kannst, und der Weg führt durch ihn. Ein Tipp auf den Punkt nimmt ihn wieder weg.",
+  "@highlightRouteViasText": {
+    "description": "Entdecken, Eintrag „route-vias“: Text, zwei bis drei Sätze (auch im Neuheiten-Blatt)."
+  },
+  "highlightWayQualityTitle": "Wie gut ist der Weg?",
+  "@highlightWayQualityTitle": {
+    "description": "Entdecken, Eintrag „way-quality“: Überschrift (auch im Neuheiten-Blatt nach einem Update)."
+  },
+  "highlightWayQualityText": "Ab Zoomstufe 13 zeigt die Karte, wie gut ein Forstweg ist und wie schwer ein Pfad: durchgezogen gut oder leicht, gestrichelt mittel, gepunktet schlecht oder schwer. Die Angaben stammen aus OpenStreetMap; unter „Kartenebenen\" schaltest du sie ab.",
+  "@highlightWayQualityText": {
+    "description": "Entdecken, Eintrag „way-quality“: Text, zwei bis drei Sätze (auch im Neuheiten-Blatt)."
+  },
+  "highlightRouteElevationTitle": "Höhenprofil der Runde",
+  "@highlightRouteElevationTitle": {
+    "description": "Entdecken, Eintrag „route-elevation“: Überschrift (auch im Neuheiten-Blatt nach einem Update)."
+  },
+  "highlightRouteElevationText": "Unter der Summe einer geplanten Runde steht jetzt ihr Höhenprofil, kompakt über die ganze Strecke — ebenso beim Weg zum Trail. Die Höhen kommen aus dem Geländemodell deiner Bereiche.",
+  "@highlightRouteElevationText": {
+    "description": "Entdecken, Eintrag „route-elevation“: Text, zwei bis drei Sätze (auch im Neuheiten-Blatt)."
+  },
+  "highlightRidesTidyTitle": "Meine Fahrten aufräumen",
+  "@highlightRidesTidyTitle": {
+    "description": "Entdecken, Eintrag „rides-tidy“: Überschrift (auch im Neuheiten-Blatt nach einem Update)."
+  },
+  "highlightRidesTidyText": "An jeder Fahrt steht ihr Rad, ein Tipp stellt es um. Nach links wischen löscht, ein langer Druck wählt mehrere. Beim GPX-Import schlägt die App das Rad nach der Steigrate vor.",
+  "@highlightRidesTidyText": {
+    "description": "Entdecken, Eintrag „rides-tidy“: Text, zwei bis drei Sätze (auch im Neuheiten-Blatt)."
+  },
+  "highlightTrailListFiltersTitle": "Filter nach Ausschnitt und S-Grad",
+  "@highlightTrailListFiltersTitle": {
+    "description": "Entdecken, Eintrag „trail-list-filters“: Überschrift (auch im Neuheiten-Blatt nach einem Update)."
+  },
+  "highlightTrailListFiltersText": "„Auf der Karte\" zeigt in der Liste nur die Trails im Kartenausschnitt. Den S-Grad stellst du als Bereich ein, etwa „ab S3\" oder „S1–S3\".",
+  "@highlightTrailListFiltersText": {
+    "description": "Entdecken, Eintrag „trail-list-filters“: Text, zwei bis drei Sätze (auch im Neuheiten-Blatt)."
+  },
+  "highlightRideImportTitle": "Alte Fahrten zählen mit",
+  "@highlightRideImportTitle": {
+    "description": "Entdecken, Eintrag „ride-import“: Überschrift (auch im Neuheiten-Blatt nach einem Update)."
+  },
+  "highlightRideImportText": "Fahrten aus anderen Apps holst du per GPX-Import in „Meine Fahrten\" — mit dem Rad, mit dem du sie gefahren bist. Das Fahrerprofil lernt dann auch aus ihnen, wie schnell du bergauf kommst.",
+  "@highlightRideImportText": {
+    "description": "Entdecken, Eintrag „ride-import“: Text, zwei bis drei Sätze (auch im Neuheiten-Blatt)."
+  },
+  "highlightRoutePrefsTitle": "Wege nach deinem Geschmack",
+  "@highlightRoutePrefsTitle": {
+    "description": "Entdecken, Eintrag „route-prefs“: Überschrift (auch im Neuheiten-Blatt nach einem Update)."
+  },
+  "highlightRoutePrefsText": "Straßen, Wanderwege bergauf, steile Rampen: In den Parametern des Planers sagst du je, ob du sie meidest oder ob sie dir egal sind. Das gilt für Runden und den Weg zum Trail.",
+  "@highlightRoutePrefsText": {
+    "description": "Entdecken, Eintrag „route-prefs“: Text, zwei bis drei Sätze (auch im Neuheiten-Blatt)."
+  },
+  "highlightSteepClimbsTitle": "Steile Rampen meiden",
+  "@highlightSteepClimbsTitle": {
+    "description": "Entdecken, Eintrag „steep-climbs“: Überschrift (auch im Neuheiten-Blatt nach einem Update)."
+  },
+  "highlightSteepClimbsText": "Runden und Wege zum Trail weichen sehr steilen Anstiegen aus, wo es flacher geht — je steiler, desto stärker, auf Schotter und Pfad mehr als auf Asphalt. Uphill-Trails bleiben gewollt.",
+  "@highlightSteepClimbsText": {
+    "description": "Entdecken, Eintrag „steep-climbs“: Text, zwei bis drei Sätze (auch im Neuheiten-Blatt)."
+  },
+  "highlightTerrainHeightsTitle": "Höhen aus dem Geländemodell",
+  "@highlightTerrainHeightsTitle": {
+    "description": "Entdecken, Eintrag „terrain-heights“: Überschrift (auch im Neuheiten-Blatt nach einem Update)."
+  },
+  "highlightTerrainHeightsText": "Fehlen einem Trail die Höhen, zeigt das Blatt sein Profil aus dem Geländemodell — beschriftet und nie gespeichert. Der Import prüft die Höhen einer Datei und bietet an, schlechte zu verwerfen.",
+  "@highlightTerrainHeightsText": {
+    "description": "Entdecken, Eintrag „terrain-heights“: Text, zwei bis drei Sätze (auch im Neuheiten-Blatt)."
+  },
+  "highlightOnlineFillTitle": "Runden auch ohne Bereich",
+  "@highlightOnlineFillTitle": {
+    "description": "Entdecken, Eintrag „online-fill“: Überschrift (auch im Neuheiten-Blatt nach einem Update)."
+  },
+  "highlightOnlineFillText": "Mit Empfang holt der Planer die Wege, die deinen Bereichen fehlen, vom Kartenhost — eine Runde geht dann auch ohne gespeicherten Bereich. Abschalten kannst du es unter Parameter.",
+  "@highlightOnlineFillText": {
+    "description": "Entdecken, Eintrag „online-fill“: Text, zwei bis drei Sätze (auch im Neuheiten-Blatt)."
+  },
+  "highlightMapLegendTitle": "Die Legende auf der Karte",
+  "@highlightMapLegendTitle": {
+    "description": "Entdecken, Eintrag „map-legend“: Überschrift (auch im Neuheiten-Blatt nach einem Update)."
+  },
+  "highlightMapLegendText": "Links am Rand steht eine schmale Lasche mit den Pistenfarben. Ein Tipp klappt die Legende auf — Farben, Linienarten, Ränder —, ein zweiter wieder zu. Die App merkt sich, wie du sie magst.",
+  "@highlightMapLegendText": {
+    "description": "Entdecken, Eintrag „map-legend“: Text, zwei bis drei Sätze (auch im Neuheiten-Blatt)."
+  },
+  "highlightMapLayersTitle": "Ebenen mit einem Tipp",
+  "@highlightMapLayersTitle": {
+    "description": "Entdecken, Eintrag „map-layers“: Überschrift (auch im Neuheiten-Blatt nach einem Update)."
+  },
+  "highlightMapLayersText": "Der oberste Knopf rechts öffnet die Kartenebenen direkt: Trail-Filter, offizielle Trails und Orte in einem Blatt. Die Offline-Karten haben ihren eigenen Knopf darunter, die Glühbirne steht jetzt oben rechts.",
+  "@highlightMapLayersText": {
+    "description": "Entdecken, Eintrag „map-layers“: Text, zwei bis drei Sätze (auch im Neuheiten-Blatt)."
+  },
+  "highlightMapSelectTitle": "Trail antippen, Route ab hier",
+  "@highlightMapSelectTitle": {
+    "description": "Entdecken, Eintrag „map-select“: Überschrift (auch im Neuheiten-Blatt nach einem Update)."
+  },
+  "highlightMapSelectText": "Ein Tipp hebt einen Trail hervor und zeigt unten eine kleine Karte; ein zweiter öffnet sein Blatt. Ein langer Druck auf die Karte bietet „Route ab hier\" und „Route bis hier\".",
+  "@highlightMapSelectText": {
+    "description": "Entdecken, Eintrag „map-select“: Text, zwei bis drei Sätze (auch im Neuheiten-Blatt)."
+  },
+  "highlightTrailNavTitle": "Zum Trail navigieren",
+  "@highlightTrailNavTitle": {
+    "description": "Entdecken, Eintrag „trail-nav“: Überschrift (auch im Neuheiten-Blatt nach einem Update)."
+  },
+  "highlightTrailNavText": "Das Navi-Symbol an jedem Trail: mit deiner Navi-App, oder in TrailBuddy direkt oder spaßig — dann nimmt der Weg Trails mit. Was du meistens willst, merkt es sich.",
+  "@highlightTrailNavText": {
+    "description": "Entdecken, Eintrag „trail-nav“: Text, zwei bis drei Sätze (auch im Neuheiten-Blatt)."
+  },
+  "highlightLoopPlannerTitle": "Runde planen",
+  "@highlightLoopPlannerTitle": {
+    "description": "Entdecken, Eintrag „loop-planner“: Überschrift (auch im Neuheiten-Blatt nach einem Update)."
+  },
+  "highlightLoopPlannerText": "Der Runden-Knopf öffnet den Planer: Trails antippen, links Start, Parameter, Liste und Gebiet — die App verbindet sie bergab über die Wege deiner Bereiche, offline. Als geplante Fahrt oder GPX.",
+  "@highlightLoopPlannerText": {
+    "description": "Entdecken, Eintrag „loop-planner“: Text, zwei bis drei Sätze (auch im Neuheiten-Blatt)."
+  },
+  "highlightGpxExportTitle": "Trails und Fahrten als GPX",
+  "@highlightGpxExportTitle": {
+    "description": "Entdecken, Eintrag „gpx-export“: Überschrift (auch im Neuheiten-Blatt nach einem Update)."
+  },
+  "highlightGpxExportText": "Jeder Trail und jede Fahrt lässt sich als GPX-Datei weitergeben — an Komoot, Garmin, eine Navi-App oder als Sicherung. Trails im Blatt, Fahrten unter „Meine Fahrten\".",
+  "@highlightGpxExportText": {
+    "description": "Entdecken, Eintrag „gpx-export“: Text, zwei bis drei Sätze (auch im Neuheiten-Blatt)."
+  },
+  "highlightTrailHeadTitle": "Zum Trailkopf, offline",
+  "@highlightTrailHeadTitle": {
+    "description": "Entdecken, Eintrag „trail-head“: Überschrift (auch im Neuheiten-Blatt nach einem Update)."
+  },
+  "highlightTrailHeadText": "„Zum Trailkopf\" im Blatt rechnet den Weg von deinem Standort zum Anfang des Trails — aus deinen gespeicherten Bereichen, ohne Netz: Linie auf der Karte, Höhenmeter, Zeit, und ob ein Wanderweg dabei ist.",
+  "@highlightTrailHeadText": {
+    "description": "Entdecken, Eintrag „trail-head“: Text, zwei bis drei Sätze (auch im Neuheiten-Blatt)."
+  },
+  "highlightNavigateTitle": "Anfahrt zum Trail",
+  "@highlightNavigateTitle": {
+    "description": "Entdecken, Eintrag „navigate“: Überschrift (auch im Neuheiten-Blatt nach einem Update)."
+  },
+  "highlightNavigateText": "Das Navi-Symbol oben im Blatt übergibt den Anfang des Trails an deine Navi-App — welche, entscheidest du im Wähler. Ohne Navi-App landen die Koordinaten in der Zwischenablage.",
+  "@highlightNavigateText": {
+    "description": "Entdecken, Eintrag „navigate“: Text, zwei bis drei Sätze (auch im Neuheiten-Blatt)."
+  },
+  "highlightTrailEndsTitle": "Anfang und Richtung",
+  "@highlightTrailEndsTitle": {
+    "description": "Entdecken, Eintrag „trail-ends“: Überschrift (auch im Neuheiten-Blatt nach einem Update)."
+  },
+  "highlightTrailEndsText": "Jeder Trail hat einen Punkt mit Pfeil am Anfang, in seiner Farbe. So siehst du auf der Karte, wo es losgeht und in welche Richtung.",
+  "@highlightTrailEndsText": {
+    "description": "Entdecken, Eintrag „trail-ends“: Text, zwei bis drei Sätze (auch im Neuheiten-Blatt)."
+  },
+  "highlightKurzanleitungTitle": "Die Kurzanleitung",
+  "@highlightKurzanleitungTitle": {
+    "description": "Entdecken, Eintrag „kurzanleitung“: Überschrift (auch im Neuheiten-Blatt nach einem Update)."
+  },
+  "highlightKurzanleitungText": "Das Wichtigste in sechs Schritten, mit den echten Symbolen — und von dort startest du jede Tour noch einmal.",
+  "@highlightKurzanleitungText": {
+    "description": "Entdecken, Eintrag „kurzanleitung“: Text, zwei bis drei Sätze (auch im Neuheiten-Blatt)."
+  },
+  "highlightStillValidTitle": "Noch gültig?",
+  "@highlightStillValidTitle": {
+    "description": "Entdecken, Eintrag „still-valid“: Überschrift (auch im Neuheiten-Blatt nach einem Update)."
+  },
+  "highlightStillValidText": "Sind deine Meldungen und Zustände älter als 30 Tage, fragt das Profil nach: Ja, Nein oder Weiß nicht — dann in 14 Tagen wieder.",
+  "@highlightStillValidText": {
+    "description": "Entdecken, Eintrag „still-valid“: Text, zwei bis drei Sätze (auch im Neuheiten-Blatt)."
+  },
+  "highlightMarksTitle": "Trail beginnt, Trail endet",
+  "@highlightMarksTitle": {
+    "description": "Entdecken, Eintrag „marks“: Überschrift (auch im Neuheiten-Blatt nach einem Update)."
+  },
+  "highlightMarksText": "Während einer Aufzeichnung steht über dem Aufnahmeknopf eine Fahne. Am Anfang und am Ende eines Trails antippen — im Zerlege-Blatt ist das Stück dann schon angehakt.",
+  "@highlightMarksText": {
+    "description": "Entdecken, Eintrag „marks“: Text, zwei bis drei Sätze (auch im Neuheiten-Blatt)."
+  },
+  "highlightTakeoverTitle": "Einen Buddy-Trail zu deinem machen",
+  "@highlightTakeoverTitle": {
+    "description": "Entdecken, Eintrag „takeover“: Überschrift (auch im Neuheiten-Blatt nach einem Update)."
+  },
+  "highlightTakeoverText": "Fährst du einen Trail deiner Buddys zum ersten Mal, übernimmst du ihn im Zerlege-Blatt mit deinen Sternen. Dann bleibt er dir, auch wenn der Buddy seinen Beitrag löscht.",
+  "@highlightTakeoverText": {
+    "description": "Entdecken, Eintrag „takeover“: Text, zwei bis drei Sätze (auch im Neuheiten-Blatt)."
+  },
+  "highlightReportsTitle": "Melden, was gerade gilt",
+  "@highlightReportsTitle": {
+    "description": "Entdecken, Eintrag „reports“: Überschrift (auch im Neuheiten-Blatt nach einem Update)."
+  },
+  "highlightReportsText": "„Melden\" im Blatt sagt, ob ein Trail gesperrt, zerstört oder verändert ist, und wie er gerade aussieht — von kaum fahrbar bis top gepflegt. Bestätigt ist es, wenn du ihn gefahren hast oder vor Ort bist.",
+  "@highlightReportsText": {
+    "description": "Entdecken, Eintrag „reports“: Text, zwei bis drei Sätze (auch im Neuheiten-Blatt)."
+  },
+  "highlightRatingTitle": "Sterne für Trails",
+  "@highlightRatingTitle": {
+    "description": "Entdecken, Eintrag „rating“: Überschrift (auch im Neuheiten-Blatt nach einem Update)."
+  },
+  "highlightRatingText": "Trails, die du gefahren bist, bewertest du mit ein bis fünf Sternen. Die Liste sortiert auf Wunsch danach.",
+  "@highlightRatingText": {
+    "description": "Entdecken, Eintrag „rating“: Text, zwei bis drei Sätze (auch im Neuheiten-Blatt)."
+  },
+  "highlightGradeColorsTitle": "Farbe heißt Schwierigkeit",
+  "@highlightGradeColorsTitle": {
+    "description": "Entdecken, Eintrag „grade-colors“: Überschrift (auch im Neuheiten-Blatt nach einem Update)."
+  },
+  "highlightGradeColorsText": "Wie auf der Piste: grün S0, blau S1, rot S2, schwarz ab S3. Die Art der Linie sagt den Zustand, ein gestrichelter Saum S4 oder S5.",
+  "@highlightGradeColorsText": {
+    "description": "Entdecken, Eintrag „grade-colors“: Text, zwei bis drei Sätze (auch im Neuheiten-Blatt)."
+  },
+  "highlightConnectMergeTitle": "Verbinden heißt zusammenlegen",
+  "@highlightConnectMergeTitle": {
+    "description": "Entdecken, Eintrag „connect-merge“: Überschrift (auch im Neuheiten-Blatt nach einem Update)."
+  },
+  "highlightConnectMergeText": "Nimmst du eine Anfrage an, werden gleiche Trails EIN Trail mit zwei Namen. Die Karte danach sagt, was ihr gemeinsam habt und was neu ist.",
+  "@highlightConnectMergeText": {
+    "description": "Entdecken, Eintrag „connect-merge“: Text, zwei bis drei Sätze (auch im Neuheiten-Blatt)."
+  },
+  "highlightImportSplitTitle": "Aus einer Fahrt werden Trails",
+  "@highlightImportSplitTitle": {
+    "description": "Entdecken, Eintrag „import-split“: Überschrift (auch im Neuheiten-Blatt nach einem Update)."
+  },
+  "highlightImportSplitText": "Eine ganze Runde zerlegst du mit der Schere: Bekannte Trails erkennt die App wieder, neue schlägt sie vor. Zu Buddys gehen nur die gewählten Stücke.",
+  "@highlightImportSplitText": {
+    "description": "Entdecken, Eintrag „import-split“: Text, zwei bis drei Sätze (auch im Neuheiten-Blatt)."
+  },
+  "highlightOfflineAreasTitle": "Karten für unterwegs",
+  "@highlightOfflineAreasTitle": {
+    "description": "Entdecken, Eintrag „offline-areas“: Überschrift (auch im Neuheiten-Blatt nach einem Update)."
+  },
+  "highlightOfflineAreasText": "Unter „Offline-Karten\" zeichnest du einen Bereich, den die App speichert — dann steht die Karte auch ohne Empfang. „Meine Bereiche\" im Profil verwaltet sie.",
+  "@highlightOfflineAreasText": {
+    "description": "Entdecken, Eintrag „offline-areas“: Text, zwei bis drei Sätze (auch im Neuheiten-Blatt)."
+  },
+  "highlightRideRecordTitle": "Eine Fahrt aufzeichnen",
+  "@highlightRideRecordTitle": {
+    "description": "Entdecken, Eintrag „ride-record“: Überschrift (auch im Neuheiten-Blatt nach einem Update)."
+  },
+  "highlightRideRecordText": "In der Android-App zeichnet der große Knopf deine Fahrt auf, auch ohne Empfang. Sie bleibt auf deinem Gerät, bis du sie zerlegst.",
+  "@highlightRideRecordText": {
+    "description": "Entdecken, Eintrag „ride-record“: Text, zwei bis drei Sätze (auch im Neuheiten-Blatt)."
+  },
+  "highlightOfficialTrailsTitle": "Offizielle Trails",
+  "@highlightOfficialTrailsTitle": {
+    "description": "Entdecken, Eintrag „official-trails“: Überschrift (auch im Neuheiten-Blatt nach einem Update)."
+  },
+  "highlightOfficialTrailsText": "Vom Land ausgewiesene Singletrails, gestrichelt in Violett — mit Status und Quelle. Ein- und ausschalten unter „Kartenebenen\".",
+  "@highlightOfficialTrailsText": {
+    "description": "Entdecken, Eintrag „official-trails“: Text, zwei bis drei Sätze (auch im Neuheiten-Blatt)."
+  },
+  "highlightTrailNotesTitle": "Hinweise für Buddys",
+  "@highlightTrailNotesTitle": {
+    "description": "Entdecken, Eintrag „trail-notes“: Überschrift (auch im Neuheiten-Blatt nach einem Update)."
+  },
+  "highlightTrailNotesText": "„Baum liegt quer\": Ein Hinweis im Blatt erzählt deinen Buddys, was gerade los ist. Bei ihnen leuchtet der Trail gelb, bis sie ihn gelesen haben.",
+  "@highlightTrailNotesText": {
+    "description": "Entdecken, Eintrag „trail-notes“: Text, zwei bis drei Sätze (auch im Neuheiten-Blatt)."
+  },
+  "highlightMergeProposalsTitle": "Sind das dieselben?",
+  "@highlightMergeProposalsTitle": {
+    "description": "Entdecken, Eintrag „merge-proposals“: Überschrift (auch im Neuheiten-Blatt nach einem Update)."
+  },
+  "highlightMergeProposalsText": "Hält ein Buddy deinen Trail für einen anderen oder liegen zwei fast aufeinander, fragt die App nach: derselbe, verschieden, oder beide auf der Karte ansehen.",
+  "@highlightMergeProposalsText": {
+    "description": "Entdecken, Eintrag „merge-proposals“: Text, zwei bis drei Sätze (auch im Neuheiten-Blatt)."
+  },
+  "highlightTrailMergeTitle": "Doppelte Trails zusammenführen",
+  "@highlightTrailMergeTitle": {
+    "description": "Entdecken, Eintrag „trail-merge“: Überschrift (auch im Neuheiten-Blatt nach einem Update)."
+  },
+  "highlightTrailMergeText": "Liegt ein Trail knapp neben einem anderen — etwa nach einem GPX-Import —, steht im Blatt „Ist ein Duplikat …\". Deine Aufzeichnungen ziehen zu dem, der bleibt.",
+  "@highlightTrailMergeText": {
+    "description": "Entdecken, Eintrag „trail-merge“: Text, zwei bis drei Sätze (auch im Neuheiten-Blatt)."
+  },
+  "highlightToursTitle": "Touren noch einmal ansehen",
+  "@highlightToursTitle": {
+    "description": "Entdecken, Eintrag „tours“: Überschrift (auch im Neuheiten-Blatt nach einem Update)."
+  },
+  "highlightToursText": "Karte, Trails, Buddys und das Zerlegen einer Fahrt erklären sich in kurzen Touren. Neu starten: Profil → Kurzanleitung.",
+  "@highlightToursText": {
+    "description": "Entdecken, Eintrag „tours“: Text, zwei bis drei Sätze (auch im Neuheiten-Blatt)."
+  },
+  "highlightPickSectionTitle": "Ein Stück selbst wählen",
+  "@highlightPickSectionTitle": {
+    "description": "Entdecken, Eintrag „pick-section“: Überschrift (auch im Neuheiten-Blatt nach einem Update)."
+  },
+  "highlightPickSectionText": "Findet die Suche im Zerlege-Blatt eine Jump-Line nicht, legt „Stück selbst wählen\" einen Kandidaten über die ganze Fahrt — die Griffe machen den Rest.",
+  "@highlightPickSectionText": {
+    "description": "Entdecken, Eintrag „pick-section“: Text, zwei bis drei Sätze (auch im Neuheiten-Blatt)."
+  },
+  "highlightTrailLinkTitle": "Ein Link zur Quelle",
+  "@highlightTrailLinkTitle": {
+    "description": "Entdecken, Eintrag „trail-link“: Überschrift (auch im Neuheiten-Blatt nach einem Update)."
+  },
+  "highlightTrailLinkText": "In „Mein Beitrag\" kann ein Trail auf eine Seite zeigen, etwa die des Vereins. Das Blatt nennt die Adresse, geöffnet wird im Browser.",
+  "@highlightTrailLinkText": {
+    "description": "Entdecken, Eintrag „trail-link“: Text, zwei bis drei Sätze (auch im Neuheiten-Blatt)."
+  },
+  "highlightPlannedTitle": "Geplant oder gefahren",
+  "@highlightPlannedTitle": {
+    "description": "Entdecken, Eintrag „planned“: Überschrift (auch im Neuheiten-Blatt nach einem Update)."
+  },
+  "highlightPlannedText": "Eine GPX-Datei ohne Fahrzeiten gilt als nur geplant. Bist du ihn gefahren, trägst du beim Import „Gefahren am …\" ein.",
+  "@highlightPlannedText": {
+    "description": "Entdecken, Eintrag „planned“: Text, zwei bis drei Sätze (auch im Neuheiten-Blatt)."
+  },
+  "highlightTraitsTitle": "Der Charakter eines Trails",
+  "@highlightTraitsTitle": {
+    "description": "Entdecken, Eintrag „traits“: Überschrift (auch im Neuheiten-Blatt nach einem Update)."
+  },
+  "highlightTraitsText": "Flowig, Jump-Line, verblockt, steil, Uphill: Die zwei häufigsten Angaben stehen am Schild — und die Filter „Flowig\" und „Jumps\" suchen danach.",
+  "@highlightTraitsText": {
+    "description": "Entdecken, Eintrag „traits“: Text, zwei bis drei Sätze (auch im Neuheiten-Blatt)."
+  },
+  "highlightGradeVotesTitle": "Wer wie eingeschätzt hat",
+  "@highlightGradeVotesTitle": {
+    "description": "Entdecken, Eintrag „grade-votes“: Überschrift (auch im Neuheiten-Blatt nach einem Update)."
+  },
+  "highlightGradeVotesText": "Ein Tipp auf den S-Grad im Blatt zeigt alle Einschätzungen deines Netzes — und was S0 bis S5 bedeuten.",
+  "@highlightGradeVotesText": {
+    "description": "Entdecken, Eintrag „grade-votes“: Text, zwei bis drei Sätze (auch im Neuheiten-Blatt)."
+  },
+  "highlightVisibilityTitle": "Nur für mich",
+  "@highlightVisibilityTitle": {
+    "description": "Entdecken, Eintrag „visibility“: Überschrift (auch im Neuheiten-Blatt nach einem Update)."
+  },
+  "highlightVisibilityText": "In „Mein Beitrag\" hältst du einen Trail vor deinen Buddys verborgen. Er bleibt auf deiner Karte.",
+  "@highlightVisibilityText": {
+    "description": "Entdecken, Eintrag „visibility“: Text, zwei bis drei Sätze (auch im Neuheiten-Blatt)."
+  },
+  "highlightPoisTitle": "Orte auf der Karte",
+  "@highlightPoisTitle": {
+    "description": "Entdecken, Eintrag „pois“: Überschrift (auch im Neuheiten-Blatt nach einem Update)."
+  },
+  "highlightPoisText": "Einkehr, Wasser, Rad-Service: Welche Orte die Karte zeigt, wählst du unter „Kartenebenen\", dem obersten Knopf rechts.",
+  "@highlightPoisText": {
+    "description": "Entdecken, Eintrag „pois“: Text, zwei bis drei Sätze (auch im Neuheiten-Blatt)."
+  },
+  "highlightMyPositionTitle": "Wo bin ich?",
+  "@highlightMyPositionTitle": {
+    "description": "Entdecken, Eintrag „my-position“: Überschrift (auch im Neuheiten-Blatt nach einem Update)."
+  },
+  "highlightMyPositionText": "Der Positionsknopf holt die Karte zu dir. Dein Standort verlässt das Gerät nie.",
+  "@highlightMyPositionText": {
+    "description": "Entdecken, Eintrag „my-position“: Text, zwei bis drei Sätze (auch im Neuheiten-Blatt)."
+  },
+  "highlightBuddyAliasTitle": "Ein eigener Name für Buddys",
+  "@highlightBuddyAliasTitle": {
+    "description": "Entdecken, Eintrag „buddy-alias“: Überschrift (auch im Neuheiten-Blatt nach einem Update)."
+  },
+  "highlightBuddyAliasText": "Der Stift neben einem Buddy gibt ihm einen Namen, den nur du siehst — überall in der App.",
+  "@highlightBuddyAliasText": {
+    "description": "Entdecken, Eintrag „buddy-alias“: Text, zwei bis drei Sätze (auch im Neuheiten-Blatt)."
+  },
+  "highlightInviteTitle": "Buddys einladen",
+  "@highlightInviteTitle": {
+    "description": "Entdecken, Eintrag „invite“: Überschrift (auch im Neuheiten-Blatt nach einem Update)."
+  },
+  "highlightInviteText": "Oben rechts im Reiter „Buddys\": ein Link zu TrailBuddy mit deinem Benutzernamen, damit man dich gleich findet.",
+  "@highlightInviteText": {
+    "description": "Entdecken, Eintrag „invite“: Text, zwei bis drei Sätze (auch im Neuheiten-Blatt)."
+  },
+  "highlightNotificationsTitle": "Benachrichtigungen",
+  "@highlightNotificationsTitle": {
+    "description": "Entdecken, Eintrag „notifications“: Überschrift (auch im Neuheiten-Blatt nach einem Update)."
+  },
+  "highlightNotificationsText": "Meldet ein Buddy einen Trail oder schreibt einen Hinweis, sagt es dir dein Telefon — einschalten im Profil.",
+  "@highlightNotificationsText": {
+    "description": "Entdecken, Eintrag „notifications“: Text, zwei bis drei Sätze (auch im Neuheiten-Blatt)."
+  },
+  "highlightRiderLearnTitle": "Gelernt aus deinen Fahrten",
+  "@highlightRiderLearnTitle": {
+    "description": "Entdecken, Eintrag „rider-learn“: Überschrift (auch im Neuheiten-Blatt nach einem Update)."
+  },
+  "highlightRiderLearnText": "Unter „Fahrerprofil\": „Aus meinen Fahrten lernen\" liest Zeit und GPS-Höhe deiner Aufzeichnungen und stellt Steigrate und Flachgeschwindigkeit je Profil auf dich ein. Zurücksetzen geht jederzeit.",
+  "@highlightRiderLearnText": {
+    "description": "Entdecken, Eintrag „rider-learn“: Text, zwei bis drei Sätze (auch im Neuheiten-Blatt)."
+  },
+  "highlightRiderProfileTitle": "Bio-Bike oder E-Bike",
+  "@highlightRiderProfileTitle": {
+    "description": "Entdecken, Eintrag „rider-profile“: Überschrift (auch im Neuheiten-Blatt nach einem Update)."
+  },
+  "highlightRiderProfileText": "Unter „Fahrerprofil\" im Profil: wie schnell es bergauf geht, wie teuer ein Wanderweg ist, wie viele Höhenmeter eine Runde haben darf. Die Routenplanung rechnet damit; jede Fahrt merkt es sich.",
+  "@highlightRiderProfileText": {
+    "description": "Entdecken, Eintrag „rider-profile“: Text, zwei bis drei Sätze (auch im Neuheiten-Blatt)."
+  },
+  "highlightAppearanceTitle": "Hell oder dunkel",
+  "@highlightAppearanceTitle": {
+    "description": "Entdecken, Eintrag „appearance“: Überschrift (auch im Neuheiten-Blatt nach einem Update)."
+  },
+  "highlightAppearanceText": "Unter „Erscheinungsbild\" im Profil — oder wie das System. Die Karte bleibt hell, in der Sonne liest sie sich besser.",
+  "@highlightAppearanceText": {
+    "description": "Entdecken, Eintrag „appearance“: Text, zwei bis drei Sätze (auch im Neuheiten-Blatt)."
+  },
+  "demoOpenTrailFirstTitle": "Einen Trail öffnen",
+  "@demoOpenTrailFirstTitle": {
+    "description": "Vorführungen, gemeinsamer Ersatzschritt _openTrailFirst: Überschrift der Blase."
+  },
+  "demoOpenTrailFirstText": "Ein Tipp auf die Zeile öffnet das Blatt — dasselbe wie auf der Karte.",
+  "@demoOpenTrailFirstText": {
+    "description": "Vorführungen, gemeinsamer Ersatzschritt _openTrailFirst: Text der Blase."
+  },
+  "demoNoTrailYetTitle": "Erst einen Trail holen",
+  "@demoNoTrailYetTitle": {
+    "description": "Vorführungen, gemeinsamer Ersatzschritt _noTrailYet: Überschrift der Blase."
+  },
+  "demoNoTrailYetText": "Das geht an einem Trail. Hol dir einen über GPX aus einer anderen App, zeichne eine Fahrt auf oder verbinde dich mit Buddys.",
+  "@demoNoTrailYetText": {
+    "description": "Vorführungen, gemeinsamer Ersatzschritt _noTrailYet: Text der Blase."
+  },
+  "demoNoOwnTrailTitle": "An eigenen Trails",
+  "@demoNoOwnTrailTitle": {
+    "description": "Vorführungen, gemeinsamer Ersatzschritt _noOwnTrail: Überschrift der Blase."
+  },
+  "demoNoOwnTrailText": "Das geht an Trails, die du selbst beigesteuert hast — über GPX oder aus einer aufgezeichneten Fahrt. Einen Buddy-Trail machst du beim ersten Befahren zu deinem.",
+  "@demoNoOwnTrailText": {
+    "description": "Vorführungen, gemeinsamer Ersatzschritt _noOwnTrail: Text der Blase."
+  },
+  "demoAndroidOnlyTitle": "In der Android-App",
+  "@demoAndroidOnlyTitle": {
+    "description": "Vorführungen, gemeinsamer Ersatzschritt _androidOnly: Überschrift der Blase."
+  },
+  "demoAndroidOnlyText": "Aufgezeichnet wird in der Android-App — ein Browser bekommt im Hintergrund keine Positionen.",
+  "@demoAndroidOnlyText": {
+    "description": "Vorführungen, gemeinsamer Ersatzschritt _androidOnly: Text der Blase."
+  },
+  "demoFindBuddyFirstTitle": "Erst einen Buddy finden",
+  "@demoFindBuddyFirstTitle": {
+    "description": "Vorführungen, gemeinsamer Ersatzschritt _findBuddyFirst: Überschrift der Blase."
+  },
+  "demoFindBuddyFirstText": "Das geht mit deinen Buddys. Such hier nach einem Benutzernamen oder einer genauen E-Mail-Adresse — oder lade jemanden ein.",
+  "@demoFindBuddyFirstText": {
+    "description": "Vorführungen, gemeinsamer Ersatzschritt _findBuddyFirst: Text der Blase."
+  },
+  "demoWholeRegionTitle": "In „Meine Bereiche\"",
+  "@demoWholeRegionTitle": {
+    "description": "Vorführung „whole-region“ (Entdecken → Zeig es mir): Überschrift der Blase an der Profilzeile."
+  },
+  "demoWholeRegionText": "Dort steht je Region „ganz speichern\" — auf dem Telefon, mit der Größe vorher. Darüber zählt eine Zeile je Region, wie viele Kacheln älter sind als der aktuelle Stand.",
+  "@demoWholeRegionText": {
+    "description": "Vorführung „whole-region“ (Entdecken → Zeig es mir): Text der Blase an der Profilzeile."
+  },
+  "demoOnlineFill1Title": "Wege vom Kartenhost",
+  "@demoOnlineFill1Title": {
+    "description": "Vorführung „online-fill“ (Entdecken → Zeig es mir), Schritt 1: Überschrift der Blase."
+  },
+  "demoOnlineFill1Text": "Der Planer rechnet über die Wege deiner Bereiche. Mit Empfang holt er, was fehlt, vom Kartenhost — höchstens {tiles} Kacheln je Planung, nur für diese Sitzung.",
+  "@demoOnlineFill1Text": {
+    "description": "Vorführung „online-fill“ (Entdecken → Zeig es mir), Schritt 1: Text der Blase.",
+    "placeholders": {
+      "tiles": {
+        "type": "int"
+      }
+    }
+  },
+  "demoOnlineFill2Title": "Offline prüfen",
+  "@demoOnlineFill2Title": {
+    "description": "Vorführung „online-fill“ (Entdecken → Zeig es mir), Schritt 2: Überschrift der Blase."
+  },
+  "demoOnlineFill2Text": "Unter Parameter schaltest du „Fehlende Wege online ergänzen\" ab — dann rechnet er wie im Funkloch, und du siehst zu Hause, ob deine Bereiche für die Runde reichen.",
+  "@demoOnlineFill2Text": {
+    "description": "Vorführung „online-fill“ (Entdecken → Zeig es mir), Schritt 2: Text der Blase."
+  },
+  "demoContoursTitle": "Linien gleicher Höhe",
+  "@demoContoursTitle": {
+    "description": "Vorführung „contours“ (Entdecken → Zeig es mir): Überschrift der Blase."
+  },
+  "demoContoursText": "Hier schaltest du sie an. Je enger sie liegen, desto steiler — der Abstand passt sich dem Gelände an, die Legende nennt ihn.",
+  "@demoContoursText": {
+    "description": "Vorführung „contours“ (Entdecken → Zeig es mir): Text der Blase."
+  },
+  "demoWayQuality1Title": "Die Güte der Wege",
+  "@demoWayQuality1Title": {
+    "description": "Vorführung „way-quality“ (Entdecken → Zeig es mir), Schritt 1: Überschrift der Blase."
+  },
+  "demoWayQuality1Text": "Hier schaltest du sie ab und wieder an. Sie kommt aus OpenStreetMap — wo dort nichts eingetragen ist, bleibt der Weg, wie die Karte ihn zeichnet.",
+  "@demoWayQuality1Text": {
+    "description": "Vorführung „way-quality“ (Entdecken → Zeig es mir), Schritt 1: Text der Blase."
+  },
+  "demoWayQuality2Title": "Was die Striche heißen",
+  "@demoWayQuality2Title": {
+    "description": "Vorführung „way-quality“ (Entdecken → Zeig es mir), Schritt 2: Überschrift der Blase."
+  },
+  "demoWayQuality2Text": "Unter „Forstweg\" und „Pfad\" steht in der Legende, welcher Strich was bedeutet. Je durchbrochener, desto rauer.",
+  "@demoWayQuality2Text": {
+    "description": "Vorführung „way-quality“ (Entdecken → Zeig es mir), Schritt 2: Text der Blase."
+  },
+  "demoMapSelect1Title": "Erst auswählen",
+  "@demoMapSelect1Title": {
+    "description": "Vorführung „map-select“ (Entdecken → Zeig es mir), Schritt 1: Überschrift der Blase."
+  },
+  "demoMapSelect1Text": "Ein Tipp auf einen Trail hebt ihn hervor, unten steht eine kleine Karte mit Navi-Symbol. Ein Tipp auf sie — oder ein zweiter auf den Trail — öffnet das Blatt; ein Tipp daneben hebt sie auf.",
+  "@demoMapSelect1Text": {
+    "description": "Vorführung „map-select“ (Entdecken → Zeig es mir), Schritt 1: Text der Blase."
+  },
+  "demoMapSelect2Title": "Langer Druck auf die Karte",
+  "@demoMapSelect2Title": {
+    "description": "Vorführung „map-select“ (Entdecken → Zeig es mir), Schritt 2: Überschrift der Blase."
+  },
+  "demoMapSelect2Text": "Hält man den Finger auf eine Stelle, bietet die Karte „Route ab hier\" (eine Runde mit diesem Start), „Route bis hier\" (der Weg von deinem Standort) und die Navi-App an.",
+  "@demoMapSelect2Text": {
+    "description": "Vorführung „map-select“ (Entdecken → Zeig es mir), Schritt 2: Text der Blase."
+  },
+  "demoTrailNavTitle": "Das Navi-Symbol",
+  "@demoTrailNavTitle": {
+    "description": "Vorführung „trail-nav“ (Entdecken → Zeig es mir): Überschrift der Blase."
+  },
+  "demoTrailNavText": "Mit deiner Navi-App, oder in TrailBuddy: direkt, oder spaßig — dann nimmt der Weg Abfahrten mit. Einmal als Standard gemerkt, fragt nur noch ein langer Druck.",
+  "@demoTrailNavText": {
+    "description": "Vorführung „trail-nav“ (Entdecken → Zeig es mir): Text der Blase."
+  },
+  "demoNavMinimizeTitle": "Minimieren",
+  "@demoNavMinimizeTitle": {
+    "description": "Vorführung „nav-minimize“ (Entdecken → Zeig es mir): Überschrift der Blase."
+  },
+  "demoNavMinimizeText": "Plane eine Runde und navigiere: Unten neben „Bildschirm\" legt „Minimieren\" die Karte ins kleine Fenster, mit dem nächsten Abschnitt darunter. Ein Tipp aufs Fenster holt TrailBuddy zurück.",
+  "@demoNavMinimizeText": {
+    "description": "Vorführung „nav-minimize“ (Entdecken → Zeig es mir): Text der Blase."
+  },
+  "demoNavTrailEndTitle": "Trail geschafft",
+  "@demoNavTrailEndTitle": {
+    "description": "Vorführung „nav-trail-end“ (Entdecken → Zeig es mir): Überschrift der Blase."
+  },
+  "demoNavTrailEndText": "Navigiere eine Runde über Trails: Am Ende jedes Trails stehen Zeit, Höhenmeter bergab und Top-Speed. Ein Tipp sagt deinen Buddys, wie er heute war — „Weiter\" zeigt den nächsten Abschnitt.",
+  "@demoNavTrailEndText": {
+    "description": "Vorführung „nav-trail-end“ (Entdecken → Zeig es mir): Text der Blase."
+  },
+  "demoNavSectionsTitle": "Von Trail zu Trail",
+  "@demoNavSectionsTitle": {
+    "description": "Vorführung „nav-sections“ (Entdecken → Zeig es mir): Überschrift der Blase."
+  },
+  "demoNavSectionsText": "Plane eine Runde und tippe „Navigieren\": Oben steht, wie weit und wie viele Höhenmeter es bis zum nächsten Trailkopf sind; am Kopf Stufe, Zustand und der Hinweis deines Buddys. Unten die Runde als Band.",
+  "@demoNavSectionsText": {
+    "description": "Vorführung „nav-sections“ (Entdecken → Zeig es mir): Text der Blase."
+  },
+  "demoNavPipTitle": "Navigation im kleinen Fenster",
+  "@demoNavPipTitle": {
+    "description": "Vorführung „nav-pip“ (Entdecken → Zeig es mir): Überschrift der Blase."
+  },
+  "demoNavPipText": "Navigiere eine Runde oder einen Weg zum Trail und wische nach Hause: Die Karte bleibt als kleines Fenster über den anderen Apps, ein Tipp darauf holt TrailBuddy zurück.",
+  "@demoNavPipText": {
+    "description": "Vorführung „nav-pip“ (Entdecken → Zeig es mir): Text der Blase."
+  },
+  "demoNavNoticeTitle": "Navigation in der Benachrichtigung",
+  "@demoNavNoticeTitle": {
+    "description": "Vorführung „nav-notice“ (Entdecken → Zeig es mir): Überschrift der Blase."
+  },
+  "demoNavNoticeText": "Navigiere eine Runde oder einen Weg zum Trail und wechsle in eine andere App: Oben in der Benachrichtigung stehen Rest, Höhenmeter und ob du auf der Route bist — alle fünf Sekunden neu.",
+  "@demoNavNoticeText": {
+    "description": "Vorführung „nav-notice“ (Entdecken → Zeig es mir): Text der Blase."
+  },
+  "demoNavRejoinTitle": "Zurück zur Route",
+  "@demoNavRejoinTitle": {
+    "description": "Vorführung „nav-rejoin“ (Entdecken → Zeig es mir): Überschrift der Blase."
+  },
+  "demoNavRejoinText": "Navigiere eine Runde oder einen Weg zum Trail. Bist du mehr als 30 m daneben, steht unten „Zurück zur Route\": Der Weg dorthin liegt dann gestrichelt vor der Route.",
+  "@demoNavRejoinText": {
+    "description": "Vorführung „nav-rejoin“ (Entdecken → Zeig es mir): Text der Blase."
+  },
+  "demoNavigationTitle": "Navigieren im Ergebnis",
+  "@demoNavigationTitle": {
+    "description": "Vorführung „navigation“ (Entdecken → Zeig es mir): Überschrift der Blase."
+  },
+  "demoNavigationText": "Plane eine Runde oder einen Weg zum Trail, dann „Navigieren\": Die Karte dreht mit der Fahrtrichtung, oben stehen Rest, Höhenmeter und der Abstand zur Route. Geplante Fahrten startest du im Menü der Fahrt.",
+  "@demoNavigationText": {
+    "description": "Vorführung „navigation“ (Entdecken → Zeig es mir): Text der Blase."
+  },
+  "demoRouteViasTitle": "Zwischenpunkte im Ergebnis",
+  "@demoRouteViasTitle": {
+    "description": "Vorführung „route-vias“ (Entdecken → Zeig es mir): Überschrift der Blase."
+  },
+  "demoRouteViasText": "Plane eine Runde oder einen Weg zum Trail. Ein Tipp auf die Linie setzt einen Punkt; zieh ihn dorthin, wo der Weg langgehen soll. Bei der Runde bleibt die Reihenfolge der Trails dabei, wie sie ist.",
+  "@demoRouteViasText": {
+    "description": "Vorführung „route-vias“ (Entdecken → Zeig es mir): Text der Blase."
+  },
+  "demoRouteElevationTitle": "Das Profil im Ergebnis",
+  "@demoRouteElevationTitle": {
+    "description": "Vorführung „route-elevation“ (Entdecken → Zeig es mir): Überschrift der Blase."
+  },
+  "demoRouteElevationText": "Plane eine Runde oder einen Weg zum Trail: Unter der Summe steht das Höhenprofil, von Start bis Ziel. Fehlt einem Stück die Höhe, bleibt es weg — erfunden wird nichts.",
+  "@demoRouteElevationText": {
+    "description": "Vorführung „route-elevation“ (Entdecken → Zeig es mir): Text der Blase."
+  },
+  "demoLoopPlanner1Title": "Eine Runde aus deinen Trails",
+  "@demoLoopPlanner1Title": {
+    "description": "Vorführung „loop-planner“ (Entdecken → Zeig es mir), Schritt 1: Überschrift der Blase."
+  },
+  "demoLoopPlanner1Text": "Der Knopf öffnet den Planer: links eine eigene Leiste, und jeder Trail, den du auf der Karte antippst, kommt in die Runde — ein zweiter Tipp nimmt ihn wieder heraus.",
+  "@demoLoopPlanner1Text": {
+    "description": "Vorführung „loop-planner“ (Entdecken → Zeig es mir), Schritt 1: Text der Blase."
+  },
+  "demoLoopPlanner2Title": "Die Leiste des Planers",
+  "@demoLoopPlanner2Title": {
+    "description": "Vorführung „loop-planner“ (Entdecken → Zeig es mir), Schritt 2: Überschrift der Blase."
+  },
+  "demoLoopPlanner2Text": "Oben der Start (Standort oder getippt) und die Parameter — Zeit, Höhenmeter, Wanderweg, Radius. Darunter die Liste und das Gebiet: umfahren, und die Trails darin sind dabei. Ganz unten: rechnen.",
+  "@demoLoopPlanner2Text": {
+    "description": "Vorführung „loop-planner“ (Entdecken → Zeig es mir), Schritt 2: Text der Blase."
+  },
+  "demoTrailListFiltersTitle": "Ausschnitt und S-Grad",
+  "@demoTrailListFiltersTitle": {
+    "description": "Vorführung „trail-list-filters“ (Entdecken → Zeig es mir): Überschrift der Blase."
+  },
+  "demoTrailListFiltersText": "„Auf der Karte\" lässt nur die Trails im Kartenausschnitt stehen — die Liste zieht mit, wenn du die Karte bewegst. Der S-Grad-Chip öffnet zwei Schieber für den Bereich. Er gilt auch auf der Karte.",
+  "@demoTrailListFiltersText": {
+    "description": "Vorführung „trail-list-filters“ (Entdecken → Zeig es mir): Text der Blase."
+  },
+  "demoRideImportTitle": "Fahrten aus anderen Apps",
+  "@demoRideImportTitle": {
+    "description": "Vorführung „ride-import“ (Entdecken → Zeig es mir): Überschrift der Blase."
+  },
+  "demoRideImportText": "Hier liest TrailBuddy GPX- oder Zip-Dateien. In der Android-App steht unter den Spuren dann „Fahrten für dein Fahrerprofil\": Rad wählen, speichern, lernen lassen. Die Fahrten bleiben auf dem Gerät.",
+  "@demoRideImportText": {
+    "description": "Vorführung „ride-import“ (Entdecken → Zeig es mir): Text der Blase."
+  },
+  "demoRoutePrefsTitle": "Meiden oder egal",
+  "@demoRoutePrefsTitle": {
+    "description": "Vorführung „route-prefs“ (Entdecken → Zeig es mir): Überschrift der Blase."
+  },
+  "demoRoutePrefsText": "Im Planer unter „Parameter\": Straßen, Wanderwege bergauf und steile Rampen je meiden oder egal. Egal heißt nicht umsonst — nur ein Bruchteil des Aufschlags bleibt. Die Wahl merkt sich das Gerät, und sie gilt auch für den Weg zum Trail.",
+  "@demoRoutePrefsText": {
+    "description": "Vorführung „route-prefs“ (Entdecken → Zeig es mir): Text der Blase."
+  },
+  "demoSteepClimbsTitle": "Flacher, wo es geht",
+  "@demoSteepClimbsTitle": {
+    "description": "Vorführung „steep-climbs“ (Entdecken → Zeig es mir): Überschrift der Blase."
+  },
+  "demoSteepClimbsText": "Planer und „Zum Trailkopf\" zählen jeden Höhenmeter ab 10 % Steigung extra, und je steiler, desto mehr — auf Schotter und Pfad dreifach so viel wie auf Asphalt. Ein Umweg, der flacher hinaufführt, gewinnt dann. Uphill-Trails zählen nie als zu steil.",
+  "@demoSteepClimbsText": {
+    "description": "Vorführung „steep-climbs“ (Entdecken → Zeig es mir): Text der Blase."
+  },
+  "demoTerrainHeightsTitle": "Höhen ohne Aufzeichnung",
+  "@demoTerrainHeightsTitle": {
+    "description": "Vorführung „terrain-heights“ (Entdecken → Zeig es mir): Überschrift der Blase."
+  },
+  "demoTerrainHeightsText": "Hat kein Beitrag Höhen, kommen sie aus dem Geländemodell (90 m): mit Empfang vom Kartenhost, sonst aus deinen Bereichen. Die Kachel trägt dann ein „≈\", das Profil sagt es — gespeichert wird nichts.",
+  "@demoTerrainHeightsText": {
+    "description": "Vorführung „terrain-heights“ (Entdecken → Zeig es mir): Text der Blase."
+  },
+  "demoGpxExportTitle": "Die Linie als Datei",
+  "@demoGpxExportTitle": {
+    "description": "Vorführung „gpx-export“ (Entdecken → Zeig es mir): Überschrift der Blase."
+  },
+  "demoGpxExportText": "Gibt den Trail als GPX-Datei weiter — über das Teilen-Menü an jede App, die GPX liest. Nur die Linie mit Namen; keine Buddys, keine Hinweise. Fahrten exportierst du unter „Meine Fahrten\".",
+  "@demoGpxExportText": {
+    "description": "Vorführung „gpx-export“ (Entdecken → Zeig es mir): Text der Blase."
+  },
+  "demoTrailHeadTitle": "Der Weg aus deinen Bereichen",
+  "@demoTrailHeadTitle": {
+    "description": "Vorführung „trail-head“ (Entdecken → Zeig es mir): Überschrift der Blase."
+  },
+  "demoTrailHeadText": "Rechnet den Weg von deinem Standort zum Anfang des Trails — offline, aus den Wegen in deinen gespeicherten Bereichen, nach deinem Fahrerprofil. Die Karte zeigt die Linie, das Blatt Höhenmeter und Zeit; als GPX geht sie an jede Navi-App.",
+  "@demoTrailHeadText": {
+    "description": "Vorführung „trail-head“ (Entdecken → Zeig es mir): Text der Blase."
+  },
+  "demoNavigateTitle": "In die Navi-App",
+  "@demoNavigateTitle": {
+    "description": "Vorführung „navigate“ (Entdecken → Zeig es mir): Überschrift der Blase."
+  },
+  "demoNavigateText": "Übergibt den Anfang des Trails an deine Navi-App — du wählst, welche. Die App selbst baut dabei keine Verbindung auf; ohne Navi-App landen die Koordinaten in der Zwischenablage.",
+  "@demoNavigateText": {
+    "description": "Vorführung „navigate“ (Entdecken → Zeig es mir): Text der Blase."
+  },
+  "demoTrailEnds1Title": "Wo es losgeht",
+  "@demoTrailEnds1Title": {
+    "description": "Vorführung „trail-ends“ (Entdecken → Zeig es mir), Schritt 1: Überschrift der Blase."
+  },
+  "demoTrailEnds1Text": "Der Punkt am Anfang zeigt mit seinem Pfeil die Fahrtrichtung, in der Farbe des Trails, ab der Zoomstufe der Schilder.",
+  "@demoTrailEnds1Text": {
+    "description": "Vorführung „trail-ends“ (Entdecken → Zeig es mir), Schritt 1: Text der Blase."
+  },
+  "demoTrailEnds2Title": "Erst einen Trail holen",
+  "@demoTrailEnds2Title": {
+    "description": "Vorführung „trail-ends“ (Entdecken → Zeig es mir), Schritt 2: Überschrift der Blase."
+  },
+  "demoTrailEnds2Text": "Das zeigt die Karte an einem Trail. Hol dir einen über GPX aus einer anderen App, zeichne eine Fahrt auf oder verbinde dich mit Buddys.",
+  "@demoTrailEnds2Text": {
+    "description": "Vorführung „trail-ends“ (Entdecken → Zeig es mir), Schritt 2: Text der Blase."
+  },
+  "demoKurzanleitungTitle": "Hier steht sie",
+  "@demoKurzanleitungTitle": {
+    "description": "Vorführung „kurzanleitung“ (Entdecken → Zeig es mir): Überschrift der Blase an der Profilzeile."
+  },
+  "demoKurzanleitungText": "Sechs Abschnitte mit den echten Symbolen, dazu die Knöpfe für jede Tour.",
+  "@demoKurzanleitungText": {
+    "description": "Vorführung „kurzanleitung“ (Entdecken → Zeig es mir): Text der Blase an der Profilzeile."
+  },
+  "demoStillValid1Title": "Angaben prüfen",
+  "@demoStillValid1Title": {
+    "description": "Vorführung „still-valid“ (Entdecken → Zeig es mir), Schritt 1: Überschrift der Blase."
+  },
+  "demoStillValid1Text": "Die Zahl sagt, wie viele deiner Meldungen und Zustände älter als 30 Tage sind. Ein Tipp, dann je Trail Ja, Nein oder Weiß nicht.",
+  "@demoStillValid1Text": {
+    "description": "Vorführung „still-valid“ (Entdecken → Zeig es mir), Schritt 1: Text der Blase."
+  },
+  "demoStillValid2Title": "Gerade nichts zu prüfen",
+  "@demoStillValid2Title": {
+    "description": "Vorführung „still-valid“ (Entdecken → Zeig es mir), Schritt 2: Überschrift der Blase."
+  },
+  "demoStillValid2Text": "Ist eine deiner Angaben älter als 30 Tage, steht hier im Profil „Noch gültig?\" mit der Zahl.",
+  "@demoStillValid2Text": {
+    "description": "Vorführung „still-valid“ (Entdecken → Zeig es mir), Schritt 2: Text der Blase."
+  },
+  "demoMarksTitle": "Die Fahne kommt mit der Fahrt",
+  "@demoMarksTitle": {
+    "description": "Vorführung „marks“ (Entdecken → Zeig es mir): Überschrift der Blase."
+  },
+  "demoMarksText": "Läuft eine Aufzeichnung, steht über diesem Knopf eine Fahne: am Anfang eines Trails antippen, am Ende noch einmal.",
+  "@demoMarksText": {
+    "description": "Vorführung „marks“ (Entdecken → Zeig es mir): Text der Blase."
+  },
+  "demoTakeoverTitle": "Beim ersten Befahren",
+  "@demoTakeoverTitle": {
+    "description": "Vorführung „takeover“ (Entdecken → Zeig es mir): Überschrift der Blase."
+  },
+  "demoTakeoverText": "Fährst du einen Trail deiner Buddys, klappt seine Zeile im Zerlege-Blatt auf: vorbelegt aus dem Netz. Mit deinen Sternen wird er deiner. Für Trails, die du schon hast, gibt es im Blatt „Übernehmen\".",
+  "@demoTakeoverText": {
+    "description": "Vorführung „takeover“ (Entdecken → Zeig es mir): Text der Blase."
+  },
+  "demoReportsTitle": "Hier melden",
+  "@demoReportsTitle": {
+    "description": "Vorführung „reports“ (Entdecken → Zeig es mir): Überschrift der Blase."
+  },
+  "demoReportsText": "Gesperrt, zerstört, verändert — und der Zustand. Bestätigt ist es, wenn du ihn gefahren hast oder vor Ort bist; sonst steht es als „zu bestätigen\" da.",
+  "@demoReportsText": {
+    "description": "Vorführung „reports“ (Entdecken → Zeig es mir): Text der Blase."
+  },
+  "demoConnectMerge1Title": "Eine Anfrage annehmen",
+  "@demoConnectMerge1Title": {
+    "description": "Vorführung „connect-merge“ (Entdecken → Zeig es mir), Schritt 1: Überschrift der Blase."
+  },
+  "demoConnectMerge1Text": "Nimmst du an, werden gleiche Trails EIN Trail mit zwei Namen. Danach steht hier, was ihr gemeinsam habt und was neu dazukommt.",
+  "@demoConnectMerge1Text": {
+    "description": "Vorführung „connect-merge“ (Entdecken → Zeig es mir), Schritt 1: Text der Blase."
+  },
+  "demoConnectMerge2Title": "Erst eine Anfrage",
+  "@demoConnectMerge2Title": {
+    "description": "Vorführung „connect-merge“ (Entdecken → Zeig es mir), Schritt 2: Überschrift der Blase."
+  },
+  "demoConnectMerge2Text": "Such einen Buddy über den Benutzernamen oder die genaue E-Mail und frag an. Sobald er annimmt, legt die App eure Trails zusammen.",
+  "@demoConnectMerge2Text": {
+    "description": "Vorführung „connect-merge“ (Entdecken → Zeig es mir), Schritt 2: Text der Blase."
+  },
+  "demoMergeProposals1Title": "Paare prüfen",
+  "@demoMergeProposals1Title": {
+    "description": "Vorführung „merge-proposals“ (Entdecken → Zeig es mir), Schritt 1: Überschrift der Blase."
+  },
+  "demoMergeProposals1Text": "Die Zahl sagt, wie viele Trail-Paare vielleicht einer sind. Ein Tipp, dann je Paar: derselbe, verschieden oder beide auf der Karte ansehen.",
+  "@demoMergeProposals1Text": {
+    "description": "Vorführung „merge-proposals“ (Entdecken → Zeig es mir), Schritt 1: Text der Blase."
+  },
+  "demoMergeProposals2Title": "Gerade kein Paar",
+  "@demoMergeProposals2Title": {
+    "description": "Vorführung „merge-proposals“ (Entdecken → Zeig es mir), Schritt 2: Überschrift der Blase."
+  },
+  "demoMergeProposals2Text": "Hält ein Buddy einen deiner Trails für einen anderen oder liegen zwei fast aufeinander, steht hier im Profil „Sind das dieselben?\" mit der Zahl — und im Blatt des Trails dieselbe Frage.",
+  "@demoMergeProposals2Text": {
+    "description": "Vorführung „merge-proposals“ (Entdecken → Zeig es mir), Schritt 2: Text der Blase."
+  },
+  "demoTrailMergeTitle": "Zwei Linien, ein Trail",
+  "@demoTrailMergeTitle": {
+    "description": "Vorführung „trail-merge“ (Entdecken → Zeig es mir): Überschrift der Blase."
+  },
+  "demoTrailMergeText": "Liegt ein anderer Trail grob daneben, steht unter dem Export „Ist ein Duplikat …\". Du wählst, welcher bleibt; deine Aufzeichnungen, dein Beitrag und deine Hinweise ziehen dorthin. „Trennen\" macht es rückgängig.",
+  "@demoTrailMergeText": {
+    "description": "Vorführung „trail-merge“ (Entdecken → Zeig es mir): Text der Blase."
+  },
+  "demoToursTitle": "Noch einmal ansehen",
+  "@demoToursTitle": {
+    "description": "Vorführung „tours“ (Entdecken → Zeig es mir): Überschrift der Blase."
+  },
+  "demoToursText": "Hier startest du die Touren für Trails und Buddys neu; darunter die Tour zum Zerlegen einer Fahrt.",
+  "@demoToursText": {
+    "description": "Vorführung „tours“ (Entdecken → Zeig es mir): Text der Blase."
+  },
+  "demoRidesTidyTitle": "In „Meine Fahrten\"",
+  "@demoRidesTidyTitle": {
+    "description": "Vorführung „rides-tidy“ (Entdecken → Zeig es mir): Überschrift der Blase an der Profilzeile."
+  },
+  "demoRidesTidyText": "An jeder Fahrt steht, ob mit Bio- oder E-Bike gefahren — ein Tipp stellt es um, und das Fahrerprofil lernt danach richtig. Nach links wischen löscht, ein langer Druck wählt mehrere.",
+  "@demoRidesTidyText": {
+    "description": "Vorführung „rides-tidy“ (Entdecken → Zeig es mir): Text der Blase an der Profilzeile."
+  },
+  "demoPickSectionTitle": "Über „Meine Fahrten\"",
+  "@demoPickSectionTitle": {
+    "description": "Vorführung „pick-section“ (Entdecken → Zeig es mir): Überschrift der Blase an der Profilzeile."
+  },
+  "demoPickSectionText": "Die Schere neben einer Fahrt öffnet das Zerlege-Blatt; dort steht unter den Kandidaten „Stück selbst wählen\".",
+  "@demoPickSectionText": {
+    "description": "Vorführung „pick-section“ (Entdecken → Zeig es mir): Text der Blase an der Profilzeile."
+  },
+  "demoGradeVotesTitle": "Ein Tipp auf den Grad",
+  "@demoGradeVotesTitle": {
+    "description": "Vorführung „grade-votes“ (Entdecken → Zeig es mir): Überschrift der Blase."
+  },
+  "demoGradeVotesText": "Die Kachel zeigt den Median deines Netzes; ein Tipp darauf listet alle Einschätzungen und erklärt die Skala.",
+  "@demoGradeVotesText": {
+    "description": "Vorführung „grade-votes“ (Entdecken → Zeig es mir): Text der Blase."
+  },
+  "demoMessages1Title": "Zum Verlauf",
+  "@demoMessages1Title": {
+    "description": "Vorführung „messages“ (Entdecken → Zeig es mir), Schritt 1: Überschrift der Blase."
+  },
+  "demoMessages1Text": "Die Sprechblase neben einem Buddy öffnet eure Nachrichten. Steht eine Zahl daran, ist etwas ungelesen.",
+  "@demoMessages1Text": {
+    "description": "Vorführung „messages“ (Entdecken → Zeig es mir), Schritt 1: Text der Blase."
+  },
+  "demoMessages2Title": "Schreib los",
+  "@demoMessages2Title": {
+    "description": "Vorführung „messages“ (Entdecken → Zeig es mir), Schritt 2: Überschrift der Blase."
+  },
+  "demoMessages2Text": "Bis zu 500 Zeichen. Mit eingeschalteten Benachrichtigungen kommt eine Antwort auch an, wenn die App zu ist; nach 30 Tagen verschwinden Nachrichten wieder.",
+  "@demoMessages2Text": {
+    "description": "Vorführung „messages“ (Entdecken → Zeig es mir), Schritt 2: Text der Blase."
+  },
+  "demoNotificationsTitle": "Hier einschalten",
+  "@demoNotificationsTitle": {
+    "description": "Vorführung „notifications“ (Entdecken → Zeig es mir): Überschrift der Blase an der Profilzeile."
+  },
+  "demoNotificationsText": "Der Schalter sagt, was wirklich ankommt — auch, wenn der Browser oder Android Benachrichtigungen nicht erlaubt.",
+  "@demoNotificationsText": {
+    "description": "Vorführung „notifications“ (Entdecken → Zeig es mir): Text der Blase an der Profilzeile."
+  },
+  "demoRiderLearnTitle": "Auf dich eingestellt",
+  "@demoRiderLearnTitle": {
+    "description": "Vorführung „rider-learn“ (Entdecken → Zeig es mir): Überschrift der Blase an der Profilzeile."
+  },
+  "demoRiderLearnText": "Unter „Fahrerprofil\" lernt die App aus deinen Aufzeichnungen, wie schnell du wirklich bergauf kommst — je Profil, nur aus deinen Fahrten, nur auf diesem Gerät. Die Planer rechnen dann damit.",
+  "@demoRiderLearnText": {
+    "description": "Vorführung „rider-learn“ (Entdecken → Zeig es mir): Text der Blase an der Profilzeile."
+  },
+  "demoRiderProfileTitle": "Bio-Bike oder E-Bike",
+  "@demoRiderProfileTitle": {
+    "description": "Vorführung „rider-profile“ (Entdecken → Zeig es mir): Überschrift der Blase an der Profilzeile."
+  },
+  "demoRiderProfileText": "Das Profil ändert, wie schnell es bergauf geht, wie teuer ein Wanderweg bergauf ist und wie viele Höhenmeter eine Runde haben darf. Jede Fahrt merkt es sich beim Start.",
+  "@demoRiderProfileText": {
+    "description": "Vorführung „rider-profile“ (Entdecken → Zeig es mir): Text der Blase an der Profilzeile."
+  },
+  "demoAppearanceTitle": "Hell, dunkel oder wie das System",
+  "@demoAppearanceTitle": {
+    "description": "Vorführung „appearance“ (Entdecken → Zeig es mir): Überschrift der Blase an der Profilzeile."
+  },
+  "demoAppearanceText": "Gilt für die App; die Karte bleibt hell, in der Sonne liest sie sich besser.",
+  "@demoAppearanceText": {
+    "description": "Vorführung „appearance“ (Entdecken → Zeig es mir): Text der Blase an der Profilzeile."
   }
 }

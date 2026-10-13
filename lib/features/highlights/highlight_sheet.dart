@@ -139,7 +139,7 @@ class HighlightSheet extends ConsumerWidget {
             children: [
               Expanded(
                 child: Text(
-                  plan.recap ? 'Das kann TrailBuddy inzwischen' : 'Neu in TrailBuddy',
+                  plan.recap ? context.l10n.highlightSheetRecapTitle : context.l10n.highlightSheetNewTitle,
                   key: const ValueKey('highlight-sheet-title'),
                   style: theme.textTheme.titleLarge,
                 ),
@@ -160,15 +160,17 @@ class HighlightSheet extends ConsumerWidget {
               children: [
                 TextButton(
                   onPressed: () => _go(context, '/profile/discover'),
-                  child: Text(plan.more > 0 ? '${plan.more} weitere entdecken' : 'Alle Funktionen und Tipps'),
+                  child: Text(plan.more > 0
+                      ? context.l10n.highlightSheetMore(plan.more)
+                      : context.l10n.highlightSheetAll),
                 ),
                 TextButton(
                   onPressed: () => _go(context, '/profile/changelog'),
-                  child: const Text('Alle Änderungen'),
+                  child: Text(context.l10n.highlightSheetChangelog),
                 ),
                 FilledButton(
                   onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('Fertig'),
+                  child: Text(context.l10n.commonDone),
                 ),
               ],
             ),
@@ -203,16 +205,16 @@ class _Row extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(highlight.title, style: theme.textTheme.titleMedium),
+                  Text(highlight.title(context.l10n), style: theme.textTheme.titleMedium),
                   const SizedBox(height: 2),
-                  Text(highlight.text, style: theme.textTheme.bodySmall),
+                  Text(highlight.text(context.l10n), style: theme.textTheme.bodySmall),
                 ],
               ),
             ),
             Padding(
               padding: const EdgeInsets.only(left: 4, right: 8, top: 4),
               child: Icon(Icons.play_circle_outline,
-                  color: AppPalette.of(context).accentText, semanticLabel: 'Zeig es mir'),
+                  color: AppPalette.of(context).accentText, semanticLabel: context.l10n.discoverShowMe),
             ),
           ],
         ),

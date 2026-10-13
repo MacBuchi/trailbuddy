@@ -47,15 +47,13 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Entdecken')),
+      appBar: AppBar(title: Text(context.l10n.discoverTitle)),
       body: ListView(
         key: const ValueKey('discover-list'),
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
         children: [
           Text(
-            'Was TrailBuddy kann — auch das, was man beim Benutzen leicht '
-            'übersieht. „Zeig es mir" führt es kurz vor, „Ausprobieren" führt '
-            'direkt hin.',
+            context.l10n.discoverLead,
             style: theme.textTheme.bodyMedium?.copyWith(color: AppPalette.of(context).muted),
           ),
           for (final tab in HighlightTab.values) ..._section(context, tab),
@@ -74,7 +72,7 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
     return [
       Padding(
         padding: const EdgeInsets.only(top: 20, bottom: 4),
-        child: Text(tab.label.toUpperCase(),
+        child: Text(tab.label(context.l10n).toUpperCase(),
             style: Theme.of(context).textTheme.labelMedium?.copyWith(
                 fontWeight: FontWeight.w700, letterSpacing: 0.8, color: AppPalette.of(context).muted)),
       ),
@@ -127,13 +125,13 @@ class _Entry extends StatelessWidget {
                         spacing: 6,
                         crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
-                          Text(highlight.title, style: theme.textTheme.titleSmall),
-                          if (isTip) const _Badge('Tipp'),
-                          if (unseen) const _Badge('Neu', strong: true),
+                          Text(highlight.title(context.l10n), style: theme.textTheme.titleSmall),
+                          if (isTip) _Badge(context.l10n.discoverBadgeTip),
+                          if (unseen) _Badge(context.l10n.discoverBadgeNew, strong: true),
                         ],
                       ),
                       const SizedBox(height: 4),
-                      Text(highlight.text, style: theme.textTheme.bodySmall),
+                      Text(highlight.text(context.l10n), style: theme.textTheme.bodySmall),
                     ],
                   ),
                 ),
@@ -153,13 +151,13 @@ class _Entry extends StatelessWidget {
                     alignment: WrapAlignment.end,
                     spacing: 4,
                     children: [
-                      TextButton(onPressed: onTry, child: const Text('Ausprobieren')),
+                      TextButton(onPressed: onTry, child: Text(context.l10n.discoverTry)),
                       if (onShow != null)
                         FilledButton.tonalIcon(
                           key: ValueKey('show-${highlight.id}'),
                           onPressed: onShow,
                           icon: const Icon(Icons.play_arrow, size: 18),
-                          label: const Text('Zeig es mir'),
+                          label: Text(context.l10n.discoverShowMe),
                         ),
                     ],
                   ),

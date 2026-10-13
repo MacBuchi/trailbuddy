@@ -2,9 +2,14 @@
 // `planHighlights` — ohne App.
 import 'dart:io';
 
+import 'package:flutter/widgets.dart';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:trailbuddy/core/update_check.dart' show isNewerVersion;
 import 'package:trailbuddy/features/highlights/feature_highlights.dart';
+import 'package:trailbuddy/l10n/l10n.dart';
+
+import 'fakes/l10n_de.dart';
 
 void main() {
   final pubspec = RegExp(r'^version:\s*([\d.]+)', multiLine: true)
@@ -16,8 +21,12 @@ void main() {
     expect(ids.toSet(), hasLength(ids.length));
     for (final h in kFeatureHighlights) {
       expect(h.target, startsWith('/'), reason: h.id);
-      final sentences = RegExp(r'[.!?](\s|$)').allMatches(h.text).length;
-      expect(sentences, inInclusiveRange(1, 3), reason: '${h.id}: höchstens drei Sätze');
+      // In beiden Sprachen (#209): Auch die Übersetzung bleibt kurz.
+      for (final l in [l10nDe, lookupAppLocalizations(const Locale('en'))]) {
+        final sentences = RegExp(r'[.!?](\s|$)').allMatches(h.text(l)).length;
+        expect(sentences, inInclusiveRange(1, 3), reason: '${h.id} (${l.localeName}): höchstens drei Sätze');
+        expect(h.title(l), isNotEmpty, reason: h.id);
+      }
     }
   });
 
