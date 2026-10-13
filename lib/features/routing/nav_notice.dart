@@ -284,6 +284,9 @@ Future<void> stopNavFromService({
     FlutterForegroundTask.sendDataToMain(kNavMessageStop);
     final recording = await FlutterForegroundTask.getData<bool>(key: kRideDataActive) == true;
     if (recording) {
+      // Der Knopf kann vor dem ersten Takt eines neu gestarteten Isolates
+      // kommen — die Sprache des Profils erst nachlesen (#209).
+      await refreshServiceLocale();
       final l = serviceL10n();
       await (showRide ?? _showRide)(l.rideNoticeTitle, l.rideNoticeText);
     } else {

@@ -1603,5 +1603,13 @@
   "changelogTitle": "What's new",
   "changelogLoadFailed": "The change list could not be loaded. All changes are also listed on the project page under “GitHub project & documentation”.",
   "importPickerGpxOrZip": "GPX or Zip",
-  "importPickerAllFiles": "All files"
+  "importPickerAllFiles": "All files",
+  "profileLanguageTitle": "Language",
+  "profileLanguageSystem": "Like the device",
+  "profileLanguageSystemValue": "{language} · follows the device",
+  "profileLanguageNote": "Applies to this device only, including the notifications on the way. Like the device means: German stays German, every other language becomes English.",
+  "highlightLanguageTitle": "German or English",
+  "highlightLanguageText": "TrailBuddy now speaks English too. Without a choice, the app follows the language of your phone or browser; under “Language” in the profile you can set it for good.",
+  "demoLanguageTitle": "Choose the language",
+  "demoLanguageText": "Set German or English here — or let TrailBuddy follow the language of the device."
 }

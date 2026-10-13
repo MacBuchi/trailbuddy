@@ -8629,5 +8629,42 @@
   "importPickerAllFiles": "Alle Dateien",
   "@importPickerAllFiles": {
     "description": "Dateityp-Filter im Datei-Dialog des Imports (Android)."
+  },
+  "profileLanguageTitle": "Sprache",
+  "@profileLanguageTitle": {
+    "description": "Profil, Zeile und Seitentitel: Sprache der Oberfläche."
+  },
+  "profileLanguageSystem": "Wie das Gerät",
+  "@profileLanguageSystem": {
+    "description": "Seite „Sprache“: Segment für die Sprache des Geräts bzw. Browsers."
+  },
+  "profileLanguageSystemValue": "{language} · folgt dem Gerät",
+  "@profileLanguageSystemValue": {
+    "description": "Profil, Zeile „Sprache“, wenn keine eigene Wahl besteht; language = Name der Sprache in sich selbst (Deutsch, English).",
+    "placeholders": {
+      "language": {
+        "type": "String"
+      }
+    }
+  },
+  "profileLanguageNote": "Gilt nur für dieses Gerät, auch für die Benachrichtigungen unterwegs. Wie das Gerät heißt: Deutsch bleibt Deutsch, jede andere Sprache wird Englisch.",
+  "@profileLanguageNote": {
+    "description": "Seite „Sprache“: Hinweis unter der Wahl."
+  },
+  "highlightLanguageTitle": "Deutsch oder Englisch",
+  "@highlightLanguageTitle": {
+    "description": "Entdecken, Eintrag „language“: Überschrift (auch im Neuheiten-Blatt nach einem Update)."
+  },
+  "highlightLanguageText": "TrailBuddy spricht jetzt auch Englisch. Ohne Wahl folgt die App der Sprache deines Telefons oder Browsers; im Profil unter „Sprache“ stellst du sie fest ein.",
+  "@highlightLanguageText": {
+    "description": "Entdecken, Eintrag „language“: Text, zwei bis drei Sätze (auch im Neuheiten-Blatt). Der Name in Anführungszeichen ist die Profilzeile."
+  },
+  "demoLanguageTitle": "Sprache wählen",
+  "@demoLanguageTitle": {
+    "description": "Vorführung „language“ (Entdecken → Zeig es mir): Überschrift der Blase an der Profilzeile."
+  },
+  "demoLanguageText": "Hier stellst du Deutsch oder Englisch ein — oder lässt TrailBuddy der Sprache des Geräts folgen.",
+  "@demoLanguageText": {
+    "description": "Vorführung „language“ (Entdecken → Zeig es mir): Text der Blase an der Profilzeile."
   }
 }

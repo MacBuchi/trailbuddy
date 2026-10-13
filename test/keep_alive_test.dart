@@ -2,7 +2,9 @@
 // Konzept-Schritt 3): Fahrt und Bereichs-Download laufen im selben
 // Prozess und brauchen beide denselben Service. Ohne Koordinator
 // beendete das `stop()` des einen ihn dem anderen mitten im Lauf.
+import 'package:flutter/widgets.dart' show Locale;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:trailbuddy/l10n/l10n.dart' show chosenAppLocale;
 import 'package:trailbuddy/features/keep_alive/keep_alive.dart';
 import 'package:trailbuddy/features/rides/ride_service.dart';
 import 'package:trailbuddy/features/routing/nav_notice.dart';
@@ -18,6 +20,10 @@ void main() {
   setUp(() {
     service = FakeKeepAlive();
     coordinator = KeepAliveCoordinator(service);
+    // Ohne App kein Profil: die Wahl „Deutsch", wie sie die App setzte
+    // (#209) — ab Werk meldet flutter_test ein englisches Gerät.
+    chosenAppLocale = const Locale('de');
+    addTearDown(() => chosenAppLocale = null);
   });
 
   test('zwei Melder teilen sich EINEN Service, und er endet mit dem letzten', () async {

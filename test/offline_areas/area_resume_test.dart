@@ -11,7 +11,9 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/widgets.dart' show Locale;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:trailbuddy/l10n/l10n.dart' show debugDeviceLocales;
 import 'package:http/http.dart' as http;
 import 'package:pmtiles/pmtiles.dart';
 import 'package:trailbuddy/core/connectivity.dart';
@@ -99,6 +101,13 @@ final _offline = StateProvider<bool>((ref) => false);
 final _mobile = StateProvider<bool>((ref) => false);
 
 void main() {
+  // Ohne `pumpApp` kein deutsches Testgerät: Die Texte des Downloads
+  // kommen aus `serviceL10n()` (#209), das sonst `en_US` läse.
+  setUp(() {
+    debugDeviceLocales = const [Locale('de', 'DE')];
+    addTearDown(() => debugDeviceLocales = null);
+  });
+
   late _Net net;
   late MemoryAreaStore store;
   late FakeKeepAlive keepAlive;

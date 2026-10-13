@@ -17,6 +17,7 @@ class FakeSettings implements Settings {
       this.navKeepScreenOn = true,
       this.pushToken,
       this.appearance,
+      this.language,
       this.riderProfile,
       this.loopPlannerPrefs,
       this.navDefault,
@@ -96,6 +97,14 @@ class FakeSettings implements Settings {
 
   @override
   String? appearance;
+
+  @override
+  String? language;
+
+  @override
+  Future<void> setLanguage(String value) async {
+    language = value;
+  }
 
   @override
   String? riderProfile;

@@ -57,7 +57,9 @@ Gegenprobe der Vorgabe.
   umgezogenem Widget braucht die `AppLocalizations`-Delegates
   (`lib/l10n/CLAUDE.md`); ohne sie wirft der Test „Null check operator"
   aus `AppLocalizations.of`. Pure Helfer mit Text bekommen `l10nDe`
-  (`test/fakes/l10n_de.dart`).
+  (`test/fakes/l10n_de.dart`). Seit die App dem Gerät folgt (0.118.0):
+  Ein Test OHNE `pumpApp`, der Texte aus `serviceL10n()` prüft, setzt
+  `debugDeviceLocales` oder `chosenAppLocale` — sonst ist er englisch.
 - **`FakeSettings` setzt die Einführung ab Werk auf „gesehen"**
   (`safetyNoteSeen`, `mapTourSeen`, `seenCoachTours`,
   `highlightsSeenVersion`), die App auf „neu". Tests für Hinweis, Touren

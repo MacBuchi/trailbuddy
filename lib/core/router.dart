@@ -159,6 +159,9 @@ final routerProvider = Provider<GoRouter>((ref) {
                       path: 'appearance',
                       builder: (context, state) => const AppearanceScreen()),
                   GoRoute(
+                      path: 'language',
+                      builder: (context, state) => const LanguageScreen()),
+                  GoRoute(
                       path: 'about',
                       builder: (context, state) => const AboutScreen()),
                   // Die Kurzanleitung (#131). Unter dem Profil, weil sie

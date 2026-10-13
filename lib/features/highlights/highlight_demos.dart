@@ -740,6 +740,12 @@ Map<String, HighlightDemo> highlightDemos(AppLocalizations l) => {
       _profileRow('appearance', l.demoAppearanceTitle, l.demoAppearanceText),
     ]),
   ),
+  'language': HighlightDemo(
+    route: '/profile',
+    script: _demo('language', [
+      _profileRow('language', l.demoLanguageTitle, l.demoLanguageText),
+    ]),
+  ),
 };
 
 /// Wechselt zur Route der Vorführung und startet sie, sobald der Reiter

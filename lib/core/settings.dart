@@ -5,6 +5,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'errors.dart';
 
+/// Schlüssel der Sprachwahl in den SharedPreferences. Öffentlich, weil
+/// das Service-Isolate ihn ohne [Settings] liest (`refreshServiceLocale`
+/// in `lib/l10n/l10n.dart`).
+const kLanguageSettingKey = 'app_language';
+
 /// Gerätelokale Einstellungen — alles, was auf *diesem* Gerät gilt und
 /// nicht ins Konto gehört.
 ///
@@ -158,6 +163,14 @@ abstract interface class Settings {
   String? get appearance;
 
   Future<void> setAppearance(String value);
+
+  /// Sprache der Oberfläche (#209): `system`, `de` oder `en`
+  /// (`AppLanguage.name`), oder null, solange nie etwas gewählt wurde —
+  /// dann die des Geräts. Der Dienst liest denselben Schlüssel
+  /// ([kLanguageSettingKey]) direkt aus den SharedPreferences.
+  String? get language;
+
+  Future<void> setLanguage(String value);
 
   /// Hat dieses Gerät den Sicherheitshinweis (#131) schon einmal
   /// bestätigt? Einmal je Installation — ein Hinweis, den man täglich
@@ -365,6 +378,12 @@ class PrefsSettings implements Settings {
   Future<void> setSeenRegionManifests(String value) => _prefs.setString(_seenRegionManifestsKey, value);
 
   static const _appearanceKey = 'appearance';
+
+  @override
+  String? get language => _prefs.getString(kLanguageSettingKey);
+
+  @override
+  Future<void> setLanguage(String value) => _prefs.setString(kLanguageSettingKey, value);
 
   @override
   String? get appearance => _prefs.getString(_appearanceKey);
