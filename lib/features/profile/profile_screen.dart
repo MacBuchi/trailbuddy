@@ -18,7 +18,6 @@ import '../../core/widgets/info_button.dart';
 import '../../core/widgets/letter_avatar.dart';
 import '../../core/widgets/motion.dart';
 import '../../core/widgets/password_field.dart';
-import '../../core/widgets/safety_note.dart';
 import '../../data/providers.dart';
 import '../coach/coach.dart';
 import '../feedback/feedback_dialog.dart';
@@ -998,9 +997,9 @@ class _AboutSection extends ConsumerWidget {
           contentPadding: EdgeInsets.zero,
           dense: true,
           leading: const Icon(Icons.warning_amber_outlined),
-          title: const Text(kSafetyNoteTitle),
+          title: Text(l.safetyNoteTitle),
           subtitle: Text(l.aboutSafetySubtitle),
-          onTap: () => showInfoText(context, title: kSafetyNoteTitle, text: kSafetyNote),
+          onTap: () => showInfoText(context, title: l.safetyNoteTitle, text: l.safetyNote),
         ),
         ListTile(
           contentPadding: EdgeInsets.zero,

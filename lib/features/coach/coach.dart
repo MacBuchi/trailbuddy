@@ -21,6 +21,10 @@
 //   Blasentext. Trail-Linien sind Engine-Polylinien, keine Widgets; der
 //   Schritt „Farbe heißt Schwierigkeit" kann nichts aussparen und zeigt
 //   stattdessen eine gezeichnete Mini-Legende.
+// - Die Texte der Maschine (Knöpfe, Zähler, „nicht zu sehen") aus den
+//   ARB-Dateien (#209), und `CoachStep.id`: Die Skripte bauen ihre Texte
+//   aus `AppLocalizations`, Vorführungen finden Schritte einer Tour über
+//   die `id` statt über den Titel, der je Sprache ein anderer ist.
 //
 // Der Kommentar darunter ist PilzBuddys, unverändert.
 //
@@ -69,6 +73,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/app_colors.dart';
 import '../../core/app_theme.dart';
 import '../../core/widgets/motion.dart';
+import '../../l10n/l10n.dart';
 
 /// Wie der Finger vorführt, was zu tun ist.
 enum CoachGesture { none, tap, longPress, swipe }
@@ -76,6 +81,7 @@ enum CoachGesture { none, tap, longPress, swipe }
 /// Ein Schritt.
 class CoachStep {
   const CoachStep({
+    this.id,
     required this.title,
     required this.text,
     this.lit = const [],
@@ -90,6 +96,11 @@ class CoachStep {
     this.startLabel,
     this.illustration,
   });
+
+  /// TrailBuddy (#209): eine feste Kennung, über die eine Vorführung den
+  /// Schritt einer Tour übernimmt — der Titel ist je Sprache ein anderer.
+  /// Nur an Schritten, die jemand übernimmt, nötig; eindeutig je Skript.
+  final String? id;
 
   final String title;
   final String text;
@@ -906,15 +917,16 @@ class _CoachOverlayState extends ConsumerState<CoachOverlay>
                             TextButton(
                               key: const ValueKey('coach-intro-later'),
                               onPressed: () => _guarded(notifier.decline),
-                              child: Text(
-                                  run.chained ? 'Später' : 'Nicht jetzt'),
+                              child: Text(run.chained
+                                  ? context.l10n.coachLater
+                                  : context.l10n.coachNotNow),
                             ),
                             FilledButton(
                               key: const ValueKey('coach-intro-start'),
                               onPressed: () => _guarded(notifier.next),
                               child: Text(run.chained
-                                  ? 'Weiter'
-                                  : step.startLabel ?? 'Zeig\'s mir'),
+                                  ? context.l10n.coachNext
+                                  : step.startLabel ?? context.l10n.coachShowMe),
                             ),
                           ],
                         ),
@@ -1034,15 +1046,14 @@ class _CoachOverlayState extends ConsumerState<CoachOverlay>
                     if (_targetLost) ...[
                       const SizedBox(height: 8),
                       Text(
-                        'Das, worauf dieser Schritt zeigt, ist gerade nicht '
-                        'zu sehen. „Weiter" führt zum nächsten.',
+                        context.l10n.coachTargetLost,
                         key: const ValueKey('coach-target-lost'),
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                             color: Theme.of(context).colorScheme.error),
                       ),
                     ],
                     const SizedBox(height: 12),
-                    Text('${run.position} von ${run.count}',
+                    Text(context.l10n.coachPosition(run.position, run.count),
                         style: AppFonts.numbers(Theme.of(context)
                                 .textTheme
                                 .bodySmall)
@@ -1066,12 +1077,14 @@ class _CoachOverlayState extends ConsumerState<CoachOverlay>
                           TextButton(
                             onPressed: () => _guarded(
                                 ref.read(coachProvider.notifier).finish),
-                            child: const Text('Überspringen'),
+                            child: Text(context.l10n.coachSkip),
                           ),
                         FilledButton(
                           onPressed: () =>
                               _guarded(ref.read(coachProvider.notifier).next),
-                          child: Text(run.isLast ? 'Los geht\'s' : 'Weiter'),
+                          child: Text(run.isLast
+                              ? context.l10n.coachDone
+                              : context.l10n.coachNext),
                         ),
                       ],
                     ),

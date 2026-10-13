@@ -14,8 +14,10 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
   Datei (Stand 0d2a533); das Review ist ein `diff` gegen sie, der nur die
   Anpassungen im Kopfkommentar zeigt (Marke statt Waldgrün, Blase auf
   `surface`/`line`, Zähler in Mono, `reduceMotion`, Hand-Kontur `onBrand`)
-  plus EINE Erweiterung: `CoachStep.illustration`. Die Tour steht in
-  `lib/features/help/map_tour.dart` (`kMapTourScript`, zehn Schritte;
+  plus zwei Erweiterungen: `CoachStep.illustration` und (#209)
+  `CoachStep.id`, über die Vorführungen Tour-Schritte übernehmen; die
+  Texte der Maschine kommen aus den ARB-Dateien (`coach*`). Die Tour steht in
+  `lib/features/help/map_tour.dart` (`mapTourScript(l)`, zehn Schritte;
   beim ersten Start siehe nächster Abschnitt). Sieben
   Dinge, die man wissen muss:
   - **Die Maschine liegt über allem, aber UNTER dem Splash**

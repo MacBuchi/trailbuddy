@@ -16,6 +16,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/settings.dart';
+import '../../l10n/l10n.dart';
 import '../coach/coach.dart';
 import 'tour_intro_art.dart';
 
@@ -73,7 +74,7 @@ abstract final class MapCoach {
   static String railButton(String key) => 'map.rail.$key';
 
   /// Der Stift der Leiste („Fläche dazunehmen") — `railButton('area-draw-add')`
-  /// als Konstante, weil das Skript `const` ist.
+  /// als Konstante, damit die Listen im Skript `const` bleiben.
   static const railDraw = 'map.rail.area-draw-add';
 
   /// Szene: das Blatt „Kartenebenen" (seit 0.75.0 direkt vom Knopf, #190;
@@ -121,131 +122,124 @@ abstract final class SheetCoach {
 /// Die Startseite beim ERSTEN Start (#133). Sie nennt die drei Wege, auf
 /// denen Trails hierher kommen — die Karte ist am Anfang leer, anders als
 /// bei PilzBuddy. „Nicht jetzt" fragt beim nächsten Start wieder.
-const kWelcomeIntro = CoachStep(
-  title: 'Willkommen bei TrailBuddy',
-  text: 'Hier liegen die Trails, die du gefahren bist, und die deiner Buddys '
-      '— sonst niemandes. Drei Wege bringen Trails hierher: GPX importieren, '
-      'eine Fahrt aufzeichnen, Buddys verbinden.',
-  art: welcomeArt,
-  startLabel: 'Tour starten',
-);
+CoachStep welcomeIntro(AppLocalizations l) => CoachStep(
+      id: 'welcome',
+      title: l.tourWelcomeTitle,
+      text: l.tourWelcomeText,
+      art: welcomeArt,
+      startLabel: l.tourWelcomeStart,
+    );
 
 /// Die Startseite, wenn die Karten-Tour aus der Kurzanleitung kommt.
-const kMapIntro = CoachStep(
-  title: 'Die Karte',
-  text: 'Hier liegen deine Trails und die deiner Buddys, jede Linie in der '
-      'Farbe ihrer Schwierigkeit. Die Tour zeigt, was die Karte sagt — und was '
-      'hinter den Knöpfen liegt.',
-  art: mapArt,
-);
+CoachStep mapIntro(AppLocalizations l) => CoachStep(
+      id: 'map.intro',
+      title: l.tourMapIntroTitle,
+      text: l.tourMapIntroText,
+      art: mapArt,
+    );
 
 /// Zum Schluss der Karten-Tour die Bereiche unten, je ein Halbsatz.
-const kNavStep = CoachStep(
-  title: 'Unten die Bereiche',
-  text: 'Trails: alle als Liste, suchen und filtern. Buddys: wer deine '
-      'Trails sieht — und du ihre. Profil: Import, Fahrten, Bereiche und die '
-      'Kurzanleitung.',
-  lit: [NavCoach.bar],
-  ring: [NavCoach.trails, NavCoach.buddys, NavCoach.profile],
-);
+CoachStep navStep(AppLocalizations l) => CoachStep(
+      id: 'map.nav',
+      title: l.tourMapNavTitle,
+      text: l.tourMapNavText,
+      lit: const [NavCoach.bar],
+      ring: const [NavCoach.trails, NavCoach.buddys, NavCoach.profile],
+    );
 
-const kMapTourScript = CoachScript(
-  id: 'map',
-  endLink: ('Kurzanleitung', '/profile/help'),
-  steps: [
-    kMapIntro,
-    CoachStep(
-      title: 'Das Schild am Anfang',
-      text: 'Am Anfang jedes Trails steht sein Schild mit Grad und Charakter; '
-          'der Punkt darunter zeigt mit seinem Pfeil die Fahrtrichtung. '
-          'Ein Tipp aufs Schild — oder auf die Linie — '
-          'wählt den Trail aus, ein zweiter öffnet das Blatt.',
-      lit: [MapCoach.trailBadge],
-      gesture: CoachGesture.tap,
-      requires: [MapCoach.trailBadge],
-    ),
-    CoachStep(
-      title: 'Das Blatt zum Trail',
-      text: 'Länge, Höhenmeter und die Schwierigkeit, wie dein Netz sie sieht '
-          '— ein Tipp auf den Grad zeigt, wer wie eingeschätzt hat.',
-      scene: MapCoach.trailSheet,
-      lit: [SheetCoach.metrics],
-      // Ohne Trail kein Blatt. Der Anker im Blatt steht NICHT in
-      // `requires` — er entsteht erst mit der Szene dieses Schritts.
-      unless: [MapCoach.empty],
-    ),
-    CoachStep(
-      title: 'Farbe heißt Schwierigkeit',
-      text: 'Jede Linie trägt die Schwierigkeit ihres Trails wie eine Piste. '
-          'Die Art der Linie sagt den Zustand: bröckelig heißt ausgefahren, '
-          'gestrichelt abgerockt, verblasst kaum fahrbar. Ein orangener Rand '
-          'heißt Meldung, ein gelber neuer Hinweis. Die Legende links am Rand klappt '
-          'jederzeit auf und wieder zu.',
-      // Die Linien zeichnet die Engine, sie sind keine Widgets — aber die
-      // Legende auf der Karte ist eins (#182, seit 0.77.0). Bis dahin stand
-      // eine gezeichnete Mini-Legende in der Blase.
-      scene: MapCoach.legend,
-      lit: [MapCoach.legend],
-    ),
-    CoachStep(
-      title: 'Was die Karte zeigt',
-      text: 'Der oberste Knopf: welche Trails die Karte zeigt, die offiziellen '
-          'Trails der Region und Orte wie Einkehr, Wasser und Rad-Service.',
-      lit: [MapCoach.buttons],
-      ring: [MapCoach.layers],
-    ),
-    CoachStep(
-      title: 'Orte und offizielle Trails wählen',
-      text: 'Offizielle Trails und die Güte der Wege an oder aus, Orte nach '
-          'Gruppe. Was hier aus ist, bleibt aus, bis du es wieder einschaltest.',
-      scene: MapCoach.layersSheet,
-      lit: [MapCoach.filterOfficial, MapCoach.filterWays, MapCoach.filterPois],
-    ),
-    CoachStep(
-      title: 'Karten ohne Empfang',
-      text: 'Der Knopf darunter holt die Karte aufs Gerät — für unterwegs, '
-          'wo kein Netz ist.',
-      lit: [MapCoach.buttons],
-      ring: [MapCoach.offline],
-    ),
-    CoachStep(
-      title: 'Die Werkzeugleiste',
-      text: 'Hier zeichnest du einen Bereich, den die App für unterwegs '
-          'speichert, oder nimmst einen weg; „Meine Bereiche" verwaltet sie.',
-      scene: MapCoach.rail,
-      lit: [MapCoach.rail],
-      ring: [MapCoach.railDraw],
-    ),
-    CoachStep(
-      title: 'Zu dir und zu uns',
-      text: 'Der Positionsknopf holt die Karte zu dir — dein Standort verlässt '
-          'das Gerät nie. Oben rechts die Glühbirne: Idee oder Fehler melden, '
-          'das wird ein öffentlicher Eintrag auf GitHub.',
-      lit: [MapCoach.buttons, MapCoach.feedback],
-      ring: [MapCoach.feedback, MapCoach.locate],
-    ),
-    CoachStep(
-      title: 'Eine Fahrt aufzeichnen',
-      text: 'Der große Knopf zeichnet eine Fahrt auf — Haustür bis Haustür, '
-          'nur auf deinem Gerät, auch ohne Empfang. Danach zerlegst du sie in '
-          'Trails; erst die kommen zu deinen Buddys.',
-      lit: [MapCoach.buttons],
-      ring: [MapCoach.record],
-      // Nur in der Android-App; im Browser fällt der Schritt weg.
-      requires: [MapCoach.record],
-    ),
-    kNavStep,
-  ],
-);
+/// Die Karten-Tour. Eine Funktion und keine Konstante, weil die Texte aus
+/// den ARB-Dateien kommen (#209); Vorführungen finden ihre Schritte über
+/// die `id`, nie über den Titel — der ist je Sprache ein anderer.
+CoachScript mapTourScript(AppLocalizations l) => CoachScript(
+      id: 'map',
+      endLink: (l.helpTitle, '/profile/help'),
+      steps: [
+        mapIntro(l),
+        CoachStep(
+          id: 'map.badge',
+          title: l.tourMapBadgeTitle,
+          text: l.tourMapBadgeText,
+          lit: const [MapCoach.trailBadge],
+          gesture: CoachGesture.tap,
+          requires: const [MapCoach.trailBadge],
+        ),
+        CoachStep(
+          id: 'map.sheet',
+          title: l.tourMapSheetTitle,
+          text: l.tourMapSheetText,
+          scene: MapCoach.trailSheet,
+          lit: const [SheetCoach.metrics],
+          // Ohne Trail kein Blatt. Der Anker im Blatt steht NICHT in
+          // `requires` — er entsteht erst mit der Szene dieses Schritts.
+          unless: const [MapCoach.empty],
+        ),
+        CoachStep(
+          id: 'map.colors',
+          title: l.tourMapColorsTitle,
+          text: l.tourMapColorsText,
+          // Die Linien zeichnet die Engine, sie sind keine Widgets — aber die
+          // Legende auf der Karte ist eins (#182, seit 0.77.0). Bis dahin stand
+          // eine gezeichnete Mini-Legende in der Blase.
+          scene: MapCoach.legend,
+          lit: const [MapCoach.legend],
+        ),
+        CoachStep(
+          id: 'map.layers',
+          title: l.tourMapLayersTitle,
+          text: l.tourMapLayersText,
+          lit: const [MapCoach.buttons],
+          ring: const [MapCoach.layers],
+        ),
+        CoachStep(
+          id: 'map.layersSheet',
+          title: l.tourMapLayersSheetTitle,
+          text: l.tourMapLayersSheetText,
+          scene: MapCoach.layersSheet,
+          lit: const [MapCoach.filterOfficial, MapCoach.filterWays, MapCoach.filterPois],
+        ),
+        CoachStep(
+          id: 'map.offline',
+          title: l.tourMapOfflineTitle,
+          text: l.tourMapOfflineText,
+          lit: const [MapCoach.buttons],
+          ring: const [MapCoach.offline],
+        ),
+        CoachStep(
+          id: 'map.rail',
+          title: l.tourMapRailTitle,
+          text: l.tourMapRailText,
+          scene: MapCoach.rail,
+          lit: const [MapCoach.rail],
+          ring: const [MapCoach.railDraw],
+        ),
+        CoachStep(
+          id: 'map.position',
+          title: l.tourMapPositionTitle,
+          text: l.tourMapPositionText,
+          lit: const [MapCoach.buttons, MapCoach.feedback],
+          ring: const [MapCoach.feedback, MapCoach.locate],
+        ),
+        CoachStep(
+          id: 'map.record',
+          title: l.tourMapRecordTitle,
+          text: l.tourMapRecordText,
+          lit: const [MapCoach.buttons],
+          ring: const [MapCoach.record],
+          // Nur in der Android-App; im Browser fällt der Schritt weg.
+          requires: const [MapCoach.record],
+        ),
+        navStep(l),
+      ],
+    );
 
 /// Die Karten-Tour beim ersten Start: mit der Willkommensseite statt der
 /// Karten-Startseite und OHNE den Weg in die Kurzanleitung am Ende —
 /// `startWelcomeTour` (`tab_tours.dart`) hängt die Reiter-Touren an, und
 /// die Kette liefe sonst gleichzeitig in die Kurzanleitung.
-final kWelcomeTourScript = CoachScript(
-  id: 'map',
-  steps: [kWelcomeIntro, ...kMapTourScript.tourSteps],
-);
+CoachScript welcomeTourScript(AppLocalizations l) => CoachScript(
+      id: 'map',
+      steps: [welcomeIntro(l), ...mapTourScript(l).tourSteps],
+    );
 
 /// Startet die Tour und merkt sich danach, dass sie gesehen wurde —
 /// durchgesehen ODER übersprungen: Wer abbricht, hat entschieden.
@@ -253,9 +247,9 @@ final kWelcomeTourScript = CoachScript(
 /// Gemerkt wird über den NOTIFIER, nicht über [ref]: Aus der
 /// Kurzanleitung gestartet, kann das aufrufende Widget weg sein, bevor
 /// die Tour endet — und ein `ref` eines abgebauten Widgets wirft.
-void startMapTour(WidgetRef ref) {
+void startMapTour(AppLocalizations l, WidgetRef ref) {
   final seen = ref.read(mapTourSeenProvider.notifier);
-  ref.read(coachProvider.notifier).start(kMapTourScript, onDone: () => seen.set(true));
+  ref.read(coachProvider.notifier).start(mapTourScript(l), onDone: () => seen.set(true));
 }
 
 /// Hat der Nutzer die Karten-Tour schon gesehen? Gerätelokal, Schlüssel

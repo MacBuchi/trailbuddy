@@ -79,7 +79,7 @@ class _TrailsScreenState extends ConsumerState<TrailsScreen> {
     if (_showsExample) _tourTrail = null;
     final l = context.l10n;
     return TabTourStarter(
-      script: kTrailsTourScript,
+      script: trailsTourScript,
       child: Scaffold(
       appBar: AppBar(
         // Der Reiter-Kopf aus dem Entwurf (1j): groß, in Versalien, rechts

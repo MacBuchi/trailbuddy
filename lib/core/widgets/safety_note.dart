@@ -9,8 +9,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../app_colors.dart';
 import '../settings.dart';
+import '../../l10n/l10n.dart';
 
-/// Der Satz, um den es geht.
+/// Der Satz, um den es geht, steht in den ARB-Dateien (`safetyNote`,
+/// Überschrift `safetyNoteTitle`; #209).
 ///
 /// **Er steht an EINER Stelle**, weil er sonst an zweien auseinanderläuft:
 /// der Dialog beim ersten Start, die Kachel in der Kurzanleitung und die
@@ -21,15 +23,6 @@ import '../settings.dart';
 /// die Grenze (nicht, ob ein Weg befahren werden darf). Der letzte Satz
 /// gilt beiden Richtungen einer Meldung — eine gemeldete Sperre ist so
 /// wenig eine amtliche wie das Fehlen einer Meldung eine Freigabe.
-const kSafetyNote =
-    'Du fährst auf eigene Verantwortung. TrailBuddy zeigt, was du und deine '
-    'Buddys gefahren sind — es sagt nicht, ob ein Weg befahren werden darf '
-    'oder gerade sicher ist. Beachte Sperrungen, Wegeregeln und Naturschutz '
-    'vor Ort. Eine Meldung eines Buddys ist keine Freigabe, und keine Meldung '
-    'heißt nicht, dass alles frei ist.';
-
-/// Überschrift von Dialog und Zeile.
-const kSafetyNoteTitle = 'Sicherheitshinweis';
 
 /// Hat dieses Gerät den Hinweis schon bestätigt? Gerätelokal
 /// (`Settings.safetyNoteSeen`), einmal je Installation.
@@ -67,7 +60,7 @@ class SafetyNoteTile extends StatelessWidget {
           Icon(Icons.warning_amber_outlined, size: 20, color: palette.warningText),
           const SizedBox(width: 10),
           Expanded(
-            child: Text(kSafetyNote, style: Theme.of(context).textTheme.bodySmall),
+            child: Text(context.l10n.safetyNote, style: Theme.of(context).textTheme.bodySmall),
           ),
         ],
       ),
@@ -89,12 +82,12 @@ Future<void> showSafetyNoteDialog(BuildContext context) => showDialog<void>(
         // Auch die Zurück-Taste schließt ihn nicht — aus demselben Grund.
         canPop: false,
         child: AlertDialog(
-          title: const Text('Kurz vorweg'),
-          content: const Text(kSafetyNote),
+          title: Text(context.l10n.safetyNoteDialogTitle),
+          content: Text(context.l10n.safetyNote),
           actions: [
             FilledButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Verstanden'),
+              child: Text(context.l10n.safetyNoteConfirm),
             ),
           ],
         ),

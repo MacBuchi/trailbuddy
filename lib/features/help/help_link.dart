@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../l10n/l10n.dart';
+
 /// Der Knopf „Kurzanleitung" in den Leerzuständen (#131): Wer vor einer
 /// leeren Liste steht, sucht genau die Erklärung, wie etwas hineinkommt.
 ///
@@ -16,7 +18,7 @@ class HelpLinkButton extends StatelessWidget {
           key: const ValueKey('help-link'),
           onPressed: () => context.push('/profile/help'),
           icon: const Icon(Icons.help_outline),
-          label: const Text('Kurzanleitung'),
+          label: Text(context.l10n.helpTitle),
         ),
       );
 }

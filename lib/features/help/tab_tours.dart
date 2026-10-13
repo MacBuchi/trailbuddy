@@ -31,6 +31,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/widgets/safety_note.dart';
+import '../../l10n/l10n.dart';
 import '../coach/coach.dart';
 import 'map_tour.dart';
 import 'seen_tours.dart';
@@ -90,138 +91,136 @@ abstract final class ProfileCoach {
   static String row(String id) => 'profile.$id';
 }
 
-const kTrailsTourScript = CoachScript(
-  id: 'trails',
-  examples: true,
-  steps: [
-    CoachStep(
-      title: 'Deine Trails',
-      chainTitle: 'Weiter mit den Trails?',
-      text: 'Alle Trails deines Netzes als Liste: was du gefahren bist und was '
-          'deine Buddys beisteuern. Hier findest du einen Trail schneller als '
-          'auf der Karte.',
-      art: trailsArt,
-    ),
-    CoachStep(
-      title: 'Eine Zeile lesen',
-      text: 'Streifen und Schild tragen die Schwierigkeit; das Wort sagt, wessen '
-          'Trail es ist — MEIN oder die Namen deiner Buddys. Ein Tipp öffnet das '
-          'Blatt.',
-      lit: [TrailsCoach.row],
-      ring: [],
-      gesture: CoachGesture.tap,
-      requires: [TrailsCoach.row],
-    ),
-    CoachStep(
-      title: 'Zahlen und Profil',
-      text: 'Länge, Höhenmeter, Grad und darunter das Höhenprofil. Ein Tipp auf '
-          'den Grad zeigt alle Einschätzungen — und was S0 bis S5 bedeuten.',
-      scene: TrailsCoach.sheet,
-      lit: [SheetCoach.metrics],
-      requires: [TrailsCoach.row],
-    ),
-    CoachStep(
-      title: 'Deine Einschätzung',
-      text: 'Deinen eigenen S-Grad und deine Sterne tippst du hier an. Angezeigt '
-          'wird, was dein Netz sagt — nicht nur du.',
-      scene: TrailsCoach.sheet,
-      lit: [SheetCoach.ownGrade],
-      requires: [TrailsCoach.rowOwn],
-    ),
-    CoachStep(
-      title: 'Was du beisteuerst',
-      text: 'Name, Charakter, Bewertung, Sichtbarkeit, Beschreibung und Link — '
-          'dein Beitrag zum Trail. „Nur für mich" hält ihn vor Buddys verborgen.',
-      scene: TrailsCoach.sheet,
-      lit: [SheetCoach.contribution],
-      requires: [TrailsCoach.rowOwn],
-    ),
-    CoachStep(
-      title: 'Etwas Aktuelles erzählen',
-      text: 'Ein Hinweis sagt, was gerade ist: umgestürzter Baum, neue Sprünge, '
-          'auf Wunsch mit Foto. '
-          'Buddys sehen ihn mit gelbem Rand, bis sie ihn gelesen haben. Eine '
-          'Sperre oder den Zustand meldest du daneben.',
-      scene: TrailsCoach.sheet,
-      lit: [SheetCoach.addNote],
-      requires: [TrailsCoach.row],
-    ),
-    CoachStep(
-      title: 'Suchen und eingrenzen',
-      text: 'Gesucht wird über Name und Buddy, Tippfehler inklusive; die Chips '
-          'grenzen nach Kartenausschnitt, S-Grad-Bereich, Charakter oder Meldung '
-          'ein. Daneben die Sortierung. Bis auf den Ausschnitt gilt der Filter '
-          'auch auf der Karte.',
-      lit: [TrailsCoach.search, TrailsCoach.chips],
-    ),
-    CoachStep(
-      title: 'GPX hereinholen',
-      text: 'Das Symbol oben rechts liest GPX- oder Zip-Dateien aus anderen Apps. '
-          'Kurz und bergab wird ein Trail, eine ganze Runde eine Fahrt — die '
-          'zerlegst du dann in Trails.',
-      lit: [TrailsCoach.import],
-    ),
-  ],
-);
+/// Die Trails-Tour. Funktionen statt Konstanten wie die Karten-Tour
+/// (#209): Die Texte kommen aus den ARB-Dateien, Vorführungen finden ihre
+/// Schritte über die `id`.
+CoachScript trailsTourScript(AppLocalizations l) => CoachScript(
+      id: kTrailsTourId,
+      examples: true,
+      steps: [
+        CoachStep(
+          id: 'trails.intro',
+          title: l.tourTrailsIntroTitle,
+          chainTitle: l.tourTrailsIntroChainTitle,
+          text: l.tourTrailsIntroText,
+          art: trailsArt,
+        ),
+        CoachStep(
+          id: 'trails.row',
+          title: l.tourTrailsRowTitle,
+          text: l.tourTrailsRowText,
+          lit: const [TrailsCoach.row],
+          ring: const [],
+          gesture: CoachGesture.tap,
+          requires: const [TrailsCoach.row],
+        ),
+        CoachStep(
+          id: 'trails.sheet',
+          title: l.tourTrailsSheetTitle,
+          text: l.tourTrailsSheetText,
+          scene: TrailsCoach.sheet,
+          lit: const [SheetCoach.metrics],
+          requires: const [TrailsCoach.row],
+        ),
+        CoachStep(
+          id: 'trails.grade',
+          title: l.tourTrailsGradeTitle,
+          text: l.tourTrailsGradeText,
+          scene: TrailsCoach.sheet,
+          lit: const [SheetCoach.ownGrade],
+          requires: const [TrailsCoach.rowOwn],
+        ),
+        CoachStep(
+          id: 'trails.contribution',
+          title: l.tourTrailsContributionTitle,
+          text: l.tourTrailsContributionText,
+          scene: TrailsCoach.sheet,
+          lit: const [SheetCoach.contribution],
+          requires: const [TrailsCoach.rowOwn],
+        ),
+        CoachStep(
+          id: 'trails.note',
+          title: l.tourTrailsNoteTitle,
+          text: l.tourTrailsNoteText,
+          scene: TrailsCoach.sheet,
+          lit: const [SheetCoach.addNote],
+          requires: const [TrailsCoach.row],
+        ),
+        CoachStep(
+          id: 'trails.search',
+          title: l.tourTrailsSearchTitle,
+          text: l.tourTrailsSearchText,
+          lit: const [TrailsCoach.search, TrailsCoach.chips],
+        ),
+        CoachStep(
+          id: 'trails.import',
+          title: l.tourTrailsImportTitle,
+          text: l.tourTrailsImportText,
+          lit: const [TrailsCoach.import],
+        ),
+      ],
+    );
 
-const kBuddysTourScript = CoachScript(
-  id: 'buddys',
-  examples: true,
-  steps: [
-    CoachStep(
-      title: 'Deine Buddys',
-      chainTitle: 'Weiter mit den Buddys?',
-      text: 'Wer deine Trails sieht — und du seine. Nur direkte Buddys, nichts '
-          'darüber hinaus; eine öffentliche Karte gibt es nicht.',
-      art: buddysArt,
-    ),
-    CoachStep(
-      title: 'Jemanden einladen',
-      text: 'Schickt einen Link zu TrailBuddy über deine Messenger-App — mit '
-          'deinem Benutzernamen, damit man dich gleich findet.',
-      lit: [BuddysCoach.invite],
-    ),
-    CoachStep(
-      // Nicht „Buddy finden": So heißt das Suchfeld selbst.
-      title: 'Nach Buddys suchen',
-      text: 'Gefunden wird über den Benutzernamen oder die genaue '
-          'E-Mail-Adresse. Trails seht ihr voneinander erst, wenn die Anfrage '
-          'angenommen ist.',
-      lit: [BuddysCoach.search],
-    ),
-    CoachStep(
-      title: 'Offene Anfragen',
-      text: 'Anfragen an dich stehen hier mit Annehmen und Ablehnen; gesendete '
-          'lassen sich zurückziehen.',
-      lit: [BuddysCoach.requests],
-      requires: [BuddysCoach.requests],
-    ),
-    CoachStep(
-      title: 'Ein Buddy in der Liste',
-      text: '„n gemeinsam" zählt Trails, die ihr beide kennt. Der Stift gibt dem '
-          'Buddy einen Namen, den nur du siehst; die Sprechblase öffnet eure '
-          'Nachrichten.',
-      lit: [BuddysCoach.row],
-      ring: [BuddysCoach.alias, BuddysCoach.message],
-      requires: [BuddysCoach.row],
-    ),
-    CoachStep(
-      title: 'Beim Verbinden',
-      text: 'Verbindet ihr euch, werden gleiche Trails EIN Trail mit zwei Namen, '
-          'der Rest kommt dazu. Trennt ihr euch, verschwinden seine Trails wieder '
-          'von deiner Karte.',
-    ),
-  ],
-);
+CoachScript buddysTourScript(AppLocalizations l) => CoachScript(
+      id: kBuddysTourId,
+      examples: true,
+      steps: [
+        CoachStep(
+          id: 'buddys.intro',
+          title: l.tourBuddysIntroTitle,
+          chainTitle: l.tourBuddysIntroChainTitle,
+          text: l.tourBuddysIntroText,
+          art: buddysArt,
+        ),
+        CoachStep(
+          id: 'buddys.invite',
+          title: l.tourBuddysInviteTitle,
+          text: l.tourBuddysInviteText,
+          lit: const [BuddysCoach.invite],
+        ),
+        CoachStep(
+          // Nicht „Buddy finden": So heißt das Suchfeld selbst.
+          id: 'buddys.search',
+          title: l.tourBuddysSearchTitle,
+          text: l.tourBuddysSearchText,
+          lit: const [BuddysCoach.search],
+        ),
+        CoachStep(
+          id: 'buddys.requests',
+          title: l.tourBuddysRequestsTitle,
+          text: l.tourBuddysRequestsText,
+          lit: const [BuddysCoach.requests],
+          requires: const [BuddysCoach.requests],
+        ),
+        CoachStep(
+          id: 'buddys.row',
+          title: l.tourBuddysRowTitle,
+          text: l.tourBuddysRowText,
+          lit: const [BuddysCoach.row],
+          ring: const [BuddysCoach.alias, BuddysCoach.message],
+          requires: const [BuddysCoach.row],
+        ),
+        CoachStep(
+          id: 'buddys.connect',
+          title: l.tourBuddysConnectTitle,
+          text: l.tourBuddysConnectText,
+        ),
+      ],
+    );
+
+/// Die Kennungen der Reiter-Touren — Merker in `seenCoachTours`, Wunsch
+/// aus der Kurzanleitung.
+const kTrailsTourId = 'trails';
+const kBuddysTourId = 'buddys';
 
 /// Alle Reiter-Touren — für den Test, der sie gegen die Fake-Vorgabe hält.
-const kTabTourScripts = [kTrailsTourScript, kBuddysTourScript];
+List<CoachScript> tabTourScripts(AppLocalizations l) => [trailsTourScript(l), buddysTourScript(l)];
 
 /// Die Reiter-Touren in der Reihenfolge der Leiste, mit ihrer Route.
-const kTabTours = [
-  (kTrailsTourScript, '/trails'),
-  (kBuddysTourScript, '/friends'),
-];
+List<(CoachScript, String)> tabTours(AppLocalizations l) => [
+      (trailsTourScript(l), '/trails'),
+      (buddysTourScript(l), '/friends'),
+    ];
 
 /// Eine ausdrücklich gewünschte Tour (aus der Kurzanleitung). Sie läuft
 /// auch, wenn sie schon gesehen ist, sobald ihr Reiter sichtbar wird.
@@ -264,14 +263,14 @@ void startTabTour(WidgetRef ref, CoachScript script) {
 /// Notifier und Router werden VORHER gegriffen: Die Kette läuft über
 /// mehrere Reiter, und der `ref` des Karten-Screens ist dabei vielleicht
 /// schon nicht mehr zu gebrauchen.
-void startWelcomeTour(WidgetRef ref, GoRouter router) {
+void startWelcomeTour(AppLocalizations l, WidgetRef ref, GoRouter router) {
   final coach = ref.read(coachProvider.notifier);
   final mapSeen = ref.read(mapTourSeenProvider.notifier);
   final seen = ref.read(seenCoachToursProvider.notifier);
   final declined = ref.read(declinedTabToursProvider.notifier);
-  coach.start(kWelcomeTourScript, onDone: () {
+  coach.start(welcomeTourScript(l), onDone: () {
     mapSeen.set(true);
-    unawaited(_continueChain(coach, router, seen, declined, kTabTours));
+    unawaited(_continueChain(coach, router, seen, declined, tabTours(l)));
   });
 }
 
@@ -308,7 +307,8 @@ Future<void> _continueChain(
 class TabTourStarter extends ConsumerStatefulWidget {
   const TabTourStarter({super.key, required this.script, required this.child});
 
-  final CoachScript script;
+  /// Das Skript des Reiters, gebaut in der Sprache der App.
+  final CoachScript Function(AppLocalizations l) script;
   final Widget child;
 
   @override
@@ -325,7 +325,7 @@ class _TabTourStarterState extends ConsumerState<TabTourStarter> {
 
   @override
   Widget build(BuildContext context) {
-    final id = widget.script.id;
+    final id = widget.script(context.l10n).id;
     final requested = ref.watch(requestedTabTourProvider) == id;
     final seen = ref.watch(seenCoachToursProvider).contains(id) ||
         ref.watch(declinedTabToursProvider).contains(id);
@@ -348,20 +348,21 @@ class _TabTourStarterState extends ConsumerState<TabTourStarter> {
       // Liegt eine Unterseite darüber, ist der Reiter aktiv, aber nicht zu
       // sehen.
       if (!(ModalRoute.of(context)?.isCurrent ?? true)) return;
-      final requested = ref.read(requestedTabTourProvider) == widget.script.id;
+      final script = widget.script(context.l10n);
+      final requested = ref.read(requestedTabTourProvider) == script.id;
       if (ref.read(coachProvider.notifier).busy) {
         if (!requested) _yielded = true;
         return;
       }
       if (requested) {
         ref.read(requestedTabTourProvider.notifier).clear();
-      } else if (ref.read(seenCoachToursProvider).contains(widget.script.id) ||
-          ref.read(declinedTabToursProvider).contains(widget.script.id) ||
+      } else if (ref.read(seenCoachToursProvider).contains(script.id) ||
+          ref.read(declinedTabToursProvider).contains(script.id) ||
           !ref.read(mapTourSeenProvider) ||
           !ref.read(safetyNoteSeenProvider)) {
         return;
       }
-      startTabTour(ref, widget.script);
+      startTabTour(ref, script);
     });
   }
 }

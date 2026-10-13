@@ -23,6 +23,7 @@ import 'package:trailbuddy/features/help/tour_intro_art.dart';
 import '../fakes/fake_backend.dart';
 import '../fakes/fake_settings.dart';
 import '../fakes/test_app.dart';
+import '../fakes/l10n_de.dart';
 
 final intro = find.byKey(const ValueKey('coach-intro'));
 final bubble = find.byKey(const ValueKey('coach-bubble'));
@@ -36,7 +37,7 @@ void main() {
 
   /// Die Schritte ohne Trail: Schild und Blatt fallen weg.
   final titles = [
-    for (final s in kWelcomeTourScript.tourSteps)
+    for (final s in welcomeTourScript(l10nDe).tourSteps)
       if (s.title != 'Das Schild am Anfang' && s.title != 'Das Blatt zum Trail') s.title
   ];
 

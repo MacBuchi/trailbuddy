@@ -47,7 +47,7 @@ bool covers(Rect lit, Rect widget) =>
     lit.inflate(0.5).contains(widget.bottomRight - const Offset(0.01, 0.01));
 
 /// Die Schritte der Bedienung — ohne die Startseite davor (#133).
-final kTourTitles = [for (final s in kMapTourScript.tourSteps) s.title];
+final kTourTitles = [for (final s in mapTourScript(l10nDe).tourSteps) s.title];
 
 final bubble = find.byKey(const ValueKey('coach-bubble'));
 
@@ -247,7 +247,7 @@ void main() {
     expect(await tester.binding.handlePopRoute(), isFalse, reason: 'ohne Tour: bis zum System');
     ProviderScope.containerOf(tester.element(find.byType(Scaffold).first))
         .read(coachProvider.notifier)
-        .start(kMapTourScript, onDone: () => settings.mapTourSeen = true);
+        .start(mapTourScript(l10nDe), onDone: () => settings.mapTourSeen = true);
     await settle(tester);
     await tester.tap(find.byKey(const ValueKey('coach-intro-start')));
     await settle(tester);
@@ -326,7 +326,7 @@ void main() {
   test('die Legende nennt, was die Kurzanleitung nennt', () {
     // Die Legende nennt die Bedeutung, die Tour verbindet sie mit dem
     // Aussehen (#231).
-    final tour = kMapTourScript.steps.firstWhere((s) => s.title == 'Farbe heißt Schwierigkeit').text;
+    final tour = mapTourScript(l10nDe).steps.firstWhere((s) => s.id == 'map.colors').text;
     for (final label in ['S0', 'S3', 'S4/S5', 'Uphill', 'ausgefahren', 'abgerockt', 'kaum fahrbar', 'Meldung',
       'neuer Hinweis', 'offizieller Trail']) {
       expect([for (final s in legendSamples(l10nDe)) s.label], contains(label));

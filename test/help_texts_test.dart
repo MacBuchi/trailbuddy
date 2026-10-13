@@ -6,20 +6,25 @@
 // die man wirklich verlieren kann: Umfang, Eindeutigkeit, die Regeln der
 // Karte, und dass Anleitung und Oberfläche dasselbe Wort benutzen.
 import 'package:flutter_test/flutter_test.dart';
-import 'package:trailbuddy/core/widgets/safety_note.dart';
+import 'package:flutter/widgets.dart' show Locale;
+import 'package:trailbuddy/features/coach/coach.dart';
 import 'package:trailbuddy/features/help/help_screen.dart';
+import 'package:trailbuddy/features/help/map_tour.dart';
+import 'package:trailbuddy/features/help/split_tour.dart';
+import 'package:trailbuddy/features/help/tab_tours.dart';
+import 'package:trailbuddy/l10n/l10n.dart';
 import 'package:trailbuddy/features/trails/trail_report.dart';
 
 import 'fakes/l10n_de.dart';
 
 void main() {
-  HelpStep step(String title) => kHelpSteps.firstWhere((s) => s.title == title);
+  HelpStep step(String title) => helpSteps(l10nDe).firstWhere((s) => s.title == title);
 
   test('Sechs Abschnitte, jeder Titel einmal', () {
     // Sechs sind die Obergrenze: Eine Anleitung, die man scrollen muss,
     // liest niemand zu Ende.
-    expect(kHelpSteps, hasLength(6));
-    expect(kHelpSteps.map((s) => s.title).toSet(), hasLength(6));
+    expect(helpSteps(l10nDe), hasLength(6));
+    expect(helpSteps(l10nDe).map((s) => s.title).toSet(), hasLength(6));
   });
 
   test('„Die Karte lesen" nennt die Regeln der Karte', () {
@@ -42,7 +47,7 @@ void main() {
     // Der Dialog liest das Wort seit #209 aus den ARB-Dateien.
     expect(l10nDe.reportFieldLabel, kReportFieldLabel);
     expect(step('Dein Beitrag zum Trail').text, contains(kReportFieldLabel));
-    expect(kHelpSteps.any((s) => s.text.contains('Status')), isFalse,
+    expect(helpSteps(l10nDe).any((s) => s.text.contains('Status')), isFalse,
         reason: 'das alte Wort ist zurück');
   });
 
@@ -61,11 +66,29 @@ void main() {
   });
 
   test('Der Sicherheitshinweis nennt Verantwortung und Sperrungen', () {
-    expect(kSafetyNote, contains('Verantwortung'));
-    expect(kSafetyNote, contains('Sperrungen'));
+    expect(l10nDe.safetyNote, contains('Verantwortung'));
+    expect(l10nDe.safetyNote, contains('Sperrungen'));
     // Beide Richtungen einer Meldung: keine Freigabe, und Schweigen heißt
     // nicht frei.
-    expect(kSafetyNote, contains('keine Freigabe'));
-    expect(kSafetyNote, contains('keine Meldung'));
+    expect(l10nDe.safetyNote, contains('keine Freigabe'));
+    expect(l10nDe.safetyNote, contains('keine Meldung'));
+  });
+
+  test('Jeder Tour-Schritt hat eine Kennung, in jeder Sprache dieselbe', () {
+    // Vorführungen übernehmen Schritte über die `id` (#209) — der Titel ist
+    // je Sprache ein anderer. Fehlte sie oder hinge sie an der Sprache,
+    // fände `_from` unter Englisch nichts.
+    List<CoachScript> scripts(AppLocalizations l) =>
+        [mapTourScript(l), welcomeTourScript(l), splitTourScript(l), ...tabTourScripts(l)];
+    final en = lookupAppLocalizations(const Locale('en'));
+    final de = scripts(l10nDe);
+    for (final (i, script) in de.indexed) {
+      final ids = [for (final s in script.steps) s.id];
+      expect(ids, everyElement(isNotNull), reason: script.id);
+      expect(ids.toSet(), hasLength(ids.length), reason: '${script.id}: doppelt');
+      expect([for (final s in scripts(en)[i].steps) s.id], ids, reason: script.id);
+      expect([for (final s in scripts(en)[i].steps) s.title], isNot([for (final s in script.steps) s.title]),
+          reason: '${script.id}: Englisch zeigt deutsche Titel');
+    }
   });
 }

@@ -191,7 +191,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     // dazwischenfahren.
     var overlayShown = shownNote;
     if (!ref.read(mapTourSeenProvider) && !ref.read(coachProvider.notifier).busy) {
-      startWelcomeTour(ref, GoRouter.of(context));
+      startWelcomeTour(context.l10n, ref, GoRouter.of(context));
       overlayShown = true;
     }
     // Die Neuheiten (#135): gerechnet wird immer — eine frische Installation

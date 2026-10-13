@@ -23,9 +23,9 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/app_colors.dart';
 import '../../core/widgets/safety_note.dart';
+import '../../l10n/l10n.dart';
 import '../coach/coach.dart';
 import '../trails/grade_shield.dart';
-import '../trails/trail_report.dart' show kReportFieldLabel;
 import '../rides/ride_providers.dart' show rideRecordingAvailableProvider, ridesProvider;
 import '../rides/ride_split_sheet.dart' show SplitRequest, mapSplitRequestProvider;
 import 'map_tour.dart';
@@ -45,7 +45,7 @@ class HelpStep {
 
 /// Die Abschnitte der Kurzanleitung.
 ///
-/// **Offen und nicht als lokale `const` in `build`**, damit
+/// **Offen und nicht als lokale Liste in `build`**, damit
 /// `help_texts_test.dart` einen EINZELNEN Abschnitt prüfen kann statt die
 /// Datei als Text (PilzBuddy: die Prüfung über die ganze Datei war aus
 /// dem falschen Grund grün, weil das Wort auch in einem anderen Abschnitt
@@ -54,96 +54,47 @@ class HelpStep {
 /// Die Texte folgen `konzept-trails.md`: Trail ≠ Fahrt ≠ Aufzeichnung;
 /// sichtbar sind eigene Beiträge und die direkter Buddys; Fahrt und
 /// Position verlassen das Gerät nie.
-const kHelpSteps = <HelpStep>[
-  HelpStep(
-    icon: _HelpIcon(Icons.file_upload_outlined),
-    title: 'Trails importieren',
-    text: 'GPX- oder Zip-Dateien aus anderen Apps holst du über das Symbol '
-        'oben rechts im Reiter „Trails" oder im Profil unter „Trails '
-        'importieren". Eine kurze Spur, die überwiegend bergab führt, wird '
-        'ein Trail; eine ganze Runde ist eine Fahrt — die zerlegst du über die '
-        'Schere im Import in Trails. Nur Trails gehen zu deinen Buddys, nie '
-        'die ganze Fahrt.',
-  ),
-  HelpStep(
-    icon: GradeShield(2),
-    title: 'Die Karte lesen',
-    // Farbe = Schwierigkeit (0.42.0), Linienart = Zustand und S4/S5 auf
-    // dem Saum (0.51.0) — `docs/design/README.md` Abschnitt 2. Ändert
-    // sich dort eine Regel, gehört dieser Satz in denselben PR.
-    text: 'Die Farbe einer Linie ist ihre Schwierigkeit, wie auf der Piste: '
-        'grün S0, blau S1, rot S2, schwarz ab S3; ein weiß gestrichelter Saum '
-        'heißt S4 oder S5, grau noch ohne Einschätzung, Magenta Uphill. Die '
-        'Art der Linie ist der Zustand: durchgezogen heißt alles gut, '
-        'bröckelig ausgefahren, gestrichelt abgerockt, verblasst kaum fahrbar. '
-        'Ein orangener Rand heißt Meldung (gesperrt, zerstört oder verändert), '
-        'ein gelber ein neuer Hinweis; Violett gestrichelt '
-        'sind offizielle Trails — die Legende links am Rand der Karte '
-        'klappt all das auf. Am Anfang jedes Trails steht sein Schild, '
-        'darunter ein Punkt, dessen Pfeil die Fahrtrichtung zeigt. '
-        'Ein Tipp aufs Schild oder auf die Linie wählt den Trail aus '
-        '— unten steht eine kleine Karte, ein Tipp darauf öffnet das Blatt. Ein '
-        'langer Druck auf die Karte bietet „Route ab hier" und „Route bis hier".',
-  ),
-  HelpStep(
-    icon: _HelpIcon(Icons.circle),
-    title: 'Fahrt aufzeichnen und zerlegen',
-    // Auch in der PWA gezeigt, mit dem Zusatz: Wer die Web-App benutzt,
-    // soll wissen, dass es den Weg gibt — nur eben auf dem Telefon.
-    text: 'In der Android-App zeichnet der große Knopf unten rechts auf der '
-        'Karte eine Fahrt auf — auch ohne Empfang, und sie bleibt auf deinem '
-        'Gerät. Unterwegs markierst du mit der Fahne, wo ein Trail beginnt '
-        'und endet. Danach zerlegst du die Fahrt: Bekannte Trails erkennt die '
-        'App wieder, neue Stücke wählst du selbst. Als GPX exportiert, kannst '
-        'du die Fahrt in jede andere App laden. Vorher planst du mit dem '
-        'Runden-Knopf eine Runde: Trails antippen (noch einmal heißt ab), links '
-        'Parameter, Liste und Gebiet, dann rechnen — offline, aus deinen '
-        'gespeicherten Bereichen; sie liegt dann unter „Meine Fahrten". '
-        '„Navigieren" zeigt sie unterwegs: Die Karte dreht mit, oben stehen Rest '
-        'und Abstand zur Route, daneben führt „Zurück zur Route" wieder hin; mit '
-        'der App im Hintergrund steht beides in der Benachrichtigung, und nach '
-        'Hause gewischt bleibt die Karte als kleines Fenster. In '
-        '„Meine Fahrten" geht eine beendete Navigation oben weiter; an '
-        'jeder Fahrt steht ihr Rad — ein Tipp stellt es um; nach links '
-        'wischen löscht, ein langer Druck wählt mehrere. In der Web-App gibt es '
-        'keine Aufzeichnung.',
-  ),
-  HelpStep(
-    icon: _HelpIcon(Icons.group_outlined),
-    title: 'Buddys und Sichtbarkeit',
-    text: 'Du siehst deine Trails und die deiner direkten Buddys — sonst '
-        'niemandes, eine öffentliche Karte gibt es nicht. Buddys findest du '
-        'im Reiter „Buddys" über den Benutzernamen oder die genaue E-Mail. '
-        'Sind zwei Aufzeichnungen derselbe Weg, werden sie EIN Trail, auch '
-        'mit zwei Namen. Was du „Nur für mich" stellst, sieht niemand.',
-  ),
-  HelpStep(
-    icon: _HelpIcon(Icons.edit),
-    title: 'Dein Beitrag zum Trail',
-    // „Meldung" ist die Beschriftung im Melde-Dialog (`kReportFieldLabel`,
-    // bis 0.48.0 „Status") — `help_texts_test.dart` hält beide zusammen.
-    text: 'Im Blatt eines Trails, den du selbst beigesteuert hast, trägst du unter „Mein '
-        'Beitrag" Name, S-Grad, Charakter, Sterne, Sichtbarkeit, Beschreibung '
-        'und einen Link ein. „Melden" sagt, was gerade gilt — die '
-        '$kReportFieldLabel (gesperrt, zerstört, verändert) und der Zustand; '
-        'bestätigt ist sie, wenn du ihn gefahren hast oder vor Ort bist. Ein '
-        'Hinweis erzählt Buddys, was los ist, und leuchtet bei ihnen gelb. '
-        'Das Navi-Symbol oben im Blatt übergibt den Anfang des Trails an '
-        'deine Navi-App; „Zum '
-        'Trailkopf" rechnet den Weg dorthin selbst — offline, aus deinen '
-        'gespeicherten Bereichen, mit Höhenmetern und Zeit.',
-  ),
-  HelpStep(
-    icon: _HelpIcon(Icons.wifi_off),
-    title: 'Ohne Empfang',
-    text: 'Deine Trails zeigt die App auch offline, mit dem Stand deines '
-        'letzten Abrufs. Was du ohne Netz beisteuerst oder meldest, wartet im '
-        'Ausgangskorb und geht los, sobald du wieder Empfang hast. Damit die '
-        'Karte etwas zeigt, speicherst du vorher einen Bereich: Knopf '
-        '„Offline-Karten" auf der Karte, dann zeichnen; verwalten unter „Meine Bereiche" im '
-        'Profil — am besten zu Hause im WLAN.',
-  ),
-];
+///
+/// Eine Funktion seit #209: Die Texte kommen aus den ARB-Dateien.
+List<HelpStep> helpSteps(AppLocalizations l) => [
+      HelpStep(
+        icon: const _HelpIcon(Icons.file_upload_outlined),
+        title: l.helpImportTitle,
+        text: l.helpImportText,
+      ),
+      HelpStep(
+        icon: const GradeShield(2),
+        title: l.helpMapTitle,
+        // Farbe = Schwierigkeit (0.42.0), Linienart = Zustand und S4/S5 auf
+        // dem Saum (0.51.0) — `docs/design/README.md` Abschnitt 2. Ändert
+        // sich dort eine Regel, gehört dieser Satz in denselben PR.
+        text: l.helpMapText,
+      ),
+      HelpStep(
+        icon: const _HelpIcon(Icons.circle),
+        title: l.helpRideTitle,
+        // Auch in der PWA gezeigt, mit dem Zusatz: Wer die Web-App benutzt,
+        // soll wissen, dass es den Weg gibt — nur eben auf dem Telefon.
+        text: l.helpRideText,
+      ),
+      HelpStep(
+        icon: const _HelpIcon(Icons.group_outlined),
+        title: l.helpBuddysTitle,
+        text: l.helpBuddysText,
+      ),
+      HelpStep(
+        icon: const _HelpIcon(Icons.edit),
+        title: l.helpContributionTitle,
+        // „Meldung" ist die Beschriftung im Melde-Dialog (`reportFieldLabel`,
+        // bis 0.48.0 „Status") — `help_texts_test.dart` hält beide zusammen.
+        text: l.helpContributionText(l.reportFieldLabel),
+      ),
+      HelpStep(
+        icon: const _HelpIcon(Icons.wifi_off),
+        title: l.helpOfflineTitle,
+        text: l.helpOfflineText,
+      ),
+    ];
 
 /// Zeigt in sechs Schritten, wie TrailBuddy benutzt wird.
 class HelpScreen extends ConsumerWidget {
@@ -152,8 +103,9 @@ class HelpScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final l = context.l10n;
     return Scaffold(
-      appBar: AppBar(title: const Text('Kurzanleitung')),
+      appBar: AppBar(title: Text(l.helpTitle)),
       body: CoachAnchor(
         id: HelpCoach.list,
         child: ListView(
@@ -161,15 +113,14 @@ class HelpScreen extends ConsumerWidget {
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
         children: [
           Text(
-            'Das Wichtigste in sechs Schritten. Alles andere findest du beim '
-            'Ausprobieren.',
+            l.helpIntro,
             style: theme.textTheme.bodyMedium?.copyWith(color: AppPalette.of(context).muted),
           ),
           const SizedBox(height: 12),
           // Ganz oben und nicht am Ende: Wer die Kurzanleitung öffnet, soll
           // den Hinweis nicht erst finden müssen.
           const SafetyNoteTile(),
-          for (final step in kHelpSteps) _StepTile(step: step),
+          for (final step in helpSteps(l)) _StepTile(step: step),
           const SizedBox(height: 24),
           // Der Wiederaufruf der Tour (#132). Hier und nicht als eigene
           // Zeile im Profil: Wer die Tour sucht, sucht eine Erklärung — und
@@ -180,10 +131,10 @@ class HelpScreen extends ConsumerWidget {
               // Erst die Karte, dann die Tour: Ihre Anker hängen am
               // Karten-Screen, und dessen Reiter muss sichtbar sein.
               context.go('/');
-              startMapTour(ref);
+              startMapTour(l, ref);
             },
             icon: const Icon(Icons.play_circle_outline),
-            label: const Text('Tour auf der Karte zeigen'),
+            label: Text(l.helpMapTour),
           ),
           const SizedBox(height: 8),
           // Die Reiter-Touren (#136) laufen von selbst beim ersten Besuch;
@@ -195,18 +146,18 @@ class HelpScreen extends ConsumerWidget {
             spacing: 8,
             runSpacing: 4,
             children: [
-              for (final (label, route, script) in const [
-                ('Trails', '/trails', kTrailsTourScript),
-                ('Buddys', '/friends', kBuddysTourScript),
+              for (final (label, route, id) in [
+                (l.tabTrails, '/trails', kTrailsTourId),
+                (l.tabBuddys, '/friends', kBuddysTourId),
               ])
                 OutlinedButton.icon(
-                  key: ValueKey('tab-tour-${script.id}'),
+                  key: ValueKey('tab-tour-$id'),
                   onPressed: () {
-                    ref.read(requestedTabTourProvider.notifier).request(script.id);
+                    ref.read(requestedTabTourProvider.notifier).request(id);
                     context.go(route);
                   },
                   icon: const Icon(Icons.play_circle_outline, size: 18),
-                  label: Text('Tour: $label'),
+                  label: Text(l.helpTabTour(label)),
                 ),
             ],
           )),
@@ -223,7 +174,7 @@ class HelpScreen extends ConsumerWidget {
             key: const ValueKey('help-discover'),
             onPressed: () => context.push('/profile/discover'),
             icon: const Icon(Icons.lightbulb_outline),
-            label: const Text('Funktionen und Tipps entdecken'),
+            label: Text(l.helpDiscover),
           ),
         ],
       )),
@@ -306,14 +257,13 @@ class _SplitTourButton extends ConsumerWidget {
                   ref.read(mapSplitRequestProvider.notifier).state = SplitRequest.fromRide(latest);
                 },
           icon: const Icon(Icons.content_cut),
-          label: const Text('Tour: Fahrt zerlegen'),
+          label: Text(context.l10n.helpSplitTour),
         ),
         if (latest == null)
           Padding(
             padding: const EdgeInsets.only(top: 4),
             child: Text(
-              'Zeichne erst eine Fahrt auf — der große Knopf auf der Karte. '
-              'Danach zeigt die Tour an ihr, wie aus einer Fahrt Trails werden.',
+              context.l10n.helpSplitTourHint,
               key: const ValueKey('help-split-tour-hint'),
               style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppPalette.of(context).muted),
             ),
