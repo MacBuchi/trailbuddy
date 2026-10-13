@@ -13,6 +13,8 @@ import 'package:trailbuddy/core/app_info.dart';
 import 'package:trailbuddy/core/errors.dart' show friendlyError;
 import 'package:trailbuddy/core/photo_pipeline.dart';
 import 'package:trailbuddy/core/read_after_write.dart' show doneOrStale;
+import 'package:trailbuddy/core/update_check.dart';
+import 'package:trailbuddy/features/changelog/changelog_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' show PostgrestException;
 import 'package:trailbuddy/features/trails/gpx.dart';
 import 'package:trailbuddy/features/trails/trail_geometry.dart' show RecordingSource;
@@ -702,6 +704,65 @@ void main() {
         home: Builder(builder: (context) => Text(context.l10n.updateRequiredVersions('0.1.0', '0.2.0'))),
       ));
       expect(find.text('Installed: 0.1.0\nRequired: 0.2.0'), findsOneWidget);
+    });
+  });
+
+  // Stufe (i): Glühbirne, Update-Banner und „Was ist neu“.
+  group('Feedback, Update und Änderungsliste auf Englisch', () {
+    testWidgets('der Feedback-Dialog', (tester) async {
+      final backend = FakeBackend();
+      backend.signInAs(backend.addUser(username: 'anna').id);
+      await pumpApp(tester, backend,
+          extraOverrides: [appLocaleProvider.overrideWithValue(const Locale('en'))]);
+      await tester.tap(find.byTooltip('Report an idea or a bug'));
+      await settle(tester);
+      expect(find.text('Make a wish!'), findsOneWidget);
+      expect(find.text('Your wish'), findsOneWidget);
+      expect(find.textContaining('public entry on GitHub'), findsOneWidget);
+      await tester.tap(find.text('Bug'));
+      await settle(tester);
+      expect(find.text('What happened?'), findsOneWidget);
+      expect(find.widgetWithText(FilledButton, 'Send'), findsOneWidget);
+      expect(find.textContaining(RegExp('[äöüß]')), findsNothing, reason: 'kein deutscher Satz im Dialog');
+    });
+
+    testWidgets('Banner und Dialog eines Updates', (tester) async {
+      final backend = FakeBackend();
+      backend.signInAs(backend.addUser(username: 'anna').id);
+      await pumpApp(tester, backend, extraOverrides: [
+        appLocaleProvider.overrideWithValue(const Locale('en')),
+        updateInfoProvider.overrideWith((ref) => Future.value(const UpdateInfo(
+              latestVersion: '9.9.9',
+              downloadUrl: 'https://example.invalid/trailbuddy-v9.9.9.apk',
+              releaseNotes: 'Faster map',
+            ))),
+      ]);
+      await settle(tester);
+      expect(find.text('Update to v9.9.9 available'), findsOneWidget);
+      expect(find.byTooltip('Hide for this session'), findsOneWidget);
+      await tester.tap(find.text('Update to v9.9.9 available'));
+      await settle(tester);
+      expect(find.text('Update to v9.9.9'), findsOneWidget);
+      expect(find.text("What's new:"), findsOneWidget);
+      expect(find.text('Later'), findsOneWidget);
+      expect(find.text('In the browser'), findsOneWidget);
+    });
+
+    testWidgets('die Seite „Was ist neu“', (tester) async {
+      await tester.pumpWidget(const MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        locale: Locale('en'),
+        home: ChangelogScreen(),
+      ));
+      expect(find.text("What's new"), findsOneWidget);
+    });
+
+    test('Sätze mit Zahlen', () {
+      final en = lookupAppLocalizations(const Locale('en'));
+      expect(en.updateLoadingPercent(42), 'Downloading … 42 %');
+      expect(l10nDe.updateLoadingPercent(42), 'Wird geladen … 42 %');
+      expect(en.feedbackRejected('too short'), 'Not accepted: too short');
     });
   });
 }

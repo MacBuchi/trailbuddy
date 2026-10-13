@@ -4,7 +4,7 @@
 
 ## Trails ohne Namen
 
-*Version 0.117.9, 2026-10-13*
+*Versionen 0.117.9 bis 0.117.10, 2026-10-13*
 
 - In der Trail-Liste stehen Trails ohne Namen jetzt hinten, statt unter
   „T“ wie „Trail ohne Namen“.

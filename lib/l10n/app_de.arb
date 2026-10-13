@@ -8469,5 +8469,165 @@
   "loaderSemantics": "Lädt …",
   "@loaderSemantics": {
     "description": "Bildschirmleser-Text der Ladeanimation."
+  },
+  "feedbackTitle": "Wünsch dir was!",
+  "@feedbackTitle": {
+    "description": "Titel des Feedback-Dialogs (Glühbirne)."
+  },
+  "feedbackTypeIdea": "Idee",
+  "@feedbackTypeIdea": {
+    "description": "Segment im Feedback-Dialog: ein Wunsch."
+  },
+  "feedbackTypeBug": "Fehler",
+  "@feedbackTypeBug": {
+    "description": "Segment im Feedback-Dialog: eine Fehlermeldung."
+  },
+  "feedbackBugPrompt": "Was funktioniert nicht? Beschreib kurz, was du gemacht hast und was stattdessen passiert ist.",
+  "@feedbackBugPrompt": {
+    "description": "Anleitung über dem Textfeld, wenn „Fehler“ gewählt ist."
+  },
+  "feedbackIdeaPrompt": "TrailBuddy ist noch ganz frisch — was fehlt dir, was nervt, was wäre praktisch?",
+  "@feedbackIdeaPrompt": {
+    "description": "Anleitung über dem Textfeld, wenn „Idee“ gewählt ist."
+  },
+  "feedbackBugLabel": "Was ist passiert?",
+  "@feedbackBugLabel": {
+    "description": "Beschriftung des Textfelds bei „Fehler“."
+  },
+  "feedbackIdeaLabel": "Dein Wunsch",
+  "@feedbackIdeaLabel": {
+    "description": "Beschriftung des Textfelds bei „Idee“."
+  },
+  "feedbackPublicNote": "Wird als öffentlicher Eintrag auf GitHub angelegt — ohne deinen Namen, aber mit diesem Text. Bitte keine Trailnamen, Orte oder Wegbeschreibungen.",
+  "@feedbackPublicNote": {
+    "description": "Hinweis unter dem Textfeld: Das Feedback wird ein öffentliches GitHub-Issue; Trails sind privat."
+  },
+  "feedbackSend": "Senden",
+  "@feedbackSend": {
+    "description": "Knopf: Feedback absenden."
+  },
+  "feedbackThanksBug": "Danke für die Meldung — wir schauen uns das an!",
+  "@feedbackThanksBug": {
+    "description": "Leiste nach dem Senden einer Fehlermeldung."
+  },
+  "feedbackThanksIdea": "Danke für deinen Wunsch!",
+  "@feedbackThanksIdea": {
+    "description": "Leiste nach dem Senden eines Wunsches."
+  },
+  "feedbackQueued": "Kein Empfang — wird gesendet, sobald wieder Netz da ist.",
+  "@feedbackQueued": {
+    "description": "Leiste: Feedback liegt im Ausgangskorb, weil kein Netz da ist."
+  },
+  "feedbackWaiting": "Wartet auf Übertragung",
+  "@feedbackWaiting": {
+    "description": "Zeile über einem Feedback, das noch im Ausgangskorb liegt."
+  },
+  "feedbackRejected": "Nicht angenommen: {reason}",
+  "@feedbackRejected": {
+    "description": "Zeile über einem Feedback, das der Server abgelehnt hat; reason = Grund vom Server.",
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "feedbackDiscard": "Verwerfen",
+  "@feedbackDiscard": {
+    "description": "Knopf: wartendes Feedback verwerfen."
+  },
+  "feedbackRetry": "Erneut versuchen",
+  "@feedbackRetry": {
+    "description": "Knopf: abgelehntes Feedback erneut senden."
+  },
+  "updateBannerTitle": "Update auf v{version} verfügbar",
+  "@updateBannerTitle": {
+    "description": "Banner oben auf der Karte; version = neue Versionsnummer, z. B. 0.118.0.",
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "updateBannerHide": "Für diese Sitzung ausblenden",
+  "@updateBannerHide": {
+    "description": "Tooltip des X am Update-Banner."
+  },
+  "updateDialogTitle": "Update auf v{version}",
+  "@updateDialogTitle": {
+    "description": "Titel des Update-Dialogs; version = neue Versionsnummer.",
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "updateDialogInstall": "Wird geladen und danach von Android installiert — deine Trails bleiben erhalten.",
+  "@updateDialogInstall": {
+    "description": "Erklärung im Update-Dialog, wenn die App selbst installieren kann."
+  },
+  "updateDialogBrowser": "Der Download startet im Browser. Danach in der Benachrichtigung auf die Datei tippen, um zu installieren — deine Trails bleiben erhalten.",
+  "@updateDialogBrowser": {
+    "description": "Erklärung im Update-Dialog, wenn nur der Browser-Weg geht."
+  },
+  "updateLoading": "Wird geladen …",
+  "@updateLoading": {
+    "description": "Fortschritt im Update-Dialog, Größe noch unbekannt."
+  },
+  "updateLoadingPercent": "Wird geladen … {percent} %",
+  "@updateLoadingPercent": {
+    "description": "Fortschritt im Update-Dialog; percent = 0–100.",
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "updateFailNotAllowed": "Android muss TrailBuddy einmalig erlauben, Apps zu installieren. Danach geht jedes Update mit einem Tipp.",
+  "@updateFailNotAllowed": {
+    "description": "Fehler im Update-Dialog: Berechtigung „Apps installieren“ fehlt."
+  },
+  "updateFailDownload": "Der Download hat nicht geklappt. Im Browser klappt er vielleicht — die Datei danach antippen, um zu installieren.",
+  "@updateFailDownload": {
+    "description": "Fehler im Update-Dialog: Download gescheitert."
+  },
+  "updateFailInstall": "Die Installation ließ sich nicht öffnen. Über den Browser geladen, lässt sich die Datei von Hand antippen.",
+  "@updateFailInstall": {
+    "description": "Fehler im Update-Dialog: System-Installer ließ sich nicht öffnen."
+  },
+  "updateOpenSettings": "Einstellung öffnen",
+  "@updateOpenSettings": {
+    "description": "Knopf: Android-Einstellung „Apps installieren“ öffnen."
+  },
+  "updateWhatsNew": "Was ist neu:",
+  "@updateWhatsNew": {
+    "description": "Überschrift über den Release-Notes im Update-Dialog."
+  },
+  "updateLater": "Später",
+  "@updateLater": {
+    "description": "Knopf: Update-Dialog schließen."
+  },
+  "updateInBrowser": "Im Browser",
+  "@updateInBrowser": {
+    "description": "Knopf: APK im Browser herunterladen."
+  },
+  "updateInstall": "Installieren",
+  "@updateInstall": {
+    "description": "Knopf: Update herunterladen und installieren."
+  },
+  "changelogTitle": "Was ist neu",
+  "@changelogTitle": {
+    "description": "Titel der Seite mit der Versionshistorie (CHANGELOG.md)."
+  },
+  "changelogLoadFailed": "Die Änderungsliste konnte nicht geladen werden. Alle Änderungen stehen auch auf der Projektseite unter „GitHub-Projekt & Dokumentation\".",
+  "@changelogLoadFailed": {
+    "description": "Ersatztext, falls die mitgelieferte CHANGELOG.md nicht lesbar ist. Der Name in Anführungszeichen ist der Eintrag im Profil."
+  },
+  "importPickerGpxOrZip": "GPX oder Zip",
+  "@importPickerGpxOrZip": {
+    "description": "Dateityp-Filter im Datei-Dialog des Imports (Browser)."
+  },
+  "importPickerAllFiles": "Alle Dateien",
+  "@importPickerAllFiles": {
+    "description": "Dateityp-Filter im Datei-Dialog des Imports (Android)."
   }
 }

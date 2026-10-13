@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../core/update_check.dart';
 import '../../core/widgets/form_notice.dart';
 import '../../data/apk_installer.dart';
+import '../../l10n/l10n.dart';
 import 'update_installer.dart';
 
 /// Update-Banner für diese Sitzung ausgeblendet? Das X schaltet nur für
@@ -29,10 +30,10 @@ class UpdateBanner extends ConsumerWidget {
           child: ListTile(
             dense: true,
             leading: const Icon(Icons.system_update_alt),
-            title: Text('Update auf v${info.latestVersion} verfügbar'),
+            title: Text(context.l10n.updateBannerTitle(info.latestVersion)),
             onTap: () => showUpdateDialog(context, info),
             trailing: IconButton(
-              tooltip: 'Für diese Sitzung ausblenden',
+              tooltip: context.l10n.updateBannerHide,
               icon: const Icon(Icons.close),
               onPressed: () =>
                   ref.read(updateBannerDismissedProvider.notifier).state = true,
@@ -91,16 +92,10 @@ class _UpdateDialogState extends ConsumerState<_UpdateDialog> {
     });
   }
 
-  String _failureText(UpdateFailure failure) => switch (failure) {
-        UpdateFailure.notAllowed =>
-          'Android muss TrailBuddy einmalig erlauben, Apps zu installieren. '
-              'Danach geht jedes Update mit einem Tipp.',
-        UpdateFailure.downloadFailed =>
-          'Der Download hat nicht geklappt. Im Browser klappt er vielleicht — '
-              'die Datei danach antippen, um zu installieren.',
-        UpdateFailure.installFailed =>
-          'Die Installation ließ sich nicht öffnen. Über den Browser geladen, '
-              'lässt sich die Datei von Hand antippen.',
+  String _failureText(AppLocalizations l, UpdateFailure failure) => switch (failure) {
+        UpdateFailure.notAllowed => l.updateFailNotAllowed,
+        UpdateFailure.downloadFailed => l.updateFailDownload,
+        UpdateFailure.installFailed => l.updateFailInstall,
       };
 
   @override
@@ -108,45 +103,41 @@ class _UpdateDialogState extends ConsumerState<_UpdateDialog> {
     final notes = widget.info.releaseNotes?.trim();
     final installer = ref.watch(updateInstallerProvider);
     final failure = _failure;
+    final l = context.l10n;
     return AlertDialog(
-      title: Text('Update auf v${widget.info.latestVersion}'),
+      title: Text(l.updateDialogTitle(widget.info.latestVersion)),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(installer.supported
-                ? 'Wird geladen und danach von Android installiert — deine '
-                    'Trails bleiben erhalten.'
-                : 'Der Download startet im Browser. Danach in der '
-                    'Benachrichtigung auf die Datei tippen, um zu installieren '
-                    '— deine Trails bleiben erhalten.'),
+            Text(installer.supported ? l.updateDialogInstall : l.updateDialogBrowser),
             if (_busy) ...[
               const SizedBox(height: 16),
               LinearProgressIndicator(value: _progress),
               const SizedBox(height: 4),
               Text(
                 _progress == null
-                    ? 'Wird geladen …'
-                    : 'Wird geladen … ${(_progress! * 100).round()} %',
+                    ? l.updateLoading
+                    : l.updateLoadingPercent((_progress! * 100).round()),
                 style: Theme.of(context).textTheme.bodySmall,
               ),
             ],
             if (failure != null) ...[
               const SizedBox(height: 12),
-              FormNotice(message: _failureText(failure), tone: NoticeTone.error),
+              FormNotice(message: _failureText(l, failure), tone: NoticeTone.error),
               if (failure == UpdateFailure.notAllowed) ...[
                 const SizedBox(height: 8),
                 OutlinedButton.icon(
                   onPressed: () => ref.read(apkInstallerProvider).openSettings(),
                   icon: const Icon(Icons.settings, size: 18),
-                  label: const Text('Einstellung öffnen'),
+                  label: Text(l.updateOpenSettings),
                 ),
               ],
             ],
             if (notes != null && notes.isNotEmpty) ...[
               const SizedBox(height: 12),
-              Text('Was ist neu:', style: Theme.of(context).textTheme.titleSmall),
+              Text(l.updateWhatsNew, style: Theme.of(context).textTheme.titleSmall),
               const SizedBox(height: 4),
               Text(notes, style: Theme.of(context).textTheme.bodySmall),
             ],
@@ -156,18 +147,18 @@ class _UpdateDialogState extends ConsumerState<_UpdateDialog> {
       actions: [
         TextButton(
           onPressed: _busy ? null : () => Navigator.of(context).pop(),
-          child: const Text('Später'),
+          child: Text(l.updateLater),
         ),
         TextButton.icon(
           onPressed: _busy ? null : _openInBrowser,
           icon: const Icon(Icons.open_in_browser, size: 18),
-          label: const Text('Im Browser'),
+          label: Text(l.updateInBrowser),
         ),
         if (installer.supported)
           FilledButton.icon(
             onPressed: _busy ? null : _install,
             icon: const Icon(Icons.download, size: 18),
-            label: const Text('Installieren'),
+            label: Text(l.updateInstall),
           ),
       ],
     );

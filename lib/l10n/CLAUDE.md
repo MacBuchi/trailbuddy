@@ -131,9 +131,15 @@ entsteht zuerst dort) und `app_en.arb`; gelesen mit `context.l10n.<key>`
   für den Digest. Pure Helfer, die einen Trailnamen weiterreichen,
   nehmen `l` vorn (`poolTrailOf`, `graphTrailsOf`, `navSectionsOf*`,
   `confirmTargetsOf`, `splitQuestionFor`, `RouteTarget.trailHead`).
-  Vor dem Lösen der Sprache bleiben (i): Feedback-Dialog, Update-Banner,
-  der Titel „Was ist neu“ und die Beschriftungen des Dateidialogs im
-  Import. Namen von Runde und Weg (`loopName`, `routeName*`) gehen
+  (i) Glühbirne, Update und Änderungsliste 0.117.10 — Feedback-Dialog
+  samt wartender Meldungen und Leisten (`feedback*`), Update-Banner und
+  -Dialog (`updateBanner*`, `updateDialog*`, `updateFail*` …), Titel und
+  Ersatztext von „Was ist neu“ (`changelog*`, der Inhalt bleibt die
+  deutsche `CHANGELOG.md`) und die Filter des Dateidialogs im Import
+  (`importPicker*`, über `serviceL10n()` — der Picker ist ein Provider
+  ohne Kontext). Damit steht keine Oberfläche mehr im Code; offen bis
+  zum Lösen der Sprache sind nur die Fragen an den Betreiber in #209.
+  Namen von Runde und Weg (`loopName`, `routeName*`) gehen
   in die gespeicherte Fahrt und die GPX-Datei — sie bleiben in der
   Sprache, in der geplant wurde.
 - **Texte des Dienstes** (Benachrichtigung der Aufnahme, Fragen

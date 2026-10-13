@@ -52,8 +52,8 @@ Future<void> showFeedbackFlow(BuildContext context, WidgetRef ref) async {
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text(input.type == FeedbackType.bug
-          ? 'Danke für die Meldung — wir schauen uns das an!'
-          : 'Danke für deinen Wunsch!'),
+          ? context.l10n.feedbackThanksBug
+          : context.l10n.feedbackThanksIdea),
     ));
   } catch (e, st) {
     // Ohne Empfang wartet der Text im Ausgangskorb (#218) — draußen
@@ -62,8 +62,8 @@ Future<void> showFeedbackFlow(BuildContext context, WidgetRef ref) async {
     // nicht sicher (Web, volle Platte), kommt der Netzfehler wie bisher.
     if (looksOffline(e) && await _queue(ref, job)) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('Kein Empfang — wird gesendet, sobald wieder Netz da ist.'),
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(context.l10n.feedbackQueued),
       ));
       return;
     }
@@ -113,12 +113,13 @@ class _FeedbackDialogState extends ConsumerState<FeedbackDialog> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l = context.l10n;
     final waiting = [
       for (final j in ref.watch(outboxJobsProvider).valueOrNull ?? const <OutboxJob>[])
         if (j is FeedbackJob) j,
     ];
     return AlertDialog(
-      title: const Text('Wünsch dir was!'),
+      title: Text(l.feedbackTitle),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -127,26 +128,22 @@ class _FeedbackDialogState extends ConsumerState<FeedbackDialog> {
             for (final job in waiting) _WaitingFeedback(job),
             if (waiting.isNotEmpty) const SizedBox(height: 12),
             SegmentedButton<FeedbackType>(
-              segments: const [
+              segments: [
                 ButtonSegment(
                     value: FeedbackType.feature,
-                    icon: Icon(Icons.lightbulb_outline),
-                    label: Text('Idee')),
+                    icon: const Icon(Icons.lightbulb_outline),
+                    label: Text(l.feedbackTypeIdea)),
                 ButtonSegment(
                     value: FeedbackType.bug,
-                    icon: Icon(Icons.bug_report_outlined),
-                    label: Text('Fehler')),
+                    icon: const Icon(Icons.bug_report_outlined),
+                    label: Text(l.feedbackTypeBug)),
               ],
               selected: {_type},
               onSelectionChanged: (s) => setState(() => _type = s.first),
             ),
             const SizedBox(height: 12),
             Text(
-              _type == FeedbackType.bug
-                  ? 'Was funktioniert nicht? Beschreib kurz, was du gemacht '
-                      'hast und was stattdessen passiert ist.'
-                  : 'TrailBuddy ist noch ganz frisch — was fehlt dir, was '
-                      'nervt, was wäre praktisch?',
+              _type == FeedbackType.bug ? l.feedbackBugPrompt : l.feedbackIdeaPrompt,
               style: theme.textTheme.bodySmall,
             ),
             const SizedBox(height: 12),
@@ -159,7 +156,7 @@ class _FeedbackDialogState extends ConsumerState<FeedbackDialog> {
               textCapitalization: TextCapitalization.sentences,
               decoration: InputDecoration(
                 labelText:
-                    _type == FeedbackType.bug ? 'Was ist passiert?' : 'Dein Wunsch',
+                    _type == FeedbackType.bug ? l.feedbackBugLabel : l.feedbackIdeaLabel,
                 border: const OutlineInputBorder(),
               ),
             ),
@@ -171,9 +168,7 @@ class _FeedbackDialogState extends ConsumerState<FeedbackDialog> {
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(
-                    'Wird als öffentlicher Eintrag auf GitHub angelegt — '
-                    'ohne deinen Namen, aber mit diesem Text. Bitte keine '
-                    'Trailnamen, Orte oder Wegbeschreibungen.',
+                    l.feedbackPublicNote,
                     style: theme.textTheme.bodySmall
                         ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
                   ),
@@ -186,14 +181,14 @@ class _FeedbackDialogState extends ConsumerState<FeedbackDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Abbrechen'),
+          child: Text(l.commonCancel),
         ),
         FilledButton(
           onPressed: _canSend
               ? () => Navigator.of(context)
                   .pop(FeedbackInput(_type, _text.text.trim()))
               : null,
-          child: const Text('Senden'),
+          child: Text(l.feedbackSend),
         ),
       ],
     );
@@ -211,6 +206,7 @@ class _WaitingFeedback extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final l = context.l10n;
     final failed = job.failure != null;
     final text = job.message.length > 80 ? '${job.message.substring(0, 80)} …' : job.message;
     final muted = theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant);
@@ -228,7 +224,7 @@ class _WaitingFeedback extends ConsumerWidget {
               const SizedBox(width: 6),
               Expanded(
                 child: Text(
-                  failed ? 'Nicht angenommen: ${job.failure}' : 'Wartet auf Übertragung',
+                  failed ? l.feedbackRejected('${job.failure}') : l.feedbackWaiting,
                   style: theme.textTheme.labelMedium,
                 ),
               ),
@@ -241,7 +237,7 @@ class _WaitingFeedback extends ConsumerWidget {
                 TextButton(
                   key: ValueKey('feedback-discard-${job.id}'),
                   onPressed: () => notifier.discard(job.id),
-                  child: const Text('Verwerfen'),
+                  child: Text(l.feedbackDiscard),
                 ),
                 if (failed)
                   TextButton(
@@ -253,7 +249,7 @@ class _WaitingFeedback extends ConsumerWidget {
                       await notifier.retry(job.id);
                       await trails.sendOutbox();
                     },
-                    child: const Text('Erneut versuchen'),
+                    child: Text(l.feedbackRetry),
                   ),
               ],
             ),
