@@ -41,6 +41,7 @@ import '../../core/connectivity.dart';
 import '../../core/errors.dart';
 import '../keep_alive/keep_alive.dart';
 import '../../core/line_geometry.dart';
+import '../../l10n/l10n.dart';
 import '../map/base_map_providers.dart';
 import '../map/map_regions.dart';
 import '../map/online_map.dart';
@@ -385,10 +386,11 @@ class OutsideRegions implements Exception {
   /// Die Regionen, die es gibt, für den Satz.
   final List<String> names;
 
-  String get message => 'Hier gibt es keine Karte zum Speichern — Karten gibt es für ${names.join(', ')}.';
+  /// Der Satz für die Oberfläche (#209).
+  String message(AppLocalizations l) => l.areaOutsideRegions(names.join(', '));
 
   @override
-  String toString() => message;
+  String toString() => 'OutsideRegions(${names.join(', ')})';
 }
 
 /// Höhen aus den gespeicherten Bereichen — je Region der Kachelspeicher
@@ -468,7 +470,8 @@ class AreaDownloadNotifier extends Notifier<AreaDownloadState> {
   Future<AreaPlan> plan(AreaShape shape, {bool refresh = false}) async {
     if (shape is! RegionShape) return _plan(shape, refresh: refresh);
     final coordinator = ref.read(keepAliveCoordinatorProvider);
-    await coordinator.start(_keepAliveKey, 'Größe wird gemessen', title: 'Region wird gemessen');
+    final l = serviceL10n();
+    await coordinator.start(_keepAliveKey, l.areaNoticeMeasuringText, title: l.areaNoticeMeasuringTitle);
     try {
       return await _plan(shape, refresh: refresh);
     } finally {
@@ -563,7 +566,10 @@ class AreaDownloadNotifier extends Notifier<AreaDownloadState> {
     final areaId = id ?? newAreaId(DateTime.now().toUtc());
     final allowMobile = ref.read(onMobileDataProvider);
     final coordinator = ref.read(keepAliveCoordinatorProvider);
-    await coordinator.start(_keepAliveKey, '$name — 0 %', title: 'Bereich wird gespeichert');
+    // Benachrichtigung und Fehler entstehen ohne BuildContext — dieselbe
+    // Sprache wie die App (#209, `serviceL10n`).
+    final l = serviceL10n();
+    await coordinator.start(_keepAliveKey, l.areaNoticePercent(name, 0), title: l.areaNoticeSavingTitle);
     try {
       var current = plan;
       var waits = 0;
@@ -575,8 +581,7 @@ class AreaDownloadNotifier extends Notifier<AreaDownloadState> {
         try {
           final area = await _downloadOnce(current, name: name, id: areaId, coordinator: coordinator);
           if (area == null) {
-            state = AreaDownloadState(
-                phase: AreaDownloadPhase.failed, error: 'Kein Kartenhost erreichbar', plan: current);
+            state = AreaDownloadState(phase: AreaDownloadPhase.failed, error: l.areaErrorNoHost, plan: current);
             return null;
           }
           await ref.read(storedAreasProvider.notifier).refresh();
@@ -601,7 +606,7 @@ class AreaDownloadNotifier extends Notifier<AreaDownloadState> {
           if (waits >= kAreaResumeAttempts) return await _failedDownload(error, trace, name: name, plan: current);
           state = AreaDownloadState(
               phase: AreaDownloadPhase.running, name: name, plan: current, progress: state.progress, waiting: true);
-          unawaited(coordinator.update(_keepAliveKey, '$name — wartet auf Empfang'));
+          unawaited(coordinator.update(_keepAliveKey, l.areaNoticeWaiting(name)));
           await ref.read(areaResumeDelayProvider)(waits++);
           if (_cancelled) return await _cancelledDownload();
           if (ref.read(noConnectivityProvider) || (!allowMobile && ref.read(onMobileDataProvider))) continue;
@@ -635,10 +640,7 @@ class AreaDownloadNotifier extends Notifier<AreaDownloadState> {
         phase: AreaDownloadPhase.failed,
         name: name,
         plan: plan,
-        error: looksOffline(e)
-            ? 'Die Verbindung ist abgerissen. Was schon geladen ist, bleibt — „Fortsetzen" in '
-                '„Meine Bereiche" holt den Rest, sobald Empfang da ist.'
-            : 'Der Bereich ließ sich nicht ganz speichern. Was schon geladen ist, bleibt.');
+        error: looksOffline(e) ? serviceL10n().areaErrorAreaOffline : serviceL10n().areaErrorAreaFailed);
     return null;
   }
 
@@ -704,13 +706,14 @@ class AreaDownloadNotifier extends Notifier<AreaDownloadState> {
               : raw;
           state = AreaDownloadState(phase: AreaDownloadPhase.running, name: name, plan: plan, progress: p);
           final percent = (p.fraction * 100).round();
+          final l = serviceL10n();
           final text = switch (p.phase) {
-            AreaPhase.tiles => '$name — $percent %',
-            AreaPhase.pois => '$name — Orte',
-            AreaPhase.heights => '$name — Höhen',
-            AreaPhase.ways => '$name — Wege',
-            AreaPhase.overview => '$name — Übersicht',
-            AreaPhase.writing => '$name — wird geschrieben',
+            AreaPhase.tiles => l.areaNoticePercent(name, percent),
+            AreaPhase.pois => l.areaNoticePlaces(name),
+            AreaPhase.heights => l.areaNoticeHeights(name),
+            AreaPhase.ways => l.areaNoticeWays(name),
+            AreaPhase.overview => l.areaNoticeOverview(name),
+            AreaPhase.writing => l.areaNoticeWriting(name),
           };
           unawaited(coordinator.update(_keepAliveKey, text));
         },
@@ -729,17 +732,18 @@ class AreaDownloadNotifier extends Notifier<AreaDownloadState> {
   Future<bool> fetchOverview(MapRegion region) async {
     if (state.busy || region.isDach) return false;
     _cancelled = false;
-    final name = 'Übersicht ${region.name}';
+    final l = serviceL10n();
+    final name = l.areasOverviewTitle(region.name);
     final manifest = ref.read(noConnectivityProvider)
         ? null
         : await RegionManifests(ref.read(regionManifestLoaderProvider), region).overview();
     if (manifest == null) {
-      state = const AreaDownloadState(phase: AreaDownloadPhase.failed, error: 'Kein Kartenhost erreichbar');
+      state = AreaDownloadState(phase: AreaDownloadPhase.failed, error: l.areaErrorNoHost);
       return false;
     }
     state = AreaDownloadState(phase: AreaDownloadPhase.running, name: name);
     final coordinator = ref.read(keepAliveCoordinatorProvider);
-    await coordinator.start(_keepAliveKey, '$name — 0 %', title: 'Übersicht wird gespeichert');
+    await coordinator.start(_keepAliveKey, l.areaNoticePercent(name, 0), title: l.areaNoticeOverviewTitle);
     try {
       final bytes = await ref.read(overviewFetcherProvider)(
         manifest.archiveUri,
@@ -749,7 +753,7 @@ class AreaDownloadNotifier extends Notifier<AreaDownloadState> {
         onProgress: (done, total) {
           final p = AreaProgress(phase: AreaPhase.overview, done: done, total: total > 0 ? total : manifest.bytes);
           state = AreaDownloadState(phase: AreaDownloadPhase.running, name: name, progress: p);
-          unawaited(coordinator.update(_keepAliveKey, '$name — ${(p.fraction * 100).round()} %'));
+          unawaited(coordinator.update(_keepAliveKey, l.areaNoticePercent(name, (p.fraction * 100).round())));
         },
       );
       if (bytes == null) throw const OverviewMismatch('nicht auf dem Host');
@@ -774,9 +778,7 @@ class AreaDownloadNotifier extends Notifier<AreaDownloadState> {
       state = AreaDownloadState(
           phase: AreaDownloadPhase.failed,
           name: name,
-          error: looksOffline(e)
-              ? 'Die Verbindung ist abgerissen. Nichts gespeichert — noch einmal versuchen, sobald Empfang da ist.'
-              : 'Die Übersicht ließ sich nicht speichern.');
+          error: looksOffline(e) ? l.areaErrorOverviewOffline : l.areaErrorOverviewFailed);
       return false;
     } finally {
       await coordinator.stop(_keepAliveKey);
@@ -836,10 +838,11 @@ class AreaDownloadNotifier extends Notifier<AreaDownloadState> {
   Future<bool> startRegionRefresh(MapRegion region, RegionRefreshPlan plan) async {
     if (state.busy) return false;
     _cancelled = false;
-    final name = 'Karte ${region.name}';
+    final l = serviceL10n();
+    final name = l.areasRegionTitle(region.name);
     state = AreaDownloadState(phase: AreaDownloadPhase.running, name: name, refreshing: true);
     final coordinator = ref.read(keepAliveCoordinatorProvider);
-    await coordinator.start(_keepAliveKey, '$name — 0 %', title: 'Karte wird aktualisiert');
+    await coordinator.start(_keepAliveKey, l.areaNoticePercent(name, 0), title: l.areaNoticeRefreshTitle);
     Future<void> Function()? close;
     try {
       final host = await _regionDownloader(region);
@@ -850,7 +853,7 @@ class AreaDownloadNotifier extends Notifier<AreaDownloadState> {
         isCancelled: () => _cancelled,
         onProgress: (p) {
           state = AreaDownloadState(phase: AreaDownloadPhase.running, name: name, progress: p, refreshing: true);
-          unawaited(coordinator.update(_keepAliveKey, '$name — ${(p.fraction * 100).round()} %'));
+          unawaited(coordinator.update(_keepAliveKey, l.areaNoticePercent(name, (p.fraction * 100).round())));
         },
       );
       await ref.read(storedAreasProvider.notifier).refresh();
@@ -866,10 +869,7 @@ class AreaDownloadNotifier extends Notifier<AreaDownloadState> {
       state = AreaDownloadState(
           phase: AreaDownloadPhase.failed,
           name: name,
-          error: looksOffline(e)
-              ? 'Die Verbindung ist abgerissen. Was schon neu geladen ist, bleibt — „Aktualisieren" '
-                  'holt den Rest, sobald Empfang da ist.'
-              : 'Die Karte ließ sich nicht ganz aktualisieren. Was schon neu geladen ist, bleibt.');
+          error: looksOffline(e) ? l.areaErrorRefreshOffline : l.areaErrorRefreshFailed);
       return false;
     } finally {
       await close?.call();

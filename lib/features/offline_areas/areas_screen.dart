@@ -19,6 +19,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/connectivity.dart';
 import '../../core/router_branches.dart';
 import '../../core/widgets/motion.dart';
+import '../../l10n/l10n.dart';
 import '../map/map_regions.dart';
 import '../map/online_map.dart';
 import 'area_downloader.dart';
@@ -42,13 +43,14 @@ class AreasScreen extends ConsumerWidget {
     // die der Index gerade nicht nennt, bietet nichts an.
     final regions = ref.watch(mapRegionsProvider).valueOrNull ?? const [kDachRegion];
     final overviews = ref.watch(storedOverviewsProvider).valueOrNull ?? const <StoredOverview>[];
+    final l = context.l10n;
     return Scaffold(
-      appBar: AppBar(title: const Text('Meine Bereiche')),
+      appBar: AppBar(title: Text(l.areasTitle)),
       body: areasAsync.when(
         loading: () => const CenteredTrailLoader(),
-        error: (e, _) => const Padding(
-          padding: EdgeInsets.all(24),
-          child: Text('Die Bereiche ließen sich nicht lesen.'),
+        error: (e, _) => Padding(
+          padding: const EdgeInsets.all(24),
+          child: Text(l.areasLoadError),
         ),
         data: (areas) {
           // Die ganze Region, wo sie noch nicht liegt (nur auf dem Telefon).
@@ -61,24 +63,16 @@ class AreasScreen extends ConsumerWidget {
           if (areas.isEmpty && overviews.isEmpty) {
             if (wholeOffers.isNotEmpty) {
               return ListView(children: [
-                const Padding(
-                  padding: EdgeInsets.fromLTRB(16, 12, 16, 4),
-                  child: Text(
-                    'Noch kein Bereich. Speichere einen auf der Karte (Knopf „Offline-Karten") — '
-                    'oder gleich die ganze Region, für den Wald ohne Empfang.',
-                  ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                  child: Text(l.areasEmptyWithWhole),
                 ),
                 ...wholeOffers,
               ]);
             }
-            return const Padding(
-              padding: EdgeInsets.all(24),
-              child: Text(
-                'Noch kein Bereich. Speichere einen auf der Karte: Knopf „Offline-Karten", '
-                'dann Ausschnitt oder Fläche wählen und speichern — die Karte bis '
-                'Zoomstufe 13 samt Orten, Höhen und Wegen bleibt dann auf dem Gerät, für '
-                'den Wald ohne Empfang.',
-              ),
+            return Padding(
+              padding: const EdgeInsets.all(24),
+              child: Text(l.areasEmpty),
             );
           }
           var total = ref.watch(areaStoredBytesProvider).valueOrNull ?? 0;
@@ -97,25 +91,21 @@ class AreasScreen extends ConsumerWidget {
             children: [
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-                child: Text(
-                  'Bereiche liegen nur auf diesem Gerät (${formatBytes(total)}) und '
-                  'werden nie von selbst gelöscht. Ohne Empfang sind sie die Karte. Wo sich '
-                  'Bereiche überschneiden, liegt jede Kachel nur einmal.',
-                ),
+                child: Text(l.areasIntro(formatBytes(total))),
               ),
               if (download.phase == AreaDownloadPhase.running)
                 ListTile(
                   leading: const SizedBox(
                       width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2)),
                   title: Text(download.refreshing
-                      ? '${download.name} wird aktualisiert …'
-                      : '„${download.name}" wird gespeichert …'),
+                      ? l.areasRefreshing(download.name ?? '')
+                      : l.areasSaving(download.name ?? '')),
                   subtitle: download.waiting
-                      ? const Text('Wartet auf Empfang — geht von selbst weiter.')
+                      ? Text(l.areasWaiting)
                       : LinearProgressIndicator(value: download.progress?.fraction),
                   trailing: IconButton(
                     key: const ValueKey('area-download-cancel'),
-                    tooltip: 'Abbrechen',
+                    tooltip: l.commonCancel,
                     icon: const Icon(Icons.close),
                     onPressed: () => ref.read(areaDownloadProvider.notifier).cancel(),
                   ),
@@ -170,12 +160,12 @@ class _AreaTile extends ConsumerWidget {
   /// Was „Aktualisieren" brächte, als zweite Zeile; null: nichts. Ein
   /// neuerer Kartenstand steht seit 0.107.0 an der Region (#229 Schritt 4)
   /// — die Kacheln gehören ihr, nicht dem Bereich.
-  String? get _offer => heightsMissing && waysMissing
-          ? 'Höhen und Wege verfügbar'
+  String? _offer(AppLocalizations l) => heightsMissing && waysMissing
+          ? l.areasOfferHeightsAndWays
           : heightsMissing
-              ? 'Höhendaten verfügbar'
+              ? l.areasOfferHeights
               : waysMissing
-                  ? 'Wege verfügbar'
+                  ? l.areasOfferWays
                   : null;
 
 
@@ -192,18 +182,17 @@ class _AreaTile extends ConsumerWidget {
     // Nur was KEIN anderer Bereich deckt, geht (#229).
     final alone = await ref.read(areaExclusiveBytesProvider(area.id).future);
     if (!context.mounted) return;
+    final l = context.l10n;
     final ok = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('„${area.name}" löschen?'),
+        title: Text(l.areasDeleteTitle(area.name)),
         content: Text(overview == null
-            ? '${formatBytes(alone)} werden vom Gerät gelöscht — was ein anderer Bereich '
-                'auch braucht, bleibt. Ohne Empfang bleibt sonst nur die Übersichtskarte.'
-            : '${formatBytes(alone + overview.bytes)} werden vom Gerät gelöscht — '
-                'es ist der letzte Bereich dort, die Übersichtskarte der Region geht mit.'),
+            ? l.areasDeleteText(formatBytes(alone))
+            : l.areasDeleteTextLast(formatBytes(alone + overview.bytes))),
         actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Abbrechen')),
-          FilledButton(onPressed: () => Navigator.of(context).pop(true), child: const Text('Löschen')),
+          TextButton(onPressed: () => Navigator.of(context).pop(false), child: Text(l.commonCancel)),
+          FilledButton(onPressed: () => Navigator.of(context).pop(true), child: Text(l.commonDelete)),
         ],
       ),
     );
@@ -217,17 +206,17 @@ class _AreaTile extends ConsumerWidget {
   /// Netz frei ist, entscheidet, wer tippt.
   Future<void> _update(BuildContext context, WidgetRef ref, {bool refresh = true}) async {
     final messenger = ScaffoldMessenger.of(context);
+    final l = context.l10n;
     final notifier = ref.read(areaDownloadProvider.notifier);
     try {
       final plan = await notifier.plan(area.shape, refresh: refresh);
       await notifier.start(plan, name: area.name, id: area.id, refresh: refresh);
     } on AreaTooLarge {
-      messenger.showSnackBar(const SnackBar(content: Text('Der Bereich ist für den neuen Stand zu groß.')));
+      messenger.showSnackBar(SnackBar(content: Text(l.areasTooLargeForUpdate)));
     } on OutsideRegions catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text(e.message)));
+      messenger.showSnackBar(SnackBar(content: Text(e.message(l))));
     } catch (_) {
-      messenger.showSnackBar(
-          const SnackBar(content: Text('Der Kartenhost ist gerade nicht erreichbar.')));
+      messenger.showSnackBar(SnackBar(content: Text(l.areasHostUnreachable)));
     }
   }
 
@@ -235,37 +224,42 @@ class _AreaTile extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final busy = ref.watch(areaDownloadProvider.select((s) => s.busy));
     final pending = !area.complete;
-    final offer = pending ? 'Unvollständig — „Fortsetzen" holt den Rest' : _offer;
+    final l = context.l10n;
+    final offer = pending ? l.areasIncomplete : _offer(l);
     final alone = ref.watch(areaExclusiveBytesProvider(area.id)).valueOrNull;
+    final facts = [
+      if (alone != null) l.areasAlone(formatBytes(alone)),
+      if (!pending) ...[
+        l.areasTilesAndBuild(area.tiles, buildLabel(area.build)),
+        if (area.poiFiles.isNotEmpty) l.areasWithPlaces,
+        if (area.hasHeights) l.areasWithHeights,
+        if (area.hasWays) l.areasWithWays,
+      ],
+    ];
     return ListTile(
       key: ValueKey('area-${area.id}'),
       leading: Icon(pending ? Icons.downloading : Icons.map_outlined),
       title: Text(area.name),
-      subtitle: Text('${alone == null ? '' : '${formatBytes(alone)} allein · '}'
-          '${pending ? '' : '${area.tiles} Kacheln · Stand ${buildLabel(area.build)}'}'
-          '${area.poiFiles.isEmpty || pending ? '' : ' · mit Orten'}'
-          '${area.hasHeights && !pending ? ' · mit Höhen' : ''}'
-          '${area.hasWays && !pending ? ' · mit Wegen' : ''}'
-          '${offer == null ? '' : '\n$offer'}'),
+      subtitle: Text('${facts.join(' · ')}${offer == null ? '' : '\n$offer'}'),
       isThreeLine: offer != null,
       trailing: Row(mainAxisSize: MainAxisSize.min, children: [
         if (pending)
           IconButton(
             key: ValueKey('area-resume-${area.id}'),
-            tooltip: 'Fortsetzen',
+            tooltip: l.areasResume,
             icon: const Icon(Icons.download),
             onPressed: busy ? null : () => _update(context, ref, refresh: false),
           )
         else if (offer != null)
           IconButton(
             key: ValueKey('area-update-${area.id}'),
-            tooltip: 'Auf den neuen Stand bringen',
+            tooltip: l.areasUpdate,
             icon: const Icon(Icons.update),
             onPressed: busy ? null : () => _update(context, ref),
           ),
         IconButton(
           key: ValueKey('area-delete-${area.id}'),
-          tooltip: 'Bereich löschen',
+          tooltip: l.areasDeleteArea,
           icon: const Icon(Icons.delete_outline),
           onPressed: busy ? null : () => _delete(context, ref),
         ),
@@ -301,6 +295,7 @@ class _WholeRegionTileState extends ConsumerState<_WholeRegionTile> {
 
   Future<void> _save() async {
     final messenger = ScaffoldMessenger.of(context);
+    final l = context.l10n;
     final notifier = ref.read(areaDownloadProvider.notifier);
     final box = region.box;
     final shape = RegionShape(region: region.id, bounds: AreaBounds(south: box.s, west: box.w, north: box.n, east: box.e));
@@ -309,7 +304,7 @@ class _WholeRegionTileState extends ConsumerState<_WholeRegionTile> {
     try {
       plan = await notifier.plan(shape);
     } catch (_) {
-      messenger.showSnackBar(const SnackBar(content: Text('Der Kartenhost ist gerade nicht erreichbar.')));
+      messenger.showSnackBar(SnackBar(content: Text(l.areasHostUnreachable)));
       return;
     } finally {
       if (mounted) setState(() => _measuring = false);
@@ -319,23 +314,22 @@ class _WholeRegionTileState extends ConsumerState<_WholeRegionTile> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('${region.name} ganz speichern?'),
-        content: Text('Lädt ${formatBytes(plan.totalBytes)} · ${plan.tiles.length} Kacheln'
-            '${plan.map.stored > 0 ? ' (${plan.map.stored} liegen schon)' : ''}'
-            '${plan.poiBundle != null || plan.poiNames.isNotEmpty ? ' · mit Orten' : ''}'
-            '${plan.hasHeights ? ' · mit Höhen' : ''}'
-            '${plan.hasWays ? ' · mit Wegen' : ''}.\n\n'
-            'Das dauert eine Weile und läuft weiter, wenn du die App wechselst. Bricht es ab, '
-            'bleibt alles Geladene, und „Fortsetzen" holt den Rest.'
-            '${mobile ? '\n\nDu bist über Mobilfunk verbunden — das geht vom Datenvolumen ab.' : ''}'),
+        title: Text(l.areasWholeConfirmTitle(region.name)),
+        content: Text('${l.areasLoads(formatBytes(plan.totalBytes), plan.tiles.length)}'
+            '${plan.map.stored > 0 ? ' ${l.areasAlreadyStored(plan.map.stored)}' : ''}'
+            '${plan.poiBundle != null || plan.poiNames.isNotEmpty ? ' · ${l.areasWithPlaces}' : ''}'
+            '${plan.hasHeights ? ' · ${l.areasWithHeights}' : ''}'
+            '${plan.hasWays ? ' · ${l.areasWithWays}' : ''}.\n\n'
+            '${l.areasWholeConfirmNote}'
+            '${mobile ? '\n\n${l.areasMobileData}' : ''}'),
         actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Abbrechen')),
-          FilledButton(onPressed: () => Navigator.of(context).pop(true), child: const Text('Speichern')),
+          TextButton(onPressed: () => Navigator.of(context).pop(false), child: Text(l.commonCancel)),
+          FilledButton(onPressed: () => Navigator.of(context).pop(true), child: Text(l.commonSave)),
         ],
       ),
     );
     if (ok != true || !mounted) return;
-    final area = await notifier.start(plan, name: '${region.name} komplett');
+    final area = await notifier.start(plan, name: l.areasWholeName(region.name));
     if (area == null) {
       final error = ref.read(areaDownloadProvider).error;
       if (error != null) messenger.showSnackBar(SnackBar(content: Text(error)));
@@ -349,19 +343,17 @@ class _WholeRegionTileState extends ConsumerState<_WholeRegionTile> {
     final heights = ref.watch(regionHeightsManifestProvider(region)).valueOrNull;
     final ways = ref.watch(areaWaysAvailableProvider(region)).valueOrNull;
     final size = map == null ? null : map.bytes + (heights?.bytes ?? 0) + (ways?.bytes ?? 0);
+    final l = context.l10n;
     return ListTile(
       key: ValueKey('whole-${region.id}'),
       leading: const Icon(Icons.download_for_offline_outlined),
-      title: Text('${region.name} ganz speichern'),
+      title: Text(l.areasWholeTitle(region.name)),
       subtitle: _measuring
           ? const LinearProgressIndicator()
-          : Text(size == null
-              ? 'Die ganze Karte bis Zoom 13 samt Orten, Höhen und Wegen — braucht Empfang.'
-              : 'Die ganze Karte bis Zoom 13 samt Orten, Höhen und Wegen — rund ${formatBytes(size)}; '
-                  'was schon liegt, kommt nicht noch einmal.'),
+          : Text(size == null ? l.areasWholeSubtitle : l.areasWholeSubtitleSize(formatBytes(size))),
       trailing: IconButton(
         key: ValueKey('whole-save-${region.id}'),
-        tooltip: 'Ganze Region speichern',
+        tooltip: l.areasWholeTooltip,
         icon: const Icon(Icons.download),
         onPressed: busy || _measuring || map == null ? null : _save,
       ),
@@ -382,31 +374,30 @@ class _RegionTile extends ConsumerWidget {
 
   Future<void> _refresh(BuildContext context, WidgetRef ref) async {
     final messenger = ScaffoldMessenger.of(context);
+    final l = context.l10n;
     final notifier = ref.read(areaDownloadProvider.notifier);
     final RegionRefreshPlan plan;
     try {
       plan = await notifier.planRegionRefresh(region);
     } catch (_) {
-      messenger.showSnackBar(const SnackBar(content: Text('Der Kartenhost ist gerade nicht erreichbar.')));
+      messenger.showSnackBar(SnackBar(content: Text(l.areasHostUnreachable)));
       return;
     }
     if (!context.mounted) return;
     if (plan.isEmpty) {
-      messenger.showSnackBar(const SnackBar(content: Text('Alles liegt schon auf dem neuen Stand.')));
+      messenger.showSnackBar(SnackBar(content: Text(l.areasAllUpToDate)));
       return;
     }
     final mobile = ref.read(onMobileDataProvider);
     final ok = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Karte ${region.name} aktualisieren?'),
-        content: Text('${plan.staleTiles} Kacheln werden ersetzt — ${formatBytes(plan.fetchBytes)} aus dem Netz'
-            '${plan.poiNames.isEmpty ? '' : ', dazu die Orte'}. Die Bereiche bleiben, wie sie sind; nur '
-            'ältere Kacheln kommen neu.'
-            '${mobile ? '\n\nDu bist über Mobilfunk verbunden — das geht vom Datenvolumen ab.' : ''}'),
+        title: Text(l.areasRegionRefreshTitle(region.name)),
+        content: Text('${plan.poiNames.isEmpty ? l.areasRegionRefreshText(plan.staleTiles, formatBytes(plan.fetchBytes)) : l.areasRegionRefreshTextPlaces(plan.staleTiles, formatBytes(plan.fetchBytes))}'
+            '${mobile ? '\n\n${l.areasMobileData}' : ''}'),
         actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Abbrechen')),
-          FilledButton(onPressed: () => Navigator.of(context).pop(true), child: const Text('Aktualisieren')),
+          TextButton(onPressed: () => Navigator.of(context).pop(false), child: Text(l.commonCancel)),
+          FilledButton(onPressed: () => Navigator.of(context).pop(true), child: Text(l.areasRefreshAction)),
         ],
       ),
     );
@@ -424,23 +415,23 @@ class _RegionTile extends ConsumerWidget {
     if (age == null || age.tiles == 0) return const SizedBox.shrink();
     final busy = ref.watch(areaDownloadProvider.select((s) => s.busy));
     final build = age.build;
+    final l = context.l10n;
     final String state;
     if (age.stale > 0) {
-      state = '${age.stale} davon älter als der Stand ${build == null ? 'des Kartenhosts' : 'vom ${buildLabel(build)}'}'
-          ' — „Aktualisieren" holt nur sie';
+      state = build == null ? l.areasRegionStaleHost(age.stale) : l.areasRegionStale(age.stale, buildLabel(build));
     } else {
-      state = build == null ? 'Stand des Kartenhosts gerade unbekannt' : 'Alle auf dem Stand vom ${buildLabel(build)}';
+      state = build == null ? l.areasRegionBuildUnknown : l.areasRegionAllCurrent(buildLabel(build));
     }
     return ListTile(
       key: ValueKey('region-${region.id}'),
       leading: const Icon(Icons.layers_outlined),
-      title: Text('Karte ${region.name}'),
-      subtitle: Text('${age.tiles} Kacheln auf dem Gerät\n$state'),
+      title: Text(l.areasRegionTitle(region.name)),
+      subtitle: Text('${l.areasRegionTiles(age.tiles)}\n$state'),
       isThreeLine: true,
       trailing: age.stale > 0
           ? IconButton(
               key: ValueKey('region-refresh-${region.id}'),
-              tooltip: 'Veraltete Kacheln aktualisieren',
+              tooltip: l.areasRegionRefreshTooltip,
               icon: const Icon(Icons.update),
               onPressed: busy ? null : () => _refresh(context, ref),
             )
@@ -468,15 +459,15 @@ class _OverviewTile extends ConsumerWidget {
 
   Future<void> _delete(BuildContext context, WidgetRef ref) async {
     final o = stored!;
+    final l = context.l10n;
     final ok = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Übersicht $name löschen?'),
-        content: Text('${formatBytes(o.bytes)} werden vom Gerät gelöscht. Die Bereiche bleiben; '
-            'ohne Empfang liegt um sie herum dann keine Karte mehr.'),
+        title: Text(l.areasOverviewDeleteTitle(name)),
+        content: Text(l.areasOverviewDeleteText(formatBytes(o.bytes))),
         actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Abbrechen')),
-          FilledButton(onPressed: () => Navigator.of(context).pop(true), child: const Text('Löschen')),
+          TextButton(onPressed: () => Navigator.of(context).pop(false), child: Text(l.commonCancel)),
+          FilledButton(onPressed: () => Navigator.of(context).pop(true), child: Text(l.commonDelete)),
         ],
       ),
     );
@@ -499,34 +490,34 @@ class _OverviewTile extends ConsumerWidget {
     final o = stored;
     final a = available;
     final wanted = region != null && overviewWanted([?o], regionId, a);
+    final l = context.l10n;
     final String subtitle;
     if (o != null) {
-      subtitle = '${formatBytes(o.bytes)} · Zoom 0–${o.maxZoom} · Stand ${buildLabel(o.build)}'
-          '${wanted ? '\nNeuerer Stand verfügbar' : ''}';
+      subtitle = '${l.areasOverviewStored(formatBytes(o.bytes), o.maxZoom, buildLabel(o.build))}'
+          '${wanted ? '\n${l.areasOverviewNewer}' : ''}';
     } else if (a != null) {
-      subtitle = 'Nicht auf dem Gerät (${formatBytes(a.bytes)}) — ohne Empfang liegt '
-          'um die Bereiche sonst keine Karte.';
+      subtitle = l.areasOverviewMissing(formatBytes(a.bytes));
     } else {
-      subtitle = 'Nicht auf dem Gerät — kommt mit dem nächsten Bereich dort, sobald Empfang da ist.';
+      subtitle = l.areasOverviewMissingLater;
     }
     return ListTile(
       key: ValueKey('overview-$regionId'),
       leading: const Icon(Icons.public),
-      title: Text('Übersicht $name'),
+      title: Text(l.areasOverviewTitle(name)),
       subtitle: Text(subtitle),
       isThreeLine: o != null && wanted,
       trailing: Row(mainAxisSize: MainAxisSize.min, children: [
         if (wanted)
           IconButton(
             key: ValueKey('overview-fetch-$regionId'),
-            tooltip: o == null ? 'Übersicht laden' : 'Auf den neuen Stand bringen',
+            tooltip: o == null ? l.areasOverviewFetch : l.areasUpdate,
             icon: Icon(o == null ? Icons.download : Icons.update),
             onPressed: busy ? null : () => _fetch(context, ref),
           ),
         if (o != null)
           IconButton(
             key: ValueKey('overview-delete-$regionId'),
-            tooltip: 'Übersicht löschen',
+            tooltip: l.areasOverviewDelete,
             icon: const Icon(Icons.delete_outline),
             onPressed: busy ? null : () => _delete(context, ref),
           ),

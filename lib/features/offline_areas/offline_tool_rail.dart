@@ -18,6 +18,7 @@ import 'package:intl/intl.dart';
 import '../../core/app_colors.dart';
 import '../../core/app_theme.dart';
 import '../../core/errors.dart';
+import '../../l10n/l10n.dart';
 import '../coach/coach.dart';
 import '../help/map_tour.dart' show MapCoach;
 import '../map/map_buttons.dart';
@@ -63,6 +64,7 @@ class OfflineToolRail extends ConsumerWidget {
     final tooLarge = adds > kAreaMaxTiles;
     final p = AppPalette.of(context);
     final countStyle = AppFonts.numbers(Theme.of(context).textTheme.labelMedium);
+    final l = context.l10n;
 
     // Aktives Werkzeug = helle Fläche (auf Hell: die dunkle — immer die
     // Gegenhelligkeit der Leiste), Hauptaktion Speichern = Lime (3e).
@@ -119,22 +121,21 @@ class OfflineToolRail extends ConsumerWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          button('rail-snapshot', 'Ausschnitt dazunehmen', const Icon(Icons.crop_free), onSnapshot),
-          tool(AreaDrawTool.add, 'area-draw-add', 'Fläche dazunehmen', Icons.add_circle_outline),
-          tool(AreaDrawTool.remove, 'area-draw-remove', 'Fläche wegnehmen', Icons.remove_circle_outline),
-          button('area-draw-trails', 'Entlang meiner Trails dazunehmen', const Icon(Icons.route_outlined),
-              onTrails),
-          button('area-draw-undo', 'Rückgängig', const Icon(Icons.undo),
+          button('rail-snapshot', l.areaRailSnapshot, const Icon(Icons.crop_free), onSnapshot),
+          tool(AreaDrawTool.add, 'area-draw-add', l.areaRailAdd, Icons.add_circle_outline),
+          tool(AreaDrawTool.remove, 'area-draw-remove', l.areaRailRemove, Icons.remove_circle_outline),
+          button('area-draw-trails', l.areaRailTrails, const Icon(Icons.route_outlined), onTrails),
+          button('area-draw-undo', l.commonUndo, const Icon(Icons.undo),
               draft == null || draft.history.isEmpty ? null : notifier.undo),
           gap,
-          button('manage-areas', 'Meine Bereiche verwalten', const _ManageIcon(), onManage),
+          button('manage-areas', l.areaRailManage, const _ManageIcon(), onManage),
           button(
             'area-draw-save',
             tooLarge
-                ? '+$adds Kacheln — zu viel auf einmal, erlaubt sind $kAreaMaxTiles'
+                ? l.areaRailSaveTooLarge(adds, kAreaMaxTiles)
                 : empty
-                    ? 'Speichern — noch keine Änderung'
-                    : 'Speichern (+$adds / −$removes Kacheln)',
+                    ? l.areaRailSaveEmpty
+                    : l.areaRailSave(adds, removes),
             const Icon(Icons.save_outlined),
             empty || tooLarge
                 ? null
@@ -159,7 +160,7 @@ class OfflineToolRail extends ConsumerWidget {
               style: countStyle.copyWith(color: p.muted),
             ),
           gap,
-          button('offline-maps-close', 'Schließen', const Icon(Icons.close), onClose),
+          button('offline-maps-close', l.commonClose, const Icon(Icons.close), onClose),
         ],
       ),
     );
@@ -196,18 +197,18 @@ Future<bool> confirmDiscardDraft(BuildContext context) async =>
     await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Entwurf verwerfen?'),
-        content: const Text('Die gewählten Kacheln sind noch nicht gespeichert.'),
+        title: Text(context.l10n.areaDiscardTitle),
+        content: Text(context.l10n.areaDiscardText),
         actions: [
           TextButton(
             key: const ValueKey('draft-keep'),
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Weiter bearbeiten'),
+            child: Text(context.l10n.areaDiscardKeep),
           ),
           FilledButton(
             key: const ValueKey('draft-discard'),
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Verwerfen'),
+            child: Text(context.l10n.areaDiscardConfirm),
           ),
         ],
       ),
@@ -237,10 +238,11 @@ class _SaveDraftDialog extends ConsumerStatefulWidget {
 }
 
 class _SaveDraftDialogState extends ConsumerState<_SaveDraftDialog> {
-  static final _date = DateFormat('d. MMMM', 'de');
-
-  late final TextEditingController _name =
-      TextEditingController(text: 'Bereich vom ${_date.format(DateTime.now())}');
+  // Erst beim ersten Bauen: Der Vorschlag braucht die Sprache (#209).
+  TextEditingController? _nameController;
+  TextEditingController get _name => _nameController ??= TextEditingController(
+      text: context.l10n.areaSaveDefaultName(
+          DateFormat(context.l10n.areaSaveDatePattern, context.l10n.localeName).format(DateTime.now())));
   AreaPlan? _plan;
   TrimPlan? _trim;
   String? _error;
@@ -263,7 +265,7 @@ class _SaveDraftDialogState extends ConsumerState<_SaveDraftDialog> {
 
   @override
   void dispose() {
-    _name.dispose();
+    _nameController?.dispose();
     super.dispose();
   }
 
@@ -278,15 +280,14 @@ class _SaveDraftDialogState extends ConsumerState<_SaveDraftDialog> {
         if (mounted) setState(() => _plan = plan);
       }
     } on AreaTooLarge catch (e) {
-      if (mounted) setState(() => _error = 'Zu viel auf einmal: ${e.tiles} Kacheln, erlaubt sind $kAreaMaxTiles.');
+      if (mounted) setState(() => _error = context.l10n.areaSaveTooLarge(e.tiles, kAreaMaxTiles));
     } on OutsideRegions catch (e) {
-      if (mounted) setState(() => _error = e.message);
+      if (mounted) setState(() => _error = e.message(context.l10n));
     } catch (e) {
       if (!mounted) return;
       setState(() => _error = looksOffline(e) || e is StateError
-          ? 'Ohne Empfang lässt sich nichts dazuladen — der Kartenhost ist nicht erreichbar. '
-              'Entfernen geht auch offline: dazu nur wegnehmen, nichts dazunehmen.'
-          : 'Die Größe ließ sich nicht messen.');
+          ? context.l10n.areaSaveOffline
+          : context.l10n.areaSaveMeasureFailed);
     } finally {
       if (mounted) setState(() => _measuring = false);
     }
@@ -310,7 +311,7 @@ class _SaveDraftDialogState extends ConsumerState<_SaveDraftDialog> {
         if (mounted) {
           setState(() {
             _trimming = false;
-            _error = 'Das Entfernen ließ sich nicht speichern.';
+            _error = context.l10n.areaSaveTrimFailed;
           });
         }
         return;
@@ -320,14 +321,15 @@ class _SaveDraftDialogState extends ConsumerState<_SaveDraftDialog> {
     }
     final plan = _plan;
     if (plan != null && plan.hasMap) {
-      final name = _name.text.trim().isEmpty ? 'Bereich' : _name.text.trim();
+      final name = _name.text.trim().isEmpty ? context.l10n.areaSaveFallbackName : _name.text.trim();
+      final trimmedNotLoaded = context.l10n.areaSaveTrimmedNotLoaded;
       final area = await ref.read(areaDownloadProvider.notifier).start(plan, name: name);
       if (area == null) {
         // Gescheitert oder abgebrochen: Der Fehler steht im Dialog. Das
         // Entfernen ist schon gespeichert — der Entwurf behält es nicht.
         if (trim != null && !trim.isEmpty) {
           ref.read(areaDraftProvider.notifier).dropRemoves();
-          messenger.showSnackBar(const SnackBar(content: Text('Entfernt ist gespeichert, das Laden nicht.')));
+          messenger.showSnackBar(SnackBar(content: Text(trimmedNotLoaded)));
         }
         return;
       }
@@ -335,15 +337,15 @@ class _SaveDraftDialogState extends ConsumerState<_SaveDraftDialog> {
     if (mounted) Navigator.of(context).pop(true);
   }
 
-  static String _progressLine(AreaProgress? p) {
-    if (p == null) return 'Verbindung zum Kartenhost …';
+  static String _progressLine(AppLocalizations l, AreaProgress? p) {
+    if (p == null) return l.areaProgressConnecting;
     return switch (p.phase) {
-      AreaPhase.tiles => 'Kacheln ${p.done} von ${p.total}',
-      AreaPhase.pois => 'Orte ${p.done} von ${p.total}',
-      AreaPhase.heights => 'Höhen ${p.done} von ${p.total}',
-      AreaPhase.ways => 'Wege ${p.done} von ${p.total}',
-      AreaPhase.overview => 'Übersicht ${formatBytes(p.done)} von ${formatBytes(p.total)}',
-      AreaPhase.writing => 'Wird abgelegt …',
+      AreaPhase.tiles => l.areaProgressTiles(p.done, p.total),
+      AreaPhase.pois => l.areaProgressPlaces(p.done, p.total),
+      AreaPhase.heights => l.areaProgressHeights(p.done, p.total),
+      AreaPhase.ways => l.areaProgressWays(p.done, p.total),
+      AreaPhase.overview => l.areaProgressOverview(formatBytes(p.done), formatBytes(p.total)),
+      AreaPhase.writing => l.areaProgressWriting,
     };
   }
 
@@ -355,24 +357,25 @@ class _SaveDraftDialogState extends ConsumerState<_SaveDraftDialog> {
     final trim = _trim;
     final running = download.phase == AreaDownloadPhase.running;
     final errorStyle = text.bodyMedium?.copyWith(color: Theme.of(context).colorScheme.error);
+    final l = context.l10n;
 
     final Widget body;
     if (running || _trimming) {
       body = Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(_trimming ? 'Kacheln werden entfernt …' : '„${download.name}" wird gespeichert …'),
+        Text(_trimming ? l.areaSaveTrimming : l.areasSaving(download.name ?? '')),
         const SizedBox(height: 8),
         LinearProgressIndicator(value: _trimming ? null : download.progress?.fraction),
         if (!_trimming) ...[
           const SizedBox(height: 4),
-          Text(download.waiting ? 'Wartet auf Empfang — geht von selbst weiter.' : _progressLine(download.progress),
+          Text(download.waiting ? l.areasWaiting : _progressLine(l, download.progress),
               style: text.bodySmall),
         ],
       ]);
     } else if (_measuring) {
-      body = const Row(children: [
-        SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)),
-        SizedBox(width: 12),
-        Expanded(child: Text('Größe, Orte, Höhen und Wege werden gemessen …')),
+      body = Row(children: [
+        const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)),
+        const SizedBox(width: 12),
+        Expanded(child: Text(l.areaSaveMeasuring)),
       ]);
     } else {
       final pois = plan?.poiCount;
@@ -380,29 +383,29 @@ class _SaveDraftDialogState extends ConsumerState<_SaveDraftDialog> {
         if (plan != null)
           Text(
             !plan.hasMap
-                ? 'Dazu: hier liegt keine Karte — außerhalb der Regionen des Kartenhosts.'
+                ? l.areaSaveOutsideRegions
                 : plan.nothingToFetch
                     // Lädt nur, was fehlt (#229): Alles liegt schon, der
                     // neue Bereich ist ein Verweis darauf.
-                    ? 'Liegt schon auf dem Gerät · ${plan.map.covered} Kacheln — nichts zu laden'
-                    : 'Lädt ${formatBytes(plan.totalBytes)} · ${plan.tiles.length} Kacheln'
-                    '${plan.map.stored == 0 ? '' : ' (${plan.map.stored} liegen schon)'}'
-                    '${pois == null ? ' · ohne Orte' : ' · $pois ${pois == 1 ? 'Ort' : 'Orte'}'}'
-                    '${plan.hasHeights ? ' · Höhen' : ' · ohne Höhen'}'
+                    ? l.areaSaveNothingToFetch(plan.map.covered)
+                    : '${l.areasLoads(formatBytes(plan.totalBytes), plan.tiles.length)}'
+                    '${plan.map.stored == 0 ? '' : ' ${l.areasAlreadyStored(plan.map.stored)}'}'
+                    ' · ${pois == null ? l.areaSaveNoPlaces : l.areaSavePlaces(pois)}'
+                    ' · ${plan.hasHeights ? l.areaSaveHeights : l.areaSaveNoHeights}'
                     // Ohne Wege-Kachel nichts: Einem kleinen Bereich, in
                     // dem OSM nichts weiß, fehlt nichts.
-                    '${plan.hasWays ? ' · Wege' : ''}'
+                    '${plan.hasWays ? ' · ${l.areaSaveWays}' : ''}'
                     // Die Übersicht der Region kommt mit dem ersten Bereich
                     // dort (#220 Schritt 4) — mit Größe, sie ist der größte
                     // Posten eines kleinen Bereichs.
-                    '${plan.overview == null ? '' : ' · Übersicht ${formatBytes(plan.overviewBytes)}'}',
+                    '${plan.overview == null ? '' : ' · ${l.areaSaveOverview(formatBytes(plan.overviewBytes))}'}',
             key: const ValueKey('area-size'),
             style: text.titleMedium,
           ),
         if (trim != null)
           Text(
-            'Gibt ${formatBytes(trim.freedBytes)} frei · ${trim.freedTiles} Kacheln'
-            '${trim.trims.where((t) => t.shape == null).isEmpty ? '' : ' · ${trim.trims.where((t) => t.shape == null).length} Bereich(e) ganz'}',
+            '${l.areaSaveFrees(formatBytes(trim.freedBytes), trim.freedTiles)}'
+            '${trim.trims.where((t) => t.shape == null).isEmpty ? '' : ' · ${l.areaSaveWholeAreas(trim.trims.where((t) => t.shape == null).length)}'}',
             key: const ValueKey('area-free'),
             style: text.titleMedium?.copyWith(color: AppPalette.of(context).muted),
           ),
@@ -415,7 +418,7 @@ class _SaveDraftDialogState extends ConsumerState<_SaveDraftDialog> {
           TextField(
             key: const ValueKey('area-name'),
             controller: _name,
-            decoration: const InputDecoration(labelText: 'Name des neuen Bereichs'),
+            decoration: InputDecoration(labelText: l.areaSaveNameLabel),
             textCapitalization: TextCapitalization.sentences,
           ),
         ],
@@ -427,25 +430,25 @@ class _SaveDraftDialogState extends ConsumerState<_SaveDraftDialog> {
     }
 
     return AlertDialog(
-      title: const Text('Änderungen speichern?'),
+      title: Text(l.areaSaveTitle),
       content: SingleChildScrollView(child: body),
       actions: [
         if (running)
           TextButton(
             key: const ValueKey('area-cancel'),
             onPressed: () => ref.read(areaDownloadProvider.notifier).cancel(),
-            child: const Text('Abbrechen'),
+            child: Text(l.commonCancel),
           )
         else ...[
           TextButton(
             key: const ValueKey('area-save-cancel'),
             onPressed: _trimming ? null : () => Navigator.of(context).pop(false),
-            child: const Text('Abbrechen'),
+            child: Text(l.commonCancel),
           ),
           FilledButton(
             key: const ValueKey('area-save'),
             onPressed: _ready && !_trimming ? _save : null,
-            child: const Text('Speichern'),
+            child: Text(l.commonSave),
           ),
         ],
       ],

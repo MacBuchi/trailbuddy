@@ -34,6 +34,7 @@ import 'package:vector_map_tiles/vector_map_tiles.dart';
 import '../fakes/fake_keep_alive.dart';
 import '../fakes/fake_official_trails.dart';
 import '../fakes/fake_settings.dart';
+import '../fakes/l10n_de.dart';
 
 /// Der Index, wie `tool/regions.py index` ihn heute schreibt.
 Map<String, dynamic> _index({Map<String, dynamic> ca = const {}}) => {
@@ -358,7 +359,7 @@ void main() {
       await expectLater(
           c.read(areaDownloadProvider.notifier).plan(
               const RectShape(AreaBounds(south: 44.9, west: -30.1, north: 45.0, east: -30.0))),
-          throwsA(isA<OutsideRegions>().having((e) => e.message, 'Satz', contains('DACH, Kanada'))));
+          throwsA(isA<OutsideRegions>().having((e) => e.message(l10nDe), 'Satz', contains('DACH, Kanada'))));
       expect(opened, isEmpty);
     });
   });
