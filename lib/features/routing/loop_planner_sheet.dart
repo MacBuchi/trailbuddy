@@ -41,6 +41,7 @@ import 'road_graph_loader.dart' show kOnlineFillMaxTiles;
 import 'route_elevation.dart';
 import 'route_profile.dart';
 import 'route_search.dart' show steepNote;
+import 'route_band.dart';
 import 'route_vias.dart';
 import 'via_handles.dart';
 import 'trail_head_route.dart' show routeTimeLabel;
@@ -785,31 +786,19 @@ List<MapViewPolyline> loopSelectionLines(Iterable<Trail> trails, LoopSession s) 
           ),
     ];
 
-/// Die Vorschau: die ganze Linie blass, Verbindungen in der Fahrt-Farbe
-/// (Wanderweg gestrichelt), die Trails als breiter Saum darunter — die
-/// Trail-Linien selbst behalten ihre Farbe, der Saum sagt „dabei".
+/// Die Vorschau: das Band der Route (#295) unter dem Netz — die
+/// Trail-Linien behalten ihre Farbe, das Band an ihren Seiten sagt
+/// „dabei". Wanderweg-Verbindungen gestrichelt in der Mitte; ein Tipp auf
+/// eine Verbindung setzt einen Zwischenpunkt (#234).
 List<MapViewPolyline> loopPreviewLines(LoopPlan plan) {
   if (plan.outcome != LoopOutcome.ok) return const [];
-  final c = AppColors.mapLines.ride;
   final legs = legLinesOf([
     for (final s in plan.sections)
       if (s.leg != null) (s.leg!, s.points),
   ]);
-  return [
-    MapViewPolyline(points: plan.points, color: c.withValues(alpha: 0.35), width: 2),
+  return routeBandLines(plan.points, opacity: kRoutePreviewOpacity, pieces: [
     for (final s in plan.sections)
-      if (s.isTrail)
-        MapViewPolyline(points: s.points, color: c.withValues(alpha: 0.45), width: 9)
-      else
-        MapViewPolyline(
-          points: s.points,
-          color: c,
-          width: 5,
-          dash: s.hiking ? const [10, 8] : null,
-          borderColor: AppColors.mapLines.halo,
-          borderWidth: AppColors.mapLines.haloBorderWidth,
-          // Ein Tipp setzt einen Zwischenpunkt (#234).
-          hitValue: s.leg == null ? null : RouteLegHit(s.leg!, legs[s.leg]!),
-        ),
-  ];
+      if (!s.isTrail)
+        (points: s.points, hiking: s.hiking, hitValue: s.leg == null ? null : RouteLegHit(s.leg!, legs[s.leg]!)),
+  ]);
 }

@@ -35,6 +35,7 @@ import '../fakes/fake_backend.dart';
 import '../fakes/fake_heights.dart';
 import '../fakes/fake_settings.dart';
 import '../fakes/fake_map_view.dart';
+import '../fakes/route_lines.dart';
 import 'package:trailbuddy/features/map/map_view/map_hit_test.dart' show projectToScreen;
 import 'package:trailbuddy/features/routing/loop_planner_sheet.dart' show LoopStartFlag, kLoopPickWidth;
 import '../fakes/fake_rides.dart';
@@ -203,12 +204,11 @@ void main() {
     await settle(tester, frames: 30);
   }
 
-  Iterable<dynamic> connectionLines(WidgetTester tester) =>
-      fakeMapLayers(tester).polylines.where((l) => l.width == 5);
-  Iterable<dynamic> trailLines(WidgetTester tester) =>
-      fakeMapLayers(tester).polylines.where((l) => l.width == 9);
+  // Verbindungen tragen ein Tippziel; was doppelt gefahren wird, liegt als
+  // zweite Zeichnung im Band (#295).
+  Iterable<dynamic> connectionLines(WidgetTester tester) => routeHits(tester);
   Iterable<dynamic> picked(WidgetTester tester) =>
-      fakeMapLayers(tester).polylines.where((l) => l.width == kLoopPickWidth);
+      fakeMapLayers(tester).polylines.where((l) => l.width == kLoopPickWidth && l.opacity == 1);
 
   testWidgets('Planer-Modus: Trail antippen, rechnen, Ergebnis über der Karte, Fahrt, GPX', (tester) async {
     await start(tester, areaStore: await _areaWithTrack());
@@ -239,12 +239,13 @@ void main() {
     expect(find.textContaining('1,3 km Trail'), findsOneWidget);
     expect(find.descendant(of: find.byKey(const ValueKey('loop-stop-0')), matching: find.text('Hexentanz')),
         findsOneWidget);
-    expect(trailLines(tester), hasLength(2));
+    expect(routeBand(tester).where((l) => l.pass == 1), isNotEmpty,
+        reason: 'Hexentanz zweimal: das Stück liegt dichter');
     expect(connectionLines(tester), isNotEmpty);
     expect(picked(tester), isEmpty, reason: 'die Runde zeigt, was dabei ist');
-    final whole = fakeMapLayers(tester).polylines.where((l) => l.width == 2).single;
-    expect(whole.points.first.latitude, closeTo(_fromLat, 1e-9));
-    expect(whole.points.last.latitude, closeTo(_fromLat, 1e-9));
+    final whole = routeWhole(tester);
+    expect(whole.first.latitude, closeTo(_fromLat, 1e-9));
+    expect(whole.last.latitude, closeTo(_fromLat, 1e-9));
     // Über dem eingeklappten Blatt eingepasst.
     expect(fakeMap(tester).lastFitBottomInset, greaterThan(100));
 
@@ -273,7 +274,7 @@ void main() {
     // Ergebnis zu: Runde weg, der Planer und die Auswahl bleiben.
     await tester.tap(find.byKey(const ValueKey('loop-close')));
     await settle(tester);
-    expect(trailLines(tester), isEmpty);
+    expect(routeBand(tester), isEmpty);
     expect(find.byKey(const ValueKey('loop-tool-rail')), findsOneWidget);
     expect(picked(tester), hasLength(1));
 
@@ -419,7 +420,7 @@ void main() {
     second.done.complete(second.request.planOn(second.graph));
     await settle(tester, frames: 30);
     expect(find.byKey(const ValueKey('loop-summary')), findsNothing);
-    expect(trailLines(tester), isEmpty, reason: 'keine Runde auf der Karte ohne Blatt');
+    expect(routeBand(tester), isEmpty, reason: 'keine Runde auf der Karte ohne Blatt');
     expect(find.byKey(const ValueKey('loop-tool-rail')), findsOneWidget, reason: 'der Planer bleibt offen');
     expect(runner.disposed, 0);
 
@@ -601,7 +602,7 @@ void main() {
     await tapRail(tester, 'loop-rail-compute');
     expect(find.byKey(const ValueKey('loop-blocker')), findsOneWidget);
     expect(find.textContaining('Kein gespeicherter Bereich'), findsOneWidget);
-    expect(trailLines(tester), isEmpty);
+    expect(routeBand(tester), isEmpty);
   });
 
   testWidgets('#187: ohne Bereich, aber mit Empfang — die Wege kommen vom Host, und das Blatt sagt es',

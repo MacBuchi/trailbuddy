@@ -150,6 +150,28 @@ gestrichelt (12/8) und blass.
 | Offiziell | `#B58CFF` | `#7B4FD6` | gestrichelt |
 | Kandidat | `#FF6BA8` | `#D1336F` | „eine Frage" |
 | Meine Fahrt / Position | `#E8ECE6` | `#2A332E` | |
+| Geplante Route (#295) | — | Band `#B6F04A`, Rand `#4F8A10`, Pfeile `#3D6E0B` | siehe unten |
+
+**Die geplante Route ist ein Band, „B+"** (#295, Betreiber 2026-10-11,
+nach sechs Skizzen): Lime 12 px mit einem Rand in Moos (1,5 px je
+Seite), beide ZUSAMMEN durchsichtig — 55 % in der Vorschau (Runde,
+„Zum Trailkopf", „Route hierher"), 80 % in der Folgeansicht (70 % am
+Gerät in der Sonne prüfen). Der Rand scheint nicht durch das Band
+(MapLibre: `line-gap-width`; flutter_map: eine Fläche in `Opacity`).
+Das Band liegt UNTER dem Netz, Trails auf der Route behalten ihre
+Stufenfarbe (Abschnitt 7) und zeigen das Band an ihren Seiten. Was die
+Route zweimal fährt, wird zweimal gezeichnet und liegt dichter (≈ 80 %
+bzw. ≈ 96 %). Statische Pfeile „›" in Moos dunkel alle 90 px, auf
+doppelten Stücken 4 px rechts der Fahrtrichtung, damit Hin und Zurück
+nebeneinander stehen; sie verdrängen keine Schilder und Namen.
+Bewegte Pfeile höchstens in der Vorschau und nur nach einer Messung am
+Gerät, nie in der Folgeansicht. Wanderweg steht als gestrichelte
+Mittellinie in Moos im Band. Der gefahrene Teil in der Folgeansicht ist
+eine dünne Linie in Moos (35 %). **Warum Lime, obwohl die Marke sonst
+keine Bedeutungsfarbe der Karte ist** (Abschnitt 12, Ring): Lime heißt
+„mein" (eigener Avatar, eigene Spur), und eine geplante Route ist meine.
+Lime mit schwarzer Kontur (Skizze A) sah aus wie ein ausgewählter Trail,
+deshalb der Rand in Moos.
 
 **Die Karte ist hell** (Turn 4: „Die Karte (Protomaps light) ist hell, und
 in praller Sonne liest sich dunkel schlechter"). Turn 1 zeigte noch eine
@@ -684,7 +706,8 @@ Plan `docs/konzept-onboarding.md` Abschnitt 6; gebaut ab 0.60.0
   ersten PilzBuddy-Tour, die runde Löcher je Knopf schnitt.
 - **Ring = Marke**: außen Weiß 90 % 5 px, innen Lime 3 px, pulsiert
   3 → 7 px in 1,8 s. Der Ring heißt „hier, für dich" und ist nie eine
-  Bedeutungsfarbe der Karte. Lime kollidiert nicht: S0 ist ein anderes
+  Bedeutungsfarbe der Karte — mit EINER Ausnahme: die geplante Route
+  (Abschnitt 2, #295), weil Lime dort „mein" heißt. Lime kollidiert nicht: S0 ist ein anderes
   Grün, und „mein" ist seit 0.42.0 ein Wort. Orange, Gelb, Magenta,
   Violett und Blau bleiben den Linien.
 - **Hand** gezeichnet (`FingerPainter`), Ärmel und Druckpunkt in der

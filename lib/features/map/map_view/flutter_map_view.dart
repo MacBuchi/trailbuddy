@@ -1,3 +1,5 @@
+import 'dart:ui' show PointMode;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -309,41 +311,18 @@ class _FlutterMapViewState extends ConsumerState<FlutterMapView>
                 borderStrokeWidth: c.borderWidth,
               ),
           ]),
-        if (layers.polylines.isNotEmpty)
-          PolylineLayer(
-            polylines: [
-              for (final line in layers.polylines)
-                // Ein Rand mit eigenem Muster (S4/S5, #101) ist eine eigene,
-                // breitere Linie darunter — flutter_maps Rand teilt sonst
-                // das Muster der Linie.
-                if (line.borderDash != null && line.borderColor != null && line.borderWidth > 0) ...[
-                  Polyline(
-                    points: line.points,
-                    color: line.borderColor!,
-                    strokeWidth: line.width + 2 * line.borderWidth,
-                    pattern: StrokePattern.dashed(segments: line.borderDash!),
-                  ),
-                  Polyline(
-                    points: line.points,
-                    color: line.color,
-                    strokeWidth: line.width,
-                    pattern: line.dash == null
-                        ? const StrokePattern.solid()
-                        : StrokePattern.dashed(segments: line.dash!),
-                  ),
-                ] else
-                  Polyline(
-                    points: line.points,
-                    color: line.color,
-                    strokeWidth: line.width,
-                    pattern: line.dash == null
-                        ? const StrokePattern.solid()
-                        : StrokePattern.dashed(segments: line.dash!),
-                    borderStrokeWidth: line.borderWidth,
-                    borderColor: line.borderColor ?? Colors.transparent,
-                  ),
-            ],
-          ),
+        // Linien in Läufen gleicher Deckkraft, in ihrer Reihenfolge: Ein
+        // durchsichtiger Lauf (die Route, #295) liegt als EINE Fläche in
+        // `Opacity` — Rand und Linie erst deckend, dann zusammen
+        // durchsichtig; Pfeile direkt darüber, unter dem, was folgt.
+        for (final run in polylineRuns(layers.polylines)) ...[
+          if (run.any((l) => l.width > 0))
+            if (run.first.opacity < 1)
+              Opacity(opacity: run.first.opacity, child: _polylineLayer(run))
+            else
+              _polylineLayer(run),
+          if (run.any((l) => l.arrows != null)) IgnorePointer(child: _LineArrowsLayer(run)),
+        ],
         // Namen der Linien — flutter_map kann keinen Text entlang eines
         // Pfads, also einmal in der Mitte, gedreht (`lineLabelAnchor`).
         if (layers.polylines.any((l) => l.label != null))
@@ -383,6 +362,138 @@ class _FlutterMapViewState extends ConsumerState<FlutterMapView>
   }
 }
 
+
+/// Die Linien in Läufen: Ein neuer Lauf beginnt, wo Deckkraft oder
+/// Zeichnung (`pass`) wechselt, und nach einer Linie mit Pfeilen — die Pfeile liegen über
+/// ihrer Linie, aber unter allem danach (die Route unter dem Netz).
+@visibleForTesting
+List<List<MapViewPolyline>> polylineRuns(List<MapViewPolyline> lines) {
+  final runs = <List<MapViewPolyline>>[];
+  for (final line in lines) {
+    final last = runs.isEmpty ? null : runs.last;
+    if (last == null ||
+        last.last.opacity != line.opacity ||
+        last.last.pass != line.pass ||
+        last.last.arrows != null) {
+      runs.add([line]);
+    } else {
+      last.add(line);
+    }
+  }
+  return runs;
+}
+
+Widget _polylineLayer(List<MapViewPolyline> lines) => PolylineLayer(
+      polylines: [
+        for (final line in lines)
+          if (line.width <= 0)
+            ...const <Polyline>[]
+          // Ein Rand mit eigenem Muster (S4/S5, #101) ist eine eigene,
+          // breitere Linie darunter — flutter_maps Rand teilt sonst
+          // das Muster der Linie.
+          else if (line.borderDash != null && line.borderColor != null && line.borderWidth > 0) ...[
+            Polyline(
+              points: line.points,
+              color: line.borderColor!,
+              strokeWidth: line.width + 2 * line.borderWidth,
+              pattern: StrokePattern.dashed(segments: line.borderDash!),
+            ),
+            Polyline(
+              points: line.points,
+              color: line.color,
+              strokeWidth: line.width,
+              pattern: line.dash == null ? const StrokePattern.solid() : StrokePattern.dashed(segments: line.dash!),
+            ),
+          ] else
+            Polyline(
+              points: line.points,
+              color: line.color,
+              strokeWidth: line.width,
+              pattern: line.dash == null ? const StrokePattern.solid() : StrokePattern.dashed(segments: line.dash!),
+              borderStrokeWidth: line.borderWidth,
+              borderColor: line.borderColor ?? Colors.transparent,
+            ),
+      ],
+    );
+
+/// Pfeile entlang der Linien (#295) — flutter_map hat keine Symbole auf
+/// einem Pfad; gemalt wird je Bild aus der Kamera, wie MapLibre in festem
+/// Bildpunkt-Abstand. Innerhalb von `MobileLayerTransformer` dreht die
+/// Karte sie mit.
+class _LineArrowsLayer extends StatelessWidget {
+  const _LineArrowsLayer(this.lines);
+
+  final List<MapViewPolyline> lines;
+
+  @override
+  Widget build(BuildContext context) {
+    final camera = MapCamera.of(context);
+    return MobileLayerTransformer(
+      child: CustomPaint(
+        size: camera.size,
+        painter: _LineArrowsPainter(
+          [
+            for (final l in lines)
+              if (l.arrows case final a?) (a, [for (final p in l.points) camera.getOffsetFromOrigin(p)]),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _LineArrowsPainter extends CustomPainter {
+  _LineArrowsPainter(this.lines);
+
+  final List<(LineArrows, List<Offset>)> lines;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final view = (Offset.zero & size).inflate(40);
+    for (final (arrows, pts) in lines) {
+      final paint = Paint()
+        ..color = arrows.color
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = arrows.size / 6
+        ..strokeCap = StrokeCap.round
+        ..strokeJoin = StrokeJoin.round;
+      for (final a in lineArrowPlaces(pts, arrows.spacing)) {
+        final right = Offset(-a.dir.dy, a.dir.dx);
+        final c = a.at + right * arrows.offset;
+        if (!view.contains(c)) continue;
+        final h = arrows.size / 3;
+        final tip = c + a.dir * (h * 0.6), back = c - a.dir * (h * 0.6);
+        canvas.drawPoints(PointMode.polygon, [back - right * h, tip, back + right * h], paint);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(_LineArrowsPainter old) => true;
+}
+
+/// Wo entlang einer Linie in Bildpunkten die Pfeile stehen: der erste
+/// nach einem halben Abstand, dann je [spacing]; mit der Richtung (Länge
+/// 1) des Stücks dort. Pur, damit ein Test ohne Karte zählen kann.
+@visibleForTesting
+List<({Offset at, Offset dir})> lineArrowPlaces(List<Offset> pts, double spacing) {
+  final out = <({Offset at, Offset dir})>[];
+  if (pts.length < 2 || spacing <= 0) return out;
+  var next = spacing / 2;
+  var walked = 0.0;
+  for (var i = 1; i < pts.length; i++) {
+    final d = pts[i] - pts[i - 1];
+    final len = d.distance;
+    if (len == 0) continue;
+    final dir = d / len;
+    while (next <= walked + len) {
+      out.add((at: pts[i - 1] + dir * (next - walked), dir: dir));
+      next += spacing;
+    }
+    walked += len;
+  }
+  return out;
+}
 
 /// Die Liniennamen ab [kLineLabelMinZoom] — liest Zoom und Linien aus dem
 /// Karten-Kontext, damit ein Herauszoomen sie ohne Neuaufbau der Karte

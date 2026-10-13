@@ -231,10 +231,16 @@ class MapViewPolyline {
     this.borderDash,
     this.hitValue,
     this.label,
+    this.opacity = 1,
+    this.pass = 0,
+    this.arrows,
   });
 
   final List<LatLng> points;
   final Color color;
+
+  /// Strichbreite in Bildpunkten; 0 heißt kein Strich — nur [arrows] und
+  /// das Tippziel.
   final double width;
 
   /// Ein Name, der ENTLANG der Linie steht (der Trailname) — ab
@@ -260,10 +266,49 @@ class MapViewPolyline {
   /// Was ein Tipp meldet; null heißt nicht antippbar (die Fahrt).
   final Object? hitValue;
 
+  /// Deckkraft der Linie SAMT Rand (#295): Beide werden erst deckend
+  /// übereinander gelegt und dann zusammen durchsichtig — der Rand
+  /// scheint nicht durch die Linie. Ob sich Linien GLEICHEN Stils an
+  /// einer Überlappung mischen, hängt an der Engine (flutter_map: nein,
+  /// eine Gruppe ist eine Fläche); `route_band.dart` legt deshalb keine
+  /// Stelle zweimal in denselben Stil, das Doppelte bekommt einen eigenen.
+  final double opacity;
+
+  /// Eine weitere Zeichnung im selben Stil: Linien mit anderem [pass]
+  /// liegen in einer eigenen Ebene (MapLibre) bzw. Fläche (flutter_map)
+  /// und mischen sich mit der ersten — so wird ein doppelt befahrenes
+  /// Stück der Route dichter (#295).
+  final int pass;
+
+  /// Pfeile entlang der Linie in ihrer Richtung; null = keine.
+  final LineArrows? arrows;
+
   /// Der Stil ohne Geometrie — MapLibre gruppiert danach.
   String get styleKey =>
       '${color.toARGB32()}|$width|${dash?.join(',') ?? ''}|'
-      '${borderColor?.toARGB32() ?? ''}|$borderWidth|${borderDash?.join(',') ?? ''}';
+      '${borderColor?.toARGB32() ?? ''}|$borderWidth|${borderDash?.join(',') ?? ''}|'
+      '$opacity|$pass|${arrows?.styleKey ?? ''}';
+}
+
+/// Das Zeichen der Pfeile — in den Glyphen der App (MapLibre) und in der
+/// Schrift der App (flutter_map).
+const kLineArrowGlyph = '\u203A';
+
+/// Statische Pfeile entlang einer Linie (#295): ein Winkel „›" je
+/// [spacing] Bildpunkte, um [offset] Bildpunkte nach RECHTS der
+/// Fahrtrichtung versetzt — auf einem Stück, das hin und zurück gefahren
+/// wird, stehen so beide Richtungen nebeneinander statt übereinander.
+class LineArrows {
+  const LineArrows({required this.color, this.spacing = 90, this.offset = 0, this.size = 14});
+
+  final Color color;
+  final double spacing;
+  final double offset;
+
+  /// Höhe des Zeichens in Bildpunkten.
+  final double size;
+
+  String get styleKey => '${color.toARGB32()}|$spacing|$offset|$size';
 }
 
 /// Eine Fläche mit Löchern — die Abdunkelung außerhalb der gespeicherten

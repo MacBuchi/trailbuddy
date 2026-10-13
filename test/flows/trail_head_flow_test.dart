@@ -20,6 +20,7 @@ import 'package:trailbuddy/features/trails/gpx.dart';
 
 import '../fakes/fake_backend.dart';
 import '../fakes/fake_map_view.dart';
+import '../fakes/route_lines.dart';
 import '../fakes/fake_rides.dart';
 import '../fakes/fake_tiles.dart';
 import '../fakes/fake_trails.dart';
@@ -125,8 +126,8 @@ void main() {
     await settle(tester, frames: 30);
   }
 
-  Iterable<dynamic> routeLines(WidgetTester tester) =>
-      fakeMapLayers(tester).polylines.where((l) => l.width == 5);
+  // Je Abschnitt ein Tippziel — so viele wie früher Linien.
+  Iterable<dynamic> routeLines(WidgetTester tester) => routeHits(tester);
 
   testWidgets('aus dem Blatt auf die Karte: Weg, Summen, Vorschau, Profil, GPX', (tester) async {
     await start(tester, areaStore: await _areaWithTrack());
@@ -151,10 +152,11 @@ void main() {
     // am Standort.
     final lines = routeLines(tester).toList();
     expect(lines, hasLength(1));
-    expect(lines.single.dash, isNull, reason: 'Forstweg: durchgezogen');
-    final whole = fakeMapLayers(tester).polylines.where((l) => l.width == 2).single;
-    expect(whole.points.first.latitude, closeTo(_fromLat, 1e-9));
-    expect(whole.points.last.latitude, closeTo(48.0, 1e-9));
+    expect(routeHiking(tester), isEmpty, reason: 'Forstweg: keine Striche');
+    expect(routeBand(tester), isNotEmpty);
+    final whole = routeWhole(tester);
+    expect(whole.first.latitude, closeTo(_fromLat, 1e-9));
+    expect(whole.last.latitude, closeTo(48.0, 1e-9));
     // Eingepasst ÜBER dem Blatt, nicht darunter (Feldbericht 0.73.0).
     expect(fakeMap(tester).lastFitBottomInset, greaterThan(100));
 
@@ -284,7 +286,7 @@ void main() {
   testWidgets('„Navigieren" (#232): Blatt zu, die Folgeansicht fährt dieselbe Linie', (tester) async {
     await start(tester, areaStore: await _areaWithTrack());
     await tapTrailHead(tester);
-    final whole = fakeMapLayers(tester).polylines.where((l) => l.width == 2).single.points;
+    final whole = routeWhole(tester);
     // Erst hochziehen: Halb offen liegt die Knopfzeile unter dem Rand.
     final list = find
         .descendant(of: find.byType(DraggableScrollableSheet), matching: find.byType(Scrollable))
@@ -301,7 +303,7 @@ void main() {
     await settle(tester);
     expect(find.byKey(const ValueKey('trail-head-summary')), findsNothing);
     expect(find.byKey(const ValueKey('nav-approach')), findsOneWidget);
-    final route = fakeMapLayers(tester).polylines.where((l) => l.width == 6).single.points;
+    final route = routeWhole(tester);
     expect(route.last, whole.last);
     // Der Trail läuft nach Norden: Norden oben.
     expect(fakeMap(tester).bearing, closeTo(0, 5)); // Kachelpixel: ein, zwei Grad

@@ -159,6 +159,20 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     sonst 40 px unter ihrem Ort). Marker werden bei Idle auf das
     Sichtfenster plus 25 % gefiltert (`visibleMarkers`), weil
     `WidgetLayer` jeden Marker in jedem Frame positioniert.
+  - **Durchsichtig heißt Linie UND Rand zusammen** (#295, seit 0.117.0,
+    `MapViewPolyline.opacity`/`pass`/`arrows`): MapLibre zeichnet den
+    Rand dann NEBEN die Linie (`FadedLineLayer`, `line-gap-width` =
+    Breite) statt als breitere Ebene darunter, beide mit `line-opacity`;
+    flutter_map teilt die Linien in Läufe (`polylineRuns`: neue Deckkraft,
+    neuer `pass`, nach Pfeilen) und legt einen durchsichtigen Lauf als
+    EINE Fläche in `Opacity`. Ob sich Linien gleichen Stils an einer
+    Überlappung mischen, ist je Engine anders (flutter_map: nie, eine
+    Fläche) — wer eine Stelle dichter will, gibt ihr einen eigenen
+    `pass`. Pfeile: MapLibre „›" als Symbol entlang der Linie
+    (`LineArrowLayer`, nicht aufrecht, `text-ignore-placement`; „→"
+    fehlt in den Glyphen 8192–8447), flutter_map malt einen Winkel je
+    90 px (`lineArrowPlaces`). Breite 0 heißt kein Strich (Pfeil-Linien,
+    Tippziele). Durchsichtiges Band mit Rand: `route_band_render_test`.
   - **Die Onlinekarte ist EIN Archiv auf dem eigenen Host** (#31
     Schritt 2, seit 0.17.0; `online_map.dart`, `map_providers.dart`):
     DACH als Protomaps-Basiskarte bis Zoom 13 auf Cloudflare R2 hinter

@@ -507,6 +507,23 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     „Minimieren" fragt `pipSupportedProvider`; jede Kanal-Methode, die
     Dart ruft, muss in `MainActivity` stehen (`android_manifest_test`),
     sonst endet sie still in `notImplemented`.
+- **Das Band der Route** (#295, seit 0.117.0, `route_band.dart` pur;
+  Design 2 „B+"): Runde, „Zum Trailkopf" und Folgeansicht zeichnen über
+  `routeBandLines`. Drei Dinge, die man wissen muss:
+  - **Doppelt wird an den PUNKTEN erkannt** (`repeatedSegments`,
+    `doubledSegments`: dasselbe Segment in beliebiger Richtung, auf
+    10 cm gerastert), nicht am Graphen — dieselbe Kante bringt dieselben
+    Punkte mit, und eine Route aus „Meine Fahrten" kennt keinen Graphen
+    mehr. Gezeichnet wird jede Stelle einmal (`pass` 0), die
+    Wiederholungen noch einmal (`pass` 1); in der Folgeansicht nur der
+    Rest, also dicht nur, was noch zweimal kommt.
+  - **Tippziele sind eigene Linien der Breite 0** (zuoberst), Wanderweg
+    eine gestrichelte Mittellinie in Moos: Das Band selbst ist nach
+    Wiederholung geschnitten, nicht nach Abschnitten.
+  - **Tests lesen die Route über `test/fakes/route_lines.dart`**
+    (`routeBand`, `routeWhole` aus den Pfeil-Linien, `routeHits`): Die
+    Auswahl im Planer ist ebenso 12 px breit und Lime, aber deckend —
+    ohne `opacity < 1` hielt der Test sie für das Band.
 - **Die Navigation im Dienst** (#232 Schritt 2, seit 0.96.0,
   `nav_notice.dart` im Service-Isolate, `nav_service.dart` in der App;
   Konzept-Routing 9.5). Fünf Dinge, die man wissen muss:

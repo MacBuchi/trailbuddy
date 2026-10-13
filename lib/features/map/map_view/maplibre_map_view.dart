@@ -340,6 +340,7 @@ class _MapLibreMapViewState extends ConsumerState<MapLibreMapView>
           ]),
         ),
     ];
+    if (style.opacity < 1 || style.width <= 0) return _fadedGroupLayers(style, features);
     final width = math.max(1, style.width.round());
     return [
       if (style.borderColor != null && style.borderWidth > 0)
@@ -359,6 +360,31 @@ class _MapLibreMapViewState extends ConsumerState<MapLibreMapView>
       ),
     ];
   }
+
+  /// Eine durchsichtige Gruppe (#295): Der Rand liegt NEBEN der Linie
+  /// (`line-gap-width` = Breite der Linie), nicht darunter — sonst schiene
+  /// er durch. Beide Ebenen tragen dieselbe Deckkraft, die Pfeile kommen
+  /// als dritte darüber. Breite 0 heißt: nur die Pfeile.
+  static List<ml.Layer> _fadedGroupLayers(MapViewPolyline style, List<ml.Feature<ml.LineString>> features) => [
+        if (style.width > 0 && style.borderColor != null && style.borderWidth > 0)
+          FadedLineLayer(
+            features: features,
+            color: style.borderColor!,
+            width: style.borderWidth,
+            gapWidth: style.width,
+            opacity: style.opacity,
+            dashArray: style.borderDash == null ? null : dashArrayFor(style.borderDash!, style.borderWidth),
+          ),
+        if (style.width > 0)
+          FadedLineLayer(
+            features: features,
+            color: style.color,
+            width: style.width,
+            opacity: style.opacity,
+            dashArray: style.dash == null ? null : dashArrayFor(style.dash!, style.width),
+          ),
+        if (style.arrows case final arrows?) LineArrowLayer(features: features, arrows: arrows),
+      ];
 
   static ml.Layer _labelLayer(List<MapViewPolyline> labelled) => LineLabelLayer(features: [
         for (final l in labelled)
@@ -680,6 +706,97 @@ class RoundPolylineLayer extends ml.PolylineLayer {
 
   @override
   Map<String, Object> getLayout() => const {'line-join': 'round', 'line-cap': 'round'};
+}
+
+/// Eine Linie mit gebrochener Breite, eigener Deckkraft und auf Wunsch
+/// einer Lücke in der Mitte (`line-gap-width`: dann ist sie der Rand um
+/// eine Linie dieser Breite) — `ml.PolylineLayer` nimmt Breiten nur
+/// ganzzahlig, und der Rand der Route ist 1,5 px (#295).
+class FadedLineLayer extends ml.Layer<ml.Feature<ml.LineString>> {
+  const FadedLineLayer({
+    required List<ml.Feature<ml.LineString>> features,
+    required this.color,
+    required this.width,
+    required this.opacity,
+    this.gapWidth = 0,
+    this.dashArray,
+  }) : super(list: features);
+
+  final Color color;
+  final double width;
+  final double opacity;
+  final double gapWidth;
+  final List<int>? dashArray;
+
+  @override
+  Map<String, Object> getPaint() => {
+        'line-color': _hex(color),
+        'line-opacity': opacity,
+        'line-width': width,
+        if (gapWidth > 0) 'line-gap-width': gapWidth,
+        'line-dasharray': ?dashArray,
+      };
+
+  @override
+  Map<String, Object> getLayout() => const {'line-join': 'round', 'line-cap': 'round'};
+
+  @override
+  ml.StyleLayer createStyleLayer(int index) => ml.LineStyleLayer(
+        id: getLayerId(index),
+        sourceId: getSourceId(index),
+        paint: getPaint(),
+        layout: getLayout(),
+        minZoom: minZoom,
+        maxZoom: maxZoom,
+      );
+}
+
+/// Pfeile entlang der Linie (#295): ein „›" je `symbol-spacing`, gedreht
+/// mit der Linie und NICHT aufrecht gehalten (`text-keep-upright: false`)
+/// — sonst zeigte die Hälfte gegen die Fahrtrichtung. Der Versatz
+/// (`text-offset`, in em quer zur Schrift) legt sie rechts der
+/// Fahrtrichtung. Sie weichen nichts aus und verdrängen nichts: Schilder
+/// und Namen der Trails bleiben (`text-allow-overlap`,
+/// `text-ignore-placement`). „›" liegt in den Glyphen der App
+/// (8192–8447), „→" nicht.
+const kArrowGlyphScale = 1.5;
+
+class LineArrowLayer extends ml.Layer<ml.Feature<ml.LineString>> {
+  const LineArrowLayer({required List<ml.Feature<ml.LineString>> features, required this.arrows})
+      : super(list: features);
+
+  final LineArrows arrows;
+
+  @override
+  Map<String, Object> getPaint() => {'text-color': _hex(arrows.color)};
+
+  @override
+  Map<String, Object> getLayout() => {
+        'symbol-placement': 'line',
+        'text-field': kLineArrowGlyph,
+        'text-font': const ['noto-sans-medium'],
+        // Ein „›" füllt etwa die halbe Schriftgröße; so ist es so hoch
+        // wie der gemalte Winkel auf flutter_map.
+        'text-size': arrows.size * kArrowGlyphScale,
+        'symbol-spacing': arrows.spacing,
+        'text-keep-upright': false,
+        'text-rotation-alignment': 'map',
+        'text-allow-overlap': true,
+        'text-ignore-placement': true,
+        // Ein „›" sitzt höher als die Mitte der Zeile; 0,1 em zieht es auf
+        // die Linie. Quer heißt in Fahrtrichtung: positiv = rechts.
+        'text-offset': [0, arrows.offset / (arrows.size * kArrowGlyphScale) + 0.1],
+      };
+
+  @override
+  ml.StyleLayer createStyleLayer(int index) => ml.SymbolStyleLayer(
+        id: getLayerId(index),
+        sourceId: getSourceId(index),
+        paint: getPaint(),
+        layout: getLayout(),
+        minZoom: minZoom,
+        maxZoom: maxZoom,
+      );
 }
 
 /// Namen ENTLANG der Linie (`symbol-placement: line`) wie Straßennamen:
