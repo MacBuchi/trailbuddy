@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../l10n/l10n.dart';
+
 /// „Erneut senden" mit Wartezeit — für die Bestätigungsmail bei der
 /// Registrierung und den Code beim Passwort-Reset.
 ///
@@ -74,7 +76,7 @@ class _ResendButtonState extends State<ResendButton> {
     final waiting = _remaining > 0;
     return TextButton(
       onPressed: (waiting || !widget.enabled) ? null : _resend,
-      child: Text(waiting ? 'Erneut senden in $_remaining s' : widget.label),
+      child: Text(waiting ? context.l10n.resendIn(_remaining) : widget.label),
     );
   }
 }

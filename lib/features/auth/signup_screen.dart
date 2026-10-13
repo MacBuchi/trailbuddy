@@ -9,6 +9,7 @@ import '../../core/widgets/form_notice.dart';
 import '../../core/widgets/password_field.dart';
 import '../../core/widgets/resend_button.dart';
 import '../../data/providers.dart';
+import '../../l10n/l10n.dart';
 import '../../models/profile.dart' show usernameProblem;
 
 class SignupScreen extends ConsumerStatefulWidget {
@@ -57,15 +58,15 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
       });
 
   Future<void> _signUp() async {
+    final l = context.l10n;
     final username = _usernameController.text.trim();
-    final problem = usernameProblem(username);
+    final problem = usernameProblem(l, username);
     if (problem != null) {
       _showMessage(problem);
       return;
     }
     if (_passwordController.text.length < minPasswordLength) {
-      _showMessage(
-          'Das Passwort braucht mindestens $minPasswordLength Zeichen.');
+      _showMessage(l.signupPasswordTooShort(minPasswordLength));
       return;
     }
     setState(() => _busy = true);
@@ -89,7 +90,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
         setState(() => _awaitingConfirmationFor = email);
       }
     } on AuthException catch (e) {
-      if (mounted) _showMessage(signupErrorMessage(e));
+      if (mounted) _showMessage(signupErrorMessage(l, e));
     } catch (e, stackTrace) {
       logError('Registrierung', e, stackTrace);
       if (mounted) _showMessage(friendlyError(e));
@@ -101,17 +102,17 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
   Future<void> _resend() async {
     final email = _awaitingConfirmationFor;
     if (email == null) return;
+    final l = context.l10n;
     setState(() => _busy = true);
     try {
       await ref.read(authRepositoryProvider).resendConfirmation(email);
       if (mounted) {
-        _setNotice('Die Bestätigungsmail ist noch einmal unterwegs.',
-            NoticeTone.success);
+        _setNotice(l.signupMailResent, NoticeTone.success);
       }
     } on AuthException catch (e) {
       // Häufigster Fall: zu schnell hintereinander (Rate Limit) — den nennt
       // confirmErrorMessage beim Namen.
-      if (mounted) _setNotice(confirmErrorMessage(e), NoticeTone.error);
+      if (mounted) _setNotice(confirmErrorMessage(l, e), NoticeTone.error);
     } catch (e, stackTrace) {
       logError('Bestätigungsmail erneut senden', e, stackTrace);
       if (mounted) _setNotice(friendlyError(e), NoticeTone.error);
@@ -123,9 +124,10 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
   Future<void> _confirm() async {
     final email = _awaitingConfirmationFor;
     if (email == null) return;
+    final l = context.l10n;
     final code = _codeController.text.trim();
     if (code.isEmpty) {
-      _setNotice('Bitte den Code aus der Mail eingeben.', NoticeTone.error);
+      _setNotice(l.authCodeMissing, NoticeTone.error);
       return;
     }
     setState(() => _busy = true);
@@ -135,7 +137,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
           .confirmEmailWithCode(email: email, code: code);
       // Erfolg meldet an; der Router übernimmt und führt zur Karte.
     } on AuthException catch (e) {
-      if (mounted) _setNotice(confirmErrorMessage(e), NoticeTone.error);
+      if (mounted) _setNotice(confirmErrorMessage(l, e), NoticeTone.error);
     } catch (e, stackTrace) {
       logError('Adresse bestätigen', e, stackTrace);
       if (mounted) _setNotice(friendlyError(e), NoticeTone.error);
@@ -144,20 +146,19 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
     }
   }
 
-  Widget _confirmationHint(BuildContext context) => Column(
+  Widget _confirmationHint(BuildContext context, AppLocalizations l) => Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Icon(Icons.mark_email_unread_outlined,
               size: 56, color: Theme.of(context).colorScheme.primary),
           const SizedBox(height: 16),
-          Text('Fast geschafft!',
+          Text(l.signupAlmostDone,
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.headlineSmall),
           const SizedBox(height: 12),
           Text(
-            'Wir haben einen Code an $_awaitingConfirmationFor geschickt. '
-            'Gib ihn hier ein, dann geht es direkt weiter.',
+            l.signupCodeSentTo(_awaitingConfirmationFor!),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 20),
@@ -166,9 +167,9 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
             keyboardType: TextInputType.number,
             textInputAction: TextInputAction.done,
             onSubmitted: (_) => _busy ? null : _confirm(),
-            decoration: const InputDecoration(
-              labelText: 'Code aus der Mail',
-              border: OutlineInputBorder(),
+            decoration: InputDecoration(
+              labelText: l.authCodeLabel,
+              border: const OutlineInputBorder(),
             ),
           ),
           if (_notice != null) ...[
@@ -185,35 +186,36 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                     width: 20,
                     height: 20,
                     child: CircularProgressIndicator(strokeWidth: 2))
-                : const Text('Adresse bestätigen'),
+                : Text(l.signupConfirm),
           ),
           ResendButton(
             onResend: _resend,
             enabled: !_busy,
-            label: 'Mail nicht angekommen? Erneut senden',
+            label: l.signupResendMail,
           ),
         ],
       );
 
   @override
   Widget build(BuildContext context) {
+    final l = context.l10n;
     return Scaffold(
-      appBar: AppBar(title: const Text('Registrieren')),
+      appBar: AppBar(title: Text(l.signupTitle)),
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 400),
             child: _awaitingConfirmationFor != null
-                ? _confirmationHint(context)
-                : _signUpForm(context),
+                ? _confirmationHint(context, l)
+                : _signUpForm(context, l),
           ),
         ),
       ),
     );
   }
 
-  Widget _signUpForm(BuildContext context) => Column(
+  Widget _signUpForm(BuildContext context, AppLocalizations l) => Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -227,10 +229,10 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                   controller: _usernameController,
                   textInputAction: TextInputAction.next,
                   autofillHints: const [AutofillHints.newUsername],
-                  decoration: const InputDecoration(
-                    labelText: 'Benutzername',
-                    helperText: 'Darüber können Buddys dich finden.',
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    labelText: l.signupUsernameLabel,
+                    helperText: l.signupUsernameHelper,
+                    border: const OutlineInputBorder(),
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -239,15 +241,15 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                   keyboardType: TextInputType.emailAddress,
                   textInputAction: TextInputAction.next,
                   autofillHints: const [AutofillHints.email],
-                  decoration: const InputDecoration(
-                    labelText: 'E-Mail',
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    labelText: l.authEmailLabel,
+                    border: const OutlineInputBorder(),
                   ),
                 ),
                 const SizedBox(height: 12),
                 PasswordField(
                   controller: _passwordController,
-                  label: 'Passwort (mind. $minPasswordLength Zeichen)',
+                  label: l.signupPasswordLabel(minPasswordLength),
                   autofillHints: const [AutofillHints.newPassword],
                   onSubmitted: (_) => _busy ? null : _signUp(),
                 ),
@@ -264,11 +266,11 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                     width: 20,
                     height: 20,
                     child: CircularProgressIndicator(strokeWidth: 2))
-                : const Text('Konto erstellen'),
+                : Text(l.signupCreate),
           ),
           TextButton(
             onPressed: () => context.go('/login'),
-            child: const Text('Schon ein Konto? Anmelden'),
+            child: Text(l.signupToLogin),
           ),
         ],
       );

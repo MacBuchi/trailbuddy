@@ -1,7 +1,10 @@
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
+import 'package:intl/intl.dart';
 import 'package:latlong2/latlong.dart';
+
+import '../../l10n/l10n.dart';
 
 /// Offizielle Trails (#13, `docs/konzept-offizielle-trails.md`): Linien
 /// einer Behörde, gebaut von `official-trails.yml` auf den Branch
@@ -257,8 +260,11 @@ List<OfficialTrail> parseOfficialRegion(String body) {
   return trails;
 }
 
-/// „19.05.2026" aus „2026-05-19"; Unlesbares bleibt, wie es ist.
-String formatIsoDateDe(String iso) {
+/// „19.05.2026" aus „2026-05-19" (Muster `officialDatePattern` der
+/// Sprache); Unlesbares bleibt, wie es ist.
+String formatIsoDate(AppLocalizations l, String iso) {
   final m = RegExp(r'^(\d{4})-(\d{2})-(\d{2})$').firstMatch(iso);
-  return m == null ? iso : '${m[3]}.${m[2]}.${m[1]}';
+  if (m == null) return iso;
+  final date = DateTime(int.parse(m[1]!), int.parse(m[2]!), int.parse(m[3]!));
+  return DateFormat(l.officialDatePattern, l.localeName).format(date);
 }

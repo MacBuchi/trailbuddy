@@ -1,3 +1,5 @@
+import '../l10n/l10n.dart';
+
 /// Mindestlänge des Benutzernamens — EINE Quelle für Registrierung und
 /// „Benutzername ändern" (Muster `minPasswordLength`).
 const minUsernameLength = 3;
@@ -25,15 +27,10 @@ const minUsernameLength = 3;
 /// ist als öffentlicher Anzeigename ohnehin eine schlechte Wahl. Der
 /// Fehler in die andere Richtung (ein @ im Namen, das keine Adresse ist)
 /// kostet einen anderen Namen, nicht ein preisgegebenes Postfach.
-String? usernameProblem(String username) {
+String? usernameProblem(AppLocalizations l, String username) {
   final name = username.trim();
-  if (name.length < minUsernameLength) {
-    return 'Der Benutzername braucht mindestens $minUsernameLength Zeichen.';
-  }
-  if (_emailShaped.hasMatch(name)) {
-    return 'Das sieht nach einer E-Mail-Adresse aus. Dein Benutzername ist '
-        'für alle sichtbar — nimm lieber einen Namen.';
-  }
+  if (name.length < minUsernameLength) return l.usernameTooShort(minUsernameLength);
+  if (_emailShaped.hasMatch(name)) return l.usernameLooksLikeEmail;
   return null;
 }
 

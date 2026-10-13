@@ -3,28 +3,32 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../../core/app_colors.dart';
+import '../../l10n/l10n.dart';
 import 'official_match.dart';
 import 'official_trails.dart';
 import 'official_trails_layer.dart';
 import 'official_trails_source.dart';
 
 /// Der Satz dazu, von der Quelle aus gesagt.
-String officialOverlapLine(OfficialOverlap overlap, String name) => switch (overlap) {
-      OfficialOverlap.same => 'Auch ausgeschildert als „$name"',
-      OfficialOverlap.partOf => 'Teil des offiziellen Trails „$name"',
-      OfficialOverlap.contains => 'Enthält den offiziellen Trail „$name"',
+String officialOverlapLine(AppLocalizations l, OfficialOverlap overlap, String name) =>
+    switch (overlap) {
+      OfficialOverlap.same => l.officialOverlapSame(name),
+      OfficialOverlap.partOf => l.officialOverlapPartOf(name),
+      OfficialOverlap.contains => l.officialOverlapContains(name),
     };
 
 /// Die Sperre der Quelle zu einem gedeckten offiziellen Trail (#41) —
 /// immer mit der Quelle, und mit Stand, wenn sie einen nennt. Liegt der
 /// gesperrte Abschnitt NICHT auf dem Trail des Netzes, sagt der Satz das,
 /// statt ihn zu sperren; liegt er darauf, ist das die Warnung.
-String? officialClosureLine(OfficialMatch m, String by) {
+String? officialClosureLine(AppLocalizations l, OfficialMatch m, String by) {
   if (m.trail.status == OfficialStatus.open) return null;
-  if (!m.onClosed) return 'anderer Abschnitt gesperrt laut $by';
-  final what = m.trail.status == OfficialStatus.closed ? 'gesperrt' : 'Abschnitt gesperrt';
+  if (!m.onClosed) return l.officialClosureElsewhere(by);
   final at = m.trail.updated;
-  return '$what laut $by${at == null ? '' : ', Stand ${formatIsoDateDe(at)}'}';
+  final date = at == null ? null : formatIsoDate(l, at);
+  return m.trail.status == OfficialStatus.closed
+      ? (date == null ? l.officialClosureClosed(by) : l.officialClosureClosedAt(by, date))
+      : (date == null ? l.officialClosurePart(by) : l.officialClosurePartAt(by, date));
 }
 
 /// „Auch ausgeschildert als …" im Trail-Blatt (#13, Schritt 4): die
@@ -75,6 +79,7 @@ class _OfficialSignpostsState extends ConsumerState<OfficialSignposts> {
     }
     if (_matches.isEmpty) return const SizedBox.shrink();
     final text = Theme.of(context).textTheme;
+    final l = context.l10n;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -95,11 +100,11 @@ class _OfficialSignpostsState extends ConsumerState<OfficialSignposts> {
                 Expanded(
                   child: Text(
                     [
-                      officialOverlapLine(m.overlap, m.trail.name),
+                      officialOverlapLine(l, m.overlap, m.trail.name),
                       // Gesperrt kommt von der Quelle, nicht von einem
                       // Buddy — der Satz sagt, von wem.
-                      ?officialClosureLine(
-                          m, state.sourceOf(m.trail)?.attribution ?? 'Quelle'),
+                      ?officialClosureLine(l, m,
+                          state.sourceOf(m.trail)?.attribution ?? l.officialSourceFallback),
                     ].join(' · '),
                     style: text.bodyMedium,
                   ),

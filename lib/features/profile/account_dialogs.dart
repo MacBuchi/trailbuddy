@@ -136,7 +136,7 @@ class _ChangeEmailDialogState extends ConsumerState<_ChangeEmailDialog> {
           );
       if (mounted) setState(() => _codesPhase = true);
     } on AuthException catch (e) {
-      if (mounted) setState(() => _error = emailChangeErrorMessage(e));
+      if (mounted) setState(() => _error = emailChangeErrorMessage(context.l10n, e));
     } catch (e, stackTrace) {
       logError('E-Mail ändern', e, stackTrace);
       if (mounted) setState(() => _error = friendlyError(e));
@@ -166,7 +166,7 @@ class _ChangeEmailDialogState extends ConsumerState<_ChangeEmailDialog> {
         SnackBar(content: Text(l.accountEmailChanged)),
       );
     } on AuthException catch (e) {
-      if (mounted) setState(() => _error = emailChangeErrorMessage(e));
+      if (mounted) setState(() => _error = emailChangeErrorMessage(l, e));
     } catch (e, stackTrace) {
       logError('E-Mail ändern bestätigen', e, stackTrace);
       if (mounted) setState(() => _error = friendlyError(e));
@@ -396,7 +396,7 @@ class _ChangeUsernameDialogState extends ConsumerState<_ChangeUsernameDialog> {
   /// Solange nichts eingetippt wurde, meldet sie nichts: Ein Dialog, der
   /// sich beim Öffnen selbst beschwert, liest sich wie ein Fehler.
   String? get _problem =>
-      _trimmed.isEmpty ? null : usernameProblem(_trimmed);
+      _trimmed.isEmpty ? null : usernameProblem(context.l10n, _trimmed);
 
   bool get _canSave =>
       _problem == null && _trimmed.isNotEmpty && _trimmed != widget.current;
@@ -419,10 +419,10 @@ class _ChangeUsernameDialogState extends ConsumerState<_ChangeUsernameDialog> {
     } catch (e, stackTrace) {
       // Der vergebene Name ist der erwartbare Fall und KEIN Fall für
       // error_reports — nur Unerwartetes wird gemeldet.
-      if (usernameChangeErrorMessage(e) == friendlyError(e)) {
+      if (usernameChangeErrorMessage(l, e) == friendlyError(e)) {
         logError('Benutzername ändern', e, stackTrace);
       }
-      if (mounted) setState(() => _error = usernameChangeErrorMessage(e));
+      if (mounted) setState(() => _error = usernameChangeErrorMessage(l, e));
     } finally {
       if (mounted) setState(() => _busy = false);
     }

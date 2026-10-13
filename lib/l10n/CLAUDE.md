@@ -98,9 +98,22 @@ entsteht zuerst dort) und `app_en.arb`; gelesen mit `context.l10n.<key>`
   `serviceL10n()`, wie bei der Aufnahme. `OutsideRegions.message(l)`
   nimmt `l`; ihr `toString` ist kein Satz mehr. Der Namensvorschlag
   „Bereich vom …“ nimmt sein Datumsmuster aus `areaSaveDatePattern`.
-  Noch keiner Stufe zugeordnet (g2): Anmelden und Registrieren
-  (`lib/features/auth/`) und `lib/features/official/` (das Blatt eines
-  offiziellen Trails). Namen von Runde und Weg (`loopName`, `routeName*`) gehen
+  (g2) Anmelden, Registrieren und offizielle Trails 0.117.8 — alles unter
+  `lib/features/auth/` (Schlüssel `login*`, `signup*`, `auth*`) und das
+  Blatt eines offiziellen Trails samt „Auch ausgeschildert als …" im
+  Trail-Blatt (`official*`). Mit umgezogen, weil Login und Profil sie
+  teilen: die Fehlertexte in `lib/core/errors.dart` (`loginErrorMessage`,
+  `resetErrorMessage`, `signupErrorMessage`, `confirmErrorMessage`,
+  `emailChangeErrorMessage`, `changePasswordErrorMessage`,
+  `usernameChangeErrorMessage` — alle mit `l` als erstem Parameter;
+  `authError*`), `usernameProblem(l, …)` (`username*`), Passwortfeld und
+  „Erneut senden in … s" (`password*`, `resendIn`). Der Stand der Quelle
+  kommt aus `formatIsoDate(l, …)` mit `officialDatePattern`; ein Test
+  ohne Widget-Baum ruft dafür `initializeDateFormatting` (die App lädt
+  die Datumsdaten über die Material-Delegates). Noch deutsch: der
+  Ersatzname „Ohne Namen" beim Lesen der Quelldatei. Vor dem Lösen der
+  Sprache bleiben `friendlyError`, `staleAfterWriteHint`, `kQueuedHint`,
+  die Getter in `lib/models/trail.dart` und `GpxFormatException`. Namen von Runde und Weg (`loopName`, `routeName*`) gehen
   in die gespeicherte Fahrt und die GPX-Datei — sie bleiben in der
   Sprache, in der geplant wurde.
 - **Texte des Dienstes** (Benachrichtigung der Aufnahme, Fragen

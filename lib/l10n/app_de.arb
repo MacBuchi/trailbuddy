@@ -7748,5 +7748,481 @@
   "areaErrorRefreshFailed": "Die Karte ließ sich nicht ganz aktualisieren. Was schon neu geladen ist, bleibt.",
   "@areaErrorRefreshFailed": {
     "description": "Fehler beim Aktualisieren einer Region."
+  },
+  "officialOverlapSame": "Auch ausgeschildert als „{name}\"",
+  "@officialOverlapSame": {
+    "description": "Zeile im Trail-Blatt: Der Trail des Netzes deckt sich mit einem offiziellen Trail; name = dessen Name.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "officialOverlapPartOf": "Teil des offiziellen Trails „{name}\"",
+  "@officialOverlapPartOf": {
+    "description": "Zeile im Trail-Blatt: Der Trail ist Teil eines offiziellen Trails.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "officialOverlapContains": "Enthält den offiziellen Trail „{name}\"",
+  "@officialOverlapContains": {
+    "description": "Zeile im Trail-Blatt: Der Trail enthält einen offiziellen Trail.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "officialClosureElsewhere": "anderer Abschnitt gesperrt laut {by}",
+  "@officialClosureElsewhere": {
+    "description": "Anhang an die Zeile im Trail-Blatt: Die Sperre liegt nicht auf diesem Trail; by = Herausgeber der Quelle (z. B. „Land Tirol\").",
+    "placeholders": {
+      "by": {
+        "type": "String"
+      }
+    }
+  },
+  "officialClosureClosed": "gesperrt laut {by}",
+  "@officialClosureClosed": {
+    "description": "Anhang im Trail-Blatt: ganz gesperrt laut Quelle, ohne Datum.",
+    "placeholders": {
+      "by": {
+        "type": "String"
+      }
+    }
+  },
+  "officialClosureClosedAt": "gesperrt laut {by}, Stand {date}",
+  "@officialClosureClosedAt": {
+    "description": "Anhang im Trail-Blatt: ganz gesperrt, mit Stand der Quelle; date nach officialDatePattern.",
+    "placeholders": {
+      "by": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "officialClosurePart": "Abschnitt gesperrt laut {by}",
+  "@officialClosurePart": {
+    "description": "Anhang im Trail-Blatt: ein Abschnitt auf diesem Trail ist gesperrt, ohne Datum.",
+    "placeholders": {
+      "by": {
+        "type": "String"
+      }
+    }
+  },
+  "officialClosurePartAt": "Abschnitt gesperrt laut {by}, Stand {date}",
+  "@officialClosurePartAt": {
+    "description": "Anhang im Trail-Blatt: ein Abschnitt auf diesem Trail ist gesperrt, mit Stand.",
+    "placeholders": {
+      "by": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "officialStatusOpen": "Freigegeben laut {by}.",
+  "@officialStatusOpen": {
+    "description": "Status im Blatt eines offiziellen Trails: freigegeben.",
+    "placeholders": {
+      "by": {
+        "type": "String"
+      }
+    }
+  },
+  "officialStatusPartly": "Teilweise gesperrt laut {by} — die gesperrten Teile sind grau.",
+  "@officialStatusPartly": {
+    "description": "Status im Blatt eines offiziellen Trails: teilweise gesperrt, ohne Datum.",
+    "placeholders": {
+      "by": {
+        "type": "String"
+      }
+    }
+  },
+  "officialStatusPartlyAt": "Teilweise gesperrt laut {by}, Stand {date} — die gesperrten Teile sind grau.",
+  "@officialStatusPartlyAt": {
+    "description": "Status im Blatt eines offiziellen Trails: teilweise gesperrt, mit Stand.",
+    "placeholders": {
+      "by": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "officialStatusClosed": "Gesperrt laut {by}.",
+  "@officialStatusClosed": {
+    "description": "Status im Blatt eines offiziellen Trails: gesperrt, ohne Datum.",
+    "placeholders": {
+      "by": {
+        "type": "String"
+      }
+    }
+  },
+  "officialStatusClosedAt": "Gesperrt laut {by}, Stand {date}.",
+  "@officialStatusClosedAt": {
+    "description": "Status im Blatt eines offiziellen Trails: gesperrt, mit Stand.",
+    "placeholders": {
+      "by": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "officialSourceFallback": "Quelle",
+  "@officialSourceFallback": {
+    "description": "Ersatz für den Herausgeber, wenn die Quelle unbekannt ist; steht nach „laut\"."
+  },
+  "officialSheetKind": "Offizieller Singletrail",
+  "@officialSheetKind": {
+    "description": "Untertitel im Blatt eines offiziellen Trails."
+  },
+  "officialSheetDifficulty": "Schwierigkeit laut Quelle: {difficulty}",
+  "@officialSheetDifficulty": {
+    "description": "Schwierigkeit im Wortlaut der Quelle (kein S-Grad).",
+    "placeholders": {
+      "difficulty": {
+        "type": "String"
+      }
+    }
+  },
+  "officialSheetDisclaimer": "Ausgewiesen laut Quelle. Über andere Trails sagt diese Ebene nichts.",
+  "@officialSheetDisclaimer": {
+    "description": "Kleingedrucktes im Blatt eines offiziellen Trails."
+  },
+  "officialSheetSource": "Quelle: {name} · {license}",
+  "@officialSheetSource": {
+    "description": "Quellenangabe im Blatt; name = Quelle, license = Lizenz.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "license": {
+        "type": "String"
+      }
+    }
+  },
+  "officialSheetSourceAt": "Quelle: {name} · {license} · Stand {date}",
+  "@officialSheetSourceAt": {
+    "description": "Quellenangabe mit Stand; date nach officialDatePattern.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "license": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "officialSheetOpenSource": "Bei der Quelle ansehen",
+  "@officialSheetOpenSource": {
+    "description": "Knopf im Blatt eines offiziellen Trails: öffnet die Seite der Quelle."
+  },
+  "officialDatePattern": "dd.MM.yyyy",
+  "@officialDatePattern": {
+    "description": "Datumsmuster (intl DateFormat) für den Stand der Quelle."
+  },
+  "authEmailLabel": "E-Mail",
+  "@authEmailLabel": {
+    "description": "Feld auf Anmelden und Registrieren."
+  },
+  "authPasswordLabel": "Passwort",
+  "@authPasswordLabel": {
+    "description": "Feld auf dem Anmelde-Screen."
+  },
+  "authCodeLabel": "Code aus der Mail",
+  "@authCodeLabel": {
+    "description": "Feld für den Code aus der Mail (Passwort zurücksetzen, Adresse bestätigen)."
+  },
+  "authCodeMissing": "Bitte den Code aus der Mail eingeben.",
+  "@authCodeMissing": {
+    "description": "Hinweis, wenn der Code fehlt."
+  },
+  "loginTagline": "Trails teilen — nur mit deinen Buddys.",
+  "@loginTagline": {
+    "description": "Satz unter der Wortmarke auf dem Anmelde-Screen."
+  },
+  "loginInvalidEmail": "Bitte eine gültige E-Mail-Adresse angeben.",
+  "@loginInvalidEmail": {
+    "description": "Hinweis beim Anfordern des Codes ohne gültige Adresse."
+  },
+  "loginCodeSent": "Wenn es zu {email} ein Konto gibt, ist ein Code unterwegs. Er gilt eine Stunde.",
+  "@loginCodeSent": {
+    "description": "Nach „Code anfordern\" — bewusst gleich, ob es das Konto gibt oder nicht.",
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "loginCodeResent": "Wenn es zu {email} ein Konto gibt, ist ein neuer Code unterwegs. Er gilt eine Stunde.",
+  "@loginCodeResent": {
+    "description": "Nach „Erneut senden\" — bewusst gleich, ob es das Konto gibt oder nicht.",
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "loginNewPasswordTooShort": "{min, plural, =1{Das neue Passwort braucht mindestens 1 Zeichen.} other{Das neue Passwort braucht mindestens {min} Zeichen.}}",
+  "@loginNewPasswordTooShort": {
+    "description": "Hinweis beim Zurücksetzen: neues Passwort zu kurz.",
+    "placeholders": {
+      "min": {
+        "type": "int"
+      }
+    }
+  },
+  "loginPasswordsDiffer": "Die beiden Passwörter stimmen nicht überein.",
+  "@loginPasswordsDiffer": {
+    "description": "Hinweis beim Zurücksetzen: Wiederholung weicht ab."
+  },
+  "loginSignIn": "Anmelden",
+  "@loginSignIn": {
+    "description": "Hauptknopf auf dem Anmelde-Screen."
+  },
+  "loginRequestCode": "Code anfordern",
+  "@loginRequestCode": {
+    "description": "Hauptknopf im Modus „Passwort vergessen\"."
+  },
+  "loginSaveNewPassword": "Neues Passwort speichern",
+  "@loginSaveNewPassword": {
+    "description": "Hauptknopf im Modus „Code eingeben\"."
+  },
+  "loginNewPasswordLabel": "{min, plural, =1{Neues Passwort (mind. 1 Zeichen)} other{Neues Passwort (mind. {min} Zeichen)}}",
+  "@loginNewPasswordLabel": {
+    "description": "Feld für das neue Passwort beim Zurücksetzen.",
+    "placeholders": {
+      "min": {
+        "type": "int"
+      }
+    }
+  },
+  "loginRepeatPasswordLabel": "Neues Passwort wiederholen",
+  "@loginRepeatPasswordLabel": {
+    "description": "Feld für die Wiederholung des neuen Passworts."
+  },
+  "loginForgot": "Passwort vergessen?",
+  "@loginForgot": {
+    "description": "Textknopf unter „Anmelden\"."
+  },
+  "loginToSignup": "Noch kein Konto? Registrieren",
+  "@loginToSignup": {
+    "description": "Textknopf zum Registrieren."
+  },
+  "loginResendCode": "Code nicht angekommen? Erneut senden",
+  "@loginResendCode": {
+    "description": "Knopf, der den Code zum Zurücksetzen noch einmal schickt."
+  },
+  "loginBack": "Zurück zur Anmeldung",
+  "@loginBack": {
+    "description": "Textknopf aus „Passwort vergessen\" zurück."
+  },
+  "signupTitle": "Registrieren",
+  "@signupTitle": {
+    "description": "Titel des Registrieren-Screens."
+  },
+  "signupPasswordTooShort": "{min, plural, =1{Das Passwort braucht mindestens 1 Zeichen.} other{Das Passwort braucht mindestens {min} Zeichen.}}",
+  "@signupPasswordTooShort": {
+    "description": "Leiste beim Registrieren: Passwort zu kurz.",
+    "placeholders": {
+      "min": {
+        "type": "int"
+      }
+    }
+  },
+  "signupMailResent": "Die Bestätigungsmail ist noch einmal unterwegs.",
+  "@signupMailResent": {
+    "description": "Nach „Erneut senden\" in der Bestätigungsansicht."
+  },
+  "signupAlmostDone": "Fast geschafft!",
+  "@signupAlmostDone": {
+    "description": "Überschrift der Bestätigungsansicht nach dem Registrieren."
+  },
+  "signupCodeSentTo": "Wir haben einen Code an {email} geschickt. Gib ihn hier ein, dann geht es direkt weiter.",
+  "@signupCodeSentTo": {
+    "description": "Text der Bestätigungsansicht.",
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "signupConfirm": "Adresse bestätigen",
+  "@signupConfirm": {
+    "description": "Knopf in der Bestätigungsansicht."
+  },
+  "signupResendMail": "Mail nicht angekommen? Erneut senden",
+  "@signupResendMail": {
+    "description": "Knopf, der die Bestätigungsmail noch einmal schickt."
+  },
+  "signupUsernameLabel": "Benutzername",
+  "@signupUsernameLabel": {
+    "description": "Feld beim Registrieren."
+  },
+  "signupUsernameHelper": "Darüber können Buddys dich finden.",
+  "@signupUsernameHelper": {
+    "description": "Hilfetext unter dem Benutzernamen."
+  },
+  "signupPasswordLabel": "{min, plural, =1{Passwort (mind. 1 Zeichen)} other{Passwort (mind. {min} Zeichen)}}",
+  "@signupPasswordLabel": {
+    "description": "Passwortfeld beim Registrieren.",
+    "placeholders": {
+      "min": {
+        "type": "int"
+      }
+    }
+  },
+  "signupCreate": "Konto erstellen",
+  "@signupCreate": {
+    "description": "Hauptknopf beim Registrieren."
+  },
+  "signupToLogin": "Schon ein Konto? Anmelden",
+  "@signupToLogin": {
+    "description": "Textknopf zurück zum Anmelden."
+  },
+  "usernameTooShort": "{min, plural, =1{Der Benutzername braucht mindestens 1 Zeichen.} other{Der Benutzername braucht mindestens {min} Zeichen.}}",
+  "@usernameTooShort": {
+    "description": "Prüfung des Benutzernamens (Registrieren und Profil).",
+    "placeholders": {
+      "min": {
+        "type": "int"
+      }
+    }
+  },
+  "usernameLooksLikeEmail": "Das sieht nach einer E-Mail-Adresse aus. Dein Benutzername ist für alle sichtbar — nimm lieber einen Namen.",
+  "@usernameLooksLikeEmail": {
+    "description": "Prüfung des Benutzernamens: sieht aus wie eine Adresse."
+  },
+  "authErrorEmailNotConfirmed": "Bitte bestätige zuerst deine E-Mail-Adresse — die Mail dazu liegt in deinem Postfach.",
+  "@authErrorEmailNotConfirmed": {
+    "description": "Anmelden scheitert: Adresse noch nicht bestätigt."
+  },
+  "authErrorWrongCredentials": "E-Mail oder Passwort falsch.",
+  "@authErrorWrongCredentials": {
+    "description": "Anmelden scheitert: falsche Zugangsdaten."
+  },
+  "authErrorLoginFailed": "Anmeldung fehlgeschlagen: {message}",
+  "@authErrorLoginFailed": {
+    "description": "Anmelden scheitert sonst; message = Text des Servers (englisch).",
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "authErrorCodeInvalid": "Der Code ist falsch oder abgelaufen — bitte einen neuen anfordern.",
+  "@authErrorCodeInvalid": {
+    "description": "Code aus der Mail abgelehnt (Zurücksetzen, Bestätigen, Adresswechsel)."
+  },
+  "authErrorWeakPassword": "Dieses Passwort ist zu unsicher — bitte ein anderes wählen.",
+  "@authErrorWeakPassword": {
+    "description": "Neues Passwort abgelehnt: zu schwach."
+  },
+  "authErrorSamePassword": "Das ist das bisherige Passwort — bitte ein neues wählen.",
+  "@authErrorSamePassword": {
+    "description": "Neues Passwort abgelehnt: dasselbe wie bisher."
+  },
+  "authErrorResetFailed": "Zurücksetzen fehlgeschlagen: {message}",
+  "@authErrorResetFailed": {
+    "description": "Zurücksetzen scheitert sonst; message = Text des Servers.",
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "authErrorAccountExists": "Für diese E-Mail gibt es schon ein Konto.",
+  "@authErrorAccountExists": {
+    "description": "Registrieren scheitert: Adresse vergeben."
+  },
+  "authErrorUsernameTaken": "Dieser Benutzername ist schon vergeben.",
+  "@authErrorUsernameTaken": {
+    "description": "Registrieren oder Namenswechsel scheitert: Name vergeben."
+  },
+  "authErrorSignupFailed": "Registrierung fehlgeschlagen: {message}",
+  "@authErrorSignupFailed": {
+    "description": "Registrieren scheitert sonst; message = Text des Servers.",
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "authErrorEmailExists": "Für diese Adresse gibt es schon ein Konto.",
+  "@authErrorEmailExists": {
+    "description": "Adresswechsel im Profil scheitert: Adresse vergeben."
+  },
+  "authErrorWrongCurrentPassword": "Das aktuelle Passwort stimmt nicht.",
+  "@authErrorWrongCurrentPassword": {
+    "description": "Adress- oder Passwortwechsel im Profil: aktuelles Passwort falsch."
+  },
+  "authErrorEmailChangeFailed": "Adresswechsel fehlgeschlagen: {message}",
+  "@authErrorEmailChangeFailed": {
+    "description": "Adresswechsel scheitert sonst; message = Text des Servers.",
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "authErrorMailRateLimit": "Es ist gerade eine Mail rausgegangen — bitte eine Minute warten.",
+  "@authErrorMailRateLimit": {
+    "description": "Bestätigungsmail zu schnell erneut angefordert."
+  },
+  "authErrorConfirmFailed": "Bestätigung fehlgeschlagen: {message}",
+  "@authErrorConfirmFailed": {
+    "description": "Bestätigen der Adresse scheitert sonst; message = Text des Servers.",
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "authErrorChangeFailed": "Ändern fehlgeschlagen: {message}",
+  "@authErrorChangeFailed": {
+    "description": "Passwortwechsel im Profil scheitert sonst; message = Text des Servers.",
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "passwordShow": "Passwort anzeigen",
+  "@passwordShow": {
+    "description": "Tooltip am Auge im Passwortfeld."
+  },
+  "passwordHide": "Passwort verbergen",
+  "@passwordHide": {
+    "description": "Tooltip am Auge im Passwortfeld."
+  },
+  "passwordsMatch": "Passwörter stimmen überein",
+  "@passwordsMatch": {
+    "description": "Hinweis unter der Wiederholung des Passworts."
+  },
+  "passwordsDontMatch": "Passwörter stimmen noch nicht überein",
+  "@passwordsDontMatch": {
+    "description": "Hinweis unter der Wiederholung des Passworts."
+  },
+  "resendIn": "Erneut senden in {seconds} s",
+  "@resendIn": {
+    "description": "Knopf „Erneut senden\" während der Wartezeit; seconds = verbleibende Sekunden.",
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
   }
 }

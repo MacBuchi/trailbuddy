@@ -2,12 +2,18 @@
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:trailbuddy/features/official/official_trails.dart';
 import 'package:trailbuddy/features/official/official_trails_layer.dart';
 
 import '../fakes/fake_official_trails.dart';
+import '../fakes/l10n_de.dart';
 
 void main() {
+  // Die App lädt die Datumsdaten über die Material-Delegates; ein Test
+  // ohne Widget-Baum muss es selbst tun (`formatIsoDate`).
+  setUpAll(() => initializeDateFormatting('de'));
+
   test('Index: Region mit Rahmen, Stand und Quelle', () {
     final i = OfficialIndex.parse(fakeIndex());
     final r = i.regions.single;
@@ -60,11 +66,11 @@ void main() {
   });
 
   test('Status und Datum sagen, von wem sie kommen', () {
-    expect(officialStatusLine(OfficialStatus.closed, 'Land Tirol'),
+    expect(officialStatusLine(l10nDe, OfficialStatus.closed, 'Land Tirol'),
         'Gesperrt laut Land Tirol.');
-    expect(officialStatusLine(OfficialStatus.open, 'Land Tirol'),
+    expect(officialStatusLine(l10nDe, OfficialStatus.open, 'Land Tirol'),
         'Freigegeben laut Land Tirol.');
-    expect(formatIsoDateDe('2026-05-19'), '19.05.2026');
-    expect(formatIsoDateDe('Mai'), 'Mai');
+    expect(formatIsoDate(l10nDe, '2026-05-19'), '19.05.2026');
+    expect(formatIsoDate(l10nDe, 'Mai'), 'Mai');
   });
 }

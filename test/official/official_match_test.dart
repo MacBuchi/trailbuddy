@@ -3,10 +3,13 @@
 import 'dart:math' as math;
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:trailbuddy/features/official/official_match.dart';
 import 'package:trailbuddy/features/official/official_signposts.dart';
 import 'package:trailbuddy/features/official/official_trails.dart';
+
+import '../fakes/l10n_de.dart';
 
 /// Meter östlich/nördlich eines ausgedachten Nullpunkts.
 LatLng _at(double x, double y) => LatLng(48 + y / 111195.0,
@@ -44,6 +47,10 @@ OfficialOverlap? _overlap(List<LatLng> net, OfficialTrail t) =>
     matchOfficial(net, [t]).map((m) => m.overlap).firstOrNull;
 
 void main() {
+  // Die App lädt die Datumsdaten über die Material-Delegates; ein Test
+  // ohne Widget-Baum muss es selbst tun (`formatIsoDate`).
+  setUpAll(() => initializeDateFormatting('de'));
+
   test('dieselbe Linie, 8 m daneben: derselbe Trail', () {
     expect(_overlap(_line(0, 600, y: 8), _official([_line(0, 600)])),
         OfficialOverlap.same);
@@ -103,7 +110,7 @@ void main() {
       final m = _match(_line(0, 600, y: 8),
           _official([_line(0, 600)], closed: [true], updated: '2026-09-28'));
       expect(m.onClosed, isTrue);
-      expect(officialClosureLine(m, 'Land Tirol'), 'gesperrt laut Land Tirol, Stand 28.09.2026');
+      expect(officialClosureLine(l10nDe, m, 'Land Tirol'), 'gesperrt laut Land Tirol, Stand 28.09.2026');
     });
 
     test('gesperrte Variante liegt woanders: nicht darauf, und der Satz sagt es', () {
@@ -112,7 +119,7 @@ void main() {
           _official([_line(0, 600), _line(0, 400, y: 200)],
               variants: [false, true], closed: [false, true]));
       expect(m.onClosed, isFalse);
-      expect(officialClosureLine(m, 'Land Tirol'), 'anderer Abschnitt gesperrt laut Land Tirol');
+      expect(officialClosureLine(l10nDe, m, 'Land Tirol'), 'anderer Abschnitt gesperrt laut Land Tirol');
     });
 
     test('gesperrte Variante liegt auf dem Trail: Abschnitt gesperrt', () {
@@ -122,7 +129,7 @@ void main() {
           _official([_line(0, 600), _line(0, 400, y: 200)],
               variants: [false, true], closed: [false, true]));
       expect(m.onClosed, isTrue);
-      expect(officialClosureLine(m, 'Land Tirol'), 'Abschnitt gesperrt laut Land Tirol');
+      expect(officialClosureLine(l10nDe, m, 'Land Tirol'), 'Abschnitt gesperrt laut Land Tirol');
     });
 
     test('ein gesperrtes Stück, das der Trail nur quert: nicht darauf', () {
@@ -142,7 +149,7 @@ void main() {
     });
 
     test('offen: kein Satz', () {
-      expect(officialClosureLine(_match(_line(0, 600), _official([_line(0, 600)])), 'X'),
+      expect(officialClosureLine(l10nDe, _match(_line(0, 600), _official([_line(0, 600)])), 'X'),
           isNull);
     });
   });

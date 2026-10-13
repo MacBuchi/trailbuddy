@@ -7,12 +7,16 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:trailbuddy/core/app_distribution.dart';
 import 'package:trailbuddy/core/app_info.dart';
 import 'package:trailbuddy/features/friends/connect_summary.dart';
 import 'package:trailbuddy/features/map/map_legend.dart';
 import 'package:trailbuddy/features/map/poi.dart';
 import 'package:trailbuddy/features/map/way_layer.dart';
+import 'package:trailbuddy/features/official/official_trails.dart' show OfficialStatus;
+import 'package:trailbuddy/features/official/official_trails_layer.dart' show officialStatusLine;
+import 'package:trailbuddy/models/profile.dart' show usernameProblem;
 import 'package:trailbuddy/features/offline_areas/area_providers.dart' show OutsideRegions;
 import 'package:trailbuddy/features/rides/ride_confirm.dart';
 import 'package:trailbuddy/features/rides/ride_track.dart';
@@ -617,6 +621,32 @@ void main() {
       expect(l10nDe.areasLoads('12 MB', 3), 'Lädt 12 MB · 3 Kacheln');
       expect(const OutsideRegions(['DACH', 'Canada']).message(en),
           'There is no map to save here — maps exist for DACH, Canada.');
+    });
+  });
+
+  // Stufe (g2): Anmelden, Registrieren und das Blatt eines offiziellen
+  // Trails.
+  group('Anmelden und offizielle Trails auf Englisch', () {
+    setUpAll(() => initializeDateFormatting('en'));
+
+    testWidgets('Anmelden und Registrieren', (tester) async {
+      await pumpApp(tester, FakeBackend(),
+          extraOverrides: [appLocaleProvider.overrideWithValue(const Locale('en'))]);
+      expect(find.text('Share trails — only with your buddies.'), findsOneWidget);
+      expect(find.widgetWithText(FilledButton, 'Sign in'), findsOneWidget);
+      expect(find.text('Anmelden'), findsNothing);
+      await tester.tap(find.text('No account yet? Sign up'));
+      await tester.pumpAndSettle();
+      expect(find.text('Create account'), findsOneWidget);
+      expect(find.text('Password (at least 8 characters)'), findsOneWidget);
+    });
+
+    test('Sätze der Quelle und Prüfungen', () {
+      final en = lookupAppLocalizations(const Locale('en'));
+      expect(officialStatusLine(en, OfficialStatus.closed, 'Land Tirol', updated: '2026-09-28'),
+          'Closed according to Land Tirol, as of 28 Sep 2026.');
+      expect(usernameProblem(en, 'ab'), 'The username needs at least 3 characters.');
+      expect(en.resendIn(42), 'Send again in 42 s');
     });
   });
 }
