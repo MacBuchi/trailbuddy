@@ -7,6 +7,7 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../l10n/l10n.dart';
 import 'photo_pipeline.dart';
 
 /// Empfänger für Fehlerberichte. `main()` hängt hier das Schreiben nach
@@ -304,19 +305,18 @@ String friendlyError(Object error) {
 
 /// Login-Fehler → Meldung. Bevorzugt den typisierten Supabase-Fehlercode;
 /// der HTTP-Status bleibt als Fallback für ältere Server.
-String loginErrorMessage(AuthException error) {
+String loginErrorMessage(AppLocalizations l, AuthException error) {
   // Vor der Standardmeldung prüfen: Die unbestätigte Adresse kommt zwar
   // auch als 400, ist aber etwas völlig anderes als ein falsches Passwort
   // — wer hier „E-Mail oder Passwort falsch" liest, sucht den Fehler an
   // der falschen Stelle.
   if (error.code == 'email_not_confirmed') {
-    return 'Bitte bestätige zuerst deine E-Mail-Adresse — die Mail dazu '
-        'liegt in deinem Postfach.';
+    return l.authErrorEmailNotConfirmed;
   }
   if (error.code == 'invalid_credentials' || error.statusCode == '400') {
-    return 'E-Mail oder Passwort falsch.';
+    return l.authErrorWrongCredentials;
   }
-  return 'Anmeldung fehlgeschlagen: ${error.message}';
+  return l.authErrorLoginFailed(error.message);
 }
 
 /// Fehler beim Einlösen eines Reset-Codes → Meldung.
@@ -325,32 +325,31 @@ String loginErrorMessage(AuthException error) {
 /// braucht eine Meldung, die zum nächsten Schritt führt. `weak_password`
 /// kommt aus der Passwort-Prüfung von Supabase — dort ist „zu kurz"
 /// falsch, das Passwort kann auch bekannt geleakt sein.
-String resetErrorMessage(AuthException error) {
+String resetErrorMessage(AppLocalizations l, AuthException error) {
   if (error.code == 'otp_expired' || error.statusCode == '403') {
-    return 'Der Code ist falsch oder abgelaufen — bitte einen neuen '
-        'anfordern.';
+    return l.authErrorCodeInvalid;
   }
   if (error.code == 'weak_password') {
-    return 'Dieses Passwort ist zu unsicher — bitte ein anderes wählen.';
+    return l.authErrorWeakPassword;
   }
   if (error.code == 'same_password') {
-    return 'Das ist das bisherige Passwort — bitte ein neues wählen.';
+    return l.authErrorSamePassword;
   }
-  return 'Zurücksetzen fehlgeschlagen: ${error.message}';
+  return l.authErrorResetFailed(error.message);
 }
 
 /// Registrierungs-Fehler → Meldung. `user_already_exists` ist typisiert;
 /// der "Database error saving new user"-Fall ist ein 500 aus dem
 /// Profil-Trigger OHNE Fehlercode (unique-Verletzung am Benutzernamen) —
 /// dieses String-Matching ist unvermeidbar und per Test festgenagelt.
-String signupErrorMessage(AuthException error) {
+String signupErrorMessage(AppLocalizations l, AuthException error) {
   if (error.code == 'user_already_exists') {
-    return 'Für diese E-Mail gibt es schon ein Konto.';
+    return l.authErrorAccountExists;
   }
   if (error.message.contains('Database error saving new user')) {
-    return 'Dieser Benutzername ist schon vergeben.';
+    return l.authErrorUsernameTaken;
   }
-  return 'Registrierung fehlgeschlagen: ${error.message}';
+  return l.authErrorSignupFailed(error.message);
 }
 
 /// Fehler beim Ändern des Benutzernamens → Meldung.
@@ -360,9 +359,9 @@ String signupErrorMessage(AuthException error) {
 /// unique-Verletzung = SQLSTATE 23505. Derselbe Text wie bei der
 /// Registrierung — es ist derselbe Fall, und zwei Formulierungen für
 /// eine Ursache wären Rätselraten.
-String usernameChangeErrorMessage(Object error) {
+String usernameChangeErrorMessage(AppLocalizations l, Object error) {
   if (error is PostgrestException && error.code == '23505') {
-    return 'Dieser Benutzername ist schon vergeben.';
+    return l.authErrorUsernameTaken;
   }
   return friendlyError(error);
 }
@@ -374,18 +373,17 @@ String usernameChangeErrorMessage(Object error) {
 /// längst beim Namen — Konsistenz statt Scheinschutz. `invalid_credentials`
 /// kommt aus der vorgeschalteten frischen Anmeldung (Muster
 /// Passwortwechsel), `otp_expired` aus einem falsch abgetippten Code.
-String emailChangeErrorMessage(AuthException error) {
+String emailChangeErrorMessage(AppLocalizations l, AuthException error) {
   if (error.code == 'email_exists') {
-    return 'Für diese Adresse gibt es schon ein Konto.';
+    return l.authErrorEmailExists;
   }
   if (error.code == 'invalid_credentials' || error.statusCode == '400') {
-    return 'Das aktuelle Passwort stimmt nicht.';
+    return l.authErrorWrongCurrentPassword;
   }
   if (error.code == 'otp_expired' || error.statusCode == '403') {
-    return 'Der Code ist falsch oder abgelaufen — bitte einen neuen '
-        'anfordern.';
+    return l.authErrorCodeInvalid;
   }
-  return 'Adresswechsel fehlgeschlagen: ${error.message}';
+  return l.authErrorEmailChangeFailed(error.message);
 }
 
 /// Fehler beim Bestätigen der Adresse (Code aus der Mail) und beim erneuten
@@ -396,16 +394,15 @@ String emailChangeErrorMessage(AuthException error) {
 /// den Leser in die falsche Richtung. Dazu kommt das Rate Limit, das es beim
 /// Reset praktisch nicht gibt, beim „Erneut senden" aber der häufigste Fall
 /// ist.
-String confirmErrorMessage(AuthException error) {
+String confirmErrorMessage(AppLocalizations l, AuthException error) {
   if (error.code == 'otp_expired' || error.statusCode == '403') {
-    return 'Der Code ist falsch oder abgelaufen — bitte einen neuen '
-        'anfordern.';
+    return l.authErrorCodeInvalid;
   }
   if (error.code == 'over_email_send_rate_limit' ||
       error.statusCode == '429') {
-    return 'Es ist gerade eine Mail rausgegangen — bitte eine Minute warten.';
+    return l.authErrorMailRateLimit;
   }
-  return 'Bestätigung fehlgeschlagen: ${error.message}';
+  return l.authErrorConfirmFailed(error.message);
 }
 
 /// Fehler beim Ändern des Passworts durch Angemeldete → Meldung.
@@ -416,15 +413,15 @@ String confirmErrorMessage(AuthException error) {
 /// Die typisierten Codes stehen bewusst VOR dem Status-Fallback: Ein
 /// abgelehntes neues Passwort kommt je nach Server-Version auch als 400 an
 /// und läse sich sonst als „aktuelles Passwort falsch".
-String changePasswordErrorMessage(AuthException error) {
+String changePasswordErrorMessage(AppLocalizations l, AuthException error) {
   if (error.code == 'weak_password') {
-    return 'Dieses Passwort ist zu unsicher — bitte ein anderes wählen.';
+    return l.authErrorWeakPassword;
   }
   if (error.code == 'same_password') {
-    return 'Das ist das bisherige Passwort — bitte ein neues wählen.';
+    return l.authErrorSamePassword;
   }
   if (error.code == 'invalid_credentials' || error.statusCode == '400') {
-    return 'Das aktuelle Passwort stimmt nicht.';
+    return l.authErrorWrongCurrentPassword;
   }
-  return 'Ändern fehlgeschlagen: ${error.message}';
+  return l.authErrorChangeFailed(error.message);
 }

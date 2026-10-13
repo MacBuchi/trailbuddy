@@ -55,13 +55,15 @@ List<MapViewPolyline> officialPolylines(OfficialTrailsState state) => [
 /// Die Aussage über den Status — immer mit der Quelle, denn sie kommt von
 /// dort und nicht von einem Buddy; eine Sperre mit dem Stand der Quelle
 /// (#41: „gesperrt laut Quelle, Stand Datum", nie ein Urteil der App).
-String officialStatusLine(OfficialStatus status, String by, {String? updated}) {
-  final at = updated == null ? '' : ', Stand ${formatIsoDateDe(updated)}';
+String officialStatusLine(AppLocalizations l, OfficialStatus status, String by,
+    {String? updated}) {
+  final at = updated == null ? null : formatIsoDate(l, updated);
   return switch (status) {
-    OfficialStatus.open => 'Freigegeben laut $by.',
+    OfficialStatus.open => l.officialStatusOpen(by),
     OfficialStatus.partlyClosed =>
-      'Teilweise gesperrt laut $by$at — die gesperrten Teile sind grau.',
-    OfficialStatus.closed => 'Gesperrt laut $by$at.',
+      at == null ? l.officialStatusPartly(by) : l.officialStatusPartlyAt(by, at),
+    OfficialStatus.closed =>
+      at == null ? l.officialStatusClosed(by) : l.officialStatusClosedAt(by, at),
   };
 }
 
@@ -84,12 +86,13 @@ class _OfficialTrailSheet extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final source = ref.watch(officialTrailsControllerProvider).sourceOf(trail);
-    final by = source?.attribution ?? 'Quelle';
+    final l = context.l10n;
+    final by = source?.attribution ?? l.officialSourceFallback;
     final text = Theme.of(context).textTheme;
     final facts = [
       if (trail.lengthM != null) formatMeters(trail.lengthM!),
       if (trail.downM != null && trail.upM != null)
-        formatElevation(context.l10n, (gain: trail.upM!, loss: trail.downM!)),
+        formatElevation(l, (gain: trail.upM!, loss: trail.downM!)),
     ];
     final url = source?.url;
     return SafeArea(
@@ -103,10 +106,10 @@ class _OfficialTrailSheet extends ConsumerWidget {
             children: [
               Text(trail.name, style: text.titleLarge),
               const SizedBox(height: 4),
-              Text('Offizieller Singletrail', style: text.bodyMedium),
+              Text(l.officialSheetKind, style: text.bodyMedium),
               if (facts.isNotEmpty) Text(facts.join(' · '), style: text.bodyMedium),
               if (trail.difficulty != null)
-                Text('Schwierigkeit laut Quelle: ${trail.difficulty}',
+                Text(l.officialSheetDifficulty(trail.difficulty!),
                     style: text.bodyMedium),
               const SizedBox(height: 8),
               Row(children: [
@@ -121,7 +124,7 @@ class _OfficialTrailSheet extends ConsumerWidget {
                 ),
                 const SizedBox(width: 6),
                 Expanded(
-                    child: Text(officialStatusLine(trail.status, by, updated: trail.updated),
+                    child: Text(officialStatusLine(l, trail.status, by, updated: trail.updated),
                         style: text.bodyMedium)),
               ]),
               if (trail.description != null) ...[
@@ -131,15 +134,13 @@ class _OfficialTrailSheet extends ConsumerWidget {
               const SizedBox(height: 12),
               // Konzept 6.3: Die Ebene sagt nur etwas über ihre eigenen
               // Linien, nie über die übrigen Trails.
-              Text(
-                'Ausgewiesen laut Quelle. Über andere Trails sagt diese '
-                'Ebene nichts.',
-                style: text.bodySmall,
-              ),
+              Text(l.officialSheetDisclaimer, style: text.bodySmall),
               if (source != null)
                 Text(
-                  'Quelle: ${source.name} · ${source.license}'
-                  '${trail.updated == null ? '' : ' · Stand ${formatIsoDateDe(trail.updated!)}'}',
+                  trail.updated == null
+                      ? l.officialSheetSource(source.name, source.license)
+                      : l.officialSheetSourceAt(source.name, source.license,
+                          formatIsoDate(l, trail.updated!)),
                   style: text.bodySmall,
                 ),
               if (url != null)
@@ -147,7 +148,7 @@ class _OfficialTrailSheet extends ConsumerWidget {
                   alignment: Alignment.centerLeft,
                   child: TextButton.icon(
                     icon: const Icon(Icons.open_in_new),
-                    label: const Text('Bei der Quelle ansehen'),
+                    label: Text(l.officialSheetOpenSource),
                     onPressed: () => launchUrl(Uri.parse(url),
                         mode: LaunchMode.externalApplication),
                   ),

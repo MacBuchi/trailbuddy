@@ -479,7 +479,7 @@ class _ChangePasswordDialogState extends ConsumerState<_ChangePasswordDialog> {
         SnackBar(content: Text(l.accountPasswordChanged)),
       );
     } on AuthException catch (e) {
-      if (mounted) setState(() => _error = changePasswordErrorMessage(e));
+      if (mounted) setState(() => _error = changePasswordErrorMessage(l, e));
     } catch (e, stackTrace) {
       logError('Passwort ändern', e, stackTrace);
       if (mounted) setState(() => _error = friendlyError(e));

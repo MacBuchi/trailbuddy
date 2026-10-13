@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/l10n.dart';
+
 /// Mindestlänge, die die App selbst verlangt — an EINER Stelle, weil sie
 /// vorher an dreien stand: Registrierung 6, Reset 8, und der Ändern-Dialog
 /// wäre die vierte Meinung geworden. Supabase erlaubt serverseitig weniger;
@@ -59,7 +61,7 @@ class _PasswordFieldState extends State<PasswordField> {
           icon: Icon(_hidden
               ? Icons.visibility_outlined
               : Icons.visibility_off_outlined),
-          tooltip: _hidden ? 'Passwort anzeigen' : 'Passwort verbergen',
+          tooltip: _hidden ? context.l10n.passwordShow : context.l10n.passwordHide,
           onPressed: () => setState(() => _hidden = !_hidden),
         ),
       ),
@@ -104,8 +106,8 @@ class PasswordMatchHint extends StatelessWidget {
           Flexible(
             child: Text(
               matches
-                  ? 'Passwörter stimmen überein'
-                  : 'Passwörter stimmen noch nicht überein',
+                  ? context.l10n.passwordsMatch
+                  : context.l10n.passwordsDontMatch,
               style: Theme.of(context)
                   .textTheme
                   .bodySmall

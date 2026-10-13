@@ -4,7 +4,7 @@
 
 ## Höhenmeter beim Planen
 
-*Versionen 0.117.6 bis 0.117.7, 2026-10-13*
+*Versionen 0.117.6 bis 0.117.8, 2026-10-13*
 
 - Runde und Weg zum Trail zeigten in älteren gespeicherten Bereichen
   „0 hm bergauf“, obwohl das Höhenprofil darunter die Berge zeigte. Mit

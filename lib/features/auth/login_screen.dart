@@ -10,6 +10,7 @@ import '../../core/widgets/password_field.dart';
 import '../../core/widgets/resend_button.dart';
 import '../../core/widgets/trailbuddy_logo.dart';
 import '../../data/providers.dart';
+import '../../l10n/l10n.dart';
 
 /// Drei Zustände statt zwei: „Passwort vergessen" ist ein eigener Modus, der
 /// nur die E-Mail abfragt — ein sichtbares Passwortfeld daneben verleitet
@@ -74,9 +75,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   /// Fordert den Code an. Erfolg und Fehlschlag melden dasselbe: Ein
   /// Unterschied würde verraten, ob es zu der Adresse ein Konto gibt.
   Future<void> _sendResetCode() async {
+    final l = context.l10n;
     final email = _emailController.text.trim();
     if (!_looksLikeEmail(email)) {
-      _setNotice('Bitte eine gültige E-Mail-Adresse angeben.', NoticeTone.error);
+      _setNotice(l.loginInvalidEmail, NoticeTone.error);
       return;
     }
     setState(() => _busy = true);
@@ -103,8 +105,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         setState(() {
           _busy = false;
           _mode = _Mode.code;
-          _notice = 'Wenn es zu $email ein Konto gibt, ist ein Code '
-              'unterwegs. Er gilt eine Stunde.';
+          _notice = l.loginCodeSent(email);
           _noticeTone = NoticeTone.success;
         });
       }
@@ -120,11 +121,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   /// Adresse ein Konto gibt — auch ein Rate-Limit-Hinweis täte das, denn er
   /// käme nur, wenn wirklich eine Mail rausging.
   Future<void> _resendResetCode() async {
+    final l = context.l10n;
     final email = _emailController.text.trim();
     // Die eine Ausnahme von „immer dasselbe melden": Ohne Adresse gibt es
     // nichts zu verraten, und „unterwegs" wäre schlicht falsch.
     if (!_looksLikeEmail(email)) {
-      _setNotice('Bitte eine gültige E-Mail-Adresse angeben.', NoticeTone.error);
+      _setNotice(l.loginInvalidEmail, NoticeTone.error);
       return;
     }
     setState(() => _busy = true);
@@ -139,27 +141,24 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     } finally {
       if (mounted) {
         setState(() => _busy = false);
-        _setNotice('Wenn es zu $email ein Konto gibt, ist ein neuer Code '
-            'unterwegs. Er gilt eine Stunde.', NoticeTone.success);
+        _setNotice(l.loginCodeResent(email), NoticeTone.success);
       }
     }
   }
 
   Future<void> _resetPassword() async {
+    final l = context.l10n;
     final code = _codeController.text.trim();
     if (code.isEmpty) {
-      _setNotice('Bitte den Code aus der Mail eingeben.', NoticeTone.error);
+      _setNotice(l.authCodeMissing, NoticeTone.error);
       return;
     }
     if (_newPasswordController.text.length < minPasswordLength) {
-      _setNotice(
-          'Das neue Passwort braucht mindestens $minPasswordLength Zeichen.',
-          NoticeTone.error);
+      _setNotice(l.loginNewPasswordTooShort(minPasswordLength), NoticeTone.error);
       return;
     }
     if (_newPasswordController.text != _repeatController.text) {
-      _setNotice(
-          'Die beiden Passwörter stimmen nicht überein.', NoticeTone.error);
+      _setNotice(l.loginPasswordsDiffer, NoticeTone.error);
       return;
     }
     setState(() => _busy = true);
@@ -175,7 +174,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       // Die Recovery-Sitzung darf nicht liegen bleiben, wenn das Ändern
       // scheiterte — sonst steckt jemand halb angemeldet fest.
       await _discardRecoverySession();
-      if (mounted) _setNotice(resetErrorMessage(e), NoticeTone.error);
+      if (mounted) _setNotice(resetErrorMessage(l, e), NoticeTone.error);
     } catch (e, stackTrace) {
       logError('Passwort zurücksetzen', e, stackTrace);
       await _discardRecoverySession();
@@ -197,6 +196,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   Future<void> _signIn() async {
+    final l = context.l10n;
     setState(() => _busy = true);
     try {
       await ref.read(authRepositoryProvider).signIn(
@@ -208,7 +208,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     } on AuthException catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(loginErrorMessage(e))));
+            .showSnackBar(SnackBar(content: Text(loginErrorMessage(l, e))));
       }
     } catch (e, stackTrace) {
       logError('Login', e, stackTrace);
@@ -221,10 +221,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     }
   }
 
-  String get _primaryLabel => switch (_mode) {
-        _Mode.signIn => 'Anmelden',
-        _Mode.forgot => 'Code anfordern',
-        _Mode.code => 'Neues Passwort speichern',
+  String _primaryLabel(AppLocalizations l) => switch (_mode) {
+        _Mode.signIn => l.loginSignIn,
+        _Mode.forgot => l.loginRequestCode,
+        _Mode.code => l.loginSaveNewPassword,
       };
 
   VoidCallback get _primaryAction => switch (_mode) {
@@ -235,6 +235,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l = context.l10n;
     return Scaffold(
       body: Center(
         child: SingleChildScrollView(
@@ -256,7 +257,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   child: TrailBuddyWordmark(),
                 ),
                 const SizedBox(height: 8),
-                Text('Trails teilen — nur mit deinen Buddys.',
+                Text(l.loginTagline,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         color: Theme.of(context).colorScheme.onSurfaceVariant)),
                 const SizedBox(height: 40),
@@ -274,16 +275,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         keyboardType: TextInputType.emailAddress,
                         textInputAction: TextInputAction.next,
                         autofillHints: const [AutofillHints.email],
-                        decoration: const InputDecoration(
-                          labelText: 'E-Mail',
-                          border: OutlineInputBorder(),
+                        decoration: InputDecoration(
+                          labelText: l.authEmailLabel,
+                          border: const OutlineInputBorder(),
                         ),
                       ),
                       if (_mode == _Mode.signIn) ...[
                         const SizedBox(height: 12),
                         PasswordField(
                           controller: _passwordController,
-                          label: 'Passwort',
+                          label: l.authPasswordLabel,
                           autofillHints: const [AutofillHints.password],
                           onSubmitted: (_) => _busy ? null : _signIn(),
                         ),
@@ -297,22 +298,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     controller: _codeController,
                     keyboardType: TextInputType.number,
                     textInputAction: TextInputAction.next,
-                    decoration: const InputDecoration(
-                      labelText: 'Code aus der Mail',
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      labelText: l.authCodeLabel,
+                      border: const OutlineInputBorder(),
                     ),
                   ),
                   const SizedBox(height: 12),
                   PasswordField(
                     controller: _newPasswordController,
-                    label: 'Neues Passwort (mind. $minPasswordLength Zeichen)',
+                    label: l.loginNewPasswordLabel(minPasswordLength),
                     textInputAction: TextInputAction.next,
                     onChanged: (_) => setState(() {}),
                   ),
                   const SizedBox(height: 12),
                   PasswordField(
                     controller: _repeatController,
-                    label: 'Neues Passwort wiederholen',
+                    label: l.loginRepeatPasswordLabel,
                     onSubmitted: (_) => _busy ? null : _resetPassword(),
                     onChanged: (_) => setState(() {}),
                   ),
@@ -335,27 +336,27 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           width: 20,
                           height: 20,
                           child: CircularProgressIndicator(strokeWidth: 2))
-                      : Text(_primaryLabel),
+                      : Text(_primaryLabel(l)),
                 ),
                 if (_mode == _Mode.signIn) ...[
                   TextButton(
                     onPressed: () => _switchTo(_Mode.forgot),
-                    child: const Text('Passwort vergessen?'),
+                    child: Text(l.loginForgot),
                   ),
                   TextButton(
                     onPressed: () => context.go('/signup'),
-                    child: const Text('Noch kein Konto? Registrieren'),
+                    child: Text(l.loginToSignup),
                   ),
                 ] else ...[
                   if (_mode == _Mode.code)
                     ResendButton(
                       onResend: _resendResetCode,
                       enabled: !_busy,
-                      label: 'Code nicht angekommen? Erneut senden',
+                      label: l.loginResendCode,
                     ),
                   TextButton(
                     onPressed: () => _switchTo(_Mode.signIn),
-                    child: const Text('Zurück zur Anmeldung'),
+                    child: Text(l.loginBack),
                   ),
                 ],
               ],
