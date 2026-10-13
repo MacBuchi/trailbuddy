@@ -4497,5 +4497,351 @@
   "navNoticeStop": "Navigation beenden",
   "@navNoticeStop": {
     "description": "Knopf in der Benachrichtigung der Navigation."
+  },
+  "buddysTitle": "BUDDYS",
+  "@buddysTitle": {
+    "description": "Titel des Reiters Buddys, in Versalien."
+  },
+  "buddysInvite": "Buddys zu TrailBuddy einladen",
+  "@buddysInvite": {
+    "description": "Knopf und Tooltip: Einladungstext teilen."
+  },
+  "buddysInviteCopied": "Einladungstext in die Zwischenablage kopiert.",
+  "@buddysInviteCopied": {
+    "description": "Leiste, wenn das System-Teilen fehlt (Desktop-Browser)."
+  },
+  "buddysInviteText": "Komm zu TrailBuddy – wir teilen unsere Trails!\nWeb-App: {webUrl}\nAndroid-App: {apkUrl}",
+  "@buddysInviteText": {
+    "description": "Geteilter Einladungstext, ohne eigenen Namen. Zeilenumbrüche bleiben.",
+    "placeholders": {
+      "webUrl": {
+        "type": "String"
+      },
+      "apkUrl": {
+        "type": "String"
+      }
+    }
+  },
+  "buddysInviteTextWithName": "Komm zu TrailBuddy – wir teilen unsere Trails!\nWeb-App: {webUrl}\nAndroid-App: {apkUrl}\nRegistriere dich und such mich dort als „{username}“, dann können wir uns verbinden.",
+  "@buddysInviteTextWithName": {
+    "description": "Geteilter Einladungstext mit dem eigenen Benutzernamen.",
+    "placeholders": {
+      "webUrl": {
+        "type": "String"
+      },
+      "apkUrl": {
+        "type": "String"
+      },
+      "username": {
+        "type": "String"
+      }
+    }
+  },
+  "buddysSearchLabel": "Buddy finden",
+  "@buddysSearchLabel": {
+    "description": "Beschriftung des Suchfelds."
+  },
+  "buddysSearchHint": "Benutzername oder genaue E-Mail",
+  "@buddysSearchHint": {
+    "description": "Hinweis im Suchfeld."
+  },
+  "buddysSearchTooltip": "Suchen",
+  "@buddysSearchTooltip": {
+    "description": "Tooltip des Suchknopfs."
+  },
+  "buddysSearchEmpty": "Niemanden gefunden.",
+  "@buddysSearchEmpty": {
+    "description": "Suche ohne Treffer."
+  },
+  "buddysAlreadyLinked": "Verbunden",
+  "@buddysAlreadyLinked": {
+    "description": "Statt „Anfragen“ bei einem Treffer, mit dem es schon eine Freundschaft oder Anfrage gibt."
+  },
+  "buddysRequest": "Anfragen",
+  "@buddysRequest": {
+    "description": "Knopf an einem Suchtreffer: Buddy-Anfrage senden."
+  },
+  "buddysRequestSent": "Anfrage an {name} gesendet.",
+  "@buddysRequestSent": {
+    "description": "Leiste nach dem Senden einer Anfrage.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "buddysRequestFailed": "Anfrage nicht möglich – vielleicht seid ihr schon verbunden?",
+  "@buddysRequestFailed": {
+    "description": "Leiste, wenn die Anfrage scheitert."
+  },
+  "buddysRemoveTitle": "{name} als Buddy entfernen?",
+  "@buddysRemoveTitle": {
+    "description": "Titel der Rückfrage vor dem Entfernen.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "buddysRemoveBody": "Ihr seht danach gegenseitig keine geteilten Trails mehr, und eure Nachrichten werden für beide gelöscht.",
+  "@buddysRemoveBody": {
+    "description": "Text der Rückfrage vor dem Entfernen."
+  },
+  "buddysRemoveConfirm": "Entfernen",
+  "@buddysRemoveConfirm": {
+    "description": "Bestätigen in der Rückfrage vor dem Entfernen."
+  },
+  "buddysRemoveTooltip": "Buddy entfernen",
+  "@buddysRemoveTooltip": {
+    "description": "Tooltip am Knopf einer Buddy-Zeile."
+  },
+  "buddysIncomingHeader": "ANFRAGEN AN DICH · {count}",
+  "@buddysIncomingHeader": {
+    "description": "Abschnitt in Versalien mit Anzahl.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "buddysOutgoingHeader": "GESENDETE ANFRAGEN · {count}",
+  "@buddysOutgoingHeader": {
+    "description": "Abschnitt in Versalien mit Anzahl.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "buddysMineHeader": "MEINE BUDDYS",
+  "@buddysMineHeader": {
+    "description": "Abschnitt in Versalien, ohne Buddys."
+  },
+  "buddysMineHeaderCount": "MEINE BUDDYS · {count}",
+  "@buddysMineHeaderCount": {
+    "description": "Abschnitt in Versalien mit Anzahl.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "buddysAccept": "Annehmen",
+  "@buddysAccept": {
+    "description": "Knopf an einer Anfrage an dich."
+  },
+  "buddysDecline": "Ablehnen",
+  "@buddysDecline": {
+    "description": "Tooltip am Schließen-Knopf einer Anfrage an dich."
+  },
+  "buddysPending": "Ausstehend",
+  "@buddysPending": {
+    "description": "Untertitel einer gesendeten Anfrage."
+  },
+  "buddysWithdraw": "Zurückziehen",
+  "@buddysWithdraw": {
+    "description": "Tooltip am Schließen-Knopf einer gesendeten Anfrage."
+  },
+  "buddysEmpty": "Noch keine Buddys verbunden. Suche oben nach Benutzername oder E-Mail!",
+  "@buddysEmpty": {
+    "description": "Leere Buddy-Liste."
+  },
+  "buddysConnectedTitle": "Mit {name} verbunden",
+  "@buddysConnectedTitle": {
+    "description": "Kopf der Karte nach dem Annehmen; der Code setzt ihn in Versalien.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "buddysConnectedShared": "gemeinsam",
+  "@buddysConnectedShared": {
+    "description": "Unter der Zahl der Trails, die beide belegt haben."
+  },
+  "buddysConnectedNewFrom": "neu von {name}",
+  "@buddysConnectedNewFrom": {
+    "description": "Unter der Zahl der Trails, die erst mit dem Buddy sichtbar wurden.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "buddysConnectedNewFor": "neu für {name}",
+  "@buddysConnectedNewFor": {
+    "description": "Unter der Zahl der eigenen Trails, die der Buddy jetzt sieht.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "buddysConnectSummary": "Mit {name} verbunden: {shared, plural, =1{1 Trail} other{{shared} Trails}} gemeinsam, {fromBuddy} neu von {name}, {forBuddy} neu für {name}.",
+  "@buddysConnectSummary": {
+    "description": "Ganzer Satz nach dem Annehmen (Bildschirmleser).",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "shared": {
+        "type": "int"
+      },
+      "fromBuddy": {
+        "type": "int"
+      },
+      "forBuddy": {
+        "type": "int"
+      }
+    }
+  },
+  "buddysConnectSummaryEmpty": "Mit {name} verbunden — noch keine Trails auf einer der beiden Seiten.",
+  "@buddysConnectSummaryEmpty": {
+    "description": "Satz nach dem Annehmen, wenn keiner Trails hat.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "buddysSharedCount": "{count} gemeinsam",
+  "@buddysSharedCount": {
+    "description": "Zweite Zeile einer Buddy-Zeile: so viele Trails haben beide belegt.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "buddysMessages": "Nachrichten",
+  "@buddysMessages": {
+    "description": "Tooltip der Sprechblase ohne Ungelesenes."
+  },
+  "buddysUnread": "{count} ungelesen",
+  "@buddysUnread": {
+    "description": "Tooltip der Sprechblase mit Ungelesenem.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "aliasSet": "Alias vergeben",
+  "@aliasSet": {
+    "description": "Tooltip am Stift einer Buddy-Zeile ohne Alias."
+  },
+  "aliasChange": "Alias ändern",
+  "@aliasChange": {
+    "description": "Tooltip am Stift einer Buddy-Zeile mit Alias."
+  },
+  "aliasTitle": "Alias für {name}",
+  "@aliasTitle": {
+    "description": "Titel des Alias-Dialogs.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "aliasLabel": "Alias",
+  "@aliasLabel": {
+    "description": "Beschriftung des Felds im Alias-Dialog."
+  },
+  "aliasHint": "z. B. Andi",
+  "@aliasHint": {
+    "description": "Beispiel im Feld des Alias-Dialogs."
+  },
+  "aliasNote": "Nur du siehst den Alias, auf allen deinen Geräten. Er bleibt, auch wenn dein Buddy seinen Namen ändert. Leer lassen entfernt ihn.",
+  "@aliasNote": {
+    "description": "Erklärung unter dem Feld im Alias-Dialog."
+  },
+  "messagesNote": "Nachrichten verschwinden nach {days} Tagen. Sie sind nicht Ende-zu-Ende-verschlüsselt.",
+  "@messagesNote": {
+    "description": "Hinweis über jedem Verlauf.",
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "messagesTimePattern": "d.M. HH:mm",
+  "@messagesTimePattern": {
+    "description": "Datumsmuster (intl DateFormat) für die Zeit unter einer Nachricht."
+  },
+  "messagesEmpty": "Noch keine Nachrichten mit {name}.",
+  "@messagesEmpty": {
+    "description": "Leerer Verlauf.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "messagesRejected": "Nachricht nicht zugestellt — vielleicht wurde die Anfrage zurückgezogen, oder deine drei Nachrichten sind schon geschrieben.",
+  "@messagesRejected": {
+    "description": "Leiste, wenn die Datenbank die Nachricht ablehnt."
+  },
+  "messagesNotSent": "Nicht gesendet: {error}",
+  "@messagesNotSent": {
+    "description": "Leiste, wenn das Senden scheitert; error ist die Fehlermeldung.",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "messagesDeleteTitle": "Nachricht zurücknehmen?",
+  "@messagesDeleteTitle": {
+    "description": "Rückfrage nach langem Druck auf eine eigene Nachricht."
+  },
+  "messagesDeleteBody": "Sie verschwindet auch bei deinem Buddy.",
+  "@messagesDeleteBody": {
+    "description": "Text der Rückfrage zum Zurücknehmen."
+  },
+  "messagesDeleteConfirm": "Zurücknehmen",
+  "@messagesDeleteConfirm": {
+    "description": "Bestätigen in der Rückfrage zum Zurücknehmen."
+  },
+  "messagesLimitGone": "Ihr seid nicht mehr verbunden — schreiben geht nicht mehr.",
+  "@messagesLimitGone": {
+    "description": "Zeile über dem Feld, wenn die Freundschaft weg ist."
+  },
+  "messagesLimitUsed": "Deine {limit} Nachrichten sind geschrieben. Weiter geht es, sobald ihr Buddys seid.",
+  "@messagesLimitUsed": {
+    "description": "Zeile über dem Feld bei offener Anfrage, Grenze erreicht.",
+    "placeholders": {
+      "limit": {
+        "type": "int"
+      }
+    }
+  },
+  "messagesLeftIncoming": "{count, plural, =1{Noch 1 Nachricht, bevor du die Anfrage annimmst.} other{Noch {count} Nachrichten, bevor du die Anfrage annimmst.}}",
+  "@messagesLeftIncoming": {
+    "description": "Zeile über dem Feld bei einer Anfrage an mich.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "messagesLeftOutgoing": "{count, plural, =1{Noch 1 Nachricht, bis {name} die Anfrage annimmt.} other{Noch {count} Nachrichten, bis {name} die Anfrage annimmt.}}",
+  "@messagesLeftOutgoing": {
+    "description": "Zeile über dem Feld bei meiner Anfrage.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "messagesHint": "Nachricht",
+  "@messagesHint": {
+    "description": "Hinweis im Eingabefeld des Verlaufs."
+  },
+  "messagesSend": "Senden",
+  "@messagesSend": {
+    "description": "Tooltip des Sendeknopfs."
   }
 }

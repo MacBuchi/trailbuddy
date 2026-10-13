@@ -8,6 +8,7 @@
 // und was ICH sehe, darf ich zählen.
 //
 // Pur: Trails rein, Zahlen raus.
+import '../../l10n/l10n.dart';
 import '../../models/trail.dart';
 
 class ConnectSummary {
@@ -31,14 +32,9 @@ class ConnectSummary {
   bool get isEmpty => shared == 0 && newFromBuddy == 0 && newForBuddy == 0;
 
   /// „Mit Jan verbunden: 14 Trails gemeinsam, 8 neu von Jan, 5 neu für Jan."
-  String sentence(String buddyName) {
-    if (isEmpty) {
-      return 'Mit $buddyName verbunden — noch keine Trails auf einer der beiden Seiten.';
-    }
-    String trails(int n) => n == 1 ? '1 Trail' : '$n Trails';
-    return 'Mit $buddyName verbunden: ${trails(shared)} gemeinsam, '
-        '$newFromBuddy neu von $buddyName, $newForBuddy neu für $buddyName.';
-  }
+  String sentence(AppLocalizations l, String buddyName) => isEmpty
+      ? l.buddysConnectSummaryEmpty(buddyName)
+      : l.buddysConnectSummary(buddyName, shared, newFromBuddy, newForBuddy);
 }
 
 ConnectSummary summarizeConnection({

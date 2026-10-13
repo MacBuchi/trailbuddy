@@ -6,6 +6,8 @@ import 'package:trailbuddy/features/friends/connect_summary.dart';
 import 'package:trailbuddy/features/trails/trail_geometry.dart';
 import 'package:trailbuddy/models/trail.dart';
 
+import 'fakes/l10n_de.dart';
+
 TrailRecording rec(String trailId, String user) => TrailRecording(
       id: 'r-$trailId-$user',
       trailId: trailId,
@@ -47,16 +49,16 @@ void main() {
     expect(s.shared, 1);
     expect(s.newFromBuddy, 2);
     expect(s.newForBuddy, 1);
-    expect(s.sentence('Jan'), 'Mit Jan verbunden: 1 Trail gemeinsam, 2 neu von Jan, 1 neu für Jan.');
+    expect(s.sentence(l10nDe, 'Jan'), 'Mit Jan verbunden: 1 Trail gemeinsam, 2 neu von Jan, 1 neu für Jan.');
   });
 
   test('Mehrzahl und der leere Fall', () {
     final after = [trail('a', ['me', 'jan']), trail('b', ['me', 'jan'])];
     final s = summarizeConnection(before: after, after: after, myId: 'me', buddyId: 'jan');
-    expect(s.sentence('Jan'), startsWith('Mit Jan verbunden: 2 Trails gemeinsam'));
+    expect(s.sentence(l10nDe, 'Jan'), startsWith('Mit Jan verbunden: 2 Trails gemeinsam'));
     final empty = summarizeConnection(before: const [], after: const [], myId: 'me', buddyId: 'jan');
     expect(empty.isEmpty, isTrue);
-    expect(empty.sentence('Jan'), contains('noch keine Trails'));
+    expect(empty.sentence(l10nDe, 'Jan'), contains('noch keine Trails'));
   });
 
   test('„n gemeinsam" je Buddy: nur Trails, die ich auch belegt habe; wartende nicht', () {

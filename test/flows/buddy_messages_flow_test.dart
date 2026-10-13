@@ -12,6 +12,7 @@ import 'package:trailbuddy/features/friends/friends_screen.dart';
 import 'package:trailbuddy/models/buddy_message.dart';
 
 import '../fakes/fake_backend.dart';
+import '../fakes/l10n_de.dart';
 import '../fakes/test_app.dart';
 
 void main() {
@@ -62,7 +63,7 @@ void main() {
     await pumpApp(tester, backend);
     await openConversation(tester, bert.id);
 
-    expect(find.text(kMessagesNote), findsOneWidget);
+    expect(find.text(l10nDe.messagesNote(kMessageDays)), findsOneWidget);
     expect(find.byKey(kMessageLimitKey), findsNothing,
         reason: 'Buddys haben kein Limit');
     await write(tester, '  Morgen Hangweg?  ');

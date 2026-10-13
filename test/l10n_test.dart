@@ -8,6 +8,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:trailbuddy/core/app_distribution.dart';
+import 'package:trailbuddy/core/app_info.dart';
+import 'package:trailbuddy/features/friends/connect_summary.dart';
 import 'package:trailbuddy/features/map/map_legend.dart';
 import 'package:trailbuddy/features/map/poi.dart';
 import 'package:trailbuddy/features/map/way_layer.dart';
@@ -25,6 +27,7 @@ import 'package:trailbuddy/features/trails/trail_list.dart';
 import 'package:trailbuddy/l10n/l10n.dart';
 
 import 'fakes/fake_backend.dart';
+import 'fakes/l10n_de.dart';
 import 'fakes/fake_rides.dart';
 import 'fakes/fake_settings.dart';
 import 'fakes/fake_trails.dart';
@@ -380,6 +383,47 @@ void main() {
       expect(routeTimeLabel(en, 100), 'under 5 min');
       expect(routeTimeLabel(en, 4800), '1 h 20 min');
       expect(routing.WayClass.bundesstrasse.label(en), 'Highway');
+    });
+  });
+
+  // Stufe (e1): Buddys — Liste, Anfragen, Alias, Verlauf, Einladung.
+  group('Buddys auf Englisch', () {
+    testWidgets('Liste mit Anfrage und Buddy, Verlauf mit Grenze', (tester) async {
+      final backend = FakeBackend();
+      final me = backend.addUser(username: 'anna');
+      final jan = backend.addUser(username: 'jan');
+      final lea = backend.addUser(username: 'lea');
+      backend.signInAs(me.id);
+      backend.addFriendship(jan.id, me.id);
+      backend.addFriendship(lea.id, me.id, status: 'pending');
+      await pumpApp(tester, backend,
+          extraOverrides: [appLocaleProvider.overrideWithValue(const Locale('en'))]);
+      await openTab(tester, 'Buddys');
+      for (final text in ['BUDDIES', 'REQUESTS FOR YOU · 1', 'MY BUDDIES · 1', 'Accept', '0 shared']) {
+        expect(find.text(text), findsOneWidget, reason: text);
+      }
+      for (final tip in ['Invite buddies to TrailBuddy', 'Set alias', 'Remove buddy', 'Decline']) {
+        expect(find.byTooltip(tip), findsOneWidget, reason: tip);
+      }
+      expect(find.text('MEINE BUDDYS · 1'), findsNothing);
+
+      // Die Anfrage von Lea: drei Nachrichten, bevor ich annehme.
+      await tester.tap(find.byTooltip('Messages').first);
+      await settle(tester);
+      expect(find.textContaining('Messages disappear after 30 days'), findsOneWidget);
+    });
+
+    test('Sätze mit Zahlen und die Einladung', () {
+      final en = lookupAppLocalizations(const Locale('en'));
+      const one = ConnectSummary(shared: 1, newFromBuddy: 2, newForBuddy: 0);
+      expect(one.sentence(en, 'Jan'), 'Connected with Jan: 1 trail shared, 2 new from Jan, 0 new for Jan.');
+      const none = ConnectSummary(shared: 0, newFromBuddy: 0, newForBuddy: 0);
+      expect(none.sentence(en, 'Jan'), contains('no trails on either side'));
+      expect(en.messagesLeftOutgoing(1, 'Jan'), '1 message left until Jan accepts the request.');
+      expect(en.messagesLeftIncoming(3), '3 messages left before you accept the request.');
+      expect(AppInfo.inviteText(en, null), isNot(contains('Sign up')));
+      expect(AppInfo.inviteText(en, 'anna'), allOf(contains(AppInfo.webAppUrl), contains('“anna”')));
+      expect(AppInfo.inviteText(l10nDe, 'anna'), contains('such mich dort als „anna“'));
     });
   });
 }
