@@ -16,6 +16,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../features/friends/message_providers.dart';
+import '../../features/profile/push_providers.dart';
 import '../../l10n/l10n.dart';
 import '../../features/rides/ride_confirm_notify.dart';
 import '../../features/trails/trail_providers.dart';
@@ -71,6 +72,17 @@ class _PushListenerState extends ConsumerState<PushListener> {
         if (route != null && mounted) ref.read(routerProvider).go(route);
       });
     });
+  }
+
+  /// Die Sprache der App bestimmt die Sprache der Meldungen (#209). Hier,
+  /// weil dieses Widget unter `Localizations` lebt und es bei JEDEM
+  /// Wechsel neu erfährt — Schalter im Profil wie Gerätesprache.
+  /// `syncLocale` schreibt nur, wenn sie sich vom Gemerkten unterscheidet.
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final locale = pushLocaleOf(Localizations.localeOf(context));
+    unawaited(ref.read(pushEnabledProvider.notifier).syncLocale(locale));
   }
 
   /// Folgt dem Ziel einer Meldung — nur, wenn es auf der Erlaubnisliste

@@ -65,6 +65,8 @@ void main() {
     await tester.tap(tile);
     await settle(tester);
     expect(backend.pushDevices, {'test-token': annaId});
+    expect(backend.pushLocales, {'test-token': 'de'},
+        reason: 'die Meldungen kommen in der Sprache der App (Patch 027)');
     expect(settings.pushToken, 'test-token');
     expect(tester.widget<SwitchListTile>(tile).value, isTrue);
 
@@ -138,6 +140,41 @@ void main() {
             .value,
         isTrue);
     expect(find.text('Testnachricht senden'), findsOneWidget);
+  });
+
+  testWidgets('Die Sprache der Meldungen folgt der App (#209)', (tester) async {
+    // Eingetragen vor 0.119: Token da, Sprache nie geschrieben. Der Start
+    // trägt sie einmal nach, danach nur noch bei einem Wechsel.
+    backend.pushDevices['alt'] = annaId;
+    final settings = FakeSettings(pushToken: 'alt');
+    final push = FakePushRepository(backend);
+    await pumpApp(tester, backend, trails: trails, settings: settings, push: push);
+    expect(backend.pushLocales, {'alt': 'de'});
+    expect(settings.pushLocale, 'de');
+
+    // Der nächste Start schreibt nicht noch einmal (sonst bei JEDEM
+    // Start eine Zeile ins Netz). SizedBox dazwischen: Kaltstart.
+    backend.pushLocales.clear();
+    await tester.pumpWidget(const SizedBox());
+    await pumpApp(tester, backend, trails: trails, settings: settings, push: push);
+    expect(backend.pushLocales, isEmpty, reason: 'gleiche Sprache, nichts zu schreiben');
+
+    await openProfilePage(tester, 'language');
+    await tester.tap(find.text('English'));
+    await settle(tester);
+    expect(backend.pushLocales, {'alt': 'en'});
+    expect(settings.pushLocale, 'en');
+    expect(backend.pushDevices, {'alt': annaId}, reason: 'dieselbe Zeile, kein zweites Gerät');
+  });
+
+  testWidgets('Ohne Push schreibt der Sprachwechsel nichts', (tester) async {
+    final settings = FakeSettings();
+    await pumpApp(tester, backend, trails: trails, settings: settings);
+    await openProfilePage(tester, 'language');
+    await tester.tap(find.text('English'));
+    await settle(tester);
+    expect(backend.pushDevices, isEmpty);
+    expect(settings.pushLocale, isNull);
   });
 
   testWidgets('Eine Meldung im Vordergrund erscheint als Leiste, „Öffnen" zeigt den Trail',

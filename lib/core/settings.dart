@@ -158,6 +158,15 @@ abstract interface class Settings {
 
   Future<void> setPushToken(String? value);
 
+  /// Die Sprache, mit der dieses Gerät zuletzt in `push_devices` steht
+  /// (Patch 027, #209) — oder null, solange sie noch nie geschrieben
+  /// wurde. Nur ein Merker, damit nicht jeder Start die Zeile schreibt:
+  /// Weicht die Sprache der App davon ab, trägt `PushListener` das Gerät
+  /// neu ein.
+  String? get pushLocale;
+
+  Future<void> setPushLocale(String? value);
+
   /// „Erscheinungsbild": `system`, `light` oder `dark` (`ThemeMode.name`),
   /// oder null, solange nie etwas gewählt wurde — dann wie das System.
   String? get appearance;
@@ -305,6 +314,16 @@ class PrefsSettings implements Settings {
   Future<void> setPushToken(String? value) => value == null
       ? _prefs.remove(_pushTokenKey)
       : _prefs.setString(_pushTokenKey, value);
+
+  static const _pushLocaleKey = 'push_locale';
+
+  @override
+  String? get pushLocale => _prefs.getString(_pushLocaleKey);
+
+  @override
+  Future<void> setPushLocale(String? value) => value == null
+      ? _prefs.remove(_pushLocaleKey)
+      : _prefs.setString(_pushLocaleKey, value);
 
   @override
   Future<void> setOfficialTrailsEnabled(bool value) =>

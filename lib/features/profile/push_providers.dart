@@ -9,6 +9,7 @@
 // erst merkt, wenn eine erwartete Meldung ausbleibt.
 import 'dart:async';
 
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/connectivity.dart';
@@ -35,6 +36,7 @@ class PushEnabledNotifier extends Notifier<bool> {
       final token = settings.pushToken;
       state = false;
       await settings.setPushToken(null);
+      await settings.setPushLocale(null);
       if (token == null) return null;
       try {
         await ref.read(pushRepositoryProvider).unregister(token);
@@ -67,16 +69,38 @@ class PushEnabledNotifier extends Notifier<bool> {
           ? l.pushOffline
           : l.pushFailed;
     }
+    final locale = pushLocaleOf(Locale(l.localeName));
     try {
-      await ref.read(pushRepositoryProvider).register(token);
+      await ref.read(pushRepositoryProvider).register(token, locale: locale);
     } catch (e, stackTrace) {
       logError('Push-Gerät eintragen', e, stackTrace);
       state = false;
       return friendlyError(l, e);
     }
     await settings.setPushToken(token);
+    await settings.setPushLocale(locale);
     state = true;
     return null;
+  }
+
+  /// Trägt dieses Gerät mit der Sprache [locale] neu ein, wenn es mit
+  /// einer anderen in `push_devices` steht (Patch 027, #209) — nach dem
+  /// Umschalten im Profil, nach einem Sprachwechsel des Geräts und einmal
+  /// nach dem Update auf 0.119, das die Spalte erst schreibt.
+  ///
+  /// Still: Ohne Netz oder Sitzung bleibt der Merker alt, und der nächste
+  /// Start versucht es wieder. Bis dahin kommen Meldungen in der alten
+  /// Sprache — kein Grund, jemanden mit einem Fehler zu behelligen.
+  Future<void> syncLocale(String locale) async {
+    final settings = ref.read(settingsProvider);
+    final token = settings.pushToken;
+    if (token == null || settings.pushLocale == locale) return;
+    try {
+      await ref.read(pushRepositoryProvider).register(token, locale: locale);
+      await settings.setPushLocale(locale);
+    } catch (e, stackTrace) {
+      if (worthReporting(e)) logError('Push-Sprache nachtragen', e, stackTrace);
+    }
   }
 
   /// „Schick mir einmal eine." Der Beweis, dass die Leitung trägt —
@@ -94,6 +118,12 @@ class PushEnabledNotifier extends Notifier<bool> {
     }
   }
 }
+
+/// Die Sprache der Meldungen für eine Sprache der App: Englisch nur,
+/// wenn die App englisch läuft — alles andere bekommt Deutsch wie die
+/// Oberfläche (`resolveAppLocale`).
+String pushLocaleOf(Locale locale) =>
+    locale.languageCode == 'en' ? 'en' : 'de';
 
 final pushEnabledProvider =
     NotifierProvider<PushEnabledNotifier, bool>(PushEnabledNotifier.new);

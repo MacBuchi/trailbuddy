@@ -2,6 +2,17 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Benachrichtigungen in deiner Sprache
+
+*Version 0.119.0, 2026-10-14*
+
+- Meldungen deiner Buddys kommen jetzt in der Sprache, in der die App
+  auf dem jeweiligen Gerät läuft — ein Telefon auf Englisch bekommt sie
+  englisch, ein Browser auf Deutsch deutsch.
+- Stellst du im Profil die Sprache um, folgen die Benachrichtigungen
+  gleich mit. Was dein Buddy selbst geschrieben hat, ein Hinweis oder
+  eine Nachricht, bleibt so, wie er es geschrieben hat.
+
 ## TrailBuddy spricht Englisch
 
 *Version 0.118.0, 2026-10-13*

@@ -85,6 +85,9 @@ class FakeBackend {
   /// einem Konto, wie die Tabelle.
   final pushDevices = <String, String>{};
 
+  /// `push_devices.locale` je Token (Patch 027): die Sprache der Meldungen.
+  final pushLocales = <String, String>{};
+
   /// Adressen, für die ein Reset-Code angefordert wurde — auch solche ohne
   /// Konto, denn die App darf beide Fälle nicht unterscheiden.
   final passwordResets = <String>[];
@@ -753,18 +756,20 @@ class FakePushRepository implements PushRepository {
   Object? failNextRegister;
 
   @override
-  Future<void> register(String token) async {
+  Future<void> register(String token, {required String locale}) async {
     final error = failNextRegister;
     if (error != null) {
       failNextRegister = null;
       throw error;
     }
     backend.pushDevices[token] = backend.currentUserId!;
+    backend.pushLocales[token] = locale;
   }
 
   @override
   Future<void> unregister(String token) async {
     backend.pushDevices.remove(token);
+    backend.pushLocales.remove(token);
   }
 
   @override
