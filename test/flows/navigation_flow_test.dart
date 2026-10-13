@@ -28,12 +28,14 @@ import 'package:trailbuddy/features/offline_areas/pmtiles_writer.dart';
 import 'package:trailbuddy/features/keep_alive/keep_alive.dart';
 import 'package:trailbuddy/features/rides/ride_track.dart';
 import 'package:trailbuddy/features/routing/nav_notice.dart';
+import 'package:trailbuddy/features/routing/route_band.dart' show kRouteFollowOpacity;
 import 'package:trailbuddy/features/routing/nav_providers.dart' show kNavArrivedLinger, kNavTrailDoneLinger, lastNavProvider;
 import 'package:trailbuddy/models/trail.dart';
 
 import '../fakes/fake_backend.dart';
 import '../fakes/fake_keep_alive.dart';
 import '../fakes/fake_map_view.dart';
+import '../fakes/route_lines.dart';
 import '../fakes/fake_rides.dart';
 import '../fakes/fake_tiles.dart';
 import '../fakes/fake_trails.dart';
@@ -242,13 +244,14 @@ void main() {
     // Die Position steht im unteren Drittel: Die Mitte liegt östlich davon.
     expect(fakeMap(tester).center.longitude, greaterThan(_lng(0)));
     // Die Route liegt unter dem Netz in der Farbe des Ergebnisses.
-    expect(fakeMapLayers(tester).polylines.where((l) => l.width == 6), hasLength(1));
+    expect(routeBand(tester), isNotEmpty);
+    expect(routeBand(tester).every((l) => l.opacity == kRouteFollowOpacity), isTrue);
 
     // Fahren: der Rest schrumpft, der gefahrene Teil wird blass.
     await fix(tester, _lat, _lng(10));
     expect(textIn('nav-remaining'), contains('758 m'));
     expect(textIn('nav-dist'), contains('758'));
-    expect(fakeMapLayers(tester).polylines.where((l) => l.width == 5), hasLength(1));
+    expect(fakeMapLayers(tester).polylines.where((l) => l.width == 4), hasLength(1));
     // Der GPS-Kurs gilt in Fahrt.
     await fix(tester, _lat, _lng(11), heading: 80);
     expect(fakeMap(tester).bearing, 80);

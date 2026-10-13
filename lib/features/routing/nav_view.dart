@@ -32,6 +32,7 @@ import '../trails/trail_condition.dart';
 import '../trails/trail_providers.dart' show WriteOutcome, trailsProvider;
 import '../trails/trail_report.dart' show reportAgeLabel;
 import 'nav_providers.dart';
+import 'route_band.dart';
 import 'route_progress.dart';
 
 /// Die Farben der Folgeansicht: immer der dunkle Satz (Design 13).
@@ -40,23 +41,18 @@ const _p = AppColors.dark;
 /// Radius der Karten, wie im Entwurf.
 const _kCardRadius = 14.0;
 
-/// Die Route auf der Karte: der gefahrene Teil blass, der Rest in der
-/// Farbe des Ergebnisses mit weißem Saum, davor gestrichelt das Stück
-/// „Zurück zur Route". Liegt unter dem Netz — Trails auf der Route
-/// behalten ihre Farbe (Design 7).
+/// Die Route auf der Karte: der gefahrene Teil dünn und blass, der Rest
+/// als Band (#295) in der Deckkraft der Folgeansicht — doppelt dicht nur,
+/// was noch ZWEIMAL kommt —, davor gestrichelt das Stück „Zurück zur
+/// Route". Liegt unter dem Netz — Trails auf der Route behalten ihre
+/// Farbe (Design 7).
 List<MapViewPolyline> navRouteLines(NavSession session) {
   final c = AppColors.mapLines.ride;
   final along = session.state?.alongM ?? 0;
   final (done, rest) = session.route.splitAt(along);
   return [
-    if (done.length >= 2) MapViewPolyline(points: done, color: c.withValues(alpha: 0.35), width: 5),
-    MapViewPolyline(
-      points: rest,
-      color: c,
-      width: 6,
-      borderColor: AppColors.mapLines.halo,
-      borderWidth: AppColors.mapLines.haloBorderWidth,
-    ),
+    if (done.length >= 2) MapViewPolyline(points: done, color: AppColors.routeEdge.withValues(alpha: 0.35), width: 4),
+    ...routeBandLines(rest, opacity: kRouteFollowOpacity),
     if (session.rejoinLine case final back? when back.length >= 2)
       MapViewPolyline(
         points: back,

@@ -807,7 +807,7 @@ offline.
   gilt die Richtung der Linie über 50 m voraus (ein kurzer Anschluss
   zurück an den Weg stellte die Karte sonst auf den Kopf). Ein Knopf
   „Norden" schaltet die Drehung für diese Navigation ab.
-- **Die Route** in der Farbe des Ergebnisses, der gefahrene Teil blass.
+- **Die Route** als Band wie in der Vorschau (seit #295: Lime mit Moos-Rand, hier 80 %, doppelt Gefahrenes dichter, statische Pfeile), der gefahrene Teil dünn und blass.
   Trails auf der Route behalten ihre Farbe (Schwierigkeit, Design 7).
 - **Oben die Karte des Abschnitts** (seit 0.114.0, 9.9; bis dahin eine
   Leiste mit drei Zahlen über die ganze Route): die Anfahrt zum nächsten

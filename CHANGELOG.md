@@ -2,6 +2,19 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Die Route als Band
+
+*Version 0.117.0, 2026-10-13*
+
+- Eine geplante Route liegt jetzt als halb durchsichtiges Band in Lime
+  mit einem grünen Rand auf der Karte — in der Runde, beim Weg zum
+  Trailkopf und beim Navigieren (dort kräftiger). Die Trails darauf
+  behalten ihre Stufenfarbe.
+- Was du zweimal fährst, zum Beispiel denselben Forstweg hin und
+  zurück, liegt dichter. Kleine Pfeile zeigen die Fahrtrichtung, auf
+  doppelten Stücken für jede Richtung auf ihrer Seite.
+- Wanderweg-Stücke tragen eine gestrichelte Linie in der Mitte.
+
 ## Navigation von Trail zu Trail
 
 *Versionen 0.114.0 bis 0.116.0, 2026-10-13*

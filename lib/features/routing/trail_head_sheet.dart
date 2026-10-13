@@ -66,6 +66,7 @@ import 'route_search.dart' show steepNote;
 import 'route_via_providers.dart';
 import 'route_vias.dart';
 import 'via_handles.dart';
+import 'route_band.dart';
 import 'trail_head_providers.dart';
 import 'trail_head_route.dart';
 
@@ -647,31 +648,15 @@ String _mixLine(Map<WayClass, double> mix) {
   return entries.map((e) => '${e.key.label} ${formatMeters(e.value)}').join(' · ');
 }
 
-/// Die Vorschau: je Abschnitt eine Linie in der Fahrt-Farbe, Wanderweg
-/// und Co. gestrichelt — dieselbe Sprache wie die Fahrt, kein Tipp-Ziel.
-/// Die Verbinder zu Standort und Trailkopf blass und dünn.
+/// Die Vorschau: das Band der Route (#295), Wanderweg und Co. gestrichelt
+/// in der Mitte. Ein Tipp setzt einen Zwischenpunkt (#234) — es gibt ein
+/// Teilstück (0).
 List<MapViewPolyline> previewLinesOf(TrailHeadRoute? route) {
   if (route == null) return const [];
-  final c = AppColors.mapLines.ride;
-  // Ein Teilstück (0): ein Tipp setzt dort einen Zwischenpunkt (#234).
   final hit = RouteLegHit(0, route.points);
-  return [
-    MapViewPolyline(
-      points: route.points,
-      color: c.withValues(alpha: 0.35),
-      width: 2,
-    ),
-    for (final s in route.sections)
-      MapViewPolyline(
-        points: s.points,
-        color: c,
-        width: 5,
-        dash: s.hiking ? const [10, 8] : null,
-        borderColor: AppColors.mapLines.halo,
-        borderWidth: AppColors.mapLines.haloBorderWidth,
-        hitValue: hit,
-      ),
-  ];
+  return routeBandLines(route.points, opacity: kRoutePreviewOpacity, pieces: [
+    for (final s in route.sections) (points: s.points, hiking: s.hiking, hitValue: hit),
+  ]);
 }
 
 /// Der spaßige Weg: dieselbe Sprache wie die Runde.

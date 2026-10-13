@@ -51,6 +51,17 @@ abstract final class AppColors {
   /// wählt man hier nach dessen Helligkeit.
   static const mapLines = MapPalette.light;
 
+  /// Die geplante Route (#295, Betreiber 2026-10-11: „B+"): ein Band in
+  /// [brand] mit einem Rand in Moos, beide zusammen halb durchsichtig —
+  /// Lime heißt „mein", und eine geplante Route ist meine. Die Ausnahme
+  /// zur Regel „die Marke ist nie eine Bedeutungsfarbe der Karte" steht
+  /// in `docs/design/README.md`. Moos ist das helle „mein" der Linien.
+  static const routeBand = brand;
+  static const routeEdge = Color(0xFF4F8A10);
+
+  /// Die Pfeile entlang der Route, ein Ton dunkler als der Rand.
+  static const routeArrow = Color(0xFF3D6E0B);
+
   /// Die Schwierigkeitsfarben AUF DER KARTE — aus demselben Grund wie
   /// [mapLines] immer der helle Satz.
   static const mapGrades = GradePalette.light;
