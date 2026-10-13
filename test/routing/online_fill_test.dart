@@ -1,5 +1,6 @@
 // Fehlende Kacheln vom Host (#187): der Sitzungsspeicher (ein zweiter Plan
-// fragt nicht noch einmal), Höhen nur für nachgeladene Kacheln, der Satz
+// fragt nicht noch einmal), Höhen auch für Kacheln aus Bereichen ohne
+// Höhen (#322, bis zur Grenze), der Satz
 // im Blatt und der Schalter in den Reglern.
 import 'dart:typed_data';
 
@@ -80,18 +81,32 @@ void main() {
       expect(roadOpens, 1, reason: 'kein zweites Öffnen, keine zweite Anfrage');
     });
 
-    test('Höhen nur für Kacheln, die diese Planung vom Host hat', () async {
+    test('Höhen für nachgeladene Kacheln immer, für andere bis zur Grenze (#322)', () async {
       final f = fill();
       final reader = HeightReader([f.heights]);
-      expect(await reader.tileAt(t.x, t.y), isNull, reason: 'noch nicht nachgeladen: keine Höhe');
-      expect(heightOpens, 0, reason: 'und keine Anfrage');
+      expect((await reader.tileAt(t.x, t.y))!.at(0.5, 0.5), 640,
+          reason: 'Wege aus einem Bereich ohne Höhen: die Höhe kommt trotzdem');
       await f.fetch(here);
-      final again = HeightReader([f.heights]);
-      expect((await again.tileAt(t.x, t.y))!.at(0.5, 0.5), 640);
-      expect(await again.tileAt(t.x + 1, t.y), isNull,
-          reason: 'die Nachbarkachel hat das Archiv, nachgeladen wurde sie nicht');
-      expect(f.heightRequests, 1);
+      expect((await HeightReader([f.heights]).tileAt(t.x, t.y))!.at(0.5, 0.5), 640);
+      expect(f.heightRequests, 1, reason: 'die zweite aus dem Speicher');
+      expect(heightOpens, 1);
       await f.close();
+    });
+
+    test('die Grenze zählt nur Kacheln außerhalb der nachgeladenen, der Speicher zählt nie', () async {
+      final h = OnlineHeights(
+        open: () async => PmTilesArchive.fromBytes(heightsArchive()),
+        cache: cache,
+        allow: (x, y) => x == t.x + 1,
+        maxRequests: 1,
+      );
+      expect(await h.tile(t.x, t.y), isNotNull, reason: 'die erste außerhalb');
+      expect(await HeightReader([h]).tileAt(t.x, t.y - 1), isNull, reason: 'über der Grenze: keine Anfrage');
+      expect(h.requests, 1);
+      expect(await h.tile(t.x + 1, t.y), isNotNull, reason: 'nachgeladen: immer');
+      expect(await h.tile(t.x, t.y), isNotNull, reason: 'aus dem Speicher, auch über der Grenze');
+      expect(h.requests, 2);
+      await h.close();
     });
 
     test('ohne Manifest: ein Fehler, nach dem der Lader aufhört', () async {

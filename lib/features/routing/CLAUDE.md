@@ -354,7 +354,12 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     Kacheln". **Mit Empfang kommen die fehlenden vom Host** (#187, seit
     0.78.0, `online_fill.dart`): letzte Quelle hinter den Bereichen,
     nächst der Mitte zuerst, höchstens `kOnlineFillMaxTiles` (75) je
-    Planung plus ihre Höhenkacheln (R2-Class-B, #55), 10 s Frist je
+    Planung plus ihre Höhenkacheln (R2-Class-B, #55) — **und seit
+    0.117.6 bis `kOnlineHeightsMaxTiles` (75) Höhenkacheln für Wege aus
+    Bereichen OHNE Höhen** (#322: alte Bereiche vor 0.69.0, „ganze
+    Region" noch beim Laden; bis dahin „0 hm bergauf", das Profil
+    darunter voller Berge, weil es jede Kachel fragt, und die Suche
+    rechnete flach), 10 s Frist je
     Schritt, ein Netzfehler beendet nur das Nachladen; nur für die
     Sitzung im Speicher (`OnlineTileCache`, Behalten ist #155);
     abschaltbar über `LoopPrefs.fillOnline` („Fehlende Wege online
