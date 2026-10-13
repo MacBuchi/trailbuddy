@@ -10,8 +10,11 @@
 // Drei Regeln:
 // - **Die letzte Quelle**: Gefragt wird nur nach Kacheln, die kein Bereich
 //   hat, höchstens [kOnlineFillMaxTiles] je Planung (der Lader zählt).
-//   Höhen nur für genau diese Kacheln — ein Bereich ohne Höhen (vor
-//   0.69.0) bekommt hier keine nachgereicht, das macht „Aktualisieren".
+//   Höhen für diese Kacheln immer, für Kacheln eines Bereichs ohne Höhen
+//   (vor 0.69.0, oder „ganze Region" noch beim Laden) bis
+//   [kOnlineHeightsMaxTiles] dazu. Bis 0.117.x gab es dort keine: Die
+//   Summe stand auf „0 hm bergauf", das Profil darunter (das jede Kachel
+//   fragt) zeigte die Berge, und die Suche rechnete flach (#322).
 // - **Nur für die Sitzung**: Die Kacheln liegen im Speicher
 //   ([OnlineTileCache], höchstens [kOnlineCacheTiles] je Sorte), damit ein
 //   zweiter Plan dieselbe Gegend nicht noch einmal holt. Behalten ist
@@ -43,6 +46,13 @@ const kOnlineFillTimeout = Duration(seconds: 10);
 /// So viele Kacheln je Sorte hält der Sitzungsspeicher, die ältesten
 /// fallen zuerst. Eine Wegekachel bei z13 hat meist einige zehn KB.
 const kOnlineCacheTiles = 300;
+
+/// So viele Höhenkacheln holt eine Planung höchstens vom Host für
+/// Kacheln, deren Wege aus einem Bereich ohne Höhen kommen (#322) —
+/// dieselbe Grenze wie für die Wege ([kOnlineFillMaxTiles]): R2-Class-B
+/// (#55) und die Wartezeit. Darüber bleiben Kanten flach, und das Blatt
+/// sagt „Untergrenze".
+const kOnlineHeightsMaxTiles = 75;
 
 /// Die nachgeladenen Kacheln dieser Sitzung — im Speicher, nie auf der
 /// Platte. Auch „der Host hat sie nicht" wird gemerkt (null).
@@ -81,7 +91,7 @@ class OnlineTileCache {
 final onlineTileCacheProvider = Provider<OnlineTileCache>((ref) => OnlineTileCache());
 
 /// Höhenkacheln vom Host, über den Sitzungsspeicher — für die Planung
-/// (nur die Kacheln, die sie vom Host hat, [allow]) und für das Profil
+/// ([allow], darüber hinaus [maxRequests]) und für das Profil
 /// eines Trails ohne aufgezeichnete Höhen (#186, jede Kachel). Öffnet das
 /// Archiv erst, wenn eine Kachel nicht im Speicher liegt; ein Fehler
 /// beendet das Fragen für dieses Objekt.
@@ -90,6 +100,7 @@ class OnlineHeights implements HeightTileSource {
     required this.open,
     required this.cache,
     this.allow,
+    this.maxRequests,
     this.timeout = kOnlineFillTimeout,
   });
 
@@ -97,8 +108,13 @@ class OnlineHeights implements HeightTileSource {
   final Future<PmTilesArchive?> Function() open;
   final OnlineTileCache cache;
 
-  /// Nur Kacheln, für die das gilt; ohne: jede.
+  /// Kacheln, für die das gilt, immer; andere nur, solange weniger als
+  /// [maxRequests] über das Netz kamen. Ohne [allow]: jede.
   final bool Function(int x, int y)? allow;
+
+  /// Wie viele Kacheln außerhalb von [allow] höchstens übers Netz kommen;
+  /// null: keine.
+  final int? maxRequests;
   final Duration timeout;
 
   Future<PmTilesArchive?>? _archive;
@@ -107,10 +123,14 @@ class OnlineHeights implements HeightTileSource {
   /// Wie viele Kacheln über das Netz kamen (nicht aus dem Speicher).
   int requests = 0;
 
+  /// Davon außerhalb von [allow].
+  int _extra = 0;
+
   @override
   Future<HeightTile?> tile(int x, int y) async {
-    if (allow != null && !allow!(x, y)) return null;
     if (cache.hasHeights(x, y)) return cache.heights(x, y);
+    final extra = allow != null && !allow!(x, y);
+    if (extra && _extra >= (maxRequests ?? 0)) return null;
     if (_failed) return null;
     try {
       final archive = await (_archive ??= open().timeout(timeout));
@@ -121,6 +141,7 @@ class OnlineHeights implements HeightTileSource {
       final id = ZXY(kHeightTileZoom, x, y).toTileId();
       HeightTile? tile;
       requests++;
+      if (extra) _extra++;
       if (await archive.lookup(id).timeout(timeout) != null) {
         try {
           tile = HeightTile.decode((await archive.tile(id).timeout(timeout)).bytes());
@@ -164,6 +185,7 @@ class OnlineFill {
       open: openHeights,
       cache: cache,
       allow: (x, y) => _fetched.contains(OnlineTileCache._key(x, y)),
+      maxRequests: kOnlineHeightsMaxTiles,
       timeout: timeout,
     );
   }
@@ -181,8 +203,9 @@ class OnlineFill {
   Future<PmTilesVectorTileProvider?>? _ways;
   late final OnlineHeights _heights;
 
-  /// Die Kacheln, die diese Planung vom Host hat — nur für sie fragt
-  /// [heights] das Höhenarchiv.
+  /// Die Kacheln, die diese Planung vom Host hat — für sie fragt
+  /// [heights] das Höhenarchiv immer, für andere bis
+  /// [kOnlineHeightsMaxTiles].
   final _fetched = <int>{};
 
   /// Wie viele Höhenkacheln über das Netz kamen (nicht aus dem Speicher).
@@ -234,7 +257,7 @@ class OnlineFill {
     return bytes;
   }
 
-  /// Höhen für die nachgeladenen Kacheln — die letzte Quelle des Lesers.
+  /// Höhen vom Host ([OnlineHeights], Regeln dort) — die letzte Quelle des Lesers.
   /// Geschlossen wird über [close], einmal für beide Archive.
   HeightTileSource get heights => _NoClose(_heights);
 

@@ -2,6 +2,18 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Höhenmeter beim Planen
+
+*Version 0.117.6, 2026-10-13*
+
+- Runde und Weg zum Trail zeigten in älteren gespeicherten Bereichen
+  „0 hm bergauf“, obwohl das Höhenprofil darunter die Berge zeigte. Mit
+  Empfang holt die Planung die fehlenden Höhen jetzt nach — die
+  Summe stimmt wieder, und die Planung rechnet die Anstiege richtig ein.
+- Ohne Empfang bleibt es beim Hinweis, dass die Höhenmeter eine
+  Untergrenze sind; „Höhendaten verfügbar“ unter „Meine Bereiche“ holt
+  sie dauerhaft auf das Gerät.
+
 ## Die Route als Band
 
 *Versionen 0.117.0 bis 0.117.5, 2026-10-13*

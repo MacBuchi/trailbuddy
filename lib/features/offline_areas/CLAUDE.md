@@ -369,7 +369,7 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
   gespeichert"). Vier Dinge, die man wissen muss:
   - **Eine Naht, drei Abnehmer** (`TerrainHeights`): Bereiche zuerst,
     mit Empfang der Host über `OnlineHeights` (dieselbe Klasse wie die
-    Planung, ohne deren „nur nachgeladene Kacheln"). Das Blatt
+    Planung, ohne deren Grenze für Kacheln, die nicht nachgeladen sind). Das Blatt
     (`terrainProfileProvider`, nur beobachtet, wenn der Trail keine
     Höhen hat), der Export und der Import lesen hier.
   - **Das Profil rechnet wie gemessen**: Proben alle 50 m, 10 m

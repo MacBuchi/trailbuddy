@@ -16,6 +16,7 @@ import 'package:trailbuddy/features/offline_areas/area_store.dart';
 import 'package:trailbuddy/features/offline_areas/height_tiles.dart';
 import 'package:trailbuddy/features/offline_areas/pmtiles_writer.dart';
 import 'package:trailbuddy/features/rides/road_index.dart' show RoadCoverage;
+import 'package:trailbuddy/features/routing/online_fill.dart';
 import 'package:trailbuddy/features/routing/road_graph.dart';
 import 'package:trailbuddy/features/routing/road_graph_loader.dart';
 import 'package:trailbuddy/features/routing/route_profile.dart';
@@ -319,6 +320,47 @@ void main() {
       final p = shortestPath(g, src, dst, bio)!;
       expect(p.edges, hasLength(2));
       expect(summarizePath(g, p.edges, src, bio).gainM, 0);
+    });
+
+    test('Bereich ohne Höhen, mit Empfang: die Höhen kommen vom Host (#322)', () async {
+      // Das Feld: Wege aus alten Bereichen (vor 0.69.0, ohne Höhen) — kein
+      // Wegestück wird nachgeladen. Bis 0.117.x fragte die Planung den Host
+      // dann nach keiner Höhe: „0 hm bergauf", das Profil darunter voller Berge.
+      final store = await seed(withTile: true);
+      // Von West nach Ost 5 m je Rasterspalte: 240 m über die Kachel.
+      final values = [
+        for (var row = 0; row < kHeightGrid; row++)
+          for (var col = 0; col < kHeightGrid; col++) 500 + 5 * col,
+      ];
+      final hostHeights = writePmTiles(
+        tiles: [TileToWrite(kHeightTileZoom, t.x, t.y, encodeHeightTile(values))],
+        tileCompression: Compression.gzip,
+        bounds: TileBounds(west: bounds.west, south: bounds.south, east: bounds.east, north: bounds.north),
+        metadata: heightsMetadata('Test', '20261001'),
+      );
+      final online = OnlineFill(
+        openRoads: () async => throw StateError('Die Wege kommen aus dem Bereich'),
+        openHeights: () async => PmTilesArchive.fromBytes(hostHeights),
+        cache: OnlineTileCache(),
+      );
+      final r = await loadRoadGraph(
+        areas: await store.list(),
+        box: box,
+        open: openFrom(store),
+        heights: HeightReader([online.heights]),
+        fetchOnline: online.fetch,
+      );
+      await online.close();
+      expect(r.tilesOnline, 0, reason: 'die Wege kamen alle aus dem Bereich');
+      expect(r.edgesWithoutHeights, 0);
+      final g = r.graph!;
+      final src = g.attach(LatLng((bounds.north + bounds.south) / 2, bounds.west))!;
+      final dst = g.attach(LatLng((bounds.north + bounds.south) / 2, bounds.east))!;
+      final s = summarizePath(g, shortestPath(g, src, dst, bio)!.edges, src, bio);
+      expect(s.heightsComplete, isTrue);
+      expect(s.gainM, closeTo(240, 15));
+      expect(online.heightRequests, lessThanOrEqualTo(kOnlineHeightsMaxTiles),
+          reason: 'Kanten am Kachelrand fragen auch die Nachbarn — nie mehr als die Grenze');
     });
 
     test('ohne Höhenleser zählt jede Kante als ohne Höhe', () async {
