@@ -18,6 +18,7 @@ import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../../core/app_colors.dart';
+import '../../l10n/l10n.dart';
 import '../map/map_view/map_hit_test.dart';
 import '../map/map_view/map_view.dart';
 import 'route_vias.dart';
@@ -160,18 +161,18 @@ class RouteTuneNote extends StatelessWidget {
         padding: const EdgeInsets.only(top: 4),
         child: Text(
           key: ValueKey('$keyPrefix-tune-hint'),
-          'Tipp auf die Linie setzt einen Zwischenpunkt — ziehen verschiebt ihn, ein Tipp nimmt ihn weg.',
+          context.l10n.routingTuneHint,
           style: style,
         ),
       );
     }
     return Row(
       children: [
-        Expanded(child: Text('Von Hand angepasst', key: ValueKey('$keyPrefix-tuned'), style: style)),
+        Expanded(child: Text(context.l10n.routingTuned, key: ValueKey('$keyPrefix-tuned'), style: style)),
         TextButton(
           key: ValueKey('$keyPrefix-tune-reset'),
           onPressed: onReset,
-          child: const Text('Zurücksetzen'),
+          child: Text(context.l10n.routingTuneReset),
         ),
       ],
     );

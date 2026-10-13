@@ -4,7 +4,7 @@
 
 ## Die Route als Band
 
-*Version 0.117.0, 2026-10-13*
+*Versionen 0.117.0 und 0.117.1, 2026-10-13*
 
 - Eine geplante Route liegt jetzt als halb durchsichtiges Band in Lime
   mit einem grünen Rand auf der Karte — in der Runde, beim Weg zum

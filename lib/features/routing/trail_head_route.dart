@@ -12,6 +12,7 @@
 // Wanderweg, steht es im Ergebnis (`hikingM`), und das Blatt sagt es.
 import 'package:latlong2/latlong.dart';
 
+import '../../l10n/l10n.dart';
 import '../trails/gpx.dart';
 import 'road_graph.dart';
 import 'route_profile.dart';
@@ -158,18 +159,18 @@ List<RouteSection> sectionsOf(RoadGraph g, List<int> path, int src) {
 /// „45 min", „1 h 20 min" — die geschätzte Zeit, auf fünf Minuten
 /// gerundet: Das Zeitmodell ist ohne Kalibrierung ±30 % (Konzept-Routing
 /// 7), eine Minute genau wäre eine erfundene Genauigkeit.
-String routeTimeLabel(double seconds) {
+String routeTimeLabel(AppLocalizations l, double seconds) {
   final min = ((seconds / 60) / 5).round() * 5;
-  if (min < 5) return 'unter 5 min';
-  if (min < 60) return '$min min';
+  if (min < 5) return l.routingTimeUnder5;
+  if (min < 60) return l.routingTimeMinutes(min);
   final h = min ~/ 60, m = min % 60;
-  return m == 0 ? '$h h' : '$h h $m min';
+  return m == 0 ? l.routingTimeHours(h) : l.routingTimeHoursMinutes(h, m);
 }
 
 /// Die Route als GPX-Spur (#150): nur die Linie, der Name nennt den
 /// Trail. Keine Höhen — die Engine kennt sie je Kante, nicht je Punkt,
 /// und erfundene Punkt-Höhen wären eine Behauptung.
-GpxTrack trailHeadToGpx(TrailHeadRoute route, {required String trailName}) => GpxTrack(
-      name: 'Zum Trailkopf: $trailName',
+GpxTrack trailHeadToGpx(AppLocalizations l, TrailHeadRoute route, {required String trailName}) => GpxTrack(
+      name: l.routeNameTrailHead(trailName),
       points: [for (final p in route.points) TrackPoint(p.latitude, p.longitude)],
     );

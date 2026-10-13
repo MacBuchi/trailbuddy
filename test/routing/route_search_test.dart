@@ -23,6 +23,8 @@ import 'package:trailbuddy/features/routing/route_search.dart';
 
 import '../fakes/fake_tiles.dart';
 
+import '../fakes/l10n_de.dart';
+
 /// Meter → Grad über DIESELBE Projektion wie der Graph, sonst sind
 /// „1000 m" im Test 998,9 m im Graphen.
 List<LatLng> _m(List<(double, double)> xy, {double lat0 = 47.5, double lon0 = 11.5}) {
@@ -168,9 +170,9 @@ void main() {
   });
 
   test('der Satz zu steilen Stücken erst ab ein paar Höhenmetern (#194)', () {
-    expect(steepNote(0), isNull);
-    expect(steepNote(kSteepNoteMinM - 0.1), isNull);
-    expect(steepNote(kSteepNoteMinM), contains('über 15 %'));
+    expect(steepNote(l10nDe, 0), isNull);
+    expect(steepNote(l10nDe, kSteepNoteMinM - 0.1), isNull);
+    expect(steepNote(l10nDe, kSteepNoteMinM), contains('über 15 %'));
   });
 
   test('Einbahn: hin über die Straße, zurück nur über den Umweg', () {

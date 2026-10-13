@@ -36,6 +36,7 @@ import 'loop_planner_providers.dart';
 import 'map_panel.dart';
 import 'nav_providers.dart';
 import 'nav_sections.dart';
+import 'planning_graph.dart' show planningCoverageNote;
 import 'road_graph.dart';
 import 'road_graph_loader.dart' show kOnlineFillMaxTiles;
 import 'route_elevation.dart';
@@ -106,16 +107,17 @@ class _ParamsSheet extends ConsumerWidget {
     final notifier = ref.read(loopPlannerProvider.notifier);
     final prefs = session.prefs;
     final start = session.start;
+    final l = context.l10n;
     return ListView(
       controller: scroll,
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
       children: [
-        Text('Parameter der Runde', style: theme.textTheme.titleLarge),
+        Text(l.loopParamsTitle, style: theme.textTheme.titleLarge),
         const SizedBox(height: 12),
         Text(
           start == null
-              ? 'Start: mein Standort'
-              : 'Start: getippter Punkt (${start.latitude.toStringAsFixed(4)}, ${start.longitude.toStringAsFixed(4)})',
+              ? l.loopStartMine
+              : l.loopStartPicked(start.latitude.toStringAsFixed(4), start.longitude.toStringAsFixed(4)),
           key: const ValueKey('loop-start'),
           style: theme.textTheme.bodyMedium,
         ),
@@ -127,19 +129,19 @@ class _ParamsSheet extends ConsumerWidget {
               Navigator.of(context).pop();
             },
             icon: const Icon(Icons.touch_app_outlined),
-            label: const Text('Auf der Karte tippen'),
+            label: Text(l.loopPickOnMap),
           ),
           if (start != null)
             TextButton(
               key: const ValueKey('loop-start-me'),
               onPressed: notifier.useMyPosition,
-              child: const Text('Mein Standort'),
+              child: Text(l.loopUseMyPosition),
             ),
         ]),
         const SizedBox(height: 8),
         SegmentedButton<RiderProfile>(
           key: const ValueKey('loop-profile'),
-          segments: [for (final p in RiderProfile.values) ButtonSegment(value: p, label: Text(p.label(context.l10n)))],
+          segments: [for (final p in RiderProfile.values) ButtonSegment(value: p, label: Text(p.label(l)))],
           selected: {session.profile},
           showSelectedIcon: false,
           onSelectionChanged: (sel) => notifier.setProfile(sel.single),
@@ -147,7 +149,7 @@ class _ParamsSheet extends ConsumerWidget {
         const SizedBox(height: 12),
         _LoopSlider(
           key: const ValueKey('loop-time'),
-          label: 'Höchstens ${_hoursLabel(prefs.hours)}',
+          label: l.loopMaxTime(_hoursLabel(l, prefs.hours)),
           value: prefs.hours,
           min: LoopPrefs.minHours,
           max: LoopPrefs.maxHours,
@@ -156,7 +158,7 @@ class _ParamsSheet extends ConsumerWidget {
         ),
         _LoopSlider(
           key: const ValueKey('loop-climb'),
-          label: 'Höchstens ${prefs.climbM.round()} hm bergauf',
+          label: l.loopMaxClimb(prefs.climbM.round()),
           value: prefs.climbM,
           min: LoopPrefs.minClimb,
           max: LoopPrefs.maxClimb,
@@ -165,7 +167,7 @@ class _ParamsSheet extends ConsumerWidget {
         ),
         _LoopSlider(
           key: const ValueKey('loop-hiking'),
-          label: prefs.hikingKm == 0 ? 'Kein Wanderweg' : 'Höchstens ${formatMeters(prefs.hikingKm * 1000)} Wanderweg',
+          label: prefs.hikingKm == 0 ? l.loopNoHiking : l.loopMaxHiking(formatMeters(prefs.hikingKm * 1000)),
           value: prefs.hikingKm,
           min: LoopPrefs.minHikingKm,
           max: LoopPrefs.maxHikingKm,
@@ -174,7 +176,7 @@ class _ParamsSheet extends ConsumerWidget {
         ),
         _LoopSlider(
           key: const ValueKey('loop-radius'),
-          label: 'Trail-Liste: ${prefs.radiusKm.round()} km um den Start',
+          label: l.loopRadius(prefs.radiusKm.round()),
           value: prefs.radiusKm,
           min: LoopPrefs.minRadiusKm,
           max: LoopPrefs.maxRadiusKm,
@@ -184,60 +186,53 @@ class _ParamsSheet extends ConsumerWidget {
         SwitchListTile(
           key: const ValueKey('loop-return'),
           contentPadding: EdgeInsets.zero,
-          title: const Text('Start ist auch Ziel'),
-          subtitle: Text(prefs.returnToStart ? 'Eine Runde' : 'Die Runde endet am letzten Trail'),
+          title: Text(l.loopReturnTitle),
+          subtitle: Text(prefs.returnToStart ? l.loopReturnOn : l.loopReturnOff),
           value: prefs.returnToStart,
           onChanged: (v) => notifier.setPrefs(prefs.copyWith(returnToStart: v)),
         ),
         const SizedBox(height: 4),
-        Text('Unterwegs', style: theme.textTheme.titleSmall),
+        Text(l.loopOnTheWay, style: theme.textTheme.titleSmall),
         _PrefSwitch(
           tileKey: const ValueKey('loop-pref-roads'),
-          title: 'Straßen meiden',
-          on: 'Forstweg, Feldweg und Radweg vor Straße — je größer die Straße, desto stärker.',
-          off: 'Straßen sind fast so gut wie Forstwege; nur große Straßen kosten noch etwas.',
+          title: l.loopPrefRoads,
+          on: l.loopPrefRoadsOn,
+          off: l.loopPrefRoadsOff,
           value: prefs.route.avoidRoads,
           onChanged: (v) => notifier.setPrefs(prefs.copyWith(route: prefs.route.copyWith(avoidRoads: v))),
         ),
         _PrefSwitch(
           tileKey: const ValueKey('loop-pref-hiking'),
-          title: 'Wanderwege bergauf meiden',
-          on: 'Bergauf lieber Forstweg als Pfad. Die Grenze oben gilt immer.',
-          off: 'Ein Pfad bergauf ist kaum teurer als ein Forstweg. Die Grenze oben gilt immer.',
+          title: l.loopPrefHiking,
+          on: l.loopPrefHikingOn,
+          off: l.loopPrefHikingOff,
           value: prefs.route.avoidHiking,
           onChanged: (v) => notifier.setPrefs(prefs.copyWith(route: prefs.route.copyWith(avoidHiking: v))),
         ),
         _PrefSwitch(
           tileKey: const ValueKey('loop-pref-steep'),
-          title: 'Steile Rampen meiden',
-          on: 'Ab 10 % Steigung wird jeder Höhenmeter teurer, sehr steil sehr viel teurer — '
-              'auf Schotter stärker als auf Asphalt.',
-          off: 'Steile Rampen kosten nur noch ein Drittel des Aufschlags.',
+          title: l.loopPrefSteep,
+          on: l.loopPrefSteepOn,
+          off: l.loopPrefSteepOff,
           value: prefs.route.avoidSteep,
           onChanged: (v) => notifier.setPrefs(prefs.copyWith(route: prefs.route.copyWith(avoidSteep: v))),
         ),
         Text(
-          'Gilt auch für den Weg zum Trail. Höhe, die eine Verbindung bergab verschenkt, kostet immer etwas.',
+          l.loopPrefsNote,
           style: theme.textTheme.bodySmall?.copyWith(color: theme.hintColor),
         ),
         const SizedBox(height: 4),
         SwitchListTile(
           key: const ValueKey('loop-fill-online'),
           contentPadding: EdgeInsets.zero,
-          title: const Text('Fehlende Wege online ergänzen'),
-          subtitle: Text(prefs.fillOnline
-              ? 'Mit Empfang kommen Wege, die deine Bereiche nicht haben, vom Kartenhost — '
-                  'höchstens $kOnlineFillMaxTiles Kacheln je Planung, nur für diese Sitzung.'
-              : 'Gerechnet wird nur über deine Bereiche — wie ohne Empfang.'),
+          title: Text(l.loopFillOnline),
+          subtitle: Text(prefs.fillOnline ? l.loopFillOnlineOn(kOnlineFillMaxTiles) : l.loopFillOnlineOff),
           value: prefs.fillOnline,
           onChanged: (v) => notifier.setPrefs(prefs.copyWith(fillOnline: v)),
         ),
         const SizedBox(height: 8),
         Text(
-          'Die Runde nimmt die gewählten Trails bergab mit und verbindet sie über die Wege deiner '
-          'gespeicherten Bereiche — offline, nach deinem Profil; mit Empfang ergänzt der Kartenhost, '
-          'was fehlt. Gewählt wird auf der Karte (antippen), '
-          'über die Liste oder ein umfahrenes Gebiet.',
+          l.loopParamsExplain,
           style: theme.textTheme.bodySmall?.copyWith(color: theme.hintColor),
         ),
       ],
@@ -315,9 +310,8 @@ Future<void> showLoopListSheet(BuildContext context, WidgetRef ref) async {
   final center = await ref.read(loopPlannerProvider.notifier).listCenter();
   if (!context.mounted) return;
   if (center == null) {
-    messenger.showSnackBar(const SnackBar(
-        key: ValueKey('loop-list-no-center'),
-        content: Text('Kein Standort — setz den Start auf der Karte, dann zeigt die Liste die Trails darum.')));
+    messenger.showSnackBar(SnackBar(
+        key: const ValueKey('loop-list-no-center'), content: Text(context.l10n.loopListNoCenter)));
     return;
   }
   await showModalBottomSheet<void>(
@@ -349,58 +343,53 @@ class _ListSheet extends ConsumerWidget {
     final radius = session.prefs.radiusKm;
     final pool = loopPoolOf(trails, center, reachM: radius * 1000);
     final ids = [for (final t in pool.inReach) t.id];
+    final l = context.l10n;
     return ListView(
       controller: scroll,
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
       children: [
-        Text('Trails in ${radius.round()} km', style: theme.textTheme.titleLarge),
+        Text(l.loopListTitle(radius.round()), style: theme.textTheme.titleLarge),
         Text(
-          session.start == null
-              ? 'Um deinen Standort — den Radius stellst du unter Parameter.'
-              : 'Um den getippten Start — den Radius stellst du unter Parameter.',
+          session.start == null ? l.loopListAroundMe : l.loopListAroundStart,
           style: theme.textTheme.bodySmall?.copyWith(color: theme.hintColor),
         ),
         Row(children: [
           TextButton(
             key: const ValueKey('loop-list-all'),
             onPressed: ids.isEmpty ? null : () => notifier.setSelected(ids, true),
-            child: const Text('Alle wählen'),
+            child: Text(l.loopListAll),
           ),
           TextButton(
             key: const ValueKey('loop-list-none'),
             onPressed: ids.isEmpty ? null : () => notifier.setSelected(ids, false),
-            child: const Text('Keine'),
+            child: Text(l.loopListNone),
           ),
         ]),
         if (pool.inReach.isEmpty)
           Text(
             key: const ValueKey('loop-list-empty'),
-            pool.warned.isEmpty
-                ? 'In ${radius.round()} km liegt kein Trail.'
-                : 'In ${radius.round()} km liegen nur gemeldete Trails.',
+            pool.warned.isEmpty ? l.loopListEmpty(radius.round()) : l.loopListOnlyWarned(radius.round()),
           ),
-        for (final t in pool.inReach) _row(session, notifier, t),
+        for (final t in pool.inReach) _row(l, session, notifier, t),
         if (pool.warned.isNotEmpty) ...[
           const SizedBox(height: 8),
-          Text('Gemeldet (${pool.warned.length})', style: theme.textTheme.titleMedium),
-          Text('Gesperrt, zerstört oder verändert — einzeln dazunehmbar.',
+          Text(l.loopListWarned(pool.warned.length), style: theme.textTheme.titleMedium),
+          Text(l.loopListWarnedHint,
               style: theme.textTheme.bodySmall?.copyWith(color: palette.warningText)),
-          for (final t in pool.warned) _row(session, notifier, t),
+          for (final t in pool.warned) _row(l, session, notifier, t),
         ],
         if (pool.connectors.isNotEmpty) ...[
           const SizedBox(height: 8),
           Text(
             key: const ValueKey('loop-connectors'),
-            'Bergauf nutzt die Runde ${pool.connectors.length == 1 ? 'den Uphill-Trail oder Verbinder' : 'die Uphill-Trails und Verbinder'} '
-            '${pool.connectors.map((t) => t.displayName).join(', ')} von selbst — gern auch mehrmals.',
+            l.loopListConnectors(pool.connectors.length, pool.connectors.map((t) => t.displayName).join(', ')),
             style: theme.textTheme.bodySmall?.copyWith(color: theme.hintColor),
           ),
         ],
         if (pool.tooFar > 0) ...[
           const SizedBox(height: 4),
           Text(
-            '${pool.tooFar} ${pool.tooFar == 1 ? 'Trail liegt' : 'Trails liegen'} weiter weg — '
-            'auf der Karte antippen geht trotzdem.',
+            l.loopListTooFar(pool.tooFar),
             style: theme.textTheme.bodySmall?.copyWith(color: theme.hintColor),
           ),
         ],
@@ -408,13 +397,13 @@ class _ListSheet extends ConsumerWidget {
     );
   }
 
-  Widget _row(LoopSession session, LoopPlannerNotifier notifier, Trail t) {
+  Widget _row(AppLocalizations l, LoopSession session, LoopPlannerNotifier notifier, Trail t) {
     final on = session.selected.contains(t.id);
     final must = session.mandatory.contains(t.id);
     final parts = [
       formatMeters(t.lengthM),
       if (t.grade != null) 'S${t.grade}',
-      if (t.rating != null) '${t.rating} ${t.rating == 1 ? 'Stern' : 'Sterne'}',
+      if (t.rating != null) l.loopListStars(t.rating!),
     ];
     return CheckboxListTile(
       key: ValueKey('loop-trail-${t.id}'),
@@ -426,7 +415,7 @@ class _ListSheet extends ConsumerWidget {
       subtitle: Text(parts.join(' · ')),
       secondary: IconButton(
         key: ValueKey('loop-must-${t.id}'),
-        tooltip: must ? 'Muss dabei sein — abwählen' : 'Muss dabei sein',
+        tooltip: must ? l.loopMustOff : l.loopMust,
         icon: Icon(must ? Icons.star : Icons.star_border),
         onPressed: () => notifier.toggleMandatory(t.id),
       ),
@@ -486,13 +475,14 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
     ref.listen(loopPlannerProvider, (_, next) => unawaited(_maybeFit(next)));
     final session = ref.watch(loopPlannerProvider);
     final plan = session.plan;
+    final l = context.l10n;
     return ListView(
       controller: widget.scroll,
       padding: const EdgeInsets.fromLTRB(20, 0, 8, 24),
       children: [
         MapPanelHeader(
-          title: 'Runde',
-          subtitle: plan?.summary == null ? null : _shortSummary(plan!.summary!),
+          title: l.loopTitle,
+          subtitle: plan?.summary == null ? null : _shortSummary(l, plan!.summary!),
           closeKey: const ValueKey('loop-close'),
           onClose: widget.panel.close,
         ),
@@ -501,9 +491,9 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: switch (session.phase) {
-              LoopPhase.locating => [_progress('Standort wird ermittelt …')],
-              LoopPhase.loading => [_progress('Wege und Höhen aus deinen Bereichen werden gelesen …')],
-              LoopPhase.computing || LoopPhase.idle => [_progress('Die Runde wird gerechnet …')],
+              LoopPhase.locating => [_progress(l.routingLocating)],
+              LoopPhase.loading => [_progress(l.routingLoadingWays)],
+              LoopPhase.computing || LoopPhase.idle => [_progress(l.loopComputing)],
               LoopPhase.result => session.blocker != null || plan == null
                   ? [_blockerCard(context, session.blocker ?? LoopBlocker.failed)]
                   : _result(context, session, plan),
@@ -533,7 +523,7 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
         child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Icon(Icons.info_outline, color: palette.warningText),
           const SizedBox(width: 10),
-          Expanded(child: _notice(context, _blockerText(b))),
+          Expanded(child: _notice(context, _blockerText(context.l10n, b))),
         ]),
       ),
     );
@@ -542,15 +532,16 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
   bool _fitsBudget(LoopSummary s, LoopBudget b) =>
       s.timeS <= b.plannedTimeS + 1 && s.gainM <= b.climbM + 1 && s.hikingM <= b.hikingM + 1;
 
-  String _shortSummary(LoopSummary s) =>
-      '${formatMeters(s.lengthM)} · ${s.gainM.round()} hm · etwa ${routeTimeLabel(s.timeS)}';
+  String _shortSummary(AppLocalizations l, LoopSummary s) =>
+      l.loopShortSummary(formatMeters(s.lengthM), s.gainM.round(), routeTimeLabel(l, s.timeS));
 
   List<Widget> _result(BuildContext context, LoopSession session, LoopPlan plan) {
     final theme = Theme.of(context);
     final palette = AppPalette.of(context);
+    final l = context.l10n;
     if (plan.outcome != LoopOutcome.ok) {
       return [
-        _notice(context, _outcomeText(plan.outcome)),
+        _notice(context, _outcomeText(l, plan.outcome)),
         if (plan.excluded.isNotEmpty) ...[const SizedBox(height: 8), ..._excludedRows(context, plan)],
       ];
     }
@@ -560,14 +551,13 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
     return [
       Text(
         key: const ValueKey('loop-summary'),
-        '${formatMeters(s.lengthM)} · ${s.gainM.round()} hm bergauf · '
-        '${formatMeters(s.trailM)} Trail · etwa ${routeTimeLabel(s.timeS)}',
+        l.loopSummary(formatMeters(s.lengthM), s.gainM.round(), formatMeters(s.trailM), routeTimeLabel(l, s.timeS)),
         style: theme.textTheme.titleMedium?.copyWith(fontFamily: AppFonts.mono),
       ),
       const SizedBox(height: 4),
       Text(
-        '${s.trailLossM.round()} hm bergab auf Trails · ${s.wastedLossM.round()} hm verschenkt'
-        '${s.mix.isEmpty ? '' : ' · ${_mixLine(s.mix)}'}',
+        '${l.loopDescents(s.trailLossM.round(), s.wastedLossM.round())}'
+        '${s.mix.isEmpty ? '' : ' · ${wayMixLine(l, s.mix)}'}',
         style: theme.textTheme.bodyMedium,
       ),
       // Das Profil der Runde (#234) gleich darunter, kompakt: Eingeklappt
@@ -581,7 +571,7 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
       if (session.tuned && !_fitsBudget(s, session.prefs.budget))
         Text(
           key: const ValueKey('loop-tuned-over'),
-          'So gezogen liegt die Runde über deinem Budget.',
+          l.loopTunedOver,
           style: theme.textTheme.bodySmall?.copyWith(color: palette.warningText),
         ),
       // Die Knöpfe gleich unter den Summen: Eingeklappt sind sie zu sehen,
@@ -596,10 +586,10 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
             style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(48)),
             onPressed: () => ref.read(navRequestProvider.notifier).state = NavRequest(
                 points: plan.points,
-                title: loopName(plan),
+                title: loopName(l, plan),
                 sections: navSectionsOfLoop(plan, trailById: trailByIdOf(ref))),
             icon: const Icon(Icons.navigation_outlined),
-            label: const Text('Navigieren'),
+            label: Text(l.commonNavigate),
           ),
         ),
         const SizedBox(width: 8),
@@ -609,7 +599,7 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
             style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
             onPressed: () => _saveRide(session, plan),
             icon: const Icon(Icons.bookmark_add_outlined),
-            label: const Text('Speichern'),
+            label: Text(l.commonSave),
           ),
         ),
       ]),
@@ -619,26 +609,26 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
           key: const ValueKey('loop-gpx'),
           onPressed: () => _exportGpx(plan),
           icon: const Icon(Icons.share_outlined),
-          label: const Text('Als GPX'),
+          label: Text(l.routingAsGpx),
         ),
       ),
       if (s.trailUpM > 0) ...[
         const SizedBox(height: 4),
         Text(
           key: const ValueKey('loop-trail-up'),
-          'Bergauf ${formatMeters(s.trailUpM)} über ${s.trailUpNames.join(', ')}',
+          l.routingTrailUp(formatMeters(s.trailUpM), s.trailUpNames.join(', ')),
           style: theme.textTheme.bodyMedium,
         ),
       ],
       if (s.hikingM > 0) ...[
         const SizedBox(height: 8),
         Text(
-          'Davon ${formatMeters(s.hikingM)} über Wanderweg, Fußweg oder Stufen — '
-          'ob du dort fahren darfst, sagt die App nicht.',
+          l.routingHikingWarning(formatMeters(s.hikingM)),
           style: theme.textTheme.bodyMedium?.copyWith(color: palette.warningText),
         ),
       ],
-      if (session.coverageNote case final note?) ...[
+      if (session.coverage == null ? null : planningCoverageNote(l, session.coverage!, loop: true)
+          case final note?) ...[
         const SizedBox(height: 8),
         Text(
           key: const ValueKey('loop-partial'),
@@ -646,7 +636,7 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
           style: theme.textTheme.bodySmall?.copyWith(color: theme.hintColor),
         ),
       ],
-      if (steepNote(s.steepM) case final note?) ...[
+      if (steepNote(l, s.steepM) case final note?) ...[
         const SizedBox(height: 8),
         Text(
           key: const ValueKey('loop-steep'),
@@ -657,13 +647,12 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
       if (!s.heightsComplete) ...[
         const SizedBox(height: 8),
         Text(
-          'Nicht alle Wege haben Höhen — Höhenmeter und Zeit sind eine Untergrenze. '
-          'Ein neu gespeicherter Bereich bringt sie mit.',
+          l.routingHeightsIncomplete,
           style: theme.textTheme.bodySmall?.copyWith(color: theme.hintColor),
         ),
       ],
       const SizedBox(height: 12),
-      Text('In dieser Reihenfolge', style: theme.textTheme.titleMedium),
+      Text(l.loopOrder, style: theme.textTheme.titleMedium),
       for (var i = 0; i < plan.stops.length; i++)
         ListTile(
           key: ValueKey('loop-stop-$i'),
@@ -674,17 +663,17 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
           subtitle: Text([
             formatMeters(plan.stops[i].trail.lengthM),
             if (byId[plan.stops[i].trail.id]?.grade case final g?) 'S$g',
-            if (plan.stops[i].secondPass) 'noch einmal',
+            if (plan.stops[i].secondPass) l.loopSecondPass,
           ].join(' · ')),
         ),
       if (plan.excluded.isNotEmpty) ...[
         const SizedBox(height: 8),
-        Text('Nicht hineingepasst', style: theme.textTheme.titleMedium),
+        Text(l.loopExcludedTitle, style: theme.textTheme.titleMedium),
         ..._excludedRows(context, plan),
       ],
       const SizedBox(height: 8),
       Text(
-        'Ein Vorschlag aus Kartendaten, ohne Abbiegehinweise — fahre nach Sicht.',
+        l.routingNoTurnHints,
         style: theme.textTheme.bodySmall?.copyWith(color: theme.hintColor),
       ),
     ];
@@ -698,7 +687,7 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
       for (final e in plan.excluded.entries)
         Text(
           key: ValueKey('loop-excluded-${e.key}'),
-          '${byId[e.key]?.displayName ?? e.key} — ${_exclusionText(e.value)}',
+          context.l10n.loopExcludedRow(byId[e.key]?.displayName ?? e.key, _exclusionText(context.l10n, e.value)),
           style: theme.textTheme.bodySmall,
         ),
     ];
@@ -707,9 +696,10 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
   Future<void> _saveRide(LoopSession session, LoopPlan plan) async {
     if (plan.isEmpty) return;
     final messenger = ScaffoldMessenger.of(context);
+    final l = context.l10n;
     final now = DateTime.now().toUtc();
     final ride = await ref.read(ridesProvider.notifier).savePlanned(
-          name: loopName(plan),
+          name: loopName(l, plan),
           points: [
             for (final p in plan.points) RidePoint(lat: p.latitude, lng: p.longitude, at: now, accuracyM: 0),
           ],
@@ -718,58 +708,51 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
         );
     if (!mounted) return;
     messenger.showSnackBar(SnackBar(
-        content: Text(ride == null
-            ? 'Die Runde ließ sich nicht speichern.'
-            : 'Als geplante Fahrt gespeichert — im Profil unter „Meine Fahrten".')));
+        content: Text(ride == null ? l.loopSaveFailed : l.routingSavedAsRide)));
   }
 
   void _exportGpx(LoopPlan plan) {
     if (plan.isEmpty) return;
-    final track = loopToGpx(plan);
+    final track = loopToGpx(context.l10n, plan);
     shareGpx(context, ref, fileName: gpxFileName(track.name), xml: writeGpx(name: track.name, points: track.points));
   }
 
-  String _blockerText(LoopBlocker b) => switch (b) {
-        LoopBlocker.noTrails => 'Noch kein Trail gewählt — tippe Trails auf der Karte an, nimm die Liste '
-            'oder umfahre ein Gebiet.',
-        LoopBlocker.noPosition => 'Kein Standort — ohne ihn gibt es keinen Startpunkt. Erlaube '
-            'TrailBuddy den Standort, oder setz den Start über den obersten Knopf der Leiste.',
-        LoopBlocker.noArea => 'Kein gespeicherter Bereich deckt die Runde, und online kam kein Weg dazu '
-            '(kein Empfang, oder „Fehlende Wege online ergänzen" ist aus). Speichere einen Bereich über '
-            'den Knopf „Offline-Karten" auf der Karte — dann geht es auch ohne Empfang.',
-        LoopBlocker.failed => 'Die Runde ließ sich nicht rechnen — ein Fehler, der gemeldet ist. '
-            'Versuch es mit weniger Trails noch einmal.',
+  String _blockerText(AppLocalizations l, LoopBlocker b) => switch (b) {
+        LoopBlocker.noTrails => l.loopBlockerNoTrails,
+        LoopBlocker.noPosition => l.loopBlockerNoPosition,
+        LoopBlocker.noArea => l.loopBlockerNoArea,
+        LoopBlocker.failed => l.loopBlockerFailed,
       };
 
-  String _outcomeText(LoopOutcome o) => switch (o) {
+  String _outcomeText(AppLocalizations l, LoopOutcome o) => switch (o) {
         LoopOutcome.ok => '',
-        LoopOutcome.startOffNetwork => 'In ${kGraphAttachM.round()} m um den Start liegt kein Weg aus der Karte.',
-        LoopOutcome.endOffNetwork => 'In ${kGraphAttachM.round()} m um das Ziel liegt kein Weg aus der Karte.',
+        LoopOutcome.startOffNetwork => l.loopOutcomeStartOff(kGraphAttachM.round()),
+        LoopOutcome.endOffNetwork => l.loopOutcomeEndOff(kGraphAttachM.round()),
         // Wird nie gezeigt: Ein getuntes Ergebnis, das nicht geht, ersetzt
         // das gezeigte nicht (#234).
-        LoopOutcome.viaFailed => 'Durch die Zwischenpunkte führt kein Weg.',
-        LoopOutcome.empty => 'Kein gewählter Trail passt in die Runde — die Gründe stehen je Trail. '
-            'Mehr Zeit oder Höhenmeter unter Parameter, oder ein anderer Start.',
+        LoopOutcome.viaFailed => l.loopOutcomeViaFailed,
+        LoopOutcome.empty => l.loopOutcomeEmpty,
       };
 
-  String _exclusionText(LoopExclusion e) => switch (e) {
-        LoopExclusion.tooFar => 'zu weit vom Start',
-        LoopExclusion.offNetwork => 'Anfang oder Ende liegt an keinem Weg der Karte',
-        LoopExclusion.unreachable => 'von den Wegen deiner Bereiche aus nicht erreichbar',
-        LoopExclusion.budget => 'passt nicht ins Budget',
+  String _exclusionText(AppLocalizations l, LoopExclusion e) => switch (e) {
+        LoopExclusion.tooFar => l.loopExclTooFar,
+        LoopExclusion.offNetwork => l.loopExclOffNetwork,
+        LoopExclusion.unreachable => l.loopExclUnreachable,
+        LoopExclusion.budget => l.loopExclBudget,
       };
 }
 
-String _hoursLabel(double h) {
+String _hoursLabel(AppLocalizations l, double h) {
   final whole = h.floor();
   final half = h - whole >= 0.5;
-  return half ? '$whole h 30 min' : '$whole h';
+  return half ? l.routingTimeHoursMinutes(whole, 30) : l.routingTimeHours(whole);
 }
 
-/// „Forstweg 2,1 km · Nebenstraße 300 m" — die Klassen nach Länge.
-String _mixLine(Map<WayClass, double> mix) {
+/// „Forstweg 2,1 km · Nebenstraße 300 m" — die Klassen nach Länge; EINE
+/// Fassung für Runde und Weg.
+String wayMixLine(AppLocalizations l, Map<WayClass, double> mix) {
   final entries = mix.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
-  return entries.map((e) => '${e.key.label} ${formatMeters(e.value)}').join(' · ');
+  return entries.map((e) => l.routingWayMix(e.key.label(l), formatMeters(e.value))).join(' · ');
 }
 
 /// Die gewählten Trails leuchten, solange der Planer offen ist und keine

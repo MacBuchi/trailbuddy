@@ -16,6 +16,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/connectivity.dart';
 import '../../core/errors.dart';
 import '../../core/line_geometry.dart';
+import '../../l10n/l10n.dart';
 import '../../models/trail.dart';
 import '../offline_areas/area_providers.dart';
 import '../offline_areas/area_store.dart';
@@ -140,22 +141,22 @@ Future<PlanningGraph> loadPlanningGraph(Ref ref, LatBox box, {bool fillOnline = 
 }
 
 /// Der Satz unter dem Ergebnis, wenn nicht alles aus den Bereichen kam —
-/// EINE Fassung für Runde und Weg. Null, wenn es nichts zu sagen gibt.
-String? planningCoverageNote(PlanningGraph g, {required String what}) {
+/// EINE Fassung für Runde ([loop]) und Weg. Null, wenn es nichts zu sagen
+/// gibt.
+String? planningCoverageNote(AppLocalizations l, PlanningGraph g, {required bool loop}) {
   if (g.graph == null) return null;
   final online = g.tilesOnline;
-  final tiles = online == 1 ? '1 Kachel' : '$online Kacheln';
   if (!g.partial) {
-    return online == 0 ? null : '$tiles online nachgeladen — ohne Empfang ginge $what so nicht.';
+    return online == 0 ? null : (loop ? l.routingCoverageOnlineLoop(online) : l.routingCoverageOnlineRoute(online));
   }
-  final head = 'Gerechnet über ${g.tilesFound} von ${g.tilesNeeded} Kacheln — nur dort kennt die App die Wege.';
-  if (online == 0) return '$head Ein Weg außerhalb deiner Bereiche kann kürzer sein.';
+  final head = l.routingCoveragePartial(g.tilesFound, g.tilesNeeded);
+  if (online == 0) return '$head ${l.routingCoverageOffline}';
   final rest = g.onlineCapped
-      ? 'mehr als $kOnlineFillMaxTiles holt eine Planung nicht'
+      ? l.routingCoverageCapped(online, kOnlineFillMaxTiles)
       : g.onlineBroken
-          ? 'dann riss die Verbindung ab'
-          : 'der Rest liegt außerhalb der Karte';
-  return '$head $tiles davon online nachgeladen — $rest.';
+          ? l.routingCoverageBroken(online)
+          : l.routingCoverageOutside(online);
+  return '$head $rest';
 }
 
 /// Ein Provider, damit die Blätter [loadPlanningGraph] mit IHREM `ref`

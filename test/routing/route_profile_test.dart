@@ -102,7 +102,7 @@ void main() {
         reason: 'der Aufschlag kommt zu den Kosten, nicht zur Zeit');
     for (final c in WayClass.values) {
       expect(c.steep, c == WayClass.stufen ? 0 : c.isRoad || c == WayClass.radweg ? kSteepFactorPaved : kSteepFactorUnpaved,
-          reason: c.label);
+          reason: c.name);
     }
   });
 
@@ -113,7 +113,7 @@ void main() {
     expect(carryCostS(WayClass.stufen, gainM: 0, lossM: 4), 0, reason: 'hinunter nicht');
     expect(carryCostS(WayClass.stufen, gainM: 0, lossM: 0), 0, reason: 'ohne Höhen ist die Richtung unbekannt');
     for (final c in WayClass.values.where((c) => c != WayClass.stufen)) {
-      expect(carryCostS(c, gainM: 4, lossM: 0), 0, reason: c.label);
+      expect(carryCostS(c, gainM: 4, lossM: 0), 0, reason: c.name);
     }
     expect(edgeCostS(bio, WayClass.stufen, lengthM: 20, gainM: 4, lossM: 0), closeTo(276.0, 1e-6),
         reason: '216 s plus der Aufschlag, unabhängig von der Länge');

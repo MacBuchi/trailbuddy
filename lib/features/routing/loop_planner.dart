@@ -29,6 +29,7 @@
 // nicht. Rein, ohne Widgets, ohne Riverpod, ohne Platte.
 import 'package:latlong2/latlong.dart';
 
+import '../../l10n/l10n.dart';
 import '../../models/trail.dart';
 import '../trails/gpx.dart';
 import '../trails/trail_geometry.dart' show haversineM;
@@ -972,20 +973,20 @@ class LoopPrefs {
 
 /// „Runde: Hexentanz, Steinbruch" — höchstens drei Namen, dann „und n
 /// weitere"; ein Trail, der zweimal drin ist, steht einmal.
-String loopName(LoopPlan plan) {
+String loopName(AppLocalizations l, LoopPlan plan) {
   final names = <String>[];
   for (final s in plan.stops) {
     if (!names.contains(s.trail.name)) names.add(s.trail.name);
   }
-  if (names.isEmpty) return 'Runde';
+  if (names.isEmpty) return l.loopTitle;
   final shown = names.take(3).join(', ');
   final rest = names.length - 3;
-  return rest > 0 ? 'Runde: $shown und $rest weitere' : 'Runde: $shown';
+  return rest > 0 ? l.loopNameMore(shown, rest) : l.loopName(shown);
 }
 
 /// Die Runde als GPX-Spur (#150): nur die Linie, keine Höhen — wie bei
 /// „Zum Trailkopf" kennt die Engine Höhen je Kante, nicht je Punkt.
-GpxTrack loopToGpx(LoopPlan plan) => GpxTrack(
-      name: loopName(plan),
+GpxTrack loopToGpx(AppLocalizations l, LoopPlan plan) => GpxTrack(
+      name: loopName(l, plan),
       points: [for (final p in plan.points) TrackPoint(p.latitude, p.longitude)],
     );
