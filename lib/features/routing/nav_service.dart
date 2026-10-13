@@ -113,10 +113,11 @@ class NavKeepAlive {
   final KeepAliveCoordinator _coordinator;
 
   Future<void> start() async {
-    await _coordinator.start(key, kNavNoticeWaiting,
-        title: serviceL10n().navNoticeTitle,
+    final l = serviceL10n();
+    await _coordinator.start(key, l.navNoticeWaiting,
+        title: l.navNoticeTitle,
         types: const {KeepAliveType.location},
-        buttons: const [(id: kNavStopButton, text: kNavStopButtonText)]);
+        buttons: [(id: kNavStopButton, text: l.navNoticeStop)]);
     await _coordinator.setRepeat(key, kRideTickInterval);
   }
 

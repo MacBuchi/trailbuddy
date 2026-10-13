@@ -34,15 +34,10 @@ const kNavDataAlong = 'nav_along';
 
 /// Der Knopf in der Benachrichtigung und die Nachrichten an die App.
 const kNavStopButton = 'nav_stop';
-const kNavStopButtonText = 'Navigation beenden';
 const kNavMessageStop = 'nav:stop';
 const kNavMessageOpen = 'nav:open';
 
 const kNavRouteFileName = 'nav_route.json';
-
-/// Titel und Text, solange die App den ersten Fix des Dienstes noch nicht
-/// kennt.
-const kNavNoticeWaiting = 'Navigation läuft — warte auf den Standort';
 
 /// Die Routen-Datei unter [baseDir] (dem Pfad aus `kRideDataDir`).
 File navRouteFile(String baseDir) => File('$baseDir/${FileRideStore.dirName}/$kNavRouteFileName');

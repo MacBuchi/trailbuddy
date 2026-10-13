@@ -18,21 +18,31 @@ import 'package:go_router/go_router.dart';
 import '../../core/errors.dart';
 import '../../core/router_branches.dart';
 import '../../core/settings.dart';
+import '../../l10n/l10n.dart';
 import '../../models/trail.dart';
 import '../trails/trail_navigation.dart';
 import 'trail_head_providers.dart';
 
 enum NavChoice {
-  external('external', 'Mit der Navi-App', 'Der Trailkopf geht an Google Maps, OsmAnd & Co.', Icons.directions_outlined),
-  direct('direct', 'In TrailBuddy: direkt', 'Der kürzeste Weg über deine gespeicherten Bereiche.', Icons.straight),
-  fun('fun', 'In TrailBuddy: spaßig', 'Nimmt Trails auf dem Weg mit — ein Umweg, der sich lohnt.',
-      Icons.downhill_skiing);
+  external('external', Icons.directions_outlined),
+  direct('direct', Icons.straight),
+  fun('fun', Icons.downhill_skiing);
 
-  const NavChoice(this.db, this.label, this.description, this.icon);
+  const NavChoice(this.db, this.icon);
   final String db;
-  final String label;
-  final String description;
   final IconData icon;
+
+  String label(AppLocalizations l) => switch (this) {
+        external => l.navChoiceExternal,
+        direct => l.navChoiceDirect,
+        fun => l.navChoiceFun,
+      };
+
+  String description(AppLocalizations l) => switch (this) {
+        external => l.navChoiceExternalHint,
+        direct => l.navChoiceDirectHint,
+        fun => l.navChoiceFunHint,
+      };
 
   static NavChoice? parse(String? s) => values.where((c) => c.db == s).firstOrNull;
 }
@@ -73,14 +83,14 @@ Future<NavChoice?> _ask(BuildContext context, WidgetRef ref, NavChoice? current)
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
-              child: Text('Zum Trail navigieren', style: Theme.of(context).textTheme.titleLarge),
+              child: Text(context.l10n.navChoiceTitle, style: Theme.of(context).textTheme.titleLarge),
             ),
             for (final c in NavChoice.values)
               ListTile(
                 key: ValueKey('nav-choice-${c.db}'),
                 leading: Icon(c.icon),
-                title: Text(c.label),
-                subtitle: Text(c.description),
+                title: Text(c.label(context.l10n)),
+                subtitle: Text(c.description(context.l10n)),
                 trailing: c == current ? const Icon(Icons.check) : null,
                 onTap: () => Navigator.of(context).pop(c),
               ),
@@ -88,8 +98,8 @@ Future<NavChoice?> _ask(BuildContext context, WidgetRef ref, NavChoice? current)
               key: const ValueKey('nav-remember'),
               value: remember,
               onChanged: (v) => setState(() => remember = v ?? false),
-              title: const Text('Als Standard merken'),
-              subtitle: const Text('Ein langer Druck aufs Symbol fragt wieder.'),
+              title: Text(context.l10n.navChoiceRemember),
+              subtitle: Text(context.l10n.navChoiceRememberHint),
               controlAffinity: ListTileControlAffinity.leading,
             ),
             const SizedBox(height: 8),
@@ -120,7 +130,7 @@ class TrailNavButton extends ConsumerWidget {
         onLongPress: () => navigateToTrail(context, ref, trail, choose: true),
         child: IconButton(
           key: ValueKey('trail-nav-${trail.id}'),
-          tooltip: 'Zum Trail navigieren',
+          tooltip: context.l10n.navChoiceTitle,
           icon: const Icon(Icons.navigation_outlined),
           onPressed: () => navigateToTrail(context, ref, trail),
         ),

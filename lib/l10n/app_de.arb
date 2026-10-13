@@ -3642,5 +3642,860 @@
   "navNoticeRecording": "Fahrt wird aufgezeichnet",
   "@navNoticeRecording": {
     "description": "Zusatz in der zweiten Zeile der Benachrichtigung, wenn die Fahrt mit aufgezeichnet wird."
+  },
+  "routingTimeUnder5": "unter 5 min",
+  "@routingTimeUnder5": {
+    "description": "Geschätzte Fahrzeit einer Route, kürzer als fünf Minuten."
+  },
+  "routingTimeMinutes": "{minutes} min",
+  "@routingTimeMinutes": {
+    "description": "Geschätzte Fahrzeit unter einer Stunde, auf fünf Minuten gerundet.",
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "routingTimeHours": "{hours} h",
+  "@routingTimeHours": {
+    "description": "Geschätzte Fahrzeit in vollen Stunden; auch für den Zeitregler des Planers.",
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      }
+    }
+  },
+  "routingTimeHoursMinutes": "{hours} h {minutes} min",
+  "@routingTimeHoursMinutes": {
+    "description": "Geschätzte Fahrzeit in Stunden und Minuten; auch für den Zeitregler des Planers.",
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      },
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "routingLocating": "Standort wird ermittelt …",
+  "@routingLocating": {
+    "description": "Rundenplaner und Routen-Blatt: Fortschritt, solange der Standort gesucht wird."
+  },
+  "routingLoadingWays": "Wege und Höhen aus deinen Bereichen werden gelesen …",
+  "@routingLoadingWays": {
+    "description": "Rundenplaner und Routen-Blatt: Fortschritt, solange der Wegegraph geladen wird."
+  },
+  "routingNoTurnHints": "Ein Vorschlag aus Kartendaten, ohne Abbiegehinweise — fahre nach Sicht.",
+  "@routingNoTurnHints": {
+    "description": "Fußnote unter einer geplanten Runde oder Route."
+  },
+  "routingAsGpx": "Als GPX",
+  "@routingAsGpx": {
+    "description": "Knopf unter einer geplanten Runde oder Route: teilt sie als GPX-Datei."
+  },
+  "routingSavedAsRide": "Als geplante Fahrt gespeichert — im Profil unter „Meine Fahrten“.",
+  "@routingSavedAsRide": {
+    "description": "Leiste nach dem Speichern einer Runde oder Route."
+  },
+  "routingHikingWarning": "Davon {length} über Wanderweg, Fußweg oder Stufen — ob du dort fahren darfst, sagt die App nicht.",
+  "@routingHikingWarning": {
+    "description": "Warnung unter einer Runde oder Route; length ist eine fertig formatierte Länge.",
+    "placeholders": {
+      "length": {
+        "type": "String"
+      }
+    }
+  },
+  "routingTrailUp": "Bergauf {length} über {names}",
+  "@routingTrailUp": {
+    "description": "Runde oder Route: so viel bergauf über Uphill-Trails und Verbinder; names ist eine Liste von Trail-Namen.",
+    "placeholders": {
+      "length": {
+        "type": "String"
+      },
+      "names": {
+        "type": "String"
+      }
+    }
+  },
+  "routingHeightsIncomplete": "Nicht alle Wege haben Höhen — Höhenmeter und Zeit sind eine Untergrenze. Ein neu gespeicherter Bereich bringt sie mit.",
+  "@routingHeightsIncomplete": {
+    "description": "Hinweis unter einer Runde oder Route, wenn Höhen fehlen."
+  },
+  "routingSteepNote": "Mit steilen Stücken über {percent} % — wo es flacher ging, ist der flachere Weg gewählt.",
+  "@routingSteepNote": {
+    "description": "Hinweis unter einer Runde oder Route mit steilen Rampen.",
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "routingTuneHint": "Tipp auf die Linie setzt einen Zwischenpunkt — ziehen verschiebt ihn, ein Tipp nimmt ihn weg.",
+  "@routingTuneHint": {
+    "description": "Hinweis unter einer Runde oder Route: Zwischenpunkte setzen."
+  },
+  "routingTuned": "Von Hand angepasst",
+  "@routingTuned": {
+    "description": "Runde oder Route wurde über Zwischenpunkte von Hand verändert."
+  },
+  "routingTuneReset": "Zurücksetzen",
+  "@routingTuneReset": {
+    "description": "Knopf: Zwischenpunkte verwerfen und frei neu rechnen."
+  },
+  "routingCoverageOnlineLoop": "{tiles, plural, =1{1 Kachel online nachgeladen — ohne Empfang ginge die Runde so nicht.} other{{tiles} Kacheln online nachgeladen — ohne Empfang ginge die Runde so nicht.}}",
+  "@routingCoverageOnlineLoop": {
+    "description": "Rundenplaner: Wege-Kacheln wurden vom Kartenhost ergänzt.",
+    "placeholders": {
+      "tiles": {
+        "type": "int"
+      }
+    }
+  },
+  "routingCoverageOnlineRoute": "{tiles, plural, =1{1 Kachel online nachgeladen — ohne Empfang ginge der Weg so nicht.} other{{tiles} Kacheln online nachgeladen — ohne Empfang ginge der Weg so nicht.}}",
+  "@routingCoverageOnlineRoute": {
+    "description": "Routen-Blatt: Wege-Kacheln wurden vom Kartenhost ergänzt.",
+    "placeholders": {
+      "tiles": {
+        "type": "int"
+      }
+    }
+  },
+  "routingCoveragePartial": "Gerechnet über {found} von {needed} Kacheln — nur dort kennt die App die Wege.",
+  "@routingCoveragePartial": {
+    "description": "Runde oder Route: nicht alle Kacheln des Rahmens waren da.",
+    "placeholders": {
+      "found": {
+        "type": "int"
+      },
+      "needed": {
+        "type": "int"
+      }
+    }
+  },
+  "routingCoverageOffline": "Ein Weg außerhalb deiner Bereiche kann kürzer sein.",
+  "@routingCoverageOffline": {
+    "description": "Zusatz zu routingCoveragePartial, wenn nichts online nachgeladen wurde."
+  },
+  "routingCoverageCapped": "{tiles, plural, =1{1 Kachel davon online nachgeladen — mehr als {max} holt eine Planung nicht.} other{{tiles} Kacheln davon online nachgeladen — mehr als {max} holt eine Planung nicht.}}",
+  "@routingCoverageCapped": {
+    "description": "Zusatz zu routingCoveragePartial: Obergrenze des Nachladens erreicht.",
+    "placeholders": {
+      "tiles": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "routingCoverageBroken": "{tiles, plural, =1{1 Kachel davon online nachgeladen — dann riss die Verbindung ab.} other{{tiles} Kacheln davon online nachgeladen — dann riss die Verbindung ab.}}",
+  "@routingCoverageBroken": {
+    "description": "Zusatz zu routingCoveragePartial: Verbindung brach beim Nachladen ab.",
+    "placeholders": {
+      "tiles": {
+        "type": "int"
+      }
+    }
+  },
+  "routingCoverageOutside": "{tiles, plural, =1{1 Kachel davon online nachgeladen — der Rest liegt außerhalb der Karte.} other{{tiles} Kacheln davon online nachgeladen — der Rest liegt außerhalb der Karte.}}",
+  "@routingCoverageOutside": {
+    "description": "Zusatz zu routingCoveragePartial: der Rest liegt außerhalb der Karte des Hosts.",
+    "placeholders": {
+      "tiles": {
+        "type": "int"
+      }
+    }
+  },
+  "routingWayForest": "Forstweg",
+  "@routingWayForest": {
+    "description": "Wegklasse in der Zeile der Wegarten einer Runde oder Route."
+  },
+  "routingWayCycle": "Radweg",
+  "@routingWayCycle": {
+    "description": "Wegklasse in der Zeile der Wegarten einer Runde oder Route."
+  },
+  "routingWayMinor": "Nebenstraße",
+  "@routingWayMinor": {
+    "description": "Wegklasse in der Zeile der Wegarten einer Runde oder Route."
+  },
+  "routingWayAccess": "Zufahrt",
+  "@routingWayAccess": {
+    "description": "Wegklasse in der Zeile der Wegarten einer Runde oder Route."
+  },
+  "routingWayHiking": "Wanderweg",
+  "@routingWayHiking": {
+    "description": "Wegklasse in der Zeile der Wegarten einer Runde oder Route."
+  },
+  "routingWayFoot": "Fußweg",
+  "@routingWayFoot": {
+    "description": "Wegklasse in der Zeile der Wegarten einer Runde oder Route."
+  },
+  "routingWaySteps": "Stufen",
+  "@routingWaySteps": {
+    "description": "Wegklasse in der Zeile der Wegarten einer Runde oder Route."
+  },
+  "routingWayRural": "Landstraße",
+  "@routingWayRural": {
+    "description": "Wegklasse in der Zeile der Wegarten einer Runde oder Route."
+  },
+  "routingWayMain": "Hauptstraße",
+  "@routingWayMain": {
+    "description": "Wegklasse in der Zeile der Wegarten einer Runde oder Route."
+  },
+  "routingWayFederal": "Bundesstraße",
+  "@routingWayFederal": {
+    "description": "Wegklasse in der Zeile der Wegarten einer Runde oder Route (deutsche Bundesstraße)."
+  },
+  "routingWayMix": "{way} {length}",
+  "@routingWayMix": {
+    "description": "Ein Eintrag der Zeile der Wegarten: Wegklasse und fertig formatierte Länge.",
+    "placeholders": {
+      "way": {
+        "type": "String"
+      },
+      "length": {
+        "type": "String"
+      }
+    }
+  },
+  "loopParamsTitle": "Parameter der Runde",
+  "@loopParamsTitle": {
+    "description": "Titel des Blatts mit den Parametern des Rundenplaners."
+  },
+  "loopStartMine": "Start: mein Standort",
+  "@loopStartMine": {
+    "description": "Parameter des Planers: die Runde beginnt am eigenen Standort."
+  },
+  "loopStartPicked": "Start: getippter Punkt ({lat}, {lng})",
+  "@loopStartPicked": {
+    "description": "Parameter des Planers: die Runde beginnt an einem getippten Punkt; Koordinaten fertig formatiert.",
+    "placeholders": {
+      "lat": {
+        "type": "String"
+      },
+      "lng": {
+        "type": "String"
+      }
+    }
+  },
+  "loopPickOnMap": "Auf der Karte tippen",
+  "@loopPickOnMap": {
+    "description": "Parameter des Planers: Knopf, um den Start auf der Karte zu setzen."
+  },
+  "loopUseMyPosition": "Mein Standort",
+  "@loopUseMyPosition": {
+    "description": "Parameter des Planers: Knopf, um wieder vom eigenen Standort zu starten."
+  },
+  "loopMaxTime": "Höchstens {time}",
+  "@loopMaxTime": {
+    "description": "Regler im Planer: Zeitbudget; time ist fertig formatiert (z. B. 2 h 30 min).",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "loopMaxClimb": "Höchstens {climb} hm bergauf",
+  "@loopMaxClimb": {
+    "description": "Regler im Planer: Höhenbudget in Höhenmetern.",
+    "placeholders": {
+      "climb": {
+        "type": "int"
+      }
+    }
+  },
+  "loopNoHiking": "Kein Wanderweg",
+  "@loopNoHiking": {
+    "description": "Regler im Planer ganz links: keine Meter auf Wanderwegen."
+  },
+  "loopMaxHiking": "Höchstens {length} Wanderweg",
+  "@loopMaxHiking": {
+    "description": "Regler im Planer: Meter auf Wanderwegen; length fertig formatiert.",
+    "placeholders": {
+      "length": {
+        "type": "String"
+      }
+    }
+  },
+  "loopRadius": "Trail-Liste: {km} km um den Start",
+  "@loopRadius": {
+    "description": "Regler im Planer: Radius der Trail-Liste.",
+    "placeholders": {
+      "km": {
+        "type": "int"
+      }
+    }
+  },
+  "loopReturnTitle": "Start ist auch Ziel",
+  "@loopReturnTitle": {
+    "description": "Schalter im Planer."
+  },
+  "loopReturnOn": "Eine Runde",
+  "@loopReturnOn": {
+    "description": "Untertitel des Schalters „Start ist auch Ziel“, an."
+  },
+  "loopReturnOff": "Die Runde endet am letzten Trail",
+  "@loopReturnOff": {
+    "description": "Untertitel des Schalters „Start ist auch Ziel“, aus."
+  },
+  "loopOnTheWay": "Unterwegs",
+  "@loopOnTheWay": {
+    "description": "Zwischenüberschrift im Planer über den Vorlieben."
+  },
+  "loopPrefRoads": "Straßen meiden",
+  "@loopPrefRoads": {
+    "description": "Schalter der Vorlieben im Planer."
+  },
+  "loopPrefRoadsOn": "Forstweg, Feldweg und Radweg vor Straße — je größer die Straße, desto stärker.",
+  "@loopPrefRoadsOn": {
+    "description": "Untertitel von „Straßen meiden“, an."
+  },
+  "loopPrefRoadsOff": "Straßen sind fast so gut wie Forstwege; nur große Straßen kosten noch etwas.",
+  "@loopPrefRoadsOff": {
+    "description": "Untertitel von „Straßen meiden“, aus."
+  },
+  "loopPrefHiking": "Wanderwege bergauf meiden",
+  "@loopPrefHiking": {
+    "description": "Schalter der Vorlieben im Planer."
+  },
+  "loopPrefHikingOn": "Bergauf lieber Forstweg als Pfad. Die Grenze oben gilt immer.",
+  "@loopPrefHikingOn": {
+    "description": "Untertitel von „Wanderwege bergauf meiden“, an."
+  },
+  "loopPrefHikingOff": "Ein Pfad bergauf ist kaum teurer als ein Forstweg. Die Grenze oben gilt immer.",
+  "@loopPrefHikingOff": {
+    "description": "Untertitel von „Wanderwege bergauf meiden“, aus."
+  },
+  "loopPrefSteep": "Steile Rampen meiden",
+  "@loopPrefSteep": {
+    "description": "Schalter der Vorlieben im Planer."
+  },
+  "loopPrefSteepOn": "Ab 10 % Steigung wird jeder Höhenmeter teurer, sehr steil sehr viel teurer — auf Schotter stärker als auf Asphalt.",
+  "@loopPrefSteepOn": {
+    "description": "Untertitel von „Steile Rampen meiden“, an."
+  },
+  "loopPrefSteepOff": "Steile Rampen kosten nur noch ein Drittel des Aufschlags.",
+  "@loopPrefSteepOff": {
+    "description": "Untertitel von „Steile Rampen meiden“, aus."
+  },
+  "loopPrefsNote": "Gilt auch für den Weg zum Trail. Höhe, die eine Verbindung bergab verschenkt, kostet immer etwas.",
+  "@loopPrefsNote": {
+    "description": "Hinweis unter den Vorlieben im Planer."
+  },
+  "loopFillOnline": "Fehlende Wege online ergänzen",
+  "@loopFillOnline": {
+    "description": "Schalter im Planer; der Name wird auch in Hinweisen zitiert."
+  },
+  "loopFillOnlineOn": "Mit Empfang kommen Wege, die deine Bereiche nicht haben, vom Kartenhost — höchstens {max} Kacheln je Planung, nur für diese Sitzung.",
+  "@loopFillOnlineOn": {
+    "description": "Untertitel von „Fehlende Wege online ergänzen“, an.",
+    "placeholders": {
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "loopFillOnlineOff": "Gerechnet wird nur über deine Bereiche — wie ohne Empfang.",
+  "@loopFillOnlineOff": {
+    "description": "Untertitel von „Fehlende Wege online ergänzen“, aus."
+  },
+  "loopParamsExplain": "Die Runde nimmt die gewählten Trails bergab mit und verbindet sie über die Wege deiner gespeicherten Bereiche — offline, nach deinem Profil; mit Empfang ergänzt der Kartenhost, was fehlt. Gewählt wird auf der Karte (antippen), über die Liste oder ein umfahrenes Gebiet.",
+  "@loopParamsExplain": {
+    "description": "Erklärung am Ende der Parameter des Planers."
+  },
+  "loopListNoCenter": "Kein Standort — setz den Start auf der Karte, dann zeigt die Liste die Trails darum.",
+  "@loopListNoCenter": {
+    "description": "Leiste: Die Trail-Liste des Planers braucht einen Mittelpunkt."
+  },
+  "loopListTitle": "Trails in {km} km",
+  "@loopListTitle": {
+    "description": "Titel der Trail-Liste des Planers.",
+    "placeholders": {
+      "km": {
+        "type": "int"
+      }
+    }
+  },
+  "loopListAroundMe": "Um deinen Standort — den Radius stellst du unter Parameter.",
+  "@loopListAroundMe": {
+    "description": "Untertitel der Trail-Liste, Mittelpunkt ist der Standort."
+  },
+  "loopListAroundStart": "Um den getippten Start — den Radius stellst du unter Parameter.",
+  "@loopListAroundStart": {
+    "description": "Untertitel der Trail-Liste, Mittelpunkt ist der getippte Start."
+  },
+  "loopListAll": "Alle wählen",
+  "@loopListAll": {
+    "description": "Knopf in der Trail-Liste des Planers."
+  },
+  "loopListNone": "Keine",
+  "@loopListNone": {
+    "description": "Knopf in der Trail-Liste des Planers: alle abwählen."
+  },
+  "loopListEmpty": "In {km} km liegt kein Trail.",
+  "@loopListEmpty": {
+    "description": "Trail-Liste des Planers ohne Treffer.",
+    "placeholders": {
+      "km": {
+        "type": "int"
+      }
+    }
+  },
+  "loopListOnlyWarned": "In {km} km liegen nur gemeldete Trails.",
+  "@loopListOnlyWarned": {
+    "description": "Trail-Liste des Planers: nur gemeldete Trails im Radius.",
+    "placeholders": {
+      "km": {
+        "type": "int"
+      }
+    }
+  },
+  "loopListWarned": "Gemeldet ({count})",
+  "@loopListWarned": {
+    "description": "Zwischenüberschrift in der Trail-Liste: gemeldete Trails.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "loopListWarnedHint": "Gesperrt, zerstört oder verändert — einzeln dazunehmbar.",
+  "@loopListWarnedHint": {
+    "description": "Hinweis unter „Gemeldet“ in der Trail-Liste."
+  },
+  "loopListConnectors": "{count, plural, =1{Bergauf nutzt die Runde den Uphill-Trail oder Verbinder {names} von selbst — gern auch mehrmals.} other{Bergauf nutzt die Runde die Uphill-Trails und Verbinder {names} von selbst — gern auch mehrmals.}}",
+  "@loopListConnectors": {
+    "description": "Trail-Liste des Planers: Uphill-Trails und Verbinder sind nicht wählbar; names ist eine Liste von Namen.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "names": {
+        "type": "String"
+      }
+    }
+  },
+  "loopListTooFar": "{count, plural, =1{1 Trail liegt weiter weg — auf der Karte antippen geht trotzdem.} other{{count} Trails liegen weiter weg — auf der Karte antippen geht trotzdem.}}",
+  "@loopListTooFar": {
+    "description": "Trail-Liste des Planers: Trails außerhalb des Radius.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "loopListStars": "{count, plural, =1{1 Stern} other{{count} Sterne}}",
+  "@loopListStars": {
+    "description": "Zeile eines Trails in der Liste des Planers: Bewertung.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "loopMust": "Muss dabei sein",
+  "@loopMust": {
+    "description": "Tooltip des Sterns in der Trail-Liste: Pflicht-Trail setzen."
+  },
+  "loopMustOff": "Muss dabei sein — abwählen",
+  "@loopMustOff": {
+    "description": "Tooltip des Sterns in der Trail-Liste, wenn der Trail Pflicht ist."
+  },
+  "loopTitle": "Runde",
+  "@loopTitle": {
+    "description": "Titel des Ergebnis-Blatts des Planers; auch der Name einer Runde ohne Trails."
+  },
+  "loopComputing": "Die Runde wird gerechnet …",
+  "@loopComputing": {
+    "description": "Fortschritt im Ergebnis-Blatt des Planers."
+  },
+  "loopShortSummary": "{length} · {climb} hm · etwa {time}",
+  "@loopShortSummary": {
+    "description": "Untertitel des Ergebnis-Blatts; length und time fertig formatiert, climb Höhenmeter.",
+    "placeholders": {
+      "length": {
+        "type": "String"
+      },
+      "climb": {
+        "type": "int"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "loopSummary": "{length} · {climb} hm bergauf · {trail} Trail · etwa {time}",
+  "@loopSummary": {
+    "description": "Summe der Runde; length, trail und time fertig formatiert.",
+    "placeholders": {
+      "length": {
+        "type": "String"
+      },
+      "climb": {
+        "type": "int"
+      },
+      "trail": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "loopDescents": "{trailLoss} hm bergab auf Trails · {wasted} hm verschenkt",
+  "@loopDescents": {
+    "description": "Zweite Zeile der Summe der Runde: Höhenmeter bergab auf Trails und verschenkte Höhe.",
+    "placeholders": {
+      "trailLoss": {
+        "type": "int"
+      },
+      "wasted": {
+        "type": "int"
+      }
+    }
+  },
+  "loopTunedOver": "So gezogen liegt die Runde über deinem Budget.",
+  "@loopTunedOver": {
+    "description": "Warnung, wenn die von Hand angepasste Runde das Budget sprengt."
+  },
+  "loopOrder": "In dieser Reihenfolge",
+  "@loopOrder": {
+    "description": "Zwischenüberschrift über den Trails der Runde."
+  },
+  "loopSecondPass": "noch einmal",
+  "@loopSecondPass": {
+    "description": "Zusatz an einem Trail, den die Runde zum zweiten Mal fährt."
+  },
+  "loopExcludedTitle": "Nicht hineingepasst",
+  "@loopExcludedTitle": {
+    "description": "Zwischenüberschrift über den gewählten Trails, die die Runde auslässt."
+  },
+  "loopSaveFailed": "Die Runde ließ sich nicht speichern.",
+  "@loopSaveFailed": {
+    "description": "Leiste, wenn das Speichern der Runde scheitert."
+  },
+  "loopBlockerNoTrails": "Noch kein Trail gewählt — tippe Trails auf der Karte an, nimm die Liste oder umfahre ein Gebiet.",
+  "@loopBlockerNoTrails": {
+    "description": "Ergebnis-Blatt des Planers: nichts gewählt."
+  },
+  "loopBlockerNoPosition": "Kein Standort — ohne ihn gibt es keinen Startpunkt. Erlaube TrailBuddy den Standort, oder setz den Start über den obersten Knopf der Leiste.",
+  "@loopBlockerNoPosition": {
+    "description": "Ergebnis-Blatt des Planers: kein Standort."
+  },
+  "loopBlockerNoArea": "Kein gespeicherter Bereich deckt die Runde, und online kam kein Weg dazu (kein Empfang, oder „Fehlende Wege online ergänzen“ ist aus). Speichere einen Bereich über den Knopf „Offline-Karten“ auf der Karte — dann geht es auch ohne Empfang.",
+  "@loopBlockerNoArea": {
+    "description": "Ergebnis-Blatt des Planers: keine Wege. Zitiert die Namen von Schalter und Kartenknopf."
+  },
+  "loopBlockerFailed": "Die Runde ließ sich nicht rechnen — ein Fehler, der gemeldet ist. Versuch es mit weniger Trails noch einmal.",
+  "@loopBlockerFailed": {
+    "description": "Ergebnis-Blatt des Planers: Fehler beim Rechnen."
+  },
+  "loopOutcomeStartOff": "In {meters} m um den Start liegt kein Weg aus der Karte.",
+  "@loopOutcomeStartOff": {
+    "description": "Ergebnis-Blatt des Planers: der Start liegt an keinem Weg.",
+    "placeholders": {
+      "meters": {
+        "type": "int"
+      }
+    }
+  },
+  "loopOutcomeEndOff": "In {meters} m um das Ziel liegt kein Weg aus der Karte.",
+  "@loopOutcomeEndOff": {
+    "description": "Ergebnis-Blatt des Planers: das Ziel liegt an keinem Weg.",
+    "placeholders": {
+      "meters": {
+        "type": "int"
+      }
+    }
+  },
+  "loopOutcomeViaFailed": "Durch die Zwischenpunkte führt kein Weg.",
+  "@loopOutcomeViaFailed": {
+    "description": "Ergebnis-Blatt des Planers: keine Route durch die Zwischenpunkte."
+  },
+  "loopOutcomeEmpty": "Kein gewählter Trail passt in die Runde — die Gründe stehen je Trail. Mehr Zeit oder Höhenmeter unter Parameter, oder ein anderer Start.",
+  "@loopOutcomeEmpty": {
+    "description": "Ergebnis-Blatt des Planers: kein Trail passt."
+  },
+  "loopExcludedRow": "{trail} — {reason}",
+  "@loopExcludedRow": {
+    "description": "Zeile eines ausgelassenen Trails: Name und Grund.",
+    "placeholders": {
+      "trail": {
+        "type": "String"
+      },
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "loopExclTooFar": "zu weit vom Start",
+  "@loopExclTooFar": {
+    "description": "Grund, warum ein Trail nicht in die Runde passt."
+  },
+  "loopExclOffNetwork": "Anfang oder Ende liegt an keinem Weg der Karte",
+  "@loopExclOffNetwork": {
+    "description": "Grund, warum ein Trail nicht in die Runde passt."
+  },
+  "loopExclUnreachable": "von den Wegen deiner Bereiche aus nicht erreichbar",
+  "@loopExclUnreachable": {
+    "description": "Grund, warum ein Trail nicht in die Runde passt."
+  },
+  "loopExclBudget": "passt nicht ins Budget",
+  "@loopExclBudget": {
+    "description": "Grund, warum ein Trail nicht in die Runde passt."
+  },
+  "loopName": "Runde: {names}",
+  "@loopName": {
+    "description": "Name einer geplanten Runde (Fahrt, GPX, Navigation); names sind bis zu drei Trail-Namen.",
+    "placeholders": {
+      "names": {
+        "type": "String"
+      }
+    }
+  },
+  "loopNameMore": "Runde: {names} und {more} weitere",
+  "@loopNameMore": {
+    "description": "Name einer Runde mit mehr als drei Trails.",
+    "placeholders": {
+      "names": {
+        "type": "String"
+      },
+      "more": {
+        "type": "int"
+      }
+    }
+  },
+  "loopRailStartMine": "Start: mein Standort — antippen, um ihn auf der Karte zu setzen",
+  "@loopRailStartMine": {
+    "description": "Tooltip des obersten Knopfs der Planer-Leiste."
+  },
+  "loopRailStartPicked": "Start auf der Karte neu setzen",
+  "@loopRailStartPicked": {
+    "description": "Tooltip des obersten Knopfs der Planer-Leiste, wenn ein Start getippt ist."
+  },
+  "loopRailParams": "Parameter",
+  "@loopRailParams": {
+    "description": "Tooltip des Knopfs „Parameter“ der Planer-Leiste."
+  },
+  "loopRailList": "Trails aus der Liste wählen",
+  "@loopRailList": {
+    "description": "Tooltip eines Knopfs der Planer-Leiste."
+  },
+  "loopRailAreaAdd": "Gebiet umfahren: Trails dazu",
+  "@loopRailAreaAdd": {
+    "description": "Tooltip eines Knopfs der Planer-Leiste."
+  },
+  "loopRailAreaRemove": "Gebiet umfahren: Trails weg",
+  "@loopRailAreaRemove": {
+    "description": "Tooltip eines Knopfs der Planer-Leiste."
+  },
+  "loopRailClear": "Auswahl leeren",
+  "@loopRailClear": {
+    "description": "Tooltip eines Knopfs der Planer-Leiste."
+  },
+  "loopRailComputeNone": "Runde rechnen — erst Trails wählen",
+  "@loopRailComputeNone": {
+    "description": "Tooltip des Rechnen-Knopfs, solange nichts gewählt ist."
+  },
+  "loopRailCompute": "{count, plural, =1{Runde rechnen (1 Trail)} other{Runde rechnen ({count} Trails)}}",
+  "@loopRailCompute": {
+    "description": "Tooltip des Rechnen-Knopfs der Planer-Leiste.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "loopRailClose": "Planer schließen",
+  "@loopRailClose": {
+    "description": "Tooltip des untersten Knopfs der Planer-Leiste."
+  },
+  "routeTitleTrailHead": "Zum Trailkopf",
+  "@routeTitleTrailHead": {
+    "description": "Titel des Routen-Blatts zu einem Trail."
+  },
+  "routeTitlePoint": "Route hierher",
+  "@routeTitlePoint": {
+    "description": "Titel des Routen-Blatts zu einem Punkt der Karte (langer Druck)."
+  },
+  "routeNameTrailHead": "Zum Trailkopf: {name}",
+  "@routeNameTrailHead": {
+    "description": "Name des Wegs zum Trail (Fahrt, GPX, Navigation).",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "routeNamePoint": "Route: {name}",
+  "@routeNamePoint": {
+    "description": "Name des Wegs zu einem Punkt (Fahrt, GPX, Navigation).",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "routeSaveFailed": "Der Weg ließ sich nicht speichern.",
+  "@routeSaveFailed": {
+    "description": "Leiste, wenn das Speichern des Wegs scheitert."
+  },
+  "routeSaveAsRide": "Als Fahrt speichern",
+  "@routeSaveAsRide": {
+    "description": "Knopf im Routen-Blatt."
+  },
+  "routeComputing": "Der Weg wird gerechnet …",
+  "@routeComputing": {
+    "description": "Fortschritt im Routen-Blatt."
+  },
+  "routeModeDirect": "Direkt",
+  "@routeModeDirect": {
+    "description": "Umschalter im Routen-Blatt: kürzester Weg."
+  },
+  "routeModeFun": "Spaßig",
+  "@routeModeFun": {
+    "description": "Umschalter im Routen-Blatt: Umweg über Trails."
+  },
+  "routeSummary": "{length} · {climb} hm bergauf · {descent} hm bergab · etwa {time}",
+  "@routeSummary": {
+    "description": "Summe des Wegs; length und time fertig formatiert.",
+    "placeholders": {
+      "length": {
+        "type": "String"
+      },
+      "climb": {
+        "type": "int"
+      },
+      "descent": {
+        "type": "int"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "routeFunStops": "{count, plural, =1{Mit dem Trail {names} · {trail} Trail} other{Mit den Trails {names} · {trail} Trail}}",
+  "@routeFunStops": {
+    "description": "Spaßiger Weg: welche Trails er mitnimmt; trail ist die fertig formatierte Länge auf Trails.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "names": {
+        "type": "String"
+      },
+      "trail": {
+        "type": "String"
+      }
+    }
+  },
+  "routeFunEmpty": "Auf dem Weg dorthin passt kein Trail in den Umweg — das ist der direkte Weg.",
+  "@routeFunEmpty": {
+    "description": "Spaßiger Weg ohne Trail."
+  },
+  "routeBlockerNoPosition": "Kein Standort — ohne ihn gibt es keinen Startpunkt. Erlaube TrailBuddy den Standort, oder nimm „Anfahrt“: Die Navi-App kennt den Weg auch.",
+  "@routeBlockerNoPosition": {
+    "description": "Routen-Blatt: kein Standort. Zitiert den Knopf „Anfahrt“ (sheetNavigate)."
+  },
+  "routeBlockerNoAreaTrailHead": "Kein gespeicherter Bereich deckt den Weg von deinem Standort zum Trailkopf, und online kam kein Weg dazu (kein Empfang, oder „Fehlende Wege online ergänzen“ in den Parametern des Planers ist aus). Speichere einen Bereich über den Knopf „Offline-Karten“ auf der Karte.",
+  "@routeBlockerNoAreaTrailHead": {
+    "description": "Routen-Blatt zu einem Trail: keine Wege."
+  },
+  "routeBlockerNoAreaPoint": "Kein gespeicherter Bereich deckt den Weg von deinem Standort zum Ziel, und online kam kein Weg dazu (kein Empfang, oder „Fehlende Wege online ergänzen“ in den Parametern des Planers ist aus). Speichere einen Bereich über den Knopf „Offline-Karten“ auf der Karte.",
+  "@routeBlockerNoAreaPoint": {
+    "description": "Routen-Blatt zu einem Punkt: keine Wege."
+  },
+  "routeBlockerFailed": "Der Weg ließ sich nicht rechnen — ein Fehler, der gemeldet ist. Nimm „Anfahrt“, die Navi-App kennt den Weg auch.",
+  "@routeBlockerFailed": {
+    "description": "Routen-Blatt: Fehler beim Rechnen."
+  },
+  "routeOutcomeStartOff": "In {meters} m um deinen Standort liegt kein Weg aus der Karte.",
+  "@routeOutcomeStartOff": {
+    "description": "Routen-Blatt: Standort liegt an keinem Weg.",
+    "placeholders": {
+      "meters": {
+        "type": "int"
+      }
+    }
+  },
+  "routeOutcomeHeadOff": "In {meters} m um den Trailkopf liegt kein Weg aus der Karte.",
+  "@routeOutcomeHeadOff": {
+    "description": "Routen-Blatt: Trailkopf liegt an keinem Weg.",
+    "placeholders": {
+      "meters": {
+        "type": "int"
+      }
+    }
+  },
+  "routeOutcomeTargetOff": "In {meters} m um das Ziel liegt kein Weg aus der Karte.",
+  "@routeOutcomeTargetOff": {
+    "description": "Routen-Blatt: Ziel liegt an keinem Weg.",
+    "placeholders": {
+      "meters": {
+        "type": "int"
+      }
+    }
+  },
+  "routeOutcomeViaOff": "In {meters} m um einen Zwischenpunkt liegt kein Weg.",
+  "@routeOutcomeViaOff": {
+    "description": "Routen-Blatt: ein Zwischenpunkt liegt an keinem Weg.",
+    "placeholders": {
+      "meters": {
+        "type": "int"
+      }
+    }
+  },
+  "routeOutcomeNoPathTrailHead": "Die Wege in deinen Bereichen verbinden Standort und Trailkopf nicht — vielleicht fehlt ein Stück Bereich dazwischen.",
+  "@routeOutcomeNoPathTrailHead": {
+    "description": "Routen-Blatt zu einem Trail: kein Weg."
+  },
+  "routeOutcomeNoPathPoint": "Die Wege in deinen Bereichen verbinden Standort und Ziel nicht — vielleicht fehlt ein Stück Bereich dazwischen.",
+  "@routeOutcomeNoPathPoint": {
+    "description": "Routen-Blatt zu einem Punkt: kein Weg."
+  },
+  "navChoiceTitle": "Zum Trail navigieren",
+  "@navChoiceTitle": {
+    "description": "Titel des Auswahlblatts am Navi-Symbol eines Trails; auch dessen Tooltip."
+  },
+  "navChoiceExternal": "Mit der Navi-App",
+  "@navChoiceExternal": {
+    "description": "Auswahl am Navi-Symbol."
+  },
+  "navChoiceExternalHint": "Der Trailkopf geht an Google Maps, OsmAnd & Co.",
+  "@navChoiceExternalHint": {
+    "description": "Erklärung der Auswahl „Mit der Navi-App“."
+  },
+  "navChoiceDirect": "In TrailBuddy: direkt",
+  "@navChoiceDirect": {
+    "description": "Auswahl am Navi-Symbol."
+  },
+  "navChoiceDirectHint": "Der kürzeste Weg über deine gespeicherten Bereiche.",
+  "@navChoiceDirectHint": {
+    "description": "Erklärung der Auswahl „In TrailBuddy: direkt“."
+  },
+  "navChoiceFun": "In TrailBuddy: spaßig",
+  "@navChoiceFun": {
+    "description": "Auswahl am Navi-Symbol."
+  },
+  "navChoiceFunHint": "Nimmt Trails auf dem Weg mit — ein Umweg, der sich lohnt.",
+  "@navChoiceFunHint": {
+    "description": "Erklärung der Auswahl „In TrailBuddy: spaßig“."
+  },
+  "navChoiceRemember": "Als Standard merken",
+  "@navChoiceRemember": {
+    "description": "Haken im Auswahlblatt am Navi-Symbol."
+  },
+  "navChoiceRememberHint": "Ein langer Druck aufs Symbol fragt wieder.",
+  "@navChoiceRememberHint": {
+    "description": "Untertitel des Hakens „Als Standard merken“."
+  },
+  "navNoticeWaiting": "Navigation läuft — warte auf den Standort",
+  "@navNoticeWaiting": {
+    "description": "Text der Benachrichtigung, bevor der erste Standort da ist."
+  },
+  "navNoticeStop": "Navigation beenden",
+  "@navNoticeStop": {
+    "description": "Knopf in der Benachrichtigung der Navigation."
   }
 }

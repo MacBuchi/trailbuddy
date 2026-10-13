@@ -17,6 +17,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../l10n/l10n.dart';
+
 /// Was ein offenes Routen-Blatt unten von der Karte verdeckt, in
 /// logischen Pixeln; 0 ohne Blatt.
 final mapPanelInsetProvider = StateProvider<double>((ref) => 0);
@@ -172,7 +174,7 @@ class MapPanelHeader extends StatelessWidget {
             ),
             IconButton(
               key: closeKey,
-              tooltip: 'Schließen',
+              tooltip: context.l10n.commonClose,
               icon: const Icon(Icons.close),
               onPressed: onClose,
             ),

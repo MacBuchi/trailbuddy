@@ -233,19 +233,18 @@ double trailDownKmh(int? grade) => switch (grade) {
 /// welche Geschwindigkeit und Steigrate des Profils sie nimmt. Ein
 /// Aufschlag `null` heißt: der des Profils (`pathUpFactor`/`pathDownFactor`).
 enum WayClass {
-  forstweg('Forstweg', up: 1.0, down: 1.0, steep: kSteepFactorUnpaved),
-  radweg('Radweg', up: 1.0, down: 1.0, steep: kSteepFactorPaved),
-  nebenstrasse('Nebenstraße', up: 1.2, down: 1.2, steep: kSteepFactorPaved),
-  zufahrt('Zufahrt', up: 1.2, down: 1.2, steep: kSteepFactorPaved),
-  wanderweg('Wanderweg',
-      up: null, down: null, hiking: true, pathSpeed: true, pathRate: true, steep: kSteepFactorUnpaved),
-  fussweg('Fußweg', up: 2.0, down: 2.5, hiking: true, pathSpeed: true, pathRate: true, steep: kSteepFactorUnpaved),
-  stufen('Stufen', up: 3.0, down: 3.0, hiking: true, pushing: true, steep: 0),
-  landstrasse('Landstraße', up: 1.6, down: 1.6, steep: kSteepFactorPaved),
-  hauptstrasse('Hauptstraße', up: 2.5, down: 2.5, steep: kSteepFactorPaved),
-  bundesstrasse('Bundesstraße', up: 4.0, down: 4.0, steep: kSteepFactorPaved);
+  forstweg(up: 1.0, down: 1.0, steep: kSteepFactorUnpaved),
+  radweg(up: 1.0, down: 1.0, steep: kSteepFactorPaved),
+  nebenstrasse(up: 1.2, down: 1.2, steep: kSteepFactorPaved),
+  zufahrt(up: 1.2, down: 1.2, steep: kSteepFactorPaved),
+  wanderweg(up: null, down: null, hiking: true, pathSpeed: true, pathRate: true, steep: kSteepFactorUnpaved),
+  fussweg(up: 2.0, down: 2.5, hiking: true, pathSpeed: true, pathRate: true, steep: kSteepFactorUnpaved),
+  stufen(up: 3.0, down: 3.0, hiking: true, pushing: true, steep: 0),
+  landstrasse(up: 1.6, down: 1.6, steep: kSteepFactorPaved),
+  hauptstrasse(up: 2.5, down: 2.5, steep: kSteepFactorPaved),
+  bundesstrasse(up: 4.0, down: 4.0, steep: kSteepFactorPaved);
 
-  const WayClass(this.label,
+  const WayClass(
       {required this.up,
       required this.down,
       required this.steep,
@@ -254,7 +253,21 @@ enum WayClass {
       this.pathRate = false,
       this.pushing = false});
 
-  final String label;
+  /// Der Name auf dem Schirm (Zeile der Wegarten) — ein `switch`, damit
+  /// eine neue Klasse ohne Text nicht baut (#209).
+  String label(AppLocalizations l) => switch (this) {
+        forstweg => l.routingWayForest,
+        radweg => l.routingWayCycle,
+        nebenstrasse => l.routingWayMinor,
+        zufahrt => l.routingWayAccess,
+        wanderweg => l.routingWayHiking,
+        fussweg => l.routingWayFoot,
+        stufen => l.routingWaySteps,
+        landstrasse => l.routingWayRural,
+        hauptstrasse => l.routingWayMain,
+        bundesstrasse => l.routingWayFederal,
+      };
+
   final double? up;
   final double? down;
 

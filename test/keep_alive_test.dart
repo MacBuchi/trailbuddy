@@ -78,7 +78,7 @@ void main() {
     expect(service.running, isTrue);
     expect(service.types, {KeepAliveType.location});
     expect(service.repeat, const Duration(seconds: 5));
-    expect(service.buttons, [(id: kNavStopButton, text: kNavStopButtonText)]);
+    expect(service.buttons, [(id: kNavStopButton, text: l10nDe.navNoticeStop)]);
     await nav.stop();
     expect(service.running, isFalse);
     expect(service.repeat, isNull);

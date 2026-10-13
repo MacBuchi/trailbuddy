@@ -19,6 +19,8 @@ import 'package:trailbuddy/features/routing/route_profile.dart';
 
 import '../fakes/fake_tiles.dart';
 
+import '../fakes/l10n_de.dart';
+
 void main() {
   final t = tileAt(48.0, 9.0, 13);
   final here = (z: 13, x: t.x, y: t.y);
@@ -122,23 +124,23 @@ void main() {
         );
 
     test('alles aus den Bereichen: kein Satz', () {
-      expect(planningCoverageNote(g(found: 10), what: 'die Runde'), isNull);
+      expect(planningCoverageNote(l10nDe, g(found: 10), loop: true), isNull);
     });
 
     test('vollständig dank Netz: sagt es, und was ohne Empfang wäre', () {
-      expect(planningCoverageNote(g(found: 10, online: 12), what: 'die Runde'),
+      expect(planningCoverageNote(l10nDe, g(found: 10, online: 12), loop: true),
           '12 Kacheln online nachgeladen — ohne Empfang ginge die Runde so nicht.');
-      expect(planningCoverageNote(g(found: 10, online: 1), what: 'der Weg'),
+      expect(planningCoverageNote(l10nDe, g(found: 10, online: 1), loop: false),
           '1 Kachel online nachgeladen — ohne Empfang ginge der Weg so nicht.');
     });
 
     test('ein Teil: offline wie bisher, online mit dem Grund für den Rest', () {
-      expect(planningCoverageNote(g(found: 4), what: 'die Runde'), contains('kann kürzer sein'));
-      expect(planningCoverageNote(g(found: 8, online: 4, capped: true), what: 'die Runde'),
+      expect(planningCoverageNote(l10nDe, g(found: 4), loop: true), contains('kann kürzer sein'));
+      expect(planningCoverageNote(l10nDe, g(found: 8, online: 4, capped: true), loop: true),
           contains('mehr als $kOnlineFillMaxTiles holt eine Planung nicht'));
-      expect(planningCoverageNote(g(found: 8, online: 4, broken: true), what: 'die Runde'),
+      expect(planningCoverageNote(l10nDe, g(found: 8, online: 4, broken: true), loop: true),
           contains('riss die Verbindung ab'));
-      expect(planningCoverageNote(g(found: 8, online: 4), what: 'die Runde'), contains('außerhalb der Karte'));
+      expect(planningCoverageNote(l10nDe, g(found: 8, online: 4), loop: true), contains('außerhalb der Karte'));
     });
   });
 

@@ -51,8 +51,14 @@ entsteht zuerst dort) und `app_en.arb`; gelesen mit `context.l10n.<key>`
   `lib/features/rides/`, dazu `RiderProfile.label(l)` und
   `learnResultText`; (d2, Teil 1) die Folgeansicht der Navigation
   0.114.0 (`nav_view.dart`, mit dem Umbau nach Abschnitten, #312);
-  Rundenplaner, Weg zum Trailkopf und die Dienst-Texte der Navigation
-  folgen. Noch keiner Stufe zugeordnet:
+  (d2, Teil 2) Rundenplaner samt Leiste, Blatt „Route" (Zum Trailkopf,
+  Route hierher), Navi-Auswahl, Zwischenpunkte und die letzten
+  Dienst-Texte der Navigation 0.117.1 — damit ist
+  `lib/features/routing/` ganz umgezogen (Schlüssel `loop*`, `route*`,
+  `routing*`, `navChoice*`); `WayClass.label(l)` und `NavChoice.label(l)`
+  als `switch`. Namen von Runde und Weg (`loopName`, `routeName*`) gehen
+  in die gespeicherte Fahrt und die GPX-Datei — sie bleiben in der
+  Sprache, in der geplant wurde. Noch keiner Stufe zugeordnet:
   `lib/features/offline_areas/` und `lib/features/official/` (das Blatt
   eines offiziellen Trails).
 - **Texte des Dienstes** (Benachrichtigung der Aufnahme, Fragen

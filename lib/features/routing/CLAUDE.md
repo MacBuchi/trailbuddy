@@ -361,7 +361,9 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     ergänzen", gilt auch für den Weg zum Trail); seit 0.104.0 aus der
     Region, deren Rahmen die Planung schneidet (#220,
     `onlineFillFactoryProvider(box)`; außerhalb aller nichts). Was das Blatt dazu sagt,
-    steht an EINER Stelle (`planningCoverageNote`). Der Harness hat kein
+    steht an EINER Stelle (`planningCoverageNote`); der Planer merkt
+    sich dafür den geladenen Graphen (`LoopSession.coverage`), den Satz
+    baut erst das Blatt — in seiner Sprache (#209). Der Harness hat kein
     Manifest, also kein Nachladen; Tests ersetzen
     `onlineFillFactoryProvider`. Was aufhält, steht OBEN (`loop-blocker`); Rechnen läuft in
     `try`, ein Fehler ist ein Satz plus `logError`, und vor der Rechnung

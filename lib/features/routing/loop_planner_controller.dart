@@ -58,7 +58,7 @@ class LoopSession {
     this.blocker,
     this.plan,
     this.planStart,
-    this.coverageNote,
+    this.coverage,
     this.tuned = false,
   });
 
@@ -87,9 +87,10 @@ class LoopSession {
   /// Wo die gerechnete Runde wirklich beginnt (Standort oder Tipp).
   final LatLng? planStart;
 
-  /// Was das Blatt über die Kacheln sagt — Teil, online nachgeladen
-  /// (`planningCoverageNote`); null, wenn alles aus den Bereichen kam.
-  final String? coverageNote;
+  /// Der geladene Graph, aus dem das Blatt seinen Satz über die Kacheln
+  /// macht (`planningCoverageNote` — Teil, online nachgeladen). Der Satz
+  /// selbst entsteht erst im Blatt, in dessen Sprache (#209).
+  final PlanningGraph? coverage;
 
   /// Die Runde ist von Hand getunt (#234): feste Folge, Teilstücke durch
   /// Zwischenpunkte. „Zurücksetzen" rechnet wieder frei.
@@ -114,8 +115,7 @@ class LoopSession {
     LoopPlan? plan,
     bool clearPlan = false,
     LatLng? planStart,
-    String? coverageNote,
-    bool clearCoverageNote = false,
+    PlanningGraph? coverage,
     bool? tuned,
   }) =>
       LoopSession(
@@ -131,7 +131,7 @@ class LoopSession {
         blocker: clearBlocker ? null : (blocker ?? this.blocker),
         plan: clearPlan ? null : (plan ?? this.plan),
         planStart: clearPlan ? null : (planStart ?? this.planStart),
-        coverageNote: clearCoverageNote ? null : (coverageNote ?? this.coverageNote),
+        coverage: coverage ?? this.coverage,
         tuned: clearPlan ? (tuned ?? false) : (tuned ?? this.tuned),
       );
 }
@@ -355,8 +355,7 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
         _graphStart = start;
         _graphBox = box;
         _graphOnline = fillOnline;
-        final note = planningCoverageNote(loaded, what: 'die Runde');
-        state = state.copyWith(coverageNote: note, clearCoverageNote: note == null);
+        state = state.copyWith(coverage: loaded);
       }
       state = state.copyWith(phase: LoopPhase.computing);
       // Ein Bild für den Kreisel, bevor die Rechnung den Takt belegt.

@@ -11,6 +11,7 @@
 // vorwärts. Rein, ohne Widgets.
 import 'package:latlong2/latlong.dart';
 
+import '../../l10n/l10n.dart';
 import 'road_graph.dart';
 import 'route_profile.dart';
 
@@ -173,9 +174,8 @@ const kSteepNoteMinM = 5.0;
 
 /// Der Satz dazu, oder null. Keine Zahl: Gezählt ist nur, was ÜBER der
 /// Grenze steigt, und „12 hm steil" läse sich wie die Länge der Rampe.
-String? steepNote(double steepM) => steepM < kSteepNoteMinM
-    ? null
-    : 'Mit steilen Stücken über ${(kSteepGrade * 100).round()} % — wo es flacher ging, ist der flachere Weg gewählt.';
+String? steepNote(AppLocalizations l, double steepM) =>
+    steepM < kSteepNoteMinM ? null : l.routingSteepNote((kSteepGrade * 100).round());
 
 /// Fasst die Kanten [path] ab Knoten [src] zusammen.
 PathSummary summarizePath(RoadGraph g, List<int> path, int src, RiderParams p) {

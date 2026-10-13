@@ -10,6 +10,8 @@ import 'package:trailbuddy/features/routing/road_graph.dart';
 import 'package:trailbuddy/features/routing/route_profile.dart';
 import 'package:trailbuddy/features/routing/trail_head_route.dart';
 
+import '../fakes/l10n_de.dart';
+
 /// Meter → Grad über DIESELBE Projektion wie der Graph.
 List<LatLng> _m(List<(double, double)> xy, {double lat0 = 47.5, double lon0 = 11.5}) {
   final proj = FlatProjection(lat0);
@@ -80,17 +82,17 @@ void main() {
   });
 
   test('Zeit-Wörter: auf fünf Minuten gerundet', () {
-    expect(routeTimeLabel(100), 'unter 5 min');
-    expect(routeTimeLabel(44 * 60.0), '45 min');
-    expect(routeTimeLabel(3600), '1 h');
-    expect(routeTimeLabel(4800), '1 h 20 min');
-    expect(routeTimeLabel(4680), '1 h 20 min', reason: '78 min → 80');
+    expect(routeTimeLabel(l10nDe, 100), 'unter 5 min');
+    expect(routeTimeLabel(l10nDe, 44 * 60.0), '45 min');
+    expect(routeTimeLabel(l10nDe, 3600), '1 h');
+    expect(routeTimeLabel(l10nDe, 4800), '1 h 20 min');
+    expect(routeTimeLabel(l10nDe, 4680), '1 h 20 min', reason: '78 min → 80');
   });
 
   test('GPX: die ganze Linie, Name nennt den Trail, keine Höhen', () {
     final g = buildRoadGraph([_way([(0, 0), (500, 0)])], lat0: 47.5).graph;
     final r = planTrailHeadRoute(g, _m([(0, 4)]).single, _m([(500, 4)]).single, bio).route!;
-    final t = trailHeadToGpx(r, trailName: 'Hexentanz');
+    final t = trailHeadToGpx(l10nDe, r, trailName: 'Hexentanz');
     expect(t.name, 'Zum Trailkopf: Hexentanz');
     expect(t.points, hasLength(r.points.length));
     expect(t.points.first.lat, r.points.first.latitude);

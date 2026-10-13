@@ -13,6 +13,9 @@ import 'package:trailbuddy/features/map/poi.dart';
 import 'package:trailbuddy/features/map/way_layer.dart';
 import 'package:trailbuddy/features/rides/ride_confirm.dart';
 import 'package:trailbuddy/features/rides/ride_track.dart';
+import 'package:trailbuddy/features/routing/navigate_choice.dart';
+import 'package:trailbuddy/features/routing/route_profile.dart' as routing show WayClass;
+import 'package:trailbuddy/features/routing/trail_head_route.dart' show routeTimeLabel;
 import 'package:trailbuddy/models/trail.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
@@ -330,6 +333,53 @@ void main() {
       expect(find.text('Bike'), findsOneWidget, reason: 'das Rad am Chip');
       // Das Datum folgt der Sprache (Muster aus der ARB-Datei).
       expect(find.textContaining('September 21, 2026'), findsOneWidget);
+    });
+  });
+
+  // Stufe (d2): Rundenplaner, Weg zum Trailkopf und die Navigation.
+  group('Planer und Navigation auf Englisch', () {
+    testWidgets('Leiste und Parameter des Planers', (tester) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 3;
+      addTearDown(tester.view.reset);
+      final backend = FakeBackend();
+      backend.signInAs(backend.addUser(username: 'anna').id);
+      await pumpApp(tester, backend,
+          settings: FakeSettings(),
+          extraOverrides: [appLocaleProvider.overrideWithValue(const Locale('en'))]);
+      await settle(tester, frames: 20);
+      await tester.tap(find.byKey(const ValueKey('loop-button')));
+      await settle(tester, frames: 10);
+      for (final tip in ['Settings', 'Choose trails from the list', 'Clear selection', 'Close planner',
+        'Compute loop — choose trails first']) {
+        expect(find.byTooltip(tip), findsOneWidget, reason: tip);
+      }
+      expect(find.byTooltip('Planer schließen'), findsNothing);
+      await tester.tap(find.byKey(const ValueKey('loop-rail-params')));
+      await settle(tester, frames: 20);
+      for (final text in ['Loop settings', 'Start: my location', 'Tap on the map', 'Bike']) {
+        expect(find.text(text), findsOneWidget, reason: text);
+      }
+      expect(find.text('Parameter der Runde'), findsNothing);
+    });
+
+    test('Wegklassen, Navi-Auswahl und Zeit sind in beiden Sprachen benannt und verschieden', () {
+      for (final locale in AppLocalizations.supportedLocales) {
+        final l = lookupAppLocalizations(locale);
+        final groups = <String, List<String>>{
+          'Wegklassen': [for (final c in routing.WayClass.values) c.label(l)],
+          'Navi-Auswahl': [for (final c in NavChoice.values) c.label(l)],
+          'Navi-Auswahl lang': [for (final c in NavChoice.values) c.description(l)],
+        };
+        for (final MapEntry(key: what, value: names) in groups.entries) {
+          expect(names.where((n) => n.trim().isEmpty), isEmpty, reason: '$locale: $what');
+          expect(names.toSet(), hasLength(names.length), reason: '$locale: $what');
+        }
+      }
+      final en = lookupAppLocalizations(const Locale('en'));
+      expect(routeTimeLabel(en, 100), 'under 5 min');
+      expect(routeTimeLabel(en, 4800), '1 h 20 min');
+      expect(routing.WayClass.bundesstrasse.label(en), 'Highway');
     });
   });
 }

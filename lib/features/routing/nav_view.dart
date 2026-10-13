@@ -464,8 +464,8 @@ class _ApproachCard extends StatelessWidget {
     final wayLine = ways.isEmpty
         ? null
         : [
-            ways.first.cls.label,
-            for (final w in ways.skip(1).take(2)) l.navWayThen(formatMeters(w.lengthM), w.cls.label),
+            ways.first.cls.label(l),
+            for (final w in ways.skip(1).take(2)) l.navWayThen(formatMeters(w.lengthM), w.cls.label(l)),
           ].join(', ');
     final along = session.state?.alongM ?? 0;
     final toM = section?.startM ?? session.route.lengthM;

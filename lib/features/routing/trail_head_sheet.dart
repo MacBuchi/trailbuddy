@@ -53,7 +53,7 @@ import '../trails/trail_navigation.dart';
 import '../trails/trail_providers.dart';
 import 'loop_planner.dart';
 import 'loop_planner_providers.dart';
-import 'loop_planner_sheet.dart' show loopPreviewLines;
+import 'loop_planner_sheet.dart' show loopPreviewLines, wayMixLine;
 import 'map_panel.dart';
 import 'nav_providers.dart';
 import 'nav_sections.dart';
@@ -349,8 +349,10 @@ class _RouteSheetState extends ConsumerState<_RouteSheet> {
     }
   }
 
-  String get _rideName =>
-      _isTrail ? 'Zum Trailkopf: ${widget.target.title}' : 'Route: ${widget.target.title}';
+  String get _rideName {
+    final l = context.l10n;
+    return _isTrail ? l.routeNameTrailHead(widget.target.title) : l.routeNamePoint(widget.target.title);
+  }
 
   List<LatLng>? get _points => _fun?.points ?? _plan?.route?.points;
 
@@ -372,6 +374,7 @@ class _RouteSheetState extends ConsumerState<_RouteSheet> {
     final points = _points;
     if (points == null) return;
     final messenger = ScaffoldMessenger.of(context);
+    final l = context.l10n;
     final now = DateTime.now().toUtc();
     final ride = await ref.read(ridesProvider.notifier).savePlanned(
           name: _rideName,
@@ -381,9 +384,7 @@ class _RouteSheetState extends ConsumerState<_RouteSheet> {
         );
     if (!mounted) return;
     messenger.showSnackBar(SnackBar(
-        content: Text(ride == null
-            ? 'Der Weg ließ sich nicht speichern.'
-            : 'Als geplante Fahrt gespeichert — im Profil unter „Meine Fahrten".')));
+        content: Text(ride == null ? l.routeSaveFailed : l.routingSavedAsRide)));
   }
 
   void _exportGpx() {
@@ -408,12 +409,13 @@ class _RouteSheetState extends ConsumerState<_RouteSheet> {
     });
     final target = widget.target;
     final hasRoute = _points != null;
+    final l = context.l10n;
     return ListView(
       controller: widget.scroll,
       padding: const EdgeInsets.fromLTRB(20, 0, 8, 24),
       children: [
         MapPanelHeader(
-          title: _isTrail ? 'Zum Trailkopf' : 'Route hierher',
+          title: _isTrail ? l.routeTitleTrailHead : l.routeTitlePoint,
           subtitle: target.title,
           closeKey: const ValueKey('trail-head-close'),
           onClose: widget.panel.close,
@@ -437,7 +439,7 @@ class _RouteSheetState extends ConsumerState<_RouteSheet> {
                         onPressed: () => ref.read(navRequestProvider.notifier).state =
                             NavRequest(points: _points!, title: _rideName, sections: _navSections()),
                         icon: const Icon(Icons.navigation_outlined),
-                        label: const Text('Navigieren'),
+                        label: Text(l.commonNavigate),
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -450,7 +452,7 @@ class _RouteSheetState extends ConsumerState<_RouteSheet> {
                           ? navigateToTrailHead(context, target.trail!)
                           : navigateToPoint(context, target.point),
                       icon: const Icon(Icons.directions_outlined),
-                      label: const Text('Anfahrt'),
+                      label: Text(l.sheetNavigate),
                     ),
                   ),
                 ],
@@ -461,17 +463,17 @@ class _RouteSheetState extends ConsumerState<_RouteSheet> {
                     key: const ValueKey('trail-head-save'),
                     onPressed: _saveRide,
                     icon: const Icon(Icons.bookmark_add_outlined),
-                    label: const Text('Als Fahrt speichern'),
+                    label: Text(l.routeSaveAsRide),
                   ),
                   TextButton.icon(
                     key: const ValueKey('trail-head-gpx'),
                     onPressed: _exportGpx,
                     icon: const Icon(Icons.share_outlined),
-                    label: const Text('Als GPX'),
+                    label: Text(l.routingAsGpx),
                   ),
                 ]),
               Text(
-                'Ein Vorschlag aus Kartendaten, ohne Abbiegehinweise — fahre nach Sicht.',
+                l.routingNoTurnHints,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).hintColor),
               ),
             ],
@@ -483,21 +485,22 @@ class _RouteSheetState extends ConsumerState<_RouteSheet> {
 
   List<Widget> _body(BuildContext context) {
     final theme = Theme.of(context);
+    final l = context.l10n;
     switch (_phase) {
       case _Phase.locating:
-        return [_progress('Standort wird ermittelt …')];
+        return [_progress(l.routingLocating)];
       case _Phase.loading:
-        return [_progress('Wege und Höhen aus deinen Bereichen werden gelesen …')];
+        return [_progress(l.routingLoadingWays)];
       case _Phase.computing:
-        return [_progress('Der Weg wird gerechnet …')];
+        return [_progress(l.routeComputing)];
       case _Phase.done:
         break;
     }
     final blocker = _blocker;
-    if (blocker != null) return [_notice(context, _blockerText(blocker))];
+    if (blocker != null) return [_notice(context, _blockerText(l, blocker))];
     final plan = _plan!;
     final route = plan.route;
-    if (route == null) return [_notice(context, _outcomeText(plan.outcome))];
+    if (route == null) return [_notice(context, _outcomeText(l, plan.outcome))];
     final palette = AppPalette.of(context);
     final fun = _fun;
     final length = fun?.summary?.lengthM ?? route.summary.lengthM;
@@ -513,9 +516,9 @@ class _RouteSheetState extends ConsumerState<_RouteSheet> {
       // Direkt oder spaßig (#176): derselbe Graph, eine andere Frage.
       SegmentedButton<RouteMode>(
         key: const ValueKey('route-mode'),
-        segments: const [
-          ButtonSegment(value: RouteMode.direct, label: Text('Direkt'), icon: Icon(Icons.straight)),
-          ButtonSegment(value: RouteMode.fun, label: Text('Spaßig'), icon: Icon(Icons.downhill_skiing)),
+        segments: [
+          ButtonSegment(value: RouteMode.direct, label: Text(l.routeModeDirect), icon: const Icon(Icons.straight)),
+          ButtonSegment(value: RouteMode.fun, label: Text(l.routeModeFun), icon: const Icon(Icons.downhill_skiing)),
         ],
         selected: {_mode},
         showSelectedIcon: false,
@@ -524,22 +527,20 @@ class _RouteSheetState extends ConsumerState<_RouteSheet> {
       const SizedBox(height: 12),
       Text(
         key: const ValueKey('trail-head-summary'),
-        '${formatMeters(length)} · ${gain.round()} hm bergauf · '
-        '${loss.round()} hm bergab · etwa ${routeTimeLabel(time)}',
+        l.routeSummary(formatMeters(length), gain.round(), loss.round(), routeTimeLabel(l, time)),
         style: theme.textTheme.titleMedium?.copyWith(fontFamily: AppFonts.mono),
       ),
       const SizedBox(height: 4),
       if (fun != null) ...[
         Text(
           key: const ValueKey('route-fun-stops'),
-          'Mit ${fun.stops.length == 1 ? 'dem Trail' : 'den Trails'} '
-          '${fun.stops.map((s) => s.trail.name).toSet().join(', ')} · '
-          '${formatMeters(fun.summary!.trailM)} Trail',
+          l.routeFunStops(fun.stops.length, fun.stops.map((s) => s.trail.name).toSet().join(', '),
+              formatMeters(fun.summary!.trailM)),
           style: theme.textTheme.bodyMedium,
         ),
-        Text(_mixLine(fun.summary!.mix), style: theme.textTheme.bodyMedium),
+        Text(wayMixLine(l, fun.summary!.mix), style: theme.textTheme.bodyMedium),
       ] else
-        Text(_mixLine(route.summary.mix), style: theme.textTheme.bodyMedium),
+        Text(wayMixLine(l, route.summary.mix), style: theme.textTheme.bodyMedium),
       // Das Profil des Wegs (#234), wie im Ergebnis der Runde.
       RouteElevationProfile(fun?.points ?? route.points, key: const ValueKey('trail-head-elevation')),
       RouteTuneNote(tuned: _tuned, onReset: () => unawaited(_replan()), keyPrefix: 'trail-head'),
@@ -547,23 +548,22 @@ class _RouteSheetState extends ConsumerState<_RouteSheet> {
         const SizedBox(height: 8),
         Text(
           key: const ValueKey('route-fun-empty'),
-          'Auf dem Weg dorthin passt kein Trail in den Umweg — das ist der direkte Weg.',
+          l.routeFunEmpty,
           style: theme.textTheme.bodyMedium,
         ),
       ],
       if (upM > 0) ...[
         const SizedBox(height: 4),
-        Text('Bergauf ${formatMeters(upM)} über ${upNames.join(', ')}', style: theme.textTheme.bodyMedium),
+        Text(l.routingTrailUp(formatMeters(upM), upNames.join(', ')), style: theme.textTheme.bodyMedium),
       ],
       if (hiking > 0) ...[
         const SizedBox(height: 8),
         Text(
-          'Davon ${formatMeters(hiking)} über Wanderweg, Fußweg oder Stufen — '
-          'ob du dort fahren darfst, sagt die App nicht.',
+          l.routingHikingWarning(formatMeters(hiking)),
           style: theme.textTheme.bodyMedium?.copyWith(color: palette.warningText),
         ),
       ],
-      if (_loaded == null ? null : planningCoverageNote(_loaded!, what: 'der Weg') case final note?) ...[
+      if (_loaded == null ? null : planningCoverageNote(l, _loaded!, loop: false) case final note?) ...[
         const SizedBox(height: 8),
         Text(
           key: const ValueKey('trail-head-partial'),
@@ -571,7 +571,7 @@ class _RouteSheetState extends ConsumerState<_RouteSheet> {
           style: theme.textTheme.bodySmall?.copyWith(color: theme.hintColor),
         ),
       ],
-      if (steepNote(steep) case final note?) ...[
+      if (steepNote(l, steep) case final note?) ...[
         const SizedBox(height: 8),
         Text(
           key: const ValueKey('trail-head-steep'),
@@ -582,8 +582,7 @@ class _RouteSheetState extends ConsumerState<_RouteSheet> {
       if (!complete) ...[
         const SizedBox(height: 8),
         Text(
-          'Nicht alle Wege haben Höhen — Höhenmeter und Zeit sind eine Untergrenze. '
-          'Ein neu gespeicherter Bereich bringt sie mit.',
+          l.routingHeightsIncomplete,
           style: theme.textTheme.bodySmall?.copyWith(color: theme.hintColor),
         ),
       ],
@@ -591,7 +590,7 @@ class _RouteSheetState extends ConsumerState<_RouteSheet> {
       SegmentedButton<RiderProfile>(
         key: const ValueKey('trail-head-profile'),
         segments: [
-          for (final p in RiderProfile.values) ButtonSegment(value: p, label: Text(p.label(context.l10n))),
+          for (final p in RiderProfile.values) ButtonSegment(value: p, label: Text(p.label(l))),
         ],
         selected: {_profile},
         showSelectedIcon: false,
@@ -617,35 +616,21 @@ class _RouteSheetState extends ConsumerState<_RouteSheet> {
         style: Theme.of(context).textTheme.bodyMedium,
       );
 
-  String get _goal => _isTrail ? 'zum Trailkopf' : 'zum Ziel';
-
-  String _blockerText(_Blocker b) => switch (b) {
-        _Blocker.noPosition => 'Kein Standort — ohne ihn gibt es keinen Startpunkt. Erlaube '
-            'TrailBuddy den Standort, oder nimm „Anfahrt": Die Navi-App kennt den Weg auch.',
-        _Blocker.noArea => 'Kein gespeicherter Bereich deckt den Weg von deinem Standort $_goal, und online '
-            'kam kein Weg dazu (kein Empfang, oder „Fehlende Wege online ergänzen" in den Parametern des '
-            'Planers ist aus). Speichere einen Bereich über den Knopf „Offline-Karten" auf der Karte.',
-        _Blocker.failed => 'Der Weg ließ sich nicht rechnen — ein Fehler, der gemeldet ist. '
-            'Nimm „Anfahrt", die Navi-App kennt den Weg auch.',
+  String _blockerText(AppLocalizations l, _Blocker b) => switch (b) {
+        _Blocker.noPosition => l.routeBlockerNoPosition,
+        _Blocker.noArea => _isTrail ? l.routeBlockerNoAreaTrailHead : l.routeBlockerNoAreaPoint,
+        _Blocker.failed => l.routeBlockerFailed,
       };
 
-  String _outcomeText(TrailHeadOutcome o) => switch (o) {
+  String _outcomeText(AppLocalizations l, TrailHeadOutcome o) => switch (o) {
         TrailHeadOutcome.ok => '',
-        TrailHeadOutcome.startOffNetwork =>
-          'In ${kGraphAttachM.round()} m um deinen Standort liegt kein Weg aus der Karte.',
+        TrailHeadOutcome.startOffNetwork => l.routeOutcomeStartOff(kGraphAttachM.round()),
         TrailHeadOutcome.headOffNetwork => _isTrail
-            ? 'In ${kGraphAttachM.round()} m um den Trailkopf liegt kein Weg aus der Karte.'
-            : 'In ${kGraphAttachM.round()} m um das Ziel liegt kein Weg aus der Karte.',
-        TrailHeadOutcome.viaOffNetwork => 'In ${kGraphAttachM.round()} m um einen Zwischenpunkt liegt kein Weg.',
-        TrailHeadOutcome.noPath => 'Die Wege in deinen Bereichen verbinden Standort und '
-            '${_isTrail ? 'Trailkopf' : 'Ziel'} nicht — vielleicht fehlt ein Stück Bereich dazwischen.',
+            ? l.routeOutcomeHeadOff(kGraphAttachM.round())
+            : l.routeOutcomeTargetOff(kGraphAttachM.round()),
+        TrailHeadOutcome.viaOffNetwork => l.routeOutcomeViaOff(kGraphAttachM.round()),
+        TrailHeadOutcome.noPath => _isTrail ? l.routeOutcomeNoPathTrailHead : l.routeOutcomeNoPathPoint,
       };
-}
-
-/// „Forstweg 2,1 km · Nebenstraße 300 m" — die Klassen nach Länge.
-String _mixLine(Map<WayClass, double> mix) {
-  final entries = mix.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
-  return entries.map((e) => '${e.key.label} ${formatMeters(e.value)}').join(' · ');
 }
 
 /// Die Vorschau: das Band der Route (#295), Wanderweg und Co. gestrichelt

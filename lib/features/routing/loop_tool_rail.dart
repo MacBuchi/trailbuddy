@@ -15,6 +15,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/app_colors.dart';
 import '../../core/app_theme.dart';
+import '../../l10n/l10n.dart';
 import '../coach/coach.dart';
 import '../help/map_tour.dart' show MapCoach;
 import '../map/map_buttons.dart';
@@ -41,6 +42,7 @@ class LoopToolRail extends ConsumerWidget {
     final session = ref.watch(loopPlannerProvider);
     final notifier = ref.read(loopPlannerProvider.notifier);
     final p = AppPalette.of(context);
+    final l = context.l10n;
     final countStyle = AppFonts.numbers(Theme.of(context).textTheme.labelMedium);
     final count = session.selected.length;
 
@@ -90,25 +92,25 @@ class LoopToolRail extends ConsumerWidget {
         children: [
           button(
             'loop-rail-start',
-            session.start == null ? 'Start: mein Standort — antippen, um ihn auf der Karte zu setzen' : 'Start auf der Karte neu setzen',
+            session.start == null ? l.loopRailStartMine : l.loopRailStartPicked,
             session.start == null ? Icons.my_location : Icons.flag_outlined,
             session.pickingStart ? notifier.cancelStartPick : notifier.armStartPick,
             selected: session.pickingStart,
           ),
-          button('loop-rail-params', 'Parameter', Icons.tune, onParams),
+          button('loop-rail-params', l.loopRailParams, Icons.tune, onParams),
           gap,
-          button('loop-rail-list', 'Trails aus der Liste wählen', Icons.format_list_bulleted, onList),
-          button('loop-rail-area-add', 'Gebiet umfahren: Trails dazu', Icons.add_circle_outline,
+          button('loop-rail-list', l.loopRailList, Icons.format_list_bulleted, onList),
+          button('loop-rail-area-add', l.loopRailAreaAdd, Icons.add_circle_outline,
               () => notifier.armDraw(AreaDrawTool.add),
               selected: session.drawTool == AreaDrawTool.add),
-          button('loop-rail-area-remove', 'Gebiet umfahren: Trails weg', Icons.remove_circle_outline,
+          button('loop-rail-area-remove', l.loopRailAreaRemove, Icons.remove_circle_outline,
               () => notifier.armDraw(AreaDrawTool.remove),
               selected: session.drawTool == AreaDrawTool.remove),
-          button('loop-rail-clear', 'Auswahl leeren', Icons.deselect, count == 0 ? null : notifier.clearSelection),
+          button('loop-rail-clear', l.loopRailClear, Icons.deselect, count == 0 ? null : notifier.clearSelection),
           gap,
           button(
             'loop-rail-compute',
-            count == 0 ? 'Runde rechnen — erst Trails wählen' : 'Runde rechnen ($count Trails)',
+            count == 0 ? l.loopRailComputeNone : l.loopRailCompute(count),
             Icons.alt_route,
             count == 0 || session.busy ? null : onCompute,
             primary: true,
@@ -117,7 +119,7 @@ class LoopToolRail extends ConsumerWidget {
           Text(count == 0 ? '–' : compactCount(count), key: const ValueKey('loop-rail-count'),
               style: countStyle.copyWith(color: p.text)),
           gap,
-          button('loop-rail-close', 'Planer schließen', Icons.close, onClose),
+          button('loop-rail-close', l.loopRailClose, Icons.close, onClose),
         ],
       ),
     );
