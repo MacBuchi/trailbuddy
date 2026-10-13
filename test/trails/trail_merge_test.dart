@@ -6,6 +6,7 @@ import 'package:trailbuddy/features/trails/trail_merge_candidates.dart';
 import 'package:trailbuddy/features/trails/trail_geometry.dart';
 import 'package:trailbuddy/models/trail.dart';
 import 'package:trailbuddy/models/trail_merge.dart';
+import '../fakes/l10n_de.dart';
 
 /// Eine Linie nach Norden ab [lat]/[lon] über [m] Meter, alle 50 m ein
 /// Punkt; [eastM] verschiebt sie nach Osten.
@@ -122,7 +123,7 @@ void main() {
       expect(a.grade, 2, reason: 'die Einschätzung von B zählt unter A');
       expect(a.notes.single.trailId, 'A');
       expect(a.reports.single.trailId, 'A');
-      expect(a.displayName, 'Hang');
+      expect(a.displayName(l10nDe), 'Hang');
       expect(a.otherNames, ['Hang (Jan)']);
       expect(a.mergedFrom, [const MergedTrail(id: 'B', name: 'Hang (Jan)', byMe: true)]);
       expect(a.answersTo('B'), isTrue);

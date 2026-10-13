@@ -459,7 +459,7 @@ void main() {
               details: trails.details,
               myId: annaId)
           .single;
-      expect(t.displayName, 'Roots');
+      expect(t.displayName(l10nDe), 'Roots');
     });
 
     testWidgets('„Alle übernehmen" nimmt Sterne und Zustand aus dem Netz; der Zustand geht als Meldung raus',

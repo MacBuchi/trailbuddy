@@ -93,7 +93,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
       if (mounted) _showMessage(signupErrorMessage(l, e));
     } catch (e, stackTrace) {
       logError('Registrierung', e, stackTrace);
-      if (mounted) _showMessage(friendlyError(e));
+      if (mounted) _showMessage(friendlyError(l, e));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -115,7 +115,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
       if (mounted) _setNotice(confirmErrorMessage(l, e), NoticeTone.error);
     } catch (e, stackTrace) {
       logError('Bestätigungsmail erneut senden', e, stackTrace);
-      if (mounted) _setNotice(friendlyError(e), NoticeTone.error);
+      if (mounted) _setNotice(friendlyError(l, e), NoticeTone.error);
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -140,7 +140,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
       if (mounted) _setNotice(confirmErrorMessage(l, e), NoticeTone.error);
     } catch (e, stackTrace) {
       logError('Adresse bestätigen', e, stackTrace);
-      if (mounted) _setNotice(friendlyError(e), NoticeTone.error);
+      if (mounted) _setNotice(friendlyError(l, e), NoticeTone.error);
     } finally {
       if (mounted) setState(() => _busy = false);
     }

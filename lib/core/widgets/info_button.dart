@@ -16,6 +16,8 @@
 // Tipp daneben — dieselben drei Wege wie überall sonst.
 import 'package:flutter/material.dart';
 
+import '../../l10n/l10n.dart';
+
 /// Öffnet [text] als überlagerten Kasten.
 Future<void> showInfoText(
   BuildContext context, {
@@ -30,7 +32,7 @@ Future<void> showInfoText(
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Schließen'),
+          child: Text(context.l10n.commonClose),
         ),
       ],
     ),

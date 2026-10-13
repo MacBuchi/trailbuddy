@@ -41,11 +41,10 @@ bool needsTakeOver(Trail t) => !t.pending && t.myDetails == null;
 
 /// Die Voreinstellung aus dem, was ich sehe.
 TakeOver takeOverOf(Trail t, {DateTime? now}) {
-  final named = t.details.any((d) => (d.name ?? '').trim().isNotEmpty);
   final c = t.shownCondition.confirmed;
   final since = (now ?? DateTime.now()).subtract(const Duration(days: kTakeOverConditionDays));
   return TakeOver(
-    name: named ? t.displayName : '',
+    name: t.name ?? '',
     grade: t.grade,
     traits: t.topTraits.toSet(),
     rating: t.rating,

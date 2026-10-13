@@ -116,7 +116,7 @@ class _TrailsScreenState extends ConsumerState<TrailsScreen> {
           error: (e, _) => ListView(children: [
             Padding(
               padding: const EdgeInsets.all(24),
-              child: Text(friendlyError(e)),
+              child: Text(friendlyError(l, e)),
             ),
           ]),
           data: (trails) {
@@ -415,7 +415,7 @@ class _TrailTile extends ConsumerWidget {
             decoration: BoxDecoration(color: stripe, borderRadius: BorderRadius.circular(2)),
           ),
         ),
-        title: Text(trail.displayName,
+        title: Text(trail.displayName(l),
             style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

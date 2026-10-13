@@ -16,6 +16,7 @@ import '../fakes/fake_backend.dart';
 import '../fakes/fake_map_view.dart';
 import '../fakes/fake_trails.dart';
 import '../fakes/test_app.dart';
+import '../fakes/l10n_de.dart';
 
 void main() {
   late FakeBackend backend;
@@ -44,7 +45,7 @@ void main() {
 
   MapViewMarker? badgeOf(WidgetTester tester, String name) {
     for (final m in fakeMapLayers(tester).markers) {
-      if (m.hitValue is Trail && (m.hitValue as Trail).displayName == name) return m;
+      if (m.hitValue is Trail && (m.hitValue as Trail).displayName(l10nDe) == name) return m;
     }
     return null;
   }
@@ -122,7 +123,7 @@ void main() {
     // weißem Saum, und darunter — sonst ginge es im Saum unter.
     final polys = fakeMapLayers(tester).polylines;
     final glow = polys.indexWhere((p) => p.color == AppColors.brand && p.hitValue == null);
-    final line = polys.indexWhere((p) => p.hitValue is Trail && (p.hitValue as Trail).displayName == 'Hexentanz');
+    final line = polys.indexWhere((p) => p.hitValue is Trail && (p.hitValue as Trail).displayName(l10nDe) == 'Hexentanz');
     expect(glow, isNonNegative);
     expect(glow, lessThan(line), reason: 'das Leuchten liegt unter der Linie');
     double outer(MapViewPolyline p) => p.width + 2 * p.borderWidth;

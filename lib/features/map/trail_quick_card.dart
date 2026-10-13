@@ -31,7 +31,7 @@ class TrailQuickCard extends StatelessWidget {
     final parts = [
       formatMeters(trail.lengthM),
       if (trail.rating != null) '${trail.rating} ★',
-      if (trail.status.warns) trail.status.label,
+      if (trail.status.warns) trail.status.label(context.l10n),
     ];
     return Card(
       key: const ValueKey('trail-quick-card'),
@@ -55,7 +55,7 @@ class TrailQuickCard extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(trail.displayName,
+                    Text(trail.displayName(context.l10n),
                         maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.titleMedium),
                     Text(
                       parts.join(' · '),

@@ -14,6 +14,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as img;
 import 'package:trailbuddy/core/photo_pipeline.dart';
 
+import '../fakes/l10n_de.dart';
 import '../fakes/photo_fixtures.dart';
 
 void main() {
@@ -81,7 +82,8 @@ void main() {
 
   test('was kein Bild ist, scheitert mit einem Satz für den Nutzer', () {
     final says = throwsA(isA<PhotoPipelineException>()
-        .having((e) => e.message, 'message', contains('Bildformat')));
+        .having((e) => e.unreadable, 'unreadable', isTrue)
+        .having((e) => e.userMessage(l10nDe), 'userMessage', contains('Bildformat')));
     expect(() => preparePhoto(Uint8List.fromList(utf8.encode('kein Bild'))),
         says);
     // Vier Bytes: Hier antwortet der Dekodierer nicht mit `null`,

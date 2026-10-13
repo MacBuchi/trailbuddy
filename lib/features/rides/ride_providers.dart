@@ -214,7 +214,7 @@ class RideNotifier extends Notifier<RecordedRide?> {
     final uid = ref.read(currentUserIdProvider);
     final trails = ref.read(trailsProvider).valueOrNull;
     if (uid == null || trails == null) return;
-    await ref.read(rideStoreProvider).writeConfirmTargets(uid: uid, targets: confirmTargetsOf(trails));
+    await ref.read(rideStoreProvider).writeConfirmTargets(uid: uid, targets: confirmTargetsOf(serviceL10n(), trails));
   }
 
   Future<void> _sendConfirmations(Ride ride) async {

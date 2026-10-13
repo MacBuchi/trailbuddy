@@ -3,6 +3,7 @@
 // — dann steht das Endbild da, nie ein halbes.
 import 'package:flutter/material.dart';
 
+import '../../l10n/l10n.dart';
 import '../app_colors.dart';
 import 'trailbuddy_logo.dart';
 
@@ -77,7 +78,7 @@ class _TrailLoaderState extends State<TrailLoader> with SingleTickerProviderStat
     final p = AppPalette.of(context);
     final geo = LogoGeometry.forPixels(widget.size);
     return Semantics(
-      label: 'Lädt …',
+      label: context.l10n.loaderSemantics,
       child: RepaintBoundary(
         child: SizedBox.square(
           dimension: widget.size,

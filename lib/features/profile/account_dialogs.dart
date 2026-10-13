@@ -139,7 +139,7 @@ class _ChangeEmailDialogState extends ConsumerState<_ChangeEmailDialog> {
       if (mounted) setState(() => _error = emailChangeErrorMessage(context.l10n, e));
     } catch (e, stackTrace) {
       logError('E-Mail ändern', e, stackTrace);
-      if (mounted) setState(() => _error = friendlyError(e));
+      if (mounted) setState(() => _error = friendlyError(context.l10n, e));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -169,7 +169,7 @@ class _ChangeEmailDialogState extends ConsumerState<_ChangeEmailDialog> {
       if (mounted) setState(() => _error = emailChangeErrorMessage(l, e));
     } catch (e, stackTrace) {
       logError('E-Mail ändern bestätigen', e, stackTrace);
-      if (mounted) setState(() => _error = friendlyError(e));
+      if (mounted) setState(() => _error = friendlyError(l, e));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -326,7 +326,7 @@ class _SignOutOtherDevicesDialogState
       );
     } catch (e, stackTrace) {
       logError('Andere Geräte abmelden', e, stackTrace);
-      if (mounted) setState(() => _error = friendlyError(e));
+      if (mounted) setState(() => _error = friendlyError(l, e));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -419,7 +419,7 @@ class _ChangeUsernameDialogState extends ConsumerState<_ChangeUsernameDialog> {
     } catch (e, stackTrace) {
       // Der vergebene Name ist der erwartbare Fall und KEIN Fall für
       // error_reports — nur Unerwartetes wird gemeldet.
-      if (usernameChangeErrorMessage(l, e) == friendlyError(e)) {
+      if (usernameChangeErrorMessage(l, e) == friendlyError(l, e)) {
         logError('Benutzername ändern', e, stackTrace);
       }
       if (mounted) setState(() => _error = usernameChangeErrorMessage(l, e));

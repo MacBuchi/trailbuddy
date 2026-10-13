@@ -13,6 +13,7 @@ import '../fakes/fake_backend.dart';
 import '../fakes/fake_map_view.dart';
 import '../fakes/fake_trails.dart';
 import '../fakes/test_app.dart';
+import '../fakes/l10n_de.dart';
 
 void main() {
   late FakeBackend backend;
@@ -36,7 +37,7 @@ void main() {
   /// Die Namen der Trails, die die Karte gerade zeichnet.
   Set<String> drawn(WidgetTester tester) => {
         for (final l in fakeMapLayers(tester).polylines)
-          if (l.hitValue is Trail) (l.hitValue as Trail).displayName,
+          if (l.hitValue is Trail) (l.hitValue as Trail).displayName(l10nDe),
       };
 
   Finder banner() => find.byKey(const ValueKey('map-filter-banner'));

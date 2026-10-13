@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../l10n/l10n.dart';
 import '../app_distribution.dart';
 import '../app_info.dart';
 import '../update_check.dart';
@@ -37,16 +38,15 @@ class _UpdateRequiredScreen extends ConsumerWidget {
   /// Beschriftung und Ziel hängen am Auslieferungskanal: ein Play-Build darf
   /// nicht auf APK-Downloads verweisen („Device and Network Abuse"), und im
   /// Web gibt es nichts zu installieren — dort genügt ein Neuladen.
-  static (String, String) get _action {
-    if (kIsWeb) return ('Seite neu laden', AppInfo.webAppUrl);
+  static (String, String) _action(AppLocalizations l) {
+    if (kIsWeb) return (l.updateActionReload, AppInfo.webAppUrl);
     if (AppDistribution.isPlayBuild) {
-      return ('Im Play Store aktualisieren', AppInfo.playStoreUrl);
+      return (l.updateActionPlayStore, AppInfo.playStoreUrl);
     }
-    return ('Update herunterladen', AppInfo.apkDownloadUrl);
+    return (l.updateActionDownload, AppInfo.apkDownloadUrl);
   }
 
-  Future<void> _openAction() {
-    final (_, url) = _action;
+  Future<void> _openAction(String url) {
     return launchUrl(
       Uri.parse(url),
       mode: LaunchMode.externalApplication,
@@ -60,7 +60,8 @@ class _UpdateRequiredScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final current = ref.watch(appVersionProvider).valueOrNull;
     final minimum = ref.watch(minimumSupportedVersionProvider).valueOrNull;
-    final (label, _) = _action;
+    final l = context.l10n;
+    final (label, url) = _action(l);
     final theme = Theme.of(context);
     final textTheme = theme.textTheme;
     final scheme = theme.colorScheme;
@@ -78,15 +79,13 @@ class _UpdateRequiredScreen extends ConsumerWidget {
                 children: [
                   const TrailBuddyMark(size: 88),
                   const SizedBox(height: 24),
-                  Text('Update erforderlich',
+                  Text(l.updateRequiredTitle,
                       style: textTheme.headlineSmall
                           ?.copyWith(color: scheme.onSurface),
                       textAlign: TextAlign.center),
                   const SizedBox(height: 12),
                   Text(
-                    'Diese Version von TrailBuddy ist zu alt und kann nicht '
-                    'mehr mit dem Server arbeiten. Deine Trails sind sicher '
-                    'gespeichert und nach dem Update wieder da.',
+                    l.updateRequiredBody,
                     style: textTheme.bodyMedium
                         ?.copyWith(color: scheme.onSurfaceVariant),
                     textAlign: TextAlign.center,
@@ -97,14 +96,14 @@ class _UpdateRequiredScreen extends ConsumerWidget {
                   // Geräten lesbar, statt mitten im Satz umzubrechen.
                   if (current != null && minimum != null)
                     Text(
-                      'Installiert: $current\nBenötigt ab: $minimum',
+                      l.updateRequiredVersions(current, minimum),
                       style: textTheme.bodySmall
                           ?.copyWith(color: scheme.onSurfaceVariant),
                       textAlign: TextAlign.center,
                     ),
                   const SizedBox(height: 24),
                   FilledButton.icon(
-                    onPressed: _openAction,
+                    onPressed: () => _openAction(url),
                     icon: const Icon(
                         kIsWeb ? Icons.refresh : Icons.open_in_browser,
                         size: 18),

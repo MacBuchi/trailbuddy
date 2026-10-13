@@ -72,7 +72,7 @@ class PushEnabledNotifier extends Notifier<bool> {
     } catch (e, stackTrace) {
       logError('Push-Gerät eintragen', e, stackTrace);
       state = false;
-      return friendlyError(e);
+      return friendlyError(l, e);
     }
     await settings.setPushToken(token);
     state = true;
@@ -90,7 +90,7 @@ class PushEnabledNotifier extends Notifier<bool> {
       return null;
     } catch (e, stackTrace) {
       logError('Push-Testnachricht', e, stackTrace);
-      return friendlyError(e);
+      return friendlyError(l, e);
     }
   }
 }

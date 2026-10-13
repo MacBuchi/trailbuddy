@@ -33,6 +33,8 @@ import 'dart:typed_data';
 
 import 'package:image/image.dart' as img;
 
+import '../l10n/l10n.dart';
+
 /// Längste Kante des geteilten Bildes.
 ///
 /// 1024 statt 800 aus dem Issue: Die Vergrößerung zeigt das Bild mit
@@ -60,15 +62,28 @@ typedef PreparedPhoto = ({
   int height,
 });
 
-/// Warum ein Bild nicht geteilt werden kann — mit einem Satz, der
-/// dem Nutzer gezeigt werden darf.
+/// Warum ein Bild nicht geteilt werden kann. Der Satz für den Nutzer
+/// kommt aus [userMessage] (#209); [toString] bleibt der technische Text
+/// für den Digest.
 class PhotoPipelineException implements Exception {
-  const PhotoPipelineException(this.message);
+  /// Der Dekodierer kennt das Format nicht — kein Fehler der App.
+  const PhotoPipelineException.unreadable() : details = null;
 
-  final String message;
+  /// Nach dem Entkernen steckt noch etwas im Bild; [details] nennt die
+  /// Fundstellen.
+  const PhotoPipelineException.metadata(String this.details);
+
+  final String? details;
+
+  bool get unreadable => details == null;
+
+  String userMessage(AppLocalizations l) =>
+      unreadable ? l.errorPhotoUnreadable : l.errorPhotoMetadata(details!);
 
   @override
-  String toString() => message;
+  String toString() => unreadable
+      ? 'PhotoPipelineException: Bildformat nicht lesbar'
+      : 'PhotoPipelineException: Metadaten übrig ($details)';
 }
 
 /// Macht aus einem Foto zwei metadatenfreie JPEGs.
@@ -94,8 +109,7 @@ PreparedPhoto _prepare(Uint8List original, int maxEdge, int quality) {
     decoded = null;
   }
   if (decoded == null) {
-    throw const PhotoPipelineException(
-        'Dieses Bildformat kann die App nicht lesen.');
+    throw const PhotoPipelineException.unreadable();
   }
   // Erst aufrichten: Die Drehung steht als EXIF-Tag im Bild, und gleich
   // wird EXIF weggeworfen — ein Bild, das danach auf der Seite liegt,
@@ -116,9 +130,7 @@ PreparedPhoto _prepare(Uint8List original, int maxEdge, int quality) {
   for (final (name, bytes) in [('Bild', fullBytes), ('Vorschau', thumbBytes)]) {
     final foreign = jpegForeignMarkers(bytes);
     if (foreign.isNotEmpty) {
-      throw PhotoPipelineException(
-          '$name trägt noch Metadaten (${foreign.join(', ')}) — '
-          'nicht hochgeladen.');
+      throw PhotoPipelineException.metadata('$name: ${foreign.join(', ')}');
     }
   }
   return (

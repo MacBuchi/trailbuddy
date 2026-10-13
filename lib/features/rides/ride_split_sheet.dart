@@ -328,7 +328,7 @@ class _RideSplitSheetState extends ConsumerState<_RideSplitSheet> {
   (ConfirmTarget, DateTime)? _questionAt(RideSplit split, int i) {
     final known = split.known[i];
     final at = split.points[known.start].time;
-    final target = splitQuestionFor(known.trail, at);
+    final target = splitQuestionFor(context.l10n, known.trail, at);
     return target == null || at == null ? null : (target, at);
   }
 
@@ -506,7 +506,7 @@ class _RideSplitSheetState extends ConsumerState<_RideSplitSheet> {
   Future<void> _offerWithdraw(String trailId) async {
     if (!mounted) return;
     final l = context.l10n;
-    final name = ref.read(trailByIdProvider(trailId))?.displayName ?? l.splitTrailNoName;
+    final name = ref.read(trailByIdProvider(trailId))?.displayName(l) ?? l.splitTrailNoName;
     final messenger = ScaffoldMessenger.of(context);
     final ok = await showDialog<bool>(
       context: context,
@@ -532,7 +532,7 @@ class _RideSplitSheetState extends ConsumerState<_RideSplitSheet> {
       messenger.showSnackBar(SnackBar(content: Text(l.splitWithdrawDone)));
     } catch (e, st) {
       logError('Lange Fassung löschen', e, st);
-      messenger.showSnackBar(SnackBar(content: Text(friendlyError(e))));
+      messenger.showSnackBar(SnackBar(content: Text(friendlyError(l, e))));
     }
   }
 
@@ -616,7 +616,7 @@ class _RideSplitSheetState extends ConsumerState<_RideSplitSheet> {
                     }
                     _pushPreview();
                   }),
-                  title: Text(split.known[i].trail.displayName),
+                  title: Text(split.known[i].trail.displayName(l)),
                   subtitle: Text(formatLength(split.known[i].lengthM)),
                 )),
                 if (_takeOvers[i] != null && _knownSelected.contains(i))

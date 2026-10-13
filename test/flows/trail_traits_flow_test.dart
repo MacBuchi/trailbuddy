@@ -10,6 +10,7 @@ import '../fakes/fake_backend.dart';
 import '../fakes/fake_map_view.dart';
 import '../fakes/fake_trails.dart';
 import '../fakes/test_app.dart';
+import '../fakes/l10n_de.dart';
 
 void main() {
   late FakeBackend backend;
@@ -35,7 +36,7 @@ void main() {
 
   Set<String> drawn(WidgetTester tester) => {
         for (final l in fakeMapLayers(tester).polylines)
-          if (l.hitValue is Trail) (l.hitValue as Trail).displayName,
+          if (l.hitValue is Trail) (l.hitValue as Trail).displayName(l10nDe),
       };
 
   testWidgets('im Beitrag gewählt, im Blatt gezählt, in der Liste als Symbol', (tester) async {

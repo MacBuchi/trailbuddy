@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/errors.dart';
-import '../../core/read_after_write.dart';
 import '../../l10n/l10n.dart';
 import '../../models/trail.dart';
 import 'singletrail_scale.dart';
@@ -40,12 +39,12 @@ Future<void> showTrailDetailsDialog(
     messenger.showSnackBar(SnackBar(
         content: Text(switch (outcome) {
       WriteOutcome.done => l.detailsSaved,
-      WriteOutcome.doneStale => '${l.detailsSaved}$staleAfterWriteHint',
-      WriteOutcome.queued => kQueuedHint,
+      WriteOutcome.doneStale => l.staleAfterWrite(l.detailsSaved),
+      WriteOutcome.queued => l.queuedHint,
     })));
   } catch (e, st) {
     logError('Trail-Beitrag speichern', e, st);
-    messenger.showSnackBar(SnackBar(content: Text(friendlyError(e))));
+    messenger.showSnackBar(SnackBar(content: Text(friendlyError(l, e))));
   }
 }
 
@@ -186,7 +185,7 @@ class _DetailsDialogState extends State<_DetailsDialog> {
               decoration: InputDecoration(labelText: l.detailsVisibility),
               items: [
                 for (final v in TrailVisibility.values)
-                  DropdownMenuItem(value: v, child: Text(v.label)),
+                  DropdownMenuItem(value: v, child: Text(v.label(l))),
               ],
               onChanged: (v) => setState(() => _visibility = v ?? _visibility),
             ),

@@ -51,7 +51,7 @@ enum WriteOutcome {
   done,
 
   /// Auf dem Server, aber das Neuladen scheiterte — die Liste ist alt
-  /// ([staleAfterWriteHint]).
+  /// (`l.staleAfterWrite`).
   doneStale,
 
   /// Kein Netz: liegt im Ausgangskorb und geht, sobald wieder Verbindung

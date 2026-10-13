@@ -96,7 +96,7 @@ void main() {
 
     test('jedes Merkmal hat Beschreibung und Symbol, keine zwei dasselbe', () {
       expect({for (final t in TrailTrait.values) t.icon}, hasLength(TrailTrait.values.length));
-      expect({for (final t in TrailTrait.values) t.label}, hasLength(TrailTrait.values.length));
+      expect({for (final t in TrailTrait.values) t.label(l10nDe)}, hasLength(TrailTrait.values.length));
       for (final t in TrailTrait.values) {
         expect(t.description(l10nDe), isNotEmpty, reason: t.db);
       }

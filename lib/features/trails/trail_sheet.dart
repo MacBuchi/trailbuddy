@@ -170,7 +170,7 @@ class _TrailSheetState extends ConsumerState<_TrailSheet> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
-                  child: Text(trail.displayName.toUpperCase(),
+                  child: Text(trail.displayName(l).toUpperCase(),
                       key: const ValueKey('trail-sheet-title'),
                       style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800)),
                 ),
@@ -257,7 +257,7 @@ class _TrailSheetState extends ConsumerState<_TrailSheet> {
                       key: const ValueKey('status-chip'),
                       avatar: const Icon(Icons.warning_amber, size: 18),
                       backgroundColor: palette.map.warning.withValues(alpha: 0.25),
-                      label: Text('${c.status!.label} · ${statusAge(context.l10n, c.reportedAt)}'),
+                      label: Text('${c.status!.label(context.l10n)} · ${statusAge(context.l10n, c.reportedAt)}'),
                     ),
                   if (shownStatus.unconfirmed case final u?)
                     Opacity(
@@ -265,7 +265,7 @@ class _TrailSheetState extends ConsumerState<_TrailSheet> {
                       child: Chip(
                         key: const ValueKey('status-chip-unconfirmed'),
                         avatar: Icon(u.status!.warns ? Icons.warning_amber : Icons.help_outline, size: 18),
-                        label: Text(l.sheetStatusUnconfirmed(u.status!.label)),
+                        label: Text(l.sheetStatusUnconfirmed(u.status!.label(l))),
                       ),
                     ),
                   // Die höchstens zwei häufigsten, mit der Zahl der Beiträge,
@@ -276,7 +276,7 @@ class _TrailSheetState extends ConsumerState<_TrailSheet> {
                       child: Chip(
                         key: ValueKey('trait-chip-${t.db}'),
                         avatar: Icon(t.icon, size: 18),
-                        label: Text('${t.label} · ${trail.traitCounts[t]}'),
+                        label: Text('${t.label(l)} · ${trail.traitCounts[t]}'),
                       ),
                     ),
                 ],
@@ -566,10 +566,10 @@ Future<void> withdrawContribution(BuildContext context, WidgetRef ref, Trail tra
     final fresh = await ref.read(trailsProvider.notifier).withdraw(trail.id);
     navigator.pop();
     messenger.showSnackBar(SnackBar(
-        content: Text('${l.sheetWithdrawn}${fresh ? '' : staleAfterWriteHint}')));
+        content: Text(doneOrStale(l, l.sheetWithdrawn, fresh: fresh))));
   } catch (e, st) {
     logError('Beitrag zurückziehen', e, st);
-    messenger.showSnackBar(SnackBar(content: Text(friendlyError(e))));
+    messenger.showSnackBar(SnackBar(content: Text(friendlyError(l, e))));
   }
 }
 
@@ -729,13 +729,13 @@ class _OwnGradePickerState extends ConsumerState<OwnGradePicker> {
           break;
         case WriteOutcome.doneStale:
           messenger.showSnackBar(SnackBar(
-              content: Text('${l.gradeSaved}$staleAfterWriteHint')));
+              content: Text(l.staleAfterWrite(l.gradeSaved))));
         case WriteOutcome.queued:
-          messenger.showSnackBar(const SnackBar(content: Text(kQueuedHint)));
+          messenger.showSnackBar(SnackBar(content: Text(l.queuedHint)));
       }
     } catch (e, st) {
       logError('Trail-Einschätzung speichern', e, st);
-      messenger.showSnackBar(SnackBar(content: Text(friendlyError(e))));
+      messenger.showSnackBar(SnackBar(content: Text(friendlyError(l, e))));
     } finally {
       if (mounted) setState(() => _saving = false);
     }

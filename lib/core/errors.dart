@@ -247,60 +247,39 @@ bool looksLikeMailRateLimit(Object error) =>
 /// Nutzerfreundliche Meldung nach Fehlerklasse statt pauschalem
 /// „… Internet verfügbar?": Netzwerk, Server und Unerwartetes werden
 /// unterschieden, damit Problemberichte diagnostizierbar sind.
-String friendlyError(Object error) {
+String friendlyError(AppLocalizations l, Object error) {
   // **Vor [looksOffline], obwohl es ein Sonderfall davon ist.** Sonst
   // stünde bei einem 504 „bitte Internet prüfen" — und das schickt
   // jemanden an die Stelle, an der nichts kaputt ist. Sein Netz trägt
   // ja, sonst hätte er die 504 nie bekommen.
-  if (looksLikeGatewayTimeout(error)) {
-    return 'Der Server hat zu lange gebraucht — bitte später erneut '
-        'versuchen.';
-  }
-  if (looksOffline(error)) {
-    return 'Keine Verbindung — bitte Internet prüfen.';
-  }
+  if (looksLikeGatewayTimeout(error)) return l.errorGatewayTimeout;
+  if (looksOffline(error)) return l.errorOffline;
   // Ein Bild, das die Pipeline nicht lesen kann (#37): Ihr Satz ist schon
   // für den Nutzer geschrieben.
-  if (error is PhotoPipelineException) return error.message;
+  if (error is PhotoPipelineException) return error.userMessage(l);
   if (error is StorageException) {
-    return 'Das Foto ließ sich nicht hochladen (${error.statusCode ?? 'unbekannt'}) — '
-        'bitte später erneut versuchen.';
+    return l.errorPhotoUpload(error.statusCode ?? l.errorUnknownCode);
   }
-  if (error is NotSignedInException) {
-    return 'Nicht mehr angemeldet — bitte neu anmelden.';
-  }
+  if (error is NotSignedInException) return l.errorNotSignedIn;
   // Der Fall: ein Eintrag, dessen Freigabe inzwischen endete. Die Policy
   // lässt ihn dann vielleicht noch löschen, aber nicht mehr ändern —
   // deshalb nennt der Text beide Möglichkeiten, statt eine zu raten.
-  if (error is DailyLimitException) {
-    return 'Für heute ist das Limit erreicht — morgen geht es weiter.';
-  }
+  if (error is DailyLimitException) return l.errorDailyLimit;
   if (error is MergeRejectedException) {
     return switch (error.reason) {
-      MergeRejection.notNear => 'Die beiden Trails liegen nicht nah genug beieinander, '
-          'um derselbe zu sein.',
-      MergeRejection.gone => 'Einen der beiden Trails gibt es nicht mehr oder er wird '
-          'nicht mehr mit dir geteilt.',
+      MergeRejection.notNear => l.errorMergeNotNear,
+      MergeRejection.gone => l.errorMergeGone,
     };
   }
-  if (error is WriteRejectedException) {
-    return 'Das ließ sich nicht speichern — der Eintrag gehört dir nicht '
-        'mehr oder wird nicht mehr mit dir geteilt.';
-  }
+  if (error is WriteRejectedException) return l.errorWriteRejected;
   if (error is PostgrestException) {
     // 42501 = RLS-Verbot. Der typische Fall: Ein Blatt ist offen, während
     // die Freigabe endet — „Serverfehler" wäre die falsche Fährte.
-    if (error.code == '42501') {
-      return 'Das wird nicht mehr mit dir geteilt.';
-    }
-    return 'Serverfehler (${error.code ?? 'unbekannt'}) — '
-        'bitte später erneut versuchen.';
+    if (error.code == '42501') return l.errorNoLongerShared;
+    return l.errorServer(error.code ?? l.errorUnknownCode);
   }
-  if (error is AuthException) {
-    return 'Anmeldung abgelaufen — bitte neu anmelden.';
-  }
-  return 'Unerwarteter Fehler (${error.runtimeType}) — '
-      'bitte später erneut versuchen.';
+  if (error is AuthException) return l.errorSessionExpired;
+  return l.errorUnexpected('${error.runtimeType}');
 }
 
 /// Login-Fehler → Meldung. Bevorzugt den typisierten Supabase-Fehlercode;
@@ -363,7 +342,7 @@ String usernameChangeErrorMessage(AppLocalizations l, Object error) {
   if (error is PostgrestException && error.code == '23505') {
     return l.authErrorUsernameTaken;
   }
-  return friendlyError(error);
+  return friendlyError(l, error);
 }
 
 /// Fehler beim Ändern der E-Mail-Adresse → Meldung.

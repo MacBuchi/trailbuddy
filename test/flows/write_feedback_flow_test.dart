@@ -21,6 +21,7 @@ import '../fakes/fake_outbox.dart';
 import '../fakes/fake_trail_cache.dart';
 import '../fakes/fake_trails.dart';
 import '../fakes/test_app.dart';
+import '../fakes/l10n_de.dart';
 
 void main() {
   late FakeBackend backend;
@@ -85,7 +86,7 @@ void main() {
     await openRoots(tester);
     final container = ProviderScope.containerOf(tester.element(find.byType(MaterialApp).first));
     final before = container.read(trailsProvider).value!;
-    final wald = before.firstWhere((t) => t.displayName == 'Wald');
+    final wald = before.firstWhere((t) => t.displayName(l10nDe) == 'Wald');
     final fetches = trails.recordingFetches;
 
     await tester.tap(grade4);
@@ -93,11 +94,11 @@ void main() {
     expect(trails.details.firstWhere((d) => d.name == 'Roots').grade, 4);
     expect(trails.recordingFetches, fetches, reason: 'die Linien hat der Beitrag nicht geändert');
     final after = container.read(trailsProvider).value!;
-    expect(after.firstWhere((t) => t.displayName == 'Roots').grade, 4);
-    expect(after.firstWhere((t) => t.displayName == 'Wald'), same(wald),
+    expect(after.firstWhere((t) => t.displayName(l10nDe) == 'Roots').grade, 4);
+    expect(after.firstWhere((t) => t.displayName(l10nDe) == 'Wald'), same(wald),
         reason: 'ein unveränderter Trail bleibt dasselbe Objekt — samt geglätteter Linie');
-    expect(after.firstWhere((t) => t.displayName == 'Roots').points,
-        same(before.firstWhere((t) => t.displayName == 'Roots').points));
+    expect(after.firstWhere((t) => t.displayName(l10nDe) == 'Roots').points,
+        same(before.firstWhere((t) => t.displayName(l10nDe) == 'Roots').points));
   });
 
   testWidgets('ohne Netz: der Wert bleibt stehen und sagt, dass er wartet', (tester) async {

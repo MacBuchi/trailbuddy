@@ -220,5 +220,5 @@ List<Trail> withPendingJobs(List<Trail> server, List<OutboxJob> jobs,
       pendingFailure: j.failure,
     ));
   }
-  return result..sort((a, b) => a.displayName.toLowerCase().compareTo(b.displayName.toLowerCase()));
+  return result..sort(compareTrailNames);
 }

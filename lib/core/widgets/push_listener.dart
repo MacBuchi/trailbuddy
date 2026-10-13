@@ -16,6 +16,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../features/friends/message_providers.dart';
+import '../../l10n/l10n.dart';
 import '../../features/rides/ride_confirm_notify.dart';
 import '../../features/trails/trail_providers.dart';
 import '../errors.dart';
@@ -130,7 +131,7 @@ class _PushListenerState extends ConsumerState<PushListener> {
       action: route == null
           ? null
           : SnackBarAction(
-              label: 'Öffnen',
+              label: context.l10n.pushOpen,
               onPressed: () => _open(message),
             ),
     ));

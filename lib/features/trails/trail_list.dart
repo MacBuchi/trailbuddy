@@ -137,7 +137,7 @@ class TrailListFilter {
         if (ratingOpenOnly) l.filterDescribeRatingOpen,
         if (stillValidOnly) l.filterDescribeStillValid,
         for (final t in TrailTrait.values)
-          if (traits.contains(t)) t.label,
+          if (traits.contains(t)) t.label(l),
       ].join(' · ');
 
   TrailListFilter copyWith({
@@ -199,7 +199,7 @@ typedef TrailListResult = ({
 /// Treffer für „Baum", und die Suche fände Trails über Sätze statt über
 /// Namen.
 List<String> trailSearchTexts(Trail t) => [
-      t.displayName,
+      ?t.name,
       ...t.otherNames,
       for (final d in t.details)
         if (d.userId != t.myId && d.username != null) d.username!,
@@ -368,7 +368,7 @@ List<Trail> _closest(List<Trail> candidates, String needle) {
 /// Sortiert; bei Gleichstand nach Name, damit die Liste nicht springt.
 List<Trail> sortTrails(List<Trail> trails, TrailSort sort) {
   int byName(Trail a, Trail b) =>
-      foldSearchText(a.displayName).compareTo(foldSearchText(b.displayName));
+      foldSearchText(a.name ?? '\u{10FFFF}').compareTo(foldSearchText(b.name ?? '\u{10FFFF}'));
   // Fehlende Werte (keine Höhen, keine Einschätzung) immer ans Ende,
   // gleich in welche Richtung sortiert wird.
   int nullsLast<T extends Comparable<T>>(T? a, T? b, {bool descending = false}) {
@@ -436,11 +436,11 @@ List<({String text, TrailRowTagKind kind})> trailRowTags(
         text: t.sendingDetails ? l.listTagDetailsSending : l.listTagDetailsPending,
         kind: TrailRowTagKind.pending
       ),
-    if (t.status.warns) (text: t.status.label.toUpperCase(), kind: TrailRowTagKind.warning),
+    if (t.status.warns) (text: t.status.label(l).toUpperCase(), kind: TrailRowTagKind.warning),
     // Eine jüngere unbestätigte Meldung, die etwas anderes sagt als die
     // bestätigte: gedämpft, mit Fragezeichen („GESPERRT?").
     if (unconfirmed != null && unconfirmed != t.status)
-      (text: '${unconfirmed.label.toUpperCase()}?', kind: TrailRowTagKind.unconfirmed),
+      (text: '${unconfirmed.label(l).toUpperCase()}?', kind: TrailRowTagKind.unconfirmed),
     if (freshNote) (text: l.listTagFreshNote, kind: TrailRowTagKind.note),
     // Der Zustand hinter Meldung und Hinweis, nur wenn er schlecht ist —
     // „Gut" in jeder Zeile wäre Lärm.

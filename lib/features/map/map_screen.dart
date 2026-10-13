@@ -537,8 +537,8 @@ class _MapScreenState extends ConsumerState<MapScreen> {
               ..showSnackBar(SnackBar(
                   key: const ValueKey('loop-not-pickable'),
                   content: Text(result == LoopToggle.connector
-                      ? context.l10n.mapLoopConnector(t.displayName)
-                      : context.l10n.mapLoopPending(t.displayName))));
+                      ? context.l10n.mapLoopConnector(t.displayName(context.l10n))
+                      : context.l10n.mapLoopPending(t.displayName(context.l10n)))));
           }
           return;
         }
@@ -590,7 +590,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
           points: request.points,
           title: request.title,
           startAlongM: request.startAlongM,
-          sections: navSectionsOfLine(request.points, trails));
+          sections: navSectionsOfLine(context.l10n, request.points, trails));
     }
     final choice = await showNavStartSheet(context,
         title: request.title, canRecord: canRecord, summary: navStartSummary(l, request));
@@ -1112,7 +1112,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
             // wird überall sonst mit den Originalpunkten.
             points: _smoothed(t),
             // Der Name fließt entlang der Linie (ab Zoom 14).
-            label: t.pending ? null : t.displayName,
+            label: t.pending ? null : t.displayName(context.l10n),
             // Farbe = Schwierigkeit, Linienart = Zustand, Saum ab S4
             // gestrichelt (`trailLineStyleOf`, Rework E9) — schwarz allein
             // unterschiede S3 nicht von S5. Wartend (#30) gestrichelt und
@@ -1341,7 +1341,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                         dense: true,
                         leading: const Icon(Icons.merge_type),
                         title: Text(context.l10n.mapCompareTitle(
-                            compare.duplicate?.displayName ?? '–', compare.target?.displayName ?? '–')),
+                            compare.duplicate?.displayName(context.l10n) ?? '–', compare.target?.displayName(context.l10n) ?? '–')),
                         subtitle: Text(context.l10n.mapCompareSubtitle),
                         trailing: IconButton(
                           key: const ValueKey('merge-compare-close'),

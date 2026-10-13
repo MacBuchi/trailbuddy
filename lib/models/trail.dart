@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:latlong2/latlong.dart';
 
 import '../features/trails/trail_elevation.dart';
+import '../l10n/l10n.dart';
 import '../features/trails/trail_geometry.dart';
 import 'trail_merge.dart';
 
@@ -130,17 +131,28 @@ String gradeLabel(int grade) => 'S$grade';
 /// Symbole: `trail_traits.dart`. Die Reihenfolge hier ist die Reihenfolge
 /// überall (Auswahl, Chips, Gleichstand beim Zählen).
 enum TrailTrait {
-  flowy('flowy', 'Flowig'),
-  jumps('jumps', 'Jump-Line'),
-  rocky('rocky', 'Verblockt'),
-  steep('steep', 'Steil'),
-  uphill('uphill', 'Uphill'),
-  natural('natural', 'Naturtrail'),
-  connection('connection', 'Verbindung');
+  flowy('flowy'),
+  jumps('jumps'),
+  rocky('rocky'),
+  steep('steep'),
+  uphill('uphill'),
+  natural('natural'),
+  connection('connection');
 
-  const TrailTrait(this.db, this.label);
+  const TrailTrait(this.db);
   final String db;
-  final String label;
+
+  /// Der Name auf dem Schirm (#209) — ein `switch`, damit ein neues
+  /// Merkmal ohne Text nicht baut.
+  String label(AppLocalizations l) => switch (this) {
+        flowy => l.traitFlowy,
+        jumps => l.traitJumps,
+        rocky => l.traitRocky,
+        steep => l.traitSteep,
+        uphill => l.traitUphill,
+        natural => l.traitNatural,
+        connection => l.traitConnection,
+      };
 
   static TrailTrait? fromDb(String? s) =>
       s == null ? null : values.where((k) => k.db == s).firstOrNull;
@@ -163,12 +175,16 @@ enum TrailTrait {
 const kShownTraits = 2;
 
 enum TrailVisibility {
-  buddies('buddies', 'Für Buddys'),
-  private('private', 'Nur für mich');
+  buddies('buddies'),
+  private('private');
 
-  const TrailVisibility(this.db, this.label);
+  const TrailVisibility(this.db);
   final String db;
-  final String label;
+
+  String label(AppLocalizations l) => switch (this) {
+        buddies => l.visibilityBuddies,
+        private => l.visibilityPrivate,
+      };
 
   static TrailVisibility fromDb(String? s) =>
       values.where((v) => v.db == s).firstOrNull ?? TrailVisibility.buddies;
@@ -178,14 +194,20 @@ enum TrailVisibility {
 /// E7): offen, gesperrt, zerstört, verändert. Seit Patch 013 steht sie
 /// nicht mehr am Beitrag, sondern als [TrailReport] im Verlauf.
 enum TrailStatus {
-  open('open', 'Offen'),
-  closed('closed', 'Gesperrt'),
-  destroyed('destroyed', 'Zerstört'),
-  changed('changed', 'Verändert');
+  open('open'),
+  closed('closed'),
+  destroyed('destroyed'),
+  changed('changed');
 
-  const TrailStatus(this.db, this.label);
+  const TrailStatus(this.db);
   final String db;
-  final String label;
+
+  String label(AppLocalizations l) => switch (this) {
+        open => l.statusOpen,
+        closed => l.statusClosed,
+        destroyed => l.statusDestroyed,
+        changed => l.statusChanged,
+      };
 
   static TrailStatus fromDb(String? s) =>
       values.where((v) => v.db == s).firstOrNull ?? TrailStatus.open;
@@ -745,7 +767,11 @@ class Trail {
 
   /// Eigener Name, sonst der Name des ältesten sichtbaren Beitrags; die
   /// anderen als „auch: …" (Konzept 3, Muster Buddy-Alias).
-  String get displayName => _namedBy ?? 'Trail ohne Namen';
+  String displayName(AppLocalizations l) => _namedBy ?? l.trailUnnamed;
+
+  /// Der Name ohne Platzhalter, `null` ohne Namen — für Sortieren und
+  /// Vergleichen, die keine Sprache kennen sollen (#209).
+  String? get name => _namedBy;
 
   /// Hat irgendein sichtbarer Beitrag einen Namen? Sonst zeigt
   /// [displayName] den Platzhalter — und der gehört nicht in eine
@@ -775,7 +801,7 @@ class Trail {
   }
 
   List<String> get otherNames {
-    final shown = displayName;
+    final shown = _namedBy;
     final names = <String>{};
     for (final d in details) {
       final n = d.name?.trim();
@@ -934,6 +960,15 @@ class Trail {
 }
 
 /// Ein Duplikat, das bei mir unter einem anderen Trail steht (#107).
+/// Nach Namen, ohne Rücksicht auf Groß- und Kleinschreibung; Trails ohne
+/// Namen hinten — ihr Platzhalter hängt an der Sprache (#209), die
+/// Reihenfolge soll es nicht.
+int compareTrailNames(Trail a, Trail b) {
+  final x = a.name?.toLowerCase(), y = b.name?.toLowerCase();
+  if (x == null || y == null) return x == y ? 0 : (x == null ? 1 : -1);
+  return x.compareTo(y);
+}
+
 class MergedTrail {
   const MergedTrail({required this.id, required this.byMe, this.name, this.byUsers = const []});
 
@@ -1054,7 +1089,7 @@ List<Trail> buildTrails({
 
   return [
     for (final e in byTrail.entries) make(e.key, e.value),
-  ]..sort((a, b) => a.displayName.toLowerCase().compareTo(b.displayName.toLowerCase()));
+  ]..sort(compareTrailNames);
 }
 
 /// [resolveMerges] mit dem Alter jedes Trails aus seiner ältesten

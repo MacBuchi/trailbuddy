@@ -89,19 +89,18 @@ Future<void> addTrailNote(BuildContext context, WidgetRef ref, Trail trail) asyn
   try {
     final result =
         await ref.read(trailsProvider.notifier).addNote(trail.id, draft.body, photo: draft.photo);
-    final stale = result.fresh ? '' : staleAfterWriteHint;
     final photoError = result.photoError;
     messenger.showSnackBar(SnackBar(
         content: Text(photoError != null
             // Beides sagen: Der Hinweis steht — sonst schriebe man ihn
             // ein zweites Mal —, das Foto nicht.
-            ? l.notePhotoFailed(friendlyError(photoError))
+            ? l.notePhotoFailed(friendlyError(l, photoError))
             : draft.photo != null
-                ? '${l.noteSavedWithPhoto}$stale'
-                : '${l.noteSaved}$stale')));
+                ? doneOrStale(l, l.noteSavedWithPhoto, fresh: result.fresh)
+                : doneOrStale(l, l.noteSaved, fresh: result.fresh))));
   } catch (e, st) {
     logError('Hinweis speichern', e, st);
-    messenger.showSnackBar(SnackBar(content: Text(friendlyError(e))));
+    messenger.showSnackBar(SnackBar(content: Text(friendlyError(l, e))));
   }
 }
 
@@ -201,10 +200,10 @@ class _NoteTile extends ConsumerWidget {
     try {
       final fresh = await ref.read(trailsProvider.notifier).deleteNote(note.id);
       messenger.showSnackBar(SnackBar(
-          content: Text('${l.noteRemoved}${fresh ? '' : staleAfterWriteHint}')));
+          content: Text(doneOrStale(l, l.noteRemoved, fresh: fresh))));
     } catch (e, st) {
       logError('Hinweis löschen', e, st);
-      messenger.showSnackBar(SnackBar(content: Text(friendlyError(e))));
+      messenger.showSnackBar(SnackBar(content: Text(friendlyError(l, e))));
     }
   }
 }
@@ -394,7 +393,7 @@ class _NotePhotoView extends ConsumerWidget {
           if (full.hasError)
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-              child: Text(context.l10n.notePhotoFullFailed(friendlyError(full.error!)),
+              child: Text(context.l10n.notePhotoFullFailed(friendlyError(context.l10n, full.error!)),
                   style: Theme.of(context).textTheme.bodySmall),
             ),
           Padding(

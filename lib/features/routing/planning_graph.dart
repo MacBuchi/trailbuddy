@@ -117,7 +117,7 @@ Future<PlanningGraph> loadPlanningGraph(Ref ref, LatBox box, {bool fillOnline = 
       for (final t in trails)
         if (t.points.length >= 2 && LatBox.of(t.points).near(box, kTrailHeadMarginM)) t,
     ];
-    final onGraph = graphTrailsOf(near);
+    final onGraph = graphTrailsOf(serviceL10n(), near);
     applyTrails(graph, onGraph);
     // Die Enden jeder Abfahrt gleich mit (#188): Wählt der Planer später
     // einen weiteren Trail aus diesem Rahmen, teilt sein Anheften keine

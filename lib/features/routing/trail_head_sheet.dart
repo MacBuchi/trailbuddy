@@ -83,7 +83,8 @@ class RouteTarget {
   const RouteTarget({required this.point, required this.title, this.trail});
 
   /// Der Kopf eines Trails.
-  factory RouteTarget.trailHead(Trail t) => RouteTarget(point: t.start, title: t.displayName, trail: t);
+  factory RouteTarget.trailHead(AppLocalizations l, Trail t) =>
+      RouteTarget(point: t.start, title: t.displayName(l), trail: t);
 
   final LatLng point;
   final String title;
@@ -105,7 +106,7 @@ Future<void> showRouteSheet(ScaffoldState scaffold, RouteTarget target, {RouteMo
 
 /// „Zum Trailkopf" — der bisherige Einstieg.
 Future<void> showTrailHeadSheet(ScaffoldState scaffold, Trail trail, {RouteMode mode = RouteMode.direct}) =>
-    showRouteSheet(scaffold, RouteTarget.trailHead(trail), mode: mode);
+    showRouteSheet(scaffold, RouteTarget.trailHead(scaffold.context.l10n, trail), mode: mode);
 
 enum _Phase { locating, loading, computing, done }
 
@@ -223,6 +224,7 @@ class _RouteSheetState extends ConsumerState<_RouteSheet> {
     setState(() => _phase = _Phase.computing);
     await WidgetsBinding.instance.endOfFrame;
     if (!mounted) return;
+    final l = context.l10n;
     final prefs = LoopPrefs.parse(ref.read(settingsProvider).loopPlannerPrefs, _profile);
     final rider = ref.read(calibratedRiderProvider(_profile)).withPrefs(prefs.route);
     try {
@@ -237,7 +239,7 @@ class _RouteSheetState extends ConsumerState<_RouteSheet> {
           end: widget.target.point,
           profile: rider,
           budget: _funBudget(direct, prefs),
-          pool: [for (final t in _funPool(from)) poolTrailOf(t)],
+          pool: [for (final t in _funPool(from)) poolTrailOf(l, t)],
           returnToStart: false,
         );
         if (result.outcome == LoopOutcome.ok && !result.isEmpty) {
@@ -307,6 +309,7 @@ class _RouteSheetState extends ConsumerState<_RouteSheet> {
     // Ein Bild, damit der Punkt dort steht, wo er losgelassen wurde.
     await WidgetsBinding.instance.endOfFrame;
     if (!mounted || seq != _tuneSeq) return;
+    final l = context.l10n;
     final prefs = LoopPrefs.parse(ref.read(settingsProvider).loopPlannerPrefs, _profile);
     final rider = ref.read(calibratedRiderProvider(_profile)).withPrefs(prefs.route);
     try {
@@ -320,7 +323,7 @@ class _RouteSheetState extends ConsumerState<_RouteSheet> {
           end: widget.target.point,
           profile: rider,
           budget: _funBudget(direct, prefs),
-          pool: [for (final t in _funPool(from)) poolTrailOf(t)],
+          pool: [for (final t in _funPool(from)) poolTrailOf(l, t)],
           returnToStart: false,
           tune: LoopTune.of(fun, vias),
         );
@@ -360,11 +363,11 @@ class _RouteSheetState extends ConsumerState<_RouteSheet> {
   /// der Runde, sonst der Ziel-Trail hinter dem Ende der Linie.
   NavSections _navSections() {
     final fun = _fun;
-    if (fun != null) return navSectionsOfLoop(fun, trailById: trailByIdOf(ref));
+    if (fun != null) return navSectionsOfLoop(context.l10n, fun, trailById: trailByIdOf(ref));
     final route = _plan?.route;
     final target = widget.target.trail;
     if (route == null || target == null) return NavSections.none;
-    return navSectionsOfTrailHead(route, target);
+    return navSectionsOfTrailHead(context.l10n, route, target);
   }
   double? get _timeS => _fun?.summary?.timeS ?? _plan?.route?.summary.timeS;
 

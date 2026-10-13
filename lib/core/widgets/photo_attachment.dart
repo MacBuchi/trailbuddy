@@ -9,6 +9,7 @@
 // Weg mit rohen Bytes gibt es nicht.
 import 'package:flutter/material.dart';
 
+import '../../l10n/l10n.dart';
 import '../errors.dart';
 import '../photo_pipeline.dart';
 import '../photo_providers.dart';
@@ -25,7 +26,7 @@ class PhotoAttachment extends StatefulWidget {
     required this.photo,
     required this.onChanged,
     required this.attachedNote,
-    this.label = 'Foto anhängen',
+    this.label,
   });
 
   final PhotoPicker pick;
@@ -33,8 +34,8 @@ class PhotoAttachment extends StatefulWidget {
   final PreparedPhoto? photo;
   final ValueChanged<PreparedPhoto?> onChanged;
 
-  /// Die Beschriftung des Knopfs.
-  final String label;
+  /// Die Beschriftung des Knopfs, sonst „Foto anhängen".
+  final String? label;
 
   /// Der Satz neben der Vorschau: wer das Bild sieht und was nicht darin
   /// steht. Er hängt am Zweck, deshalb gibt ihn der Aufrufer.
@@ -49,6 +50,7 @@ class _PhotoAttachmentState extends State<PhotoAttachment> {
 
   Future<void> _pick(PhotoSource source) async {
     final messenger = ScaffoldMessenger.of(context);
+    final l = context.l10n;
     setState(() => _busy = true);
     try {
       final bytes = await widget.pick(source);
@@ -59,10 +61,10 @@ class _PhotoAttachmentState extends State<PhotoAttachment> {
       // Ein unlesbares Format ist kein Fehler der App — der Satz an den
       // Nutzer reicht. Alles andere (auch ein Bild, das wider Erwarten
       // noch Metadaten trägt) soll im Digest auftauchen.
-      if (!(e is PhotoPipelineException && e.message.contains('Bildformat'))) {
+      if (!(e is PhotoPipelineException && e.unreadable)) {
         logError('Foto anhängen', e, s);
       }
-      messenger.showSnackBar(SnackBar(content: Text(friendlyError(e))));
+      messenger.showSnackBar(SnackBar(content: Text(friendlyError(l, e))));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -71,14 +73,15 @@ class _PhotoAttachmentState extends State<PhotoAttachment> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l = context.l10n;
     final photo = widget.photo;
     if (_busy) {
-      return const Padding(
-        padding: EdgeInsets.symmetric(vertical: 8),
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
         child: Row(children: [
-          SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)),
-          SizedBox(width: 10),
-          Text('Foto wird vorbereitet …'),
+          const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)),
+          const SizedBox(width: 10),
+          Text(l.photoPreparing),
         ]),
       );
     }
@@ -90,13 +93,13 @@ class _PhotoAttachmentState extends State<PhotoAttachment> {
           child: OutlinedButton.icon(
             key: kAttachPhotoKey,
             icon: const Icon(Icons.image_outlined, size: 18),
-            label: Text(widget.label, overflow: TextOverflow.ellipsis),
+            label: Text(widget.label ?? l.photoAttach, overflow: TextOverflow.ellipsis),
             onPressed: () => _pick(PhotoSource.gallery),
           ),
         ),
         IconButton(
           key: kAttachPhotoCameraKey,
-          tooltip: 'Foto aufnehmen',
+          tooltip: l.photoTake,
           icon: const Icon(Icons.photo_camera_outlined),
           onPressed: () => _pick(PhotoSource.camera),
         ),
@@ -106,13 +109,13 @@ class _PhotoAttachmentState extends State<PhotoAttachment> {
       ClipRRect(
         borderRadius: BorderRadius.circular(6),
         child: Image.memory(photo.thumb,
-            width: 56, height: 56, fit: BoxFit.cover, semanticLabel: 'Angehängtes Foto'),
+            width: 56, height: 56, fit: BoxFit.cover, semanticLabel: l.photoAttached),
       ),
       const SizedBox(width: 10),
       Expanded(child: Text(widget.attachedNote, style: theme.textTheme.bodySmall)),
       IconButton(
         key: kRemovePhotoKey,
-        tooltip: 'Foto entfernen',
+        tooltip: l.photoRemove,
         icon: const Icon(Icons.close),
         onPressed: () => widget.onChanged(null),
       ),

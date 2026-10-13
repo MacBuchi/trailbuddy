@@ -58,7 +58,7 @@ class TrailTraitChip extends StatelessWidget {
       message: trait.description(context.l10n),
       child: FilterChip(
         avatar: Icon(trait.icon, size: 18, color: fg),
-        label: Text(label ?? trait.label, style: fg == null ? null : TextStyle(color: fg)),
+        label: Text(label ?? trait.label(context.l10n), style: fg == null ? null : TextStyle(color: fg)),
         selected: selected,
         selectedColor: AppColors.brand,
         side: selected ? const BorderSide(color: AppColors.brand) : null,
@@ -85,8 +85,8 @@ class TrailTraitIcons extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.only(left: 4),
               child: Tooltip(
-                message: t.label,
-                child: Icon(t.icon, size: size, color: color, semanticLabel: t.label),
+                message: t.label(context.l10n),
+                child: Icon(t.icon, size: size, color: color, semanticLabel: t.label(context.l10n)),
               ),
             ),
         ],

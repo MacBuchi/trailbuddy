@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/app_info.dart';
 import '../../core/errors.dart';
+import '../../l10n/l10n.dart';
 import '../../data/feedback_repository.dart';
 import '../../data/outbox.dart';
 import '../../data/providers.dart';
@@ -69,7 +70,7 @@ Future<void> showFeedbackFlow(BuildContext context, WidgetRef ref) async {
     logError('Feedback senden', e, st);
     if (!context.mounted) return;
     ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(friendlyError(e))));
+        .showSnackBar(SnackBar(content: Text(friendlyError(context.l10n, e))));
   }
 }
 

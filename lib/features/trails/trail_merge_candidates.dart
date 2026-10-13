@@ -64,7 +64,7 @@ List<MergeCandidate> mergeCandidates(Trail trail, Iterable<Trail> all) {
   return out
     ..sort((a, b) {
       final c = b.share.compareTo(a.share);
-      return c != 0 ? c : a.trail.displayName.compareTo(b.trail.displayName);
+      return c != 0 ? c : compareTrailNames(a.trail, b.trail);
     });
 }
 

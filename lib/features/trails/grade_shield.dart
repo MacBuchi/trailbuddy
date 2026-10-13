@@ -96,7 +96,7 @@ class GradeShield extends StatelessWidget {
     final label = [
       if (uphill) context.l10n.gradeUphill,
       if (g != null) context.l10n.gradeShieldSemantics(g.label, g.short(context.l10n)),
-      for (final t in shownTraits) t.label,
+      for (final t in shownTraits) t.label(context.l10n),
     ].join(', ');
     return Semantics(
       label: label,

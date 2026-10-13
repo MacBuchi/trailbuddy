@@ -2,6 +2,13 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Trails ohne Namen
+
+*Version 0.117.9, 2026-10-13*
+
+- In der Trail-Liste stehen Trails ohne Namen jetzt hinten, statt unter
+  „T“ wie „Trail ohne Namen“.
+
 ## Höhenmeter beim Planen
 
 *Versionen 0.117.6 bis 0.117.8, 2026-10-13*

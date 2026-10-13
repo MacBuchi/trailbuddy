@@ -8224,5 +8224,250 @@
         "type": "int"
       }
     }
+  },
+  "errorGatewayTimeout": "Der Server hat zu lange gebraucht — bitte später erneut versuchen.",
+  "@errorGatewayTimeout": {
+    "description": "Fehlermeldung: Der Server (Gateway) hat nicht rechtzeitig geantwortet (504)."
+  },
+  "errorOffline": "Keine Verbindung — bitte Internet prüfen.",
+  "@errorOffline": {
+    "description": "Fehlermeldung: kein Netz."
+  },
+  "errorPhotoUpload": "Das Foto ließ sich nicht hochladen ({code}) — bitte später erneut versuchen.",
+  "@errorPhotoUpload": {
+    "description": "Fehlermeldung beim Hochladen eines Fotos; code = Statuscode des Speichers oder errorUnknownCode.",
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
+  "errorUnknownCode": "unbekannt",
+  "@errorUnknownCode": {
+    "description": "Ersatz für einen fehlenden Fehlercode in Klammern (errorPhotoUpload, errorServer)."
+  },
+  "errorPhotoUnreadable": "Dieses Bildformat kann die App nicht lesen.",
+  "@errorPhotoUnreadable": {
+    "description": "Fehlermeldung: Das gewählte Bild lässt sich nicht dekodieren."
+  },
+  "errorPhotoMetadata": "Das Foto trägt noch Metadaten ({details}) — nicht hochgeladen.",
+  "@errorPhotoMetadata": {
+    "description": "Fehlermeldung: Nach dem Entkernen stecken noch Metadaten im Bild; details = technische Liste der Fundstellen.",
+    "placeholders": {
+      "details": {
+        "type": "String"
+      }
+    }
+  },
+  "errorNotSignedIn": "Nicht mehr angemeldet — bitte neu anmelden.",
+  "@errorNotSignedIn": {
+    "description": "Fehlermeldung: Es gibt keine angemeldete Sitzung mehr."
+  },
+  "errorDailyLimit": "Für heute ist das Limit erreicht — morgen geht es weiter.",
+  "@errorDailyLimit": {
+    "description": "Fehlermeldung: Tageslimit für Aufzeichnungen erreicht."
+  },
+  "errorMergeNotNear": "Die beiden Trails liegen nicht nah genug beieinander, um derselbe zu sein.",
+  "@errorMergeNotNear": {
+    "description": "Fehlermeldung beim Zusammenführen: Die Linien liegen zu weit auseinander."
+  },
+  "errorMergeGone": "Einen der beiden Trails gibt es nicht mehr oder er wird nicht mehr mit dir geteilt.",
+  "@errorMergeGone": {
+    "description": "Fehlermeldung beim Zusammenführen: Ein Trail ist weg oder nicht mehr freigegeben."
+  },
+  "errorWriteRejected": "Das ließ sich nicht speichern — der Eintrag gehört dir nicht mehr oder wird nicht mehr mit dir geteilt.",
+  "@errorWriteRejected": {
+    "description": "Fehlermeldung: Die Datenbank hat das Schreiben abgelehnt."
+  },
+  "errorNoLongerShared": "Das wird nicht mehr mit dir geteilt.",
+  "@errorNoLongerShared": {
+    "description": "Fehlermeldung: Zugriff verweigert, weil die Freigabe endete (RLS)."
+  },
+  "errorServer": "Serverfehler ({code}) — bitte später erneut versuchen.",
+  "@errorServer": {
+    "description": "Fehlermeldung: allgemeiner Datenbankfehler; code = Fehlercode oder errorUnknownCode.",
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
+  "errorSessionExpired": "Anmeldung abgelaufen — bitte neu anmelden.",
+  "@errorSessionExpired": {
+    "description": "Fehlermeldung: Die Anmeldung ist abgelaufen."
+  },
+  "errorUnexpected": "Unerwarteter Fehler ({type}) — bitte später erneut versuchen.",
+  "@errorUnexpected": {
+    "description": "Fehlermeldung für alles Unerwartete; type = technischer Name des Fehlers.",
+    "placeholders": {
+      "type": {
+        "type": "String"
+      }
+    }
+  },
+  "staleAfterWrite": "{done} — sichtbar, sobald die Liste wieder lädt.",
+  "@staleAfterWrite": {
+    "description": "Leiste nach dem Speichern, wenn das Neuladen danach scheiterte; done = die eigentliche Erfolgsmeldung (z. B. „Gespeichert\").",
+    "placeholders": {
+      "done": {
+        "type": "String"
+      }
+    }
+  },
+  "queuedHint": "Kein Netz — liegt im Ausgangskorb und geht raus, sobald wieder Verbindung besteht.",
+  "@queuedHint": {
+    "description": "Leiste nach dem Speichern ohne Netz: Der Auftrag liegt im Ausgangskorb."
+  },
+  "trailUnnamed": "Trail ohne Namen",
+  "@trailUnnamed": {
+    "description": "Anzeigename eines Trails, für den kein sichtbarer Beitrag einen Namen hat."
+  },
+  "traitFlowy": "Flowig",
+  "@traitFlowy": {
+    "description": "Charakter eines Trails: flüssig zu fahren."
+  },
+  "traitJumps": "Jump-Line",
+  "@traitJumps": {
+    "description": "Charakter eines Trails: mit Sprüngen."
+  },
+  "traitRocky": "Verblockt",
+  "@traitRocky": {
+    "description": "Charakter eines Trails: Steine und Wurzeln, technisch."
+  },
+  "traitSteep": "Steil",
+  "@traitSteep": {
+    "description": "Charakter eines Trails: steil bergab."
+  },
+  "traitUphill": "Uphill",
+  "@traitUphill": {
+    "description": "Charakter eines Trails: bergauf zu fahren."
+  },
+  "traitNatural": "Naturtrail",
+  "@traitNatural": {
+    "description": "Charakter eines Trails: nicht gebaut, natürlicher Pfad."
+  },
+  "traitConnection": "Verbindung",
+  "@traitConnection": {
+    "description": "Charakter eines Trails: Verbindungsstück zwischen Trails."
+  },
+  "visibilityBuddies": "Für Buddys",
+  "@visibilityBuddies": {
+    "description": "Sichtbarkeit eines Beitrags: alle Buddys sehen ihn."
+  },
+  "visibilityPrivate": "Nur für mich",
+  "@visibilityPrivate": {
+    "description": "Sichtbarkeit eines Beitrags: nur die eigene Person sieht ihn."
+  },
+  "statusOpen": "Offen",
+  "@statusOpen": {
+    "description": "Zustand eines Trails: befahrbar."
+  },
+  "statusClosed": "Gesperrt",
+  "@statusClosed": {
+    "description": "Zustand eines Trails: gesperrt."
+  },
+  "statusDestroyed": "Zerstört",
+  "@statusDestroyed": {
+    "description": "Zustand eines Trails: zerstört, nicht mehr fahrbar."
+  },
+  "statusChanged": "Verändert",
+  "@statusChanged": {
+    "description": "Zustand eines Trails: verändert gegenüber der Linie."
+  },
+  "gpxNotXml": "Kein gültiges XML: {detail}",
+  "@gpxNotXml": {
+    "description": "Fehler beim Lesen einer GPX-Datei; detail = technische Meldung des XML-Lesers.",
+    "placeholders": {
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
+  "gpxNotGpx": "Keine GPX-Datei (Wurzel ist <{root}>).",
+  "@gpxNotGpx": {
+    "description": "Fehler beim Lesen einer Datei, die kein GPX ist; root = Name des obersten XML-Elements.",
+    "placeholders": {
+      "root": {
+        "type": "String"
+      }
+    }
+  },
+  "gpxDownloading": "{fileName} wird heruntergeladen.",
+  "@gpxDownloading": {
+    "description": "Leiste im Browser nach dem GPX-Export; fileName = Dateiname.",
+    "placeholders": {
+      "fileName": {
+        "type": "String"
+      }
+    }
+  },
+  "gpxExportFailed": "Export fehlgeschlagen: {error}",
+  "@gpxExportFailed": {
+    "description": "Leiste, wenn der GPX-Export scheiterte; error = Fehlermeldung.",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "photoAttach": "Foto anhängen",
+  "@photoAttach": {
+    "description": "Knopf: ein Foto aus der Galerie anhängen."
+  },
+  "photoPreparing": "Foto wird vorbereitet …",
+  "@photoPreparing": {
+    "description": "Zeile, während das gewählte Foto verkleinert und entkernt wird."
+  },
+  "photoTake": "Foto aufnehmen",
+  "@photoTake": {
+    "description": "Tooltip des Kamera-Knopfs."
+  },
+  "photoAttached": "Angehängtes Foto",
+  "@photoAttached": {
+    "description": "Bildschirmleser-Text der Vorschau des angehängten Fotos."
+  },
+  "photoRemove": "Foto entfernen",
+  "@photoRemove": {
+    "description": "Tooltip: angehängtes Foto wieder entfernen."
+  },
+  "updateRequiredTitle": "Update erforderlich",
+  "@updateRequiredTitle": {
+    "description": "Titel der Sperre, wenn die App zu alt für den Server ist."
+  },
+  "updateRequiredBody": "Diese Version von TrailBuddy ist zu alt und kann nicht mehr mit dem Server arbeiten. Deine Trails sind sicher gespeichert und nach dem Update wieder da.",
+  "@updateRequiredBody": {
+    "description": "Text der Update-Sperre."
+  },
+  "updateRequiredVersions": "Installiert: {current}\nBenötigt ab: {minimum}",
+  "@updateRequiredVersions": {
+    "description": "Zwei Zeilen der Update-Sperre; current = installierte, minimum = mindestens nötige Version.",
+    "placeholders": {
+      "current": {
+        "type": "String"
+      },
+      "minimum": {
+        "type": "String"
+      }
+    }
+  },
+  "updateActionReload": "Seite neu laden",
+  "@updateActionReload": {
+    "description": "Knopf der Update-Sperre im Web."
+  },
+  "updateActionPlayStore": "Im Play Store aktualisieren",
+  "@updateActionPlayStore": {
+    "description": "Knopf der Update-Sperre in der Play-Store-Version."
+  },
+  "updateActionDownload": "Update herunterladen",
+  "@updateActionDownload": {
+    "description": "Knopf der Update-Sperre in der APK-Version."
+  },
+  "pushOpen": "Öffnen",
+  "@pushOpen": {
+    "description": "Aktion in der Leiste einer Push-Meldung im Vordergrund."
+  },
+  "loaderSemantics": "Lädt …",
+  "@loaderSemantics": {
+    "description": "Bildschirmleser-Text der Ladeanimation."
   }
 }

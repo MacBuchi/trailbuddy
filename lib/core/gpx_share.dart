@@ -18,6 +18,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../l10n/l10n.dart';
 import 'errors.dart';
 
 /// Was beim Herausgeben herausgekommen ist.
@@ -56,16 +57,17 @@ Future<GpxShareOutcome> _shareViaSystem({required String fileName, required Stri
 Future<void> shareGpx(BuildContext context, WidgetRef ref,
     {required String fileName, required String xml}) async {
   final messenger = ScaffoldMessenger.of(context);
+  final l = context.l10n;
   try {
     final outcome = await ref.read(gpxShareProvider)(fileName: fileName, xml: xml);
     if (outcome != GpxShareOutcome.downloaded) return;
     messenger
       ..clearSnackBars()
-      ..showSnackBar(SnackBar(content: Text('$fileName wird heruntergeladen.')));
+      ..showSnackBar(SnackBar(content: Text(l.gpxDownloading(fileName))));
   } catch (e, stackTrace) {
     logError('GPX-Export', e, stackTrace);
     messenger
       ..clearSnackBars()
-      ..showSnackBar(SnackBar(content: Text('Export fehlgeschlagen: ${friendlyError(e)}')));
+      ..showSnackBar(SnackBar(content: Text(l.gpxExportFailed(friendlyError(l, e)))));
   }
 }

@@ -14,6 +14,7 @@ import '../fakes/fake_backend.dart';
 import '../fakes/fake_map_view.dart';
 import '../fakes/fake_trails.dart';
 import '../fakes/test_app.dart';
+import '../fakes/l10n_de.dart';
 
 void main() {
   late FakeBackend backend;
@@ -41,7 +42,7 @@ void main() {
   });
 
   MapViewPolyline lineOf(WidgetTester tester, String name) =>
-      fakeMapLayers(tester).polylines.singleWhere((l) => l.hitValue is Trail && (l.hitValue as Trail).displayName == name);
+      fakeMapLayers(tester).polylines.singleWhere((l) => l.hitValue is Trail && (l.hitValue as Trail).displayName(l10nDe) == name);
 
   testWidgets('Karte: Linie in der Stufenfarbe, ab S4 gestrichelter Saum, Meldung als Rand', (tester) async {
     await pumpApp(tester, backend, trails: trails);
