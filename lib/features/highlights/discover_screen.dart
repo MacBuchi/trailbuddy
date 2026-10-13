@@ -13,6 +13,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/app_colors.dart';
+import '../../l10n/l10n.dart';
 import '../coach/coach.dart';
 import 'feature_highlights.dart';
 import 'highlight_art.dart';
@@ -83,10 +84,10 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
           highlight: h,
           unseen: _unseen.contains(h.id),
           onTry: () => context.go(h.target),
-          onShow: kHighlightDemos[h.id] == null
-              ? null
-              : () => startHighlightDemo(
-                  GoRouter.of(context), ref.read(coachProvider.notifier), kHighlightDemos[h.id]!),
+          onShow: switch (highlightDemos(context.l10n)[h.id]) {
+            null => null,
+            final demo => () => startHighlightDemo(GoRouter.of(context), ref.read(coachProvider.notifier), demo),
+          },
         ),
     ];
   }
@@ -140,7 +141,7 @@ class _Entry extends StatelessWidget {
             ),
             Row(
               children: [
-                if (kHighlightDemos[highlight.id] case final demo?)
+                if (highlightDemos(context.l10n)[highlight.id] case final demo?)
                   Padding(
                     padding: const EdgeInsets.only(left: 8),
                     child: GesturePreview(gesture: demo.gesture, size: 40),

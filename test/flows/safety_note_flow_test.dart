@@ -11,6 +11,7 @@ import 'package:trailbuddy/core/widgets/safety_note.dart';
 import '../fakes/fake_backend.dart';
 import '../fakes/fake_settings.dart';
 import '../fakes/test_app.dart';
+import '../fakes/l10n_de.dart';
 
 void main() {
   FakeBackend loggedInBackend() {
@@ -83,10 +84,10 @@ void main() {
     await tester.tap(row);
     await settle(tester);
 
-    expect(find.widgetWithText(AlertDialog, kSafetyNoteTitle), findsOneWidget);
-    expect(find.text(kSafetyNote), findsOneWidget);
+    expect(find.widgetWithText(AlertDialog, l10nDe.safetyNoteTitle), findsOneWidget);
+    expect(find.text(l10nDe.safetyNote), findsOneWidget);
     await tester.tap(find.text('Schließen'));
     await settle(tester);
-    expect(find.text(kSafetyNote), findsNothing);
+    expect(find.text(l10nDe.safetyNote), findsNothing);
   });
 }

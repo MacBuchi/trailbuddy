@@ -72,8 +72,16 @@ entsteht zuerst dort) und `app_en.arb`; gelesen mit `context.l10n.<key>`
   `openTab(tester, 'Profile')` bzw. `openProfilePage(…, tab: 'Profile')`.
   Noch deutsch, weil in `lib/core/` und mit dem Login geteilt:
   `changePasswordErrorMessage`, `emailChangeErrorMessage`,
-  `usernameProblem`, `usernameChangeErrorMessage`; ebenso
-  `kSafetyNoteTitle`/`kSafetyNote` (Stufe f). Keiner Stufe zugeordnet:
+  `usernameProblem`, `usernameChangeErrorMessage`. (f1) Hinweis, Hilfe
+  und Touren 0.117.4 — die Knöpfe der Hinweis-Maschine (`coach*`), der
+  Sicherheitshinweis (`safetyNote*`), die Kurzanleitung (`help*`) und alle
+  Touren samt Beispielen (`tourMap*`, `tourWelcome*`, `tourSplit*`,
+  `tourTrails*`, `tourBuddys*`, `tourExample*`). Die Skripte sind seither
+  Funktionen von `l` (`mapTourScript(l)`, `helpSteps(l)` …), die Starter
+  nehmen `l` als ersten Parameter. Noch deutsch bis (f2): die Einträge von
+  „Entdecken“ (`kFeatureHighlights`) und die eigenen Schritte der
+  Vorführungen (`highlightDemos(l)` übernimmt Tour-Schritte schon
+  übersetzt). Keiner Stufe zugeordnet:
   Anmelden und Registrieren (`lib/features/auth/`). Namen von Runde und Weg (`loopName`, `routeName*`) gehen
   in die gespeicherte Fahrt und die GPX-Datei — sie bleiben in der
   Sprache, in der geplant wurde. Noch keiner Stufe zugeordnet:
@@ -118,10 +126,10 @@ entsteht zuerst dort) und `app_en.arb`; gelesen mit `context.l10n.<key>`
   hielte `{MEIN}` für einen. Stattdessen zwei Schlüssel und die Wahl im
   Code (`listTagMine` / `listTagMineWithBuddies`) oder ganze Sätze je Fall
   (`heightsReason*`).
-- **Touren und Vorführungen** übernehmen Schritte über `_from(…, title)`
-  mit dem deutschen Titel. Beim Umzug von `lib/features/help/` und
-  `highlights/` müssen sie über einen Schlüssel zueinander finden, nicht
-  über den Text (#209, Stufe f).
+- **Touren und Vorführungen** finden zueinander über `CoachStep.id`
+  (`_from(mapTourScript(l), 'map.layers')`), nie über den Titel — der ist
+  je Sprache ein anderer. `help_texts_test` verlangt an jedem Tour-Schritt
+  eine Kennung, eindeutig je Skript und in beiden Sprachen dieselbe.
 - Was die App NICHT über ARB übersetzt: die Push-Texte aus `push_flush`
   (Server, braucht die Sprache des Empfängers), die Kanalnamen in
   `android/…/strings.xml`, Changelog, Hilfe- und Rechtsseiten — offen in

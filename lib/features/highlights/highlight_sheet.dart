@@ -19,6 +19,7 @@ import '../../core/app_info.dart';
 import '../../core/errors.dart';
 import '../../core/settings.dart';
 import '../../core/widgets/sheet_close_button.dart';
+import '../../l10n/l10n.dart';
 import '../coach/coach.dart';
 import '../help/map_tour.dart';
 import '../rides/ride_providers.dart' show rideProvider;
@@ -114,7 +115,7 @@ class HighlightSheet extends ConsumerWidget {
 
   /// Eine Zeile führt VOR, nicht nur hin.
   static void _show(BuildContext context, WidgetRef ref, FeatureHighlight h) {
-    final demo = kHighlightDemos[h.id];
+    final demo = highlightDemos(context.l10n)[h.id];
     if (demo == null) {
       _go(context, h.target);
       return;

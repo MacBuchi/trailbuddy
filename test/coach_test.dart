@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:trailbuddy/features/coach/coach.dart';
+import 'package:trailbuddy/l10n/l10n.dart';
 
 CoachPainter painter(WidgetTester tester) => tester
     .widgetList<CustomPaint>(find.byType(CustomPaint))
@@ -28,6 +29,11 @@ Future<ProviderContainer> pumpCoach(WidgetTester tester, Widget home) async {
   await tester.pumpWidget(UncontrolledProviderScope(
     container: container,
     child: MaterialApp(
+      // Die Knöpfe der Maschine sprechen seit #209 aus den ARB-Dateien;
+      // die Tests prüfen die deutschen.
+      locale: const Locale('de'),
+      supportedLocales: AppLocalizations.supportedLocales,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
       builder: (context, child) => Stack(
         fit: StackFit.expand,
         children: [

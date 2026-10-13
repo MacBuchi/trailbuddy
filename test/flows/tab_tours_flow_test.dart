@@ -26,6 +26,7 @@ import '../fakes/fake_backend.dart';
 import '../fakes/fake_settings.dart';
 import '../fakes/fake_trails.dart';
 import '../fakes/test_app.dart';
+import '../fakes/l10n_de.dart';
 
 final intro = find.byKey(const ValueKey('coach-intro'));
 final bubble = find.byKey(const ValueKey('coach-bubble'));
@@ -237,7 +238,7 @@ void main() {
     await openTab(tester, 'Karte');
     ProviderScope.containerOf(tester.element(find.byType(NavigationBar)))
         .read(requestedTabTourProvider.notifier)
-        .request(kTrailsTourScript.id);
+        .request(trailsTourScript(l10nDe).id);
     await settle(tester, frames: 12);
     expect(intro, findsNothing, reason: 'nicht über der Karte');
     await openTab(tester, 'Trails');
@@ -258,17 +259,17 @@ void main() {
 
   test('jede Reiter-Tour steht in der Fake-Vorgabe „gesehen"', () {
     // Sonst läge über jedem Flow-Test, der einen Reiter öffnet, die Tour.
-    for (final script in kTabTourScripts) {
+    for (final script in tabTourScripts(l10nDe)) {
       expect(FakeSettings().seenCoachTours, contains(script.id), reason: script.id);
     }
-    expect(kTabTourScripts.every((s) => s.examples && s.steps.first.isIntro), isTrue,
+    expect(tabTourScripts(l10nDe).every((s) => s.examples && s.steps.first.isIntro), isTrue,
         reason: 'Beispiele nur an Skripten MIT Startseite');
   });
 
   test('die Kette und die Karten-Tour teilen ihre Schritte', () {
-    expect(kWelcomeTourScript.endLink, isNull);
-    expect(kTabTours.map((t) => t.$1.id), ['trails', 'buddys']);
-    expect(kTrailsTourScript.steps.first.chainTitle, 'Weiter mit den Trails?');
+    expect(welcomeTourScript(l10nDe).endLink, isNull);
+    expect(tabTours(l10nDe).map((t) => t.$1.id), ['trails', 'buddys']);
+    expect(trailsTourScript(l10nDe).steps.first.chainTitle, 'Weiter mit den Trails?');
   });
 
   test('Beispiele gibt es nur als Widgets', () {

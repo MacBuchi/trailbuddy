@@ -18,17 +18,19 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     `assets/` wäre für den Version Guard `*.md`, also bump-frei, obwohl es
     im Binary liegt. Keine `web/anleitung.html` (Betreiber: zwei Stellen,
     und die PWA IST die App).
-  - **Sechs Abschnitte sind die Obergrenze**, offen als `kHelpSteps`,
+  - **Sechs Abschnitte sind die Obergrenze**, offen als `helpSteps(l)`,
     damit `test/help_texts_test.dart` einen EINZELNEN Abschnitt prüft.
     „Die Karte lesen" beschreibt die Regeln aus `docs/design/README.md`
     Abschnitt 2 (Farbe = Schwierigkeit, Linienart = Zustand, S4/S5 auf dem
     Saum) — ändert sich dort etwas, zieht der Satz im selben PR mit.
-  - **„Meldung" ist eine Konstante** (`kReportFieldLabel` in
-    `trail_report.dart`, die Beschriftung im Melde-Dialog) und steht so im
-    Text; der Test verbietet zusätzlich das alte „Status". Abweichung vom
+  - **„Meldung" ist die Beschriftung im Melde-Dialog** (`reportFieldLabel`
+    in den ARB-Dateien, deutsch zusätzlich `kReportFieldLabel` in
+    `trail_report.dart`) und kommt als Platzhalter `{report}` in den Text;
+    der Test verbietet zusätzlich das alte „Status". Abweichung vom
     Plan, der sie in `trail_details_dialog.dart` vermutete: Die Meldung
     ist seit 0.49.0 nicht mehr im Beitrag, sondern im Melde-Dialog.
-  - **Der Hinweis steht an EINER Stelle** (`kSafetyNote`): Dialog beim
+  - **Der Hinweis steht an EINER Stelle** (`safetyNote` in den
+    ARB-Dateien, seit #209): Dialog beim
     ersten Start, Kachel oben in der Kurzanleitung, Zeile unter „Über
     TrailBuddy" (über `showInfoText`). Der Dialog ist weder wegtippbar noch
     mit Zurück zu schließen (`PopScope`); gezeigt aus dem Post-Frame von
@@ -49,10 +51,12 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
 - **Die Karten-Tour beim ersten Start** (#133, seit 0.61.0, Plan
   `docs/konzept-onboarding.md` 3.3). Beim ersten Start liegt über der
   Karte erst der Sicherheitshinweis, dann — im SELBEN Start — die
-  Willkommensseite (`kWelcomeIntro`, Bild `welcomeArt`) mit der
-  Karten-Tour dahinter (`kWelcomeTourScript`, `startWelcomeTour`). Aus der
+  Willkommensseite (`welcomeIntro(l)`, Bild `welcomeArt`) mit der
+  Karten-Tour dahinter (`welcomeTourScript(l)`, `startWelcomeTour`). Aus der
   Kurzanleitung beginnt dieselbe Tour mit ihrer eigenen Startseite „Die
-  Karte" (`kMapIntro`, Bild `mapArt`). Fünf Dinge, die man wissen muss:
+  Karte" (`mapIntro(l)`, Bild `mapArt`). Seit #209 sind alle Skripte
+  Funktionen von `AppLocalizations`, jeder Schritt trägt eine `id`
+  (`lib/l10n/CLAUDE.md`). Fünf Dinge, die man wissen muss:
   - **Hinweis und Tour im selben Start** — Abweichung von PilzBuddy (dort
     liegt ein Start dazwischen); der Betreiber will „Hinweis vor der
     ersten Tour". Der Auslöser ist `_firstStart` im Post-Frame von

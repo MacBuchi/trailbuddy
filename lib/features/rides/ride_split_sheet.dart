@@ -221,11 +221,11 @@ class _RideSplitSheetState extends ConsumerState<_RideSplitSheet> {
       if (!mounted) return;
       final requested = ref.read(requestedSplitTourProvider);
       final due = widget.request.rideId != null &&
-          !ref.read(seenCoachToursProvider).contains(kSplitTourScript.id);
+          !ref.read(seenCoachToursProvider).contains(kSplitTourId);
       if (!requested && !due) return;
       if (ref.read(coachProvider.notifier).busy) return;
       if (requested) ref.read(requestedSplitTourProvider.notifier).state = false;
-      startSplitTour(ref);
+      startSplitTour(context.l10n, ref);
     });
   }
 
@@ -547,7 +547,7 @@ class _RideSplitSheetState extends ConsumerState<_RideSplitSheet> {
     // Während der Zerlege-Tour baut die Liste ALLES: Sonst gäbe es die
     // Zeilen unter dem Rand nicht, `requires` hielte sie für fehlend, und
     // der Schritt fiele weg. Die Maschine scrollt das Ziel selbst ins Bild.
-    final touring = ref.watch(coachProvider.select((r) => r?.script.id == kSplitTourScript.id));
+    final touring = ref.watch(coachProvider.select((r) => r?.script.id == kSplitTourId));
     final firstTakeOver = [
       for (var i = 0; i < (split?.known.length ?? 0); i++)
         if (_takeOvers[i] != null && _knownSelected.contains(i)) i,

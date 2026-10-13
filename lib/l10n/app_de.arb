@@ -5536,5 +5536,463 @@
         "type": "String"
       }
     }
+  },
+  "helpTitle": "Kurzanleitung",
+  "@helpTitle": {
+    "description": "Titel der Kurzanleitung: Kopf der Seite, Knopf in Leerzuständen, Weg am Ende der Karten-Tour."
+  },
+  "tourWelcomeTitle": "Willkommen bei TrailBuddy",
+  "@tourWelcomeTitle": {
+    "description": "Tour, Startseite beim ersten Start: Überschrift."
+  },
+  "tourWelcomeText": "Hier liegen die Trails, die du gefahren bist, und die deiner Buddys — sonst niemandes. Drei Wege bringen Trails hierher: GPX importieren, eine Fahrt aufzeichnen, Buddys verbinden.",
+  "@tourWelcomeText": {
+    "description": "Tour, Startseite beim ersten Start: zwei Sätze, wofür die App da ist."
+  },
+  "tourWelcomeStart": "Tour starten",
+  "@tourWelcomeStart": {
+    "description": "Tour, Startseite beim ersten Start: Knopf zum Loslegen."
+  },
+  "tourMapIntroTitle": "Die Karte",
+  "@tourMapIntroTitle": {
+    "description": "Karten-Tour aus der Kurzanleitung: Überschrift der Startseite."
+  },
+  "tourMapIntroText": "Hier liegen deine Trails und die deiner Buddys, jede Linie in der Farbe ihrer Schwierigkeit. Die Tour zeigt, was die Karte sagt — und was hinter den Knöpfen liegt.",
+  "@tourMapIntroText": {
+    "description": "Karten-Tour aus der Kurzanleitung: Text der Startseite."
+  },
+  "tourMapNavTitle": "Unten die Bereiche",
+  "@tourMapNavTitle": {
+    "description": "Karten-Tour, letzter Schritt: die Reiterleiste. Titel darf nicht wie ein Text auf dem Schirm lauten."
+  },
+  "tourMapNavText": "Trails: alle als Liste, suchen und filtern. Buddys: wer deine Trails sieht — und du ihre. Profil: Import, Fahrten, Bereiche und die Kurzanleitung.",
+  "@tourMapNavText": {
+    "description": "Karten-Tour, letzter Schritt: je ein Halbsatz zu den Reitern Trails, Buddys, Profil."
+  },
+  "tourMapBadgeTitle": "Das Schild am Anfang",
+  "@tourMapBadgeTitle": {
+    "description": "Karten-Tour: Schritt zum Schild am Anfang eines Trails."
+  },
+  "tourMapBadgeText": "Am Anfang jedes Trails steht sein Schild mit Grad und Charakter; der Punkt darunter zeigt mit seinem Pfeil die Fahrtrichtung. Ein Tipp aufs Schild — oder auf die Linie — wählt den Trail aus, ein zweiter öffnet das Blatt.",
+  "@tourMapBadgeText": {
+    "description": "Karten-Tour: Text zum Schild am Anfang eines Trails."
+  },
+  "tourMapSheetTitle": "Das Blatt zum Trail",
+  "@tourMapSheetTitle": {
+    "description": "Karten-Tour: Schritt zum geöffneten Trail-Blatt."
+  },
+  "tourMapSheetText": "Länge, Höhenmeter und die Schwierigkeit, wie dein Netz sie sieht — ein Tipp auf den Grad zeigt, wer wie eingeschätzt hat.",
+  "@tourMapSheetText": {
+    "description": "Karten-Tour: Text zu den Zahlen im Trail-Blatt."
+  },
+  "tourMapColorsTitle": "Farbe heißt Schwierigkeit",
+  "@tourMapColorsTitle": {
+    "description": "Karten-Tour: Schritt zur Legende (Linienfarben und -arten)."
+  },
+  "tourMapColorsText": "Jede Linie trägt die Schwierigkeit ihres Trails wie eine Piste. Die Art der Linie sagt den Zustand: bröckelig heißt ausgefahren, gestrichelt abgerockt, verblasst kaum fahrbar. Ein orangener Rand heißt Meldung, ein gelber neuer Hinweis. Die Legende links am Rand klappt jederzeit auf und wieder zu.",
+  "@tourMapColorsText": {
+    "description": "Karten-Tour: Regeln der Linien (Farbe = Schwierigkeit, Linienart = Zustand, Ränder)."
+  },
+  "tourMapLayersTitle": "Was die Karte zeigt",
+  "@tourMapLayersTitle": {
+    "description": "Karten-Tour: Schritt zum Knopf „Kartenebenen“. Auch in Vorführungen übernommen."
+  },
+  "tourMapLayersText": "Der oberste Knopf: welche Trails die Karte zeigt, die offiziellen Trails der Region und Orte wie Einkehr, Wasser und Rad-Service.",
+  "@tourMapLayersText": {
+    "description": "Karten-Tour: Text zum Knopf „Kartenebenen“."
+  },
+  "tourMapLayersSheetTitle": "Orte und offizielle Trails wählen",
+  "@tourMapLayersSheetTitle": {
+    "description": "Karten-Tour: Schritt im geöffneten Blatt „Kartenebenen“."
+  },
+  "tourMapLayersSheetText": "Offizielle Trails und die Güte der Wege an oder aus, Orte nach Gruppe. Was hier aus ist, bleibt aus, bis du es wieder einschaltest.",
+  "@tourMapLayersSheetText": {
+    "description": "Karten-Tour: Text im Blatt „Kartenebenen“."
+  },
+  "tourMapOfflineTitle": "Karten ohne Empfang",
+  "@tourMapOfflineTitle": {
+    "description": "Karten-Tour: Schritt zum Knopf „Offline-Karten“."
+  },
+  "tourMapOfflineText": "Der Knopf darunter holt die Karte aufs Gerät — für unterwegs, wo kein Netz ist.",
+  "@tourMapOfflineText": {
+    "description": "Karten-Tour: Text zum Knopf „Offline-Karten“."
+  },
+  "tourMapRailTitle": "Die Werkzeugleiste",
+  "@tourMapRailTitle": {
+    "description": "Karten-Tour: Schritt zur Werkzeugleiste „Offline-Karten“."
+  },
+  "tourMapRailText": "Hier zeichnest du einen Bereich, den die App für unterwegs speichert, oder nimmst einen weg; „Meine Bereiche\" verwaltet sie.",
+  "@tourMapRailText": {
+    "description": "Karten-Tour: Text zur Werkzeugleiste. „Meine Bereiche“ ist der Name der Seite im Profil."
+  },
+  "tourMapPositionTitle": "Zu dir und zu uns",
+  "@tourMapPositionTitle": {
+    "description": "Karten-Tour: Schritt zu Positionsknopf und Glühbirne (Feedback)."
+  },
+  "tourMapPositionText": "Der Positionsknopf holt die Karte zu dir — dein Standort verlässt das Gerät nie. Oben rechts die Glühbirne: Idee oder Fehler melden, das wird ein öffentlicher Eintrag auf GitHub.",
+  "@tourMapPositionText": {
+    "description": "Karten-Tour: Text zu Positionsknopf und Glühbirne."
+  },
+  "tourMapRecordTitle": "Eine Fahrt aufzeichnen",
+  "@tourMapRecordTitle": {
+    "description": "Karten-Tour: Schritt zum Aufnahmeknopf (nur Android)."
+  },
+  "tourMapRecordText": "Der große Knopf zeichnet eine Fahrt auf — Haustür bis Haustür, nur auf deinem Gerät, auch ohne Empfang. Danach zerlegst du sie in Trails; erst die kommen zu deinen Buddys.",
+  "@tourMapRecordText": {
+    "description": "Karten-Tour: Text zum Aufnahmeknopf."
+  },
+  "coachLater": "Später",
+  "@coachLater": {
+    "description": "Hinweis-Maschine: Startseite einer angeschlossenen Tour („Weiter mit den Trails?“) — Kette beenden."
+  },
+  "coachNotNow": "Nicht jetzt",
+  "@coachNotNow": {
+    "description": "Hinweis-Maschine: Startseite einer Tour — ablehnen, fragt beim nächsten Mal wieder."
+  },
+  "coachNext": "Weiter",
+  "@coachNext": {
+    "description": "Hinweis-Maschine: zum nächsten Schritt."
+  },
+  "coachShowMe": "Zeig's mir",
+  "@coachShowMe": {
+    "description": "Hinweis-Maschine: Startseite einer Tour — loslegen."
+  },
+  "coachTargetLost": "Das, worauf dieser Schritt zeigt, ist gerade nicht zu sehen. „Weiter\" führt zum nächsten.",
+  "@coachTargetLost": {
+    "description": "Hinweis-Maschine: Das Ziel des Schritts ist verschwunden. „Weiter“ ist der Knopf coachNext."
+  },
+  "coachPosition": "{position} von {count}",
+  "@coachPosition": {
+    "description": "Hinweis-Maschine: Zähler der Schritte, etwa „2 von 9“.",
+    "placeholders": {
+      "position": {
+        "type": "int"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "coachSkip": "Überspringen",
+  "@coachSkip": {
+    "description": "Hinweis-Maschine: Tour beenden."
+  },
+  "coachDone": "Los geht's",
+  "@coachDone": {
+    "description": "Hinweis-Maschine: Knopf im letzten Schritt."
+  },
+  "tourSplitIntroTitle": "Deine erste Fahrt zerlegen",
+  "@tourSplitIntroTitle": {
+    "description": "Zerlege-Tour: Überschrift der Startseite."
+  },
+  "tourSplitIntroText": "Aus der Fahrt werden Trails: Bekannte erkennt die App wieder, neue schlägt sie dir vor. Zu deinen Buddys gehen nur die Stücke, die du wählst — nie die ganze Fahrt.",
+  "@tourSplitIntroText": {
+    "description": "Zerlege-Tour: Text der Startseite."
+  },
+  "tourSplitKnownTitle": "Schon bekannt",
+  "@tourSplitKnownTitle": {
+    "description": "Zerlege-Tour: Schritt zur ersten wiedererkannten Zeile. Titel nie wie ein Text im Blatt."
+  },
+  "tourSplitKnownText": "Trails, die du oder deine Buddys schon haben, erkennt die App an der Linie. Sie sind vorangehakt und gehen als Beleg hinaus — das hält den Trail aktuell.",
+  "@tourSplitKnownText": {
+    "description": "Zerlege-Tour: Text zur wiedererkannten Zeile."
+  },
+  "tourSplitTakeOverTitle": "Jetzt deiner",
+  "@tourSplitTakeOverTitle": {
+    "description": "Zerlege-Tour: Schritt zur Übernahme eines Buddy-Trails beim ersten Befahren."
+  },
+  "tourSplitTakeOverText": "Einen Trail deiner Buddys fährst du zum ersten Mal: Name, Grad und Charakter sind aus dem Netz vorbelegt. Mit deinen Sternen wird er deiner — ohne Bewertung geht das Stück nicht hinaus.",
+  "@tourSplitTakeOverText": {
+    "description": "Zerlege-Tour: Text zur Übernahme."
+  },
+  "tourSplitQuestionTitle": "Gilt das noch?",
+  "@tourSplitQuestionTitle": {
+    "description": "Zerlege-Tour: Schritt zur Nachfrage zu einer unbestätigten Meldung."
+  },
+  "tourSplitQuestionText": "Zu diesem Trail ist etwas gemeldet, das noch niemand bestätigt hat. Du warst gerade dort — ein Tipp beantwortet es, mit der Zeit deiner Fahrt.",
+  "@tourSplitQuestionText": {
+    "description": "Zerlege-Tour: Text zur Nachfrage."
+  },
+  "tourSplitCandidateTitle": "Ein Kandidat",
+  "@tourSplitCandidateTitle": {
+    "description": "Zerlege-Tour: Schritt zum ersten vorgeschlagenen Stück."
+  },
+  "tourSplitCandidateText": "Ein Stück, das ein neuer Trail sein könnte: Gefälle abseits der Wege oder unterwegs markiert. Mit den Griffen setzt du Anfang und Ende, die Karte zeigt es mit; Name, Grad und Charakter trägst du gleich hier ein.",
+  "@tourSplitCandidateText": {
+    "description": "Zerlege-Tour: Text zum Kandidaten und seinen Griffen."
+  },
+  "tourSplitHomeTitle": "Nahe an zu Hause",
+  "@tourSplitHomeTitle": {
+    "description": "Zerlege-Tour: Schritt zum Hinweis, dass ein Stück nahe Start oder Ziel der Fahrt liegt."
+  },
+  "tourSplitHomeText": "Beginnt oder endet ein Stück nahe Start oder Ziel deiner Fahrt, sagt die App es — eine Fahrt beginnt oft an der Haustür, und ein Trail soll sie nicht verraten. Schieb den Griff weg, wenn es nötig ist.",
+  "@tourSplitHomeText": {
+    "description": "Zerlege-Tour: Text zum Heimzonen-Hinweis."
+  },
+  "tourSplitNoRoadsTitle": "Erst einen Bereich speichern",
+  "@tourSplitNoRoadsTitle": {
+    "description": "Zerlege-Tour: Ersatzschritt, wenn die App die Wege nicht kennt."
+  },
+  "tourSplitNoRoadsText": "Neue Stücke findet die App nur, wo sie die Wege kennt — aus einem gespeicherten Bereich. Speichere einen über der Fahrt (Ebenen-Knopf auf der Karte) und zerlege sie dann noch einmal aus „Meine Fahrten\".",
+  "@tourSplitNoRoadsText": {
+    "description": "Zerlege-Tour: Text ohne gespeicherten Bereich. „Meine Fahrten“ ist die Seite im Profil."
+  },
+  "tourSplitPickTitle": "Was die Suche nicht findet",
+  "@tourSplitPickTitle": {
+    "description": "Zerlege-Tour: Schritt zum Knopf „Stück selbst wählen“."
+  },
+  "tourSplitPickText": "Eine Jump-Line, ein flacher Flowtrail? Damit legst du einen Kandidaten über die ganze Fahrt; die Griffe machen den Rest.",
+  "@tourSplitPickText": {
+    "description": "Zerlege-Tour: Text zu „Stück selbst wählen“."
+  },
+  "tourSplitSubmitTitle": "Was zu Buddys geht",
+  "@tourSplitSubmitTitle": {
+    "description": "Zerlege-Tour: Schritt zum Knopf unten („n beisteuern“)."
+  },
+  "tourSplitSubmitText": "Nur die angehakten Stücke gehen hinaus, als Trails zu deinen Buddys. Die Fahrt selbst bleibt auf deinem Gerät, unter „Meine Fahrten\".",
+  "@tourSplitSubmitText": {
+    "description": "Zerlege-Tour: Text zum Knopf unten."
+  },
+  "tourTrailsIntroTitle": "Deine Trails",
+  "@tourTrailsIntroTitle": {
+    "description": "Trails-Tour: Überschrift der Startseite."
+  },
+  "tourTrailsIntroChainTitle": "Weiter mit den Trails?",
+  "@tourTrailsIntroChainTitle": {
+    "description": "Trails-Tour: Überschrift der Startseite, wenn sie an die Karten-Tour anschließt — eine Frage."
+  },
+  "tourTrailsIntroText": "Alle Trails deines Netzes als Liste: was du gefahren bist und was deine Buddys beisteuern. Hier findest du einen Trail schneller als auf der Karte.",
+  "@tourTrailsIntroText": {
+    "description": "Trails-Tour: Text der Startseite."
+  },
+  "tourTrailsRowTitle": "Eine Zeile lesen",
+  "@tourTrailsRowTitle": {
+    "description": "Trails-Tour: Schritt zur ersten Zeile der Liste."
+  },
+  "tourTrailsRowText": "Streifen und Schild tragen die Schwierigkeit; das Wort sagt, wessen Trail es ist — MEIN oder die Namen deiner Buddys. Ein Tipp öffnet das Blatt.",
+  "@tourTrailsRowText": {
+    "description": "Trails-Tour: Text zur Zeile. MEIN ist das Wort in der Zeile (listTagMine)."
+  },
+  "tourTrailsSheetTitle": "Zahlen und Profil",
+  "@tourTrailsSheetTitle": {
+    "description": "Trails-Tour: Schritt zu den Zahlen im Trail-Blatt."
+  },
+  "tourTrailsSheetText": "Länge, Höhenmeter, Grad und darunter das Höhenprofil. Ein Tipp auf den Grad zeigt alle Einschätzungen — und was S0 bis S5 bedeuten.",
+  "@tourTrailsSheetText": {
+    "description": "Trails-Tour: Text zu den Zahlen im Blatt."
+  },
+  "tourTrailsGradeTitle": "Deine Einschätzung",
+  "@tourTrailsGradeTitle": {
+    "description": "Trails-Tour: Schritt zur eigenen Einschätzung im Blatt. Auch in Vorführungen übernommen."
+  },
+  "tourTrailsGradeText": "Deinen eigenen S-Grad und deine Sterne tippst du hier an. Angezeigt wird, was dein Netz sagt — nicht nur du.",
+  "@tourTrailsGradeText": {
+    "description": "Trails-Tour: Text zur eigenen Einschätzung."
+  },
+  "tourTrailsContributionTitle": "Was du beisteuerst",
+  "@tourTrailsContributionTitle": {
+    "description": "Trails-Tour: Schritt zu „Mein Beitrag“ im Blatt. Titel nie wie ein Text auf dem Schirm."
+  },
+  "tourTrailsContributionText": "Name, Charakter, Bewertung, Sichtbarkeit, Beschreibung und Link — dein Beitrag zum Trail. „Nur für mich\" hält ihn vor Buddys verborgen.",
+  "@tourTrailsContributionText": {
+    "description": "Trails-Tour: Text zu „Mein Beitrag“. „Nur für mich“ ist eine Sichtbarkeit."
+  },
+  "tourTrailsNoteTitle": "Etwas Aktuelles erzählen",
+  "@tourTrailsNoteTitle": {
+    "description": "Trails-Tour: Schritt zum Knopf „Hinweis schreiben“."
+  },
+  "tourTrailsNoteText": "Ein Hinweis sagt, was gerade ist: umgestürzter Baum, neue Sprünge, auf Wunsch mit Foto. Buddys sehen ihn mit gelbem Rand, bis sie ihn gelesen haben. Eine Sperre oder den Zustand meldest du daneben.",
+  "@tourTrailsNoteText": {
+    "description": "Trails-Tour: Text zu Hinweisen."
+  },
+  "tourTrailsSearchTitle": "Suchen und eingrenzen",
+  "@tourTrailsSearchTitle": {
+    "description": "Trails-Tour: Schritt zu Suchfeld und Filter-Chips."
+  },
+  "tourTrailsSearchText": "Gesucht wird über Name und Buddy, Tippfehler inklusive; die Chips grenzen nach Kartenausschnitt, S-Grad-Bereich, Charakter oder Meldung ein. Daneben die Sortierung. Bis auf den Ausschnitt gilt der Filter auch auf der Karte.",
+  "@tourTrailsSearchText": {
+    "description": "Trails-Tour: Text zu Suche, Filter und Sortierung."
+  },
+  "tourTrailsImportTitle": "GPX hereinholen",
+  "@tourTrailsImportTitle": {
+    "description": "Trails-Tour: Schritt zum Import-Symbol."
+  },
+  "tourTrailsImportText": "Das Symbol oben rechts liest GPX- oder Zip-Dateien aus anderen Apps. Kurz und bergab wird ein Trail, eine ganze Runde eine Fahrt — die zerlegst du dann in Trails.",
+  "@tourTrailsImportText": {
+    "description": "Trails-Tour: Text zum Import."
+  },
+  "tourBuddysIntroTitle": "Deine Buddys",
+  "@tourBuddysIntroTitle": {
+    "description": "Buddys-Tour: Überschrift der Startseite."
+  },
+  "tourBuddysIntroChainTitle": "Weiter mit den Buddys?",
+  "@tourBuddysIntroChainTitle": {
+    "description": "Buddys-Tour: Überschrift der Startseite, wenn sie an die Trails-Tour anschließt — eine Frage."
+  },
+  "tourBuddysIntroText": "Wer deine Trails sieht — und du seine. Nur direkte Buddys, nichts darüber hinaus; eine öffentliche Karte gibt es nicht.",
+  "@tourBuddysIntroText": {
+    "description": "Buddys-Tour: Text der Startseite."
+  },
+  "tourBuddysInviteTitle": "Jemanden einladen",
+  "@tourBuddysInviteTitle": {
+    "description": "Buddys-Tour: Schritt zum Knopf „Einladen“."
+  },
+  "tourBuddysInviteText": "Schickt einen Link zu TrailBuddy über deine Messenger-App — mit deinem Benutzernamen, damit man dich gleich findet.",
+  "@tourBuddysInviteText": {
+    "description": "Buddys-Tour: Text zum Einladen."
+  },
+  "tourBuddysSearchTitle": "Nach Buddys suchen",
+  "@tourBuddysSearchTitle": {
+    "description": "Buddys-Tour: Schritt zum Suchfeld. Nicht wie das Suchfeld selbst benennen."
+  },
+  "tourBuddysSearchText": "Gefunden wird über den Benutzernamen oder die genaue E-Mail-Adresse. Trails seht ihr voneinander erst, wenn die Anfrage angenommen ist.",
+  "@tourBuddysSearchText": {
+    "description": "Buddys-Tour: Text zur Suche."
+  },
+  "tourBuddysRequestsTitle": "Offene Anfragen",
+  "@tourBuddysRequestsTitle": {
+    "description": "Buddys-Tour: Schritt zu den offenen Anfragen."
+  },
+  "tourBuddysRequestsText": "Anfragen an dich stehen hier mit Annehmen und Ablehnen; gesendete lassen sich zurückziehen.",
+  "@tourBuddysRequestsText": {
+    "description": "Buddys-Tour: Text zu offenen Anfragen."
+  },
+  "tourBuddysRowTitle": "Ein Buddy in der Liste",
+  "@tourBuddysRowTitle": {
+    "description": "Buddys-Tour: Schritt zur ersten Zeile unter „Meine Buddys“. Auch in Vorführungen übernommen."
+  },
+  "tourBuddysRowText": "„n gemeinsam\" zählt Trails, die ihr beide kennt. Der Stift gibt dem Buddy einen Namen, den nur du siehst; die Sprechblase öffnet eure Nachrichten.",
+  "@tourBuddysRowText": {
+    "description": "Buddys-Tour: Text zur Zeile. „n gemeinsam“ steht so in der Zeile (buddysSharedCount)."
+  },
+  "tourBuddysConnectTitle": "Beim Verbinden",
+  "@tourBuddysConnectTitle": {
+    "description": "Buddys-Tour: letzter Schritt, ohne Ziel."
+  },
+  "tourBuddysConnectText": "Verbindet ihr euch, werden gleiche Trails EIN Trail mit zwei Namen, der Rest kommt dazu. Trennt ihr euch, verschwinden seine Trails wieder von deiner Karte.",
+  "@tourBuddysConnectText": {
+    "description": "Buddys-Tour: Text zum Verbinden und Trennen."
+  },
+  "tourExampleBadge": "Beispiel",
+  "@tourExampleBadge": {
+    "description": "Tour-Beispiele: Schild an gezeichneten Beispielen (Trail, Buddy), die es nicht gibt."
+  },
+  "tourExampleTrailName": "Beispiel: Buchenhang",
+  "@tourExampleTrailName": {
+    "description": "Tour-Beispiele: Name des Beispiel-Trails; immer mit „Beispiel“ davor. Im Blatt in Großbuchstaben."
+  },
+  "tourExampleTrailStats": "1,8 km · ↓ 210 Hm",
+  "@tourExampleTrailStats": {
+    "description": "Tour-Beispiele: Zahlen in der Zeile des Beispiel-Trails (Länge, Abfahrt in Höhenmetern)."
+  },
+  "tourExampleTrailLength": "1,8 km",
+  "@tourExampleTrailLength": {
+    "description": "Tour-Beispiele: Länge im Blatt des Beispiel-Trails."
+  },
+  "tourExampleTrailHint": "So sieht ein Trail aus, sobald du einen importiert oder aufgezeichnet hast.",
+  "@tourExampleTrailHint": {
+    "description": "Tour-Beispiele: Satz unter dem Titel des Beispiel-Blatts."
+  },
+  "tourExampleBuddyName": "Beispiel: Mira",
+  "@tourExampleBuddyName": {
+    "description": "Tour-Beispiele: Name des Beispiel-Buddys; immer mit „Beispiel“ davor."
+  },
+  "helpIntro": "Das Wichtigste in sechs Schritten. Alles andere findest du beim Ausprobieren.",
+  "@helpIntro": {
+    "description": "Kurzanleitung: Satz oben auf der Seite."
+  },
+  "helpImportTitle": "Trails importieren",
+  "@helpImportTitle": {
+    "description": "Kurzanleitung: Abschnitt zum GPX-Import, Überschrift."
+  },
+  "helpImportText": "GPX- oder Zip-Dateien aus anderen Apps holst du über das Symbol oben rechts im Reiter „Trails\" oder im Profil unter „Trails importieren\". Eine kurze Spur, die überwiegend bergab führt, wird ein Trail; eine ganze Runde ist eine Fahrt — die zerlegst du über die Schere im Import in Trails. Nur Trails gehen zu deinen Buddys, nie die ganze Fahrt.",
+  "@helpImportText": {
+    "description": "Kurzanleitung: Abschnitt zum GPX-Import. Nennt Reiter und Profilzeile beim Namen."
+  },
+  "helpMapTitle": "Die Karte lesen",
+  "@helpMapTitle": {
+    "description": "Kurzanleitung: Abschnitt zu den Regeln der Karte, Überschrift."
+  },
+  "helpMapText": "Die Farbe einer Linie ist ihre Schwierigkeit, wie auf der Piste: grün S0, blau S1, rot S2, schwarz ab S3; ein weiß gestrichelter Saum heißt S4 oder S5, grau noch ohne Einschätzung, Magenta Uphill. Die Art der Linie ist der Zustand: durchgezogen heißt alles gut, bröckelig ausgefahren, gestrichelt abgerockt, verblasst kaum fahrbar. Ein orangener Rand heißt Meldung (gesperrt, zerstört oder verändert), ein gelber ein neuer Hinweis; Violett gestrichelt sind offizielle Trails — die Legende links am Rand der Karte klappt all das auf. Am Anfang jedes Trails steht sein Schild, darunter ein Punkt, dessen Pfeil die Fahrtrichtung zeigt. Ein Tipp aufs Schild oder auf die Linie wählt den Trail aus — unten steht eine kleine Karte, ein Tipp darauf öffnet das Blatt. Ein langer Druck auf die Karte bietet „Route ab hier\" und „Route bis hier\".",
+  "@helpMapText": {
+    "description": "Kurzanleitung: Regeln der Karte (Farbe = Schwierigkeit, Linienart = Zustand, Ränder, Legende, Schild). Muss zur Legende und docs/design/README.md Abschnitt 2 passen."
+  },
+  "helpRideTitle": "Fahrt aufzeichnen und zerlegen",
+  "@helpRideTitle": {
+    "description": "Kurzanleitung: Abschnitt zu Aufzeichnung, Zerlegen, Planer und Navigation, Überschrift."
+  },
+  "helpRideText": "In der Android-App zeichnet der große Knopf unten rechts auf der Karte eine Fahrt auf — auch ohne Empfang, und sie bleibt auf deinem Gerät. Unterwegs markierst du mit der Fahne, wo ein Trail beginnt und endet. Danach zerlegst du die Fahrt: Bekannte Trails erkennt die App wieder, neue Stücke wählst du selbst. Als GPX exportiert, kannst du die Fahrt in jede andere App laden. Vorher planst du mit dem Runden-Knopf eine Runde: Trails antippen (noch einmal heißt ab), links Parameter, Liste und Gebiet, dann rechnen — offline, aus deinen gespeicherten Bereichen; sie liegt dann unter „Meine Fahrten\". „Navigieren\" zeigt sie unterwegs: Die Karte dreht mit, oben stehen Rest und Abstand zur Route, daneben führt „Zurück zur Route\" wieder hin; mit der App im Hintergrund steht beides in der Benachrichtigung, und nach Hause gewischt bleibt die Karte als kleines Fenster. In „Meine Fahrten\" geht eine beendete Navigation oben weiter; an jeder Fahrt steht ihr Rad — ein Tipp stellt es um; nach links wischen löscht, ein langer Druck wählt mehrere. In der Web-App gibt es keine Aufzeichnung.",
+  "@helpRideText": {
+    "description": "Kurzanleitung: Aufzeichnung (nur Android), Zerlegen, GPX-Export, Rundenplaner, Navigation, „Meine Fahrten“. Der letzte Satz muss sagen, dass die Web-App nicht aufzeichnet."
+  },
+  "helpBuddysTitle": "Buddys und Sichtbarkeit",
+  "@helpBuddysTitle": {
+    "description": "Kurzanleitung: Abschnitt zu Buddys und wer was sieht, Überschrift."
+  },
+  "helpBuddysText": "Du siehst deine Trails und die deiner direkten Buddys — sonst niemandes, eine öffentliche Karte gibt es nicht. Buddys findest du im Reiter „Buddys\" über den Benutzernamen oder die genaue E-Mail. Sind zwei Aufzeichnungen derselbe Weg, werden sie EIN Trail, auch mit zwei Namen. Was du „Nur für mich\" stellst, sieht niemand.",
+  "@helpBuddysText": {
+    "description": "Kurzanleitung: Sichtbarkeit — nur direkte Buddys, keine öffentliche Karte."
+  },
+  "helpContributionTitle": "Dein Beitrag zum Trail",
+  "@helpContributionTitle": {
+    "description": "Kurzanleitung: Abschnitt zu „Mein Beitrag“, Melden, Hinweisen und Anfahrt, Überschrift."
+  },
+  "helpContributionText": "Im Blatt eines Trails, den du selbst beigesteuert hast, trägst du unter „Mein Beitrag\" Name, S-Grad, Charakter, Sterne, Sichtbarkeit, Beschreibung und einen Link ein. „Melden\" sagt, was gerade gilt — die {report} (gesperrt, zerstört, verändert) und der Zustand; bestätigt ist sie, wenn du ihn gefahren hast oder vor Ort bist. Ein Hinweis erzählt Buddys, was los ist, und leuchtet bei ihnen gelb. Das Navi-Symbol oben im Blatt übergibt den Anfang des Trails an deine Navi-App; „Zum Trailkopf\" rechnet den Weg dorthin selbst — offline, aus deinen gespeicherten Bereichen, mit Höhenmetern und Zeit.",
+  "@helpContributionText": {
+    "description": "Kurzanleitung: „Mein Beitrag“, Melden, Hinweise, Anfahrt und „Zum Trailkopf“. {report} ist die Beschriftung im Melde-Dialog (reportFieldLabel, „Meldung“).",
+    "placeholders": {
+      "report": {
+        "type": "String"
+      }
+    }
+  },
+  "helpOfflineTitle": "Ohne Empfang",
+  "@helpOfflineTitle": {
+    "description": "Kurzanleitung: Abschnitt zu Offline und Ausgangskorb, Überschrift."
+  },
+  "helpOfflineText": "Deine Trails zeigt die App auch offline, mit dem Stand deines letzten Abrufs. Was du ohne Netz beisteuerst oder meldest, wartet im Ausgangskorb und geht los, sobald du wieder Empfang hast. Damit die Karte etwas zeigt, speicherst du vorher einen Bereich: Knopf „Offline-Karten\" auf der Karte, dann zeichnen; verwalten unter „Meine Bereiche\" im Profil — am besten zu Hause im WLAN.",
+  "@helpOfflineText": {
+    "description": "Kurzanleitung: Offline, Ausgangskorb, gespeicherte Bereiche."
+  },
+  "helpMapTour": "Tour auf der Karte zeigen",
+  "@helpMapTour": {
+    "description": "Kurzanleitung: Knopf, der die Karten-Tour startet."
+  },
+  "helpTabTour": "Tour: {tab}",
+  "@helpTabTour": {
+    "description": "Kurzanleitung: Knopf, der die Tour eines Reiters startet; {tab} ist der Name des Reiters (tabTrails, tabBuddys).",
+    "placeholders": {
+      "tab": {
+        "type": "String"
+      }
+    }
+  },
+  "helpSplitTour": "Tour: Fahrt zerlegen",
+  "@helpSplitTour": {
+    "description": "Kurzanleitung: Knopf, der die jüngste Fahrt mit der Zerlege-Tour öffnet (nur Android)."
+  },
+  "helpSplitTourHint": "Zeichne erst eine Fahrt auf — der große Knopf auf der Karte. Danach zeigt die Tour an ihr, wie aus einer Fahrt Trails werden.",
+  "@helpSplitTourHint": {
+    "description": "Kurzanleitung: unter dem deaktivierten Knopf „Tour: Fahrt zerlegen“, solange es keine Fahrt gibt."
+  },
+  "helpDiscover": "Funktionen und Tipps entdecken",
+  "@helpDiscover": {
+    "description": "Kurzanleitung: Knopf zur Seite „Entdecken“."
+  },
+  "safetyNoteTitle": "Sicherheitshinweis",
+  "@safetyNoteTitle": {
+    "description": "Sicherheitshinweis: Überschrift der Zeile unter „Über TrailBuddy“ und ihres Dialogs."
+  },
+  "safetyNoteDialogTitle": "Kurz vorweg",
+  "@safetyNoteDialogTitle": {
+    "description": "Sicherheitshinweis: Überschrift des Dialogs beim ersten Start."
+  },
+  "safetyNoteConfirm": "Verstanden",
+  "@safetyNoteConfirm": {
+    "description": "Sicherheitshinweis: einziger Knopf des Dialogs beim ersten Start."
+  },
+  "safetyNote": "Du fährst auf eigene Verantwortung. TrailBuddy zeigt, was du und deine Buddys gefahren sind — es sagt nicht, ob ein Weg befahren werden darf oder gerade sicher ist. Beachte Sperrungen, Wegeregeln und Naturschutz vor Ort. Eine Meldung eines Buddys ist keine Freigabe, und keine Meldung heißt nicht, dass alles frei ist.",
+  "@safetyNote": {
+    "description": "Sicherheitshinweis (Dialog beim ersten Start, Kurzanleitung, „Über TrailBuddy“). Eine Auskunft, kein Haftungsausschluss: erst was die App tut, dann ihre Grenze; der letzte Satz gilt beiden Richtungen einer Meldung."
   }
 }

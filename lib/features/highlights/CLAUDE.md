@@ -40,7 +40,8 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     Einträge untereinander (PilzBuddy 1.204.1: blättern verlor den Rest).
   - **Eine Zeile im Blatt FÜHRT VOR** (`startHighlightDemo`), ohne
     Vorführung springt sie zum Ziel. Die Vorführungen übernehmen Schritte
-    der Touren über ihren Titel (`_from`), statt sie abzuschreiben —
+    der Touren über ihre `id` (`_from`, seit #209 nicht mehr über den
+    Titel), statt sie abzuschreiben —
     ändert sich ein Tour-Text, zieht die Vorführung mit. Ersatzschritte
     mit `requires`/`unless` für das, was nicht jeder hat (kein Trail,
     kein eigener Trail, kein Buddy, Web ohne Aufzeichnung); genau einer

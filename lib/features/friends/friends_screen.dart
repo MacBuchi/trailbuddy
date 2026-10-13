@@ -192,7 +192,7 @@ class _FriendsScreenState extends ConsumerState<FriendsScreen> {
     // Das Beispiel (#136) nur während der Tour und nur ohne JEDEN Buddy.
     final example = ref.watch(coachExamplesProvider) && accepted.isEmpty && !friendshipsAsync.isLoading;
     return TabTourStarter(
-      script: kBuddysTourScript,
+      script: buddysTourScript,
       child: Scaffold(
       appBar: AppBar(
         toolbarHeight: 64,

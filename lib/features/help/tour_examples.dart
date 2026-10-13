@@ -19,6 +19,7 @@ import 'package:flutter/material.dart';
 import '../../core/app_colors.dart';
 import '../../core/app_theme.dart';
 import '../../core/widgets/letter_avatar.dart';
+import '../../l10n/l10n.dart';
 import '../coach/coach.dart';
 import '../trails/grade_shield.dart';
 import 'map_tour.dart' show SheetCoach;
@@ -42,7 +43,7 @@ class TourExampleBadge extends StatelessWidget {
         color: theme.colorScheme.tertiaryContainer,
         borderRadius: BorderRadius.circular(8),
       ),
-      child: Text('Beispiel',
+      child: Text(context.l10n.tourExampleBadge,
           style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onTertiaryContainer)),
     );
   }
@@ -62,6 +63,7 @@ class ExampleTrailTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final palette = AppPalette.of(context);
     final theme = Theme.of(context);
+    final l = context.l10n;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
       child: CoachAnchor(
@@ -84,12 +86,12 @@ class ExampleTrailTile extends StatelessWidget {
                 decoration: BoxDecoration(color: palette.grade.s1, borderRadius: BorderRadius.circular(2)),
               ),
             ),
-            title: Text('Beispiel: Buchenhang',
+            title: Text(l.tourExampleTrailName,
                 style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
             subtitle: Row(
               children: [
                 Flexible(
-                  child: Text('1,8 km · ↓ 210 Hm · MEIN',
+                  child: Text('${l.tourExampleTrailStats} · ${l.listTagMine}',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: AppFonts.numbers(theme.textTheme.bodySmall).copyWith(color: palette.muted)),
@@ -131,6 +133,7 @@ class _ExampleTrailSheet extends StatelessWidget {
     final theme = Theme.of(context);
     final palette = AppPalette.of(context);
     final muted = theme.textTheme.bodySmall?.copyWith(color: palette.muted);
+    final l = context.l10n;
     Widget tile(String label, String value) => Expanded(
           child: Container(
             padding: const EdgeInsets.all(10),
@@ -161,7 +164,7 @@ class _ExampleTrailSheet extends StatelessWidget {
                   child: Row(
                     children: [
                       Flexible(
-                        child: Text('BEISPIEL: BUCHENHANG',
+                        child: Text(l.tourExampleTrailName.toUpperCase(),
                             style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800)),
                       ),
                       const SizedBox(width: 8),
@@ -170,33 +173,32 @@ class _ExampleTrailSheet extends StatelessWidget {
                   ),
                 ),
                 // Wie im echten Blatt (#224): Anfahrt und Schließen im Kopf.
-                const CoachAnchor(
+                CoachAnchor(
                   id: SheetCoach.navigate,
                   child: IconButton(
-                    tooltip: 'Anfahrt',
+                    tooltip: l.sheetNavigate,
                     onPressed: _nothing,
-                    icon: Icon(Icons.directions_outlined),
+                    icon: const Icon(Icons.directions_outlined),
                   ),
                 ),
-                const IconButton(
-                  tooltip: 'Schließen',
+                IconButton(
+                  tooltip: l.commonClose,
                   onPressed: _nothing,
-                  icon: Icon(Icons.close),
+                  icon: const Icon(Icons.close),
                 ),
               ],
             ),
-            Text('So sieht ein Trail aus, sobald du einen importiert oder '
-                'aufgezeichnet hast.', style: muted),
+            Text(l.tourExampleTrailHint, style: muted),
             const SizedBox(height: 12),
             CoachAnchor(
               id: SheetCoach.metrics,
               child: Row(
                 children: [
-                  tile('LÄNGE', '1,8 km'),
+                  tile(l.sheetPanelLength, l.tourExampleTrailLength),
                   const SizedBox(width: 8),
-                  tile('HÖHE', '↓210'),
+                  tile(l.sheetPanelElevation, '↓210'),
                   const SizedBox(width: 8),
-                  tile('S-GRAD', 'S1'),
+                  tile(l.sheetPanelGrade, 'S1'),
                 ],
               ),
             ),
@@ -206,7 +208,7 @@ class _ExampleTrailSheet extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Deine Einschätzung', style: theme.textTheme.titleSmall),
+                  Text(l.gradeYours, style: theme.textTheme.titleSmall),
                   const SizedBox(height: 4),
                   Wrap(
                     spacing: 6,
@@ -218,9 +220,9 @@ class _ExampleTrailSheet extends StatelessWidget {
                 ],
               ),
             ),
-            const CoachAnchor(
+            CoachAnchor(
               id: SheetCoach.contribution,
-              child: TextButton(onPressed: _nothing, child: Text('Mein Beitrag')),
+              child: TextButton(onPressed: _nothing, child: Text(l.sheetContribution)),
             ),
             const SizedBox(height: 8),
             Row(
@@ -232,7 +234,7 @@ class _ExampleTrailSheet extends StatelessWidget {
                       style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(48)),
                       onPressed: _nothing,
                       icon: const Icon(Icons.add_comment_outlined),
-                      label: const Text('Hinweis schreiben'),
+                      label: Text(l.noteAdd),
                     ),
                   ),
                 ),
@@ -244,7 +246,7 @@ class _ExampleTrailSheet extends StatelessWidget {
                       style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
                       onPressed: _nothing,
                       icon: const Icon(Icons.flag_outlined),
-                      label: const Text('Melden'),
+                      label: Text(l.sheetReport),
                     ),
                   ),
                 ),
@@ -258,7 +260,7 @@ class _ExampleTrailSheet extends StatelessWidget {
                   style: TextButton.styleFrom(padding: EdgeInsets.zero),
                   onPressed: _nothing,
                   icon: const Icon(Icons.share_outlined, size: 18),
-                  label: const Text('Als GPX exportieren'),
+                  label: Text(l.sheetExportGpx),
                 ),
               ),
             ),
@@ -269,7 +271,7 @@ class _ExampleTrailSheet extends StatelessWidget {
                 style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
                 onPressed: _nothing,
                 icon: const Icon(Icons.route_outlined),
-                label: const Text('Zum Trailkopf'),
+                label: Text(l.sheetTrailHead),
               ),
             ),
           ],
@@ -287,6 +289,7 @@ class ExampleBuddyTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final muted = theme.textTheme.bodySmall?.copyWith(color: AppPalette.of(context).muted);
+    final l = context.l10n;
     return CoachAnchor(
       id: BuddysCoach.row,
       child: Padding(
@@ -300,12 +303,12 @@ class ExampleBuddyTile extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Beispiel: Mira',
+                  Text(l.tourExampleBuddyName,
                       overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
                   Row(
                     children: [
-                      Text('3 gemeinsam', style: muted),
+                      Text(l.buddysSharedCount(3), style: muted),
                       const SizedBox(width: 6),
                       const TourExampleBadge(),
                     ],
@@ -313,19 +316,19 @@ class ExampleBuddyTile extends StatelessWidget {
                 ],
               ),
             ),
-            const CoachAnchor(
+            CoachAnchor(
               id: BuddysCoach.alias,
               child: IconButton(
-                tooltip: 'Alias vergeben',
-                icon: Icon(Icons.edit_outlined),
+                tooltip: l.aliasSet,
+                icon: const Icon(Icons.edit_outlined),
                 onPressed: _nothing,
               ),
             ),
-            const CoachAnchor(
+            CoachAnchor(
               id: BuddysCoach.message,
               child: IconButton(
-                tooltip: 'Nachrichten',
-                icon: Icon(Icons.chat_bubble_outline),
+                tooltip: l.buddysMessages,
+                icon: const Icon(Icons.chat_bubble_outline),
                 onPressed: _nothing,
               ),
             ),

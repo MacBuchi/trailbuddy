@@ -20,6 +20,7 @@ import '../fakes/fake_backend.dart';
 import '../fakes/fake_settings.dart';
 import '../fakes/fake_trails.dart';
 import '../fakes/test_app.dart';
+import '../fakes/l10n_de.dart';
 
 final bubble = find.byKey(const ValueKey('coach-bubble'));
 
@@ -62,7 +63,7 @@ void main() {
     await tester.tap(button);
     await settle(tester);
 
-    final script = kHighlightDemos[id]!.script;
+    final script = highlightDemos(l10nDe)[id]!.script;
     final shown = <String>[];
     for (var i = 0; i < 12 && bubble.evaluate().isNotEmpty; i++) {
       final step = script.steps
@@ -88,8 +89,8 @@ void main() {
   }
 
   test('jeder Eintrag hat eine Vorführung, und keine ist leer', () {
-    expect(kHighlightDemos.keys.toSet(), {for (final h in kFeatureHighlights) h.id});
-    for (final demo in kHighlightDemos.values) {
+    expect(highlightDemos(l10nDe).keys.toSet(), {for (final h in kFeatureHighlights) h.id});
+    for (final demo in highlightDemos(l10nDe).values) {
       expect(demo.script.steps, isNotEmpty, reason: demo.script.id);
     }
   });

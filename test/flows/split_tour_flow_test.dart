@@ -33,6 +33,7 @@ import '../fakes/fake_settings.dart';
 import '../fakes/fake_tiles.dart';
 import '../fakes/fake_trails.dart';
 import '../fakes/test_app.dart';
+import '../fakes/l10n_de.dart';
 
 /// Dieselbe Geometrie wie `ride_split_flow_test.dart`: Kachel-Pixel der
 /// z13-Kachel um 48°/9°, die Fahrt läuft bei px 2048 von py 3800 nach 1300.
@@ -271,7 +272,7 @@ void main() {
   });
 
   test('die Tour hat eine Startseite und ihre Kennung', () {
-    expect(kSplitTourScript.id, 'split');
-    expect(kSplitTourScript.steps.first.isIntro, isTrue);
+    expect(splitTourScript(l10nDe).id, 'split');
+    expect(splitTourScript(l10nDe).steps.first.isIntro, isTrue);
   });
 }

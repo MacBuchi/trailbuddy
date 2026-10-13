@@ -491,4 +491,51 @@ void main() {
           'Bio-Bike: Forstweg 520 hm/h — aus 14 Fahrten (31 Aufstiege), Stand 1.10.2026');
     });
   });
+
+  // Stufe (f1): Hinweis, Kurzanleitung, Maschine und Touren.
+  group('Touren und Hilfe auf Englisch', () {
+    testWidgets('erster Start: Hinweis, Willkommensseite, Blase', (tester) async {
+      final backend = FakeBackend();
+      backend.signInAs(backend.addUser(username: 'anna').id);
+      final settings = FakeSettings(safetyNoteSeen: false, mapTourSeen: false);
+      await pumpApp(tester, backend,
+          settings: settings, extraOverrides: [appLocaleProvider.overrideWithValue(const Locale('en'))]);
+      expect(find.text('Before you start'), findsOneWidget);
+      expect(find.textContaining('You ride at your own risk.'), findsOneWidget);
+      await tester.tap(find.text('Got it'));
+      await settle(tester, frames: 20);
+
+      expect(find.text('Welcome to TrailBuddy'), findsOneWidget);
+      expect(find.text('Not now'), findsOneWidget);
+      await tester.tap(find.text('Start the tour'));
+      await settle(tester);
+      final bubble = find.byKey(const ValueKey('coach-bubble'));
+      expect(find.descendant(of: bubble, matching: find.text('Skip')), findsOneWidget);
+      expect(find.descendant(of: bubble, matching: find.textContaining(RegExp(r'^1 of \d+$'))), findsOneWidget);
+      expect(find.descendant(of: bubble, matching: find.textContaining(RegExp('[äöüß]'))), findsNothing,
+          reason: 'kein deutscher Satz in der Blase');
+      await tester.tap(find.descendant(of: bubble, matching: find.text('Skip')));
+      await settle(tester);
+      expect(settings.mapTourSeen, isTrue);
+    });
+
+    testWidgets('die Kurzanleitung', (tester) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.reset);
+      final backend = FakeBackend();
+      backend.signInAs(backend.addUser(username: 'anna').id);
+      await pumpApp(tester, backend,
+          extraOverrides: [appLocaleProvider.overrideWithValue(const Locale('en'))]);
+      await openProfilePage(tester, 'help', tab: 'Profile');
+      expect(find.text('Quick guide'), findsWidgets);
+      for (final text in ['Importing trails', 'Reading the map', 'Buddies and visibility',
+          'Show the tour on the map', 'Tour: Trails', 'Tour: Buddies', 'Discover features and tips']) {
+        await scrollTo(tester, find.text(text));
+        expect(find.text(text), findsOneWidget, reason: text);
+      }
+      expect(find.textContaining('the Report status'), findsOneWidget, reason: 'Platzhalter {report}');
+      expect(find.text('Die Karte lesen'), findsNothing);
+    });
+  });
 }

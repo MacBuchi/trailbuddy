@@ -12,6 +12,7 @@ import 'package:trailbuddy/features/help/help_screen.dart';
 import '../fakes/fake_backend.dart';
 import '../fakes/fake_trails.dart';
 import '../fakes/test_app.dart';
+import '../fakes/l10n_de.dart';
 
 void main() {
   (FakeBackend, FakeUser) loggedInBackend() {
@@ -60,7 +61,7 @@ void main() {
     // Testschirm, und `ListView` baut nur, was in Sichtweite ist.
     final seen = <String>{};
     for (var i = 0; i < 10; i++) {
-      for (final step in kHelpSteps) {
+      for (final step in helpSteps(l10nDe)) {
         if (find
             .descendant(of: find.byType(HelpScreen), matching: find.text(step.title))
             .evaluate()
@@ -71,7 +72,7 @@ void main() {
       await tester.drag(find.byKey(const ValueKey('help-list')), const Offset(0, -250));
       await settle(tester, frames: 4);
     }
-    expect(seen, containsAll(kHelpSteps.map((s) => s.title)));
+    expect(seen, containsAll(helpSteps(l10nDe).map((s) => s.title)));
   });
 
   testWidgets('Auf einem kleinen Telefon läuft nichts über', (tester) async {

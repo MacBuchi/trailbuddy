@@ -17,10 +17,12 @@
 //   der Hinweis, dass es um eigene geht, ohne Buddy das Suchfeld. Genau
 //   einer läuft.
 // - **Die Schritte der Touren werden übernommen, nicht abgeschrieben**
-//   (`_from`): Ändert sich ein Tour-Text, ändert sich die Vorführung mit.
+//   (`_from`, über die `id` des Schritts): Ändert sich ein Tour-Text,
+//   ändert sich die Vorführung mit.
 import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../l10n/l10n.dart';
 import '../coach/coach.dart';
 import '../help/map_tour.dart';
 import '../help/tab_tours.dart';
@@ -43,8 +45,9 @@ class HighlightDemo {
 
 CoachScript _demo(String id, List<CoachStep> steps) => CoachScript(id: 'demo.$id', steps: steps);
 
-/// Ein Schritt einer Tour, über seinen Titel.
-CoachStep _from(CoachScript script, String title) => script.steps.firstWhere((s) => s.title == title);
+/// Ein Schritt einer Tour, über seine `id` — nie über den Titel, der ist
+/// je Sprache ein anderer (#209).
+CoachStep _from(CoachScript script, String id) => script.steps.firstWhere((s) => s.id == id);
 
 // Bausteine, die mehrere Vorführungen teilen.
 
@@ -97,7 +100,10 @@ CoachStep _profileRow(String id, String title, String text) => CoachStep(
       scrollIn: ProfileCoach.list,
     );
 
-final kHighlightDemos = <String, HighlightDemo>{
+/// Die Vorführungen je Kennung in `kFeatureHighlights`. Eine Funktion, weil
+/// sie Schritte der Touren übernehmen, und die bauen ihre Texte aus
+/// [AppLocalizations] (#209).
+Map<String, HighlightDemo> highlightDemos(AppLocalizations l) => {
   // ─── Highlights ────────────────────────────────────────────────
   'whole-region': HighlightDemo(
     route: '/profile',
@@ -135,7 +141,7 @@ final kHighlightDemos = <String, HighlightDemo>{
   'contours': HighlightDemo(
     route: '/',
     script: _demo('contours', [
-      _from(kMapTourScript, 'Was die Karte zeigt'),
+      _from(mapTourScript(l), 'map.layers'),
       const CoachStep(
         title: 'Linien gleicher Höhe',
         text: 'Hier schaltest du sie an. Je enger sie liegen, desto steiler — '
@@ -148,7 +154,7 @@ final kHighlightDemos = <String, HighlightDemo>{
   'way-quality': HighlightDemo(
     route: '/',
     script: _demo('way-quality', [
-      _from(kMapTourScript, 'Was die Karte zeigt'),
+      _from(mapTourScript(l), 'map.layers'),
       const CoachStep(
         title: 'Die Güte der Wege',
         text: 'Hier schaltest du sie ab und wieder an. Sie kommt aus OpenStreetMap — '
@@ -168,16 +174,16 @@ final kHighlightDemos = <String, HighlightDemo>{
   'map-legend': HighlightDemo(
     route: '/',
     script: _demo('map-legend', [
-      _from(kMapTourScript, 'Farbe heißt Schwierigkeit'),
+      _from(mapTourScript(l), 'map.colors'),
     ]),
   ),
   'map-layers': HighlightDemo(
     route: '/',
     script: _demo('map-layers', [
-      _from(kMapTourScript, 'Was die Karte zeigt'),
-      _from(kMapTourScript, 'Orte und offizielle Trails wählen'),
-      _from(kMapTourScript, 'Karten ohne Empfang'),
-      _from(kMapTourScript, 'Die Werkzeugleiste'),
+      _from(mapTourScript(l), 'map.layers'),
+      _from(mapTourScript(l), 'map.layersSheet'),
+      _from(mapTourScript(l), 'map.offline'),
+      _from(mapTourScript(l), 'map.rail'),
     ]),
   ),
   'map-select': HighlightDemo(
@@ -576,14 +582,14 @@ final kHighlightDemos = <String, HighlightDemo>{
     route: '/trails',
     script: _demo('rating', [
       _openTrailFirst,
-      _from(kTrailsTourScript, 'Deine Einschätzung'),
+      _from(trailsTourScript(l), 'trails.grade'),
       _noOwnTrail,
       _noTrailYet,
     ]),
   ),
   'grade-colors': HighlightDemo(
     route: '/',
-    script: _demo('grade-colors', [_from(kMapTourScript, 'Farbe heißt Schwierigkeit')]),
+    script: _demo('grade-colors', [_from(mapTourScript(l), 'map.colors')]),
   ),
   'connect-merge': HighlightDemo(
     route: '/friends',
@@ -606,24 +612,24 @@ final kHighlightDemos = <String, HighlightDemo>{
   ),
   'import-split': HighlightDemo(
     route: '/trails',
-    script: _demo('import-split', [_from(kTrailsTourScript, 'GPX hereinholen')]),
+    script: _demo('import-split', [_from(trailsTourScript(l), 'trails.import')]),
   ),
   'offline-areas': HighlightDemo(
     route: '/',
     script: _demo('offline-areas', [
-      _from(kMapTourScript, 'Karten ohne Empfang'),
-      _from(kMapTourScript, 'Die Werkzeugleiste'),
+      _from(mapTourScript(l), 'map.offline'),
+      _from(mapTourScript(l), 'map.rail'),
     ]),
   ),
   'ride-record': HighlightDemo(
     route: '/',
-    script: _demo('ride-record', [_from(kMapTourScript, 'Eine Fahrt aufzeichnen'), _androidOnly]),
+    script: _demo('ride-record', [_from(mapTourScript(l), 'map.record'), _androidOnly]),
   ),
   'official-trails': HighlightDemo(
     route: '/',
     script: _demo('official-trails', [
-      _from(kMapTourScript, 'Was die Karte zeigt'),
-      _from(kMapTourScript, 'Orte und offizielle Trails wählen'),
+      _from(mapTourScript(l), 'map.layers'),
+      _from(mapTourScript(l), 'map.layersSheet'),
     ]),
   ),
   // Das Foto hängt man im Dialog an, den „Hinweis schreiben" öffnet — die
@@ -632,7 +638,7 @@ final kHighlightDemos = <String, HighlightDemo>{
     route: '/trails',
     script: _demo('note-photos', [
       _openTrailFirst,
-      _from(kTrailsTourScript, 'Etwas Aktuelles erzählen'),
+      _from(trailsTourScript(l), 'trails.note'),
       _noTrailYet,
     ]),
   ),
@@ -640,7 +646,7 @@ final kHighlightDemos = <String, HighlightDemo>{
     route: '/trails',
     script: _demo('trail-notes', [
       _openTrailFirst,
-      _from(kTrailsTourScript, 'Etwas Aktuelles erzählen'),
+      _from(trailsTourScript(l), 'trails.note'),
       _noTrailYet,
     ]),
   ),
@@ -717,18 +723,18 @@ final kHighlightDemos = <String, HighlightDemo>{
     route: '/trails',
     script: _demo('trail-link', [
       _openTrailFirst,
-      _from(kTrailsTourScript, 'Was du beisteuerst'),
+      _from(trailsTourScript(l), 'trails.contribution'),
       _noOwnTrail,
       _noTrailYet,
     ]),
   ),
   'planned': HighlightDemo(
     route: '/trails',
-    script: _demo('planned', [_from(kTrailsTourScript, 'GPX hereinholen')]),
+    script: _demo('planned', [_from(trailsTourScript(l), 'trails.import')]),
   ),
   'traits': HighlightDemo(
     route: '/trails',
-    script: _demo('traits', [_from(kTrailsTourScript, 'Suchen und eingrenzen')]),
+    script: _demo('traits', [_from(trailsTourScript(l), 'trails.search')]),
   ),
   'grade-votes': HighlightDemo(
     route: '/trails',
@@ -749,7 +755,7 @@ final kHighlightDemos = <String, HighlightDemo>{
     route: '/trails',
     script: _demo('visibility', [
       _openTrailFirst,
-      _from(kTrailsTourScript, 'Was du beisteuerst'),
+      _from(trailsTourScript(l), 'trails.contribution'),
       _noOwnTrail,
       _noTrailYet,
     ]),
@@ -757,13 +763,13 @@ final kHighlightDemos = <String, HighlightDemo>{
   'pois': HighlightDemo(
     route: '/',
     script: _demo('pois', [
-      _from(kMapTourScript, 'Was die Karte zeigt'),
-      _from(kMapTourScript, 'Orte und offizielle Trails wählen'),
+      _from(mapTourScript(l), 'map.layers'),
+      _from(mapTourScript(l), 'map.layersSheet'),
     ]),
   ),
   'my-position': HighlightDemo(
     route: '/',
-    script: _demo('my-position', [_from(kMapTourScript, 'Zu dir und zu uns')]),
+    script: _demo('my-position', [_from(mapTourScript(l), 'map.position')]),
   ),
   'messages': HighlightDemo(
     route: '/friends',
@@ -792,13 +798,13 @@ final kHighlightDemos = <String, HighlightDemo>{
   'buddy-alias': HighlightDemo(
     route: '/friends',
     script: _demo('buddy-alias', [
-      _from(kBuddysTourScript, 'Ein Buddy in der Liste'),
+      _from(buddysTourScript(l), 'buddys.row'),
       _findBuddyFirst,
     ]),
   ),
   'invite': HighlightDemo(
     route: '/friends',
-    script: _demo('invite', [_from(kBuddysTourScript, 'Jemanden einladen')]),
+    script: _demo('invite', [_from(buddysTourScript(l), 'buddys.invite')]),
   ),
   'notifications': HighlightDemo(
     route: '/profile',
