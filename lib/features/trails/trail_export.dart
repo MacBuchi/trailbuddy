@@ -28,7 +28,7 @@ GpxTrack trailToGpx(Trail trail, {List<double>? terrain}) {
   final fromTerrain = recorded == null && terrain != null && terrain.length == points.length;
   final ele = recorded ?? (fromTerrain ? terrain : null);
   return GpxTrack(
-    name: trail.hasName ? trail.displayName : 'Trail',
+    name: trail.name ?? 'Trail',
     points: [
       for (var i = 0; i < points.length; i++)
         TrackPoint(points[i].latitude, points[i].longitude, ele: ele?[i]),

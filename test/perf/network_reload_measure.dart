@@ -23,6 +23,7 @@ import 'package:trailbuddy/features/map/map_view/map_view.dart';
 import 'package:trailbuddy/features/map/map_view/maplibre_map_view.dart';
 import 'package:trailbuddy/models/trail.dart';
 import 'package:trailbuddy/models/trail_merge.dart';
+import '../fakes/l10n_de.dart';
 
 List<Map<String, dynamic>> rows(int trails, int pts) {
   final rnd = Random(1);
@@ -54,7 +55,7 @@ const _colors = [Colors.green, Colors.blue, Colors.red, Colors.black];
 
 List<MapViewPolyline> linesOf(List<Trail> trails, List<LatLng> Function(Trail) smoothed) => [
       for (final t in trails)
-        MapViewPolyline(points: smoothed(t), color: _colors[(t.grade ?? 0) % 4], label: t.displayName),
+        MapViewPolyline(points: smoothed(t), color: _colors[(t.grade ?? 0) % 4], label: t.displayName(l10nDe)),
     ];
 
 int textBytes(Iterable<ml.Layer> layers) =>
@@ -104,7 +105,7 @@ void main() {
     final oldSmooth = Expando<List<LatLng>>();
     final oldLines = [
       for (final t in t2)
-        MapViewPolyline(points: oldSmooth[t] ??= chaikinSmooth(t.points), color: _colors[(t.grade ?? 0) % 4], label: t.displayName),
+        MapViewPolyline(points: oldSmooth[t] ??= chaikinSmooth(t.points), color: _colors[(t.grade ?? 0) % 4], label: t.displayName(l10nDe)),
     ];
     final oldLayers = mapLibrePolylineLayers(oldLines);
     final oldBytes = textBytes(oldLayers);

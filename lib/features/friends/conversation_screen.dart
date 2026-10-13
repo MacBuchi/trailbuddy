@@ -111,7 +111,7 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
     } catch (e, s) {
       logError('Nachricht senden', e, s);
       messenger.showSnackBar(
-          SnackBar(content: Text(l.messagesNotSent(friendlyError(e)))));
+          SnackBar(content: Text(l.messagesNotSent(friendlyError(l, e)))));
     } finally {
       if (mounted) setState(() => _sending = false);
     }
@@ -135,11 +135,12 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
     );
     if (confirmed != true || !mounted) return;
     final messenger = ScaffoldMessenger.of(context);
+    final l = context.l10n;
     try {
       await ref.read(messagesProvider.notifier).delete(message.id);
     } catch (e, s) {
       logError('Nachricht zurücknehmen', e, s);
-      messenger.showSnackBar(SnackBar(content: Text(friendlyError(e))));
+      messenger.showSnackBar(SnackBar(content: Text(friendlyError(l, e))));
     }
   }
 

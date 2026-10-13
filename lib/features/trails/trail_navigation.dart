@@ -116,7 +116,7 @@ Future<bool> _launchExternally(Uri uri) => launchUrl(uri, mode: LaunchMode.exter
 
 /// Der Pin-Titel: der angezeigte Name, aber nicht der Platzhalter —
 /// „Trail ohne Namen" als Ziel in einer fremden App sagt nichts.
-String? navigationLabelOf(Trail trail) => trail.hasName ? trail.displayName : null;
+String? navigationLabelOf(Trail trail) => trail.name;
 
 /// Übergibt den Trailkopf von [trail] (Anfang in Trail-Richtung,
 /// `Trail.start`) an eine Navi-App und sagt es, wenn das nicht geht.

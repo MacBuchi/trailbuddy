@@ -14,6 +14,7 @@ import 'dart:math' as math;
 import 'package:latlong2/latlong.dart';
 
 import '../../core/geo.dart' as geo;
+import '../../l10n/l10n.dart';
 import '../../models/trail.dart';
 import '../rides/ride_split.dart' show knownTrailSectionsOf;
 import 'loop_planner.dart' show LoopPlan, LoopSection;
@@ -180,7 +181,7 @@ List<double> cumulativeM(List<LatLng> points) {
 
 /// Was die Karten über einen Trail wissen wollen — aus dem Netz, wenn er
 /// dort liegt; sonst nur, was der Planer mitbringt.
-NavTrailSection _sectionOf({
+NavTrailSection _sectionOf(AppLocalizations l, {
   required double startM,
   required double endM,
   required String id,
@@ -198,7 +199,7 @@ NavTrailSection _sectionOf({
     startM: startM,
     endM: endM,
     trailId: id,
-    name: trail?.displayName ?? name,
+    name: trail?.displayName(l) ?? name,
     grade: trail?.grade ?? grade,
     uphill: traits.contains(TrailTrait.uphill),
     traits: traits,
@@ -239,7 +240,7 @@ List<NavWayLeg> _legsOf(Iterable<({WayClass? cls, double lengthM})> parts) {
 /// Die Abschnitte einer geplanten Runde (auch des spaßigen Wegs zum
 /// Trailkopf). [trailById] holt den Trail aus dem Netz — null, wenn er dort
 /// nicht liegt, dann gelten die Werte des Planers.
-NavSections navSectionsOfLoop(LoopPlan plan, {required Trail? Function(String id) trailById}) {
+NavSections navSectionsOfLoop(AppLocalizations l, LoopPlan plan, {required Trail? Function(String id) trailById}) {
   final points = plan.points;
   if (points.length < 2) return NavSections.none;
   final cum = cumulativeM(points);
@@ -256,7 +257,7 @@ NavSections navSectionsOfLoop(LoopPlan plan, {required Trail? Function(String id
     final (i0, startM) = _locate(points, cum, s.points.first, from);
     final (i1, endM) = _locate(points, cum, s.points.last, i0);
     from = i1;
-    out.add(_sectionOf(
+    out.add(_sectionOf(l,
       startM: startM,
       endM: math.max(endM, startM),
       id: trail.id,
@@ -273,16 +274,16 @@ NavSections navSectionsOfLoop(LoopPlan plan, {required Trail? Function(String id
 
 /// Der direkte Weg zum Trailkopf: kein Trail auf der Linie, der Ziel-Trail
 /// steht hinter ihrem Ende.
-NavSections navSectionsOfTrailHead(TrailHeadRoute route, Trail target) {
+NavSections navSectionsOfTrailHead(AppLocalizations l, TrailHeadRoute route, Trail target) {
   final points = route.points;
   if (points.length < 2) return NavSections.none;
   final lengthM = cumulativeM(points).last;
   return NavSections([
-    _sectionOf(
+    _sectionOf(l,
       startM: lengthM,
       endM: lengthM,
       id: target.id,
-      name: target.displayName,
+      name: target.displayName(l),
       trail: target,
       approachWays: _legsOf([for (final RouteSection s in route.sections) (cls: s.cls, lengthM: s.lengthM)]),
       beyondRoute: true,
@@ -292,17 +293,17 @@ NavSections navSectionsOfTrailHead(TrailHeadRoute route, Trail target) {
 
 /// Die Abschnitte einer Fahrt: die Trails des Netzes, die die Linie deckt
 /// (dieselbe Regel wie „bekannt" im Zerlege-Blatt).
-NavSections navSectionsOfLine(List<LatLng> points, List<Trail> trails) {
+NavSections navSectionsOfLine(AppLocalizations l, List<LatLng> points, List<Trail> trails) {
   if (points.length < 2 || trails.isEmpty) return NavSections.none;
   final cum = cumulativeM(points);
   final known = knownTrailSectionsOf(points, trails);
   return NavSections([
     for (final k in known)
-      _sectionOf(
+      _sectionOf(l,
         startM: cum[k.start],
         endM: math.max(cum[k.end], cum[k.start]),
         id: k.trail.id,
-        name: k.trail.displayName,
+        name: k.trail.displayName(l),
         trail: k.trail,
       ),
   ]);

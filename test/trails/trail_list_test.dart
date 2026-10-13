@@ -46,7 +46,7 @@ Trail trail(String id, String name,
       ],
     );
 
-List<String> names(TrailListResult r) => [for (final t in r.trails) t.displayName];
+List<String> names(TrailListResult r) => [for (final t in r.trails) t.displayName(l10nDe)];
 
 void main() {
   group('Falten (PilzBuddy #395)', () {
@@ -135,7 +135,7 @@ void main() {
       for (final (lo, hi) in [(0, 2), (2, 5), (1, 1), (3, 4)]) {
         final f = TrailListFilter(minGrade: lo, maxGrade: hi);
         for (final t in trailListOf(list, filter: f).trails) {
-          expect(t.grade, inInclusiveRange(lo, hi), reason: '$lo–$hi: ${t.displayName}');
+          expect(t.grade, inInclusiveRange(lo, hi), reason: '$lo–$hi: ${t.displayName(l10nDe)}');
         }
         final expected = list.where((t) => t.grade != null && t.grade! >= lo && t.grade! <= hi);
         expect(trailListOf(list, filter: f).trails.toSet(), expected.toSet(), reason: '$lo–$hi');
@@ -192,7 +192,7 @@ void main() {
       const f = TrailListFilter(minGrade: 1, maxGrade: 2);
       final kept = trailListOf(list, filter: f, now: now).trails.toSet();
       for (final t in list) {
-        expect(passesTrailFilter(t, f, now: now), kept.contains(t), reason: t.displayName);
+        expect(passesTrailFilter(t, f, now: now), kept.contains(t), reason: t.displayName(l10nDe));
       }
     });
 

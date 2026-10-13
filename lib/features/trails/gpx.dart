@@ -1,5 +1,6 @@
 import 'package:xml/xml.dart';
 
+import '../../l10n/l10n.dart';
 import 'trail_link.dart';
 
 /// Ein Punkt einer GPX-Spur. `ele` und `time` fehlen bei gezeichneten
@@ -44,12 +45,23 @@ bool _terrainMarked(XmlElement parent) => parent
     .expand((e) => e.findElements(kElevationSourceTag, namespace: '*'))
     .any((e) => e.innerText.trim() == kTerrainElevationSource);
 
+/// Eine Datei, die sich nicht als GPX lesen lässt. Der Satz für den
+/// Nutzer kommt aus [message] (#209), [toString] bleibt technisch.
 class GpxFormatException implements Exception {
-  const GpxFormatException(this.message);
-  final String message;
+  /// Kein XML; [detail] ist die Meldung des Lesers.
+  const GpxFormatException.notXml(this.detail) : root = null;
+
+  /// XML, aber die Wurzel heißt [root] statt `gpx`.
+  const GpxFormatException.notGpx(String this.root) : detail = null;
+
+  final String? detail;
+  final String? root;
+
+  String message(AppLocalizations l) => root != null ? l.gpxNotGpx(root!) : l.gpxNotXml(detail ?? '');
 
   @override
-  String toString() => 'GpxFormatException: $message';
+  String toString() =>
+      root != null ? 'GpxFormatException: Wurzel <$root>' : 'GpxFormatException: kein XML ($detail)';
 }
 
 /// Liest alle Spuren einer GPX-Datei. Namensräume werden ignoriert:
@@ -69,11 +81,11 @@ List<GpxTrack> parseGpx(String xml, {String fallbackName = 'Ohne Namen'}) {
   try {
     doc = XmlDocument.parse(xml);
   } on XmlException catch (e) {
-    throw GpxFormatException('Kein gültiges XML: ${e.message}');
+    throw GpxFormatException.notXml(e.message);
   }
   final root = doc.rootElement;
   if (root.name.local != 'gpx') {
-    throw GpxFormatException('Keine GPX-Datei (Wurzel ist <${root.name.local}>).');
+    throw GpxFormatException.notGpx(root.name.local);
   }
   final fileLink = _link(root.getElement('metadata'));
   final tracks = <GpxTrack>[];

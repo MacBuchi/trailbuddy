@@ -68,7 +68,7 @@ void main() {
           rep('d', condition: 2, confirmed: false, day: 3),
         ],
       );
-      final targets = {for (final t in confirmTargetsOf(trails)) t.trailId: t};
+      final targets = {for (final t in confirmTargetsOf(l10nDe, trails)) t.trailId: t};
       expect(targets.keys.toSet(), {'a', 'd'});
       expect(targets['a']!.status, TrailStatus.closed);
       expect(targets['a']!.condition, isNull);
@@ -300,11 +300,11 @@ void main() {
         unconfirmed(t0.subtract(const Duration(days: 1)), status: TrailStatus.closed),
         unconfirmed(t0.add(const Duration(hours: 1)), condition: 2),
       ]);
-      final q = splitQuestionFor(t, t0)!;
+      final q = splitQuestionFor(l10nDe, t, t0)!;
       expect(q.status, TrailStatus.closed);
       expect(q.condition, isNull, reason: 'der Zustand kam nach der Fahrt');
-      expect(splitQuestionFor(t, null), isNull, reason: 'ohne Zeit war niemand nachweislich dort');
-      expect(splitQuestionFor(t, t0.subtract(const Duration(days: 2))), isNull);
+      expect(splitQuestionFor(l10nDe, t, null), isNull, reason: 'ohne Zeit war niemand nachweislich dort');
+      expect(splitQuestionFor(l10nDe, t, t0.subtract(const Duration(days: 2))), isNull);
     });
   });
 }

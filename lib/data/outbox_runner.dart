@@ -9,6 +9,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart' show PostgrestException;
 
 import '../core/errors.dart';
+import '../l10n/l10n.dart';
 import '../models/trail.dart' show TrailTrait;
 import 'feedback_repository.dart';
 import 'outbox.dart';
@@ -134,7 +135,7 @@ class OutboxRunner {
         final done = _isFinal(error) || attempts >= maxAttempts;
         remaining.add(job.copyWith(
           attempts: attempts,
-          failure: done ? friendlyError(error) : null,
+          failure: done ? friendlyError(serviceL10n(), error) : null,
         ));
       }
     }

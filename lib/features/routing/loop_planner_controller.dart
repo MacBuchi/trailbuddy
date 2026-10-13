@@ -25,6 +25,7 @@ import 'package:latlong2/latlong.dart';
 import '../../core/errors.dart';
 import '../../core/line_geometry.dart';
 import '../../core/settings.dart';
+import '../../l10n/l10n.dart';
 import '../../models/trail.dart';
 import '../map/position_provider.dart';
 import '../offline_areas/area_draw.dart' show AreaDrawTool;
@@ -367,7 +368,7 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
           // Mit den gelernten Werten des Profils (Schritt 6), wo es welche gibt.
           profile: ref.read(calibratedRiderProvider(state.profile)).withPrefs(state.prefs.route),
           budget: state.prefs.budget,
-          pool: [for (final t in chosen) poolTrailOf(t, mandatory: state.mandatory.contains(t.id))],
+          pool: [for (final t in chosen) poolTrailOf(serviceL10n(), t, mandatory: state.mandatory.contains(t.id))],
           returnToStart: state.prefs.returnToStart,
         ),
       );
@@ -406,7 +407,7 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
           pool: [
             for (final t in _trails)
               if (state.selected.contains(t.id) && !t.pending && t.points.length >= 2)
-                poolTrailOf(t, mandatory: state.mandatory.contains(t.id)),
+                poolTrailOf(serviceL10n(), t, mandatory: state.mandatory.contains(t.id)),
           ],
           returnToStart: state.prefs.returnToStart,
           tune: LoopTune.of(plan, vias),

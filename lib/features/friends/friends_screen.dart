@@ -87,7 +87,7 @@ class _FriendsScreenState extends ConsumerState<FriendsScreen> {
       });
     } catch (e, stackTrace) {
       logError('Buddy-Suche', e, stackTrace);
-      _showMessage(friendlyError(e));
+      if (mounted) _showMessage(friendlyError(context.l10n, e));
     } finally {
       if (mounted) setState(() => _searching = false);
     }

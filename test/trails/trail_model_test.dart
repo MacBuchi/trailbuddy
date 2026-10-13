@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:trailbuddy/features/trails/trail_geometry.dart';
 import 'package:trailbuddy/models/trail.dart';
+import '../fakes/l10n_de.dart';
 
 TrailRecording rec(String trail, String user,
         {double quality = 0.5, int day = 1, List<LatLng>? pts, List<double>? ele,
@@ -38,6 +39,14 @@ TrailReport rep(String trail, String user, DateTime at,
     );
 
 void main() {
+  test('nach Namen sortiert, Trails ohne Namen hinten — in jeder Sprache', () {
+    Trail t(String id, String? name) => Trail(
+        id: id, myId: 'me', recordings: [rec(id, 'me')], details: [if (name != null) det(id, 'me', name: name)]);
+    final sorted = [t('a', null), t('b', 'wald'), t('c', 'Ahorn')]..sort(compareTrailNames);
+    expect([for (final x in sorted) x.id], ['c', 'b', 'a'],
+        reason: 'vorher stand „Trail ohne Namen" unter T — die Reihenfolge hinge an der Sprache');
+  });
+
   test('geplant: nur wer ausschließlich Dateien ohne Fahrzeiten beigesteuert hat (#100)', () {
     const planned = RecordingSource.planned;
     final t = Trail(
@@ -102,7 +111,7 @@ void main() {
       recordings: [rec('t1', 'anna', day: 1), rec('t1', 'bob', day: 5), rec('t1', 'me', day: 9)],
       details: [det('t1', 'bob', name: 'Roots'), det('t1', 'anna', name: 'Hexentanz')],
     );
-    expect(t.displayName, 'Hexentanz');
+    expect(t.displayName(l10nDe), 'Hexentanz');
     expect(t.otherNames, ['Roots']);
     final mine = Trail(
       id: 't1',
@@ -110,7 +119,7 @@ void main() {
       recordings: t.recordings,
       details: [...t.details, det('t1', 'me', name: 'Mein Weg')],
     );
-    expect(mine.displayName, 'Mein Weg');
+    expect(mine.displayName(l10nDe), 'Mein Weg');
     expect(mine.otherNames, containsAll(['Roots', 'Hexentanz']));
   });
 
@@ -249,7 +258,7 @@ void main() {
       details: [det('t1', 'me', name: 'B-Trail'), det('t2', 'a', name: 'A-Trail'), det('t3', 'a', name: 'Geist')],
       myId: 'me',
     );
-    expect(trails.map((t) => t.displayName), ['A-Trail', 'B-Trail']);
+    expect(trails.map((t) => t.displayName(l10nDe)), ['A-Trail', 'B-Trail']);
   });
 
   test('fromJson nimmt GeoJSON als Text und als Objekt', () {

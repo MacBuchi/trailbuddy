@@ -289,7 +289,7 @@ class _TrailImportScreenState extends ConsumerState<TrailImportScreen> {
             if (c.contributable) _selected.add(c);
           }
         } on GpxFormatException catch (e) {
-          _errors.add('${f.name}: ${e.message}');
+          _errors.add('${f.name}: ${e.message(l)}');
         }
       }
     });
@@ -341,6 +341,7 @@ class _TrailImportScreenState extends ConsumerState<TrailImportScreen> {
     });
     await Future.wait(_terrainChecks);
     if (!mounted) return;
+    final l = context.l10n;
     final chosen = _candidates.where(_selected.contains).toList();
     if (chosen.isEmpty) {
       setState(() => _busy = false);
@@ -396,7 +397,7 @@ class _TrailImportScreenState extends ConsumerState<TrailImportScreen> {
       } catch (e, st) {
         logError('Trail beisteuern', e, st);
         failed++;
-        _errors.add('${c.track.name}: ${friendlyError(e)}');
+        _errors.add('${c.track.name}: ${friendlyError(l, e)}');
       }
       if (!mounted) return;
       setState(() => _done++);
@@ -417,7 +418,6 @@ class _TrailImportScreenState extends ConsumerState<TrailImportScreen> {
       _candidates.removeWhere(succeeded.contains);
       _selected.removeWhere(succeeded.contains);
     });
-    final l = context.l10n;
     final summary = [
       l.importSnackContributed(ok),
       if (queued > 0) l.importSnackQueued(queued),
@@ -479,7 +479,7 @@ class _TrailImportScreenState extends ConsumerState<TrailImportScreen> {
                 key: ValueKey('import-takeover-$id'),
                 contentPadding: EdgeInsets.zero,
                 leading: const Icon(Icons.group_outlined),
-                title: Text(t.displayName),
+                title: Text(t.displayName(l)),
                 subtitle: Text(offersTakeOver(t) || t.ratingOpen
                     ? l.importTakeOverHint
                     : l.importTakenOver),

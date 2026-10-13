@@ -780,9 +780,9 @@ const kLoopReachM = 12000.0;
 
 /// Ein Trail der Karte als Pool-Eintrag: Punkte in Trail-Richtung, Grad
 /// und Sterne wie angezeigt, Höhenmeter aus seinem Profil (0 ohne Höhen).
-PoolTrail poolTrailOf(Trail t, {bool mandatory = false}) => PoolTrail(
+PoolTrail poolTrailOf(AppLocalizations l, Trail t, {bool mandatory = false}) => PoolTrail(
       id: t.id,
-      name: t.displayName,
+      name: t.displayName(l),
       points: t.directedPoints,
       lengthM: t.lengthM,
       grade: t.grade,
@@ -860,12 +860,12 @@ TrailRole trailRoleOf(Trail t) {
 /// wartenden (noch ohne Kennung) und denen mit warnender Meldung, die
 /// als Verbinder dienen würden — ein gesperrter Uphill ist kein Weg.
 /// Gesperrte ABFAHRTEN bleiben drin: Ihre Richtung gilt weiter.
-List<GraphTrail> graphTrailsOf(Iterable<Trail> trails) => [
+List<GraphTrail> graphTrailsOf(AppLocalizations l, Iterable<Trail> trails) => [
       for (final t in trails)
         if (!t.pending && t.points.length >= 2 && !(trailRoleOf(t) != TrailRole.downhill && t.status.warns))
           GraphTrail(
             id: t.id,
-            name: t.displayName,
+            name: t.displayName(l),
             points: t.directedPoints,
             role: trailRoleOf(t),
             twoWay: t.twoWay,

@@ -178,7 +178,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     } catch (e, stackTrace) {
       logError('Passwort zurücksetzen', e, stackTrace);
       await _discardRecoverySession();
-      if (mounted) _setNotice(friendlyError(e), NoticeTone.error);
+      if (mounted) _setNotice(friendlyError(l, e), NoticeTone.error);
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -214,7 +214,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       logError('Login', e, stackTrace);
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(friendlyError(e))));
+            .showSnackBar(SnackBar(content: Text(friendlyError(l, e))));
       }
     } finally {
       if (mounted) setState(() => _busy = false);

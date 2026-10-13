@@ -75,7 +75,7 @@ class _QuestionCardState extends ConsumerState<_QuestionCard> {
               : l.stillValidUpdated)));
     } catch (e, st) {
       logError('Noch gültig? beantworten', e, st);
-      messenger.showSnackBar(SnackBar(content: Text(friendlyError(e))));
+      messenger.showSnackBar(SnackBar(content: Text(friendlyError(l, e))));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -128,7 +128,7 @@ class _QuestionCardState extends ConsumerState<_QuestionCard> {
           children: [
             ListTile(
               contentPadding: EdgeInsets.zero,
-              title: Text(q.trail.displayName),
+              title: Text(q.trail.displayName(l)),
               subtitle: Text(q.kind == ReportKind.status
                   ? l.stillValidStatusLine(value, age)
                   : l.stillValidConditionLine(value, age)),

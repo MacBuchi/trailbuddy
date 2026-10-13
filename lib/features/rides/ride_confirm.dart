@@ -101,14 +101,14 @@ class ConfirmTarget {
 /// angezeigten unbestätigten Meldung oder einem unbestätigten Zustand —
 /// auch die eigene („stimmt deine Meldung noch?"). Wartende Trails haben
 /// keine Kennung beim Server und fallen weg.
-List<ConfirmTarget> confirmTargetsOf(Iterable<Trail> trails) => [
+List<ConfirmTarget> confirmTargetsOf(AppLocalizations l, Iterable<Trail> trails) => [
       for (final t in trails)
         if (!t.pending && t.points.length >= 2)
           if (_unconfirmed(t) case (final status, final condition)
               when status != null || condition != null)
             ConfirmTarget(
               trailId: t.id,
-              name: t.displayName,
+              name: t.displayName(l),
               line: t.points,
               status: status,
               condition: condition,
@@ -196,7 +196,7 @@ typedef ConfirmNotice = ({String title, String body, List<(ConfirmChoice, String
 ConfirmNotice confirmNoticeOf(AppLocalizations l, ConfirmTarget t) {
   final parts = <String>[
     if (t.status != null)
-      t.status == TrailStatus.open ? l.confirmReportedOpen : l.confirmReportedStatus(t.status!.label.toLowerCase()),
+      t.status == TrailStatus.open ? l.confirmReportedOpen : l.confirmReportedStatus(t.status!.label(l).toLowerCase()),
     if (t.condition != null) l.confirmCondition(trailConditionLabel(l, t.condition!)),
   ];
   final warns = t.status != null && t.status!.warns;
@@ -327,7 +327,7 @@ ConfirmReport? _reportFor(ConfirmAsked q, ConfirmAnswered a) => switch (a.choice
 /// keine Meldung von gestern. Wer unterwegs geantwortet hat, wird nicht
 /// noch einmal gefragt: Seine Meldung ist dann die jüngste bestätigte
 /// (auch wartend im Ausgangskorb), und die unbestätigte ist überholt.
-ConfirmTarget? splitQuestionFor(Trail trail, DateTime? rodeAt) {
+ConfirmTarget? splitQuestionFor(AppLocalizations l, Trail trail, DateTime? rodeAt) {
   if (rodeAt == null || trail.pending || trail.points.length < 2) return null;
   bool before(TrailReport? r) => r != null && !r.reportedAt.isAfter(rodeAt);
   final s = trail.shownStatus.unconfirmed;
@@ -337,7 +337,7 @@ ConfirmTarget? splitQuestionFor(Trail trail, DateTime? rodeAt) {
   if (status == null && condition == null) return null;
   return ConfirmTarget(
     trailId: trail.id,
-    name: trail.displayName,
+    name: trail.displayName(l),
     line: trail.points,
     status: status,
     condition: condition,

@@ -123,15 +123,14 @@ Future<bool> mergePair(BuildContext context, WidgetRef ref, Trail a, Trail b,
     final result = await ref.read(trailsProvider.notifier).mergeInto(duplicate.id, keep.id);
     if (closeSheet) navigator.pop();
     messenger.showSnackBar(SnackBar(
-        content: Text('${l.mergeDone(keep.displayName)}'
-            '${result.fresh ? '' : staleAfterWriteHint}')));
+        content: Text(doneOrStale(l, l.mergeDone(keep.displayName(l)), fresh: result.fresh))));
     return true;
   } on MergeRejectedException catch (e) {
     // Kein Fehlerbericht: Der Server hat entschieden, nichts ist kaputt.
-    messenger.showSnackBar(SnackBar(content: Text(friendlyError(e))));
+    messenger.showSnackBar(SnackBar(content: Text(friendlyError(l, e))));
   } catch (e, st) {
     logError('Duplikat zusammenführen', e, st);
-    messenger.showSnackBar(SnackBar(content: Text(friendlyError(e))));
+    messenger.showSnackBar(SnackBar(content: Text(friendlyError(l, e))));
   }
   return false;
 }
@@ -162,10 +161,10 @@ Future<void> unmergeTrail(BuildContext context, WidgetRef ref, MergedTrail m) as
   try {
     final fresh = await ref.read(trailsProvider.notifier).unmerge(m.id);
     messenger.showSnackBar(
-        SnackBar(content: Text('${l.mergeUnmerged}${fresh ? '' : staleAfterWriteHint}')));
+        SnackBar(content: Text(doneOrStale(l, l.mergeUnmerged, fresh: fresh))));
   } catch (e, st) {
     logError('Zusammenführung lösen', e, st);
-    messenger.showSnackBar(SnackBar(content: Text(friendlyError(e))));
+    messenger.showSnackBar(SnackBar(content: Text(friendlyError(l, e))));
   }
 }
 
@@ -191,7 +190,7 @@ class _CandidateList extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
             child: Text(
-              l.mergeCandidatesIntro(trail.displayName, kMergeNearM.round()),
+              l.mergeCandidatesIntro(trail.displayName(l), kMergeNearM.round()),
               style: theme.textTheme.bodySmall,
             ),
           ),
@@ -202,7 +201,7 @@ class _CandidateList extends StatelessWidget {
                 for (final c in candidates)
                   ListTile(
                     key: ValueKey('merge-candidate-${c.trail.id}'),
-                    title: Text(c.trail.displayName),
+                    title: Text(c.trail.displayName(l)),
                     subtitle: Text(l.mergeCandidateSubtitle(formatMeters(c.trail.lengthM),
                         (c.share * 100).round(), _contributors(l, c.trail))),
                     onTap: () => Navigator.of(context).pop(c.trail),
@@ -241,7 +240,7 @@ class _KeepDialogState extends State<_KeepDialog> {
     final duplicate = _keep.id == widget.a.id ? widget.b : widget.a;
     final buddiesSee = duplicate.recordings.any((r) => r.userId != duplicate.myId);
     final l = context.l10n;
-    final body = l.mergeKeepBody(duplicate.displayName, _keep.displayName);
+    final body = l.mergeKeepBody(duplicate.displayName(l), _keep.displayName(l));
     return AlertDialog(
       title: Text(l.mergeKeepTitle),
       content: SingleChildScrollView(
@@ -260,7 +259,7 @@ class _KeepDialogState extends State<_KeepDialog> {
                       key: ValueKey('merge-keep-${t.id}'),
                       value: t.id,
                       contentPadding: EdgeInsets.zero,
-                      title: Text(t.displayName),
+                      title: Text(t.displayName(l)),
                       subtitle: Text(_contributors(l, t)),
                     ),
                 ],

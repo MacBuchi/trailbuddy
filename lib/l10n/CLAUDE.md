@@ -111,9 +111,29 @@ entsteht zuerst dort) und `app_en.arb`; gelesen mit `context.l10n.<key>`
   kommt aus `formatIsoDate(l, …)` mit `officialDatePattern`; ein Test
   ohne Widget-Baum ruft dafür `initializeDateFormatting` (die App lädt
   die Datumsdaten über die Material-Delegates). Noch deutsch: der
-  Ersatzname „Ohne Namen" beim Lesen der Quelldatei. Vor dem Lösen der
-  Sprache bleiben `friendlyError`, `staleAfterWriteHint`, `kQueuedHint`,
-  die Getter in `lib/models/trail.dart` und `GpxFormatException`. Namen von Runde und Weg (`loopName`, `routeName*`) gehen
+  Ersatzname „Ohne Namen" beim Lesen der Quelldatei. (h) Kern und
+  Trail-Modell 0.117.9 — `friendlyError(l, e)` (`error*`; ohne Kontext
+  — Ausgangskorb, Planer-Graph, Ziele der Fahrt-Fragen — über
+  `serviceL10n()`), die Hinweise nach dem Speichern (`doneOrStale(l, …)`
+  bzw. `l.staleAfterWrite`, `l.queuedHint`), `TrailTrait`/`TrailStatus`/
+  `TrailVisibility.label(l)` als `switch`, `Trail.displayName(l)`
+  (`trailUnnamed`), Update-Sperre (`updateRequired*`, `updateAction*`),
+  „Foto anhängen“ (`photo*`), GPX-Export (`gpxDownloading`,
+  `gpxExportFailed`) und Ladeanimation. **Ein Getter wurde zur Methode —
+  in einem String meldet der Analyzer das nicht**: `'${t.label}'` wäre
+  still der Tear-off („Closure: …“); jede Stelle ist von Hand gesucht.
+  Sortieren und Vergleichen nehmen `Trail.name` (ohne Platzhalter) bzw.
+  `compareTrailNames` — Trails ohne Namen hinten, in jeder Sprache;
+  Pfade ohne Sprache (`trailSearchTexts`, `navigationLabelOf`, Export,
+  Übernehmen) ebenso `name`. `PhotoPipelineException` und
+  `GpxFormatException` tragen statt eines Satzes ihre Art und
+  `userMessage(l)`/`message(l)`; `toString` bleibt der technische Text
+  für den Digest. Pure Helfer, die einen Trailnamen weiterreichen,
+  nehmen `l` vorn (`poolTrailOf`, `graphTrailsOf`, `navSectionsOf*`,
+  `confirmTargetsOf`, `splitQuestionFor`, `RouteTarget.trailHead`).
+  Vor dem Lösen der Sprache bleiben (i): Feedback-Dialog, Update-Banner,
+  der Titel „Was ist neu“ und die Beschriftungen des Dateidialogs im
+  Import. Namen von Runde und Weg (`loopName`, `routeName*`) gehen
   in die gespeicherte Fahrt und die GPX-Datei — sie bleiben in der
   Sprache, in der geplant wurde.
 - **Texte des Dienstes** (Benachrichtigung der Aufnahme, Fragen

@@ -17,7 +17,6 @@ import '../../core/app_colors.dart';
 import '../../core/errors.dart';
 import '../../core/geo.dart' show formatMeters;
 import '../../core/line_geometry.dart';
-import '../../core/read_after_write.dart';
 import '../../l10n/l10n.dart';
 import '../../models/trail.dart';
 import '../friends/buddy_alias.dart';
@@ -54,7 +53,7 @@ String reportAgeLabel(AppLocalizations l, DateTime at, {DateTime? now}) {
 
 /// Was eine Meldung sagt, in Worten: „Gesperrt" bzw. „Ausgefahren".
 String reportValueLabel(AppLocalizations l, TrailReport r) => r.kind == ReportKind.status
-    ? r.status!.label
+    ? r.status!.label(l)
     : trailCondition(r.condition!).label(l);
 
 /// Das Ergebnis des Melde-Dialogs.
@@ -78,12 +77,12 @@ Future<void> reportTrail(BuildContext context, WidgetRef ref, Trail trail) async
     messenger.showSnackBar(SnackBar(
         content: Text(switch (outcome) {
       WriteOutcome.done => l.reportDone,
-      WriteOutcome.doneStale => '${l.reportDone}$staleAfterWriteHint',
-      WriteOutcome.queued => kQueuedHint,
+      WriteOutcome.doneStale => l.staleAfterWrite(l.reportDone),
+      WriteOutcome.queued => l.queuedHint,
     })));
   } catch (e, st) {
     logError('Trail melden', e, st);
-    messenger.showSnackBar(SnackBar(content: Text(friendlyError(e))));
+    messenger.showSnackBar(SnackBar(content: Text(friendlyError(l, e))));
   }
 }
 
@@ -166,7 +165,7 @@ class _ReportDialogState extends ConsumerState<_ReportDialog> {
                 for (final s in TrailStatus.values)
                   ChoiceChip(
                     key: ValueKey('report-status-${s.db}'),
-                    label: Text(s.label),
+                    label: Text(s.label(l)),
                     selected: _status == s,
                     onSelected: (on) => setState(() => _status = on ? s : null),
                   ),
@@ -334,13 +333,13 @@ class _OwnRatingPickerState extends ConsumerState<OwnRatingPicker> {
           break;
         case WriteOutcome.doneStale:
           messenger.showSnackBar(SnackBar(
-              content: Text('${l.reportRatingSaved}$staleAfterWriteHint')));
+              content: Text(l.staleAfterWrite(l.reportRatingSaved))));
         case WriteOutcome.queued:
-          messenger.showSnackBar(const SnackBar(content: Text(kQueuedHint)));
+          messenger.showSnackBar(SnackBar(content: Text(l.queuedHint)));
       }
     } catch (e, st) {
       logError('Trail-Bewertung speichern', e, st);
-      messenger.showSnackBar(SnackBar(content: Text(friendlyError(e))));
+      messenger.showSnackBar(SnackBar(content: Text(friendlyError(l, e))));
     } finally {
       if (mounted) setState(() => _saving = false);
     }

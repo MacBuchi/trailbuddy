@@ -10,6 +10,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:trailbuddy/core/app_distribution.dart';
 import 'package:trailbuddy/core/app_info.dart';
+import 'package:trailbuddy/core/errors.dart' show friendlyError;
+import 'package:trailbuddy/core/photo_pipeline.dart';
+import 'package:trailbuddy/core/read_after_write.dart' show doneOrStale;
+import 'package:supabase_flutter/supabase_flutter.dart' show PostgrestException;
+import 'package:trailbuddy/features/trails/gpx.dart';
+import 'package:trailbuddy/features/trails/trail_geometry.dart' show RecordingSource;
 import 'package:trailbuddy/features/friends/connect_summary.dart';
 import 'package:trailbuddy/features/map/map_legend.dart';
 import 'package:trailbuddy/features/map/poi.dart';
@@ -649,4 +655,66 @@ void main() {
       expect(en.resendIn(42), 'Send again in 42 s');
     });
   });
+
+  // Stufe (h): die letzten Texte in `lib/core/` und `models/trail.dart`.
+  group('Kern und Trail-Modell auf Englisch', () {
+    final en = lookupAppLocalizations(const Locale('en'));
+
+    test('friendlyError nach Fehlerklasse', () {
+      expect(friendlyError(en, const SocketException('x')), 'No connection — please check your internet.');
+      expect(friendlyError(en, const PostgrestException(message: 'x', code: '42501')),
+          'This is no longer shared with you.');
+      expect(friendlyError(en, const PostgrestException(message: 'x')), 'Server error (unknown) — please try again later.');
+      expect(friendlyError(en, StateError('x')), 'Unexpected error (StateError) — please try again later.');
+      expect(friendlyError(l10nDe, const SocketException('x')), 'Keine Verbindung — bitte Internet prüfen.');
+      expect(friendlyError(en, const PhotoPipelineException.unreadable()), 'The app cannot read this image format.');
+    });
+
+    test('Merkmal, Zustand, Sichtbarkeit und der Platzhalter ohne Namen', () {
+      expect(TrailTrait.flowy.label(en), 'Flowy');
+      expect(TrailTrait.flowy.label(l10nDe), 'Flowig');
+      expect(TrailStatus.closed.label(en), 'Closed');
+      expect(TrailVisibility.private.label(en), 'Only for me');
+      final unnamed = Trail(id: 't', myId: 'me', recordings: [_rec('t')], details: const []);
+      expect(unnamed.displayName(en), 'Unnamed trail');
+      expect(unnamed.displayName(l10nDe), 'Trail ohne Namen');
+      expect(unnamed.name, isNull);
+    });
+
+    test('Hinweise nach dem Speichern', () {
+      expect(doneOrStale(en, 'Saved', fresh: true), 'Saved');
+      expect(doneOrStale(en, 'Saved', fresh: false), 'Saved — visible once the list reloads.');
+      expect(l10nDe.queuedHint, startsWith('Kein Netz — liegt im Ausgangskorb'));
+    });
+
+    test('eine Datei, die kein GPX ist', () {
+      expect(() => parseGpx('<kml/>'),
+          throwsA(isA<GpxFormatException>().having((e) => e.message(en), 'message', 'Not a GPX file (root is <kml>).')));
+      expect(() => parseGpx('<<<'),
+          throwsA(isA<GpxFormatException>().having((e) => e.message(l10nDe), 'message', startsWith('Kein gültiges XML: '))));
+    });
+
+    testWidgets('Update-Sperre', (tester) async {
+      await tester.pumpWidget(MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        locale: const Locale('en'),
+        home: Builder(builder: (context) => Text(context.l10n.updateRequiredVersions('0.1.0', '0.2.0'))),
+      ));
+      expect(find.text('Installed: 0.1.0\nRequired: 0.2.0'), findsOneWidget);
+    });
+  });
 }
+
+TrailRecording _rec(String trail) => TrailRecording(
+      id: '$trail-r',
+      trailId: trail,
+      userId: 'me',
+      source: RecordingSource.import,
+      recordedAt: null,
+      reversed: false,
+      quality: 0.5,
+      createdAt: DateTime(2026, 1, 1),
+      points: const [LatLng(48, 9), LatLng(48.01, 9)],
+      lengthM: 1000,
+    );

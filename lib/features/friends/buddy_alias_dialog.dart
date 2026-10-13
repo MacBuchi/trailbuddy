@@ -43,11 +43,12 @@ Future<void> showAliasDialog(BuildContext context, WidgetRef ref,
   if (text == null || text.trim() == (current ?? '')) return;
   if (!context.mounted) return;
   final messenger = ScaffoldMessenger.of(context);
+  final l = context.l10n;
   try {
     await ref.read(buddyAliasesProvider.notifier).set(friendId, text);
   } catch (e, st) {
     logError('Alias speichern', e, st);
-    messenger.showSnackBar(SnackBar(content: Text(friendlyError(e))));
+    messenger.showSnackBar(SnackBar(content: Text(friendlyError(l, e))));
   }
 }
 

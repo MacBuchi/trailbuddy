@@ -61,7 +61,7 @@ class _MergeProposalCardState extends ConsumerState<MergeProposalCard> {
       return names.of(userId, d?.username);
     }
 
-    final a = p.duplicate.displayName, b = p.target.displayName;
+    final a = p.duplicate.displayName(l), b = p.target.displayName(l);
     return switch (p.source) {
       ProposalSource.declared =>
         l.mergeProposalDeclared(p.byUsers.length, p.byUsers.map(who).join(', '), a, b),
@@ -88,7 +88,7 @@ class _MergeProposalCardState extends ConsumerState<MergeProposalCard> {
     try {
       final fresh = await notifier.markDistinct(a, b);
       messenger.showSnackBar(SnackBar(
-        content: Text('${l.mergeDistinctDone}${fresh ? '' : staleAfterWriteHint}'),
+        content: Text(doneOrStale(l, l.mergeDistinctDone, fresh: fresh)),
         action: SnackBarAction(
           label: l.commonUndo,
           onPressed: () async {
@@ -96,16 +96,16 @@ class _MergeProposalCardState extends ConsumerState<MergeProposalCard> {
               await notifier.unmarkDistinct(a, b);
             } catch (e, st) {
               logError('Verschieden zurücknehmen', e, st);
-              messenger.showSnackBar(SnackBar(content: Text(friendlyError(e))));
+              messenger.showSnackBar(SnackBar(content: Text(friendlyError(l, e))));
             }
           },
         ),
       ));
     } on MergeRejectedException catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text(friendlyError(e))));
+      messenger.showSnackBar(SnackBar(content: Text(friendlyError(l, e))));
     } catch (e, st) {
       logError('Verschieden merken', e, st);
-      messenger.showSnackBar(SnackBar(content: Text(friendlyError(e))));
+      messenger.showSnackBar(SnackBar(content: Text(friendlyError(l, e))));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -136,7 +136,7 @@ class _MergeProposalCardState extends ConsumerState<MergeProposalCard> {
     final ele = r.ele == null ? null : (r.reversed ? r.ele!.reversed.toList() : r.ele!);
     final request = SplitRequest(
       track: GpxTrack(
-        name: own.displayName,
+        name: own.displayName(context.l10n),
         points: [for (var i = 0; i < pts.length; i++) TrackPoint(pts[i].latitude, pts[i].longitude, ele: ele?[i])],
       ),
       source: r.source,

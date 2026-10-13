@@ -723,7 +723,7 @@ class _HeadCard extends StatelessWidget {
             children: [
               if (section.lengthM > 0) _Chip(formatMeters(section.lengthM), mono: true),
               if (section.lossM case final loss? when loss > 0) _Chip('↓${loss.round()} ${l.navUnitHm}', mono: true),
-              if (section.traits.isNotEmpty) _Chip(section.traits.map((t) => t.label).join(' · ')),
+              if (section.traits.isNotEmpty) _Chip(section.traits.map((t) => t.label(l)).join(' · ')),
               if (condition != null && section.conditionAt != null)
                 _Chip(l.navConditionChip(trailCondition(condition).label(l), reportAgeLabel(l, section.conditionAt!))),
             ],

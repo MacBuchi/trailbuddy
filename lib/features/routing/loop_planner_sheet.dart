@@ -382,7 +382,7 @@ class _ListSheet extends ConsumerWidget {
           const SizedBox(height: 8),
           Text(
             key: const ValueKey('loop-connectors'),
-            l.loopListConnectors(pool.connectors.length, pool.connectors.map((t) => t.displayName).join(', ')),
+            l.loopListConnectors(pool.connectors.length, pool.connectors.map((t) => t.displayName(l)).join(', ')),
             style: theme.textTheme.bodySmall?.copyWith(color: theme.hintColor),
           ),
         ],
@@ -411,7 +411,7 @@ class _ListSheet extends ConsumerWidget {
       controlAffinity: ListTileControlAffinity.leading,
       value: on,
       onChanged: (v) => notifier.setSelected([t.id], v == true),
-      title: Text(t.displayName, maxLines: 1, overflow: TextOverflow.ellipsis),
+      title: Text(t.displayName(l), maxLines: 1, overflow: TextOverflow.ellipsis),
       subtitle: Text(parts.join(' · ')),
       secondary: IconButton(
         key: ValueKey('loop-must-${t.id}'),
@@ -587,7 +587,7 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
             onPressed: () => ref.read(navRequestProvider.notifier).state = NavRequest(
                 points: plan.points,
                 title: loopName(l, plan),
-                sections: navSectionsOfLoop(plan, trailById: trailByIdOf(ref))),
+                sections: navSectionsOfLoop(context.l10n, plan, trailById: trailByIdOf(ref))),
             icon: const Icon(Icons.navigation_outlined),
             label: Text(l.commonNavigate),
           ),
@@ -687,7 +687,7 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
       for (final e in plan.excluded.entries)
         Text(
           key: ValueKey('loop-excluded-${e.key}'),
-          context.l10n.loopExcludedRow(byId[e.key]?.displayName ?? e.key, _exclusionText(context.l10n, e.value)),
+          context.l10n.loopExcludedRow(byId[e.key]?.displayName(context.l10n) ?? e.key, _exclusionText(context.l10n, e.value)),
           style: theme.textTheme.bodySmall,
         ),
     ];

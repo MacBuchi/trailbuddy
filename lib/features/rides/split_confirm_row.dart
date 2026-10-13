@@ -113,7 +113,7 @@ class _SplitConfirmRowState extends ConsumerState<SplitConfirmRow> {
                   for (final s in TrailStatus.values)
                     ChoiceChip(
                       key: ValueKey('$_k-status-${s.db}'),
-                      label: Text(s.label),
+                      label: Text(s.label(context.l10n)),
                       selected: _status == s,
                       onSelected: (_) => setState(() => _status = s),
                     ),

@@ -11,6 +11,7 @@ import 'package:trailbuddy/features/trails/trail_geometry.dart' show RecordingSo
 import 'package:trailbuddy/features/routing/route_progress.dart';
 import 'package:trailbuddy/features/routing/trail_head_route.dart';
 import 'package:trailbuddy/models/trail.dart';
+import '../fakes/l10n_de.dart';
 
 /// Eine Linie nach Norden auf 11° Ost: Punkt i liegt i · 0,001° (≈ 111 m)
 /// nördlich von 47°.
@@ -74,7 +75,7 @@ void main() {
         ],
         stops: [(trail: a, secondPass: false), (trail: b, secondPass: false)],
       );
-      final s = navSectionsOfLoop(plan, trailById: (_) => null);
+      final s = navSectionsOfLoop(l10nDe, plan, trailById: (_) => null);
       expect(s.trails.map((t) => t.name), ['Alpha', 'Beta']);
       final m = 111.2;
       expect(s.trails[0].startM, closeTo(3.2 * m, 2));
@@ -101,7 +102,7 @@ void main() {
         TrailNote(id: 'n1', trailId: 'a', userId: 'u', body: 'alt', createdAt: DateTime.utc(2026, 10, 1), username: 'jan'),
         TrailNote(id: 'n2', trailId: 'a', userId: 'u', body: 'Baum quer', createdAt: DateTime.utc(2026, 10, 9), username: 'jan'),
       ]);
-      final s = navSectionsOfLoop(plan, trailById: (id) => id == 'a' ? net : null);
+      final s = navSectionsOfLoop(l10nDe, plan, trailById: (id) => id == 'a' ? net : null);
       final t = s.trails.single;
       expect(t.name, 'Rosskopf Süd');
       expect(t.grade, 3);
@@ -117,7 +118,7 @@ void main() {
       final covered = _trail('c', 'Gedeckt', _line(3, 5, 0.1));
       // Nur zur Hälfte auf der Fahrt: 60 % Deckung des Trails — unter 80 %.
       final half = _trail('h', 'Halb', [..._line(8, 10, 0.1), ..._line(10.1, 11.5, 0.1)]);
-      final s = navSectionsOfLine(ride, [covered, half]);
+      final s = navSectionsOfLine(l10nDe, ride, [covered, half]);
       expect(s.trails.map((t) => t.name), ['Gedeckt']);
       // Der Korridor nimmt den Fahrtpunkt kurz vor dem Anfang mit (11 m).
       expect(s.trails.single.startM, closeTo(3 * 111.2, 15));
@@ -135,7 +136,7 @@ void main() {
         sections: [RouteSection(cls: WayClass.forstweg, points: _line(0, 5), lengthM: 556)],
         points: _line(0, 5),
       );
-      final s = navSectionsOfTrailHead(route, target);
+      final s = navSectionsOfTrailHead(l10nDe, route, target);
       final t = s.trails.single;
       expect(t.beyondRoute, isTrue);
       expect(t.startM, closeTo(5 * 111.2, 2));

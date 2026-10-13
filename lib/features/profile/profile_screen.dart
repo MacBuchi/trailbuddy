@@ -482,7 +482,7 @@ class _ChangePasswordDialogState extends ConsumerState<_ChangePasswordDialog> {
       if (mounted) setState(() => _error = changePasswordErrorMessage(l, e));
     } catch (e, stackTrace) {
       logError('Passwort ändern', e, stackTrace);
-      if (mounted) setState(() => _error = friendlyError(e));
+      if (mounted) setState(() => _error = friendlyError(l, e));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -573,7 +573,7 @@ class _DeleteAccountTile extends ConsumerWidget {
       logError('Konto löschen', e, stackTrace);
       if (context.mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(friendlyError(e))));
+            .showSnackBar(SnackBar(content: Text(friendlyError(context.l10n, e))));
       }
     }
   }

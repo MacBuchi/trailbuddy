@@ -15,6 +15,7 @@
 // fünfter wäre nur Wartezeit vor derselben Antwort.
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../l10n/l10n.dart';
 import 'errors.dart';
 
 /// Was der Oberfläche zu sagen bleibt, wenn geschrieben, aber nicht mehr
@@ -25,12 +26,14 @@ import 'errors.dart';
 /// trägt es ein zweites Mal ein. Der Nachsatz erklärt, warum trotzdem
 /// nichts zu sehen ist; ohne ihn sähe „gespeichert" bei unveränderter
 /// Liste nach einer Lüge aus.
-const staleAfterWriteHint = ' — sichtbar, sobald die Liste wieder lädt.';
-
-/// Dasselbe für den Ausgangskorb (#30): NICHT „gespeichert" — auf dem
-/// Server liegt noch nichts —, aber auch kein Fehler.
-const kQueuedHint =
-    'Kein Netz — liegt im Ausgangskorb und geht raus, sobald wieder Verbindung besteht.';
+///
+/// Die Sätze stehen in den ARB-Dateien (#209): `l.staleAfterWrite(done)`
+/// hängt den Nachsatz an die Erfolgsmeldung, [doneOrStale] wählt.
+/// Dasselbe für den Ausgangskorb (#30) ist `l.queuedHint`: NICHT
+/// „gespeichert" — auf dem Server liegt noch nichts —, aber auch kein
+/// Fehler.
+String doneOrStale(AppLocalizations l, String done, {required bool fresh}) =>
+    fresh ? done : l.staleAfterWrite(done);
 
 /// Read-after-write für [AsyncNotifier]-Mutationen.
 mixin ReadAfterWrite<T> on AsyncNotifier<T> {

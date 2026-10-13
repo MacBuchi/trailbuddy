@@ -12,9 +12,13 @@ import 'package:trailbuddy/core/widgets/start_splash.dart';
 import 'package:trailbuddy/core/widgets/trailbuddy_logo.dart';
 import 'package:trailbuddy/features/friends/friends_screen.dart' show ConnectMergeMark, connectMergeAt;
 import 'package:trailbuddy/features/map/map_screen.dart' show kRidePulseScale, ridePulseAt;
+import 'package:trailbuddy/l10n/l10n.dart';
 
 Widget _host(Widget child, {bool reduce = false}) => ProviderScope(
       child: MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        locale: const Locale('de'),
         theme: buildAppTheme(AppColors.dark),
         home: Builder(
           builder: (context) => MediaQuery(
