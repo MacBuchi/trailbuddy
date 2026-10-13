@@ -683,6 +683,16 @@ final kFeatureHighlights = <FeatureHighlight>[
     text: (l) => l.highlightAppearanceText,
     target: '/profile/appearance',
   ),
+  FeatureHighlight(
+    id: 'language',
+    since: '0.118.0',
+    kind: HighlightKind.highlight,
+    tab: HighlightTab.profile,
+    icon: Icons.translate,
+    title: (l) => l.highlightLanguageTitle,
+    text: (l) => l.highlightLanguageText,
+    target: '/profile/language',
+  ),
 ];
 
 /// Die drei Highlights, mit denen der RÜCKBLICK beginnt — beim Rückblick

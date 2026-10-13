@@ -2,6 +2,18 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## TrailBuddy spricht Englisch
+
+*Version 0.118.0, 2026-10-13*
+
+- Die App spricht jetzt Deutsch und Englisch. Ohne eigene Wahl folgt
+  sie der Sprache des Telefons oder Browsers: Deutsch bleibt Deutsch,
+  jede andere Sprache wird Englisch.
+- Im Profil unter „Sprache“ stellst du sie fest ein — das gilt auch
+  für die Benachrichtigungen während einer Fahrt oder Navigation.
+- Noch deutsch: diese Liste „Was ist neu“, die Rechtsseiten und die
+  Meldungen deiner Buddys. Sie folgen in den nächsten Versionen.
+
 ## Trails ohne Namen
 
 *Versionen 0.117.9 bis 0.117.10, 2026-10-13*

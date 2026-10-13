@@ -10,6 +10,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter/widgets.dart' show Locale;
+import 'package:trailbuddy/core/settings.dart' show kLanguageSettingKey;
+import 'package:trailbuddy/l10n/l10n.dart' show chosenAppLocale;
 import 'package:trailbuddy/features/rides/ride_task_handler.dart';
 import 'package:trailbuddy/features/routing/nav_notice.dart';
 import 'package:trailbuddy/features/routing/route_progress.dart';
@@ -33,7 +36,11 @@ void main() {
   setUp(() async {
     base = await Directory.systemTemp.createTemp('nav_notice');
     addTearDown(() => base.delete(recursive: true));
-    SharedPreferences.setMockInitialValues({});
+    // Die Texte des Dienstes folgen der Wahl im Profil (#209); hier hat
+    // sie „Deutsch" gesagt — der Dienst liest sie je Takt nach.
+    SharedPreferences.setMockInitialValues({kLanguageSettingKey: 'de'});
+    chosenAppLocale = const Locale('de');
+    addTearDown(() => chosenAppLocale = null);
     resetNavTick();
     rev = 0;
   });
@@ -250,6 +257,18 @@ void main() {
           stopService: () async => fail('die Fahrt braucht den Dienst'),
           showRide: (title, text) async => shown.add(title));
       expect(shown, [l10nDe.rideNoticeTitle]);
+    });
+
+    test('reads the language from the profile before it speaks (#209)', () async {
+      await arm(NavRouteData(points: _points, title: 'x'));
+      await FlutterForegroundTask.saveData(key: kRideDataActive, value: true);
+      // Die App hat auf Englisch umgestellt, das Isolate hatte noch Deutsch.
+      await (await SharedPreferences.getInstance()).setString(kLanguageSettingKey, 'en');
+      final shown = <String>[];
+      await stopNavFromService(
+          stopService: () async => fail('die Fahrt braucht den Dienst'),
+          showRide: (title, text) async => shown.add(title));
+      expect(shown, ['Recording a ride']);
     });
   });
 }

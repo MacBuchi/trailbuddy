@@ -1,7 +1,6 @@
 // Sprachen der Oberfläche (#209). Drei Zusagen: Jeder Text steht in
 // beiden Sprachen, die App wählt Englisch für alles außer Deutsch, und
-// bis die Übersetzung trägt, bleibt sie deutsch — auch auf einem
-// englischen Gerät.
+// die Wahl im Profil schlägt das Gerät — in der App wie im Dienst.
 import 'dart:convert';
 import 'dart:io';
 
@@ -15,6 +14,8 @@ import 'package:trailbuddy/core/photo_pipeline.dart';
 import 'package:trailbuddy/core/read_after_write.dart' show doneOrStale;
 import 'package:trailbuddy/core/update_check.dart';
 import 'package:trailbuddy/features/changelog/changelog_screen.dart';
+import 'package:trailbuddy/core/settings.dart' show kLanguageSettingKey, settingsProvider;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' show PostgrestException;
 import 'package:trailbuddy/features/trails/gpx.dart';
 import 'package:trailbuddy/features/trails/trail_geometry.dart' show RecordingSource;
@@ -141,7 +142,7 @@ void main() {
   });
 
   group('die App', () {
-    testWidgets('bleibt vorerst deutsch, auch auf einem englischen Gerät',
+    testWidgets('folgt einem englischen Gerät, solange nichts gewählt ist',
         (tester) async {
       final backend = FakeBackend();
       backend.signInAs(backend.addUser(username: 'anna').id);
@@ -150,7 +151,58 @@ void main() {
           extraOverrides: [
             webChannelProvider.overrideWithValue(WebChannel.preview),
           ]);
+      expect(find.text(_english), findsOneWidget);
+      expect(find.text(_german), findsNothing);
+    });
+
+    testWidgets('die Wahl im Profil schlägt das Gerät, sofort und gemerkt',
+        (tester) async {
+      final settings = FakeSettings();
+      final backend = FakeBackend();
+      backend.signInAs(backend.addUser(username: 'anna').id);
+      await pumpApp(tester, backend, settings: settings, extraOverrides: [
+        webChannelProvider.overrideWithValue(WebChannel.preview),
+      ]);
       expect(find.text(_german), findsOneWidget);
+      await openTab(tester, 'Profil');
+      final row = find.byKey(const ValueKey('profile-language'));
+      await scrollTo(tester, row);
+      expect(find.descendant(of: row, matching: find.text('Deutsch · folgt dem Gerät')), findsOneWidget);
+      await tester.tap(row);
+      await settle(tester);
+      await tester.tap(find.text('English'));
+      await settle(tester);
+      expect(settings.language, 'en');
+      expect(find.text('Language'), findsOneWidget, reason: 'der Seitentitel wechselt sofort');
+      expect(find.text(_english), findsOneWidget);
+      expect(serviceL10n().localeName, 'en', reason: 'der Dienst spricht dieselbe Sprache');
+      await tester.tap(find.text('Like the device'));
+      await settle(tester);
+      expect(settings.language, 'system');
+      expect(find.text('Sprache'), findsOneWidget);
+      expect(chosenAppLocale, isNull, reason: 'der Dienst folgt wieder dem Gerät');
+    });
+
+    testWidgets('eine gemerkte Wahl gilt ab dem Start', (tester) async {
+      final backend = FakeBackend();
+      backend.signInAs(backend.addUser(username: 'anna').id);
+      await pumpApp(tester, backend, settings: FakeSettings(language: 'en'), extraOverrides: [
+        webChannelProvider.overrideWithValue(WebChannel.preview),
+      ]);
+      expect(find.text(_english), findsOneWidget);
+      expect(serviceL10n().localeName, 'en');
+    });
+
+    test('der Dienst liest die Wahl aus den SharedPreferences', () async {
+      addTearDown(() => chosenAppLocale = null);
+      SharedPreferences.setMockInitialValues({kLanguageSettingKey: 'en'});
+      await refreshServiceLocale();
+      expect(serviceL10n().localeName, 'en');
+      SharedPreferences.setMockInitialValues({kLanguageSettingKey: 'system'});
+      await refreshServiceLocale();
+      expect(chosenAppLocale, isNull);
+      expect(AppLanguage.parse(null), AppLanguage.system);
+      expect(AppLanguage.parse('kaputt'), AppLanguage.system);
     });
 
     testWidgets('zeigt einen umgezogenen Text auf Englisch', (tester) async {
@@ -304,10 +356,12 @@ void main() {
       // Der Dienst hat keinen BuildContext; spräche er eine andere Sprache
       // als die Oberfläche, stünde die Frage unterwegs auf Englisch über
       // einer deutschen App.
-      final container = ProviderContainer();
+      addTearDown(() => chosenAppLocale = null);
+      final container = ProviderContainer(
+          overrides: [settingsProvider.overrideWithValue(FakeSettings(language: 'en'))]);
       addTearDown(container.dispose);
-      expect(container.read(appLocaleProvider), pinnedAppLocale);
-      expect(serviceL10n().localeName, pinnedAppLocale!.languageCode);
+      expect(container.read(appLocaleProvider), const Locale('en'));
+      expect(serviceL10n().localeName, 'en');
     });
 
     test('die Frage unterwegs', () {

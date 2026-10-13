@@ -17,6 +17,7 @@ import 'dart:io';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:geolocator/geolocator.dart';
 
+import '../../l10n/l10n.dart' show refreshServiceLocale;
 import '../routing/nav_notice.dart';
 import 'ride_confirm.dart';
 import 'ride_confirm_notify.dart';
@@ -194,6 +195,9 @@ Future<void> serviceTick({Future<Position?> Function()? fix}) async {
     final recording = await FlutterForegroundTask.getData<bool>(key: kRideDataActive) == true;
     final navigating = await FlutterForegroundTask.getData<bool>(key: kNavDataActive) == true;
     if (!recording && !navigating) return;
+    // Die Sprache aus dem Profil (#209) — sie kann sich während der Fahrt
+    // ändern, und die Texte dieses Takts sollen schon die neue sprechen.
+    await refreshServiceLocale();
     Future<Position?>? once;
     Future<Position?> shared() => once ??= (fix ?? _fix)();
     if (recording) await recordRideTick(fix: shared);

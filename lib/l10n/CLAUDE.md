@@ -15,12 +15,18 @@ entsteht zuerst dort) und `app_en.arb`; gelesen mit `context.l10n.<key>`
   eingecheckte Kopie veraltete still, sobald jemand eine ARB-Datei ändert
   und den Lauf vergisst. Folge: In einem frischen Checkout meldet der
   Analyzer `app_localizations.dart` als fehlend, bis `pub get` lief.
-- **Bis die Übersetzung trägt, bleibt die App deutsch.** `appLocaleProvider`
-  liefert fest `Locale('de')`. Die Texte ziehen Bereich für Bereich um
-  (Stufen in #209: Karte, Trails, Fahrten und Planer, Buddys und Profil,
-  Touren und Hilfe); erst danach wird die Vorgabe `null` und die App folgt
-  dem Gerät bzw. Browser. Folgte sie schon vorher, sähe ein englisches
-  Telefon eine halb übersetzte App.
+- **Die Sprache wählt das Profil, sonst das Gerät** (seit 0.118.0,
+  Betreiber 2026-10-13): Zeile und Seite „Sprache" (`/profile/language`,
+  „Wie das Gerät / Deutsch / English"), `AppLanguage` in `l10n.dart`,
+  gemerkt in `Settings.language` (Schlüssel `kLanguageSettingKey`,
+  gerätelokal wie das Erscheinungsbild). `appLocaleProvider` liest
+  `languageProvider`; Tests überschreiben weiter `appLocaleProvider`.
+  Die Sprachen heißen in sich selbst (`languageName`: „Deutsch",
+  „English") — nicht aus ARB, so findet man seine auch in einer App,
+  die man nicht lesen kann. Bis 0.117.x war die App fest deutsch, solange
+  die Texte Bereich für Bereich umzogen (Stufen a–i).
+  Noch nicht übersetzt (#209, je ein PR): Push-Texte aus `push_flush`,
+  Rechtsseiten, „Was ist neu".
 - **Rückfall ist Englisch**, nicht die erste unterstützte Sprache
   (`resolveAppLocale`): `fr` ⇒ Englisch, `fr, de` ⇒ Deutsch.
 - **Das Testgerät spricht Deutsch.** `pumpApp` setzt
@@ -137,19 +143,28 @@ entsteht zuerst dort) und `app_en.arb`; gelesen mit `context.l10n.<key>`
   Ersatztext von „Was ist neu“ (`changelog*`, der Inhalt bleibt die
   deutsche `CHANGELOG.md`) und die Filter des Dateidialogs im Import
   (`importPicker*`, über `serviceL10n()` — der Picker ist ein Provider
-  ohne Kontext). Damit steht keine Oberfläche mehr im Code; offen bis
-  zum Lösen der Sprache sind nur die Fragen an den Betreiber in #209.
+  ohne Kontext). Damit steht keine Oberfläche mehr im Code; gelöst
+  wurde die Sprache danach in 0.118.0 (Sprachwahl, oben).
   Namen von Runde und Weg (`loopName`, `routeName*`) gehen
   in die gespeicherte Fahrt und die GPX-Datei — sie bleiben in der
   Sprache, in der geplant wurde.
 - **Texte des Dienstes** (Benachrichtigung der Aufnahme, Fragen
   unterwegs, später die der Navigation) entstehen im Service-Isolate,
   ohne `BuildContext` und ohne Riverpod. Sie holen ihre Texte über
-  `serviceL10n()` (`l10n.dart`), das dieselbe Regel liest wie
-  `appLocaleProvider`: `pinnedAppLocale`, sonst die Gerätesprache. Eine
-  Stelle für beide, damit Benachrichtigung und App nie verschiedene
-  Sprachen sprechen (`test/l10n_test.dart`). Ein Sprachschalter im
-  Profil müsste seine Wahl dem Dienst mitgeben. Die Kanalnamen in
+  `serviceL10n()` (`l10n.dart`): `chosenAppLocale`, sonst die
+  Gerätesprache. `chosenAppLocale` ist ein Wert JE ISOLATE — in der App
+  setzt ihn `LanguageNotifier`, im Dienst `refreshServiceLocale()` am
+  Anfang jedes Takts (`serviceTick`) und vor dem Text von „Navigation
+  beenden"; es liest `kLanguageSettingKey` direkt aus den
+  SharedPreferences (`reload`, wie `FlutterForegroundTask.getData`) —
+  keine eigene Brücke. Damit spricht eine Fahrt nach dem Umstellen ab
+  dem nächsten Takt die neue Sprache (`test/l10n_test.dart`,
+  `nav_notice_test`, Gegenprobe rot). **Im Test** liest `serviceL10n()`
+  statt des echten `PlatformDispatcher` die Sprachen aus
+  `debugDeviceLocales`; `pumpApp` setzt sie mit dem Testgerät gleich,
+  ein Test ohne `pumpApp`, der Texte des Dienstes prüft, setzt sie
+  selbst (`area_resume_test`) oder `chosenAppLocale` (`keep_alive_test`,
+  `nav_notice_test`) — sonst spricht der Dienst `en_US`. Die Kanalnamen in
   `strings.xml` (`kConfirmChannelName`) bleiben außerhalb (#209 offen).
 - **Datumsmuster stehen in den ARB-Dateien** (`ridesDatePattern`,
   `splitDatePattern`), gelesen mit `DateFormat(l.xxxPattern,

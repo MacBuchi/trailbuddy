@@ -12,6 +12,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:trailbuddy/l10n/l10n.dart' show chosenAppLocale, debugDeviceLocales;
 import 'package:trailbuddy/app.dart';
 import 'package:trailbuddy/core/app_info.dart';
 import 'package:trailbuddy/core/connectivity.dart';
@@ -279,6 +280,14 @@ Future<void> pumpApp(WidgetTester tester, FakeBackend backend,
   // deutschen Texte sonst nicht mehr (test/l10n_test.dart).
   tester.platformDispatcher.localesTestValue = deviceLocales;
   addTearDown(tester.platformDispatcher.clearLocalesTestValue);
+  // Die Wahl des Dienstes ist ein Wert je Isolate, kein Provider — ein
+  // Test, der „English" gewählt hat, ließe sie sonst dem nächsten stehen.
+  chosenAppLocale = null;
+  debugDeviceLocales = deviceLocales;
+  addTearDown(() {
+    chosenAppLocale = null;
+    debugDeviceLocales = null;
+  });
   await tester.pumpWidget(ProviderScope(
     overrides: overridesFor(backend,
         appConfig: appConfig,

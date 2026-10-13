@@ -162,6 +162,17 @@ class ProfileScreen extends ConsumerWidget {
             onTap: () => context.push('/profile/appearance'),
           ),
           _ProfileRow(
+            id: 'language',
+            icon: Icons.translate,
+            title: l.profileLanguageTitle,
+            value: switch (ref.watch(languageProvider)) {
+              AppLanguage.system =>
+                l.profileLanguageSystemValue(languageName(Localizations.localeOf(context))),
+              final chosen => languageName(chosen.locale!),
+            },
+            onTap: () => context.push('/profile/language'),
+          ),
+          _ProfileRow(
             id: 'account',
             icon: Icons.person_outline,
             title: l.profileAccountTitle,
@@ -395,6 +406,14 @@ class AppearanceScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) =>
       _ProfilePage(title: context.l10n.profileAppearanceTitle, children: const [_AppearanceSection()]);
+}
+
+class LanguageScreen extends StatelessWidget {
+  const LanguageScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) =>
+      _ProfilePage(title: context.l10n.profileLanguageTitle, children: const [_LanguageSection()]);
 }
 
 class RiderProfileScreen extends StatelessWidget {
@@ -714,6 +733,42 @@ class _AppearanceSection extends ConsumerWidget {
         const SizedBox(height: 4),
         Text(l.profileAppearanceDeviceOnly,
             style: Theme.of(context).textTheme.bodySmall),
+      ],
+    );
+  }
+}
+
+/// „Sprache" (#209): wie das Gerät, Deutsch oder Englisch. Gerätelokal
+/// wie das Erscheinungsbild; der Dienst liest dieselbe Einstellung.
+class _LanguageSection extends ConsumerWidget {
+  const _LanguageSection();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final language = ref.watch(languageProvider);
+    final l = context.l10n;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: double.infinity,
+          child: SegmentedButton<AppLanguage>(
+            key: const ValueKey('language'),
+            showSelectedIcon: false,
+            segments: [
+              for (final option in AppLanguage.values)
+                ButtonSegment(
+                    value: option,
+                    label: Text(option.locale == null
+                        ? l.profileLanguageSystem
+                        : languageName(option.locale!))),
+            ],
+            selected: {language},
+            onSelectionChanged: (s) => ref.read(languageProvider.notifier).set(s.single),
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(l.profileLanguageNote, style: Theme.of(context).textTheme.bodySmall),
       ],
     );
   }
