@@ -13,7 +13,7 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
   `lib/features/highlights/`). EINE Liste (`kFeatureHighlights`), zwei
   Anzeigen: das Blatt nach einem Update (höchstens drei Highlights, die
   jüngsten zuerst; Tipps nie) und die Seite „Entdecken" (`/profile/discover`,
-  alles, gruppiert nach Reiter). Sieben Dinge, die man wissen muss:
+  alles, gruppiert nach Reiter). Acht Dinge, die man wissen muss:
   - **Wer eine Funktion baut, bringt ihren Eintrag im selben PR mit** —
     Highlight, wenn sie ins Blatt gehört, sonst Tipp — UND ihre
     Vorführung in `highlight_demos.dart`, oder einen Satz im PR, warum
@@ -52,6 +52,14 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     beim Öffnen von „Entdecken" (die Seite zeigt „Neu" noch in DIESEM
     Besuch) und für die Einträge, die das Blatt gezeigt hat. Die Zahl
     steht an der Profilzeile `discover`.
+  - **Titel und Text stehen in den ARB-Dateien** (#209, 0.117.5):
+    `title: (l) => l.highlight<Kennung>Title`. Ein neuer Eintrag bringt
+    beide Schlüssel in `app_de.arb` (mit `@key.description`) und
+    `app_en.arb` mit; `feature_highlights_test` prüft die Satzzahl in
+    beiden Sprachen. `tool/highlights_preview.py` löst den Titel über die
+    `app_de.arb` desselben Tags auf (ältere Tags: Literal) — die Form
+    `title: (l) => l.<key>,` nicht ändern, ohne das Muster dort
+    mitzuziehen; der Selbsttest bricht sonst.
   - **Die Bilder stehen still** (`highlight_art.dart`: das echte Symbol
     auf einer Scheibe, die Serpentine daneben) — zwanzig bewegte Bilder
     in einer Liste wären Unruhe, und es gibt keinen Pilz-Buddy, der

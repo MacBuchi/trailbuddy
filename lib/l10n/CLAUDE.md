@@ -78,10 +78,16 @@ entsteht zuerst dort) und `app_en.arb`; gelesen mit `context.l10n.<key>`
   Touren samt Beispielen (`tourMap*`, `tourWelcome*`, `tourSplit*`,
   `tourTrails*`, `tourBuddys*`, `tourExample*`). Die Skripte sind seither
   Funktionen von `l` (`mapTourScript(l)`, `helpSteps(l)` …), die Starter
-  nehmen `l` als ersten Parameter. Noch deutsch bis (f2): die Einträge von
-  „Entdecken“ (`kFeatureHighlights`) und die eigenen Schritte der
-  Vorführungen (`highlightDemos(l)` übernimmt Tour-Schritte schon
-  übersetzt). Keiner Stufe zugeordnet:
+  nehmen `l` als ersten Parameter. (f2) „Entdecken“, das Neuheiten-Blatt
+  und die Vorführungen 0.117.5 — Titel und Text jedes Eintrags in
+  `kFeatureHighlights` (`highlight<Kennung>Title`/`…Text`; die Felder
+  sind Funktionen von `l`, die Liste deshalb `final` statt `const`), die
+  eigenen Schritte der Vorführungen (`demo<Kennung>[N]Title`/`…Text`,
+  die geteilten Ersatzschritte `_noTrailYet(l)` und Co. als Funktionen),
+  Blatt und Seite (`discover*`, `highlightSheet*`), die Gruppen über
+  `HighlightTab.label(l)` aus `tab*`. `tool/highlights_preview.py` liest
+  die Titel seither aus der `app_de.arb` des beförderten Tags (`--arb`).
+  Keiner Stufe zugeordnet:
   Anmelden und Registrieren (`lib/features/auth/`). Namen von Runde und Weg (`loopName`, `routeName*`) gehen
   in die gespeicherte Fahrt und die GPX-Datei — sie bleiben in der
   Sprache, in der geplant wurde. Noch keiner Stufe zugeordnet:

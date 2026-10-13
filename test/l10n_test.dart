@@ -538,4 +538,55 @@ void main() {
       expect(find.text('Die Karte lesen'), findsNothing);
     });
   });
+
+  // Stufe (f2): „Entdecken", das Neuheiten-Blatt und die eigenen Schritte
+  // der Vorführungen.
+  group('Entdecken auf Englisch', () {
+    testWidgets('Seite, Marken, Knöpfe und eine Vorführung', (tester) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.reset);
+      final backend = FakeBackend();
+      backend.signInAs(backend.addUser(username: 'anna').id);
+      await pumpApp(tester, backend,
+          extraOverrides: [appLocaleProvider.overrideWithValue(const Locale('en'))]);
+      await openProfilePage(tester, 'discover', tab: 'Profile');
+      expect(find.text('Discover'), findsWidgets);
+      expect(find.textContaining('“Show me” gives a short demo'), findsOneWidget);
+      expect(find.text('MAP'), findsOneWidget, reason: 'Gruppe nach Reiter, aus tabMap');
+      expect(find.text('Minimise'), findsOneWidget);
+      expect(find.text('Try it'), findsWidgets);
+      expect(find.text('Show me'), findsWidgets);
+      expect(find.text('Entdecken'), findsNothing);
+
+      final show = find.byKey(const ValueKey('show-nav-sections'));
+      await scrollTo(tester, show);
+      await tester.tap(show);
+      await settle(tester, frames: 20);
+      final bubble = find.byKey(const ValueKey('coach-bubble'));
+      expect(find.descendant(of: bubble, matching: find.text('From trail to trail')), findsOneWidget);
+      expect(find.descendant(of: bubble, matching: find.textContaining(RegExp('[äöüß]'))), findsNothing,
+          reason: 'kein deutscher Satz in der Blase');
+    });
+
+    testWidgets('das Blatt nach einem Update', (tester) async {
+      final backend = FakeBackend();
+      backend.signInAs(backend.addUser(username: 'anna').id);
+      await pumpApp(tester, backend,
+          settings: FakeSettings(highlightsSeenVersion: '0.56.0'),
+          appVersion: '0.58.0',
+          extraOverrides: [appLocaleProvider.overrideWithValue(const Locale('en'))]);
+      expect(find.text('New in TrailBuddy'), findsOneWidget);
+      expect(find.text('Still valid?'), findsOneWidget);
+      expect(find.text('All changes'), findsOneWidget);
+      expect(find.text('Done'), findsOneWidget);
+    });
+
+    test('Sätze mit Zahlen', () {
+      final en = lookupAppLocalizations(const Locale('en'));
+      expect(en.highlightSheetMore(1), 'Discover 1 more');
+      expect(l10nDe.highlightSheetMore(4), '4 weitere entdecken');
+      expect(en.demoOnlineFill1Text(16), contains('at most 16 tiles'));
+    });
+  });
 }
