@@ -257,7 +257,7 @@ die Antwort.
 | Tags | Mountainbike, Radfahren, Karte |
 | Kontakt-E-Mail | dieselbe wie in Datenschutzerklärung und Impressum: die gemeinsame Adresse mit PilzBuddy (Betreiber, 2026-10-01: „gleich zu PilzBuddy“). Wer sie je trennt, ändert alle drei Stellen und PilzBuddy im selben Zug |
 | Website | `https://macbuchi.github.io/trailbuddy/` |
-| Datenschutzerklärung | `https://macbuchi.github.io/trailbuddy/datenschutz.html` |
+| Datenschutzerklärung | `https://macbuchi.github.io/trailbuddy/datenschutz.html` — die verbindliche Fassung; die englische Höflichkeitsübersetzung `privacy.html` verweist darauf und umgekehrt (#209). Für einen englischen Store-Eintrag dieselbe deutsche URL angeben, die Seite führt mit einem Tipp zur englischen |
 | Impressum | `https://macbuchi.github.io/trailbuddy/impressum.html` — kein eigenes Feld in der Konsole, deshalb in die lange Beschreibung |
 | Nutzungsbedingungen | noch keine Seite — erst nach der rechtlichen Prüfung des Entwurfs |
 | Enthält Werbung | Nein |

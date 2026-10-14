@@ -58,7 +58,10 @@ void main() {
   });
 
   test('die Rechtsseiten liegen neben der App', () {
-    for (final f in ['datenschutz.html', 'impressum.html', 'konto-loeschen.html']) {
+    for (final f in [
+      'datenschutz.html', 'impressum.html', 'konto-loeschen.html',
+      'privacy.html', 'imprint.html', 'delete-account.html',
+    ]) {
       expect(File('web/$f').existsSync(), isTrue, reason: f);
     }
   });

@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<!--
+  Englische Höflichkeitsübersetzung von `datenschutz.html` (#209,
+  Betreiber 2026-10-13). Verbindlich ist die deutsche Fassung. Wer dort
+  einen Absatz ändert, zieht ihn hier im selben PR nach und setzt das
+  Datum gleich: `test/privacy_policy_test.dart` verlangt dasselbe
+  „Stand"-Datum und jeden abgerufenen Host auf beiden Seiten. Knöpfe und
+  Schalter heißen hier so, wie die englische Oberfläche sie zeigt
+  (`lib/l10n/app_en.arb`).
+-->
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TrailBuddy — Privacy policy</title>
+  <style>
+    :root { color-scheme: light dark; }
+    body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; line-height: 1.6; max-width: 42rem; margin: 0 auto; padding: 2rem 1.25rem 4rem; color: #22302c; background: #f3f7f5; }
+    h1 { font-size: 1.6rem; margin-bottom: .25rem; }
+    h2 { font-size: 1.15rem; margin-top: 2rem; }
+    h3 { font-size: 1rem; margin-top: 1.5rem; }
+    .lead { color: #5b6e67; margin-top: 0; }
+    .lang { font-size: .9rem; margin: 0 0 1rem; }
+    .note { background: #e2efea; border-left: 4px solid #1f6f5f; padding: .75rem 1rem; margin: 1.5rem 0; border-radius: 0 6px 6px 0; }
+    table { border-collapse: collapse; width: 100%; font-size: .95rem; }
+    th, td { text-align: left; vertical-align: top; padding: .4rem .5rem; border-bottom: 1px solid #c9d8d2; }
+    a { color: #1f6f5f; }
+    @media (prefers-color-scheme: dark) { body { color: #e4ebe8; background: #1b211f; } .lead { color: #a7b8b1; } .note { background: #26302c; border-left-color: #5fa892; } th, td { border-bottom-color: #3a4642; } a { color: #7fcbb5; } }
+  </style>
+</head>
+<body>
+  <p class="lang"><a href="datenschutz.html" hreflang="de" lang="de">Deutsch</a> · English</p>
+  <h1>TrailBuddy — Privacy policy</h1>
+  <p class="lead">As of 11 October 2026. Applies to the Android app and the
+    web app at macbuchi.github.io/trailbuddy/.</p>
+
+  <div class="note">
+    This is a courtesy translation. The legally binding text is the
+    <a href="datenschutz.html" hreflang="de">German version</a>; where the
+    two differ, the German one applies.
+  </div>
+
+  <h2>Controller</h2>
+  <p>Marcus Bucher, Schumannstr. 7, 74906 Bad Rappenau, Germany.
+    Contact: <a href="mailto:pilzbuddy@proton.me">pilzbuddy@proton.me</a>.
+    Full details in the <a href="imprint.html">legal notice</a>.</p>
+
+  <h2>The short overview</h2>
+  <ul>
+    <li>TrailBuddy stores your account (email, username), your buddy
+      connections and the <strong>trail recordings</strong> you
+      contribute: the line of a trail with its time and source.</li>
+    <li><strong>Whole rides never leave your device on their own.</strong>
+      Only the sections you pick as a trail are contributed. If you export
+      a ride or a trail as a GPX file, you pass it through your system's
+      share menu to wherever you want — TrailBuddy transfers nothing in
+      the process.</li>
+    <li>Your trails are visible only to you and the buddies you are
+      connected with. There is no public map, no trail search and no
+      analysis across all users.</li>
+    <li>The data is stored with Supabase (processor, region Frankfurt am
+      Main). When the map loads, your IP address goes to Cloudflare (where
+      the map and the places on the map are stored); when checking for
+      updates, to GitHub.</li>
+    <li>No advertising, no tracking, no sharing with third parties for
+      their own purposes.</li>
+  </ul>
+
+  <h2>Which data, what for, on what legal basis</h2>
+  <table>
+    <tr><th>Data</th><th>Purpose</th><th>Legal basis</th></tr>
+    <tr><td>Email address, password (hashed), username</td>
+        <td>Create an account, sign in, reset the password (with a code
+          from the confirmation email), find buddies (exact address or
+          username)</td>
+        <td>Contract, Art. 6(1)(b) GDPR</td></tr>
+    <tr><td>Buddy connections and requests, your own names for
+          buddies</td>
+        <td>Deciding who sees your trails</td>
+        <td>Contract</td></tr>
+    <tr><td>Messages to buddies (only if you write): text, sender,
+          recipient, time and whether it was read</td>
+        <td>Delivery to the one person you write to — visible only to
+          them and you. Writing is only possible between buddies or with
+          an open request, then at most three messages per side. Messages
+          are <strong>not end-to-end encrypted</strong>: they are stored
+          protected in our database, but the operator could technically
+          read them</td>
+        <td>Contract</td></tr>
+    <tr><td>Trail recordings: line (coordinates), elevation per point
+          where the file contains it, time of the recording (for a file
+          without times, the ride date if you enter it), source (recorded,
+          imported, planned)</td>
+        <td>Showing your buddies what you rode; matching against known
+          trails so that the same trail exists only once</td>
+        <td>Contract; you choose per file what is contributed</td></tr>
+    <tr><td>Contributions to trails: name, description, difficulty,
+          character, rating (1–5 stars), visibility and a link to the
+          source if you give one or your GPX file carries one (such as a
+          club's page). The app never fetches the link itself; it opens in
+          the browser only when you or a buddy taps it.</td>
+        <td>Display within your own network</td>
+        <td>Contract</td></tr>
+    <tr><td>Reports on trails: the report (open, closed, destroyed,
+          changed) and/or the condition (1–5, from “barely rideable” to
+          “well kept”), when you made it and whether it is confirmed. It
+          is confirmed if you rode the trail or were on site when
+          reporting. Whether you are on site is checked by the app on your
+          device, only when you tap “I'm on site”; only yes or no is sent
+          to us, never your position, and only whether the report is
+          confirmed is stored.</td>
+        <td>Telling your buddies what state the trail is in — visible to
+          your buddies who also see the trail, with your name; not if
+          your contribution to this trail is set to “Only for me”</td>
+        <td>Contract</td></tr>
+    <tr><td>Notes on trails: your text and when you wrote it</td>
+        <td>Telling your buddies what is going on at the trail (such as a
+          fallen tree) — visible to your buddies who also see the trail;
+          not if your contribution to this trail is set to “Only for
+          me”</td>
+        <td>Contract</td></tr>
+    <tr><td>A photo with your note, if you attach one: the image (at most
+          1024 pixels on the longest side) and a small preview.
+          <strong>Without capture data</strong>: location, time and camera,
+          which a phone writes into the image, are removed by the app
+          before uploading, and the result is checked. What can be seen
+          in the picture remains visible — a recognisable place is
+          recognisable.</td>
+        <td>Showing what the trail looks like right now — visible to
+          exactly those who see your note; not public, no link from
+          outside</td>
+        <td>Contract</td></tr>
+    <tr><td>Merged trails: that, for you, one trail is a duplicate of
+          another, or that two trails are different, and when you said so.
+          Your own recordings, your contribution, your notes and reports
+          then belong to the trail that is kept.</td>
+        <td>Clearing duplicate trails from your network — your buddies
+          who see both trails also see the duplicate listed under it, with
+          your name; only if you have something on one of the two that
+          they are allowed to see (not with “Only for me”)</td>
+        <td>Contract</td></tr>
+    <tr><td>Error reports: error message, stack, app version, platform,
+          possibly your user ID. On Android 11 and later also the reason
+          the system last terminated the app (crash, not responding, low
+          memory), with memory figures and an excerpt of the thread dump –
+          reported at the next start; normal exits are not. No position,
+          no trails, no ride.</td>
+        <td>Finding errors caught in the app — and crashes nobody would
+          otherwise see</td>
+        <td>Legitimate interest, Art. 6(1)(f) GDPR</td></tr>
+    <tr><td>Feedback (text, app version)</td>
+        <td>Users' wishes and error reports</td>
+        <td>Consent by sending</td></tr>
+    <tr><td>Device identifier for notifications (“push token”, only if
+          you turn them on) and the app language on this device, so that
+          the notification arrives in your language</td>
+        <td>Telling you when a buddy reports on a trail you can see — see
+          “Google (notifications)”</td>
+        <td>Consent by turning them on, Art. 6(1)(a) GDPR; withdrawn by
+          turning them off</td></tr>
+  </table>
+
+  <h3>What a recording is — and what it is not</h3>
+  <p>A recording is a piece of path: start, end, direction, the line in
+    between with its elevations, and the time. From the elevations the
+    app calculates climbing, gradient and the elevation profile — on the
+    device, not on the server. It can reveal where and when you were out.
+    That is why it is passed only to the buddies you are connected with,
+    and only if your contribution is not set to “Only for me”.
+    <strong>The complete ride</strong> — from your front door back to your
+    front door — stays on your device and is neither transferred nor
+    backed up.</p>
+  <p>The server matches every contributed line against trails already
+    known, including ones you cannot see. You learn nothing about others
+    in the process: the match only confirms what you uploaded yourself.
+    Only when a buddy has recorded the same trail do you see their
+    contribution.</p>
+
+  <h2>Feedback becomes public</h2>
+  <p>Feedback from the app is published as an entry in the public GitHub
+    project: your text, the app version and the date,
+    <strong>without</strong> your username. Who wrote it is stored only in
+    the database and visible to the operator alone. Do not write anything
+    there that should not be <strong>public</strong> — including trail
+    names, places or route descriptions. Deleting your account does not
+    remove a published entry; contact the operator for that.</p>
+
+  <h2>Who processes the data</h2>
+  <h3>Supabase (processor)</h3>
+  <p>Database, sign-in and the photos with notes (in non-public storage)
+    run at Supabase Inc. on servers in the EU-Central region (AWS,
+    Frankfurt am Main). Supabase processes the data solely on our behalf;
+    the access rules (who sees which row) are enforced in the database
+    itself. For this the app connects to
+    <code>ibxrjgvwouuoydhdkfmf.supabase.co</code>, even before sign-in: at
+    start it reads there which app version is required at minimum.
+    Supabase sees your IP address in the process.</p>
+
+  <h3>Brevo (processor, sending account emails)</h3>
+  <p>The <strong>confirmation email</strong> at sign-up, the code for
+    resetting the password and the codes when changing the address are
+    sent via Brevo (Sendinblue GmbH, Berlin). Brevo receives your email
+    address and the content of the email for this.</p>
+
+  <h3>Google (processor, notifications)</h3>
+  <p>Notifications are <strong>off by default</strong>. If you turn them
+    on in the profile, Google's <strong>Firebase Cloud Messaging</strong>
+    is used — the service through which Android and the browser can
+    deliver notifications at all. Your device creates a random device
+    identifier (“token”), which is stored at Google and with us; it
+    contains neither your name nor your email address. If you turn
+    notifications off again, it is deleted on our side and nothing more
+    arrives.</p>
+  <p><strong>What a notification contains — and what it does not.</strong>
+    A notification passes through Google's servers. It contains the
+    <strong>name of the trail</strong> (as you see it in the app), the
+    <strong>name of the buddy</strong> (your alias for them, otherwise
+    their username), what they reported (“closed”, “open again” …) and,
+    for a note, its <strong>text</strong>, cut to 140 characters — plus an
+    internal trail ID the app uses to look the trail up after you tap.
+    If a buddy sends you a <strong>message</strong>, it contains their
+    name (as above) and the <strong>text of the message</strong>, cut to
+    180 characters, plus their internal ID, which the app uses to open
+    the conversation. It contains <strong>never any coordinates</strong>,
+    no place and no email address. Google may process your device's IP
+    address, and delivery may run through servers outside the European
+    Union. You are only notified of what you are allowed to see in the
+    app anyway: confirmed reports and notes from your direct buddies on
+    trails you can see, and messages to you. If you do not want this to
+    go through Google, leave notifications off — the app shows the same
+    when you open it.</p>
+  <p><strong>In the browser, a component from Google is added.</strong>
+    If you turn notifications on in the browser version, the page loads
+    the program part needed for this from
+    <strong>www.gstatic.com</strong>, a Google server; your browser
+    necessarily transmits its IP address there. This happens <em>only
+    when you turn them on</em> and never before. The Android app ships
+    the component and does not download it.</p>
+
+  <h3>Connections the app makes</h3>
+  <ul>
+    <li><strong>tiles.mcbuchi.de</strong> — the map itself. It is stored
+      per region (DACH, southern Canada) as one file (map data from
+      OpenStreetMap, prepared by Protomaps, ODbL) in storage of the
+      operator at Cloudflare (Cloudflare, Inc., located in Western Europe;
+      processor, data processing agreement under Art. 28 GDPR). The app
+      loads only the pieces the visible section needs. With every map
+      section, your IP address and the requested pieces go to Cloudflare.
+      The app keeps the most recently viewed pieces on the device (at most
+      100 MB, oldest go first; in the browser in its storage) so that an
+      area can still be seen without reception; they do not leave the
+      device. A piece already stored is not fetched again. Where none is
+      stored, the app shows a bundled overview map without reception, and
+      nothing is fetched for it.
+      <br>The same storage holds the <strong>places on the map</strong>
+      (food and drink, water, bike service, other; data from
+      OpenStreetMap, ODbL), as small files per grid cell of about
+      11 × 11 km. Only while a group is turned on in the filter — at first
+      that is “Water” — and only from zoom level 12: then the app loads
+      the files of the cells the section touches. Cloudflare receives your
+      IP address and the grid cells, not the exact section — no trails, no
+      rides, no account data. To turn this off completely, deselect all
+      groups in the filter. Up to version 0.17 the places came live from
+      the Overpass API of FOSSGIS e.V.; that connection no longer
+      exists.
+      <br>You can save an <strong>area for offline use</strong> if you
+      want: then the app loads the map pieces, place files and elevation
+      data (Copernicus DEM GLO-90 of the European Union and ESA, prepared
+      by the operator) of that area once from the same storage and keeps
+      them on the device (in the browser in its storage). They do not
+      leave the device and are only deleted when you do so.
+      <br>With reception, the app also loads map pieces and elevation
+      data from the same storage that belong to no saved area: when you
+      plan a loop or a route to a trail (can be turned off under “Fill in
+      missing paths online”), when you open a trail without recorded
+      elevations or export it as GPX, and when you import a file with
+      elevations (to compare it with the terrain). Cloudflare receives
+      your IP address and the requested pieces of about 3 × 3 km — no
+      trails, no rides, no account data. The app keeps them only until it
+      is closed.</li>
+    <li><strong>raw.githubusercontent.com</strong> — the official trails
+      on the map (public data from authorities, such as the State of
+      Tyrol). Only while the “Official trails” layer is on — at first it
+      is — and only from zoom level 8, when the section touches a region
+      for which there is data: then the app loads that region's file from
+      GitHub and remembers it on the device. GitHub sees your IP address
+      and which region is loaded. No trails from your network, no rides,
+      no account data. This can be turned off with the layer's
+      switch.</li>
+    <li><strong>api.github.com</strong> and <strong>github.com</strong> —
+      the update check queries the project's release list and, on request,
+      downloads the app file. GitHub sees your IP address. This does not
+      apply to the Play Store version.</li>
+    <li><strong>macbuchi.github.io</strong> — the web app itself, this
+      page and the legal pages are served by GitHub Pages.</li>
+    <li><strong>fonts.gstatic.com</strong> — the web app loads the default
+      font Roboto from Google (a Flutter default), on every page load,
+      before any sign-in. Google sees your IP address.</li>
+  </ul>
+
+  <h3>What else is stored on the device</h3>
+  <p>Session token, settings, a cache of the trails in your network, the
+    loaded official trails and your rides. None of this is backed up to
+    Google's cloud via Android backup; the app explicitly excludes these
+    files. In the web app, the cache, outbox, viewed map pieces and saved
+    areas are stored in your browser's storage (IndexedDB) and do not
+    leave it on their own either.</p>
+
+  <h3>Outbox</h3>
+  <p>If you contribute a recording without a connection, change your
+    contribution to a trail, report something or send feedback, the job
+    waits in an outbox on your device or in your browser's storage and is
+    sent as soon as there is a connection again. It holds exactly what
+    would otherwise have gone to Supabase straight away: the simplified
+    line with elevations, time and source; name, difficulty, character,
+    rating, visibility, description and link of your contribution; or
+    report, condition, time and whether you were on site (yes/no, no
+    position); or text, type and app version of your feedback.
+    The outbox is excluded from Android backup. In the browser, the app
+    asks once, at the first waiting job, that this storage not be cleared
+    on its own; if the browser refuses, the map says so. You can remove
+    any waiting job — trail jobs in the trail list, feedback in the
+    feedback dialog.</p>
+
+  <h3>Your location</h3>
+  <p>If you tap “My location” or the record button on the map, the app
+    (or the browser) asks once for permission to use your location. With
+    permission, the map shows your position as a dot while the app is
+    open. The location <strong>stays on the device</strong>: it is
+    transferred neither to Supabase nor to anyone else. Without
+    permission everything else works as before; you can revoke it in the
+    settings of Android or the browser.</p>
+  <p><strong>Recording a ride</strong> (Android only): when you start a
+    ride, the app measures your position every five seconds — also in the
+    background and with the phone in your pocket, through a foreground
+    service with a persistent notification you can always see. Position,
+    accuracy, time and the elevation reported by GPS are measured. The
+    ride is saved as a file on your device (under “My rides” in the
+    profile; that is also where you delete it) and <strong>never leaves
+    it on its own</strong> — neither to Supabase nor via Android backup.
+    Only if you export it there as a GPX file does it go, through your
+    system's share menu, to the app or recipient you choose. Recording
+    ends with “Stop the ride”, or on its own after twelve hours at the
+    latest. The app does not request background location permission;
+    without a running recording, nothing is measured in the background.
+    During the ride the app compares your position <strong>on the
+    device</strong> with the trails in your network; if you ride a trail
+    with a report that is not yet confirmed, it asks you by notification
+    whether it is correct. Only your answer goes to Supabase — as a report
+    marked “on site”, as when reporting at the trail — never the
+    position.</p>
+
+  <h2>Storage period</h2>
+  <ul>
+    <li>Account, buddies, recordings and contributions: until you delete
+      them (per trail in the trail sheet under “Delete”: your recordings,
+      your assessment, your reports and your notes on that trail) or
+      delete the account.</li>
+    <li>Reports on trails: 90 days. Your latest confirmed and your latest
+      unconfirmed report and condition on a trail stay longer — the report
+      shown is the latest confirmed one, however old it is — until you
+      delete your contribution or the account.</li>
+    <li>Notes on trails: 90 days. Your latest note on a trail stays
+      longer, until you or a buddy who sees it removes it or you delete
+      the account. Which notes you have already read is remembered only by
+      your device.</li>
+    <li>Photos with notes: 90 days, also with the note that stays longer.
+      It is deleted earlier together with its note — when you or a buddy
+      removes it, or you delete your contribution or your account; the
+      storage is cleaned up every two hours.</li>
+    <li>Messages to buddies: 30 days from sending, then deleted
+      automatically. They are deleted immediately for both sides when a
+      request is declined or withdrawn or a buddy is removed; you can take
+      back your own messages at any time.</li>
+    <li>Error reports: 90 days.</li>
+    <li>Device identifier for notifications: until you turn them off,
+      delete the account or Google declares the identifier invalid (for
+      example after uninstalling); then it is removed on our side.</li>
+    <li>Feedback: indefinitely, see above.</li>
+  </ul>
+
+  <h2>Delete your account</h2>
+  <p>In the app under Profile → <strong>Delete account</strong>, or
+    without the app following the instructions under
+    <a href="delete-account.html">Delete your account</a>. The deletion
+    takes effect immediately and removes profile, recordings,
+    contributions, reports, notes, messages and connections.</p>
+
+  <h2>Your rights</h2>
+  <p>Access, rectification, erasure, restriction, data portability and
+    objection under Art. 15 to 21 GDPR — by email to the address above.
+    Complaints are handled by the competent data protection supervisory
+    authority; for the controller this is the State Commissioner for Data
+    Protection and Freedom of Information of Baden-Württemberg
+    (Landesbeauftragter für den Datenschutz und die
+    Informationsfreiheit).</p>
+
+  <h2>Changes</h2>
+  <p>This policy is updated when the app collects new data or makes new
+    connections. The version in force is always at this address; major
+    changes are listed in the changelog in the app.</p>
+
+  <p><a href="./">← Back to TrailBuddy</a></p>
+</body>
+</html>

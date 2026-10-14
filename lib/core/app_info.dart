@@ -1,3 +1,4 @@
+import 'package:flutter/widgets.dart' show Locale;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
@@ -47,6 +48,24 @@ class AppInfo {
   /// im Profil neben der Datenschutzerklärung.
   static const impressumUrl =
       'https://macbuchi.github.io/trailbuddy/impressum.html';
+
+  /// Englische Höflichkeitsübersetzungen der drei Rechtsseiten (#209);
+  /// verbindlich bleibt die deutsche Fassung, beide verweisen
+  /// aufeinander.
+  static const privacyUrlEn =
+      'https://macbuchi.github.io/trailbuddy/privacy.html';
+  static const deleteAccountUrlEn =
+      'https://macbuchi.github.io/trailbuddy/delete-account.html';
+  static const impressumUrlEn =
+      'https://macbuchi.github.io/trailbuddy/imprint.html';
+
+  /// Die Rechtsseite in der Sprache der Oberfläche: Deutsch bleibt
+  /// Deutsch, alles andere bekommt die englische Fassung — dieselbe
+  /// Regel wie bei der App-Sprache.
+  static String privacyUrlFor(Locale locale) =>
+      locale.languageCode == 'de' ? privacyUrl : privacyUrlEn;
+  static String impressumUrlFor(Locale locale) =>
+      locale.languageCode == 'de' ? impressumUrl : impressumUrlEn;
 
   static String inviteText(AppLocalizations l, String? username) =>
       username != null && username.isNotEmpty
