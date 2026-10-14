@@ -135,3 +135,66 @@ List<ChangelogSegment> _segments(String text) {
 
   return segments;
 }
+
+/// Alles ab der ersten Blocküberschrift. Titel und Vorspann der Datei
+/// richten sich an Leser auf GitHub und erklären unter anderem den Weg zu
+/// genau dem Bildschirm, der sie zeigt.
+List<ChangelogLine> changelogBody(List<ChangelogLine> lines) => lines
+    .skipWhile((line) => line.kind != ChangelogLineKind.section)
+    .toList();
+
+final _version = RegExp(r'\b(\d+)\.(\d+)\.(\d+)\b');
+
+/// Die Versionen, die eine Metazeile nennt („Versionen 0.117.0 bis
+/// 0.117.5, …" ⇒ beide).
+List<String> metaVersions(String meta) =>
+    _version.allMatches(meta).map((m) => m.group(0)!).toList();
+
+/// Vergleicht `MAJOR.MINOR.PATCH` numerisch (0.99.0 < 0.100.0).
+int compareVersions(String a, String b) {
+  final pa = a.split('.').map(int.parse).toList();
+  final pb = b.split('.').map(int.parse).toList();
+  for (var i = 0; i < 3; i++) {
+    final c = pa[i].compareTo(pb[i]);
+    if (c != 0) return c;
+  }
+  return 0;
+}
+
+/// Die Blöcke aus [body], deren höchste Version unter [version] liegt —
+/// für die englische Liste die deutschen Blöcke vor ihrem Anfang (#209).
+/// Ein Block ohne Metazeile („Unter der Haube") gehört nicht dazu.
+List<ChangelogLine> blocksBefore(List<ChangelogLine> body, String version) {
+  final result = <ChangelogLine>[];
+  var keep = false;
+  for (var i = 0; i < body.length; i++) {
+    final line = body[i];
+    if (line.kind == ChangelogLineKind.section) {
+      final next = i + 1 < body.length ? body[i + 1] : null;
+      final versions = next?.kind == ChangelogLineKind.meta
+          ? metaVersions(next!.text)
+          : const <String>[];
+      keep = versions.isNotEmpty &&
+          versions.every((v) => compareVersions(v, version) < 0);
+    }
+    if (keep) result.add(line);
+  }
+  return result;
+}
+
+/// Die Liste einer Übersetzung, die erst bei [since] beginnt: ihre Blöcke,
+/// dann Überschrift [title] und Hinweis [note], dann die Blöcke des
+/// Originals [de] vor [since].
+List<ChangelogLine> withOlderBlocks(
+  List<ChangelogLine> translated,
+  List<ChangelogLine> de, {
+  required String since,
+  required String title,
+  required String note,
+}) =>
+    [
+      ...translated,
+      ChangelogLine(ChangelogLineKind.section, [ChangelogSegment(title)]),
+      ChangelogLine(ChangelogLineKind.text, [ChangelogSegment(note)]),
+      ...blocksBefore(de, since),
+    ];

@@ -75,7 +75,8 @@ den Plan schreiben („fertig, wenn …"), nicht abfragen.
    (`feat` MINOR, `fix`/`perf` PATCH, `BUILD` immer +1). Ausgangspunkt ist
    `origin/main`; liegt ein offener Bump-PR davor, über ihn hinaus zählen
    oder die Reihenfolge mit dem Betreiber klären.
-2. **Changelog:** Block oder Versionszeile in `CHANGELOG.md`, in
+2. **Changelog:** Block oder Versionszeile in `CHANGELOG.md` UND
+   `CHANGELOG.en.md` (seit 0.121.0, Test wacht), in
    Alltagssprache, nach Thema. Nackte URLs, keine Markdown-Links.
 3. **Sichtbare Funktion?** Eintrag in `kFeatureHighlights` UND Vorführung
    in `highlight_demos.dart` — oder im PR einen Satz, warum nicht.

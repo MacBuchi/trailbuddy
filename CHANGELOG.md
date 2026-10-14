@@ -2,6 +2,14 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## „Was ist neu" auf Englisch
+
+*Version 0.121.0, 2026-10-14*
+
+- Läuft die App auf Englisch, steht auch diese Liste auf Englisch — ab
+  Version 0.120.0. Darunter folgen die älteren Versionen, die es nur auf
+  Deutsch gibt.
+
 ## Datenschutz und Impressum auf Englisch
 
 *Version 0.120.0, 2026-10-14*

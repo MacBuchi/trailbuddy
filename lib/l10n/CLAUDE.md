@@ -25,7 +25,14 @@ entsteht zuerst dort) und `app_en.arb`; gelesen mit `context.l10n.<key>`
   „English") — nicht aus ARB, so findet man seine auch in einer App,
   die man nicht lesen kann. Bis 0.117.x war die App fest deutsch, solange
   die Texte Bereich für Bereich umzogen (Stufen a–i).
-  Noch nicht übersetzt (#209, je ein PR): Rechtsseiten, „Was ist neu".
+  Rechtsseiten seit 0.120.0 englisch (`web/CLAUDE.md`), „Was ist neu"
+  seit 0.121.0: `CHANGELOG.en.md` beginnt bei `changelogEnglishSince`
+  (0.120.0); auf Englisch zeigt die Seite deren Blöcke, dann „Earlier
+  versions" mit Hinweis und die deutschen Blöcke, deren höchste Version
+  darunter liegt (`withOlderBlocks`).
+  Widget-Tests der Seite: `setUp(rootBundle.clear)` — das gemerkte
+  Future der großen deutschen Datei hängt sonst an der Zone des
+  vorigen Tests und meldet sich nie.
   Push-Texte seit 0.119.0 je Gerät (`lib/core/CLAUDE.md`, Push).
 - **Rückfall ist Englisch**, nicht die erste unterstützte Sprache
   (`resolveAppLocale`): `fr` ⇒ Englisch, `fr, de` ⇒ Deutsch.

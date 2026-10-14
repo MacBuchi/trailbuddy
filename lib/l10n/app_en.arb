@@ -1602,6 +1602,8 @@
   "updateInstall": "Install",
   "changelogTitle": "What's new",
   "changelogLoadFailed": "The change list could not be loaded. All changes are also listed on the project page under “GitHub project & documentation”.",
+  "changelogOlderTitle": "Earlier versions",
+  "changelogOlderInGerman": "Older versions are described in German only.",
   "importPickerGpxOrZip": "GPX or Zip",
   "importPickerAllFiles": "All files",
   "profileLanguageTitle": "Language",
