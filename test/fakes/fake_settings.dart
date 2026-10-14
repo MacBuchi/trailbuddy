@@ -16,6 +16,7 @@ class FakeSettings implements Settings {
       this.mapLegendOpen = false,
       this.navKeepScreenOn = true,
       this.pushToken,
+      this.pushLocale,
       this.appearance,
       this.language,
       this.riderProfile,
@@ -94,6 +95,9 @@ class FakeSettings implements Settings {
 
   @override
   String? pushToken;
+
+  @override
+  String? pushLocale;
 
   @override
   String? appearance;
@@ -218,6 +222,11 @@ class FakeSettings implements Settings {
   @override
   Future<void> setPushToken(String? value) async {
     pushToken = value;
+  }
+
+  @override
+  Future<void> setPushLocale(String? value) async {
+    pushLocale = value;
   }
 
   @override

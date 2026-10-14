@@ -21,11 +21,15 @@ class PushRepository {
   /// jemand anders an, wandert die Zeile auf das neue Konto, statt daneben
   /// stehen zu bleiben. Ohne das bekäme der Vorbesitzer weiter Meldungen
   /// über fremde Trails.
-  Future<void> register(String token) async {
+  ///
+  /// [locale] ('de' | 'en') ist die Sprache, in der `push_flush` die
+  /// Meldungen an dieses Gerät setzt (Patch 027, #209).
+  Future<void> register(String token, {required String locale}) async {
     await _client.from('push_devices').upsert({
       'token': token,
       'user_id': _client.requireUid,
       'platform': _platform,
+      'locale': locale,
       'last_seen_at': DateTime.now().toUtc().toIso8601String(),
     }, onConflict: 'token');
   }

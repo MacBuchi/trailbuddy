@@ -205,15 +205,18 @@ Deno.serve(async (req) => {
     )
     const { data } = await client
       .from('push_devices')
-      .select('token')
+      .select('token, locale')
       .eq('token', payload.test)
       .maybeSingle()
     if (!data) return respond(403, { error: 'unknown device' })
+    // In der Sprache dieses Geräts (Patch 027, #209), wie push_flush.
     messages = [
       {
         token: payload.test,
         title: 'TrailBuddy',
-        body: 'Test — so sieht eine Benachrichtigung aus.',
+        body: data.locale === 'en'
+          ? 'Test — this is what a notification looks like.'
+          : 'Test — so sieht eine Benachrichtigung aus.',
       },
     ]
   } else {

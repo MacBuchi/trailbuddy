@@ -25,8 +25,8 @@ entsteht zuerst dort) und `app_en.arb`; gelesen mit `context.l10n.<key>`
   „English") — nicht aus ARB, so findet man seine auch in einer App,
   die man nicht lesen kann. Bis 0.117.x war die App fest deutsch, solange
   die Texte Bereich für Bereich umzogen (Stufen a–i).
-  Noch nicht übersetzt (#209, je ein PR): Push-Texte aus `push_flush`,
-  Rechtsseiten, „Was ist neu".
+  Noch nicht übersetzt (#209, je ein PR): Rechtsseiten, „Was ist neu".
+  Push-Texte seit 0.119.0 je Gerät (`lib/core/CLAUDE.md`, Push).
 - **Rückfall ist Englisch**, nicht die erste unterstützte Sprache
   (`resolveAppLocale`): `fr` ⇒ Englisch, `fr, de` ⇒ Deutsch.
 - **Das Testgerät spricht Deutsch.** `pumpApp` setzt
@@ -201,6 +201,7 @@ entsteht zuerst dort) und `app_en.arb`; gelesen mit `context.l10n.<key>`
   je Sprache ein anderer. `help_texts_test` verlangt an jedem Tour-Schritt
   eine Kennung, eindeutig je Skript und in beiden Sprachen dieselbe.
 - Was die App NICHT über ARB übersetzt: die Push-Texte aus `push_flush`
-  (Server, braucht die Sprache des Empfängers), die Kanalnamen in
+  (Server, setzt sie seit Patch 027 nach `push_devices.locale`, beide
+  Sprachen in `push_trail_text`), die Kanalnamen in
   `android/…/strings.xml`, Changelog, Hilfe- und Rechtsseiten — offen in
   #209.

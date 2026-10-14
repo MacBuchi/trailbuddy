@@ -344,6 +344,11 @@ create table public.push_devices (
   user_id uuid not null default auth.uid()
     references public.profiles(id) on delete cascade,
   platform text not null check (platform in ('android', 'web')),
+  -- Sprache der Meldungen an DIESES Gerät (Patch 027, #209): die
+  -- Sprache, in der die App dort läuft. Eine Spalte am Gerät, nicht am
+  -- Profil — dasselbe Konto kann ein Telefon auf Deutsch und einen
+  -- Browser auf Englisch haben.
+  locale text not null default 'de' check (locale in ('de', 'en')),
   created_at timestamptz not null default now(),
   last_seen_at timestamptz not null default now()
 );
@@ -982,7 +987,8 @@ revoke all on function app_internal.push_recipients(uuid, uuid) from public, ano
 -- Der Name des Trails für [recipient]: Spiegel von `Trail.displayName`
 -- — der eigene Name, sonst der des ältesten für ihn sichtbaren Beitrags
 -- (eigene Zeile oder eine geteilte eines Buddys, td_friend_select), sonst
--- „Trail ohne Namen".
+-- NULL. Den Rückfall („Trail ohne Namen" / „Unnamed trail") setzt seit
+-- Patch 027 push_trail_text in der Sprache des Geräts.
 create or replace function app_internal.trail_name_for(recipient uuid, trail uuid)
 returns text
 language sql stable security definer set search_path = public as $$
@@ -997,8 +1003,7 @@ language sql stable security definer set search_path = public as $$
         and nullif(btrim(d.name), '') is not null
       order by (select min(r.created_at) from trail_recordings r
                  where r.trail_id = trail and r.user_id = d.user_id) nulls last
-      limit 1),
-    'Trail ohne Namen');
+      limit 1));
 $$;
 revoke all on function app_internal.trail_name_for(uuid, uuid) from public, anon, authenticated;
 
@@ -1015,8 +1020,9 @@ language sql stable security definer set search_path = public as $$
 $$;
 revoke all on function app_internal.push_name_for(uuid, uuid) from public, anon, authenticated;
 
--- „Anna", „Anna und Ben", „Anna, Ben und Carl", „Anna, Ben und 2 weitere".
-create or replace function app_internal.push_join_names(names text[])
+-- „Anna", „Anna und Ben", „Anna, Ben und Carl", „Anna, Ben und 2 weitere"
+-- — auf Englisch „and" und „others" (Patch 027, Sprache des Geräts).
+create or replace function app_internal.push_join_names(names text[], lang text)
 returns text
 language sql immutable set search_path = '' as $$
   select case
@@ -1024,12 +1030,103 @@ language sql immutable set search_path = '' as $$
     when array_length(names, 1) = 1 then names[1]
     when array_length(names, 1) <= 3 then
       array_to_string(names[1:array_length(names, 1) - 1], ', ')
-        || ' und ' || names[array_length(names, 1)]
-    else names[1] || ', ' || names[2] || ' und '
-      || (array_length(names, 1) - 2) || ' weitere'
+        || case when lang = 'en' then ' and ' else ' und ' end
+        || names[array_length(names, 1)]
+    else names[1] || ', ' || names[2]
+      || case when lang = 'en' then ' and ' else ' und ' end
+      || (array_length(names, 1) - 2)
+      || case when lang = 'en' then ' others' else ' weitere' end
   end;
 $$;
-revoke all on function app_internal.push_join_names(text[]) from public, anon, authenticated;
+revoke all on function app_internal.push_join_names(text[], text) from public, anon, authenticated;
+
+-- Titel und Text einer Trail-Meldung in der Sprache des Geräts (Patch
+-- 027, #209). Eine Funktion statt zweier Fälle mitten im Versand: So
+-- liest man beide Sprachen nebeneinander, und push_flush bleibt eine
+-- Abfrage. [names] sind die Buddys in der Reihenfolge ihres Anlasses,
+-- [trail_name] ist NULL, wenn niemand den Trail benannt hat.
+create or replace function app_internal.push_trail_text(
+  lang text, statuses integer, notes integer, trails integer, status text,
+  trail_name text, names text[], note_body text,
+  out title text, out body text)
+language plpgsql immutable set search_path = '' as $$
+declare
+  en boolean := lang = 'en';
+  single boolean := statuses + notes = 1;
+  who text := app_internal.push_join_names(names, lang);
+  trail text := '„' || coalesce(trail_name,
+                  case when en then 'Unnamed trail' else 'Trail ohne Namen' end) || '“';
+  counts text;
+begin
+  if en then
+    trail := '“' || coalesce(trail_name, 'Unnamed trail') || '”';
+    counts := concat_ws(' and ',
+      case when statuses = 1 then '1 report'
+           when statuses > 1 then statuses || ' reports' end,
+      case when notes = 1 then '1 note'
+           when notes > 1 then notes || ' notes' end);
+    title := case
+      when single and statuses = 1 and status = 'open'
+        then coalesce(who, 'A buddy') || ': ' || trail || ' is open again'
+      when single and statuses = 1
+        then coalesce(who, 'A buddy') || ' reports ' || trail || ' as '
+             || case status
+                  when 'closed' then 'closed'
+                  when 'destroyed' then 'destroyed'
+                  else 'changed' end
+      when single then coalesce(who, 'A buddy') || ' on ' || trail
+      when trails = 1 then trail || ': ' || counts
+      when statuses > 0 and notes > 0 then 'Your buddies reported something'
+      when statuses > 1 then statuses || ' reports from your buddies'
+      else notes || ' new notes from your buddies'
+    end;
+    body := case
+      when single and notes = 1 and note_body is not null then null
+      when single then 'Tap to see the trail'
+      when trails = 1 then 'from ' || coalesce(who, 'your buddies')
+      when statuses > 0 and notes > 0
+        then counts || ' on ' || trails || ' trails · from ' || coalesce(who, 'your buddies')
+      else 'On ' || trails || ' trails · from ' || coalesce(who, 'your buddies')
+    end;
+  else
+    counts := concat_ws(' und ',
+      case when statuses = 1 then '1 Meldung'
+           when statuses > 1 then statuses || ' Meldungen' end,
+      case when notes = 1 then '1 Hinweis'
+           when notes > 1 then notes || ' Hinweise' end);
+    title := case
+      when single and statuses = 1 and status = 'open'
+        then coalesce(who, 'Ein Buddy') || ': ' || trail || ' ist wieder frei'
+      when single and statuses = 1
+        then coalesce(who, 'Ein Buddy') || ' meldet ' || trail || ' als '
+             || case status
+                  when 'closed' then 'gesperrt'
+                  when 'destroyed' then 'zerstört'
+                  else 'verändert' end
+      when single then coalesce(who, 'Ein Buddy') || ' zu ' || trail
+      when trails = 1 then trail || ': ' || counts
+      when statuses > 0 and notes > 0 then 'Deine Buddys haben etwas gemeldet'
+      when statuses > 1 then statuses || ' Meldungen von deinen Buddys'
+      else notes || ' neue Hinweise von deinen Buddys'
+    end;
+    body := case
+      when single and notes = 1 and note_body is not null then null
+      when single then 'Tippen zeigt den Trail'
+      when trails = 1 then 'von ' || coalesce(who, 'deinen Buddys')
+      when statuses > 0 and notes > 0
+        then counts || ' an ' || trails || ' Trails · von ' || coalesce(who, 'deinen Buddys')
+      else 'An ' || trails || ' Trails · von ' || coalesce(who, 'deinen Buddys')
+    end;
+  end if;
+  -- Der Hinweistext ist, was der Buddy geschrieben hat — in keiner
+  -- Sprache übersetzt, nur gekürzt.
+  if body is null then
+    body := case when char_length(note_body) > 140
+                 then left(note_body, 139) || '…'
+                 else note_body end;
+  end if;
+end $$;
+revoke all on function app_internal.push_trail_text(text, integer, integer, integer, text, text, text[], text) from public, anon, authenticated;
 
 -- ----------------------------------------------------------- Die Auslöser
 
@@ -1179,11 +1276,10 @@ begin
   ),
   named as (
     select g.*,
-           g.statuses + g.notes = 1 as single,
            app_internal.trail_name_for(g.recipient_id, g.trail_id::uuid) as trail_name,
            -- Die Buddys dieses Empfängers, in der Reihenfolge ihres
            -- ersten Anlasses; ein gelöschtes Konto fällt heraus.
-           app_internal.push_join_names(array(
+           array(
              select q.nm from (
                select app_internal.push_name_for(g.recipient_id, u.sender) as nm,
                       min(u.ord) as ord
@@ -1192,55 +1288,26 @@ begin
                 where x.recipient_id = g.recipient_id
                 group by u.sender) q
               where q.nm is not null
-              order by q.ord, q.nm)) as names,
-           (select n.body from public.trail_notes n where n.id = g.note_id::uuid) as note_body,
-           concat_ws(' und ',
-             case when g.statuses = 1 then '1 Meldung'
-                  when g.statuses > 1 then g.statuses || ' Meldungen' end,
-             case when g.notes = 1 then '1 Hinweis'
-                  when g.notes > 1 then g.notes || ' Hinweise' end) as counts
+              order by q.ord, q.nm) as names,
+           (select n.body from public.trail_notes n where n.id = g.note_id::uuid) as note_body
       from grouped g
   )
+  -- Je GERÄT in seiner Sprache (Patch 027): Wer zwei Geräte hat, eins
+  -- auf Englisch, bekommt dieselbe Meldung zweimal verschieden gesetzt.
   select jsonb_agg(jsonb_build_object(
            'token', d.token,
-           'title', case
-             when m.single and m.statuses = 1 and m.status = 'open'
-               then coalesce(m.names, 'Ein Buddy') || ': „' || m.trail_name || '“ ist wieder frei'
-             when m.single and m.statuses = 1
-               then coalesce(m.names, 'Ein Buddy') || ' meldet „' || m.trail_name || '“ als '
-                    || case m.status
-                         when 'closed' then 'gesperrt'
-                         when 'destroyed' then 'zerstört'
-                         else 'verändert' end
-             when m.single
-               then coalesce(m.names, 'Ein Buddy') || ' zu „' || m.trail_name || '“'
-             when m.trails = 1
-               then '„' || m.trail_name || '“: ' || m.counts
-             when m.statuses > 0 and m.notes > 0
-               then 'Deine Buddys haben etwas gemeldet'
-             when m.statuses > 1
-               then m.statuses || ' Meldungen von deinen Buddys'
-             else m.notes || ' neue Hinweise von deinen Buddys'
-           end,
-           'body', case
-             when m.single and m.notes = 1 and m.note_body is not null
-               then case when char_length(m.note_body) > 140
-                         then left(m.note_body, 139) || '…'
-                         else m.note_body end
-             when m.single then 'Tippen zeigt den Trail'
-             when m.trails = 1 then 'von ' || coalesce(m.names, 'deinen Buddys')
-             when m.statuses > 0 and m.notes > 0
-               then m.counts || ' an ' || m.trails || ' Trails · von '
-                    || coalesce(m.names, 'deinen Buddys')
-             else 'An ' || m.trails || ' Trails · von ' || coalesce(m.names, 'deinen Buddys')
-           end,
+           'title', t.title,
+           'body', t.body,
            'route', case
              when m.trails = 1 then '/trail/' || m.trail_id
              else '/trails'
            end))
     into payload
     from named m
-    join public.push_devices d on d.user_id = m.recipient_id;
+    join public.push_devices d on d.user_id = m.recipient_id
+    cross join lateral app_internal.push_trail_text(
+      d.locale, m.statuses::integer, m.notes::integer, m.trails::integer,
+      m.status, m.trail_name, m.names, m.note_body) t;
 
   -- Nachrichten (Patch 022): je Empfänger und Absender EINE Meldung,
   -- ohne Frist. Titel der Name, den der Empfänger dem Absender gegeben
@@ -1259,8 +1326,11 @@ begin
   )
   select coalesce(payload, '[]'::jsonb) || coalesce(jsonb_agg(jsonb_build_object(
            'token', d.token,
-           'title', coalesce(app_internal.push_name_for(s.recipient_id, s.sender_id), 'Ein Buddy')
-                    || case when s.n > 1 then ' · ' || s.n || ' Nachrichten' else '' end,
+           'title', coalesce(app_internal.push_name_for(s.recipient_id, s.sender_id),
+                             case when d.locale = 'en' then 'A buddy' else 'Ein Buddy' end)
+                    || case when s.n <= 1 then ''
+                            when d.locale = 'en' then ' · ' || s.n || ' messages'
+                            else ' · ' || s.n || ' Nachrichten' end,
            'body', case when char_length(s.newest) > 180
                         then left(s.newest, 179) || '…'
                         else s.newest end,
@@ -2523,5 +2593,6 @@ insert into public.applied_patches (filename) values
   ('patch_023_min_version_049.sql'),
   ('patch_024_drop_kind.sql'),
   ('patch_025_drop_details_status.sql'),
-  ('patch_026_note_photos.sql')
+  ('patch_026_note_photos.sql'),
+  ('patch_027_push_locale.sql')
 on conflict do nothing;

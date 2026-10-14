@@ -159,3 +159,20 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     Fall 6, lokal ohne Supabase-Stack mit Attrappen für Vault und pg_net
     gefahren (Gegenprobe: älteste statt jüngste, Benutzername statt
     Alias, Schlange ohne Geheimnisse nicht geleert — alle drei rot).
+  - **Sprache je Gerät (seit 0.119.0, Patch 027, #209)**:
+    `push_devices.locale` ('de' | 'en', Vorgabe 'de'), nicht am Profil —
+    ein Konto kann ein Telefon auf Deutsch und einen Browser auf Englisch
+    haben. `push_trail_text(lang, …)` setzt Titel und Text einer
+    Trail-Meldung, beide Sprachen nebeneinander; `push_join_names` und
+    der Nachrichten-Titel nehmen die Sprache mit, `trail_name_for` gibt
+    ohne Namen NULL (den Rückfall setzt die Sprache). Text des Buddys
+    (Hinweis, Nachricht) bleibt unübersetzt. Die App schreibt die Sprache
+    beim Einschalten und über `PushListener.didChangeDependencies` →
+    `syncLocale`: nur wenn sie vom Merker `Settings.pushLocale` abweicht
+    (Schalter im Profil, Gerätesprache, einmal nach dem Update). Ohne
+    Netz still, der nächste Start versucht es wieder. Clients bis 0.118
+    schicken die Spalte nicht, ihr Upsert lässt sie stehen.
+    `send-push` nimmt sie für die Testnachricht. `push_flush_check.sh`
+    Fall 7 und der Nachrichten-Teil auf Englisch;
+    `push_flow_test` „Die Sprache der Meldungen folgt der App"
+    (Gegenprobe: ohne `syncLocale` rot, ohne Merker-Vergleich rot).

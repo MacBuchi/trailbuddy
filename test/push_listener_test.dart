@@ -11,7 +11,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:trailbuddy/core/push_messaging.dart';
+import 'package:trailbuddy/core/settings.dart';
 import 'package:trailbuddy/core/widgets/push_listener.dart';
+
+import 'fakes/fake_settings.dart';
 
 void main() {
   late StreamController<RemoteMessage> incoming;
@@ -24,6 +27,8 @@ void main() {
     await tester.pumpWidget(ProviderScope(
       overrides: [
         pushMessageListenerProvider.overrideWithValue(() => incoming.stream),
+        // Ohne Token gleicht PushListener keine Sprache ab (#209).
+        settingsProvider.overrideWithValue(FakeSettings()),
       ],
       child: MaterialApp(
         builder: (context, child) =>

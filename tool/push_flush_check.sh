@@ -143,6 +143,28 @@ select 'OUTBOX_ONSITE=' || coalesce(string_agg(recipient_id::text || ':' || kind
   from app_internal.push_outbox;
 delete from app_internal.push_outbox;
 
+-- 7. Englisch (Patch 027): Berts Gerät läuft auf Englisch. Seit 3d hat
+--    Bert keinen Alias für Anna mehr, also steht ihr Benutzername.
+update public.push_devices set locale = 'en' where token = 'tok-bert';
+-- T2, nicht T1: An T1 hat Bert in 3b selbst „gesperrt" gemeldet.
+select app_internal.put_report('$A', '$T2', 'status', 'closed', null, true, now(), null);
+update app_internal.push_outbox set due_at = now() - interval '1 minute';
+select 'SENT_EN1=' || app_internal.push_flush();
+select 'BODY_EN1=' || convert_from(body, 'utf8') from net.http_request_queue order by id desc limit 1;
+insert into public.trail_notes (trail_id, user_id, body) values
+  ('$T1', '$A', 'Baum'), ('$T2', '$A', 'Kehre');
+update app_internal.push_outbox set due_at = now() - interval '1 minute';
+select 'SENT_EN2=' || app_internal.push_flush();
+select 'BODY_EN2=' || convert_from(body, 'utf8') from net.http_request_queue order by id desc limit 1;
+update public.push_devices set locale = 'de' where token = 'tok-bert';
+delete from app_internal.push_outbox;
+-- Die Bausteine ohne Versand: Namensliste und Trail ohne Namen.
+select 'JOIN_EN=' || app_internal.push_join_names(array['A', 'B', 'C', 'D'], 'en');
+select 'JOIN_DE=' || app_internal.push_join_names(array['A', 'B', 'C'], 'de');
+select 'NONAME_EN=' || (app_internal.push_trail_text('en', 1, 0, 1, 'destroyed', null, array[]::text[], null)).title;
+select 'NONAME_DE=' || (app_internal.push_trail_text('de', 1, 0, 1, 'destroyed', null, array[]::text[], null)).title;
+select 'COUNTS_EN=' || (app_internal.push_trail_text('en', 2, 1, 1, null, 'Kamm', array['Anni'], null)).title;
+
 -- 6. Nachrichten (Patch 022): Bert schreibt Anna zweimal, Dave (nur eine
 --    offene Anfrage) einmal. Anna nennt Bert „Bertl". Keine Frist: der
 --    nächste Lauf schickt; je Absender EINE Meldung, Text die jüngste.
@@ -164,6 +186,13 @@ insert into public.buddy_messages (id, sender_id, recipient_id, body) values
 select 'MSG_QUEUED=' || count(*) from app_internal.push_messages;
 delete from public.buddy_messages where id = '33333333-0000-0000-0000-000000000001';
 select 'MSG_WITHDRAWN=' || count(*) from app_internal.push_messages;
+-- Annas Gerät auf Englisch: dieselbe Meldung, englisch gesetzt.
+update public.push_devices set locale = 'en' where token = 'tok-anna';
+insert into public.buddy_messages (sender_id, recipient_id, body) values
+  ('$B', '$A', 'one'), ('$B', '$A', 'two');
+select 'SENT_MSG_EN=' || app_internal.push_flush();
+select 'BODY_MSG_EN=' || convert_from(body, 'utf8') from net.http_request_queue order by id desc limit 1;
+update public.push_devices set locale = 'de' where token = 'tok-anna';
 
 -- 4. Privat: Kein Buddy sieht den Beitrag, also erfährt keiner etwas.
 update public.trail_details set visibility = 'private'
@@ -248,6 +277,19 @@ expect "zurückgezogen: keine Meldung mehr" "$(value OUTBOX_NOTE_WITHDRAWN)" "0"
 
 expect "unbestätigte Meldung (von zu Hause): keine Push" "$(value OUTBOX_UNCONFIRMED)" "0"
 expect "vor Ort bestätigt: Anna bekommt eine Zeile, der Zustand keine" "$(value OUTBOX_ONSITE)" "$A:trail_status:closed"
+expect "Englisch: eine Meldung" "$(value SENT_EN1)" "1"
+msg_en1=$(value BODY_EN1 | jq -c '.messages[0]')
+expect "Englisch: an Berts Gerät" "$(jq -r .token <<<"$msg_en1")" "tok-bert"
+expect "Englisch: Titel mit Statuswort" "$(jq -r .title <<<"$msg_en1")" "push_anna reports “Kamm” as closed"
+expect "Englisch: Text der Tipp" "$(jq -r .body <<<"$msg_en1")" "Tap to see the trail"
+msg_en2=$(value BODY_EN2 | jq -c '.messages[0]')
+expect "Englisch: zwei Hinweise, Titel" "$(jq -r .title <<<"$msg_en2")" "2 new notes from your buddies"
+expect "Englisch: zwei Hinweise, Text" "$(jq -r .body <<<"$msg_en2")" "On 2 trails · from push_anna"
+expect "Englisch: Namensliste" "$(value JOIN_EN)" "A, B and 2 others"
+expect "Deutsch: Namensliste" "$(value JOIN_DE)" "A, B und C"
+expect "Englisch: Trail ohne Namen" "$(value NONAME_EN)" "A buddy reports “Unnamed trail” as destroyed"
+expect "Deutsch: Trail ohne Namen" "$(value NONAME_DE)" "Ein Buddy meldet „Trail ohne Namen“ als zerstört"
+expect "Englisch: Zahlen an einem Trail" "$(value COUNTS_EN)" "“Kamm”: 2 reports and 1 note"
 expect "eine Nachricht wartet je Zeile in der Schlange" "$(value MSG_QUEUE)" "3"
 expect "Nachrichten: eine Meldung je Absender" "$(value SENT_MSG)" "2"
 body_msg=$(value BODY_MSG)
@@ -265,6 +307,9 @@ case "$body_msg" in *erste*) echo "::error::push_flush: eine ältere Nachricht s
 expect "die Schlange ist danach leer" "$(value MSG_QUEUE_AFTER)" "0"
 expect "eine neue Nachricht wartet" "$(value MSG_QUEUED)" "1"
 expect "zurückgenommen: keine Meldung mehr" "$(value MSG_WITHDRAWN)" "0"
+msg_en=$(value BODY_MSG_EN | jq -c '.messages[0]')
+expect "Englisch: Nachrichten an Annas Gerät" "$(jq -r .token <<<"$msg_en")" "tok-anna"
+expect "Englisch: Alias und Zahl" "$(jq -r .title <<<"$msg_en")" "Bertl · 2 messages"
 expect "privater Beitrag: niemand erfährt etwas" "$(value OUTBOX_PRIVATE)" "0"
 expect "ohne Geheimnisse wird nichts verschickt" "$(value SENT_NOSECRET)" "0"
 expect "aber abgeräumt" "$(value OUTBOX_NOSECRET)" "0"
