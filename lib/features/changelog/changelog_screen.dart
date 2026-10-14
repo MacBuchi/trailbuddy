@@ -9,6 +9,15 @@ import 'changelog_parser.dart';
 /// Pfad der mitgelieferten Änderungsliste (Asset-Eintrag in `pubspec.yaml`).
 const changelogAsset = 'CHANGELOG.md';
 
+/// Die englische Fassung (#209). Sie beginnt mit [changelogEnglishSince];
+/// ältere Versionen gibt es nur auf Deutsch, die englische Seite hängt sie
+/// mit einem Hinweis an. Ab dort schreibt jeder PR seinen Block in beide
+/// Dateien — `test/changelog_test.dart` wacht darüber.
+const changelogAssetEn = 'CHANGELOG.en.md';
+
+/// Die erste Version mit englischem Block.
+const changelogEnglishSince = '0.120.0';
+
 /// Zeigt die Versionshistorie aus der mitgelieferten `CHANGELOG.md`.
 ///
 /// Die Datei liegt im Binary, die Ansicht funktioniert also ohne Empfang —
@@ -23,21 +32,43 @@ class ChangelogScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text(context.l10n.changelogTitle)),
-      body: FutureBuilder<String>(
-        future: rootBundle.loadString(changelogAsset),
+      body: FutureBuilder<({String de, String? en})>(
+        future: _load(Localizations.localeOf(context).languageCode),
         builder: (context, snapshot) {
           if (snapshot.hasError) {
             // Sollte nie passieren — die Datei ist mitgeliefert. Falls doch,
             // ist eine Erklärung besser als ein leerer Bildschirm.
             return _Message(context.l10n.changelogLoadFailed);
           }
-          final markdown = snapshot.data;
-          if (markdown == null) {
+          final files = snapshot.data;
+          if (files == null) {
             return const CenteredTrailLoader();
           }
-          return _ChangelogBody(lines: parseChangelog(markdown));
+          return _ChangelogBody(lines: _lines(context, files));
         },
       ),
+    );
+  }
+
+  /// Deutsch allein, oder Englisch samt Deutsch für die älteren Blöcke.
+  static Future<({String de, String? en})> _load(String language) async {
+    final de = await rootBundle.loadString(changelogAsset);
+    if (language != 'en') return (de: de, en: null);
+    return (de: de, en: await rootBundle.loadString(changelogAssetEn));
+  }
+
+  static List<ChangelogLine> _lines(
+      BuildContext context, ({String de, String? en}) files) {
+    final de = changelogBody(parseChangelog(files.de));
+    final en = files.en;
+    if (en == null) return de;
+    final l = context.l10n;
+    return withOlderBlocks(
+      changelogBody(parseChangelog(en)),
+      de,
+      since: changelogEnglishSince,
+      title: l.changelogOlderTitle,
+      note: l.changelogOlderInGerman,
     );
   }
 }
@@ -49,17 +80,10 @@ class _ChangelogBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Alles vor der ersten Überschrift überspringen: Titel und Vorspann der
-    // Datei richten sich an Leser auf GitHub und erklären unter anderem den
-    // Weg zu genau diesem Bildschirm.
-    final body = lines
-        .skipWhile((line) => line.kind != ChangelogLineKind.section)
-        .toList();
-
     return ListView.builder(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
-      itemCount: body.length,
-      itemBuilder: (context, index) => _ChangelogLineView(line: body[index]),
+      itemCount: lines.length,
+      itemBuilder: (context, index) => _ChangelogLineView(line: lines[index]),
     );
   }
 }

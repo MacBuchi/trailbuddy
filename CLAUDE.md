@@ -95,11 +95,14 @@ was öffentlich sein MUSS (Impressum, Datenschutzerklärung).
   - Mehrere Themen in einem PR: der höchste Typ entscheidet.
 - **Version Guard** (ci.yml): Code-Änderung ohne Bump in `pubspec.yaml`
   blockiert den Merge, sobald es einen Release-Tag gibt. Ausgenommen sind
-  `*.md` (außer `CHANGELOG.md`, die liegt als Asset im Binary), `.github/`,
+  `*.md` (außer `CHANGELOG.md` und `CHANGELOG.en.md`, die liegen als Asset im Binary), `.github/`,
   `tool/`, `supabase/`, `docs/`, `.claude/`, `.codex/`, `.mcp.json`. Er prüft, DASS gebumpt wurde; WELCHE Stelle
   nach den Regeln oben, ist Sache des PRs.
-- **Changelog**: `CHANGELOG.md` wird in der App unter „Was ist neu" gezeigt.
-  `test/changelog_test.dart` verlangt die pubspec-Version darin. Erlaubte
+- **Changelog**: `CHANGELOG.md` wird in der App unter „Was ist neu" gezeigt,
+  auf Englisch `CHANGELOG.en.md` (ab 0.120.0, darunter die älteren
+  deutschen Blöcke; #209). **Jeder Bump schreibt seinen Block in beide
+  Dateien** — `test/changelog_test.dart` verlangt die pubspec-Version in
+  beiden und ab 0.120.0 dieselben Versionen. Erlaubte
   Auszeichnung wie in PilzBuddy: `##`, kursive Metazeile, Absätze,
   `-`-Listen, `**fett**`, nackte URLs.
 - **Release-Kanäle** (release.yml): Ein Bump auf `main` taggt `v<version>`

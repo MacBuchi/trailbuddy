@@ -8622,6 +8622,14 @@
   "@changelogLoadFailed": {
     "description": "Ersatztext, falls die mitgelieferte CHANGELOG.md nicht lesbar ist. Der Name in Anführungszeichen ist der Eintrag im Profil."
   },
+  "changelogOlderTitle": "Frühere Versionen",
+  "@changelogOlderTitle": {
+    "description": "Überschrift vor den älteren Blöcken, die es nur auf Deutsch gibt. Erscheint nur in Sprachen mit eigener Änderungsliste (Englisch); im Deutschen nie sichtbar."
+  },
+  "changelogOlderInGerman": "Ältere Versionen sind nur auf Deutsch beschrieben.",
+  "@changelogOlderInGerman": {
+    "description": "Hinweis unter „Frühere Versionen\": Die folgenden Blöcke stehen auf Deutsch. Im Deutschen nie sichtbar."
+  },
   "importPickerGpxOrZip": "GPX oder Zip",
   "@importPickerGpxOrZip": {
     "description": "Dateityp-Filter im Datei-Dialog des Imports (Browser)."

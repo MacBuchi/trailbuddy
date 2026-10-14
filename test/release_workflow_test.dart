@@ -159,8 +159,8 @@ void main() {
     for (final ex in [":!*.md'", ":!.github'", ":!tool'", ":!supabase'", ":!docs'"]) {
       expect(ci, contains(ex));
     }
-    expect(ci, contains('-- CHANGELOG.md'),
-        reason: 'CHANGELOG.md liegt im Binary und braucht den Bump');
+    expect(ci, contains('-- CHANGELOG.md CHANGELOG.en.md'),
+        reason: 'Beide Änderungslisten liegen im Binary und brauchen den Bump');
   });
 
   test('die Live-Datenbank wird erst nach dem Dry Run angefasst', () {
