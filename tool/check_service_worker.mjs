@@ -395,7 +395,7 @@ try {
   // nicht als Literal — sonst zeigte diese Prüfung nach einem
   // Projektwechsel auf ein Ziel, das es nicht mehr gibt. Kommt ein
   // weiteres Ziel dazu, gehört es hier hinein UND in
-  // `web/datenschutz.html`.
+  // `web/datenschutz.html` (und deren englische Fassung `privacy.html`).
   // TrailBuddy liest die URL aus `String.fromEnvironment` mit Vorgabe;
   // gebaut wird in CI ohne dart-define, also gilt die Vorgabe.
   const supabaseHost = new URL(

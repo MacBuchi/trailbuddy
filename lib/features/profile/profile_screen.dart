@@ -1078,7 +1078,7 @@ class _AboutSection extends ConsumerWidget {
           leading: const Icon(Icons.privacy_tip_outlined),
           title: Text(l.aboutPrivacyTitle),
           subtitle: Text(l.aboutPrivacySubtitle),
-          onTap: () => _open(AppInfo.privacyUrl),
+          onTap: () => _open(AppInfo.privacyUrlFor(Localizations.localeOf(context))),
         ),
         ListTile(
           contentPadding: EdgeInsets.zero,
@@ -1086,7 +1086,7 @@ class _AboutSection extends ConsumerWidget {
           leading: const Icon(Icons.info_outline),
           title: Text(l.aboutImpressumTitle),
           subtitle: Text(l.aboutImpressumSubtitle),
-          onTap: () => _open(AppInfo.impressumUrl),
+          onTap: () => _open(AppInfo.impressumUrlFor(Localizations.localeOf(context))),
         ),
         ListTile(
           contentPadding: EdgeInsets.zero,

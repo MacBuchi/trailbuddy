@@ -6,12 +6,22 @@
 library;
 
 import 'dart:io';
+import 'dart:ui' show Locale;
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:trailbuddy/core/app_info.dart';
 
 const _privacy = 'web/datenschutz.html';
 const _impressum = 'web/impressum.html';
+const _deleteAccount = 'web/konto-loeschen.html';
+
+/// Die englischen Höflichkeitsübersetzungen (#209) — je deutsche Seite
+/// genau eine, verbindlich bleibt die deutsche.
+const _english = {
+  _privacy: 'web/privacy.html',
+  _impressum: 'web/imprint.html',
+  _deleteAccount: 'web/delete-account.html',
+};
 
 String _read(String path) {
   final file = File(path);
@@ -24,9 +34,69 @@ void main() {
     expect(AppInfo.privacyUrl, endsWith('/datenschutz.html'));
     expect(AppInfo.deleteAccountUrl, endsWith('/konto-loeschen.html'));
     expect(AppInfo.impressumUrl, endsWith('/impressum.html'));
-    for (final p in [_privacy, _impressum, 'web/konto-loeschen.html']) {
+    expect(AppInfo.privacyUrlEn, endsWith('/privacy.html'));
+    expect(AppInfo.deleteAccountUrlEn, endsWith('/delete-account.html'));
+    expect(AppInfo.impressumUrlEn, endsWith('/imprint.html'));
+    for (final p in [..._english.keys, ..._english.values]) {
       expect(File(p).existsSync(), isTrue, reason: p);
     }
+  });
+
+  test('die App öffnet die Rechtsseite in ihrer Sprache', () {
+    const de = Locale('de');
+    expect(AppInfo.privacyUrlFor(de), AppInfo.privacyUrl);
+    expect(AppInfo.impressumUrlFor(de), AppInfo.impressumUrl);
+    for (final other in const [Locale('en'), Locale('fr')]) {
+      expect(AppInfo.privacyUrlFor(other), AppInfo.privacyUrlEn);
+      expect(AppInfo.impressumUrlFor(other), AppInfo.impressumUrlEn);
+    }
+    final profile = _read('lib/features/profile/profile_screen.dart');
+    expect(profile, contains('AppInfo.privacyUrlFor('));
+    expect(profile, contains('AppInfo.impressumUrlFor('));
+  });
+
+  test('jede Rechtsseite verweist auf ihre andere Sprache', () {
+    for (final MapEntry(key: de, value: en) in _english.entries) {
+      final deName = de.split('/').last;
+      final enName = en.split('/').last;
+      expect(_read(de), contains('href="$enName" hreflang="en"'), reason: de);
+      final html = _read(en);
+      expect(html, contains('href="$deName" hreflang="de"'), reason: en);
+      expect(html, contains('<html lang="en">'), reason: en);
+      expect(html, contains('German version</a>'),
+          reason: '$en muss sagen, dass die deutsche Fassung gilt');
+    }
+  });
+
+  test('die englischen Seiten tragen dieselbe Anschrift und Adresse', () {
+    final street = RegExp(r'[A-ZÄÖÜ][\wäöüß.\-]*\s?(str\.|straße|weg|platz|gasse)\s+\d+',
+        caseSensitive: false);
+    final zip = RegExp(r'\b\d{5}\s+[^<\s,]+(\s[^<\s,]+)?');
+    final mail = RegExp(r'mailto:[^"]+');
+    for (final MapEntry(key: de, value: en) in _english.entries) {
+      final german = _read(de);
+      final english = _read(en);
+      for (final pattern in [street, zip, mail]) {
+        for (final m in pattern.allMatches(german)) {
+          expect(english, contains(m.group(0)), reason: '$en: ${m.group(0)}');
+        }
+      }
+    }
+  });
+
+  test('beide Fassungen der Erklärung tragen dasselbe Datum', () {
+    const months = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli',
+      'August', 'September', 'Oktober', 'November', 'Dezember'];
+    const monthsEn = ['January', 'February', 'March', 'April', 'May', 'June', 'July',
+      'August', 'September', 'October', 'November', 'December'];
+    final de = RegExp(r'Stand: (\d{1,2})\. (\S+) (\d{4})').firstMatch(_read(_privacy));
+    final en = RegExp(r'As of (\d{1,2}) (\S+) (\d{4})').firstMatch(_read(_english[_privacy]!));
+    expect(de, isNotNull);
+    expect(en, isNotNull);
+    expect(months.indexOf(de!.group(2)!), isNot(-1));
+    expect('${en!.group(1)} ${en.group(2)} ${en.group(3)}',
+        '${de.group(1)} ${monthsEn[months.indexOf(de.group(2)!)]} ${de.group(3)}',
+        reason: 'Wer datenschutz.html ändert, zieht privacy.html nach — mit Datum');
   });
 
   test('das Impressum trägt eine ladungsfähige Anschrift', () {
@@ -40,8 +110,10 @@ void main() {
   test('das Impressum ist aus der App und den Nachbarseiten erreichbar', () {
     expect(_read('lib/features/profile/profile_screen.dart'), contains('AppInfo.impressumUrl'));
     expect(_read(_privacy), contains('impressum.html'));
-    expect(_read('web/konto-loeschen.html'), contains('impressum.html'));
-    for (final p in [_impressum, _privacy]) {
+    expect(_read(_deleteAccount), contains('impressum.html'));
+    expect(_read(_english[_privacy]!), contains('imprint.html'));
+    expect(_read(_english[_deleteAccount]!), contains('imprint.html'));
+    for (final p in [_impressum, _privacy, ..._english.values]) {
       expect(_read(p), isNot(contains('ec.europa.eu/consumers/odr')));
     }
   });
@@ -66,6 +138,19 @@ void main() {
     expect(html, contains('Bestätigungsmail'));
     expect(html, contains('fonts.gstatic.com'),
         reason: 'Roboto wird im Web von Google geladen (PilzBuddy #393)');
+  });
+
+  test('die englische Erklärung benennt dieselben heiklen Punkte', () {
+    final html = _read(_english[_privacy]!);
+    for (final what in [
+      'tiles.mcbuchi.de', 'Cloudflare', 'places on the map', 'Official trails',
+      'My location', 'trail recordings', 'never leave your device', 'public',
+      'Delete account', 'Error reports', 'Supabase', 'Brevo',
+      'confirmation email', 'fonts.gstatic.com', 'Firebase Cloud Messaging',
+      'never any coordinates', 'name of the trail', 'name of the buddy',
+    ]) {
+      expect(html, contains(what), reason: what);
+    }
   });
 
   test('kein neues Netzziel ohne Eintrag in der Datenschutzerklärung', () {
@@ -118,7 +203,7 @@ void main() {
             f.path.endsWith('.html') || f.path.endsWith('.json'))) {
           continue;
         }
-        if (f.path == _privacy || f.path == _impressum || f.path.endsWith('konto-loeschen.html')) {
+        if (_english.keys.contains(f.path) || _english.values.contains(f.path)) {
           continue;
         }
         for (final m in hostPattern.allMatches(f.readAsStringSync())) {
@@ -132,8 +217,10 @@ void main() {
     expect(unknown, isEmpty,
         reason: 'Neue Hosts ohne Einordnung: ${unknown.map((h) => '$h (${found[h]!.join(', ')})').join('; ')}. '
             'In diesem Test einordnen UND, wenn abgerufen, in web/datenschutz.html erklären.');
+    final privacyEn = _read(_english[_privacy]!);
     for (final h in {...fetched, ...afterConsent}) {
       expect(privacy, contains(h), reason: '$h wird abgerufen und fehlt in der Erklärung');
+      expect(privacyEn, contains(h), reason: '$h fehlt in der englischen Fassung (web/privacy.html)');
     }
     expect(privacy, contains('Firebase Cloud Messaging'),
         reason: 'Push (#34) läuft über Google — die Erklärung muss es nennen');

@@ -14,7 +14,8 @@
 #    Das Web hängt an EINER Adresse; deployte jeder Merge, bekämen
 #    Web-Nutzer jede Zwischenversion. Mit der Web-App kommen auch die
 #    Rechtsseiten (`web/datenschutz.html`, `impressum.html`,
-#    `konto-loeschen.html`), auf die die App verlinkt.
+#    `konto-loeschen.html` und ihre englischen Fassungen `privacy.html`,
+#    `imprint.html`, `delete-account.html`), auf die die App verlinkt.
 #
 # **Die Adresse ist `macbuchi.github.io/trailbuddy/`** und Pages
 # unterscheidet Groß- und Kleinschreibung: Das Repo muss deshalb

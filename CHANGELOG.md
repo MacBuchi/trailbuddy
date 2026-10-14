@@ -2,6 +2,16 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Datenschutz und Impressum auf Englisch
+
+*Version 0.120.0, 2026-10-14*
+
+- Datenschutzerklärung, Impressum und die Anleitung zum Löschen des
+  Kontos gibt es jetzt auch auf Englisch. Läuft die App auf Englisch,
+  öffnet das Profil gleich die englische Seite.
+- Verbindlich bleibt die deutsche Fassung; jede Seite verweist oben auf
+  ihre andere Sprache.
+
 ## Benachrichtigungen in deiner Sprache
 
 *Version 0.119.0, 2026-10-14*

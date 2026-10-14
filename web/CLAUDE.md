@@ -10,6 +10,17 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
 
 - **Kein Netzziel ohne Datenschutzerklärung**: `test/privacy_policy_test.dart`
   prüft jeden Host in `lib/` und `web/` gegen seine Einordnung.
+- **Rechtsseiten in zwei Sprachen** (#209, Betreiber 2026-10-13):
+  `datenschutz.html`, `impressum.html`, `konto-loeschen.html` sind
+  verbindlich; `privacy.html`, `imprint.html`, `delete-account.html` sind
+  englische Höflichkeitsübersetzungen. Beide verweisen oben aufeinander
+  (`hreflang`), die App öffnet über `AppInfo.privacyUrlFor`/
+  `impressumUrlFor` die Fassung ihrer Sprache (Deutsch ⇒ deutsch, sonst
+  englisch). Wer eine deutsche Seite ändert, zieht die englische im
+  selben PR nach: `privacy_policy_test.dart` verlangt dasselbe
+  „Stand"-Datum, jeden abgerufenen Host, Anschrift und Mailadresse auf
+  beiden Seiten. Knöpfe heißen in der englischen Fassung wie in
+  `app_en.arb`.
 - **Web**: `web/flutter_bootstrap.js` + `web/sw.js` sind PilzBuddys
   Service Worker (netzwerkzuerst, Cache als Rückfall); die Platzhalter
   dürfen in keinem Kommentar stehen. **`sw.js` ist seit Phase 1 KEINE
