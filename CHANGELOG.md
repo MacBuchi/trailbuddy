@@ -2,6 +2,14 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Pfeile bei den Höhenmetern ohne Empfang
+
+*Version 0.121.3, 2026-10-15*
+
+- Im Browser standen die Pfeile ↓ und ↑ bei den Höhenmetern ohne
+  Empfang als leere Kästchen da, zum Beispiel beim GPX-Import. Die
+  App bringt die Zeichen jetzt selbst mit.
+
 ## Filter „Meine" nach dem letzten eigenen Trail
 
 *Version 0.121.2, 2026-10-15*

@@ -2,6 +2,14 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## Elevation arrows without reception
+
+*Version 0.121.3, 2026-10-15*
+
+- In the browser, the arrows ↓ and ↑ next to the elevation showed as
+  empty boxes without reception, for example in the GPX import. The app
+  now brings these characters along itself.
+
 ## "Mine" filter after your last own trail
 
 *Version 0.121.2, 2026-10-15*
