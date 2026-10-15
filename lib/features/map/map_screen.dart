@@ -7,7 +7,6 @@ import 'package:go_router/go_router.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../../core/app_colors.dart';
-import '../../core/connectivity.dart';
 import '../../core/geo.dart';
 import '../../core/picture_in_picture.dart';
 import '../../core/widgets/motion.dart';
@@ -147,8 +146,6 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     // Ebenso eine Navigation, die der Dienst weitergeführt hat (#232,
     // 9.5) — ohne Rückfrage, sie lief ja.
     unawaited(_restoreNavigation());
-    // Was im Ausgangskorb liegt, geht beim Start raus (#30).
-    unawaited(ref.read(trailsProvider.notifier).sendOutbox());
     // Die Rückrichtung vom Service-Isolate: jeder Messpunkt kommt auf
     // die Karte, solange die App lebt. Der Port dafür entsteht in
     // `main()` (`initRideCommunication`).
@@ -923,20 +920,6 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       if (points.isEmpty) return;
       _fittedOnce = true;
       _fitPoints(points);
-    });
-    // Verbindung zurück ⇒ Ausgangskorb losschicken (#30). Genau hier
-    // und nicht am App-Resume: Wer aus dem Wald nach Hause kommt, ohne
-    // die App zu schließen, hat kein Resume — aber einen Netzwechsel.
-    // Steht danach noch die Kopie (#183: Start ohne Empfang), holt die
-    // Karte den frischen Stand — sonst bliebe „Trails vom …" stehen, bis
-    // jemand von Hand neu lädt.
-    ref.listen<bool>(noConnectivityProvider, (previous, next) {
-      if (previous == true && next == false) {
-        unawaited(() async {
-          await ref.read(trailsProvider.notifier).sendOutbox();
-          if (mounted && ref.read(trailsCachedAtProvider) != null) ref.invalidate(trailsProvider);
-        }());
-      }
     });
     ref.listen(mapFocusRideProvider, (_, r) {
       if (r == null) return;

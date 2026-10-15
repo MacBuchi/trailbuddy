@@ -2,6 +2,19 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## Outbox in the browser after starting without a connection
+
+*Version 0.121.1, 2026-10-15*
+
+- If the web app was opened without a connection, a waiting
+  contribution only went out the next time you opened it, and "No
+  signal" stayed on screen although the network was long back. Now
+  the browser notices the return in this case too: the outbox sends,
+  and the trails are loaded fresh.
+- The outbox also sends when the app starts on a tab other than the
+  map — in the browser, for example, after reloading the "Trails" page.
+  Until now it waited until you opened the map.
+
 ## "What's new" in English
 
 *Version 0.121.0, 2026-10-14*

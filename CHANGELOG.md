@@ -2,6 +2,19 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Ausgangskorb im Browser nach einem Start ohne Empfang
+
+*Version 0.121.1, 2026-10-15*
+
+- Wurde die Web-App ohne Empfang geöffnet, ging ein wartender Beitrag
+  erst beim nächsten Öffnen raus, und „Kein Empfang" blieb stehen,
+  obwohl das Netz längst zurück war. Jetzt merkt der Browser die
+  Rückkehr auch dann: Der Ausgangskorb sendet, und die Trails werden
+  frisch geladen.
+- Der Ausgangskorb sendet auch, wenn die App auf einem anderen Reiter
+  als der Karte startet — im Browser etwa nach dem Neuladen der Seite
+  „Trails". Bisher wartete er, bis man die Karte öffnete.
+
 ## „Was ist neu" auf Englisch
 
 *Version 0.121.0, 2026-10-14*
