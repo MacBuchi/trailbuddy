@@ -9,6 +9,7 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:trailbuddy/data/outbox.dart';
+import 'package:trailbuddy/features/map/map_screen.dart';
 import 'package:trailbuddy/features/trails/gpx_files.dart';
 import 'package:trailbuddy/models/trail.dart';
 import 'package:trailbuddy/features/trails/trail_geometry.dart';
@@ -148,6 +149,37 @@ void main() {
     expect(trails.contributeCalls, 2);
     expect(outbox.jobs, isEmpty);
     expect(trails.recordings.single.id, 'rec-job-x');
+  });
+
+  // Der Browser startet nach dem Neuladen auf dem Reiter der URL — die
+  // Karte wird dann nie gebaut. Start und Rückkehr des Netzes stoßen den
+  // Korb trotzdem an (bis 0.121.0 hingen beide an der Karte; gefunden im
+  // Browser-Check von 0.102.0, #153).
+  testWidgets('Start auf „Trails": Start und Rückkehr des Netzes schicken ohne Karte', (tester) async {
+    tester.platformDispatcher.defaultRouteNameTestValue = '/trails';
+    addTearDown(tester.platformDispatcher.clearDefaultRouteNameTestValue);
+    final net = StreamController<List<ConnectivityResult>>();
+    addTearDown(net.close);
+    outbox.uid = annaId;
+    outbox.jobs.add(ContributeJob(
+        id: 'job-y',
+        createdAt: DateTime.now().toUtc(),
+        coords: line(5),
+        source: RecordingSource.import,
+        name: 'Offline-Trail'));
+    trails.failNextContribute = const SocketException('offline');
+    await pumpApp(tester, backend, trails: trails, outbox: outbox, connectivity: net.stream);
+    await settle(tester, frames: 12);
+    expect(find.byType(MapScreen), findsNothing, reason: 'die Karte ist nie gebaut');
+    expect(find.text('Wartet auf Übertragung (1)'), findsOneWidget);
+    expect(trails.contributeCalls, 1, reason: 'der Startversuch, ohne Karte');
+    net.add(const [ConnectivityResult.none]);
+    await settle(tester, frames: 6);
+    net.add(const [ConnectivityResult.wifi]);
+    await settle(tester, frames: 20);
+    expect(trails.contributeCalls, 2);
+    expect(outbox.jobs, isEmpty);
+    expect(find.byType(MapScreen), findsNothing);
   });
 
   testWidgets('Beitrag ohne Netz: wartet mit Vermerk, ersetzt einen älteren', (tester) async {

@@ -51,9 +51,22 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     Servers (`PostgrestException`, `WriteRejectedException`) ist sofort
     endgültig, alles andere nach fünf Anläufen. Abgelehnte bleiben
     stehen, bis jemand entscheidet („Erneut versuchen" / „Aus dem
-    Ausgangskorb entfernen"). Angestoßen beim Kartenstart, bei der
+    Ausgangskorb entfernen"). Angestoßen beim Start, bei der
     Rückkehr der Verbindung (`noConnectivityProvider`,
     `connectivity_plus`) und auf Tippen im Banner — NICHT am App-Resume.
+    **Start und Rückkehr hören in der Hülle** (`OutboxTrigger` in
+    `AppShell`, seit 0.121.1), nicht in der Karte: Der Browser startet
+    nach dem Neuladen auf dem Reiter der URL, die Karte wurde dann nie
+    gebaut, und der Korb wartete, bis man sie öffnete
+    (`outbox_flow_test` „Start auf „Trails"", Gegenprobe ohne den
+    Trigger rot).
+    **Im Browser meldet `onConnectivityChanged` keinen Anfang**, nur
+    Wechsel; `connectivityProvider` setzt deshalb `checkConnectivity()`
+    davor (`startingWith`, seit 0.121.1). Ohne das blieb ein Start ohne
+    Empfang „unbekannt" = verbunden, die Rückkehr war kein Wechsel, der
+    Korb ging erst beim nächsten Start raus (Browser-Check von 0.102.0;
+    `test/core/connectivity_test.dart` fährt den echten Provider über
+    die Kanäle des Plugins, Gegenprobe ohne den Anfang rot).
   - **Was gerade gesendet wird, steht schon da** (#183, seit 0.77.1):
     `saveDetails` und `report` legen ihren Auftrag VOR dem Sendeversuch
     als „unterwegs" auf die Anzeige (`_sending`, `withPendingJobs(sending:)`,

@@ -23,6 +23,7 @@ import '../features/rides/rides_screen.dart';
 import '../features/routing/nav_providers.dart' show navigationProvider;
 import '../features/trails/still_valid_screen.dart';
 import '../features/trails/merge_proposal_card.dart';
+import '../features/trails/outbox_trigger.dart';
 import '../features/trails/trail_import_screen.dart';
 import '../features/trails/trail_providers.dart' show mapFocusTrailProvider;
 import '../features/trails/trails_screen.dart';
@@ -223,7 +224,9 @@ class AppShell extends ConsumerWidget {
       // Und weil sie nicht ausweicht, liegt ihr Body schon eine
       // Leistenhöhe über dem Rand — ein Reiter-Scaffold darf nur um den
       // Rest der Tastatur schrumpfen.
-      body: KeyboardInsetBelowBar(child: navigationShell),
+      // Der Ausgangskorb (#30) hört in der Hülle, nicht in einem Reiter
+      // — der Browser startet nach dem Neuladen auf dem Reiter der URL.
+      body: OutboxTrigger(child: KeyboardInsetBelowBar(child: navigationShell)),
       // Im Bild-im-Bild (#232, 9.6) ist die App nur noch Karte: keine
       // Reiterleiste, die das kleine Fenster zur Hälfte füllte. Und
       // solange navigiert wird, ist die Karte Vollbild (#312, Design 13):
