@@ -117,6 +117,9 @@ abstract final class SheetCoach {
 
   /// „Als GPX exportieren" (#150).
   static const export = 'sheet.export';
+
+  /// „Start im Planer" / „Ziel im Planer" (#331) — der Trailkopf im Planer.
+  static const plan = 'sheet.plan';
 }
 
 /// Die Startseite beim ERSTEN Start (#133). Sie nennt die drei Wege, auf

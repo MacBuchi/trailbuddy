@@ -478,6 +478,19 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     ref.read(loopPlannerProvider.notifier).open(start: start);
   }
 
+  /// Der Trailkopf als Start oder Ziel (#331 Schritt 2), aus dem
+  /// Trail-Blatt: Planer auf, Punkt gesetzt, der Trail eingepasst — das
+  /// Blatt kann aus der Liste kommen, und die Karte stand woanders.
+  Future<void> _planFromTrailHead(LoopTrailHeadRequest request) async {
+    final trail = ref.read(trailByIdProvider(request.trailId));
+    if (trail == null) return;
+    await _openLoopPlanner();
+    if (!mounted || !ref.read(loopPlannerProvider).open) return;
+    ref.read(loopPlannerProvider.notifier).takeTrailHead(trail, asTarget: request.asTarget);
+    _fittedOnce = true;
+    _fitTo([trail]);
+  }
+
   /// Schließen: Ergebnis-Blatt zu, Modus aus — die Auswahl bleibt für die
   /// Sitzung.
   void _closeLoopPlanner() {
@@ -923,6 +936,15 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       ref.read(trailHeadRequestProvider.notifier).state = null;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _openTrailHead(request);
+      });
+    });
+    // Der Trailkopf als Start oder Ziel des Planers (#331): wie oben nach
+    // dem Bild — das Blatt schließt und der Reiter wechselt im selben Zug.
+    ref.listen(loopTrailHeadRequestProvider, (_, request) {
+      if (request == null) return;
+      ref.read(loopTrailHeadRequestProvider.notifier).state = null;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) unawaited(_planFromTrailHead(request));
       });
     });
     // Ein Routen-Blatt bittet ums Einpassen — wenn es soweit ist, also

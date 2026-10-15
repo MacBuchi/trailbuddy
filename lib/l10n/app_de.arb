@@ -1043,6 +1043,14 @@
   "@sheetTrailHead": {
     "description": "Trail-Blatt: Knopf, der den Weg zum Anfang des Trails auf der Karte plant."
   },
+  "sheetPlanFrom": "Start im Planer",
+  "@sheetPlanFrom": {
+    "description": "Trail-Blatt: Knopf, der den Planer auf der Karte mit dem Trailkopf als Start öffnet (#331)."
+  },
+  "sheetPlanTo": "Ziel im Planer",
+  "@sheetPlanTo": {
+    "description": "Trail-Blatt: Knopf, der den Planer auf der Karte mit dem Trailkopf als Ziel öffnet (#331)."
+  },
   "sheetShowOnMap": "Karte",
   "@sheetShowOnMap": {
     "description": "Trail-Blatt: Knopf, der den Trail auf der Karte zeigt."
@@ -6225,6 +6233,14 @@
   "@highlightRouteElevationText": {
     "description": "Entdecken, Eintrag „route-elevation“: Text, zwei bis drei Sätze (auch im Neuheiten-Blatt)."
   },
+  "highlightTrailHeadPlanTitle": "Am Trailkopf starten oder enden",
+  "@highlightTrailHeadPlanTitle": {
+    "description": "Entdecken, Eintrag „trail-head-plan“: Überschrift (auch im Neuheiten-Blatt nach einem Update)."
+  },
+  "highlightTrailHeadPlanText": "Im Blatt eines Trails öffnen „Start im Planer“ und „Ziel im Planer“ den Planer mit dem Trailkopf als Start oder Ziel. Als Start ist der Trail gleich gewählt.",
+  "@highlightTrailHeadPlanText": {
+    "description": "Entdecken, Eintrag „trail-head-plan“: Text, zwei bis drei Sätze (auch im Neuheiten-Blatt)."
+  },
   "highlightLoopEndTitle": "Runde, letzter Trail oder Ziel",
   "@highlightLoopEndTitle": {
     "description": "Entdecken, Eintrag „loop-end“: Überschrift (auch im Neuheiten-Blatt nach einem Update)."
@@ -6797,6 +6813,14 @@
   "demoRouteElevationText": "Plane eine Runde oder einen Weg zum Trail: Unter der Summe steht das Höhenprofil, von Start bis Ziel. Fehlt einem Stück die Höhe, bleibt es weg — erfunden wird nichts.",
   "@demoRouteElevationText": {
     "description": "Vorführung „route-elevation“ (Entdecken → Zeig es mir): Text der Blase."
+  },
+  "demoTrailHeadPlanTitle": "Vom Trailkopf aus planen",
+  "@demoTrailHeadPlanTitle": {
+    "description": "Vorführung „trail-head-plan“ (Entdecken → Zeig es mir): Überschrift der Blase."
+  },
+  "demoTrailHeadPlanText": "„Start im Planer“ öffnet den Planer mit dem Trailkopf als Start und diesem Trail gewählt; „Ziel im Planer“ lässt die Route am Trailkopf enden.",
+  "@demoTrailHeadPlanText": {
+    "description": "Vorführung „trail-head-plan“ (Entdecken → Zeig es mir): Text der Blase."
   },
   "demoLoopEnd1Title": "Nicht jede Fahrt ist eine Runde",
   "@demoLoopEnd1Title": {

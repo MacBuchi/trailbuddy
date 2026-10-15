@@ -10,3 +10,11 @@ import 'package:latlong2/latlong.dart';
 /// zum ersten Mal Linien hat": Das Blatt weiß, wann es soweit ist — nach
 /// dem Einklappen, sonst läge die Route wieder darunter.
 final mapFitRequestProvider = StateProvider<List<LatLng>?>((ref) => null);
+
+/// Der Trailkopf als Start oder Ziel des Planers (#331 Schritt 2): ein
+/// Wunsch des Trail-Blatts an die Karte, wie „Zum Trailkopf" — das Blatt
+/// kann über dem Reiter „Trails" offen sein, der Planer gehört auf die
+/// Karte. Die Karte nimmt den Wunsch und setzt ihn auf null.
+typedef LoopTrailHeadRequest = ({String trailId, bool asTarget});
+
+final loopTrailHeadRequestProvider = StateProvider<LoopTrailHeadRequest?>((ref) => null);

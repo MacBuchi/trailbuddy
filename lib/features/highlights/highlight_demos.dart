@@ -448,6 +448,20 @@ Map<String, HighlightDemo> highlightDemos(AppLocalizations l) => {
       _noTrailYet(l),
     ]),
   ),
+  'trail-head-plan': HighlightDemo(
+    route: '/trails',
+    script: _demo('trail-head-plan', [
+      _openTrailFirst(l),
+      CoachStep(
+        title: l.demoTrailHeadPlanTitle,
+        text: l.demoTrailHeadPlanText,
+        scene: TrailsCoach.sheet,
+        lit: [SheetCoach.plan],
+        requires: [TrailsCoach.row],
+      ),
+      _noTrailYet(l),
+    ]),
+  ),
   'navigate': HighlightDemo(
     route: '/trails',
     script: _demo('navigate', [
