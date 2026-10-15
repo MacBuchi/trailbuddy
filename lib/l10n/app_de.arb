@@ -4363,11 +4363,11 @@
   "@loopRailClear": {
     "description": "Tooltip eines Knopfs der Planer-Leiste."
   },
-  "loopRailComputeNone": "Runde rechnen — erst Trails wählen",
+  "loopRailComputeNone": "Rechnen — erst Trails wählen",
   "@loopRailComputeNone": {
     "description": "Tooltip des Rechnen-Knopfs, solange nichts gewählt ist."
   },
-  "loopRailCompute": "{count, plural, =1{Runde rechnen (1 Trail)} other{Runde rechnen ({count} Trails)}}",
+  "loopRailCompute": "{count, plural, =1{Rechnen (1 Trail)} other{Rechnen ({count} Trails)}}",
   "@loopRailCompute": {
     "description": "Tooltip des Rechnen-Knopfs der Planer-Leiste.",
     "placeholders": {
