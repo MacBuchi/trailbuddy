@@ -6233,6 +6233,14 @@
   "@highlightRouteElevationText": {
     "description": "Entdecken, Eintrag „route-elevation“: Text, zwei bis drei Sätze (auch im Neuheiten-Blatt)."
   },
+  "highlightPlacePlanTitle": "Ein Ort als Start oder Ziel",
+  "@highlightPlacePlanTitle": {
+    "description": "Entdecken, Eintrag „place-plan“: Überschrift (auch im Neuheiten-Blatt nach einem Update)."
+  },
+  "highlightPlacePlanText": "Tippe einen Ort auf der Karte an, etwa einen Parkplatz oder Brunnen: „Start im Planer“ und „Ziel im Planer“ machen ihn zum Start oder Ziel. Wartet der Planer gerade auf seinen Start, nimmt ein Tipp auf einen Ort genau dessen Lage.",
+  "@highlightPlacePlanText": {
+    "description": "Entdecken, Eintrag „place-plan“: Text, zwei bis drei Sätze (auch im Neuheiten-Blatt)."
+  },
   "highlightTrailHeadPlanTitle": "Am Trailkopf starten oder enden",
   "@highlightTrailHeadPlanTitle": {
     "description": "Entdecken, Eintrag „trail-head-plan“: Überschrift (auch im Neuheiten-Blatt nach einem Update)."
@@ -6813,6 +6821,14 @@
   "demoRouteElevationText": "Plane eine Runde oder einen Weg zum Trail: Unter der Summe steht das Höhenprofil, von Start bis Ziel. Fehlt einem Stück die Höhe, bleibt es weg — erfunden wird nichts.",
   "@demoRouteElevationText": {
     "description": "Vorführung „route-elevation“ (Entdecken → Zeig es mir): Text der Blase."
+  },
+  "demoPlacePlanTitle": "Vom Parkplatz aus planen",
+  "@demoPlacePlanTitle": {
+    "description": "Vorführung „place-plan“ (Entdecken → Zeig es mir): Überschrift der Blase."
+  },
+  "demoPlacePlanText": "Schalte hier die Orte ein, die du brauchst. Im Blatt eines Ortes stehen dann „Start im Planer“ und „Ziel im Planer“.",
+  "@demoPlacePlanText": {
+    "description": "Vorführung „place-plan“ (Entdecken → Zeig es mir): Text der Blase."
   },
   "demoTrailHeadPlanTitle": "Vom Trailkopf aus planen",
   "@demoTrailHeadPlanTitle": {

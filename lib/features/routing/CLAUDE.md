@@ -221,6 +221,15 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     Parameter) und wählt nichts. Danach passt die Karte den Trail ein:
     Das Blatt kann aus der Liste kommen. Anker `SheetCoach.plan` steht
     auch im Beispielblatt der Touren.
+    **Ein Ort als Start oder Ziel** (seit 0.125.0, #331 Schritt 3): Das
+    Ort-Blatt (`showPoiSheet(onPlan:)`) liegt schon auf der Karte, also
+    kein Wunsch-Provider: Die Karte öffnet den Planer und ruft
+    `takePlace` (auch der Kern von `takeTrailHead`), ohne einzupassen.
+    Wartet der Planer auf einen Tipp, gibt `_onHit` für einen `Poi`
+    dessen Lage statt der Fingerstelle — der Test tippt dafür absichtlich
+    daneben. Im Flow-Test den Ort per `tapMapAt` treffen, nicht per
+    `tester.tap` auf die Nadel: Bei offenem Planer meldet `tap()` die
+    Nadel an falscher Stelle (0,0-nah) und trifft nichts.
   - **Die geplante Fahrt** (`Ride.planned`, `Ride.name`,
     `RideStore.savePlanned`, Datei am Stück über `.part` + `rename`):
     Punkte ohne Zeit und Höhe, `endedAt` = Schätzung; in „Meine Fahrten"

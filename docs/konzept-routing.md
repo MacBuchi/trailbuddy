@@ -611,7 +611,10 @@ Messung und spiegelt Kostentabelle und Zeitmodell; wie bei
   Knopf in der Leiste. Was nicht am Start endet, heißt „Route". Seit
   0.124.0 ist auch ein Trailkopf Start oder Ziel: „Start im Planer" /
   „Ziel im Planer" im Trail-Blatt öffnen den Planer damit; als Start ist
-  der Trail gewählt, als Ziel steht der Modus auf „Zum Ziel".
+  der Trail gewählt, als Ziel steht der Modus auf „Zum Ziel". Seit
+  0.125.0 ebenso ein Ort der Ebene „Orte" aus seinem Blatt; ein Tipp auf
+  einen Ort, während der Planer auf Start oder Ziel wartet, nimmt die
+  Lage des Ortes.
   **Seit 0.74.0 kein Blatt mit Stufen mehr, sondern ein Modus mit Leiste
   links** (Betreiber: „zum Planen links ein Menü in der Art wie rechts,
   mit Planer-Optionen"; `loop_tool_rail.dart`, Zustand in

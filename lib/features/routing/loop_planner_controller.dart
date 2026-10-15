@@ -319,12 +319,19 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
   /// losfährt, will ihn fahren; als Ziel schaltet er auf „Zum Ziel" und
   /// bleibt, wie er war (am Kopf endet die Fahrt, bevor er beginnt).
   void takeTrailHead(Trail t, {required bool asTarget}) {
+    takePlace(t.start, asTarget: asTarget);
+    if (!asTarget && !t.pending && trailRoleOf(t) == TrailRole.downhill) setSelected([t.id], true);
+  }
+
+  /// Ein Punkt als Start oder Ziel, ohne Tipp auf die Karte — ein Ort aus
+  /// der Ebene „Orte" (#331 Schritt 3) oder ein Trailkopf. Als Ziel
+  /// schaltet er auf „Zum Ziel" (gemerkt wie über die Parameter).
+  void takePlace(LatLng p, {required bool asTarget}) {
     if (asTarget) {
       if (state.prefs.endMode != LoopEndMode.target) setPrefs(state.prefs.copyWith(endMode: LoopEndMode.target));
-      takeTarget(t.start);
+      takeTarget(p);
     } else {
-      takeStart(t.start);
-      if (!t.pending && trailRoleOf(t) == TrailRole.downhill) setSelected([t.id], true);
+      takeStart(p);
     }
   }
 

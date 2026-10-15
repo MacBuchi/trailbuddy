@@ -2,6 +2,16 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Ein Ort als Start oder Ziel
+
+*Version 0.125.0, 2026-10-16*
+
+- Im Blatt eines Ortes auf der Karte, etwa eines Parkplatzes oder
+  Brunnens, stehen jetzt „Start im Planer“ und „Ziel im Planer“. Als Ziel
+  stellt der Planer auf „Zum Ziel“ um.
+- Wartet der Planer auf seinen Start oder sein Ziel, nimmt ein Tipp auf
+  einen Ort genau dessen Lage, nicht die Stelle neben dem Finger.
+
 ## Am Trailkopf starten oder enden
 
 *Version 0.124.0, 2026-10-15*

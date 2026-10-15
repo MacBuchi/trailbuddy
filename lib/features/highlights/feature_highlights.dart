@@ -83,6 +83,16 @@ class FeatureHighlight {
 final kFeatureHighlights = <FeatureHighlight>[
   // ─── Highlights ──────────────────────────────────────────────────
   FeatureHighlight(
+    id: 'place-plan',
+    since: '0.125.0',
+    kind: HighlightKind.highlight,
+    tab: HighlightTab.map,
+    icon: Icons.place_outlined,
+    title: (l) => l.highlightPlacePlanTitle,
+    text: (l) => l.highlightPlacePlanText,
+    target: '/',
+  ),
+  FeatureHighlight(
     id: 'trail-head-plan',
     since: '0.124.0',
     kind: HighlightKind.highlight,
