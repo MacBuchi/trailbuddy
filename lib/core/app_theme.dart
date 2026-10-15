@@ -64,6 +64,10 @@ ThemeData buildAppTheme(AppPalette p) {
     colorScheme: scheme,
     brightness: p.brightness,
     fontFamily: AppFonts.body,
+    // Barlow hat keine Pfeile (↑ ↓ → ←) und kein ✓, JetBrains Mono schon.
+    // Ohne Ersatz holte Flutter Web eine Schrift aus dem Netz — offline
+    // standen dort leere Kästchen (#338).
+    fontFamilyFallback: const [AppFonts.mono],
     scaffoldBackgroundColor: p.ground,
     extensions: [p],
   );

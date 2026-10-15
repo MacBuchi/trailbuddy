@@ -189,7 +189,11 @@ dunklen Flächen der App.
   (`AppFonts.numbers`).
 
 Als Assets gebündelt (SIL OFL), nie `google_fonts` — die App muss offline
-gleich aussehen.
+gleich aussehen. Barlow hat keine Pfeile (↑ ↓ → ←) und kein ✓; das Theme
+nimmt dafür JetBrains Mono als Ersatzschrift (`fontFamilyFallback`), sonst
+holt Flutter Web eine aus dem Netz und zeigt offline Kästchen (#338).
+Ein Zeichen in den ARB-Texten, das keine der beiden hat, macht
+`test/font_glyphs_test.dart` rot.
 
 ## 4. Logo (Turn 1b, Form seit C3) — `lib/core/widgets/trailbuddy_logo.dart`, `tool/brand_icons.py`
 
