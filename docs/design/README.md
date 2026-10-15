@@ -491,6 +491,12 @@ Marke — seit 0.83.3 (#233) deckend, 12 px, mit dunkler Kontur (2 px,
 Pflicht 3,5 px deckend) unter der Linie wie der Leuchtrand (#195); 55 %
 ohne Kontur ging im weißen Saum unter. Der getippte Start ist eine Fahne
 in der Marke mit dunkler Kontur und Schein (`LoopStartFlag`).
+Die im Höhenprofil gewählte Stelle (#332, seit 0.122.0) ist eine
+Scheibe in der Marke (30 px) mit dunklem Rand und Rad
+(`RouteCursorSymbol`) — keine Nadel (die gehört den Orten), keine Fahne
+(die dem Start); die Kamera bleibt stehen, nur das Symbol wandert. Im
+Profil selbst ein senkrechter Strich mit Punkt, Strecke und Höhe in der
+freien oberen Ecke.
 
 **Anfang und Richtung seit 0.66.0** (#96, `trail_end_marks.dart`,
 Schritt 6c): je Trail eine Scheibe (14 px) in der Trail-Farbe mit weißem

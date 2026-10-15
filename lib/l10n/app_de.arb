@@ -6156,6 +6156,14 @@
   "@highlightRouteElevationText": {
     "description": "Entdecken, Eintrag „route-elevation“: Text, zwei bis drei Sätze (auch im Neuheiten-Blatt)."
   },
+  "highlightRouteProfileScrubTitle": "Im Höhenprofil wandern",
+  "@highlightRouteProfileScrubTitle": {
+    "description": "Entdecken, Eintrag „route-profile-scrub“: Überschrift (auch im Neuheiten-Blatt nach einem Update)."
+  },
+  "highlightRouteProfileScrubText": "Tippe ins Höhenprofil einer geplanten Runde oder Route oder fahre mit dem Finger darüber: Ein Rad zeigt dir die Stelle auf der Karte, die ganze Strecke bleibt dabei im Bild. Unter dem Profil steht jetzt eine km-Skala.",
+  "@highlightRouteProfileScrubText": {
+    "description": "Entdecken, Eintrag „route-profile-scrub“: Text, zwei bis drei Sätze (auch im Neuheiten-Blatt)."
+  },
   "highlightRidesTidyTitle": "Meine Fahrten aufräumen",
   "@highlightRidesTidyTitle": {
     "description": "Entdecken, Eintrag „rides-tidy“: Überschrift (auch im Neuheiten-Blatt nach einem Update)."
@@ -6712,6 +6720,14 @@
   "demoRouteElevationText": "Plane eine Runde oder einen Weg zum Trail: Unter der Summe steht das Höhenprofil, von Start bis Ziel. Fehlt einem Stück die Höhe, bleibt es weg — erfunden wird nichts.",
   "@demoRouteElevationText": {
     "description": "Vorführung „route-elevation“ (Entdecken → Zeig es mir): Text der Blase."
+  },
+  "demoRouteProfileScrubTitle": "Wo ist dieser Anstieg?",
+  "@demoRouteProfileScrubTitle": {
+    "description": "Vorführung „route-profile-scrub“ (Entdecken → Zeig es mir): Überschrift der Blase."
+  },
+  "demoRouteProfileScrubText": "Plane eine Runde oder einen Weg zum Trail und fahre mit dem Finger über das Höhenprofil: Das Rad auf der Karte läuft mit, darüber stehen Strecke und Höhe der Stelle.",
+  "@demoRouteProfileScrubText": {
+    "description": "Vorführung „route-profile-scrub“ (Entdecken → Zeig es mir): Text der Blase."
   },
   "demoLoopPlanner1Title": "Eine Runde aus deinen Trails",
   "@demoLoopPlanner1Title": {

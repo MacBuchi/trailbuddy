@@ -314,6 +314,50 @@ void main() {
       expect(profileTop, lessThan(tester.getTopLeft(find.byKey(const ValueKey('loop-save'))).dy));
     });
 
+    testWidgets('Ziehen im Profil (#332): das Rad wandert auf der Linie, die Karte bleibt stehen', (tester) async {
+      await start(tester, areaStore: await _areaWithTrack(), extra: [areaHeights]);
+      await openPlanner(tester);
+      await zoomToTrails(tester);
+      await tapMapAt(tester, const LatLng(48.004, _lon));
+      await settle(tester);
+      await tapRail(tester, 'loop-rail-compute');
+      await settle(tester, frames: 10);
+      final plan = ProviderScope.containerOf(tester.element(find.byType(MaterialApp))).read(loopPlannerProvider).plan!;
+      MapViewMarker? cursor() =>
+          fakeMapLayers(tester).markers.where((m) => m.key == const ValueKey('route-profile-cursor')).firstOrNull;
+      expect(cursor(), isNull, reason: 'ohne Wahl kein Symbol');
+      expect(find.descendant(of: find.byKey(const ValueKey('loop-elevation')), matching: find.byKey(const ValueKey('elevation-axis'))),
+          findsOneWidget, reason: 'kompakt mit km-Skala');
+      final camera = fakeMap(tester).center;
+
+      final scrub = find.descendant(of: find.byKey(const ValueKey('loop-elevation')), matching: find.byKey(const ValueKey('elevation-scrub')));
+      final box = tester.getRect(scrub);
+      final gesture = await tester.startGesture(box.centerLeft + const Offset(4, 0));
+      await gesture.moveBy(const Offset(30, 0));
+      await tester.pump();
+      final first = cursor()!.point;
+      await gesture.moveTo(box.center);
+      await tester.pump();
+      final mid = cursor()!.point;
+      await gesture.up();
+      await settle(tester);
+
+      expect(mid, isNot(first), reason: 'das Symbol folgt dem Finger');
+      // Auf der gezeichneten Linie: nah an einem ihrer Abschnitte.
+      double offLine(LatLng p) => plan.points
+          .map((q) => const Distance().as(LengthUnit.Meter, p, q))
+          .reduce((a, b) => a < b ? a : b);
+      expect(offLine(mid), lessThan(60), reason: 'auf der Route, nicht daneben');
+      expect(cursor(), isNotNull, reason: 'nach dem Loslassen bleibt die Stelle stehen');
+      expect(find.byKey(const ValueKey('elevation-cursor-label')), findsOneWidget);
+      expect(fakeMap(tester).center, camera, reason: 'keine Kamerafahrt — die ganze Strecke bleibt im Bild');
+
+      await tester.tap(find.byKey(const ValueKey('loop-close')));
+      await settle(tester, frames: 30);
+      expect(find.byKey(const ValueKey('loop-elevation')), findsNothing);
+      expect(cursor(), isNull, reason: 'Planer zu, Symbol weg');
+    });
+
     testWidgets('„Route hierher": dasselbe Profil, in Fahrtrichtung', (tester) async {
       await start(tester, areaStore: await _areaWithTrack(), extra: [areaHeights]);
       await longPressMapAt(tester, const LatLng(48.009, _lon));

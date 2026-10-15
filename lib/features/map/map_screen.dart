@@ -32,6 +32,7 @@ import '../routing/nav_service.dart';
 import '../routing/nav_sections.dart';
 import '../routing/nav_view.dart';
 import '../routing/route_progress.dart' show followCenter, kNavZoom;
+import '../routing/route_elevation.dart' show RouteCursorSymbol, routeProfileCursorProvider;
 import '../routing/route_via_providers.dart';
 import '../routing/route_vias.dart';
 import '../routing/via_handles.dart';
@@ -852,6 +853,11 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       _ => null,
     };
     final panelInset = ref.watch(mapPanelInsetProvider);
+    // Die im Höhenprofil des Ergebnisses gewählte Stelle (#332) — nur
+    // solange ein Ergebnis auf der Karte liegt; das Blatt räumt sie erst
+    // beim Abbau weg, und das kann nach dem Schließen des Planers sein.
+    final profileCursor =
+        loopPlan != null || trailHeadPreview.isNotEmpty ? ref.watch(routeProfileCursorProvider) : null;
     // Der ausgewählte Trail (#178) — weg, wenn er nicht mehr gezeigt wird
     // (Filter, gelöscht).
     final selected = _selectedTrailId == null
@@ -1129,6 +1135,15 @@ class _MapScreenState extends ConsumerState<MapScreen> {
           ),
         // Die Zwischenpunkte der Route (#234) — angefasst über die Griffe.
         if (vias != null) ...viaMarkers(vias),
+        // Die im Höhenprofil gewählte Stelle (#332).
+        if (profileCursor != null)
+          MapViewMarker(
+            key: const ValueKey('route-profile-cursor'),
+            point: profileCursor.point,
+            width: RouteCursorSymbol.size,
+            height: RouteCursorSymbol.size,
+            child: const RouteCursorSymbol(),
+          ),
         // Die Nadel des langen Drucks (#177), solange sein Menü offen ist.
         if (_pressedPoint != null)
           MapViewMarker(

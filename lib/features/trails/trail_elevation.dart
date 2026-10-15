@@ -57,6 +57,25 @@ class ElevationProfile {
   final bool fromTerrain;
 
   double get lengthM => distM.last;
+
+  /// Die Höhe [alongM] Meter ab Start, zwischen zwei Punkten linear;
+  /// außerhalb auf Start oder Ziel geklemmt.
+  double eleAt(double alongM) {
+    if (alongM <= 0) return eleM.first;
+    if (alongM >= lengthM) return eleM.last;
+    var lo = 0, hi = distM.length - 1;
+    while (hi - lo > 1) {
+      final mid = (lo + hi) >> 1;
+      if (distM[mid] <= alongM) {
+        lo = mid;
+      } else {
+        hi = mid;
+      }
+    }
+    final seg = distM[hi] - distM[lo];
+    final t = seg <= 0 ? 0.0 : (alongM - distM[lo]) / seg;
+    return eleM[lo] + (eleM[hi] - eleM[lo]) * t;
+  }
   double get startM => eleM.first;
   double get endM => eleM.last;
   double get minM => eleM.reduce((a, b) => a < b ? a : b);
