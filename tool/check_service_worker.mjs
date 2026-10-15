@@ -16,11 +16,10 @@
 // und damit lässt sich das DevTools-Protokoll direkt sprechen.
 import {createServer} from 'node:http';
 import {createHash} from 'node:crypto';
-import {spawn} from 'node:child_process';
 import {existsSync, readFileSync} from 'node:fs';
-import {readFile, mkdtemp, rm} from 'node:fs/promises';
-import {tmpdir} from 'node:os';
+import {readFile} from 'node:fs/promises';
 import {join, extname, normalize} from 'node:path';
+import {startChrome} from './chrome_start.mjs';
 
 const ROOT = process.argv[2] ?? 'build/web';
 const PORT = 8796;
@@ -281,54 +280,25 @@ const ok = [];
 const fail = [];
 const check = (condition, text) => (condition ? ok : fail).push(text);
 
-const profile = await mkdtemp(join(tmpdir(), 'trailbuddy-sw-'));
 const binary = chromeBinary();
 console.log(`Chrome: ${binary}`);
-const chrome = spawn(binary, [
-  '--headless=new',
-  '--no-first-run',
-  '--no-default-browser-check',
-  // Auf CI-Rechnern läuft alles als root und ohne die üblichen
-  // Kernel-Namespaces; ohne diese beiden startet Chrome dort gar nicht.
-  '--no-sandbox',
-  '--disable-dev-shm-usage',
-  // CanvasKit braucht WebGL. Ohne Grafikkarte rendert SwiftShader in
-  // Software — langsam, aber es rendert; ohne den Schalter gar nicht.
-  '--enable-unsafe-swiftshader',
-  `--remote-debugging-port=${CDP_PORT}`,
-  `--user-data-dir=${profile}`,
-  'about:blank',
-], {stdio: ['ignore', 'pipe', 'pipe']});
-
-// Chromes eigene Meldungen aufheben, statt sie wegzuwerfen: Startet er
-// nicht, ist DAS die Auskunft — beim ersten CI-Lauf stand stattdessen nur
-// „antwortet nicht auf dem Debug-Port" da, und das sagt nichts.
-let chromeLog = '';
-chrome.stdout.on('data', (d) => { chromeLog += d; });
-chrome.stderr.on('data', (d) => { chromeLog += d; });
-chrome.on('error', (error) => { chromeLog += `spawn: ${error.message}\n`; });
-chrome.on('exit', (code, signal) => {
-  chromeLog += `Chrome beendet (code ${code}, signal ${signal})\n`;
-});
 
 const url = `http://127.0.0.1:${PORT}${base}`;
 let ws;
+let targets;
+let stopChrome = async () => {};
 try {
   await startServer();
 
-  // Chrome braucht einen Moment, bis das Protokoll offen ist.
-  let targets;
-  for (let attempt = 0; attempt < 60 && !targets; attempt++) {
-    try {
-      targets = await (await fetch(`http://127.0.0.1:${CDP_PORT}/json/list`)).json();
-    } catch (_) {
-      await sleep(500);
-    }
-  }
-  if (!targets) {
-    throw new Error('Chrome antwortet nicht auf dem Debug-Port.\n' +
-        `--- Ausgabe von Chrome ---\n${chromeLog.trim() || '(nichts)'}`);
-  }
+  // Neustart, falls Chrome schon beim Start hängt: `chrome_start.mjs`.
+  ({stop: stopChrome, answer: targets} = await startChrome({
+    binary,
+    port: CDP_PORT,
+    prefix: 'trailbuddy-sw-',
+    // CanvasKit braucht WebGL. Ohne Grafikkarte rendert SwiftShader in
+    // Software — langsam, aber es rendert; ohne den Schalter gar nicht.
+    args: ['--enable-unsafe-swiftshader'],
+  }));
 
   ws = new WebSocket(targets.find((t) => t.type === 'page').webSocketDebuggerUrl);
   await new Promise((r) => ws.addEventListener('open', r));
@@ -605,11 +575,8 @@ try {
   // Job stand auf rot, ohne dass jemand sagen konnte, welche Prüfung
   // gescheitert wäre.
   try { ws?.close(); } catch (_) { /* egal */ }
-  chrome.kill('SIGKILL');
   try { await stopServer(); } catch (_) { /* schon zu */ }
-  await sleep(500); // Chrome die Handles schließen lassen
-  await rm(profile, {recursive: true, force: true, maxRetries: 5})
-      .catch(() => { /* ein Rest im Temp-Verzeichnis ist kein Fehlschlag */ });
+  await stopChrome();
 }
 
 for (const line of ok) console.log('  OK   ' + line);
