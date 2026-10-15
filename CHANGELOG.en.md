@@ -2,6 +2,18 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## Loop, last trail or a finish
+
+*Version 0.123.0, 2026-10-15*
+
+- In the planner's parameters you choose where the ride ends: back at
+  the start (loop), at the end of the last trail, or at a finish you
+  tap on the map. The bar gets its own button for the finish.
+- Start and end carry their flag on the map, even when the start is
+  your own position.
+- A ride that does not end at the start is now called "Route" instead
+  of "Loop" — in the sheet, as a saved ride and as GPX.
+
 ## Walk along the elevation profile
 
 *Version 0.122.0, 2026-10-15*

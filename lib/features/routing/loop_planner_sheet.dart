@@ -2,7 +2,8 @@
 // Leiste, `loop_tool_rail.dart`; Zustand in `loop_planner_controller.dart`):
 //
 // - **Parameter** (Knopf „Parameter" der Leiste): Start, Profil, die drei
-//   Regler aus Konzept-Routing 2.3, „Start ist auch Ziel" und der Radius
+//   Regler aus Konzept-Routing 2.3, das Ende (Runde, letzter Trail, Ziel —
+//   #331) und der Radius
 //   der Trail-Liste. Die Regler merkt sich das Gerät.
 // - **Liste** (Knopf „Liste"): die wählbaren Trails im Radius um den Start,
 //   mit Haken, Stern („muss dabei sein"), „Alle" und „Keine". Gemeldete
@@ -60,17 +61,19 @@ const kLoopPickBorderMandatory = 3.5;
 
 /// Die Fahne des getippten Starts (#233): Lime auf hellem Grund braucht
 /// einen dunklen Rand — acht scharfe Schatten ringsum als Kontur, ein
-/// weicher als Schein.
+/// weicher als Schein. Mit [finish] die Zielfahne (#331), kariert, in
+/// derselben Machart.
 class LoopStartFlag extends StatelessWidget {
-  const LoopStartFlag({super.key, this.size = 32});
+  const LoopStartFlag({super.key, this.size = 32, this.finish = false});
 
   final double size;
+  final bool finish;
 
   static const _contour = AppColors.onBrand;
 
   @override
   Widget build(BuildContext context) => Icon(
-        Icons.flag,
+        finish ? Icons.sports_score : Icons.flag,
         size: size,
         color: AppColors.brand,
         shadows: [
@@ -183,14 +186,59 @@ class _ParamsSheet extends ConsumerWidget {
           step: LoopPrefs.radiusStep,
           onChanged: (v) => notifier.setPrefs(prefs.copyWith(radiusKm: v)),
         ),
-        SwitchListTile(
-          key: const ValueKey('loop-return'),
-          contentPadding: EdgeInsets.zero,
-          title: Text(l.loopReturnTitle),
-          subtitle: Text(prefs.returnToStart ? l.loopReturnOn : l.loopReturnOff),
-          value: prefs.returnToStart,
-          onChanged: (v) => notifier.setPrefs(prefs.copyWith(returnToStart: v)),
+        const SizedBox(height: 8),
+        Text(l.loopEndTitle, style: theme.textTheme.titleSmall),
+        const SizedBox(height: 4),
+        SegmentedButton<LoopEndMode>(
+          key: const ValueKey('loop-end'),
+          segments: [
+            ButtonSegment(
+                value: LoopEndMode.loop, label: Text(l.loopEndLoop, key: const ValueKey('loop-end-loop'))),
+            ButtonSegment(
+                value: LoopEndMode.lastTrail,
+                label: Text(l.loopEndLastTrail, key: const ValueKey('loop-end-last'))),
+            ButtonSegment(
+                value: LoopEndMode.target, label: Text(l.loopEndTarget, key: const ValueKey('loop-end-target'))),
+          ],
+          selected: {prefs.endMode},
+          showSelectedIcon: false,
+          onSelectionChanged: (sel) {
+            notifier.setPrefs(prefs.copyWith(endMode: sel.single));
+            // Ohne Ziel gleich auf die Karte — wie „Auf der Karte tippen"
+            // beim Start.
+            if (sel.single == LoopEndMode.target && session.target == null) {
+              notifier.armTargetPick();
+              Navigator.of(context).pop();
+            }
+          },
         ),
+        const SizedBox(height: 4),
+        Text(
+          switch (prefs.endMode) {
+            LoopEndMode.loop => l.loopReturnOn,
+            LoopEndMode.lastTrail => l.loopReturnOff,
+            LoopEndMode.target => session.target == null
+                ? l.loopTargetNone
+                : l.loopTargetPicked(
+                    session.target!.latitude.toStringAsFixed(4), session.target!.longitude.toStringAsFixed(4)),
+          },
+          key: const ValueKey('loop-end-note'),
+          style: theme.textTheme.bodySmall,
+        ),
+        if (prefs.endMode == LoopEndMode.target && session.target != null)
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              key: const ValueKey('loop-pick-target'),
+              onPressed: () {
+                notifier.armTargetPick();
+                Navigator.of(context).pop();
+              },
+              icon: const Icon(Icons.touch_app_outlined),
+              label: Text(l.loopPickOnMap),
+            ),
+          ),
+        const SizedBox(height: 8),
         const SizedBox(height: 4),
         Text(l.loopOnTheWay, style: theme.textTheme.titleSmall),
         _PrefSwitch(
@@ -481,7 +529,7 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
       padding: const EdgeInsets.fromLTRB(20, 0, 8, 24),
       children: [
         MapPanelHeader(
-          title: l.loopTitle,
+          title: session.planEnd == LoopEndMode.loop ? l.loopTitle : l.loopRouteTitle,
           subtitle: plan?.summary == null ? null : _shortSummary(l, plan!.summary!),
           closeKey: const ValueKey('loop-close'),
           onClose: widget.panel.close,
@@ -586,7 +634,7 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
             style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(48)),
             onPressed: () => ref.read(navRequestProvider.notifier).state = NavRequest(
                 points: plan.points,
-                title: loopName(l, plan),
+                title: loopName(l, plan, loop: session.planEnd == LoopEndMode.loop),
                 sections: navSectionsOfLoop(context.l10n, plan, trailById: trailByIdOf(ref))),
             icon: const Icon(Icons.navigation_outlined),
             label: Text(l.commonNavigate),
@@ -699,7 +747,7 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
     final l = context.l10n;
     final now = DateTime.now().toUtc();
     final ride = await ref.read(ridesProvider.notifier).savePlanned(
-          name: loopName(l, plan),
+          name: loopName(l, plan, loop: session.planEnd == LoopEndMode.loop),
           points: [
             for (final p in plan.points) RidePoint(lat: p.latitude, lng: p.longitude, at: now, accuracyM: 0),
           ],
@@ -713,13 +761,14 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
 
   void _exportGpx(LoopPlan plan) {
     if (plan.isEmpty) return;
-    final track = loopToGpx(context.l10n, plan);
+    final track = loopToGpx(context.l10n, plan, loop: ref.read(loopPlannerProvider).planEnd == LoopEndMode.loop);
     shareGpx(context, ref, fileName: gpxFileName(track.name), xml: writeGpx(name: track.name, points: track.points));
   }
 
   String _blockerText(AppLocalizations l, LoopBlocker b) => switch (b) {
         LoopBlocker.noTrails => l.loopBlockerNoTrails,
         LoopBlocker.noPosition => l.loopBlockerNoPosition,
+        LoopBlocker.noTarget => l.loopBlockerNoTarget,
         LoopBlocker.noArea => l.loopBlockerNoArea,
         LoopBlocker.failed => l.loopBlockerFailed,
       };

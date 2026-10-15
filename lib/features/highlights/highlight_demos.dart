@@ -298,6 +298,26 @@ Map<String, HighlightDemo> highlightDemos(AppLocalizations l) => {
       ),
     ]),
   ),
+  'loop-end': HighlightDemo(
+    route: '/',
+    script: _demo('loop-end', [
+      CoachStep(
+        title: l.demoLoopEnd1Title,
+        text: l.demoLoopEnd1Text,
+        lit: [MapCoach.loop],
+        gesture: CoachGesture.tap,
+        requires: [MapCoach.loop],
+      ),
+      CoachStep(
+        title: l.demoLoopEnd2Title,
+        text: l.demoLoopEnd2Text,
+        scene: MapCoach.loopRail,
+        lit: const [MapCoach.loopRail],
+        ring: [MapCoach.loopRailButton('loop-rail-params')],
+        requires: const [MapCoach.loop],
+      ),
+    ]),
+  ),
   'route-profile-scrub': HighlightDemo(
     route: '/',
     script: _demo('route-profile-scrub', [

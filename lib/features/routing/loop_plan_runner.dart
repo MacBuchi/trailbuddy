@@ -34,6 +34,7 @@ class LoopRequest {
     required this.budget,
     required this.pool,
     this.returnToStart = true,
+    this.end,
     this.searchBudget = kLoopSearchBudget,
     this.tune,
   });
@@ -43,6 +44,9 @@ class LoopRequest {
   final LoopBudget budget;
   final List<PoolTrail> pool;
   final bool returnToStart;
+
+  /// Das getippte Ziel (#331); null heißt Runde oder Ende am letzten Trail.
+  final LatLng? end;
   final Duration searchBudget;
 
   /// Von Hand getunt (#234): feste Folge, Teilstücke durch Zwischenpunkte.
@@ -54,6 +58,7 @@ class LoopRequest {
       budget: budget,
       pool: pool,
       returnToStart: returnToStart,
+      end: end,
       searchBudget: searchBudget,
       cache: cache,
       tune: tune);

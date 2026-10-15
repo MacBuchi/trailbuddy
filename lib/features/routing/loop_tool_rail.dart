@@ -5,7 +5,8 @@
 // Runden-Knopf rechts öffnet sie, derselbe Knopf, das X und Zurück
 // schließen sie.
 //
-// Von oben: Start (getippt oder Standort), Parameter (das Blatt mit den
+// Von oben: Start (getippt oder Standort), im Modus „Zum Ziel" das Ziel
+// (#331), Parameter (das Blatt mit den
 // Reglern), Liste (Trails im Radius), Gebiet dazu / Gebiet weg (gezeichnet,
 // wie bei den Bereichen), Auswahl leeren — dann Rechnen mit der Zahl der
 // gewählten Trails darunter, und Schließen. Trails wählt man außerdem
@@ -21,6 +22,7 @@ import '../help/map_tour.dart' show MapCoach;
 import '../map/map_buttons.dart';
 import '../offline_areas/area_draw.dart' show AreaDrawTool;
 import '../offline_areas/offline_tool_rail.dart' show kRailWidth, compactCount;
+import 'loop_planner.dart' show LoopEndMode;
 import 'loop_planner_controller.dart';
 
 class LoopToolRail extends ConsumerWidget {
@@ -97,6 +99,14 @@ class LoopToolRail extends ConsumerWidget {
             session.pickingStart ? notifier.cancelStartPick : notifier.armStartPick,
             selected: session.pickingStart,
           ),
+          if (session.prefs.endMode == LoopEndMode.target)
+            button(
+              'loop-rail-target',
+              session.target == null ? l.loopRailTargetNone : l.loopRailTargetPicked,
+              Icons.sports_score,
+              session.pickingTarget ? notifier.cancelStartPick : notifier.armTargetPick,
+              selected: session.pickingTarget,
+            ),
           button('loop-rail-params', l.loopRailParams, Icons.tune, onParams),
           gap,
           button('loop-rail-list', l.loopRailList, Icons.format_list_bulleted, onList),

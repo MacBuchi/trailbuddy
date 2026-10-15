@@ -878,6 +878,11 @@ extension on LatLng {
   double distanceToM(LatLng o) => haversineM(latitude, longitude, o.latitude, o.longitude);
 }
 
+/// Wo die Planung endet (#331, seit 0.123.0; bis dahin der Schalter
+/// „Start ist auch Ziel"): zurück am Start, am Ende des letzten Trails
+/// oder an einem getippten Ziel.
+enum LoopEndMode { loop, lastTrail, target }
+
 /// Die Regler der letzten Planung (Konzept-Routing 2.3: „die Vorgaben
 /// merkt sich das Gerät mit der letzten Planung"), kodiert als EINE
 /// Zeichenkette für `Settings.loopPlannerPrefs`.
@@ -886,7 +891,7 @@ class LoopPrefs {
     required this.hours,
     required this.climbM,
     required this.hikingKm,
-    required this.returnToStart,
+    required this.endMode,
     this.radiusKm = kLoopReachM / 1000,
     this.fillOnline = true,
     this.route = const RoutePrefs(),
@@ -895,7 +900,11 @@ class LoopPrefs {
   final double hours;
   final double climbM;
   final double hikingKm;
-  final bool returnToStart;
+  /// Gemerkt wird der Modus, nicht das Ziel — das gilt wie ein getippter
+  /// Start nur für die Sitzung.
+  final LoopEndMode endMode;
+
+  bool get returnToStart => endMode == LoopEndMode.loop;
 
   /// Der Radius der Trail-Liste um den Start (seit 0.74.0).
   final double radiusKm;
@@ -918,7 +927,7 @@ class LoopPrefs {
 
   /// Die Vorgaben je Profil (die Höhenmeter hängen am Profil).
   static LoopPrefs defaults(RiderProfile p) =>
-      LoopPrefs(hours: kBudgetHours, climbM: p.budgetClimbM, hikingKm: kBudgetHikingKm, returnToStart: true);
+      LoopPrefs(hours: kBudgetHours, climbM: p.budgetClimbM, hikingKm: kBudgetHikingKm, endMode: LoopEndMode.loop);
 
   /// Liest, was gespeichert ist; Unlesbares oder Fehlendes ergibt die
   /// Vorgabe, jeder Wert einzeln auf seine Spanne geklemmt.
@@ -936,7 +945,13 @@ class LoopPrefs {
       hours: clamp('h', d.hours, minHours, maxHours),
       climbM: clamp('c', d.climbM, minClimb, maxClimb),
       hikingKm: clamp('w', d.hikingKm, minHikingKm, maxHikingKm),
-      returnToStart: fields['r'] != '0',
+      // `r` war bis 0.122 ein Schalter (1/0); 2 ist das Ziel. Ältere Apps
+      // lesen jedes „nicht 0" als Runde.
+      endMode: switch (fields['r']) {
+        '0' => LoopEndMode.lastTrail,
+        '2' => LoopEndMode.target,
+        _ => LoopEndMode.loop,
+      },
       radiusKm: clamp('k', d.radiusKm, minRadiusKm, maxRadiusKm),
       fillOnline: fields['o'] != '0',
       route: RoutePrefs(
@@ -947,7 +962,7 @@ class LoopPrefs {
     );
   }
 
-  String encode() => 'h=$hours;c=$climbM;w=$hikingKm;r=${returnToStart ? 1 : 0};k=$radiusKm;o=${fillOnline ? 1 : 0}'
+  String encode() => 'h=$hours;c=$climbM;w=$hikingKm;r=${switch (endMode) { LoopEndMode.loop => 1, LoopEndMode.lastTrail => 0, LoopEndMode.target => 2 }};k=$radiusKm;o=${fillOnline ? 1 : 0}'
       ';sr=${route.avoidRoads ? 1 : 0};sw=${route.avoidHiking ? 1 : 0};ss=${route.avoidSteep ? 1 : 0}';
 
   LoopBudget get budget => LoopBudget(timeS: hours * 3600, climbM: climbM, hikingM: hikingKm * 1000);
@@ -956,7 +971,7 @@ class LoopPrefs {
           {double? hours,
           double? climbM,
           double? hikingKm,
-          bool? returnToStart,
+          LoopEndMode? endMode,
           double? radiusKm,
           bool? fillOnline,
           RoutePrefs? route}) =>
@@ -964,7 +979,7 @@ class LoopPrefs {
         hours: hours ?? this.hours,
         climbM: climbM ?? this.climbM,
         hikingKm: hikingKm ?? this.hikingKm,
-        returnToStart: returnToStart ?? this.returnToStart,
+        endMode: endMode ?? this.endMode,
         radiusKm: radiusKm ?? this.radiusKm,
         fillOnline: fillOnline ?? this.fillOnline,
         route: route ?? this.route,
@@ -972,21 +987,23 @@ class LoopPrefs {
 }
 
 /// „Runde: Hexentanz, Steinbruch" — höchstens drei Namen, dann „und n
-/// weitere"; ein Trail, der zweimal drin ist, steht einmal.
-String loopName(AppLocalizations l, LoopPlan plan) {
+/// weitere"; ein Trail, der zweimal drin ist, steht einmal. Endet die
+/// Planung nicht am Start ([loop] falsch, #331), heißt sie „Route".
+String loopName(AppLocalizations l, LoopPlan plan, {bool loop = true}) {
   final names = <String>[];
   for (final s in plan.stops) {
     if (!names.contains(s.trail.name)) names.add(s.trail.name);
   }
-  if (names.isEmpty) return l.loopTitle;
+  if (names.isEmpty) return loop ? l.loopTitle : l.loopRouteTitle;
   final shown = names.take(3).join(', ');
   final rest = names.length - 3;
+  if (!loop) return rest > 0 ? l.loopRouteNameMore(shown, rest) : l.loopRouteName(shown);
   return rest > 0 ? l.loopNameMore(shown, rest) : l.loopName(shown);
 }
 
 /// Die Runde als GPX-Spur (#150): nur die Linie, keine Höhen — wie bei
 /// „Zum Trailkopf" kennt die Engine Höhen je Kante, nicht je Punkt.
-GpxTrack loopToGpx(AppLocalizations l, LoopPlan plan) => GpxTrack(
-      name: loopName(l, plan),
+GpxTrack loopToGpx(AppLocalizations l, LoopPlan plan, {bool loop = true}) => GpxTrack(
+      name: loopName(l, plan, loop: loop),
       points: [for (final p in plan.points) TrackPoint(p.latitude, p.longitude)],
     );

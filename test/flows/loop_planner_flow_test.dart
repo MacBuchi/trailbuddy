@@ -571,6 +571,94 @@ void main() {
     expect(find.textContaining('mein Standort'), findsOneWidget);
   });
 
+  group('Ende der Fahrt (#331)', () {
+    /// Zwischen Standort und Trailkopf, am Forstweg.
+    final target = LatLng(_fromLat + 0.0015, _lon);
+
+    Future<void> chooseEnd(WidgetTester tester, String key) async {
+      await tapRail(tester, 'loop-rail-params');
+      final sheetList =
+          find.descendant(of: find.byType(DraggableScrollableSheet), matching: find.byType(Scrollable)).first;
+      await tester.scrollUntilVisible(find.byKey(ValueKey(key)), 200, scrollable: sheetList);
+      await settle(tester, frames: 2);
+      await tester.tap(find.byKey(ValueKey(key)));
+      await settle(tester, frames: 10);
+    }
+
+    testWidgets('„Zum Ziel": Ziel tippen, Route endet dort, Zielfahne, heißt „Route", gemerkt', (tester) async {
+      final settings = FakeSettings();
+      await start(tester, areaStore: await _areaWithTrack(), settings: settings);
+      await openPlanner(tester);
+      expect(find.byKey(const ValueKey('loop-rail-target')), findsNothing, reason: 'ab Werk eine Runde');
+      await zoomToTrails(tester);
+      await tapMapAt(tester, const LatLng(48.004, _lon));
+      await settle(tester);
+
+      // Die Wahl ohne Ziel geht gleich auf die Karte.
+      await chooseEnd(tester, 'loop-end-target');
+      expect(settings.loopPlannerPrefs, contains('r=2'), reason: 'das Gerät merkt sich den Modus');
+      expect(find.byKey(const ValueKey('loop-pick-banner')), findsOneWidget);
+      expect(find.textContaining('wo die Route enden soll'), findsOneWidget);
+      expect(find.byKey(const ValueKey('loop-rail-target')), findsOneWidget);
+      fakeMap(tester).move(target, 15);
+      await settle(tester, frames: 4);
+      await tapMapAt(tester, target);
+      await settle(tester);
+      expect(find.byKey(const ValueKey('loop-pick-banner')), findsNothing);
+      expect(picked(tester), hasLength(1), reason: 'der Tipp war das Ziel, keine Auswahl');
+      final pin = find.byKey(const ValueKey('loop-end-pin'));
+      expect(pin, findsOneWidget);
+      expect(tester.widget<LoopStartFlag>(find.descendant(of: pin, matching: find.byType(LoopStartFlag))).finish,
+          isTrue);
+      expect(find.byKey(const ValueKey('loop-start-pin')), findsNothing, reason: 'Start ist der Standort');
+
+      await tapRail(tester, 'loop-rail-compute');
+      expect(find.byKey(const ValueKey('loop-summary')), findsOneWidget);
+      expect(find.text('Route'), findsOneWidget, reason: 'endet nicht am Start: keine „Runde"');
+      expect(find.text('Runde'), findsNothing);
+      final whole = routeWhole(tester);
+      expect(whole.first.latitude, closeTo(_fromLat, 1e-9));
+      expect(whole.last.latitude, closeTo(target.latitude, 1e-9), reason: 'die Linie endet am Ziel');
+      // Mit Ergebnis tragen beide Enden ihre Fahne — auch der Standort.
+      expect(find.byKey(const ValueKey('loop-start-pin')), findsOneWidget);
+      expect(find.byKey(const ValueKey('loop-end-pin')), findsOneWidget);
+
+      await tester.ensureVisible(find.byKey(const ValueKey('loop-save')));
+      await settle(tester, frames: 2);
+      await tester.tap(find.byKey(const ValueKey('loop-save')));
+      await settle(tester);
+      expect(rides.rides.single.name, 'Route: Hexentanz');
+    });
+
+    testWidgets('„Zum Ziel" ohne Ziel: der Grund steht im Blatt; „Letzter Trail" endet am Trail', (tester) async {
+      await start(tester, areaStore: await _areaWithTrack());
+      await openPlanner(tester);
+      await zoomToTrails(tester);
+      await tapMapAt(tester, const LatLng(48.004, _lon));
+      await settle(tester);
+      await chooseEnd(tester, 'loop-end-target');
+      // Zurück bricht den Tipp ab, der Modus bleibt.
+      await tapRail(tester, 'loop-rail-target');
+      expect(find.byKey(const ValueKey('loop-pick-banner')), findsNothing);
+      await tapRail(tester, 'loop-rail-compute');
+      expect(find.byKey(const ValueKey('loop-blocker')), findsOneWidget);
+      expect(find.textContaining('Kein Ziel gesetzt'), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('loop-close')));
+      await settle(tester);
+
+      await chooseEnd(tester, 'loop-end-last');
+      expect(find.byKey(const ValueKey('loop-pick-banner')), findsNothing);
+      expect(find.byKey(const ValueKey('loop-rail-target')), findsNothing);
+      await tester.tapAt(const Offset(10, 10));
+      await settle(tester, frames: 10);
+      await tapRail(tester, 'loop-rail-compute');
+      expect(find.text('Route'), findsOneWidget);
+      final whole = routeWhole(tester);
+      expect(whole.last.latitude, greaterThan(48.008), reason: 'Ende am Ende des Trails, nicht am Start');
+      expect(find.byKey(const ValueKey('loop-end-pin')), findsOneWidget);
+    });
+  });
+
   testWidgets('Liste: nur im Radius, „Alle wählen", Stern; ein größerer Radius holt mehr', (tester) async {
     await start(tester, areaStore: await _areaWithTrack());
     await openPlanner(tester);
