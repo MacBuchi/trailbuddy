@@ -3927,17 +3927,86 @@
       }
     }
   },
-  "loopReturnTitle": "Start ist auch Ziel",
-  "@loopReturnTitle": {
-    "description": "Schalter im Planer."
-  },
-  "loopReturnOn": "Eine Runde",
+  "loopReturnOn": "Zurück zum Start.",
   "@loopReturnOn": {
-    "description": "Untertitel des Schalters „Start ist auch Ziel“, an."
+    "description": "Erklärung unter der Wahl „Runde“."
   },
-  "loopReturnOff": "Die Runde endet am letzten Trail",
+  "loopReturnOff": "Die Fahrt endet am Ende des letzten Trails.",
   "@loopReturnOff": {
-    "description": "Untertitel des Schalters „Start ist auch Ziel“, aus."
+    "description": "Erklärung unter der Wahl „Letzter Trail“."
+  },
+  "mapLoopPickTarget": "Tippe auf die Karte, wo die Route enden soll.",
+  "@mapLoopPickTarget": {
+    "description": "Banner über der Karte, solange der Planer auf sein Ziel wartet."
+  },
+  "loopEndTitle": "Wo endet die Fahrt?",
+  "@loopEndTitle": {
+    "description": "Zwischenüberschrift im Planer über der Wahl Runde / letzter Trail / Ziel."
+  },
+  "loopEndLoop": "Runde",
+  "@loopEndLoop": {
+    "description": "Wahl im Planer: zurück zum Start. Kurz — drei Wahlen teilen sich eine Zeile."
+  },
+  "loopEndLastTrail": "Letzter Trail",
+  "@loopEndLastTrail": {
+    "description": "Wahl im Planer: die Fahrt endet am Ende des letzten Trails. Kurz."
+  },
+  "loopEndTarget": "Zum Ziel",
+  "@loopEndTarget": {
+    "description": "Wahl im Planer: die Fahrt endet an einem getippten Ziel. Kurz."
+  },
+  "loopTargetNone": "Noch kein Ziel — tippe es auf die Karte.",
+  "@loopTargetNone": {
+    "description": "Erklärung unter der Wahl „Zum Ziel“, solange keins gesetzt ist."
+  },
+  "loopRouteTitle": "Route",
+  "@loopRouteTitle": {
+    "description": "Titel des Ergebnis-Blatts, wenn die Planung nicht am Start endet; auch der Name einer solchen Route ohne Trails."
+  },
+  "loopBlockerNoTarget": "Kein Ziel gesetzt. Tippe es über den Zielknopf der Leiste auf die Karte, oder stell in den Parametern „Runde“ ein.",
+  "@loopBlockerNoTarget": {
+    "description": "Ergebnis-Blatt des Planers: Modus „Zum Ziel“, aber kein Ziel getippt."
+  },
+  "loopRailTargetNone": "Ziel auf der Karte setzen",
+  "@loopRailTargetNone": {
+    "description": "Tooltip des Zielknopfs der Planer-Leiste, noch ohne Ziel."
+  },
+  "loopRailTargetPicked": "Ziel auf der Karte neu setzen",
+  "@loopRailTargetPicked": {
+    "description": "Tooltip des Zielknopfs der Planer-Leiste, mit Ziel."
+  },
+  "loopTargetPicked": "Ziel: getippter Punkt ({lat}, {lng})",
+  "@loopTargetPicked": {
+    "description": "Erklärung unter der Wahl „Zum Ziel“ mit gesetztem Ziel; lat/lng mit vier Stellen.",
+    "placeholders": {
+      "lat": {
+        "type": "String"
+      },
+      "lng": {
+        "type": "String"
+      }
+    }
+  },
+  "loopRouteName": "Route: {names}",
+  "@loopRouteName": {
+    "description": "Name einer geplanten Route, die nicht am Start endet (Fahrt, GPX, Navigation); names sind bis zu drei Trail-Namen.",
+    "placeholders": {
+      "names": {
+        "type": "String"
+      }
+    }
+  },
+  "loopRouteNameMore": "Route: {names} und {more} weitere",
+  "@loopRouteNameMore": {
+    "description": "Name einer solchen Route mit mehr als drei Trails.",
+    "placeholders": {
+      "names": {
+        "type": "String"
+      },
+      "more": {
+        "type": "int"
+      }
+    }
   },
   "loopOnTheWay": "Unterwegs",
   "@loopOnTheWay": {
@@ -4294,11 +4363,11 @@
   "@loopRailClear": {
     "description": "Tooltip eines Knopfs der Planer-Leiste."
   },
-  "loopRailComputeNone": "Runde rechnen — erst Trails wählen",
+  "loopRailComputeNone": "Rechnen — erst Trails wählen",
   "@loopRailComputeNone": {
     "description": "Tooltip des Rechnen-Knopfs, solange nichts gewählt ist."
   },
-  "loopRailCompute": "{count, plural, =1{Runde rechnen (1 Trail)} other{Runde rechnen ({count} Trails)}}",
+  "loopRailCompute": "{count, plural, =1{Rechnen (1 Trail)} other{Rechnen ({count} Trails)}}",
   "@loopRailCompute": {
     "description": "Tooltip des Rechnen-Knopfs der Planer-Leiste.",
     "placeholders": {
@@ -6156,6 +6225,14 @@
   "@highlightRouteElevationText": {
     "description": "Entdecken, Eintrag „route-elevation“: Text, zwei bis drei Sätze (auch im Neuheiten-Blatt)."
   },
+  "highlightLoopEndTitle": "Runde, letzter Trail oder Ziel",
+  "@highlightLoopEndTitle": {
+    "description": "Entdecken, Eintrag „loop-end“: Überschrift (auch im Neuheiten-Blatt nach einem Update)."
+  },
+  "highlightLoopEndText": "Im Planer wählst du jetzt, wo die Fahrt endet: zurück am Start, am Ende des letzten Trails oder an einem Ziel, das du auf die Karte tippst. Start und Ende tragen ihre Fahne.",
+  "@highlightLoopEndText": {
+    "description": "Entdecken, Eintrag „loop-end“: Text, zwei bis drei Sätze (auch im Neuheiten-Blatt)."
+  },
   "highlightRouteProfileScrubTitle": "Im Höhenprofil wandern",
   "@highlightRouteProfileScrubTitle": {
     "description": "Entdecken, Eintrag „route-profile-scrub“: Überschrift (auch im Neuheiten-Blatt nach einem Update)."
@@ -6720,6 +6797,22 @@
   "demoRouteElevationText": "Plane eine Runde oder einen Weg zum Trail: Unter der Summe steht das Höhenprofil, von Start bis Ziel. Fehlt einem Stück die Höhe, bleibt es weg — erfunden wird nichts.",
   "@demoRouteElevationText": {
     "description": "Vorführung „route-elevation“ (Entdecken → Zeig es mir): Text der Blase."
+  },
+  "demoLoopEnd1Title": "Nicht jede Fahrt ist eine Runde",
+  "@demoLoopEnd1Title": {
+    "description": "Vorführung „loop-end“ (Entdecken → Zeig es mir), Schritt 1: Überschrift der Blase."
+  },
+  "demoLoopEnd1Text": "Öffne den Planer und wähle deine Trails wie gewohnt.",
+  "@demoLoopEnd1Text": {
+    "description": "Vorführung „loop-end“ (Entdecken → Zeig es mir), Schritt 1: Text der Blase."
+  },
+  "demoLoopEnd2Title": "Wo endet die Fahrt?",
+  "@demoLoopEnd2Title": {
+    "description": "Vorführung „loop-end“ (Entdecken → Zeig es mir), Schritt 2: Überschrift der Blase."
+  },
+  "demoLoopEnd2Text": "In den Parametern: Runde, letzter Trail oder Zum Ziel. Beim Ziel tippst du den Punkt auf die Karte; die Leiste bekommt dafür einen eigenen Knopf.",
+  "@demoLoopEnd2Text": {
+    "description": "Vorführung „loop-end“ (Entdecken → Zeig es mir), Schritt 2: Text der Blase."
   },
   "demoRouteProfileScrubTitle": "Wo ist dieser Anstieg?",
   "@demoRouteProfileScrubTitle": {

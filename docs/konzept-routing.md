@@ -173,8 +173,10 @@ Drei Regler im Planer-Blatt, jeder mit Vorgabe; der engste gewinnt:
 | Höchstens Höhenmeter bergauf | 800 hm (Bio) / 1 400 hm (E) | 200–2 500 | 100 |
 | Höchstens Wanderweg (bergauf und bergab) | 2 km | 0–10 km („kein Wanderweg" = 0) | 0,5 km |
 
-Dazu „Start ist auch Ziel" (Vorgabe AN — eine Runde) und wahlweise ein
-Zielpunkt. Die Vorgaben merkt sich das Gerät mit der letzten Planung.
+Dazu das Ende der Fahrt (Vorgabe: Runde) — zurück am Start, am Ende des
+letzten Trails oder an einem getippten Zielpunkt (seit 0.123.0, #331).
+Die Vorgaben merkt sich das Gerät mit der letzten Planung; den Zielpunkt
+nicht, er gilt wie ein getippter Start nur für die Sitzung.
 Eine Reserve von 10 % auf die Zeit bleibt eingebaut (die Schätzung
 kennt keine Pausen).
 
@@ -603,8 +605,10 @@ Messung und spiegelt Kostentabelle und Zeitmodell; wie bei
   Ergebnis wie oben, dazu die ausgelassenen Trails mit Grund (zu weit,
   kein Weg am Ende, nicht erreichbar, Budget). Der Fix kommt erst beim
   Schritt zum Pool, nicht beim Öffnen. Ohne Bereich: ein Satz, der den
-  Ebenen-Knopf nennt. Ein Zielpunkt ungleich Start ist nicht gebaut
-  (nur „Start ist auch Ziel" an/aus).
+  Ebenen-Knopf nennt. Ein Zielpunkt ungleich Start kam mit 0.123.0
+  (#331): drei Wahlen statt des Schalters — Runde, letzter Trail, Zum
+  Ziel —, das Ziel ein Tipp auf die Karte wie der Start, mit eigenem
+  Knopf in der Leiste. Was nicht am Start endet, heißt „Route".
   **Seit 0.74.0 kein Blatt mit Stufen mehr, sondern ein Modus mit Leiste
   links** (Betreiber: „zum Planen links ein Menü in der Art wie rechts,
   mit Planer-Optionen"; `loop_tool_rail.dart`, Zustand in

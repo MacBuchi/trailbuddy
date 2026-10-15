@@ -83,6 +83,16 @@ class FeatureHighlight {
 final kFeatureHighlights = <FeatureHighlight>[
   // ─── Highlights ──────────────────────────────────────────────────
   FeatureHighlight(
+    id: 'loop-end',
+    since: '0.123.0',
+    kind: HighlightKind.highlight,
+    tab: HighlightTab.map,
+    icon: Icons.sports_score,
+    title: (l) => l.highlightLoopEndTitle,
+    text: (l) => l.highlightLoopEndText,
+    target: '/',
+  ),
+  FeatureHighlight(
     id: 'route-profile-scrub',
     since: '0.122.0',
     kind: HighlightKind.highlight,

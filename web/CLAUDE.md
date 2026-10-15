@@ -35,3 +35,10 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
   Gemessen: Prüfer vorher in einem von drei Läufen rot, danach 4/4 grün. `--no-web-resources-cdn` in jedem
   Web-Build, `--base-href /trailbuddy/`. Geprüft im echten Chrome
   (`tool/check_service_worker.mjs`, Job „Build Web").
+  **Chrome startet über `tool/chrome_start.mjs`** (beide Browser-Prüfungen,
+  auch `check_push_worker.mjs`): Antwortet der Debug-Port 30 s nicht,
+  wird Chrome abgeschossen und mit frischem Profil neu gestartet,
+  höchstens dreimal — auf dem CI-Rechner hing er einmal ohne jede Ausgabe
+  (PR #344). Nur der Start wird wiederholt, nie eine Prüfung. Gegenprobe
+  mit `CHROME_EXECUTABLE` auf ein Skript, das nur `sleep` macht: drei
+  Starts, dann rot; hängt es nur beim ersten Mal: grün.

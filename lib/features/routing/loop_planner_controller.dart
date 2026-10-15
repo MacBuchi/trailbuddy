@@ -14,6 +14,9 @@
 // - **Der Start ist der Standort, solange keiner getippt ist** — der Fix
 //   kommt erst beim Rechnen (oder beim Öffnen der Liste), nie beim
 //   Öffnen des Planers.
+// - **Das Ziel ist ein Tipp wie der Start** (#331): nur im Modus
+//   [LoopEndMode.target], nur für die Sitzung; ohne Ziel rechnet der
+//   Planer nicht ([LoopBlocker.noTarget]).
 // - **Rechnen geht nie still schief**: Jeder Ausgang hat eine Phase oder
 //   einen Grund ([LoopBlocker]), ein Fehler wird gemeldet.
 import 'dart:async';
@@ -43,13 +46,15 @@ import 'trail_overlay.dart';
 
 enum LoopPhase { idle, locating, loading, computing, result }
 
-enum LoopBlocker { noPosition, noArea, noTrails, failed }
+enum LoopBlocker { noPosition, noTarget, noArea, noTrails, failed }
 
 class LoopSession {
   const LoopSession({
     this.open = false,
     this.start,
     this.pickingStart = false,
+    this.target,
+    this.pickingTarget = false,
     this.drawTool,
     this.selected = const {},
     this.mandatory = const {},
@@ -59,6 +64,7 @@ class LoopSession {
     this.blocker,
     this.plan,
     this.planStart,
+    this.planEnd = LoopEndMode.loop,
     this.coverage,
     this.tuned = false,
   });
@@ -71,6 +77,12 @@ class LoopSession {
 
   /// Der nächste Tipp auf die Karte ist der Start.
   final bool pickingStart;
+
+  /// Das getippte Ziel (#331) — zählt nur im Modus [LoopEndMode.target].
+  final LatLng? target;
+
+  /// Der nächste Tipp auf die Karte ist das Ziel.
+  final bool pickingTarget;
 
   /// Ein Gebiet wird gezeichnet: dazu ([AreaDrawTool.add]) oder weg.
   final AreaDrawTool? drawTool;
@@ -88,6 +100,10 @@ class LoopSession {
   /// Wo die gerechnete Runde wirklich beginnt (Standort oder Tipp).
   final LatLng? planStart;
 
+  /// Wie die gezeigte Planung endet — „Runde" heißt sie nur bei
+  /// [LoopEndMode.loop], auch wenn der Regler inzwischen anders steht.
+  final LoopEndMode planEnd;
+
   /// Der geladene Graph, aus dem das Blatt seinen Satz über die Kacheln
   /// macht (`planningCoverageNote` — Teil, online nachgeladen). Der Satz
   /// selbst entsteht erst im Blatt, in dessen Sprache (#209).
@@ -104,6 +120,8 @@ class LoopSession {
     LatLng? start,
     bool clearStart = false,
     bool? pickingStart,
+    LatLng? target,
+    bool? pickingTarget,
     AreaDrawTool? drawTool,
     bool clearDrawTool = false,
     Set<String>? selected,
@@ -116,6 +134,7 @@ class LoopSession {
     LoopPlan? plan,
     bool clearPlan = false,
     LatLng? planStart,
+    LoopEndMode? planEnd,
     PlanningGraph? coverage,
     bool? tuned,
   }) =>
@@ -123,6 +142,8 @@ class LoopSession {
         open: open ?? this.open,
         start: clearStart ? null : (start ?? this.start),
         pickingStart: pickingStart ?? this.pickingStart,
+        target: target ?? this.target,
+        pickingTarget: pickingTarget ?? this.pickingTarget,
         drawTool: clearDrawTool ? null : (drawTool ?? this.drawTool),
         selected: selected ?? this.selected,
         mandatory: mandatory ?? this.mandatory,
@@ -132,6 +153,7 @@ class LoopSession {
         blocker: clearBlocker ? null : (blocker ?? this.blocker),
         plan: clearPlan ? null : (plan ?? this.plan),
         planStart: clearPlan ? null : (planStart ?? this.planStart),
+        planEnd: planEnd ?? this.planEnd,
         coverage: coverage ?? this.coverage,
         tuned: clearPlan ? (tuned ?? false) : (tuned ?? this.tuned),
       );
@@ -160,6 +182,10 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
   /// ankommt, gehört zu einer Rechnung, die niemand mehr sehen will.
   int _generation = 0;
 
+  /// Das Ziel, mit dem [LoopSession.plan] gerechnet ist — ein neuer Tipp
+  /// räumt den Plan, das Tunen braucht trotzdem DIESES.
+  LatLng? _planTarget;
+
   /// Die Zwischenpunkte, mit denen [LoopSession.plan] gerechnet ist.
   RouteVias _vias = RouteVias.none;
   int _tuneSeq = 0;
@@ -181,7 +207,7 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
   /// Den Modus öffnen; [start] aus „Route ab hier".
   void open({LatLng? start}) {
     // Ohne neuen Start bleibt ein früher getippter stehen.
-    state = state.copyWith(open: true, start: start, pickingStart: false, clearDrawTool: true);
+    state = state.copyWith(open: true, start: start, pickingStart: false, pickingTarget: false, clearDrawTool: true);
   }
 
   /// Den Modus schließen. Die Auswahl bleibt für die Sitzung — wer
@@ -194,6 +220,7 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
     state = state.copyWith(
       open: false,
       pickingStart: false,
+      pickingTarget: false,
       clearDrawTool: true,
       clearPlan: true,
       clearBlocker: true,
@@ -256,21 +283,46 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
   /// Ein Werkzeug scharf machen; derselbe Knopf noch einmal entschärft.
   void armDraw(AreaDrawTool tool) => state = state.drawTool == tool
       ? state.copyWith(clearDrawTool: true)
-      : state.copyWith(drawTool: tool, pickingStart: false);
+      : state.copyWith(drawTool: tool, pickingStart: false, pickingTarget: false);
 
   void disarmDraw() => state = state.copyWith(clearDrawTool: true);
 
-  void armStartPick() => state = state.copyWith(pickingStart: true, clearDrawTool: true);
+  void armStartPick() => state = state.copyWith(pickingStart: true, pickingTarget: false, clearDrawTool: true);
 
-  void cancelStartPick() => state = state.copyWith(pickingStart: false);
+  /// Bricht ab, worauf der Tipp gerade wartet — Start oder Ziel.
+  void cancelStartPick() => state = state.copyWith(pickingStart: false, pickingTarget: false);
 
   void takeStart(LatLng p) =>
       state = state.copyWith(start: p, pickingStart: false, clearPlan: true, clearBlocker: true);
 
+  void armTargetPick() => state = state.copyWith(pickingTarget: true, pickingStart: false, clearDrawTool: true);
+
+  void takeTarget(LatLng p) =>
+      state = state.copyWith(target: p, pickingTarget: false, clearPlan: true, clearBlocker: true);
+
+  /// Wohin der nächste Tipp geht: Start oder Ziel. Falsch, wenn der
+  /// Planer auf keinen wartet.
+  bool takePick(LatLng p) {
+    if (!state.open) return false;
+    if (state.pickingStart) {
+      takeStart(p);
+    } else if (state.pickingTarget) {
+      takeTarget(p);
+    } else {
+      return false;
+    }
+    return true;
+  }
+
   void useMyPosition() => state = state.copyWith(clearStart: true, clearPlan: true, clearBlocker: true);
 
   void setPrefs(LoopPrefs prefs) {
-    state = state.copyWith(prefs: prefs, clearPlan: true);
+    // Ohne den Modus „Zum Ziel" wartet auch kein Tipp mehr aufs Ziel.
+    state = state.copyWith(
+      prefs: prefs,
+      clearPlan: true,
+      pickingTarget: prefs.endMode == LoopEndMode.target ? null : false,
+    );
     ref.read(settingsProvider).setLoopPlannerPrefs(prefs.encode()).catchError((Object e, StackTrace s) {
       logError('Planer-Regler merken', e, s);
     });
@@ -317,7 +369,14 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
       state = state.copyWith(phase: LoopPhase.result, blocker: LoopBlocker.noTrails, clearPlan: true);
       return;
     }
-    state = state.copyWith(clearPlan: true, clearBlocker: true, clearDrawTool: true, pickingStart: false);
+    final endMode = state.prefs.endMode;
+    final target = endMode == LoopEndMode.target ? state.target : null;
+    if (endMode == LoopEndMode.target && target == null) {
+      state = state.copyWith(phase: LoopPhase.result, blocker: LoopBlocker.noTarget, clearPlan: true);
+      return;
+    }
+    state = state.copyWith(
+        clearPlan: true, clearBlocker: true, clearDrawTool: true, pickingStart: false, pickingTarget: false);
     final generation = _generation;
     try {
       var start = state.start;
@@ -334,6 +393,7 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
       final fillOnline = state.prefs.fillOnline;
       if (_graph == null ||
           _graphStart != start ||
+          (target != null && !_graphBox!.contains(LatBox.of([target]))) ||
           !chosen.every((t) => _graphBox!.contains(LatBox.of(t.directedPoints))) ||
           _graphOnline != fillOnline) {
         state = state.copyWith(phase: LoopPhase.loading);
@@ -343,6 +403,7 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
         final connectors = loopPoolOf(_trails, s0, reachM: state.prefs.radiusKm * 1000).connectors;
         final box = LatBox.of([
           s0,
+          ?target,
           for (final t in chosen) ...t.directedPoints,
           for (final t in connectors) ...t.points,
         ]);
@@ -369,11 +430,13 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
           profile: ref.read(calibratedRiderProvider(state.profile)).withPrefs(state.prefs.route),
           budget: state.prefs.budget,
           pool: [for (final t in chosen) poolTrailOf(serviceL10n(), t, mandatory: state.mandatory.contains(t.id))],
-          returnToStart: state.prefs.returnToStart,
+          returnToStart: endMode == LoopEndMode.loop,
+          end: target,
         ),
       );
       if (generation != _generation) return;
-      state = state.copyWith(phase: LoopPhase.result, plan: plan, planStart: start);
+      _planTarget = target;
+      state = state.copyWith(phase: LoopPhase.result, plan: plan, planStart: start, planEnd: endMode);
       if (plan.outcome == LoopOutcome.ok) ref.read(routeViaProvider.notifier).begin(ViaOwner.loop);
     } catch (e, s) {
       // Geschlossen, während er rechnete: kein Fehler, nur zu spät.
@@ -409,7 +472,8 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
               if (state.selected.contains(t.id) && !t.pending && t.points.length >= 2)
                 poolTrailOf(serviceL10n(), t, mandatory: state.mandatory.contains(t.id)),
           ],
-          returnToStart: state.prefs.returnToStart,
+          returnToStart: state.planEnd == LoopEndMode.loop,
+          end: state.planEnd == LoopEndMode.target ? _planTarget : null,
           tune: LoopTune.of(plan, vias),
         ),
       );

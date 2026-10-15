@@ -2,6 +2,19 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Runde, letzter Trail oder Ziel
+
+*Version 0.123.0, 2026-10-15*
+
+- Im Planer wählst du unter „Parameter“, wo die Fahrt endet: zurück am
+  Start (Runde), am Ende des letzten Trails oder an einem Ziel, das du
+  auf die Karte tippst. Für das Ziel bekommt die Leiste einen eigenen
+  Knopf.
+- Start und Ende tragen auf der Karte ihre Fahne, auch wenn der Start
+  dein Standort ist.
+- Eine Fahrt, die nicht am Start endet, heißt jetzt „Route“ statt
+  „Runde“ — im Blatt, als gespeicherte Fahrt und als GPX.
+
 ## Im Höhenprofil wandern
 
 *Version 0.122.0, 2026-10-15*

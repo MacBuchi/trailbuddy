@@ -23,11 +23,10 @@
 // Ohne Abhängigkeiten, wie `check_service_worker.mjs`; dient ohne Build,
 // die Datei kommt direkt aus `web/push/`.
 import {createServer} from 'node:http';
-import {spawn} from 'node:child_process';
 import {existsSync} from 'node:fs';
-import {readFile, mkdtemp, rm} from 'node:fs/promises';
-import {tmpdir} from 'node:os';
+import {readFile} from 'node:fs/promises';
 import {join} from 'node:path';
+import {startChrome} from './chrome_start.mjs';
 
 const PORT = 8797;
 const CDP_PORT = 9334;
@@ -97,29 +96,19 @@ const ok = [];
 const fail = [];
 const check = (condition, text) => (condition ? ok : fail).push(text);
 
-const profile = await mkdtemp(join(tmpdir(), 'trailbuddy-push-'));
-const chrome = spawn(chromeBinary(), [
-  '--headless=new',
-  '--no-first-run',
-  '--no-default-browser-check',
-  '--no-sandbox',
-  '--disable-dev-shm-usage',
-  `--remote-debugging-port=${CDP_PORT}`,
-  `--user-data-dir=${profile}`,
-  'about:blank',
-], {stdio: 'ignore'});
+let stopChrome = async () => {};
 
 try {
   await new Promise((r) => server.listen(PORT, '127.0.0.1', r));
-  let version;
-  for (let i = 0; i < 60 && !version; i++) {
-    try {
-      version = await (await fetch(`http://127.0.0.1:${CDP_PORT}/json/version`)).json();
-    } catch (_) {
-      await sleep(500);
-    }
-  }
-  if (!version) throw new Error('Chrome antwortet nicht auf dem Debug-Port.');
+  // Neustart, falls Chrome schon beim Start hängt: `chrome_start.mjs`.
+  const {answer: version, stop} = await startChrome({
+    binary: chromeBinary(),
+    port: CDP_PORT,
+    endpoint: '/json/version',
+    prefix: 'trailbuddy-push-',
+    args: [],
+  });
+  stopChrome = stop;
   const ws = new WebSocket(version.webSocketDebuggerUrl);
   await new Promise((r) => ws.addEventListener('open', r));
   const {send, on} = connect(ws);
@@ -297,9 +286,8 @@ try {
 } catch (error) {
   fail.push(`Abbruch: ${error.message}`);
 } finally {
-  chrome.kill();
   server.close();
-  await rm(profile, {recursive: true, force: true}).catch(() => {});
+  await stopChrome();
 }
 
 for (const line of ok) console.log(`  ✓ ${line}`);

@@ -170,7 +170,7 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
   Routing 1, 2.3, 3, 4): eigener Kartenknopf „Runde planen" zwischen
   „Ebenen" und „Meine Position"; bis 0.73.0 drei Stufen im Blatt (Regler
   → Pool → Ergebnis), seit 0.74.0 ein Modus mit Leiste links (siehe
-  „Navigation rund"). Sechs Dinge, die man wissen muss:
+  „Navigation rund"). Sieben Dinge, die man wissen muss:
   - **Die Zielfunktion ist Trail-Meter je ZEITzuwachs**, nicht je
     Kostenzuwachs (Konzept-Routing 3.2 sagte „Kosten"): Die Zeit ist das
     Budget, die Kosten entscheiden nur, welcher Weg zwischen zwei
@@ -198,6 +198,20 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     nächste Tipp — auch auf eine Linie — ist der Start (Fahne in der
     Marke, `_takeLoopStart`); Zurück bricht ab. Keine eigene
     Zeichenfläche: Ein Tipp ist eine Geste, die die Fassade schon hat.
+  - **Das Ende der Fahrt** (#331, seit 0.123.0): `LoopEndMode` (Runde,
+    letzter Trail, Ziel) statt des Schalters „Start ist auch Ziel",
+    gemerkt in `LoopPrefs` unter dem alten Schlüssel `r` (1/0 wie bisher,
+    2 = Ziel — ältere Apps lesen 2 als Runde). Das Ziel
+    (`LoopSession.target`, `pickingTarget`) ist ein Tipp wie der Start
+    (`takePick` nimmt beide), nur für die Sitzung; ohne Ziel heißt es
+    `LoopBlocker.noTarget`. Der Graph-Rahmen schließt das Ziel ein.
+    **Der Name hängt an der GERECHNETEN Planung** (`LoopSession.planEnd`),
+    nicht am Regler: „Runde" nur bei `loop`, sonst „Route" (Blatt, Fahrt,
+    GPX, Navigation). Das Tunen rechnet mit dem Ziel der gezeigten
+    Planung (`_planTarget`), auch wenn inzwischen ein neues getippt ist.
+    Fahnen: getippter Start, sonst — mit Ergebnis — Anfang der Linie;
+    Zielfahne (`LoopStartFlag(finish: true)`) am Ende der Linie, wenn sie
+    nicht am Start endet, vor dem Rechnen am getippten Ziel.
   - **Die geplante Fahrt** (`Ride.planned`, `Ride.name`,
     `RideStore.savePlanned`, Datei am Stück über `.part` + `rename`):
     Punkte ohne Zeit und Höhe, `endedAt` = Schätzung; in „Meine Fahrten"

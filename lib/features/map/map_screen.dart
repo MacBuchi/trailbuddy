@@ -21,6 +21,7 @@ import '../rides/ride_providers.dart';
 import '../rides/ride_split_sheet.dart';
 import '../rides/ride_task_handler.dart';
 import '../rides/ride_track.dart';
+import '../routing/loop_planner.dart' show LoopEndMode, LoopOutcome;
 import '../routing/loop_planner_controller.dart';
 import '../routing/loop_planner_providers.dart';
 import '../routing/loop_planner_sheet.dart';
@@ -461,12 +462,9 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     if (_selectedTrailId != null) setState(() => _selectedTrailId = null);
   }
 
-  bool _takeLoopStart(MapTap tap) {
-    final session = ref.read(loopPlannerProvider);
-    if (!session.open || !session.pickingStart) return false;
-    ref.read(loopPlannerProvider.notifier).takeStart(tap.point);
-    return true;
-  }
+  /// Wartet der Planer auf seinen Start oder sein Ziel (#331), ist der
+  /// Tipp dieser Punkt.
+  bool _takeLoopStart(MapTap tap) => ref.read(loopPlannerProvider.notifier).takePick(tap.point);
 
   /// Der Planer als Modus (seit 0.74.0): Leiste links, Tipps wählen
   /// Trails. Die Leiste „Offline-Karten" geht dafür zu — zwei Leisten links passen
@@ -843,8 +841,17 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         ? null
         : (duplicate: compareFind(comparePair.duplicate), target: compareFind(comparePair.target));
     final loop = ref.watch(loopPlannerProvider);
-    final loopPicking = loop.open && loop.pickingStart;
+    final loopPicking = loop.open && (loop.pickingStart || loop.pickingTarget);
     final loopPlan = loop.open ? loop.plan : null;
+    final loopLine = loopPlan != null && loopPlan.outcome == LoopOutcome.ok && loopPlan.points.length >= 2
+        ? loopPlan.points
+        : null;
+    final loopStartPin = !loop.open ? null : loop.start ?? loopLine?.first;
+    final loopEndPin = !loop.open
+        ? null
+        : loopLine != null
+            ? (loop.planEnd == LoopEndMode.loop ? null : loopLine.last)
+            : (loop.prefs.endMode == LoopEndMode.target ? loop.target : null);
     // Zwischenpunkte (#234), solange ihr Ergebnis auf der Karte liegt.
     final viaEdit = ref.watch(routeViaProvider);
     final vias = switch (viaEdit) {
@@ -1123,15 +1130,25 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         // Schild zuoberst, es ist das Antippbare.
         ...trailEndMarkers(shownTrails, camera, coachTrailId: _coachTrail?.id),
         ...trailBadgeMarkers(shownTrails, camera, coachTrailId: _coachTrail?.id),
-        // Der getippte Start des Planers.
-        if (loop.open && loop.start != null)
+        // Start und Ziel des Planers (#331): getippt, sonst — sobald ein
+        // Ergebnis liegt — wo es wirklich beginnt und endet.
+        if (loopStartPin != null)
           MapViewMarker(
             key: const ValueKey('loop-start-pin'),
-            point: loop.start!,
+            point: loopStartPin,
             width: 32,
             height: 32,
             alignment: Alignment.topCenter,
             child: const LoopStartFlag(),
+          ),
+        if (loopEndPin != null)
+          MapViewMarker(
+            key: const ValueKey('loop-end-pin'),
+            point: loopEndPin,
+            width: 32,
+            height: 32,
+            alignment: Alignment.topCenter,
+            child: const LoopStartFlag(finish: true),
           ),
         // Die Zwischenpunkte der Route (#234) — angefasst über die Griffe.
         if (vias != null) ...viaMarkers(vias),
@@ -1178,7 +1195,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
           // Stufenweise: erst Start-Tipp oder Zeichnen abbrechen, dann
           // den Planer schließen (ein Ergebnis-Blatt nimmt Zurück selbst).
           final notifier = ref.read(loopPlannerProvider.notifier);
-          if (loop.pickingStart) {
+          if (loop.pickingStart || loop.pickingTarget) {
             notifier.cancelStartPick();
           } else if (loop.drawTool != null) {
             notifier.disarmDraw();
@@ -1323,7 +1340,8 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                       child: ListTile(
                         dense: true,
                         leading: const Icon(Icons.touch_app_outlined),
-                        title: Text(context.l10n.mapLoopPickStart),
+                        title: Text(
+                            loop.pickingTarget ? context.l10n.mapLoopPickTarget : context.l10n.mapLoopPickStart),
                         trailing: TextButton(
                           key: const ValueKey('loop-pick-cancel'),
                           onPressed: () => ref.read(loopPlannerProvider.notifier).cancelStartPick(),

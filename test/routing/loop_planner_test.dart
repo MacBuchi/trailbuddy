@@ -66,6 +66,21 @@ void main() {
   final b = _trail('B', (1010, 990), (1010, 10));
   final start = _m([(5, 0)]).single;
 
+  test('LoopPrefs: das Ende der Fahrt (#331) — alter Schalter gelesen, Ziel als r=2', () {
+    LoopEndMode read(String? raw) => LoopPrefs.parse(raw, RiderProfile.bio).endMode;
+    expect(read(null), LoopEndMode.loop);
+    expect(read('h=3.0;r=1'), LoopEndMode.loop);
+    expect(read('h=3.0;r=0'), LoopEndMode.lastTrail);
+    expect(read('h=3.0;r=2'), LoopEndMode.target);
+    expect(read('h=3.0;r=x'), LoopEndMode.loop);
+    for (final m in LoopEndMode.values) {
+      final prefs = LoopPrefs.defaults(RiderProfile.bio).copyWith(endMode: m);
+      expect(read(prefs.encode()), m, reason: '$m hin und zurück');
+    }
+    expect(LoopPrefs.defaults(RiderProfile.bio).copyWith(endMode: LoopEndMode.lastTrail).encode(), contains('r=0'),
+        reason: 'ältere Apps lesen „letzter Trail" weiter als 0');
+  });
+
   test('beide Trails bergab, verbunden durch Aufstiege, zurück zum Start', () {
     final plan = planLoop(_square(), start: start, profile: _bio, budget: _big, pool: [a, b],
         searchBudget: const Duration(milliseconds: 50));
