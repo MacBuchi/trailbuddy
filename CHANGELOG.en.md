@@ -2,6 +2,14 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## One error less when the browser starts the app
+
+*Version 0.121.4, 2026-10-15*
+
+- In the browser, every start logged an error in the background
+  because the app looked for an interrupted ride — there are none
+  there. In the browser it no longer looks.
+
 ## Elevation arrows without reception
 
 *Version 0.121.3, 2026-10-15*

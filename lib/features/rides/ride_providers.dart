@@ -137,7 +137,10 @@ class RideNotifier extends Notifier<RecordedRide?> {
   /// Aufgerufen beim Kartenstart: Wer unterwegs ist und dessen App
   /// zwischendurch weggeräumt wurde, hat die Fahrt nicht beendet.
   Future<void> restore() async {
-    if (state != null) return;
+    // Im Browser gibt es keine Aufzeichnung und keinen Store auf Platte:
+    // `path_provider` wirft dort, und ohne await landete das als
+    // ungefangener Fehler bei jedem Start (#337).
+    if (state != null || !ref.read(rideRecordingAvailableProvider)) return;
     final uid = ref.read(currentUserIdProvider);
     if (uid == null) return;
     final ride = await ref.read(rideStoreProvider).readActive(uid: uid);
