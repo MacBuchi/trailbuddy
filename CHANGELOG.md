@@ -2,6 +2,14 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Ein Fehler weniger beim Start im Browser
+
+*Version 0.121.4, 2026-10-15*
+
+- Im Browser meldete jeder Start im Hintergrund einen Fehler, weil die
+  App nach einer unterbrochenen Fahrt suchte — die gibt es dort nicht.
+  Sie sucht im Browser jetzt gar nicht erst.
+
 ## Pfeile bei den Höhenmetern ohne Empfang
 
 *Version 0.121.3, 2026-10-15*

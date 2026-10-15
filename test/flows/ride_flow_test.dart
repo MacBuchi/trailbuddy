@@ -333,4 +333,16 @@ void main() {
     expect(button, findsNothing);
     expect(find.byTooltip('Meine Position'), findsOneWidget);
   });
+
+  testWidgets('im Web fragt der Kartenstart den Fahrt-Speicher gar nicht (#337)', (tester) async {
+    // Im Browser wirft der echte Speicher (path_provider); hier steht
+    // eine Fahrt drin, damit ein Zugriff sichtbar würde.
+    await store.begin(uid: annaId, startedAt: DateTime.now().toUtc());
+    await store.appendPoint(pt(0));
+    await pump(tester, extra: [rideRecordingAvailableProvider.overrideWithValue(false)]);
+    await settle(tester);
+    expect(find.byKey(const ValueKey('ride-status')), findsNothing);
+    expect(rideLines(tester), isEmpty);
+    expect(bridge.armed, isFalse);
+  });
 }
