@@ -115,4 +115,31 @@ void main() {
     expect(pts.first.dy - pts.last.dy, closeTo(20, 1e-6));
     expect(pts[1].dy, closeTo(50, 1e-6));
   });
+
+  test('Höhe an einer Stelle: zwischen zwei Punkten linear, außen geklemmt (#332)', () {
+    final p = ElevationProfile.of(north(3), [500, 520, 510])!;
+    expect(p.eleAt(-5), 500);
+    expect(p.eleAt(p.distM[1] / 2), closeTo(510, 1e-6));
+    expect(p.eleAt(p.distM[1]), closeTo(520, 1e-6));
+    expect(p.eleAt(p.lengthM + 50), 510);
+  });
+
+  test('km-Skala: glatter Schritt, höchstens fünf Striche, kein Komma (#332)', () {
+    expect(axisTicks(800), [250, 500, 750]);
+    expect(axisTicks(2400), [500, 1000, 1500, 2000]);
+    expect(axisTicks(4999), [1000, 2000, 3000, 4000]);
+    expect(axisTicks(9300), [2000, 4000, 6000, 8000]);
+    expect(axisTicks(23000), [5000, 10000, 15000, 20000]);
+    for (final m in [120.0, 900.0, 3100.0, 17000.0, 61000.0, 240000.0]) {
+      expect(axisTicks(m).length, lessThanOrEqualTo(5), reason: '$m m');
+    }
+  });
+
+  test('Stelle im Profil: Strich am Ort, auf der Höhe der Linie (#332)', () {
+    final p = ElevationProfile.of(north(3), [500, 520, 510])!;
+    final painter = ElevationProfilePainter(p, line: Colors.green, fill: Colors.green, grid: Colors.grey);
+    const size = Size(200, 100);
+    final mid = painter.pointAt(size, p.distM[1]);
+    expect(mid, painter.pointsFor(size)[1]);
+  });
 }

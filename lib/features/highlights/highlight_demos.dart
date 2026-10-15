@@ -298,6 +298,18 @@ Map<String, HighlightDemo> highlightDemos(AppLocalizations l) => {
       ),
     ]),
   ),
+  'route-profile-scrub': HighlightDemo(
+    route: '/',
+    script: _demo('route-profile-scrub', [
+      CoachStep(
+        title: l.demoRouteProfileScrubTitle,
+        text: l.demoRouteProfileScrubText,
+        lit: [MapCoach.loop],
+        gesture: CoachGesture.tap,
+        requires: [MapCoach.loop],
+      ),
+    ]),
+  ),
   'route-elevation': HighlightDemo(
     route: '/',
     script: _demo('route-elevation', [

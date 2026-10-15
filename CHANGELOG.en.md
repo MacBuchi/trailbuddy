@@ -2,6 +2,16 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## Walk along the elevation profile
+
+*Version 0.122.0, 2026-10-15*
+
+- Tap the elevation profile of a planned loop or route, or slide your
+  finger across it: a bike on the map shows you the spot, with distance
+  and height above the profile. The map stays still, with the whole
+  route in view.
+- The compact elevation profile now has a km scale below it.
+
 ## One error less when the browser starts the app
 
 *Version 0.121.4, 2026-10-15*

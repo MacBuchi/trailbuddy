@@ -83,6 +83,16 @@ class FeatureHighlight {
 final kFeatureHighlights = <FeatureHighlight>[
   // ─── Highlights ──────────────────────────────────────────────────
   FeatureHighlight(
+    id: 'route-profile-scrub',
+    since: '0.122.0',
+    kind: HighlightKind.highlight,
+    tab: HighlightTab.map,
+    icon: Icons.directions_bike,
+    title: (l) => l.highlightRouteProfileScrubTitle,
+    text: (l) => l.highlightRouteProfileScrubText,
+    target: '/',
+  ),
+  FeatureHighlight(
     id: 'nav-minimize',
     since: '0.116.0',
     kind: HighlightKind.highlight,

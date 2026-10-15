@@ -256,8 +256,25 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     halbes.
   - **Kompakt heißt ohne „Start … km"**: Das Profil zählt die Anschlüsse
     an Start und Ziel mit, die Summe nicht — zwei Längen übereinander
-    läsen sich wie ein Fehler. Während gelesen wird, steht der Platz
-    schon da, damit die Knöpfe nicht rutschen.
+    läsen sich wie ein Fehler. Seit 0.122.0 (#332) steht dort statt
+    dessen eine km-Skala (`axisTicks`: glatter Schritt, höchstens fünf
+    Striche, ganze km oder Meter, nie ein Komma) — Teilstriche sind keine
+    Summe. Während gelesen wird, steht der Platz schon da (Profil plus
+    Skala), damit die Knöpfe nicht rutschen.
+  - **Ziehen im Profil (#332, seit 0.122.0)**: Tippen oder waagrecht
+    Ziehen setzt `routeProfileCursorProvider` (Meter im Profil + Ort auf
+    der Linie, anteilig über `NavRoute.pointAt` umgerechnet, weil das
+    Profil entlang seiner 50-m-Proben misst); die Karte zeigt dort
+    `RouteCursorSymbol` (Marker `route-profile-cursor`). **Die Kamera
+    folgt NICHT** (Betreiber, 2026-10-15: „zentrieren ist vielleicht
+    nicht ideal und zu viel Unruhe, stattdessen sollte … die ganze
+    Strecke im Bild zentriert sein und ein Icon … bewegt sich beim
+    Ziehen auf der Strecke"). Die Stelle bleibt nach dem Loslassen
+    stehen; neue Linie oder Abbau des Profils räumen sie (per Mikrotakt —
+    Riverpod verbietet Schreiben im Abbau; den Griff in `initState`
+    holen, im `dispose` ist `ref` schon tot). Die Karte zeigt das Symbol
+    zusätzlich nur, solange ein Ergebnis auf ihr liegt: Das Blatt baut
+    erst nach dem Schließen ab.
   - **`trail-head-profile` ist der Bio/E-Bike-Schalter**, das Profil heißt
     `trail-head-elevation` (im Planer `loop-elevation`, `loop-profile` ist
     dort ebenfalls der Schalter) — beim Bau kollidiert und nur als

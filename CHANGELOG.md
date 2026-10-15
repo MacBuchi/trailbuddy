@@ -2,6 +2,16 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Im Höhenprofil wandern
+
+*Version 0.122.0, 2026-10-15*
+
+- Tippe ins Höhenprofil einer geplanten Runde oder Route oder fahre
+  mit dem Finger darüber: Ein Rad auf der Karte zeigt dir die Stelle,
+  darüber stehen Strecke und Höhe. Die Karte bleibt dabei ruhig, die
+  ganze Strecke im Bild.
+- Unter dem kompakten Höhenprofil steht jetzt eine km-Skala.
+
 ## Ein Fehler weniger beim Start im Browser
 
 *Version 0.121.4, 2026-10-15*
