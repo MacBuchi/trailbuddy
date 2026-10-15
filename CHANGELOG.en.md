@@ -2,6 +2,14 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## "Mine" filter after your last own trail
+
+*Version 0.121.2, 2026-10-15*
+
+- If the trail list was set to "Mine" and you deleted your last own
+  trail, it said "No trails for this search" — with no switch left to
+  go back to "All". The switch now stays until "All" is chosen again.
+
 ## Outbox in the browser after starting without a connection
 
 *Version 0.121.1, 2026-10-15*
