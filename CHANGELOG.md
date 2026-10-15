@@ -2,6 +2,15 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Filter „Meine" nach dem letzten eigenen Trail
+
+*Version 0.121.2, 2026-10-15*
+
+- Wer in der Trail-Liste auf „Meine" stand und seinen letzten eigenen
+  Trail gelöscht hat, sah „Keine Trails für diese Suche" — und keinen
+  Schalter mehr, um zurück auf „Alle" zu gehen. Der Schalter bleibt
+  jetzt stehen, bis wieder „Alle" gewählt ist.
+
 ## Ausgangskorb im Browser nach einem Start ohne Empfang
 
 *Version 0.121.1, 2026-10-15*

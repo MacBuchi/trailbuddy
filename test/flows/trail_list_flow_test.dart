@@ -15,6 +15,7 @@ import '../fakes/test_app.dart';
 void main() {
   late FakeBackend backend;
   late FakeTrailRepository trails;
+  late String ownTrail;
 
   setUp(() {
     backend = FakeBackend();
@@ -25,7 +26,7 @@ void main() {
     trails = FakeTrailRepository(
         myId: () => backend.currentUserId ?? '', areFriends: backend.areFriends);
     trails.usernames[bob.id] = 'bob';
-    trails.seedTrail(anna.id, name: 'Roßkopf Süd', grade: 1);
+    ownTrail = trails.seedTrail(anna.id, name: 'Roßkopf Süd', grade: 1);
     trails.seedTrail(bob.id, name: 'Hexentanz', lat: 48.1, grade: 4);
     trails.seedTrail(bob.id, name: 'Alter Weg', lat: 48.2);
   });
@@ -96,6 +97,27 @@ void main() {
     expect(find.text('Roßkopf Süd'), findsNothing);
     expect(find.text('Hexentanz'), findsOneWidget);
     expect(find.text('Alter Weg'), findsOneWidget);
+  });
+
+  testWidgets('#339: „Meine" nach dem letzten eigenen Trail — der Schalter bleibt, bis „Alle"',
+      (tester) async {
+    await open(tester);
+    await tester.tap(find.text('Meine').first);
+    await settle(tester);
+    expect(find.text('Roßkopf Süd'), findsOneWidget);
+
+    await trails.withdraw(ownTrail);
+    ProviderScope.containerOf(tester.element(find.byType(MaterialApp))).invalidate(trailsProvider);
+    await settle(tester, frames: 20);
+    expect(find.text('Hexentanz'), findsNothing, reason: '„Meine" filtert noch');
+    expect(find.byKey(const ValueKey('trail-owner')), findsOneWidget,
+        reason: 'ohne Schalter gäbe es keinen Weg zurück');
+
+    await tester.tap(find.text('Alle').first);
+    await settle(tester);
+    expect(find.text('Hexentanz'), findsOneWidget);
+    expect(find.byKey(const ValueKey('trail-owner')), findsNothing,
+        reason: 'auf „Alle" und ohne eigene Trails wieder ausgeblendet');
   });
 
   testWidgets('„Auf der Karte" (#222): nur, was im Ausschnitt liegt — die Karte meldet ihn',

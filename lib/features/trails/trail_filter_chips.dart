@@ -25,7 +25,9 @@ class TrailFilterChips extends ConsumerWidget {
       {super.key, required this.showOwner, this.keyPrefix = 'trail', this.onMapChip = false});
 
   /// „Alle / Meine / Von Buddys" nur, wenn es beides gibt — sonst hätte
-  /// eine Hälfte immer „keine Trails".
+  /// eine Hälfte immer „keine Trails". Steht der Schalter nicht auf
+  /// „Alle", bleibt er trotzdem (#339): Nach dem Löschen des letzten
+  /// eigenen Trails filterte „Meine" sonst unsichtbar alles weg.
   final bool showOwner;
 
   /// Liste und Blatt können zugleich im Baum stehen (der Reiter bleibt
@@ -45,7 +47,7 @@ class TrailFilterChips extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: [
-        if (showOwner) ...[
+        if (showOwner || filter.owner != TrailOwnerFilter.all) ...[
           const SizedBox(height: 8),
           SegmentedButton<TrailOwnerFilter>(
             key: ValueKey('$keyPrefix-owner'),
