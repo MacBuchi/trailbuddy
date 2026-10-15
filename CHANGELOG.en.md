@@ -2,6 +2,16 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## Start or finish at a trail head
+
+*Version 0.124.0, 2026-10-15*
+
+- A trail's sheet now has “Start in planner” and “Finish in planner”.
+  They open the planner on the map with the trail head as start or as
+  finish — also from the trail list.
+- As a start, the trail is picked right away. As a finish, the planner
+  switches to “To a point”, and the route ends at the trail head.
+
 ## Loop, last trail or a finish
 
 *Version 0.123.0, 2026-10-15*

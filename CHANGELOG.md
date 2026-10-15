@@ -2,6 +2,16 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Am Trailkopf starten oder enden
+
+*Version 0.124.0, 2026-10-15*
+
+- Im Blatt eines Trails stehen „Start im Planer“ und „Ziel im Planer“.
+  Sie öffnen den Planer auf der Karte mit dem Trailkopf als Start oder
+  als Ziel — auch aus der Trail-Liste.
+- Als Start ist der Trail gleich gewählt. Als Ziel stellt der Planer auf
+  „Zum Ziel“ um, und die Route endet am Trailkopf.
+
 ## Runde, letzter Trail oder Ziel
 
 *Version 0.123.0, 2026-10-15*

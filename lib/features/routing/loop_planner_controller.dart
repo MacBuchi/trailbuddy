@@ -314,6 +314,20 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
     return true;
   }
 
+  /// Der Trailkopf aus dem Trail-Blatt (#331 Schritt 2). Als Start kommt
+  /// der Trail in die Auswahl, wenn er wählbar ist — wer an seinem Kopf
+  /// losfährt, will ihn fahren; als Ziel schaltet er auf „Zum Ziel" und
+  /// bleibt, wie er war (am Kopf endet die Fahrt, bevor er beginnt).
+  void takeTrailHead(Trail t, {required bool asTarget}) {
+    if (asTarget) {
+      if (state.prefs.endMode != LoopEndMode.target) setPrefs(state.prefs.copyWith(endMode: LoopEndMode.target));
+      takeTarget(t.start);
+    } else {
+      takeStart(t.start);
+      if (!t.pending && trailRoleOf(t) == TrailRole.downhill) setSelected([t.id], true);
+    }
+  }
+
   void useMyPosition() => state = state.copyWith(clearStart: true, clearPlan: true, clearBlocker: true);
 
   void setPrefs(LoopPrefs prefs) {

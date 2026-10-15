@@ -212,6 +212,15 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     Fahnen: getippter Start, sonst — mit Ergebnis — Anfang der Linie;
     Zielfahne (`LoopStartFlag(finish: true)`) am Ende der Linie, wenn sie
     nicht am Start endet, vor dem Rechnen am getippten Ziel.
+    **Der Trailkopf aus dem Trail-Blatt** (seit 0.124.0, #331 Schritt 2):
+    „Start im Planer"/„Ziel im Planer" stellen einen Wunsch
+    (`loopTrailHeadRequestProvider`, Muster `trailHeadRequestProvider`),
+    die Karte öffnet den Planer und ruft `takeTrailHead` — als Start
+    kommt der Trail in die Auswahl (nur wählbare Abfahrten), als Ziel
+    schaltet sie auf `LoopEndMode.target` (gemerkt wie über die
+    Parameter) und wählt nichts. Danach passt die Karte den Trail ein:
+    Das Blatt kann aus der Liste kommen. Anker `SheetCoach.plan` steht
+    auch im Beispielblatt der Touren.
   - **Die geplante Fahrt** (`Ride.planned`, `Ride.name`,
     `RideStore.savePlanned`, Datei am Stück über `.part` + `rename`):
     Punkte ohne Zeit und Höhe, `endedAt` = Schätzung; in „Meine Fahrten"

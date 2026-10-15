@@ -15,6 +15,7 @@ import '../../l10n/l10n.dart';
 import '../../models/trail.dart';
 import '../coach/coach.dart';
 import '../help/map_tour.dart' show SheetCoach;
+import '../routing/loop_planner_providers.dart';
 import '../routing/trail_head_providers.dart';
 import 'gpx_writer.dart';
 import 'grade_shield.dart';
@@ -506,6 +507,32 @@ class _TrailSheetState extends ConsumerState<_TrailSheet> {
                 ],
               ],
             ),
+            // Der Trailkopf als Start oder Ziel des Planers (#331 Schritt 2)
+            // — ein Wunsch an die Karte wie „Zum Trailkopf".
+            const SizedBox(height: 8),
+            CoachAnchor(
+              id: SheetCoach.plan,
+              child: Row(
+              children: [
+                for (final asTarget in [false, true]) ...[
+                  if (asTarget) const SizedBox(width: 8),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      key: ValueKey(asTarget ? 'trail-plan-to' : 'trail-plan-from'),
+                      style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
+                      onPressed: () {
+                        final request = ref.read(loopTrailHeadRequestProvider.notifier);
+                        Navigator.of(context).pop();
+                        StatefulNavigationShell.maybeOf(context)?.goBranch(kMapBranchIndex);
+                        request.state = (trailId: trail.id, asTarget: asTarget);
+                      },
+                      icon: Icon(asTarget ? Icons.sports_score : Icons.trip_origin),
+                      label: Text(asTarget ? l.sheetPlanTo : l.sheetPlanFrom),
+                    ),
+                  ),
+                ],
+              ],
+            )),
           ],
         ),
       ),

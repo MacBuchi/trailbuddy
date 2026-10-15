@@ -630,6 +630,59 @@ void main() {
       expect(rides.rides.single.name, 'Route: Hexentanz');
     });
 
+    /// Aus der Liste ins Trail-Blatt und dort auf [key].
+    Future<void> fromTrailSheet(WidgetTester tester, String key) async {
+      await openTab(tester, 'Trails');
+      await settle(tester, frames: 20);
+      final row = find.text('Hexentanz');
+      await tester.scrollUntilVisible(row, 100, scrollable: find.byType(Scrollable).hitTestable().first);
+      await settle(tester);
+      await tester.tap(row);
+      await settle(tester);
+      final button = find.byKey(ValueKey(key));
+      await tester.ensureVisible(button);
+      await tester.tap(button);
+      await settle(tester, frames: 30);
+    }
+
+    testWidgets('Trailkopf als Start (Schritt 2): Planer auf, Fahne am Kopf, Trail gewählt, Runde ab dort',
+        (tester) async {
+      await start(tester, areaStore: await _areaWithTrack());
+      await fromTrailSheet(tester, 'trail-plan-from');
+      expect(find.byKey(const ValueKey('loop-tool-rail')), findsOneWidget, reason: 'der Planer ist auf der Karte');
+      expect(find.byKey(const ValueKey('loop-pick-banner')), findsNothing);
+      expect(find.byKey(const ValueKey('loop-start-pin')), findsOneWidget);
+      expect(picked(tester), hasLength(1), reason: 'wer am Kopf startet, will den Trail fahren');
+
+      await tapRail(tester, 'loop-rail-compute');
+      expect(find.byKey(const ValueKey('loop-summary')), findsOneWidget);
+      expect(find.text('Runde'), findsOneWidget);
+      final whole = routeWhole(tester);
+      expect(whole.first.latitude, closeTo(48.0, 1e-9), reason: 'Start am Trailkopf, nicht am Standort');
+      expect(whole.last.latitude, closeTo(48.0, 1e-9));
+    });
+
+    testWidgets('Trailkopf als Ziel (Schritt 2): Modus „Zum Ziel", Zielfahne, Route endet am Kopf', (tester) async {
+      final settings = FakeSettings();
+      await start(tester, areaStore: await _areaWithTrack(), settings: settings);
+      await fromTrailSheet(tester, 'trail-plan-to');
+      expect(find.byKey(const ValueKey('loop-tool-rail')), findsOneWidget);
+      expect(settings.loopPlannerPrefs, contains('r=2'), reason: 'das Ziel schaltet auf „Zum Ziel"');
+      expect(find.byKey(const ValueKey('loop-pick-banner')), findsNothing, reason: 'das Ziel steht schon');
+      expect(find.byKey(const ValueKey('loop-rail-target')), findsOneWidget);
+      expect(find.byKey(const ValueKey('loop-end-pin')), findsOneWidget);
+      expect(picked(tester), isEmpty, reason: 'am Kopf endet die Fahrt — der Trail bleibt, wie er war');
+
+      await zoomToTrails(tester);
+      await tapMapAt(tester, const LatLng(48.004, _lon));
+      await settle(tester);
+      await tapRail(tester, 'loop-rail-compute');
+      expect(find.text('Route'), findsOneWidget);
+      final whole = routeWhole(tester);
+      expect(whole.first.latitude, closeTo(_fromLat, 1e-9));
+      expect(whole.last.latitude, closeTo(48.0, 1e-9), reason: 'die Route endet am Trailkopf');
+    });
+
     testWidgets('„Zum Ziel" ohne Ziel: der Grund steht im Blatt; „Letzter Trail" endet am Trail', (tester) async {
       await start(tester, areaStore: await _areaWithTrack());
       await openPlanner(tester);

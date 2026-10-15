@@ -608,7 +608,10 @@ Messung und spiegelt Kostentabelle und Zeitmodell; wie bei
   Ebenen-Knopf nennt. Ein Zielpunkt ungleich Start kam mit 0.123.0
   (#331): drei Wahlen statt des Schalters — Runde, letzter Trail, Zum
   Ziel —, das Ziel ein Tipp auf die Karte wie der Start, mit eigenem
-  Knopf in der Leiste. Was nicht am Start endet, heißt „Route".
+  Knopf in der Leiste. Was nicht am Start endet, heißt „Route". Seit
+  0.124.0 ist auch ein Trailkopf Start oder Ziel: „Start im Planer" /
+  „Ziel im Planer" im Trail-Blatt öffnen den Planer damit; als Start ist
+  der Trail gewählt, als Ziel steht der Modus auf „Zum Ziel".
   **Seit 0.74.0 kein Blatt mit Stufen mehr, sondern ein Modus mit Leiste
   links** (Betreiber: „zum Planen links ein Menü in der Art wie rechts,
   mit Planer-Optionen"; `loop_tool_rail.dart`, Zustand in

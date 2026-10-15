@@ -274,6 +274,31 @@ class _ExampleTrailSheet extends StatelessWidget {
                 label: Text(l.sheetTrailHead),
               ),
             ),
+            const SizedBox(height: 8),
+            CoachAnchor(
+              id: SheetCoach.plan,
+              child: Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
+                      onPressed: _nothing,
+                      icon: const Icon(Icons.trip_origin),
+                      label: Text(l.sheetPlanFrom),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
+                      onPressed: _nothing,
+                      icon: const Icon(Icons.sports_score),
+                      label: Text(l.sheetPlanTo),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
       ),

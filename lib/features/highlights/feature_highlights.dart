@@ -83,6 +83,16 @@ class FeatureHighlight {
 final kFeatureHighlights = <FeatureHighlight>[
   // ─── Highlights ──────────────────────────────────────────────────
   FeatureHighlight(
+    id: 'trail-head-plan',
+    since: '0.124.0',
+    kind: HighlightKind.highlight,
+    tab: HighlightTab.trails,
+    icon: Icons.trip_origin,
+    title: (l) => l.highlightTrailHeadPlanTitle,
+    text: (l) => l.highlightTrailHeadPlanText,
+    target: '/trails',
+  ),
+  FeatureHighlight(
     id: 'loop-end',
     since: '0.123.0',
     kind: HighlightKind.highlight,
