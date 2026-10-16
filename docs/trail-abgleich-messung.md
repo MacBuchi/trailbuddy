@@ -387,3 +387,13 @@ beigesteuert haben: Die Simulation braucht dann deren Linien, und die
 liegen nicht beim Betreiber — der Weg ist eine Auswertung auf einer
 Kopie der Datenbank (Aufzeichnungen je Trail, Anteil mit mehr als einer,
 Zwillingstreffer bei `limit 3`), nie eine Funktion der App.
+
+**Ob es so weit ist, zählt `tool/matcher_stats.sql`** (2026-10-16):
+`matcher-stats.yml`, von Hand gestartet, fährt sie in einer
+Nur-Lese-Transaktion gegen live und schreibt nur Summen in die
+Run-Summary — Aufzeichnungen nach Quelle, Trails mit 1, 2 und 3+
+Aufzeichnungen, Trails mit Beiträgen von 2+ Nutzern, Kanten mit
+Zwillings-Verdacht (beidseitig ≥ 0,5), Zusammenführungen. Keine
+Kennungen, keine Namen, keine Koordinaten: Die Summary eines
+öffentlichen Repos ist öffentlich. Der Dry Run fährt dieselbe Datei,
+damit sie mit dem Schema nicht veraltet.
