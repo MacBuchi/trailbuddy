@@ -295,6 +295,21 @@ Plans im Median 1,38 statt 1,52), für eine Vorgabe für alle sind 15
 Fälle eines Fahrers zu wenig („weiter optimieren kann man erst mit mehr
 Fahrdaten").
 
+**Der Stil „Bequem"** (#329, Feldwunsch 2026-10-13; Betreiber
+2026-10-15/16: klein, nur die Anfahrt, Name „Bequem"). Kein drittes Rad:
+Tempo, Steigraten und Kalibrierung bleiben die von Bio oder E-Bike, die
+angezeigte Zeit auch. Der Stil ersetzt nur Kosten: Aufschläge je Klasse
+in beide Richtungen — Radweg, Nebenstraße, Zufahrt 1,0; Forstweg 1,15;
+Landstraße 1,3; Hauptstraße 2,0; Bundesstraße 4,0; Fußweg 2,5; Wanderweg
+3,0; Stufen 6,0 —, jeder Höhenmeter kostet seine Steigzeit **1,5-mal**
+noch einmal, steile Rampen zählen immer voll und auf Asphalt wie
+unbefestigt (Faktor 3), die Wegegüte doppelt. „Straßen egal" gilt dort
+nicht (es widerspräche dem Stil). Gesetzt mit dem Tirol-Lauf
+(`docs/routing-messung.md`, „#329"): Mit Steilfaktor 1 auf Asphalt wich
+der Stil auf steile Straßen aus und stieg MEHR als der MTB-Stil; erst
+1,5 mit 3 steigt in allen drei Entfernungen weniger und nimmt trotzdem
+mehr Asphalt. Der Planer rechnet weiter im MTB-Stil.
+
 Trailkanten: nur in Trail-Richtung (`reversed` beachtet), nur bergab
 gedacht, Kosten = Zeit nach S-Grad, Gewinn = Trail-Meter. Ein Trail mit
 bestätigter warnender Meldung (`Trail.status.warns`) ist aus dem Pool,
@@ -580,9 +595,12 @@ Messung und spiegelt Kostentabelle und Zeitmodell; wie bei
   Budget 1,6 × die direkte Zeit (mindestens + 20 min) und 1,5 × deren
   Höhenmeter (mindestens + 200) — Startwerte. Passt kein Trail, steht
   der direkte Weg da, mit Satz. Dasselbe Blatt nimmt auch einen Punkt
-  als Ziel („Route bis hier", #177).
+  als Ziel („Route bis hier", #177). **Seit 0.127.0 dazu „Bequem"**
+  (#329, Stil in 2.4): der direkte Weg mit den Kosten des Stils, ein
+  Satz darunter sagt, was er bevorzugt.
 - **Das Navi-Symbol an jedem Trail** (#176, Liste und Schnellkarte,
-  `navigate_choice.dart`): Navi-App, direkt oder spaßig; „Als Standard
+  `navigate_choice.dart`): Navi-App, direkt, spaßig oder (seit 0.127.0)
+  bequem; „Als Standard
   merken" (`Settings.navDefault`), ein langer Druck fragt wieder.
 - **Langer Druck auf die Karte** (#177): eine Nadel und das Menü „Route
   ab hier" (der Planer mit diesem Start), „Route bis hier" (das Blatt

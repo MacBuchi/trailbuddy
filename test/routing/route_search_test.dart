@@ -208,6 +208,23 @@ void main() {
     expect(g2.edges[shortestPath(g2, s2, d2, any)!.edges.single].cls, WayClass.hauptstrasse);
   });
 
+  test('Stil „Bequem" (#329): der Umweg über die Nebenstraße statt des Schotteranstiegs', () {
+    // Forstweg direkt 1 km mit 100 hm (MTB 1040, Bequem 2396), Nebenstraße
+    // über (500, 490) ≈ 1,4 km mit denselben 100 hm (MTB ×1,2 = 1363,
+    // Bequem 2336) — die Suche „Umweg" im Werkzeug.
+    final g = buildRoadGraph([
+      _way([(0, 0), (1000, 0)]),
+      _way([(0, 0), (500, 490), (1000, 0)], cls: WayClass.nebenstrasse),
+    ], lat0: 47.5).graph;
+    for (final e in g.edges) {
+      e.gain = 100;
+    }
+    final src = g.attach(_m([(0, 0)]).single)!, dst = g.attach(_m([(1000, 0)]).single)!;
+    expect(g.edges[shortestPath(g, src, dst, bio)!.edges.single].cls, WayClass.forstweg);
+    final easy = bio.withPrefs(const RoutePrefs(easy: true));
+    expect(g.edges[shortestPath(g, src, dst, easy)!.edges.single].cls, WayClass.nebenstrasse);
+  });
+
   test('Verschenkte Höhe (#188) kostet auf einer Verbindung, auf einem Trail nicht', () {
     final g = buildRoadGraph([_way([(0, 0), (1000, 0)])], lat0: 47.5).graph;
     final e = g.edges.single

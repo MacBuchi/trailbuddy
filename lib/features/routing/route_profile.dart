@@ -9,7 +9,8 @@
 // `edge_time_s`, `edge_factor`, `edge_cost_s` und — seit #194 —
 // `STEEP_*`, `steep_excess` und `steep_cost_s`, seit #188 auch
 // `steep_weight`, `descent_cost_s` und der Vorlieben (`PREF_*`), seit
-// #213 `WAY_*` und `way_cost_s` in
+// #213 `WAY_*` und `way_cost_s`, seit #329 der Stil „Bequem"
+// (`EASY_*`, `is_easy`, `easy_climb_cost_s`) in
 // `tool/route_measure.py` — das Werkzeug ist die Referenz, mit der die
 // Engine gemessen wurde (docs/routing-messung.md), und
 // `test/routing/route_profile_test.dart` hält die Zahlen beider Seiten
@@ -50,20 +51,28 @@ abstract interface class RiderParams {
 /// davon ([kPrefAnyRoads] …) — nie null, sonst nähme die Route bei
 /// gleicher Zeit eine Hauptstraße statt des Forstwegs.
 class RoutePrefs {
-  const RoutePrefs({this.avoidRoads = true, this.avoidHiking = true, this.avoidSteep = true});
+  const RoutePrefs({this.avoidRoads = true, this.avoidHiking = true, this.avoidSteep = true, this.easy = false});
 
   final bool avoidRoads;
   final bool avoidHiking;
   final bool avoidSteep;
 
+  /// Der Stil „Bequem" (#329, nur für die Anfahrt): eigene Aufschläge je
+  /// Klasse ([WayClass.easy]), jeder Höhenmeter anderthalbmal noch einmal
+  /// ([kEasyClimb]), steile Rampen immer voll und auf Asphalt wie
+  /// unbefestigt ([kEasySteep]), schlechte Forstwege doppelt ([kEasyWay]). Kein gemerkter Schalter: Das Blatt setzt ihn je
+  /// Rechnung.
+  final bool easy;
+
   double get roadStrength => avoidRoads ? 1.0 : kPrefAnyRoads;
   double get hikingStrength => avoidHiking ? 1.0 : kPrefAnyHiking;
-  double get steepStrength => avoidSteep ? 1.0 : kPrefAnySteep;
+  double get steepStrength => avoidSteep || easy ? 1.0 : kPrefAnySteep;
 
-  RoutePrefs copyWith({bool? avoidRoads, bool? avoidHiking, bool? avoidSteep}) => RoutePrefs(
+  RoutePrefs copyWith({bool? avoidRoads, bool? avoidHiking, bool? avoidSteep, bool? easy}) => RoutePrefs(
         avoidRoads: avoidRoads ?? this.avoidRoads,
         avoidHiking: avoidHiking ?? this.avoidHiking,
         avoidSteep: avoidSteep ?? this.avoidSteep,
+        easy: easy ?? this.easy,
       );
 
   @override
@@ -71,10 +80,11 @@ class RoutePrefs {
       other is RoutePrefs &&
       other.avoidRoads == avoidRoads &&
       other.avoidHiking == avoidHiking &&
-      other.avoidSteep == avoidSteep;
+      other.avoidSteep == avoidSteep &&
+      other.easy == easy;
 
   @override
-  int get hashCode => Object.hash(avoidRoads, avoidHiking, avoidSteep);
+  int get hashCode => Object.hash(avoidRoads, avoidHiking, avoidSteep, easy);
 }
 
 /// Was von einem Aufschlag bleibt, wenn er „egal" ist — `PREF_ANY` im
@@ -83,6 +93,21 @@ class RoutePrefs {
 const kPrefAnyRoads = 0.35;
 const kPrefAnyHiking = 0.35;
 const kPrefAnySteep = 0.3;
+
+/// Der Stil „Bequem" (#329, Feldwunsch 2026-10-13: „ein Profil, welches
+/// Radwege / asphaltierte Wege bevorzugt und quasi lowest Effort ist";
+/// Betreiber 2026-10-15/16: klein, nur die Anfahrt). Kein drittes Rad:
+/// Tempo, Steigraten und Kalibrierung bleiben die des Fahrers. Jeder
+/// Höhenmeter kostet [kEasyClimb] seiner Steigzeit noch einmal, steile
+/// Rampen auf Asphalt kosten wie unbefestigt ([kEasySteep]), die Wegegüte
+/// zählt [kEasyWay]-fach. `EASY_CLIMB`, `EASY_STEEP`, `EASY_WAY` im
+/// Werkzeug, gesetzt mit dem Tirol-Lauf (docs/routing-messung.md, „#329"):
+/// Nur 1,5 mit 3 stieg in allen drei Entfernungen weniger als der MTB-Stil
+/// und nahm trotzdem mehr Asphalt; mit 1 war eine steile Straße der
+/// billige Weg um einen Pfad herum.
+const kEasyClimb = 1.5;
+const kEasySteep = kSteepFactorUnpaved;
+const kEasyWay = 2.0;
 
 /// Die Profilwerte mit anderen Vorlieben — was der Planer und „Zum
 /// Trailkopf" aus dem Profil (samt Kalibrierung) und den gemerkten
@@ -233,20 +258,22 @@ double trailDownKmh(int? grade) => switch (grade) {
 /// welche Geschwindigkeit und Steigrate des Profils sie nimmt. Ein
 /// Aufschlag `null` heißt: der des Profils (`pathUpFactor`/`pathDownFactor`).
 enum WayClass {
-  forstweg(up: 1.0, down: 1.0, steep: kSteepFactorUnpaved),
-  radweg(up: 1.0, down: 1.0, steep: kSteepFactorPaved),
-  nebenstrasse(up: 1.2, down: 1.2, steep: kSteepFactorPaved),
-  zufahrt(up: 1.2, down: 1.2, steep: kSteepFactorPaved),
-  wanderweg(up: null, down: null, hiking: true, pathSpeed: true, pathRate: true, steep: kSteepFactorUnpaved),
-  fussweg(up: 2.0, down: 2.5, hiking: true, pathSpeed: true, pathRate: true, steep: kSteepFactorUnpaved),
-  stufen(up: 3.0, down: 3.0, hiking: true, pushing: true, steep: 0),
-  landstrasse(up: 1.6, down: 1.6, steep: kSteepFactorPaved),
-  hauptstrasse(up: 2.5, down: 2.5, steep: kSteepFactorPaved),
-  bundesstrasse(up: 4.0, down: 4.0, steep: kSteepFactorPaved);
+  forstweg(up: 1.0, down: 1.0, easy: 1.15, steep: kSteepFactorUnpaved),
+  radweg(up: 1.0, down: 1.0, easy: 1.0, steep: kSteepFactorPaved),
+  nebenstrasse(up: 1.2, down: 1.2, easy: 1.0, steep: kSteepFactorPaved),
+  zufahrt(up: 1.2, down: 1.2, easy: 1.0, steep: kSteepFactorPaved),
+  wanderweg(
+      up: null, down: null, easy: 3.0, hiking: true, pathSpeed: true, pathRate: true, steep: kSteepFactorUnpaved),
+  fussweg(up: 2.0, down: 2.5, easy: 2.5, hiking: true, pathSpeed: true, pathRate: true, steep: kSteepFactorUnpaved),
+  stufen(up: 3.0, down: 3.0, easy: 6.0, hiking: true, pushing: true, steep: 0),
+  landstrasse(up: 1.6, down: 1.6, easy: 1.3, steep: kSteepFactorPaved),
+  hauptstrasse(up: 2.5, down: 2.5, easy: 2.0, steep: kSteepFactorPaved),
+  bundesstrasse(up: 4.0, down: 4.0, easy: 4.0, steep: kSteepFactorPaved);
 
   const WayClass(
       {required this.up,
       required this.down,
+      required this.easy,
       required this.steep,
       this.hiking = false,
       this.pathSpeed = false,
@@ -270,6 +297,11 @@ enum WayClass {
 
   final double? up;
   final double? down;
+
+  /// Der Aufschlag im Stil „Bequem" (#329), in beide Richtungen —
+  /// `EASY_FACTOR` im Werkzeug. Radweg und kleine Straßen vorn, Schotter
+  /// knapp dahinter, Pfade und Stufen weit weg.
+  final double easy;
 
   /// Der Steilaufschlag (#194): Wie oft die Höhenmeter über
   /// [kSteepGrade] ihre Steigzeit NOCH EINMAL kosten — unbefestigt
@@ -547,7 +579,12 @@ double _climbRate(RiderParams p, WayClass cls) => cls.pushing
 /// mal [WayClass.steep] und der Stärke aus den Vorlieben. Kosten, keine
 /// Minuten — die Zeit bleibt, was die Fahrten kalibrieren.
 double steepCostS(RiderParams p, WayClass cls, double steepW) =>
-    steepW / (_climbRate(p, cls) / 3600.0) * cls.steep * p.prefs.steepStrength;
+    steepW / (_climbRate(p, cls) / 3600.0) * _steepFactor(p, cls) * p.prefs.steepStrength;
+
+/// [WayClass.steep], im Stil „Bequem" mindestens [kEasySteep] — Stufen
+/// bleiben bei null (#329).
+double _steepFactor(RiderParams p, WayClass cls) =>
+    p.prefs.easy && cls.steep > 0 ? math.max(cls.steep, kEasySteep) : cls.steep;
 
 /// Was [lossM] Höhenmeter bergab auf einer Verbindung kosten:
 /// [kDescentCost] der Zeit, sie wieder hinaufzufahren.
@@ -566,6 +603,7 @@ double trailTimeS({required double lengthM, required int? grade}) =>
 /// Anstiegsaufschlag. Die Vorlieben (#188) skalieren den Teil über 1:
 /// Straßen in beide Richtungen, Wanderwege nur bergauf, Stufen nie.
 double edgeFactor(RiderParams p, WayClass cls, {required double gainM, required double lossM}) {
+  if (p.prefs.easy) return cls.easy;
   final downhill = lossM > gainM;
   final f = downhill ? cls.downFactor(p) : cls.upFactor(p);
   if (cls.isRoad) return 1 + p.prefs.roadStrength * (f - 1);
@@ -573,12 +611,18 @@ double edgeFactor(RiderParams p, WayClass cls, {required double gainM, required 
   return f;
 }
 
+/// Im Stil „Bequem" (#329): [kEasyClimb] der Steigzeit von [gainM] —
+/// `easy_climb_cost_s`. Sonst nichts.
+double easyClimbCostS(RiderParams p, WayClass cls, double gainM) =>
+    p.prefs.easy ? kEasyClimb * gainM / (_climbRate(p, cls) / 3600.0) : 0;
+
 /// Kosten = Zeit × Aufschlag (Konzept-Routing 2.4): Der Aufschlag sagt,
 /// was die Zeit nicht sagt — eine Bundesstraße ist nicht langsam, sie
 /// ist falsch. Dazu der Steilaufschlag für [steepW] gewichtete
 /// Steilmeter (#194), mit [descent] der Preis der verschenkten Höhe
 /// (#188), auf Stufen bergauf der Anteil [carry] des Trage-Aufschlags
-/// (#210) und die Wegegüte [way]/[uphill] (#213, [wayCostS]).
+/// (#210) und die Wegegüte [way]/[uphill] (#213, [wayCostS]); im Stil
+/// „Bequem" die Wegegüte doppelt und der Steigaufschlag (#329).
 double edgeCostS(RiderParams p, WayClass cls,
         {required double lengthM,
         required double gainM,
@@ -593,4 +637,6 @@ double edgeCostS(RiderParams p, WayClass cls,
     steepCostS(p, cls, steepW) +
     (descent ? descentCostS(p, cls, lossM) : 0) +
     carryCostS(cls, gainM: gainM, lossM: lossM, share: carry) +
-    wayCostS(p, cls, lengthM: lengthM, gainM: gainM, lossM: lossM, way: way, uphill: uphill);
+    wayCostS(p, cls, lengthM: lengthM, gainM: gainM, lossM: lossM, way: way, uphill: uphill) *
+        (p.prefs.easy ? kEasyWay : 1) +
+    easyClimbCostS(p, cls, gainM);

@@ -217,8 +217,46 @@ PREF_ANY = {"roads": 0.35, "hiking": 0.35, "steep": 0.3}
 
 
 def pref_strength(prefs, key):
-    """1.0 for "avoid" (and without prefs), the reduced share otherwise."""
+    """1.0 for "avoid" (and without prefs), the reduced share otherwise.
+    The easy style (#329) always avoids steep ramps in full."""
+    if key == "steep" and is_easy(prefs):
+        return 1.0
     return 1.0 if prefs is None or prefs.get(key, True) else PREF_ANY[key]
+
+
+# The easy style (#329, field request 2026-10-13: "ein Profil, welches
+# Radwege / asphaltierte Wege bevorzugt und quasi lowest effort ist";
+# operator 2026-10-15: for the approach only — "Zum Trailkopf" and
+# "Route hierher"). Not a third bike: speeds, climb rates and the
+# calibration stay those of the rider; the style replaces the class
+# surcharges (cycleways and minor roads best, gravel tracks a little
+# behind, hiking paths and steps far off), makes every metre climbed
+# cost EASY_CLIMB of its climb time again, always weighs steep ramps in
+# full and on asphalt like off it (EASY_STEEP), and doubles the
+# way-quality surcharge (bad tracks). All costs,
+# not minutes — the time shown stays the rider's. The "avoid roads"
+# switch does not apply: it would contradict the style.
+EASY_FACTOR = {
+    "radweg": 1.0, "nebenstrasse": 1.0, "zufahrt": 1.0, "forstweg": 1.15,
+    "landstrasse": 1.3, "hauptstrasse": 2.0, "bundesstrasse": 4.0,
+    "fussweg": 2.5, "wanderweg": 3.0, "stufen": 6.0,
+}
+# Set by the Tirol run (docs/routing-messung.md, "#329"): of 0.5/1.0/1.5
+# for the climb and 1/3 for the steep floor, only 1.5 with 3 climbs less
+# than the trail style at all three distances while still taking more
+# asphalt; with 1 a steep road was the cheap way round a path.
+EASY_CLIMB = 1.5
+EASY_WAY = 2.0
+EASY_STEEP = 3.0   # steep factor floor in the easy style: paved ramps cost like unpaved
+
+
+def is_easy(prefs):
+    return prefs is not None and prefs.get("style") == "easy"
+
+
+def easy_climb_cost_s(profile, cls, gain_m):
+    """EASY_CLIMB of the climb time of `gain_m` (the easy style)."""
+    return EASY_CLIMB * gain_m / (_climb_rate(profile, cls) / 3600.0)
 
 
 def classify(kind, detail, access=None, service=None):
@@ -264,6 +302,8 @@ def edge_time_s(profile, cls, length_m, gain_m, loss_m, trail_grade=None):
 def edge_factor(profile, cls, gain_m, loss_m, prefs=None):
     """The class surcharge; the preferences scale what lies above 1 —
     roads in both directions, hiking paths uphill."""
+    if is_easy(prefs):
+        return EASY_FACTOR[cls]
     p = PROFILES[profile]
     f_up, f_down, _, _, hiking = CLASSES[cls]
     downhill = loss_m > gain_m
@@ -280,9 +320,13 @@ def _climb_rate(profile, cls):
     return PROFILES[profile][CLASSES[cls][3]]
 
 
-def steep_cost_s(profile, cls, steep_w, strength=1.0):
-    """The surcharge for `steep_w` weighted steep metres (steep_weight)."""
-    return steep_w / (_climb_rate(profile, cls) / 3600.0) * STEEP_FACTOR[cls] * strength
+def steep_cost_s(profile, cls, steep_w, strength=1.0, easy=False):
+    """The surcharge for `steep_w` weighted steep metres (steep_weight);
+    the easy style lifts the class factor to EASY_STEEP (steps stay 0)."""
+    f = STEEP_FACTOR[cls]
+    if easy and f > 0:
+        f = max(f, EASY_STEEP)
+    return steep_w / (_climb_rate(profile, cls) / 3600.0) * f * strength
 
 
 def descent_cost_s(profile, cls, loss_m):
@@ -301,10 +345,12 @@ WAY_COST = True   # measurement switch: the variant without way quality
 def edge_cost_s(profile, cls, length_m, gain_m, loss_m, steep_w=0.0, prefs=None, carry=1.0,
                 way=None, uphill=None):
     return (edge_time_s(profile, cls, length_m, gain_m, loss_m) * edge_factor(profile, cls, gain_m, loss_m, prefs)
-            + steep_cost_s(profile, cls, steep_w, pref_strength(prefs, "steep"))
+            + steep_cost_s(profile, cls, steep_w, pref_strength(prefs, "steep"), is_easy(prefs))
             + descent_cost_s(profile, cls, loss_m)
             + carry_cost_s(cls, gain_m, loss_m, carry)
-            + (way_cost_s(profile, cls, length_m, gain_m, loss_m, way, uphill) if WAY_COST else 0.0))
+            + (way_cost_s(profile, cls, length_m, gain_m, loss_m, way, uphill)
+               * (EASY_WAY if is_easy(prefs) else 1.0) if WAY_COST else 0.0)
+            + (easy_climb_cost_s(profile, cls, gain_m) if is_easy(prefs) else 0.0))
 
 
 def smooth_heights(heights, window=STEEP_SMOOTH):
@@ -1732,12 +1778,83 @@ def measure_frame(bbox, trails, archive, dem, profile="bio", budget_h=BUDGET_HOU
         if len(examples) < 5:
             examples.append(s)
 
+    easy_pairs = easy_comparison(joined, bottoms[:40], tops, profile)
+
     return {"bbox": bbox, "tiles": tiles, "lines": len(lines), "trails": len(trails),
             "m1": m1, "m3": m3, "reach": reach, "examples": examples,
-            "steep": steep, "steep_pairs": steep_pairs,
+            "steep": steep, "steep_pairs": steep_pairs, "easy_pairs": easy_pairs,
             "timing": {"tiles_s": t_tiles, "graph_s": t_graph, "dem_s": t_dem,
                        "dijkstra_s": t_dijkstra, "dijkstra_runs": len(bottoms)},
             "dem_fetched": getattr(dem, "fetched", 0)}
+
+
+PAVED_CLASSES = ("radweg", "nebenstrasse", "zufahrt", "landstrasse", "hauptstrasse", "bundesstrasse")
+PATH_CLASSES = ("wanderweg", "fussweg", "stufen")
+EASY_PAIR_KM = (1.0, 2.0, 4.0)   # approach lengths compared (#329), air line ±50 %
+
+
+def easy_comparison(g, bottoms, tops, profile):
+    """#329: the same approaches with the trail style and the easy style —
+    from a trail's end to another trail's start about 1, 2 and 4 km off
+    (air line), as a stand-in for "from here to that trail head". Per
+    pair both summaries plus the model time; no coordinates."""
+    pairs = []
+    for t, n in bottoms:
+        for want in EASY_PAIR_KM:
+            best = None
+            for o, m in tops:
+                if o is t:
+                    continue
+                d = math.dist(g.nodes[n], g.nodes[m])
+                if not (0.5 * want * 1000 <= d <= 1.5 * want * 1000):
+                    continue
+                if best is None or abs(d - want * 1000) < abs(best[0] - want * 1000):
+                    best = (d, m)
+            if best is None:
+                continue
+            row = {"want_km": want, "air_m": best[0]}
+            for key, prefs in (("trail", None), ("easy", {"style": "easy"})):
+                res = astar(g, n, best[1], profile, prefs=prefs)
+                if res is None:
+                    break
+                ps = path_summary(g, res[2], n)
+                row[key] = {"length_m": ps["length_m"], "gain_m": ps["gain_m"], "steep_m": ps["steep_m"],
+                            "mix": ps["mix"], "time_s": path_time_s(g, res[2], n, profile), "path": res[2]}
+            else:
+                row["changed"] = row["trail"].pop("path") != row["easy"].pop("path")
+                pairs.append(row)
+    return pairs
+
+
+def render_easy(frames):
+    """The #329 table over all frames: what the easy style changes."""
+    pairs = [p for fr in frames for p in fr.get("easy_pairs", [])]
+    if not pairs:
+        return []
+    out = ["", "## Bequem gegen MTB (#329): dieselben Anfahrten, beide Stile", "",
+           "*Vom Ende eines Trails zum Anfang eines anderen, Luftlinie etwa 1, 2 und 4 km — als Ersatz für "
+           "„von hier zum Trailkopf“. Summen über alle Paare; Zeit ist die Modellzeit des Rads (der Stil "
+           "ändert Kosten, keine Minuten).*", "",
+           "| Luftlinie | Paare | anders | Stil | Weg | Asphalt | Forstweg | Pfad | bergauf | steil | Zeit |",
+           "|---|---|---|---|---|---|---|---|---|---|---|"]
+    for want in EASY_PAIR_KM:
+        group = [p for p in pairs if p["want_km"] == want]
+        if not group:
+            continue
+        changed = sum(1 for p in group if p["changed"])
+        for key, label in (("trail", "MTB"), ("easy", "Bequem")):
+            length = sum(p[key]["length_m"] for p in group)
+            def share(classes):
+                return sum(l for p in group for c, l in p[key]["mix"].items() if c in classes) / length if length else 0.0
+            out.append(f"| ~{want:.0f} km | {len(group)} | {changed} | {label} | {km(length)} "
+                       f"| {pct(share(PAVED_CLASSES))} | {pct(share(('forstweg',)))} | {pct(share(PATH_CLASSES))} "
+                       f"| {sum(p[key]['gain_m'] for p in group):.0f} hm | {sum(p[key]['steep_m'] for p in group):.0f} hm "
+                       f"| {sum(p[key]['time_s'] for p in group) / 60:.0f} min |")
+    longer = [p["easy"]["length_m"] / p["trail"]["length_m"] for p in pairs if p["changed"] and p["trail"]["length_m"] > 0]
+    if longer:
+        out.append(f"\nWo der Weg sich ändert: Bequem ist im Median {pct(statistics.median(longer) - 1)} länger "
+                   f"(höchstens {pct(max(longer) - 1)}).")
+    return out
 
 
 STEEP_REPORT_CLASSES = ("forstweg", "radweg", "zufahrt", "nebenstrasse", "landstrasse", "wanderweg", "fussweg")
@@ -1873,6 +1990,7 @@ def render_report(frames, profile, source_name, note=""):
                            f"| {km(s['hiking_m'])} | {s['time_min']:.0f} min | {mix} |")
             out.append("\nZum Ansehen, nicht zum Messen: Sieht der Weg aus wie einer, den man fahren würde?")
         out += render_steep(fr)
+    out += render_easy(frames)
     return "\n".join(out) + "\n"
 
 
@@ -2516,6 +2634,36 @@ def self_test():
     g6.split_edge(path6, (0, 0.5), 47.0, 11.003)
     expect([e.way for e in g6.edges if e.cls == "wanderweg"] == [8, 8]
            and [e.uphill for e in g6.edges if e.cls == "wanderweg"] == [3, 3], "a split keeps class and uphill grade")
+
+    # the easy style (#329) — mirrored in route_profile_test.dart
+    easy = {"style": "easy"}
+    expect(abs(edge_cost_s("bio", "forstweg", 1000, 100, 0, prefs=easy) - (1040.0 * 1.15 + 1.5 * 800.0)) < 1e-9,
+           "a gravel climb: 1.15 and the climb 1.5 times again")
+    expect(abs(edge_cost_s("bio", "radweg", 1000, 0, 0, prefs=easy) - 240.0) < 1e-9, "a flat cycleway: its time")
+    expect(abs(edge_cost_s("ebike", "nebenstrasse", 1000, 100, 0, prefs=easy) - (180.0 + 2.5 * 100 * 3600 / 850)) < 1e-9,
+           "a minor road up: no surcharge, the e-bike rate")
+    expect(edge_factor("bio", "hauptstrasse", 0, 0, {"style": "easy", "roads": False}) == 2.0,
+           "\"roads: don't mind\" does not apply")
+    expect(edge_factor("bio", "wanderweg", 0, 50, easy) == 3.0 and edge_factor("bio", "stufen", 4, 0, easy) == 6.0,
+           "paths and steps far off, both directions")
+    expect(pref_strength({"style": "easy", "steep": False}, "steep") == 1.0, "steep ramps always in full")
+    expect(abs(steep_cost_s("bio", "nebenstrasse", 10.0, 1.0, True) - 10 * 8 * 3.0) < 1e-9
+           and steep_cost_s("bio", "stufen", 10.0, 1.0, True) == 0.0, "paved ramps like unpaved, steps still none")
+    expect(abs(edge_cost_s("bio", "forstweg", 1000, 100, 0, way=7, prefs=easy)
+               - edge_cost_s("bio", "forstweg", 1000, 100, 0, prefs=easy) - 2 * 872.0) < 1e-9, "bad tracks twice")
+    expect(abs(edge_cost_s("bio", "forstweg", 1000, 0, 100, prefs=easy) - (144.0 * 1.15 + 0.3 * 100 * 8)) < 1e-9,
+           "downhill: the descent cost stays, no climb surcharge")
+    expect(abs(edge_time_s("bio", "forstweg", 1000, 100, 0) - 1040.0) < 1e-9, "the time stays the rider's")
+    g7 = Graph(47.0)
+    e0, e1, e2 = g7.node(47.0, 11.0), g7.node(47.0045, 11.0), g7.node(47.00225, 11.003)
+    gravel = g7.add_edge(e0, e1, "forstweg", False, [(47.0, 11.0), (47.0045, 11.0)])
+    g7.edges[gravel].length, g7.edges[gravel].gain = 1000.0, 100.0
+    for a_, b_ in ((e0, e2), (e2, e1)):
+        ei = g7.add_edge(a_, b_, "nebenstrasse", False, [g7.latlon[a_], g7.latlon[b_]])
+        g7.edges[ei].length, g7.edges[ei].gain = 700.0, 50.0
+    expect(astar(g7, e0, e1, "bio")[2] == [gravel], "the trail style takes the gravel climb")
+    expect(all(g7.edges[ei].cls == "nebenstrasse" for ei in astar(g7, e0, e1, "bio", prefs=easy)[2]),
+           "the easy style takes the road detour")
 
     # hysteresis
     expect(hysteresis_climb([100, 105, 100, 105, 100, 150, 140, 200], 10) == (110.0, 10.0), "wiggles under 10 m vanish")

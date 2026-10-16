@@ -94,6 +94,25 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
   - **Spiegel des Werkzeugs**: `PREF_*`, `pref_strength`,
     `DESCENT_COST`, `steep_weight` in `tool/route_measure.py`; die
     Zahlen in `route_profile_test` sind dort gerechnet.
+- **Der Stil „Bequem"** (#329, seit 0.127.0; Konzept-Routing 2.4,
+  Messung in `docs/routing-messung.md`): dritter `RouteMode` im Blatt
+  „Zum Trailkopf"/„Route hierher" und `NavChoice.easy` am Navi-Symbol —
+  NUR die Anfahrt, der Planer rechnet weiter im MTB-Stil. Drei Dinge, die
+  man wissen muss:
+  - **Ein Stil, kein Rad**: `RoutePrefs.easy`, vom Blatt je Rechnung über
+    die gemerkten Vorlieben gelegt (`_rider`), nie gemerkt. Er ersetzt
+    nur KOSTEN (`WayClass.easy`, `kEasyClimb`, `kEasySteep`, `kEasyWay`);
+    Zeit und Kalibrierung bleiben die des Rads. Weil `prefs` im
+    Schlüssel des Suchspeichers steht, rechnet ein Wechsel neu.
+  - **Steil auf Asphalt kostet im Stil wie unbefestigt**: Mit dem Faktor
+    1 der MTB-Tabelle wich der Stil auf steile Straßen aus und stieg im
+    Tirol-Lauf mehr als der MTB-Stil.
+  - **Spiegel des Werkzeugs** (`EASY_*`, `is_easy`, `easy_climb_cost_s`,
+    `steep_cost_s(easy=)`, Vergleich `easy_comparison` im Tirol-Bericht);
+    Vektoren in `route_profile_test`, die Umweg-Suche in
+    `route_search_test`, die Verdrahtung im Blatt in
+    `trail_head_flow_test` (flach: Forstweg ×1,15 gegen Nebenstraße
+    ×1,0 — Gegenprobe ohne `easy` im Blatt rot).
 - **Stufen bergauf werden getragen** (#210, seit 0.87.0): Eine
   Stufen-Kante, die steigt, kostet `kCarryCostS` (60 s) obendrauf,
   unabhängig von der Länge (`carryCostS`, `edgeCostS(carry:)`). Zwei

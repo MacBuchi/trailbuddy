@@ -2,6 +2,19 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## An easy way to the trail head
+
+*Version 0.127.0, 2026-10-16*
+
+- Besides “Direct” and “Fun”, “To the trail head” and “Route here” have a
+  third button: “Easy”. The way then takes cycleways and quiet roads,
+  gravel where needed, and as little climbing and as few steep ramps as
+  possible — it keeps well away from hiking paths and steps. Good for the
+  approach, when you want to save your legs for the trail.
+- The navigation icon on a trail offers “In TrailBuddy: easy” too.
+- The time shown stays your bike's (bio or e-bike, with what it learned
+  from your rides); “Easy” only changes which way is chosen.
+
 ## Via points before planning
 
 *Version 0.126.0, 2026-10-16*

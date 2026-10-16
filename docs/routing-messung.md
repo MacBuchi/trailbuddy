@@ -616,3 +616,39 @@ sie waren — die Wegegüte ändert, WELCHER Forstweg hinaufführt, nicht
 den Umweg, den M4 seit #188 zeigt. ×3 wird bei Bio schlechter (1,43),
 ×1,5 ändert weniger Pläne. Die Pfad-Varianten unterscheiden sich hier
 nicht, weil die Pfade dieser Fahrten ungetaggt sind.
+
+## #329 — Der Stil „Bequem" (gemessen 2026-10-16, lokal, öffentliche Daten)
+
+*`tool/route_measure.py tirol --frames 3` (Kacheln vom eigenen Host, Höhen
+Copernicus GLO-90, Profil Bio, ohne Wege-Archiv), Abschnitt „Bequem gegen
+MTB": vom Ende eines Trails zum Anfang eines anderen, Luftlinie etwa 1, 2
+und 4 km (±50 %) — Ersatz für „von hier zum Trailkopf". 45, 54 und 57
+Paare; je Paar dieselbe Suche im MTB-Stil und im Stil „Bequem".
+Varianten über die Werte `EASY_CLIMB` (Steigaufschlag) und `EASY_STEEP`
+(Steilfaktor auf Asphalt mindestens).*
+
+| Stil | Asphalt 1 / 2 / 4 km | Höhenmeter gegen MTB | Steilmeter gegen MTB | längster Umweg |
+|---|---|---|---|---|
+| MTB (Vergleich) | 40 / 51 / 57 % | — | — | — |
+| 0,5 / Asphalt ×1 (erster Entwurf) | 48 / 60 / 67 % | −0,5 / +2,9 / +0,4 % | +1 / +9 / +6 % | 126 % |
+| 0,5 / ×3 | 42 / 59 / 64 % | −0,1 / +2,6 / +0,7 % | −6 / +8 / 0 % | 126 % |
+| 1,0 / ×1 | 45 / 59 / 68 % | −2,2 / +2,2 / +0,2 % | +1 / +9 / +6 % | 126 % |
+| 1,0 / ×3 | 43 / 59 / 65 % | −2,7 / +2,2 / −0,6 % | −6 / +8 / −1 % | 126 % |
+| **1,5 / ×3 (gebaut)** | **41 / 56 / 66 %** | **−3,7 / −0,7 / −0,8 %** | **−6 / +7 / −1 %** | **38 %** |
+
+Pfade (Wanderweg, Fußweg, Stufen) gebaut 10 / 8 / 5 % statt 11 / 12 / 7 %;
+die Modellzeit sinkt in allen drei Gruppen um 1–4 %. Der Weg ändert sich
+bei 19 / 22 / 44 Paaren, im Median 0 % länger.
+
+**Gebaut: 1,5 mit Steilfaktor 3.** Der erste Entwurf nahm mehr Asphalt,
+stieg aber MEHR: Eine steile Straße kostete nur ein Drittel einer
+steilen Schotterrampe und war der billige Weg um einen Pfad herum. Erst
+mit 1,5 und ×3 steigt der Stil in allen drei Entfernungen weniger als der
+MTB-Stil und nimmt trotzdem mehr Asphalt; der längste Umweg sinkt von
+126 % auf 38 %. Ehrlich: Die Verschiebung ist klein, weil diese Paare
+Bergaufstiege zwischen Trails sind und dort selten eine zweite Straße
+liegt — die Anfahrt aus dem Tal, für die der Stil gedacht ist, misst erst
+das Gerät. Die steilen Meter bei 2 km bleiben +7 %: Wo der Stil einem
+Wanderweg ausweicht, liegt die Ausweichstraße oft an derselben Flanke.
+Ein Vergleich mit eigenen Fahrten (Anfahrten des Betreibers, Strava) steht
+aus — nur mit seinem OK.
