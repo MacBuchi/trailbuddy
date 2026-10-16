@@ -2085,6 +2085,7 @@ def measure_rides(trail_tracks, ride_tracks, archive, dem, profile):
     m4 = {"tried": 0, "found": 0, "same": 0, "shorter": 0, "longer": 0, "no_graph": 0}
     m4_ratio, m4_gaps, m4_longer = [], 0, []
     mix_ridden, mix_planned = {}, {}
+    easy_rows = []
     sections_n = 0
     for ride in ride_tracks:
         if ride.n < 10:
@@ -2172,6 +2173,15 @@ def measure_rides(trail_tracks, ride_tracks, archive, dem, profile):
             mix_ridden[c] = mix_ridden.get(c, 0.0) + l
         for c, l in class_mix_along(g, planned, lat0).items():
             mix_planned[c] = mix_planned.get(c, 0.0) + l
+        # #329: the same approach in the easy style, against the ride
+        easy = astar(g, src, dst, profile, prefs={"style": "easy"})
+        if own is not None and easy is not None:
+            row = {}
+            for key, p in (("ridden", own[2]), ("trail", path), ("easy", easy[2])):
+                ps = path_summary(g, p, src)
+                row[key] = {"length_m": ps["length_m"], "gain_m": ps["gain_m"], "steep_m": ps["steep_m"],
+                            "mix": ps["mix"], "same": key == "ridden" or _same_way(ridden, _summary_track(ps))}
+            easy_rows.append(row)
         pr = trail_match.compare(ridden, planned, 15.0)
         if pr is not None:
             a, b = pr.coverage(15.0)
@@ -2205,7 +2215,47 @@ def measure_rides(trail_tracks, ride_tracks, archive, dem, profile):
         tr, tp = sum(mix_ridden.values()) or 1.0, sum(mix_planned.values()) or 1.0
         for c in sorted(set(mix_ridden) | set(mix_planned), key=lambda c: -mix_ridden.get(c, 0.0)):
             report.append(f"- {c}: {pct(mix_ridden.get(c, 0.0) / tr)} / {pct(mix_planned.get(c, 0.0) / tp)}")
+    report += render_easy_rides(easy_rows)
     return "\n".join(report) + "\n"
+
+
+def _summary_track(ps):
+    t = trail_match.Track("p", "", [p[0] for p in ps["latlon"]], [p[1] for p in ps["latlon"]],
+                          [None] * len(ps["latlon"]), [None] * len(ps["latlon"]))
+    trail_match._derive(t)
+    return t
+
+
+def _same_way(a, b, tol=15.0, share=0.8):
+    pr = trail_match.compare(a, b, tol)
+    if pr is None:
+        return False
+    x, y = pr.coverage(tol)
+    return x >= share and y >= share
+
+
+def render_easy_rides(rows):
+    """#329 on own rides: the approach as ridden (put on the graph), as the
+    trail style and as the easy style would plan it. Sums, no places."""
+    if not rows:
+        return []
+    out = ["", "## Bequem gegen MTB an eigenen Anfahrten (#329)", "",
+           f"*Fahrtstart → erster bekannter Trailkopf wie M4, {len(rows)} Fälle; „gefahren“ ist die Fahrt auf "
+           "dem Graphen. „gleich“: 15 m, 0,8 beidseitig gegen die Fahrt.*", "",
+           "| Weg | Länge | Asphalt | Forstweg | Pfad | bergauf | steil | gleich wie gefahren |",
+           "|---|---|---|---|---|---|---|---|"]
+    for key, label in (("ridden", "gefahren"), ("trail", "MTB"), ("easy", "Bequem")):
+        length = sum(r[key]["length_m"] for r in rows)
+
+        def share(classes):
+            return sum(l for r in rows for c, l in r[key]["mix"].items() if c in classes) / length if length else 0.0
+        out.append(f"| {label} | {km(length)} | {pct(share(PAVED_CLASSES))} | {pct(share(('forstweg',)))} "
+                   f"| {pct(share(PATH_CLASSES))} | {sum(r[key]['gain_m'] for r in rows):.0f} hm "
+                   f"| {sum(r[key]['steep_m'] for r in rows):.0f} hm | {sum(r[key]['same'] for r in rows)} |")
+    closer = sum(1 for r in rows
+                 if abs(r["easy"]["gain_m"] - r["ridden"]["gain_m"]) < abs(r["trail"]["gain_m"] - r["ridden"]["gain_m"]))
+    out.append(f"\nBequem trifft die gefahrenen Höhenmeter näher als MTB: {closer} von {len(rows)}.")
+    return out
 
 
 WAY_LABELS = {1: "Forstweg gut", 2: "Forstweg mittel", 3: "Forstweg schlecht", 7: "Forstweg sehr schlecht",
@@ -2830,6 +2880,8 @@ def self_test():
     expect("forstweg" in rides_text, "class mix names the track")
     expect("Modellzeit gefahren / geplant" in rides_text and "Median 1.00" in rides_text,
            f"the ride on the graph is the planned way here: {rides_text}")
+    expect("Bequem gegen MTB an eigenen Anfahrten" in rides_text and "| Bequem |" in rides_text,
+           f"the easy style is compared on the approach: {rides_text}")
     print("ok")
 
 
