@@ -71,6 +71,36 @@ void main() {
     expect(k(e, WayClass.wanderweg, 1000, 100, 0) / t(e, WayClass.wanderweg, 1000, 100, 0), closeTo(2.0, 1e-9));
   });
 
+  test('Stil „Bequem": die Zahlen des Werkzeugs (#329)', () {
+    const easy = RoutePrefs(easy: true);
+    // Dieselben Kosten, auch wenn alle Schalter auf „egal" stehen: Der Stil
+    // überschreibt Straßen und steile Rampen (Wanderwege nimmt er selbst).
+    const easyAny = RoutePrefs(avoidRoads: false, avoidHiking: false, avoidSteep: false, easy: true);
+    final bio = RiderProfile.bio.withPrefs(easy), e = RiderProfile.ebike.withPrefs(easy);
+    final bioAny = RiderProfile.bio.withPrefs(easyAny);
+    double k(RiderParams p, WayClass c, double l, double g, double v, {double steepW = 0, int? way}) =>
+        edgeCostS(p, c, lengthM: l, gainM: g, lossM: v, steepW: steepW, way: way);
+    for (final p in [bio, bioAny]) {
+      expect(k(p, WayClass.forstweg, 1000, 100, 0), closeTo(2396.0, 1e-6), reason: '1,15 und die Steigzeit anderthalbmal');
+      expect(k(p, WayClass.radweg, 1000, 0, 0), closeTo(240.0, 1e-6));
+      expect(k(p, WayClass.hauptstrasse, 1000, 0, 0), closeTo(480.0, 1e-6));
+      expect(k(p, WayClass.wanderweg, 1000, 100, 0), closeTo(5978.571429, 1e-5));
+      expect(k(p, WayClass.wanderweg, 1000, 0, 100), closeTo(1388.571429, 1e-5));
+      expect(k(p, WayClass.stufen, 200, 50, 0), closeTo(6000.0, 1e-6));
+      expect(k(p, WayClass.forstweg, 1000, 0, 100), closeTo(405.6, 1e-6), reason: 'bergab nur der Preis der Höhe');
+      expect(k(p, WayClass.forstweg, 1000, 100, 0, way: 7), closeTo(4140.0, 1e-6), reason: 'Wegegüte doppelt');
+      expect(k(p, WayClass.forstweg, 1000, 100, 0, steepW: 10), closeTo(2636.0, 1e-6), reason: 'steil immer voll');
+      expect(k(p, WayClass.nebenstrasse, 1000, 100, 0, steepW: 10), closeTo(2480.0, 1e-6),
+          reason: 'Asphalt steil wie unbefestigt');
+      expect(k(p, WayClass.fussweg, 500, 0, 30), closeTo(655.071429, 1e-5));
+    }
+    expect(k(e, WayClass.nebenstrasse, 1000, 100, 0), closeTo(1238.823529, 1e-5));
+    expect(k(e, WayClass.landstrasse, 2000, 150, 20), closeTo(2272.235294, 1e-5));
+    // Die Zeit bleibt die des Rads.
+    expect(edgeTimeS(bio, WayClass.forstweg, lengthM: 1000, gainM: 100, lossM: 0), closeTo(1040.0, 1e-6));
+    expect(easy, isNot(const RoutePrefs()), reason: 'der Stil gehört in den Schlüssel des Suchspeichers');
+  });
+
   test('Steilaufschlag: dieselben Vektoren wie das Werkzeug (#194)', () {
     // 30 % alle 50 m.
     final ramp = [for (var i = 0; i < 9; i++) 100.0 + 15.0 * i];

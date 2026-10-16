@@ -2,6 +2,20 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Bequem zum Trailkopf
+
+*Version 0.127.0, 2026-10-16*
+
+- „Zum Trailkopf“ und „Route hierher“ haben neben „Direkt“ und „Spaßig“
+  einen dritten Knopf: „Bequem“. Der Weg nimmt dann Radwege und kleine
+  Straßen, Schotter wenn nötig, und so wenig Höhe und steile Rampen wie
+  möglich — Wanderwege und Stufen meidet er weit. Gut für die Anfahrt,
+  wenn die Kraft für den Trail bleiben soll.
+- Auch das Navi-Symbol am Trail bietet „In TrailBuddy: bequem“ an.
+- Die angezeigte Zeit bleibt die deines Rads (Bio oder E-Bike, mit dem,
+  was es aus deinen Fahrten gelernt hat); „Bequem“ ändert nur, welcher
+  Weg gewählt wird.
+
 ## Zwischenpunkte vor dem Planen
 
 *Version 0.126.0, 2026-10-16*

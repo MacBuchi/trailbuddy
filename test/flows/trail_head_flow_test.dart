@@ -14,6 +14,7 @@ import 'package:trailbuddy/core/gpx_share.dart';
 import 'package:trailbuddy/features/map/map_view/map_hit_test.dart' show projectToScreen;
 import 'package:trailbuddy/features/map/map_view/map_view.dart';
 import 'package:trailbuddy/features/offline_areas/area_plan.dart';
+import 'package:trailbuddy/features/routing/trail_head_providers.dart';
 import 'package:trailbuddy/features/offline_areas/area_store.dart';
 import 'package:trailbuddy/features/offline_areas/pmtiles_writer.dart';
 import 'package:trailbuddy/features/trails/gpx.dart';
@@ -44,8 +45,11 @@ final _fromLat = math.max(_bounds.south + 0.0004, 48.0 - 0.003);
 
 /// Ein Bereich mit der Kachel des Trails (ein Forstweg vom Standort über
 /// den Trailkopf hinaus) und ihren acht Nachbarn ohne Wege — der Rahmen
-/// mit Rand berührt sie, und `partial` hieße: kein Graph.
-Future<MemoryAreaStore> _areaWithTrack() async {
+/// mit Rand berührt sie, und `partial` hieße: kein Graph. Mit [withRoad]
+/// liegt daneben eine Nebenstraße vom Standort zum Trailkopf, rund 8 %
+/// länger als der Forstweg dazwischen: ohne Höhen nimmt „Direkt" den Forstweg (Straße ×1,2), „Bequem"
+/// die Straße (Forstweg ×1,15; #329).
+Future<MemoryAreaStore> _areaWithTrack({bool withRoad = false}) async {
   final store = MemoryAreaStore();
   final tiles = <TileToWrite>[];
   for (var dx = -1; dx <= 1; dx++) {
@@ -55,7 +59,17 @@ Future<MemoryAreaStore> _areaWithTrack() async {
         13,
         _tile.x + dx,
         _tile.y + dy,
-        mvtTile(own ? [road([_px(_fromLat - 0.0002, _lon), _px(48.0 + 0.0005, _lon)], 'path', kindDetail: 'track')] : []),
+        mvtTile(own
+            ? [
+                road([_px(_fromLat - 0.0002, _lon), _px(48.0 + 0.0005, _lon)], 'path', kindDetail: 'track'),
+                if (withRoad)
+                  road([
+                    _px(_fromLat, _lon),
+                    _px((_fromLat + 48.0) / 2, _lon + 0.0009),
+                    _px(48.0, _lon),
+                  ], 'minor_road', kindDetail: 'residential'),
+              ]
+            : []),
       ));
     }
   }
@@ -128,6 +142,32 @@ void main() {
 
   // Je Abschnitt ein Tippziel — so viele wie früher Linien.
   Iterable<dynamic> routeLines(WidgetTester tester) => routeHits(tester);
+
+  testWidgets('#329: „Bequem" nimmt die Nebenstraße statt des Forstwegs, die Zeit bleibt die des Rads',
+      (tester) async {
+    await start(tester, areaStore: await _areaWithTrack(withRoad: true));
+    await tapTrailHead(tester);
+    final summary = find.byKey(const ValueKey('trail-head-summary'));
+    expect(summary, findsOneWidget);
+    expect(find.textContaining('Forstweg'), findsOneWidget);
+    expect(find.textContaining('Nebenstraße'), findsNothing);
+    expect(find.byKey(const ValueKey('route-easy-note')), findsNothing);
+
+    await tester.tap(find.descendant(of: find.byKey(const ValueKey('route-mode')), matching: find.text('Bequem')));
+    await settle(tester, frames: 10);
+    final mode = tester.widget<SegmentedButton<RouteMode>>(find.byKey(const ValueKey('route-mode')));
+    expect(mode.selected.single, RouteMode.easy);
+    expect(find.textContaining('Nebenstraße'), findsOneWidget);
+    expect(find.textContaining('Forstweg'), findsNothing);
+    expect(find.byKey(const ValueKey('route-easy-note')), findsOneWidget);
+    expect(routeBand(tester), isNotEmpty);
+
+    // Zurück auf „Direkt": wieder der Forstweg.
+    await tester.tap(find.descendant(of: find.byKey(const ValueKey('route-mode')), matching: find.text('Direkt')));
+    await settle(tester, frames: 10);
+    expect(find.textContaining('Forstweg'), findsOneWidget);
+    expect(find.byKey(const ValueKey('route-easy-note')), findsNothing);
+  });
 
   testWidgets('aus dem Blatt auf die Karte: Weg, Summen, Vorschau, Profil, GPX', (tester) async {
     await start(tester, areaStore: await _areaWithTrack());

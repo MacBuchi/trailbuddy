@@ -4434,6 +4434,14 @@
   "@routeModeFun": {
     "description": "Umschalter im Routen-Blatt: Umweg über Trails."
   },
+  "routeModeEasy": "Bequem",
+  "@routeModeEasy": {
+    "description": "Umschalter im Routen-Blatt: Radwege und kleine Straßen, wenig Höhe (#329)."
+  },
+  "routeEasyNote": "Radwege und kleine Straßen zuerst, Schotter wenn nötig, so wenig Höhe wie möglich.",
+  "@routeEasyNote": {
+    "description": "Satz unter der Summe im Routen-Blatt, wenn „Bequem“ gewählt ist."
+  },
   "routeSummary": "{length} · {climb} hm bergauf · {descent} hm bergab · etwa {time}",
   "@routeSummary": {
     "description": "Summe des Wegs; length und time fertig formatiert.",
@@ -4558,6 +4566,14 @@
   "navChoiceFunHint": "Nimmt Trails auf dem Weg mit — ein Umweg, der sich lohnt.",
   "@navChoiceFunHint": {
     "description": "Erklärung der Auswahl „In TrailBuddy: spaßig“."
+  },
+  "navChoiceEasy": "In TrailBuddy: bequem",
+  "@navChoiceEasy": {
+    "description": "Auswahl am Navi-Symbol."
+  },
+  "navChoiceEasyHint": "Radwege und kleine Straßen, wenig Höhe — die Kraft bleibt für den Trail.",
+  "@navChoiceEasyHint": {
+    "description": "Erklärung der Auswahl „In TrailBuddy: bequem“."
   },
   "navChoiceRemember": "Als Standard merken",
   "@navChoiceRemember": {
@@ -6241,6 +6257,14 @@
   "@highlightPlacePlanText": {
     "description": "Entdecken, Eintrag „place-plan“: Text, zwei bis drei Sätze (auch im Neuheiten-Blatt)."
   },
+  "highlightRouteEasyTitle": "Bequem zum Trailkopf",
+  "@highlightRouteEasyTitle": {
+    "description": "Entdecken, Eintrag „route-easy“: Überschrift (auch im Neuheiten-Blatt nach einem Update)."
+  },
+  "highlightRouteEasyText": "„Zum Trailkopf“ und „Route hierher“ kennen neben „Direkt“ und „Spaßig“ jetzt „Bequem“: Radwege und kleine Straßen zuerst, so wenig Höhe wie möglich. Die Kraft bleibt für den Trail.",
+  "@highlightRouteEasyText": {
+    "description": "Entdecken, Eintrag „route-easy“: Text, zwei bis drei Sätze (auch im Neuheiten-Blatt)."
+  },
   "highlightTrailHeadPlanTitle": "Am Trailkopf starten oder enden",
   "@highlightTrailHeadPlanTitle": {
     "description": "Entdecken, Eintrag „trail-head-plan“: Überschrift (auch im Neuheiten-Blatt nach einem Update)."
@@ -6829,6 +6853,14 @@
   "demoPlacePlanText": "Schalte hier die Orte ein, die du brauchst. Im Blatt eines Ortes stehen dann „Start im Planer“ und „Ziel im Planer“.",
   "@demoPlacePlanText": {
     "description": "Vorführung „place-plan“ (Entdecken → Zeig es mir): Text der Blase."
+  },
+  "demoRouteEasyTitle": "Bequem zum Trailkopf",
+  "@demoRouteEasyTitle": {
+    "description": "Vorführung „route-easy“ (Entdecken → Zeig es mir): Überschrift der Blase."
+  },
+  "demoRouteEasyText": "„Zum Trailkopf“ zeigt den Weg auf der Karte; oben im Blatt wählst du „Bequem“ — dann führt er über Radwege und kleine Straßen, mit so wenig Höhe wie möglich.",
+  "@demoRouteEasyText": {
+    "description": "Vorführung „route-easy“ (Entdecken → Zeig es mir): Text der Blase."
   },
   "demoTrailHeadPlanTitle": "Vom Trailkopf aus planen",
   "@demoTrailHeadPlanTitle": {

@@ -226,7 +226,7 @@ class _RouteSheetState extends ConsumerState<_RouteSheet> {
     if (!mounted) return;
     final l = context.l10n;
     final prefs = LoopPrefs.parse(ref.read(settingsProvider).loopPlannerPrefs, _profile);
-    final rider = ref.read(calibratedRiderProvider(_profile)).withPrefs(prefs.route);
+    final rider = _rider(prefs);
     try {
       final plan = planTrailHeadRoute(graph, from, widget.target.point, rider);
       LoopPlan? fun;
@@ -311,7 +311,7 @@ class _RouteSheetState extends ConsumerState<_RouteSheet> {
     if (!mounted || seq != _tuneSeq) return;
     final l = context.l10n;
     final prefs = LoopPrefs.parse(ref.read(settingsProvider).loopPlannerPrefs, _profile);
-    final rider = ref.read(calibratedRiderProvider(_profile)).withPrefs(prefs.route);
+    final rider = _rider(prefs);
     try {
       final fun = _fun;
       TrailHeadPlan? plan;
@@ -396,6 +396,12 @@ class _RouteSheetState extends ConsumerState<_RouteSheet> {
     final track = GpxTrack(name: _rideName, points: [for (final p in points) TrackPoint(p.latitude, p.longitude)]);
     shareGpx(context, ref, fileName: gpxFileName(track.name), xml: writeGpx(name: track.name, points: track.points));
   }
+
+  /// Das (kalibrierte) Rad mit den gemerkten Vorlieben; „Bequem" legt den
+  /// Stil darüber (#329) — Tempo und Zeit bleiben die des Rads.
+  RiderParams _rider(LoopPrefs prefs) => ref
+      .read(calibratedRiderProvider(_profile))
+      .withPrefs(_mode == RouteMode.easy ? prefs.route.copyWith(easy: true) : prefs.route);
 
   void _setMode(RouteMode mode) {
     if (mode == _mode) return;
@@ -516,12 +522,14 @@ class _RouteSheetState extends ConsumerState<_RouteSheet> {
     final upM = fun?.summary?.trailUpM ?? route.summary.trailUpM;
     final upNames = fun?.summary?.trailUpNames ?? {for (final s in route.sections) if (s.trail?.connector ?? false) s.trail!.name}.toList();
     return [
-      // Direkt oder spaßig (#176): derselbe Graph, eine andere Frage.
+      // Direkt, spaßig oder bequem (#176, #329): derselbe Graph, eine
+      // andere Frage.
       SegmentedButton<RouteMode>(
         key: const ValueKey('route-mode'),
         segments: [
           ButtonSegment(value: RouteMode.direct, label: Text(l.routeModeDirect), icon: const Icon(Icons.straight)),
           ButtonSegment(value: RouteMode.fun, label: Text(l.routeModeFun), icon: const Icon(Icons.downhill_skiing)),
+          ButtonSegment(value: RouteMode.easy, label: Text(l.routeModeEasy), icon: const Icon(Icons.directions_bike)),
         ],
         selected: {_mode},
         showSelectedIcon: false,
@@ -547,6 +555,10 @@ class _RouteSheetState extends ConsumerState<_RouteSheet> {
       // Das Profil des Wegs (#234), wie im Ergebnis der Runde.
       RouteElevationProfile(fun?.points ?? route.points, key: const ValueKey('trail-head-elevation')),
       RouteTuneNote(tuned: _tuned, onReset: () => unawaited(_replan()), keyPrefix: 'trail-head'),
+      if (_mode == RouteMode.easy) ...[
+        const SizedBox(height: 8),
+        Text(key: const ValueKey('route-easy-note'), l.routeEasyNote, style: theme.textTheme.bodyMedium),
+      ],
       if (_mode == RouteMode.fun && _funEmpty) ...[
         const SizedBox(height: 8),
         Text(

@@ -26,7 +26,8 @@ import 'trail_head_providers.dart';
 enum NavChoice {
   external('external', Icons.directions_outlined),
   direct('direct', Icons.straight),
-  fun('fun', Icons.downhill_skiing);
+  fun('fun', Icons.downhill_skiing),
+  easy('easy', Icons.directions_bike);
 
   const NavChoice(this.db, this.icon);
   final String db;
@@ -36,12 +37,14 @@ enum NavChoice {
         external => l.navChoiceExternal,
         direct => l.navChoiceDirect,
         fun => l.navChoiceFun,
+        easy => l.navChoiceEasy,
       };
 
   String description(AppLocalizations l) => switch (this) {
         external => l.navChoiceExternalHint,
         direct => l.navChoiceDirectHint,
         fun => l.navChoiceFunHint,
+        easy => l.navChoiceEasyHint,
       };
 
   static NavChoice? parse(String? s) => values.where((c) => c.db == s).firstOrNull;
@@ -55,14 +58,21 @@ Future<void> navigateToTrail(BuildContext context, WidgetRef ref, Trail trail, {
   switch (choice) {
     case NavChoice.external:
       await navigateToTrailHead(context, trail);
-    case NavChoice.direct || NavChoice.fun:
+    case NavChoice.direct || NavChoice.fun || NavChoice.easy:
       // Ein offenes Trail-Blatt zu, dann der Reiter, dann der Wunsch —
       // wie „Zum Trailkopf" im Blatt.
       final request = ref.read(trailHeadRequestProvider.notifier);
       final navigator = Navigator.of(context);
       if (navigator.canPop() && ModalRoute.of(context) is PopupRoute) navigator.pop();
       StatefulNavigationShell.maybeOf(context)?.goBranch(kMapBranchIndex);
-      request.state = (trailId: trail.id, mode: choice == NavChoice.fun ? RouteMode.fun : RouteMode.direct);
+      request.state = (
+        trailId: trail.id,
+        mode: switch (choice) {
+          NavChoice.fun => RouteMode.fun,
+          NavChoice.easy => RouteMode.easy,
+          _ => RouteMode.direct,
+        },
+      );
   }
 }
 
@@ -71,7 +81,7 @@ Future<NavChoice?> _ask(BuildContext context, WidgetRef ref, NavChoice? current)
   final picked = await showModalBottomSheet<NavChoice>(
     context: context,
     showDragHandle: true,
-    // Vier Zeilen mit Erklärung sind auf einem kleinen Telefon höher als
+    // Fünf Zeilen mit Erklärung sind auf einem kleinen Telefon höher als
     // die Vorgabe (9/16 der Höhe) — der Haken läge sonst unter dem Rand.
     isScrollControlled: true,
     builder: (context) => StatefulBuilder(
