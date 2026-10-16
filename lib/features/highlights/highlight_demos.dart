@@ -298,6 +298,26 @@ Map<String, HighlightDemo> highlightDemos(AppLocalizations l) => {
       ),
     ]),
   ),
+  'loop-waypoints': HighlightDemo(
+    route: '/',
+    script: _demo('loop-waypoints', [
+      CoachStep(
+        title: l.demoLoopWaypoints1Title,
+        text: l.demoLoopWaypoints1Text,
+        lit: [MapCoach.loop],
+        gesture: CoachGesture.tap,
+        requires: [MapCoach.loop],
+      ),
+      CoachStep(
+        title: l.demoLoopWaypoints2Title,
+        text: l.demoLoopWaypoints2Text,
+        scene: MapCoach.loopRail,
+        lit: const [MapCoach.loopRail],
+        ring: [MapCoach.loopRailButton('loop-rail-waypoint')],
+        requires: const [MapCoach.loop],
+      ),
+    ]),
+  ),
   'loop-end': HighlightDemo(
     route: '/',
     script: _demo('loop-end', [

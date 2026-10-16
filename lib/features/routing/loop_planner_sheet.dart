@@ -84,6 +84,37 @@ class LoopStartFlag extends StatelessWidget {
       );
 }
 
+/// Ein vorab gesetzter Zwischenpunkt (#331 Schritt 4): eine Lime-Scheibe
+/// mit der Nummer des Setzens — Marke wie die Fahnen, rund wie die
+/// Gummipunkte (#234), damit man sieht, dass er zur Planung gehört. Die
+/// Fläche ist 44 dp (Tippziel), sichtbar sind 26.
+class LoopWaypointPin extends StatelessWidget {
+  const LoopWaypointPin({super.key, required this.number});
+
+  static const size = 44.0;
+  static const _dot = 26.0;
+
+  final int number;
+
+  @override
+  Widget build(BuildContext context) => Center(
+        child: Container(
+          width: _dot,
+          height: _dot,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: AppColors.brand,
+            shape: BoxShape.circle,
+            border: Border.all(color: AppColors.onBrand, width: 2),
+            boxShadow: const [BoxShadow(blurRadius: 4, offset: Offset(0, 1), color: Color(0x55000000))],
+          ),
+          child: Text('$number',
+              style: AppFonts.numbers(Theme.of(context).textTheme.labelMedium)
+                  .copyWith(color: AppColors.onBrand, fontWeight: FontWeight.w700, height: 1)),
+        ),
+      );
+}
+
 // ─── Parameter ──────────────────────────────────────────────────────────
 
 Future<void> showLoopParamsSheet(BuildContext context) => showModalBottomSheet<void>(
@@ -238,6 +269,36 @@ class _ParamsSheet extends ConsumerWidget {
               label: Text(l.loopPickOnMap),
             ),
           ),
+        // Vorab gesetzte Zwischenpunkte (#331 Schritt 4).
+        const SizedBox(height: 8),
+        Text(l.loopWaypointsTitle, style: theme.textTheme.titleSmall),
+        const SizedBox(height: 4),
+        Text(
+          session.waypoints.isEmpty ? l.loopWaypointsNone : l.loopWaypointsSome(session.waypoints.length),
+          key: const ValueKey('loop-waypoints-note'),
+          style: theme.textTheme.bodySmall,
+        ),
+        Wrap(
+          spacing: 8,
+          children: [
+            TextButton.icon(
+              key: const ValueKey('loop-pick-waypoint'),
+              onPressed: () {
+                notifier.armWaypointPick();
+                Navigator.of(context).pop();
+              },
+              icon: const Icon(Icons.add_location_alt_outlined),
+              label: Text(l.loopWaypointAdd),
+            ),
+            if (session.waypoints.isNotEmpty)
+              TextButton.icon(
+                key: const ValueKey('loop-waypoints-clear'),
+                onPressed: () => notifier.setWaypoints(const []),
+                icon: const Icon(Icons.wrong_location_outlined),
+                label: Text(l.loopWaypointsClear),
+              ),
+          ],
+        ),
         const SizedBox(height: 8),
         const SizedBox(height: 4),
         Text(l.loopOnTheWay, style: theme.textTheme.titleSmall),

@@ -37,6 +37,7 @@ class LoopRequest {
     this.end,
     this.searchBudget = kLoopSearchBudget,
     this.tune,
+    this.waypoints = const [],
   });
 
   final LatLng start;
@@ -52,6 +53,9 @@ class LoopRequest {
   /// Von Hand getunt (#234): feste Folge, Teilstücke durch Zwischenpunkte.
   final LoopTune? tune;
 
+  /// Vorab gesetzte Zwischenpunkte (#331 Schritt 4).
+  final List<LatLng> waypoints;
+
   LoopPlan planOn(RoadGraph g, {LoopSearchCache? cache}) => planLoop(g,
       start: start,
       profile: profile,
@@ -61,7 +65,8 @@ class LoopRequest {
       end: end,
       searchBudget: searchBudget,
       cache: cache,
-      tune: tune);
+      tune: tune,
+      waypoints: waypoints);
 }
 
 abstract interface class LoopPlanRunner {

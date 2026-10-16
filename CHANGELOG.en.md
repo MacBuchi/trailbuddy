@@ -2,6 +2,19 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## Via points before planning
+
+*Version 0.126.0, 2026-10-16*
+
+- The planner has a new button in its bar: with it you tap via points on
+  the map that the ride should pass — the hut, the fountain, the
+  viewpoint. A place works too, with “Via point in planner” in its sheet.
+- The plan leads through all points and picks the order itself. A tap on
+  a number removes the point again; the settings show how many there are
+  and offer “Remove all”.
+- The points come before the budgets: if the detour costs too much, fewer
+  trails fit in.
+
 ## A place as start or finish
 
 *Version 0.125.0, 2026-10-16*

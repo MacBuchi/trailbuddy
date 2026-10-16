@@ -230,6 +230,23 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     daneben. Im Flow-Test den Ort per `tapMapAt` treffen, nicht per
     `tester.tap` auf die Nadel: Bei offenem Planer meldet `tap()` die
     Nadel an falscher Stelle (0,0-nah) und trifft nichts.
+    **Zwischenpunkte vor dem Planen** (seit 0.126.0, #331 Schritt 4;
+    Betreiber 2026-10-16: „Planer wählt" die Reihenfolge): Tipps wie Start
+    und Ziel (`pickingWaypoint`, `takePick`) oder ein Ort
+    (`LoopPlaceRole.waypoint`), nur für die Sitzung. In der Engine sind sie
+    Halte ohne Länge im Pool (`PoolTrail.waypoint`, Kennung
+    `kLoopWaypointPrefix` + Nummer): eingesetzt VOR den Pflicht-Trails und
+    ohne Budgetprüfung (`mustFit: false`), nie wieder entfernt, nie als
+    Kandidat der lokalen Suche. Jeder Halt teilt die Fahrt in ein
+    Teilstück mehr — so greifen die Gummipunkte (#234) weiter;
+    `LoopPlan.order` trägt die Halte für `LoopTune`, `stops` nur die
+    Trails, und die Gründe (`excluded`) nennen nie eine Punkt-Kennung.
+    Liegt ein Punkt abseits oder unerreichbar: `LoopOutcome.viaFailed`.
+    Getunt rechnet der Controller mit den Punkten der GEZEIGTEN Planung
+    (`_planWaypoints`), wie beim Ziel. Die Nadeln (`LoopWaypointPin`, 44 dp
+    Tippfläche) tragen `LoopWaypointHit`; ein Tipp nimmt den Punkt weg,
+    mit Rückgängig. Im Parameter-Blatt-Test liegt der Hinweis nach dem
+    Scrollen außerhalb des Bildes — `skipOffstage: false`.
   - **Die geplante Fahrt** (`Ride.planned`, `Ride.name`,
     `RideStore.savePlanned`, Datei am Stück über `.part` + `rename`):
     Punkte ohne Zeit und Höhe, `endedAt` = Schätzung; in „Meine Fahrten"

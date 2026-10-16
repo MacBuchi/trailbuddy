@@ -83,6 +83,16 @@ class FeatureHighlight {
 final kFeatureHighlights = <FeatureHighlight>[
   // ─── Highlights ──────────────────────────────────────────────────
   FeatureHighlight(
+    id: 'loop-waypoints',
+    since: '0.126.0',
+    kind: HighlightKind.highlight,
+    tab: HighlightTab.map,
+    icon: Icons.add_location_alt_outlined,
+    title: (l) => l.highlightLoopWaypointsTitle,
+    text: (l) => l.highlightLoopWaypointsText,
+    target: '/',
+  ),
+  FeatureHighlight(
     id: 'place-plan',
     since: '0.125.0',
     kind: HighlightKind.highlight,

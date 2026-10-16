@@ -8823,5 +8823,66 @@
   "demoLanguageText": "Hier stellst du Deutsch oder Englisch ein — oder lässt TrailBuddy der Sprache des Geräts folgen.",
   "@demoLanguageText": {
     "description": "Vorführung „language“ (Entdecken → Zeig es mir): Text der Blase an der Profilzeile."
+  },
+  "mapLoopPickWaypoint": "Tippe auf die Karte, wo die Fahrt vorbeiführen soll.",
+  "@mapLoopPickWaypoint": {
+    "description": "Banner über der Karte, solange der Planer auf einen Zwischenpunkt wartet."
+  },
+  "loopRailWaypoint": "Zwischenpunkt auf der Karte setzen",
+  "@loopRailWaypoint": {
+    "description": "Tooltip des Zwischenpunkt-Knopfs der Planer-Leiste."
+  },
+  "loopWaypointsTitle": "Zwischenpunkte",
+  "@loopWaypointsTitle": {
+    "description": "Zwischenüberschrift im Planer über den vorab gesetzten Zwischenpunkten."
+  },
+  "loopWaypointsNone": "Keine — die Fahrt muss nirgends vorbei.",
+  "@loopWaypointsNone": {
+    "description": "Erklärung im Planer, solange kein Zwischenpunkt gesetzt ist."
+  },
+  "loopWaypointAdd": "Auf der Karte tippen",
+  "@loopWaypointAdd": {
+    "description": "Knopf im Planer: den nächsten Zwischenpunkt auf die Karte tippen."
+  },
+  "loopWaypointsClear": "Alle entfernen",
+  "@loopWaypointsClear": {
+    "description": "Knopf im Planer: alle vorab gesetzten Zwischenpunkte entfernen."
+  },
+  "poiPlanVia": "Zwischenpunkt im Planer",
+  "@poiPlanVia": {
+    "description": "Knopf im Ort-Blatt: der Ort wird Zwischenpunkt der Planung."
+  },
+  "loopWaypointsSome": "{count, plural, =1{Die Fahrt führt über 1 Punkt; die Reihenfolge wählt der Planer.} other{Die Fahrt führt über {count} Punkte; die Reihenfolge wählt der Planer.}}",
+  "@loopWaypointsSome": {
+    "description": "Erklärung im Planer mit vorab gesetzten Zwischenpunkten.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "highlightLoopWaypointsTitle": "Zwischenpunkte vor dem Planen",
+  "@highlightLoopWaypointsTitle": {
+    "description": "Entdecken, Eintrag „loop-waypoints“: Überschrift (auch im Neuheiten-Blatt nach einem Update)."
+  },
+  "highlightLoopWaypointsText": "Soll die Fahrt an der Hütte oder am Brunnen vorbei? Setz im Planer Zwischenpunkte auf die Karte oder nimm einen Ort über „Zwischenpunkt im Planer“. Die Planung führt durch alle, die Reihenfolge wählt sie selbst.",
+  "@highlightLoopWaypointsText": {
+    "description": "Entdecken, Eintrag „loop-waypoints“: Text, zwei bis drei Sätze (auch im Neuheiten-Blatt)."
+  },
+  "demoLoopWaypoints1Title": "Den Planer öffnen",
+  "@demoLoopWaypoints1Title": {
+    "description": "Vorführung „loop-waypoints“, Schritt 1: auf den Planer-Knopf tippen."
+  },
+  "demoLoopWaypoints1Text": "Tippe auf den Knopf für die Runde.",
+  "@demoLoopWaypoints1Text": {
+    "description": "Vorführung „loop-waypoints“, Schritt 1: Text."
+  },
+  "demoLoopWaypoints2Title": "Wo es vorbeigehen soll",
+  "@demoLoopWaypoints2Title": {
+    "description": "Vorführung „loop-waypoints“, Schritt 2: der Zwischenpunkt-Knopf der Leiste."
+  },
+  "demoLoopWaypoints2Text": "Mit diesem Knopf tippst du einen Zwischenpunkt auf die Karte; ein Tipp auf seine Nummer nimmt ihn wieder weg. Gerechnet wird wie immer mit dem grünen Knopf.",
+  "@demoLoopWaypoints2Text": {
+    "description": "Vorführung „loop-waypoints“, Schritt 2: Text."
   }
 }

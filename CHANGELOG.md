@@ -2,6 +2,20 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Zwischenpunkte vor dem Planen
+
+*Version 0.126.0, 2026-10-16*
+
+- Im Planer gibt es einen neuen Knopf in der Leiste: Damit tippst du
+  Zwischenpunkte auf die Karte, an denen die Fahrt vorbeiführen soll —
+  die Hütte, der Brunnen, der Aussichtspunkt. Auch ein Ort geht, über
+  „Zwischenpunkt im Planer“ in seinem Blatt.
+- Die Planung führt durch alle Punkte und wählt die Reihenfolge selbst.
+  Ein Tipp auf die Nummer nimmt einen Punkt wieder weg; in den Parametern
+  stehen „Alle entfernen“ und wie viele es sind.
+- Die Punkte zählen vor den Budgets: Kostet der Umweg zu viel, passen
+  dafür weniger Trails hinein.
+
 ## Ein Ort als Start oder Ziel
 
 *Version 0.125.0, 2026-10-16*

@@ -8,6 +8,7 @@ import '../coach/coach.dart';
 import '../help/map_tour.dart' show MapCoach;
 import '../../models/trail.dart';
 import '../official/official_trails_source.dart';
+import '../routing/loop_planner_controller.dart' show LoopPlaceRole;
 import '../trails/trail_filter_chips.dart';
 import '../trails/trail_providers.dart';
 import 'contour_providers.dart';
@@ -191,9 +192,9 @@ class CakeSlicePainter extends CustomPainter {
 
 /// Was man über einen Ort wissen will: Art, Name, Öffnungszeiten — und
 /// der Weg zu allem Weiteren auf openstreetmap.org.
-/// [onPlan] (#331 Schritt 3): der Ort als Start (`false`) oder Ziel
-/// (`true`) des Planers — die Karte gibt es mit, das Blatt schließt vorher.
-Future<void> showPoiSheet(BuildContext context, Poi poi, {void Function(bool asTarget)? onPlan}) =>
+/// [onPlan] (#331 Schritte 3 und 4): der Ort als Start, Zwischenpunkt oder
+/// Ziel des Planers — die Karte gibt es mit, das Blatt schließt vorher.
+Future<void> showPoiSheet(BuildContext context, Poi poi, {void Function(LoopPlaceRole role)? onPlan}) =>
     showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
@@ -206,8 +207,10 @@ Future<void> showPoiSheet(BuildContext context, Poi poi, {void Function(bool asT
           (PoiKind.spring || PoiKind.waterPoint, null) => l.poiDrinkableUnknown,
           _ => null,
         };
+        // Scrollbar: Mit drei Planer-Knöpfen (#331 Schritt 4) passt das
+        // Blatt quer nicht mehr in die Höhe, die ihm zusteht.
         return SafeArea(
-          child: Padding(
+          child: SingleChildScrollView(
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -247,7 +250,7 @@ Future<void> showPoiSheet(BuildContext context, Poi poi, {void Function(bool asT
                             style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
                             onPressed: () {
                               Navigator.of(context).pop();
-                              onPlan(asTarget);
+                              onPlan(asTarget ? LoopPlaceRole.target : LoopPlaceRole.start);
                             },
                             icon: Icon(asTarget ? Icons.sports_score : Icons.trip_origin),
                             label: Text(asTarget ? l.sheetPlanTo : l.sheetPlanFrom),
@@ -255,6 +258,18 @@ Future<void> showPoiSheet(BuildContext context, Poi poi, {void Function(bool asT
                         ),
                       ],
                     ],
+                  ),
+                  // Drei nebeneinander passen auf 360 dp nicht.
+                  const SizedBox(height: 8),
+                  OutlinedButton.icon(
+                    key: const ValueKey('poi-plan-via'),
+                    style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                      onPlan(LoopPlaceRole.waypoint);
+                    },
+                    icon: const Icon(Icons.add_location_alt_outlined),
+                    label: Text(l.poiPlanVia),
                   ),
                 ],
               ],
