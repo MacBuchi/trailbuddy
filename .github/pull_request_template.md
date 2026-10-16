@@ -8,6 +8,7 @@
 
 ## Checklist
 
+- [ ] Core requirements (`docs/anforderungen.md`, A1–A14) checked — none broken, or the conflict named and the file changed with the operator's decision.
 - [ ] Visible feature? Entry in `kFeatureHighlights` plus its demo in `highlight_demos.dart` — or one sentence why not.
 - [ ] Version bump + block in `CHANGELOG.md` AND `CHANGELOG.en.md` if anything under `lib/`, `web/` or `assets/` changed.
 - [ ] New network target, permission or data category? → `web/datenschutz.html`, its English `web/privacy.html` and `docs/play-console.md` in this PR.

@@ -13,7 +13,9 @@ gleich geblieben ist.
 Aufzeichnung, besitzerlose Trail-Kennung, Sichtbarkeit nur aus eigenen und
 Buddy-Beiträgen, stiller globaler Abgleich, das Community-Tor, die
 Entscheidungen des Betreibers in Abschnitt 10, die Regel für den
-dezentralen Weg in Abschnitt 12). Die Schwellen des Abgleichs sind gemessen
+dezentralen Weg in Abschnitt 12). **Die Kernanforderungen** (A1–A14, aus Konzept und Design gezogen) stehen
+in `docs/anforderungen.md` (#221) — jeder Plan, auch zu einem Fehler,
+geht sie vorher durch. Die Schwellen des Abgleichs sind gemessen
 (`docs/trail-abgleich-messung.md`), nicht geraten. Wer Code ändert, der dem
 Konzept widerspricht, ändert das Konzept im selben PR — oder den Code.
 **Der Fahrplan ist #156** (Betreiber, 2026-10-05): Reihenfolge, Stand und
