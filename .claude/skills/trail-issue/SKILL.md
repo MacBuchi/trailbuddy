@@ -50,7 +50,9 @@ den Plan schreiben („fertig, wenn …"), nicht abfragen.
    ansehen und die Teildatei(en) der betroffenen Ordner lesen, BEVOR
    geplant wird. Berührt die Änderung das Modell, gilt
    `docs/konzept-trails.md`, beim Aussehen `docs/design/README.md` — wer
-   davon abweicht, ändert sie im selben PR. Breite Suchen an einen
+   davon abweicht, ändert sie im selben PR. Die Kernanforderungen
+   (`docs/anforderungen.md`, A1–A14) einmal durchgehen; berührte
+   Nummern gehören in den Plan, ein Widerspruch geht an den Betreiber. Breite Suchen an einen
    Explore-Subagenten geben.
 5. **Plan** (nur bei größeren Anfragen): was sich ändert, welche Dateien,
    welche Tests, „fertig, wenn …", und was bewusst NICHT gemacht wird.
