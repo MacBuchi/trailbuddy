@@ -1,11 +1,11 @@
 # Konzept: Trail-Werte und Airtime unter Buddys (#36)
 
-*Stand 2026-10-16, Entwurf zur Entscheidung. Baut auf `konzept-trails.md`
+*Stand 2026-10-16, Entscheidungen des Betreibers vom selben Tag in
+Abschnitt 11. Baut auf `konzept-trails.md`
 Abschnitt 7 und 9 und auf den Kernanforderungen (`anforderungen.md`,
 A1–A3, A6, A10, A11) auf; das Aussehen kommt aus dem Navi-Entwurf
 (`docs/design/navi/`, Betreiber 2026-10-13: „Trail-Werte … kommen mit
-#36"). Gebaut wird nichts, bevor die Fragen in Abschnitt 11 entschieden
-und die Schwellen aus Abschnitt 8 gemessen sind.*
+#36"). Gebaut wird nichts, bevor die Schwellen aus Abschnitt 8 gemessen sind.*
 
 ## 0. Worum es geht, in fünf Sätzen
 
@@ -14,12 +14,14 @@ Während einer Fahrt misst das Telefon auf Trails drei Werte: **Airtime**
 (die härteste Landung) und **Manual** (Vorderrad hoch, aus dem Kreisel,
 nur mit Lenkerhalterung). Gemessen und gespeichert wird auf dem Gerät,
 die Werte hängen an der Fahrt wie heute die Bestätigungen (#116). Zum
-Server geht — wenn der Fahrer es will — **ein Bestwert je Trail**, kein
-Verlauf und keine Fahrt; sehen können ihn nur direkte Buddys, die den
-Trail selbst sehen. Daraus wird eine **Rangliste unter Buddys je
-Trail**, die sich ausdrücklich als Spiel ausgibt, nicht als Rekord. Es
-gibt keine Rangliste über Trails hinweg, kein Netz-Ranking und keinen
-Wert, den jemand außerhalb des eigenen Buddy-Kreises sieht.
+Server geht — wenn der Fahrer es will — **ein Bestwert je Trail** und
+**ein Airtime-Zähler der letzten 30 Tage**, beide auf dem Gerät
+gerechnet; kein Verlauf und keine Fahrt. Sehen können das nur direkte
+Buddys. Daraus werden eine **Rangliste unter Buddys je Trail** und
+**Titel** wie „Segelflieger" oder „Bruchpilot" (Betreiber,
+2026-10-16), die sich ausdrücklich als Spiel ausgeben, nicht als
+Rekord. Es gibt kein Netz-Ranking und keinen Wert, den jemand
+außerhalb des eigenen Buddy-Kreises sieht.
 
 ## 1. Randbedingungen (verbindlich, schon entschieden)
 
@@ -53,8 +55,23 @@ Die Halterung entscheidet, was überhaupt messbar ist (Entwurf 1e,
   bis zum Stoß der Landung. Je Trail-Durchfahrt: Summe, Anzahl,
   längster Sprung.
 - **Max G**: Spitze des Betrags innerhalb von 300 ms nach einer
-  Landung, gefiltert gegen Schläge (Wurzel, Stufe) ohne vorherige
-  Flugphase. Nur Landungen zählen, sonst misst der Wert den Untergrund.
+  Landung. Anders als die Dauer eines Sprungs ist das nicht trivial
+  (Betreiber, 2026-10-16): Ein abgesetzter Rucksack, ein umfallendes
+  Rad, ein Telefon, das auf den Boden fällt, sind ein harter Stoß nach
+  einer Flugphase. Gezählt wird eine Landung deshalb nur, wenn sie
+  **plausibel** ist — alle vier Bedingungen:
+  1. **vorher geflogen**: eine erkannte Flugphase (Airtime-Regel) endet
+     im Stoß;
+  2. **in Fahrt davor und danach**: GPS-Tempo ≥ 10 km/h in den 3 s
+     vor dem Absprung UND in den 3 s nach der Landung — wer absetzt,
+     umfällt oder stürzt, steht danach;
+  3. **auf der Linie**: beide Fixe ≤ 20 m vom Trail (Regel aus
+     Abschnitt 3);
+  4. **im Rahmen**: Spitze unter einer Obergrenze (Startwert 8 g) —
+     darüber ist es ein Aufschlag des Telefons, kein Rad.
+  Schläge ohne vorherige Flugphase (Wurzel, Stufe) zählen nie; sonst
+  misst der Wert den Untergrund. Bedingung 2 trennt nebenbei Sturz von
+  Landung — ein Sturz wird nicht als Wert gezeigt.
 - **Manual**: Neigung über 15° gegen die Fahrposition bei Fahrt
   (> 8 km/h), Länge in Metern aus GPS-Tempo × Zeit (Entwurf, Zustand
   „Manual erkannt"). Nur mit Lenkerhalterung: In der Tasche kippt das
@@ -104,16 +121,37 @@ Trail**:
 | längster Sprung | der längste einzelne, in Zehntelsekunden |
 | Monat | wann der Bestwert entstand — ein Monat, kein Tag |
 
+Dazu **je Nutzer eine Zeile** mit dem **Airtime-Zähler der letzten
+30 Tage** (Betreiber, 2026-10-16: „ein Airtime Counter im rollenden
+Monat"), über alle Trails:
+
+| Feld | Bedeutung |
+|---|---|
+| Nutzer | wer |
+| Airtime 30 Tage | Summe aller gezählten Sprünge der letzten 30 Tage, in Sekunden |
+| Stand | der Tag, an dem das Gerät den Wert zuletzt gerechnet hat |
+| Titel | die Titel, die das Gerät gerade vergibt (Abschnitt 5) |
+
+- **Das Gerät rechnet das Fenster, nicht der Server.** Es summiert aus
+  seinen eigenen Fahrten und schickt EINE Zahl, überschrieben bei jeder
+  Fahrt und beim Öffnen der App. Tagessummen auf dem Server würden
+  verraten, an welchen Tagen jemand gefahren ist (A3); eine Zahl mit
+  Stand verrät nur, dass er in den letzten 30 Tagen gefahren ist.
+- **Ein alter Stand altert sichtbar**: Wer die App länger nicht öffnet,
+  dessen Zähler zeigen Buddys mit „Stand 12.10." — das Fenster rückt
+  nicht ohne sein Gerät weiter. Nach 30 Tagen ohne neuen Stand zeigt
+  die App ihn nicht mehr.
 - **Keine Zeitreihe, keine Fahrt, kein Ort am Sprung.** „Bei km 2,1"
   aus dem Entwurf bleibt auf dem Gerät.
-- **Max G und Manual bleiben auf dem Gerät** (Vorschlag, Frage 2): Max G
-  als Rangliste belohnt harte Landungen — genau das Risiko aus 1.3;
-  Manual misst nur, wer einen Lenkerhalter hat.
+- **Max G und Manual bleiben als Werte auf dem Gerät** (entschieden,
+  Frage 2): Max G als Rangliste belohnt harte Landungen — genau das
+  Risiko aus 1.3; Manual misst nur, wer einen Lenkerhalter hat. Was
+  von Max G geteilt wird, ist höchstens ein Titel, nie die Zahl.
 - **Ein Wert wird nur besser oder gelöscht**: Hochladen nur, wenn der
   neue Bestwert den alten schlägt; „Meinen Beitrag löschen" am Trail
   löscht ihn mit (`supabase/CLAUDE.md`, „Beitrag löschen").
-- **Sichtbar** für den Nutzer selbst und für direkte Buddys, die den
-  Trail selbst sehen (A2) — dieselbe RLS-Form wie die Bewertungen am
+- **Sichtbar** für den Nutzer selbst und für direkte Buddys; der
+  Bestwert je Trail nur für Buddys, die den Trail selbst sehen (A2) — dieselbe RLS-Form wie die Bewertungen am
   Trail. Nie transitiv, nie für Fremde, kein Zähler, wie viele Werte
   ein Trail hat (A1, A4).
 - **Duplikate zusammenführen** (#107) nimmt die Bestwerte mit: Der
@@ -132,13 +170,36 @@ beiden Sprachen und `docs/play-console.md` im selben PR (A6).
 - **Gewertet wird die Airtime je Durchfahrt**, nicht der längste
   Sprung: Die Summe belohnt eine flüssige Jump-Line, der längste
   Sprung den einen großen Drop (Frage 3).
-- **Keine Rangliste über Trails hinweg**, kein „König des Monats",
-  keine Bestenliste im Profil. Wer will, sieht in „Meine Fahrten" seine
-  eigenen Werte je Fahrt — das ist ein Tagebuch, keine Rangliste.
+- **Der Zähler der letzten 30 Tage** steht an jedem Buddy (Buddy-Liste
+  und Profil des Buddys: „Airtime 30 Tage: 42 s") und im eigenen
+  Profil. Eine sortierte Bestenliste daraus gibt es nicht — er ist ein
+  Wert am Buddy, kein Wettbewerb über das Netz.
+- **Titel statt Tabellen** (Betreiber, 2026-10-16: „so was wie
+  Bruchpilot und Segelflieger"): ein Abzeichen am Buddy, mit
+  Augenzwinkern. Das Gerät vergibt sie aus den EIGENEN Werten und
+  schickt nur den Namen des Titels mit (Abschnitt 4); Vergleiche
+  zwischen Buddys rechnet die App des Betrachters aus dem, was sie
+  sieht. Startliste — Namen und Schwellen nach der Messung, die Liste
+  ist offen:
+
+  | Titel | wofür | aus |
+  |---|---|---|
+  | Segelflieger | ein einzelner Sprung ≥ 1,0 s in den letzten 30 Tagen | Airtime |
+  | Vielflieger | die meisten Sprünge unter den eigenen Buddys im Fenster | Airtime-Zähler (beim Betrachter gerechnet) |
+  | Bruchpilot | eine plausible Landung über einer hohen Schwelle (Startwert 4 g) | Max G, nur der Titel |
+  | Bodenpersonal | im Fenster gefahren, aber kein Sprung | Airtime |
+  | Trailkönig | Platz 1 der Airtime auf einem Trail unter den eigenen Buddys | Bestwert je Trail (beim Betrachter) |
+
+  „Bruchpilot" ist der Weg, Max G spielerisch zu zeigen, ohne die Zahl
+  zu teilen: Ein Titel belohnt eine harte Landung einmal, eine
+  Rangliste jedes Mal mehr. Der Titel kommt erst, wenn die
+  Plausibilisierung aus Abschnitt 2 gemessen ist.
+- Wer will, sieht in „Meine Fahrten" seine eigenen Werte je Fahrt —
+  das ist ein Tagebuch, keine Rangliste.
 - **Bio und E-MTB werden nicht getrennt**: Airtime hängt am Fahrer und
   an der Line, kaum am Motor (Frage 4 als Kontrolle).
-- **Kein Push für Ranglisten**: „Jan hat dich überholt" wäre genau die
-  Aufmerksamkeit, die Konzept 7 nicht will.
+- **Kein Push für Ranglisten oder Titel**: „Jan hat dich überholt" wäre
+  genau die Aufmerksamkeit, die Konzept 7 nicht will.
 
 ## 6. Oberfläche (aus dem Navi-Entwurf)
 
@@ -163,15 +224,17 @@ beiden Sprachen und `docs/play-console.md` im selben PR (A6).
 ## 7. Datenschutz und Recht
 
 - **Sensordaten werden auf dem Gerät ausgewertet**; nur der Bestwert je
-  Trail geht weg (Abschnitt 4). Das steht so in der
+  Trail, der Zähler der letzten 30 Tage und die Titel gehen weg
+  (Abschnitt 4). Das steht so in der
   Datenschutzerklärung, in beiden Sprachen.
 - **Opt-in, zweimal**: Messen ist aus, bis der Fahrer es einschaltet;
   den Bestwert zu teilen ist ein eigener Schalter (Frage 1) — wer nur
   für sich misst, schickt nichts.
 - **Nutzungsbedingungen**: Satz zum Risiko und dass Werte geschätzt
   sind; kommt mit der rechtlichen Prüfung (#39), vor dem Store.
-- **Löschen**: Konto löschen und „Meinen Beitrag löschen" nehmen die
-  Bestwerte mit; die Werte in den Fahrten löscht, wer die Fahrt löscht.
+- **Löschen**: Konto löschen nimmt Bestwerte, Zähler und Titel mit,
+  „Meinen Beitrag löschen" den Bestwert an dem Trail; Teilen
+  ausschalten löscht Zähler und Titel; die Werte in den Fahrten löscht, wer die Fahrt löscht.
 
 ## 8. Messplan (vor dem Bau der Erkennung)
 
@@ -186,12 +249,16 @@ Muster).
 2. **Fahrten mit Ansage**: der Betreiber fährt eine bekannte Jump-Line
    mit Lenkerhalterung und mit Hosentasche, zählt die Sprünge und
    schätzt die längsten; dazu ein Trail ohne Sprünge (Wurzeln, Stufen)
-   als Gegenprobe und zehn Würfe des Telefons auf eine Jacke.
+   als Gegenprobe und zehn Würfe des Telefons auf eine Jacke. Für die
+   Plausibilisierung von Max G dazu: Rucksack mit Telefon absetzen,
+   Rad mit Telefon am Lenker umfallen lassen, Telefon aus der Hand
+   fallen lassen — je fünfmal; keiner davon darf als Landung zählen.
 3. **Auswertung auf dem Rechner** (`tool/airtime_measure.py`): Treffer,
    Fehlalarme und Dauerfehler je Schwelle (g-Grenze, Mindestdauer) und
    je Halterung; Akku je Stunde mit und ohne Sensor.
 4. **Schwellen gelten, wenn** auf der Gegenprobe keine Fehlalarme
-   liegen, auf der Jump-Line ≥ 90 % der gezählten Sprünge gefunden
+   liegen (auch keine Landung aus den Absetz- und Umfall-Proben), auf der
+   Jump-Line ≥ 90 % der gezählten Sprünge gefunden
    werden und der Akku je Stunde um höchstens 5 Prozentpunkte stärker
    sinkt als ohne Sensor. Sonst fällt die Halterung, die es nicht
    schafft, aus der Tabelle in Abschnitt 2.
@@ -213,11 +280,14 @@ Umgebung: 📱 Fahrten · 💻 Auswertung (eigene Fahrten) · ☁️ Werkzeug.
 4. **Anzeige**: Werte-Kacheln, AIR-Toast, „Trail geschafft", Zerlege-
    Blatt, Bild-im-Bild, Benachrichtigung — alles lokal, noch nichts
    geteilt.
-5. **Bestwert und Rangliste**: Patch mit Tabelle und RLS, Hochladen
-   über den Ausgangskorb, Zeile im Trail-Blatt, Datenschutzerklärung,
-   `play-console.md`, Zusammenführen (#107) nimmt sie mit.
+5. **Bestwert, Zähler und Rangliste**: Patch mit den zwei Tabellen und
+   RLS, Hochladen über den Ausgangskorb, Zeile im Trail-Blatt, Zähler
+   am Buddy, Datenschutzerklärung, `play-console.md`, Zusammenführen
+   (#107) nimmt die Bestwerte mit.
+6. **Titel**: Segelflieger, Vielflieger, Bodenpersonal, Trailkönig;
+   Bruchpilot erst, wenn die Max-G-Plausibilisierung gemessen ist.
 
-Schritte 3–5 sind sichtbare Funktionen: je ein Eintrag in
+Schritte 3–6 sind sichtbare Funktionen: je ein Eintrag in
 `kFeatureHighlights` mit Vorführung.
 
 ## 10. Risiken, benannt
@@ -226,6 +296,9 @@ Schritte 3–5 sind sichtbare Funktionen: je ein Eintrag in
   Android-Dienst; mehr Aufwand, kein Grund zum Abbruch.
 - **Fehlalarme auf ruppigen Trails** ⇒ ein Sprung ohne Flugphase ist
   keiner; die Gegenprobe in Abschnitt 8 ist Pflicht.
+- **Max G aus Absetzen, Umfallen, Fallenlassen** ⇒ die vier
+  Bedingungen aus Abschnitt 2; scheitern sie in der Messung, gibt es
+  „Bruchpilot" nicht und Max G bleibt eine eigene Kachel.
 - **Akku**: 100 Hz über Stunden. Nur auf Trails messen hält den Anteil
   klein (Trails sind ein Bruchteil einer Runde).
 - **Schummeln** ist trivial und wird nicht verhindert — nur unter
@@ -233,25 +306,23 @@ Schritte 3–5 sind sichtbare Funktionen: je ein Eintrag in
 - **Risiko-Anreiz**: Rangliste nur auf Airtime je Durchfahrt, nicht auf
   Max G; kein Push; der Satz beim Einschalten.
 
-## 11. Offene Entscheidungen des Betreibers
+## 11. Entscheidungen des Betreibers (2026-10-16)
 
-Jede mit Empfehlung; entschieden wird im Issue (#36), dieses Dokument
-zieht nach.
+Alle sechs entschieden; die Vorschläge stehen dabei, damit die nächste
+Diskussion nicht bei null beginnt.
 
-1. **Was teilen?** (a) Bestwert je Trail mit Monat, eigener Schalter
-   — *empfohlen*; (b) jede Durchfahrt mit Datum (mehr Spiel, aber ein
-   Verlauf, wer wann wo war — nah an A3); (c) gar nichts teilen, nur
-   eigene Werte und ein Bild zum Verschicken per Nachricht (#34).
-2. **Welche Werte in die Rangliste?** Nur Airtime — *empfohlen*; Max G
-   und Manual bleiben eigene Werte auf dem Gerät. Alternative: alle
-   drei je eigene Rangliste.
-3. **Welche Airtime zählt?** Summe je Durchfahrt — *empfohlen*, wie im
-   Entwurf; Alternative: längster Sprung.
-4. **Bio und E-MTB gemeinsam?** Ja — *empfohlen*; getrennt nur, wenn
-   die Messung zeigt, dass der Motor die Airtime merklich ändert.
-5. **Manual überhaupt in v1?** Erst nach Airtime und Max G —
-   *empfohlen*: braucht den Kreisel, eine Lenkerhalterung und eine
-   eigene Messung; die Kachel bleibt bis dahin aus.
-6. **Wann?** Nach 🚀 A und den ersten Testern — *empfohlen*: ohne
-   Buddys mit der App gibt es keine Rangliste, und die Messung braucht
-   Fahrten mit Ansage (📱).
+1. **Was teilen?** Bestwert je Trail mit Monat, eigener Schalter — wie
+   vorgeschlagen; **dazu** ein Airtime-Zähler je Buddy über die letzten
+   30 Tage („Jeder Buddy hat vielleicht auch einen Airtime Counter im
+   rollenden Monat"), auf dem Gerät gerechnet (Abschnitt 4). Verworfen:
+   jede Durchfahrt mit Datum (ein Verlauf, nah an A3); gar nichts
+   teilen.
+2. **Welche Werte?** Airtime in Rangliste und Zähler; Max G und Manual
+   bleiben als Zahlen auf dem Gerät. **Neu:** spielerische Titel wie
+   „Bruchpilot" und „Segelflieger" (Abschnitt 5) — Max G nur als Titel
+   und nur plausibilisiert, weil „Rucksack absetzen, Fahrrad fällt um
+   usw." sonst als Landung zählen.
+3. **Welche Airtime zählt?** Die Summe („Airtime die Summe").
+4. **Bio und E-MTB gemeinsam** — wie vorgeschlagen.
+5. **Manual nicht in v1** — wie vorgeschlagen.
+6. **Wann?** Nach 🚀 A und den ersten Testern — wie vorgeschlagen.

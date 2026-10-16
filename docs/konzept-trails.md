@@ -890,7 +890,8 @@ Leistungsnachweis — die Oberfläche sagt das; und es ist ein Anreiz zu
 Risiko, das gehört in die Nutzungsbedingungen. Das Modell braucht dafür
 eine Tabelle Ereignis-je-Fahrt-und-Trail, nichts davon in v1. Der Plan
 (#36, Entwurf 2026-10-16) steht in `docs/konzept-airtime.md`: gemessen
-wird auf dem Gerät, zum Server geht höchstens ein Bestwert je Trail
+wird auf dem Gerät, zum Server gehen höchstens ein Bestwert je Trail
+und ein Airtime-Zähler der letzten 30 Tage, auf dem Gerät gerechnet,
 statt einer Tabelle je Fahrt.
 
 ## 10. Entscheidungen des Betreibers (2026-09-27)
