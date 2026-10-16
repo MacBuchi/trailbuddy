@@ -1,0 +1,62 @@
+name: Matcher Stats
+
+# Is there data yet to measure #106 on? (Roadmap #156, item 8.) #114 kept
+# `contribute_recording` at `limit 1` until trails carry SEVERAL
+# recordings — buddies' versions or re-ridden sections from the split
+# sheet. tool/matcher_stats.sql counts that on the live database and this
+# run writes the counts into the run summary.
+#
+# Counts only — no ids, names or coordinates: the summary of a public
+# repo is public. The SQL runs in a read-only transaction and rolls back.
+# The same file runs in the schema dry run (ci.yml), so it cannot go stale.
+#
+# By hand only. Secrets go through `env:` into a detection step;
+# `secrets.` is not available in `if:` (PilzBuddy, 2026-08-13).
+#
+# No Version Guard concern: nothing here lands in a binary.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  stats:
+    name: Count recordings per trail (live)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Is SUPABASE_DB_URL there?
+        id: db
+        env:
+          DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          if [ -n "$DB_URL" ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            {
+              echo "## Matcher Stats: nothing counted"
+              echo
+              echo "The secret SUPABASE_DB_URL is missing — the same one the Schema Check uses."
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Count on the live database
+        if: steps.db.outputs.present == 'true'
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          rows=$(psql "$SUPABASE_DB_URL" -At -f tool/matcher_stats.sql)
+          {
+            echo "## Matcher Stats ($(date -u +%Y-%m-%d))"
+            echo
+            echo "| | |"
+            echo "|---|---|"
+            echo "$rows"
+            echo
+            echo "Read by #106: trails with 2+ recordings or 2+ users are the data #114 waited for."
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "$rows"

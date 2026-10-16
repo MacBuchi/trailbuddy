@@ -197,6 +197,10 @@ jobs:
           bash tool/schema_check.sh
       - name: Der Abgleich mit echten Linien (matcher_check.sql)
         run: psql "postgresql://postgres:postgres@127.0.0.1:54522/postgres" -v ON_ERROR_STOP=1 -q -f tool/matcher_check.sql
+      # Dieselbe Zählung, die matcher-stats.yml gegen live fährt — hier nur,
+      # damit sie mit dem Schema nicht still veraltet (#106).
+      - name: Zählung für den Abgleich läuft (matcher_stats.sql)
+        run: psql "postgresql://postgres:postgres@127.0.0.1:54522/postgres" -At -f tool/matcher_stats.sql
       - name: Rechte des Service-Schlüssels (Bestand)
         run: psql "postgresql://postgres:postgres@127.0.0.1:54522/postgres" -v ON_ERROR_STOP=1 -q -f tool/grants_check.sql
       # PL/pgSQL prüft den Rumpf erst beim Aufruf; live ruft ihn der
