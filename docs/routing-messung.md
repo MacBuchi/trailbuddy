@@ -650,5 +650,34 @@ Bergaufstiege zwischen Trails sind und dort selten eine zweite Straße
 liegt — die Anfahrt aus dem Tal, für die der Stil gedacht ist, misst erst
 das Gerät. Die steilen Meter bei 2 km bleiben +7 %: Wo der Stil einem
 Wanderweg ausweicht, liegt die Ausweichstraße oft an derselben Flanke.
-Ein Vergleich mit eigenen Fahrten (Anfahrten des Betreibers, Strava) steht
-aus — nur mit seinem OK.
+
+### An eigenen Anfahrten (gemessen 2026-10-16, lokal)
+
+*`tool/route_measure.py rides` an den 30 Strava-Fahrten von #213
+(Betreiber, 2026-10-16: „Passt"), Trails der Sammlung (584), Kacheln
+vom Host, Höhen Copernicus GLO-90. Dieselben Fälle wie M4: Fahrtstart →
+erster bekannter Trailkopf, die Fahrt auf den Graphen gelegt, dazu
+beide Stile für dieselben Endpunkte. Die Fahrten lagen nur auf dem
+Rechner des Laufs; hier stehen Kennzahlen, keine Orte.*
+
+| Gruppe | Weg | Länge | Asphalt | Forstweg | Pfad | bergauf | steil |
+|---|---|---|---|---|---|---|---|
+| Bio (17) | gefahren | 138,6 km | 32 % | 54 % | 14 % | 3975 hm | 62 hm |
+| | MTB | 124,9 km | 22 % | 76 % | 2 % | 3341 hm | 13 hm |
+| | **Bequem** | 129,3 km | **33 %** | 66 % | 1 % | 3366 hm | 10 hm |
+| E-MTB (7) | gefahren | 39,5 km | 34 % | 56 % | 10 % | 1233 hm | 20 hm |
+| | MTB | 39,9 km | 24 % | 75 % | 1 % | 1006 hm | 2 hm |
+| | **Bequem** | 39,6 km | **45 %** | 54 % | 1 % | 994 hm | 2 hm |
+
+**Die Werte bleiben.** Der Betreiber fährt zum ersten Trail zu einem
+Drittel auf Asphalt; der MTB-Stil plant ein Viertel weniger davon, der
+Stil „Bequem" trifft das Drittel beim Bio-Rad fast genau und liegt beim
+E-MTB darüber — ohne mehr zu steigen (Bio +0,7 %, E −1 % gegen MTB) und
+mit weniger steilen Metern. Beide Pläne steigen 15–20 % weniger als die
+Fahrten, und keiner trifft den gefahrenen Weg (2 von 17, 0 von 7 gleich
+bei 15 m und 0,8 beidseitig): Die Fahrten sind keine kürzesten
+Anfahrten — Umwege, Pfade, die man schon als Teil der Runde fährt
+(14 % Pfad gefahren gegen 1–2 % geplant). Wer näher an die gefahrenen
+Höhenmeter kommt, ist deshalb kein Maß (Bequem 3 von 17 bzw. 2 von 7).
+Ehrlich: Die Fahrten waren MTB-Runden, keine bewusst bequemen
+Anfahrten; was der Stil im Tal tut, sieht weiter erst das Gerät.
