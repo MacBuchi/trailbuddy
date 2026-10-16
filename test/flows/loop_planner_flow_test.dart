@@ -30,11 +30,13 @@ import 'package:trailbuddy/features/routing/road_graph.dart' show RoadGraph;
 import 'package:trailbuddy/features/trails/gpx.dart';
 import 'package:trailbuddy/models/trail.dart';
 import 'package:trailbuddy/features/map/map_view/map_view.dart' show MapViewMarker;
+import 'package:trailbuddy/features/map/poi.dart';
 
 import '../fakes/fake_backend.dart';
 import '../fakes/fake_heights.dart';
 import '../fakes/fake_settings.dart';
 import '../fakes/fake_map_view.dart';
+import '../fakes/fake_pois.dart';
 import '../fakes/route_lines.dart';
 import 'package:trailbuddy/features/map/map_view/map_hit_test.dart' show projectToScreen;
 import 'package:trailbuddy/features/routing/loop_planner_sheet.dart' show LoopStartFlag, kLoopPickWidth;
@@ -158,6 +160,7 @@ void main() {
       FakeSettings? settings,
       OnlineFill Function()? onlineFill,
       LoopPlanRunner Function()? runner,
+      FakePoiSource? pois,
       List<Override> extra = const []}) async {
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 3;
@@ -168,6 +171,7 @@ void main() {
         rideStore: rides,
         positionFix: positionFix ?? FakePositionFix(fakePosition(_fromLat, _lon)),
         settings: settings,
+        pois: pois,
         extraOverrides: [
           gpxShareProvider.overrideWithValue(recorder),
           if (onlineFill != null) onlineFillFactoryProvider.overrideWithValue((_) => onlineFill()),
@@ -681,6 +685,80 @@ void main() {
       final whole = routeWhole(tester);
       expect(whole.first.latitude, closeTo(_fromLat, 1e-9));
       expect(whole.last.latitude, closeTo(48.0, 1e-9), reason: 'die Route endet am Trailkopf');
+    });
+
+    // Ein Brunnen am Forstweg zwischen Standort und Trailkopf (#331
+    // Schritt 3) — Trinkwasser zeigt die Karte ab Werk.
+    final spring = Poi(id: 'node/7', kind: PoiKind.drinkingWater, position: LatLng(_fromLat + 0.0015, _lon), name: 'Hangbrunnen');
+    final springPin = find.byKey(const ValueKey('poi-node/7'));
+
+    /// Nah heran; die Orte kommen bei Stillstand der Kamera.
+    Future<void> zoomToSpring(WidgetTester tester) async {
+      await zoomToTrails(tester);
+      await settle(tester, frames: 20);
+      expect(springPin, findsOneWidget);
+    }
+
+    Future<void> fromPlaceSheet(WidgetTester tester, String key) async {
+      await zoomToSpring(tester);
+      await tapMapAt(tester, spring.position);
+      await settle(tester);
+      expect(find.text('Hangbrunnen'), findsOneWidget);
+      await tester.tap(find.byKey(ValueKey(key)));
+      await settle(tester, frames: 30);
+    }
+
+    testWidgets('Ort als Start (Schritt 3): aus seinem Blatt, Planer auf, Runde ab dem Ort', (tester) async {
+      await start(tester, areaStore: await _areaWithTrack(), pois: FakePoiSource([spring]));
+      await fromPlaceSheet(tester, 'poi-plan-from');
+      expect(find.byKey(const ValueKey('loop-tool-rail')), findsOneWidget, reason: 'der Planer ist auf der Karte');
+      expect(find.byKey(const ValueKey('loop-start-pin')), findsOneWidget);
+      expect(picked(tester), isEmpty, reason: 'ein Ort wählt keinen Trail');
+
+      await tapMapAt(tester, const LatLng(48.004, _lon));
+      await settle(tester);
+      await tapRail(tester, 'loop-rail-compute');
+      expect(find.text('Runde'), findsOneWidget);
+      final whole = routeWhole(tester);
+      expect(whole.first.latitude, closeTo(spring.position.latitude, 1e-9), reason: 'Start am Ort, nicht am Standort');
+      expect(whole.last.latitude, closeTo(spring.position.latitude, 1e-9));
+    });
+
+    testWidgets('Ort als Ziel (Schritt 3): Modus „Zum Ziel", Route endet am Ort', (tester) async {
+      final settings = FakeSettings();
+      await start(tester, areaStore: await _areaWithTrack(), settings: settings, pois: FakePoiSource([spring]));
+      await openPlanner(tester);
+      await fromPlaceSheet(tester, 'poi-plan-to');
+      expect(settings.loopPlannerPrefs, contains('r=2'), reason: 'das Ziel schaltet auf „Zum Ziel"');
+      expect(find.byKey(const ValueKey('loop-pick-banner')), findsNothing, reason: 'das Ziel steht schon');
+      expect(find.byKey(const ValueKey('loop-end-pin')), findsOneWidget);
+
+      await tapMapAt(tester, const LatLng(48.004, _lon));
+      await settle(tester);
+      await tapRail(tester, 'loop-rail-compute');
+      expect(find.text('Route'), findsOneWidget);
+      final whole = routeWhole(tester);
+      expect(whole.first.latitude, closeTo(_fromLat, 1e-9));
+      expect(whole.last.latitude, closeTo(spring.position.latitude, 1e-9), reason: 'die Route endet am Ort');
+    });
+
+    testWidgets('Start tippen auf einen Ort: der Punkt ist der Ort, nicht der Finger, kein Blatt', (tester) async {
+      await start(tester, areaStore: await _areaWithTrack(), pois: FakePoiSource([spring]));
+      await openPlanner(tester);
+      await tapRail(tester, 'loop-rail-params');
+      await tester.tap(find.byKey(const ValueKey('loop-pick')));
+      await settle(tester, frames: 10);
+      await zoomToSpring(tester);
+      // Ein paar Meter daneben — der Finger trifft nie genau.
+      await tapMapAt(tester, LatLng(spring.position.latitude + 0.00006, _lon + 0.00006));
+      await settle(tester);
+      expect(find.text('Hangbrunnen'), findsNothing, reason: 'der Tipp war der Start');
+      expect(find.byKey(const ValueKey('loop-start-pin')), findsOneWidget);
+
+      await tapMapAt(tester, const LatLng(48.004, _lon));
+      await settle(tester);
+      await tapRail(tester, 'loop-rail-compute');
+      expect(routeWhole(tester).first.latitude, closeTo(spring.position.latitude, 1e-9));
     });
 
     testWidgets('„Zum Ziel" ohne Ziel: der Grund steht im Blatt; „Letzter Trail" endet am Trail', (tester) async {

@@ -491,6 +491,14 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     _fitTo([trail]);
   }
 
+  /// Ein Ort als Start oder Ziel (#331 Schritt 3), aus seinem Blatt: Er
+  /// liegt schon im Bild, also nichts einpassen.
+  Future<void> _planFromPlace(Poi p, {required bool asTarget}) async {
+    if (!ref.read(loopPlannerProvider).open) await _openLoopPlanner();
+    if (!mounted || !ref.read(loopPlannerProvider).open) return;
+    ref.read(loopPlannerProvider.notifier).takePlace(p.position, asTarget: asTarget);
+  }
+
   /// Schließen: Ergebnis-Blatt zu, Modus aus — die Auswahl bleibt für die
   /// Sitzung.
   void _closeLoopPlanner() {
@@ -529,8 +537,9 @@ class _MapScreenState extends ConsumerState<MapScreen> {
 
   void _onHit(Object hit, MapTap tap) {
     // Auch ein Tipp auf eine Linie ist ein Punkt, solange der Planer
-    // seinen Start sucht — ein Trailkopf ist ein guter Start.
-    if (_takeLoopStart(tap)) return;
+    // seinen Start sucht — ein Trailkopf ist ein guter Start. Ein Ort
+    // gibt seine Lage, nicht die des Fingers (#331 Schritt 3).
+    if (ref.read(loopPlannerProvider.notifier).takePick(hit is Poi ? hit.position : tap.point)) return;
     switch (hit) {
       // Ein Tipp auf die Verbindung eines Ergebnisses: ein Zwischenpunkt
       // (#234), solange sein Ergebnis die Punkte annimmt.
@@ -561,7 +570,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       case final OfficialTrail o:
         showOfficialTrailSheet(context, o);
       case final Poi p:
-        showPoiSheet(context, p);
+        showPoiSheet(context, p, onPlan: (asTarget) => unawaited(_planFromPlace(p, asTarget: asTarget)));
     }
   }
 

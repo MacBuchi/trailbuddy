@@ -2,6 +2,16 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## A place as start or finish
+
+*Version 0.125.0, 2026-10-16*
+
+- The sheet of a place on the map, such as a car park or a fountain, now
+  has “Start in planner” and “Finish in planner”. As a finish, the
+  planner switches to “To a point”.
+- While the planner waits for its start or finish, a tap on a place takes
+  exactly its position, not the spot next to your finger.
+
 ## Start or finish at a trail head
 
 *Version 0.124.0, 2026-10-15*

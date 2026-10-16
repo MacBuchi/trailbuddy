@@ -191,7 +191,9 @@ class CakeSlicePainter extends CustomPainter {
 
 /// Was man über einen Ort wissen will: Art, Name, Öffnungszeiten — und
 /// der Weg zu allem Weiteren auf openstreetmap.org.
-Future<void> showPoiSheet(BuildContext context, Poi poi) =>
+/// [onPlan] (#331 Schritt 3): der Ort als Start (`false`) oder Ziel
+/// (`true`) des Planers — die Karte gibt es mit, das Blatt schließt vorher.
+Future<void> showPoiSheet(BuildContext context, Poi poi, {void Function(bool asTarget)? onPlan}) =>
     showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
@@ -233,6 +235,28 @@ Future<void> showPoiSheet(BuildContext context, Poi poi) =>
                       Uri.parse('https://www.openstreetmap.org/${poi.id}'),
                       mode: LaunchMode.externalApplication),
                 ),
+                if (onPlan != null) ...[
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      for (final asTarget in [false, true]) ...[
+                        if (asTarget) const SizedBox(width: 8),
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            key: ValueKey(asTarget ? 'poi-plan-to' : 'poi-plan-from'),
+                            style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
+                            onPressed: () {
+                              Navigator.of(context).pop();
+                              onPlan(asTarget);
+                            },
+                            icon: Icon(asTarget ? Icons.sports_score : Icons.trip_origin),
+                            label: Text(asTarget ? l.sheetPlanTo : l.sheetPlanFrom),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ],
               ],
             ),
           ),
