@@ -9,6 +9,8 @@ import 'package:trailbuddy/core/line_geometry.dart';
 import 'package:trailbuddy/features/routing/loop_planner.dart';
 import 'package:trailbuddy/features/routing/road_graph.dart';
 import 'package:trailbuddy/features/routing/route_profile.dart';
+import 'package:trailbuddy/features/routing/route_vias.dart';
+import 'package:trailbuddy/features/trails/trail_geometry.dart' show haversineM;
 
 /// Meter → Grad über DIESELBE Projektion wie der Graph.
 List<LatLng> _m(List<(double, double)> xy, {double lat0 = 47.5, double lon0 = 11.5}) {
@@ -285,6 +287,74 @@ void main() {
       expect(g.revision, greaterThan(revision));
       expect(moved.outcome, LoopOutcome.ok);
       expect(sig(moved), sig(plan(fresh, [a, b], from: mid)));
+    });
+  });
+
+  group('Zwischenpunkte vorab (#331 Schritt 4)', () {
+    final corner = _m([(1000, 1000)]).single;
+    double nearest(List<LatLng> line, LatLng p) => line.map((q) => haversineM(q.latitude, q.longitude, p.latitude, p.longitude)).reduce(math.min);
+    LoopPlan plan(List<PoolTrail> pool, {List<LatLng> waypoints = const [], LoopBudget budget = _big, LoopTune? tune}) =>
+        planLoop(_square(),
+            start: start,
+            profile: _bio,
+            budget: budget,
+            pool: pool,
+            waypoints: waypoints,
+            tune: tune,
+            searchBudget: const Duration(milliseconds: 50));
+
+    test('die Fahrt führt durch den Punkt, er ist kein Trail und kein Grund', () {
+      final free = plan([a]);
+      final via = plan([a], waypoints: [corner]);
+      expect(via.outcome, LoopOutcome.ok);
+      expect(nearest(free.points, corner), greaterThan(500), reason: 'frei geht es nicht dort vorbei');
+      expect(nearest(via.points, corner), lessThan(1));
+      expect(via.stops.map((s) => s.trail.id), ['A']);
+      expect(via.order, contains('${kLoopWaypointPrefix}0'));
+      expect(via.excluded.keys.where((k) => k.startsWith(kLoopWaypointPrefix)), isEmpty);
+      expect(via.summary!.trailM, closeTo(1000, 0.5), reason: 'der Punkt bringt keine Trail-Meter');
+      expect(via.summary!.lengthM, greaterThan(free.summary!.lengthM + 500));
+      // Der Halt teilt die Fahrt: drei Teilstücke statt zwei.
+      expect({for (final s in via.sections) if (!s.isTrail) s.leg}, hasLength(3));
+    });
+
+    test('auch ohne Runde und zum Ziel', () {
+      for (final (rts, end) in [(false, null), (false, _m([(0, 1000)]).single)]) {
+        final r = planLoop(_square(),
+            start: start,
+            profile: _bio,
+            budget: _big,
+            pool: [a],
+            returnToStart: rts,
+            end: end,
+            waypoints: [corner],
+            searchBudget: const Duration(milliseconds: 50));
+        expect(r.outcome, LoopOutcome.ok, reason: 'Ende $end');
+        expect(nearest(r.points, corner), lessThan(1), reason: 'Ende $end');
+      }
+    });
+
+    test('ein Punkt abseits jedes Wegs: viaFailed, kein Grund mit seiner Kennung', () {
+      final r = plan([a], waypoints: [_m([(500, 500)]).single]);
+      expect(r.outcome, LoopOutcome.viaFailed);
+      expect(r.excluded.keys.where((k) => k.startsWith(kLoopWaypointPrefix)), isEmpty);
+    });
+
+    test('der Punkt geht vor dem Budget — dann bleibt für den Trail keins', () {
+      final tight = LoopBudget(timeS: plan([a]).summary!.timeS / (1 - kLoopTimeReserve) + 60, climbM: 800, hikingM: 2000);
+      expect(plan([a], budget: tight).stops, hasLength(1), reason: 'ohne Punkt passt A');
+      final r = plan([a], budget: tight, waypoints: [corner]);
+      expect(r.outcome, LoopOutcome.empty);
+      expect(r.excluded, {'A': LoopExclusion.budget});
+    });
+
+    test('getunt bleibt der Punkt in der Folge', () {
+      final via = plan([a], waypoints: [corner]);
+      final tuned = plan([a], waypoints: [corner], tune: LoopTune.of(via, RouteVias.none));
+      expect(tuned.outcome, LoopOutcome.ok);
+      expect(tuned.order, via.order);
+      expect(nearest(tuned.points, corner), lessThan(1));
+      expect(tuned.summary!.lengthM, closeTo(via.summary!.lengthM, 1));
     });
   });
 }

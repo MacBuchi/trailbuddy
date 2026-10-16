@@ -614,7 +614,12 @@ Messung und spiegelt Kostentabelle und Zeitmodell; wie bei
   der Trail gewählt, als Ziel steht der Modus auf „Zum Ziel". Seit
   0.125.0 ebenso ein Ort der Ebene „Orte" aus seinem Blatt; ein Tipp auf
   einen Ort, während der Planer auf Start oder Ziel wartet, nimmt die
-  Lage des Ortes.
+  Lage des Ortes. Seit 0.126.0 gibt es Zwischenpunkte VOR dem Planen
+  (Knopf in der Leiste oder „Zwischenpunkt im Planer" im Ort-Blatt): Halte
+  ohne Länge, die vor den Pflicht-Trails und auch über die Budgets hinaus
+  in die Fahrt kommen; die Reihenfolge wählt der Planer (Betreiber,
+  2026-10-16). Die Gummipunkte auf der fertigen Linie (4.6) bleiben davon
+  unberührt.
   **Seit 0.74.0 kein Blatt mit Stufen mehr, sondern ein Modus mit Leiste
   links** (Betreiber: „zum Planen links ein Menü in der Art wie rechts,
   mit Planer-Optionen"; `loop_tool_rail.dart`, Zustand in

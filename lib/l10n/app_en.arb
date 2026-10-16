@@ -1645,5 +1645,19 @@
   "highlightLanguageTitle": "German or English",
   "highlightLanguageText": "TrailBuddy now speaks English too. Without a choice, the app follows the language of your phone or browser; under “Language” in the profile you can set it for good.",
   "demoLanguageTitle": "Choose the language",
-  "demoLanguageText": "Set German or English here — or let TrailBuddy follow the language of the device."
+  "demoLanguageText": "Set German or English here — or let TrailBuddy follow the language of the device.",
+  "mapLoopPickWaypoint": "Tap the map where the ride should pass.",
+  "loopRailWaypoint": "Set a via point on the map",
+  "loopWaypointsTitle": "Via points",
+  "loopWaypointsNone": "None — the ride need not pass anywhere.",
+  "loopWaypointAdd": "Tap on the map",
+  "loopWaypointsClear": "Remove all",
+  "poiPlanVia": "Via point in planner",
+  "loopWaypointsSome": "{count, plural, =1{The ride passes 1 point; the planner picks the order.} other{The ride passes {count} points; the planner picks the order.}}",
+  "highlightLoopWaypointsTitle": "Via points before planning",
+  "highlightLoopWaypointsText": "Should the ride pass the hut or the fountain? Set via points on the map in the planner, or take a place with “Via point in planner”. The plan leads through all of them and picks the order itself.",
+  "demoLoopWaypoints1Title": "Open the planner",
+  "demoLoopWaypoints1Text": "Tap the loop button.",
+  "demoLoopWaypoints2Title": "Where to pass",
+  "demoLoopWaypoints2Text": "With this button you tap a via point on the map; a tap on its number removes it again. Plan as always with the green button."
 }

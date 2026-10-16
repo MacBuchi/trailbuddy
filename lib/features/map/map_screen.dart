@@ -491,12 +491,27 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     _fitTo([trail]);
   }
 
-  /// Ein Ort als Start oder Ziel (#331 Schritt 3), aus seinem Blatt: Er
-  /// liegt schon im Bild, also nichts einpassen.
-  Future<void> _planFromPlace(Poi p, {required bool asTarget}) async {
+  /// Ein Ort als Start, Zwischenpunkt oder Ziel (#331 Schritte 3 und 4),
+  /// aus seinem Blatt: Er liegt schon im Bild, also nichts einpassen.
+  Future<void> _planFromPlace(Poi p, LoopPlaceRole role) async {
     if (!ref.read(loopPlannerProvider).open) await _openLoopPlanner();
     if (!mounted || !ref.read(loopPlannerProvider).open) return;
-    ref.read(loopPlannerProvider.notifier).takePlace(p.position, asTarget: asTarget);
+    ref.read(loopPlannerProvider.notifier).takePlace(p.position, role);
+  }
+
+  /// Ein Tipp auf einen vorab gesetzten Zwischenpunkt nimmt ihn weg — mit
+  /// Rückgängig, wie auf der Linie.
+  void _removeWaypoint(int k) {
+    final notifier = ref.read(loopPlannerProvider.notifier);
+    final before = ref.read(loopPlannerProvider).waypoints;
+    notifier.removeWaypoint(k);
+    ScaffoldMessenger.of(context)
+      ..clearSnackBars()
+      ..showSnackBar(SnackBar(
+        key: const ValueKey('loop-waypoint-removed'),
+        content: Text(context.l10n.mapViaRemoved),
+        action: SnackBarAction(label: context.l10n.commonUndo, onPressed: () => notifier.setWaypoints(before)),
+      ));
   }
 
   /// Schließen: Ergebnis-Blatt zu, Modus aus — die Auswahl bleibt für die
@@ -545,6 +560,8 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       // (#234), solange sein Ergebnis die Punkte annimmt.
       case final RouteLegHit h:
         ref.read(routeViaProvider.notifier).insert(h, tap.point);
+      case LoopWaypointHit(:final index):
+        _removeWaypoint(index);
       case final Trail t:
         // Im Planer wählt ein Tipp den Trail an oder ab (#178).
         if (ref.read(loopPlannerProvider).open) {
@@ -570,7 +587,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       case final OfficialTrail o:
         showOfficialTrailSheet(context, o);
       case final Poi p:
-        showPoiSheet(context, p, onPlan: (asTarget) => unawaited(_planFromPlace(p, asTarget: asTarget)));
+        showPoiSheet(context, p, onPlan: (role) => unawaited(_planFromPlace(p, role)));
     }
   }
 
@@ -863,7 +880,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         ? null
         : (duplicate: compareFind(comparePair.duplicate), target: compareFind(comparePair.target));
     final loop = ref.watch(loopPlannerProvider);
-    final loopPicking = loop.open && (loop.pickingStart || loop.pickingTarget);
+    final loopPicking = loop.open && loop.picking;
     final loopPlan = loop.open ? loop.plan : null;
     final loopLine = loopPlan != null && loopPlan.outcome == LoopOutcome.ok && loopPlan.points.length >= 2
         ? loopPlan.points
@@ -1181,6 +1198,18 @@ class _MapScreenState extends ConsumerState<MapScreen> {
             alignment: Alignment.topCenter,
             child: const LoopStartFlag(finish: true),
           ),
+        // Vorab gesetzte Zwischenpunkte (#331 Schritt 4), nummeriert in der
+        // Folge des Setzens; ein Tipp nimmt einen weg.
+        if (loop.open)
+          for (var k = 0; k < loop.waypoints.length; k++)
+            MapViewMarker(
+              key: ValueKey('loop-waypoint-$k'),
+              point: loop.waypoints[k],
+              width: LoopWaypointPin.size,
+              height: LoopWaypointPin.size,
+              hitValue: LoopWaypointHit(k),
+              child: LoopWaypointPin(number: k + 1),
+            ),
         // Die Zwischenpunkte der Route (#234) — angefasst über die Griffe.
         if (vias != null) ...viaMarkers(vias),
         // Die im Höhenprofil gewählte Stelle (#332).
@@ -1226,7 +1255,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
           // Stufenweise: erst Start-Tipp oder Zeichnen abbrechen, dann
           // den Planer schließen (ein Ergebnis-Blatt nimmt Zurück selbst).
           final notifier = ref.read(loopPlannerProvider.notifier);
-          if (loop.pickingStart || loop.pickingTarget) {
+          if (loop.picking) {
             notifier.cancelStartPick();
           } else if (loop.drawTool != null) {
             notifier.disarmDraw();
@@ -1371,8 +1400,11 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                       child: ListTile(
                         dense: true,
                         leading: const Icon(Icons.touch_app_outlined),
-                        title: Text(
-                            loop.pickingTarget ? context.l10n.mapLoopPickTarget : context.l10n.mapLoopPickStart),
+                        title: Text(loop.pickingTarget
+                            ? context.l10n.mapLoopPickTarget
+                            : loop.pickingWaypoint
+                                ? context.l10n.mapLoopPickWaypoint
+                                : context.l10n.mapLoopPickStart),
                         trailing: TextButton(
                           key: const ValueKey('loop-pick-cancel'),
                           onPressed: () => ref.read(loopPlannerProvider.notifier).cancelStartPick(),

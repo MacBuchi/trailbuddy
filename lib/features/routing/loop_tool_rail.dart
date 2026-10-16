@@ -6,7 +6,7 @@
 // schließen sie.
 //
 // Von oben: Start (getippt oder Standort), im Modus „Zum Ziel" das Ziel
-// (#331), Parameter (das Blatt mit den
+// (#331), Zwischenpunkt (#331 Schritt 4), Parameter (das Blatt mit den
 // Reglern), Liste (Trails im Radius), Gebiet dazu / Gebiet weg (gezeichnet,
 // wie bei den Bereichen), Auswahl leeren — dann Rechnen mit der Zahl der
 // gewählten Trails darunter, und Schließen. Trails wählt man außerdem
@@ -107,6 +107,13 @@ class LoopToolRail extends ConsumerWidget {
               session.pickingTarget ? notifier.cancelStartPick : notifier.armTargetPick,
               selected: session.pickingTarget,
             ),
+          button(
+            'loop-rail-waypoint',
+            l.loopRailWaypoint,
+            Icons.add_location_alt_outlined,
+            session.pickingWaypoint ? notifier.cancelStartPick : notifier.armWaypointPick,
+            selected: session.pickingWaypoint,
+          ),
           button('loop-rail-params', l.loopRailParams, Icons.tune, onParams),
           gap,
           button('loop-rail-list', l.loopRailList, Icons.format_list_bulleted, onList),

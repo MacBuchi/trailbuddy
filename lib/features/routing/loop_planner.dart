@@ -51,6 +51,10 @@ const kLoopTimeReserve = 0.10;
 const kLoopSecondPassRating = 4;
 const kLoopSecondPassShare = 0.3;
 
+/// Die Kennung eines vorab gesetzten Zwischenpunkts im Pool, mit seiner
+/// Nummer dahinter — keine Trail-Kennung beginnt so.
+const kLoopWaypointPrefix = 'via:';
+
 /// Wie oft ein Trail höchstens in einer Runde steht.
 const kLoopMaxPasses = 2;
 
@@ -85,7 +89,13 @@ class PoolTrail {
     this.gainM = 0,
     this.lossM = 0,
     this.mandatory = false,
+    this.waypoint = false,
   }) : assert(points.length >= 2);
+
+  /// Ein vorab gesetzter Zwischenpunkt (#331 Schritt 4) als Halt ohne
+  /// Länge: Die Fahrt muss durch ihn, die Stelle wählt der Planer.
+  factory PoolTrail.waypoint(int k, LatLng p) =>
+      PoolTrail(id: '$kLoopWaypointPrefix$k', name: '', points: [p, p], lengthM: 0, mandatory: true, waypoint: true);
 
   final String id;
   final String name;
@@ -96,6 +106,7 @@ class PoolTrail {
   final double gainM;
   final double lossM;
   final bool mandatory;
+  final bool waypoint;
 
   LatLng get start => points.first;
   LatLng get end => points.last;
@@ -121,8 +132,9 @@ enum LoopOutcome {
   /// Trail in [LoopPlan.excluded].
   empty,
 
-  /// Von Hand getunt ([LoopTune]), aber ein Zwischenpunkt liegt abseits
-  /// jedes Wegs, oder durch die Punkte führt kein Weg.
+  /// Ein Zwischenpunkt — von Hand auf der Linie ([LoopTune]) oder vorab
+  /// gesetzt ([planLoop]s `waypoints`) — liegt abseits jedes Wegs, oder
+  /// durch die Punkte führt kein Weg.
   viaFailed,
 }
 
@@ -133,9 +145,9 @@ enum LoopOutcome {
 class LoopTune {
   const LoopTune({required this.order, this.vias = RouteVias.none});
 
-  /// Aus einer gerechneten Runde: ihre Folge, mit [vias].
-  factory LoopTune.of(LoopPlan plan, RouteVias vias) =>
-      LoopTune(order: [for (final s in plan.stops) s.trail.id], vias: vias);
+  /// Aus einer gerechneten Runde: ihre Folge samt vorab gesetzten
+  /// Zwischenpunkten ([LoopPlan.order]), mit [vias].
+  factory LoopTune.of(LoopPlan plan, RouteVias vias) => LoopTune(order: plan.order, vias: vias);
 
   final List<String> order;
   final RouteVias vias;
@@ -259,6 +271,7 @@ class LoopPlan {
     this.stops = const [],
     this.excluded = const {},
     this.points = const [],
+    this.order = const [],
   });
 
   final LoopOutcome outcome;
@@ -273,6 +286,11 @@ class LoopPlan {
   /// „Zum Trailkopf" tragen die Verbinder (Start → erster Wegpunkt,
   /// letzter Wegpunkt → Ziel) die Linie, zählen aber nicht.
   final List<LatLng> points;
+
+  /// Die Folge der Halte als Kennungen, mit den vorab gesetzten
+  /// Zwischenpunkten ([kLoopWaypointPrefix]) — was [LoopTune] festhält.
+  /// [stops] nennt nur die Trails.
+  final List<String> order;
 
   bool get isEmpty => stops.isEmpty;
 }
@@ -364,6 +382,11 @@ class _Route {
 /// Kennung in [excluded] steht, hat der Aufrufer schon ausgeschlossen
 /// (zu weit); sie kommen so ins Ergebnis.
 ///
+/// [waypoints] (#331 Schritt 4) muss die Fahrt durchqueren, in der
+/// Reihenfolge, die am wenigsten Zeit kostet — auch über die Budgets
+/// hinaus (dann bleibt für Trails weniger). Liegt einer abseits oder ist
+/// er nicht erreichbar, heißt es [LoopOutcome.viaFailed].
+///
 /// Die Trails des Netzes liegen vorher schon auf [g] (`applyTrails`):
 /// Richtung und Verbinder kennt die Suche dann von selbst.
 ///
@@ -381,14 +404,16 @@ LoopPlan planLoop(
   Duration searchBudget = kLoopSearchBudget,
   LoopSearchCache? cache,
   LoopTune? tune,
+  List<LatLng> waypoints = const [],
 }) {
+  pool = [...pool, for (var k = 0; k < waypoints.length; k++) PoolTrail.waypoint(k, waypoints[k])];
   final out = Map<String, LoopExclusion>.of(excluded);
   final src = g.attach(start);
   if (src == null) {
     for (final t in pool) {
       out.putIfAbsent(t.id, () => LoopExclusion.unreachable);
     }
-    return LoopPlan(LoopOutcome.startOffNetwork, excluded: out);
+    return LoopPlan(LoopOutcome.startOffNetwork, excluded: _trailsOnly(out));
   }
   int? dst = returnToStart ? src : null;
   if (end != null) {
@@ -397,7 +422,7 @@ LoopPlan planLoop(
       for (final t in pool) {
         out.putIfAbsent(t.id, () => LoopExclusion.unreachable);
       }
-      return LoopPlan(LoopOutcome.endOffNetwork, excluded: out);
+      return LoopPlan(LoopOutcome.endOffNetwork, excluded: _trailsOnly(out));
     }
   }
   // Jeder Trail an den Graphen — ein Ende ohne Weg heißt „nicht
@@ -409,10 +434,13 @@ LoopPlan planLoop(
       tails.add(null);
       continue;
     }
-    final h = g.attach(t.start), e = g.attach(t.end);
+    final h = g.attach(t.start), e = t.waypoint ? h : g.attach(t.end);
     if (h == null || e == null) out[t.id] = LoopExclusion.offNetwork;
     heads.add(h);
     tails.add(e);
+  }
+  if (pool.any((t) => t.waypoint && out.containsKey(t.id))) {
+    return LoopPlan(LoopOutcome.viaFailed, excluded: _trailsOnly(out));
   }
   // Erst NACH dem Anheften: Hat es eine Kante geteilt, gilt nichts
   // Gemerktes mehr.
@@ -547,13 +575,21 @@ class _Planner {
       for (final t in pool) {
         excluded.putIfAbsent(t.id, () => LoopExclusion.unreachable);
       }
-      return LoopPlan(LoopOutcome.empty, excluded: excluded);
+      return LoopPlan(LoopOutcome.empty, excluded: _trailsOnly(excluded));
     }
     var route = bare;
+    // 0. Die vorab gesetzten Zwischenpunkte, je an die beste Stelle — auch
+    //    über die Budgets hinaus: Den Weg hat der Fahrer gewählt.
+    for (var i = 0; i < pool.length; i++) {
+      if (!pool[i].waypoint) continue;
+      final ins = bestInsertion(route, i, mustFit: false);
+      if (ins == null) return LoopPlan(LoopOutcome.viaFailed, excluded: _trailsOnly(excluded));
+      route = ins.route;
+    }
     // 1. Pflicht-Trails, in Pool-Reihenfolge, je an die beste Stelle. Was
     //    nicht passt, bleibt draußen — mit seinem Grund.
     for (var i = 0; i < pool.length; i++) {
-      if (!pool[i].mandatory || !usable(i)) continue;
+      if (!pool[i].mandatory || pool[i].waypoint || !usable(i)) continue;
       final ins = bestInsertion(route, i);
       if (ins == null) {
         excluded[pool[i].id] = bestInsertion(route, i, mustFit: false) == null
@@ -594,7 +630,7 @@ class _Planner {
         final without = evaluate([...route.seq]..removeAt(a));
         if (without == null) continue;
         for (var i = 0; i < pool.length; i++) {
-          if (!usable(i) || i == route.seq[a]) continue;
+          if (!usable(i) || pool[i].waypoint || i == route.seq[a]) continue;
           if (passes(without.seq, i) >= kLoopMaxPasses) continue;
           final ins = bestInsertion(without, i);
           if (ins != null && ins.route.beats(route)) {
@@ -626,7 +662,7 @@ class _Planner {
     // 4. Die Gründe für alles, was nicht drin ist.
     for (var i = 0; i < pool.length; i++) {
       final t = pool[i];
-      if (excluded.containsKey(t.id) || route.seq.contains(i)) continue;
+      if (t.waypoint || excluded.containsKey(t.id) || route.seq.contains(i)) continue;
       excluded[t.id] = bestInsertion(route, i, mustFit: false) == null
           ? LoopExclusion.unreachable
           : LoopExclusion.budget;
@@ -643,7 +679,7 @@ class _Planner {
       for (final id in tune.order)
         if (index[id] case final i? when usable(i)) i,
     ];
-    if (seq.isEmpty) return LoopPlan(LoopOutcome.empty, excluded: excluded);
+    if (seq.every((i) => pool[i].waypoint)) return LoopPlan(LoopOutcome.empty, excluded: _trailsOnly(excluded));
     final froms = <int>[], tos = <int>[];
     var at = src;
     for (final i in seq) {
@@ -658,7 +694,7 @@ class _Planner {
     final legs = <_Conn>[];
     for (var k = 0; k < froms.length; k++) {
       final r = pathThrough(g, froms[k], tos[k], tune.vias.of(k), p);
-      if (r.edges == null) return LoopPlan(LoopOutcome.viaFailed, excluded: excluded);
+      if (r.edges == null) return LoopPlan(LoopOutcome.viaFailed, excluded: _trailsOnly(excluded));
       legs.add(_Conn(froms[k], r.edges!, summarizePath(g, r.edges!, froms[k], p)));
     }
     var time = 0.0, climb = 0.0, hiking = 0.0, wasted = 0.0, trailM = 0.0;
@@ -676,13 +712,14 @@ class _Planner {
       wasted += c.summary.lossM;
     }
     for (var i = 0; i < pool.length; i++) {
-      if (!seq.contains(i)) excluded.putIfAbsent(pool[i].id, () => LoopExclusion.budget);
+      if (!seq.contains(i) && !pool[i].waypoint) excluded.putIfAbsent(pool[i].id, () => LoopExclusion.budget);
     }
     return _assemble(_Route(seq, legs, time, climb, hiking, wasted, trailM));
   }
 
   LoopPlan _assemble(_Route route) {
-    if (route.seq.isEmpty) return LoopPlan(LoopOutcome.empty, excluded: excluded);
+    // Nur Zwischenpunkte, kein Trail: Das ist keine Runde.
+    if (route.seq.every((i) => pool[i].waypoint)) return LoopPlan(LoopOutcome.empty, excluded: _trailsOnly(excluded));
     final sections = <LoopSection>[];
     // Die Linie beginnt am Start selbst, nicht am Anschlussknoten — wie
     // bei „Zum Trailkopf" trägt der Verbinder die Linie, zählt aber nicht.
@@ -721,6 +758,12 @@ class _Planner {
     for (final i in route.seq) {
       final t = pool[i];
       connect(at);
+      if (t.waypoint) {
+        // Ein Halt ohne Länge: Das Teilstück endet hier, das nächste
+        // beginnt hier.
+        at = tails[i]!;
+        continue;
+      }
       final second = !seen.add(i);
       sections.add(LoopSection(points: t.points, lengthM: t.lengthM, trail: t, secondPass: second));
       stops.add((trail: t, secondPass: second));
@@ -756,11 +799,17 @@ class _Planner {
         steepM: steep,
       ),
       stops: stops,
-      excluded: excluded,
+      excluded: _trailsOnly(excluded),
       points: points,
+      order: [for (final i in route.seq) pool[i].id],
     );
   }
 }
+
+/// Die Gründe ohne die vorab gesetzten Zwischenpunkte — das Blatt nennt
+/// nur Trails.
+Map<String, LoopExclusion> _trailsOnly(Map<String, LoopExclusion> m) =>
+    {for (final e in m.entries) if (!e.key.startsWith(kLoopWaypointPrefix)) e.key: e.value};
 
 /// Die Vorschau-Abschnitte einer Verbindung als [RouteSection] — damit
 /// das Blatt dieselbe Zeichenregel wie „Zum Trailkopf" nehmen kann.

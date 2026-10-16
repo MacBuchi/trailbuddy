@@ -761,6 +761,84 @@ void main() {
       expect(routeWhole(tester).first.latitude, closeTo(spring.position.latitude, 1e-9));
     });
 
+    // Über dem Trailende, noch am Forstweg: frei kehrt die Runde dort um.
+    const via = LatLng(48.0093, _lon);
+    final viaPin = find.byKey(const ValueKey('loop-waypoint-0'));
+    double northmost(WidgetTester tester) => routeWhole(tester).map((p) => p.latitude).reduce(math.max);
+
+    testWidgets('Zwischenpunkt vorab (Schritt 4): tippen, wegtippen, zurück, Runde führt hindurch', (tester) async {
+      await start(tester, areaStore: await _areaWithTrack());
+      await openPlanner(tester);
+      await zoomToTrails(tester);
+      await tapMapAt(tester, const LatLng(48.004, _lon));
+      await settle(tester);
+      await tapRail(tester, 'loop-rail-compute');
+      expect(northmost(tester), lessThan(48.0091), reason: 'frei kehrt die Runde am Trailende um');
+      await tester.tap(find.byKey(const ValueKey('loop-close')));
+      await settle(tester);
+
+      await tapRail(tester, 'loop-rail-waypoint');
+      expect(find.byKey(const ValueKey('loop-pick-banner')), findsOneWidget);
+      expect(find.textContaining('vorbeiführen soll'), findsOneWidget);
+      fakeMap(tester).move(via, 16);
+      await settle(tester, frames: 4);
+      await tapMapAt(tester, via);
+      await settle(tester);
+      expect(find.byKey(const ValueKey('loop-pick-banner')), findsNothing);
+      expect(viaPin, findsOneWidget);
+      expect(picked(tester), hasLength(1), reason: 'der Tipp war der Punkt, keine Auswahl');
+
+      // Ein Tipp auf die Nadel nimmt sie weg, Rückgängig bringt sie zurück.
+      await tapMapAt(tester, via);
+      await settle(tester);
+      expect(viaPin, findsNothing);
+      expect(find.byKey(const ValueKey('loop-waypoint-removed')), findsOneWidget);
+      await tester.tap(find.text('Rückgängig'));
+      await settle(tester);
+      expect(viaPin, findsOneWidget);
+
+      await tapRail(tester, 'loop-rail-compute');
+      expect(find.byKey(const ValueKey('loop-summary')), findsOneWidget);
+      expect(find.text('Runde'), findsOneWidget);
+      // Angeheftet wird am nächsten Knoten — hier das Ende des Forstwegs.
+      expect(northmost(tester), greaterThan(via.latitude - 1e-6), reason: 'die Runde führt durch den Punkt');
+      expect(routeWhole(tester).last.latitude, closeTo(_fromLat, 1e-9), reason: 'und zurück zum Start');
+      expect(viaPin, findsOneWidget, reason: 'die Nadel bleibt beim Ergebnis');
+    });
+
+    testWidgets('Zwischenpunkt vorab aus dem Ort-Blatt und aus den Parametern; „Alle entfernen"', (tester) async {
+      await start(tester, areaStore: await _areaWithTrack(), pois: FakePoiSource([spring]));
+      await fromPlaceSheet(tester, 'poi-plan-via');
+      expect(find.byKey(const ValueKey('loop-tool-rail')), findsOneWidget, reason: 'der Planer ist auf der Karte');
+      expect(viaPin, findsOneWidget);
+      expect(find.byKey(const ValueKey('loop-start-pin')), findsNothing, reason: 'der Start bleibt der Standort');
+
+      await tapRail(tester, 'loop-rail-params');
+      final sheetList = find.byType(Scrollable).hitTestable().last;
+      await tester.scrollUntilVisible(find.byKey(const ValueKey('loop-pick-waypoint')), 200, scrollable: sheetList);
+      expect(find.textContaining('über 1 Punkt'), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('loop-pick-waypoint')));
+      await settle(tester, frames: 10);
+      expect(find.textContaining('vorbeiführen soll'), findsOneWidget);
+      fakeMap(tester).move(via, 16);
+      await settle(tester, frames: 4);
+      await tapMapAt(tester, via);
+      await settle(tester);
+      expect(find.byKey(const ValueKey('loop-waypoint-1')), findsOneWidget);
+
+      await tapRail(tester, 'loop-rail-params');
+      final list = find.byType(Scrollable).hitTestable().last;
+      await tester.scrollUntilVisible(find.byKey(const ValueKey('loop-waypoints-clear')), 200, scrollable: list);
+      expect(find.textContaining('über 2 Punkte'), findsOneWidget);
+      await tester.ensureVisible(find.byKey(const ValueKey('loop-waypoints-clear')));
+      await settle(tester, frames: 2);
+      await tester.tap(find.byKey(const ValueKey('loop-waypoints-clear')));
+      await settle(tester);
+      // Die Liste ist dabei über den Hinweis hinaus gescrollt.
+      expect(find.textContaining('nirgends vorbei', skipOffstage: false), findsOneWidget);
+      expect(viaPin, findsNothing);
+    });
+
     testWidgets('„Zum Ziel" ohne Ziel: der Grund steht im Blatt; „Letzter Trail" endet am Trail', (tester) async {
       await start(tester, areaStore: await _areaWithTrack());
       await openPlanner(tester);
