@@ -42,6 +42,8 @@ Die Routing-Engine (#35, #158) hat ihren Plan und ihr
 Anforderungsprofil in `docs/konzept-routing.md` — eigene Engine, kein
 BRouter (Betreiber, 2026-10-01); gebaut wird erst nach der Messung aus
 dessen Abschnitt 6.
+Airtime und Trail-Werte (#36) haben ihr Konzept in
+`docs/konzept-airtime.md` — gemessen wird erst, gebaut danach.
 Offizielle Trails (#13) sind eine getrennte Ebene mit eigenem Konzept:
 `docs/konzept-offizielle-trails.md`. Gebaut von `official-trails.yml`
 (`tool/official_trails.py`, Quellen in `tool/official/sources.json`)
