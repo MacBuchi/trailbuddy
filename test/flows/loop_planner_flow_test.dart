@@ -29,6 +29,7 @@ import 'package:trailbuddy/features/routing/loop_planner_controller.dart';
 import 'package:trailbuddy/features/routing/loop_planner.dart' show LoopPlan;
 import 'package:trailbuddy/features/routing/online_fill.dart';
 import 'package:trailbuddy/features/routing/road_graph.dart' show RoadGraph;
+import 'package:trailbuddy/features/routing/route_result.dart' show kRouteDirectBudget;
 import 'package:trailbuddy/features/trails/gpx.dart';
 import 'package:trailbuddy/models/trail.dart';
 import 'package:trailbuddy/features/map/map_view/map_view.dart' show MapViewMarker;
@@ -793,6 +794,15 @@ void main() {
       // Mit Ergebnis tragen beide Enden ihre Fahne — auch der Standort.
       expect(find.byKey(const ValueKey('loop-start-pin')), findsOneWidget);
       expect(find.byKey(const ValueKey('loop-end-pin')), findsOneWidget);
+      // Ab Werk Direkt: Hexentanz ohne Stern bleibt liegen (#356 PR 7b);
+      // Spaßig nimmt ihn mit.
+      expect(find.byKey(const ValueKey('loop-stop-0')), findsNothing);
+      final fun = find.descendant(of: find.byKey(const ValueKey('loop-route-mode')), matching: find.text('Spaßig'));
+      await tester.ensureVisible(fun);
+      await settle(tester, frames: 2);
+      await tester.tap(fun);
+      await settle(tester, frames: 30);
+      expect(routeWhole(tester).last.latitude, closeTo(target.latitude, 1e-9));
 
       await tester.ensureVisible(find.byKey(const ValueKey('loop-save')));
       await settle(tester, frames: 2);
@@ -1148,6 +1158,97 @@ void main() {
       final session = ProviderScope.containerOf(tester.element(find.byType(MaterialApp))).read(loopPlannerProvider);
       expect(session.profile, RiderProfile.ebike);
       expect(session.planBare, isTrue);
+    });
+
+    testWidgets('Route mit Auswahl (#356 PR 7b): Direkt nur mit Stern, Bequem und Spaßig nehmen die Auswahl mit',
+        (tester) async {
+      final runner = _SpyRunner();
+      await start(tester, areaStore: await _areaWithTrack(), runner: () => runner);
+      await openPlanner(tester);
+      await chooseEnd(tester, 'loop-end-target');
+      const finish = LatLng(48.0092, _lon);
+      fakeMap(tester).move(const LatLng(48.004, _lon), 15);
+      await settle(tester, frames: 4);
+      await tapMapAt(tester, finish);
+      await settle(tester);
+      await tapMapAt(tester, const LatLng(48.004, _lon));
+      await settle(tester);
+      expect(picked(tester), hasLength(1));
+
+      Future<void> segment(String label) async {
+        final f = find.descendant(of: find.byKey(const ValueKey('loop-route-mode')), matching: find.text(label));
+        await tester.ensureVisible(f);
+        await settle(tester, frames: 2);
+        await tester.tap(f);
+        await settle(tester, frames: 30);
+      }
+
+      // Ab Werk Direkt: Hexentanz hat keinen Stern, also bleibt er liegen.
+      await tapRail(tester, 'loop-rail-compute');
+      expect(find.byKey(const ValueKey('loop-route-mode')), findsOneWidget, reason: 'der Stil auch mit Auswahl');
+      expect(find.byKey(const ValueKey('loop-summary')), findsOneWidget);
+      expect(runner.requests.last.pool, isEmpty, reason: 'Direkt nimmt nur Pflicht-Trails');
+      expect(runner.requests.last.bare, isTrue);
+      expect(runner.requests.last.budget.timeS, kRouteDirectBudget.timeS, reason: 'ohne Budget');
+      expect(find.byKey(const ValueKey('loop-stop-0')), findsNothing);
+      expect(find.byKey(const ValueKey('loop-direct-note')), findsOneWidget);
+
+      await segment('Bequem');
+      expect(find.byKey(const ValueKey('loop-changed')), findsNothing, reason: 'der Stil rechnet sofort (D3)');
+      expect(runner.requests.last.pool.map((t) => t.id), [hex]);
+      expect(runner.requests.last.profile.prefs.easy, isTrue, reason: 'Verbindungen mit den Kosten des Stils');
+      expect(runner.requests.last.bare, isFalse);
+      expect(runner.requests.last.budget.timeS, isNot(kRouteDirectBudget.timeS), reason: 'Budgets des Planers');
+      expect(find.descendant(of: find.byKey(const ValueKey('loop-stop-0')), matching: find.text('Hexentanz')),
+          findsOneWidget);
+      expect(find.byKey(const ValueKey('loop-easy-note')), findsOneWidget);
+      expect(find.byKey(const ValueKey('loop-direct-note')), findsNothing);
+
+      await segment('Spaßig');
+      expect(runner.requests.last.pool.map((t) => t.id), [hex]);
+      expect(runner.requests.last.profile.prefs.easy, isFalse);
+      expect(find.byKey(const ValueKey('loop-easy-note')), findsNothing);
+      expect(find.descendant(of: find.byKey(const ValueKey('loop-stop-0')), matching: find.text('Hexentanz')),
+          findsOneWidget);
+
+      // Mit Stern nimmt auch Direkt ihn mit.
+      final notifier =
+          ProviderScope.containerOf(tester.element(find.byType(MaterialApp))).read(loopPlannerProvider.notifier);
+      notifier.toggleMandatory(hex);
+      await settle(tester);
+      await segment('Direkt');
+      expect(runner.requests.last.pool.map((t) => t.id), [hex]);
+      expect(runner.requests.last.pool.single.mandatory, isTrue);
+      expect(runner.requests.last.bare, isTrue);
+      expect(find.descendant(of: find.byKey(const ValueKey('loop-stop-0')), matching: find.text('Hexentanz')),
+          findsOneWidget);
+      expect(find.byKey(const ValueKey('loop-direct-note')), findsNothing, reason: 'nichts liegen geblieben');
+    });
+
+    testWidgets('„Bergauf bequem" (#356 PR 7b): Schalter der Runde, gemerkt, rechnet mit den Kosten des Stils',
+        (tester) async {
+      final settings = FakeSettings();
+      final runner = _SpyRunner();
+      await start(tester, areaStore: await _areaWithTrack(), settings: settings, runner: () => runner);
+      await openPlanner(tester);
+      await zoomToTrails(tester);
+      await tapMapAt(tester, const LatLng(48.004, _lon));
+      await settle(tester);
+      await tapRail(tester, 'loop-rail-compute');
+      expect(runner.requests.last.profile.prefs.easy, isFalse, reason: 'ab Werk aus');
+      expect(find.byKey(const ValueKey('loop-easy-note')), findsNothing);
+      expect(find.byKey(const ValueKey('loop-route-mode')), findsNothing, reason: 'die Runde hat keinen Stil');
+
+      await chooseEnd(tester, 'loop-easy-up');
+      expect(settings.loopPlannerPrefs, contains('u=1'));
+      await tester.tapAt(const Offset(10, 10));
+      await settle(tester);
+      expect(find.byKey(const ValueKey('loop-changed')), findsOneWidget, reason: 'ein Regler, kein Stil (D3)');
+      await tester.tap(find.byKey(const ValueKey('loop-recompute')));
+      await settle(tester, frames: 30);
+      expect(runner.requests.last.profile.prefs.easy, isTrue);
+      expect(runner.requests.last.pool.map((t) => t.id), [hex], reason: 'die Trails bleiben');
+      expect(find.byKey(const ValueKey('loop-easy-note')), findsOneWidget);
     });
   });
 

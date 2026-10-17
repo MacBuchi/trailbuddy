@@ -1145,10 +1145,12 @@ Beides rechnet beim Umschalten sofort (D3), ohne „Neu rechnen".
   Route — Pflicht-Trails und Zwischenpunkte wie seit 0.126.0, nie in
   der Reihenfolge des Antippens.
 
-*Stand 0.130.0 (#356 PR 6 und 7a):* Die Route ohne Auswahl rechnet im
-Planer, mit Direkt, Bequem und Spaßig und den Zwischenpunkten; mit
-Auswahl ist „Zum Ziel" bis PR 7b das bisherige (Budgets des Planers,
-also Spaßig), und „Bergauf bequem" für die Runde kommt dort mit. Die
+*Stand 0.131.0 (#356 PR 6, 7a und 7b):* Gebaut wie beschrieben — die
+Route mit und ohne Auswahl in allen drei Stilen, „Bergauf bequem" in den
+Parametern. Der Schalter gilt für die Runde UND für „am letzten Trail"
+(beide haben keinen Stil im Ergebnis); zu einem Ziel entscheidet der
+Stil. Direkt mit Auswahl ohne Stern ist die Route von A nach B, und das
+Blatt sagt, dass die übrige Auswahl bei Bequem und Spaßig mitkommt. Die
 Wahl Runde | Route heißt in den Parametern noch „Ende der Fahrt".
 
 Gemerkt wird wie bisher (2.3): Ziel, Stil und Regler ja, der Zielpunkt
