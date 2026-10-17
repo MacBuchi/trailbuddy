@@ -1,47 +1,49 @@
-// Der Rechen-Isolate des Planers (#188): rechnet dasselbe wie an Ort und
-// Stelle, schickt jeden Graphen nur einmal, lässt den eigenen Graphen
-// unverändert, meldet Fehler und erholt sich nach dem Freigeben.
+// Der Rechen-Isolate des Planers (#188, #356 PR 8): baut den Graphen
+// drüben aus Kachel-Bytes, rechnet dasselbe wie an Ort und Stelle, hält
+// den Graphen, meldet Fehler und erholt sich nach dem Freigeben.
 //
 // Echte Isolate — deshalb `test`, nicht `testWidgets` (in der Zone mit
 // falscher Uhr antwortet keiner; der Harness nimmt die Inline-Fassung).
 import 'dart:isolate';
 import 'dart:math' as math;
+import 'dart:typed_data';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:trailbuddy/core/line_geometry.dart';
+import 'package:trailbuddy/features/offline_areas/height_tiles.dart';
+import 'package:trailbuddy/features/routing/graph_input.dart';
 import 'package:trailbuddy/features/routing/loop_plan_runner.dart';
 import 'package:trailbuddy/features/routing/loop_plan_runner_io.dart';
 import 'package:trailbuddy/features/routing/loop_planner.dart';
 import 'package:trailbuddy/features/routing/road_graph.dart';
 import 'package:trailbuddy/features/routing/route_profile.dart';
 
-List<LatLng> _m(List<(double, double)> xy) {
-  final proj = FlatProjection(47.5);
-  final o = proj.xy(const LatLng(47.5, 11.5));
-  return [for (final (x, y) in xy) proj.latLng(math.Point(o.x + x, o.y + y))];
-}
+import '../fakes/graph_tiles.dart';
+
+const _lat0 = 47.5, _lon0 = 11.5;
+final _proj = FlatProjection(_lat0);
+final _o = _proj.xy(const LatLng(_lat0, _lon0));
+
+List<LatLng> _m(List<(double, double)> xy) => [for (final (x, y) in xy) _proj.latLng(math.Point(_o.x + x, _o.y + y))];
 
 /// Das Quadrat aus `loop_planner_test.dart`: 1 km Forstweg je Kante,
-/// 100 hm hinauf und hinunter.
-RoadGraph _square() {
+/// nach Norden 100 hm hinauf — als Kacheln, wie der Lader sie liest, mit
+/// einer Höhenfläche, die 100 m je km steigt.
+GraphInput _square() {
   WayLine way(List<(double, double)> xy) => WayLine(cls: WayClass.forstweg, oneway: false, points: _m(xy));
-  final g = buildRoadGraph([
+  final roads = roadTilesOf([
     way([(0, 0), (0, 1000)]),
     way([(0, 1000), (1000, 1000)]),
     way([(1000, 1000), (1000, 0)]),
     way([(1000, 0), (0, 0)]),
-  ], lat0: 47.5).graph;
-  for (final e in g.edges) {
-    final dy = g.nodes[e.b].y - g.nodes[e.a].y;
-    if (dy.abs() > 1) {
-      e.gain = dy > 0 ? 100 : 0;
-      e.loss = dy > 0 ? 0 : 100;
-    }
-    e.hasHeights = true;
-  }
-  return g;
+  ]);
+  return GraphInput(
+    roads: roads,
+    heights: heightTilesOf([for (final r in roads) r.tile], (p) => 1000 + (_proj.xy(p).y - _o.y) / 10),
+    lat0: _lat0,
+  );
 }
 
 PoolTrail _trail(String id, (double, double) from, (double, double) to) => PoolTrail(
@@ -92,65 +94,97 @@ class _BrokenRider implements RiderParams {
 }
 
 void main() {
-  test('rechnet dasselbe wie an Ort und Stelle, und der eigene Graph bleibt, wie er war', () async {
-    final inline = await InlineLoopPlanRunner().plan(_square(), _request());
-    final runner = IsolateLoopPlanRunner();
-    addTearDown(runner.dispose);
-    final g = _square();
-    final edges = g.edges.length, nodes = g.nodes.length;
-    final plan = await runner.plan(g, _request());
-    expect(plan.outcome, LoopOutcome.ok);
-    expect(plan.stops.map((s) => s.trail.id), inline.stops.map((s) => s.trail.id));
-    expect(plan.summary!.trailM, inline.summary!.trailM);
-    expect(plan.summary!.gainM, inline.summary!.gainM);
-    expect(plan.summary!.timeS, inline.summary!.timeS);
-    expect(plan.points.length, inline.points.length);
-    expect((g.edges.length, g.nodes.length), (edges, nodes),
-        reason: 'angeheftet wird drüben, auf der Kopie');
+  test('die Eingabe trägt das Quadrat: vier Kanten, Höhen aus dem Raster', () async {
+    final built = buildGraphFrom(_square());
+    expect(built.graph.edges, hasLength(4));
+    expect(built.report.edgesWithoutHeights, 0);
+    final up = built.graph.edges.where((e) => e.gain > 90 && e.loss < 5);
+    final down = built.graph.edges.where((e) => e.loss > 90 && e.gain < 5);
+    expect(up, hasLength(1), reason: 'die Westkante steigt nach Norden');
+    expect(down, hasLength(1), reason: 'die Ostkante fällt nach Süden');
   });
 
-  test('derselbe Graph geht nur einmal hinüber, ein neuer wieder', () async {
+  test('baut drüben und rechnet dasselbe wie an Ort und Stelle', () async {
+    final inline = InlineLoopPlanRunner();
+    final inlineReport = await inline.build(_square());
+    final want = await inline.plan(_request());
+    expect(want.outcome, LoopOutcome.ok);
     final runner = IsolateLoopPlanRunner();
     addTearDown(runner.dispose);
-    final g = _square();
-    await runner.plan(g, _request());
-    await runner.plan(g, _request());
-    expect(runner.graphSends, 1);
-    await runner.plan(_square(), _request());
-    expect(runner.graphSends, 2);
+    expect(runner.hasGraph, isFalse);
+    final report = await runner.build(_square());
+    expect(runner.hasGraph, isTrue);
+    expect((report.nodes, report.edges), (inlineReport.nodes, inlineReport.edges));
+    expect(report.builtIn, isNot(Isolate.current.debugName), reason: 'gebaut im Rechen-Isolate, nicht hier');
+    expect(inlineReport.builtIn, 'inline');
+    final plan = await runner.plan(_request());
+    expect(plan.outcome, LoopOutcome.ok);
+    expect(plan.stops.map((s) => s.trail.id), want.stops.map((s) => s.trail.id));
+    expect(plan.summary!.trailM, want.summary!.trailM);
+    expect(plan.summary!.gainM, want.summary!.gainM);
+    expect(plan.summary!.timeS, want.summary!.timeS);
+    expect(plan.points.length, want.points.length);
+  });
+
+  test('ohne Bau keine Rechnung; ein zweiter Bau ersetzt den ersten', () async {
+    final runner = IsolateLoopPlanRunner();
+    addTearDown(runner.dispose);
+    expect(() => runner.plan(_request()), throwsStateError);
+    await runner.build(_square());
+    await runner.plan(_request());
+    await runner.plan(_request());
+    expect(runner.builds, 1);
+    await runner.build(_square());
+    expect(runner.builds, 2);
+    expect((await runner.plan(_request())).outcome, LoopOutcome.ok);
   });
 
   test('ein Fehler in der Rechnung kommt als Fehler an, der Isolate rechnet weiter', () async {
     final runner = IsolateLoopPlanRunner();
     addTearDown(runner.dispose);
-    final g = _square();
-    await expectLater(runner.plan(g, _request(profile: const _BrokenRider())),
+    await runner.build(_square());
+    await expectLater(runner.plan(_request(profile: const _BrokenRider())),
         throwsA(isA<RemoteError>().having((e) => e.toString(), 'Meldung', contains('kaputtes Profil'))));
-    final plan = await runner.plan(g, _request());
+    expect(runner.hasGraph, isTrue);
+    final plan = await runner.plan(_request());
     expect(plan.outcome, LoopOutcome.ok);
-    expect(runner.graphSends, 1);
+    expect(runner.builds, 1);
   });
 
-  test('Freigeben während des Starts lässt die Rechnung scheitern, die nächste legt neu an', () async {
+  test('ein kaputter Eingang lässt den Bau scheitern, nicht den Isolate', () async {
     final runner = IsolateLoopPlanRunner();
-    final g = _square();
-    final pending = runner.plan(g, _request());
+    addTearDown(runner.dispose);
+    // Eine Höhenkachel ohne Raster: Die erste Probe greift ins Leere.
+    final square = _square();
+    final broken = GraphInput(
+        roads: square.roads,
+        heights: HeightTiles({for (final k in square.heights!.tiles.keys) k: HeightTile(Int16List(1))}),
+        lat0: _lat0);
+    await expectLater(runner.build(broken), throwsA(isA<RemoteError>()));
+    expect(runner.hasGraph, isFalse);
+    await runner.build(_square());
+    expect((await runner.plan(_request())).outcome, LoopOutcome.ok);
+  });
+
+  test('Freigeben während des Starts lässt den Bau scheitern, der nächste legt neu an', () async {
+    final runner = IsolateLoopPlanRunner();
+    final pending = runner.build(_square());
     runner.dispose();
     await expectLater(pending, throwsA(isA<StateError>()));
-    final plan = await runner.plan(g, _request());
-    expect(plan.outcome, LoopOutcome.ok);
-    expect(runner.graphSends, 1, reason: 'der erste Start kam nie so weit');
+    await runner.build(_square());
+    expect((await runner.plan(_request())).outcome, LoopOutcome.ok);
     runner.dispose();
   });
 
-  test('Freigeben nach einer Rechnung: der neue Isolate bekommt den Graphen noch einmal', () async {
+  test('Freigeben nach einem Bau: der Graph ist weg, der nächste Bau legt neu an', () async {
     final runner = IsolateLoopPlanRunner();
-    final g = _square();
-    await runner.plan(g, _request());
+    await runner.build(_square());
     runner.dispose();
-    final plan = await runner.plan(g, _request());
-    expect(plan.outcome, LoopOutcome.ok);
-    expect(runner.graphSends, 2);
+    expect(runner.hasGraph, isFalse);
+    expect(() => runner.plan(_request()), throwsStateError);
+    await runner.build(_square());
+    expect((await runner.plan(_request())).outcome, LoopOutcome.ok);
+    expect(runner.builds, 2);
     runner.dispose();
   });
 

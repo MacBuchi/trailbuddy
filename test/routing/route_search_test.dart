@@ -387,6 +387,28 @@ void main() {
       expect(r.edgesWithoutHeights, r.graph!.edges.length);
     });
 
+    test('über der Grenze wird kein Archiv geöffnet: „zu groß" vor dem Lesen (#356 PR 8)', () async {
+      final store = await seed(withTile: true);
+      var opened = 0;
+      final open = openFrom(store);
+      Future<PmTilesVectorTileProvider?> counting(StoredArea a) {
+        opened++;
+        return open(a);
+      }
+
+      final wide = LatBox(bounds.south + 1e-4, bounds.west + 1e-4, bounds.north - 1e-4, bounds.east + 0.01);
+      final r = await readRoadTiles(areas: await store.list(), box: wide, open: counting, maxTiles: 1);
+      expect(r.tooLarge, isTrue);
+      expect(r.tilesNeeded, 2);
+      expect(r.tilesFound, 0);
+      expect(opened, 0, reason: 'nichts gelesen');
+      final ok = await readRoadTiles(areas: await store.list(), box: wide, open: counting, maxTiles: 2);
+      expect(ok.tooLarge, isFalse);
+      expect(ok.tilesFound, 1);
+      expect(opened, 1);
+      expect(kPlanMaxTiles, greaterThan(kOnlineFillMaxTiles), reason: 'die Grenze liegt über dem, was online kommt');
+    });
+
     test('fehlt die Kachel, gibt es keinen Graphen — und ohne Bereich auch nicht', () async {
       final store = await seed(withTile: false);
       final r = await loadRoadGraph(areas: await store.list(), box: box, open: openFrom(store));

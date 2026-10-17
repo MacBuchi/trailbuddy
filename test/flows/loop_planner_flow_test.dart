@@ -23,11 +23,15 @@ import 'package:trailbuddy/features/offline_areas/area_store.dart';
 import 'package:trailbuddy/features/offline_areas/pmtiles_writer.dart';
 import 'package:trailbuddy/features/map/pmtiles_tile_provider.dart';
 import 'package:trailbuddy/features/profile/profile_providers.dart';
+import 'package:trailbuddy/features/routing/graph_input.dart';
 import 'package:trailbuddy/features/routing/loop_plan_runner.dart';
 import 'package:trailbuddy/features/routing/route_profile.dart' show RiderProfile;
 import 'package:trailbuddy/features/routing/loop_planner_controller.dart';
 import 'package:trailbuddy/features/routing/loop_planner.dart' show LoopPlan;
 import 'package:trailbuddy/features/routing/online_fill.dart';
+import 'package:trailbuddy/features/rides/road_index.dart' show RoadCoverage;
+import 'package:trailbuddy/features/routing/planning_graph.dart';
+import 'package:trailbuddy/features/routing/road_graph_loader.dart' show kPlanMaxTiles;
 import 'package:trailbuddy/features/routing/road_graph.dart' show RoadGraph;
 import 'package:trailbuddy/features/routing/route_result.dart' show kRouteDirectBudget;
 import 'package:trailbuddy/features/trails/gpx.dart';
@@ -122,30 +126,54 @@ class _SpyRunner implements LoopPlanRunner {
   LoopPlan? last;
 
   @override
-  Future<LoopPlan> plan(RoadGraph graph, LoopRequest request) async {
+  Future<GraphReport> build(GraphInput input) => _inline.build(input);
+
+  @override
+  bool get hasGraph => _inline.hasGraph;
+
+  @override
+  Future<LoopPlan> plan(LoopRequest request) async {
     requests.add(request);
-    return last = await _inline.plan(graph, request);
+    return last = await _inline.plan(request);
   }
 
   @override
-  void dispose() {}
+  void dispose() => _inline.dispose();
 }
 
 /// Ein Runner, der erst antwortet, wenn der Test es sagt — wie der
-/// Rechen-Isolate auf dem Telefon, der eine Weile braucht (#188).
+/// Rechen-Isolate auf dem Telefon, der eine Weile braucht (#188). Gebaut
+/// wird sofort, an Ort und Stelle (#356 PR 8); der Test rechnet die
+/// gehaltene Anfrage auf DEM Graphen, den der Runner hält.
 class _HeldRunner implements LoopPlanRunner {
   final held = <({RoadGraph graph, LoopRequest request, Completer<LoopPlan> done})>[];
   var disposed = 0;
+  var builds = 0;
+  RoadGraph? _graph;
 
   @override
-  Future<LoopPlan> plan(RoadGraph graph, LoopRequest request) {
+  Future<GraphReport> build(GraphInput input) async {
+    builds++;
+    final built = buildGraphFrom(input, builtIn: 'held');
+    _graph = built.graph;
+    return built.report;
+  }
+
+  @override
+  bool get hasGraph => _graph != null;
+
+  @override
+  Future<LoopPlan> plan(LoopRequest request) {
     final done = Completer<LoopPlan>();
-    held.add((graph: graph, request: request, done: done));
+    held.add((graph: _graph!, request: request, done: done));
     return done.future;
   }
 
   @override
-  void dispose() => disposed++;
+  void dispose() {
+    disposed++;
+    _graph = null;
+  }
 }
 
 void main() {
@@ -708,6 +736,40 @@ void main() {
     await settle(tester);
     expect(find.byKey(const ValueKey('loop-not-pickable')), findsOneWidget);
     expect(picked(tester), isEmpty);
+  });
+
+  testWidgets('„Gebiet zu groß" (#356 PR 8): der Lader zählt, das Blatt sagt die Zahlen und den Rat', (tester) async {
+    await start(tester, areaStore: await _areaWithTrack(), extra: [
+      planningGraphLoaderProvider.overrideWithValue((box, {fillOnline = true}) async =>
+          const PlanningGraph(coverage: RoadCoverage.none, tilesFound: 0, tilesNeeded: 999, tooLarge: true)),
+    ]);
+    await openPlanner(tester);
+    final planner = ProviderScope.containerOf(tester.element(find.byType(MaterialApp))).read(loopPlannerProvider.notifier);
+    planner.setSelected([hex], true);
+    await settle(tester);
+    await tapRail(tester, 'loop-rail-compute');
+    await settle(tester, frames: 30);
+    expect(find.byKey(const ValueKey('loop-blocker')), findsOneWidget);
+    expect(find.textContaining('zu groß: 999 Kacheln, mehr als $kPlanMaxTiles'), findsOneWidget);
+    expect(find.textContaining('Verkleinere den Radius'), findsOneWidget);
+    expect(find.byKey(const ValueKey('loop-summary')), findsNothing);
+  });
+
+  testWidgets('Verbinder weit draußen vergrößern den Rahmen nicht mehr (#356 PR 8)', (tester) async {
+    // Ein Uphill-Trail 17 km nördlich, im Radius der Liste (30 km) — bis
+    // 0.131.0 zog er den Rahmen des Graphen bis zu sich (rund 30 Kacheln).
+    trails.seedTrail(backend.currentUserId!, name: 'Fernauffahrt', lat: 48.15, lon: 9.0, traits: {TrailTrait.uphill});
+    final settings = FakeSettings()..loopPlannerPrefs = 'h=3.0;c=800.0;w=1.0;r=1;k=30.0;o=0';
+    await start(tester, areaStore: await _areaWithTrack(), settings: settings);
+    await openPlanner(tester);
+    final container = ProviderScope.containerOf(tester.element(find.byType(MaterialApp)));
+    container.read(loopPlannerProvider.notifier).setSelected([hex], true);
+    await settle(tester);
+    await tapRail(tester, 'loop-rail-compute');
+    await settle(tester, frames: 30);
+    expect(find.byKey(const ValueKey('loop-summary')), findsOneWidget);
+    final coverage = container.read(loopPlannerProvider).coverage!;
+    expect(coverage.tilesNeeded, lessThan(6), reason: 'nur der Rahmen um Standort und Hexentanz');
   });
 
   testWidgets('Parameter: Regler, Radius, Start auf der Karte und zurück zum Standort', (tester) async {

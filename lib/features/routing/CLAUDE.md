@@ -305,6 +305,36 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     über 15-fach UND 20 s), und `perf_loop_planner_measure.dart` baut seit
     #356 mit Kreuzungsteilung — dort zeigte sich das Senden des Graphen
     als längste Pause (1,8 s bei 62 600 Kanten, `docs/routing-messung.md`).
+    **Seit 0.131.1 wird der Graph im Rechen-Isolate GEBAUT** (#356 PR 8,
+    Konzept-Routing 10.6): Der UI-Isolate sammelt nur Bytes —
+    `readRoadTiles` (Wege- und Wege-Archiv-Kacheln, nichts dekodiert),
+    `HeightTiles.read` (die Höhenraster der gefundenen Kacheln, denn
+    drüben gibt es weder Kachelspeicher noch Netz), `graphTrailsOf` — als
+    `GraphInput` (`graph_input.dart`, rein); der Runner baut daraus
+    (`build`, `buildGraphFrom`: dekodieren, `buildRoadGraph`,
+    `addClimbsFrom` synchron, Güte, Trails auflegen, Enden anheften) und
+    behält den Graphen, `plan` schickt nur noch die Anfrage. Der
+    Controller hält KEINEN `RoadGraph` mehr, nur Rahmen, Start und
+    Schalter des gebauten (`_graphBox`, `_hasGraph` fragt den Runner);
+    nach „Rückgängig" baut der neue Runner aus denselben Bytes
+    denselben Graphen (die Zwischenpunkte sind Koordinaten).
+    `graph_isolation_test` wacht strukturell (Controller und Lader ohne
+    `buildRoadGraph`/`applyTrails`/`RoadGraph`, die Naht ohne Flutter,
+    Riverpod, Isolate, Speicher), der Runner-Test am Namen des Isolates.
+    Gemessen (`routing-messung.md`, „nach PR 8"): die Pause im UI-Isolate
+    von 1,8 s auf ~25 ms (544 KB Bytes statt 65 000 Kanten), der Bau
+    selbst gleich teuer, nur woanders. **Vor dem Lesen zählt der Lader**
+    (`kPlanMaxTiles`, VORLÄUFIG 300 bis zur Messung am Pixel —
+    `LoopBlocker.tooLarge`, `loopBlockerTooLarge`/`routeBlockerTooLarge`
+    mit Zahlen und Rat), und **Verbinder kommen nur in der Nähe der
+    Anker in den Rahmen** (`kPlanConnectorMarginM`, 3 km um Start, Ziel,
+    Zwischenpunkte, gewählte Trails und die des Umwegs; bis 0.131.0 alle
+    im Radius der Liste — ein 60 × 60-km-Rahmen für eine 12-km-Runde).
+    Noch im UI-Isolate gebaut, aus denselben Bytes: „Zurück zur Route"
+    (`nav.graph`) und die Kalibrierung (`loadRoadGraph` = lesen + Höhen +
+    `buildRoadGraphFrom`) — PR 9. Tests, die Kacheln brauchen, kodieren
+    sie mit `test/fakes/graph_tiles.dart` (`roadTilesOf`, `heightTilesOf`);
+    `_HeldRunner` im Flow-Test baut sofort inline und hält nur `plan`.
     **Keine verschachtelten Records als Schlüssel oder Element in
     heißen Schleifen** (`Set<((int, int), (int, int))>`): Jedes `add`
     fällt in die langsame Typprüfung der VM (`SlowTypeTest` →

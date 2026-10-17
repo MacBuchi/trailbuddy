@@ -246,18 +246,9 @@ class HeightReader {
   /// Ränder sind geteilt, es ist dieselbe Zahl. Ohne diese Regel war ein
   /// Weg am Rand des einzigen Bereichs „ohne Höhe".
   Future<double?> heightAt(LatLng p) async {
-    final t = heightTileOf(p);
-    final tile = await tileAt(t.x, t.y);
-    if (tile != null) return tile.at(t.fx, t.fy);
-    const eps = 1e-9;
-    final xs = [(t.x, t.fx), if (t.fx <= eps) (t.x - 1, 1.0), if (t.fx >= 1 - eps) (t.x + 1, 0.0)];
-    final ys = [(t.y, t.fy), if (t.fy <= eps) (t.y - 1, 1.0), if (t.fy >= 1 - eps) (t.y + 1, 0.0)];
-    for (final (x, fx) in xs) {
-      for (final (y, fy) in ys) {
-        if (x == t.x && y == t.y) continue;
-        final edge = await tileAt(x, y);
-        if (edge != null) return edge.at(fx, fy);
-      }
+    for (final c in heightTileCandidates(p)) {
+      final tile = await tileAt(c.x, c.y);
+      if (tile != null) return tile.at(c.fx, c.fy);
     }
     return null;
   }
@@ -296,6 +287,80 @@ class HeightReader {
     for (final s in sources) {
       await s.close();
     }
+  }
+}
+
+/// Wo ein Punkt in den Höhenkacheln zu lesen ist: seine Kachel zuerst,
+/// dann — nur GENAU auf einer Kachelkante — die Nachbarn an ihrem Rand
+/// (die Ränder sind geteilt, es ist dieselbe Zahl; Regel bei
+/// [HeightReader.heightAt]). Für den Leser der Bereiche und den
+/// synchronen aus vorab gelesenen Kacheln ([HeightTiles]) dieselbe Liste.
+List<({int x, int y, double fx, double fy})> heightTileCandidates(LatLng p) {
+  final t = heightTileOf(p);
+  const eps = 1e-9;
+  final xs = [(t.x, t.fx), if (t.fx <= eps) (t.x - 1, 1.0), if (t.fx >= 1 - eps) (t.x + 1, 0.0)];
+  final ys = [(t.y, t.fy), if (t.fy <= eps) (t.y - 1, 1.0), if (t.fy >= 1 - eps) (t.y + 1, 0.0)];
+  return [
+    (x: t.x, y: t.y, fx: t.fx, fy: t.fy),
+    for (final (x, fx) in xs)
+      for (final (y, fy) in ys)
+        if (x != t.x || y != t.y) (x: x, y: y, fx: fx, fy: fy),
+  ];
+}
+
+/// Vorab gelesene Höhenkacheln, synchron zu lesen — das, was der
+/// Rechen-Isolate des Planers bekommt (#356 PR 8): Ein Isolate kann
+/// weder den Kachelspeicher noch das Netz fragen, also liest der
+/// UI-Isolate die Kacheln des Rahmens vorher ([read]) und schickt nur
+/// die Raster hinüber. Dieselbe Ablesung und dieselbe Randregel wie
+/// [HeightReader]; eine Kachel, die hier fehlt, heißt „keine Höhe".
+class HeightTiles {
+  HeightTiles(this.tiles);
+
+  /// Schlüssel wie [HeightReader.tileAt]: `(x << zoom) | y`.
+  final Map<int, HeightTile> tiles;
+
+  static int keyOf(int x, int y) => (x << kHeightTileZoom) | y;
+
+  bool get isEmpty => tiles.isEmpty;
+  int get length => tiles.length;
+
+  /// Liest die Kacheln [xy] über [reader] — die erste Quelle, die eine
+  /// hat, liefert; was keine Quelle hat, fehlt hier.
+  static Future<HeightTiles> read(HeightReader reader, Iterable<({int x, int y})> xy) async {
+    final out = <int, HeightTile>{};
+    for (final t in xy) {
+      final key = keyOf(t.x, t.y);
+      if (out.containsKey(key)) continue;
+      final tile = await reader.tileAt(t.x, t.y);
+      if (tile != null) out[key] = tile;
+    }
+    return HeightTiles(out);
+  }
+
+  HeightTile? tileAt(int x, int y) => tiles[keyOf(x, y)];
+
+  /// Wie [HeightReader.heightAt], synchron.
+  double? heightAt(LatLng p) {
+    for (final c in heightTileCandidates(p)) {
+      final tile = tileAt(c.x, c.y);
+      if (tile != null) return tile.at(c.fx, c.fy);
+    }
+    return null;
+  }
+
+  /// Wie [HeightReader.profileAlong], synchron.
+  ({List<double> heights, List<double> stepsM})? profileAlong(List<LatLng> line, {double sampleM = kClimbSampleM}) {
+    if (line.length < 2) return (heights: <double>[], stepsM: <double>[]);
+    final proj = FlatProjection(line.first.latitude);
+    final xy = resampleXy(proj.line(line), sampleM);
+    final heights = <double>[];
+    for (final p in xy) {
+      final h = heightAt(proj.latLng(p));
+      if (h == null) return null;
+      heights.add(h);
+    }
+    return (heights: heights, stepsM: [for (var i = 1; i < xy.length; i++) xy[i - 1].distanceTo(xy[i])]);
   }
 }
 

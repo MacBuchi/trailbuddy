@@ -1,17 +1,20 @@
-// Messung, kein Test (#188, „Plan duration"): Wie lange rechnet der
-// Rundenplaner bei großer Auswahl? Er läuft im UI-Isolate; das Konzept
-// verlangt < 5 s auf dem Telefon, und ab einer spürbaren Pause gehört er
-// in ein Isolate.
+// Messung, kein Test (#188, „Plan duration"; #356 PR 8, „Bau drüben"):
+// Wie lange rechnet der Rundenplaner bei großer Auswahl, und was davon
+// sieht der UI-Isolate? Das Konzept verlangt < 5 s für die erste Runde
+// auf dem Telefon und ≤ 200 ms längsten Block im Haupt-Thread
+// (Konzept-Routing 10.7).
 //
 // Läuft NICHT in CI (kein `_test.dart`), sondern von Hand:
 //   flutter test test/routing/perf_loop_planner_measure.dart
-// Die Zahlen gehören nach docs/routing-messung.md. Je Zeile: Dauer an Ort
-// und Stelle (= so lange steht die Oberfläche), dann im Rechen-Isolate
-// (`loop_plan_runner.dart`) die erste Rechnung (Graph geht hinüber), eine
-// zweite auf demselben Graphen und eine dritte mit einem Trail weniger —
-// beide seit 0.80.2 aus den gemerkten Suchen (`LoopSearchCache`) —, je
-// Dauer / längste Pause des UI-Takts, alles in ms. Die Rechenzeit auf dem Rechner (JIT) ist eine
-// untere Grenze; das Telefon ist langsamer.
+// Die Zahlen gehören nach docs/routing-messung.md. Je Zeile: Bau an Ort
+// und Stelle (= so lange stand die Oberfläche bis 0.131.0), dann im
+// Rechen-Isolate (`loop_plan_runner.dart`) der Bau aus den Kachel-Bytes
+// (Dauer / längste Pause des UI-Takts — die Pause ist das Senden der
+// Bytes), die erste Rechnung, eine zweite auf demselben Graphen und eine
+// dritte mit einem Trail weniger — beide seit 0.80.2 aus den gemerkten
+// Suchen (`LoopSearchCache`) —, je Dauer / Pause, alles in ms. Die
+// Rechenzeit auf dem Rechner (JIT) ist eine untere Grenze; das Telefon
+// ist langsamer.
 //
 // Das Netz ist erfunden, aber so groß wie der dichteste Tirol-Rahmen
 // (M1/M5: 24 722 Wegstücke auf 20 km): ein Gitter über 25 × 25 km mit
@@ -23,21 +26,26 @@
 // Seit #356 mit Kreuzungsteilung wie in der App: Eine dritte Schar
 // Nebenstraßen liegt eine halbe Masche versetzt, ihre Kreuzungen teilen
 // keinen Scheitel und gehen durch `findCrossings` (bis dahin baute das
-// Skript mit `splitCrossings: false`, #354 war so nie gemessen). Die Zeit
-// des Baus ist eine JIT-Zahl; der AOT-Fall aus #354 zeigt sich nur auf dem
-// Gerät (Stall-Wächter, `lib/core/stall_watch.dart`).
+// Skript mit `splitCrossings: false`, #354 war so nie gemessen). Seit
+// PR 8 wird das Gitter als z13-Kacheln kodiert (`graph_tiles.dart`) und
+// die Höhen als Raster je Kachel — der Weg der App, Byte für Byte. Die
+// Zeit des Baus ist eine JIT-Zahl; der AOT-Fall aus #354 zeigt sich nur
+// auf dem Gerät (Stall-Wächter, `lib/core/stall_watch.dart`).
 import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:trailbuddy/core/line_geometry.dart';
+import 'package:trailbuddy/features/routing/graph_input.dart';
 import 'package:trailbuddy/features/routing/loop_plan_runner.dart';
 import 'package:trailbuddy/features/routing/loop_plan_runner_io.dart';
 import 'package:trailbuddy/features/routing/loop_planner.dart';
 import 'package:trailbuddy/features/routing/road_graph.dart';
 import 'package:trailbuddy/features/routing/route_profile.dart';
 import 'package:trailbuddy/features/routing/trail_overlay.dart';
+
+import '../fakes/graph_tiles.dart';
 
 const _lat0 = 47.3, _lon0 = 11.4;
 const _sizeM = 25000.0, _stepM = 200.0;
@@ -71,41 +79,38 @@ void main() {
   final n = (_sizeM / _stepM).round() + 1;
   const classes = [WayClass.forstweg, WayClass.wanderweg, WayClass.forstweg, WayClass.nebenstrasse];
 
-  var crossings = 0;
-  ({RoadGraph g, Duration build}) graph() {
-    final clock = Stopwatch()..start();
-    final lines = <WayLine>[
-      for (var i = 0; i < n; i++) ...[
-        WayLine(
-            cls: classes[i % classes.length],
-            oneway: false,
-            points: [for (var j = 0; j < n; j++) at(i * _stepM, j * _stepM)]),
-        WayLine(
-            cls: classes[(i + 1) % classes.length],
-            oneway: false,
-            points: [for (var j = 0; j < n; j++) at(j * _stepM, i * _stepM)]),
-        if (i + 1 < n)
+  /// Das Gitter als Linien in Grad — was im Archiv als Kacheln liegt.
+  List<WayLine> lines() => [
+        for (var i = 0; i < n; i++) ...[
           WayLine(
-              cls: WayClass.nebenstrasse,
+              cls: classes[i % classes.length],
               oneway: false,
-              points: [for (var j = 0; j < n - 1; j++) at(j * _stepM + _stepM / 2, i * _stepM + _stepM / 2)]),
-      ],
-    ];
-    final build = buildRoadGraph(lines, lat0: _lat0);
-    final g = build.graph;
-    crossings = build.crossings;
-    for (final e in g.edges) {
-      final a = g.nodes[e.a], b = g.nodes[e.b];
-      final ha = _height(a.x - o.x, a.y - o.y), hb = _height(b.x - o.x, b.y - o.y);
-      final d = hb - ha;
-      e.gain = math.max(0, d);
-      e.loss = math.max(0, -d);
-      final over = math.max(0.0, d.abs() - kSteepGrade * e.length);
-      e.steepUp = d > 0 ? over : 0;
-      e.steepDown = d < 0 ? over : 0;
-      e.hasHeights = true;
-    }
-    return (g: g, build: clock.elapsed);
+              points: [for (var j = 0; j < n; j++) at(i * _stepM, j * _stepM)]),
+          WayLine(
+              cls: classes[(i + 1) % classes.length],
+              oneway: false,
+              points: [for (var j = 0; j < n; j++) at(j * _stepM, i * _stepM)]),
+          if (i + 1 < n)
+            WayLine(
+                cls: WayClass.nebenstrasse,
+                oneway: false,
+                points: [for (var j = 0; j < n - 1; j++) at(j * _stepM + _stepM / 2, i * _stepM + _stepM / 2)]),
+        ],
+      ];
+
+  /// Die Eingabe des Planers: Kacheln, Höhenraster, Trails — wie sie der
+  /// UI-Isolate sammelt und hinüberschickt.
+  GraphInput input(List<GraphTrail> overlay) {
+    final roads = roadTilesOf(lines());
+    return GraphInput(
+      roads: roads,
+      heights: heightTilesOf([for (final r in roads) r.tile], (p) {
+        final xy = proj.xy(p);
+        return _height(xy.x - o.x, xy.y - o.y);
+      }),
+      trails: overlay,
+      lat0: _lat0,
+    );
   }
 
   /// [count] Trails, die das Gitter hinabsteigen, ab zufälligen Knoten in
@@ -146,8 +151,6 @@ void main() {
     (60, RiderProfile.ebike, const LoopBudget(timeS: 5 * 3600, climbM: 2500, hikingM: 3000)),
   ]) {
     test('$count Trails, ${profile.name}, ${budget.timeS ~/ 3600} h', () async {
-      final built = graph();
-      final g = built.g;
       final rnd = math.Random(188 + count);
       final chosen = trails(count, rnd);
       final pool = <PoolTrail>[];
@@ -166,35 +169,36 @@ void main() {
           lossM: loss,
         ));
       }
-      final clock = Stopwatch()..start();
-      final applied = applyTrails(g, overlay);
-      final overlayTime = clock.elapsed;
       final request = LoopRequest(
           start: at(_sizeM / 2 - 100 + 13, _sizeM / 2 - 100), profile: profile, budget: budget, pool: pool);
+      final graphInput = input(overlay);
 
-      // An Ort und Stelle: so rechnete der Planer bis 0.80.0.
+      // An Ort und Stelle: so baute und rechnete der UI-Isolate bis 0.131.0.
+      final localBuild = await _watch(() async => buildGraphFrom(graphInput));
+      final g = localBuild.result.graph;
       final inline = await _watch(() async => request.planOn(g));
-      // Im Rechen-Isolate, auf einem frischen Graphen (der erste Lauf hat
-      // den Start schon angeheftet): die erste Rechnung schickt den
-      // Graphen, die zweite nur noch die Anfrage.
-      final fresh = graph().g;
-      applyTrails(fresh, overlay);
+      // Im Rechen-Isolate: der Bau aus den Bytes (die Pause ist das
+      // Senden), dann die Rechnungen auf dem Graphen drüben.
       final runner = IsolateLoopPlanRunner();
-      final first = await _watch(() => runner.plan(fresh, request));
-      final second = await _watch(() => runner.plan(fresh, request));
+      final build = await _watch(() => runner.build(graphInput));
+      final first = await _watch(() => runner.plan(request));
+      final second = await _watch(() => runner.plan(request));
       final fewer = LoopRequest(
           start: request.start, profile: profile, budget: budget, pool: pool.sublist(1));
-      final third = await _watch(() => runner.plan(fresh, fewer));
+      final third = await _watch(() => runner.plan(fewer));
       runner.dispose();
       expect(second.result.stops.map((s) => s.trail.id), first.result.stops.map((s) => s.trail.id));
       expect(first.result.stops.map((s) => s.trail.id), inline.result.stops.map((s) => s.trail.id));
 
       final plan = inline.result;
+      final report = build.result;
       String ms(Duration d) => '${d.inMilliseconds}';
       // ignore: avoid_print
       print('| $count | ${profile.name} ${budget.timeS ~/ 3600} h / ${budget.climbM.round()} hm '
-          '| ${g.edges.length} | $crossings | ${ms(built.build)} | ${ms(overlayTime)} (${applied.blocked} gesperrt) '
-          '| ${ms(inline.total)} | ${ms(first.total)} / ${ms(first.stall)} '
+          '| ${report.edges} | ${report.crossings} | ${(graphInput.bytes / 1024).round()} KB '
+          '| ${ms(localBuild.total)} (${report.blocked} gesperrt) '
+          '| ${ms(inline.total)} | ${ms(build.total)} / ${ms(build.stall)} '
+          '| ${ms(first.total)} / ${ms(first.stall)} '
           '| ${ms(second.total)} / ${ms(second.stall)} '
           '| ${ms(third.total)} / ${ms(third.stall)} '
           '| ${plan.stops.length} | ${plan.summary == null ? '–' : '${(plan.summary!.timeS / 60).round()} min'} |');

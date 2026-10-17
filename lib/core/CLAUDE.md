@@ -63,12 +63,14 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     `TB-TIME <schritt> <ms>` (jeder Schritt mit `await`, immer).
   - **`mark` für Synchrones, `time` für `await`.** `mark` legt dazu eine
     Timeline-Marke (sichtbar in DevTools eines Profile-Builds; im Release
-    gibt es keine). Die Marken stehen am Graph-Bau (`graph.decode`,
+    gibt es keine). Die Marken stehen am Graph-Bau (im UI-Isolate
+    `graph.load` = Bytes lesen, `graph.heights`, `graph.build` = der
+    `await` auf den Runner; im Rechen-Isolate `graph.decode`,
     `graph.nodes`, `graph.joins`, `graph.crossings`, `graph.climbs`,
-    `graph.wayQuality`, `graph.load`, `graph.trails`, `graph.attach`), an
-    der Planung (`plan.loop`, `route.direct`, `route.fun`), an „Zurück zur
-    Route" (`nav.rejoin`) und an der Kalibrierung (`calib.graph`,
-    `calib.samples`). Eine Marke in einer Closure hebt die Promotion
+    `graph.wayQuality`, `graph.trails`, `graph.attach` — seit 0.131.1,
+    #356 PR 8), an der Planung (`plan.loop`, `route.direct`,
+    `route.fun`), an „Zurück zur Route" (`nav.graph`, `nav.rejoin`) und
+    an der Kalibrierung (`calib.graph`, `calib.samples`). Eine Marke in einer Closure hebt die Promotion
     auf — `final x = y;` davor.
   - **Der Rechenteil ist `StallMonitor`**, mit erfundener Uhr geprüft
     (`test/core/stall_watch_test.dart`); der Takt läuft nur im

@@ -133,6 +133,35 @@ void main() {
     expect(samples[10].latitude, closeTo(47.0, 1e-9));
   });
 
+  test('HeightTiles liest synchron dasselbe wie der Leser — auch am Rand, mit der Nachbarregel', () async {
+    final t = tileAt(47.5, 11.5, kHeightTileZoom);
+    final values = [
+      for (var j = 0; j < kHeightGrid; j++)
+        for (var i = 0; i < kHeightGrid; i++) 1000 + i * 10 + j,
+    ];
+    final reader = HeightReader([
+      MemoryHeightSource({(x: t.x, y: t.y): HeightTile(Int16List.fromList(values))}),
+    ]);
+    final tiles = await HeightTiles.read(reader, [(x: t.x, y: t.y), (x: t.x + 1, y: t.y)]);
+    expect(tiles.length, 1, reason: 'die Nachbarkachel hat keine Quelle');
+    final b = tileBounds(kHeightTileZoom, t.x, t.y);
+    final mid = (b.north + b.south) / 2;
+    for (final p in [
+      LatLng(mid, (b.west + b.east) / 2),
+      LatLng(mid, b.east), // genau auf der Ostkante: gehört der Nachbarkachel, gelesen am Rand dieser
+      LatLng(b.south, b.west),
+    ]) {
+      expect(tiles.heightAt(p), await reader.heightAt(p), reason: '$p');
+      expect(tiles.heightAt(p), isNotNull, reason: '$p');
+    }
+    final line = [LatLng(mid, b.west + 1e-3), LatLng(mid, b.east - 1e-3)];
+    final sync = tiles.profileAlong(line)!, async = (await reader.profileAlong(line))!;
+    expect(sync.heights, async.heights);
+    expect(sync.stepsM, async.stepsM);
+    expect(tiles.heightAt(LatLng(mid, b.east + 0.01)), isNull, reason: 'außerhalb: keine Höhe');
+    expect(HeightTiles({}).profileAlong(line), isNull);
+  });
+
   group('der Leser über Archive', () {
     // Zwei Nachbarkacheln (z13) aus EINER Ebene in Metern über der
     // Kachelbreite, damit die Kante stetig ist: Höhe = 500 + 300 je Kachel

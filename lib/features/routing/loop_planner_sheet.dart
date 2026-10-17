@@ -41,7 +41,7 @@ import 'nav_providers.dart';
 import 'nav_sections.dart';
 import 'planning_graph.dart' show planningCoverageNote;
 import 'road_graph.dart';
-import 'road_graph_loader.dart' show kOnlineFillMaxTiles;
+import 'road_graph_loader.dart' show kOnlineFillMaxTiles, kPlanMaxTiles;
 import 'route_elevation.dart';
 import 'route_profile.dart';
 import 'route_search.dart' show steepNote;
@@ -988,6 +988,9 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
               ? l.routeBlockerNoAreaTrailHead
               : l.routeBlockerNoAreaPoint,
       LoopBlocker.failed => route ? l.routeBlockerFailed : l.loopBlockerFailed,
+      LoopBlocker.tooLarge => route
+          ? l.routeBlockerTooLarge(session.coverage?.tilesNeeded ?? 0, kPlanMaxTiles)
+          : l.loopBlockerTooLarge(session.coverage?.tilesNeeded ?? 0, kPlanMaxTiles),
     };
   }
 

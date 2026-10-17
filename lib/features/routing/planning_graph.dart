@@ -11,6 +11,15 @@
 // Jetzt plant die Suche über die gefundenen Kacheln; ein Weg außerhalb kann
 // kürzer sein, und das Blatt sagt das ([PlanningGraph.partial]). Ohne eine
 // einzige Kachel gibt es weiter keinen Plan.
+//
+// **Hier wird nichts gebaut** (#356 PR 8, Konzept-Routing 10.6): Der
+// UI-Isolate sammelt nur Bytes — die Kacheln der Bereiche, online
+// ergänzt, die Höhenkacheln dazu, die Trails im Rahmen — als
+// [GraphInput]; dekodiert und gebaut wird im Rechen-Isolate des Planers
+// (`graph_input.dart`, `loop_plan_runner.dart`), und der Graph bleibt
+// dort. Vor dem ersten Lesen zählt der Lader den Rahmen: über
+// [kPlanMaxTiles] ist er „zu groß" ([PlanningGraph.tooLarge]), ohne
+// eine Kachel geöffnet zu haben.
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/connectivity.dart';
@@ -24,26 +33,31 @@ import '../offline_areas/area_store.dart';
 import '../offline_areas/height_tiles.dart';
 import '../rides/road_index.dart' show RoadCoverage;
 import '../trails/trail_providers.dart';
+import 'graph_input.dart';
 import 'loop_planner.dart' show graphTrailsOf;
 import 'online_fill.dart';
-import 'road_graph.dart';
 import 'road_graph_loader.dart';
 import 'trail_head_route.dart' show kTrailHeadMarginM;
-import 'trail_overlay.dart';
 
 class PlanningGraph {
   const PlanningGraph({
-    required this.graph,
+    this.input,
     required this.coverage,
     required this.tilesFound,
     required this.tilesNeeded,
     this.tilesOnline = 0,
     this.onlineCapped = false,
     this.onlineBroken = false,
+    this.tooLarge = false,
   });
 
-  /// Null: keine einzige Kachel im Rahmen — kein Plan.
-  final RoadGraph? graph;
+  /// Keine Kachel im Rahmen — kein Plan.
+  static const none = PlanningGraph(coverage: RoadCoverage.none, tilesFound: 0, tilesNeeded: 0);
+
+  /// Die Eingabe für den Bau im Rechen-Isolate; null ohne Kachel, bei
+  /// „zu groß" — und nach der Übergabe ([summary]), damit die Bytes nicht
+  /// im Zustand des Planers liegen bleiben.
+  final GraphInput? input;
   final RoadCoverage coverage;
   final int tilesFound;
   final int tilesNeeded;
@@ -57,18 +71,40 @@ class PlanningGraph {
   /// Das Nachladen brach ab (Netz weg, Frist um).
   final bool onlineBroken;
 
+  /// Der Rahmen übersteigt [kPlanMaxTiles]: nichts gelesen, kein Plan.
+  final bool tooLarge;
+
+  /// Es gibt einen Graphen zum Rechnen (mindestens eine Kachel).
+  bool get usable => tilesFound > 0 && !tooLarge;
+
   /// Geplant über einen Teil der Kacheln: Ein Weg außerhalb kann kürzer
   /// sein, und das Blatt sagt es.
-  bool get partial => graph != null && coverage == RoadCoverage.partial;
+  bool get partial => usable && coverage == RoadCoverage.partial;
+
+  /// Dasselbe ohne die Bytes — was der Planer nach der Übergabe behält.
+  PlanningGraph get summary => input == null
+      ? this
+      : PlanningGraph(
+          coverage: coverage,
+          tilesFound: tilesFound,
+          tilesNeeded: tilesNeeded,
+          tilesOnline: tilesOnline,
+          onlineCapped: onlineCapped,
+          onlineBroken: onlineBroken,
+          tooLarge: tooLarge,
+        );
 }
 
-/// Lädt den Graphen für den Rahmen um [points] (plus [kTrailHeadMarginM])
-/// und legt die sichtbaren Trails darauf. Wirft nie: Ein Fehler beim Lesen
-/// wird gemeldet und ergibt „keine Kachel".
+/// Sammelt die Eingabe für den Graphen im Rahmen um [points] (plus
+/// [kTrailHeadMarginM]): Kacheln, Höhen, die sichtbaren Trails. Wirft
+/// nie: Ein Fehler beim Lesen wird gemeldet und ergibt „keine Kachel".
+/// Gebaut wird NICHT hier (`buildGraphFrom`).
 ///
 /// [fillOnline] erlaubt das Nachladen fehlender Kacheln vom Host — nur,
-/// wenn das Gerät Empfang meldet.
-Future<PlanningGraph> loadPlanningGraph(Ref ref, LatBox box, {bool fillOnline = true}) async {
+/// wenn das Gerät Empfang meldet. [maxTiles] ist die Grenze vor dem
+/// Lesen; null heißt keine.
+Future<PlanningGraph> loadPlanningGraph(Ref ref, LatBox box,
+    {bool fillOnline = true, int? maxTiles = kPlanMaxTiles}) async {
   List<StoredArea> areas;
   try {
     areas = await ref.read(storedAreasProvider.future);
@@ -91,62 +127,56 @@ Future<PlanningGraph> loadPlanningGraph(Ref ref, LatBox box, {bool fillOnline = 
     // der Leser der Bereiche gehört seinem Provider und bleibt offen.
     heights = HeightReader([...?heights?.sources, online.heights]);
   }
-  RoadGraphLoadResult roads;
+  RoadTilesRead read;
+  HeightTiles? tiles;
   try {
-    roads = await StallWatch.time('graph.load', () => loadRoadGraph(
+    read = await StallWatch.time('graph.load', () => readRoadTiles(
       areas: areas,
       box: box,
       open: (a) => open(store, a),
-      heights: heights,
       marginM: kTrailHeadMarginM,
-      requireComplete: false,
       fetchOnline: online?.fetch,
       openWays: (a) => openWays(store, a),
       fetchWaysOnline: online?.fetchWays,
       sourceKey: (a) => a.region,
+      maxTiles: maxTiles,
     ));
+    // Die Höhen der gefundenen Kacheln gleich mit — drüben gibt es
+    // weder den Kachelspeicher noch das Netz.
+    if (read.tilesFound > 0 && heights != null) {
+      final h = heights;
+      tiles = await StallWatch.time('graph.heights', () => HeightTiles.read(h, read.heightTiles));
+    }
   } catch (e, s) {
     logError('Wege für die Planung lesen', e, s);
-    return const PlanningGraph(graph: null, coverage: RoadCoverage.none, tilesFound: 0, tilesNeeded: 0);
+    return PlanningGraph.none;
   } finally {
     await online?.close();
   }
-  final graph = roads.graph;
-  if (graph != null) {
-    try {
-      final trails = ref.read(trailsProvider).valueOrNull ?? const <Trail>[];
-      final near = [
-        for (final t in trails)
-          if (t.points.length >= 2 && LatBox.of(t.points).near(box, kTrailHeadMarginM)) t,
-      ];
-      final onGraph = graphTrailsOf(serviceL10n(), near);
-      StallWatch.mark('graph.trails', () => applyTrails(graph, onGraph));
-      // Die Enden jeder Abfahrt gleich mit (#188): Wählt der Planer später
-      // einen weiteren Trail aus diesem Rahmen, teilt sein Anheften keine
-      // Kante mehr, und der Rechen-Isolate behält seine Suchen
-      // (`LoopSearchCache`). Dieselben Punkte, die `planLoop` anheftet.
-      StallWatch.mark('graph.attach', () {
-        for (final t in onGraph) {
-          if (t.role != TrailRole.downhill) continue;
-          graph.attach(t.points.first);
-          graph.attach(t.points.last);
-        }
-      });
-    } catch (e, s) {
-      // Wirft nie (#356): Ein halb belegter Graph plante Abfahrten bergauf,
-      // also lieber keiner.
-      logError('Trails auf den Graphen legen', e, s);
-      return const PlanningGraph(graph: null, coverage: RoadCoverage.none, tilesFound: 0, tilesNeeded: 0);
-    }
+  GraphInput? input;
+  if (read.tilesFound > 0) {
+    final trails = ref.read(trailsProvider).valueOrNull ?? const <Trail>[];
+    final near = [
+      for (final t in trails)
+        if (t.points.length >= 2 && LatBox.of(t.points).near(box, kTrailHeadMarginM)) t,
+    ];
+    input = GraphInput(
+      roads: read.roads,
+      ways: read.ways,
+      heights: tiles,
+      trails: graphTrailsOf(serviceL10n(), near),
+      lat0: (box.s + box.n) / 2,
+    );
   }
   return PlanningGraph(
-    graph: graph,
-    coverage: roads.coverage,
-    tilesFound: roads.tilesFound,
-    tilesNeeded: roads.tilesNeeded,
-    tilesOnline: roads.tilesOnline,
-    onlineCapped: roads.onlineCapped,
-    onlineBroken: roads.onlineBroken,
+    input: input,
+    coverage: read.coverage,
+    tilesFound: read.tilesFound,
+    tilesNeeded: read.tilesNeeded,
+    tilesOnline: read.tilesOnline,
+    onlineCapped: read.onlineCapped,
+    onlineBroken: read.onlineBroken,
+    tooLarge: read.tooLarge,
   );
 }
 
@@ -154,7 +184,7 @@ Future<PlanningGraph> loadPlanningGraph(Ref ref, LatBox box, {bool fillOnline = 
 /// EINE Fassung für Runde ([loop]) und Weg. Null, wenn es nichts zu sagen
 /// gibt.
 String? planningCoverageNote(AppLocalizations l, PlanningGraph g, {required bool loop}) {
-  if (g.graph == null) return null;
+  if (!g.usable) return null;
   final online = g.tilesOnline;
   if (!g.partial) {
     return online == 0 ? null : (loop ? l.routingCoverageOnlineLoop(online) : l.routingCoverageOnlineRoute(online));

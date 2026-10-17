@@ -191,7 +191,7 @@ Code liegt — nicht wieder hierher.
 | `lib/features/official/CLAUDE.md` | Offizielle Trails in der App |
 | `lib/features/friends/CLAUDE.md` | Nach dem Annehmen einer Buddy-Anfrage · Nachrichten zwischen Buddys (#34) |
 | `lib/features/rides/CLAUDE.md` | Fahrt aufzeichnen · Bestätigen durch Fahren · Das Zerlege-Blatt |
-| `lib/features/routing/CLAUDE.md` | Die Routing-Engine, Schritt 3: Graph, Profil, Suche · Steile Anstiege · Vorlieben und verschenkte Höhe · Der Stil „Bequem" · „Zum Trailkopf" · Der Rundenplaner · Kalibrierung aus eigenen Fahrten · Navigation rund · Die Folgeansicht der Navigation |
+| `lib/features/routing/CLAUDE.md` | Die Routing-Engine, Schritt 3: Graph, Profil, Suche · Steile Anstiege · Vorlieben und verschenkte Höhe · Der Stil „Bequem" · „Zum Trailkopf" · Der Rundenplaner · Kalibrierung aus eigenen Fahrten · Navigation rund · Die Folgeansicht der Navigation · Der Graph entsteht im Rechen-Isolate (#356) |
 | `lib/data/CLAUDE.md` | Ausgangskorb · Zwischenspeicher des Netzes · Speichern ohne Neuladen des Netzes · Beendigungsgründe |
 | `lib/core/CLAUDE.md` | Bewegung · Zurück nach Hierarchie · Der Stall-Wächter (#356) · Push (#34; auch `push_flush`, `send-push`, Web-Worker, Android-Kanal) |
 | `lib/features/coach/CLAUDE.md` | Die Hinweis-Maschine und die Karten-Tour |
