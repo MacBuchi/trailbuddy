@@ -122,9 +122,13 @@ global.
 
 **A12 — Navigation zeigt, sie sagt nicht an.** Keine Abbiegehinweise,
 keine Sprachausgabe; der Navigationsmodus zeigt Route, Position und
-Abstand. Geplant wird nur über Kacheln, die auf dem Gerät liegen. Die eine
-Planungsfunktion ist der Trail-zuerst-Planer.
-*Quelle:* Konzept 13, `konzept-routing.md` (Nicht-Ziele).
+Abstand. Geplant wird nur über Kacheln, die auf dem Gerät liegen (mit
+Empfang ergänzt vom eigenen Host). Es gibt EINEN Planer — Runde oder
+Route in einem Werkzeug, sein Kern Trail-zuerst; eine Route von A nach B
+ist der Fall ohne gewählten Trail. Planen hält die Oberfläche nie an:
+Graph und Rechnung laufen außerhalb des UI-Isolates, ein zu großes Gebiet
+weist der Planer ab, bevor er liest.
+*Quelle:* Konzept 13, `konzept-routing.md` (Nicht-Ziele, Abschnitt 10).
 *Geprüft durch:* Review.
 
 ## Bedienung und Aussehen

@@ -57,6 +57,9 @@ Zwei Funktionen, eine Engine:
    Aufstiege mit möglichst wenig verschenkter Höhe. Gespeichert als
    geplante Fahrt (`planned`, Konzept 5.2), exportiert als GPX (#150).
 
+Seit #356 (Abschnitt 10) sind beide Funktionen EIN Planer mit dem Ziel
+Runde oder Route; „Zum Trailkopf" ist eine Route mit leerer Auswahl.
+
 Nicht-Ziele, damit sie nicht hineinwachsen:
 
 - **Keine Abbiegehinweise, keine Sprachausgabe** (Konzept 13). Die
@@ -308,7 +311,10 @@ nicht (es widerspräche dem Stil). Gesetzt mit dem Tirol-Lauf
 (`docs/routing-messung.md`, „#329"): Mit Steilfaktor 1 auf Asphalt wich
 der Stil auf steile Straßen aus und stieg MEHR als der MTB-Stil; erst
 1,5 mit 3 steigt in allen drei Entfernungen weniger und nimmt trotzdem
-mehr Asphalt. Der Planer rechnet weiter im MTB-Stil.
+mehr Asphalt. Der Planer rechnet weiter im MTB-Stil. **Ab #356 nicht mehr
+nur die Anfahrt**: Eine Route im Stil Bequem mit gewählten Trails rechnet
+auch die Verbindungen zwischen den Trails in diesem Stil, und eine Runde
+tut es mit dem Schalter „Bergauf bequem" (10.2; Betreiber, 2026-10-17).
 
 Trailkanten: nur in Trail-Richtung (`reversed` beachtet), nur bergab
 gedacht, Kosten = Zeit nach S-Grad, Gewinn = Trail-Meter. Ein Trail mit
@@ -488,7 +494,8 @@ dieselben Konstanten geprüft):
   Sitzung gemerkt (Schlüssel: Bereichs-Builds + Rahmen). Ein
   20-km-Rahmen sind rund 70 Kacheln und schätzungsweise 20 000
   Wegekanten — das baut ein Telefon in unter einer Sekunde (Messfrage
-  M5). Gebaut wird im UI-Isolate; GERECHNET wird die Runde seit 0.80.1
+  M5). Gebaut wird im UI-Isolate (künftig im Isolate des Planers, mit
+  Grenze — 10.6); GERECHNET wird die Runde seit 0.80.1
   in einem dauerhaften Rechen-Isolate, der den Graphen einmal bekommt
   (#188, gemessen in `docs/routing-messung.md`: an Ort und Stelle stand
   die Oberfläche bei 60 Trails 2,4 s, im Isolate einmal ~0,3 s für das
@@ -573,6 +580,11 @@ Messung und spiegelt Kostentabelle und Zeitmodell; wie bei
 `trail_match.py` kommen Werkzeug und Dart bei Änderungen im SELBEN PR.
 
 ## 4. Oberfläche
+
+*Ab #356 gibt es EINEN Planer (Abschnitt 10): Das Ziel-Blatt des
+Trail-Blatts, „Route bis hier" und das Navi-Symbol gehen in ihm auf.
+Was hier steht, ist der Stand bis dahin; jeder PR aus #356 zieht es
+nach.*
 
 - **Die Blätter sind kein Modal** (seit 0.74.0, `map_panel.dart`;
   Feldbericht: „der erstellte Track war nicht wirklich sichtbar. Man
@@ -706,6 +718,7 @@ Messung und spiegelt Kostentabelle und Zeitmodell; wie bei
 | 9 | Navigationsmodus: Folgeansicht (Karte dreht mit, Fortschritt, Abstand, „Zurück zur Route", Bildschirm an), Einstieg aus Ergebnis und „Meine Fahrten" (9.1–9.4) | #232 | feat |
 | 10 | Dauerbenachrichtigung mit Fortschritt aus dem Dienst (9.5) | #232 | feat |
 | 11 | Bild-im-Bild auf Android (9.6) | #232 | feat |
+| 12 | Ein Planer für Runde und Route, Graph im Rechen-Isolate mit Grenze, Abnahme gegen Budgets (10) — zehn PRs | #356 | feat |
 
 Schritt 1 entscheidet, ob 2–5 so gebaut werden oder ob vorher die
 Pipeline (2.5, letzter Punkt) dran ist. Schritte 3–5 brauchen keine
@@ -1073,3 +1086,218 @@ selbst, die Hinweise der Buddys am Ort, danach die Werte.*
 
 Die Zahlen (100 m, 30 m, 2 m/s, 12 %, 20 s, 50 %, 10 m) sind Startwerte wie in
 9.7; sie ändert der Feldeinsatz.
+
+## 10. Ein Planer, und er hält die Oberfläche nicht an (#356)
+
+*Plan vom 2026-10-17 vor der Freigabe 🚀 A (Betreiber: „Mache einen
+sauberen Plan für die Erhöhung der Performance / Robustheit vor dem
+Promote … Ist das Bedienkonzept intuitiv und einfach? Sind logische
+Fehler drin? Gefahr des Absturzes ausgeschlossen?"). Die Befunde und die
+Reihenfolge der PRs stehen in #356; hier steht, wie es danach sein soll.
+Bis der jeweilige PR gemergt ist, beschreiben Abschnitt 4 und 2.7 den
+Stand.*
+
+### 10.1 Warum
+
+Seit 0.74.0 gibt es zwei Werkzeuge, die sich überlappen und Lücken
+lassen: das Ziel-Blatt (`_RouteSheet`: „Zum Trailkopf", „Route bis
+hier", das Navi-Symbol) startet immer am Standort und kennt keine
+Auswahl; der Planer braucht mindestens einen Trail. Von A nach B ohne
+Trail geht damit nicht, „Route ab hier" öffnet eine „Runde", und beide
+können zugleich offen sein. **Entscheidung D2: Beide werden EIN Planer,
+vor der Freigabe.** Der Kern bleibt Trail-zuerst (1, 3) — die Route von
+A nach B ist der Fall mit leerer Auswahl, nicht ein zweites Werkzeug.
+
+### 10.2 Ziel: Runde oder Route
+
+Der Planer hat ein **Ziel**, gewählt oben in den Parametern und in der
+Leiste sichtbar:
+
+- **Runde** — zurück zum Start; braucht mindestens einen gewählten
+  Trail (sonst gibt es nichts zu fahren) und rechnet wie in 3.
+- **Route** — zu einem Ziel: ein getippter Punkt, ein Trailkopf, ein
+  Ort, oder „am letzten Trail" (die heutige dritte Wahl, mit Auswahl).
+  Ohne gewählten Trail ist das der Weg von A nach B; mit Auswahl
+  kommen die Trails auf dem Weg mit.
+
+Im Ergebnis einer Route steht der **Stil** — Direkt, Bequem (Kosten aus
+2.4), Spaßig — und bei beiden Zielen das **Rad** (Bio/E).
+Beides rechnet beim Umschalten sofort (D3), ohne „Neu rechnen".
+
+- **Spaßig ohne Auswahl** nimmt wie heute einen Umweg über passende
+  Trails im Budget 1,6 × Zeit / 1,5 × hm der direkten Linie (4).
+  **Spaßig mit Auswahl** rechnet mit den Budgets des Planers (2.3) —
+  das ist das heutige „Zum Ziel" (D5).
+- **Bequem mit Auswahl nimmt mit wie Spaßig** — die Auswahl unter den
+  Budgets des Planers —, aber alle Verbindungen zwischen Start, Trails
+  und Ziel rechnen mit den Kosten des Stils Bequem: bergauf Asphalt,
+  Radweg, Nebenstraße und Forstweg vor Pfad und Wanderweg (Betreiber,
+  2026-10-17: „Bequem kann schon mehr mitnehmen, aber bergauf können auch asphaltierte, Wege und Straße genutzt werden."). Die Trails bleiben Trails. Ohne
+  Auswahl ist Bequem der direkte Weg im Stil, wie seit 0.127.0.
+- **Direkt mit Auswahl** nimmt die Pflicht-Trails (Stern) und die
+  Zwischenpunkte mit, auf kürzestem Weg, ohne Budget; die übrige Auswahl
+  bleibt für Spaßig und Bequem (Betreiber, 2026-10-17: „Passt").
+- **Auch die Runde kann bequem bergauf**: Schalter „Bergauf bequem" in
+  den Parametern (Vorgabe aus, gemerkt wie die Regler); an, rechnen alle
+  Verbindungen der Runde mit den Kosten des Stils Bequem (Betreiber,
+  2026-10-17: „Passt").
+- **Die Reihenfolge der Halte wählt der Planer** (D4), auch bei einer
+  Route — Pflicht-Trails und Zwischenpunkte wie seit 0.126.0, nie in
+  der Reihenfolge des Antippens.
+
+Gemerkt wird wie bisher (2.3): Ziel, Stil und Regler ja, der Zielpunkt
+nicht. Öffnet der Planer mit „Route" ohne Zielpunkt, steht der Ziel-Knopf
+der Leiste vorn, und „Rechnen" sagt „Erst ein Ziel wählen" — bis 0.127.2
+blieb der Modus gespeichert und das Ziel leer.
+
+### 10.3 Einstiege
+
+Alle Einstiege öffnen denselben Planer. Wer mit einem fertigen Auftrag
+kommt („zu diesem Trail"), bekommt sofort das Ergebnis; wer bauen will,
+die Leiste.
+
+| Einstieg | bis 0.127 | künftig |
+|---|---|---|
+| Planer-Knopf | Planer, Runde | Planer mit dem zuletzt gewählten Ziel, Leiste |
+| Trail-Blatt „Zum Trailkopf" | Ziel-Blatt ab Standort | Planer: Route, Start Standort, Ziel Trailkopf, Stil aus `navDefault` — rechnet sofort |
+| Trail-Blatt „Start im Planer" / „Ziel im Planer" | Planer | unverändert |
+| Navi-Symbol (Liste, Schnellkarte) | Navi-App / direkt / spaßig / bequem | Navi-App, oder der Planer wie „Zum Trailkopf" mit dem gewählten Stil |
+| Langer Druck auf die Karte | „Route ab hier" (öffnete eine Runde), „Route bis hier" (Ziel-Blatt), „Mit der Navi-App hierher" | „Start hier", „Route bis hier" (rechnet sofort), „Zwischenpunkt hier", „Mit der Navi-App hierher" |
+| Ort-Blatt | Start / Ziel / Zwischenpunkt im Planer | dazu „Route hierher" (rechnet sofort) |
+| Navigation „Zurück zur Route" | eigener Graph je Tipp, im UI-Isolate | im Rechen-Isolate, mit Stil und Rad der Route (10.6) |
+
+Das Ergebnis-Blatt ist für beide Ziele dasselbe (`RouteResultBody`,
+mit den Schlüsseln, die Tests und Tour heute am Ziel-Blatt finden):
+Summen, Höhenprofil, Abschnitte, ziehbare Punkte (4), „Navigation
+starten", „Als Fahrt speichern", „Als GPX".
+
+### 10.4 Bedienregeln
+
+- **Eine Änderung verwirft das Ergebnis, sie rechnet nicht neu** (D3).
+  Ändert sich bei offenem Ergebnis Start, Ziel, Auswahl, Pflicht,
+  Regler, Zwischenpunkt oder Gebiet, verschwindet die Linie, und das
+  Blatt sagt „Auswahl geändert" mit dem Knopf „Neu rechnen". Bis
+  0.127.2 blieb das Blatt im Zustand „Ergebnis" ohne Plan und meldete
+  „Die Runde ließ sich nicht rechnen — ein Fehler, der gemeldet ist".
+  Jede Änderung zählt die Generation hoch: Eine Rechnung, die vorher
+  losgelaufen ist, schreibt ihr Ergebnis nicht mehr.
+- **Zurück geht stufenweise**: Ergebnis → Leiste mit Auswahl → Planer
+  zu (dazu wie bisher Start-Tipp und Zeichnen). **Schnell zu**: Kam
+  man über einen Einstieg, der sofort rechnet, und hat nichts an der
+  Auswahl geändert, schließt Zurück oder X am Ergebnis den ganzen
+  Planer — sonst stünde man nach „Zum Trailkopf" in einer leeren
+  Leiste.
+- **Nie zwei Planungen zugleich.** Es gibt nur noch einen; ein neuer
+  Einstieg ersetzt den laufenden Auftrag (mit Auswahl: erst fragen).
+- **Das Fahrerprofil gilt sofort**: Eine neue Kalibrierung oder ein
+  anderes Rad in den Einstellungen erreicht den offenen Planer, nicht
+  erst den nächsten.
+- **Ein Fehler ist ein Satz**, nie eine Linie vom letzten Mal: Scheitert
+  eine Rechnung, ist die alte Linie weg.
+
+### 10.5 Zurück zur normalen Karte
+
+*Auftrag des Betreibers (2026-10-17, zu #358): „Zusätzlich mit
+aufnehmen: die uxp Bedienung. Man sollte sinnvoll wieder zurückkommen in
+das normale Menü."* Die normale Karte heißt hier: Knopfspalte rechts,
+Reiterleiste unten, keine Leiste links, keine Nadel, keine Auswahl,
+keine Planungslinie. Heute lässt „Navigation beenden" eine Karte ohne Route und ohne Planer
+zurück (der Start der Navigation schließt beide), und mit EINEM Planer
+stünde, wer über „Zum Trailkopf" kam, nach dem Schließen des Ergebnisses
+in einer leeren Leiste. Die Regeln:
+
+- **Jeder Zustand hat genau einen sichtbaren Weg zurück, und Zurück
+  (Android) tut dasselbe.** Die Stufen, immer in dieser Reihenfolge:
+  Tippen abbrechen (Start, Ziel, Zwischenpunkt) oder Zeichnen ablegen →
+  Ergebnis zu → Planer zu → normale Karte. Ein Schritt mehr gibt es
+  nicht; nach dem letzten verlässt Zurück die App wie bisher.
+- **Der Weg zurück führt dahin, woher man kam.** Wer aus dem Trail-Blatt,
+  dem Navi-Symbol, dem langen Druck oder dem Ort-Blatt kam und nichts an
+  der Auswahl geändert hat, landet mit einem Schritt auf der normalen
+  Karte (Schnell zu, 10.4) — mit dem Trail weiter ausgewählt, wenn er
+  vorher ausgewählt war. Wer im Planer gebaut hat, landet erst in der
+  Leiste.
+- **Planer zu heißt aufgeräumt**: Leiste, Nadeln (Start, Ziel,
+  Zwischenpunkte), Auswahl-Leuchten und Linie verschwinden, die
+  Knopfspalte rechts und die Legende stehen wieder wie vorher, die
+  Kamera bleibt, wo sie ist. Gemerkt bleiben nur die Regler (2.3). War
+  eine Auswahl da, kommt eine Meldung mit „Rückgängig" statt einer
+  Rückfrage — wer den Planer zu früh schließt, holt Auswahl und
+  Ergebnis mit einem Tipp zurück.
+- **Nach der Navigation zurück zum Ergebnis.** „Navigation beenden" (auch
+  aus der Benachrichtigung) zeigt die Reiterleiste wieder und, wenn die
+  Navigation aus einem Planer-Ergebnis kam, dieses Ergebnis — eingeklappt,
+  zum Speichern oder Neu-Planen, mit einem Schritt zur normalen Karte. Kam
+  sie aus „Meine Fahrten" oder „zuletzt navigiert", ist es die normale
+  Karte. Eine Aufzeichnung läuft weiter und ist am Aufnahme-Knopf zu sehen
+  (9.4).
+- **Nadel und Auswahl sind vergänglich**: Die Nadel des langen Drucks
+  geht mit dem Menü weg, wenn nichts gewählt wurde, und mit jedem Tipp
+  auf die Karte; ein Tipp ins Leere hebt eine Trail-Auswahl auf.
+- **Ein Reiterwechsel beendet nichts**: Wer während der Planung in
+  „Trails" oder „Buddys" wechselt, findet den Planer bei der Rückkehr
+  so vor, wie er war. Nur die Navigation blendet die Reiterleiste aus
+  (9.2).
+
+Geprüft wird das als Flow-Test je Einstieg aus 10.3: hinein, Ergebnis,
+Zurück bis zur normalen Karte; am Ende stehen Knopfspalte, Reiterleiste
+und keine Planer-Ebene.
+
+### 10.6 Gebaut wird im Rechen-Isolate, mit Grenze
+
+Seit 0.80.1 RECHNET der Planer im Isolate (2.7); GEBAUT wird der Graph
+weiter im UI-Isolate — auf Android seit Flutter 3.29 der Haupt-Thread.
+Das ist der ANR aus #354 (36 s in `findCrossings`). Künftig:
+
+- **Der UI-Isolate liest nur noch Bytes.** Er sammelt die Kacheln
+  (Bereiche, online ergänzt) und die Trails als `GraphInput`; Dekodieren,
+  `buildRoadGraph` samt Kreuzungen, Steigungen, Wegqualität, Trails
+  auflegen, Anheften und die Höhen laufen im Isolate des Planers
+  (`buildGraphFrom`), und der Graph bleibt dort für die Sitzung. Ein
+  Test prüft strukturell, dass der Bau keinen Weg zurück in den
+  UI-Isolate hat.
+- **Eine Grenze vor dem Lesen**: Übersteigt der Rahmen
+  `kPlanMaxTiles` Kacheln, sagt der Planer in unter einer Sekunde
+  „Gebiet zu groß" mit dem Rat (Radius kleiner, weit entfernte Trails
+  abwählen) — ohne eine Kachel gelesen zu haben. Der Wert kommt aus der
+  Messung am Pixel (#356, PR 4), nicht geraten.
+- **Kleinere Rahmen**: Verbinder zählen nur in der Nähe von Start,
+  Ziel, Zwischenpunkten und gewählten Trails, nicht alle im Radius (bis
+  30 km); den Pool der spaßigen Trails nimmt nur Spaßig ohne Auswahl.
+- **Kalibrierung und „Zurück zur Route" ebenso**: Die Kalibrierung liest
+  je Fahrt nur die Kacheln eines Korridors um die Linie statt ihres
+  ganzen Rahmens, höchstens 20 Fahrten je Lauf, im Isolate; „Zurück zur
+  Route" rechnet im Isolate mit Stil und Rad der Route (bis 0.127.2: mit
+  den Vorgaben). Beim Start der Navigation steht „Suche Standort…", bis
+  der erste Fix da ist.
+- **Im Web** gibt es keinen Isolate (2.7, `InlineLoopPlanRunner`) — dort
+  gelten nur die Grenzen.
+
+### 10.7 Wann es fertig ist — die Budgets
+
+Gemessen am Pixel mit dem Stall-Wächter (`--dart-define=STALL_WATCH=true`,
+`TB-STALL` im Logcat) und neun Szenarien in `docs/routing-messung.md`;
+die Abnahme ist der letzte PR in #356 und das Tor für 🚀 A:
+
+| | Budget |
+|---|---|
+| längster Block im Haupt-Thread | ≤ 200 ms |
+| ANR | 0 |
+| erste Runde in dichter Gegend / jede weitere | < 5 s / < 1 s |
+| Route direkt / spaßig | < 3 s / < 5 s |
+| „Zurück zur Route" | < 2 s |
+| „Gebiet zu groß" | < 1 s, ohne eine Kachel zu lesen |
+| Kalibrierung aus 20 Fahrten | < 60 s, ohne Block |
+| zusätzlicher Speicher (RSS) | < 300 MB |
+
+Ein Test in CI wacht relativ über den Bau (schlägt erst bei mehr als
+15-fach UND über 20 s an); das Messwerkzeug baut mit Kreuzungsteilung
+(bis 0.127.2 ohne — #354 war darum nie gemessen).
+
+### 10.8 Bewusst nicht
+
+Kein Umbenennen von `LoopSession`/`loop_planner_*` (der Name „Loop"
+bleibt im Code), kein Graph über Sitzungen hinweg, kein automatisches
+Neurechnen, keine Zwischenpunkte in Tipp-Reihenfolge, kein Isolate im
+Web, kein CI-Bau der Dev-App und keine Firebase-App für `.dev`, keine
+Abbiegehinweise und kein automatisches Umplanen bei Abweichung (1, 9).
