@@ -492,7 +492,7 @@ dieselben Konstanten geprüft):
   20-km-Rahmen sind rund 70 Kacheln und schätzungsweise 20 000
   Wegekanten — das baut ein Telefon in unter einer Sekunde (Messfrage
   M5). Gebaut wird im UI-Isolate (künftig im Isolate des Planers, mit
-  Grenze — 10.5); GERECHNET wird die Runde seit 0.80.1
+  Grenze — 10.6); GERECHNET wird die Runde seit 0.80.1
   in einem dauerhaften Rechen-Isolate, der den Graphen einmal bekommt
   (#188, gemessen in `docs/routing-messung.md`: an Ort und Stelle stand
   die Oberfläche bei 60 Trails 2,4 s, im Isolate einmal ~0,3 s für das
@@ -1153,7 +1153,7 @@ die Leiste.
 | Navi-Symbol (Liste, Schnellkarte) | Navi-App / direkt / spaßig / bequem | Navi-App, oder der Planer wie „Zum Trailkopf" mit dem gewählten Stil |
 | Langer Druck auf die Karte | „Route ab hier" (öffnete eine Runde), „Route bis hier" (Ziel-Blatt), „Mit der Navi-App hierher" | „Start hier", „Route bis hier" (rechnet sofort), „Zwischenpunkt hier", „Mit der Navi-App hierher" |
 | Ort-Blatt | Start / Ziel / Zwischenpunkt im Planer | dazu „Route hierher" (rechnet sofort) |
-| Navigation „Zurück zur Route" | eigener Graph je Tipp, im UI-Isolate | im Rechen-Isolate, mit Stil und Rad der Route (10.5) |
+| Navigation „Zurück zur Route" | eigener Graph je Tipp, im UI-Isolate | im Rechen-Isolate, mit Stil und Rad der Route (10.6) |
 
 Das Ergebnis-Blatt ist für beide Ziele dasselbe (`RouteResultBody`,
 mit den Schlüsseln, die Tests und Tour heute am Ziel-Blatt finden):
@@ -1184,7 +1184,55 @@ starten", „Als Fahrt speichern", „Als GPX".
 - **Ein Fehler ist ein Satz**, nie eine Linie vom letzten Mal: Scheitert
   eine Rechnung, ist die alte Linie weg.
 
-### 10.5 Gebaut wird im Rechen-Isolate, mit Grenze
+### 10.5 Zurück zur normalen Karte
+
+*Auftrag des Betreibers (2026-10-17, zu #358): „Zusätzlich mit
+aufnehmen: die uxp Bedienung. Man sollte sinnvoll wieder zurückkommen in
+das normale Menü."* Die normale Karte heißt hier: Knopfspalte rechts,
+Reiterleiste unten, keine Leiste links, keine Nadel, keine Auswahl,
+keine Planungslinie. Heute lässt „Navigation beenden" eine Karte ohne Route und ohne Planer
+zurück (der Start der Navigation schließt beide), und mit EINEM Planer
+stünde, wer über „Zum Trailkopf" kam, nach dem Schließen des Ergebnisses
+in einer leeren Leiste. Die Regeln:
+
+- **Jeder Zustand hat genau einen sichtbaren Weg zurück, und Zurück
+  (Android) tut dasselbe.** Die Stufen, immer in dieser Reihenfolge:
+  Tippen abbrechen (Start, Ziel, Zwischenpunkt) oder Zeichnen ablegen →
+  Ergebnis zu → Planer zu → normale Karte. Ein Schritt mehr gibt es
+  nicht; nach dem letzten verlässt Zurück die App wie bisher.
+- **Der Weg zurück führt dahin, woher man kam.** Wer aus dem Trail-Blatt,
+  dem Navi-Symbol, dem langen Druck oder dem Ort-Blatt kam und nichts an
+  der Auswahl geändert hat, landet mit einem Schritt auf der normalen
+  Karte (Schnell zu, 10.4) — mit dem Trail weiter ausgewählt, wenn er
+  vorher ausgewählt war. Wer im Planer gebaut hat, landet erst in der
+  Leiste.
+- **Planer zu heißt aufgeräumt**: Leiste, Nadeln (Start, Ziel,
+  Zwischenpunkte), Auswahl-Leuchten und Linie verschwinden, die
+  Knopfspalte rechts und die Legende stehen wieder wie vorher, die
+  Kamera bleibt, wo sie ist. Gemerkt bleiben nur die Regler (2.3). War
+  eine Auswahl da, kommt eine Meldung mit „Rückgängig" statt einer
+  Rückfrage — wer den Planer zu früh schließt, holt Auswahl und
+  Ergebnis mit einem Tipp zurück.
+- **Nach der Navigation zurück zum Ergebnis.** „Navigation beenden" (auch
+  aus der Benachrichtigung) zeigt die Reiterleiste wieder und, wenn die
+  Navigation aus einem Planer-Ergebnis kam, dieses Ergebnis — eingeklappt,
+  zum Speichern oder Neu-Planen, mit einem Schritt zur normalen Karte. Kam
+  sie aus „Meine Fahrten" oder „zuletzt navigiert", ist es die normale
+  Karte. Eine Aufzeichnung läuft weiter und ist am Aufnahme-Knopf zu sehen
+  (9.4).
+- **Nadel und Auswahl sind vergänglich**: Die Nadel des langen Drucks
+  geht mit dem Menü weg, wenn nichts gewählt wurde, und mit jedem Tipp
+  auf die Karte; ein Tipp ins Leere hebt eine Trail-Auswahl auf.
+- **Ein Reiterwechsel beendet nichts**: Wer während der Planung in
+  „Trails" oder „Buddys" wechselt, findet den Planer bei der Rückkehr
+  so vor, wie er war. Nur die Navigation blendet die Reiterleiste aus
+  (9.2).
+
+Geprüft wird das als Flow-Test je Einstieg aus 10.3: hinein, Ergebnis,
+Zurück bis zur normalen Karte; am Ende stehen Knopfspalte, Reiterleiste
+und keine Planer-Ebene.
+
+### 10.6 Gebaut wird im Rechen-Isolate, mit Grenze
 
 Seit 0.80.1 RECHNET der Planer im Isolate (2.7); GEBAUT wird der Graph
 weiter im UI-Isolate — auf Android seit Flutter 3.29 der Haupt-Thread.
@@ -1214,7 +1262,7 @@ Das ist der ANR aus #354 (36 s in `findCrossings`). Künftig:
 - **Im Web** gibt es keinen Isolate (2.7, `InlineLoopPlanRunner`) — dort
   gelten nur die Grenzen.
 
-### 10.6 Wann es fertig ist — die Budgets
+### 10.7 Wann es fertig ist — die Budgets
 
 Gemessen am Pixel mit dem Stall-Wächter (`--dart-define=STALL_WATCH=true`,
 `TB-STALL` im Logcat) und neun Szenarien in `docs/routing-messung.md`;
@@ -1235,7 +1283,7 @@ Ein Test in CI wacht relativ über den Bau (schlägt erst bei mehr als
 15-fach UND über 20 s an); das Messwerkzeug baut mit Kreuzungsteilung
 (bis 0.127.2 ohne — #354 war darum nie gemessen).
 
-### 10.7 Bewusst nicht
+### 10.8 Bewusst nicht
 
 Kein Umbenennen von `LoopSession`/`loop_planner_*` (der Name „Loop"
 bleibt im Code), kein Graph über Sitzungen hinweg, kein automatisches
