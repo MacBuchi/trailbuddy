@@ -151,10 +151,12 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     Archiv holt. Der Isolate des Planers bekommt die Felder mit der
     Kopie des Graphen, ohne eigene Serialisierung.
 - **„Zum Trailkopf"** (Schritt 4, seit 0.71.0, `trail_head_route.dart`
-  pur, `trail_head_sheet.dart`, `trail_head_providers.dart`): im
-  Trail-Blatt neben „Anfahrt", vom eigenen Standort zum Anfang des
-  Trails über den Graphen der Bereiche (A*). Vier Dinge, die man wissen
-  muss:
+  pur, `trail_head_providers.dart`): im Trail-Blatt neben „Anfahrt", vom
+  eigenen Standort zum Anfang des Trails über den Graphen der Bereiche
+  (A*). **Seit 0.130.0 rechnet das der Planer** (#356 PR 7, siehe „Ein
+  Planer für alle Einstiege"); das eigene Blatt `trail_head_sheet.dart`
+  ist weg, `planTrailHeadRoute` rechnet nur noch „Zurück zur Route". Was
+  unten steht, gilt sinngemäß weiter. Vier Dinge, die man wissen muss:
   - **Das Blatt stellt einen WUNSCH, die Karte löst ihn ein**
     (`trailHeadRequestProvider`, Muster `mapFocusTrailProvider`): Das
     Trail-Blatt kann über dem Reiter „Trails" offen sein, die Vorschau
@@ -371,7 +373,7 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
   4): Tipp auf eine Verbindung setzt einen Punkt, Ziehen verschiebt,
   Tipp entfernt. Fünf Dinge, die man wissen muss:
   - **Die Karte ändert, der Besitzer rechnet** (`routeViaProvider`,
-    `ViaOwner.route`/`loop`): Blatt „Route" und Planer hören auf die
+    `ViaOwner.loop`, bis 0.129 auch `route`): Planer (bis 0.129 auch Blatt „Route") hören auf die
     Punkte und rechnen, sobald sie von denen ihres gezeigten Ergebnisses
     abweichen. Geht es nicht, stellen sie die alten zurück (`reject`,
     `rejections` zählt — die Karte zeigt `via-rejected`). Ein späterer
@@ -570,7 +572,45 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
       `switchProfile`, D3; `loop-route-mode`, `loop-result-profile`), alle
       anderen Eingaben sagen „Auswahl geändert". Der Stil steht über der
       Phase und bleibt beim Rechnen stehen. Mit Auswahl bleibt es bis
-      PR 7 das alte „Zum Ziel" (Budgets des Planers, = Spaßig, D5).
+      PR 7b das alte „Zum Ziel" (Budgets des Planers, = Spaßig, D5).
+  - **Ein Planer für alle Einstiege** (#356 PR 7a, seit 0.130.0;
+    Konzept-Routing 10.3–10.5). Fünf Dinge, die man wissen muss:
+    - **Ein fertiger Auftrag ist `beginRoute`**: frischer Planer (der
+      alte geht über `close()`), Ziel gesetzt, Start am Standort,
+      `LoopSession.quick`; die Karte rechnet gleich danach
+      (`_planRoute` in `MapScreen`). Einstiege: Trail-Blatt „Zum
+      Trailkopf" und Navi-Symbol über `trailHeadRequestProvider` (Stil
+      aus `NavChoice.style`, ohne gemerkten der des Planers), langer
+      Druck „Route bis hier", Ort-Blatt „Route hierher"
+      (`showPoiSheet(onRoute:)`). Mit Auswahl oder Zwischenpunkten fragt
+      die Karte vorher (`loop-replace`).
+    - **Schnell zu hängt an `quick`**: `_edit` setzt es zurück, Stil und
+      Rad im Ergebnis (`setStyle`, `switchProfile`) behalten es. Geht das
+      Ergebnis-Blatt zu (X oder Zurück) und `quick` steht, schließt
+      `_showLoopResult` den ganzen Planer ohne „Rückgängig" und wählt den
+      Trail wieder, der vorher ausgewählt war. Ersetzt ein neuer Auftrag
+      das offene Blatt, wartet `_planRoute` dessen Ende ab
+      (`_replacingPlan`) — sonst räumte das späte `clearResult` die neue
+      Rechnung mit weg.
+    - **Der Ziel-Trail ist `targetTrailId`** (aus `takeTrailHead(asTarget:)`
+      und `beginRoute(trailId:)`, ein getipptes Ziel leert ihn): Die
+      Navigation kennt ihn hinter dem Ende (`navSectionsOfLoop(beyond:)`,
+      ersetzt `navSectionsOfTrailHead`), der spaßige Umweg nimmt ihn
+      nicht (`funPoolOf(exceptId:)`), und OHNE Auswahl heißt die Fahrt
+      „Zum Trailkopf: …" — mit Auswahl sagen deren Namen mehr.
+    - **Nach der Navigation zurück zum Ergebnis**: `NavRequest.fromPlanner`
+      (nur das Ergebnis-Blatt setzt es); `_startNavigation` behält den
+      `LoopClosed`, das Ende der Navigation holt ihn mit
+      `restore(quick: true)` und `compute: false` zurück. Aus „Meine
+      Fahrten" und „zuletzt navigiert" bleibt die normale Karte.
+    - **Eine Route hat ihre eigenen Sätze**: ohne Auswahl nennen die
+      Gründe den Trailkopf oder das Ziel und die Navi-App
+      (`routeBlocker*`), und „Anfahrt" (`loop-external`) steht auch
+      dann, wenn nichts zu rechnen ging. Schlüssel bleiben `loop-*`
+      (Betreiber, 2026-10-17) — `trail-head-*` gibt es nicht mehr.
+    In den Flow-Tests nach `ensureVisible` ein `settle`: Ein neues
+    Ergebnis klappt das Blatt ein, und ein Tipp an der alten Stelle traf
+    sonst die Karte (oder schloss im schlimmsten Fall das Blatt).
 - **Die Folgeansicht der Navigation** (#232 Schritt 1a, seit 0.94.0,
   `route_progress.dart` pur, `nav_providers.dart`, `nav_view.dart`;
   Konzept-Routing 9). Fünf Dinge, die man wissen muss:

@@ -2,6 +2,25 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## One planner for every way
+
+*Version 0.130.0, 2026-10-17*
+
+- “To the trail head” in a trail's sheet, the navigation icon, “Route
+  to here” on a long press and the new “Route here” in a place's sheet
+  now all open the same planner and compute right away. Until now they
+  had their own sheet next to the planner, and both could be open at
+  once.
+- A long press on the map offers “Start here”, “Route to here”, “Via
+  point here” and your navigation app.
+- Come in that way and change nothing, and one Back takes you to the
+  normal map — a trail you had selected stays selected. Add trails, and
+  Back first takes you to the planner's bar.
+- After “End navigation” the result is there again, to save it or plan
+  anew.
+- If a plan with selected trails is open, the app asks before a new
+  request replaces it.
+
 ## Planner: route from A to B, even without a trail
 
 *Version 0.129.0, 2026-10-17*

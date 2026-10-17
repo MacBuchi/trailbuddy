@@ -386,8 +386,8 @@ void main() {
       await settle(tester);
       await tester.tap(find.byKey(const ValueKey('map-menu-to')));
       await settle(tester, frames: 30);
-      expect(find.byKey(const ValueKey('trail-head-summary')), findsOneWidget);
-      final chart = chartIn(tester, 'trail-head-elevation');
+      expect(find.byKey(const ValueKey('loop-summary')), findsOneWidget);
+      final chart = chartIn(tester, 'loop-elevation');
       expect(chart.compact, isTrue);
       // Vom Standort im Süden nach Norden: der Hang fällt nach Norden.
       expect(chart.profile.startM, greaterThan(chart.profile.endM + 30));
@@ -871,6 +871,8 @@ void main() {
       await tapMapAt(tester, spring.position);
       await settle(tester);
       expect(find.text('Hangbrunnen'), findsOneWidget);
+      await tester.ensureVisible(find.byKey(ValueKey(key)));
+      await settle(tester, frames: 2);
       await tester.tap(find.byKey(ValueKey(key)));
       await settle(tester, frames: 30);
     }
@@ -907,6 +909,48 @@ void main() {
       final whole = routeWhole(tester);
       expect(whole.first.latitude, closeTo(_fromLat, 1e-9));
       expect(whole.last.latitude, closeTo(spring.position.latitude, 1e-9), reason: 'die Route endet am Ort');
+    });
+
+    testWidgets('#356: „Route hierher" im Ort-Blatt rechnet sofort, Zurück führt zur normalen Karte', (tester) async {
+      await start(tester, areaStore: await _areaWithTrack(), pois: FakePoiSource([spring]));
+      await fromPlaceSheet(tester, 'poi-route');
+      expect(find.byKey(const ValueKey('loop-tool-rail')), findsOneWidget, reason: 'derselbe Planer');
+      expect(find.byKey(const ValueKey('loop-summary')), findsOneWidget, reason: 'gerechnet ohne weiteren Tipp');
+      expect(find.text('Route'), findsOneWidget);
+      final whole = routeWhole(tester);
+      expect(whole.first.latitude, closeTo(_fromLat, 1e-9), reason: 'Start am Standort');
+      expect(whole.last.latitude, closeTo(spring.position.latitude, 1e-9), reason: 'die Route endet am Ort');
+
+      await tester.binding.handlePopRoute();
+      await settle(tester);
+      expect(find.byKey(const ValueKey('loop-tool-rail')), findsNothing);
+      expect(find.byKey(const ValueKey('loop-closed')), findsNothing, reason: 'nichts gebaut, nichts rückgängig zu machen');
+      expect(connectionLines(tester), isEmpty);
+    });
+
+    testWidgets('#356: ein neuer Auftrag ersetzt eine Planung mit Auswahl erst nach Rückfrage', (tester) async {
+      await start(tester, areaStore: await _areaWithTrack());
+      await openPlanner(tester);
+      await zoomToTrails(tester);
+      await tapMapAt(tester, const LatLng(48.004, _lon));
+      await settle(tester);
+      expect(picked(tester), hasLength(1));
+
+      // „Zum Trailkopf" — gefragt, abgebrochen: alles bleibt.
+      await fromTrailSheet(tester, 'trail-head');
+      expect(find.byKey(const ValueKey('loop-replace')), findsOneWidget);
+      await tester.tap(find.text('Abbrechen'));
+      await settle(tester, frames: 10);
+      expect(find.byKey(const ValueKey('loop-summary')), findsNothing);
+      expect(picked(tester), hasLength(1), reason: 'die Auswahl bleibt');
+
+      // Noch einmal, ersetzt: die Route zum Trailkopf, ohne Auswahl.
+      await fromTrailSheet(tester, 'trail-head');
+      await tester.tap(find.byKey(const ValueKey('loop-replace-ok')));
+      await settle(tester, frames: 30);
+      expect(find.text('Zum Trailkopf: Hexentanz'), findsOneWidget);
+      expect(find.byKey(const ValueKey('loop-summary')), findsOneWidget);
+      expect(routeWhole(tester).last.latitude, closeTo(48.0, 1e-9));
     });
 
     testWidgets('Start tippen auf einen Ort: der Punkt ist der Ort, nicht der Finger, kein Blatt', (tester) async {
@@ -1307,7 +1351,7 @@ void main() {
     expect(find.byKey(const ValueKey('loop-partial')), findsOneWidget);
   });
 
-  testWidgets('#177: langer Druck — „Route ab hier" öffnet den Planer mit Start, „Route bis hier" den Weg',
+  testWidgets('#177/#356: langer Druck — „Start hier", „Zwischenpunkt hier" und „Route bis hier" im Planer',
       (tester) async {
     await start(tester, areaStore: await _areaWithTrack());
     final point = LatLng(_fromLat + 0.001, _lon);
@@ -1326,13 +1370,34 @@ void main() {
     ScaffoldMessenger.of(tester.element(find.byKey(const ValueKey('loop-closed')))).removeCurrentSnackBar();
     await settle(tester);
 
+    // „Zwischenpunkt hier": der Planer mit einem Punkt, der Start bleibt
+    // der Standort.
+    await longPressMapAt(tester, point);
+    await settle(tester);
+    await tester.tap(find.byKey(const ValueKey('map-menu-via')));
+    await settle(tester, frames: 20);
+    expect(find.byKey(const ValueKey('loop-tool-rail')), findsOneWidget);
+    expect(find.byKey(const ValueKey('loop-waypoint-0')), findsOneWidget);
+    expect(find.byKey(const ValueKey('loop-start-pin')), findsNothing);
+    await tapRail(tester, 'loop-rail-close');
+    ScaffoldMessenger.of(tester.element(find.byKey(const ValueKey('loop-closed')))).removeCurrentSnackBar();
+    await settle(tester);
+
+    // „Route bis hier" rechnet sofort, im Planer (Konzept-Routing 10.3);
+    // Zurück führt mit einem Schritt zur normalen Karte (10.5).
     await longPressMapAt(tester, const LatLng(48.009, _lon));
     await settle(tester);
     await tester.tap(find.byKey(const ValueKey('map-menu-to')));
     await settle(tester, frames: 30);
-    expect(find.text('Route hierher'), findsOneWidget);
-    expect(find.byKey(const ValueKey('trail-head-summary')), findsOneWidget);
+    expect(find.text('Route'), findsOneWidget);
+    expect(find.byKey(const ValueKey('loop-summary')), findsOneWidget);
+    expect(find.byKey(const ValueKey('loop-external')), findsOneWidget);
     expect(connectionLines(tester), isNotEmpty);
+    await tester.binding.handlePopRoute();
+    await settle(tester);
+    expect(find.byKey(const ValueKey('loop-tool-rail')), findsNothing);
+    expect(find.byKey(const ValueKey('loop-summary')), findsNothing);
+    expect(connectionLines(tester), isEmpty);
   });
 
   testWidgets('#176: das Navi-Symbol fragt, merkt sich den Standard, „spaßig" öffnet den Weg auf der Karte',
@@ -1349,11 +1414,12 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('nav-choice-fun')));
     await settle(tester, frames: 30);
     expect(settings.navDefault, 'fun');
-    expect(find.text('Zum Trailkopf'), findsOneWidget);
-    final mode = tester.widget<SegmentedButton<RouteMode>>(find.byKey(const ValueKey('route-mode')));
+    expect(find.text('Zum Trailkopf: Hexentanz'), findsOneWidget);
+    final mode = tester.widget<SegmentedButton<RouteMode>>(find.byKey(const ValueKey('loop-route-mode')));
     expect(mode.selected.single, RouteMode.fun);
-    await tester.tap(find.byKey(const ValueKey('trail-head-close')));
+    await tester.tap(find.byKey(const ValueKey('loop-close')));
     await settle(tester);
+    expect(find.byKey(const ValueKey('loop-tool-rail')), findsNothing, reason: 'Schnell zu (10.4)');
 
     // Mit Standard fragt es nicht mehr.
     await openTab(tester, 'Trails');
@@ -1361,6 +1427,6 @@ void main() {
     await tapNav(tester);
     await settle(tester, frames: 30);
     expect(find.byKey(const ValueKey('nav-choice-external')), findsNothing);
-    expect(find.text('Zum Trailkopf'), findsOneWidget);
+    expect(find.text('Zum Trailkopf: Hexentanz'), findsOneWidget);
   });
 }

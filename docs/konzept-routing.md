@@ -1145,10 +1145,11 @@ Beides rechnet beim Umschalten sofort (D3), ohne „Neu rechnen".
   Route — Pflicht-Trails und Zwischenpunkte wie seit 0.126.0, nie in
   der Reihenfolge des Antippens.
 
-*Stand 0.129.0 (#356 PR 6):* Die Route ohne Auswahl rechnet im Planer,
-mit Direkt, Bequem und Spaßig und den Zwischenpunkten; mit Auswahl ist
-„Zum Ziel" bis PR 7 das bisherige (Budgets des Planers, also Spaßig).
-Die Wahl Runde | Route heißt in den Parametern noch „Ende der Fahrt".
+*Stand 0.130.0 (#356 PR 6 und 7a):* Die Route ohne Auswahl rechnet im
+Planer, mit Direkt, Bequem und Spaßig und den Zwischenpunkten; mit
+Auswahl ist „Zum Ziel" bis PR 7b das bisherige (Budgets des Planers,
+also Spaßig), und „Bergauf bequem" für die Runde kommt dort mit. Die
+Wahl Runde | Route heißt in den Parametern noch „Ende der Fahrt".
 
 Gemerkt wird wie bisher (2.3): Ziel, Stil und Regler ja, der Zielpunkt
 nicht. Öffnet der Planer mit „Route" ohne Zielpunkt, steht der Ziel-Knopf
@@ -1171,10 +1172,17 @@ die Leiste.
 | Ort-Blatt | Start / Ziel / Zwischenpunkt im Planer | dazu „Route hierher" (rechnet sofort) |
 | Navigation „Zurück zur Route" | eigener Graph je Tipp, im UI-Isolate | im Rechen-Isolate, mit Stil und Rad der Route (10.6) |
 
-Das Ergebnis-Blatt ist für beide Ziele dasselbe (`RouteResultBody`,
-mit den Schlüsseln, die Tests und Tour heute am Ziel-Blatt finden):
-Summen, Höhenprofil, Abschnitte, ziehbare Punkte (4), „Navigation
-starten", „Als Fahrt speichern", „Als GPX".
+Das Ergebnis-Blatt ist für beide Ziele dasselbe — das des Planers, mit
+seinen Schlüsseln `loop-*` (Betreiber, 2026-10-17: keine zwei Namen für
+dieselbe Zeile; keine Tour zeigte auf das Ziel-Blatt): Summen,
+Höhenprofil, Abschnitte, ziehbare Punkte (4), „Navigation starten",
+„Als Fahrt speichern", „Als GPX", zu einem Ziel „Anfahrt" (die
+Navi-App, auch wenn nichts zu rechnen ging).
+
+*Stand 0.130.0 (#356 PR 7a):* Alle Einstiege der Tabelle sind gebaut
+außer „Zurück zur Route" (PR 9); das Ziel-Blatt `_RouteSheet` ist weg.
+Der Navi-Symbol-Einstieg und „Zum Trailkopf" nehmen den Stil aus
+`navDefault`, ohne gemerkten den des Planers.
 
 ### 10.4 Bedienregeln
 

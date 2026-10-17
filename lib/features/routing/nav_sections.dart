@@ -19,7 +19,6 @@ import '../../models/trail.dart';
 import '../rides/ride_split.dart' show knownTrailSectionsOf;
 import 'loop_planner.dart' show LoopPlan, LoopSection;
 import 'route_profile.dart' show WayClass;
-import 'trail_head_route.dart' show RouteSection, TrailHeadRoute;
 
 /// Näher als das gilt ein Punkt der Linie als „derselbe" wie der Anfang
 /// oder das Ende eines Abschnitts.
@@ -237,10 +236,13 @@ List<NavWayLeg> _legsOf(Iterable<({WayClass? cls, double lengthM})> parts) {
   return out;
 }
 
-/// Die Abschnitte einer geplanten Runde (auch des spaßigen Wegs zum
-/// Trailkopf). [trailById] holt den Trail aus dem Netz — null, wenn er dort
-/// nicht liegt, dann gelten die Werte des Planers.
-NavSections navSectionsOfLoop(AppLocalizations l, LoopPlan plan, {required Trail? Function(String id) trailById}) {
+/// Die Abschnitte einer geplanten Runde oder Route (auch des spaßigen Wegs
+/// zum Trailkopf). [trailById] holt den Trail aus dem Netz — null, wenn er
+/// dort nicht liegt, dann gelten die Werte des Planers. Mit [beyond] (das
+/// Ziel ist sein Kopf, #356 PR 7) steht dieser Trail hinter dem Ende, wie
+/// bis 0.129 im Blatt „Route" (`navSectionsOfTrailHead`).
+NavSections navSectionsOfLoop(AppLocalizations l, LoopPlan plan,
+    {required Trail? Function(String id) trailById, Trail? beyond}) {
   final points = plan.points;
   if (points.length < 2) return NavSections.none;
   final cum = cumulativeM(points);
@@ -269,26 +271,19 @@ NavSections navSectionsOfLoop(AppLocalizations l, LoopPlan plan, {required Trail
     ));
     legs = [];
   }
-  return NavSections(out);
-}
-
-/// Der direkte Weg zum Trailkopf: kein Trail auf der Linie, der Ziel-Trail
-/// steht hinter ihrem Ende.
-NavSections navSectionsOfTrailHead(AppLocalizations l, TrailHeadRoute route, Trail target) {
-  final points = route.points;
-  if (points.length < 2) return NavSections.none;
-  final lengthM = cumulativeM(points).last;
-  return NavSections([
-    _sectionOf(l,
+  if (beyond != null) {
+    final lengthM = cum.last;
+    out.add(_sectionOf(l,
       startM: lengthM,
       endM: lengthM,
-      id: target.id,
-      name: target.displayName(l),
-      trail: target,
-      approachWays: _legsOf([for (final RouteSection s in route.sections) (cls: s.cls, lengthM: s.lengthM)]),
+      id: beyond.id,
+      name: beyond.displayName(l),
+      trail: beyond,
+      approachWays: _legsOf(legs),
       beyondRoute: true,
-    ),
-  ]);
+    ));
+  }
+  return NavSections(out);
 }
 
 /// Die Abschnitte einer Fahrt: die Trails des Netzes, die die Linie deckt

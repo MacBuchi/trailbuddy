@@ -194,7 +194,8 @@ class CakeSlicePainter extends CustomPainter {
 /// der Weg zu allem Weiteren auf openstreetmap.org.
 /// [onPlan] (#331 Schritte 3 und 4): der Ort als Start, Zwischenpunkt oder
 /// Ziel des Planers — die Karte gibt es mit, das Blatt schließt vorher.
-Future<void> showPoiSheet(BuildContext context, Poi poi, {void Function(LoopPlaceRole role)? onPlan}) =>
+Future<void> showPoiSheet(BuildContext context, Poi poi,
+        {void Function(LoopPlaceRole role)? onPlan, VoidCallback? onRoute}) =>
     showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
@@ -270,6 +271,21 @@ Future<void> showPoiSheet(BuildContext context, Poi poi, {void Function(LoopPlac
                     },
                     icon: const Icon(Icons.add_location_alt_outlined),
                     label: Text(l.poiPlanVia),
+                  ),
+                ],
+                // „Route hierher" rechnet sofort (#356 PR 7, Konzept-Routing
+                // 10.3): der Planer mit dem Ort als Ziel, Start am Standort.
+                if (onRoute != null) ...[
+                  const SizedBox(height: 8),
+                  FilledButton.icon(
+                    key: const ValueKey('poi-route'),
+                    style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(48)),
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                      onRoute();
+                    },
+                    icon: const Icon(Icons.route_outlined),
+                    label: Text(l.poiRouteHere),
                   ),
                 ],
               ],
