@@ -24,6 +24,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:vector_tile/vector_tile.dart';
 
 import '../../core/line_geometry.dart';
+import '../../core/stall_watch.dart';
 import '../offline_areas/height_tiles.dart';
 import 'route_profile.dart';
 
@@ -628,62 +629,77 @@ typedef GraphBuild = ({RoadGraph graph, int joins, int crossings});
 /// ohne gemeinsamen Knoten geteilt.
 GraphBuild buildRoadGraph(Iterable<WayLine> lines,
     {required double lat0, double joinM = kGraphJoinM, bool splitCrossings = true}) {
-  final counts = <(int, int), int>{};
-  final all = lines.toList();
-  for (final l in all) {
-    for (final p in l.points) {
-      final k = RoadGraph._keyOf(p);
-      counts[k] = (counts[k] ?? 0) + 1;
-    }
-  }
-  final g = RoadGraph(lat0);
-  for (final l in all) {
-    final cut = [0];
-    for (var i = 1; i < l.points.length - 1; i++) {
-      if ((counts[RoadGraph._keyOf(l.points[i])] ?? 0) >= 2) cut.add(i);
-    }
-    cut.add(l.points.length - 1);
-    for (var c = 0; c + 1 < cut.length; c++) {
-      final piece = l.points.sublist(cut[c], cut[c + 1] + 1);
-      final a = g.node(piece.first), b = g.node(piece.last);
-      if (a == b && piece.length < 3) continue;
-      g.addEdge(a, b, l.cls, l.oneway, piece, level: l.level);
-    }
-  }
-  var joins = 0;
-  if (joinM > 0) {
-    final count = g.nodes.length; // neue Knoten aus Teilungen brauchen keinen Join
-    for (var n = 0; n < count; n++) {
-      if (g.degree(n) != 1) continue;
-      var target = g.nearestNode(g.nodes[n], joinM, exclude: n);
-      if (target == null) {
-        // Die eigene Kante liegt bei Abstand 0 — ohne Ausschluss würde
-        // jeder T-Knoten ohne Scheitel übersprungen (so im ersten CI-Lauf
-        // des Werkzeugs: 554 statt 11 000 Anbindungen).
-        final hit = g.nearest(g.nodeLatLng[n], joinM, excludeEdges: g.adj[n].toSet());
-        if (hit == null) continue;
-        target = g.splitEdge(hit.edge, hit.seg, hit.at);
-      }
-      if (target != n) {
-        g.addEdge(n, target, g.edges[g.adj[n].first].cls, false, [g.nodeLatLng[n], g.nodeLatLng[target]]);
-        joins++;
+  // Die drei Schritte als Marken (#356): Der Stall-Wächter nennt den,
+  // der den Takt aufhielt.
+  final g = StallWatch.mark('graph.nodes', () {
+    final counts = <(int, int), int>{};
+    final all = lines.toList();
+    for (final l in all) {
+      for (final p in l.points) {
+        final k = RoadGraph._keyOf(p);
+        counts[k] = (counts[k] ?? 0) + 1;
       }
     }
-  }
-  var crossings = 0;
-  if (splitCrossings) {
-    for (final c in findCrossings(g)) {
-      // Erst die eine Kante teilen (attach legt den Knoten an), dann die
-      // andere am selben Punkt — der Knotenschlüssel macht beide eins.
-      final mid = g.attach(c.at, radius: 0.5);
-      if (mid == null) continue;
-      final hit = g.nearest(c.at, 0.5, excludeEdges: g.adj[mid].toSet());
-      if (hit == null) continue;
-      g.splitEdge(hit.edge, hit.seg, c.at);
-      crossings++;
+    final g = RoadGraph(lat0);
+    for (final l in all) {
+      final cut = [0];
+      for (var i = 1; i < l.points.length - 1; i++) {
+        if ((counts[RoadGraph._keyOf(l.points[i])] ?? 0) >= 2) cut.add(i);
+      }
+      cut.add(l.points.length - 1);
+      for (var c = 0; c + 1 < cut.length; c++) {
+        final piece = l.points.sublist(cut[c], cut[c + 1] + 1);
+        final a = g.node(piece.first), b = g.node(piece.last);
+        if (a == b && piece.length < 3) continue;
+        g.addEdge(a, b, l.cls, l.oneway, piece, level: l.level);
+      }
     }
-  }
+    return g;
+  });
+  final joins = joinM > 0 ? StallWatch.mark('graph.joins', () => _joinDeadEnds(g, joinM)) : 0;
+  final crossings = splitCrossings ? StallWatch.mark('graph.crossings', () => _splitCrossings(g)) : 0;
   return (graph: g, joins: joins, crossings: crossings);
+}
+
+/// Bindet jedes tote Ende innerhalb von [joinM] an den nächsten anderen
+/// Weg (Regel 2 aus M1); gibt die Zahl der Anbindungen.
+int _joinDeadEnds(RoadGraph g, double joinM) {
+  var joins = 0;
+  final count = g.nodes.length; // neue Knoten aus Teilungen brauchen keinen Join
+  for (var n = 0; n < count; n++) {
+    if (g.degree(n) != 1) continue;
+    var target = g.nearestNode(g.nodes[n], joinM, exclude: n);
+    if (target == null) {
+      // Die eigene Kante liegt bei Abstand 0 — ohne Ausschluss würde
+      // jeder T-Knoten ohne Scheitel übersprungen (so im ersten CI-Lauf
+      // des Werkzeugs: 554 statt 11 000 Anbindungen).
+      final hit = g.nearest(g.nodeLatLng[n], joinM, excludeEdges: g.adj[n].toSet());
+      if (hit == null) continue;
+      target = g.splitEdge(hit.edge, hit.seg, hit.at);
+    }
+    if (target != n) {
+      g.addEdge(n, target, g.edges[g.adj[n].first].cls, false, [g.nodeLatLng[n], g.nodeLatLng[target]]);
+      joins++;
+    }
+  }
+  return joins;
+}
+
+/// Teilt jede Kreuzung zweier Wege derselben Ebene ohne gemeinsamen
+/// Knoten (Regel 3 aus M1); gibt die Zahl der Teilungen.
+int _splitCrossings(RoadGraph g) {
+  var crossings = 0;
+  for (final c in findCrossings(g)) {
+    // Erst die eine Kante teilen (attach legt den Knoten an), dann die
+    // andere am selben Punkt — der Knotenschlüssel macht beide eins.
+    final mid = g.attach(c.at, radius: 0.5);
+    if (mid == null) continue;
+    final hit = g.nearest(c.at, 0.5, excludeEdges: g.adj[mid].toSet());
+    if (hit == null) continue;
+    g.splitEdge(hit.edge, hit.seg, c.at);
+    crossings++;
+  }
+  return crossings;
 }
 
 /// Schnittpunkt zweier Strecken, wenn sie sich in ihrem Inneren kreuzen,

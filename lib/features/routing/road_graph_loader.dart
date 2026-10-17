@@ -16,6 +16,7 @@ import 'dart:typed_data';
 import 'package:vector_map_tiles/vector_map_tiles.dart' show ProviderException, TileIdentity;
 
 import '../../core/line_geometry.dart';
+import '../../core/stall_watch.dart';
 import '../map/pmtiles_tile_provider.dart';
 import '../offline_areas/area_plan.dart';
 import '../offline_areas/area_store.dart';
@@ -131,7 +132,7 @@ Future<RoadGraphLoadResult> loadRoadGraph({
       for (final p in opened) {
         try {
           final bytes = await p.provide(TileIdentity(t.z, t.x, t.y));
-          lines.addAll(wayLinesFromTile(bytes, z: t.z, x: t.x, y: t.y));
+          lines.addAll(StallWatch.mark('graph.decode', () => wayLinesFromTile(bytes, z: t.z, x: t.x, y: t.y)));
           found++;
           hit = true;
           break;
@@ -160,7 +161,8 @@ Future<RoadGraphLoadResult> loadRoadGraph({
         break;
       }
       if (bytes == null) continue;
-      lines.addAll(wayLinesFromTile(bytes, z: t.z, x: t.x, y: t.y));
+      final data = bytes;
+      lines.addAll(StallWatch.mark('graph.decode', () => wayLinesFromTile(data, z: t.z, x: t.x, y: t.y)));
       found++;
       online++;
       fromHost.add(t);
@@ -170,7 +172,7 @@ Future<RoadGraphLoadResult> loadRoadGraph({
   final partial = found < tiles.length;
   if (partial && requireComplete) return none(RoadCoverage.partial, found);
   final build = buildRoadGraph(lines, lat0: (box.s + box.n) / 2);
-  if (heights != null) await addClimbs(build.graph, heights);
+  if (heights != null) await StallWatch.time('graph.climbs', () => addClimbs(build.graph, heights));
   if (openWays != null || fetchWaysOnline != null) {
     final grades = await _wayGrades(
       tiles: tiles,
@@ -182,7 +184,7 @@ Future<RoadGraphLoadResult> loadRoadGraph({
       fromHost: fromHost,
       fetchWaysOnline: fetchWaysOnline,
     );
-    addWayQuality(build.graph, grades);
+    StallWatch.mark('graph.wayQuality', () => addWayQuality(build.graph, grades));
   }
   return (
     graph: build.graph,

@@ -16,6 +16,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/connectivity.dart';
 import '../../core/errors.dart';
 import '../../core/line_geometry.dart';
+import '../../core/stall_watch.dart';
 import '../../l10n/l10n.dart';
 import '../../models/trail.dart';
 import '../offline_areas/area_providers.dart';
@@ -92,7 +93,7 @@ Future<PlanningGraph> loadPlanningGraph(Ref ref, LatBox box, {bool fillOnline = 
   }
   RoadGraphLoadResult roads;
   try {
-    roads = await loadRoadGraph(
+    roads = await StallWatch.time('graph.load', () => loadRoadGraph(
       areas: areas,
       box: box,
       open: (a) => open(store, a),
@@ -103,7 +104,7 @@ Future<PlanningGraph> loadPlanningGraph(Ref ref, LatBox box, {bool fillOnline = 
       openWays: (a) => openWays(store, a),
       fetchWaysOnline: online?.fetchWays,
       sourceKey: (a) => a.region,
-    );
+    ));
   } catch (e, s) {
     logError('Wege für die Planung lesen', e, s);
     return const PlanningGraph(graph: null, coverage: RoadCoverage.none, tilesFound: 0, tilesNeeded: 0);
@@ -119,16 +120,18 @@ Future<PlanningGraph> loadPlanningGraph(Ref ref, LatBox box, {bool fillOnline = 
           if (t.points.length >= 2 && LatBox.of(t.points).near(box, kTrailHeadMarginM)) t,
       ];
       final onGraph = graphTrailsOf(serviceL10n(), near);
-      applyTrails(graph, onGraph);
+      StallWatch.mark('graph.trails', () => applyTrails(graph, onGraph));
       // Die Enden jeder Abfahrt gleich mit (#188): Wählt der Planer später
       // einen weiteren Trail aus diesem Rahmen, teilt sein Anheften keine
       // Kante mehr, und der Rechen-Isolate behält seine Suchen
       // (`LoopSearchCache`). Dieselben Punkte, die `planLoop` anheftet.
-      for (final t in onGraph) {
-        if (t.role != TrailRole.downhill) continue;
-        graph.attach(t.points.first);
-        graph.attach(t.points.last);
-      }
+      StallWatch.mark('graph.attach', () {
+        for (final t in onGraph) {
+          if (t.role != TrailRole.downhill) continue;
+          graph.attach(t.points.first);
+          graph.attach(t.points.last);
+        }
+      });
     } catch (e, s) {
       // Wirft nie (#356): Ein halb belegter Graph plante Abfahrten bergauf,
       // also lieber keiner.

@@ -51,6 +51,28 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
   Manifest-Test liest die Kotlin-Zeilen,
   `test/flows/back_navigation_flow_test.dart` den Weg in Dart (Gegenprobe
   ohne die Regel: drei Tests rot).
+- **Der Stall-Wächter** (#356 PR 4, seit 0.127.4, `stall_watch.dart`):
+  misst auf dem Gerät, wie lange der UI-Isolate steht. Nur mit
+  `--dart-define=STALL_WATCH=true` (Dev-App, `android/CLAUDE.md`), sonst
+  ist alles eine Konstante; `StallWatch.start()` in `main`. Drei Dinge,
+  die man wissen muss:
+  - **Drei Zeilen im Logcat** (`adb logcat -s flutter | grep TB-`):
+    `TB-STALL gap <ms> [Marken]` (der 16-ms-Takt kam so lange nicht
+    dran), `TB-STALL <marke> <ms>` (ein synchroner Block über
+    `kStallReportMs`, 100 ms — auch im Isolate, dort ohne Takt),
+    `TB-TIME <schritt> <ms>` (jeder Schritt mit `await`, immer).
+  - **`mark` für Synchrones, `time` für `await`.** `mark` legt dazu eine
+    Timeline-Marke (sichtbar in DevTools eines Profile-Builds; im Release
+    gibt es keine). Die Marken stehen am Graph-Bau (`graph.decode`,
+    `graph.nodes`, `graph.joins`, `graph.crossings`, `graph.climbs`,
+    `graph.wayQuality`, `graph.load`, `graph.trails`, `graph.attach`), an
+    der Planung (`plan.loop`, `route.direct`, `route.fun`), an „Zurück zur
+    Route" (`nav.rejoin`) und an der Kalibrierung (`calib.graph`,
+    `calib.samples`). Eine Marke in einer Closure hebt die Promotion
+    auf — `final x = y;` davor.
+  - **Der Rechenteil ist `StallMonitor`**, mit erfundener Uhr geprüft
+    (`test/core/stall_watch_test.dart`); der Takt läuft nur im
+    UI-Isolate, jeder Isolate hat seinen eigenen Wächter.
 - **Push** (#34, seit 0.23.0, Patch 008 und 014; PilzBuddy #277/#564 als
   Vorlage): eine Meldung, wenn ein Buddy einen Trail meldet (nur
   BESTÄTIGTE Meldungen, seit Patch 013) oder einen Hinweis schreibt —

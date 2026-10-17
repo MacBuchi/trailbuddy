@@ -681,3 +681,80 @@ Anfahrten — Umwege, Pfade, die man schon als Teil der Runde fährt
 Höhenmeter kommt, ist deshalb kein Maß (Bequem 3 von 17 bzw. 2 von 7).
 Ehrlich: Die Fahrten waren MTB-Runden, keine bewusst bequemen
 Anfahrten; was der Stil im Tal tut, sieht weiter erst das Gerät.
+
+## #356 — Werkzeug für die Abnahme, und was der Rechner schon zeigt (2026-10-17)
+
+Vor der Freigabe 🚀 A soll die Routenplanung die Oberfläche nie
+anhalten (Konzept-Routing 10.6/10.7). Gemessen wird das am Pixel des
+Betreibers mit der Dev-App (`android/CLAUDE.md`) und dem Stall-Wächter
+(`lib/core/stall_watch.dart`, `lib/core/CLAUDE.md`). Hier stehen das
+Verfahren, die Zahlen vom Rechner und die Tabelle für das Gerät.
+
+### Am Rechner: das Skript mit Kreuzungen
+
+`test/routing/perf_loop_planner_measure.dart` baut seit #356 wie die App
+mit Kreuzungsteilung; eine dritte Schar Nebenstraßen liegt eine halbe
+Masche versetzt, damit `findCrossings` wirklich teilt (vorher
+`splitCrossings: false` — #354 war so nie gemessen). Gitter 25 × 25 km,
+JIT, alle Zeiten in ms, Spalten wie bei #188/0.80.2:
+
+| Trails | Budget | Kanten | Kreuzungen | Graph bauen | Trails auflegen | an Ort und Stelle | Isolate, 1. Rechnung: Dauer / Pause | dieselbe noch einmal | ein Trail weniger | Halte |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 12 | Bio 3 h / 1 000 hm | 62 625 | 15 500 | 1 472 | 33 | 275 | 2 128 / 1 798 | 0 / 0 | 0 / 0 | 2 |
+| 30 | Bio 3 h / 1 000 hm | 62 625 | 15 500 | 1 427 | 34 | 544 | 2 402 / 1 785 | 1 / 1 | 1 / 1 | 2 |
+| 40 | Bio 5 h / 1 600 hm | 62 625 | 15 500 | 1 445 | 36 | 1 444 | 3 153 / 1 786 | 2 / 2 | 1 / 1 | 4 |
+| 60 | E-Bike 5 h / 2 500 hm | 62 625 | 15 500 | 1 501 | 50 | 2 177 | 4 118 / 1 803 | 8 / 5 | 13 / 5 | 8 |
+
+Zwei Befunde, beide schon ohne Gerät:
+
+1. **Das Senden des Graphen ist jetzt die längste Pause**: 1,8 s im
+   UI-Isolate bei 62 600 Kanten (0.80.1: ~0,3 s bei 31 500). Die Pause
+   wächst mit dem Graphen, nicht mit der Auswahl — genau die Lücke, die
+   #356 PR 8 schließt (Graph im Isolate bauen, nichts senden).
+2. **Der Bau selbst liegt bei ~1,5 s** auf dem Rechner, davon der größte
+   Teil in den 15 500 Teilungen; auf dem Telefon ein Vielfaches, im
+   UI-Isolate. Ein echter z13-Rahmen hat weniger Kreuzungen ohne Knoten
+   als dieses Gitter (jede Masche zweimal); die Zahl für das Gerät kommt
+   aus der Tabelle unten.
+
+**Der Fall aus #354 ist im JIT nicht zu sehen.** Mit dem verschachtelten
+Record-Schlüssel baute das 15-km-Gitter in 497 statt 470 ms; langsam war
+er nur im AOT-Build (VM-Typprüfung). Der CI-Test
+(`test/routing/graph_build_budget_test.dart`, relativ zu einer
+Vergleichsarbeit, rot erst über 15-fach UND 20 s) fängt deshalb nur, was
+überall langsam ist — Gegenprobe: `findCrossings` ohne Gitter (alle Paare)
+22 s, 57,7-fach, rot. Den AOT-Fall sieht nur der Wächter am Gerät.
+
+### Am Gerät: Verfahren
+
+```
+flutter build apk --release --flavor dev --target-platform android-arm64 \
+  --dart-define=STALL_WATCH=true
+flutter install --flavor dev
+adb logcat -c && adb logcat -s flutter | grep TB-
+adb shell dumpsys meminfo de.mcbuchi.trailbuddy.dev | grep TOTAL   # vor und nach
+```
+
+Je Szenario: die `TB-TIME`-Zeile des Schritts, die längste
+`TB-STALL gap` samt Marken, `TOTAL PSS` vorher/nachher, und die Kacheln
+aus dem Blatt („x von y Kacheln"). Ein gespeicherter Bereich um die
+Gegend, Online-Ergänzung aus (Parameter des Planers), damit das Netz
+nicht mitmisst; danach Szenario 2 einmal mit Empfang. Keine Orte in
+diesen Bericht — nur Kennzahlen.
+
+| # | Szenario | `TB-TIME` | längste Lücke [Marken] | PSS vorher → nachher | Kacheln |
+|---|---|---|---|---|---|
+| 1 | Kaltstart bis Karte ruhig (Grundrauschen) | – | | | – |
+| 2 | Planer: erste Runde, dichte Gegend, 12 Trails, Radius 12 km | `graph.load`, `plan.loop` | | | |
+| 3 | dieselbe, ein Trail abgewählt | `plan.loop` | | | |
+| 4 | Planer: Radius 30 km, Trails an beiden Rändern (großer Rahmen) | `graph.load`, `plan.loop` | | | |
+| 5 | „Zum Trailkopf" direkt, ~5 km | `graph.load` | [`route.direct`] | | |
+| 6 | dasselbe spaßig | | [`route.fun`] | | |
+| 7 | dasselbe bequem | | [`route.direct`] | | |
+| 8 | Navigation abseits, „Zurück zur Route" | `graph.load` | [`nav.rejoin`] | | |
+| 9 | „Aus meinen Fahrten lernen", ≥ 20 Fahrten | `calib.graph` je Fahrt | [`calib.samples`] | | |
+
+**`kPlanMaxTiles`** (#356 PR 8) kommt aus 2 und 4: die Kachelzahl, bei
+der `graph.load` auf dem Pixel noch unter 5 s bleibt (das Budget der
+ersten Runde), abgerundet; darüber sagt der Planer „Gebiet zu groß".
+Szenario 4 darf das Budget reißen — es ist die Messung der Grenze.

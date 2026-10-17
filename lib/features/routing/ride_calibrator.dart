@@ -18,6 +18,7 @@ import 'package:latlong2/latlong.dart';
 import '../../core/errors.dart';
 import '../../core/line_geometry.dart';
 import '../../core/settings.dart';
+import '../../core/stall_watch.dart';
 import '../../l10n/l10n.dart';
 import '../../data/providers.dart';
 import '../offline_areas/area_providers.dart';
@@ -80,14 +81,14 @@ class RiderCalibrationsNotifier extends Notifier<RiderCalibrations> {
       final box = LatBox.of([for (final p in ride.points) LatLng(p.lat, p.lng)]);
       RoadGraphLoadResult roads;
       try {
-        roads = await loadRoadGraph(
+        roads = await StallWatch.time('calib.graph', () => loadRoadGraph(
           areas: areas,
           box: box,
           open: (a) => open(store, a),
           marginM: kCalibCorridorM * 2,
           requireComplete: false,
           sourceKey: (a) => a.region,
-        );
+        ));
       } catch (e, s) {
         logError('Wege zum Lernen lesen', e, s);
         continue;
@@ -96,7 +97,7 @@ class RiderCalibrationsNotifier extends Notifier<RiderCalibrations> {
         withoutArea++;
         continue;
       }
-      final found = calibSamplesOf(ride, roads.graph);
+      final found = StallWatch.mark('calib.samples', () => calibSamplesOf(ride, roads.graph));
       if (found.isEmpty) continue;
       samples[profile]!.addAll(found);
       rides[profile] = rides[profile]! + 1;

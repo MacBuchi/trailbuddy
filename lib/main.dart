@@ -10,6 +10,7 @@ import 'app.dart';
 import 'core/app_theme.dart';
 import 'core/errors.dart';
 import 'core/settings.dart';
+import 'core/stall_watch.dart';
 import 'core/supabase_config.dart';
 import 'data/error_report_repository.dart';
 import 'data/exit_info_repository.dart';
@@ -18,6 +19,8 @@ import 'features/rides/ride_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // Nur mit --dart-define=STALL_WATCH=true (Dev-App, #356): misst Hänger.
+  StallWatch.start();
   await Supabase.initialize(
     url: SupabaseConfig.url,
     publishableKey: SupabaseConfig.publishableKey,
