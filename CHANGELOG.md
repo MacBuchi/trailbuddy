@@ -2,6 +2,15 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Weniger Hänger beim Berechnen von Wegen
+
+*Version 0.127.1, 2026-10-17*
+
+- Beim Planen einer Runde, beim Weg zum Trailkopf und beim Lernen aus
+  eigenen Fahrten konnte die App auf dem Handy so lange rechnen, dass
+  Android „App reagiert nicht" meldete. Ein Rechenschritt beim Suchen
+  von Wegkreuzungen ist jetzt deutlich schneller.
+
 ## Bequem zum Trailkopf
 
 *Version 0.127.0, 2026-10-16*

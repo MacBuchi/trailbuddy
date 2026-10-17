@@ -138,6 +138,15 @@ void main() {
       expect(bridge.graph.components(), hasLength(2));
     });
 
+    test('flache Kreuzung über viele gemeinsame Gitterzellen zählt einmal (#354)', () {
+      // Zwei lange Segmente im spitzen Winkel liegen in vielen Zellen von
+      // kGraphCellM zugleich — jedes Paar darf nur einmal geprüft werden.
+      final a = _way([(0, 0), (1000, 40)]);
+      final b = _way([(0, 40), (1000, 0)]);
+      final g = buildRoadGraph([a, b], lat0: 47.5, joinM: 0, splitCrossings: false).graph;
+      expect(findCrossings(g), hasLength(1));
+    });
+
     test('Einbahn bleibt an der Kante, Länge in Metern', () {
       final g = buildRoadGraph([_way([(0, 0), (300, 400)], cls: WayClass.nebenstrasse, oneway: true)], lat0: 47.5).graph;
       expect(g.edges.single.oneway, isTrue);
