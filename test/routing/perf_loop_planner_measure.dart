@@ -19,6 +19,13 @@
 // einer glatten Hügelfläche (bis ~1 200 hm Spanne, Rampen über 15 %). Die
 // Trails steigen das Gitter hinab (immer zum tiefsten Nachbarn), 1–2 km,
 // gestreut über 12 km um den Start — der Pool des Planers.
+//
+// Seit #356 mit Kreuzungsteilung wie in der App: Eine dritte Schar
+// Nebenstraßen liegt eine halbe Masche versetzt, ihre Kreuzungen teilen
+// keinen Scheitel und gehen durch `findCrossings` (bis dahin baute das
+// Skript mit `splitCrossings: false`, #354 war so nie gemessen). Die Zeit
+// des Baus ist eine JIT-Zahl; der AOT-Fall aus #354 zeigt sich nur auf dem
+// Gerät (Stall-Wächter, `lib/core/stall_watch.dart`).
 import 'dart:async';
 import 'dart:math' as math;
 
@@ -64,6 +71,7 @@ void main() {
   final n = (_sizeM / _stepM).round() + 1;
   const classes = [WayClass.forstweg, WayClass.wanderweg, WayClass.forstweg, WayClass.nebenstrasse];
 
+  var crossings = 0;
   ({RoadGraph g, Duration build}) graph() {
     final clock = Stopwatch()..start();
     final lines = <WayLine>[
@@ -76,9 +84,16 @@ void main() {
             cls: classes[(i + 1) % classes.length],
             oneway: false,
             points: [for (var j = 0; j < n; j++) at(j * _stepM, i * _stepM)]),
+        if (i + 1 < n)
+          WayLine(
+              cls: WayClass.nebenstrasse,
+              oneway: false,
+              points: [for (var j = 0; j < n - 1; j++) at(j * _stepM + _stepM / 2, i * _stepM + _stepM / 2)]),
       ],
     ];
-    final g = buildRoadGraph(lines, lat0: _lat0, splitCrossings: false).graph;
+    final build = buildRoadGraph(lines, lat0: _lat0);
+    final g = build.graph;
+    crossings = build.crossings;
     for (final e in g.edges) {
       final a = g.nodes[e.a], b = g.nodes[e.b];
       final ha = _height(a.x - o.x, a.y - o.y), hb = _height(b.x - o.x, b.y - o.y);
@@ -178,7 +193,7 @@ void main() {
       String ms(Duration d) => '${d.inMilliseconds}';
       // ignore: avoid_print
       print('| $count | ${profile.name} ${budget.timeS ~/ 3600} h / ${budget.climbM.round()} hm '
-          '| ${g.edges.length} | ${ms(built.build)} | ${ms(overlayTime)} (${applied.blocked} gesperrt) '
+          '| ${g.edges.length} | $crossings | ${ms(built.build)} | ${ms(overlayTime)} (${applied.blocked} gesperrt) '
           '| ${ms(inline.total)} | ${ms(first.total)} / ${ms(first.stall)} '
           '| ${ms(second.total)} / ${ms(second.stall)} '
           '| ${ms(third.total)} / ${ms(third.stall)} '

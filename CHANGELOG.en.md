@@ -2,6 +2,14 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## Measuring where route planning stalls
+
+*Version 0.127.4, 2026-10-17*
+
+- The test version can now measure how long planning a loop or route
+  holds up the screen, and which step is to blame. Nothing changes in the
+  real app — the measurement isn't built into it at all.
+
 ## Test version next to the real app
 
 *Version 0.127.3, 2026-10-17*

@@ -2,6 +2,15 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Messen, wo die Routenplanung hängt
+
+*Version 0.127.4, 2026-10-17*
+
+- Die Testversion kann jetzt messen, wie lange das Planen einer Runde
+  oder Route die Oberfläche aufhält und welcher Schritt daran schuld ist.
+  In der echten App ändert sich nichts — die Messung ist dort gar nicht
+  eingebaut.
+
 ## Testversion neben der echten App
 
 *Version 0.127.3, 2026-10-17*

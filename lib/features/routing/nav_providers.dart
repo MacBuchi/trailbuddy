@@ -9,6 +9,7 @@ import 'package:latlong2/latlong.dart';
 import '../../core/errors.dart';
 import '../../core/line_geometry.dart';
 import '../../core/settings.dart';
+import '../../core/stall_watch.dart';
 import '../../models/trail.dart';
 import '../profile/profile_providers.dart';
 import '../trails/trail_providers.dart' show trailsProvider;
@@ -308,7 +309,7 @@ class NavController extends Notifier<NavSession?> {
         result = NavRejoin.noArea;
       } else {
         final rider = ref.read(calibratedRiderProvider(profile)).withPrefs(prefs.route);
-        final plan = planTrailHeadRoute(graph, from, target, rider);
+        final plan = StallWatch.mark('nav.rejoin', () => planTrailHeadRoute(graph, from, target, rider));
         if (plan.route != null) {
           result = NavRejoin.shown;
           line = plan.route!.points;

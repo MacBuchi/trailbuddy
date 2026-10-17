@@ -291,6 +291,13 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     Trails auflegen laufen weiter im UI-Isolate — seit Flutter 3.29 ist
     das auf Android der Haupt-Thread, eine lange Rechnung dort ist ein
     ANR (0.127.0: 36 s in `loadRoadGraph` → `findCrossings`, #354).
+    **Gemessen wird das am Gerät, nicht im Test** (#356 PR 4): Der Fall aus
+    #354 war nur im AOT-Build langsam, im JIT der Tests gleich schnell. Die
+    Schritte tragen Marken des Stall-Wächters (`lib/core/CLAUDE.md`);
+    `graph_build_budget_test` fängt nur, was überall kippt (relativ, rot
+    über 15-fach UND 20 s), und `perf_loop_planner_measure.dart` baut seit
+    #356 mit Kreuzungsteilung — dort zeigte sich das Senden des Graphen
+    als längste Pause (1,8 s bei 62 600 Kanten, `docs/routing-messung.md`).
     **Keine verschachtelten Records als Schlüssel oder Element in
     heißen Schleifen** (`Set<((int, int), (int, int))>`): Jedes `add`
     fällt in die langsame Typprüfung der VM (`SlowTypeTest` →

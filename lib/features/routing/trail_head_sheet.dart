@@ -40,6 +40,7 @@ import '../../core/geo.dart' show formatMeters;
 import '../../core/gpx_share.dart';
 import '../../core/line_geometry.dart';
 import '../../core/settings.dart';
+import '../../core/stall_watch.dart';
 import '../../models/trail.dart';
 import '../map/map_view/map_view.dart';
 import '../map/position_provider.dart';
@@ -230,20 +231,22 @@ class _RouteSheetState extends ConsumerState<_RouteSheet> {
     final prefs = LoopPrefs.parse(ref.read(settingsProvider).loopPlannerPrefs, _profile);
     final rider = _rider(prefs);
     try {
-      final plan = planTrailHeadRoute(graph, from, widget.target.point, rider);
+      final plan = StallWatch.mark('route.direct', () => planTrailHeadRoute(graph, from, widget.target.point, rider));
       LoopPlan? fun;
       var funEmpty = false;
       final direct = plan.route;
       if (_mode == RouteMode.fun && direct != null) {
-        final result = planLoop(
-          graph,
-          start: from,
-          end: widget.target.point,
-          profile: rider,
-          budget: _funBudget(direct, prefs),
-          pool: [for (final t in _funPool(from)) poolTrailOf(l, t)],
-          returnToStart: false,
-        );
+        final result = StallWatch.mark(
+            'route.fun',
+            () => planLoop(
+                  graph,
+                  start: from,
+                  end: widget.target.point,
+                  profile: rider,
+                  budget: _funBudget(direct, prefs),
+                  pool: [for (final t in _funPool(from)) poolTrailOf(l, t)],
+                  returnToStart: false,
+                ));
         if (result.outcome == LoopOutcome.ok && !result.isEmpty) {
           fun = result;
         } else {

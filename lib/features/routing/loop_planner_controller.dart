@@ -31,6 +31,7 @@ import 'package:latlong2/latlong.dart';
 import '../../core/errors.dart';
 import '../../core/line_geometry.dart';
 import '../../core/settings.dart';
+import '../../core/stall_watch.dart';
 import '../../l10n/l10n.dart';
 import '../../models/trail.dart';
 import '../map/position_provider.dart';
@@ -511,10 +512,12 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
       state = state.copyWith(phase: LoopPhase.computing);
       // Ein Bild für den Kreisel, bevor die Rechnung den Takt belegt.
       await WidgetsBinding.instance.endOfFrame;
-      final plan = await (_runner ??= ref.read(loopPlanRunnerFactoryProvider)()).plan(
+      final runner = _runner ??= ref.read(loopPlanRunnerFactoryProvider)();
+      final from = start;
+      final plan = await StallWatch.time('plan.loop', () => runner.plan(
         _graph!,
         LoopRequest(
-          start: start,
+          start: from,
           // Mit den gelernten Werten des Profils (Schritt 6), wo es welche gibt.
           profile: ref.read(calibratedRiderProvider(state.profile)).withPrefs(state.prefs.route),
           budget: state.prefs.budget,
@@ -523,7 +526,7 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
           end: target,
           waypoints: waypoints,
         ),
-      );
+      ));
       if (generation != _generation) return;
       _planTarget = target;
       _planWaypoints = waypoints;
