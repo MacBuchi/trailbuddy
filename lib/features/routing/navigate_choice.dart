@@ -48,6 +48,14 @@ enum NavChoice {
       };
 
   static NavChoice? parse(String? s) => values.where((c) => c.db == s).firstOrNull;
+
+  /// Der Stil des Planers zu dieser Wahl; null bei der Navi-App.
+  RouteMode? get style => switch (this) {
+        NavChoice.external => null,
+        NavChoice.direct => RouteMode.direct,
+        NavChoice.fun => RouteMode.fun,
+        NavChoice.easy => RouteMode.easy,
+      };
 }
 
 /// Das Symbol. [choose]: immer fragen (der lange Druck).
@@ -65,14 +73,7 @@ Future<void> navigateToTrail(BuildContext context, WidgetRef ref, Trail trail, {
       final navigator = Navigator.of(context);
       if (navigator.canPop() && ModalRoute.of(context) is PopupRoute) navigator.pop();
       StatefulNavigationShell.maybeOf(context)?.goBranch(kMapBranchIndex);
-      request.state = (
-        trailId: trail.id,
-        mode: switch (choice) {
-          NavChoice.fun => RouteMode.fun,
-          NavChoice.easy => RouteMode.easy,
-          _ => RouteMode.direct,
-        },
-      );
+      request.state = (trailId: trail.id, mode: choice.style);
   }
 }
 

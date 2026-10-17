@@ -11,11 +11,13 @@ import '../../core/geo.dart' show formatMeters;
 import '../../core/gpx_share.dart';
 import '../../core/read_after_write.dart';
 import '../../core/router_branches.dart';
+import '../../core/settings.dart';
 import '../../l10n/l10n.dart';
 import '../../models/trail.dart';
 import '../coach/coach.dart';
 import '../help/map_tour.dart' show SheetCoach;
 import '../routing/loop_planner_providers.dart';
+import '../routing/navigate_choice.dart' show NavChoice;
 import '../routing/trail_head_providers.dart';
 import 'gpx_writer.dart';
 import 'grade_shield.dart';
@@ -479,7 +481,10 @@ class _TrailSheetState extends ConsumerState<_TrailSheet> {
                       final request = ref.read(trailHeadRequestProvider.notifier);
                       Navigator.of(context).pop();
                       StatefulNavigationShell.maybeOf(context)?.goBranch(kMapBranchIndex);
-                      request.state = (trailId: trail.id, mode: RouteMode.direct);
+                      // Der Stil des Navi-Symbols, wenn eins gemerkt ist
+                      // (Konzept-Routing 10.3); sonst der des Planers.
+                      final mode = NavChoice.parse(ref.read(settingsProvider).navDefault)?.style;
+                      request.state = (trailId: trail.id, mode: mode);
                     },
                     icon: const Icon(Icons.route_outlined),
                     label: Text(l.sheetTrailHead),

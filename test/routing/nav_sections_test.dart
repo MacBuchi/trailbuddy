@@ -6,10 +6,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:trailbuddy/features/routing/loop_planner.dart';
 import 'package:trailbuddy/features/routing/route_profile.dart';
-import 'package:trailbuddy/features/routing/route_search.dart' show PathSummary;
 import 'package:trailbuddy/features/trails/trail_geometry.dart' show RecordingSource;
 import 'package:trailbuddy/features/routing/route_progress.dart';
-import 'package:trailbuddy/features/routing/trail_head_route.dart';
 import 'package:trailbuddy/models/trail.dart';
 import '../fakes/l10n_de.dart';
 
@@ -126,17 +124,15 @@ void main() {
     });
   });
 
-  group('navSectionsOfTrailHead', () {
-    test('der Ziel-Trail steht hinter dem Ende der Linie', () {
+  group('navSectionsOfLoop(beyond:)', () {
+    test('zum Trailkopf (#356 PR 7): der Ziel-Trail steht hinter dem Ende der Linie', () {
       final target = _trail('t', 'Ziel', _line(5, 7), grade: 2);
-      final route = TrailHeadRoute(
-        profile: RiderProfile.bio,
-        summary: const PathSummary(
-            lengthM: 0, gainM: 0, lossM: 0, timeS: 0, hikingM: 0, mix: {}, points: [], heightsComplete: true),
-        sections: [RouteSection(cls: WayClass.forstweg, points: _line(0, 5), lengthM: 556)],
+      final plan = LoopPlan(
+        LoopOutcome.ok,
         points: _line(0, 5),
+        sections: [LoopSection(points: _line(0, 5), lengthM: 556, cls: WayClass.forstweg, leg: 0)],
       );
-      final s = navSectionsOfTrailHead(l10nDe, route, target);
+      final s = navSectionsOfLoop(l10nDe, plan, trailById: (_) => null, beyond: target);
       final t = s.trails.single;
       expect(t.beyondRoute, isTrue);
       expect(t.startM, closeTo(5 * 111.2, 2));

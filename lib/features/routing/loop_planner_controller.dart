@@ -33,6 +33,11 @@
 // - **Zu heißt aufgeräumt** (Konzept-Routing 10.5): Auswahl, Start, Ziel
 //   und Zwischenpunkte gehen mit; [LoopPlannerNotifier.close] gibt dafür
 //   einen [LoopClosed] zurück, mit dem „Rückgängig" alles wiederholt.
+// - **Alle Einstiege landen hier** (#356 PR 7, Konzept-Routing 10.3): Wer
+//   mit einem fertigen Auftrag kommt („Zum Trailkopf", Navi-Symbol, „Route
+//   bis hier", „Route hierher"), bekommt über [beginRoute] einen frischen
+//   Planer mit Ziel; bis er etwas ändert, schließt das Ergebnis den ganzen
+//   Planer ([LoopSession.quick]).
 import 'dart:async';
 
 import 'package:flutter/widgets.dart' show WidgetsBinding;
@@ -70,6 +75,7 @@ class LoopSession {
     this.start,
     this.pickingStart = false,
     this.target,
+    this.targetTrailId,
     this.pickingTarget = false,
     this.waypoints = const [],
     this.pickingWaypoint = false,
@@ -88,6 +94,7 @@ class LoopSession {
     this.changed = false,
     this.planBare = false,
     this.funEmpty = false,
+    this.quick = false,
   });
 
   /// Der Planer-Modus ist an: Leiste links, Tipps wählen Trails.
@@ -101,6 +108,11 @@ class LoopSession {
 
   /// Das getippte Ziel (#331) — zählt nur im Modus [LoopEndMode.target].
   final LatLng? target;
+
+  /// Ist das Ziel der Kopf eines Trails („Zum Trailkopf"), dessen Kennung:
+  /// Die Fahrt heißt nach ihm, die Navigation kennt ihn als Trail hinter
+  /// dem Ende, und der spaßige Umweg nimmt ihn nicht mit.
+  final String? targetTrailId;
 
   /// Der nächste Tipp auf die Karte ist das Ziel.
   final bool pickingTarget;
@@ -157,6 +169,12 @@ class LoopSession {
   /// direkte Weg, und das Blatt sagt es.
   final bool funEmpty;
 
+  /// Über einen Einstieg mit fertigem Auftrag geöffnet und seither nichts
+  /// geändert (Konzept-Routing 10.4 „Schnell zu"): Zurück oder X am
+  /// Ergebnis schließen den ganzen Planer, nicht nur das Blatt. Stil und
+  /// Rad im Ergebnis zählen nicht als Änderung.
+  final bool quick;
+
   bool get busy => phase == LoopPhase.locating || phase == LoopPhase.loading || phase == LoopPhase.computing;
 
   LoopSession copyWith({
@@ -165,6 +183,8 @@ class LoopSession {
     bool clearStart = false,
     bool? pickingStart,
     LatLng? target,
+    String? targetTrailId,
+    bool clearTargetTrail = false,
     bool? pickingTarget,
     List<LatLng>? waypoints,
     bool? pickingWaypoint,
@@ -186,12 +206,14 @@ class LoopSession {
     bool? changed,
     bool? planBare,
     bool? funEmpty,
+    bool? quick,
   }) =>
       LoopSession(
         open: open ?? this.open,
         start: clearStart ? null : (start ?? this.start),
         pickingStart: pickingStart ?? this.pickingStart,
         target: target ?? this.target,
+        targetTrailId: clearTargetTrail ? null : (targetTrailId ?? this.targetTrailId),
         pickingTarget: pickingTarget ?? this.pickingTarget,
         waypoints: waypoints ?? this.waypoints,
         pickingWaypoint: pickingWaypoint ?? this.pickingWaypoint,
@@ -210,6 +232,7 @@ class LoopSession {
         changed: changed ?? this.changed,
         planBare: clearPlan ? (planBare ?? false) : (planBare ?? this.planBare),
         funEmpty: clearPlan ? (funEmpty ?? false) : (funEmpty ?? this.funEmpty),
+        quick: quick ?? this.quick,
       );
 }
 
@@ -330,7 +353,7 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
 
   /// „Rückgängig" nach [close]: Auswahl und Ergebnis kommen zurück, wie
   /// sie waren — die Karte öffnet das Blatt dazu wieder.
-  void restore(LoopClosed closed) {
+  void restore(LoopClosed closed, {bool? quick}) {
     _generation++;
     _graph = closed._graph;
     _graphStart = closed._graphStart;
@@ -348,7 +371,8 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
         pickingWaypoint: false,
         clearDrawTool: true,
         prefs: state.prefs,
-        profile: state.profile);
+        profile: state.profile,
+        quick: quick);
     final plan = s.plan;
     if (plan != null && plan.outcome == LoopOutcome.ok) ref.read(routeViaProvider.notifier).begin(ViaOwner.loop, _vias);
   }
@@ -362,7 +386,7 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
     final shown = state.changed || state.phase != LoopPhase.idle;
     _generation++;
     if (state.plan != null) ref.read(routeViaProvider.notifier).end(ViaOwner.loop);
-    state = next.copyWith(clearPlan: true, clearBlocker: true, phase: LoopPhase.idle, changed: shown);
+    state = next.copyWith(clearPlan: true, clearBlocker: true, phase: LoopPhase.idle, changed: shown, quick: false);
   }
 
   LoopToggle toggle(Trail t) {
@@ -449,7 +473,7 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
     setWaypoints([...state.waypoints]..removeAt(k));
   }
 
-  void takeTarget(LatLng p) => _edit(state.copyWith(target: p, pickingTarget: false));
+  void takeTarget(LatLng p) => _edit(state.copyWith(target: p, clearTargetTrail: true, pickingTarget: false));
 
   /// Wohin der nächste Tipp geht: Start, Ziel oder Zwischenpunkt. Falsch,
   /// wenn der Planer auf keinen wartet.
@@ -473,7 +497,27 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
   /// bleibt, wie er war (am Kopf endet die Fahrt, bevor er beginnt).
   void takeTrailHead(Trail t, {required bool asTarget}) {
     takePlace(t.start, asTarget ? LoopPlaceRole.target : LoopPlaceRole.start);
+    if (asTarget) state = state.copyWith(targetTrailId: t.id);
     if (!asTarget && !t.pending && trailRoleOf(t) == TrailRole.downhill) setSelected([t.id], true);
+  }
+
+  /// Ein Einstieg mit fertigem Auftrag (#356 PR 7, Konzept-Routing 10.3):
+  /// ein frischer Planer mit dem Ziel [target], Start am Standort — die
+  /// Karte rechnet gleich danach. Ein laufender Auftrag wird ersetzt (mit
+  /// Auswahl fragt die Karte vorher). [style] wie über das Ergebnis
+  /// gemerkt; ohne bleibt der gemerkte.
+  void beginRoute(LatLng target, {String? trailId, RouteMode? style}) {
+    if (state.open) close();
+    final prefs = state.prefs.copyWith(endMode: LoopEndMode.target, style: style);
+    if (prefs.encode() != state.prefs.encode()) _remember(prefs);
+    state = LoopSession(
+        open: true,
+        prefs: prefs,
+        profile: state.profile,
+        coverage: state.coverage,
+        target: target,
+        targetTrailId: trailId,
+        quick: true);
   }
 
   /// Ein Punkt als Start, Zwischenpunkt oder Ziel, ohne Tipp auf die
@@ -500,6 +544,10 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
       prefs: prefs,
       pickingTarget: prefs.endMode == LoopEndMode.target ? null : false,
     ));
+    _remember(prefs);
+  }
+
+  void _remember(LoopPrefs prefs) {
     ref.read(settingsProvider).setLoopPlannerPrefs(prefs.encode()).catchError((Object e, StackTrace s) {
       logError('Planer-Regler merken', e, s);
     });
@@ -516,13 +564,17 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
   /// Der Stil im Ergebnis einer Route (#356, D3): gemerkt und sofort
   /// gerechnet — anders als die übrigen Eingaben.
   Future<void> setStyle(RouteMode style) {
+    final quick = state.quick;
     if (style != state.prefs.style) setPrefs(state.prefs.copyWith(style: style));
+    state = state.copyWith(quick: quick);
     return compute();
   }
 
   /// Das Rad im Ergebnis (D3): sofort gerechnet.
   Future<void> switchProfile(RiderProfile next) {
+    final quick = state.quick;
     if (next != state.profile) setProfile(next);
+    state = state.copyWith(quick: quick);
     return compute();
   }
 
@@ -592,7 +644,8 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
       final fillOnline = state.prefs.fillOnline;
       // Die Trails, die eine spaßige Route mitnehmen darf, gleich in den
       // Rahmen — ein Wechsel des Stils lädt dann nicht neu.
-      final fun = bare ? funPoolOf(_trails, start, target!) : const <Trail>[];
+      // Den Ziel-Trail fährt man danach, nicht auf dem Weg dorthin.
+      final fun = bare ? funPoolOf(_trails, start, target!, exceptId: state.targetTrailId) : const <Trail>[];
       if (_graph == null ||
           _graphStart != start ||
           (target != null && !_graphBox!.contains(LatBox.of([target]))) ||

@@ -29,7 +29,9 @@ import '../../models/trail.dart';
 import '../map/map_view/map_view.dart';
 import '../rides/ride_providers.dart';
 import '../rides/ride_track.dart';
+import '../trails/gpx.dart';
 import '../trails/gpx_writer.dart';
+import '../trails/trail_navigation.dart';
 import '../trails/trail_providers.dart';
 import 'loop_planner.dart';
 import 'loop_planner_controller.dart';
@@ -591,7 +593,10 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
       padding: const EdgeInsets.fromLTRB(20, 0, 8, 24),
       children: [
         MapPanelHeader(
-          title: session.planEnd == LoopEndMode.loop ? l.loopTitle : l.loopRouteTitle,
+          title: switch (_namedTarget(session)) {
+            final t? => l.routeNameTrailHead(t.displayName(l)),
+            null => session.planEnd == LoopEndMode.loop ? l.loopTitle : l.loopRouteTitle,
+          },
           subtitle: plan?.summary == null ? null : _shortSummary(l, plan!.summary!),
           closeKey: const ValueKey('loop-close'),
           onClose: widget.panel.close,
@@ -626,8 +631,9 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
               LoopPhase.loading => [_progress(l.routingLoadingWays)],
               LoopPhase.idle when session.changed => [_changedCard(context)],
               LoopPhase.computing || LoopPhase.idle => [_progress(l.loopComputing)],
+              // Geht es nicht, bleibt zu einem Ziel die Navi-App (#151).
               LoopPhase.result => session.blocker != null || plan == null
-                  ? [_blockerCard(context, session.blocker ?? LoopBlocker.failed)]
+                  ? [_blockerCard(context, session, session.blocker ?? LoopBlocker.failed), ?_external(context, session)]
                   : _result(context, session, plan),
             },
             ],
@@ -646,7 +652,7 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
   Widget _notice(BuildContext context, String text) =>
       Text(key: const ValueKey('loop-notice'), text, style: Theme.of(context).textTheme.bodyMedium);
 
-  Widget _blockerCard(BuildContext context, LoopBlocker b) {
+  Widget _blockerCard(BuildContext context, LoopSession session, LoopBlocker b) {
     final palette = AppPalette.of(context);
     return Card(
       key: const ValueKey('loop-blocker'),
@@ -656,7 +662,7 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
         child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Icon(Icons.info_outline, color: palette.warningText),
           const SizedBox(width: 10),
-          Expanded(child: _notice(context, _blockerText(context.l10n, b))),
+          Expanded(child: _notice(context, _blockerText(context.l10n, session, b))),
         ]),
       ),
     );
@@ -705,6 +711,7 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
       return [
         _notice(context, _outcomeText(l, plan.outcome)),
         if (plan.excluded.isNotEmpty) ...[const SizedBox(height: 8), ..._excludedRows(context, plan)],
+        ?_external(context, session),
       ];
     }
     final s = plan.summary!;
@@ -762,8 +769,10 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
             style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(48)),
             onPressed: () => ref.read(navRequestProvider.notifier).state = NavRequest(
                 points: plan.points,
-                title: loopName(l, plan, loop: session.planEnd == LoopEndMode.loop),
-                sections: navSectionsOfLoop(context.l10n, plan, trailById: trailByIdOf(ref))),
+                title: _name(l, session, plan),
+                sections: navSectionsOfLoop(context.l10n, plan,
+                    trailById: trailByIdOf(ref), beyond: _targetTrail(session)),
+                fromPlanner: true),
             icon: const Icon(Icons.navigation_outlined),
             label: Text(l.commonNavigate),
           ),
@@ -779,15 +788,15 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
           ),
         ),
       ]),
-      Align(
-        alignment: Alignment.centerLeft,
-        child: TextButton.icon(
+      Wrap(children: [
+        TextButton.icon(
           key: const ValueKey('loop-gpx'),
-          onPressed: () => _exportGpx(plan),
+          onPressed: () => _exportGpx(session, plan),
           icon: const Icon(Icons.share_outlined),
           label: Text(l.routingAsGpx),
         ),
-      ),
+        ?_external(context, session),
+      ]),
       if (s.trailUpM > 0) ...[
         const SizedBox(height: 4),
         Text(
@@ -881,13 +890,49 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
     ];
   }
 
+  /// Zu einem Ziel auch die Navi-App (#151) — wie bisher im Blatt „Route",
+  /// auch wenn hier nichts zu rechnen ging; eine Runde hat kein Ziel, das
+  /// sie bräuchte.
+  Widget? _external(BuildContext context, LoopSession session) {
+    final target = session.target;
+    if (session.prefs.endMode != LoopEndMode.target || target == null) return null;
+    final trail = session.targetTrailId == null ? null : trailByIdOf(ref)(session.targetTrailId!);
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: TextButton.icon(
+        key: const ValueKey('loop-external'),
+        onPressed: () => trail != null ? navigateToTrailHead(context, trail) : navigateToPoint(context, target),
+        icon: const Icon(Icons.directions_outlined),
+        label: Text(context.l10n.sheetNavigate),
+      ),
+    );
+  }
+
+  /// Der Trail, zu dessen Kopf die gezeigte Route führt („Zum Trailkopf").
+  Trail? _targetTrail(LoopSession session) {
+    final id = session.targetTrailId;
+    if (id == null || session.planEnd != LoopEndMode.target) return null;
+    return trailByIdOf(ref)(id);
+  }
+
+  /// Nach dem Trailkopf HEISST die Route nur ohne gewählte Trails — mit
+  /// Auswahl sagen deren Namen mehr („Route: Hexentanz, Steinbruch").
+  Trail? _namedTarget(LoopSession session) => session.planBare ? _targetTrail(session) : null;
+
+  /// Der Name für Fahrt, GPX und Navigation: zum Trailkopf nach dem Trail,
+  /// sonst nach den Trails der Planung.
+  String _name(AppLocalizations l, LoopSession session, LoopPlan plan) => switch (_namedTarget(session)) {
+        final t? => l.routeNameTrailHead(t.displayName(l)),
+        null => loopName(l, plan, loop: session.planEnd == LoopEndMode.loop),
+      };
+
   Future<void> _saveRide(LoopSession session, LoopPlan plan) async {
     if (plan.summary == null) return;
     final messenger = ScaffoldMessenger.of(context);
     final l = context.l10n;
     final now = DateTime.now().toUtc();
     final ride = await ref.read(ridesProvider.notifier).savePlanned(
-          name: loopName(l, plan, loop: session.planEnd == LoopEndMode.loop),
+          name: _name(l, session, plan),
           points: [
             for (final p in plan.points) RidePoint(lat: p.latitude, lng: p.longitude, at: now, accuracyM: 0),
           ],
@@ -899,19 +944,31 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
         content: Text(ride == null ? l.loopSaveFailed : l.routingSavedAsRide)));
   }
 
-  void _exportGpx(LoopPlan plan) {
+  void _exportGpx(LoopSession session, LoopPlan plan) {
     if (plan.summary == null) return;
-    final track = loopToGpx(context.l10n, plan, loop: ref.read(loopPlannerProvider).planEnd == LoopEndMode.loop);
+    final track = GpxTrack(
+        name: _name(context.l10n, session, plan),
+        points: [for (final p in plan.points) TrackPoint(p.latitude, p.longitude)]);
     shareGpx(context, ref, fileName: gpxFileName(track.name), xml: writeGpx(name: track.name, points: track.points));
   }
 
-  String _blockerText(AppLocalizations l, LoopBlocker b) => switch (b) {
-        LoopBlocker.noTrails => l.loopBlockerNoTrails,
-        LoopBlocker.noPosition => l.loopBlockerNoPosition,
-        LoopBlocker.noTarget => l.loopBlockerNoTarget,
-        LoopBlocker.noArea => l.loopBlockerNoArea,
-        LoopBlocker.failed => l.loopBlockerFailed,
-      };
+  /// Eine Route ohne gewählten Trail (#356) hat ihre eigenen Sätze — sie
+  /// nennen den Trailkopf oder das Ziel und die Navi-App, nicht „die Runde"
+  /// und „weniger Trails".
+  String _blockerText(AppLocalizations l, LoopSession session, LoopBlocker b) {
+    final route = session.prefs.endMode == LoopEndMode.target && session.selected.isEmpty;
+    return switch (b) {
+      LoopBlocker.noTrails => l.loopBlockerNoTrails,
+      LoopBlocker.noPosition => route ? l.routeBlockerNoPosition : l.loopBlockerNoPosition,
+      LoopBlocker.noTarget => l.loopBlockerNoTarget,
+      LoopBlocker.noArea => !route
+          ? l.loopBlockerNoArea
+          : session.targetTrailId != null
+              ? l.routeBlockerNoAreaTrailHead
+              : l.routeBlockerNoAreaPoint,
+      LoopBlocker.failed => route ? l.routeBlockerFailed : l.loopBlockerFailed,
+    };
+  }
 
   String _outcomeText(AppLocalizations l, LoopOutcome o) => switch (o) {
         LoopOutcome.ok => '',

@@ -1,6 +1,6 @@
 // Die Naht der Zwischenpunkte (#234) zwischen Karte und Ergebnis-Blatt.
 // Die KARTE ändert die Punkte (Tipp auf die Linie, Ziehen, Tipp auf den
-// Punkt), der BESITZER rechnet — das Blatt „Route" oder der Planer. Er
+// Punkt), der BESITZER rechnet — seit #356 PR 7 nur noch der Planer. Er
 // hört auf diesen Zustand und rechnet neu, sobald die Punkte andere sind
 // als die, mit denen er zuletzt gerechnet hat. Geht es nicht (kein Weg
 // durch den Punkt), stellt er die alten zurück ([RouteViaNotifier.reject])
@@ -10,8 +10,9 @@ import 'package:latlong2/latlong.dart';
 
 import 'route_vias.dart';
 
-/// Wer die Punkte gerade gelten lässt.
-enum ViaOwner { route, loop }
+/// Wer die Punkte gerade gelten lässt — bis 0.129 auch das Blatt
+/// „Route"; seit es im Planer aufgeht (#356 PR 7), nur noch er.
+enum ViaOwner { loop }
 
 class ViaEdit {
   const ViaEdit(this.owner, this.vias, {this.rejections = 0});

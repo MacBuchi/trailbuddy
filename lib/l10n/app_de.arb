@@ -198,9 +198,13 @@
   "@mapPositionDotRecording": {
     "description": "Bildschirmleser: der Positionspunkt, während eine Fahrt aufgezeichnet wird."
   },
-  "mapMenuRouteFrom": "Route ab hier",
-  "@mapMenuRouteFrom": {
-    "description": "Menü beim langen Druck auf die Karte: Rundenplaner mit diesem Start."
+  "mapMenuStartHere": "Start hier",
+  "@mapMenuStartHere": {
+    "description": "Menü beim langen Druck auf die Karte: der Planer mit diesem Punkt als Start."
+  },
+  "mapMenuViaHere": "Zwischenpunkt hier",
+  "@mapMenuViaHere": {
+    "description": "Menü beim langen Druck auf die Karte: der Punkt wird Zwischenpunkt der Planung."
   },
   "mapMenuRouteTo": "Route bis hier",
   "@mapMenuRouteTo": {
@@ -4388,14 +4392,6 @@
   "@loopRailClose": {
     "description": "Tooltip des untersten Knopfs der Planer-Leiste."
   },
-  "routeTitleTrailHead": "Zum Trailkopf",
-  "@routeTitleTrailHead": {
-    "description": "Titel des Routen-Blatts zu einem Trail."
-  },
-  "routeTitlePoint": "Route hierher",
-  "@routeTitlePoint": {
-    "description": "Titel des Routen-Blatts zu einem Punkt der Karte (langer Druck)."
-  },
   "routeNameTrailHead": "Zum Trailkopf: {name}",
   "@routeNameTrailHead": {
     "description": "Name des Wegs zum Trail (Fahrt, GPX, Navigation).",
@@ -4404,27 +4400,6 @@
         "type": "String"
       }
     }
-  },
-  "routeNamePoint": "Route: {name}",
-  "@routeNamePoint": {
-    "description": "Name des Wegs zu einem Punkt (Fahrt, GPX, Navigation).",
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
-  },
-  "routeSaveFailed": "Der Weg ließ sich nicht speichern.",
-  "@routeSaveFailed": {
-    "description": "Leiste, wenn das Speichern des Wegs scheitert."
-  },
-  "routeSaveAsRide": "Als Fahrt speichern",
-  "@routeSaveAsRide": {
-    "description": "Knopf im Routen-Blatt."
-  },
-  "routeComputing": "Der Weg wird gerechnet …",
-  "@routeComputing": {
-    "description": "Fortschritt im Routen-Blatt."
   },
   "routeModeDirect": "Direkt",
   "@routeModeDirect": {
@@ -4460,21 +4435,6 @@
       }
     }
   },
-  "routeFunStops": "{count, plural, =1{Mit dem Trail {names} · {trail} Trail} other{Mit den Trails {names} · {trail} Trail}}",
-  "@routeFunStops": {
-    "description": "Spaßiger Weg: welche Trails er mitnimmt; trail ist die fertig formatierte Länge auf Trails.",
-    "placeholders": {
-      "count": {
-        "type": "int"
-      },
-      "names": {
-        "type": "String"
-      },
-      "trail": {
-        "type": "String"
-      }
-    }
-  },
   "routeFunEmpty": "Auf dem Weg dorthin passt kein Trail in den Umweg — das ist der direkte Weg.",
   "@routeFunEmpty": {
     "description": "Spaßiger Weg ohne Trail."
@@ -4494,50 +4454,6 @@
   "routeBlockerFailed": "Der Weg ließ sich nicht rechnen — ein Fehler, der gemeldet ist. Nimm „Anfahrt“, die Navi-App kennt den Weg auch.",
   "@routeBlockerFailed": {
     "description": "Routen-Blatt: Fehler beim Rechnen."
-  },
-  "routeOutcomeStartOff": "In {meters} m um deinen Standort liegt kein Weg aus der Karte.",
-  "@routeOutcomeStartOff": {
-    "description": "Routen-Blatt: Standort liegt an keinem Weg.",
-    "placeholders": {
-      "meters": {
-        "type": "int"
-      }
-    }
-  },
-  "routeOutcomeHeadOff": "In {meters} m um den Trailkopf liegt kein Weg aus der Karte.",
-  "@routeOutcomeHeadOff": {
-    "description": "Routen-Blatt: Trailkopf liegt an keinem Weg.",
-    "placeholders": {
-      "meters": {
-        "type": "int"
-      }
-    }
-  },
-  "routeOutcomeTargetOff": "In {meters} m um das Ziel liegt kein Weg aus der Karte.",
-  "@routeOutcomeTargetOff": {
-    "description": "Routen-Blatt: Ziel liegt an keinem Weg.",
-    "placeholders": {
-      "meters": {
-        "type": "int"
-      }
-    }
-  },
-  "routeOutcomeViaOff": "In {meters} m um einen Zwischenpunkt liegt kein Weg.",
-  "@routeOutcomeViaOff": {
-    "description": "Routen-Blatt: ein Zwischenpunkt liegt an keinem Weg.",
-    "placeholders": {
-      "meters": {
-        "type": "int"
-      }
-    }
-  },
-  "routeOutcomeNoPathTrailHead": "Die Wege in deinen Bereichen verbinden Standort und Trailkopf nicht — vielleicht fehlt ein Stück Bereich dazwischen.",
-  "@routeOutcomeNoPathTrailHead": {
-    "description": "Routen-Blatt zu einem Trail: kein Weg."
-  },
-  "routeOutcomeNoPathPoint": "Die Wege in deinen Bereichen verbinden Standort und Ziel nicht — vielleicht fehlt ein Stück Bereich dazwischen.",
-  "@routeOutcomeNoPathPoint": {
-    "description": "Routen-Blatt zu einem Punkt: kein Weg."
   },
   "navChoiceTitle": "Zum Trail navigieren",
   "@navChoiceTitle": {
@@ -6261,6 +6177,14 @@
   "@highlightPlacePlanText": {
     "description": "Entdecken, Eintrag „place-plan“: Text, zwei bis drei Sätze (auch im Neuheiten-Blatt)."
   },
+  "highlightOnePlannerTitle": "Ein Planer für alle Wege",
+  "@highlightOnePlannerTitle": {
+    "description": "Entdecken, Eintrag „one-planner“: Überschrift (auch im Neuheiten-Blatt nach einem Update)."
+  },
+  "highlightOnePlannerText": "„Zum Trailkopf“, das Navi-Symbol, „Route bis hier“ und „Route hierher“ öffnen jetzt alle den Planer und rechnen sofort. Zurück bringt dich mit einem Schritt auf die normale Karte, nach der Navigation steht das Ergebnis wieder da.",
+  "@highlightOnePlannerText": {
+    "description": "Entdecken, Eintrag „one-planner“: Text, zwei bis drei Sätze."
+  },
   "highlightRouteEasyTitle": "Bequem zum Trailkopf",
   "@highlightRouteEasyTitle": {
     "description": "Entdecken, Eintrag „route-easy“: Überschrift (auch im Neuheiten-Blatt nach einem Update)."
@@ -6857,6 +6781,14 @@
   "demoPlacePlanText": "Schalte hier die Orte ein, die du brauchst. Im Blatt eines Ortes stehen dann „Start im Planer“ und „Ziel im Planer“.",
   "@demoPlacePlanText": {
     "description": "Vorführung „place-plan“ (Entdecken → Zeig es mir): Text der Blase."
+  },
+  "demoOnePlannerTitle": "Zum Trailkopf, im Planer",
+  "@demoOnePlannerTitle": {
+    "description": "Vorführung „one-planner“ (Entdecken → Zeig es mir): Überschrift der Blase."
+  },
+  "demoOnePlannerText": "Der Knopf öffnet den Planer mit dem Trailkopf als Ziel und rechnet gleich: Direkt, Bequem oder Spaßig, mit ziehbaren Punkten, „Navigieren“ und „Anfahrt“. Zurück, und du stehst wieder auf der Karte.",
+  "@demoOnePlannerText": {
+    "description": "Vorführung „one-planner“ (Entdecken → Zeig es mir): Text der Blase."
   },
   "demoRouteEasyTitle": "Bequem zum Trailkopf",
   "@demoRouteEasyTitle": {
@@ -8932,6 +8864,22 @@
   "loopRecompute": "Neu rechnen",
   "@loopRecompute": {
     "description": "Ergebnis-Blatt des Planers: Knopf, der nach einer Änderung die Planung neu rechnet."
+  },
+  "loopReplaceTitle": "Planung ersetzen?",
+  "@loopReplaceTitle": {
+    "description": "Rückfrage, wenn ein neuer Auftrag (z. B. „Zum Trailkopf\") eine Planung mit gewählten Trails ersetzen würde."
+  },
+  "loopReplaceText": "Die gewählten Trails und Zwischenpunkte gehen dabei weg. Es gibt nur eine Planung zugleich.",
+  "@loopReplaceText": {
+    "description": "Text der Rückfrage vor dem Ersetzen einer Planung."
+  },
+  "loopReplaceOk": "Ersetzen",
+  "@loopReplaceOk": {
+    "description": "Knopf der Rückfrage: die laufende Planung durch den neuen Auftrag ersetzen."
+  },
+  "poiRouteHere": "Route hierher",
+  "@poiRouteHere": {
+    "description": "Knopf im Ort-Blatt: die Route vom eigenen Standort zu diesem Ort, sofort gerechnet."
   },
   "loopClosed": "Planer geschlossen",
   "@loopClosed": {

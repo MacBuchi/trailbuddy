@@ -38,8 +38,7 @@ import '../routing/route_via_providers.dart';
 import '../routing/route_vias.dart';
 import '../routing/via_handles.dart';
 import '../routing/trail_head_providers.dart';
-import '../routing/trail_head_sheet.dart';
-import '../trails/trail_navigation.dart' show formatCoordinates, navigateToPoint;
+import '../trails/trail_navigation.dart' show navigateToPoint;
 import '../official/official_trails.dart';
 import '../official/official_trails_layer.dart';
 import '../official/official_trails_source.dart';
@@ -518,10 +517,10 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   /// 10.5). War etwas gesetzt, kommt eine Meldung mit „Rückgängig" statt
   /// einer Rückfrage; [undo] falsch, wenn nicht der Nutzer schließt
   /// (Navigation startet).
-  void _closeLoopPlanner({bool undo = true}) {
+  LoopClosed? _closeLoopPlanner({bool undo = true}) {
     if (_loopPanelOpen) closeMapPanel();
     final closed = ref.read(loopPlannerProvider.notifier).close();
-    if (closed == null || !undo) return;
+    if (closed == null || !undo) return closed;
     ScaffoldMessenger.of(context)
       ..clearSnackBars()
       ..showSnackBar(SnackBar(
@@ -529,37 +528,118 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         content: Text(context.l10n.loopClosed),
         action: SnackBarAction(label: context.l10n.commonUndo, onPressed: () => unawaited(_restoreLoop(closed))),
       ));
+    return closed;
   }
 
   /// „Rückgängig" nach dem Schließen: Planer, Auswahl und — wenn eins da
-  /// war — das Ergebnis-Blatt wieder, ohne neu zu rechnen.
-  Future<void> _restoreLoop(LoopClosed closed) async {
+  /// war — das Ergebnis-Blatt wieder, ohne neu zu rechnen. Nach dem Ende
+  /// der Navigation ([quick]) führt von dort EIN Schritt zur normalen
+  /// Karte (Konzept-Routing 10.5).
+  Future<void> _restoreLoop(LoopClosed closed, {bool? quick}) async {
     if (ref.read(offlineOverlayProvider)) {
       await _closeTools();
       if (!mounted || ref.read(offlineOverlayProvider)) return;
     }
     setState(() => _selectedTrailId = null);
-    ref.read(loopPlannerProvider.notifier).restore(closed);
-    final scaffold = _scaffoldKey.currentState;
-    if (!closed.hasResult || _loopPanelOpen || scaffold == null) return;
-    _loopPanelOpen = true;
-    await showLoopResultPanel(scaffold, compute: false);
-    _loopPanelOpen = false;
+    ref.read(loopPlannerProvider.notifier).restore(closed, quick: quick);
+    if (!closed.hasResult || _loopPanelOpen) return;
+    await _showLoopResult(compute: false);
   }
 
   Future<void> _computeLoop() async {
-    final scaffold = _scaffoldKey.currentState;
-    if (scaffold == null) return;
     if (_loopPanelOpen) {
       unawaited(ref.read(loopPlannerProvider.notifier).compute());
       return;
     }
-    _loopPanelOpen = true;
-    await showLoopResultPanel(scaffold);
-    _loopPanelOpen = false;
+    await _showLoopResult();
   }
 
-  bool _loopPanelOpen = false;
+  /// Das Ergebnis-Blatt, bis es zu ist. Kam der Planer über einen
+  /// Einstieg mit fertigem Auftrag und hat sich nichts geändert, schließt
+  /// das Blatt den ganzen Planer (Schnell zu, Konzept-Routing 10.4) — und
+  /// ein Trail, der vorher ausgewählt war, ist es wieder.
+  Future<void> _showLoopResult({bool compute = true}) async {
+    final scaffold = _scaffoldKey.currentState;
+    if (scaffold == null) return;
+    final shown = showLoopResultPanel(scaffold, compute: compute);
+    _loopPanel = shown;
+    await shown;
+    if (!identical(_loopPanel, shown)) return;
+    _loopPanel = null;
+    if (!mounted || _replacingPlan) return;
+    final s = ref.read(loopPlannerProvider);
+    if (!s.open || !s.quick) return;
+    final back = _quickReturnTrailId;
+    // Ein frischer Auftrag hat nichts, was „Rückgängig" holen müsste; eine
+    // gebaute Runde, die nach der Navigation wieder dasteht, schon.
+    _closeLoopPlanner(undo: s.selected.isNotEmpty || s.waypoints.isNotEmpty);
+    if (back != null && ref.read(trailByIdProvider(back)) != null) setState(() => _selectedTrailId = back);
+  }
+
+  Future<void>? _loopPanel;
+  bool get _loopPanelOpen => _loopPanel != null;
+
+  /// Ein Einstieg ersetzt gerade den laufenden Auftrag: Das Blatt, das
+  /// dafür zugeht, schließt nicht „schnell" den neuen Planer mit.
+  bool _replacingPlan = false;
+
+  /// Der Trail, der vor einem Einstieg mit fertigem Auftrag ausgewählt
+  /// war — „Schnell zu" wählt ihn wieder (Konzept-Routing 10.5).
+  String? _quickReturnTrailId;
+
+  /// Die Planung, aus deren Ergebnis die laufende Navigation kam: Nach
+  /// ihrem Ende steht sie wieder da (Konzept-Routing 10.5).
+  LoopClosed? _navReturn;
+
+  /// Ein Einstieg mit fertigem Auftrag (#356 PR 7, Konzept-Routing 10.3):
+  /// „Zum Trailkopf", das Navi-Symbol, „Route bis hier", „Route hierher".
+  /// Ein frischer Planer mit Ziel, gerechnet wird sofort. Liegt schon eine
+  /// Auswahl im Planer, wird erst gefragt — es gibt nur EINE Planung.
+  Future<void> _planRoute(LatLng target, {String? trailId, RouteMode? style}) async {
+    final returnTo = _selectedTrailId;
+    if (!await _mayReplacePlan() || !mounted) return;
+    if (ref.read(offlineOverlayProvider)) {
+      await _closeTools();
+      if (!mounted || ref.read(offlineOverlayProvider)) return;
+    }
+    final panel = _loopPanel;
+    if (panel != null) {
+      _replacingPlan = true;
+      closeMapPanel();
+      await panel;
+      _replacingPlan = false;
+      if (!mounted) return;
+    }
+    setState(() => _selectedTrailId = null);
+    _quickReturnTrailId = returnTo;
+    ref.read(loopPlannerProvider.notifier).beginRoute(target, trailId: trailId, style: style);
+    await _showLoopResult();
+  }
+
+  /// Darf ein neuer Auftrag den laufenden ersetzen? Ohne Auswahl und
+  /// Zwischenpunkte ja; sonst fragt die Karte (Konzept-Routing 10.4).
+  Future<bool> _mayReplacePlan() async {
+    final s = ref.read(loopPlannerProvider);
+    if (!s.open || (s.selected.isEmpty && s.waypoints.isEmpty)) return true;
+    final l = context.l10n;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        key: const ValueKey('loop-replace'),
+        title: Text(l.loopReplaceTitle),
+        content: Text(l.loopReplaceText),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(context).pop(false), child: Text(l.commonCancel)),
+          FilledButton(
+            key: const ValueKey('loop-replace-ok'),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(l.loopReplaceOk),
+          ),
+        ],
+      ),
+    );
+    return ok == true;
+  }
 
   /// Ein Tipp auf einen Zwischenpunkt nimmt ihn weg — mit Rückgängig.
   void _removeVia(ViaRef r) {
@@ -613,7 +693,8 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       case final OfficialTrail o:
         showOfficialTrailSheet(context, o);
       case final Poi p:
-        showPoiSheet(context, p, onPlan: (role) => unawaited(_planFromPlace(p, role)));
+        showPoiSheet(context, p,
+            onPlan: (role) => unawaited(_planFromPlace(p, role)), onRoute: () => unawaited(_planRoute(p.position)));
     }
   }
 
@@ -668,7 +749,8 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       if (!mounted || ref.read(offlineOverlayProvider)) return;
     }
     closeMapPanel();
-    if (ref.read(loopPlannerProvider).open) _closeLoopPlanner(undo: false);
+    final closed = ref.read(loopPlannerProvider).open ? _closeLoopPlanner(undo: false) : null;
+    _navReturn = request.fromPlanner ? closed : null;
     setState(() => _selectedTrailId = null);
     if (choice.record) {
       final result = await rides.start();
@@ -801,20 +883,18 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     unawaited(showTrailSheet(context, trail));
   }
 
-  /// „Zum Trailkopf" (#158 Schritt 4) und das Navi-Symbol (#176): das
-  /// Blatt über der Karte; der Trail kommt frisch aus der Liste, der Wunsch
-  /// trägt nur die Kennung.
+  /// „Zum Trailkopf" (#158 Schritt 4) und das Navi-Symbol (#176): der
+  /// Planer mit dem Trailkopf als Ziel (#356 PR 7); der Trail kommt frisch
+  /// aus der Liste, der Wunsch trägt nur die Kennung.
   void _openTrailHead(TrailHeadRequest request) {
     final trail = ref.read(trailByIdProvider(request.trailId));
-    final scaffold = _scaffoldKey.currentState;
-    if (trail == null || scaffold == null) return;
-    setState(() => _selectedTrailId = null);
-    unawaited(showTrailHeadSheet(scaffold, trail, mode: request.mode));
+    if (trail == null) return;
+    unawaited(_planRoute(trail.start, trailId: trail.id, style: request.mode));
   }
 
   /// Langer Druck (#177): eine Nadel am Punkt und ein kleines Menü —
-  /// Route ab hier (der Planer mit diesem Start), Route bis hier (der Weg
-  /// vom Standort), oder die Navi-App.
+  /// Start hier, Route bis hier (rechnet sofort), Zwischenpunkt hier (alle
+  /// im Planer, #356 PR 7), oder die Navi-App.
   Future<void> _onLongPress(MapTap tap) async {
     if (_takeLoopStart(tap)) return;
     final box = context.findRenderObject() as RenderBox?;
@@ -832,12 +912,17 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         PopupMenuItem(
           key: const ValueKey('map-menu-from'),
           value: 'from',
-          child: ListTile(leading: const Icon(Icons.trip_origin), title: Text(l.mapMenuRouteFrom)),
+          child: ListTile(leading: const Icon(Icons.trip_origin), title: Text(l.mapMenuStartHere)),
         ),
         PopupMenuItem(
           key: const ValueKey('map-menu-to'),
           value: 'to',
           child: ListTile(leading: const Icon(Icons.place_outlined), title: Text(l.mapMenuRouteTo)),
+        ),
+        PopupMenuItem(
+          key: const ValueKey('map-menu-via'),
+          value: 'via',
+          child: ListTile(leading: const Icon(Icons.add_location_alt_outlined), title: Text(l.mapMenuViaHere)),
         ),
         PopupMenuItem(
           key: const ValueKey('map-menu-external'),
@@ -848,14 +933,15 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     );
     if (!mounted) return;
     setState(() => _pressedPoint = null);
-    final scaffold = _scaffoldKey.currentState;
     switch (choice) {
       case 'from':
         await _openLoopPlanner(start: tap.point);
       case 'to':
-        if (scaffold == null) return;
-        await showRouteSheet(scaffold,
-            RouteTarget(point: tap.point, title: formatCoordinates(tap.point.latitude, tap.point.longitude)));
+        await _planRoute(tap.point);
+      case 'via':
+        await _openLoopPlanner();
+        if (!mounted || !ref.read(loopPlannerProvider).open) return;
+        ref.read(loopPlannerProvider.notifier).takeWaypoint(tap.point);
       case 'external':
         await navigateToPoint(context, tap.point);
     }
@@ -896,7 +982,6 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     final ride = ref.watch(rideProvider);
     final focusRide = ref.watch(mapFocusRideProvider);
     final splitPreview = ref.watch(rideSplitPreviewProvider);
-    final trailHeadPreview = ref.watch(trailHeadPreviewProvider);
     // „Beide ansehen" (#107 Schritt 3): zwei Trails, die vielleicht einer
     // sind — beide leuchten, oben steht, welche es sind.
     final comparePair = ref.watch(mapComparePairProvider);
@@ -921,7 +1006,6 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     final viaEdit = ref.watch(routeViaProvider);
     final vias = switch (viaEdit) {
       ViaEdit(owner: ViaOwner.loop, :final vias) when loopPlan != null => vias,
-      ViaEdit(owner: ViaOwner.route, :final vias) when trailHeadPreview.isNotEmpty => vias,
       _ => null,
     };
     final panelInset = ref.watch(mapPanelInsetProvider);
@@ -929,7 +1013,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     // solange ein Ergebnis auf der Karte liegt; das Blatt räumt sie erst
     // beim Abbau weg, und das kann nach dem Schließen des Planers sein.
     final profileCursor =
-        loopPlan != null || trailHeadPreview.isNotEmpty ? ref.watch(routeProfileCursorProvider) : null;
+        loopPlan != null ? ref.watch(routeProfileCursorProvider) : null;
     // Der ausgewählte Trail (#178) — weg, wenn er nicht mehr gezeigt wird
     // (Filter, gelöscht).
     final selected = _selectedTrailId == null
@@ -1056,6 +1140,16 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       if ((prev == null) != (next == null)) unawaited(ref.read(pictureInPictureProvider).allow(next != null));
       if (prev != null && next == null) {
         _controller.move(_controller.center, _controller.zoom);
+        // Kam sie aus einem Ergebnis des Planers, steht es wieder da —
+        // eingeklappt, ein Schritt bis zur normalen Karte (10.5).
+        final back = _navReturn;
+        _navReturn = null;
+        if (back != null && !ref.read(loopPlannerProvider).open) {
+          _quickReturnTrailId = null;
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) unawaited(_restoreLoop(back, quick: true));
+          });
+        }
       } else if (prev != null && next != null && prev.north != next.north) {
         _follow();
       }
@@ -1137,9 +1231,6 @@ class _MapScreenState extends ConsumerState<MapScreen> {
           ...splitPreview
         else if (focusRide != null)
           _ridePolyline(focusRide.points),
-        // Der Weg zum Trailkopf (#158 Schritt 4), solange sein Blatt offen
-        // ist — über der Fahrt, unter dem Netz.
-        ...trailHeadPreview,
         // Die geplante Runde (#158 Schritt 5), solange ihr Blatt offen ist.
         // Im Planer: die gewählten Trails leuchten — liegt eine Runde auf
         // der Karte, zeigt sie, was dabei ist.

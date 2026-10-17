@@ -2,6 +2,25 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Ein Planer für alle Wege
+
+*Version 0.130.0, 2026-10-17*
+
+- „Zum Trailkopf“ im Trail-Blatt, das Navi-Symbol, „Route bis hier“
+  beim langen Druck und das neue „Route hierher“ im Ort-Blatt öffnen
+  jetzt alle denselben Planer und rechnen sofort. Bisher gab es dafür
+  ein eigenes Blatt neben dem Planer, und beide konnten zugleich offen
+  sein.
+- Der lange Druck auf die Karte bietet „Start hier“, „Route bis hier“,
+  „Zwischenpunkt hier“ und die Navi-App.
+- Wer so hineinkommt und nichts ändert, ist mit einem Zurück wieder auf
+  der normalen Karte — ein vorher ausgewählter Trail bleibt ausgewählt.
+  Wer Trails dazunimmt, landet erst in der Leiste des Planers.
+- Nach „Navigation beenden“ steht das Ergebnis wieder da, zum Speichern
+  oder Neu-Planen.
+- Liegt schon eine Planung mit gewählten Trails, fragt die App, bevor
+  ein neuer Auftrag sie ersetzt.
+
 ## Planer: Route von A nach B, auch ohne Trail
 
 *Version 0.129.0, 2026-10-17*

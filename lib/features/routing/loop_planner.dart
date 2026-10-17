@@ -31,7 +31,6 @@ import 'package:latlong2/latlong.dart';
 
 import '../../l10n/l10n.dart';
 import '../../models/trail.dart';
-import '../trails/gpx.dart';
 import '../trails/trail_geometry.dart' show haversineM;
 import 'road_graph.dart';
 import 'route_profile.dart';
@@ -1078,10 +1077,3 @@ String loopName(AppLocalizations l, LoopPlan plan, {bool loop = true}) {
   if (!loop) return rest > 0 ? l.loopRouteNameMore(shown, rest) : l.loopRouteName(shown);
   return rest > 0 ? l.loopNameMore(shown, rest) : l.loopName(shown);
 }
-
-/// Die Runde als GPX-Spur (#150): nur die Linie, keine Höhen — wie bei
-/// „Zum Trailkopf" kennt die Engine Höhen je Kante, nicht je Punkt.
-GpxTrack loopToGpx(AppLocalizations l, LoopPlan plan, {bool loop = true}) => GpxTrack(
-      name: loopName(l, plan, loop: loop),
-      points: [for (final p in plan.points) TrackPoint(p.latitude, p.longitude)],
-    );

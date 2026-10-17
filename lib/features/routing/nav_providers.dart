@@ -30,7 +30,8 @@ export 'route_progress.dart' show kNavArrivedLinger, kNavTrailDoneLinger;
 /// `trailHeadRequestProvider`): Die Karte fragt nach Aufzeichnen und
 /// Bildschirm, holt den Standort und startet.
 class NavRequest {
-  const NavRequest({required this.points, required this.title, this.startAlongM = 0, this.sections});
+  const NavRequest(
+      {required this.points, required this.title, this.startAlongM = 0, this.sections, this.fromPlanner = false});
 
   /// Die Linie in Fahrtrichtung, wie sie die Karte zeichnet.
   final List<LatLng> points;
@@ -42,6 +43,11 @@ class NavRequest {
   /// Die Trails auf der Linie (9.9). Null heißt: die Karte leitet sie aus
   /// dem Netz ab (eine Fahrt kennt ihre Trails nicht).
   final NavSections? sections;
+
+  /// Aus einem Ergebnis des Planers: Nach dem Ende der Navigation steht
+  /// es wieder da (Konzept-Routing 10.5); aus „Meine Fahrten" oder
+  /// „zuletzt navigiert" die normale Karte.
+  final bool fromPlanner;
 }
 
 final navRequestProvider = StateProvider<NavRequest?>((ref) => null);
