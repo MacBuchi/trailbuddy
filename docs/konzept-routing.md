@@ -311,7 +311,10 @@ nicht (es widerspräche dem Stil). Gesetzt mit dem Tirol-Lauf
 (`docs/routing-messung.md`, „#329"): Mit Steilfaktor 1 auf Asphalt wich
 der Stil auf steile Straßen aus und stieg MEHR als der MTB-Stil; erst
 1,5 mit 3 steigt in allen drei Entfernungen weniger und nimmt trotzdem
-mehr Asphalt. Der Planer rechnet weiter im MTB-Stil.
+mehr Asphalt. Der Planer rechnet weiter im MTB-Stil. **Ab #356 nicht mehr
+nur die Anfahrt**: Eine Route im Stil Bequem mit gewählten Trails rechnet
+auch die Verbindungen zwischen den Trails in diesem Stil (10.2;
+Betreiber, 2026-10-17).
 
 Trailkanten: nur in Trail-Richtung (`reversed` beachtet), nur bergab
 gedacht, Kosten = Zeit nach S-Grad, Gewinn = Trail-Meter. Ein Trail mit
@@ -1117,19 +1120,27 @@ Leiste sichtbar:
   Ohne gewählten Trail ist das der Weg von A nach B; mit Auswahl
   kommen die Trails auf dem Weg mit.
 
-Im Ergebnis einer Route steht der **Stil** — Direkt, Bequem (nur
-Anfahrt, 2.4), Spaßig — und bei beiden Zielen das **Rad** (Bio/E).
+Im Ergebnis einer Route steht der **Stil** — Direkt, Bequem (Kosten aus
+2.4), Spaßig — und bei beiden Zielen das **Rad** (Bio/E).
 Beides rechnet beim Umschalten sofort (D3), ohne „Neu rechnen".
 
 - **Spaßig ohne Auswahl** nimmt wie heute einen Umweg über passende
   Trails im Budget 1,6 × Zeit / 1,5 × hm der direkten Linie (4).
   **Spaßig mit Auswahl** rechnet mit den Budgets des Planers (2.3) —
   das ist das heutige „Zum Ziel" (D5).
-- **Direkt und Bequem mit Auswahl** nehmen die Pflicht-Trails (Stern)
-  und die Zwischenpunkte mit, auf kürzestem Weg nach den Kosten des
-  Stils, ohne Budget; die übrige Auswahl bleibt für Spaßig. *(Vorschlag,
-  vom Betreiber zu bestätigen — Alternative: Direkt nimmt die ganze
-  Auswahl als Pflicht.)*
+- **Bequem mit Auswahl nimmt mit wie Spaßig** — die Auswahl unter den
+  Budgets des Planers —, aber alle Verbindungen zwischen Start, Trails
+  und Ziel rechnen mit den Kosten des Stils Bequem: bergauf Asphalt,
+  Radweg, Nebenstraße und Forstweg vor Pfad und Wanderweg (Betreiber,
+  2026-10-17: „Bequem kann schon mehr mitnehmen, aber bergauf können auch asphaltierte, Wege und Straße genutzt werden."). Die Trails bleiben Trails. Ohne
+  Auswahl ist Bequem der direkte Weg im Stil, wie seit 0.127.0.
+- **Direkt mit Auswahl** nimmt die Pflicht-Trails (Stern) und die
+  Zwischenpunkte mit, auf kürzestem Weg, ohne Budget; die übrige Auswahl
+  bleibt für Spaßig und Bequem. *(Vorschlag — Alternative: Direkt nimmt
+  die ganze Auswahl als Pflicht.)*
+- **Bei der Runde** gibt es heute keinen Stil. Folgt aus dem Satz oben,
+  dass auch eine Runde bequem bergauf rechnen kann (Schalter „Bergauf
+  bequem" in den Parametern)? *(Offen für den Betreiber.)*
 - **Die Reihenfolge der Halte wählt der Planer** (D4), auch bei einer
   Route — Pflicht-Trails und Zwischenpunkte wie seit 0.126.0, nie in
   der Reihenfolge des Antippens.
