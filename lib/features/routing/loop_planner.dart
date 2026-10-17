@@ -405,6 +405,7 @@ LoopPlan planLoop(
   LoopSearchCache? cache,
   LoopTune? tune,
   List<LatLng> waypoints = const [],
+  bool bare = false,
 }) {
   pool = [...pool, for (var k = 0; k < waypoints.length; k++) PoolTrail.waypoint(k, waypoints[k])];
   final out = Map<String, LoopExclusion>.of(excluded);
@@ -446,13 +447,18 @@ LoopPlan planLoop(
   // Gemerktes mehr.
   final searches = (cache ?? LoopSearchCache()).._bind(g, (_riderKey(profile), budget.timeS));
   final planner =
-      _Planner(g, start, src, dst, end ?? start, profile, budget, pool, heads, tails, out, searches);
+      _Planner(g, start, src, dst, end ?? start, profile, budget, pool, heads, tails, out, searches, bare: bare);
   return tune == null ? planner.run(searchBudget) : planner.runTuned(tune);
 }
 
 class _Planner {
   _Planner(this.g, this.start, this.src, this.dst, this.finish, this.p, this.budget, this.pool, this.heads,
-      this.tails, this.excluded, this.cache);
+      this.tails, this.excluded, this.cache,
+      {this.bare = false});
+
+  /// Ohne Trail ist es auch eine Planung (#356): die Route von A nach B,
+  /// durch die Zwischenpunkte. Sonst heißt „nur Punkte" [LoopOutcome.empty].
+  final bool bare;
 
   final RoadGraph g;
   final LatLng start;
@@ -679,7 +685,9 @@ class _Planner {
       for (final id in tune.order)
         if (index[id] case final i? when usable(i)) i,
     ];
-    if (seq.every((i) => pool[i].waypoint)) return LoopPlan(LoopOutcome.empty, excluded: _trailsOnly(excluded));
+    if (!bare && seq.every((i) => pool[i].waypoint)) {
+      return LoopPlan(LoopOutcome.empty, excluded: _trailsOnly(excluded));
+    }
     final froms = <int>[], tos = <int>[];
     var at = src;
     for (final i in seq) {
@@ -719,7 +727,9 @@ class _Planner {
 
   LoopPlan _assemble(_Route route) {
     // Nur Zwischenpunkte, kein Trail: Das ist keine Runde.
-    if (route.seq.every((i) => pool[i].waypoint)) return LoopPlan(LoopOutcome.empty, excluded: _trailsOnly(excluded));
+    if (!bare && route.seq.every((i) => pool[i].waypoint)) {
+      return LoopPlan(LoopOutcome.empty, excluded: _trailsOnly(excluded));
+    }
     final sections = <LoopSection>[];
     // Die Linie beginnt am Start selbst, nicht am Anschlussknoten — wie
     // bei „Zum Trailkopf" trägt der Verbinder die Linie, zählt aber nicht.
@@ -935,6 +945,12 @@ enum LoopEndMode { loop, lastTrail, target }
 /// Die Regler der letzten Planung (Konzept-Routing 2.3: „die Vorgaben
 /// merkt sich das Gerät mit der letzten Planung"), kodiert als EINE
 /// Zeichenkette für `Settings.loopPlannerPrefs`.
+/// Der Stil einer Route: der günstigste Weg (#176), einer, der Abfahrten
+/// auf dem Weg mitnimmt, oder der günstigste im Stil „Bequem" (#329,
+/// `RoutePrefs.easy`) — Radwege und kleine Straßen, wenig Höhe. Im Planer
+/// seit #356 für die Route ohne gewählten Trail (Konzept-Routing 10.2).
+enum RouteMode { direct, fun, easy }
+
 class LoopPrefs {
   const LoopPrefs({
     required this.hours,
@@ -944,6 +960,7 @@ class LoopPrefs {
     this.radiusKm = kLoopReachM / 1000,
     this.fillOnline = true,
     this.route = const RoutePrefs(),
+    this.style = RouteMode.direct,
   });
 
   final double hours;
@@ -968,6 +985,10 @@ class LoopPrefs {
   /// steile Rampen, je meiden oder egal. Gelten wie [fillOnline] für die
   /// Runde UND den Weg zum Trail.
   final RoutePrefs route;
+
+  /// Der Stil einer Route ohne gewählten Trail (#356), gemerkt wie die
+  /// Regler.
+  final RouteMode style;
 
   static const minHours = 1.0, maxHours = 6.0, hoursStep = 0.5;
   static const minClimb = 200.0, maxClimb = 2500.0, climbStep = 100.0;
@@ -1008,11 +1029,17 @@ class LoopPrefs {
         avoidHiking: fields['sw'] != '0',
         avoidSteep: fields['ss'] != '0',
       ),
+      style: switch (fields['y']) {
+        'f' => RouteMode.fun,
+        'e' => RouteMode.easy,
+        _ => RouteMode.direct,
+      },
     );
   }
 
   String encode() => 'h=$hours;c=$climbM;w=$hikingKm;r=${switch (endMode) { LoopEndMode.loop => 1, LoopEndMode.lastTrail => 0, LoopEndMode.target => 2 }};k=$radiusKm;o=${fillOnline ? 1 : 0}'
-      ';sr=${route.avoidRoads ? 1 : 0};sw=${route.avoidHiking ? 1 : 0};ss=${route.avoidSteep ? 1 : 0}';
+      ';sr=${route.avoidRoads ? 1 : 0};sw=${route.avoidHiking ? 1 : 0};ss=${route.avoidSteep ? 1 : 0}'
+      ';y=${switch (style) { RouteMode.direct => 'd', RouteMode.fun => 'f', RouteMode.easy => 'e' }}';
 
   LoopBudget get budget => LoopBudget(timeS: hours * 3600, climbM: climbM, hikingM: hikingKm * 1000);
 
@@ -1023,7 +1050,8 @@ class LoopPrefs {
           LoopEndMode? endMode,
           double? radiusKm,
           bool? fillOnline,
-          RoutePrefs? route}) =>
+          RoutePrefs? route,
+          RouteMode? style}) =>
       LoopPrefs(
         hours: hours ?? this.hours,
         climbM: climbM ?? this.climbM,
@@ -1032,6 +1060,7 @@ class LoopPrefs {
         radiusKm: radiusKm ?? this.radiusKm,
         fillOnline: fillOnline ?? this.fillOnline,
         route: route ?? this.route,
+        style: style ?? this.style,
       );
 }
 

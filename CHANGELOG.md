@@ -2,6 +2,20 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Planer: Route von A nach B, auch ohne Trail
+
+*Version 0.129.0, 2026-10-17*
+
+- Im Planer geht „Zum Ziel“ jetzt auch ganz ohne gewählten Trail: Ziel
+  antippen, „Rechnen“ — und du bekommst die Route dorthin, mit
+  Zwischenpunkten, wenn du welche gesetzt hast. Bisher brauchte der
+  Planer immer mindestens einen Trail.
+- Im Ergebnis wählst du den Stil: Direkt, Bequem (Radwege und kleine
+  Straßen, wenig Höhe) oder Spaßig (nimmt Trails auf dem Weg mit). Der
+  Planer merkt sich den Stil.
+- Stil und Rad (Bio-Bike/E-Bike) im Ergebnis rechnen sofort neu, ohne „Neu
+  rechnen“ — bei der Runde genauso das Rad.
+
 ## Planen: eine Änderung rechnet nicht mehr falsch
 
 *Version 0.128.0, 2026-10-17*

@@ -47,6 +47,8 @@ class LoopToolRail extends ConsumerWidget {
     final l = context.l10n;
     final countStyle = AppFonts.numbers(Theme.of(context).textTheme.labelMedium);
     final count = session.selected.length;
+    // Zum Ziel geht es auch ohne Trail: die Route von A nach B (#356).
+    final route = session.prefs.endMode == LoopEndMode.target;
 
     Widget button(String key, String tip, IconData icon, VoidCallback? onPressed,
             {bool selected = false, bool primary = false}) =>
@@ -127,9 +129,13 @@ class LoopToolRail extends ConsumerWidget {
           gap,
           button(
             'loop-rail-compute',
-            count == 0 ? l.loopRailComputeNone : l.loopRailCompute(count),
+            count > 0
+                ? l.loopRailCompute(count)
+                : route
+                    ? l.loopRailComputeRoute
+                    : l.loopRailComputeNone,
             Icons.alt_route,
-            count == 0 || session.busy ? null : onCompute,
+            (count == 0 && !route) || session.busy ? null : onCompute,
             primary: true,
           ),
           const SizedBox(height: 2),
