@@ -288,7 +288,15 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     `InlineLoopPlanRunner` an Ort und Stelle — ein echter Isolate
     antwortet in der Test-Zone nie (`loopPlanRunnerFactoryProvider`).
     Gemessen in `docs/routing-messung.md` („#188"); Graph bauen und
-    Trails auflegen laufen weiter im UI-Isolate. **Seit 0.80.2 behält
+    Trails auflegen laufen weiter im UI-Isolate — seit Flutter 3.29 ist
+    das auf Android der Haupt-Thread, eine lange Rechnung dort ist ein
+    ANR (0.127.0: 36 s in `loadRoadGraph` → `findCrossings`, #354).
+    **Keine verschachtelten Records als Schlüssel oder Element in
+    heißen Schleifen** (`Set<((int, int), (int, int))>`): Jedes `add`
+    fällt in die langsame Typprüfung der VM (`SlowTypeTest` →
+    `DRT_TypeCheck`), gemessen gut zehnmal langsamer als derselbe
+    Schlüssel flach als `(int, int, int, int)`; flache Records sind so
+    schnell wie eine Klasse. **Seit 0.80.2 behält
     der Planer seine Suchen** (`LoopSearchCache`, je Runner einer): Die
     begrenzten Dijkstras je Trail-Ende waren auch im Isolate der teure
     Teil (40 Trails: 1,6 s je weiterer Rechnung, jetzt ≤ 35 ms). Gültig

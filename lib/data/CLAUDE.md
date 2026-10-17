@@ -238,3 +238,16 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
   MB um, und 0 heißt „nicht gemessen", nicht „0 MB". Web und Android < 11
   liefern nichts. Tests: `test/exit_reporting_test.dart`,
   `test/tombstone_test.dart`.
+  **Einen ANR-Stack auflösen** (#354): Der Digest zeigt nur den obersten
+  Frame, die Zeile in `error_reports` den ganzen Haupt-Thread. `base.apk
+  (offset X)` heißt: die Bibliothek, deren Daten in der Release-APK bei X
+  beginnen (unkomprimiert; Offsets aus dem Zip-Kopf). `libflutter.so`
+  löst Googles `flutter_infra_release/flutter/<Engine-Revision>/
+  android-arm64-release/symbols.zip` auf (BuildId vergleichen).
+  `libapp.so` (unser Dart) hat keine Symbole: Nachbau DESSELBEN Tags
+  unter Linux im CI wie `release.yml`, plus
+  `--extra-gen-snapshot-options=--save-debugging-info=<datei>` — das
+  ändert den Code nicht, die BuildId stimmt dann mit dem Release
+  überein (`--split-debug-info` dagegen ändert den Snapshot, und ein
+  Mac-Build hat ohnehin eine andere). Die Funktionsnamen stehen in der
+  `.symtab` der Datei.

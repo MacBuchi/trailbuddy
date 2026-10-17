@@ -706,9 +706,14 @@ math.Point<double>? properCrossing(
 
 /// Kreuzungen zweier Wege derselben Ebene ohne gemeinsamen Knoten —
 /// über das Segmentgitter, also praktisch linear.
+///
+/// Der Schlüssel in `seen` ist FLACH: Ein verschachtelter Record
+/// (`((int, int), (int, int))`) fällt bei jedem `add` in die langsame
+/// Typprüfung der VM (gemessen gut zehnmal langsamer) — so lag 0.127.0
+/// mit 36 s Rechnen im UI-Isolate im ANR (#354).
 List<({LatLng at, int edgeA, int edgeB})> findCrossings(RoadGraph g) {
   final out = <({LatLng at, int edgeA, int edgeB})>[];
-  final seen = <((int, int), (int, int))>{};
+  final seen = <(int, int, int, int)>{};
   for (final segs in g._segCells.values) {
     for (var i = 0; i < segs.length; i++) {
       final (ea, ia) = segs[i];
@@ -720,7 +725,7 @@ List<({LatLng at, int edgeA, int edgeB})> findCrossings(RoadGraph g) {
         if (eb == ea) continue;
         final pb = g.edges[eb].points;
         if (ib + 1 >= pb.length || g.edges[ea].level != g.edges[eb].level) continue;
-        final key = ea < eb || (ea == eb && ia < ib) ? ((ea, ia), (eb, ib)) : ((eb, ib), (ea, ia));
+        final key = ea < eb || (ea == eb && ia < ib) ? (ea, ia, eb, ib) : (eb, ib, ea, ia);
         if (!seen.add(key)) continue;
         final hit = properCrossing(a, b, g.proj.xy(pb[ib]), g.proj.xy(pb[ib + 1]));
         if (hit == null) continue;

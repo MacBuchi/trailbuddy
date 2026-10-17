@@ -2,6 +2,15 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## Fewer freezes while computing routes
+
+*Version 0.127.1, 2026-10-17*
+
+- While planning a loop, routing to a trail head or learning from your
+  own rides, the app could compute for so long on a phone that Android
+  reported "app isn't responding". One step that looks for crossing
+  paths is now much faster.
+
 ## An easy way to the trail head
 
 *Version 0.127.0, 2026-10-16*
