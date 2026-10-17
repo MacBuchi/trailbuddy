@@ -995,12 +995,12 @@ class LoopPrefs {
       climbM: clamp('c', d.climbM, minClimb, maxClimb),
       hikingKm: clamp('w', d.hikingKm, minHikingKm, maxHikingKm),
       // `r` war bis 0.122 ein Schalter (1/0); 2 ist das Ziel. Ältere Apps
-      // lesen jedes „nicht 0" als Runde.
-      endMode: switch (fields['r']) {
-        '0' => LoopEndMode.lastTrail,
-        '2' => LoopEndMode.target,
-        _ => LoopEndMode.loop,
-      },
+      // lesen jedes „nicht 0" als Runde — und seit #356 auch diese: Das
+      // Ziel selbst gilt nur für die Sitzung, und ein Planer, der mit
+      // „Zum Ziel" ohne Ziel aufging, konnte nichts rechnen. Geschrieben
+      // wird die 2 weiter, damit der eine Planer (#356) das Ziel wieder
+      // lesen kann, sobald er ohne Zielpunkt sinnvoll aufgeht.
+      endMode: fields['r'] == '0' ? LoopEndMode.lastTrail : LoopEndMode.loop,
       radiusKm: clamp('k', d.radiusKm, minRadiusKm, maxRadiusKm),
       fillOnline: fields['o'] != '0',
       route: RoutePrefs(

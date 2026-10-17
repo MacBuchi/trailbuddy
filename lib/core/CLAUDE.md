@@ -42,8 +42,8 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
 - **Zurück nach Hierarchie** (#175, seit 0.76.0): Erst schließt, was
   oben liegt (Dialog, Blatt, Unterseite — der Navigator des Reiters bzw.
   der Wurzel-Navigator, go_router fragt sie in dieser Reihenfolge), auf
-  der Karte danach Leiste, Planer und Auswahl (`PopScope` in
-  `MapScreen`); an der Wurzel eines anderen Reiters führt Zurück auf die
+  der Karte danach Leiste, Planer (seit 0.128.0 stufenweise: Tippen,
+  Ergebnis, Planer — #356) und Auswahl (`PopScope` in `MapScreen`); an der Wurzel eines anderen Reiters führt Zurück auf die
   Karte (`PopScope` in `AppShell`, `router.dart`). Erst auf der Karte
   geht es an Android, und `MainActivity.popSystemNavigator` legt die App
   dann mit `moveTaskToBack` in den Hintergrund — ohne die Überschreibung

@@ -1668,5 +1668,9 @@
   "demoLoopWaypoints1Title": "Open the planner",
   "demoLoopWaypoints1Text": "Tap the loop button.",
   "demoLoopWaypoints2Title": "Where to pass",
-  "demoLoopWaypoints2Text": "With this button you tap a via point on the map; a tap on its number removes it again. Plan as always with the green button."
+  "demoLoopWaypoints2Text": "With this button you tap a via point on the map; a tap on its number removes it again. Plan as always with the green button.",
+  "loopChangedTitle": "Selection changed",
+  "loopChangedText": "The line no longer matched and is gone. Nothing is recomputed until you say so.",
+  "loopRecompute": "Recompute",
+  "loopClosed": "Planner closed"
 }

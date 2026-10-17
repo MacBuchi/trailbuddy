@@ -2,6 +2,24 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Planen: eine Änderung rechnet nicht mehr falsch
+
+*Version 0.128.0, 2026-10-17*
+
+- Wer bei einer fertigen Runde noch etwas ändert — einen Trail, den
+  Start, einen Regler —, sieht jetzt „Auswahl geändert“ mit dem Knopf
+  „Neu rechnen“. Bisher stand dort fälschlich, die Runde ließe sich nicht
+  rechnen. Gerechnet wird erst, wenn du es sagst, und eine alte Linie
+  bleibt nie stehen.
+- Zurück geht im Planer Schritt für Schritt: erst das Ergebnis zu, dann
+  der Planer. Bisher schloss Zurück gleich alles.
+- Schließen räumt auf: Auswahl, Start, Ziel und Zwischenpunkte gehen mit.
+  Danach kommt „Planer geschlossen“ mit „Rückgängig“ — ein Tipp holt
+  Auswahl und Ergebnis zurück.
+- Ein anderes Rad im Fahrerprofil gilt sofort auch im offenen Planer.
+- Nach einem Neustart öffnet der Planer wieder als Runde, statt auf ein
+  Ziel zu warten, das nicht mehr gesetzt ist.
+
 ## Messen, wo die Routenplanung hängt
 
 *Version 0.127.4, 2026-10-17*

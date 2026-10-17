@@ -2,6 +2,24 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## Planning: a change no longer looks like an error
+
+*Version 0.128.0, 2026-10-17*
+
+- If you change something after a loop is computed — a trail, the start,
+  a slider — you now see “Selection changed” with a “Recompute” button.
+  Until now it wrongly said the loop could not be computed. Nothing is
+  recomputed until you say so, and an old line never stays on the map.
+- Back in the planner goes step by step: first the result closes, then
+  the planner. Until now Back closed everything at once.
+- Closing tidies up: selection, start, finish and waypoints go too. Then
+  “Planner closed” offers “Undo”, and one tap brings back the selection
+  and the result.
+- A different bike in the rider profile applies at once, also in an open
+  planner.
+- After a restart the planner opens as a loop again instead of waiting
+  for a finish that is no longer set.
+
 ## Measuring where route planning stalls
 
 *Version 0.127.4, 2026-10-17*
