@@ -6,12 +6,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../map/map_view/map_view.dart';
+import 'loop_planner.dart' show RouteMode;
 
-/// Direkt oder spaßig (#176): der günstigste Weg, oder einer, der
-/// Abfahrten auf dem Weg mitnimmt. Bequem (#329): der günstigste Weg im
-/// Stil „Bequem" (`RoutePrefs.easy`) — Radwege und kleine Straßen, wenig
-/// Höhe; nur für die Anfahrt, nicht im Planer.
-enum RouteMode { direct, fun, easy }
+// Der Stil (Direkt, Spaßig, Bequem) steht seit #356 beim Planer, der ihn
+// sich merkt; hier weitergereicht, damit die Blätter ihn wie bisher finden.
+export 'loop_planner.dart' show RouteMode;
 
 /// Der Trail, zu dessen Kopf die Karte den Weg zeigen soll, und wie; die
 /// Karte nimmt den Wunsch und setzt ihn auf null.

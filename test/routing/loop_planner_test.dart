@@ -87,6 +87,57 @@ void main() {
         reason: 'ältere Apps lesen „letzter Trail" weiter als 0');
   });
 
+  test('LoopPrefs: der Stil der Route (#356) hin und zurück, ab Werk direkt', () {
+    RouteMode read(String? raw) => LoopPrefs.parse(raw, RiderProfile.bio).style;
+    expect(read(null), RouteMode.direct);
+    expect(read('h=3.0;r=1'), RouteMode.direct, reason: 'vor 0.129.0 gemerkt');
+    for (final m in RouteMode.values) {
+      expect(read(LoopPrefs.defaults(RiderProfile.bio).copyWith(style: m).encode()), m);
+    }
+  });
+
+  group('die Route ohne Trail (#356, bare)', () {
+    // Von unten links nach oben rechts — zwei gleich lange Wege um das
+    // Quadrat.
+    final to = _m([(1000, 1000)]).single;
+
+    test('ohne Trail ein Ergebnis: Linie vom Start zum Ziel, 2 km, ohne Halt', () {
+      final plan = planLoop(_square(),
+          start: start, profile: _bio, budget: _big, pool: const [], returnToStart: false, end: to, bare: true);
+      expect(plan.outcome, LoopOutcome.ok);
+      expect(plan.isEmpty, isTrue);
+      expect(plan.summary!.lengthM, closeTo(2000, 2));
+      expect(plan.summary!.trailM, 0);
+      expect(haversineM(plan.points.first.latitude, plan.points.first.longitude, start.latitude, start.longitude), lessThan(1));
+      expect(haversineM(plan.points.last.latitude, plan.points.last.longitude, to.latitude, to.longitude), lessThan(1));
+    });
+
+    test('ohne bare bleibt es „nichts zu fahren" — eine Runde braucht einen Trail', () {
+      final plan = planLoop(_square(),
+          start: start, profile: _bio, budget: _big, pool: const [], returnToStart: false, end: to);
+      expect(plan.outcome, LoopOutcome.empty);
+    });
+
+    test('mit Zwischenpunkt und getunt (#234): durch den Punkt, auch ohne Trail', () {
+      final via = _m([(1000, 0)]).single;
+      final free = planLoop(_square(),
+          start: start, profile: _bio, budget: _big, pool: const [], returnToStart: false, end: to, waypoints: [via], bare: true);
+      expect(free.outcome, LoopOutcome.ok);
+      expect(free.points.any((p) => haversineM(p.latitude, p.longitude, via.latitude, via.longitude) < 1), isTrue);
+      final tuned = planLoop(_square(),
+          start: start,
+          profile: _bio,
+          budget: _big,
+          pool: const [],
+          returnToStart: false,
+          end: to,
+          tune: LoopTune(order: const [], vias: RouteVias({0: [via]})),
+          bare: true);
+      expect(tuned.outcome, LoopOutcome.ok);
+      expect(tuned.points.any((p) => haversineM(p.latitude, p.longitude, via.latitude, via.longitude) < 1), isTrue);
+    });
+  });
+
   test('beide Trails bergab, verbunden durch Aufstiege, zurück zum Start', () {
     final plan = planLoop(_square(), start: start, profile: _bio, budget: _big, pool: [a, b],
         searchBudget: const Duration(milliseconds: 50));

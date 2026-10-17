@@ -2,6 +2,20 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## Planner: route from A to B, even without a trail
+
+*Version 0.129.0, 2026-10-17*
+
+- In the planner, “To a point” now works without any selected trail: tap
+  the finish, “Compute” — and you get the route there, through your
+  waypoints if you set any. Until now the planner always needed at least
+  one trail.
+- In the result you pick the style: Direct, Easy (cycle paths and small
+  roads, little climbing) or Fun (takes trails along the way). The
+  planner remembers the style.
+- Style and bike (Bike/E-Bike) in the result recompute at once,
+  without “Recompute” — for a loop the bike does too.
+
 ## Planning: a change no longer looks like an error
 
 *Version 0.128.0, 2026-10-17*

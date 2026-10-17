@@ -8936,5 +8936,13 @@
   "loopClosed": "Planer geschlossen",
   "@loopClosed": {
     "description": "Meldung unten nach dem Schließen des Planers, mit „Rückgängig\", das Auswahl und Ergebnis zurückholt."
+  },
+  "loopRailComputeRoute": "Route rechnen",
+  "@loopRailComputeRoute": {
+    "description": "Tooltip des Rechnen-Knopfs im Modus „Zum Ziel“, solange kein Trail gewählt ist — gerechnet wird dann die Route von A nach B."
+  },
+  "mapLoopHintRoute": "Tippe die Trails an, die auf dem Weg mit sollen — oder rechne gleich die Route zum Ziel.",
+  "@mapLoopHintRoute": {
+    "description": "Hinweis oben im Planer im Modus „Zum Ziel“, solange kein Trail gewählt ist: Ohne Trail rechnet der Planer die Route von A nach B."
   }
 }

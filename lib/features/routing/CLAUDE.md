@@ -97,8 +97,9 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
 - **Der Stil „Bequem"** (#329, seit 0.127.0; Konzept-Routing 2.4,
   Messung in `docs/routing-messung.md`): dritter `RouteMode` im Blatt
   „Zum Trailkopf"/„Route hierher" und `NavChoice.easy` am Navi-Symbol —
-  NUR die Anfahrt, der Planer rechnet weiter im MTB-Stil. Drei Dinge, die
-  man wissen muss:
+  NUR die Anfahrt; im Planer seit 0.129.0 als Stil der Route OHNE
+  gewählten Trail (#356, siehe „Die Route von A nach B"), die Runde
+  rechnet weiter im MTB-Stil. Drei Dinge, die man wissen muss:
   - **Ein Stil, kein Rad**: `RoutePrefs.easy`, vom Blatt je Rechnung über
     die gemerkten Vorlieben gelegt (`_rider`), nie gemerkt. Er ersetzt
     nur KOSTEN (`WayClass.easy`, `kEasyClimb`, `kEasySteep`, `kEasyWay`);
@@ -547,6 +548,29 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     In den Flow-Tests liegt bei offenem Ergebnis die untere Hälfte der
     Leiste (Rechnen, X) unter dem Blatt — erst einklappen oder
     `loop-recompute` im Blatt nehmen.
+  - **Die Route von A nach B** (#356 PR 6, seit 0.129.0,
+    `route_result.dart` pur; Konzept-Routing 10.2): „Zum Ziel" ohne
+    gewählten Trail rechnet die Route im Stil `LoopPrefs.style` (`y=d/f/e`,
+    gemerkt). Vier Dinge, die man wissen muss:
+    - **Es ist `planLoop(bare: true)`**, kein zweiter Rechenweg: leerer
+      Pool, `kRouteDirectBudget` (nur die Grenze der Suchen), das Ergebnis
+      ein `LoopPlan` ohne Halt. Ohne `bare` hieße „nur Zwischenpunkte"
+      weiter `LoopOutcome.empty` — eine Runde braucht einen Trail. So
+      rechnet die Route im Isolate, mit Zwischenpunkten (der Planer wählt
+      die Folge, D4) und ziehbaren Punkten wie die Runde.
+    - **Spaßig sind zwei Rechnungen**: erst direkt, dann mit
+      `funPoolOf` im `funBudgetOf` aus dessen Summen; nimmt sie keinen
+      Trail mit, bleibt der direkte (`LoopSession.funEmpty`). Die Zahlen
+      `kFun*` liest auch das Blatt „Route" von dort. Die Trails des Umwegs
+      stehen immer im Graph-Rahmen, ein Stilwechsel lädt nicht neu.
+    - **Getunt wird mit der Rechnung der GEZEIGTEN Planung**
+      (`_planRequest.withTune`) — Pool, Stil, Rad, Ziel und Punkte von
+      damals; das ersetzt `_planTarget`/`_planWaypoints`.
+    - **Stil und Rad im Ergebnis rechnen sofort** (`setStyle`,
+      `switchProfile`, D3; `loop-route-mode`, `loop-result-profile`), alle
+      anderen Eingaben sagen „Auswahl geändert". Der Stil steht über der
+      Phase und bleibt beim Rechnen stehen. Mit Auswahl bleibt es bis
+      PR 7 das alte „Zum Ziel" (Budgets des Planers, = Spaßig, D5).
 - **Die Folgeansicht der Navigation** (#232 Schritt 1a, seit 0.94.0,
   `route_progress.dart` pur, `nav_providers.dart`, `nav_view.dart`;
   Konzept-Routing 9). Fünf Dinge, die man wissen muss:
