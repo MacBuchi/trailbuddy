@@ -2,6 +2,19 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Routenplanung stürzt seltener ab
+
+*Version 0.127.2, 2026-10-17*
+
+- Gelernte Werte aus den eigenen Fahrten, die außerhalb jeder plausiblen
+  Spanne liegen, gelten jetzt als nicht gelernt — vorher konnte so ein
+  Wert die Zeitanzeige im Planer zum Absturz bringen.
+- Scheitert das Berechnen eines Wegs, liegt keine alte Linie mehr auf
+  der Karte; ein schneller Wechsel zwischen „Direkt“, „Spaßig“ und
+  „Bequem“ zeigt immer das Ergebnis des letzten Tipps.
+- Scheitert „Aus meinen Fahrten lernen“, sagt die App es, statt still
+  hängen zu bleiben.
+
 ## Weniger Hänger beim Berechnen von Wegen
 
 *Version 0.127.1, 2026-10-17*

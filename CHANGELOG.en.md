@@ -2,6 +2,19 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## Route planning crashes less
+
+*Version 0.127.2, 2026-10-17*
+
+- Values learned from your own rides that fall outside any plausible
+  range now count as not learned — before, such a value could crash the
+  time shown in the planner.
+- If computing a route fails, no old line stays on the map; switching
+  quickly between "Direct", "Fun" and "Easy" always shows the result of
+  the last tap.
+- If "Learn from my rides" fails, the app says so instead of failing
+  silently.
+
 ## Fewer freezes while computing routes
 
 *Version 0.127.1, 2026-10-17*

@@ -90,6 +90,8 @@ void main() {
     expect(ElevationProfile.of(north(3), null), isNull);
     expect(ElevationProfile.of(north(3), [1, 2]), isNull);
     expect(ElevationProfile.of([const LatLng(48, 9), const LatLng(48, 9)], [1, 2]), isNull);
+    // NaN-Länge (#356): Das Profil teilt durch sie.
+    expect(ElevationProfile.of([const LatLng(48, 9), const LatLng(double.nan, 9)], [1, 2]), isNull);
   });
 
   test('steilstes Stück erst ab 50 m', () {

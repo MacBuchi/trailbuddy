@@ -128,6 +128,23 @@ void main() {
     expect(RiderCalibrations.parse('[1,2]').isEmpty, isTrue);
   });
 
+  test('Gespeichertes außerhalb der Spanne gilt als nicht gelernt — keine Division durch null (#356)', () {
+    final back = RiderCalibrations.parse(
+        '{"bio":{"track":0,"path":-5,"push":99999,"flat":0,"rides":2,"sections":3},'
+        '"ebike":{"track":"x","flat":12.5}}');
+    final bio = back.of(RiderProfile.bio);
+    expect(bio.climbTrackMPerH, isNull);
+    expect(bio.climbPathMPerH, isNull);
+    expect(bio.pushRateMPerH, isNull);
+    expect(bio.vFlatKmh, isNull);
+    expect(bio.rides, 2, reason: 'die Zählung bleibt, nur die Zahlen fallen auf die Vorgabe');
+    expect(back.of(RiderProfile.ebike).climbTrackMPerH, isNull);
+    expect(back.of(RiderProfile.ebike).vFlatKmh, 12.5);
+    final rider = CalibratedRider(RiderProfile.bio, bio);
+    final t = edgeTimeS(rider, WayClass.forstweg, lengthM: 1000, gainM: 100, lossM: 0);
+    expect(t.isFinite, isTrue);
+  });
+
   test('CalibratedRider: gelernte Werte überlagern, der Rest bleibt Vorgabe', () {
     const rider = CalibratedRider(RiderProfile.bio, RiderCalibration(climbTrackMPerH: 520, vFlatKmh: 14));
     expect(rider.profile, RiderProfile.bio);

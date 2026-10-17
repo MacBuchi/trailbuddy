@@ -46,7 +46,7 @@ import 'route_search.dart' show steepNote;
 import 'route_band.dart';
 import 'route_vias.dart';
 import 'via_handles.dart';
-import 'trail_head_route.dart' show routeTimeLabel;
+import 'trail_head_route.dart' show routeSeconds, routeTimeLabel;
 
 /// Breite der leuchtenden Auswahl auf der Karte (#178) — breiter als eine
 /// Verbindung, schmaler als der Leuchtrand des ausgewählten Trails (16).
@@ -812,7 +812,7 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
           points: [
             for (final p in plan.points) RidePoint(lat: p.latitude, lng: p.longitude, at: now, accuracyM: 0),
           ],
-          duration: Duration(seconds: plan.summary!.timeS.round()),
+          duration: Duration(seconds: routeSeconds(plan.summary!.timeS)),
           profile: session.profile.name,
         );
     if (!mounted) return;

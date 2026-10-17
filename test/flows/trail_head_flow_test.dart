@@ -7,6 +7,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:pmtiles/pmtiles.dart';
@@ -14,6 +15,8 @@ import 'package:trailbuddy/core/gpx_share.dart';
 import 'package:trailbuddy/features/map/map_view/map_hit_test.dart' show projectToScreen;
 import 'package:trailbuddy/features/map/map_view/map_view.dart';
 import 'package:trailbuddy/features/offline_areas/area_plan.dart';
+import 'package:trailbuddy/features/routing/ride_calibrator.dart' show calibratedRiderProvider;
+import 'package:trailbuddy/features/routing/route_profile.dart';
 import 'package:trailbuddy/features/routing/trail_head_providers.dart';
 import 'package:trailbuddy/features/offline_areas/area_store.dart';
 import 'package:trailbuddy/features/offline_areas/pmtiles_writer.dart';
@@ -25,6 +28,7 @@ import '../fakes/route_lines.dart';
 import '../fakes/fake_rides.dart';
 import '../fakes/fake_tiles.dart';
 import '../fakes/fake_trails.dart';
+import '../fakes/l10n_de.dart';
 import '../fakes/test_app.dart';
 
 /// Der Trail von `seedTrail` beginnt bei 48,0° N / 9,0° O und läuft nach
@@ -117,7 +121,7 @@ void main() {
   });
 
   Future<void> start(WidgetTester tester,
-      {MemoryAreaStore? areaStore, FakePositionFix? positionFix}) async {
+      {MemoryAreaStore? areaStore, FakePositionFix? positionFix, List<Override> overrides = const []}) async {
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 3;
     addTearDown(tester.view.reset);
@@ -126,7 +130,7 @@ void main() {
         areaStore: areaStore,
         rideStore: rides,
         positionFix: positionFix ?? FakePositionFix(fakePosition(_fromLat, _lon)),
-        extraOverrides: [gpxShareProvider.overrideWithValue(recorder)]);
+        extraOverrides: [gpxShareProvider.overrideWithValue(recorder), ...overrides]);
     await openTab(tester, 'Trails');
     await settle(tester, frames: 20);
     await tester.tap(find.text('Hexentanz'));
@@ -167,6 +171,24 @@ void main() {
     await settle(tester, frames: 10);
     expect(find.textContaining('Forstweg'), findsOneWidget);
     expect(find.byKey(const ValueKey('route-easy-note')), findsNothing);
+  });
+
+  testWidgets('#356: scheitert die Rechnung, liegt keine alte Linie mehr auf der Karte', (tester) async {
+    final rider = _FlakyRider();
+    await start(tester,
+        areaStore: await _areaWithTrack(withRoad: true),
+        overrides: [calibratedRiderProvider.overrideWith((ref, p) => rider)]);
+    await tapTrailHead(tester);
+    expect(find.byKey(const ValueKey('trail-head-summary')), findsOneWidget);
+    expect(routeBand(tester), isNotEmpty);
+
+    rider.broken = true;
+    await tester.tap(find.descendant(of: find.byKey(const ValueKey('route-mode')), matching: find.text('Bequem')));
+    await settle(tester, frames: 10);
+    expect(find.text(l10nDe.routeBlockerFailed), findsOneWidget);
+    expect(find.byKey(const ValueKey('trail-head-summary')), findsNothing);
+    expect(routeBand(tester), isEmpty, reason: 'die Linie von „Direkt" gehört nicht zu „ging nicht"');
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('aus dem Blatt auf die Karte: Weg, Summen, Vorschau, Profil, GPX', (tester) async {
@@ -366,4 +388,37 @@ void main() {
     expect(fix.calls, 1);
     expect(find.byKey(const ValueKey('trail-head-gpx')), findsNothing);
   });
+}
+
+/// Bio, bis [broken] gesetzt ist — dann wirft das Zeitmodell in der Rechnung.
+class _FlakyRider implements RiderParams {
+  bool broken = false;
+  static const _p = RiderProfile.bio;
+
+  double _v(double v) => broken ? throw StateError('kaputt') : v;
+
+  @override
+  RiderProfile get profile => _p;
+  @override
+  RoutePrefs get prefs => const RoutePrefs();
+  @override
+  double get climbTrackMPerH => _v(_p.climbTrackMPerH);
+  @override
+  double get climbPathMPerH => _v(_p.climbPathMPerH);
+  @override
+  double get pushRateMPerH => _v(_p.pushRateMPerH);
+  @override
+  double get vFlatKmh => _v(_p.vFlatKmh);
+  @override
+  double get vPathUpKmh => _v(_p.vPathUpKmh);
+  @override
+  double get vPushKmh => _v(_p.vPushKmh);
+  @override
+  double get vDownKmh => _v(_p.vDownKmh);
+  @override
+  double get pathUpFactor => _v(_p.pathUpFactor);
+  @override
+  double get pathDownFactor => _v(_p.pathDownFactor);
+  @override
+  double get budgetClimbM => _v(_p.budgetClimbM);
 }

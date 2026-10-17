@@ -157,9 +157,14 @@ class FakeRideStore implements RideStore {
     return ImportSave.saved;
   }
 
+  /// Lesen der Fahrten wirft (#356: „lernen" mit kaputter Platte).
+  bool failOnList = false;
+
   @override
-  Future<List<Ride>> list({required String uid}) async =>
-      [for (final r in rides) if (this.uid == uid) r];
+  Future<List<Ride>> list({required String uid}) async {
+    if (failOnList) throw Exception('Platte kaputt (Fake)');
+    return [for (final r in rides) if (this.uid == uid) r];
+  }
 
   @override
   Future<void> delete(String id) async => rides.removeWhere((r) => r.id == id);

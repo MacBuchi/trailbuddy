@@ -793,14 +793,17 @@ class _RiderProfileSectionState extends ConsumerState<_RiderProfileSection> {
     final messenger = ScaffoldMessenger.of(context);
     final l10n = context.l10n;
     setState(() => _learning = true);
-    LearnResult r;
+    String text;
     try {
-      r = await ref.read(riderCalibrationsProvider.notifier).learn();
+      text = learnResultText(l10n, await ref.read(riderCalibrationsProvider.notifier).learn());
+    } catch (e, s) {
+      logError('Aus Fahrten lernen', e, s);
+      text = l10n.importLearnFailed;
     } finally {
       if (mounted) setState(() => _learning = false);
     }
     if (!mounted) return;
-    messenger.showSnackBar(SnackBar(content: Text(learnResultText(l10n, r))));
+    messenger.showSnackBar(SnackBar(content: Text(text)));
   }
 
   @override

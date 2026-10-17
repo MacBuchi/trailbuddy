@@ -412,7 +412,9 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     0.70.0) und ohne Höhen lernen nichts; der Satz danach sagt, was
     gezählt hat.
   - **Gerätelokal** (`Settings.riderCalibration`, JSON je Profil,
-    `RiderCalibrations.encode/parse`, Unlesbares ⇒ Vorgaben); nie aus
+    `RiderCalibrations.encode/parse`, Unlesbares ⇒ Vorgaben; seit
+    0.127.2 auch jede Zahl außerhalb der Spanne — eine gespeicherte 0
+    teilte im Zeitmodell durch null, #356); nie aus
     Fahrten anderer (Konzept 12). Zurücksetzen je Profil.
   - **Fahrten aus GPX lernen mit** (#188, seit 0.82.0,
     `ride_import.dart` pur): Der Import bietet aufgezeichnete Fahrten

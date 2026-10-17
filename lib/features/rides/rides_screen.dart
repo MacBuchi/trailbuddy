@@ -14,6 +14,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:latlong2/latlong.dart';
 
+import '../../core/errors.dart';
 import '../../core/geo.dart';
 import '../../core/gpx_share.dart';
 import '../../core/router_branches.dart';
@@ -254,7 +255,13 @@ Future<void> setRidesProfile(BuildContext context, WidgetRef ref, List<String> i
           : SnackBarAction(
               label: l.ridesRelearn,
               onPressed: () async {
-                final text = learnResultText(l, await learner.learn());
+                String text;
+                try {
+                  text = learnResultText(l, await learner.learn());
+                } catch (e, s) {
+                  logError('Aus Fahrten lernen', e, s);
+                  text = l.importLearnFailed;
+                }
                 messenger.showSnackBar(SnackBar(content: Text(text)));
               },
             ),

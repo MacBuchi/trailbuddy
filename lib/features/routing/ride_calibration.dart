@@ -233,15 +233,24 @@ class RiderCalibration {
         if (at != null) 'at': at!.toUtc().toIso8601String(),
       };
 
+  /// Was außerhalb der plausiblen Spanne steht, gilt als nicht gelernt
+  /// (#356): Eine gespeicherte 0 teilte im Zeitmodell durch null, die
+  /// Zeit wurde unendlich, und `.round()` warf beim Bauen des Blatts.
   static RiderCalibration fromJson(Map<String, dynamic> json) => RiderCalibration(
-        climbTrackMPerH: (json['track'] as num?)?.toDouble(),
-        climbPathMPerH: (json['path'] as num?)?.toDouble(),
-        pushRateMPerH: (json['push'] as num?)?.toDouble(),
-        vFlatKmh: (json['flat'] as num?)?.toDouble(),
+        climbTrackMPerH: _inRange(json['track'], kCalibClimbRange),
+        climbPathMPerH: _inRange(json['path'], kCalibClimbRange),
+        pushRateMPerH: _inRange(json['push'], kCalibClimbRange),
+        vFlatKmh: _inRange(json['flat'], kCalibFlatRange),
         rides: (json['rides'] as num?)?.toInt() ?? 0,
         sections: (json['sections'] as num?)?.toInt() ?? 0,
         at: DateTime.tryParse(json['at'] as String? ?? ''),
       );
+
+  static double? _inRange(Object? raw, (double, double) range) {
+    if (raw is! num) return null;
+    final v = raw.toDouble();
+    return v >= range.$1 && v <= range.$2 ? v : null;
+  }
 }
 
 /// Rechnet aus den Messungen eines Profils die gelernten Werte: Median je
