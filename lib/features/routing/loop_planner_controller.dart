@@ -689,15 +689,25 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
       if (bare) {
         (plan, request, funEmpty) = await _planRoute(runner, from, target!, waypoints, fun);
       } else {
+        // Direkt zu einem Ziel nimmt nur die Pflicht-Trails mit, auf
+        // kürzestem Weg und ohne Budget (#356 PR 7b, Konzept-Routing 10.2);
+        // die übrige Auswahl bleibt für Bequem und Spaßig.
+        final direct = target != null && state.prefs.style == RouteMode.direct;
         request = LoopRequest(
           start: from,
-          // Mit den gelernten Werten des Profils (Schritt 6), wo es welche gibt.
-          profile: ref.read(calibratedRiderProvider(state.profile)).withPrefs(state.prefs.route),
-          budget: state.prefs.budget,
-          pool: [for (final t in chosen) poolTrailOf(serviceL10n(), t, mandatory: state.mandatory.contains(t.id))],
+          // Mit den gelernten Werten des Profils (Schritt 6), wo es welche
+          // gibt; im Stil Bequem oder mit „Bergauf bequem" dessen Kosten.
+          profile: ref.read(calibratedRiderProvider(state.profile)).withPrefs(state.prefs.planRoute),
+          budget: direct ? kRouteDirectBudget : state.prefs.budget,
+          pool: [
+            for (final t in chosen)
+              if (!direct || state.mandatory.contains(t.id))
+                poolTrailOf(serviceL10n(), t, mandatory: state.mandatory.contains(t.id)),
+          ],
           returnToStart: endMode == LoopEndMode.loop,
           end: target,
           waypoints: waypoints,
+          bare: direct,
         );
         plan = await StallWatch.time('plan.loop', () => runner.plan(_graph!, request));
       }
@@ -725,9 +735,7 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
   Future<(LoopPlan, LoopRequest, bool)> _planRoute(
       LoopPlanRunner runner, LatLng from, LatLng to, List<LatLng> waypoints, List<Trail> fun) async {
     final prefs = state.prefs;
-    final rider = ref
-        .read(calibratedRiderProvider(state.profile))
-        .withPrefs(prefs.style == RouteMode.easy ? prefs.route.copyWith(easy: true) : prefs.route);
+    final rider = ref.read(calibratedRiderProvider(state.profile)).withPrefs(prefs.planRoute);
     final direct = LoopRequest(
         start: from,
         profile: rider,

@@ -2,6 +2,20 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## Planner: Direct, Easy and Fun with selected trails too
+
+*Version 0.131.0, 2026-10-17*
+
+- A route to a destination now has the three styles even with selected
+  trails. **Direct** takes the shortest way and only the starred
+  trails. **Fun** takes the selection along, as much as fits in time
+  and climbing — like “To destination” before. **Easy** takes it along
+  as well, but between the trails it prefers cycleways, quiet roads and
+  gravel tracks to paths uphill.
+- New in the loop's settings: the “Easy uphill” switch. Turned on, the
+  loop plans its connections between trails the same easy way. The app
+  remembers the setting.
+
 ## One planner for every way
 
 *Version 0.130.0, 2026-10-17*

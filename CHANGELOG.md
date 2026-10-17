@@ -2,6 +2,20 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Planer: Direkt, Bequem und Spaßig auch mit gewählten Trails
+
+*Version 0.131.0, 2026-10-17*
+
+- Eine Route zu einem Ziel hat jetzt auch mit gewählten Trails die drei
+  Stile. **Direkt** fährt auf kürzestem Weg und nimmt nur die Trails
+  mit Stern mit. **Spaßig** nimmt die Auswahl mit, so viel in Zeit und
+  Höhe passt — wie bisher „Zum Ziel“. **Bequem** nimmt ebenso mit, fährt
+  aber zwischen den Trails bergauf lieber über Radwege, kleine Straßen
+  und Forstwege als über Pfade.
+- Neu in den Parametern der Runde: der Schalter „Bergauf bequem“. An,
+  rechnet die Runde ihre Verbindungen zwischen den Trails genauso
+  bequem. Die App merkt sich die Stellung.
+
 ## Ein Planer für alle Wege
 
 *Version 0.130.0, 2026-10-17*

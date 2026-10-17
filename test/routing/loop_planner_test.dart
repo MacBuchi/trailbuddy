@@ -96,6 +96,19 @@ void main() {
     }
   });
 
+  test('LoopPrefs: „Bergauf bequem" (#356 PR 7b) hin und zurück, ab Werk aus; planRoute je Ziel', () {
+    final d = LoopPrefs.defaults(RiderProfile.bio);
+    expect(d.easyUp, isFalse);
+    expect(LoopPrefs.parse('h=3.0;r=1;y=e', RiderProfile.bio).easyUp, isFalse, reason: 'vor 0.131.0 gemerkt');
+    expect(LoopPrefs.parse(d.copyWith(easyUp: true).encode(), RiderProfile.bio).easyUp, isTrue);
+    expect(d.copyWith(easyUp: true).planRoute.easy, isTrue, reason: 'Runde');
+    expect(d.copyWith(easyUp: true, endMode: LoopEndMode.lastTrail).planRoute.easy, isTrue);
+    expect(d.copyWith(easyUp: true, endMode: LoopEndMode.target).planRoute.easy, isFalse,
+        reason: 'zu einem Ziel entscheidet der Stil');
+    expect(d.copyWith(endMode: LoopEndMode.target, style: RouteMode.easy).planRoute.easy, isTrue);
+    expect(d.copyWith(style: RouteMode.easy).planRoute.easy, isFalse, reason: 'die Runde hat keinen Stil');
+  });
+
   group('die Route ohne Trail (#356, bare)', () {
     // Von unten links nach oben rechts — zwei gleich lange Wege um das
     // Quadrat.

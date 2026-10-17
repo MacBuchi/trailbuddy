@@ -304,6 +304,16 @@ class _ParamsSheet extends ConsumerWidget {
         const SizedBox(height: 8),
         const SizedBox(height: 4),
         Text(l.loopOnTheWay, style: theme.textTheme.titleSmall),
+        // Zu einem Ziel sagt das der Stil im Ergebnis (#356 PR 7b).
+        if (prefs.endMode != LoopEndMode.target)
+          _PrefSwitch(
+            tileKey: const ValueKey('loop-easy-up'),
+            title: l.loopEasyUp,
+            on: l.loopEasyUpOn,
+            off: l.loopEasyUpOff,
+            value: prefs.easyUp,
+            onChanged: (v) => notifier.setPrefs(prefs.copyWith(easyUp: v)),
+          ),
         _PrefSwitch(
           tileKey: const ValueKey('loop-pref-roads'),
           title: l.loopPrefRoads,
@@ -606,10 +616,10 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Eine Route ohne gewählten Trail (#356): Der Stil steht über
-              // allem und bleibt stehen, während neu gerechnet wird — ein
-              // Wechsel rechnet sofort (D3).
-              if (session.prefs.endMode == LoopEndMode.target && session.selected.isEmpty) ...[
+              // Eine Route (#356): Der Stil steht über allem und bleibt
+              // stehen, während neu gerechnet wird — ein Wechsel rechnet
+              // sofort (D3). Seit PR 7b auch mit Auswahl.
+              if (session.prefs.endMode == LoopEndMode.target) ...[
                 SegmentedButton<RouteMode>(
                   key: const ValueKey('loop-route-mode'),
                   segments: [
@@ -738,6 +748,17 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
       if (session.planBare && session.prefs.style == RouteMode.easy) ...[
         const SizedBox(height: 4),
         Text(key: const ValueKey('loop-easy-note'), l.routeEasyNote, style: theme.textTheme.bodyMedium),
+      ] else if (!session.planBare && session.prefs.planRoute.easy) ...[
+        // Mit Auswahl rechnen nur die Verbindungen bequem (#356 PR 7b).
+        const SizedBox(height: 4),
+        Text(key: const ValueKey('loop-easy-note'), l.loopEasyUpNote, style: theme.textTheme.bodyMedium),
+      ],
+      if (!session.planBare &&
+          session.planEnd == LoopEndMode.target &&
+          session.prefs.style == RouteMode.direct &&
+          !session.selected.every(session.mandatory.contains)) ...[
+        const SizedBox(height: 4),
+        Text(key: const ValueKey('loop-direct-note'), l.routeDirectStarredNote, style: theme.textTheme.bodyMedium),
       ],
       if (session.funEmpty) ...[
         const SizedBox(height: 4),

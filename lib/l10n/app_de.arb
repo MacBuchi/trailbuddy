@@ -4060,6 +4060,26 @@
   "@loopPrefSteepOff": {
     "description": "Untertitel von „Steile Rampen meiden“, aus."
   },
+  "loopEasyUp": "Bergauf bequem",
+  "@loopEasyUp": {
+    "description": "Schalter in den Parametern des Planers (Runde, am letzten Trail): die Verbindungen zwischen den Trails im Stil „Bequem“."
+  },
+  "loopEasyUpOn": "Bergauf Radwege, kleine Straßen und Forstwege vor Pfaden. Die Trails bleiben Trails.",
+  "@loopEasyUpOn": {
+    "description": "Untertitel von „Bergauf bequem“, an."
+  },
+  "loopEasyUpOff": "Die Verbindungen rechnen wie für ein Mountainbike.",
+  "@loopEasyUpOff": {
+    "description": "Untertitel von „Bergauf bequem“, aus."
+  },
+  "loopEasyUpNote": "Die Wege zwischen den Trails sind bequem gerechnet: Radwege, kleine Straßen und Forstwege vor Pfaden, wenig Höhe.",
+  "@loopEasyUpNote": {
+    "description": "Satz unter der Summe im Ergebnis des Planers, wenn mit Auswahl im Stil „Bequem“ oder mit „Bergauf bequem“ gerechnet wurde."
+  },
+  "routeDirectStarredNote": "Direkt fährt nur die Trails mit Stern. Die übrige Auswahl nehmen Bequem und Spaßig mit.",
+  "@routeDirectStarredNote": {
+    "description": "Satz unter der Summe einer Route im Stil „Direkt“, wenn gewählte Trails ohne Stern (Pflicht) nicht mitgenommen wurden."
+  },
   "loopPrefsNote": "Gilt auch für den Weg zum Trail. Höhe, die eine Verbindung bergab verschenkt, kostet immer etwas.",
   "@loopPrefsNote": {
     "description": "Hinweis unter den Vorlieben im Planer."

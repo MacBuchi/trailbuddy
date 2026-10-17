@@ -98,8 +98,9 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
   Messung in `docs/routing-messung.md`): dritter `RouteMode` im Blatt
   „Zum Trailkopf"/„Route hierher" und `NavChoice.easy` am Navi-Symbol —
   NUR die Anfahrt; im Planer seit 0.129.0 als Stil der Route OHNE
-  gewählten Trail (#356, siehe „Die Route von A nach B"), die Runde
-  rechnet weiter im MTB-Stil. Drei Dinge, die man wissen muss:
+  gewählten Trail (#356, siehe „Die Route von A nach B"), seit 0.131.0
+  auch mit Auswahl und als Schalter „Bergauf bequem" der Runde (siehe
+  „Stile mit Auswahl"). Drei Dinge, die man wissen muss:
   - **Ein Stil, kein Rad**: `RoutePrefs.easy`, vom Blatt je Rechnung über
     die gemerkten Vorlieben gelegt (`_rider`), nie gemerkt. Er ersetzt
     nur KOSTEN (`WayClass.easy`, `kEasyClimb`, `kEasySteep`, `kEasyWay`);
@@ -571,8 +572,23 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     - **Stil und Rad im Ergebnis rechnen sofort** (`setStyle`,
       `switchProfile`, D3; `loop-route-mode`, `loop-result-profile`), alle
       anderen Eingaben sagen „Auswahl geändert". Der Stil steht über der
-      Phase und bleibt beim Rechnen stehen. Mit Auswahl bleibt es bis
-      PR 7b das alte „Zum Ziel" (Budgets des Planers, = Spaßig, D5).
+      Phase und bleibt beim Rechnen stehen.
+  - **Stile mit Auswahl** (#356 PR 7b, seit 0.131.0; Konzept-Routing
+    10.2, D5). Drei Dinge, die man wissen muss:
+    - **Die Kosten kommen aus EINER Stelle**: `LoopPrefs.planRoute` —
+      zu einem Ziel `easy` nach dem Stil, sonst nach `easyUp` (`u=1`,
+      gemerkt; „Bergauf bequem" gilt für Runde UND „am letzten Trail").
+      `RoutePrefs.easy` ändert nur Wegekosten; die Trails selbst rechnen
+      ihre Zeit nach S-Grad, „die Trails bleiben Trails".
+    - **Direkt mit Auswahl ist `bare: true` mit den Pflicht-Trails als
+      Pool** und `kRouteDirectBudget` — kein Budget, der Planer wählt nur
+      die Folge (D4). Ohne Stern ist es die Route von A nach B; das Blatt
+      sagt es (`loop-direct-note`). Spaßig und Bequem rechnen mit der
+      ganzen Auswahl und den Budgets des Planers, wie das alte „Zum Ziel".
+    - **Die Suchgrenze ist das Zeitbudget in Kosten**: Bequem kostet je
+      Höhenmeter mehr, eine Verbindung erreicht die Grenze also früher
+      als im MTB-Stil. Im Feld beobachten, ob Bequem mit Auswahl öfter
+      „nicht erreichbar" sagt.
   - **Ein Planer für alle Einstiege** (#356 PR 7a, seit 0.130.0;
     Konzept-Routing 10.3–10.5). Fünf Dinge, die man wissen muss:
     - **Ein fertiger Auftrag ist `beginRoute`**: frischer Planer (der

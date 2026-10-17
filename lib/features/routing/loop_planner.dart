@@ -960,6 +960,7 @@ class LoopPrefs {
     this.fillOnline = true,
     this.route = const RoutePrefs(),
     this.style = RouteMode.direct,
+    this.easyUp = false,
   });
 
   final double hours;
@@ -985,9 +986,21 @@ class LoopPrefs {
   /// Runde UND den Weg zum Trail.
   final RoutePrefs route;
 
-  /// Der Stil einer Route ohne gewählten Trail (#356), gemerkt wie die
-  /// Regler.
+  /// Der Stil einer Route (#356), gemerkt wie die Regler. Mit Auswahl
+  /// (PR 7b, Konzept-Routing 10.2): Direkt nimmt nur die Pflicht-Trails,
+  /// Bequem und Spaßig die Auswahl unter den Budgets des Planers.
   final RouteMode style;
+
+  /// „Bergauf bequem" (#356 PR 7b): Runde und „am letzten Trail" rechnen
+  /// alle Verbindungen mit den Kosten des Stils Bequem
+  /// (`RoutePrefs.easy`). Vorgabe aus, gemerkt wie die Regler.
+  final bool easyUp;
+
+  /// Die Vorlieben, mit denen der Planer rechnet: zu einem Ziel im Stil
+  /// Bequem, sonst mit „Bergauf bequem" die Kosten des Stils — die Trails
+  /// bleiben Trails (Zeit nach S-Grad).
+  RoutePrefs get planRoute =>
+      (endMode == LoopEndMode.target ? style == RouteMode.easy : easyUp) ? route.copyWith(easy: true) : route;
 
   static const minHours = 1.0, maxHours = 6.0, hoursStep = 0.5;
   static const minClimb = 200.0, maxClimb = 2500.0, climbStep = 100.0;
@@ -1033,12 +1046,13 @@ class LoopPrefs {
         'e' => RouteMode.easy,
         _ => RouteMode.direct,
       },
+      easyUp: fields['u'] == '1',
     );
   }
 
   String encode() => 'h=$hours;c=$climbM;w=$hikingKm;r=${switch (endMode) { LoopEndMode.loop => 1, LoopEndMode.lastTrail => 0, LoopEndMode.target => 2 }};k=$radiusKm;o=${fillOnline ? 1 : 0}'
       ';sr=${route.avoidRoads ? 1 : 0};sw=${route.avoidHiking ? 1 : 0};ss=${route.avoidSteep ? 1 : 0}'
-      ';y=${switch (style) { RouteMode.direct => 'd', RouteMode.fun => 'f', RouteMode.easy => 'e' }}';
+      ';y=${switch (style) { RouteMode.direct => 'd', RouteMode.fun => 'f', RouteMode.easy => 'e' }};u=${easyUp ? 1 : 0}';
 
   LoopBudget get budget => LoopBudget(timeS: hours * 3600, climbM: climbM, hikingM: hikingKm * 1000);
 
@@ -1050,7 +1064,8 @@ class LoopPrefs {
           double? radiusKm,
           bool? fillOnline,
           RoutePrefs? route,
-          RouteMode? style}) =>
+          RouteMode? style,
+          bool? easyUp}) =>
       LoopPrefs(
         hours: hours ?? this.hours,
         climbM: climbM ?? this.climbM,
@@ -1060,6 +1075,7 @@ class LoopPrefs {
         fillOnline: fillOnline ?? this.fillOnline,
         route: route ?? this.route,
         style: style ?? this.style,
+        easyUp: easyUp ?? this.easyUp,
       );
 }
 
