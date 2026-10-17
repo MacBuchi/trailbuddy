@@ -220,7 +220,10 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
   - **Das Ende der Fahrt** (#331, seit 0.123.0): `LoopEndMode` (Runde,
     letzter Trail, Ziel) statt des Schalters „Start ist auch Ziel",
     gemerkt in `LoopPrefs` unter dem alten Schlüssel `r` (1/0 wie bisher,
-    2 = Ziel — ältere Apps lesen 2 als Runde). Das Ziel
+    2 = Ziel — ältere Apps lesen 2 als Runde, und seit #356 PR 5 auch
+    diese: Das Ziel gilt nur für die Sitzung, ein Planer mit „Zum Ziel"
+    ohne Ziel konnte nach dem Neustart nichts rechnen; geschrieben wird
+    die 2 weiter, für den einen Planer aus Konzept-Routing 10.2). Das Ziel
     (`LoopSession.target`, `pickingTarget`) ist ein Tipp wie der Start
     (`takePick` nimmt beide), nur für die Sitzung; ohne Ziel heißt es
     `LoopBlocker.noTarget`. Der Graph-Rahmen schließt das Ziel ein.
@@ -522,6 +525,28 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     (`closeMapPanel` schließt es mit, wenn der Planer zugeht). Szene der
     Touren: `MapCoach.loopRail`, Anker je Knopf
     `MapCoach.loopRailButton(key)`.
+  - **Ändern, Zurück, Schließen** (#356 PR 5, seit 0.128.0;
+    Konzept-Routing 10.4/10.5, D3). Vier Dinge, die man wissen muss:
+    - **Jede Eingabe geht über `_edit`** (Auswahl, Stern, Start, Ziel,
+      Zwischenpunkte, Regler, Rad): Plan weg, `_generation` hoch, Phase
+      `idle`, und lag schon etwas im Blatt, `LoopSession.changed` — das
+      Blatt zeigt `loop-changed` mit `loop-recompute`, gerechnet wird nie
+      von selbst. Bis 0.127.4 blieb die Phase `result` ohne Plan stehen,
+      und das Blatt nannte es einen gemeldeten Fehler.
+    - **Zurück nimmt das Blatt nicht selbst**: `canPop: false` am
+      `PopScope` der Karte geht vor dem lokalen Verlauf des Persistent
+      Sheet. Die Stufen stehen deshalb ausdrücklich im Handler (Tippen,
+      Zeichnen, `_loopPanelOpen`, Planer).
+    - **Zu heißt aufgeräumt, mit „Rückgängig"**: `close()` leert Auswahl,
+      Start, Ziel und Zwischenpunkte und gibt `LoopClosed` zurück (samt
+      Graph — getunte Punkte zeigen auf seine Knoten); `restore` und
+      `showLoopResultPanel(compute: false)` holen beides ohne neue
+      Rechnung zurück. Startet die Navigation, gibt es keine Meldung.
+    - **Das Fahrerprofil hört mit** (`ref.listen(riderProfileProvider)`):
+      ein anderes Rad in den Einstellungen erreicht den offenen Planer.
+    In den Flow-Tests liegt bei offenem Ergebnis die untere Hälfte der
+    Leiste (Rechnen, X) unter dem Blatt — erst einklappen oder
+    `loop-recompute` im Blatt nehmen.
 - **Die Folgeansicht der Navigation** (#232 Schritt 1a, seit 0.94.0,
   `route_progress.dart` pur, `nav_providers.dart`, `nav_view.dart`;
   Konzept-Routing 9). Fünf Dinge, die man wissen muss:

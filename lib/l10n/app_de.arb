@@ -8920,5 +8920,21 @@
   "demoLoopWaypoints2Text": "Mit diesem Knopf tippst du einen Zwischenpunkt auf die Karte; ein Tipp auf seine Nummer nimmt ihn wieder weg. Gerechnet wird wie immer mit dem grünen Knopf.",
   "@demoLoopWaypoints2Text": {
     "description": "Vorführung „loop-waypoints“, Schritt 2: Text."
+  },
+  "loopChangedTitle": "Auswahl geändert",
+  "@loopChangedTitle": {
+    "description": "Ergebnis-Blatt des Planers: Überschrift, nachdem sich Start, Ziel, Trails, Zwischenpunkte oder Regler geändert haben — die alte Linie ist weg."
+  },
+  "loopChangedText": "Die Linie passte nicht mehr dazu und ist weg. Gerechnet wird erst, wenn du es sagst.",
+  "@loopChangedText": {
+    "description": "Ergebnis-Blatt des Planers: Satz unter „Auswahl geändert\"; es wird nicht automatisch neu gerechnet."
+  },
+  "loopRecompute": "Neu rechnen",
+  "@loopRecompute": {
+    "description": "Ergebnis-Blatt des Planers: Knopf, der nach einer Änderung die Planung neu rechnet."
+  },
+  "loopClosed": "Planer geschlossen",
+  "@loopClosed": {
+    "description": "Meldung unten nach dem Schließen des Planers, mit „Rückgängig\", das Auswahl und Ergebnis zurückholt."
   }
 }

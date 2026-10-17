@@ -514,11 +514,37 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       ));
   }
 
-  /// Schließen: Ergebnis-Blatt zu, Modus aus — die Auswahl bleibt für die
-  /// Sitzung.
-  void _closeLoopPlanner() {
+  /// Schließen: Ergebnis-Blatt zu, Modus aus, aufgeräumt (Konzept-Routing
+  /// 10.5). War etwas gesetzt, kommt eine Meldung mit „Rückgängig" statt
+  /// einer Rückfrage; [undo] falsch, wenn nicht der Nutzer schließt
+  /// (Navigation startet).
+  void _closeLoopPlanner({bool undo = true}) {
     if (_loopPanelOpen) closeMapPanel();
-    ref.read(loopPlannerProvider.notifier).close();
+    final closed = ref.read(loopPlannerProvider.notifier).close();
+    if (closed == null || !undo) return;
+    ScaffoldMessenger.of(context)
+      ..clearSnackBars()
+      ..showSnackBar(SnackBar(
+        key: const ValueKey('loop-closed'),
+        content: Text(context.l10n.loopClosed),
+        action: SnackBarAction(label: context.l10n.commonUndo, onPressed: () => unawaited(_restoreLoop(closed))),
+      ));
+  }
+
+  /// „Rückgängig" nach dem Schließen: Planer, Auswahl und — wenn eins da
+  /// war — das Ergebnis-Blatt wieder, ohne neu zu rechnen.
+  Future<void> _restoreLoop(LoopClosed closed) async {
+    if (ref.read(offlineOverlayProvider)) {
+      await _closeTools();
+      if (!mounted || ref.read(offlineOverlayProvider)) return;
+    }
+    setState(() => _selectedTrailId = null);
+    ref.read(loopPlannerProvider.notifier).restore(closed);
+    final scaffold = _scaffoldKey.currentState;
+    if (!closed.hasResult || _loopPanelOpen || scaffold == null) return;
+    _loopPanelOpen = true;
+    await showLoopResultPanel(scaffold, compute: false);
+    _loopPanelOpen = false;
   }
 
   Future<void> _computeLoop() async {
@@ -642,7 +668,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       if (!mounted || ref.read(offlineOverlayProvider)) return;
     }
     closeMapPanel();
-    if (ref.read(loopPlannerProvider).open) _closeLoopPlanner();
+    if (ref.read(loopPlannerProvider).open) _closeLoopPlanner(undo: false);
     setState(() => _selectedTrailId = null);
     if (choice.record) {
       final result = await rides.start();
@@ -1252,13 +1278,18 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       onPopInvokedWithResult: (didPop, _) {
         if (didPop) return;
         if (loop.open) {
-          // Stufenweise: erst Start-Tipp oder Zeichnen abbrechen, dann
-          // den Planer schließen (ein Ergebnis-Blatt nimmt Zurück selbst).
+          // Stufenweise (Konzept-Routing 10.5): Tippen abbrechen oder
+          // Zeichnen ablegen, dann das Ergebnis zu, dann der Planer. Das
+          // Blatt nimmt Zurück NICHT selbst: `canPop: false` geht vor
+          // seinem lokalen Verlauf — bis 0.127.4 schloss Zurück deshalb
+          // mit offenem Ergebnis gleich den ganzen Planer (#356).
           final notifier = ref.read(loopPlannerProvider.notifier);
           if (loop.picking) {
             notifier.cancelStartPick();
           } else if (loop.drawTool != null) {
             notifier.disarmDraw();
+          } else if (_loopPanelOpen) {
+            closeMapPanel();
           } else {
             _closeLoopPlanner();
           }
