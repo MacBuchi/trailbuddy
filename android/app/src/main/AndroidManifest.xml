@@ -34,7 +34,7 @@
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"
         tools:node="remove"/>
     <application
-        android:label="TrailBuddy"
+        android:label="${appLabel}"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:fullBackupContent="@xml/full_backup_content"

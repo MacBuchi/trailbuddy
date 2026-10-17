@@ -18,6 +18,17 @@ if (file("google-services.json").exists()) {
     apply(plugin = "com.google.gms.google-services")
 }
 
+// Die Dev-App (#356, D1) hat KEINE Firebase-App: google-services.json
+// kennt nur `de.mcbuchi.trailbuddy`, und das Plugin bricht für
+// `….dev` mit „No matching client found" ab. Ohne seine Ressourcen
+// startet Firebase nicht, und die App sagt „Push noch nicht
+// eingerichtet" (`isMissingFirebaseConfig`) — gewollt.
+tasks.configureEach {
+    if (name.startsWith("process") && name.contains("Dev") && name.endsWith("GoogleServices")) {
+        enabled = false
+    }
+}
+
 // Release-Signing aus android/key.properties (lokal bzw. von CI aus den
 // Secrets ANDROID_KEYSTORE_* erzeugt); ohne die Datei fällt der Build auf
 // Debug-Signing zurück. Muster aus PilzBuddy.
@@ -56,6 +67,7 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        manifestPlaceholders["appLabel"] = "TrailBuddy"
 
         // `--target-platform android-arm64` beschränkt nur Flutters eigene
         // Artefakte; die nativen Teile der Plugins kämen weiter für alle
@@ -74,10 +86,22 @@ android {
     // den In-App-Update-Weg, `play` nimmt die Berechtigung in
     // src/play/AndroidManifest.xml wieder heraus. Ab hier verlangt jeder
     // Build ein `--flavor`, und der Ausgabepfad trägt den Namen.
+    //
+    // Dazu `dev` (#356, D1): eine ZWEITE App neben der echten, für Mess-
+    // und Testbuilds auf dem Gerät des Betreibers — eigene Daten, eigene
+    // Anmeldung, die echte Installation bleibt unberührt. Nie
+    // veröffentlicht, nicht in CI gebaut; ohne Update-Weg
+    // (src/dev/AndroidManifest.xml, `AppDistribution.isDevBuild`).
     flavorDimensions += "distribution"
     productFlavors {
         create("github") { dimension = "distribution" }
         create("play") { dimension = "distribution" }
+        create("dev") {
+            dimension = "distribution"
+            applicationIdSuffix = ".dev"
+            versionNameSuffix = "-dev"
+            manifestPlaceholders["appLabel"] = "TrailBuddy Dev"
+        }
     }
 
     signingConfigs {

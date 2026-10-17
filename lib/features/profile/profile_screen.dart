@@ -977,7 +977,10 @@ class _AboutSection extends ConsumerWidget {
     final l = context.l10n;
     final updateStatus = kIsWeb
         ? l.aboutWebAlwaysCurrent
-        : !AppDistribution.showsUpdateHints
+        : AppDistribution.isDevBuild
+            // Dev-App (#356): kommt per Kabel vom Rechner, prüft nichts.
+            ? l.aboutDevBuild
+            : !AppDistribution.showsUpdateHints
             // Play-Build: der Store aktualisiert selbst, die App prüft nichts.
             ? l.aboutPlayStore
             : updateInfo != null

@@ -2,6 +2,15 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Testversion neben der echten App
+
+*Version 0.127.3, 2026-10-17*
+
+- Für Messungen auf dem Telefon gibt es jetzt eine eigene Testversion,
+  „TrailBuddy Dev“. Sie steht neben der echten App, hat ihre eigenen
+  Daten und eine eigene Anmeldung und sucht nicht nach Updates. In der
+  echten App ändert sich nichts.
+
 ## Routenplanung stürzt seltener ab
 
 *Version 0.127.2, 2026-10-17*

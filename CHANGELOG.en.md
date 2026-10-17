@@ -2,6 +2,15 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## Test version next to the real app
+
+*Version 0.127.3, 2026-10-17*
+
+- For measurements on the phone there is now a separate test version,
+  "TrailBuddy Dev". It sits next to the real app, with its own data and
+  its own sign-in, and doesn't look for updates. Nothing changes in the
+  real app.
+
 ## Route planning crashes less
 
 *Version 0.127.2, 2026-10-17*

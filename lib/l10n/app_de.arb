@@ -5512,6 +5512,10 @@
   "@aboutPlayStore": {
     "description": "Seite „Über TrailBuddy“: Update-Stand im Play-Build."
   },
+  "aboutDevBuild": "Dev-App — Updates kommen vom Rechner.",
+  "@aboutDevBuild": {
+    "description": "Seite „Über TrailBuddy“: Update-Stand in der Dev-App (Testbuild neben der echten App, per Kabel installiert)."
+  },
   "aboutNewestVersion": "Neueste Version: v{version} — zum Herunterladen auf der Projektseite.",
   "@aboutNewestVersion": {
     "description": "Seite „Über TrailBuddy“: es gibt eine neuere Version.",

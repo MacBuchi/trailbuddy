@@ -1,0 +1,10 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+    <!-- Dev-Flavor (#356, D1): Die Dev-App aktualisiert sich nicht selbst
+         (sie kommt per flutter install vom Rechner), der Dart-Pfad ist
+         über AppDistribution.isDevBuild aus; diese Zeile nimmt die
+         zugehörige Berechtigung heraus wie im Play-Flavor. Keine zwei
+         Bindestriche hintereinander in diesem Kommentar (siehe play). -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES"
+        tools:node="remove"/>
+</manifest>

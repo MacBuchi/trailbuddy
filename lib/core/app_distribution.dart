@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/services.dart' show appFlavor;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// Über welchen Kanal dieser Build ausgeliefert wird.
@@ -14,8 +15,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 abstract final class AppDistribution {
   static const isPlayBuild = bool.fromEnvironment('PLAY_BUILD');
 
-  /// Zeigt die App selbst auf Updates hin? Nur außerhalb des Play Stores.
-  static const showsUpdateHints = !isPlayBuild;
+  /// Die Dev-App neben der echten (#356, D1): `flutter build apk
+  /// --flavor dev`. Flutter reicht den Flavor als [appFlavor] durch. Sie
+  /// kommt vom Rechner des Betreibers und hat keinen Update-Weg — ein
+  /// Hinweis dort führte zur GitHub-APK, also zur ANDEREN App.
+  static const isDevBuild = appFlavor == 'dev';
+
+  /// Zeigt die App selbst auf Updates hin? Nur außerhalb des Play Stores
+  /// und nicht in der Dev-App.
+  static const showsUpdateHints = !isPlayBuild && !isDevBuild;
 
   /// Ist das der automatisch deployte Entwicklungsstand?
   ///

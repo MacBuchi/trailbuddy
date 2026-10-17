@@ -967,6 +967,7 @@
   "pushNotRegistered": "This device is not registered.",
   "aboutWebAlwaysCurrent": "The web app is always up to date.",
   "aboutPlayStore": "Updates come through the Play Store.",
+  "aboutDevBuild": "Dev app — updates come from the computer.",
   "aboutNewestVersion": "Latest version: v{version} — download it from the project page.",
   "aboutUpToDate": "You are up to date.",
   "aboutVersionLine": "Version {version} — {status}",
