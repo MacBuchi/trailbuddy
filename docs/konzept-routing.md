@@ -313,8 +313,8 @@ der Stil auf steile Straßen aus und stieg MEHR als der MTB-Stil; erst
 1,5 mit 3 steigt in allen drei Entfernungen weniger und nimmt trotzdem
 mehr Asphalt. Der Planer rechnet weiter im MTB-Stil. **Ab #356 nicht mehr
 nur die Anfahrt**: Eine Route im Stil Bequem mit gewählten Trails rechnet
-auch die Verbindungen zwischen den Trails in diesem Stil (10.2;
-Betreiber, 2026-10-17).
+auch die Verbindungen zwischen den Trails in diesem Stil, und eine Runde
+tut es mit dem Schalter „Bergauf bequem" (10.2; Betreiber, 2026-10-17).
 
 Trailkanten: nur in Trail-Richtung (`reversed` beachtet), nur bergab
 gedacht, Kosten = Zeit nach S-Grad, Gewinn = Trail-Meter. Ein Trail mit
@@ -1136,11 +1136,11 @@ Beides rechnet beim Umschalten sofort (D3), ohne „Neu rechnen".
   Auswahl ist Bequem der direkte Weg im Stil, wie seit 0.127.0.
 - **Direkt mit Auswahl** nimmt die Pflicht-Trails (Stern) und die
   Zwischenpunkte mit, auf kürzestem Weg, ohne Budget; die übrige Auswahl
-  bleibt für Spaßig und Bequem. *(Vorschlag — Alternative: Direkt nimmt
-  die ganze Auswahl als Pflicht.)*
-- **Bei der Runde** gibt es heute keinen Stil. Folgt aus dem Satz oben,
-  dass auch eine Runde bequem bergauf rechnen kann (Schalter „Bergauf
-  bequem" in den Parametern)? *(Offen für den Betreiber.)*
+  bleibt für Spaßig und Bequem (Betreiber, 2026-10-17: „Passt").
+- **Auch die Runde kann bequem bergauf**: Schalter „Bergauf bequem" in
+  den Parametern (Vorgabe aus, gemerkt wie die Regler); an, rechnen alle
+  Verbindungen der Runde mit den Kosten des Stils Bequem (Betreiber,
+  2026-10-17: „Passt").
 - **Die Reihenfolge der Halte wählt der Planer** (D4), auch bei einer
   Route — Pflicht-Trails und Zwischenpunkte wie seit 0.126.0, nie in
   der Reihenfolge des Antippens.
