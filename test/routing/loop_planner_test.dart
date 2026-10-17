@@ -68,17 +68,21 @@ void main() {
   final b = _trail('B', (1010, 990), (1010, 10));
   final start = _m([(5, 0)]).single;
 
-  test('LoopPrefs: das Ende der Fahrt (#331) — alter Schalter gelesen, Ziel als r=2', () {
+  test('LoopPrefs: das Ende der Fahrt (#331) — alter Schalter gelesen, Ziel als r=2 geschrieben, als Runde gelesen',
+      () {
     LoopEndMode read(String? raw) => LoopPrefs.parse(raw, RiderProfile.bio).endMode;
     expect(read(null), LoopEndMode.loop);
     expect(read('h=3.0;r=1'), LoopEndMode.loop);
     expect(read('h=3.0;r=0'), LoopEndMode.lastTrail);
-    expect(read('h=3.0;r=2'), LoopEndMode.target);
+    // #356: Das Ziel gilt nur für die Sitzung — ohne es aufzugehen hieße
+    // „Kein Ziel gesetzt" vor der ersten Rechnung.
+    expect(read('h=3.0;r=2'), LoopEndMode.loop);
     expect(read('h=3.0;r=x'), LoopEndMode.loop);
-    for (final m in LoopEndMode.values) {
+    for (final m in [LoopEndMode.loop, LoopEndMode.lastTrail]) {
       final prefs = LoopPrefs.defaults(RiderProfile.bio).copyWith(endMode: m);
       expect(read(prefs.encode()), m, reason: '$m hin und zurück');
     }
+    expect(LoopPrefs.defaults(RiderProfile.bio).copyWith(endMode: LoopEndMode.target).encode(), contains('r=2'));
     expect(LoopPrefs.defaults(RiderProfile.bio).copyWith(endMode: LoopEndMode.lastTrail).encode(), contains('r=0'),
         reason: 'ältere Apps lesen „letzter Trail" weiter als 0');
   });

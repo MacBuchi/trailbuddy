@@ -22,7 +22,9 @@ import 'package:trailbuddy/features/routing/trail_head_providers.dart' show Rout
 import 'package:trailbuddy/features/offline_areas/area_store.dart';
 import 'package:trailbuddy/features/offline_areas/pmtiles_writer.dart';
 import 'package:trailbuddy/features/map/pmtiles_tile_provider.dart';
+import 'package:trailbuddy/features/profile/profile_providers.dart';
 import 'package:trailbuddy/features/routing/loop_plan_runner.dart';
+import 'package:trailbuddy/features/routing/route_profile.dart' show RiderProfile;
 import 'package:trailbuddy/features/routing/loop_planner_controller.dart';
 import 'package:trailbuddy/features/routing/loop_planner.dart' show LoopPlan;
 import 'package:trailbuddy/features/routing/online_fill.dart';
@@ -477,6 +479,11 @@ void main() {
     // im Planer noch ein Fehlerbericht.
     await tapRail(tester, 'loop-rail-compute');
     expect(runner.held, hasLength(3));
+    // Zurück stufenweise (10.5): erst das Ergebnis, dann der Planer.
+    await tester.binding.handlePopRoute();
+    await settle(tester);
+    expect(find.byKey(const ValueKey('loop-tool-rail')), findsOneWidget);
+    expect(find.byKey(const ValueKey('loop-close')), findsNothing);
     await tester.binding.handlePopRoute();
     await settle(tester);
     expect(find.byKey(const ValueKey('loop-tool-rail')), findsNothing);
@@ -488,6 +495,150 @@ void main() {
     await openPlanner(tester);
     expect(find.byKey(const ValueKey('loop-blocker')), findsNothing);
     expect(find.byKey(const ValueKey('loop-summary')), findsNothing);
+  });
+
+  group('Ändern, Zurück, Schließen (#356, Konzept-Routing 10.4/10.5)', () {
+    LoopPlannerNotifier planner(WidgetTester tester) =>
+        ProviderScope.containerOf(tester.element(find.byType(MaterialApp))).read(loopPlannerProvider.notifier);
+    LoopSession session(WidgetTester tester) =>
+        ProviderScope.containerOf(tester.element(find.byType(MaterialApp))).read(loopPlannerProvider);
+
+    Future<void> computeHex(WidgetTester tester) async {
+      await openPlanner(tester);
+      planner(tester).setSelected([hex], true);
+      await settle(tester);
+      await tapRail(tester, 'loop-rail-compute');
+    }
+
+    testWidgets('eine Änderung bei offenem Ergebnis: Linie weg, „Auswahl geändert", „Neu rechnen" rechnet',
+        (tester) async {
+      await start(tester, areaStore: await _areaWithTrack());
+      await computeHex(tester);
+      expect(find.byKey(const ValueKey('loop-summary')), findsOneWidget);
+      expect(routeBand(tester), isNotEmpty);
+
+      // Ein Regler — oder ein Trail, ein Start, ein Punkt: dasselbe.
+      planner(tester).setPrefs(session(tester).prefs.copyWith(hours: 2));
+      await settle(tester);
+      expect(find.byKey(const ValueKey('loop-changed')), findsOneWidget);
+      expect(find.byKey(const ValueKey('loop-blocker')), findsNothing,
+          reason: 'bis 0.127.4: „Die Runde ließ sich nicht rechnen — ein Fehler, der gemeldet ist"');
+      expect(find.byKey(const ValueKey('loop-summary')), findsNothing);
+      expect(routeBand(tester), isEmpty, reason: 'keine Linie vom letzten Mal');
+
+      await tester.tap(find.byKey(const ValueKey('loop-recompute')));
+      await settle(tester, frames: 30);
+      expect(find.byKey(const ValueKey('loop-changed')), findsNothing);
+      expect(find.byKey(const ValueKey('loop-summary')), findsOneWidget);
+    });
+
+    testWidgets('eine Änderung während der Rechnung: das späte Ergebnis schreibt nichts', (tester) async {
+      final runner = _HeldRunner();
+      await start(tester, areaStore: await _areaWithTrack(), runner: () => runner);
+      await computeHex(tester);
+      final held = runner.held.single;
+      planner(tester).toggleMandatory(hex);
+      await settle(tester);
+      held.done.complete(held.request.planOn(held.graph));
+      await settle(tester, frames: 30);
+      expect(session(tester).plan, isNull);
+      expect(find.byKey(const ValueKey('loop-changed')), findsOneWidget);
+      expect(routeBand(tester), isEmpty);
+    });
+
+    testWidgets('das Fahrerprofil der Einstellungen erreicht den offenen Planer', (tester) async {
+      await start(tester, areaStore: await _areaWithTrack());
+      await computeHex(tester);
+      final container = ProviderScope.containerOf(tester.element(find.byType(MaterialApp)));
+      expect(session(tester).profile, RiderProfile.bio);
+      container.read(riderProfileProvider.notifier).set(RiderProfile.ebike);
+      await settle(tester);
+      expect(session(tester).profile, RiderProfile.ebike);
+      expect(find.byKey(const ValueKey('loop-changed')), findsOneWidget);
+    });
+
+    testWidgets('Zurück stufenweise: Tippen abbrechen, Ergebnis zu, Planer zu, dann die normale Karte',
+        (tester) async {
+      await start(tester, areaStore: await _areaWithTrack());
+      await computeHex(tester);
+      planner(tester).armWaypointPick();
+      await settle(tester);
+
+      await tester.binding.handlePopRoute();
+      await settle(tester);
+      expect(session(tester).picking, isFalse);
+      expect(find.byKey(const ValueKey('loop-summary')), findsOneWidget, reason: 'das Ergebnis bleibt');
+
+      await tester.binding.handlePopRoute();
+      await settle(tester);
+      expect(find.byKey(const ValueKey('loop-close')), findsNothing);
+      expect(find.byKey(const ValueKey('loop-tool-rail')), findsOneWidget, reason: 'der Planer bleibt');
+      expect(picked(tester), hasLength(1));
+
+      await tester.binding.handlePopRoute();
+      await settle(tester);
+      expect(find.byKey(const ValueKey('loop-tool-rail')), findsNothing);
+      expect(find.byKey(const ValueKey('loop-button')), findsOneWidget, reason: 'die Knopfspalte steht wieder');
+      expect(picked(tester), isEmpty);
+      expect(session(tester).selected, isEmpty, reason: 'zu heißt aufgeräumt');
+    });
+
+    testWidgets('Zu mit Auswahl: „Rückgängig" holt Auswahl und Ergebnis zurück, ohne zu rechnen', (tester) async {
+      final runner = _HeldRunner();
+      await start(tester, areaStore: await _areaWithTrack(), runner: () => runner);
+      await computeHex(tester);
+      final held = runner.held.single;
+      held.done.complete(held.request.planOn(held.graph));
+      await settle(tester, frames: 30);
+      planner(tester).takeWaypoint(const LatLng(48.0, _lon));
+      await settle(tester);
+      await tester.tap(find.byKey(const ValueKey('loop-recompute')));
+      await settle(tester, frames: 30);
+      runner.held[1].done.complete(runner.held[1].request.planOn(runner.held[1].graph));
+      await settle(tester, frames: 30);
+      expect(find.byKey(const ValueKey('loop-summary')), findsOneWidget);
+
+      // Blatt eingeklappt, dann das X der Leiste — mit offenem Ergebnis.
+      final sheetList =
+          find.descendant(of: find.byType(DraggableScrollableSheet), matching: find.byType(Scrollable)).first;
+      await tester.drag(sheetList, const Offset(0, 1500));
+      await settle(tester, frames: 4);
+      expect(find.byKey(const ValueKey('loop-summary')), findsOneWidget);
+      await tapRail(tester, 'loop-rail-close');
+      expect(find.byKey(const ValueKey('loop-tool-rail')), findsNothing);
+      expect(find.byKey(const ValueKey('loop-summary')), findsNothing);
+      expect(session(tester).waypoints, isEmpty);
+      expect(find.byKey(const ValueKey('loop-closed')), findsOneWidget);
+
+      await tester.tap(find.text('Rückgängig'));
+      await settle(tester, frames: 30);
+      expect(find.byKey(const ValueKey('loop-tool-rail')), findsOneWidget);
+      expect(session(tester).selected, {hex});
+      expect(session(tester).waypoints, hasLength(1));
+      expect(find.byKey(const ValueKey('loop-summary')), findsOneWidget);
+      expect(routeBand(tester), isNotEmpty);
+      expect(runner.held, hasLength(2), reason: 'nichts neu gerechnet');
+    });
+
+    testWidgets('Zu ohne etwas Gesetztes: keine Meldung', (tester) async {
+      await start(tester, areaStore: await _areaWithTrack());
+      await openPlanner(tester);
+      await tapRail(tester, 'loop-rail-close');
+      expect(find.byKey(const ValueKey('loop-tool-rail')), findsNothing);
+      expect(find.byKey(const ValueKey('loop-closed')), findsNothing);
+    });
+
+    testWidgets('ein Reiterwechsel beendet nichts: Planer und Ergebnis stehen bei der Rückkehr', (tester) async {
+      await start(tester, areaStore: await _areaWithTrack());
+      await computeHex(tester);
+      await openTab(tester, 'Trails');
+      await settle(tester);
+      await openTab(tester, 'Karte');
+      await settle(tester);
+      expect(find.byKey(const ValueKey('loop-tool-rail')), findsOneWidget);
+      expect(find.byKey(const ValueKey('loop-summary')), findsOneWidget);
+      expect(session(tester).selected, {hex});
+    });
   });
 
   testWidgets('Ein Trail im geladenen Rahmen braucht keinen neuen Graphen, einer außerhalb schon (#188)',
@@ -1081,6 +1232,11 @@ void main() {
     expect(find.byKey(const ValueKey('loop-start-pin')), findsOneWidget);
     expect(find.byKey(const ValueKey('map-press-pin')), findsNothing);
     await tapRail(tester, 'loop-rail-close');
+    // Der Start war gesetzt: Zu kommt mit „Rückgängig" (10.5) — weg damit,
+    // die Meldung läge über dem Menü.
+    expect(find.byKey(const ValueKey('loop-closed')), findsOneWidget);
+    ScaffoldMessenger.of(tester.element(find.byKey(const ValueKey('loop-closed')))).removeCurrentSnackBar();
+    await settle(tester);
 
     await longPressMapAt(tester, const LatLng(48.009, _lon));
     await settle(tester);

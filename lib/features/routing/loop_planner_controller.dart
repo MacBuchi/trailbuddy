@@ -22,6 +22,13 @@
 //   Planer. Nur für die Sitzung.
 // - **Rechnen geht nie still schief**: Jeder Ausgang hat eine Phase oder
 //   einen Grund ([LoopBlocker]), ein Fehler wird gemeldet.
+// - **Eine Änderung rechnet nicht neu** (#356, D3, Konzept-Routing 10.4):
+//   Jede Eingabe geht über `_edit` — Ergebnis weg, Generation hoch, und
+//   lag schon etwas im Blatt, sagt es „Auswahl geändert"
+//   ([LoopSession.changed]).
+// - **Zu heißt aufgeräumt** (Konzept-Routing 10.5): Auswahl, Start, Ziel
+//   und Zwischenpunkte gehen mit; [LoopPlannerNotifier.close] gibt dafür
+//   einen [LoopClosed] zurück, mit dem „Rückgängig" alles wiederholt.
 import 'dart:async';
 
 import 'package:flutter/widgets.dart' show WidgetsBinding;
@@ -73,6 +80,7 @@ class LoopSession {
     this.planEnd = LoopEndMode.loop,
     this.coverage,
     this.tuned = false,
+    this.changed = false,
   });
 
   /// Der Planer-Modus ist an: Leiste links, Tipps wählen Trails.
@@ -129,6 +137,11 @@ class LoopSession {
   /// Zwischenpunkte. „Zurücksetzen" rechnet wieder frei.
   final bool tuned;
 
+  /// Eine Eingabe hat sich geändert, nachdem schon gerechnet war oder
+  /// wurde (D3): Das Blatt sagt „Auswahl geändert" und bietet „Neu
+  /// rechnen" an — es rechnet nicht von selbst.
+  final bool changed;
+
   bool get busy => phase == LoopPhase.locating || phase == LoopPhase.loading || phase == LoopPhase.computing;
 
   LoopSession copyWith({
@@ -155,6 +168,7 @@ class LoopSession {
     LoopEndMode? planEnd,
     PlanningGraph? coverage,
     bool? tuned,
+    bool? changed,
   }) =>
       LoopSession(
         open: open ?? this.open,
@@ -176,7 +190,29 @@ class LoopSession {
         planEnd: planEnd ?? this.planEnd,
         coverage: coverage ?? this.coverage,
         tuned: clearPlan ? (tuned ?? false) : (tuned ?? this.tuned),
+        changed: changed ?? this.changed,
       );
+}
+
+/// Was [LoopPlannerNotifier.close] weggeräumt hat — „Rückgängig" holt es
+/// mit [LoopPlannerNotifier.restore] zurück (Konzept-Routing 10.5: eine
+/// Meldung statt einer Rückfrage). Samt Graph: Die Zwischenpunkte einer
+/// getunten Runde zeigen auf seine Knoten.
+class LoopClosed {
+  const LoopClosed._(this.session, this._graph, this._graphStart, this._graphBox, this._graphOnline, this._planTarget,
+      this._planWaypoints, this._vias);
+
+  final LoopSession session;
+  final RoadGraph? _graph;
+  final LatLng? _graphStart;
+  final LatBox? _graphBox;
+  final bool _graphOnline;
+  final LatLng? _planTarget;
+  final List<LatLng> _planWaypoints;
+  final RouteVias _vias;
+
+  /// Ein Ergebnis lag im Blatt — die Karte öffnet es wieder.
+  bool get hasResult => session.plan != null;
 }
 
 /// Wofür ein Punkt ohne Tipp in den Planer kommt (#331): Ort oder
@@ -234,6 +270,11 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
       if (next == null || next.owner != ViaOwner.loop || next.vias == _vias) return;
       unawaited(_retune(next.vias));
     });
+    // Das Fahrerprofil gilt sofort (10.4): Ein anderes Rad in den
+    // Einstellungen erreicht den offenen Planer, nicht erst den nächsten.
+    ref.listen(riderProfileProvider, (_, next) {
+      if (next != state.profile) setProfile(next);
+    });
     final profile = ref.read(riderProfileProvider);
     return LoopSession(prefs: LoopPrefs.parse(ref.read(settingsProvider).loopPlannerPrefs, profile), profile: profile);
   }
@@ -242,28 +283,73 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
 
   /// Den Modus öffnen; [start] aus „Route ab hier".
   void open({LatLng? start}) {
-    // Ohne neuen Start bleibt ein früher getippter stehen.
-    state = state.copyWith(
-        open: true, start: start, pickingStart: false, pickingTarget: false, pickingWaypoint: false, clearDrawTool: true);
+    // Schon offen und ohne neuen Start: Der getippte bleibt stehen.
+    state = state.copyWith(open: true, pickingStart: false, pickingTarget: false, pickingWaypoint: false, clearDrawTool: true);
+    if (start != null) takeStart(start);
   }
 
-  /// Den Modus schließen. Die Auswahl bleibt für die Sitzung — wer
-  /// wiederkommt, findet seine Trails noch angewählt.
-  void close() {
+  /// Den Modus schließen, aufgeräumt (Konzept-Routing 10.5): Auswahl,
+  /// Start, Ziel, Zwischenpunkte und Ergebnis gehen weg, gemerkt bleiben
+  /// die Regler. Gibt zurück, was „Rückgängig" wiederholt — null, wenn
+  /// nichts gesetzt war.
+  LoopClosed? close() {
+    final s = state;
+    final kept = s.selected.isNotEmpty || s.waypoints.isNotEmpty || s.start != null || s.target != null
+        ? LoopClosed._(
+            // Eine laufende Rechnung kommt nicht zurück, nur ihre Eingaben.
+            s.busy ? s.copyWith(phase: LoopPhase.idle) : s,
+            _graph,
+            _graphStart,
+            _graphBox,
+            _graphOnline,
+            _planTarget,
+            _planWaypoints,
+            _vias)
+        : null;
     ref.read(routeViaProvider.notifier).end(ViaOwner.loop);
     _generation++;
     _runner?.dispose();
     _runner = null;
-    state = state.copyWith(
-      open: false,
-      pickingStart: false,
-      pickingTarget: false,
-      pickingWaypoint: false,
-      clearDrawTool: true,
-      clearPlan: true,
-      clearBlocker: true,
-      phase: LoopPhase.idle,
-    );
+    state = LoopSession(prefs: s.prefs, profile: s.profile, coverage: s.coverage);
+    return kept;
+  }
+
+  /// „Rückgängig" nach [close]: Auswahl und Ergebnis kommen zurück, wie
+  /// sie waren — die Karte öffnet das Blatt dazu wieder.
+  void restore(LoopClosed closed) {
+    _generation++;
+    _graph = closed._graph;
+    _graphStart = closed._graphStart;
+    _graphBox = closed._graphBox;
+    _graphOnline = closed._graphOnline;
+    _planTarget = closed._planTarget;
+    _planWaypoints = closed._planWaypoints;
+    _vias = closed._vias;
+    final s = closed.session;
+    // Die Regler gelten, wie sie JETZT stehen — das Ergebnis ist mit den
+    // alten gerechnet und bleibt trotzdem stehen, bis man neu rechnet.
+    state = s.copyWith(
+        open: true,
+        pickingStart: false,
+        pickingTarget: false,
+        pickingWaypoint: false,
+        clearDrawTool: true,
+        prefs: state.prefs,
+        profile: state.profile);
+    final plan = s.plan;
+    if (plan != null && plan.outcome == LoopOutcome.ok) ref.read(routeViaProvider.notifier).begin(ViaOwner.loop, _vias);
+  }
+
+  /// Jede Eingabe ändert sich hierüber (#356, D3): Das Ergebnis ist weg,
+  /// eine Rechnung, die vorher losgelaufen ist, schreibt nichts mehr, und
+  /// lag schon etwas im Blatt, sagt es „Auswahl geändert". Bis 0.127.4
+  /// blieb die Phase „Ergebnis" ohne Plan stehen, und das Blatt meldete
+  /// „Die Runde ließ sich nicht rechnen — ein Fehler, der gemeldet ist".
+  void _edit(LoopSession next) {
+    final shown = state.changed || state.phase != LoopPhase.idle;
+    _generation++;
+    if (state.plan != null) ref.read(routeViaProvider.notifier).end(ViaOwner.loop);
+    state = next.copyWith(clearPlan: true, clearBlocker: true, phase: LoopPhase.idle, changed: shown);
   }
 
   LoopToggle toggle(Trail t) {
@@ -276,7 +362,7 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
       selected.remove(t.id);
       mandatory.remove(t.id);
     }
-    state = state.copyWith(selected: selected, mandatory: mandatory, clearPlan: true, clearBlocker: true);
+    _edit(state.copyWith(selected: selected, mandatory: mandatory));
     return on ? LoopToggle.selected : LoopToggle.deselected;
   }
 
@@ -291,11 +377,10 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
         mandatory.remove(id);
       }
     }
-    state = state.copyWith(selected: selected, mandatory: mandatory, clearPlan: true, clearBlocker: true);
+    _edit(state.copyWith(selected: selected, mandatory: mandatory));
   }
 
-  void clearSelection() =>
-      state = state.copyWith(selected: const {}, mandatory: const {}, clearPlan: true, clearBlocker: true);
+  void clearSelection() => _edit(state.copyWith(selected: const {}, mandatory: const {}));
 
   void toggleMandatory(String id) {
     final mandatory = {...state.mandatory};
@@ -304,7 +389,7 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
       mandatory.add(id);
       selected.add(id);
     }
-    state = state.copyWith(selected: selected, mandatory: mandatory, clearPlan: true);
+    _edit(state.copyWith(selected: selected, mandatory: mandatory));
   }
 
   /// Ein gezeichnetes Gebiet: was es fasst, kommt dazu bzw. fällt weg
@@ -332,8 +417,7 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
   /// Zwischenpunkt.
   void cancelStartPick() => state = state.copyWith(pickingStart: false, pickingTarget: false, pickingWaypoint: false);
 
-  void takeStart(LatLng p) =>
-      state = state.copyWith(start: p, pickingStart: false, clearPlan: true, clearBlocker: true);
+  void takeStart(LatLng p) => _edit(state.copyWith(start: p, pickingStart: false));
 
   void armTargetPick() =>
       state = state.copyWith(pickingTarget: true, pickingStart: false, pickingWaypoint: false, clearDrawTool: true);
@@ -344,16 +428,15 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
   void takeWaypoint(LatLng p) => setWaypoints([...state.waypoints, p]);
 
   /// Die Zwischenpunkte ersetzen — Entfernen, Leeren, Rückgängig.
-  void setWaypoints(List<LatLng> waypoints) => state =
-      state.copyWith(waypoints: waypoints, pickingWaypoint: false, clearPlan: true, clearBlocker: true);
+  void setWaypoints(List<LatLng> waypoints) =>
+      _edit(state.copyWith(waypoints: waypoints, pickingWaypoint: false));
 
   void removeWaypoint(int k) {
     if (k < 0 || k >= state.waypoints.length) return;
     setWaypoints([...state.waypoints]..removeAt(k));
   }
 
-  void takeTarget(LatLng p) =>
-      state = state.copyWith(target: p, pickingTarget: false, clearPlan: true, clearBlocker: true);
+  void takeTarget(LatLng p) => _edit(state.copyWith(target: p, pickingTarget: false));
 
   /// Wohin der nächste Tipp geht: Start, Ziel oder Zwischenpunkt. Falsch,
   /// wenn der Planer auf keinen wartet.
@@ -396,15 +479,14 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
     }
   }
 
-  void useMyPosition() => state = state.copyWith(clearStart: true, clearPlan: true, clearBlocker: true);
+  void useMyPosition() => _edit(state.copyWith(clearStart: true));
 
   void setPrefs(LoopPrefs prefs) {
     // Ohne den Modus „Zum Ziel" wartet auch kein Tipp mehr aufs Ziel.
-    state = state.copyWith(
+    _edit(state.copyWith(
       prefs: prefs,
-      clearPlan: true,
       pickingTarget: prefs.endMode == LoopEndMode.target ? null : false,
-    );
+    ));
     ref.read(settingsProvider).setLoopPlannerPrefs(prefs.encode()).catchError((Object e, StackTrace s) {
       logError('Planer-Regler merken', e, s);
     });
@@ -415,7 +497,7 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
     // Steht das Höhenbudget auf der Vorgabe des alten Profils, folgt es dem
     // neuen — wer es selbst gestellt hat, behält es.
     if (prefs.climbM == state.profile.budgetClimbM) prefs = prefs.copyWith(climbM: next.budgetClimbM);
-    state = state.copyWith(profile: next, prefs: prefs, clearPlan: true);
+    _edit(state.copyWith(profile: next, prefs: prefs));
   }
 
   /// Das Ergebnis weglegen (Blatt zu); Modus und Auswahl bleiben.
@@ -423,7 +505,7 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
     ref.read(routeViaProvider.notifier).end(ViaOwner.loop);
     // Eine Rechnung, die noch läuft, gehört zu diesem Ergebnis.
     _generation++;
-    state = state.copyWith(clearPlan: true, clearBlocker: true, phase: LoopPhase.idle);
+    state = state.copyWith(clearPlan: true, clearBlocker: true, phase: LoopPhase.idle, changed: false);
   }
 
   /// Der Mittelpunkt der Liste: getippter Start, sonst der Standort (mit
@@ -448,19 +530,20 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
         if (state.selected.contains(t.id) && !t.pending && t.points.length >= 2) t,
     ];
     if (chosen.isEmpty) {
-      state = state.copyWith(phase: LoopPhase.result, blocker: LoopBlocker.noTrails, clearPlan: true);
+      state = state.copyWith(phase: LoopPhase.result, blocker: LoopBlocker.noTrails, clearPlan: true, changed: false);
       return;
     }
     final endMode = state.prefs.endMode;
     final target = endMode == LoopEndMode.target ? state.target : null;
     if (endMode == LoopEndMode.target && target == null) {
-      state = state.copyWith(phase: LoopPhase.result, blocker: LoopBlocker.noTarget, clearPlan: true);
+      state = state.copyWith(phase: LoopPhase.result, blocker: LoopBlocker.noTarget, clearPlan: true, changed: false);
       return;
     }
     final waypoints = state.waypoints;
     state = state.copyWith(
         clearPlan: true,
         clearBlocker: true,
+        changed: false,
         clearDrawTool: true,
         pickingStart: false,
         pickingTarget: false,

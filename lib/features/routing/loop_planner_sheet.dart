@@ -535,10 +535,11 @@ class _ListSheet extends ConsumerWidget {
 // ─── Ergebnis ───────────────────────────────────────────────────────────
 
 /// Rechnet und zeigt das Ergebnis am Scaffold der Karte. Zu heißt:
-/// Ergebnis weg, der Modus bleibt.
-Future<void> showLoopResultPanel(ScaffoldState scaffold) async {
+/// Ergebnis weg, der Modus bleibt. Ohne [compute] zeigt es, was schon
+/// da ist („Rückgängig" nach dem Schließen, Konzept-Routing 10.5).
+Future<void> showLoopResultPanel(ScaffoldState scaffold, {bool compute = true}) async {
   final container = ProviderScope.containerOf(scaffold.context, listen: false);
-  unawaited(container.read(loopPlannerProvider.notifier).compute());
+  if (compute) unawaited(container.read(loopPlannerProvider.notifier).compute());
   await showMapPanel(
     scaffold,
     initialSize: kMapPanelPool,
@@ -602,6 +603,7 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
             children: switch (session.phase) {
               LoopPhase.locating => [_progress(l.routingLocating)],
               LoopPhase.loading => [_progress(l.routingLoadingWays)],
+              LoopPhase.idle when session.changed => [_changedCard(context)],
               LoopPhase.computing || LoopPhase.idle => [_progress(l.loopComputing)],
               LoopPhase.result => session.blocker != null || plan == null
                   ? [_blockerCard(context, session.blocker ?? LoopBlocker.failed)]
@@ -633,6 +635,35 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
           Icon(Icons.info_outline, color: palette.warningText),
           const SizedBox(width: 10),
           Expanded(child: _notice(context, _blockerText(context.l10n, b))),
+        ]),
+      ),
+    );
+  }
+
+  /// Eine Eingabe hat sich geändert (#356, D3): Die Linie ist weg, und
+  /// gerechnet wird erst auf Wunsch — wer mehrere Trails dazunimmt, will
+  /// nicht nach jedem Tipp warten.
+  Widget _changedCard(BuildContext context) {
+    final l = context.l10n;
+    return Card(
+      key: const ValueKey('loop-changed'),
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          Text(l.loopChangedTitle, style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 4),
+          Text(l.loopChangedText, style: Theme.of(context).textTheme.bodyMedium),
+          const SizedBox(height: 8),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: FilledButton.icon(
+              key: const ValueKey('loop-recompute'),
+              onPressed: () => unawaited(ref.read(loopPlannerProvider.notifier).compute()),
+              icon: const Icon(Icons.refresh),
+              label: Text(l.loopRecompute),
+            ),
+          ),
         ]),
       ),
     );
