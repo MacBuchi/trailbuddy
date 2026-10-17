@@ -757,21 +757,32 @@ List<({LatLng at, int edgeA, int edgeB})> findCrossings(RoadGraph g) {
 /// ohne Höhe an einer Probe bleibt flach und ist als solche markiert.
 Future<void> addClimbs(RoadGraph g, HeightReader heights) async {
   for (final e in g.edges) {
-    final profile = await heights.profileAlong(e.points);
-    if (profile == null) {
-      e.hasHeights = false;
-      continue;
-    }
-    final (gain, loss) = edgeClimb(profile.heights, kClimbHysteresisM);
-    final steep = steepExcess(profile.heights, profile.stepsM);
-    final weighted = steepWeight(profile.heights, profile.stepsM);
-    e
-      ..gain = gain
-      ..loss = loss
-      ..steepUp = steep.up
-      ..steepDown = steep.down
-      ..steepWUp = weighted.up
-      ..steepWDown = weighted.down
-      ..hasHeights = true;
+    _applyProfile(e, await heights.profileAlong(e.points));
   }
+}
+
+/// [addClimbs] aus vorab gelesenen Kacheln, synchron — der Weg im
+/// Rechen-Isolate des Planers (#356 PR 8), dieselben Zahlen.
+void addClimbsFrom(RoadGraph g, HeightTiles heights) {
+  for (final e in g.edges) {
+    _applyProfile(e, heights.profileAlong(e.points));
+  }
+}
+
+void _applyProfile(GraphEdge e, ({List<double> heights, List<double> stepsM})? profile) {
+  if (profile == null) {
+    e.hasHeights = false;
+    return;
+  }
+  final (gain, loss) = edgeClimb(profile.heights, kClimbHysteresisM);
+  final steep = steepExcess(profile.heights, profile.stepsM);
+  final weighted = steepWeight(profile.heights, profile.stepsM);
+  e
+    ..gain = gain
+    ..loss = loss
+    ..steepUp = steep.up
+    ..steepDown = steep.down
+    ..steepWUp = weighted.up
+    ..steepWDown = weighted.down
+    ..hasHeights = true;
 }

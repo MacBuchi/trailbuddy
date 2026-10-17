@@ -755,6 +755,42 @@ diesen Bericht — nur Kennzahlen.
 | 9 | „Aus meinen Fahrten lernen", ≥ 20 Fahrten | `calib.graph` je Fahrt | [`calib.samples`] | | |
 
 **`kPlanMaxTiles`** (#356 PR 8) kommt aus 2 und 4: die Kachelzahl, bei
-der `graph.load` auf dem Pixel noch unter 5 s bleibt (das Budget der
-ersten Runde), abgerundet; darüber sagt der Planer „Gebiet zu groß".
+der `graph.load` + `graph.build` auf dem Pixel noch unter 5 s bleibt
+(das Budget der ersten Runde), abgerundet; darüber sagt der Planer
+„Gebiet zu groß". Bis zur Messung steht ein VORLÄUFIGER Wert von 300
+(~55 × 55 km bei 47° N) in `road_graph_loader.dart`; wer misst, setzt ihn
+und streicht das Wort „vorläufig" dort und in Konzept-Routing 10.6.
 Szenario 4 darf das Budget reißen — es ist die Messung der Grenze.
+
+### Am Rechner, nach PR 8: der Bau drüben (2026-10-18)
+
+Seit 0.131.1 schickt der UI-Isolate nur noch Bytes (Kacheln, Höhenraster,
+Trails — `GraphInput`), der Rechen-Isolate dekodiert und baut
+(`buildGraphFrom`). Dasselbe Skript, dasselbe Gitter, jetzt als z13-Kacheln
+kodiert (`test/fakes/graph_tiles.dart`); JIT, Zeiten in ms. „An Ort und
+Stelle" ist der Bau samt Dekodieren im UI-Isolate — was die Oberfläche
+bis 0.131.0 stand —, „Bau drüben" Dauer / längste Pause des UI-Takts (die
+Pause ist das Senden der Bytes):
+
+| Trails | Budget | Kanten | Kreuzungen | Bytes | an Ort und Stelle: bauen | an Ort und Stelle: rechnen | Bau drüben: Dauer / Pause | 1. Rechnung: Dauer / Pause | dieselbe noch einmal | ein Trail weniger | Halte |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| 12 | Bio 3 h / 1 000 hm | 65 390 | 15 500 | 544 KB | 570 | 221 | 541 / 23 | 163 / 5 | 0 / 0 | 0 / 0 | 1 |
+| 30 | Bio 3 h / 1 000 hm | 65 390 | 15 500 | 544 KB | 467 | 421 | 514 / 25 | 367 / 7 | 0 / 0 | 0 / 0 | 1 |
+| 40 | Bio 5 h / 1 600 hm | 65 390 | 15 500 | 544 KB | 480 | 1 306 | 488 / 25 | 1 283 / 22 | 2 / 2 | 1 / 1 | 4 |
+| 60 | E-Bike 5 h / 2 500 hm | 65 390 | 15 500 | 544 KB | 490 | 2 537 | 520 / 13 | 3 082 / 29 | 9 / 5 | 10 / 5 | 8 |
+
+Drei Befunde:
+
+1. **Die längste Pause im UI-Isolate ist von 1,8 s auf ~25 ms gefallen**
+   (Bau drüben, Spalte „Pause"): 544 KB Bytes zu senden kostet nichts
+   Sichtbares; der Graph mit seinen 65 000 Kanten wird nie mehr kopiert.
+   Die Pausen der Rechnungen sind unverändert (5–29 ms).
+2. **Der Bau selbst ist nicht teurer geworden** (~0,5 s drüben wie an Ort
+   und Stelle, Dekodieren der Kacheln eingeschlossen) — er liegt nur
+   woanders. Was er auf dem Pixel im AOT-Build kostet (#354), misst
+   Szenario 2/4; die Grenze `kPlanMaxTiles` kommt von dort.
+3. **Die Kanten sind 65 390 statt 62 625**: Das Gitter liegt jetzt in
+   Kacheln, und der Zuschnitt auf den Kachelrahmen teilt jede Linie an
+   jeder Kachelgrenze — wie im echten Archiv. Die Halte und Minuten der
+   Pläne sind davon unberührt.
+

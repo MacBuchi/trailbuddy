@@ -4292,6 +4292,11 @@
   "@loopBlockerFailed": {
     "description": "Ergebnis-Blatt des Planers: Fehler beim Rechnen."
   },
+  "loopBlockerTooLarge": "Das Gebiet ist zu groß: {needed} Kacheln, mehr als {max} rechnet der Planer nicht. Verkleinere den Radius oder wähle weit entfernte Trails ab.",
+  "@loopBlockerTooLarge": {
+    "description": "Ergebnis-Blatt des Planers: der Rahmen um Start und Trails übersteigt die Grenze — nichts gelesen. Zahlen sind z13-Kacheln.",
+    "placeholders": {"needed": {"type": "int"}, "max": {"type": "int"}}
+  },
   "loopOutcomeStartOff": "In {meters} m um den Start liegt kein Weg aus der Karte.",
   "@loopOutcomeStartOff": {
     "description": "Ergebnis-Blatt des Planers: der Start liegt an keinem Weg.",
@@ -4474,6 +4479,11 @@
   "routeBlockerFailed": "Der Weg ließ sich nicht rechnen — ein Fehler, der gemeldet ist. Nimm „Anfahrt“, die Navi-App kennt den Weg auch.",
   "@routeBlockerFailed": {
     "description": "Routen-Blatt: Fehler beim Rechnen."
+  },
+  "routeBlockerTooLarge": "Start und Ziel liegen zu weit auseinander: {needed} Kacheln, mehr als {max} rechnet der Planer nicht. Wähle ein näheres Ziel oder einen Start dazwischen.",
+  "@routeBlockerTooLarge": {
+    "description": "Routen-Blatt: der Rahmen um Start und Ziel übersteigt die Grenze — nichts gelesen. Zahlen sind z13-Kacheln.",
+    "placeholders": {"needed": {"type": "int"}, "max": {"type": "int"}}
   },
   "navChoiceTitle": "Zum Trail navigieren",
   "@navChoiceTitle": {

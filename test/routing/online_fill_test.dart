@@ -14,7 +14,6 @@ import 'package:trailbuddy/features/rides/road_index.dart' show RoadCoverage;
 import 'package:trailbuddy/features/routing/loop_planner.dart';
 import 'package:trailbuddy/features/routing/online_fill.dart';
 import 'package:trailbuddy/features/routing/planning_graph.dart';
-import 'package:trailbuddy/features/routing/road_graph.dart';
 import 'package:trailbuddy/features/routing/road_graph_loader.dart' show kOnlineFillMaxTiles;
 import 'package:trailbuddy/features/routing/route_profile.dart';
 
@@ -126,10 +125,8 @@ void main() {
   });
 
   group('planningCoverageNote', () {
-    final graph = buildRoadGraph(const [], lat0: 48).graph;
     PlanningGraph g({required int found, int needed = 10, int online = 0, bool capped = false, bool broken = false}) =>
         PlanningGraph(
-          graph: graph,
           coverage: found == needed ? RoadCoverage.complete : RoadCoverage.partial,
           tilesFound: found,
           tilesNeeded: needed,

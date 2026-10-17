@@ -2,6 +2,20 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## Planner: the map stays smooth while the road network is built
+
+*Version 0.131.1, 2026-10-18*
+
+- The road network for a loop or route is now built in the background,
+  not in the user interface. Until now the map could freeze for several
+  seconds — in dense regions up to “App isn't responding”.
+- A frame that is too large (more than 300 map tiles, about 55 × 55 km)
+  is no longer read: the sheet says “Area too large” and suggests a
+  smaller radius or fewer distant trails.
+- Uphill trails and connections only join the network near the start,
+  destination, waypoints and selected trails — no longer all within the
+  list's radius. The network gets smaller, the loop computes faster.
+
 ## Planner: Direct, Easy and Fun with selected trails too
 
 *Version 0.131.0, 2026-10-17*

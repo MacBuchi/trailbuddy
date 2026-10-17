@@ -2,6 +2,22 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Planer: Karte bleibt flüssig, während das Wegenetz entsteht
+
+*Version 0.131.1, 2026-10-18*
+
+- Das Wegenetz für eine Runde oder Route wird jetzt im Hintergrund
+  gebaut, nicht mehr in der Oberfläche. Bisher konnte die Karte dabei
+  mehrere Sekunden stehen — in dichten Gegenden bis zur Meldung „App
+  reagiert nicht“.
+- Ein zu großer Rahmen (mehr als 300 Kartenkacheln, etwa 55 × 55 km)
+  wird nicht mehr gelesen: Das Blatt sagt „Gebiet zu groß“ und rät zu
+  kleinerem Radius oder weniger weit entfernten Trails.
+- Uphill-Trails und Verbindungen kommen nur noch in der Nähe von
+  Start, Ziel, Zwischenpunkten und gewählten Trails ins Netz — nicht
+  mehr alle im Radius der Liste. Das Netz wird kleiner, die Runde
+  rechnet schneller.
+
 ## Planer: Direkt, Bequem und Spaßig auch mit gewählten Trails
 
 *Version 0.131.0, 2026-10-17*

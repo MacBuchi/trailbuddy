@@ -14,6 +14,7 @@ import '../../models/trail.dart';
 import '../profile/profile_providers.dart';
 import '../trails/trail_providers.dart' show trailsProvider;
 import '../trails/terrain_heights.dart';
+import 'graph_input.dart' show buildGraphFrom;
 import 'loop_planner.dart' show LoopPrefs;
 import 'nav_notice.dart' show NavRouteData;
 import 'nav_service.dart';
@@ -310,10 +311,13 @@ class NavController extends Notifier<NavSession?> {
       final prefs = LoopPrefs.parse(ref.read(settingsProvider).loopPlannerPrefs, profile);
       final loaded =
           await ref.read(planningGraphLoaderProvider)(LatBox.of([from, target]), fillOnline: prefs.fillOnline);
-      final graph = loaded.graph;
-      if (graph == null) {
+      final input = loaded.input;
+      if (input == null) {
         result = NavRejoin.noArea;
       } else {
+        // Noch im UI-Isolate gebaut (#356 PR 9 zieht „Zurück zur Route" in
+        // den Rechen-Isolate) — aus denselben Bytes wie der Planer.
+        final graph = StallWatch.mark('nav.graph', () => buildGraphFrom(input).graph);
         final rider = ref.read(calibratedRiderProvider(profile)).withPrefs(prefs.route);
         final plan = StallWatch.mark('nav.rejoin', () => planTrailHeadRoute(graph, from, target, rider));
         if (plan.route != null) {

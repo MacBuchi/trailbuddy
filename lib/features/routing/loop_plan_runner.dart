@@ -5,14 +5,15 @@
 // UI-Isolate heißt das eine stehende Karte und ein stehender Kreisel,
 // auf dem Telefon länger. Drei Dinge, die man wissen muss:
 // - **Ein DAUERHAFTER Rechen-Isolate, nicht `Isolate.run` je Rechnung.**
-//   Das Senden kopiert den Graphen im UI-Isolate, und das allein kostete
-//   0,3–0,6 s — fast so viel, wie es sparen sollte. Der Graph geht deshalb
-//   EINMAL hinüber (mit dem Laden, wenn ohnehin der Kreisel läuft), jede
-//   Rechnung schickt nur Start, Budget, Profil und Trails.
-// - **Drüben wird der Graph verändert** (`attach` teilt Kanten), hier
-//   nicht. Der Controller hält seinen Graphen nur, um ihn hinüberzugeben;
-//   wer ihn hier für etwas anderes braucht, rechnet auf dem Stand vor der
-//   Planung.
+//   Bis 0.131.0 ging der fertige Graph EINMAL hinüber — und allein das
+//   Senden kopierte ihn im UI-Isolate (1,8 s bei 62 600 Kanten). Seit
+//   #356 PR 8 geht nur die Eingabe hinüber ([GraphInput]: Kachel-Bytes,
+//   Höhenraster, Trails), der Isolate BAUT den Graphen ([build]) und
+//   behält ihn; jede Rechnung schickt nur Start, Budget, Profil und
+//   Trails ([plan]).
+// - **Der Graph lebt drüben.** Der UI-Isolate hat keinen — wer hier
+//   einen braucht (bis PR 9: „Zurück zur Route", Kalibrierung), baut
+//   sich einen eigenen aus denselben Bytes (`buildGraphFrom`).
 // - **Im Browser und im Test rechnet er an Ort und Stelle**
 //   ([InlineLoopPlanRunner]): Das Web hat keine Isolate, und ein
 //   Widget-Test läuft in einer Zone mit falscher Uhr, in der ein echter
@@ -21,6 +22,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
 
+import 'graph_input.dart';
 import 'loop_plan_runner_web.dart' if (dart.library.io) 'loop_plan_runner_io.dart';
 import 'loop_planner.dart';
 import 'road_graph.dart';
@@ -90,23 +92,49 @@ class LoopRequest {
 }
 
 abstract interface class LoopPlanRunner {
-  /// Rechnet [request] auf [graph]. Derselbe Graph (identisch) wird nur
-  /// einmal übergeben.
-  Future<LoopPlan> plan(RoadGraph graph, LoopRequest request);
+  /// Baut den Graphen aus [input] und behält ihn — der vorige ist damit
+  /// weg, samt gemerkten Suchen. Wirft, wenn der Bau scheitert.
+  Future<GraphReport> build(GraphInput input);
 
-  /// Gibt den Isolate und seine Kopie des Graphen frei.
+  /// Ein Graph liegt bereit. Falsch vor dem ersten [build] und nachdem
+  /// der Isolate verloren ging — dann baut der Aufrufer neu.
+  bool get hasGraph;
+
+  /// Rechnet [request] auf dem gebauten Graphen. Ohne Graph ein
+  /// [StateError].
+  Future<LoopPlan> plan(LoopRequest request);
+
+  /// Gibt den Isolate und seinen Graphen frei.
   void dispose();
 }
 
 /// Rechnet an Ort und Stelle — im Browser und im Test.
 class InlineLoopPlanRunner implements LoopPlanRunner {
-  final _cache = LoopSearchCache();
+  RoadGraph? _graph;
+  var _cache = LoopSearchCache();
 
   @override
-  Future<LoopPlan> plan(RoadGraph graph, LoopRequest request) async => request.planOn(graph, cache: _cache);
+  Future<GraphReport> build(GraphInput input) async {
+    final built = buildGraphFrom(input, builtIn: 'inline');
+    _graph = built.graph;
+    _cache = LoopSearchCache();
+    return built.report;
+  }
 
   @override
-  void dispose() {}
+  bool get hasGraph => _graph != null;
+
+  @override
+  Future<LoopPlan> plan(LoopRequest request) async {
+    final g = _graph;
+    if (g == null) throw StateError('kein Graph gebaut');
+    return request.planOn(g, cache: _cache);
+  }
+
+  @override
+  void dispose() {
+    _graph = null;
+  }
 }
 
 /// Der Runner für den Planer: auf dem Telefon ein Rechen-Isolate, im

@@ -38,6 +38,12 @@
 //   bis hier", „Route hierher"), bekommt über [beginRoute] einen frischen
 //   Planer mit Ziel; bis er etwas ändert, schließt das Ergebnis den ganzen
 //   Planer ([LoopSession.quick]).
+// - **Der Graph liegt im Runner, nicht hier** (#356 PR 8, Konzept-Routing
+//   10.6): Der Controller sammelt nur die Eingabe (`planning_graph.dart`)
+//   und merkt sich Rahmen, Start und Schalter, für die der Runner gebaut
+//   hat; ein Rahmen über `kPlanMaxTiles` ist [LoopBlocker.tooLarge], und
+//   Verbinder kommen nur in der Nähe der Anker in den Rahmen
+//   ([kPlanConnectorMarginM]), nicht alle im Radius.
 import 'dart:async';
 
 import 'package:flutter/widgets.dart' show WidgetsBinding;
@@ -58,7 +64,6 @@ import 'loop_plan_runner.dart';
 import 'loop_planner.dart';
 import 'planning_graph.dart';
 import 'ride_calibrator.dart';
-import 'road_graph.dart';
 import 'route_profile.dart';
 import 'route_result.dart';
 import 'route_via_providers.dart';
@@ -67,7 +72,13 @@ import 'trail_overlay.dart';
 
 enum LoopPhase { idle, locating, loading, computing, result }
 
-enum LoopBlocker { noPosition, noTarget, noArea, noTrails, failed }
+enum LoopBlocker { noPosition, noTarget, noArea, noTrails, failed, tooLarge }
+
+/// So weit um Start, Ziel, Zwischenpunkte und gewählte Trails kommen
+/// Uphill-Trails und Verbinder in den Rahmen des Graphen (#356 PR 8,
+/// Konzept-Routing 10.6). Bis 0.131.0 zählten alle im Radius der Liste
+/// (bis 30 km) — ein 60 × 60-km-Rahmen für eine Runde von 12 km.
+const kPlanConnectorMarginM = 3000.0;
 
 class LoopSession {
   const LoopSession({
@@ -238,14 +249,13 @@ class LoopSession {
 
 /// Was [LoopPlannerNotifier.close] weggeräumt hat — „Rückgängig" holt es
 /// mit [LoopPlannerNotifier.restore] zurück (Konzept-Routing 10.5: eine
-/// Meldung statt einer Rückfrage). Samt Graph: Die Zwischenpunkte einer
-/// getunten Runde zeigen auf seine Knoten.
+/// Meldung statt einer Rückfrage). Samt Rahmen des Graphen: Der Runner
+/// ist mit dem Schließen weg, der nächste baut aus denselben Bytes
+/// denselben Graphen.
 class LoopClosed {
-  const LoopClosed._(
-      this.session, this._graph, this._graphStart, this._graphBox, this._graphOnline, this._planRequest, this._vias);
+  const LoopClosed._(this.session, this._graphStart, this._graphBox, this._graphOnline, this._planRequest, this._vias);
 
   final LoopSession session;
-  final RoadGraph? _graph;
   final LatLng? _graphStart;
   final LatBox? _graphBox;
   final bool _graphOnline;
@@ -273,19 +283,23 @@ class LoopWaypointHit {
 enum LoopToggle { selected, deselected, connector, pending }
 
 class LoopPlannerNotifier extends Notifier<LoopSession> {
-  RoadGraph? _graph;
   LatLng? _graphStart;
 
-  /// Der Rahmen, für den [_graph] geladen ist. Ein Trail darin liegt schon
-  /// auf dem Graphen, seine Enden sind angeheftet — ihn dazuzuwählen
-  /// braucht kein neues Laden, und der Rechen-Isolate behält den Graphen
-  /// samt seinen Suchen (#188).
+  /// Der Rahmen, für den der Runner seinen Graphen gebaut hat. Ein Trail
+  /// darin liegt schon auf dem Graphen, seine Enden sind angeheftet — ihn
+  /// dazuzuwählen braucht kein neues Laden, und der Rechen-Isolate
+  /// behält den Graphen samt seinen Suchen (#188).
   LatBox? _graphBox;
   bool _graphOnline = false;
 
-  /// Rechnet die Runde (#188: auf dem Telefon im Rechen-Isolate); lebt mit
-  /// dem Modus und wird beim Schließen freigegeben.
+  /// Baut und rechnet (#188, #356 PR 8: auf dem Telefon im Rechen-Isolate,
+  /// der den Graphen hält); lebt mit dem Modus und wird beim Schließen
+  /// freigegeben.
   LoopPlanRunner? _runner;
+
+  /// Der Runner hat den Graphen für [_graphBox]. Falsch nach dem
+  /// Schließen (der Runner ist weg) oder wenn der Isolate verloren ging.
+  bool get _hasGraph => _graphBox != null && (_runner?.hasGraph ?? false);
 
   /// Steigt beim Schließen des Planers oder des Ergebnisses: Was danach
   /// ankommt, gehört zu einer Rechnung, die niemand mehr sehen will.
@@ -336,7 +350,6 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
         ? LoopClosed._(
             // Eine laufende Rechnung kommt nicht zurück, nur ihre Eingaben.
             s.busy ? s.copyWith(phase: LoopPhase.idle) : s,
-            _graph,
             _graphStart,
             _graphBox,
             _graphOnline,
@@ -355,7 +368,6 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
   /// sie waren — die Karte öffnet das Blatt dazu wieder.
   void restore(LoopClosed closed, {bool? quick}) {
     _generation++;
-    _graph = closed._graph;
     _graphStart = closed._graphStart;
     _graphBox = closed._graphBox;
     _graphOnline = closed._graphOnline;
@@ -646,18 +658,30 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
       // Rahmen — ein Wechsel des Stils lädt dann nicht neu.
       // Den Ziel-Trail fährt man danach, nicht auf dem Weg dorthin.
       final fun = bare ? funPoolOf(_trails, start, target!, exceptId: state.targetTrailId) : const <Trail>[];
-      if (_graph == null ||
+      if (!_hasGraph ||
           _graphStart != start ||
           (target != null && !_graphBox!.contains(LatBox.of([target]))) ||
           (waypoints.isNotEmpty && !_graphBox!.contains(LatBox.of(waypoints))) ||
           !chosen.every((t) => _graphBox!.contains(LatBox.of(t.directedPoints))) ||
           !fun.every((t) => _graphBox!.contains(LatBox.of(t.directedPoints))) ||
           _graphOnline != fillOnline) {
-        state = state.copyWith(phase: LoopPhase.loading);
         final s0 = start;
-        // Die Uphill-Trails und Verbinder im Umkreis gehören in den Rahmen —
-        // sie sind der Weg bergauf (#185).
-        final connectors = loopPoolOf(_trails, s0, reachM: state.prefs.radiusKm * 1000).connectors;
+        // Die Anker: Start, Ziel, Zwischenpunkte, die gewählten Trails und
+        // die des Umwegs. Die Uphill-Trails und Verbinder in ihrer Nähe
+        // gehören in den Rahmen — sie sind der Weg bergauf (#185); die
+        // weiter draußen (bis 0.131.0: alle im Radius) nur den Rahmen groß.
+        final anchors = LatBox.of([
+          s0,
+          ?target,
+          ...waypoints,
+          for (final t in chosen) ...t.directedPoints,
+          for (final t in fun) ...t.directedPoints,
+        ]);
+        final connectors = [
+          for (final t in _trails)
+            if (!t.pending && t.points.length >= 2 && trailRoleOf(t) != TrailRole.downhill && !t.status.warns)
+              if (LatBox.of(t.points).near(anchors, kPlanConnectorMarginM)) t,
+        ];
         final box = LatBox.of([
           s0,
           ?target,
@@ -666,17 +690,8 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
           for (final t in fun) ...t.directedPoints,
           for (final t in connectors) ...t.points,
         ]);
-        final loaded = await ref.read(planningGraphLoaderProvider)(box, fillOnline: fillOnline);
-        if (generation != _generation) return;
-        if (loaded.graph == null) {
-          state = state.copyWith(phase: LoopPhase.result, blocker: LoopBlocker.noArea);
-          return;
-        }
-        _graph = loaded.graph;
-        _graphStart = start;
-        _graphBox = box;
-        _graphOnline = fillOnline;
-        state = state.copyWith(coverage: loaded);
+        final built = await _loadGraph(box, start: s0, fillOnline: fillOnline, generation: generation);
+        if (built != null || generation != _generation) return;
       }
       state = state.copyWith(phase: LoopPhase.computing);
       // Ein Bild für den Kreisel, bevor die Rechnung den Takt belegt.
@@ -709,7 +724,7 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
           waypoints: waypoints,
           bare: direct,
         );
-        plan = await StallWatch.time('plan.loop', () => runner.plan(_graph!, request));
+        plan = await StallWatch.time('plan.loop', () => runner.plan(request));
       }
       if (generation != _generation) return;
       _planRequest = request;
@@ -729,6 +744,41 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
     }
   }
 
+  /// Sammelt die Eingabe für [box] und lässt den Runner bauen (#356 PR 8).
+  /// Null, wenn der Graph steht — sonst der Grund, als Phase gesetzt
+  /// (außer [quiet]) und zurückgegeben. Was nach einer Änderung der
+  /// Generation ankommt, setzt nichts mehr.
+  Future<LoopBlocker?> _loadGraph(LatBox box,
+      {required LatLng start, required bool fillOnline, required int generation, bool quiet = false}) async {
+    if (!quiet) state = state.copyWith(phase: LoopPhase.loading);
+    final loaded = await ref.read(planningGraphLoaderProvider)(box, fillOnline: fillOnline);
+    if (generation != _generation) return LoopBlocker.failed;
+    LoopBlocker? fail(LoopBlocker b) {
+      if (!quiet) state = state.copyWith(phase: LoopPhase.result, blocker: b, coverage: loaded.summary);
+      return b;
+    }
+
+    if (loaded.tooLarge) return fail(LoopBlocker.tooLarge);
+    final input = loaded.input;
+    if (input == null) return fail(LoopBlocker.noArea);
+    final runner = _runner ??= ref.read(loopPlanRunnerFactoryProvider)();
+    try {
+      await StallWatch.time('graph.build', () => runner.build(input));
+    } catch (e, s) {
+      if (generation != _generation) return LoopBlocker.failed;
+      // Wirft nie weiter: Ein halb belegter Graph plante Abfahrten
+      // bergauf, also lieber keiner.
+      logError('Graph für die Planung bauen', e, s);
+      return fail(LoopBlocker.noArea);
+    }
+    if (generation != _generation) return LoopBlocker.failed;
+    _graphStart = start;
+    _graphBox = box;
+    _graphOnline = fillOnline;
+    if (!quiet) state = state.copyWith(coverage: loaded.summary);
+    return null;
+  }
+
   /// Die Route ohne gewählten Trail (#356, `route_result.dart`): Direkt
   /// und Bequem in einer Rechnung, Spaßig in zwei — passt kein Trail in
   /// den Umweg, bleibt es beim direkten Weg ([LoopSession.funEmpty]).
@@ -745,7 +795,7 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
         end: to,
         waypoints: waypoints,
         bare: true);
-    final plan = await StallWatch.time('route.direct', () => runner.plan(_graph!, direct));
+    final plan = await StallWatch.time('route.direct', () => runner.plan(direct));
     if (prefs.style != RouteMode.fun || plan.outcome != LoopOutcome.ok) return (plan, direct, false);
     final s = plan.summary!;
     final funRequest = LoopRequest(
@@ -757,7 +807,7 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
         end: to,
         waypoints: waypoints,
         bare: true);
-    final funPlan = await StallWatch.time('route.fun', () => runner.plan(_graph!, funRequest));
+    final funPlan = await StallWatch.time('route.fun', () => runner.plan(funRequest));
     if (funPlan.outcome == LoopOutcome.ok && !funPlan.isEmpty) return (funPlan, funRequest, false);
     return (plan, direct, true);
   }
@@ -769,16 +819,28 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
   Future<void> _retune(RouteVias vias) async {
     final plan = state.plan;
     final request = _planRequest;
-    final graph = _graph;
-    if (plan == null || plan.outcome != LoopOutcome.ok || request == null || graph == null || state.busy) {
+    final box = _graphBox;
+    if (plan == null || plan.outcome != LoopOutcome.ok || request == null || box == null || state.busy) {
       ref.read(routeViaProvider.notifier).reject(_vias);
       return;
     }
     final generation = _generation;
     final seq = ++_tuneSeq;
     try {
-      final next = await (_runner ??= ref.read(loopPlanRunnerFactoryProvider)())
-          .plan(graph, request.withTune(LoopTune.of(plan, vias)));
+      // Nach „Rückgängig" (10.5) ist der Runner neu und ohne Graphen: aus
+      // denselben Bytes derselbe Graph, die Punkte sind Koordinaten.
+      if (!_hasGraph) {
+        final start = _graphStart;
+        final blocked = start == null
+            ? LoopBlocker.noArea
+            : await _loadGraph(box, start: start, fillOnline: _graphOnline, generation: generation, quiet: true);
+        if (generation != _generation || seq != _tuneSeq) return;
+        if (blocked != null) {
+          ref.read(routeViaProvider.notifier).reject(_vias);
+          return;
+        }
+      }
+      final next = await _runner!.plan(request.withTune(LoopTune.of(plan, vias)));
       // Ein späterer Zug hat schon eine neue Rechnung geschickt.
       if (generation != _generation || seq != _tuneSeq) return;
       if (next.outcome != LoopOutcome.ok) {

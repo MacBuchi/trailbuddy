@@ -494,12 +494,15 @@ dieselben Konstanten geprüft):
   Sitzung gemerkt (Schlüssel: Bereichs-Builds + Rahmen). Ein
   20-km-Rahmen sind rund 70 Kacheln und schätzungsweise 20 000
   Wegekanten — das baut ein Telefon in unter einer Sekunde (Messfrage
-  M5). Gebaut wird im UI-Isolate (künftig im Isolate des Planers, mit
-  Grenze — 10.6); GERECHNET wird die Runde seit 0.80.1
-  in einem dauerhaften Rechen-Isolate, der den Graphen einmal bekommt
-  (#188, gemessen in `docs/routing-messung.md`: an Ort und Stelle stand
-  die Oberfläche bei 60 Trails 2,4 s, im Isolate einmal ~0,3 s für das
-  Senden, danach 11–31 ms Pause je Rechnung). Seit 0.80.2 behält der
+  M5). Gebaut wird seit 0.131.1 im Isolate des Planers, mit Grenze
+  (10.6; bis dahin im UI-Isolate); GERECHNET wird die Runde seit 0.80.1
+  in einem dauerhaften Rechen-Isolate — bis 0.131.0 bekam er den
+  fertigen Graphen einmal geschickt, seither baut er ihn selbst aus den
+  Kachel-Bytes (#188, #356 PR 8, gemessen in `docs/routing-messung.md`:
+  an Ort und Stelle stand die Oberfläche bei 60 Trails 2,4 s, im Isolate
+  einmal ~0,3 s für das Senden des Graphen — bei 62 600 Kanten 1,8 s —,
+  seit dem Bau drüben ~25 ms für das Senden der Bytes, danach 11–31 ms
+  Pause je Rechnung). Seit 0.80.2 behält der
   Isolate die Suchen je Trail-Ende für die nächste Rechnung auf
   demselben Graphen (`LoopSearchCache`): Abwählen, Pflicht, Höhen- und
   Wanderweg-Budget rechnen in Millisekunden; ein anderes Profil, ein
@@ -1260,9 +1263,12 @@ und keine Planer-Ebene.
 
 ### 10.6 Gebaut wird im Rechen-Isolate, mit Grenze
 
-Seit 0.80.1 RECHNET der Planer im Isolate (2.7); GEBAUT wird der Graph
-weiter im UI-Isolate — auf Android seit Flutter 3.29 der Haupt-Thread.
-Das ist der ANR aus #354 (36 s in `findCrossings`). Künftig:
+Seit 0.80.1 RECHNET der Planer im Isolate (2.7); bis 0.131.0 wurde der
+Graph im UI-Isolate GEBAUT — auf Android seit Flutter 3.29 der
+Haupt-Thread. Das war der ANR aus #354 (36 s in `findCrossings`).
+**Gebaut seit 0.131.1 (#356 PR 8)** für den Planer; Kalibrierung und
+„Zurück zur Route" folgen mit PR 9, der Wert der Grenze mit der
+Messung am Pixel (PR 4/10):
 
 - **Der UI-Isolate liest nur noch Bytes.** Er sammelt die Kacheln
   (Bereiche, online ergänzt) und die Trails als `GraphInput`; Dekodieren,
@@ -1275,7 +1281,8 @@ Das ist der ANR aus #354 (36 s in `findCrossings`). Künftig:
   `kPlanMaxTiles` Kacheln, sagt der Planer in unter einer Sekunde
   „Gebiet zu groß" mit dem Rat (Radius kleiner, weit entfernte Trails
   abwählen) — ohne eine Kachel gelesen zu haben. Der Wert kommt aus der
-  Messung am Pixel (#356, PR 4), nicht geraten.
+  Messung am Pixel (#356, PR 4), nicht geraten; bis sie vorliegt, steht
+  ein vorläufiger Wert vom Rechner (300 Kacheln, ~55 × 55 km).
 - **Kleinere Rahmen**: Verbinder zählen nur in der Nähe von Start,
   Ziel, Zwischenpunkten und gewählten Trails, nicht alle im Radius (bis
   30 km); den Pool der spaßigen Trails nimmt nur Spaßig ohne Auswahl.
