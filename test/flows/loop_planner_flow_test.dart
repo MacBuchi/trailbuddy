@@ -114,6 +114,22 @@ Future<MemoryAreaStore> _areaWithTrack({bool onlyCenter = false}) async {
   return (tiles: tiles, bytes: bytes);
 }
 
+/// Rechnet an Ort und Stelle und merkt sich, was er gefragt wurde.
+class _SpyRunner implements LoopPlanRunner {
+  final _inline = InlineLoopPlanRunner();
+  final requests = <LoopRequest>[];
+  LoopPlan? last;
+
+  @override
+  Future<LoopPlan> plan(RoadGraph graph, LoopRequest request) async {
+    requests.add(request);
+    return last = await _inline.plan(graph, request);
+  }
+
+  @override
+  void dispose() {}
+}
+
 /// Ein Runner, der erst antwortet, wenn der Test es sagt — wie der
 /// Rechen-Isolate auf dem Telefon, der eine Weile braucht (#188).
 class _HeldRunner implements LoopPlanRunner {
@@ -1016,6 +1032,78 @@ void main() {
       final whole = routeWhole(tester);
       expect(whole.last.latitude, greaterThan(48.008), reason: 'Ende am Ende des Trails, nicht am Start');
       expect(find.byKey(const ValueKey('loop-end-pin')), findsOneWidget);
+    });
+
+    testWidgets('Route ohne Trail (#356): Ziel tippen, rechnen; Stil und Rad rechnen sofort, Spaßig nimmt den Trail mit',
+        (tester) async {
+      final settings = FakeSettings();
+      // 150 m neben jedem Weg: im Pool des Umwegs, aber nie erreichbar.
+      final abseits = trails.seedTrail(backend.currentUserId!, name: 'Abseits', grade: 1, lat: 48.003, lon: 9.002);
+      final runner = _SpyRunner();
+      await start(tester, areaStore: await _areaWithTrack(), settings: settings, runner: () => runner);
+      await openPlanner(tester);
+      await chooseEnd(tester, 'loop-end-target');
+      // Nördlich des Trailendes, am Forstweg: Der direkte Weg führt am
+      // Hexentanz entlang, der spaßige über ihn.
+      const finish = LatLng(48.0092, _lon);
+      fakeMap(tester).move(const LatLng(48.004, _lon), 15);
+      await settle(tester, frames: 4);
+      await tapMapAt(tester, finish);
+      await settle(tester);
+      expect(picked(tester), isEmpty);
+      expect(find.textContaining('rechne gleich die Route zum Ziel'), findsOneWidget, reason: 'der Hinweis sagt es');
+      expect(tester.widget<IconButton>(find.byKey(const ValueKey('loop-rail-compute'))).onPressed, isNotNull,
+          reason: 'zum Ziel geht es ohne Trail');
+
+      await tapRail(tester, 'loop-rail-compute');
+      expect(find.byKey(const ValueKey('loop-summary')), findsOneWidget);
+      expect(find.textContaining('hm bergab'), findsOneWidget, reason: 'die Zeile der Route, ohne Trail-Meter');
+      expect(find.byKey(const ValueKey('loop-route-mode')), findsOneWidget);
+      expect(find.byKey(const ValueKey('loop-stop-0')), findsNothing);
+      expect(find.text('Route'), findsOneWidget);
+      final whole = routeWhole(tester);
+      expect(whole.first.latitude, closeTo(_fromLat, 1e-9));
+      expect(whole.last.latitude, closeTo(finish.latitude, 1e-9));
+      expect(routeHits(tester), isNotEmpty, reason: 'ziehbare Punkte wie bei der Runde');
+
+      await tester.ensureVisible(find.byKey(const ValueKey('loop-save')));
+      await settle(tester, frames: 2);
+      await tester.tap(find.byKey(const ValueKey('loop-save')));
+      await settle(tester);
+      expect(rides.rides.single.name, 'Route');
+
+      Future<void> segment(String key, String label) async {
+        final f = find.descendant(of: find.byKey(ValueKey(key)), matching: find.text(label));
+        await tester.ensureVisible(f);
+        await settle(tester, frames: 2);
+        await tester.tap(f);
+        await settle(tester, frames: 30);
+      }
+
+      await segment('loop-route-mode', 'Bequem');
+      expect(find.byKey(const ValueKey('loop-changed')), findsNothing, reason: 'der Stil rechnet sofort (D3)');
+      expect(find.byKey(const ValueKey('loop-summary')), findsOneWidget);
+      expect(find.byKey(const ValueKey('loop-easy-note')), findsOneWidget);
+      expect(settings.loopPlannerPrefs, contains('y=e'), reason: 'der Stil wird gemerkt');
+      expect(runner.requests.last.profile.prefs.easy, isTrue, reason: 'gerechnet mit den Kosten des Stils');
+      expect(runner.requests.last.bare, isTrue);
+
+      await segment('loop-route-mode', 'Spaßig');
+      expect(find.descendant(of: find.byKey(const ValueKey('loop-stop-0')), matching: find.text('Hexentanz')),
+          findsOneWidget);
+      expect(find.byKey(const ValueKey('loop-fun-empty')), findsNothing);
+      expect(runner.requests.last.pool.map((t) => t.id), contains(abseits), reason: 'im Pool des Umwegs');
+      expect(runner.last!.excluded.keys, contains(abseits));
+      expect(find.byKey(ValueKey('loop-excluded-$abseits')), findsNothing,
+          reason: 'was der Umweg nicht nahm, hat niemand gewählt');
+      expect(runner.requests.last.profile.prefs.easy, isFalse);
+
+      await segment('loop-result-profile', 'E-Bike');
+      expect(find.byKey(const ValueKey('loop-changed')), findsNothing, reason: 'das Rad rechnet sofort (D3)');
+      expect(find.byKey(const ValueKey('loop-summary')), findsOneWidget);
+      final session = ProviderScope.containerOf(tester.element(find.byType(MaterialApp))).read(loopPlannerProvider);
+      expect(session.profile, RiderProfile.ebike);
+      expect(session.planBare, isTrue);
     });
   });
 

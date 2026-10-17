@@ -26,6 +26,10 @@
 //   Jede Eingabe geht über `_edit` — Ergebnis weg, Generation hoch, und
 //   lag schon etwas im Blatt, sagt es „Auswahl geändert"
 //   ([LoopSession.changed]).
+// - **Ohne gewählten Trail ist „Zum Ziel" die Route von A nach B**
+//   (#356, Konzept-Routing 10.2): im Stil [LoopPrefs.style], gerechnet wie
+//   die Runde (`route_result.dart`). Stil und Rad im Ergebnis rechnen
+//   sofort ([setStyle], [switchProfile]).
 // - **Zu heißt aufgeräumt** (Konzept-Routing 10.5): Auswahl, Start, Ziel
 //   und Zwischenpunkte gehen mit; [LoopPlannerNotifier.close] gibt dafür
 //   einen [LoopClosed] zurück, mit dem „Rückgängig" alles wiederholt.
@@ -51,6 +55,7 @@ import 'planning_graph.dart';
 import 'ride_calibrator.dart';
 import 'road_graph.dart';
 import 'route_profile.dart';
+import 'route_result.dart';
 import 'route_via_providers.dart';
 import 'route_vias.dart';
 import 'trail_overlay.dart';
@@ -81,6 +86,8 @@ class LoopSession {
     this.coverage,
     this.tuned = false,
     this.changed = false,
+    this.planBare = false,
+    this.funEmpty = false,
   });
 
   /// Der Planer-Modus ist an: Leiste links, Tipps wählen Trails.
@@ -142,6 +149,14 @@ class LoopSession {
   /// rechnen" an — es rechnet nicht von selbst.
   final bool changed;
 
+  /// Die gezeigte Planung ist eine Route ohne gewählten Trail (#356) —
+  /// das Blatt zeigt dazu den Stil.
+  final bool planBare;
+
+  /// Spaßig gewählt, aber kein Trail passte in den Umweg: gezeigt ist der
+  /// direkte Weg, und das Blatt sagt es.
+  final bool funEmpty;
+
   bool get busy => phase == LoopPhase.locating || phase == LoopPhase.loading || phase == LoopPhase.computing;
 
   LoopSession copyWith({
@@ -169,6 +184,8 @@ class LoopSession {
     PlanningGraph? coverage,
     bool? tuned,
     bool? changed,
+    bool? planBare,
+    bool? funEmpty,
   }) =>
       LoopSession(
         open: open ?? this.open,
@@ -191,6 +208,8 @@ class LoopSession {
         coverage: coverage ?? this.coverage,
         tuned: clearPlan ? (tuned ?? false) : (tuned ?? this.tuned),
         changed: changed ?? this.changed,
+        planBare: clearPlan ? (planBare ?? false) : (planBare ?? this.planBare),
+        funEmpty: clearPlan ? (funEmpty ?? false) : (funEmpty ?? this.funEmpty),
       );
 }
 
@@ -199,16 +218,15 @@ class LoopSession {
 /// Meldung statt einer Rückfrage). Samt Graph: Die Zwischenpunkte einer
 /// getunten Runde zeigen auf seine Knoten.
 class LoopClosed {
-  const LoopClosed._(this.session, this._graph, this._graphStart, this._graphBox, this._graphOnline, this._planTarget,
-      this._planWaypoints, this._vias);
+  const LoopClosed._(
+      this.session, this._graph, this._graphStart, this._graphBox, this._graphOnline, this._planRequest, this._vias);
 
   final LoopSession session;
   final RoadGraph? _graph;
   final LatLng? _graphStart;
   final LatBox? _graphBox;
   final bool _graphOnline;
-  final LatLng? _planTarget;
-  final List<LatLng> _planWaypoints;
+  final LoopRequest? _planRequest;
   final RouteVias _vias;
 
   /// Ein Ergebnis lag im Blatt — die Karte öffnet es wieder.
@@ -250,13 +268,10 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
   /// ankommt, gehört zu einer Rechnung, die niemand mehr sehen will.
   int _generation = 0;
 
-  /// Das Ziel, mit dem [LoopSession.plan] gerechnet ist — ein neuer Tipp
-  /// räumt den Plan, das Tunen braucht trotzdem DIESES.
-  LatLng? _planTarget;
-
-  /// Die vorab gesetzten Zwischenpunkte, mit denen [LoopSession.plan]
-  /// gerechnet ist — das Tunen braucht DIESE, wie beim Ziel.
-  List<LatLng> _planWaypoints = const [];
+  /// Die Rechnung hinter [LoopSession.plan] — das Tunen (#234) rechnet
+  /// mit IHREN Eingaben (Ziel, Zwischenpunkte, Pool, Stil, Rad), nicht mit
+  /// denen, die inzwischen eingestellt sind.
+  LoopRequest? _planRequest;
 
   /// Die Zwischenpunkte, mit denen [LoopSession.plan] gerechnet ist.
   RouteVias _vias = RouteVias.none;
@@ -302,8 +317,7 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
             _graphStart,
             _graphBox,
             _graphOnline,
-            _planTarget,
-            _planWaypoints,
+            _planRequest,
             _vias)
         : null;
     ref.read(routeViaProvider.notifier).end(ViaOwner.loop);
@@ -322,8 +336,7 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
     _graphStart = closed._graphStart;
     _graphBox = closed._graphBox;
     _graphOnline = closed._graphOnline;
-    _planTarget = closed._planTarget;
-    _planWaypoints = closed._planWaypoints;
+    _planRequest = closed._planRequest;
     _vias = closed._vias;
     final s = closed.session;
     // Die Regler gelten, wie sie JETZT stehen — das Ergebnis ist mit den
@@ -500,6 +513,19 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
     _edit(state.copyWith(profile: next, prefs: prefs));
   }
 
+  /// Der Stil im Ergebnis einer Route (#356, D3): gemerkt und sofort
+  /// gerechnet — anders als die übrigen Eingaben.
+  Future<void> setStyle(RouteMode style) {
+    if (style != state.prefs.style) setPrefs(state.prefs.copyWith(style: style));
+    return compute();
+  }
+
+  /// Das Rad im Ergebnis (D3): sofort gerechnet.
+  Future<void> switchProfile(RiderProfile next) {
+    if (next != state.profile) setProfile(next);
+    return compute();
+  }
+
   /// Das Ergebnis weglegen (Blatt zu); Modus und Auswahl bleiben.
   void clearResult() {
     ref.read(routeViaProvider.notifier).end(ViaOwner.loop);
@@ -529,14 +555,16 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
       for (final t in _trails)
         if (state.selected.contains(t.id) && !t.pending && t.points.length >= 2) t,
     ];
-    if (chosen.isEmpty) {
-      state = state.copyWith(phase: LoopPhase.result, blocker: LoopBlocker.noTrails, clearPlan: true, changed: false);
-      return;
-    }
     final endMode = state.prefs.endMode;
     final target = endMode == LoopEndMode.target ? state.target : null;
     if (endMode == LoopEndMode.target && target == null) {
       state = state.copyWith(phase: LoopPhase.result, blocker: LoopBlocker.noTarget, clearPlan: true, changed: false);
+      return;
+    }
+    // Ohne Trail gibt es nur zu einem Ziel etwas zu fahren: die Route (#356).
+    final bare = chosen.isEmpty;
+    if (bare && target == null) {
+      state = state.copyWith(phase: LoopPhase.result, blocker: LoopBlocker.noTrails, clearPlan: true, changed: false);
       return;
     }
     final waypoints = state.waypoints;
@@ -562,11 +590,15 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
         start = LatLng(fix.latitude, fix.longitude);
       }
       final fillOnline = state.prefs.fillOnline;
+      // Die Trails, die eine spaßige Route mitnehmen darf, gleich in den
+      // Rahmen — ein Wechsel des Stils lädt dann nicht neu.
+      final fun = bare ? funPoolOf(_trails, start, target!) : const <Trail>[];
       if (_graph == null ||
           _graphStart != start ||
           (target != null && !_graphBox!.contains(LatBox.of([target]))) ||
           (waypoints.isNotEmpty && !_graphBox!.contains(LatBox.of(waypoints))) ||
           !chosen.every((t) => _graphBox!.contains(LatBox.of(t.directedPoints))) ||
+          !fun.every((t) => _graphBox!.contains(LatBox.of(t.directedPoints))) ||
           _graphOnline != fillOnline) {
         state = state.copyWith(phase: LoopPhase.loading);
         final s0 = start;
@@ -578,6 +610,7 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
           ?target,
           ...waypoints,
           for (final t in chosen) ...t.directedPoints,
+          for (final t in fun) ...t.directedPoints,
           for (final t in connectors) ...t.points,
         ]);
         final loaded = await ref.read(planningGraphLoaderProvider)(box, fillOnline: fillOnline);
@@ -597,9 +630,13 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
       await WidgetsBinding.instance.endOfFrame;
       final runner = _runner ??= ref.read(loopPlanRunnerFactoryProvider)();
       final from = start;
-      final plan = await StallWatch.time('plan.loop', () => runner.plan(
-        _graph!,
-        LoopRequest(
+      final LoopPlan plan;
+      final LoopRequest request;
+      var funEmpty = false;
+      if (bare) {
+        (plan, request, funEmpty) = await _planRoute(runner, from, target!, waypoints, fun);
+      } else {
+        request = LoopRequest(
           start: from,
           // Mit den gelernten Werten des Profils (Schritt 6), wo es welche gibt.
           profile: ref.read(calibratedRiderProvider(state.profile)).withPrefs(state.prefs.route),
@@ -608,12 +645,18 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
           returnToStart: endMode == LoopEndMode.loop,
           end: target,
           waypoints: waypoints,
-        ),
-      ));
+        );
+        plan = await StallWatch.time('plan.loop', () => runner.plan(_graph!, request));
+      }
       if (generation != _generation) return;
-      _planTarget = target;
-      _planWaypoints = waypoints;
-      state = state.copyWith(phase: LoopPhase.result, plan: plan, planStart: start, planEnd: endMode);
+      _planRequest = request;
+      state = state.copyWith(
+          phase: LoopPhase.result,
+          plan: plan,
+          planStart: start,
+          planEnd: endMode,
+          planBare: bare,
+          funEmpty: funEmpty);
       if (plan.outcome == LoopOutcome.ok) ref.read(routeViaProvider.notifier).begin(ViaOwner.loop);
     } catch (e, s) {
       // Geschlossen, während er rechnete: kein Fehler, nur zu spät.
@@ -623,38 +666,58 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
     }
   }
 
+  /// Die Route ohne gewählten Trail (#356, `route_result.dart`): Direkt
+  /// und Bequem in einer Rechnung, Spaßig in zwei — passt kein Trail in
+  /// den Umweg, bleibt es beim direkten Weg ([LoopSession.funEmpty]).
+  Future<(LoopPlan, LoopRequest, bool)> _planRoute(
+      LoopPlanRunner runner, LatLng from, LatLng to, List<LatLng> waypoints, List<Trail> fun) async {
+    final prefs = state.prefs;
+    final rider = ref
+        .read(calibratedRiderProvider(state.profile))
+        .withPrefs(prefs.style == RouteMode.easy ? prefs.route.copyWith(easy: true) : prefs.route);
+    final direct = LoopRequest(
+        start: from,
+        profile: rider,
+        budget: kRouteDirectBudget,
+        pool: const [],
+        returnToStart: false,
+        end: to,
+        waypoints: waypoints,
+        bare: true);
+    final plan = await StallWatch.time('route.direct', () => runner.plan(_graph!, direct));
+    if (prefs.style != RouteMode.fun || plan.outcome != LoopOutcome.ok) return (plan, direct, false);
+    final s = plan.summary!;
+    final funRequest = LoopRequest(
+        start: from,
+        profile: rider,
+        budget: funBudgetOf(timeS: s.timeS, gainM: s.gainM, hikingM: s.hikingM, hikingKm: prefs.hikingKm),
+        pool: [for (final t in fun) poolTrailOf(serviceL10n(), t)],
+        returnToStart: false,
+        end: to,
+        waypoints: waypoints,
+        bare: true);
+    final funPlan = await StallWatch.time('route.fun', () => runner.plan(_graph!, funRequest));
+    if (funPlan.outcome == LoopOutcome.ok && !funPlan.isEmpty) return (funPlan, funRequest, false);
+    return (plan, direct, true);
+  }
+
   /// Die Runde mit fester Folge durch [vias] neu (#234). Das Ergebnis
   /// bleibt stehen, bis das neue da ist — ein Zug am Punkt soll die Linie
   /// umlegen, nicht das Blatt leeren. Geht es nicht, kommen die alten
   /// Punkte zurück.
   Future<void> _retune(RouteVias vias) async {
     final plan = state.plan;
-    final start = state.planStart;
+    final request = _planRequest;
     final graph = _graph;
-    if (plan == null || plan.outcome != LoopOutcome.ok || start == null || graph == null || state.busy) {
+    if (plan == null || plan.outcome != LoopOutcome.ok || request == null || graph == null || state.busy) {
       ref.read(routeViaProvider.notifier).reject(_vias);
       return;
     }
     final generation = _generation;
     final seq = ++_tuneSeq;
     try {
-      final next = await (_runner ??= ref.read(loopPlanRunnerFactoryProvider)()).plan(
-        graph,
-        LoopRequest(
-          start: start,
-          profile: ref.read(calibratedRiderProvider(state.profile)).withPrefs(state.prefs.route),
-          budget: state.prefs.budget,
-          pool: [
-            for (final t in _trails)
-              if (state.selected.contains(t.id) && !t.pending && t.points.length >= 2)
-                poolTrailOf(serviceL10n(), t, mandatory: state.mandatory.contains(t.id)),
-          ],
-          returnToStart: state.planEnd == LoopEndMode.loop,
-          end: state.planEnd == LoopEndMode.target ? _planTarget : null,
-          tune: LoopTune.of(plan, vias),
-          waypoints: _planWaypoints,
-        ),
-      );
+      final next = await (_runner ??= ref.read(loopPlanRunnerFactoryProvider)())
+          .plan(graph, request.withTune(LoopTune.of(plan, vias)));
       // Ein späterer Zug hat schon eine neue Rechnung geschickt.
       if (generation != _generation || seq != _tuneSeq) return;
       if (next.outcome != LoopOutcome.ok) {

@@ -1672,5 +1672,7 @@
   "loopChangedTitle": "Selection changed",
   "loopChangedText": "The line no longer matched and is gone. Nothing is recomputed until you say so.",
   "loopRecompute": "Recompute",
-  "loopClosed": "Planner closed"
+  "loopClosed": "Planner closed",
+  "loopRailComputeRoute": "Compute route",
+  "mapLoopHintRoute": "Tap the trails you want along the way — or compute the route to the finish right away."
 }

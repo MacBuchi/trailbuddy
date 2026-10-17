@@ -600,7 +600,28 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
           padding: const EdgeInsets.only(right: 12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: switch (session.phase) {
+            children: [
+              // Eine Route ohne gewählten Trail (#356): Der Stil steht über
+              // allem und bleibt stehen, während neu gerechnet wird — ein
+              // Wechsel rechnet sofort (D3).
+              if (session.prefs.endMode == LoopEndMode.target && session.selected.isEmpty) ...[
+                SegmentedButton<RouteMode>(
+                  key: const ValueKey('loop-route-mode'),
+                  segments: [
+                    ButtonSegment(
+                        value: RouteMode.direct, label: Text(l.routeModeDirect), icon: const Icon(Icons.straight)),
+                    ButtonSegment(
+                        value: RouteMode.fun, label: Text(l.routeModeFun), icon: const Icon(Icons.downhill_skiing)),
+                    ButtonSegment(
+                        value: RouteMode.easy, label: Text(l.routeModeEasy), icon: const Icon(Icons.directions_bike)),
+                  ],
+                  selected: {session.prefs.style},
+                  showSelectedIcon: false,
+                  onSelectionChanged: (sel) => unawaited(ref.read(loopPlannerProvider.notifier).setStyle(sel.single)),
+                ),
+                const SizedBox(height: 12),
+              ],
+              ...switch (session.phase) {
               LoopPhase.locating => [_progress(l.routingLocating)],
               LoopPhase.loading => [_progress(l.routingLoadingWays)],
               LoopPhase.idle when session.changed => [_changedCard(context)],
@@ -609,6 +630,7 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
                   ? [_blockerCard(context, session.blocker ?? LoopBlocker.failed)]
                   : _result(context, session, plan),
             },
+            ],
           ),
         ),
       ],
@@ -691,15 +713,29 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
     return [
       Text(
         key: const ValueKey('loop-summary'),
-        l.loopSummary(formatMeters(s.lengthM), s.gainM.round(), formatMeters(s.trailM), routeTimeLabel(l, s.timeS)),
+        // Ohne Trail (die Route von A nach B, #356) gibt es keine
+        // Trail-Meter — dieselbe Zeile wie im Blatt „Route".
+        plan.isEmpty
+            ? l.routeSummary(formatMeters(s.lengthM), s.gainM.round(), s.lossM.round(), routeTimeLabel(l, s.timeS))
+            : l.loopSummary(formatMeters(s.lengthM), s.gainM.round(), formatMeters(s.trailM), routeTimeLabel(l, s.timeS)),
         style: theme.textTheme.titleMedium?.copyWith(fontFamily: AppFonts.mono),
       ),
       const SizedBox(height: 4),
       Text(
-        '${l.loopDescents(s.trailLossM.round(), s.wastedLossM.round())}'
-        '${s.mix.isEmpty ? '' : ' · ${wayMixLine(l, s.mix)}'}',
+        [
+          if (!plan.isEmpty) l.loopDescents(s.trailLossM.round(), s.wastedLossM.round()),
+          if (s.mix.isNotEmpty) wayMixLine(l, s.mix),
+        ].join(' · '),
         style: theme.textTheme.bodyMedium,
       ),
+      if (session.planBare && session.prefs.style == RouteMode.easy) ...[
+        const SizedBox(height: 4),
+        Text(key: const ValueKey('loop-easy-note'), l.routeEasyNote, style: theme.textTheme.bodyMedium),
+      ],
+      if (session.funEmpty) ...[
+        const SizedBox(height: 4),
+        Text(key: const ValueKey('loop-fun-empty'), l.routeFunEmpty, style: theme.textTheme.bodyMedium),
+      ],
       // Das Profil der Runde (#234) gleich darunter, kompakt: Eingeklappt
       // gehört es mit Summe und Knöpfen zu dem, was zu sehen ist.
       RouteElevationProfile(plan.points, key: const ValueKey('loop-elevation')),
@@ -791,8 +827,19 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
           style: theme.textTheme.bodySmall?.copyWith(color: theme.hintColor),
         ),
       ],
+      // Das Rad rechnet sofort (D3) — wie im Blatt „Route".
       const SizedBox(height: 12),
-      Text(l.loopOrder, style: theme.textTheme.titleMedium),
+      SegmentedButton<RiderProfile>(
+        key: const ValueKey('loop-result-profile'),
+        segments: [for (final p in RiderProfile.values) ButtonSegment(value: p, label: Text(p.label(l)))],
+        selected: {session.profile},
+        showSelectedIcon: false,
+        onSelectionChanged: (sel) => unawaited(ref.read(loopPlannerProvider.notifier).switchProfile(sel.single)),
+      ),
+      if (plan.stops.isNotEmpty) ...[
+        const SizedBox(height: 12),
+        Text(l.loopOrder, style: theme.textTheme.titleMedium),
+      ],
       for (var i = 0; i < plan.stops.length; i++)
         ListTile(
           key: ValueKey('loop-stop-$i'),
@@ -806,7 +853,8 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
             if (plan.stops[i].secondPass) l.loopSecondPass,
           ].join(' · ')),
         ),
-      if (plan.excluded.isNotEmpty) ...[
+      // Was der spaßige Umweg nicht mitnahm, hat niemand gewählt.
+      if (plan.excluded.isNotEmpty && !session.planBare) ...[
         const SizedBox(height: 8),
         Text(l.loopExcludedTitle, style: theme.textTheme.titleMedium),
         ..._excludedRows(context, plan),
@@ -834,7 +882,7 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
   }
 
   Future<void> _saveRide(LoopSession session, LoopPlan plan) async {
-    if (plan.isEmpty) return;
+    if (plan.summary == null) return;
     final messenger = ScaffoldMessenger.of(context);
     final l = context.l10n;
     final now = DateTime.now().toUtc();
@@ -852,7 +900,7 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
   }
 
   void _exportGpx(LoopPlan plan) {
-    if (plan.isEmpty) return;
+    if (plan.summary == null) return;
     final track = loopToGpx(context.l10n, plan, loop: ref.read(loopPlannerProvider).planEnd == LoopEndMode.loop);
     shareGpx(context, ref, fileName: gpxFileName(track.name), xml: writeGpx(name: track.name, points: track.points));
   }

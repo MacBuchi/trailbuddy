@@ -1145,6 +1145,11 @@ Beides rechnet beim Umschalten sofort (D3), ohne „Neu rechnen".
   Route — Pflicht-Trails und Zwischenpunkte wie seit 0.126.0, nie in
   der Reihenfolge des Antippens.
 
+*Stand 0.129.0 (#356 PR 6):* Die Route ohne Auswahl rechnet im Planer,
+mit Direkt, Bequem und Spaßig und den Zwischenpunkten; mit Auswahl ist
+„Zum Ziel" bis PR 7 das bisherige (Budgets des Planers, also Spaßig).
+Die Wahl Runde | Route heißt in den Parametern noch „Ende der Fahrt".
+
 Gemerkt wird wie bisher (2.3): Ziel, Stil und Regler ja, der Zielpunkt
 nicht. Öffnet der Planer mit „Route" ohne Zielpunkt, steht der Ziel-Knopf
 der Leiste vorn, und „Rechnen" sagt „Erst ein Ziel wählen" — bis 0.127.2
