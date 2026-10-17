@@ -872,7 +872,10 @@ umfahrenes Gebiet; ab Werk ist nichts gewählt. Kein Trail wird gegen
 seine Richtung gefahren, auch nicht als Aufstieg, außer ein Beitrag sagt
 „in beide Richtungen fahrbar" (Patch 016). Uphill-Trails und Verbinder
 sind der bevorzugte Weg bergauf, keine Abfahrten. Einzelheiten:
-`docs/konzept-routing.md` 2.7 und 4.
+`docs/konzept-routing.md` 2.7 und 4. Seit #356 ist der Planer auch das
+Werkzeug für den Weg zum Trailkopf und von A nach B — EIN Planer mit dem
+Ziel Runde oder Route, Trail-zuerst bleibt sein Kern (`konzept-routing.md`
+10).
 
 **Die Engine ist eine eigene, kein BRouter** (Betreiber, 2026-10-01).
 Anforderungsprofil (Bio-Bike/E-Bike, Zeitmodell, Budgets, Wegklassen
@@ -1146,7 +1149,9 @@ Dauerbenachrichtigung und ein Bild-im-Bild-Fenster über anderen Apps.
 Abbiegehinweise und Sprachausgabe gibt es weiter nicht; die Übergabe an
 die Navi-App (#151, GPX) bleibt der Weg für alles darüber hinaus. Die
 Grenzen stehen in `docs/konzept-routing.md` bei den Nicht-Zielen. **Die eine Planungsfunktion ist
-der Trail-zuerst-Planer** (9, #158), weil ihn keine andere App hat:
+der Planer** (9, #158), und sein Kern ist Trail-zuerst, weil das keine andere App hat
+(seit #356 ein Werkzeug für Runde und Route: der Weg zum Trailkopf oder von A nach B ist
+der Fall ohne gewählten Trail, über die eigenen Kacheln und ohne Ansagen):
 Komoot und Outdooractive planen von A nach B über öffentliche Wege,
 Trailforks zeigt Trails — keine davon plant „eine Runde mit möglichst
 vielen MEINER Trails und möglichst wenig verschenktem Aufstieg". Wer das will, hat Komoot,
