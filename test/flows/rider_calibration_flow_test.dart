@@ -16,6 +16,7 @@ import 'package:trailbuddy/features/rides/ride_providers.dart';
 import 'package:trailbuddy/features/rides/ride_track.dart';
 import 'package:trailbuddy/features/trails/gpx_files.dart';
 import 'package:trailbuddy/features/trails/trail_import_screen.dart';
+import 'package:trailbuddy/features/routing/ride_calibration.dart' show kCalibMaxRides;
 import 'package:trailbuddy/features/routing/ride_calibrator.dart';
 import 'package:trailbuddy/features/routing/route_profile.dart';
 
@@ -170,6 +171,15 @@ void main() {
     expect(find.textContaining('Gelernt: Bio-Bike aus 2 Fahrten (2 Aufstiege)'), findsOneWidget);
     expect(tester.widget<Text>(find.byKey(const ValueKey('rider-calib-bio'))).data, contains('Vorgaben'));
     expect(find.byKey(const ValueKey('rider-reset')), findsNothing);
+  });
+
+  testWidgets('#356 PR 9: höchstens 20 Fahrten je Lauf, die jüngsten — und der Satz sagt es', (tester) async {
+    rides.rides.addAll([for (var k = 1; k <= kCalibMaxRides + 2; k++) _climb(k)]);
+    await open(tester, areaStore: await _areaWithTrack());
+    await learn(tester);
+    final text = find.textContaining('Gelernt: Bio-Bike aus 20 Fahrten (20 Aufstiege).');
+    expect(text, findsOneWidget);
+    expect(tester.widget<Text>(text).data, contains('2 ältere Fahrten blieben außen vor — ein Lauf sieht höchstens 20 Fahrten an.'));
   });
 
   testWidgets('ohne Fahrt und ohne Bereich sagt es die Leiste', (tester) async {

@@ -2,6 +2,7 @@
 // wo man auf ihr ist, ob die Karte dreht. Die Folgeansicht und die Karte
 // lesen dieselbe Wahrheit; gerechnet wird in `route_progress.dart`.
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
@@ -14,13 +15,13 @@ import '../../models/trail.dart';
 import '../profile/profile_providers.dart';
 import '../trails/trail_providers.dart' show trailsProvider;
 import '../trails/terrain_heights.dart';
-import 'graph_input.dart' show buildGraphFrom;
+import 'loop_plan_runner.dart';
 import 'loop_planner.dart' show LoopPrefs;
 import 'nav_notice.dart' show NavRouteData;
 import 'nav_service.dart';
 import 'planning_graph.dart';
 import 'ride_calibrator.dart';
-import 'route_profile.dart' show RiderParamsPrefs;
+import 'route_profile.dart' show RiderParamsPrefs, RiderProfile, RoutePrefs;
 import 'route_progress.dart';
 import 'trail_head_route.dart';
 
@@ -32,7 +33,13 @@ export 'route_progress.dart' show kNavArrivedLinger, kNavTrailDoneLinger;
 /// Bildschirm, holt den Standort und startet.
 class NavRequest {
   const NavRequest(
-      {required this.points, required this.title, this.startAlongM = 0, this.sections, this.fromPlanner = false});
+      {required this.points,
+      required this.title,
+      this.startAlongM = 0,
+      this.sections,
+      this.fromPlanner = false,
+      this.profile,
+      this.routePrefs});
 
   /// Die Linie in Fahrtrichtung, wie sie die Karte zeichnet.
   final List<LatLng> points;
@@ -49,6 +56,13 @@ class NavRequest {
   /// es wieder da (Konzept-Routing 10.5); aus „Meine Fahrten" oder
   /// „zuletzt navigiert" die normale Karte.
   final bool fromPlanner;
+
+  /// Rad und Stil, mit denen die Route gerechnet wurde (#356 PR 9,
+  /// Konzept-Routing 10.6): „Zurück zur Route" rechnet damit. Null (eine
+  /// Fahrt aus „Meine Fahrten", die Wiederaufnahme nach einem Neustart):
+  /// das aktuelle Profil und die gemerkten Vorlieben.
+  final RiderProfile? profile;
+  final RoutePrefs? routePrefs;
 }
 
 final navRequestProvider = StateProvider<NavRequest?>((ref) => null);
@@ -95,10 +109,16 @@ class NavSession {
     this.rejoin = NavRejoin.none,
     this.rejoinLine,
     this.trailDone,
+    this.profile,
+    this.routePrefs,
   });
 
   final NavRoute route;
   final String title;
+
+  /// Rad und Stil der Route (`NavRequest`), für „Zurück zur Route".
+  final RiderProfile? profile;
+  final RoutePrefs? routePrefs;
 
   /// Die Trails auf der Linie (9.9).
   final NavSections sections;
@@ -162,6 +182,8 @@ class NavSession {
         rejoin: rejoin,
         rejoinLine: rejoinLine,
         trailDone: trailDone,
+        profile: profile,
+        routePrefs: routePrefs,
       );
 
   /// Ein neuer Stand von „Zurück zur Route" — das Stück nur bei [NavRejoin.shown].
@@ -176,6 +198,8 @@ class NavSession {
         rejoin: rejoin,
         rejoinLine: rejoin == NavRejoin.shown ? line : null,
         trailDone: trailDone,
+        profile: profile,
+        routePrefs: routePrefs,
       );
 
   /// Mit oder ohne Bilanz am Trail-Ende.
@@ -190,6 +214,8 @@ class NavSession {
         rejoin: rejoin,
         rejoinLine: rejoinLine,
         trailDone: done,
+        profile: profile,
+        routePrefs: routePrefs,
       );
 }
 
@@ -199,6 +225,12 @@ class NavController extends Notifier<NavSession?> {
   Timer? _linger;
   Timer? _doneLinger;
   double _startAlongM = 0;
+
+  /// Der Rechen-Isolate für „Zurück zur Route" (#356 PR 9) und der Rahmen
+  /// des Graphen, den er hält: Ein zweiter Tipp im selben Rahmen baut
+  /// nicht neu. Weg mit dem Ende der Navigation.
+  LoopPlanRunner? _rejoinRunner;
+  LatBox? _rejoinBox;
 
   /// Dienst und Brücke (9.5) in einer Kette: Beenden und sofort wieder
   /// Starten („zuletzt navigiert") löschte sonst die frische Datei.
@@ -215,6 +247,7 @@ class NavController extends Notifier<NavSession?> {
     ref.onDispose(() {
       _linger?.cancel();
       _doneLinger?.cancel();
+      _dropRejoinGraph();
     });
     return null;
   }
@@ -223,15 +256,22 @@ class NavController extends Notifier<NavSession?> {
 
   /// Startet die Navigation auf [points] ab [startAlongM]; false, wenn die
   /// Linie keine Länge hat. Eine laufende wird ersetzt.
-  bool start(List<LatLng> points, String title, {double startAlongM = 0, NavSections? sections}) {
+  bool start(List<LatLng> points, String title,
+      {double startAlongM = 0, NavSections? sections, RiderProfile? profile, RoutePrefs? routePrefs}) {
     final route = NavRoute.of(points);
     if (route == null) return false;
     _linger?.cancel();
     _doneLinger?.cancel();
+    _dropRejoinGraph();
     _tracker = NavTracker(route, startAlongM: startAlongM);
     _trails = NavTrailWatch();
     _startAlongM = startAlongM;
-    final session = NavSession(route: route, title: title, sections: sections ?? const NavSections.empty());
+    final session = NavSession(
+        route: route,
+        title: title,
+        sections: sections ?? const NavSections.empty(),
+        profile: profile,
+        routePrefs: routePrefs);
     state = session;
     final bridge = ref.read(navServiceBridgeProvider);
     final keepAlive = ref.read(navKeepAliveProvider);
@@ -295,8 +335,10 @@ class NavController extends Notifier<NavSession?> {
 
   /// „Zurück zur Route" (9.3, Betreiber 2026-10-08: ein Knopf, kein
   /// automatisches Neurechnen): ein A* vom Standort zum Punkt der Linie
-  /// [kNavRejoinTargetM] voraus, über denselben Graphen und dasselbe
-  /// Profil wie die Planung.
+  /// [kNavRejoinTargetM] voraus — im Rechen-Isolate, auf einem Graphen aus
+  /// denselben Bytes wie der Planer, mit Rad und Stil der Route (#356
+  /// PR 9; ohne: aktuelles Profil, gemerkte Vorlieben). Das Profil ist
+  /// das kalibrierte von jetzt, nicht das vom Planen.
   Future<void> rejoin() async {
     final session = state;
     final now = session?.state;
@@ -307,19 +349,28 @@ class NavController extends Notifier<NavSession?> {
     var result = NavRejoin.noPath;
     List<LatLng>? line;
     try {
-      final profile = ref.read(riderProfileProvider);
+      final RiderProfile profile = session.profile ?? ref.read(riderProfileProvider);
       final prefs = LoopPrefs.parse(ref.read(settingsProvider).loopPlannerPrefs, profile);
-      final loaded =
-          await ref.read(planningGraphLoaderProvider)(LatBox.of([from, target]), fillOnline: prefs.fillOnline);
-      final input = loaded.input;
-      if (input == null) {
+      final rider = ref.read(calibratedRiderProvider(profile)).withPrefs(session.routePrefs ?? prefs.route);
+      final need = LatBox.of([from, target]);
+      final runner = _rejoinRunner ??= ref.read(loopPlanRunnerFactoryProvider)();
+      var ready = runner.hasGraph && (_rejoinBox?.contains(need) ?? false);
+      if (!ready) {
+        // Mit Rand, damit der nächste Tipp ein Stück weiter denselben
+        // Graphen nimmt; der Lader legt seinen eigenen noch dazu.
+        final box = _grow(need, kNavRejoinGraphMarginM);
+        final loaded = await ref.read(planningGraphLoaderProvider)(box, fillOnline: prefs.fillOnline);
+        final input = loaded.input;
+        if (input != null) {
+          await StallWatch.time('graph.build', () => runner.build(input));
+          _rejoinBox = box;
+          ready = true;
+        }
+      }
+      if (!ready) {
         result = NavRejoin.noArea;
       } else {
-        // Noch im UI-Isolate gebaut (#356 PR 9 zieht „Zurück zur Route" in
-        // den Rechen-Isolate) — aus denselben Bytes wie der Planer.
-        final graph = StallWatch.mark('nav.graph', () => buildGraphFrom(input).graph);
-        final rider = ref.read(calibratedRiderProvider(profile)).withPrefs(prefs.route);
-        final plan = StallWatch.mark('nav.rejoin', () => planTrailHeadRoute(graph, from, target, rider));
+        final plan = await StallWatch.time('nav.rejoin', () => runner.run(TrailHeadJob(from, target, rider)));
         if (plan.route != null) {
           result = NavRejoin.shown;
           line = plan.route!.points;
@@ -331,11 +382,25 @@ class NavController extends Notifier<NavSession?> {
       }
     } catch (e, s) {
       logError('Weg zurück zur Route', e, s);
+      // Ein Isolate, der weg ist, baut beim nächsten Tipp neu.
+      _dropRejoinGraph();
     }
     // Inzwischen beendet, ersetzt oder wieder auf der Linie: nichts tun.
     final after = state;
     if (after == null || !identical(after.route, session.route) || after.rejoin != NavRejoin.computing) return;
     state = after.withRejoin(result, line);
+  }
+
+  void _dropRejoinGraph() {
+    _rejoinRunner?.dispose();
+    _rejoinRunner = null;
+    _rejoinBox = null;
+  }
+
+  static LatBox _grow(LatBox b, double marginM) {
+    final dLat = marginM / 111320.0;
+    final dLon = dLat / math.cos((b.s + b.n) / 2 * math.pi / 180);
+    return LatBox(b.s - dLat, b.w - dLon, b.n + dLat, b.e + dLon);
   }
 
   /// „Weiter" im Blatt „Trail geschafft" — oder die 20 s sind um.
@@ -378,12 +443,17 @@ class NavController extends Notifier<NavSession?> {
     _linger = null;
     _doneLinger?.cancel();
     _doneLinger = null;
+    _dropRejoinGraph();
     _tracker = null;
     _trails = null;
     state = null;
   }
 }
 
+/// Rand um Standort und Zielpunkt, in dem der Graph für „Zurück zur Route"
+/// gelesen wird: 2 km, damit ein zweiter Tipp wenig später denselben
+/// Graphen nimmt (eine Handvoll Kacheln statt einer je Tipp).
+const kNavRejoinGraphMarginM = 2000.0;
 final navigationProvider = NotifierProvider<NavController, NavSession?>(NavController.new);
 
 /// Bildschirm an in der Folgeansicht (9.4), gemerkt auf dem Gerät.

@@ -16,11 +16,15 @@
 // darf der UI-Isolate, er hat den Kachelspeicher und das Netz),
 // [buildRoadGraphFrom] dekodiert und baut — rein, synchron, und deshalb
 // im Rechen-Isolate des Planers (`graph_input.dart`). [loadRoadGraph] ist
-// beides hintereinander, für die Kalibrierung (bis PR 9) und die Tests.
+// beides hintereinander, im aufrufenden Isolate — seit PR 9 nur noch für
+// die Tests; die Kalibrierung liest mit [readRoadTiles] die Kacheln
+// eines Korridors ([tilesAlong]) und baut im Isolate.
 // Eine Grenze VOR dem Lesen ([kPlanMaxTiles]): Ein Rahmen über so viele
 // Kacheln öffnet kein Archiv und sagt „zu groß" (Konzept-Routing 10.6).
+import 'dart:math' as math;
 import 'dart:typed_data';
 
+import 'package:latlong2/latlong.dart';
 import 'package:vector_map_tiles/vector_map_tiles.dart' show ProviderException, TileIdentity;
 
 import '../../core/line_geometry.dart';
@@ -139,6 +143,10 @@ AreaBounds roadGraphBounds(LatBox box, double marginM) {
 ///
 /// Mehr als [maxTiles] Kacheln im Rahmen: [RoadTilesRead.tooLarge], ohne
 /// ein Archiv geöffnet zu haben. Null heißt keine Grenze.
+///
+/// Mit [only] werden aus dem Rahmen nur diese Kacheln gelesen (#356 PR 9,
+/// die Kalibrierung: der Korridor einer Fahrt, [tilesAlong]) — die
+/// Zählung und die Grenze gelten dann für sie.
 Future<RoadTilesRead> readRoadTiles({
   required List<StoredArea> areas,
   required LatBox box,
@@ -150,9 +158,13 @@ Future<RoadTilesRead> readRoadTiles({
   OnlineTileFetcher? fetchWaysOnline,
   String Function(StoredArea area)? sourceKey,
   int? maxTiles,
+  Set<(int, int)>? only,
 }) async {
   final bounds = roadGraphBounds(box, marginM);
-  final tiles = tilesCovering(bounds, minZoom: kRoadGraphZoom, maxZoom: kRoadGraphZoom);
+  final tiles = [
+    for (final t in tilesCovering(bounds, minZoom: kRoadGraphZoom, maxZoom: kRoadGraphZoom))
+      if (only == null || only.contains((t.x, t.y))) t,
+  ];
   if (maxTiles != null && tiles.length > maxTiles) {
     return RoadTilesRead(tilesNeeded: tiles.length, roads: const [], tooLarge: true);
   }
@@ -406,6 +418,44 @@ Future<List<RoadTileBytes>> _wayTiles({
         break; // Netz weg: Was da ist, reicht; der Rest bleibt unbekannt.
       }
     }
+  }
+  return out;
+}
+
+/// Die z13-Kacheln, die eine Linie mit [marginM] Rand berührt — als
+/// `(x, y)` für [readRoadTiles] `only` (#356 PR 9). Eine Fahrt von 40 km
+/// quer durchs Tal spannt einen Rahmen von hundert Kacheln auf und fährt
+/// durch zwanzig; die Kalibrierung ordnet nur ein, was unter der Linie
+/// liegt. Zwischen zwei Punkten, die weiter als eine halbe Kachel
+/// auseinanderliegen, wird die Strecke abgetastet (ein Loch im GPS
+/// überspränge sonst eine Kachel).
+Set<(int, int)> tilesAlong(List<LatLng> points, double marginM) {
+  final out = <(int, int)>{};
+  if (points.isEmpty) return out;
+  final dLat = marginM / 111320.0;
+  void add(LatLng p) {
+    final dLon = dLat / math.cos(p.latitude * math.pi / 180);
+    final a = tileAt(p.latitude + dLat, p.longitude - dLon, kRoadGraphZoom);
+    final b = tileAt(p.latitude - dLat, p.longitude + dLon, kRoadGraphZoom);
+    for (var x = a.x; x <= b.x; x++) {
+      for (var y = a.y; y <= b.y; y++) {
+        out.add((x, y));
+      }
+    }
+  }
+
+  // Eine halbe z13-Kachel in Grad Breite (am Äquator 360 / 8192 / 2).
+  const halfTileDeg = 360.0 / (1 << kRoadGraphZoom) / 2;
+  add(points.first);
+  for (var i = 1; i < points.length; i++) {
+    final a = points[i - 1], b = points[i];
+    final span = math.max((b.latitude - a.latitude).abs(), (b.longitude - a.longitude).abs());
+    final steps = (span / halfTileDeg).ceil();
+    for (var k = 1; k < steps; k++) {
+      final t = k / steps;
+      add(LatLng(a.latitude + t * (b.latitude - a.latitude), a.longitude + t * (b.longitude - a.longitude)));
+    }
+    add(b);
   }
   return out;
 }

@@ -37,10 +37,13 @@ class IsolateLoopPlanRunner implements LoopPlanRunner {
   }
 
   @override
-  Future<LoopPlan> plan(LoopRequest request) async {
+  Future<LoopPlan> plan(LoopRequest request) => run(request);
+
+  @override
+  Future<R> run<R>(GraphJob<R> job) async {
     if (!_hasGraph) throw StateError('kein Graph gebaut');
     final worker = await _ensure();
-    return await _ask(worker, request) as LoopPlan;
+    return await _ask(worker, job) as R;
   }
 
   Future<SendPort> _ensure() async {
@@ -146,7 +149,7 @@ void _workerMain(SendPort reply) {
       } else {
         final g = built?.graph;
         if (g == null) throw StateError('kein Graph gebaut');
-        result = (payload as LoopRequest).planOn(g, cache: cache);
+        result = (payload as GraphJob<Object?>).runOn(g, cache) as Object;
       }
       reply.send((id, result, null, null));
     } catch (e, s) {

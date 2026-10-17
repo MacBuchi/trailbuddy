@@ -2,6 +2,20 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## Learning the rider profile and “Back to the route” without a frozen map
+
+*Version 0.131.2, 2026-10-18*
+
+- “Learn from my rides” now reads only the map tiles along each ride's
+  line instead of its whole frame, builds the road network in the
+  background and looks at the 20 most recent rides at most — the sentence
+  afterwards says when older ones were left out.
+- “Back to the route” is computed in the background and with the bike and
+  the style the route was planned with (until now with the defaults). A
+  second tap nearby reuses the same network.
+- When navigation starts, “Searching for your location …” is shown until
+  the first fix arrives.
+
 ## Planner: the map stays smooth while the road network is built
 
 *Version 0.131.1, 2026-10-18*

@@ -178,6 +178,7 @@ void main() {
       FakeKeepAlive? keepAlive,
       FakeNavServiceBridge? navBridge,
       FakeTrailRepository? trails,
+      FakePositionFix? positionFix,
       _FakePip? pip}) async {
     if (phone) {
       tester.view.physicalSize = const Size(1080, 2400);
@@ -196,7 +197,7 @@ void main() {
         rideFix: FakeRideFix()
           ..next = RidePoint(lat: start.latitude, lng: start.longitude, at: DateTime.now().toUtc(), accuracyM: 5),
         positionStream: fixes.stream,
-        positionFix: FakePositionFix(fakePosition(start.latitude, start.longitude, heading: 90, speed: 0)),
+        positionFix: positionFix ?? FakePositionFix(fakePosition(start.latitude, start.longitude, heading: 90, speed: 0)),
         extraOverrides: [
           screenAwakeProvider.overrideWithValue(screen),
           if (pip != null) pictureInPictureProvider.overrideWithValue(pip),
@@ -463,6 +464,20 @@ void main() {
     expect(find.byType(AlertDialog), findsNothing);
     expect(find.byKey(const ValueKey('nav-approach')), findsNothing);
     expect(screen.calls, [true, false]);
+  });
+
+  testWidgets('#356 PR 9: „Suche Standort …" stands until the first fix arrives', (tester) async {
+    final gate = Completer<Position?>();
+    await startFromRides(tester, positionFix: FakePositionFix()..gate = gate);
+    await tester.tap(find.byKey(const ValueKey('nav-go')));
+    await settle(tester);
+    expect(find.byKey(const ValueKey('nav-searching')), findsOneWidget);
+    expect(find.textContaining('Suche Standort'), findsOneWidget);
+    expect(find.byKey(const ValueKey('nav-approach')), findsNothing);
+    gate.complete(fakePosition(_lat, 11, heading: 90, speed: 0));
+    await settle(tester, frames: 20);
+    expect(find.byKey(const ValueKey('nav-searching')), findsNothing);
+    expect(find.byKey(const ValueKey('nav-approach')), findsOneWidget);
   });
 
   testWidgets('Zurück zur Route: a dashed way onto the route ahead, gone once back on it', (tester) async {

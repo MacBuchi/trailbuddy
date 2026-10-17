@@ -14,6 +14,8 @@ import 'package:latlong2/latlong.dart';
 
 import '../../l10n/l10n.dart';
 import '../trails/gpx.dart';
+import 'graph_input.dart' show GraphJob;
+import 'loop_planner.dart' show LoopSearchCache;
 import 'road_graph.dart';
 import 'route_profile.dart';
 import 'route_search.dart';
@@ -119,6 +121,19 @@ TrailHeadPlan planTrailHeadRoute(RoadGraph g, LatLng from, LatLng head, RiderPar
       points: [from, ...line, head],
     ),
   );
+}
+
+/// [planTrailHeadRoute] auf dem Graphen drüben (#356 PR 9, „Zurück zur
+/// Route"): Standort, Ziel und Profil gehen hinüber, der Plan kommt zurück.
+class TrailHeadJob implements GraphJob<TrailHeadPlan> {
+  const TrailHeadJob(this.from, this.head, this.profile);
+
+  final LatLng from;
+  final LatLng head;
+  final RiderParams profile;
+
+  @override
+  TrailHeadPlan runOn(RoadGraph g, LoopSearchCache cache) => planTrailHeadRoute(g, from, head, profile);
 }
 
 /// Die Kanten [path] ab [src] zu Abschnitten je Wegklasse: aufeinander-
