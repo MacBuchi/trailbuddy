@@ -200,7 +200,7 @@ Code liegt — nicht wieder hierher.
 | `lib/features/feedback/CLAUDE.md` | Feedback (die Glühbirne) · Fehlerbericht-Digest (`tool/feedback_bot.py`) |
 | `lib/l10n/CLAUDE.md` | Sprachen der Oberfläche: ARB, Vorlage Deutsch, erzeugte Dateien, Testgerät Deutsch (#209) |
 | `web/CLAUDE.md` | Kein Netzziel ohne Datenschutzerklärung · Web (Service Worker, Build) |
-| `android/CLAUDE.md` | Android (Flavors, Backup-Ausschlüsse) · Play Store vorbereitet, nicht eingereicht |
+| `android/CLAUDE.md` | Android (Flavors, Backup-Ausschlüsse) · Die Dev-App (#356) · Play Store vorbereitet, nicht eingereicht |
 | `test/CLAUDE.md` | Dart-MCP (`analyze_files`, `run_tests`, `lsp`: Pfad-Fallen, Messung) · Gegenprobe · Fallen im Harness (pumpApp, FakeSettings, Touren, Isolates, FakeMapView) |
 
 Was es bewusst noch nicht gibt:

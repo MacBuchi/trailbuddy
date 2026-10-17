@@ -100,12 +100,34 @@ void main() {
     expect(gradle, contains('create("github")'));
     expect(gradle, contains('create("play")'));
     final code = gradle.split('\n').where((l) => !l.trimLeft().startsWith('//')).join('\n');
-    expect(code, isNot(contains('applicationIdSuffix')));
+    // Nur die Dev-App hat eine eigene Kennung; github und play sind EINE.
+    expect('applicationIdSuffix'.allMatches(code), hasLength(1));
     expect(manifest, contains('android.permission.REQUEST_INSTALL_PACKAGES'));
     expect(play, contains('android.permission.REQUEST_INSTALL_PACKAGES'));
     expect(play, contains('tools:node="remove"'));
     // Zwei Bindestriche in einem XML-Kommentar brechen den ManifestMerger.
     expect(play, isNot(contains('--dart-define')));
+  });
+
+  test('die Dev-App steht neben der echten: eigene Kennung, eigener Name, kein Update-Weg (#356)', () {
+    final dev = File('android/app/src/dev/AndroidManifest.xml').readAsStringSync();
+    final block = RegExp(r'create\("dev"\) \{([^}]*)\}').firstMatch(gradle)?.group(1);
+    expect(block, isNotNull, reason: 'kein dev-Flavor');
+    expect(block, contains('applicationIdSuffix = ".dev"'));
+    expect(block, contains('manifestPlaceholders["appLabel"] = "TrailBuddy Dev"'));
+    // Der Name kommt aus dem Platzhalter, die echte App heißt weiter so.
+    expect(manifest, contains(r'android:label="${appLabel}"'));
+    expect(gradle, contains('manifestPlaceholders["appLabel"] = "TrailBuddy"\n'));
+    // Zwei Apps, zwei Provider: eine feste Authority ließe die zweite
+    // Installation scheitern (INSTALL_FAILED_CONFLICTING_PROVIDER).
+    for (final a in RegExp(r'android:authorities="([^"]+)"').allMatches(manifest)) {
+      expect(a.group(1), startsWith(r'${applicationId}'));
+    }
+    // Firebase kennt `.dev` nicht — ohne das Abschalten bricht der Build.
+    expect(gradle, contains('name.contains("Dev") && name.endsWith("GoogleServices")'));
+    expect(dev, contains('android.permission.REQUEST_INSTALL_PACKAGES'));
+    expect(dev, contains('tools:node="remove"'));
+    expect(dev.replaceAll('<!--', '').replaceAll('-->', ''), isNot(contains('--')), reason: 'zwei Bindestriche brechen den ManifestMerger');
   });
 
   test('genau die Berechtigungen, die es bis Phase 2 braucht', () {
