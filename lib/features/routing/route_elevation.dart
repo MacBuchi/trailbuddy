@@ -75,7 +75,7 @@ class _RouteElevationProfileState extends ConsumerState<RouteElevationProfile> {
 
   void _scrub(double alongM, double profileLengthM) {
     final line = _line ??= NavRoute.of(widget.points);
-    if (line == null) return;
+    if (line == null || !(profileLengthM > 0) || !alongM.isFinite) return;
     // Das Profil misst entlang seiner Proben, die Linie entlang ihrer
     // Punkte — anteilig umgerechnet treffen beide dieselbe Stelle.
     _cursor.state = (alongM: alongM, point: line.pointAt(alongM / profileLengthM * line.lengthM));

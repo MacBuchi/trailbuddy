@@ -217,13 +217,15 @@ class _RouteSheetState extends ConsumerState<_RouteSheet> {
   }
 
   /// Die Suche auf dem stehenden Graphen — beim ersten Mal und bei jedem
-  /// Wechsel von Profil oder Weg.
+  /// Wechsel von Profil oder Weg. Eine spätere Rechnung (schneller
+  /// Wechsel) überholt die frühere, auch einen laufenden Zug (`_tuneSeq`).
   Future<void> _replan() async {
     final graph = _loaded!.graph!;
     final from = _from!;
+    final seq = ++_tuneSeq;
     setState(() => _phase = _Phase.computing);
     await WidgetsBinding.instance.endOfFrame;
-    if (!mounted) return;
+    if (!mounted || seq != _tuneSeq) return;
     final l = context.l10n;
     final prefs = LoopPrefs.parse(ref.read(settingsProvider).loopPlannerPrefs, _profile);
     final rider = _rider(prefs);
@@ -248,8 +250,7 @@ class _RouteSheetState extends ConsumerState<_RouteSheet> {
           funEmpty = true;
         }
       }
-      if (!mounted) return;
-      _tuneSeq++;
+      if (!mounted || seq != _tuneSeq) return;
       setState(() {
         _phase = _Phase.done;
         _plan = plan;
@@ -266,9 +267,13 @@ class _RouteSheetState extends ConsumerState<_RouteSheet> {
       } else {
         ref.read(routeViaProvider.notifier).end(ViaOwner.route);
       }
-      if (lines.isEmpty) return;
+      if (lines.isEmpty) {
+        // Kein Weg: Die Linie der vorigen Rechnung gehört nicht mehr dazu.
+        ref.read(trailHeadPreviewProvider.notifier).state = const [];
+        return;
+      }
       if (!_fitted) await widget.panel.resizeTo(kMapPanelResult);
-      if (!mounted) return;
+      if (!mounted || seq != _tuneSeq) return;
       ref.read(trailHeadPreviewProvider.notifier).state = lines;
       if (!_fitted) {
         _fitted = true;
@@ -276,9 +281,15 @@ class _RouteSheetState extends ConsumerState<_RouteSheet> {
       }
     } catch (e, s) {
       logError('Route planen', e, s);
-      if (!mounted) return;
+      if (!mounted || seq != _tuneSeq) return;
+      // Das Blatt sagt „ging nicht" — dann liegt auch keine alte Linie mehr
+      // auf der Karte, und es gibt keine Punkte zum Ziehen.
+      ref.read(trailHeadPreviewProvider.notifier).state = const [];
+      ref.read(routeViaProvider.notifier).end(ViaOwner.route);
       setState(() {
         _phase = _Phase.done;
+        _plan = null;
+        _fun = null;
         _blocker = _Blocker.failed;
       });
     }
@@ -382,7 +393,7 @@ class _RouteSheetState extends ConsumerState<_RouteSheet> {
     final ride = await ref.read(ridesProvider.notifier).savePlanned(
           name: _rideName,
           points: [for (final p in points) RidePoint(lat: p.latitude, lng: p.longitude, at: now, accuracyM: 0)],
-          duration: Duration(seconds: (_timeS ?? 0).round()),
+          duration: Duration(seconds: routeSeconds(_timeS ?? 0)),
           profile: _profile.name,
         );
     if (!mounted) return;

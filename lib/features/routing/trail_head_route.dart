@@ -160,12 +160,17 @@ List<RouteSection> sectionsOf(RoadGraph g, List<int> path, int src) {
 /// gerundet: Das Zeitmodell ist ohne Kalibrierung ±30 % (Konzept-Routing
 /// 7), eine Minute genau wäre eine erfundene Genauigkeit.
 String routeTimeLabel(AppLocalizations l, double seconds) {
-  final min = ((seconds / 60) / 5).round() * 5;
+  final min = ((routeSeconds(seconds) / 60) / 5).round() * 5;
   if (min < 5) return l.routingTimeUnder5;
   if (min < 60) return l.routingTimeMinutes(min);
   final h = min ~/ 60, m = min % 60;
   return m == 0 ? l.routingTimeHours(h) : l.routingTimeHoursMinutes(h, m);
 }
+
+/// Die geschätzte Zeit als ganze Sekunden, für Anzeige und gespeicherte
+/// Fahrt. Unendlich oder NaN (#356) wird 0 — `.round()` würfe dort, und
+/// zwar beim Bauen des Blatts.
+int routeSeconds(double seconds) => seconds.isFinite && seconds > 0 ? seconds.round() : 0;
 
 /// Die Route als GPX-Spur (#150): nur die Linie, der Name nennt den
 /// Trail. Keine Höhen — die Engine kennt sie je Kante, nicht je Punkt,

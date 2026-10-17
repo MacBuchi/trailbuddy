@@ -23,6 +23,7 @@ import '../fakes/fake_backend.dart';
 import '../fakes/fake_rides.dart';
 import '../fakes/fake_settings.dart';
 import '../fakes/fake_tiles.dart';
+import '../fakes/l10n_de.dart';
 import '../fakes/test_app.dart';
 
 final _tile = tileAt(48.0, 9.0, 13);
@@ -180,6 +181,16 @@ void main() {
     await learn(tester);
     expect(find.textContaining('Kein gespeicherter Bereich deckt deine Fahrten'), findsOneWidget);
     expect(settings.riderCalibration, isNull);
+  });
+
+  testWidgets('#356: scheitert das Lernen, sagt es die Leiste, und der Knopf geht wieder', (tester) async {
+    await open(tester);
+    rides.failOnList = true;
+    await learn(tester);
+    expect(find.text(l10nDe.importLearnFailed), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    final button = tester.widget<ButtonStyleButton>(find.byKey(const ValueKey('rider-learn')));
+    expect(button.onPressed, isNotNull);
   });
 
   group('Fahrten aus GPX (#188)', () {

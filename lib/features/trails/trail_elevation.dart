@@ -30,7 +30,8 @@ class ElevationProfile {
           geo.haversineM(pts[i - 1].latitude, pts[i - 1].longitude,
               pts[i].latitude, pts[i].longitude));
     }
-    if (dist.last <= 0) return null;
+    // Auch NaN (ein Punkt ohne Lage): Das Profil teilt durch die Länge.
+    if (!(dist.last > 0)) return null;
     return ElevationProfile._(dist, e);
   }
 

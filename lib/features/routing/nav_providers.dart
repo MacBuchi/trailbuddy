@@ -278,6 +278,9 @@ class NavController extends Notifier<NavSession?> {
     }
     state = updated;
     if (next.arrived && !wasArrived) {
+      // Angekommen, kurz wieder weg, wieder angekommen: nur EIN Timer —
+      // der erste beendete sonst eine Navigation, die er nicht kennt.
+      _linger?.cancel();
       _linger = Timer(kNavArrivedLinger, stop);
     }
   }

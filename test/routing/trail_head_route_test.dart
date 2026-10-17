@@ -89,6 +89,15 @@ void main() {
     expect(routeTimeLabel(l10nDe, 4680), '1 h 20 min', reason: '78 min → 80');
   });
 
+  test('Unendliche oder NaN-Zeit wirft nicht (#356)', () {
+    expect(routeTimeLabel(l10nDe, double.infinity), 'unter 5 min');
+    expect(routeTimeLabel(l10nDe, double.nan), 'unter 5 min');
+    expect(routeSeconds(double.infinity), 0);
+    expect(routeSeconds(double.nan), 0);
+    expect(routeSeconds(-3), 0);
+    expect(routeSeconds(89.6), 90);
+  });
+
   test('GPX: die ganze Linie, Name nennt den Trail, keine Höhen', () {
     final g = buildRoadGraph([_way([(0, 0), (500, 0)])], lat0: 47.5).graph;
     final r = planTrailHeadRoute(g, _m([(0, 4)]).single, _m([(500, 4)]).single, bio).route!;
