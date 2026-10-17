@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:geolocator/geolocator.dart' show Position;
 import 'package:go_router/go_router.dart';
 import 'package:latlong2/latlong.dart';
 
@@ -34,6 +35,7 @@ import '../routing/nav_sections.dart';
 import '../routing/nav_view.dart';
 import '../routing/route_progress.dart' show followCenter, kNavZoom;
 import '../routing/route_elevation.dart' show RouteCursorSymbol, routeProfileCursorProvider;
+import '../routing/route_profile.dart' show RiderProfile, RoutePrefs;
 import '../routing/route_via_providers.dart';
 import '../routing/route_vias.dart';
 import '../routing/via_handles.dart';
@@ -732,12 +734,31 @@ class _MapScreenState extends ConsumerState<MapScreen> {
           points: request.points,
           title: request.title,
           startAlongM: request.startAlongM,
-          sections: navSectionsOfLine(context.l10n, request.points, trails));
+          sections: navSectionsOfLine(context.l10n, request.points, trails),
+          fromPlanner: request.fromPlanner,
+          profile: request.profile,
+          routePrefs: request.routePrefs);
     }
     final choice = await showNavStartSheet(context,
         title: request.title, canRecord: canRecord, summary: navStartSummary(l, request));
     if (choice == null || !mounted) return;
-    final fix = await ref.read(positionFixProvider)();
+    // Der erste Fix kann dauern (kalter Empfänger): Die Leiste sagt es,
+    // bis er da ist (Konzept-Routing 10.6).
+    final searching = messenger.showSnackBar(SnackBar(
+      key: const ValueKey('nav-searching'),
+      duration: const Duration(minutes: 2),
+      content: Row(children: [
+        const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)),
+        const SizedBox(width: 12),
+        Expanded(child: Text(l.mapNavSearching)),
+      ]),
+    ));
+    Position? fix;
+    try {
+      fix = await ref.read(positionFixProvider)();
+    } finally {
+      searching.close();
+    }
     if (!mounted) return;
     if (fix == null) {
       messenger.showSnackBar(SnackBar(content: Text(l.mapNavNoPosition)));
@@ -761,15 +782,18 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       }
     }
     final nav = ref.read(navigationProvider.notifier);
-    if (!_beginNavigation(request.points, request.title, request.startAlongM, request.sections)) return;
+    if (!_beginNavigation(request.points, request.title, request.startAlongM, request.sections,
+        profile: request.profile, routePrefs: request.routePrefs)) {
+      return;
+    }
     nav.onFix(LatLng(fix.latitude, fix.longitude), headingDeg: fix.heading, speedMps: fix.speed, at: fix.timestamp);
     _follow();
   }
 
-  bool _beginNavigation(List<LatLng> points, String title, double startAlongM, NavSections? sections) {
-    if (!ref
-        .read(navigationProvider.notifier)
-        .start(points, title, startAlongM: startAlongM, sections: sections)) {
+  bool _beginNavigation(List<LatLng> points, String title, double startAlongM, NavSections? sections,
+      {RiderProfile? profile, RoutePrefs? routePrefs}) {
+    if (!ref.read(navigationProvider.notifier).start(points, title,
+        startAlongM: startAlongM, sections: sections, profile: profile, routePrefs: routePrefs)) {
       return false;
     }
     _fittedOnce = true;

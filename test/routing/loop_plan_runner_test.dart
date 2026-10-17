@@ -93,6 +93,15 @@ class _BrokenRider implements RiderParams {
   RoutePrefs get prefs => const RoutePrefs();
 }
 
+/// Eine Aufgabe, die nur sagt, wo sie lief — und wie viele Kanten der
+/// Graph dort hat.
+class _WhereJob implements GraphJob<(String, int)> {
+  const _WhereJob();
+
+  @override
+  (String, int) runOn(RoadGraph g, LoopSearchCache cache) => (Isolate.current.debugName ?? '', g.edges.length);
+}
+
 void main() {
   test('die Eingabe trägt das Quadrat: vier Kanten, Höhen aus dem Raster', () async {
     final built = buildGraphFrom(_square());
@@ -124,6 +133,20 @@ void main() {
     expect(plan.summary!.gainM, want.summary!.gainM);
     expect(plan.summary!.timeS, want.summary!.timeS);
     expect(plan.points.length, want.points.length);
+  });
+
+  test('#356 PR 9: jede Aufgabe läuft drüben, auf dem gehaltenen Graphen', () async {
+    final runner = IsolateLoopPlanRunner();
+    addTearDown(runner.dispose);
+    await expectLater(runner.run(const _WhereJob()), throwsStateError, reason: 'ohne Bau kein Graph');
+    await runner.build(_square());
+    final (where, edges) = await runner.run(const _WhereJob());
+    expect(where, 'loop-planner');
+    expect(where, isNot(Isolate.current.debugName));
+    expect(edges, 4);
+    final inline = InlineLoopPlanRunner();
+    await inline.build(_square());
+    expect(await inline.run(const _WhereJob()), (Isolate.current.debugName ?? '', 4));
   });
 
   test('ohne Bau keine Rechnung; ein zweiter Bau ersetzt den ersten', () async {

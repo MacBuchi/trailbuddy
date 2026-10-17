@@ -214,6 +214,10 @@
   "@mapMenuExternalNav": {
     "description": "Menü beim langen Druck auf die Karte: an eine andere App übergeben."
   },
+  "mapNavSearching": "Suche Standort …",
+  "@mapNavSearching": {
+    "description": "Leiste beim Start der Navigation, solange der erste Standort-Fix aussteht."
+  },
   "mapNavNoPosition": "Ohne Standort keine Navigation — Standort ist aus oder für TrailBuddy nicht erlaubt.",
   "@mapNavNoPosition": {
     "description": "Leiste: Navigation braucht den Standort."
@@ -3259,6 +3263,18 @@
   "learnNoClimb": "Kein Aufstieg über 100 Höhenmeter am Stück gefunden — nichts zu lernen.",
   "@learnNoClimb": {
     "description": "Lernen: kein ausreichend langer Aufstieg."
+  },
+  "learnSkipped": "{skipped, plural, =1{Eine ältere Fahrt blieb} other{{skipped} ältere Fahrten blieben}} außen vor — ein Lauf sieht höchstens {max} Fahrten an.",
+  "@learnSkipped": {
+    "description": "Anhang an den Satz nach dem Lernen, wenn mehr brauchbare Fahrten da waren als ein Lauf einordnet (die jüngsten zählen).",
+    "placeholders": {
+      "skipped": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
+    }
   },
   "navStartTitle": "Navigieren",
   "@navStartTitle": {

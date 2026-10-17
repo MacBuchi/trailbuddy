@@ -83,9 +83,14 @@ class FakePositionFix {
   Position? next;
   int calls = 0;
 
+  /// Gesetzt, wartet der Fix, bis der Test ihn vervollständigt — wie ein
+  /// kalter Empfänger (#356 PR 9, „Suche Standort …").
+  Completer<Position?>? gate;
+
   Future<Position?> call() async {
     calls++;
-    return next;
+    final gate = this.gate;
+    return gate == null ? next : gate.future;
   }
 }
 

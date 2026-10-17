@@ -2,6 +2,20 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Fahrerprofil lernen und „Zurück zur Route“ ohne stehende Karte
+
+*Version 0.131.2, 2026-10-18*
+
+- „Aus meinen Fahrten lernen“ liest je Fahrt nur noch die Kartenkacheln
+  entlang ihrer Linie statt des ganzen Rahmens, baut das Wegenetz im
+  Hintergrund und sieht höchstens die 20 jüngsten Fahrten an — der Satz
+  danach sagt, wenn ältere außen vor blieben.
+- „Zurück zur Route“ rechnet im Hintergrund und mit dem Rad und dem Stil,
+  mit dem die Route geplant wurde (bisher mit den Vorgaben). Ein zweiter
+  Tipp in der Nähe nutzt dasselbe Netz.
+- Beim Start der Navigation steht „Suche Standort …“, bis der erste
+  Standort da ist.
+
 ## Planer: Karte bleibt flüssig, während das Wegenetz entsteht
 
 *Version 0.131.1, 2026-10-18*

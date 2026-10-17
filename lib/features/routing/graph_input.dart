@@ -17,6 +17,7 @@
 // baut dieselbe Funktion an Ort und Stelle (`InlineLoopPlanRunner`).
 import '../../core/stall_watch.dart';
 import '../offline_areas/height_tiles.dart';
+import 'loop_planner.dart' show LoopSearchCache;
 import 'road_graph.dart';
 import 'road_graph_loader.dart' show RoadTileBytes, buildRoadGraphFrom;
 import 'trail_overlay.dart';
@@ -51,6 +52,16 @@ class GraphInput {
       roads.fold<int>(0, (s, r) => s + r.bytes.length) +
       ways.fold<int>(0, (s, w) => s + w.bytes.length) +
       (heights?.length ?? 0) * kHeightGrid * kHeightGrid * 2;
+}
+
+/// Eine Rechnung auf dem Graphen drüben (#356 PR 9): hinüber gehen nur
+/// ihre Eingaben, zurück kommt [R] — beides muss sendbar sein (keine
+/// Closures, keine Provider). [runOn] läuft im Isolate, mit dem
+/// Suchspeicher des Runners. Die Runde (`LoopRequest`), „Zurück zur
+/// Route" (`TrailHeadJob`) und das Einordnen einer Fahrt (`CalibJob`)
+/// sind welche.
+abstract interface class GraphJob<R> {
+  R runOn(RoadGraph g, LoopSearchCache cache);
 }
 
 /// Was der Bau gemacht hat — die Zahlen, die der UI-Isolate zurückbekommt

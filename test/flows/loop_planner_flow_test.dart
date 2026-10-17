@@ -27,7 +27,7 @@ import 'package:trailbuddy/features/routing/graph_input.dart';
 import 'package:trailbuddy/features/routing/loop_plan_runner.dart';
 import 'package:trailbuddy/features/routing/route_profile.dart' show RiderProfile;
 import 'package:trailbuddy/features/routing/loop_planner_controller.dart';
-import 'package:trailbuddy/features/routing/loop_planner.dart' show LoopPlan;
+import 'package:trailbuddy/features/routing/loop_planner.dart' show LoopPlan, LoopSearchCache;
 import 'package:trailbuddy/features/routing/online_fill.dart';
 import 'package:trailbuddy/features/rides/road_index.dart' show RoadCoverage;
 import 'package:trailbuddy/features/routing/planning_graph.dart';
@@ -138,6 +138,9 @@ class _SpyRunner implements LoopPlanRunner {
   }
 
   @override
+  Future<R> run<R>(GraphJob<R> job) => _inline.run(job);
+
+  @override
   void dispose() => _inline.dispose();
 }
 
@@ -168,6 +171,9 @@ class _HeldRunner implements LoopPlanRunner {
     held.add((graph: _graph!, request: request, done: done));
     return done.future;
   }
+
+  @override
+  Future<R> run<R>(GraphJob<R> job) async => job.runOn(_graph!, LoopSearchCache());
 
   @override
   void dispose() {

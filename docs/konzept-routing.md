@@ -1184,8 +1184,8 @@ Höhenprofil, Abschnitte, ziehbare Punkte (4), „Navigation starten",
 „Als Fahrt speichern", „Als GPX", zu einem Ziel „Anfahrt" (die
 Navi-App, auch wenn nichts zu rechnen ging).
 
-*Stand 0.130.0 (#356 PR 7a):* Alle Einstiege der Tabelle sind gebaut
-außer „Zurück zur Route" (PR 9); das Ziel-Blatt `_RouteSheet` ist weg.
+*Stand 0.131.2 (#356 PR 7a, PR 9):* Alle Einstiege der Tabelle sind
+gebaut; das Ziel-Blatt `_RouteSheet` ist weg.
 Der Navi-Symbol-Einstieg und „Zum Trailkopf" nehmen den Stil aus
 `navDefault`, ohne gemerkten den des Planers.
 
@@ -1266,9 +1266,9 @@ und keine Planer-Ebene.
 Seit 0.80.1 RECHNET der Planer im Isolate (2.7); bis 0.131.0 wurde der
 Graph im UI-Isolate GEBAUT — auf Android seit Flutter 3.29 der
 Haupt-Thread. Das war der ANR aus #354 (36 s in `findCrossings`).
-**Gebaut seit 0.131.1 (#356 PR 8)** für den Planer; Kalibrierung und
-„Zurück zur Route" folgen mit PR 9, der Wert der Grenze mit der
-Messung am Pixel (PR 4/10):
+**Gebaut seit 0.131.1 (#356 PR 8)** für den Planer, seit 0.131.2 (PR 9)
+auch für Kalibrierung und „Zurück zur Route"; der Wert der Grenze kommt
+mit der Messung am Pixel (PR 4/10):
 
 - **Der UI-Isolate liest nur noch Bytes.** Er sammelt die Kacheln
   (Bereiche, online ergänzt) und die Trails als `GraphInput`; Dekodieren,
@@ -1286,12 +1286,18 @@ Messung am Pixel (PR 4/10):
 - **Kleinere Rahmen**: Verbinder zählen nur in der Nähe von Start,
   Ziel, Zwischenpunkten und gewählten Trails, nicht alle im Radius (bis
   30 km); den Pool der spaßigen Trails nimmt nur Spaßig ohne Auswahl.
-- **Kalibrierung und „Zurück zur Route" ebenso**: Die Kalibrierung liest
-  je Fahrt nur die Kacheln eines Korridors um die Linie statt ihres
-  ganzen Rahmens, höchstens 20 Fahrten je Lauf, im Isolate; „Zurück zur
-  Route" rechnet im Isolate mit Stil und Rad der Route (bis 0.127.2: mit
-  den Vorgaben). Beim Start der Navigation steht „Suche Standort…", bis
-  der erste Fix da ist.
+- **Kalibrierung und „Zurück zur Route" ebenso** (0.131.2): Die
+  Kalibrierung liest je Fahrt nur die Kacheln eines Korridors um die
+  Linie statt ihres ganzen Rahmens (`tilesAlong`), höchstens 20 Fahrten
+  je Lauf (die jüngsten; der Satz danach nennt die übrigen), und baut und
+  ordnet im Isolate des Planers ein (`CalibJob`); „Zurück zur Route"
+  rechnet im Isolate (`TrailHeadJob`) mit Stil und Rad der Route, die der
+  Planer an die Navigation mitgibt (bis 0.131.1: mit den Vorgaben; eine
+  Fahrt aus „Meine Fahrten" oder eine nach Neustart wiederaufgenommene
+  Navigation hat keins — dann das aktuelle Rad und die gemerkten
+  Vorlieben), auf einem Rahmen mit 2 km Rand, den ein zweiter Tipp
+  wiederverwendet. Beim Start der Navigation steht „Suche Standort …",
+  bis der erste Fix da ist.
 - **Im Web** gibt es keinen Isolate (2.7, `InlineLoopPlanRunner`) — dort
   gelten nur die Grenzen.
 

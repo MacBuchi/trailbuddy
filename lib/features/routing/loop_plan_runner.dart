@@ -11,9 +11,11 @@
 //   Höhenraster, Trails), der Isolate BAUT den Graphen ([build]) und
 //   behält ihn; jede Rechnung schickt nur Start, Budget, Profil und
 //   Trails ([plan]).
-// - **Der Graph lebt drüben.** Der UI-Isolate hat keinen — wer hier
-//   einen braucht (bis PR 9: „Zurück zur Route", Kalibrierung), baut
-//   sich einen eigenen aus denselben Bytes (`buildGraphFrom`).
+// - **Der Graph lebt drüben.** Der UI-Isolate hat keinen. Wer etwas auf
+//   einem Graphen rechnen will, schickt eine [GraphJob] — die Runde
+//   ([LoopRequest]), „Zurück zur Route" (`TrailHeadJob`) und das
+//   Einordnen einer Fahrt für die Kalibrierung (`CalibJob`, #356 PR 9) —
+//   und bekommt nur das Ergebnis zurück.
 // - **Im Browser und im Test rechnet er an Ort und Stelle**
 //   ([InlineLoopPlanRunner]): Das Web hat keine Isolate, und ein
 //   Widget-Test läuft in einer Zone mit falscher Uhr, in der ein echter
@@ -28,8 +30,8 @@ import 'loop_planner.dart';
 import 'road_graph.dart';
 import 'route_profile.dart';
 
-/// Eine Rechnung ohne den Graphen — das, was je Rechnung hinübergeht.
-class LoopRequest {
+/// Eine Runde oder Route ohne den Graphen — das, was je Rechnung hinübergeht.
+class LoopRequest implements GraphJob<LoopPlan> {
   const LoopRequest({
     required this.start,
     required this.profile,
@@ -89,6 +91,9 @@ class LoopRequest {
       tune: tune,
       waypoints: waypoints,
       bare: bare);
+
+  @override
+  LoopPlan runOn(RoadGraph g, LoopSearchCache cache) => planOn(g, cache: cache);
 }
 
 abstract interface class LoopPlanRunner {
@@ -100,9 +105,12 @@ abstract interface class LoopPlanRunner {
   /// der Isolate verloren ging — dann baut der Aufrufer neu.
   bool get hasGraph;
 
-  /// Rechnet [request] auf dem gebauten Graphen. Ohne Graph ein
-  /// [StateError].
+  /// Rechnet [request] auf dem gebauten Graphen — [run] für die Runde.
   Future<LoopPlan> plan(LoopRequest request);
+
+  /// Rechnet [job] auf dem gebauten Graphen, drüben. Ohne Graph ein
+  /// [StateError].
+  Future<R> run<R>(GraphJob<R> job);
 
   /// Gibt den Isolate und seinen Graphen frei.
   void dispose();
@@ -125,10 +133,13 @@ class InlineLoopPlanRunner implements LoopPlanRunner {
   bool get hasGraph => _graph != null;
 
   @override
-  Future<LoopPlan> plan(LoopRequest request) async {
+  Future<LoopPlan> plan(LoopRequest request) => run(request);
+
+  @override
+  Future<R> run<R>(GraphJob<R> job) async {
     final g = _graph;
     if (g == null) throw StateError('kein Graph gebaut');
-    return request.planOn(g, cache: _cache);
+    return job.runOn(g, _cache);
   }
 
   @override

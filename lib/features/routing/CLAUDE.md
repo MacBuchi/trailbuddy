@@ -330,9 +330,30 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     Anker in den Rahmen** (`kPlanConnectorMarginM`, 3 km um Start, Ziel,
     Zwischenpunkte, gewählte Trails und die des Umwegs; bis 0.131.0 alle
     im Radius der Liste — ein 60 × 60-km-Rahmen für eine 12-km-Runde).
-    Noch im UI-Isolate gebaut, aus denselben Bytes: „Zurück zur Route"
-    (`nav.graph`) und die Kalibrierung (`loadRoadGraph` = lesen + Höhen +
-    `buildRoadGraphFrom`) — PR 9. Tests, die Kacheln brauchen, kodieren
+    **Seit 0.131.2 rechnet der Runner jede `GraphJob`** (#356 PR 9,
+    `graph_input.dart`): `run(job)` schickt die Aufgabe hinüber, `runOn`
+    läuft drüben auf dem gehaltenen Graphen — die Runde (`LoopRequest`),
+    „Zurück zur Route" (`TrailHeadJob` in `trail_head_route.dart`) und
+    das Einordnen einer Fahrt (`CalibJob` in `ride_calibration.dart`);
+    Eingaben und Ergebnis müssen sendbar sein (keine Closures). Die
+    Kalibrierung legt sich je Lauf EINEN Runner an und baut je Fahrt neu
+    (`readRoadTiles(only: tilesAlong(...))` — nur die Kacheln unter der
+    Linie, mit 30 m Rand; `kCalibMaxRides` = 20, die jüngsten);
+    `loadRoadGraph` baut im aufrufenden Isolate und hat nur noch Tests
+    als Aufrufer. `NavController` hält für „Zurück zur Route" einen
+    eigenen Runner samt Rahmen (`kNavRejoinGraphMarginM` = 2 km Rand;
+    ein Tipp im Rahmen baut nicht neu; `stop` gibt ihn frei) und rechnet
+    mit `NavSession.profile`/`routePrefs`, die das Ergebnis-Blatt über
+    `NavRequest` mitgibt (`session.prefs.planRoute`) — ohne (Fahrt aus
+    „Meine Fahrten", Wiederaufnahme nach Neustart: `NavRouteData` trägt
+    kein Profil) das aktuelle Rad mit `LoopPrefs.route`.
+    `graph_isolation_test` bewacht seitdem auch `ride_calibrator.dart`
+    und `nav_providers.dart` (dort darf kein `RoadGraph` und kein
+    `loadRoadGraph(` mehr stehen), `nav_rejoin_test` die Aufgabe mit Rad
+    und Stil, `tiles_along_test` den Korridor. **„Suche Standort …"**
+    (`nav-searching`) steht als Leiste, solange `positionFixProvider`
+    beim Start der Navigation aussteht; `FakePositionFix.gate` hält den
+    Fix im Test. Tests, die Kacheln brauchen, kodieren
     sie mit `test/fakes/graph_tiles.dart` (`roadTilesOf`, `heightTilesOf`);
     `_HeldRunner` im Flow-Test baut sofort inline und hält nur `plan`.
     **Keine verschachtelten Records als Schlüssel oder Element in
@@ -449,12 +470,12 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     die neue Wahrheit. Was fehlt, bleibt Vorgabe, und die Anzeige sagt
     je Zahl „(gelernt)".
   - **Auf Knopfdruck, nicht nach jeder Fahrt**: Das Einordnen baut je
-    Fahrt den Graphen ihrer Bereiche — `loadRoadGraph(requireComplete:
-    false)` liefert dafür auch einen halben Graphen (Abschnitte in
-    fehlenden Kacheln sind „abseits" und zählen nicht); geplant wird
-    nie auf einem halben. Geplante Fahrten, Fahrten ohne Profil (vor
-    0.70.0) und ohne Höhen lernen nichts; der Satz danach sagt, was
-    gezählt hat.
+    Fahrt einen Graphen aus den Kacheln unter ihrer Linie (seit 0.131.2
+    im Rechen-Isolate, Korridor statt Rahmen, höchstens 20 Fahrten — oben
+    bei #356 PR 9), auch einen halben (Abschnitte in fehlenden Kacheln
+    sind „abseits" und zählen nicht); geplant wird nie auf einem halben.
+    Geplante Fahrten, Fahrten ohne Profil (vor 0.70.0) und ohne Höhen
+    lernen nichts; der Satz danach sagt, was gezählt hat.
   - **Gerätelokal** (`Settings.riderCalibration`, JSON je Profil,
     `RiderCalibrations.encode/parse`, Unlesbares ⇒ Vorgaben; seit
     0.127.2 auch jede Zahl außerhalb der Spanne — eine gespeicherte 0
@@ -689,8 +710,9 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     (Vorgabe an, `FakeSettings` ebenso).
   - **„Zurück zur Route" und „zuletzt navigiert"** (Schritt 1b, seit
     0.95.0): `NavController.rejoin` rechnet mit `planTrailHeadRoute` vom
-    Standort zum Punkt `kNavRejoinTargetM` (200 m) voraus, Graph und
-    Profil wie das Blatt „Zum Trailkopf"; das Ergebnis fällt weg, sobald
+    Standort zum Punkt `kNavRejoinTargetM` (200 m) voraus — seit 0.131.2
+    im Rechen-Isolate mit Rad und Stil der Route (#356 PR 9, oben); das
+    Ergebnis fällt weg, sobald
     ein Fix wieder auf der Linie liegt — auch wenn er während der
     Rechnung kommt (`after.rejoin != computing` ⇒ verworfen). Ohne Graph
     oder mit dem Standort an keinem Weg heißt es `noArea`, sonst `noPath`;

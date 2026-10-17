@@ -27,6 +27,8 @@ import 'package:latlong2/latlong.dart';
 
 import '../rides/ride_split.dart' show smoothElevation;
 import '../rides/ride_track.dart';
+import 'graph_input.dart' show GraphJob;
+import 'loop_planner.dart' show LoopSearchCache;
 import 'road_graph.dart';
 import 'route_profile.dart';
 
@@ -34,6 +36,13 @@ import 'route_profile.dart';
 const kCalibMinGainM = 100.0;
 const kCalibDropEndM = 15.0;
 const kCalibWindow = 7;
+
+/// Höchstens so viele Fahrten ordnet EIN Lernlauf ein (#356 PR 9,
+/// Konzept-Routing 10.6), die jüngsten zuerst: Jede Fahrt liest ihre
+/// Kacheln und baut einen Graphen; mit 100 Fahrten stand der Knopf
+/// minutenlang. Was älter ist, hat das Profil ohnehin schon gelernt, als
+/// es neu war — und der Satz danach sagt, wie viele außen vor blieben.
+const kCalibMaxRides = 20;
 
 /// Ein Abschnitt zählt als Rate erst ab dieser Dauer (Werkzeug: 300 s).
 const kCalibMinSectionS = 300.0;
@@ -182,6 +191,17 @@ List<CalibSample> calibSamplesOf(Ride ride, RoadGraph? g) {
     out.add(CalibSample.flat(length / 1000 / (secs / 3600)));
   }
   return out;
+}
+
+/// Das Einordnen EINER Fahrt auf dem Graphen drüben (#356 PR 9): hinüber
+/// geht die Fahrt (Punkte mit Zeit und Höhe), zurück kommen ihre Messungen.
+class CalibJob implements GraphJob<List<CalibSample>> {
+  const CalibJob(this.ride);
+
+  final Ride ride;
+
+  @override
+  List<CalibSample> runOn(RoadGraph g, LoopSearchCache cache) => calibSamplesOf(ride, g);
 }
 
 WayClass? _dominant(Map<WayClass?, double> mix) {
