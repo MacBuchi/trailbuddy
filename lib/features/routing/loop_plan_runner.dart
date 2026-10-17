@@ -38,6 +38,7 @@ class LoopRequest {
     this.searchBudget = kLoopSearchBudget,
     this.tune,
     this.waypoints = const [],
+    this.bare = false,
   });
 
   final LatLng start;
@@ -56,6 +57,24 @@ class LoopRequest {
   /// Vorab gesetzte Zwischenpunkte (#331 Schritt 4).
   final List<LatLng> waypoints;
 
+  /// Eine Route ohne Trail ist auch ein Ergebnis (#356, A → B).
+  final bool bare;
+
+  /// Dieselbe Rechnung mit fester Folge — das Tunen (#234) braucht genau
+  /// die Eingaben der gezeigten Planung, nicht die, die jetzt eingestellt
+  /// sind.
+  LoopRequest withTune(LoopTune tune) => LoopRequest(
+      start: start,
+      profile: profile,
+      budget: budget,
+      pool: pool,
+      returnToStart: returnToStart,
+      end: end,
+      searchBudget: searchBudget,
+      tune: tune,
+      waypoints: waypoints,
+      bare: bare);
+
   LoopPlan planOn(RoadGraph g, {LoopSearchCache? cache}) => planLoop(g,
       start: start,
       profile: profile,
@@ -66,7 +85,8 @@ class LoopRequest {
       searchBudget: searchBudget,
       cache: cache,
       tune: tune,
-      waypoints: waypoints);
+      waypoints: waypoints,
+      bare: bare);
 }
 
 abstract interface class LoopPlanRunner {

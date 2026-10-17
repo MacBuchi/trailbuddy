@@ -9,8 +9,8 @@
 // Zwei Wege (#176, Feldbericht 0.73.0: „Routenoption spaßig oder direkt"):
 // - **Direkt**: der günstigste Weg (A*, Konzept-Routing 3.1).
 // - **Spaßig**: der Rundenplaner mit Ziel (`planLoop(end:)`) — er nimmt
-//   Abfahrten auf dem Weg mit, im Budget [kFunTimeFactor] × die direkte
-//   Zeit (mindestens [kFunExtraS] mehr) und [kFunClimbFactor] × deren
+//   Abfahrten auf dem Weg mit, im Budget `kFunTimeFactor` × die direkte
+//   Zeit (mindestens `kFunExtraS` mehr) und `kFunClimbFactor` × deren
 //   Höhenmeter. Passt keine, steht der direkte Weg da, und das Blatt sagt
 //   es.
 //
@@ -26,7 +26,6 @@
 // - **Profil und Weg lassen sich im Blatt umschalten**: Der Graph bleibt,
 //   nur die Suche läuft neu.
 import 'dart:async';
-import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -49,7 +48,6 @@ import '../rides/ride_providers.dart';
 import '../rides/ride_track.dart';
 import '../trails/gpx.dart';
 import '../trails/gpx_writer.dart';
-import '../trails/trail_geometry.dart' show haversineM;
 import '../trails/trail_navigation.dart';
 import '../trails/trail_providers.dart';
 import 'loop_planner.dart';
@@ -63,6 +61,7 @@ import 'ride_calibrator.dart';
 import 'road_graph.dart';
 import 'route_elevation.dart';
 import 'route_profile.dart';
+import 'route_result.dart';
 import 'route_search.dart' show steepNote;
 import 'route_via_providers.dart';
 import 'route_vias.dart';
@@ -70,14 +69,6 @@ import 'via_handles.dart';
 import 'route_band.dart';
 import 'trail_head_providers.dart';
 import 'trail_head_route.dart';
-
-/// Spaßig darf so viel länger dauern als direkt — und mindestens so viel
-/// mehr (sonst hätte ein 10-Minuten-Weg keinen Platz für einen Trail).
-/// Startwerte, nicht gemessen.
-const kFunTimeFactor = 1.6;
-const kFunExtraS = 20 * 60.0;
-const kFunClimbFactor = 1.5;
-const kFunExtraClimbM = 200.0;
 
 /// Wohin die Route führt.
 class RouteTarget {
@@ -203,19 +194,9 @@ class _RouteSheetState extends ConsumerState<_RouteSheet> {
   /// Die Abfahrten, die der spaßige Weg mitnehmen darf: in Reichweite des
   /// Starts, nicht weiter vom Ziel als der Start selbst plus 3 km, ohne
   /// Meldung — und nie der Ziel-Trail selbst (den fährt man danach).
-  List<Trail> _funPool(LatLng from) {
-    final trails = ref.read(trailsProvider).valueOrNull ?? const <Trail>[];
-    final reach = haversineM(from.latitude, from.longitude, widget.target.point.latitude,
-            widget.target.point.longitude) +
-        3000;
-    final pool = loopPoolOf(trails, from);
-    bool near(LatLng p) =>
-        haversineM(p.latitude, p.longitude, widget.target.point.latitude, widget.target.point.longitude) <= reach;
-    return [
-      for (final t in pool.inReach)
-        if (t.id != widget.target.trail?.id && near(t.start) && near(t.end)) t,
-    ];
-  }
+  List<Trail> _funPool(LatLng from) => funPoolOf(
+      ref.read(trailsProvider).valueOrNull ?? const <Trail>[], from, widget.target.point,
+      exceptId: widget.target.trail?.id);
 
   /// Die Suche auf dem stehenden Graphen — beim ersten Mal und bei jedem
   /// Wechsel von Profil oder Weg. Eine spätere Rechnung (schneller
@@ -298,14 +279,8 @@ class _RouteSheetState extends ConsumerState<_RouteSheet> {
     }
   }
 
-  LoopBudget _funBudget(TrailHeadRoute direct, LoopPrefs prefs) {
-    final t = direct.summary.timeS, c = direct.summary.gainM;
-    return LoopBudget(
-      timeS: math.max(t * kFunTimeFactor, t + kFunExtraS) / (1 - kLoopTimeReserve),
-      climbM: math.max(c * kFunClimbFactor, c + kFunExtraClimbM),
-      hikingM: math.max(prefs.hikingKm * 1000, direct.summary.hikingM),
-    );
-  }
+  LoopBudget _funBudget(TrailHeadRoute direct, LoopPrefs prefs) => funBudgetOf(
+      timeS: direct.summary.timeS, gainM: direct.summary.gainM, hikingM: direct.summary.hikingM, hikingKm: prefs.hikingKm);
 
   /// Dieselbe Route durch [vias] (#234): der direkte Weg mit Punkten im
   /// einen Teilstück, der spaßige mit fester Folge der Trails. Das

@@ -1412,15 +1412,18 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                 children: [
                   const UpdateBanner(),
                   const _OutboxBanner(),
-                  // Im Planer, solange nichts gewählt ist: wie es geht.
-                  if (loop.open && !loopPicking && loop.drawTool == null && loop.selected.isEmpty)
+                  // Im Planer, solange nichts gewählt ist: wie es geht — zum
+                  // Ziel auch ganz ohne Trail (#356); nicht über einer Route.
+                  if (loop.open && !loopPicking && loop.drawTool == null && loop.selected.isEmpty && loop.plan == null)
                     Card(
                       key: const ValueKey('loop-hint'),
                       margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
                       child: ListTile(
                         dense: true,
                         leading: const Icon(Icons.alt_route),
-                        title: Text(context.l10n.mapLoopHint),
+                        title: Text(loop.prefs.endMode == LoopEndMode.target
+                            ? context.l10n.mapLoopHintRoute
+                            : context.l10n.mapLoopHint),
                       ),
                     ),
                   // Der Planer wartet auf seinen Start (#158 Schritt 5).
