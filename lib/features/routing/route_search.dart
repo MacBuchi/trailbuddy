@@ -118,6 +118,38 @@ class SearchResult {
   return (cost: cost, gain: gain, loss: loss, steep: steep);
 }
 
+/// Die Kosten jeder Kante in beiden Richtungen für EIN Profil (#379),
+/// einmal gerechnet statt bei jedem Schritt jeder Suche: Der Planer sucht
+/// je Trail-Ende über den halben Rahmen, und das Profil steht für die
+/// ganze Rechnung fest. Gültig nur für den Stand des Graphen, in dem sie
+/// entstanden sind ([RoadGraph.revision]): Danach (eine Teilung kürzt
+/// eine Kante und teilt ihre Höhen) rechnet [of] jede Kante wieder selbst
+/// — dieselbe Funktion, also dieselbe Zahl. Der Planer hängt sie an
+/// seinen Suchspeicher, der bei einem neuen Stand ohnehin leer wird.
+class EdgeCosts {
+  EdgeCosts(this.graph, this.profile)
+      : _revision = graph.revision,
+        _cost = Float64List(2 * graph.edges.length) {
+    for (var ei = 0; ei < graph.edges.length; ei++) {
+      final e = graph.edges[ei];
+      _cost[2 * ei] = edgeCostFrom(graph, ei, e.a, profile).cost;
+      // Auf einer Schleife (a == b) ist jede Richtung „vorwärts".
+      _cost[2 * ei + 1] = e.a == e.b ? _cost[2 * ei] : edgeCostFrom(graph, ei, e.b, profile).cost;
+    }
+  }
+
+  final RoadGraph graph;
+  final RiderParams profile;
+  final int _revision;
+  final Float64List _cost;
+
+  /// Die Kosten der Kante [ei] ab Knoten [from].
+  double of(int ei, int from) {
+    if (graph.revision != _revision) return edgeCostFrom(graph, ei, from, profile).cost;
+    return _cost[graph.edges[ei].a == from ? 2 * ei : 2 * ei + 1];
+  }
+}
+
 /// Darf die Kante [e] von Knoten [from] aus befahren werden? Einbahn
 /// (nur Straßen) und Trail-Richtung (#174) sperren je eine Richtung.
 bool edgeOpenFrom(GraphEdge e, int from) {
@@ -130,11 +162,13 @@ bool edgeOpenFrom(GraphEdge e, int from) {
 /// Kosten ≤ [limit] erreichbar sind; mit [target] endet die Suche dort.
 /// [allow] lässt Kanten aus — der Planer sucht damit die Verbindung OHNE
 /// Wanderweg, wenn das Budget „höchstens Wanderweg" sonst nicht hält.
+/// [costs] sind die vorab gerechneten Kosten für [p] (#379).
 SearchResult dijkstra(RoadGraph g, int src, RiderParams p,
     {double limit = double.infinity,
     int? target,
     double Function(int node)? heuristic,
-    bool Function(GraphEdge edge)? allow}) {
+    bool Function(GraphEdge edge)? allow,
+    EdgeCosts? costs}) {
   // Während der Suche Felder über den ganzen Graphen (eine Suche zur Zeit),
   // danach nur die erreichten Knoten.
   final count = g.nodes.length;
@@ -156,8 +190,7 @@ SearchResult dijkstra(RoadGraph g, int src, RiderParams p,
       if (!edgeOpenFrom(e, n)) continue;
       if (allow != null && !allow(e)) continue;
       final m = forward ? e.b : e.a;
-      final c = edgeCostFrom(g, ei, n, p);
-      final nd = dist[n] + c.cost;
+      final nd = dist[n] + (costs != null ? costs.of(ei, n) : edgeCostFrom(g, ei, n, p).cost);
       if (nd > limit) continue;
       if (nd < dist[m]) {
         if (dist[m] == double.infinity) reached++;

@@ -270,6 +270,37 @@ void main() {
     expect(s.heightsComplete, isTrue);
   });
 
+  test('vorab gerechnete Kosten (#379) sind dieselben, bis der Graph sich ändert', () {
+    final g = buildRoadGraph([
+      _way([(0, 0), (1000, 0), (2000, 300)]),
+      _way([(0, 0), (500, 400), (1000, 0)], cls: WayClass.wanderweg),
+      _way([(1000, 0), (1000, -800)], cls: WayClass.nebenstrasse),
+    ], lat0: 47.5).graph;
+    for (final (i, e) in g.edges.indexed) {
+      e
+        ..gain = 40.0 * i
+        ..loss = 15.0 + i
+        ..steepUp = 3.0 * i
+        ..steepWUp = 2.0 * i
+        ..hasHeights = true;
+    }
+    final costs = EdgeCosts(g, bio);
+    for (final (i, e) in g.edges.indexed) {
+      for (final from in [e.a, e.b]) {
+        expect(costs.of(i, from), edgeCostFrom(g, i, from, bio).cost, reason: 'Kante $i ab $from');
+      }
+    }
+    final a = dijkstra(g, 0, bio), b = dijkstra(g, 0, bio, costs: costs);
+    for (var n = 0; n < g.nodes.length; n++) {
+      expect(b.costTo(n), a.costTo(n));
+      expect(b.pathTo(n), a.pathTo(n));
+    }
+    // Eine Teilung kürzt die Kante: Danach gilt das Gemerkte nicht mehr.
+    final mid = g.attach(_m([(400, 0)]).single)!;
+    final e0 = g.adj[mid].first;
+    expect(costs.of(e0, g.edges[e0].a), edgeCostFrom(g, e0, g.edges[e0].a, bio).cost);
+  });
+
   test('kein Weg: null', () {
     final g = buildRoadGraph([_way([(0, 0), (100, 0)]), _way([(500, 0), (600, 0)])], lat0: 47.5).graph;
     expect(shortestPath(g, 0, 2, bio), isNull);

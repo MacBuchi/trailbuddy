@@ -406,6 +406,14 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     Knoten. Bei 3–5 h Budget erreicht jede Suche fast den ganzen Rahmen,
     mit 60 Trails am Rechner waren das +401 MB, jetzt +48 MB, bei
     identischen Plänen (`docs/routing-messung.md`, „#376").
+    **Die Kosten jeder Kante rechnet der Planer einmal je Stand** (#379,
+    seit 0.133.3): `EdgeCosts` (in `route_search.dart`, beide Richtungen
+    in einem Feld) hängt am Suchspeicher und wird mit ihm leer;
+    `dijkstra(costs:)` liest daraus. Ändert sich der Graph danach doch
+    (`RoadGraph.revision`, eine Teilung kürzt eine Kante), rechnet `of`
+    wieder selbst — sonst kostete die gekürzte Hälfte wie die ganze
+    Kante. Die erste Rechnung braucht etwa 40 % weniger Zeit, die Pläne
+    sind identisch.
   Die Kurzanleitung hat sechs Abschnitte als Obergrenze; der Planer
   steht als Satz in „Fahrt aufzeichnen und zerlegen". Vorführung
   `loop-planner` über Szene `MapCoach.loopSheet` und Anker

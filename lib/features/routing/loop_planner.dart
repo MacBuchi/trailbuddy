@@ -325,6 +325,10 @@ class LoopSearchCache {
   final _searches = <(int, bool), SearchResult>{};
   final _conns = <(int, int, bool), _Conn?>{};
 
+  /// Die Kosten jeder Kante für das Profil dieses Stands (#379), beim
+  /// ersten Bedarf gerechnet.
+  EdgeCosts? _costs;
+
   /// Wie viele Suchen wirklich gelaufen sind (nicht aus dem Speicher) —
   /// für Test und Messung.
   int searchesRun = 0;
@@ -344,6 +348,7 @@ class LoopSearchCache {
     _scope = scope;
     _searches.clear();
     _conns.clear();
+    _costs = null;
   }
 }
 
@@ -493,7 +498,8 @@ class _Planner {
 
   SearchResult _search(int from, {required bool noHiking}) => cache._searches.putIfAbsent((from, noHiking), () {
         cache.searchesRun++;
-        final r = dijkstra(g, from, p, limit: budget.timeS, allow: noHiking ? (e) => !e.hiking : null);
+        final r = dijkstra(g, from, p,
+            limit: budget.timeS, allow: noHiking ? (e) => !e.hiking : null, costs: cache._costs ??= EdgeCosts(g, p));
         // Der Ladebalken (#356): Die Zeit steckt in den Suchen, eine vom
         // Start und eine je Trail-Ende; was danach kommt, ist kurz. Die
         // Suchen ohne Wanderweg kommen nur manchmal dazu — daher die

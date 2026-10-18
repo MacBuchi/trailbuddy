@@ -2,6 +2,13 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Der Planer rechnet schneller
+
+*Version 0.133.3, 2026-10-18*
+
+- Die erste Rechnung einer Runde braucht etwa 40 Prozent weniger Zeit.
+  Die geplanten Runden bleiben genau dieselben.
+
 ## Der Planer braucht weniger Speicher
 
 *Version 0.133.2, 2026-10-18*

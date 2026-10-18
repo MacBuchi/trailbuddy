@@ -869,3 +869,27 @@ nacheinander gerechnet und verglichen). Die Verbindungen samt Linien
 Speicherfresser. Schneller ist es nebenbei auch geworden, weil Felder
 billiger sind als Hash-Maps. Am Gerät steht noch aus: PSS in den
 Szenarien 2′ und 4 (#376).
+
+## #379 — Kantenkosten einmal je Plan (gemessen 2026-10-18, am Rechner)
+
+Jede Suche des Planers rechnete die Kosten jeder Kante bei jedem Schritt
+neu aus dem Profil (`edgeCostFrom`: Klasse, Steigzeit, Steilaufschlag,
+Wegegüte, Vorlieben). Das Profil steht für eine Rechnung fest, und der
+Planer sucht je Trail-Ende über den halben Rahmen. Seit 0.133.3 rechnet
+`EdgeCosts` die Kosten jeder Kante in beiden Richtungen einmal in ein
+Feld (zwei Zahlen je Kante, bei 65 000 Kanten rund 1 MB); es hängt am
+Suchspeicher und gilt wie er nur für denselben Stand des Graphen.
+
+Dasselbe Skript, je zwei Läufe, Zeiten in ms (JIT):
+
+| Trails | rechnen an Ort und Stelle vorher | nachher | 1. Rechnung drüben vorher | nachher |
+|---|---|---|---|---|
+| 12 | 143–153 | 90–93 | 98–108 | 64–70 |
+| 30 | 194–212 | 120–136 | 199–208 | 115–121 |
+| 40 | 662–697 | 379–384 | 685–731 | 392–413 |
+| 60 | 1 219–1 224 | 702–725 | 1 198–1 277 | 713–724 |
+
+Etwa 40 % weniger für die erste Rechnung; die gemerkten Suchen danach
+waren schon schnell und bleiben es. Die Pläne sind identisch (Trails,
+Reihenfolge, Zeit, Anstieg, Länge auf die letzte Stelle), weil dieselbe
+Funktion dieselben Zahlen liefert, nur früher.
