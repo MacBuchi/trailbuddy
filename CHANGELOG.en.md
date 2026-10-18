@@ -2,6 +2,13 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## The planner computes faster
+
+*Version 0.133.3, 2026-10-18*
+
+- The first computation of a loop takes about 40 percent less time. The
+  planned loops stay exactly the same.
+
 ## The planner needs less memory
 
 *Version 0.133.2, 2026-10-18*
