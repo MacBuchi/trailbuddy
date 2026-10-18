@@ -109,6 +109,14 @@ abstract final class StallWatch {
     }
   }
 
+  /// Eine Kennzahl zur Messung (Kachelzahl, Kanten) — Zeile
+  /// `TB-INFO name wert`, nur mit [kStallWatch]; die Tabelle in
+  /// `docs/routing-messung.md` braucht sie neben den Zeiten.
+  static void info(String name, Object value) {
+    if (!kStallWatch) return;
+    _monitor.log('TB-INFO $name $value');
+  }
+
   /// [f] als benannter Schritt mit `await`; mit [kStallWatch] immer eine
   /// Zeile `TB-TIME`, auch wenn er wirft.
   static Future<T> time<T>(String name, Future<T> Function() f) async {

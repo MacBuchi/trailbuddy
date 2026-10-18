@@ -2,6 +2,13 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## Tile count log line in the development app
+
+*Version 0.131.3, 2026-10-18*
+
+- Only in the development app with the stall watch: planning now also
+  logs how many map tiles were read. The regular app does not change.
+
 ## Learning the rider profile and “Back to the route” without a frozen map
 
 *Version 0.131.2, 2026-10-18*

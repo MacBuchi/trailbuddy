@@ -2,6 +2,14 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Messzeile für die Kachelzahl in der Entwicklungs-App
+
+*Version 0.131.3, 2026-10-18*
+
+- Nur in der Entwicklungs-App mit Stall-Wächter: Beim Planen steht jetzt
+  auch die Zahl der gelesenen Kartenkacheln im Protokoll. Die normale App
+  ändert sich nicht.
+
 ## Fahrerprofil lernen und „Zurück zur Route“ ohne stehende Karte
 
 *Version 0.131.2, 2026-10-18*

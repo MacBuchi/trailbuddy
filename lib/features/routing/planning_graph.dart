@@ -141,6 +141,7 @@ Future<PlanningGraph> loadPlanningGraph(Ref ref, LatBox box,
       sourceKey: (a) => a.region,
       maxTiles: maxTiles,
     ));
+    StallWatch.info('graph.tiles', '${read.tilesFound}/${read.tilesNeeded}');
     // Die Höhen der gefundenen Kacheln gleich mit — drüben gibt es
     // weder den Kachelspeicher noch das Netz.
     if (read.tilesFound > 0 && heights != null) {
