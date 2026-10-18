@@ -2,6 +2,17 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## Start and destination may lie beside the way
+
+*Version 0.134.0, 2026-10-18*
+
+- If you tap a start, a destination or a waypoint beside the way in the
+  planner, the point now jumps up to 200 m to the nearest way instead of
+  the plan stopping with "no way". The flag moves along, and the result
+  says how far, for example "Start moved to the nearest way, 120 m
+  away". This also works when you plan from your own location and are
+  standing off the way.
+
 ## The planner computes on a leaner way network
 
 *Version 0.133.5, 2026-10-18*

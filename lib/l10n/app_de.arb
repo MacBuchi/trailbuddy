@@ -4493,6 +4493,33 @@
   "@routeFunEmpty": {
     "description": "Spaßiger Weg ohne Trail."
   },
+  "loopSnapStart": "Start auf den nächsten Weg gelegt, {distance} daneben.",
+  "@loopSnapStart": {
+    "description": "Unter einer Runde oder Route (#374): Der getippte Start lag neben jedem Weg und ist auf den nächsten gesprungen; distance ist ein fertig formatierter Abstand (z. B. 120 m).",
+    "placeholders": {
+      "distance": {
+        "type": "String"
+      }
+    }
+  },
+  "loopSnapEnd": "Ziel auf den nächsten Weg gelegt, {distance} daneben.",
+  "@loopSnapEnd": {
+    "description": "Wie loopSnapStart, für das Ziel.",
+    "placeholders": {
+      "distance": {
+        "type": "String"
+      }
+    }
+  },
+  "loopSnapWaypoint": "Zwischenpunkt auf den nächsten Weg gelegt, {distance} daneben.",
+  "@loopSnapWaypoint": {
+    "description": "Wie loopSnapStart, für einen vorab gesetzten Zwischenpunkt.",
+    "placeholders": {
+      "distance": {
+        "type": "String"
+      }
+    }
+  },
   "routeBlockerNoPosition": "Kein Standort — ohne ihn gibt es keinen Startpunkt. Erlaube TrailBuddy den Standort, oder nimm „Anfahrt“: Die Navi-App kennt den Weg auch.",
   "@routeBlockerNoPosition": {
     "description": "Routen-Blatt: kein Standort. Zitiert den Knopf „Anfahrt“ (sheetNavigate)."

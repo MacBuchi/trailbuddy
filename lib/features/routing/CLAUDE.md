@@ -278,6 +278,18 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     Tippfläche) tragen `LoopWaypointHit`; ein Tipp nimmt den Punkt weg,
     mit Rückgängig. Im Parameter-Blatt-Test liegt der Hinweis nach dem
     Scrollen außerhalb des Bildes — `skipOffstage: false`.
+    **Gesetzte Punkte springen auf den Weg** (seit 0.134.0, #374):
+    `planLoop` heftet Start, Ziel und vorab gesetzte Zwischenpunkte mit
+    `RoadGraph.snap` an (bis `kGraphSnapM` = 200 m, erst `attach` in
+    30 m, sonst der nächste Kantenpunkt), Trail-Enden und gezogene
+    Gummipunkte (`pathThrough`) weiter mit `attach`. Was über 30 m
+    sprang, steht in `LoopPlan.snaps` (Rolle, Ort, Meter, Index des
+    Zwischenpunkts); die Linie beginnt und endet am gesprungenen Punkt.
+    Der Controller legt nach der Rechnung getippten Start, Ziel und
+    Punkte dorthin — per `copyWith`, nicht `_edit`, sonst hieße der
+    Sprung „Auswahl geändert" —, der Standort bleibt. Getunt rechnet
+    `_planRequest` mit den alten Punkten, die springen dann gleich; ein
+    „Neu rechnen" nimmt die neuen, und der Satz entfällt.
   - **Die geplante Fahrt** (`Ride.planned`, `Ride.name`,
     `RideStore.savePlanned`, Datei am Stück über `.part` + `rename`):
     Punkte ohne Zeit und Höhe, `endedAt` = Schätzung; in „Meine Fahrten"

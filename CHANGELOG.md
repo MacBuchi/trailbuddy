@@ -2,6 +2,17 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Start und Ziel dürfen neben dem Weg liegen
+
+*Version 0.134.0, 2026-10-18*
+
+- Tippst du im Planer einen Start, ein Ziel oder einen Zwischenpunkt
+  neben den Weg, springt der Punkt jetzt bis 200 m weit auf den
+  nächsten Weg, statt dass die Planung mit „kein Weg" abbricht. Die
+  Fahne rückt mit, und unter dem Ergebnis steht, wie weit, etwa „Start
+  auf den nächsten Weg gelegt, 120 m daneben". Das gilt auch, wenn du
+  vom eigenen Standort aus planst und gerade abseits stehst.
+
 ## Der Planer rechnet auf einem schlankeren Wegenetz
 
 *Version 0.133.5, 2026-10-18*
