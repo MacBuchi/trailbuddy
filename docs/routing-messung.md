@@ -1051,3 +1051,75 @@ Im Web (dart2js) baut `test/web/road_graph_browser_test.dart` einen
 Graphen mit Kreuzungen, Join, Anheften und Suche und vergleicht mit den
 Zahlen der VM; Gegenprobe: eine Zellsuche, die nur x vergleicht, wird
 dort rot. Am Gerät stehen die Szenarien 2′ und 4 noch aus.
+
+## #380 — Routing-Kacheln: Größe und Zusammensetzen (gemessen 2026-10-18, am Rechner, öffentliche Daten)
+
+Frage aus `konzept-routing.md` 11: Wie groß ist das fertige Graphstück
+je z13-Kachel, und wie schnell setzt der Planer daraus den Graphen
+zusammen — gegen den Bau von heute? Drei Rahmen zu 11 × 11 Kacheln (die
+Grenze des Planers, `kPlanMaxTiles`) um öffentliche Ortsmitten:
+Innsbruck (Alpental, steil), Freiburg (Mittelgebirge, viele Forstwege),
+Zürich (dichte Stadt). Kacheln vom eigenen Host, wie ein Bereich sie
+liest: `python3 tool/routing_tiles.py sample --out DIR` (Karte
+`dach-20261001`, Wege `ways-20261008`, Höhen `heights-20261001`), dann
+`TB_TILES_DIR=DIR flutter test tool/routing_tiles_measure.dart`
+(JIT, Zeiten das Beste aus drei Läufen).
+
+Das Skript baut auf drei Wegen: **heute** `buildRoadGraphFrom` über den
+ganzen Rahmen; **backen** dieselbe Funktion je Kachel über nur ihre
+Wege (Höhen und Wege-Archiv der Nachbarn dazu), dann ins Format aus 11.3;
+**zusammensetzen** die Stücke dekodieren, Knoten über ihre Mikrograd
+teilen, die markierten Randknoten mit der 2-m-Regel binden.
+
+| | Innsbruck | Freiburg | Zürich |
+|---|---:|---:|---:|
+| Kanten (heute) | 100 767 | 195 653 | 379 198 |
+| **Bau heute** | 1 560 ms | 3 217 ms | 4 386 ms |
+| **Zusammensetzen** (davon dekodieren) | **161 ms** (33) | **321 ms** (70) | **521 ms** (95) |
+| Faktor | 9,7 | 10,0 | 8,4 |
+| Backen je Kachel, Median / 90 % | 13 / 35 ms | 36 / 57 ms | 39 / 63 ms |
+| Backen, Summe aller Kacheln | 2,1 s | 4,7 s | 5,1 s |
+| **Routing-Kacheln gzip** (roh) | **1,40 MB** (1,75) | **2,38 MB** (3,02) | **4,12 MB** (5,28) |
+| je Kachel Median / 90 % / größte | 6 / 32 / 106 KB | 17 / 33 / 120 KB | 28 / 61 / 113 KB |
+| Kartenkacheln z13 gzip (alle Ebenen) | 2,25 MB | 4,03 MB | 4,49 MB |
+| Wege-Archiv / Höhen | 0,37 / 0,55 MB | 0,63 / 0,55 MB | 0,54 / 0,55 MB |
+
+Derselbe Graph? Länge 7 856,9 → 7 857,0 km, 15 909,8 → 15 910,2 km,
+19 646,3 → 19 647,0 km; größte Komponente gleich (96,19 / 98,97 /
+97,59 %); keine Kante ohne Höhen; Anstieg und Abstieg zusammen höchstens
+0,005 % anders. 99,7–99,9 % der Kanten finden sich mit denselben Enden
+und Punktzahl wieder; davon tragen 0,01–0,02 % der benannten Länge keine
+Wegegüte mehr (überwiegend 0–2-m-Bindungen am Kachelrand, die heute die
+Güte des Wegs daneben bekommen). Die Kosten von 40 Suchen zwischen
+festen Knotenpaaren (Bio) weichen im Median 0,01 / 0,02 / 0,03 % ab,
+in 90 % unter 0,08 / 0,28 / 0,12 %, höchstens 0,23 / 1,19 / 0,30 %.
+
+Vier Dinge, die die Messung gezeigt hat:
+
+1. **Das Zusammensetzen ist nicht der teure Teil, das Einfügen ist es.**
+   Dekodieren kostet ein Fünftel; der Rest ist `addEdge` samt
+   Segmentgitter und die Bindung am Rand. Kreuzungen, tote Enden in der
+   Kachel, Höhen und Wegegüte — am Pixel zusammen der größte Teil der
+   41–44 s (#356; allein die Güte 15–17 s) — fallen ganz weg.
+2. **Die Rundung der Höhen kippte „bergab"** (im ersten Lauf): `edgeTimeS`
+   rechnet mit der Abfahrtsgeschwindigkeit, sobald der Abstieg den
+   Anstieg übersteigt, auch um Millimeter. Auf Dezimeter gerundet
+   wurden 9 mm Abstieg zu null, flache Straßen fuhren flach, und Suchen
+   wichen bis 2,1 % ab. Zentimeter mit festgehaltener Richtung: Median
+   0,41 → 0,02 % (Freiburg).
+3. **Die Kantenwerte sind der größte Teil des Formats.** Erst mit
+   16 Byte je Kante (alle Felder immer) waren es 2,95 MB gzip (Freiburg);
+   mit Bits für die seltenen Felder und Knoten als Differenz 2,60 MB;
+   mit den inneren Punkten in Pixeln der Kartenkachel (verlustfrei, sie
+   liegen auf deren Raster; 0,88 statt 1,18 MB roh) 2,38 MB. Roh bleiben
+   je Kante rund 8 Byte Werte und 3–5 Byte Punkte.
+4. **Backen je Kachel kostet zusammen etwas mehr als ein Bau** (1,2- bis
+   1,4-mal): Jede Kachel liest Höhen und Wege-Archiv ihrer acht Nachbarn
+   mit. Für den Workflow egal, auf dem Gerät (Weg B) teilbar.
+
+Hochgerechnet (Schätzung, nicht gemessen): z13 der DACH-Karte sind
+1,34 GB (`docs/karte-welt-messung.md`), mal 60–90 % ⇒ 0,8–1,2 GB
+Routing-Kacheln; Kanada 0,5–0,8 GB. Am Pixel war der Bau gut zehnmal
+langsamer als hier (120 Kacheln 41–44 s); kippt das Verhältnis nicht,
+wären es dort 4–5 s statt 41–44 s. Gemessen wird das am Gerät, sobald
+das Zusammensetzen in der App steht (Konzept-Routing 11.6).

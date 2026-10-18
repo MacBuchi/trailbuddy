@@ -941,3 +941,10 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     `supportsPictureInPicture`, die configChanges und das Fehlen von
     `SYSTEM_ALERT_WINDOW` fest; ob es kompiliert, sagt nur
     `flutter build apk --debug --flavor github`.
+- **„Bergab" ist eine Stufe, keine Kurve** (gefunden bei #380,
+  `docs/routing-messung.md`): `edgeTimeS` nimmt die
+  Abfahrtsgeschwindigkeit, sobald `lossM > gainM` — auch um Millimeter.
+  Wer Höhen je Kante rundet oder in ein anderes Format bringt
+  (Routing-Kacheln, Konzept-Routing 11.3), hält die Richtung dieses
+  Vergleichs fest; auf Dezimeter gerundet fuhren flache Straßen mit
+  9 mm Abstieg plötzlich flach, und Suchen wichen bis 2 % ab.
