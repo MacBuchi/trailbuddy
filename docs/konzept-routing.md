@@ -1189,6 +1189,12 @@ gebaut; das Ziel-Blatt `_RouteSheet` ist weg.
 Der Navi-Symbol-Einstieg und „Zum Trailkopf" nehmen den Stil aus
 `navDefault`, ohne gemerkten den des Planers.
 
+*Seit 0.133.1 (#373):* Ein fertiger Auftrag bei OFFENEM Planer behält
+dessen getippten Start — es ist dieselbe Planung (10.4); „Start am
+Standort" gilt nur, wenn keiner gesetzt ist. Ein Start allein löst keine
+Rückfrage aus (nur Auswahl oder Zwischenpunkte). Auf dem Pixel begann
+„Route bis hier" nach „Start hier" sonst am weit entfernten Standort.
+
 ### 10.4 Bedienregeln
 
 - **Eine Änderung verwirft das Ergebnis, sie rechnet nicht neu** (D3).

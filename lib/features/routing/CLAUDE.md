@@ -668,7 +668,9 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
   - **Ein Planer für alle Einstiege** (#356 PR 7a, seit 0.130.0;
     Konzept-Routing 10.3–10.5). Fünf Dinge, die man wissen muss:
     - **Ein fertiger Auftrag ist `beginRoute`**: frischer Planer (der
-      alte geht über `close()`), Ziel gesetzt, Start am Standort,
+      alte geht über `close()`), Ziel gesetzt, Start am Standort — außer
+      im offenen Planer war einer getippt, den reicht `_planRoute` als
+      `start:` weiter (#373, 0.133.1),
       `LoopSession.quick`; die Karte rechnet gleich danach
       (`_planRoute` in `MapScreen`). Einstiege: Trail-Blatt „Zum
       Trailkopf" und Navi-Symbol über `trailHeadRequestProvider` (Stil

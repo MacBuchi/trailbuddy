@@ -2,6 +2,14 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## „Route bis hier“ behält den Start
+
+*Version 0.133.1, 2026-10-18*
+
+- Wer im Planer einen Start auf die Karte getippt hat und danach lange
+  drückt und „Route bis hier“ wählt, fährt jetzt ab diesem Start. Bisher
+  fing die Route am eigenen Standort an, auch wenn der weit weg lag.
+
 ## „Abbrechen“ neben dem Ladebalken
 
 *Version 0.133.0, 2026-10-18*

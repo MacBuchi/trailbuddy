@@ -599,9 +599,13 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   /// Ein Einstieg mit fertigem Auftrag (#356 PR 7, Konzept-Routing 10.3):
   /// „Zum Trailkopf", das Navi-Symbol, „Route bis hier", „Route hierher".
   /// Ein frischer Planer mit Ziel, gerechnet wird sofort. Liegt schon eine
-  /// Auswahl im Planer, wird erst gefragt — es gibt nur EINE Planung.
+  /// Auswahl im Planer, wird erst gefragt — es gibt nur EINE Planung. Ein
+  /// dort getippter Start bleibt: Es ist dieselbe Planung (#373,
+  /// Konzept-Routing 10.4).
   Future<void> _planRoute(LatLng target, {String? trailId, RouteMode? style}) async {
     final returnTo = _selectedTrailId;
+    final planner = ref.read(loopPlannerProvider);
+    final keepStart = planner.open ? planner.start : null;
     if (!await _mayReplacePlan() || !mounted) return;
     if (ref.read(offlineOverlayProvider)) {
       await _closeTools();
@@ -617,7 +621,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     }
     setState(() => _selectedTrailId = null);
     _quickReturnTrailId = returnTo;
-    ref.read(loopPlannerProvider.notifier).beginRoute(target, trailId: trailId, style: style);
+    ref.read(loopPlannerProvider.notifier).beginRoute(target, trailId: trailId, style: style, start: keepStart);
     await _showLoopResult();
   }
 
