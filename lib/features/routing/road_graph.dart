@@ -38,6 +38,13 @@ const kGraphJoinM = 2.0;
 /// GPS-Unschärfe eines Trailanfangs.
 const kGraphAttachM = 30.0;
 
+/// Ein getippter Start, ein Ziel oder ein Zwischenpunkt (#374) springt bis
+/// zu so weit auf den nächsten Weg: Bei Zoom 13 ist ein Finger (7 mm,
+/// ~25 dp) in den Alpen schon über 100 m breit, und auf dem Pixel traf der
+/// Start erst bei hohem Zoom eine Straße. Weiter weg bleibt es beim Fehler
+/// — dann ist der Punkt eher falsch als ungenau.
+const kGraphSnapM = 200.0;
+
 /// Zellgröße des Gitters über Knoten und Segmenten, in Metern.
 const kGraphCellM = 50.0;
 
@@ -1062,6 +1069,19 @@ class RoadGraph {
     final hit = nearest(p, radius);
     if (hit == null) return null;
     return splitEdge(hit.edge, hit.seg, hit.at);
+  }
+
+  /// Wie [attach], aber für einen gesetzten Punkt (#374): Liegt in
+  /// [kGraphAttachM] kein Weg, der nächste Kantenpunkt in [radius] —
+  /// angeheftet wie ein Trail-Ende dort. [meters] ist der Abstand vom
+  /// Punkt zum Knoten; über [kGraphAttachM] sagt es das Blatt.
+  ({int node, double meters})? snap(LatLng p, {double radius = kGraphSnapM}) {
+    final near = attach(p);
+    final hit = near == null ? nearest(p, radius) : null;
+    final n = near ?? (hit == null ? null : attach(hit.at));
+    if (n == null) return null;
+    final xy = proj.xy(p);
+    return (node: n, meters: nodeDistance(n, xy.x, xy.y));
   }
 
   /// Kürzt alle Felder auf ihre Länge — nach dem Bau, wenn das Wachsen

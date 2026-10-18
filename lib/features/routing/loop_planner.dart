@@ -272,6 +272,7 @@ class LoopPlan {
     this.excluded = const {},
     this.points = const [],
     this.order = const [],
+    this.snaps = const [],
   });
 
   final LoopOutcome outcome;
@@ -292,7 +293,38 @@ class LoopPlan {
   /// [stops] nennt nur die Trails.
   final List<String> order;
 
+  /// Start, Ziel und vorab gesetzte Zwischenpunkte, die weiter als
+  /// [kGraphAttachM] neben dem Weg lagen und auf ihn gesprungen sind
+  /// (#374) — das Blatt sagt es, die Karte legt die Nadel dorthin.
+  final List<PointSnap> snaps;
+
   bool get isEmpty => stops.isEmpty;
+
+  LoopPlan _withSnaps(List<PointSnap> snaps) => snaps.isEmpty
+      ? this
+      : LoopPlan(outcome,
+          sections: sections,
+          summary: summary,
+          stops: stops,
+          excluded: excluded,
+          points: points,
+          order: order,
+          snaps: snaps);
+}
+
+/// Welcher gesetzte Punkt auf den Weg gesprungen ist (#374).
+enum SnapRole { start, end, waypoint }
+
+/// Ein gesetzter Punkt, der auf den nächsten Weg gesprungen ist: wohin
+/// ([at]) und wie weit ([meters]); bei [SnapRole.waypoint] welcher
+/// ([index], in der Folge des Setzens).
+class PointSnap {
+  const PointSnap(this.role, this.at, this.meters, {this.index = 0});
+
+  final SnapRole role;
+  final LatLng at;
+  final double meters;
+  final int index;
 }
 
 /// Eine Verbindung zwischen zwei Knoten, zusammengefasst.
@@ -420,9 +452,21 @@ LoopPlan planLoop(
   List<LatLng> waypoints = const [],
   bool bare = false,
 }) {
+  final firstWaypoint = pool.length;
   pool = [...pool, for (var k = 0; k < waypoints.length; k++) PoolTrail.waypoint(k, waypoints[k])];
   final out = Map<String, LoopExclusion>.of(excluded);
-  final src = g.attach(start);
+  // Gesetzte Punkte springen bis [kGraphSnapM] auf den nächsten Weg
+  // (#374), Trail-Enden nicht: Die liegen auf ihrem Trail.
+  final snaps = <PointSnap>[];
+  int? snap(LatLng p, SnapRole role, [int index = 0]) {
+    final s = g.snap(p);
+    if (s != null && s.meters > kGraphAttachM) {
+      snaps.add(PointSnap(role, g.nodeLatLng[s.node], s.meters, index: index));
+    }
+    return s?.node;
+  }
+
+  final src = snap(start, SnapRole.start);
   if (src == null) {
     for (final t in pool) {
       out.putIfAbsent(t.id, () => LoopExclusion.unreachable);
@@ -431,37 +475,42 @@ LoopPlan planLoop(
   }
   int? dst = returnToStart ? src : null;
   if (end != null) {
-    dst = g.attach(end);
+    dst = snap(end, SnapRole.end);
     if (dst == null) {
       for (final t in pool) {
         out.putIfAbsent(t.id, () => LoopExclusion.unreachable);
       }
-      return LoopPlan(LoopOutcome.endOffNetwork, excluded: _trailsOnly(out));
+      return LoopPlan(LoopOutcome.endOffNetwork, excluded: _trailsOnly(out), snaps: snaps);
     }
   }
   // Jeder Trail an den Graphen — ein Ende ohne Weg heißt „nicht
   // erreichbar", und zwar bevor irgendetwas gesucht wird.
   final heads = <int?>[], tails = <int?>[];
-  for (final t in pool) {
+  for (var i = 0; i < pool.length; i++) {
+    final t = pool[i];
     if (out.containsKey(t.id)) {
       heads.add(null);
       tails.add(null);
       continue;
     }
-    final h = g.attach(t.start), e = t.waypoint ? h : g.attach(t.end);
+    final h = t.waypoint ? snap(t.start, SnapRole.waypoint, i - firstWaypoint) : g.attach(t.start);
+    final e = t.waypoint ? h : g.attach(t.end);
     if (h == null || e == null) out[t.id] = LoopExclusion.offNetwork;
     heads.add(h);
     tails.add(e);
   }
   if (pool.any((t) => t.waypoint && out.containsKey(t.id))) {
-    return LoopPlan(LoopOutcome.viaFailed, excluded: _trailsOnly(out));
+    return LoopPlan(LoopOutcome.viaFailed, excluded: _trailsOnly(out), snaps: snaps);
   }
   // Erst NACH dem Anheften: Hat es eine Kante geteilt, gilt nichts
   // Gemerktes mehr.
   final searches = (cache ?? LoopSearchCache()).._bind(g, (_riderKey(profile), budget.timeS));
-  final planner =
-      _Planner(g, start, src, dst, end ?? start, profile, budget, pool, heads, tails, out, searches, bare: bare);
-  return tune == null ? planner.run(searchBudget) : planner.runTuned(tune);
+  // Die Linie beginnt und endet am Weg, wo der Punkt gesprungen ist.
+  LatLng moved(SnapRole role, LatLng p) => snaps.where((s) => s.role == role).firstOrNull?.at ?? p;
+  final from = moved(SnapRole.start, start);
+  final finish = end == null ? from : moved(SnapRole.end, end);
+  final planner = _Planner(g, from, src, dst, finish, profile, budget, pool, heads, tails, out, searches, bare: bare);
+  return (tune == null ? planner.run(searchBudget) : planner.runTuned(tune))._withSnaps(snaps);
 }
 
 class _Planner {

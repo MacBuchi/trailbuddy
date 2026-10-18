@@ -803,6 +803,14 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
         const SizedBox(height: 4),
         Text(key: const ValueKey('loop-fun-empty'), l.routeFunEmpty, style: theme.textTheme.bodyMedium),
       ],
+      for (final snap in plan.snaps) ...[
+        const SizedBox(height: 4),
+        Text(
+          key: ValueKey('loop-snap-${snap.role.name}-${snap.index}'),
+          _snapText(l, snap),
+          style: theme.textTheme.bodyMedium,
+        ),
+      ],
       // Das Profil der Runde (#234) gleich darunter, kompakt: Eingeklappt
       // gehört es mit Summe und Knöpfen zu dem, was zu sehen ist.
       RouteElevationProfile(plan.points, key: const ValueKey('loop-elevation')),
@@ -1037,15 +1045,24 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
 
   String _outcomeText(AppLocalizations l, LoopOutcome o) => switch (o) {
         LoopOutcome.ok => '',
-        LoopOutcome.startOffNetwork => l.loopOutcomeStartOff(kGraphAttachM.round()),
-        LoopOutcome.endOffNetwork => l.loopOutcomeEndOff(kGraphAttachM.round()),
+        LoopOutcome.startOffNetwork => l.loopOutcomeStartOff(kGraphSnapM.round()),
+        LoopOutcome.endOffNetwork => l.loopOutcomeEndOff(kGraphSnapM.round()),
         // Wird nie gezeigt: Ein getuntes Ergebnis, das nicht geht, ersetzt
         // das gezeigte nicht (#234).
         LoopOutcome.viaFailed => l.loopOutcomeViaFailed,
         LoopOutcome.empty => l.loopOutcomeEmpty,
       };
 
-  String _exclusionText(AppLocalizations l, LoopExclusion e) => switch (e) {
+  String _snapText(AppLocalizations l, PointSnap s) {
+    final d = formatMeters(s.meters);
+    return switch (s.role) {
+      SnapRole.start => l.loopSnapStart(d),
+      SnapRole.end => l.loopSnapEnd(d),
+      SnapRole.waypoint => l.loopSnapWaypoint(d),
+    };
+  }
+
+    String _exclusionText(AppLocalizations l, LoopExclusion e) => switch (e) {
         LoopExclusion.tooFar => l.loopExclTooFar,
         LoopExclusion.offNetwork => l.loopExclOffNetwork,
         LoopExclusion.unreachable => l.loopExclUnreachable,

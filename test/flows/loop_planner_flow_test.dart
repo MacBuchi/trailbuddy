@@ -1687,6 +1687,29 @@ void main() {
     expect(const Distance()(session.plan!.points.first, from), lessThan(30));
   });
 
+  testWidgets('#374: ein Start 80 m neben dem Weg plant, die Fahne springt auf den Weg, das Blatt sagt es',
+      (tester) async {
+    await start(tester, areaStore: await _areaWithTrack());
+    // 80 m östlich des Forstwegs auf 9,0° O.
+    final from = LatLng(_fromLat + 0.001, _lon + 80 / (111320 * math.cos(48 * math.pi / 180)));
+    await longPressMapAt(tester, from);
+    await settle(tester);
+    await tester.tap(find.byKey(const ValueKey('map-menu-from')));
+    await settle(tester, frames: 20);
+    await longPressMapAt(tester, const LatLng(48.009, _lon));
+    await settle(tester);
+    await tester.tap(find.byKey(const ValueKey('map-menu-to')));
+    await settle(tester, frames: 30);
+    expect(find.byKey(const ValueKey('loop-summary')), findsOneWidget);
+    expect(find.byKey(const ValueKey('loop-snap-start-0')), findsOneWidget);
+    expect(find.text('Start auf den nächsten Weg gelegt, 80 m daneben.'), findsOneWidget);
+    final session = ProviderScope.containerOf(tester.element(find.byType(MaterialApp))).read(loopPlannerProvider);
+    expect((session.start!.longitude - _lon).abs() * 111320 * math.cos(48 * math.pi / 180), lessThan(2),
+        reason: 'die Fahne liegt auf dem Weg');
+    expect(session.plan!.points.first, session.start);
+    expect(session.changed, isFalse, reason: 'der Sprung ist keine Änderung der Auswahl');
+  });
+
   testWidgets('#176: das Navi-Symbol fragt, merkt sich den Standard, „spaßig" öffnet den Weg auf der Karte',
       (tester) async {
     final settings = FakeSettings();

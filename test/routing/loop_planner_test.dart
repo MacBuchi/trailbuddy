@@ -279,6 +279,52 @@ void main() {
     expect(nowhere.outcome, LoopOutcome.startOffNetwork);
   });
 
+  group('gesetzte Punkte springen auf den nächsten Weg (#374)', () {
+    LoopPlan plan({required LatLng from, LatLng? end, List<LatLng> waypoints = const []}) => planLoop(_square(),
+        start: from,
+        profile: _bio,
+        budget: _big,
+        pool: [a],
+        returnToStart: end == null,
+        end: end,
+        waypoints: waypoints,
+        searchBudget: const Duration(milliseconds: 50));
+    double dist(LatLng p, LatLng q) => haversineM(p.latitude, p.longitude, q.latitude, q.longitude);
+
+    test('ein Start 120 m neben dem Weg plant, die Linie beginnt am Weg', () {
+      final r = plan(from: _m([(120, 500)]).single);
+      expect(r.outcome, LoopOutcome.ok);
+      final s = r.snaps.single;
+      expect(s.role, SnapRole.start);
+      expect(s.meters, closeTo(120, 1));
+      expect(dist(s.at, _m([(0, 500)]).single), lessThan(1));
+      expect(r.points.first, s.at);
+      expect(r.points.last, s.at, reason: 'die Runde endet, wo sie beginnt');
+    });
+
+    test('in 30 m bleibt es still wie bisher', () {
+      final r = plan(from: _m([(25, 500)]).single);
+      expect(r.outcome, LoopOutcome.ok);
+      expect(r.snaps, isEmpty);
+    });
+
+    test('über 200 m bleibt es beim Fehler', () {
+      expect(kGraphSnapM, 200);
+      expect(plan(from: _m([(250, 500)]).single).outcome, LoopOutcome.startOffNetwork);
+    });
+
+    test('Ziel und Zwischenpunkt springen auch, je mit ihrem Abstand', () {
+      final r = plan(from: start, end: _m([(1150, 500)]).single, waypoints: [
+        _m([(500, 900)]).single,
+        _m([(500, 1080)]).single,
+      ]);
+      expect(r.outcome, LoopOutcome.ok);
+      expect({for (final s in r.snaps) (s.role, s.index): s.meters.round()},
+          {(SnapRole.end, 0): 150, (SnapRole.waypoint, 0): 100, (SnapRole.waypoint, 1): 80});
+      expect(r.points.last, r.snaps.firstWhere((s) => s.role == SnapRole.end).at);
+    });
+  });
+
   test('das Budget: 10 % Reserve auf die Zeit', () {
     expect(const LoopBudget(timeS: 3600, climbM: 1, hikingM: 1).plannedTimeS, closeTo(3240, 1e-9));
   });

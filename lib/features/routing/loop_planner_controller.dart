@@ -769,13 +769,22 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
       }
       if (generation != _generation) return;
       _planRequest = request;
+      // Auf den Weg gesprungen (#374): Die Nadeln gehen mit, der Standort
+      // nicht — der ist, wo man steht.
+      LatLng? snapped(SnapRole role, [int k = 0]) =>
+          plan.snaps.where((s) => s.role == role && s.index == k).firstOrNull?.at;
       state = state.copyWith(
           phase: LoopPhase.result,
           plan: plan,
-          planStart: start,
+          planStart: snapped(SnapRole.start) ?? start,
           planEnd: endMode,
           planBare: bare,
-          funEmpty: funEmpty);
+          funEmpty: funEmpty,
+          start: state.start == null ? null : snapped(SnapRole.start),
+          target: snapped(SnapRole.end),
+          waypoints: plan.snaps.any((s) => s.role == SnapRole.waypoint)
+              ? [for (var k = 0; k < waypoints.length; k++) snapped(SnapRole.waypoint, k) ?? waypoints[k]]
+              : null);
       if (plan.outcome == LoopOutcome.ok) ref.read(routeViaProvider.notifier).begin(ViaOwner.loop);
     } catch (e, s) {
       // Geschlossen, während er rechnete: kein Fehler, nur zu spät.

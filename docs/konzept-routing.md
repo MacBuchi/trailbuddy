@@ -530,6 +530,16 @@ dieselben Konstanten geprüft):
   alle da waren. Ein Trail ohne
   Anschluss an beiden Enden ist für den Planer „nicht erreichbar" und
   steht so im Blatt.
+- **Gesetzte Punkte** — getippter Start, Ziel, vorab gesetzte
+  Zwischenpunkte des Planers, auch der Standort als Start — springen
+  weiter, bis 200 m auf den nächsten Weg (`kGraphSnapM`, #374): Ein
+  Finger ist bei normalem Zoom leicht 30 m daneben, auf dem Pixel traf
+  der Start erst bei hohem Zoom eine Straße. Liegen sie mehr als 30 m
+  daneben, sagt es das Ergebnis („Start auf den nächsten Weg gelegt,
+  120 m daneben"), und die Nadel springt mit; erst über 200 m bleibt
+  der Fehler. Trail-Enden bleiben bei 30 m, ebenso die gezogenen
+  Gummipunkte (Abschnitt 4) — die legt der Finger auf die Linie, und
+  ein Griff, der still 150 m daneben stünde, verwirrte.
 - **Kein Netzziel, keine Berechtigung.** Alles kommt von Hosts, die
   die Datenschutzerklärung schon nennt, oder liegt im APK.
 
