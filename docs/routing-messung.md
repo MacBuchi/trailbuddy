@@ -744,15 +744,46 @@ diesen Bericht — nur Kennzahlen.
 
 | # | Szenario | `TB-TIME` | längste Lücke [Marken] | PSS vorher → nachher | Kacheln |
 |---|---|---|---|---|---|
-| 1 | Kaltstart bis Karte ruhig (Grundrauschen) | – | | | – |
-| 2 | Planer: erste Runde, dichte Gegend, 12 Trails, Radius 12 km | `graph.load`, `plan.loop` | | | |
-| 3 | dieselbe, ein Trail abgewählt | `plan.loop` | | | |
-| 4 | Planer: Radius 30 km, Trails an beiden Rändern (großer Rahmen) | `graph.load`, `plan.loop` | | | |
-| 5 | „Zum Trailkopf" direkt, ~5 km | `graph.load` | [`route.direct`] | | |
-| 6 | dasselbe spaßig | | [`route.fun`] | | |
-| 7 | dasselbe bequem | | [`route.direct`] | | |
-| 8 | Navigation abseits, „Zurück zur Route" | `graph.load` | [`nav.rejoin`] | | |
-| 9 | „Aus meinen Fahrten lernen", ≥ 20 Fahrten | `calib.graph` je Fahrt | [`calib.samples`] | | |
+| 1 | Kaltstart bis Karte ruhig (Grundrauschen) | – (Activity 550 ms) | 114 ms | – → 223 MB | – |
+| 2 | Planer: erste Runde, dichte Gegend, 12 Trails, Radius 12 km | `graph.load` 99 ms, `graph.build` 13,3 s, `plan.loop` 7,2 s | 137 ms | 590 → 663 MB | 24 |
+| 2′ | wie 2, aber 54 Trails | `graph.build` 12,3 s, `plan.loop` 32,3 s | 317 ms [nach dem Ergebnis] | 592 → 989 MB | 24 |
+| 3 | dieselbe, ein Trail abgewählt („Neu rechnen") | `plan.loop` 734 ms | 154 ms | 904 → 945 MB | 24 |
+| 4 | Planer: Radius 30 km, 97 Trails (großer Rahmen) | `graph.load` 389–473 ms, `graph.build` 41–44 s, `plan.loop` 94–114 s | 433–521 ms [`graph.load`] | 664 → 1 626 MB, 981 → 1 757 MB | 117 von 120 |
+| 5 | „Zum Trailkopf" direkt, kurz | `graph.load` 41 ms, `graph.build` 5,0 s | keine ≥ 100 ms [`route.direct` 138 ms] | 686 → 596 MB | 6 |
+| 6 | dasselbe spaßig | – | keine ≥ 100 ms [`route.fun` 263 ms] | ~594 MB | 6 |
+| 7 | dasselbe bequem | – | keine ≥ 100 ms [`route.direct` 170 ms] | ~590 MB | 6 |
+| 8 | Navigation abseits, „Zurück zur Route" | nicht gemessen | | | |
+| 9 | „Aus meinen Fahrten lernen", ≥ 20 Fahrten | nicht gemessen (Testkonto ohne Fahrten) | | | |
+
+Gemessen 2026-10-18 am Pixel XL (Android 10) mit 0.131.2-dev, ein
+gespeicherter Bereich, Online-Ergänzung aus. Kein ANR, kein Absturz,
+auch nicht in Szenario 4. `graph.build` ist die Summe der Teilmarken im
+Rechen-Isolate (in 2′: decode 0,7 · nodes 1,2 · joins 2,3 · crossings
+3,1 · climbs 1,1 · wayQuality 3,4 · trails 0,4 s; in 4 allein wayQuality
+15,5–17 s). Die Kachelzahl stammt aus einer Zusatzzeile `TB-INFO
+graph.tiles` des Wächters. Szenario 5 lief mit einer Route von gut 1 km
+statt 5 km: Auf eine Straße setzen ließ sich der Start per adb nur im
+eng gezoomten Ausschnitt.
+
+**Befunde am Gerät:**
+
+1. **Der Bau kostet auf diesem Gerät ~0,33 s je Kachel** (6 Kacheln 5 s,
+   24 Kacheln 12–13 s, 72 Kacheln 23 s, 120 Kacheln 41–44 s). Das Budget
+   „erste Runde < 5 s" hält damit nur ein Rahmen von etwa 8–15 Kacheln —
+   kleiner als jede echte Runde mit Radius 12 km. Die Oberfläche steht
+   dabei nicht; es ist nur die Wartezeit.
+2. **Die längsten Lücken im UI-Isolate** liegen bis 24 Kacheln bei
+   114–154 ms, mit vielen Trails nach dem Ergebnis bei 317 ms und beim
+   Lesen von 120 Kacheln (`graph.load`) bei 433–521 ms. Das Budget
+   „≤ 200 ms" reißt also erst der große Rahmen und das Zeichnen großer
+   Ergebnisse.
+3. **Der Speicher reißt das Budget „+300 MB"**: 24 Kacheln mit 54 Trails
+   +400 MB, 120 Kacheln +780 bis +960 MB.
+4. **Rechnen nach dem Bau ist schnell**: ein Trail weniger 0,7 s, Routen
+   direkt/spaßig/bequem 0,14–0,26 s, alles im Budget.
+5. **72 Kacheln waren kein „Gebiet zu groß"** (Route vom weit entfernten
+   Gerätestandort zum Trailkopf, 23 s Bau), weil die Grenze noch bei 300
+   steht.
 
 **`kPlanMaxTiles`** (#356 PR 8) kommt aus 2 und 4: die Kachelzahl, bei
 der `graph.load` + `graph.build` auf dem Pixel noch unter 5 s bleibt
@@ -761,6 +792,11 @@ der `graph.load` + `graph.build` auf dem Pixel noch unter 5 s bleibt
 (~55 × 55 km bei 47° N) in `road_graph_loader.dart`; wer misst, setzt ihn
 und streicht das Wort „vorläufig" dort und in Konzept-Routing 10.6.
 Szenario 4 darf das Budget reißen — es ist die Messung der Grenze.
+**Stand 2026-10-18:** Die Messung oben gibt für 5 s nur 8–15 Kacheln
+her; das würde den Planer auf diesem Gerät praktisch abschalten. Ob die
+Grenze so hart kommt, das Budget für ältere Geräte gelockert wird oder
+der Bau schneller werden muss (zuerst wayQuality und crossings),
+entscheidet der Betreiber (#356). Bis dahin bleibt der vorläufige Wert.
 
 ### Am Rechner, nach PR 8: der Bau drüben (2026-10-18)
 
