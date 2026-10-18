@@ -2,6 +2,15 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Meldungen mit „Rückgängig“ gehen wieder von selbst
+
+*Version 0.132.1, 2026-10-18*
+
+- Meldungen mit einem Knopf daneben — etwa „Planer geschlossen ·
+  Rückgängig“ — blieben stehen, bis man sie wegwischte, und deckten
+  „Navigation starten“ zu. Sie verschwinden jetzt wieder nach ein paar
+  Sekunden.
+
 ## Ladebalken beim Planen
 
 *Version 0.132.0, 2026-10-18*

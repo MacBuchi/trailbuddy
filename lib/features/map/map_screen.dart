@@ -512,6 +512,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         key: const ValueKey('loop-waypoint-removed'),
         content: Text(context.l10n.mapViaRemoved),
         action: SnackBarAction(label: context.l10n.commonUndo, onPressed: () => notifier.setWaypoints(before)),
+        persist: false,
       ));
   }
 
@@ -529,6 +530,8 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         key: const ValueKey('loop-closed'),
         content: Text(context.l10n.loopClosed),
         action: SnackBarAction(label: context.l10n.commonUndo, onPressed: () => unawaited(_restoreLoop(closed))),
+        // Seit Flutter 3.47 bliebe eine Leiste mit Aktion stehen (#371).
+        persist: false,
       ));
     return closed;
   }
@@ -655,6 +658,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         key: const ValueKey('via-removed'),
         content: Text(context.l10n.mapViaRemoved),
         action: SnackBarAction(label: context.l10n.commonUndo, onPressed: () => notifier.set(before)),
+        persist: false,
       ));
   }
 

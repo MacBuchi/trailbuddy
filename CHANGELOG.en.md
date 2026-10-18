@@ -2,6 +2,14 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## Messages with “Undo” go away again on their own
+
+*Version 0.132.1, 2026-10-18*
+
+- Messages with a button next to them — such as “Planner closed · Undo” —
+  stayed until you swiped them away and covered “Start navigation”. They
+  disappear again after a few seconds.
+
 ## Progress bar while planning
 
 *Version 0.132.0, 2026-10-18*

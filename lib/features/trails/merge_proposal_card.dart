@@ -100,6 +100,7 @@ class _MergeProposalCardState extends ConsumerState<MergeProposalCard> {
             }
           },
         ),
+        persist: false,
       ));
     } on MergeRejectedException catch (e) {
       messenger.showSnackBar(SnackBar(content: Text(friendlyError(l, e))));

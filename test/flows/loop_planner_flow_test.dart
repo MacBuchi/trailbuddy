@@ -1533,6 +1533,21 @@ void main() {
     expect(find.byKey(const ValueKey('loop-partial')), findsOneWidget);
   });
 
+  testWidgets('#371: „Planer geschlossen · Rückgängig" geht nach seiner Dauer von selbst', (tester) async {
+    await start(tester, areaStore: await _areaWithTrack());
+    await longPressMapAt(tester, LatLng(_fromLat + 0.001, _lon));
+    await settle(tester);
+    await tester.tap(find.byKey(const ValueKey('map-menu-from')));
+    await settle(tester, frames: 20);
+    await tapRail(tester, 'loop-rail-close');
+    expect(find.byKey(const ValueKey('loop-closed')), findsOneWidget);
+    // Seit Flutter 3.47 bliebe eine Leiste mit Aktion ohne `persist: false`
+    // für immer stehen — auf dem Pixel über „Navigation starten".
+    await settle(tester, frames: 50);
+    await settle(tester);
+    expect(find.byKey(const ValueKey('loop-closed')), findsNothing);
+  });
+
   testWidgets('#177/#356: langer Druck — „Start hier", „Zwischenpunkt hier" und „Route bis hier" im Planer',
       (tester) async {
     await start(tester, areaStore: await _areaWithTrack());

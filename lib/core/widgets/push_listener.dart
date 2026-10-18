@@ -146,6 +146,7 @@ class _PushListenerState extends ConsumerState<PushListener> {
               label: context.l10n.pushOpen,
               onPressed: () => _open(message),
             ),
+      persist: false,
     ));
   }
 
