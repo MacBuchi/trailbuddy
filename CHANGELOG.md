@@ -2,6 +2,16 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Neu rechnen ohne neues Wegenetz
+
+*Version 0.132.2, 2026-10-18*
+
+- Mit dem eigenen Standort als Start baute der Planer bei jedem „Neu
+  rechnen“, jedem Stilwechsel und jedem abgewählten Trail das ganze
+  Wegenetz neu — der Standort lag jedes Mal ein paar Meter daneben. Auf
+  älteren Telefonen waren das bis zu 40 Sekunden. Jetzt wird nur neu
+  aufgebaut, wenn der Start das geladene Gebiet verlässt.
+
 ## Meldungen mit „Rückgängig“ gehen wieder von selbst
 
 *Version 0.132.1, 2026-10-18*

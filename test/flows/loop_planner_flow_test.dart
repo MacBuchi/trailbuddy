@@ -746,6 +746,41 @@ void main() {
     await settle(tester, frames: 30);
   });
 
+  testWidgets('Ein neuer Fix im Rahmen baut den Graphen nicht neu, einer weit daneben schon (#370)', (tester) async {
+    final fix = FakePositionFix(fakePosition(_fromLat, _lon));
+    final runner = _HeldRunner();
+    await start(tester, areaStore: await _areaWithTrack(), positionFix: fix, runner: () => runner);
+    await openPlanner(tester);
+    final planner = ProviderScope.containerOf(tester.element(find.byType(MaterialApp))).read(loopPlannerProvider.notifier);
+    planner.setSelected([hex], true);
+    await settle(tester);
+
+    Future<void> computeOnce() async {
+      await tapRail(tester, 'loop-rail-compute');
+      final held = runner.held.last;
+      held.done.complete(held.request.planOn(held.graph));
+      await settle(tester, frames: 30);
+      await tester.tap(find.byKey(const ValueKey('loop-close')));
+      await settle(tester);
+    }
+
+    await computeOnce();
+    expect(runner.builds, 1);
+
+    // Ein paar Meter weiter, wie jeder neue Fix des Standorts.
+    fix.next = fakePosition(_fromLat + 0.00007, _lon + 0.00005);
+    await computeOnce();
+    expect(fix.calls, 2, reason: 'jede Rechnung holt einen Fix');
+    expect(runner.held[1].request.start, LatLng(_fromLat + 0.00007, _lon + 0.00005), reason: 'mit dem neuen Start');
+    expect(runner.builds, 1, reason: 'der Start liegt im Rahmen — derselbe Graph');
+    expect(identical(runner.held[1].graph, runner.held[0].graph), isTrue);
+
+    // 450 m westlich, über die Toleranz hinaus: neu bauen.
+    fix.next = fakePosition(_fromLat, _lon - 0.006);
+    await computeOnce();
+    expect(runner.builds, 2, reason: 'der Start hat den Rahmen verlassen');
+  });
+
   testWidgets('Uphill-Trails und Verbinder sind nicht wählbar — die Karte sagt es', (tester) async {
     trails.seedTrail(backend.currentUserId!, name: 'Auffahrt', lat: 48.0, lon: 9.008, traits: {TrailTrait.uphill});
     await start(tester, areaStore: await _areaWithTrack());
