@@ -509,6 +509,8 @@ dieselben Konstanten geprüft):
   anderes Zeitbudget oder ein neuer Start suchen neu. Die Trail-Enden
   im Rahmen werden beim Laden angeheftet, ein dazugewählter Trail aus
   dem Rahmen braucht deshalb weder neues Laden noch neue Suchen.
+  Vorgebackene Stücke je Kachel, aus denen der Planer nur noch
+  zusammensetzt, plant Abschnitt 11 (#380, Entwurf).
 - **Knoten — drei Regeln, gemessen (M1, `docs/routing-messung.md`)**:
   Jede Kachel wird auf ihren Rahmen zugeschnitten (der Puffer legte
   Wege doppelt). Zwei Linien teilen einen Knoten, wenn ihre Punkte auf
@@ -1352,3 +1354,186 @@ bleibt im Code), kein Graph über Sitzungen hinweg, kein automatisches
 Neurechnen, keine Zwischenpunkte in Tipp-Reihenfolge, kein Isolate im
 Web, kein CI-Bau der Dev-App und keine Firebase-App für `.dev`, keine
 Abbiegehinweise und kein automatisches Umplanen bei Abweichung (1, 9).
+
+## 11. Vorgebackene Routing-Kacheln (#380)
+
+*Entwurf vom 2026-10-18, mit Messung (`docs/routing-messung.md`, „#380").
+Gebaut wird erst nach den Entscheidungen in 11.7; bis dahin gilt 2.7.*
+
+### 11.1 Warum
+
+Der Planer baut seinen Graphen je Planung aus Kacheln, die zum ZEICHNEN
+gemacht sind (2.7): Wege je Kachel zugeschnitten, Knoten über gleiche
+Koordinaten, tote Enden auf 2 m gebunden, Kreuzungen geometrisch
+gesucht, die Wegegüte Probe für Probe aus dem Wege-Archiv, die Höhen aus
+den Höhenkacheln. Am Pixel kostet das ~0,33 s je Kachel — 41–44 s für
+120 Kacheln, davon allein die Wegegüte 15–17 s (#356). Die großen
+Router (BRouter, GraphHopper, OSRM) machen diese Arbeit EINMAL vorab und
+geben dem Gerät fertige Stücke.
+
+### 11.2 Was in eine Routing-Kachel gehört — und was nicht
+
+Je z13-Kachel das fertige Graphstück, gebaut von DERSELBEN Funktion wie
+heute (`buildRoadGraphFrom` über die eine Kachel, Höhen und Wege-Archiv
+der Nachbarn dazu):
+
+- **Knoten** (Mikrograd) und **Kanten** mit Klasse, Einbahn, Ebene,
+  Wegegüte und `uphill`, Anstieg/Abstieg, Steil-Metern und
+  Steil-Gewicht, Trage-Anteil und den Linienpunkten;
+- Kreuzungen geteilt und tote Enden IN der Kachel gebunden;
+- **Randknoten**: tote Enden ≤ 2 m vom Kachelrand. Erst beim
+  Zusammensetzen gebunden, mit derselben 2-m-Regel wie heute — mehr ist
+  das Zusammensetzen nicht: Knoten gleicher Mikrograd sind einer
+  (`RoadGraph.node`), danach nur noch die Randknoten.
+
+**Nicht hinein:**
+
+- **Kosten.** Rad, Stil, Vorlieben, Kalibrierung und jede Zahl in
+  `route_profile.dart` bleiben auf dem Gerät und rechnen aus Klasse,
+  Güte und Höhen wie heute. Eine neue Zahl im Kostenmodell braucht so
+  keinen neuen Bau.
+- **Trails, Start, Ziel, Zwischenpunkte.** `applyTrails` und das Anheften
+  bleiben beim Planen auf dem Gerät. Die Kacheln enthalten nur
+  öffentliche Daten Dritter (OSM, Copernicus) — sie sagen nichts über
+  Nutzer (A1, A4), und eine Fahrt kommt nie hinein (A3).
+
+### 11.3 Das Format (Vorschlag, gemessen als Prototyp)
+
+Binär, Varints, je Kachel ein Stück (Prototyp:
+`tool/routing_tiles_measure.dart`):
+
+- Kopf: Formatnummer, Kachel x/y;
+- Knoten als Mikrograd-Differenz zum vorigen; Randknoten als Nummern;
+- je Kante ein Kopf (Klasse in 4 Bit, je ein Bit für Einbahn, Höhen und
+  welche der seltenen Felder folgen), a und b als Differenzen, Anstieg
+  und Abstieg in Zentimetern, dann nur, was gesetzt ist (Ebene, Güte,
+  `uphill`, Steil-Werte in Dezimetern, Trage-Anteil);
+- die inneren Linienpunkte in PIXELN der Kartenkachel (Ausmaß 4096): Sie
+  liegen auf deren Raster, verlustfrei und kürzer als in Mikrograd;
+  Punkte neben dem Raster (aus Teilungen) in Mikrograd.
+
+**Eine Falle, gefunden beim Messen:** `edgeTimeS` nimmt die
+Abfahrtsgeschwindigkeit, sobald der Abstieg den Anstieg übersteigt —
+auch um Millimeter. Auf Dezimeter gerundet fuhren flache Straßen mit
+9 mm Abstieg plötzlich flach, und Suchen wichen bis 2 % ab. Das Format
+rundet deshalb auf Zentimeter und hält die Richtung von „bergab" fest.
+
+Ergebnis an drei öffentlichen Rahmen zu je 121 Kacheln (Innsbruck,
+Freiburg, Zürich): **1,4 / 2,4 / 4,1 MB gzip**, also 60–90 % der
+Kartenkacheln derselben Kacheln (z13, alle Ebenen); je Kachel im Median
+6–28 KB, höchstens 120 KB. Zusammengesetzt **8- bis 10-mal schneller**
+als der Bau heute (am Rechner 0,16–0,52 s gegen 1,6–4,4 s), dieselben
+Wege (Länge ±0,005 %, gleiche größte Komponente, Anstieg ±0,005 %), die
+Kosten von 40 Suchen je Rahmen im Median 0,01–0,03 % daneben, höchstens
+1,2 % (andere Bindung am Kachelrand).
+
+### 11.4 Wer backt — drei Wege
+
+Das Stück entsteht aus Kacheln, die das Gerät ohnehin hat. Dieselbe
+Funktion kann darum an zwei Orten laufen:
+
+- **A — im Workflow** (wie `height-data.yml`): je Region alle Kacheln
+  gebacken, als Archiv auf dem eigenen Host neben Karte, Höhen und Wegen;
+  ein Bereich lädt sie mit (vierte Ebene im Kachelspeicher,
+  `konzept-offline-karten.md` 8.2). Kosten: geschätzt **0,8–1,2 GB für
+  DACH** (z13 der Karte sind 1,34 GB, mal 60–90 %) und 0,5–0,8 GB für
+  Kanada. Beim letzten Inventar lagen 6,2 von 10 GB im freien
+  R2-Kontingent (#230); danach wären es 7,6–8,2 GB, und während eines
+  Wechsels (der alte Bau bleibt 48 h, `r2-prune.yml`) bis 10,2 GB — das
+  Kontingent risse genau dann. Jeder Bereich lädt rund 30–40 % mehr
+  (die Karte geht über alle Zooms, die Routing-Kachel nur über z13).
+  Rechenzeit: ~95 000 Landkacheln × 15–40 ms am Rechner — auf einem
+  Kern 0,5–2 h, mit vier Isolates 10–30 min, dazu das Lesen der drei
+  Archive.
+- **B — auf dem Gerät, einmal je Kachel**: Der Planer backt im
+  Rechen-Isolate jede Kachel, die noch kein Stück hat, und legt das
+  Stück in den Kachelspeicher der Region (eigene Ebene, mit dem Bau der
+  drei Quellkacheln und der Formatnummer). Die erste Planung in einer
+  Gegend kostet so viel wie heute (am Rechner 1,2- bis 1,4-mal, weil je
+  Kachel Höhen und Güte der Nachbarn mitgelesen werden — beim Bau im
+  Planer lassen die sich teilen), jede weitere in denselben Kacheln setzt nur
+  noch zusammen — auch nach einem Neustart, auch in einem anderen
+  Rahmen. Kein Netzziel, kein R2, kein Workflow; offline wie heute
+  (A8). Speicher auf dem Gerät: dasselbe wie A, aber nur für Kacheln,
+  über die schon geplant wurde.
+- **C — B, dazu nach dem Speichern eines Bereichs**: Ist ein Bereich
+  geladen, backt ein Hintergrundlauf seine Kacheln (Android unter dem
+  KeepAlive-Koordinator wie der Download). Die erste Planung ist dann
+  auch schnell. Eine ganze Region (DACH: ~95 000 Kacheln) ist dafür zu
+  groß — dort bleibt es bei B.
+
+B ist in jedem Fall nötig: Online ergänzte Kacheln (#187), alte
+Bereiche, Regionen ohne Archiv und das Web brauchen das Backen auf dem
+Gerät, und weil es dieselbe Funktion ist, mischen sich gebackene und
+geladene Stücke ohne Naht.
+
+### 11.5 Versionen
+
+- **Die Formatnummer** steht im Kopf; eine unbekannte heißt „nicht
+  da" — das Gerät backt neu (B) bzw. nimmt die Kachel nicht (A).
+- **Die Bauregeln** sind Teil der Fassung: M1-Regeln, 2 m, Kreuzungen
+  je Ebene, Wegegüte (3 m, 10 m, Mehrheit), Höhenproben, die Kurve des
+  Steil-Gewichts (`steepWeightAt`), die Klassen aus `classify`. Wer eine
+  davon ändert, zählt `kRoutingTileVersion` hoch — ein Test hält die
+  Liste der Konstanten fest, die das verlangen. Die KOSTEN (`edgeCostS`,
+  Stil, Vorlieben) stehen nicht darauf.
+- **Alter je Kachel** wie im Kachelspeicher (8.2): Ein Stück ist
+  veraltet, wenn eine seiner Quellkacheln veraltet ist; „Aktualisieren"
+  nimmt es mit.
+
+### 11.6 Was am Gerät gemessen werden muss (📱)
+
+Am Rechner gemessen ist das Verhältnis; das Telefon kann anders
+gewichten (AOT statt JIT, langsamer Speicher). Vor dem Bau von A oder C:
+
+- **Zusammensetzen am Pixel** in den Szenarien 2′ und 4 aus #356
+  (24 und 117 Kacheln) gegen `graph.build`; erwartet grob ein Zehntel
+  (4–5 s statt 41–44 s bei 120 Kacheln).
+- **Spitzenspeicher**: Das Zusammensetzen dekodiert keine Kartenlinien
+  und hat kein Gitter der Wegegüte — der Graph selbst bleibt gleich groß
+  (#378: 33 MB). Ob das Budget „+300 MB" damit hält, sagt nur das Gerät.
+- **Backen je Kachel am Pixel** — die Zahl für B und C.
+
+### 11.7 Entscheidungen des Betreibers
+
+1. **Wer backt?** A, B oder C. *Empfehlung:* **B zuerst, C danach;
+   A nur, wenn das Gerät zeigt, dass die erste Planung in einer neuen
+   Gegend das Problem bleibt.** Grund: A kostet 1,4–2 GB des freien
+   R2-Kontingents (Betreiber 2026-10-08: „R2 free tier only"), reißt es
+   beim Wechsel eines Baus und lädt 30–40 % mehr je Bereich; B nichts
+   davon — und B wird ohnehin gebraucht (11.4).
+2. **Genauigkeit**: gleiche Wege, Kosten im Median 0,01–0,03 %, höchstens
+   1,2 % daneben — reicht das, oder müssen Pläne bitgleich zum Bau von
+   heute sein? *Empfehlung:* reicht; der Graph ist nicht schlechter,
+   er bindet nur am Kachelrand anders. Bitgleich ginge nur, wenn das
+   Zusammensetzen den ganzen Bau wiederholt.
+3. **Alte Bereiche**: Mit B nichts zu tun — gebacken wird beim ersten
+   Planen. Mit A: Stücke erst beim nächsten „Aktualisieren", bis dahin
+   B.
+4. **Die Karte bleibt die Quelle für das Zeichnen**: Routing-Kacheln
+   werden nie gezeichnet; die Linie einer Route kommt wie heute aus den
+   Punkten ihrer Kanten. *Empfehlung:* so.
+5. **Web**: B im Browser auf demselben Weg (an Ort und Stelle, 2.7),
+   Stücke in IndexedDB neben den anderen Ebenen. *Empfehlung:* mit B
+   zusammen bauen, sonst plant das Web langsamer als Android (A9).
+
+### 11.8 Umsetzung (nach den Entscheidungen)
+
+1. **Backen und Zusammensetzen in `lib/`** (`routing_tile.dart`, rein):
+   das Format aus 11.3, `bakeTile`, `stitchTiles`; der Planer setzt aus
+   gespeicherten Stücken zusammen und backt fehlende im Isolate, die
+   Stücke gehen als Bytes zurück in den Kachelspeicher (eigene Ebene).
+   Test: Rundreise des Formats, Stücke gegen Bau auf dem Testgitter
+   (Fingerabdruck wie #378), unbekannte Fassung ⇒ neu backen. Danach
+   die Messung 11.6 am Pixel — **ein PR**, feat.
+2. **C**: Backen nach dem Speichern eines Bereichs, im Hintergrund — ein
+   PR, wenn 11.6 es lohnt.
+3. **A** nur auf eigene Entscheidung: `routing-data.yml`,
+   `tool/routing_tiles.py bake` (ruft das Dart-Backen, damit es nur eine
+   Fassung der Regeln gibt), Manifest `routing.json`, Ebene im Download.
+
+**Bewusst nicht:** Kosten in den Kacheln, Trails oder irgendetwas aus
+dem Netz der Nutzer in den Kacheln, eine zweite Fassung der Bauregeln in
+Python, Contraction Hierarchies oder andere Vorab-Suchen (die Suche
+hängt am Profil des Fahrers und an den gewählten Trails), Kacheln über
+mehrere Zooms. Das Nachladen beim Suchen (#381) baut auf 1 auf.
