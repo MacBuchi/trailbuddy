@@ -230,6 +230,7 @@ class MapViewPolyline {
     this.borderWidth = 0,
     this.borderDash,
     this.hitValue,
+    this.hitSlop = kMapTapSlopPx,
     this.label,
     this.opacity = 1,
     this.pass = 0,
@@ -265,6 +266,12 @@ class MapViewPolyline {
 
   /// Was ein Tipp meldet; null heißt nicht antippbar (die Fahrt).
   final Object? hitValue;
+
+  /// Wie weit neben dem Strich ein Tipp noch trifft, in Bildpunkten (zur
+  /// halben Breite und dem Rand dazu). Im Planer enger (#375): Dort
+  /// ändert ein Treffer die Auswahl, und ein Tipp neben die Linie soll
+  /// ins Leere gehen.
+  final double hitSlop;
 
   /// Deckkraft der Linie SAMT Rand (#295): Beide werden erst deckend
   /// übereinander gelegt und dann zusammen durchsichtig — der Rand

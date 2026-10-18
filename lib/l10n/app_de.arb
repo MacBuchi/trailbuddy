@@ -82,6 +82,24 @@
       }
     }
   },
+  "mapLoopAdded": "„{name}\" dazugenommen.",
+  "@mapLoopAdded": {
+    "description": "Rundenplaner: Ein Tipp auf die Karte hat den Trail in die Auswahl genommen; daneben „Rückgängig“.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "mapLoopRemoved": "„{name}\" weggelassen.",
+  "@mapLoopRemoved": {
+    "description": "Rundenplaner: Ein Tipp auf die Karte hat den Trail aus der Auswahl genommen; daneben „Rückgängig“.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "mapLoopDrawAdd": "Gebiet umfahren — die Trails darin kommen dazu",
   "@mapLoopDrawAdd": {
     "description": "Hinweis beim Zeichnen im Rundenplaner (Werkzeug „dazu\")."

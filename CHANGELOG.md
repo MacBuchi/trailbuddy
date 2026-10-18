@@ -2,6 +2,18 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Trails im Planer nicht mehr aus Versehen an- oder abwählen
+
+*Version 0.134.1, 2026-10-18*
+
+- Im Planer zählt ein Tipp auf die Karte nur noch, wenn er die
+  Trail-Linie selbst trifft. Tippst du knapp daneben, etwa auf den Weg
+  daneben oder nur zum Wegtippen, bleibt die Auswahl, wie sie war.
+- Jeder Tipp, der einen Trail dazunimmt oder weglässt, sagt es jetzt
+  unten kurz an (etwa: „Hexentanz" dazugenommen), daneben
+  „Rückgängig". Ein weggetippter Trail mit Stern kommt mit Stern
+  zurück.
+
 ## Start und Ziel dürfen neben dem Weg liegen
 
 *Version 0.134.0, 2026-10-18*

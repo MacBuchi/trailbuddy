@@ -57,6 +57,13 @@ import 'trail_head_route.dart' show routeSeconds, routeTimeLabel;
 /// zu sehen war nichts.
 const kLoopPickWidth = 12.0;
 
+/// Wie weit neben einer Trail-Linie ein Tipp im Planer noch trifft (#375,
+/// Betreiber 2026-10-18: nur auf der Linie selbst). Auf der normalen Karte
+/// sind es `kMapTapSlopPx` (12) — dort hebt ein Tipp nur hervor, im Planer
+/// ändert er die Auswahl, und am Pixel traf ein Tipp neben die Linie (auf
+/// einen Weg, zum Wegtippen) mehrmals den Trail.
+const kLoopTapSlopPx = 4.0;
+
 /// Kontur der Auswahl; Pflicht-Trails tragen sie stärker und deckend.
 const kLoopPickBorder = 2.0;
 const kLoopPickBorderMandatory = 3.5;

@@ -276,7 +276,17 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     Getunt rechnet der Controller mit den Punkten der GEZEIGTEN Planung
     (`_planWaypoints`), wie beim Ziel. Die Nadeln (`LoopWaypointPin`, 44 dp
     Tippfläche) tragen `LoopWaypointHit`; ein Tipp nimmt den Punkt weg,
-    mit Rückgängig. Im Parameter-Blatt-Test liegt der Hinweis nach dem
+    mit Rückgängig.
+    **Ein Tipp auf einen Trail trifft im Planer nur die Linie selbst**
+    (#375, seit 0.134.1; Betreiber 2026-10-18, Option 1 von dreien):
+    `MapViewPolyline.hitSlop` ist dort `kLoopTapSlopPx` (4 px statt
+    `kMapTapSlopPx` 12, je zur halben Breite und dem Rand) — am Pixel
+    traf ein Tipp auf den Weg daneben oder zum Wegtippen mehrmals den
+    Trail. Jeder Wechsel sagt es (`loop-toggled`, „dazugenommen" /
+    „weggelassen") mit Rückgängig (`loop-toggled-undo`,
+    `restoreSelection` mit Auswahl UND Sternen von vorher, `persist:
+    false` wie jede Leiste mit Aktion, #371). Das Schild am Trailanfang
+    bleibt ein Treffer wie bisher. Im Parameter-Blatt-Test liegt der Hinweis nach dem
     Scrollen außerhalb des Bildes — `skipOffstage: false`.
     **Gesetzte Punkte springen auf den Weg** (seit 0.134.0, #374):
     `planLoop` heftet Start, Ziel und vorab gesetzte Zwischenpunkte mit

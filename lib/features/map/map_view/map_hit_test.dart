@@ -139,7 +139,7 @@ Object? resolveMapTap(MapViewLayers layers, MapTap tap) {
   for (final line in layers.polylines.reversed) {
     final value = line.hitValue;
     if (value == null || line.points.length < 2) continue;
-    final slop = kMapTapSlopPx + line.width / 2 + line.borderWidth;
+    final slop = line.hitSlop + line.width / 2 + line.borderWidth;
     Offset prev = projectToScreen(camera, line.points.first);
     for (var i = 1; i < line.points.length; i++) {
       final next = projectToScreen(camera, line.points[i]);

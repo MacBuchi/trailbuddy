@@ -64,6 +64,7 @@ import 'map_buttons.dart';
 import 'map_legend.dart';
 import 'contour_layer.dart' show groundResolution;
 import 'contour_providers.dart';
+import 'map_view/map_hit_test.dart' show kMapTapSlopPx;
 import 'map_view/map_view.dart';
 import 'poi.dart';
 import 'line_smoothing.dart';
@@ -681,16 +682,28 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       case final Trail t:
         // Im Planer wählt ein Tipp den Trail an oder ab (#178).
         if (ref.read(loopPlannerProvider).open) {
-          final result = ref.read(loopPlannerProvider.notifier).toggle(t);
-          if (result == LoopToggle.connector || result == LoopToggle.pending) {
-            ScaffoldMessenger.of(context)
-              ..clearSnackBars()
-              ..showSnackBar(SnackBar(
+          final planner = ref.read(loopPlannerProvider.notifier);
+          final before = ref.read(loopPlannerProvider);
+          final result = planner.toggle(t);
+          final l = context.l10n;
+          final name = t.displayName(l);
+          ScaffoldMessenger.of(context)
+            ..clearSnackBars()
+            ..showSnackBar(switch (result) {
+              LoopToggle.connector || LoopToggle.pending => SnackBar(
                   key: const ValueKey('loop-not-pickable'),
-                  content: Text(result == LoopToggle.connector
-                      ? context.l10n.mapLoopConnector(t.displayName(context.l10n))
-                      : context.l10n.mapLoopPending(t.displayName(context.l10n)))));
-          }
+                  content: Text(result == LoopToggle.connector ? l.mapLoopConnector(name) : l.mapLoopPending(name))),
+              // Jeder Tipp sagt, was er geändert hat, mit Rückgängig
+              // (#375) — eine still geänderte Auswahl fiel nicht auf.
+              LoopToggle.selected || LoopToggle.deselected => SnackBar(
+                  key: const ValueKey('loop-toggled'),
+                  content: Text(result == LoopToggle.selected ? l.mapLoopAdded(name) : l.mapLoopRemoved(name)),
+                  action: SnackBarAction(
+                      key: const ValueKey('loop-toggled-undo'),
+                      label: l.commonUndo,
+                      onPressed: () => planner.restoreSelection(before.selected, before.mandatory)),
+                  persist: false),
+            });
           return;
         }
         // Sonst: auswählen — er leuchtet, unten die Schnellkarte; ein
@@ -1317,6 +1330,9 @@ class _MapScreenState extends ConsumerState<MapScreen> {
             borderWidth: _borderOf(t, seenNotes).$2,
             borderDash: trailLineStyleOf(t).haloDash,
             hitValue: t,
+            // Im Planer ändert ein Treffer die Auswahl: nur auf der Linie
+            // selbst (#375).
+            hitSlop: loop.open ? kLoopTapSlopPx : kMapTapSlopPx,
           ),
       ],
       markers: [

@@ -432,6 +432,12 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
     return on ? LoopToggle.selected : LoopToggle.deselected;
   }
 
+  /// „Rückgängig" nach einem Tipp auf der Karte (#375): die Auswahl samt
+  /// Sternen von vorher — ein abgewählter Pflicht-Trail kommt mit Stern
+  /// zurück.
+  void restoreSelection(Set<String> selected, Set<String> mandatory) =>
+      _edit(state.copyWith(selected: {...selected}, mandatory: {...mandatory}));
+
   void setSelected(Iterable<String> ids, bool on) {
     final selected = {...state.selected};
     final mandatory = {...state.mandatory};

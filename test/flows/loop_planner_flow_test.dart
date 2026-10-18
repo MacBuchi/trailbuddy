@@ -47,6 +47,7 @@ import '../fakes/fake_pois.dart';
 import '../fakes/route_lines.dart';
 import 'package:trailbuddy/features/map/map_view/map_hit_test.dart' show projectToScreen;
 import 'package:trailbuddy/features/routing/loop_planner_sheet.dart' show LoopStartFlag, kLoopPickWidth;
+import 'package:trailbuddy/features/map/map_screen.dart' show kSelectionGlowWidth;
 import '../fakes/fake_rides.dart';
 import '../fakes/fake_tiles.dart';
 import '../fakes/fake_trails.dart';
@@ -826,6 +827,49 @@ void main() {
     expect(picked(tester), isEmpty);
   });
 
+  testWidgets('#375: im Planer trifft nur ein Tipp auf die Linie, und jeder sagt es mit Rückgängig', (tester) async {
+    await start(tester, areaStore: await _areaWithTrack());
+    await zoomToTrails(tester);
+    final container = ProviderScope.containerOf(tester.element(find.byType(MaterialApp)));
+    // [px] Bildpunkte östlich der Linie (sie läuft nach Norden).
+    LatLng beside(double px) {
+      final cam = fakeMap(tester).camera;
+      const on = LatLng(48.004, _lon);
+      final dx = projectToScreen(cam, const LatLng(48.004, _lon + 0.001)).dx - projectToScreen(cam, on).dx;
+      return LatLng(48.004, _lon + 0.001 * px / dx);
+    }
+
+    // Auf der normalen Karte trifft derselbe Tipp — dort hebt er nur hervor.
+    await tapMapAt(tester, beside(10));
+    await settle(tester);
+    expect(fakeMapLayers(tester).polylines.where((l) => l.width == kSelectionGlowWidth), hasLength(1),
+        reason: 'normale Karte: 12 px Spielraum');
+    await tapMapAt(tester, const LatLng(48.004, _lon - 0.01));
+    await settle(tester);
+
+    await openPlanner(tester);
+    await tapMapAt(tester, beside(10));
+    await settle(tester);
+    expect(picked(tester), isEmpty, reason: 'neben die Linie getippt: keine Änderung');
+    expect(find.byKey(const ValueKey('loop-toggled')), findsNothing);
+
+    await tapMapAt(tester, beside(2));
+    await settle(tester);
+    expect(picked(tester), hasLength(1));
+    expect(find.text('„Hexentanz" dazugenommen.'), findsOneWidget);
+
+    // Mit Stern weggetippt, Rückgängig: wieder dabei, MIT Stern.
+    container.read(loopPlannerProvider.notifier).toggleMandatory(hex);
+    await tapMapAt(tester, const LatLng(48.004, _lon));
+    await settle(tester);
+    expect(picked(tester), isEmpty);
+    expect(find.text('„Hexentanz" weggelassen.'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('loop-toggled-undo')));
+    await settle(tester);
+    expect(picked(tester), hasLength(1));
+    expect(container.read(loopPlannerProvider).mandatory, {hex});
+  });
+
   testWidgets('„Gebiet zu groß" (#356 PR 8): der Lader zählt, das Blatt sagt die Zahlen und den Rat', (tester) async {
     await start(tester, areaStore: await _areaWithTrack(), extra: [
       planningGraphLoaderProvider.overrideWithValue((box, {fillOnline = true}) async =>
@@ -963,6 +1007,8 @@ void main() {
 
     /// Aus der Liste ins Trail-Blatt und dort auf [key].
     Future<void> fromTrailSheet(WidgetTester tester, String key) async {
+      // Die Leiste „… dazugenommen" (#375) läge sonst über der Zeile.
+      ScaffoldMessenger.of(tester.element(find.byType(Scaffold).first)).clearSnackBars();
       await openTab(tester, 'Trails');
       await settle(tester, frames: 20);
       final row = find.text('Hexentanz');

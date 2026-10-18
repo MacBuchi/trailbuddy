@@ -2,6 +2,17 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## No more picking trails in the planner by accident
+
+*Version 0.134.1, 2026-10-18*
+
+- In the planner, a tap on the map only counts when it hits the trail
+  line itself. A tap just beside it, say on the way next to it or just
+  to dismiss something, leaves the selection as it was.
+- Every tap that adds or leaves out a trail now says so briefly at the
+  bottom (say: “Hexentanz” added), next to "Undo". A starred
+  trail you tapped away comes back with its star.
+
 ## Start and destination may lie beside the way
 
 *Version 0.134.0, 2026-10-18*
