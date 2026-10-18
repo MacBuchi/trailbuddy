@@ -12,7 +12,10 @@
 // (Dauer / längste Pause des UI-Takts — die Pause ist das Senden der
 // Bytes), die erste Rechnung, eine zweite auf demselben Graphen und eine
 // dritte mit einem Trail weniger — beide seit 0.80.2 aus den gemerkten
-// Suchen (`LoopSearchCache`) —, je Dauer / Pause, alles in ms. Die
+// Suchen (`LoopSearchCache`) —, je Dauer / Pause, alles in ms. Seit #376
+// dazu, was der Suchspeicher nach der ersten Rechnung hält (gelaufene
+// Suchen / gemerkte Knoten / Verbindungen / deren Linienpunkte) und der
+// Zuwachs des RSS dabei (der ganze Prozess, mit GC ungenau). Die
 // Rechenzeit auf dem Rechner (JIT) ist eine untere Grenze; das Telefon
 // ist langsamer.
 //
@@ -32,6 +35,7 @@
 // Zeit des Baus ist eine JIT-Zahl; der AOT-Fall aus #354 zeigt sich nur
 // auf dem Gerät (Stall-Wächter, `lib/core/stall_watch.dart`).
 import 'dart:async';
+import 'dart:io' show ProcessInfo;
 import 'dart:math' as math;
 
 import 'package:flutter_test/flutter_test.dart';
@@ -176,7 +180,10 @@ void main() {
       // An Ort und Stelle: so baute und rechnete der UI-Isolate bis 0.131.0.
       final localBuild = await _watch(() async => buildGraphFrom(graphInput));
       final g = localBuild.result.graph;
-      final inline = await _watch(() async => request.planOn(g));
+      final cache = LoopSearchCache();
+      final rss0 = ProcessInfo.currentRss;
+      final inline = await _watch(() async => request.planOn(g, cache: cache));
+      final rssPlan = ProcessInfo.currentRss - rss0;
       // Im Rechen-Isolate: der Bau aus den Bytes (die Pause ist das
       // Senden), dann die Rechnungen auf dem Graphen drüben.
       final runner = IsolateLoopPlanRunner();
@@ -201,6 +208,7 @@ void main() {
           '| ${ms(first.total)} / ${ms(first.stall)} '
           '| ${ms(second.total)} / ${ms(second.stall)} '
           '| ${ms(third.total)} / ${ms(third.stall)} '
+          '| ${cache.searchesRun} / ${cache.footprint.nodes} / ${cache.footprint.conns} / ${cache.footprint.points} / +${rssPlan >> 20} MB '
           '| ${plan.stops.length} | ${plan.summary == null ? '–' : '${(plan.summary!.timeS / 60).round()} min'} |');
     }, timeout: const Timeout(Duration(minutes: 5)));
   }

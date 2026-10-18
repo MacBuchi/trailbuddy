@@ -329,6 +329,14 @@ class LoopSearchCache {
   /// für Test und Messung.
   int searchesRun = 0;
 
+  /// Was der Speicher hält, für die Messung (#376): Knoten der Suchen,
+  /// Verbindungen und deren Linienpunkte.
+  ({int nodes, int conns, int points}) get footprint => (
+        nodes: _searches.values.fold(0, (s, r) => s + r.reachedCount),
+        conns: _conns.length,
+        points: _conns.values.fold(0, (s, c) => s + (c?.summary.points.length ?? 0)),
+      );
+
   void _bind(RoadGraph g, Object scope) {
     if (identical(g, _graph) && g.revision == _revision && scope == _scope) return;
     _graph = g;

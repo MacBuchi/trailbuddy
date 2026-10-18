@@ -254,13 +254,16 @@ void main() {
     final r = dijkstra(g, split[0], bio, limit: 2500);
     expect(r.reached(split[2]), isTrue);
     expect(r.reached(split[3]), isFalse);
-    expect(r.climb[split[2]], closeTo(200, 1e-9));
-    expect(r.dist[split[2]], closeTo(2080, 1e-6));
+    // Gemerkt wird nur, was erreicht ist (#376) — nicht der ganze Graph.
+    expect(r.reachedCount, 3);
+    expect(g.nodes.length, greaterThan(3));
+    expect(r.climbTo(split[2]), closeTo(200, 1e-9));
+    expect(r.costTo(split[2]), closeTo(2080, 1e-6));
     // Zurück: bergab, Strecke mit 25 km/h, dazu kostet jeder verschenkte
     // Höhenmeter 0,3 seiner Steigzeit (#188).
     final back = dijkstra(g, split[3], bio);
-    expect(back.dist[split[0]], closeTo(3 * 1000 / (25 / 3.6) + 300 * kDescentCost * 3600 / 450, 1e-6));
-    expect(back.climb[split[0]], 0);
+    expect(back.costTo(split[0]), closeTo(3 * 1000 / (25 / 3.6) + 300 * kDescentCost * 3600 / 450, 1e-6));
+    expect(back.climbTo(split[0]), 0);
     final s = summarizePath(g, back.pathTo(split[0])!, split[3], bio);
     expect(s.gainM, 0);
     expect(s.lossM, closeTo(300, 1e-9));

@@ -9,22 +9,56 @@
 // Kosten einer Kante = Zeit × Aufschlag plus Steilaufschlag (`edgeCostS`,
 // #194), in Kantenrichtung mit Anstieg/Abstieg vertauscht; eine Einbahn (nur Straßenklassen) nur
 // vorwärts. Rein, ohne Widgets.
+import 'dart:typed_data';
+
 import 'package:latlong2/latlong.dart';
 
 import '../../l10n/l10n.dart';
 import 'road_graph.dart';
 import 'route_profile.dart';
 
-/// Kosten, Anstieg und Vorgänger je erreichtem Knoten.
+/// Kosten und Vorgängerkante je erreichtem Knoten — kompakt, weil der
+/// Planer seine Suchen behält (#376): je Trail-Ende eine über den halben
+/// Rahmen. Bis 0.133.x lagen Kosten, Anstieg und Vorgänger in drei
+/// Hash-Maps, rund 100 Byte je Knoten; mit 97 Trails am Pixel fast 1 GB.
+/// Jetzt drei Felder nur über die erreichten Knoten, nach Kennung sortiert
+/// (16 Byte je Knoten), gesucht wird binär. Den Anstieg rechnet [climbTo]
+/// aus dem Pfad — in derselben Reihenfolge wie die Suche, also dieselbe
+/// Zahl.
 class SearchResult {
-  SearchResult(this.src);
+  SearchResult._(this.graph, this.src, this._nodes, this._cost, this._edge);
 
+  final RoadGraph graph;
   final int src;
-  final dist = <int, double>{};
-  final climb = <int, double>{};
-  final prev = <int, ({int node, int edge})>{};
+  final Int32List _nodes;
+  final Float64List _cost;
+  final Int32List _edge;
 
-  bool reached(int n) => dist.containsKey(n);
+  /// Wie viele Knoten die Suche erreicht hat (mit dem Start).
+  int get reachedCount => _nodes.length;
+
+  int _slot(int n) {
+    var lo = 0, hi = _nodes.length - 1;
+    while (lo <= hi) {
+      final mid = (lo + hi) >> 1;
+      final v = _nodes[mid];
+      if (v == n) return mid;
+      if (v < n) {
+        lo = mid + 1;
+      } else {
+        hi = mid - 1;
+      }
+    }
+    return -1;
+  }
+
+  bool reached(int n) => _slot(n) >= 0;
+
+  /// Die Kosten bis [n], oder null, wenn [n] nicht erreicht ist.
+  double? costTo(int n) {
+    final k = _slot(n);
+    return k < 0 ? null : _cost[k];
+  }
 
   /// Die Kanten vom Start zu [n], oder null, wenn [n] nicht erreicht ist.
   List<int>? pathTo(int n) {
@@ -32,11 +66,26 @@ class SearchResult {
     final out = <int>[];
     var cur = n;
     while (cur != src) {
-      final p = prev[cur]!;
-      out.add(p.edge);
-      cur = p.node;
+      final ei = _edge[_slot(cur)];
+      out.add(ei);
+      final e = graph.edges[ei];
+      cur = e.a == cur ? e.b : e.a;
     }
     return out.reversed.toList();
+  }
+
+  /// Der Anstieg bis [n] in Fahrtrichtung, oder null.
+  double? climbTo(int n) {
+    final path = pathTo(n);
+    if (path == null) return null;
+    var climb = 0.0, at = src;
+    for (final ei in path) {
+      final e = graph.edges[ei];
+      final forward = e.a == at;
+      climb += forward ? e.gain : e.loss;
+      at = forward ? e.b : e.a;
+    }
+    return climb;
   }
 }
 
@@ -86,15 +135,20 @@ SearchResult dijkstra(RoadGraph g, int src, RiderParams p,
     int? target,
     double Function(int node)? heuristic,
     bool Function(GraphEdge edge)? allow}) {
-  final r = SearchResult(src);
-  r.dist[src] = 0;
-  r.climb[src] = 0;
+  // Während der Suche Felder über den ganzen Graphen (eine Suche zur Zeit),
+  // danach nur die erreichten Knoten.
+  final count = g.nodes.length;
+  final dist = Float64List(count)..fillRange(0, count, double.infinity);
+  final prev = Int32List(count);
+  final seen = Uint8List(count);
+  dist[src] = 0;
+  var reached = 1;
   final heap = _Heap();
   heap.push(0, src);
-  final seen = <int>{};
   while (heap.isNotEmpty) {
     final n = heap.pop();
-    if (!seen.add(n)) continue;
+    if (seen[n] == 1) continue;
+    seen[n] = 1;
     if (n == target) break;
     for (final ei in g.adj[n]) {
       final e = g.edges[ei];
@@ -103,17 +157,26 @@ SearchResult dijkstra(RoadGraph g, int src, RiderParams p,
       if (allow != null && !allow(e)) continue;
       final m = forward ? e.b : e.a;
       final c = edgeCostFrom(g, ei, n, p);
-      final nd = r.dist[n]! + c.cost;
+      final nd = dist[n] + c.cost;
       if (nd > limit) continue;
-      if (nd < (r.dist[m] ?? double.infinity)) {
-        r.dist[m] = nd;
-        r.climb[m] = r.climb[n]! + c.gain;
-        r.prev[m] = (node: n, edge: ei);
+      if (nd < dist[m]) {
+        if (dist[m] == double.infinity) reached++;
+        dist[m] = nd;
+        prev[m] = ei;
         heap.push(nd + (heuristic?.call(m) ?? 0), m);
       }
     }
   }
-  return r;
+  final nodes = Int32List(reached), cost = Float64List(reached), edge = Int32List(reached);
+  var k = 0;
+  for (var n = 0; n < count; n++) {
+    if (dist[n] == double.infinity) continue;
+    nodes[k] = n;
+    cost[k] = dist[n];
+    edge[k] = prev[n];
+    k++;
+  }
+  return SearchResult._(g, src, nodes, cost, edge);
 }
 
 /// Der günstigste Weg von [src] nach [dst] (A* mit Luftlinie durch die
@@ -124,7 +187,7 @@ SearchResult dijkstra(RoadGraph g, int src, RiderParams p,
   final r = dijkstra(g, src, p, target: dst, heuristic: (n) => g.nodes[n].distanceTo(t) / vMax);
   final path = r.pathTo(dst);
   if (path == null) return null;
-  return (costS: r.dist[dst]!, climbM: r.climb[dst]!, edges: path);
+  return (costS: r.costTo(dst)!, climbM: r.climbTo(dst)!, edges: path);
 }
 
 /// Was ein Pfad ist, in Zahlen und als Linie.

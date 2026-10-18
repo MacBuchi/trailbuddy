@@ -2,6 +2,15 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## The planner needs less memory
+
+*Version 0.133.2, 2026-10-18*
+
+- With many trails in the frame the planner took a lot of memory, close
+  to a gigabyte on older phones. It now keeps its intermediate results
+  much more compactly and computes a bit faster as well. The planned
+  loops stay exactly the same.
+
 ## “Route to here” keeps the start
 
 *Version 0.133.1, 2026-10-18*
