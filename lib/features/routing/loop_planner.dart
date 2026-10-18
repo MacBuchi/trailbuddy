@@ -32,6 +32,7 @@ import 'package:latlong2/latlong.dart';
 import '../../l10n/l10n.dart';
 import '../../models/trail.dart';
 import '../trails/trail_geometry.dart' show haversineM;
+import 'plan_progress.dart';
 import 'road_graph.dart';
 import 'route_profile.dart';
 import 'route_search.dart';
@@ -484,8 +485,17 @@ class _Planner {
 
   SearchResult _search(int from, {required bool noHiking}) => cache._searches.putIfAbsent((from, noHiking), () {
         cache.searchesRun++;
-        return dijkstra(g, from, p, limit: budget.timeS, allow: noHiking ? (e) => !e.hiking : null);
+        final r = dijkstra(g, from, p, limit: budget.timeS, allow: noHiking ? (e) => !e.hiking : null);
+        // Der Ladebalken (#356): Die Zeit steckt in den Suchen, eine vom
+        // Start und eine je Trail-Ende; was danach kommt, ist kurz. Die
+        // Suchen ohne Wanderweg kommen nur manchmal dazu — daher die
+        // Kappe, bis die Planung fertig ist.
+        if (PlanProgress.active) PlanProgress.report((++_searchesHere / _expectedSearches).clamp(0.0, 0.95));
+        return r;
       });
+
+  var _searchesHere = 0;
+  late final int _expectedSearches = 1 + [for (var i = 0; i < pool.length; i++) if (usable(i)) i].length;
 
   /// Die Verbindung [from] → [to], oder null, wenn keine im Budget liegt.
   _Conn? conn(int from, int to, {bool noHiking = false}) => cache._conns.putIfAbsent((from, to, noHiking), () {

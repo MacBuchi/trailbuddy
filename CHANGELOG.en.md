@@ -2,12 +2,17 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
-## Tile count log line in the development app
+## Progress bar while planning
 
-*Version 0.131.3, 2026-10-18*
+*Version 0.132.0, 2026-10-18*
 
-- Only in the development app with the stall watch: planning now also
-  logs how many map tiles were read. The regular app does not change.
+- The planner shows a progress bar with a percentage while it builds the
+  path network and computes the loop. On older phones a large area can
+  take a minute; now you can see that it is moving.
+- The limit for “area too large” is now 120 map tiles, about 36 × 36 km.
+  Measured on an older phone: more does not fit safely into memory.
+- In the development app, planning also logs how many map tiles were
+  read.
 
 ## Learning the rider profile and “Back to the route” without a frozen map
 

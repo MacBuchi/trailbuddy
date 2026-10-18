@@ -34,6 +34,7 @@ import '../offline_areas/area_plan.dart';
 import '../offline_areas/area_store.dart';
 import '../offline_areas/height_tiles.dart';
 import '../rides/road_index.dart' show RoadCoverage, distinctSources;
+import 'plan_progress.dart';
 import 'road_graph.dart';
 
 typedef RoadGraphLoadResult = ({
@@ -59,13 +60,15 @@ const kOnlineFillMaxTiles = 75;
 /// Konzept-Routing 10.6): Der Rahmen wird VOR dem Lesen gezählt, und
 /// darüber sagt das Blatt „Gebiet zu groß" mit dem Rat (Radius kleiner,
 /// weit entfernte Trails abwählen), ohne eine Kachel geöffnet zu haben.
-/// Bei 47° N ist eine Kachel rund 3,3 × 3,3 km; 300 Kacheln sind
-/// ~55 × 55 km, ein 30-km-Radius mit Trails an beiden Rändern.
+/// Bei 47° N ist eine Kachel rund 3,3 × 3,3 km; 120 Kacheln sind
+/// ~36 × 36 km, ein 30-km-Radius mit Trails an beiden Rändern.
 ///
-/// VORLÄUFIG: Der Wert soll aus der Messung am Pixel kommen (Szenarien 2
-/// und 4 in `docs/routing-messung.md` — die Kachelzahl, bei der der Bau
-/// noch unter 5 s bleibt); bis dahin steht hier die Zahl vom Rechner.
-const kPlanMaxTiles = 300;
+/// Gemessen am Pixel (#356, `docs/routing-messung.md`, Szenario 4): 117
+/// Kacheln bauten in 41–44 s und belegten bis 1,76 GB, ohne Absturz. Die
+/// Wartezeit begrenzt nicht mehr — mit dem Ladebalken darf es länger
+/// dauern (Betreiber, 2026-10-18) —, der Speicher schon: Er wächst mit
+/// den Kacheln, 300 hätten das Gerät überfordert.
+const kPlanMaxTiles = 120;
 
 /// Holt eine Kachel vom Host, die kein Bereich hat: die entpackten Bytes,
 /// null, wenn der Host sie nicht hat (außerhalb DACH). Wirft bei einem
@@ -267,20 +270,29 @@ RoadGraphBuilt buildRoadGraphFrom({
   HeightTiles? heights,
   required double lat0,
 }) {
+  // Die Anteile am Ladebalken (`plan_progress.dart`) nach den Zeiten am
+  // Pixel (docs/routing-messung.md, #356): Kreuzungen und Güte sind die
+  // großen Brocken.
   final lines = <WayLine>[];
-  StallWatch.mark('graph.decode', () {
-    for (final r in roads) {
-      lines.addAll(wayLinesFromTile(r.bytes, z: r.tile.z, x: r.tile.x, y: r.tile.y));
-    }
-  });
-  final build = buildRoadGraph(lines, lat0: lat0);
-  if (heights != null) StallWatch.mark('graph.climbs', () => addClimbsFrom(build.graph, heights));
+  PlanProgress.part(0, 0.06, () => StallWatch.mark('graph.decode', () {
+        for (var i = 0; i < roads.length; i++) {
+          final r = roads[i];
+          lines.addAll(wayLinesFromTile(r.bytes, z: r.tile.z, x: r.tile.x, y: r.tile.y));
+          PlanProgress.steps(i + 1, roads.length);
+        }
+      }));
+  final build = PlanProgress.part(0.06, 0.6, () => buildRoadGraph(lines, lat0: lat0));
+  if (heights != null) {
+    PlanProgress.part(0.6, 0.7, () => StallWatch.mark('graph.climbs', () => addClimbsFrom(build.graph, heights)));
+  }
   if (ways.isNotEmpty) {
-    final grades = <WayGradeLine>[];
-    for (final w in ways) {
-      grades.addAll(wayGradeLinesFromTile(w.bytes, z: w.tile.z, x: w.tile.x, y: w.tile.y));
-    }
-    StallWatch.mark('graph.wayQuality', () => addWayQuality(build.graph, grades));
+    PlanProgress.part(0.7, 1, () {
+      final grades = <WayGradeLine>[];
+      for (final w in ways) {
+        grades.addAll(wayGradeLinesFromTile(w.bytes, z: w.tile.z, x: w.tile.x, y: w.tile.y));
+      }
+      StallWatch.mark('graph.wayQuality', () => addWayQuality(build.graph, grades));
+    });
   }
   return (
     graph: build.graph,

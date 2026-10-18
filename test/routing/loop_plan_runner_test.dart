@@ -211,6 +211,26 @@ void main() {
     runner.dispose();
   });
 
+  test('#356 Ladebalken: Bau und Runde melden drüben steigend bis 1, ohne Zuhörer nichts', () async {
+    final runner = IsolateLoopPlanRunner();
+    addTearDown(runner.dispose);
+    final built = <double>[];
+    await runner.build(_square(), onProgress: built.add);
+    expect(built, isNotEmpty);
+    expect(built.last, 1.0);
+    for (var i = 1; i < built.length; i++) {
+      expect(built[i], greaterThan(built[i - 1]), reason: 'monoton: $built');
+    }
+    final planned = <double>[];
+    final plan = await runner.plan(_request(), onProgress: planned.add);
+    expect(plan.outcome, LoopOutcome.ok);
+    expect(planned.last, 1.0);
+    // Dieselbe noch einmal ohne Zuhörer: kein Zwischenstand irgendwohin.
+    planned.clear();
+    await runner.plan(_request());
+    expect(planned, isEmpty);
+  });
+
   test('auf dem Telefon ist der Planer-Runner der Rechen-Isolate', () {
     final container = ProviderContainer();
     addTearDown(container.dispose);

@@ -2,13 +2,18 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
-## Messzeile für die Kachelzahl in der Entwicklungs-App
+## Ladebalken beim Planen
 
-*Version 0.131.3, 2026-10-18*
+*Version 0.132.0, 2026-10-18*
 
-- Nur in der Entwicklungs-App mit Stall-Wächter: Beim Planen steht jetzt
-  auch die Zahl der gelesenen Kartenkacheln im Protokoll. Die normale App
-  ändert sich nicht.
+- Der Planer zeigt beim Aufbau des Wegenetzes und beim Rechnen der Runde
+  einen Ladebalken mit Prozent. Auf älteren Telefonen kann ein großes
+  Gebiet eine Minute dauern; jetzt sieht man, dass es vorangeht.
+- Die Grenze für „Gebiet zu groß“ liegt jetzt bei 120 Kartenkacheln, rund
+  36 × 36 km. Gemessen auf einem älteren Telefon: Mehr passt nicht
+  sicher in den Speicher.
+- In der Entwicklungs-App steht beim Planen auch die Zahl der gelesenen
+  Kartenkacheln im Protokoll.
 
 ## Fahrerprofil lernen und „Zurück zur Route“ ohne stehende Karte
 

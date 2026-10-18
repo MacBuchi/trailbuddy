@@ -324,12 +324,25 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     Gemessen (`routing-messung.md`, „nach PR 8"): die Pause im UI-Isolate
     von 1,8 s auf ~25 ms (544 KB Bytes statt 65 000 Kanten), der Bau
     selbst gleich teuer, nur woanders. **Vor dem Lesen zählt der Lader**
-    (`kPlanMaxTiles`, VORLÄUFIG 300 bis zur Messung am Pixel —
+    (`kPlanMaxTiles` = 120, gemessen am Pixel: die Grenze setzt der
+    Speicher, nicht die Zeit — bis 0.131.x vorläufig 300;
     `LoopBlocker.tooLarge`, `loopBlockerTooLarge`/`routeBlockerTooLarge`
     mit Zahlen und Rat), und **Verbinder kommen nur in der Nähe der
     Anker in den Rahmen** (`kPlanConnectorMarginM`, 3 km um Start, Ziel,
     Zwischenpunkte, gewählte Trails und die des Umwegs; bis 0.131.0 alle
     im Radius der Liste — ein 60 × 60-km-Rahmen für eine 12-km-Runde).
+    **Seit 0.132.0 gibt es einen Ladebalken** (Betreiber 2026-10-18: mit
+    Balken darf es länger dauern): `PlanProgress` (`plan_progress.dart`)
+    ist wie der Stall-Wächter ein statischer Melder je Isolate; nur
+    innerhalb von `PlanProgress.run` meldet er, sonst ist jeder Aufruf ein
+    Vergleich mit null. Bau-Schritte teilen sich den Balken mit
+    `part(from, to, …)` nach den Zeiten am Pixel, lange Schleifen melden
+    mit `steps` (nur jede 64./128./256. Runde); `planLoop` meldet je
+    Suche (eine vom Start, eine je Trail-Ende, gekappt bei 95 %). Der
+    Isolate schickt `(id, double)` höchstens einmal je Prozent;
+    `build`/`plan` nehmen `onProgress`, die übrigen Aufträge melden
+    nichts. Der Controller hat dafür die Phase `building` und
+    `LoopSession.progress` (jeder Phasenwechsel setzt ihn zurück).
     **Seit 0.131.2 rechnet der Runner jede `GraphJob`** (#356 PR 9,
     `graph_input.dart`): `run(job)` schickt die Aufgabe hinüber, `runOn`
     läuft drüben auf dem gehaltenen Graphen — die Runde (`LoopRequest`),

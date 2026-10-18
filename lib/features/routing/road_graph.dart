@@ -26,6 +26,7 @@ import 'package:vector_tile/vector_tile.dart';
 import '../../core/line_geometry.dart';
 import '../../core/stall_watch.dart';
 import '../offline_areas/height_tiles.dart';
+import 'plan_progress.dart';
 import 'route_profile.dart';
 
 /// Tote Enden bis zu so vielen Metern werden angebunden (M1: 10 m
@@ -201,7 +202,9 @@ int addWayQuality(RoadGraph g, Iterable<WayGradeLine> lines) {
   }
 
   var named = 0;
-  for (final e in g.edges) {
+  for (var i = 0; i < g.edges.length; i++) {
+    final e = g.edges[i];
+    if (i & 127 == 0) PlanProgress.steps(i, g.edges.length);
     final kinds = e.cls == WayClass.forstweg
         ? kWayTrackClasses
         : e.cls == WayClass.wanderweg
@@ -631,7 +634,7 @@ GraphBuild buildRoadGraph(Iterable<WayLine> lines,
     {required double lat0, double joinM = kGraphJoinM, bool splitCrossings = true}) {
   // Die drei Schritte als Marken (#356): Der Stall-Wächter nennt den,
   // der den Takt aufhielt.
-  final g = StallWatch.mark('graph.nodes', () {
+  final g = PlanProgress.part(0, 0.19, () => StallWatch.mark('graph.nodes', () {
     final counts = <(int, int), int>{};
     final all = lines.toList();
     for (final l in all) {
@@ -641,7 +644,9 @@ GraphBuild buildRoadGraph(Iterable<WayLine> lines,
       }
     }
     final g = RoadGraph(lat0);
-    for (final l in all) {
+    for (var li = 0; li < all.length; li++) {
+      final l = all[li];
+      if (li & 255 == 0) PlanProgress.steps(li, all.length);
       final cut = [0];
       for (var i = 1; i < l.points.length - 1; i++) {
         if ((counts[RoadGraph._keyOf(l.points[i])] ?? 0) >= 2) cut.add(i);
@@ -655,9 +660,11 @@ GraphBuild buildRoadGraph(Iterable<WayLine> lines,
       }
     }
     return g;
-  });
-  final joins = joinM > 0 ? StallWatch.mark('graph.joins', () => _joinDeadEnds(g, joinM)) : 0;
-  final crossings = splitCrossings ? StallWatch.mark('graph.crossings', () => _splitCrossings(g)) : 0;
+  }));
+  final joins =
+      joinM > 0 ? PlanProgress.part(0.19, 0.54, () => StallWatch.mark('graph.joins', () => _joinDeadEnds(g, joinM))) : 0;
+  final crossings =
+      splitCrossings ? PlanProgress.part(0.54, 1, () => StallWatch.mark('graph.crossings', () => _splitCrossings(g))) : 0;
   return (graph: g, joins: joins, crossings: crossings);
 }
 
@@ -667,6 +674,7 @@ int _joinDeadEnds(RoadGraph g, double joinM) {
   var joins = 0;
   final count = g.nodes.length; // neue Knoten aus Teilungen brauchen keinen Join
   for (var n = 0; n < count; n++) {
+    if (n & 255 == 0) PlanProgress.steps(n, count);
     if (g.degree(n) != 1) continue;
     var target = g.nearestNode(g.nodes[n], joinM, exclude: n);
     if (target == null) {
@@ -689,7 +697,10 @@ int _joinDeadEnds(RoadGraph g, double joinM) {
 /// Knoten (Regel 3 aus M1); gibt die Zahl der Teilungen.
 int _splitCrossings(RoadGraph g) {
   var crossings = 0;
-  for (final c in findCrossings(g)) {
+  final found = PlanProgress.part(0, 0.6, () => findCrossings(g));
+  for (var k = 0; k < found.length; k++) {
+    final c = found[k];
+    if (k & 63 == 0) PlanProgress.report(0.6 + 0.4 * k / found.length);
     // Erst die eine Kante teilen (attach legt den Knoten an), dann die
     // andere am selben Punkt — der Knotenschlüssel macht beide eins.
     final mid = g.attach(c.at, radius: 0.5);
@@ -730,7 +741,10 @@ math.Point<double>? properCrossing(
 List<({LatLng at, int edgeA, int edgeB})> findCrossings(RoadGraph g) {
   final out = <({LatLng at, int edgeA, int edgeB})>[];
   final seen = <(int, int, int, int)>{};
+  final cells = g._segCells.length;
+  var cell = 0;
   for (final segs in g._segCells.values) {
+    if (cell++ & 255 == 0) PlanProgress.steps(cell, cells);
     for (var i = 0; i < segs.length; i++) {
       final (ea, ia) = segs[i];
       final pa = g.edges[ea].points;
@@ -764,8 +778,9 @@ Future<void> addClimbs(RoadGraph g, HeightReader heights) async {
 /// [addClimbs] aus vorab gelesenen Kacheln, synchron — der Weg im
 /// Rechen-Isolate des Planers (#356 PR 8), dieselben Zahlen.
 void addClimbsFrom(RoadGraph g, HeightTiles heights) {
-  for (final e in g.edges) {
-    _applyProfile(e, heights.profileAlong(e.points));
+  for (var i = 0; i < g.edges.length; i++) {
+    if (i & 255 == 0) PlanProgress.steps(i, g.edges.length);
+    _applyProfile(g.edges[i], heights.profileAlong(g.edges[i].points));
   }
 }
 

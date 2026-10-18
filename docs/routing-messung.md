@@ -788,15 +788,17 @@ eng gezoomten Ausschnitt.
 **`kPlanMaxTiles`** (#356 PR 8) kommt aus 2 und 4: die Kachelzahl, bei
 der `graph.load` + `graph.build` auf dem Pixel noch unter 5 s bleibt
 (das Budget der ersten Runde), abgerundet; darüber sagt der Planer
-„Gebiet zu groß". Bis zur Messung steht ein VORLÄUFIGER Wert von 300
-(~55 × 55 km bei 47° N) in `road_graph_loader.dart`; wer misst, setzt ihn
-und streicht das Wort „vorläufig" dort und in Konzept-Routing 10.6.
+„Gebiet zu groß". Bis zur Messung stand ein vorläufiger Wert von 300
+(~55 × 55 km bei 47° N) in `road_graph_loader.dart`.
 Szenario 4 darf das Budget reißen — es ist die Messung der Grenze.
 **Stand 2026-10-18:** Die Messung oben gibt für 5 s nur 8–15 Kacheln
-her; das würde den Planer auf diesem Gerät praktisch abschalten. Ob die
-Grenze so hart kommt, das Budget für ältere Geräte gelockert wird oder
-der Bau schneller werden muss (zuerst wayQuality und crossings),
-entscheidet der Betreiber (#356). Bis dahin bleibt der vorläufige Wert.
+her; das hätte den Planer auf diesem Gerät praktisch abgeschaltet. Der
+Betreiber hat entschieden: „Wenn es einen Ladebalken gibt, ist eine
+längere Berechnungsdauer ok." Seit 0.132.0 melden Bau und Runde ihren
+Fortschritt, und die Grenze kommt vom Speicher: **`kPlanMaxTiles` = 120**,
+die größte gemessene Zahl, die ohne Absturz lief (117 Kacheln, bis
+1,76 GB). 300 Kacheln hätten nach derselben Steigung weit über 2 GB
+gebraucht.
 
 ### Am Rechner, nach PR 8: der Bau drüben (2026-10-18)
 

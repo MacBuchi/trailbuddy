@@ -8,6 +8,7 @@ import 'dart:isolate';
 import 'graph_input.dart';
 import 'loop_plan_runner.dart';
 import 'loop_planner.dart';
+import 'plan_progress.dart';
 
 LoopPlanRunner createLoopPlanRunner() => IsolateLoopPlanRunner();
 
@@ -19,6 +20,7 @@ class IsolateLoopPlanRunner implements LoopPlanRunner {
   var _hasGraph = false;
   var _nextId = 0;
   final _pending = <int, Completer<Object?>>{};
+  final _progress = <int, void Function(double value)>{};
 
   /// Wie oft eine Eingabe hinüberging — für den Test.
   int builds = 0;
@@ -27,17 +29,21 @@ class IsolateLoopPlanRunner implements LoopPlanRunner {
   bool get hasGraph => _hasGraph;
 
   @override
-  Future<GraphReport> build(GraphInput input) async {
+  Future<GraphReport> build(GraphInput input, {void Function(double value)? onProgress}) async {
     final worker = await _ensure();
     builds++;
     // Kopiert die Bytes — Kacheln und Höhenraster, nicht den Graphen.
-    final report = await _ask(worker, input);
+    final report = await _ask(worker, input, onProgress);
     _hasGraph = true;
     return report as GraphReport;
   }
 
   @override
-  Future<LoopPlan> plan(LoopRequest request) => run(request);
+  Future<LoopPlan> plan(LoopRequest request, {void Function(double value)? onProgress}) async {
+    if (!_hasGraph) throw StateError('kein Graph gebaut');
+    final worker = await _ensure();
+    return await _ask(worker, request, onProgress) as LoopPlan;
+  }
 
   @override
   Future<R> run<R>(GraphJob<R> job) async {
@@ -55,11 +61,12 @@ class IsolateLoopPlanRunner implements LoopPlanRunner {
     return worker;
   }
 
-  Future<Object?> _ask(SendPort worker, Object payload) {
+  Future<Object?> _ask(SendPort worker, Object payload, [void Function(double value)? onProgress]) {
     final id = _nextId++;
     final done = Completer<Object?>();
     _pending[id] = done;
-    worker.send((id, payload));
+    if (onProgress != null) _progress[id] = onProgress;
+    worker.send((id, payload, onProgress != null));
     return done.future;
   }
 
@@ -72,7 +79,13 @@ class IsolateLoopPlanRunner implements LoopPlanRunner {
         ready.complete(msg);
         return;
       }
+      // Ein Zwischenstand (#356): Anteil 0…1 einer laufenden Rechnung.
+      if (msg case (final int id, final double value)) {
+        _progress[id]?.call(value);
+        return;
+      }
       final (id, result, error, stack) = msg as (int, Object?, String?, String?);
+      _progress.remove(id);
       final done = _pending.remove(id);
       if (done == null) return;
       if (error == null) {
@@ -121,6 +134,7 @@ class IsolateLoopPlanRunner implements LoopPlanRunner {
     _hasGraph = false;
     final waiting = [..._pending.values];
     _pending.clear();
+    _progress.clear();
     for (final c in waiting) {
       c.completeError(error);
     }
@@ -138,19 +152,21 @@ void _workerMain(SendPort reply) {
   // die nächste meist dieselben.
   var cache = LoopSearchCache();
   inbox.listen((msg) {
-    final (id, payload) = msg as (int, Object);
+    final (id, payload, wantsProgress) = msg as (int, Object, bool);
     try {
-      final Object result;
-      if (payload is GraphInput) {
-        built = null; // der alte Graph darf gehen, bevor der neue entsteht
-        cache = LoopSearchCache();
-        final b = built = buildGraphFrom(payload, builtIn: Isolate.current.debugName ?? 'isolate');
-        result = b.report;
-      } else {
+      Object work() {
+        if (payload is GraphInput) {
+          built = null; // der alte Graph darf gehen, bevor der neue entsteht
+          cache = LoopSearchCache();
+          final b = built = buildGraphFrom(payload, builtIn: Isolate.current.debugName ?? 'isolate');
+          return b.report;
+        }
         final g = built?.graph;
         if (g == null) throw StateError('kein Graph gebaut');
-        result = (payload as GraphJob<Object?>).runOn(g, cache) as Object;
+        return (payload as GraphJob<Object?>).runOn(g, cache) as Object;
       }
+
+      final result = wantsProgress ? PlanProgress.run((v) => reply.send((id, v)), work) : work();
       reply.send((id, result, null, null));
     } catch (e, s) {
       reply.send((id, null, '$e', '$s'));

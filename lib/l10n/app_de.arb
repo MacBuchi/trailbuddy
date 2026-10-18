@@ -4227,6 +4227,19 @@
   "@loopComputing": {
     "description": "Fortschritt im Ergebnis-Blatt des Planers."
   },
+  "loopBuildingGraph": "Das Wegenetz wird aufgebaut … Bei einem großen Gebiet kann das eine Minute dauern.",
+  "@loopBuildingGraph": {
+    "description": "Fortschritt im Ergebnis-Blatt des Planers, über dem Ladebalken, während aus den Kartenkacheln das Wegenetz entsteht."
+  },
+  "loopProgressPercent": "{percent} %",
+  "@loopProgressPercent": {
+    "description": "Prozentzahl neben dem Ladebalken des Planers.",
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
   "loopShortSummary": "{length} · {climb} hm · etwa {time}",
   "@loopShortSummary": {
     "description": "Untertitel des Ergebnis-Blatts; length und time fertig formatiert, climb Höhenmeter.",
