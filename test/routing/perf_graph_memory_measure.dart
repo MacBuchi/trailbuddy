@@ -88,7 +88,26 @@ void main() {
       // ignore: avoid_print
       print('| $cls | ${mb(bytes)} MB | $count |');
     }
+    // Fingerabdruck des Graphen (#378): Ein Umbau des Speichers muss ihn
+    // halten — dieselben Knoten, Kanten, Linien, Längen und Höhen.
+    final edgeHash = _fnv([
+      for (final e in g.edges)
+        '${e.a} ${e.b} ${e.cls.index} ${e.length} ${e.gain} ${e.loss} ${e.steepWUp} ${e.carry} '
+            '${[for (final p in e.points) '${p.latitude},${p.longitude}'].join(';')}',
+    ].join('|'));
+    final adjHash = _fnv([for (var n = 0; n < g.nodes.length; n++) g.adj[n].join(',')].join('|'));
+    // ignore: avoid_print
+    print('Fingerabdruck: ${edgeHash.toRadixString(16)} ${adjHash.toRadixString(16)}');
     expect(g.edges, isNotEmpty);
     await svc.dispose();
   }, timeout: const Timeout(Duration(minutes: 5)));
+}
+
+/// FNV-1a über den Text — `Object.hash` ist je Prozess anders geseedet.
+int _fnv(String s) {
+  var h = 0x811c9dc5;
+  for (final c in s.codeUnits) {
+    h = ((h ^ c) * 0x01000193) & 0xffffffff;
+  }
+  return h;
 }

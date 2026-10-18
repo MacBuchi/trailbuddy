@@ -414,20 +414,37 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     wieder selbst — sonst kostete die gekürzte Hälfte wie die ganze
     Kante. Die erste Rechnung braucht etwa 40 % weniger Zeit, die Pläne
     sind identisch.
-    **Das Gitter des Graphen liegt in typisierten Feldern** (#378
-    Schritt 1, seit 0.133.4): `_CellGrid` in `road_graph.dart` für
-    Segmente und Knoten, Zellschlüssel als Zahl relativ zur ersten Zelle
-    (auf dem Telefon sind Smis 31 Bit — ein absoluter Schlüssel wäre je
-    Zelle ein Objekt; im Web sind Zahlen nur bis 2^53 genau, darum
-    bleibt der Knotenschlüssel aus Mikrograd ein Record). Vorher hielt allein das
-    Segmentgitter gut 1 Mio. Records, 94 → 54 MB Heap je Graph. **Die
-    Reihenfolge ist Teil des Verhaltens**: Zellen in Reihenfolge des
-    ersten Eintrags, Einträge in Reihenfolge des Eintragens — bei
-    gleichem Abstand gewinnt in `nearest` der erste Treffer, und
-    `findCrossings` teilt in der gefundenen Reihenfolge. Wer das Gitter
-    umbaut, hält beides, sonst ändern sich Kantennummern und im Grenzfall
-    Pläne. Messen: `perf_graph_memory_measure.dart` (nur mit
-    `--enable-vmservice`, Heap nach GC und Klassen).
+    **Der Graph liegt in typisierten Feldern** (#378, Gitter seit
+    0.133.4, alles andere seit 0.133.5): Knoten, Kantenwerte,
+    Linienpunkte (Grad UND Meter) und Nachbarn sind Felder in
+    `RoadGraph`; `GraphEdge`, `edges`, `nodes`, `nodeLatLng` und `adj`
+    sind Sichten, die je Zugriff ein Objekt bzw. eine Liste anlegen.
+    **Heiße Schleifen lesen direkt** (`adjFirst`/`adjNext` mit Kante =
+    Platz >> 1, `edgeA`/`edgeB`, `openFrom`, `nodeDistance`, `edgeXy`) —
+    `g.adj[n]` im Dijkstra legte je Schritt eine Liste an. Eine Sicht auf
+    `points` gilt im Stand ihres Aufrufs; eine Teilung schreibt den
+    Teilungspunkt in den ersten Teil. Das Segmentgitter trägt je Segment
+    die Nummer seines ersten Punkts (`_pedge` nennt die Kante), die
+    Zellen findet eine Tabelle mit offener Adressierung; Zellkoordinaten
+    bleiben absolut (um 26 000/105 000, auch auf dem Telefon kleine
+    Smis), die Streuung ist im Web (2^53, 32-Bit-Bitoperationen) genau
+    genug. Der Knotenschlüssel aus Mikrograd bleibt ein Record: als EINE
+    Zahl bräuchte er rund 57 Bit, im Web sind es 53. 94 → 54 → 33 MB
+    Heap je Graph, Pläne identisch; im Web prüft
+    `test/web/road_graph_browser_test.dart` gegen die Zahlen der VM.
+    **Die Reihenfolge ist Teil des Verhaltens**: Nachbarn in Reihenfolge
+    des Eintragens (Teilung nimmt den Platz am alten Ende heraus und hängt
+    ihn am neuen hinten an — wie `remove`/`add` vorher), Zellen in
+    Reihenfolge des ersten Eintrags, Einträge in Reihenfolge des
+    Eintragens — bei gleichen Kosten entscheidet die Suche nach der
+    Nachbarreihenfolge, bei gleichem Abstand gewinnt in `nearest` der
+    erste Treffer, und `findCrossings` teilt in der gefundenen
+    Reihenfolge. Wer umbaut, hält das und prüft mit den Fingerabdrücken
+    beider Mess-Skripte (Graph: `perf_graph_memory_measure.dart`, nur mit
+    `--enable-vmservice`, Heap nach GC und Klassen; Plan:
+    `perf_loop_planner_measure.dart`) — FNV über Text, weil `Object.hash`
+    je Prozess anders geseedet ist. Nach dem Bau kürzt `compact()` die
+    Felder; danach wachsen sie um ein Viertel, nicht aufs Doppelte.
   Die Kurzanleitung hat sechs Abschnitte als Obergrenze; der Planer
   steht als Satz in „Fahrt aufzeichnen und zerlegen". Vorführung
   `loop-planner` über Szene `MapCoach.loopSheet` und Anker

@@ -68,8 +68,8 @@ class SearchResult {
     while (cur != src) {
       final ei = _edge[_slot(cur)];
       out.add(ei);
-      final e = graph.edges[ei];
-      cur = e.a == cur ? e.b : e.a;
+      final a = graph.edgeA(ei);
+      cur = a == cur ? graph.edgeB(ei) : a;
     }
     return out.reversed.toList();
   }
@@ -146,17 +146,13 @@ class EdgeCosts {
   /// Die Kosten der Kante [ei] ab Knoten [from].
   double of(int ei, int from) {
     if (graph.revision != _revision) return edgeCostFrom(graph, ei, from, profile).cost;
-    return _cost[graph.edges[ei].a == from ? 2 * ei : 2 * ei + 1];
+    return _cost[graph.edgeA(ei) == from ? 2 * ei : 2 * ei + 1];
   }
 }
 
 /// Darf die Kante [e] von Knoten [from] aus befahren werden? Einbahn
 /// (nur Straßen) und Trail-Richtung (#174) sperren je eine Richtung.
-bool edgeOpenFrom(GraphEdge e, int from) {
-  final forward = e.a == from;
-  if (e.oneway && !forward) return false;
-  return forward ? !e.blockForward : !e.blockBackward;
-}
+bool edgeOpenFrom(GraphEdge e, int from) => e.openFrom(from);
 
 /// Begrenzter Dijkstra (mit [heuristic] ein A*): alle Knoten, die mit
 /// Kosten ≤ [limit] erreichbar sind; mit [target] endet die Suche dort.
@@ -184,12 +180,13 @@ SearchResult dijkstra(RoadGraph g, int src, RiderParams p,
     if (seen[n] == 1) continue;
     seen[n] = 1;
     if (n == target) break;
-    for (final ei in g.adj[n]) {
-      final e = g.edges[ei];
-      final forward = e.a == n;
-      if (!edgeOpenFrom(e, n)) continue;
-      if (allow != null && !allow(e)) continue;
-      final m = forward ? e.b : e.a;
+    // Direkt über die Felder des Graphen (#378), ohne Sicht je Kante.
+    for (var s = g.adjFirst(n); s >= 0; s = g.adjNext(s)) {
+      final ei = s >> 1;
+      if (!g.openFrom(ei, n)) continue;
+      if (allow != null && !allow(g.edges[ei])) continue;
+      final a = g.edgeA(ei);
+      final m = a == n ? g.edgeB(ei) : a;
       final nd = dist[n] + (costs != null ? costs.of(ei, n) : edgeCostFrom(g, ei, n, p).cost);
       if (nd > limit) continue;
       if (nd < dist[m]) {
@@ -217,7 +214,7 @@ SearchResult dijkstra(RoadGraph g, int src, RiderParams p,
 ({double costS, double climbM, List<int> edges})? shortestPath(RoadGraph g, int src, int dst, RiderParams p) {
   final t = g.nodes[dst];
   final vMax = p.vDownKmh / 3.6;
-  final r = dijkstra(g, src, p, target: dst, heuristic: (n) => g.nodes[n].distanceTo(t) / vMax);
+  final r = dijkstra(g, src, p, target: dst, heuristic: (n) => g.nodeDistance(n, t.x, t.y) / vMax);
   final path = r.pathTo(dst);
   if (path == null) return null;
   return (costS: r.costTo(dst)!, climbM: r.climbTo(dst)!, edges: path);

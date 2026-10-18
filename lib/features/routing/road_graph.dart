@@ -17,6 +17,7 @@
 // Gitter von [kGraphCellM], damit Join und Anheften lokale Abfragen
 // bleiben — die erste Fassung des Werkzeugs sah jede Kante je totem Ende
 // an, das waren Minuten statt Sekunden.
+import 'dart:collection';
 import 'dart:math' as math;
 import 'dart:typed_data';
 
@@ -211,7 +212,7 @@ int addWayQuality(RoadGraph g, Iterable<WayGradeLine> lines) {
             ? kWayPathClasses
             : null;
     if (kinds == null) continue;
-    final samples = resampleXy(g.proj.line(e.points), kWaySampleM);
+    final samples = resampleXy(g.edgeXy(i), kWaySampleM);
     if (samples.isEmpty) continue;
     final ks = <int, int>{}, us = <int, int>{};
     for (final p in samples) {
@@ -307,31 +308,37 @@ List<List<math.Point<double>>> clipToTile(List<math.Point<double>> line, double 
 
 /// Eine Kante: zwei Knoten, Klasse, Einbahn, Länge in Metern, Anstieg
 /// und Abstieg in Kantenrichtung (a → b), die Punkte in Grad.
+///
+/// Eine Sicht auf die Felder des Graphen (#378), kein eigener Speicher:
+/// Bis 0.133.x war jede Kante ein Objekt mit eigener Punktliste, rund
+/// 170 Byte plus Liste. [RoadGraph.edges] legt die Sicht bei jedem
+/// Zugriff neu an — billig, aber in heißen Schleifen lesen die Suchen
+/// direkt ([RoadGraph.edgeA], [RoadGraph.adjFirst]).
 class GraphEdge {
-  GraphEdge({
-    required this.a,
-    required this.b,
-    required this.cls,
-    required this.oneway,
-    required this.points,
-    required this.length,
-    this.level = 0,
-  });
+  GraphEdge._(this._g, this.index);
 
-  int a;
-  int b;
-  final WayClass cls;
-  final bool oneway;
+  final RoadGraph _g;
+
+  /// Die Kantennummer im Graphen.
+  final int index;
+
+  int get a => _g._ea[index];
+  int get b => _g._eb[index];
+  WayClass get cls => WayClass.values[_g._ecls[index]];
+  bool get oneway => _g._flag(index, _kOneway);
 
   /// Der Trail, auf dem die Kante liegt (#174, #185) — gesetzt von
   /// `applyTrails`, null für einen gewöhnlichen Weg.
-  EdgeTrail? trail;
+  EdgeTrail? get trail => _g._etrail[index];
+  set trail(EdgeTrail? v) => _g._etrail[index] = v;
 
   /// Gesperrt in Kantenrichtung (a → b) bzw. dagegen: Ein Trail wird nie
   /// gegen seine Richtung gefahren, außer er ist in beide Richtungen
   /// fahrbar (#174). Wie die Einbahn, nur für jede Klasse.
-  bool blockForward = false;
-  bool blockBackward = false;
+  bool get blockForward => _g._flag(index, _kBlockForward);
+  set blockForward(bool v) => _g._setFlag(index, _kBlockForward, v);
+  bool get blockBackward => _g._flag(index, _kBlockBackward);
+  set blockBackward(bool v) => _g._setFlag(index, _kBlockBackward, v);
 
   /// Ein Uphill-Trail oder Verbinder (#185): Er ist der gewollte Weg
   /// bergauf — günstiger als Forstweg ([kTrailConnectorFactor]) und kein
@@ -340,38 +347,176 @@ class GraphEdge {
 
   /// Zählt gegen „höchstens Wanderweg".
   bool get hiking => cls.hiking && !connector;
-  List<LatLng> points;
-  double length;
-  final int level;
 
-  double gain = 0;
-  double loss = 0;
+  /// Darf die Kante von Knoten [from] aus befahren werden?
+  /// ([RoadGraph.openFrom]).
+  bool openFrom(int from) => _g.openFrom(index, from);
+
+  /// Die Punkte in Grad — eine Sicht auf den Punktspeicher im Stand des
+  /// Aufrufs (eine spätere Teilung kürzt die Kante, nicht diese Liste).
+  List<LatLng> get points => _EdgePoints(_g, _g._eoff[index], _g._ecnt[index]);
+  double get length => _g._elen[index];
+  int get level => _g._elevel[index];
+
+  double get gain => _g._egain[index];
+  set gain(double v) => _g._egain[index] = v;
+  double get loss => _g._eloss[index];
+  set loss(double v) => _g._eloss[index] = v;
 
   /// Höhenmeter über [kSteepGrade] in Kantenrichtung (a → b) bzw.
   /// dagegen (#194, [steepExcess]) — sie kosten den Steilaufschlag.
-  double steepUp = 0;
-  double steepDown = 0;
+  double get steepUp => _g._esteepUp[index];
+  set steepUp(double v) => _g._esteepUp[index] = v;
+  double get steepDown => _g._esteepDown[index];
+  set steepDown(double v) => _g._esteepDown[index] = v;
 
   /// Gewichtete Steilmeter (#188, [steepWeight]) in Kantenrichtung bzw.
   /// dagegen — was der Steilaufschlag kostet.
-  double steepWUp = 0;
-  double steepWDown = 0;
+  double get steepWUp => _g._esteepWUp[index];
+  set steepWUp(double v) => _g._esteepWUp[index] = v;
+  double get steepWDown => _g._esteepWDown[index];
+  set steepWDown(double v) => _g._esteepWDown[index] = v;
 
   /// Der Anteil am Trage-Aufschlag ([kCarryCostS], #210): 1 für einen
   /// ganzen Weg, nach [RoadGraph.splitEdge] nach Länge geteilt.
-  double carry = 1;
+  double get carry => _g._ecarry[index];
+  set carry(double v) => _g._ecarry[index] = v;
 
   /// Die Klasse im Wege-Archiv (#213, Format 2: 1–3 und 7 Forstweg, 4–6
   /// und 8 Pfad), null = unbekannt — gesetzt von [addWayQuality].
-  int? way;
+  int? get way => _g._eway[index] < 0 ? null : _g._eway[index];
+  set way(int? v) => _g._eway[index] = v ?? -1;
 
   /// `mtb:scale:uphill` 0–5 auf einem Pfad (#213), sonst null.
-  int? uphill;
+  int? get uphill => _g._euphill[index] < 0 ? null : _g._euphill[index];
+  set uphill(int? v) => _g._euphill[index] = v ?? -1;
 
   /// Falsch, solange keine Höhen gelesen wurden oder eine Probe der Kante
   /// keine Höhe hatte — dann rechnet die Kante flach, und der Graph sagt
   /// es ([RoadGraph.edgesWithoutHeights]).
-  bool hasHeights = false;
+  bool get hasHeights => _g._flag(index, _kHasHeights);
+  set hasHeights(bool v) => _g._setFlag(index, _kHasHeights, v);
+
+  @override
+  bool operator ==(Object other) => other is GraphEdge && identical(other._g, _g) && other.index == index;
+
+  @override
+  int get hashCode => index;
+}
+
+const _kOneway = 1, _kBlockForward = 2, _kBlockBackward = 4, _kHasHeights = 8;
+
+/// Eine Liste nur zum Lesen — die Sichten auf die Felder des Graphen.
+abstract class _ReadOnlyList<T> extends ListBase<T> {
+  @override
+  set length(int _) => throw UnsupportedError('Sicht auf den Graphen');
+
+  @override
+  void operator []=(int i, T v) => throw UnsupportedError('Sicht auf den Graphen');
+}
+
+/// Die Punkte einer Kante, gelesen aus dem Punktspeicher.
+class _EdgePoints extends _ReadOnlyList<LatLng> {
+  _EdgePoints(this._g, this._off, this.length);
+
+  final RoadGraph _g;
+  final int _off;
+
+  @override
+  final int length;
+
+  @override
+  LatLng operator [](int i) {
+    RangeError.checkValidIndex(i, this, null, length);
+    return LatLng(_g._plat[_off + i], _g._plon[_off + i]);
+  }
+}
+
+class _Edges extends _ReadOnlyList<GraphEdge> {
+  _Edges(this._g);
+
+  final RoadGraph _g;
+
+  @override
+  int get length => _g._edgeCount;
+
+  @override
+  GraphEdge operator [](int i) {
+    RangeError.checkValidIndex(i, this, null, length);
+    return GraphEdge._(_g, i);
+  }
+}
+
+class _Nodes extends _ReadOnlyList<math.Point<double>> {
+  _Nodes(this._g);
+
+  final RoadGraph _g;
+
+  @override
+  int get length => _g._nodeCount;
+
+  @override
+  math.Point<double> operator [](int i) {
+    RangeError.checkValidIndex(i, this, null, length);
+    return math.Point(_g._nx[i], _g._ny[i]);
+  }
+}
+
+class _NodeLatLngs extends _ReadOnlyList<LatLng> {
+  _NodeLatLngs(this._g);
+
+  final RoadGraph _g;
+
+  @override
+  int get length => _g._nodeCount;
+
+  @override
+  LatLng operator [](int i) {
+    RangeError.checkValidIndex(i, this, null, length);
+    return LatLng(_g._nlat[i], _g._nlon[i]);
+  }
+}
+
+/// Die Nachbarkanten je Knoten als Liste — für Tests und seltene
+/// Abfragen; die Suche geht über [RoadGraph.adjFirst]/[RoadGraph.adjNext].
+class _Adjacency extends _ReadOnlyList<List<int>> {
+  _Adjacency(this._g);
+
+  final RoadGraph _g;
+
+  @override
+  int get length => _g._nodeCount;
+
+  @override
+  List<int> operator [](int n) {
+    RangeError.checkValidIndex(n, this, null, length);
+    return [for (var s = _g.adjFirst(n); s >= 0; s = _g.adjNext(s)) s >> 1];
+  }
+}
+
+/// Wächst ein Feld über [need] hinaus, um ein Viertel — nicht aufs
+/// Doppelte: Nach [RoadGraph.compact] heftet das Laden noch Trail-Enden
+/// an, und ein Verdoppeln legte dafür jedes große Feld noch einmal an.
+int _grownLength(int length, int need) => need <= length ? length : need + (need >> 2) + 64;
+
+Int32List _growI32(Int32List l, int need) {
+  final n = _grownLength(l.length, need);
+  return n == l.length ? l : (Int32List(n)..setRange(0, l.length, l));
+}
+
+Float64List _growF64(Float64List l, int need) {
+  final n = _grownLength(l.length, need);
+  return n == l.length ? l : (Float64List(n)..setRange(0, l.length, l));
+}
+
+Uint8List _growU8(Uint8List l, int need) {
+  final n = _grownLength(l.length, need);
+  return n == l.length ? l : (Uint8List(n)..setRange(0, l.length, l));
+}
+
+Int8List _growI8(Int8List l, int need) {
+  final n = _grownLength(l.length, need);
+  return n == l.length ? l : (Int8List(n)..setRange(0, l.length, l));
 }
 
 /// Was auf einer Kante liegt: welcher Trail und ob er ein Verbinder ist
@@ -391,91 +536,124 @@ class EdgeTrail {
 /// bleibt die der Klasse, nur die Wahl wird günstiger.
 const kTrailConnectorFactor = 0.8;
 
-/// Ein Gitter über Einträgen aus zwei Zahlen (#378) — Knoten je Zelle
-/// (nur [a]) oder Segmente je Zelle (Kante, Segment). In typisierten
-/// Feldern statt `Map<(int, int), List<(int, int)>>`: Bis 0.133.x hielt
+/// Ein Gitter über Zahlen (#378) — Knoten je Zelle oder Segmente je Zelle
+/// (die Nummer des ersten Linienpunkts im Punktspeicher). In typisierten
+/// Feldern statt `Map<(int, int), List<(int, int)>>`: Bis 0.133.3 hielt
 /// allein das Segmentgitter gut 1 Mio. Records und je Zelle eine Liste,
 /// rund 65 der 92 MB eines Rahmens mit 65 000 Kanten.
 ///
 /// Die Einträge einer Zelle sind eine verkettete Liste in Reihenfolge des
 /// Eintragens, die Zellen sind in Reihenfolge ihres ersten Eintrags
-/// nummeriert — wie die Hash-Map vorher. Abfragen und [findCrossings]
-/// sehen also dieselben Kandidaten in derselben Reihenfolge, und bei
-/// gleichem Abstand gewinnt derselbe Treffer.
+/// nummeriert — wie die Hash-Map bis 0.133.3. Abfragen und
+/// [findCrossings] sehen also dieselben Kandidaten in derselben
+/// Reihenfolge, und bei gleichem Abstand gewinnt derselbe Treffer.
+///
+/// Die Zellen findet eine eigene Tabelle mit offener Adressierung
+/// ([_slots], Zellnummer + 1, 0 = frei): Eine `Map<int, int>` hielt für
+/// 250 000 Zellen eines 25-km-Rahmens rund 10 MB; die Tabelle hält je
+/// Platz eine Zahl und je Zelle ihre Koordinaten.
 class _CellGrid {
-  final _cells = <int, int>{};
-  var _head = Int32List(64), _tail = Int32List(64);
-  var _next = Int32List(256), _a = Int32List(256), _b = Int32List(256);
+  var _cellCount = 0;
+  var _cx = Int32List(0), _cy = Int32List(0), _head = Int32List(0), _tail = Int32List(0);
+  var _slots = Int32List(0);
+  var _next = Int32List(0), _value = Int32List(0);
   var _entries = 0;
 
-  /// Eine Zahl je Zelle, eindeutig für alle Zellen: Zickzack beider
-  /// Koordinaten, dann Cantors Paarung. Um den Ursprung bleibt sie klein —
-  /// Gitterzellen liegen bei Mitteleuropa um x ≈ 26 000, y ≈ 105 000, das
-  /// sind Zahlen unter 2^36; auf dem Telefon (komprimierte Zeiger,
-  /// 31-Bit-Smi) wäre der Schlüssel dann ein Objekt. Deshalb relativ zur
-  /// ersten Zelle ([_ox], [_oy]).
-  int _keyOf(int cx, int cy) {
-    final x = cx - _ox, y = cy - _oy;
-    final zx = x >= 0 ? 2 * x : -2 * x - 1, zy = y >= 0 ? 2 * y : -2 * y - 1;
-    final s = zx + zy;
-    return s * (s + 1) ~/ 2 + zy;
+  /// Streuung über beide Koordinaten. Die Faktoren bleiben klein genug,
+  /// dass das Produkt auch im Web (Zahlen bis 2^53) genau ist; nur die
+  /// unteren Bits zählen.
+  static int _hash(int cx, int cy) => (cx * 73856093) ^ (cy * 19349663);
+
+  /// Die Zelle ([cx], [cy]), oder −1.
+  int _find(int cx, int cy) {
+    if (_cellCount == 0) return -1;
+    final mask = _slots.length - 1;
+    var i = _hash(cx, cy) & mask;
+    while (true) {
+      final c = _slots[i] - 1;
+      if (c < 0) return -1;
+      if (_cx[c] == cx && _cy[c] == cy) return c;
+      i = (i + 1) & mask;
+    }
   }
 
-  int _ox = 0, _oy = 0;
-
-  static Int32List _grow(Int32List l, int need) {
-    if (need <= l.length) return l;
-    var n = l.length * 2;
-    while (n < need) {
-      n *= 2;
+  void _place(int c) {
+    final mask = _slots.length - 1;
+    var i = _hash(_cx[c], _cy[c]) & mask;
+    while (_slots[i] != 0) {
+      i = (i + 1) & mask;
     }
-    return Int32List(n)..setRange(0, l.length, l);
+    _slots[i] = c + 1;
   }
 
   /// Wie viele Zellen etwas halten.
-  int get cellCount => _cells.length;
+  int get cellCount => _cellCount;
 
-  void add(int cx, int cy, int a, [int b = 0]) {
-    if (_cells.isEmpty) {
-      _ox = cx;
-      _oy = cy;
-    }
+  void add(int cx, int cy, int value) {
     final k = _entries++;
-    _next = _grow(_next, _entries);
-    _a = _grow(_a, _entries);
-    _b = _grow(_b, _entries);
+    if (k >= _next.length) {
+      _next = _growI32(_next, k + 1);
+      _value = _growI32(_value, k + 1);
+    }
     _next[k] = -1;
-    _a[k] = a;
-    _b[k] = b;
-    final key = _keyOf(cx, cy);
-    final c = _cells[key];
-    if (c == null) {
-      final nc = _cells.length;
-      _cells[key] = nc;
-      _head = _grow(_head, nc + 1);
-      _tail = _grow(_tail, nc + 1);
-      _head[nc] = k;
-      _tail[nc] = k;
-    } else {
+    _value[k] = value;
+    final c = _find(cx, cy);
+    if (c >= 0) {
       _next[_tail[c]] = k;
       _tail[c] = k;
+      return;
+    }
+    final nc = _cellCount++;
+    if (nc >= _cx.length) {
+      _cx = _growI32(_cx, nc + 1);
+      _cy = _growI32(_cy, nc + 1);
+      _head = _growI32(_head, nc + 1);
+      _tail = _growI32(_tail, nc + 1);
+    }
+    _cx[nc] = cx;
+    _cy[nc] = cy;
+    _head[nc] = k;
+    _tail[nc] = k;
+    // Höchstens drei Viertel belegt, sonst doppelt so viele Plätze.
+    if (4 * _cellCount > 3 * _slots.length) {
+      var size = _slots.isEmpty ? 64 : _slots.length;
+      while (4 * _cellCount > 3 * size) {
+        size *= 2;
+      }
+      _slots = Int32List(size);
+      for (var i = 0; i < _cellCount; i++) {
+        _place(i);
+      }
+    } else {
+      _place(nc);
     }
   }
 
   /// Der erste Eintrag der Zelle ([cx], [cy]), oder −1.
   int first(int cx, int cy) {
-    if (_cells.isEmpty) return -1;
-    final c = _cells[_keyOf(cx, cy)];
-    return c == null ? -1 : _head[c];
+    final c = _find(cx, cy);
+    return c < 0 ? -1 : _head[c];
   }
 
   /// Der erste Eintrag der Zelle Nummer [cell] (0 bis [cellCount] − 1).
   int firstOfCell(int cell) => _head[cell];
 
+  /// Kürzt die Felder auf ihre Länge ([RoadGraph.compact]); die Tabelle
+  /// der Plätze bleibt, wie sie ist.
+  void compact() {
+    _cx = _cx.sublist(0, _cellCount);
+    _cy = _cy.sublist(0, _cellCount);
+    _head = _head.sublist(0, _cellCount);
+    _tail = _tail.sublist(0, _cellCount);
+    _next = _next.sublist(0, _entries);
+    _value = _value.sublist(0, _entries);
+  }
+
   /// Der Eintrag nach [entry] in seiner Zelle, oder −1.
   int next(int entry) => _next[entry];
-  int a(int entry) => _a[entry];
-  int b(int entry) => _b[entry];
+
+  /// Was eingetragen ist: der Knoten oder der erste Punkt des Segments.
+  int value(int entry) => _value[entry];
 }
 
 /// Ein Treffer auf einer Kante: Abstand, Kante, Segment, Anteil im
@@ -486,19 +664,102 @@ class RoadGraph {
   RoadGraph(double lat0) : proj = FlatProjection(lat0);
 
   final FlatProjection proj;
-  final nodes = <math.Point<double>>[];
-  final nodeLatLng = <LatLng>[];
-  final edges = <GraphEdge>[];
-  final adj = <List<int>>[];
+
+  // Der Speicher (#378): Knoten, Kanten und Linienpunkte in typisierten
+  // Feldern statt als Objekte — so halten es BRouter, GraphHopper und
+  // OSRM. Die Felder wachsen beim Bau und werden danach auf ihre Länge
+  // gekürzt ([compact]).
+
+  // Knoten: Lage in Metern (Projektion) und in Grad, je Knoten die erste
+  // und letzte Nachbarkante und ihre Zahl.
+  var _nodeCount = 0;
+  var _nx = Float64List(0), _ny = Float64List(0), _nlat = Float64List(0), _nlon = Float64List(0);
+  var _adjHead = Int32List(0), _adjTail = Int32List(0), _deg = Int32List(0);
+
+  // Kanten. Jede hat zwei Nachbar-Plätze — 2·ei am Knoten a, 2·ei+1 am
+  // Knoten b —, je Knoten eine verkettete Liste in Reihenfolge des
+  // Eintragens ([adjFirst], [adjNext]); so sieht die Suche die Kanten in
+  // derselben Reihenfolge wie die Listen bis 0.133.x.
+  var _edgeCount = 0;
+  var _ea = Int32List(0), _eb = Int32List(0), _eoff = Int32List(0), _ecnt = Int32List(0);
+  var _adjNext = Int32List(0);
+  var _ecls = Uint8List(0), _eflags = Uint8List(0);
+  var _elevel = Int8List(0), _eway = Int8List(0), _euphill = Int8List(0);
+  var _elen = Float64List(0), _egain = Float64List(0), _eloss = Float64List(0);
+  var _esteepUp = Float64List(0), _esteepDown = Float64List(0);
+  var _esteepWUp = Float64List(0), _esteepWDown = Float64List(0);
+  var _ecarry = Float64List(0);
+  final _etrail = <EdgeTrail?>[];
+
+  // Linienpunkte aller Kanten hintereinander, in Grad und in Metern; eine
+  // Kante ist ein Abschnitt (_eoff, _ecnt). Eine Teilung schreibt den
+  // Teilungspunkt in den ersten Teil und hängt den zweiten hinten an.
+  // Das Segmentgitter trägt je Segment die Nummer seines ersten Punkts;
+  // _pedge nennt die Kante dazu, den Index im Abschnitt gibt _eoff.
+  var _pointCount = 0;
+  var _plat = Float64List(0), _plon = Float64List(0), _px = Float64List(0), _py = Float64List(0);
+  var _pedge = Int32List(0);
+
   final _key = <(int, int), int>{};
   final _nodeCells = _CellGrid();
   final _segCells = _CellGrid();
+
+  /// Die Knoten in Metern (Projektion [proj]).
+  late final List<math.Point<double>> nodes = _Nodes(this);
+
+  /// Die Knoten in Grad.
+  late final List<LatLng> nodeLatLng = _NodeLatLngs(this);
+
+  /// Die Kanten, je Zugriff eine Sicht ([GraphEdge]).
+  late final List<GraphEdge> edges = _Edges(this);
+
+  /// Die Nachbarkanten je Knoten, je Zugriff eine neue Liste.
+  late final List<List<int>> adj = _Adjacency(this);
 
   /// Steigt mit jeder Änderung an Knoten oder Kanten (neuer Knoten, neue
   /// Kante, Teilung). Wer Suchergebnisse über eine Rechnung hinaus behält
   /// (`LoopSearchCache`, #188), prüft sie daran: Nach einer Teilung zeigen
   /// gemerkte Vorgänger auf eine Kante, die jetzt woanders endet.
   int revision = 0;
+
+  bool _flag(int ei, int bit) => _eflags[ei] & bit != 0;
+  void _setFlag(int ei, int bit, bool on) => _eflags[ei] = on ? _eflags[ei] | bit : _eflags[ei] & ~bit;
+
+  /// Knoten a und b der Kante [ei] — ohne Sicht, für die Suche.
+  int edgeA(int ei) => _ea[ei];
+  int edgeB(int ei) => _eb[ei];
+
+  /// Der erste Nachbar-Platz am Knoten [n], oder −1; die Kante ist
+  /// `platz >> 1`, ihr Ende an [n] ist a, wenn der Platz gerade ist —
+  /// außer auf einer Schleife, dort sind es beide.
+  int adjFirst(int n) => _adjHead[n];
+
+  /// Der Platz nach [slot] in der Liste seines Knotens, oder −1.
+  int adjNext(int slot) => _adjNext[slot];
+
+  /// Darf die Kante [ei] von Knoten [from] aus befahren werden? Einbahn
+  /// (nur Straßen) und Trail-Richtung (#174) sperren je eine Richtung.
+  bool openFrom(int ei, int from) {
+    final forward = _ea[ei] == from;
+    final f = _eflags[ei];
+    if (f & _kOneway != 0 && !forward) return false;
+    return forward ? f & _kBlockForward == 0 : f & _kBlockBackward == 0;
+  }
+
+  /// Luftlinie in Metern zwischen Knoten [n] und dem Punkt ([x], [y]).
+  double nodeDistance(int n, double x, double y) {
+    final dx = _nx[n] - x, dy = _ny[n] - y;
+    return math.sqrt(dx * dx + dy * dy);
+  }
+
+  math.Point<double> _pointXy(int k) => math.Point(_px[k], _py[k]);
+
+  /// Die Punkte der Kante [ei] in Metern — aus dem Speicher, ohne
+  /// erneute Projektion.
+  List<math.Point<double>> edgeXy(int ei) {
+    final off = _eoff[ei];
+    return [for (var i = 0; i < _ecnt[ei]; i++) math.Point(_px[off + i], _py[off + i])];
+  }
 
   static (int, int) _cell(math.Point<double> p) => ((p.x / kGraphCellM).floor(), (p.y / kGraphCellM).floor());
 
@@ -512,101 +773,220 @@ class RoadGraph {
     final key = _keyOf(p);
     final existing = _key[key];
     if (existing != null) return existing;
-    final i = nodes.length;
+    final i = _nodeCount++;
     revision++;
     _key[key] = i;
     final xy = proj.xy(p);
-    nodes.add(xy);
-    nodeLatLng.add(p);
-    adj.add([]);
+    if (i >= _nx.length) {
+      _nx = _growF64(_nx, i + 1);
+      _ny = _growF64(_ny, i + 1);
+      _nlat = _growF64(_nlat, i + 1);
+      _nlon = _growF64(_nlon, i + 1);
+      _adjHead = _growI32(_adjHead, i + 1);
+      _adjTail = _growI32(_adjTail, i + 1);
+      _deg = _growI32(_deg, i + 1);
+    }
+    _nx[i] = xy.x;
+    _ny[i] = xy.y;
+    _nlat[i] = p.latitude;
+    _nlon[i] = p.longitude;
+    _adjHead[i] = -1;
+    _adjTail[i] = -1;
+    _deg[i] = 0;
     final (cx, cy) = _cell(xy);
     _nodeCells.add(cx, cy, i);
     return i;
   }
 
+  /// Hängt einen Punkt der Kante an, die als nächste angelegt wird
+  /// ([_edgeCount]).
+  void _addPoint(double lat, double lon, double x, double y) {
+    final k = _pointCount++;
+    if (k >= _plat.length) {
+      _plat = _growF64(_plat, k + 1);
+      _plon = _growF64(_plon, k + 1);
+      _px = _growF64(_px, k + 1);
+      _py = _growF64(_py, k + 1);
+      _pedge = _growI32(_pedge, k + 1);
+    }
+    _pedge[k] = _edgeCount;
+    _plat[k] = lat;
+    _plon[k] = lon;
+    _px[k] = x;
+    _py[k] = y;
+  }
+
+  void _addLatLng(LatLng p) {
+    final xy = proj.xy(p);
+    _addPoint(p.latitude, p.longitude, xy.x, xy.y);
+  }
+
+  /// Hängt [slot] an die Nachbarliste von [n].
+  void _link(int n, int slot) {
+    _adjNext[slot] = -1;
+    if (_adjHead[n] < 0) {
+      _adjHead[n] = slot;
+    } else {
+      _adjNext[_adjTail[n]] = slot;
+    }
+    _adjTail[n] = slot;
+    _deg[n]++;
+  }
+
+  /// Nimmt [slot] aus der Nachbarliste von [n]; die Reihenfolge der
+  /// übrigen bleibt.
+  void _unlink(int n, int slot) {
+    var prev = -1;
+    for (var s = _adjHead[n]; s >= 0; s = _adjNext[s]) {
+      if (s == slot) {
+        final next = _adjNext[s];
+        if (prev < 0) {
+          _adjHead[n] = next;
+        } else {
+          _adjNext[prev] = next;
+        }
+        if (_adjTail[n] == s) _adjTail[n] = prev;
+        _deg[n]--;
+        return;
+      }
+      prev = s;
+    }
+  }
+
   void _indexSegments(int ei) {
-    final pts = proj.line(edges[ei].points);
-    for (var i = 0; i < pts.length - 1; i++) {
-      final a = pts[i], b = pts[i + 1];
-      for (var cx = (math.min(a.x, b.x) / kGraphCellM).floor(); cx <= (math.max(a.x, b.x) / kGraphCellM).floor(); cx++) {
-        for (var cy = (math.min(a.y, b.y) / kGraphCellM).floor(); cy <= (math.max(a.y, b.y) / kGraphCellM).floor(); cy++) {
-          _segCells.add(cx, cy, ei, i);
+    final off = _eoff[ei];
+    for (var i = 0; i < _ecnt[ei] - 1; i++) {
+      final ax = _px[off + i], ay = _py[off + i], bx = _px[off + i + 1], by = _py[off + i + 1];
+      for (var cx = (math.min(ax, bx) / kGraphCellM).floor(); cx <= (math.max(ax, bx) / kGraphCellM).floor(); cx++) {
+        for (var cy = (math.min(ay, by) / kGraphCellM).floor(); cy <= (math.max(ay, by) / kGraphCellM).floor(); cy++) {
+          _segCells.add(cx, cy, off + i);
         }
       }
     }
   }
 
-  double _lengthOf(List<LatLng> points) {
-    final xy = proj.line(points);
+  /// Die Länge des Punktabschnitts ab [off] mit [count] Punkten — dieselbe
+  /// Rechnung wie `distanceTo` über die projizierten Punkte.
+  double _lengthOf(int off, int count) {
     var sum = 0.0;
-    for (var i = 1; i < xy.length; i++) {
-      sum += xy[i - 1].distanceTo(xy[i]);
+    for (var i = off + 1; i < off + count; i++) {
+      final dx = _px[i - 1] - _px[i], dy = _py[i - 1] - _py[i];
+      sum += math.sqrt(dx * dx + dy * dy);
     }
     return sum;
   }
 
   int addEdge(int a, int b, WayClass cls, bool oneway, List<LatLng> points, {int level = 0}) {
-    final e = GraphEdge(a: a, b: b, cls: cls, oneway: oneway, points: points, length: _lengthOf(points), level: level);
-    edges.add(e);
+    final off = _pointCount;
+    for (final p in points) {
+      _addLatLng(p);
+    }
+    return _addEdgeAt(a, b, cls.index, oneway ? _kOneway : 0, level, off, points.length);
+  }
+
+  /// Legt eine Kante über die schon gespeicherten Punkte ab [off] an.
+  int _addEdgeAt(int a, int b, int cls, int flags, int level, int off, int count) {
+    final ei = _edgeCount++;
+    if (ei >= _ea.length) {
+      final need = ei + 1;
+      _ea = _growI32(_ea, need);
+      _eb = _growI32(_eb, need);
+      _eoff = _growI32(_eoff, need);
+      _ecnt = _growI32(_ecnt, need);
+      _adjNext = _growI32(_adjNext, 2 * _ea.length);
+      _ecls = _growU8(_ecls, need);
+      _eflags = _growU8(_eflags, need);
+      _elevel = _growI8(_elevel, need);
+      _eway = _growI8(_eway, need);
+      _euphill = _growI8(_euphill, need);
+      _elen = _growF64(_elen, need);
+      _egain = _growF64(_egain, need);
+      _eloss = _growF64(_eloss, need);
+      _esteepUp = _growF64(_esteepUp, need);
+      _esteepDown = _growF64(_esteepDown, need);
+      _esteepWUp = _growF64(_esteepWUp, need);
+      _esteepWDown = _growF64(_esteepWDown, need);
+      _ecarry = _growF64(_ecarry, need);
+    }
+    _ea[ei] = a;
+    _eb[ei] = b;
+    _eoff[ei] = off;
+    _ecnt[ei] = count;
+    _ecls[ei] = cls;
+    _eflags[ei] = flags;
+    _elevel[ei] = level;
+    _eway[ei] = -1;
+    _euphill[ei] = -1;
+    _elen[ei] = _lengthOf(off, count);
+    _egain[ei] = 0;
+    _eloss[ei] = 0;
+    _esteepUp[ei] = 0;
+    _esteepDown[ei] = 0;
+    _esteepWUp[ei] = 0;
+    _esteepWDown[ei] = 0;
+    _ecarry[ei] = 1;
+    _etrail.add(null);
     revision++;
-    final ei = edges.length - 1;
-    adj[a].add(ei);
-    adj[b].add(ei);
+    _link(a, 2 * ei);
+    _link(b, 2 * ei + 1);
     _indexSegments(ei);
     return ei;
   }
 
-  int degree(int n) => adj[n].length;
+  int degree(int n) => _deg[n];
 
   /// Teilt die Kante [ei] an Segment [seg], Anteil [t], beim Punkt [at];
   /// der erste Teil behält [ei] (seine Gittereinträge bleiben gültig —
   /// das Segment wird nur kürzer), der Rest wird eine neue Kante.
   /// Liefert den Knoten an der Teilung.
   int splitEdge(int ei, int seg, LatLng at) {
-    final e = edges[ei];
     final mid = node(at);
-    if (mid == e.a || mid == e.b) return mid;
-    final first = [...e.points.sublist(0, seg + 1), at];
-    final second = [at, ...e.points.sublist(seg + 1)];
-    final oldB = e.b;
-    adj[oldB].remove(ei);
-    e.points = first;
-    e.b = mid;
-    e.length = _lengthOf(first);
-    adj[mid].add(ei);
-    final ni = addEdge(mid, oldB, e.cls, e.oneway, second, level: e.level);
+    final oldB = _eb[ei];
+    if (mid == _ea[ei] || mid == oldB) return mid;
+    final off = _eoff[ei], count = _ecnt[ei];
+    final atXy = proj.xy(at);
+    // Der zweite Teil hinten an: der Teilungspunkt, dann der Rest.
+    final secondOff = _pointCount;
+    _addPoint(at.latitude, at.longitude, atXy.x, atXy.y);
+    for (var i = off + seg + 1; i < off + count; i++) {
+      _addPoint(_plat[i], _plon[i], _px[i], _py[i]);
+    }
+    // Der erste Teil endet am Teilungspunkt — an seiner Stelle im Speicher.
+    final end = off + seg + 1;
+    _plat[end] = at.latitude;
+    _plon[end] = at.longitude;
+    _px[end] = atXy.x;
+    _py[end] = atXy.y;
+    _unlink(oldB, 2 * ei + 1);
+    _ecnt[ei] = seg + 2;
+    _eb[ei] = mid;
+    _elen[ei] = _lengthOf(off, seg + 2);
+    _link(mid, 2 * ei + 1);
     // Die zweite Hälfte erbt, was auf der Kante liegt — sonst ließe ein
     // angehefteter Trailkopf den Rest eines Trails rückwärts befahrbar.
-    edges[ni]
-      ..trail = e.trail
-      ..blockForward = e.blockForward
-      ..blockBackward = e.blockBackward
-      ..hasHeights = e.hasHeights
-      ..way = e.way
-      ..uphill = e.uphill;
+    final ni = _addEdgeAt(mid, oldB, _ecls[ei], _eflags[ei], _elevel[ei], secondOff, count - seg);
+    _etrail[ni] = _etrail[ei];
+    _eway[ni] = _eway[ei];
+    _euphill[ni] = _euphill[ei];
+    final firstLen = _elen[ei], secondLen = _elen[ni];
     // Der Trage-Aufschlag gehört der ganzen Treppe, nicht jeder Hälfte.
-    final carryShare = e.length + edges[ni].length == 0 ? 0.0 : edges[ni].length / (e.length + edges[ni].length);
-    edges[ni].carry = e.carry * carryShare;
-    e.carry = e.carry * (1 - carryShare);
-    if (e.gain > 0 || e.loss > 0 || e.steepUp > 0 || e.steepDown > 0 || e.steepWUp > 0 || e.steepWDown > 0) {
+    final carryShare = firstLen + secondLen == 0 ? 0.0 : secondLen / (firstLen + secondLen);
+    _ecarry[ni] = _ecarry[ei] * carryShare;
+    _ecarry[ei] = _ecarry[ei] * (1 - carryShare);
+    if (_egain[ei] > 0 ||
+        _eloss[ei] > 0 ||
+        _esteepUp[ei] > 0 ||
+        _esteepDown[ei] > 0 ||
+        _esteepWUp[ei] > 0 ||
+        _esteepWDown[ei] > 0) {
       // Höhen anteilig nach Länge — genauer weiß es niemand, und flach
       // wäre falscher.
-      final total = e.length + edges[ni].length;
-      final share = total == 0 ? 0.0 : edges[ni].length / total;
-      edges[ni]
-        ..gain = e.gain * share
-        ..loss = e.loss * share
-        ..steepUp = e.steepUp * share
-        ..steepDown = e.steepDown * share
-        ..steepWUp = e.steepWUp * share
-        ..steepWDown = e.steepWDown * share;
-      e
-        ..gain = e.gain * (1 - share)
-        ..loss = e.loss * (1 - share)
-        ..steepUp = e.steepUp * (1 - share)
-        ..steepDown = e.steepDown * (1 - share)
-        ..steepWUp = e.steepWUp * (1 - share)
-        ..steepWDown = e.steepWDown * (1 - share);
+      final total = firstLen + secondLen;
+      final share = total == 0 ? 0.0 : secondLen / total;
+      for (final f in [_egain, _eloss, _esteepUp, _esteepDown, _esteepWUp, _esteepWDown]) {
+        f[ni] = f[ei] * share;
+        f[ei] = f[ei] * (1 - share);
+      }
     }
     return mid;
   }
@@ -619,9 +999,9 @@ class RoadGraph {
     for (var dx = -reach; dx <= reach; dx++) {
       for (var dy = -reach; dy <= reach; dy++) {
         for (var k = _nodeCells.first(cx + dx, cy + dy); k >= 0; k = _nodeCells.next(k)) {
-          final n = _nodeCells.a(k);
+          final n = _nodeCells.value(k);
           if (n == exclude) continue;
-          final d = nodes[n].distanceTo(p);
+          final d = nodeDistance(n, p.x, p.y);
           if (d <= bestD) {
             best = n;
             bestD = d;
@@ -638,18 +1018,18 @@ class RoadGraph {
     final (cx, cy) = _cell(xy);
     final reach = (radius / kGraphCellM).ceil();
     EdgeHit? best;
-    final seen = <(int, int)>{};
+    final seen = <int>{};
     for (var dx = -reach; dx <= reach; dx++) {
       for (var dy = -reach; dy <= reach; dy++) {
         for (var k = _segCells.first(cx + dx, cy + dy); k >= 0; k = _segCells.next(k)) {
-          final ei = _segCells.a(k), i = _segCells.b(k);
-          if (excludeEdges.contains(ei) || !seen.add((ei, i))) continue;
-          final pts = edges[ei].points;
-          if (i + 1 >= pts.length) continue; // veraltet nach einer Teilung
-          final a = proj.xy(pts[i]), b = proj.xy(pts[i + 1]);
-          final (d, t) = _pointSegment(xy, a, b);
+          final o = _segCells.value(k);
+          final ei = _pedge[o], i = o - _eoff[ei];
+          if (excludeEdges.contains(ei) || !seen.add(o)) continue;
+          if (i + 1 >= _ecnt[ei]) continue; // veraltet nach einer Teilung
+          final ax = _px[o], ay = _py[o], bx = _px[o + 1], by = _py[o + 1];
+          final (d, t) = _pointSegment(xy.x, xy.y, ax, ay, bx, by);
           if (d <= radius && (best == null || d < best.d)) {
-            final px = math.Point(a.x + t * (b.x - a.x), a.y + t * (b.y - a.y));
+            final px = math.Point(ax + t * (bx - ax), ay + t * (by - ay));
             best = (d: d, edge: ei, seg: i, t: t, at: proj.latLng(px));
           }
         }
@@ -658,13 +1038,19 @@ class RoadGraph {
     return best;
   }
 
-  static (double, double) _pointSegment(math.Point<double> p, math.Point<double> a, math.Point<double> b) {
-    final dx = b.x - a.x, dy = b.y - a.y;
+  /// Abstand von (px, py) zur Strecke a–b und der Anteil des Fußpunkts —
+  /// dieselbe Rechnung wie bis 0.133.x über `math.Point`.
+  static (double, double) _pointSegment(double px, double py, double ax, double ay, double bx, double by) {
+    final dx = bx - ax, dy = by - ay;
     final len2 = dx * dx + dy * dy;
-    if (len2 == 0) return (p.distanceTo(a), 0.0);
-    final t = (((p.x - a.x) * dx + (p.y - a.y) * dy) / len2).clamp(0.0, 1.0);
-    final q = math.Point(a.x + t * dx, a.y + t * dy);
-    return (p.distanceTo(q), t);
+    if (len2 == 0) {
+      final ex = px - ax, ey = py - ay;
+      return (math.sqrt(ex * ex + ey * ey), 0.0);
+    }
+    final t = (((px - ax) * dx + (py - ay) * dy) / len2).clamp(0.0, 1.0);
+    final qx = ax + t * dx, qy = ay + t * dy;
+    final ex = px - qx, ey = py - qy;
+    return (math.sqrt(ex * ex + ey * ey), t);
   }
 
   /// Der Knoten für ein Trail-Ende: ein vorhandener innerhalb von
@@ -678,9 +1064,47 @@ class RoadGraph {
     return splitEdge(hit.edge, hit.seg, hit.at);
   }
 
+  /// Kürzt alle Felder auf ihre Länge — nach dem Bau, wenn das Wachsen
+  /// vorbei ist. Spätere Kanten (Anheften) lassen sie wieder wachsen.
+  void compact() {
+    final n = _nodeCount, e = _edgeCount, p = _pointCount;
+    _nx = _nx.sublist(0, n);
+    _ny = _ny.sublist(0, n);
+    _nlat = _nlat.sublist(0, n);
+    _nlon = _nlon.sublist(0, n);
+    _adjHead = _adjHead.sublist(0, n);
+    _adjTail = _adjTail.sublist(0, n);
+    _deg = _deg.sublist(0, n);
+    _ea = _ea.sublist(0, e);
+    _eb = _eb.sublist(0, e);
+    _eoff = _eoff.sublist(0, e);
+    _ecnt = _ecnt.sublist(0, e);
+    _adjNext = _adjNext.sublist(0, 2 * e);
+    _ecls = _ecls.sublist(0, e);
+    _eflags = _eflags.sublist(0, e);
+    _elevel = _elevel.sublist(0, e);
+    _eway = _eway.sublist(0, e);
+    _euphill = _euphill.sublist(0, e);
+    _elen = _elen.sublist(0, e);
+    _egain = _egain.sublist(0, e);
+    _eloss = _eloss.sublist(0, e);
+    _esteepUp = _esteepUp.sublist(0, e);
+    _esteepDown = _esteepDown.sublist(0, e);
+    _esteepWUp = _esteepWUp.sublist(0, e);
+    _esteepWDown = _esteepWDown.sublist(0, e);
+    _ecarry = _ecarry.sublist(0, e);
+    _plat = _plat.sublist(0, p);
+    _plon = _plon.sublist(0, p);
+    _px = _px.sublist(0, p);
+    _py = _py.sublist(0, p);
+    _pedge = _pedge.sublist(0, p);
+    _nodeCells.compact();
+    _segCells.compact();
+  }
+
   /// Zusammenhangskomponenten als Kantenlisten, längste zuerst.
   List<List<int>> components() {
-    final parent = List<int>.generate(nodes.length, (i) => i);
+    final parent = List<int>.generate(_nodeCount, (i) => i);
     int find(int i) {
       while (parent[i] != i) {
         parent[i] = parent[parent[i]];
@@ -689,29 +1113,41 @@ class RoadGraph {
       return i;
     }
 
-    for (final e in edges) {
-      final ra = find(e.a), rb = find(e.b);
+    for (var ei = 0; ei < _edgeCount; ei++) {
+      final ra = find(_ea[ei]), rb = find(_eb[ei]);
       if (ra != rb) parent[ra] = rb;
     }
     final comp = <int, List<int>>{};
-    for (var i = 0; i < edges.length; i++) {
-      (comp[find(edges[i].a)] ??= []).add(i);
+    for (var i = 0; i < _edgeCount; i++) {
+      (comp[find(_ea[i])] ??= []).add(i);
     }
-    double lengthOf(List<int> es) => es.fold(0.0, (s, i) => s + edges[i].length);
+    double lengthOf(List<int> es) => es.fold(0.0, (s, i) => s + _elen[i]);
     return comp.values.toList()..sort((x, y) => lengthOf(y).compareTo(lengthOf(x)));
   }
 
-  double get totalLength => edges.fold(0.0, (s, e) => s + e.length);
+  double get totalLength {
+    var sum = 0.0;
+    for (var i = 0; i < _edgeCount; i++) {
+      sum += _elen[i];
+    }
+    return sum;
+  }
 
   /// Anteil der Kantenlänge in der größten Komponente — die Zahl aus M1.
   double get largestComponentShare {
     final total = totalLength;
     if (total == 0) return 0;
     final largest = components().firstOrNull;
-    return largest == null ? 0 : largest.fold(0.0, (s, i) => s + edges[i].length) / total;
+    return largest == null ? 0 : largest.fold(0.0, (s, i) => s + _elen[i]) / total;
   }
 
-  int get edgesWithoutHeights => edges.where((e) => !e.hasHeights).length;
+  int get edgesWithoutHeights {
+    var n = 0;
+    for (var i = 0; i < _edgeCount; i++) {
+      if (!_flag(i, _kHasHeights)) n++;
+    }
+    return n;
+  }
 }
 
 /// Was der Bau gemacht hat — die Zahlen, die M1 je Lauf nennt.
@@ -757,6 +1193,7 @@ GraphBuild buildRoadGraph(Iterable<WayLine> lines,
       joinM > 0 ? PlanProgress.part(0.19, 0.54, () => StallWatch.mark('graph.joins', () => _joinDeadEnds(g, joinM))) : 0;
   final crossings =
       splitCrossings ? PlanProgress.part(0.54, 1, () => StallWatch.mark('graph.crossings', () => _splitCrossings(g))) : 0;
+  g.compact();
   return (graph: g, joins: joins, crossings: crossings);
 }
 
@@ -778,7 +1215,7 @@ int _joinDeadEnds(RoadGraph g, double joinM) {
       target = g.splitEdge(hit.edge, hit.seg, hit.at);
     }
     if (target != n) {
-      g.addEdge(n, target, g.edges[g.adj[n].first].cls, false, [g.nodeLatLng[n], g.nodeLatLng[target]]);
+      g.addEdge(n, target, g.edges[g.adjFirst(n) >> 1].cls, false, [g.nodeLatLng[n], g.nodeLatLng[target]]);
       joins++;
     }
   }
@@ -832,29 +1269,31 @@ math.Point<double>? properCrossing(
 /// mit 36 s Rechnen im UI-Isolate im ANR (#354).
 List<({LatLng at, int edgeA, int edgeB})> findCrossings(RoadGraph g) {
   final out = <({LatLng at, int edgeA, int edgeB})>[];
-  final seen = <(int, int, int, int)>{};
+  // Ein Segment ist die Nummer seines ersten Punkts (eindeutig je Kante
+  // und Index), das Paar also zwei Zahlen, geordnet nach Kante.
+  final seen = <(int, int)>{};
   final grid = g._segCells;
   final cells = grid.cellCount;
-  final segs = <(int, int)>[];
+  final segs = <int>[];
   for (var cell = 0; cell < cells; cell++) {
     if (cell & 255 == 0) PlanProgress.steps(cell + 1, cells);
     segs.clear();
     for (var k = grid.firstOfCell(cell); k >= 0; k = grid.next(k)) {
-      segs.add((grid.a(k), grid.b(k)));
+      segs.add(grid.value(k));
     }
     for (var i = 0; i < segs.length; i++) {
-      final (ea, ia) = segs[i];
-      final pa = g.edges[ea].points;
-      if (ia + 1 >= pa.length) continue;
-      final a = g.proj.xy(pa[ia]), b = g.proj.xy(pa[ia + 1]);
+      final oa = segs[i];
+      final ea = g._pedge[oa];
+      if (oa - g._eoff[ea] + 1 >= g._ecnt[ea]) continue;
+      final a = g._pointXy(oa), b = g._pointXy(oa + 1);
       for (var j = i + 1; j < segs.length; j++) {
-        final (eb, ib) = segs[j];
+        final ob = segs[j];
+        final eb = g._pedge[ob];
         if (eb == ea) continue;
-        final pb = g.edges[eb].points;
-        if (ib + 1 >= pb.length || g.edges[ea].level != g.edges[eb].level) continue;
-        final key = ea < eb || (ea == eb && ia < ib) ? (ea, ia, eb, ib) : (eb, ib, ea, ia);
+        if (ob - g._eoff[eb] + 1 >= g._ecnt[eb] || g._elevel[ea] != g._elevel[eb]) continue;
+        final key = ea < eb ? (oa, ob) : (ob, oa);
         if (!seen.add(key)) continue;
-        final hit = properCrossing(a, b, g.proj.xy(pb[ib]), g.proj.xy(pb[ib + 1]));
+        final hit = properCrossing(a, b, g._pointXy(ob), g._pointXy(ob + 1));
         if (hit == null) continue;
         out.add((at: g.proj.latLng(hit), edgeA: ea, edgeB: eb));
       }

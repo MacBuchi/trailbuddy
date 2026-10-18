@@ -2,6 +2,15 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Der Planer rechnet auf einem schlankeren Wegenetz
+
+*Version 0.133.5, 2026-10-18*
+
+- Das Wegenetz des Planers belegt noch einmal gut ein Drittel weniger
+  Arbeitsspeicher, es ist etwas schneller aufgebaut, und die erste
+  Rechnung einer Runde ist um ein Fünftel schneller. Die geplanten
+  Runden bleiben genau dieselben.
+
 ## Der Planer braucht weniger Speicher für das Wegenetz
 
 *Version 0.133.4, 2026-10-18*
