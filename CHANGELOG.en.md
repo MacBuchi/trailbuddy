@@ -2,6 +2,16 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## Recompute without rebuilding the way network
+
+*Version 0.132.2, 2026-10-18*
+
+- With your own position as the start, the planner rebuilt the whole way
+  network on every “Recompute”, every style change and every trail you
+  deselected — your position was a few metres off each time. On older
+  phones that took up to 40 seconds. Now it only rebuilds when the start
+  leaves the loaded area.
+
 ## Messages with “Undo” go away again on their own
 
 *Version 0.132.1, 2026-10-18*

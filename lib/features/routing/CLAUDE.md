@@ -214,7 +214,12 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     Luftlinie vom Start) und zählt den Rest; gemeldete Trails stehen
     abseits und abgewählt (Entscheidung 8.8), wartende gar nicht. Der
     Graph-Rahmen ist Start plus alle gewählten Trails plus 500 m; er
-    bleibt stehen, solange Start und Trails dieselben sind.
+    bleibt stehen, solange Start und Trails darin liegen — seit 0.132.2
+    (#370) gehört der Start nicht mehr in den Schlüssel: Er darf
+    `kPlanStartSlackM` (250 m, die Hälfte des Leserands) neben dem
+    Rahmen liegen, `planLoop` heftet ihn je Rechnung an. Bis dahin baute
+    jeder neue Fix des Standorts neu (am Pixel 12–44 s je „Neu
+    rechnen"); Flow-Test „#370", Gegenprobe mit dem alten Controller rot.
   - **Der getippte Start ist ein Dialog mit der Karte**
     (`LoopSession.pickingStart`, oberster Knopf der Leiste oder „Auf der
     Karte tippen" in den Parametern): oben ein Banner mit Abbrechen, der
