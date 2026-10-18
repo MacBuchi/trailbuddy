@@ -265,6 +265,7 @@ Future<void> setRidesProfile(BuildContext context, WidgetRef ref, List<String> i
                 messenger.showSnackBar(SnackBar(content: Text(text)));
               },
             ),
+      persist: false,
     ));
 }
 

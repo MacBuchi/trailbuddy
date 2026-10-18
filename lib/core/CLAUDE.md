@@ -200,3 +200,11 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     Fall 7 und der Nachrichten-Teil auf Englisch;
     `push_flow_test` „Die Sprache der Meldungen folgt der App"
     (Gegenprobe: ohne `syncLocale` rot, ohne Merker-Vergleich rot).
+- **SnackBar mit Aktion braucht `persist`** (#371, seit 0.132.1): Seit
+  Flutter 3.47 gilt `persist ?? action != null` — eine Leiste mit
+  „Rückgängig" blieb auf dem Pixel minutenlang über „Navigation
+  starten", `duration` greift dann nicht. Jede `SnackBar` mit
+  `SnackBarAction` setzt `persist` ausdrücklich (alle bisher `false`);
+  `test/core/snackbar_persist_test.dart` scannt `lib/` und hält das,
+  `loop_planner_flow_test` „#371" prüft die Planer-Meldung (Gegenprobe:
+  ohne `persist: false` beide rot).
