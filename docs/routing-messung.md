@@ -832,3 +832,40 @@ Drei Befunde:
    jeder Kachelgrenze — wie im echten Archiv. Die Halte und Minuten der
    Pläne sind davon unberührt.
 
+
+## #376 — Der Suchspeicher, kompakt (gemessen 2026-10-18, am Rechner)
+
+Am Pixel wuchs der zusätzliche Speicher mit der Zahl der Trails, nicht
+nur mit dem Rahmen (24 Kacheln: 12 Trails +73 MB, 54 Trails +400 MB).
+Die Ursache war `LoopSearchCache`: Er behält je Startknoten (Start und
+jedes Trail-Ende, dazu manchmal die Fassung ohne Wanderweg) die ganze
+begrenzte Suche, und die lag in drei Hash-Maps über jeden erreichten
+Knoten (Kosten, Anstieg, Vorgänger als Record), rund 100 Byte je Knoten.
+Bei 3–5 h Budget erreicht jede Suche fast den ganzen Rahmen.
+
+Seit 0.133.2 hält `SearchResult` drei Felder nur über die erreichten
+Knoten (Kennung, Kosten, Vorgängerkante; 16 Byte je Knoten, binär
+gesucht); den Anstieg rechnet `climbTo` aus dem Pfad. Während der Suche
+gibt es Felder über den ganzen Graphen, aber nur für die eine Suche, die
+gerade läuft.
+
+`perf_loop_planner_measure.dart` zeigt jetzt die gelaufenen Suchen, die
+gemerkten Knoten, die Verbindungen samt Linienpunkten und den Zuwachs
+des RSS während der ersten Rechnung an Ort und Stelle (der Prozess als
+Ganzes, mit GC also ungenau, aber in der Größenordnung). Dasselbe Gitter
+wie oben, JIT, Zeiten in ms:
+
+| Trails | Suchen | gemerkte Knoten | Verbindungen / Punkte | RSS vorher | RSS nachher | rechnen vorher | rechnen nachher | 1. Rechnung drüben vorher | nachher |
+|---|---|---|---|---|---|---|---|---|---|
+| 12 | 12 | 171 322 | 46 / 1 965 | +25 MB | +8 MB | 307 | 148 | 512 | 121 |
+| 30 | 28 | 353 885 | 113 / 5 315 | +10 MB | +14 MB | 956 | 236 | 781 | 241 |
+| 40 | 41 | 1 102 711 | 385 / 38 964 | +185 MB | +20 MB | 2 261 | 792 | 1 561 | 803 |
+| 60 | 60 | 2 016 633 | 1 110 / 116 699 | +401 MB | +48 MB | 2 851 | 1 387 | 4 770 | 1 334 |
+
+Die Pläne sind identisch: dieselben Trails in derselben Reihenfolge,
+Zeit, Anstieg und Länge auf die letzte Stelle gleich (beide Fassungen
+nacheinander gerechnet und verglichen). Die Verbindungen samt Linien
+(höchstens 117 000 Punkte, wenige MB) bleiben gemerkt; sie sind nicht der
+Speicherfresser. Schneller ist es nebenbei auch geworden, weil Felder
+billiger sind als Hash-Maps. Am Gerät steht noch aus: PSS in den
+Szenarien 2′ und 4 (#376).

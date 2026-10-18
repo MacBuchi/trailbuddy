@@ -398,7 +398,14 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     Abfahrt im Rahmen schon beim Laden an, und der Controller lädt nur
     neu, wenn ein gewählter Trail aus dem geladenen Rahmen ragt
     (`_graphBox`, `LatBox.contains`) — bis 0.80.1 bei jeder Kennung, die
-    nicht schon beim Laden gewählt war.
+    nicht schon beim Laden gewählt war. **Eine gemerkte Suche ist
+    kompakt** (#376, seit 0.133.2): `SearchResult` hält Kennung, Kosten
+    und Vorgängerkante nur der erreichten Knoten in typisierten Feldern
+    (16 Byte je Knoten, binär gesucht), den Anstieg rechnet `climbTo` aus
+    dem Pfad. Bis 0.133.1 lagen drei Hash-Maps darin, rund 100 Byte je
+    Knoten. Bei 3–5 h Budget erreicht jede Suche fast den ganzen Rahmen,
+    mit 60 Trails am Rechner waren das +401 MB, jetzt +48 MB, bei
+    identischen Plänen (`docs/routing-messung.md`, „#376").
   Die Kurzanleitung hat sechs Abschnitte als Obergrenze; der Planer
   steht als Satz in „Fahrt aufzeichnen und zerlegen". Vorführung
   `loop-planner` über Szene `MapCoach.loopSheet` und Anker

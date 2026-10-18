@@ -2,6 +2,15 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Der Planer braucht weniger Speicher
+
+*Version 0.133.2, 2026-10-18*
+
+- Mit vielen Trails im Rahmen belegte der Planer viel Arbeitsspeicher,
+  auf älteren Telefonen fast ein Gigabyte. Er merkt sich seine
+  Zwischenergebnisse jetzt deutlich sparsamer und rechnet dabei auch
+  etwas schneller. Die geplanten Runden bleiben genau dieselben.
+
 ## „Route bis hier“ behält den Start
 
 *Version 0.133.1, 2026-10-18*
