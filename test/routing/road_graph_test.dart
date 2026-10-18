@@ -168,6 +168,53 @@ void main() {
       expect(g.attach(_m([(500, 100)]).single), isNull);
     });
 
+    test('Nachbarlisten in Reihenfolge des Eintragens, auch nach Teilung und an einer Schleife (#378)', () {
+      // Die Suche sieht die Kanten eines Knotens in dieser Reihenfolge —
+      // bei gleichen Kosten entscheidet sie den Weg. Bis 0.133.3 waren es
+      // Listen mit `add`/`remove`; die verketteten Plätze halten dasselbe.
+      final g = RoadGraph(47.5);
+      final p = _m([(0, 0), (100, 0), (0, 100), (-100, 0), (200, 0)]);
+      final c = g.node(p[0]);
+      final e0 = g.addEdge(c, g.node(p[1]), WayClass.forstweg, false, [p[0], p[1]]);
+      final e1 = g.addEdge(c, g.node(p[2]), WayClass.forstweg, false, [p[0], p[2]]);
+      final e2 = g.addEdge(g.node(p[3]), c, WayClass.forstweg, false, [p[3], p[0]]);
+      expect(g.adj[c], [e0, e1, e2]);
+      // e2 endet bei c (b): Teilen nimmt sie dort heraus, die neue Hälfte
+      // kommt hinten an — wie `remove` und `add`.
+      final mid = g.splitEdge(e2, 0, _m([(-50, 0)]).single);
+      expect(g.adj[c], [e0, e1, e2 + 1]);
+      expect(g.adj[mid], [e2, e2 + 1]);
+      expect(g.degree(c), 3);
+      expect(g.edges[e2].points, hasLength(2));
+      expect(g.edges[e2 + 1].points, hasLength(2));
+      expect(g.edges[e2].length + g.edges[e2 + 1].length, closeTo(100, 1e-6));
+
+      // Eine Schleife steht zweimal in der Liste ihres Knotens; nach der
+      // Teilung einmal, die neue Hälfte dahinter.
+      final far = g.node(p[4]);
+      final loopPts = _m([(200, 0), (300, 0), (300, 100), (200, 0)]);
+      final loop = g.addEdge(far, far, WayClass.wanderweg, false, loopPts);
+      expect(g.adj[far], [loop, loop]);
+      g.edges[loop]
+        ..gain = 30
+        ..trail = const EdgeTrail(id: 't', name: 'T', connector: false)
+        ..blockBackward = true
+        ..way = 5
+        ..hasHeights = true;
+      final at = g.splitEdge(loop, 1, _m([(300, 50)]).single);
+      final rest = g.edges.length - 1;
+      expect(g.adj[far], [loop, rest]);
+      expect(g.adj[at], [loop, rest]);
+      expect((g.edges[loop].a, g.edges[loop].b, g.edges[rest].a, g.edges[rest].b), (far, at, at, far));
+      // Die zweite Hälfte erbt, die Höhen teilen sich nach Länge.
+      final r = g.edges[rest];
+      expect((r.trail?.id, r.blockBackward, r.blockForward, r.way, r.hasHeights), ('t', true, false, 5, true));
+      expect(g.edges[loop].gain + r.gain, closeTo(30, 1e-9));
+      expect(r.gain / 30, closeTo(r.length / (r.length + g.edges[loop].length), 1e-9));
+      expect(g.edges[loop].points.last, r.points.first);
+      expect(() => g.edges[0] = g.edges[1], throwsUnsupportedError);
+    });
+
     test('das Gitter findet, was eine Suche über alle Kanten findet — rund um seinen Ursprung (#378)', () {
       // Das Gitter zählt Zellen relativ zur ersten; Linien in alle
       // Richtungen davon prüfen negative und positive Zellen, und nach

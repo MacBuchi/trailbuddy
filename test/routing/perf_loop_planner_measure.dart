@@ -209,7 +209,27 @@ void main() {
           '| ${ms(second.total)} / ${ms(second.stall)} '
           '| ${ms(third.total)} / ${ms(third.stall)} '
           '| ${cache.searchesRun} / ${cache.footprint.nodes} / ${cache.footprint.conns} / ${cache.footprint.points} / +${rssPlan >> 20} MB '
-          '| ${plan.stops.length} | ${plan.summary == null ? '–' : '${(plan.summary!.timeS / 60).round()} min'} |');
+          '| ${plan.stops.length} | ${plan.summary == null ? '–' : '${(plan.summary!.timeS / 60).round()} min'} '
+          '| ${_fingerprint(plan)} |');
     }, timeout: const Timeout(Duration(minutes: 5)));
   }
+}
+
+/// Ein Fingerabdruck des Plans (#378): Reihenfolge der Trails, Zeit,
+/// Anstieg und Länge auf die letzte Stelle, die Linie als Hash — ein
+/// Umbau, der „dieselben Pläne" verspricht, muss ihn halten.
+String _fingerprint(LoopPlan plan) {
+  final s = plan.summary;
+  final line = _fnv([for (final p in plan.points) '${p.latitude},${p.longitude}'].join(';'));
+  return '${plan.stops.map((t) => t.trail.id).join(',')} '
+      '${s?.timeS} ${s?.gainM} ${s?.lengthM} ${line.toRadixString(16)}';
+}
+
+/// FNV-1a über den Text — `Object.hash` ist je Prozess anders geseedet.
+int _fnv(String s) {
+  var h = 0x811c9dc5;
+  for (final c in s.codeUnits) {
+    h = ((h ^ c) * 0x01000193) & 0xffffffff;
+  }
+  return h;
 }

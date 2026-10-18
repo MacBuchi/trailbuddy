@@ -980,3 +980,74 @@ Was bleibt (nächste Schritte von #378): die Kanten als Objekte
 (`GraphEdge`, 11 MB), ihre Linien als Listen von `LatLng` (`_List`,
 `LatLng`) und die Nachbarlisten. Am Gerät steht der Heap in den
 Szenarien 2′ und 4 noch aus.
+
+## #378 — Der Graph in typisierten Feldern, Schritt 2: Kanten, Linien, Nachbarn, Zellen (gemessen 2026-10-18, am Rechner)
+
+Was nach Schritt 1 blieb, liegt jetzt auch in typisierten Feldern
+(`road_graph.dart`, seit 0.133.5):
+
+- **Kanten**: Knoten a/b, Klasse, Schalter (Einbahn, Sperren, Höhen),
+  Ebene, Wegeklasse, Länge, Höhen und Trage-Anteil je Kante in einem
+  Feld; `GraphEdge` ist nur noch eine Sicht (Graph + Nummer), die
+  `edges[i]` je Zugriff anlegt.
+- **Linien**: alle Punkte hintereinander in einem Speicher, in Grad UND
+  in Metern (die Projektion wird nicht mehr bei jeder Abfrage neu
+  gerechnet); eine Kante ist ein Abschnitt. Eine Teilung schreibt den
+  Teilungspunkt in den ersten Teil und hängt den zweiten hinten an.
+- **Nachbarn**: je Kante zwei Plätze (am Knoten a und b), je Knoten eine
+  verkettete Liste in Reihenfolge des Eintragens. Die Suche läuft direkt
+  darüber (`adjFirst`/`adjNext`, `edgeA`/`edgeB`, `openFrom`), ohne
+  Sicht je Kante.
+- **Gitter**: Ein Segment ist die Nummer seines ersten Punkts (eine Zahl
+  statt zwei), die Zellen findet eine Tabelle mit offener Adressierung
+  statt einer `Map<int, int>` über 250 000 Zellen.
+- Nach dem Bau kürzt `compact()` jedes Feld auf seine Länge; danach
+  wachsen sie um ein Viertel, nicht aufs Doppelte (sonst legte das erste
+  Anheften jedes große Feld noch einmal an).
+
+Die Reihenfolge der Nachbarn und der Gittereinträge ist dieselbe wie
+vorher — beides entscheidet bei gleichen Kosten bzw. Abständen.
+Nachgewiesen mit einem Fingerabdruck (FNV über Text, `Object.hash` ist je
+Prozess anders geseedet), den beide Mess-Skripte jetzt ausgeben: Graph
+(Kanten mit Knoten, Klasse, Länge, Höhen, Punkten; Nachbarlisten) und
+Plan (Reihenfolge, Zeit, Anstieg, Länge auf die letzte Stelle, Linie) —
+vorher und nachher gleich, je zwei Läufe.
+
+Heap eines Graphen (`perf_graph_memory_measure.dart`, 34 391 Knoten,
+65 390 Kanten):
+
+| Klasse | Schritt 1 | Schritt 2 |
+|---|---|---|
+| Heap des Graphen | 53,9 MB | 33,3 MB |
+| `_Int32List` | 15,3 MB | 14,3 MB |
+| `_Float64List` | – | 13,3 MB |
+| `_List` | 14,1 MB (106 390) | 2,1 MB (6 458) |
+| `GraphEdge` | 11,0 MB | – |
+| `_Uint32List` | 3,1 MB | 0,6 MB |
+| `_GrowableList` | 3,0 MB | – |
+| `LatLng` | 2,6 MB | – |
+| `Point`, `_Double` | 2,0 MB | – |
+
+Zeiten in ms (JIT, `perf_loop_planner_measure.dart`, je zwei Läufe):
+
+| Trails | Bau an Ort und Stelle vorher | nachher | Bau drüben vorher (Dauer / Pause) | nachher | erste Rechnung drüben vorher | nachher |
+|---|---|---|---|---|---|---|
+| 12 | 467–491 | 433–448 | 423–434 / 10–12 | 358–360 / 6–7 | 66–72 | 52 |
+| 30 | 372–399 | 345–347 | 388–408 / 11 | 325–331 / 6 | 115 | 90–95 |
+| 40 | 398–400 | 334–338 | 384–410 / 10–11 | 332–335 / 5–7 | 383–409 | 286–287 |
+| 60 | 396–428 | 351–359 | 396–405 / 12 | 352 / 6–7 | 689–698 | 531–536 |
+
+Der Graph braucht 38 % weniger Heap, der Bau ist gut 10 % schneller, die
+längste Pause des UI-Takts beim Bau drüben halbiert sich noch einmal, und
+die erste Rechnung ist 20–25 % schneller (die Suche liest Kanten und
+Nachbarn ohne Objekt je Schritt). Der Rest des Heaps sind die Felder
+selbst: Linienpunkte (4 × 8 Byte je Punkt), Kantenwerte (9 × 8 Byte je
+Kante) und das Segmentgitter (gut 1 Mio. Einträge). Weniger ginge nur
+mit gröberen Zahlen (Float32, Mikrograd als Int32) — das änderte die
+Pläne im Grenzfall und gehört zu #380, wo die Kacheln ohnehin ein
+eigenes Format bekommen.
+
+Im Web (dart2js) baut `test/web/road_graph_browser_test.dart` einen
+Graphen mit Kreuzungen, Join, Anheften und Suche und vergleicht mit den
+Zahlen der VM; Gegenprobe: eine Zellsuche, die nur x vergleicht, wird
+dort rot. Am Gerät stehen die Szenarien 2′ und 4 noch aus.
