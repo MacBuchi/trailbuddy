@@ -18,6 +18,7 @@
 import '../../core/stall_watch.dart';
 import '../offline_areas/height_tiles.dart';
 import 'loop_planner.dart' show LoopSearchCache;
+import 'plan_progress.dart';
 import 'road_graph.dart';
 import 'road_graph_loader.dart' show RoadTileBytes, buildRoadGraphFrom;
 import 'trail_overlay.dart';
@@ -104,10 +105,14 @@ typedef BuiltGraph = ({RoadGraph graph, GraphReport report});
 /// Wirft bei einem kaputten Eingang — der Aufrufer meldet und sagt
 /// „keine Wege" (ein halb belegter Graph plante Abfahrten bergauf).
 BuiltGraph buildGraphFrom(GraphInput input, {String builtIn = ''}) {
-  final built = StallWatch.mark(
-      'graph.build', () => buildRoadGraphFrom(roads: input.roads, ways: input.ways, heights: input.heights, lat0: input.lat0));
+  final built = PlanProgress.part(
+      0,
+      0.96,
+      () => StallWatch.mark('graph.build',
+          () => buildRoadGraphFrom(roads: input.roads, ways: input.ways, heights: input.heights, lat0: input.lat0)));
   final graph = built.graph;
-  final overlay = StallWatch.mark('graph.trails', () => applyTrails(graph, input.trails));
+  final overlay =
+      PlanProgress.part(0.96, 0.99, () => StallWatch.mark('graph.trails', () => applyTrails(graph, input.trails)));
   StallWatch.mark('graph.attach', () {
     for (final t in input.trails) {
       if (t.role != TrailRole.downhill) continue;

@@ -21,12 +21,16 @@
 //   Widget-Test läuft in einer Zone mit falscher Uhr, in der ein echter
 //   Isolate nie antwortet. Der Harness hängt deshalb die Inline-Fassung
 //   ein; `loop_plan_runner_test.dart` fährt die echte.
+// - **Bau und Runde melden ihren Fortschritt** (#356, Ladebalken):
+//   `onProgress` bekommt Anteile 0…1 aus [PlanProgress] drüben, höchstens
+//   einen je Prozent. Die übrigen Aufträge melden nichts.
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
 
 import 'graph_input.dart';
 import 'loop_plan_runner_web.dart' if (dart.library.io) 'loop_plan_runner_io.dart';
 import 'loop_planner.dart';
+import 'plan_progress.dart';
 import 'road_graph.dart';
 import 'route_profile.dart';
 
@@ -99,14 +103,16 @@ class LoopRequest implements GraphJob<LoopPlan> {
 abstract interface class LoopPlanRunner {
   /// Baut den Graphen aus [input] und behält ihn — der vorige ist damit
   /// weg, samt gemerkten Suchen. Wirft, wenn der Bau scheitert.
-  Future<GraphReport> build(GraphInput input);
+  /// [onProgress] bekommt den Fortschritt (0…1).
+  Future<GraphReport> build(GraphInput input, {void Function(double value)? onProgress});
 
   /// Ein Graph liegt bereit. Falsch vor dem ersten [build] und nachdem
   /// der Isolate verloren ging — dann baut der Aufrufer neu.
   bool get hasGraph;
 
-  /// Rechnet [request] auf dem gebauten Graphen — [run] für die Runde.
-  Future<LoopPlan> plan(LoopRequest request);
+  /// Rechnet [request] auf dem gebauten Graphen — [run] für die Runde,
+  /// mit Fortschritt an [onProgress].
+  Future<LoopPlan> plan(LoopRequest request, {void Function(double value)? onProgress});
 
   /// Rechnet [job] auf dem gebauten Graphen, drüben. Ohne Graph ein
   /// [StateError].
@@ -122,8 +128,9 @@ class InlineLoopPlanRunner implements LoopPlanRunner {
   var _cache = LoopSearchCache();
 
   @override
-  Future<GraphReport> build(GraphInput input) async {
-    final built = buildGraphFrom(input, builtIn: 'inline');
+  Future<GraphReport> build(GraphInput input, {void Function(double value)? onProgress}) async {
+    BuiltGraph go() => buildGraphFrom(input, builtIn: 'inline');
+    final built = onProgress == null ? go() : PlanProgress.run(onProgress, go);
     _graph = built.graph;
     _cache = LoopSearchCache();
     return built.report;
@@ -133,7 +140,12 @@ class InlineLoopPlanRunner implements LoopPlanRunner {
   bool get hasGraph => _graph != null;
 
   @override
-  Future<LoopPlan> plan(LoopRequest request) => run(request);
+  Future<LoopPlan> plan(LoopRequest request, {void Function(double value)? onProgress}) async {
+    if (onProgress == null) return run(request);
+    final g = _graph;
+    if (g == null) throw StateError('kein Graph gebaut');
+    return PlanProgress.run(onProgress, () => request.runOn(g, _cache));
+  }
 
   @override
   Future<R> run<R>(GraphJob<R> job) async {

@@ -126,15 +126,16 @@ class _SpyRunner implements LoopPlanRunner {
   LoopPlan? last;
 
   @override
-  Future<GraphReport> build(GraphInput input) => _inline.build(input);
+  Future<GraphReport> build(GraphInput input, {void Function(double value)? onProgress}) =>
+      _inline.build(input, onProgress: onProgress);
 
   @override
   bool get hasGraph => _inline.hasGraph;
 
   @override
-  Future<LoopPlan> plan(LoopRequest request) async {
+  Future<LoopPlan> plan(LoopRequest request, {void Function(double value)? onProgress}) async {
     requests.add(request);
-    return last = await _inline.plan(request);
+    return last = await _inline.plan(request, onProgress: onProgress);
   }
 
   @override
@@ -149,13 +150,18 @@ class _SpyRunner implements LoopPlanRunner {
 /// wird sofort, an Ort und Stelle (#356 PR 8); der Test rechnet die
 /// gehaltene Anfrage auf DEM Graphen, den der Runner hält.
 class _HeldRunner implements LoopPlanRunner {
-  final held = <({RoadGraph graph, LoopRequest request, Completer<LoopPlan> done})>[];
+  final held = <({
+    RoadGraph graph,
+    LoopRequest request,
+    Completer<LoopPlan> done,
+    void Function(double value)? onProgress
+  })>[];
   var disposed = 0;
   var builds = 0;
   RoadGraph? _graph;
 
   @override
-  Future<GraphReport> build(GraphInput input) async {
+  Future<GraphReport> build(GraphInput input, {void Function(double value)? onProgress}) async {
     builds++;
     final built = buildGraphFrom(input, builtIn: 'held');
     _graph = built.graph;
@@ -166,9 +172,9 @@ class _HeldRunner implements LoopPlanRunner {
   bool get hasGraph => _graph != null;
 
   @override
-  Future<LoopPlan> plan(LoopRequest request) {
+  Future<LoopPlan> plan(LoopRequest request, {void Function(double value)? onProgress}) {
     final done = Completer<LoopPlan>();
-    held.add((graph: _graph!, request: request, done: done));
+    held.add((graph: _graph!, request: request, done: done, onProgress: onProgress));
     return done.future;
   }
 
@@ -503,6 +509,13 @@ void main() {
     expect(find.byKey(const ValueKey('loop-summary')), findsNothing);
     final first = runner.held.single;
     expect(first.request.pool.map((t) => t.name), ['Hexentanz']);
+    // Der Ladebalken (#356): erst unbestimmt, dann mit dem Anteil, den
+    // der Runner meldet.
+    expect(find.byKey(const ValueKey('loop-progress')), findsOneWidget);
+    expect(find.text('40 %'), findsNothing);
+    first.onProgress!(0.4);
+    await tester.pump();
+    expect(find.text('40 %'), findsOneWidget);
     first.done.complete(first.request.planOn(first.graph));
     await settle(tester, frames: 30);
     expect(find.byKey(const ValueKey('loop-summary')), findsOneWidget);

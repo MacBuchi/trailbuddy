@@ -47,16 +47,16 @@ class _SpyRunner implements LoopPlanRunner {
   var disposed = 0;
 
   @override
-  Future<GraphReport> build(GraphInput input) {
+  Future<GraphReport> build(GraphInput input, {void Function(double value)? onProgress}) {
     builds++;
-    return _inline.build(input);
+    return _inline.build(input, onProgress: onProgress);
   }
 
   @override
   bool get hasGraph => _inline.hasGraph;
 
   @override
-  Future<LoopPlan> plan(LoopRequest request) => run(request);
+  Future<LoopPlan> plan(LoopRequest request, {void Function(double value)? onProgress}) => run(request);
 
   @override
   Future<R> run<R>(GraphJob<R> job) {

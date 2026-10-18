@@ -70,7 +70,9 @@ import 'route_via_providers.dart';
 import 'route_vias.dart';
 import 'trail_overlay.dart';
 
-enum LoopPhase { idle, locating, loading, computing, result }
+/// [loading] liest Kacheln (kurz), [building] baut den Graphen im
+/// Rechen-Isolate (am Pixel ~0,33 s je Kachel, #356), [computing] rechnet.
+enum LoopPhase { idle, locating, loading, building, computing, result }
 
 enum LoopBlocker { noPosition, noTarget, noArea, noTrails, failed, tooLarge }
 
@@ -96,6 +98,7 @@ class LoopSession {
     required this.prefs,
     required this.profile,
     this.phase = LoopPhase.idle,
+    this.progress,
     this.blocker,
     this.plan,
     this.planStart,
@@ -148,6 +151,11 @@ class LoopSession {
   final LoopPrefs prefs;
   final RiderProfile profile;
   final LoopPhase phase;
+
+  /// Der Fortschritt der laufenden Phase, 0…1 — der Ladebalken (#356,
+  /// Betreiber 2026-10-18: mit Balken darf es länger dauern). Null, solange
+  /// die Phase nichts meldet; jeder Wechsel der Phase setzt ihn zurück.
+  final double? progress;
   final LoopBlocker? blocker;
   final LoopPlan? plan;
 
@@ -186,7 +194,11 @@ class LoopSession {
   /// Rad im Ergebnis zählen nicht als Änderung.
   final bool quick;
 
-  bool get busy => phase == LoopPhase.locating || phase == LoopPhase.loading || phase == LoopPhase.computing;
+  bool get busy =>
+      phase == LoopPhase.locating ||
+      phase == LoopPhase.loading ||
+      phase == LoopPhase.building ||
+      phase == LoopPhase.computing;
 
   LoopSession copyWith({
     bool? open,
@@ -206,6 +218,7 @@ class LoopSession {
     LoopPrefs? prefs,
     RiderProfile? profile,
     LoopPhase? phase,
+    double? progress,
     LoopBlocker? blocker,
     bool clearBlocker = false,
     LoopPlan? plan,
@@ -234,6 +247,7 @@ class LoopSession {
         prefs: prefs ?? this.prefs,
         profile: profile ?? this.profile,
         phase: phase ?? this.phase,
+        progress: progress ?? (phase != null && phase != this.phase ? null : this.progress),
         blocker: clearBlocker ? null : (blocker ?? this.blocker),
         plan: clearPlan ? null : (plan ?? this.plan),
         planStart: clearPlan ? null : (planStart ?? this.planStart),
@@ -724,7 +738,7 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
           waypoints: waypoints,
           bare: direct,
         );
-        plan = await StallWatch.time('plan.loop', () => runner.plan(request));
+        plan = await StallWatch.time('plan.loop', () => runner.plan(request, onProgress: _progressFor(generation)));
       }
       if (generation != _generation) return;
       _planRequest = request;
@@ -762,8 +776,10 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
     final input = loaded.input;
     if (input == null) return fail(LoopBlocker.noArea);
     final runner = _runner ??= ref.read(loopPlanRunnerFactoryProvider)();
+    if (!quiet) state = state.copyWith(phase: LoopPhase.building);
     try {
-      await StallWatch.time('graph.build', () => runner.build(input));
+      await StallWatch.time(
+          'graph.build', () => runner.build(input, onProgress: quiet ? null : _progressFor(generation)));
     } catch (e, s) {
       if (generation != _generation) return LoopBlocker.failed;
       // Wirft nie weiter: Ein halb belegter Graph plante Abfahrten
@@ -778,6 +794,12 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
     if (!quiet) state = state.copyWith(coverage: loaded.summary);
     return null;
   }
+
+  /// Schreibt den Fortschritt der laufenden Phase in den Zustand — nur,
+  /// solange die Rechnung noch die von [generation] ist.
+  void Function(double value) _progressFor(int generation) => (value) {
+        if (generation == _generation && state.busy) state = state.copyWith(progress: value);
+      };
 
   /// Die Route ohne gewählten Trail (#356, `route_result.dart`): Direkt
   /// und Bequem in einer Rechnung, Spaßig in zwei — passt kein Trail in
@@ -807,7 +829,8 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
         end: to,
         waypoints: waypoints,
         bare: true);
-    final funPlan = await StallWatch.time('route.fun', () => runner.plan(funRequest));
+    final funPlan =
+        await StallWatch.time('route.fun', () => runner.plan(funRequest, onProgress: _progressFor(_generation)));
     if (funPlan.outcome == LoopOutcome.ok && !funPlan.isEmpty) return (funPlan, funRequest, false);
     return (plan, direct, true);
   }

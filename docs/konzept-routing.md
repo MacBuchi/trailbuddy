@@ -1281,8 +1281,15 @@ mit der Messung am Pixel (PR 4/10):
   `kPlanMaxTiles` Kacheln, sagt der Planer in unter einer Sekunde
   „Gebiet zu groß" mit dem Rat (Radius kleiner, weit entfernte Trails
   abwählen) — ohne eine Kachel gelesen zu haben. Der Wert kommt aus der
-  Messung am Pixel (#356, PR 4), nicht geraten; bis sie vorliegt, steht
-  ein vorläufiger Wert vom Rechner (300 Kacheln, ~55 × 55 km).
+  Messung am Pixel (#356, `docs/routing-messung.md`): **120 Kacheln**
+  (~36 × 36 km). 117 Kacheln bauten dort in 41–44 s und belegten bis
+  1,76 GB ohne Absturz; die Grenze setzt der Speicher, nicht die Zeit
+  (bis 0.131.x ein Wert vom Rechner, 300).
+- **Ein Ladebalken** (Betreiber, 2026-10-18: „Wenn es einen Ladebalken
+  gibt, ist eine längere Berechnungsdauer ok"): Bau und Runde melden
+  ihren Anteil aus dem Rechen-Isolate (`plan_progress.dart`), das Blatt
+  zeigt ihn mit Prozent; beim Bau der Satz, dass ein großes Gebiet eine
+  Minute dauern kann.
 - **Kleinere Rahmen**: Verbinder zählen nur in der Nähe von Start,
   Ziel, Zwischenpunkten und gewählten Trails, nicht alle im Radius (bis
   30 km); den Pool der spaßigen Trails nimmt nur Spaßig ohne Auswahl.
@@ -1311,7 +1318,7 @@ die Abnahme ist der letzte PR in #356 und das Tor für 🚀 A:
 |---|---|
 | längster Block im Haupt-Thread | ≤ 200 ms |
 | ANR | 0 |
-| erste Runde in dichter Gegend / jede weitere | < 5 s / < 1 s |
+| erste Runde in dichter Gegend / jede weitere | < 5 s / < 1 s — mit Ladebalken darf die erste länger dauern (Betreiber, 2026-10-18) |
 | Route direkt / spaßig | < 3 s / < 5 s |
 | „Zurück zur Route" | < 2 s |
 | „Gebiet zu groß" | < 1 s, ohne eine Kachel zu lesen |

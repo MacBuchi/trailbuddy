@@ -638,9 +638,10 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
               ],
               ...switch (session.phase) {
               LoopPhase.locating => [_progress(l.routingLocating)],
-              LoopPhase.loading => [_progress(l.routingLoadingWays)],
+              LoopPhase.loading => [_progressBar(context, l.routingLoadingWays, null)],
+              LoopPhase.building => [_progressBar(context, l.loopBuildingGraph, session.progress)],
               LoopPhase.idle when session.changed => [_changedCard(context)],
-              LoopPhase.computing || LoopPhase.idle => [_progress(l.loopComputing)],
+              LoopPhase.computing || LoopPhase.idle => [_progressBar(context, l.loopComputing, session.progress)],
               // Geht es nicht, bleibt zu einem Ziel die Navi-App (#151).
               LoopPhase.result => session.blocker != null || plan == null
                   ? [_blockerCard(context, session, session.blocker ?? LoopBlocker.failed), ?_external(context, session)]
@@ -658,6 +659,31 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
         const SizedBox(width: 12),
         Expanded(child: Text(text)),
       ]);
+
+  /// Der Ladebalken (#356): Bau und Rechnung melden ihren Anteil aus dem
+  /// Rechen-Isolate; ohne Meldung läuft er unbestimmt.
+  Widget _progressBar(BuildContext context, String text, double? value) {
+    final theme = Theme.of(context);
+    return Column(
+      key: const ValueKey('loop-progress'),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Expanded(child: Text(text, style: theme.textTheme.bodyMedium)),
+          if (value != null) ...[
+            const SizedBox(width: 12),
+            Text(context.l10n.loopProgressPercent((value * 100).round()),
+                style: AppFonts.numbers(theme.textTheme.bodyMedium)),
+          ],
+        ]),
+        const SizedBox(height: 8),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(4),
+          child: LinearProgressIndicator(value: value, minHeight: 6),
+        ),
+      ],
+    );
+  }
 
   Widget _notice(BuildContext context, String text) =>
       Text(key: const ValueKey('loop-notice'), text, style: Theme.of(context).textTheme.bodyMedium);
