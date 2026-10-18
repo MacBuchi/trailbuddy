@@ -414,6 +414,20 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     wieder selbst — sonst kostete die gekürzte Hälfte wie die ganze
     Kante. Die erste Rechnung braucht etwa 40 % weniger Zeit, die Pläne
     sind identisch.
+    **Das Gitter des Graphen liegt in typisierten Feldern** (#378
+    Schritt 1, seit 0.133.4): `_CellGrid` in `road_graph.dart` für
+    Segmente und Knoten, Zellschlüssel als Zahl relativ zur ersten Zelle
+    (auf dem Telefon sind Smis 31 Bit — ein absoluter Schlüssel wäre je
+    Zelle ein Objekt; im Web sind Zahlen nur bis 2^53 genau, darum
+    bleibt der Knotenschlüssel aus Mikrograd ein Record). Vorher hielt allein das
+    Segmentgitter gut 1 Mio. Records, 94 → 54 MB Heap je Graph. **Die
+    Reihenfolge ist Teil des Verhaltens**: Zellen in Reihenfolge des
+    ersten Eintrags, Einträge in Reihenfolge des Eintragens — bei
+    gleichem Abstand gewinnt in `nearest` der erste Treffer, und
+    `findCrossings` teilt in der gefundenen Reihenfolge. Wer das Gitter
+    umbaut, hält beides, sonst ändern sich Kantennummern und im Grenzfall
+    Pläne. Messen: `perf_graph_memory_measure.dart` (nur mit
+    `--enable-vmservice`, Heap nach GC und Klassen).
   Die Kurzanleitung hat sechs Abschnitte als Obergrenze; der Planer
   steht als Satz in „Fahrt aufzeichnen und zerlegen". Vorführung
   `loop-planner` über Szene `MapCoach.loopSheet` und Anker

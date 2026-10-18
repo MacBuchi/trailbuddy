@@ -2,6 +2,14 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## The planner needs less memory for the way network
+
+*Version 0.133.4, 2026-10-18*
+
+- The way network the planner computes on takes only a little over half
+  the memory it used to, and it is built a bit faster. The planned loops
+  stay exactly the same.
+
 ## The planner computes faster
 
 *Version 0.133.3, 2026-10-18*

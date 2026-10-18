@@ -927,3 +927,56 @@ mehr sparen, ändert aber Pläne, weil Kosten und Zeit nicht gleich
 zählen (Verbinder ×0,8) — das wäre eine eigene Entscheidung. Der Hebel
 bleibt die Struktur: #378 (Graph in typisierten Feldern) und #380
 (vorgerechnete Routing-Kacheln).
+
+## #378 — Der Graph in typisierten Feldern, Schritt 1: das Gitter (gemessen 2026-10-18, am Rechner)
+
+Vor dem Umbau gemessen, wo der Speicher eines gebauten Graphen liegt —
+mit `perf_graph_memory_measure.dart` (neu; Heap nach GC über den
+VM-Service, `flutter test --enable-vmservice`, der RSS schwankt dafür zu
+stark). Dasselbe Gitter wie oben, 34 391 Knoten, 65 390 Kanten,
+146 155 Linienpunkte:
+
+| Klasse | vorher | nachher |
+|---|---|---|
+| Heap des Graphen | 94,1 MB | 53,9 MB |
+| `_Record` | 35,1 MB (1 150 059) | 1,4 MB (44 979) |
+| `_List` | 30,1 MB (296 709) | 14,1 MB (106 158) |
+| `_GrowableList` | 8,9 MB (290 550) | 3,0 MB (99 786) |
+| `_Int32List` | – | 15,3 MB (10) |
+| `GraphEdge` | 11,0 MB | 11,0 MB |
+| `LatLng` | 2,6 MB | 2,6 MB |
+
+Der größte Posten waren nicht Kanten und Knoten, sondern das Gitter
+über den Segmenten (`_segCells`, 50-m-Zellen): je Segment und Zelle ein
+Record `(Kante, Segment)`, je Zelle eine Liste, je Zelle ein
+Record-Schlüssel — gut 1 Mio. Records. Seit 0.133.4 hält `_CellGrid`
+die Einträge in typisierten Feldern (je Zelle eine verkettete Liste in
+Reihenfolge des Eintragens, die Zellen in Reihenfolge ihres ersten
+Eintrags — wie die Hash-Map vorher), der Zellschlüssel ist eine Zahl
+relativ zur ersten Zelle, damit er auf dem Telefon (31-Bit-Smi) kein
+Objekt wird. Ebenso das Knotengitter. Der Knotenschlüssel (Mikrograd)
+bleibt ein Record: Als eine Zahl bräuchte er rund 57 Bit, im Web sind
+Zahlen nur bis 2^53 genau.
+
+Weil Abfragen und `findCrossings` dieselben Kandidaten in derselben
+Reihenfolge sehen, sind die Graphen und Pläne identisch:
+`perf_loop_planner_measure.dart`, je zwei Läufe vorher und nachher mit
+Fingerabdruck (Trails, Reihenfolge, Zeit, Anstieg, Länge, Kanten,
+Kreuzungen) — gleich auf die letzte Stelle. Zeiten in ms (JIT):
+
+| Trails | Bau an Ort und Stelle vorher | nachher | Bau drüben vorher (Dauer / Pause) | nachher |
+|---|---|---|---|---|
+| 12 | 540–545 | 477–498 | 538–543 / 23–24 | 434–435 / 10–11 |
+| 30 | 438–445 | 383–387 | 492–501 / 23–27 | 377–382 / 9–10 |
+| 40 | 429–489 | 383–389 | 525–603 / 26–31 | 391–396 / 7–11 |
+| 60 | 461–485 | 398–420 | 509–514 / 23–25 | 402–404 / 10–12 |
+
+Der Bau ist etwa 20 % schneller, und die längste Pause des UI-Takts
+während des Baus drüben halbiert sich (weniger Müll im Heap, den sich
+die Isolates einer Gruppe teilen). Die Rechnungen danach liegen im
+Rauschen.
+
+Was bleibt (nächste Schritte von #378): die Kanten als Objekte
+(`GraphEdge`, 11 MB), ihre Linien als Listen von `LatLng` (`_List`,
+`LatLng`) und die Nachbarlisten. Am Gerät steht der Heap in den
+Szenarien 2′ und 4 noch aus.
