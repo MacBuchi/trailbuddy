@@ -348,6 +348,13 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     `build`/`plan` nehmen `onProgress`, die übrigen Aufträge melden
     nichts. Der Controller hat dafür die Phase `building` und
     `LoopSession.progress` (jeder Phasenwechsel setzt ihn zurück).
+    **„Abbrechen" daneben** (#372, seit 0.133.0, `loop-cancel`) beim
+    Laden, Bauen und Rechnen: `cancel()` zählt die Generation hoch und
+    gibt beim Bauen oder Rechnen den Runner frei — eine Suche lässt sich
+    im Isolate nicht anhalten, nur der Isolate töten; die wartenden
+    Aufträge scheitern still. Danach steht das Blatt auf „Auswahl
+    geändert" (D3), die nächste Rechnung baut neu. Beim Laden bleibt der
+    Runner: Er hält dann noch den Graphen des alten Rahmens.
     **Seit 0.131.2 rechnet der Runner jede `GraphJob`** (#356 PR 9,
     `graph_input.dart`): `run(job)` schickt die Aufgabe hinüber, `runOn`
     läuft drüben auf dem gehaltenen Graphen — die Runde (`LoopRequest`),

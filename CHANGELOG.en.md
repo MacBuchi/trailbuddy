@@ -2,6 +2,15 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## “Cancel” next to the progress bar
+
+*Version 0.133.0, 2026-10-18*
+
+- If planning takes too long, there is now a “Cancel” button next to the
+  progress bar. The planner stays open, and the chosen trails, start and
+  target stay set; “Recompute” starts again. Until now only the X helped,
+  and it closed the whole planner.
+
 ## Recompute without rebuilding the way network
 
 *Version 0.132.2, 2026-10-18*

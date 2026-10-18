@@ -610,6 +610,40 @@ void main() {
       expect(routeBand(tester), isEmpty);
     });
 
+    testWidgets('„Abbrechen" am Ladebalken (#372): Auswahl bleibt, Runner frei, die nächste Rechnung baut neu',
+        (tester) async {
+      final runner = _HeldRunner();
+      await start(tester, areaStore: await _areaWithTrack(), runner: () => runner);
+      await computeHex(tester);
+      expect(runner.builds, 1);
+      final held = runner.held.single;
+      expect(find.byKey(const ValueKey('loop-progress')), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('loop-cancel')));
+      await settle(tester);
+      expect(runner.disposed, 1, reason: 'der Isolate rechnet sonst weiter');
+      expect(session(tester).phase, LoopPhase.idle);
+      expect(session(tester).selected, {hex}, reason: 'die Auswahl bleibt');
+      expect(find.byKey(const ValueKey('loop-changed')), findsOneWidget);
+      expect(find.byKey(const ValueKey('loop-tool-rail')), findsOneWidget, reason: 'der Planer bleibt offen');
+
+      // Der freigegebene Runner lässt seine Rechnung scheitern — das ist
+      // weder ein Grund im Blatt noch ein Ergebnis.
+      held.done.completeError(StateError('Planer geschlossen'));
+      await settle(tester, frames: 30);
+      expect(session(tester).blocker, isNull);
+      expect(session(tester).plan, isNull);
+      expect(routeBand(tester), isEmpty);
+
+      await tester.tap(find.byKey(const ValueKey('loop-recompute')));
+      await settle(tester);
+      expect(runner.builds, 2, reason: 'ohne Runner kein Graph: neu bauen');
+      final next = runner.held[1];
+      next.done.complete(next.request.planOn(next.graph));
+      await settle(tester, frames: 30);
+      expect(find.byKey(const ValueKey('loop-summary')), findsOneWidget);
+    });
+
     testWidgets('das Fahrerprofil der Einstellungen erreicht den offenen Planer', (tester) async {
       await start(tester, areaStore: await _areaWithTrack());
       await computeHex(tester);
