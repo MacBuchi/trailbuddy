@@ -16,6 +16,8 @@
   "mapViaRejected": "No route goes through there — the point is back where it was.",
   "mapLoopConnector": "“{name}” is an uphill trail or connector — the loop uses it for climbing on its own.",
   "mapLoopPending": "“{name}” is still waiting to be uploaded.",
+  "mapLoopAdded": "“{name}” added.",
+  "mapLoopRemoved": "“{name}” left out.",
   "mapLoopDrawAdd": "Draw around an area — the trails inside are added",
   "mapLoopDrawRemove": "Draw around an area — the trails inside are removed",
   "mapLoopDrawNone": "There is no selectable trail in that area.",
