@@ -391,6 +391,93 @@ class EdgeTrail {
 /// bleibt die der Klasse, nur die Wahl wird günstiger.
 const kTrailConnectorFactor = 0.8;
 
+/// Ein Gitter über Einträgen aus zwei Zahlen (#378) — Knoten je Zelle
+/// (nur [a]) oder Segmente je Zelle (Kante, Segment). In typisierten
+/// Feldern statt `Map<(int, int), List<(int, int)>>`: Bis 0.133.x hielt
+/// allein das Segmentgitter gut 1 Mio. Records und je Zelle eine Liste,
+/// rund 65 der 92 MB eines Rahmens mit 65 000 Kanten.
+///
+/// Die Einträge einer Zelle sind eine verkettete Liste in Reihenfolge des
+/// Eintragens, die Zellen sind in Reihenfolge ihres ersten Eintrags
+/// nummeriert — wie die Hash-Map vorher. Abfragen und [findCrossings]
+/// sehen also dieselben Kandidaten in derselben Reihenfolge, und bei
+/// gleichem Abstand gewinnt derselbe Treffer.
+class _CellGrid {
+  final _cells = <int, int>{};
+  var _head = Int32List(64), _tail = Int32List(64);
+  var _next = Int32List(256), _a = Int32List(256), _b = Int32List(256);
+  var _entries = 0;
+
+  /// Eine Zahl je Zelle, eindeutig für alle Zellen: Zickzack beider
+  /// Koordinaten, dann Cantors Paarung. Um den Ursprung bleibt sie klein —
+  /// Gitterzellen liegen bei Mitteleuropa um x ≈ 26 000, y ≈ 105 000, das
+  /// sind Zahlen unter 2^36; auf dem Telefon (komprimierte Zeiger,
+  /// 31-Bit-Smi) wäre der Schlüssel dann ein Objekt. Deshalb relativ zur
+  /// ersten Zelle ([_ox], [_oy]).
+  int _keyOf(int cx, int cy) {
+    final x = cx - _ox, y = cy - _oy;
+    final zx = x >= 0 ? 2 * x : -2 * x - 1, zy = y >= 0 ? 2 * y : -2 * y - 1;
+    final s = zx + zy;
+    return s * (s + 1) ~/ 2 + zy;
+  }
+
+  int _ox = 0, _oy = 0;
+
+  static Int32List _grow(Int32List l, int need) {
+    if (need <= l.length) return l;
+    var n = l.length * 2;
+    while (n < need) {
+      n *= 2;
+    }
+    return Int32List(n)..setRange(0, l.length, l);
+  }
+
+  /// Wie viele Zellen etwas halten.
+  int get cellCount => _cells.length;
+
+  void add(int cx, int cy, int a, [int b = 0]) {
+    if (_cells.isEmpty) {
+      _ox = cx;
+      _oy = cy;
+    }
+    final k = _entries++;
+    _next = _grow(_next, _entries);
+    _a = _grow(_a, _entries);
+    _b = _grow(_b, _entries);
+    _next[k] = -1;
+    _a[k] = a;
+    _b[k] = b;
+    final key = _keyOf(cx, cy);
+    final c = _cells[key];
+    if (c == null) {
+      final nc = _cells.length;
+      _cells[key] = nc;
+      _head = _grow(_head, nc + 1);
+      _tail = _grow(_tail, nc + 1);
+      _head[nc] = k;
+      _tail[nc] = k;
+    } else {
+      _next[_tail[c]] = k;
+      _tail[c] = k;
+    }
+  }
+
+  /// Der erste Eintrag der Zelle ([cx], [cy]), oder −1.
+  int first(int cx, int cy) {
+    if (_cells.isEmpty) return -1;
+    final c = _cells[_keyOf(cx, cy)];
+    return c == null ? -1 : _head[c];
+  }
+
+  /// Der erste Eintrag der Zelle Nummer [cell] (0 bis [cellCount] − 1).
+  int firstOfCell(int cell) => _head[cell];
+
+  /// Der Eintrag nach [entry] in seiner Zelle, oder −1.
+  int next(int entry) => _next[entry];
+  int a(int entry) => _a[entry];
+  int b(int entry) => _b[entry];
+}
+
 /// Ein Treffer auf einer Kante: Abstand, Kante, Segment, Anteil im
 /// Segment, Punkt.
 typedef EdgeHit = ({double d, int edge, int seg, double t, LatLng at});
@@ -404,8 +491,8 @@ class RoadGraph {
   final edges = <GraphEdge>[];
   final adj = <List<int>>[];
   final _key = <(int, int), int>{};
-  final _nodeCells = <(int, int), List<int>>{};
-  final _segCells = <(int, int), List<(int, int)>>{};
+  final _nodeCells = _CellGrid();
+  final _segCells = _CellGrid();
 
   /// Steigt mit jeder Änderung an Knoten oder Kanten (neuer Knoten, neue
   /// Kante, Teilung). Wer Suchergebnisse über eine Rechnung hinaus behält
@@ -415,6 +502,8 @@ class RoadGraph {
 
   static (int, int) _cell(math.Point<double> p) => ((p.x / kGraphCellM).floor(), (p.y / kGraphCellM).floor());
 
+  /// Mikrograd, als Record: Zu EINER Zahl gepackt bräuchte er rund 57 Bit,
+  /// im Web (dart2js) sind Zahlen nur bis 2^53 genau (#378).
   static (int, int) _keyOf(LatLng p) => ((p.longitude * 1e6).round(), (p.latitude * 1e6).round());
 
   /// Der Knoten an [p] — zwei Punkte auf derselben Mikrograd-Koordinate
@@ -430,7 +519,8 @@ class RoadGraph {
     nodes.add(xy);
     nodeLatLng.add(p);
     adj.add([]);
-    (_nodeCells[_cell(xy)] ??= []).add(i);
+    final (cx, cy) = _cell(xy);
+    _nodeCells.add(cx, cy, i);
     return i;
   }
 
@@ -440,7 +530,7 @@ class RoadGraph {
       final a = pts[i], b = pts[i + 1];
       for (var cx = (math.min(a.x, b.x) / kGraphCellM).floor(); cx <= (math.max(a.x, b.x) / kGraphCellM).floor(); cx++) {
         for (var cy = (math.min(a.y, b.y) / kGraphCellM).floor(); cy <= (math.max(a.y, b.y) / kGraphCellM).floor(); cy++) {
-          (_segCells[(cx, cy)] ??= []).add((ei, i));
+          _segCells.add(cx, cy, ei, i);
         }
       }
     }
@@ -528,7 +618,8 @@ class RoadGraph {
     var bestD = radius;
     for (var dx = -reach; dx <= reach; dx++) {
       for (var dy = -reach; dy <= reach; dy++) {
-        for (final n in _nodeCells[(cx + dx, cy + dy)] ?? const <int>[]) {
+        for (var k = _nodeCells.first(cx + dx, cy + dy); k >= 0; k = _nodeCells.next(k)) {
+          final n = _nodeCells.a(k);
           if (n == exclude) continue;
           final d = nodes[n].distanceTo(p);
           if (d <= bestD) {
@@ -550,7 +641,8 @@ class RoadGraph {
     final seen = <(int, int)>{};
     for (var dx = -reach; dx <= reach; dx++) {
       for (var dy = -reach; dy <= reach; dy++) {
-        for (final (ei, i) in _segCells[(cx + dx, cy + dy)] ?? const <(int, int)>[]) {
+        for (var k = _segCells.first(cx + dx, cy + dy); k >= 0; k = _segCells.next(k)) {
+          final ei = _segCells.a(k), i = _segCells.b(k);
           if (excludeEdges.contains(ei) || !seen.add((ei, i))) continue;
           final pts = edges[ei].points;
           if (i + 1 >= pts.length) continue; // veraltet nach einer Teilung
@@ -741,10 +833,15 @@ math.Point<double>? properCrossing(
 List<({LatLng at, int edgeA, int edgeB})> findCrossings(RoadGraph g) {
   final out = <({LatLng at, int edgeA, int edgeB})>[];
   final seen = <(int, int, int, int)>{};
-  final cells = g._segCells.length;
-  var cell = 0;
-  for (final segs in g._segCells.values) {
-    if (cell++ & 255 == 0) PlanProgress.steps(cell, cells);
+  final grid = g._segCells;
+  final cells = grid.cellCount;
+  final segs = <(int, int)>[];
+  for (var cell = 0; cell < cells; cell++) {
+    if (cell & 255 == 0) PlanProgress.steps(cell + 1, cells);
+    segs.clear();
+    for (var k = grid.firstOfCell(cell); k >= 0; k = grid.next(k)) {
+      segs.add((grid.a(k), grid.b(k)));
+    }
     for (var i = 0; i < segs.length; i++) {
       final (ea, ia) = segs[i];
       final pa = g.edges[ea].points;

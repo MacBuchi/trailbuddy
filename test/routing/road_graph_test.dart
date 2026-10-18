@@ -167,6 +167,55 @@ void main() {
       // 100 m daneben: nichts.
       expect(g.attach(_m([(500, 100)]).single), isNull);
     });
+
+    test('das Gitter findet, was eine Suche über alle Kanten findet — rund um seinen Ursprung (#378)', () {
+      // Das Gitter zählt Zellen relativ zur ersten; Linien in alle
+      // Richtungen davon prüfen negative und positive Zellen, und nach
+      // dem Anheften auch die Einträge, die eine Teilung anhängt.
+      final rnd = math.Random(378);
+      double r() => rnd.nextDouble() * 6000 - 3000;
+      final lines = [
+        for (var i = 0; i < 40; i++) _way([for (var k = 0; k < 2 + rnd.nextInt(4); k++) (r(), r())]),
+      ];
+      final g = buildRoadGraph(lines, lat0: 47.5, joinM: 0, splitCrossings: false).graph;
+      double brute(math.Point<double> p) {
+        var best = double.infinity;
+        for (final e in g.edges) {
+          final xy = g.proj.line(e.points);
+          for (var i = 1; i < xy.length; i++) {
+            best = math.min(best, pointSegmentDistance(p, xy[i - 1], xy[i]));
+          }
+        }
+        return best;
+      }
+
+      void check() {
+        for (var k = 0; k < 300; k++) {
+          final p = _m([(r(), r())]).single;
+          final xy = g.proj.xy(p);
+          final want = brute(xy);
+          final hit = g.nearest(p, 400);
+          if (want > 400) {
+            expect(hit, isNull);
+          } else {
+            expect(hit?.d, closeTo(want, 1e-6));
+          }
+          var nodeWant = double.infinity;
+          for (final n in g.nodes) {
+            nodeWant = math.min(nodeWant, n.distanceTo(xy));
+          }
+          final node = g.nearestNode(xy, 400);
+          expect(node == null ? double.infinity : g.nodes[node].distanceTo(xy),
+              nodeWant > 400 ? double.infinity : closeTo(nodeWant, 1e-6));
+        }
+      }
+
+      check();
+      for (var k = 0; k < 30; k++) {
+        g.attach(_m([(r(), r())]).single, radius: 200);
+      }
+      check();
+    });
   });
 
   test('addClimbs liest Anstieg und Abstieg je Kante, markiert Kanten ohne Höhe', () async {
