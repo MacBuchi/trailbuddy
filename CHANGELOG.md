@@ -2,6 +2,15 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## „Abbrechen“ neben dem Ladebalken
+
+*Version 0.133.0, 2026-10-18*
+
+- Dauert das Planen zu lange, steht neben dem Ladebalken jetzt
+  „Abbrechen“. Der Planer bleibt offen, die gewählten Trails, Start und
+  Ziel bleiben gesetzt; mit „Neu rechnen“ geht es von vorn los. Bisher
+  half nur das X, und das schloss den ganzen Planer.
+
 ## Neu rechnen ohne neues Wegenetz
 
 *Version 0.132.2, 2026-10-18*

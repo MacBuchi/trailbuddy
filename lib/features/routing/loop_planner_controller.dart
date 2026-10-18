@@ -615,6 +615,22 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
     state = state.copyWith(clearPlan: true, clearBlocker: true, phase: LoopPhase.idle, changed: false);
   }
 
+  /// „Abbrechen" am Ladebalken (#372): Die laufende Arbeit endet, die
+  /// Eingaben bleiben, und das Blatt sagt „Auswahl geändert" mit „Neu
+  /// rechnen" (D3) — der Planer bleibt offen. Baut oder rechnet der
+  /// Runner, geht er mit seinem Isolate weg (eine Suche lässt sich drüben
+  /// nicht anhalten); seine wartenden Aufträge scheitern, die Generation
+  /// verwirft sie, und die nächste Rechnung baut neu.
+  void cancel() {
+    if (!state.busy) return;
+    _generation++;
+    if (state.phase == LoopPhase.building || state.phase == LoopPhase.computing) {
+      _runner?.dispose();
+      _runner = null;
+    }
+    state = state.copyWith(phase: LoopPhase.idle, changed: true);
+  }
+
   /// Der Mittelpunkt der Liste: getippter Start, sonst der Standort (mit
   /// Fix, wenn noch keiner läuft). Null ohne beides.
   Future<LatLng?> listCenter() async {
@@ -717,6 +733,8 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
       state = state.copyWith(phase: LoopPhase.computing);
       // Ein Bild für den Kreisel, bevor die Rechnung den Takt belegt.
       await WidgetsBinding.instance.endOfFrame;
+      // Abgebrochen (#372), bevor die Rechnung losging.
+      if (generation != _generation) return;
       final runner = _runner ??= ref.read(loopPlanRunnerFactoryProvider)();
       final from = start;
       final LoopPlan plan;
