@@ -1666,6 +1666,27 @@ void main() {
     expect(connectionLines(tester), isEmpty);
   });
 
+  testWidgets('#373: „Route bis hier" im offenen Planer behält den getippten Start', (tester) async {
+    await start(tester, areaStore: await _areaWithTrack());
+    final from = LatLng(_fromLat + 0.001, _lon);
+    await longPressMapAt(tester, from);
+    await settle(tester);
+    await tester.tap(find.byKey(const ValueKey('map-menu-from')));
+    await settle(tester, frames: 20);
+    expect(find.byKey(const ValueKey('loop-start-pin')), findsOneWidget);
+
+    await longPressMapAt(tester, const LatLng(48.009, _lon));
+    await settle(tester);
+    await tester.tap(find.byKey(const ValueKey('map-menu-to')));
+    await settle(tester, frames: 30);
+    // Nur ein Start ist gesetzt: keine Rückfrage, gerechnet ab dem Tipp.
+    expect(find.byKey(const ValueKey('loop-replace')), findsNothing);
+    expect(find.byKey(const ValueKey('loop-summary')), findsOneWidget);
+    final session = ProviderScope.containerOf(tester.element(find.byType(MaterialApp))).read(loopPlannerProvider);
+    expect(session.start, from);
+    expect(const Distance()(session.plan!.points.first, from), lessThan(30));
+  });
+
   testWidgets('#176: das Navi-Symbol fragt, merkt sich den Standard, „spaßig" öffnet den Weg auf der Karte',
       (tester) async {
     final settings = FakeSettings();

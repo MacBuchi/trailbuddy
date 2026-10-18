@@ -2,6 +2,14 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## “Route to here” keeps the start
+
+*Version 0.133.1, 2026-10-18*
+
+- If you tapped a start on the map in the planner and then long-press and
+  pick “Route to here”, the route now begins at that start. Until now it
+  began at your own position, even when that was far away.
+
 ## “Cancel” next to the progress bar
 
 *Version 0.133.0, 2026-10-18*

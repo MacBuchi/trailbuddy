@@ -534,8 +534,9 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
   /// ein frischer Planer mit dem Ziel [target], Start am Standort — die
   /// Karte rechnet gleich danach. Ein laufender Auftrag wird ersetzt (mit
   /// Auswahl fragt die Karte vorher). [style] wie über das Ergebnis
-  /// gemerkt; ohne bleibt der gemerkte.
-  void beginRoute(LatLng target, {String? trailId, RouteMode? style}) {
+  /// gemerkt; ohne bleibt der gemerkte. [start] ist ein im offenen Planer
+  /// getippter Start, den der Auftrag behält (#373).
+  void beginRoute(LatLng target, {String? trailId, RouteMode? style, LatLng? start}) {
     if (state.open) close();
     final prefs = state.prefs.copyWith(endMode: LoopEndMode.target, style: style);
     if (prefs.encode() != state.prefs.encode()) _remember(prefs);
@@ -544,6 +545,7 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
         prefs: prefs,
         profile: state.profile,
         coverage: state.coverage,
+        start: start,
         target: target,
         targetTrailId: trailId,
         quick: true);
