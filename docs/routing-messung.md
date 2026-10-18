@@ -893,3 +893,37 @@ Etwa 40 % weniger für die erste Rechnung; die gemerkten Suchen danach
 waren schon schnell und bleiben es. Die Pläne sind identisch (Trails,
 Reihenfolge, Zeit, Anstieg, Länge auf die letzte Stelle), weil dieselbe
 Funktion dieselben Zahlen liefert, nur früher.
+
+## #377 — Suchen beim letzten Trailkopf anhalten (gemessen 2026-10-18, am Rechner; nicht gebaut)
+
+Die Annahme des Issues: Jede Suche des Planers (eine vom Start, eine je
+Trail-Ende) läuft über den ganzen Rahmen, gebraucht werden nur die
+Kosten zu den Trailköpfen und zum Ziel. Gebaut zur Probe:
+`dijkstra(targets:)` hält an, sobald jeder Kopf und das Ziel fest sind,
+das Ergebnis behält nur die festen Knoten; der Suchspeicher merkt sich
+die Ziele je Suche und sucht neu, wenn eine spätere Auswahl neue Köpfe
+fragt. Die Pläne blieben identisch.
+
+`perf_loop_planner_measure.dart`, je zwei Läufe, Zeiten in ms (JIT):
+
+| Trails | gemerkte Knoten vorher | nachher | 1. Rechnung drüben vorher | nachher |
+|---|---|---|---|---|
+| 12 | 171 322 | 171 322 | 61–72 | 76 |
+| 30 | 353 885 | 353 885 | 131–133 | 152–160 |
+| 40 | 1 102 711 | 1 094 782 | 359–397 | 466–473 |
+| 60 | 2 016 633 | 1 862 109 | 719–842 | 810–837 |
+
+Kein Gewinn. Gezählt im Lauf mit 60 Trails: Von 141 Suchen hielten
+nur 58 vorzeitig an. Die übrigen endeten schon an der Kostengrenze
+(das Zeitbudget in Kosten-Einheiten, Konzept-Routing 3.1) — mindestens
+ein Kopf liegt jenseits davon und gilt als nicht erreichbar, also läuft
+die Suche bis an die Grenze, nicht an den Rand des Rahmens. Und wo sie
+anhält, liegt der fernste Kopf fast an der Grenze. Die Suchen sind
+schon heute durch das Budget begrenzt, nicht durch den Rahmen.
+
+Verworfen (Betreiber, 2026-10-18). Eine engere Grenze je Suche aus dem
+Restbudget (Budget minus Kosten vom Start bis zum Trail-Ende) würde
+mehr sparen, ändert aber Pläne, weil Kosten und Zeit nicht gleich
+zählen (Verbinder ×0,8) — das wäre eine eigene Entscheidung. Der Hebel
+bleibt die Struktur: #378 (Graph in typisierten Feldern) und #380
+(vorgerechnete Routing-Kacheln).
