@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <!--
+    If you are serving your web app in a path other than the root, change the
+    href value below to reflect the base path you are serving from.
+
+    The path provided below has to start and end with a slash "/" in order for
+    it to work correctly.
+
+    For more details:
+    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
+
+    This is a placeholder for base href that will be replaced by the value of
+    the `--base-href` argument provided to `flutter build`.
+  -->
+  <base href="/trailbuddy/">
+
+  <meta charset="UTF-8">
+  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+  <meta name="description" content="Mountainbike-Trails mit deinen Buddys teilen.">
+
+  <!--
+    Beide Zeilen fehlten bis 1.111.0, und beide fehlten still (#364).
+
+    `viewport`: Ohne ihn legt ein mobiler Browser eine 980 px breite
+    Seite an und skaliert sie herunter — die Karte bekommt nie die
+    echte Geräteauflösung zu sehen. Der Tag steht im Flutter-Template
+    und ist hier irgendwann verloren gegangen.
+
+    `theme-color`: Die installierte PWA färbt ihre Systemleisten
+    danach. Ohne die Zeile entscheidet der Browser selbst, und auf dem
+    Gerät des Betreibers wurde daraus Weiß auf Weiß — Uhr,
+    Benachrichtigungs- und Gestensymbole waren unsichtbar. Der Wert ist
+    derselbe wie `theme_color` in `manifest.json`; zwei Farben an zwei
+    Stellen wären zwei Antworten auf dieselbe Frage.
+  -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0E1411">
+
+  <!-- iOS meta tags & icons -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="TrailBuddy">
+  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+
+  <!-- Favicon: die Serpentine in Größe S (tool/brand_icons.py), als SVG
+       mit Moos im Hellen und Lime im Dunklen; die PNG für Browser ohne
+       SVG-Favicon. -->
+  <link rel="icon" type="image/svg+xml" href="favicon.svg"/>
+  <link rel="icon" type="image/png" href="favicon.png"/>
+
+  <title>TrailBuddy</title>
+  <link rel="manifest" href="manifest.json">
+</head>
+<body>
+  <!--
+    You can customize the "flutter_bootstrap.js" script.
+    This is useful to provide a custom configuration to the Flutter loader
+    or to give the user feedback during the initialization process.
+
+    For more details:
+    * https://docs.flutter.dev/platform-integration/web/initialization
+  -->
+  <script src="flutter_bootstrap.js" async></script>
+</body>
+</html>

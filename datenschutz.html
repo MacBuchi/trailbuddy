@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<!--
+  Datenschutzerklärung für TrailBuddy — Stand der Phase 1 (Konto, Buddys,
+  Trail-Aufzeichnungen aus GPX-Dateien, Karte, Update-Prüfung). Muster und
+  Struktur aus PilzBuddy; jeder Abschnitt beschreibt, was die App WIRKLICH
+  tut. `test/privacy_policy_test.dart` prüft jeden Host, den der Code
+  anspricht, gegen diese Seite: Ein neues Netzziel ohne Absatz hier macht
+  CI rot. Was hier NICHT steht, tut die App nicht — kommt etwas dazu,
+  kommt der Absatz im selben PR (Nachrichten mit #34, Fotos am Hinweis
+  mit #37). Die englische Höflichkeitsübersetzung `privacy.html` (#209)
+  zieht jeden Absatz im selben PR nach, mit demselben „Stand"-Datum —
+  der Test vergleicht beides.
+
+  Entwurf zur juristischen Prüfung vor dem Play-Store-Eintrag (Konzept,
+  Entscheidung 7).
+-->
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TrailBuddy — Datenschutzerklärung</title>
+  <style>
+    :root { color-scheme: light dark; }
+    body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; line-height: 1.6; max-width: 42rem; margin: 0 auto; padding: 2rem 1.25rem 4rem; color: #22302c; background: #f3f7f5; }
+    h1 { font-size: 1.6rem; margin-bottom: .25rem; }
+    h2 { font-size: 1.15rem; margin-top: 2rem; }
+    h3 { font-size: 1rem; margin-top: 1.5rem; }
+    .lead { color: #5b6e67; margin-top: 0; }
+    .lang { font-size: .9rem; margin: 0 0 1rem; }
+    .note { background: #e2efea; border-left: 4px solid #1f6f5f; padding: .75rem 1rem; margin: 1.5rem 0; border-radius: 0 6px 6px 0; }
+    table { border-collapse: collapse; width: 100%; font-size: .95rem; }
+    th, td { text-align: left; vertical-align: top; padding: .4rem .5rem; border-bottom: 1px solid #c9d8d2; }
+    a { color: #1f6f5f; }
+    @media (prefers-color-scheme: dark) { body { color: #e4ebe8; background: #1b211f; } .lead { color: #a7b8b1; } .note { background: #26302c; border-left-color: #5fa892; } th, td { border-bottom-color: #3a4642; } a { color: #7fcbb5; } }
+  </style>
+</head>
+<body>
+  <p class="lang">Deutsch · <a href="privacy.html" hreflang="en" lang="en">English</a></p>
+  <h1>TrailBuddy — Datenschutzerklärung</h1>
+  <p class="lead">Stand: 11. Oktober 2026. Gilt für die Android-App und die
+    Web-App unter macbuchi.github.io/trailbuddy/.</p>
+
+  <h2>Verantwortlicher</h2>
+  <p>Marcus Bucher, Schumannstr. 7, 74906 Bad Rappenau, Deutschland.
+    Kontakt: <a href="mailto:pilzbuddy@proton.me">pilzbuddy@proton.me</a>.
+    Vollständige Angaben im <a href="impressum.html">Impressum</a>.</p>
+
+  <h2>Der kurze Überblick</h2>
+  <ul>
+    <li>TrailBuddy speichert dein Konto (E-Mail, Benutzername), deine
+      Buddy-Verbindungen und die <strong>Trail-Aufzeichnungen</strong>, die
+      du beisteuerst: die Linie eines Trails mit Zeitpunkt und Quelle.</li>
+    <li><strong>Ganze Fahrten verlassen dein Gerät nie von selbst.</strong>
+      Beigesteuert werden nur die Ausschnitte, die du als Trail auswählst.
+      Exportierst du eine Fahrt oder einen Trail als GPX-Datei, gibst du sie
+      über das Teilen-Menü deines Systems dorthin, wohin du willst —
+      TrailBuddy überträgt dabei nichts.</li>
+    <li>Sichtbar sind deine Trails nur für dich und die Buddys, mit denen
+      du verbunden bist. Es gibt keine öffentliche Karte, keine Suche
+      nach Trails und keine Auswertung über alle Nutzer.</li>
+    <li>Die Daten liegen bei Supabase (Auftragsverarbeiter, Region
+      Frankfurt am Main). Beim Kartenabruf geht deine IP-Adresse an
+      Cloudflare (dort liegen die Karte und die Orte auf der Karte), bei
+      der Update-Prüfung an GitHub.</li>
+    <li>Keine Werbung, kein Tracking, keine Weitergabe an Dritte zu deren
+      Zwecken.</li>
+  </ul>
+
+  <h2>Welche Daten, wozu, auf welcher Grundlage</h2>
+  <table>
+    <tr><th>Daten</th><th>Wozu</th><th>Grundlage</th></tr>
+    <tr><td>E-Mail-Adresse, Passwort (gehasht), Benutzername</td>
+        <td>Konto anlegen, anmelden, Passwort zurücksetzen (per Code aus
+          der Bestätigungsmail), Buddys finden (exakte Adresse oder
+          Benutzername)</td>
+        <td>Vertrag, Art. 6 Abs. 1 b DSGVO</td></tr>
+    <tr><td>Buddy-Verbindungen und Anfragen, eigene Namen für Buddys</td>
+        <td>Festlegen, wer deine Trails sieht</td>
+        <td>Vertrag</td></tr>
+    <tr><td>Nachrichten an Buddys (nur wenn du schreibst): Text, Absender,
+          Empfänger, Zeitpunkt und ob sie gelesen wurde</td>
+        <td>Zustellen an die eine Person, der du schreibst — nur ihr und
+          dir sichtbar. Schreiben geht nur unter Buddys oder bei einer
+          offenen Anfrage, dann höchstens drei Nachrichten je Seite. Die
+          Nachrichten sind <strong>nicht Ende-zu-Ende-verschlüsselt</strong>:
+          Sie liegen geschützt in unserer Datenbank, der Betreiber könnte
+          sie technisch lesen</td>
+        <td>Vertrag</td></tr>
+    <tr><td>Trail-Aufzeichnungen: Linie (Koordinaten), Höhe je Punkt,
+          soweit die Datei sie enthält, Zeitpunkt der Aufzeichnung (bei einer
+          Datei ohne Zeiten das Fahrdatum, wenn du es einträgst), Quelle
+          (aufgezeichnet, importiert, geplant)</td>
+        <td>Deinen Buddys zeigen, was du gefahren bist; Abgleich mit
+          bekannten Trails, damit derselbe Trail nur einmal existiert</td>
+        <td>Vertrag; die Auswahl, was beigesteuert wird, triffst du je
+          Datei</td></tr>
+    <tr><td>Beiträge zu Trails: Name, Beschreibung, Schwierigkeit,
+          Charakter, Bewertung (1–5 Sterne), Sichtbarkeit und ein Link zur
+          Quelle, wenn du einen
+          angibst oder deine GPX-Datei einen trägt (etwa die Seite eines
+          Vereins). Die App ruft den Link nie selbst ab; er öffnet sich
+          erst, wenn du oder ein Buddy darauf tippt, im Browser.</td>
+        <td>Anzeige im eigenen Netz</td>
+        <td>Vertrag</td></tr>
+    <tr><td>Meldungen zu Trails: die Meldung (offen, gesperrt, zerstört,
+          verändert) und/oder der Zustand (1–5, von „kaum fahrbar" bis
+          „top gepflegt"), wann du sie gemacht hast und ob sie bestätigt
+          ist. Bestätigt ist sie, wenn du den Trail gefahren bist oder
+          beim Melden vor Ort warst. Ob du vor Ort bist, prüft die App auf
+          deinem Gerät, nur wenn du auf „Ich bin vor Ort" tippst; an uns
+          geht nur ja oder nein, nie deine Position, und gespeichert wird
+          nur, ob die Meldung bestätigt ist.</td>
+        <td>Deinen Buddys sagen, wie es um den Trail steht — sichtbar für
+          deine Buddys, die den Trail auch sehen, mit deinem Namen; nicht,
+          wenn dein Beitrag zu diesem Trail auf „Nur für mich" steht</td>
+        <td>Vertrag</td></tr>
+    <tr><td>Hinweise zu Trails: dein Text und wann du ihn geschrieben
+          hast</td>
+        <td>Deinen Buddys sagen, was am Trail los ist (etwa ein
+          umgestürzter Baum) — sichtbar für deine Buddys, die den Trail
+          auch sehen; nicht, wenn dein Beitrag zu diesem Trail auf „Nur
+          für mich" steht</td>
+        <td>Vertrag</td></tr>
+    <tr><td>Ein Foto zu deinem Hinweis, wenn du eines anhängst: das Bild
+          (höchstens 1024 Pixel an der längsten Kante) und eine kleine
+          Vorschau. <strong>Ohne Aufnahmedaten</strong>: Ort, Zeit und
+          Kamera, die ein Telefon in das Bild schreibt, entfernt die App
+          vor dem Hochladen und prüft das Ergebnis. Was auf dem Bild zu
+          sehen ist, bleibt zu sehen — ein erkennbarer Ort ist erkennbar.</td>
+        <td>Zeigen, wie es am Trail gerade aussieht — sichtbar für genau
+          die, die deinen Hinweis sehen; nicht öffentlich, ohne Link von
+          außen</td>
+        <td>Vertrag</td></tr>
+    <tr><td>Zusammengeführte Trails: dass für dich ein Trail ein Duplikat
+          eines anderen ist, oder dass zwei Trails verschieden sind, und
+          wann du das gesagt hast. Deine eigenen Aufzeichnungen, dein
+          Beitrag, deine Hinweise und Meldungen hängen danach am behaltenen
+          Trail.</td>
+        <td>Doppelte Trails aus deinem Netz räumen — deine Buddys, die
+          beide Trails sehen, sehen das Duplikat ebenfalls darunter, mit
+          deinem Namen; nur, wenn du an einem der beiden etwas hast, das
+          sie sehen dürfen (nicht bei „Nur für mich")</td>
+        <td>Vertrag</td></tr>
+    <tr><td>Fehlerberichte: Fehlermeldung, Stack, App-Version, Plattform,
+          ggf. deine Nutzer-Kennung. Auf Android ab Version 11 auch der
+          Grund, aus dem das System die App zuletzt beendet hat (Absturz,
+          Nicht-Reagieren, Speichermangel), mit Speicherwerten und einem
+          Auszug des Thread-Dumps – gemeldet beim nächsten Start; normales
+          Beenden nicht. Keine Position, keine Trails, keine Fahrt.</td>
+        <td>Fehler finden, die in der App gefangen wurden — und Abstürze,
+          die sonst niemand sähe</td>
+        <td>Berechtigtes Interesse, Art. 6 Abs. 1 f DSGVO</td></tr>
+    <tr><td>Feedback (Text, App-Version)</td>
+        <td>Wünsche und Fehlermeldungen der Nutzer</td>
+        <td>Einwilligung durch Absenden</td></tr>
+    <tr><td>Gerätekennung für Benachrichtigungen („Push-Token", nur wenn
+          du sie einschaltest) und die Sprache der App auf diesem Gerät,
+          damit die Meldung in deiner Sprache kommt</td>
+        <td>Dir sagen, wenn ein Buddy einen Trail meldet, den du siehst
+          — siehe „Google (Benachrichtigungen)"</td>
+        <td>Einwilligung durch Einschalten, Art. 6 Abs. 1 a DSGVO;
+          Widerruf durch Ausschalten</td></tr>
+  </table>
+
+  <h3>Was eine Aufzeichnung ist — und was nicht</h3>
+  <p>Eine Aufzeichnung ist ein Stück Weg: Anfang, Ende, Richtung, die
+    Linie dazwischen mit ihren Höhen und der Zeitpunkt. Aus den Höhen
+    rechnet die App Höhenmeter, Gefälle und das Höhenprofil — auf dem
+    Gerät, nicht auf dem Server. Sie kann verraten, wo und wann du
+    unterwegs warst. Deshalb wird sie nur an die Buddys weitergegeben, mit
+    denen du verbunden bist, und nur, wenn dein Beitrag nicht auf „Nur für
+    mich" steht. <strong>Die vollständige Fahrt</strong> — von der Haustür
+    bis zur Haustür — bleibt auf deinem Gerät und wird weder übertragen
+    noch gesichert.</p>
+  <p>Der Server gleicht jede beigesteuerte Linie mit bereits bekannten
+    Trails ab, auch mit solchen, die du nicht sehen kannst. Du erfährst
+    dabei nichts über andere: Der Abgleich bestätigt nur, was du selbst
+    hochgeladen hast. Erst wenn ein Buddy denselben Trail belegt hat, siehst
+    du seinen Beitrag.</p>
+
+  <h2>Feedback wird öffentlich</h2>
+  <p>Feedback aus der App wird als Eintrag im öffentlichen GitHub-Projekt
+    veröffentlicht: dein Text, die App-Version und das Datum,
+    <strong>ohne</strong> deinen Benutzernamen. Wer es geschrieben hat,
+    steht nur in der Datenbank und ist allein für den Betreiber sichtbar.
+    Schreibe dort nichts, was nicht <strong>öffentlich</strong> stehen
+    soll — auch keine Trailnamen, Orte oder Wegbeschreibungen. Durch das
+    Löschen des Kontos verschwindet ein veröffentlichter Eintrag nicht;
+    wende dich dafür an den Betreiber.</p>
+
+  <h2>Wer die Daten verarbeitet</h2>
+  <h3>Supabase (Auftragsverarbeiter)</h3>
+  <p>Datenbank, Anmeldung und die Fotos am Hinweis (in einem nicht
+    öffentlichen Speicher) laufen bei Supabase Inc. auf Servern in der
+    Region EU-Central (AWS, Frankfurt am Main). Supabase verarbeitet die Daten
+    ausschließlich im Auftrag; die Zugriffsregeln (wer welche Zeile sieht)
+    werden in der Datenbank selbst durchgesetzt. Die App verbindet sich
+    dafür mit <code>ibxrjgvwouuoydhdkfmf.supabase.co</code>, schon vor der
+    Anmeldung: Beim Start liest sie dort, welche App-Version mindestens
+    nötig ist. Dabei sieht Supabase deine IP-Adresse.</p>
+
+  <h3>Brevo (Auftragsverarbeiter, Versand der Konto-Mails)</h3>
+  <p>Die <strong>Bestätigungsmail</strong> bei der Registrierung, der Code
+    zum Zurücksetzen des Passworts und die Codes beim Adresswechsel gehen
+    über Brevo (Sendinblue GmbH, Berlin). Brevo erhält dafür deine
+    E-Mail-Adresse und den Inhalt der Mail.</p>
+
+  <h3>Google (Auftragsverarbeiter, Benachrichtigungen)</h3>
+  <p>Benachrichtigungen sind <strong>ab Werk aus</strong>. Schaltest du sie
+    im Profil ein, wird <strong>Firebase Cloud Messaging</strong> von Google
+    eingebunden — der Dienst, über den Android und der Browser überhaupt
+    erst Meldungen zustellen können. Dabei erzeugt dein Gerät eine
+    zufällige Gerätekennung („Token"), die bei Google und bei uns
+    gespeichert wird; sie enthält weder deinen Namen noch deine
+    E-Mail-Adresse. Schaltest du die Benachrichtigungen wieder aus, wird
+    sie bei uns gelöscht und es kommt nichts mehr an.</p>
+  <p><strong>Was in einer Benachrichtigung steht — und was nicht.</strong>
+    Eine Meldung läuft über die Server von Google. Sie enthält den
+    <strong>Namen des Trails</strong> (so, wie du ihn in der App siehst),
+    den <strong>Namen des Buddys</strong> (deinen Alias für ihn, sonst
+    seinen Benutzernamen), was er gemeldet hat („gesperrt", „wieder
+    frei" …) und bei einem Hinweis dessen <strong>Text</strong>, gekürzt
+    auf 140 Zeichen — dazu eine interne Kennung des Trails, mit der die
+    App ihn nach dem Antippen nachschlägt. Schickt dir ein Buddy eine
+    <strong>Nachricht</strong>, stehen darin sein Name (wie oben) und der
+    <strong>Text der Nachricht</strong>, gekürzt auf 180 Zeichen, dazu
+    seine interne Kennung, mit der die App den Verlauf öffnet. Sie enthält
+    <strong>niemals Koordinaten</strong>, keinen Ort und keine
+    E-Mail-Adresse. Google kann dabei die IP-Adresse deines Geräts
+    verarbeiten, und die Zustellung kann über Server außerhalb der
+    Europäischen Union laufen. Gemeldet wird dir nur, was du in der App
+    ohnehin sehen darfst: bestätigte Meldungen und Hinweise deiner
+    direkten Buddys zu Trails, die du siehst, und Nachrichten an dich.
+    Wer das nicht über Google
+    laufen lassen will, lässt die Benachrichtigungen aus — die App zeigt
+    dasselbe beim Öffnen.</p>
+  <p><strong>Im Browser kommt ein Baustein von Google dazu.</strong>
+    Schaltest du die Benachrichtigungen in der Browser-Fassung ein, lädt
+    die Seite den dafür nötigen Programmteil von
+    <strong>www.gstatic.com</strong>, einem Server von Google; dabei
+    überträgt dein Browser technisch bedingt seine IP-Adresse dorthin.
+    Das geschieht <em>erst beim Einschalten</em> und nie davor. Die
+    Android-App bringt den Baustein mit und lädt ihn nicht nach.</p>
+
+  <h3>Verbindungen, die die App aufbaut</h3>
+  <ul>
+    <li><strong>tiles.mcbuchi.de</strong> — die Karte selbst. Sie liegt
+      je Region (DACH, Südkanada) als eine Datei (Kartendaten von OpenStreetMap, aufbereitet von
+      Protomaps, ODbL) auf einem Speicher des Betreibers bei Cloudflare
+      (Cloudflare, Inc., mit Standort in Westeuropa; Auftragsverarbeiter,
+      Vertrag zur Auftragsverarbeitung nach Art. 28 DSGVO). Die App lädt
+      davon nur die Stücke, die der sichtbare Ausschnitt braucht. Bei
+      jedem Kartenausschnitt geht deine IP-Adresse samt den angeforderten
+      Stücken an Cloudflare. Die App behält die zuletzt angesehenen Stücke
+      auf dem Gerät (höchstens 100 MB, die ältesten gehen zuerst; im
+      Browser in dessen Speicher), damit eine Gegend auch ohne Empfang
+      noch zu sehen ist; sie verlassen das Gerät nicht. Ein Stück, das
+      schon liegt, wird nicht noch einmal abgerufen. Wo keins liegt, zeigt die App
+      ohne Empfang eine mitgelieferte Übersichtskarte, dafür wird nichts
+      abgerufen.
+      <br>Auf demselben Speicher liegen die <strong>Orte auf der
+      Karte</strong> (Einkehr, Wasser, Rad-Service, Sonstiges; Daten von
+      OpenStreetMap, ODbL), als kleine Dateien je Rasterzelle von etwa
+      11 × 11 km. Nur solange im Filter eine Gruppe eingeschaltet ist —
+      anfangs ist das „Wasser" — und erst ab Zoomstufe 12: Dann lädt die
+      App die Dateien der Zellen, die der Ausschnitt berührt. An
+      Cloudflare gehen damit deine IP-Adresse und die Rasterzellen, nicht
+      der genaue Ausschnitt — keine Trails, keine Fahrten, keine
+      Kontodaten. Ganz ausschalten lässt sich das, indem man im Filter
+      alle Gruppen abwählt. Bis Version 0.17 kamen die Orte live von der
+      Overpass-API des FOSSGIS e.V.; diese Verbindung gibt es nicht
+      mehr.
+      <br>Einen <strong>Bereich für unterwegs</strong> speicherst du auf
+      Wunsch: Dann lädt die App die Kartenstücke, Orte-Dateien und
+      Höhendaten (Copernicus DEM GLO-90 der Europäischen Union und der
+      ESA, aufbereitet vom Betreiber) dieses Bereichs einmal von
+      demselben Speicher und behält sie auf dem Gerät (im Browser in
+      dessen Speicher). Sie verlassen das Gerät nicht und werden nur
+      gelöscht, wenn du es tust.
+      <br>Mit Empfang lädt die App von demselben Speicher außerdem
+      Kartenstücke und Höhendaten, die keinem gespeicherten Bereich
+      gehören: wenn du eine Runde oder einen Weg zu einem Trail planst
+      (abschaltbar unter „Fehlende Wege online ergänzen"), wenn du einen
+      Trail ohne aufgezeichnete Höhen öffnest oder als GPX exportierst
+      und wenn du eine Datei mit Höhen importierst (zum Vergleich mit dem
+      Gelände). An Cloudflare gehen dabei deine IP-Adresse und die
+      angeforderten Stücke von etwa 3 × 3 km — keine Trails, keine
+      Fahrten, keine Kontodaten. Die App behält sie nur, bis sie
+      geschlossen wird.</li>
+    <li><strong>raw.githubusercontent.com</strong> — die offiziellen
+      Trails auf der Karte (öffentliche Daten von Behörden, etwa dem Land
+      Tirol). Nur solange die Ebene „Offizielle Trails" an ist — anfangs
+      ist sie es — und erst ab Zoomstufe 8, wenn der Ausschnitt eine
+      Region berührt, für die es Daten gibt: Dann lädt die App die Datei
+      dieser Region von GitHub und merkt sie sich auf dem Gerät. GitHub
+      sieht dabei deine IP-Adresse und welche Region geladen wird. Keine
+      Trails deines Netzes, keine Fahrten, keine Kontodaten. Ausschalten
+      lässt sich das über den Schalter der Ebene.</li>
+    <li><strong>api.github.com</strong> und <strong>github.com</strong> —
+      die Update-Prüfung fragt die Release-Liste des Projekts ab und lädt
+      auf Wunsch die App-Datei. GitHub sieht dabei deine IP-Adresse. In
+      der Play-Store-Fassung entfällt das.</li>
+    <li><strong>macbuchi.github.io</strong> — die Web-App selbst, diese
+      Seite und die Rechtsseiten werden von GitHub Pages ausgeliefert.</li>
+    <li><strong>fonts.gstatic.com</strong> — die Web-App lädt die
+      Standardschrift Roboto von Google (Vorgabe von Flutter), bei jedem
+      Seitenaufruf, vor jeder Anmeldung. Google sieht dabei deine
+      IP-Adresse.</li>
+  </ul>
+
+  <h3>Was zusätzlich auf dem Gerät liegt</h3>
+  <p>Sitzungs-Token, Einstellungen, ein Zwischenspeicher der Trails deines
+    Netzes, die geladenen offiziellen Trails und deine Fahrten. Nichts davon wird über das Android-Backup in
+    Googles Cloud gesichert; die App schließt diese Dateien ausdrücklich
+    aus. In der Web-App liegen Zwischenspeicher, Ausgangskorb, gesehene
+    Kartenstücke und gespeicherte Bereiche im Speicher deines Browsers
+    (IndexedDB) und verlassen ihn ebenfalls nicht von selbst.</p>
+
+  <h3>Ausgangskorb</h3>
+  <p>Steuerst du ohne Netz eine Aufzeichnung bei, änderst deinen
+    Beitrag zu einem Trail, meldest etwas oder schickst Feedback, wartet der Auftrag in einem Ausgangskorb auf
+    deinem Gerät bzw. im Speicher deines Browsers und wird gesendet, sobald
+    wieder Verbindung besteht. Darin steht genau das, was sonst sofort an Supabase gegangen
+    wäre: die vereinfachte Linie mit Höhen, Zeitpunkt und Quelle; Name,
+    Schwierigkeit, Charakter, Bewertung, Sichtbarkeit, Beschreibung und
+    Link deines Beitrags; bzw. Meldung, Zustand, Zeitpunkt und ob du vor
+    Ort warst (ja/nein, keine Position); bzw. Text, Art und App-Version
+    deines Feedbacks.
+    Der Korb ist vom Android-Backup ausgeschlossen. Im Browser bittet die
+    App beim ersten wartenden Auftrag einmal darum, diesen Speicher nicht
+    von selbst zu räumen; lehnt der Browser ab, sagt es die Karte. Du kannst jeden
+    wartenden Auftrag wieder entfernen — Trail-Aufträge in der Trail-Liste,
+    Feedback im Feedback-Dialog.</p>
+
+  <h3>Dein Standort</h3>
+  <p>Tippst du auf der Karte auf „Meine Position" oder auf den
+    Aufnahme-Knopf, fragt die App (bzw. der Browser) einmal nach der
+    Erlaubnis für den Standort. Mit Erlaubnis zeigt die Karte deine
+    Position als Punkt, solange die App offen ist. Der Standort
+    <strong>bleibt auf dem Gerät</strong>: Er wird weder an Supabase noch
+    an sonst jemanden übertragen. Ohne Erlaubnis funktioniert alles
+    andere wie bisher; zurücknehmen lässt sie sich in den Einstellungen
+    von Android bzw. des Browsers.</p>
+  <p><strong>Fahrt aufzeichnen</strong> (nur Android): Startest du eine
+    Fahrt, misst die App alle fünf Sekunden deine Position — auch im
+    Hintergrund und mit dem Telefon in der Tasche, über einen
+    Vordergrunddienst mit einer Dauerbenachrichtigung, die du jederzeit
+    siehst. Gemessen werden Position, Genauigkeit, Zeitpunkt und die vom
+    GPS gemeldete Höhe. Die Fahrt wird als Datei auf deinem Gerät
+    gespeichert (unter „Meine Fahrten" im Profil; dort löschst du sie
+    auch) und <strong>verlässt es nie von selbst</strong> — weder an
+    Supabase noch über das Android-Backup. Nur wenn du sie dort als
+    GPX-Datei exportierst, geht sie über das Teilen-Menü deines Systems an
+    die App oder den Empfänger, den du wählst. Die Aufzeichnung endet mit „Fahrt beenden",
+    spätestens nach zwölf Stunden von selbst. Eine
+    Hintergrund-Standortberechtigung fordert die App nicht an; ohne die
+    laufende Aufzeichnung wird im Hintergrund nichts gemessen.
+    Während der Fahrt vergleicht die App deine Position <strong>auf dem
+    Gerät</strong> mit den Trails deines Netzes; fährst du einen Trail mit
+    einer noch unbestätigten Meldung, fragt sie dich per Benachrichtigung,
+    ob sie stimmt. An Supabase geht dabei nur deine Antwort — als Meldung
+    mit dem Vermerk „vor Ort", wie beim Melden am Trail —, nie die
+    Position.</p>
+
+  <h2>Speicherdauer</h2>
+  <ul>
+    <li>Konto, Buddys, Aufzeichnungen und Beiträge: bis du sie löschst
+      (je Trail im Trail-Blatt unter „Löschen": deine Aufzeichnungen,
+      deine Einschätzung, deine Meldungen und deine Hinweise zu diesem
+      Trail) oder das Konto löschst.</li>
+    <li>Meldungen zu Trails: 90 Tage. Deine jüngste bestätigte und deine
+      jüngste unbestätigte Meldung und Zustandsangabe zu einem Trail
+      bleiben länger stehen — die angezeigte Meldung ist die jüngste
+      bestätigte, wie alt sie auch ist —, bis du deinen Beitrag löschst
+      oder das Konto löschst.</li>
+    <li>Hinweise zu Trails: 90 Tage. Dein jüngster Hinweis zu einem Trail
+      bleibt länger stehen, bis du oder ein Buddy, der ihn sieht, ihn
+      entfernt oder du das Konto löschst. Welche Hinweise du schon gelesen
+      hast, merkt sich nur dein Gerät.</li>
+    <li>Fotos zu Hinweisen: 90 Tage, auch am Hinweis, der länger stehen
+      bleibt. Früher gelöscht wird es mit seinem Hinweis — wenn du oder
+      ein Buddy ihn entfernt, du deinen Beitrag oder dein Konto löschst;
+      der Speicher wird alle zwei Stunden aufgeräumt.</li>
+    <li>Nachrichten an Buddys: 30 Tage ab dem Senden, dann automatisch
+      gelöscht. Sofort gelöscht werden sie für beide Seiten, wenn eine
+      Anfrage abgelehnt oder zurückgezogen oder ein Buddy entfernt wird;
+      eigene Nachrichten kannst du jederzeit zurücknehmen.</li>
+    <li>Fehlerberichte: 90 Tage.</li>
+    <li>Gerätekennung für Benachrichtigungen: bis du sie ausschaltest, das
+      Konto löschst oder Google die Kennung für ungültig erklärt (etwa
+      nach dem Deinstallieren); dann wird sie bei uns entfernt.</li>
+    <li>Feedback: unbegrenzt, siehe oben.</li>
+  </ul>
+
+  <h2>Konto löschen</h2>
+  <p>In der App unter Profil → <strong>Konto löschen</strong>, oder ohne
+    App nach der Anleitung unter <a href="konto-loeschen.html">Konto
+    löschen</a>. Die Löschung wirkt sofort und entfernt Profil,
+    Aufzeichnungen, Beiträge, Meldungen, Hinweise, Nachrichten und
+    Verbindungen.</p>
+
+  <h2>Deine Rechte</h2>
+  <p>Auskunft, Berichtigung, Löschung, Einschränkung, Datenübertragbarkeit
+    und Widerspruch nach Art. 15 bis 21 DSGVO — per E-Mail an die oben
+    genannte Adresse. Beschwerden nimmt die zuständige
+    Datenschutzaufsichtsbehörde entgegen, für den Verantwortlichen der
+    Landesbeauftragte für den Datenschutz und die Informationsfreiheit
+    Baden-Württemberg.</p>
+
+  <h2>Änderungen</h2>
+  <p>Diese Erklärung wird angepasst, wenn die App neue Daten erhebt oder
+    neue Verbindungen aufbaut. Die jeweils gültige Fassung steht unter
+    dieser Adresse; größere Änderungen nennt der Changelog in der App.</p>
+
+  <p><a href="./">← Zurück zu TrailBuddy</a></p>
+</body>
+</html>
