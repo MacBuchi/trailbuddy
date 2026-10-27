@@ -9,6 +9,7 @@ import 'package:trailbuddy/core/line_geometry.dart';
 import 'package:trailbuddy/features/routing/loop_planner.dart';
 import 'package:trailbuddy/features/routing/road_graph.dart';
 import 'package:trailbuddy/features/routing/route_profile.dart';
+import 'package:trailbuddy/features/routing/route_result.dart' show kRouteDirectBudget;
 import 'package:trailbuddy/features/routing/route_vias.dart';
 import 'package:trailbuddy/features/trails/trail_geometry.dart' show haversineM;
 
@@ -323,6 +324,56 @@ void main() {
           {(SnapRole.end, 0): 150, (SnapRole.waypoint, 0): 100, (SnapRole.waypoint, 1): 80});
       expect(r.points.last, r.snaps.firstWhere((s) => s.role == SnapRole.end).at);
     });
+  });
+
+  group('Trail-Enden springen auf den nächsten Weg (#394)', () {
+    // Trail A mit dem Kopf 120 m innen neben der oberen Kante, das Ende
+    // wie bisher 10 m neben der unteren rechten Ecke.
+    final inWood = _trail('W', (500, 880), (990, 10));
+
+    test('ein Trailkopf 120 m im Wald fährt mit, und das Blatt erfährt es', () {
+      final r = planLoop(_square(), start: start, profile: _bio, budget: _big, pool: [inWood],
+          searchBudget: const Duration(milliseconds: 50));
+      expect(r.outcome, LoopOutcome.ok);
+      expect(r.stops.single.trail.id, 'W');
+      final s = r.snaps.single;
+      expect(s.role, SnapRole.trailStart);
+      expect(s.trailId, 'W');
+      expect(s.meters, closeTo(120, 1));
+      expect(r.excluded, isEmpty);
+    });
+
+    test('ein Trail, der nicht mitfährt, bringt keinen Satz', () {
+      // Angeheftet (gesprungen) wird W, ins Budget von 20 min passt er nicht.
+      final r = planLoop(_square(), start: start, profile: _bio,
+          budget: const LoopBudget(timeS: 1200, climbM: 800, hikingM: 2000), pool: [inWood],
+          searchBudget: const Duration(milliseconds: 50));
+      expect(r.excluded['W'], LoopExclusion.budget);
+      expect(r.snaps, isEmpty);
+    });
+
+    test('beim Laden angeheftet, teilt die Planung keine Kante mehr (Suchspeicher bleibt gültig)', () {
+      final g = _square();
+      // Was `buildGraphFrom` mit jeder Abfahrt im Rahmen tut.
+      g.snap(inWood.start);
+      g.snap(inWood.end);
+      final rev = g.revision;
+      final r = planLoop(g, start: start, profile: _bio, budget: _big, pool: [inWood],
+          searchBudget: const Duration(milliseconds: 50));
+      expect(r.stops, hasLength(1));
+      expect(g.revision, rev);
+    });
+  });
+
+  test('nur Zwischenpunkte, kein Trail, kein Ziel (#395): eine Runde durch die Punkte', () {
+    final via = _m([(1000, 1000)]).single;
+    final r = planLoop(_square(), start: start, profile: _bio, budget: kRouteDirectBudget, pool: const [],
+        waypoints: [via], bare: true);
+    expect(r.outcome, LoopOutcome.ok);
+    expect(r.isEmpty, isTrue);
+    expect(r.summary!.lengthM, closeTo(4000, 20), reason: 'einmal um das Quadrat');
+    expect(r.points.any((p) => haversineM(p.latitude, p.longitude, via.latitude, via.longitude) < 1), isTrue);
+    expect(r.points.last, r.points.first);
   });
 
   test('das Budget: 10 % Reserve auf die Zeit', () {

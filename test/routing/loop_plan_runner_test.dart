@@ -19,6 +19,7 @@ import 'package:trailbuddy/features/routing/loop_plan_runner_io.dart';
 import 'package:trailbuddy/features/routing/loop_planner.dart';
 import 'package:trailbuddy/features/routing/road_graph.dart';
 import 'package:trailbuddy/features/routing/route_profile.dart';
+import 'package:trailbuddy/features/routing/trail_overlay.dart';
 
 import '../fakes/graph_tiles.dart';
 
@@ -111,6 +112,25 @@ void main() {
     final down = built.graph.edges.where((e) => e.loss > 90 && e.gain < 5);
     expect(up, hasLength(1), reason: 'die Westkante steigt nach Norden');
     expect(down, hasLength(1), reason: 'die Ostkante fällt nach Süden');
+  });
+
+  test('ein Trailkopf 120 m im Wald (#394): beim Bau angeheftet, die Planung teilt nichts mehr', () {
+    final head = _trail('W', (500, 880), (990, 10));
+    final sq = _square();
+    final built = buildGraphFrom(GraphInput(roads: sq.roads, heights: sq.heights, lat0: _lat0, trails: [
+      GraphTrail(id: 'W', name: 'W', points: head.points, role: TrailRole.downhill),
+    ]));
+    final g = built.graph;
+    final rev = g.revision;
+    final plan = planLoop(g,
+        start: _m([(5, 0)]).single,
+        profile: RiderProfile.bio,
+        budget: const LoopBudget(timeS: 3 * 3600, climbM: 800, hikingM: 2000),
+        pool: [head],
+        searchBudget: const Duration(milliseconds: 50));
+    expect(plan.stops.single.trail.id, 'W');
+    expect(plan.snaps.single.role, SnapRole.trailStart);
+    expect(g.revision, rev, reason: 'sonst verfiele der Suchspeicher bei jeder Rechnung');
   });
 
   test('baut drüben und rechnet dasselbe wie an Ort und Stelle', () async {

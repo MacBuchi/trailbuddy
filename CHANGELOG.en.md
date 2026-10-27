@@ -2,6 +2,19 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## Trail heads in the woods, and loops through points only
+
+*Version 0.135.0, 2026-10-27*
+
+- When a trail starts or ends in the middle of the woods, the planner
+  now takes it anyway: it joins the trail to the nearest way, up to
+  200 m away, and says below the result which trail starts or ends how
+  far off. Until now such a trail dropped out with "not on a mapped
+  path".
+- Waypoints alone are now enough in the planner: with no trail chosen,
+  "Compute" plans a loop through the points back to the start (or up to
+  the last point), and you can navigate it right away.
+
 ## No more picking trails in the planner by accident
 
 *Version 0.134.1, 2026-10-18*

@@ -100,8 +100,9 @@ typedef BuiltGraph = ({RoadGraph graph, GraphReport report});
 /// Baut den Graphen des Planers aus [input]: dekodieren, bauen, Höhen,
 /// Güte ([buildRoadGraphFrom]), dann die Trails auflegen ([applyTrails])
 /// und die Enden jeder Abfahrt anheften — dieselben Punkte, die
-/// `planLoop` anheftet (#188): So teilt ein später dazugewählter Trail
-/// aus dem Rahmen keine Kante mehr, und der Suchspeicher bleibt gültig.
+/// `planLoop` anheftet (#188), seit #394 wie dort bis [kGraphSnapM]: So
+/// teilt ein später dazugewählter Trail aus dem Rahmen keine Kante mehr,
+/// und der Suchspeicher bleibt gültig.
 /// Wirft bei einem kaputten Eingang — der Aufrufer meldet und sagt
 /// „keine Wege" (ein halb belegter Graph plante Abfahrten bergauf).
 BuiltGraph buildGraphFrom(GraphInput input, {String builtIn = ''}) {
@@ -116,8 +117,8 @@ BuiltGraph buildGraphFrom(GraphInput input, {String builtIn = ''}) {
   StallWatch.mark('graph.attach', () {
     for (final t in input.trails) {
       if (t.role != TrailRole.downhill) continue;
-      graph.attach(t.points.first);
-      graph.attach(t.points.last);
+      graph.snap(t.points.first);
+      graph.snap(t.points.last);
     }
   });
   return (
