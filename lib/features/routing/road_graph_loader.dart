@@ -86,6 +86,7 @@ class RoadTilesRead {
     required this.tilesNeeded,
     required this.roads,
     this.ways = const [],
+    this.covered = 0,
     this.tilesOnline = 0,
     this.onlineCapped = false,
     this.onlineBroken = false,
@@ -101,6 +102,10 @@ class RoadTilesRead {
   /// Die Kacheln des Wege-Archivs (#213) dazu — Lücken erlaubt.
   final List<RoadTileBytes> ways;
 
+  /// So viele Kacheln hatten schon ein vorgebackenes Stück (#380) und
+  /// wurden nicht gelesen — in [tilesFound] mitgezählt.
+  final int covered;
+
   /// Davon vom Host nachgeladen (#187) — in [tilesFound] mitgezählt.
   final int tilesOnline;
 
@@ -113,7 +118,7 @@ class RoadTilesRead {
   /// Über [kPlanMaxTiles]: nichts gelesen.
   final bool tooLarge;
 
-  int get tilesFound => roads.length;
+  int get tilesFound => roads.length + covered;
 
   RoadCoverage get coverage => tilesFound == 0
       ? RoadCoverage.none
@@ -138,6 +143,11 @@ AreaBounds roadGraphBounds(LatBox box, double marginM) {
   );
 }
 
+/// Die z13-Kacheln des Rahmens [box] mit [marginM] Rand — EINE Rechnung
+/// für den Lader und die Suche nach vorgebackenen Stücken (#380).
+List<TileXYZ> roadGraphTiles(LatBox box, double marginM) =>
+    tilesCovering(roadGraphBounds(box, marginM), minZoom: kRoadGraphZoom, maxZoom: kRoadGraphZoom);
+
 /// Liest die Bytes aller z13-Kacheln, die [box] (mit [marginM] Rand)
 /// berührt, aus [areas] — und, wo keiner sie hat, über [fetchOnline] vom
 /// Host (die nächsten zur Mitte zuerst, höchstens [maxOnline]). Dazu die
@@ -150,6 +160,10 @@ AreaBounds roadGraphBounds(LatBox box, double marginM) {
 /// Mit [only] werden aus dem Rahmen nur diese Kacheln gelesen (#356 PR 9,
 /// die Kalibrierung: der Korridor einer Fahrt, [tilesAlong]) — die
 /// Zählung und die Grenze gelten dann für sie.
+///
+/// Kacheln in [covered] haben schon ein vorgebackenes Stück (#380): Sie
+/// zählen als gefunden, werden aber weder gelesen noch online geholt; das
+/// Wege-Archiv kommt nur noch für Kacheln, neben denen etwas zu backen ist.
 Future<RoadTilesRead> readRoadTiles({
   required List<StoredArea> areas,
   required LatBox box,
@@ -162,10 +176,11 @@ Future<RoadTilesRead> readRoadTiles({
   String Function(StoredArea area)? sourceKey,
   int? maxTiles,
   Set<(int, int)>? only,
+  Set<(int, int)> covered = const {},
 }) async {
   final bounds = roadGraphBounds(box, marginM);
   final tiles = [
-    for (final t in tilesCovering(bounds, minZoom: kRoadGraphZoom, maxZoom: kRoadGraphZoom))
+    for (final t in roadGraphTiles(box, marginM))
       if (only == null || only.contains((t.x, t.y))) t,
   ];
   if (maxTiles != null && tiles.length > maxTiles) {
@@ -198,6 +213,7 @@ Future<RoadTilesRead> readRoadTiles({
       }
     }
     for (final t in tiles) {
+      if (covered.contains((t.x, t.y))) continue;
       var hit = false;
       for (final p in opened) {
         try {
@@ -235,10 +251,22 @@ Future<RoadTilesRead> readRoadTiles({
       fromHost.add(t);
     }
   }
+  // Mit Stücken braucht nur noch das Backen die Güte: die zu backenden
+  // Kacheln und ihre Nachbarn (`bakeTiles` liest 3 × 3).
+  final toBake = {for (final r in roads) (r.tile.x, r.tile.y)};
+  bool nearRead(TileXYZ t) {
+    for (var dx = -1; dx <= 1; dx++) {
+      for (var dy = -1; dy <= 1; dy++) {
+        if (toBake.contains((t.x + dx, t.y + dy))) return true;
+      }
+    }
+    return false;
+  }
+
   final ways = roads.isEmpty || (openWays == null && fetchWaysOnline == null)
       ? const <RoadTileBytes>[]
       : await _wayTiles(
-          tiles: tiles,
+          tiles: covered.isEmpty ? tiles : [for (final t in tiles) if (nearRead(t)) t],
           areas: distinctSources([
             for (final a in inBox)
               if (a.hasWays) a,
@@ -251,6 +279,7 @@ Future<RoadTilesRead> readRoadTiles({
     tilesNeeded: tiles.length,
     roads: roads,
     ways: ways,
+    covered: tiles.where((t) => covered.contains((t.x, t.y))).length,
     tilesOnline: online,
     onlineCapped: capped,
     onlineBroken: broken,

@@ -20,6 +20,9 @@ import 'tile_store.dart';
       TileLayer.map => (min: area.minZoom, max: area.maxZoom),
       TileLayer.heights => (min: kHeightTileZoom, max: kHeightTileZoom),
       TileLayer.ways => (min: kWaysZoom, max: kWaysZoom),
+      // Die Stücke des Planers (#380) liegen auf dem Zoom des Graphen —
+      // z13 wie die Höhen.
+      TileLayer.routing => (min: kHeightTileZoom, max: kHeightTileZoom),
     };
 
 /// Die Kachel-Ids, die [areas] in [layer] decken.

@@ -2,6 +2,18 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## Planning is faster where you have planned before
+
+*Version 0.136.0, 2026-10-27*
+
+- Planning is much faster where you have planned before or where the
+  area is saved. The first plan in a saved area prepares its ways for the
+  planner and keeps them next to the map; every further loop or route
+  there only puts them together — also after a restart. No network, no
+  new download.
+- When "Update" brings new map, height or way tiles, the app prepares
+  the affected spots again on the next plan.
+
 ## Web app: code after a reload, location in the browser
 
 *Version 0.135.2, 2026-10-27*

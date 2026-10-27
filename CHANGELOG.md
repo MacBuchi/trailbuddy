@@ -2,6 +2,19 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Planen geht schneller, wo du schon einmal geplant hast
+
+*Version 0.136.0, 2026-10-27*
+
+- Planen geht deutlich schneller, wenn du dort schon einmal geplant hast
+  oder der Bereich gespeichert ist. Die App bereitet die Wege einer
+  gespeicherten Gegend beim ersten Planen für den Planer vor und legt
+  sie neben die Karte; jede weitere Runde oder Route dort setzt sie nur
+  noch zusammen — auch nach einem Neustart. Ohne Netz, ohne neuen
+  Download.
+- Kommen mit „Aktualisieren" neue Karten, Höhen oder Wege, bereitet die
+  App die betroffenen Stellen beim nächsten Planen neu vor.
+
 ## Web-App: Code nach dem Neuladen, Standort im Browser
 
 *Version 0.135.2, 2026-10-27*

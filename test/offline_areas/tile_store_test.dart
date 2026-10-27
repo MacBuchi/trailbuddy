@@ -79,6 +79,25 @@ void main() {
         }
       });
 
+      test('der Bau einzelner Kacheln, ohne den ganzen Index (#380)', () async {
+        final (store, done) = await make();
+        try {
+          expect(await store.builds('dach', TileLayer.routing, [_id(13, 1, 2)]), isEmpty);
+          await store.put('dach', TileLayer.routing, [
+            StoreTile(13, 1, 2, _bytes(3), 'r1.1:a:-:-'),
+            StoreTile(13, 2, 2, _bytes(3), 'r1.1:b:h:w'),
+          ]);
+          await store.put('dach', TileLayer.map, [StoreTile(13, 1, 2, _bytes(3), 'm')]);
+          expect(await store.builds('dach', TileLayer.routing, [_id(13, 1, 2), _id(13, 9, 9), _id(13, 2, 2)]),
+              {_id(13, 1, 2): 'r1.1:a:-:-', _id(13, 2, 2): 'r1.1:b:h:w'});
+          expect(await store.builds('dach', TileLayer.map, [_id(13, 1, 2), _id(13, 2, 2)]), {_id(13, 1, 2): 'm'});
+          expect(await store.builds('ca', TileLayer.routing, [_id(13, 1, 2)]), isEmpty);
+          expect(await store.builds('dach', TileLayer.routing, const []), isEmpty);
+        } finally {
+          await done();
+        }
+      });
+
       test('entfernen nimmt nur, was genannt ist; Fehlendes ist kein Fehler', () async {
         final (store, done) = await make();
         try {
@@ -142,6 +161,14 @@ void main() {
         expect(h.select("SELECT value FROM metadata WHERE name = 'format'").first.columnAt(0), isNot('pbf'));
       } finally {
         h.close();
+      }
+      // Die Stücke des Planers (#380) auch nicht.
+      await store.put('dach', TileLayer.routing, [StoreTile(13, 1, 1, _bytes(2), 'r')]);
+      final r = sqlite3.open((await store.path('dach', TileLayer.routing))!, mode: OpenMode.readOnly);
+      try {
+        expect(r.select("SELECT value FROM metadata WHERE name = 'format'").first.columnAt(0), 'x-trailbuddy-routing');
+      } finally {
+        r.close();
       }
       // Leer bleibt die Datei liegen (MapLibre hält ihren Pfad offen).
       await store.remove('dach', TileLayer.map, [_id(13, 4380, 2860), _id(8, 136, 89)]);

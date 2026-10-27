@@ -509,6 +509,11 @@ dieselben Konstanten geprüft):
   anderes Zeitbudget oder ein neuer Start suchen neu. Die Trail-Enden
   im Rahmen werden beim Laden angeheftet, ein dazugewählter Trail aus
   dem Rahmen braucht deshalb weder neues Laden noch neue Suchen.
+- **Seit 0.136.0 aus vorgebackenen Stücken** (#380, Abschnitt 11): Je
+  z13-Kachel backt der Rechen-Isolate EINMAL das Stück des Graphen und
+  legt es in den Kachelspeicher der Region; jede weitere Planung in
+  denselben Kacheln liest nur noch die Stücke und setzt sie zusammen —
+  auch nach einem Neustart und in einem anderen Rahmen.
   Vorgebackene Stücke je Kachel, aus denen der Planer nur noch
   zusammensetzt, plant Abschnitt 11 (#380, Entwurf).
 - **Knoten — drei Regeln, gemessen (M1, `docs/routing-messung.md`)**:
@@ -1332,6 +1337,14 @@ mit der Messung am Pixel (PR 4/10):
   bis der erste Fix da ist.
 - **Im Web** gibt es keinen Isolate (2.7, `InlineLoopPlanRunner`) — dort
   gelten nur die Grenzen.
+- **Seit 0.136.0 backt und setzt der Isolate zusammen** (#380, 11.8):
+  Der UI-Isolate fragt je Kachel des Rahmens nur die Bauten im
+  Kachelspeicher und liest frische Stücke statt Wege-Kacheln; Backen
+  (`graph.bake`) und Zusammensetzen (`graph.stitch`) haben eigene
+  Marken und Anteile am Ladebalken. Die neuen Stücke kommen als Bytes im
+  Bericht zurück und gehen nach dem Bau in den Speicher, ohne die
+  Rechnung aufzuhalten. `kPlanMaxTiles` bleibt 120, bis die Messung am
+  Pixel (11.6) einen neuen Wert trägt.
 
 ### 10.7 Wann es fertig ist — die Budgets
 
@@ -1365,7 +1378,8 @@ Abbiegehinweise und kein automatisches Umplanen bei Abweichung (1, 9).
 ## 11. Vorgebackene Routing-Kacheln (#380)
 
 *Entwurf vom 2026-10-18, mit Messung (`docs/routing-messung.md`, „#380").
-Gebaut wird erst nach den Entscheidungen in 11.7; bis dahin gilt 2.7.*
+Entschieden am 2026-10-18 (11.7); Weg B gebaut in 0.136.0 (11.8), Weg C
+folgt als eigener PR.*
 
 ### 11.1 Warum
 
@@ -1524,7 +1538,50 @@ gewichten (AOT statt JIT, langsamer Speicher). Vor dem Bau von A oder C:
    Stücke in IndexedDB neben den anderen Ebenen. *Empfehlung:* mit B
    zusammen bauen, sonst plant das Web langsamer als Android (A9).
 
+**Entschieden (Betreiber, 2026-10-18):**
+
+1. **B + C**: „Ja, ich finde es gut, dass man für alle offline Kacheln
+   das so umsetzt auf dem Handy direkt." Kein Workflow, kein R2, kein
+   neues Netzziel.
+2. „Die Genauigkeit reicht."
+3. Alte Bereiche: nichts zu tun, ihre Stücke entstehen beim ersten
+   Planen oder im Hintergrund.
+4. und 5. „Passt" — die Karte bleibt die Quelle für das Zeichnen, das
+   Web bekommt dasselbe.
+6. **Ganze Region: kein Backen im Hintergrund**, sie backt beim Planen
+   (B) — „das passt". Bei geschätzt 0,15–0,4 s je Kachel am Pixel liefe
+   DACH (~95 000 Kacheln) 4–10 h.
+
+Geschnitten in zwei PRs (Betreiber, 2026-10-27): erst B, dann C.
+
 ### 11.8 Umsetzung (nach den Entscheidungen)
+
+**Gebaut in 0.136.0 (B):** `routing_tile.dart` (Format, `bakeTiles`,
+`stitchPieces`, gepackt mit gzip wie die übrigen Ebenen),
+`TileLayer.routing` im Kachelspeicher (`konzept-offline-karten.md`
+8.2), `routing_pieces.dart` sucht vor dem Lesen frische Stücke
+(`TileStore.builds` je Kachel des Rahmens) und legt neu gebackene nach
+dem Bau ab. Drei Regeln, die der Bau festgelegt hat:
+
+- **Frisch heißt: derselbe Bau.** Ein Stück trägt
+  `r<Format>.<Fassung>:<Karte>:<Höhen>:<Wege>` — die Bauten der drei
+  Quellkacheln, `-` für eine fehlende. Kommen mit „Aktualisieren" neue
+  Höhen oder Wege dazu, ist das Stück alt und wird beim nächsten Planen
+  neu gebacken, ohne Netz.
+- **Gespeichert wird nur, was aus dem Speicher kam.** Eine online
+  ergänzte Kachel (#187) hat dort weder Bau noch Bereich; ihr Stück gilt
+  nur für die Sitzung (gehängt an die Bytes aus `OnlineTileCache`).
+- **Die Nachbarn gehören nicht zur Frische.** Gebacken wird mit den
+  Höhen der Kachel selbst und dem Wege-Archiv der 3 × 3 Nachbarn, die
+  da sind; ein Punkt auf der Kachelkante liest seine Höhe auch aus der
+  eigenen Kachel (`heightTileCandidates`). Ein Stück am Rand eines
+  Bereichs ist damit so genau wie der Bau eines Rahmens dort.
+
+Die Kalibrierung baut weiter wie bisher (ohne Höhen, ohne Stücke): Sie
+ordnet nur Klassen ein und liest keine Höhen — ein Stück aus ihr hätte
+den Bau „ohne Höhen" und wäre neben gespeicherten Höhen sofort alt.
+„Zurück zur Route" und der Planer nehmen den neuen Weg. Gemessen am
+Gerät wird nach dem Merge (11.6).
 
 1. **Backen und Zusammensetzen in `lib/`** (`routing_tile.dart`, rein):
    das Format aus 11.3, `bakeTile`, `stitchTiles`; der Planer setzt aus

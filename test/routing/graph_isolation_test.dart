@@ -17,6 +17,9 @@ void main() {
       // Seit #356 PR 9 auch die Kalibrierung und „Zurück zur Route".
       'lib/features/routing/ride_calibrator.dart',
       'lib/features/routing/nav_providers.dart',
+      // Seit #380 sucht und speichert er vorgebackene Stücke — backen,
+      // lesen und zusammensetzen tut der Isolate.
+      'lib/features/routing/routing_pieces.dart',
     ]) {
       final src = read(path);
       for (final symbol in const [
@@ -28,6 +31,10 @@ void main() {
         'addClimbs',
         'addWayQuality(',
         'wayLinesFromTile(',
+        'bakeTile',
+        'decodePiece(',
+        'unpackPiece(',
+        'stitchPieces(',
         'RoadGraph?',
         'RoadGraph ',
       ]) {
@@ -37,8 +44,13 @@ void main() {
   });
 
   test('die Naht ist rein: keine Widgets, kein Riverpod, kein Isolate, kein Speicher', () {
-    final src = read('lib/features/routing/graph_input.dart');
-    for (final import in const [
+    for (final path in const [
+      'lib/features/routing/graph_input.dart',
+      // Backen und Zusammensetzen laufen drüben (#380).
+      'lib/features/routing/routing_tile.dart',
+    ]) {
+      final src = read(path);
+      for (final import in const [
       'package:flutter/',
       'package:flutter_riverpod/',
       'dart:isolate',
@@ -47,8 +59,10 @@ void main() {
       '../offline_areas/area_providers.dart',
       '../offline_areas/tile_store',
       'online_fill.dart',
+      'routing_pieces.dart',
     ]) {
-      expect(src.contains("import '$import"), isFalse, reason: 'graph_input.dart importiert $import');
+        expect(src.contains("import '$import"), isFalse, reason: '$path importiert $import');
+      }
     }
   });
 }

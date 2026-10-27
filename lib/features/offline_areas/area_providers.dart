@@ -192,6 +192,9 @@ final regionTileAgeProvider = FutureProvider.family<RegionTileAge, MapRegion>((r
   final heights = await ref.watch(regionHeightsManifestProvider(region).future);
   final ways = await ref.watch(areaWaysAvailableProvider(region).future);
   var stored = 0, stale = 0, staleBytes = 0;
+  // Ohne TileLayer.routing (#380): Die Stücke des Planers kommen nie vom
+  // Host, ein Host-Bau sagt über sie nichts — sie backt der Planer neu,
+  // sobald sich eine ihrer Quellkacheln ändert.
   for (final (layer, build) in [
     (TileLayer.map, map?.sourceBuild),
     (TileLayer.heights, heights?.build),

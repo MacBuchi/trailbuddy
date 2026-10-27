@@ -362,7 +362,8 @@ class NavController extends Notifier<NavSession?> {
         final loaded = await ref.read(planningGraphLoaderProvider)(box, fillOnline: prefs.fillOnline);
         final input = loaded.input;
         if (input != null) {
-          await StallWatch.time('graph.build', () => runner.build(input));
+          final report = await StallWatch.time('graph.build', () => runner.build(input));
+          unawaited(loaded.keep(report)); // die neu gebackenen Stücke (#380)
           _rejoinBox = box;
           ready = true;
         }

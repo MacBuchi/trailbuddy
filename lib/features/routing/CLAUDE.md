@@ -958,3 +958,42 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
   (Routing-Kacheln, Konzept-Routing 11.3), hält die Richtung dieses
   Vergleichs fest; auf Dezimeter gerundet fuhren flache Straßen mit
   9 mm Abstieg plötzlich flach, und Suchen wichen bis 2 % ab.
+- **Vorgebackene Routing-Kacheln** (#380, seit 0.136.0;
+  Konzept-Routing 11, `routing_tile.dart` rein, `routing_pieces.dart`
+  im UI-Isolate). Der Planer und „Zurück zur Route" bauen den Graphen
+  nicht mehr in einem Stück: Je z13-Kachel backt der Rechen-Isolate
+  EINMAL ein Stück (`bakeTiles`, dieselben Funktionen wie der Bau eines
+  Rahmens, über NUR die Wege dieser Kachel), der UI-Isolate legt es in
+  den Kachelspeicher (`TileLayer.routing`), und jede weitere Planung
+  setzt aus Stücken zusammen (`stitchPieces`: gleiche Mikrograd sind
+  ein Knoten, dann nur die Randknoten mit der 2-m-Regel). Sechs Dinge,
+  die man wissen muss:
+  - **Frisch heißt: derselbe Bau** (`pieceBuild`:
+    `r<Format>.<Fassung>:<Karte>:<Höhen>:<Wege>`, `-` für fehlend).
+    `findPieces` fragt je Kachel des Rahmens nur die Bauten
+    (`TileStore.builds`), nicht den ganzen Index — der einer ganzen
+    Region hätte Millionen Zeilen. „Aktualisieren" ändert einen Bau, das
+    Stück ist alt und wird ohne Netz neu gebacken.
+  - **Wer eine Bauregel ändert, zählt `kRoutingTileVersion` hoch**
+    (M1-Regeln, `kGraphJoinM`, Wegegüte, Höhenproben, `steepWeightAt`,
+    `classifyWay`). `routing_tile_test` hält die Werte als Kopie fest und
+    wird rot, sobald sich einer ändert — dann Fassung hoch UND Kopie
+    nachziehen. Die KOSTEN gehören nicht dazu: Sie rechnen aus dem Stück.
+  - **„Bergab" überlebt das Runden** (`_cmLoss`, siehe „Bergab ist eine
+    Stufe" oben); Anstieg und Abstieg in Zentimetern, die Richtung des
+    Vergleichs bleibt — in beide Richtungen.
+  - **Gespeichert wird nur, was aus dem Speicher kam.** Online ergänzte
+    Kacheln (#187) backen nur für die Sitzung: `routingPieceSessionProvider`
+    ist ein `Expando` an den Bytes aus `OnlineTileCache` (dieselbe Kachel
+    kommt dort als dasselbe Objekt zurück). Ein Stück, das drüben nicht
+    lesbar ist, steht in `GraphReport.broken`, `keep` nimmt es aus dem
+    Speicher.
+  - **`GraphInput.bake`** schaltet den Weg; ohne baut `buildGraphFrom`
+    wie bis 0.135 in einem Stück. Die Kalibrierung bleibt dort (sie
+    liest keine Höhen — ihr Stück trüge „ohne Höhen" und wäre neben
+    gespeicherten Höhen sofort alt), ebenso die Mess-Skripte.
+  - **Im Web** rechnen Schreiber und Leser der Varints mit Multiplikation
+    statt `<<` (dart2js: 32 Bit); `test/web/routing_tile_browser_test.dart`
+    vergleicht Backen, Packen und Zusammensetzen mit Zahlen der VM.
+  `tool/routing_tiles_measure.dart` war der Prototyp; gemessen am Gerät
+  wird nach dem Merge (Szenarien 2′ und 4 aus #356, Konzept 11.6).

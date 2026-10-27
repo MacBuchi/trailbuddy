@@ -63,8 +63,16 @@ class SqliteTileStore implements TileStore {
     final meta = db.prepare('INSERT OR IGNORE INTO metadata (name, value) VALUES (?, ?)');
     try {
       meta.execute(['name', 'trailbuddy-$region-${layer.name}']);
-      // Höhen sind keine Vektorkacheln; MapLibre liest diese Datei nie.
-      meta.execute(['format', layer == TileLayer.heights ? 'x-trailbuddy-heights' : 'pbf']);
+      // Höhen und Routing-Stücke (#380) sind keine Vektorkacheln; MapLibre
+      // liest diese Dateien nie.
+      meta.execute([
+        'format',
+        switch (layer) {
+          TileLayer.heights => 'x-trailbuddy-heights',
+          TileLayer.routing => 'x-trailbuddy-routing',
+          TileLayer.map || TileLayer.ways => 'pbf',
+        },
+      ]);
     } finally {
       meta.close();
     }
@@ -95,6 +103,25 @@ class SqliteTileStore implements TileStore {
     if (rows.isEmpty) return null;
     final value = rows.first.columnAt(0);
     return value is Uint8List ? value : Uint8List.fromList(value as List<int>);
+  }
+
+  @override
+  Future<Map<int, String>> builds(String region, TileLayer layer, Iterable<int> tileIds) async {
+    final db = await _db(region, layer);
+    if (db == null) return const {};
+    final out = <int, String>{};
+    final select =
+        db.prepare('SELECT build FROM tiles WHERE zoom_level = ? AND tile_column = ? AND tile_row = ?');
+    try {
+      for (final id in tileIds) {
+        final t = ZXY.fromTileId(id);
+        final rows = select.select([t.z, t.x, _row(t.z, t.y)]);
+        if (rows.isNotEmpty) out[id] = rows.first.columnAt(0) as String;
+      }
+    } finally {
+      select.close();
+    }
+    return out;
   }
 
   @override

@@ -120,6 +120,16 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     Gegenprobe. Gemessen werden die Orte NICHT vorab
     (`poiFiles` null). Der Harness setzt `poiBundleFetcherProvider` auf
     null.
+  - **Die vierte Ebene `routing` kommt nie vom Host** (#380, seit
+    0.136.0): die Stücke des Planer-Graphen, gebacken auf dem Gerät
+    (`lib/features/routing/CLAUDE.md`, „Vorgebackene Routing-Kacheln").
+    Verwiesen wie die Höhen (z13, `zoomsOf`) — Löschen und Radierer
+    nehmen verwaiste Stücke mit, die Größe zählt sie —, aber Download,
+    Übernahme und `regionTileAgeProvider` nennen ihre Ebenen
+    ausdrücklich und lassen sie aus. Wer dort eine Schleife über
+    `TileLayer.values` baut, holt sie versehentlich herein. MBTiles
+    `format = x-trailbuddy-routing`; `TileStore.builds` liest den Bau
+    einzelner Kacheln ohne den ganzen Index.
   Der Harness hängt `MemoryTileStore` ein (`pumpApp(tileStore:)`); wer
   einen `ProviderContainer` ohne Harness baut und Bereiche liest, setzt
   `tileStoreProvider` selbst — sonst öffnet er eine SQLite-Datei unter

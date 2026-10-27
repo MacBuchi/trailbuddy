@@ -19,7 +19,14 @@ import 'tile_store_web.dart' if (dart.library.io) 'tile_store_io.dart';
 
 /// Die Ebenen, die ein Bereich mitbringt. Der Name wird Teil eines
 /// Dateinamens (`map.mbtiles`) und eines Schlüssels.
-enum TileLayer { map, heights, ways }
+///
+/// [routing] ist die einzige, die nie vom Host kommt (#380): die
+/// vorgebackenen Stücke des Planer-Graphen (`routing_tile.dart`), gebacken
+/// auf dem Gerät aus den drei anderen. Der Download plant sie nicht, und
+/// „veraltet / Aktualisieren" zählt sie nicht — ein Stück, dessen
+/// Quellkachel sich ändert, backt der Planer ohne Netz neu. Verwiesen wird
+/// sie wie die Höhen (z13), also gehen verwaiste Stücke mit dem Bereich.
+enum TileLayer { map, heights, ways, routing }
 
 /// Was der Index über eine liegende Kachel weiß — ohne ihre Bytes.
 class StoredTileInfo {
@@ -66,6 +73,11 @@ abstract interface class TileStore {
   /// nicht liegt.
   Future<Uint8List?> read(String region, TileLayer layer, int z, int x, int y);
 
+  /// Der Bau der Kacheln mit diesen Ids, soweit sie liegen — für wenige
+  /// Kacheln, ohne den ganzen [index] einer Region zu lesen (der Planer
+  /// fragt je Planung die Kacheln seines Rahmens, #380).
+  Future<Map<int, String>> builds(String region, TileLayer layer, Iterable<int> tileIds);
+
   /// Legt [tiles] ab, ersetzt liegende mit derselben Id — in EINER
   /// Transaktion: Ein Abbruch lässt den Block ganz oder gar nicht da.
   Future<void> put(String region, TileLayer layer, List<StoreTile> tiles);
@@ -104,6 +116,15 @@ class MemoryTileStore implements TileStore {
   @override
   Future<Uint8List?> read(String region, TileLayer layer, int z, int x, int y) async =>
       _tiles[_key(region, layer)]?[ZXY(z, x, y).toTileId()]?.bytes;
+
+  @override
+  Future<Map<int, String>> builds(String region, TileLayer layer, Iterable<int> tileIds) async {
+    final m = _tiles[_key(region, layer)] ?? const {};
+    return {
+      for (final id in tileIds)
+        if (m[id] case final t?) id: t.build,
+    };
+  }
 
   @override
   Future<void> put(String region, TileLayer layer, List<StoreTile> tiles) async {

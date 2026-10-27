@@ -149,6 +149,18 @@ void main() {
     expect(rest.waysBuild, '20261007', reason: 'geholt ist geholt — kein Angebot zum Nachladen');
   });
 
+  test('die Stücke des Planers folgen den Kacheln wie die Höhen (#380)', () async {
+    final area = await seed();
+    await tiles.put('dach', TileLayer.routing, [
+      for (final t in area.shape.tiles(minZoom: _z, maxZoom: _z)) StoreTile(t.z, t.x, t.y, Uint8List(30), 'r1.1:x:-:-'),
+    ]);
+    final trimmer = AreaTrimmer(store, tiles);
+    final plan = await trimmer.plan([area], {k(2), k(3)});
+    expect(plan.freedBytes, plan.freedTiles * 10 + 2 * 30, reason: 'die Stücke zählen mit');
+    await trimmer.apply(plan);
+    expect(await ids(TileLayer.routing), {id(_z, 0), id(_z, 1)});
+  });
+
   test('eine Kachel, die keine Form hat, fasst der Plan nicht an', () async {
     final area = await seed();
     final plan = await AreaTrimmer(store, tiles).plan([area], {k(20)});
