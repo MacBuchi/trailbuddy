@@ -421,7 +421,7 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('loop-button')));
       await settle(tester, frames: 10);
       for (final tip in ['Settings', 'Choose trails from the list', 'Clear selection', 'Close planner',
-        'Compute — choose trails first']) {
+        'Compute — choose trails or waypoints first']) {
         expect(find.byTooltip(tip), findsOneWidget, reason: tip);
       }
       expect(find.byTooltip('Planer schließen'), findsNothing);
