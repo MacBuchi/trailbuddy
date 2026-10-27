@@ -318,6 +318,17 @@ Future<TrailSnapshotResult> fetchWithCache({
 /// ein gewöhnliches Netz gewinnt und die Kopie gar nicht erst aufblitzt.
 const kTrailsNetworkPatience = Duration(milliseconds: 1500);
 
+/// Wie lange „das Netz antwortet noch" auf der Karte wartet, bevor es
+/// erscheint (#397, Feldbericht 0.134.1). Antwortet das Netz kurz nach
+/// der Frist oben, blitzte der Hinweis sonst nur auf.
+const kTrailsSlowNoticeDelay = Duration(seconds: 3);
+
+/// In welchem Abstand die App es still neu versucht, solange die Kopie
+/// steht und das Gerät ein Netz meldet (#397). Ohne das blieb der
+/// Hinweis stehen, wenn der Empfang ohne Netzwechsel zurückkam (im Wald
+/// bleibt es „Mobilfunk") — nur der Wechsel von „kein Netz" lud neu.
+const kTrailsCopyRetry = Duration(seconds: 15);
+
 /// Der Kaltstart (#183): Netz und Uhr laufen gleichzeitig los. Antwortet
 /// das Netz innerhalb von [patience], gilt dieselbe Regel wie bei
 /// [fetchWithCache]. Sonst kommt SOFORT die Kopie, und das Netz läuft

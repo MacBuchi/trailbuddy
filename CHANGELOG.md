@@ -2,6 +2,20 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## „Das Netz antwortet noch" oben und nur so lange wie nötig
+
+*Version 0.135.1, 2026-10-27*
+
+- Der Hinweis „Trails vom … — das Netz antwortet noch" steht jetzt oben
+  am Kartenrand bei den anderen Hinweisen, nicht mehr mitten auf der
+  Karte neben den Knöpfen.
+- Er erscheint erst nach ein paar Sekunden — meist ist der frische Stand
+  bis dahin schon da, und der Hinweis blitzt nicht mehr nur kurz auf.
+- Kommt der Empfang zurück, verschwindet er von selbst: Die App fragt
+  still alle 15 Sekunden nach und sofort, wenn das Handy zwischen WLAN
+  und Mobilfunk wechselt. Bisher blieb er stehen, bis die Verbindung
+  einmal ganz weg und wieder da war.
+
 ## Trailköpfe im Wald und Runden nur über Punkte
 
 *Version 0.135.0, 2026-10-27*

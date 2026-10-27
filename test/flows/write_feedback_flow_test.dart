@@ -175,6 +175,10 @@ void main() {
     // Aufgeben des Netzes leer.
     await settle(tester, frames: 20);
     final notice = find.byKey(const ValueKey('cached-notice'));
+    // Die Kopie steht, der Hinweis wartet noch (#397): Meist kommt das
+    // Netz kurz danach, und dann blitzte er nur auf.
+    expect(notice, findsNothing);
+    await settle(tester, frames: 32);
     expect(notice, findsOneWidget);
     expect(find.textContaining('das Netz antwortet noch'), findsOneWidget);
     expect(find.textContaining('Kein Empfang'), findsNothing, reason: 'Netz ist da, nur langsam');

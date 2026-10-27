@@ -9,6 +9,7 @@ import 'package:latlong2/latlong.dart';
 
 import '../../core/app_colors.dart';
 import '../../core/geo.dart';
+import '../../core/connectivity.dart';
 import '../../core/picture_in_picture.dart';
 import '../../core/widgets/motion.dart';
 import '../../core/widgets/safety_note.dart';
@@ -53,6 +54,7 @@ import '../offline_areas/area_store.dart';
 import '../offline_areas/offline_tool_rail.dart';
 import '../trails/grade_shield.dart' show trailColorOf, trailLineStyleOf;
 import '../../data/outbox.dart';
+import '../../data/trail_cache.dart';
 import '../../l10n/l10n.dart';
 import '../trails/merge_proposal_card.dart' show mapComparePairProvider;
 import '../trails/outbox_providers.dart';
@@ -1065,7 +1067,6 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         ? null
         : trails.where((t) => t.id == _selectedTrailId).firstOrNull;
     final canRecord = ref.watch(rideRecordingAvailableProvider);
-    final cachedAt = ref.watch(trailsCachedAtProvider);
     // Die Folgeansicht der Navigation (#232): Solange sie läuft, gehört
     // die Karte der Route — keine Taps, keine Leisten, keine Knöpfe.
     final nav = ref.watch(navigationProvider);
@@ -1551,6 +1552,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                 children: [
                   const UpdateBanner(),
                   const _OutboxBanner(),
+                  const _CachedNotice(),
                   // Im Planer, solange nichts gewählt ist: wie es geht — zum
                   // Ziel auch ganz ohne Trail (#356); nicht über einer Route.
                   if (loop.open && !loopPicking && loop.drawTool == null && loop.selected.isEmpty && loop.plan == null)
@@ -1743,18 +1745,6 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                           child: Text(context.l10n.mapOfficialUnavailable),
                         ),
                       ),
-                    // Ohne Empfang kommt das Netz aus der Kopie (#32). Das
-                    // gehört gesagt, sonst hält man den Stand für aktuell.
-                    if (cachedAt != null)
-                      Card(
-                        key: const ValueKey('cached-notice'),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                          child: Text(ref.watch(trailsAwaitNetworkProvider)
-                              ? context.l10n.mapCachedSlow(formatCachedAt(cachedAt))
-                              : context.l10n.mapCachedOffline(formatCachedAt(cachedAt))),
-                        ),
-                      ),
                     if (poiUnavailable)
                       Card(
                         child: Padding(
@@ -1887,6 +1877,64 @@ class _MapScreenState extends ConsumerState<MapScreen> {
 
 /// „2 warten auf Übertragung" — antippen schickt sie los (#30). Steht
 /// unter dem Update-Banner, damit sich beide nicht überdecken.
+/// Ohne Empfang kommt das Netz aus der Kopie (#32). Das gehört gesagt,
+/// sonst hält man den Stand für aktuell — oben bei den anderen Bannern,
+/// nicht in der Knopfspalte, wo es mitten auf der Karte stand (#397).
+/// „Das Netz antwortet noch" erst nach [kTrailsSlowNoticeDelay]: Meist
+/// kommt der frische Stand vorher, und dann blitzte es nur auf. „Kein
+/// Empfang" gleich — das ist kein Zwischenstand.
+class _CachedNotice extends ConsumerStatefulWidget {
+  const _CachedNotice();
+
+  @override
+  ConsumerState<_CachedNotice> createState() => _CachedNoticeState();
+}
+
+class _CachedNoticeState extends ConsumerState<_CachedNotice> {
+  Timer? _delay;
+  bool _slowShown = false;
+
+  @override
+  void initState() {
+    super.initState();
+    ref.listenManual<bool>(trailsAwaitNetworkProvider, (_, waiting) {
+      _delay?.cancel();
+      _delay = null;
+      if (!waiting) {
+        if (_slowShown) setState(() => _slowShown = false);
+        return;
+      }
+      _delay = Timer(kTrailsSlowNoticeDelay, () {
+        if (mounted) setState(() => _slowShown = true);
+      });
+    }, fireImmediately: true);
+  }
+
+  @override
+  void dispose() {
+    _delay?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cachedAt = ref.watch(trailsCachedAtProvider);
+    if (cachedAt == null) return const SizedBox.shrink();
+    final offline = ref.watch(noConnectivityProvider) || !ref.watch(trailsAwaitNetworkProvider);
+    if (!offline && !_slowShown) return const SizedBox.shrink();
+    final at = formatCachedAt(cachedAt);
+    return Card(
+      key: const ValueKey('cached-notice'),
+      margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+      child: ListTile(
+        dense: true,
+        leading: Icon(offline ? Icons.cloud_off_outlined : Icons.hourglass_empty),
+        title: Text(offline ? context.l10n.mapCachedOffline(at) : context.l10n.mapCachedSlow(at)),
+      ),
+    );
+  }
+}
+
 class _OutboxBanner extends ConsumerWidget {
   const _OutboxBanner();
 
