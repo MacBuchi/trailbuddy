@@ -63,10 +63,7 @@ Future<void> main() async {
       logError('Flutter-Fehler', details.exception, flutterErrorStack(details));
     }
   };
-  WidgetsBinding.instance.platformDispatcher.onError = (error, stack) {
-    if (worthReporting(error)) logError('Unbehandelter Fehler', error, stack);
-    return false; // false: Standardbehandlung nicht unterdrücken.
-  };
+  WidgetsBinding.instance.platformDispatcher.onError = handleUncaughtError;
 
   // Vor runApp, damit die Einstellungen schon im ersten Frame gelten. Der
   // Aufruf liest eine kleine lokale Datei — er darf den Start aufhalten,

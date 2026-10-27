@@ -90,7 +90,14 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
   PilzBuddy-Muster): Der Strom (`positionStreamProvider`) fragt NIE nach
   der Berechtigung, nur der Knopf „Meine Position" über
   `positionFixProvider` — kein Systemdialog beim Start (Play: Prominent
-  Disclosure). Nur Vordergrund (`ACCESS_FINE/COARSE_LOCATION`, kein
+  Disclosure). **Im Browser eigener Fix** (#400, seit 0.135.2,
+  `_webFix`): `geolocator_web` 4.1.4 meldet in `requestPermission` jeden
+  Fehler (auch Zeitüberschreitung) als `deniedForever`, wartet ohne Limit
+  einen Tag und gibt `timeLimit` als Mikro- statt Millisekunden weiter —
+  deshalb direkt `getCurrentPosition` (der Browser fragt dabei selbst)
+  mit Dart-`timeout` 30 s. Hat der Browser gesperrt, nennt die Leiste die
+  Adressleiste (`locationBlockedProvider`, außerhalb des Webs immer
+  nein). Nur Vordergrund (`ACCESS_FINE/COARSE_LOCATION`, kein
   Background); die Position verlässt das Gerät nicht. Punkt in
   `MapPalette.ride` (nicht Blau — Blau heißt S1), Punkt und
   Kreis fangen keine Tipps ab. Gesten drehen die Karte nie

@@ -167,6 +167,15 @@ abstract interface class Settings {
 
   Future<void> setPushLocale(String? value);
 
+  /// Die Adresse, an die gerade ein Code unterwegs ist — Passwort
+  /// vergessen oder Registrierung bestätigen (#399), kodiert von
+  /// `PendingCode`; null, solange keiner wartet. Lädt der Browser die
+  /// Seite neu (Chrome räumt Tabs im Hintergrund), kommt die Eingabe des
+  /// Codes so zurück statt des leeren Formulars. Nie ein Passwort.
+  String? get pendingAuthCode;
+
+  Future<void> setPendingAuthCode(String? value);
+
   /// „Erscheinungsbild": `system`, `light` oder `dark` (`ThemeMode.name`),
   /// oder null, solange nie etwas gewählt wurde — dann wie das System.
   String? get appearance;
@@ -344,6 +353,16 @@ class PrefsSettings implements Settings {
 
   @override
   Future<void> setLoopPlannerPrefs(String value) => _prefs.setString(_loopPlannerPrefsKey, value);
+
+  static const _pendingAuthCodeKey = 'pending_auth_code';
+
+  @override
+  String? get pendingAuthCode => _prefs.getString(_pendingAuthCodeKey);
+
+  @override
+  Future<void> setPendingAuthCode(String? value) => value == null
+      ? _prefs.remove(_pendingAuthCodeKey)
+      : _prefs.setString(_pendingAuthCodeKey, value);
 
   static const _navDefaultKey = 'nav_default';
 

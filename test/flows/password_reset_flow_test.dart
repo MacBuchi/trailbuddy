@@ -13,6 +13,7 @@ import 'package:trailbuddy/core/widgets/form_notice.dart';
 import 'package:trailbuddy/features/map/map_screen.dart';
 
 import '../fakes/fake_backend.dart';
+import '../fakes/fake_settings.dart';
 import '../fakes/test_app.dart';
 
 /// Erst ins Bild holen, dann tippen: Der Reset-Modus zeigt vier Felder und
@@ -177,6 +178,56 @@ void main() {
     expect(find.widgetWithText(TextField, 'Passwort'), findsOneWidget);
     expect(find.text('Anmelden'), findsOneWidget);
     expect(find.text('Passwort vergessen?'), findsOneWidget);
+  });
+
+  // #399: Chrome lädt einen Tab im Hintergrund neu („Memory Saver"),
+  // während man im Postfach den Code holt. Ein Neuladen ruft kein
+  // `dispose` — nachgestellt mit dem Merker in frischen Einstellungen.
+  testWidgets('Nach einem Neuladen steht die Code-Eingabe wieder da',
+      (tester) async {
+    final backend = FakeBackend()..addUser(username: 'testrail');
+    final before = FakeSettings();
+    await pumpApp(tester, backend, settings: before);
+    await _requestCode(tester, 'testrail@example.org');
+    final remembered = before.pendingAuthCode;
+    expect(remembered, isNotNull);
+    expect(remembered, isNot(contains('Passwort')),
+        reason: 'Gemerkt wird die Adresse, nie ein Passwort.');
+
+    await tester.pumpWidget(const SizedBox());
+    final after = FakeSettings(pendingAuthCode: remembered);
+    await pumpApp(tester, backend, settings: after);
+
+    expect(find.widgetWithText(TextField, 'Code aus der Mail'), findsOneWidget);
+    expect(find.textContaining('testrail@example.org'), findsWidgets);
+
+    await tester.enterText(find.widgetWithText(TextField, 'Code aus der Mail'),
+        FakeBackend.resetCode);
+    await tester.enterText(
+        find.widgetWithText(TextField, 'Neues Passwort (mind. 8 Zeichen)'),
+        'NeuerTrail#2026!');
+    await tester.enterText(
+        find.widgetWithText(TextField, 'Neues Passwort wiederholen'),
+        'NeuerTrail#2026!');
+    await _tap(tester, find.text('Neues Passwort speichern'));
+
+    expect(find.byType(MapScreen), findsOneWidget,
+        reason: 'Der Code aus der Zeit vor dem Neuladen gilt weiter.');
+    expect(after.pendingAuthCode, isNull,
+        reason: 'Angemeldet wartet niemand mehr auf einen Code.');
+  });
+
+  testWidgets('Zurück zur Anmeldung vergisst den wartenden Code',
+      (tester) async {
+    final backend = FakeBackend()..addUser(username: 'testrail');
+    final settings = FakeSettings();
+    await pumpApp(tester, backend, settings: settings);
+    await _requestCode(tester, 'testrail@example.org');
+    expect(settings.pendingAuthCode, isNotNull);
+
+    await _tap(tester, find.text('Zurück zur Anmeldung'));
+
+    expect(settings.pendingAuthCode, isNull);
   });
 
   testWidgets('Ein bekannt unsicheres Passwort wird abgelehnt',

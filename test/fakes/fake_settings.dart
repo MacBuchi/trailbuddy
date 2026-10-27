@@ -22,6 +22,7 @@ class FakeSettings implements Settings {
       this.riderProfile,
       this.loopPlannerPrefs,
       this.navDefault,
+      this.pendingAuthCode,
       this.riderCalibration,
       this.seenMapManifest,
       this.seenWaysManifest,
@@ -124,6 +125,14 @@ class FakeSettings implements Settings {
   @override
   Future<void> setLoopPlannerPrefs(String value) async {
     loopPlannerPrefs = value;
+  }
+
+  @override
+  String? pendingAuthCode;
+
+  @override
+  Future<void> setPendingAuthCode(String? value) async {
+    pendingAuthCode = value;
   }
 
   @override

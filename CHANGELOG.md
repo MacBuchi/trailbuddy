@@ -2,6 +2,24 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Web-App: Code nach dem Neuladen, Standort im Browser
+
+*Version 0.135.2, 2026-10-27*
+
+- Wartet die Anmeldung auf den Code aus der Mail (Passwort vergessen
+  oder Registrierung bestätigen), kommt die Eingabe nach einem Neuladen
+  wieder. Chrome lädt Tabs im Hintergrund gern neu, während man im
+  Postfach ist — bisher stand danach das leere Formular da, und der Code
+  ließ sich nirgends mehr eingeben. Gemerkt wird nur die Adresse, eine
+  Stunde lang, so lange wie der Code gilt.
+- „Meine Position" im Browser fragt jetzt sauber nach dem Standort und
+  gibt nach höchstens 30 Sekunden eine Antwort, statt ohne Empfang
+  endlos zu warten. Hat der Browser den Standort für die Seite gesperrt,
+  sagt die Meldung, wo man ihn wieder erlaubt: über das Symbol links in
+  der Adressleiste.
+- Abgebrochene Kartenkacheln erscheinen nicht mehr als Fehler in der
+  Konsole des Browsers.
+
 ## „Das Netz antwortet noch" oben und nur so lange wie nötig
 
 *Version 0.135.1, 2026-10-27*

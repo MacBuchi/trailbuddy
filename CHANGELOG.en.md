@@ -2,6 +2,24 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## Web app: code after a reload, location in the browser
+
+*Version 0.135.2, 2026-10-27*
+
+- While sign-in waits for the code from the e-mail (forgotten password
+  or confirming a new account), the code entry comes back after a
+  reload. Chrome likes to reload background tabs while you are in your
+  mailbox — until now the empty form came back and the code could no
+  longer be entered anywhere. Only the address is remembered, for one
+  hour, as long as the code is valid.
+- "My location" in the browser now asks for location properly and
+  answers within 30 seconds at most instead of waiting forever without
+  reception. If the browser has blocked location for the site, the
+  message says where to allow it again: the icon at the left of the
+  address bar.
+- Cancelled map tiles no longer show up as errors in the browser
+  console.
+
 ## "The network is still responding" at the top, and only as long as needed
 
 *Version 0.135.1, 2026-10-27*

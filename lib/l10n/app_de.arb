@@ -208,6 +208,10 @@
   "@mapPositionUnavailable": {
     "description": "Leiste nach „Meine Position\" ohne Standort."
   },
+  "mapPositionBlockedInBrowser": "Der Browser hat den Standort für diese Seite gesperrt. Erlaube ihn über das Symbol links in der Adressleiste und tippe noch einmal.",
+  "@mapPositionBlockedInBrowser": {
+    "description": "Leiste nach „Meine Position\" in der Web-App, wenn der Browser den Standort gesperrt hat (#400) — er fragt dann nie wieder von selbst."
+  },
   "mapPositionDot": "Deine Position",
   "@mapPositionDot": {
     "description": "Bildschirmleser: der Positionspunkt auf der Karte."
@@ -239,6 +243,10 @@
   "mapNavNoPosition": "Ohne Standort keine Navigation — Standort ist aus oder für TrailBuddy nicht erlaubt.",
   "@mapNavNoPosition": {
     "description": "Leiste: Navigation braucht den Standort."
+  },
+  "mapNavBlockedInBrowser": "Ohne Standort keine Navigation — der Browser hat ihn für diese Seite gesperrt. Erlaube ihn über das Symbol links in der Adressleiste.",
+  "@mapNavBlockedInBrowser": {
+    "description": "Leiste: Navigation in der Web-App, Standort vom Browser gesperrt (#400)."
   },
   "mapNavRecordFailed": "Die Aufzeichnung ließ sich nicht starten.",
   "@mapNavRecordFailed": {

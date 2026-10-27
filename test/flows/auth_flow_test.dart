@@ -6,6 +6,7 @@ import 'package:trailbuddy/core/widgets/form_notice.dart';
 import 'package:trailbuddy/features/map/map_screen.dart';
 
 import '../fakes/fake_backend.dart';
+import '../fakes/fake_settings.dart';
 import '../fakes/test_app.dart';
 
 /// Führt eine Registrierung bis zur Code-Eingabe durch — der Vorlauf, den
@@ -222,6 +223,37 @@ void main() {
       expect(find.byType(MapScreen), findsOneWidget,
           reason: 'verifyOTP liefert die Sitzung gleich mit.');
       expect(backend.users.single.emailConfirmed, isTrue);
+    });
+
+    // #399: wie beim Passwort-Reset — ein Neuladen des Browsers ruft kein
+    // `dispose`, der Merker bleibt und bringt die Code-Eingabe zurück.
+    testWidgets('Nach einem Neuladen steht die Code-Eingabe wieder da',
+        (tester) async {
+      final backend = FakeBackend()..requireEmailConfirmation = true;
+      final before = FakeSettings();
+      await pumpApp(tester, backend, settings: before);
+      await _signUpWithConfirmation(tester);
+      final remembered = before.pendingAuthCode;
+      expect(remembered, isNotNull);
+      expect(remembered, isNot(contains('geheim123')));
+
+      await tester.pumpWidget(const SizedBox());
+      final after = FakeSettings(pendingAuthCode: remembered);
+      await pumpApp(tester, backend, settings: after);
+      // Der Login-Screen davor darf den Merker der Registrierung nicht
+      // mitnehmen, wenn er beim Wechsel verschwindet.
+      await tester.tap(find.text('Noch kein Konto? Registrieren'));
+      await settle(tester);
+
+      expect(find.text('Fast geschafft!'), findsOneWidget);
+      await tester.enterText(
+          find.widgetWithText(TextField, 'Code aus der Mail'),
+          FakeBackend.signupCode);
+      await tester.tap(find.text('Adresse bestätigen'));
+      await settle(tester);
+
+      expect(find.byType(MapScreen), findsOneWidget);
+      expect(after.pendingAuthCode, isNull);
     });
 
     testWidgets('Ein falscher Code lässt niemanden herein', (tester) async {

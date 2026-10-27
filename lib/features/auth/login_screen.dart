@@ -5,12 +5,14 @@ import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/errors.dart';
+import '../../core/settings.dart';
 import '../../core/widgets/form_notice.dart';
 import '../../core/widgets/password_field.dart';
 import '../../core/widgets/resend_button.dart';
 import '../../core/widgets/trailbuddy_logo.dart';
 import '../../data/providers.dart';
 import '../../l10n/l10n.dart';
+import 'pending_code.dart';
 
 /// Drei Zustände statt zwei: „Passwort vergessen" ist ein eigener Modus, der
 /// nur die E-Mail abfragt — ein sichtbares Passwortfeld daneben verleitet
@@ -37,8 +39,43 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   NoticeTone _noticeTone = NoticeTone.info;
   bool _busy = false;
 
+  /// Ein Code aus der Zeit vor dem Neuladen (#399), bis sein Hinweis
+  /// gesetzt ist — der braucht die Sprache, und die gibt es erst nach
+  /// `initState`.
+  String? _restoredEmail;
+
+  /// Gelesen in `initState`, weil `dispose` den Merker räumt und `ref`
+  /// dort nicht mehr gilt.
+  late final Settings _settings;
+
+  @override
+  void initState() {
+    super.initState();
+    _settings = ref.read(settingsProvider);
+    final pending = PendingCode.read(_settings, PendingCodeKind.reset);
+    if (pending != null) {
+      _mode = _Mode.code;
+      _emailController.text = pending.email;
+      _restoredEmail = pending.email;
+    }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final email = _restoredEmail;
+    if (email == null) return;
+    _restoredEmail = null;
+    _notice = context.l10n.loginCodeSent(email);
+    _noticeTone = NoticeTone.success;
+  }
+
   @override
   void dispose() {
+    // Wer den Screen verlässt (angemeldet, zur Registrierung), wartet auf
+    // keinen Code mehr. Ein Neuladen des Browsers kommt hier nie vorbei —
+    // genau dafür bleibt der Merker stehen.
+    PendingCode.forget(_settings, PendingCodeKind.reset);
     _emailController.dispose();
     _passwordController.dispose();
     _codeController.dispose();
@@ -48,6 +85,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   void _switchTo(_Mode mode) => setState(() {
+        // Zurück zur Anmeldung heißt: auf diesen Code wartet niemand mehr.
+        if (mode == _Mode.signIn) PendingCode.forget(_settings, PendingCodeKind.reset);
         _mode = mode;
         _notice = null;
         _codeController.clear();
@@ -102,6 +141,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       }
     } finally {
       if (mounted) {
+        PendingCode.remember(_settings, PendingCodeKind.reset, email);
         setState(() {
           _busy = false;
           _mode = _Mode.code;
