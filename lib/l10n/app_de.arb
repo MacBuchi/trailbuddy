@@ -4323,7 +4323,7 @@
   "@loopSaveFailed": {
     "description": "Leiste, wenn das Speichern der Runde scheitert."
   },
-  "loopBlockerNoTrails": "Noch kein Trail gewählt — tippe Trails auf der Karte an, nimm die Liste oder umfahre ein Gebiet.",
+  "loopBlockerNoTrails": "Noch kein Trail und kein Zwischenpunkt gewählt — tippe Trails auf der Karte an, nimm die Liste, umfahre ein Gebiet oder setze Zwischenpunkte.",
   "@loopBlockerNoTrails": {
     "description": "Ergebnis-Blatt des Planers: nichts gewählt."
   },
@@ -4386,9 +4386,14 @@
   "@loopExclTooFar": {
     "description": "Grund, warum ein Trail nicht in die Runde passt."
   },
-  "loopExclOffNetwork": "Anfang oder Ende liegt an keinem Weg der Karte",
+  "loopExclOffNetwork": "Anfang oder Ende liegt über {distance} neben jedem Weg der Karte",
   "@loopExclOffNetwork": {
-    "description": "Grund, warum ein Trail nicht in die Runde passt."
+    "description": "Grund, warum ein Trail nicht in die Runde passt; distance ist die Sprungweite (#394), fertig formatiert (200 m).",
+    "placeholders": {
+      "distance": {
+        "type": "String"
+      }
+    }
   },
   "loopExclUnreachable": "von den Wegen deiner Bereiche aus nicht erreichbar",
   "@loopExclUnreachable": {
@@ -4447,9 +4452,13 @@
   "@loopRailClear": {
     "description": "Tooltip eines Knopfs der Planer-Leiste."
   },
-  "loopRailComputeNone": "Rechnen — erst Trails wählen",
+  "loopRailComputeNone": "Rechnen — erst Trails oder Zwischenpunkte wählen",
   "@loopRailComputeNone": {
     "description": "Tooltip des Rechnen-Knopfs, solange nichts gewählt ist."
+  },
+  "loopRailComputePoints": "Rechnen — über die Zwischenpunkte",
+  "@loopRailComputePoints": {
+    "description": "Tooltip des Rechnen-Knopfs ohne gewählten Trail, aber mit Zwischenpunkten (#395): gerechnet wird eine Runde oder Strecke durch die Punkte."
   },
   "loopRailCompute": "{count, plural, =1{Rechnen (1 Trail)} other{Rechnen ({count} Trails)}}",
   "@loopRailCompute": {
@@ -4533,6 +4542,30 @@
   "@loopSnapWaypoint": {
     "description": "Wie loopSnapStart, für einen vorab gesetzten Zwischenpunkt.",
     "placeholders": {
+      "distance": {
+        "type": "String"
+      }
+    }
+  },
+  "loopSnapTrailStart": "„{name}“ beginnt {distance} neben dem nächsten Weg — das Stück dazwischen kennt die Karte nicht.",
+  "@loopSnapTrailStart": {
+    "description": "Unter einer Runde oder Route (#394): Der Anfang eines Trails lag neben jedem Weg, die Planung schließt ihn am nächsten an; name ist der Trailname, distance fertig formatiert (z. B. 120 m).",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "distance": {
+        "type": "String"
+      }
+    }
+  },
+  "loopSnapTrailEnd": "„{name}“ endet {distance} neben dem nächsten Weg — das Stück dazwischen kennt die Karte nicht.",
+  "@loopSnapTrailEnd": {
+    "description": "Wie loopSnapTrailStart, für das Ende des Trails.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
       "distance": {
         "type": "String"
       }

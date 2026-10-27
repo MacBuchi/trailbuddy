@@ -666,13 +666,16 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
       state = state.copyWith(phase: LoopPhase.result, blocker: LoopBlocker.noTarget, clearPlan: true, changed: false);
       return;
     }
-    // Ohne Trail gibt es nur zu einem Ziel etwas zu fahren: die Route (#356).
-    final bare = chosen.isEmpty;
-    if (bare && target == null) {
+    // Ohne Trail gibt es zu einem Ziel die Route (#356), sonst durch die
+    // Zwischenpunkte (#395): Runde zurück zum Start oder Ende am letzten
+    // Punkt. Ohne beides ist nichts zu fahren.
+    final waypoints = state.waypoints;
+    final bare = chosen.isEmpty && target != null;
+    final pointsOnly = chosen.isEmpty && target == null;
+    if (pointsOnly && waypoints.isEmpty) {
       state = state.copyWith(phase: LoopPhase.result, blocker: LoopBlocker.noTrails, clearPlan: true, changed: false);
       return;
     }
-    final waypoints = state.waypoints;
     state = state.copyWith(
         clearPlan: true,
         clearBlocker: true,
@@ -698,7 +701,7 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
       // Die Trails, die eine spaßige Route mitnehmen darf, gleich in den
       // Rahmen — ein Wechsel des Stils lädt dann nicht neu.
       // Den Ziel-Trail fährt man danach, nicht auf dem Weg dorthin.
-      final fun = bare ? funPoolOf(_trails, start, target!, exceptId: state.targetTrailId) : const <Trail>[];
+      final fun = bare ? funPoolOf(_trails, start, target, exceptId: state.targetTrailId) : const <Trail>[];
       // Der Start gehört nicht in den Schlüssel (#370): `planLoop` heftet
       // ihn bei jeder Rechnung an, und ein neuer Fix des Standorts liegt
       // Meter neben dem alten. Neu gebaut wird erst, wenn er den Rahmen
@@ -749,18 +752,21 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
       final LoopRequest request;
       var funEmpty = false;
       if (bare) {
-        (plan, request, funEmpty) = await _planRoute(runner, from, target!, waypoints, fun);
+        (plan, request, funEmpty) = await _planRoute(runner, from, target, waypoints, fun);
       } else {
         // Direkt zu einem Ziel nimmt nur die Pflicht-Trails mit, auf
         // kürzestem Weg und ohne Budget (#356 PR 7b, Konzept-Routing 10.2);
         // die übrige Auswahl bleibt für Bequem und Spaßig.
         final direct = target != null && state.prefs.style == RouteMode.direct;
+        // Nur Punkte: Der Planer wählt die Folge, ohne Budget — wie die
+        // Route von A nach B.
+        final free = direct || pointsOnly;
         request = LoopRequest(
           start: from,
           // Mit den gelernten Werten des Profils (Schritt 6), wo es welche
           // gibt; im Stil Bequem oder mit „Bergauf bequem" dessen Kosten.
           profile: ref.read(calibratedRiderProvider(state.profile)).withPrefs(state.prefs.planRoute),
-          budget: direct ? kRouteDirectBudget : state.prefs.budget,
+          budget: free ? kRouteDirectBudget : state.prefs.budget,
           pool: [
             for (final t in chosen)
               if (!direct || state.mandatory.contains(t.id))
@@ -769,7 +775,7 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
           returnToStart: endMode == LoopEndMode.loop,
           end: target,
           waypoints: waypoints,
-          bare: direct,
+          bare: free,
         );
         plan = await StallWatch.time('plan.loop', () => runner.plan(request, onProgress: _progressFor(generation)));
       }

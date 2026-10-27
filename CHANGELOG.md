@@ -2,6 +2,19 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Trailköpfe im Wald und Runden nur über Punkte
+
+*Version 0.135.0, 2026-10-27*
+
+- Liegt der Anfang oder das Ende eines Trails mitten im Wald, plant der
+  Planer ihn trotzdem ein: Er schließt den Trail am nächsten Weg an, bis
+  200 m entfernt, und sagt unter dem Ergebnis, welcher Trail wie weit
+  daneben beginnt oder endet. Bisher fiel so ein Trail mit „liegt an
+  keinem Weg der Karte" aus der Planung.
+- Im Planer reichen jetzt Zwischenpunkte allein: Ohne gewählten Trail
+  rechnet „Rechnen" eine Runde durch die Punkte zurück zum Start (oder
+  bis zum letzten Punkt), und du kannst sie gleich navigieren.
+
 ## Trails im Planer nicht mehr aus Versehen an- oder abwählen
 
 *Version 0.134.1, 2026-10-18*

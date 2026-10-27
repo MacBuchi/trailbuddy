@@ -814,7 +814,7 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
         const SizedBox(height: 4),
         Text(
           key: ValueKey('loop-snap-${snap.role.name}-${snap.index}'),
-          _snapText(l, snap),
+          _snapText(l, plan, snap),
           style: theme.textTheme.bodyMedium,
         ),
       ],
@@ -1060,18 +1060,21 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
         LoopOutcome.empty => l.loopOutcomeEmpty,
       };
 
-  String _snapText(AppLocalizations l, PointSnap s) {
+  String _snapText(AppLocalizations l, LoopPlan plan, PointSnap s) {
     final d = formatMeters(s.meters);
+    String name() => plan.stops.firstWhere((t) => t.trail.id == s.trailId).trail.name;
     return switch (s.role) {
       SnapRole.start => l.loopSnapStart(d),
       SnapRole.end => l.loopSnapEnd(d),
       SnapRole.waypoint => l.loopSnapWaypoint(d),
+      SnapRole.trailStart => l.loopSnapTrailStart(name(), d),
+      SnapRole.trailEnd => l.loopSnapTrailEnd(name(), d),
     };
   }
 
     String _exclusionText(AppLocalizations l, LoopExclusion e) => switch (e) {
         LoopExclusion.tooFar => l.loopExclTooFar,
-        LoopExclusion.offNetwork => l.loopExclOffNetwork,
+        LoopExclusion.offNetwork => l.loopExclOffNetwork(formatMeters(kGraphSnapM)),
         LoopExclusion.unreachable => l.loopExclUnreachable,
         LoopExclusion.budget => l.loopExclBudget,
       };

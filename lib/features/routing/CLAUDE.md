@@ -291,8 +291,18 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     **Gesetzte Punkte springen auf den Weg** (seit 0.134.0, #374):
     `planLoop` heftet Start, Ziel und vorab gesetzte Zwischenpunkte mit
     `RoadGraph.snap` an (bis `kGraphSnapM` = 200 m, erst `attach` in
-    30 m, sonst der nächste Kantenpunkt), Trail-Enden und gezogene
-    Gummipunkte (`pathThrough`) weiter mit `attach`. Was über 30 m
+    30 m, sonst der nächste Kantenpunkt), seit 0.135.0 (#394) auch die
+    Trail-Enden (`SnapRole.trailStart/trailEnd` mit `trailId`; das
+    Blatt nennt nur Trails, die mitfahren — `_withSnaps` filtert).
+    Gezogene Gummipunkte (`pathThrough`) bleiben bei `attach`.
+    **`buildGraphFrom` heftet die Abfahrten ebenso mit `snap` an** — mit
+    `attach` dort teilte die erste Rechnung die Kante, `RoadGraph.revision`
+    stieg, und der Suchspeicher verfiel (Test im Runner-Test, Gegenprobe
+    rot). **Nur Zwischenpunkte, kein Trail, kein Ziel** (#395, seit
+    0.135.0): `planLoop(bare: true)` mit `kRouteDirectBudget`, Runde oder
+    Ende am letzten Punkt nach `LoopEndMode`; die Leiste gibt „Rechnen"
+    dafür frei (`loopRailComputePoints`) — bis dahin war der Knopf ohne
+    Trail gesperrt, und der Controller hätte `noTrails` gesagt. Was über 30 m
     sprang, steht in `LoopPlan.snaps` (Rolle, Ort, Meter, Index des
     Zwischenpunkts); die Linie beginnt und endet am gesprungenen Punkt.
     Der Controller legt nach der Rechnung getippten Start, Ziel und

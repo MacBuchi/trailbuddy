@@ -1223,6 +1223,24 @@ void main() {
       expect(viaPin, findsOneWidget, reason: 'die Nadel bleibt beim Ergebnis');
     });
 
+    testWidgets('nur ein Zwischenpunkt, kein Trail (#395): Runde durch den Punkt, Navigieren geht', (tester) async {
+      await start(tester, areaStore: await _areaWithTrack());
+      await openPlanner(tester);
+      await tapRail(tester, 'loop-rail-waypoint');
+      fakeMap(tester).move(via, 16);
+      await settle(tester, frames: 4);
+      await tapMapAt(tester, via);
+      await settle(tester);
+      expect(picked(tester), isEmpty);
+
+      await tapRail(tester, 'loop-rail-compute');
+      expect(find.byKey(const ValueKey('loop-blocker')), findsNothing);
+      expect(find.byKey(const ValueKey('loop-summary')), findsOneWidget);
+      expect(find.byKey(const ValueKey('loop-navigate')), findsOneWidget);
+      expect(northmost(tester), greaterThan(via.latitude - 1e-6), reason: 'durch den Punkt');
+      expect(routeWhole(tester).last.latitude, closeTo(_fromLat, 1e-9), reason: 'und zurück zum Start');
+    });
+
     testWidgets('Zwischenpunkt vorab aus dem Ort-Blatt und aus den Parametern; „Alle entfernen"', (tester) async {
       await start(tester, areaStore: await _areaWithTrack(), pois: FakePoiSource([spring]));
       await fromPlaceSheet(tester, 'poi-plan-via');

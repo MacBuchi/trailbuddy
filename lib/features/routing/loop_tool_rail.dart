@@ -49,6 +49,8 @@ class LoopToolRail extends ConsumerWidget {
     final count = session.selected.length;
     // Zum Ziel geht es auch ohne Trail: die Route von A nach B (#356).
     final route = session.prefs.endMode == LoopEndMode.target;
+    // Ohne Trail auch durch gesetzte Zwischenpunkte (#395).
+    final points = session.waypoints.isNotEmpty;
 
     Widget button(String key, String tip, IconData icon, VoidCallback? onPressed,
             {bool selected = false, bool primary = false}) =>
@@ -133,9 +135,11 @@ class LoopToolRail extends ConsumerWidget {
                 ? l.loopRailCompute(count)
                 : route
                     ? l.loopRailComputeRoute
-                    : l.loopRailComputeNone,
+                    : points
+                        ? l.loopRailComputePoints
+                        : l.loopRailComputeNone,
             Icons.alt_route,
-            (count == 0 && !route) || session.busy ? null : onCompute,
+            (count == 0 && !route && !points) || session.busy ? null : onCompute,
             primary: true,
           ),
           const SizedBox(height: 2),

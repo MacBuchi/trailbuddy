@@ -295,36 +295,47 @@ class LoopPlan {
 
   /// Start, Ziel und vorab gesetzte Zwischenpunkte, die weiter als
   /// [kGraphAttachM] neben dem Weg lagen und auf ihn gesprungen sind
-  /// (#374) — das Blatt sagt es, die Karte legt die Nadel dorthin.
+  /// (#374) — das Blatt sagt es, die Karte legt die Nadel dorthin. Dazu
+  /// Anfang und Ende der Trails IN der Planung, die so gesprungen sind
+  /// (#394); die Linie springt dort vom Weg zum Trail.
   final List<PointSnap> snaps;
 
   bool get isEmpty => stops.isEmpty;
 
-  LoopPlan _withSnaps(List<PointSnap> snaps) => snaps.isEmpty
-      ? this
-      : LoopPlan(outcome,
-          sections: sections,
-          summary: summary,
-          stops: stops,
-          excluded: excluded,
-          points: points,
-          order: order,
-          snaps: snaps);
+  LoopPlan _withSnaps(List<PointSnap> snaps) {
+    // Ein Trail, der nicht mitfährt, braucht keinen Satz.
+    final kept = [
+      for (final s in snaps)
+        if (s.trailId == null || stops.any((t) => t.trail.id == s.trailId)) s,
+    ];
+    return kept.isEmpty
+        ? this
+        : LoopPlan(outcome,
+            sections: sections,
+            summary: summary,
+            stops: stops,
+            excluded: excluded,
+            points: points,
+            order: order,
+            snaps: kept);
+  }
 }
 
-/// Welcher gesetzte Punkt auf den Weg gesprungen ist (#374).
-enum SnapRole { start, end, waypoint }
+/// Welcher Punkt auf den Weg gesprungen ist: ein gesetzter (#374) oder
+/// Anfang bzw. Ende eines Trails (#394).
+enum SnapRole { start, end, waypoint, trailStart, trailEnd }
 
-/// Ein gesetzter Punkt, der auf den nächsten Weg gesprungen ist: wohin
-/// ([at]) und wie weit ([meters]); bei [SnapRole.waypoint] welcher
-/// ([index], in der Folge des Setzens).
+/// Ein Punkt, der auf den nächsten Weg gesprungen ist: wohin ([at]) und
+/// wie weit ([meters]); bei [SnapRole.waypoint] welcher ([index], in der
+/// Folge des Setzens), bei einem Trail-Ende welcher Trail ([trailId]).
 class PointSnap {
-  const PointSnap(this.role, this.at, this.meters, {this.index = 0});
+  const PointSnap(this.role, this.at, this.meters, {this.index = 0, this.trailId});
 
   final SnapRole role;
   final LatLng at;
   final double meters;
   final int index;
+  final String? trailId;
 }
 
 /// Eine Verbindung zwischen zwei Knoten, zusammengefasst.
@@ -456,12 +467,15 @@ LoopPlan planLoop(
   pool = [...pool, for (var k = 0; k < waypoints.length; k++) PoolTrail.waypoint(k, waypoints[k])];
   final out = Map<String, LoopExclusion>.of(excluded);
   // Gesetzte Punkte springen bis [kGraphSnapM] auf den nächsten Weg
-  // (#374), Trail-Enden nicht: Die liegen auf ihrem Trail.
+  // (#374), seit #394 auch Anfang und Ende eines Trails: Ein Trailkopf
+  // mitten im Wald hieß bis dahin „an keinem Weg", und der Trail fiel
+  // aus der Planung. `buildGraphFrom` heftet die Enden schon beim Laden
+  // so an — hier teilt dann keine Kante mehr.
   final snaps = <PointSnap>[];
-  int? snap(LatLng p, SnapRole role, [int index = 0]) {
+  int? snap(LatLng p, SnapRole role, {int index = 0, String? trailId}) {
     final s = g.snap(p);
     if (s != null && s.meters > kGraphAttachM) {
-      snaps.add(PointSnap(role, g.nodeLatLng[s.node], s.meters, index: index));
+      snaps.add(PointSnap(role, g.nodeLatLng[s.node], s.meters, index: index, trailId: trailId));
     }
     return s?.node;
   }
@@ -493,8 +507,10 @@ LoopPlan planLoop(
       tails.add(null);
       continue;
     }
-    final h = t.waypoint ? snap(t.start, SnapRole.waypoint, i - firstWaypoint) : g.attach(t.start);
-    final e = t.waypoint ? h : g.attach(t.end);
+    final h = t.waypoint
+        ? snap(t.start, SnapRole.waypoint, index: i - firstWaypoint)
+        : snap(t.start, SnapRole.trailStart, trailId: t.id);
+    final e = t.waypoint ? h : snap(t.end, SnapRole.trailEnd, trailId: t.id);
     if (h == null || e == null) out[t.id] = LoopExclusion.offNetwork;
     heads.add(h);
     tails.add(e);

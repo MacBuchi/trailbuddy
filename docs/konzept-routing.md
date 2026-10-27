@@ -525,7 +525,12 @@ dieselben Konstanten geprüft):
   statt 2 m bringen nichts mehr.
 - **Trail-Enden** werden an den nächsten Wegeknoten innerhalb von 30 m
   geheftet (die GPS-Unschärfe des Trailanfangs); liegt keiner da, wird
-  der nächste Wegepunkt im Umkreis als Knoten eingefügt. Die geteilte
+  der nächste Wegepunkt im Umkreis als Knoten eingefügt. Seit #394
+  springen sie wie gesetzte Punkte (unten) bis 200 m auf den nächsten
+  Weg: Ein Trailkopf mitten im Wald fiel vorher aus der Planung
+  („Anfang oder Ende liegt an keinem Weg"), Feldbericht 0.133.3: „Ein
+  Hinweis ist ok, aber kein Abbruch." Das Ergebnis nennt den Trail und
+  den Abstand, die Linie springt dort vom Weg zum Trail. Die geteilte
   Kante gibt dabei Höhen (anteilig nach Länge), Trail und Sperre an
   BEIDE Hälften weiter — bis 0.73.0 verlor die zweite Hälfte ihre
   Höhen, und das Blatt sagte „nicht alle Wege haben Höhen", auch wenn
@@ -539,9 +544,9 @@ dieselben Konstanten geprüft):
   der Start erst bei hohem Zoom eine Straße. Liegen sie mehr als 30 m
   daneben, sagt es das Ergebnis („Start auf den nächsten Weg gelegt,
   120 m daneben"), und die Nadel springt mit; erst über 200 m bleibt
-  der Fehler. Trail-Enden bleiben bei 30 m, ebenso die gezogenen
-  Gummipunkte (Abschnitt 4) — die legt der Finger auf die Linie, und
-  ein Griff, der still 150 m daneben stünde, verwirrte.
+  der Fehler. Die gezogenen Gummipunkte (Abschnitt 4) bleiben bei
+  30 m — die legt der Finger auf die Linie, und ein Griff, der still
+  150 m daneben stünde, verwirrte.
 - **Kein Netzziel, keine Berechtigung.** Alles kommt von Hosts, die
   die Datenschutzerklärung schon nennt, oder liegt im APK.
 
@@ -663,7 +668,9 @@ nach.*
   (Knopf in der Leiste oder „Zwischenpunkt im Planer" im Ort-Blatt): Halte
   ohne Länge, die vor den Pflicht-Trails und auch über die Budgets hinaus
   in die Fahrt kommen; die Reihenfolge wählt der Planer (Betreiber,
-  2026-10-16). Die Gummipunkte auf der fertigen Linie (4.6) bleiben davon
+  2026-10-16). Seit #395 reichen Zwischenpunkte allein, ohne Trail und
+  ohne Ziel: Runde zurück zum Start oder Ende am letzten Punkt, ohne
+  Budget wie die Route von A nach B — und damit auch navigierbar. Die Gummipunkte auf der fertigen Linie (4.6) bleiben davon
   unberührt.
   **Seit 0.74.0 kein Blatt mit Stufen mehr, sondern ein Modus mit Leiste
   links** (Betreiber: „zum Planen links ein Menü in der Art wie rechts,
