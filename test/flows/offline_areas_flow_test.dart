@@ -530,6 +530,12 @@ void main() {
       (tester) async {
     await store.putArchive('old', _sourceBytes());
     await store.saveIndex([oldArea(build: '20260801')]);
+    // Ein Stück des Planers (#380) mit einem Bau, der älter ist als jeder
+    // Host-Bau: Es kommt nie vom Host und zählt deshalb nicht als veraltet
+    // (Gegenprobe: TileLayer.routing in der Liste von regionTileAgeProvider
+    // ⇒ „4 davon").
+    final piece = tileAt(48.0, 9.0, 13);
+    await tiles.put('dach', TileLayer.routing, [StoreTile(13, piece.x, piece.y, Uint8List(8), '1')]);
     await start(tester);
     await openTab(tester, 'Profil');
     await scrollTo(tester, find.text('Meine Bereiche'));
@@ -551,6 +557,8 @@ void main() {
     expect(areas.single.id, 'old', reason: 'der Bereich bleibt, nur seine Kacheln sind neu');
     expect(areas.single.build, '20260928');
     expect({for (final i in (await tiles.index('dach', TileLayer.map)).values) i.build}, {'20260928'});
+    expect((await tiles.index('dach', TileLayer.routing)).values.single.build, '1',
+        reason: 'der Download fasst die Stücke nicht an — der Planer backt sie neu');
     expect(find.descendant(of: row, matching: find.textContaining('Alle auf dem Stand vom 28.09.2026')),
         findsOneWidget);
     expect(find.byKey(const ValueKey('region-refresh-dach')), findsNothing);

@@ -462,6 +462,15 @@ Abschnitt 7 („je Bereich EIN Archiv").
   liegt — nicht, was ein Verweis verspricht. Heute hinterlässt ein
   Abbruch nichts; bei 3 GB wäre das nicht zumutbar. Kacheln, die nach
   einem Löschen keiner Form mehr gehören, gehen sofort.
+- **Eine vierte Ebene, die nie vom Host kommt** (seit 0.136.0, #380,
+  `konzept-routing.md` §11): `routing`, die vorgebackenen Stücke des
+  Planer-Graphen, gebacken auf dem Gerät aus Karte, Höhen und Wegen
+  derselben Kachel (z13). Verwiesen wie die Höhen — Löschen und Radierer
+  nehmen verwaiste Stücke mit, „Meine Bereiche" zählt ihre Bytes —, aber
+  der Download plant sie nie, und „veraltet / Aktualisieren" zählt sie
+  nicht: Ihr Bau nennt die Bauten der drei Quellkacheln
+  (`r<Format>.<Fassung>:<Karte>:<Höhen>:<Wege>`); ändert sich eine
+  Quelle, backt der Planer das Stück ohne Netz neu.
 
 ### 8.3 Die Ablage je Plattform
 

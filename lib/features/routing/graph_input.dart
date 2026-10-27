@@ -13,6 +13,14 @@
 // Test prüft strukturell, dass kein Weg vom Bau zurück in den UI-Isolate
 // führt (`test/routing/graph_isolation_test.dart`).
 //
+// Seit #380 (Konzept-Routing 11) setzt der Bau den Graphen aus
+// vorgebackenen Stücken zusammen ([GraphInput.bake]): Was der UI-Isolate
+// frisch im Kachelspeicher fand, kommt als [GraphInput.pieces], die
+// übrigen Kacheln backt [buildGraphFrom] hier ([bakeTiles]) und gibt die
+// neuen Stücke im Bericht zurück ([GraphReport.baked]) — der UI-Isolate
+// legt sie in den Speicher. Die zweite Planung in denselben Kacheln setzt
+// nur noch zusammen.
+//
 // Rein: keine Widgets, kein Riverpod, kein `dart:isolate` — im Browser
 // baut dieselbe Funktion an Ort und Stelle (`InlineLoopPlanRunner`).
 import '../../core/stall_watch.dart';
@@ -21,6 +29,7 @@ import 'loop_planner.dart' show LoopSearchCache;
 import 'plan_progress.dart';
 import 'road_graph.dart';
 import 'road_graph_loader.dart' show RoadTileBytes, buildRoadGraphFrom;
+import 'routing_tile.dart';
 import 'trail_overlay.dart';
 
 /// Alles, was der Bau braucht — sendbar an einen Isolate.
@@ -31,10 +40,22 @@ class GraphInput {
     this.heights,
     this.trails = const [],
     required this.lat0,
+    this.pieces = const [],
+    this.bake = false,
   });
 
-  /// Die Wege-Kacheln (Ebene `roads`), Bytes wie im Archiv.
+  /// Die Wege-Kacheln (Ebene `roads`), Bytes wie im Archiv — mit [bake]
+  /// nur die, für die es noch kein Stück gibt.
   final List<RoadTileBytes> roads;
+
+  /// Vorgebackene Stücke (#380), gepackt wie im Kachelspeicher.
+  final List<RoutingPiece> pieces;
+
+  /// Aus Stücken zusammensetzen: [roads] werden je Kachel gebacken und
+  /// mit [pieces] zusammengesetzt (`routing_tile.dart`). Ohne baut es den
+  /// Graphen wie bis 0.135 in einem Stück — die Kalibrierung, die nur
+  /// Klassen braucht und keine Höhen liest, und die Messungen.
+  final bool bake;
 
   /// Die Kacheln des Wege-Archivs (#213) — Lücken erlaubt.
   final List<RoadTileBytes> ways;
@@ -51,6 +72,7 @@ class GraphInput {
   /// Ungefähr so viele Bytes gehen hinüber — für Messung und Log.
   int get bytes =>
       roads.fold<int>(0, (s, r) => s + r.bytes.length) +
+      pieces.fold<int>(0, (s, p) => s + p.bytes.length) +
       ways.fold<int>(0, (s, w) => s + w.bytes.length) +
       (heights?.length ?? 0) * kHeightGrid * kHeightGrid * 2;
 }
@@ -78,6 +100,9 @@ class GraphReport {
     required this.blocked,
     required this.addedEdges,
     required this.builtIn,
+    this.baked = const [],
+    this.stitched = 0,
+    this.broken = const [],
   });
 
   final int nodes;
@@ -92,6 +117,18 @@ class GraphReport {
   /// Der Name des Isolates, in dem gebaut wurde — der Runner setzt ihn,
   /// der Test vergleicht ihn mit dem eigenen.
   final String builtIn;
+
+  /// Die Stücke, die dieser Bau gebacken hat (#380), gepackt — der
+  /// UI-Isolate legt sie in den Kachelspeicher.
+  final List<RoutingPiece> baked;
+
+  /// Aus so vielen Stücken (vorhandenen und gebackenen) zusammengesetzt.
+  final int stitched;
+
+  /// Die vorhandenen Stücke, die sich nicht lesen ließen (`x`, `y`) — sie
+  /// fehlen im Graphen; der UI-Isolate nimmt sie aus dem Speicher, damit
+  /// die nächste Planung sie neu backt.
+  final List<(int, int)> broken;
 }
 
 /// Der Graph samt Bericht — was [buildGraphFrom] liefert, wo es läuft.
@@ -106,11 +143,46 @@ typedef BuiltGraph = ({RoadGraph graph, GraphReport report});
 /// Wirft bei einem kaputten Eingang — der Aufrufer meldet und sagt
 /// „keine Wege" (ein halb belegter Graph plante Abfahrten bergauf).
 BuiltGraph buildGraphFrom(GraphInput input, {String builtIn = ''}) {
-  final built = PlanProgress.part(
-      0,
-      0.96,
-      () => StallWatch.mark('graph.build',
-          () => buildRoadGraphFrom(roads: input.roads, ways: input.ways, heights: input.heights, lat0: input.lat0)));
+  var baked = const <RoutingPiece>[];
+  final broken = <(int, int)>[];
+  final ({RoadGraph graph, int joins, int crossings, int edgesWithoutHeights}) built;
+  if (!input.bake) {
+    built = PlanProgress.part(
+        0,
+        0.96,
+        () => StallWatch.mark('graph.build',
+            () => buildRoadGraphFrom(roads: input.roads, ways: input.ways, heights: input.heights, lat0: input.lat0)));
+  } else {
+    // Den Balken teilen nach Arbeit: Backen kostet je Kachel etwa so viel
+    // wie der Bau von heute, Zusammensetzen ein Zehntel (Konzept-Routing
+    // 11.3).
+    final work = input.roads.length + 0.1 * input.pieces.length;
+    final bakeTo = work == 0 ? 0.0 : 0.96 * input.roads.length / work;
+    baked = PlanProgress.part(
+        0,
+        bakeTo,
+        () => StallWatch.mark(
+            'graph.bake', () => bakeTiles(roads: input.roads, ways: input.ways, heights: input.heights)));
+    final stitched = PlanProgress.part(bakeTo, 0.96, () => StallWatch.mark('graph.stitch', () {
+          final decoded = <DecodedPiece>[];
+          for (final p in [...input.pieces, ...baked]) {
+            final d = unpackPiece(p.bytes);
+            if (d == null) {
+              broken.add((p.x, p.y));
+            } else {
+              decoded.add(d);
+            }
+          }
+          return stitchPieces(decoded, input.lat0);
+        }));
+    final g = stitched.graph;
+    built = (
+      graph: g,
+      joins: stitched.joins,
+      crossings: 0,
+      edgesWithoutHeights: g.edgesWithoutHeights,
+    );
+  }
   final graph = built.graph;
   final overlay =
       PlanProgress.part(0.96, 0.99, () => StallWatch.mark('graph.trails', () => applyTrails(graph, input.trails)));
@@ -133,6 +205,9 @@ BuiltGraph buildGraphFrom(GraphInput input, {String builtIn = ''}) {
       blocked: overlay.blocked,
       addedEdges: overlay.addedEdges,
       builtIn: builtIn,
+      baked: baked,
+      stitched: input.bake ? input.pieces.length + baked.length - broken.length : 0,
+      broken: broken,
     ),
   );
 }

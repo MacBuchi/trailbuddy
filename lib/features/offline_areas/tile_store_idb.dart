@@ -49,6 +49,24 @@ class IdbTileStore implements TileStore {
   }
 
   @override
+  Future<Map<int, String>> builds(String region, TileLayer layer, Iterable<int> tileIds) async {
+    final ids = tileIds.toList();
+    if (ids.isEmpty) return const {};
+    final prefix = _prefix(region, layer);
+    final values = await _db.readStore(kAreaTileIndexStore, (s) async => [
+          for (final id in ids) await s.getObject('$prefix$id'),
+        ]);
+    final out = <int, String>{};
+    for (var i = 0; i < ids.length; i++) {
+      final text = values[i];
+      if (text is! String) continue;
+      final cut = text.indexOf('|');
+      if (cut >= 0) out[ids[i]] = text.substring(cut + 1);
+    }
+    return out;
+  }
+
+  @override
   Future<void> put(String region, TileLayer layer, List<StoreTile> tiles) async {
     if (tiles.isEmpty) return;
     final prefix = _prefix(region, layer);

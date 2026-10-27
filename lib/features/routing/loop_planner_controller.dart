@@ -826,8 +826,11 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
     final runner = _runner ??= ref.read(loopPlanRunnerFactoryProvider)();
     if (!quiet) state = state.copyWith(phase: LoopPhase.building);
     try {
-      await StallWatch.time(
+      final report = await StallWatch.time(
           'graph.build', () => runner.build(input, onProgress: quiet ? null : _progressFor(generation)));
+      // Die neu gebackenen Stücke in den Speicher (#380) — ohne darauf zu
+      // warten: Gerechnet wird drüben, geschrieben hier.
+      unawaited(loaded.keep(report));
     } catch (e, s) {
       if (generation != _generation) return LoopBlocker.failed;
       // Wirft nie weiter: Ein halb belegter Graph plante Abfahrten

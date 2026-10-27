@@ -20,6 +20,11 @@
 // dort. Vor dem ersten Lesen zählt der Lader den Rahmen: über
 // [kPlanMaxTiles] ist er „zu groß" ([PlanningGraph.tooLarge]), ohne
 // eine Kachel geöffnet zu haben.
+//
+// **Vorgebackene Stücke** (#380, `routing_pieces.dart`): Vor dem Lesen
+// sucht der Lader frische Stücke im Kachelspeicher; deren Kacheln liest er
+// nicht, die übrigen backt der Rechen-Isolate, und [PlanningGraph.keep]
+// legt die neuen Stücke nach dem Bau ab.
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/connectivity.dart';
@@ -31,12 +36,16 @@ import '../../models/trail.dart';
 import '../offline_areas/area_providers.dart';
 import '../offline_areas/area_store.dart';
 import '../offline_areas/height_tiles.dart';
+import '../offline_areas/tile_store.dart';
 import '../rides/road_index.dart' show RoadCoverage;
 import '../trails/trail_providers.dart';
 import 'graph_input.dart';
 import 'loop_planner.dart' show graphTrailsOf;
 import 'online_fill.dart';
+import 'road_graph.dart' show kRoadGraphZoom;
 import 'road_graph_loader.dart';
+import 'routing_pieces.dart';
+import 'routing_tile.dart' show RoutingPiece;
 import 'trail_head_route.dart' show kTrailHeadMarginM;
 
 class PlanningGraph {
@@ -49,7 +58,8 @@ class PlanningGraph {
     this.onlineCapped = false,
     this.onlineBroken = false,
     this.tooLarge = false,
-  });
+    PieceLookup? pieces,
+  }) : _pieces = pieces;
 
   /// Keine Kachel im Rahmen — kein Plan.
   static const none = PlanningGraph(coverage: RoadCoverage.none, tilesFound: 0, tilesNeeded: 0);
@@ -73,6 +83,12 @@ class PlanningGraph {
 
   /// Der Rahmen übersteigt [kPlanMaxTiles]: nichts gelesen, kein Plan.
   final bool tooLarge;
+
+  final PieceLookup? _pieces;
+
+  /// Legt die Stücke ab, die der Bau aus [input] gebacken hat (#380) —
+  /// nach `LoopPlanRunner.build` zu rufen. Wirft nie.
+  Future<void> keep(GraphReport report) async => _pieces?.keep(report);
 
   /// Es gibt einen Graphen zum Rechnen (mindestens eine Kachel).
   bool get usable => tilesFound > 0 && !tooLarge;
@@ -119,6 +135,17 @@ Future<PlanningGraph> loadPlanningGraph(Ref ref, LatBox box,
     logError('Höhen für die Planung öffnen', e, s);
   }
   final store = ref.read(areaStoreProvider);
+  final session = ref.read(routingPieceSessionProvider);
+  // Frische Stücke im Kachelspeicher (#380) — nur in einem Rahmen, den
+  // der Lader auch liest.
+  final frame = roadGraphTiles(box, kTrailHeadMarginM);
+  final regions = <String>{
+    for (final a in areas)
+      if (a.maxZoom >= kRoadGraphZoom && a.bounds.intersects(roadGraphBounds(box, kTrailHeadMarginM))) a.region,
+  };
+  final pieces = maxTiles != null && frame.length > maxTiles || regions.isEmpty
+      ? PieceLookup.none(session)
+      : await StallWatch.time('graph.pieces', () => findPieces(ref.read(tileStoreProvider), regions, frame, session));
   final open = ref.read(areaArchiveOpenerProvider);
   final openWays = ref.read(areaWaysOpenerProvider);
   final online = fillOnline && !ref.read(noConnectivityProvider) ? ref.read(onlineFillFactoryProvider)(box) : null;
@@ -129,6 +156,7 @@ Future<PlanningGraph> loadPlanningGraph(Ref ref, LatBox box,
   }
   RoadTilesRead read;
   HeightTiles? tiles;
+  ({List<RoadTileBytes> roads, List<RoutingPiece> pieces})? split;
   try {
     read = await StallWatch.time('graph.load', () => readRoadTiles(
       areas: areas,
@@ -140,13 +168,19 @@ Future<PlanningGraph> loadPlanningGraph(Ref ref, LatBox box,
       fetchWaysOnline: online?.fetchWays,
       sourceKey: (a) => a.region,
       maxTiles: maxTiles,
+      covered: pieces.fresh.keys.toSet(),
     ));
     StallWatch.info('graph.tiles', '${read.tilesFound}/${read.tilesNeeded}');
-    // Die Höhen der gefundenen Kacheln gleich mit — drüben gibt es
+    // Was online ergänzt war und in dieser Sitzung schon ein Stück hat,
+    // wird nicht noch einmal gebacken.
+    split = pieces.split(read.roads);
+    // Die Höhen der zu backenden Kacheln gleich mit — drüben gibt es
     // weder den Kachelspeicher noch das Netz.
-    if (read.tilesFound > 0 && heights != null) {
+    final bake = split.roads;
+    if (bake.isNotEmpty && heights != null) {
       final h = heights;
-      tiles = await StallWatch.time('graph.heights', () => HeightTiles.read(h, read.heightTiles));
+      tiles = await StallWatch.time(
+          'graph.heights', () => HeightTiles.read(h, [for (final r in bake) (x: r.tile.x, y: r.tile.y)]));
     }
   } catch (e, s) {
     logError('Wege für die Planung lesen', e, s);
@@ -162,11 +196,13 @@ Future<PlanningGraph> loadPlanningGraph(Ref ref, LatBox box,
         if (t.points.length >= 2 && LatBox.of(t.points).near(box, kTrailHeadMarginM)) t,
     ];
     input = GraphInput(
-      roads: read.roads,
+      roads: split.roads,
       ways: read.ways,
       heights: tiles,
       trails: graphTrailsOf(serviceL10n(), near),
       lat0: (box.s + box.n) / 2,
+      pieces: [...pieces.fresh.values, ...split.pieces],
+      bake: true,
     );
   }
   return PlanningGraph(
@@ -178,6 +214,7 @@ Future<PlanningGraph> loadPlanningGraph(Ref ref, LatBox box,
     onlineCapped: read.onlineCapped,
     onlineBroken: read.onlineBroken,
     tooLarge: read.tooLarge,
+    pieces: input == null ? null : pieces,
   );
 }
 
