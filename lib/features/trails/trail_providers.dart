@@ -103,25 +103,7 @@ class TrailsNotifier extends AsyncNotifier<List<Trail>>
       if (jobs != null) _applyPending(jobs, myId);
     });
     final repo = ref.watch(trailRepositoryProvider);
-    Future<TrailSnapshot> fetch() async {
-      final results = await Future.wait([
-        repo.fetchRecordings(),
-        repo.fetchDetails(),
-        repo.fetchNotes(),
-        repo.fetchReports(),
-        repo.fetchMerges(),
-      ]);
-      // Was sich nicht geändert hat, bleibt dasselbe Objekt — auch für die
-      // Kopie auf dem Gerät, die einen unveränderten Stand dann nicht neu
-      // schreibt (`trail_sharing.dart`).
-      return shareSnapshot(_snapshotFor(myId), (
-        recordings: results[0] as List<TrailRecording>,
-        details: results[1] as List<TrailDetails>,
-        notes: results[2] as List<TrailNote>,
-        reports: results[3] as List<TrailReport>,
-        merges: results[4] as List<TrailMerge>,
-      ));
-    }
+    Future<TrailSnapshot> fetch() => _fetchSnapshot(repo, myId);
 
     // Netz zuerst, ohne Empfang die Kopie vom letzten Mal (#32) — ein
     // Serverfehler bleibt sichtbar, `fetchWithCache` liest die Kopie nur
@@ -174,6 +156,57 @@ class TrailsNotifier extends AsyncNotifier<List<Trail>>
     final cached = ref.read(outboxJobsProvider).valueOrNull;
     final List<OutboxJob> jobs = cached ?? await ref.read(outboxJobsProvider.future);
     return _composeWith(jobs, myId);
+  }
+
+  Future<TrailSnapshot> _fetchSnapshot(TrailRepository repo, String myId) async {
+    final results = await Future.wait([
+      repo.fetchRecordings(),
+      repo.fetchDetails(),
+      repo.fetchNotes(),
+      repo.fetchReports(),
+      repo.fetchMerges(),
+    ]);
+    // Was sich nicht geändert hat, bleibt dasselbe Objekt — auch für die
+    // Kopie auf dem Gerät, die einen unveränderten Stand dann nicht neu
+    // schreibt (`trail_sharing.dart`).
+    return shareSnapshot(_snapshotFor(myId), (
+      recordings: results[0] as List<TrailRecording>,
+      details: results[1] as List<TrailDetails>,
+      notes: results[2] as List<TrailNote>,
+      reports: results[3] as List<TrailReport>,
+      merges: results[4] as List<TrailMerge>,
+    ));
+  }
+
+  bool _retrying = false;
+
+  /// Steht die Kopie, still den frischen Stand holen (#397) — ohne
+  /// Ladezustand, ohne Fehler auf der Karte: Kommt er, ersetzt er die
+  /// Kopie wie ein später Kaltstart-Abruf; kommt er nicht, bleibt alles,
+  /// wie es ist. Höchstens einer auf einmal; ein Neuladen dazwischen
+  /// gewinnt.
+  Future<void> retryCopy() async {
+    final myId = ref.read(currentUserIdProvider);
+    if (myId == null || _retrying || ref.read(trailsCachedAtProvider) == null || !state.hasValue) return;
+    _retrying = true;
+    final generation = _builds;
+    try {
+      final fresh = await _fetchSnapshot(ref.read(trailRepositoryProvider), myId);
+      if (generation != _builds || ref.read(currentUserIdProvider) != myId) return;
+      final now = DateTime.now();
+      unawaited(ref.read(trailCacheProvider).write(uid: myId, snapshot: fresh, savedAt: now));
+      ref.read(trailsAwaitNetworkProvider.notifier).state = false;
+      ref.read(trailsCachedAtProvider.notifier).set(null);
+      _server = _fromSnapshot(fresh, myId);
+      _fetchedAt = now;
+      state = AsyncData(_compose(myId));
+    } catch (_) {
+      // Bewusst still: Funkloch heißt weiter warten, und ein Serverfehler
+      // zeigte sich schon beim Abruf, der die Kopie brachte — alle 15 s
+      // derselbe Bericht hülfe niemandem.
+    } finally {
+      _retrying = false;
+    }
   }
 
   /// Der Server-Stand hinter [_server], für das Konto [_snapshotUid] —

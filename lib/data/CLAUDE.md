@@ -116,7 +116,15 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     (`trailsAwaitNetworkProvider`). Ohne Kopie wird gewartet. Nur der
     ERSTE Abruf je Konto (`_shownFor`) — ein Neuladen nach dem Schreiben
     muss sagen, ob es frisch ist. Kehrt die Verbindung zurück und steht
-    noch die Kopie, lädt die Karte neu. Im Test: Ein zweites `pumpApp`
+    noch die Kopie, lädt die Karte neu. **Steht die Kopie, fragt die App
+    still nach** (#397, seit 0.135.1, `retryCopy`, angestoßen von
+    `OutboxTrigger`): alle `kTrailsCopyRetry` (15 s), solange das Gerät
+    ein Netz meldet, und sofort bei einem Wechsel des Transportwegs —
+    im Wald kommt der Empfang zurück, ohne dass „kein Netz" je gemeldet
+    wurde, und der Hinweis blieb stehen. Ohne Ladezustand, Fehler still
+    (der Abruf, der die Kopie brachte, hat sie schon gezeigt). Die Karte
+    zeigt „antwortet noch" erst nach `kTrailsSlowNoticeDelay` (3 s), oben
+    bei den Bannern; „Kein Empfang" sofort. Im Test: Ein zweites `pumpApp`
     behält den ProviderScope und ist KEIN Kaltstart — vorher
     `pumpWidget(SizedBox())`.
   - **Abmelden und Kontolöschung räumen die Kopie ab** (Profil), der

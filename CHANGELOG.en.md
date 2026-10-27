@@ -2,6 +2,20 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## "The network is still responding" at the top, and only as long as needed
+
+*Version 0.135.1, 2026-10-27*
+
+- The notice "Trails from … — the network is still responding" now sits
+  at the top edge of the map with the other notices, no longer in the
+  middle of the map beside the buttons.
+- It appears only after a few seconds — usually the fresh state has
+  arrived by then, so it no longer just flashes up.
+- When reception comes back it goes away on its own: the app quietly
+  asks again every 15 seconds, and at once when the phone switches
+  between Wi-Fi and mobile data. Until now it stayed until the
+  connection was fully gone and back.
+
 ## Trail heads in the woods, and loops through points only
 
 *Version 0.135.0, 2026-10-27*
