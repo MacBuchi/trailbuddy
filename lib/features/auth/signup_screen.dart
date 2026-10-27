@@ -5,12 +5,14 @@ import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/errors.dart';
+import '../../core/settings.dart';
 import '../../core/widgets/form_notice.dart';
 import '../../core/widgets/password_field.dart';
 import '../../core/widgets/resend_button.dart';
 import '../../data/providers.dart';
 import '../../l10n/l10n.dart';
 import '../../models/profile.dart' show usernameProblem;
+import 'pending_code.dart';
 
 class SignupScreen extends ConsumerStatefulWidget {
   const SignupScreen({super.key});
@@ -36,8 +38,20 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
   String? _notice;
   NoticeTone _noticeTone = NoticeTone.info;
 
+  /// Siehe login_screen.dart: `dispose` räumt den Code-Merker (#399).
+  late final Settings _settings;
+
+  @override
+  void initState() {
+    super.initState();
+    _settings = ref.read(settingsProvider);
+    // Nach einem Neuladen im Browser zurück zur Eingabe des Codes.
+    _awaitingConfirmationFor = PendingCode.read(_settings, PendingCodeKind.signup)?.email;
+  }
+
   @override
   void dispose() {
+    PendingCode.forget(_settings, PendingCodeKind.signup);
     _usernameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
@@ -87,6 +101,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
       // angemeldet und der Router schickt zur Karte; dann bleibt hier
       // alles wie bisher.
       if (needsConfirmation && mounted) {
+        PendingCode.remember(_settings, PendingCodeKind.signup, email);
         setState(() => _awaitingConfirmationFor = email);
       }
     } on AuthException catch (e) {

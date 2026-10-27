@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:trailbuddy/features/map/position_provider.dart';
+
 import '../fakes/fake_backend.dart';
 import '../fakes/fake_map_view.dart';
 import '../fakes/test_app.dart';
@@ -40,6 +42,25 @@ void main() {
     await settle(tester);
     expect(fix.calls, 1);
     expect(find.textContaining('Position nicht verfügbar'), findsOneWidget);
+    await drainSnackbars(tester);
+  });
+
+  // #400: Hat der Browser den Standort gesperrt, fragt er nie wieder von
+  // selbst. Die Meldung muss sagen, wo man ihn freigibt — „für TrailBuddy
+  // nicht erlaubt" schickte in die App-Einstellungen, die es im Browser
+  // nicht gibt.
+  testWidgets('im Browser gesperrt: die Meldung nennt die Adressleiste',
+      (tester) async {
+    final fix = FakePositionFix();
+    await pumpApp(tester, backend,
+        positionFix: fix,
+        extraOverrides: [locationBlockedProvider.overrideWithValue(() async => true)]);
+
+    await tester.tap(find.byTooltip('Meine Position'));
+    await settle(tester);
+    expect(fix.calls, 1);
+    expect(find.textContaining('Adressleiste'), findsOneWidget);
+    expect(find.textContaining('Position nicht verfügbar'), findsNothing);
     await drainSnackbars(tester);
   });
 

@@ -113,6 +113,19 @@ bool worthReporting(Object error) =>
     error is! CancellationException &&
     !looksOffline(error);
 
+/// `PlatformDispatcher.onError` der App: meldet, was [worthReporting]
+/// durchlässt, und sagt, ob der Fehler damit behandelt ist.
+///
+/// `true` nur für [CancellationException] (#351): Ein abgebrochener
+/// Kachel-Auftrag ist gewollt, und mit `false` warf die Standardbehandlung
+/// ihn im Browser trotzdem als „Uncaught Error" in die Konsole. Alles
+/// andere bleibt `false` — ein echter Fehler soll in der Konsole und im
+/// Logcat stehen, auch wenn er nicht gemeldet wird.
+bool handleUncaughtError(Object error, StackTrace stack) {
+  if (worthReporting(error)) logError('Unbehandelter Fehler', error, stack);
+  return error is CancellationException;
+}
+
 /// Es gibt gerade keine angemeldete Sitzung.
 ///
 /// Kein Fehler im eigentlichen Sinn: Beim Abmelden und beim Ablaufen eines

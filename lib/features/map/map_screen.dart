@@ -731,7 +731,10 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     final fix = await ref.read(positionFixProvider)();
     if (!mounted) return;
     if (fix == null) {
-      messenger.showSnackBar(SnackBar(content: Text(l.mapPositionUnavailable)));
+      final blocked = await ref.read(locationBlockedProvider)();
+      if (!mounted) return;
+      messenger.showSnackBar(SnackBar(
+          content: Text(blocked ? l.mapPositionBlockedInBrowser : l.mapPositionUnavailable)));
       return;
     }
     _fittedOnce = true;
@@ -784,7 +787,10 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     }
     if (!mounted) return;
     if (fix == null) {
-      messenger.showSnackBar(SnackBar(content: Text(l.mapNavNoPosition)));
+      final blocked = await ref.read(locationBlockedProvider)();
+      if (!mounted) return;
+      messenger.showSnackBar(SnackBar(
+          content: Text(blocked ? l.mapNavBlockedInBrowser : l.mapNavNoPosition)));
       return;
     }
     // Die Karte gehört jetzt der Route: Blätter, Planer und Auswahl zu.
