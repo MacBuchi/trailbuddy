@@ -24,6 +24,7 @@ import 'package:trailbuddy/features/offline_areas/pmtiles_writer.dart';
 import 'package:trailbuddy/features/map/pmtiles_tile_provider.dart';
 import 'package:trailbuddy/features/profile/profile_providers.dart';
 import 'package:trailbuddy/features/routing/graph_input.dart';
+import 'package:trailbuddy/features/routing/routing_tile.dart' show RoutingPiece;
 import 'package:trailbuddy/features/routing/loop_plan_runner.dart';
 import 'package:trailbuddy/features/routing/route_profile.dart' show RiderProfile;
 import 'package:trailbuddy/features/routing/loop_planner_controller.dart';
@@ -143,6 +144,9 @@ class _SpyRunner implements LoopPlanRunner {
   Future<R> run<R>(GraphJob<R> job) => _inline.run(job);
 
   @override
+  Future<List<RoutingPiece>> bake(BakeInput input) => _inline.bake(input);
+
+  @override
   void dispose() => _inline.dispose();
 }
 
@@ -181,6 +185,9 @@ class _HeldRunner implements LoopPlanRunner {
 
   @override
   Future<R> run<R>(GraphJob<R> job) async => job.runOn(_graph!, LoopSearchCache());
+
+  @override
+  Future<List<RoutingPiece>> bake(BakeInput input) async => bakeFrom(input);
 
   @override
   void dispose() {

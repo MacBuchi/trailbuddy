@@ -9,6 +9,7 @@ import 'graph_input.dart';
 import 'loop_plan_runner.dart';
 import 'loop_planner.dart';
 import 'plan_progress.dart';
+import 'routing_tile.dart' show RoutingPiece;
 
 LoopPlanRunner createLoopPlanRunner() => IsolateLoopPlanRunner();
 
@@ -50,6 +51,12 @@ class IsolateLoopPlanRunner implements LoopPlanRunner {
     if (!_hasGraph) throw StateError('kein Graph gebaut');
     final worker = await _ensure();
     return await _ask(worker, job) as R;
+  }
+
+  @override
+  Future<List<RoutingPiece>> bake(BakeInput input) async {
+    final worker = await _ensure();
+    return (await _ask(worker, input) as List).cast<RoutingPiece>();
   }
 
   Future<SendPort> _ensure() async {
@@ -161,6 +168,7 @@ void _workerMain(SendPort reply) {
           final b = built = buildGraphFrom(payload, builtIn: Isolate.current.debugName ?? 'isolate');
           return b.report;
         }
+        if (payload is BakeInput) return bakeFrom(payload);
         final g = built?.graph;
         if (g == null) throw StateError('kein Graph gebaut');
         return (payload as GraphJob<Object?>).runOn(g, cache) as Object;

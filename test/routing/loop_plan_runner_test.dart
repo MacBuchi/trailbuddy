@@ -258,4 +258,23 @@ void main() {
     addTearDown(runner.dispose);
     expect(runner, isA<IsolateLoopPlanRunner>());
   });
+
+  test('#380 Backen drüben: ohne Graph, dieselben Stücke wie an Ort und Stelle, ein gebauter Graph bleibt', () async {
+    final runner = IsolateLoopPlanRunner();
+    addTearDown(runner.dispose);
+    final square = _square();
+    final input = BakeInput(roads: square.roads, heights: square.heights);
+    final there = await runner.bake(input);
+    expect(runner.hasGraph, isFalse, reason: 'backen baut keinen Graphen');
+    final here = bakeFrom(input);
+    expect([for (final p in there) (p.x, p.y)], [for (final p in here) (p.x, p.y)]);
+    for (var i = 0; i < here.length; i++) {
+      expect(there[i].bytes, here[i].bytes);
+    }
+
+    await runner.build(square);
+    await runner.bake(input);
+    expect(runner.hasGraph, isTrue, reason: 'der Graph des Planers bleibt');
+    expect((await runner.plan(_request())).outcome, LoopOutcome.ok);
+  });
 }

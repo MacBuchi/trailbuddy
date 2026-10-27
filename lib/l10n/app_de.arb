@@ -7273,6 +7273,15 @@
       }
     }
   },
+  "areasBaking": "Planer wird für „{name}“ vorbereitet …",
+  "@areasBaking": {
+    "description": "Meine Bereiche: Zeile, solange die Routing-Kacheln eines gerade gespeicherten Bereichs im Hintergrund vorberechnet werden (danach plant der Planer dort schneller); name = Name des Bereichs.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "areasSaving": "„{name}\" wird gespeichert …",
   "@areasSaving": {
     "description": "Laufender Download eines Bereichs (Liste und Speichern-Dialog).",
@@ -7916,6 +7925,10 @@
   "areaNoticeRefreshTitle": "Karte wird aktualisiert",
   "@areaNoticeRefreshTitle": {
     "description": "Benachrichtigung beim Aktualisieren einer Region: Titel."
+  },
+  "areaNoticeBakeTitle": "Planer wird vorbereitet",
+  "@areaNoticeBakeTitle": {
+    "description": "Benachrichtigung, solange die Routing-Kacheln eines gespeicherten Bereichs im Hintergrund vorberechnet werden: Titel."
   },
   "areaNoticePercent": "{name} — {percent} %",
   "@areaNoticePercent": {

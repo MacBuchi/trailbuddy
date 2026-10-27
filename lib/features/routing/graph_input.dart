@@ -77,6 +77,25 @@ class GraphInput {
       (heights?.length ?? 0) * kHeightGrid * kHeightGrid * 2;
 }
 
+/// Nur backen, ohne Graph (#380 Weg C): die Kacheln eines gespeicherten
+/// Bereichs im Hintergrund, Block für Block — sendbar wie [GraphInput].
+class BakeInput {
+  const BakeInput({required this.roads, this.ways = const [], this.heights});
+
+  /// Die zu backenden Wege-Kacheln.
+  final List<RoadTileBytes> roads;
+
+  /// Das Wege-Archiv um sie herum (3 × 3) — Lücken erlaubt.
+  final List<RoadTileBytes> ways;
+
+  /// Die Höhen der zu backenden Kacheln; null: flach.
+  final HeightTiles? heights;
+}
+
+/// Backt die Stücke für [input] — dieselben wie im Bau ([buildGraphFrom]).
+List<RoutingPiece> bakeFrom(BakeInput input) => StallWatch.mark(
+    'graph.bake', () => bakeTiles(roads: input.roads, ways: input.ways, heights: input.heights));
+
 /// Eine Rechnung auf dem Graphen drüben (#356 PR 9): hinüber gehen nur
 /// ihre Eingaben, zurück kommt [R] — beides muss sendbar sein (keine
 /// Closures, keine Provider). [runOn] läuft im Isolate, mit dem

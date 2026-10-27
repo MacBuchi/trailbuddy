@@ -1378,8 +1378,8 @@ Abbiegehinweise und kein automatisches Umplanen bei Abweichung (1, 9).
 ## 11. Vorgebackene Routing-Kacheln (#380)
 
 *Entwurf vom 2026-10-18, mit Messung (`docs/routing-messung.md`, „#380").
-Entschieden am 2026-10-18 (11.7); Weg B gebaut in 0.136.0 (11.8), Weg C
-folgt als eigener PR.*
+Entschieden am 2026-10-18 (11.7); Weg B gebaut in 0.136.0, Weg C in
+0.137.0 (11.8).*
 
 ### 11.1 Warum
 
@@ -1583,6 +1583,32 @@ den Bau „ohne Höhen" und wäre neben gespeicherten Höhen sofort alt.
 „Zurück zur Route" und der Planer nehmen den neuen Weg. Gemessen am
 Gerät wird nach dem Merge (11.6).
 
+**Gebaut in 0.137.0 (C):** `routing_bake.dart` backt nach dem
+Speichern eines Bereichs und nach „Aktualisieren" einer Region (dann
+alle Bereiche dieser Region — neue Karte, Höhen oder Wege machen ihre
+Stücke alt). Vier Regeln:
+
+- **Block für Block, im eigenen Runner.** Je 4 × 4 Kacheln (im Browser
+  2 × 2, dort backt der UI-Thread) fragt der Dienst wie der Lader nach
+  frischen Stücken, liest nur den Rest — das Wege-Archiv eine Kachel
+  darüber hinaus, damit ein Stück am Blockrand dieselbe Güte bekommt
+  wie im Rahmen des Planers —, backt drüben (`LoopPlanRunner.bake`, auf
+  Android ein eigener Rechen-Isolate neben dem des Planers) und legt
+  jeden Block in einem Schreibvorgang ab.
+- **Wiederaufnehmbar ohne eigene Buchführung.** Was liegt, ist frisch
+  und wird übersprungen. Nach einem Abbruch oder Neustart macht das
+  nächste Speichern oder Aktualisieren weiter; eine Planung dazwischen
+  backt den Rest ihres Rahmens (B). Beim Start der App backt nichts von
+  selbst.
+- **Der Planer geht vor.** Vor jedem Block wartet der Dienst, solange
+  der Planer rechnet.
+- **Nicht im Hintergrund:** die ganze Region (Entscheidung 6),
+  unvollständige und noch nicht übernommene Bereiche, Bereiche unter
+  z13. Auf Android läuft es unter dem KeepAlive-Koordinator (Schlüssel
+  `bake`, `dataSync`, Titel „Planer wird vorbereitet"); „Meine
+  Bereiche" zeigt eine Zeile mit Fortschritt und Abbrechen, aber keinen
+  Knopf zum Starten.
+
 1. **Backen und Zusammensetzen in `lib/`** (`routing_tile.dart`, rein):
    das Format aus 11.3, `bakeTile`, `stitchTiles`; der Planer setzt aus
    gespeicherten Stücken zusammen und backt fehlende im Isolate, die
@@ -1591,7 +1617,8 @@ Gerät wird nach dem Merge (11.6).
    (Fingerabdruck wie #378), unbekannte Fassung ⇒ neu backen. Danach
    die Messung 11.6 am Pixel — **ein PR**, feat.
 2. **C**: Backen nach dem Speichern eines Bereichs, im Hintergrund — ein
-   PR, wenn 11.6 es lohnt.
+   eigener PR (Betreiber, 2026-10-27: nicht erst nach 11.6), gebaut in
+   0.137.0.
 3. **A** nur auf eigene Entscheidung: `routing-data.yml`,
    `tool/routing_tiles.py bake` (ruft das Dart-Backen, damit es nur eine
    Fassung der Regeln gibt), Manifest `routing.json`, Ebene im Download.

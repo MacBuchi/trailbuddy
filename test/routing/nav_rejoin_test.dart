@@ -19,6 +19,7 @@ import 'package:trailbuddy/features/offline_areas/area_store.dart';
 import 'package:trailbuddy/features/offline_areas/tile_store.dart';
 import 'package:trailbuddy/features/rides/road_index.dart' show RoadCoverage;
 import 'package:trailbuddy/features/routing/graph_input.dart';
+import 'package:trailbuddy/features/routing/routing_tile.dart' show RoutingPiece;
 import 'package:trailbuddy/features/routing/loop_plan_runner.dart';
 import 'package:trailbuddy/features/routing/loop_planner.dart';
 import 'package:trailbuddy/features/routing/nav_providers.dart';
@@ -63,6 +64,9 @@ class _SpyRunner implements LoopPlanRunner {
     jobs.add(job);
     return _inline.run(job);
   }
+
+  @override
+  Future<List<RoutingPiece>> bake(BakeInput input) => _inline.bake(input);
 
   @override
   void dispose() {

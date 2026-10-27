@@ -20,6 +20,8 @@ void main() {
       // Seit #380 sucht und speichert er vorgebackene Stücke — backen,
       // lesen und zusammensetzen tut der Isolate.
       'lib/features/routing/routing_pieces.dart',
+      // Das Backen im Hintergrund (#380 Weg C) schickt nur Bytes hinüber.
+      'lib/features/routing/routing_bake.dart',
     ]) {
       final src = read(path);
       for (final symbol in const [
