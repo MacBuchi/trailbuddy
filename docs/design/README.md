@@ -492,8 +492,10 @@ Pflicht 3,5 px deckend) unter der Linie wie der Leuchtrand (#195); 55 %
 ohne Kontur ging im weißen Saum unter. Der getippte Start ist eine Fahne
 in der Marke mit dunkler Kontur und Schein (`LoopStartFlag`).
 Die im Höhenprofil gewählte Stelle (#332, seit 0.122.0) ist eine
-Scheibe in der Marke (30 px) mit dunklem Rand und Rad
-(`RouteCursorSymbol`) — keine Nadel (die gehört den Orten), keine Fahne
+Scheibe in der Marke (30 px) mit dunklem Rand und Mountainbike
+(`RouteCursorSymbol`, seit 0.137.2 gezeichnet: `MtbGlyphPainter` —
+dicke Reifen, abfallendes Oberrohr, Federgabel, breiter Lenker; Material
+kennt nur Stadt- und E-Rad) — keine Nadel (die gehört den Orten), keine Fahne
 (die dem Start); die Kamera bleibt stehen, nur das Symbol wandert. Im
 Profil selbst ein senkrechter Strich mit Punkt, Strecke und Höhe in der
 freien oberen Ecke.

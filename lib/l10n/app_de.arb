@@ -4266,21 +4266,6 @@
       }
     }
   },
-  "loopShortSummary": "{length} · {climb} hm · etwa {time}",
-  "@loopShortSummary": {
-    "description": "Untertitel des Ergebnis-Blatts; length und time fertig formatiert, climb Höhenmeter.",
-    "placeholders": {
-      "length": {
-        "type": "String"
-      },
-      "climb": {
-        "type": "int"
-      },
-      "time": {
-        "type": "String"
-      }
-    }
-  },
   "loopSummary": "{length} · {climb} hm bergauf · {trail} Trail · etwa {time}",
   "@loopSummary": {
     "description": "Summe der Runde; length, trail und time fertig formatiert.",

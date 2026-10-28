@@ -491,8 +491,25 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
 - **Höhenprofil im Ergebnis** (#234, seit 0.88.0, `route_elevation.dart`):
   „Runde" und „Zum Trailkopf"/„Route hierher" zeigen unter der Summe
   `ElevationProfileChart(compact: true)` entlang der GEZEICHNETEN Linie
-  (`plan.points`, beim spaßigen Weg `fun.points`). Drei Dinge, die man
+  (`plan.points`, beim spaßigen Weg `fun.points`). Vier Dinge, die man
   wissen muss:
+  - **Reihenfolge im Blatt** (seit 0.137.2, Feldbefund 2026-10-29: die
+    Anmerkungen schoben das Profil aus dem eingeklappten Blatt): EINE
+    Summe (`loop-summary`; der Kopf hat keinen Untertitel mehr — auch
+    eingeklappt auf `kMapPanelPeek` steht die Summe direkt darunter),
+    dann das Profil, dann Navigieren/Speichern/GPX, erst DARUNTER
+    Abfahrten und Wegemix (`loop-details`), Einrast-, Bequem-, Direkt-
+    und Tuning-Hinweise und die Warnungen. Wer einen Hinweis dazunimmt,
+    setzt ihn unter die Knöpfe. Der Flow-Test misst auf dem Maß des
+    Pixel XL (411 × 731 dp), dass Profil und „Navigieren" im
+    eingeklappten Blatt ganz zu sehen sind, auch mit Stil-Wahl und
+    Einrast-Hinweis. **Eingeklappt heißt gemessen**: `_maybeFit` wartet
+    einen Frame und fährt auf die Höhe bis unter die Knöpfe
+    (`_resultSize`, `MapPanelController.fullHeight`), zwischen
+    `kMapPanelResult` (0,4) und `kMapPanelResultMax` (0,55) — 0,4 fest
+    schnitt am Pixel XL die Knöpfe ab, mit Stil-Wahl auch das Profil.
+    Die Stil-Wahl bleibt oben: Unter den Knöpfen lag sie eingeklappt
+    außer Sicht (ausprobiert, Flow-Tests rot).
   - **Die Höhen kommen nicht aus der Engine**, sondern aus dem
     Geländemodell entlang der Linie (`lineProfileProvider` in
     `terrain_heights.dart`, Proben alle 50 m, Bereiche zuerst, mit Empfang

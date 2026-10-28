@@ -2,6 +2,19 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## Elevation profile and buttons right under the summary
+
+*Version 0.137.2, 2026-10-29*
+
+- In the result of a loop or route, the elevation profile now sits
+  directly under the summary, with "Navigate" and "Save" below it.
+  Descents, way mix and notes (such as "moved onto the nearest path")
+  follow underneath — before, they pushed the profile out of the
+  collapsed sheet. The summary appears only once, and the sheet opens
+  just far enough for the buttons to show in full.
+- The spot you pick in the profile now shows a mountain bike on the map
+  instead of a city bike.
+
 ## "My position" in the browser answers right away
 
 *Version 0.137.1, 2026-10-28*
