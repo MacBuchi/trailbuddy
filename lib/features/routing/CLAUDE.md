@@ -999,11 +999,15 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     `routing_bake.dart`, Weg C): `AreaDownloadNotifier` ruft
     `routingBakeProvider.bakeAreas` nach dem Speichern eines Bereichs und
     nach „Aktualisieren" (alle Bereiche der Region). Je Block
-    `findPieces` → `readRoadTiles` mit `only` = Block + Ring und
+    `findPieces` → `readRoadTiles` über ALLE Bereiche der Region (wie der
+    Planer; der Bau nennt Wege und Höhen der Region, auch fremder
+    Bereiche) mit `only` = Block + Ring und
     `covered` = frische Stücke + Ring (der Ring liefert nur das
     Wege-Archiv) → `LoopPlanRunner.bake` im EIGENEN Runner →
     `PieceLookup.keepPieces`. Wartet vor jedem Block, solange der Planer
-    rechnet (`routingBakePlannerBusyProvider`). Die ganze Region,
+    rechnet (`routingBakePlannerBusyProvider`). Abbrechen zählt
+    `_cancels` hoch und trifft nur den laufenden Bereich; was danach
+    eingereiht wird, backt. Die ganze Region,
     unvollständige, übernommene und Bereiche unter z13 backen nicht
     (`RoutingBakeNotifier.bakes`). Wer `LoopPlanRunner` implementiert
     (auch Test-Spione), braucht `bake`. Der Strukturtest

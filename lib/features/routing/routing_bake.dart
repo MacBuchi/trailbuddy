@@ -76,7 +76,9 @@ class RoutingBakeNotifier extends Notifier<RoutingBakeState> {
   static const _keepAliveKey = 'bake';
   final _queue = <StoredArea>[];
   Future<void>? _running;
-  var _cancelled = false;
+  /// Zählt jedes Abbrechen; ein Bereich backt nur, solange sie steht,
+  /// die er beim Start gesehen hat.
+  var _cancels = 0;
 
   /// Wie viele Kacheln drüben gebacken wurden — für den Test.
   @visibleForTesting
@@ -93,32 +95,47 @@ class RoutingBakeNotifier extends Notifier<RoutingBakeState> {
   /// Stellt [areas] in die Reihe und startet, falls nichts läuft. Kehrt
   /// sofort zurück; [idle] wartet auf das Ende.
   void bakeAreas(Iterable<StoredArea> areas) {
+    var added = false;
     for (final a in areas) {
       if (!bakes(a) || _queue.any((q) => q.id == a.id)) continue;
       _queue.add(a);
+      added = true;
     }
-    if (_queue.isEmpty) return;
-    _running ??= _run().whenComplete(() => _running = null);
+    if (!added) return;
+    _running ??= _drain();
+  }
+
+  /// Läuft, bis die Reihe leer ist — auch, wenn während des Aufräumens
+  /// eines Laufs (Dienst beenden) etwas eingereiht wurde.
+  Future<void> _drain() async {
+    try {
+      do {
+        await _run();
+      } while (_queue.isNotEmpty);
+    } finally {
+      _running = null;
+    }
   }
 
   /// Fertig, wenn nichts mehr backt.
   Future<void> get idle => _running ?? Future.value();
 
-  /// Bricht ab; was liegt, bleibt, das nächste Speichern macht weiter.
+  /// Bricht ab; was liegt, bleibt. Das nächste Speichern oder
+  /// Aktualisieren in der Region macht weiter.
   void cancel() {
-    _cancelled = true;
+    _cancels++;
     _queue.clear();
   }
 
   Future<void> _run() async {
-    _cancelled = false;
     final coordinator = ref.read(keepAliveCoordinatorProvider);
     final l = serviceL10n();
     LoopPlanRunner? runner;
     var started = false;
     try {
-      while (_queue.isNotEmpty && !_cancelled) {
+      while (_queue.isNotEmpty) {
         final area = _queue.removeAt(0);
+        final cancels = _cancels;
         final blocks = _blocksOf(area.shape.tiles(minZoom: kRoutingTileZoom, maxZoom: kRoutingTileZoom));
         final total = blocks.fold<int>(0, (s, b) => s + b.length);
         var done = 0;
@@ -131,8 +148,8 @@ class RoutingBakeNotifier extends Notifier<RoutingBakeState> {
         }
         try {
           for (final block in blocks) {
-            await _waitWhilePlanning();
-            if (_cancelled) break;
+            await _waitWhilePlanning(cancels);
+            if (_cancels != cancels) break;
             await _bakeBlock(area, block, runner ??= ref.read(loopPlanRunnerFactoryProvider)());
             done += block.length;
             state = RoutingBakeState(name: area.name, done: done, total: total);
@@ -149,15 +166,14 @@ class RoutingBakeNotifier extends Notifier<RoutingBakeState> {
       }
     } finally {
       runner?.dispose();
-      _queue.clear();
       state = const RoutingBakeState();
       if (started) await coordinator.stop(_keepAliveKey);
     }
   }
 
-  Future<void> _waitWhilePlanning() async {
+  Future<void> _waitWhilePlanning(int cancels) async {
     final busy = ref.read(routingBakePlannerBusyProvider);
-    while (!_cancelled && busy()) {
+    while (_cancels == cancels && busy()) {
       await ref.read(routingBakePauseProvider)(planner: true);
     }
   }
@@ -183,8 +199,17 @@ class RoutingBakeNotifier extends Notifier<RoutingBakeState> {
     final store = ref.read(areaStoreProvider);
     final open = ref.read(areaArchiveOpenerProvider);
     final openWays = ref.read(areaWaysOpenerProvider);
+    // Gelesen wird je REGION wie im Planer, nicht je Bereich: Der Bau des
+    // Stücks ([findPieces]) nennt das Wege-Archiv und die Höhen, die im
+    // Speicher der Region liegen — auch die eines anderen Bereichs. Läse
+    // der Dienst nur [area], trüge ein Bereich ohne Wege oder Höhen neben
+    // einem mit ein frisches Stück ohne Güte und flach.
+    final regionAreas = [
+      for (final a in await ref.read(storedAreasProvider.future))
+        if (a.region == area.region) a,
+    ];
     final read = await readRoadTiles(
-      areas: [area],
+      areas: regionAreas.isEmpty ? [area] : regionAreas,
       box: LatBox.of(centres),
       open: (a) => open(store, a),
       openWays: (a) => openWays(store, a),
@@ -194,11 +219,11 @@ class RoutingBakeNotifier extends Notifier<RoutingBakeState> {
     );
     final bake = lookup.split(read.roads).roads;
     if (bake.isEmpty) return;
-    HeightTiles? heights;
-    if (area.hasHeights) {
-      final reader = await ref.read(areaHeightReaderProvider.future);
-      heights = await HeightTiles.read(reader, [for (final r in bake) (x: r.tile.x, y: r.tile.y)]);
-    }
+    // Die Höhen aus dem Leser der Region, wie im Planer. Geht er nicht
+    // auf, wirft das bis zum Bereich: flach gebacken trüge das Stück den
+    // Höhen-Bau und gälte als frisch. Dann backt die Planung (Weg B).
+    final reader = await ref.read(areaHeightReaderProvider.future);
+    final heights = await HeightTiles.read(reader, [for (final r in bake) (x: r.tile.x, y: r.tile.y)]);
     final pieces = await runner.bake(BakeInput(roads: bake, ways: read.ways, heights: heights));
     baked += pieces.length;
     await lookup.keepPieces(pieces);

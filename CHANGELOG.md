@@ -10,7 +10,8 @@
   Hintergrund für den Planer vor — nicht erst beim ersten Planen. So ist
   schon die erste Runde dort schnell. Unter „Meine Bereiche" steht,
   solange es läuft, eine Zeile mit Fortschritt; mit dem Kreuz lässt es
-  sich abbrechen, und beim nächsten Speichern geht es dort weiter.
+  sich abbrechen, und beim nächsten Speichern in der Region
+  geht es dort weiter.
 - Nach „Aktualisieren" einer Region bereitet die App die betroffenen
   Bereiche gleich neu vor. Plant man währenddessen, wartet das
   Vorbereiten, bis der Planer fertig ist.

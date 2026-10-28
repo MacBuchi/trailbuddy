@@ -591,8 +591,16 @@ class AreaDownloadNotifier extends Notifier<AreaDownloadState> {
           await ref.read(storedAreasProvider.notifier).refresh();
           state = AreaDownloadState(phase: AreaDownloadPhase.done, name: name, plan: current, result: area);
           // Die Stücke des Planers gleich mit (#380 Weg C) — im
-          // Hintergrund, nach dem Download.
-          ref.read(routingBakeProvider.notifier).bakeAreas([area]);
+          // Hintergrund, nach dem Download. Der neue Bereich zuerst, dann
+          // die übrigen der Region: Ein abgebrochenes Backen macht so
+          // beim nächsten Speichern weiter (was frisch liegt, überspringt
+          // es billig).
+          final inRegion = await ref.read(storedAreasProvider.future);
+          ref.read(routingBakeProvider.notifier).bakeAreas([
+            area,
+            for (final a in inRegion)
+              if (a.region == area.region && a.id != area.id) a,
+          ]);
           return area;
         } on AreaCancelled {
           return await _cancelledDownload();

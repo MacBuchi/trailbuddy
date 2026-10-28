@@ -9,7 +9,8 @@
 - After you save an area, the app prepares its ways for the planner in
   the background, not only on the first plan. So the first loop there is
   fast as well. While it runs, "My areas" shows a line with its progress;
-  the cross cancels it, and the next save continues where it stopped.
+  the cross cancels it, and the next save in
+  the region continues where it stopped.
 - After "Update" of a region, the app prepares the affected areas again
   right away. If you plan meanwhile, the preparation waits until the
   planner is done.

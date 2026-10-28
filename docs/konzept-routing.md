@@ -1586,7 +1586,7 @@ Gerät wird nach dem Merge (11.6).
 **Gebaut in 0.137.0 (C):** `routing_bake.dart` backt nach dem
 Speichern eines Bereichs und nach „Aktualisieren" einer Region (dann
 alle Bereiche dieser Region — neue Karte, Höhen oder Wege machen ihre
-Stücke alt). Vier Regeln:
+Stücke alt). Fünf Regeln:
 
 - **Block für Block, im eigenen Runner.** Je 4 × 4 Kacheln (im Browser
   2 × 2, dort backt der UI-Thread) fragt der Dienst wie der Lader nach
@@ -1597,9 +1597,16 @@ Stücke alt). Vier Regeln:
   jeden Block in einem Schreibvorgang ab.
 - **Wiederaufnehmbar ohne eigene Buchführung.** Was liegt, ist frisch
   und wird übersprungen. Nach einem Abbruch oder Neustart macht das
-  nächste Speichern oder Aktualisieren weiter; eine Planung dazwischen
-  backt den Rest ihres Rahmens (B). Beim Start der App backt nichts von
-  selbst.
+  nächste Speichern oder Aktualisieren in der Region weiter (Speichern
+  reiht nach dem neuen Bereich alle übrigen der Region ein); eine
+  Planung dazwischen backt den Rest ihres Rahmens (B). Beim Start der
+  App backt nichts von selbst.
+- **Gelesen wird je Region, wie im Planer.** Der Bau eines Stücks nennt
+  Wege-Archiv und Höhen aus dem Speicher der Region — auch die eines
+  anderen Bereichs. Der Dienst liest deshalb über alle Bereiche der
+  Region und über den Höhenleser der Region; sonst trüge ein Bereich
+  ohne Wege oder Höhen neben einem mit frische Stücke ohne Güte und
+  flach.
 - **Der Planer geht vor.** Vor jedem Block wartet der Dienst, solange
   der Planer rechnet.
 - **Nicht im Hintergrund:** die ganze Region (Entscheidung 6),

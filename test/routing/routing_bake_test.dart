@@ -15,10 +15,12 @@ import 'package:trailbuddy/core/line_geometry.dart';
 import 'package:trailbuddy/features/keep_alive/keep_alive.dart';
 import 'package:trailbuddy/features/offline_areas/area_plan.dart';
 import 'package:trailbuddy/features/offline_areas/area_store.dart';
+import 'package:trailbuddy/features/offline_areas/height_tiles.dart';
 import 'package:trailbuddy/features/offline_areas/tile_store.dart';
 import 'package:trailbuddy/features/routing/loop_plan_runner.dart';
 import 'package:trailbuddy/features/routing/planning_graph.dart';
 import 'package:trailbuddy/features/routing/road_graph.dart';
+import 'package:trailbuddy/features/routing/road_graph_loader.dart';
 import 'package:trailbuddy/features/routing/route_profile.dart' show WayClass;
 import 'package:trailbuddy/features/routing/routing_bake.dart';
 import 'package:trailbuddy/features/routing/routing_tile.dart';
@@ -26,6 +28,7 @@ import 'package:trailbuddy/features/trails/trail_providers.dart';
 import 'package:trailbuddy/models/trail.dart';
 
 import '../fakes/fake_keep_alive.dart';
+import '../fakes/fake_tiles.dart';
 import '../fakes/graph_tiles.dart';
 
 const _lat0 = 48.0, _lon0 = 9.0;
@@ -33,6 +36,30 @@ final _proj = FlatProjection(_lat0);
 final _o = _proj.xy(const LatLng(_lat0, _lon0));
 
 LatLng _m(double x, double y) => _proj.latLng(math.Point(_o.x + x, _o.y + y));
+
+/// Das Wege-Archiv zu [lines]: Forstwege Klasse 3, je Kachel zugeschnitten
+/// wie die Karte (wie in `routing_tile_test`).
+List<RoadTileBytes> _waysOf(List<WayLine> lines, Iterable<TileXYZ> tiles) {
+  const n = 1 << kRoadGraphZoom;
+  math.Point<double> px(LatLng p, TileXYZ t) {
+    final xf = (p.longitude + 180) / 360 * n;
+    final lat = p.latitude * math.pi / 180;
+    final yf = (1 - math.log(math.tan(lat) + 1 / math.cos(lat)) / math.pi) / 2 * n;
+    return math.Point((xf - t.x) * kTileExtent, (yf - t.y) * kTileExtent);
+  }
+
+  return [
+    for (final t in tiles)
+      (
+        tile: t,
+        bytes: waysTile([
+          for (final l in lines)
+            for (final piece in clipToTile([for (final p in l.points) px(p, t)], kTileExtent.toDouble()))
+              (k: 3, u: null, px: [for (final q in piece) (q.x.round(), q.y.round())]),
+        ]),
+      ),
+  ];
+}
 
 class _NoTrails extends TrailsNotifier {
   @override
@@ -150,10 +177,97 @@ void main() {
     final fromPlan = {for (final p in report.baked) (p.x, p.y): p.bytes};
     expect(fromPlan.keys.toSet(), fromBake.keys.toSet());
     for (final MapEntry(key: xy, value: bytes) in fromBake.entries) {
-      final a = unpackPiece(bytes!)!, b = unpackPiece(fromPlan[xy]!)!;
-      expect((a.nodes.length, a.edges.length, a.border.length), (b.nodes.length, b.edges.length, b.border.length),
-          reason: 'Kachel $xy');
+      expect(bytes, fromPlan[xy], reason: 'Kachel $xy: Byte für Byte dasselbe Stück');
     }
+  });
+
+  test('Wege und Höhen eines anderen Bereichs der Region backen mit — wie im Planer', () async {
+    await seed();
+    // Ein zweiter Bereich derselben Region bringt Höhen und Wege-Archiv;
+    // der gebackene Bereich selbst trägt keins von beiden. Der Bau nennt
+    // trotzdem beide (Speicher der Region) — flach oder ohne Güte
+    // gebacken wäre das Stück falsch und gälte als frisch.
+    final lines = [
+      WayLine(cls: WayClass.forstweg, oneway: false, points: [_m(-9000, 0), _m(9000, 0)]),
+      WayLine(cls: WayClass.forstweg, oneway: false, points: [_m(0, -9000), _m(0, 9000)]),
+    ];
+    final xyz = [for (final (x, y) in roadsXY) (z: 13, x: x, y: y)];
+    final h = heightTilesOf(xyz, (p) => 500 + (_proj.xy(p).y - _o.y) / 10);
+    await tiles.put('dach', TileLayer.heights, [
+      for (final (x, y) in roadsXY) StoreTile(13, x, y, encodeHeightTile(h.tileAt(x, y)!.values), '20261009'),
+    ]);
+    await tiles.put('dach', TileLayer.ways, [
+      for (final w in _waysOf(lines, xyz)) StoreTile(13, w.tile.x, w.tile.y, w.bytes, '20261010'),
+    ]);
+    final other = StoredArea(
+      id: 'b',
+      name: 'Mit Höhen',
+      bounds: area.bounds,
+      minZoom: 13,
+      maxZoom: 13,
+      build: '20261001',
+      tiles: area.tiles,
+      bytes: 1,
+      savedAt: DateTime.utc(2026, 10, 2),
+      format: kStoredAreaFormat,
+      heightsBuild: '20261009',
+      heightTiles: area.tiles,
+      waysBuild: '20261010',
+      wayTiles: area.tiles,
+    );
+    await areas.saveIndex([area, other]);
+    final c = container();
+    final bake = c.read(routingBakeProvider.notifier);
+    bake.bakeAreas([area]);
+    await bake.idle;
+    final index = await tiles.index('dach', TileLayer.routing);
+    expect(index.values.map((i) => i.build).toSet(), {pieceBuild(map: '20261001', heights: '20261009', ways: '20261010')});
+    final fromBake = {
+      for (final (x, y) in roadsXY) (x, y): await tiles.read('dach', TileLayer.routing, 13, x, y),
+    };
+    await tiles.remove('dach', TileLayer.routing, [for (final (x, y) in roadsXY) tileIdOf((z: 13, x: x, y: y))]);
+    final loaded = await c.read(planningGraphLoaderProvider)(LatBox.of([_m(-9000, -9000), _m(9000, 9000)]),
+        fillOnline: false);
+    final report = await InlineLoopPlanRunner().build(loaded.input!);
+    expect(report.edgesWithoutHeights, 0, reason: 'der Planer liest die Höhen der Region');
+    final fromPlan = {for (final p in report.baked) (p.x, p.y): p.bytes};
+    expect(fromPlan.keys.toSet(), fromBake.keys.toSet());
+    for (final MapEntry(key: xy, value: bytes) in fromBake.entries) {
+      expect(bytes, fromPlan[xy], reason: 'Kachel $xy: mit Höhen und Güte wie im Planer');
+    }
+  });
+
+  test('nach dem Abbrechen gilt ein neuer Auftrag — auch, solange der alte noch ausläuft', () async {
+    await seed();
+    final second = StoredArea(
+      id: 'b',
+      name: 'Zweiter',
+      bounds: area.bounds,
+      minZoom: 13,
+      maxZoom: 13,
+      build: '20261001',
+      tiles: area.tiles,
+      bytes: 1,
+      savedAt: DateTime.utc(2026, 10, 2),
+      format: kStoredAreaFormat,
+    );
+    await areas.saveIndex([area, second]);
+    final c = container();
+    final bake = c.read(routingBakeProvider.notifier);
+    var blocks = 0;
+    pause = ({required bool planner}) async {
+      // Nach dem ersten Block: abbrechen und sofort den zweiten Bereich
+      // speichern — der alte Lauf hat noch nicht aufgeräumt.
+      if (!planner && ++blocks == 1) {
+        bake.cancel();
+        bake.bakeAreas([second]);
+      }
+    };
+    bake.bakeAreas([area]);
+    await bake.idle;
+    expect(await stored(), mapTiles, reason: 'der zweite Bereich backt, er deckt dieselben Kacheln');
+    expect(bake.baked, mapTiles, reason: 'jede Kachel einmal — der erste hörte nach seinem Block auf');
+    expect(c.read(routingBakeProvider).running, isFalse);
   });
 
   test('wartet, solange der Planer rechnet', () async {
