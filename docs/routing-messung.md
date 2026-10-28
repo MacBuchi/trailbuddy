@@ -1123,3 +1123,74 @@ Routing-Kacheln; Kanada 0,5–0,8 GB. Am Pixel war der Bau gut zehnmal
 langsamer als hier (120 Kacheln 41–44 s); kippt das Verhältnis nicht,
 wären es dort 4–5 s statt 41–44 s. Gemessen wird das am Gerät, sobald
 das Zusammensetzen in der App steht (Konzept-Routing 11.6).
+
+## #381 — Kacheln beim Suchen nachladen (gemessen 2026-10-28, in der Cloud, öffentliche Daten; Empfehlung: nicht bauen)
+
+Die Frage des Issues: Der Planer setzt den ganzen Rahmen zusammen, bevor
+die erste Suche läuft — auch Ecken, die keine Suche erreicht. Lohnt es
+sich, Kacheln erst zu laden, wenn eine Suchfront ihren Rand erreicht
+(wie BRouter)? Gespart würde nur, was KEINE Suche einer Planung
+erreicht; was die Suchen über den Rahmen hinaus erreichen, müsste das
+Nachladen zusätzlich holen.
+
+`tool/routing_lazy_measure.dart` über drei Rahmen zu 15 × 15 Kacheln
+(`python3 tool/routing_tiles.py sample --out DIR --size 15`, dieselben
+Ortsmitten und Bauten wie „#380"): alle Kacheln gebacken und
+zusammengesetzt wie seit 0.136.0, Start in der Mitte, Trails mit
+Anfang und Ende auf zufälligen Knoten im Radius, der Rahmen der App
+daraus (`roadGraphTiles(…, kTrailHeadMarginM)`, ohne Verbinder — der
+echte ist eher größer). Gesucht wird wie `planLoop`: je eine begrenzte
+Suche vom Start und von jedem Trail-Ende, Grenze das Zeitbudget, auf
+dem GANZEN 15 × 15-Graphen. Gezählt: Kacheln mit einem erreichten
+Knoten. „+" heißt: Die Suchen erreichen den Rand des Beispiels, die
+Zahl darüber hinaus ist eine Untergrenze. Zusammensetzen das Beste aus
+drei Läufen (JIT).
+
+| Rahmen | Fall | Rahmen-Kacheln | erreicht im Rahmen | erreicht darüber hinaus | Zusammensetzen ganz / nur erreicht |
+|---|---|---:|---:|---:|---:|
+| Freiburg | 12 Trails in 5 km, Bio 2 h | 12 | 12 (100 %) | 124+ | 156 / 101 ms |
+| Freiburg | 12 Trails in 5 km, Bio 3 h | 12 | 12 (100 %) | 169+ | 116 / 171 ms |
+| Freiburg | 30 Trails in 8 km, Bio 3 h | 30 | 30 (100 %) | 169+ | 282 / 288 ms |
+| Freiburg | 30 Trails in 12 km, Bio 3 h | 56 | 56 (100 %) | 150+ | 560 / 489 ms |
+| Freiburg | 40 Trails in 12 km, Bio 5 h | 72 | 72 (100 %) | 176+ | 550 / 514 ms |
+| Freiburg | 60 Trails in 12 km, E-MTB 5 h | 72 | 72 (100 %) | 183+ | 577 / 555 ms |
+| Innsbruck | 12 Trails in 5 km, Bio 2 h | 20 | 17 (85 %) | 29+ | 174 / 158 ms |
+| Innsbruck | 12 Trails in 5 km, Bio 3 h | 12 | 12 (100 %) | 43+ | 125 / 114 ms |
+| Innsbruck | 30 Trails in 8 km, Bio 3 h | 35 | 28 (80 %) | 35+ | 223 / 205 ms |
+| Innsbruck | 30 Trails in 12 km, Bio 3 h | 49 | 40 (82 %) | 43+ | 256 / 270 ms |
+| Innsbruck | 40 Trails in 12 km, Bio 5 h | 42 | 36 (86 %) | 75+ | 227 / 209 ms |
+| Innsbruck | 60 Trails in 12 km, E-MTB 5 h | 63 | 62 (98 %) | 119+ | 319 / 335 ms |
+| Zürich | 12 Trails in 5 km, Bio 2 h | 15 | 15 (100 %) | 94+ | 406 / 377 ms |
+| Zürich | 12 Trails in 5 km, Bio 3 h | 12 | 12 (100 %) | 167+ | 266 / 275 ms |
+| Zürich | 30 Trails in 8 km, Bio 3 h | 36 | 36 (100 %) | 180+ | 637 / 609 ms |
+| Zürich | 30 Trails in 12 km, Bio 3 h | 72 | 72 (100 %) | 166+ | 1 034 / 1 120 ms |
+| Zürich | 40 Trails in 12 km, Bio 5 h | 72 | 72 (100 %) | 181+ | 1 044 / 1 028 ms |
+| Zürich | 60 Trails in 12 km, E-MTB 5 h | 72 | 72 (100 %) | 183+ | 1 058 / 1 046 ms |
+
+Drei Dinge, die die Messung gezeigt hat:
+
+1. **Die Suchen erreichen den Rahmen fast ganz** — im Mittelgebirge und
+   in der Stadt immer 100 %, im Alpental 80–98 % (die Hänge über der
+   Talsohle). Zu sparen bleibt höchstens ein Fünftel der Kacheln, und
+   das Zusammensetzen der erreichten Kacheln allein ist im Rauschen
+   gleich teuer (± 10 %); die Ecken, die keine Suche erreicht, sind die
+   leeren.
+2. **Ohne Rahmen würden die Suchen ein Vielfaches laden.** Mit 2–5 h
+   Budget reicht jede Suche weit über den Rahmen hinaus — bis an den
+   Rand des 15 × 15-Beispiels (~50 km), also 30 bis über 180 Kacheln
+   mehr. Heute begrenzt der Rahmen die Suchen, nicht das Budget. Ein
+   Nachladen ohne Rahmen müsste `kPlanMaxTiles` (120) fast immer
+   reißen; mit Rahmen bleibt es der Rahmen von heute. Die Route ohne
+   Trail (`kRouteDirectBudget`, 24 h) wäre ohne Rahmen ganz unbegrenzt.
+3. **Der teure Teil ist weg.** Seit #380 kostet der ganze Rahmen am
+   Rechner 0,1–1,1 s; hochgerechnet auf den Pixel (Faktor ~10, #380)
+   1–10 s im ungünstigsten Fall (Stadt, 72 Kacheln). Davon spart das
+   Nachladen nach Punkt 1 nichts Messbares — der Umbau (Suche neu
+   starten oder fortsetzen, `RoadGraph.revision` und `EdgeCosts` beim
+   Anhängen, Trails und Anheften je neuer Kachel, Pläne nicht mehr
+   identisch) brächte also keinen Gewinn.
+
+Empfehlung: nicht bauen (wie #377). Ob der Rahmen auf dem Pixel nach
+#380 schnell genug ist, zeigen die Szenarien 2′/4 (15h1); bleibt dort
+das Zusammensetzen der teure Teil, ist der Hebel ein engerer Rahmen oder
+eine Grenze je Suche, nicht das Nachladen.
