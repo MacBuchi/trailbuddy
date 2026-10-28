@@ -2,6 +2,16 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## "My position" in the browser answers right away
+
+*Version 0.137.1, 2026-10-28*
+
+- In the web app, a tap on "My position" often got no answer although
+  your own dot was already on the map — after half a minute it said
+  "Position not available". When the dot is there, the map now jumps to
+  it right away. The same goes for starting navigation, the planner and
+  "I'm on site".
+
 ## The first plan is fast too when the area is saved
 
 *Version 0.137.0, 2026-10-27*

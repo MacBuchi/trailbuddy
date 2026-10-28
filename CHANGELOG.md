@@ -2,6 +2,16 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## „Meine Position" im Browser antwortet sofort
+
+*Version 0.137.1, 2026-10-28*
+
+- In der Web-App blieb ein Tipp auf „Meine Position" oft ohne Antwort,
+  obwohl der eigene Punkt schon auf der Karte stand — nach einer halben
+  Minute hieß es dann „Position nicht verfügbar". Steht der Punkt, springt
+  die Karte jetzt sofort dorthin. Dasselbe gilt für den Start der
+  Navigation, den Planer und „Ich bin vor Ort".
+
 ## Schon die erste Planung ist schnell, wenn der Bereich gespeichert ist
 
 *Version 0.137.0, 2026-10-27*

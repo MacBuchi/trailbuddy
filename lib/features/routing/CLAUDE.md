@@ -408,9 +408,11 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     und `nav_providers.dart` (dort darf kein `RoadGraph` und kein
     `loadRoadGraph(` mehr stehen), `nav_rejoin_test` die Aufgabe mit Rad
     und Stil, `tiles_along_test` den Korridor. **„Suche Standort …"**
-    (`nav-searching`) steht als Leiste, solange `positionFixProvider`
-    beim Start der Navigation aussteht; `FakePositionFix.gate` hält den
-    Fix im Test. Tests, die Kacheln brauchen, kodieren
+    (`nav-searching`) steht als Leiste, solange `currentPositionProvider`
+    beim Start der Navigation aussteht — seit 0.137.1 nur noch ohne
+    laufenden Punkt (#400, `lib/features/map/CLAUDE.md`);
+    `FakePositionFix.gate` hält den Fix im Test, der Test hat dafür keine
+    `position`. Tests, die Kacheln brauchen, kodieren
     sie mit `test/fakes/graph_tiles.dart` (`roadTilesOf`, `heightTilesOf`);
     `_HeldRunner` im Flow-Test baut sofort inline und hält nur `plan`.
     **Keine verschachtelten Records als Schlüssel oder Element in

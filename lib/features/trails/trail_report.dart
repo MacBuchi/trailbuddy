@@ -116,7 +116,7 @@ class _ReportDialogState extends ConsumerState<_ReportDialog> {
   Future<void> _checkSite() async {
     setState(() => _site = _Site.checking);
     try {
-      final fix = await ref.read(positionFixProvider)();
+      final fix = await ref.read(currentPositionProvider)();
       if (!mounted) return;
       if (fix == null) {
         setState(() => _site = _Site.noFix);

@@ -1,8 +1,11 @@
 // Die eigene Position auf der Karte, und eine Karte, die sich nicht
 // dreht. Gefragt wird nach dem Standort nur über „Meine Position".
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:geolocator/geolocator.dart';
 
 import 'package:trailbuddy/features/map/position_provider.dart';
 
@@ -85,5 +88,27 @@ void main() {
     expect(c.center.latitude, closeTo(47.2, 1e-6));
     expect(c.center.longitude, closeTo(11.4, 1e-6));
     expect(c.zoom, 15);
+  });
+
+  // #400: Neben einem laufenden watchPosition beantwortet Chromium einen
+  // einzelnen Fix erst mit der nächsten NEUEN Position. Wer stillstand,
+  // sah 30 s nichts und dann „Position nicht verfügbar" unter dem eigenen
+  // Punkt. Läuft der Punkt, gilt er.
+  testWidgets('läuft der Punkt, zentriert „Meine Position" ohne neuen Fix',
+      (tester) async {
+    final here = fakePosition(47.2, 11.4);
+    final fix = FakePositionFix()..gate = Completer<Position?>();
+    await pumpApp(tester, backend, position: here, positionFix: fix);
+    await settle(tester);
+    expect(dot, findsOneWidget);
+
+    await tester.tap(find.byTooltip('Meine Position'));
+    await settle(tester, frames: 12);
+    expect(fix.calls, 0);
+    final c = fakeMap(tester);
+    expect(c.center.latitude, closeTo(47.2, 1e-6));
+    expect(c.center.longitude, closeTo(11.4, 1e-6));
+    expect(c.zoom, 15);
+    expect(find.textContaining('Position nicht verfügbar'), findsNothing);
   });
 }

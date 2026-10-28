@@ -188,7 +188,8 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     wacht darüber, dass kein Client-Grant `confirmed` frei wählbar macht.
   - **„Vor Ort" prüft nur das Gerät**: ≤ `kOnSiteMaxM` (200 m) zur
     angezeigten Linie, mit EINEM Fix nach Tipp auf „Ich bin vor Ort"
-    (`positionFixProvider` — nie beim Öffnen). An den Server geht das
+    (`currentPositionProvider`: der laufende Punkt, sonst ein Fix — nie
+    beim Öffnen). An den Server geht das
     Ja/Nein, gespeichert wird dort nur `confirmed`, nie die Position.
   - **Angezeigt** (`shownReportsOf`): die jüngste bestätigte, dazu
     verblasst die jüngste unbestätigte, wenn sie jünger ist. Karte,
