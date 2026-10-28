@@ -639,14 +639,12 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
     state = state.copyWith(phase: LoopPhase.idle, changed: true);
   }
 
-  /// Der Mittelpunkt der Liste: getippter Start, sonst der Standort (mit
-  /// Fix, wenn noch keiner läuft). Null ohne beides.
+  /// Der Mittelpunkt der Liste: getippter Start, sonst der Standort
+  /// (`currentPositionProvider`). Null ohne beides.
   Future<LatLng?> listCenter() async {
     final s = state.start;
     if (s != null) return s;
-    final known = ref.read(positionStreamProvider).valueOrNull;
-    if (known != null) return LatLng(known.latitude, known.longitude);
-    final fix = await ref.read(positionFixProvider)();
+    final fix = await ref.read(currentPositionProvider)();
     return fix == null ? null : LatLng(fix.latitude, fix.longitude);
   }
 
@@ -689,7 +687,7 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
       var start = state.start;
       if (start == null) {
         state = state.copyWith(phase: LoopPhase.locating);
-        final fix = await ref.read(positionFixProvider)();
+        final fix = await ref.read(currentPositionProvider)();
         if (generation != _generation) return;
         if (fix == null) {
           state = state.copyWith(phase: LoopPhase.result, blocker: LoopBlocker.noPosition);

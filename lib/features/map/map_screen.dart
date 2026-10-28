@@ -723,12 +723,13 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     }
   }
 
-  /// „Meine Position": die einzige Stelle, die nach der Berechtigung
-  /// fragt (`positionFixProvider`). Danach läuft der Punkt mit.
+  /// „Meine Position": eine der Stellen, die nach der Berechtigung
+  /// fragen (`currentPositionProvider`; läuft der Punkt schon, gilt er).
+  /// Danach läuft der Punkt mit.
   Future<void> _locateMe() async {
     final messenger = ScaffoldMessenger.of(context);
     final l = context.l10n;
-    final fix = await ref.read(positionFixProvider)();
+    final fix = await ref.read(currentPositionProvider)();
     if (!mounted) return;
     if (fix == null) {
       final blocked = await ref.read(locationBlockedProvider)();
@@ -781,7 +782,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     ));
     Position? fix;
     try {
-      fix = await ref.read(positionFixProvider)();
+      fix = await ref.read(currentPositionProvider)();
     } finally {
       searching.close();
     }

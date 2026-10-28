@@ -97,7 +97,15 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
   deshalb direkt `getCurrentPosition` (der Browser fragt dabei selbst)
   mit Dart-`timeout` 30 s. Hat der Browser gesperrt, nennt die Leiste die
   Adressleiste (`locationBlockedProvider`, außerhalb des Webs immer
-  nein). Nur Vordergrund (`ACCESS_FINE/COARSE_LOCATION`, kein
+  nein). **Läuft der Strom, gilt er** (seit 0.137.1,
+  `currentPositionProvider` — alle Stellen, die auf Bitte einen Standort
+  brauchen, lesen ihn statt `positionFixProvider`): Neben einem laufenden
+  `watchPosition` beantwortet Chromium `getCurrentPosition` erst mit der
+  nächsten NEUEN Position; wer stillstand, sah 30 s nichts und dann
+  „Position nicht verfügbar" unter dem eigenen Punkt (in der Vorschau mit
+  Playwright nachgestellt; `maximumAge` hilft nur, solange die letzte
+  Meldung jünger ist). `positionFixProvider` bleibt die Naht, die der
+  Harness ersetzt. Nur Vordergrund (`ACCESS_FINE/COARSE_LOCATION`, kein
   Background); die Position verlässt das Gerät nicht. Punkt in
   `MapPalette.ride` (nicht Blau — Blau heißt S1), Punkt und
   Kreis fangen keine Tipps ab. Gesten drehen die Karte nie

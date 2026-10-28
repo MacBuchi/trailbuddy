@@ -63,6 +63,19 @@ Future<Position?> _platformFix() async {
   }
 }
 
+/// Der Standort, wenn jemand darum bittet („Meine Position", Navigation,
+/// Planer, „Ich bin vor Ort"): Läuft der Strom schon, ist sein letzter
+/// Wert die Antwort, sonst EIN Fix über [positionFixProvider] (#400).
+/// Im Browser ist das mehr als eine Abkürzung: Neben einem laufenden
+/// `watchPosition` beantwortet Chromium `getCurrentPosition` erst mit der
+/// nächsten NEUEN Position — wer stillsteht, bekommt keine, und nach 30 s
+/// hieß es „Position nicht verfügbar" unter dem eigenen Punkt.
+final currentPositionProvider = Provider<PositionFix>((ref) => () async {
+      final known = ref.read(positionStreamProvider).valueOrNull;
+      if (known != null) return known;
+      return ref.read(positionFixProvider)();
+    });
+
 /// So lange wartet der Fix im Browser höchstens.
 const kWebFixTimeout = Duration(seconds: 30);
 
