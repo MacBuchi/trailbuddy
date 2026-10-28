@@ -2,6 +2,21 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## The first plan is fast too when the area is saved
+
+*Version 0.137.0, 2026-10-27*
+
+- After you save an area, the app prepares its ways for the planner in
+  the background, not only on the first plan. So the first loop there is
+  fast as well. While it runs, "My areas" shows a line with its progress;
+  the cross cancels it, and the next save in
+  the region continues where it stopped.
+- After "Update" of a region, the app prepares the affected areas again
+  right away. If you plan meanwhile, the preparation waits until the
+  planner is done.
+- A whole region is not prepared in the background — that would take
+  hours. There, every plan prepares its surroundings itself.
+
 ## Planning is faster where you have planned before
 
 *Version 0.136.0, 2026-10-27*

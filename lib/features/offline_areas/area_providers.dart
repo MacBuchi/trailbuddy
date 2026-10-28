@@ -49,6 +49,7 @@ import '../map/pmtiles_tile_provider.dart';
 import '../map/poi.dart';
 import '../map/poi_source.dart';
 import '../map/way_layer.dart';
+import '../routing/routing_bake.dart';
 import 'area_downloader.dart';
 import 'area_migration.dart';
 import 'area_plan.dart';
@@ -589,6 +590,17 @@ class AreaDownloadNotifier extends Notifier<AreaDownloadState> {
           }
           await ref.read(storedAreasProvider.notifier).refresh();
           state = AreaDownloadState(phase: AreaDownloadPhase.done, name: name, plan: current, result: area);
+          // Die Stücke des Planers gleich mit (#380 Weg C) — im
+          // Hintergrund, nach dem Download. Der neue Bereich zuerst, dann
+          // die übrigen der Region: Ein abgebrochenes Backen macht so
+          // beim nächsten Speichern weiter (was frisch liegt, überspringt
+          // es billig).
+          final inRegion = await ref.read(storedAreasProvider.future);
+          ref.read(routingBakeProvider.notifier).bakeAreas([
+            area,
+            for (final a in inRegion)
+              if (a.region == area.region && a.id != area.id) a,
+          ]);
           return area;
         } on AreaCancelled {
           return await _cancelledDownload();
@@ -861,6 +873,10 @@ class AreaDownloadNotifier extends Notifier<AreaDownloadState> {
       );
       await ref.read(storedAreasProvider.notifier).refresh();
       state = AreaDownloadState(phase: AreaDownloadPhase.done, name: name);
+      // Neue Karte, Höhen oder Wege machen die Stücke der Region alt
+      // (#380): neu backen, Bereich für Bereich.
+      final areas = await ref.read(storedAreasProvider.future);
+      ref.read(routingBakeProvider.notifier).bakeAreas([for (final a in areas) if (a.region == region.id) a]);
       return true;
     } on AreaCancelled {
       await ref.read(storedAreasProvider.notifier).refresh();

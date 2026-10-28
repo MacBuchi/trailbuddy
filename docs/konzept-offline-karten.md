@@ -470,7 +470,10 @@ Abschnitt 7 („je Bereich EIN Archiv").
   der Download plant sie nie, und „veraltet / Aktualisieren" zählt sie
   nicht: Ihr Bau nennt die Bauten der drei Quellkacheln
   (`r<Format>.<Fassung>:<Karte>:<Höhen>:<Wege>`); ändert sich eine
-  Quelle, backt der Planer das Stück ohne Netz neu.
+  Quelle, backt der Planer das Stück ohne Netz neu. Seit 0.137.0 backt
+  die App sie gleich nach dem Speichern eines Bereichs und nach
+  „Aktualisieren" im Hintergrund (nicht für die ganze Region;
+  `konzept-routing.md` 11.8).
 
 ### 8.3 Die Ablage je Plattform
 

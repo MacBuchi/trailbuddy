@@ -995,5 +995,23 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
   - **Im Web** rechnen Schreiber und Leser der Varints mit Multiplikation
     statt `<<` (dart2js: 32 Bit); `test/web/routing_tile_browser_test.dart`
     vergleicht Backen, Packen und Zusammensetzen mit Zahlen der VM.
+  - **Im Hintergrund nach dem Speichern** (seit 0.137.0,
+    `routing_bake.dart`, Weg C): `AreaDownloadNotifier` ruft
+    `routingBakeProvider.bakeAreas` nach dem Speichern eines Bereichs und
+    nach „Aktualisieren" (alle Bereiche der Region). Je Block
+    `findPieces` → `readRoadTiles` über ALLE Bereiche der Region (wie der
+    Planer; der Bau nennt Wege und Höhen der Region, auch fremder
+    Bereiche) mit `only` = Block + Ring und
+    `covered` = frische Stücke + Ring (der Ring liefert nur das
+    Wege-Archiv) → `LoopPlanRunner.bake` im EIGENEN Runner →
+    `PieceLookup.keepPieces`. Wartet vor jedem Block, solange der Planer
+    rechnet (`routingBakePlannerBusyProvider`). Abbrechen zählt
+    `_cancels` hoch und trifft nur den laufenden Bereich; was danach
+    eingereiht wird, backt. Die ganze Region,
+    unvollständige, übernommene und Bereiche unter z13 backen nicht
+    (`RoutingBakeNotifier.bakes`). Wer `LoopPlanRunner` implementiert
+    (auch Test-Spione), braucht `bake`. Der Strukturtest
+    (`graph_isolation_test`) sucht `bakeTile` auch in Kommentaren —
+    dort heißt es „das Backen".
   `tool/routing_tiles_measure.dart` war der Prototyp; gemessen am Gerät
   wird nach dem Merge (Szenarien 2′ und 4 aus #356, Konzept 11.6).

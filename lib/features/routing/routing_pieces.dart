@@ -81,9 +81,13 @@ class PieceLookup {
   /// ihm kam (je Region ein Block), sonst an die Bytes der Sitzung. Nimmt
   /// Stücke, die sich drüben nicht lesen ließen, aus dem Speicher. Wirft
   /// nie — ein Fehler kostet nur die Abkürzung beim nächsten Mal.
-  Future<void> keep(GraphReport report) async {
+  Future<void> keep(GraphReport report) => keepPieces(report.baked, broken: report.broken);
+
+  /// Dasselbe ohne Bericht — für das Backen im Hintergrund
+  /// (`routing_bake.dart`), das keinen Graphen baut.
+  Future<void> keepPieces(List<RoutingPiece> baked, {List<(int, int)> broken = const []}) async {
     final byRegion = <String, List<StoreTile>>{};
-    for (final p in report.baked) {
+    for (final p in baked) {
       final xy = (p.x, p.y);
       final target = _targets[xy];
       if (target != null) {
@@ -98,13 +102,13 @@ class PieceLookup {
       for (final e in byRegion.entries) {
         await store.put(e.key, TileLayer.routing, e.value);
       }
-      final broken = <String, List<int>>{};
-      for (final (x, y) in report.broken) {
+      final gone = <String, List<int>>{};
+      for (final (x, y) in broken) {
         final region = _regionOf[(x, y)];
         if (region == null) continue;
-        (broken[region] ??= []).add(tileIdOf((z: kRoutingTileZoom, x: x, y: y)));
+        (gone[region] ??= []).add(tileIdOf((z: kRoutingTileZoom, x: x, y: y)));
       }
-      for (final e in broken.entries) {
+      for (final e in gone.entries) {
         await store.remove(e.key, TileLayer.routing, e.value);
       }
     } catch (e, s) {

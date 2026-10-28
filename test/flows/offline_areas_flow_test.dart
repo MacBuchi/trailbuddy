@@ -13,6 +13,7 @@ import 'dart:typed_data';
 
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pmtiles/pmtiles.dart';
 import 'package:trailbuddy/core/app_colors.dart';
@@ -28,6 +29,7 @@ import 'package:trailbuddy/features/offline_areas/area_plan.dart';
 import 'package:trailbuddy/features/offline_areas/area_providers.dart';
 import 'package:trailbuddy/features/offline_areas/area_store.dart';
 import 'package:trailbuddy/features/offline_areas/pmtiles_writer.dart';
+import 'package:trailbuddy/features/routing/routing_bake.dart';
 import 'package:trailbuddy/features/offline_areas/tile_store.dart';
 
 import '../fakes/fake_backend.dart';
@@ -73,14 +75,37 @@ Uint8List _waysBytes() {
 
 const _waysManifest = WaysManifest(file: 'ways-20261007.pmtiles', bytes: 1, build: '20261007');
 
+/// Merkt sich, welche Bereiche backen sollten — der Host des Harness hat
+/// keine z13-Kacheln, gebacken würde nichts.
+class _SpyBake extends RoutingBakeNotifier {
+  _SpyBake(this.calls);
+
+  final List<List<String>> calls;
+
+  var cancelled = 0;
+
+  @override
+  void bakeAreas(Iterable<StoredArea> areas) => calls.add([for (final a in areas) a.id]);
+
+  @override
+  void cancel() {
+    cancelled++;
+    state = const RoutingBakeState();
+  }
+
+  void show(String name, int done, int total) => state = RoutingBakeState(name: name, done: done, total: total);
+}
+
 void main() {
   late FakeBackend backend;
   late FakeTrailRepository trails;
   late MemoryAreaStore store;
   late MemoryTileStore tiles;
   late FakeKeepAlive keepAlive;
+  final bakeCalls = <List<String>>[];
 
   setUp(() {
+    bakeCalls.clear();
     backend = FakeBackend();
     final anna = backend.addUser(username: 'anna');
     backend.signInAs(anna.id);
@@ -125,6 +150,7 @@ void main() {
               : null),
           areaPoiFileLoaderProvider.overrideWithValue((_, _) async => twoSprings),
           wholeRegionSupportedProvider.overrideWithValue(wholeRegion),
+          routingBakeProvider.overrideWith(() => _SpyBake(bakeCalls)),
         ]);
     await settle(tester, frames: 20);
   }
@@ -321,6 +347,9 @@ void main() {
     expect(saved.shape, isA<TileSetShape>());
     expect(saved.poiFiles, isNotEmpty);
     expect(saved.complete, isTrue);
+    expect(bakeCalls, [
+      [saved.id]
+    ], reason: 'nach dem Speichern backt der Planer seine Stücke (#380 Weg C)');
     expect((await tiles.index('dach', TileLayer.map)).length, saved.tiles,
         reason: 'jede Kachel einmal im Speicher der Region');
     // Der Entwurf ist erledigt, die Leiste bleibt offen, die neuen
@@ -556,6 +585,7 @@ void main() {
     final areas = await store.list();
     expect(areas.single.id, 'old', reason: 'der Bereich bleibt, nur seine Kacheln sind neu');
     expect(areas.single.build, '20260928');
+    expect(bakeCalls.last, ['old'], reason: 'nach dem Aktualisieren backen die Bereiche der Region neu');
     expect({for (final i in (await tiles.index('dach', TileLayer.map)).values) i.build}, {'20260928'});
     expect((await tiles.index('dach', TileLayer.routing)).values.single.build, '1',
         reason: 'der Download fasst die Stücke nicht an — der Planer backt sie neu');
@@ -586,6 +616,9 @@ void main() {
     expect(saved.name, 'DACH komplett');
     expect(saved.shape, isA<RegionShape>());
     expect(saved.complete, isTrue);
+    expect(bakeCalls, [
+      [saved.id]
+    ], reason: 'übergeben wird auch sie; auslassen tut der Dienst selbst (routing_bake_test)');
     expect((await tiles.index('dach', TileLayer.map)).length, saved.tiles,
         reason: 'jede Kachel, die der Host in der Region hat');
     expect(find.byKey(const ValueKey('whole-dach')), findsNothing, reason: 'die Region liegt schon');
@@ -673,6 +706,26 @@ void main() {
     expect(left.containsAll(shared), isTrue, reason: 'B braucht sie noch');
     expect(left.intersection(onlyA), isEmpty);
     expect((await store.list()).single.id, 'b');
+  });
+
+  testWidgets('Meine Bereiche zeigt das Backen des Planers (#380) mit Abbrechen', (tester) async {
+    await store.putArchive('old', _sourceBytes());
+    await store.saveIndex([oldArea(build: '20260928')]);
+    await start(tester);
+    await openAreas(tester);
+    expect(find.byKey(const ValueKey('area-bake')), findsNothing, reason: 'nichts läuft, keine Zeile');
+    final bake = ProviderScope.containerOf(tester.element(find.byType(Scaffold).first)).read(routingBakeProvider.notifier)
+        as _SpyBake;
+    bake.show('Alt', 4, 16);
+    await settle(tester);
+    expect(find.text('Planer wird für „Alt“ vorbereitet …'), findsOneWidget);
+    final bar = tester.widget<LinearProgressIndicator>(
+        find.descendant(of: find.byKey(const ValueKey('area-bake')), matching: find.byType(LinearProgressIndicator)));
+    expect(bar.value, 0.25);
+    await tester.tap(find.byKey(const ValueKey('area-bake-cancel')));
+    await settle(tester);
+    expect(bake.cancelled, 1);
+    expect(find.byKey(const ValueKey('area-bake')), findsNothing);
   });
 
   testWidgets('ein unvollständiger Bereich (#229): „Fortsetzen" holt den Rest, danach ist er vollständig',

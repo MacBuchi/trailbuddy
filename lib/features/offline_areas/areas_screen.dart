@@ -22,6 +22,7 @@ import '../../core/widgets/motion.dart';
 import '../../l10n/l10n.dart';
 import '../map/map_regions.dart';
 import '../map/online_map.dart';
+import '../routing/routing_bake.dart';
 import 'area_downloader.dart';
 import 'area_plan.dart';
 import 'area_providers.dart';
@@ -39,6 +40,7 @@ class AreasScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final areasAsync = ref.watch(storedAreasProvider);
     final download = ref.watch(areaDownloadProvider);
+    final bake = ref.watch(routingBakeProvider);
     // Je Bereich gegen die Manifeste SEINER Region (#220). Eine Region,
     // die der Index gerade nicht nennt, bietet nichts an.
     final regions = ref.watch(mapRegionsProvider).valueOrNull ?? const [kDachRegion];
@@ -108,6 +110,22 @@ class AreasScreen extends ConsumerWidget {
                     tooltip: l.commonCancel,
                     icon: const Icon(Icons.close),
                     onPressed: () => ref.read(areaDownloadProvider.notifier).cancel(),
+                  ),
+                ),
+              // Die Stücke des Planers backen nach dem Speichern (#380 Weg C)
+              // — eine Zeile, solange es läuft; ohne Knopf zum Starten.
+              if (bake.running)
+                ListTile(
+                  key: const ValueKey('area-bake'),
+                  leading: const SizedBox(
+                      width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2)),
+                  title: Text(l.areasBaking(bake.name ?? '')),
+                  subtitle: LinearProgressIndicator(value: bake.fraction),
+                  trailing: IconButton(
+                    key: const ValueKey('area-bake-cancel'),
+                    tooltip: l.commonCancel,
+                    icon: const Icon(Icons.close),
+                    onPressed: () => ref.read(routingBakeProvider.notifier).cancel(),
                   ),
                 ),
               // Je Region mit Bereichen das Alter ihrer Kacheln (#229

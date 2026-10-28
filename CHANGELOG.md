@@ -2,6 +2,22 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Schon die erste Planung ist schnell, wenn der Bereich gespeichert ist
+
+*Version 0.137.0, 2026-10-27*
+
+- Nach dem Speichern eines Bereichs bereitet die App seine Wege im
+  Hintergrund für den Planer vor — nicht erst beim ersten Planen. So ist
+  schon die erste Runde dort schnell. Unter „Meine Bereiche" steht,
+  solange es läuft, eine Zeile mit Fortschritt; mit dem Kreuz lässt es
+  sich abbrechen, und beim nächsten Speichern in der Region
+  geht es dort weiter.
+- Nach „Aktualisieren" einer Region bereitet die App die betroffenen
+  Bereiche gleich neu vor. Plant man währenddessen, wartet das
+  Vorbereiten, bis der Planer fertig ist.
+- Die ganze Region wird nicht im Hintergrund vorbereitet — das dauerte
+  Stunden. Dort bereitet jede Planung ihre Umgebung selbst vor.
+
 ## Planen geht schneller, wo du schon einmal geplant hast
 
 *Version 0.136.0, 2026-10-27*

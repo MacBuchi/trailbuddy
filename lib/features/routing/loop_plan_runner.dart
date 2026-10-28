@@ -33,6 +33,7 @@ import 'loop_planner.dart';
 import 'plan_progress.dart';
 import 'road_graph.dart';
 import 'route_profile.dart';
+import 'routing_tile.dart' show RoutingPiece;
 
 /// Eine Runde oder Route ohne den Graphen — das, was je Rechnung hinübergeht.
 class LoopRequest implements GraphJob<LoopPlan> {
@@ -118,6 +119,10 @@ abstract interface class LoopPlanRunner {
   /// [StateError].
   Future<R> run<R>(GraphJob<R> job);
 
+  /// Backt die Stücke für [input] drüben (#380 Weg C) — braucht keinen
+  /// Graphen und lässt einen gebauten, wie er ist.
+  Future<List<RoutingPiece>> bake(BakeInput input);
+
   /// Gibt den Isolate und seinen Graphen frei.
   void dispose();
 }
@@ -153,6 +158,9 @@ class InlineLoopPlanRunner implements LoopPlanRunner {
     if (g == null) throw StateError('kein Graph gebaut');
     return job.runOn(g, _cache);
   }
+
+  @override
+  Future<List<RoutingPiece>> bake(BakeInput input) async => bakeFrom(input);
 
   @override
   void dispose() {
