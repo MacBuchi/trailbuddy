@@ -126,6 +126,15 @@ class FakeBackend {
   /// `{'user_name': 'trailfox'}` von GitHub.
   Map<String, dynamic> providerMetadata = const {};
 
+  /// Rücksprünge vom Anbieter, die mit einem Fehler zurückkommen —
+  /// [failProviderReturn] schickt einen.
+  final _providerReturnErrors = StreamController<AuthException>.broadcast();
+  Stream<AuthException> get providerReturnErrors => _providerReturnErrors.stream;
+
+  /// GoTrue schickt `error`/`error_description` zurück (#398).
+  void failProviderReturn(String description, {String code = 'server_error'}) =>
+      _providerReturnErrors.add(AuthException(description, code: code));
+
   /// Der Browser geht nicht auf (`launchUrl` liefert einen Fehler).
   bool providerLaunchFails = false;
 
@@ -169,7 +178,10 @@ class FakeBackend {
 
   String _newId(String prefix) => '$prefix-${++_nextId}';
 
-  void dispose() => _authEvents.close();
+  void dispose() {
+    _authEvents.close();
+    _providerReturnErrors.close();
+  }
 
   FakeUser addUser({
     required String username,
@@ -270,6 +282,10 @@ class FakeAuthRepository implements AuthRepository {
 
   @override
   Stream<AuthState> get onAuthStateChange => backend.authEvents;
+
+  @override
+  Stream<AuthException> get providerReturnErrors =>
+      backend.providerReturnErrors;
 
   @override
   Future<void> signIn({required String email, required String password}) async {

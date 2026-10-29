@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -49,10 +51,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   /// dort nicht mehr gilt.
   late final Settings _settings;
 
+  /// Scheitert der Rücksprung vom Anbieter (#398), landet man hier — ohne
+  /// diesen Hinweis stumm, als wäre nichts geschehen.
+  StreamSubscription<AuthException>? _providerErrors;
+
   @override
   void initState() {
     super.initState();
     _settings = ref.read(settingsProvider);
+    _providerErrors =
+        ref.read(authRepositoryProvider).providerReturnErrors.listen((error) {
+      if (!mounted) return;
+      setState(() {
+        _notice = providerReturnErrorMessage(context.l10n, error);
+        _noticeTone = NoticeTone.error;
+      });
+    });
     final pending = PendingCode.read(_settings, PendingCodeKind.reset);
     if (pending != null) {
       _mode = _Mode.code;
@@ -77,6 +91,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     // keinen Code mehr. Ein Neuladen des Browsers kommt hier nie vorbei —
     // genau dafür bleibt der Merker stehen.
     PendingCode.forget(_settings, PendingCodeKind.reset);
+    _providerErrors?.cancel();
     _emailController.dispose();
     _passwordController.dispose();
     _codeController.dispose();
@@ -388,7 +403,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     onPressed: () => context.go('/signup'),
                     child: Text(l.loginToSignup),
                   ),
-                  // Google, Apple & Co. (#398) — nur, was das Projekt
+                  // Google, GitHub & Co. (#398) — nur, was das Projekt
                   // freigibt; ohne Freigabe sieht der Screen aus wie zuvor.
                   ProviderSignInButtons(enabled: !_busy),
                 ] else ...[

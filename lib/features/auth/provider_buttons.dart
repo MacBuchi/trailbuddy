@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/errors.dart';
 import '../../data/auth_repository.dart';
@@ -18,6 +19,19 @@ final enabledSignInProvidersProvider =
     return const {};
   }
 });
+
+/// Was ein gescheiterter Rücksprung vom Anbieter sagt (#398) — die
+/// Gründe aus GoTrues `error_description`, die bei der Einrichtung
+/// 2026-10-29 vorkamen. Unbekanntes geht ins Protokoll, damit der nächste
+/// Grund einen eigenen Satz bekommen kann.
+String providerReturnErrorMessage(AppLocalizations l, AuthException error) {
+  final text = error.message.toLowerCase();
+  if (text.contains('multiple accounts')) return l.authReturnMultipleAccounts;
+  if (text.contains('expired')) return l.authReturnExpired;
+  if (error.code == 'access_denied') return l.authReturnCancelled;
+  logError('Rücksprung vom Anbieter', error, StackTrace.current);
+  return l.authReturnFailed;
+}
 
 /// Markenname, Zeichen und ob es einfarbig ist (dann in der Textfarbe,
 /// damit GitHub im Dunkeln nicht verschwindet).

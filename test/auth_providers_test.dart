@@ -2,6 +2,7 @@ import 'dart:io';
 
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:trailbuddy/data/auth_repository.dart';
 
 void main() {
@@ -39,5 +40,43 @@ void main() {
       expect(
           File('assets/auth/${p.name}.svg').existsSync(), isTrue, reason: p.name);
     }
+  });
+
+  test('Nur OAuth-Fehler des Rücksprungs zählen, nicht eine abgelaufene '
+      'Sitzung (#398)', () {
+    expect(
+        AuthRepository.isProviderReturnError(
+            const AuthException('OAuth state has expired', code: 'server_error')),
+        isTrue);
+    expect(
+        AuthRepository.isProviderReturnError(
+            const AuthException('denied', code: 'access_denied')),
+        isTrue);
+    expect(
+        AuthRepository.isProviderReturnError(
+            const AuthException('Session expired.', code: 'session_expired')),
+        isFalse);
+    expect(AuthRepository.isProviderReturnError(Exception('x')), isFalse);
+  });
+
+  test('Der nachspielende Auth-Stream liefert jeden Rücksprung-Fehler nur '
+      'einmal', () async {
+    final client = SupabaseClient('http://localhost:1', 'key');
+    final repo = AuthRepository(client);
+    // ignore: invalid_use_of_internal_member
+    client.auth.notifyException(
+        const AuthException('OAuth state has expired', code: 'server_error'));
+
+    final first = await repo.providerReturnErrors.first;
+    expect(first.message, 'OAuth state has expired');
+
+    // Ein zweiter Hörer (Login nach der Registrierung wieder offen) bekommt
+    // denselben Fehler vom ReplaySubject nachgespielt — aber nicht gezeigt.
+    final again = <AuthException>[];
+    final sub = repo.providerReturnErrors.listen(again.add);
+    await Future<void>.delayed(Duration.zero);
+    await sub.cancel();
+    expect(again, isEmpty);
+    await client.dispose();
   });
 }

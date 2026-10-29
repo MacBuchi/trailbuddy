@@ -2,6 +2,17 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## Signing in with GitHub, Discord and Google
+
+*Version 0.141.0, 2026-10-29*
+
+- Signing in with GitHub, Discord and Google is switched on — the
+  buttons are under sign-in and sign-up.
+- If signing in with the provider fails, the app now says why:
+  cancelled, took too long, or the provider account carries the
+  addresses of several TrailBuddy accounts. Before, you silently landed
+  on the sign-in page again.
+
 ## Signing in without Apple
 
 *Version 0.140.1, 2026-10-29*

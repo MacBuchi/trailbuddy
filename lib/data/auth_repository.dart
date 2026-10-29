@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
@@ -53,6 +54,42 @@ class AuthRepository {
   String? get currentUserId => _client.auth.currentUser?.id;
 
   Stream<AuthState> get onAuthStateChange => _client.auth.onAuthStateChange;
+
+  /// Ein gescheiterter Rücksprung vom Anbieter (#398): GoTrue hängt
+  /// `error`/`error_description` an die Rücksprung-Adresse,
+  /// `supabase_flutter` reicht das als Fehler in [onAuthStateChange]
+  /// weiter. Der Stream ist ein `ReplaySubject` und spielt jedem neuen
+  /// Hörer ALLES nach — jeder Fehler kommt hier deshalb nur einmal heraus,
+  /// sonst stünde er nach jedem Wechsel zur Registrierung und zurück
+  /// wieder da. Nur die Fehlercodes aus OAuth (RFC 6749 4.1.2.1): Auch
+  /// eine abgelaufene Sitzung kommt als `AuthException` über den Stream.
+  Stream<AuthException> get providerReturnErrors =>
+      _client.auth.onAuthStateChange.transform(
+        StreamTransformer.fromHandlers(
+          handleData: (_, _) {},
+          handleError: (error, _, sink) {
+            if (isProviderReturnError(error) && _reportedReturnErrors.add(error)) {
+              sink.add(error as AuthException);
+            }
+          },
+        ),
+      );
+
+  final _reportedReturnErrors = Set<Object>.identity();
+
+  @visibleForTesting
+  static bool isProviderReturnError(Object error) =>
+      error is AuthException && _oauthErrorCodes.contains(error.code);
+
+  static const _oauthErrorCodes = {
+    'invalid_request',
+    'unauthorized_client',
+    'access_denied',
+    'unsupported_response_type',
+    'invalid_scope',
+    'server_error',
+    'temporarily_unavailable',
+  };
 
   /// Legt ein Konto an. Liefert `true`, wenn die Adresse erst bestätigt
   /// werden muss.

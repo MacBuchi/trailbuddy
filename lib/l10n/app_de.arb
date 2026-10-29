@@ -9053,6 +9053,22 @@
       }
     }
   },
+  "authReturnMultipleAccounts": "Die Anmeldung ging nicht: Dein Konto beim Anbieter trägt Adressen mehrerer TrailBuddy-Konten, und es ist nicht klar, welches gemeint ist. Melde dich mit E-Mail und Passwort an – oder entferne beim Anbieter die zweite Adresse.",
+  "@authReturnMultipleAccounts": {
+    "description": "Rücksprung vom Anbieter gescheitert (#398): GoTrue fand zu den bestätigten Adressen des Anbieter-Kontos mehrere TrailBuddy-Konten."
+  },
+  "authReturnExpired": "Die Anmeldung beim Anbieter hat zu lange gedauert. Versuch es noch einmal.",
+  "@authReturnExpired": {
+    "description": "Rücksprung vom Anbieter gescheitert: Die Anmeldeseite stand zu lange offen (OAuth state expired)."
+  },
+  "authReturnCancelled": "Die Anmeldung beim Anbieter wurde abgebrochen.",
+  "@authReturnCancelled": {
+    "description": "Rücksprung vom Anbieter: Zustimmung verweigert oder abgebrochen (access_denied)."
+  },
+  "authReturnFailed": "Die Anmeldung beim Anbieter hat nicht geklappt. Versuch es noch einmal oder melde dich mit E-Mail und Passwort an.",
+  "@authReturnFailed": {
+    "description": "Rücksprung vom Anbieter gescheitert, ohne bekannten Grund."
+  },
   "authProviderFailed": "Die Anmeldeseite von {provider} ließ sich nicht öffnen. Versuch es noch einmal.",
   "@authProviderFailed": {
     "description": "Hinweis, wenn der Browser für die Anmeldung beim Anbieter nicht aufging.",
