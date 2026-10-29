@@ -2,6 +2,20 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## Navigation in the small window
+
+*Version 0.138.2, 2026-10-29*
+
+- The small window while navigating now shows your position and the
+  route ahead, zoomed out further than the full view. Until now the
+  map in it stood still and showed a patch from the middle of the
+  screen — often without the route and without you.
+- At the bottom there is now just one sign and one number, large
+  enough to read: the next trail's shield and the distance to it, the
+  rest on the trail, “GO” at the trail head, and off the route the
+  arrow to it and the distance. Names and climbs are in the
+  notification.
+
 ## Trail list and elevation profile in the planner
 
 *Version 0.138.1, 2026-10-29*

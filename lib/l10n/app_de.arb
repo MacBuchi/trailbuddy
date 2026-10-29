@@ -3378,14 +3378,9 @@
   "@navArrivedSubtitle": {
     "description": "Unter „Angekommen\"."
   },
-  "navPipOff": "{distance} daneben",
-  "@navPipOff": {
-    "description": "Im kleinen Fenster: Abstand neben der Route, fertig formatiert.",
-    "placeholders": {
-      "distance": {
-        "type": "String"
-      }
-    }
+  "navPipGo": "LOS",
+  "@navPipGo": {
+    "description": "Im kleinen Fenster am Trailkopf, neben dem Schild des Trails: Hier beginnt er (#415). Kurz, Versalien."
   },
   "navToHead": "BIS ZUM TRAILKOPF",
   "@navToHead": {
@@ -6256,7 +6251,7 @@
   "@highlightNavPipTitle": {
     "description": "Entdecken, Eintrag „nav-pip“: Überschrift (auch im Neuheiten-Blatt nach einem Update)."
   },
-  "highlightNavPipText": "Wischst du beim Navigieren nach Hause — oder tippst „Minimieren\" —, bleibt die Karte als kleines Fenster über den anderen Apps, darunter der nächste Abschnitt. „Beenden\" geht direkt im Fenster.",
+  "highlightNavPipText": "Wischst du beim Navigieren nach Hause — oder tippst „Minimieren\" —, bleibt die Karte als kleines Fenster über den anderen Apps: deine Position und die Route voraus, darunter das Schild des nächsten Trails und die Strecke bis dahin. „Beenden\" geht direkt im Fenster.",
   "@highlightNavPipText": {
     "description": "Entdecken, Eintrag „nav-pip“: Text, zwei bis drei Sätze (auch im Neuheiten-Blatt)."
   },

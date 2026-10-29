@@ -30,6 +30,8 @@ import 'package:trailbuddy/features/rides/ride_track.dart';
 import 'package:trailbuddy/features/routing/nav_notice.dart';
 import 'package:trailbuddy/features/routing/route_band.dart' show kRouteFollowOpacity;
 import 'package:trailbuddy/features/routing/nav_providers.dart' show kNavArrivedLinger, kNavTrailDoneLinger, lastNavProvider;
+import 'package:trailbuddy/features/routing/route_progress.dart' show kNavPipBarShare, kNavPipZoom, pipAheadPx;
+import 'package:trailbuddy/features/trails/grade_shield.dart';
 import 'package:trailbuddy/models/trail.dart';
 
 import '../fakes/fake_backend.dart';
@@ -214,6 +216,9 @@ void main() {
         for (final t in find.descendant(of: find.byKey(ValueKey(key)), matching: find.byType(Text)).evaluate())
           (t.widget as Text).data ?? (t.widget as Text).textSpan?.toPlainText() ?? ''
       ].join(' ');
+
+  /// Die eine Zahl im Fenster (#415): der Schlüssel sitzt am Text selbst.
+  String pipNumber() => (find.byKey(const ValueKey('nav-pip-number')).evaluate().single.widget as Text).data!;
 
   testWidgets('from „Meine Fahrten": turns with the course, counts down, warns off the route, ends at the goal',
       (tester) async {
@@ -423,8 +428,10 @@ void main() {
     tester.view.physicalSize = const Size(450, 600);
     pip.shrink();
     await settle(tester);
-    expect(textIn('nav-pip'), contains('ROSSKOPF SÜD'));
-    expect(textIn('nav-pip'), contains('m'));
+    // Nur Schild und Rest (#415): Der Name steht in der Benachrichtigung.
+    expect(find.descendant(of: find.byKey(const ValueKey('nav-pip')), matching: find.byType(GradeShield)), findsOneWidget);
+    expect(textIn('nav-pip'), isNot(contains('ROSSKOPF')));
+    expect(pipNumber(), endsWith('m'));
     tester.view.physicalSize = const Size(1080, 2400);
     pip.grow();
     await settle(tester);
@@ -634,29 +641,47 @@ void main() {
 
     // Klein: keine Leiste, keine Knöpfe, keine Reiterleiste — unten der
     // Abschnitt und das Band, und der Bildschirm darf aus (9.4). Das
-    // Fenster ist 3:4 und ~150 dp breit: nichts läuft über.
+    // Fenster ist 3:4 und ~150 dp breit: nichts läuft über. Wie auf dem
+    // Gerät erst der Modus, dann die Größe (#415).
+    await fix(tester, _lat, _lng(5));
+    pip.shrink();
+    await settle(tester);
     tester.view.physicalSize = const Size(450, 600);
     tester.view.devicePixelRatio = 3;
     addTearDown(tester.view.reset);
-    pip.shrink();
     await settle(tester);
+    // Die Kamera des Fensters, ohne neuen Fix: weiter draußen, und die
+    // Position im freien Teil über der Zeile — bis 0.138 lag sie ein
+    // Sechstel der alten Vollbildhöhe voraus, also unter dem Fenster.
+    expect(fakeMap(tester).zoom, kNavPipZoom);
+    final mPerPx = 156543.03392 * math.cos(_lat * math.pi / 180) / math.pow(2, kNavPipZoom);
+    final ahead = const Distance().as(LengthUnit.Meter, const LatLng(_lat, 11.005), fakeMap(tester).center) / mPerPx;
+    expect(ahead, closeTo(pipAheadPx(200), 0.5));
     expect(find.byKey(const ValueKey('nav-pip')), findsOneWidget);
     expect(find.byKey(const ValueKey('nav-approach')), findsNothing);
     expect(find.byKey(const ValueKey('nav-stop')), findsNothing);
     expect(find.byType(NavigationBar), findsNothing);
-    expect(textIn('nav-pip'), contains('BIS ZUM ZIEL'));
-    expect(textIn('nav-pip'), contains('1,5 km'));
+    // Ein Zeichen und eine Zahl (#415): die Zielflagge, die km — keine
+    // Beschriftung, die im Fenster keiner liest.
+    expect(find.descendant(of: find.byKey(const ValueKey('nav-pip')), matching: find.byIcon(Icons.sports_score)),
+        findsOneWidget);
+    expect(pipNumber(), endsWith('km'));
+    expect(textIn('nav-pip'), isNot(contains('BIS ZUM ZIEL')));
     expect(tester.getBottomLeft(find.byKey(const ValueKey('nav-pip'))).dy, 200, reason: 'unten im Fenster');
+    expect(tester.getSize(find.byKey(const ValueKey('nav-pip'))).height, closeTo(200 * kNavPipBarShare, 0.01));
     expect(screen.calls.last, isFalse);
     await fix(tester, _lat + 0.0006, _lng(12));
     await fix(tester, _lat + 0.0006, _lng(12));
-    expect(textIn('nav-pip'), contains('67 m daneben'));
+    expect(pipNumber(), '67 m');
+    expect(find.byKey(const ValueKey('nav-pip-off-arrow')), findsOneWidget);
 
-    // Wieder groß: alles zurück, der Bildschirm wieder an.
+    // Wieder groß: alles zurück, der Bildschirm wieder an, der Zoom von
+    // vorher.
     tester.view.reset();
     pip.grow();
     await settle(tester);
     expect(find.byKey(const ValueKey('nav-off')), findsOneWidget);
+    expect(fakeMap(tester).zoom, 16);
     // Groß und navigierend: weiter ohne Reiterleiste (Vollbild).
     expect(find.byType(NavigationBar), findsNothing);
     expect(screen.calls.last, isTrue);

@@ -985,86 +985,72 @@ class _PipCard extends StatelessWidget {
 
   final NavSession session;
 
+  /// EIN Zeichen und EINE Zahl, darunter das Band (#415, Konzept-Routing
+  /// 9.6). Bis 0.138 stand hier der Abschnitt der Folgeansicht im Kleinen
+  /// — Name, km, hm, Beschriftung —, und `FittedBox` schrumpfte jede
+  /// Zeile, bis sie keiner las. Was wegfällt, steht in der Benachrichtigung.
   @override
   Widget build(BuildContext context) {
     final l = context.l10n;
+    final size = MediaQuery.sizeOf(context);
+    final barH = size.height * kNavPipBarShare;
+    // Die Zahl nach dem Fenster: so groß, wie die Zeile es trägt.
+    final numberSize = math.min(barH * 0.42, size.width * 0.2);
+    final iconSize = numberSize * 1.15;
     final state = session.state;
     final arrived = state?.arrived ?? false;
     final off = !arrived && (state?.offRoute ?? false);
     final phase = session.phase;
     final section = phase.section;
-    final big = AppFonts.numbers(TextStyle(fontSize: 28, height: 1, color: _p.text)).copyWith(letterSpacing: -0.5);
-    final small = AppFonts.numbers(const TextStyle(fontSize: 14, height: 1));
-    Widget line(Widget child) =>
-        FittedBox(fit: BoxFit.scaleDown, alignment: Alignment.centerLeft, child: child);
-    final List<Widget> rows;
-    if (off && state != null) {
-      rows = [
-        line(_Label(l.navOffRoute, color: _p.warningText)),
-        line(Text(l.navPipOff(formatMeters(state.offM)), style: big.copyWith(color: _p.warningText))),
-      ];
-    } else if (phase.kind == NavPhaseKind.arrived) {
-      rows = [line(Text(l.navArrivedTitle, style: big))];
-    } else {
-      final head = section == null
-          ? line(_Label(l.navToGoal))
-          : line(Row(mainAxisSize: MainAxisSize.min, children: [
-              GradeShield(section.grade, uphill: section.uphill, fontSize: 10, palette: _p.grade),
-              const SizedBox(width: 5),
-              _TrailName(section.name, size: 15),
-            ]));
-      rows = switch (phase.kind) {
-        NavPhaseKind.onTrail => [
-            head,
-            const SizedBox(height: 4),
-            line(Text.rich(TextSpan(children: [
-              TextSpan(text: formatMeters(phase.distM), style: big),
-              if (phase.lossM case final loss?) TextSpan(text: '  ↓${loss.round()} ${l.navUnitHm}', style: small),
-            ]))),
-            const SizedBox(height: 4),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(2),
-              child: SizedBox(
-                height: 4,
-                child: Stack(children: [
-                  Container(color: _p.line),
-                  FractionallySizedBox(
-                    widthFactor: section!.lengthM <= 0 ? 0 : (1 - phase.distM / section.lengthM).clamp(0.0, 1.0),
-                    child: Container(color: section.uphill ? _p.grade.uphill : _p.grade.of(section.grade)),
-                  ),
-                ]),
-              ),
-            ),
-          ],
-        NavPhaseKind.atHead => [line(_Label(l.navAtHead, color: AppColors.brand)), const SizedBox(height: 3), head],
-        _ => [
-            head,
-            const SizedBox(height: 4),
-            line(Text.rich(TextSpan(children: [
-              TextSpan(text: formatMeters(phase.distM), style: big),
-              if (phase.climbM case final climb? when climb >= 1)
-                TextSpan(text: '  ↑${climb.round()} ${l.navUnitHm}', style: small.copyWith(color: AppColors.brand)),
-            ]))),
-          ],
-      };
-    }
+    final number = AppFonts.numbers(TextStyle(fontSize: numberSize, height: 1, color: _p.text)).copyWith(letterSpacing: -0.5);
+    Widget shield() => GradeShield(section!.grade, uphill: section.uphill, fontSize: numberSize * 0.5, palette: _p.grade);
+    final (Widget sign, String text, Color color) = switch (phase.kind) {
+      _ when off && state != null => (
+          // Der Pfeil der Folgeansicht: zur Linie voraus, gegen die Karte gedreht.
+          Transform.rotate(
+            key: const ValueKey('nav-pip-off-arrow'),
+            angle: (bearingDegrees(state.position.latitude, state.position.longitude, state.rejoin.latitude,
+                        state.rejoin.longitude) -
+                    session.bearingDeg) *
+                math.pi /
+                180,
+            child: Icon(Icons.navigation, size: iconSize, color: _p.warningText),
+          ),
+          formatMeters(state.offM),
+          _p.warningText,
+        ),
+      NavPhaseKind.arrived => (Icon(Icons.sports_score, size: iconSize, color: AppColors.brand), l.navArrivedTitle, _p.text),
+      _ when section == null => (Icon(Icons.sports_score, size: iconSize, color: _p.text), formatMeters(phase.distM), _p.text),
+      NavPhaseKind.atHead => (shield(), l.navPipGo, AppColors.brand),
+      _ => (shield(), formatMeters(phase.distM), _p.text),
+    };
     return _NavTheme(
       child: Align(
         alignment: Alignment.bottomCenter,
         child: Container(
           key: const ValueKey('nav-pip'),
           width: double.infinity,
-          padding: const EdgeInsets.fromLTRB(8, 6, 8, 6),
+          height: barH,
+          padding: const EdgeInsets.fromLTRB(8, 4, 8, 6),
           decoration: BoxDecoration(
             color: _p.ground,
             border: Border(top: BorderSide(color: off ? _p.warningText : _p.line, width: off ? 2 : 1)),
           ),
           child: Column(
-            mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              ...rows,
-              if (!arrived) ...[const SizedBox(height: 5), _BandBar(session: session, height: 5)],
+              Expanded(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    sign,
+                    SizedBox(width: numberSize * 0.3),
+                    Text(text, key: const ValueKey('nav-pip-number'), style: number.copyWith(color: color)),
+                  ]),
+                ),
+              ),
+              if (!arrived) _BandBar(session: session, height: 5),
             ],
           ),
         ),

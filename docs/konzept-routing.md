@@ -989,15 +989,50 @@ nur eng gewährt; PiP braucht keine.
   `onUserLeaveHint`. Ein Methodenkanal in `MainActivity`, kein Paket —
   es sind drei Aufrufe. Unter Android 8 (API 26) gibt es kein PiP; dann
   ist die Benachrichtigung alles.
-- **Was im Fenster steht**: dieselbe Folgeansicht ohne Knöpfe und ohne
-  Karten oben; seit 0.116.0 (9.9, Entwurf 1b/1c) unten der Abschnitt —
-  Schild und Name, km groß und ↑hm in Lime bei der Anfahrt, Rest, ↓hm
-  und Balken auf dem Trail, abseits der Abstand in Warnfarbe — und das
-  Band ohne Namen; bis 0.115.0 die drei Zahlen klein über der Karte.
-  Jede Zeile schrumpft, statt überzulaufen (~150 dp breit). Flutter
-  rendert im Fenster dieselbe Activity; die App erfährt über den Kanal,
-  dass sie klein ist, und baut die schmale Fassung. Seitenverhältnis 3:4
-  hochkant.
+- **Was im Fenster steht** (seit 0.138.2, #415): die Folgeansicht ohne
+  Knöpfe und ohne Karten oben, mit EIGENER Kamera und unten EINE Zeile.
+  Flutter rendert im Fenster dieselbe Activity; die App erfährt über
+  den Kanal, dass sie klein ist, und baut die schmale Fassung.
+  Seitenverhältnis 3:4 hochkant, auf dem Pixel XL 132 × 176 dp.
+  - **Die Karte zeichnet im Fenster weiter**: Android pausiert die
+    Activity im Bild-im-Bild und nimmt ihr den Fokus; Flutter hörte
+    „inactive", und `maplibre_android` 0.3.5 hält bei jedem Zustand außer
+    „resumed" die native Karte an (`MapView.onPause`/`onStop`). Das
+    Fenster zeigte dann die eingefrorene Mitte des Vollbilds in voller
+    Größe. `MainActivity` meldet Flutter im Fenster deshalb wieder
+    „resumed" (`keepResumedInPip` nach `onPause`, Fokusverlust und dem
+    Wechsel); geschlossen geht es über `onStop` wie immer nach „paused".
+  - **Kamera**: nach dem Kurs gedreht wie groß, Zoom `kNavPipZoom` 14,5
+    (das Fenster ist ein Drittel so breit, 1,5 Stufen weniger zeigen
+    etwa denselben Boden), die Position im freien Teil über der Zeile
+    bei 75 % seiner Höhe (`pipAheadPx`) — voraus dreimal so viel Route
+    wie dahinter. Die Höhe kommt vom Fenster (`MediaQuery`), nicht von
+    der letzten Kamera: Die meldete gleich nach dem Wechsel noch das
+    Vollbild, und Android meldet erst den Modus, dann die Größe — die
+    Kamera zieht deshalb nach, sobald sich die Höhe ändert, nicht erst
+    beim nächsten Fix (im Stand käme keiner). Groß gilt wieder der Zoom
+    von vorher.
+  - **Die Zeile** nimmt 28 % der Höhe (`kNavPipBarShare`), die Zahl
+    wächst mit dem Fenster: Anfahrt Schild des nächsten Trails und km
+    bis zum Kopf (zum Ziel die Zielflagge), auf dem Trail Schild und
+    Rest, am Kopf Schild und „LOS", abseits der Pfeil zur Linie
+    (derselbe wie groß) und der Abstand mit Warnrand oben, angekommen
+    die Flagge; darunter das Band ohne Namen. Keine Namen, keine hm,
+    keine Beschriftung — die stehen in der Benachrichtigung (9.8).
+  - **Keine Abbiegepfeile**: Auf einem Trail löste jede Kehre einen aus,
+    und Kreuzungen kennt der Graph nicht verlässlich. Die gedrehte Karte
+    mit dem Band ist das Navigationszeichen. Anderen Apps geht es ähnlich:
+    Google Maps zeigt im Fenster einen großen Abbiegepfeil über einer
+    Karte, die Tests für zu klein hielten; Androids Leitfaden zu PiP
+    verlangt nur den Inhalt, keine Bedienung.
+  - **Bis 0.138.1** stand unten der Abschnitt der Folgeansicht im
+    Kleinen (Schild, Name, km, ↑hm, Balken; seit 0.116.0, davor drei
+    Zahlen), jede Zeile per `FittedBox` geschrumpft, und die Kamera
+    behielt Zoom 16 und schob die Mitte ein Sechstel der alten
+    Vollbildhöhe voraus — gezeichnet wurde ohnehin nichts davon, weil
+    die Karte angehalten war: Das Fenster zeigte ein Stück Karte ohne
+    Position und ohne Route (Betreiber 2026-10-29: „komplett
+    unbrauchbar").
 - **Eine Aktion im Fenster**: „Beenden" als `RemoteAction`. Ein Tipp
   auf das Fenster holt die App zurück, wie bei jedem PiP.
 - **„Minimieren"** (seit 0.116.0, Entwurf 1a): ein Knopf in der
