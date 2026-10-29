@@ -96,14 +96,20 @@ class ElevationProfileChart extends StatelessWidget {
                         ? paint
                         : Stack(fit: StackFit.expand, children: [
                             paint,
-                            // Strecke und Höhe an der Stelle, oben in der
-                            // Ecke, die der Strich nicht überdeckt.
-                            Align(
-                              alignment: cursor > profile.lengthM / 2 ? Alignment.topLeft : Alignment.topRight,
-                              child: Text(
+                            // Strecke und Höhe an der Stelle, oben NEBEN dem
+                            // Strich — rechts, sonst links, nie über die
+                            // Zeichnung hinaus. In einer festen Ecke stand
+                            // es links direkt an der Höhe der Achse (#412).
+                            CustomSingleChildLayout(
+                              delegate: _BesideCursor(cursor / profile.lengthM),
+                              child: Container(
                                 key: const ValueKey('elevation-cursor-label'),
-                                '${_km(cursor)} · ${profile.eleAt(cursor).round()} m',
-                                style: small?.copyWith(color: theme.colorScheme.onSurface),
+                                padding: const EdgeInsets.symmetric(horizontal: 3),
+                                color: theme.colorScheme.surface.withValues(alpha: 0.85),
+                                child: Text(
+                                  '${_km(cursor)} · ${profile.eleAt(cursor).round()} m',
+                                  style: small?.copyWith(color: theme.colorScheme.onSurface),
+                                ),
                               ),
                             ),
                           ]);
@@ -151,6 +157,31 @@ class ElevationProfileChart extends StatelessWidget {
 /// Die Teilstriche der km-Skala in Metern ab Start, ohne die 0: der
 /// kleinste glatte Schritt mit höchstens fünf Strichen. Ganze Kilometer
 /// ab 1 km Schritt, darunter Meter — so braucht kein Strich ein Komma.
+/// Legt das Etikett der gewählten Stelle oben neben den Strich bei
+/// [fraction] der Breite: rechts davon, wenn es dort Platz hat, sonst
+/// links, und ist beides zu eng, an den Rand der Zeichnung.
+class _BesideCursor extends SingleChildLayoutDelegate {
+  const _BesideCursor(this.fraction);
+
+  final double fraction;
+  static const _gap = 6.0;
+
+  @override
+  BoxConstraints getConstraintsForChild(BoxConstraints constraints) => constraints.loosen();
+
+  @override
+  Offset getPositionForChild(Size size, Size child) {
+    final x = fraction.clamp(0.0, 1.0) * size.width;
+    final right = x + _gap;
+    if (right + child.width <= size.width) return Offset(right, 0);
+    final left = x - _gap - child.width;
+    return Offset(left.clamp(0.0, (size.width - child.width).clamp(0.0, double.infinity)), 0);
+  }
+
+  @override
+  bool shouldRelayout(_BesideCursor old) => old.fraction != fraction;
+}
+
 List<double> axisTicks(double lengthM) {
   const steps = [250.0, 500.0, 1000.0, 2000.0, 5000.0, 10000.0, 20000.0, 50000.0, 100000.0];
   final step = steps.firstWhere((s) => lengthM / s <= 5, orElse: () => steps.last);

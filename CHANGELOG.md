@@ -2,6 +2,18 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Trail-Liste und Höhenprofil im Planer
+
+*Version 0.138.1, 2026-10-29*
+
+- „Keine“ in der Trail-Liste des Planers wählt jetzt wirklich alles ab —
+  auch Trails, die nach einem kleineren Radius nicht mehr in der Liste
+  stehen. Bisher blieben sie unsichtbar gewählt und hielten das Gebiet
+  groß. Liegen gewählte Trails außerhalb des Radius, sagt die Liste
+  jetzt, wie viele.
+- Beim Ziehen im Höhenprofil steht die Angabe zur Stelle jetzt direkt
+  neben dem Strich, nicht mehr in der Ecke an der Höhenachse.
+
 ## Größere Runden planen, alte Bereiche schneller
 
 *Version 0.138.0, 2026-10-29*

@@ -471,6 +471,11 @@ class _ListSheet extends ConsumerWidget {
     final radius = session.prefs.radiusKm;
     final pool = loopPoolOf(trails, center, reachM: radius * 1000);
     final ids = [for (final t in pool.inReach) t.id];
+    // Gewählt, aber nicht in der Liste (Radius verkleinert, auf der Karte
+    // getippt, #411): Sie zählen in der Leiste und im Rahmen mit, also
+    // sagt die Liste, dass es sie gibt, und „Keine" nimmt auch sie weg.
+    final listed = {...ids, for (final t in pool.warned) t.id};
+    final outside = session.selected.where((id) => !listed.contains(id)).length;
     final l = context.l10n;
     return ListView(
       controller: scroll,
@@ -489,10 +494,16 @@ class _ListSheet extends ConsumerWidget {
           ),
           TextButton(
             key: const ValueKey('loop-list-none'),
-            onPressed: ids.isEmpty ? null : () => notifier.setSelected(ids, false),
+            onPressed: session.selected.isEmpty ? null : notifier.clearSelection,
             child: Text(l.loopListNone),
           ),
         ]),
+        if (outside > 0)
+          Text(
+            key: const ValueKey('loop-list-outside'),
+            l.loopListOutside(outside),
+            style: theme.textTheme.bodySmall?.copyWith(color: palette.warningText),
+          ),
         if (pool.inReach.isEmpty)
           Text(
             key: const ValueKey('loop-list-empty'),

@@ -1561,6 +1561,43 @@ void main() {
     expect(find.text('Fernweh'), findsOneWidget);
   });
 
+  testWidgets('Liste (#411): kleinerer Radius — gewählte außerhalb stehen als Satz da, „Keine" nimmt sie mit',
+      (tester) async {
+    await start(tester, areaStore: await _areaWithTrack());
+    await openPlanner(tester);
+    Future<void> radius(double dx) async {
+      await tapRail(tester, 'loop-rail-params');
+      final slider = find.descendant(of: find.byKey(const ValueKey('loop-radius')), matching: find.byType(Slider));
+      await tester.ensureVisible(slider);
+      await settle(tester, frames: 4);
+      await tester.drag(slider, Offset(dx, 0));
+      await settle(tester);
+      await tester.tapAt(const Offset(10, 10));
+      await settle(tester);
+    }
+
+    await radius(400);
+    await tapRail(tester, 'loop-rail-list');
+    expect(find.text('Fernweh'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('loop-list-all')));
+    await settle(tester);
+    final all = picked(tester).length;
+    expect(all, greaterThan(1));
+    expect(find.byKey(const ValueKey('loop-list-outside')), findsNothing);
+    await tester.tapAt(const Offset(10, 10));
+    await settle(tester);
+
+    await radius(-400);
+    await tapRail(tester, 'loop-rail-list');
+    expect(find.text('Fernweh'), findsNothing, reason: '22 km weg, nicht mehr in der Liste');
+    expect(find.byKey(const ValueKey('loop-list-outside')), findsOneWidget);
+    expect(picked(tester), hasLength(all), reason: 'der Radius allein wählt nichts ab');
+    await tester.tap(find.byKey(const ValueKey('loop-list-none')));
+    await settle(tester);
+    expect(picked(tester), isEmpty, reason: '„Keine" heißt die ganze Auswahl');
+    expect(find.byKey(const ValueKey('loop-list-outside')), findsNothing);
+  });
+
   testWidgets('Gebiet umfahren: die Trails darin kommen dazu, mit „weg" fallen sie heraus', (tester) async {
     await start(tester, areaStore: await _areaWithTrack());
     await openPlanner(tester);

@@ -529,7 +529,10 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     Ziehen setzt `routeProfileCursorProvider` (Meter im Profil + Ort auf
     der Linie, anteilig über `NavRoute.pointAt` umgerechnet, weil das
     Profil entlang seiner 50-m-Proben misst); die Karte zeigt dort
-    `RouteCursorSymbol` (Marker `route-profile-cursor`). **Die Kamera
+    `RouteCursorSymbol` (Marker `route-profile-cursor`). Das Etikett
+    (`elevation-cursor-label`) steht seit 0.138.1 oben NEBEN dem Strich
+    (`_BesideCursor`: rechts, sonst links) — in der festen Ecke oben
+    links stand es am Pixel an der Höhe der Achse (#412). **Die Kamera
     folgt NICHT** (Betreiber, 2026-10-15: „zentrieren ist vielleicht
     nicht ideal und zu viel Unruhe, stattdessen sollte … die ganze
     Strecke im Bild zentriert sein und ein Icon … bewegt sich beim
@@ -693,7 +696,10 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     Zeichenwerkzeug, Parameter, Phase, Grund, Ergebnis) — Leiste, Karte
     und Blätter lesen dieselbe Wahrheit. Tipp auf einen Trail = an/ab,
     ab Werk nichts gewählt; Liste (Radius `LoopPrefs.radiusKm`, 2–30 km,
-    begrenzt NUR die Liste) und Gebiet (`AreaDrawOverlay(onRing:)`,
+    begrenzt NUR die Liste — seit 0.138.1 leert „Keine" deshalb die GANZE
+    Auswahl samt Sternen, und `loop-list-outside` zählt Gewählte, die
+    die Liste nicht zeigt; bis dahin hielten sie unsichtbar den Rahmen
+    groß, #411) und Gebiet (`AreaDrawOverlay(onRing:)`,
     `trailsInRing`: Mehrheit der Punkte drin) sind zwei weitere Wege zur
     selben Menge. Die Auswahl leuchtet seit 0.83.3 deckend mit dunkler
     Kontur (`kLoopPickWidth`/`kLoopPickBorder`, #233 — dieselbe Falle wie

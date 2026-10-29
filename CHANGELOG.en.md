@@ -2,6 +2,18 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## Trail list and elevation profile in the planner
+
+*Version 0.138.1, 2026-10-29*
+
+- “None” in the planner's trail list now really clears everything —
+  including trails that dropped out of the list after a smaller radius.
+  Until now they stayed selected out of sight and kept the area large.
+  If selected trails lie outside the radius, the list now says how many.
+- When you drag along the elevation profile, the reading for that spot
+  now sits right beside the line, no longer in the corner by the height
+  axis.
+
 ## Plan bigger loops, faster with older areas
 
 *Version 0.138.0, 2026-10-29*
