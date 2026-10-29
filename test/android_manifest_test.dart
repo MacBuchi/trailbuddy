@@ -68,6 +68,12 @@ void main() {
       expect(dart, contains("invokeMethod<${method == 'supported' ? 'bool' : 'void'}>('$method'"));
       expect(kotlin, contains('"$method" ->'));
     }
+    // Im Fenster bleibt Flutter „resumed" (#415): maplibre_android hält
+    // die Karte sonst an, und das Fenster zeigte ein eingefrorenes Bild.
+    // Ob es wirkt, sieht nur das Gerät.
+    final pause = RegExp(r'override fun onPause\(\) \{([^}]*)\}').firstMatch(kotlin)?.group(1) ?? '';
+    expect(pause, contains('if (isInPictureInPictureMode) keepResumedInPip()'));
+    expect(kotlin, contains('appIsResumed()'));
   });
 
   test('Zurück auf der Karte legt die App in den Hintergrund, statt sie zu beenden', () {

@@ -833,11 +833,15 @@ Untertitel „2 Trails · 18,6 km".
   Knöpfen, die Karte oben bleibt. Die Zustände fragt es nur
   angemeldet; Knöpfe 44 px hoch statt der 34 px des Entwurfs.
 - **Bild-im-Bild (1b/1c) und Benachrichtigung (1d) sind N3** (seit
-  0.116.0): Im Fenster liegt die Abschnitts-Karte am unteren Rand über
-  die volle Breite (keine schwebende Karte mit Rand — bei ~150 dp wäre
-  der Rand Platz für nichts), km 28 px, das Band 5 px ohne Namen;
-  abseits ein Warnrand oben. Jede Zeile schrumpft (`FittedBox`), statt
-  überzulaufen. „Minimieren" ist ein runder dunkler Knopf neben
+  0.116.0): Im Fenster liegt unten über die volle Breite eine dunkle
+  Zeile (keine schwebende Karte mit Rand — bei ~150 dp wäre der Rand
+  Platz für nichts), das Band 5 px ohne Namen; abseits ein Warnrand
+  oben. **Seit 0.138.2 (#415) weicht die Zeile vom Entwurf ab**: statt
+  Schild, Name, km und hm nur EIN Zeichen und EINE Zahl, 28 % der
+  Fensterhöhe, die Zahl nach der Fensterbreite (Schild + km, „LOS" am
+  Kopf, oranger Pfeil + Abstand abseits, Zielflagge) — der Abschnitt
+  des Entwurfs war bei 132 dp unlesbar; dazu eine eigene Kamera
+  (Konzept-Routing 9.6). „Minimieren" ist ein runder dunkler Knopf neben
   „Bildschirm", nur wo das Gerät PiP kann. Die Benachrichtigung hat
   Titel und Text als die zwei Zeilen des Entwurfs; das
   Android-16-Live-Update mit Segmenten baut `flutter_foreground_task`

@@ -2,6 +2,20 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Navigation im kleinen Fenster
+
+*Version 0.138.2, 2026-10-29*
+
+- Das kleine Fenster beim Navigieren zeigt jetzt deine Position und
+  die Route voraus, weiter herausgezoomt als die große Ansicht. Bisher
+  stand die Karte darin still und zeigte ein Stück aus der Mitte des
+  Bildschirms — oft ohne Route und ohne dich.
+- Unten steht nur noch ein Zeichen und eine Zahl, groß genug zum
+  Ablesen: das Schild des nächsten Trails und die Strecke bis dahin,
+  auf dem Trail der Rest, am Trailkopf „LOS“, abseits der Pfeil zur
+  Route und der Abstand. Namen und Höhenmeter stehen in der
+  Benachrichtigung.
+
 ## Trail-Liste und Höhenprofil im Planer
 
 *Version 0.138.1, 2026-10-29*

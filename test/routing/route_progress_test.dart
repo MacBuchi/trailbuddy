@@ -155,4 +155,20 @@ void main() {
     expect(_d(_origin, c), closeTo(100 * 156543.03392 * 0.99619 / 65536, 0.5));
     expect(c.latitude, greaterThan(_origin.latitude));
   });
+
+  test('picture-in-picture: the position stands in the free part above the bar, not under it (#415)', () {
+    // Das Fenster auf dem Pixel XL: 176 dp hoch, unten die Zeile.
+    const h = 176.0;
+    final barTop = h * (1 - kNavPipBarShare);
+    final y = h / 2 + pipAheadPx(h);
+    expect(y, greaterThan(barTop * 0.6), reason: 'voraus mehr Route als dahinter');
+    expect(y, lessThan(barTop - 20), reason: 'die Position bleibt über der Zeile sichtbar');
+    // Bis 0.138 das Sechstel der Vollbildhöhe (731 dp), die die Kamera
+    // gleich nach dem Wechsel noch meldete: unter dem Fenster.
+    expect(h / 2 + 731 / 6, greaterThan(h));
+    // Negativ geht die Mitte hinter die Position.
+    final back = followCenter(_origin, 0, 16, 600, aheadPx: -100);
+    expect(back.latitude, lessThan(_origin.latitude));
+    expect(_d(_origin, back), closeTo(100 * 156543.03392 * 0.99619 / 65536, 0.5));
+  });
 }

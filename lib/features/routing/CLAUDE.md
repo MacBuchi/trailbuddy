@@ -896,9 +896,9 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     `nav-done-condition-<n>`, `nav-done-next`) meldet beim Tipp sofort,
     wie `SplitConfirmRow`.
   - **Fenster und Benachrichtigung nach Abschnitten (N3, seit
-    0.116.0)**: `_PipCard` (`nav-pip`) ersetzt die Zahlenzeile; jede
-    Zeile steckt in `FittedBox(scaleDown)` — ohne lief sie bei 150 dp um
-    96 px über (Gegenprobe im Flow-Test mit 450 × 600 px bei 3×).
+    0.116.0)**: `_PipCard` (`nav-pip`) ist seit 0.138.2 EINE Zeile
+    (#415, Bild-im-Bild unten); die Zeile steckt in
+    `FittedBox(scaleDown)` gegen Überlauf.
     `NavNoticeWatcher.phaseOf` rechnet die Phase aus `secs`,
     `navNotice` macht daraus Titel und Text über `serviceL10n()`.
     „Minimieren" fragt `pipSupportedProvider`; jede Kanal-Methode, die
@@ -964,8 +964,19 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     `onUserLeaveHint`; ohne `FEATURE_PICTURE_IN_PICTURE` (Go-Geräte) gar
     nicht.
   - **Klein heißt `pipModeProvider`**: `NavOverlay(compact: true)` zeigt
-    unten den Abschnitt (`nav-pip`, seit 0.116.0; bis dahin die Zahlen in
-    einer Zeile), die Hülle (`AppShell`) lässt die
+    unten EINE Zeile (`nav-pip`, Zeichen + `nav-pip-number`, seit
+    0.138.2, #415), `_follow` nimmt `kNavPipZoom` und `pipAheadPx` und
+    die Höhe aus `MediaQuery` — `_camera?.size` meldet gleich nach dem
+    Wechsel noch das Vollbild, die Position lag dann unter dem Fenster.
+    Android meldet erst den Modus, dann die Größe: `build` zieht die
+    Kamera nach, sobald `MediaQuery`-Höhe und `_followHeight` abweichen
+    (der Flow-Test fährt diese Reihenfolge; Gegenprobe rot). Groß kommt
+    der Zoom von vorher zurück (`_zoomBeforePip`). **Ohne
+    `keepResumedInPip` in `MainActivity` zeichnet im Fenster gar nichts**:
+    `maplibre_android` hält die native Karte bei jedem Lebenszyklus außer
+    „resumed" an, und im Fenster ist die Activity pausiert — das Bild war
+    die eingefrorene Mitte des Vollbilds. Kein Widget-Test sieht das
+    (`android_manifest_test` hält nur den Quelltext), nur das Gerät. Die Hülle (`AppShell`) lässt die
     Reiterleiste weg, und der Bildschirm-Schalter gilt nicht (9.4).
     Beim Kleinwerden geht es auf die Karte (`go('/')`).
   - **„Beenden" im Fenster** ist eine `RemoteAction` mit einem Broadcast

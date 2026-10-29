@@ -40,6 +40,21 @@ const kNavHeadingMinSpeedMps = 2.0;
 /// Der Zoom der Folgeansicht beim Start (256er-Stufen der Fassade).
 const kNavZoom = 16.0;
 
+/// Der Zoom im Bild-im-Bild (#415, Konzept-Routing 9.6): Das Fenster ist
+/// ein Drittel so breit wie der Schirm (132 dp auf dem Pixel XL), 1,5
+/// Stufen weniger zeigen darin etwa den Boden der Folgeansicht. Mit
+/// [kNavZoom] waren es 200 m — ein Stück Weg ohne Route.
+const kNavPipZoom = 14.5;
+
+/// So viel der Fensterhöhe nimmt unten die Zeile (#415) …
+const kNavPipBarShare = 0.28;
+
+/// … und so weit liegt die Mitte vor der Position: Sie steht im freien
+/// Teil darüber bei 75 % seiner Höhe, knapp unter der Mitte des
+/// Fensters — voraus liegt dreimal so viel Route wie dahinter. Ein
+/// Sechstel wie im Vollbild hätte sie unter die Zeile geschoben.
+double pipAheadPx(double heightPx) => heightPx * (1 - kNavPipBarShare) * 0.75 - heightPx / 2;
+
 /// Nach „Angekommen" endet die Navigation von selbst (9.3) — in der App
 /// und, ist die weggewischt, im Dienst (`nav_notice.dart`).
 const kNavArrivedLinger = Duration(minutes: 1);
@@ -336,12 +351,14 @@ class NavTracker {
 
 /// Wohin die Kamera muss, damit [position] im unteren Drittel einer
 /// Fläche von [heightPx] steht, wenn die Karte nach [bearingDeg] zeigt:
-/// die Mitte ein Sechstel der Höhe VORAUS (256er-Web-Mercator).
-LatLng followCenter(LatLng position, double bearingDeg, double zoom, double heightPx) {
+/// die Mitte ein Sechstel der Höhe VORAUS (256er-Web-Mercator) — oder
+/// [aheadPx], wo die Fläche anders geteilt ist (Bild-im-Bild, #415).
+LatLng followCenter(LatLng position, double bearingDeg, double zoom, double heightPx, {double? aheadPx}) {
   final mPerPx = 156543.03392 * math.cos(position.latitude * math.pi / 180) / math.pow(2, zoom);
-  final ahead = heightPx / 6 * mPerPx;
-  if (ahead <= 0) return position;
-  return const Distance().offset(position, ahead, bearingDeg);
+  final ahead = (aheadPx ?? heightPx / 6) * mPerPx;
+  if (ahead == 0 || ahead.isNaN) return position;
+  // Negativ: die Mitte hinter der Position (sie steht dann darüber).
+  return const Distance().offset(position, ahead.abs(), ahead > 0 ? bearingDeg : bearingDeg + 180);
 }
 
 /// So weit vor dem Trailkopf beginnt „am Trailkopf" (9.9) …

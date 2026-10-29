@@ -197,7 +197,31 @@ class MainActivity : FlutterActivity() {
 
     override fun onPictureInPictureModeChanged(isInPictureInPictureMode: Boolean, newConfig: Configuration) {
         super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
+        if (isInPictureInPictureMode) keepResumedInPip()
         pipChannel?.invokeMethod("changed", mapOf("inPip" to isInPictureInPictureMode))
+    }
+
+    // Im Bild-im-Bild ist die Activity pausiert und ohne Fokus; Flutter
+    // hörte „inactive", und maplibre_android hält dann die Karte an
+    // (MapView.onPause/onStop) — das Fenster zeigte die eingefrorene Mitte
+    // des Vollbilds, ohne Position und ohne Route (#415). Also bleibt
+    // Flutter im Fenster „resumed"; geschlossen geht es über onStop wie
+    // immer nach „paused".
+    override fun onPause() {
+        super.onPause()
+        if (isInPictureInPictureMode) keepResumedInPip()
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (!hasFocus && isInPictureInPictureMode) keepResumedInPip()
+    }
+
+    private fun keepResumedInPip() {
+        flutterEngine?.lifecycleChannel?.apply {
+            aWindowIsFocused()
+            appIsResumed()
+        }
     }
 
     override fun popSystemNavigator(): Boolean {

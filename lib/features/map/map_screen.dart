@@ -34,7 +34,7 @@ import '../routing/nav_providers.dart';
 import '../routing/nav_service.dart';
 import '../routing/nav_sections.dart';
 import '../routing/nav_view.dart';
-import '../routing/route_progress.dart' show followCenter, kNavZoom;
+import '../routing/route_progress.dart' show followCenter, kNavPipZoom, kNavZoom, pipAheadPx;
 import '../routing/route_elevation.dart' show RouteCursorSymbol, routeProfileCursorProvider;
 import '../routing/route_profile.dart' show RiderProfile, RoutePrefs;
 import '../routing/route_via_providers.dart';
@@ -377,6 +377,13 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     if (!mounted) return;
     ref.read(pipModeProvider.notifier).state = inPip;
     if (ref.read(navigationProvider) == null) return;
+    // Das Fenster hat seinen eigenen Zoom (#415); groß gilt wieder der
+    // von vorher.
+    if (inPip) {
+      _zoomBeforePip = _controller.zoom;
+    } else {
+      _navZoom = _zoomBeforePip;
+    }
     if (inPip) GoRouter.of(context).go('/');
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _follow();
@@ -849,17 +856,30 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   /// zwei Finger gelassen haben — gelesen beim nächsten Fix.
   double? _navZoom;
 
+  /// Der Zoom der Folgeansicht, bevor das Bild-im-Bild seinen nahm.
+  double? _zoomBeforePip;
+
+  /// Die Höhe, für die [_follow] zuletzt gerechnet hat.
+  double? _followHeight;
+
   /// Die Kamera auf den letzten Fix: gedreht nach dem Kurs, die Position
   /// im unteren Drittel. Mit „Norden" genordet und mittig.
   void _follow() {
     final session = ref.read(navigationProvider);
     final state = session?.state;
     if (session == null || state == null) return;
-    final zoom = _navZoom ?? _controller.zoom;
-    _navZoom = null;
+    final pip = ref.read(pipModeProvider);
+    final zoom = pip ? kNavPipZoom : _navZoom ?? _controller.zoom;
+    if (!pip) _navZoom = null;
     final bearing = session.bearingDeg;
-    final height = _camera?.size.height ?? MediaQuery.sizeOf(context).height;
-    final center = session.north ? state.position : followCenter(state.position, bearing, zoom, height);
+    // Die Höhe des Fensters, nicht die der letzten Kamera: Gleich nach dem
+    // Wechsel ins Bild-im-Bild meldet die noch das Vollbild, und die
+    // Position lag 120 dp voraus unter einem 176 dp hohen Fenster (#415).
+    final height = MediaQuery.sizeOf(context).height;
+    _followHeight = height;
+    final center = session.north
+        ? state.position
+        : followCenter(state.position, bearing, zoom, height, aheadPx: pip ? pipAheadPx(height) : null);
     _controller.move(center, zoom, bearing: bearing);
   }
 
@@ -1081,6 +1101,14 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     // Die Folgeansicht der Navigation (#232): Solange sie läuft, gehört
     // die Karte der Route — keine Taps, keine Leisten, keine Knöpfe.
     final nav = ref.watch(navigationProvider);
+    // Ins Bild-im-Bild meldet Android erst den Modus, dann die neue Größe;
+    // die Kamera rechnete sonst bis zum nächsten Fix mit der alten Höhe,
+    // und im Stand kommt keiner (#415).
+    if (nav != null && _followHeight != null && MediaQuery.sizeOf(context).height != _followHeight) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _follow();
+      });
+    }
 
     // Einmal auf das Netz zoomen, sobald es da ist; danach nie wieder
     // von selbst — wer die Karte verschoben hat, will nicht zurückgeholt
