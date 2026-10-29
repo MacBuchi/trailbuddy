@@ -50,4 +50,26 @@ void main() {
       }
     });
   }
+
+  // Gerätecheck 2026-10-29: „16.5 km" am Strich neben „17,3 km" in der Summe.
+  testWidgets('Etikett der Stelle schreibt km mit Komma wie die Summe', (tester) async {
+    final long = ElevationProfile.of(
+      [for (var i = 0; i <= 30; i++) LatLng(48, 9 + i * 0.001)],
+      [for (var i = 0; i <= 30; i++) 180.0 + i],
+    )!;
+    tester.view.physicalSize = const Size(411, 200);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      locale: const Locale('de'),
+      home: Scaffold(body: ElevationProfileChart(long, compact: true, cursorM: 1550, onScrub: (_) {})),
+    ));
+    final label = find.descendant(
+      of: find.byKey(const ValueKey('elevation-cursor-label')),
+      matching: find.byType(Text),
+    );
+    expect(tester.widget<Text>(label).data, startsWith('1,6 km · '));
+  });
 }

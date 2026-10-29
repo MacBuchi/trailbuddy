@@ -2,6 +2,14 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Komma im Höhenprofil
+
+*Version 0.138.3, 2026-10-29*
+
+- Die Stelle unter dem Finger im Höhenprofil schreibt Kilometer jetzt
+  mit Komma („16,5 km“) wie die Summe darüber — bisher stand dort
+  „16.5 km“.
+
 ## Navigation im kleinen Fenster
 
 *Version 0.138.2, 2026-10-29*
