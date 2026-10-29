@@ -135,9 +135,11 @@ void main() {
     await seed();
     final c = container();
     final bake = c.read(routingBakeProvider.notifier);
+    final seen = <RoutingBakeState>[];
+    c.listen(routingBakeProvider, (_, next) => seen.add(next));
     bake.bakeAreas([area]);
-    expect(c.read(routingBakeProvider).running, isTrue);
     await bake.idle;
+    expect(seen.where((s) => s.running), isNotEmpty, reason: 'die Zeile in „Meine Bereiche"');
     expect(c.read(routingBakeProvider).running, isFalse);
     expect(keepAlive.starts, 1, reason: 'unter dem Vordergrunddienst');
     expect(keepAlive.titles.first, 'Preparing the planner');
@@ -313,6 +315,34 @@ void main() {
     await bake.idle;
     expect(bake.baked, mapTiles, reason: 'nur der Rest, nichts doppelt');
     expect(await stored(), mapTiles);
+  });
+
+  test('beim Start (#410): ein Bereich ohne Stücke backt, ohne gespeichert oder aktualisiert zu werden', () async {
+    await seed();
+    final c = container();
+    final bake = c.read(routingBakeProvider.notifier);
+    await bake.bakeStored();
+    await bake.idle;
+    expect(bake.baked, mapTiles, reason: 'ein Bereich von vor 0.137.0 bekommt seine Stücke');
+    expect(await stored(), mapTiles);
+    expect(keepAlive.starts, 1);
+  });
+
+  test('beim Start ist alles frisch: kein Dienst, keine Zeile, nichts gebacken', () async {
+    await seed();
+    final c = container();
+    final bake = c.read(routingBakeProvider.notifier);
+    bake.bakeAreas([area]);
+    await bake.idle;
+    expect(keepAlive.starts, 1);
+
+    final seen = <RoutingBakeState>[];
+    c.listen(routingBakeProvider, (_, next) => seen.add(next));
+    await bake.bakeStored();
+    await bake.idle;
+    expect(bake.baked, mapTiles, reason: 'nichts doppelt');
+    expect(keepAlive.starts, 1, reason: 'jeder Start prüft — der Dienst läuft nur, wenn etwas backt');
+    expect(seen.where((s) => s.running), isEmpty, reason: 'keine Zeile in „Meine Bereiche"');
   });
 
   test('die ganze Region backt nicht im Hintergrund', () async {

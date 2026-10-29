@@ -1124,6 +1124,47 @@ langsamer als hier (120 Kacheln 41–44 s); kippt das Verhältnis nicht,
 wären es dort 4–5 s statt 41–44 s. Gemessen wird das am Gerät, sobald
 das Zusammensetzen in der App steht (Konzept-Routing 11.6).
 
+## #380 — Am Gerät: Backen und Zusammensetzen (gemessen 2026-10-28, Pixel XL, Android 10)
+
+0.137.1-dev mit Stall-Wächter, gespeicherter Bereich, „Fehlende Wege
+online ergänzen" aus, Start auf einem Trailkopf im Bereich. Keine Orte,
+nur Zahlen. Szenarien wie bei #356.
+
+| Szenario | Bau | Runde | längste UI-Lücke | PSS dazu |
+|---|---|---|---|---|
+| 2: 24 Trails, 24 Kacheln, erste Planung (backt) | 8,7 s (`graph.bake` 8,2 s) | 0,5 s | 1 332 ms¹ | +65 MB |
+| 2: zweite Planung, neue Sitzung | **0,8 s** | 0,5 s | 108 ms | +53 MB |
+| 4: 96 Trails, 104/108 Kacheln, erste Planung (80 neue backen) | 35,6 s (`graph.bake` 31,9 s, `stitch` 2,5 s) | 1,9 s | 370 ms | +87 MB Spitze |
+| 4: zweite Planung, neue Sitzung | **3,7 s** (`stitch` 2,7 s, `trails` 1,0 s) | **2,0 s** | 114 ms | +127 MB |
+| Basis 2026-10-18 (#367), Szenario 4 | 41–44 s | 94–114 s | 433–521 ms | +780 bis +960 MB |
+
+¹ `graph.pieces` einmal 1,48 s, bei der allerersten Planung nach der
+Installation; in den späteren Sitzungen 194 und 227 ms.
+`TileStore.builds` ist synchrones SQLite im UI-Isolate — vermutlich ein
+kalter Datei-Cache. Beobachten, nicht bauen.
+
+- Bei 30 km und 126 Kacheln sofort „Gebiet zu groß" (0 ms, keine Kachel
+  gelesen) — das Budget „zu groß < 1 s" hält.
+- Backen kostet am Gerät ~0,4 s je Kachel, eine zusammengesetzte
+  Planung ~0,035 s je Kachel, Speicher ~1,2 MB je Kachel.
+- **`kPlanMaxTiles` 120 → 300** (Betreiber, 2026-10-29: „250 Kacheln
+  sind ok, 300 eigentlich auch"). Die 120 kamen vom Speicher (Szenario 4
+  bis 1,76 GB). Grob hochgerechnet auf 300 Kacheln: zweite Planung
+  ~10 s und +350 MB, erste Planung ohne Stücke ~2 min Backen. Über 126
+  Kacheln nicht gemessen — der gespeicherte Bereich endete dort; die
+  Messung mit einem größeren Bereich steht in #380.
+- Nebenbefund: #410 (Bereiche von vor 0.137.0 backten nie im
+  Hintergrund) — seit 0.138.0 prüft der Start jeden Bereich.
+  **Gemessen 2026-10-29** (0.138.0-dev, derselbe Bereich, bis dahin nur
+  im Rahmen der Planungen gebacken): Der erste Start nach dem Update
+  backte den Rest im Hintergrund, 19 Blöcke `graph.bake` mit zusammen
+  66 s im eigenen Isolate, rund 75 s bis der Dienst ausging. Während
+  des Backens keine UI-Lücke über 100 ms; in den ersten 3 s nach dem
+  Start drei Lücken bis 1,66 s (kalter Datei-Cache nach der
+  Installation wie oben bei `graph.pieces`, oder das Lesen der ersten
+  Blöcke — nicht getrennt). Der zweite Kaltstart: nichts gebacken, kein
+  Dienst, Lücken höchstens 263 ms wie bei jedem Start.
+
 ## #381 — Kacheln beim Suchen nachladen (gemessen 2026-10-28, in der Cloud, öffentliche Daten; Empfehlung: nicht bauen)
 
 Die Frage des Issues: Der Planer setzt den ganzen Rahmen zusammen, bevor

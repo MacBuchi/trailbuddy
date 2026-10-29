@@ -404,6 +404,10 @@ class _RegionTile extends ConsumerWidget {
     if (!context.mounted) return;
     if (plan.isEmpty) {
       messenger.showSnackBar(SnackBar(content: Text(l.areasAllUpToDate)));
+      // Nichts zu holen, aber vielleicht zu backen (#410): fehlende oder
+      // alte Stücke des Planers; was frisch liegt, bleibt still.
+      final areas = await ref.read(storedAreasProvider.future);
+      ref.read(routingBakeProvider.notifier).bakeAreas([for (final a in areas) if (a.region == region.id) a]);
       return;
     }
     final mobile = ref.read(onMobileDataProvider);

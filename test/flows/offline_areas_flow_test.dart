@@ -129,7 +129,8 @@ void main() {
       bool wayLayer = true,
       String? appearance,
       Stream<List<ConnectivityResult>>? connectivity,
-      bool wholeRegion = true}) async {
+      bool wholeRegion = true,
+      bool bakeOnStart = false}) async {
     final source = _sourceBytes();
     final waysSource = _waysBytes();
     final cells = poiCellsCovering(47.5, 8.5, 48.5, 9.5);
@@ -151,6 +152,7 @@ void main() {
           areaPoiFileLoaderProvider.overrideWithValue((_, _) async => twoSprings),
           wholeRegionSupportedProvider.overrideWithValue(wholeRegion),
           routingBakeProvider.overrideWith(() => _SpyBake(bakeCalls)),
+          routingBakeOnStartProvider.overrideWithValue(bakeOnStart),
         ]);
     await settle(tester, frames: 20);
   }
@@ -672,6 +674,15 @@ void main() {
     await store.saveIndex([...await store.list(), area]);
     return area;
   }
+
+  testWidgets('beim Kartenstart backen die gespeicherten Bereiche nach (#410) — auch die von vor 0.137.0',
+      (tester) async {
+    final a = await seedRef('a', const AreaBounds(south: 47.99, west: 8.60, north: 48.02, east: 8.65));
+    await start(tester, bakeOnStart: true);
+    expect(bakeCalls, [
+      [a.id]
+    ], reason: 'ohne Speichern und ohne Aktualisieren');
+  });
 
   testWidgets('zwei Bereiche teilen ihre Kacheln (#229): „allein" in der Liste, Löschen nimmt nur, was keiner braucht',
       (tester) async {

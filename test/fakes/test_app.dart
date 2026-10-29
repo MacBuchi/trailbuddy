@@ -44,6 +44,7 @@ import 'package:trailbuddy/features/rides/ride_confirm_notify.dart';
 import 'package:trailbuddy/features/rides/ride_providers.dart';
 import 'package:trailbuddy/features/rides/ride_service.dart';
 import 'package:trailbuddy/features/routing/loop_plan_runner.dart';
+import 'package:trailbuddy/features/routing/routing_bake.dart' show routingBakeOnStartProvider;
 import 'package:trailbuddy/features/trails/outbox_providers.dart';
 import 'package:trailbuddy/features/trails/trail_providers.dart';
 
@@ -214,6 +215,10 @@ List<Override> overridesFor(FakeBackend backend,
       keepAliveProvider.overrideWithValue(keepAlive ?? FakeKeepAlive()),
       // Ein echter Rechen-Isolate antwortet in der Test-Zone nie (#188).
       loopPlanRunnerFactoryProvider.overrideWithValue(InlineLoopPlanRunner.new),
+      // Kein Backen beim Kartenstart (#410): Es legte in jedem Test mit
+      // Bereichen einen Runner an, und die Planer-Tests zählen Runner.
+      // `offline_areas_flow_test` schaltet es für seinen Fall ein.
+      routingBakeOnStartProvider.overrideWithValue(false),
       // Dasselbe für die Höhenlinien (#271): an Ort und Stelle rechnen.
       contourComputeProvider.overrideWithValue((job) async => computeContours(job)),
       connectivityProvider.overrideWith(

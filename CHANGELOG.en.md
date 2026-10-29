@@ -2,6 +2,19 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## Plan bigger loops, faster with older areas
+
+*Version 0.138.0, 2026-10-29*
+
+- The planner now covers a much larger area: up to 300 tiles instead of
+  120, roughly the full 30 km radius. This is possible because of the
+  tile preparation from 0.136.0 — a plan now needs only a fraction of
+  the memory.
+- Areas saved before 0.137.0 are now prepared for the planner in the
+  background when the app starts. Until now this only happened on the
+  first plan there, which took correspondingly long. If everything is
+  ready already, you won't notice anything.
+
 ## Elevation profile and buttons right under the summary
 
 *Version 0.137.2, 2026-10-29*

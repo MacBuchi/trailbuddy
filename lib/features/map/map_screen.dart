@@ -39,6 +39,7 @@ import '../routing/route_elevation.dart' show RouteCursorSymbol, routeProfileCur
 import '../routing/route_profile.dart' show RiderProfile, RoutePrefs;
 import '../routing/route_via_providers.dart';
 import '../routing/route_vias.dart';
+import '../routing/routing_bake.dart' show routingBakeOnStartProvider, routingBakeProvider;
 import '../routing/via_handles.dart';
 import '../routing/trail_head_providers.dart';
 import '../trails/trail_navigation.dart' show navigateToPoint;
@@ -167,6 +168,9 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       if (!mounted) return;
       _takeFocusWish();
       unawaited(_firstStart());
+      // Stücke für den Planer, die beim Start fehlen (#410): Bereiche von
+      // vor 0.137.0, ein abgebrochenes Backen. Still, wenn alles liegt.
+      if (ref.read(routingBakeOnStartProvider)) unawaited(ref.read(routingBakeProvider.notifier).bakeStored());
     });
   }
 

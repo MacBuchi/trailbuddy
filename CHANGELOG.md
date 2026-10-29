@@ -2,6 +2,19 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Größere Runden planen, alte Bereiche schneller
+
+*Version 0.138.0, 2026-10-29*
+
+- Der Planer rechnet jetzt über ein deutlich größeres Gebiet: bis 300
+  Kacheln statt 120, also etwa den ganzen Radius von 30 km. Möglich
+  macht das das Vorbereiten der Kacheln aus 0.136.0 — eine Planung
+  braucht damit nur noch einen Bruchteil des Speichers.
+- Bereiche, die vor 0.137.0 gespeichert wurden, bereitet die App jetzt
+  beim Start im Hintergrund für den Planer vor. Bisher passierte das erst
+  bei der ersten Planung dort, und die dauerte entsprechend lang. Liegt
+  schon alles bereit, merkt man davon nichts.
+
 ## Höhenprofil und Knöpfe gleich unter der Summe
 
 *Version 0.137.2, 2026-10-29*

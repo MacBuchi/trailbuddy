@@ -1314,7 +1314,11 @@ mit der Messung am Pixel (PR 4/10):
   Messung am Pixel (#356, `docs/routing-messung.md`): **120 Kacheln**
   (~36 × 36 km). 117 Kacheln bauten dort in 41–44 s und belegten bis
   1,76 GB ohne Absturz; die Grenze setzt der Speicher, nicht die Zeit
-  (bis 0.131.x ein Wert vom Rechner, 300).
+  (bis 0.131.x ein Wert vom Rechner, 300). **Seit 0.138.0 wieder 300**
+  (~58 × 58 km, der größte Radius des Planers): Mit den gebackenen
+  Stücken (11.8) kostet eine Kachel am Pixel ~1,2 MB statt ~7 MB, der
+  Speicher begrenzt nicht mehr (Betreiber, 2026-10-29: „250 Kacheln
+  sind ok, 300 eigentlich auch").
 - **Ein Ladebalken** (Betreiber, 2026-10-18: „Wenn es einen Ladebalken
   gibt, ist eine längere Berechnungsdauer ok"): Bau und Runde melden
   ihren Anteil aus dem Rechen-Isolate (`plan_progress.dart`), das Blatt
@@ -1599,8 +1603,13 @@ Stücke alt). Fünf Regeln:
   und wird übersprungen. Nach einem Abbruch oder Neustart macht das
   nächste Speichern oder Aktualisieren in der Region weiter (Speichern
   reiht nach dem neuen Bereich alle übrigen der Region ein); eine
-  Planung dazwischen backt den Rest ihres Rahmens (B). Beim Start der
-  App backt nichts von selbst.
+  Planung dazwischen backt den Rest ihres Rahmens (B). **Seit 0.138.0
+  prüft auch der Start der App jeden Bereich** (#410): Bereiche von vor
+  0.137.0 hatten sonst nie Stücke, solange es nichts zu aktualisieren
+  gab. Was frisch liegt, kostet je Block nur die Frage nach den Bauten;
+  Dienst und Zeile in „Meine Bereiche" erscheinen erst, wenn ein Block
+  wirklich backt. Ebenso backt „Aktualisieren", wenn nichts zu holen
+  ist.
 - **Gelesen wird je Region, wie im Planer.** Der Bau eines Stücks nennt
   Wege-Archiv und Höhen aus dem Speicher der Region — auch die eines
   anderen Bereichs. Der Dienst liest deshalb über alle Bereiche der
