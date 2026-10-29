@@ -78,7 +78,10 @@ typedef RoutingPiece = ({int x, int y, Uint8List bytes});
 
 /// Packt ein Stück für den Speicher (gzip, wie Karte und Wege dort liegen
 /// — gemessen etwa halb so groß, `docs/routing-messung.md` „#380").
-Uint8List packPiece(Uint8List raw) => Uint8List.fromList(GZipEncoder().encode(raw)!);
+/// Ohne Zeitstempel: `GZipEncoder` schreibt die Uhrzeit in den Kopf
+/// (Bytes 4–7), gleiche Stücke hießen sonst je Sekunde anders; 0 heißt in
+/// gzip „keine Zeit".
+Uint8List packPiece(Uint8List raw) => Uint8List.fromList(GZipEncoder().encode(raw)!)..fillRange(4, 8, 0);
 
 /// Liest ein gepacktes oder rohes Stück; null wie [decodePiece].
 DecodedPiece? unpackPiece(Uint8List bytes) {
