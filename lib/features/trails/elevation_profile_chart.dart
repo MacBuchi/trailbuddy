@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/material.dart';
 
 import '../../core/app_colors.dart';
+import '../../core/geo.dart';
 import '../../l10n/l10n.dart';
 import 'trail_elevation.dart';
 
@@ -150,8 +151,9 @@ class ElevationProfileChart extends StatelessWidget {
     );
   }
 
-  static String _km(double m) =>
-      m >= 1000 ? '${(m / 1000).toStringAsFixed(1)} km' : '${m.round()} m';
+  // Dieselbe Schreibweise wie die Summe darüber — „16,5 km", nicht
+  // „16.5 km" neben „17,3 km".
+  static String _km(double m) => formatMeters(m);
 }
 
 /// Die Teilstriche der km-Skala in Metern ab Start, ohne die 0: der

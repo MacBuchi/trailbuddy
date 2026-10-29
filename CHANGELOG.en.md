@@ -2,6 +2,14 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## Decimal comma in the elevation profile
+
+*Version 0.138.3, 2026-10-29*
+
+- The spot under your finger in the elevation profile now writes
+  kilometres the same way as the summary above it („16,5 km“) —
+  until now it said „16.5 km“.
+
 ## Navigation in the small window
 
 *Version 0.138.2, 2026-10-29*
