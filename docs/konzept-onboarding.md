@@ -33,7 +33,9 @@ PilzBuddy hat seit #350/#596 vier Bausteine, dokumentiert in dessen
   statt es still zu überspringen.
 - **Touren**: eine Karten-Tour beim ersten Start mit Startseite, danach
   je Reiter eine kurze Tour beim ersten Besuch, in einer Kette
-  („Weiter mit …?“). „Nicht jetzt“ ist kein Gesehen. Für leere Konten
+  („Weiter mit …?“). „Nicht jetzt“ ist ein Gesehen (Betreiber,
+  2026-10-29, #417 — vorher fragte die Tour bei jedem Start wieder);
+  jede Tour bleibt in der Kurzanleitung startbar. Für leere Konten
   gezeichnete Beispiele, immer als „Beispiel“ markiert, nie gespeichert.
 - **Entdecken**: alle Funktionen als Liste je Reiter, ein Blatt „Neu in
   …“ nach einem Update, und je Eintrag eine Vorführung („Zeig es mir“)
@@ -302,8 +304,8 @@ Startseite und Kette kommen in PR 3.
   ```
 
 - Tests: erster Start (Startseite, „Tour starten“, der Reihe nach,
-  dann nie wieder; „Nicht jetzt“ ist kein Gesehen und fragt beim
-  nächsten Start wieder; Zurück auf der Startseite heißt „Nicht
+  dann nie wieder; „Nicht jetzt“ ist seit #417 ein Gesehen, beim
+  nächsten Start kommt nichts; Zurück auf der Startseite heißt „Nicht
   jetzt“), Hinweis vor Tour im selben Start, beides gesehen ⇒ nichts.
 
 ### 3.4 Tour zum Zerlegen der ersten Fahrt (PR 4, Android)
@@ -579,7 +581,7 @@ Gegenprobe im PR-Text.
   „Animationen entfernen“ bzw. `prefers-reduced-motion`; TalkBack:
   nur die Blase ist fokussierbar, ein neuer Schritt wird angesagt.
 - **PR 3**: erster Start nach gelöschten App-Daten: Splash → Hinweis →
-  Willkommen → Tour; „Nicht jetzt“ fragt beim nächsten Start wieder.
+  Willkommen → Tour; „Nicht jetzt“ fragt seit #417 nicht wieder.
 - **PR 4**: Aufzeichnung beenden → Blatt → Tour einmalig; die Schere im
   Import startet sie nicht.
 - **PR 5**: ein leeres Konto sieht die Beispiele nur während der Tour

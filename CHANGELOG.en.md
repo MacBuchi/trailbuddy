@@ -2,6 +2,15 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## „Not now“ is remembered
+
+*Version 0.138.5, 2026-10-29*
+
+- Choosing „Not now“ or „Later“ on a tour no longer brings the
+  question back on every start — for the welcome, the tours on the
+  tabs and the tour in the split sheet. Every tour can be started any
+  time under Profile, „Quick guide“; the welcome now says so too.
+
 ## Destination in the open planner
 
 *Version 0.138.4, 2026-10-29*

@@ -62,10 +62,13 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     ersten Tour". Der Auslöser ist `_firstStart` im Post-Frame von
     `MapScreen`: erst `await showSafetyNoteDialog`, dann die Tour, und die
     nur, wenn die Maschine frei ist (`busy`).
-  - **„Nicht jetzt" ist kein Gesehen**: Die Startseite fragt beim
-    nächsten Start wieder, jedes Mal; Zurück auf der Startseite heißt
-    „Nicht jetzt", ein Tipp daneben tut nichts. Gemerkt wird erst am Ende
-    (durchgesehen ODER übersprungen).
+  - **„Nicht jetzt" ist ein Gesehen** (Betreiber, 2026-10-29, #417 —
+    bis 0.138.4 fragte die Startseite bei jedem Start wieder, das störte):
+    Gemerkt wird am Ende (durchgesehen ODER übersprungen) ODER bei „Nicht
+    jetzt", über `onDecline` von `CoachNotifier.start` — ohne die Folgen
+    von `onDone` (keine Kette). Die Startseite sagt, dass die Tour in der
+    Kurzanleitung liegt. Zurück auf der Startseite heißt „Nicht jetzt",
+    ein Tipp daneben tut nichts. Dieselbe Regel gilt für alle Touren.
   - **Die Willkommens-Tour hat keinen Weg in die Kurzanleitung am Ende**
     — ab #136 hängt `startWelcomeTour` die Reiter-Touren an, die Kette
     liefe sonst gleichzeitig in die Kurzanleitung.
@@ -89,7 +92,7 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
   - **Nur im Blatt einer eigenen Aufzeichnung** (`SplitRequest.rideId`,
     also nach dem Beenden ODER aus „Meine Fahrten"), nie aus dem
     GPX-Import; einmal (`seenCoachTours` enthält `split`), „Nicht jetzt"
-    fragt beim nächsten Blatt wieder. Erwogen wird sie EINMAL je Blatt,
+    ist seit #417 ebenfalls gemerkt. Erwogen wird sie EINMAL je Blatt,
     sobald die Zerlegung steht (`_considerTour`), und nur, wenn die
     Maschine frei ist.
   - **Jede Fahrt sieht anders aus**: Fast jeder Schritt hängt an
@@ -129,8 +132,9 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
   - **Die Kette** hängt `startWelcomeTour(ref, router)` (seit #136 in
     `tab_tours.dart`) an die Karten-Tour: an jeder Grenze eine Startseite
     als Frage („Weiter mit den Trails?", „Später"/„Weiter"). „Später"
-    beendet die Kette und ist kein Gesehen; in derselben Sitzung fragt der
-    Reiter dann nicht wieder (`declinedTabToursProvider`, nur im Speicher).
+    beendet die Kette und merkt DIESE Tour als gesehen (#417; der
+    Sitzungsmerker `declinedTabToursProvider` ist damit weg); die übrigen
+    fragen je einmal beim ersten Besuch ihres Reiters.
   - **Beispiele: gezeichnet, nie gespeichert** — `ExampleTrailTile`,
     `showExampleTrailSheet`, `ExampleBuddyTile` sind Widgets aus festen
     Texten, kein `Trail`, keine `Friendship`, kein Provider. Immer

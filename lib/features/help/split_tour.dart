@@ -130,10 +130,10 @@ const kSplitTourId = 'split';
 /// läuft beim nächsten Öffnen des Blatts, auch wenn sie gesehen ist.
 final requestedSplitTourProvider = StateProvider<bool>((ref) => false);
 
-/// Startet die Tour. Durchgesehen oder übersprungen ⇒ gesehen; „Nicht
-/// jetzt" ist kein Gesehen — beim nächsten Blatt nach einer Fahrt fragt
-/// sie wieder.
+/// Startet die Tour. Durchgesehen, übersprungen oder „Nicht jetzt" ⇒
+/// gesehen (#417); aus der Kurzanleitung bleibt sie startbar.
 void startSplitTour(AppLocalizations l, WidgetRef ref) {
   final seen = ref.read(seenCoachToursProvider.notifier);
-  ref.read(coachProvider.notifier).start(splitTourScript(l), onDone: () => seen.markSeen(kSplitTourId));
+  ref.read(coachProvider.notifier).start(splitTourScript(l),
+      onDone: () => seen.markSeen(kSplitTourId), onDecline: () => seen.markSeen(kSplitTourId));
 }

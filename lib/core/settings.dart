@@ -207,7 +207,7 @@ abstract interface class Settings {
 
   /// Die Touren außerhalb der Karte, die dieses Gerät gesehen hat
   /// (`split`, ab #136 `trails` und `buddys`). Durchgesehen oder
-  /// übersprungen — „Nicht jetzt" zählt nicht.
+  /// übersprungen, auch „Nicht jetzt" (#417).
   Set<String> get seenCoachTours;
 
   Future<void> setSeenCoachTours(Set<String> value);

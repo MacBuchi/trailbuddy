@@ -8,7 +8,8 @@
 //      dazwischen — der Betreiber will „Hinweis vor der ersten Tour").
 //   2. „Tour starten" führt der Reihe nach durch die Karten-Schritte,
 //      danach ist sie gesehen und kommt nie wieder.
-//   3. „Nicht jetzt" ist KEIN Gesehen: beim nächsten Start wieder.
+//   3. „Nicht jetzt" ist ein Gesehen (#417): beim nächsten Start nichts;
+//      die Startseite sagt, wo die Tour liegt.
 //   4. Die Startseite verlangt eine Wahl: ein Tipp daneben tut nichts,
 //      Zurück heißt „Nicht jetzt".
 //   5. Beides gesehen ⇒ nichts liegt über der Karte.
@@ -83,18 +84,22 @@ void main() {
     expect(intro, findsNothing);
   });
 
-  testWidgets('„Nicht jetzt" ist kein Gesehen: beim nächsten Start wieder', (tester) async {
+  testWidgets('„Nicht jetzt" ist gemerkt: beim nächsten Start nichts (#417)', (tester) async {
     final settings = FakeSettings(mapTourSeen: false);
     await pumpApp(tester, signedIn(), settings: settings);
     await settle(tester);
+    expect(find.textContaining('im Profil unter „Kurzanleitung“'), findsOneWidget,
+        reason: 'die Startseite sagt, wo die Tour später liegt');
     await tester.tap(find.byKey(const ValueKey('coach-intro-later')));
     await settle(tester);
     expect(intro, findsNothing);
-    expect(settings.mapTourSeen, isFalse);
+    expect(settings.mapTourSeen, isTrue);
 
     await tester.pumpWidget(const SizedBox());
     await pumpApp(tester, signedIn(), settings: settings);
-    expect(find.text('Willkommen bei TrailBuddy'), findsOneWidget);
+    await settle(tester);
+    expect(find.text('Willkommen bei TrailBuddy'), findsNothing);
+    expect(intro, findsNothing);
   });
 
   testWidgets('die Startseite verlangt eine Wahl: ein Tipp daneben tut '
@@ -108,7 +113,7 @@ void main() {
     expect(await tester.binding.handlePopRoute(), isTrue);
     await settle(tester);
     expect(intro, findsNothing);
-    expect(settings.mapTourSeen, isFalse);
+    expect(settings.mapTourSeen, isTrue, reason: 'Zurück heißt „Nicht jetzt", und das ist gemerkt');
   });
 
   testWidgets('beides gesehen: nichts über der Karte', (tester) async {

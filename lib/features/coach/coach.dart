@@ -341,8 +341,8 @@ class CoachNotifier extends Notifier<CoachRun?> {
   /// übersprungen: Wer abbricht, hat entschieden.
   ///
   /// [onDecline] läuft stattdessen, wenn auf der Startseite „Nicht
-  /// jetzt" (bzw. „Später") gewählt wird: Das ist KEIN Gesehen — die Tour
-  /// fragt in der nächsten Sitzung wieder (Betreiber: „jedes Mal").
+  /// jetzt" (bzw. „Später") gewählt wird. In TrailBuddy merken die Touren
+  /// auch das als gesehen (#417), aber ohne [onDone]s Folgen (die Kette).
   void start(CoachScript script,
       {VoidCallback? onDone, VoidCallback? onDecline, bool chained = false}) {
     if (_reserved > 0) _reserved--;

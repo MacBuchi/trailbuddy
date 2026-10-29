@@ -185,7 +185,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   /// Gemerkt wird der Hinweis VOR dem Zeigen: Der Dialog ist nicht
   /// wegtippbar, der einzige Ausgang ist „Verstanden"; stirbt die App mit
   /// offenem Dialog, kommt er nicht bei jedem Start wieder. Die Tour
-  /// dagegen erst an ihrem Ende — „Nicht jetzt" ist kein Gesehen.
+  /// dagegen erst an ihrem Ende oder bei „Nicht jetzt" (#417).
   Future<void> _firstStart() async {
     var shownNote = false;
     if (!ref.read(safetyNoteSeenProvider)) {

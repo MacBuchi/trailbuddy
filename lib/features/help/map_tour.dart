@@ -124,7 +124,8 @@ abstract final class SheetCoach {
 
 /// Die Startseite beim ERSTEN Start (#133). Sie nennt die drei Wege, auf
 /// denen Trails hierher kommen — die Karte ist am Anfang leer, anders als
-/// bei PilzBuddy. „Nicht jetzt" fragt beim nächsten Start wieder.
+/// bei PilzBuddy. „Nicht jetzt" merkt die Tour als gesehen (#417); sie
+/// bleibt in der Kurzanleitung startbar.
 CoachStep welcomeIntro(AppLocalizations l) => CoachStep(
       id: 'welcome',
       title: l.tourWelcomeTitle,
@@ -245,14 +246,16 @@ CoachScript welcomeTourScript(AppLocalizations l) => CoachScript(
     );
 
 /// Startet die Tour und merkt sich danach, dass sie gesehen wurde —
-/// durchgesehen ODER übersprungen: Wer abbricht, hat entschieden.
+/// durchgesehen, übersprungen ODER abgelehnt: Wer abbricht, hat
+/// entschieden.
 ///
 /// Gemerkt wird über den NOTIFIER, nicht über [ref]: Aus der
 /// Kurzanleitung gestartet, kann das aufrufende Widget weg sein, bevor
 /// die Tour endet — und ein `ref` eines abgebauten Widgets wirft.
 void startMapTour(AppLocalizations l, WidgetRef ref) {
   final seen = ref.read(mapTourSeenProvider.notifier);
-  ref.read(coachProvider.notifier).start(mapTourScript(l), onDone: () => seen.set(true));
+  ref.read(coachProvider.notifier).start(mapTourScript(l),
+      onDone: () => seen.set(true), onDecline: () => seen.set(true));
 }
 
 /// Hat der Nutzer die Karten-Tour schon gesehen? Gerätelokal, Schlüssel

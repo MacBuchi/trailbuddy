@@ -9,8 +9,8 @@
 //      Griffen, ohne Wege der Ersatzschritt, „Stück selbst wählen", der
 //      Knopf unten — und lässt weg, was fehlt (Übernahme, Nachfrage).
 //   3. Aussparung auf den echten Zeilen, die Blase im Bild und nie darauf.
-//   4. Überspringen lässt das Blatt stehen und merkt „gesehen"; „Nicht
-//      jetzt" nicht.
+//   4. Überspringen und „Nicht jetzt" lassen das Blatt stehen und merken
+//      „gesehen" (#417).
 //   5. Aus der Kurzanleitung: die jüngste Fahrt, die Tour auch wenn schon
 //      gesehen; ohne Fahrt ist der Knopf aus und sagt, warum.
 import 'dart:math' as math;
@@ -189,15 +189,27 @@ void main() {
     }
   });
 
-  testWidgets('Überspringen lässt das Blatt stehen und merkt die Tour; '
-      '„Nicht jetzt" nicht', (tester) async {
+  testWidgets('Überspringen lässt das Blatt stehen und merkt die Tour', (tester) async {
+    final settings = fresh();
+    await pumpApp(tester, backend, trails: trails, rideStore: store, settings: settings);
+    await openFromRides(tester);
+    await tester.tap(find.byKey(const ValueKey('coach-intro-start')));
+    await settle(tester);
+    await tester.tap(find.descendant(of: bubble, matching: find.text('Überspringen')));
+    await settle(tester);
+    expect(bubble, findsNothing);
+    expect(settings.seenCoachTours, contains('split'));
+    expect(find.byKey(const ValueKey('split-submit')), findsOneWidget, reason: 'das Blatt bleibt');
+  });
+
+  testWidgets('„Nicht jetzt" lässt das Blatt stehen und merkt die Tour (#417)', (tester) async {
     final settings = fresh();
     await pumpApp(tester, backend, trails: trails, rideStore: store, settings: settings);
     await openFromRides(tester);
     await tester.tap(find.byKey(const ValueKey('coach-intro-later')));
     await settle(tester);
     expect(intro, findsNothing);
-    expect(settings.seenCoachTours, isNot(contains('split')), reason: '„Nicht jetzt" ist kein Gesehen');
+    expect(settings.seenCoachTours, contains('split'), reason: '„Nicht jetzt" ist gemerkt');
     expect(find.byKey(const ValueKey('split-submit')), findsOneWidget);
 
     // Blatt zu (Zurück), dann dieselbe Fahrt noch einmal aus der Liste.
@@ -207,14 +219,8 @@ void main() {
     await openTab(tester, 'Profil');
     await tester.tap(find.byKey(const ValueKey('ride-split-r1')));
     await settle(tester, frames: 30);
-    expect(intro, findsOneWidget, reason: 'beim nächsten Blatt fragt sie wieder');
-    await tester.tap(find.byKey(const ValueKey('coach-intro-start')));
-    await settle(tester);
-    await tester.tap(find.descendant(of: bubble, matching: find.text('Überspringen')));
-    await settle(tester);
-    expect(bubble, findsNothing);
-    expect(settings.seenCoachTours, contains('split'));
-    expect(find.byKey(const ValueKey('split-submit')), findsOneWidget, reason: 'das Blatt bleibt');
+    expect(intro, findsNothing, reason: 'beim nächsten Blatt fragt sie nicht wieder');
+    expect(find.byKey(const ValueKey('split-submit')), findsOneWidget, reason: 'das Blatt steht');
   });
 
   testWidgets('aus dem GPX-Import: keine Tour — sie gehört zur Aufzeichnung', (tester) async {
