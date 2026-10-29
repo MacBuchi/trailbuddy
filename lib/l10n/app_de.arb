@@ -9080,17 +9080,20 @@
       }
     }
   },
-  "usernameHint": "Dein Benutzername ist {name} — unter dem finden dich deine Buddys.",
-  "@usernameHint": {
-    "description": "Einmaliger Hinweis nach der ersten Anmeldung über einen Anbieter, solange der vergebene Name gilt.",
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
+  "usernameStepTitle": "Wie sollen dich deine Buddys finden?",
+  "@usernameStepTitle": {
+    "description": "Titel der Namenswahl nach der ersten Anmeldung über einen Anbieter (#422)."
   },
-  "usernameHintAction": "Ändern",
-  "@usernameHintAction": {
-    "description": "Aktion am Hinweis usernameHint: öffnet das Konto."
+  "usernameStepBody": "Dein Benutzername steht in der Buddy-Suche und an geteilten Trails. Wähl einen, den deine Buddys erkennen — besser nicht deinen vollen Namen.",
+  "@usernameStepBody": {
+    "description": "Erklärung unter usernameStepTitle."
+  },
+  "usernameStepSave": "Weiter",
+  "@usernameStepSave": {
+    "description": "Speichert den Namen und öffnet die Karte."
+  },
+  "usernameStepLater": "Später",
+  "@usernameStepLater": {
+    "description": "Behält den vergebenen Namen (trailbuddy_…); ändern lässt er sich im Konto."
   }
 }

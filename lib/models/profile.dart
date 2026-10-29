@@ -36,6 +36,12 @@ String? usernameProblem(AppLocalizations l, String username) {
 
 final _emailShaped = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
 
+/// Ist das der Name, den der Trigger `handle_new_user` vergibt, wenn die
+/// Anmeldung keinen mitbringt — bei Google & Co. immer (#398, #422)?
+bool isAssignedUsername(String username) => _assignedUsername.hasMatch(username);
+
+final _assignedUsername = RegExp(r'^trailbuddy_[0-9a-f]{8}$');
+
 /// Das eigene Profil (`public.profiles`).
 class Profile {
   final String id;

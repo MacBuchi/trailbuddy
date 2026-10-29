@@ -2,6 +2,17 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Dein Name nach der Anmeldung über Google & Co.
+
+*Version 0.140.0, 2026-10-29*
+
+- Wer sich zum ersten Mal über einen Anbieter anmeldet, wählt jetzt
+  vor der Karte seinen Benutzernamen — unter dem finden dich deine
+  Buddys. Bringt der Anbieter einen Nutzernamen mit (etwa GitHub),
+  steht er schon im Feld; deinen vollen Namen schlägt die App nie vor.
+- „Später“ behält den vorläufigen Namen; ändern kannst du ihn
+  jederzeit im Profil unter „Konto“.
+
 ## Anmelden über Google & Co. vorbereitet
 
 *Version 0.139.0, 2026-10-29*

@@ -205,13 +205,15 @@ abstract interface class Settings {
 
   Future<void> setMapTourSeen(bool value);
 
-  /// Hat dieses Gerät den Hinweis auf den vergebenen Benutzernamen
-  /// gezeigt (#398)? Ein Konto über Google & Co. bekommt vom Trigger
-  /// `trailbuddy_<8 Zeichen>`; der Hinweis kommt einmal, nicht bei jedem
-  /// Start.
-  bool get usernameHintSeen;
+  /// Die Konten, für die auf diesem Gerät die Namenswahl nach einer
+  /// Anmeldung über einen Anbieter erledigt ist (#422) — gespeichert, mit
+  /// „Später" übergangen oder ein selbst gewählter Name gesehen. Ein Konto
+  /// über Google & Co. bekommt vom Trigger `trailbuddy_<8 Zeichen>`. Ohne
+  /// den Merker wartete jeder Start auf das Profil, bevor die Karte kommt;
+  /// je Konto, damit ein zweites auf demselben Gerät auch gefragt wird.
+  Set<String> get usernameStepDoneFor;
 
-  Future<void> setUsernameHintSeen(bool value);
+  Future<void> addUsernameStepDone(String uid);
 
   /// Die Touren außerhalb der Karte, die dieses Gerät gesehen hat
   /// (`split`, ab #136 `trails` und `buddys`). Durchgesehen oder
@@ -457,14 +459,15 @@ class PrefsSettings implements Settings {
   @override
   Future<void> setMapTourSeen(bool value) => _prefs.setBool(_mapTourSeenKey, value);
 
-  static const _usernameHintSeenKey = 'username_hint_seen';
+  static const _usernameStepDoneKey = 'username_step_done';
 
   @override
-  bool get usernameHintSeen => _prefs.getBool(_usernameHintSeenKey) ?? false;
+  Set<String> get usernameStepDoneFor =>
+      (_prefs.getStringList(_usernameStepDoneKey) ?? const []).toSet();
 
   @override
-  Future<void> setUsernameHintSeen(bool value) =>
-      _prefs.setBool(_usernameHintSeenKey, value);
+  Future<void> addUsernameStepDone(String uid) => _prefs.setStringList(
+      _usernameStepDoneKey, ({...usernameStepDoneFor, uid}.toList()..sort()));
 
   static const _seenCoachToursKey = 'seen_coach_tours';
 

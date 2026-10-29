@@ -37,11 +37,35 @@ Microsoft, GitHub, Apple; 2026-10-29: Facebook, Discord, LinkedIn) —
   „Angemeldet über …" und der Weg zu einem Passwort („Passwort
   vergessen" — der Code geht an jede Adresse). `externalProvider` gilt
   als E-Mail-Konto, sobald `app_metadata.providers` `email` enthält.
-- **Benutzername:** Der Trigger `handle_new_user` nimmt
-  `raw_user_meta_data.username` — den setzt kein Anbieter, also
-  `trailbuddy_<8 Zeichen>`. `UsernameHint` (in der Hülle) sagt das
-  EINMAL je Gerät (`Settings.usernameHintSeen`) mit „Ändern" ins Konto.
-  Eine Namenswahl vor der Karte ist vorgemerkt (#422, #156 Stufe 8).
+- **Benutzername — die Namenswahl vor der Karte** (#422, seit 0.140.0):
+  Der Trigger `handle_new_user` nimmt `raw_user_meta_data.username` —
+  den setzt kein Anbieter, also `trailbuddy_<8 Zeichen>`
+  (`isAssignedUsername`). `UsernameGate` liegt um die GANZE Hülle
+  (`AppShell`): Solange ein Anbieter-Konto so heißt, steht statt Karte
+  und Reiterleiste `UsernameStep` — damit kommen Sicherheitshinweis und
+  Tour (`MapScreen._firstStart`) erst danach. Fünf Dinge:
+  - **Die Wahrheit ist der Name auf dem Server**, nicht ein Merker: Ein
+    Neuladen im Browser mitten im Schritt bringt ihn wieder.
+  - **„Später" ist erlaubt** (Betreiber 2026-10-29) und wird je KONTO
+    gemerkt (`Settings.usernameStepDoneFor`) — ein zweites Konto auf
+    demselben Gerät wird auch gefragt.
+  - **Der Merker steht auch nach dem Speichern und sobald ein eigener
+    Name gesehen wurde.** Ohne ihn wartete jeder Start eines
+    Anbieter-Kontos mit dem Loader auf das Profil. Ohne Netz (Profil
+    wirft) geht es ohne Merker zur Karte; gefragt wird beim nächsten
+    Start.
+  - **Vorbelegt nur mit einem Nutzernamen des Anbieters**
+    (`handleFromProviderMetadata`: `user_name` von GitHub, sonst
+    `preferred_username`), **nie mit `full_name`/`name`** (Betreiber
+    2026-10-29): Der Benutzername ist öffentlich, ein vorbelegter
+    Klarname wäre mit einem Tipp veröffentlicht. Microsoft schickt als
+    `preferred_username` die Adresse — `usernameProblem` lässt das Feld
+    dann leer.
+  - **Ob der Name frei ist, sagt erst das Speichern** (23505 →
+    `usernameChangeErrorMessage`, wie „Benutzername ändern") — keine
+    Vorab-Abfrage, die wäre ein Namens-Orakel mehr.
+  - Bis 0.139.0 sagte stattdessen ein Snackbar-Hinweis den Namen einmal
+    (`UsernameHint`, Merker `username_hint_seen`) — beides ist weg.
 - **Zeichen:** `assets/auth/<name>.svg`, Pfade aus Simple Icons (CC0),
   Google und Microsoft nach ihren Vorgaben. Apple und GitHub einfarbig in
   der Textfarbe (sonst im Dunkeln unsichtbar). Als Reihe aus
