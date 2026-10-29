@@ -5,6 +5,7 @@
 import 'dart:math' as math;
 import 'dart:typed_data';
 
+import 'package:archive/archive.dart' show GZipDecoder;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:trailbuddy/core/line_geometry.dart';
@@ -209,6 +210,15 @@ void main() {
               classifyWay(kind: kind, kindDetail: detail)?.name,
           ],
           _classesV1);
+    });
+
+    test('gepackt ohne Zeitstempel: dasselbe Stück gibt dieselben Bytes', () {
+      final raw = Uint8List.fromList(List.generate(500, (i) => i * 7 % 13));
+      final packed = packPiece(raw);
+      // gzip-Kopf: Bytes 4–7 sind die Zeit; GZipEncoder schriebe die Uhr
+      // hinein, und zwei Backläufe in verschiedenen Sekunden hießen anders.
+      expect(packed.sublist(4, 8), [0, 0, 0, 0]);
+      expect(GZipDecoder().decodeBytes(packed), raw);
     });
   });
 

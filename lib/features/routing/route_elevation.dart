@@ -8,7 +8,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:latlong2/latlong.dart';
+import 'package:latlong2/latlong.dart' show LatLng;
 
 import '../../core/app_colors.dart';
 import '../trails/elevation_profile_chart.dart';
@@ -107,8 +107,8 @@ class _RouteElevationProfileState extends ConsumerState<RouteElevationProfile> {
 }
 
 /// Das Symbol der gewählten Stelle auf der Karte (#332): Lime-Scheibe mit
-/// dunklem Rand und Rad — wie die Startfahne Lime mit Kontur, damit es
-/// auf der immer hellen Karte und auf der Lime-Route steht.
+/// dunklem Rand und Mountainbike — wie die Startfahne Lime mit Kontur,
+/// damit es auf der immer hellen Karte und auf der Lime-Route steht.
 class RouteCursorSymbol extends StatelessWidget {
   const RouteCursorSymbol({super.key});
 
@@ -124,6 +124,55 @@ class RouteCursorSymbol extends StatelessWidget {
           border: Border.all(color: AppColors.onBrand, width: 2),
           boxShadow: const [BoxShadow(color: Color(0x55000000), blurRadius: 4)],
         ),
-        child: const Icon(Icons.directions_bike, size: 18, color: AppColors.onBrand),
+        child: const CustomPaint(size: Size.square(20), painter: MtbGlyphPainter(AppColors.onBrand)),
       );
+}
+
+/// Ein Mountainbike in 20 × 20 (Betreiber, 2026-10-29: das Rad „ein wenig
+/// MTB-mäßiger"): dicke Reifen, abfallendes Oberrohr, Federgabel, breiter
+/// Lenker. Material kennt nur Stadt- und E-Rad (`directions_bike`,
+/// `pedal_bike`), deshalb gezeichnet. Maße in Zwanzigsteln der Kante.
+class MtbGlyphPainter extends CustomPainter {
+  const MtbGlyphPainter(this.color);
+
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final k = size.shortestSide / 20;
+    Offset p(double x, double y) => Offset(x * k, y * k);
+    Paint stroke(double w) => Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = w * k
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+    // Reifen: breiter Strich als Stollenreifen.
+    final tyre = stroke(2.2);
+    canvas.drawCircle(p(4.9, 14), 3.6 * k, tyre);
+    canvas.drawCircle(p(15.1, 14), 3.6 * k, tyre);
+    final rear = p(4.9, 14), bb = p(9.4, 14), seat = p(8.0, 9.0), head = p(13.2, 7.4), headLow = p(13.7, 9.4);
+    final frame = Path()
+      ..moveTo(rear.dx, rear.dy)
+      ..lineTo(bb.dx, bb.dy)
+      ..lineTo(seat.dx, seat.dy)
+      ..close()
+      ..moveTo(bb.dx, bb.dy)
+      ..lineTo(headLow.dx, headLow.dy)
+      ..lineTo(head.dx, head.dy)
+      // Oberrohr fällt nach hinten ab.
+      ..lineTo(seat.dx, seat.dy);
+    canvas.drawPath(frame, stroke(1.5));
+    // Federgabel: dicker als der Rahmen.
+    canvas.drawLine(headLow, p(15.1, 14), stroke(2.1));
+    // Sattelstütze und Sattel.
+    canvas.drawLine(seat, p(7.6, 7.0), stroke(1.5));
+    canvas.drawLine(p(6.2, 6.8), p(8.8, 6.8), stroke(1.6));
+    // Vorbau und breiter Lenker.
+    canvas.drawLine(head, p(13.6, 5.6), stroke(1.5));
+    canvas.drawLine(p(12.0, 5.4), p(16.2, 5.0), stroke(1.6));
+  }
+
+  @override
+  bool shouldRepaint(MtbGlyphPainter old) => old.color != color;
 }

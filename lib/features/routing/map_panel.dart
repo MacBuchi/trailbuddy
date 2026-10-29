@@ -31,8 +31,14 @@ const kMapPanelPeek = 0.16;
 const kMapPanelPool = 0.45;
 
 /// Höhe, auf die das Blatt beim Ergebnis einklappt: Summen und die
-/// Knöpfe darunter sind zu sehen, die Route darüber.
+/// Knöpfe darunter sind zu sehen, die Route darüber. Der Planer misst
+/// seinen Inhalt und geht so weit auf, dass die Knöpfe ganz zu sehen
+/// sind — höchstens bis [kMapPanelResultMax] (Feldbefund 2026-10-29:
+/// auf dem Pixel XL schnitt 0,4 Profil und Knöpfe ab).
 const kMapPanelResult = 0.4;
+
+/// Obergrenze dafür: Über dem Blatt bleibt die Route im Bild.
+const kMapPanelResultMax = 0.55;
 
 /// Griff an das offene Blatt: verkleinern/vergrößern und schließen.
 class MapPanelController {
@@ -49,6 +55,10 @@ class MapPanelController {
   }
 
   void close() => _close();
+
+  /// Die volle Höhe, auf die sich die Anteile beziehen, in logischen
+  /// Pixeln; null, solange das Blatt nicht steht.
+  double? get fullHeight => _sheet.isAttached && _sheet.size > 0 ? _sheet.pixels / _sheet.size : null;
 }
 
 /// Öffnet das Blatt am Scaffold [scaffold] (das der Karte) und wartet,

@@ -751,7 +751,6 @@
   "loopComputing": "Computing the loop …",
   "loopBuildingGraph": "Building the path network … A large area can take a minute.",
   "loopProgressPercent": "{percent}%",
-  "loopShortSummary": "{length} · {climb} m · about {time}",
   "loopSummary": "{length} · {climb} m climbing · {trail} trail · about {time}",
   "loopDescents": "{trailLoss} m down on trails · {wasted} m wasted",
   "loopTunedOver": "Dragged like this, the loop exceeds your budget.",

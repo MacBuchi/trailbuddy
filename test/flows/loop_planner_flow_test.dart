@@ -441,6 +441,60 @@ void main() {
       // Vom Standort im Süden nach Norden: der Hang fällt nach Norden.
       expect(chart.profile.startM, greaterThan(chart.profile.endM + 30));
     });
+
+    // Feldbefund 2026-10-29: Abfahrten, Wegemix und Hinweise schoben das
+    // Profil aus dem eingeklappten Blatt. Gemessen auf dem Pixel XL
+    // (411 × 731 dp): Profil und „Navigieren" ganz im Blatt, die
+    // Anmerkungen darunter.
+    void expectProfileAndButtonsFirst(WidgetTester tester) {
+      // Das Blatt endet über der Reiterleiste, nicht am Bildrand.
+      final bottom = tester.getRect(find.byType(NavigationBar)).top;
+      Rect rect(String key) => tester.getRect(find.byKey(ValueKey(key)));
+      final summary = rect('loop-summary'), profile = rect('loop-elevation'), navigate = rect('loop-navigate');
+      expect(profile.top, greaterThanOrEqualTo(summary.bottom), reason: 'das Profil gleich unter der Summe');
+      expect(navigate.top, greaterThanOrEqualTo(profile.bottom), reason: 'die Knöpfe unter dem Profil');
+      expect(navigate.bottom, lessThanOrEqualTo(bottom), reason: 'eingeklappt ganz zu sehen');
+      expect(rect('loop-details').top, greaterThan(navigate.bottom), reason: 'Abfahrten und Wegemix unter den Knöpfen');
+    }
+
+    void pixelXl(WidgetTester tester) {
+      tester.view.physicalSize = const Size(1233, 2193);
+      tester.view.devicePixelRatio = 3;
+    }
+
+    testWidgets('Runde eingeklappt: eine Summe, Profil, Knöpfe — Anmerkungen darunter', (tester) async {
+      await start(tester, areaStore: await _areaWithTrack(), extra: [areaHeights]);
+      pixelXl(tester);
+      await openPlanner(tester);
+      await zoomToTrails(tester);
+      await tapMapAt(tester, const LatLng(48.004, _lon));
+      await settle(tester);
+      await tapRail(tester, 'loop-rail-compute');
+      await settle(tester, frames: 10);
+      expectProfileAndButtonsFirst(tester);
+      // Kein Untertitel mehr im Kopf: Die Summe steht nur einmal da.
+      expect(find.textContaining(' hm · etwa '), findsNothing);
+    });
+
+    testWidgets('Route mit Stil-Wahl und Einrast-Hinweis: Profil und Knöpfe bleiben eingeklappt zu sehen',
+        (tester) async {
+      await start(tester, areaStore: await _areaWithTrack(), extra: [areaHeights]);
+      pixelXl(tester);
+      // 80 m östlich des Forstwegs: ein Einrast-Hinweis mehr (#374).
+      final from = LatLng(_fromLat + 0.001, _lon + 80 / (111320 * math.cos(48 * math.pi / 180)));
+      await longPressMapAt(tester, from);
+      await settle(tester);
+      await tester.tap(find.byKey(const ValueKey('map-menu-from')));
+      await settle(tester, frames: 20);
+      await longPressMapAt(tester, const LatLng(48.009, _lon));
+      await settle(tester);
+      await tester.tap(find.byKey(const ValueKey('map-menu-to')));
+      await settle(tester, frames: 30);
+      expect(find.byKey(const ValueKey('loop-route-mode')), findsOneWidget);
+      expectProfileAndButtonsFirst(tester);
+      expect(tester.getRect(find.byKey(const ValueKey('loop-snap-start-0'))).top,
+          greaterThan(tester.getRect(find.byKey(const ValueKey('loop-navigate'))).bottom));
+    });
   });
 
   testWidgets('Zwischenpunkt in der Runde (#234): feste Folge, getunt, zurück, frei gerechnet', (tester) async {

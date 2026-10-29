@@ -579,6 +579,7 @@ class _ResultPanel extends ConsumerStatefulWidget {
 
 class _ResultPanelState extends ConsumerState<_ResultPanel> {
   LoopPlan? _fitted;
+  final _buttonsKey = GlobalKey();
 
   @override
   void initState() {
@@ -594,9 +595,26 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
     // Getunt (#234): Die Karte bleibt, wo der Finger den Punkt hingelegt hat.
     if (s.tuned) return;
     _fitted = plan;
-    await widget.panel.resizeTo(kMapPanelResult);
+    // Erst bauen lassen, dann messen, wie weit die Knöpfe reichen.
+    await WidgetsBinding.instance.endOfFrame;
+    if (!mounted) return;
+    await widget.panel.resizeTo(_resultSize());
     if (!mounted) return;
     ref.read(mapFitRequestProvider.notifier).state = plan.points;
+  }
+
+  /// So weit eingeklappt, dass Summe, Profil und die Knöpfe ganz zu
+  /// sehen sind — nie unter [kMapPanelResult], nie über
+  /// [kMapPanelResultMax].
+  double _resultSize() {
+    final buttons = _buttonsKey.currentContext?.findRenderObject();
+    final list = context.findRenderObject();
+    final full = widget.panel.fullHeight;
+    if (buttons is! RenderBox || list is! RenderBox || !buttons.attached || !list.attached || full == null) {
+      return kMapPanelResult;
+    }
+    final needed = buttons.localToGlobal(Offset(0, buttons.size.height)).dy - list.localToGlobal(Offset.zero).dy + 12;
+    return (needed / full).clamp(kMapPanelResult, kMapPanelResultMax);
   }
 
   @override
@@ -614,7 +632,9 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
             final t? => l.routeNameTrailHead(t.displayName(l)),
             null => session.planEnd == LoopEndMode.loop ? l.loopTitle : l.loopRouteTitle,
           },
-          subtitle: plan?.summary == null ? null : _shortSummary(l, plan!.summary!),
+          // Kein Untertitel: Die Summe steht direkt darunter, auch
+          // eingeklappt — zweimal dieselben Zahlen nahmen dem Profil den
+          // Platz.
           closeKey: const ValueKey('loop-close'),
           onClose: widget.panel.close,
         ),
@@ -627,20 +647,7 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
               // stehen, während neu gerechnet wird — ein Wechsel rechnet
               // sofort (D3). Seit PR 7b auch mit Auswahl.
               if (session.prefs.endMode == LoopEndMode.target) ...[
-                SegmentedButton<RouteMode>(
-                  key: const ValueKey('loop-route-mode'),
-                  segments: [
-                    ButtonSegment(
-                        value: RouteMode.direct, label: Text(l.routeModeDirect), icon: const Icon(Icons.straight)),
-                    ButtonSegment(
-                        value: RouteMode.fun, label: Text(l.routeModeFun), icon: const Icon(Icons.downhill_skiing)),
-                    ButtonSegment(
-                        value: RouteMode.easy, label: Text(l.routeModeEasy), icon: const Icon(Icons.directions_bike)),
-                  ],
-                  selected: {session.prefs.style},
-                  showSelectedIcon: false,
-                  onSelectionChanged: (sel) => unawaited(ref.read(loopPlannerProvider.notifier).setStyle(sel.single)),
-                ),
+                _styleSelector(context, session),
                 const SizedBox(height: 12),
               ],
               ...switch (session.phase) {
@@ -658,6 +665,21 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _styleSelector(BuildContext context, LoopSession session) {
+    final l = context.l10n;
+    return SegmentedButton<RouteMode>(
+      key: const ValueKey('loop-route-mode'),
+      segments: [
+        ButtonSegment(value: RouteMode.direct, label: Text(l.routeModeDirect), icon: const Icon(Icons.straight)),
+        ButtonSegment(value: RouteMode.fun, label: Text(l.routeModeFun), icon: const Icon(Icons.downhill_skiing)),
+        ButtonSegment(value: RouteMode.easy, label: Text(l.routeModeEasy), icon: const Icon(Icons.directions_bike)),
+      ],
+      selected: {session.prefs.style},
+      showSelectedIcon: false,
+      onSelectionChanged: (sel) => unawaited(ref.read(loopPlannerProvider.notifier).setStyle(sel.single)),
     );
   }
 
@@ -756,9 +778,6 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
   bool _fitsBudget(LoopSummary s, LoopBudget b) =>
       s.timeS <= b.plannedTimeS + 1 && s.gainM <= b.climbM + 1 && s.hikingM <= b.hikingM + 1;
 
-  String _shortSummary(AppLocalizations l, LoopSummary s) =>
-      l.loopShortSummary(formatMeters(s.lengthM), s.gainM.round(), routeTimeLabel(l, s.timeS));
-
   List<Widget> _result(BuildContext context, LoopSession session, LoopPlan plan) {
     final theme = Theme.of(context);
     final palette = AppPalette.of(context);
@@ -783,61 +802,15 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
             : l.loopSummary(formatMeters(s.lengthM), s.gainM.round(), formatMeters(s.trailM), routeTimeLabel(l, s.timeS)),
         style: theme.textTheme.titleMedium?.copyWith(fontFamily: AppFonts.mono),
       ),
-      const SizedBox(height: 4),
-      Text(
-        [
-          if (!plan.isEmpty) l.loopDescents(s.trailLossM.round(), s.wastedLossM.round()),
-          if (s.mix.isNotEmpty) wayMixLine(l, s.mix),
-        ].join(' · '),
-        style: theme.textTheme.bodyMedium,
-      ),
-      if (session.planBare && session.prefs.style == RouteMode.easy) ...[
-        const SizedBox(height: 4),
-        Text(key: const ValueKey('loop-easy-note'), l.routeEasyNote, style: theme.textTheme.bodyMedium),
-      ] else if (!session.planBare && session.prefs.planRoute.easy) ...[
-        // Mit Auswahl rechnen nur die Verbindungen bequem (#356 PR 7b).
-        const SizedBox(height: 4),
-        Text(key: const ValueKey('loop-easy-note'), l.loopEasyUpNote, style: theme.textTheme.bodyMedium),
-      ],
-      if (!session.planBare &&
-          session.planEnd == LoopEndMode.target &&
-          session.prefs.style == RouteMode.direct &&
-          !session.selected.every(session.mandatory.contains)) ...[
-        const SizedBox(height: 4),
-        Text(key: const ValueKey('loop-direct-note'), l.routeDirectStarredNote, style: theme.textTheme.bodyMedium),
-      ],
-      if (session.funEmpty) ...[
-        const SizedBox(height: 4),
-        Text(key: const ValueKey('loop-fun-empty'), l.routeFunEmpty, style: theme.textTheme.bodyMedium),
-      ],
-      for (final snap in plan.snaps) ...[
-        const SizedBox(height: 4),
-        Text(
-          key: ValueKey('loop-snap-${snap.role.name}-${snap.index}'),
-          _snapText(l, plan, snap),
-          style: theme.textTheme.bodyMedium,
-        ),
-      ],
-      // Das Profil der Runde (#234) gleich darunter, kompakt: Eingeklappt
-      // gehört es mit Summe und Knöpfen zu dem, was zu sehen ist.
+      // Das Profil der Runde (#234) gleich unter der Summe, dann die Knöpfe —
+      // eingeklappt ist das immer dasselbe Bild. Die Anmerkungen stehen
+      // darunter (Feldbefund 2026-10-29: sie schoben das Profil aus dem
+      // eingeklappten Blatt).
       RouteElevationProfile(plan.points, key: const ValueKey('loop-elevation')),
-      RouteTuneNote(
-        tuned: session.tuned,
-        onReset: () => unawaited(ref.read(loopPlannerProvider.notifier).resetTuning()),
-        keyPrefix: 'loop',
-      ),
-      if (session.tuned && !_fitsBudget(s, session.prefs.budget))
-        Text(
-          key: const ValueKey('loop-tuned-over'),
-          l.loopTunedOver,
-          style: theme.textTheme.bodySmall?.copyWith(color: palette.warningText),
-        ),
-      // Die Knöpfe gleich unter den Summen: Eingeklappt sind sie zu sehen,
-      // die Runde darüber.
       const SizedBox(height: 8),
       // „Navigieren" vorn (#232): Wer die Runde fahren will, braucht den
       // Rest nicht. Speichern und GPX darunter.
-      Row(children: [
+      Row(key: _buttonsKey, children: [
         Expanded(
           child: FilledButton.icon(
             key: const ValueKey('loop-navigate'),
@@ -874,6 +847,53 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
         ),
         ?_external(context, session),
       ]),
+      const SizedBox(height: 4),
+      Text(
+        key: const ValueKey('loop-details'),
+        [
+          if (!plan.isEmpty) l.loopDescents(s.trailLossM.round(), s.wastedLossM.round()),
+          if (s.mix.isNotEmpty) wayMixLine(l, s.mix),
+        ].join(' · '),
+        style: theme.textTheme.bodyMedium,
+      ),
+      if (session.planBare && session.prefs.style == RouteMode.easy) ...[
+        const SizedBox(height: 4),
+        Text(key: const ValueKey('loop-easy-note'), l.routeEasyNote, style: theme.textTheme.bodyMedium),
+      ] else if (!session.planBare && session.prefs.planRoute.easy) ...[
+        // Mit Auswahl rechnen nur die Verbindungen bequem (#356 PR 7b).
+        const SizedBox(height: 4),
+        Text(key: const ValueKey('loop-easy-note'), l.loopEasyUpNote, style: theme.textTheme.bodyMedium),
+      ],
+      if (!session.planBare &&
+          session.planEnd == LoopEndMode.target &&
+          session.prefs.style == RouteMode.direct &&
+          !session.selected.every(session.mandatory.contains)) ...[
+        const SizedBox(height: 4),
+        Text(key: const ValueKey('loop-direct-note'), l.routeDirectStarredNote, style: theme.textTheme.bodyMedium),
+      ],
+      if (session.funEmpty) ...[
+        const SizedBox(height: 4),
+        Text(key: const ValueKey('loop-fun-empty'), l.routeFunEmpty, style: theme.textTheme.bodyMedium),
+      ],
+      for (final snap in plan.snaps) ...[
+        const SizedBox(height: 4),
+        Text(
+          key: ValueKey('loop-snap-${snap.role.name}-${snap.index}'),
+          _snapText(l, plan, snap),
+          style: theme.textTheme.bodyMedium,
+        ),
+      ],
+      RouteTuneNote(
+        tuned: session.tuned,
+        onReset: () => unawaited(ref.read(loopPlannerProvider.notifier).resetTuning()),
+        keyPrefix: 'loop',
+      ),
+      if (session.tuned && !_fitsBudget(s, session.prefs.budget))
+        Text(
+          key: const ValueKey('loop-tuned-over'),
+          l.loopTunedOver,
+          style: theme.textTheme.bodySmall?.copyWith(color: palette.warningText),
+        ),
       if (s.trailUpM > 0) ...[
         const SizedBox(height: 4),
         Text(

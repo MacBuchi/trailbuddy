@@ -2,6 +2,19 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Höhenprofil und Knöpfe gleich unter der Summe
+
+*Version 0.137.2, 2026-10-29*
+
+- Im Ergebnis von Runde und Route steht das Höhenprofil jetzt direkt
+  unter der Summe, darunter „Navigieren" und „Speichern". Abfahrten,
+  Wegemix und Hinweise (etwa „auf den nächsten Weg gelegt") folgen
+  darunter — vorher schoben sie das Profil aus dem eingeklappten Blatt.
+  Die Summe steht nur noch einmal da, und das Blatt geht beim Ergebnis
+  so weit auf, dass die Knöpfe ganz zu sehen sind.
+- Die Stelle, die du im Profil wählst, zeigt auf der Karte jetzt ein
+  Mountainbike statt eines Stadtrads.
+
 ## „Meine Position" im Browser antwortet sofort
 
 *Version 0.137.1, 2026-10-28*
