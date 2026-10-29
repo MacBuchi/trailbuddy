@@ -205,6 +205,14 @@ abstract interface class Settings {
 
   Future<void> setMapTourSeen(bool value);
 
+  /// Hat dieses Gerät den Hinweis auf den vergebenen Benutzernamen
+  /// gezeigt (#398)? Ein Konto über Google & Co. bekommt vom Trigger
+  /// `trailbuddy_<8 Zeichen>`; der Hinweis kommt einmal, nicht bei jedem
+  /// Start.
+  bool get usernameHintSeen;
+
+  Future<void> setUsernameHintSeen(bool value);
+
   /// Die Touren außerhalb der Karte, die dieses Gerät gesehen hat
   /// (`split`, ab #136 `trails` und `buddys`). Durchgesehen oder
   /// übersprungen, auch „Nicht jetzt" (#417).
@@ -448,6 +456,15 @@ class PrefsSettings implements Settings {
 
   @override
   Future<void> setMapTourSeen(bool value) => _prefs.setBool(_mapTourSeenKey, value);
+
+  static const _usernameHintSeenKey = 'username_hint_seen';
+
+  @override
+  bool get usernameHintSeen => _prefs.getBool(_usernameHintSeenKey) ?? false;
+
+  @override
+  Future<void> setUsernameHintSeen(bool value) =>
+      _prefs.setBool(_usernameHintSeenKey, value);
 
   static const _seenCoachToursKey = 'seen_coach_tours';
 

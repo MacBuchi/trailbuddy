@@ -64,6 +64,16 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
+            <!-- Rücksprung von Google & Co. nach der Anmeldung (#398):
+                 <applicationId>://login-callback, so hat die Dev-App ihr
+                 eigenes Ziel. AuthRepository.oauthRedirect baut dieselbe
+                 Adresse, supabase_flutter tauscht den Code (app_links). -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="${applicationId}" android:host="login-callback"/>
+            </intent-filter>
         </activity>
         <!-- Der EINE Foreground-Service der App (flutter_foreground_task):
              die Fahrt (`location`) und der Bereichs-Download (`dataSync`),

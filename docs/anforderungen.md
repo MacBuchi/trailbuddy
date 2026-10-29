@@ -63,8 +63,11 @@ OB andere einen Trail haben.
 
 **A5 — Integration per Datei, nie per Konto.** GPX hinein und hinaus,
 Übergabe an die Navi-App des Nutzers; keine Kopplung an Komoot,
-Outdooractive, Strava, Garmin oder Trailforks.
-*Quelle:* Konzept 13, #156 (Positionierung).
+Outdooractive, Strava, Garmin oder Trailforks. Die Anmeldung über
+Google & Co. (#398) ist keine Kopplung: Der Anbieter bestätigt nur, wer
+man ist (Adresse, Name, Kennung), und erfährt nichts über Trails,
+Fahrten oder Buddys; die App schickt ihm nichts.
+*Quelle:* Konzept 13, #156 (Positionierung), #398 (Betreiber 2026-10-27).
 *Geprüft durch:* `test/privacy_policy_test.dart` (jeder Host), Review
 von `pubspec.yaml` (kein OAuth-Paket).
 

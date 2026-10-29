@@ -1,4 +1,34 @@
+import 'dart:convert';
+
+import 'package:flutter/foundation.dart';
+import 'package:http/http.dart' as http;
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+
+import '../core/supabase_config.dart';
+
+/// Die Anbieter neben der E-Mail (#398, Betreiber 2026-10-27 und
+/// 2026-10-29), in der Reihenfolge der Knöpfe. [key] ist der Name in
+/// GoTrues `/settings` und in `app_metadata.providers` — Microsoft heißt
+/// dort `azure`, LinkedIn `linkedin_oidc` (das alte `linkedin` hat
+/// LinkedIn abgeschaltet).
+enum SignInProvider {
+  google('google', OAuthProvider.google),
+  apple('apple', OAuthProvider.apple),
+  microsoft('azure', OAuthProvider.azure),
+  facebook('facebook', OAuthProvider.facebook),
+  github('github', OAuthProvider.github),
+  discord('discord', OAuthProvider.discord),
+  linkedin('linkedin_oidc', OAuthProvider.linkedinOidc);
+
+  const SignInProvider(this.key, this.oauth);
+
+  final String key;
+  final OAuthProvider oauth;
+
+  static SignInProvider? byKey(String? key) =>
+      values.where((p) => p.key == key).firstOrNull;
+}
 
 class AuthRepository {
   AuthRepository(this._client);
@@ -59,6 +89,80 @@ class AuthRepository {
 
   Future<void> signIn({required String email, required String password}) async {
     await _client.auth.signInWithPassword(email: email, password: password);
+  }
+
+  /// Die Anbieter, die im Projekt eingeschaltet sind — aus GoTrues
+  /// öffentlichem `/auth/v1/settings` (`external.<name>: true`).
+  ///
+  /// Die App kennt alle vier, zeigt aber nur, was das Dashboard
+  /// freigibt: Ein Knopf für einen Anbieter ohne App beim Anbieter endete
+  /// in GoTrues „Unsupported provider". Ohne Netz oder bei einer
+  /// fremden Antwort bleibt die Menge leer — dann gibt es nur die
+  /// E-Mail, wie vor #398.
+  Future<Set<SignInProvider>> enabledProviders() async {
+    final response = await http.get(
+      Uri.parse('${SupabaseConfig.url}/auth/v1/settings'),
+      headers: {'apikey': SupabaseConfig.publishableKey},
+    ).timeout(const Duration(seconds: 10));
+    if (response.statusCode != 200) return const {};
+    return parseEnabledProviders(jsonDecode(response.body));
+  }
+
+  /// Liest die Antwort von `/auth/v1/settings`; alles Unerwartete ⇒ leer.
+  @visibleForTesting
+  static Set<SignInProvider> parseEnabledProviders(Object? body) {
+    final external = body is Map ? body['external'] : null;
+    if (external is! Map) return const {};
+    return {
+      for (final p in SignInProvider.values)
+        if (external[p.key] == true) p,
+    };
+  }
+
+  /// Öffnet die Anmeldeseite des Anbieters. Zurück kommt man über
+  /// [oauthRedirect]; die Sitzung tauscht `supabase_flutter` selbst aus
+  /// dem Rücksprung ein (PKCE, `detectSessionInUri`), und der Router
+  /// folgt dem `signedIn`. Dieselbe E-Mail wie ein bestehendes Konto
+  /// landet in DIESEM Konto — GoTrue verknüpft bestätigte Adressen von
+  /// selbst; Microsoft meldet die Bestätigung nur mit dem Claim
+  /// `xms_edov` (`lib/features/auth/CLAUDE.md`).
+  Future<void> signInWithProvider(SignInProvider provider) async {
+    await _client.auth.signInWithOAuth(
+      provider.oauth,
+      redirectTo: await oauthRedirect(),
+      // Ohne `email` liefert Microsoft keine Adresse, und GoTrue lehnt
+      // das Konto ab.
+      scopes: provider == SignInProvider.microsoft ? 'email' : null,
+      // Android: ein eigener Browser-Tab statt der Web-Ansicht in der
+      // App — Google lässt sich dort gar nicht anmelden, die anderen
+      // sehen im Browser ihre gespeicherte Anmeldung.
+      authScreenLaunchMode: LaunchMode.externalApplication,
+    );
+  }
+
+  /// Wohin der Anbieter zurückschickt — eine der Adressen, die im
+  /// Dashboard unter „Redirect URLs" stehen müssen:
+  /// - Android: `<applicationId>://login-callback` (die Dev-App hat ihre
+  ///   eigene Kennung und damit ihr eigenes Ziel; der Intent-Filter im
+  ///   Manifest nimmt `${applicationId}`);
+  /// - Web: die Adresse der App ohne Anfrage und Anker — Pages und die
+  ///   Vorschau liegen unter verschiedenen Pfaden.
+  static Future<String> oauthRedirect() async {
+    if (kIsWeb) return '${Uri.base.origin}${Uri.base.path}';
+    final info = await PackageInfo.fromPlatform();
+    return '${info.packageName}://login-callback';
+  }
+
+  /// Über welchen Anbieter dieses Konto angelegt wurde, oder `null` bei
+  /// E-Mail und Passwort. Ein solches Konto hat kein Passwort: „Passwort
+  /// ändern" und „E-Mail ändern" verlangen das aktuelle und kämen nie
+  /// durch. Hat es zusätzlich eine E-Mail-Identität (dieselbe Adresse
+  /// schon mit Passwort registriert), gilt es als E-Mail-Konto.
+  SignInProvider? get externalProvider {
+    final meta = _client.auth.currentUser?.appMetadata ?? const {};
+    final providers = meta['providers'];
+    if (providers is List && providers.contains('email')) return null;
+    return SignInProvider.byKey(meta['provider'] as String?);
   }
 
   Future<void> signOut() => _client.auth.signOut();

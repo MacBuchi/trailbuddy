@@ -13,6 +13,7 @@ import '../../data/providers.dart';
 import '../../l10n/l10n.dart';
 import '../../models/profile.dart' show usernameProblem;
 import 'pending_code.dart';
+import 'provider_buttons.dart';
 
 class SignupScreen extends ConsumerStatefulWidget {
   const SignupScreen({super.key});
@@ -287,6 +288,9 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
             onPressed: () => context.go('/login'),
             child: Text(l.signupToLogin),
           ),
+          // Über einen Anbieter (#398) entsteht das Konto ohne
+          // Bestätigungsmail — der Anbieter hat die Adresse geprüft.
+          ProviderSignInButtons(enabled: !_busy),
         ],
       );
 }

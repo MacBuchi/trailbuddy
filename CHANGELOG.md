@@ -2,6 +2,20 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Anmelden über Google & Co. vorbereitet
+
+*Version 0.139.0, 2026-10-29*
+
+- Die App kann jetzt die Anmeldung über Google, Apple, Microsoft,
+  Facebook, GitHub, Discord und LinkedIn — neben E-Mail und Passwort.
+  Die Knöpfe erscheinen unter Anmelden und Registrieren, sobald ein
+  Anbieter freigeschaltet ist; bis dahin bleibt alles wie gewohnt.
+- Gibt es zu deiner Adresse schon ein Konto, meldest du dich über den
+  Anbieter in diesem an — es entsteht kein zweites.
+- Ein Konto über einen Anbieter braucht kein Passwort. Den
+  Benutzernamen vergibt die App zunächst selbst; ein Hinweis sagt ihn
+  dir einmal, ändern kannst du ihn im Profil unter „Konto“.
+
 ## „Nicht jetzt“ bleibt gemerkt
 
 *Version 0.138.5, 2026-10-29*

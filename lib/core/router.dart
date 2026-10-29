@@ -9,6 +9,7 @@ import '../data/providers.dart';
 import '../features/coach/coach.dart';
 import '../features/auth/login_screen.dart';
 import '../features/auth/signup_screen.dart';
+import '../features/auth/username_hint.dart';
 import '../features/changelog/changelog_screen.dart';
 import '../features/friends/conversation_screen.dart';
 import '../features/friends/friends_screen.dart';
@@ -226,7 +227,9 @@ class AppShell extends ConsumerWidget {
       // Rest der Tastatur schrumpfen.
       // Der Ausgangskorb (#30) hört in der Hülle, nicht in einem Reiter
       // — der Browser startet nach dem Neuladen auf dem Reiter der URL.
-      body: OutboxTrigger(child: KeyboardInsetBelowBar(child: navigationShell)),
+      // Der einmalige Hinweis auf den vergebenen Benutzernamen (#398).
+      body: UsernameHint(
+          child: OutboxTrigger(child: KeyboardInsetBelowBar(child: navigationShell))),
       // Im Bild-im-Bild (#232, 9.6) ist die App nur noch Karte: keine
       // Reiterleiste, die das kleine Fenster zur Hälfte füllte. Und
       // solange navigiert wird, ist die Karte Vollbild (#312, Design 13):

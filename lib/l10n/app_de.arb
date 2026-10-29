@@ -9039,5 +9039,58 @@
   "mapLoopHintRoute": "Tippe die Trails an, die auf dem Weg mit sollen — oder rechne gleich die Route zum Ziel.",
   "@mapLoopHintRoute": {
     "description": "Hinweis oben im Planer im Modus „Zum Ziel“, solange kein Trail gewählt ist: Ohne Trail rechnet der Planer die Route von A nach B."
+  },
+  "authProviderDivider": "oder weiter mit",
+  "@authProviderDivider": {
+    "description": "Trennzeile über den Knöpfen der Anmelde-Anbieter (#398)."
+  },
+  "authProviderButton": "Weiter mit {provider}",
+  "@authProviderButton": {
+    "description": "Knopf eines Anmelde-Anbieters; provider ist der Markenname (Google, Apple …).",
+    "placeholders": {
+      "provider": {
+        "type": "String"
+      }
+    }
+  },
+  "authProviderFailed": "Die Anmeldeseite von {provider} ließ sich nicht öffnen. Versuch es noch einmal.",
+  "@authProviderFailed": {
+    "description": "Hinweis, wenn der Browser für die Anmeldung beim Anbieter nicht aufging.",
+    "placeholders": {
+      "provider": {
+        "type": "String"
+      }
+    }
+  },
+  "accountProviderTitle": "Angemeldet über {provider}",
+  "@accountProviderTitle": {
+    "description": "Zeile im Konto statt „E-Mail ändern“/„Passwort ändern“ für ein Konto, das über einen Anbieter angelegt wurde.",
+    "placeholders": {
+      "provider": {
+        "type": "String"
+      }
+    }
+  },
+  "accountProviderSubtitle": "Ein Passwort hat dieses Konto nicht, die Adresse kommt von {provider}. Willst du dich auch mit E-Mail anmelden: abmelden und „Passwort vergessen“ wählen.",
+  "@accountProviderSubtitle": {
+    "description": "Erklärung unter accountProviderTitle.",
+    "placeholders": {
+      "provider": {
+        "type": "String"
+      }
+    }
+  },
+  "usernameHint": "Dein Benutzername ist {name} — unter dem finden dich deine Buddys.",
+  "@usernameHint": {
+    "description": "Einmaliger Hinweis nach der ersten Anmeldung über einen Anbieter, solange der vergebene Name gilt.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "usernameHintAction": "Ändern",
+  "@usernameHintAction": {
+    "description": "Aktion am Hinweis usernameHint: öffnet das Konto."
   }
 }

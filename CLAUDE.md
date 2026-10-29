@@ -197,6 +197,7 @@ Code liegt — nicht wieder hierher.
 | `lib/features/coach/CLAUDE.md` | Die Hinweis-Maschine und die Karten-Tour |
 | `lib/features/help/CLAUDE.md` | Einführung: Kurzanleitung, Sicherheitshinweis, Kontexthilfe · Die Karten-Tour beim ersten Start · Die Tour im Zerlege-Blatt · Touren je Reiter, Kette und Beispiele |
 | `lib/features/highlights/CLAUDE.md` | Neuheiten, „Entdecken" und „Zeig es mir" |
+| `lib/features/auth/CLAUDE.md` | Anmelden über Google & Co. (#398): Freigabe aus `/settings`, Rücksprung, gleiche Adresse, Konto ohne Passwort, Benutzername, Einrichtung beim Anbieter |
 | `lib/features/feedback/CLAUDE.md` | Feedback (die Glühbirne) · Fehlerbericht-Digest (`tool/feedback_bot.py`) |
 | `lib/l10n/CLAUDE.md` | Sprachen der Oberfläche: ARB, Vorlage Deutsch, erzeugte Dateien, Testgerät Deutsch (#209) |
 | `web/CLAUDE.md` | Kein Netzziel ohne Datenschutzerklärung · Web (Service Worker, Build) |

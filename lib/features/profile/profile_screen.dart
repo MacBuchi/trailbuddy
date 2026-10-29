@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart' show DateFormat;
 import 'package:supabase_flutter/supabase_flutter.dart' show AuthException;
@@ -18,7 +19,9 @@ import '../../core/widgets/info_button.dart';
 import '../../core/widgets/letter_avatar.dart';
 import '../../core/widgets/motion.dart';
 import '../../core/widgets/password_field.dart';
+import '../../data/auth_repository.dart' show SignInProvider;
 import '../../data/providers.dart';
+import '../auth/provider_buttons.dart' show SignInProviderLook;
 import '../coach/coach.dart';
 import '../feedback/feedback_dialog.dart';
 import '../help/tab_tours.dart' show ProfileCoach;
@@ -381,10 +384,18 @@ class AccountScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final profile = ref.watch(myProfileProvider).valueOrNull;
+    ref.watch(authStateProvider);
+    final external = ref.watch(authRepositoryProvider).externalProvider;
     return _ProfilePage(title: context.l10n.profileAccountTitle, children: [
       ChangeUsernameTile(username: profile?.username),
-      const ChangeEmailTile(),
-      const _ChangePasswordTile(),
+      // Ein Konto über Google & Co. (#398) hat kein Passwort — beide
+      // Dialoge verlangen das aktuelle und kämen nie durch.
+      if (external != null)
+        _ExternalProviderTile(provider: external)
+      else ...[
+        const ChangeEmailTile(),
+        const _ChangePasswordTile(),
+      ],
       const SignOutOtherDevicesTile(),
       const Divider(height: 40),
       _DeleteAccountTile(username: profile?.username),
@@ -430,6 +441,38 @@ class AboutScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) =>
       _ProfilePage(title: context.l10n.profileAboutTitle, children: const [_AboutSection()]);
+}
+
+/// Statt „E-Mail ändern" und „Passwort ändern": über welchen Anbieter
+/// das Konto läuft, die Adresse, und wie man zusätzlich zu einem
+/// Passwort kommt (der Reset-Code geht an jede Adresse eines Kontos).
+class _ExternalProviderTile extends ConsumerWidget {
+  const _ExternalProviderTile({required this.provider});
+
+  final SignInProvider provider;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l = context.l10n;
+    final email = ref.watch(authRepositoryProvider).currentEmail;
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      leading: SvgPicture.asset(
+        provider.asset,
+        width: 24,
+        height: 24,
+        colorFilter: provider.monochrome
+            ? ColorFilter.mode(Theme.of(context).colorScheme.onSurface, BlendMode.srcIn)
+            : null,
+      ),
+      title: Text(l.accountProviderTitle(provider.label)),
+      subtitle: Text([
+        ?email,
+        l.accountProviderSubtitle(provider.label),
+      ].join('\n')),
+      isThreeLine: email != null,
+    );
+  }
 }
 
 /// Passwort ändern für Angemeldete. Der Reset-Flow auf dem Login-Screen

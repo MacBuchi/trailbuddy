@@ -225,4 +225,19 @@ exists=$(curl -s -X PUT "$URL/auth/v1/user" "${hdr[@]}" \
   || fail "vergebene Adresse liefert '$exists' statt 'email_exists' — die Meldung in lib/core/errors.dart passt dann nicht mehr"
 echo "✓ Vergebene Adresse wird als email_exists abgelehnt"
 
-echo "Registrierung, Passwort-Reset, Passwortwechsel und E-Mail-Wechsel laufen end-to-end gegen echtes GoTrue."
+# Anmelden über Google & Co. (#398): Die App liest `/settings` und zeigt
+# je `external.<name>: true` einen Knopf. Die Namen stehen in
+# `SignInProvider.key` (lib/data/auth_repository.dart) — benennt GoTrue
+# einen um (wie einst linkedin → linkedin_oidc), verschwände der Knopf
+# still. Lokal ist jeder Anbieter aus (supabase/config.toml), gemeldet
+# werden müssen sie trotzdem.
+settings=$(curl -s "$URL/auth/v1/settings" "${hdr[@]}")
+for key in $(sed -n "s/^  [a-z]*('\([a-z_]*\)', OAuthProvider\..*/\1/p" lib/data/auth_repository.dart); do
+  val=$(echo "$settings" | jq -r --arg k "$key" '.external[$k] | if . == null then "fehlt" else tostring end')
+  [ "$val" != "fehlt" ] || fail "GoTrue meldet keinen Anbieter '$key' in /settings — Name in SignInProvider prüfen"
+  [ "$val" = "false" ] || fail "Anbieter '$key' ist lokal an ($val) — supabase/config.toml lässt alle aus"
+done
+[ -n "${key:-}" ] || fail "keine Anbieter aus lib/data/auth_repository.dart gelesen"
+echo "✓ /settings meldet jeden Anbieter der App unter seinem Namen"
+
+echo "Registrierung, Passwort-Reset, Passwortwechsel, E-Mail-Wechsel und die Anbieterliste laufen end-to-end gegen echtes GoTrue."

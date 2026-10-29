@@ -2,6 +2,20 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## Signing in with Google & co. prepared
+
+*Version 0.139.0, 2026-10-29*
+
+- The app can now sign you in with Google, Apple, Microsoft,
+  Facebook, GitHub, Discord and LinkedIn — next to email and
+  password. The buttons appear under sign-in and sign-up as soon as a
+  provider is switched on; until then nothing changes.
+- If an account with your address already exists, signing in via a
+  provider opens that account — no second one is created.
+- An account via a provider needs no password. The app picks a
+  username at first; a note tells you once, and you can change it
+  under Profile, „Account“.
+
 ## „Not now“ is remembered
 
 *Version 0.138.5, 2026-10-29*

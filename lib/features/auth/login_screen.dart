@@ -13,6 +13,7 @@ import '../../core/widgets/trailbuddy_logo.dart';
 import '../../data/providers.dart';
 import '../../l10n/l10n.dart';
 import 'pending_code.dart';
+import 'provider_buttons.dart';
 
 /// Drei Zustände statt zwei: „Passwort vergessen" ist ein eigener Modus, der
 /// nur die E-Mail abfragt — ein sichtbares Passwortfeld daneben verleitet
@@ -387,6 +388,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     onPressed: () => context.go('/signup'),
                     child: Text(l.loginToSignup),
                   ),
+                  // Google, Apple & Co. (#398) — nur, was das Projekt
+                  // freigibt; ohne Freigabe sieht der Screen aus wie zuvor.
+                  ProviderSignInButtons(enabled: !_busy),
                 ] else ...[
                   if (_mode == _Mode.code)
                     ResendButton(

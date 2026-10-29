@@ -50,6 +50,16 @@ enabled = true
 # Der Dry Run legt über die API Testkonten an (auth_reset_check.sh); GoTrue
 # muss das auth-Schema anlegen, damit schema.sql durchläuft.
 site_url = "http://127.0.0.1:3000"
+# Rücksprünge der Anmeldung über Google & Co. (#398) — dieselben wie
+# im Dashboard unter „Redirect URLs" (dort zusätzlich Pages und die
+# Vorschau, siehe lib/features/auth/CLAUDE.md). Die Anbieter selbst
+# bleiben lokal aus ([auth.external.*] fehlt = aus): Ihre Apps und
+# Schlüssel gibt es nur im Live-Projekt, und auth_reset_check.sh prüft,
+# dass /settings jeden Namen der App meldet.
+additional_redirect_urls = [
+  "de.mcbuchi.trailbuddy://login-callback",
+  "de.mcbuchi.trailbuddy.dev://login-callback",
+]
 
 # Mailpit fängt die Auth-Mails lokal ab (Web-UI und REST-API unter diesem
 # Port) — damit ist „Passwort vergessen" komplett ohne Mailversand prüfbar:
