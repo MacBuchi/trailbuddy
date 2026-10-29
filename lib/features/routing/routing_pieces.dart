@@ -51,6 +51,11 @@ class PieceLookup {
   /// deren Wege aus dem Speicher kommen.
   final Map<(int, int), ({String region, String build})> _targets;
 
+  /// Liegt eine Kachel im Speicher ohne frisches Stück? Kacheln ohne
+  /// Karte zählen nicht — sie haben nie eins, und das Backen im
+  /// Hintergrund (`routing_bake.dart`) liefe sonst bei jedem Start an.
+  bool get pending => _targets.isNotEmpty;
+
   /// Die Bytes der Kacheln, die gebacken werden ohne Platz im Speicher
   /// (online ergänzt) — ihr Stück hängt an genau diesem Objekt.
   final _online = <(int, int), Uint8List>{};

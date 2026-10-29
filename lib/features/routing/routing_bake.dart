@@ -12,8 +12,9 @@
 //   Bau eines Rahmens), backt im EIGENEN Runner ([LoopPlanRunner.bake],
 //   auf Android ein eigener Rechen-Isolate) und legt die Stücke in einem
 //   Schreibvorgang ab. Was liegt, ist fertig: Nach einem Abbruch oder
-//   Neustart macht das nächste Speichern oder Aktualisieren dort weiter,
-//   wo es stand, und eine Planung dazwischen backt den Rest ihres Rahmens.
+//   Neustart macht der nächste Start ([RoutingBakeNotifier.bakeStored],
+//   #410), das nächste Speichern oder Aktualisieren dort weiter, wo es
+//   stand, und eine Planung dazwischen backt den Rest ihres Rahmens.
 // - **Nie, während der Planer rechnet.** Vor jedem Block wartet er, bis
 //   `loopPlannerProvider` nicht mehr `busy` ist — beide wollen dieselben
 //   Kerne, und gewartet wird auf den Planer.
@@ -72,6 +73,10 @@ final routingBakePauseProvider = Provider<Future<void> Function({required bool p
 final routingBakePlannerBusyProvider = Provider<bool Function()>(
     (ref) => () => ref.exists(loopPlannerProvider) && ref.read(loopPlannerProvider).busy);
 
+/// Backt der Kartenstart nach ([RoutingBakeNotifier.bakeStored])? Die
+/// Naht für Tests — der Harness schaltet es ab.
+final routingBakeOnStartProvider = Provider<bool>((ref) => true);
+
 class RoutingBakeNotifier extends Notifier<RoutingBakeState> {
   static const _keepAliveKey = 'bake';
   final _queue = <StoredArea>[];
@@ -117,11 +122,18 @@ class RoutingBakeNotifier extends Notifier<RoutingBakeState> {
     }
   }
 
+  /// Holt nach, was beim Start fehlt (#410): jeder Bereich, der backt,
+  /// in die Reihe. Bereiche von vor 0.137.0 bekommen so ihre Stücke, ohne
+  /// dass jemand „Aktualisieren" kennt, ebenso ein abgebrochenes Backen
+  /// und Stücke, die eine neue [kRoutingTileVersion] alt gemacht hat. Was
+  /// frisch liegt, kostet je Block nur [findPieces].
+  Future<void> bakeStored() async => bakeAreas(await ref.read(storedAreasProvider.future));
+
   /// Fertig, wenn nichts mehr backt.
   Future<void> get idle => _running ?? Future.value();
 
-  /// Bricht ab; was liegt, bleibt. Das nächste Speichern oder
-  /// Aktualisieren in der Region macht weiter.
+  /// Bricht ab; was liegt, bleibt. Der nächste Start, das nächste
+  /// Speichern oder Aktualisieren in der Region macht weiter.
   void cancel() {
     _cancels++;
     _queue.clear();
@@ -139,19 +151,30 @@ class RoutingBakeNotifier extends Notifier<RoutingBakeState> {
         final blocks = _blocksOf(area.shape.tiles(minZoom: kRoutingTileZoom, maxZoom: kRoutingTileZoom));
         final total = blocks.fold<int>(0, (s, b) => s + b.length);
         var done = 0;
-        state = RoutingBakeState(name: area.name, total: total);
-        if (!started) {
-          started = true;
-          await coordinator.start(_keepAliveKey, l.areaNoticePercent(area.name, 0), title: l.areaNoticeBakeTitle);
-        } else {
-          unawaited(coordinator.update(_keepAliveKey, l.areaNoticePercent(area.name, 0)));
-        }
+        // Gezeigt wird erst, wenn ein Block wirklich backt: Liegt alles
+        // frisch (der Start prüft jeden Bereich), bleiben Dienst und
+        // Zeile in „Meine Bereiche" still.
+        var shown = false;
         try {
           for (final block in blocks) {
             await _waitWhilePlanning(cancels);
             if (_cancels != cancels) break;
-            await _bakeBlock(area, block, runner ??= ref.read(loopPlanRunnerFactoryProvider)());
+            final lookup =
+                await findPieces(ref.read(tileStoreProvider), [area.region], block, ref.read(routingPieceSessionProvider));
+            if (lookup.pending) {
+              final percent = l.areaNoticePercent(area.name, (100 * done / total).round());
+              if (!started) {
+                started = true;
+                await coordinator.start(_keepAliveKey, percent, title: l.areaNoticeBakeTitle);
+              } else if (!shown) {
+                unawaited(coordinator.update(_keepAliveKey, percent));
+              }
+              shown = true;
+              state = RoutingBakeState(name: area.name, done: done, total: total);
+              await _bakeBlock(area, block, lookup, runner ??= ref.read(loopPlanRunnerFactoryProvider)());
+            }
             done += block.length;
+            if (!shown) continue;
             state = RoutingBakeState(name: area.name, done: done, total: total);
             unawaited(coordinator.update(_keepAliveKey, l.areaNoticePercent(area.name, (100 * done / total).round())));
             await ref.read(routingBakePauseProvider)(planner: false);
@@ -178,11 +201,9 @@ class RoutingBakeNotifier extends Notifier<RoutingBakeState> {
     }
   }
 
-  /// Ein Block: frische Stücke überspringen, den Rest lesen, drüben
+  /// Ein Block mit fehlenden oder alten Stücken: den Rest lesen, drüben
   /// backen, ablegen.
-  Future<void> _bakeBlock(StoredArea area, List<TileXYZ> block, LoopPlanRunner runner) async {
-    final lookup = await findPieces(ref.read(tileStoreProvider), [area.region], block, ref.read(routingPieceSessionProvider));
-    if (lookup.fresh.length == block.length) return;
+  Future<void> _bakeBlock(StoredArea area, List<TileXYZ> block, PieceLookup lookup, LoopPlanRunner runner) async {
     final own = {for (final t in block) (t.x, t.y)};
     // Die Nachbarn eine Kachel weit: nur für das Wege-Archiv (das Backen
     // liest 3 × 3), ihre Wege werden nicht gelesen.

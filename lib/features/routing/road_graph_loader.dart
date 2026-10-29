@@ -60,15 +60,20 @@ const kOnlineFillMaxTiles = 75;
 /// Konzept-Routing 10.6): Der Rahmen wird VOR dem Lesen gezählt, und
 /// darüber sagt das Blatt „Gebiet zu groß" mit dem Rat (Radius kleiner,
 /// weit entfernte Trails abwählen), ohne eine Kachel geöffnet zu haben.
-/// Bei 47° N ist eine Kachel rund 3,3 × 3,3 km; 120 Kacheln sind
-/// ~36 × 36 km, ein 30-km-Radius mit Trails an beiden Rändern.
+/// Bei 47° N ist eine Kachel rund 3,3 × 3,3 km; 300 Kacheln sind
+/// ~58 × 58 km, der größte Radius des Planers (30 km) mit Trails an
+/// beiden Rändern.
 ///
-/// Gemessen am Pixel (#356, `docs/routing-messung.md`, Szenario 4): 117
-/// Kacheln bauten in 41–44 s und belegten bis 1,76 GB, ohne Absturz. Die
-/// Wartezeit begrenzt nicht mehr — mit dem Ladebalken darf es länger
-/// dauern (Betreiber, 2026-10-18) —, der Speicher schon: Er wächst mit
-/// den Kacheln, 300 hätten das Gerät überfordert.
-const kPlanMaxTiles = 120;
+/// Bis 0.137 waren es 120: Am Pixel (#356, Szenario 4) bauten 117
+/// Kacheln in einem Stück 41–44 s und belegten bis 1,76 GB. Seit den
+/// gebackenen Stücken (#380, `docs/routing-messung.md`, Gerät
+/// 2026-10-28) kostet eine Kachel beim Zusammensetzen ~0,035 s und
+/// ~1,2 MB, beim ersten Backen ~0,4 s — der Speicher begrenzt nicht mehr.
+/// 300 (Betreiber, 2026-10-29: „250 Kacheln sind ok, 300 eigentlich
+/// auch") sind hochgerechnet ~10 s und +350 MB für eine zweite Planung,
+/// ~2 min für eine erste ganz ohne Stücke; das Backen beim Start (#410)
+/// hält die erste selten.
+const kPlanMaxTiles = 300;
 
 /// Holt eine Kachel vom Host, die kein Bereich hat: die entpackten Bytes,
 /// null, wenn der Host sie nicht hat (außerhalb DACH). Wirft bei einem

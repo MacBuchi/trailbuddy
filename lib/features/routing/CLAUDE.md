@@ -361,8 +361,9 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     Gemessen (`routing-messung.md`, „nach PR 8"): die Pause im UI-Isolate
     von 1,8 s auf ~25 ms (544 KB Bytes statt 65 000 Kanten), der Bau
     selbst gleich teuer, nur woanders. **Vor dem Lesen zählt der Lader**
-    (`kPlanMaxTiles` = 120, gemessen am Pixel: die Grenze setzt der
-    Speicher, nicht die Zeit — bis 0.131.x vorläufig 300;
+    (`kPlanMaxTiles` = 300 seit 0.138.0; 0.131.1–0.137.x 120, weil der
+    Bau in einem Stück am Pixel bis 1,76 GB belegte — mit den gebackenen
+    Stücken ~1,2 MB je Kachel, #380;
     `LoopBlocker.tooLarge`, `loopBlockerTooLarge`/`routeBlockerTooLarge`
     mit Zahlen und Rat), und **Verbinder kommen nur in der Nähe der
     Anker in den Rahmen** (`kPlanConnectorMarginM`, 3 km um Start, Ziel,
@@ -1028,9 +1029,15 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     `_cancels` hoch und trifft nur den laufenden Bereich; was danach
     eingereiht wird, backt. Die ganze Region,
     unvollständige, übernommene und Bereiche unter z13 backen nicht
-    (`RoutingBakeNotifier.bakes`). Wer `LoopPlanRunner` implementiert
+    (`RoutingBakeNotifier.bakes`). **Seit 0.138.0 fragt auch der
+    Kartenstart jeden Bereich** (`bakeStored`, #410) und „Aktualisieren"
+    ohne Download; Dienst und Zeile kommen erst, wenn ein Block
+    `PieceLookup.pending` ist — Kacheln ohne Karte haben nie ein Stück und
+    zählen nicht, sonst liefe der Dienst bei jedem Start an. Der Harness
+    schaltet den Start ab (`routingBakeOnStartProvider`), weil die
+    Planer-Tests Runner zählen. Wer `LoopPlanRunner` implementiert
     (auch Test-Spione), braucht `bake`. Der Strukturtest
     (`graph_isolation_test`) sucht `bakeTile` auch in Kommentaren —
     dort heißt es „das Backen".
-  `tool/routing_tiles_measure.dart` war der Prototyp; gemessen am Gerät
-  wird nach dem Merge (Szenarien 2′ und 4 aus #356, Konzept 11.6).
+  `tool/routing_tiles_measure.dart` war der Prototyp; am Gerät gemessen
+  2026-10-28 (`docs/routing-messung.md`, „#380 — Am Gerät").
