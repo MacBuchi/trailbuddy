@@ -17,9 +17,8 @@
 //   während man auf der Karte ist.
 // - **Karten-Tour und Hinweis gehen vor.** Solange sie nicht gesehen
 //   sind, startet hier nichts — zwei Touren übereinander wären keine.
-// - **„Später"/„Nicht jetzt" ist kein Gesehen**: In derselben Sitzung
-//   fragt der Reiter nicht wieder (`declinedTabToursProvider`, nur im
-//   Speicher), beim nächsten Start schon.
+// - **„Später"/„Nicht jetzt" ist ein Gesehen** (#417): Wer ablehnt, hat
+//   entschieden; die Tour bleibt in der Kurzanleitung startbar.
 //
 // Keine Profil-Tour (Plan 3.5): Die Karten-Tour nennt das Profil, die
 // Kurzanleitung liegt dort, und eine dritte Frage verlängerte den ersten
@@ -235,30 +234,20 @@ class RequestedTabTour extends Notifier<String?> {
 
 final requestedTabTourProvider = NotifierProvider<RequestedTabTour, String?>(RequestedTabTour.new);
 
-/// Touren, bei denen in DIESER Sitzung „Nicht jetzt" oder „Später"
-/// gewählt wurde. Nur im Speicher.
-class DeclinedTabTours extends Notifier<Set<String>> {
-  @override
-  Set<String> build() => const {};
-
-  void add(String id) => state = {...state, id};
-}
-
-final declinedTabToursProvider = NotifierProvider<DeclinedTabTours, Set<String>>(DeclinedTabTours.new);
-
-/// Startet [script] und merkt sich danach, dass sie gesehen wurde.
+/// Startet [script] und merkt sich danach, dass sie gesehen wurde — auch
+/// nach „Nicht jetzt" (#417).
 void startTabTour(WidgetRef ref, CoachScript script) {
   final seen = ref.read(seenCoachToursProvider.notifier);
-  final declined = ref.read(declinedTabToursProvider.notifier);
   ref.read(coachProvider.notifier).start(script,
-      onDone: () => seen.markSeen(script.id), onDecline: () => declined.add(script.id));
+      onDone: () => seen.markSeen(script.id), onDecline: () => seen.markSeen(script.id));
 }
 
 /// Der erste Start: Willkommensseite, Karten-Tour, danach die Reiter —
 /// jeder mit seiner Startseite als FRAGE („Weiter mit den Trails?"). Wer
-/// „Später" wählt, beendet die Kette; die übrigen Touren kommen beim
-/// ersten Besuch ihres Reiters. „Nicht jetzt" auf der Willkommensseite
-/// fragt beim nächsten Start wieder.
+/// „Später" wählt, beendet die Kette und hat diese Tour gesehen; die
+/// übrigen kommen beim ersten Besuch ihres Reiters. „Nicht jetzt" auf der
+/// Willkommensseite merkt die Karten-Tour als gesehen (#417) — die
+/// Reiter fragen dann je einmal bei ihrem ersten Besuch.
 ///
 /// Notifier und Router werden VORHER gegriffen: Die Kette läuft über
 /// mehrere Reiter, und der `ref` des Karten-Screens ist dabei vielleicht
@@ -267,18 +256,16 @@ void startWelcomeTour(AppLocalizations l, WidgetRef ref, GoRouter router) {
   final coach = ref.read(coachProvider.notifier);
   final mapSeen = ref.read(mapTourSeenProvider.notifier);
   final seen = ref.read(seenCoachToursProvider.notifier);
-  final declined = ref.read(declinedTabToursProvider.notifier);
   coach.start(welcomeTourScript(l), onDone: () {
     mapSeen.set(true);
-    unawaited(_continueChain(coach, router, seen, declined, tabTours(l)));
-  });
+    unawaited(_continueChain(coach, router, seen, tabTours(l)));
+  }, onDecline: () => mapSeen.set(true));
 }
 
 Future<void> _continueChain(
   CoachNotifier coach,
   GoRouter router,
   SeenCoachTours seen,
-  DeclinedTabTours declined,
   List<(CoachScript, String)> rest,
 ) async {
   final open = [
@@ -297,9 +284,9 @@ Future<void> _continueChain(
       chained: true,
       onDone: () {
         seen.markSeen(script.id);
-        unawaited(_continueChain(coach, router, seen, declined, open.sublist(1)));
+        unawaited(_continueChain(coach, router, seen, open.sublist(1)));
       },
-      onDecline: () => declined.add(script.id));
+      onDecline: () => seen.markSeen(script.id));
 }
 
 /// Startet die Tour seines Reiters, sobald es passt. Gehört einmal in den
@@ -327,8 +314,7 @@ class _TabTourStarterState extends ConsumerState<TabTourStarter> {
   Widget build(BuildContext context) {
     final id = widget.script(context.l10n).id;
     final requested = ref.watch(requestedTabTourProvider) == id;
-    final seen = ref.watch(seenCoachToursProvider).contains(id) ||
-        ref.watch(declinedTabToursProvider).contains(id);
+    final seen = ref.watch(seenCoachToursProvider).contains(id);
     // Abhängigkeit, nicht nur Abfrage: Wird der Reiter sichtbar, baut
     // dieses Widget neu, und der Start wird erneut versucht.
     final visible = TickerMode.valuesOf(context).enabled;
@@ -357,7 +343,6 @@ class _TabTourStarterState extends ConsumerState<TabTourStarter> {
       if (requested) {
         ref.read(requestedTabTourProvider.notifier).clear();
       } else if (ref.read(seenCoachToursProvider).contains(script.id) ||
-          ref.read(declinedTabToursProvider).contains(script.id) ||
           !ref.read(mapTourSeenProvider) ||
           !ref.read(safetyNoteSeenProvider)) {
         return;

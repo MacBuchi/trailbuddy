@@ -1004,7 +1004,7 @@
   "aboutHeightData": "Elevation data of stored areas: {attribution}",
   "helpTitle": "Quick guide",
   "tourWelcomeTitle": "Welcome to TrailBuddy",
-  "tourWelcomeText": "This is where the trails you have ridden live, and those of your buddies — nobody else’s. Three ways bring trails here: import a GPX, record a ride, connect with buddies.",
+  "tourWelcomeText": "This is where the trails you have ridden live, and those of your buddies — nobody else’s. Three ways bring trails here: import a GPX, record a ride, connect with buddies. You can find the tour any time under Profile, “Quick guide”.",
   "tourWelcomeStart": "Start the tour",
   "tourMapIntroTitle": "The map",
   "tourMapIntroText": "Your trails and your buddies’ trails live here, each line in the color of its difficulty. The tour shows what the map tells you — and what is behind the buttons.",

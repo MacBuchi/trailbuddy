@@ -2,6 +2,16 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## „Nicht jetzt“ bleibt gemerkt
+
+*Version 0.138.5, 2026-10-29*
+
+- Wer bei einer Tour „Nicht jetzt“ oder „Später“ wählt, wird nicht
+  mehr bei jedem Start wieder gefragt — das gilt für die Begrüßung,
+  die Touren auf den Reitern und die Tour im Zerlege-Blatt. Alle
+  Touren lassen sich jederzeit im Profil unter „Kurzanleitung“
+  starten; das sagt jetzt auch die Begrüßung.
+
 ## Ziel im offenen Planer
 
 *Version 0.138.4, 2026-10-29*

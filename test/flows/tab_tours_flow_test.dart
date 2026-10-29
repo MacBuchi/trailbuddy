@@ -214,10 +214,10 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('coach-intro-later')));
     await settle(tester);
     expect(intro, findsNothing);
-    expect(settings.seenCoachTours, isNot(contains('buddys')), reason: '„Später" ist kein Gesehen');
+    expect(settings.seenCoachTours, contains('buddys'), reason: '„Später" ist gemerkt (#417)');
   });
 
-  testWidgets('„Nicht jetzt": in dieser Sitzung nicht bei jedem Besuch', (tester) async {
+  testWidgets('„Nicht jetzt" ist gemerkt, auch über einen Neustart (#417)', (tester) async {
     final settings = tabsFresh();
     await pumpApp(tester, backend, trails: trails, settings: settings);
     await openTab(tester, 'Trails');
@@ -226,7 +226,12 @@ void main() {
     await openTab(tester, 'Karte');
     await openTab(tester, 'Trails');
     expect(intro, findsNothing);
-    expect(settings.seenCoachTours, isNot(contains('trails')));
+    expect(settings.seenCoachTours, contains('trails'));
+
+    await tester.pumpWidget(const SizedBox());
+    await pumpApp(tester, backend, trails: trails, settings: settings);
+    await openTab(tester, 'Trails');
+    expect(intro, findsNothing, reason: 'kein Kaltstart fragt wieder');
   });
 
   testWidgets('ein verdeckter Reiter startet nichts', (tester) async {

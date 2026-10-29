@@ -5692,9 +5692,9 @@
   "@tourWelcomeTitle": {
     "description": "Tour, Startseite beim ersten Start: Überschrift."
   },
-  "tourWelcomeText": "Hier liegen die Trails, die du gefahren bist, und die deiner Buddys — sonst niemandes. Drei Wege bringen Trails hierher: GPX importieren, eine Fahrt aufzeichnen, Buddys verbinden.",
+  "tourWelcomeText": "Hier liegen die Trails, die du gefahren bist, und die deiner Buddys — sonst niemandes. Drei Wege bringen Trails hierher: GPX importieren, eine Fahrt aufzeichnen, Buddys verbinden. Die Tour findest du jederzeit im Profil unter „Kurzanleitung“.",
   "@tourWelcomeText": {
-    "description": "Tour, Startseite beim ersten Start: zwei Sätze, wofür die App da ist."
+    "description": "Tour, Startseite beim ersten Start: wofür die App da ist, und wo die Tour später liegt (#417)."
   },
   "tourWelcomeStart": "Tour starten",
   "@tourWelcomeStart": {
