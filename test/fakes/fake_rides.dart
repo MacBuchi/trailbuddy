@@ -167,7 +167,16 @@ class FakeRideStore implements RideStore {
   }
 
   @override
-  Future<void> delete(String id) async => rides.removeWhere((r) => r.id == id);
+  Future<void> delete(String id) async {
+    rides.removeWhere((r) => r.id == id);
+    sensorLogs.remove(id);
+  }
+
+  /// Rohdaten je Fahrt (#36): Kennung → Pfad.
+  final sensorLogs = <String, String>{};
+
+  @override
+  Future<String?> sensorLogPath(String id) async => sensorLogs[id];
 
   @override
   Future<bool> setProfile(String id, String profile) async {
@@ -195,10 +204,12 @@ class FakeRideServiceBridge implements RideServiceBridge {
   String? uid;
   DateTime? startedAt;
   int arms = 0;
+  bool sensorLog = false;
 
   @override
-  Future<void> arm({required String uid, required DateTime startedAt}) async {
+  Future<void> arm({required String uid, required DateTime startedAt, bool sensorLog = false}) async {
     armed = true;
+    this.sensorLog = sensorLog;
     arms++;
     this.uid = uid;
     this.startedAt = startedAt;

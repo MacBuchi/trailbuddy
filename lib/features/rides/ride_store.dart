@@ -17,6 +17,7 @@ import 'package:path_provider/path_provider.dart';
 import '../../core/errors.dart';
 import 'ride_confirm.dart';
 import 'ride_track.dart';
+import 'sensor_log.dart' show kSensorDirName;
 
 abstract interface class RideStore {
   /// Beginnt eine Fahrt und verwirft, was als laufende vorher dalag.
@@ -92,7 +93,12 @@ abstract interface class RideStore {
   /// Alle gespeicherten Fahrten dieses Kontos, neueste zuerst. Wirft nie.
   Future<List<Ride>> list({required String uid});
 
+  /// Löscht die Fahrt samt ihren Rohdaten (#36), falls es welche gibt.
   Future<void> delete(String id);
+
+  /// Der Pfad der Sensor-Rohdaten einer Fahrt (#36, nur Dev-App), oder
+  /// null, wenn es keine gibt. Wirft nie.
+  Future<String?> sensorLogPath(String id);
 
   /// Setzt das Fahrerprofil einer gespeicherten, GEMESSENEN Fahrt neu
   /// (#228): nur die Kopfzeile wird ersetzt, Punkte, Marken und Antworten
@@ -135,11 +141,7 @@ class FileRideStore implements RideStore {
 
   Future<File> _active() async => File('${(await _dir()).path}/$_activeName');
 
-  static String _idFor(DateTime startedAt) => startedAt
-      .toUtc()
-      .toIso8601String()
-      .replaceAll(RegExp(r'[-:]'), '')
-      .replaceAll(RegExp(r'\.\d+'), '');
+  static String _idFor(DateTime startedAt) => rideIdFor(startedAt);
 
   @override
   Future<void> begin({required String uid, required DateTime startedAt, String? profile}) =>
@@ -436,10 +438,23 @@ class FileRideStore implements RideStore {
         try {
           final file = File('${(await _dir()).path}/$id.jsonl');
           if (await file.exists()) await file.delete();
+          final sensors = File('${(await _dir()).path}/$kSensorDirName/$id.csv');
+          if (await sensors.exists()) await sensors.delete();
         } catch (e, stackTrace) {
           logError('Fahrt löschen', e, stackTrace);
         }
       });
+
+  @override
+  Future<String?> sensorLogPath(String id) async {
+    if (!RegExp(r'^[0-9TZ]+$').hasMatch(id)) return null;
+    try {
+      final file = File('${(await _dir()).path}/$kSensorDirName/$id.csv');
+      return await file.exists() ? file.path : null;
+    } catch (_) {
+      return null;
+    }
+  }
 
   @override
   Future<bool> setProfile(String id, String profile) => _serialized(() async {
@@ -540,3 +555,11 @@ class FileRideStore implements RideStore {
     }
   }
 }
+
+/// Die Kennung einer Fahrt aus ihrem Beginn: der Dateiname der Fahrt und
+/// ihrer Rohdaten (`sensor_log.dart`, #36), Sekunden in UTC.
+String rideIdFor(DateTime startedAt) => startedAt
+    .toUtc()
+    .toIso8601String()
+    .replaceAll(RegExp(r'[-:]'), '')
+    .replaceAll(RegExp(r'\.\d+'), '');

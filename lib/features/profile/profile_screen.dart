@@ -29,7 +29,7 @@ import '../highlights/highlight_sheet.dart' show unseenHighlightCountProvider;
 import '../friends/friend_providers.dart';
 import '../offline_areas/area_providers.dart' show storedAreasProvider;
 import '../offline_areas/height_tiles.dart' show kHeightsAttribution;
-import '../rides/ride_providers.dart' show rideRecordingAvailableProvider, ridesProvider;
+import '../rides/ride_providers.dart' show rideRecordingAvailableProvider, ridesProvider, sensorLogAvailableProvider, sensorLogProvider;
 import '../routing/ride_calibration.dart';
 import '../routing/ride_calibrator.dart';
 import '../routing/route_profile.dart';
@@ -1049,6 +1049,20 @@ class _AboutSection extends ConsumerWidget {
             value: ref.watch(prereleaseUpdatesProvider),
             onChanged: (value) =>
                 ref.read(prereleaseUpdatesProvider.notifier).set(value),
+          ),
+        // Mess-Werkzeug der Dev-App (#36, Airtime-Messplan 8.1): gilt ab
+        // der nächsten Fahrt, die laufende schreibt so weiter, wie sie
+        // begann.
+        if (ref.watch(sensorLogAvailableProvider))
+          SwitchListTile(
+            key: const ValueKey('sensor-log-switch'),
+            contentPadding: EdgeInsets.zero,
+            dense: true,
+            secondary: const Icon(Icons.sensors),
+            title: Text(l.aboutSensorLogTitle),
+            subtitle: Text(l.aboutSensorLogSubtitle),
+            value: ref.watch(sensorLogProvider),
+            onChanged: (value) => ref.read(sensorLogProvider.notifier).set(value),
           ),
         // Der Web-Gegenpart zu „Vorabversionen erhalten" — aber bewusst
         // KEIN Schalter: Die Vorschau liegt auf einem eigenen Origin, der

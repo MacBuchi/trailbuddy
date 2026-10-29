@@ -14,6 +14,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:path_provider/path_provider.dart';
 
 import '../../l10n/l10n.dart';
+import '../../core/app_distribution.dart';
 import '../../core/errors.dart';
 import '../../core/settings.dart';
 import '../../data/providers.dart';
@@ -25,12 +26,40 @@ import 'ride_service.dart';
 import 'ride_store.dart';
 import 'ride_task_handler.dart';
 import 'ride_track.dart';
+import 'sensor_log.dart' show kRideDataSensorLog;
 
 /// Gibt es die Aufzeichnung auf dieser Plattform? Im Browser nicht: Dort
 /// gibt es kein Service-Isolate, und ein Tab im Hintergrund bekommt
 /// keine Positionen — eine Fahrt, die nur läuft, solange man hinsieht,
 /// wäre keine. Als Provider, damit ein Test beide Fälle sehen kann.
 final rideRecordingAvailableProvider = Provider<bool>((ref) => !kIsWeb);
+
+/// Gibt es den Schalter „Sensor-Rohdaten mitschreiben" (#36)? Nur in der
+/// Dev-App (`AppDistribution.isDevBuild`, #356): ein Mess-Werkzeug für den
+/// Messplan des Airtime-Konzepts, kein Teil der echten App. Tests
+/// überschreiben den Provider.
+final sensorLogAvailableProvider =
+    Provider<bool>((ref) => !kIsWeb && AppDistribution.isDevBuild);
+
+/// Schreibt die nächste Fahrt die Rohdaten mit? Aus, wo es den Schalter
+/// nicht gibt — auch wenn er einmal gesetzt war.
+class SensorLogNotifier extends Notifier<bool> {
+  @override
+  bool build() =>
+      ref.watch(sensorLogAvailableProvider) && ref.read(settingsProvider).sensorLogEnabled;
+
+  void set(bool value) {
+    state = value;
+    unawaited(ref
+        .read(settingsProvider)
+        .setSensorLogEnabled(value)
+        .catchError((Object e, StackTrace stackTrace) {
+      logError('Sensor-Rohdaten merken', e, stackTrace);
+    }));
+  }
+}
+
+final sensorLogProvider = NotifierProvider<SensorLogNotifier, bool>(SensorLogNotifier.new);
 
 /// Der Mess-Takt. 5 s: Bei 20 km/h sind das 28 m zwischen zwei Punkten
 /// — für Kehren knapp, aber der Korridor des Abgleichs ist 15 m breit
@@ -98,7 +127,8 @@ final rideStoreProvider = Provider<RideStore>((ref) => FileRideStore());
 /// Eigene Naht, weil dahinter `path_provider` und SharedPreferences
 /// stecken — im Widget-Test gibt es beide nicht.
 abstract interface class RideServiceBridge {
-  Future<void> arm({required String uid, required DateTime startedAt});
+  /// [sensorLog]: Rohdaten der Sensoren mitschreiben (#36, Dev-App).
+  Future<void> arm({required String uid, required DateTime startedAt, bool sensorLog = false});
   Future<void> disarm();
 }
 
@@ -106,7 +136,7 @@ class PlatformRideServiceBridge implements RideServiceBridge {
   const PlatformRideServiceBridge();
 
   @override
-  Future<void> arm({required String uid, required DateTime startedAt}) async {
+  Future<void> arm({required String uid, required DateTime startedAt, bool sensorLog = false}) async {
     // Der Pfad wird EINMAL hier aufgelöst: Er ist eine Konstante des
     // Geräts, und drüben je Takt einen Kanal zu bemühen wäre eine
     // Fehlerquelle mehr.
@@ -115,6 +145,7 @@ class PlatformRideServiceBridge implements RideServiceBridge {
     await FlutterForegroundTask.saveData(key: kRideDataUid, value: uid);
     await FlutterForegroundTask.saveData(
         key: kRideDataStartedAt, value: startedAt.toUtc().toIso8601String());
+    await FlutterForegroundTask.saveData(key: kRideDataSensorLog, value: sensorLog);
     await FlutterForegroundTask.saveData(key: kRideDataActive, value: true);
   }
 
@@ -239,7 +270,9 @@ class RideNotifier extends Notifier<RecordedRide?> {
   }
 
   Future<void> _arm(String uid, DateTime startedAt) async {
-    await ref.read(rideServiceBridgeProvider).arm(uid: uid, startedAt: startedAt);
+    await ref
+        .read(rideServiceBridgeProvider)
+        .arm(uid: uid, startedAt: startedAt, sensorLog: ref.read(sensorLogProvider));
     await ref.read(rideServiceProvider).start(
           title: serviceL10n().rideNoticeTitle,
           text: serviceL10n().rideNoticeText,

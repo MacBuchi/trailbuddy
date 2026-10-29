@@ -203,3 +203,32 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
   - **Im Test liegt die vierte Fahrt unter dem Rand**: Die Zeilen sind
     mit Chip höher, und `ListView` baut faul — `scrollTo` vor jedem
     Tipp auf eine spätere Zeile.
+- **Sensor-Rohdaten** (#36, seit 0.142.0, `sensor_log.dart`): das
+  Mess-Werkzeug des Airtime-Konzepts (`docs/konzept-airtime.md` 8, 9),
+  KEINE Erkennung. Vier Dinge, die man wissen muss:
+  - **Nur Dev-App**: `sensorLogAvailableProvider` (= kein Web und
+    `AppDistribution.isDevBuild`); der Schalter unter „Über TrailBuddy"
+    und „Sensordaten teilen" im Menü einer Fahrt hängen daran, und
+    `sensorLogProvider` ist außerhalb aus, auch wenn
+    `Settings.sensorLogEnabled` einmal gesetzt war. Tests überschreiben
+    den Provider.
+  - **Über die Brücke** (`ride_sensor_log`, beim `arm` der Fahrt): Der
+    Schalter gilt ab der NÄCHSTEN Fahrt. `serviceTick` ruft
+    `sensorLogTick`, das den Logger beim ersten Takt startet; das Ende
+    merkt der Logger selbst beim Schreiben (alle 2 s liest er die
+    Brücke) — beendet die Fahrt den Takt, während der Dienst für einen
+    Download weiterläuft, käme sonst kein Takt mehr. `onDestroy` stoppt
+    ihn auch.
+  - **Datei** `rides/sensors/<Fahrt-ID>.csv` (dieselbe Kennung,
+    `rideIdFor`), Zeilen `a|w|g,<µs>,…`, Kopf mit den Spalten; gelesen
+    von `tool/airtime_measure.py`. Gelöscht mit der Fahrt
+    (`RideStore.delete`), geteilt per Pfad (`sensorLogShareProvider`,
+    `XFile(path)` — nicht in den Speicher lesen, ~30 MB je Stunde).
+  - **Zeit des Ereignisses**: `sensors_plus` meldet Systemstart +
+    Zeitstempel des Sensors in µs; der Kanal liefert in Schüben, die
+    Ankunftszeit taugt nicht. 100 Hz ohne
+    `HIGH_SAMPLING_RATE_SENSORS` (erst ab 200 Hz nötig), keine neue
+    Berechtigung. Ob der Sensor bei ausgeschaltetem Bildschirm im Dienst
+    weiterliefert (Wakelock `allowWakeLock`), zeigt erst die Datei vom
+    Gerät — offen bis zur ersten Messfahrt.
+
