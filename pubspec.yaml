@@ -4,7 +4,7 @@ publish_to: 'none'
 
 # Beide Teile erhöhen (z. B. 0.1.0+1 → 0.1.1+2). Ein Bump auf main taggt und
 # baut ein Prerelease (release.yml); ohne Bump kein Release (Version Guard).
-version: 0.138.5+210
+version: 0.139.0+211
 
 environment:
   sdk: ^3.11.0
@@ -59,6 +59,10 @@ dependencies:
   shared_preferences: ^2.5.6
   package_info_plus: ^10.2.2
   url_launcher: ^6.3.3
+  # Die Zeichen der Anmelde-Anbieter (#398) als SVG: Google und Apple
+  # verlangen ihr Logo im Knopf, und als Vektor bleibt es in jeder
+  # Größe scharf, ohne je Auflösung ein Bild zu bündeln.
+  flutter_svg: ^2.2.3
   http: ^1.6.0
   # Die Übersicht einer Region kommt als ganze Datei (#220 Schritt 4) und
   # wird gegen die Prüfsumme ihres Manifests gelesen.
@@ -151,6 +155,9 @@ flutter:
     # Der OFL-Text zu genau diesen Glyphen. Eigene Zeile: Die
     # Verzeichnis-Einträge nehmen nur Dateien direkt darin mit.
     - assets/map_glyphs/OFL.txt
+    # Die Zeichen der Anmelde-Anbieter (#398) — die Pfade aus Simple Icons
+    # (CC0), Google und Microsoft nach ihren Vorgaben; Marken der Anbieter.
+    - assets/auth/
 
   # Schriften als Assets, nicht über google_fonts zur Laufzeit: Die App
   # muss offline genauso aussehen. Nur die Schnitte, die das Design nutzt.

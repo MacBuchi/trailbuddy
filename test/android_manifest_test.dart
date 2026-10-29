@@ -22,6 +22,15 @@ void main() {
         isTrue, reason: 'Kotlin-Verzeichnis passt nicht zur applicationId');
   });
 
+  test('der Rücksprung der Anmeldung (#398) kommt in der App an', () {
+    // Manifest und Dart bauen dieselbe Adresse; ein fester Name statt
+    // `${applicationId}` schickte die Dev-App in die echte.
+    expect(manifest, contains('<data android:scheme="\${applicationId}" android:host="login-callback"/>'));
+    expect(manifest, contains('android.intent.category.BROWSABLE'));
+    final dart = File('lib/data/auth_repository.dart').readAsStringSync();
+    expect(dart, contains("'\${info.packageName}://login-callback'"));
+  });
+
   test('der Install-Kanal heißt in Kotlin und Dart gleich', () {
     // Ein Tippfehler auf einer Seite antwortet stumm mit „kein Kanal",
     // und Dart fällt dann für immer auf den Browser zurück.

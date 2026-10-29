@@ -31,9 +31,15 @@ class FakeUser {
     required this.username,
     this.avatar = 0,
     this.emailConfirmed = true,
+    this.provider,
   });
 
   final String id;
+
+  /// Über welchen Anbieter das Konto entstand (#398); `null` = E-Mail und
+  /// Passwort. Wie GoTrue: Ein Anbieter mit der Adresse eines
+  /// E-Mail-Kontos landet in DIESEM Konto, das bleibt ein E-Mail-Konto.
+  final SignInProvider? provider;
   // Nicht final: der Passwort-Reset bzw. der E-Mail-Wechsel ändern sie
   // wirklich, damit Tests den Effekt prüfen können und nicht nur den
   // Aufruf.
@@ -106,6 +112,19 @@ class FakeBackend {
   /// Bestätigungs-Weg prüfen, schalten es an.
   bool requireEmailConfirmation = false;
 
+  /// Die im „Dashboard" eingeschalteten Anbieter (#398) — Vorgabe keiner,
+  /// wie das Live-Projekt bis zur Freigabe.
+  Set<SignInProvider> enabledSignInProviders = {};
+
+  /// Jeder Aufruf von `signInWithProvider`, in Reihenfolge.
+  final providerSignIns = <SignInProvider>[];
+
+  /// Die Adresse, die der Anbieter beim Rücksprung meldet.
+  String providerEmail = 'neu@example.org';
+
+  /// Der Browser geht nicht auf (`launchUrl` liefert einen Fehler).
+  bool providerLaunchFails = false;
+
   /// Adressen, an die eine Bestätigungsmail rausging (auch erneut).
   final confirmationMails = <String>[];
 
@@ -154,6 +173,7 @@ class FakeBackend {
     String password = 'geheim123',
     int avatar = 0,
     bool emailConfirmed = true,
+    SignInProvider? provider,
   }) {
     final user = FakeUser(
       id: _newId('user'),
@@ -162,6 +182,7 @@ class FakeBackend {
       username: username,
       avatar: avatar,
       emailConfirmed: emailConfirmed,
+      provider: provider,
     );
     users.add(user);
     return user;
@@ -318,6 +339,37 @@ class FakeAuthRepository implements AuthRepository {
   @override
   Future<void> signOut() async =>
       backend.setCurrentUser(null, AuthChangeEvent.signedOut);
+
+  @override
+  Future<Set<SignInProvider>> enabledProviders() async {
+    if (backend.offline) throw const SocketException('offline');
+    return backend.enabledSignInProviders;
+  }
+
+  /// Browser auf, beim Anbieter angemeldet, Rücksprung — alles in einem
+  /// Schritt. Neues Konto bekommt den Namen, den der Trigger vergibt.
+  @override
+  Future<void> signInWithProvider(SignInProvider provider) async {
+    backend.providerSignIns.add(provider);
+    if (backend.providerLaunchFails) {
+      throw Exception('Could not launch');
+    }
+    final user = backend.users
+            .where((u) => u.email == backend.providerEmail)
+            .firstOrNull ??
+        backend.addUser(
+          username: 'trailbuddy_${(backend.users.length + 1).toRadixString(16).padLeft(8, '0')}',
+          email: backend.providerEmail,
+          provider: provider,
+        );
+    backend.setCurrentUser(user, AuthChangeEvent.signedIn);
+  }
+
+  @override
+  SignInProvider? get externalProvider {
+    final uid = backend.currentUserId;
+    return uid == null ? null : backend.userById(uid).provider;
+  }
 
   @override
   String? get currentEmail {

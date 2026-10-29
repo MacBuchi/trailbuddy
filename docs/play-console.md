@@ -46,7 +46,7 @@ verarbeitet*, *erforderlich oder optional* — plus die Zwecke.
 |---|---|---|---|---|---|
 | **Standort → Genauer Standort** | Ja | Nein¹ | Optional | App-Funktionalität | Die beigesteuerten Trail-Linien (`trail_recordings.geom`, Höhen `ele`, Zeitpunkt `recorded_at`). Nur die Ausschnitte, die der Nutzer im Zerlege-Blatt oder beim Import als Trail auswählt — die ganze Fahrt bleibt auf dem Gerät (siehe „Nicht erhoben"). Sichtbar für den Nutzer und seine direkten Buddys, bei „Nur für mich" nur für ihn |
 | **Standort → Ungefährer Standort** | Nein | — | — | — | `ACCESS_COARSE_LOCATION` ist deklariert, aber ein grober Fix wird nur auf dem Gerät benutzt (Punkt auf der Karte, „Ich bin vor Ort"); an den Server geht nie eine Position |
-| **Persönliche Infos → E-Mail-Adresse** | Ja | Nein³ | Erforderlich | App-Funktionalität, Kontoverwaltung | Supabase Auth; Buddy-Suche über die exakte Adresse; Konto-Mails über Brevo |
+| **Persönliche Infos → E-Mail-Adresse** | Ja | Nein³ | Erforderlich | App-Funktionalität, Kontoverwaltung | Supabase Auth; Buddy-Suche über die exakte Adresse; Konto-Mails über Brevo; bei Anmeldung über einen Anbieter von dort⁵ |
 | **Persönliche Infos → Name** | Ja | Nein¹ | Erforderlich | App-Funktionalität, Kontoverwaltung | `profiles.username` (Pflicht, über das Präfix suchbar) und `display_name` |
 | **Persönliche Infos → Nutzer-IDs** | Ja | Nein | Erforderlich | App-Funktionalität, Kontoverwaltung | `profiles.id` (UUID aus `auth.users`) |
 | **App-Aktivität → Andere nutzergenerierte Inhalte** | Ja | **Ja²** (nur Feedback) | Optional | App-Funktionalität, Entwicklerkommunikation | Beiträge zu Trails (`trail_details`: Name, Beschreibung, S-Grad, Charakter, Sterne, Sichtbarkeit, Link), Meldungen und Zustand (`trail_reports`), Hinweise (`trail_notes`), Zuordnungen von Duplikaten (`trail_aliases`, `trail_distinct`; #107 — sichtbar für direkte Buddys, die beide Trails sehen), Aliase für Buddys (`friend_aliases`, nur für den Vergebenden sichtbar) — alles *nicht geteilt*¹. Feedback (`feedback`: Text, Typ, App-Version) wird als öffentliches GitHub-Issue veröffentlicht, ohne Benutzernamen — *geteilt*² |
@@ -119,6 +119,16 @@ Adresse wechseln). Übermittelt wird die E-Mail-Adresse und der Inhalt der
 Mail, nie Trails oder Linien. Google nimmt Dienstleister, die nur im
 Auftrag und für diesen Zweck verarbeiten, von *geteilt* aus — Bedingung
 dafür ist die Nennung in der Datenschutzerklärung, und die steht dort.
+
+**⁵ Anmeldung über Google, Apple, Microsoft, Facebook, GitHub, Discord oder LinkedIn (#398) — geändert?**
+Empfehlung: **nichts Neues anzukreuzen.** Der Anbieter liefert E-Mail-Adresse,
+Name und eine Kennung seines Kontos an Supabase Auth (`auth.identities`);
+die Adresse steht schon oben, der Name vom Anbieter wird nicht als
+Benutzername übernommen (der Trigger vergibt `trailbuddy_…`), die Kennung
+ist eine Nutzer-ID wie `profiles.id`. *Geteilt* wird nichts: Der Nutzer
+geht selbst zum Anbieter, die App schickt ihm keine Daten. Die
+Anmeldeseite öffnet der Browser — kein neues Netzziel der App, keine
+Berechtigung (der Intent-Filter für den Rücksprung ist keine).
 
 **⁴ Das FCM-Token — erhoben UND geteilt.**
 Die Antwort lautet **ja** in beiden Spalten, wie in PilzBuddy: Ein

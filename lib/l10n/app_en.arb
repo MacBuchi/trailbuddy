@@ -1693,5 +1693,12 @@
   "poiRouteHere": "Route here",
   "loopClosed": "Planner closed",
   "loopRailComputeRoute": "Compute route",
-  "mapLoopHintRoute": "Tap the trails you want along the way — or compute the route to the finish right away."
+  "mapLoopHintRoute": "Tap the trails you want along the way — or compute the route to the finish right away.",
+  "authProviderDivider": "or continue with",
+  "authProviderButton": "Continue with {provider}",
+  "authProviderFailed": "The {provider} sign-in page did not open. Please try again.",
+  "accountProviderTitle": "Signed in with {provider}",
+  "accountProviderSubtitle": "This account has no password; the address comes from {provider}. To sign in with e-mail as well: sign out and choose “Forgot password”.",
+  "usernameHint": "Your username is {name} — that is how your buddies find you.",
+  "usernameHintAction": "Change"
 }
