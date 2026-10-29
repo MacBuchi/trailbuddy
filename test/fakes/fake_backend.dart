@@ -122,6 +122,10 @@ class FakeBackend {
   /// Die Adresse, die der Anbieter beim Rücksprung meldet.
   String providerEmail = 'neu@example.org';
 
+  /// Was der Anbieter in `user_metadata` mitgibt (#422), z. B.
+  /// `{'user_name': 'trailfox'}` von GitHub.
+  Map<String, dynamic> providerMetadata = const {};
+
   /// Der Browser geht nicht auf (`launchUrl` liefert einen Fehler).
   bool providerLaunchFails = false;
 
@@ -364,6 +368,11 @@ class FakeAuthRepository implements AuthRepository {
         );
     backend.setCurrentUser(user, AuthChangeEvent.signedIn);
   }
+
+  @override
+  String? get providerHandle => backend.currentUserId == null
+      ? null
+      : handleFromProviderMetadata(backend.providerMetadata);
 
   @override
   SignInProvider? get externalProvider {

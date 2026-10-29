@@ -6,12 +6,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:trailbuddy/data/auth_repository.dart';
+import 'package:trailbuddy/features/auth/username_step.dart';
 import 'package:trailbuddy/features/map/map_screen.dart';
 import 'package:trailbuddy/features/profile/profile_screen.dart';
 
 import '../fakes/fake_backend.dart';
 import '../fakes/fake_settings.dart';
 import '../fakes/test_app.dart';
+
+final _field = find.byKey(const ValueKey('username-step-field'));
 
 Finder _button(SignInProvider p) => find.byKey(ValueKey('signin-${p.name}'));
 
@@ -63,22 +66,35 @@ void main() {
     expect(_button(SignInProvider.google), findsNothing);
   });
 
-  testWidgets('Neues Konto über Google: Karte, einmal der Name, im Konto kein '
-      'Passwort', (tester) async {
+  testWidgets('Neues Konto über Google: erst der Name, dann die Karte, im '
+      'Konto kein Passwort', (tester) async {
     final backend = FakeBackend()
-      ..enabledSignInProviders = {SignInProvider.google};
+      ..enabledSignInProviders = {SignInProvider.google}
+      ..providerMetadata = {'full_name': 'Erika Muster', 'name': 'Erika Muster'};
     final settings = FakeSettings();
     await pumpApp(tester, backend, settings: settings);
 
     await _tap(tester, _button(SignInProvider.google));
 
     expect(backend.providerSignIns, [SignInProvider.google]);
-    expect(find.byType(MapScreen), findsOneWidget);
-    expect(find.textContaining('Dein Benutzername ist trailbuddy_'),
-        findsOneWidget);
-    expect(settings.usernameHintSeen, isTrue);
+    expect(find.byType(UsernameStep), findsOneWidget);
+    expect(find.byType(MapScreen), findsNothing,
+        reason: 'vor der Karte, also auch vor Hinweis und Tour');
+    expect(find.byType(NavigationBar), findsNothing);
+    expect(tester.widget<TextField>(_field).controller!.text, isEmpty,
+        reason: 'Der Klarname des Anbieters wird nie vorgeschlagen — der '
+            'Benutzername ist öffentlich.');
 
-    await _tap(tester, find.text('Ändern'));
+    await tester.enterText(_field, 'erika');
+    await settle(tester);
+    await _tap(tester, find.text('Weiter'));
+
+    expect(find.byType(MapScreen), findsOneWidget);
+    final user = backend.userById(backend.currentUserId!);
+    expect(user.username, 'erika');
+    expect(settings.usernameStepDoneFor, {user.id});
+
+    await openProfilePage(tester, 'account');
     expect(find.byType(AccountScreen), findsOneWidget);
     expect(find.text('Angemeldet über Google'), findsOneWidget);
     expect(find.textContaining('neu@example.org'), findsOneWidget);
@@ -87,16 +103,75 @@ void main() {
             'Dialog verlangte das aktuelle und käme nie durch.');
   });
 
-  testWidgets('Der Namenshinweis kommt nur einmal', (tester) async {
+  testWidgets('Der Nutzername bei GitHub steht vorbelegt, die Adresse von '
+      'Microsoft nicht', (tester) async {
+    final backend = FakeBackend()
+      ..enabledSignInProviders = {SignInProvider.github}
+      ..providerMetadata = {'user_name': 'trailfox', 'full_name': 'Erika Muster'};
+    await pumpApp(tester, backend);
+    await _tap(tester, _button(SignInProvider.github));
+    expect(tester.widget<TextField>(_field).controller!.text, 'trailfox');
+
+    await tester.pumpWidget(const SizedBox());
+    final backend2 = FakeBackend()
+      ..enabledSignInProviders = {SignInProvider.microsoft}
+      ..providerMetadata = {'preferred_username': 'erika@example.org'};
+    await pumpApp(tester, backend2);
+    await _tap(tester, _button(SignInProvider.microsoft));
+    expect(tester.widget<TextField>(_field).controller!.text, isEmpty,
+        reason: 'eine Adresse als öffentlicher Name — usernameProblem');
+  });
+
+  testWidgets('Ein vergebener Name sagt es am Schritt, die Karte bleibt zu',
+      (tester) async {
+    final backend = FakeBackend()
+      ..addUser(username: 'trailfox', email: 'fox@example.org')
+      ..enabledSignInProviders = {SignInProvider.github}
+      ..providerMetadata = {'user_name': 'trailfox'};
+    await pumpApp(tester, backend);
+    await _tap(tester, _button(SignInProvider.github));
+
+    await _tap(tester, find.text('Weiter'));
+
+    expect(find.text('Dieser Benutzername ist schon vergeben.'), findsOneWidget);
+    expect(find.byType(UsernameStep), findsOneWidget);
+    expect(find.byType(MapScreen), findsNothing);
+  });
+
+  testWidgets('„Später" behält den vergebenen Namen und fragt dieses Konto '
+      'nicht wieder', (tester) async {
     final backend = FakeBackend()
       ..enabledSignInProviders = {SignInProvider.apple};
-    await pumpApp(tester, backend,
-        settings: FakeSettings(usernameHintSeen: true));
-
+    final settings = FakeSettings();
+    await pumpApp(tester, backend, settings: settings);
     await _tap(tester, _button(SignInProvider.apple));
 
+    await _tap(tester, find.text('Später'));
+
     expect(find.byType(MapScreen), findsOneWidget);
-    expect(find.textContaining('Dein Benutzername ist'), findsNothing);
+    final user = backend.userById(backend.currentUserId!);
+    expect(user.username, startsWith('trailbuddy_'));
+
+    // Neustart: kein Schritt mehr, und kein Warten auf das Profil.
+    await tester.pumpWidget(const SizedBox());
+    await pumpApp(tester, backend, settings: settings);
+    expect(find.byType(UsernameStep), findsNothing);
+    expect(find.byType(MapScreen), findsOneWidget);
+  });
+
+  testWidgets('Ohne Entscheidung kommt der Schritt beim Neustart wieder',
+      (tester) async {
+    final backend = FakeBackend()
+      ..enabledSignInProviders = {SignInProvider.discord};
+    final settings = FakeSettings();
+    await pumpApp(tester, backend, settings: settings);
+    await _tap(tester, _button(SignInProvider.discord));
+    expect(find.byType(UsernameStep), findsOneWidget);
+
+    // Wie ein Neuladen im Browser mitten im Schritt.
+    await tester.pumpWidget(const SizedBox());
+    await pumpApp(tester, backend, settings: settings);
+    expect(find.byType(UsernameStep), findsOneWidget);
   });
 
   testWidgets('Dieselbe Adresse wie ein E-Mail-Konto landet in diesem Konto',
@@ -111,8 +186,9 @@ void main() {
 
     expect(backend.users, hasLength(1), reason: 'kein zweites Konto');
     expect(backend.currentUserId, backend.users.single.id);
-    expect(find.textContaining('Dein Benutzername ist'), findsNothing,
+    expect(find.byType(UsernameStep), findsNothing,
         reason: 'den Namen hat der Nutzer selbst gewählt');
+    expect(find.byType(MapScreen), findsOneWidget);
   });
 
   testWidgets('Geht der Browser nicht auf, sagt die App es', (tester) async {

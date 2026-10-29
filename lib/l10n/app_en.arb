@@ -1699,6 +1699,8 @@
   "authProviderFailed": "The {provider} sign-in page did not open. Please try again.",
   "accountProviderTitle": "Signed in with {provider}",
   "accountProviderSubtitle": "This account has no password; the address comes from {provider}. To sign in with e-mail as well: sign out and choose “Forgot password”.",
-  "usernameHint": "Your username is {name} — that is how your buddies find you.",
-  "usernameHintAction": "Change"
+  "usernameStepTitle": "How should your buddies find you?",
+  "usernameStepBody": "Your username shows in the buddy search and on shared trails. Pick one your buddies will recognise — preferably not your full name.",
+  "usernameStepSave": "Continue",
+  "usernameStepLater": "Later"
 }

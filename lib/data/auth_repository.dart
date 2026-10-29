@@ -30,6 +30,20 @@ enum SignInProvider {
       values.where((p) => p.key == key).firstOrNull;
 }
 
+/// Der Nutzername, den ein Anbieter in `user_metadata` mitgibt (#422) —
+/// GitHub als `user_name`, andere als `preferred_username`. NUR solche
+/// Kennungen, nie `full_name`/`name`: Der Benutzername ist öffentlich, ein
+/// vorbelegter Klarname wäre mit einem Tipp veröffentlicht (Betreiber
+/// 2026-10-29). Microsoft schickt als `preferred_username` die Adresse —
+/// die fängt `usernameProblem` beim Vorbelegen ab.
+String? handleFromProviderMetadata(Map<String, dynamic>? meta) {
+  for (final key in const ['user_name', 'preferred_username']) {
+    final value = meta?[key];
+    if (value is String && value.trim().isNotEmpty) return value.trim();
+  }
+  return null;
+}
+
 class AuthRepository {
   AuthRepository(this._client);
 
@@ -164,6 +178,11 @@ class AuthRepository {
     if (providers is List && providers.contains('email')) return null;
     return SignInProvider.byKey(meta['provider'] as String?);
   }
+
+  /// Der Nutzername beim Anbieter, falls er einen kennt — Vorschlag für
+  /// die Namenswahl (#422). Siehe [handleFromProviderMetadata].
+  String? get providerHandle =>
+      handleFromProviderMetadata(_client.auth.currentUser?.userMetadata);
 
   Future<void> signOut() => _client.auth.signOut();
 

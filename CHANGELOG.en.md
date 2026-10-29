@@ -2,6 +2,17 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## Your name after signing in with Google & co.
+
+*Version 0.140.0, 2026-10-29*
+
+- Signing in via a provider for the first time, you now pick your
+  username before the map — it is how your buddies find you. If the
+  provider brings a username (GitHub, for example), it is already in
+  the field; the app never suggests your full name.
+- „Later“ keeps the provisional name; you can change it any time
+  under Profile, „Account“.
+
 ## Signing in with Google & co. prepared
 
 *Version 0.139.0, 2026-10-29*
