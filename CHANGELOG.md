@@ -2,6 +2,17 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Anmelden über GitHub, Discord und Google
+
+*Version 0.141.0, 2026-10-29*
+
+- Die Anmeldung über GitHub, Discord und Google ist freigeschaltet —
+  die Knöpfe stehen unter Anmelden und Registrieren.
+- Klappt die Anmeldung beim Anbieter nicht, sagt die App jetzt warum:
+  abgebrochen, zu lange gedauert, oder das Konto beim Anbieter trägt
+  Adressen mehrerer TrailBuddy-Konten. Vorher landete man still wieder
+  auf der Anmeldeseite.
+
 ## Anmelden ohne Apple
 
 *Version 0.140.1, 2026-10-29*

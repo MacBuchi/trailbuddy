@@ -35,6 +35,23 @@ Microsoft, GitHub; 2026-10-29: Facebook, Discord, LinkedIn) —
   Token configuration); ohne ihn entstünde ein zweites Konto oder die
   Anmeldung scheiterte. Microsoft braucht außerdem den Scope `email`
   (setzt `signInWithProvider`).
+- **Ein gescheiterter Rücksprung sagt, warum** (seit 0.141.0): GoTrue
+  hängt `error`/`error_description` an die Rücksprung-Adresse,
+  `supabase_flutter` reicht das als Fehler in `onAuthStateChange` weiter;
+  `AuthRepository.providerReturnErrors` holt nur die OAuth-Codes heraus
+  (eine abgelaufene Sitzung kommt auch als `AuthException`) und jeden
+  nur EINMAL — der Stream ist ein `ReplaySubject` und spielt jedem neuen
+  Hörer alles nach. Der Login zeigt den Satz als Hinweis. Gesehen bei
+  der Einrichtung 2026-10-29:
+  - `Multiple accounts with the same email address in the same linking
+    domain`: GitHub schickt ALLE bestätigten Adressen; trägt das
+    GitHub-Konto die Adressen zweier TrailBuddy-Konten (Betreiber: Haupt-
+    und Testkonto), verknüpft GoTrue lieber gar nicht.
+  - `OAuth state has expired`: die Seite des Anbieters stand minutenlang
+    offen. Dann kennt GoTrue das Ziel nicht mehr und schickt auf die
+    Site URL (die stabile Pages-App), nicht in die Vorschau.
+  - Wer schon zugestimmt hat, sieht die Seite des Anbieters nicht
+    wieder — der Rücksprung kommt sofort.
 - **Ein Konto über einen Anbieter hat kein Passwort.** Im Konto stehen
   statt „E-Mail ändern"/„Passwort ändern" (beide verlangen das aktuelle)
   „Angemeldet über …" und der Weg zu einem Passwort („Passwort
@@ -74,6 +91,13 @@ Microsoft, GitHub; 2026-10-29: Facebook, Discord, LinkedIn) —
   der Textfarbe (sonst im Dunkeln unsichtbar). Als Reihe aus
   Zeichen-Knöpfen (48 dp hoch, Name im Tooltip und in der Semantik) —
   sechs Knöpfe untereinander schöben das Formular aus dem Bild.
+- **Eingeschaltet (2026-10-29): GitHub, Discord, Google** — Google
+  zunächst im Testmodus, bis „App veröffentlichen" durch ist. Microsoft,
+  Facebook und LinkedIn bleiben im Code, aber aus (Betreiber: Entra-Tenant
+  mit Karte, Meta-Prüfung, LinkedIn-Unternehmensseite). Logo beim
+  Anbieter: das App-Symbol aus `tool/brand_icons.py` (`symbol_svg`,
+  quadratisch, ohne Rundung), nie von Hand gezeichnet. Google: KEIN Logo
+  hochladen, das löst die Verifizierung aus.
 - **Was der Betreiber einrichtet** (je Anbieter eine App beim Anbieter,
   Callback dort immer `https://<projekt>.supabase.co/auth/v1/callback`,
   Client-ID und Secret ins Dashboard):

@@ -203,4 +203,31 @@ void main() {
         'Versuch es noch einmal.'), findsOneWidget);
     expect(backend.currentUserId, isNull);
   });
+
+  testWidgets('Ein gescheiterter Rücksprung sagt auf dem Login, warum',
+      (tester) async {
+    final backend = FakeBackend()
+      ..enabledSignInProviders = {SignInProvider.github};
+    await pumpApp(tester, backend);
+
+    // So kam es bei der Einrichtung 2026-10-29 zurück: ein GitHub-Konto mit
+    // den Adressen zweier TrailBuddy-Konten.
+    backend.failProviderReturn('Multiple accounts with the same email '
+        'address in the same linking domain detected: default');
+    await settle(tester);
+    expect(find.textContaining('Adressen mehrerer TrailBuddy-Konten'),
+        findsOneWidget);
+
+    backend.failProviderReturn('OAuth state has expired');
+    await settle(tester);
+    expect(find.text('Die Anmeldung beim Anbieter hat zu lange gedauert. '
+        'Versuch es noch einmal.'), findsOneWidget);
+
+    backend.failProviderReturn('The user denied access',
+        code: 'access_denied');
+    await settle(tester);
+    expect(find.text('Die Anmeldung beim Anbieter wurde abgebrochen.'),
+        findsOneWidget);
+    expect(find.byType(MapScreen), findsNothing);
+  });
 }
