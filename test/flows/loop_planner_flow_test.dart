@@ -28,7 +28,7 @@ import 'package:trailbuddy/features/routing/routing_tile.dart' show RoutingPiece
 import 'package:trailbuddy/features/routing/loop_plan_runner.dart';
 import 'package:trailbuddy/features/routing/route_profile.dart' show RiderProfile;
 import 'package:trailbuddy/features/routing/loop_planner_controller.dart';
-import 'package:trailbuddy/features/routing/loop_planner.dart' show LoopPlan, LoopSearchCache;
+import 'package:trailbuddy/features/routing/loop_planner.dart' show LoopEndMode, LoopPlan, LoopSearchCache;
 import 'package:trailbuddy/features/routing/online_fill.dart';
 import 'package:trailbuddy/features/rides/road_index.dart' show RoadCoverage;
 import 'package:trailbuddy/features/routing/planning_graph.dart';
@@ -1826,6 +1826,31 @@ void main() {
     expect(find.byKey(const ValueKey('loop-tool-rail')), findsNothing);
     expect(find.byKey(const ValueKey('loop-summary')), findsNothing);
     expect(connectionLines(tester), isEmpty);
+  });
+
+  testWidgets('#418: „Route bis hier" im Planer mit Auswahl setzt nur das Ziel, ohne Rückfrage', (tester) async {
+    await start(tester, areaStore: await _areaWithTrack());
+    await openPlanner(tester);
+    await zoomToTrails(tester);
+    await tapMapAt(tester, const LatLng(48.004, _lon));
+    await settle(tester);
+    expect(picked(tester), hasLength(1));
+    // Wie am Pixel: das Ergebnis-Blatt steht schon (hier mit der Runde).
+    await tapRail(tester, 'loop-rail-compute');
+    expect(find.byKey(const ValueKey('loop-summary')), findsOneWidget);
+
+    const target = LatLng(48.009, _lon);
+    await longPressMapAt(tester, target);
+    await settle(tester);
+    await tester.tap(find.byKey(const ValueKey('map-menu-to')));
+    await settle(tester, frames: 30);
+    expect(find.byKey(const ValueKey('loop-replace')), findsNothing, reason: 'nichts geht verloren');
+    final session = ProviderScope.containerOf(tester.element(find.byType(MaterialApp))).read(loopPlannerProvider);
+    expect(session.selected, hasLength(1), reason: 'die Auswahl bleibt');
+    expect(session.prefs.endMode, LoopEndMode.target);
+    expect(session.plan, isNotNull, reason: 'gerechnet wird sofort');
+    expect(const Distance()(routeWhole(tester).last, target), lessThan(30));
+    expect(find.byKey(const ValueKey('loop-summary')), findsOneWidget);
   });
 
   testWidgets('#373: „Route bis hier" im offenen Planer behält den getippten Start', (tester) async {

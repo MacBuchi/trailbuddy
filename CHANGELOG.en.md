@@ -2,6 +2,15 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## Destination in the open planner
+
+*Version 0.138.4, 2026-10-29*
+
+- With the planner open, „Route to here“ (long press on the map) and
+  „Route here“ (from a place) now just set the destination of that
+  plan and compute right away. Selected trails, stars, start and via
+  points stay — the question „Replace the plan?“ no longer comes up.
+
 ## Decimal comma in the elevation profile
 
 *Version 0.138.3, 2026-10-29*

@@ -2,6 +2,16 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Ziel im offenen Planer
+
+*Version 0.138.4, 2026-10-29*
+
+- „Route bis hier“ (langer Druck auf die Karte) und „Route hierher“
+  (Ort) setzen bei offenem Planer jetzt nur das Ziel dieser Planung
+  und rechnen gleich. Gewählte Trails, Sterne, Start und
+  Zwischenpunkte bleiben — die Frage „Planung ersetzen?“ kommt dabei
+  nicht mehr.
+
 ## Komma im Höhenprofil
 
 *Version 0.138.3, 2026-10-29*
