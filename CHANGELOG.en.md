@@ -2,6 +2,14 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## Signing in without Apple
+
+*Version 0.140.1, 2026-10-29*
+
+- Signing in with Apple is gone: it would need a paid Apple account.
+  Google, Microsoft, Facebook, GitHub, Discord and LinkedIn stay, next
+  to email and password.
+
 ## Your name after signing in with Google & co.
 
 *Version 0.140.0, 2026-10-29*

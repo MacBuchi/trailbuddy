@@ -2,6 +2,14 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Anmelden ohne Apple
+
+*Version 0.140.1, 2026-10-29*
+
+- Die Anmeldung über Apple fällt weg: Sie bräuchte ein
+  kostenpflichtiges Apple-Konto. Google, Microsoft, Facebook, GitHub,
+  Discord und LinkedIn bleiben, neben E-Mail und Passwort.
+
 ## Dein Name nach der Anmeldung über Google & Co.
 
 *Version 0.140.0, 2026-10-29*

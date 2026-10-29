@@ -4,8 +4,8 @@ Teil der Root-`CLAUDE.md` (dort der Index aller Teildateien).
 
 ## Anmelden über Google & Co. (#398)
 
-Sieben Anbieter neben E-Mail und Passwort (Betreiber 2026-10-27: Google,
-Microsoft, GitHub, Apple; 2026-10-29: Facebook, Discord, LinkedIn) —
+Sechs Anbieter neben E-Mail und Passwort (Betreiber 2026-10-27: Google,
+Microsoft, GitHub; 2026-10-29: Facebook, Discord, LinkedIn) —
 `SignInProvider` in `lib/data/auth_repository.dart`, Knöpfe in
 `provider_buttons.dart` unter Login UND Registrierung.
 
@@ -14,6 +14,9 @@ Microsoft, GitHub, Apple; 2026-10-29: Facebook, Discord, LinkedIn) —
   Ab Werk ist live alles aus, der Screen sieht dann aus wie vor #398.
   Einen Anbieter freischalten heißt: Dashboard → Authentication →
   Providers, kein App-Update. Ohne Netz: keine Knöpfe, nur E-Mail.
+- **Kein Apple** (Betreiber 2026-10-29, ab 0.140.1): Apple verlangt ein
+  kostenpflichtiges Developer-Konto, das es nicht geben wird. Nur
+  kostenlose Anbieter kommen in Frage.
 - **GoTrues Namen ≠ Marken:** Microsoft ist `azure`, LinkedIn
   `linkedin_oidc` (das alte `linkedin` ist abgeschaltet).
   `tool/auth_reset_check.sh` liest die Namen aus dem Enum und verlangt
@@ -67,18 +70,16 @@ Microsoft, GitHub, Apple; 2026-10-29: Facebook, Discord, LinkedIn) —
   - Bis 0.139.0 sagte stattdessen ein Snackbar-Hinweis den Namen einmal
     (`UsernameHint`, Merker `username_hint_seen`) — beides ist weg.
 - **Zeichen:** `assets/auth/<name>.svg`, Pfade aus Simple Icons (CC0),
-  Google und Microsoft nach ihren Vorgaben. Apple und GitHub einfarbig in
+  Google und Microsoft nach ihren Vorgaben. GitHub einfarbig in
   der Textfarbe (sonst im Dunkeln unsichtbar). Als Reihe aus
   Zeichen-Knöpfen (48 dp hoch, Name im Tooltip und in der Semantik) —
-  sieben Knöpfe untereinander schöben das Formular aus dem Bild.
+  sechs Knöpfe untereinander schöben das Formular aus dem Bild.
 - **Was der Betreiber einrichtet** (je Anbieter eine App beim Anbieter,
   Callback dort immer `https://<projekt>.supabase.co/auth/v1/callback`,
   Client-ID und Secret ins Dashboard):
   - Google Cloud: OAuth-Client „Web application" (Supabase ist der
     Empfänger, nicht die App — keine Android-SHA nötig für diesen Weg);
     Zustimmungsbildschirm mit Datenschutz-Link.
-  - Apple: Services ID + Sign-in-with-Apple-Schlüssel (kostenpflichtiges
-    Developer-Konto); das Secret läuft nach höchstens 6 Monaten ab.
   - Microsoft Entra: App-Registrierung „persönliche und Organisations-
     konten", Claim `xms_edov`.
   - Facebook (Meta for Developers): App mit „Facebook Login", Prüfung

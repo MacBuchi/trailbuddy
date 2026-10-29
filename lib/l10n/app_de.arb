@@ -9046,7 +9046,7 @@
   },
   "authProviderButton": "Weiter mit {provider}",
   "@authProviderButton": {
-    "description": "Knopf eines Anmelde-Anbieters; provider ist der Markenname (Google, Apple …).",
+    "description": "Knopf eines Anmelde-Anbieters; provider ist der Markenname (Google, GitHub …).",
     "placeholders": {
       "provider": {
         "type": "String"

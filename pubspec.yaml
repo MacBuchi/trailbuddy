@@ -4,7 +4,7 @@ publish_to: 'none'
 
 # Beide Teile erhöhen (z. B. 0.1.0+1 → 0.1.1+2). Ein Bump auf main taggt und
 # baut ein Prerelease (release.yml); ohne Bump kein Release (Version Guard).
-version: 0.140.0+212
+version: 0.140.1+213
 
 environment:
   sdk: ^3.11.0
@@ -59,7 +59,7 @@ dependencies:
   shared_preferences: ^2.5.6
   package_info_plus: ^10.2.2
   url_launcher: ^6.3.3
-  # Die Zeichen der Anmelde-Anbieter (#398) als SVG: Google und Apple
+  # Die Zeichen der Anmelde-Anbieter (#398) als SVG: Google und Microsoft
   # verlangen ihr Logo im Knopf, und als Vektor bleibt es in jeder
   # Größe scharf, ohne je Auflösung ein Bild zu bündeln.
   flutter_svg: ^2.2.3

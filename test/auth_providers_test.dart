@@ -16,7 +16,7 @@ void main() {
         'linkedin_oidc': true,
         'linkedin': true,
         'github': false,
-        'apple': 'true',
+        'facebook': 'true',
       },
       'disable_signup': false,
     };
