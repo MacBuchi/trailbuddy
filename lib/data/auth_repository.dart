@@ -14,7 +14,6 @@ import '../core/supabase_config.dart';
 /// LinkedIn abgeschaltet).
 enum SignInProvider {
   google('google', OAuthProvider.google),
-  apple('apple', OAuthProvider.apple),
   microsoft('azure', OAuthProvider.azure),
   facebook('facebook', OAuthProvider.facebook),
   github('github', OAuthProvider.github),

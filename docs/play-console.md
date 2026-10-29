@@ -120,7 +120,7 @@ Mail, nie Trails oder Linien. Google nimmt Dienstleister, die nur im
 Auftrag und für diesen Zweck verarbeiten, von *geteilt* aus — Bedingung
 dafür ist die Nennung in der Datenschutzerklärung, und die steht dort.
 
-**⁵ Anmeldung über Google, Apple, Microsoft, Facebook, GitHub, Discord oder LinkedIn (#398) — geändert?**
+**⁵ Anmeldung über Google, Microsoft, Facebook, GitHub, Discord oder LinkedIn (#398) — geändert?**
 Empfehlung: **nichts Neues anzukreuzen.** Der Anbieter liefert E-Mail-Adresse,
 Name und eine Kennung seines Kontos an Supabase Auth (`auth.identities`);
 die Adresse steht schon oben, der Name vom Anbieter wird nicht als

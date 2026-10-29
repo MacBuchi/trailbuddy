@@ -20,11 +20,10 @@ final enabledSignInProvidersProvider =
 });
 
 /// Markenname, Zeichen und ob es einfarbig ist (dann in der Textfarbe,
-/// damit Apple und GitHub im Dunkeln nicht verschwinden).
+/// damit GitHub im Dunkeln nicht verschwindet).
 extension SignInProviderLook on SignInProvider {
   String get label => switch (this) {
         SignInProvider.google => 'Google',
-        SignInProvider.apple => 'Apple',
         SignInProvider.microsoft => 'Microsoft',
         SignInProvider.facebook => 'Facebook',
         SignInProvider.github => 'GitHub',
@@ -34,12 +33,11 @@ extension SignInProviderLook on SignInProvider {
 
   String get asset => 'assets/auth/$name.svg';
 
-  bool get monochrome =>
-      this == SignInProvider.apple || this == SignInProvider.github;
+  bool get monochrome => this == SignInProvider.github;
 }
 
 /// „oder weiter mit" und je freigegebenem Anbieter ein Knopf mit seinem
-/// Zeichen — als Reihe, nicht als Liste: Sieben Knöpfe untereinander
+/// Zeichen — als Reihe, nicht als Liste: Sechs Knöpfe untereinander
 /// schöben das Formular aus dem Bild. Der Name steht im Tooltip und in
 /// der Semantik. Nichts freigegeben ⇒ nichts zu sehen.
 class ProviderSignInButtons extends ConsumerStatefulWidget {

@@ -44,7 +44,7 @@ void main() {
     expect(find.text('oder weiter mit'), findsOneWidget);
     expect(_button(SignInProvider.google), findsOneWidget);
     expect(_button(SignInProvider.github), findsOneWidget);
-    expect(_button(SignInProvider.apple), findsNothing);
+    expect(_button(SignInProvider.microsoft), findsNothing);
     expect(_button(SignInProvider.facebook), findsNothing);
     expect(find.byTooltip('Weiter mit Google'), findsOneWidget);
     // Reihenfolge wie im Enum, nicht wie in der Antwort: Google vor GitHub.
@@ -141,10 +141,10 @@ void main() {
   testWidgets('„Später" behält den vergebenen Namen und fragt dieses Konto '
       'nicht wieder', (tester) async {
     final backend = FakeBackend()
-      ..enabledSignInProviders = {SignInProvider.apple};
+      ..enabledSignInProviders = {SignInProvider.microsoft};
     final settings = FakeSettings();
     await pumpApp(tester, backend, settings: settings);
-    await _tap(tester, _button(SignInProvider.apple));
+    await _tap(tester, _button(SignInProvider.microsoft));
 
     await _tap(tester, find.text('Später'));
 
