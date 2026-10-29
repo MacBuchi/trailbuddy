@@ -1153,6 +1153,25 @@ kalter Datei-Cache. Beobachten, nicht bauen.
   ~10 s und +350 MB, erste Planung ohne Stücke ~2 min Backen. Über 126
   Kacheln nicht gemessen — der gespeicherte Bereich endete dort; die
   Messung mit einem größeren Bereich steht in #380.
+- **Über 126 Kacheln, gemessen 2026-10-29** (0.138.4-dev, derselbe
+  Bereich, „Fehlende Wege online ergänzen" AN, Radius 30 km, 99 Trails,
+  getippter Start): 156/156 Kacheln, der Rest über 126 vom Host. Zwei
+  Sitzungen, beide Male dieselbe Runde:
+
+  | Sitzung | Laden | Höhen | Bau | Runde | längste UI-Lücke | PSS dazu |
+  |---|---|---|---|---|---|---|
+  | erste | 7,0 s | 2,7 s | 12,5 s (`bake` 7,1 s, `stitch` 3,9 s, `trails` 1,4 s) | 11,1 s | 104 ms | +165 MB |
+  | zweite, neue Sitzung | 6,8 s | 2,8 s | 12,0 s (`bake` 6,5 s, `stitch` 4,1 s, `trails` 1,4 s) | 11,2 s | 160 ms | +191 MB |
+
+  Die online ergänzten Kacheln backen JEDE Sitzung neu (nur für die
+  Sitzung, siehe „Gespeichert wird nur, was aus dem Speicher kam") —
+  deshalb ist die zweite Planung kaum schneller; Laden enthält die
+  Abrufe vom Host. Das Zusammensetzen kostet ~0,026 s je Kachel, der
+  Speicher bleibt bei ~1,2 MB je Kachel. Die Runde (`plan.loop`, 11 s
+  bei 99 Trails gegen 2,0 s bei 96 in Szenario 4) braucht hier länger
+  als der Bau — beobachten, kein Befund zu `kPlanMaxTiles`.
+  „Route bis hier" auf demselben offenen Planer (#418) rechnete ohne
+  neuen Bau: `plan.loop` 11,9 s.
 - Nebenbefund: #410 (Bereiche von vor 0.137.0 backten nie im
   Hintergrund) — seit 0.138.0 prüft der Start jeden Bereich.
   **Gemessen 2026-10-29** (0.138.0-dev, derselbe Bereich, bis dahin nur
