@@ -4219,6 +4219,15 @@
       }
     }
   },
+  "loopListOutside": "{count, plural, =1{1 gewählter Trail liegt außerhalb des Radius — „Keine“ nimmt ihn mit weg.} other{{count} gewählte Trails liegen außerhalb des Radius — „Keine“ nimmt sie mit weg.}}",
+  "@loopListOutside": {
+    "description": "Trail-Liste des Planers: gewählte Trails, die die Liste nicht zeigt (außerhalb des Radius).",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "loopListTooFar": "{count, plural, =1{1 Trail liegt weiter weg — auf der Karte antippen geht trotzdem.} other{{count} Trails liegen weiter weg — auf der Karte antippen geht trotzdem.}}",
   "@loopListTooFar": {
     "description": "Trail-Liste des Planers: Trails außerhalb des Radius.",

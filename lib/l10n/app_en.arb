@@ -743,6 +743,7 @@
   "loopListWarned": "Reported ({count})",
   "loopListWarnedHint": "Closed, destroyed or changed — can be added one by one.",
   "loopListConnectors": "{count, plural, =1{Uphill the loop uses the uphill trail or connector {names} on its own — several times if it helps.} other{Uphill the loop uses the uphill trails and connectors {names} on its own — several times if it helps.}}",
+  "loopListOutside": "{count, plural, =1{1 selected trail lies outside the radius — “None” clears it too.} other{{count} selected trails lie outside the radius — “None” clears them too.}}",
   "loopListTooFar": "{count, plural, =1{1 trail is further away — tapping it on the map still works.} other{{count} trails are further away — tapping them on the map still works.}}",
   "loopListStars": "{count, plural, =1{1 star} other{{count} stars}}",
   "loopMust": "Must be included",
