@@ -1254,6 +1254,15 @@ Standort" gilt nur, wenn keiner gesetzt ist. Ein Start allein löst keine
 Rückfrage aus (nur Auswahl oder Zwischenpunkte). Auf dem Pixel begann
 „Route bis hier" nach „Start hier" sonst am weit entfernten Standort.
 
+*Seit 0.138.4 (#418):* Bei OFFENEM Planer sind „Route bis hier" und
+„Route hierher" kein neuer Auftrag mehr, sondern das Ziel dieser
+Planung (wie „Ziel" im Ort-Blatt, Modus „Zum Ziel"); Auswahl, Sterne,
+Start und Zwischenpunkte bleiben, gerechnet wird sofort, gefragt wird
+nicht. Am Pixel stand der Planer mit einem gewählten Trail auf „Kein
+Ziel gesetzt", und „Route bis hier" bot an, den Trail zu verwerfen.
+„Zum Trailkopf" und das Navi-Symbol bleiben ein neuer Auftrag — für
+den Trail als Ziel der laufenden Planung gibt es „Ziel im Planer".
+
 ### 10.4 Bedienregeln
 
 - **Eine Änderung verwirft das Ergebnis, sie rechnet nicht neu** (D3).
@@ -1271,7 +1280,9 @@ Rückfrage aus (nur Auswahl oder Zwischenpunkte). Auf dem Pixel begann
   Planer — sonst stünde man nach „Zum Trailkopf" in einer leeren
   Leiste.
 - **Nie zwei Planungen zugleich.** Es gibt nur noch einen; ein neuer
-  Einstieg ersetzt den laufenden Auftrag (mit Auswahl: erst fragen).
+  Einstieg ersetzt den laufenden Auftrag (mit Auswahl: erst fragen);
+  ein Punkt als Ziel bei offenem Planer ist kein neuer Auftrag (10.3,
+  #418).
 - **Das Fahrerprofil gilt sofort**: Eine neue Kalibrierung oder ein
   anderes Rad in den Einstellungen erreicht den offenen Planer, nicht
   erst den nächsten.

@@ -781,7 +781,13 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
       aus `NavChoice.style`, ohne gemerkten der des Planers), langer
       Druck „Route bis hier", Ort-Blatt „Route hierher"
       (`showPoiSheet(onRoute:)`). Mit Auswahl oder Zwischenpunkten fragt
-      die Karte vorher (`loop-replace`).
+      die Karte vorher (`loop-replace`). **Bei offenem Planer sind
+      „Route bis hier" und „Route hierher" das Ziel DIESER Planung**
+      (`_routeTo`, #418, seit 0.138.4): `takePlace(target)`, dann
+      rechnen — bei offenem Ergebnis-Blatt direkt `compute()`, sonst
+      `_showLoopResult`. Auswahl und Punkte bleiben, also keine Frage;
+      `quick` ist danach aus (gebaut ist gebaut). Flow-Test „#418",
+      Gegenprobe mit dem alten Weg rot.
     - **Schnell zu hängt an `quick`**: `_edit` setzt es zurück, Stil und
       Rad im Ergebnis (`setStyle`, `switchProfile`) behalten es. Geht das
       Ergebnis-Blatt zu (X oder Zurück) und `quick` steht, schließt

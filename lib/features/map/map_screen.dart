@@ -611,8 +611,9 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   LoopClosed? _navReturn;
 
   /// Ein Einstieg mit fertigem Auftrag (#356 PR 7, Konzept-Routing 10.3):
-  /// „Zum Trailkopf", das Navi-Symbol, „Route bis hier", „Route hierher".
-  /// Ein frischer Planer mit Ziel, gerechnet wird sofort. Liegt schon eine
+  /// „Zum Trailkopf", das Navi-Symbol, ohne offenen Planer auch „Route bis
+  /// hier" und „Route hierher" ([_routeTo]). Ein frischer Planer mit Ziel,
+  /// gerechnet wird sofort. Liegt schon eine
   /// Auswahl im Planer, wird erst gefragt — es gibt nur EINE Planung. Ein
   /// dort getippter Start bleibt: Es ist dieselbe Planung (#373,
   /// Konzept-Routing 10.4).
@@ -636,6 +637,23 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     setState(() => _selectedTrailId = null);
     _quickReturnTrailId = returnTo;
     ref.read(loopPlannerProvider.notifier).beginRoute(target, trailId: trailId, style: style, start: keepStart);
+    await _showLoopResult();
+  }
+
+  /// „Route bis hier" und „Route hierher": Bei offenem Planer ist der Punkt
+  /// das Ziel DIESER Planung (#418) — Auswahl, Sterne, Start und
+  /// Zwischenpunkte bleiben, also keine Rückfrage, und gerechnet wird
+  /// sofort. Am Pixel stand der Planer auf „Kein Ziel gesetzt", und „Route
+  /// bis hier" wollte den gewählten Trail verwerfen. Ohne Planer ein
+  /// fertiger Auftrag wie bisher.
+  Future<void> _routeTo(LatLng target) async {
+    if (!ref.read(loopPlannerProvider).open) return _planRoute(target);
+    final planner = ref.read(loopPlannerProvider.notifier);
+    planner.takePlace(target, LoopPlaceRole.target);
+    if (_loopPanelOpen) {
+      unawaited(planner.compute());
+      return;
+    }
     await _showLoopResult();
   }
 
@@ -730,7 +748,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         showOfficialTrailSheet(context, o);
       case final Poi p:
         showPoiSheet(context, p,
-            onPlan: (role) => unawaited(_planFromPlace(p, role)), onRoute: () => unawaited(_planRoute(p.position)));
+            onPlan: (role) => unawaited(_planFromPlace(p, role)), onRoute: () => unawaited(_routeTo(p.position)));
     }
   }
 
@@ -1015,7 +1033,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       case 'from':
         await _openLoopPlanner(start: tap.point);
       case 'to':
-        await _planRoute(tap.point);
+        await _routeTo(tap.point);
       case 'via':
         await _openLoopPlanner();
         if (!mounted || !ref.read(loopPlannerProvider).open) return;
