@@ -2,6 +2,16 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## Measuring airtime and wheelies
+
+*Version 0.142.0, 2026-10-30*
+
+- Development app only: a switch under "About TrailBuddy" records
+  acceleration, gyroscope and GPS during a ride. The thresholds for
+  airtime and wheelies are measured from that before the app detects
+  them. The file stays on the device and can be shared from "My rides".
+  Nothing changes in the regular app.
+
 ## Signing in with GitHub, Discord and Google
 
 *Version 0.141.0, 2026-10-29*

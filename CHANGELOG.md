@@ -2,6 +2,16 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Messen für Airtime und Wheelies
+
+*Version 0.142.0, 2026-10-30*
+
+- Nur in der Entwicklungs-App: Ein Schalter unter „Über TrailBuddy“
+  schreibt während einer Fahrt Beschleunigung, Kreisel und GPS mit.
+  Daraus werden die Schwellen für Airtime und Wheelies gemessen, bevor
+  die App sie erkennt. Die Datei bleibt auf dem Gerät und lässt sich in
+  „Meine Fahrten“ teilen. In der normalen App ändert sich nichts.
+
 ## Anmelden über GitHub, Discord und Google
 
 *Version 0.141.0, 2026-10-29*

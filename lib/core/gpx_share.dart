@@ -71,3 +71,18 @@ Future<void> shareGpx(BuildContext context, WidgetRef ref,
       ..showSnackBar(SnackBar(content: Text(l.gpxExportFailed(friendlyError(l, e)))));
   }
 }
+
+/// Gibt eine Datei vom Gerät heraus, ohne sie in den Speicher zu lesen —
+/// die Sensor-Rohdaten einer Fahrt (#36, Dev-App) sind ~30 MB je Stunde.
+typedef FileShare = Future<void> Function({required String path, required String fileName});
+
+/// Die Naht für die Rohdaten; der Harness überschreibt sie.
+final sensorLogShareProvider = Provider<FileShare>((ref) => _shareFileViaSystem);
+
+Future<void> _shareFileViaSystem({required String path, required String fileName}) async {
+  await SharePlus.instance.share(ShareParams(
+    files: [XFile(path, mimeType: 'text/csv', name: fileName)],
+    fileNameOverrides: [fileName],
+    subject: fileName,
+  ));
+}

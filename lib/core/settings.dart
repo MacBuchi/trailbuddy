@@ -36,6 +36,12 @@ abstract interface class Settings {
 
   Future<void> setPrereleaseUpdatesEnabled(bool value);
 
+  /// Sensor-Rohdaten während einer Fahrt mitschreiben (#36, Messplan 8.1)
+  /// — ein Mess-Werkzeug der Dev-App; außerhalb liest es niemand.
+  bool get sensorLogEnabled;
+
+  Future<void> setSensorLogEnabled(bool value);
+
   /// Die eingeschalteten Orte-Gruppen der Karte (`PoiGroup.name`), oder
   /// null, solange nie etwas umgelegt wurde — dann gilt die Vorgabe.
   /// Leer heißt „alles aus", nicht „Vorgabe".
@@ -249,6 +255,14 @@ class PrefsSettings implements Settings {
   @override
   Future<void> setPrereleaseUpdatesEnabled(bool value) =>
       _prefs.setBool(_prereleaseUpdatesEnabledKey, value);
+
+  static const _sensorLogEnabledKey = 'sensor_log_enabled';
+
+  @override
+  bool get sensorLogEnabled => _prefs.getBool(_sensorLogEnabledKey) ?? false;
+
+  @override
+  Future<void> setSensorLogEnabled(bool value) => _prefs.setBool(_sensorLogEnabledKey, value);
 
   static const _poiGroupsKey = 'poi_groups';
 

@@ -1,7 +1,7 @@
 # Konzept: Trail-Werte und Airtime unter Buddys (#36)
 
-*Stand 2026-10-16, Entscheidungen des Betreibers vom selben Tag in
-Abschnitt 11. Baut auf `konzept-trails.md`
+*Stand 2026-10-30, Entscheidungen des Betreibers vom 2026-10-16 in
+Abschnitt 11, Punkt 5 neu entschieden am 2026-10-30. Baut auf `konzept-trails.md`
 Abschnitt 7 und 9 und auf den Kernanforderungen (`anforderungen.md`,
 A1–A3, A6, A10, A11) auf; das Aussehen kommt aus dem Navi-Entwurf
 (`docs/design/navi/`, Betreiber 2026-10-13: „Trail-Werte … kommen mit
@@ -75,7 +75,13 @@ Die Halterung entscheidet, was überhaupt messbar ist (Entwurf 1e,
 - **Manual**: Neigung über 15° gegen die Fahrposition bei Fahrt
   (> 8 km/h), Länge in Metern aus GPS-Tempo × Zeit (Entwurf, Zustand
   „Manual erkannt"). Nur mit Lenkerhalterung: In der Tasche kippt das
-  Telefon nicht mit dem Rad.
+  Telefon nicht mit dem Rad. **Wheelie und Manual sind für den Sensor
+  dasselbe** (Vorderrad hoch); ob dabei getreten wird, sieht das Telefon
+  am Lenker kaum, getrennt wird deshalb nicht. In v1 (Betreiber,
+  2026-10-30): je Fahrt und Trail ein **Zähler** und der **längste in
+  Metern**, als Zahl nur auf dem Gerät (Abschnitt 4). Ein Kippen in der
+  Kurve dreht das Telefon um eine andere Achse als ein Wheelie — ob
+  sich beides trennen lässt, zeigt die Messung (8.2).
 - **Nur auf Trails** und nur, wenn eingeschaltet („Trail-Werte messen"
   im Start-Blatt). Auf der Anfahrt läuft kein Sensor — das spart Akku
   und macht aus einem Bordstein keinen Sprung.
@@ -253,9 +259,19 @@ Muster).
    Plausibilisierung von Max G dazu: Rucksack mit Telefon absetzen,
    Rad mit Telefon am Lenker umfallen lassen, Telefon aus der Hand
    fallen lassen — je fünfmal; keiner davon darf als Landung zählen.
-3. **Auswertung auf dem Rechner** (`tool/airtime_measure.py`): Treffer,
-   Fehlalarme und Dauerfehler je Schwelle (g-Grenze, Mindestdauer) und
-   je Halterung; Akku je Stunde mit und ohne Sensor.
+   Für Wheelie/Manual (Lenkerhalterung): zehn Wheelies oder Manuals mit
+   geschätzter Länge, dazu enge Kurven und ein an den Baum gelehntes Rad
+   als Gegenprobe — keines davon darf als Wheelie zählen.
+3. **Auswertung auf dem Rechner** (`tool/airtime_measure.py`, seit
+   0.142.0): Flugphasen je g-Grenze und Mindestdauer, je Phase die
+   Landespitze und ob sie plausibel ist (Tempo vorher und nachher,
+   Obergrenze; „auf der Linie" bleibt der App); Wheelies je Kippwinkel
+   und Mindestdauer mit Länge und Kippachse; `--from`/`--to` schneidet
+   ein Stück der Fahrt heraus (Jump-Line, Gegenprobe), `--list` nennt
+   jedes Ereignis. Ausgabe nur Zeiten ab Dateibeginn, Dauern und
+   Zählungen. Treffer und Fehlalarme gegen die gezählten Sprünge je
+   Halterung; Akku je Stunde mit und ohne Sensor (Ladestand am Anfang
+   und Ende der Fahrt notieren).
 4. **Schwellen gelten, wenn** auf der Gegenprobe keine Fehlalarme
    liegen (auch keine Landung aus den Absetz- und Umfall-Proben), auf der
    Jump-Line ≥ 90 % der gezählten Sprünge gefunden
@@ -265,13 +281,21 @@ Muster).
 
 Umgebung: 📱 Fahrten · 💻 Auswertung (eigene Fahrten) · ☁️ Werkzeug.
 
+**Der Logger** (0.142.0, `lib/features/rides/sensor_log.dart`): Schalter
+„Sensor-Rohdaten mitschreiben" unter „Über TrailBuddy", nur in der
+Dev-App (Flavor `dev`, `android/CLAUDE.md`). Gilt ab der nächsten
+Fahrt; der Dienst schreibt Beschleunigung (mit Schwerkraft) und Kreisel
+mit 100 Hz und GPS jede Sekunde nach `rides/sensors/<Fahrt>.csv`
+(~30 MB je Stunde), „Meine Fahrten" → „Sensordaten teilen" bringt die
+Datei an den Rechner.
+
 ## 9. Umsetzung in Schritten (je ein PR)
 
-1. **Sensor im Dienst** (Probe, kein Bump falls nur Werkzeug): Liefert
-   ein Sensor-Plugin im Isolate des Vordergrund-Dienstes Ereignisse,
-   auch bei ausgeschaltetem Bildschirm? Ergebnis in
-   `lib/features/rides/CLAUDE.md`.
-2. **Rohdaten-Logger** (Entwicklerschalter, Vorabversion) — dann die
+1. **Sensor im Dienst** und 2. **Rohdaten-Logger** in EINEM PR
+   (0.142.0): Der Logger ist die Probe — `sensors_plus` im Isolate des
+   Vordergrund-Dienstes; ob er bei ausgeschaltetem Bildschirm liefert,
+   zeigt die Datei der ersten Fahrt am Gerät (Lücken über 100 ms nennt
+   das Werkzeug). Ergebnis in `lib/features/rides/CLAUDE.md`. Dann die
    Messung aus Abschnitt 8.
 3. **Erkennung auf dem Gerät**: Airtime, Max G, Manual als reine
    Funktionen mit Tests gegen die gemessenen Aufzeichnungen (als
@@ -324,5 +348,9 @@ Diskussion nicht bei null beginnt.
    usw." sonst als Landung zählen.
 3. **Welche Airtime zählt?** Die Summe („Airtime die Summe").
 4. **Bio und E-MTB gemeinsam** — wie vorgeschlagen.
-5. **Manual nicht in v1** — wie vorgeschlagen.
+5. **Wheelie/Manual in v1** (neu entschieden 2026-10-30; am 2026-10-16
+   noch „nicht in v1"): Zähler und längster in Metern, nur mit
+   Lenkerhalterung, bleibt als Zahl auf dem Gerät wie Max G (Abschnitt
+   2). Verworfen: der längste Wheelie als geteilter Bestwert mit
+   Rangliste — er misst nur, wer einen Lenkerhalter hat.
 6. **Wann?** Nach 🚀 A und den ersten Testern — wie vorgeschlagen.

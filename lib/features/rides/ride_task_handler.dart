@@ -23,6 +23,7 @@ import 'ride_confirm.dart';
 import 'ride_confirm_notify.dart';
 import 'ride_store.dart';
 import 'ride_track.dart';
+import 'sensor_log.dart';
 
 /// Schlüssel der Brücke zwischen den Isolaten. Bewusst flache Werte:
 /// `saveData` nimmt nur int, double, String und bool an.
@@ -194,13 +195,19 @@ Future<void> serviceTick({Future<Position?> Function()? fix}) async {
   try {
     final recording = await FlutterForegroundTask.getData<bool>(key: kRideDataActive) == true;
     final navigating = await FlutterForegroundTask.getData<bool>(key: kNavDataActive) == true;
-    if (!recording && !navigating) return;
+    if (!recording && !navigating) {
+      await stopSensorLog();
+      return;
+    }
     // Die Sprache aus dem Profil (#209) — sie kann sich während der Fahrt
     // ändern, und die Texte dieses Takts sollen schon die neue sprechen.
     await refreshServiceLocale();
     Future<Position?>? once;
     Future<Position?> shared() => once ??= (fix ?? _fix)();
     if (recording) await recordRideTick(fix: shared);
+    // Die Rohdaten der Sensoren (#36, Dev-App): startet beim ersten Takt
+    // der Fahrt; das Ende merkt der Logger selbst.
+    await sensorLogTick();
     if (navigating) await navTick(fix: shared, recording: recording);
   } catch (_) {
     // Der nächste Takt versucht es wieder.
@@ -232,5 +239,5 @@ class RideTaskHandler extends TaskHandler {
   void onNotificationPressed() => FlutterForegroundTask.sendDataToMain(kNavMessageOpen);
 
   @override
-  Future<void> onDestroy(DateTime timestamp, bool isTimeout) async {}
+  Future<void> onDestroy(DateTime timestamp, bool isTimeout) => stopSensorLog();
 }

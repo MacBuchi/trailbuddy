@@ -4,7 +4,7 @@ publish_to: 'none'
 
 # Beide Teile erhöhen (z. B. 0.1.0+1 → 0.1.1+2). Ein Bump auf main taggt und
 # baut ein Prerelease (release.yml); ohne Bump kein Release (Version Guard).
-version: 0.141.0+214
+version: 0.142.0+215
 
 environment:
   sdk: ^3.11.0
@@ -119,6 +119,7 @@ dependencies:
   # ginge nur mit pmtiles 2 und damit einem Umbau des Kartenstapels
   # (vector_tile, latlong2). Deshalb steht xml wieder auf 6 (siehe dort).
   image: ^4.3.0
+  sensors_plus: ^7.1.1
 
 dev_dependencies:
   flutter_test:

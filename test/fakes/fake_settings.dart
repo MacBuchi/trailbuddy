@@ -6,6 +6,7 @@ import 'package:trailbuddy/core/settings.dart';
 class FakeSettings implements Settings {
   FakeSettings(
       {this.prereleaseUpdatesEnabled = false,
+      this.sensorLogEnabled = false,
       this.poiGroups,
       this.poiHiddenKinds,
       this.seenNoteIds,
@@ -261,6 +262,14 @@ class FakeSettings implements Settings {
   @override
   Future<void> setPrereleaseUpdatesEnabled(bool value) async {
     prereleaseUpdatesEnabled = value;
+  }
+
+  @override
+  bool sensorLogEnabled;
+
+  @override
+  Future<void> setSensorLogEnabled(bool value) async {
+    sensorLogEnabled = value;
   }
 
   @override

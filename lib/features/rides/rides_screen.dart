@@ -309,6 +309,28 @@ class _RideTile extends ConsumerWidget {
         xml: writeGpx(name: track.name, points: track.points));
   }
 
+  /// Die Rohdaten der Sensoren (#36, nur Dev-App) an den Rechner — über
+  /// das Teilen-Blatt, wie das GPX.
+  Future<void> _shareSensorLog(BuildContext context, WidgetRef ref) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final l = context.l10n;
+    final path = await ref.read(rideStoreProvider).sensorLogPath(ride.id);
+    if (path == null) {
+      messenger
+        ..clearSnackBars()
+        ..showSnackBar(SnackBar(content: Text(l.ridesNoSensorLog)));
+      return;
+    }
+    try {
+      await ref.read(sensorLogShareProvider)(path: path, fileName: 'trailbuddy-sensors-${ride.id}.csv');
+    } catch (e, stackTrace) {
+      logError('Sensordaten teilen', e, stackTrace);
+      messenger
+        ..clearSnackBars()
+        ..showSnackBar(SnackBar(content: Text(l.ridesSensorLogShareFailed(friendlyError(l, e)))));
+    }
+  }
+
   /// Erst der Reiter, dann der Wunsch — die Karte fragt und startet.
   void _navigate(BuildContext context, WidgetRef ref) {
     StatefulNavigationShell.of(context).goBranch(kMapBranchIndex);
@@ -378,6 +400,7 @@ class _RideTile extends ConsumerWidget {
                 onSelected: (value) => switch (value) {
                   'navigate' => _navigate(context, ref),
                   'export' => _export(context, ref),
+                  'sensors' => _shareSensorLog(context, ref),
                   _ => _delete(context, ref),
                 },
                 itemBuilder: (context) => [
@@ -394,6 +417,13 @@ class _RideTile extends ConsumerWidget {
                     child: ListTile(
                         leading: const Icon(Icons.share_outlined), title: Text(l.sheetExportGpx)),
                   ),
+                  if (!planned && !ride.imported && ref.read(sensorLogAvailableProvider))
+                    PopupMenuItem(
+                      key: ValueKey('ride-sensors-${ride.id}'),
+                      value: 'sensors',
+                      child: ListTile(
+                          leading: const Icon(Icons.sensors), title: Text(l.ridesShareSensorLog)),
+                    ),
                   PopupMenuItem(
                     value: 'delete',
                     child: ListTile(

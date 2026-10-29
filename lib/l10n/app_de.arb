@@ -1061,6 +1061,19 @@
   "@sheetExportGpx": {
     "description": "Trail-Blatt: Knopf, der den Trail als GPX-Datei teilt."
   },
+  "ridesShareSensorLog": "Sensordaten teilen",
+  "@ridesShareSensorLog": {
+    "description": "Menü einer Fahrt in „Meine Fahrten“, nur Dev-App: die Rohdaten-Datei der Fahrt (#36) über das Teilen-Blatt herausgeben."
+  },
+  "ridesNoSensorLog": "Zu dieser Fahrt gibt es keine Sensordaten.",
+  "@ridesNoSensorLog": {
+    "description": "Leiste, wenn eine Fahrt ohne Rohdaten-Datei geteilt werden soll (Dev-App, #36)."
+  },
+  "ridesSensorLogShareFailed": "Sensordaten ließen sich nicht teilen: {error}",
+  "@ridesSensorLogShareFailed": {
+    "description": "Leiste, wenn das Teilen der Rohdaten scheitert (Dev-App, #36).",
+    "placeholders": {"error": {"type": "String"}}
+  },
   "sheetTakeOver": "Übernehmen",
   "@sheetTakeOver": {
     "description": "Trail-Blatt: Knopf, der einen Beitrag mit den Angaben der Buddys vorbelegt übernimmt."
@@ -5598,6 +5611,14 @@
   "aboutPrereleaseSubtitle": "Bietet auch Zwischenstände an, die noch nicht freigegeben sind — ungetestet und häufig. Gilt nur für dieses Gerät.",
   "@aboutPrereleaseSubtitle": {
     "description": "Seite „Über TrailBuddy“: Untertitel des Vorab-Schalters."
+  },
+  "aboutSensorLogTitle": "Sensor-Rohdaten mitschreiben",
+  "@aboutSensorLogTitle": {
+    "description": "Seite „Über TrailBuddy“, nur Dev-App: Schalter des Mess-Werkzeugs für die Airtime (#36)."
+  },
+  "aboutSensorLogSubtitle": "Nur Dev-App: Beschleunigung und Kreisel mit 100 Hz, GPS jede Sekunde, solange eine Fahrt läuft — für die Airtime-Messung. Etwa 30 MB je Stunde, bleibt auf dem Gerät.",
+  "@aboutSensorLogSubtitle": {
+    "description": "Seite „Über TrailBuddy“, nur Dev-App: Untertitel des Rohdaten-Schalters."
   },
   "aboutPreviewTitle": "Entwicklungsversion öffnen",
   "@aboutPreviewTitle": {
