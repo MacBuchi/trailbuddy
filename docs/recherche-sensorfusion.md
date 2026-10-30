@@ -8,7 +8,8 @@ Beschleunigungssensor zu einem sinnvollen Fahrradmodell zusammenzubauen.
 Das geht mit einer ordentlichen Recherche los."*
 
 Dieses Dokument beantwortet sechs Fragen mit Quellen und endet mit einer
-**empfohlenen Architektur**. Gebaut wird erst, wenn der Betreiber sie
+**empfohlenen Architektur**; was der Prototyp darauf auf den eigenen
+Fahrten zeigt, steht in Abschnitt 7. Gebaut wird erst, wenn der Betreiber sie
 abgenommen hat; danach folgen Prototyp in Python auf den vorhandenen
 Fahrten, Messfahrten mit Ansage und die Portierung in die App
 (`docs/konzept-airtime.md` §9).
@@ -246,14 +247,118 @@ Literatur kommt kinematisch aus).
 
 ## Offen für die Messung
 
-- Wie schnell „vorn" auf normalen Fahrten steht und ob es beim Schieben
-  oder Tragen kippt.
-- Wie gut dv/dt aus 1-Hz-GPS ist (Verzug bis ~1 s) — eventuell die
-  Längsstütze nur als Unsicherheit statt als Abzug.
-- Die Zeitkonstante „Weg" für den Wheelie-Pitch.
+Stand nach dem Prototyp (Abschnitt 7):
+
+- ~~Wie schnell „vorn" auf normalen Fahrten steht~~ — nach 65–80 s
+  Fahrt, getragen von den Kurven, nicht vom Bremsen (7.2). Ob es beim
+  Schieben oder Tragen kippt, ist offen.
+- ~~Wie gut dv/dt aus 1-Hz-GPS ist~~ — zu schwach, um „vorn" allein zu
+  lernen; als Abzug mit Unsicherheit taugt es (7.2, 7.4).
+- Die Zeitkonstante „Weg" für den Wheelie-Pitch: 3 s gesetzt, gegen
+  Sollwerte noch nicht gemessen (die Banner der zweiten Fahrt sind
+  unbeantwortet).
 - Die Vibrationsenergie am Lenker gegenüber dem Oberrohr.
 - Hosentasche: keine feste Halterung — Stufe 1 findet dann nichts; dort
   bleibt nur Airtime (Konzept §2).
+- Sprünge: Auf beiden Fahrten keiner; Flug und Landung sind nur
+  synthetisch geprüft.
+
+## 7. Ergebnis des Prototyps (2026-10-30, Konzept §9 Schritt 3)
+
+`tool/sensor_fusion.py` baut die drei Stufen der Architektur, mit ESKF
+und Mahony nebeneinander; `tool/airtime_measure.py <Datei> --fused`
+rechnet Wheelies, Flüge und Proben darauf. Die Selbsttests (in CI)
+fahren eine synthetische Fahrt mit bekannter Wahrheit: schräg montiertes
+Telefon, Gyro-Bias, Rauschen, Bremsen ohne Pitch, Kurve mit Schräglage,
+Wheelies auf ebener Strecke und am Hang, Nase runter, ein Sprung,
+Verrutschen der Halterung. Ausgewertet auf den beiden Fahrten vom
+2026-10-30 (17 und 23 min, Straße, E-Bike, Oberrohr) — hier nur
+Zählungen und Winkel.
+
+### 7.1 Die Referenz ist der Kreisel
+
+Sollwerte aus der App gibt es für diese Fahrten nicht: Die 17 Banner der
+zweiten Fahrt sind alle unbeantwortet, die erste Fahrt lief vor 0.143.0.
+Abschnitt 6.1 fällt also aus. Dafür zeigte sich der Kreisel des Telefons
+als viel besser als angenommen: Mittel im Stand 0,035 °/s, die Lage nur
+aus dem Kreisel liegt nach 20 s im Median 2° neben der Schwerkraft. Die
+Lage von vor 3 s, mit dem Kreisel allein weitergedreht, ist damit für
+jede schnelle Änderung — Bremsen, Kurve, Wheelie — die Wahrheit auf
+etwa 0,2°. Ein Filter, der die Beschleunigung ganz ignorierte, bestünde
+diese Probe auch; deshalb gehören der Pitch gegenüber dem Weg beim
+Geradeausfahren (ohne Wheelies) und der geschätzte Bias dazu.
+
+| p95 in Grad | F1 ESKF | F1 Mahony | F1 roh | F2 ESKF | F2 Mahony | F2 roh |
+|---|---|---|---|---|---|---|
+| Pitch beim Bremsen/Antreten, gegen Kreisel | 1,1 | 0,7 | 10,2 | 0,7 | 0,2 | 16,1 |
+| Pitch in Kurven, gegen Kreisel | 0,7 | 0,8 | 14,3 | 1,0 | 0,8 | 14,6 |
+| Roll in Kurven, gegen Kreisel | 0,7 | 0,9 | 22,8 | 0,7 | 0,7 | 29,8 |
+| Pitch über die ganze Fahrt, gegen Kreisel | 0,6 | 0,7 | 7,9 | 0,7 | 0,7 | 8,8 |
+| Pitch geradeaus, gegen den Weg | 2,0 | 1,8 | – | 1,6 | 1,5 | – |
+| Gyro-Bias am Ende (°/s) | 0,08 | 0,93 | – | 0,21 | 0,21 | – |
+
+„Roh" ist die Neigung aus der 0,5 s geglätteten Beschleunigung (die
+Regel bis 0.143.0), aber schon mit der gelernten Halterung. Brems-Momente
+mit GPS-dv/dt über 1,5 m/s² und ohne Kurve gab es nur wenige (0,4 s und
+1,7 s); Kurven reichlich (über 150 s je Fahrt).
+
+### 7.2 Halterung
+
+- **„Unten"** stand nach 23 s Fahrt (Fahrt 1) bzw. 277 s (Fahrt 2,
+  die langsam begann).
+- **„Vorn" aus dem Bremsen allein stand auf keiner der beiden Fahrten
+  sicher**: zu wenige kräftige Brems- und Antrittsphasen, die Richtung
+  aus 1-Hz-GPS schwankt (Konsistenz 0,3–0,55), und das Schlussstück der
+  zweiten Fahrt drehte das Vorzeichen sogar um. Neu ist deshalb ein
+  zweiter Hinweis, den jede Kurve liefert: Das Rad legt sich hinein, der
+  Kreisel sieht die Welt-Senkrechte zur Außenseite kippen, die Gierrate
+  sagt, welche Seite außen ist — daraus „links" und damit „vorn". Mit
+  beidem stand „vorn" nach 88 s bzw. 358 s, also 65–80 s nach „unten",
+  Konsistenz 0,9, auf 1° bzw. 5° an der Richtung, die die Drehachse der
+  langen Wheelies vorgibt.
+- **Verrutschen**: Die 3-s-Regel las jeden langen Wheelie (10–28 s bei
+  35–44°) als verrutschte Halterung — neun Mal auf Fahrt 1. Jetzt erst
+  nach 60 s Abweichung, wie die 60-s-Regel der App; gekippte Sekunden
+  (über 17°) lernen weder „unten" noch „vorn". Danach 0 Mal.
+
+### 7.3 Ereignisse
+
+- **Fahrt 1**: 12 Wheelies bei 15°/1 s gegen den Weg, beide Filter mit
+  denselben Anfängen (±0,1 s), 1,5–23,6 s lang, 28–53°. Es sind genau
+  die 12 der 17 aus der Rohregel, deren Kreisel-Drehung (25–43°) zur
+  gelernten Vorwärtsrichtung passt. Weg sind vier vor dem Stehen von
+  „vorn" und einer mit Front runter.
+- **Fahrt 2**: 1 Wheelie statt 17 (39°, 1 s, im Schlussstück). Weg sind
+  die übrigen 12 des Schlussstücks (Drehungen von 24–97°, meist um die
+  Längsachse — Rollen, Hantieren oder Tragen, kein Wheelie), einer mit
+  nur 3,5° Kreisel-Drehung (Fehlalarm der Rohregel) — aber auch drei
+  echte lange Wheelies in den ersten sechs Minuten, die vor dem Stehen
+  von „vorn" lagen.
+- **Flüge**: keine Sprünge gefahren; je Fahrt 0–1 Phase unter 0,3 g
+  über 150 ms, keine plausibel (die eine endete mit 12 g bei unklarem
+  Tempo).
+
+### 7.4 Folgerungen für Schritt 4
+
+1. **Mahony in die App.** Auf allen Proben gleich gut wie der ESKF (Regel
+   aus der Architektur: dann der einfachere). Der ESKF hält den Bias
+   ruhiger (0,08 statt 0,93 °/s auf Fahrt 1); zeigen die Abnahmefahrten
+   Drift, wird gewechselt — das Werkzeug rechnet beide weiter.
+2. **Die Halterung von der letzten Fahrt mitnehmen**, mit „unten" in den
+   ersten Sekunden bestätigen; sonst gehen Wheelies der ersten ein bis
+   zwei Minuten verloren (Fahrt 2: drei).
+3. **Eine Sekunde Vorlauf**: dv/dt kommt aus 1-Hz-GPS und wird zentriert
+   gebildet; die App rechnet auf einem Puffer von 1–2 s, das Banner kommt
+   so viel später. Ein Versatz der GPS-Zeitstempel (Kreuzkorrelation:
+   schwaches Maximum bei +0,75–1 s) ist nicht eingerechnet.
+4. **Werte**: Der Kreisel trägt (Rauschen 0,005 rad/s/√Hz, Bias-Wandern
+   1e-6), die Beschleunigung stützt nur langsam (Boden 6 m/s² beim
+   ESKF; Mahony Kp 2, Ki 0,1 mit eigenem Gewicht); das Fahrradmodell
+   wird abgezogen, seine eigene Unsicherheit (halber Betrag, Änderung
+   von dv/dt) zählt als Rauschen, und bevor „vorn" steht, zählt das
+   ganze Modell als Rauschen.
+5. **Rechenzeit**: reines Python 15–19 s je Fahrt für beide Filter und
+   alle Schwellen; in Dart auf dem Gerät vernachlässigbar.
 
 ## Quellen
 

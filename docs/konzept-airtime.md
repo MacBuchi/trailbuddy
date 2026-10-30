@@ -136,8 +136,11 @@ Stufen, jede für sich testbar:
 1. **Halterung**: lernt die Lage des Telefons am Rad selbst — „unten"
    aus der Schwerkraft bei ruhiger Geradeausfahrt, „vorn" aus der
    Beschleunigung beim Bremsen und Antreten (Vorzeichen aus dem
-   GPS-Tempo), erkennt Verrutschen. Damit ist die Kipprichtung bekannt:
-   nur Front hoch ist ein Wheelie.
+   GPS-Tempo) und aus der Schräglage in Kurven (Vorzeichen aus der
+   Gierrate; auf den ersten Fahrten trugen die Kurven fast alles),
+   erkennt Verrutschen erst nach 60 s Abweichung — ein langer Wheelie
+   ist kein Verrutschen. Damit ist die Kipprichtung bekannt: nur Front
+   hoch ist ein Wheelie.
 2. **Lage-Filter**: Error-State-Kalman (6 Fehlerzustände: Lage, Gyro-
    Bias), Vorhersage mit dem Kreisel und den echten Zeitstempeln; die
    Beschleunigung stützt die Lage erst, nachdem das **Fahrradmodell**
@@ -146,15 +149,21 @@ Stufen, jede für sich testbar:
    Unsicherheit ausgeblendet. Ergebnis: Pitch und Roll im Radsystem,
    Beschleunigung ohne Schwerkraft in Radachsen, eine Unsicherheit.
    Mahony mit derselben Korrektur läuft im Prototyp als Vergleich — ist
-   er gleich gut, nimmt die App den einfacheren.
+   er gleich gut, nimmt die App den einfacheren. **Ergebnis** (Schritt 3,
+   `docs/recherche-sensorfusion.md` Abschnitt 7): gleich gut, also
+   Mahony; der ESKF bleibt im Werkzeug als Gegenprobe.
 3. **Ereignisse**: Wheelie = Pitch gegenüber dem Weg (Weg = Mittel des
    Pitch über einige Sekunden); Airtime = gefilterter Betrag unter der
    Schwelle, plausibel über Lage und Tempo davor und danach; Landung =
    Spitze in Rad-Hochachse.
 
 Bewertet wird mit den Antworten auf die Banner (Schritt 2b in
-Abschnitt 9) und mit Proben auf jeder Fahrt: im Stand die Halterung,
-beim kräftigen Bremsen **kein** Pitch, in der Kurve Roll statt Pitch.
+Abschnitt 9) und mit Proben auf jeder Fahrt: beim kräftigen Bremsen
+**kein** Pitch, in der Kurve Roll statt Pitch — beides gegen den
+Kreisel als Referenz über 3 s (er driftet am Telefon unter 0,1 °/s) —,
+geradeaus Pitch nahe am Weg, der Bias bleibt klein. Die Rechnung blickt
+für dv/dt eine Sekunde voraus; die App rechnet auf einem kurzen Puffer,
+das Banner kommt so viel später.
 
 ## 4. Was das Gerät verlässt
 
@@ -366,7 +375,13 @@ wollen auch fertig werden"):
    vorhandenen Fahrten als Zählungen in
    `docs/recherche-sensorfusion.md`. Fertig, wenn die Proben aus 3a auf
    den Fahrten bestehen und die Fehlalarme der Übergangsregel (Front
-   runter, Schläge) verschwinden.
+   runter, Schläge) verschwinden. **Erledigt** (2026-10-30, Abschnitt 7
+   der Recherche): beide Filter ≤ 1,1° neben dem Kreisel, die Rohregel
+   8–30°; auf Fahrt 2 bleibt von 17 Wheelies einer — weg sind die Roll-
+   und Front-runter-Fälle des Schlussstücks und ein Fehlalarm, aber auch
+   drei echte vor dem Stehen von „vorn"; auf Fahrt 1 bleiben genau die
+   12 mit passender Kreisel-Drehung. Für Schritt 4 neu: Mahony, die Halterung
+   der letzten Fahrt mitnehmen, 1–2 s Puffer.
    **Gleichzeitig 📱**: Fahrten mit Ansage und der Dev-App 0.143.0,
    jedes Banner beantworten — fünfmal kräftig bremsen und antreten,
    enge Kurven, 5–10 Wheelies/Manuals, Bordstein hoch und runter,

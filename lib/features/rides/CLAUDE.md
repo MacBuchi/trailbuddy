@@ -252,4 +252,14 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     nicht über die ganze Fahrt wie früher das Werkzeug; das Werkzeug
     rechnet seit 0.143.0 genauso, sonst zählte es anders als die App.
     Gegen die erste Fahrt verglichen: dieselben 17 Wheelies, auf 0,1 s.
+- **Signalaufbereitung** (#36 Schritt 3, nur Werkzeug):
+  `tool/sensor_fusion.py` — Halterung, Lage-Filter (Mahony und ESKF),
+  Wheelie gegen den Weg, Flug, Landung; Ergebnis in
+  `docs/recherche-sensorfusion.md` Abschnitt 7. Wer Schritt 4 in Dart
+  baut: Mahony nehmen, die Werte dort übernehmen und gegen dieselbe
+  synthetische Fahrt prüfen (`synthetic()` im Werkzeug, ihre
+  Zusicherungen in `_self_test`); die Rohregel des `WheelieDetector`
+  verwechselt Bremsen, Gefälle und Rollen mit Wheelies (8–30° neben dem
+  Kreisel). „Vorn" lernt die Fusion vor allem aus der Schräglage in
+  Kurven, Bremsen allein reichte auf keiner Fahrt.
 
