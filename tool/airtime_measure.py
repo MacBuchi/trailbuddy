@@ -18,6 +18,13 @@ docs/konzept-airtime.md section 8):
   limit for at least a duration at > 8 km/h; length = GPS speed x time.
   The tilt axis is printed in phone coordinates: wheelies should share
   one axis (the bike's lateral axis), a lean in a corner shows another.
+  Same rule as the app (lib/features/rides/wheelie_detector.dart): the
+  riding position is the median of the last 60 s, a wheelie ends 5 deg
+  under its start limit, over 60 s is a slipped mount;
+- the rider's answers (since 0.143.0): the app shows a banner after each
+  wheelie it detects ("Stimmt" / "War keiner") and a button "Wheelie
+  verpasst"; the file then holds e/l/m lines, and the report scores each
+  threshold: hits, missed, false alarms, unlabelled.
 
 The sensor files carry coordinates and stay on the operator's computer,
 NEVER in this repository. The report has times (seconds from the start
@@ -45,6 +52,11 @@ PEAK_MAX_G = 8.0
 TILT_LIMITS_DEG = (10.0, 15.0, 20.0)  # start value 15 deg (concept 2)
 MIN_WHEELIE_S = (0.5, 1.0, 2.0)
 WHEELIE_KMH = 8.0
+RELEASE_DEG = 5.0    # ends 5 deg under the start limit (15 -> 10)
+BASE_WINDOW_S = 60.0
+WARM_UP_S = 10.0
+MAX_WHEELIE_S = 60.0
+MISSED_WINDOW_S = 20.0  # "Wheelie verpasst" refers to the last 20 s
 LOWPASS_S = 0.5
 
 
@@ -53,6 +65,10 @@ class Log:
         self.a: list[tuple[float, float, float, float]] = []  # t_s, x, y, z
         self.w: list[tuple[float, float, float, float]] = []
         self.g: list[tuple[float, float]] = []  # t_s, speed m/s (no position kept)
+        # What the app detected and what the rider answered (wheelie_notify.dart):
+        self.events: list[tuple[float, float]] = []  # start s, duration s
+        self.answers: dict[float, bool] = {}  # start s -> "Stimmt"
+        self.missed: list[float] = []  # "Wheelie verpasst" pressed at s
         self._g_times: list[float] | None = None
 
     def g_times(self) -> list[float]:
@@ -83,8 +99,15 @@ def parse(lines) -> Log:
             log.w.append((t, *values))
         elif kind == "g" and len(values) == 5:
             log.g.append((t, values[3]))  # speed only
+        elif kind == "e" and len(values) == 3:
+            log.events.append((t, values[0]))
+        elif kind == "l" and len(values) == 2:
+            log.answers[round(values[0] / 1e6 - t0, 3)] = values[1] == 1
+        elif kind == "m":
+            log.missed.append(t)
     log.a.sort()
     log.g.sort()
+    log.events = [(round(t, 3), d) for t, d in log.events]
     return log
 
 
@@ -153,41 +176,68 @@ def _unit(v):
     return tuple(c / norm for c in v) if norm else (0.0, 0.0, 0.0)
 
 
-def _speed_at(log: Log, t: float) -> float:
-    times = log.g_times()
-    i = bisect.bisect_left(times, t)
-    best = [log.g[k] for k in (i - 1, i) if 0 <= k < len(log.g)]
-    if not best:
-        return math.nan
-    return min(best, key=lambda e: abs(e[0] - t))[1]
+def _speed_before(log: Log, t: float) -> float:
+    """The last GPS speed at or before t -- what the app knows at that moment."""
+    i = bisect.bisect_right(log.g_times(), t) - 1
+    return log.g[i][1] if i >= 0 else math.nan
 
 
 def wheelies(log: Log, tilt_deg: float, min_s: float) -> list[dict]:
-    lp = _lowpassed(log)
-    riding = [v for t, v in lp if _speed_at(log, t) * 3.6 > WHEELIE_KMH]
-    if not riding:
-        return []
-    base = _unit(tuple(statistics.median(v[k] for v in riding) for k in range(3)))
+    """The rule of lib/features/rides/wheelie_detector.dart, step by step:
+    the riding position is the median gravity of the last BASE_WINDOW_S
+    while riding and not tilted (none before WARM_UP_S of it); a wheelie
+    starts at tilt_deg, ends below tilt_deg - RELEASE_DEG or below the
+    speed, counts from min_s; longer than MAX_WHEELIE_S is a slipped
+    mount (relearn, no wheelie)."""
+    release = tilt_deg - RELEASE_DEG
+    cap = int(BASE_WINDOW_S / 0.1)
+    warm = int(WARM_UP_S / 0.1)
+    base_samples: collections.deque = collections.deque(maxlen=cap)
+    base = None
+    since = 0
     out = []
     start = None
-    for i, (t, v) in enumerate(lp):
+    for t, v in _lowpassed(log):
+        speed = _speed_before(log, t)
+        riding = not math.isnan(speed) and speed * 3.6 > WHEELIE_KMH
         u = _unit(v)
-        angle = math.degrees(math.acos(max(-1.0, min(1.0, sum(p * q for p, q in zip(u, base))))))
-        tilted = angle >= tilt_deg and _speed_at(log, t) * 3.6 > WHEELIE_KMH
-        if tilted and start is None:
-            start = i
-        if (not tilted or i == len(lp) - 1) and start is not None:
-            end = i if not tilted else i + 1
-            t0, t1 = lp[start][0], lp[end - 1][0]
-            if t1 - t0 >= min_s:
-                mid = _unit(lp[(start + end - 1) // 2][1])
-                axis = _unit((base[1] * mid[2] - base[2] * mid[1],
-                              base[2] * mid[0] - base[0] * mid[2],
-                              base[0] * mid[1] - base[1] * mid[0]))
-                speeds = [_speed_at(log, lp[k][0]) for k in range(start, end)]
-                length = statistics.fmean(s for s in speeds if not math.isnan(s)) * (t1 - t0)
-                out.append({"t": t0, "duration": t1 - t0, "length_m": length, "axis": axis})
+        angle = 0.0 if base is None else math.degrees(
+            math.acos(max(-1.0, min(1.0, sum(p * q for p, q in zip(u, base))))))
+        if start is not None:
+            if riding and angle >= release:
+                last = t
+                peak = max(peak, angle)
+                speeds.append(speed)
+                axes.append(u)
+                if t - start > MAX_WHEELIE_S:
+                    start = None
+                    base_samples.clear()
+                    base = None
+                continue
+            if last - start >= min_s:
+                mid = axes[len(axes) // 2]
+                axis = _unit((ref[1] * mid[2] - ref[2] * mid[1],
+                              ref[2] * mid[0] - ref[0] * mid[2],
+                              ref[0] * mid[1] - ref[1] * mid[0]))
+                out.append({"t": start, "duration": last - start,
+                            "length_m": statistics.fmean(speeds) * (last - start),
+                            "max_deg": peak, "axis": axis})
             start = None
+            continue
+        if riding and base is not None and angle >= tilt_deg:
+            start = last = t
+            peak = angle
+            speeds = [speed]
+            axes = [u]
+            ref = base
+            continue
+        if riding and angle < release:
+            base_samples.append(v)
+            if len(base_samples) >= warm:
+                since += 1
+                if base is None or since >= 10:
+                    since = 0
+                    base = _unit(tuple(statistics.median(s[k] for s in base_samples) for k in range(3)))
     return out
 
 
@@ -199,7 +249,38 @@ def window(log: Log, start: float | None, end: float | None) -> Log:
     cut.a = [s for s in log.a if lo <= s[0] <= hi]
     cut.w = [s for s in log.w if lo <= s[0] <= hi]
     cut.g = [s for s in log.g if lo - SPEED_WINDOW_S <= s[0] <= hi + SPEED_WINDOW_S]
+    cut.events = [e for e in log.events if lo <= e[0] <= hi]
+    cut.answers = {t: v for t, v in log.answers.items() if lo <= t <= hi}
+    cut.missed = [t for t in log.missed if lo <= t <= hi + MISSED_WINDOW_S]
     return cut
+
+
+def feedback(log: Log, found: list[dict]) -> dict:
+    """Score detected wheelies against the rider's answers in the app: an
+    answered "Stimmt" is a wheelie, "War keiner" is none, and each press
+    of "Wheelie verpasst" stands for one that ended in the MISSED_WINDOW_S
+    before it. Unanswered app events count for nothing."""
+    yes = [(t, t + d) for t, d in log.events if log.answers.get(t) is True]
+    no = [(t, t + d) for t, d in log.events if log.answers.get(t) is False]
+    def overlaps(w, iv):
+        return w["t"] <= iv[1] and iv[0] <= w["t"] + w["duration"]
+    hits = false_alarms = unlabelled = 0
+    used_yes, used_marks = set(), set()
+    for w in found:
+        k = next((k for k, iv in enumerate(yes) if overlaps(w, iv) and k not in used_yes), None)
+        if k is not None:
+            used_yes.add(k); hits += 1; continue
+        if any(overlaps(w, iv) for iv in no):
+            false_alarms += 1; continue
+        end = w["t"] + w["duration"]
+        m = next((m for m, at in enumerate(log.missed)
+                  if at - MISSED_WINDOW_S <= end <= at and m not in used_marks), None)
+        if m is not None:
+            used_marks.add(m); hits += 1
+        else:
+            unlabelled += 1
+    missed = len(yes) - len(used_yes) + len(log.missed) - len(used_marks)
+    return {"hits": hits, "missed": missed, "false_alarms": false_alarms, "unlabelled": unlabelled}
 
 
 def report(log: Log, listing: bool) -> str:
@@ -228,6 +309,22 @@ def report(log: Log, listing: bool) -> str:
             found = wheelies(log, tilt, min_s)
             lines.append(f"| {tilt:.0f} | {min_s} | {len(found)} | "
                          f"{max((w['length_m'] for w in found), default=0):.1f} |")
+    if log.events or log.missed:
+        answered = [t for t, _ in log.events if t in log.answers]
+        lines.append("")
+        lines.append(f"in the app: {len(log.events)} wheelies shown, "
+                     f"{sum(1 for t in answered if log.answers[t])} \"Stimmt\", "
+                     f"{sum(1 for t in answered if not log.answers[t])} \"War keiner\", "
+                     f"{len(log.events) - len(answered)} unanswered; "
+                     f"\"Wheelie verpasst\" pressed {len(log.missed)} times")
+        lines.append("")
+        lines.append("| tilt deg | min s | hits | missed | false alarms | unlabelled |")
+        lines.append("|---|---|---|---|---|---|")
+        for tilt in TILT_LIMITS_DEG:
+            for min_s in MIN_WHEELIE_S:
+                f = feedback(log, wheelies(log, tilt, min_s))
+                lines.append(f"| {tilt:.0f} | {min_s} | {f['hits']} | {f['missed']} | "
+                             f"{f['false_alarms']} | {f['unlabelled']} |")
     if listing:
         lines.append("")
         lines.append("flights at 0.3 g / 150 ms (t = s from the start of the file):")
@@ -237,7 +334,8 @@ def report(log: Log, listing: bool) -> str:
         lines.append("wheelies at 15 deg / 1 s:")
         for w in wheelies(log, 15.0, 1.0):
             axis = ", ".join(f"{c:+.2f}" for c in w["axis"])
-            lines.append(f"  t={w['t']:8.2f}  {w['duration']:.1f} s  {w['length_m']:.1f} m  axis ({axis})")
+            lines.append(f"  t={w['t']:8.2f}  {w['duration']:.1f} s  {w['length_m']:.1f} m  "
+                         f"{w['max_deg']:.0f} deg  axis ({axis})")
     return "\n".join(lines)
 
 
@@ -267,6 +365,15 @@ def _synthetic() -> list[str]:
     for s in range(61):
         speed = 0.0 if s >= 40 else 5.0
         rows.append(f"g,{base_us + s * 1_000_000},7.0,9.0,4.0,{speed},800.0")
+    # The app's lines: the wheelie at 20 s answered "Stimmt", a made-up one
+    # at 30 s answered "War keiner", one unanswered at 33 s, and "Wheelie
+    # verpasst" pressed at 58 s (nothing the detector finds).
+    rows.append(f"e,{base_us + 20_000_000},2.0,10.0,25.0")
+    rows.append(f"l,{base_us + 25_000_000},{base_us + 20_000_000},1")
+    rows.append(f"e,{base_us + 30_000_000},1.5,7.5,18.0")
+    rows.append(f"l,{base_us + 31_000_000},{base_us + 30_000_000},0")
+    rows.append(f"e,{base_us + 33_000_000},1.2,6.0,16.0")
+    rows.append(f"m,{base_us + 58_000_000}")
     return rows
 
 
@@ -287,10 +394,19 @@ def _self_test() -> None:
     assert abs(w[0]["length_m"] - 5.0 * w[0]["duration"]) < 0.5, w
     assert abs(abs(w[0]["axis"][0]) - 1.0) < 0.05, "tilt about the phone's x axis"
     assert not wheelies(log, 30.0, 1.0), "25 deg stays under 30"
+    assert w[0]["max_deg"] > 20, w
+    assert len(log.events) == 3 and len(log.answers) == 2 and log.missed == [58.0]
+    assert feedback(log, w) == {"hits": 1, "missed": 1, "false_alarms": 0, "unlabelled": 0}
+    fake = {"t": 30.2, "duration": 1.0}
+    assert feedback(log, [fake])["false_alarms"] == 1, "inside a \"War keiner\""
+    late = {"t": 45.0, "duration": 1.0}
+    assert feedback(log, [late])["hits"] == 1, "ends in the 20 s before \"verpasst\""
+    assert feedback(log, [{"t": 33.0, "duration": 1.0}])["unlabelled"] == 1
     # Only one: the tilt at 50 s is standing still.
     cut = window(log, 0, 30)
     assert len(flights(cut, 0.3, 150)) == 1
     text = report(log, listing=True)
+    assert "3 wheelies shown, 1 \"Stimmt\", 1 \"War keiner\", 1 unanswered" in text, text
     assert "7.0," not in text and "9.0," not in text, "no coordinates in the report"
     print("airtime_measure self-test: ok")
 

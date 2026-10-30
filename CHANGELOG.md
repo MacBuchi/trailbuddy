@@ -2,6 +2,17 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Wheelies zählen und gleich bewerten
+
+*Version 0.143.0, 2026-10-30*
+
+- Nur in der Entwicklungs-App, mit eingeschalteten Sensor-Rohdaten:
+  Nach jedem erkannten Wheelie oder Manual kommt ein Banner mit Dauer,
+  Länge und Neigung, dazu „Stimmt“ und „War keiner“. Kam keins, tippst
+  du in der Benachrichtigung der Messung auf „Wheelie verpasst“. Die
+  Antworten landen in der Sensordatei — daraus werden die Schwellen
+  eingestellt. In der normalen App ändert sich nichts.
+
 ## Messen für Airtime und Wheelies
 
 *Version 0.142.0, 2026-10-30*

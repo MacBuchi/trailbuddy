@@ -5620,6 +5620,54 @@
   "@aboutSensorLogSubtitle": {
     "description": "Seite „Über TrailBuddy“, nur Dev-App: Untertitel des Rohdaten-Schalters."
   },
+  "wheelieNoticeTitle": "Wheelie erkannt",
+  "@wheelieNoticeTitle": {
+    "description": "Dev-App, Wheelie-Messung (#36): Titel des Banners nach einem erkannten Wheelie oder Manual."
+  },
+  "wheelieNoticeBody": "{seconds} s · {meters} m · {degrees}° — stimmt das?",
+  "@wheelieNoticeBody": {
+    "description": "Dev-App, Wheelie-Messung: Text des Banners. Zahlen schon formatiert.",
+    "placeholders": {
+      "seconds": {
+        "type": "String"
+      },
+      "meters": {
+        "type": "String"
+      },
+      "degrees": {
+        "type": "String"
+      }
+    }
+  },
+  "wheelieNoticeYes": "Stimmt",
+  "@wheelieNoticeYes": {
+    "description": "Dev-App, Wheelie-Messung: Knopf im Banner, der Wheelie war echt."
+  },
+  "wheelieNoticeNo": "War keiner",
+  "@wheelieNoticeNo": {
+    "description": "Dev-App, Wheelie-Messung: Knopf im Banner, Fehlalarm."
+  },
+  "wheelieMissedTitle": "Wheelie-Messung läuft",
+  "@wheelieMissedTitle": {
+    "description": "Dev-App, Wheelie-Messung: Titel der stehenden Benachrichtigung während der Fahrt."
+  },
+  "wheelieMissedBody": "Kam nach einem Wheelie kein Banner? Gleich danach „Wheelie verpasst“ tippen.",
+  "@wheelieMissedBody": {
+    "description": "Dev-App, Wheelie-Messung: Text der stehenden Benachrichtigung."
+  },
+  "wheelieMissedNoted": "Verpasst gemerkt um {time}.",
+  "@wheelieMissedNoted": {
+    "description": "Dev-App, Wheelie-Messung: Text nach einem Tipp auf „Wheelie verpasst“.",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "wheelieMissedButton": "Wheelie verpasst",
+  "@wheelieMissedButton": {
+    "description": "Dev-App, Wheelie-Messung: Knopf der stehenden Benachrichtigung."
+  },
   "aboutPreviewTitle": "Entwicklungsversion öffnen",
   "@aboutPreviewTitle": {
     "description": "Seite „Über TrailBuddy“ (Web): Link zur Web-Vorschau."
