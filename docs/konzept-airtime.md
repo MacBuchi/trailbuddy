@@ -82,8 +82,9 @@ Die Halterung entscheidet, was überhaupt messbar ist (Entwurf 1e,
   Metern**, als Zahl nur auf dem Gerät (Abschnitt 4). Ein Kippen in der
   Kurve dreht das Telefon um eine andere Achse als ein Wheelie — ob
   sich beides trennen lässt, zeigt die Messung (8.2).
-  **Die Regel im Einzelnen** (seit 0.143.0, `wheelie_detector.dart`
-  und gleich im Werkzeug): Schwerkraft = Mittel über 0,5 s; die
+  **Die Übergangsregel** (0.143.0, `wheelie_detector.dart` und gleich
+  im Werkzeug; wird mit Schritt 4 in Abschnitt 9 durch den Pitch aus
+  Abschnitt 3a ersetzt): Schwerkraft = Mittel über 0,5 s; die
   Fahrposition = Median der letzten 60 s in Fahrt und nicht gekippt,
   frühestens nach 10 s davon (das Ende der Fahrt kennt die App nicht);
   Ende unter 10° (Hysterese, ein Wackeln an der Schwelle bleibt EIN
@@ -94,7 +95,10 @@ Die Halterung entscheidet, was überhaupt messbar ist (Entwurf 1e,
   und macht aus einem Bordstein keinen Sprung.
 
 Alle Schwellen oben sind Startwerte aus der Literatur und dem Entwurf,
-**keine gemessenen** — Abschnitt 8.
+**keine gemessenen** — Abschnitt 8. Und alle gelten für die
+**aufbereiteten** Größen aus Abschnitt 3a, nicht für Rohwerte: Die
+zwei ersten Messfahrten (2026-10-30) haben gezeigt, dass die geglättete
+Beschleunigung Bremsen, Kurve und Schlag nicht von Neigung trennt.
 
 ## 3. Wie gemessen wird
 
@@ -121,6 +125,36 @@ Alle Schwellen oben sind Startwerte aus der Literatur und dem Entwurf,
   als Datei ab, der Dienst liest sie.
 - **Kein Web.** Ein Browser-Tab im Hintergrund bekommt weder Positionen
   noch Sensoren; das Web zeigt die Rangliste, misst aber nicht.
+
+## 3a. Signalaufbereitung (entschieden 2026-10-30)
+
+Erst aufbereiten, dann erkennen (Betreiber, 2026-10-30). Die Recherche
+mit Quellen und verworfenen Alternativen steht in
+`docs/recherche-sensorfusion.md`; die Architektur ist abgenommen. Drei
+Stufen, jede für sich testbar:
+
+1. **Halterung**: lernt die Lage des Telefons am Rad selbst — „unten"
+   aus der Schwerkraft bei ruhiger Geradeausfahrt, „vorn" aus der
+   Beschleunigung beim Bremsen und Antreten (Vorzeichen aus dem
+   GPS-Tempo), erkennt Verrutschen. Damit ist die Kipprichtung bekannt:
+   nur Front hoch ist ein Wheelie.
+2. **Lage-Filter**: Error-State-Kalman (6 Fehlerzustände: Lage, Gyro-
+   Bias), Vorhersage mit dem Kreisel und den echten Zeitstempeln; die
+   Beschleunigung stützt die Lage erst, nachdem das **Fahrradmodell**
+   abgezogen ist (längs dv/dt aus GPS, quer Tempo × Gierrate); was es
+   nicht erklärt (Schlag, Flug, Vibration), wird über eine adaptive
+   Unsicherheit ausgeblendet. Ergebnis: Pitch und Roll im Radsystem,
+   Beschleunigung ohne Schwerkraft in Radachsen, eine Unsicherheit.
+   Mahony mit derselben Korrektur läuft im Prototyp als Vergleich — ist
+   er gleich gut, nimmt die App den einfacheren.
+3. **Ereignisse**: Wheelie = Pitch gegenüber dem Weg (Weg = Mittel des
+   Pitch über einige Sekunden); Airtime = gefilterter Betrag unter der
+   Schwelle, plausibel über Lage und Tempo davor und danach; Landung =
+   Spitze in Rad-Hochachse.
+
+Bewertet wird mit den Antworten auf die Banner (Schritt 2b in
+Abschnitt 9) und mit Proben auf jeder Fahrt: im Stand die Halterung,
+beim kräftigen Bremsen **kein** Pitch, in der Kurve Roll statt Pitch.
 
 ## 4. Was das Gerät verlässt
 
@@ -321,22 +355,48 @@ Datei an den Rechner.
    verpasst". Ereignis und Antworten sind Zeilen der Rohdaten (`e`, `l`,
    `m`); das Werkzeug zählt daraus je Schwelle Treffer, Verpasste und
    Fehlalarme — die Zählung von Hand aus 8.2 entfällt für Wheelies.
-3. **Erkennung auf dem Gerät**: Airtime, Max G, Manual als reine
-   Funktionen mit Tests gegen die gemessenen Aufzeichnungen (als
-   synthetische Reihen nachgebaut, keine echten Dateien im Repo);
-   Ereigniszeilen in der Fahrt; Schalter und Halterung im Start-Blatt.
-4. **Anzeige**: Werte-Kacheln, AIR-Toast, „Trail geschafft", Zerlege-
-   Blatt, Bild-im-Bild, Benachrichtigung — alles lokal, noch nichts
-   geteilt.
-5. **Bestwert, Zähler und Rangliste**: Patch mit den zwei Tabellen und
-   RLS, Hochladen über den Ausgangskorb, Zeile im Trail-Blatt, Zähler
-   am Buddy, Datenschutzerklärung, `play-console.md`, Zusammenführen
-   (#107) nimmt die Bestwerte mit.
-6. **Titel**: Segelflieger, Vielflieger, Bodenpersonal, Trailkönig;
-   Bruchpilot erst, wenn die Max-G-Plausibilisierung gemessen ist.
+Ab hier nach der Signalaufbereitung (Abschnitt 3a), bewusst in wenigen,
+großen Schritten (Betreiber, 2026-10-30: „nicht zu feingliedrig, wir
+wollen auch fertig werden"):
 
-Schritte 3–6 sind sichtbare Funktionen: je ein Eintrag in
-`kFeatureHighlights` mit Vorführung.
+3. **Fusion offline** (ein PR; ☁️ Code, 💻 Auswertung):
+   `tool/sensor_fusion.py` mit allen drei Stufen aus 3a (ESKF und
+   Mahony zum Vergleich), `tool/airtime_measure.py --fused` rechnet
+   Wheelie, Flug und Landung darauf, Selbsttests in CI. Ergebnis auf den
+   vorhandenen Fahrten als Zählungen in
+   `docs/recherche-sensorfusion.md`. Fertig, wenn die Proben aus 3a auf
+   den Fahrten bestehen und die Fehlalarme der Übergangsregel (Front
+   runter, Schläge) verschwinden.
+   **Gleichzeitig 📱**: Fahrten mit Ansage und der Dev-App 0.143.0,
+   jedes Banner beantworten — fünfmal kräftig bremsen und antreten,
+   enge Kurven, 5–10 Wheelies/Manuals, Bordstein hoch und runter,
+   absteigen und schieben, Rad anlehnen; Bildschirm aus, Akku vorher
+   und nachher.
+4. **Fusion in der Dev-App** (ein PR): die drei Stufen in Dart, rein
+   und mit denselben synthetischen Reihen wie das Werkzeug geprüft;
+   Wheelie auf dem Pitch gegenüber dem Weg, dazu Sprung und Landung —
+   mit Bannern wie 2b („Sprung erkannt", „Stimmt" / „War keiner",
+   „Sprung verpasst"), der Messbereich des Sensors in den Kopf der
+   Rohdaten. Gegenprobe: Dart und Werkzeug finden auf den Messfahrten
+   dieselben Ereignisse.
+   **Danach 📱**: Abnahmefahrten nach Abschnitt 8 (Jump-Line,
+   Gegenproben-Trail, Absetzen und Umfallen); die Schwellen gelten nach
+   8.4, gezählt aus den Banner-Antworten.
+5. **Trail-Werte in der App** (ein PR, vorher 3 und 4): Schalter und
+   Halterung im Start-Blatt, nur auf Trails, Ereigniszeilen in der
+   Fahrt; Werte-Kacheln, AIR-Toast, „Trail geschafft", Zerlege-Blatt,
+   Bild-im-Bild, Benachrichtigung — alles lokal, noch nichts geteilt.
+6. **Bestwert, Zähler, Rangliste und Titel** (ein PR, vorher 5 und 6):
+   Patch mit den zwei Tabellen und RLS, Hochladen über den
+   Ausgangskorb, Zeile im Trail-Blatt, Zähler am Buddy,
+   Datenschutzerklärung, `play-console.md`, Zusammenführen (#107) nimmt
+   die Bestwerte mit; Segelflieger, Vielflieger, Bodenpersonal,
+   Trailkönig — Bruchpilot erst, wenn die Max-G-Plausibilisierung
+   gemessen ist.
+
+Schritte 5 und 6 sind sichtbare Funktionen: je ein Eintrag in
+`kFeatureHighlights` mit Vorführung. Schritte 3 und 4 betreffen nur das
+Werkzeug und die Dev-App.
 
 ## 10. Risiken, benannt
 
