@@ -30,8 +30,16 @@ The sensor files carry coordinates and stay on the operator's computer,
 NEVER in this repository. The report has times (seconds from the start
 of the file), durations and counts only -- no coordinates.
 
+With --fused the same file goes through the signal processing of
+tool/sensor_fusion.py (concept section 3a): mount, attitude filter (the
+error-state Kalman filter and Mahony side by side) and the events on the
+fused values -- wheelies as pitch against the way, front up only, scored
+against the same answers; flights with the landing along the bike's up
+axis and an upright bike after it; and the probes of research section 6
+(braking, corners, riding straight, gyro bias) next to the raw rule.
+
     python3 tool/airtime_measure.py --self-test
-    python3 tool/airtime_measure.py ride.csv [--from S --to S] [--list]
+    python3 tool/airtime_measure.py ride.csv [--from S --to S] [--list] [--fused]
 """
 from __future__ import annotations
 
@@ -41,6 +49,8 @@ import collections
 import math
 import statistics
 import sys
+
+import sensor_fusion
 
 G = 9.80665
 G_LIMITS = (0.2, 0.3, 0.4, 0.5)       # start value 0.3 g (concept 2)
@@ -339,6 +349,73 @@ def report(log: Log, listing: bool) -> str:
     return "\n".join(lines)
 
 
+def report_fused(log: Log, listing: bool) -> str:
+    lines = []
+    for method in ("eskf", "mahony"):
+        fused = sensor_fusion.fuse(log.a, log.w, log.g, method)
+        p = sensor_fusion.probes(fused)
+        lines.append("")
+        lines.append(f"fused ({method}):")
+        def at(v):
+            return "never" if v is None else f"{v:.0f} s"
+        lines.append(f"mount: up at {at(p['up_s'])}, forward at {at(p['fwd_s'])}, "
+                     f"slips {p['slips']}; accelerometer left out {p['rejected']:.0%}")
+        lines.append(f"gyro bias at the end {p['bias_dps']:.2f} deg/s, "
+                     f"moved {p['bias_drift_dps']:.2f} deg/s in the second half")
+        lines.append("")
+        lines.append("p95 in degrees; \"gyro\" = off the gyro reference (3 s), \"way\" = off the way")
+        lines.append("")
+        lines.append("| probe | ticks | fused vs gyro | raw vs gyro | fused vs way | raw vs way |")
+        lines.append("|---|---|---|---|---|---|")
+        lines.append(f"| pitch, braking/accelerating | {p['brake_n']} | {p['brake_gyro']:.1f} | "
+                     f"{p['brake_gyro_raw']:.1f} | {p['brake_pitch']:.1f} | {p['brake_raw']:.1f} |")
+        lines.append(f"| pitch, corners | {p['curve_n']} | {p['curve_gyro']:.1f} | "
+                     f"{p['curve_gyro_raw']:.1f} | {p['curve_pitch']:.1f} | {p['curve_raw']:.1f} |")
+        lines.append(f"| roll, corners | {p['curve_n']} | {p['curve_roll_gyro']:.1f} | "
+                     f"{p['curve_roll_gyro_raw']:.1f} | | |")
+        lines.append(f"| pitch, all riding | | {p['riding_gyro']:.1f} | {p['riding_gyro_raw']:.1f} | "
+                     f"{p['straight_pitch']:.1f} (straight) | |")
+        lines.append("")
+        scored = bool(log.events or log.missed)
+        head = "| tilt deg | min s | wheelies | longest m |"
+        lines.append(head + (" hits | missed | false alarms | unlabelled |" if scored else ""))
+        lines.append("|---" * (4 + (4 if scored else 0)) + "|")
+        for tilt in TILT_LIMITS_DEG:
+            for min_s in MIN_WHEELIE_S:
+                found = sensor_fusion.wheelies(fused, tilt, min_s)
+                row = (f"| {tilt:.0f} | {min_s} | {len(found)} | "
+                       f"{max((w['length_m'] for w in found), default=0):.1f} |")
+                if scored:
+                    f = feedback(log, found)
+                    row += f" {f['hits']} | {f['missed']} | {f['false_alarms']} | {f['unlabelled']} |"
+                lines.append(row)
+        lines.append("")
+        lines.append("| g limit | min ms | flights | plausible | upright | airtime s | longest s |")
+        lines.append("|---|---|---|---|---|---|---|")
+        for g_limit in G_LIMITS:
+            for min_ms in MIN_FLIGHT_MS:
+                found = sensor_fusion.flights(fused, g_limit, min_ms)
+                ok = [f for f in found if f["plausible"]]
+                lines.append(f"| {g_limit} | {min_ms} | {len(found)} | {len(ok)} | "
+                             f"{sum(1 for f in found if f['upright'])} | "
+                             f"{sum(f['duration'] for f in ok):.2f} | "
+                             f"{max((f['duration'] for f in ok), default=0):.2f} |")
+        if listing:
+            lines.append(f"wheelies ({method}) at 15 deg / 1 s against the way:")
+            for w in sensor_fusion.wheelies(fused, 15.0, 1.0):
+                answer = next((log.answers.get(t) for t, d in log.events
+                               if w["t"] <= t + d and t <= w["t"] + w["duration"]), None)
+                label = {True: "Stimmt", False: "War keiner", None: ""}[answer]
+                lines.append(f"  t={w['t']:8.2f}  {w['duration']:.1f} s  {w['length_m']:.1f} m  "
+                             f"{w['max_deg']:.0f} deg  {label}")
+            lines.append(f"flights ({method}) at 0.3 g / 150 ms:")
+            for f in sensor_fusion.flights(fused, 0.3, 150):
+                lines.append(f"  t={f['t']:8.2f}  {f['duration']:.2f} s  landing {f['peak_g']:.1f} g"
+                             f"  {'plausible' if f['plausible'] else 'NOT plausible'}"
+                             f"{'' if f['upright'] else ', not upright'}")
+    return "\n".join(lines)
+
+
 # -------------------------------------------------------------- self-test
 
 def _synthetic() -> list[str]:
@@ -408,6 +485,9 @@ def _self_test() -> None:
     text = report(log, listing=True)
     assert "3 wheelies shown, 1 \"Stimmt\", 1 \"War keiner\", 1 unanswered" in text, text
     assert "7.0," not in text and "9.0," not in text, "no coordinates in the report"
+    fused = report_fused(log, listing=True)
+    assert "fused (eskf):" in fused and "fused (mahony):" in fused, fused
+    assert "| pitch, braking/accelerating |" in fused and "hits |" in fused, fused
     print("airtime_measure self-test: ok")
 
 
@@ -417,6 +497,8 @@ def main() -> int:
     ap.add_argument("--from", dest="start", type=float, help="seconds from the start of the file")
     ap.add_argument("--to", dest="end", type=float)
     ap.add_argument("--list", action="store_true", help="list each flight and wheelie")
+    ap.add_argument("--fused", action="store_true",
+                    help="add the signal processing of tool/sensor_fusion.py")
     ap.add_argument("--self-test", action="store_true")
     args = ap.parse_args()
     if args.self_test:
@@ -426,7 +508,10 @@ def main() -> int:
         ap.error("a sensor log file is needed (or --self-test)")
     with open(args.file, encoding="utf-8") as f:
         log = parse(f)
-    print(report(window(log, args.start, args.end), args.list))
+    cut = window(log, args.start, args.end)
+    print(report(cut, args.list))
+    if args.fused:
+        print(report_fused(cut, args.list))
     return 0
 
 
