@@ -230,5 +230,26 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     `HIGH_SAMPLING_RATE_SENSORS` (erst ab 200 Hz nötig), keine neue
     Berechtigung. Ob der Sensor bei ausgeschaltetem Bildschirm im Dienst
     weiterliefert (Wakelock `allowWakeLock`), zeigt erst die Datei vom
-    Gerät — offen bis zur ersten Messfahrt.
+    Gerät. Erste Fahrt (2026-10-30, 17 min): 111 Hz, eine Lücke über
+    100 ms — er liefert; ob der Bildschirm aus war, ist nicht notiert.
+- **Wheelie mit Rückmeldung** (#36, seit 0.143.0, nur Dev-App, hängt am
+  Rohdaten-Schalter): `WheelieDetector` (`wheelie_detector.dart`, reine
+  Rechnung, Regel in `docs/konzept-airtime.md` 2) bekommt im Logger jede
+  Beschleunigung und jedes GPS-Tempo; ein fertiger Wheelie wird Zeile
+  `e` und ein Banner (`wheelie_notify.dart`). Drei Fallen:
+  - **EIN Hintergrund-Empfänger je App**: `flutter_local_notifications`
+    merkt sich genau einen (`rideConfirmBackgroundResponse`). Die
+    Wheelie-Knöpfe laufen deshalb durch ihn — `handleWheelieResponse`
+    fragt zuerst und sagt `true` für alles mit Wheelie-Payload (Schlüssel
+    `w`), auch den Tipp ohne Knopf; dasselbe in `_platformTaps`. Ein
+    zweites `initialize` mit eigenem Empfänger ersetzte den der
+    Trail-Frage.
+  - **Zwei Isolates hängen an dieselbe Datei**: der Logger im Dienst,
+    die Antwort im Isolate des Pakets — je eine kurze Zeile mit
+    `FileMode.append`; für ein Mess-Werkzeug reicht das, eine Sperre
+    gibt es nicht.
+  - **Die Fahrposition lernt die App laufend** (Median der letzten 60 s),
+    nicht über die ganze Fahrt wie früher das Werkzeug; das Werkzeug
+    rechnet seit 0.143.0 genauso, sonst zählte es anders als die App.
+    Gegen die erste Fahrt verglichen: dieselben 17 Wheelies, auf 0,1 s.
 

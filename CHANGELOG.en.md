@@ -2,6 +2,16 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## Counting wheelies and rating them right away
+
+*Version 0.143.0, 2026-10-30*
+
+- Development app only, with raw sensor data switched on: after each
+  detected wheelie or manual a banner shows its duration, length and
+  tilt, with "Correct" and "Wasn't one". If none came, tap "Missed
+  wheelie" in the measurement notification. The answers go into the
+  sensor file and set the thresholds. Nothing changes in the regular app.
+
 ## Measuring airtime and wheelies
 
 *Version 0.142.0, 2026-10-30*

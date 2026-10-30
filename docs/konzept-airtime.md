@@ -82,6 +82,13 @@ Die Halterung entscheidet, was überhaupt messbar ist (Entwurf 1e,
   Metern**, als Zahl nur auf dem Gerät (Abschnitt 4). Ein Kippen in der
   Kurve dreht das Telefon um eine andere Achse als ein Wheelie — ob
   sich beides trennen lässt, zeigt die Messung (8.2).
+  **Die Regel im Einzelnen** (seit 0.143.0, `wheelie_detector.dart`
+  und gleich im Werkzeug): Schwerkraft = Mittel über 0,5 s; die
+  Fahrposition = Median der letzten 60 s in Fahrt und nicht gekippt,
+  frühestens nach 10 s davon (das Ende der Fahrt kennt die App nicht);
+  Ende unter 10° (Hysterese, ein Wackeln an der Schwelle bleibt EIN
+  Wheelie) oder unter dem Tempo; ab 1 s; über 60 s gilt es als
+  verrutschte Halterung — neu lernen, nichts zählen.
 - **Nur auf Trails** und nur, wenn eingeschaltet („Trail-Werte messen"
   im Start-Blatt). Auf der Anfahrt läuft kein Sensor — das spart Akku
   und macht aus einem Bordstein keinen Sprung.
@@ -281,6 +288,16 @@ Muster).
 
 Umgebung: 📱 Fahrten · 💻 Auswertung (eigene Fahrten) · ☁️ Werkzeug.
 
+**Erste Fahrt** (2026-10-30, Straße, E-Bike, Telefon liegend in
+Fahrtrichtung am Oberrohr, 17 min): 111 Hz, eine Lücke über 100 ms —
+der Sensor liefert im Dienst (ob der Bildschirm aus war, ist nicht
+notiert). Bei 15°/1 s 17 Wheelies und Manuals von 1 bis 28 s, fast alle
+um dieselbe Achse (die Querachse des Telefons); der Kreisel zeigt an
+denselben Stellen eine echte Drehung von 25–45°, Bremsen allein wäre
+keine. Manuals kamen auch bei über 35 km/h. Ohne Zählung des Fahrers
+lässt sich daraus keine Trefferquote ablesen — deshalb die Rückmeldung
+am Gerät (Schritt 2b).
+
 **Der Logger** (0.142.0, `lib/features/rides/sensor_log.dart`): Schalter
 „Sensor-Rohdaten mitschreiben" unter „Über TrailBuddy", nur in der
 Dev-App (Flavor `dev`, `android/CLAUDE.md`). Gilt ab der nächsten
@@ -297,6 +314,13 @@ Datei an den Rechner.
    zeigt die Datei der ersten Fahrt am Gerät (Lücken über 100 ms nennt
    das Werkzeug). Ergebnis in `lib/features/rides/CLAUDE.md`. Dann die
    Messung aus Abschnitt 8.
+   2b. **Wheelie mit Rückmeldung** (0.143.0, nur Dev-App, am Schalter
+   der Rohdaten): Die Regel aus Abschnitt 2 läuft zur Laufzeit im
+   Dienst; nach jedem Wheelie ein Banner („Stimmt" / „War keiner"),
+   während der Fahrt eine stehende Benachrichtigung mit „Wheelie
+   verpasst". Ereignis und Antworten sind Zeilen der Rohdaten (`e`, `l`,
+   `m`); das Werkzeug zählt daraus je Schwelle Treffer, Verpasste und
+   Fehlalarme — die Zählung von Hand aus 8.2 entfällt für Wheelies.
 3. **Erkennung auf dem Gerät**: Airtime, Max G, Manual als reine
    Funktionen mit Tests gegen die gemessenen Aufzeichnungen (als
    synthetische Reihen nachgebaut, keine echten Dateien im Repo);

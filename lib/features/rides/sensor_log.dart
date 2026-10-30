@@ -15,6 +15,9 @@
 //   Sekunde. Der Zeitgeber prüft dabei die Brücke — endet die Fahrt, ohne
 //   dass ein Takt kommt (der Dienst läuft für einen Download weiter),
 //   hört der Logger trotzdem auf.
+// - **Wheelies werden zur Laufzeit erkannt** (`wheelie_detector.dart`) und
+//   als Banner gemeldet (`wheelie_notify.dart`); Ereignis und Antwort sind
+//   eigene Zeilen derselben Datei (`e`, `l`, `m`, siehe [kSensorLogHeader]).
 // - **Die Zeit ist die des Ereignisses** (`sensors_plus`: Systemstart +
 //   Zeitstempel des Sensors, in µs), nicht die der Ankunft im Isolate —
 //   der Kanal liefert in Schüben.
@@ -28,6 +31,8 @@ import 'package:sensors_plus/sensors_plus.dart';
 
 import 'ride_store.dart' show rideIdFor;
 import 'ride_task_handler.dart';
+import 'wheelie_detector.dart';
+import 'wheelie_notify.dart';
 
 /// Schalter der Brücke: Rohdaten mitschreiben (nur Dev-App).
 const kRideDataSensorLog = 'ride_sensor_log';
@@ -50,10 +55,22 @@ const kSensorDirName = 'sensors';
 const kSensorLogHeader = '# trailbuddy sensor log v1\n'
     '# a,t_us,x,y,z = accelerometer incl. gravity (m/s^2)\n'
     '# w,t_us,x,y,z = gyroscope (rad/s)\n'
-    '# g,t_us,lat,lng,accuracy_m,speed_mps,alt_m = GPS fix\n';
+    '# g,t_us,lat,lng,accuracy_m,speed_mps,alt_m = GPS fix\n'
+    '# e,start_us,duration_s,length_m,max_tilt_deg = wheelie detected in the app\n'
+    '# l,t_us,start_us,1|0 = answer to the wheelie at start_us (1 = "Stimmt")\n'
+    '# m,t_us = "Wheelie verpasst" pressed\n';
 
 String sensorLine(String kind, DateTime at, List<double> values) =>
     '$kind,${at.microsecondsSinceEpoch},${values.map(_num).join(',')}\n';
+
+String wheelieEventLine(WheelieEvent e) => 'e,${e.startUs},'
+    '${(e.duration.inMicroseconds / 1e6).toStringAsFixed(2)},'
+    '${e.lengthM.toStringAsFixed(1)},${e.maxTiltDeg.toStringAsFixed(1)}\n';
+
+String wheelieAnswerLine(DateTime at, {required int startUs, required bool yes}) =>
+    'l,${at.microsecondsSinceEpoch},$startUs,${yes ? 1 : 0}\n';
+
+String wheelieMissedLine(DateTime at) => 'm,${at.microsecondsSinceEpoch}\n';
 
 /// Kurz genug für 30 MB je Stunde, genau genug für 0,01 m/s².
 String _num(double v) => v.isFinite ? v.toStringAsFixed(4) : '';
@@ -91,8 +108,10 @@ class SensorLogger {
       {required this.file,
       SensorSources? sources,
       this.stillWanted,
-      this.flushEvery = kSensorFlushInterval})
-      : _sources = sources ?? SensorSources.platform;
+      this.flushEvery = kSensorFlushInterval,
+      WheelieNotices? notices})
+      : _sources = sources ?? SensorSources.platform,
+        _notices = notices ?? WheelieNotices.platform;
 
   final File file;
   final SensorSources _sources;
@@ -101,6 +120,9 @@ class SensorLogger {
   final Future<bool> Function()? stillWanted;
 
   final Duration flushEvery;
+
+  final WheelieNotices _notices;
+  final _wheelies = WheelieDetector();
 
   final _buffer = StringBuffer();
   final _subscriptions = <StreamSubscription<List<double>>>[];
@@ -115,18 +137,29 @@ class SensorLogger {
     if (!await file.exists() || await file.length() == 0) {
       await file.writeAsString(kSensorLogHeader, flush: true);
     }
-    void listen(String kind, Stream<List<double>> Function() source) {
+    void listen(String kind, Stream<List<double>> Function() source,
+        [void Function(List<double> v)? also]) {
       // Fehlt ein Sensor (`NO_SENSOR`), schreiben die anderen weiter.
-      _subscriptions.add(source().listen(
-          (v) => _buffer.write(sensorLine(
-              kind, DateTime.fromMicrosecondsSinceEpoch(v.first.toInt(), isUtc: true), v.sublist(1))),
-          onError: (Object _) {}));
+      _subscriptions.add(source().listen((v) {
+        _buffer.write(sensorLine(
+            kind, DateTime.fromMicrosecondsSinceEpoch(v.first.toInt(), isUtc: true), v.sublist(1)));
+        also?.call(v);
+      }, onError: (Object _) {}));
     }
 
-    listen('a', _sources.accel);
+    listen('a', _sources.accel, _onAccel);
     listen('w', _sources.gyro);
-    listen('g', _sources.gps);
+    listen('g', _sources.gps, (v) => _wheelies.addSpeed(v[4]));
     _timer = Timer.periodic(flushEvery, (_) => _onTimer());
+    await _notices.showMissed(file: file.path);
+  }
+
+  void _onAccel(List<double> v) {
+    final event = _wheelies.addAccel(v[0].toInt(), v[1], v[2], v[3]);
+    if (event == null) return;
+    _buffer.write(wheelieEventLine(event));
+    // Nicht abgewartet: Das Banner darf den Strom nicht aufhalten.
+    unawaited(_notices.wheelie(event, file: file.path));
   }
 
   Future<void> _onTimer() async {
@@ -161,6 +194,7 @@ class SensorLogger {
     }
     _subscriptions.clear();
     await flush();
+    await _notices.cancelMissed();
   }
 }
 
@@ -181,6 +215,7 @@ Future<void> sensorLogTick({
   SensorSources? sources,
   Future<T?> Function<T>(String key)? read,
   Duration flushEvery = kSensorFlushInterval,
+  WheelieNotices? notices,
 }) async {
   try {
     final get = read ?? _read;
@@ -196,6 +231,7 @@ Future<void> sensorLogTick({
       sources: sources,
       stillWanted: () async => (await _wantedRide(get))?.id == ride.id,
       flushEvery: flushEvery,
+      notices: notices,
     );
     _logger = logger;
     _loggerRide = ride.id;

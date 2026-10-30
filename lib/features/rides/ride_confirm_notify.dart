@@ -29,6 +29,7 @@ import '../../core/errors.dart';
 import '../../l10n/l10n.dart';
 import 'ride_confirm.dart';
 import 'ride_store.dart';
+import 'wheelie_notify.dart';
 
 /// Der Kanal der Meldungen — derselbe wie für Push (`strings.xml`,
 /// `MainActivity.kt`); der Manifest-Test hält die Namen zusammen.
@@ -102,14 +103,28 @@ Future<String?> handleConfirmResponse({
 RideStore _storeFor(String dir) => FileRideStore(baseDir: Directory(dir));
 
 /// Die Knöpfe ohne Oberfläche. Läuft in einem Isolate, das das Paket
-/// eigens dafür startet — darum top-level und `vm:entry-point`.
+/// eigens dafür startet — darum top-level und `vm:entry-point`. Das Paket
+/// kennt EINEN solchen Empfänger je App: Die Knöpfe der Wheelie-Messung
+/// (#36, `wheelie_notify.dart`) kommen auch hier an.
 @pragma('vm:entry-point')
 void rideConfirmBackgroundResponse(NotificationResponse response) {
-  unawaited(handleConfirmResponse(actionId: response.actionId, payload: response.payload));
+  unawaited(_respond(response));
+}
+
+Future<void> _respond(NotificationResponse r) async {
+  if (await handleWheelieResponse(actionId: r.actionId, payload: r.payload)) return;
+  await handleConfirmResponse(actionId: r.actionId, payload: r.payload);
 }
 
 final _plugin = FlutterLocalNotificationsPlugin();
 Future<bool?>? _initialized;
+
+/// Das Plugin der Meldungen während der Fahrt, einmal je Isolate
+/// eingerichtet — auch für die Wheelie-Messung.
+FlutterLocalNotificationsPlugin get rideNoticesPlugin => _plugin;
+
+Future<void> initRideNotices({DidReceiveNotificationResponseCallback? onResponse}) =>
+    _init(onResponse: onResponse);
 
 Future<void> _init({DidReceiveNotificationResponseCallback? onResponse}) async {
   await (_initialized ??= _plugin.initialize(
@@ -170,6 +185,7 @@ Stream<String> _platformTaps() {
   if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) return const Stream.empty();
   final controller = StreamController<String>();
   Future<void> forward(NotificationResponse r) async {
+    if (await handleWheelieResponse(actionId: r.actionId, payload: r.payload)) return;
     final trail = await handleConfirmResponse(actionId: r.actionId, payload: r.payload);
     if (trail != null && !controller.isClosed) controller.add(trail);
   }
