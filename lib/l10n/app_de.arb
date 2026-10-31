@@ -5649,21 +5649,21 @@
   "@aboutPrereleaseSubtitle": {
     "description": "Seite „Über TrailBuddy“: Untertitel des Vorab-Schalters."
   },
-  "aboutSensorLogTitle": "Sensor-Rohdaten mitschreiben",
+  "aboutSensorLogTitle": "Wheelie, Sprung und Stoppie erkennen (Test)",
   "@aboutSensorLogTitle": {
-    "description": "Seite „Über TrailBuddy“, nur Dev-App: Schalter des Mess-Werkzeugs für die Airtime (#36)."
+    "description": "Seite „Über TrailBuddy“: Schalter der experimentellen Erkennung (#36), ab Werk aus."
   },
-  "aboutSensorLogSubtitle": "Nur Dev-App: Beschleunigung und Kreisel mit 100 Hz, GPS jede Sekunde, solange eine Fahrt läuft — für die Airtime-Messung. Etwa 30 MB je Stunde, bleibt auf dem Gerät.",
+  "aboutSensorLogSubtitle": "Experimentell, ab der nächsten Fahrt: misst Beschleunigung und Kreisel mit 100 Hz und GPS jede Sekunde, zeigt über der Karte, was das Modell sieht, und fragt nach jedem Ereignis nach. Etwa 30 MB je Stunde, bleibt auf dem Gerät.",
   "@aboutSensorLogSubtitle": {
-    "description": "Seite „Über TrailBuddy“, nur Dev-App: Untertitel des Rohdaten-Schalters."
+    "description": "Seite „Über TrailBuddy“: Untertitel des Schalters der Erkennung."
   },
   "wheelieNoticeTitle": "Wheelie erkannt",
   "@wheelieNoticeTitle": {
-    "description": "Dev-App, Wheelie-Messung (#36): Titel des Banners nach einem erkannten Wheelie oder Manual."
+    "description": "Erkennung (#36), Wheelie-Messung (#36): Titel des Banners nach einem erkannten Wheelie oder Manual."
   },
   "wheelieNoticeBody": "{seconds} s · {meters} m · {degrees}° — stimmt das?",
   "@wheelieNoticeBody": {
-    "description": "Dev-App, Wheelie-Messung: Text des Banners. Zahlen schon formatiert.",
+    "description": "Erkennung (#36), Wheelie-Messung: Text des Banners. Zahlen schon formatiert.",
     "placeholders": {
       "seconds": {
         "type": "String"
@@ -5678,23 +5678,23 @@
   },
   "wheelieNoticeYes": "Stimmt",
   "@wheelieNoticeYes": {
-    "description": "Dev-App, Wheelie-Messung: Knopf im Banner, der Wheelie war echt."
+    "description": "Erkennung (#36), Wheelie-Messung: Knopf im Banner, der Wheelie war echt."
   },
   "wheelieNoticeNo": "War keiner",
   "@wheelieNoticeNo": {
-    "description": "Dev-App, Wheelie-Messung: Knopf im Banner, Fehlalarm."
+    "description": "Erkennung (#36), Wheelie-Messung: Knopf im Banner, Fehlalarm."
   },
   "wheelieMissedTitle": "Wheelie-, Sprung- und Stoppie-Messung läuft",
   "@wheelieMissedTitle": {
-    "description": "Dev-App, Wheelie-Messung: Titel der stehenden Benachrichtigung während der Fahrt."
+    "description": "Erkennung (#36), Wheelie-Messung: Titel der stehenden Benachrichtigung während der Fahrt."
   },
   "wheelieMissedBody": "Kam nach einem Wheelie, Sprung oder Stoppie kein Banner? Gleich danach „… verpasst“ tippen.",
   "@wheelieMissedBody": {
-    "description": "Dev-App, Wheelie-Messung: Text der stehenden Benachrichtigung."
+    "description": "Erkennung (#36), Wheelie-Messung: Text der stehenden Benachrichtigung."
   },
   "wheelieMissedNoted": "Verpasst gemerkt um {time}.",
   "@wheelieMissedNoted": {
-    "description": "Dev-App, Wheelie-Messung: Text nach einem Tipp auf „Wheelie verpasst“.",
+    "description": "Erkennung (#36), Wheelie-Messung: Text nach einem Tipp auf „Wheelie verpasst“.",
     "placeholders": {
       "time": {
         "type": "String"
@@ -5703,15 +5703,15 @@
   },
   "wheelieMissedButton": "Wheelie verpasst",
   "@wheelieMissedButton": {
-    "description": "Dev-App, Wheelie-Messung: Knopf der stehenden Benachrichtigung."
+    "description": "Erkennung (#36), Wheelie-Messung: Knopf der stehenden Benachrichtigung."
   },
   "jumpNoticeTitle": "Sprung erkannt",
   "@jumpNoticeTitle": {
-    "description": "Dev-App, Sprung-Messung (#36): Titel des Banners nach einem erkannten Sprung."
+    "description": "Erkennung (#36), Sprung-Messung (#36): Titel des Banners nach einem erkannten Sprung."
   },
   "jumpNoticeBody": "{seconds} s in der Luft · Landung {g} g — stimmt das?",
   "@jumpNoticeBody": {
-    "description": "Dev-App, Sprung-Messung: Text des Banners. Zahlen schon formatiert; g = Erdbeschleunigungen.",
+    "description": "Erkennung (#36), Sprung-Messung: Text des Banners. Zahlen schon formatiert; g = Erdbeschleunigungen.",
     "placeholders": {
       "seconds": {
         "type": "String"
@@ -5723,7 +5723,7 @@
   },
   "jumpNoticeBodyImplausible": "{seconds} s in der Luft · Landung {g} g · nicht plausibel (Tempo, Lage oder Spitze) — war es einer?",
   "@jumpNoticeBodyImplausible": {
-    "description": "Dev-App, Sprung-Messung: Text des Banners, wenn die Plausibilitätsprüfung den Sprung nicht zählen würde.",
+    "description": "Erkennung (#36), Sprung-Messung: Text des Banners, wenn die Plausibilitätsprüfung den Sprung nicht zählen würde.",
     "placeholders": {
       "seconds": {
         "type": "String"
@@ -5735,15 +5735,15 @@
   },
   "jumpMissedButton": "Sprung verpasst",
   "@jumpMissedButton": {
-    "description": "Dev-App, Sprung-Messung: zweiter Knopf der stehenden Benachrichtigung."
+    "description": "Erkennung (#36), Sprung-Messung: zweiter Knopf der stehenden Benachrichtigung."
   },
   "stoppieNoticeTitle": "Stoppie erkannt",
   "@stoppieNoticeTitle": {
-    "description": "Dev-App, Stoppie-Messung (#36): Titel des Banners nach einem erkannten Stoppie (Hinterrad hoch beim Bremsen)."
+    "description": "Erkennung (#36), Stoppie-Messung (#36): Titel des Banners nach einem erkannten Stoppie (Hinterrad hoch beim Bremsen)."
   },
   "stoppieNoticeBody": "{seconds} s · {degrees}° vorn runter · Bremsen {decel} m/s² — stimmt das?",
   "@stoppieNoticeBody": {
-    "description": "Dev-App, Stoppie-Messung: Text des Banners. Zahlen schon formatiert.",
+    "description": "Erkennung (#36), Stoppie-Messung: Text des Banners. Zahlen schon formatiert.",
     "placeholders": {
       "seconds": {
         "type": "String"
@@ -5758,7 +5758,93 @@
   },
   "stoppieMissedButton": "Stoppie verpasst",
   "@stoppieMissedButton": {
-    "description": "Dev-App, Stoppie-Messung: dritter Knopf der stehenden Benachrichtigung."
+    "description": "Erkennung (#36), Stoppie-Messung: dritter Knopf der stehenden Benachrichtigung."
+  },
+  "airtimeLiveTitle": "Was das Modell sieht",
+  "@airtimeLiveTitle": {
+    "description": "Live-Ansicht der Erkennung (#36) über der Karte: Überschrift des kleinen Fensters."
+  },
+  "airtimeLivePhaseNone": "fährt",
+  "@airtimeLivePhaseNone": {
+    "description": "Live-Ansicht: Zustand, wenn weder Front oben noch unten noch in der Luft."
+  },
+  "airtimeLivePhaseWheelie": "Front oben",
+  "@airtimeLivePhaseWheelie": {
+    "description": "Live-Ansicht: Zustand während eines möglichen Wheelies."
+  },
+  "airtimeLivePhaseStoppie": "Front unten",
+  "@airtimeLivePhaseStoppie": {
+    "description": "Live-Ansicht: Zustand während eines möglichen Stoppies."
+  },
+  "airtimeLivePhaseAirborne": "In der Luft",
+  "@airtimeLivePhaseAirborne": {
+    "description": "Live-Ansicht: Zustand während einer Flugphase."
+  },
+  "airtimeLiveRunning": "{seconds} s · max {degrees}°",
+  "@airtimeLiveRunning": {
+    "description": "Live-Ansicht: laufende Zeit und Spitze der aktuellen Phase.",
+    "placeholders": {
+      "seconds": {
+        "type": "String"
+      },
+      "degrees": {
+        "type": "String"
+      }
+    }
+  },
+  "airtimeLiveSeconds": "{seconds} s",
+  "@airtimeLiveSeconds": {
+    "description": "Live-Ansicht: laufende Zeit in der Luft.",
+    "placeholders": {
+      "seconds": {
+        "type": "String"
+      }
+    }
+  },
+  "airtimeLiveWaiting": "Wartet auf die Sensoren …",
+  "@airtimeLiveWaiting": {
+    "description": "Live-Ansicht: noch kein Takt der Fusion da."
+  },
+  "airtimeLiveLearningUp": "Halterung lernt: kurz ruhig fahren",
+  "@airtimeLiveLearningUp": {
+    "description": "Live-Ansicht: Die Fusion kennt „oben“ noch nicht, es gibt noch keinen Winkel."
+  },
+  "airtimeLiveLearningForward": "Halterung lernt „vorn“: Kurven und Bremsen helfen",
+  "@airtimeLiveLearningForward": {
+    "description": "Live-Ansicht: „oben“ steht, „vorn“ noch nicht — noch kein Winkel."
+  },
+  "airtimeLiveFooter": "{speed} km/h · {lag} s Verzug",
+  "@airtimeLiveFooter": {
+    "description": "Live-Ansicht: Tempo und wie weit das Modell hinter der Uhr rechnet.",
+    "placeholders": {
+      "speed": {
+        "type": "String"
+      },
+      "lag": {
+        "type": "String"
+      }
+    }
+  },
+  "airtimeLiveCollapse": "Verkleinern",
+  "@airtimeLiveCollapse": {
+    "description": "Live-Ansicht: Tooltip des Knopfs, der das Fenster zum Knopf macht."
+  },
+  "airtimeLiveExpand": "Live-Ansicht der Erkennung",
+  "@airtimeLiveExpand": {
+    "description": "Live-Ansicht: Tooltip des kleinen Knopfs, der das Fenster wieder öffnet."
+  },
+  "airtimeLiveMissed": "Verpasst melden",
+  "@airtimeLiveMissed": {
+    "description": "Live-Ansicht: Tooltip des Menüs mit „Wheelie/Sprung/Stoppie verpasst“."
+  },
+  "airtimeLivePendingMore": "+{count} weitere",
+  "@airtimeLivePendingMore": {
+    "description": "Live-Ansicht: weitere Ereignisse, die noch auf eine Antwort warten.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "aboutPreviewTitle": "Entwicklungsversion öffnen",
   "@aboutPreviewTitle": {

@@ -1,6 +1,7 @@
 // Rohdaten der Sensoren während einer Fahrt (#36, Konzept Airtime 8.1 und
-// 9, Schritte 1+2): ein Mess-Werkzeug, KEINE Erkennung. Nur in der
-// Dev-App einschaltbar (`sensorLogAvailableProvider`), nur während einer
+// 9, Schritte 1+2): ein Mess-Werkzeug. Einschaltbar unter „Über
+// TrailBuddy" (`sensorLogAvailableProvider`, seit 0.148.0 auch in der
+// offiziellen App, vorher nur Dev-App), nur während einer
 // Aufzeichnung, nur im Isolate des Dienstes — dieselbe Regel wie die
 // Fahrt (`ride_task_handler.dart`): Das Main-Isolate stirbt beim
 // Wegwischen, der Dienst nicht.
@@ -36,12 +37,13 @@ import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:sensors_plus/sensors_plus.dart';
 
+import 'airtime_message.dart';
 import 'ride_store.dart' show rideIdFor;
 import 'ride_task_handler.dart';
 import 'sensor_fusion.dart';
 import 'wheelie_notify.dart';
 
-/// Schalter der Brücke: Rohdaten mitschreiben (nur Dev-App).
+/// Schalter der Brücke: Rohdaten mitschreiben.
 const kRideDataSensorLog = 'ride_sensor_log';
 
 /// Messbereich der Sensoren, `<m/s²>,<rad/s>` — gelesen im Main-Isolate
@@ -185,9 +187,11 @@ class SensorLogger {
       this.stillWanted,
       this.flushEvery = kSensorFlushInterval,
       this.range,
-      WheelieNotices? notices})
+      WheelieNotices? notices,
+      void Function(Object message)? toApp})
       : _sources = sources ?? SensorSources.platform,
-        _notices = notices ?? WheelieNotices.platform;
+        _notices = notices ?? WheelieNotices.platform,
+        _toApp = toApp ?? FlutterForegroundTask.sendDataToMain;
 
   final File file;
   final SensorSources _sources;
@@ -201,6 +205,10 @@ class SensorLogger {
   final Duration flushEvery;
 
   final WheelieNotices _notices;
+
+  /// Die Live-Ansicht in der offenen App (`airtime_message.dart`); ist
+  /// sie zu, verwirft der Kanal still.
+  final void Function(Object message) _toApp;
   SensorFusion _fusion = SensorFusion();
   final _sinceMountSaved = Stopwatch();
 
@@ -217,7 +225,7 @@ class SensorLogger {
   Future<void> start() async {
     await file.parent.create(recursive: true);
     final carried = await _readMount();
-    _fusion = SensorFusion(carried: carried);
+    _fusion = SensorFusion(carried: carried)..keepLive = true;
     if (!await file.exists() || await file.length() == 0) {
       await file.writeAsString(sensorLogHead(mount: carried, range: range), flush: true);
     }
@@ -240,7 +248,10 @@ class SensorLogger {
   }
 
   void _onEvents(List<FusionEvent> events) {
+    final live = _fusion.takeLive();
+    if (live.isNotEmpty) _send(encodeAirtimeLive(file.path, live));
     for (final event in events) {
+      _send(encodeAirtimeEvent(file.path, event));
       // Nicht abgewartet: Das Banner darf den Strom nicht aufhalten.
       switch (event) {
         case WheelieEvent():
@@ -253,6 +264,14 @@ class SensorLogger {
           _buffer.write(stoppieEventLine(event));
           unawaited(_notices.stoppie(event, file: file.path));
       }
+    }
+  }
+
+  void _send(String message) {
+    try {
+      _toApp(message);
+    } catch (_) {
+      // Die Ansicht ist ein Zusatz; Datei und Banner gehen vor.
     }
   }
 
@@ -337,6 +356,7 @@ Future<void> sensorLogTick({
   Future<T?> Function<T>(String key)? read,
   Duration flushEvery = kSensorFlushInterval,
   WheelieNotices? notices,
+  void Function(Object message)? toApp,
 }) async {
   try {
     final get = read ?? _read;
@@ -354,6 +374,7 @@ Future<void> sensorLogTick({
       flushEvery: flushEvery,
       range: await get<String>(kRideDataSensorRange),
       notices: notices,
+      toApp: toApp,
     );
     _logger = logger;
     _loggerRide = ride.id;

@@ -1,12 +1,14 @@
 // Sensor-Rohdaten mitschreiben (#36, Messplan 8.1), durch die echte
-// Oberfläche: Den Schalter gibt es nur in der Dev-App
-// (`sensorLogAvailableProvider`), er wird gemerkt, die nächste Fahrt
+// Oberfläche: Den Schalter gibt es überall, wo es Fahrten gibt — seit
+// 0.148.0 auch in der offiziellen App, nicht im Web
+// (`sensorLogAvailableProvider`) —, er wird gemerkt, die nächste Fahrt
 // trägt ihn über die Brücke in den Dienst, und „Meine Fahrten" gibt die
 // Datei über das Teilen-Blatt heraus.
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:trailbuddy/core/gpx_share.dart';
 import 'package:trailbuddy/features/rides/ride_providers.dart';
@@ -45,13 +47,13 @@ void main() {
 
   tearDown(() => IsolateNameServer.removePortNameMapping('flutter_foreground_task/isolateComPort'));
 
-  Future<void> pump(WidgetTester tester, {required bool dev}) => pumpApp(tester, backend,
+  Future<void> pump(WidgetTester tester, {required bool available}) => pumpApp(tester, backend,
       settings: settings,
       rideStore: store,
       rideBridge: bridge,
       rideFix: fix,
       extraOverrides: [
-        sensorLogAvailableProvider.overrideWithValue(dev),
+        sensorLogAvailableProvider.overrideWithValue(available),
         sensorLogShareProvider.overrideWithValue(({required String path, required String fileName}) async {
           shared.add((path: path, fileName: fileName));
         }),
@@ -66,12 +68,18 @@ void main() {
     await settle(tester);
   }
 
-  testWidgets('in der echten App: kein Schalter, kein Menüpunkt, die Fahrt schreibt nichts mit',
+  test('ab Werk gibt es den Schalter außerhalb des Webs, auch in der offiziellen App', () {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    expect(container.read(sensorLogAvailableProvider), isTrue);
+  });
+
+  testWidgets('ohne Schalter (Web): kein Menüpunkt, die Fahrt schreibt nichts mit',
       (tester) async {
-    settings.sensorLogEnabled = true; // einmal in der Dev-App gesetzt — zählt hier nicht
+    settings.sensorLogEnabled = true; // einmal gesetzt — zählt hier nicht
     FlutterForegroundTask.initCommunicationPort();
     fix.next = RidePoint(lat: 47.2, lng: 11.4, at: t0, accuracyM: 5);
-    await pump(tester, dev: false);
+    await pump(tester, available: false);
     await tester.tap(find.byKey(const ValueKey('ride-button')));
     await settle(tester);
     expect(bridge.armed, isTrue);
@@ -82,17 +90,17 @@ void main() {
     expect(find.text('Sensordaten teilen'), findsNothing);
   });
 
-  testWidgets('in der echten App: kein Schalter unter „Über TrailBuddy"', (tester) async {
-    await pump(tester, dev: false);
+  testWidgets('ohne Schalter (Web): nichts unter „Über TrailBuddy"', (tester) async {
+    await pump(tester, available: false);
     await openProfilePage(tester, 'about');
     expect(find.text('Vorabversionen erhalten'), findsOneWidget);
     expect(toggle, findsNothing);
   });
 
-  testWidgets('Dev-App: Schalter gemerkt, die Fahrt nimmt ihn mit in den Dienst', (tester) async {
+  testWidgets('Schalter gemerkt, die Fahrt nimmt ihn mit in den Dienst', (tester) async {
     FlutterForegroundTask.initCommunicationPort();
     fix.next = RidePoint(lat: 47.2, lng: 11.4, at: t0, accuracyM: 5);
-    await pump(tester, dev: true);
+    await pump(tester, available: true);
     await openProfilePage(tester, 'about');
     await scrollTo(tester, toggle);
     expect(tester.widget<SwitchListTile>(toggle).value, isFalse);
@@ -107,9 +115,9 @@ void main() {
     expect(bridge.sensorLog, isTrue, reason: 'der Dienst liest den Schalter aus der Brücke');
   });
 
-  testWidgets('Dev-App: „Sensordaten teilen" gibt die Datei heraus, ohne Datei sagt es das',
+  testWidgets('„Sensordaten teilen" gibt die Datei heraus, ohne Datei sagt es das',
       (tester) async {
-    await pump(tester, dev: true);
+    await pump(tester, available: true);
     await openRideMenu(tester);
     await tester.tap(find.text('Sensordaten teilen'));
     await settle(tester);

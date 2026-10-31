@@ -14,7 +14,6 @@ import 'package:geolocator/geolocator.dart';
 import 'package:path_provider/path_provider.dart';
 
 import '../../l10n/l10n.dart';
-import '../../core/app_distribution.dart';
 import '../../core/errors.dart';
 import '../../core/settings.dart';
 import '../../data/providers.dart';
@@ -34,12 +33,13 @@ import 'sensor_log.dart' show kRideDataSensorLog, kRideDataSensorRange, readSens
 /// wäre keine. Als Provider, damit ein Test beide Fälle sehen kann.
 final rideRecordingAvailableProvider = Provider<bool>((ref) => !kIsWeb);
 
-/// Gibt es den Schalter „Sensor-Rohdaten mitschreiben" (#36)? Nur in der
-/// Dev-App (`AppDistribution.isDevBuild`, #356): ein Mess-Werkzeug für den
-/// Messplan des Airtime-Konzepts, kein Teil der echten App. Tests
-/// überschreiben den Provider.
-final sensorLogAvailableProvider =
-    Provider<bool>((ref) => !kIsWeb && AppDistribution.isDevBuild);
+/// Gibt es den Schalter „Wheelie, Sprung und Stoppie erkennen" (#36)?
+/// Überall, wo es Fahrten gibt — seit 0.148.0 auch in der offiziellen App
+/// (Betreiber 2026-10-31: eine versteckte Funktion, ab Werk aus), vorher
+/// nur in der Dev-App. Ein Mess-Werkzeug für den Messplan des
+/// Airtime-Konzepts, noch keine Trail-Werte. Tests überschreiben den
+/// Provider.
+final sensorLogAvailableProvider = Provider<bool>((ref) => !kIsWeb);
 
 /// Schreibt die nächste Fahrt die Rohdaten mit? Aus, wo es den Schalter
 /// nicht gibt — auch wenn er einmal gesetzt war.

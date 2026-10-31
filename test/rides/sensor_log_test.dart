@@ -11,6 +11,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:trailbuddy/features/rides/ride_confirm_notify.dart';
 import 'package:trailbuddy/features/rides/ride_store.dart';
 import 'package:trailbuddy/features/rides/ride_task_handler.dart';
+import 'package:trailbuddy/features/rides/airtime_message.dart';
 import 'package:trailbuddy/features/rides/sensor_fusion.dart';
 import 'package:trailbuddy/features/rides/sensor_log.dart';
 import 'package:trailbuddy/features/rides/wheelie_notify.dart';
@@ -50,6 +51,7 @@ void main() {
   late SensorSources sources;
   late Map<String, Object?> bridge;
   late FakeWheelieNotices notices;
+  late List<Object> toApp;
   final started = DateTime.utc(2026, 10, 30, 9, 15, 3, 250);
   const every = Duration(milliseconds: 20);
 
@@ -60,6 +62,7 @@ void main() {
     gps = StreamController<List<double>>.broadcast();
     sources = SensorSources(accel: () => accel.stream, gyro: () => gyro.stream, gps: () => gps.stream);
     notices = FakeWheelieNotices();
+    toApp = [];
     bridge = {
       kRideDataActive: true,
       kRideDataSensorLog: true,
@@ -75,7 +78,7 @@ void main() {
 
   Future<T?> read<T>(String key) async => bridge[key] as T?;
   Future<void> tick() =>
-      sensorLogTick(sources: sources, read: read, flushEvery: every, notices: notices);
+      sensorLogTick(sources: sources, read: read, flushEvery: every, notices: notices, toApp: toApp.add);
   Future<void> wait() => Future<void>.delayed(every * 4);
   File logFile() => sensorLogFile(dir.path, '20261030T091503Z');
   final t = DateTime.utc(2026, 10, 30, 9, 16).microsecondsSinceEpoch.toDouble();
@@ -217,6 +220,19 @@ void main() {
     expect(jumpEventLine(jump), matches(RegExp(r'^j,\d+,0\.\d{3},3\.\d\d,1\n$')));
     expect(lines.where((l) => l.startsWith('s,')), [stoppieEventLine(stoppie).trim()]);
     expect(stoppieEventLine(stoppie), matches(RegExp(r'^s,\d+,\d\.\d\d,\d+\.\d,\d\.\d\d,\d\.\d\d\n$')));
+
+    // Die offene App bekommt dieselben drei Ereignisse und die Takte dazu.
+    final messages = toApp.map(decodeAirtimeMessage).toList();
+    expect(messages, everyElement(isNotNull));
+    expect(messages.map((m) => m!.file), everyElement(logFile().path));
+    final sent = [for (final m in messages.whereType<AirtimeEventMessage>()) m.event];
+    expect(sent.map((e) => '${e.runtimeType} ${e.startUs}'),
+        [wheelie, jump, stoppie].map((e) => '${e.runtimeType} ${e.startUs}'));
+    final ticks = [for (final m in messages.whereType<AirtimeLiveMessage>()) ...m.ticks];
+    expect(ticks.length, closeTo(400, 30), reason: '40 s mit 10 Hz');
+    final up = ticks.firstWhere((l) => l.tUs >= us + 22000000);
+    expect(up.phase, FusionPhase.wheelie);
+    expect(up.pitchDeg, closeTo(25, 2));
 
     final saved = FusionMount.fromJson(jsonDecode(await mountFile.readAsString()))!;
     expect(saved.up.$3, closeTo(1, 1e-3), reason: 'die gelernte Halterung liegt für die nächste Fahrt bereit');
