@@ -2,6 +2,19 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## Measuring stoppies
+
+*Version 0.145.0, 2026-10-31*
+
+- Development app only, with raw sensor data switched on: besides
+  wheelies and jumps the measurement now also detects stoppies — the
+  rear wheel up under hard braking. A banner “Stoppie detected” follows
+  with duration, tilt and braking, plus “Correct” and “Wasn't one”; the
+  measurement's notification now has “Missed stoppie”.
+- A steep section without braking does not count as a stoppie. The
+  thresholds are only starting values; they are set from the answers.
+  Nothing changes in the regular app.
+
 ## Back button on the trail sheet
 
 *Version 0.144.1, 2026-10-31*

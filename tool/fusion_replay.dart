@@ -68,4 +68,10 @@ Future<void> main(List<String> args) async {
         '${(e.duration.inMicroseconds / 1e6).toStringAsFixed(2)} s  landing ${e.landingG.toStringAsFixed(1)} g'
         '  ${e.plausible ? 'plausible' : 'NOT plausible'}${e.upright ? '' : ', not upright'}');
   }
+  stdout.writeln('stoppies at $kFusionStoppieTiltDeg deg / $kFusionStoppieDecel m/s2 against the way:');
+  for (final e in events.whereType<StoppieEvent>()) {
+    stdout.writeln('  t=${rel(e.startUs).toStringAsFixed(2).padLeft(8)}  '
+        '${(e.duration.inMicroseconds / 1e6).toStringAsFixed(1)} s  ${e.maxTiltDeg.toStringAsFixed(0)} deg down  '
+        'braking ${e.decel.toStringAsFixed(1)} m/s2  landing ${e.landingG.toStringAsFixed(1)} g');
+  }
 }

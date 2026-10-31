@@ -93,6 +93,11 @@ List<(String, double, List<double>)> _synthetic({bool slipPitch = false}) {
     } else if (62 <= t && t < 64) {
       v -= 6.0 - 3.0 * (t - 62);
     }
+    if (410 <= t && t < 411.5) {
+      v -= 3.0 * (t - 410);
+    } else if (411.5 <= t && t < 414) {
+      v -= 4.5 - 1.8 * (t - 411.5);
+    }
     return v;
   }
 
@@ -106,7 +111,8 @@ List<(String, double, List<double>)> _synthetic({bool slipPitch = false}) {
         _rad(10) * _ramp(t, 128, 145, 3.0) +
         _rad(18) * _ramp(t, 135, 137) +
         _rad(22) * _ramp(t, 280, 282) +
-        _rad(40) * _ramp(t, 310, 400, 1.0);
+        _rad(40) * _ramp(t, 310, 400, 1.0) -
+        _rad(18) * _ramp(t, 410.3, 411.6);
     return (_mm(_mm(_rz(yaw), _ry(-pitch)), _rx(roll)), v, yaw, yawRate);
   }
 
@@ -127,6 +133,8 @@ List<(String, double, List<double>)> _synthetic({bool slipPitch = false}) {
       fW = [0.0, 0.0, 0.0];
     } else if (100.5 <= t && t < 100.55) {
       fW = _mv(rWb, [0.0, 0.0, 3 * kG]);
+    } else if (411.6 <= t && t < 411.65) {
+      fW = _mv(rWb, [0.0, 0.0, 1.8 * kG]);
     }
     final m = t >= 150 ? mount1 : _mount0;
     final fP = _mv(m, _mv(_mt(rWb), fW));
@@ -207,6 +215,18 @@ void main() {
     expect(jumps.single.duration.inMilliseconds, closeTo(475, 10));
     expect(jumps.single.landingG, closeTo(3.22, 0.1));
     expect(jumps.single.plausible, isTrue);
+
+    // Werkzeug (Mahony): 410,48 s, 0,93 s, 17,2°, 1,8 m/s², Landung 1,85 g.
+    // Front runter bei 110 s ohne Bremsen und hartes Bremsen bei 60 s
+    // ohne Neigung bleiben still.
+    final stoppies = events.whereType<StoppieEvent>().toList();
+    expect(stoppies, hasLength(1), reason: '$stoppies');
+    final s = stoppies.single;
+    expect(_s(s.startUs), closeTo(410.48, 0.11));
+    expect(s.duration.inMicroseconds / 1e6, closeTo(0.93, 0.11));
+    expect(s.maxTiltDeg, closeTo(17.2, 0.3));
+    expect(s.decel, closeTo(1.8, 0.05));
+    expect(s.landingG, closeTo(1.85, 0.05));
 
     // Verrutscht bei 150 s, gesehen erst beim Bremsen ab 215 s (Werkzeug: 231 s).
     expect(fusion.slips, hasLength(1));

@@ -28,7 +28,8 @@ docs/konzept-airtime.md section 8):
   threshold: hits, missed, false alarms, unlabelled. Since 0.144.0 (file
   v2) the same for jumps (j/k/n lines), and the head names the mount the
   app carried over from the last ride ("# mount,...", the fusion starts
-  from it as the app did) and the sensors' range ("# range,...").
+  from it as the app did) and the sensors' range ("# range,..."). Since
+  0.145.0 (file v3) the same for stoppies (s/p/q lines).
 
 The sensor files carry coordinates and stay on the operator's computer,
 NEVER in this repository. The report has times (seconds from the start
@@ -38,7 +39,7 @@ With --fused the same file goes through the signal processing of
 tool/sensor_fusion.py (concept section 3a): mount, attitude filter (the
 error-state Kalman filter and Mahony side by side) and the events on the
 fused values -- wheelies as pitch against the way, front up only, scored
-against the same answers; flights with the landing along the bike's up
+against the same answers; stoppies as front down while braking; flights with the landing along the bike's up
 axis and an upright bike after it; and the probes of research section 6
 (braking, corners, riding straight, gyro bias) next to the raw rule.
 
@@ -70,6 +71,9 @@ RELEASE_DEG = 5.0    # ends 5 deg under the start limit (15 -> 10)
 BASE_WINDOW_S = 60.0
 WARM_UP_S = 10.0
 MAX_WHEELIE_S = 60.0
+STOPPIE_TILTS_DEG = (8.0, 10.0, 15.0)    # start value 10 deg (operator 2026-10-31)
+STOPPIE_DECELS = (0.5, 1.0, 2.0)         # m/s^2, start value 1.0
+STOPPIE_MIN_S = 0.3
 MISSED_WINDOW_S = 20.0  # "Wheelie verpasst" refers to the last 20 s
 LOWPASS_S = 0.5
 
@@ -86,6 +90,9 @@ class Log:
         self.jumps: list[tuple[float, float]] = []  # the app's jumps, same shape
         self.jump_answers: dict[float, bool] = {}
         self.jump_missed: list[float] = []
+        self.stoppies: list[tuple[float, float]] = []  # the app's stoppies, same shape
+        self.stoppie_answers: dict[float, bool] = {}
+        self.stoppie_missed: list[float] = []
         self.carried: tuple | None = None  # (up, forward) from "# mount,"
         self.range: tuple[float, float] | None = None  # accelerometer m/s^2, gyroscope rad/s
         self._g_times: list[float] | None = None
@@ -140,10 +147,17 @@ def parse(lines) -> Log:
             log.jump_answers[round(values[0] / 1e6 - t0, 3)] = values[1] == 1
         elif kind == "n":
             log.jump_missed.append(t)
+        elif kind == "s" and len(values) == 4:
+            log.stoppies.append((t, values[0]))
+        elif kind == "p" and len(values) == 2:
+            log.stoppie_answers[round(values[0] / 1e6 - t0, 3)] = values[1] == 1
+        elif kind == "q":
+            log.stoppie_missed.append(t)
     log.a.sort()
     log.g.sort()
     log.events = [(round(t, 3), d) for t, d in log.events]
     log.jumps = [(round(t, 3), d) for t, d in log.jumps]
+    log.stoppies = [(round(t, 3), d) for t, d in log.stoppies]
     return log
 
 
@@ -291,17 +305,26 @@ def window(log: Log, start: float | None, end: float | None) -> Log:
     cut.jumps = [e for e in log.jumps if lo <= e[0] <= hi]
     cut.jump_answers = {t: v for t, v in log.jump_answers.items() if lo <= t <= hi}
     cut.jump_missed = [t for t in log.jump_missed if lo <= t <= hi + MISSED_WINDOW_S]
+    cut.stoppies = [e for e in log.stoppies if lo <= e[0] <= hi]
+    cut.stoppie_answers = {t: v for t, v in log.stoppie_answers.items() if lo <= t <= hi}
+    cut.stoppie_missed = [t for t in log.stoppie_missed if lo <= t <= hi + MISSED_WINDOW_S]
     cut.carried, cut.range = log.carried, log.range
     return cut
 
 
-def feedback(log: Log, found: list[dict], jumps: bool = False) -> dict:
-    """Score detected wheelies (or jumps) against the rider's answers in
-    the app: an answered "Stimmt" is one, "War keiner" is none, and each
-    press of "... verpasst" stands for one that ended in the
+def _app(log: Log, kind: str):
+    """The app's events, the answers to them and the "verpasst" presses."""
+    return {"wheelie": (log.events, log.answers, log.missed),
+            "jump": (log.jumps, log.jump_answers, log.jump_missed),
+            "stoppie": (log.stoppies, log.stoppie_answers, log.stoppie_missed)}[kind]
+
+
+def feedback(log: Log, found: list[dict], kind: str = "wheelie") -> dict:
+    """Score detected wheelies (jumps, stoppies) against the rider's
+    answers in the app: an answered "Stimmt" is one, "War keiner" is none,
+    and each press of "... verpasst" stands for one that ended in the
     MISSED_WINDOW_S before it. Unanswered app events count for nothing."""
-    events, answers = (log.jumps, log.jump_answers) if jumps else (log.events, log.answers)
-    marks = log.jump_missed if jumps else log.missed
+    events, answers, marks = _app(log, kind)
     yes = [(t, t + d) for t, d in events if answers.get(t) is True]
     no = [(t, t + d) for t, d in events if answers.get(t) is False]
     def overlaps(w, iv):
@@ -449,7 +472,29 @@ def report_fused(log: Log, listing: bool) -> str:
                        f"{sum(f['duration'] for f in ok):.2f} | "
                        f"{max((f['duration'] for f in ok), default=0):.2f} |")
                 if jumps:
-                    f = feedback(log, found, jumps=True)
+                    f = feedback(log, found, "jump")
+                    row += f" {f['hits']} | {f['missed']} | {f['false_alarms']} | {f['unlabelled']} |"
+                lines.append(row)
+        lines.append("")
+        stoppies = bool(log.stoppies or log.stoppie_missed)
+        if stoppies:
+            answered = [t for t, _ in log.stoppies if t in log.stoppie_answers]
+            lines.append(f"in the app: {len(log.stoppies)} stoppies shown, "
+                         f"{sum(1 for t in answered if log.stoppie_answers[t])} \"Stimmt\", "
+                         f"{sum(1 for t in answered if not log.stoppie_answers[t])} \"War keiner\", "
+                         f"{len(log.stoppies) - len(answered)} unanswered; "
+                         f"\"Stoppie verpasst\" pressed {len(log.stoppie_missed)} times")
+            lines.append("")
+        lines.append(f"| down deg | brake m/s2 | stoppies (min {STOPPIE_MIN_S} s) | landing g median |"
+                     + (" hits | missed | false alarms | unlabelled |" if stoppies else ""))
+        lines.append("|---" * (4 + (4 if stoppies else 0)) + "|")
+        for tilt in STOPPIE_TILTS_DEG:
+            for decel in STOPPIE_DECELS:
+                found = sensor_fusion.stoppies(fused, tilt, STOPPIE_MIN_S, decel)
+                landing = statistics.median([x["landing_g"] for x in found]) if found else 0.0
+                row = f"| {tilt:.0f} | {decel} | {len(found)} | {landing:.1f} |"
+                if stoppies:
+                    f = feedback(log, found, "stoppie")
                     row += f" {f['hits']} | {f['missed']} | {f['false_alarms']} | {f['unlabelled']} |"
                 lines.append(row)
         if listing:
@@ -468,6 +513,13 @@ def report_fused(log: Log, listing: bool) -> str:
                 lines.append(f"  t={f['t']:8.2f}  {f['duration']:.2f} s  landing {f['peak_g']:.1f} g"
                              f"  {'plausible' if f['plausible'] else 'NOT plausible'}"
                              f"{'' if f['upright'] else ', not upright'}{label}")
+            lines.append(f"stoppies ({method}) at 10 deg / 1.0 m/s2 against the way:")
+            for x in sensor_fusion.stoppies(fused, 10.0, STOPPIE_MIN_S, 1.0):
+                answer = next((log.stoppie_answers.get(t) for t, d in log.stoppies
+                               if x["t"] <= t + d and t <= x["t"] + x["duration"]), None)
+                label = {True: "  Stimmt", False: "  War keiner", None: ""}[answer]
+                lines.append(f"  t={x['t']:8.2f}  {x['duration']:.1f} s  {x['max_deg']:.0f} deg down  "
+                             f"braking {x['decel']:.1f} m/s2  landing {x['landing_g']:.1f} g{label}")
     return "\n".join(lines)
 
 
@@ -513,6 +565,11 @@ def _synthetic() -> list[str]:
     rows.append(f"j,{base_us + 10_000_000},0.50,3.0,1")
     rows.append(f"k,{base_us + 12_000_000},{base_us + 10_000_000},1")
     rows.append(f"n,{base_us + 30_000_000}")
+    # File v3 (0.145.0): a stoppie at 40 s answered "War keiner" (there is
+    # none in this ride), "Stoppie verpasst" once.
+    rows.append(f"s,{base_us + 40_000_000},0.80,15.0,2.10,1.60")
+    rows.append(f"p,{base_us + 42_000_000},{base_us + 40_000_000},0")
+    rows.append(f"q,{base_us + 55_000_000}")
     return rows
 
 
@@ -543,7 +600,11 @@ def _self_test() -> None:
     assert feedback(log, [{"t": 33.0, "duration": 1.0}])["unlabelled"] == 1
     assert log.carried == ((0.0, 0.0, 1.0), (0.0, 1.0, 0.0)) and log.range == (78.453, 34.907)
     assert log.jumps == [(10.0, 0.5)] and log.jump_answers == {10.0: True} and log.jump_missed == [30.0]
-    assert feedback(log, flights(log, 0.3, 150), jumps=True) == \
+    assert log.stoppies == [(40.0, 0.8)] and log.stoppie_answers == {40.0: False} \
+        and log.stoppie_missed == [55.0]
+    assert feedback(log, [{"t": 40.2, "duration": 0.5}], "stoppie") == \
+        {"hits": 0, "missed": 1, "false_alarms": 1, "unlabelled": 0}, "a \"War keiner\", one missed"
+    assert feedback(log, flights(log, 0.3, 150), "jump") == \
         {"hits": 1, "missed": 1, "false_alarms": 0, "unlabelled": 1}, "jump scored, the drop unlabelled"
     # Only one: the tilt at 50 s is standing still.
     cut = window(log, 0, 30)
@@ -556,6 +617,7 @@ def _self_test() -> None:
     assert "| pitch, braking/accelerating |" in fused and "hits |" in fused, fused
     assert "carried over from the last ride" in fused and "1 jumps shown, 1 \"Stimmt\"" in fused, fused
     assert "sensor range: accelerometer 8.0 g, gyroscope 2000 deg/s" in fused, fused
+    assert "1 stoppies shown, 0 \"Stimmt\", 1 \"War keiner\"" in fused and "| down deg |" in fused, fused
     print("airtime_measure self-test: ok")
 
 

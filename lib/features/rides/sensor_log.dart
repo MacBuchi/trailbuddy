@@ -15,10 +15,11 @@
 //   Sekunde. Der Zeitgeber prüft dabei die Brücke — endet die Fahrt, ohne
 //   dass ein Takt kommt (der Dienst läuft für einen Download weiter),
 //   hört der Logger trotzdem auf.
-// - **Wheelies und Sprünge erkennt die Fusion zur Laufzeit**
-//   (`sensor_fusion.dart`, seit 0.144.0; vorher die Rohregel) und meldet
-//   sie als Banner (`wheelie_notify.dart`); Ereignis und Antwort sind
-//   eigene Zeilen derselben Datei (`e`, `j`, `l`, `k`, `m`, `n`, siehe
+// - **Wheelies, Sprünge und Stoppies erkennt die Fusion zur Laufzeit**
+//   (`sensor_fusion.dart`, seit 0.144.0, Stoppies seit 0.145.0; vorher
+//   die Rohregel) und meldet sie als Banner (`wheelie_notify.dart`);
+//   Ereignis und Antwort sind eigene Zeilen derselben Datei (`e`, `j`,
+//   `s`, `l`, `k`, `p`, `m`, `n`, `q`, siehe
 //   [kSensorLogHeader]). Die Halterung, die sie lernt, liegt für die
 //   nächste Fahrt in `rides/sensors/mount.json` und steht im Kopf der
 //   Datei — so rechnet das Werkzeug von derselben aus.
@@ -86,7 +87,7 @@ const kSensorDirName = 'sensors';
 
 /// Die erste Zeile jeder Datei: sagt dem Werkzeug
 /// (`tool/airtime_measure.py`), was die Spalten heißen.
-const kSensorLogHeader = '# trailbuddy sensor log v2\n'
+const kSensorLogHeader = '# trailbuddy sensor log v3\n'
     '# a,t_us,x,y,z = accelerometer incl. gravity (m/s^2)\n'
     '# w,t_us,x,y,z = gyroscope (rad/s)\n'
     '# g,t_us,lat,lng,accuracy_m,speed_mps,alt_m = GPS fix\n'
@@ -94,7 +95,9 @@ const kSensorLogHeader = '# trailbuddy sensor log v2\n'
     '# j,start_us,duration_s,landing_g,1|0 = jump detected in the app (1 = plausible)\n'
     '# l,t_us,start_us,1|0 = answer to the wheelie at start_us (1 = "Stimmt")\n'
     '# k,t_us,start_us,1|0 = answer to the jump at start_us (1 = "Stimmt")\n'
-    '# m,t_us = "Wheelie verpasst" pressed; n,t_us = "Sprung verpasst" pressed\n'
+    '# s,start_us,duration_s,max_down_deg,decel_mps2,landing_g = stoppie detected in the app (front down against the way while braking)\n'
+    '# p,t_us,start_us,1|0 = answer to the stoppie at start_us (1 = "Stimmt")\n'
+    '# m,t_us = "Wheelie verpasst" pressed; n,t_us = "Sprung verpasst" pressed; q,t_us = "Stoppie verpasst" pressed\n'
     '# mount up_xyz forward_xyz = the mount the fusion started from (the last ride), if any\n'
     '# range accel_mps2 gyro_rads = the sensors\' maximum range, if known\n';
 
@@ -134,6 +137,15 @@ String jumpAnswerLine(DateTime at, {required int startUs, required bool yes}) =>
     'k,${at.microsecondsSinceEpoch},$startUs,${yes ? 1 : 0}\n';
 
 String jumpMissedLine(DateTime at) => 'n,${at.microsecondsSinceEpoch}\n';
+
+String stoppieEventLine(StoppieEvent e) => 's,${e.startUs},'
+    '${(e.duration.inMicroseconds / 1e6).toStringAsFixed(2)},${e.maxTiltDeg.toStringAsFixed(1)},'
+    '${e.decel.toStringAsFixed(2)},${e.landingG.toStringAsFixed(2)}\n';
+
+String stoppieAnswerLine(DateTime at, {required int startUs, required bool yes}) =>
+    'p,${at.microsecondsSinceEpoch},$startUs,${yes ? 1 : 0}\n';
+
+String stoppieMissedLine(DateTime at) => 'q,${at.microsecondsSinceEpoch}\n';
 
 /// Kurz genug für 30 MB je Stunde, genau genug für 0,01 m/s².
 String _num(double v) => v.isFinite ? v.toStringAsFixed(4) : '';
@@ -237,6 +249,9 @@ class SensorLogger {
         case JumpEvent():
           _buffer.write(jumpEventLine(event));
           unawaited(_notices.jump(event, file: file.path));
+        case StoppieEvent():
+          _buffer.write(stoppieEventLine(event));
+          unawaited(_notices.stoppie(event, file: file.path));
       }
     }
   }

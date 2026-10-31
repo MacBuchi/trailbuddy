@@ -95,6 +95,8 @@ PEAK_MAX_G = 8.0
 UPRIGHT_AFTER_S = 1.0
 UPRIGHT_PITCH_DEG = 30.0
 UPRIGHT_ROLL_DEG = 45.0
+STOPPIE_MAX_S = 3.0           # longer with the front down is terrain, not a stoppie
+STOPPIE_LANDING_S = 0.5       # the rear comes down within this after the end
 
 
 # ------------------------------------------------------------ vectors
@@ -665,6 +667,50 @@ def wheelies(fused: Fused, tilt_deg: float, min_s: float, raw: bool = False) -> 
     return out
 
 
+def stoppies(fused: Fused, tilt_deg: float, min_s: float, decel: float) -> list[dict]:
+    """Front down against the way by tilt_deg, from > RIDING_KMH a second
+    before, while braking: the mirror of a wheelie (#36, operator
+    2026-10-31). Ends when the front comes back (tilt_deg - RELEASE_DEG);
+    counts if it lasted min_s to STOPPIE_MAX_S and GPS dv/dt reached
+    -decel on one of its ticks -- a drop-in or roll-in tips the front
+    as far, but without the brake. A stoppie often ends at a standstill,
+    so the speed holds only at the start. The landing (the rear coming
+    down) is the peak along the bike's up axis up to STOPPIE_LANDING_S
+    after the end: written down, not required -- measure first."""
+    release = tilt_deg - RELEASE_DEG
+    out = []
+    start = None
+    s = fused.samples
+    times = [x[0] for x in s]
+    rel = pitch_against_way(fused)
+    for (t, p), tick in zip(rel, fused.ticks):
+        dvdt = tick[6]
+        if start is not None:
+            if math.isnan(p):
+                start = None
+                continue
+            if p <= -release:
+                last = t
+                peak = max(peak, -p)
+                low = min(low, dvdt)
+                continue
+            if min_s <= last - start <= STOPPIE_MAX_S and low <= -decel:
+                i = bisect.bisect_right(times, start)
+                landing = 0.0
+                while i < len(s) and s[i][0] <= t + STOPPIE_LANDING_S:
+                    landing = max(landing, s[i][2])
+                    i += 1
+                out.append({"t": start, "duration": last - start, "max_deg": peak,
+                            "decel": -low, "landing_g": landing})
+            start = None
+            continue
+        if not math.isnan(p) and p <= -tilt_deg and fused.gps.speed(t - 1.0) * 3.6 > RIDING_KMH:
+            start = last = t
+            peak = -p
+            low = dvdt
+    return out
+
+
 def flights(fused: Fused, g_limit: float, min_ms: float) -> list[dict]:
     """Filtered |f| under g_limit for min_ms; the landing is the peak along
     the bike's up axis within LANDING_WINDOW_S; plausible = riding before
@@ -739,18 +785,21 @@ def probes(fused: Fused) -> dict:
     """The checks of research section 6 on any ride: hard braking and
     accelerating bring no pitch, corners bring roll and no pitch (both
     against the gyro reference, which a filter that ignored the
-    accelerometer would also pass), riding straight stays near the way
+    accelerometer would also pass; stoppies left out), riding straight stays near the way
     (which it would not), the gyro bias settles."""
     rel = [p for _, p in pitch_against_way(fused)]
     raw = [p for _, p in pitch_against_way(fused, raw=True)]
     up = [(w["t"], w["t"] + w["duration"]) for w in wheelies(fused, 10.0, 0.5)]
+    # A stoppie pitches while braking, for real; dv/dt spreads a second.
+    down = [(x["t"] - 1.0, x["t"] + x["duration"] + 1.0) for x in stoppies(fused, 10.0, 0.3, 1.0)]
     brake, curve, straight = [], [], []
     for k, tick in enumerate(fused.ticks):
         _, p, roll, _, raw_roll, speed, dvdt, yaw = tick
         if math.isnan(p) or math.isnan(speed) or speed < MOUNT_MIN_MPS:
             continue
         if abs(dvdt) > 1.5 and abs(yaw) < LONG_YAW:
-            brake.append(k)
+            if not any(a <= tick[0] <= b for a, b in down):
+                brake.append(k)
         elif abs(yaw) > 0.25:
             curve.append(k)
         elif (abs(dvdt) < QUIET_DVDT and abs(yaw) < QUIET_YAW
@@ -839,7 +888,8 @@ def synthetic(seed: int = 1, slip_pitch: bool = False):
     top at 135 s; the mount slips by 60 deg at 150 s (seen at the braking
     from 215 s, riding straight tells nothing); braking again at 230/240/
     250 s; a wheelie at 280 s; a 90 s wheelie at 40 deg from 310 s (no
-    slip: it rides straight). slip_pitch: the mount tips 40 deg front up
+    slip: it rides straight); a stoppie at 410 s, front 18 deg down while
+    braking 3 m/s^2 nearly to a stop, the rear landing with 1.8 g. slip_pitch: the mount tips 40 deg front up
     instead -- a wheelie until the braking shows the slip, and then none.
     Times as in the Dart test."""
     rnd = Noise(seed)
@@ -859,6 +909,10 @@ def synthetic(seed: int = 1, slip_pitch: bool = False):
             v -= 3.0 * (t - 60)
         elif 62 <= t < 64:
             v -= 6.0 - 3.0 * (t - 62)
+        if 410 <= t < 411.5:
+            v -= 3.0 * (t - 410)
+        elif 411.5 <= t < 414:
+            v -= 4.5 - 1.8 * (t - 411.5)
         return v
 
     def attitude(t):
@@ -869,7 +923,8 @@ def synthetic(seed: int = 1, slip_pitch: bool = False):
         pitch = (math.radians(25) * _ramp(t, 90, 92) - math.radians(20) * _ramp(t, 110, 112.5)
                  + math.radians(10) * _ramp(t, 128, 145, rise=3.0)
                  + math.radians(18) * _ramp(t, 135, 137) + math.radians(22) * _ramp(t, 280, 282)
-                 + math.radians(40) * _ramp(t, 310, 400, rise=1.0))
+                 + math.radians(40) * _ramp(t, 310, 400, rise=1.0)
+                 - math.radians(18) * _ramp(t, 410.3, 411.6))
         return mm(mm(_rz(yaw), _ry(-pitch)), _rx(roll)), v, yaw, yaw_rate
 
     acc, gyro, fixes = [], [], []
@@ -887,6 +942,8 @@ def synthetic(seed: int = 1, slip_pitch: bool = False):
             f_w = (0.0, 0.0, 0.0)
         elif 100.5 <= t < 100.55:
             f_w = mv(r_wb, (0.0, 0.0, 3 * G))
+        elif 411.6 <= t < 411.65:
+            f_w = mv(r_wb, (0.0, 0.0, 1.8 * G))
         m = mount1 if t >= 150 else mount0
         f_p = mv(m, mtv(r_wb, f_w))
         rel = mm(mt(prev), r_wb)  # body rotation over dt
@@ -931,6 +988,12 @@ def _self_test() -> None:
         fl = flights(fused, 0.3, 150)
         assert len(fl) == 1 and abs(fl[0]["t"] - 100.0) < 0.05, (method, fl)
         assert fl[0]["plausible"] and 2.5 < fl[0]["peak_g"] < 3.5, (method, fl)
+        st = stoppies(fused, 10.0, 0.3, 1.0)
+        assert len(st) == 1 and abs(st[0]["t"] - 410.5) < 0.3, (method, st)
+        assert 0.5 < st[0]["duration"] < 1.5 and 15 < st[0]["max_deg"] < 19, (method, st)
+        assert 1.5 < st[0]["decel"] and 1.6 < st[0]["landing_g"] < 2.0, (method, st)
+        # The nose down at 110 s tips as far, without the brake.
+        assert [round(x["t"]) for x in stoppies(fused, 10.0, 0.3, -99.0)] == [110, 410], method
         # Only the bias across "up" is observable from gravity; the part
         # about the vertical stays where the gyro left it. Checked before
         # the slip: afterwards a new part becomes observable and settles anew.

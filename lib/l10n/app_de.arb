@@ -5647,11 +5647,11 @@
   "@wheelieNoticeNo": {
     "description": "Dev-App, Wheelie-Messung: Knopf im Banner, Fehlalarm."
   },
-  "wheelieMissedTitle": "Wheelie- und Sprung-Messung läuft",
+  "wheelieMissedTitle": "Wheelie-, Sprung- und Stoppie-Messung läuft",
   "@wheelieMissedTitle": {
     "description": "Dev-App, Wheelie-Messung: Titel der stehenden Benachrichtigung während der Fahrt."
   },
-  "wheelieMissedBody": "Kam nach einem Wheelie oder Sprung kein Banner? Gleich danach „… verpasst“ tippen.",
+  "wheelieMissedBody": "Kam nach einem Wheelie, Sprung oder Stoppie kein Banner? Gleich danach „… verpasst“ tippen.",
   "@wheelieMissedBody": {
     "description": "Dev-App, Wheelie-Messung: Text der stehenden Benachrichtigung."
   },
@@ -5699,6 +5699,29 @@
   "jumpMissedButton": "Sprung verpasst",
   "@jumpMissedButton": {
     "description": "Dev-App, Sprung-Messung: zweiter Knopf der stehenden Benachrichtigung."
+  },
+  "stoppieNoticeTitle": "Stoppie erkannt",
+  "@stoppieNoticeTitle": {
+    "description": "Dev-App, Stoppie-Messung (#36): Titel des Banners nach einem erkannten Stoppie (Hinterrad hoch beim Bremsen)."
+  },
+  "stoppieNoticeBody": "{seconds} s · {degrees}° vorn runter · Bremsen {decel} m/s² — stimmt das?",
+  "@stoppieNoticeBody": {
+    "description": "Dev-App, Stoppie-Messung: Text des Banners. Zahlen schon formatiert.",
+    "placeholders": {
+      "seconds": {
+        "type": "String"
+      },
+      "degrees": {
+        "type": "String"
+      },
+      "decel": {
+        "type": "String"
+      }
+    }
+  },
+  "stoppieMissedButton": "Stoppie verpasst",
+  "@stoppieMissedButton": {
+    "description": "Dev-App, Stoppie-Messung: dritter Knopf der stehenden Benachrichtigung."
   },
   "aboutPreviewTitle": "Entwicklungsversion öffnen",
   "@aboutPreviewTitle": {

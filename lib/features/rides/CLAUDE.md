@@ -232,15 +232,17 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     weiterliefert (Wakelock `allowWakeLock`), zeigt erst die Datei vom
     Gerät. Erste Fahrt (2026-10-30, 17 min): 111 Hz, eine Lücke über
     100 ms — er liefert; ob der Bildschirm aus war, ist nicht notiert.
-- **Wheelie und Sprung mit Rückmeldung** (#36, Wheelie seit 0.143.0,
-  Fusion und Sprung seit 0.144.0, nur Dev-App, hängt am
-  Rohdaten-Schalter): `SensorFusion` (`sensor_fusion.dart`, reine
-  Rechnung, `tool/sensor_fusion.py` in Dart — Halterung, Mahony,
-  Ereignisse; Konzept 3a, Recherche Abschnitt 8) bekommt im Logger jede
-  Beschleunigung, jeden Kreisel-Wert und jedes GPS-Tempo; ein fertiger
-  Wheelie wird Zeile `e`, ein Sprung Zeile `j`, beide ein Banner
-  (`wheelie_notify.dart`), die stehende Benachrichtigung hat „Wheelie
-  verpasst" und „Sprung verpasst". Sechs Fallen:
+- **Wheelie, Sprung und Stoppie mit Rückmeldung** (#36, Wheelie seit
+  0.143.0, Fusion und Sprung seit 0.144.0, Stoppie seit 0.145.0, nur
+  Dev-App, hängt am Rohdaten-Schalter): `SensorFusion`
+  (`sensor_fusion.dart`, reine Rechnung, `tool/sensor_fusion.py` in
+  Dart — Halterung, Mahony, Ereignisse; Konzept 3a, Recherche Abschnitte
+  8 und 9) bekommt im Logger jede Beschleunigung, jeden Kreisel-Wert und
+  jedes GPS-Tempo; ein fertiger Wheelie wird Zeile `e`, ein Sprung Zeile
+  `j`, ein Stoppie Zeile `s`, jedes ein Banner (`wheelie_notify.dart`),
+  die stehende Benachrichtigung hat „Wheelie verpasst", „Sprung
+  verpasst" und „Stoppie verpasst" — drei Knöpfe, mehr zeigt Android
+  nicht; ein viertes Ereignis braucht einen anderen Weg. Sieben Fallen:
   - **EIN Hintergrund-Empfänger je App**: `flutter_local_notifications`
     merkt sich genau einen (`rideConfirmBackgroundResponse`). Die
     Wheelie- und Sprung-Knöpfe laufen deshalb durch ihn —
@@ -270,6 +272,13 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     Kurve), gemeldet wird ein Wheelie erst mit der Front unten, und fällt
     vorher die Halterung weg, war er keiner. Langsamer werden mit der
     Front oben beendet ihn nicht.
+  - **Ein Stoppie ist der Wheelie mit der Front unten, plus Bremse**
+    (GPS-dv/dt ≤ −1 m/s² an einem seiner Takte, 0,3–3 s, Tempo nur eine
+    Sekunde VOR dem Beginn — er endet oft im Stehen). Ohne die Bremse
+    wäre jedes Drop-in einer (die Synthetik bei 110 s). Die Landespitze
+    zählt ab dem Wert NACH dem auslösenden Takt — wie `bisect_right` im
+    Werkzeug —, bis 0,5 s nach dem Ende; der Stoppie wird erst danach
+    gemeldet.
   - **Die Halterung der letzten Fahrt** liegt in
     `rides/sensors/mount.json` (geschrieben alle 60 s und beim Stopp,
     nur eine gelernte) und steht als `# mount,…` im Kopf der neuen Datei;

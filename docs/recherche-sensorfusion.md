@@ -420,6 +420,37 @@ zeigen erst die Abnahmefahrten nach Konzept 8, mit den Antworten auf
 den Messbereich der Sensoren (`# range,…`): Eine Landung am Anschlag
 misst zu wenig.
 
+## 9. Stoppies (2026-10-31, 0.145.0)
+
+Der Spiegel des Wheelies (Betreiber, 2026-10-31): Front runter gegen den
+Weg, beim Bremsen, kurz. Gemessen wird erst, die Startwerte sind locker
+(`stoppies` im Werkzeug, `StoppieEvent` in der App, dieselbe Regel):
+
+- **Beginn**: Pitch gegen den Weg ≤ −10°, eine Sekunde vorher > 8 km/h —
+  das Tempo nur am Anfang, ein Stoppie endet oft im Stehen.
+- **Ende**: die Front wieder über −5°. Er zählt bei 0,3–3 s Dauer und
+  wenn GPS-dv/dt an einem seiner Takte −1,0 m/s² erreicht; ein Drop-in
+  oder Roll-in kippt die Front genauso weit, aber ohne Bremse.
+- **Landung**: die Spitze in der Hochachse des Rads vom Beginn bis 0,5 s
+  nach dem Ende — mitgeschrieben, nicht verlangt.
+- Die Probe „Pitch beim Bremsen" (Abschnitt 6) lässt Stoppies ±1 s
+  weg: Dort neigt sich die Front wirklich.
+- Nose-Manual (auf dem Vorderrad rollen, ohne Bremsen) zählt nicht —
+  macht mit dem MTB kaum jemand (Betreiber, 2026-10-31); die Bremsregel
+  schließt ihn aus.
+
+Synthetisch (beide Sprachen): ein Stoppie bei 410 s, 18° beim Bremsen mit
+3 m/s² fast bis zum Stehen, Landung 1,8 g — gefunden mit 0,93 s, 17°,
+1,8 m/s², 1,85 g; „Front runter" bei 110 s ohne Bremse und hartes
+Bremsen bei 60 s ohne Neigung bleiben still (ohne die Bremsregel käme
+110 s dazu — die Gegenprobe). Auf den Fahrten vom 2026-10-30 (keine
+Stoppies gefahren), Dart und Werkzeug gleich: Fahrt 1 keiner, Fahrt 2
+vier im Schlussstück (0,9–1,6 s, 14–25° unten, Bremsen 1,1–1,8 m/s²,
+Landung 3,6–6,0 g) — vermutlich Schläge beim leichten Bremsen; ab
+2 m/s² wäre keiner übrig, bei 15° noch null (1,0 m/s²). Ob die Schwellen
+so bleiben, zeigen erst angesagte Stoppies mit den Antworten auf
+„Stoppie erkannt" und „Stoppie verpasst".
+
 ## Quellen
 
 - R. Mahony, T. Hamel, J.-M. Pflimlin: Nonlinear Complementary Filters
