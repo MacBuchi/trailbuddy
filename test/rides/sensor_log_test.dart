@@ -32,6 +32,12 @@ class FakeWheelieNotices implements WheelieNotices {
   }
 
   @override
+  Future<void> stoppie(StoppieEvent event, {required String file}) async {
+    shown.add((event, file));
+    calls.add('stoppie');
+  }
+
+  @override
   Future<void> showMissed({required String file}) async => calls.add('showMissed $file');
 
   @override
@@ -85,7 +91,7 @@ void main() {
     await wait();
 
     final lines = (await logFile().readAsString()).split('\n');
-    expect(lines.first, '# trailbuddy sensor log v2');
+    expect(lines.first, '# trailbuddy sensor log v3');
     expect(lines.where((l) => l.startsWith('# mount,') || l.startsWith('# range,')), isEmpty,
         reason: 'ohne Halterung der letzten Fahrt und ohne Messbereich keine Zeile');
     final data = lines.where((l) => l.isNotEmpty && !l.startsWith('#')).toList();
@@ -148,7 +154,7 @@ void main() {
     expect(await logFile().exists(), isFalse);
   });
 
-  test('Wheelie und Sprung in den Strömen: Zeilen e und j, je ein Banner, die Halterung für die nächste Fahrt',
+  test('Wheelie, Sprung und Stoppie in den Strömen: Zeilen e, j und s, je ein Banner, die Halterung für die nächste Fahrt',
       () async {
     // Die Halterung der letzten Fahrt: Telefon flach, oben = z, vorn = x.
     final mountFile = File('${dir.path}/rides/sensors/$kSensorMountFile');
@@ -161,14 +167,23 @@ void main() {
     const g = 9.80665;
     final us = t.toInt();
     // 40 s mit 5 m/s; Front hoch um 25° von 20 bis 23 s (der Kreisel dreht
-    // mit), frei fallend 30,0–30,5 s und Landung mit 3 g.
-    double pitch(double s) => 25 * math.pi / 180 * math.max(0.0, math.min(1.0, math.min((s - 20) / 0.3, (23 - s) / 0.3)));
+    // mit), frei fallend 30,0–30,5 s und Landung mit 3 g; Stoppie: ab 35 s
+    // bremsen mit 2,5 m/s² bis 1 m/s, die Front 18° unten von 35,3 bis
+    // 36,6 s, dann wieder antreten.
+    double ramp(double s, double t0, double t1) => math.max(0.0, math.min(1.0, math.min((s - t0) / 0.3, (t1 - s) / 0.3)));
+    double pitch(double s) => math.pi / 180 * (25 * ramp(s, 20, 23) - 18 * ramp(s, 35.3, 36.6));
+    double speed(double s) => s < 35
+        ? 5.0
+        : s < 36.6
+            ? 5 - 2.5 * (s - 35)
+            : math.min(5.0, 1 + 2 * (s - 36.6));
     for (var i = 0; i < 4000; i++) {
       final s = i / 100;
       final at = us + i * 10000.0;
-      if (i % 100 == 0) gps.add([at, 7.1, 9.2, 4.0, 5.0, 800.0]);
+      if (i % 100 == 0) gps.add([at, 7.1, 9.2, 4.0, speed(s), 800.0]);
       final p = pitch(s);
-      var f = [g * math.sin(p), 0.0, g * math.cos(p)];
+      final dv = (speed(s + 0.005) - speed(s - 0.005)) / 0.01;
+      var f = [g * math.sin(p) + dv * math.cos(p), 0.0, g * math.cos(p) - dv * math.sin(p)];
       if (s >= 30 && s < 30.5) f = [0.0, 0.0, 0.0];
       if (s >= 30.5 && s < 30.55) f = [0.0, 0.0, 3 * g];
       accel.add([at, ...f]);
@@ -178,7 +193,7 @@ void main() {
     await wait();
     await stopSensorLog();
 
-    expect(notices.calls, ['showMissed ${logFile().path}', 'wheelie', 'jump', 'cancelMissed']);
+    expect(notices.calls, ['showMissed ${logFile().path}', 'wheelie', 'jump', 'stoppie', 'cancelMissed']);
     final wheelie = notices.shown[0].$1 as WheelieEvent;
     final jump = notices.shown[1].$1 as JumpEvent;
     expect(notices.shown.map((e) => e.$2), everyElement(logFile().path));
@@ -188,14 +203,20 @@ void main() {
     expect((jump.startUs - us) / 1e6, closeTo(30.0, 0.05));
     expect(jump.landingG, closeTo(3, 0.1));
     expect(jump.plausible, isTrue);
+    final stoppie = notices.shown[2].$1 as StoppieEvent;
+    expect((stoppie.startUs - us) / 1e6, closeTo(35.4, 0.3));
+    expect(stoppie.maxTiltDeg, greaterThan(12));
+    expect(stoppie.decel, greaterThan(kFusionStoppieDecel));
 
     final lines = (await logFile().readAsString()).split('\n');
-    expect(lines.first, '# trailbuddy sensor log v2');
+    expect(lines.first, '# trailbuddy sensor log v3');
     expect(lines, contains('# mount,0.000000,0.000000,1.000000,1.000000,0.000000,0.000000'));
     expect(lines, contains('# range,78.453,34.907'));
     expect(lines.where((l) => l.startsWith('e,')), [wheelieEventLine(wheelie).trim()]);
     expect(lines.where((l) => l.startsWith('j,')), [jumpEventLine(jump).trim()]);
     expect(jumpEventLine(jump), matches(RegExp(r'^j,\d+,0\.\d{3},3\.\d\d,1\n$')));
+    expect(lines.where((l) => l.startsWith('s,')), [stoppieEventLine(stoppie).trim()]);
+    expect(stoppieEventLine(stoppie), matches(RegExp(r'^s,\d+,\d\.\d\d,\d+\.\d,\d\.\d\d,\d\.\d\d\n$')));
 
     final saved = FusionMount.fromJson(jsonDecode(await mountFile.readAsString()))!;
     expect(saved.up.$3, closeTo(1, 1e-3), reason: 'die gelernte Halterung liegt für die nächste Fahrt bereit');
@@ -237,9 +258,19 @@ void main() {
             confirmMissed: noted),
         isTrue);
     expect(confirmed, 2);
+    expect(await handleWheelieResponse(actionId: kStoppieYes, payload: payload, now: at), isTrue);
+    expect(await handleWheelieResponse(actionId: kStoppieNo, payload: payload, now: at), isTrue);
+    expect(
+        await handleWheelieResponse(
+            actionId: kStoppieMissed,
+            payload: encodeWheeliePayload(file: file.path),
+            now: at,
+            confirmMissed: noted),
+        isTrue);
+    expect(confirmed, 3);
     expect(data, ['l,$us,$start,1', 'l,$us,$start,0', 'm,$us']);
     final all = (await file.readAsString()).split('\n').where((l) => l.isNotEmpty && !l.startsWith('#'));
-    expect(all.skip(3), ['k,$us,$start,1', 'k,$us,$start,0', 'n,$us']);
+    expect(all.skip(3), ['k,$us,$start,1', 'k,$us,$start,0', 'n,$us', 'p,$us,$start,1', 'p,$us,$start,0', 'q,$us']);
 
     const trailPayload = '{"dir":"/x","uid":"u","ride":"2026-10-30T09:00:00.000Z","trail":"t"}';
     expect(await handleWheelieResponse(actionId: 'confirm_yes', payload: trailPayload), isFalse);

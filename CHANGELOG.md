@@ -2,6 +2,20 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Stoppies messen
+
+*Version 0.145.0, 2026-10-31*
+
+- Nur in der Entwicklungs-App, mit eingeschalteten Sensor-Rohdaten:
+  Neben Wheelies und Sprüngen erkennt die Messung jetzt auch Stoppies —
+  das Hinterrad hoch beim harten Bremsen. Danach kommt ein Banner
+  „Stoppie erkannt“ mit Dauer, Neigung und Bremsen, dazu „Stimmt“ und
+  „War keiner“; in der Benachrichtigung der Messung gibt es „Stoppie
+  verpasst“.
+- Ein steiles Stück ohne Bremse zählt nicht als Stoppie. Die Schwellen
+  sind erst Startwerte; festgelegt werden sie aus den Antworten. In der
+  normalen App ändert sich nichts.
+
 ## Zurück-Taste am Trail-Blatt
 
 *Version 0.144.1, 2026-10-31*

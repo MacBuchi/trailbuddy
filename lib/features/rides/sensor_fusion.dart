@@ -38,6 +38,12 @@ const kFusionWheelieMinS = 1.0;
 const kFusionFlightG = 0.3;
 const kFusionFlightMinMs = 150.0;
 
+// Stoppie (Betreiber 2026-10-31): Startwerte, locker mit Absicht —
+// gemessen wird mit den Banner-Antworten.
+const kFusionStoppieTiltDeg = 10.0;
+const kFusionStoppieMinS = 0.3;
+const kFusionStoppieDecel = 1.0;
+
 // Stufe 1, Halterung — je GPS-Punkt über die Sekunde davor.
 const _mountMinMps = 2.2;
 const _quietDvdt = 0.3;
@@ -76,6 +82,8 @@ const _peakMaxG = 8.0;
 const _uprightAfterS = 1.0;
 const _uprightPitchDeg = 30.0;
 const _uprightRollDeg = 45.0;
+const _stoppieMaxS = 3.0;
+const _stoppieLandingS = 0.5;
 
 /// Vorausschau: so weit muss das GPS einem Wert voraus sein.
 const _lookAheadS = 1.5;
@@ -126,6 +134,23 @@ class JumpEvent extends FusionEvent {
 
   /// In Fahrt davor und danach, Spitze unter 8 g, Rad danach aufrecht.
   final bool plausible;
+}
+
+/// Front runter gegen den Weg, ab [kFusionStoppieTiltDeg], aus Fahrt und
+/// beim Bremsen ([kFusionStoppieDecel]) für [kFusionStoppieMinS] bis 3 s;
+/// [decel] ist das stärkste Bremsen (m/s², GPS), [landingG] die Spitze in
+/// der Hochachse bis 0,5 s danach — das Hinterrad setzt auf.
+class StoppieEvent extends FusionEvent {
+  const StoppieEvent(
+      {required super.startUs,
+      required super.duration,
+      required this.maxTiltDeg,
+      required this.decel,
+      required this.landingG});
+
+  final double maxTiltDeg;
+  final double decel;
+  final double landingG;
 }
 
 /// Die gelernte Halterung in Telefonachsen — gemerkt für die nächste Fahrt.
@@ -475,6 +500,13 @@ class _Gps {
 
 // --------------------------------------------------------------- Fusion
 
+class _Stoppie {
+  _Stoppie(this.t0, this.t1, this.tEnd, this.peakDeg, this.decel, this.landing);
+
+  final double t0, t1, tEnd, peakDeg, decel;
+  double landing;
+}
+
 class _Flight {
   _Flight(this.t0, this.t1, this.peak);
 
@@ -518,6 +550,9 @@ class SensorFusion {
   double _windowSum = 0;
   double? _flightStart;
   final _flights = <_Flight>[];
+  double? _sStart;
+  double _sLast = 0, _sPeak = 0, _sLow = 0, _sLanding = 0;
+  final _stoppies = <_Stoppie>[];
 
   /// Für den Test und die Nachrechnung.
   int updates = 0, rejected = 0;
@@ -565,6 +600,8 @@ class SensorFusion {
       _finishFlight(f);
     }
     _flights.clear();
+    _stoppies.forEach(_emitStoppie);
+    _stoppies.clear();
     return _take();
   }
 
@@ -699,14 +736,14 @@ class SensorFusion {
         pitch = _deg(math.asin(_dot(r.$3, fwd).clamp(-1.0, 1.0)));
         roll = _deg(math.asin(_dot(r.$3, left).clamp(-1.0, 1.0)));
       }
-      _tick(t, pitch, roll, speed);
+      _tick(t, pitch, roll, speed, dvdt);
     }
     _settleFlights();
   }
 
   // ------------------------------------------------------- Stufe 3
 
-  void _tick(double t, double pitch, double roll, double speed) {
+  void _tick(double t, double pitch, double roll, double speed, double dvdt) {
     // Der Weg folgt dem Pitch über [_roadS] in Fahrt und hält still,
     // solange die Front oben ist — so lange sie oben ist. Aber nur aus
     // einem ruhigen Weg (Pitch [_roadS] lang innerhalb [_holdDeg]): Nach
@@ -728,6 +765,8 @@ class SensorFusion {
     while (t - _ticks.first.$1 > 15) {
       _ticks.removeFirst();
     }
+
+    _stoppieTick(t, rel, dvdt);
 
     final riding = !speed.isNaN && speed * 3.6 > _ridingKmh;
     final start = _wStart;
@@ -769,7 +808,56 @@ class SensorFusion {
     }
   }
 
+  /// Wie der Wheelie, nur mit der Front unten; das Tempo zählt eine
+  /// Sekunde vor dem Beginn — ein Stoppie endet oft im Stehen.
+  void _stoppieTick(double t, double rel, double dvdt) {
+    final start = _sStart;
+    if (start != null) {
+      if (rel.isNaN) {
+        _sStart = null;
+        return;
+      }
+      if (rel <= -(kFusionStoppieTiltDeg - _releaseDeg)) {
+        _sLast = t;
+        _sPeak = math.max(_sPeak, -rel);
+        _sLow = math.min(_sLow, dvdt);
+        return;
+      }
+      final duration = _sLast - start;
+      if (kFusionStoppieMinS <= duration && duration <= _stoppieMaxS && _sLow <= -kFusionStoppieDecel) {
+        _stoppies.add(_Stoppie(start, _sLast, t, _sPeak, -_sLow, _sLanding));
+      }
+      _sStart = null;
+      return;
+    }
+    if (!rel.isNaN && rel <= -kFusionStoppieTiltDeg && _gps.speed(t - 1.0) * 3.6 > _ridingKmh) {
+      _sStart = _sLast = t;
+      _sPeak = -rel;
+      _sLow = dvdt;
+      _sLanding = 0;
+    }
+  }
+
+  void _emitStoppie(_Stoppie s) => _out.add(StoppieEvent(
+      startUs: _us(s.t0),
+      duration: Duration(microseconds: ((s.t1 - s.t0) * 1e6).round()),
+      maxTiltDeg: s.peakDeg,
+      decel: s.decel,
+      landingG: s.landing));
+
   void _flightSample(double t, double fn, double fz) {
+    // Die Landung eines Stoppies: vom Beginn (ohne den Wert, der ihn
+    // auslöste — wie im Werkzeug) bis 0,5 s nach dem Ende.
+    if (_sStart != null) _sLanding = math.max(_sLanding, fz);
+    _stoppies.removeWhere((s) {
+      if (t - s.tEnd > _stoppieLandingS) {
+        _emitStoppie(s);
+        return true;
+      }
+      s.landing = math.max(s.landing, fz);
+      return false;
+    });
+
     _window.add((t, fn));
     _windowSum += fn;
     while (t - _window.first.$1 > _flightSmoothS) {

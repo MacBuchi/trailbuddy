@@ -404,6 +404,13 @@ wollen auch fertig werden"):
    **Danach 📱**: Abnahmefahrten nach Abschnitt 8 (Jump-Line,
    Gegenproben-Trail, Absetzen und Umfallen); die Schwellen gelten nach
    8.4, gezählt aus den Banner-Antworten.
+   4b. **Stoppie mit Rückmeldung** (0.145.0, Betreiber 2026-10-31, nur
+   Dev-App): Front runter gegen den Weg beim Bremsen, im Werkzeug und in
+   Dart gleich (Recherche Abschnitt 9); Banner „Stoppie erkannt", Knopf
+   „Stoppie verpasst", Zeilen `s`, `p`, `q` (Rohdaten v3). Erst messen —
+   ob und wie ein Stoppie in Werte oder Titel eingeht, ist eine
+   Entscheidung zu Abschnitt 11, bevor Schritt 5 oder 6 ihn zeigt.
+   Nose-Manual nicht (Betreiber: macht mit dem MTB kaum jemand).
 5. **Trail-Werte in der App** (ein PR, vorher 3 und 4): Schalter und
    Halterung im Start-Blatt, nur auf Trails, Ereigniszeilen in der
    Fahrt; Werte-Kacheln, AIR-Toast, „Trail geschafft", Zerlege-Blatt,
