@@ -108,6 +108,8 @@ class MainActivity : FlutterActivity() {
      */
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Flutter meldet seinen Rückruf erst an, wenn Dart es sagt (#432).
+        registerOnBackInvokedCallback()
         // Nicht exportiert: Nur die eigene RemoteAction des Fensters ruft ihn.
         ContextCompat.registerReceiver(
             this, pipStopReceiver, IntentFilter(PIP_STOP_ACTION), ContextCompat.RECEIVER_NOT_EXPORTED,
@@ -235,6 +237,18 @@ class MainActivity : FlutterActivity() {
     override fun popSystemNavigator(): Boolean {
         moveTaskToBack(true)
         return true
+    }
+
+    // Zurück geht IMMER an Dart (#432). Ab Android 16 gilt für targetSdk 36
+    // „Predictive Back": Android fragt Flutters Rückruf nur, solange Dart
+    // `setFrameworkHandlesBack(true)` gemeldet hat, sonst legt das System
+    // die App selbst weg. Am Pixel 7 Pro (Android 17) blieb nach einem
+    // Zurück auf der Karte und dem Wiederöffnen das Trail-Blatt offen, und
+    // Zurück ging trotzdem ans System. Mit dem Rückruf von Anfang an und für
+    // immer entscheidet nur noch die Hierarchie in Dart (#175); was dort
+    // keiner nimmt, endet in `popSystemNavigator` oben — wie bis Android 12.
+    override fun setFrameworkHandlesBack(frameworkHandlesBack: Boolean) {
+        super.setFrameworkHandlesBack(true)
     }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {

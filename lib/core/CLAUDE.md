@@ -50,7 +50,16 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
   ruft Flutter `finish()`, und die Karte startete von vorn. Der
   Manifest-Test liest die Kotlin-Zeilen,
   `test/flows/back_navigation_flow_test.dart` den Weg in Dart (Gegenprobe
-  ohne die Regel: drei Tests rot).
+  ohne die Regel: drei Tests rot). **Ab Android 16 (targetSdk 36,
+  „Predictive Back") meldet `MainActivity` Flutters Rückruf in `onCreate`
+  an und behält ihn** (#432, seit 0.144.1; `setFrameworkHandlesBack`
+  reicht immer `true` weiter): Android gibt Zurück sonst nur an Flutter,
+  solange Dart „ich nehme es" gemeldet hat. Am Pixel 7 Pro (Android 17)
+  ging Zurück mit offenem Trail-Blatt ans System, nachdem die App per
+  Zurück weg und wieder geöffnet war — im Widget-Test nicht zu sehen
+  (`handlePopRoute` fragt Dart direkt), nur am Gerät mit Logcat
+  (`WindowOnBackDispatcher`). Kosten: keine Vorschau-Animation zum
+  Startbildschirm.
 - **Der Stall-Wächter** (#356 PR 4, seit 0.127.4, `stall_watch.dart`):
   misst auf dem Gerät, wie lange der UI-Isolate steht. Nur mit
   `--dart-define=STALL_WATCH=true` (Dev-App, `android/CLAUDE.md`), sonst

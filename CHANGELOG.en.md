@@ -2,6 +2,16 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## Back button on the trail sheet
+
+*Version 0.144.1, 2026-10-31*
+
+- From Android 16 on, the back button sometimes sent the app to the
+  background although the trail sheet was open — mostly after leaving
+  the app once and coming back. Back now closes the sheet first, then
+  the selection, and only on the empty map does the app go to the
+  background.
+
 ## Wheelies and jumps from processed sensors
 
 *Version 0.144.0, 2026-10-31*
