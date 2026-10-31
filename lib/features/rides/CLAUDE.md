@@ -318,8 +318,10 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     (`answerAirtimeInApp`: `handleWheelieResponse`, dann das Banner mit
     seiner Kennung weg); antwortet man doch zweimal, nimmt das Werkzeug
     die letzte (Wörterbuch je Beginn). Offen bleiben höchstens fünf
-    Fragen; „Fahrt zu Ende" leert das Fenster. Die Zeichnung
-    (`BikeSidePainter`, Raster 104 × 56 plus 40 Kopfraum, angelehnt an
-    Orbea Rise/Rocky Mountain Altitude) dreht um die Hinterachse bei
-    Front hoch, um die Vorderachse bei Front runter; über 60° schneidet
-    der Rand ab.
+    Fragen; „Fahrt zu Ende" leert das Fenster. Das Rad
+    (`BikeSideView`) ist ein Bild, `assets/airtime/bike_side.png` (vom
+    Betreiber mit Gemini erzeugt, freigestellt: Alpha aus der Helligkeit,
+    512 px), eingefärbt mit `srcIn`; es dreht um die Hinterachse bei Front
+    hoch, um die Vorderachse bei Front runter. Die Achsen stehen in
+    Bildpixeln in `BikeSideView` (an den Reifen gemessen) — wer das Bild
+    tauscht, misst sie neu. Über etwa 60° schneidet der Rand ab.

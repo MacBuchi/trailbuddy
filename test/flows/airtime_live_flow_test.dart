@@ -12,6 +12,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:trailbuddy/features/map/map_screen.dart';
 import 'package:trailbuddy/features/rides/airtime_live.dart';
+import 'package:trailbuddy/features/rides/airtime_live_window.dart';
 import 'package:trailbuddy/features/rides/airtime_message.dart';
 import 'package:trailbuddy/features/rides/ride_providers.dart';
 import 'package:trailbuddy/features/rides/ride_track.dart';
@@ -152,6 +153,12 @@ void main() {
       expect(text('airtime-live-angle'), '28°');
       expect(text('airtime-live-status'), 'Front oben');
       expect(text('airtime-live-running'), '0,3 s · max 28°');
+      // Das Rad kippt mit: Front hoch um die Hinterachse.
+      final bike = tester.widget<BikeSideView>(find.byKey(const ValueKey('airtime-live-bike')));
+      expect(bike.pitchDeg, 28);
+      final turn = tester.widget<Transform>(
+          find.descendant(of: find.byKey(const ValueKey('airtime-live-bike')), matching: find.byType(Transform)));
+      expect(turn.alignment, isA<Alignment>().having((a) => a.x, 'x', lessThan(-0.5)), reason: 'Hinterachse links');
       expect(find.textContaining('Verzug'), findsOneWidget);
 
       // Ans Ende gespielt: Der Ticker hört auf, die Karte kommt zur Ruhe.

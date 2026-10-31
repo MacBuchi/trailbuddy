@@ -191,15 +191,11 @@ class _LiveBody extends StatelessWidget {
             SizedBox(
               width: 120,
               height: 84,
-              child: CustomPaint(
+              child: BikeSideView(
                 key: const ValueKey('airtime-live-bike'),
-                painter: BikeSidePainter(
-                  pitchDeg: pitch ?? 0,
-                  frame: palette.text,
-                  tyre: palette.text,
-                  accent: active ? AppColors.brand : palette.muted,
-                  ground: palette.line,
-                ),
+                pitchDeg: pitch ?? 0,
+                color: active ? palette.accentText : palette.text,
+                ground: palette.line,
               ),
             ),
             const SizedBox(width: 8),
@@ -304,153 +300,63 @@ String _num(AppLocalizations l, double v, int digits) {
   return l.localeName.startsWith('de') ? text.replaceAll('.', ',') : text;
 }
 
-/// Ein Fully von der Seite als gefüllte Silhouette, nach rechts fahrend,
-/// im Raster 104 × 56 — angelehnt an ein (E-)Trail-Fully wie Orbea Rise
-/// oder Rocky Mountain Altitude: 29er mit Stollen und Speichen, flacher
-/// Lenkwinkel, dickes Unterrohr mit Motor, Dämpfer liegend unter dem
-/// Oberrohr, Wippe am Sitzrohr. Von Hand gesetzt, kein fremdes Bild. [pitchDeg] > 0 hebt die Front (Drehung
-/// um die Hinterachse), < 0 das Heck (um die Vorderachse); höchstens 80°.
-class BikeSidePainter extends CustomPainter {
-  const BikeSidePainter(
-      {required this.pitchDeg, required this.frame, required this.tyre, required this.accent, required this.ground});
+/// Die Silhouette eines E-Fullys (`assets/airtime/bike_side.png`, vom
+/// Betreiber mit Gemini erzeugt, 2026-10-31; freigestellt und auf 512 px
+/// verkleinert), eingefärbt in [color]. [pitchDeg] > 0 hebt die Front
+/// (Drehung um die Hinterachse), < 0 das Heck (um die Vorderachse);
+/// höchstens 80°, über dem Rad bleibt Platz bis etwa 60°, darüber schneidet
+/// der Rand ab.
+class BikeSideView extends StatelessWidget {
+  const BikeSideView({super.key, required this.pitchDeg, required this.color, required this.ground});
 
   final double pitchDeg;
-  final Color frame, tyre, accent, ground;
+  final Color color, ground;
 
-  static const _rear = Offset(20, 36);
-  static const _front = Offset(82, 36);
-  static const _wheelR = 18.0;
-  /// Unter dem Reifen: Achshöhe 36 + Radius 18 + 1.
-  static const _groundY = 55.0;
+  static const asset = 'assets/airtime/bike_side.png';
 
-  /// Über dem Rad bleibt Platz, damit es sich bis 60° ganz zeigt; was
-  /// darüber hinausragt, schneidet der Rand ab.
-  static const _headroom = 40.0;
+  /// Maße und Achsen im Bild, in Pixeln (gemessen an den Reifen).
+  static const imageSize = Size(512, 276);
+  static const rearAxle = Offset(97, 178.75);
+  static const frontAxle = Offset(416.75, 178.75);
+
+  /// Wo die Reifen aufsetzen.
+  static const tyreBottom = 273.5;
+
+  /// Kopfraum über dem Bild, als Anteil seiner Höhe.
+  static const headroom = 0.75;
 
   @override
-  void paint(Canvas canvas, Size size) {
-    final scale = math.min(size.width / 104, size.height / (56 + _headroom));
-    canvas.save();
-    canvas.clipRect(Offset.zero & size);
-    canvas.translate((size.width - 104 * scale) / 2 + 2 * scale, size.height - 56 * scale);
-    canvas.scale(scale);
-
-    canvas.drawLine(const Offset(-2, _groundY), const Offset(104, _groundY),
-        Paint()
-          ..color = ground
-          ..strokeWidth = 1.2);
-
+  Widget build(BuildContext context) {
     final pitch = pitchDeg.clamp(-80.0, 80.0);
-    final pivot = pitch >= 0 ? _rear : _front;
-    canvas.translate(pivot.dx, pivot.dy);
-    canvas.rotate(-pitch * math.pi / 180);
-    canvas.translate(-pivot.dx, -pivot.dy);
-    _bike(canvas);
-    canvas.restore();
+    final pivot = pitch >= 0 ? rearAxle : frontAxle;
+    return LayoutBuilder(builder: (context, box) {
+      final scale = math.min(box.maxWidth / imageSize.width, box.maxHeight / (imageSize.height * (1 + headroom)));
+      final w = imageSize.width * scale, h = imageSize.height * scale;
+      final groundY = box.maxHeight - (imageSize.height - tyreBottom) * scale;
+      return ClipRect(
+        child: Stack(
+          children: [
+            Positioned(
+              left: 0,
+              right: 0,
+              top: groundY,
+              child: Container(height: 1.2, color: ground),
+            ),
+            Positioned(
+              left: (box.maxWidth - w) / 2,
+              top: box.maxHeight - h,
+              width: w,
+              height: h,
+              child: Transform.rotate(
+                angle: -pitch * math.pi / 180,
+                alignment: Alignment(
+                    pivot.dx / imageSize.width * 2 - 1, pivot.dy / imageSize.height * 2 - 1),
+                child: Image.asset(asset, color: color, colorBlendMode: BlendMode.srcIn, filterQuality: FilterQuality.medium),
+              ),
+            ),
+          ],
+        ),
+      );
+    });
   }
-
-  void _bike(Canvas canvas) {
-    final solid = Paint()..color = frame;
-    Paint stroke(Color c, double w) => Paint()
-      ..color = c
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = w
-      ..strokeCap = StrokeCap.round;
-
-    // Ein Rohr als gefüllte Fläche, die sich von [wa] auf [wb] verjüngt,
-    // mit runden Enden — so liest es sich als Silhouette, nicht als Strich.
-    void tube(Offset a, Offset b, double wa, double wb, [Paint? paint]) {
-      final d = b - a;
-      final n = Offset(-d.dy, d.dx) / d.distance;
-      final p = paint ?? solid;
-      canvas.drawPath(
-          Path()
-            ..moveTo(a.dx + n.dx * wa / 2, a.dy + n.dy * wa / 2)
-            ..lineTo(b.dx + n.dx * wb / 2, b.dy + n.dy * wb / 2)
-            ..lineTo(b.dx - n.dx * wb / 2, b.dy - n.dy * wb / 2)
-            ..lineTo(a.dx - n.dx * wa / 2, a.dy - n.dy * wa / 2)
-            ..close(),
-          p);
-      canvas.drawCircle(a, wa / 2, p);
-      canvas.drawCircle(b, wb / 2, p);
-    }
-
-    // Räder: Stollenreifen, Speichen, Nabe.
-    final spoke = stroke(tyre, 0.3);
-    for (final axle in [_rear, _front]) {
-      canvas.drawCircle(axle, _wheelR - 1.7, stroke(tyre, 3.0));
-      final knob = Paint()..color = tyre;
-      for (var i = 0; i < 40; i++) {
-        final a = i * math.pi * 2 / 40;
-        final dir = Offset(math.cos(a), math.sin(a));
-        canvas.save();
-        canvas.translate(axle.dx + dir.dx * (_wheelR - 0.1), axle.dy + dir.dy * (_wheelR - 0.1));
-        canvas.rotate(a);
-        canvas.drawRect(const Rect.fromLTWH(-0.5, -0.7, 1.0, 1.4), knob);
-        canvas.restore();
-      }
-      for (var i = 0; i < 28; i++) {
-        final a = i * math.pi * 2 / 28;
-        canvas.drawLine(axle + Offset(math.cos(a), math.sin(a)) * 1.2,
-            axle + Offset(math.cos(a + 0.25), math.sin(a + 0.25)) * (_wheelR - 3.2), spoke);
-      }
-      canvas.drawCircle(axle, 1.4, solid);
-    }
-    // Kassette hinten, Bremsscheibe vorn.
-    canvas.drawCircle(_rear, 4.6, Paint()..color = frame.withValues(alpha: 0.85));
-    canvas.drawCircle(_front, 5.4, stroke(frame, 0.9));
-    canvas.drawCircle(_front, 3.6, stroke(frame, 0.5));
-
-    const bb = Offset(46, 38);
-    const headTop = Offset(66.5, 8.5);
-    const headBottom = Offset(70, 15.5);
-    const crown = Offset(71, 17);
-    const seatJoint = Offset(37, 17.5);
-    const rocker = Offset(38.5, 21);
-    const rockerFront = Offset(47, 21.5);
-    const shockEnd = Offset(56, 27.5);
-
-    // Hinterbau: Kettenstrebe, Sitzstrebe zur Wippe, Wippe.
-    tube(_rear, bb + const Offset(-2, 0), 2.2, 3.4);
-    tube(_rear, rocker, 2.0, 2.4);
-    tube(rocker, rockerFront, 2.6, 2.2);
-    // Dämpfer liegend unter dem Oberrohr, in der Farbe der Phase.
-    tube(rockerFront, shockEnd, 2.6, 1.6, Paint()..color = accent);
-    // Hauptrahmen: dickes Unterrohr mit Motor, Sitzrohr, Oberrohr, Steuerrohr.
-    tube(headBottom, bb, 4.4, 5.6);
-    tube(bb + const Offset(-3, -1), seatJoint, 3.6, 3.0);
-    tube(headTop, seatJoint + const Offset(1, -0.5), 3.2, 2.6);
-    tube(headTop, headBottom, 4.2, 4.6);
-    canvas.drawRRect(
-        RRect.fromRectAndRadius(Rect.fromCenter(center: bb + const Offset(0.5, 1.5), width: 10, height: 6.5),
-            const Radius.circular(2.6)),
-        solid);
-    // Federgabel: Standrohr in der Farbe der Phase, Tauchrohr bis zur Achse.
-    tube(crown, const Offset(74.6, 24.5), 3.4, 2.6, Paint()..color = accent);
-    tube(const Offset(74.6, 24.5), _front, 3.0, 2.2);
-    // Cockpit: Vorbau, Lenker mit Griff.
-    tube(headTop, const Offset(65.3, 5.6), 2.0, 1.8);
-    tube(const Offset(65.3, 5.6), const Offset(63.2, 2.8), 1.4, 1.4);
-    tube(const Offset(62.2, 2.6), const Offset(64.6, 2.9), 2.2, 2.2);
-    // Sattelstütze und Sattel.
-    tube(seatJoint, const Offset(35.2, 6.8), 2.0, 1.7);
-    canvas.drawPath(
-        Path()
-          ..moveTo(29, 5.2)
-          ..quadraticBezierTo(29.5, 3.6, 33, 3.9)
-          ..lineTo(41.5, 4.6)
-          ..quadraticBezierTo(43, 5.0, 41.5, 5.6)
-          ..lineTo(33, 5.6)
-          ..quadraticBezierTo(30, 6.2, 29, 5.2)
-          ..close(),
-        solid);
-    // Kettenblatt und Kurbel mit Pedal.
-    canvas.drawCircle(bb + const Offset(0, 0.5), 3.0, stroke(frame, 1.0));
-    tube(bb + const Offset(0, 0.5), const Offset(50.5, 43.5), 1.6, 1.4);
-    tube(const Offset(49.3, 43.6), const Offset(52.3, 43.6), 1.2, 1.2);
-  }
-
-  @override
-  bool shouldRepaint(BikeSidePainter old) =>
-      old.pitchDeg != pitchDeg || old.frame != frame || old.accent != accent || old.ground != ground;
 }

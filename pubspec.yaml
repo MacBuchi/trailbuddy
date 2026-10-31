@@ -159,6 +159,9 @@ flutter:
     # Die Zeichen der Anmelde-Anbieter (#398) — die Pfade aus Simple Icons
     # (CC0), Google und Microsoft nach ihren Vorgaben; Marken der Anbieter.
     - assets/auth/
+    # Die Silhouette der Live-Ansicht (#36): vom Betreiber mit Gemini
+    # erzeugt, freigestellt; Achsen in `BikeSideView`.
+    - assets/airtime/
 
   # Schriften als Assets, nicht über google_fonts zur Laufzeit: Die App
   # muss offline genauso aussehen. Nur die Schnitte, die das Design nutzt.
