@@ -221,6 +221,10 @@ Karte steht, ist aus sichtbaren Beiträgen gerechnet:**
 - **Schwierigkeit** = Median der sichtbaren S-Grade (Singletrail-Skala,
   von den Buddys eingeschätzt; bei gerader Anzahl der schwerere), mit
   Spanne.
+- **Geplant (#433, Betreiber 2026-10-31):** Meldung und Hinweis werden
+  EIN Eintrag „Melden“ (Status optional, Text und Foto optional), der
+  Zustand bleibt für sich — `docs/konzept-melden.md`. Bis zum Bau gilt
+  das Folgende; der Bau-PR zieht es nach.
 - **Meldung** (bis 0.48.0 „Status"; Rework E7) = offen, gesperrt,
   zerstört, verändert. **Seit 0.49.0 (#101, Patch 013) kein Teil des
   Beitrags mehr**, sondern ein Verlauf (`trail_reports`): Melden darf
