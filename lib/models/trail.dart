@@ -528,6 +528,9 @@ class TrailNote {
     required this.createdAt,
     this.username,
     this.photo,
+    this.reportId,
+    this.pending = false,
+    this.sending = false,
   });
 
   final String id;
@@ -535,6 +538,17 @@ class TrailNote {
   final String userId;
   final String body;
   final DateTime createdAt;
+
+  /// Die Meldung, zu der der Text gehört (#433, Patch 028): Status und
+  /// Text sind EIN Eintrag. null bei Text allein — und wenn die Meldung
+  /// im Aufräumen wegfiel.
+  final String? reportId;
+
+  /// Wartet im Ausgangskorb (#433: Text geht seitdem auch ohne Netz).
+  final bool pending;
+
+  /// Gerade unterwegs (#183), immer mit [pending].
+  final bool sending;
 
   /// Aus dem Embed `author:profiles(...)`.
   final String? username;
@@ -558,7 +572,10 @@ class TrailNote {
       body: body,
       createdAt: createdAt,
       username: username,
-      photo: photo);
+      photo: photo,
+      reportId: reportId,
+      pending: pending,
+      sending: sending);
 
   factory TrailNote.fromJson(Map<String, dynamic> json) {
     final author = json['author'];
@@ -570,8 +587,23 @@ class TrailNote {
       createdAt: DateTime.parse(json['created_at'] as String).toLocal(),
       username: author is Map ? author['username'] as String? : null,
       photo: NotePhoto.fromEmbed(json['photo']),
+      reportId: json['report_id'] as String?,
     );
   }
+}
+
+/// Eine Zeile in „MELDUNGEN" (#433): eine Statusmeldung, ein Text oder
+/// beides — in der Datenbank zwei Zeilen (`trail_notes.report_id`), für
+/// Nutzer ein Eintrag. Wer den Text nicht sehen darf, bekommt die Notiz
+/// gar nicht erst und sieht nur die Meldung.
+class TrailEntry {
+  const TrailEntry({this.report, this.note}) : assert(report != null || note != null);
+
+  /// Nur [ReportKind.status].
+  final TrailReport? report;
+  final TrailNote? note;
+
+  DateTime get at => report?.reportedAt ?? note!.createdAt;
 }
 
 /// Ein Foto am Hinweis (#37, Patch 026): EINES je Hinweis, die Bytes im
@@ -944,6 +976,34 @@ class Trail {
       for (var i = 0; i < sorted.length; i++)
         if (i == 0 || sorted[i].createdAt.isAfter(since)) sorted[i],
     ];
+  }
+
+  /// Die Liste „MELDUNGEN" im Blatt (#433, `docs/konzept-melden.md` 6),
+  /// neueste zuerst: Statusmeldungen nach [reportsShown], Texte nach
+  /// [notesShown]; ein Text, der zu einer angezeigten Meldung gehört, steht
+  /// MIT ihr in einer Zeile. Ein Text, dessen Meldung nicht im Verlauf
+  /// steht, bringt sie mit, solange es sie gibt; sonst steht er allein. Den
+  /// Zustand zeigt die Kachel, nicht diese Liste.
+  List<TrailEntry> entriesShown({DateTime? now}) {
+    final notes = notesShown(now: now);
+    final byReport = {for (final n in notes) ?n.reportId: n};
+    final used = <String>{};
+    final out = <TrailEntry>[];
+    for (final r in reportsShown(now: now)) {
+      if (r.kind != ReportKind.status) continue;
+      final n = byReport[r.id];
+      if (n != null) used.add(n.id);
+      out.add(TrailEntry(report: r, note: n));
+    }
+    final statusById = {
+      for (final r in reports)
+        if (r.kind == ReportKind.status) r.id: r,
+    };
+    for (final n in notes) {
+      if (used.contains(n.id)) continue;
+      out.add(TrailEntry(report: statusById[n.reportId], note: n));
+    }
+    return out..sort((a, b) => b.at.compareTo(a.at));
   }
 
   /// Ein Buddy hat in den letzten [kFreshNoteDays] Tagen etwas dazu

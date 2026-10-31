@@ -311,20 +311,28 @@ class FakeTrailRepository implements TrailRepository {
     ];
   }
 
-  /// Die `client_id` je Art, wie der eindeutige Index in `trail_reports`.
-  final _reportClientIds = <String>{};
+  /// Die `client_id` je Art, wie der eindeutige Index in `trail_reports`:
+  /// `<user>/<client_id>/<art>` → Kennung der Meldung.
+  final _reportIdsByClient = <String, String>{};
 
   /// Wie [saveDetailsGate], für das Melden.
   Future<void>? reportGate;
 
-  /// Spiegelt `report_trail` (Patch 013): nur, wer den Trail sieht; der
+  /// Die `client_id` der Texte, wie `trail_notes_client_id_key` (Patch
+  /// 028): Kennung des Textes je `<user>/<client_id>`.
+  final _noteClientIds = <String, String>{};
+
+  /// Spiegelt `report_trail` (Patch 013/028): nur, wer den Trail sieht; der
   /// Server legt `confirmed` fest (gefahren oder vor Ort) und kappt die
-  /// Zeit auf jetzt; dieselbe `client_id` legt nichts an.
+  /// Zeit auf jetzt; dieselbe `client_id` legt nichts an — weder Meldung
+  /// noch Text. Ein Text hängt mit `report_id` an der Statusmeldung und
+  /// kommt als Kennung zurück.
   @override
-  Future<void> report({
+  Future<String?> report({
     required String trailId,
     TrailStatus? status,
     int? condition,
+    String? note,
     required bool onSite,
     required DateTime reportedAt,
     required String clientId,
@@ -341,7 +349,9 @@ class FakeTrailRepository implements TrailRepository {
       throw e;
     }
     final me = myId();
-    if (status == null && condition == null) throw StateError('22023: nichts gemeldet');
+    final text = note?.trim() ?? '';
+    if (status == null && condition == null && text.isEmpty) throw StateError('22023: nichts gemeldet');
+    if (text.length > 500) throw StateError('23514: Länge ${text.length}');
     if (!_canSeeTrail(trailId)) throw StateError('42501: Trail nicht sichtbar');
     if (condition != null && (condition < kConditionMin || condition > kConditionMax)) {
       throw StateError('23514: Zustand $condition');
@@ -351,10 +361,18 @@ class FakeTrailRepository implements TrailRepository {
             r.trailId == trailId && r.userId == me && r.ridden);
     final now = DateTime.now();
     final at = reportedAt.isAfter(now) ? now : reportedAt;
+    String? statusId;
     for (final kind in [if (status != null) ReportKind.status, if (condition != null) ReportKind.condition]) {
-      if (!_reportClientIds.add('$me/$clientId/${kind.db}')) continue;
+      final key = '$me/$clientId/${kind.db}';
+      if (_reportIdsByClient[key] case final id?) {
+        if (kind == ReportKind.status) statusId = id;
+        continue;
+      }
+      final id = 'report-${newClientId()}';
+      _reportIdsByClient[key] = id;
+      if (kind == ReportKind.status) statusId = id;
       reports.add(TrailReport(
-        id: 'report-${newClientId()}',
+        id: id,
         trailId: trailId,
         userId: me,
         kind: kind,
@@ -364,13 +382,28 @@ class FakeTrailRepository implements TrailRepository {
         reportedAt: at.toLocal(),
       ));
     }
+    if (text.isEmpty) return null;
+    final known = _noteClientIds['$me/$clientId'];
+    if (known != null) return known;
+    final id = 'note-${newClientId()}';
+    _noteClientIds['$me/$clientId'] = id;
+    notes.add(TrailNote(
+      id: id,
+      trailId: trailId,
+      userId: me,
+      body: text,
+      createdAt: at.toLocal(),
+      reportId: statusId,
+    ));
+    return id;
   }
 
   /// Eine Meldung von [userId], ohne Prüfung — für Ausgangslagen in Tests.
-  void seedReport(String userId, String trailId,
+  String seedReport(String userId, String trailId,
       {TrailStatus? status, int? condition, bool confirmed = true, DateTime? at}) {
+    final id = 'report-${newClientId()}';
     reports.add(TrailReport(
-      id: 'report-${newClientId()}',
+      id: id,
       trailId: trailId,
       userId: userId,
       kind: status != null ? ReportKind.status : ReportKind.condition,
@@ -379,6 +412,7 @@ class FakeTrailRepository implements TrailRepository {
       confirmed: confirmed,
       reportedAt: at ?? DateTime.now(),
     ));
+    return id;
   }
 
   final notes = <TrailNote>[];
@@ -405,6 +439,7 @@ class FakeTrailRepository implements TrailRepository {
             createdAt: n.createdAt,
             username: usernames[n.userId],
             photo: _photoVisible(n) ? notePhotos[n.id] : null,
+            reportId: n.reportId,
           ),
     ];
   }
@@ -480,9 +515,9 @@ class FakeTrailRepository implements TrailRepository {
         NotePhoto(key: key, expiresAt: expiresAt ?? DateTime.now().add(const Duration(days: 90)));
   }
 
-  /// Spiegelt `notes_insert` und den Check der Tabelle: nur, wer den
-  /// Trail sieht, 1–500 Zeichen.
-  @override
+  /// Ein Text allein, wie ihn ein Client bis 0.146 direkt einfügte
+  /// (`notes_insert`, Check der Tabelle: nur, wer den Trail sieht, 1–500
+  /// Zeichen) — für Ausgangslagen in Tests.
   Future<String> addNote({required String trailId, required String body}) async {
     final me = myId();
     if (!_canSeeTrail(trailId)) {
@@ -794,7 +829,7 @@ class FakeTrailRepository implements TrailRepository {
   }
 
   /// Ein Hinweis von [userId], ohne Prüfung — für Ausgangslagen in Tests.
-  String seedNote(String userId, String trailId, String body, {DateTime? at}) {
+  String seedNote(String userId, String trailId, String body, {DateTime? at, String? reportId}) {
     final id = 'note-${newClientId()}';
     notes.add(TrailNote(
       id: id,
@@ -802,6 +837,7 @@ class FakeTrailRepository implements TrailRepository {
       userId: userId,
       body: body,
       createdAt: at ?? DateTime.now(),
+      reportId: reportId,
     ));
     return id;
   }

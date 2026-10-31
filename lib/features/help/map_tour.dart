@@ -105,7 +105,6 @@ abstract final class SheetCoach {
   static const grade = 'sheet.grade';
   static const ownGrade = 'sheet.ownGrade';
   static const contribution = 'sheet.contribution';
-  static const addNote = 'sheet.addNote';
   static const report = 'sheet.report';
   static const showOnMap = 'sheet.showOnMap';
 

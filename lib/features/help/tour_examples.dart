@@ -225,32 +225,14 @@ class _ExampleTrailSheet extends StatelessWidget {
               child: TextButton(onPressed: _nothing, child: Text(l.sheetContribution)),
             ),
             const SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(
-                  child: CoachAnchor(
-                    id: SheetCoach.addNote,
-                    child: FilledButton.icon(
-                      style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(48)),
-                      onPressed: _nothing,
-                      icon: const Icon(Icons.add_comment_outlined),
-                      label: Text(l.noteAdd),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: CoachAnchor(
-                    id: SheetCoach.report,
-                    child: OutlinedButton.icon(
-                      style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
-                      onPressed: _nothing,
-                      icon: const Icon(Icons.flag_outlined),
-                      label: Text(l.sheetReport),
-                    ),
-                  ),
-                ),
-              ],
+            CoachAnchor(
+              id: SheetCoach.report,
+              child: FilledButton.icon(
+                style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(48)),
+                onPressed: _nothing,
+                icon: const Icon(Icons.flag_outlined),
+                label: Text(l.sheetReport),
+              ),
             ),
             Align(
               alignment: Alignment.centerLeft,

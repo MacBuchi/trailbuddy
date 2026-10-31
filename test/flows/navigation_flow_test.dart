@@ -358,7 +358,7 @@ void main() {
     expect(find.byKey(const ValueKey('nav-head')), findsOneWidget);
     expect(textIn('nav-head'), contains('AM TRAILKOPF'));
     expect(textIn('nav-head'), contains('ROSSKOPF SÜD'));
-    expect(textIn('nav-head-note'), contains('HINWEIS · JAN'));
+    expect(textIn('nav-head-note'), contains('MELDUNG · JAN'));
     expect(textIn('nav-head-note'), contains('Baum quer'));
 
     // Auf dem Trail, rollend: die schmale Leiste mit dem Rest und dem Hinweis.

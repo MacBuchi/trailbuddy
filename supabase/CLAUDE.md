@@ -103,3 +103,33 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     Dienst (Upload in den eigenen/fremden Ordner, Lesen als Buddy und
     Fremder, „erledigt", Abräumen durch den Bot). Der Dry Run startet
     dafür `storage-api` mit (`config.toml`, `ci_supabase_start.sh`).
+- **Hinweis und Meldung als ein Eintrag** (Patch 028, #433;
+  `docs/konzept-melden.md`): Beide Tabellen bleiben, verbunden über
+  `trail_notes.report_id` (`on delete set null`: fällt die Meldung im
+  Aufräumen weg, bleibt der Text). Vier Dinge, die man wissen muss:
+  - **`report_trail(…, note)` schreibt beides in EINER Transaktion** und
+    gibt die Kennung des Textes zurück. Die alte Signatur ist im selben
+    Patch gefallen (drop + create, weil sich der Rückgabetyp ändert);
+    Clients bis 0.146 rufen ohne `note`, der Default nimmt es an.
+    `client_id` macht auch den Text idempotent
+    (`trail_notes_client_id_key`). **`#variable_conflict use_column`**:
+    Die Parameter heißen wie Spalten (PostgREST ruft mit Namen), und
+    `on conflict (user_id, client_id)` wäre sonst mehrdeutig.
+  - **Eine Push statt zwei**: `push_on_note` hängt den Text einer
+    BESTÄTIGTEN Meldung an die wartende Statuszeile desselben Absenders
+    (`push_outbox.status_note_id`) und legt für diesen Empfänger keine
+    Hinweiszeile an. Eigene Spalte, weil `note_id` per Cascade die ganze
+    Zeile nimmt — „erledigt" vor dem Versand nähme sonst die Warnung mit.
+    `push_trail_text` zählt Status und Text zusammen als „Meldungen".
+  - **`notes_insert`**: eine `report_id` nur an die eigene Meldung zum
+    selben Trail (Clients bis 0.146 fügen weiter direkt ein).
+  - **Sichtbarkeit unverändert**: `reports_select` und `notes_select`
+    sind dieselbe Regel (Meldender + direkte Buddys, nicht bei „privat").
+    Das Konzept hatte für den Status anderes angenommen; der Betreiber hat
+    am 2026-10-31 „wie heute" entschieden.
+  `matcher_check.sql` Block 31 (Gegenproben: ohne den Ausschluss in
+  `push_on_note` rot, mit `reports_select` für alle Sichtbaren rot),
+  `push_flush_check.sh` Fall 3f. Lokal geprüft mit
+  `tool/schema_local_test.sh` in einem `postgis/postgis:16-3.4`-Container
+  (`docker run -v "$PWD":/src:ro -w /src … tool/schema_local_test.sh`,
+  `TB_TEST_DIR=/tmp/…`), beide Wege, Dumps gleich.

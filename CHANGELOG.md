@@ -2,6 +2,26 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Hinweis und Meldung sind eins
+
+*Version 0.147.0, 2026-10-31*
+
+- Im Trail-Blatt gibt es nur noch einen Knopf: „Melden“. Darin wählst du
+  wahlweise, ob der Trail gesperrt, zerstört, verändert oder wieder offen
+  ist, und schreibst dazu, was los ist — auf Wunsch mit Foto. Text allein
+  geht auch.
+- Unten im Blatt steht alles in einer Liste „Meldungen“: „Gesperrt“ mit
+  dem Text und dem Foto darunter, als eine Zeile. Deine Buddys bekommen
+  dafür eine Benachrichtigung statt zwei, mit dem Text als zweiter Zeile.
+- Der Status bleibt, bis jemand „wieder offen“ meldet; Text und Foto
+  verschwinden nach 90 Tagen oder mit „Erledigt“. Steht neben dem Text
+  noch eine Warnung, fragt „Erledigt“, ob der Trail wieder offen ist.
+- Den Zustand (kaum fahrbar bis top gepflegt) gibst du jetzt an seiner
+  Kachel oben im Blatt an. Ein Tipp öffnet deine Angabe und wer was
+  gesagt hat.
+- Ohne Netz wartet auch ein Text allein im Ausgangskorb. Ein Foto braucht
+  Empfang; der Dialog sagt es dir.
+
 ## Gesperrte Trails meidet der Planer
 
 *Version 0.146.0, 2026-10-31*

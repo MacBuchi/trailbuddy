@@ -142,7 +142,7 @@ CoachScript trailsTourScript(AppLocalizations l) => CoachScript(
           title: l.tourTrailsNoteTitle,
           text: l.tourTrailsNoteText,
           scene: TrailsCoach.sheet,
-          lit: const [SheetCoach.addNote],
+          lit: const [SheetCoach.report],
           requires: const [TrailsCoach.row],
         ),
         CoachStep(

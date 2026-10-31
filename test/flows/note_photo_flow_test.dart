@@ -1,7 +1,8 @@
-// Ein Foto am Hinweis (#37, Patch 026): eines je Hinweis, sichtbar für
-// genau die, die den Hinweis sehen, 90 Tage. Die Stelle verlässt das Gerät
+// Ein Foto an der Meldung (#37, Patch 026; seit #433 im Dialog „Melden"):
+// eines je Text, sichtbar für genau die, die den Text sehen, 90 Tage. Die Stelle verlässt das Gerät
 // nicht im Bild — was der Fake-Bucket bekommt, ist durch `preparePhoto`
 // gegangen, und der Test liest die Bytes.
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -9,6 +10,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:trailbuddy/core/photo_pipeline.dart';
 import 'package:trailbuddy/core/photo_providers.dart';
 import 'package:trailbuddy/core/widgets/photo_attachment.dart';
+import 'package:trailbuddy/models/trail.dart';
 
 import '../fakes/fake_backend.dart';
 import '../fakes/fake_trails.dart';
@@ -51,10 +53,10 @@ void main() {
   }
 
   Future<void> writeNote(WidgetTester tester, String text, {bool attach = true}) async {
-    await tester.ensureVisible(find.byKey(const ValueKey('add-note')));
-    await tester.tap(find.byKey(const ValueKey('add-note')));
+    await tester.ensureVisible(find.byKey(const ValueKey('trail-report')));
+    await tester.tap(find.byKey(const ValueKey('trail-report')));
     await settle(tester);
-    await tester.enterText(find.byKey(const ValueKey('note-text')), text);
+    await tester.enterText(find.byKey(const ValueKey('report-note')), text);
     await settle(tester);
     if (attach) {
       await tester.tap(find.byKey(kAttachPhotoKey));
@@ -69,11 +71,11 @@ void main() {
     // Die Vorschau zeigt das ENTKERNTE Bild, und der Satz sagt, was bleibt.
     expect(find.bySemanticsLabel('Angehängtes Foto'), findsOneWidget);
     expect(find.textContaining('Ortsangaben im Bild werden entfernt'), findsOneWidget);
-    expect(find.textContaining('90 Tage'), findsOneWidget);
+    expect(find.textContaining('Sehen dieselben wie die Meldung, 90 Tage'), findsOneWidget);
 
-    await tester.tap(find.text('Speichern'));
+    await tester.tap(find.byKey(const ValueKey('report-submit')));
     await settle(tester, frames: 20);
-    expect(find.text('Hinweis mit Foto gespeichert'), findsOneWidget);
+    expect(find.descendant(of: find.byType(SnackBar), matching: find.text('Mit Foto gemeldet')), findsOneWidget);
 
     final note = trails.notes.single;
     final photo = trails.notePhotos[note.id]!;
@@ -107,9 +109,9 @@ void main() {
     await tester.tap(find.byKey(kRemovePhotoKey));
     await settle(tester);
     expect(find.byKey(kAttachPhotoKey), findsOneWidget);
-    await tester.tap(find.text('Speichern'));
+    await tester.tap(find.byKey(const ValueKey('report-submit')));
     await settle(tester, frames: 20);
-    expect(find.text('Hinweis gespeichert'), findsOneWidget);
+    expect(find.descendant(of: find.byType(SnackBar), matching: find.text('Gemeldet')), findsOneWidget);
     expect(trails.notePhotos, isEmpty);
     expect(trails.notePhotoObjects, isEmpty);
   });
@@ -119,9 +121,9 @@ void main() {
     await openTrail(tester, 'Roots', picked: dirtyJpeg());
     trails.failNextPhotoUpload = StateError('Speicher voll');
     await writeNote(tester, 'Baum liegt quer');
-    await tester.tap(find.text('Speichern'));
+    await tester.tap(find.byKey(const ValueKey('report-submit')));
     await settle(tester, frames: 20);
-    expect(find.textContaining('Hinweis gespeichert, das Foto aber nicht'), findsOneWidget);
+    expect(find.textContaining('Gemeldet, das Foto aber nicht'), findsOneWidget);
     expect(trails.notes.single.body, 'Baum liegt quer');
     expect(trails.notePhotos, isEmpty);
     expect(find.text('Baum liegt quer'), findsOneWidget, reason: 'der Hinweis steht im Blatt');
@@ -148,8 +150,8 @@ void main() {
     expect(find.byKey(ValueKey('note-photo-$carlasNote')), findsNothing);
     expect(find.text('Von Carla'), findsNothing);
 
-    await tester.ensureVisible(find.byTooltip('Erledigt — Hinweis entfernen'));
-    await tester.tap(find.byTooltip('Erledigt — Hinweis entfernen'));
+    await tester.ensureVisible(find.byTooltip('Erledigt — Text entfernen'));
+    await tester.tap(find.byTooltip('Erledigt — Text entfernen'));
     await settle(tester);
     expect(find.textContaining('samt Foto'), findsOneWidget);
     await tester.tap(find.text('Entfernen'));
@@ -168,5 +170,40 @@ void main() {
     expect(find.text('Alter Baum'), findsOneWidget);
     expect(find.byKey(ValueKey('note-photo-$mine')), findsNothing);
     expect(trails.notePhotoDownloads, isEmpty, reason: 'nichts geladen');
+  });
+
+  testWidgets('Foto ohne Text geht nicht; mit Status hängt es am selben Eintrag', (tester) async {
+    await openTrail(tester, 'Roots', picked: dirtyJpeg());
+    await tester.ensureVisible(find.byKey(const ValueKey('trail-report')));
+    await tester.tap(find.byKey(const ValueKey('trail-report')));
+    await settle(tester);
+    await tester.tap(find.byKey(const ValueKey('report-status-closed')));
+    await settle(tester);
+    await tester.tap(find.byKey(kAttachPhotoKey));
+    await settle(tester, frames: 20);
+    expect(find.byKey(const ValueKey('report-photo-needs-text')), findsOneWidget);
+    expect(tester.widget<FilledButton>(find.byKey(const ValueKey('report-submit'))).onPressed, isNull,
+        reason: 'ein Foto braucht ein Wort (trail_notes.body ist Pflicht)');
+    await tester.enterText(find.byKey(const ValueKey('report-note')), 'Baum liegt quer');
+    await settle(tester);
+    await tester.tap(find.byKey(const ValueKey('report-submit')));
+    await settle(tester, frames: 20);
+    final note = trails.notes.single;
+    expect(note.reportId, trails.reports.single.id);
+    expect(trails.notePhotos[note.id], isNotNull);
+    expect(find.byKey(ValueKey('note-photo-${note.id}')), findsOneWidget);
+  });
+
+  testWidgets('ohne Netz: die Meldung wartet im Korb, das Foto nicht — und das steht da',
+      (tester) async {
+    await openTrail(tester, 'Roots', picked: dirtyJpeg());
+    trails.failNextReport = const SocketException('offline');
+    await writeNote(tester, 'Baum liegt quer');
+    await tester.tap(find.byKey(const ValueKey('report-submit')));
+    await settle(tester, frames: 20);
+    expect(find.textContaining('das Foto ging nicht mit'), findsOneWidget);
+    expect(trails.notePhotoObjects, isEmpty, reason: 'Bytes liegen nie im Korb');
+    expect(find.text('Baum liegt quer'), findsOneWidget, reason: 'der Text wartet im Blatt');
+    expect(trails.reports.where((r) => r.kind == ReportKind.status), isEmpty);
   });
 }

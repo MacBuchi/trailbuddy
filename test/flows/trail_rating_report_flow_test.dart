@@ -1,7 +1,8 @@
 // Bewertung, Meldung und Zustand im Blatt (#101, Rework Abschnitt 9):
 // Sterne nur mit eigenem Beleg, melden darf jeder, der den Trail sieht —
 // bestätigt nur, wer gefahren oder vor Ort ist; zum Server geht nur das
-// Ja/Nein, nie die Position.
+// Ja/Nein, nie die Position. Seit #433 steht der Zustand an seiner Kachel,
+// nicht mehr im Dialog „Melden".
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -59,6 +60,13 @@ void main() {
     await settle(tester);
   }
 
+  Future<void> openCondition(WidgetTester tester) async {
+    await tester.ensureVisible(find.byKey(const ValueKey('metric-condition')));
+    await tester.tap(find.byKey(const ValueKey('metric-condition')));
+    await settle(tester);
+    expect(find.byKey(const ValueKey('condition-sheet')), findsOneWidget);
+  }
+
   testWidgets('Sterne: blass, bis ich bewerte; Median des Netzes, der höhere', (tester) async {
     await openTrail(tester, 'Roots');
     expect(findLabel('Bewertung 5 von 5 Sternen, 1 Stimme'), findsOneWidget);
@@ -100,9 +108,9 @@ void main() {
       (tester) async {
     await openTrail(tester, 'Bobs Flow');
     await openReport(tester);
-    expect(find.textContaining('Nicht gefahren'), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('report-status-closed')));
     await settle(tester);
+    expect(find.textContaining('Nicht gefahren'), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('report-submit')));
     await settle(tester, frames: 20);
 
@@ -127,7 +135,8 @@ void main() {
     // 48,105° N liegt auf Bobs Linie, 0,0005° O sind ~37 m daneben.
     final fix = FakePositionFix(fakePosition(48.105, 9.0005));
     await openTrail(tester, 'Bobs Flow', positionFix: fix);
-    await openReport(tester);
+    expect(find.text('—'), findsWidgets, reason: 'noch kein Zustand');
+    await openCondition(tester);
     expect(fix.calls, 0, reason: 'nach der Position wird erst auf Tipp gefragt');
     await tester.ensureVisible(find.byKey(const ValueKey('report-on-site')));
     await tester.tap(find.byKey(const ValueKey('report-on-site')));
@@ -136,7 +145,7 @@ void main() {
     expect(find.textContaining('Vor Ort'), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('report-condition-2')));
     await settle(tester);
-    await tester.tap(find.byKey(const ValueKey('report-submit')));
+    await tester.tap(find.byKey(const ValueKey('condition-submit')));
     await settle(tester, frames: 20);
 
     final r = trails.reports.single;
@@ -149,12 +158,12 @@ void main() {
   testWidgets('zu weit weg: bleibt zu bestätigen und sagt es', (tester) async {
     await openTrail(tester, 'Bobs Flow', positionFix: FakePositionFix(fakePosition(48.2, 9.0)));
     await openReport(tester);
+    await tester.tap(find.byKey(const ValueKey('report-status-changed')));
+    await settle(tester);
     await tester.ensureVisible(find.byKey(const ValueKey('report-on-site')));
     await tester.tap(find.byKey(const ValueKey('report-on-site')));
     await settle(tester);
     expect(find.textContaining('entfernt'), findsOneWidget);
-    await tester.tap(find.byKey(const ValueKey('report-status-changed')));
-    await settle(tester);
     await tester.tap(find.byKey(const ValueKey('report-submit')));
     await settle(tester, frames: 20);
     expect(trails.reports.single.confirmed, isFalse);
@@ -164,10 +173,10 @@ void main() {
     final fix = FakePositionFix();
     await openTrail(tester, 'Roots', positionFix: fix);
     await openReport(tester);
-    expect(find.textContaining('Du bist ihn gefahren'), findsOneWidget);
-    expect(find.byKey(const ValueKey('report-on-site')), findsNothing);
     await tester.tap(find.byKey(const ValueKey('report-status-destroyed')));
     await settle(tester);
+    expect(find.textContaining('Du bist ihn gefahren'), findsOneWidget);
+    expect(find.byKey(const ValueKey('report-on-site')), findsNothing);
     await tester.tap(find.byKey(const ValueKey('report-submit')));
     await settle(tester, frames: 20);
     expect(trails.reports.single.confirmed, isTrue);
@@ -191,10 +200,10 @@ void main() {
     final outbox = FakeOutbox();
     trails.failNextReport = const SocketException('offline');
     await openTrail(tester, 'Roots', outbox: outbox);
-    await openReport(tester);
+    await openCondition(tester);
     await tester.tap(find.byKey(const ValueKey('report-condition-4')));
     await settle(tester);
-    await tester.tap(find.byKey(const ValueKey('report-submit')));
+    await tester.tap(find.byKey(const ValueKey('condition-submit')));
     await settle(tester, frames: 20);
 
     final job = outbox.jobs.single as ReportJob;
@@ -202,6 +211,36 @@ void main() {
     expect(job.condition, 4);
     expect(job.onSite, isFalse);
     expect(trails.reports, isEmpty);
+    // Der wartende Zustand steht im Blatt des Zustands, mit „wartet".
+    await openCondition(tester);
     expect(find.textContaining('wartet auf Übertragung'), findsOneWidget);
+  });
+
+  testWidgets('Zustand 1 oder 2: die Rückmeldung bietet an, etwas dazu zu schreiben', (tester) async {
+    await openTrail(tester, 'Roots');
+    await openCondition(tester);
+    await tester.tap(find.byKey(const ValueKey('report-condition-1')));
+    await settle(tester);
+    await tester.tap(find.byKey(const ValueKey('condition-submit')));
+    await settle(tester, frames: 20);
+    expect(trails.reports.single.condition, 1);
+    await tester.tap(find.text('Dazu schreiben'));
+    await settle(tester);
+    // „Melden" ohne Status, das Textfeld ist da.
+    expect(find.byKey(const ValueKey('report-note')), findsOneWidget);
+    for (final s in ['closed', 'destroyed', 'changed', 'open']) {
+      expect(tester.widget<ChoiceChip>(find.byKey(ValueKey('report-status-$s'))).selected, isFalse);
+    }
+  });
+
+  testWidgets('Zustand 3: keine Einladung zum Schreiben', (tester) async {
+    await openTrail(tester, 'Roots');
+    await openCondition(tester);
+    await tester.tap(find.byKey(const ValueKey('report-condition-3')));
+    await settle(tester);
+    await tester.tap(find.byKey(const ValueKey('condition-submit')));
+    await settle(tester, frames: 20);
+    expect(find.text('Zustand gemeldet'), findsOneWidget);
+    expect(find.text('Dazu schreiben'), findsNothing);
   });
 }

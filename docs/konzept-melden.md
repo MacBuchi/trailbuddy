@@ -1,12 +1,11 @@
 # TrailBuddy — Konzept: Hinweis und Meldung werden eins (#433)
 
-Stand 2026-10-31. Feldbericht aus 0.142.0 (#433): „Hinweis und Meldung
+Stand 2026-10-31, gebaut in 0.147.0 (Patch 028). Feldbericht aus 0.142.0 (#433): „Hinweis und Meldung
 müssen wir irgendwie zusammenfassen, das macht keinen Sinn, das
 aufzutrennen. Das Foto-Feature dafür ist schon gut. […] Was ich aber
 trennen würde, ist der Trail-Zustand, denn der ist eher langfristig und
 nicht einfach eine Meldung.“ Dieses Konzept beschreibt, wie das gebaut
-wird. Bis der Bau gemergt ist, gilt `konzept-trails.md` Abschnitt 3 in
-der heutigen Form; der Bau-PR zieht ihn nach.
+wurde; `konzept-trails.md` Abschnitt 3 ist nachgezogen.
 
 ## 1. Heute
 
@@ -16,7 +15,7 @@ Im Trail-Blatt gibt es drei Dinge, und zwei davon tun fast dasselbe:
 |---|---|---|---|
 | Inhalt | Text bis 500 Zeichen, ein Foto (#37) | offen / gesperrt / zerstört / verändert | 1–5 |
 | Tabelle | `trail_notes` (+ `trail_note_photos`) | `trail_reports`, `kind = 'status'` | `trail_reports`, `kind = 'condition'` |
-| Sehen | Autor und seine direkten Buddys, die den Trail sehen; nicht bei „privat“ | jeder, der den Trail sieht (`can_see_trail`) | wie Meldung |
+| Sehen | Autor und seine direkten Buddys, die den Trail sehen; nicht bei „privat“ | dieselben (`reports_select`) — bis zum Bau stand hier fälschlich „jeder, der den Trail sieht“; das gilt nur fürs Schreiben | wie Meldung |
 | Dauer | 90 Tage, der jüngste je Autor bleibt; „erledigt“ entfernt; Foto 90 Tage hart | bleibt, bis jemand anderes meldet; Verlauf 90 Tage | dauerhaft mit Alter |
 | Bestätigt | — | gefahren oder vor Ort (`report_trail`) | wie Meldung |
 | Wirkt auf | gelber Rand „neuer Hinweis“, Push | Warnfarbe, Filter „Gemeldet“, Planer (#434), Push | Linienstil, Wort in der Liste |
@@ -46,6 +45,14 @@ Wortlaut der Antworten in #433:
    Foto sehen nur die direkten Buddys des Verfassers (Regel des
    Hinweises).
 
+   **Nachtrag beim Bau (Betreiber 2026-10-31):** Die „Regel der
+   Meldung" ist dieselbe wie die des Hinweises — `reports_select` zeigt
+   eine Meldung nur dem Meldenden und seinen direkten Buddys. Eine echte
+   Trennung hätte Meldungen für Fremde geöffnet, gegen Konzept 12. Die
+   Antwort auf die Rückfrage: **wie heute, nur Buddys**. Status und Text
+   sehen also dieselben; die Trennung unten in den Tabellen bleibt
+   trotzdem richtig, wegen der verschiedenen Dauer (Entscheidung 2).
+
 ## 3. Das Modell: ein Eintrag, zwei Zeilen
 
 Für Nutzer gibt es nur noch **eine Meldung**: optional ein Status,
@@ -65,12 +72,14 @@ nur die **Verbindung**:
   Statuszeile im Aufräumen (`sweep_old_reports`) weg, bleibt der Text
   als Eintrag ohne Status stehen. Andersherum nimmt „erledigt“ den Text
   mit, und der Status bleibt (Entscheidung 2).
-- Wer nur den Status sieht (kein Buddy des Verfassers), sieht die
-  Notiz nicht. Die RLS von `trail_notes` bleibt, wie sie ist. Ein
+- Die RLS beider Tabellen bleibt, wie sie ist (Nachtrag zu 4). Ein
   Fremder kann auch über `report_id` nichts erfahren: Die Kennung steht
-  in der Notiz, die er nicht lesen darf, und nicht in der Meldung.
+  in der Notiz, die er nicht lesen darf, und nicht in der Meldung. Eine
+  `report_id` darf nur auf die EIGENE Meldung zum selben Trail zeigen
+  (`notes_insert`).
 - **Geschrieben wird in einem Aufruf.** `report_trail` bekommt einen
-  optionalen Text (`p_note text default null`), legt die Meldung an und
+  optionalen Text (`note text default null` — ohne `p_`, wie die
+  übrigen Parameter, die PostgREST mit Namen ruft), legt die Meldung an und
   hängt die Notiz mit `report_id` daran, beides in einer Transaktion.
   Die Funktion gibt die Kennung der Notiz zurück, damit die App das
   Foto anhängen kann (wie heute nach `addNote`, „der Hinweis ist das
@@ -85,10 +94,9 @@ nur die **Verbindung**:
   weiter Netz, weil Bytes nicht im Korb liegen sollen. Ohne Netz sagt
   der Dialog das und bietet an, den Text allein zu senden.
 - **Ältere Clients**: Ein Aufruf von `report_trail` ohne `p_note` läuft
-  weiter, weil der Parameter einen Default hat. Ob PostgREST die alte
-  benannte Signatur trotz neuer Überladung eindeutig auflöst, belegt
-  der Dry Run (alte Funktion im selben Patch ersetzen statt eine zweite
-  daneben stellen). Hinweise aus der Zeit vor dem Patch haben keine
+  weiter, weil der Parameter einen Default hat. Die alte Signatur fällt im
+  selben Patch weg (keine Überladung); `tool/schema_check.sh` ruft beide
+  Formen, mit und ohne `note`. Hinweise aus der Zeit vor dem Patch haben keine
   `report_id` und erscheinen als Einträge ohne Status.
 
 Was bleibt, wie es ist: Bestätigt durch Fahren oder „vor Ort“, die
@@ -115,9 +123,9 @@ Hauptfarbe (A13). Der Dialog, von oben nach unten:
    „z. B. Baum ist weggeräumt“.
 3. **Foto** (`PhotoAttachment` wie heute, eines).
 4. **Wer sieht was**, eine Zeile in Gedämpft:
-   „Den Status sehen alle, die den Trail sehen. Text und Foto sehen
-   deine Buddys, 90 Tage lang.“ Ohne Status nur der zweite Satz, bei
-   „privat“ wie heute „nur du“. Die Zeile zum Entfernen der Ortsangaben
+   „Deine Buddys sehen die Meldung; Text und Foto 90 Tage lang.“ Ohne
+   Status „Deine Buddys sehen Text und Foto, 90 Tage lang.“, bei
+   „privat“ wie heute „nur du“ (Nachtrag zu 4). Die Zeile zum Entfernen der Ortsangaben
    aus dem Foto bleibt.
 5. **Bestätigung** (gefahren / „Ich bin vor Ort“) nur, wenn ein Status
    gewählt ist. Für Text allein gibt es nichts zu bestätigen.
@@ -151,9 +159,7 @@ er schon heute mit Namen und Alter.
 Neueste zuerst, jede Zeile ein Eintrag:
 
 - **Status + Text**: Statuswort als Titel („Gesperrt“), darunter Text
-  und Foto-Vorschau, dann Name · Alter · „zu bestätigen“. Sieht der Leser
-  die Notiz nicht (kein Buddy des Verfassers), bleibt es eine
-  Statuszeile wie heute.
+  und Foto-Vorschau, dann Name · Alter · „zu bestätigen“.
 - **Nur Status**: wie die heutige Statuszeile.
 - **Nur Text**: wie der heutige Hinweis.
 
@@ -203,14 +209,16 @@ Feld „Status“, seitdem „Meldung“; jetzt ist „Meldung“ der ganze
 Eintrag). Kurzanleitung, Tour (der Anker `SheetCoach.addNote` fällt
 weg, `SheetCoach.report` bleibt), Beispiele (`tour_examples.dart`),
 „Zeig es mir“ (`highlight_demos.dart`), Push-Texte und
-Datenschutzerklärung ziehen mit, deutsch und englisch (A14). In der
+Datenschutzerklärung ziehen mit, deutsch und englisch (A14). Der orange Rand heißt in Legende, Tour
+und Kurzanleitung „Warnung“ (neben „neue Meldung“ für den gelben stünde
+sonst zweimal „Meldung“). In der
 Datenbank und im Code bleiben `trail_notes`/`note` als Namen. Eine
 Umbenennung brächte nur Risiko und keinen Nutzen.
 
 ## 9. Kernanforderungen
 
-- **A2**: Text und Foto bleiben bei den direkten Buddys. Der Status
-  bleibt bei allen, die den Trail sehen, wie heute. Die neue Spalte
+- **A2**: Status, Text und Foto bleiben bei den direkten Buddys, wie
+  heute. Die neue Spalte
   zeigt in die erlaubte Richtung (Notiz → Meldung), nie umgekehrt.
 - **A6**: keine neue Datenkategorie. Text, Foto und Meldung stehen
   schon in der Datenschutzerklärung; dort ändert sich nur das Wort.
@@ -231,8 +239,8 @@ Sinn ergeben:
 - **Patch 028**: `trail_notes.report_id`, `report_trail(…, p_note)`
   ersetzt die alte Signatur, `push_on_note`/`push_trail_text` wie in
   Abschnitt 7. Dazu Struktur in `schema.sql` und die Saat-Liste.
-  `matcher_check.sql` bekommt einen neuen Block: Fremder sieht Status,
-  nicht Text. „Erledigt“ lässt den Status stehen. Fällt die Meldung im
+  `matcher_check.sql` bekommt einen neuen Block (31): Fremder sieht
+  weder Status noch Text. „Erledigt“ lässt den Status stehen. Fällt die Meldung im
   Aufräumen weg, bleibt die Notiz. Ein doppelter Job erzeugt keine
   zweite Notiz. `push_flush_check.sh` prüft: eine Push mit Text statt
   zwei.
@@ -242,8 +250,8 @@ Sinn ergeben:
   Touren und Beispiele, Changelog in beiden Sprachen, Eintrag in
   `kFeatureHighlights` mit Vorführung.
 - **Fertig, wenn**: Ein Buddy sieht „Gesperrt · Baum liegt quer“ mit
-  Foto als eine Zeile. Ein Fremder mit Sicht auf den Trail sieht nur
-  „Gesperrt“. „Erledigt“ mit „wieder offen“ hebt die Warnung auf, ohne
+  Foto als eine Zeile. Ein Fremder mit Sicht auf den Trail sieht weder
+  Status noch Text (Nachtrag zu 4). „Erledigt“ mit „wieder offen“ hebt die Warnung auf, ohne
   bleibt sie. Nach 90 Tagen steht nur noch der Status. Ein Buddy bekommt
   eine Push statt zwei. Gegenproben für die Sichtbarkeit (Fake und
   `matcher_check.sql`) und für die eine Push.

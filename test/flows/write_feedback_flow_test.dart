@@ -15,6 +15,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:trailbuddy/data/outbox.dart';
 import 'package:trailbuddy/features/trails/trail_providers.dart';
+import 'package:trailbuddy/models/trail.dart';
 
 import '../fakes/fake_backend.dart';
 import '../fakes/fake_outbox.dart';
@@ -137,7 +138,7 @@ void main() {
     await tester.ensureVisible(find.byKey(const ValueKey('trail-report')));
     await tester.tap(find.byKey(const ValueKey('trail-report')));
     await settle(tester);
-    await tester.tap(find.byKey(const ValueKey('report-condition-4')));
+    await tester.tap(find.byKey(const ValueKey('report-status-changed')));
     await settle(tester);
     final net = Completer<void>();
     trails.reportGate = net.future;
@@ -146,7 +147,7 @@ void main() {
     expect(find.textContaining('wird übertragen'), findsWidgets);
     net.complete();
     await settle(tester, frames: 12);
-    expect(trails.reports.single.condition, 4);
+    expect(trails.reports.single.status, TrailStatus.changed);
     expect(find.textContaining('wird übertragen'), findsNothing);
   });
 

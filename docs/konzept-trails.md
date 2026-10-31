@@ -221,15 +221,27 @@ Karte steht, ist aus sichtbaren Beiträgen gerechnet:**
 - **Schwierigkeit** = Median der sichtbaren S-Grade (Singletrail-Skala,
   von den Buddys eingeschätzt; bei gerader Anzahl der schwerere), mit
   Spanne.
-- **Geplant (#433, Betreiber 2026-10-31):** Meldung und Hinweis werden
-  EIN Eintrag „Melden“ (Status optional, Text und Foto optional), der
-  Zustand bleibt für sich — `docs/konzept-melden.md`. Bis zum Bau gilt
-  das Folgende; der Bau-PR zieht es nach.
+- **Ein Eintrag „Melden“** (#433, seit 0.147.0, Patch 028, Betreiber
+  2026-10-31; Plan `docs/konzept-melden.md`): Für Nutzer gibt es nur
+  noch die Meldung — wahlweise ein Status, Text und Foto, mindestens
+  Status oder Text; im Blatt EINE Liste, ein Eintrag je Zeile. In der
+  Datenbank bleiben beide Tabellen (`trail_reports` für den Status,
+  `trail_notes` für Text und Foto), verbunden über
+  `trail_notes.report_id`; geschrieben in EINEM Aufruf. Der Status bleibt,
+  bis jemand „wieder offen“ meldet, der Text läuft nach 90 Tagen oder mit
+  „erledigt“ ab; „erledigt“ neben einer angezeigten Warnung fragt, ob der
+  Trail wieder offen ist. Beide sehen dieselben — die direkten Buddys
+  des Meldenden (Betreiber 2026-10-31: wie heute). Der **Zustand** steht
+  für sich an seiner Kachel. Die beiden folgenden Absätze beschreiben
+  die zwei Hälften des Eintrags.
 - **Meldung** (bis 0.48.0 „Status"; Rework E7) = offen, gesperrt,
   zerstört, verändert. **Seit 0.49.0 (#101, Patch 013) kein Teil des
   Beitrags mehr**, sondern ein Verlauf (`trail_reports`): Melden darf
   jeder, der den Trail SIEHT (Regel der Hinweise, `can_see_trail`) —
   Abweichung von „ohne Beleg kein Beitrag", entschieden am 2026-09-30.
+  Sehen dürfen ihn der Meldende und seine direkten Buddys, die den Trail
+  sehen, nicht bei „privat" (`reports_select`, dieselbe Regel wie beim
+  Text).
   Angezeigt wird die **jüngste bestätigte** Meldung mit ihrem Alter
   („gesperrt, gemeldet vor 14 Monaten"), dazu verblasst die **jüngste
   unbestätigte, wenn sie jünger ist** („zu bestätigen"); eine ältere
@@ -299,10 +311,11 @@ Karte steht, ist aus sichtbaren Beiträgen gerechnet:**
   eigene Aktivitätslink verriete Buddys das eigene Konto dort), und
   übernimmt ihn wie den Namen nur in einen Beitrag ohne Link. Die App
   ruft ihn nie selbst ab.
-- **Hinweise** (#7, entschieden am 2026-09-28) = freier Text zum
-  Trail, der das Warum trägt, das der Status nicht sagen kann („Baum
-  liegt quer nach der zweiten Kehre"). Eine eigene Liste, neueste
-  zuerst, mit Alter, kein Bearbeiten. **Schreiben darf jeder, der den
+- **Text der Meldung** (bis 0.146 „Hinweis", #7, entschieden am
+  2026-09-28) = freier Text zum Trail, der das Warum trägt, das der
+  Status nicht sagen kann („Baum liegt quer nach der zweiten Kehre").
+  Mit Status in derselben Zeile, ohne Status allein; neueste zuerst, mit
+  Alter, kein Bearbeiten. **Schreiben darf jeder, der den
   Trail sieht** — anders als Name, Grad und Status braucht ein Hinweis
   keinen eigenen Beleg: Wer vor dem Baum steht, muss den Trail nicht
   aufgezeichnet haben. Sehen der Autor und seine direkten Buddys, die
@@ -311,18 +324,20 @@ Karte steht, ist aus sichtbaren Beiträgen gerechnet:**
   Trail war. Nach 90 Tagen räumt der Server auf; der jüngste Hinweis
   eines Autors zu einem Trail bleibt, bis ihn jemand entfernt (je Autor,
   weil „der jüngste über alle Netze" eine Rechnung über Netzgrenzen
-  wäre). Beim Melden wird einer angeboten. Die App hebt
+  wäre). Die App hebt
   Trails mit einem neuen, noch nicht gelesenen Hinweis eines Buddys aus
   den letzten sieben Tagen in Karte und Liste hervor; was gelesen ist,
   weiß nur das Gerät. **Seit 0.23.0 (#34) dazu eine Push-Meldung** für
-  bestätigte Meldungen und neue Hinweise — an die direkten Buddys des Autors,
+  bestätigte Meldungen und neue Texte — an die direkten Buddys des Autors,
   die den Trail und seinen Beitrag sehen (dieselben Regeln wie die
   Sichtbarkeit, je Buddy-Beziehung eine Zeile, keine Rechnung über alle;
   Abschnitt 12). **Seit 0.54.0 (Patch 014) mit Inhalt** (Betreiber,
   2026-09-30: „anonym genug"): Trailname und Name des Buddys so, wie der
   Empfänger sie sieht (sein Name für den Trail, sein Alias für den
-  Buddy), das Statuswort, beim Hinweis der Text (140 Zeichen); nie eine
-  Koordinate, nie der Zustand. Ziel bleibt die opake Trail-Kennung.
+  Buddy), das Statuswort, der Text (140 Zeichen); nie eine
+  Koordinate, nie der Zustand. Ziel bleibt die opake Trail-Kennung. Seit
+  0.147.0 (Patch 028) macht eine bestätigte Meldung mit Text EINE Push,
+  der Text steht darunter.
   **Ein Foto am Hinweis** (#37, Betreiber 2026-10-11: am Hinweis, nicht
   am Beitrag, eines je Hinweis): Der Hinweis ist das, was sich ändert,
   das Bild sagt, wie es dort gerade aussieht. Es erbt alles vom Hinweis

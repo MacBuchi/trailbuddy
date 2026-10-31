@@ -44,12 +44,6 @@ abstract class TrailRepository {
   /// Buddys, deren Beitrag nicht privat ist.
   Future<List<TrailNote>> fetchNotes();
 
-  /// Ein Hinweis zu einem Trail, den ich selbst belegt habe — sonst lehnt
-  /// die RLS ab.
-  /// Gibt die Kennung des neuen Hinweises zurück — das Foto (#37) hängt
-  /// sich daran.
-  Future<String> addNote({required String trailId, required String body});
-
   /// Ein Foto an den EIGENEN Hinweis [noteId] (#37, Patch 026): erst Bild
   /// und Vorschau in den Bucket, dann die Zeile — ein Objekt ohne Zeile
   /// liest niemand, eine Zeile ohne Objekt zeigte ein Loch. Der Schlüssel
@@ -67,14 +61,18 @@ abstract class TrailRepository {
   /// und die von Buddys, deren Beitrag nicht privat ist.
   Future<List<TrailReport>> fetchReports();
 
-  /// Meldet [status] und/oder [condition] zu einem Trail, den ich sehe
-  /// (`report_trail`, Patch 013). [onSite] heißt: Die App hat mich eben
-  /// höchstens 200 m von der Linie gesehen — nur das Ja/Nein geht raus,
-  /// nie die Position. [clientId] macht die Wiedervorlage idempotent.
-  Future<void> report({
+  /// Meldet [status], [condition] und/oder einen Text [note] zu einem
+  /// Trail, den ich sehe (`report_trail`, Patch 013/028) — alles in EINEM
+  /// Aufruf, der Text hängt am Status (#433). [onSite] heißt: Die App hat
+  /// mich eben höchstens 200 m von der Linie gesehen — nur das Ja/Nein geht
+  /// raus, nie die Position. [clientId] macht die Wiedervorlage idempotent,
+  /// für Meldung UND Text. Gibt die Kennung des Textes zurück (das Foto,
+  /// #37, hängt sich daran), null ohne Text.
+  Future<String?> report({
     required String trailId,
     TrailStatus? status,
     int? condition,
+    String? note,
     required bool onSite,
     required DateTime reportedAt,
     required String clientId,
@@ -131,7 +129,7 @@ const kReportColumns =
 /// Wie [kDetailsColumns]: Der Embed heißt nach dem Fremdschlüssel, und
 /// `tool/schema_check.sh` fragt genau diese Liste ab.
 const kNoteColumns =
-    'id, trail_id, user_id, body, created_at, '
+    'id, trail_id, user_id, body, created_at, report_id, '
     'author:profiles!trail_notes_user_id_fkey(username), '
     // Das Foto (#37, Patch 026) — mit Fremdschlüssel-Hinweis, weil
     // trail_note_photos auf trail_notes UND profiles zeigt und PostgREST
@@ -213,17 +211,6 @@ class SupabaseTrailRepository implements TrailRepository {
   }
 
   @override
-  Future<String> addNote({required String trailId, required String body}) async {
-    final uid = _client.requireUid;
-    final row = await _client
-        .from('trail_notes')
-        .insert({'trail_id': trailId, 'user_id': uid, 'body': body})
-        .select('id')
-        .single();
-    return row['id'] as String;
-  }
-
-  @override
   Future<void> addNotePhoto(
       {required String noteId, required String photoId, required PreparedPhoto photo}) async {
     final uid = _client.requireUid;
@@ -255,23 +242,27 @@ class SupabaseTrailRepository implements TrailRepository {
   }
 
   @override
-  Future<void> report({
+  Future<String?> report({
     required String trailId,
     TrailStatus? status,
     int? condition,
+    String? note,
     required bool onSite,
     required DateTime reportedAt,
     required String clientId,
   }) async {
     _client.requireUid;
-    await _client.rpc<dynamic>('report_trail', params: {
+    final result = await _client.rpc<dynamic>('report_trail', params: {
       'trail_id': trailId,
       'status': status?.db,
       'condition': condition,
       'on_site': onSite,
       'reported_at': reportedAt.toUtc().toIso8601String(),
       'client_id': clientId,
+      // Erst ab Patch 028 — ohne Text bleibt der Aufruf der alte.
+      'note': ?note,
     });
+    return result as String?;
   }
 
   @override

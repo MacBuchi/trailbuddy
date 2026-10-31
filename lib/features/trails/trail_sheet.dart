@@ -374,9 +374,7 @@ class _TrailSheetState extends ConsumerState<_TrailSheet> {
             TrailMergeSection(trail: trail),
             if (!trail.pending) ...[
               const SizedBox(height: 12),
-              TrailNotesSection(trail: trail, seenBefore: _seenBefore, showAdd: false),
-              const SizedBox(height: 8),
-              TrailReportsSection(trail: trail),
+              TrailEntriesSection(trail: trail, seenBefore: _seenBefore),
             ],
             if (trail.isOwn && !trail.pending) ...[
               const SizedBox(height: 12),
@@ -430,36 +428,20 @@ class _TrailSheetState extends ConsumerState<_TrailSheet> {
               ),
             ],
             const SizedBox(height: 12),
-            // Unten die Wege aus dem Blatt (Design 1i): schreiben (Lime,
-            // die Hauptaktion), melden (#101 — jeder, der den Trail sieht)
-            // und zur Karte.
+            // Unten die Wege aus dem Blatt (Design 1i): melden (Lime, die
+            // Hauptaktion, ganze Breite, A13) — seit #433 EIN Knopf für
+            // Status, Text und Foto; jeder, der den Trail sieht. Darunter
+            // Trailkopf und Karte.
             if (!trail.pending)
-              Row(
-                children: [
-                  Expanded(
-                    child: CoachAnchor(
-                      id: SheetCoach.addNote,
-                      child: FilledButton.icon(
-                      key: const ValueKey('add-note'),
-                      style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(48)),
-                      onPressed: () => addTrailNote(context, ref, trail),
-                      icon: const Icon(Icons.add_comment_outlined),
-                      label: Text(l.noteAdd),
-                    )),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: CoachAnchor(
-                      id: SheetCoach.report,
-                      child: OutlinedButton.icon(
-                      key: const ValueKey('trail-report'),
-                      style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
-                      onPressed: () => reportTrail(context, ref, trail),
-                      icon: const Icon(Icons.flag_outlined),
-                      label: Text(l.sheetReport),
-                    )),
-                  ),
-                ],
+              CoachAnchor(
+                id: SheetCoach.report,
+                child: FilledButton.icon(
+                  key: const ValueKey('trail-report'),
+                  style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(48)),
+                  onPressed: () => reportTrail(context, ref, trail),
+                  icon: const Icon(Icons.flag_outlined),
+                  label: Text(l.sheetReport),
+                ),
               ),
             // „Zum Trailkopf" (#158 Schritt 4) und „Karte" in einer Zeile;
             // die Anfahrt (#151) steht seit #224 als Symbol im Kopf. Den
@@ -999,12 +981,13 @@ class _OpinionTiles extends ConsumerWidget {
           Expanded(
             child: Semantics(
               label: conditionSemantics.isEmpty ? l.conditionNone : l.conditionSemantics(conditionSemantics),
-              button: shown != null,
+              button: !trail.pending,
               excludeSemantics: true,
               child: _Panel(
                 panelKey: const ValueKey('metric-condition'),
                 label: l.sheetPanelCondition,
-                onTap: shown == null ? null : () => showConditionVotesSheet(context, ref, trail),
+                // Immer: Oben im Blatt steht die eigene Angabe (#433).
+                onTap: trail.pending ? null : () => showConditionVotesSheet(context, ref, trail),
                 child: shown == null
                     ? Text('—', style: big.copyWith(color: palette.muted))
                     : Column(

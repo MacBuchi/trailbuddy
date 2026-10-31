@@ -83,6 +83,16 @@ class FeatureHighlight {
 final kFeatureHighlights = <FeatureHighlight>[
   // ─── Highlights ──────────────────────────────────────────────────
   FeatureHighlight(
+    id: 'one-report',
+    since: '0.147.0',
+    kind: HighlightKind.highlight,
+    tab: HighlightTab.trails,
+    icon: Icons.flag_outlined,
+    title: (l) => l.highlightOneReportTitle,
+    text: (l) => l.highlightOneReportText,
+    target: '/trails',
+  ),
+  FeatureHighlight(
     id: 'one-planner',
     since: '0.130.0',
     kind: HighlightKind.highlight,

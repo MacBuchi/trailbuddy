@@ -597,6 +597,21 @@ Map<String, HighlightDemo> highlightDemos(AppLocalizations l) => {
       ),
     ]),
   ),
+  'one-report': HighlightDemo(
+    route: '/trails',
+    script: _demo('one-report', [
+      _openTrailFirst(l),
+      _from(trailsTourScript(l), 'trails.note'),
+      CoachStep(
+        title: l.demoOneReportConditionTitle,
+        text: l.demoOneReportConditionText,
+        scene: TrailsCoach.sheet,
+        lit: [SheetCoach.metrics],
+        requires: [TrailsCoach.row],
+      ),
+      _noTrailYet(l),
+    ]),
+  ),
   'reports': HighlightDemo(
     route: '/trails',
     script: _demo('reports', [

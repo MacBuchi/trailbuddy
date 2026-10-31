@@ -134,9 +134,10 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
   Blatt zeigt von den alten nur den jüngsten (`Trail.notesShown`). Ein
   Hinweis eines Buddys jünger als `kFreshNoteDays` (7), der auf diesem
   Gerät noch nicht im Blatt zu sehen war (`Settings.seenNoteIds`), hebt
-  den Trail hervor — gelber Rand auf der Karte, gelb umrandete Karte mit „neuer
-  Hinweis" in der Liste; eigene zählen nie. Beim Melden bietet der
-  Dialog einen Hinweis an. Entscheidungen des Betreibers
+  den Trail hervor — gelber Rand auf der Karte, gelb umrandete Karte mit „neue
+  Meldung" (bis 0.146 „neuer Hinweis") in der Liste; eigene zählen nie.
+  Seit 0.147.0 ist der Hinweis der Text einer Meldung (#433, unten).
+  Entscheidungen des Betreibers
   vom 2026-09-28; `matcher_check.sql` Block 20 prüft RLS und Aufräumen.
 - **Ein Foto am Hinweis** (#37, seit 0.113.0; Datenbank in
   `supabase/CLAUDE.md`, Patch 026; Vorlage PilzBuddy #532): EIN Foto je
@@ -150,11 +151,14 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     Das Repository nimmt nur ein `PreparedPhoto`; der Fake wirft, wenn
     trotzdem Metadaten ankommen. Gegenprobe ohne die eine Zeile: drei
     Tests in `test/core/photo_pipeline_test.dart` rot.
-  - **Der Hinweis ist das Original.** `addNote` schreibt erst den
-    Hinweis (gibt seit 0.113.0 die Kennung zurück), dann das Foto;
-    scheitert das Foto, steht der Hinweis, und die Meldung sagt beides
-    (`NoteWriteResult.photoError`). Kein Ausgangskorb — ohne Netz
-    scheitert das Schreiben wie bisher sichtbar.
+  - **Der Eintrag ist das Original.** `reportEntry` schreibt erst
+    Meldung und Text (`report_trail` gibt seit Patch 028 die Kennung des
+    Textes zurück), dann das Foto; scheitert das Foto, steht der Eintrag,
+    und die Rückmeldung sagt beides (`ReportWriteResult.photoError`).
+    Ohne Netz geht der Eintrag in den Ausgangskorb, das Foto NICHT
+    (Bytes liegen nie im Korb, `photoDropped`; der Dialog sagt es vorher,
+    wenn `noConnectivityProvider` „kein Netz" meldet). Bis 0.146 schrieb
+    `addNote` den Hinweis direkt, ohne Korb.
   - **Die Vorschau ist der Egress-Hebel**: Das Blatt lädt nur `_s.jpg`
     (~12 KB, je Pfad einmal je Sitzung, `notePhotoThumbProvider`), das
     Bild (~150 KB) erst auf Tipp und nur, solange es offen ist
@@ -220,7 +224,9 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     die Sterne stehen in `rating_stars.dart`.
   - **Ausgangskorb**: `ReportJob` trägt die Zeit des Meldens
     (`createdAt` → `reported_at`) und die `client_id` (eindeutig je
-    Nutzer, Kennung und Art). Ein `DetailsJob` von vor 0.49.0 bringt
+    Nutzer, Kennung und Art — seit Patch 028 auch für den Text, der im
+    SELBEN Aufruf hinausgeht; ein `ReportJob` darf seitdem nur Text
+    tragen). Ein `DetailsJob` von vor 0.49.0 bringt
     seinen Status als `legacyStatus` mit und geht beim Nachholen als
     Meldung raus. `matcher_check.sql` Block 23, `push_flush_check.sh`
     Fall 3b.
@@ -238,6 +244,44 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     fällt beim Schreiben weg) — eine Tabelle wäre eine Lesequittung.
     Liste und Karte reichen die ruhenden Angaben an `passesTrailFilter`
     (`snoozed`), damit Filter und Seite dasselbe sagen.
+- **Ein Eintrag „Melden“** (#433, seit 0.147.0, Patch 028; Plan
+  `docs/konzept-melden.md`, Datenbank in `supabase/CLAUDE.md`): Hinweis
+  und Meldung sind für Nutzer EINE Sache. Ein Knopf „Melden" in ganzer
+  Breite (`trail-report`, Anker `SheetCoach.report`; `SheetCoach.addNote`
+  ist weg), der Dialog: Chips „Der Trail ist …" (keiner vorgewählt,
+  „wieder offen" = `open`), Text, Foto, wer was sieht, die Bestätigung
+  (`ReportConfirmation`) nur mit Status. Bereit, sobald Status ODER Text
+  da ist; ein Foto ohne Text nicht. Sechs Dinge, die man wissen muss:
+  - **Der Knopf liest den Text beim Tippen** (`_note.text`), nicht den
+    vom letzten Bau — im Test gefunden: Status gewählt, Text getippt,
+    sofort gesendet ⇒ der Text fehlte.
+  - **Die Liste ist `Trail.entriesShown()`** (`TrailEntriesSection` in
+    `trail_notes.dart`, Schlüssel `trail-reports`): Statusmeldungen nach
+    `reportsShown`, Texte nach `notesShown`, ein Text an einer angezeigten
+    Meldung in DERSELBEN Zeile (`TrailEntry`). Zeilen-Schlüssel
+    `note-<id>`, ohne Text `report-<id>`. Unbestätigt verblasst nur das
+    Statuswort, nie der Text. Der Zustand steht NICHT in der Liste.
+  - **„Erledigt" neben einer angezeigten Warnung fragt** „Ist der Trail
+    wieder offen?" (`resolve-text-only` / `resolve-reopen`); Ja löscht den
+    Text und meldet `open` mit `onSite: false` (bestätigt nur, wer
+    gefahren ist). Ohne Warnung die alte Rückfrage (`resolve-confirm`).
+  - **Der Zustand steht an seiner Kachel**: `metric-condition` öffnet
+    IMMER `showConditionVotesSheet` (Skala `report-condition-N`,
+    `condition-submit`, dieselbe Bestätigung, darunter die Stimmen samt
+    wartender). Bei 1–2 bietet die SnackBar „Dazu schreiben" an (öffnet
+    „Melden" ohne Status; `persist: false`, #371).
+  - **Wer was sieht**: Status und Text dieselben, die direkten Buddys
+    (Betreiber 2026-10-31, `reportAudience`). Konzept §1/§2 hatte für den
+    Status „jeder, der den Trail sieht" angenommen — das galt nur fürs
+    Schreiben.
+  - **Wartende Texte stehen im Blatt** (`withPendingJobs` legt eine
+    `TrailNote` mit `pending` an, `reportId` auf die wartende
+    Statusmeldung) — ohne Löschknopf.
+  „Hinweis" ist aus der Oberfläche verschwunden; der orange Rand heißt
+  in Legende und Tour „Warnung". Im Code bleiben `trail_notes`/`note`.
+  `test/flows/trail_notes_flow_test.dart` (ein Aufruf, eine Zeile,
+  „wieder offen", Text ohne Netz), `note_photo_flow_test.dart` (Foto am
+  Status, Foto ohne Netz), `trail_rating_report_flow_test.dart` (Kachel).
 - **Suche, Filter, Sortierung der Trail-Liste** (#66, seit 0.32.0,
   `trail_list.dart` pur, `lib/core/search_text.dart`): fehlertolerant wie
   PilzBuddy #395 — `foldSearchText` (klein, ä/ae → a, ohne Leer- und

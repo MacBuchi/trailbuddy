@@ -1,8 +1,10 @@
-// Hinweise für Buddys (Issue #7): „Baum liegt quer". Schreiben darf, wer
-// den Trail sieht; sehen die direkten Buddys, die ihn auch sehen;
-// entfernen, wer ihn sieht („erledigt"). Ein neuer Hinweis eines Buddys
-// hebt den Trail in der Liste hervor, bis man ihn im Blatt gesehen hat,
-// und beim Ändern des Status lässt sich einer gleich mitgeben.
+// Meldungen für Buddys (Issue #7, seit #433 ein Eintrag aus Status, Text
+// und Foto): „Baum liegt quer". Schreiben darf, wer den Trail sieht;
+// sehen die direkten Buddys, die ihn auch sehen; den Text entfernen, wer
+// ihn sieht („erledigt"). Ein neuer Text eines Buddys hebt den Trail in
+// der Liste hervor, bis man ihn im Blatt gesehen hat.
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:trailbuddy/core/app_colors.dart';
@@ -50,6 +52,23 @@ void main() {
     await settle(tester);
   }
 
+  /// „Melden" unten im Blatt, wahlweise mit Status und Text.
+  Future<void> report(WidgetTester tester, {String? status, String? text}) async {
+    await tester.ensureVisible(find.byKey(const ValueKey('trail-report')));
+    await tester.tap(find.byKey(const ValueKey('trail-report')));
+    await settle(tester);
+    if (status != null) {
+      await tester.tap(find.byKey(ValueKey('report-status-$status')));
+      await settle(tester);
+    }
+    if (text != null) {
+      await tester.enterText(find.byKey(const ValueKey('report-note')), text);
+      await settle(tester);
+    }
+    await tester.tap(find.byKey(const ValueKey('report-submit')));
+    await settle(tester, frames: 20);
+  }
+
   testWidgets('neuer Hinweis eines Buddys: hervorgehoben, bis man ihn gesehen hat',
       (tester) async {
     trails.seedNote(bobId, bobsFlow, 'Baum liegt quer nach der zweiten Kehre',
@@ -63,7 +82,7 @@ void main() {
 
     // Seit 0.38.0 (Design 1j) das Wort in Versalien und ein gelber
     // Rahmen um die Karte statt Symbol und getönter Zeile.
-    expect(find.textContaining('NEUER HINWEIS'), findsOneWidget,
+    expect(find.textContaining('NEUE MELDUNG'), findsOneWidget,
         reason: 'nur Bobs Flow — der Hinweis zu Roots ist älter als 7 Tage');
     Card card(String name) =>
         tester.widget<Card>(find.ancestor(of: find.text(name), matching: find.byType(Card)));
@@ -79,13 +98,13 @@ void main() {
     await tester.tap(find.text('Bobs Flow'));
     await settle(tester);
     expect(find.text('Baum liegt quer nach der zweiten Kehre'), findsOneWidget);
-    expect(find.text('bob · gestern gemeldet'), findsOneWidget);
-    expect(find.byTooltip('Hinweis löschen'), findsNothing);
-    expect(find.byTooltip('Erledigt — Hinweis entfernen'), findsOneWidget);
+    expect(find.text('bob · gestern'), findsOneWidget);
+    expect(find.byTooltip('Text löschen'), findsNothing);
+    expect(find.byTooltip('Erledigt — Text entfernen'), findsOneWidget);
 
     await tester.tapAt(const Offset(5, 5));
     await settle(tester);
-    expect(find.textContaining('NEUER HINWEIS'), findsNothing,
+    expect(find.textContaining('NEUE MELDUNG'), findsNothing,
         reason: 'im Blatt gesehen — nicht mehr hervorgehoben');
     expect(glow, findsNothing, reason: 'nur solange ungesehen');
     expect(settings.seenNoteIds, hasLength(1));
@@ -95,7 +114,7 @@ void main() {
     await openTab(tester, 'Trails');
     await settle(tester, frames: 20);
     expect(find.text('Bobs Flow'), findsOneWidget);
-    expect(find.textContaining('NEUER HINWEIS'), findsNothing);
+    expect(find.textContaining('NEUE MELDUNG'), findsNothing);
   });
 
   testWidgets('wer den Trail nur über einen Buddy sieht, darf schreiben und erledigen',
@@ -103,17 +122,11 @@ void main() {
     trails.seedNote(bobId, bobsFlow, 'Baum liegt quer');
     await openTrail(tester, 'Bobs Flow');
 
-    await tester.ensureVisible(find.byKey(const ValueKey('add-note')));
-    await tester.tap(find.byKey(const ValueKey('add-note')));
-    await settle(tester);
-    await tester.enterText(find.byKey(const ValueKey('note-text')), 'Umfahrung links');
-    await settle(tester);
-    await tester.tap(find.text('Speichern'));
-    await settle(tester, frames: 20);
+    await report(tester, text: 'Umfahrung links');
     expect(trails.notes.where((n) => n.userId == annaId).single.trailId, bobsFlow);
 
-    await tester.ensureVisible(find.byTooltip('Erledigt — Hinweis entfernen'));
-    await tester.tap(find.byTooltip('Erledigt — Hinweis entfernen'));
+    await tester.ensureVisible(find.byTooltip('Erledigt — Text entfernen'));
+    await tester.tap(find.byTooltip('Erledigt — Text entfernen'));
     await settle(tester);
     expect(find.textContaining('auch für bob'), findsOneWidget);
     await tester.tap(find.text('Entfernen'));
@@ -122,32 +135,38 @@ void main() {
     expect(find.text('Baum liegt quer'), findsNothing);
   });
 
-  testWidgets('Hinweis schreiben und wieder löschen', (tester) async {
+  testWidgets('Text allein melden und wieder löschen', (tester) async {
     await openTrail(tester, 'Roots');
     expect(find.textContaining('Noch keine.'), findsOneWidget);
 
-    await tester.ensureVisible(find.byKey(const ValueKey('add-note')));
-    await tester.tap(find.byKey(const ValueKey('add-note')));
+    await tester.ensureVisible(find.byKey(const ValueKey('trail-report')));
+    await tester.tap(find.byKey(const ValueKey('trail-report')));
     await settle(tester);
-    expect(find.textContaining('Sehen deine Buddys'), findsOneWidget);
-    await tester.enterText(find.byKey(const ValueKey('note-text')), '  Neuer Drop am Ende ');
+    expect(find.text('Deine Buddys sehen Text und Foto, 90 Tage lang.'), findsOneWidget);
+    expect(find.byKey(const ValueKey('report-confirmation')), findsNothing,
+        reason: 'Text allein gibt es nichts zu bestätigen');
+    expect(tester.widget<FilledButton>(find.byKey(const ValueKey('report-submit'))).onPressed, isNull,
+        reason: 'weder Status noch Text');
+    await tester.enterText(find.byKey(const ValueKey('report-note')), '  Neuer Drop am Ende ');
     await settle(tester);
     // Feldbericht 2026-10-02 (Hänger beim Hinweis schreiben): nachgelesen
     // werden die Hinweise, nicht jede Linie des Netzes.
     final fetches = trails.recordingFetches;
-    await tester.tap(find.text('Speichern'));
+    await tester.tap(find.byKey(const ValueKey('report-submit')));
     await settle(tester, frames: 20);
-    expect(trails.recordingFetches, fetches, reason: 'ein Hinweis ändert keine Linie');
+    expect(trails.recordingFetches, fetches, reason: 'ein Text ändert keine Linie');
+    expect(trails.reports, isEmpty, reason: 'ohne Status keine Meldung');
 
     final note = trails.notes.single;
     expect(note.userId, annaId);
     expect(note.trailId, roots);
     expect(note.body, 'Neuer Drop am Ende');
+    expect(note.reportId, isNull);
     expect(find.text('Neuer Drop am Ende'), findsOneWidget);
-    expect(find.text('Du · heute gemeldet'), findsOneWidget);
+    expect(find.text('Du · heute'), findsOneWidget);
 
-    await tester.ensureVisible(find.byTooltip('Hinweis löschen'));
-    await tester.tap(find.byTooltip('Hinweis löschen'));
+    await tester.ensureVisible(find.byTooltip('Text löschen'));
+    await tester.tap(find.byTooltip('Text löschen'));
     await settle(tester);
     // Im Dialog — „Löschen" steht seit 0.46.0 auch im Blatt (Beitrag).
     await tester.tap(find.descendant(of: find.byType(AlertDialog), matching: find.text('Löschen')));
@@ -181,28 +200,92 @@ void main() {
     expect(find.text('Bobs Hinweis zum Flow'), findsOneWidget);
   });
 
-  testWidgets('beim Melden geht ein Hinweis gleich mit', (tester) async {
+  testWidgets('Status und Text: ein Aufruf, eine Zeile im Blatt', (tester) async {
     await openTrail(tester, 'Roots');
     await tester.ensureVisible(find.byKey(const ValueKey('trail-report')));
     await tester.tap(find.byKey(const ValueKey('trail-report')));
     await settle(tester);
-    expect(find.byKey(const ValueKey('report-note')), findsNothing,
-        reason: 'erst angeboten, wenn etwas gemeldet wird');
+    expect(find.byKey(const ValueKey('report-condition-3')), findsNothing,
+        reason: 'der Zustand steht an seiner Kachel, nicht im Dialog');
     await tester.tap(find.byKey(const ValueKey('report-status-closed')));
     await settle(tester);
-    await tester.enterText(
-        find.byKey(const ValueKey('report-note')), 'Forst sperrt bis Oktober');
+    expect(find.text('Deine Buddys sehen die Meldung; Text und Foto 90 Tage lang.'), findsOneWidget);
+    await tester.enterText(find.byKey(const ValueKey('report-note')), 'Forst sperrt bis Oktober');
     final fetches = trails.recordingFetches;
+    final calls = trails.reportCalls;
     await tester.tap(find.byKey(const ValueKey('report-submit')));
     await settle(tester, frames: 20);
     // Feldbericht 2026-10-02 (Hänger beim Melden): nachgelesen werden
-    // Meldungen und Hinweise, nicht jede Linie des Netzes.
+    // Meldungen und Texte, nicht jede Linie des Netzes.
     expect(trails.recordingFetches, fetches, reason: 'eine Meldung ändert keine Linie');
+    expect(trails.reportCalls, calls + 1, reason: 'Meldung und Text in EINEM Aufruf');
 
     final r = trails.reports.singleWhere((r) => r.userId == annaId && r.trailId == roots);
     expect(r.status, TrailStatus.closed);
     expect(r.confirmed, isTrue, reason: 'Anna hat Roots selbst belegt');
-    expect(trails.notes.single.body, 'Forst sperrt bis Oktober');
-    expect(find.text('Forst sperrt bis Oktober'), findsOneWidget);
+    final note = trails.notes.single;
+    expect(note.body, 'Forst sperrt bis Oktober');
+    expect(note.reportId, r.id, reason: 'der Text gehört zu seiner Meldung');
+    // EINE Zeile: Statuswort und Text im selben Eintrag.
+    final row = find.byKey(ValueKey('note-${note.id}'));
+    expect(row, findsOneWidget);
+    expect(find.descendant(of: row, matching: find.text('Gesperrt')), findsOneWidget);
+    expect(find.descendant(of: row, matching: find.text('Forst sperrt bis Oktober')), findsOneWidget);
+    expect(find.byKey(ValueKey('report-${r.id}')), findsNothing, reason: 'keine zweite Zeile');
+  });
+
+  testWidgets('erledigt neben einer Sperre: fragt nach „wieder offen"', (tester) async {
+    final closed = trails.seedReport(bobId, bobsFlow, status: TrailStatus.closed);
+    trails.seedNote(bobId, bobsFlow, 'Baum liegt quer', reportId: closed);
+    final other = trails.seedReport(bobId, roots, status: TrailStatus.closed);
+    trails.seedNote(bobId, roots, 'Forstarbeiten', reportId: other);
+    await openTrail(tester, 'Bobs Flow');
+
+    // Nein: nur der Text geht, die Sperre bleibt.
+    await tester.ensureVisible(find.byTooltip('Erledigt — Text entfernen'));
+    await tester.tap(find.byTooltip('Erledigt — Text entfernen'));
+    await settle(tester);
+    expect(find.textContaining('Ist der Trail wieder offen?'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('resolve-text-only')));
+    await settle(tester, frames: 20);
+    expect(trails.notes.where((n) => n.trailId == bobsFlow), isEmpty);
+    expect(trails.reports.where((r) => r.trailId == bobsFlow).map((r) => r.status), [TrailStatus.closed]);
+    expect(find.text('Gesperrt'), findsOneWidget, reason: 'die Meldung steht ohne Text da');
+
+    // Ja: Text weg UND „wieder offen" gemeldet. Anna hat Roots belegt,
+    // also bestätigt — die Warnung ist weg.
+    await tester.tapAt(const Offset(5, 5));
+    await settle(tester);
+    await tester.tap(find.text('Roots'));
+    await settle(tester);
+    await tester.ensureVisible(find.byTooltip('Erledigt — Text entfernen'));
+    await tester.tap(find.byTooltip('Erledigt — Text entfernen'));
+    await settle(tester);
+    await tester.tap(find.byKey(const ValueKey('resolve-reopen')));
+    await settle(tester, frames: 20);
+    expect(trails.notes.where((n) => n.trailId == roots), isEmpty);
+    final open = trails.reports.singleWhere((r) => r.userId == annaId && r.trailId == roots);
+    expect(open.status, TrailStatus.open);
+    expect(open.confirmed, isTrue);
+    expect(find.text('Text entfernt, als wieder offen gemeldet'), findsOneWidget);
+  });
+
+  testWidgets('erledigt ohne Warnung: keine Rückfrage nach „wieder offen"', (tester) async {
+    trails.seedNote(bobId, bobsFlow, 'Neuer Drop');
+    await openTrail(tester, 'Bobs Flow');
+    await tester.ensureVisible(find.byTooltip('Erledigt — Text entfernen'));
+    await tester.tap(find.byTooltip('Erledigt — Text entfernen'));
+    await settle(tester);
+    expect(find.textContaining('wieder offen'), findsNothing);
+    expect(find.byKey(const ValueKey('resolve-confirm')), findsOneWidget);
+  });
+
+  testWidgets('Text allein geht ohne Netz in den Ausgangskorb', (tester) async {
+    await openTrail(tester, 'Roots');
+    trails.failNextReport = const SocketException('offline');
+    await report(tester, text: 'Kehre ausgewaschen');
+    expect(trails.notes, isEmpty, reason: 'noch nicht beim Server');
+    expect(find.text('Kehre ausgewaschen'), findsOneWidget, reason: 'wartend im Blatt');
+    expect(find.textContaining('wartet auf Übertragung'), findsOneWidget);
   });
 }

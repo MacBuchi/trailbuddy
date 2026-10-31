@@ -87,32 +87,31 @@ class OutboxRunner {
             }
           case DetailsJob():
             await repository.saveDetails(job.details);
-            if (job.legacyStatus case final status?) {
+            final note = job.note?.trim() ?? '';
+            if (job.legacyStatus != null || note.isNotEmpty) {
               await repository.report(
                 trailId: job.details.trailId,
-                status: status,
+                status: job.legacyStatus,
+                note: note.isEmpty ? null : note,
                 onSite: false,
                 reportedAt: job.legacyStatusAt ?? job.createdAt,
                 clientId: job.id,
               );
             }
-            final note = job.note?.trim() ?? '';
-            if (note.isNotEmpty) {
-              await repository.addNote(trailId: job.details.trailId, body: note);
-            }
           case ReportJob():
+            final note = job.note?.trim() ?? '';
+            // EIN Aufruf für Meldung und Text (#433, Patch 028): Ein
+            // Abriss dazwischen legte vorher beim Nachholen die Meldung
+            // ein zweites Mal an, dann mit Text.
             await repository.report(
               trailId: job.trailId,
               status: job.status,
               condition: job.condition,
+              note: note.isEmpty ? null : note,
               onSite: job.onSite,
               reportedAt: job.createdAt,
               clientId: job.id,
             );
-            final note = job.note?.trim() ?? '';
-            if (note.isNotEmpty) {
-              await repository.addNote(trailId: job.trailId, body: note);
-            }
           case FeedbackJob():
             await feedback.submit(job.type, job.message,
                 appVersion: job.appVersion, clientId: job.id);

@@ -79,6 +79,7 @@ Map<String, dynamic> noteToRow(TrailNote n) => {
       'created_at': n.createdAt.toUtc().toIso8601String(),
       'author': n.username == null ? null : {'username': n.username},
       'photo': n.photo?.toRow(),
+      'report_id': n.reportId,
     };
 
 /// EIN JSON-Text mit dem Konto, dem er gehört.

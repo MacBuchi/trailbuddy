@@ -38,17 +38,19 @@ void main() {
     }
   });
 
-  test('Die Anleitung sagt „Meldung" wie der Melde-Dialog', () {
-    // Bis 0.48.0 hieß die Meldung „Status" (Rework E7). Hier steht die
-    // Beschriftung des Dialogs als Konstante im Text — benennt jemand sie
-    // um, zieht die Anleitung mit, und der Test hält fest, dass das Wort
-    // überhaupt darin vorkommt.
-    expect(kReportFieldLabel, 'Meldung');
+  test('Die Anleitung sagt, was der Melde-Dialog sagt', () {
+    // Bis 0.48.0 hieß das Feld „Status" (Rework E7), bis 0.146 „Meldung";
+    // seit #433 ist „Meldung" der ganze Eintrag und das Feld heißt „Der
+    // Trail ist …". Hier steht die Beschriftung des Dialogs als Konstante
+    // im Text — benennt jemand sie um, zieht die Anleitung mit.
+    expect(kReportFieldLabel, 'Der Trail ist …');
     // Der Dialog liest das Wort seit #209 aus den ARB-Dateien.
     expect(l10nDe.reportFieldLabel, kReportFieldLabel);
     expect(step('Dein Beitrag zum Trail').text, contains(kReportFieldLabel));
-    expect(helpSteps(l10nDe).any((s) => s.text.contains('Status')), isFalse,
-        reason: 'das alte Wort ist zurück');
+    expect(helpSteps(l10nDe).any((s) => s.text.contains('Status:')), isFalse,
+        reason: 'das alte Feldwort ist zurück');
+    expect(helpSteps(l10nDe).any((s) => s.text.contains('Hinweis')), isFalse,
+        reason: '„Hinweis" ist seit #433 eine Meldung');
   });
 
   test('Sichtbarkeit: nur direkte Buddys, keine öffentliche Karte', () {

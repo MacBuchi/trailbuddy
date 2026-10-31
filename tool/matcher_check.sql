@@ -1608,4 +1608,120 @@ begin
                         'der Bot darf abräumen, anon sieht nichts');
 end $$;
 
+\echo -- 31. Hinweis und Meldung als ein Eintrag (Patch 028, #433)
+-- Status und Text sehen die direkten Buddys (Betreiber 2026-10-31: wie
+-- heute, reports_select und notes_select); ein Fremder, der den Trail
+-- selbst fährt, sieht keins von beiden. Ein Aufruf schreibt beides,
+-- zweimal ist einmal, und eine bestätigte Meldung mit Text macht EINE Push.
+do $$
+declare
+  ua uuid := '11111111-1111-4111-8111-111111111111';
+  ub uuid := '22222222-2222-4222-8222-222222222222';
+  ug uuid := '77777777-7777-4777-8777-777777777777';
+  t uuid; rid uuid; nid uuid; again uuid; solo uuid; code text;
+  cid uuid := '00000000-0000-4000-8000-0000000002a8';
+  notes text := 'select count(*) from public.trail_notes where id = %L';
+  closed text := 'select count(*) from public.trail_reports where trail_id = %L and status = ''closed''';
+begin
+  -- Annas Trail; Gina fährt ihn selbst und sieht ihn so, ist aber nicht
+  -- Annas Buddy.
+  t := tb_test.contribute(ua, tb_test.line(400, y0 => 200000));
+  perform tb_test.check(tb_test.contribute(ug, tb_test.jitter(tb_test.line(400, y0 => 200000), 3.0, 0.7)) = t,
+                        'Gina fährt Annas Trail, derselbe Trail');
+  perform tb_test.check(app_internal.can_see_trail(ub, t) and app_internal.can_see_trail(ug, t)
+                        and app_internal.are_friends(ua, ub) and not app_internal.are_friends(ua, ug),
+                        'Bernd (Buddy) und Gina (keiner) sehen den Trail');
+  delete from app_internal.push_outbox where trail_id = t;
+
+  -- Anna ist gefahren: „gesperrt" mit Text, bestätigt, in einem Aufruf.
+  perform tb_test.as_user(ua);
+  nid := public.report_trail(t, 'closed', null, false, null, cid, '  Baum liegt quer  ');
+  perform tb_test.as_owner();
+  select m.id into rid from public.trail_reports m where m.trail_id = t and m.user_id = ua and m.status = 'closed';
+  perform tb_test.check(nid is not null and (select report_id from public.trail_notes where id = nid) = rid,
+                        'die Notiz zeigt auf ihre Meldung');
+  perform tb_test.check((select body from public.trail_notes where id = nid) = 'Baum liegt quer',
+                        'der Text kommt ohne Rand an');
+  perform tb_test.check(tb_test.count_as(ub, format(notes, nid)) = 1 and tb_test.count_as(ub, format(closed, t)) = 1,
+                        'Bernd sieht Status und Text');
+  perform tb_test.check(tb_test.count_as(ug, format(closed, t)) = 0 and tb_test.count_as(ug, format(notes, nid)) = 0,
+                        'Gina (kein Buddy) sieht weder Status noch Text');
+  -- Eine Push: die Statuszeile trägt den Text, keine Hinweiszeile daneben.
+  perform tb_test.check((select status_note_id from app_internal.push_outbox
+                          where recipient_id = ub and trail_id = t and kind = 'trail_status') = nid
+                        and not exists (select 1 from app_internal.push_outbox
+                                         where recipient_id = ub and trail_id = t and kind = 'trail_note'),
+                        'bestätigte Meldung mit Text: eine Zeile im Push-Korb, mit Text');
+
+  -- Derselbe Auftrag noch einmal (Ausgangskorb): nichts Neues, dieselbe Kennung.
+  perform tb_test.as_user(ua);
+  again := public.report_trail(t, 'closed', null, false, null, cid, 'Baum liegt quer');
+  perform tb_test.as_owner();
+  perform tb_test.check(again = nid
+                        and (select count(*) from public.trail_notes where user_id = ua and client_id = cid) = 1
+                        and (select count(*) from public.trail_reports where user_id = ua and client_id = cid) = 1,
+                        'Wiedervorlage: keine zweite Notiz, keine zweite Meldung, dieselbe Kennung');
+
+  -- Fremde Meldung an die eigene Notiz hängen: abgelehnt.
+  code := null;
+  begin
+    perform tb_test.exec_as(ub, format(
+      'insert into public.trail_notes (trail_id, user_id, body, report_id) values (%L, %L, %L, %L)',
+      t, ub, 'gehört mir nicht', rid));
+  exception when others then
+    get stacked diagnostics code = returned_sqlstate;
+  end;
+  perform tb_test.as_owner();
+  perform tb_test.check(code = '42501', format('Notiz an fremder Meldung abgelehnt (%s)', code));
+
+  -- „Erledigt": Bernd entfernt den Text, der Status und seine Push bleiben.
+  perform tb_test.exec_as(ub, format('delete from public.trail_notes where id = %L', nid));
+  perform tb_test.check(not exists (select 1 from public.trail_notes where id = nid)
+                        and tb_test.count_as(ub, format(closed, t)) = 1,
+                        'erledigt: Text weg, Status steht');
+  perform tb_test.check(exists (select 1 from app_internal.push_outbox
+                                 where recipient_id = ub and trail_id = t and kind = 'trail_status'
+                                   and status_note_id is null),
+                        'erledigt vor dem Versand: die Statuszeile bleibt, ohne Text');
+
+  -- Text allein: eine Notiz ohne Meldung, wie der Hinweis bisher.
+  delete from app_internal.push_outbox where trail_id = t;
+  perform tb_test.as_user(ua);
+  solo := public.report_trail(t, null, null, false, null, null, 'neuer Drop');
+  perform tb_test.as_owner();
+  perform tb_test.check((select report_id is null from public.trail_notes where id = solo)
+                        and (select count(*) from public.trail_reports where trail_id = t and user_id = ua) = 1,
+                        'Text allein: Notiz ohne Meldung, keine Meldung dazu');
+  perform tb_test.check(exists (select 1 from app_internal.push_outbox
+                                 where recipient_id = ub and trail_id = t and kind = 'trail_note' and note_id = solo),
+                        'Text allein: eine Hinweis-Push');
+
+  -- Unbestätigt (Bernd ist nicht gefahren, nicht vor Ort): keine
+  -- Statuszeile, der Text geht wie bisher als Hinweis an Anna.
+  delete from app_internal.push_outbox where trail_id = t;
+  perform tb_test.as_user(ub);
+  nid := public.report_trail(t, 'changed', null, false, null, null, 'Umleitung unten');
+  perform tb_test.as_owner();
+  perform tb_test.check(not exists (select 1 from app_internal.push_outbox where trail_id = t and kind = 'trail_status')
+                        and exists (select 1 from app_internal.push_outbox
+                                     where recipient_id = ua and trail_id = t and kind = 'trail_note' and note_id = nid),
+                        'unbestätigt mit Text: nur die Hinweis-Push');
+
+  -- Fällt die Meldung im Aufräumen weg, bleibt der Text ohne Status.
+  delete from public.trail_reports where id = (select report_id from public.trail_notes where id = nid);
+  perform tb_test.check((select report_id is null from public.trail_notes where id = nid),
+                        'Meldung aufgeräumt: der Text bleibt, ohne Status');
+
+  -- Ohne alles: abgelehnt.
+  code := null;
+  begin
+    perform tb_test.exec_as(ua, format('select public.report_trail(%L::uuid, null, null, false, null, null, %L)', t, '   '));
+  exception when others then
+    get stacked diagnostics code = returned_sqlstate;
+  end;
+  perform tb_test.as_owner();
+  perform tb_test.check(code = '22023', format('weder Status noch Zustand noch Text abgelehnt (%s)', code));
+  delete from app_internal.push_outbox where trail_id = t;
+end $$;
+
 \echo -- Alle Prüfungen bestanden.

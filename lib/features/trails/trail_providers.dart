@@ -30,10 +30,11 @@ import 'trail_list.dart';
 final trailRepositoryProvider = Provider<TrailRepository>(
     (ref) => SupabaseTrailRepository(ref.watch(supabaseClientProvider)));
 
-/// Was aus „Hinweis speichern" geworden ist (#37): [fresh] wie bei
-/// `reloadAfterWrite`, [photoError] gesetzt, wenn der Hinweis steht, sein
-/// Foto aber nicht.
-typedef NoteWriteResult = ({bool fresh, Object? photoError});
+/// Was aus „Melden" geworden ist (#37, #433): [outcome] wie bei
+/// [TrailsNotifier.report], [photoError] gesetzt, wenn der Eintrag steht,
+/// sein Foto aber nicht, [photoDropped], wenn der Eintrag ohne Netz in den
+/// Korb ging und das Foto deshalb nicht mit.
+typedef ReportWriteResult = ({WriteOutcome outcome, Object? photoError, bool photoDropped});
 
 /// Die Vorschau eines Fotos am Hinweis (#37), je Pfad einmal je Sitzung —
 /// ~12 KB, und das Blatt öffnet sich oft.
@@ -478,6 +479,23 @@ class TrailsNotifier extends AsyncNotifier<List<Trail>>
       int? condition,
       required bool onSite,
       String? note,
+      DateTime? at}) async =>
+      (await reportEntry(trailId,
+              status: status, condition: condition, onSite: onSite, note: note, at: at))
+          .outcome;
+
+  /// Wie [report], dazu das Foto zum Text (#433: Meldung, Text und Foto
+  /// sind EIN Eintrag). **Der Eintrag ist das Original**: Scheitert das
+  /// Foto, stehen Meldung und Text trotzdem, und das Ergebnis sagt beides
+  /// ([ReportWriteResult.photoError]). Ohne Netz geht der Eintrag in den
+  /// Korb, das Foto nicht — Bytes liegen nie im Korb
+  /// ([ReportWriteResult.photoDropped]).
+  Future<ReportWriteResult> reportEntry(String trailId,
+      {TrailStatus? status,
+      int? condition,
+      required bool onSite,
+      String? note,
+      PreparedPhoto? photo,
       DateTime? at}) async {
     final repo = ref.read(trailRepositoryProvider);
     final myId = ref.read(currentUserIdProvider);
@@ -494,22 +512,38 @@ class TrailsNotifier extends AsyncNotifier<List<Trail>>
     );
     _beginSending(job, myId);
     try {
+      final String? noteId;
       try {
-        await repo.report(
+        noteId = await repo.report(
             trailId: trailId,
             status: status,
             condition: condition,
+            note: text.isEmpty ? null : text,
             onSite: onSite,
             reportedAt: job.createdAt,
             clientId: job.id);
-        if (text.isNotEmpty) await repo.addNote(trailId: trailId, body: text);
       } catch (error, stackTrace) {
         await _queueIfOffline(error, stackTrace, job);
-        return WriteOutcome.queued;
+        return (outcome: WriteOutcome.queued, photoError: null, photoDropped: photo != null);
       }
-      return await _rereadAfterWrite('Melden', reports: true, notes: text.isNotEmpty)
-          ? WriteOutcome.done
-          : WriteOutcome.doneStale;
+      Object? photoError;
+      if (photo != null && noteId != null) {
+        try {
+          await repo.addNotePhoto(noteId: noteId, photoId: newClientId(), photo: photo);
+        } catch (e, st) {
+          // Gemeldet nur, was nicht nach fehlendem Netz aussieht — ein
+          // Funkloch zwischen Text und Foto ist kein Fehler der App.
+          if (!looksOffline(e)) logError('Foto zur Meldung hochladen', e, st);
+          photoError = e;
+        }
+      }
+      final fresh = await _rereadAfterWrite('Melden',
+          reports: status != null || condition != null, notes: text.isNotEmpty);
+      return (
+        outcome: fresh ? WriteOutcome.done : WriteOutcome.doneStale,
+        photoError: photoError,
+        photoDropped: false,
+      );
     } finally {
       _endSending(job, myId);
     }
@@ -539,30 +573,6 @@ class TrailsNotifier extends AsyncNotifier<List<Trail>>
     } finally {
       _endSending(job, myId);
     }
-  }
-
-  /// Schreibt einen Hinweis, mit [photo] dazu das Foto (#37). **Der
-  /// Hinweis ist das Original**: Scheitert das Foto, steht er trotzdem,
-  /// und das Ergebnis sagt beides ([NoteWriteResult.photoError]) — ein
-  /// Wurf hier hieße „nichts gespeichert", und der Nutzer schriebe den
-  /// Hinweis ein zweites Mal. Kein Ausgangskorb: ohne Netz scheitert das
-  /// Schreiben sichtbar wie bisher.
-  Future<NoteWriteResult> addNote(String trailId, String body, {PreparedPhoto? photo}) async {
-    final repo = ref.read(trailRepositoryProvider);
-    final noteId = await repo.addNote(trailId: trailId, body: body.trim());
-    Object? photoError;
-    if (photo != null) {
-      try {
-        await repo.addNotePhoto(noteId: noteId, photoId: newClientId(), photo: photo);
-      } catch (e, st) {
-        // Gemeldet nur, was nicht nach fehlendem Netz aussieht — ein
-        // Funkloch zwischen Hinweis und Foto ist kein Fehler der App.
-        if (!looksOffline(e)) logError('Foto am Hinweis hochladen', e, st);
-        photoError = e;
-      }
-    }
-    final fresh = await _rereadAfterWrite('Hinweis speichern', notes: true);
-    return (fresh: fresh, photoError: photoError);
   }
 
   Future<bool> deleteNote(String id) async {
