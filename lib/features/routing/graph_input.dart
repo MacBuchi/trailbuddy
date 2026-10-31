@@ -23,6 +23,8 @@
 //
 // Rein: keine Widgets, kein Riverpod, kein `dart:isolate` — im Browser
 // baut dieselbe Funktion an Ort und Stelle (`InlineLoopPlanRunner`).
+import 'package:latlong2/latlong.dart';
+
 import '../../core/stall_watch.dart';
 import '../offline_areas/height_tiles.dart';
 import 'loop_planner.dart' show LoopSearchCache;
@@ -39,6 +41,7 @@ class GraphInput {
     this.ways = const [],
     this.heights,
     this.trails = const [],
+    this.closures = const [],
     required this.lat0,
     this.pieces = const [],
     this.bake = false,
@@ -65,6 +68,10 @@ class GraphInput {
 
   /// Die Trails des Netzes im Rahmen, in Trail-Richtung (`graphTrailsOf`).
   final List<GraphTrail> trails;
+
+  /// Die gesperrten Abschnitte der offiziellen Quelle im Rahmen (#41,
+  /// #434) — [blockClosures] sperrt die Wege darunter.
+  final List<List<LatLng>> closures;
 
   /// Die Breite, um die der Graph eben gerechnet wird.
   final double lat0;
@@ -118,6 +125,7 @@ class GraphReport {
     required this.edgesOnTrails,
     required this.blocked,
     required this.addedEdges,
+    this.closedEdges = 0,
     required this.builtIn,
     this.baked = const [],
     this.stitched = 0,
@@ -132,6 +140,9 @@ class GraphReport {
   final int edgesOnTrails;
   final int blocked;
   final int addedEdges;
+
+  /// So viele Kanten sperren gesperrte Trails und Abschnitte (#434).
+  final int closedEdges;
 
   /// Der Name des Isolates, in dem gebaut wurde — der Runner setzt ihn,
   /// der Test vergleicht ihn mit dem eigenen.
@@ -154,8 +165,9 @@ class GraphReport {
 typedef BuiltGraph = ({RoadGraph graph, GraphReport report});
 
 /// Baut den Graphen des Planers aus [input]: dekodieren, bauen, Höhen,
-/// Güte ([buildRoadGraphFrom]), dann die Trails auflegen ([applyTrails])
-/// und die Enden jeder Abfahrt anheften — dieselben Punkte, die
+/// Güte ([buildRoadGraphFrom]), dann die Trails auflegen ([applyTrails]),
+/// die Enden jeder Abfahrt anheften und zuletzt sperren, was gesperrt ist
+/// ([blockClosures], #434) — dieselben Punkte, die
 /// `planLoop` anheftet (#188), seit #394 wie dort bis [kGraphSnapM]: So
 /// teilt ein später dazugewählter Trail aus dem Rahmen keine Kante mehr,
 /// und der Suchspeicher bleibt gültig.
@@ -212,6 +224,8 @@ BuiltGraph buildGraphFrom(GraphInput input, {String builtIn = ''}) {
       graph.snap(t.points.last);
     }
   });
+  final closedEdges =
+      StallWatch.mark('graph.closures', () => blockClosures(graph, input.trails, closures: input.closures));
   return (
     graph: graph,
     report: GraphReport(
@@ -223,6 +237,7 @@ BuiltGraph buildGraphFrom(GraphInput input, {String builtIn = ''}) {
       edgesOnTrails: overlay.edgesOnTrails,
       blocked: overlay.blocked,
       addedEdges: overlay.addedEdges,
+      closedEdges: closedEdges,
       builtIn: builtIn,
       baked: baked,
       stitched: input.bake ? input.pieces.length + baked.length - broken.length : 0,

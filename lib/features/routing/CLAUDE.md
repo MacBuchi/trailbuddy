@@ -151,6 +151,24 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     T4+ in 6: Sie planen dort milder, bis „Aktualisieren" das neue
     Archiv holt. Der Isolate des Planers bekommt die Felder mit der
     Kopie des Graphen, ohne eigene Serialisierung.
+- **Gesperrte Trails und Abschnitte** (#434, seit 0.146.0,
+  `blockClosures` in `trail_overlay.dart`; Betreiber 2026-10-31):
+  Gesperrt und zerstört (`TrailStatus.blocksRouting`, nicht „Verändert"
+  `changed`) kommen mit `GraphTrail.closed` in den Graphen, die
+  gesperrten Abschnitte der offiziellen Quelle als
+  `GraphInput.closures` (`officialClosuresIn`, nur bei eingeschalteter
+  Ebene, höchstens `kOfficialClosuresWait` 5 s auf die Region). Beides
+  sperrt die Kanten darunter in BEIDE Richtungen, und zwar erst NACH dem
+  Anheften der Enden: Die Stummel in `kClosedEndOpenM` (30 m) um Kopf
+  und Ende JEDES Trails bleiben offen, auch unter einer offiziellen
+  Sperre — sonst wäre ein selbst gewählter gesperrter Trail
+  unerreichbar (im Flow-Test gefunden: „unreachable"). Die Abfahrt
+  selbst fährt der Planer als Halt über ihre eigene Linie; das Blatt
+  nennt sie in `loop-closed` (`closedStopNames`, offizielle Deckung wie
+  im Trail-Blatt). `attach` nimmt einen vorhandenen Knoten in 30 m —
+  ein Test der Stummel braucht Enden weiter als das von jeder Kreuzung,
+  sonst prüft er nichts. Der Pool bleibt bei 8.8 (alle warnenden
+  abgewählt).
 - **„Zum Trailkopf"** (Schritt 4, seit 0.71.0, `trail_head_route.dart`
   pur, `trail_head_providers.dart`): im Trail-Blatt neben „Anfahrt", vom
   eigenen Standort zum Anfang des Trails über den Graphen der Bereiche

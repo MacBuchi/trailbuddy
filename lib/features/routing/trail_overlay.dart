@@ -30,6 +30,15 @@
 // angeheftet in [kGraphAttachM]. Abfahrten brauchen das nicht: Die
 // fährt der Planer als Halt, von Kopf zu Ende.
 //
+// Gesperrt (#434, Betreiber 2026-10-31): Ein Trail mit der Meldung
+// „gesperrt" oder „zerstört" ([GraphTrail.closed]) und ein gesperrter
+// Abschnitt der offiziellen Quelle (#41) sperren die Kanten unter sich in
+// BEIDE Richtungen — [blockClosures], NACH dem Anheften der Enden. Eine
+// gesperrte Abfahrt, die der Fahrer selbst wählt, fährt der Planer
+// trotzdem: als Halt über ihre eigene Linie. Damit ihr Kopf und ihr Ende
+// erreichbar bleiben, bleiben die Kanten in [kClosedEndOpenM] um beide
+// Enden offen (in Trail-Richtung, wie jede Abfahrt).
+//
 // Rein: keine Widgets, kein Riverpod.
 import 'dart:math' as math;
 
@@ -63,6 +72,7 @@ class GraphTrail {
     this.twoWay = false,
     this.gainM,
     this.lossM,
+    this.closed = false,
   });
 
   final String id;
@@ -72,6 +82,10 @@ class GraphTrail {
   final bool twoWay;
   final double? gainM;
   final double? lossM;
+
+  /// Gemeldet als gesperrt oder zerstört (#434): kein Weg für die
+  /// Verbindungen, nur als selbst gewählter Halt.
+  final bool closed;
 
   bool get connector => role != TrailRole.downhill;
 
@@ -91,9 +105,7 @@ TrailOverlayResult applyTrails(RoadGraph g, List<GraphTrail> trails) {
   final prepared = <_Prepared>[];
   for (final t in trails) {
     if (t.points.length < 2) continue;
-    final xy = g.proj.line(t.points);
-    final samples = resampleXy(xy, kMatchSampleStepM);
-    prepared.add(_Prepared(t, xy, samples, _cumulative(xy), SegmentGrid([xy], 50)));
+    prepared.add(_prepare(g, t));
   }
   var onTrails = 0, blocked = 0;
   // 1. Die Kanten der Karte, die auf einem Trail liegen.
@@ -135,7 +147,7 @@ TrailOverlayResult applyTrails(RoadGraph g, List<GraphTrail> trails) {
   var added = 0;
   for (final p in prepared) {
     final t = p.trail;
-    if (!t.connector) continue;
+    if (!t.connector || t.closed) continue;
     var covered = 0;
     for (final s in p.samples) {
       if (g.nearest(g.proj.latLng(s), kMatchCorridorM) != null) covered++;
@@ -155,6 +167,66 @@ TrailOverlayResult applyTrails(RoadGraph g, List<GraphTrail> trails) {
     added++;
   }
   return (edgesOnTrails: onTrails, blocked: blocked, addedEdges: added);
+}
+
+/// So weit um Kopf und Ende eines gesperrten Trails bleiben die Kanten auf
+/// ihm offen ([blockClosures]) — die Stummel, an denen seine Enden hängen.
+/// Durchfahren lässt sich der Trail über sie nicht.
+const kClosedEndOpenM = 30.0;
+
+/// Sperrt die Kanten auf gesperrten Trails ([GraphTrail.closed]) und unter
+/// gesperrten Abschnitten der offiziellen Quelle ([closures], #41) in beide
+/// Richtungen (#434) — außer den Stummeln in [kClosedEndOpenM] um Kopf und
+/// Ende jedes Trails. Nach [applyTrails] UND dem Anheften der Enden
+/// aufrufen: Erst dann sind die Stummel eigene Kanten. Auf der Linie heißt wie dort: ≥ [kMatchCoverage] der
+/// Proben im Korridor. Gibt die Zahl der gesperrten Kanten zurück.
+int blockClosures(RoadGraph g, List<GraphTrail> trails, {List<List<LatLng>> closures = const []}) {
+  final byId = {for (final t in trails) if (t.points.length >= 2) t.id: t};
+  final prepared = <String, _Prepared>{};
+  final lines = [
+    for (final c in closures)
+      if (c.length >= 2) g.proj.line(c),
+  ];
+  if (!byId.values.any((t) => t.closed) && lines.isEmpty) return 0;
+  final linesGrid = lines.isEmpty ? null : SegmentGrid(lines, 50);
+  final lineBoxes = [for (final l in lines) _Box.of(l)];
+  var count = 0;
+  final edgeCount = g.edges.length;
+  for (var ei = 0; ei < edgeCount; ei++) {
+    final e = g.edges[ei];
+    final t = byId[e.trail?.id];
+    final exy = g.proj.line(e.points);
+    List<math.Point<double>>? samples;
+    var block = t?.closed ?? false;
+    if (!block && linesGrid != null) {
+      final box = _Box.of(exy);
+      if (lineBoxes.any((b) => b.near(box, kMatchCorridorM))) {
+        samples = resampleXy(exy, kMatchSampleStepM);
+        block = coverageWithin(samples, linesGrid, kMatchCorridorM) >= kMatchCoverage;
+      }
+    }
+    if (!block) continue;
+    // Die Stummel um Kopf und Ende eines Trails bleiben offen — auch unter
+    // einer offiziellen Sperre: Sonst wäre er als selbst gewählter Halt
+    // nicht mehr zu erreichen.
+    if (t != null) {
+      final p = prepared[t.id] ??= _prepare(g, t);
+      samples ??= resampleXy(exy, kMatchSampleStepM);
+      final from = p.position(samples.first), to = p.position(samples.last);
+      final len = p.cum.last;
+      if (math.max(from, to) <= kClosedEndOpenM || math.min(from, to) >= len - kClosedEndOpenM) continue;
+    }
+    e
+      ..blockForward = true
+      ..blockBackward = true;
+    count++;
+  }
+  return count;
+}
+
+_Prepared _prepare(RoadGraph g, GraphTrail t) {
+  final xy = g.proj.line(t.points);
+  return _Prepared(t, xy, resampleXy(xy, kMatchSampleStepM), _cumulative(xy), SegmentGrid([xy], 50));
 }
 
 List<double> _cumulative(List<math.Point<double>> xy) {

@@ -10,6 +10,8 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:trailbuddy/features/official/official_trails_source.dart';
+import 'package:trailbuddy/core/settings.dart';
 import 'package:trailbuddy/core/connectivity.dart';
 import 'package:trailbuddy/core/line_geometry.dart';
 import 'package:trailbuddy/features/keep_alive/keep_alive.dart';
@@ -119,6 +121,8 @@ void main() {
       areaStoreProvider.overrideWithValue(areas),
       tileStoreProvider.overrideWithValue(tiles),
       trailsProvider.overrideWith(_NoTrails.new),
+      // Ohne Einstellungen und ohne Netz: keine offiziellen Sperren (#434).
+      officialTrailsEnabledProvider.overrideWith(_Off.new),
       connectivityProvider.overrideWith((ref) => Stream.value(const [ConnectivityResult.none])),
       keepAliveProvider.overrideWithValue(keepAlive),
       loopPlanRunnerFactoryProvider.overrideWithValue(InlineLoopPlanRunner.new),
@@ -354,4 +358,11 @@ void main() {
     await bake.idle;
     expect(await stored(), 0);
   });
+}
+
+class _Off extends RememberedFlag {
+  _Off() : super(read: (_) => false, write: (_, _) async {}, label: '');
+
+  @override
+  bool build() => false;
 }

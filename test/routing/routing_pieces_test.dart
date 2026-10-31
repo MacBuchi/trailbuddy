@@ -11,6 +11,8 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:trailbuddy/features/official/official_trails_source.dart';
+import 'package:trailbuddy/core/settings.dart';
 import 'package:trailbuddy/core/connectivity.dart';
 import 'package:trailbuddy/core/line_geometry.dart';
 import 'package:trailbuddy/features/offline_areas/area_plan.dart';
@@ -94,6 +96,8 @@ void main() {
       areaStoreProvider.overrideWithValue(areas),
       tileStoreProvider.overrideWithValue(tiles),
       trailsProvider.overrideWith(_NoTrails.new),
+      // Ohne Einstellungen und ohne Netz: keine offiziellen Sperren (#434).
+      officialTrailsEnabledProvider.overrideWith(_Off.new),
       connectivityProvider.overrideWith((ref) => Stream.value(const [ConnectivityResult.none])),
     ]);
     addTearDown(c.dispose);
@@ -185,3 +189,10 @@ void main() {
 }
 
 typedef RoadTileBytesLike = ({int x, int y});
+
+class _Off extends RememberedFlag {
+  _Off() : super(read: (_) => false, write: (_, _) async {}, label: '');
+
+  @override
+  bool build() => false;
+}

@@ -7,11 +7,13 @@ import 'dart:math' as math;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:trailbuddy/core/line_geometry.dart';
+import 'package:trailbuddy/features/official/official_trails.dart';
 import 'package:trailbuddy/features/routing/loop_planner.dart';
 import 'package:trailbuddy/features/routing/road_graph.dart';
 import 'package:trailbuddy/features/routing/route_profile.dart';
 import 'package:trailbuddy/features/routing/route_search.dart';
 import 'package:trailbuddy/features/routing/trail_overlay.dart';
+import 'package:trailbuddy/models/trail.dart';
 
 const _lat0 = 47.5;
 
@@ -44,7 +46,7 @@ RoadGraph _graph({bool withPath = true}) {
   return g;
 }
 
-GraphTrail _trail(TrailRole role, {bool up = false, bool twoWay = false}) => GraphTrail(
+GraphTrail _trail(TrailRole role, {bool up = false, bool twoWay = false, bool closed = false}) => GraphTrail(
       id: 't',
       name: 'Hang',
       // 3 m neben dem Pfad — GPS-Versatz, im Korridor.
@@ -53,6 +55,7 @@ GraphTrail _trail(TrailRole role, {bool up = false, bool twoWay = false}) => Gra
       twoWay: twoWay,
       gainM: up ? 100 : 0,
       lossM: up ? 0 : 100,
+      closed: closed,
     );
 
 const _bio = RiderProfile.bio;
@@ -184,5 +187,86 @@ void main() {
         pool: const [],
         end: _m([(5000, 5000)]).single);
     expect(off.outcome, LoopOutcome.endOffNetwork);
+  });
+
+  // #434 (Betreiber 2026-10-31): gesperrt und zerstört sperren die Planung,
+  // „Verlauf geändert" nicht; ein selbst gewählter gesperrter Trail bleibt
+  // fahrbar; offizielle Sperren sperren die Wege darunter.
+  test('#434: welche Meldung sperrt', () {
+    expect([for (final s in TrailStatus.values) if (s.blocksRouting) s], [TrailStatus.closed, TrailStatus.destroyed]);
+  });
+
+  test('#434: eine gesperrte Abfahrt ist in KEINER Richtung ein Weg', () {
+    final g = _graph();
+    final trails = [_trail(TrailRole.downhill, closed: true)];
+    applyTrails(g, trails);
+    expect(blockClosures(g, trails), 1);
+    expect(_route(g).viaPath, isFalse);
+    expect(_route(g, upward: false).viaPath, isFalse, reason: 'auch in Trail-Richtung gesperrt');
+  });
+
+  test('#434: Kopf und Ende eines gesperrten Trails bleiben erreichbar', () {
+    // Der Pfad läuft 50 m über Kopf und Ende hinaus bis zu den Kreuzungen —
+    // weiter als [kGraphAttachM], also hängen die Enden an eigenen Knoten.
+    final g = _graph();
+    final trail = GraphTrail(
+        id: 't', name: 'Hang', points: _m([(3, 950), (3, 500), (3, 50)]), role: TrailRole.downhill, closed: true);
+    applyTrails(g, [trail]);
+    final head = g.snap(trail.points.first)!.node, end = g.snap(trail.points.last)!.node;
+    final top = g.attach(_m([(0, 1000)]).single)!, bottom = g.attach(_m([(0, 0)]).single)!;
+    expect([head, end], isNot(contains(anyOf(top, bottom))), reason: 'eigene Knoten, sonst prüft der Test nichts');
+    blockClosures(g, [trail]);
+    final toHead = shortestPath(g, top, head, _bio)!;
+    expect(toHead.edges.every((ei) => g.edges[ei].cls == WayClass.wanderweg), isTrue,
+        reason: 'der Stummel oben bleibt offen');
+    expect(shortestPath(g, end, bottom, _bio)!.edges.every((ei) => g.edges[ei].cls == WayClass.wanderweg), isTrue,
+        reason: 'der Stummel unten auch');
+    expect(_route(g, upward: false).viaPath, isFalse, reason: 'durch den Trail geht es trotzdem nicht');
+  });
+
+  test('#434: ein gesperrter Verbinder ist kein Weg und bekommt keine eigene Kante', () {
+    final g = _graph();
+    final trails = [_trail(TrailRole.uphill, up: true, closed: true)];
+    applyTrails(g, trails);
+    blockClosures(g, trails);
+    expect(_route(g).viaPath, isFalse);
+    final g2 = _graph(withPath: false);
+    expect(applyTrails(g2, trails).addedEdges, 0);
+  });
+
+  test('#434: eine offizielle Sperre sperrt den Weg darunter, ein Queren nicht', () {
+    final g = _graph();
+    expect(blockClosures(g, const [], closures: [_m([(4, 50), (4, 950)])]), 1);
+    expect(_route(g).viaPath, isFalse);
+    expect(_route(g, upward: false).viaPath, isFalse);
+    final g2 = _graph();
+    expect(blockClosures(g2, const [], closures: [_m([(-200, 500), (200, 500)])]), 0, reason: 'quer über den Pfad');
+    expect(_route(g2).viaPath, isTrue);
+  });
+
+  test('#434: der Planer fährt eine selbst gewählte gesperrte Abfahrt, die Verbindungen meiden sie', () {
+    final g = _graph();
+    final trails = [_trail(TrailRole.downhill, closed: true)];
+    applyTrails(g, trails);
+    g.snap(trails.single.points.first);
+    g.snap(trails.single.points.last);
+    blockClosures(g, trails);
+    final pool = [
+      PoolTrail(id: 't', name: 'Hang', points: _m([(3, 1000), (3, 500), (3, 0)]), lengthM: 1000, grade: 2, lossM: 100),
+    ];
+    final plan = planLoop(g,
+        start: _m([(0, 0)]).single,
+        profile: _bio,
+        budget: const LoopBudget(timeS: 3 * 3600, climbM: 800, hikingM: 2000),
+        pool: pool,
+        searchBudget: const Duration(milliseconds: 20));
+    expect(plan.outcome, LoopOutcome.ok);
+    expect(plan.stops.map((s) => s.trail.id), ['t']);
+    expect(plan.sections.where((s) => !s.isTrail).every((s) => s.cls == WayClass.forstweg), isTrue);
+    expect(closedStopNames(plan, {'t'}, const []), ['Hang']);
+    expect(closedStopNames(plan, const {}, const []), isEmpty);
+    final official = OfficialTrail(id: 'o:1', name: 'Offiziell', sourceId: 'o', status: OfficialStatus.partlyClosed,
+        sections: [OfficialSection(points: _m([(3, 900), (3, 100)]), closed: true)]);
+    expect(closedStopNames(plan, const {}, [official]), ['Hang'], reason: 'auf einem gesperrten Abschnitt');
   });
 }

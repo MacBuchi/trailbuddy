@@ -27,6 +27,7 @@ import '../../core/geo.dart' show formatMeters;
 import '../../core/gpx_share.dart';
 import '../../models/trail.dart';
 import '../map/map_view/map_view.dart';
+import '../official/official_trails_source.dart';
 import '../rides/ride_providers.dart';
 import '../rides/ride_track.dart';
 import '../trails/gpx.dart';
@@ -885,6 +886,19 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
       if (session.funEmpty) ...[
         const SizedBox(height: 4),
         Text(key: const ValueKey('loop-fun-empty'), l.routeFunEmpty, style: theme.textTheme.bodyMedium),
+      ],
+      if (closedStopNames(
+        plan,
+        {for (final t in trails) if (t.status.blocksRouting) t.id},
+        ref.read(officialTrailsEnabledProvider) ? ref.read(officialTrailsControllerProvider).trails : const [],
+      )
+          case final closed when closed.isNotEmpty) ...[
+        const SizedBox(height: 4),
+        Text(
+          key: const ValueKey('loop-closed'),
+          l.loopClosedStops(closed.join(', ')),
+          style: theme.textTheme.bodyMedium?.copyWith(color: palette.warningText),
+        ),
       ],
       for (final snap in plan.snaps) ...[
         const SizedBox(height: 4),

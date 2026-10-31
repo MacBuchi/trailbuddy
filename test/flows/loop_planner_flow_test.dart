@@ -52,6 +52,7 @@ import 'package:trailbuddy/features/map/map_screen.dart' show kSelectionGlowWidt
 import '../fakes/fake_rides.dart';
 import '../fakes/fake_tiles.dart';
 import '../fakes/fake_trails.dart';
+import '../fakes/fake_official_trails.dart';
 import '../fakes/test_app.dart';
 
 /// Der Trail von `seedTrail` läuft von 48,0° N / 9,0° O 1 km nach Norden;
@@ -165,11 +166,16 @@ class _HeldRunner implements LoopPlanRunner {
   var builds = 0;
   RoadGraph? _graph;
 
+  final inputs = <GraphInput>[];
+  final reports = <GraphReport>[];
+
   @override
   Future<GraphReport> build(GraphInput input, {void Function(double value)? onProgress}) async {
     builds++;
+    inputs.add(input);
     final built = buildGraphFrom(input, builtIn: 'held');
     _graph = built.graph;
+    reports.add(built.report);
     return built.report;
   }
 
@@ -228,6 +234,7 @@ void main() {
       OnlineFill Function()? onlineFill,
       LoopPlanRunner Function()? runner,
       FakePoiSource? pois,
+      FakeOfficialTrailsSource? official,
       List<Override> extra = const []}) async {
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 3;
@@ -239,6 +246,7 @@ void main() {
         positionFix: positionFix ?? FakePositionFix(fakePosition(_fromLat, _lon)),
         settings: settings,
         pois: pois,
+        official: official,
         extraOverrides: [
           gpxShareProvider.overrideWithValue(recorder),
           if (onlineFill != null) onlineFillFactoryProvider.overrideWithValue((_) => onlineFill()),
@@ -840,6 +848,65 @@ void main() {
     expect(identical(runner.held[2].graph, first.graph), isFalse, reason: 'neu geladen');
     runner.held[2].done.complete(runner.held[2].request.planOn(runner.held[2].graph));
     await settle(tester, frames: 30);
+  });
+
+  testWidgets('#434: ein gemeldet gesperrter Trail, selbst gewählt, fährt mit — das Ergebnis sagt es', (tester) async {
+    // Wie „Innen" im Test zu #188: neben dem Hexentanz, auf den Wegen des
+    // Bereichs — aber gemeldet gesperrt.
+    final zu = trails.seedTrail(backend.currentUserId!, name: 'Zu', grade: 1, lat: 47.9995, status: TrailStatus.closed);
+    await start(tester, areaStore: await _areaWithTrack());
+    await openPlanner(tester);
+    final planner = ProviderScope.containerOf(tester.element(find.byType(MaterialApp))).read(loopPlannerProvider.notifier);
+    planner.setSelected([hex], true);
+    await settle(tester);
+    await tapRail(tester, 'loop-rail-compute');
+    expect(find.byKey(const ValueKey('loop-summary')), findsOneWidget);
+    expect(find.byKey(const ValueKey('loop-closed')), findsNothing, reason: 'nichts Gesperrtes gewählt');
+
+    await tester.tap(find.byKey(const ValueKey('loop-close')));
+    await settle(tester);
+    planner.setSelected([zu], true);
+    await settle(tester);
+    await tapRail(tester, 'loop-rail-compute');
+    final line = find.byKey(const ValueKey('loop-closed'));
+    expect(line, findsOneWidget);
+    expect(tester.widget<Text>(line).data, contains('Zu'));
+    expect(tester.widget<Text>(line).data, isNot(contains('Hexentanz')));
+  });
+
+  testWidgets('#434: offizielle Sperren gehen in den Graphen, und der gewählte Trail darauf steht im Ergebnis',
+      (tester) async {
+    // Gesperrt ist das Mittelstück des Hexentanz (330 m) — der einzige Weg
+    // des Bereichs liegt unter ihm, ganz gesperrt wäre er unerreichbar.
+    final middle = {
+      ...fakeOnRoots(),
+      'geometry': {
+        'type': 'MultiLineString',
+        'coordinates': [
+          [[9.00003, 48.003], [9.00003, 48.006]],
+        ],
+      },
+    };
+    final runner = _HeldRunner();
+    await start(tester,
+        areaStore: await _areaWithTrack(),
+        runner: () => runner,
+        official: FakeOfficialTrailsSource({
+          'index.json': fakeIndex(),
+          'testland.geojson': fakeRegion(extra: [middle]),
+        }));
+    await openPlanner(tester);
+    final planner = ProviderScope.containerOf(tester.element(find.byType(MaterialApp))).read(loopPlannerProvider.notifier);
+    planner.setSelected([hex], true);
+    await settle(tester);
+    await tapRail(tester, 'loop-rail-compute');
+    expect(runner.inputs.single.closures, hasLength(2), reason: 'das Mittelstück und die gesperrte Variante der Flowline');
+    final held = runner.held.single;
+    held.done.complete(held.request.planOn(held.graph));
+    await settle(tester, frames: 30);
+    final line = find.byKey(const ValueKey('loop-closed'));
+    expect(line, findsOneWidget);
+    expect(tester.widget<Text>(line).data, contains('Hexentanz'));
   });
 
   testWidgets('Ein neuer Fix im Rahmen baut den Graphen nicht neu, einer weit daneben schon (#370)', (tester) async {

@@ -725,7 +725,7 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
         ]);
         final connectors = [
           for (final t in _trails)
-            if (!t.pending && t.points.length >= 2 && trailRoleOf(t) != TrailRole.downhill && !t.status.warns)
+            if (!t.pending && t.points.length >= 2 && trailRoleOf(t) != TrailRole.downhill && !t.status.blocksRouting)
               if (LatBox.of(t.points).near(anchors, kPlanConnectorMarginM)) t,
         ];
         final box = LatBox.of([
