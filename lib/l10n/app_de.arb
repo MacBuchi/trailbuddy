@@ -5657,6 +5657,107 @@
   "@aboutSensorLogSubtitle": {
     "description": "Seite „Über TrailBuddy“: Untertitel des Schalters der Erkennung."
   },
+  "aboutSensorLogRisk": "Werte auf dem Trail verleiten zum Riskieren: Fahr nur, was du sicher kannst — die Zahlen sind geschätzt.",
+  "@aboutSensorLogRisk": {
+    "description": "Seite „Über TrailBuddy“: Satz zum Risiko unter dem Schalter der Erkennung (#36, Konzept Airtime 1.3)."
+  },
+  "airValuesAir": "Air {seconds} s ({count}×)",
+  "@airValuesAir": {
+    "description": "Trail-Werte (#36): Airtime-Summe und Zahl der Sprünge in einer Zeile (Zerlege-Blatt, Meine Fahrten, Benachrichtigung). Zahl schon formatiert.",
+    "placeholders": {
+      "seconds": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "airValuesG": "{g} G",
+  "@airValuesG": {
+    "description": "Trail-Werte (#36): härteste Landung in Erdbeschleunigungen, Zahl schon formatiert.",
+    "placeholders": {
+      "g": {
+        "type": "String"
+      }
+    }
+  },
+  "airValuesWheelie": "Wheelie {count}× (bis {meters} m)",
+  "@airValuesWheelie": {
+    "description": "Trail-Werte (#36): Zahl der Wheelies und der längste in Metern.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "meters": {
+        "type": "String"
+      }
+    }
+  },
+  "airValuesStoppie": "Stoppie {count}×",
+  "@airValuesStoppie": {
+    "description": "Trail-Werte (#36): Zahl der Stoppies.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "navValueAirtime": "AIRTIME",
+  "@navValueAirtime": {
+    "description": "Folgeansicht und „Trail geschafft“ (#36): Beschriftung der Kachel mit der Airtime, Versalien."
+  },
+  "navValueAirtimeUnit": "s · {count}×",
+  "@navValueAirtimeUnit": {
+    "description": "Folgeansicht (#36): Einheit unter der Airtime — Sekunden und Zahl der Sprünge.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "navValueMaxG": "MAX G",
+  "@navValueMaxG": {
+    "description": "Folgeansicht (#36): Beschriftung der Kachel mit der härtesten Landung, Versalien."
+  },
+  "navValueWheelie": "WHEELIE",
+  "@navValueWheelie": {
+    "description": "Folgeansicht (#36): Beschriftung der Kachel mit der Zahl der Wheelies, Versalien."
+  },
+  "navValueWheelieUnit": "bis {meters} m",
+  "@navValueWheelieUnit": {
+    "description": "Folgeansicht (#36): unter der Zahl der Wheelies der längste in Metern.",
+    "placeholders": {
+      "meters": {
+        "type": "String"
+      }
+    }
+  },
+  "navValueStoppie": "STOPPIE",
+  "@navValueStoppie": {
+    "description": "Folgeansicht (#36): Beschriftung der Kachel mit der Zahl der Stoppies, Versalien."
+  },
+  "navValueStoppieUnit": "bis {degrees}°",
+  "@navValueStoppieUnit": {
+    "description": "Folgeansicht (#36): unter der Zahl der Stoppies der steilste Winkel.",
+    "placeholders": {
+      "degrees": {
+        "type": "String"
+      }
+    }
+  },
+  "navAirToast": "AIR {seconds} s · {g} G",
+  "@navAirToast": {
+    "description": "Folgeansicht (#36): Einblendung für 2 s nach einem Sprung — Flugzeit und Landung, Zahlen schon formatiert.",
+    "placeholders": {
+      "seconds": {
+        "type": "String"
+      },
+      "g": {
+        "type": "String"
+      }
+    }
+  },
   "wheelieNoticeTitle": "Wheelie erkannt",
   "@wheelieNoticeTitle": {
     "description": "Erkennung (#36), Wheelie-Messung (#36): Titel des Banners nach einem erkannten Wheelie oder Manual."

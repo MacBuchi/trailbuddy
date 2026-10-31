@@ -17,7 +17,8 @@ import 'package:path_provider/path_provider.dart';
 import '../../core/errors.dart';
 import 'ride_confirm.dart';
 import 'ride_track.dart';
-import 'sensor_log.dart' show kSensorDirName;
+import 'sensor_log.dart' show kSensorDirName, sensorEventsPath;
+import 'trail_values.dart';
 
 abstract interface class RideStore {
   /// Beginnt eine Fahrt und verwirft, was als laufende vorher dalag.
@@ -99,6 +100,10 @@ abstract interface class RideStore {
   /// Der Pfad der Sensor-Rohdaten einer Fahrt (#36, nur Dev-App), oder
   /// null, wenn es keine gibt. Wirft nie.
   Future<String?> sensorLogPath(String id);
+
+  /// Was die Erkennung auf der Fahrt gefunden hat (#36 Schritt 5), auch
+  /// auf der laufenden — dieselbe Kennung. Leer ohne Datei. Wirft nie.
+  Future<AirtimeLog> airtimeLog(String id);
 
   /// Setzt das Fahrerprofil einer gespeicherten, GEMESSENEN Fahrt neu
   /// (#228): nur die Kopfzeile wird ersetzt, Punkte, Marken und Antworten
@@ -440,6 +445,8 @@ class FileRideStore implements RideStore {
           if (await file.exists()) await file.delete();
           final sensors = File('${(await _dir()).path}/$kSensorDirName/$id.csv');
           if (await sensors.exists()) await sensors.delete();
+          final events = File(sensorEventsPath(sensors.path));
+          if (await events.exists()) await events.delete();
         } catch (e, stackTrace) {
           logError('Fahrt löschen', e, stackTrace);
         }
@@ -453,6 +460,18 @@ class FileRideStore implements RideStore {
       return await file.exists() ? file.path : null;
     } catch (_) {
       return null;
+    }
+  }
+
+  @override
+  Future<AirtimeLog> airtimeLog(String id) async {
+    if (!RegExp(r'^[0-9TZ]+$').hasMatch(id)) return AirtimeLog.empty;
+    try {
+      final file = File(sensorEventsPath('${(await _dir()).path}/$kSensorDirName/$id.csv'));
+      if (!await file.exists()) return AirtimeLog.empty;
+      return parseAirtimeLog(await file.readAsString());
+    } catch (_) {
+      return AirtimeLog.empty;
     }
   }
 

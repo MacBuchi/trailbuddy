@@ -404,6 +404,10 @@ class NavController extends Notifier<NavSession?> {
     return LatBox(b.s - dLat, b.w - dLon, b.n + dLat, b.e + dLon);
   }
 
+  /// Seit wann der laufende Trail gefahren wird; null abseits (#36: ab
+  /// hier zählen die Trail-Werte der Folgeansicht).
+  DateTime? get trailSince => _trails?.enteredAt;
+
   /// „Weiter" im Blatt „Trail geschafft" — oder die 20 s sind um.
   void dismissTrailDone() {
     _doneLinger?.cancel();

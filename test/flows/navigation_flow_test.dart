@@ -26,7 +26,10 @@ import 'package:trailbuddy/features/offline_areas/area_plan.dart';
 import 'package:trailbuddy/features/offline_areas/area_store.dart';
 import 'package:trailbuddy/features/offline_areas/pmtiles_writer.dart';
 import 'package:trailbuddy/features/keep_alive/keep_alive.dart';
+import 'package:trailbuddy/features/rides/airtime_live.dart';
+import 'package:trailbuddy/features/rides/airtime_message.dart';
 import 'package:trailbuddy/features/rides/ride_track.dart';
+import 'package:trailbuddy/features/rides/sensor_fusion.dart';
 import 'package:trailbuddy/features/routing/nav_notice.dart';
 import 'package:trailbuddy/features/routing/route_band.dart' show kRouteFollowOpacity;
 import 'package:trailbuddy/features/routing/nav_providers.dart' show kNavArrivedLinger, kNavTrailDoneLinger, lastNavProvider;
@@ -395,6 +398,77 @@ void main() {
     await settle(tester, frames: 2);
     expect(find.byKey(const ValueKey('nav-done')), findsNothing);
     expect(find.byKey(const ValueKey('nav-band')), findsOneWidget);
+  });
+
+  testWidgets('#36 Schritt 5: Trail-Werte auf dem Trail, AIR-Toast und in „Trail geschafft" — nur mit Erkennung',
+      (tester) async {
+    final trails = FakeTrailRepository(myId: () => backend.currentUserId ?? '', areFriends: backend.areFriends);
+    trails.seedTrail(backend.currentUserId!, name: 'Rosskopf Süd', grade: 2, lat: 48.0, lon: 9.0);
+    final t0 = DateTime.utc(2026, 10, 8, 9);
+    store.rides
+      ..clear()
+      ..add(Ride(
+        id: '20261008T090000Z',
+        startedAt: t0,
+        endedAt: t0.add(const Duration(hours: 1)),
+        points: [
+          for (var lat = 47.997; lat <= 48.0121; lat += 0.0002) RidePoint(lat: lat, lng: 9.0, at: t0, accuracyM: 0),
+        ],
+        planned: true,
+        name: 'Hausrunde',
+      ));
+    await startFromRides(tester, phone: true, trails: trails, start: const LatLng(47.997, 9.0));
+    await tester.tap(find.byKey(const ValueKey('nav-record')));
+    await settle(tester, frames: 2);
+    await tester.tap(find.byKey(const ValueKey('nav-go')));
+    await settle(tester);
+    final container = ProviderScope.containerOf(tester.element(find.byKey(const ValueKey('nav-stop'))));
+    int us(DateTime at) => at.microsecondsSinceEpoch;
+    const file = '/rides/sensors/20261013T095000Z.csv';
+    Future<void> send(FusionEvent e) async {
+      container.read(airtimeLiveProvider.notifier).accept(encodeAirtimeEvent(file, e));
+      await settle(tester, frames: 2);
+    }
+
+    // Ohne Erkennung (Schalter aus): keine Kacheln, auch keine Nullen.
+    final t = DateTime.utc(2026, 10, 13, 10);
+    await fix(tester, 48.003, 9.0, heading: 0, speed: 5, at: t);
+    expect(find.byKey(const ValueKey('nav-trail')), findsOneWidget);
+    expect(find.byKey(const ValueKey('nav-air-time')), findsNothing);
+
+    // Ein Sprung VOR der Einfahrt zählt nicht; einer auf dem Trail schon,
+    // ein unplausibler nie.
+    await send(JumpEvent(
+        startUs: us(t) - 5000000, duration: const Duration(milliseconds: 900), landingG: 2, upright: true, plausible: true));
+    expect(textIn('nav-air-time'), contains('0,0'));
+    expect(find.byKey(const ValueKey('nav-air-toast')), findsOneWidget, reason: 'der Toast sagt jeden Sprung an');
+    await tester.pump(const Duration(seconds: 2));
+    await settle(tester, frames: 2);
+    expect(find.byKey(const ValueKey('nav-air-toast')), findsNothing, reason: 'nach 2 s weg');
+    await send(JumpEvent(
+        startUs: us(t) + 10000000, duration: const Duration(milliseconds: 600), landingG: 2.9, upright: true, plausible: true));
+    expect(textIn('nav-air-toast'), 'AIR 0,6 s · 2,9 G');
+    await send(JumpEvent(
+        startUs: us(t) + 20000000, duration: const Duration(milliseconds: 800), landingG: 9, upright: false, plausible: false));
+    await send(StoppieEvent(
+        startUs: us(t) + 30000000, duration: const Duration(milliseconds: 700), maxTiltDeg: 17, decel: 2, landingG: 1.6));
+    await send(WheelieEvent(startUs: us(t) + 40000000, duration: const Duration(seconds: 2), lengthM: 7.6, maxTiltDeg: 25));
+    expect(textIn('nav-air-time'), contains('0,6'));
+    expect(textIn('nav-air-time'), contains('1×'));
+    expect(textIn('nav-air-g'), contains('2,9'));
+    expect(textIn('nav-air-wheelie'), contains('bis 8 m'));
+    expect(textIn('nav-air-stoppie'), contains('bis 17°'));
+    await tester.pump(const Duration(seconds: 2));
+
+    // Am Ende: dieselben Werte in der Bilanz.
+    await fix(tester, 48.011, 9.0, heading: 0, speed: 5, at: t.add(const Duration(seconds: 102)));
+    expect(find.byKey(const ValueKey('nav-done')), findsOneWidget);
+    expect(textIn('nav-done-air-time'), contains('0,6'));
+    expect(textIn('nav-done-air-g'), contains('2,9'));
+    expect(textIn('nav-done-air-stoppie'), contains('1'));
+    expect(find.byKey(const ValueKey('nav-air-time')), findsNothing, reason: 'abseits keine Kacheln');
+    await tester.pump(kNavTrailDoneLinger);
+    await settle(tester, frames: 2);
   });
 
   testWidgets('Trail geschafft closes by itself after 20 s; half a trail gets none (#312 N2)', (tester) async {

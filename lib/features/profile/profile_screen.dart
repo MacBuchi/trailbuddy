@@ -1060,7 +1060,9 @@ class _AboutSection extends ConsumerWidget {
             dense: true,
             secondary: const Icon(Icons.sensors),
             title: Text(l.aboutSensorLogTitle),
-            subtitle: Text(l.aboutSensorLogSubtitle),
+            // Der Satz zum Risiko (Konzept Airtime 1.3, A10: gesagt, nicht
+            // gesperrt) — seit die Werte auf dem Trail stehen (#36 Schritt 5).
+            subtitle: Text('${l.aboutSensorLogSubtitle}\n${l.aboutSensorLogRisk}'),
             value: ref.watch(sensorLogProvider),
             onChanged: (value) => ref.read(sensorLogProvider.notifier).set(value),
           ),

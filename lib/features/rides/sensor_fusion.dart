@@ -576,8 +576,8 @@ class SensorFusion {
   double? _wStart;
   double _wLast2 = 0, _wPeak = 0, _wSpeedSum = 0;
   int _wSpeedN = 0;
-  final _window = ListQueue<(double, double)>();
-  double _windowSum = 0;
+  final _window = ListQueue<(double, double, double)>(); // t, |f|, Hochachse
+  double _windowSum = 0, _windowSumZ = 0;
   double? _flightStart;
   final _flights = <_Flight>[];
   double? _sStart;
@@ -911,7 +911,20 @@ class SensorFusion {
       decel: s.decel,
       landingG: s.landing));
 
-  void _flightSample(double t, double fn, double fz) {
+  void _flightSample(double t, double fn, double rawZ) {
+    // Betrag und Hochachse über dasselbe Fenster gemittelt: Ein einzelner
+    // Ausreißer bei 100 Hz (die Halterung klappert) ist keine Landung —
+    // es zählt ein Stoß, der 40 ms trägt (Betreiber 2026-10-31).
+    _window.add((t, fn, rawZ));
+    _windowSum += fn;
+    _windowSumZ += rawZ;
+    while (t - _window.first.$1 > _flightSmoothS) {
+      final gone = _window.removeFirst();
+      _windowSum -= gone.$2;
+      _windowSumZ -= gone.$3;
+    }
+    final fz = _windowSumZ / _window.length;
+
     // Die Landung eines Stoppies: vom Beginn (ohne den Wert, der ihn
     // auslöste — wie im Werkzeug) bis 0,5 s nach dem Ende.
     if (_sStart != null) _sLanding = math.max(_sLanding, fz);
@@ -924,11 +937,6 @@ class SensorFusion {
       return false;
     });
 
-    _window.add((t, fn));
-    _windowSum += fn;
-    while (t - _window.first.$1 > _flightSmoothS) {
-      _windowSum -= _window.removeFirst().$2;
-    }
     for (final f in _flights) {
       if (f.peakDone) continue;
       if (t - f.t1 > _landingWindowS) {

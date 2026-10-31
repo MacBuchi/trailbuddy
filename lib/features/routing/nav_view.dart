@@ -27,6 +27,9 @@ import '../../data/providers.dart' show currentUserIdProvider;
 import '../../l10n/l10n.dart';
 import '../map/map_buttons.dart';
 import '../map/map_view/map_view.dart';
+import '../rides/airtime_live.dart';
+import '../rides/sensor_fusion.dart' show JumpEvent;
+import '../rides/trail_values.dart';
 import '../trails/grade_shield.dart';
 import '../trails/trail_condition.dart';
 import '../trails/trail_providers.dart' show WriteOutcome, trailsProvider;
@@ -246,6 +249,7 @@ class _NavOverlayState extends ConsumerState<NavOverlay> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   top,
+                  const _AirToast(),
                   if (note != null)
                     Padding(
                       padding: const EdgeInsets.only(top: 8),
@@ -272,6 +276,11 @@ class _NavOverlayState extends ConsumerState<NavOverlay> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  if (phase.kind == NavPhaseKind.onTrail && !off)
+                    if (_liveValues(ref, ref.read(navigationProvider.notifier).trailSince) case final v?) ...[
+                      _AirTiles(values: v, keyPrefix: 'nav-air'),
+                      const SizedBox(height: 10),
+                    ],
                   if (!arrived && !off) ...[
                     _RouteBand(session: session),
                     const SizedBox(height: 10),
@@ -1256,6 +1265,10 @@ class _TrailDoneSheetState extends ConsumerState<_TrailDoneSheet> {
                     }),
                   ),
                 ]),
+                if (_liveValues(ref, done.endedAt.subtract(done.duration), to: done.endedAt) case final v?) ...[
+                  const SizedBox(height: 8),
+                  _AirTiles(values: v, keyPrefix: 'nav-done-air'),
+                ],
                 if (signedIn) ...[
                   const SizedBox(height: 12),
                   _Label(l.navDoneAsk),
@@ -1301,6 +1314,114 @@ class _TrailDoneSheetState extends ConsumerState<_TrailDoneSheet> {
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Die Trail-Werte (#36 Schritt 5) von [from] bis [to] (offen: bis jetzt)
+/// aus der laufenden Erkennung; null, solange sie nicht läuft — ohne den
+/// Test-Schalter gibt es nichts zu zeigen, auch keine Nullen.
+TrailValues? _liveValues(WidgetRef ref, DateTime? from, {DateTime? to}) {
+  final live = ref.watch(airtimeLiveProvider);
+  if (!live.active || from == null) return null;
+  return TrailValues.of(live.log.kept, fromUs: from.microsecondsSinceEpoch, toUs: to?.microsecondsSinceEpoch);
+}
+
+/// AIRTIME · MAX G · WHEELIE · STOPPIE (Entwurf 1a, Stoppie dazu vom
+/// Betreiber 2026-10-31) — auf dem Trail und im Blatt „Trail geschafft".
+class _AirTiles extends StatelessWidget {
+  const _AirTiles({required this.values, required this.keyPrefix});
+
+  final TrailValues values;
+  final String keyPrefix;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = context.l10n;
+    final v = values;
+    final tiles = [
+      _DoneTile(
+        key: ValueKey('$keyPrefix-time'),
+        label: l.navValueAirtime,
+        value: airtimeNumber(l, v.airS, 1),
+        unit: l.navValueAirtimeUnit(v.jumps),
+      ),
+      _DoneTile(
+        key: ValueKey('$keyPrefix-g'),
+        label: l.navValueMaxG,
+        value: v.maxG == null ? '–' : airtimeNumber(l, v.maxG!, 1),
+        unit: 'G',
+      ),
+      _DoneTile(
+        key: ValueKey('$keyPrefix-wheelie'),
+        label: l.navValueWheelie,
+        value: '${v.wheelies}',
+        unit: v.wheelies == 0 ? '' : l.navValueWheelieUnit(airtimeNumber(l, v.longestWheelieM, 0)),
+      ),
+      _DoneTile(
+        key: ValueKey('$keyPrefix-stoppie'),
+        label: l.navValueStoppie,
+        value: '${v.stoppies}',
+        unit: v.stoppies == 0 ? '' : l.navValueStoppieUnit(airtimeNumber(l, v.steepestStoppieDeg, 0)),
+      ),
+    ];
+    return Row(children: [
+      for (final (i, t) in tiles.indexed) ...[
+        if (i > 0) const SizedBox(width: 6),
+        Expanded(child: t),
+      ],
+    ]);
+  }
+}
+
+/// Nach jedem plausiblen Sprung 2 s „AIR 0,8 s · 2,9 G" (Entwurf 1a). Der
+/// Sprung kommt mit dem Verzug der Fusion an, 2–4 s nach der Landung —
+/// der Toast sagt es nicht, er erscheint einfach dann.
+class _AirToast extends ConsumerStatefulWidget {
+  const _AirToast();
+
+  @override
+  ConsumerState<_AirToast> createState() => _AirToastState();
+}
+
+const kNavAirToastShown = Duration(seconds: 2);
+
+class _AirToastState extends ConsumerState<_AirToast> {
+  JumpEvent? _shown;
+  Timer? _hide;
+
+  @override
+  void dispose() {
+    _hide?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    ref.listen(airtimeLiveProvider.select((s) => s.log.events), (before, after) {
+      final known = before?.length ?? 0;
+      if (after.length <= known) return;
+      final jump = after.skip(known).whereType<JumpEvent>().where((j) => j.plausible).lastOrNull;
+      if (jump == null) return;
+      _hide?.cancel();
+      _hide = Timer(kNavAirToastShown, () {
+        if (mounted) setState(() => _shown = null);
+      });
+      setState(() => _shown = jump);
+    });
+    final jump = _shown;
+    if (jump == null) return const SizedBox.shrink();
+    final l = context.l10n;
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: _NavCard(
+        key: const ValueKey('nav-air-toast'),
+        child: Text(
+          l.navAirToast(airtimeNumber(l, jump.duration.inMilliseconds / 1000, 1), airtimeNumber(l, jump.landingG, 1)),
+          textAlign: TextAlign.center,
+          style: AppFonts.numbers(const TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.brand)),
         ),
       ),
     );

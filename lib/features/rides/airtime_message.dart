@@ -44,7 +44,8 @@ String encodeAirtimeEvent(String file, FusionEvent event) => _eventPrefix +
       ...switch (event) {
         WheelieEvent() => {'k': 'w', 'm': _round(event.maxTiltDeg), 'l': _round(event.lengthM)},
         JumpEvent() => {'k': 'j', 'g': _round(event.landingG), 'p': event.plausible},
-        StoppieEvent() => {'k': 's', 'm': _round(event.maxTiltDeg), 'b': _round(event.decel)},
+        StoppieEvent() =>
+          {'k': 's', 'm': _round(event.maxTiltDeg), 'b': _round(event.decel), 'g': _round(event.landingG)},
       },
     });
 
@@ -102,7 +103,12 @@ AirtimeMessage? decodeAirtimeMessage(Object? data) {
             landingG: n('g'),
             upright: true,
             plausible: json['p'] == true),
-        's' => StoppieEvent(startUs: start, duration: duration, maxTiltDeg: n('m'), decel: n('b'), landingG: 0),
+        's' => StoppieEvent(
+            startUs: start,
+            duration: duration,
+            maxTiltDeg: n('m'),
+            decel: n('b'),
+            landingG: (json['g'] as num?)?.toDouble() ?? 0),
         _ => throw const FormatException('Art'),
       };
       return AirtimeEventMessage(json['f'] as String, event);

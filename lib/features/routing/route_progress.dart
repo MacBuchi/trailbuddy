@@ -495,6 +495,10 @@ class NavTrailWatch {
   double _enteredAlongM = 0;
   double? _maxSpeed;
 
+  /// Seit wann man auf dem laufenden Trail ist (Zeit des Fixes); null
+  /// abseits — die Trail-Werte der Folgeansicht zählen ab hier (#36).
+  DateTime? get enteredAt => _section == null ? null : _enteredAt;
+
   /// Ein neuer Stand zur Zeit [at]; die Bilanz, wenn damit ein Trail zu
   /// Ende ist, sonst null.
   NavTrailDone? update(

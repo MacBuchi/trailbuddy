@@ -38,10 +38,12 @@ import '../trails/trail_sheet.dart' show formatLength;
 import '../trails/trail_takeover.dart';
 import '../trails/trail_traits.dart';
 import 'ride_confirm.dart';
+import 'ride_providers.dart' show rideStoreProvider;
 import 'ride_split.dart';
 import 'ride_track.dart';
 import 'road_index.dart';
 import 'split_confirm_row.dart';
+import 'trail_values.dart';
 
 /// Was zerlegt werden soll: die Spur, ihre Quelle, die Streuung je Punkt
 /// (nur bei eigenen Aufzeichnungen).
@@ -195,6 +197,10 @@ class _TakeOverDraft {
 class _RideSplitSheetState extends ConsumerState<_RideSplitSheet> {
   RideSplit? _split;
   bool _loading = true;
+
+  /// Was die Erkennung auf der Fahrt fand (#36 Schritt 5); leer ohne
+  /// Test-Schalter oder bei einer Datei.
+  AirtimeLog _airtime = AirtimeLog.empty;
   final _knownSelected = <int>{};
   final _drafts = <_CandidateDraft>[];
 
@@ -278,6 +284,8 @@ class _RideSplitSheetState extends ConsumerState<_RideSplitSheet> {
       logError('Wege für das Zerlege-Blatt lesen', e, s);
       roads = (index: null, coverage: RoadCoverage.none, tilesNeeded: 0, tilesFound: 0);
     }
+    final rideId = widget.request.rideId;
+    final airtime = rideId == null ? AirtimeLog.empty : await ref.read(rideStoreProvider).airtimeLog(rideId);
     if (!mounted) return;
     final split = splitRide(
       points: points,
@@ -288,6 +296,7 @@ class _RideSplitSheetState extends ConsumerState<_RideSplitSheet> {
     );
     setState(() {
       _split = split;
+      _airtime = airtime;
       _loading = false;
       _knownSelected.addAll([for (var i = 0; i < split.known.length; i++) i]);
       for (var i = 0; i < split.known.length; i++) {
@@ -335,6 +344,17 @@ class _RideSplitSheetState extends ConsumerState<_RideSplitSheet> {
   List<LatLng> _latLng(int start, int end) => [
         for (final p in _split!.points.sublist(start, end + 1)) LatLng(p.lat, p.lon),
       ];
+
+  /// Die Trail-Werte des Stücks von Punkt [start] bis [end], nach der
+  /// Zeit der Punkte; null ohne Zeiten oder ohne Ereignis.
+  String? _airLine(int start, int end) {
+    if (_airtime.isEmpty) return null;
+    final pts = _split!.points;
+    final from = pts[start].time, to = pts[end].time;
+    if (from == null || to == null) return null;
+    return trailValuesLine(context.l10n,
+        TrailValues.of(_airtime.kept, fromUs: from.microsecondsSinceEpoch, toUs: to.microsecondsSinceEpoch));
+  }
 
   double _lengthOf(int start, int end) => trackLengthM(_split!.points.sublist(start, end + 1));
 
@@ -617,7 +637,10 @@ class _RideSplitSheetState extends ConsumerState<_RideSplitSheet> {
                     _pushPreview();
                   }),
                   title: Text(split.known[i].trail.displayName(l)),
-                  subtitle: Text(formatLength(split.known[i].lengthM)),
+                  subtitle: Text([
+                    formatLength(split.known[i].lengthM),
+                    ?_airLine(split.known[i].start, split.known[i].end),
+                  ].join(' · ')),
                 )),
                 if (_takeOvers[i] != null && _knownSelected.contains(i))
                   _anchorIf(i == firstTakeOver, SplitCoach.takeOver, _takeOverCard(i, theme)),
@@ -956,6 +979,7 @@ class _RideSplitSheetState extends ConsumerState<_RideSplitSheet> {
                   if (s.manual) context.l10n.splitPartManual,
                   if (s.marked) context.l10n.splitPartMarked,
                   if (tooShort) context.l10n.splitPartTooShort,
+                  ?_airLine(d.start, d.end),
                 ].join(' · '),
                 style: theme.textTheme.bodySmall,
               ),

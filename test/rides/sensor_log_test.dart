@@ -153,8 +153,11 @@ void main() {
     await logFile().writeAsString(kSensorLogHeader);
     expect(await store.sensorLogPath(id), logFile().path);
     expect(await store.sensorLogPath('../x'), isNull);
+    final events = File(sensorEventsPath(logFile().path));
+    await events.writeAsString('e,1,1.00,5.0,20.0\n');
     await store.delete(id);
     expect(await logFile().exists(), isFalse);
+    expect(await events.exists(), isFalse, reason: 'die Ereignisse gehen mit (#36 Schritt 5)');
   });
 
   test('Wheelie, Sprung und Stoppie in den Strömen: Zeilen e, j und s, je ein Banner, die Halterung für die nächste Fahrt',
@@ -220,6 +223,15 @@ void main() {
     expect(jumpEventLine(jump), matches(RegExp(r'^j,\d+,0\.\d{3},3\.\d\d,1\n$')));
     expect(lines.where((l) => l.startsWith('s,')), [stoppieEventLine(stoppie).trim()]);
     expect(stoppieEventLine(stoppie), matches(RegExp(r'^s,\d+,\d\.\d\d,\d+\.\d,\d\.\d\d,\d\.\d\d\n$')));
+
+    // Die Ereignisse stehen auch allein in ihrer Datei — daraus liest die
+    // App die Trail-Werte (#36 Schritt 5), nicht aus 30 MB Rohdaten.
+    expect(await File(sensorEventsPath(logFile().path)).readAsString(),
+        wheelieEventLine(wheelie) + jumpEventLine(jump) + stoppieEventLine(stoppie));
+    final log = await FileRideStore(baseDir: dir).airtimeLog('20261030T091503Z');
+    expect(log.kept.map((e) => '${e.runtimeType} ${e.startUs}'),
+        [wheelie, jump, stoppie].map((e) => '${e.runtimeType} ${e.startUs}'));
+    expect(currentSensorLogger, isNull);
 
     // Die offene App bekommt dieselben drei Ereignisse und die Takte dazu.
     final messages = toApp.map(decodeAirtimeMessage).toList();
@@ -287,6 +299,10 @@ void main() {
     expect(data, ['l,$us,$start,1', 'l,$us,$start,0', 'm,$us']);
     final all = (await file.readAsString()).split('\n').where((l) => l.isNotEmpty && !l.startsWith('#'));
     expect(all.skip(3), ['k,$us,$start,1', 'k,$us,$start,0', 'n,$us', 'p,$us,$start,1', 'p,$us,$start,0', 'q,$us']);
+    // Neben die Ereignisse nur die Antworten, kein „verpasst".
+    expect((await File(sensorEventsPath(file.path)).readAsString()).split('\n').where((l) => l.isNotEmpty), [
+      'l,$us,$start,1', 'l,$us,$start,0', 'k,$us,$start,1', 'k,$us,$start,0', 'p,$us,$start,1', 'p,$us,$start,0', //
+    ]);
 
     const trailPayload = '{"dir":"/x","uid":"u","ride":"2026-10-30T09:00:00.000Z","trail":"t"}';
     expect(await handleWheelieResponse(actionId: 'confirm_yes', payload: trailPayload), isFalse);

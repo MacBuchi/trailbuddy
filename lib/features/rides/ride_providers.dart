@@ -26,6 +26,7 @@ import 'ride_store.dart';
 import 'ride_task_handler.dart';
 import 'ride_track.dart';
 import 'sensor_log.dart' show kRideDataSensorLog, kRideDataSensorRange, readSensorRange;
+import 'trail_values.dart';
 
 /// Gibt es die Aufzeichnung auf dieser Plattform? Im Browser nicht: Dort
 /// gibt es kein Service-Isolate, und ein Tab im Hintergrund bekommt
@@ -122,6 +123,11 @@ Future<RidePoint?> _platformFix() async {
 }
 
 final rideStoreProvider = Provider<RideStore>((ref) => FileRideStore());
+
+/// Was die Erkennung auf einer Fahrt fand (#36 Schritt 5), für die Zeile
+/// in „Meine Fahrten". Leer ohne Test-Schalter.
+final rideAirtimeProvider = FutureProvider.autoDispose.family<AirtimeLog, String>(
+    (ref, id) => ref.read(rideStoreProvider).airtimeLog(id));
 
 /// Die Brücke zum Service-Isolate: scharf schalten und entschärfen.
 /// Eigene Naht, weil dahinter `path_provider` und SharedPreferences

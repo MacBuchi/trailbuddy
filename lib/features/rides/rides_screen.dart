@@ -30,6 +30,7 @@ import 'ride_profile_guess.dart';
 import 'ride_providers.dart';
 import 'ride_split_sheet.dart';
 import 'ride_track.dart';
+import 'trail_values.dart';
 
 class RidesScreen extends ConsumerStatefulWidget {
   const RidesScreen({super.key});
@@ -374,6 +375,11 @@ class _RideTile extends ConsumerWidget {
               l.commonPoints(ride.points.length),
             ],
           ].join(' · ')),
+          // Was die Erkennung über die ganze Fahrt fand (#36 Schritt 5).
+          if (!planned)
+            if (ref.watch(rideAirtimeProvider(ride.id)).valueOrNull case final log?)
+              if (trailValuesLine(l, TrailValues.of(log.kept)) case final air?)
+                Text(air, key: ValueKey('ride-air-${ride.id}')),
           if (!planned) _ProfileChip(ride, profile, enabled: !selecting),
         ],
       ),

@@ -7,6 +7,7 @@ import 'package:trailbuddy/features/rides/ride_providers.dart';
 import 'package:trailbuddy/features/rides/ride_service.dart';
 import 'package:trailbuddy/features/rides/ride_store.dart';
 import 'package:trailbuddy/features/rides/ride_track.dart';
+import 'package:trailbuddy/features/rides/trail_values.dart';
 import 'package:trailbuddy/features/routing/nav_notice.dart';
 import 'package:trailbuddy/features/routing/nav_service.dart';
 
@@ -177,6 +178,12 @@ class FakeRideStore implements RideStore {
 
   @override
   Future<String?> sensorLogPath(String id) async => sensorLogs[id];
+
+  /// Was die Erkennung je Fahrt gefunden hat (#36 Schritt 5).
+  final airtimeLogs = <String, AirtimeLog>{};
+
+  @override
+  Future<AirtimeLog> airtimeLog(String id) async => airtimeLogs[id] ?? AirtimeLog.empty;
 
   @override
   Future<bool> setProfile(String id, String profile) async {

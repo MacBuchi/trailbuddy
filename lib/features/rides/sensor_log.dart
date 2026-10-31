@@ -41,6 +41,7 @@ import 'airtime_message.dart';
 import 'ride_store.dart' show rideIdFor;
 import 'ride_task_handler.dart';
 import 'sensor_fusion.dart';
+import 'trail_values.dart';
 import 'wheelie_notify.dart';
 
 /// Schalter der Brücke: Rohdaten mitschreiben.
@@ -86,6 +87,15 @@ const kSensorFlushInterval = Duration(seconds: 2);
 
 /// Unterordner von `rides/`.
 const kSensorDirName = 'sensors';
+
+/// Die Ereignisse und Antworten einer Fahrt OHNE die Rohwerte, neben
+/// den Rohdaten (`<id>.events.csv`): daraus liest die App die Trail-Werte
+/// (`trail_values.dart`, #36 Schritt 5) — die Rohdaten sind dafür zu groß.
+const kSensorEventsSuffix = '.events.csv';
+
+/// Die Ereignis-Datei zu den Rohdaten [logPath].
+String sensorEventsPath(String logPath) =>
+    '${logPath.endsWith('.csv') ? logPath.substring(0, logPath.length - 4) : logPath}$kSensorEventsSuffix';
 
 /// Die erste Zeile jeder Datei: sagt dem Werkzeug
 /// (`tool/airtime_measure.py`), was die Spalten heißen.
@@ -215,6 +225,13 @@ class SensorLogger {
   File get _mountFile => File('${file.parent.path}/$kSensorMountFile');
 
   final _buffer = StringBuffer();
+  final _events = StringBuffer();
+
+  /// Was diese Fahrt bisher fand — für die Trail-Werte in der
+  /// Benachrichtigung der Navigation (`nav_notice.dart`), im selben
+  /// Isolate. Antworten kennt der Dienst nicht: Sie kommen im Isolate des
+  /// Pakets an.
+  AirtimeLog log = AirtimeLog.empty;
   final _subscriptions = <StreamSubscription<List<double>>>[];
   Timer? _timer;
   Future<void> _writing = Future.value();
@@ -251,20 +268,27 @@ class SensorLogger {
     final live = _fusion.takeLive();
     if (live.isNotEmpty) _send(encodeAirtimeLive(file.path, live));
     for (final event in events) {
+      log = log.withEvent(event);
       _send(encodeAirtimeEvent(file.path, event));
       // Nicht abgewartet: Das Banner darf den Strom nicht aufhalten.
       switch (event) {
         case WheelieEvent():
-          _buffer.write(wheelieEventLine(event));
+          _write(wheelieEventLine(event));
           unawaited(_notices.wheelie(event, file: file.path));
         case JumpEvent():
-          _buffer.write(jumpEventLine(event));
+          _write(jumpEventLine(event));
           unawaited(_notices.jump(event, file: file.path));
         case StoppieEvent():
-          _buffer.write(stoppieEventLine(event));
+          _write(stoppieEventLine(event));
           unawaited(_notices.stoppie(event, file: file.path));
       }
     }
+  }
+
+  /// Ein Ereignis in beide Dateien.
+  void _write(String line) {
+    _buffer.write(line);
+    _events.write(line);
   }
 
   void _send(String message) {
@@ -311,6 +335,15 @@ class SensorLogger {
 
   /// Hängt an, was sich gesammelt hat. Wirft nie.
   Future<void> flush() => _writing = _writing.then((_) async {
+        if (_events.isNotEmpty) {
+          final text = _events.toString();
+          _events.clear();
+          try {
+            await File(sensorEventsPath(file.path)).writeAsString(text, mode: FileMode.append, flush: true);
+          } catch (_) {
+            // Dann fehlen nur die Trail-Werte dieser Ereignisse.
+          }
+        }
         if (_buffer.isEmpty) return;
         final text = _buffer.toString();
         _buffer.clear();
@@ -348,6 +381,9 @@ String? _loggerRide;
 
 @visibleForTesting
 SensorLogger? get currentSensorLogger => _logger;
+
+/// Was der laufende Logger dieses Isolates bisher fand; leer ohne.
+AirtimeLog sensorLogEvents() => _logger?.log ?? AirtimeLog.empty;
 
 /// Je Takt des Dienstes: startet den Logger, wenn eine Fahrt mit Schalter
 /// läuft und noch keiner schreibt; beendet ihn sonst. Wirft nie.
