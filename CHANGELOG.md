@@ -2,6 +2,16 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Zurück-Taste am Trail-Blatt
+
+*Version 0.144.1, 2026-10-31*
+
+- Ab Android 16 schickte die Zurück-Taste die App manchmal in den
+  Hintergrund, obwohl das Trail-Blatt offen war — meist, nachdem man
+  die App einmal verlassen und wieder geöffnet hatte. Jetzt schließt
+  Zurück wieder erst das Blatt, dann die Auswahl, und erst auf der
+  leeren Karte geht die App in den Hintergrund.
+
 ## Wheelies und Sprünge mit aufbereiteten Sensoren
 
 *Version 0.144.0, 2026-10-31*

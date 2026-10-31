@@ -106,6 +106,20 @@ void main() {
     expect(body.group(1), isNot(contains('finish')));
   });
 
+  test('Zurück geht auch mit Predictive Back immer an Dart', () {
+    // #432: Ab Android 16 (targetSdk 36) gibt Android Zurück nur an
+    // Flutter, solange dessen Rückruf angemeldet ist — und Dart meldete
+    // nach dem Wiederöffnen „nein", obwohl das Trail-Blatt offen war. Der
+    // Rückruf steht deshalb ab `onCreate` und bleibt, was Dart auch meldet.
+    final kotlin = File('android/app/src/main/kotlin/${appId.replaceAll('.', '/')}/MainActivity.kt').readAsStringSync();
+    final onCreate = RegExp(r'override fun onCreate\([^)]*\) \{\s*super\.onCreate\([^)]*\)\s*(//[^\n]*\n\s*)*registerOnBackInvokedCallback\(\)')
+        .hasMatch(kotlin);
+    expect(onCreate, isTrue, reason: 'onCreate meldet den Rückruf nicht gleich nach super an');
+    final body = RegExp(r'override fun setFrameworkHandlesBack\(frameworkHandlesBack: Boolean\) \{([^}]*)\}').firstMatch(kotlin);
+    expect(body, isNotNull, reason: 'setFrameworkHandlesBack ist nicht überschrieben');
+    expect(body!.group(1)!.trim(), 'super.setFrameworkHandlesBack(true)');
+  });
+
   test('der Beendigungs-Kanal heißt in Kotlin und Dart gleich, das Tombstone liest Dart', () {
     // #40: Ein Tippfehler auf einer Seite hieße „keine Historie" — ohne
     // Fehlermeldung, für immer. Und das Tombstone (Protobuf) gehört auf
