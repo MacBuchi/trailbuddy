@@ -856,3 +856,20 @@ Untertitel „2 Trails · 18,6 km".
   (`toUpperCase`), nicht Kapitälchen; der Bildschirmleser hört sie wie
   geschrieben.
 
+## 14. Live-Ansicht der Erkennung (#36, 4c) — `lib/features/rides/airtime_live_window.dart`
+
+*Betreiber, 2026-10-31: „kleines Fenster über der Karte", ein Fully wie
+Orbea Rise oder Rocky Mountain Altitude, Seitenansicht mit Winkel und
+laufender Zeit.* Eine `Card` 260 dp breit unter der Fahrt-Karte, Flächen
+und Text aus `AppPalette.of` (folgt dem Modus der App, anders als die
+Folgeansicht in 13 — sie ist ein Test-Werkzeug, kein Fahr-Bildschirm).
+Das Rad ist ein Bild (`assets/airtime/bike_side.png`): eine
+E-Fully-Silhouette, die der Betreiber am 2026-10-31 mit Gemini erzeugt hat,
+freigestellt und auf 512 px verkleinert. Es wird eingefärbt: in `text`,
+solange keine Phase läuft, in `accentText` während einer Phase (Front
+oben/unten, in der Luft). Eine selbst gezeichnete Fassung war „etwas
+räudig" (Betreiber). Der Winkel
+in JetBrains Mono 28, in `accentText` während einer Phase. Die Fragen:
+„War keiner" als `OutlinedButton`, „Stimmt" als `FilledButton`, je die
+halbe Breite. Verkleinert ein `IconButton.filled` (48 dp, A13) mit dem
+Sensor-Symbol und der Zahl offener Fragen als `Badge`.

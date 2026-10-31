@@ -254,6 +254,54 @@ void main() {
     expect(starts, [closeTo(90.2, 0.11), closeTo(135.3, 0.11)], reason: 'die echten davor bleiben');
   });
 
+  test('die Live-Ansicht liest nur mit: dieselben Ereignisse, je Takt ein Zustand', () {
+    final (_, plain) = _run();
+    final fusion = SensorFusion(originUs: 0)..keepLive = true;
+    final events = <FusionEvent>[];
+    final live = <FusionLive>[];
+    for (final (kind, t, v) in _ride) {
+      events.addAll(switch (kind) {
+        'a' => fusion.addAccel(_us(t), v[0], v[1], v[2]),
+        'w' => fusion.addGyro(_us(t), v[0], v[1], v[2]),
+        _ => fusion.addGps(_us(t), v[0]),
+      });
+      live.addAll(fusion.takeLive());
+    }
+    events.addAll(fusion.finish());
+    live.addAll(fusion.takeLive());
+    String key(FusionEvent e) => '${e.runtimeType} ${e.startUs} ${e.duration.inMicroseconds}';
+    expect(events.map(key), plain.map(key));
+
+    // Rund 10 Hz über die Fahrt, in der Zeit aufsteigend.
+    expect(live.length, inInclusiveRange(_ride.last.$2 * 10 - 100, _ride.last.$2 * 10 + 1));
+    for (var i = 1; i < live.length; i++) {
+      expect(live[i].tUs, greaterThan(live[i - 1].tUs));
+    }
+    // Ohne gelernte Halterung kein Winkel; danach einer.
+    expect(live.first.mountReady, isFalse);
+    expect(live.first.upKnown, isFalse);
+    FusionLive at(double s) => live.firstWhere((l) => l.tUs >= _us(s));
+    expect(at(60).mountReady, isTrue);
+    // Mitten im langen Wheelie (310,5–399,8 s, 40°): Phase, Beginn, Spitze.
+    final mid = at(350);
+    expect(mid.phase, FusionPhase.wheelie);
+    expect(_s(mid.phaseStartUs!), closeTo(310.48, 0.11));
+    expect(mid.pitchDeg, closeTo(40, 3));
+    expect(mid.peakDeg, greaterThanOrEqualTo(mid.pitchDeg));
+    // Der Sprung (100,0–100,5 s) in der Luft, der Stoppie (410,5 s) mit der Front unten.
+    expect(at(100.3).phase, FusionPhase.airborne);
+    final stoppie = at(410.9);
+    expect(stoppie.phase, FusionPhase.stoppie);
+    expect(stoppie.pitchDeg, lessThan(-kFusionStoppieTiltDeg + 5));
+    expect(at(200).phase, FusionPhase.none);
+    // Ohne Ansicht sammelt sich nichts an.
+    final quiet = SensorFusion(originUs: 0);
+    for (final (kind, t, v) in _ride.take(20000)) {
+      if (kind == 'a') quiet.addAccel(_us(t), v[0], v[1], v[2]);
+    }
+    expect(quiet.takeLive(), isEmpty);
+  });
+
   test('Schübe des Sensors ändern nichts', () {
     final (_, plain) = _run();
     final (_, bursts) = _run(accelAhead: 25);

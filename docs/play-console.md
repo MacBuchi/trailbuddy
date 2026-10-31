@@ -71,7 +71,13 @@ Hinaus geht nur, was der Nutzer im Zerlege-Blatt als Trail auswählt — das
 steht oben unter „Genauer Standort". Dasselbe gilt für den Ausgangskorb
 (`outbox/`), den Zwischenspeicher der Trails (`trail_cache/`), gespeicherte
 Kartenbereiche und die „Vor Ort"-Prüfung: alles auf dem Gerät, an den Server
-geht beim Melden nur ja oder nein. Wer daran etwas ändert (eine Sicherung
+geht beim Melden nur ja oder nein. Ebenso die Sensordaten der Erkennung
+(#36, seit 0.148.0 auch in der offiziellen App, ab Werk aus:
+`rides/sensors/<id>.csv`, Beschleunigung und Kreisel mit 100 Hz, GPS je
+Sekunde, Ereignisse und Antworten) — ausgewertet auf dem Gerät, hinaus nur
+über „Sensordaten teilen" an einen Empfänger, den der Nutzer wählt; keine
+Berechtigung dazu. Erst Schritt 6 (Bestwert und Zähler auf dem Server)
+macht daraus eine erhobene Kategorie (siehe ⁵). Wer daran etwas ändert (eine Sicherung
 der Fahrten in der Cloud, Konzept 10.4 „verworfen für jetzt"), ändert diese
 Tabelle.
 

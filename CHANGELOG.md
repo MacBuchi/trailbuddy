@@ -2,6 +2,26 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Wheelies, Sprünge und Stoppies erkennen — zum Ausprobieren
+
+*Version 0.148.0, 2026-10-31*
+
+- Unter „Über TrailBuddy“ gibt es jetzt auch in der normalen App den
+  Schalter „Wheelie, Sprung und Stoppie erkennen (Test)“. Er ist ab Werk
+  aus und gilt ab der nächsten Fahrt.
+- Läuft eine Fahrt mit diesem Schalter, zeigt ein kleines Fenster über der
+  Karte, was die Erkennung gerade sieht: ein Fully von der Seite, das sich
+  mit der Front hebt oder senkt, den Winkel, die laufende Zeit mit der
+  Spitze und ob du gerade fährst, die Front oben ist oder du in der Luft
+  bist. Das Bild läuft etwa zwei Sekunden hinterher — so lange rechnet die
+  Erkennung.
+- Nach jedem erkannten Wheelie, Sprung oder Stoppie fragt das Fenster
+  „Stimmt“ oder „War keiner“, auch wenn das Banner zwischen anderen
+  Benachrichtigungen untergeht. Über die Fahne meldest du, was sie verpasst
+  hat. Das Fenster lässt sich zu einem kleinen Knopf verkleinern.
+- Alle Messwerte bleiben auf dem Gerät; die Datenschutzerklärung sagt jetzt
+  auch, was dabei gemessen wird.
+
 ## Hinweis und Meldung sind eins
 
 *Version 0.147.0, 2026-10-31*

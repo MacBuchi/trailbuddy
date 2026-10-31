@@ -1,5 +1,5 @@
 // Signalaufbereitung zur Laufzeit (#36, Konzept Airtime 3a und 9, Schritt
-// 4; nur Dev-App): `tool/sensor_fusion.py` in Dart, Zeile für Zeile — die
+// 4; am Schalter der Rohdaten): `tool/sensor_fusion.py` in Dart, Zeile für Zeile — die
 // drei Stufen Halterung, Lage-Filter (Mahony; der ESKF bleibt im Werkzeug
 // als Gegenprobe) und Ereignisse. Reine Rechnung ohne Plattform: Der
 // Logger (`sensor_log.dart`) füttert sie im Isolate des Dienstes, der
@@ -151,6 +151,36 @@ class StoppieEvent extends FusionEvent {
   final double maxTiltDeg;
   final double decel;
   final double landingG;
+}
+
+/// Was gerade läuft, in der Reihenfolge des Vorrangs: in der Luft vor
+/// Front oben vor Front unten.
+enum FusionPhase { none, wheelie, stoppie, airborne }
+
+/// Was das Modell zu einem Takt denkt (#36, die Live-Ansicht) — mit dem
+/// Verzug der Fusion, also 1,5–2,5 s hinter der Uhr. [pitchDeg] ist NaN,
+/// solange „vorn" nicht steht; [phaseStartUs] und [peakDeg] gehören zu
+/// [phase] (bei [FusionPhase.airborne] ist [peakDeg] 0).
+class FusionLive {
+  const FusionLive({
+    required this.tUs,
+    required this.pitchDeg,
+    required this.speedKmh,
+    required this.upKnown,
+    required this.phase,
+    this.phaseStartUs,
+    this.peakDeg = 0,
+  });
+
+  final int tUs;
+  final double pitchDeg;
+  final double speedKmh;
+  final bool upKnown;
+  final FusionPhase phase;
+  final int? phaseStartUs;
+  final double peakDeg;
+
+  bool get mountReady => !pitchDeg.isNaN;
 }
 
 /// Die gelernte Halterung in Telefonachsen — gemerkt für die nächste Fahrt.
@@ -557,6 +587,20 @@ class SensorFusion {
   /// Für den Test und die Nachrechnung.
   int updates = 0, rejected = 0;
 
+  /// Je Takt ein [FusionLive], abgeholt mit [takeLive] — die Fusion
+  /// rechnet in Schüben (je GPS-Punkt eine Sekunde), die Live-Ansicht
+  /// spielt sie nach der Zeit ab. Nur, solange [keepLive] an ist; sonst
+  /// sammelte sich eine Stunde Takte an.
+  bool keepLive = false;
+  final _live = <FusionLive>[];
+
+  List<FusionLive> takeLive() {
+    if (_live.isEmpty) return const [];
+    final out = List<FusionLive>.of(_live);
+    _live.clear();
+    return out;
+  }
+
   /// Die Halterung, sobald „vorn" steht — für die nächste Fahrt.
   FusionMount? get mount {
     final up = _mount.up, fwd = _mount.fwd;
@@ -737,8 +781,30 @@ class SensorFusion {
         roll = _deg(math.asin(_dot(r.$3, left).clamp(-1.0, 1.0)));
       }
       _tick(t, pitch, roll, speed, dvdt);
+      if (keepLive) _live.add(_snapshot(t, speed));
     }
     _settleFlights();
+  }
+
+  /// Nur lesend: ändert nichts an der Rechnung, Dart bleibt = Werkzeug.
+  FusionLive _snapshot(double t, double speed) {
+    final rel = _ticks.isEmpty ? double.nan : _ticks.last.$2;
+    final flight = _flightStart, wheelie = _wStart, stoppie = _sStart;
+    final (phase, start, peak) = flight != null
+        ? (FusionPhase.airborne, flight, 0.0)
+        : wheelie != null
+            ? (FusionPhase.wheelie, wheelie, _wPeak)
+            : stoppie != null
+                ? (FusionPhase.stoppie, stoppie, _sPeak)
+                : (FusionPhase.none, null, 0.0);
+    return FusionLive(
+        tUs: _us(t),
+        pitchDeg: rel,
+        speedKmh: speed.isNaN ? 0 : speed * 3.6,
+        upKnown: _mount.up != null,
+        phase: phase,
+        phaseStartUs: start == null ? null : _us(start),
+        peakDeg: peak);
   }
 
   // ------------------------------------------------------- Stufe 3

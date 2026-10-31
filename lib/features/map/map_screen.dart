@@ -19,6 +19,8 @@ import '../feedback/feedback_dialog.dart';
 import '../help/map_tour.dart';
 import '../help/tab_tours.dart' show startWelcomeTour;
 import '../highlights/highlight_sheet.dart' show maybeShowHighlights;
+import '../rides/airtime_live.dart';
+import '../rides/airtime_live_window.dart';
 import '../rides/ride_providers.dart';
 import '../rides/ride_split_sheet.dart';
 import '../rides/ride_task_handler.dart';
@@ -364,6 +366,8 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       if (ref.read(navigationProvider) != null) GoRouter.of(context).go('/');
       return;
     }
+    // Die Erkennung (#36): Takte und Ereignisse für das Fenster.
+    if (ref.read(airtimeLiveProvider.notifier).accept(data)) return;
     final point = decodeRideTick(data);
     if (point == null) return;
     ref.read(rideProvider.notifier).acceptTick(point);
@@ -1700,6 +1704,9 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       if (ride != null) _RideStatusCard(ride),
+                      // Was die Erkennung sieht (#36), nur mit ihrem
+                      // Schalter — leer, bis der Dienst etwas schickt.
+                      if (ride != null) const AirtimeLiveWindow(),
                       if (focusRide != null) _FocusRideCard(focusRide),
                     ],
                   ),

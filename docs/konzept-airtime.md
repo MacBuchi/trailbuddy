@@ -346,8 +346,10 @@ lässt sich daraus keine Trefferquote ablesen — deshalb die Rückmeldung
 am Gerät (Schritt 2b).
 
 **Der Logger** (0.142.0, `lib/features/rides/sensor_log.dart`): Schalter
-„Sensor-Rohdaten mitschreiben" unter „Über TrailBuddy", nur in der
-Dev-App (Flavor `dev`, `android/CLAUDE.md`). Gilt ab der nächsten
+unter „Über TrailBuddy", bis 0.147.0 nur in der Dev-App (Flavor `dev`,
+`android/CLAUDE.md`), seit 0.148.0 auch in der offiziellen App
+(„Wheelie, Sprung und Stoppie erkennen (Test)", ab Werk aus; Schritt 4c).
+Gilt ab der nächsten
 Fahrt; der Dienst schreibt Beschleunigung (mit Schwerkraft) und Kreisel
 mit 100 Hz und GPS jede Sekunde nach `rides/sensors/<Fahrt>.csv`
 (~30 MB je Stunde), „Meine Fahrten" → „Sensordaten teilen" bringt die
@@ -411,6 +413,24 @@ wollen auch fertig werden"):
    ob und wie ein Stoppie in Werte oder Titel eingeht, ist eine
    Entscheidung zu Abschnitt 11, bevor Schritt 5 oder 6 ihn zeigt.
    Nose-Manual nicht (Betreiber: macht mit dem MTB kaum jemand).
+   4c. **Live-Ansicht und Erkennung in der offiziellen App** (0.148.0,
+   Betreiber 2026-10-31): Der Schalter steht auch in der offiziellen
+   App, ab Werk aus, als Test benannt — gemessen wird so auf dem Gerät,
+   das sonst gefahren wird. Dazu ein kleines Fenster über der Karte,
+   solange eine Fahrt mit Schalter läuft: ein Fully von der Seite, das
+   sich mit dem Pitch gegen den Weg neigt (um die Hinterachse beim
+   Wheelie, um die Vorderachse beim Stoppie), Winkel, Zustand („fährt",
+   „Front oben", „Front unten", „In der Luft", „Halterung lernt"),
+   laufende Zeit mit Spitze, Tempo und der Verzug der Fusion (1,5–2,5 s,
+   Abschnitt 3a). Darunter fragt jedes Ereignis „Stimmt" / „War keiner"
+   — die Banner gingen unter, sobald mehrere da waren — und ein Menü
+   meldet „… verpasst". Dieselben Zeilen wie aus dem Banner, das Banner
+   geht weg. Der Winkel ist der Pitch gegen den Weg, also genau, was die
+   Regeln sehen; so wird eine Rückmeldung präziser („Front war oben, das
+   Modell sah 8°"). Noch keine Werte, kein Teilen: Schritt 5 und 6
+   bleiben, wie sie sind. **Später** (Betreiber-Ideen 2026-10-31, nicht
+   eingeplant): eine Ich-Perspektive, und die Silhouette aus einem Foto
+   des eigenen Rads.
 5. **Trail-Werte in der App** (ein PR, vorher 3 und 4): Schalter und
    Halterung im Start-Blatt, nur auf Trails, Ereigniszeilen in der
    Fahrt; Werte-Kacheln, AIR-Toast, „Trail geschafft", Zerlege-Blatt,
@@ -425,7 +445,8 @@ wollen auch fertig werden"):
 
 Schritte 5 und 6 sind sichtbare Funktionen: je ein Eintrag in
 `kFeatureHighlights` mit Vorführung. Schritte 3 und 4 betreffen nur das
-Werkzeug und die Dev-App.
+Werkzeug und die Dev-App; 4c ist ein Test hinter einem Schalter, ab Werk
+aus, und bekommt deshalb keinen Eintrag.
 
 ## 10. Risiken, benannt
 

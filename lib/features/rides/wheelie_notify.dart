@@ -1,5 +1,5 @@
 // Die Wheelie-, Sprung- und Stoppie-Messung mit Rückmeldung (#36, Konzept
-// Airtime 9, Schritte 2b, 4 und 4b; nur Dev-App): Nach jedem erkannten
+// Airtime 9, Schritte 2b, 4 und 4b; am Schalter der Rohdaten): Nach jedem erkannten
 // Ereignis ein Banner mit „Stimmt" und „War keiner", dazu eine stehende
 // Benachrichtigung mit „Wheelie verpasst", „Sprung verpasst" und „Stoppie
 // verpasst" — mehr als drei Knöpfe zeigt Android nicht. Jede Antwort ist eine Zeile in den Rohdaten der Fahrt
@@ -112,6 +112,22 @@ Future<bool> handleWheelieResponse({
     // Messwerkzeug: Die Antwort fehlt dann in der Auswertung, sonst nichts.
   }
   return true;
+}
+
+/// Eine Antwort aus der offenen App (#36, die Live-Ansicht): dieselbe
+/// Zeile wie der Knopf im Banner — und das Banner geht weg, sonst stünde
+/// die Frage zweimal. Wirft nie.
+Future<void> answerAirtimeInApp(
+    {required String actionId, required String file, int? startUs, int? notificationId}) async {
+  await handleWheelieResponse(actionId: actionId, payload: encodeWheeliePayload(file: file, startUs: startUs));
+  if (notificationId == null) return;
+  try {
+    await initRideNotices();
+    await rideNoticesPlugin.cancel(id: notificationId);
+  } catch (_) {
+    // Bleibt es stehen, schreibt ein Tipp darauf eine zweite Antwort; das
+    // Werkzeug nimmt die letzte.
+  }
 }
 
 String _num(AppLocalizations l, double v, int digits) {

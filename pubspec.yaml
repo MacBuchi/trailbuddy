@@ -4,7 +4,7 @@ publish_to: 'none'
 
 # Beide Teile erhöhen (z. B. 0.1.0+1 → 0.1.1+2). Ein Bump auf main taggt und
 # baut ein Prerelease (release.yml); ohne Bump kein Release (Version Guard).
-version: 0.147.0+221
+version: 0.148.0+222
 
 environment:
   sdk: ^3.11.0
@@ -159,6 +159,9 @@ flutter:
     # Die Zeichen der Anmelde-Anbieter (#398) — die Pfade aus Simple Icons
     # (CC0), Google und Microsoft nach ihren Vorgaben; Marken der Anbieter.
     - assets/auth/
+    # Die Silhouette der Live-Ansicht (#36): vom Betreiber mit Gemini
+    # erzeugt, freigestellt; Achsen in `BikeSideView`.
+    - assets/airtime/
 
   # Schriften als Assets, nicht über google_fonts zur Laufzeit: Die App
   # muss offline genauso aussehen. Nur die Schnitte, die das Design nutzt.

@@ -2,6 +2,26 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## Detecting wheelies, jumps and stoppies — to try out
+
+*Version 0.148.0, 2026-10-31*
+
+- Under “About TrailBuddy” the regular app now also has the switch
+  “Detect wheelies, jumps and stoppies (test)”. It is off by default and
+  applies from the next ride on.
+- While a ride with this switch is running, a small window above the map
+  shows what the detection sees right now: a full-suspension bike from the
+  side that lifts or drops its front, the angle, the running time with its
+  peak, and whether you are riding, have the front up or are in the air.
+  The picture runs about two seconds behind — that is how long the
+  detection needs.
+- After every detected wheelie, jump or stoppie the window asks “Correct”
+  or “Wasn't one”, even if the banner gets lost among other notifications.
+  The flag reports what it missed. The window can be shrunk to a small
+  button.
+- All measurements stay on the device; the privacy policy now also says
+  what is measured.
+
 ## Notes and reports are one
 
 *Version 0.147.0, 2026-10-31*

@@ -206,12 +206,13 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
 - **Sensor-Rohdaten** (#36, seit 0.142.0, `sensor_log.dart`): das
   Mess-Werkzeug des Airtime-Konzepts (`docs/konzept-airtime.md` 8, 9),
   KEINE Erkennung. Vier Dinge, die man wissen muss:
-  - **Nur Dev-App**: `sensorLogAvailableProvider` (= kein Web und
-    `AppDistribution.isDevBuild`); der Schalter unter „Über TrailBuddy"
-    und „Sensordaten teilen" im Menü einer Fahrt hängen daran, und
-    `sensorLogProvider` ist außerhalb aus, auch wenn
-    `Settings.sensorLogEnabled` einmal gesetzt war. Tests überschreiben
-    den Provider.
+  - **Seit 0.148.0 auch in der offiziellen App** (Betreiber 2026-10-31,
+    vorher nur Dev-App): `sensorLogAvailableProvider` (= kein Web); der
+    Schalter unter „Über TrailBuddy" („Wheelie, Sprung und Stoppie
+    erkennen (Test)", ab Werk aus) und „Sensordaten teilen" im Menü einer
+    Fahrt hängen daran, und `sensorLogProvider` ist außerhalb aus, auch
+    wenn `Settings.sensorLogEnabled` einmal gesetzt war. Tests
+    überschreiben den Provider.
   - **Über die Brücke** (`ride_sensor_log`, beim `arm` der Fahrt): Der
     Schalter gilt ab der NÄCHSTEN Fahrt. `serviceTick` ruft
     `sensorLogTick`, das den Logger beim ersten Takt startet; das Ende
@@ -233,8 +234,8 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     Gerät. Erste Fahrt (2026-10-30, 17 min): 111 Hz, eine Lücke über
     100 ms — er liefert; ob der Bildschirm aus war, ist nicht notiert.
 - **Wheelie, Sprung und Stoppie mit Rückmeldung** (#36, Wheelie seit
-  0.143.0, Fusion und Sprung seit 0.144.0, Stoppie seit 0.145.0, nur
-  Dev-App, hängt am Rohdaten-Schalter): `SensorFusion`
+  0.143.0, Fusion und Sprung seit 0.144.0, Stoppie seit 0.145.0, hängt
+  am Rohdaten-Schalter): `SensorFusion`
   (`sensor_fusion.dart`, reine Rechnung, `tool/sensor_fusion.py` in
   Dart — Halterung, Mahony, Ereignisse; Konzept 3a, Recherche Abschnitte
   8 und 9) bekommt im Logger jede Beschleunigung, jeden Kreisel-Wert und
@@ -286,3 +287,41 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     `de.mcbuchi.trailbuddy/sensors` in `MainActivity.kt` — gelesen im
     Main-Isolate beim `arm` (`kRideDataSensorRange`), denn im Dienst gibt
     es den Kanal der Activity nicht.
+- **Die Live-Ansicht** (#36 Schritt 4c, seit 0.148.0,
+  `airtime_message.dart`, `airtime_live.dart`, `airtime_live_window.dart`):
+  ein kleines Fenster unter der Fahrt-Karte oben auf der Karte — Fully von
+  der Seite, Winkel, Zustand, laufende Zeit mit Spitze, offene Fragen mit
+  „Stimmt"/„War keiner", Menü „… verpasst". Fünf Dinge, die man wissen
+  muss:
+  - **Der Dienst schickt, die Karte hört mit**: Der Logger kodiert je
+    Schub die Takte (`air:live:`) und jedes Ereignis (`air:event:`) als
+    Text über `sendDataToMain` — denselben Port wie die Punkte der Fahrt;
+    `_onRideTick` gibt sie VOR `decodeRideTick` an
+    `airtimeLiveProvider`. Ist die App zu, verwirft der Kanal still; die
+    Banner bleiben der Weg.
+  - **Die Fusion liest nur mit**: `keepLive` sammelt je Takt (10 Hz) ein
+    `FusionLive` aus dem, was `_tick` ohnehin hat (Pitch gegen den Weg,
+    Beginn und Spitze des laufenden Wheelies/Stoppies, Flugbeginn). Die
+    Ereignisse bleiben bitgleich zum Werkzeug — der Test vergleicht mit
+    und ohne. Ohne `keepLive` sammelt sich nichts an.
+  - **Abgespielt wird nach der Zeit der Takte, mit Verzug**: Die Fusion
+    rechnet je GPS-Punkt eine Sekunde auf einmal, 1,5 s hinter der Uhr
+    (ohne GPS bis 30 s). `lagUs` reicht bis zum ältesten Takt jedes Schubs
+    plus 0,2 s, wird nur langsam kleiner; das Fenster zeigt ihn als
+    „Verzug". Die Sensorzeit ist Unix-Zeit (wie die Zeilen der Rohdaten),
+    die Uhr `airtimeClockProvider` dieselbe Achse.
+  - **Der Ticker läuft nur, solange noch Takte vor dem Abspielpunkt
+    liegen** — sonst käme kein Widget-Test zur Ruhe, und ein Fenster, das
+    immer zeichnet, kostete Akku. Der Flow-Test prüft
+    `hasScheduledFrame` am Ende (Gegenprobe ohne das `stop`: rot).
+  - **Eine Antwort im Fenster ist dieselbe wie im Banner**
+    (`answerAirtimeInApp`: `handleWheelieResponse`, dann das Banner mit
+    seiner Kennung weg); antwortet man doch zweimal, nimmt das Werkzeug
+    die letzte (Wörterbuch je Beginn). Offen bleiben höchstens fünf
+    Fragen; „Fahrt zu Ende" leert das Fenster. Das Rad
+    (`BikeSideView`) ist ein Bild, `assets/airtime/bike_side.png` (vom
+    Betreiber mit Gemini erzeugt, freigestellt: Alpha aus der Helligkeit,
+    512 px), eingefärbt mit `srcIn`; es dreht um die Hinterachse bei Front
+    hoch, um die Vorderachse bei Front runter. Die Achsen stehen in
+    Bildpixeln in `BikeSideView` (an den Reifen gemessen) — wer das Bild
+    tauscht, misst sie neu. Über etwa 60° schneidet der Rand ab.
