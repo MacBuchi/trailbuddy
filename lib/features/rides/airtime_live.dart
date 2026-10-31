@@ -11,6 +11,7 @@
 //   gleichmäßig statt einmal je Sekunde zehn Bilder auf einmal.
 // - **Eine Antwort hier ist dieselbe wie im Banner** (`answerAirtimeInApp`):
 //   dieselbe Zeile in den Rohdaten, das Banner geht weg.
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -18,6 +19,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'airtime_message.dart';
 import 'ride_providers.dart';
 import 'sensor_fusion.dart';
+import 'trail_values.dart';
 import 'wheelie_notify.dart';
 
 /// Höchstens so viele offene Fragen; ältere fallen weg (das Banner hat
@@ -34,6 +36,7 @@ class AirtimeLiveState {
     this.ticks = const [],
     this.lagUs = 0,
     this.pending = const [],
+    this.log = AirtimeLog.empty,
     this.collapsed = false,
   });
 
@@ -47,6 +50,11 @@ class AirtimeLiveState {
 
   /// Älteste zuerst.
   final List<FusionEvent> pending;
+
+  /// Alles, was die Fahrt bisher fand, samt „War keiner" — die Trail-Werte
+  /// der Folgeansicht (#36 Schritt 5). Beim ersten Schub aus der Datei
+  /// ergänzt: Die App kann mitten in der Fahrt aufgegangen sein.
+  final AirtimeLog log;
 
   /// Zum Knopf verkleinert — gilt bis zur nächsten Fahrt.
   final bool collapsed;
@@ -65,12 +73,17 @@ class AirtimeLiveState {
   }
 
   AirtimeLiveState copyWith(
-          {List<FusionLive>? ticks, int? lagUs, List<FusionEvent>? pending, bool? collapsed}) =>
+          {List<FusionLive>? ticks,
+          int? lagUs,
+          List<FusionEvent>? pending,
+          AirtimeLog? log,
+          bool? collapsed}) =>
       AirtimeLiveState(
           file: file,
           ticks: ticks ?? this.ticks,
           lagUs: lagUs ?? this.lagUs,
           pending: pending ?? this.pending,
+          log: log ?? this.log,
           collapsed: collapsed ?? this.collapsed);
 }
 
@@ -99,7 +112,10 @@ class AirtimeLiveNotifier extends Notifier<AirtimeLiveState> {
     final message = decodeAirtimeMessage(data);
     if (message == null) return data is String && data.startsWith(kAirtimeMessagePrefix);
     var current = state;
-    if (current.file != message.file) current = AirtimeLiveState(file: message.file);
+    if (current.file != message.file) {
+      current = AirtimeLiveState(file: message.file);
+      unawaited(_loadLog(message.file));
+    }
     switch (message) {
       case AirtimeLiveMessage(:final ticks):
         if (ticks.isEmpty) break;
@@ -116,10 +132,20 @@ class AirtimeLiveNotifier extends Notifier<AirtimeLiveState> {
       case AirtimeEventMessage(:final event):
         final pending = [...current.pending, event];
         current = current.copyWith(
-            pending: pending.sublist(math.max(0, pending.length - kAirtimePendingMax)));
+            pending: pending.sublist(math.max(0, pending.length - kAirtimePendingMax)),
+            log: current.log.withEvent(event));
     }
     state = current;
     return true;
+  }
+
+  /// Was vor dem Öffnen der App schon in der Ereignis-Datei stand.
+  Future<void> _loadLog(String file) async {
+    final name = file.split('/').last;
+    if (!name.endsWith('.csv')) return;
+    final saved = await ref.read(rideStoreProvider).airtimeLog(name.substring(0, name.length - 4));
+    if (saved.isEmpty || state.file != file) return;
+    state = state.copyWith(log: saved.merge(state.log));
   }
 
   void setCollapsed(bool value) => state = state.copyWith(collapsed: value);
@@ -127,7 +153,9 @@ class AirtimeLiveNotifier extends Notifier<AirtimeLiveState> {
   /// „Stimmt" ([yes]) oder „War keiner" zum ältesten offenen Ereignis.
   Future<void> answer(FusionEvent event, {required bool yes}) async {
     final file = state.file;
-    state = state.copyWith(pending: [...state.pending.where((e) => !identical(e, event))]);
+    state = state.copyWith(
+        pending: [...state.pending.where((e) => !identical(e, event))],
+        log: state.log.withAnswer(event, yes: yes));
     if (file == null) return;
     final (actionId, id) = switch (event) {
       WheelieEvent() => (yes ? kWheelieYes : kWheelieNo, wheelieNotificationId(event.startUs)),

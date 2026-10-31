@@ -2,6 +2,30 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Werte auf dem Trail — zum Ausprobieren
+
+*Version 0.149.0, 2026-10-31*
+
+- Mit dem Schalter „Wheelie, Sprung und Stoppie erkennen (Test)“ zählt die
+  App jetzt mit, was sie auf einem Trail erkennt: Airtime (alle Sprünge
+  zusammen und wie viele), die härteste Landung in G, Wheelies mit dem
+  längsten in Metern und Stoppies mit dem steilsten Winkel.
+- In der Navigation stehen die Werte auf dem Trail über dem Band, nach
+  jedem Sprung blendet die App zwei Sekunden „AIR 0,8 s · 2,9 G“ ein, und
+  „Trail geschafft“ zeigt sie am Ende noch einmal. Die Benachrichtigung
+  nennt sie auf dem Trail ebenfalls.
+- Das Zerlege-Blatt schreibt die Werte an jeden Trail der Fahrt, „Meine
+  Fahrten“ an jede Fahrt.
+- Was du mit „War keiner“ beantwortest, zählt nicht. Ein Sprung zählt nur,
+  wenn er plausibel ist — in Fahrt davor und danach, das Rad danach
+  aufrecht.
+- Die Landung misst jetzt einen Stoß, der etwas trägt, statt eines
+  einzelnen Messwerts: Eine klappernde Halterung macht so keine harte
+  Landung mehr.
+- Unter dem Schalter steht ein Satz zum Risiko: Fahr nur, was du sicher
+  kannst — die Zahlen sind geschätzt. Alles bleibt auf dem Gerät, geteilt
+  wird nichts.
+
 ## Wheelies, Sprünge und Stoppies erkennen — zum Ausprobieren
 
 *Version 0.148.0, 2026-10-31*

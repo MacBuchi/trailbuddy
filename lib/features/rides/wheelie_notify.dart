@@ -105,6 +105,11 @@ Future<bool> handleWheelieResponse({
     };
     if (line == null) return true;
     await File(p.file).writeAsString(line, mode: FileMode.append, flush: true);
+    // Die Antwort auch neben die Ereignisse: „War keiner" nimmt es aus den
+    // Trail-Werten (`trail_values.dart`).
+    if (start != null) {
+      await File(sensorEventsPath(p.file)).writeAsString(line, mode: FileMode.append, flush: true);
+    }
     if (_missedActions.contains(actionId)) {
       await (confirmMissed ?? () => _showMissed(file: p.file, notedAt: at))();
     }

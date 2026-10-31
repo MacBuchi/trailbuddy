@@ -325,3 +325,33 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     hoch, um die Vorderachse bei Front runter. Die Achsen stehen in
     Bildpixeln in `BikeSideView` (an den Reifen gemessen) — wer das Bild
     tauscht, misst sie neu. Über etwa 60° schneidet der Rand ab.
+- **Trail-Werte in der App** (#36 Schritt 5, seit 0.149.0,
+  `trail_values.dart` rein; Konzept Airtime 9 Punkt 5): Airtime, Max G,
+  Wheelie und Stoppie je Trail-Stück, hinter dem Test-Schalter, alles
+  lokal. Vier Dinge, die man wissen muss:
+  - **Die Quelle ist `rides/sensors/<id>.events.csv`**
+    (`sensorEventsPath`), nicht die Rohdaten (30 MB je Stunde) und nicht
+    die Fahrt-Datei: Der Logger schreibt dort jedes Ereignis (dieselben
+    Zeilen `e`/`j`/`s`), `handleWheelieResponse` jede Antwort
+    `l`/`k`/`p` (kein „verpasst"). `RideStore.airtimeLog(id)` liest sie,
+    `delete` nimmt sie mit. Die Gegenprobe ohne das Schreiben dort ist in
+    `sensor_log_test` rot.
+  - **Gezählt wird nach der Zeit**: Ereignisse beginnen auf der Achse der
+    Sensoren (Unix-µs), Fixe und Punkte tragen dieselbe Zeit. Folgeansicht
+    ab `NavController.trailSince` (Einfahrt laut `NavTrailWatch`), „Trail
+    geschafft" von der Einfahrt bis `endedAt`, Zerlege-Blatt von Punkt zu
+    Punkt der Zeile, „Meine Fahrten" die ganze Fahrt
+    (`rideAirtimeProvider`). Ein Ereignis kommt 2–4 s nach der Landung
+    an — das Blatt „Trail geschafft" rechnet deshalb nach, solange es
+    steht.
+  - **Die App kennt alles über `airtimeLiveProvider.log`**: Kanal-
+    Ereignisse, Antworten im Fenster, und beim ersten Schub einer Datei
+    das, was dort schon stand (die App kann mitten in der Fahrt
+    aufgehen). Ohne Schub (`active` falsch) zeigt die Ansicht nichts,
+    auch keine Nullen. Die Benachrichtigung der Navigation liest im
+    Dienst `sensorLogEvents()` — dort fehlen die Antworten.
+  - **Max G ist über 40 ms gemittelt** (`_flightSample`, `landing_axis`
+    im Werkzeug): dasselbe Fenster und dieselbe Summenfolge wie der
+    Betrag, damit Dart und Werkzeug bitgleich bleiben (2,9813512729506604 g
+    auf der Synthetik). Gegenprobe mit dem Rohwert: der Test „ein
+    einzelner Ausreißer" sieht 9,0 g statt unter 5.

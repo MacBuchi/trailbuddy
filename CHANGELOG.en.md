@@ -2,6 +2,28 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## Values on the trail — to try out
+
+*Version 0.149.0, 2026-10-31*
+
+- With the switch “Detect wheelies, jumps and stoppies (test)” the app now
+  counts what it detects on a trail: airtime (all jumps together and how
+  many), the hardest landing in G, wheelies with the longest in metres and
+  stoppies with the steepest angle.
+- While navigating, the values stand above the band on the trail, after
+  every jump the app shows “AIR 0.8 s · 2.9 G” for two seconds, and “Trail
+  done” shows them again at the end. The notification names them on the
+  trail as well.
+- The split sheet writes the values next to every trail of the ride, “My
+  rides” next to every ride.
+- What you answer with “Wasn't one” does not count. A jump only counts when
+  it is plausible — riding before and after, the bike upright afterwards.
+- The landing now measures an impact that lasts a little instead of a
+  single reading: a rattling mount no longer makes a hard landing.
+- Below the switch there is a sentence about the risk: only ride what you
+  can ride safely — the numbers are estimates. Everything stays on the
+  device, nothing is shared.
+
 ## Detecting wheelies, jumps and stoppies — to try out
 
 *Version 0.148.0, 2026-10-31*

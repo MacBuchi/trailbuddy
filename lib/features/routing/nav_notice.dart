@@ -20,6 +20,8 @@ import '../../l10n/l10n.dart';
 import '../../core/geo.dart' show formatMeters;
 import '../rides/ride_store.dart' show FileRideStore;
 import '../rides/ride_task_handler.dart' show kRideDataActive, kRideDataDir;
+import '../rides/sensor_log.dart' show sensorLogEvents;
+import '../rides/trail_values.dart';
 import 'route_progress.dart';
 
 /// Schlüssel der Brücke (SharedPreferences, in beiden Isolaten lesbar).
@@ -120,7 +122,7 @@ class NavRouteData {
 /// darunter die Rampe, ob man auf der Route ist und ob die Fahrt
 /// mitläuft (sonst stünde sie nirgends mehr). Höhenmeter nur mit Profil.
 ({String title, String text}) navNotice(AppLocalizations l, NavState state, NavPhase phase,
-    {required bool recording}) {
+    {required bool recording, String? air}) {
   final rec = recording ? l.navNoticeRecording : null;
   if (state.arrived && phase.kind == NavPhaseKind.arrived) {
     return (title: l.navArrivedTitle, text: rec ?? l.navArrivedSubtitle);
@@ -144,6 +146,7 @@ class NavRouteData {
   final text = [
     if (ramp != null && !state.offRoute) l.navRampAhead((ramp.grade * 100).round(), formatMeters(ramp.inM)),
     state.offRoute ? l.navNoticeOffRoute(formatMeters(state.offM)) : l.navNoticeOnRoute,
+    if (phase.kind == NavPhaseKind.onTrail) ?air,
     ?rec,
   ].join(' · ');
   return (title: title, text: text);
@@ -229,6 +232,26 @@ Future<void> _show(String title, String text) async {
 
 NavNoticeWatcher? _watcher;
 
+/// Der Trail, auf dem der Dienst gerade ist, und seit wann — die Trail-
+/// Werte (#36 Schritt 5) zählen ab da.
+NavTrailSection? _airSection;
+DateTime? _airSince;
+
+/// „Air 2,4 s (3) · …" für den laufenden Trail; null abseits oder ohne
+/// Erkennung.
+String? _airOnTrail(AppLocalizations l, NavPhase phase, DateTime now, AirtimeLog Function() events) {
+  final section = phase.kind == NavPhaseKind.onTrail ? phase.section : null;
+  if (section == null) {
+    _airSection = null;
+    return null;
+  }
+  if (_airSection?.startM != section.startM || _airSection?.name != section.name) {
+    _airSection = section;
+    _airSince = now;
+  }
+  return trailValuesLine(l, TrailValues.of(events().kept, fromUs: _airSince!.microsecondsSinceEpoch));
+}
+
 /// Ein Takt der Navigation im Dienst: rechnen, Text setzen, Stand merken.
 /// Gibt den Stand zurück; null, wenn keine Navigation läuft oder kein Fix
 /// kam. **Wirft nie** — wie `recordRideTick`.
@@ -238,6 +261,7 @@ Future<NavState?> navTick({
   NavNoticeShow? show,
   Future<void> Function()? onLingered,
   DateTime Function()? now,
+  AirtimeLog Function()? events,
 }) async {
   try {
     if (await FlutterForegroundTask.getData<bool>(key: kNavDataActive) != true) return null;
@@ -251,7 +275,10 @@ Future<NavState?> navTick({
         rev: rev, headingDeg: position.heading, speedMps: position.speed);
     if (state == null) return null;
     await FlutterForegroundTask.saveData(key: kNavDataAlong, value: state.alongM);
-    final notice = navNotice(serviceL10n(), state, watcher.phaseOf(state), recording: recording);
+    final phase = watcher.phaseOf(state);
+    final l = serviceL10n();
+    final notice = navNotice(l, state, phase,
+        recording: recording, air: _airOnTrail(l, phase, (now ?? DateTime.now)(), events ?? sensorLogEvents));
     await (show ?? _show)(notice.title, notice.text);
     if (watcher.lingered(state, (now ?? DateTime.now)())) await (onLingered ?? stopNavFromService)();
     return state;
@@ -262,7 +289,10 @@ Future<NavState?> navTick({
 
 /// Vergisst den Stand des Dienstes — für Tests, die mehrere Navigationen
 /// im selben Isolate fahren.
-void resetNavTick() => _watcher = null;
+void resetNavTick() {
+  _watcher = null;
+  _airSection = null;
+}
 
 /// „Navigation beenden" in der Benachrichtigung — oder angekommen und die
 /// Minute um. Drüben sagt es die App (falls sie lebt); hier endet die

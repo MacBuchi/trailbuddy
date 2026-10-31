@@ -213,10 +213,11 @@ void main() {
     expect(jumps, hasLength(1));
     expect(_s(jumps.single.startUs), closeTo(100.025, 0.01));
     expect(jumps.single.duration.inMilliseconds, closeTo(475, 10));
-    expect(jumps.single.landingG, closeTo(3.22, 0.1));
+    // Werkzeug (Mahony), Hochachse über 40 ms gemittelt: 2,981 g.
+    expect(jumps.single.landingG, closeTo(2.981, 0.001));
     expect(jumps.single.plausible, isTrue);
 
-    // Werkzeug (Mahony): 410,48 s, 0,93 s, 17,2°, 1,8 m/s², Landung 1,85 g.
+    // Werkzeug (Mahony): 410,48 s, 0,93 s, 17,2°, 1,8 m/s², Landung 1,79 g.
     // Front runter bei 110 s ohne Bremsen und hartes Bremsen bei 60 s
     // ohne Neigung bleiben still.
     final stoppies = events.whereType<StoppieEvent>().toList();
@@ -226,13 +227,38 @@ void main() {
     expect(s.duration.inMicroseconds / 1e6, closeTo(0.93, 0.11));
     expect(s.maxTiltDeg, closeTo(17.2, 0.3));
     expect(s.decel, closeTo(1.8, 0.05));
-    expect(s.landingG, closeTo(1.85, 0.05));
+    expect(s.landingG, closeTo(1.786, 0.001));
 
     // Verrutscht bei 150 s, gesehen erst beim Bremsen ab 215 s (Werkzeug: 231 s).
     expect(fusion.slips, hasLength(1));
     expect(fusion.slips.single, closeTo(231, 1));
     expect(fusion.upAt, lessThanOrEqualTo(20));
     expect(fusion.forwardAt, lessThanOrEqualTo(45));
+  });
+
+  test('ein einzelner Ausreißer nach der Landung ist keine harte Landung', () {
+    // Die Halterung klappert: EIN Wert mit 9 g kurz nach dem Aufsetzen.
+    // Roh wäre das über der Obergrenze (8 g) und der Sprung unplausibel;
+    // über 40 ms gemittelt trägt er nicht (Betreiber 2026-10-31).
+    var hit = false;
+    final ride = [
+      for (final s in _ride)
+        if (!hit && s.$1 == 'a' && s.$2 > 100.52)
+          () {
+            hit = true;
+            final v = s.$3;
+            final n = math.sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
+            final k = 9 * 9.80665 / n;
+            return (s.$1, s.$2, [v[0] * k, v[1] * k, v[2] * k]);
+          }()
+        else
+          s,
+    ];
+    expect(hit, isTrue);
+    final (_, events) = _run(ride: ride);
+    final jump = events.whereType<JumpEvent>().single;
+    expect(jump.landingG, lessThan(5));
+    expect(jump.plausible, isTrue);
   });
 
   test('die Halterung nach dem Verrutschen ist die neue', () {

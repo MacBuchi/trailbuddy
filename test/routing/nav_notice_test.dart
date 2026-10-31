@@ -14,6 +14,8 @@ import 'package:flutter/widgets.dart' show Locale;
 import 'package:trailbuddy/core/settings.dart' show kLanguageSettingKey;
 import 'package:trailbuddy/l10n/l10n.dart' show chosenAppLocale;
 import 'package:trailbuddy/features/rides/ride_task_handler.dart';
+import 'package:trailbuddy/features/rides/sensor_fusion.dart';
+import 'package:trailbuddy/features/rides/trail_values.dart';
 import 'package:trailbuddy/features/routing/nav_notice.dart';
 import 'package:trailbuddy/features/routing/route_progress.dart';
 import '../fakes/l10n_de.dart';
@@ -191,6 +193,38 @@ void main() {
       expect(shown.last, startsWith('448 m bis Rosskopf Süd | auf der Route · Fahrt wird aufgezeichnet'));
       await navTick(fix: () async => _at(_lat, _lng(10)), recording: false, show: show);
       expect(shown.last, startsWith('Rosskopf Süd · noch 442 m | auf der Route'));
+    });
+
+    test('#36 Schritt 5: on the trail the notice carries the values since entering it', () async {
+      await arm(NavRouteData(
+          points: _points,
+          title: 'Hausrunde',
+          sections: NavSections([const NavTrailSection(startM: 600, endM: 1200, trailId: 't', name: 'Rosskopf Süd')])));
+      final shown = <String>[];
+      Future<void> show(String title, String text) async => shown.add(text);
+      final enter = DateTime.utc(2026, 10, 31, 10);
+      var log = AirtimeLog.empty.withEvent(JumpEvent(
+          startUs: enter.microsecondsSinceEpoch - 1000000,
+          duration: const Duration(seconds: 1),
+          landingG: 2,
+          upright: true,
+          plausible: true));
+      Future<void> tick(int i, DateTime at) =>
+          navTick(fix: () async => _at(_lat, _lng(i)), recording: false, show: show, now: () => at, events: () => log);
+      await tick(2, enter.subtract(const Duration(minutes: 1)));
+      expect(shown.last, 'auf der Route', reason: 'vor dem Trail keine Werte');
+      await tick(9, enter);
+      expect(shown.last, 'auf der Route', reason: 'der Sprung kam vor der Einfahrt');
+      log = log.withEvent(JumpEvent(
+          startUs: enter.microsecondsSinceEpoch + 5000000,
+          duration: const Duration(milliseconds: 700),
+          landingG: 3.1,
+          upright: true,
+          plausible: true));
+      await tick(10, enter.add(const Duration(seconds: 10)));
+      expect(shown.last, 'auf der Route · Air 0,7 s (1×) · 3,1 G');
+      await tick(18, enter.add(const Duration(seconds: 40)));
+      expect(shown.last, 'auf der Route', reason: 'hinter dem Trail wieder ohne');
     });
 
     test('without a navigation the GPS is not even asked', () async {

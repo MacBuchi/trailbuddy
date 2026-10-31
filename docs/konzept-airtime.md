@@ -1,11 +1,14 @@
 # Konzept: Trail-Werte und Airtime unter Buddys (#36)
 
-*Stand 2026-10-30, Entscheidungen des Betreibers vom 2026-10-16 in
-Abschnitt 11, Punkt 5 neu entschieden am 2026-10-30. Baut auf `konzept-trails.md`
+*Stand 2026-10-31, Entscheidungen des Betreibers vom 2026-10-16 in
+Abschnitt 11, Punkt 5 neu entschieden am 2026-10-30, Stoppies in Punkt 2
+dazu am 2026-10-31; Schritt 5 gebaut (0.149.0). Baut auf `konzept-trails.md`
 Abschnitt 7 und 9 und auf den Kernanforderungen (`anforderungen.md`,
 A1–A3, A6, A10, A11) auf; das Aussehen kommt aus dem Navi-Entwurf
 (`docs/design/navi/`, Betreiber 2026-10-13: „Trail-Werte … kommen mit
-#36"). Gebaut wird nichts, bevor die Schwellen aus Abschnitt 8 gemessen sind.*
+#36"). Die Schwellen bleiben vorläufig, bis Abschnitt 8 sie misst; Schritt 5
+(Werte in der App, lokal) ist trotzdem gebaut (Betreiber 2026-10-31) und
+richtet sich danach. Geteilt wird erst mit gemessenen Schwellen.*
 
 ## 0. Worum es geht, in fünf Sätzen
 
@@ -54,8 +57,13 @@ Die Halterung entscheidet, was überhaupt messbar ist (Entwurf 1e,
   länger als 150 ms (Konzept 9) ⇒ ein Sprung; seine Dauer ist die Zeit
   bis zum Stoß der Landung. Je Trail-Durchfahrt: Summe, Anzahl,
   längster Sprung.
-- **Max G**: Spitze des Betrags innerhalb von 300 ms nach einer
-  Landung. Anders als die Dauer eines Sprungs ist das nicht trivial
+- **Max G**: Spitze innerhalb von 300 ms nach einer Landung, in der
+  Hochachse des Rads und über 40 ms gemittelt (seit 0.149.0, Betreiber
+  2026-10-31: „vom Modell und etwas gefiltert") — ein einzelner Wert bei
+  100 Hz, etwa eine klappernde Halterung, ist keine Landung. Ein
+  gleitendes Mittel statt eines PT1: endliches Gedächtnis, kein
+  Nachlaufen, und Dart und Werkzeug rechnen es bei unregelmäßigen
+  Zeitstempeln bitgleich. Anders als die Dauer eines Sprungs ist das nicht trivial
   (Betreiber, 2026-10-16): Ein abgesetzter Rucksack, ein umfallendes
   Rad, ein Telefon, das auf den Boden fällt, sind ein harter Stoß nach
   einer Flugphase. Gezählt wird eine Landung deshalb nur, wenn sie
@@ -159,7 +167,8 @@ Stufen, jede für sich testbar:
    Pitch über einige Sekunden, still, solange die Front oben ist — aber
    nur aus einem ruhigen Weg; gemeldet, wenn die Front unten ist); Airtime = gefilterter Betrag unter der
    Schwelle, plausibel über Lage und Tempo davor und danach; Landung =
-   Spitze in Rad-Hochachse.
+   Spitze in Rad-Hochachse, über dasselbe 40-ms-Fenster gemittelt wie
+   der Betrag (Abschnitt 2).
 
 Bewertet wird mit den Antworten auf die Banner (Schritt 2b in
 Abschnitt 9) und mit Proben auf jeder Fahrt: beim kräftigen Bremsen
@@ -280,6 +289,10 @@ beiden Sprachen und `docs/play-console.md` im selben PR (A6).
   Fahrt und im Zerlege-Blatt je Trail-Zeile.
 - Bewegung und Farben nach `docs/design/README.md`; eine Abweichung
   ändert die Datei im selben PR.
+- **Gebaut seit 0.149.0, experimentell** (Schritt 5 in Abschnitt 9):
+  ohne Schalter im Start-Blatt, hinter dem Test-Schalter; dazu eine
+  Kachel STOPPIE. Bild-im-Bild bleibt EINE Zeile (#415) — die Werte
+  stehen dort nicht, sondern in der Benachrichtigung.
 
 ## 7. Datenschutz und Recht
 
@@ -435,6 +448,23 @@ wollen auch fertig werden"):
    Halterung im Start-Blatt, nur auf Trails, Ereigniszeilen in der
    Fahrt; Werte-Kacheln, AIR-Toast, „Trail geschafft", Zerlege-Blatt,
    Bild-im-Bild, Benachrichtigung — alles lokal, noch nichts geteilt.
+   **Gebaut** (0.149.0, Betreiber 2026-10-31: vorläufige Schwellen,
+   „stark experimentell", weil versteckt aktiviert): Es gibt KEINEN
+   eigenen Schalter und keine Wahl der Halterung — es gilt der
+   Test-Schalter aus 4c, die Halterung lernt die Fusion, angenommen ist
+   der Lenker. Die Erkennung läuft über die ganze Fahrt (gemessen werden
+   soll), gezählt wird je Trail-Stück nach der Zeit: in der Folgeansicht
+   ab der Einfahrt, in „Trail geschafft" von der Einfahrt bis zum Ende,
+   im Zerlege-Blatt von Punkt zu Punkt; „Meine Fahrten" zeigt die ganze
+   Fahrt. Die Ereignisse stehen nicht in der Fahrt-Datei, sondern in
+   `rides/sensors/<id>.events.csv` neben den Rohdaten (dieselben Zeilen
+   `e`, `j`, `s` und die Antworten `l`, `k`, `p`): zwei Isolates hängen
+   dort ohnehin an, und die Fahrt-Datei bleibt, wie die Zerlegung sie
+   kennt. „War keiner" zählt nicht, ein Sprung nur plausibel. Bild-im-Bild
+   bleibt eine Zeile (#415); die Benachrichtigung trägt die Werte des
+   laufenden Trails, aber ohne die Antworten (die kommen im Isolate des
+   Pakets an). Der Satz zum Risiko steht unter dem Test-Schalter. Kein
+   Eintrag bei den Neuheiten, solange nur der Test-Schalter dahin führt.
 6. **Bestwert, Zähler, Rangliste und Titel** (ein PR, vorher 5 und 6):
    Patch mit den zwei Tabellen und RLS, Hochladen über den
    Ausgangskorb, Zeile im Trail-Blatt, Zähler am Buddy,
@@ -479,7 +509,11 @@ Diskussion nicht bei null beginnt.
    bleiben als Zahlen auf dem Gerät. **Neu:** spielerische Titel wie
    „Bruchpilot" und „Segelflieger" (Abschnitt 5) — Max G nur als Titel
    und nur plausibilisiert, weil „Rucksack absetzen, Fahrrad fällt um
-   usw." sonst als Landung zählen.
+   usw." sonst als Landung zählen. **Stoppies** (Betreiber 2026-10-31,
+   zu 4b): gehen als Zahl auf dem Gerät mit ein — Zähler, längster,
+   steilster Winkel —, stark experimentell, weil die Funktion hinter dem
+   Test-Schalter steht; geteilt wird nichts davon, ein Titel nur nach
+   der Messung.
 3. **Welche Airtime zählt?** Die Summe („Airtime die Summe").
 4. **Bio und E-MTB gemeinsam** — wie vorgeschlagen.
 5. **Wheelie/Manual in v1** (neu entschieden 2026-10-30; am 2026-10-16

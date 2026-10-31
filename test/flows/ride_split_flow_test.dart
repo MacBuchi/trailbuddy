@@ -9,6 +9,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:pmtiles/pmtiles.dart';
+import 'package:trailbuddy/features/rides/sensor_fusion.dart';
+import 'package:trailbuddy/features/rides/trail_values.dart';
 import 'package:trailbuddy/core/app_colors.dart';
 import 'package:trailbuddy/features/map/map_view/map_view.dart';
 import 'package:trailbuddy/features/offline_areas/area_plan.dart';
@@ -224,6 +226,34 @@ void main() {
     expect(find.text('Fahrt zerlegen'), findsNothing, reason: 'das Blatt ist zu');
     expect(linesOf(tester, AppColors.mapLines.candidate), isEmpty, reason: 'die Vorschau ist weg');
     expect(store.rides, hasLength(1), reason: 'die Fahrt bleibt auf dem Gerät');
+  });
+
+  testWidgets('#36 Schritt 5: die Trail-Werte stehen je Zeile, nach der Zeit der Punkte, und an der Fahrt',
+      (tester) async {
+    int at(int seconds) => t0.add(Duration(seconds: seconds)).microsecondsSinceEpoch;
+    // Ein Sprung auf Roots (die ersten 240 s), ein Stoppie auf der Abfahrt
+    // (340–460 s), ein Wheelie mit „War keiner" — er zählt nirgends.
+    final wheelie = WheelieEvent(startUs: at(100), duration: const Duration(seconds: 2), lengthM: 9, maxTiltDeg: 30);
+    store.airtimeLogs['r1'] = AirtimeLog(events: [
+      JumpEvent(startUs: at(60), duration: const Duration(milliseconds: 600), landingG: 2.9, upright: true, plausible: true),
+      StoppieEvent(startUs: at(400), duration: const Duration(milliseconds: 800), maxTiltDeg: 15, decel: 2, landingG: 1.5),
+      wheelie,
+    ]).withAnswer(wheelie, yes: false);
+    final areas = await areaWithRoads();
+    await pumpApp(tester, backend, trails: trails, rideStore: store, areaStore: areas);
+    await openTab(tester, 'Profil');
+    await tester.tap(find.text('Meine Fahrten'));
+    await settle(tester);
+    expect(tester.widget<Text>(find.byKey(const ValueKey('ride-air-r1'))).data, 'Air 0,6 s (1×) · 2,9 G · Stoppie 1×');
+    await tester.tap(find.byKey(const ValueKey('ride-split-r1')));
+    await settle(tester, frames: 30);
+
+    final known = find.descendant(of: find.byKey(const ValueKey('split-known-0')), matching: find.byType(Text));
+    expect(known.evaluate().map((e) => (e.widget as Text).data), contains(endsWith(' · Air 0,6 s (1×) · 2,9 G')));
+    await sheetScrollTo(tester, find.byKey(const ValueKey('split-candidate-0')));
+    expect(find.descendant(of: find.byKey(const ValueKey('split-candidate-0')), matching: find.textContaining('Stoppie 1×')),
+        findsOneWidget);
+    expect(find.textContaining('Wheelie'), findsNothing);
   });
 
   testWidgets('Kandidat verwerfen, bekannten Trail abwählen: nichts geht raus', (tester) async {

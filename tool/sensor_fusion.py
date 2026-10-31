@@ -26,7 +26,8 @@ docs/recherche-sensorfusion.md, in three stages that each stand alone:
 3. Events on the fused values: wheelie = pitch against the way (the way
    is the pitch low-passed over a few seconds), front up only; flight =
    filtered |f| under a limit, plausible by speed and by an upright bike
-   after it; landing = the peak along the bike's up axis.
+   after it; landing = the peak along the bike's up axis, averaged over
+   FLIGHT_SMOOTH_S like |f| (one rattling sample at 100 Hz is no landing).
 
 The filter looks up to one second ahead for dv/dt (GPS comes once a
 second): the app runs it on a short buffer, a banner a second later is
@@ -667,6 +668,24 @@ def wheelies(fused: Fused, tilt_deg: float, min_s: float, raw: bool = False) -> 
     return out
 
 
+def landing_axis(fused: Fused) -> list[float]:
+    """f along the bike's up axis, averaged over FLIGHT_SMOOTH_S -- the
+    same window as |f| for flights, summed in the same order as the app
+    (sensor_fusion.dart), so both find the same landing peaks to the bit.
+    Operator 2026-10-31: no single rattling sample makes a landing."""
+    s = fused.samples
+    out = []
+    acc = 0.0
+    lo = 0
+    for i, (t, _, fz) in enumerate(s):
+        acc += fz
+        while t - s[lo][0] > FLIGHT_SMOOTH_S:
+            acc -= s[lo][2]
+            lo += 1
+        out.append(acc / (i - lo + 1))
+    return out
+
+
 def stoppies(fused: Fused, tilt_deg: float, min_s: float, decel: float) -> list[dict]:
     """Front down against the way by tilt_deg, from > RIDING_KMH a second
     before, while braking: the mirror of a wheelie (#36, operator
@@ -682,6 +701,7 @@ def stoppies(fused: Fused, tilt_deg: float, min_s: float, decel: float) -> list[
     start = None
     s = fused.samples
     times = [x[0] for x in s]
+    z = landing_axis(fused)
     rel = pitch_against_way(fused)
     for (t, p), tick in zip(rel, fused.ticks):
         dvdt = tick[6]
@@ -698,7 +718,7 @@ def stoppies(fused: Fused, tilt_deg: float, min_s: float, decel: float) -> list[
                 i = bisect.bisect_right(times, start)
                 landing = 0.0
                 while i < len(s) and s[i][0] <= t + STOPPIE_LANDING_S:
-                    landing = max(landing, s[i][2])
+                    landing = max(landing, z[i])
                     i += 1
                 out.append({"t": start, "duration": last - start, "max_deg": peak,
                             "decel": -low, "landing_g": landing})
@@ -718,6 +738,7 @@ def flights(fused: Fused, g_limit: float, min_ms: float) -> list[dict]:
     times = [x[0] for x in fused.ticks]
     rel = [p for _, p in pitch_against_way(fused)]
     s = fused.samples
+    z = landing_axis(fused)
     out = []
     start = None
     acc = 0.0
@@ -735,10 +756,10 @@ def flights(fused: Fused, g_limit: float, min_ms: float) -> list[dict]:
             t0, t1 = s[start][0], s[i][0]
             if (t1 - t0) * 1000 >= min_ms:
                 peak = 0.0
-                for pt, _, fz in s[i:]:
-                    if pt - t1 > LANDING_WINDOW_S:
+                for j in range(i, len(s)):
+                    if s[j][0] - t1 > LANDING_WINDOW_S:
                         break
-                    peak = max(peak, fz)
+                    peak = max(peak, z[j])
                 gps = fused.gps
                 before = gps.riding(t0 - SPEED_WINDOW_S, t0, PLAUSIBLE_KMH)
                 after = gps.riding(t1, t1 + SPEED_WINDOW_S, PLAUSIBLE_KMH)
