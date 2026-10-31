@@ -2,6 +2,19 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Gesperrte Trails meidet der Planer
+
+*Version 0.146.0, 2026-10-31*
+
+- Ein Trail, der als gesperrt oder zerstört gemeldet ist, ist für den
+  Planer kein Weg mehr — weder bergab noch bergauf als Verbindung
+  zwischen zwei anderen Trails. Dasselbe gilt für Strecken, die die
+  offizielle Quelle sperrt (z. B. in Tirol), solange die Ebene
+  „Offizielle Trails“ an ist.
+- Wählst du so einen Trail selbst aus, nimmt ihn die Runde trotzdem mit
+  und sagt es unter dem Ergebnis: „Enthält gesperrte Trails: …“.
+- „Verändert“ sperrt nichts: Solche Trails bleiben ein Weg.
+
 ## Stoppies messen
 
 *Version 0.145.0, 2026-10-31*

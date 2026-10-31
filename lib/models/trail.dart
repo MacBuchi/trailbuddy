@@ -213,6 +213,10 @@ enum TrailStatus {
       values.where((v) => v.db == s).firstOrNull ?? TrailStatus.open;
 
   bool get warns => this != TrailStatus.open;
+
+  /// Sperrt den Trail für die Planung (#434, Betreiber 2026-10-31):
+  /// gesperrt und zerstört, nicht „Verändert" (`changed`).
+  bool get blocksRouting => this == TrailStatus.closed || this == TrailStatus.destroyed;
 }
 
 /// Was ein Nutzer über einen Trail sagt — genau eine Zeile je Nutzer und

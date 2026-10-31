@@ -320,7 +320,13 @@ Trailkanten: nur in Trail-Richtung (`reversed` beachtet), nur bergab
 gedacht, Kosten = Zeit nach S-Grad, Gewinn = Trail-Meter. Ein Trail mit
 bestätigter warnender Meldung (`Trail.status.warns`) ist aus dem Pool,
 solange der Nutzer ihn nicht ausdrücklich hineinnimmt; wartende und
-„nur für mich"-Trails sind drin (es ist meine Planung).
+„nur für mich"-Trails sind drin (es ist meine Planung). **Gesperrt und
+zerstört** (#434, Betreiber 2026-10-31) sperren außerdem den Weg: Die
+Kanten unter so einem Trail und unter einem gesperrten Abschnitt der
+offiziellen Quelle (#41) sind in beide Richtungen zu, außer den
+Stummeln um Kopf und Ende. Nimmt der Nutzer einen gesperrten Trail
+selbst hinein, fährt die Runde ihn als Halt, und das Ergebnis sagt es;
+„Verändert" (`changed`) sperrt nichts.
 
 ### 2.5 Was die Kacheln NICHT tragen — und was daraus folgt
 
@@ -487,8 +493,9 @@ dieselben Konstanten geprüft):
   Uphill-Trails und Verbinder stehen deshalb nicht mehr im Pool der
   Abfahrten. Mehrfach befahren darf man Verbinder wie jeden Weg —
   Verbindungen wurden nie bestraft, nur eine zweite ABFAHRT bringt
-  weniger (3). Gesperrte Verbinder fallen weg, gesperrte Abfahrten
-  behalten ihre Richtung.
+  weniger (3). Gesperrte und zerstörte Trails sperren seit #434 ihre
+  Kanten in beide Richtungen (2.4); bis dahin fielen gesperrte Verbinder
+  nur weg, und gesperrte Abfahrten behielten ihre Richtung.
 - **Gebaut wird je Planung** für den Rahmen Start ± Reichweite
   (Reichweite = Zeitbudget × 15 km/h / 2, höchstens 25 km) und für die
   Sitzung gemerkt (Schlüssel: Bereichs-Builds + Rahmen). Ein

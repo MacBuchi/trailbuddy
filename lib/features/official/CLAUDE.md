@@ -41,3 +41,6 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
   = 50 m), sonst „anderer Abschnitt gesperrt". Der Stand ist das
   `updated` des Trails (jüngster Abschnitt). Grau mit `Icons.block`,
   nie orange — das ist die Meldung eines Buddys.
+  Im Planer sperren die gesperrten Abschnitte die Wege darunter (#434,
+  `officialClosuresIn` in `routing/planning_graph.dart`, Regel in der
+  `CLAUDE.md` von `lib/features/routing/`).

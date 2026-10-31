@@ -3780,6 +3780,15 @@
       }
     }
   },
+  "loopClosedStops": "Enthält gesperrte Trails: {names} — selbst gewählt, sonst meidet der Planer sie.",
+  "@loopClosedStops": {
+    "description": "Runde oder Route: von Hand gewählte Trails, die als gesperrt oder zerstört gemeldet sind oder auf einer gesperrten Strecke der offiziellen Quelle liegen (#434); names ist eine Liste von Trail-Namen.",
+    "placeholders": {
+      "names": {
+        "type": "String"
+      }
+    }
+  },
   "routingHeightsIncomplete": "Nicht alle Wege haben Höhen — Höhenmeter und Zeit sind eine Untergrenze. Ein neu gespeicherter Bereich bringt sie mit.",
   "@routingHeightsIncomplete": {
     "description": "Hinweis unter einer Runde oder Route, wenn Höhen fehlen."

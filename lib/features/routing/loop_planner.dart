@@ -31,6 +31,8 @@ import 'package:latlong2/latlong.dart';
 
 import '../../l10n/l10n.dart';
 import '../../models/trail.dart';
+import '../official/official_match.dart' show matchOfficial;
+import '../official/official_trails.dart' show OfficialTrail;
 import '../trails/trail_geometry.dart' show haversineM;
 import 'plan_progress.dart';
 import 'road_graph.dart';
@@ -992,6 +994,23 @@ Set<String> trailsInRing(Iterable<Trail> trails, List<LatLng> ring) {
   };
 }
 
+/// Die Trails der Runde, die gesperrt sind (#434) — gemeldet als gesperrt
+/// oder zerstört ([closedIds], nach [TrailStatus.blocksRouting]) oder auf einem gesperrten
+/// Abschnitt der offiziellen Quelle (`OfficialMatch.onClosed`, wie die
+/// Zeile im Trail-Blatt). Die Verbindungen meidet der Planer; im Plan
+/// stehen sie nur, weil der Fahrer sie gewählt hat — das Blatt sagt es.
+List<String> closedStopNames(LoopPlan plan, Set<String> closedIds, Iterable<OfficialTrail> official) {
+  final names = <String>[];
+  for (final s in plan.stops) {
+    final t = s.trail;
+    if (t.waypoint || names.contains(t.name)) continue;
+    final closed = closedIds.contains(t.id) ||
+        matchOfficial(t.points, official).any((m) => m.onClosed);
+    if (closed) names.add(t.name);
+  }
+  return names;
+}
+
 /// Die Rolle eines Trails im Graphen (#185) — nach den ANGEZEIGTEN
 /// Merkmalen (`Trail.topTraits`), dieselbe Regel wie die Farbe: Steht
 /// Uphill darunter, ist er ein Uphill-Trail (das schlägt Verbindung, wie
@@ -1004,12 +1023,13 @@ TrailRole trailRoleOf(Trail t) {
 }
 
 /// Die Trails des Netzes für [applyTrails]: alle mit Linie, außer den
-/// wartenden (noch ohne Kennung) und denen mit warnender Meldung, die
-/// als Verbinder dienen würden — ein gesperrter Uphill ist kein Weg.
-/// Gesperrte ABFAHRTEN bleiben drin: Ihre Richtung gilt weiter.
+/// wartenden (noch ohne Kennung). Gesperrte und zerstörte
+/// ([TrailStatus.blocksRouting], #434) kommen mit [GraphTrail.closed]:
+/// [blockClosures] sperrt ihre Kanten, eine selbst gewählte Abfahrt fährt
+/// der Planer trotzdem als Halt. „Verändert" (`changed`) sperrt nicht.
 List<GraphTrail> graphTrailsOf(AppLocalizations l, Iterable<Trail> trails) => [
       for (final t in trails)
-        if (!t.pending && t.points.length >= 2 && !(trailRoleOf(t) != TrailRole.downhill && t.status.warns))
+        if (!t.pending && t.points.length >= 2)
           GraphTrail(
             id: t.id,
             name: t.displayName(l),
@@ -1018,6 +1038,7 @@ List<GraphTrail> graphTrailsOf(AppLocalizations l, Iterable<Trail> trails) => [
             twoWay: t.twoWay,
             gainM: t.elevation?.gainM,
             lossM: t.elevation?.lossM,
+            closed: t.status.blocksRouting,
           ),
     ];
 

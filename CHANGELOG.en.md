@@ -2,6 +2,18 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## The planner avoids closed trails
+
+*Version 0.146.0, 2026-10-31*
+
+- A trail reported as closed or destroyed is no longer a way for the
+  planner — neither downhill nor uphill as a connection between two
+  other trails. The same goes for stretches the official source closes
+  (e.g. in Tyrol), as long as the “Official trails” layer is on.
+- If you pick such a trail yourself, the loop still takes it and says so
+  below the result: “Includes closed trails: …”.
+- “Changed” blocks nothing: those trails stay a way.
+
 ## Measuring stoppies
 
 *Version 0.145.0, 2026-10-31*

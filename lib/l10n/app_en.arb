@@ -667,6 +667,7 @@
   "routingSavedAsRide": "Saved as a planned ride — in your profile under “My rides”.",
   "routingHikingWarning": "Of that, {length} on hiking trails, footways or steps — the app does not say whether you may ride there.",
   "routingTrailUp": "Uphill {length} via {names}",
+  "loopClosedStops": "Includes closed trails: {names} — you picked them; otherwise the planner avoids them.",
   "routingHeightsIncomplete": "Not every path has heights — climb and time are a lower bound. A newly saved area brings them along.",
   "routingSteepNote": "With steep stretches over {percent} % — where a flatter way existed, it was taken.",
   "routingTuneHint": "Tap the line to add a via point — drag to move it, tap it to remove it.",

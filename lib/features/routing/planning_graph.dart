@@ -26,6 +26,7 @@
 // nicht, die übrigen backt der Rechen-Isolate, und [PlanningGraph.keep]
 // legt die neuen Stücke nach dem Bau ab.
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:latlong2/latlong.dart';
 
 import '../../core/connectivity.dart';
 import '../../core/errors.dart';
@@ -33,6 +34,7 @@ import '../../core/line_geometry.dart';
 import '../../core/stall_watch.dart';
 import '../../l10n/l10n.dart';
 import '../../models/trail.dart';
+import '../official/official_trails_source.dart';
 import '../offline_areas/area_providers.dart';
 import '../offline_areas/area_store.dart';
 import '../offline_areas/height_tiles.dart';
@@ -200,6 +202,7 @@ Future<PlanningGraph> loadPlanningGraph(Ref ref, LatBox box,
       ways: read.ways,
       heights: tiles,
       trails: graphTrailsOf(serviceL10n(), near),
+      closures: await officialClosuresIn(ref, box),
       lat0: (box.s + box.n) / 2,
       pieces: [...pieces.fresh.values, ...split.pieces],
       bake: true,
@@ -217,6 +220,31 @@ Future<PlanningGraph> loadPlanningGraph(Ref ref, LatBox box,
     pieces: input == null ? null : pieces,
   );
 }
+
+/// Die gesperrten Abschnitte der offiziellen Quelle (#41) in [box] — für
+/// [GraphInput.closures] (#434). Nur bei eingeschalteter Ebene: aus heißt
+/// keine Anfrage, also auch keine Sperren. Fehlt eine Region auf dem Gerät
+/// und kommt sie nicht in [kOfficialClosuresWait], plant der Planer ohne
+/// sie — wie die Karte, die sie dann auch nicht zeigt.
+Future<List<List<LatLng>>> officialClosuresIn(Ref ref, LatBox box) async {
+  if (!ref.read(officialTrailsEnabledProvider)) return const [];
+  try {
+    await ref
+        .read(officialTrailsControllerProvider.notifier)
+        .ensure((s: box.s, w: box.w, n: box.n, e: box.e))
+        .timeout(kOfficialClosuresWait);
+  } catch (e, s) {
+    logError('Offizielle Sperren für die Planung', e, s);
+  }
+  return [
+    for (final t in ref.read(officialTrailsControllerProvider).trails)
+      for (final sec in t.sections)
+        if (sec.closed && LatBox.of(sec.points).near(box, kTrailHeadMarginM)) sec.points,
+  ];
+}
+
+/// So lange wartet die Planung auf die offiziellen Regionen ihres Rahmens.
+const kOfficialClosuresWait = Duration(seconds: 5);
 
 /// Der Satz unter dem Ergebnis, wenn nicht alles aus den Bereichen kam —
 /// EINE Fassung für Runde ([loop]) und Weg. Null, wenn es nichts zu sagen
