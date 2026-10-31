@@ -9,7 +9,11 @@ docs/recherche-sensorfusion.md, in three stages that each stand alone:
    the horizontal force while braking and accelerating (sign from the GPS
    speed) and from the lean in corners (sign from the yaw rate; on the
    rides of 2026-10-30 the corners did most of it), and a slipped mount
-   when gravity stays away from "up" longer than any wheelie (60 s).
+   when gravity stays away from "up" while the bike rides on normally
+   (braking, accelerating, corners) -- a wheelie ends by turning back
+   down instead, however long it lasts. The mount of the last ride can be
+   carried over (the app writes it into the head of the file); five quiet
+   seconds tilted away from it drop it again.
 2. Attitude filter (every sample): an error-state Kalman filter after
    Sola (arXiv:1711.02508) with 6 error states (attitude, gyro bias),
    predicted with the gyroscope on the sensor's own time stamps; the
@@ -40,7 +44,6 @@ from __future__ import annotations
 
 import bisect
 import math
-import random
 import statistics
 import sys
 
@@ -61,7 +64,9 @@ FWD_TICKS = 5
 FWD_CONSISTENCY = 0.5         # |sum| / sum of |terms|: one direction, not noise
 TILTED_RAD = 0.3              # gravity this far from "up" teaches nothing (wheelie)
 SLIP_RAD = 0.5                # this far ...
-SLIP_S = 60.0                 # ... for this long (a wheelie is shorter) = slipped
+SLIP_TICKS = 5                # ... for this many seconds of braking, accelerating
+                              # or corners = slipped (no time limit: a wheelie
+                              # can hold 40 deg for minutes, but rides straight)
 
 # Attitude filter (stage 2).
 # Swept on both rides of 2026-10-30 against the gyro reference: the phone's
@@ -79,11 +84,9 @@ MODEL_TRUST = 0.5             # share of the bike model counted as noise
 # Events (stage 3).
 TICK_S = 0.1
 ROAD_S = 3.0                  # pitch low-passed over this is the way
-HOLD_DEG = 10.0               # the way holds still while the front is this high ...
-HOLD_MAX_S = 20.0             # ... but not longer
+HOLD_DEG = 10.0               # the way holds still while the front is this high
 RIDING_KMH = 8.0
 RELEASE_DEG = 5.0
-MAX_WHEELIE_S = 60.0
 FLIGHT_SMOOTH_S = 0.04
 LANDING_WINDOW_S = 0.3
 PLAUSIBLE_KMH = 10.0
@@ -222,13 +225,32 @@ def rot_between(a, b):
 class Mount:
     """Phone -> bike axes, learned while riding (concept 3a, research 3)."""
 
-    def __init__(self) -> None:
+    def __init__(self, carried: tuple | None = None) -> None:
         self.up = None   # bike up in phone axes
         self.fwd = None  # bike forward in phone axes
         self.left = None
         self.up_at = self.fwd_at = None
         self.slips: list[float] = []
+        self.carried = False      # started from the last ride's mount
+        self.dropped_at = None    # ... and when that turned out wrong
+        self._confirming = False
         self._reset()
+        if carried:
+            self._carry(*carried)
+
+    def _carry(self, up: tuple, fwd: tuple) -> None:
+        """Start from the last ride's mount (up, forward in phone axes),
+        weighted like the first seconds of learning, so a few quiet
+        seconds and corners of this ride already move it."""
+        self.up = unit(up)
+        self._up_sum = scale(self.up, UP_TICKS)
+        self._up_n = UP_TICKS
+        self._fwd_sum = scale(unit(sub(fwd, scale(self.up, dot(fwd, self.up)))), FWD_TICKS)
+        self._fwd_abs = float(FWD_TICKS)
+        self._fwd_n = FWD_TICKS
+        self._orthogonalise()
+        self.carried = self._confirming = True
+        self._unconfirmed = 0
 
     def _reset(self) -> None:
         self._up_sum = (0.0, 0.0, 0.0)
@@ -236,7 +258,7 @@ class Mount:
         self._fwd_sum = (0.0, 0.0, 0.0)
         self._fwd_abs = 0.0
         self._fwd_n = 0
-        self._slip_s = 0.0
+        self._slip_n = 0
 
     def ready(self) -> bool:
         return self.fwd is not None
@@ -253,20 +275,37 @@ class Mount:
         if speed < MOUNT_MIN_MPS:
             return False
         tilt = angle(f, self.up) if self.up else 0.0
+        quiet = abs(dvdt) < QUIET_DVDT and yaw < QUIET_YAW and abs(norm(f) - G) < QUIET_FORCE
+        if self._confirming and quiet:
+            # The carried mount holds if quiet riding agrees with it.
+            if tilt <= TILTED_RAD:
+                self._confirming = False
+            else:
+                self._unconfirmed += 1
+                if self._unconfirmed >= UP_TICKS:
+                    self.dropped_at = t
+                    self._confirming = False
+                    self.up = self.fwd = self.left = None
+                    self._reset()
+                    return True
+                return False
         if tilt > SLIP_RAD:
-            # Long wheelies hold 40 deg for half a minute; only what stays
-            # longer than any wheelie is a slipped mount.
-            self._slip_s += dt
-            if self._slip_s >= SLIP_S:
-                self.slips.append(t)
-                self.up = self.fwd = self.left = None
-                self._reset()
-                return True
+            # A wheelie may hold 40 deg for minutes and ends by turning
+            # back down; a slipped mount stays tilted while the bike rides
+            # on normally. Riding straight and steady tells nothing -- a
+            # long wheelie looks the same.
+            if (abs(dvdt) > LONG_DVDT and norm(w) < LONG_YAW) or yaw > LEAN_YAW:
+                self._slip_n += 1
+                if self._slip_n >= SLIP_TICKS:
+                    self.slips.append(t)
+                    self.up = self.fwd = self.left = None
+                    self._reset()
+                    return True
             return False
         if tilt > TILTED_RAD:
             return False
-        if abs(dvdt) < QUIET_DVDT and yaw < QUIET_YAW and abs(norm(f) - G) < QUIET_FORCE:
-            self._slip_s = 0.0
+        if quiet:
+            self._slip_n = 0
             self._up_sum = add(scale(self._up_sum, UP_DECAY), unit(f))
             self._up_n += 1
             if self._up_n >= UP_TICKS:
@@ -442,16 +481,17 @@ class Fused:
 
 
 def fuse(acc, gyro, fixes, method: str = "eskf", model: str = "full",
-         gps_lag: float = 0.0) -> Fused:
+         gps_lag: float = 0.0, carried: tuple | None = None) -> Fused:
     """acc and gyro: (t s, x, y, z) sorted; fixes: (t s, speed m/s).
     model: "full" (along and across), "along", "none" -- for comparison;
-    gps_lag: seconds the GPS time stamps come late."""
+    gps_lag: seconds the GPS time stamps come late; carried: (up, forward)
+    of the last ride's mount in phone axes."""
     if gps_lag:
         fixes = [(t - gps_lag, v) for t, v in fixes]
     out = Fused(method)
     gps = Gps(fixes)
     out.gps = gps
-    mount = Mount()
+    mount = Mount(carried)
     out.mount = mount
     filt = None
     fix_i = 0
@@ -559,22 +599,30 @@ def fuse(acc, gyro, fixes, method: str = "eskf", model: str = "full",
 
 def pitch_against_way(fused: Fused, raw: bool = False) -> list[tuple[float, float]]:
     """(t, pitch - way) per tick; the way follows the pitch over ROAD_S
-    while riding and holds still while the front is up (HOLD_DEG)."""
+    while riding and holds still while the front is up (HOLD_DEG), as long
+    as it is up: the gyro keeps the pitch within ~2 deg a minute, and a
+    slipped mount ends it (NaN) instead of a time limit. It holds only
+    from a settled way (the pitch within HOLD_DEG of it for ROAD_S): after
+    a nose-down the way lags below, and the front coming back is no
+    wheelie -- without the time limit such a hold would never let go."""
     out = []
     road = None
-    held = 0.0
+    calm = 0.0
+    holding = False
     col = 3 if raw else 1
     for tick in fused.ticks:
         t, p, speed = tick[0], tick[col], tick[5]
         if math.isnan(p):
             road = None
+            calm, holding = 0.0, False
             out.append((t, math.nan))
             continue
         if road is None:
             road = p
         rel = p - road
-        held = held + TICK_S if rel >= HOLD_DEG else 0.0
-        if speed * 3.6 > RIDING_KMH and (rel < HOLD_DEG or held > HOLD_MAX_S):
+        holding = rel >= HOLD_DEG and (holding or calm >= ROAD_S)
+        calm = calm + TICK_S if abs(rel) < HOLD_DEG else 0.0
+        if speed * 3.6 > RIDING_KMH and not holding:
             road += (p - road) * TICK_S / ROAD_S
         out.append((t, rel))
     return out
@@ -582,7 +630,11 @@ def pitch_against_way(fused: Fused, raw: bool = False) -> list[tuple[float, floa
 
 def wheelies(fused: Fused, tilt_deg: float, min_s: float, raw: bool = False) -> list[dict]:
     """Front up against the way by tilt_deg, at > RIDING_KMH, for min_s;
-    ends tilt_deg - RELEASE_DEG under; over MAX_WHEELIE_S is no wheelie."""
+    ends when the front comes down (tilt_deg - RELEASE_DEG under), however
+    long it lasted. Slowing down with the front up does not end it, it
+    only stops counting: a wheelie ends by turning back down, and a mount
+    that went meanwhile (NaN) was no wheelie -- reported early, a slipped
+    mount would show as a wheelie each time the rider brakes."""
     release = tilt_deg - RELEASE_DEG
     out = []
     start = None
@@ -591,12 +643,16 @@ def wheelies(fused: Fused, tilt_deg: float, min_s: float, raw: bool = False) -> 
         speed = tick[5]
         riding = not math.isnan(speed) and speed * 3.6 > RIDING_KMH
         if start is not None:
-            if riding and not math.isnan(p) and p >= release:
-                last = t
-                peak = max(peak, p)
-                speeds.append(speed)
+            if math.isnan(p):
+                start = None
                 continue
-            if min_s <= last - start <= MAX_WHEELIE_S:
+            if p >= release:
+                if riding:
+                    last = t
+                    peak = max(peak, p)
+                    speeds.append(speed)
+                continue
+            if min_s <= last - start:
                 out.append({"t": start, "duration": last - start,
                             "length_m": statistics.fmean(speeds) * (last - start),
                             "max_deg": peak})
@@ -750,25 +806,51 @@ def _ramp(t, t0, t1, rise=0.3):
     return min(1.0, (t - t0) / rise, (t1 - t) / rise)
 
 
-def synthetic(seed: int = 1):
-    """A 300 s ride with known truth. The phone sits rotated on the bike
+class Noise:
+    """Gaussian noise the Dart test draws identically (xorshift32, the sum
+    of four uniforms scaled to unit variance): integer steps and plain sums
+    give the same numbers in both languages, so the Dart port of the
+    fusion (lib/features/rides/sensor_fusion.dart) sees this very ride."""
+
+    def __init__(self, seed: int) -> None:
+        self.x = (seed & 0xFFFFFFFF) or 1
+
+    def uniform(self) -> float:
+        x = self.x
+        x ^= (x << 13) & 0xFFFFFFFF
+        x ^= x >> 17
+        x ^= (x << 5) & 0xFFFFFFFF
+        self.x = x
+        return x / 4294967296.0
+
+    def gauss(self, sigma: float) -> float:
+        u = self.uniform() + self.uniform() + self.uniform() + self.uniform()
+        return sigma * (u - 2.0) * math.sqrt(3.0)
+
+
+def synthetic(seed: int = 1, slip_pitch: bool = False):
+    """A 420 s ride with known truth. The phone sits rotated on the bike
     (screen tilted back, top pointing to the rear right), the gyro has a
     bias, both sensors are noisy. Timeline: steady riding 0-20 s (learn
     up); brake/accelerate at 20, 30, 40 s (learn forward); hard braking
     60-64 s (NO pitch); left curve 70-80 s with its lean; wheelie 25 deg
     at 90 s; a 0.5 s jump at 100 s landing with 3 g; nose down 20 deg at
     110 s (no wheelie); a 10 deg climb from 128 s with a 18 deg wheelie on
-    top at 135 s; the mount slips by 60 deg at 150 s (seen 60 s later);
-    braking again at 230/240/250 s; a wheelie at 280 s."""
-    rnd = random.Random(seed)
+    top at 135 s; the mount slips by 60 deg at 150 s (seen at the braking
+    from 215 s, riding straight tells nothing); braking again at 230/240/
+    250 s; a wheelie at 280 s; a 90 s wheelie at 40 deg from 310 s (no
+    slip: it rides straight). slip_pitch: the mount tips 40 deg front up
+    instead -- a wheelie until the braking shows the slip, and then none.
+    Times as in the Dart test."""
+    rnd = Noise(seed)
     hz = 120.0
     bias = (0.02, -0.012, 0.015)
     mount0 = mm(_rz(math.radians(140)), _rx(math.radians(-35)))  # bike -> phone
-    mount1 = mm(_rx(math.radians(60)), mount0)
+    mount1 = mm(mount0, _ry(math.radians(40))) if slip_pitch else mm(_rx(math.radians(60)), mount0)
 
     def speed(t):
         v = 6.0
-        for t0 in (20, 30, 40, 230, 240, 250):
+        for t0 in (20, 30, 40, 215, 230, 240, 250):
             if t0 <= t < t0 + 2:
                 v -= 2.0 * (t - t0)
             elif t0 + 2 <= t < t0 + 4:
@@ -786,12 +868,13 @@ def synthetic(seed: int = 1):
         roll = -math.atan2(v * yaw_rate, G)
         pitch = (math.radians(25) * _ramp(t, 90, 92) - math.radians(20) * _ramp(t, 110, 112.5)
                  + math.radians(10) * _ramp(t, 128, 145, rise=3.0)
-                 + math.radians(18) * _ramp(t, 135, 137) + math.radians(22) * _ramp(t, 280, 282))
+                 + math.radians(18) * _ramp(t, 135, 137) + math.radians(22) * _ramp(t, 280, 282)
+                 + math.radians(40) * _ramp(t, 310, 400, rise=1.0))
         return mm(mm(_rz(yaw), _ry(-pitch)), _rx(roll)), v, yaw, yaw_rate
 
     acc, gyro, fixes = [], [], []
     dt = 1 / hz
-    n = int(300 * hz)
+    n = int(420 * hz)
     prev = attitude(0.0)[0]
     for i in range(1, n):
         t = i * dt
@@ -812,8 +895,8 @@ def synthetic(seed: int = 1):
         w_p = add(mv(m, w_b), bias)
         prev = r_wb
         noise = 1.0 if not 100.0 <= t < 100.5 else 0.05
-        acc.append((t, *(c + rnd.gauss(0, noise) for c in f_p)))
-        gyro.append((t + 0.002, *(c + rnd.gauss(0, 0.01) for c in w_p)))
+        acc.append((t, *(c + rnd.gauss(noise) for c in f_p)))
+        gyro.append((t + 0.002, *(c + rnd.gauss(0.01) for c in w_p)))
         if i % int(hz) == 0:
             fixes.append((t, v))
     return acc, gyro, fixes, {"bias": bias, "mount0": mount0, "mount1": mount1}
@@ -824,7 +907,7 @@ def _self_test() -> None:
     for method in ("eskf", "mahony"):
         fused = fuse(acc, gyro, fixes, method)
         m = fused.mount
-        assert len(m.slips) == 1 and 208 <= m.slips[0] <= 214, (method, m.slips)
+        assert len(m.slips) == 1 and 215 <= m.slips[0] <= 235, (method, m.slips)
         up1 = mv(truth["mount1"], EZ)
         fwd1 = mv(truth["mount1"], (1.0, 0.0, 0.0))
         assert math.degrees(angle(m.up, up1)) < 4, (method, "up after the slip")
@@ -842,8 +925,9 @@ def _self_test() -> None:
         assert 16 < statistics.median(rolls) < 24, (method, "lean", statistics.median(rolls))
         found = wheelies(fused, 15.0, 1.0)
         starts = sorted(round(w["t"]) for w in found)
-        assert len(starts) == 3 and abs(starts[0] - 90) <= 1 and abs(starts[1] - 135) <= 1 \
-            and abs(starts[2] - 280) <= 1, (method, found)
+        assert len(starts) == 4 and abs(starts[0] - 90) <= 1 and abs(starts[1] - 135) <= 1 \
+            and abs(starts[2] - 280) <= 1 and abs(starts[3] - 310) <= 1, (method, found)
+        assert found[3]["duration"] > 85, (method, "the long wheelie is cut", found[3])
         fl = flights(fused, 0.3, 150)
         assert len(fl) == 1 and abs(fl[0]["t"] - 100.0) < 0.05, (method, fl)
         assert fl[0]["plausible"] and 2.5 < fl[0]["peak_g"] < 3.5, (method, fl)
@@ -858,6 +942,31 @@ def _self_test() -> None:
         p = probes(fused)
         assert p["brake_n"] > 0 and p["curve_n"] > 0 and p["slips"] == 1, p
         assert p["brake_pitch"] < 5 < p["brake_raw"], p
+    # A slip that looks like a wheelie: the way holds, the front stays up
+    # from 150 s -- until the braking from 215 s drops the mount, and with
+    # it the "wheelie".
+    acc2, gyro2, fixes2, _ = synthetic(slip_pitch=True)
+    fused = fuse(acc2, gyro2, fixes2, "mahony")
+    rel = dict(pitch_against_way(fused))
+    assert max(rel[t] for t in rel if 160 <= t <= 210) > 30, "the slip must look like a wheelie"
+    assert len(fused.mount.slips) == 1, fused.mount.slips
+    assert not [w for w in wheelies(fused, 15.0, 1.0) if 140 <= w["t"] <= 235], "slip as wheelie"
+    # The last ride's mount: right, it stands from the first second and
+    # holds; wrong (the phone turned a quarter on the bar), five quiet
+    # seconds drop it and the ride learns anew.
+    up0, fwd0 = mv(truth["mount0"], EZ), mv(truth["mount0"], (1.0, 0.0, 0.0))
+    fused = fuse(acc, gyro, fixes, "mahony", carried=(up0, fwd0))
+    m = fused.mount
+    assert m.carried and m.dropped_at is None and m.ready(), "the right mount holds"
+    assert fused.ticks[5][1] == fused.ticks[5][1], "pitch from the start"
+    assert len(wheelies(fused, 15.0, 1.0)) == 4
+    turned = mm(_rx(math.radians(90)), truth["mount0"])
+    fused = fuse(acc, gyro, fixes, "mahony",
+                 carried=(mv(turned, EZ), mv(turned, (1.0, 0.0, 0.0))))
+    m = fused.mount
+    assert m.dropped_at is not None and m.dropped_at <= 10, ("the wrong mount stays", m.dropped_at)
+    assert m.fwd_at is not None and m.fwd_at <= 45 and len(m.slips) == 1, (m.fwd_at, m.slips)
+    assert len(wheelies(fused, 15.0, 1.0)) == 4
     # The pieces on their own.
     q = q_from_gravity((0.0, G, 0.0))
     assert norm(sub(mv(qrot(q), (0.0, 1.0, 0.0)), EZ)) < 1e-9

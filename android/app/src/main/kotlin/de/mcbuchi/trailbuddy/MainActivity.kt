@@ -14,6 +14,8 @@ import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.graphics.drawable.Icon
+import android.hardware.Sensor
+import android.hardware.SensorManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -32,12 +34,12 @@ import java.io.InputStream
 import java.util.zip.GZIPInputStream
 
 /**
- * Der einzige native Code im Projekt (Muster PilzBuddy): vier
+ * Der einzige native Code im Projekt (Muster PilzBuddy): fünf
  * MethodChannels — die geladene Update-APK an den System-Installer geben,
  * lesen, warum die App beim letzten Mal beendet wurde (#40), den
  * Bildschirm in der Navigation anlassen und die Navigation als
- * Bild-im-Bild (beide #232) — und der Benachrichtigungs-Kanal für Push
- * (#34).
+ * Bild-im-Bild (beide #232), den Messbereich der Sensoren für die
+ * Rohdaten (#36) — und der Benachrichtigungs-Kanal für Push (#34).
  *
  * Beendigungsgründe: Android führt seit Version 11 selbst Buch darüber,
  * und eine App darf ihre EIGENEN Einträge ohne jede Berechtigung lesen.
@@ -69,6 +71,12 @@ class MainActivity : FlutterActivity() {
         /** Bild-im-Bild in der Navigation (#232, Konzept-Routing 9.6); der
          *  Name steht in `lib/core/picture_in_picture_io.dart`. */
         const val PIP_CHANNEL = "de.mcbuchi.trailbuddy/pip"
+
+        /** Messbereich von Beschleunigung und Kreisel für den Kopf der
+         *  Rohdaten (#36, Dev-App); der Name steht in
+         *  `lib/features/rides/sensor_log.dart`. `sensors_plus` liefert ihn
+         *  nicht, und ohne ihn sieht man einer Landung am Anschlag nichts an. */
+        const val SENSORS_CHANNEL = "de.mcbuchi.trailbuddy/sensors"
 
         /** „Beenden" im Fenster: ein Broadcast nur an uns selbst. */
         const val PIP_STOP_ACTION = "de.mcbuchi.trailbuddy.PIP_STOP"
@@ -272,6 +280,22 @@ class MainActivity : FlutterActivity() {
                             window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
                         }
                         result.success(null)
+                    }
+                    else -> result.notImplemented()
+                }
+            }
+
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, SENSORS_CHANNEL)
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "range" -> {
+                        val manager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
+                        result.success(
+                            mapOf(
+                                "accel" to manager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)?.maximumRange?.toDouble(),
+                                "gyro" to manager.getDefaultSensor(Sensor.TYPE_GYROSCOPE)?.maximumRange?.toDouble(),
+                            )
+                        )
                     }
                     else -> result.notImplemented()
                 }

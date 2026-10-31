@@ -53,6 +53,15 @@ void main() {
     expect(kotlin, contains('FLAG_KEEP_SCREEN_ON'));
   });
 
+  test('der Sensor-Kanal heißt in Kotlin und Dart gleich (#36)', () {
+    final kotlin = File('android/app/src/main/kotlin/${appId.replaceAll('.', '/')}/MainActivity.kt').readAsStringSync();
+    final dart = File('lib/features/rides/sensor_log.dart').readAsStringSync();
+    const channel = 'de.mcbuchi.trailbuddy/sensors';
+    expect(kotlin, contains('"$channel"'));
+    expect(dart, contains("'$channel'"));
+    expect(kotlin, contains('maximumRange'));
+  });
+
   test('Bild-im-Bild: Kanal in Kotlin und Dart gleich, Activity darf ins Fenster (#232)', () {
     final kotlin = File('android/app/src/main/kotlin/${appId.replaceAll('.', '/')}/MainActivity.kt').readAsStringSync();
     final dart = File('lib/core/picture_in_picture_io.dart').readAsStringSync();

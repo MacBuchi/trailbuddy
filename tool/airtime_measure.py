@@ -18,13 +18,17 @@ docs/konzept-airtime.md section 8):
   limit for at least a duration at > 8 km/h; length = GPS speed x time.
   The tilt axis is printed in phone coordinates: wheelies should share
   one axis (the bike's lateral axis), a lean in a corner shows another.
-  Same rule as the app (lib/features/rides/wheelie_detector.dart): the
-  riding position is the median of the last 60 s, a wheelie ends 5 deg
-  under its start limit, over 60 s is a slipped mount;
+  The raw rule the app ran in 0.143.0 (the riding position is the median
+  of the last 60 s, a wheelie ends 5 deg under its start limit, over 60 s
+  is a slipped mount) -- kept as the comparison since the app runs the
+  fusion (0.144.0);
 - the rider's answers (since 0.143.0): the app shows a banner after each
   wheelie it detects ("Stimmt" / "War keiner") and a button "Wheelie
   verpasst"; the file then holds e/l/m lines, and the report scores each
-  threshold: hits, missed, false alarms, unlabelled.
+  threshold: hits, missed, false alarms, unlabelled. Since 0.144.0 (file
+  v2) the same for jumps (j/k/n lines), and the head names the mount the
+  app carried over from the last ride ("# mount,...", the fusion starts
+  from it as the app did) and the sensors' range ("# range,...").
 
 The sensor files carry coordinates and stay on the operator's computer,
 NEVER in this repository. The report has times (seconds from the start
@@ -79,6 +83,11 @@ class Log:
         self.events: list[tuple[float, float]] = []  # start s, duration s
         self.answers: dict[float, bool] = {}  # start s -> "Stimmt"
         self.missed: list[float] = []  # "Wheelie verpasst" pressed at s
+        self.jumps: list[tuple[float, float]] = []  # the app's jumps, same shape
+        self.jump_answers: dict[float, bool] = {}
+        self.jump_missed: list[float] = []
+        self.carried: tuple | None = None  # (up, forward) from "# mount,"
+        self.range: tuple[float, float] | None = None  # accelerometer m/s^2, gyroscope rad/s
         self._g_times: list[float] | None = None
 
     def g_times(self) -> list[float]:
@@ -92,6 +101,16 @@ def parse(lines) -> Log:
     t0 = None
     for line in lines:
         line = line.strip()
+        if line.startswith("# mount,") or line.startswith("# range,"):
+            try:
+                values = [float(v) for v in line[8:].split(",")]
+            except ValueError:
+                continue
+            if line[2] == "m" and len(values) == 6:
+                log.carried = (tuple(values[:3]), tuple(values[3:]))
+            elif line[2] == "r" and len(values) == 2:
+                log.range = (values[0], values[1])
+            continue
         if not line or line.startswith("#"):
             continue
         parts = line.split(",")
@@ -115,9 +134,16 @@ def parse(lines) -> Log:
             log.answers[round(values[0] / 1e6 - t0, 3)] = values[1] == 1
         elif kind == "m":
             log.missed.append(t)
+        elif kind == "j" and len(values) == 3:
+            log.jumps.append((t, values[0]))
+        elif kind == "k" and len(values) == 2:
+            log.jump_answers[round(values[0] / 1e6 - t0, 3)] = values[1] == 1
+        elif kind == "n":
+            log.jump_missed.append(t)
     log.a.sort()
     log.g.sort()
     log.events = [(round(t, 3), d) for t, d in log.events]
+    log.jumps = [(round(t, 3), d) for t, d in log.jumps]
     return log
 
 
@@ -193,7 +219,7 @@ def _speed_before(log: Log, t: float) -> float:
 
 
 def wheelies(log: Log, tilt_deg: float, min_s: float) -> list[dict]:
-    """The rule of lib/features/rides/wheelie_detector.dart, step by step:
+    """The raw rule of the app until 0.143.0, step by step:
     the riding position is the median gravity of the last BASE_WINDOW_S
     while riding and not tilted (none before WARM_UP_S of it); a wheelie
     starts at tilt_deg, ends below tilt_deg - RELEASE_DEG or below the
@@ -262,16 +288,22 @@ def window(log: Log, start: float | None, end: float | None) -> Log:
     cut.events = [e for e in log.events if lo <= e[0] <= hi]
     cut.answers = {t: v for t, v in log.answers.items() if lo <= t <= hi}
     cut.missed = [t for t in log.missed if lo <= t <= hi + MISSED_WINDOW_S]
+    cut.jumps = [e for e in log.jumps if lo <= e[0] <= hi]
+    cut.jump_answers = {t: v for t, v in log.jump_answers.items() if lo <= t <= hi}
+    cut.jump_missed = [t for t in log.jump_missed if lo <= t <= hi + MISSED_WINDOW_S]
+    cut.carried, cut.range = log.carried, log.range
     return cut
 
 
-def feedback(log: Log, found: list[dict]) -> dict:
-    """Score detected wheelies against the rider's answers in the app: an
-    answered "Stimmt" is a wheelie, "War keiner" is none, and each press
-    of "Wheelie verpasst" stands for one that ended in the MISSED_WINDOW_S
-    before it. Unanswered app events count for nothing."""
-    yes = [(t, t + d) for t, d in log.events if log.answers.get(t) is True]
-    no = [(t, t + d) for t, d in log.events if log.answers.get(t) is False]
+def feedback(log: Log, found: list[dict], jumps: bool = False) -> dict:
+    """Score detected wheelies (or jumps) against the rider's answers in
+    the app: an answered "Stimmt" is one, "War keiner" is none, and each
+    press of "... verpasst" stands for one that ended in the
+    MISSED_WINDOW_S before it. Unanswered app events count for nothing."""
+    events, answers = (log.jumps, log.jump_answers) if jumps else (log.events, log.answers)
+    marks = log.jump_missed if jumps else log.missed
+    yes = [(t, t + d) for t, d in events if answers.get(t) is True]
+    no = [(t, t + d) for t, d in events if answers.get(t) is False]
     def overlaps(w, iv):
         return w["t"] <= iv[1] and iv[0] <= w["t"] + w["duration"]
     hits = false_alarms = unlabelled = 0
@@ -283,13 +315,13 @@ def feedback(log: Log, found: list[dict]) -> dict:
         if any(overlaps(w, iv) for iv in no):
             false_alarms += 1; continue
         end = w["t"] + w["duration"]
-        m = next((m for m, at in enumerate(log.missed)
+        m = next((m for m, at in enumerate(marks)
                   if at - MISSED_WINDOW_S <= end <= at and m not in used_marks), None)
         if m is not None:
             used_marks.add(m); hits += 1
         else:
             unlabelled += 1
-    missed = len(yes) - len(used_yes) + len(log.missed) - len(used_marks)
+    missed = len(yes) - len(used_yes) + len(marks) - len(used_marks)
     return {"hits": hits, "missed": missed, "false_alarms": false_alarms, "unlabelled": unlabelled}
 
 
@@ -352,14 +384,20 @@ def report(log: Log, listing: bool) -> str:
 def report_fused(log: Log, listing: bool) -> str:
     lines = []
     for method in ("eskf", "mahony"):
-        fused = sensor_fusion.fuse(log.a, log.w, log.g, method)
+        fused = sensor_fusion.fuse(log.a, log.w, log.g, method, carried=log.carried)
         p = sensor_fusion.probes(fused)
         lines.append("")
         lines.append(f"fused ({method}):")
         def at(v):
             return "never" if v is None else f"{v:.0f} s"
-        lines.append(f"mount: up at {at(p['up_s'])}, forward at {at(p['fwd_s'])}, "
+        m = fused.mount
+        carried = ("" if not m.carried else
+                   f"carried over from the last ride, dropped at {at(m.dropped_at)}; ")
+        lines.append(f"mount: {carried}up at {at(p['up_s'])}, forward at {at(p['fwd_s'])}, "
                      f"slips {p['slips']}; accelerometer left out {p['rejected']:.0%}")
+        if log.range:
+            lines.append(f"sensor range: accelerometer {log.range[0] / G:.1f} g, "
+                         f"gyroscope {math.degrees(log.range[1]):.0f} deg/s")
         lines.append(f"gyro bias at the end {p['bias_dps']:.2f} deg/s, "
                      f"moved {p['bias_drift_dps']:.2f} deg/s in the second half")
         lines.append("")
@@ -390,16 +428,30 @@ def report_fused(log: Log, listing: bool) -> str:
                     row += f" {f['hits']} | {f['missed']} | {f['false_alarms']} | {f['unlabelled']} |"
                 lines.append(row)
         lines.append("")
-        lines.append("| g limit | min ms | flights | plausible | upright | airtime s | longest s |")
-        lines.append("|---|---|---|---|---|---|---|")
+        jumps = bool(log.jumps or log.jump_missed)
+        if jumps:
+            answered = [t for t, _ in log.jumps if t in log.jump_answers]
+            lines.append(f"in the app: {len(log.jumps)} jumps shown, "
+                         f"{sum(1 for t in answered if log.jump_answers[t])} \"Stimmt\", "
+                         f"{sum(1 for t in answered if not log.jump_answers[t])} \"War keiner\", "
+                         f"{len(log.jumps) - len(answered)} unanswered; "
+                         f"\"Sprung verpasst\" pressed {len(log.jump_missed)} times")
+            lines.append("")
+        lines.append("| g limit | min ms | flights | plausible | upright | airtime s | longest s |"
+                     + (" hits | missed | false alarms | unlabelled |" if jumps else ""))
+        lines.append("|---" * (7 + (4 if jumps else 0)) + "|")
         for g_limit in G_LIMITS:
             for min_ms in MIN_FLIGHT_MS:
                 found = sensor_fusion.flights(fused, g_limit, min_ms)
                 ok = [f for f in found if f["plausible"]]
-                lines.append(f"| {g_limit} | {min_ms} | {len(found)} | {len(ok)} | "
-                             f"{sum(1 for f in found if f['upright'])} | "
-                             f"{sum(f['duration'] for f in ok):.2f} | "
-                             f"{max((f['duration'] for f in ok), default=0):.2f} |")
+                row = (f"| {g_limit} | {min_ms} | {len(found)} | {len(ok)} | "
+                       f"{sum(1 for f in found if f['upright'])} | "
+                       f"{sum(f['duration'] for f in ok):.2f} | "
+                       f"{max((f['duration'] for f in ok), default=0):.2f} |")
+                if jumps:
+                    f = feedback(log, found, jumps=True)
+                    row += f" {f['hits']} | {f['missed']} | {f['false_alarms']} | {f['unlabelled']} |"
+                lines.append(row)
         if listing:
             lines.append(f"wheelies ({method}) at 15 deg / 1 s against the way:")
             for w in sensor_fusion.wheelies(fused, 15.0, 1.0):
@@ -410,9 +462,12 @@ def report_fused(log: Log, listing: bool) -> str:
                              f"{w['max_deg']:.0f} deg  {label}")
             lines.append(f"flights ({method}) at 0.3 g / 150 ms:")
             for f in sensor_fusion.flights(fused, 0.3, 150):
+                answer = next((log.jump_answers.get(t) for t, d in log.jumps
+                               if f["t"] <= t + d and t <= f["t"] + f["duration"]), None)
+                label = {True: "  Stimmt", False: "  War keiner", None: ""}[answer]
                 lines.append(f"  t={f['t']:8.2f}  {f['duration']:.2f} s  landing {f['peak_g']:.1f} g"
                              f"  {'plausible' if f['plausible'] else 'NOT plausible'}"
-                             f"{'' if f['upright'] else ', not upright'}")
+                             f"{'' if f['upright'] else ', not upright'}{label}")
     return "\n".join(lines)
 
 
@@ -451,6 +506,13 @@ def _synthetic() -> list[str]:
     rows.append(f"l,{base_us + 31_000_000},{base_us + 30_000_000},0")
     rows.append(f"e,{base_us + 33_000_000},1.2,6.0,16.0")
     rows.append(f"m,{base_us + 58_000_000}")
+    # File v2 (0.144.0): the jump at 10 s answered "Stimmt", "Sprung
+    # verpasst" once, the mount carried over and the sensors' range.
+    rows.insert(1, "# mount,0.0000,0.0000,1.0000,0.0000,1.0000,0.0000")
+    rows.insert(2, "# range,78.453,34.907")
+    rows.append(f"j,{base_us + 10_000_000},0.50,3.0,1")
+    rows.append(f"k,{base_us + 12_000_000},{base_us + 10_000_000},1")
+    rows.append(f"n,{base_us + 30_000_000}")
     return rows
 
 
@@ -479,6 +541,10 @@ def _self_test() -> None:
     late = {"t": 45.0, "duration": 1.0}
     assert feedback(log, [late])["hits"] == 1, "ends in the 20 s before \"verpasst\""
     assert feedback(log, [{"t": 33.0, "duration": 1.0}])["unlabelled"] == 1
+    assert log.carried == ((0.0, 0.0, 1.0), (0.0, 1.0, 0.0)) and log.range == (78.453, 34.907)
+    assert log.jumps == [(10.0, 0.5)] and log.jump_answers == {10.0: True} and log.jump_missed == [30.0]
+    assert feedback(log, flights(log, 0.3, 150), jumps=True) == \
+        {"hits": 1, "missed": 1, "false_alarms": 0, "unlabelled": 1}, "jump scored, the drop unlabelled"
     # Only one: the tilt at 50 s is standing still.
     cut = window(log, 0, 30)
     assert len(flights(cut, 0.3, 150)) == 1
@@ -488,6 +554,8 @@ def _self_test() -> None:
     fused = report_fused(log, listing=True)
     assert "fused (eskf):" in fused and "fused (mahony):" in fused, fused
     assert "| pitch, braking/accelerating |" in fused and "hits |" in fused, fused
+    assert "carried over from the last ride" in fused and "1 jumps shown, 1 \"Stimmt\"" in fused, fused
+    assert "sensor range: accelerometer 8.0 g, gyroscope 2000 deg/s" in fused, fused
     print("airtime_measure self-test: ok")
 
 

@@ -2,6 +2,21 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## Wheelies and jumps from processed sensors
+
+*Version 0.144.0, 2026-10-31*
+
+- Development app only, with raw sensor data switched on: wheelies are
+  now detected by the signal processing — it learns how the phone sits
+  on the bike and so tells braking, corners and hits from a real tilt.
+  Long wheelies are no longer cut short.
+- New: after a jump a banner "Jump detected" shows the time in the air
+  and the landing, with "Correct" and "Wasn't one"; the measurement
+  notification now also has "Missed jump".
+- The app remembers the mount from the last ride and so detects from
+  the first minutes. The banner comes two to three seconds after the
+  event. Nothing changes in the regular app.
+
 ## Counting wheelies and rating them right away
 
 *Version 0.143.0, 2026-10-30*

@@ -1,6 +1,7 @@
-// Die Wheelie-Messung mit Rückmeldung (#36, Konzept Airtime 9, Schritt
-// 2b; nur Dev-App): Nach jedem erkannten Wheelie ein Banner mit „Stimmt"
-// und „War keiner", dazu eine stehende Benachrichtigung mit „Wheelie
+// Die Wheelie- und Sprung-Messung mit Rückmeldung (#36, Konzept Airtime
+// 9, Schritte 2b und 4; nur Dev-App): Nach jedem erkannten Wheelie und
+// jedem Sprung ein Banner mit „Stimmt" und „War keiner", dazu eine
+// stehende Benachrichtigung mit „Wheelie verpasst" und „Sprung
 // verpasst". Jede Antwort ist eine Zeile in den Rohdaten der Fahrt
 // (`sensor_log.dart`), das Werkzeug (`tool/airtime_measure.py`) zählt
 // daraus Treffer, Fehlalarme und Verpasste je Schwelle.
@@ -20,12 +21,17 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 import '../../l10n/l10n.dart';
 import 'ride_confirm_notify.dart';
+import 'sensor_fusion.dart';
 import 'sensor_log.dart';
-import 'wheelie_detector.dart';
 
 const kWheelieYes = 'wheelie_yes';
 const kWheelieNo = 'wheelie_no';
 const kWheelieMissed = 'wheelie_missed';
+const kJumpYes = 'jump_yes';
+const kJumpNo = 'jump_no';
+const kJumpMissed = 'jump_missed';
+
+const _actions = {kWheelieYes, kWheelieNo, kWheelieMissed, kJumpYes, kJumpNo, kJumpMissed};
 
 /// Die stehende Benachrichtigung „Wheelie verpasst" — eine je Gerät.
 const kWheelieMissedNotificationId = 0x57484c;
@@ -33,6 +39,7 @@ const kWheelieMissedNotificationId = 0x57484c;
 /// Was der Logger zeigt; im Test gegen eine Liste getauscht.
 abstract class WheelieNotices {
   Future<void> wheelie(WheelieEvent event, {required String file});
+  Future<void> jump(JumpEvent event, {required String file});
   Future<void> showMissed({required String file});
   Future<void> cancelMissed();
 
@@ -59,6 +66,9 @@ String encodeWheeliePayload({required String file, int? startUs}) =>
 /// nicht ersetzt — die Antwort kommt oft erst an der nächsten Ampel.
 int wheelieNotificationId(int startUs) => (startUs ~/ 1000) & 0x7fffffff;
 
+/// Ein Sprung und ein Wheelie in derselben Millisekunde ersetzen sich nicht.
+int jumpNotificationId(int startUs) => (startUs ~/ 1000 + 1) & 0x7fffffff;
+
 /// Schreibt die Antwort in die Rohdaten. `false`, wenn die
 /// Benachrichtigung nicht von der Wheelie-Messung kam. Wirft nie.
 Future<bool> handleWheelieResponse({
@@ -67,22 +77,22 @@ Future<bool> handleWheelieResponse({
   DateTime? now,
   Future<void> Function()? confirmMissed,
 }) async {
-  if (actionId != kWheelieYes && actionId != kWheelieNo && actionId != kWheelieMissed) {
-    return decodeWheeliePayload(payload) != null;
-  }
+  if (!_actions.contains(actionId)) return decodeWheeliePayload(payload) != null;
   try {
     final p = decodeWheeliePayload(payload);
     if (p == null) return true;
     final at = (now ?? DateTime.now()).toUtc();
     final start = p.startUs;
-    final line = actionId == kWheelieMissed
-        ? wheelieMissedLine(at)
-        : start == null
-            ? null
-            : wheelieAnswerLine(at, startUs: start, yes: actionId == kWheelieYes);
+    final line = switch (actionId) {
+      kWheelieMissed => wheelieMissedLine(at),
+      kJumpMissed => jumpMissedLine(at),
+      _ when start == null => null,
+      kWheelieYes || kWheelieNo => wheelieAnswerLine(at, startUs: start, yes: actionId == kWheelieYes),
+      _ => jumpAnswerLine(at, startUs: start, yes: actionId == kJumpYes),
+    };
     if (line == null) return true;
     await File(p.file).writeAsString(line, mode: FileMode.append, flush: true);
-    if (actionId == kWheelieMissed) {
+    if (actionId == kWheelieMissed || actionId == kJumpMissed) {
       await (confirmMissed ?? () => _showMissed(file: p.file, notedAt: at))();
     }
   } catch (_) {
@@ -135,6 +145,38 @@ class _PlatformWheelieNotices implements WheelieNotices {
   }
 
   @override
+  Future<void> jump(JumpEvent event, {required String file}) async {
+    try {
+      await initRideNotices();
+      final l = serviceL10n();
+      final seconds = _num(l, event.duration.inMilliseconds / 1000, 2);
+      final g = _num(l, event.landingG, 1);
+      await rideNoticesPlugin.show(
+        id: jumpNotificationId(event.startUs),
+        title: l.jumpNoticeTitle,
+        body: event.plausible ? l.jumpNoticeBody(seconds, g) : l.jumpNoticeBodyImplausible(seconds, g),
+        payload: encodeWheeliePayload(file: file, startUs: event.startUs),
+        notificationDetails: NotificationDetails(
+          android: AndroidNotificationDetails(
+            kConfirmChannelId,
+            kConfirmChannelName,
+            importance: Importance.high,
+            priority: Priority.high,
+            when: event.startUs ~/ 1000,
+            showWhen: true,
+            actions: [
+              AndroidNotificationAction(kJumpYes, l.wheelieNoticeYes, cancelNotification: true),
+              AndroidNotificationAction(kJumpNo, l.wheelieNoticeNo, cancelNotification: true),
+            ],
+          ),
+        ),
+      );
+    } catch (_) {
+      // Wie beim Wheelie: Der Sprung steht trotzdem in der Datei.
+    }
+  }
+
+  @override
   Future<void> showMissed({required String file}) => _showMissed(file: file);
 
   @override
@@ -176,6 +218,7 @@ Future<void> _showMissed({required String file, DateTime? notedAt}) async {
           silent: true,
           actions: [
             AndroidNotificationAction(kWheelieMissed, l.wheelieMissedButton, cancelNotification: false),
+            AndroidNotificationAction(kJumpMissed, l.jumpMissedButton, cancelNotification: false),
           ],
         ),
       ),
