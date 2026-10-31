@@ -145,7 +145,11 @@ delete from app_internal.push_outbox;
 
 -- 3f. Patch 028 (#433): Anna meldet T1 gesperrt MIT Text, in einem
 --     Aufruf. Sie ist gefahren, also bestätigt: EINE Push je Buddy, der
---     Text steht als zweite Zeile darunter.
+--     Text steht als zweite Zeile darunter. Vorher fallen Annas
+--     Meldungen an T1 weg: In EINER Transaktion haben sie alle dasselbe
+--     now(), und push_on_report fände unter Gleichen beliebig ein
+--     „gesperrt" als vorige — dieselbe Meldung noch einmal, keine Push.
+delete from public.trail_reports where trail_id = '$T1' and user_id = '$A';
 select set_config('request.jwt.claims', '{"sub":"$A","role":"authenticated"}', true);
 set local role authenticated;
 select public.report_trail('$T1', 'closed', null, false, null, null, 'Baum liegt quer');
