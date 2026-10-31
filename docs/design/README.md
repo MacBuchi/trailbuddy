@@ -863,9 +863,12 @@ Orbea Rise oder Rocky Mountain Altitude, Seitenansicht mit Winkel und
 laufender Zeit.* Eine `Card` 260 dp breit unter der Fahrt-Karte, Flächen
 und Text aus `AppPalette.of` (folgt dem Modus der App, anders als die
 Folgeansicht in 13 — sie ist ein Test-Werkzeug, kein Fahr-Bildschirm).
-Das Rad als Strichzeichnung in `text`, Reifen 3,2, Rohre 3–3,8 (Raster
-104 × 56); Dämpfer und Gabel-Standrohr in der Marke `brand`, solange eine
-Phase läuft (Front oben/unten, in der Luft), sonst `muted`. Der Winkel
+Das Rad als gefüllte Silhouette in `text` (Betreiber 2026-10-31, nach
+einer Vorlage im Stil eines E-Fullys — nachgezeichnet, nicht übernommen):
+sich verjüngende Rohre, dickes Unterrohr mit Motor, Stollenreifen mit
+Speichen, Kassette und Bremsscheibe (Raster 104 × 56); Dämpfer und
+Gabel-Standrohr in der Marke `brand`, solange eine Phase läuft (Front
+oben/unten, in der Luft), sonst `muted`. Der Winkel
 in JetBrains Mono 28, in `accentText` während einer Phase. Die Fragen:
 „War keiner" als `OutlinedButton`, „Stimmt" als `FilledButton`, je die
 halbe Breite. Verkleinert ein `IconButton.filled` (48 dp, A13) mit dem
