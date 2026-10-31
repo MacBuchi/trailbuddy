@@ -110,7 +110,8 @@ sealed class OutboxJob {
         case 'report':
           final status = json['status'] == null ? null : TrailStatus.fromDb(json['status'] as String?);
           final condition = json['condition'] as int?;
-          if (status == null && condition == null) return null;
+          final note = (json['note'] as String?)?.trim();
+          if (status == null && condition == null && (note == null || note.isEmpty)) return null;
           return ReportJob(
             id: id,
             createdAt: createdAt,
@@ -294,14 +295,16 @@ class ReportJob extends OutboxJob {
     this.note,
     super.attempts,
     super.failure,
-  }) : assert(status != null || condition != null);
+  }) : assert(status != null || condition != null || note != null);
 
   final String trailId;
   final TrailStatus? status;
   final int? condition;
   final bool onSite;
 
-  /// Der Hinweis dazu — der sagt WARUM.
+  /// Der Text dazu (#433: mit oder ohne Status ein Eintrag) — er sagt
+  /// WARUM. Seit 0.147.0 geht er im selben Aufruf hinaus, mit derselben
+  /// `client_id`; ein Foto liegt nie im Korb.
   final String? note;
 
   @override

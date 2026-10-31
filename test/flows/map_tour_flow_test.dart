@@ -327,11 +327,11 @@ void main() {
     // Die Legende nennt die Bedeutung, die Tour verbindet sie mit dem
     // Aussehen (#231).
     final tour = mapTourScript(l10nDe).steps.firstWhere((s) => s.id == 'map.colors').text;
-    for (final label in ['S0', 'S3', 'S4/S5', 'Uphill', 'ausgefahren', 'abgerockt', 'kaum fahrbar', 'Meldung',
-      'neuer Hinweis', 'offizieller Trail']) {
+    for (final label in ['S0', 'S3', 'S4/S5', 'Uphill', 'ausgefahren', 'abgerockt', 'kaum fahrbar', 'Warnung',
+      'neue Meldung', 'offizieller Trail']) {
       expect([for (final s in legendSamples(l10nDe)) s.label], contains(label));
     }
-    for (final word in ['ausgefahren', 'abgerockt', 'kaum fahrbar', 'Meldung', 'neuer Hinweis']) {
+    for (final word in ['ausgefahren', 'abgerockt', 'kaum fahrbar', 'Warnung', 'neue Meldung']) {
       expect(tour, contains(word), reason: word);
     }
   });

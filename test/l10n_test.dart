@@ -308,7 +308,7 @@ void main() {
 
     testWidgets('Liste, Suche und Filter', (tester) async {
       await pumpTrails(tester);
-      for (final text in ['S grade', 'New note', 'Reported', 'Rating open', 'My trails (2)']) {
+      for (final text in ['S grade', 'New report', 'Reported', 'Rating open', 'My trails (2)']) {
         expect(find.text(text), findsOneWidget, reason: text);
       }
       expect(find.text('MINE'), findsNWidgets(2));
@@ -601,7 +601,7 @@ void main() {
         await scrollTo(tester, find.text(text));
         expect(find.text(text), findsOneWidget, reason: text);
       }
-      expect(find.textContaining('the Report status'), findsOneWidget, reason: 'Platzhalter {report}');
+      expect(find.textContaining('“The trail is …” closed'), findsOneWidget, reason: 'Platzhalter {report}');
       expect(find.text('Die Karte lesen'), findsNothing);
     });
   });

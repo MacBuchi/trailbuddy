@@ -260,6 +260,8 @@ create table public.trail_notes (
   user_id uuid not null,
   body text not null check (char_length(btrim(body)) between 1 and 500),
   created_at timestamptz not null default now(),
+  report_id uuid,
+  client_id uuid,
   constraint trail_notes_user_id_fkey foreign key (user_id)
     references public.profiles(id) on delete cascade,
   constraint trail_notes_trail_id_fkey foreign key (trail_id)
@@ -267,6 +269,14 @@ create table public.trail_notes (
 );
 create index trail_notes_trail_idx on public.trail_notes (trail_id);
 create index trail_notes_user_idx on public.trail_notes (trail_id, user_id);
+-- Seit Patch 028 (#433): Ein Eintrag „Melden" ist Meldung UND Text. Der
+-- Text zeigt auf seine Meldung (report_id; fällt die im Aufräumen weg,
+-- bleibt der Text ohne Status), client_id macht den Ausgangskorb
+-- idempotent wie bei trail_reports.
+create index trail_notes_report_idx on public.trail_notes (report_id) where report_id is not null;
+create unique index trail_notes_client_id_key
+  on public.trail_notes (user_id, client_id)
+  where client_id is not null;
 
 -- Ein Foto am Hinweis (Patch 026, #37; Betreiber 2026-10-11: am Hinweis,
 -- eines je Hinweis). Die Bytes liegen im Bucket `trail-note-photos`
@@ -333,6 +343,11 @@ create index trail_reports_user_idx on public.trail_reports (user_id);
 create unique index trail_reports_client_id_key
   on public.trail_reports (user_id, client_id, kind)
   where client_id is not null;
+-- Der Text zu einer Meldung (Patch 028); hier, weil trail_notes vor
+-- trail_reports angelegt wird.
+alter table public.trail_notes
+  add constraint trail_notes_report_id_fkey foreign key (report_id)
+    references public.trail_reports(id) on delete set null;
 
 -- Geräteregister für Push (Patch 008, #34): eine Zeile je Gerät, der
 -- Token ist der Schlüssel und gehört zu genau EINEM Konto (der Upsert
@@ -466,6 +481,10 @@ create table app_internal.push_outbox (
   sender_ids uuid[] not null default '{}',
   events integer not null default 1,
   note_id uuid references public.trail_notes(id) on delete cascade,
+  -- Seit Patch 028: der Text zu einer Statuszeile (eine Push statt
+  -- zwei). Set null statt Cascade — „erledigt" vor dem Versand nimmt nur
+  -- den Text, nicht die Meldung.
+  status_note_id uuid references public.trail_notes(id) on delete set null,
   primary key (recipient_id, kind, trail_id)
 );
 create index push_outbox_due_idx on app_internal.push_outbox (due_at);
@@ -1052,7 +1071,8 @@ create or replace function app_internal.push_trail_text(
 language plpgsql immutable set search_path = '' as $$
 declare
   en boolean := lang = 'en';
-  single boolean := statuses + notes = 1;
+  total integer := statuses + notes;
+  single boolean := total = 1;
   who text := app_internal.push_join_names(names, lang);
   trail text := '„' || coalesce(trail_name,
                   case when en then 'Unnamed trail' else 'Trail ohne Namen' end) || '“';
@@ -1060,11 +1080,7 @@ declare
 begin
   if en then
     trail := '“' || coalesce(trail_name, 'Unnamed trail') || '”';
-    counts := concat_ws(' and ',
-      case when statuses = 1 then '1 report'
-           when statuses > 1 then statuses || ' reports' end,
-      case when notes = 1 then '1 note'
-           when notes > 1 then notes || ' notes' end);
+    counts := case when total = 1 then '1 report' else total || ' reports' end;
     title := case
       when single and statuses = 1 and status = 'open'
         then coalesce(who, 'A buddy') || ': ' || trail || ' is open again'
@@ -1076,24 +1092,16 @@ begin
                   else 'changed' end
       when single then coalesce(who, 'A buddy') || ' on ' || trail
       when trails = 1 then trail || ': ' || counts
-      when statuses > 0 and notes > 0 then 'Your buddies reported something'
-      when statuses > 1 then statuses || ' reports from your buddies'
-      else notes || ' new notes from your buddies'
+      else total || ' reports from your buddies'
     end;
     body := case
-      when single and notes = 1 and note_body is not null then null
+      when single and note_body is not null then null
       when single then 'Tap to see the trail'
       when trails = 1 then 'from ' || coalesce(who, 'your buddies')
-      when statuses > 0 and notes > 0
-        then counts || ' on ' || trails || ' trails · from ' || coalesce(who, 'your buddies')
       else 'On ' || trails || ' trails · from ' || coalesce(who, 'your buddies')
     end;
   else
-    counts := concat_ws(' und ',
-      case when statuses = 1 then '1 Meldung'
-           when statuses > 1 then statuses || ' Meldungen' end,
-      case when notes = 1 then '1 Hinweis'
-           when notes > 1 then notes || ' Hinweise' end);
+    counts := case when total = 1 then '1 Meldung' else total || ' Meldungen' end;
     title := case
       when single and statuses = 1 and status = 'open'
         then coalesce(who, 'Ein Buddy') || ': ' || trail || ' ist wieder frei'
@@ -1105,21 +1113,17 @@ begin
                   else 'verändert' end
       when single then coalesce(who, 'Ein Buddy') || ' zu ' || trail
       when trails = 1 then trail || ': ' || counts
-      when statuses > 0 and notes > 0 then 'Deine Buddys haben etwas gemeldet'
-      when statuses > 1 then statuses || ' Meldungen von deinen Buddys'
-      else notes || ' neue Hinweise von deinen Buddys'
+      else total || ' Meldungen von deinen Buddys'
     end;
     body := case
-      when single and notes = 1 and note_body is not null then null
+      when single and note_body is not null then null
       when single then 'Tippen zeigt den Trail'
       when trails = 1 then 'von ' || coalesce(who, 'deinen Buddys')
-      when statuses > 0 and notes > 0
-        then counts || ' an ' || trails || ' Trails · von ' || coalesce(who, 'deinen Buddys')
       else 'An ' || trails || ' Trails · von ' || coalesce(who, 'deinen Buddys')
     end;
   end if;
-  -- Der Hinweistext ist, was der Buddy geschrieben hat — in keiner
-  -- Sprache übersetzt, nur gekürzt.
+  -- Der Text ist, was der Buddy geschrieben hat — in keiner Sprache
+  -- übersetzt, nur gekürzt.
   if body is null then
     body := case when char_length(note_body) > 140
                  then left(note_body, 139) || '…'
@@ -1176,14 +1180,28 @@ revoke all on function app_internal.push_on_report() from public, anon, authenti
 
 -- Ein neuer Hinweis (#7). Der Korb merkt sich den jüngsten; sein Text
 -- geht seit Patch 014 mit hinaus (push_flush liest ihn beim Versand).
+-- Seit Patch 028: Gehört er zu einer BESTÄTIGTEN Meldung und wartet für
+-- einen Empfänger schon eine Statuszeile desselben Absenders (die eben
+-- von push_on_report angelegte), hängt er sich dort an — eine Push statt
+-- zwei. Eine unbestätigte Meldung macht keine Statuszeile, ihr Text geht
+-- also wie bisher als eigene Push.
 create or replace function app_internal.push_on_note()
 returns trigger
 language plpgsql security definer set search_path = public, app_internal as $$
 begin
+  if new.report_id is not null
+     and exists (select 1 from trail_reports m where m.id = new.report_id and m.confirmed) then
+    update app_internal.push_outbox o set status_note_id = new.id
+     where o.kind = 'trail_status' and o.trail_id = new.trail_id
+       and new.user_id = any(o.sender_ids);
+  end if;
   insert into app_internal.push_outbox (recipient_id, kind, trail_id, sender_ids, note_id, due_at)
     select r.recipient_id, 'trail_note', new.trail_id, array[new.user_id], new.id,
            app_internal.push_due_at(now())
       from app_internal.push_recipients(new.user_id, new.trail_id) r
+     where not exists (select 1 from app_internal.push_outbox o
+                        where o.recipient_id = r.recipient_id and o.kind = 'trail_status'
+                          and o.trail_id = new.trail_id and o.status_note_id = new.id)
   on conflict (recipient_id, kind, trail_id) do update
     set note_id = excluded.note_id,
         sender_ids = case when new.user_id = any(push_outbox.sender_ids) then push_outbox.sender_ids
@@ -1261,7 +1279,7 @@ begin
   with due as (
     delete from app_internal.push_outbox
      where due_at <= now()
-    returning recipient_id, kind, trail_id, status, sender_ids, events, note_id
+    returning recipient_id, kind, trail_id, status, sender_ids, events, note_id, status_note_id
   ),
   grouped as (
     select recipient_id,
@@ -1271,7 +1289,8 @@ begin
            min(trail_id::text) as trail_id,
            -- Das Statuswort, wenn es genau EINE Statusmeldung ist.
            max(status) filter (where kind = 'trail_status') as status,
-           max(note_id::text) filter (where kind = 'trail_note') as note_id
+           coalesce(max(note_id::text) filter (where kind = 'trail_note'),
+                    max(status_note_id::text) filter (where kind = 'trail_status')) as note_id
       from due group by recipient_id
   ),
   named as (
@@ -1788,24 +1807,37 @@ grant execute on function public.withdraw_contribution(uuid) to authenticated;
 -- (Ausgangskorb) und wird auf now() gekappt — eine Zeit in der Zukunft
 -- gewönne sonst jeden Vergleich. [client_id] macht die Wiedervorlage
 -- idempotent.
+--
+-- Seit Patch 028 (#433) kommt der Text in DEMSELBEN Aufruf ([note]): Die
+-- Notiz zeigt mit report_id auf die Statusmeldung (ohne Status: keine),
+-- dieselbe client_id macht auch sie idempotent, zurück kommt ihre Kennung
+-- (das Foto hängt sich daran) oder NULL ohne Text.
 create or replace function public.report_trail(
   trail_id uuid,
   status text default null,
   condition integer default null,
   on_site boolean default false,
   reported_at timestamptz default null,
-  client_id uuid default null)
-returns void
+  client_id uuid default null,
+  note text default null)
+returns uuid
 language plpgsql security definer set search_path = public, app_internal as $$
+#variable_conflict use_column
+-- Die Parameter heißen wie Spalten (PostgREST ruft mit Namen); im
+-- on conflict (…, client_id) gewinnt so die Spalte, die Parameter stehen
+-- überall sonst mit report_trail. davor.
 declare
   uid uuid := auth.uid();
   conf boolean;
+  txt text := nullif(btrim(report_trail.note), '');
+  rid uuid;
+  nid uuid;
 begin
   if uid is null then
     raise exception 'Nicht angemeldet' using errcode = '28000';
   end if;
-  if report_trail.status is null and report_trail.condition is null then
-    raise exception 'Weder Meldung noch Zustand' using errcode = '22023';
+  if report_trail.status is null and report_trail.condition is null and txt is null then
+    raise exception 'Weder Meldung noch Zustand noch Text' using errcode = '22023';
   end if;
   if report_trail.trail_id is null
      or not app_internal.can_see_trail(uid, report_trail.trail_id) then
@@ -1823,16 +1855,35 @@ begin
   if report_trail.status is not null then
     perform app_internal.put_report(uid, report_trail.trail_id, 'status', report_trail.status,
                                     null, conf, report_trail.reported_at, report_trail.client_id);
+    -- Die eben geschriebene (oder beim zweiten Versuch die von damals).
+    -- Ohne client_id die jüngste eigene: In dieser Transaktion ist sie
+    -- die einzige mit diesem created_at.
+    select m.id into rid from trail_reports m
+     where m.user_id = uid and m.trail_id = report_trail.trail_id and m.kind = 'status'
+       and (report_trail.client_id is null or m.client_id = report_trail.client_id)
+     order by m.created_at desc, m.reported_at desc
+     limit 1;
   end if;
   if report_trail.condition is not null then
     perform app_internal.put_report(uid, report_trail.trail_id, 'condition', null,
                                     report_trail.condition, conf, report_trail.reported_at,
                                     report_trail.client_id);
   end if;
+  if txt is not null then
+    insert into trail_notes (trail_id, user_id, body, report_id, client_id)
+    values (report_trail.trail_id, uid, txt, rid, report_trail.client_id)
+    on conflict (user_id, client_id) where client_id is not null do nothing
+    returning id into nid;
+    if nid is null then
+      select n.id into nid from trail_notes n
+       where n.user_id = uid and n.client_id = report_trail.client_id;
+    end if;
+  end if;
+  return nid;
 end $$;
 
-revoke all on function public.report_trail(uuid, text, integer, boolean, timestamptz, uuid) from public, anon;
-grant execute on function public.report_trail(uuid, text, integer, boolean, timestamptz, uuid) to authenticated;
+revoke all on function public.report_trail(uuid, text, integer, boolean, timestamptz, uuid, text) from public, anon;
+grant execute on function public.report_trail(uuid, text, integer, boolean, timestamptz, uuid, text) to authenticated;
 
 -- ============================================================
 -- Duplikate zusammenführen (Patch 019, #107)
@@ -2400,9 +2451,14 @@ create policy notes_select on public.trail_notes for select
      or (app_internal.are_friends(user_id, auth.uid())
          and app_internal.contributor_shares(user_id, trail_id)
          and app_internal.can_see_trail(auth.uid(), trail_id)));
+-- Eine report_id nur an die EIGENE Meldung zu diesem Trail (Patch 028).
 create policy notes_insert on public.trail_notes for insert
   with check (user_id = auth.uid()
-     and app_internal.can_see_trail(auth.uid(), trail_id));
+     and app_internal.can_see_trail(auth.uid(), trail_id)
+     and (report_id is null
+          or exists (select 1 from public.trail_reports m
+                      where m.id = report_id and m.user_id = auth.uid()
+                        and m.trail_id = trail_notes.trail_id)));
 create policy notes_delete on public.trail_notes for delete
   using (user_id = auth.uid()
      or (app_internal.are_friends(user_id, auth.uid())
@@ -2594,5 +2650,6 @@ insert into public.applied_patches (filename) values
   ('patch_024_drop_kind.sql'),
   ('patch_025_drop_details_status.sql'),
   ('patch_026_note_photos.sql'),
-  ('patch_027_push_locale.sql')
+  ('patch_027_push_locale.sql'),
+  ('patch_028_note_report_link.sql')
 on conflict do nothing;

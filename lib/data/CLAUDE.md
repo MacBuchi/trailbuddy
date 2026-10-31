@@ -13,9 +13,10 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
   #267 als Vorlage): Genau VIER Aufträge — Aufzeichnung beisteuern
   (`ContributeJob`, die Linie so, wie sie an die RPC ging, plus Name),
   eigenen Beitrag speichern (`DetailsJob`), melden (`ReportJob`, seit
-  0.49.0, samt Hinweis — „gesperrt" meldet man am Trail) und Feedback
+  0.49.0, samt Text — „gesperrt" meldet man am Trail; seit 0.147.0, #433,
+  auch Text allein, beides in EINEM `report_trail`-Aufruf) und Feedback
   (`FeedbackJob`, seit 0.86.0, #218). Alles
-  andere (Höhen nachtragen, Hinweise allein, Löschen) scheitert weiter
+  andere (Höhen nachtragen, Fotos, Löschen) scheitert weiter
   sichtbar. **Feedback ist ein Auftrag, keine eigene Warteschlange**:
   derselbe Korb, dasselbe Banner, dieselben Auslöser, `outbox/` steht
   schon in den Backup-Ausschlüssen — eine zweite Warteschlange wäre
@@ -180,8 +181,8 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
   mit eigenem Test:
   - **Nachgelesen wird, was geschrieben wurde** (`_rereadAfterWrite` in
     `TrailsNotifier`): `saveDetails` liest die Beiträge, `report` die
-    Meldungen (und Hinweise, wenn einer dabei war), `addNote`/`deleteNote`
-    die Hinweise. Read-after-write bleibt — nur nicht mehr für jede Linie.
+    Meldungen (und Texte, wenn einer dabei war), `deleteNote` die
+    Texte. Read-after-write bleibt — nur nicht mehr für jede Linie.
     Die Zusagen sind die von `reloadAfterWrite` (wirft nicht, `false` heißt
     „geschrieben, Anzeige alt", Fehler mit Kontext nach `error_reports`).
     Stammt der Stand aus der Kopie oder gibt es keinen, lädt es ganz neu.

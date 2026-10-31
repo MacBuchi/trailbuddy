@@ -2,6 +2,26 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## Notes and reports are one
+
+*Version 0.147.0, 2026-10-31*
+
+- The trail sheet now has a single button: “Report”. In it you choose,
+  if you like, whether the trail is closed, destroyed, changed or open
+  again, and write what is going on — with a photo if you want. A text
+  on its own works too.
+- At the bottom of the sheet everything is in one list, “Reports”:
+  “Closed” with the text and the photo below it, as one line. Your
+  buddies get one notification for it instead of two, with the text as
+  the second line.
+- The status stays until someone reports “open again”; text and photo
+  disappear after 90 days or with “Done”. If a warning still stands next
+  to the text, “Done” asks whether the trail is open again.
+- You now set the condition (barely rideable to well kept) on its tile at
+  the top of the sheet. A tap opens your rating and who said what.
+- Without a connection, a text on its own also waits in the outbox. A
+  photo needs reception; the dialog tells you.
+
 ## The planner avoids closed trails
 
 *Version 0.146.0, 2026-10-31*

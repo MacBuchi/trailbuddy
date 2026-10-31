@@ -3,129 +3,99 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/app_colors.dart';
 import '../../core/errors.dart';
-import '../../core/photo_pipeline.dart';
-import '../../core/photo_providers.dart';
 import '../../core/read_after_write.dart';
-import '../../core/widgets/photo_attachment.dart';
 import '../../l10n/l10n.dart';
 import '../../models/trail.dart';
+import '../friends/buddy_alias.dart';
 import 'trail_providers.dart';
-import 'trail_sheet.dart';
+import 'trail_report.dart' show reportAgeLabel;
 
-/// Hinweise zu einem Trail für Buddys (Issue #7): „Baum liegt quer nach
-/// der zweiten Kehre". Kein Feedback an den Betreiber — das bleibt die
-/// Glühbirne —, sondern eine Nachricht an meine Buddys, die den Trail
-/// sehen. Schreiben darf jeder, der den Trail sieht; entfernen jeder, der
-/// den Hinweis sieht (wer am Trail steht, sagt „erledigt"); bearbeiten
+/// Die Liste „MELDUNGEN" im Trail-Blatt (#433, `docs/konzept-melden.md`
+/// 6): ein Eintrag je Zeile — Status, Text und Foto, was davon da ist.
+/// Früher zwei Listen („Hinweise" für Buddys, #7, und der Verlauf der
+/// Meldungen, #101), die dieselbe Sache von zwei Seiten zeigten.
+/// Schreiben darf jeder, der den Trail sieht; den Text entfernen jeder,
+/// der ihn sieht (wer am Trail steht, sagt „erledigt"); bearbeiten
 /// niemand: Das Alter soll stimmen.
 
-/// Höchstlänge eines Hinweises, dieselbe wie im Check der Tabelle.
+/// Höchstlänge eines Textes, dieselbe wie im Check von `trail_notes`.
 const kNoteMaxLength = 500;
 
-/// So lange bleibt ein Foto am Hinweis (#37) — die Frist steht als Default
-/// und Constraint in Patch 026, hier nur für den Satz im Dialog.
+/// So lange bleibt ein Foto am Text (#37) — die Frist steht als Default
+/// und Constraint in Patch 026, hier nur für die Sätze im Dialog.
 const kNotePhotoDays = 90;
 
-/// Der Abschnitt im Trail-Blatt: die Hinweise, neueste zuerst, und der
-/// Knopf zum Schreiben. [seenBefore] sind die Hinweise, die schon VOR dem
-/// Öffnen gesehen waren — was jetzt neu ist, bleibt im Blatt getönt, auch
-/// wenn es beim Öffnen als gesehen gemerkt wird.
-class TrailNotesSection extends ConsumerWidget {
-  const TrailNotesSection(
-      {super.key, required this.trail, this.seenBefore = const {}, this.showAdd = true});
+/// [seenBefore] sind die Texte, die schon VOR dem Öffnen gesehen waren —
+/// was jetzt neu ist, bleibt im Blatt getönt, auch wenn es beim Öffnen als
+/// gesehen gemerkt wird.
+class TrailEntriesSection extends ConsumerWidget {
+  const TrailEntriesSection({super.key, required this.trail, this.seenBefore = const {}});
   final Trail trail;
   final Set<String> seenBefore;
 
-  /// Der Knopf „Hinweis schreiben" in der Überschrift — das Trail-Blatt
-  /// stellt ihn seit 0.39.0 (Design 1i) unten als Hauptaktion hin.
-  final bool showAdd;
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final notes = trail.notesShown();
+    final entries = trail.entriesShown();
     final theme = Theme.of(context);
+    final palette = AppPalette.of(context);
     final l = context.l10n;
     return Column(
+      key: const ValueKey('trail-reports'),
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            Text(l.noteTitle, style: theme.textTheme.titleSmall),
-            const Spacer(),
-            if (showAdd)
-              TextButton.icon(
-                key: const ValueKey('add-note'),
-                onPressed: () => addTrailNote(context, ref, trail),
-                icon: const Icon(Icons.add_comment_outlined),
-                label: Text(l.noteAdd),
-              ),
-          ],
-        ),
-        if (notes.isEmpty)
-          Text(l.noteEmpty,
-              style: theme.textTheme.bodySmall
-                  ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
-        for (final n in notes)
-          _NoteTile(
-            note: n,
-            mine: n.userId == trail.myId,
-            fresh: trail.isFreshNote(n, seen: seenBefore),
+        Text(l.reportHistoryTitle,
+            style: theme.textTheme.labelSmall?.copyWith(
+                color: palette.muted, fontWeight: FontWeight.w700, letterSpacing: 0.8)),
+        if (entries.isEmpty)
+          Text(l.noteEmpty, style: theme.textTheme.bodySmall?.copyWith(color: palette.muted)),
+        for (final e in entries)
+          _EntryTile(
+            entry: e,
+            trail: trail,
+            fresh: e.note != null && trail.isFreshNote(e.note!, seen: seenBefore),
           ),
       ],
     );
   }
-
 }
 
-/// Einen Hinweis schreiben: Dialog, speichern, Rückmeldung.
-Future<void> addTrailNote(BuildContext context, WidgetRef ref, Trail trail) async {
-  // Privat zählt nur, wenn ich selbst einen Beitrag habe — sonst gibt
-  // es nichts, was ich verbergen könnte.
-  final private = trail.myDetails?.visibility == TrailVisibility.private;
-  final draft = await showNoteDialog(context, private: private);
-  if (draft == null || !context.mounted) return;
-  final messenger = ScaffoldMessenger.of(context);
-  final l = context.l10n;
-  try {
-    final result =
-        await ref.read(trailsProvider.notifier).addNote(trail.id, draft.body, photo: draft.photo);
-    final photoError = result.photoError;
-    messenger.showSnackBar(SnackBar(
-        content: Text(photoError != null
-            // Beides sagen: Der Hinweis steht — sonst schriebe man ihn
-            // ein zweites Mal —, das Foto nicht.
-            ? l.notePhotoFailed(friendlyError(l, photoError))
-            : draft.photo != null
-                ? doneOrStale(l, l.noteSavedWithPhoto, fresh: result.fresh)
-                : doneOrStale(l, l.noteSaved, fresh: result.fresh))));
-  } catch (e, st) {
-    logError('Hinweis speichern', e, st);
-    messenger.showSnackBar(SnackBar(content: Text(friendlyError(l, e))));
-  }
-}
-
-class _NoteTile extends ConsumerWidget {
-  const _NoteTile({required this.note, required this.mine, required this.fresh});
-  final TrailNote note;
-  final bool mine;
+class _EntryTile extends ConsumerWidget {
+  const _EntryTile({required this.entry, required this.trail, required this.fresh});
+  final TrailEntry entry;
+  final Trail trail;
   final bool fresh;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final palette = AppPalette.of(context);
     final l = context.l10n;
-    final who = mine ? l.sheetYou : (note.username ?? l.sheetBuddy);
+    final names = ref.watch(buddyNamesViewProvider);
+    final report = entry.report;
+    final note = entry.note;
+    final userId = report?.userId ?? note!.userId;
+    final who = userId == trail.myId ? l.reportYou : names.of(userId, report?.username ?? note?.username);
+    final pending = report?.pending ?? note!.pending;
+    final sending = report?.sending ?? note!.sending;
+    final caption = [
+      who,
+      reportAgeLabel(l, entry.at),
+      if (sending)
+        l.reportSending
+      else if (pending)
+        l.reportWaiting
+      else if (report != null && !report.confirmed)
+        l.reportUnconfirmed,
+    ].join(' · ');
     return Container(
-      key: ValueKey('note-${note.id}'),
+      key: ValueKey(note != null ? 'note-${note.id}' : 'report-${report!.id}'),
       margin: const EdgeInsets.only(top: 6),
       padding: const EdgeInsets.fromLTRB(12, 8, 4, 8),
-      // Ein neuer Hinweis gelb umrandet (Design 1i) — der Rand, der auf
-      // der Karte um die Linie leuchtet.
+      // Ein neuer Text gelb umrandet (Design 1i) — der Rand, der auf der
+      // Karte um die Linie leuchtet.
       decoration: BoxDecoration(
-        color: fresh
-            ? AppPalette.of(context).map.note.withValues(alpha: 0.12)
-            : theme.colorScheme.surfaceContainerHighest,
-        border: fresh ? Border.all(color: AppPalette.of(context).map.note, width: 1.5) : null,
+        color: fresh ? palette.map.note.withValues(alpha: 0.12) : theme.colorScheme.surfaceContainerHighest,
+        border: fresh ? Border.all(color: palette.map.note, width: 1.5) : null,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
@@ -135,167 +105,125 @@ class _NoteTile extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(note.body),
+                // Unbestätigt verblasst nur der Status — ein Text
+                // verblasst nie (Konzept 6).
+                if (report != null)
+                  Opacity(
+                    opacity: report.confirmed ? 1 : 0.6,
+                    child: Row(
+                      children: [
+                        Icon(report.status!.warns ? Icons.warning_amber : Icons.check_circle_outline, size: 18),
+                        const SizedBox(width: 6),
+                        Flexible(child: Text(report.status!.label(l), style: theme.textTheme.titleSmall)),
+                      ],
+                    ),
+                  ),
+                if (note != null) Text(note.body),
                 const SizedBox(height: 2),
-                Text('$who · ${statusAge(context.l10n, note.createdAt)}',
+                Text(caption,
                     style: fresh
-                        ? theme.textTheme.bodySmall?.copyWith(
-                            color: AppPalette.of(context).noteText, fontWeight: FontWeight.w600)
-                        : theme.textTheme.bodySmall
-                            ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+                        ? theme.textTheme.bodySmall?.copyWith(color: palette.noteText, fontWeight: FontWeight.w600)
+                        : theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
               ],
             ),
           ),
-          if (note.shownPhoto() case final photo?)
+          if (note?.shownPhoto() case final photo?)
             Padding(
               padding: const EdgeInsets.only(left: 8),
-              child: NotePhotoThumb(photo: photo, note: note),
+              child: NotePhotoThumb(photo: photo, note: note!),
             ),
-          if (mine)
+          if (note != null && !note.pending)
             IconButton(
-              tooltip: l.noteDelete,
+              tooltip: userId == trail.myId ? l.noteDelete : l.noteResolve,
               visualDensity: VisualDensity.compact,
-              icon: const Icon(Icons.delete_outline),
-              onPressed: () => _delete(context, ref),
-            )
-          else
-            IconButton(
-              tooltip: l.noteResolve,
-              visualDensity: VisualDensity.compact,
-              icon: const Icon(Icons.check_circle_outline),
-              onPressed: () => _delete(context, ref),
+              icon: Icon(userId == trail.myId ? Icons.delete_outline : Icons.check_circle_outline),
+              onPressed: () => _remove(context, ref, note),
             ),
         ],
       ),
     );
   }
 
-  Future<void> _delete(BuildContext context, WidgetRef ref) async {
+  /// „Erledigt" (oder bei eigenem Text „Löschen") nimmt Text und Foto.
+  /// Steht daneben eine warnende Meldung, die das Blatt gerade anzeigt,
+  /// fragt die Rückfrage, ob der Trail wieder offen ist (Konzept 6, A10:
+  /// sagen, nicht raten) — sonst bliebe eine Sperre nach dem Wegräumen des
+  /// Baums stehen.
+  Future<void> _remove(BuildContext context, WidgetRef ref, TrailNote note) async {
     final l = context.l10n;
-    final name = note.username ?? l.noteYourBuddy;
-    final ok = await showDialog<bool>(
+    final mine = note.userId == trail.myId;
+    final name = ref.read(buddyNamesViewProvider).of(note.userId, note.username);
+    final report = entry.report;
+    final shown = trail.shownStatus;
+    final asksReopen = report != null &&
+        report.status!.warns &&
+        (identical(report, shown.confirmed) || identical(report, shown.unconfirmed));
+    final body = switch ((mine, note.photo != null)) {
+      (true, false) => l.noteDeleteBody(note.body),
+      (true, true) => l.noteDeleteBodyPhoto(note.body),
+      (false, false) => l.noteResolveBody(note.body, name),
+      (false, true) => l.noteResolveBodyPhoto(note.body, name),
+    };
+    // null = abgebrochen, false = nur den Text, true = auch „wieder offen".
+    final choice = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: Text(mine ? l.noteDeleteTitle : l.noteResolveTitle),
-        content: Text(switch ((mine, note.photo != null)) {
-          (true, false) => l.noteDeleteBody(note.body),
-          (true, true) => l.noteDeleteBodyPhoto(note.body),
-          (false, false) => l.noteResolveBody(note.body, name),
-          (false, true) => l.noteResolveBodyPhoto(note.body, name),
-        }),
+        content: Text(asksReopen ? '$body\n\n${l.reportResolveReopenQuestion}' : body),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
+            onPressed: () => Navigator.of(dialogContext).pop(),
             child: Text(l.commonCancel),
           ),
-          FilledButton(
-            onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: Text(mine ? l.commonDelete : l.noteRemove),
-          ),
+          if (asksReopen) ...[
+            TextButton(
+              key: const ValueKey('resolve-text-only'),
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: Text(l.reportResolveTextOnly),
+            ),
+            FilledButton(
+              key: const ValueKey('resolve-reopen'),
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: Text(l.reportResolveReopen),
+            ),
+          ] else
+            FilledButton(
+              key: const ValueKey('resolve-confirm'),
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: Text(mine ? l.commonDelete : l.noteRemove),
+            ),
         ],
       ),
     );
-    if (ok != true || !context.mounted) return;
+    if (choice == null || !context.mounted) return;
     final messenger = ScaffoldMessenger.of(context);
+    final notifier = ref.read(trailsProvider.notifier);
     try {
-      final fresh = await ref.read(trailsProvider.notifier).deleteNote(note.id);
+      final fresh = await notifier.deleteNote(note.id);
+      if (!choice) {
+        messenger.showSnackBar(SnackBar(content: Text(doneOrStale(l, l.noteRemoved, fresh: fresh))));
+        return;
+      }
+      // Bestätigt nach der üblichen Regel: gefahren — „vor Ort" fragt hier
+      // niemand, die Frage galt dem Text.
+      final outcome = await notifier.report(trail.id, status: TrailStatus.open, onSite: false);
       messenger.showSnackBar(SnackBar(
-          content: Text(doneOrStale(l, l.noteRemoved, fresh: fresh))));
+          content: Text(switch (outcome) {
+        WriteOutcome.done => l.reportReopened,
+        WriteOutcome.doneStale => l.staleAfterWrite(l.reportReopened),
+        WriteOutcome.queued => l.queuedHint,
+      })));
     } catch (e, st) {
-      logError('Hinweis löschen', e, st);
+      logError('Text entfernen', e, st);
       messenger.showSnackBar(SnackBar(content: Text(friendlyError(l, e))));
     }
   }
 }
 
-/// Wer den Hinweis sieht, in einem Satz — dieselbe Regel wie für den
-/// Beitrag. Bei privatem Beitrag sagt er ehrlich, dass es niemand ist.
-String noteAudience(AppLocalizations l, {required bool private}) =>
-    private ? l.noteAudiencePrivate : l.noteAudienceBuddies;
-
-/// Was der Dialog zurückgibt: der Text und, wenn angehängt, das schon
-/// entkernte Foto (#37).
-typedef NoteDraft = ({String body, PreparedPhoto? photo});
-
 /// Der Satz neben dem angehängten Foto: wer es sieht, wie lange, und was
 /// nicht darin steht — und was trotzdem bleibt.
 String notePhotoNote(AppLocalizations l, {required bool private}) =>
     private ? l.notePhotoPrivate(kNotePhotoDays) : l.notePhotoShared(kNotePhotoDays);
-
-/// Ein neuer Hinweis, oder null bei Abbruch.
-Future<NoteDraft?> showNoteDialog(BuildContext context, {required bool private}) {
-  return showDialog<NoteDraft>(
-    context: context,
-    builder: (_) => _NoteDialog(private: private),
-  );
-}
-
-class _NoteDialog extends ConsumerStatefulWidget {
-  const _NoteDialog({required this.private});
-  final bool private;
-
-  @override
-  ConsumerState<_NoteDialog> createState() => _NoteDialogState();
-}
-
-class _NoteDialogState extends ConsumerState<_NoteDialog> {
-  final _text = TextEditingController();
-  PreparedPhoto? _photo;
-
-  @override
-  void dispose() {
-    _text.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final l = context.l10n;
-    return AlertDialog(
-      title: Text(l.noteDialogTitle),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          TextField(
-            key: const ValueKey('note-text'),
-            controller: _text,
-            autofocus: true,
-            maxLines: 4,
-            maxLength: kNoteMaxLength,
-            textCapitalization: TextCapitalization.sentences,
-            decoration: InputDecoration(
-              hintText: l.noteHint,
-            ),
-            onChanged: (_) => setState(() {}),
-          ),
-          Text(noteAudience(l, private: widget.private),
-              style: Theme.of(context).textTheme.bodySmall),
-          const SizedBox(height: 8),
-          PhotoAttachment(
-            pick: ref.read(photoPickerProvider),
-            prepare: ref.read(photoPreparerProvider),
-            photo: _photo,
-            attachedNote: notePhotoNote(l, private: widget.private),
-            onChanged: (photo) => setState(() => _photo = photo),
-          ),
-        ],
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: Text(l.commonCancel),
-        ),
-        FilledButton(
-          onPressed: _text.text.trim().isEmpty
-              ? null
-              : () => Navigator.of(context).pop((body: _text.text.trim(), photo: _photo)),
-          child: Text(l.commonSave),
-        ),
-      ],
-    );
-  }
-}
 
 /// Die Vorschau am Hinweis (#37): lädt nur die 200er Fassung, das Bild
 /// erst auf Tipp. Kann sie nicht laden (kein Netz, schon abgeräumt), steht

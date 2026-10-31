@@ -289,9 +289,9 @@ void main() {
 
     test('ein Zustand schlägt die Beziehung, mehrere stehen nebeneinander', () {
       expect(tags(trail('a', 'A', status: TrailStatus.closed)), ['GESPERRT']);
-      expect(tags(trail('a', 'A', user: 'jan', username: 'jan'), fresh: true), ['NEUER HINWEIS']);
+      expect(tags(trail('a', 'A', user: 'jan', username: 'jan'), fresh: true), ['NEUE MELDUNG']);
       expect(tags(trail('a', 'A', status: TrailStatus.destroyed), fresh: true),
-          ['ZERSTÖRT', 'NEUER HINWEIS']);
+          ['ZERSTÖRT', 'NEUE MELDUNG']);
     });
 
     Trail reported(List<TrailReport> reports) => Trail(
@@ -315,7 +315,7 @@ void main() {
     test('Zustand 1–2 als Wort hinter Meldung und Hinweis, 3–5 nicht (Rework E9)', () {
       expect(tags(reported([condition(2, 3)])), ['ABGEROCKT']);
       expect(tags(reported([status(TrailStatus.changed, 2), condition(1, 3)]), fresh: true),
-          ['VERÄNDERT', 'NEUER HINWEIS', 'KAUM FAHRBAR']);
+          ['VERÄNDERT', 'NEUE MELDUNG', 'KAUM FAHRBAR']);
       expect(tags(reported([condition(3, 3)])), ['MEIN']);
       expect(tags(reported([condition(1, 3, confirmed: false)])), ['MEIN'],
           reason: 'ein unbestätigter Zustand steht nur im Blatt');

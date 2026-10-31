@@ -143,6 +143,20 @@ select 'OUTBOX_ONSITE=' || coalesce(string_agg(recipient_id::text || ':' || kind
   from app_internal.push_outbox;
 delete from app_internal.push_outbox;
 
+-- 3f. Patch 028 (#433): Anna meldet T1 gesperrt MIT Text, in einem
+--     Aufruf. Sie ist gefahren, also bestätigt: EINE Push je Buddy, der
+--     Text steht als zweite Zeile darunter.
+select set_config('request.jwt.claims', '{"sub":"$A","role":"authenticated"}', true);
+set local role authenticated;
+select public.report_trail('$T1', 'closed', null, false, null, null, 'Baum liegt quer');
+reset role;
+select 'OUTBOX_WITH_TEXT=' || string_agg(recipient_id::text || ':' || kind, ',' order by recipient_id)
+  from app_internal.push_outbox;
+update app_internal.push_outbox set due_at = now() - interval '1 minute';
+select 'SENT_WITH_TEXT=' || app_internal.push_flush();
+select 'BODY_WITH_TEXT=' || convert_from(body, 'utf8') from net.http_request_queue order by id desc limit 1;
+delete from app_internal.push_outbox;
+
 -- 7. Englisch (Patch 027): Berts Gerät läuft auf Englisch. Seit 3d hat
 --    Bert keinen Alias für Anna mehr, also steht ihr Benutzername.
 update public.push_devices set locale = 'en' where token = 'tok-bert';
@@ -250,13 +264,13 @@ case "$body1" in *Chefin*|*push_anna*|*LINESTRING*|*48.*|*9.01*) echo "::error::
 
 expect "zwei Hinweise an zwei Trails: eine Meldung" "$(value SENT2)" "1"
 msg2=$(value BODY2 | jq -c '.messages[0]')
-expect "Titel: die Anzahl" "$(jq -r .title <<<"$msg2")" "2 neue Hinweise von deinen Buddys"
+expect "Titel: die Anzahl" "$(jq -r .title <<<"$msg2")" "2 Meldungen von deinen Buddys"
 expect "Text: die Trails und wer" "$(jq -r .body <<<"$msg2")" "An 2 Trails · von Anni"
 expect "Ziel: die Liste" "$(jq -r .route <<<"$msg2")" "/trails"
 
 expect "Status und Hinweis zugleich: eine Meldung" "$(value SENT3)" "1"
 msg3=$(value BODY3 | jq -c '.messages[0]')
-expect "Titel: der Trail und die Zahlen" "$(jq -r .title <<<"$msg3")" "„Mein Hang“: 1 Meldung und 1 Hinweis"
+expect "Titel: der Trail und die Zahlen" "$(jq -r .title <<<"$msg3")" "„Mein Hang“: 2 Meldungen"
 expect "Text: wer" "$(jq -r .body <<<"$msg3")" "von Anni"
 expect "Ziel: der eine Trail" "$(jq -r .route <<<"$msg3")" "/trail/$T1"
 
@@ -277,19 +291,24 @@ expect "zurückgezogen: keine Meldung mehr" "$(value OUTBOX_NOTE_WITHDRAWN)" "0"
 
 expect "unbestätigte Meldung (von zu Hause): keine Push" "$(value OUTBOX_UNCONFIRMED)" "0"
 expect "vor Ort bestätigt: Anna bekommt eine Zeile, der Zustand keine" "$(value OUTBOX_ONSITE)" "$A:trail_status:closed"
+expect "Meldung mit Text: je Buddy eine Statuszeile, keine Hinweiszeile" "$(value OUTBOX_WITH_TEXT)" "$B:trail_status,$C:trail_status"
+expect "Meldung mit Text: eine Push" "$(value SENT_WITH_TEXT)" "1"
+msg_text=$(value BODY_WITH_TEXT | jq -c '.messages[0]')
+expect "Meldung mit Text: Titel mit Statuswort" "$(jq -r .title <<<"$msg_text")" "push_anna meldet „Mein Hang“ als gesperrt"
+expect "Meldung mit Text: der Text als zweite Zeile" "$(jq -r .body <<<"$msg_text")" "Baum liegt quer"
 expect "Englisch: eine Meldung" "$(value SENT_EN1)" "1"
 msg_en1=$(value BODY_EN1 | jq -c '.messages[0]')
 expect "Englisch: an Berts Gerät" "$(jq -r .token <<<"$msg_en1")" "tok-bert"
 expect "Englisch: Titel mit Statuswort" "$(jq -r .title <<<"$msg_en1")" "push_anna reports “Kamm” as closed"
 expect "Englisch: Text der Tipp" "$(jq -r .body <<<"$msg_en1")" "Tap to see the trail"
 msg_en2=$(value BODY_EN2 | jq -c '.messages[0]')
-expect "Englisch: zwei Hinweise, Titel" "$(jq -r .title <<<"$msg_en2")" "2 new notes from your buddies"
+expect "Englisch: zwei Hinweise, Titel" "$(jq -r .title <<<"$msg_en2")" "2 reports from your buddies"
 expect "Englisch: zwei Hinweise, Text" "$(jq -r .body <<<"$msg_en2")" "On 2 trails · from push_anna"
 expect "Englisch: Namensliste" "$(value JOIN_EN)" "A, B and 2 others"
 expect "Deutsch: Namensliste" "$(value JOIN_DE)" "A, B und C"
 expect "Englisch: Trail ohne Namen" "$(value NONAME_EN)" "A buddy reports “Unnamed trail” as destroyed"
 expect "Deutsch: Trail ohne Namen" "$(value NONAME_DE)" "Ein Buddy meldet „Trail ohne Namen“ als zerstört"
-expect "Englisch: Zahlen an einem Trail" "$(value COUNTS_EN)" "“Kamm”: 2 reports and 1 note"
+expect "Englisch: Zahlen an einem Trail" "$(value COUNTS_EN)" "“Kamm”: 3 reports"
 expect "eine Nachricht wartet je Zeile in der Schlange" "$(value MSG_QUEUE)" "3"
 expect "Nachrichten: eine Meldung je Absender" "$(value SENT_MSG)" "2"
 body_msg=$(value BODY_MSG)

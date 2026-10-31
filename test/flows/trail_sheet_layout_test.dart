@@ -1,7 +1,7 @@
 // Das Trail-Blatt nach Design 1i/4f (seit 0.39.0): Titel in Versalien,
 // drei Kennzahl-Kacheln nebeneinander, darunter seit 0.49.0 (#101)
-// Bewertung und Zustand, ein neuer Hinweis gelb gerahmt, unten „Hinweis
-// schreiben" (Lime) und „Melden" nebeneinander, „Karte" darunter.
+// Bewertung und Zustand, eine neue Meldung gelb gerahmt, unten „Melden"
+// (Lime, ganze Breite — seit #433 EIN Knopf), „Karte" darunter.
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:trailbuddy/core/app_colors.dart';
@@ -56,16 +56,17 @@ void main() {
     final note = tester.widget<Container>(find.ancestor(
         of: find.text('Baum liegt quer'), matching: find.byWidgetPredicate((w) => w is Container && w.key != null)));
     final border = (note.decoration! as BoxDecoration).border! as Border;
-    expect(border.top.color, AppColors.light.map.note, reason: 'neuer Hinweis: gelber Rahmen');
+    expect(border.top.color, AppColors.light.map.note, reason: 'neue Meldung: gelber Rahmen');
 
-    final write = find.byKey(const ValueKey('add-note'));
-    expect(tester.widget(write), isA<FilledButton>(), reason: 'die Hauptaktion in Lime');
     final report = find.byKey(const ValueKey('trail-report'));
-    expect(tester.getCenter(write).dy, closeTo(tester.getCenter(report).dy, 1), reason: 'nebeneinander');
+    expect(tester.widget(report), isA<FilledButton>(), reason: 'die Hauptaktion in Lime');
+    expect(find.byKey(const ValueKey('add-note')), findsNothing, reason: 'ein Knopf, nicht zwei');
+    final sheetWidth = tester.getSize(find.byKey(const ValueKey('trail-reports'))).width;
+    expect(tester.getSize(report).width, closeTo(sheetWidth, 1), reason: 'ganze Breite (A13)');
     final map = find.byKey(const ValueKey('trail-show-on-map'));
-    expect(tester.getTopLeft(map).dy, greaterThan(tester.getBottomLeft(write).dy),
-        reason: 'zur Karte in einer eigenen Zeile — drei nebeneinander passen nicht');
-    expect(tester.getTopLeft(write).dy, greaterThan(tester.getBottomLeft(find.text('Baum liegt quer')).dy),
-        reason: 'unter den Hinweisen');
+    expect(tester.getTopLeft(map).dy, greaterThan(tester.getBottomLeft(report).dy),
+        reason: 'zur Karte in einer eigenen Zeile');
+    expect(tester.getTopLeft(report).dy, greaterThan(tester.getBottomLeft(find.text('Baum liegt quer')).dy),
+        reason: 'unter den Meldungen');
   });
 }

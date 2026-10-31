@@ -23,10 +23,12 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     „Die Karte lesen" beschreibt die Regeln aus `docs/design/README.md`
     Abschnitt 2 (Farbe = Schwierigkeit, Linienart = Zustand, S4/S5 auf dem
     Saum) — ändert sich dort etwas, zieht der Satz im selben PR mit.
-  - **„Meldung" ist die Beschriftung im Melde-Dialog** (`reportFieldLabel`
-    in den ARB-Dateien, deutsch zusätzlich `kReportFieldLabel` in
-    `trail_report.dart`) und kommt als Platzhalter `{report}` in den Text;
-    der Test verbietet zusätzlich das alte „Status". Abweichung vom
+  - **„Der Trail ist …" ist die Beschriftung im Melde-Dialog**
+    (`reportFieldLabel` in den ARB-Dateien, deutsch zusätzlich
+    `kReportFieldLabel` in `trail_report.dart`; bis 0.146 „Meldung", das
+    seit #433 der ganze Eintrag ist) und kommt als Platzhalter `{report}`
+    in den Text; der Test verbietet zusätzlich das alte „Status:" und
+    „Hinweis". Abweichung vom
     Plan, der sie in `trail_details_dialog.dart` vermutete: Die Meldung
     ist seit 0.49.0 nicht mehr im Beitrag, sondern im Melde-Dialog.
   - **Der Hinweis steht an EINER Stelle** (`safetyNote` in den

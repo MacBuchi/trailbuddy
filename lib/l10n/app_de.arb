@@ -480,11 +480,11 @@
   "@legendBarelyRideable": {
     "description": "Legende, Zustand: dasselbe Wort wie im Melde-Dialog."
   },
-  "legendReport": "Meldung",
+  "legendReport": "Warnung",
   "@legendReport": {
     "description": "Legende: Trail mit offener Meldung (Rand)."
   },
-  "legendNewNote": "neuer Hinweis",
+  "legendNewNote": "neue Meldung",
   "@legendNewNote": {
     "description": "Legende: Trail mit ungelesenem Hinweis (Rand)."
   },
@@ -1131,7 +1131,7 @@
   "@sheetWithdrawTitle": {
     "description": "Titel des Dialogs, der den eigenen Beitrag zu einem Trail löscht."
   },
-  "sheetWithdrawBody": "Deine Aufzeichnungen, deine Einschätzung, deine Meldungen und deine Hinweise zu diesem Trail werden gelöscht. {consequence}",
+  "sheetWithdrawBody": "Deine Aufzeichnungen, deine Einschätzung und deine Meldungen zu diesem Trail werden gelöscht. {consequence}",
   "@sheetWithdrawBody": {
     "description": "Dialog „Meinen Beitrag löschen?\"; consequence sagt, ob der Trail bleibt.",
     "placeholders": {
@@ -1323,44 +1323,28 @@
   "@sheetPanelCondition": {
     "description": "Trail-Blatt: Überschrift der Kachel Zustand (Versalien)."
   },
-  "noteTitle": "Hinweise",
-  "@noteTitle": {
-    "description": "Trail-Blatt: Überschrift der Hinweise für Buddys."
-  },
-  "noteAdd": "Hinweis schreiben",
-  "@noteAdd": {
-    "description": "Knopf, der einen Hinweis für Buddys zu einem Trail schreibt."
-  },
-  "noteEmpty": "Noch keine. Ein Baum quer, ein neuer Drop? Deine Buddys sehen es hier.",
+  "noteEmpty": "Noch keine. Ein Baum quer, ein neuer Drop? Mit „Melden\" sehen es deine Buddys hier.",
   "@noteEmpty": {
     "description": "Trail-Blatt: noch keine Hinweise."
   },
-  "notePhotoFailed": "Hinweis gespeichert, das Foto aber nicht: {error}",
+  "notePhotoFailed": "Gemeldet, das Foto aber nicht: {error}",
   "@notePhotoFailed": {
-    "description": "Snackbar: Hinweis gespeichert, Foto gescheitert; error ist die Fehlermeldung.",
+    "description": "Snackbar: Meldung gespeichert, Foto gescheitert; error ist die Fehlermeldung.",
     "placeholders": {
       "error": {
         "type": "String"
       }
     }
   },
-  "noteSavedWithPhoto": "Hinweis mit Foto gespeichert",
-  "@noteSavedWithPhoto": {
-    "description": "Snackbar nach dem Speichern eines Hinweises mit Foto."
-  },
-  "noteSaved": "Hinweis gespeichert",
-  "@noteSaved": {
-    "description": "Snackbar nach dem Speichern eines Hinweises."
-  },
-  "noteDelete": "Hinweis löschen",
+  "noteDelete": "Text löschen",
   "@noteDelete": {
     "description": "Tooltip am eigenen Hinweis."
   },
-  "noteResolve": "Erledigt — Hinweis entfernen",
+  "noteResolve": "Erledigt — Text entfernen",
   "@noteResolve": {
     "description": "Tooltip am Hinweis eines Buddys: wer vor Ort war, entfernt ihn."
   },
-  "noteDeleteTitle": "Hinweis löschen?",
+  "noteDeleteTitle": "Text löschen?",
   "@noteDeleteTitle": {
     "description": "Titel des Dialogs, der den eigenen Hinweis löscht."
   },
@@ -1386,7 +1370,7 @@
       }
     }
   },
-  "noteResolveBody": "„{body}\"\n\nDer Hinweis verschwindet für alle, die ihn sehen — auch für {name}.",
+  "noteResolveBody": "„{body}\"\n\nDer Text verschwindet für alle, die ihn sehen — auch für {name}.",
   "@noteResolveBody": {
     "description": "Dialog „Als erledigt entfernen?\"; name ist der Buddy, der ihn geschrieben hat.",
     "placeholders": {
@@ -1398,7 +1382,7 @@
       }
     }
   },
-  "noteResolveBodyPhoto": "„{body}\"\n\nDer Hinweis verschwindet für alle, die ihn sehen — auch für {name}, samt Foto.",
+  "noteResolveBodyPhoto": "„{body}\"\n\nDer Text verschwindet für alle, die ihn sehen — auch für {name}, samt Foto.",
   "@noteResolveBodyPhoto": {
     "description": "Dialog „Als erledigt entfernen?\" bei einem Hinweis mit Foto.",
     "placeholders": {
@@ -1418,17 +1402,13 @@
   "@noteRemove": {
     "description": "Dialog „Als erledigt entfernen?\": Knopf zum Bestätigen."
   },
-  "noteRemoved": "Hinweis entfernt",
+  "noteRemoved": "Text entfernt",
   "@noteRemoved": {
     "description": "Snackbar nach dem Entfernen eines Hinweises."
   },
-  "noteAudiencePrivate": "Dein Beitrag steht auf „Nur für mich\" — dann siehst nur du den Hinweis.",
+  "noteAudiencePrivate": "Dein Beitrag steht auf „Nur für mich\" — dann siehst nur du die Meldung.",
   "@noteAudiencePrivate": {
     "description": "Dialog „Hinweis für Buddys\": wer den Hinweis sieht, bei privatem Beitrag."
-  },
-  "noteAudienceBuddies": "Sehen deine Buddys, die diesen Trail auch sehen.",
-  "@noteAudienceBuddies": {
-    "description": "Dialog „Hinweis für Buddys\": wer den Hinweis sieht."
   },
   "notePhotoPrivate": "Nur du siehst es, {days} Tage lang. Ortsangaben im Bild werden entfernt — ein erkennbarer Ort bleibt erkennbar.",
   "@notePhotoPrivate": {
@@ -1439,7 +1419,7 @@
       }
     }
   },
-  "notePhotoShared": "Sehen dieselben wie den Hinweis, {days} Tage lang. Ortsangaben im Bild werden entfernt — ein erkennbarer Ort bleibt erkennbar.",
+  "notePhotoShared": "Sehen dieselben wie die Meldung, {days} Tage lang. Ortsangaben im Bild werden entfernt — ein erkennbarer Ort bleibt erkennbar.",
   "@notePhotoShared": {
     "description": "Dialog „Hinweis für Buddys\": Satz neben dem angehängten Foto.",
     "placeholders": {
@@ -1448,19 +1428,11 @@
       }
     }
   },
-  "noteDialogTitle": "Hinweis für Buddys",
-  "@noteDialogTitle": {
-    "description": "Titel des Dialogs, in dem man einen Hinweis zu einem Trail schreibt."
-  },
-  "noteHint": "z. B. Baum liegt quer nach der zweiten Kehre",
-  "@noteHint": {
-    "description": "Platzhalter im Textfeld eines neuen Hinweises."
-  },
-  "notePhotoOpen": "Foto zum Hinweis öffnen",
+  "notePhotoOpen": "Foto zur Meldung öffnen",
   "@notePhotoOpen": {
     "description": "Bildschirmleser: Vorschaubild am Hinweis, öffnet das Foto."
   },
-  "notePhotoLabel": "Foto zum Hinweis",
+  "notePhotoLabel": "Foto zur Meldung",
   "@notePhotoLabel": {
     "description": "Bildschirmleser: das Foto in voller Größe."
   },
@@ -2105,7 +2077,7 @@
   "@listTagDetailsPending": {
     "description": "Zeile der Trail-Liste: Wort in Versalien, wenn der eigene Beitrag (Name, Grad …) im Ausgangskorb liegt."
   },
-  "listTagFreshNote": "NEUER HINWEIS",
+  "listTagFreshNote": "NEUE MELDUNG",
   "@listTagFreshNote": {
     "description": "Zeile der Trail-Liste: Wort in Versalien, wenn ein Buddy einen neuen Hinweis hinterlassen hat."
   },
@@ -2197,7 +2169,7 @@
       }
     }
   },
-  "filterDescribeFreshNote": "neuer Hinweis",
+  "filterDescribeFreshNote": "neue Meldung",
   "@filterDescribeFreshNote": {
     "description": "Zeile „Filter aktiv\" auf der Karte: Teil der Aufzählung für den Filter „Neuer Hinweis\" (klein, Teile mit „ · \" verbunden)."
   },
@@ -2221,7 +2193,7 @@
   "@filterChipGrade": {
     "description": "Filter-Chip für den S-Grad-Bereich, solange er nichts einschränkt (S = Singletrail-Skala)."
   },
-  "filterChipFreshNote": "Neuer Hinweis",
+  "filterChipFreshNote": "Neue Meldung",
   "@filterChipFreshNote": {
     "description": "Filter-Chip: nur Trails mit einem neuen Hinweis eines Buddys."
   },
@@ -2413,21 +2385,61 @@
   "@reportDone": {
     "description": "Snackbar nach dem Melden eines Trails."
   },
+  "reportDoneWithPhoto": "Mit Foto gemeldet",
+  "@reportDoneWithPhoto": {
+    "description": "Snackbar: Meldung samt Foto gespeichert."
+  },
+  "reportQueuedNoPhoto": "Kein Netz — die Meldung wartet im Ausgangskorb, das Foto ging nicht mit.",
+  "@reportQueuedNoPhoto": {
+    "description": "Snackbar: Meldung ohne Netz in den Ausgangskorb gelegt, das Foto fiel weg."
+  },
+  "reportResolveReopenQuestion": "Ist der Trail wieder offen?",
+  "@reportResolveReopenQuestion": {
+    "description": "Rückfrage beim Entfernen eines Textes, neben dem eine warnende Meldung steht."
+  },
+  "reportResolveTextOnly": "Nein, nur den Text",
+  "@reportResolveTextOnly": {
+    "description": "Knopf der Rückfrage: nur Text und Foto entfernen, die Warnung bleibt."
+  },
+  "reportResolveReopen": "Ja, wieder offen",
+  "@reportResolveReopen": {
+    "description": "Knopf der Rückfrage: Text entfernen und „wieder offen\" melden."
+  },
+  "reportReopened": "Text entfernt, als wieder offen gemeldet",
+  "@reportReopened": {
+    "description": "Snackbar nach „Ja, wieder offen\"."
+  },
+  "conditionYours": "Dein Eindruck",
+  "@conditionYours": {
+    "description": "Blatt „Zustand\": Überschrift über der eigenen Angabe 1–5."
+  },
+  "conditionSubmit": "Zustand melden",
+  "@conditionSubmit": {
+    "description": "Blatt „Zustand\": Knopf, der die eigene Angabe schreibt."
+  },
+  "conditionSaved": "Zustand gemeldet",
+  "@conditionSaved": {
+    "description": "Snackbar nach dem Melden des Zustands."
+  },
+  "conditionWriteMore": "Dazu schreiben",
+  "@conditionWriteMore": {
+    "description": "Aktion in der Snackbar nach Zustand 1 oder 2: öffnet „Melden\" ohne Status."
+  },
   "reportDialogTitle": "Melden",
   "@reportDialogTitle": {
     "description": "Titel des Melde-Dialogs eines Trails (Meldung wie „gesperrt\" und Zustand 1–5)."
   },
-  "reportFieldLabel": "Meldung",
+  "reportFieldLabel": "Der Trail ist …",
   "@reportFieldLabel": {
-    "description": "Melde-Dialog: Beschriftung über der Auswahl gesperrt/zerstört/verändert/offen. Dasselbe Wort steht in der Kurzanleitung."
+    "description": "Dialog „Melden\": Beschriftung über den Status-Chips (gesperrt, zerstört, verändert, wieder offen). Steht auch in der Kurzanleitung."
   },
   "reportCondition": "Zustand",
   "@reportCondition": {
     "description": "Melde-Dialog: Beschriftung über dem Zustand 1–5; auch Titel des Blatts mit den Einzelstimmen zum Zustand."
   },
-  "reportNoteLabel": "Hinweis für Buddys (optional)",
+  "reportNoteLabel": "Was ist los? (optional)",
   "@reportNoteLabel": {
-    "description": "Melde-Dialog: Feld für einen Hinweis, warum gemeldet wird."
+    "description": "Dialog „Melden\": Beschriftung des Textfelds für die Buddys."
   },
   "reportNoteHintOpen": "z. B. Baum ist weggeräumt",
   "@reportNoteHintOpen": {
@@ -2436,6 +2448,40 @@
   "reportNoteHintWarn": "z. B. Baum liegt quer nach der zweiten Kehre",
   "@reportNoteHintWarn": {
     "description": "Melde-Dialog: Beispieltext im Hinweisfeld bei einer Warnung oder einem Zustand."
+  },
+  "reportNoteHintNone": "z. B. neuer Drop nach der Brücke",
+  "@reportNoteHintNone": {
+    "description": "Dialog „Melden\": Beispiel im Textfeld, wenn kein Status gewählt ist."
+  },
+  "reportStatusOpenAgain": "wieder offen",
+  "@reportStatusOpenAgain": {
+    "description": "Dialog „Melden\": Chip für den Status „offen\" — gemeldet wird er, wenn es vorher nicht so war."
+  },
+  "reportAudienceWithStatus": "Deine Buddys sehen die Meldung; Text und Foto {days} Tage lang.",
+  "@reportAudienceWithStatus": {
+    "description": "Dialog „Melden\": wer was sieht, wenn ein Status gewählt ist; days ist die Frist für Text und Foto (90).",
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "reportAudienceText": "Deine Buddys sehen Text und Foto, {days} Tage lang.",
+  "@reportAudienceText": {
+    "description": "Dialog „Melden\": wer was sieht, ohne Status; days ist die Frist (90).",
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "reportPhotoNeedsText": "Zum Foto gehört ein Satz.",
+  "@reportPhotoNeedsText": {
+    "description": "Dialog „Melden\": ein Foto ist angehängt, aber noch kein Text — ohne Text geht es nicht."
+  },
+  "reportPhotoOffline": "Kein Netz: Das Foto geht nicht mit, die Meldung wartet ohne Foto im Ausgangskorb.",
+  "@reportPhotoOffline": {
+    "description": "Dialog „Melden\": kein Netz und ein Foto angehängt — Fotos liegen nie im Ausgangskorb."
   },
   "reportConfirmedRidden": "Du bist ihn gefahren — deine Meldung gilt als bestätigt.",
   "@reportConfirmedRidden": {
@@ -2486,24 +2532,6 @@
   "reportHistoryTitle": "MELDUNGEN",
   "@reportHistoryTitle": {
     "description": "Trail-Blatt: Überschrift über dem Verlauf der Meldungen (in Großbuchstaben)."
-  },
-  "reportHistoryStatus": "Meldung: {value}",
-  "@reportHistoryStatus": {
-    "description": "Trail-Blatt, Verlauf: eine Meldung, {value} ist z. B. „Gesperrt\".",
-    "placeholders": {
-      "value": {
-        "type": "String"
-      }
-    }
-  },
-  "reportHistoryCondition": "Zustand: {value}",
-  "@reportHistoryCondition": {
-    "description": "Trail-Blatt, Verlauf: ein Zustand, {value} ist z. B. „Ausgefahren\".",
-    "placeholders": {
-      "value": {
-        "type": "String"
-      }
-    }
   },
   "reportSending": "wird übertragen",
   "@reportSending": {
@@ -2610,7 +2638,7 @@
   "@mergeUnmergeTitle": {
     "description": "Titel des Dialogs „Trennen\"."
   },
-  "mergeUnmergeBody": "„{name}\" erscheint wieder als eigener Trail, wo jemand anderes etwas daran hat. Deine eigenen Aufzeichnungen, dein Beitrag und deine Hinweise bleiben hier.",
+  "mergeUnmergeBody": "„{name}\" erscheint wieder als eigener Trail, wo jemand anderes etwas daran hat. Deine eigenen Aufzeichnungen, dein Beitrag und deine Meldungen bleiben hier.",
   "@mergeUnmergeBody": {
     "description": "Text des Dialogs „Trennen\".",
     "placeholders": {
@@ -2676,7 +2704,7 @@
   "@mergeKeepTitle": {
     "description": "Titel des Dialogs vor dem Zusammenführen."
   },
-  "mergeKeepBody": "Deine Aufzeichnungen, dein Beitrag, deine Hinweise und Meldungen ziehen von „{duplicate}\" nach „{keep}\"; Name und Einschätzung von „{keep}\" gelten, leere Felder füllt das Duplikat.",
+  "mergeKeepBody": "Deine Aufzeichnungen, dein Beitrag und deine Meldungen ziehen von „{duplicate}\" nach „{keep}\"; Name und Einschätzung von „{keep}\" gelten, leere Felder füllt das Duplikat.",
   "@mergeKeepBody": {
     "description": "Dialog „Welcher Trail bleibt?\": was beim Zusammenführen passiert.",
     "placeholders": {
@@ -2999,7 +3027,7 @@
   "@splitWithdrawTitle": {
     "description": "Dialog nach dem Kürzen eines Trails im Zerlege-Blatt."
   },
-  "splitWithdrawBody": "Das Stück ist beigesteuert. Deine Aufzeichnung an „{name}\" mit dem Rest lässt sich jetzt löschen — mit deinem Beitrag, deinen Meldungen und Hinweisen dort.",
+  "splitWithdrawBody": "Das Stück ist beigesteuert. Deine Aufzeichnung an „{name}\" mit dem Rest lässt sich jetzt löschen — mit deinem Beitrag und deinen Meldungen dort.",
   "@splitWithdrawBody": {
     "description": "Text des Dialogs „Die lange Fassung löschen?\".",
     "placeholders": {
@@ -3439,7 +3467,7 @@
       }
     }
   },
-  "navNoteHeader": "HINWEIS · {author} · {age}",
+  "navNoteHeader": "MELDUNG · {author} · {age}",
   "@navNoteHeader": {
     "description": "Kopf des Hinweis-Kastens, Versalien: Autor (Benutzername, Versalien) und Alter.",
     "placeholders": {
@@ -5540,7 +5568,7 @@
       }
     }
   },
-  "pushSubtitle": "Wenn ein Buddy zu einem Trail, den du siehst, etwas meldet (bestätigt, also vor Ort oder gefahren), einen Hinweis schreibt oder dir eine Nachricht schickt. Gilt nur für dieses Gerät. In der Benachrichtigung stehen der Trailname, der Name des Buddys und was er meldet (beim Hinweis und bei einer Nachricht der Text) — nie ein Ort. Sie läuft über Google.",
+  "pushSubtitle": "Wenn ein Buddy zu einem Trail, den du siehst, etwas meldet (ein Status, wenn er bestätigt ist, also vor Ort oder gefahren; ein Text immer) oder dir eine Nachricht schickt. Gilt nur für dieses Gerät. In der Benachrichtigung stehen der Trailname, der Name des Buddys und was er meldet (mit seinem Text, bei einer Nachricht der Text) — nie ein Ort. Sie läuft über Google.",
   "@pushSubtitle": {
     "description": "Seite „Benachrichtigungen“: Erklärung unter dem Schalter. Datenschutzrelevant: nie ein Ort, läuft über Google."
   },
@@ -5869,7 +5897,7 @@
   "@tourMapColorsTitle": {
     "description": "Karten-Tour: Schritt zur Legende (Linienfarben und -arten)."
   },
-  "tourMapColorsText": "Jede Linie trägt die Schwierigkeit ihres Trails wie eine Piste. Die Art der Linie sagt den Zustand: bröckelig heißt ausgefahren, gestrichelt abgerockt, verblasst kaum fahrbar. Ein orangener Rand heißt Meldung, ein gelber neuer Hinweis. Die Legende links am Rand klappt jederzeit auf und wieder zu.",
+  "tourMapColorsText": "Jede Linie trägt die Schwierigkeit ihres Trails wie eine Piste. Die Art der Linie sagt den Zustand: bröckelig heißt ausgefahren, gestrichelt abgerockt, verblasst kaum fahrbar. Ein orangener Rand ist eine Warnung (gesperrt, zerstört, verändert), ein gelber zeigt eine neue Meldung eines Buddys. Die Legende links am Rand klappt jederzeit auf und wieder zu.",
   "@tourMapColorsText": {
     "description": "Karten-Tour: Regeln der Linien (Farbe = Schwierigkeit, Linienart = Zustand, Ränder)."
   },
@@ -6079,9 +6107,9 @@
   },
   "tourTrailsNoteTitle": "Etwas Aktuelles erzählen",
   "@tourTrailsNoteTitle": {
-    "description": "Trails-Tour: Schritt zum Knopf „Hinweis schreiben“."
+    "description": "Trails-Tour: Schritt zum Knopf „Melden“ (Status, Text und Foto)."
   },
-  "tourTrailsNoteText": "Ein Hinweis sagt, was gerade ist: umgestürzter Baum, neue Sprünge, auf Wunsch mit Foto. Buddys sehen ihn mit gelbem Rand, bis sie ihn gelesen haben. Eine Sperre oder den Zustand meldest du daneben.",
+  "tourTrailsNoteText": "„Melden\" sagt deinen Buddys, was gerade ist: gesperrt, ein umgestürzter Baum, neue Sprünge — mit Text und auf Wunsch mit Foto. Sie sehen es mit gelbem Rand, bis sie es gelesen haben. Den Zustand tippst du an seiner Kachel oben im Blatt an.",
   "@tourTrailsNoteText": {
     "description": "Trails-Tour: Text zu Hinweisen."
   },
@@ -6193,7 +6221,7 @@
   "@helpMapTitle": {
     "description": "Kurzanleitung: Abschnitt zu den Regeln der Karte, Überschrift."
   },
-  "helpMapText": "Die Farbe einer Linie ist ihre Schwierigkeit, wie auf der Piste: grün S0, blau S1, rot S2, schwarz ab S3; ein weiß gestrichelter Saum heißt S4 oder S5, grau noch ohne Einschätzung, Magenta Uphill. Die Art der Linie ist der Zustand: durchgezogen heißt alles gut, bröckelig ausgefahren, gestrichelt abgerockt, verblasst kaum fahrbar. Ein orangener Rand heißt Meldung (gesperrt, zerstört oder verändert), ein gelber ein neuer Hinweis; Violett gestrichelt sind offizielle Trails — die Legende links am Rand der Karte klappt all das auf. Am Anfang jedes Trails steht sein Schild, darunter ein Punkt, dessen Pfeil die Fahrtrichtung zeigt. Ein Tipp aufs Schild oder auf die Linie wählt den Trail aus — unten steht eine kleine Karte, ein Tipp darauf öffnet das Blatt. Ein langer Druck auf die Karte bietet „Route ab hier\" und „Route bis hier\".",
+  "helpMapText": "Die Farbe einer Linie ist ihre Schwierigkeit, wie auf der Piste: grün S0, blau S1, rot S2, schwarz ab S3; ein weiß gestrichelter Saum heißt S4 oder S5, grau noch ohne Einschätzung, Magenta Uphill. Die Art der Linie ist der Zustand: durchgezogen heißt alles gut, bröckelig ausgefahren, gestrichelt abgerockt, verblasst kaum fahrbar. Ein orangener Rand ist eine Warnung (gesperrt, zerstört oder verändert), ein gelber zeigt eine neue Meldung eines Buddys; Violett gestrichelt sind offizielle Trails — die Legende links am Rand der Karte klappt all das auf. Am Anfang jedes Trails steht sein Schild, darunter ein Punkt, dessen Pfeil die Fahrtrichtung zeigt. Ein Tipp aufs Schild oder auf die Linie wählt den Trail aus — unten steht eine kleine Karte, ein Tipp darauf öffnet das Blatt. Ein langer Druck auf die Karte bietet „Route ab hier\" und „Route bis hier\".",
   "@helpMapText": {
     "description": "Kurzanleitung: Regeln der Karte (Farbe = Schwierigkeit, Linienart = Zustand, Ränder, Legende, Schild). Muss zur Legende und docs/design/README.md Abschnitt 2 passen."
   },
@@ -6217,7 +6245,7 @@
   "@helpContributionTitle": {
     "description": "Kurzanleitung: Abschnitt zu „Mein Beitrag“, Melden, Hinweisen und Anfahrt, Überschrift."
   },
-  "helpContributionText": "Im Blatt eines Trails, den du selbst beigesteuert hast, trägst du unter „Mein Beitrag\" Name, S-Grad, Charakter, Sterne, Sichtbarkeit, Beschreibung und einen Link ein. „Melden\" sagt, was gerade gilt — die {report} (gesperrt, zerstört, verändert) und der Zustand; bestätigt ist sie, wenn du ihn gefahren hast oder vor Ort bist. Ein Hinweis erzählt Buddys, was los ist, und leuchtet bei ihnen gelb. Das Navi-Symbol oben im Blatt übergibt den Anfang des Trails an deine Navi-App; „Zum Trailkopf\" rechnet den Weg dorthin selbst — offline, aus deinen gespeicherten Bereichen, mit Höhenmetern und Zeit.",
+  "helpContributionText": "Im Blatt eines Trails, den du selbst beigesteuert hast, trägst du unter „Mein Beitrag\" Name, S-Grad, Charakter, Sterne, Sichtbarkeit, Beschreibung und einen Link ein. „Melden\" erzählt deinen Buddys, was los ist: „{report}\" gesperrt, zerstört, verändert oder wieder offen, dazu ein Text und ein Foto. Ein Status ist bestätigt, wenn du ihn gefahren hast oder vor Ort bist; bei deinen Buddys leuchtet der Trail gelb. Den Zustand (1–5) gibst du an seiner Kachel oben im Blatt an. Das Navi-Symbol oben im Blatt übergibt den Anfang des Trails an deine Navi-App; „Zum Trailkopf\" rechnet den Weg dorthin selbst — offline, aus deinen gespeicherten Bereichen, mit Höhenmetern und Zeit.",
   "@helpContributionText": {
     "description": "Kurzanleitung: „Mein Beitrag“, Melden, Hinweise, Anfahrt und „Zum Trailkopf“. {report} ist die Beschriftung im Melde-Dialog (reportFieldLabel, „Meldung“).",
     "placeholders": {
@@ -6344,15 +6372,15 @@
   "@highlightNavSectionsTitle": {
     "description": "Entdecken, Eintrag „nav-sections“: Überschrift (auch im Neuheiten-Blatt nach einem Update)."
   },
-  "highlightNavSectionsText": "Beim Navigieren zählt die Karte bis zum nächsten Trailkopf: km, Höhenmeter, die steile Rampe. Am Kopf stehen Stufe, Zustand und der Hinweis deines Buddys, unten die ganze Runde als Band.",
+  "highlightNavSectionsText": "Beim Navigieren zählt die Karte bis zum nächsten Trailkopf: km, Höhenmeter, die steile Rampe. Am Kopf stehen Stufe, Zustand und die Meldung deines Buddys, unten die ganze Runde als Band.",
   "@highlightNavSectionsText": {
     "description": "Entdecken, Eintrag „nav-sections“: Text, zwei bis drei Sätze (auch im Neuheiten-Blatt)."
   },
-  "highlightNotePhotosTitle": "Ein Foto zum Hinweis",
+  "highlightNotePhotosTitle": "Ein Foto zur Meldung",
   "@highlightNotePhotosTitle": {
     "description": "Entdecken, Eintrag „note-photos“: Überschrift (auch im Neuheiten-Blatt nach einem Update)."
   },
-  "highlightNotePhotosText": "Der Baum quer über dem Trail, die neue Rampe: An einen Hinweis hängst du jetzt ein Foto. Es sehen dieselben Buddys wie den Hinweis, 90 Tage lang — ohne Ortsangaben im Bild.",
+  "highlightNotePhotosText": "Der Baum quer über dem Trail, die neue Rampe: An eine Meldung hängst du jetzt ein Foto. Es sehen dieselben Buddys wie die Meldung, 90 Tage lang — ohne Ortsangaben im Bild.",
   "@highlightNotePhotosText": {
     "description": "Entdecken, Eintrag „note-photos“: Text, zwei bis drei Sätze (auch im Neuheiten-Blatt)."
   },
@@ -6451,6 +6479,14 @@
   "highlightOnePlannerText": "„Zum Trailkopf“, das Navi-Symbol, „Route bis hier“ und „Route hierher“ öffnen jetzt alle den Planer und rechnen sofort. Zurück bringt dich mit einem Schritt auf die normale Karte, nach der Navigation steht das Ergebnis wieder da.",
   "@highlightOnePlannerText": {
     "description": "Entdecken, Eintrag „one-planner“: Text, zwei bis drei Sätze."
+  },
+  "highlightOneReportTitle": "Hinweis und Meldung sind eins",
+  "@highlightOneReportTitle": {
+    "description": "Entdecken, Eintrag „one-report“: Überschrift (auch im Neuheiten-Blatt nach einem Update). „Hinweis“ ist das alte Wort, das seit 0.147.0 verschwindet."
+  },
+  "highlightOneReportText": "„Melden\" nimmt jetzt alles auf: gesperrt oder wieder offen, dazu ein Text und ein Foto — eine Zeile in der Liste, eine Benachrichtigung für deine Buddys. Den Zustand tippst du an seiner Kachel oben im Blatt an.",
+  "@highlightOneReportText": {
+    "description": "Entdecken, Eintrag „one-report“: Text, zwei bis drei Sätze."
   },
   "highlightRouteEasyTitle": "Bequem zum Trailkopf",
   "@highlightRouteEasyTitle": {
@@ -6648,7 +6684,7 @@
   "@highlightReportsTitle": {
     "description": "Entdecken, Eintrag „reports“: Überschrift (auch im Neuheiten-Blatt nach einem Update)."
   },
-  "highlightReportsText": "„Melden\" im Blatt sagt, ob ein Trail gesperrt, zerstört oder verändert ist, und wie er gerade aussieht — von kaum fahrbar bis top gepflegt. Bestätigt ist es, wenn du ihn gefahren hast oder vor Ort bist.",
+  "highlightReportsText": "„Melden\" im Blatt sagt, ob ein Trail gesperrt, zerstört oder verändert ist; den Zustand — von kaum fahrbar bis top gepflegt — gibst du an seiner Kachel an. Bestätigt ist es, wenn du ihn gefahren hast oder vor Ort bist.",
   "@highlightReportsText": {
     "description": "Entdecken, Eintrag „reports“: Text, zwei bis drei Sätze (auch im Neuheiten-Blatt)."
   },
@@ -6708,11 +6744,11 @@
   "@highlightOfficialTrailsText": {
     "description": "Entdecken, Eintrag „official-trails“: Text, zwei bis drei Sätze (auch im Neuheiten-Blatt)."
   },
-  "highlightTrailNotesTitle": "Hinweise für Buddys",
+  "highlightTrailNotesTitle": "Meldungen für Buddys",
   "@highlightTrailNotesTitle": {
     "description": "Entdecken, Eintrag „trail-notes“: Überschrift (auch im Neuheiten-Blatt nach einem Update)."
   },
-  "highlightTrailNotesText": "„Baum liegt quer\": Ein Hinweis im Blatt erzählt deinen Buddys, was gerade los ist. Bei ihnen leuchtet der Trail gelb, bis sie ihn gelesen haben.",
+  "highlightTrailNotesText": "„Baum liegt quer\": Eine Meldung im Blatt erzählt deinen Buddys, was gerade los ist. Bei ihnen leuchtet der Trail gelb, bis sie sie gelesen haben.",
   "@highlightTrailNotesText": {
     "description": "Entdecken, Eintrag „trail-notes“: Text, zwei bis drei Sätze (auch im Neuheiten-Blatt)."
   },
@@ -6824,7 +6860,7 @@
   "@highlightNotificationsTitle": {
     "description": "Entdecken, Eintrag „notifications“: Überschrift (auch im Neuheiten-Blatt nach einem Update)."
   },
-  "highlightNotificationsText": "Meldet ein Buddy einen Trail oder schreibt einen Hinweis, sagt es dir dein Telefon — einschalten im Profil.",
+  "highlightNotificationsText": "Meldet ein Buddy etwas zu einem Trail, sagt es dir dein Telefon — einschalten im Profil.",
   "@highlightNotificationsText": {
     "description": "Entdecken, Eintrag „notifications“: Text, zwei bis drei Sätze (auch im Neuheiten-Blatt)."
   },
@@ -6989,7 +7025,7 @@
   "@demoNavSectionsTitle": {
     "description": "Vorführung „nav-sections“ (Entdecken → Zeig es mir): Überschrift der Blase."
   },
-  "demoNavSectionsText": "Plane eine Runde und tippe „Navigieren\": Oben steht, wie weit und wie viele Höhenmeter es bis zum nächsten Trailkopf sind; am Kopf Stufe, Zustand und der Hinweis deines Buddys. Unten die Runde als Band.",
+  "demoNavSectionsText": "Plane eine Runde und tippe „Navigieren\": Oben steht, wie weit und wie viele Höhenmeter es bis zum nächsten Trailkopf sind; am Kopf Stufe, Zustand und die Meldung deines Buddys. Unten die Runde als Band.",
   "@demoNavSectionsText": {
     "description": "Vorführung „nav-sections“ (Entdecken → Zeig es mir): Text der Blase."
   },
@@ -7157,7 +7193,7 @@
   "@demoGpxExportTitle": {
     "description": "Vorführung „gpx-export“ (Entdecken → Zeig es mir): Überschrift der Blase."
   },
-  "demoGpxExportText": "Gibt den Trail als GPX-Datei weiter — über das Teilen-Menü an jede App, die GPX liest. Nur die Linie mit Namen; keine Buddys, keine Hinweise. Fahrten exportierst du unter „Meine Fahrten\".",
+  "demoGpxExportText": "Gibt den Trail als GPX-Datei weiter — über das Teilen-Menü an jede App, die GPX liest. Nur die Linie mit Namen; keine Buddys, keine Meldungen. Fahrten exportierst du unter „Meine Fahrten\".",
   "@demoGpxExportText": {
     "description": "Vorführung „gpx-export“ (Entdecken → Zeig es mir): Text der Blase."
   },
@@ -7237,9 +7273,17 @@
   "@demoReportsTitle": {
     "description": "Vorführung „reports“ (Entdecken → Zeig es mir): Überschrift der Blase."
   },
-  "demoReportsText": "Gesperrt, zerstört, verändert — und der Zustand. Bestätigt ist es, wenn du ihn gefahren hast oder vor Ort bist; sonst steht es als „zu bestätigen\" da.",
+  "demoReportsText": "Gesperrt, zerstört, verändert — mit Text und Foto. Bestätigt ist es, wenn du ihn gefahren hast oder vor Ort bist; sonst steht es als „zu bestätigen\" da.",
   "@demoReportsText": {
     "description": "Vorführung „reports“ (Entdecken → Zeig es mir): Text der Blase."
+  },
+  "demoOneReportConditionTitle": "Der Zustand für sich",
+  "@demoOneReportConditionTitle": {
+    "description": "Vorführung „one-report“: Überschrift der Blase an der Kachel „Zustand“."
+  },
+  "demoOneReportConditionText": "Wie der Trail sich fährt, von kaum fahrbar bis top gepflegt, steht hier. Ein Tipp öffnet deine Angabe und wer was gesagt hat.",
+  "@demoOneReportConditionText": {
+    "description": "Vorführung „one-report“: Text der Blase an der Kachel „Zustand“."
   },
   "demoConnectMerge1Title": "Eine Anfrage annehmen",
   "@demoConnectMerge1Title": {
@@ -7277,7 +7321,7 @@
   "@demoTrailMergeTitle": {
     "description": "Vorführung „trail-merge“ (Entdecken → Zeig es mir): Überschrift der Blase."
   },
-  "demoTrailMergeText": "Liegt ein anderer Trail grob daneben, steht unter dem Export „Ist ein Duplikat …\". Du wählst, welcher bleibt; deine Aufzeichnungen, dein Beitrag und deine Hinweise ziehen dorthin. „Trennen\" macht es rückgängig.",
+  "demoTrailMergeText": "Liegt ein anderer Trail grob daneben, steht unter dem Export „Ist ein Duplikat …\". Du wählst, welcher bleibt; deine Aufzeichnungen, dein Beitrag und deine Meldungen ziehen dorthin. „Trennen\" macht es rückgängig.",
   "@demoTrailMergeText": {
     "description": "Vorführung „trail-merge“ (Entdecken → Zeig es mir): Text der Blase."
   },

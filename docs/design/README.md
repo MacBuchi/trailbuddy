@@ -81,7 +81,8 @@ Trail bis zu zwei Merkmale.
 ¹ Abweichung vom Entwurf, der `#4F8A10` auch für Text zeigt: Als Text
 erreicht es auf Weiß nur 4,2:1, verlangt sind 4,5:1. Dasselbe für Warnung
 (`#A94510`) und Buddy (`#0A7299`) als Text, und für das Hinweis-Gelb
-(`#F2B600`, 1,9:1) als Wort in der Liste („NEUER HINWEIS", seit 0.38.0).
+(`#F2B600`, 1,9:1) als Wort in der Liste („NEUER HINWEIS", seit 0.38.0;
+seit 0.147.0 „NEUE MELDUNG", #433).
 `test/core/app_theme_test.dart` prüft jedes Paar.
 
 **Trail-Farben = Schwierigkeit** (Linie, Streifen, Schild;
@@ -140,7 +141,7 @@ gestrichelt (12/8) und blass.
 | Bedeutung | Dunkel | Hell | Form |
 |---|---|---|---|
 | Gesperrt / Warnung | `#FF8A3D` | `#D9591A` | Leuchtrand (schlägt den Hinweis); als Wort in der Liste |
-| Neuer Hinweis | `#FFD23F` | `#F2B600` | Leuchtrand; Kartenrand in der Liste |
+| Neue Meldung (frischer Text eines Buddys; bis 0.146 „neuer Hinweis") | `#FFD23F` | `#F2B600` | Leuchtrand; Kartenrand in der Liste |
 
 **Andere Linien** (keine Trails des Netzes, keine Stufenfarbe):
 
@@ -418,7 +419,9 @@ Werk aus.
   Überschriften in Versalien (Barlow, `muted`): „Schwierigkeit",
   „Zustand", „Am Trail" (Rand und offiziell darunter). Jede Probe nennt,
   was sie bedeutet, nicht wie sie aussieht: „ausgefahren", „abgerockt",
-  „kaum fahrbar", „Meldung", „neuer Hinweis", „offizieller Trail". 124 px, weil die Blase der
+  „kaum fahrbar", „Warnung", „neue Meldung", „offizieller Trail" (bis
+  0.146 „Meldung" und „neuer Hinweis"; seit #433 ist „Meldung" der ganze
+  Eintrag). 124 px, weil die Blase der
   Tour daneben passen muss (200 px auf einem 360-px-Telefon). Mit
   offener Leiste ist sie weg; auf oder zu merkt sich das Gerät.
 - **Oben:** ein Satz, was der nächste Strich tut; verschwindet, sobald kein
@@ -540,8 +543,10 @@ Kacheln Länge / Höhe / S-Grad oder Spanne, „Deine Einschätzung".
 Trail nicht bewertet ist) und ZUSTAND (Wort und Alter; eine jüngere
 unbestätigte Angabe verblasst mit „zu bestätigen"), je mit Tipp auf die
 Einzelstimmen. Eine unbestätigte Meldung steht als verblasster Chip
-neben der bestätigten; unten „Hinweis schreiben" (Lime) und „Melden"
-nebeneinander, „Karte" darunter. **Liste seit 0.50.0:** die Sterne unter
+neben der bestätigten; unten „Melden" (Lime, seit 0.147.0 EIN Knopf in
+ganzer Breite, #433 — vorher „Hinweis schreiben" und „Melden"
+nebeneinander), „Karte" darunter. Ein Tipp auf ZUSTAND öffnet seit
+0.147.0 immer das Blatt mit der eigenen Angabe 1–5 obendrauf. **Liste seit 0.50.0:** die Sterne unter
 den Zahlen (13 px, blass bei „Bewertung offen"), Sortierung „Bewertung";
 hinter Meldung und Hinweis der Zustand 1–2 als Wort („ABGEROCKT",
 „KAUM FAHRBAR") in der Textfarbe — ohne eigene Farbe, die gehört der
@@ -554,7 +559,8 @@ Schwierigkeit (E9) —, eine unbestätigte Meldung gedämpft mit „?"
   Buddys.", linksbündig.
 - **Trail-Blatt (1i):** Titel in Großbuchstaben, drei Kennzahl-Kacheln,
   Höhenprofil in Trail-Richtung, Hinweis eines Buddys als gelb umrandete
-  Karte, unten „Hinweis schreiben" (Lime) + „Karte". **Gebaut seit
+  Karte, unten „Hinweis schreiben" (Lime) + „Karte" (seit 0.147.0
+  „Melden" in ganzer Breite, eine Liste „MELDUNGEN", #433). **Gebaut seit
   0.39.0** (`trail_sheet.dart`: `_MetricTiles`, `_Panel`;
   `trail_notes.dart`). Unter dem Titel die Beziehung („Du und 2 Buddys
   (Jan, Mira).", 4f). Kacheln LÄNGE / HÖHE (↓ Hm) / S-GRAD (Median in der

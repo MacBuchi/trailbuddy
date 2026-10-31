@@ -152,7 +152,23 @@ List<Trail> withPendingJobs(List<Trail> server, List<OutboxJob> jobs,
               details.details,
             ],
       myId: myId,
-      notes: t.notes,
+      notes: [
+        ...t.notes,
+        // Der Text einer wartenden Meldung (#433) — mit ihrem Status in
+        // einer Zeile, ohne Status allein. Ohne Foto: Das liegt nie im Korb.
+        for (final j in reports ?? const <ReportJob>[])
+          if ((j.note ?? '').trim().isNotEmpty)
+            TrailNote(
+              id: 'pending-${j.id}-note',
+              trailId: t.id,
+              userId: myId,
+              body: j.note!.trim(),
+              createdAt: j.createdAt.toLocal(),
+              reportId: j.status == null ? null : 'pending-${j.id}-${ReportKind.status.db}',
+              pending: true,
+              sending: sending.contains(j.id),
+            ),
+      ],
       reports: [
         ...t.reports,
         // Eine wartende Meldung steht schon da, mit der Vorhersage des

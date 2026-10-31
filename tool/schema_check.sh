@@ -259,8 +259,11 @@ check_get_protected "trail_reports-Embed (Meldungen)" \
 # solange 0.112.x und älter im Feld sind — beide müssen gehen.
 check_get_protected "trail_notes-Embed (Hinweise, bis 0.112)" \
   "/rest/v1/trail_notes?select=id,trail_id,user_id,body,created_at,author:profiles!trail_notes_user_id_fkey(username)&limit=1"
-check_get_protected "trail_notes-Embed (Hinweise mit Foto)" \
+check_get_protected "trail_notes-Embed (Hinweise mit Foto, bis 0.146)" \
   "/rest/v1/trail_notes?select=id,trail_id,user_id,body,created_at,author:profiles!trail_notes_user_id_fkey(username),photo:trail_note_photos!trail_note_photos_note_id_fkey(key,expires_at)&limit=1"
+# Seit Patch 028 (#433): der Text zeigt auf seine Meldung.
+check_get_protected "trail_notes-Embed (Meldung mit Text)" \
+  "/rest/v1/trail_notes?select=id,trail_id,user_id,body,created_at,report_id,author:profiles!trail_notes_user_id_fkey(username),photo:trail_note_photos!trail_note_photos_note_id_fkey(key,expires_at)&limit=1"
 # trail_note_photos: die Spalten, die addNotePhoto schreibt.
 check_get_protected "trail_note_photos (Fotos am Hinweis)" \
   "/rest/v1/trail_note_photos?select=id,note_id,user_id,key,created_at,expires_at&limit=1"
@@ -373,8 +376,10 @@ check_rpc_protected "attach_elevation-RPC" "attach_elevation" \
 check_rpc_protected "withdraw_contribution-RPC" "withdraw_contribution" \
   '{"trail_id":"00000000-0000-4000-8000-000000000000"}'
 # Melden (Patch 013): nur für Angemeldete, alle Namen im Body.
-check_rpc_protected "report_trail-RPC" "report_trail" \
+check_rpc_protected "report_trail-RPC (bis 0.146, ohne note)" "report_trail" \
   '{"trail_id":"00000000-0000-4000-8000-000000000000","status":"closed","condition":null,"on_site":false,"reported_at":null,"client_id":null}'
+check_rpc_protected "report_trail-RPC (mit note, Patch 028)" "report_trail" \
+  '{"trail_id":"00000000-0000-4000-8000-000000000000","status":"closed","condition":null,"on_site":false,"reported_at":null,"client_id":null,"note":"Baum"}'
 # Duplikate zusammenführen (Patch 019, #107): alle nur für Angemeldete,
 # alle Namen im Body.
 check_rpc_protected "merge_own_into-RPC" "merge_own_into" \

@@ -49,8 +49,8 @@ verarbeitet*, *erforderlich oder optional* — plus die Zwecke.
 | **Persönliche Infos → E-Mail-Adresse** | Ja | Nein³ | Erforderlich | App-Funktionalität, Kontoverwaltung | Supabase Auth; Buddy-Suche über die exakte Adresse; Konto-Mails über Brevo; bei Anmeldung über einen Anbieter von dort⁵ |
 | **Persönliche Infos → Name** | Ja | Nein¹ | Erforderlich | App-Funktionalität, Kontoverwaltung | `profiles.username` (Pflicht, über das Präfix suchbar) und `display_name` |
 | **Persönliche Infos → Nutzer-IDs** | Ja | Nein | Erforderlich | App-Funktionalität, Kontoverwaltung | `profiles.id` (UUID aus `auth.users`) |
-| **App-Aktivität → Andere nutzergenerierte Inhalte** | Ja | **Ja²** (nur Feedback) | Optional | App-Funktionalität, Entwicklerkommunikation | Beiträge zu Trails (`trail_details`: Name, Beschreibung, S-Grad, Charakter, Sterne, Sichtbarkeit, Link), Meldungen und Zustand (`trail_reports`), Hinweise (`trail_notes`), Zuordnungen von Duplikaten (`trail_aliases`, `trail_distinct`; #107 — sichtbar für direkte Buddys, die beide Trails sehen), Aliase für Buddys (`friend_aliases`, nur für den Vergebenden sichtbar) — alles *nicht geteilt*¹. Feedback (`feedback`: Text, Typ, App-Version) wird als öffentliches GitHub-Issue veröffentlicht, ohne Benutzernamen — *geteilt*² |
-| **Fotos und Videos → Fotos** | Ja | Nein¹ | Optional | App-Funktionalität | Ein Foto je Hinweis (#37, Patch 026): Bild ≤ 1024 px und Vorschau, ohne EXIF/XMP (entfernt und geprüft in `lib/core/photo_pipeline.dart`), im privaten Bucket `trail-note-photos`. Sichtbar für genau die, die den Hinweis sehen; 90 Tage, mit dem Hinweis gelöscht |
+| **App-Aktivität → Andere nutzergenerierte Inhalte** | Ja | **Ja²** (nur Feedback) | Optional | App-Funktionalität, Entwicklerkommunikation | Beiträge zu Trails (`trail_details`: Name, Beschreibung, S-Grad, Charakter, Sterne, Sichtbarkeit, Link), Meldungen und Zustand (`trail_reports`), Texte zu Meldungen (`trail_notes`, bis 0.146 „Hinweise"; #433), Zuordnungen von Duplikaten (`trail_aliases`, `trail_distinct`; #107 — sichtbar für direkte Buddys, die beide Trails sehen), Aliase für Buddys (`friend_aliases`, nur für den Vergebenden sichtbar) — alles *nicht geteilt*¹. Feedback (`feedback`: Text, Typ, App-Version) wird als öffentliches GitHub-Issue veröffentlicht, ohne Benutzernamen — *geteilt*² |
+| **Fotos und Videos → Fotos** | Ja | Nein¹ | Optional | App-Funktionalität | Ein Foto je Text einer Meldung (#37, Patch 026): Bild ≤ 1024 px und Vorschau, ohne EXIF/XMP (entfernt und geprüft in `lib/core/photo_pipeline.dart`), im privaten Bucket `trail-note-photos`. Sichtbar für genau die, die den Text sehen; 90 Tage, mit dem Text gelöscht |
 | **Nachrichten → Andere In-App-Nachrichten** | Ja | Nein¹ | Optional | App-Funktionalität | `buddy_messages` (#34, Patch 021): Text, Absender, Empfänger, Zeitpunkt, gelesen. Nur Absender und Empfänger sehen sie, 30 Tage, nicht Ende-zu-Ende-verschlüsselt (Datenschutzerklärung). Schreiben nur unter Buddys oder bei offener Anfrage (höchstens drei je Seite). Mit eingeschalteten Benachrichtigungen geht der Text gekürzt über FCM (Patch 022, siehe ⁴) |
 | **App-Info und -Leistung → Absturzprotokolle** | Ja | Nein | Erforderlich | App-Funktionalität | `error_reports`: Kontext, Fehlertyp, Meldung, Stack, App-Version, Plattform, ggf. Nutzer-id. Dazu beim nächsten Start Androids eigene Beendigungsgründe (ANR, Absturz, nativer Absturz mit Tombstone) — keine Position, keine Trails |
 | **App-Info und -Leistung → Diagnose** | Ja | Nein | Erforderlich | App-Funktionalität | Speicherwerte (RSS/PSS in MB) und der Haupt-Thread-Auszug, die mit einem Beendigungsgrund kommen (`AppExit.summary`) |
@@ -140,7 +140,7 @@ Was die Einordnung trägt: **Optional.** Benachrichtigungen sind ab Werk
 aus, ein Schalter im Profil, Ausschalten löscht die Zeile in
 `push_devices`. Anders als PilzBuddy trägt die Meldung **Inhalt** (seit
 0.54.0, Patch 014, Betreiber-Entscheidung): Trailname, Name bzw. Alias des
-Buddys, das Statuswort und beim Hinweis dessen Text (≤ 140 Zeichen); seit
+Buddys, das Statuswort und den Text dazu (≤ 140 Zeichen); seit
 0.112.0 (Patch 022) auch Nachrichten zwischen Buddys — Name bzw. Alias und
 der Text der jüngsten Nachricht (≤ 180 Zeichen) — aber
 **nie eine Koordinate, nie einen Ort, nie eine E-Mail-Adresse**.
@@ -302,7 +302,7 @@ TRAILS
 ZUSTAND
 • Melden, was gilt: offen, gesperrt, zerstört, verändert — und wie gepflegt.
 • Bestätigt ist eine Meldung, wenn sie jemand gefahren ist oder vor Ort war.
-• Hinweise für deine Buddys: „Baum liegt quer nach der zweiten Kehre."
+• Meldungen für deine Buddys: „Gesperrt — Baum liegt quer nach der zweiten Kehre."
 • Auf Wunsch eine Benachrichtigung, wenn ein Buddy etwas meldet.
 
 UNTERWEGS
