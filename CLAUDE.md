@@ -47,6 +47,8 @@ Airtime und Trail-Werte (#36) haben ihr Konzept in
 Signalaufbereitung (Lage-Filter, Fahrradmodell, Halterung) hat ihre
 Recherche in `docs/recherche-sensorfusion.md` (Betreiber, 2026-10-30:
 erst aufbereiten, dann erkennen).
+Hinweis und Meldung werden ein Eintrag (#433): Plan in
+`docs/konzept-melden.md`.
 Offizielle Trails (#13) sind eine getrennte Ebene mit eigenem Konzept:
 `docs/konzept-offizielle-trails.md`. Gebaut von `official-trails.yml`
 (`tool/official_trails.py`, Quellen in `tool/official/sources.json`)
