@@ -232,34 +232,48 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     weiterliefert (Wakelock `allowWakeLock`), zeigt erst die Datei vom
     Gerät. Erste Fahrt (2026-10-30, 17 min): 111 Hz, eine Lücke über
     100 ms — er liefert; ob der Bildschirm aus war, ist nicht notiert.
-- **Wheelie mit Rückmeldung** (#36, seit 0.143.0, nur Dev-App, hängt am
-  Rohdaten-Schalter): `WheelieDetector` (`wheelie_detector.dart`, reine
-  Rechnung, Regel in `docs/konzept-airtime.md` 2) bekommt im Logger jede
-  Beschleunigung und jedes GPS-Tempo; ein fertiger Wheelie wird Zeile
-  `e` und ein Banner (`wheelie_notify.dart`). Drei Fallen:
+- **Wheelie und Sprung mit Rückmeldung** (#36, Wheelie seit 0.143.0,
+  Fusion und Sprung seit 0.144.0, nur Dev-App, hängt am
+  Rohdaten-Schalter): `SensorFusion` (`sensor_fusion.dart`, reine
+  Rechnung, `tool/sensor_fusion.py` in Dart — Halterung, Mahony,
+  Ereignisse; Konzept 3a, Recherche Abschnitt 8) bekommt im Logger jede
+  Beschleunigung, jeden Kreisel-Wert und jedes GPS-Tempo; ein fertiger
+  Wheelie wird Zeile `e`, ein Sprung Zeile `j`, beide ein Banner
+  (`wheelie_notify.dart`), die stehende Benachrichtigung hat „Wheelie
+  verpasst" und „Sprung verpasst". Sechs Fallen:
   - **EIN Hintergrund-Empfänger je App**: `flutter_local_notifications`
     merkt sich genau einen (`rideConfirmBackgroundResponse`). Die
-    Wheelie-Knöpfe laufen deshalb durch ihn — `handleWheelieResponse`
-    fragt zuerst und sagt `true` für alles mit Wheelie-Payload (Schlüssel
-    `w`), auch den Tipp ohne Knopf; dasselbe in `_platformTaps`. Ein
-    zweites `initialize` mit eigenem Empfänger ersetzte den der
-    Trail-Frage.
+    Wheelie- und Sprung-Knöpfe laufen deshalb durch ihn —
+    `handleWheelieResponse` fragt zuerst und sagt `true` für alles mit
+    Wheelie-Payload (Schlüssel `w`), auch den Tipp ohne Knopf; dasselbe
+    in `_platformTaps`. Ein zweites `initialize` mit eigenem Empfänger
+    ersetzte den der Trail-Frage.
   - **Zwei Isolates hängen an dieselbe Datei**: der Logger im Dienst,
     die Antwort im Isolate des Pakets — je eine kurze Zeile mit
     `FileMode.append`; für ein Mess-Werkzeug reicht das, eine Sperre
     gibt es nicht.
-  - **Die Fahrposition lernt die App laufend** (Median der letzten 60 s),
-    nicht über die ganze Fahrt wie früher das Werkzeug; das Werkzeug
-    rechnet seit 0.143.0 genauso, sonst zählte es anders als die App.
-    Gegen die erste Fahrt verglichen: dieselben 17 Wheelies, auf 0,1 s.
-- **Signalaufbereitung** (#36 Schritt 3, nur Werkzeug):
-  `tool/sensor_fusion.py` — Halterung, Lage-Filter (Mahony und ESKF),
-  Wheelie gegen den Weg, Flug, Landung; Ergebnis in
-  `docs/recherche-sensorfusion.md` Abschnitt 7. Wer Schritt 4 in Dart
-  baut: Mahony nehmen, die Werte dort übernehmen und gegen dieselbe
-  synthetische Fahrt prüfen (`synthetic()` im Werkzeug, ihre
-  Zusicherungen in `_self_test`); die Rohregel des `WheelieDetector`
-  verwechselt Bremsen, Gefälle und Rollen mit Wheelies (8–30° neben dem
-  Kreisel). „Vorn" lernt die Fusion vor allem aus der Schräglage in
-  Kurven, Bremsen allein reichte auf keiner Fahrt.
-
+  - **Gerechnet wird mit Verzug, aber wie das Werkzeug**: ein Wert erst,
+    wenn ein GPS-Punkt 1,5 s nach ihm da ist (dv/dt schaut voraus);
+    Beschleunigung und Kreisel kommen in Schüben, die Fusion mischt nach
+    der Zeit des Sensors. Bleibt ein Sensor aus, wartet sie höchstens
+    1 s auf ihn, ohne GPS höchstens 30 s. Banner 2–3 s nach dem
+    Ereignis, ein Sprung nach den 3 s Tempo hinter der Landung.
+  - **Dart = Werkzeug ist geprüft, nicht angenommen**: dieselbe
+    synthetische Fahrt (Zufall `Noise`, in beiden Sprachen bitgleich;
+    `test/rides/sensor_fusion_test.dart`) und `tool/fusion_replay.dart`
+    gegen `airtime_measure.py --fused --list` auf echten Dateien. Wer
+    eine Regel ändert, ändert sie in BEIDEN und vergleicht neu — eine
+    Rundung reichte schon einmal für einen falschen 15-s-Wheelie.
+  - **Keine Zeitgrenzen bei Wheelies**: Der Weg hält still, solange die
+    Front oben ist (nur aus 3 s Ruhe), verrutscht ist die Halterung erst
+    nach fünf Sekunden normalen Fahrens gekippt (Bremsen, Antreten,
+    Kurve), gemeldet wird ein Wheelie erst mit der Front unten, und fällt
+    vorher die Halterung weg, war er keiner. Langsamer werden mit der
+    Front oben beendet ihn nicht.
+  - **Die Halterung der letzten Fahrt** liegt in
+    `rides/sensors/mount.json` (geschrieben alle 60 s und beim Stopp,
+    nur eine gelernte) und steht als `# mount,…` im Kopf der neuen Datei;
+    der Messbereich (`# range,…`) kommt über den Kanal
+    `de.mcbuchi.trailbuddy/sensors` in `MainActivity.kt` — gelesen im
+    Main-Isolate beim `arm` (`kRideDataSensorRange`), denn im Dienst gibt
+    es den Kanal der Activity nicht.

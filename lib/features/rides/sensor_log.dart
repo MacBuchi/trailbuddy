@@ -15,27 +15,61 @@
 //   Sekunde. Der Zeitgeber prüft dabei die Brücke — endet die Fahrt, ohne
 //   dass ein Takt kommt (der Dienst läuft für einen Download weiter),
 //   hört der Logger trotzdem auf.
-// - **Wheelies werden zur Laufzeit erkannt** (`wheelie_detector.dart`) und
-//   als Banner gemeldet (`wheelie_notify.dart`); Ereignis und Antwort sind
-//   eigene Zeilen derselben Datei (`e`, `l`, `m`, siehe [kSensorLogHeader]).
+// - **Wheelies und Sprünge erkennt die Fusion zur Laufzeit**
+//   (`sensor_fusion.dart`, seit 0.144.0; vorher die Rohregel) und meldet
+//   sie als Banner (`wheelie_notify.dart`); Ereignis und Antwort sind
+//   eigene Zeilen derselben Datei (`e`, `j`, `l`, `k`, `m`, `n`, siehe
+//   [kSensorLogHeader]). Die Halterung, die sie lernt, liegt für die
+//   nächste Fahrt in `rides/sensors/mount.json` und steht im Kopf der
+//   Datei — so rechnet das Werkzeug von derselben aus.
 // - **Die Zeit ist die des Ereignisses** (`sensors_plus`: Systemstart +
 //   Zeitstempel des Sensors, in µs), nicht die der Ankunft im Isolate —
 //   der Kanal liefert in Schüben.
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:sensors_plus/sensors_plus.dart';
 
 import 'ride_store.dart' show rideIdFor;
 import 'ride_task_handler.dart';
-import 'wheelie_detector.dart';
+import 'sensor_fusion.dart';
 import 'wheelie_notify.dart';
 
 /// Schalter der Brücke: Rohdaten mitschreiben (nur Dev-App).
 const kRideDataSensorLog = 'ride_sensor_log';
+
+/// Messbereich der Sensoren, `<m/s²>,<rad/s>` — gelesen im Main-Isolate
+/// beim Start der Fahrt (der Kanal hängt an der Activity), geschrieben in
+/// den Kopf der Datei: Ein Sprung, der am Anschlag landet, misst zu wenig.
+const kRideDataSensorRange = 'ride_sensor_range';
+
+/// Der Name steht auch in `MainActivity.kt`; `android_manifest_test` hält
+/// beide zusammen.
+const kSensorChannel = 'de.mcbuchi.trailbuddy/sensors';
+
+/// Der Messbereich für [kRideDataSensorRange], `<m/s²>,<rad/s>`; leer ohne
+/// Kanal (Web, Test) oder ohne Sensor. Wirft nie.
+Future<String> readSensorRange() async {
+  try {
+    final r = await const MethodChannel(kSensorChannel).invokeMapMethod<String, Object?>('range');
+    final a = r?['accel'], g = r?['gyro'];
+    return a is num && g is num ? '$a,$g' : '';
+  } catch (_) {
+    return '';
+  }
+}
+
+/// Die Halterung der letzten Fahrt, in `rides/sensors/`.
+const kSensorMountFile = 'mount.json';
+
+/// So oft schreibt der Logger die Halterung auch mitten in der Fahrt —
+/// endet der Dienst ohne `stop`, ist sie trotzdem da.
+const kSensorMountSaveEvery = Duration(seconds: 60);
 
 /// 100 Hz (Konzept 3): reicht für Flugphasen ab 150 ms und bleibt unter
 /// den 200 Hz, ab denen Android `HIGH_SAMPLING_RATE_SENSORS` verlangt.
@@ -52,13 +86,33 @@ const kSensorDirName = 'sensors';
 
 /// Die erste Zeile jeder Datei: sagt dem Werkzeug
 /// (`tool/airtime_measure.py`), was die Spalten heißen.
-const kSensorLogHeader = '# trailbuddy sensor log v1\n'
+const kSensorLogHeader = '# trailbuddy sensor log v2\n'
     '# a,t_us,x,y,z = accelerometer incl. gravity (m/s^2)\n'
     '# w,t_us,x,y,z = gyroscope (rad/s)\n'
     '# g,t_us,lat,lng,accuracy_m,speed_mps,alt_m = GPS fix\n'
-    '# e,start_us,duration_s,length_m,max_tilt_deg = wheelie detected in the app\n'
+    '# e,start_us,duration_s,length_m,max_tilt_deg = wheelie detected in the app (fused pitch against the way)\n'
+    '# j,start_us,duration_s,landing_g,1|0 = jump detected in the app (1 = plausible)\n'
     '# l,t_us,start_us,1|0 = answer to the wheelie at start_us (1 = "Stimmt")\n'
-    '# m,t_us = "Wheelie verpasst" pressed\n';
+    '# k,t_us,start_us,1|0 = answer to the jump at start_us (1 = "Stimmt")\n'
+    '# m,t_us = "Wheelie verpasst" pressed; n,t_us = "Sprung verpasst" pressed\n'
+    '# mount up_xyz forward_xyz = the mount the fusion started from (the last ride), if any\n'
+    '# range accel_mps2 gyro_rads = the sensors\' maximum range, if known\n';
+
+/// Der Kopf einer neuen Datei: [kSensorLogHeader], dann die Werte, mit
+/// denen diese Fahrt beginnt.
+String sensorLogHead({FusionMount? mount, String? range}) {
+  final b = StringBuffer(kSensorLogHeader);
+  if (mount != null) {
+    final (ux, uy, uz) = mount.up;
+    final (fx, fy, fz) = mount.forward;
+    b.writeln('# mount,${[ux, uy, uz, fx, fy, fz].map((v) => v.toStringAsFixed(6)).join(',')}');
+  }
+  final r = range?.split(',').map(double.tryParse).toList();
+  if (r != null && r.length == 2 && r.every((v) => v != null && v.isFinite)) {
+    b.writeln('# range,${r.map((v) => v!.toStringAsFixed(3)).join(',')}');
+  }
+  return b.toString();
+}
 
 String sensorLine(String kind, DateTime at, List<double> values) =>
     '$kind,${at.microsecondsSinceEpoch},${values.map(_num).join(',')}\n';
@@ -71,6 +125,15 @@ String wheelieAnswerLine(DateTime at, {required int startUs, required bool yes})
     'l,${at.microsecondsSinceEpoch},$startUs,${yes ? 1 : 0}\n';
 
 String wheelieMissedLine(DateTime at) => 'm,${at.microsecondsSinceEpoch}\n';
+
+String jumpEventLine(JumpEvent e) => 'j,${e.startUs},'
+    '${(e.duration.inMicroseconds / 1e6).toStringAsFixed(3)},'
+    '${e.landingG.toStringAsFixed(2)},${e.plausible ? 1 : 0}\n';
+
+String jumpAnswerLine(DateTime at, {required int startUs, required bool yes}) =>
+    'k,${at.microsecondsSinceEpoch},$startUs,${yes ? 1 : 0}\n';
+
+String jumpMissedLine(DateTime at) => 'n,${at.microsecondsSinceEpoch}\n';
 
 /// Kurz genug für 30 MB je Stunde, genau genug für 0,01 m/s².
 String _num(double v) => v.isFinite ? v.toStringAsFixed(4) : '';
@@ -109,6 +172,7 @@ class SensorLogger {
       SensorSources? sources,
       this.stillWanted,
       this.flushEvery = kSensorFlushInterval,
+      this.range,
       WheelieNotices? notices})
       : _sources = sources ?? SensorSources.platform,
         _notices = notices ?? WheelieNotices.platform;
@@ -116,13 +180,19 @@ class SensorLogger {
   final File file;
   final SensorSources _sources;
 
+  /// Messbereich aus der Brücke ([kRideDataSensorRange]).
+  final String? range;
+
   /// Fragt beim Schreiben, ob noch gemessen werden soll; `false` beendet.
   final Future<bool> Function()? stillWanted;
 
   final Duration flushEvery;
 
   final WheelieNotices _notices;
-  final _wheelies = WheelieDetector();
+  SensorFusion _fusion = SensorFusion();
+  final _sinceMountSaved = Stopwatch();
+
+  File get _mountFile => File('${file.parent.path}/$kSensorMountFile');
 
   final _buffer = StringBuffer();
   final _subscriptions = <StreamSubscription<List<double>>>[];
@@ -134,8 +204,10 @@ class SensorLogger {
 
   Future<void> start() async {
     await file.parent.create(recursive: true);
+    final carried = await _readMount();
+    _fusion = SensorFusion(carried: carried);
     if (!await file.exists() || await file.length() == 0) {
-      await file.writeAsString(kSensorLogHeader, flush: true);
+      await file.writeAsString(sensorLogHead(mount: carried, range: range), flush: true);
     }
     void listen(String kind, Stream<List<double>> Function() source,
         [void Function(List<double> v)? also]) {
@@ -147,19 +219,47 @@ class SensorLogger {
       }, onError: (Object _) {}));
     }
 
-    listen('a', _sources.accel, _onAccel);
-    listen('w', _sources.gyro);
-    listen('g', _sources.gps, (v) => _wheelies.addSpeed(v[4]));
+    listen('a', _sources.accel, (v) => _onEvents(_fusion.addAccel(v[0].toInt(), v[1], v[2], v[3])));
+    listen('w', _sources.gyro, (v) => _onEvents(_fusion.addGyro(v[0].toInt(), v[1], v[2], v[3])));
+    listen('g', _sources.gps, (v) => _onEvents(_fusion.addGps(v[0].toInt(), v[4])));
     _timer = Timer.periodic(flushEvery, (_) => _onTimer());
+    _sinceMountSaved.start();
     await _notices.showMissed(file: file.path);
   }
 
-  void _onAccel(List<double> v) {
-    final event = _wheelies.addAccel(v[0].toInt(), v[1], v[2], v[3]);
-    if (event == null) return;
-    _buffer.write(wheelieEventLine(event));
-    // Nicht abgewartet: Das Banner darf den Strom nicht aufhalten.
-    unawaited(_notices.wheelie(event, file: file.path));
+  void _onEvents(List<FusionEvent> events) {
+    for (final event in events) {
+      // Nicht abgewartet: Das Banner darf den Strom nicht aufhalten.
+      switch (event) {
+        case WheelieEvent():
+          _buffer.write(wheelieEventLine(event));
+          unawaited(_notices.wheelie(event, file: file.path));
+        case JumpEvent():
+          _buffer.write(jumpEventLine(event));
+          unawaited(_notices.jump(event, file: file.path));
+      }
+    }
+  }
+
+  Future<FusionMount?> _readMount() async {
+    try {
+      return FusionMount.fromJson(jsonDecode(await _mountFile.readAsString()));
+    } catch (_) {
+      return null; // keine oder kaputte Datei: Die Fahrt lernt von vorn.
+    }
+  }
+
+  /// Nur eine gelernte Halterung ersetzt die alte. Wirft nie.
+  Future<void> _saveMount() async {
+    final mount = _fusion.mount;
+    if (mount == null) return;
+    try {
+      final part = File('${_mountFile.path}.part');
+      await part.writeAsString(jsonEncode(mount.toJson()), flush: true);
+      await part.rename(_mountFile.path);
+    } catch (_) {
+      // Dann beginnt die nächste Fahrt mit der vorigen oder von vorn.
+    }
   }
 
   Future<void> _onTimer() async {
@@ -167,6 +267,10 @@ class SensorLogger {
     if (wanted != null && !await wanted()) {
       await stop();
       return;
+    }
+    if (_sinceMountSaved.elapsed >= kSensorMountSaveEvery) {
+      _sinceMountSaved.reset();
+      await _saveMount();
     }
     await flush();
   }
@@ -193,7 +297,9 @@ class SensorLogger {
       await s.cancel();
     }
     _subscriptions.clear();
+    _onEvents(_fusion.finish());
     await flush();
+    await _saveMount();
     await _notices.cancelMissed();
   }
 }
@@ -231,6 +337,7 @@ Future<void> sensorLogTick({
       sources: sources,
       stillWanted: () async => (await _wantedRide(get))?.id == ride.id,
       flushEvery: flushEvery,
+      range: await get<String>(kRideDataSensorRange),
       notices: notices,
     );
     _logger = logger;

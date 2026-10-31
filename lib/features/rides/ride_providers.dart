@@ -26,7 +26,7 @@ import 'ride_service.dart';
 import 'ride_store.dart';
 import 'ride_task_handler.dart';
 import 'ride_track.dart';
-import 'sensor_log.dart' show kRideDataSensorLog;
+import 'sensor_log.dart' show kRideDataSensorLog, kRideDataSensorRange, readSensorRange;
 
 /// Gibt es die Aufzeichnung auf dieser Plattform? Im Browser nicht: Dort
 /// gibt es kein Service-Isolate, und ein Tab im Hintergrund bekommt
@@ -146,6 +146,9 @@ class PlatformRideServiceBridge implements RideServiceBridge {
     await FlutterForegroundTask.saveData(
         key: kRideDataStartedAt, value: startedAt.toUtc().toIso8601String());
     await FlutterForegroundTask.saveData(key: kRideDataSensorLog, value: sensorLog);
+    // Der Kanal hängt an der Activity — drüben im Dienst gibt es ihn nicht.
+    await FlutterForegroundTask.saveData(
+        key: kRideDataSensorRange, value: sensorLog ? await readSensorRange() : '');
     await FlutterForegroundTask.saveData(key: kRideDataActive, value: true);
   }
 

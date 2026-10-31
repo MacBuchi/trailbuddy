@@ -138,8 +138,11 @@ Stufen, jede für sich testbar:
    Beschleunigung beim Bremsen und Antreten (Vorzeichen aus dem
    GPS-Tempo) und aus der Schräglage in Kurven (Vorzeichen aus der
    Gierrate; auf den ersten Fahrten trugen die Kurven fast alles),
-   erkennt Verrutschen erst nach 60 s Abweichung — ein langer Wheelie
-   ist kein Verrutschen. Damit ist die Kipprichtung bekannt: nur Front
+   erkennt Verrutschen erst, wenn das Rad gekippt normal weiterfährt
+   (fünf Sekunden Bremsen, Antreten oder Kurve) — ein langer Wheelie
+   fährt geradeaus und endet mit der Front unten, ohne Zeitgrenze
+   (seit Schritt 4; Recherche Abschnitt 8). Die Halterung der letzten
+   Fahrt startet die nächste. Damit ist die Kipprichtung bekannt: nur Front
    hoch ist ein Wheelie.
 2. **Lage-Filter**: Error-State-Kalman (6 Fehlerzustände: Lage, Gyro-
    Bias), Vorhersage mit dem Kreisel und den echten Zeitstempeln; die
@@ -153,7 +156,8 @@ Stufen, jede für sich testbar:
    `docs/recherche-sensorfusion.md` Abschnitt 7): gleich gut, also
    Mahony; der ESKF bleibt im Werkzeug als Gegenprobe.
 3. **Ereignisse**: Wheelie = Pitch gegenüber dem Weg (Weg = Mittel des
-   Pitch über einige Sekunden); Airtime = gefilterter Betrag unter der
+   Pitch über einige Sekunden, still, solange die Front oben ist — aber
+   nur aus einem ruhigen Weg; gemeldet, wenn die Front unten ist); Airtime = gefilterter Betrag unter der
    Schwelle, plausibel über Lage und Tempo davor und danach; Landung =
    Spitze in Rad-Hochachse.
 
@@ -393,7 +397,10 @@ wollen auch fertig werden"):
    mit Bannern wie 2b („Sprung erkannt", „Stimmt" / „War keiner",
    „Sprung verpasst"), der Messbereich des Sensors in den Kopf der
    Rohdaten. Gegenprobe: Dart und Werkzeug finden auf den Messfahrten
-   dieselben Ereignisse.
+   dieselben Ereignisse. **Erledigt** (0.144.0, Recherche Abschnitt 8):
+   lange Wheelies ohne Zeitgrenze, die Halterung der letzten Fahrt
+   mitgenommen; Dart und Werkzeug gleich auf der Synthetik und auf
+   beiden Fahrten vom 2026-10-30.
    **Danach 📱**: Abnahmefahrten nach Abschnitt 8 (Jump-Line,
    Gegenproben-Trail, Absetzen und Umfallen); die Schwellen gelten nach
    8.4, gezählt aus den Banner-Antworten.

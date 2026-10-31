@@ -2,6 +2,7 @@
 // Dienstes, ohne Plattform — die Quellen sind Strom-Controller, die
 // Brücke eine Map.
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'dart:math' as math;
 
@@ -10,18 +11,24 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:trailbuddy/features/rides/ride_confirm_notify.dart';
 import 'package:trailbuddy/features/rides/ride_store.dart';
 import 'package:trailbuddy/features/rides/ride_task_handler.dart';
+import 'package:trailbuddy/features/rides/sensor_fusion.dart';
 import 'package:trailbuddy/features/rides/sensor_log.dart';
-import 'package:trailbuddy/features/rides/wheelie_detector.dart';
 import 'package:trailbuddy/features/rides/wheelie_notify.dart';
 
 class FakeWheelieNotices implements WheelieNotices {
-  final shown = <(WheelieEvent, String)>[];
+  final shown = <(FusionEvent, String)>[];
   final calls = <String>[];
 
   @override
   Future<void> wheelie(WheelieEvent event, {required String file}) async {
     shown.add((event, file));
     calls.add('wheelie');
+  }
+
+  @override
+  Future<void> jump(JumpEvent event, {required String file}) async {
+    shown.add((event, file));
+    calls.add('jump');
   }
 
   @override
@@ -78,7 +85,9 @@ void main() {
     await wait();
 
     final lines = (await logFile().readAsString()).split('\n');
-    expect(lines.first, '# trailbuddy sensor log v1');
+    expect(lines.first, '# trailbuddy sensor log v2');
+    expect(lines.where((l) => l.startsWith('# mount,') || l.startsWith('# range,')), isEmpty,
+        reason: 'ohne Halterung der letzten Fahrt und ohne Messbereich keine Zeile');
     final data = lines.where((l) => l.isNotEmpty && !l.startsWith('#')).toList();
     expect(data, [
       'a,${t.toInt()},0.1000,9.8100,-0.2500',
@@ -139,31 +148,57 @@ void main() {
     expect(await logFile().exists(), isFalse);
   });
 
-  test('ein Wheelie in den Strömen: Zeile e in der Datei, ein Banner, Knopf „verpasst" solange es läuft',
+  test('Wheelie und Sprung in den Strömen: Zeilen e und j, je ein Banner, die Halterung für die nächste Fahrt',
       () async {
+    // Die Halterung der letzten Fahrt: Telefon flach, oben = z, vorn = x.
+    final mountFile = File('${dir.path}/rides/sensors/$kSensorMountFile');
+    await mountFile.parent.create(recursive: true);
+    await mountFile.writeAsString(
+        jsonEncode(const FusionMount(up: (0.0, 0.0, 1.0), forward: (1.0, 0.0, 0.0)).toJson()));
+    bridge[kRideDataSensorRange] = '78.453,34.907';
     await tick();
     expect(notices.calls, ['showMissed ${logFile().path}']);
     const g = 9.80665;
     final us = t.toInt();
-    for (var i = 0; i < 3000; i++) {
-      if (i % 100 == 0) gps.add([us + i * 10000.0, 7.1, 9.2, 4.0, 5.0, 800.0]);
-      final deg = i >= 2000 && i < 2300 ? 25.0 : 0.0;
-      final a = deg * math.pi / 180;
-      accel.add([us + i * 10000.0, 0, g * math.sin(a), g * math.cos(a)]);
+    // 40 s mit 5 m/s; Front hoch um 25° von 20 bis 23 s (der Kreisel dreht
+    // mit), frei fallend 30,0–30,5 s und Landung mit 3 g.
+    double pitch(double s) => 25 * math.pi / 180 * math.max(0.0, math.min(1.0, math.min((s - 20) / 0.3, (23 - s) / 0.3)));
+    for (var i = 0; i < 4000; i++) {
+      final s = i / 100;
+      final at = us + i * 10000.0;
+      if (i % 100 == 0) gps.add([at, 7.1, 9.2, 4.0, 5.0, 800.0]);
+      final p = pitch(s);
+      var f = [g * math.sin(p), 0.0, g * math.cos(p)];
+      if (s >= 30 && s < 30.5) f = [0.0, 0.0, 0.0];
+      if (s >= 30.5 && s < 30.55) f = [0.0, 0.0, 3 * g];
+      accel.add([at, ...f]);
+      gyro.add([at + 2000, 0.0, -(pitch(s + 0.005) - pitch(s - 0.005)) / 0.01, 0.0]);
       if (i % 500 == 0) await Future<void>.delayed(Duration.zero);
     }
     await wait();
-    expect(notices.shown, hasLength(1));
-    final (event, file) = notices.shown.single;
-    expect(file, logFile().path);
-    expect((event.startUs - us) / 1e6, closeTo(20.2, 0.3));
-    final lines = (await logFile().readAsString()).split('\n');
-    expect(lines.where((l) => l.startsWith('e,')), [wheelieEventLine(event).trim()]);
-    expect(lines.first, '# trailbuddy sensor log v1');
-    expect(kSensorLogHeader, contains('# e,start_us,duration_s'));
-
     await stopSensorLog();
-    expect(notices.calls.last, 'cancelMissed');
+
+    expect(notices.calls, ['showMissed ${logFile().path}', 'wheelie', 'jump', 'cancelMissed']);
+    final wheelie = notices.shown[0].$1 as WheelieEvent;
+    final jump = notices.shown[1].$1 as JumpEvent;
+    expect(notices.shown.map((e) => e.$2), everyElement(logFile().path));
+    expect((wheelie.startUs - us) / 1e6, closeTo(20.2, 0.2));
+    expect(wheelie.duration.inMilliseconds / 1000, closeTo(2.8, 0.3));
+    expect(wheelie.maxTiltDeg, closeTo(25, 2));
+    expect((jump.startUs - us) / 1e6, closeTo(30.0, 0.05));
+    expect(jump.landingG, closeTo(3, 0.1));
+    expect(jump.plausible, isTrue);
+
+    final lines = (await logFile().readAsString()).split('\n');
+    expect(lines.first, '# trailbuddy sensor log v2');
+    expect(lines, contains('# mount,0.000000,0.000000,1.000000,1.000000,0.000000,0.000000'));
+    expect(lines, contains('# range,78.453,34.907'));
+    expect(lines.where((l) => l.startsWith('e,')), [wheelieEventLine(wheelie).trim()]);
+    expect(lines.where((l) => l.startsWith('j,')), [jumpEventLine(jump).trim()]);
+    expect(jumpEventLine(jump), matches(RegExp(r'^j,\d+,0\.\d{3},3\.\d\d,1\n$')));
+
+    final saved = FusionMount.fromJson(jsonDecode(await mountFile.readAsString()))!;
+    expect(saved.up.$3, closeTo(1, 1e-3), reason: 'die gelernte Halterung liegt für die nächste Fahrt bereit');
   });
 
   test('die Antwort im Banner: l mit 1 oder 0, „verpasst": m — die Frage an den Trail bleibt unberührt',
@@ -192,7 +227,19 @@ void main() {
 
     final us = at.microsecondsSinceEpoch;
     final data = (await file.readAsString()).split('\n').where((l) => l.isNotEmpty && !l.startsWith('#'));
+    expect(await handleWheelieResponse(actionId: kJumpYes, payload: payload, now: at), isTrue);
+    expect(await handleWheelieResponse(actionId: kJumpNo, payload: payload, now: at), isTrue);
+    expect(
+        await handleWheelieResponse(
+            actionId: kJumpMissed,
+            payload: encodeWheeliePayload(file: file.path),
+            now: at,
+            confirmMissed: noted),
+        isTrue);
+    expect(confirmed, 2);
     expect(data, ['l,$us,$start,1', 'l,$us,$start,0', 'm,$us']);
+    final all = (await file.readAsString()).split('\n').where((l) => l.isNotEmpty && !l.startsWith('#'));
+    expect(all.skip(3), ['k,$us,$start,1', 'k,$us,$start,0', 'n,$us']);
 
     const trailPayload = '{"dir":"/x","uid":"u","ride":"2026-10-30T09:00:00.000Z","trail":"t"}';
     expect(await handleWheelieResponse(actionId: 'confirm_yes', payload: trailPayload), isFalse);

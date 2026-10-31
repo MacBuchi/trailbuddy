@@ -360,6 +360,66 @@ mit GPS-dv/dt über 1,5 m/s² und ohne Kurve gab es nur wenige (0,4 s und
 5. **Rechenzeit**: reines Python 15–19 s je Fahrt für beide Filter und
    alle Schwellen; in Dart auf dem Gerät vernachlässigbar.
 
+## 8. Schritt 4: die Fusion in der Dev-App (2026-10-31, 0.144.0)
+
+Gebaut: `lib/features/rides/sensor_fusion.dart` (Mahony, Halterung,
+Ereignisse) läuft im Logger der Dev-App; `tool/sensor_fusion.py` zieht
+dieselben Regeln nach. Vier Änderungen gegenüber Schritt 3, alle in
+beiden Sprachen:
+
+1. **Lange Wheelies ohne Zeitgrenze** (Betreiber, 2026-10-30: „in
+   Schritt 4"). Weg: das Halten des Wegs für höchstens 20 s, das
+   Verrutschen nach 60 s Kippung, die 60-s-Grenze je Wheelie.
+   Verrutscht ist die Halterung jetzt erst, wenn das Rad gekippt **normal
+   weiterfährt** — fünf Sekunden kräftig bremsen oder antreten
+   (|dv/dt| > 0,8 m/s²) oder Kurve (Gier > 0,15 rad/s), über 29° neben
+   „oben". Ruhig geradeaus zählt nicht, davon unterscheidet sich ein
+   langer Wheelie nicht (Betreiber, 2026-10-31). Folge: Ein Verrutschen
+   auf langer Gerade fällt erst an der nächsten Kurve oder Bremsung auf;
+   bis dahin läuft ein Schein-Wheelie, der dann verworfen wird.
+2. **Der Weg hält nur aus Ruhe**: still nur, wenn die Neigung vorher
+   3 s innerhalb ±10° des Wegs lag. Ohne Zeitgrenze fror der Weg sonst
+   nach „Front runter" ein (er hinkt unten nach, das Zurückkommen der
+   Front stand knapp über 10°) — gefunden, weil Dart dort um eine
+   Rundung anders lag als Python und am folgenden Anstieg einen
+   15-s-Wheelie meldete.
+3. **Ein Wheelie endet mit der Front unten**, nicht beim Langsamwerden;
+   gemeldet wird erst dann, und fällt vorher die Halterung weg, war es
+   keiner. Sonst kam eine um 40° nach oben verrutschte Halterung bei
+   jeder Bremsung als neuer Wheelie, bevor das Verrutschen feststand
+   (synthetische Probe `slip_pitch`).
+4. **Die Halterung der letzten Fahrt** startet die nächste
+   (`rides/sensors/mount.json`, im Kopf der Datei als `# mount,…`, das
+   Werkzeug rechnet von derselben aus); fünf ruhige Sekunden über 17°
+   daneben werfen sie weg.
+
+Die App rechnet fortlaufend, aber mit Verzug: Ein Wert wird verarbeitet,
+sobald ein GPS-Punkt 1,5 s nach ihm da ist (die Vorausschau von dv/dt
+und seiner Änderung); das Banner kommt so 2–3 s nach dem Ereignis, ein
+Sprung nach den 3 s Tempo hinter der Landung.
+
+**Gegenprobe Dart gegen Werkzeug**: dieselbe synthetische Fahrt
+(eigener Zufall `Noise`, in beiden Sprachen bitgleich) und
+`tool/fusion_replay.dart` gegen `airtime_measure.py --fused --list` auf
+beiden Fahrten vom 2026-10-30 — **dieselben Ereignisse**, Zeiten und
+Längen auf die ausgegebene Stelle gleich. Auf den Fahrten:
+
+- Fahrt 1: dieselben 12 Wheelies wie in Schritt 3; der längste jetzt
+  28,4 s statt 23,6 s (die 20-s-Grenze hatte ihn gekappt), der erste
+  3,9 statt 6,5 s (Halten erst aus ruhigem Weg). Kein Verrutschen.
+- Fahrt 2: weiter ein Wheelie und ein unplausibler „Sprung" im
+  Schlussstück (12 g), dazu jetzt ein Verrutschen bei 1332 s (vorher
+  keins — 60 s am Stück gekippt kam dort nicht vor).
+- Fahrt 2 mit der Halterung von Fahrt 1 (so, wie die App sie mitbrächte):
+  „vorn" ab 71 statt 358 s, die Halterung hält, und drei Wheelies mehr
+  vor 358 s — die drei, die Schritt 3 vor dem Lernen von „vorn" verlor.
+
+Sprünge sind auf diesen Fahrten nicht gemessen (keine gefahren); das
+zeigen erst die Abnahmefahrten nach Konzept 8, mit den Antworten auf
+„Sprung erkannt" und „Sprung verpasst". Der Kopf der Datei nennt dafür
+den Messbereich der Sensoren (`# range,…`): Eine Landung am Anschlag
+misst zu wenig.
+
 ## Quellen
 
 - R. Mahony, T. Hamel, J.-M. Pflimlin: Nonlinear Complementary Filters

@@ -193,7 +193,7 @@ Code liegt — nicht wieder hierher.
 | `lib/features/offline_areas/CLAUDE.md` | Der Kachelspeicher, Bereiche als Verweise (#229), die Ebene der Routing-Stücke (#380) · Gespeicherte Bereiche, Werkzeugleiste, Zeichnen (#67, #82) · Höhenkacheln je Bereich (`tool/height_tiles.py`, `height-data.yml`) · Bereiche je Region · Übersicht je Region (#220) |
 | `lib/features/official/CLAUDE.md` | Offizielle Trails in der App |
 | `lib/features/friends/CLAUDE.md` | Nach dem Annehmen einer Buddy-Anfrage · Nachrichten zwischen Buddys (#34) |
-| `lib/features/rides/CLAUDE.md` | Fahrt aufzeichnen · Bestätigen durch Fahren · Das Zerlege-Blatt · Sensor-Rohdaten (#36) · Wheelie mit Rückmeldung |
+| `lib/features/rides/CLAUDE.md` | Fahrt aufzeichnen · Bestätigen durch Fahren · Das Zerlege-Blatt · Sensor-Rohdaten (#36) · Wheelie und Sprung mit Rückmeldung (Fusion) |
 | `lib/features/routing/CLAUDE.md` | Die Routing-Engine, Schritt 3: Graph, Profil, Suche · Steile Anstiege · Vorlieben und verschenkte Höhe · Der Stil „Bequem" · „Zum Trailkopf" · Der Rundenplaner · Kalibrierung aus eigenen Fahrten · Navigation rund · Die Folgeansicht der Navigation · Der Graph entsteht im Rechen-Isolate (#356) · Vorgebackene Routing-Kacheln (#380) |
 | `lib/data/CLAUDE.md` | Ausgangskorb · Zwischenspeicher des Netzes · Speichern ohne Neuladen des Netzes · Beendigungsgründe |
 | `lib/core/CLAUDE.md` | Bewegung · Zurück nach Hierarchie · Der Stall-Wächter (#356) · Push (#34; auch `push_flush`, `send-push`, Web-Worker, Android-Kanal) · SnackBar mit Aktion braucht `persist` (#371) |

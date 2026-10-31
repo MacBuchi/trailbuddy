@@ -5647,11 +5647,11 @@
   "@wheelieNoticeNo": {
     "description": "Dev-App, Wheelie-Messung: Knopf im Banner, Fehlalarm."
   },
-  "wheelieMissedTitle": "Wheelie-Messung läuft",
+  "wheelieMissedTitle": "Wheelie- und Sprung-Messung läuft",
   "@wheelieMissedTitle": {
     "description": "Dev-App, Wheelie-Messung: Titel der stehenden Benachrichtigung während der Fahrt."
   },
-  "wheelieMissedBody": "Kam nach einem Wheelie kein Banner? Gleich danach „Wheelie verpasst“ tippen.",
+  "wheelieMissedBody": "Kam nach einem Wheelie oder Sprung kein Banner? Gleich danach „… verpasst“ tippen.",
   "@wheelieMissedBody": {
     "description": "Dev-App, Wheelie-Messung: Text der stehenden Benachrichtigung."
   },
@@ -5667,6 +5667,38 @@
   "wheelieMissedButton": "Wheelie verpasst",
   "@wheelieMissedButton": {
     "description": "Dev-App, Wheelie-Messung: Knopf der stehenden Benachrichtigung."
+  },
+  "jumpNoticeTitle": "Sprung erkannt",
+  "@jumpNoticeTitle": {
+    "description": "Dev-App, Sprung-Messung (#36): Titel des Banners nach einem erkannten Sprung."
+  },
+  "jumpNoticeBody": "{seconds} s in der Luft · Landung {g} g — stimmt das?",
+  "@jumpNoticeBody": {
+    "description": "Dev-App, Sprung-Messung: Text des Banners. Zahlen schon formatiert; g = Erdbeschleunigungen.",
+    "placeholders": {
+      "seconds": {
+        "type": "String"
+      },
+      "g": {
+        "type": "String"
+      }
+    }
+  },
+  "jumpNoticeBodyImplausible": "{seconds} s in der Luft · Landung {g} g · nicht plausibel (Tempo, Lage oder Spitze) — war es einer?",
+  "@jumpNoticeBodyImplausible": {
+    "description": "Dev-App, Sprung-Messung: Text des Banners, wenn die Plausibilitätsprüfung den Sprung nicht zählen würde.",
+    "placeholders": {
+      "seconds": {
+        "type": "String"
+      },
+      "g": {
+        "type": "String"
+      }
+    }
+  },
+  "jumpMissedButton": "Sprung verpasst",
+  "@jumpMissedButton": {
+    "description": "Dev-App, Sprung-Messung: zweiter Knopf der stehenden Benachrichtigung."
   },
   "aboutPreviewTitle": "Entwicklungsversion öffnen",
   "@aboutPreviewTitle": {

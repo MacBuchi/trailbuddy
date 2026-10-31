@@ -2,6 +2,21 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Wheelies und Sprünge mit aufbereiteten Sensoren
+
+*Version 0.144.0, 2026-10-31*
+
+- Nur in der Entwicklungs-App, mit eingeschalteten Sensor-Rohdaten:
+  Wheelies erkennt jetzt die Signalaufbereitung — sie lernt, wie das
+  Telefon am Rad sitzt, und trennt so Bremsen, Kurven und Schläge von
+  einer echten Neigung. Lange Wheelies werden nicht mehr abgeschnitten.
+- Neu: Nach einem Sprung kommt ein Banner „Sprung erkannt“ mit der Zeit
+  in der Luft und der Landung, dazu „Stimmt“ und „War keiner“; in der
+  Benachrichtigung der Messung gibt es jetzt auch „Sprung verpasst“.
+- Die App merkt sich die Halterung von der letzten Fahrt und erkennt
+  damit schon in den ersten Minuten. Das Banner kommt zwei bis drei
+  Sekunden nach dem Ereignis. In der normalen App ändert sich nichts.
+
 ## Wheelies zählen und gleich bewerten
 
 *Version 0.143.0, 2026-10-30*
