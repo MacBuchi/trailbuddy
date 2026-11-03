@@ -2,6 +2,14 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## Fewer false wheelies
+
+*Version 0.149.1, 2026-11-03*
+
+- Wheelie detection behind the test switch now needs the front 20° up
+  instead of 15°. On almost five hours of test rides every real wheelie
+  was still found, and of seven false ones only one remained.
+
 ## Values on the trail — to try out
 
 *Version 0.149.0, 2026-10-31*

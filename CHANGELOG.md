@@ -2,6 +2,14 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Weniger falsche Wheelies
+
+*Version 0.149.1, 2026-11-03*
+
+- Die Wheelie-Erkennung im Test-Schalter verlangt jetzt 20° statt 15°
+  Front hoch. Auf knapp fünf Stunden Messfahrten blieben damit alle
+  echten Wheelies erkannt, und von sieben falschen blieb einer.
+
 ## Werte auf dem Trail — zum Ausprobieren
 
 *Version 0.149.0, 2026-10-31*
