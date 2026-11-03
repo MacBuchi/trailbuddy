@@ -451,6 +451,50 @@ Landung 3,6–6,0 g) — vermutlich Schläge beim leichten Bremsen; ab
 so bleiben, zeigen erst angesagte Stoppies mit den Antworten auf
 „Stoppie erkannt" und „Stoppie verpasst".
 
+## 10. Die Messfahrten vom 2026-11-01 (0.148.0, offizielle App)
+
+Acht Fahrten, zusammen knapp 5 h (die längste 2,4 h), alle mit
+Live-Ansicht und beantworteten Fragen. 118 Hz, **keine Lücke über
+100 ms** in keiner Datei — der Sensor liefert im Dienst auch über
+Stunden. Die Halterung kam ab der zweiten Fahrt aus der letzten und hielt
+überall. **Dart gleich Werkzeug** (`tool/fusion_replay.dart` gegen
+`airtime_measure.py --fused --list`) auf allen elf Dateien seit dem
+2026-10-30, vor und nach der neuen Schwelle. Gezählt aus den Antworten
+(Mahony, alle acht Fahrten zusammen; „verpasst“ = der Knopf):
+
+| Ereignis, Regel | Treffer | verpasst | Fehlalarme |
+|---|---|---|---|
+| Wheelie 15° / 1 s (bis 0.149.0) | 28 | 3 | 7 |
+| **Wheelie 20° / 1 s** (seit 0.149.1) | 28 | 3 | 1 |
+| Wheelie 20° / 2 s | 26 | 5 | 0 |
+| **Sprung 0,3 g / 150 ms** | 12 | 1 | 0 |
+| Sprung 0,3 g / 200 ms | 9 | 4 | 0 |
+| **Stoppie 10° / 1 m/s²** | 6 | 2 | 22 |
+| Stoppie 15° / 1 m/s² | 2 | 6 | 11 |
+| Stoppie 10° / 2 m/s² | 1 | 7 | 2 |
+
+- **Wheelie**: Die Fehlalarme bei 15° waren kurz (1–2 s) und flach;
+  20° nimmt sechs von sieben weg und keinen Treffer. Der längste
+  bestätigte: 15 s, über 140 m. Die drei verpassten findet keine der
+  Schwellen. Die Startregel verschiebt sich mit: Beginn bei 20°, Ende
+  unter 15°. In beiden Sprachen geändert; die synthetischen Wheelies
+  bei 135 und 280 s sind dafür steiler (26° und 28° statt 18° und 22°).
+  Auf den Fahrten vom 2026-10-30 bleiben bei 20° die 12 von Fahrt 1, der
+  eine fragliche von Fahrt 2 fällt weg.
+- **Sprung**: die Startwerte bleiben. Alle zwölf gemeldeten bestätigt;
+  den verpassten sieht keine Schwelle als Flug (vermutlich ein Hüpfer
+  ohne freien Fall).
+- **Stoppie: so nicht tragfähig.** Winkel (10–38° unten), Bremsen
+  (1,0–2,5 m/s²), Dauer (0,3–2,3 s) und Landespitze (1,0–4,5 g) von
+  Treffern und Fehlalarmen überlappen ganz; ab 1,7 m/s² blieben drei zu
+  drei. Die Fehlalarme liegen gehäuft in steilen, ruppigen Stücken:
+  Dort kippt die Front gegen den Weg, und leicht gebremst wird ohnehin.
+  Nächster Versuch braucht ein anderes Merkmal (etwa die Drehung beim
+  Entlasten des Hinterrads: erst vor, dann schnell zurück), keine neue
+  Schwelle. Bis dahin bleibt die Regel, wie sie ist, als Zahl im Test.
+- Offen: ob der Bildschirm aus war und der Akku vorher/nachher — nicht
+  notiert.
+
 ## Quellen
 
 - R. Mahony, T. Hamel, J.-M. Pflimlin: Nonlinear Complementary Filters

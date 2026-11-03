@@ -64,7 +64,7 @@ LANDING_WINDOW_S = 0.3
 PLAUSIBLE_KMH = 10.0
 SPEED_WINDOW_S = 3.0
 PEAK_MAX_G = 8.0
-TILT_LIMITS_DEG = (10.0, 15.0, 20.0)  # start value 15 deg (concept 2)
+TILT_LIMITS_DEG = (10.0, 15.0, 20.0)  # start value 15 deg (concept 2), fused rule 20 deg since 2026-11-01
 MIN_WHEELIE_S = (0.5, 1.0, 2.0)
 WHEELIE_KMH = 8.0
 RELEASE_DEG = 5.0    # ends 5 deg under the start limit (15 -> 10)
@@ -498,8 +498,10 @@ def report_fused(log: Log, listing: bool) -> str:
                     row += f" {f['hits']} | {f['missed']} | {f['false_alarms']} | {f['unlabelled']} |"
                 lines.append(row)
         if listing:
-            lines.append(f"wheelies ({method}) at 15 deg / 1 s against the way:")
-            for w in sensor_fusion.wheelies(fused, 15.0, 1.0):
+            lines.append(f"wheelies ({method}) at {sensor_fusion.WHEELIE_TILT_DEG:.0f} deg / "
+                         f"{sensor_fusion.WHEELIE_MIN_S:.0f} s against the way:")
+            for w in sensor_fusion.wheelies(fused, sensor_fusion.WHEELIE_TILT_DEG,
+                                            sensor_fusion.WHEELIE_MIN_S):
                 answer = next((log.answers.get(t) for t, d in log.events
                                if w["t"] <= t + d and t <= w["t"] + w["duration"]), None)
                 label = {True: "Stimmt", False: "War keiner", None: ""}[answer]

@@ -81,7 +81,8 @@ Die Halterung entscheidet, was überhaupt messbar ist (Entwurf 1e,
   misst der Wert den Untergrund. Bedingung 2 trennt nebenbei Sturz von
   Landung — ein Sturz wird nicht als Wert gezeigt.
 - **Manual**: Neigung über 15° gegen die Fahrposition bei Fahrt
-  (> 8 km/h), Länge in Metern aus GPS-Tempo × Zeit (Entwurf, Zustand
+  (> 8 km/h; gemessen 20° gegen den Weg, Recherche Sensorfusion
+  Abschnitt 10), Länge in Metern aus GPS-Tempo × Zeit (Entwurf, Zustand
   „Manual erkannt"). Nur mit Lenkerhalterung: In der Tasche kippt das
   Telefon nicht mit dem Rad. **Wheelie und Manual sind für den Sensor
   dasselbe** (Vorderrad hoch); ob dabei getreten wird, sieht das Telefon
@@ -426,6 +427,11 @@ wollen auch fertig werden"):
    ob und wie ein Stoppie in Werte oder Titel eingeht, ist eine
    Entscheidung zu Abschnitt 11, bevor Schritt 5 oder 6 ihn zeigt.
    Nose-Manual nicht (Betreiber: macht mit dem MTB kaum jemand).
+   **Gemessen** (2026-11-01, acht Fahrten, knapp 5 h, Recherche
+   Abschnitt 10): Die Regel trennt echte Stoppies nicht von leichtem
+   Bremsen im Steilen (6 Treffer, 22 Fehlalarme), keine Schwelle hilft —
+   sie braucht ein anderes Merkmal, bevor ein Stoppie mehr als eine Zahl
+   im Test wird.
    4c. **Live-Ansicht und Erkennung in der offiziellen App** (0.148.0,
    Betreiber 2026-10-31): Der Schalter steht auch in der offiziellen
    App, ab Werk aus, als Test benannt — gemessen wird so auf dem Gerät,

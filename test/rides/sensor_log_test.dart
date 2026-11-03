@@ -204,7 +204,8 @@ void main() {
     final jump = notices.shown[1].$1 as JumpEvent;
     expect(notices.shown.map((e) => e.$2), everyElement(logFile().path));
     expect((wheelie.startUs - us) / 1e6, closeTo(20.2, 0.2));
-    expect(wheelie.duration.inMilliseconds / 1000, closeTo(2.8, 0.3));
+    // 20° hoch, 15° runter (seit 2026-11-01; mit 15°/10° waren es 2,8 s).
+    expect(wheelie.duration.inMilliseconds / 1000, closeTo(2.5, 0.2));
     expect(wheelie.maxTiltDeg, closeTo(25, 2));
     expect((jump.startUs - us) / 1e6, closeTo(30.0, 0.05));
     expect(jump.landingG, closeTo(3, 0.1));

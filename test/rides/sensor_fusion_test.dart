@@ -109,8 +109,8 @@ List<(String, double, List<double>)> _synthetic({bool slipPitch = false}) {
     final pitch = _rad(25) * _ramp(t, 90, 92) -
         _rad(20) * _ramp(t, 110, 112.5) +
         _rad(10) * _ramp(t, 128, 145, 3.0) +
-        _rad(18) * _ramp(t, 135, 137) +
-        _rad(22) * _ramp(t, 280, 282) +
+        _rad(26) * _ramp(t, 135, 137) +
+        _rad(28) * _ramp(t, 280, 282) +
         _rad(40) * _ramp(t, 310, 400, 1.0) -
         _rad(18) * _ramp(t, 410.3, 411.6);
     return (_mm(_mm(_rz(yaw), _ry(-pitch)), _rx(roll)), v, yaw, yawRate);
@@ -199,15 +199,15 @@ void main() {
   test('dieselben Ereignisse wie das Werkzeug', () {
     final (fusion, events) = _run();
     final wheelies = events.whereType<WheelieEvent>().toList();
-    // Das Werkzeug (Mahony): 90,20/1,60 · 135,30/1,50 · 280,27/1,56 · 310,48/89,27 s.
-    const expected = [(90.20, 1.60), (135.30, 1.50), (280.27, 1.56), (310.48, 89.27)];
+    // Das Werkzeug (Mahony, 20° seit 2026-11-01): 90,30/1,50 · 135,30/1,50 · 280,27/1,56 · 310,58/88,96 s.
+    const expected = [(90.30, 1.50), (135.30, 1.50), (280.27, 1.56), (310.58, 88.96)];
     expect(wheelies, hasLength(4), reason: '$wheelies');
     for (final (i, (start, duration)) in expected.indexed) {
       expect(_s(wheelies[i].startUs), closeTo(start, 0.11), reason: 'Wheelie $i');
       expect(wheelies[i].duration.inMicroseconds / 1e6, closeTo(duration, 0.11), reason: 'Wheelie $i');
     }
     expect(wheelies.last.maxTiltDeg, closeTo(40.6, 1), reason: 'der lange, 40°');
-    expect(wheelies.last.lengthM, closeTo(6 * 89.27, 5));
+    expect(wheelies.last.lengthM, closeTo(6 * 88.96, 5));
 
     final jumps = events.whereType<JumpEvent>().toList();
     expect(jumps, hasLength(1));
@@ -277,7 +277,7 @@ void main() {
     final starts = [for (final w in events.whereType<WheelieEvent>()) _s(w.startUs)];
     expect(starts.where((t) => t >= 140 && t <= 235), isEmpty, reason: '$starts');
     // Danach fehlt die Zeit, „vorn" neu zu lernen (nur eine Bremsung bei 250 s).
-    expect(starts, [closeTo(90.2, 0.11), closeTo(135.3, 0.11)], reason: 'die echten davor bleiben');
+    expect(starts, [closeTo(90.3, 0.11), closeTo(135.3, 0.11)], reason: 'die echten davor bleiben');
   });
 
   test('die Live-Ansicht liest nur mit: dieselben Ereignisse, je Takt ein Zustand', () {

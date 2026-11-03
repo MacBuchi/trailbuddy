@@ -88,6 +88,8 @@ ROAD_S = 3.0                  # pitch low-passed over this is the way
 HOLD_DEG = 10.0               # the way holds still while the front is this high
 RIDING_KMH = 8.0
 RELEASE_DEG = 5.0
+WHEELIE_TILT_DEG = 20.0       # the app's rule (15 until the rides of 2026-11-01)
+WHEELIE_MIN_S = 1.0
 FLIGHT_SMOOTH_S = 0.04
 LANDING_WINDOW_S = 0.3
 PLAUSIBLE_KMH = 10.0
@@ -905,10 +907,10 @@ def synthetic(seed: int = 1, slip_pitch: bool = False):
     up); brake/accelerate at 20, 30, 40 s (learn forward); hard braking
     60-64 s (NO pitch); left curve 70-80 s with its lean; wheelie 25 deg
     at 90 s; a 0.5 s jump at 100 s landing with 3 g; nose down 20 deg at
-    110 s (no wheelie); a 10 deg climb from 128 s with a 18 deg wheelie on
+    110 s (no wheelie); a 10 deg climb from 128 s with a 26 deg wheelie on
     top at 135 s; the mount slips by 60 deg at 150 s (seen at the braking
     from 215 s, riding straight tells nothing); braking again at 230/240/
-    250 s; a wheelie at 280 s; a 90 s wheelie at 40 deg from 310 s (no
+    250 s; a 28 deg wheelie at 280 s; a 90 s wheelie at 40 deg from 310 s (no
     slip: it rides straight); a stoppie at 410 s, front 18 deg down while
     braking 3 m/s^2 nearly to a stop, the rear landing with 1.8 g. slip_pitch: the mount tips 40 deg front up
     instead -- a wheelie until the braking shows the slip, and then none.
@@ -943,7 +945,7 @@ def synthetic(seed: int = 1, slip_pitch: bool = False):
         roll = -math.atan2(v * yaw_rate, G)
         pitch = (math.radians(25) * _ramp(t, 90, 92) - math.radians(20) * _ramp(t, 110, 112.5)
                  + math.radians(10) * _ramp(t, 128, 145, rise=3.0)
-                 + math.radians(18) * _ramp(t, 135, 137) + math.radians(22) * _ramp(t, 280, 282)
+                 + math.radians(26) * _ramp(t, 135, 137) + math.radians(28) * _ramp(t, 280, 282)
                  + math.radians(40) * _ramp(t, 310, 400, rise=1.0)
                  - math.radians(18) * _ramp(t, 410.3, 411.6))
         return mm(mm(_rz(yaw), _ry(-pitch)), _rx(roll)), v, yaw, yaw_rate
@@ -1001,7 +1003,7 @@ def _self_test() -> None:
         assert max(abs(rel[fused.ticks[k][0]]) for k in curve) < 5, (method, "curve as pitch")
         rolls = [abs(fused.ticks[k][2]) for k in curve]
         assert 16 < statistics.median(rolls) < 24, (method, "lean", statistics.median(rolls))
-        found = wheelies(fused, 15.0, 1.0)
+        found = wheelies(fused, WHEELIE_TILT_DEG, WHEELIE_MIN_S)
         starts = sorted(round(w["t"]) for w in found)
         assert len(starts) == 4 and abs(starts[0] - 90) <= 1 and abs(starts[1] - 135) <= 1 \
             and abs(starts[2] - 280) <= 1 and abs(starts[3] - 310) <= 1, (method, found)
@@ -1034,7 +1036,7 @@ def _self_test() -> None:
     rel = dict(pitch_against_way(fused))
     assert max(rel[t] for t in rel if 160 <= t <= 210) > 30, "the slip must look like a wheelie"
     assert len(fused.mount.slips) == 1, fused.mount.slips
-    assert not [w for w in wheelies(fused, 15.0, 1.0) if 140 <= w["t"] <= 235], "slip as wheelie"
+    assert not [w for w in wheelies(fused, WHEELIE_TILT_DEG, WHEELIE_MIN_S) if 140 <= w["t"] <= 235], "slip as wheelie"
     # The last ride's mount: right, it stands from the first second and
     # holds; wrong (the phone turned a quarter on the bar), five quiet
     # seconds drop it and the ride learns anew.
@@ -1043,14 +1045,14 @@ def _self_test() -> None:
     m = fused.mount
     assert m.carried and m.dropped_at is None and m.ready(), "the right mount holds"
     assert fused.ticks[5][1] == fused.ticks[5][1], "pitch from the start"
-    assert len(wheelies(fused, 15.0, 1.0)) == 4
+    assert len(wheelies(fused, WHEELIE_TILT_DEG, WHEELIE_MIN_S)) == 4
     turned = mm(_rx(math.radians(90)), truth["mount0"])
     fused = fuse(acc, gyro, fixes, "mahony",
                  carried=(mv(turned, EZ), mv(turned, (1.0, 0.0, 0.0))))
     m = fused.mount
     assert m.dropped_at is not None and m.dropped_at <= 10, ("the wrong mount stays", m.dropped_at)
     assert m.fwd_at is not None and m.fwd_at <= 45 and len(m.slips) == 1, (m.fwd_at, m.slips)
-    assert len(wheelies(fused, 15.0, 1.0)) == 4
+    assert len(wheelies(fused, WHEELIE_TILT_DEG, WHEELIE_MIN_S)) == 4
     # The pieces on their own.
     q = q_from_gravity((0.0, G, 0.0))
     assert norm(sub(mv(qrot(q), (0.0, 1.0, 0.0)), EZ)) < 1e-9

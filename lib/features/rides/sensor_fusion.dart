@@ -32,8 +32,10 @@ import 'dart:math' as math;
 
 const kG = 9.80665;
 
-// Ereignisse (Startwerte aus Konzept 2, gemessen in Schritt 3).
-const kFusionWheelieTiltDeg = 15.0;
+// Ereignisse (Startwerte aus Konzept 2, gemessen in Schritt 3). Wheelie
+// 20° statt 15° seit den Messfahrten vom 2026-11-01 (Recherche
+// Abschnitt 10): dieselben 28 Treffer, von 7 Fehlalarmen bleibt einer.
+const kFusionWheelieTiltDeg = 20.0;
 const kFusionWheelieMinS = 1.0;
 const kFusionFlightG = 0.3;
 const kFusionFlightMinMs = 150.0;
