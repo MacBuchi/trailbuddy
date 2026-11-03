@@ -49,6 +49,8 @@ Recherche in `docs/recherche-sensorfusion.md` (Betreiber, 2026-10-30:
 erst aufbereiten, dann erkennen).
 Hinweis und Meldung sind seit 0.147.0 ein Eintrag (#433): Plan in
 `docs/konzept-melden.md`.
+Die Garmin-Uhr (Connect IQ, erst fēnix 5) hat ihr Konzept in
+`docs/konzept-garmin.md` — Anzeige, kein Sensor; Code in `garmin/`.
 Offizielle Trails (#13) sind eine getrennte Ebene mit eigenem Konzept:
 `docs/konzept-offizielle-trails.md`. Gebaut von `official-trails.yml`
 (`tool/official_trails.py`, Quellen in `tool/official/sources.json`)

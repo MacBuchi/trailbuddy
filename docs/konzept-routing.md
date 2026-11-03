@@ -69,7 +69,8 @@ Nicht-Ziele, damit sie nicht hineinwachsen:
   eine Dauerbenachrichtigung über den `location`-Dienst der Aufzeichnung
   und ein Bild-im-Bild-Fenster (Android PiP — nicht
   `SYSTEM_ALERT_WINDOW`, das Play nur eng zulässt). Die Regeln stehen in
-  Abschnitt 9.
+  Abschnitt 9. Die Garmin-Uhr zeigt dieselbe Route und vibriert als
+  einzige einmal beim Abkommen (`docs/konzept-garmin.md`, 2026-11-03).
 - **Kein Routing über fremde Gegenden.** Gerechnet wird nur, wo ein
   gespeicherter Bereich liegt; ohne Bereich sagt das Blatt das und
   bietet die Übergabe an. Seit 0.74.0 über die Kacheln, die DA sind,
@@ -925,7 +926,9 @@ offline.
 - **Abseits** heißt mehr als 30 m neben der Linie, zwei Fixe in Folge
   (dieselben 30 m wie „kein Weg" bei den Zwischenpunkten, 4). Dann wird
   der Abstand in Warnfarbe gezeigt, und ein Pfeil am Rand zeigt zum
-  nächsten Punkt der Linie voraus. Kein Ton, keine Vibration.
+  nächsten Punkt der Linie voraus. Kein Ton, keine Vibration — in der
+  App; die Garmin-Uhr vibriert bei derselben Regel einmal
+  (`docs/konzept-garmin.md` 1).
 - **„Zurück zur Route"** (Betreiber, 2026-10-08: zeigen plus Knopf,
   kein automatisches Neurechnen): ein A* vom Standort zum nächsten Punkt
   der Linie, der mindestens 200 m voraus liegt — offline, über
