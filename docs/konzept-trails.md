@@ -1166,7 +1166,11 @@ der Cloud, keine Statistik über alle. **Seit 2026-10-05 mit einer Ausnahme**
 dreht mit, eigene Position, Route und Abstand zur Linie, eine
 Dauerbenachrichtigung und ein Bild-im-Bild-Fenster über anderen Apps.
 Abbiegehinweise und Sprachausgabe gibt es weiter nicht; die Übergabe an
-die Navi-App (#151, GPX) bleibt der Weg für alles darüber hinaus. Die
+die Navi-App (#151, GPX) bleibt der Weg für alles darüber hinaus.
+**Seit 2026-11-03 auch auf der Garmin-Uhr** (Betreiber,
+`docs/konzept-garmin.md`): Die Uhr-App zeigt dieselbe Route und
+vibriert einmal beim Abkommen; Connect IQ transportiert nur, es ist
+keine Konto-Kopplung. Die
 Grenzen stehen in `docs/konzept-routing.md` bei den Nicht-Zielen. **Die eine Planungsfunktion ist
 der Planer** (9, #158), und sein Kern ist Trail-zuerst, weil das keine andere App hat
 (seit #356 ein Werkzeug für Runde und Route: der Weg zum Trailkopf oder von A nach B ist

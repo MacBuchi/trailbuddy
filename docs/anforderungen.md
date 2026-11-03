@@ -66,8 +66,13 @@ OB andere einen Trail haben.
 Outdooractive, Strava, Garmin oder Trailforks. Die Anmeldung über
 Google & Co. (#398) ist keine Kopplung: Der Anbieter bestätigt nur, wer
 man ist (Adresse, Name, Kennung), und erfährt nichts über Trails,
-Fahrten oder Buddys; die App schickt ihm nichts.
-*Quelle:* Konzept 13, #156 (Positionierung), #398 (Betreiber 2026-10-27).
+Fahrten oder Buddys; die App schickt ihm nichts. Ebenso keine Kopplung
+ist die Uhr-App über Connect IQ (`docs/konzept-garmin.md`): Die
+Garmin-Connect-App auf dem Handy reicht nur die Route an die Uhr
+weiter, TrailBuddy hat kein Garmin-Konto, und die Uhr zeichnet keine
+Garmin-Aktivität auf.
+*Quelle:* Konzept 13, #156 (Positionierung), #398 (Betreiber 2026-10-27),
+`konzept-garmin.md` 0 (Betreiber 2026-11-03).
 *Geprüft durch:* `test/privacy_policy_test.dart` (jeder Host), Review
 von `pubspec.yaml` (kein OAuth-Paket).
 
@@ -125,13 +130,16 @@ global.
 
 **A12 — Navigation zeigt, sie sagt nicht an.** Keine Abbiegehinweise,
 keine Sprachausgabe; der Navigationsmodus zeigt Route, Position und
-Abstand. Geplant wird nur über Kacheln, die auf dem Gerät liegen (mit
+Abstand. Die eine Ausnahme ist die Uhr: Sie vibriert einmal, wenn man
+die Route verlässt — eine Warnung, kein Abbiegehinweis
+(`konzept-garmin.md` 0, Betreiber 2026-11-03). Geplant wird nur über Kacheln, die auf dem Gerät liegen (mit
 Empfang ergänzt vom eigenen Host). Es gibt EINEN Planer — Runde oder
 Route in einem Werkzeug, sein Kern Trail-zuerst; eine Route von A nach B
 ist der Fall ohne gewählten Trail. Planen hält die Oberfläche nie an:
 Graph und Rechnung laufen außerhalb des UI-Isolates, ein zu großes Gebiet
 weist der Planer ab, bevor er liest.
-*Quelle:* Konzept 13, `konzept-routing.md` (Nicht-Ziele, Abschnitt 10).
+*Quelle:* Konzept 13, `konzept-routing.md` (Nicht-Ziele, Abschnitt 10),
+`konzept-garmin.md` (die Uhr).
 *Geprüft durch:* Review.
 
 ## Bedienung und Aussehen
