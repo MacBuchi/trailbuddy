@@ -122,6 +122,8 @@ android {
             } else {
                 signingConfigs.getByName("debug")
             }
+            // Zusätzlich zu Flutters eigenen R8-Regeln: das Garmin-SDK.
+            proguardFiles("proguard-rules.pro")
         }
     }
 }

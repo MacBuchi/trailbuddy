@@ -239,15 +239,21 @@ function ringAngles(logger as Logger) as Boolean {
 function phoneRouteJoinsParts(logger as Logger) as Boolean {
     var acc = {} as Dictionary;
     PhoneRoute.append(acc, {"t" => "r", "id" => "t", "p" => 0, "n" => 2, "v" => 1,
-        "sec" => [[1, 2, 2, "Testtrail"]], "pts" => [0, 0, 0, 300], "ele" => [500, 520]});
+        "sec" => [[1, 2, 2, "Testtrail"]], "pts" => [0, 0, 0, 300], "ele" => [500, 520],
+        "br" => [1, 30, 0]});
     PhoneRoute.append(acc, {"t" => "r", "id" => "t", "p" => 1, "n" => 2,
-        "pts" => [0, 300, 0, 300], "ele" => [505, 540]});
+        "pts" => [0, 300, 0, 300], "ele" => [505, 540], "br" => [2, 0, -30, 3, 30, 0]});
     var r = NavRoute.decoded(acc);
     Test.assertEqual(r.size(), 4);
     Test.assert(r.lengthM > 1000.0 && r.lengthM < 1001.5);
     Test.assertEqual(r.secName[0], "Testtrail");
     Test.assert(!r.relative);
     Test.assertEqual((acc["ele"] as Array).size(), 4);
+    // Die Stummel aller Stücke hängen aneinander, die Nummern sind die der
+    // ganzen Linie.
+    Test.assertEqual(r.brAt.size(), 3);
+    Test.assertEqual(r.brAt[1], 2);
+    Test.assert(r.brY[0] > 33.0 && r.brY[0] < 34.0);
     return true;
 }
 

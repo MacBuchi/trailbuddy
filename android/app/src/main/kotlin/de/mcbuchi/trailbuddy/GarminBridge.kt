@@ -4,11 +4,13 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
 import com.garmin.android.connectiq.ConnectIQ
 import com.garmin.android.connectiq.IQApp
 import com.garmin.android.connectiq.IQDevice
 import io.flutter.plugin.common.BinaryMessenger
 import io.flutter.plugin.common.MethodChannel
+import java.util.concurrent.Executors
 
 /**
  * Die Route auf die Garmin-Uhr (docs/konzept-garmin.md, Abschnitt 3):
@@ -34,10 +36,25 @@ class GarminBridge(private val context: Context, messenger: BinaryMessenger) {
 
         /** Paket der Garmin-Connect-App (`<queries>` im Manifest des SDK). */
         const val GARMIN_CONNECT = "com.garmin.android.apps.connectmobile"
+
+        /**
+         * So lange wartet ein Stück auf die Bestätigung. Ohne Grenze hinge
+         * das Senden für immer, wenn die Uhr-App nicht antwortet (gesehen im
+         * Simulator) — das Handy zeigte dann weder Erfolg noch Fehler.
+         */
+        const val ACK_TIMEOUT_MS = 20_000L
     }
 
     private val channel = MethodChannel(messenger, CHANNEL)
     private val main = Handler(Looper.getMainLooper())
+
+    /**
+     * Gesendet wird hier, nie auf dem UI-Thread: Im Simulator-Modus
+     * (`GARMIN_TETHERED`) schläft `sendMessage` erst „Simulating BLE" (2–3 s)
+     * und schreibt dann auf einen Socket — auf dem UI-Thread wirft Android
+     * `NetworkOnMainThreadException` (gesehen am Pixel), und die Karte stünde.
+     */
+    private val io = Executors.newSingleThreadExecutor()
 
     private var iq: ConnectIQ? = null
     private var ready = false
@@ -75,6 +92,7 @@ class GarminBridge(private val context: Context, messenger: BinaryMessenger) {
         }
         iq = null
         ready = false
+        io.shutdownNow()
     }
 
     private fun connectInstalled(): Boolean = try {
@@ -184,14 +202,16 @@ class GarminBridge(private val context: Context, messenger: BinaryMessenger) {
 
     /**
      * Der Reihe nach an die erste verbundene Uhr; jede Nachricht wartet auf
-     * die Bestätigung der vorigen. Ergebnis: `SUCCESS` oder der Name des
-     * ersten Fehlers (`FAILURE_MESSAGE_TOO_LARGE` …), dazu wie viele
+     * die Bestätigung der vorigen, höchstens [ACK_TIMEOUT_MS]. Ergebnis:
+     * `SUCCESS` oder der Name des ersten Fehlers
+     * (`FAILURE_MESSAGE_TOO_LARGE`, `FAILURE_TIMEOUT` …), dazu wie viele
      * angekommen sind.
      */
     private fun send(messages: List<Any>, result: MethodChannel.Result) {
         val sdk = iq
         val id = appId
         if (sdk == null || !ready || id == null) {
+            Log.i("TB-GARMIN", "send NOT_READY")
             result.success(mapOf("status" to "NOT_READY", "sent" to 0))
             return
         }
@@ -201,27 +221,50 @@ class GarminBridge(private val context: Context, messenger: BinaryMessenger) {
             null
         }
         if (device == null) {
+            Log.i("TB-GARMIN", "send FAILURE_DEVICE_NOT_CONNECTED")
             result.success(mapOf("status" to "FAILURE_DEVICE_NOT_CONNECTED", "sent" to 0))
             return
         }
         val app = IQApp(id)
-        fun next(i: Int) {
-            if (i >= messages.size) {
-                main.post { result.success(mapOf("status" to "SUCCESS", "sent" to i)) }
-                return
+        var finished = false
+        var pending: Runnable? = null
+        fun finish(status: String, sent: Int) {
+            main.post {
+                if (finished) return@post
+                finished = true
+                Log.i("TB-GARMIN", "send $status after $sent of ${messages.size}")
+                pending?.let { main.removeCallbacks(it) }
+                result.success(mapOf("status" to status, "sent" to sent))
             }
-            try {
-                sdk.sendMessage(device, app, messages[i], object : ConnectIQ.IQSendMessageListener {
-                    override fun onMessageStatus(device: IQDevice, app: IQApp, status: ConnectIQ.IQMessageStatus) {
-                        if (status == ConnectIQ.IQMessageStatus.SUCCESS) {
-                            next(i + 1)
-                        } else {
-                            main.post { result.success(mapOf("status" to status.name, "sent" to i)) }
+        }
+        fun next(i: Int) {
+            if (i >= messages.size) return finish("SUCCESS", i)
+            // Bleibt die Bestätigung aus: `FAILURE_TIMEOUT`, das Handy zeigt
+            // den Fehler; eine späte Bestätigung danach zählt nicht mehr.
+            val timeout = Runnable { finish("FAILURE_TIMEOUT", i) }
+            main.post {
+                pending?.let { main.removeCallbacks(it) }
+                pending = timeout
+                main.postDelayed(timeout, ACK_TIMEOUT_MS)
+            }
+            io.execute {
+                try {
+                    sdk.sendMessage(device, app, messages[i], object : ConnectIQ.IQSendMessageListener {
+                        override fun onMessageStatus(device: IQDevice, app: IQApp, status: ConnectIQ.IQMessageStatus) {
+                            main.post {
+                                if (finished || pending !== timeout) return@post
+                                if (status == ConnectIQ.IQMessageStatus.SUCCESS) {
+                                    next(i + 1)
+                                } else {
+                                    finish(status.name, i)
+                                }
+                            }
                         }
-                    }
-                })
-            } catch (e: Exception) {
-                main.post { result.success(mapOf("status" to "FAILURE_UNKNOWN", "sent" to i)) }
+                    })
+                } catch (e: Exception) {
+                    Log.w("TB-GARMIN", "sendMessage", e)
+                    finish("FAILURE_UNKNOWN", i)
+                }
             }
         }
         next(0)

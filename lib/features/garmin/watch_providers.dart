@@ -3,21 +3,69 @@
 // Navigation, wenn „Auf der Uhr zeigen" an ist; ab da schickt der
 // Controller jeden neuen Bestwert der Erkennung (#36) hinterher, bis die
 // Fahrt endet. Nichts davon wird gespeichert (A3).
+//
+// Die Abzweigungen (`br`) rechnet ein eigener Rechen-Isolate auf dem
+// Graphen des Korridors unter der Linie ([loadWatchBranches]): Beim Start
+// der Navigation liegt kein Wegegraph im Speicher, und eine Fahrt aus
+// „Meine Fahrten" hatte nie einen.
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../../core/errors.dart';
+import '../../core/line_geometry.dart' show LatBox;
+import '../../core/settings.dart';
+import '../../core/stall_watch.dart';
+import '../profile/profile_providers.dart' show riderProfileProvider;
 import '../rides/airtime_live.dart';
 import '../rides/ride_providers.dart' show rideProvider;
+import '../routing/loop_plan_runner.dart' show loopPlanRunnerFactoryProvider;
+import '../routing/loop_planner.dart' show LoopPrefs;
 import '../routing/nav_sections.dart';
+import '../routing/planning_graph.dart' show loadPlanningGraph;
+import '../routing/road_graph_loader.dart' show tilesAlong;
 import '../trails/terrain_heights.dart';
 import 'garmin_bridge.dart';
+import 'watch_branches.dart';
 import 'watch_route.dart';
 
 /// So lange wartet das Senden auf die Höhen; danach geht die Route ohne.
 const kWatchHeightsWait = Duration(seconds: 5);
+
+/// So lange wartet das Senden auf die Abzweigungen (Kacheln lesen,
+/// Graph bauen); danach geht die Route ohne Stummel. Startwert bis zur
+/// Messung am Gerät (8.2).
+const kWatchBranchesWait = Duration(seconds: 15);
+
+/// Der Korridor um die Linie, dessen Kacheln der Graph der Abzweigungen
+/// liest — ein Stummel ist 40 m lang, der Rest ist Luft für den Rand.
+const kWatchBranchCorridorM = 100.0;
+
+/// Die Stummel entlang einer Linie — die Naht für Tests.
+final watchBranchesLoaderProvider =
+    Provider<Future<List<WatchBranch>> Function(List<LatLng> line)>((ref) => (line) => loadWatchBranches(ref, line));
+
+/// Liest die Kacheln unter [line] (wie der Planer: Bereiche, vorgebackene
+/// Stücke, mit Empfang und Schalter vom Host), baut den Graphen in einem
+/// eigenen Rechen-Isolate und rechnet dort die Stummel. Ohne Kachel keine.
+Future<List<WatchBranch>> loadWatchBranches(Ref ref, List<LatLng> line) async {
+  if (line.length < 2) return const [];
+  final profile = ref.read(riderProfileProvider);
+  final prefs = LoopPrefs.parse(ref.read(settingsProvider).loopPlannerPrefs, profile);
+  final loaded = await StallWatch.time('watch.graph', () => loadPlanningGraph(ref, LatBox.of(line),
+      fillOnline: prefs.fillOnline, only: tilesAlong(line, kWatchBranchCorridorM)));
+  final input = loaded.input;
+  if (input == null) return const [];
+  final runner = ref.read(loopPlanRunnerFactoryProvider)();
+  try {
+    final report = await runner.build(input);
+    unawaited(loaded.keep(report)); // neu gebackene Stücke (#380)
+    return await StallWatch.time('watch.branches', () => runner.run(WatchBranchesJob(line)));
+  } finally {
+    runner.dispose();
+  }
+}
 
 /// Was die Uhr weiß — gefragt, wenn das Startblatt der Navigation
 /// aufgeht. Auf einer Plattform ohne Uhr (Web, Test) fragt niemand.
@@ -66,12 +114,21 @@ class WatchSync extends Notifier<WatchSyncState> {
   }
 
   /// Die Route an die Uhr: vereinfacht, mit Höhen, falls sie in
-  /// [kWatchHeightsWait] kommen, in Stücken. Kommt später „gespeichert"
-  /// mit derselben Kennung zurück, steht [WatchSyncPhase.stored].
+  /// [kWatchHeightsWait] kommen, und den Abzweigungen, falls sie in
+  /// [kWatchBranchesWait] kommen (beides zugleich), in Stücken. Kommt
+  /// später „gespeichert" mit derselben Kennung zurück, steht
+  /// [WatchSyncPhase.stored].
   Future<WatchSendResult> sendRoute(List<LatLng> points, NavSections sections) async {
     final bridge = ref.read(garminBridgeProvider);
     _answers ??= bridge.messages.listen(_onAnswer);
     state = const WatchSyncState(phase: WatchSyncPhase.sending);
+    final branchesSoon = ref
+        .read(watchBranchesLoaderProvider)(points)
+        .timeout(kWatchBranchesWait, onTimeout: () => const <WatchBranch>[])
+        .catchError((Object e, StackTrace s) {
+      logError('Abzweigungen für die Uhr', e, s);
+      return const <WatchBranch>[];
+    });
     final heights = await ref
         .read(terrainHeightsProvider)
         .profile(points)
@@ -80,7 +137,8 @@ class WatchSync extends Notifier<WatchSyncState> {
       logError('Höhen für die Uhr', e, s);
       return null;
     });
-    final route = watchRouteOf(points, sections, heights: heights);
+    final branches = await branchesSoon;
+    final route = watchRouteOf(points, sections, heights: heights, branches: branches);
     if (route == null) {
       state = const WatchSyncState(phase: WatchSyncPhase.failed, error: 'EMPTY');
       return const WatchSendResult('EMPTY', 0);

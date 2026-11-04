@@ -72,6 +72,12 @@ Garmin-Aktivität, kein Netz, keine Abbiegehinweise.
   Platzhalter-Route, dann laden), beide zusammen passten nicht in 124 KB.
   Berechtigung `Communications` im Manifest. Die Fassung `PROTOCOL` liest
   `test/garmin/watch_route_test.dart` aus dieser Datei.
+- **Abzweigungen vom Handy** (`br`, Konzept 2): kommen je Stück mit den
+  Punkten, die sie tragen (Nummer der ganzen Linie), `PhoneRoute.append`
+  hängt sie an; `NavView` sieht beim Zeichnen alle an — `seg` schneidet
+  mit vier Vergleichen aus, 300 Stummel sind ~6 000 Schritte. Eine
+  Grenze nach Weg entlang der Route wäre an Serpentinen falsch (ein Punkt
+  1,5 km später liegt 50 m daneben).
 - **`==` vergleicht Zeichenketten als Objekte**, nicht nach Inhalt: Eine
   Kennung aus `Application.Storage` oder einer Nachricht ist nie `==` dem
   Literal. Immer `"r".equals(t)` bzw. `id.equals(…)` — so lief die

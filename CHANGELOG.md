@@ -2,6 +2,21 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Abzweigungen auf der Garmin-Uhr
+
+*Version 0.151.0, 2026-11-04*
+
+- Die Route auf der Uhr zeigt jetzt an jeder Kreuzung ein kurzes graues
+  Stück des Wegs, der abgeht. So sieht man, wo man abbiegen kann und
+  wohin die Route weitergeht — ohne Karte und ohne Abbiegehinweis.
+- Die Wege kommen aus den gespeicherten Bereichen (mit Empfang auch vom
+  Server) und aus den Trails, die du in der App siehst.
+- Antwortet die Uhr nicht, sagt das Handy nach spätestens 20 Sekunden,
+  dass die Route nicht angekommen ist — vorher wartete es still. Das
+  Senden hält die Karte nicht mehr an.
+- Mit einer gekoppelten Garmin-Uhr stürzte die App ab, sobald das
+  Startblatt der Navigation nach der Uhr fragte. Behoben.
+
 ## Die Route auf der Garmin-Uhr
 
 *Version 0.150.0, 2026-11-04*

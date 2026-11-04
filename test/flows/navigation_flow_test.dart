@@ -107,7 +107,9 @@ final _routeStartLat = _southLat + 0.0006;
   return (x.round(), y.round());
 }
 
-Future<MemoryAreaStore> _areaWithTrack() async {
+/// [crossing]: dazu ein Querweg nach Osten und Westen bei 48,0° (#449,
+/// die Abzweigungen für die Uhr).
+Future<MemoryAreaStore> _areaWithTrack({bool crossing = false}) async {
   final store = MemoryAreaStore();
   final tiles = <TileToWrite>[];
   for (var dx = -1; dx <= 1; dx++) {
@@ -118,7 +120,11 @@ Future<MemoryAreaStore> _areaWithTrack() async {
         _tile.x + dx,
         _tile.y + dy,
         mvtTile(own
-            ? [road([_px(_southLat - 0.0002, _wayLng), _px(48.0 + 0.0005, _wayLng)], 'path', kindDetail: 'track')]
+            ? [
+                road([_px(_southLat - 0.0002, _wayLng), _px(48.0 + 0.0005, _wayLng)], 'path', kindDetail: 'track'),
+                if (crossing)
+                  road([_px(48.0, _wayLng - 0.002), _px(48.0, _wayLng + 0.002)], 'path', kindDetail: 'track'),
+              ]
             : []),
       ));
     }
@@ -539,6 +545,42 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('nav-go')));
     await settle(tester);
     expect(none.sent, isEmpty);
+  });
+
+  testWidgets('#449: die Route an die Uhr trägt die Abzweigungen aus dem Bereich unter der Linie', (tester) async {
+    store.rides
+      ..clear()
+      ..add(Ride(
+        id: '20261008T090000Z',
+        startedAt: DateTime.utc(2026, 10, 8, 9),
+        endedAt: DateTime.utc(2026, 10, 8, 10),
+        points: [
+          for (var lat = _routeStartLat; lat <= 48.0004; lat += 0.0002)
+            RidePoint(lat: lat, lng: _wayLng, at: DateTime.utc(2026, 10, 8, 9), accuracyM: 0),
+        ],
+        planned: true,
+        name: 'Hausrunde',
+      ));
+    final watch = FakeGarminBridge.connected();
+    await startFromRides(tester,
+        garmin: watch, areaStore: await _areaWithTrack(crossing: true), start: LatLng(_routeStartLat, _wayLng));
+    await tester.tap(find.byKey(const ValueKey('nav-go')));
+    await settle(tester, frames: 20);
+    final parts = watch.routeParts;
+    expect(parts, isNotEmpty);
+    final br = [for (final p in parts) ...?(p['br'] as List?)];
+    expect(br, hasLength(6), reason: 'zwei Stummel an der einen Kreuzung, Osten und Westen');
+    // 40 m nach Osten und Westen, quer zur Route nach Norden.
+    final dLon = (40 / (111194.93 * math.cos(48.0 * math.pi / 180)) * 1e5);
+    expect([br[2], br[5]].map((v) => (v as int).abs()).toSet().single, closeTo(dLon, 2));
+    expect((br[1] as int).abs() + (br[4] as int).abs(), lessThanOrEqualTo(2));
+    // Der Punkt der Kreuzung ist ein Punkt der Linie an 48,0°.
+    final pts = [for (final p in parts) ...(p['pts'] as List).cast<int>()];
+    var lat = 0;
+    for (var i = 0; i <= (br[0] as int); i++) {
+      lat += pts[2 * i];
+    }
+    expect(lat / 1e5, closeTo(48.0, 0.0002));
   });
 
   testWidgets('#449 G2: mit verbundener Uhr geht die Route hin, die Antwort der Uhr sagt die Leiste', (tester) async {
