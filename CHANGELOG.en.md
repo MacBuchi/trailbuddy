@@ -2,6 +2,19 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## The watch stays connected more reliably
+
+*Version 0.152.1, 2026-11-04*
+
+- Re-plan on the way while the old route is still going to the watch,
+  and the new one now arrives afterwards — before, it could get lost.
+- While the phone waits for the watch, it asks again a few times instead
+  of waiting for an answer that was lost.
+- If Garmin Connect restarts during the ride, the app finds the watch
+  again by itself.
+- The start sheet says "Looking for the watch …" until it is clear
+  whether a watch is connected.
+
 ## The watch fetches the route by itself
 
 *Version 0.152.0, 2026-11-04*

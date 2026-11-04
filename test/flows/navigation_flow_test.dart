@@ -22,7 +22,7 @@ import 'package:pmtiles/pmtiles.dart';
 import 'package:trailbuddy/core/picture_in_picture.dart';
 import 'package:trailbuddy/core/screen_awake.dart';
 import 'package:trailbuddy/features/garmin/garmin_bridge.dart' show WatchOpen, WatchSendResult;
-import 'package:trailbuddy/features/garmin/watch_providers.dart' show kWatchAckWait;
+import 'package:trailbuddy/features/garmin/watch_providers.dart' show kWatchAckWait, kWatchNudges;
 import 'package:trailbuddy/features/map/map_view/map_view.dart';
 import 'package:trailbuddy/features/offline_areas/area_plan.dart';
 import 'package:trailbuddy/features/offline_areas/area_store.dart';
@@ -689,6 +689,73 @@ void main() {
     watch.reconnect();
     await settle(tester, frames: 4);
     expect(watch.sent.length, batches, reason: 'ohne Navigation folgt die Uhr nichts mehr');
+  });
+
+  testWidgets('#449: eine neue Route während einer laufenden Übertragung geht danach, nie zwei zugleich',
+      (tester) async {
+    final gate = Completer<void>();
+    final watch = FakeGarminBridge.connected()
+      ..autoStore = true
+      ..sendGate = gate;
+    await startFromRides(tester, garmin: watch);
+    await tester.tap(find.byKey(const ValueKey('nav-go')));
+    await settle(tester, frames: 10);
+    expect(watch.routeParts.where((m) => m['p'] == 0), hasLength(1), reason: 'die erste läuft noch');
+    final container = ProviderScope.containerOf(tester.element(find.byKey(const ValueKey('nav-stop'))));
+    container
+        .read(navigationProvider.notifier)
+        .start([for (var i = 0; i <= 10; i++) LatLng(_lat + 0.001 * i, 11)], 'Neu geplant');
+    await settle(tester, frames: 10);
+    expect(watch.routeParts.where((m) => m['p'] == 0), hasLength(1), reason: 'wartet auf die erste');
+    gate.complete();
+    await settle(tester, frames: 10);
+    final starts = watch.routeParts.where((m) => m['p'] == 0).toList();
+    expect(starts, hasLength(2), reason: 'die neue ging hinterher, statt verschluckt zu werden');
+    expect(starts.first['id'], isNot(starts.last['id']));
+    expect(watch.maxRouteSends, 1);
+    expect(find.byKey(const ValueKey('map-watch-stored')), findsOneWidget);
+  });
+
+  testWidgets('#449: wartet das Handy auf die Uhr, fragt es drei Mal nach — nicht öfter', (tester) async {
+    final watch = FakeGarminBridge.connected()..openResult = WatchOpen.prompted;
+    await startFromRides(tester, garmin: watch);
+    await tester.tap(find.byKey(const ValueKey('nav-go')));
+    await settle(tester, frames: 10);
+    expect(watch.queries, 0);
+    for (final (i, wait) in kWatchNudges.indexed) {
+      await tester.pump(wait);
+      await settle(tester, frames: 2);
+      expect(watch.queries, i + 1);
+    }
+    await tester.pump(const Duration(minutes: 5));
+    await settle(tester, frames: 2);
+    expect(watch.queries, kWatchNudges.length, reason: 'kein Abfragen im Takt');
+    // Ein spätes „hallo" holt die Route trotzdem.
+    watch.hello(null);
+    await settle(tester, frames: 4);
+    expect(watch.routeParts, isNotEmpty);
+  });
+
+  testWidgets('#449: hat die Uhr bestätigt, fragt das Handy nicht nach', (tester) async {
+    final watch = FakeGarminBridge.connected()..autoStore = true;
+    await startFromRides(tester, garmin: watch);
+    await tester.tap(find.byKey(const ValueKey('nav-go')));
+    await settle(tester, frames: 10);
+    await tester.pump(const Duration(minutes: 2));
+    await settle(tester, frames: 2);
+    expect(watch.queries, 0);
+  });
+
+  testWidgets('#449: solange die Uhr gesucht wird, sagt es das Startblatt', (tester) async {
+    final gate = Completer<void>();
+    final watch = FakeGarminBridge.connected()..statusGate = gate;
+    await startFromRides(tester, garmin: watch);
+    expect(find.byKey(const ValueKey('nav-watch-searching')), findsOneWidget);
+    expect(find.byKey(const ValueKey('nav-watch')), findsNothing);
+    gate.complete();
+    await settle(tester, frames: 4);
+    expect(find.byKey(const ValueKey('nav-watch-searching')), findsNothing);
+    expect(find.byKey(const ValueKey('nav-watch')), findsOneWidget);
   });
 
   testWidgets('#449: ohne „gespeichert" sagt die Leiste, dass die Uhr nicht antwortet', (tester) async {

@@ -174,7 +174,25 @@ angekommen (beantwortet 8.2). Deshalb:
   Handy noch rechnet, wartet auf die fertige Route.
 - **Neu verbunden** meldet Garmin Connect (`device`, `CONNECTED`), dann
   fragt das Handy `{t: "q"}`, und eine laufende Uhr-App antwortet mit
-  „hallo". Kein Abfragen im Takt.
+  „hallo". Kein Abfragen im Takt — nur ein kurzes Nachfassen: Wartet das
+  Handy auf die Uhr (sie fragt „öffnen?", oder ein „gespeichert" blieb
+  aus), schickt es nach 5, 15 und 45 s noch einmal `q`
+  (`kWatchNudges`), dann wartet es still. Ein verlorenes „hallo" holte
+  sonst erst das nächste Wiederverbinden nach.
+- **Eine Übertragung nach der anderen.** Kommt eine neue Route, während
+  die alte noch hinübergeht, geht sie danach (`WatchSync._push`); vorher
+  fiel sie still weg. Auch `GarminBridge.kt` stellt jedes `send` hinten
+  an: Zwei Folgen zugleich mischten ihre Stücke, und die Uhr finge bei
+  jeder neuen Kennung ihr Fach von vorn an.
+- **Garmin Connect neu gestartet** (`onSdkShutDown`: Update, vom System
+  beendet): `open` und `send` starten das SDK wieder und lauschen erneut
+  auf die Uhr — vorher kam bis zum nächsten Startblatt nichts mehr an.
+  Scheitert der Start, bekommen alle Wartenden den Fehler, nicht nur der
+  erste.
+- **Das Startblatt sagt „Uhr wird gesucht …"**, solange die erste Frage
+  nach der Uhr läuft (das SDK startet, Garmin Connect antwortet bei
+  Entwickler-Apps erst nach 3 s) — sonst tauchte der Schalter erst auf,
+  wenn man schon „Los" getippt hatte.
 - **Die Uhr folgt der Navigation, bis sie endet**: Jede neue Linie der
   Navigation (eine neue Route, auch ohne neues Startblatt) geht von
   selbst hinterher, mit erneutem Anstoßen; die Uhr wechselt die Route

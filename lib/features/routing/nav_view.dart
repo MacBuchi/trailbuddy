@@ -25,7 +25,7 @@ import '../../core/picture_in_picture.dart';
 import '../../core/screen_awake.dart';
 import '../../data/providers.dart' show currentUserIdProvider;
 import '../../l10n/l10n.dart';
-import '../garmin/garmin_bridge.dart' show WatchStatus;
+import '../garmin/garmin_bridge.dart' show WatchStatus, garminBridgeProvider;
 import '../garmin/watch_providers.dart' show watchStatusProvider;
 import '../map/map_buttons.dart';
 import '../map/map_view/map_view.dart';
@@ -124,7 +124,12 @@ class _NavStartSheetState extends ConsumerState<_NavStartSheet> {
     final l = context.l10n;
     final screen = ref.watch(screenAwakeProvider).supported;
     final summary = widget.summary;
-    final watch = ref.watch(watchStatusProvider).valueOrNull ?? WatchStatus.none;
+    final watchAsk = ref.watch(watchStatusProvider);
+    final watch = watchAsk.valueOrNull ?? WatchStatus.none;
+    // Die erste Frage nach der Uhr startet das SDK und kann Sekunden
+    // dauern: Die Zeile sagt es, statt dass der Schalter später auftaucht
+    // und wer schnell „Los" tippt, ohne Uhr startet.
+    final watchSearching = watchAsk.isLoading && ref.watch(garminBridgeProvider).supported;
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
@@ -156,6 +161,18 @@ class _NavStartSheetState extends ConsumerState<_NavStartSheet> {
                 subtitle: Text(l.navScreenSubtitle),
                 value: ref.watch(navKeepScreenOnProvider),
                 onChanged: (v) => ref.read(navKeepScreenOnProvider.notifier).set(v),
+              ),
+            if (watchSearching)
+              Padding(
+                key: const ValueKey('nav-watch-searching'),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                child: Row(children: [
+                  const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)),
+                  const SizedBox(width: 12),
+                  Expanded(
+                      child: Text(l.navWatchSearching,
+                          style: theme.textTheme.bodyMedium?.copyWith(color: theme.hintColor))),
+                ]),
               ),
             if (watch.canShow)
               SwitchListTile(
