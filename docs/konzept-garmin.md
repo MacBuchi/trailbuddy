@@ -179,6 +179,13 @@ offene App (`airtimeLiveProvider`); im Hintergrund kommt nichts nach.
   zeigt ihn. Das SDK startet erst, wenn das Startblatt der Navigation
   fragt. Gegen den Simulator: Dev-App mit
   `--dart-define=GARMIN_TETHERED=true` und `adb forward tcp:7381 tcp:7381`.
+  Erst das Startblatt öffnen (das SDK lauscht), dann im Simulator „adb
+  Connection → Start", dann das Blatt neu öffnen — sonst fehlt der
+  Schalter. Gesendet wird auf einem eigenen Thread: Im Simulator-Modus
+  schläft `sendMessage` 2–3 s und schreibt auf einen Socket, auf dem
+  UI-Thread warf Android `NetworkOnMainThreadException`. Jedes Stück
+  wartet höchstens 20 s auf die Bestätigung, dann `FAILURE_TIMEOUT`.
+  Logcat-Marke `TB-GARMIN` (Ergebnis jedes Sendens).
 - **Web**: keine Uhr. Wie das Aufzeichnen bleibt das Android (A9).
 - **Nachrichten klein halten.** Wie groß eine Nachricht werden darf und
   wie lange die Übertragung dauert, ist zu messen (Abschnitt 8);

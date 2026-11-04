@@ -11,6 +11,9 @@
   wohin die Route weitergeht — ohne Karte und ohne Abbiegehinweis.
 - Die Wege kommen aus den gespeicherten Bereichen (mit Empfang auch vom
   Server) und aus den Trails, die du in der App siehst.
+- Antwortet die Uhr nicht, sagt das Handy nach spätestens 20 Sekunden,
+  dass die Route nicht angekommen ist — vorher wartete es still. Das
+  Senden hält die Karte nicht mehr an.
 
 ## Die Route auf der Garmin-Uhr
 
