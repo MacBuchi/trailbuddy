@@ -54,20 +54,40 @@ dunkle Infofläche, „Was kommt als Nächstes?" statt „Wie weit noch?".
 - **Unten die Infofläche** (schwarz, ab y 168 — darunter wird der Kreis
   zu schmal für zwei Zeilen): vor einem Trail dessen Schild und Name,
   darunter Weg und Anstieg bis zum Trailkopf; auf dem Trail Schild,
-  Name, ein Balken des gefahrenen Anteils in S-Farbe und der Rest; ohne
+  Name und der Rest (den Anteil zeigt der Ring); ohne
   Trail voraus „BIS ZUM ZIEL" mit Rest-km und Rest-hm. Abseits wird die
   Fläche zur Warnfarbe mit dem Abstand, dazu ein gestrichelter Strich
   und ein Pfeil zum Punkt der Linie 50 m voraus (wie 9.3).
+- **Der Ring außen herum** (Entwurf „Ring und Seiten" im Designer,
+  2026-11-04; Betreiber: „den Balken (wie weit, wann kommt der nächste
+  Trail) ringförmig außen herum", Variante A): Ein Umlauf ist die
+  ganze Route, im Uhrzeigersinn, Start und Ziel oben an einer Lücke.
+  Gefahren Lime (abseits in Warnfarbe), voraus Grau, die Trails als
+  Blöcke in ihrer S-Farbe (dunkler Satz, der Ring liegt in einem
+  schwarzen Rand), eine weiße Marke für die eigene Position. „Wie
+  weit" ist die Füllung, „wann kommt der nächste Trail" der Abstand
+  der Marke zum nächsten Block. Der Ring steht auf jeder Seite.
+- **Drei Seiten, fest, ohne Einstellungen** (Betreiber: „im
+  Zweifelsfall mehr als eine Seite, aber nicht zu kompliziert"):
+  Karte; „Fahrt" (Tempo groß, Fahrzeit, Strecke, bergauf, Puls);
+  „Berg" (Steigung über die letzten 30 m aus dem Barometer, Höhe,
+  bergauf bis zum nächsten Trailkopf und bis zum Ziel, Uhrzeit; klein
+  Akku und Speicher für die Messungen). Der Puls vom Handgelenk
+  dezent in Grau (Betreiber: „Ja, aber dezent"). Alle Werte misst die
+  Uhr selbst; sie stehen nur im Speicher der laufenden App, nichts
+  wird gespeichert oder verschickt (A3, Entscheidung 1: Anzeige).
+  Fahrzeit und Strecke zählen ab 1 m/s, bergauf mit 3 m Hysterese.
 - **„Angekommen"** wie in der App (unter 30 m vom Ende bzw. letzter
-  Abschnitt einer Runde), mit Länge und Höhenmetern der Route.
+  Abschnitt einer Runde), mit einer Zusammenfassung (Betreiber: „Ja"):
+  Strecke, Fahrzeit, bergauf und die befahrenen Trails als Schilder.
 - **Vibrieren beim Abkommen** (Entscheidung 3): einmal, wenn „abseits"
   beginnt — dieselbe Regel wie 9.3 (mehr als 30 m neben der Linie, zwei
   Fixe in Folge). Kein zweites Vibrieren, bis man wieder auf der Linie
   war; nichts beim Zurückkommen, nichts vor Abzweigen.
-- **Tasten**: hoch/runter zoomt (drei Stufen: 1, 2,5 und 6 m je Pixel),
-  START schaltet zwischen Karte und einer dunklen Zahlenseite (Tempo,
-  Zeit, Höhe, Rest; klein Akku und Speicher für die Messungen), ZURÜCK
-  beendet nach Rückfrage. Tippziele gibt es nicht; A13 heißt hier:
+- **Tasten**: START blättert Karte → Fahrt → Berg; hoch/runter zoomt
+  auf der Karte (drei Stufen: 1, 2,5 und 6 m je Pixel) und blättert auf
+  den Zahlenseiten; beim Abkommen kommt die Karte von selbst nach vorn.
+  ZURÜCK beendet nach Rückfrage. Tippziele gibt es nicht; A13 heißt hier:
   große Schrift, kräftige Linien.
 
 Kein Kartenbild: Die fēnix 5 hat keine Karten, und Kacheln passen nicht
@@ -195,7 +215,8 @@ Aus der Gerätedatei des SDK 9.3.0 und der Uhr selbst:
    je Punkt auf ~29 KB Grundlast. 3000 und 4000 Punkte: „Out of Memory"
    schon beim Laden, weil rohe Daten und dekodierte Felder kurz
    zusammen im Speicher liegen. Grenze für G2: 2000 Punkte (Abschnitt
-   2). Am Gerät nachmessen.
+   2). Mit Ring und Seiten (2026-11-04): 2000 Punkte 76 KB. Am Gerät
+   nachmessen.
 2. **Übertragung**: größte Nachricht, die ankommt; Dauer für eine
    typische Runde.
 3. **Akku**: Prozent je Stunde mit GPS jede Sekunde und Anzeige an.
@@ -211,15 +232,23 @@ Aus der Gerätedatei des SDK 9.3.0 und der Uhr selbst:
    am ersten GPS-Fix verankert; eine eigene Route geht mit
    `tool/garmin_build.sh --gpx` (ohne Abschnitte, nur unter `build/`).
    Messung 1 im Simulator erledigt, 3 bis 5 am Gerät offen.
+   Ring, drei Seiten und Zusammenfassung bei der Ankunft am selben Tag
+   (Entwurf „Ring und Seiten").
 2. **G2 — Protokoll und Android-Brücke** (`feat`, Bump): Kodierung in
    Dart, Brücke, Schalter „Auf der Uhr zeigen", Datenschutz und
-   Play-Console; Messung 2.
+   Play-Console; Messung 2. Idee des Betreibers (2026-11-04) für die
+   Brücke: Das Handy schickt während der Fahrt die Bestwerte seiner
+   Erkennung (#36) — weitester und höchster Sprung, längster Wheelie,
+   größter Wheelie-Winkel —, die Uhr zeigt sie auf „Fahrt" und in der
+   Zusammenfassung. Nur Zahlen, keine Spur; bleibt auf Handy und Uhr
+   (A3). Die Uhr misst dabei weiter nichts (Entscheidung 1).
 3. **G3 — Abnahme am Gerät** (📱) und die Entscheidung zum Store.
 
 ## 10. Abgleich mit den Kernanforderungen
 
 - A1, A2: nur die Trails der Route, die der Nutzer schon sieht.
-- A3: keine Fahrt von der Uhr, keine Garmin-Aktivität.
+- A3: keine Fahrt von der Uhr, keine Garmin-Aktivität; die Zahlen der
+  Seiten (Strecke, Puls, bergauf) nur im Speicher der laufenden App.
 - A5: Ausnahme nach Entscheidung 2.
 - A6: Datenschutz und Play-Console mit G2.
 - A7: Schlüssel und Testrouten nie im Repo; die Testroute in G1 ist
