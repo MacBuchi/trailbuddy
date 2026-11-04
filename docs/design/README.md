@@ -873,3 +873,18 @@ in JetBrains Mono 28, in `accentText` während einer Phase. Die Fragen:
 „War keiner" als `OutlinedButton`, „Stimmt" als `FilledButton`, je die
 halbe Breite. Verkleinert ein `IconButton.filled` (48 dp, A13) mit dem
 Sensor-Symbol und der Zahl offener Fragen als `Badge`.
+
+## 15. Die Uhr (fēnix 5, #449) — `garmin/source/NavView.mc`
+
+*Entwurf im Designer am 2026-11-04 („Uhr-Ansicht: Stand G1 und
+Vorschlag"), Konzept `docs/konzept-garmin.md` Abschnitt 1.* Die
+Folgeansicht aus Abschnitt 13, geschnitten für 240 × 240 Pixel MIP mit
+64 Farben und ohne Glättung: **Karte hell** (weißer Grund, Band „B+" mit
+Rand in Moos, Trails in ihrer Stufenfarbe, gefahrener Teil als dünne
+Linie in Moos, Abzweigungen als graue Stummel von 40 m, Schild als Form am
+Trailkopf voraus), **Infofläche schwarz** ab y 168 mit dem dunklen Satz
+(Schild + Name des nächsten Trails, Weg und Anstieg in Lime; auf dem
+Trail ein Balken in Stufenfarbe; abseits die ganze Fläche in Warnfarbe).
+Position bei y 128, „N" am Rand, Zahlenseite dunkel. Die Farben sind je
+die nächste MIP-Farbe zur App-Farbe (`garmin/source/Colors.mc`, geprüft
+von `tool/garmin_route.py --self-test`); am Gerät in der Sonne prüfen.

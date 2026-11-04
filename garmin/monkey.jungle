@@ -1,0 +1,3 @@
+project.manifest = manifest.xml
+# Der Vorführmodus gehört nur in den Simulator (tool/garmin_build.sh --demo).
+base.excludeAnnotations = demo
