@@ -87,6 +87,13 @@ Garmin-Aktivität, kein Netz, keine Abbiegehinweise.
   ruft `equals` auf dem Wert) — für null `Test.assert(x == null)`. Nach
   so einem Fehler hing der Simulator beim nächsten `--test`: Prozesse
   `monkeydo`/`simulator` beenden, dann neu.
+- **„Hallo"** (`sayHello` in `TrailBuddyApp`): beim Start und auf `q`
+  vom Handy `{t: "hi", v, id}` mit `PhoneRoute.currentId()` — der
+  Kennung der GESPEICHERTEN Route, nicht der geladenen (eine fertig
+  empfangene wartet vielleicht noch auf den Wechsel). Das Handy schickt
+  daraufhin die aktuelle Route, wenn sie abweicht (Konzept 2, „Das Handy
+  stößt an"). `test/garmin/watch_route_test.dart` hält `hi`/`q` mit
+  Dart und Kotlin zusammen.
 - **Bestwerte** (`RideStats.bests`, vierte Seite „Sprünge" in `NavView`,
   Zeile in der Zusammenfassung): nur im Speicher, bleiben über einen
   Routenwechsel. Die Seite gibt es erst, wenn welche kamen (`pages()`).

@@ -846,25 +846,15 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       }
     }
     final nav = ref.read(navigationProvider.notifier);
+    // Vor dem Start: Die Uhr folgt dieser Navigation (die Route geht, sobald
+    // sie steht) — oder, mit dem Schalter aus, keiner mehr.
+    ref.read(watchSyncProvider.notifier).follow(choice.watch);
     if (!_beginNavigation(request.points, request.title, request.startAlongM, request.sections,
         profile: request.profile, routePrefs: request.routePrefs)) {
       return;
     }
     nav.onFix(LatLng(fix.latitude, fix.longitude), headingDeg: fix.heading, speedMps: fix.speed, at: fix.timestamp);
     _follow();
-    if (choice.watch) unawaited(_sendToWatch(request.points, request.sections ?? NavSections.none));
-  }
-
-  /// Die Route an die Garmin-Uhr (Konzept-Garmin 2). „Gespeichert" sagt
-  /// die Leiste, sobald die Uhr antwortet (`ref.listen` im Aufbau);
-  /// scheitert das Senden, sagt sie das — die Navigation hier läuft
-  /// weiter.
-  Future<void> _sendToWatch(List<LatLng> points, NavSections sections) async {
-    final messenger = ScaffoldMessenger.of(context);
-    final l = context.l10n;
-    final result = await ref.read(watchSyncProvider.notifier).sendRoute(points, sections);
-    if (!mounted || result.ok) return;
-    messenger.showSnackBar(SnackBar(key: const ValueKey('map-watch-failed'), content: Text(l.mapWatchFailed)));
   }
 
   bool _beginNavigation(List<LatLng> points, String title, double startAlongM, NavSections? sections,
@@ -1149,10 +1139,25 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     // Einmal auf das Netz zoomen, sobald es da ist; danach nie wieder
     // von selbst — wer die Karte verschoben hat, will nicht zurückgeholt
     // werden.
-    ref.listen(watchSyncProvider.select((s) => s.phase), (previous, phase) {
-      if (phase != WatchSyncPhase.stored || previous == WatchSyncPhase.stored) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(key: const ValueKey('map-watch-stored'), content: Text(context.l10n.mapWatchStored)));
+    // Die Uhr (Konzept-Garmin 3): „auf der Uhr" erst mit ihrem
+    // „gespeichert"; die Navigation hier läuft in jedem Fall weiter.
+    ref.listen(watchSyncProvider, (previous, next) {
+      if (previous?.phase == next.phase) return;
+      final l = context.l10n;
+      final (key, text) = switch (next.phase) {
+        WatchSyncPhase.stored => ('map-watch-stored', l.mapWatchStored),
+        WatchSyncPhase.prompted => ('map-watch-prompted', l.mapWatchPrompted),
+        WatchSyncPhase.unconfirmed => ('map-watch-unconfirmed', l.mapWatchUnconfirmed),
+        WatchSyncPhase.failed when next.error == 'APP_IS_NOT_INSTALLED' =>
+          ('map-watch-missing', l.mapWatchMissing),
+        WatchSyncPhase.failed => ('map-watch-failed', l.mapWatchFailed),
+        _ => (null, null),
+      };
+      if (key == null || text == null) return;
+      // Der neue Stand ersetzt den alten, statt sich hinten anzustellen.
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(key: ValueKey(key), content: Text(text)));
     });
     ref.listen(trailsProvider, (_, next) {
       final list = next.valueOrNull;

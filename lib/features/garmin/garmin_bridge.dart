@@ -67,6 +67,31 @@ class WatchSendResult {
   }
 }
 
+/// Was `openApplication` sagt (Betreiber 2026-11-04: das Handy stößt die
+/// Uhr-App an, wenn die Navigation mit „Auf der Uhr zeigen" beginnt).
+enum WatchOpen {
+  /// Die App läuft schon — senden.
+  running,
+
+  /// Die Uhr fragt „TrailBuddy öffnen?" — die Route geht, sobald die App
+  /// startet und sich meldet (`hi`).
+  prompted,
+
+  /// Unsere App liegt nicht auf der Uhr.
+  notInstalled,
+
+  /// Keine Frage gezeigt, keine Antwort, kein SDK: trotzdem senden — eine
+  /// per USB geladene App meldet Garmin Connect nicht immer.
+  unknown;
+
+  static WatchOpen fromChannel(Object? raw) => switch (raw) {
+        'APP_IS_ALREADY_RUNNING' => running,
+        'PROMPT_SHOWN_ON_DEVICE' => prompted,
+        'APP_IS_NOT_INSTALLED' => notInstalled,
+        _ => unknown,
+      };
+}
+
 abstract interface class GarminBridge {
   /// Gibt es den Weg auf dieser Plattform? Sonst fragt niemand.
   bool get supported;
@@ -77,8 +102,16 @@ abstract interface class GarminBridge {
   /// Der Reihe nach an die verbundene Uhr.
   Future<WatchSendResult> send(List<Map<String, Object>> messages);
 
-  /// Was die Uhr zurückschickt (nur „gespeichert", Konzept 2).
+  /// Die Uhr-App öffnen (Garmins Frage auf der Uhr, wenn sie nicht läuft).
+  Future<WatchOpen> open();
+
+  /// Was die Uhr zurückschickt: „gespeichert" (`ok`) und „hallo" (`hi`,
+  /// Konzept 2).
   Stream<Object?> get messages;
+
+  /// Die Uhr ist (wieder) verbunden — Garmin Connect meldet es, kein
+  /// Abfragen im Takt.
+  Stream<void> get connected;
 }
 
 final garminBridgeProvider = Provider<GarminBridge>((ref) => createGarminBridge());

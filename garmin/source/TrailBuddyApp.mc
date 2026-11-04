@@ -13,7 +13,8 @@ import Toybox.WatchUi;
 //! Handy (G2, `PhoneRoute`) und liegt danach im Speicher der Uhr; ohne
 //! eine gespeicherte die erfundene Testroute aus der Ressource (G1).
 //! Eigenes GPS, keine Garmin-Aktivität (kein ActivityRecording, Konzept
-//! 4), kein Netz — nur die eine Antwort „gespeichert" an das Handy.
+//! 4), kein Netz — an das Handy nur „hallo" (`hi`, mit der Kennung der
+//! gespeicherten Route) und „gespeichert" (`ok`).
 class TrailBuddyApp extends Application.AppBase {
     hidden var _route as NavRoute;
     hidden var _tracker as NavTracker;
@@ -63,7 +64,19 @@ class TrailBuddyApp extends Application.AppBase {
         }
         if (Communications has :registerForPhoneAppMessages) {
             Communications.registerForPhoneAppMessages(method(:onPhone));
+            sayHello();
         }
+    }
+
+    //! „Hallo" an das Handy, beim Start und auf seine Frage `q`: die
+    //! Kennung der gespeicherten Route (Betreiber 2026-11-04). Weicht sie
+    //! von der Navigation auf dem Handy ab, schickt es die aktuelle; folgt
+    //! die Uhr keiner Navigation, bleibt die Nachricht ohne Antwort.
+    hidden function sayHello() as Void {
+        var msg = {"t" => "hi", "v" => PhoneRoute.PROTOCOL} as Dictionary;
+        var id = PhoneRoute.currentId();
+        if (id != null) { msg["id"] = id; }
+        Communications.transmit(msg, null, new PhoneAck());
     }
 
     hidden function startLoader() as Void {
@@ -105,6 +118,10 @@ class TrailBuddyApp extends Application.AppBase {
         var d = msg.data;
         if (!(d instanceof Dictionary)) { return; }
         var t = d["t"];
+        if ("q".equals(t)) {
+            sayHello();
+            return;
+        }
         if ("b".equals(t)) {
             _bests = d;
             _stats.bests = d;
@@ -114,7 +131,7 @@ class TrailBuddyApp extends Application.AppBase {
         if (!"r".equals(t)) { return; }
         var id = PhoneRoute.take(d);
         if (id == null) { return; }
-        // Die einzige Antwort (Konzept 2): gespeichert, mit Kennung.
+        // Die Antwort auf eine vollständige Route (Konzept 2): gespeichert.
         Communications.transmit({"t" => "ok", "id" => id}, null, new PhoneAck());
         if (id.equals(_route.id) && _route.isReady()) { return; }
         _pendingId = id;
@@ -302,7 +319,8 @@ class NavDelegate extends WatchUi.BehaviorDelegate {
 }
 
 //! Die Antwort an das Handy: Ob sie ankommt, ändert nichts — die Route
-//! liegt ohnehin auf der Uhr.
+//! liegt ohnehin auf der Uhr; ein verlorenes „hallo" holt die nächste
+//! Frage `q` nach.
 class PhoneAck extends Communications.ConnectionListener {
     function initialize() {
         ConnectionListener.initialize();

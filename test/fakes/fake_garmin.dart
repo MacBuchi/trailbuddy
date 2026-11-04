@@ -16,6 +16,13 @@ class FakeGarminBridge implements GarminBridge {
   WatchSendResult result;
   final sent = <List<Map<String, Object>>>[];
   final _messages = StreamController<Object?>.broadcast();
+  final _connected = StreamController<void>.broadcast();
+
+  /// Was `openApplication` sagt: ab Werk läuft die Uhr-App schon.
+  WatchOpen openResult = WatchOpen.running;
+
+  /// So oft wurde die Uhr-App angestoßen.
+  int opens = 0;
 
   /// Antwortet die Uhr gleich auf jedes vollständige Senden der Route?
   bool autoStore = false;
@@ -35,7 +42,19 @@ class FakeGarminBridge implements GarminBridge {
     return result.ok ? WatchSendResult('SUCCESS', messages.length) : result;
   }
 
+  @override
+  Future<WatchOpen> open() async {
+    opens++;
+    return openResult;
+  }
+
   void answer(Object? message) => _messages.add(message);
+
+  /// Garmin Connect meldet die Uhr wieder verbunden.
+  void reconnect() => _connected.add(null);
+
+  /// Die Uhr-App startet und meldet sich mit der Route, die sie hat.
+  void hello(String? id) => answer({'t': 'hi', 'id': ?id, 'v': 1});
 
   /// Alle gesendeten Stücke der Route (ohne Bestwerte).
   List<Map<String, Object>> get routeParts =>
@@ -45,4 +64,10 @@ class FakeGarminBridge implements GarminBridge {
 
   @override
   Stream<Object?> get messages => _messages.stream;
+
+  @override
+  Stream<void> get connected => _connected.stream;
+
+  /// Die Anfragen „welche Route hast du?" (`q`).
+  int get queries => [for (final batch in sent) ...batch.where((m) => m['t'] == 'q')].length;
 }

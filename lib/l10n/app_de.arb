@@ -3377,9 +3377,9 @@
   },
   "navWatchTitle": "Auf der Uhr zeigen",
   "@navWatchTitle": {
-    "description": "Schalter im Start-Blatt der Navigation: die Route einmal an die verbundene Garmin-Uhr schicken."
+    "description": "Schalter im Start-Blatt der Navigation: die Route an die verbundene Garmin-Uhr schicken; sie folgt der Navigation, bis sie endet."
   },
-  "navWatchSubtitle": "Geht einmal an {device} — die Uhr navigiert dann selbst, auch ohne Handy.",
+  "navWatchSubtitle": "Geht an {device}, eine neue Route von selbst hinterher — die Uhr navigiert dann selbst, auch ohne Handy.",
   "@navWatchSubtitle": {
     "description": "Erklärung unter „Auf der Uhr zeigen\"; device ist der Name der Uhr aus Garmin Connect (z. B. „fēnix 5\").",
     "placeholders": {
@@ -3392,9 +3392,21 @@
   "@mapWatchStored": {
     "description": "Leiste auf der Karte, wenn die Garmin-Uhr bestätigt hat, dass sie die Route gespeichert hat."
   },
-  "mapWatchFailed": "Die Route kam nicht auf der Uhr an. Ist die Uhr-App offen?",
+  "mapWatchFailed": "Die Route kam nicht auf der Uhr an. Öffne TrailBuddy auf der Uhr — dann kommt sie von selbst.",
   "@mapWatchFailed": {
     "description": "Leiste auf der Karte, wenn das Senden der Route an die Garmin-Uhr scheiterte; die Navigation auf dem Handy läuft trotzdem."
+  },
+  "mapWatchPrompted": "Auf der Uhr TrailBuddy öffnen — die Route kommt dann von selbst.",
+  "@mapWatchPrompted": {
+    "description": "Leiste auf der Karte: Die Garmin-Uhr fragt gerade, ob sie die Uhr-App öffnen soll; nach der Bestätigung geht die Route hin."
+  },
+  "mapWatchUnconfirmed": "Die Uhr hat nicht geantwortet. Öffne TrailBuddy auf der Uhr — dann kommt die Route von selbst.",
+  "@mapWatchUnconfirmed": {
+    "description": "Leiste auf der Karte: Die Route ging an Garmin Connect, aber die Uhr-App hat den Empfang nicht bestätigt (vermutlich ist sie zu)."
+  },
+  "mapWatchMissing": "TrailBuddy ist nicht auf der Uhr installiert.",
+  "@mapWatchMissing": {
+    "description": "Leiste auf der Karte: Garmin Connect meldet, dass die Uhr-App fehlt; die Navigation auf dem Handy läuft trotzdem."
   },
   "navStartHint": "Die Karte zeigt die Route und dreht mit — ohne Abbiegehinweise, fahre nach Sicht.",
   "@navStartHint": {

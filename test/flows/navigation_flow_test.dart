@@ -21,7 +21,8 @@ import 'package:latlong2/latlong.dart';
 import 'package:pmtiles/pmtiles.dart';
 import 'package:trailbuddy/core/picture_in_picture.dart';
 import 'package:trailbuddy/core/screen_awake.dart';
-import 'package:trailbuddy/features/garmin/garmin_bridge.dart' show WatchSendResult;
+import 'package:trailbuddy/features/garmin/garmin_bridge.dart' show WatchOpen, WatchSendResult;
+import 'package:trailbuddy/features/garmin/watch_providers.dart' show kWatchAckWait;
 import 'package:trailbuddy/features/map/map_view/map_view.dart';
 import 'package:trailbuddy/features/offline_areas/area_plan.dart';
 import 'package:trailbuddy/features/offline_areas/area_store.dart';
@@ -33,7 +34,7 @@ import 'package:trailbuddy/features/rides/ride_track.dart';
 import 'package:trailbuddy/features/rides/sensor_fusion.dart';
 import 'package:trailbuddy/features/routing/nav_notice.dart';
 import 'package:trailbuddy/features/routing/route_band.dart' show kRouteFollowOpacity;
-import 'package:trailbuddy/features/routing/nav_providers.dart' show kNavArrivedLinger, kNavTrailDoneLinger, lastNavProvider;
+import 'package:trailbuddy/features/routing/nav_providers.dart' show kNavArrivedLinger, kNavTrailDoneLinger, lastNavProvider, navigationProvider;
 import 'package:trailbuddy/features/routing/route_progress.dart' show kNavPipBarShare, kNavPipZoom, pipAheadPx;
 import 'package:trailbuddy/features/trails/grade_shield.dart';
 import 'package:trailbuddy/models/trail.dart';
@@ -619,6 +620,101 @@ void main() {
     await settle(tester, frames: 10);
     expect(watch.routeParts, isNotEmpty);
     expect(find.byKey(const ValueKey('map-watch-failed')), findsOneWidget);
+    expect(find.byKey(const ValueKey('nav-approach')), findsOneWidget);
+  });
+
+  testWidgets('#449: läuft die Uhr-App nicht, fragt die Uhr — die Route geht erst mit ihrem „hi"', (tester) async {
+    final watch = FakeGarminBridge.connected()..openResult = WatchOpen.prompted;
+    await startFromRides(tester, garmin: watch);
+    // Kein Anstoßen beim Öffnen der App oder des Blatts (Entscheidung 2).
+    expect(watch.opens, 0);
+    await tester.tap(find.byKey(const ValueKey('nav-go')));
+    await settle(tester, frames: 10);
+    expect(watch.opens, 1);
+    expect(watch.sent, isEmpty, reason: 'die Uhr-App ist noch zu — Garmin Connect verwürfe es still');
+    expect(find.byKey(const ValueKey('map-watch-prompted')), findsOneWidget);
+    // Bestätigt auf der Uhr: Die App meldet sich ohne Route vom Handy.
+    watch.hello(null);
+    await settle(tester, frames: 4);
+    final parts = watch.routeParts;
+    expect(parts, isNotEmpty);
+    expect(find.byKey(const ValueKey('map-watch-stored')), findsNothing);
+    watch.answer({'t': 'ok', 'id': parts.first['id']});
+    await settle(tester, frames: 4);
+    expect(find.byKey(const ValueKey('map-watch-stored')), findsOneWidget);
+  });
+
+  testWidgets('#449: hat die Uhr die Route schon, geht nichts noch einmal', (tester) async {
+    final watch = FakeGarminBridge.connected()..autoStore = true;
+    await startFromRides(tester, garmin: watch);
+    await tester.tap(find.byKey(const ValueKey('nav-go')));
+    await settle(tester, frames: 10);
+    final id = watch.routeParts.first['id'] as String;
+    final batches = watch.sent.length;
+    // Die Uhr-App startet neu (oder die Uhr verbindet wieder) und hat sie.
+    watch.reconnect();
+    await settle(tester, frames: 2);
+    expect(watch.queries, 1, reason: 'nach dem Wiederverbinden fragt das Handy, statt blind zu senden');
+    watch.hello(id);
+    await settle(tester, frames: 4);
+    expect(watch.routeParts.where((m) => m['p'] == 0), hasLength(1));
+    expect(watch.sent.length, batches + 1, reason: 'nur die Frage');
+    // Eine andere Kennung: Die aktuelle geht.
+    watch.hello('00000000');
+    await settle(tester, frames: 4);
+    expect(watch.routeParts.where((m) => m['p'] == 0), hasLength(2));
+  });
+
+  testWidgets('#449: eine neue Route der Navigation geht von selbst an die Uhr; nach dem Ende nichts mehr',
+      (tester) async {
+    final watch = FakeGarminBridge.connected()..autoStore = true;
+    await startFromRides(tester, garmin: watch);
+    await tester.tap(find.byKey(const ValueKey('nav-go')));
+    await settle(tester, frames: 10);
+    final first = watch.routeParts.first['id'];
+    final container = ProviderScope.containerOf(tester.element(find.byKey(const ValueKey('nav-stop'))));
+    expect(container.read(navigationProvider.notifier)
+        .start([for (var i = 0; i <= 10; i++) LatLng(_lat + 0.001 * i, 11)], 'Neu geplant'), isTrue);
+    await settle(tester, frames: 10);
+    final starts = watch.routeParts.where((m) => m['p'] == 0).toList();
+    expect(starts, hasLength(2));
+    expect(starts.last['id'], isNot(first));
+    expect(watch.opens, 2, reason: 'die Uhr-App könnte inzwischen zu sein');
+    expect(find.byKey(const ValueKey('nav-go')), findsNothing, reason: 'kein neues Startblatt');
+
+    container.read(navigationProvider.notifier).stop(); // der Knopf liegt unter der Leiste
+    await settle(tester);
+    final batches = watch.sent.length;
+    watch.hello(null);
+    watch.reconnect();
+    await settle(tester, frames: 4);
+    expect(watch.sent.length, batches, reason: 'ohne Navigation folgt die Uhr nichts mehr');
+  });
+
+  testWidgets('#449: ohne „gespeichert" sagt die Leiste, dass die Uhr nicht antwortet', (tester) async {
+    final watch = FakeGarminBridge.connected();
+    await startFromRides(tester, garmin: watch);
+    await tester.tap(find.byKey(const ValueKey('nav-go')));
+    await settle(tester, frames: 10);
+    expect(watch.routeParts, isNotEmpty);
+    expect(find.byKey(const ValueKey('map-watch-unconfirmed')), findsNothing);
+    await tester.pump(kWatchAckWait);
+    await settle(tester, frames: 2);
+    expect(find.byKey(const ValueKey('map-watch-unconfirmed')), findsOneWidget);
+    expect(find.byKey(const ValueKey('map-watch-stored')), findsNothing);
+    // Jemand öffnet die Uhr-App: Sie meldet sich, die Route geht noch einmal.
+    watch.hello(null);
+    await settle(tester, frames: 4);
+    expect(watch.routeParts.where((m) => m['p'] == 0), hasLength(2));
+  });
+
+  testWidgets('#449: fehlt die Uhr-App, geht nichts hin und die Leiste sagt es', (tester) async {
+    final watch = FakeGarminBridge.connected()..openResult = WatchOpen.notInstalled;
+    await startFromRides(tester, garmin: watch);
+    await tester.tap(find.byKey(const ValueKey('nav-go')));
+    await settle(tester, frames: 10);
+    expect(watch.sent, isEmpty);
+    expect(find.byKey(const ValueKey('map-watch-missing')), findsOneWidget);
     expect(find.byKey(const ValueKey('nav-approach')), findsOneWidget);
   });
 

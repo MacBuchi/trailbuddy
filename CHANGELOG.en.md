@@ -2,6 +2,22 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## The watch fetches the route by itself
+
+*Version 0.152.0, 2026-11-04*
+
+- If TrailBuddy is closed on the Garmin watch when navigation starts,
+  the watch now asks "Open TrailBuddy?". After you say yes, the route
+  arrives by itself — before, it was silently lost although the phone
+  thought it had been sent.
+- The app only says "Route on the watch" once the watch has confirmed
+  it. If the watch does not answer, the bar says so; open the watch app
+  later and it fetches the route.
+- Start a new route on the way and it goes to the watch without further
+  steps. If the watch briefly loses the connection, the phone checks
+  afterwards that it still has the right route.
+- Opening the app does not prompt the watch — only starting navigation
+  with "Show on the watch" does.
 ## Libraries refreshed
 
 *Version 0.151.1, 2026-11-04*

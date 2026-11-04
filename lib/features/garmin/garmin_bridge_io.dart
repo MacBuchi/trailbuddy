@@ -16,6 +16,7 @@ class _AndroidGarminBridge implements GarminBridge {
   static const _channel = MethodChannel(kGarminChannel);
 
   final _messages = StreamController<Object?>.broadcast();
+  final _connected = StreamController<void>.broadcast();
   bool _listening = false;
 
   @override
@@ -26,6 +27,7 @@ class _AndroidGarminBridge implements GarminBridge {
     _listening = true;
     _channel.setMethodCallHandler((call) async {
       if (call.method == 'message') _messages.add(call.arguments);
+      if (call.method == 'device' && call.arguments == 'CONNECTED') _connected.add(null);
     });
   }
 
@@ -56,5 +58,19 @@ class _AndroidGarminBridge implements GarminBridge {
   }
 
   @override
+  Future<WatchOpen> open() async {
+    if (!supported) return WatchOpen.unknown;
+    try {
+      return WatchOpen.fromChannel(await _channel.invokeMethod<Object?>('open'));
+    } catch (e, s) {
+      logError('Uhr-App öffnen', e, s);
+      return WatchOpen.unknown;
+    }
+  }
+
+  @override
   Stream<Object?> get messages => _messages.stream;
+
+  @override
+  Stream<void> get connected => _connected.stream;
 }
