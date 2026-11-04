@@ -440,8 +440,13 @@ wollen auch fertig werden"):
    sich mit dem Pitch gegen den Weg neigt (um die Hinterachse beim
    Wheelie, um die Vorderachse beim Stoppie), Winkel, Zustand („fährt",
    „Front oben", „Front unten", „In der Luft", „Halterung lernt"),
-   laufende Zeit mit Spitze, Tempo und der Verzug der Fusion (1,5–2,5 s,
-   Abschnitt 3a). Darunter fragt jedes Ereignis „Stimmt" / „War keiner"
+   laufende Zeit mit Spitze, Tempo und der Verzug. Seit 0.152.3
+   (Betreiber 2026-11-04: 2,7 s waren zu viel) zeigt das Fenster nicht
+   mehr die Takte der Fusion (1,5–2,5 s hinten, Abschnitt 3a), sondern
+   ihre letzte Lage, mit dem Kreisel bis zum neuesten Wert
+   weitergedreht (`SensorFusion.preview`, alle 100 ms, ~0,1 s Verzug).
+   Zustand und Ereignisse bleiben die der Fusion; das Werkzeug kennt die
+   Vorschau nicht, sie ist nur Anzeige. Darunter fragt jedes Ereignis „Stimmt" / „War keiner"
    — die Banner gingen unter, sobald mehrere da waren — und ein Menü
    meldet „… verpasst". Dieselben Zeilen wie aus dem Banner, das Banner
    geht weg. Der Winkel ist der Pitch gegen den Weg, also genau, was die

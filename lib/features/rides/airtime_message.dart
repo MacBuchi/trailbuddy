@@ -1,6 +1,6 @@
 // Was der Dienst der offenen App über die Erkennung sagt (#36, die
-// Live-Ansicht): die Takte der Fusion ([FusionLive]) und die fertigen
-// Ereignisse — über denselben Kanal wie die Punkte der Fahrt
+// Live-Ansicht): die Takte der Fusion ([FusionLive]), alle 100 ms die
+// Lage jetzt ([SensorFusion.preview]) und die fertigen Ereignisse — über denselben Kanal wie die Punkte der Fahrt
 // (`sendDataToMain`, nur einfache Werte, deshalb Text). Rein, ohne
 // Plattform: Der Logger kodiert im Dienst, die Karte liest im
 // Main-Isolate.
@@ -16,24 +16,38 @@ import 'sensor_fusion.dart';
 const kAirtimeMessagePrefix = 'air:';
 const _livePrefix = 'air:live:';
 const _eventPrefix = 'air:event:';
+const _nowPrefix = 'air:now:';
 
 /// Ein Schub Takte mit der Datei der Fahrt (für die Antworten).
 String encodeAirtimeLive(String file, List<FusionLive> ticks) => _livePrefix +
     jsonEncode({
       'f': file,
-      'v': [
-        for (final t in ticks)
-          [
-            t.tUs,
-            t.pitchDeg.isNaN ? null : _round(t.pitchDeg),
-            _round(t.speedKmh),
-            t.upKnown ? 1 : 0,
-            t.phase.index,
-            t.phaseStartUs,
-            _round(t.peakDeg),
-          ]
-      ],
+      'v': [for (final t in ticks) _tick(t)],
     });
+
+/// Die Lage jetzt ([SensorFusion.preview]) — alle 100 ms, nur für die
+/// Anzeige.
+String encodeAirtimeNow(String file, FusionLive tick) => _nowPrefix + jsonEncode({'f': file, 'v': _tick(tick)});
+
+List<Object?> _tick(FusionLive t) => [
+      t.tUs,
+      t.pitchDeg.isNaN ? null : _round(t.pitchDeg),
+      _round(t.speedKmh),
+      t.upKnown ? 1 : 0,
+      t.phase.index,
+      t.phaseStartUs,
+      _round(t.peakDeg),
+    ];
+
+FusionLive _decodeTick(List<Object?> v) => FusionLive(
+      tUs: v[0] as int,
+      pitchDeg: (v[1] as num?)?.toDouble() ?? double.nan,
+      speedKmh: (v[2] as num).toDouble(),
+      upKnown: v[3] == 1,
+      phase: FusionPhase.values[v[4] as int],
+      phaseStartUs: v[5] as int?,
+      peakDeg: (v[6] as num).toDouble(),
+    );
 
 /// Ein fertiges Ereignis, wie das Banner es zeigt.
 String encodeAirtimeEvent(String file, FusionEvent event) => _eventPrefix +
@@ -63,6 +77,12 @@ class AirtimeLiveMessage extends AirtimeMessage {
   final List<FusionLive> ticks;
 }
 
+class AirtimeNowMessage extends AirtimeMessage {
+  const AirtimeNowMessage(super.file, this.tick);
+
+  final FusionLive tick;
+}
+
 class AirtimeEventMessage extends AirtimeMessage {
   const AirtimeEventMessage(super.file, this.event);
 
@@ -76,19 +96,12 @@ AirtimeMessage? decodeAirtimeMessage(Object? data) {
   try {
     if (data.startsWith(_livePrefix)) {
       final json = jsonDecode(data.substring(_livePrefix.length)) as Map<String, dynamic>;
-      final ticks = [
-        for (final v in json['v'] as List)
-          FusionLive(
-            tUs: (v as List)[0] as int,
-            pitchDeg: (v[1] as num?)?.toDouble() ?? double.nan,
-            speedKmh: (v[2] as num).toDouble(),
-            upKnown: v[3] == 1,
-            phase: FusionPhase.values[v[4] as int],
-            phaseStartUs: v[5] as int?,
-            peakDeg: (v[6] as num).toDouble(),
-          ),
-      ];
+      final ticks = [for (final v in json['v'] as List) _decodeTick(v as List<Object?>)];
       return AirtimeLiveMessage(json['f'] as String, ticks);
+    }
+    if (data.startsWith(_nowPrefix)) {
+      final json = jsonDecode(data.substring(_nowPrefix.length)) as Map<String, dynamic>;
+      return AirtimeNowMessage(json['f'] as String, _decodeTick(json['v'] as List<Object?>));
     }
     if (data.startsWith(_eventPrefix)) {
       final json = jsonDecode(data.substring(_eventPrefix.length)) as Map<String, dynamic>;

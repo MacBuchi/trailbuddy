@@ -788,9 +788,59 @@ class SensorFusion {
     _settleFlights();
   }
 
+  /// Die Lage JETZT, für die Anzeige (#36, Betreiber 2026-11-04: der
+  /// Verzug von 2,7 s im Fenster). Die Rechnung oben ist 1,5 s und mehr
+  /// hinter dem neuesten Wert; hier wird ihre letzte Lage mit den
+  /// Kreisel-Werten, die noch warten, bis zum neuesten weitergedreht —
+  /// ohne Korrektur aus der Beschleunigung, über 2–3 s driftet das um
+  /// Bruchteile eines Grades. Der Weg läuft auf einer Kopie mit. Phase, Beginn
+  /// und Spitze bleiben die der Rechnung: Erkannt wird nur dort.
+  ///
+  /// Nur lesend wie [_snapshot]: Wer das hier aufruft, ändert kein
+  /// Ereignis. `null`, solange die Rechnung noch keine Lage hat.
+  FusionLive? preview() {
+    final filter = _filter, tW = _tW;
+    if (filter == null || tW == null) return null;
+    final fwd = _mount.fwd;
+    final ready = fwd != null && _mount.left != null;
+    double pitchOf(_Quat q) => _deg(math.asin(_dot(_qrot(q).$3, fwd!).clamp(-1.0, 1.0)));
+    var q = filter.q;
+    var last = tW;
+    // Der Weg läuft mit wie in [_tick] — sonst stünde er nach „Front
+    // runter" um bis zu 9° daneben (Synthetik bei 112 s).
+    var road = _road, holding = _holding, calm = _calm;
+    var nextTick = _nextTick;
+    void step(double t) {
+      if (!ready) return;
+      final pitch = pitchOf(q);
+      final r = road ??= pitch;
+      final rel = pitch - r;
+      holding = rel >= _holdDeg && (holding || calm >= _roadS);
+      calm = rel.abs() < _holdDeg ? calm + _tickS : 0.0;
+      if (_gps.speed(t) * 3.6 > _ridingKmh && !holding) road = r + (pitch - r) * _tickS / _roadS;
+    }
+
+    for (final (t, w) in _gyro) {
+      final dt = t - last;
+      if (dt > 0 && dt < 0.1) q = _qnorm(_qmul(q, _qexp(_scale(_sub(w, filter.b), dt))));
+      last = t;
+      if (t >= nextTick) {
+        nextTick = t + _tickS;
+        step(t);
+      }
+    }
+    var rel = double.nan;
+    if (ready) {
+      final pitch = pitchOf(q);
+      rel = pitch - (road ?? pitch);
+    }
+    final speed = _gps.isEmpty ? double.nan : _gps.speedAt(_gps.length - 1);
+    return _snapshot(last, speed, rel: rel);
+  }
+
   /// Nur lesend: ändert nichts an der Rechnung, Dart bleibt = Werkzeug.
-  FusionLive _snapshot(double t, double speed) {
-    final rel = _ticks.isEmpty ? double.nan : _ticks.last.$2;
+  FusionLive _snapshot(double t, double speed, {double? rel}) {
+    rel ??= _ticks.isEmpty ? double.nan : _ticks.last.$2;
     final flight = _flightStart, wheelie = _wStart, stoppie = _sStart;
     final (phase, start, peak) = flight != null
         ? (FusionPhase.airborne, flight, 0.0)

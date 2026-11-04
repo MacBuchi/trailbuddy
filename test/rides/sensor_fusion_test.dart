@@ -328,6 +328,62 @@ void main() {
     expect(quiet.takeLive(), isEmpty);
   });
 
+  test('die Lage jetzt: vorn statt 1,5 s hinten, nah am späteren Takt, ändert nichts', () {
+    final (_, plain) = _run();
+    final fusion = SensorFusion(originUs: 0)..keepLive = true;
+    final events = <FusionEvent>[];
+    final live = <FusionLive>[];
+    final previews = <FusionLive>[];
+    var behind = 0.0;
+    var nextPreview = 0.0;
+    for (final (kind, t, v) in _ride) {
+      events.addAll(switch (kind) {
+        'a' => fusion.addAccel(_us(t), v[0], v[1], v[2]),
+        'w' => fusion.addGyro(_us(t), v[0], v[1], v[2]),
+        _ => fusion.addGps(_us(t), v[0]),
+      });
+      live.addAll(fusion.takeLive());
+      // Wie der Logger: alle 100 ms.
+      if (t >= nextPreview) {
+        nextPreview = t + 0.1;
+        final now = fusion.preview();
+        if (now != null) {
+          previews.add(now);
+          if (t > 60) behind = math.max(behind, t - _s(now.tUs));
+        }
+      }
+    }
+    events.addAll(fusion.finish());
+    String key(FusionEvent e) => '${e.runtimeType} ${e.startUs} ${e.duration.inMicroseconds}';
+    expect(events.map(key), plain.map(key), reason: 'nur lesend');
+
+    // Die Vorschau steht beim neuesten Kreisel-Wert (120 Hz), nicht 1,5 s
+    // dahinter wie die Takte.
+    expect(behind, lessThan(0.02), reason: 'höchstens ${behind}s hinter dem neuesten Wert');
+    final probe = previews.firstWhere((p) => p.tUs >= _us(350));
+
+    // Gegen den späteren korrigierten Takt derselben Zeit: wenige Grad.
+    var worst = 0.0, compared = 0;
+    for (final p in previews.where((p) => p.mountReady)) {
+      final i = live.indexWhere((l) => l.tUs >= p.tUs);
+      if (i < 0 || !live[i].mountReady || live[i].tUs - p.tUs > _us(0.05)) continue;
+      // Die Synthetik setzt das Telefon bei 150 s in EINEM Wert um — ohne
+      // Drehung, die der Kreisel sähe; das holt nur die Korrektur nach.
+      // Ein echtes Verrutschen dreht.
+      if (_s(p.tUs) >= 150 && _s(p.tUs) < 156) continue;
+      worst = math.max(worst, (live[i].pitchDeg - p.pitchDeg).abs());
+      compared++;
+    }
+    expect(compared, greaterThan(2000));
+    expect(worst, lessThan(4), reason: 'größte Abweichung $worst°');
+
+    // Mitten im langen Wheelie (40°) zeigt sie die Front oben.
+    expect(probe.pitchDeg, closeTo(40, 3));
+    expect(probe.phase, FusionPhase.wheelie);
+    // Vor dem ersten Wert gibt es keine Lage.
+    expect(SensorFusion(originUs: 0).preview(), isNull);
+  });
+
   test('Schübe des Sensors ändern nichts', () {
     final (_, plain) = _run();
     final (_, bursts) = _run(accelAhead: 25);

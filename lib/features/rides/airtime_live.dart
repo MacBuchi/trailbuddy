@@ -9,6 +9,10 @@
 //   hinter der Uhr. Abgespielt wird deshalb mit einem Verzug [lagUs], der
 //   den ältesten Takt jedes Schubs noch erreicht; so läuft die Animation
 //   gleichmäßig statt einmal je Sekunde zehn Bilder auf einmal.
+//   **Gezeigt wird aber die Lage jetzt** (Betreiber 2026-11-04: „… s
+//   Verzug" war 2,7 s): alle 100 ms schickt der Dienst
+//   [SensorFusion.preview], und solange die frisch ist, schlägt sie den
+//   abgespielten Takt. Die Takte bleiben der Weg, wenn sie ausbleibt.
 // - **Eine Antwort hier ist dieselbe wie im Banner** (`answerAirtimeInApp`):
 //   dieselbe Zeile in den Rohdaten, das Banner geht weg.
 import 'dart:async';
@@ -30,11 +34,17 @@ const kAirtimePendingMax = 5;
 /// kommt, die Animation nicht anhält.
 const kAirtimeLagMarginUs = 200000;
 
+/// So lange gilt die Lage jetzt ([AirtimeLiveState.now]); danach spielt
+/// das Fenster wieder die Takte ab — fünf ausgebliebene Nachrichten.
+const kAirtimeNowFreshUs = 500000;
+
 class AirtimeLiveState {
   const AirtimeLiveState({
     this.file,
     this.ticks = const [],
     this.lagUs = 0,
+    this.now,
+    this.nowAtUs = 0,
     this.pending = const [],
     this.log = AirtimeLog.empty,
     this.collapsed = false,
@@ -47,6 +57,17 @@ class AirtimeLiveState {
   /// danach.
   final List<FusionLive> ticks;
   final int lagUs;
+
+  /// Die zuletzt geschickte Lage jetzt und wann sie ankam (Uhr der
+  /// Ansicht).
+  final FusionLive? now;
+  final int nowAtUs;
+
+  bool _fresh(int nowUs) => now != null && nowUs - nowAtUs <= kAirtimeNowFreshUs;
+
+  /// Wie weit das Gezeigte zur Uhrzeit [nowUs] hinter der Uhr liegt — das
+  /// „Verzug" im Fenster.
+  int shownLagUs(int nowUs) => _fresh(nowUs) ? math.max(0, nowAtUs - now!.tUs) : lagUs;
 
   /// Älteste zuerst.
   final List<FusionEvent> pending;
@@ -63,6 +84,7 @@ class AirtimeLiveState {
 
   /// Der Takt, der zur Uhrzeit [nowUs] zu sehen ist; `null` vor dem ersten.
   FusionLive? tickAt(int nowUs) {
+    if (_fresh(nowUs)) return now;
     final at = nowUs - lagUs;
     FusionLive? shown;
     for (final t in ticks) {
@@ -75,6 +97,8 @@ class AirtimeLiveState {
   AirtimeLiveState copyWith(
           {List<FusionLive>? ticks,
           int? lagUs,
+          FusionLive? now,
+          int? nowAtUs,
           List<FusionEvent>? pending,
           AirtimeLog? log,
           bool? collapsed}) =>
@@ -82,6 +106,8 @@ class AirtimeLiveState {
           file: file,
           ticks: ticks ?? this.ticks,
           lagUs: lagUs ?? this.lagUs,
+          now: now ?? this.now,
+          nowAtUs: nowAtUs ?? this.nowAtUs,
           pending: pending ?? this.pending,
           log: log ?? this.log,
           collapsed: collapsed ?? this.collapsed);
@@ -129,6 +155,8 @@ class AirtimeLiveNotifier extends Notifier<AirtimeLiveState> {
         final keepFrom = now - lag - 1000000;
         final all = [...current.ticks.where((t) => t.tUs >= keepFrom), ...ticks];
         current = current.copyWith(ticks: all, lagUs: lag);
+      case AirtimeNowMessage(:final tick):
+        current = current.copyWith(now: tick, nowAtUs: ref.read(airtimeClockProvider)());
       case AirtimeEventMessage(:final event):
         final pending = [...current.pending, event];
         current = current.copyWith(

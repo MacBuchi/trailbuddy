@@ -85,6 +85,10 @@ const kSensorGpsInterval = Duration(seconds: 1);
 
 const kSensorFlushInterval = Duration(seconds: 2);
 
+/// Die Lage jetzt für die Live-Ansicht (#36): 10-mal je Sekunde, so oft
+/// wie die Fusion Takte rechnet. Ist die App zu, verwirft der Kanal still.
+const kAirtimePreviewInterval = Duration(milliseconds: 100);
+
 /// Unterordner von `rides/`.
 const kSensorDirName = 'sensors';
 
@@ -196,6 +200,7 @@ class SensorLogger {
       SensorSources? sources,
       this.stillWanted,
       this.flushEvery = kSensorFlushInterval,
+      this.previewEvery = kAirtimePreviewInterval,
       this.range,
       WheelieNotices? notices,
       void Function(Object message)? toApp})
@@ -213,6 +218,10 @@ class SensorLogger {
   final Future<bool> Function()? stillWanted;
 
   final Duration flushEvery;
+
+  /// So oft geht die Lage jetzt an die Live-Ansicht
+  /// ([SensorFusion.preview]).
+  final Duration previewEvery;
 
   final WheelieNotices _notices;
 
@@ -234,6 +243,8 @@ class SensorLogger {
   AirtimeLog log = AirtimeLog.empty;
   final _subscriptions = <StreamSubscription<List<double>>>[];
   Timer? _timer;
+  Timer? _previewTimer;
+  int? _previewSentUs;
   Future<void> _writing = Future.value();
   bool _stopped = false;
 
@@ -260,6 +271,7 @@ class SensorLogger {
     listen('w', _sources.gyro, (v) => _onEvents(_fusion.addGyro(v[0].toInt(), v[1], v[2], v[3])));
     listen('g', _sources.gps, (v) => _onEvents(_fusion.addGps(v[0].toInt(), v[4])));
     _timer = Timer.periodic(flushEvery, (_) => _onTimer());
+    _previewTimer = Timer.periodic(previewEvery, (_) => _sendPreview());
     _sinceMountSaved.start();
     await _notices.showMissed(file: file.path);
   }
@@ -283,6 +295,15 @@ class SensorLogger {
           unawaited(_notices.stoppie(event, file: file.path));
       }
     }
+  }
+
+  /// Nur, wenn seit dem letzten Mal ein Kreisel-Wert dazukam — steht der
+  /// Sensor, schweigt auch die Ansicht.
+  void _sendPreview() {
+    final now = _fusion.preview();
+    if (now == null || now.tUs == _previewSentUs) return;
+    _previewSentUs = now.tUs;
+    _send(encodeAirtimeNow(file.path, now));
   }
 
   /// Ein Ereignis in beide Dateien.
@@ -360,6 +381,8 @@ class SensorLogger {
     _stopped = true;
     _timer?.cancel();
     _timer = null;
+    _previewTimer?.cancel();
+    _previewTimer = null;
     for (final s in _subscriptions) {
       await s.cancel();
     }
@@ -391,6 +414,7 @@ Future<void> sensorLogTick({
   SensorSources? sources,
   Future<T?> Function<T>(String key)? read,
   Duration flushEvery = kSensorFlushInterval,
+  Duration previewEvery = kAirtimePreviewInterval,
   WheelieNotices? notices,
   void Function(Object message)? toApp,
 }) async {
@@ -408,6 +432,7 @@ Future<void> sensorLogTick({
       sources: sources,
       stillWanted: () async => (await _wantedRide(get))?.id == ride.id,
       flushEvery: flushEvery,
+      previewEvery: previewEvery,
       range: await get<String>(kRideDataSensorRange),
       notices: notices,
       toApp: toApp,

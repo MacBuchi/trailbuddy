@@ -2,6 +2,15 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Das Rad im Live-Fenster folgt sofort
+
+*Version 0.152.3, 2026-11-05*
+
+- Das kleine Fenster der Wheelie-Erkennung zeigt die Neigung jetzt fast
+  ohne Verzögerung: etwa 0,1 Sekunden statt bisher rund 2,7. Ob die
+  App einen Wheelie, Sprung oder Stoppie erkennt, entscheidet sie wie
+  bisher ein, zwei Sekunden später, nur die Anzeige ist schneller.
+
 ## Die Route ist schneller auf der Uhr
 
 *Version 0.152.2, 2026-11-04*
