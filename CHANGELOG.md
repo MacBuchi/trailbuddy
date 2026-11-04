@@ -2,6 +2,20 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Die Uhr bleibt verlässlicher verbunden
+
+*Version 0.152.1, 2026-11-04*
+
+- Plant man unterwegs neu, während die alte Route noch zur Uhr
+  unterwegs ist, kommt die neue jetzt danach an — vorher konnte sie
+  verloren gehen.
+- Wartet das Handy auf die Uhr, fragt es ein paar Mal kurz nach, statt
+  auf eine verlorene Antwort zu warten.
+- Startet Garmin Connect während der Fahrt neu, findet die App die Uhr
+  von selbst wieder.
+- Im Startblatt steht „Uhr wird gesucht …", bis klar ist, ob eine Uhr
+  verbunden ist.
+
 ## Die Uhr holt sich die Route selbst
 
 *Version 0.152.0, 2026-11-04*

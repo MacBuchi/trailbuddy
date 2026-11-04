@@ -3375,6 +3375,10 @@
   "@navScreenSubtitle": {
     "description": "Erklärung unter dem Schalter „Bildschirm anlassen\"."
   },
+  "navWatchSearching": "Uhr wird gesucht …",
+  "@navWatchSearching": {
+    "description": "Zeile im Start-Blatt der Navigation, solange die App nach einer verbundenen Garmin-Uhr fragt (kann beim ersten Mal ein paar Sekunden dauern)."
+  },
   "navWatchTitle": "Auf der Uhr zeigen",
   "@navWatchTitle": {
     "description": "Schalter im Start-Blatt der Navigation: die Route an die verbundene Garmin-Uhr schicken; sie folgt der Navigation, bis sie endet."

@@ -65,8 +65,18 @@ class GarminBridge(private val context: Context, messenger: BinaryMessenger) {
     private var iq: ConnectIQ? = null
     private var ready = false
     private var appId: String? = null
-    private val waiting = mutableListOf<() -> Unit>()
+    private var tethered = false
+    /** Wer auf das SDK wartet — bei Erfolg `first`, beim Fehler `second`. */
+    private val waiting = mutableListOf<Pair<() -> Unit, (String) -> Unit>>()
     private val listening = mutableSetOf<Long>()
+
+    /**
+     * Ein `send` nach dem anderen (nur auf dem UI-Thread angefasst): Zwei
+     * Folgen zugleich mischten ihre Stücke, und die Uhr finge bei jeder
+     * neuen Kennung ihr Fach von vorn an.
+     */
+    private val sends = ArrayDeque<Pair<List<Any>, MethodChannel.Result>>()
+    private var sending = false
 
     init {
         channel.setMethodCallHandler { call, result ->
@@ -112,7 +122,7 @@ class GarminBridge(private val context: Context, messenger: BinaryMessenger) {
     /** Startet das SDK einmal; [then] läuft, sobald es bereit ist (oder gleich). */
     private fun withSdk(tethered: Boolean, then: () -> Unit, failed: (String) -> Unit) {
         if (ready) return then()
-        waiting.add(then)
+        waiting.add(then to failed)
         if (iq != null) return
         val type = if (tethered) ConnectIQ.IQConnectType.TETHERED else ConnectIQ.IQConnectType.WIRELESS
         val sdk = ConnectIQ.getInstance(context, type)
@@ -122,13 +132,16 @@ class GarminBridge(private val context: Context, messenger: BinaryMessenger) {
                 ready = true
                 val all = waiting.toList()
                 waiting.clear()
-                all.forEach { it() }
+                all.forEach { it.first() }
             }
 
             override fun onInitializeError(status: ConnectIQ.IQSdkErrorStatus) {
                 iq = null
+                // Alle Wartenden bekommen den Fehler, nicht nur der erste —
+                // ein `send` in der Reihe hielte sonst jedes weitere auf.
+                val all = waiting.toList()
                 waiting.clear()
-                failed(status.name)
+                all.forEach { it.second(status.name) }
             }
 
             override fun onSdkShutDown() {
@@ -147,6 +160,7 @@ class GarminBridge(private val context: Context, messenger: BinaryMessenger) {
      */
     private fun status(id: String, tethered: Boolean, result: MethodChannel.Result) {
         appId = id
+        this.tethered = tethered
         if (!tethered && !connectInstalled()) {
             result.success(mapOf("connect" to false))
             return
@@ -230,9 +244,8 @@ class GarminBridge(private val context: Context, messenger: BinaryMessenger) {
      * `send` (Simulator-Modus: Socket).
      */
     private fun open(result: MethodChannel.Result) {
-        val sdk = iq
         val id = appId
-        if (sdk == null || !ready || id == null) {
+        if (id == null) {
             result.success("NOT_READY")
             return
         }
@@ -246,7 +259,7 @@ class GarminBridge(private val context: Context, messenger: BinaryMessenger) {
             }
         }
         main.postDelayed({ answer("TIMEOUT") }, OPEN_TIMEOUT_MS)
-        io.execute {
+        ensureSdk({ sdk -> io.execute {
             try {
                 val device = sdk.connectedDevices?.firstOrNull()
                 if (device == null) {
@@ -266,7 +279,27 @@ class GarminBridge(private val context: Context, messenger: BinaryMessenger) {
                 Log.w("TB-GARMIN", "openApplication", e)
                 answer("UNKNOWN_FAILURE")
             }
-        }
+        } }, { error -> answer(error) })
+    }
+
+    /**
+     * Das SDK für `open` und `send`: Nach `onSdkShutDown` (Garmin Connect
+     * neu gestartet, aktualisiert, vom System beendet) startet es hier neu
+     * und lauscht wieder auf die Uhr — sonst kämen bis zum nächsten
+     * Startblatt weder „hallo" noch „gespeichert" an.
+     */
+    private fun ensureSdk(then: (ConnectIQ) -> Unit, failed: (String) -> Unit) {
+        val id = appId ?: return failed("NOT_READY")
+        withSdk(tethered, then@{
+            val sdk = iq ?: return@then failed("NOT_READY")
+            val device = try {
+                sdk.connectedDevices?.firstOrNull()
+            } catch (e: Exception) {
+                null
+            }
+            if (device != null) listen(sdk, device, id)
+            then(sdk)
+        }, failed)
     }
 
     /**
@@ -277,13 +310,42 @@ class GarminBridge(private val context: Context, messenger: BinaryMessenger) {
      * angekommen sind.
      */
     private fun send(messages: List<Any>, result: MethodChannel.Result) {
-        val sdk = iq
-        val id = appId
-        if (sdk == null || !ready || id == null) {
-            Log.i("TB-GARMIN", "send NOT_READY")
-            result.success(mapOf("status" to "NOT_READY", "sent" to 0))
+        sends.addLast(messages to result)
+        if (!sending) nextSend()
+    }
+
+    private fun nextSend() {
+        val (messages, result) = sends.removeFirstOrNull() ?: run {
+            sending = false
             return
         }
+        sending = true
+        var done = false
+        // Jede Antwort gibt die Reihe frei, auch ein Fehler vor dem ersten Stück.
+        val once = object : MethodChannel.Result {
+            override fun success(value: Any?) {
+                if (done) return
+                done = true
+                result.success(value)
+                main.post { nextSend() }
+            }
+
+            override fun error(code: String, message: String?, details: Any?) {
+                success(mapOf("status" to code, "sent" to 0))
+            }
+
+            override fun notImplemented() {
+                success(mapOf("status" to "NOT_IMPLEMENTED", "sent" to 0))
+            }
+        }
+        ensureSdk({ sdk -> sendNow(sdk, messages, once) }, { error ->
+            Log.i("TB-GARMIN", "send $error")
+            once.success(mapOf("status" to error, "sent" to 0))
+        })
+    }
+
+    private fun sendNow(sdk: ConnectIQ, messages: List<Any>, result: MethodChannel.Result) {
+        val id = appId ?: return result.success(mapOf("status" to "NOT_READY", "sent" to 0))
         val device = try {
             sdk.connectedDevices?.firstOrNull()
         } catch (e: Exception) {

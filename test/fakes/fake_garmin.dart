@@ -30,12 +30,36 @@ class FakeGarminBridge implements GarminBridge {
   @override
   bool get supported => true;
 
+  /// Hält `status` an, bis der Test es freigibt (das SDK startet langsam).
+  Completer<void>? statusGate;
+
   @override
-  Future<WatchStatus> status() async => status_;
+  Future<WatchStatus> status() async {
+    await statusGate?.future;
+    return status_;
+  }
+
+  /// Hält jedes Senden der Route an, bis der Test es freigibt — die
+  /// Übertragung „läuft" so lange.
+  Completer<void>? sendGate;
+
+  /// So viele Übertragungen der Route liefen höchstens zugleich.
+  int maxRouteSends = 0;
+  int _routeSends = 0;
 
   @override
   Future<WatchSendResult> send(List<Map<String, Object>> messages) async {
     sent.add(messages);
+    final route = messages.isNotEmpty && messages.first['t'] == 'r';
+    if (route) {
+      _routeSends++;
+      if (_routeSends > maxRouteSends) maxRouteSends = _routeSends;
+      try {
+        await sendGate?.future;
+      } finally {
+        _routeSends--;
+      }
+    }
     if (autoStore && result.ok && messages.isNotEmpty && messages.first['t'] == 'r') {
       answer({'t': 'ok', 'id': messages.first['id']});
     }

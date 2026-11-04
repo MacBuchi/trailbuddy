@@ -51,6 +51,12 @@ const kWatchBranchesWait = Duration(seconds: 15);
 /// (oder ein `hi`) zählt trotzdem.
 const kWatchAckWait = Duration(seconds: 15);
 
+/// Wartet das Handy auf die Uhr („gefragt" oder ohne „gespeichert"),
+/// fragt es nach so langen Pausen noch einmal `q` — ein verlorenes `hi`
+/// holte sonst erst das nächste Wiederverbinden nach. Kein Abfragen im
+/// Takt: drei Mal, dann wartet es still auf die Uhr.
+const kWatchNudges = [Duration(seconds: 5), Duration(seconds: 15), Duration(seconds: 45)];
+
 /// Der Korridor um die Linie, dessen Kacheln der Graph der Abzweigungen
 /// liest — ein Stummel ist 40 m lang, der Rest ist Luft für den Rand.
 const kWatchBranchCorridorM = 100.0;
@@ -142,8 +148,14 @@ class WatchSync extends Notifier<WatchSyncState> {
 
   /// Zählt jede neue Route; eine Rechnung für eine alte fällt weg.
   int _gen = 0;
+
+  /// Es läuft eine Übertragung; eine weitere wartet in [_again] — zwei
+  /// zugleich mischten ihre Stücke, und die Uhr finge bei jeder neuen
+  /// Kennung von vorn an.
   bool _pushing = false;
+  bool _again = false;
   Timer? _ackTimer;
+  Timer? _nudgeTimer;
 
   @override
   WatchSyncState build() {
@@ -151,6 +163,7 @@ class WatchSync extends Notifier<WatchSyncState> {
       _answers?.cancel();
       _reconnects?.cancel();
       _ackTimer?.cancel();
+      _nudgeTimer?.cancel();
     });
     // Jeder neue Bestwert geht hinterher, solange eine Route auf der Uhr
     // ist; die Fahrt zu Ende heißt: nichts mehr.
@@ -196,7 +209,9 @@ class WatchSync extends Notifier<WatchSyncState> {
     _line = null;
     _route = null;
     _early = null;
+    _again = false;
     _ackTimer?.cancel();
+    _nudgeTimer?.cancel();
     if (state.phase != WatchSyncPhase.idle) state = const WatchSyncState();
   }
 
@@ -211,6 +226,7 @@ class WatchSync extends Notifier<WatchSyncState> {
     _route = null;
     _early = null;
     _ackTimer?.cancel();
+    _nudgeTimer?.cancel();
     final bridge = ref.read(garminBridgeProvider);
     state = const WatchSyncState(phase: WatchSyncPhase.sending);
     // Die Frage auf der Uhr gleich: Bis jemand bestätigt, ist die Route
@@ -249,26 +265,41 @@ class WatchSync extends Notifier<WatchSyncState> {
     if (early != null) return _onHello(early.id);
     if (open == WatchOpen.prompted) {
       state = WatchSyncState(phase: WatchSyncPhase.prompted, routeId: route.id);
+      _nudge(0);
       return;
     }
     await _push();
   }
 
-  /// Die Stücke der Route an die Uhr; danach wartet das Handy auf
-  /// „gespeichert", höchstens [kWatchAckWait].
+  /// Die Stücke der Route an die Uhr, eine Übertragung nach der anderen:
+  /// Kommt währenddessen eine neue Route (oder ein `hi`, das eine andere
+  /// will), geht danach die dann aktuelle.
   Future<void> _push() async {
-    final route = _route;
-    if (route == null || _pushing) return;
-    final gen = _gen;
-    final parts = route.parts();
+    if (_pushing) {
+      _again = true;
+      return;
+    }
     _pushing = true;
-    state = WatchSyncState(phase: WatchSyncPhase.sending, routeId: route.id, parts: parts.length);
-    final WatchSendResult result;
     try {
-      result = await ref.read(garminBridgeProvider).send(parts);
+      do {
+        _again = false;
+        final route = _route;
+        if (route == null || !_follow) return;
+        await _pushOnce(route);
+      } while (_again);
     } finally {
       _pushing = false;
     }
+  }
+
+  /// Eine Übertragung; danach wartet das Handy auf „gespeichert",
+  /// höchstens [kWatchAckWait].
+  Future<void> _pushOnce(WatchRoute route) async {
+    final gen = _gen;
+    final parts = route.parts();
+    _nudgeTimer?.cancel();
+    state = WatchSyncState(phase: WatchSyncPhase.sending, routeId: route.id, parts: parts.length);
+    final result = await ref.read(garminBridgeProvider).send(parts);
     if (gen != _gen) return;
     // „Gespeichert" kann vor dem Ende von `send` kommen.
     if (state.phase == WatchSyncPhase.stored && state.routeId == route.id) return;
@@ -282,7 +313,21 @@ class WatchSync extends Notifier<WatchSyncState> {
     _ackTimer = Timer(kWatchAckWait, () {
       if (gen == _gen && state.phase == WatchSyncPhase.sent) {
         state = WatchSyncState(phase: WatchSyncPhase.unconfirmed, routeId: route.id, parts: parts.length);
+        _nudge(0);
       }
+    });
+  }
+
+  /// Nach [kWatchNudges] ein `q`, solange die Uhr nicht bestätigt hat.
+  void _nudge(int step) {
+    _nudgeTimer?.cancel();
+    if (step >= kWatchNudges.length) return;
+    final gen = _gen;
+    _nudgeTimer = Timer(kWatchNudges[step], () {
+      final waiting = state.phase == WatchSyncPhase.prompted || state.phase == WatchSyncPhase.unconfirmed;
+      if (gen != _gen || !_follow || !waiting) return;
+      if (!_pushing) unawaited(ref.read(garminBridgeProvider).send([watchQuery]));
+      _nudge(step + 1);
     });
   }
 
@@ -317,6 +362,7 @@ class WatchSync extends Notifier<WatchSyncState> {
 
   void _stored(String id) {
     _ackTimer?.cancel();
+    _nudgeTimer?.cancel();
     state = WatchSyncState(phase: WatchSyncPhase.stored, routeId: id, parts: state.parts);
     // Die Bestwerte gehen erst jetzt: Vorher verwarf eine geschlossene
     // Uhr-App sie. Startete die Uhr-App neu, hat sie sie vergessen.
