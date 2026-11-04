@@ -69,6 +69,8 @@ jobs:
           python3 tool/map_tiles.py --self-test > /dev/null
           python3 tool/poi_extract.py --self-test > /dev/null
           python3 tool/brand_icons.py --self-test > /dev/null
+          python3 tool/garmin_route.py --self-test > /dev/null
+          bash -n tool/garmin_build.sh
           python3 tool/highlights_preview.py --self-test > /dev/null
           python3 tool/route_measure.py --self-test > /dev/null
           python3 tool/height_tiles.py --self-test > /dev/null
@@ -299,7 +301,8 @@ jobs:
           if [ "$(printf '%s\n' "${latest#v}" "$version" | sort -V | tail -1)" != "$version" ] \
              || [ "${latest#v}" = "$version" ]; then
             # Ausgenommen: *.md (außer CHANGELOG.md und CHANGELOG.en.md, die
-            # liegen als Asset im Binary), .github/, tool/, supabase/, docs/, .claude/, .codex/, .mcp.json
+            # liegen als Asset im Binary), .github/, tool/, supabase/, docs/, garmin/ (Uhr-App,
+            # nicht im APK), .claude/, .codex/, .mcp.json
             # (Agenten-Konfiguration, #237) — nichts davon landet je in
             # einem Binary.
             if [ "$EVENT_NAME" = "pull_request" ]; then
@@ -309,7 +312,7 @@ jobs:
             fi
             changed=$(
               {
-                git diff --name-only "$range" -- . ':!*.md' ':!.github' ':!tool' ':!supabase' ':!docs' ':!.claude' ':!.codex' ':!.mcp.json' || true
+                git diff --name-only "$range" -- . ':!*.md' ':!.github' ':!tool' ':!supabase' ':!docs' ':!garmin' ':!.claude' ':!.codex' ':!.mcp.json' || true
                 git diff --name-only "$range" -- CHANGELOG.md CHANGELOG.en.md || true
               } | grep -v '^$' || true
             )

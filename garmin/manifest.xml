@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<!-- TrailBuddy auf der Uhr (docs/konzept-garmin.md). Von Hand gepflegt:
+     weitere Uhren erst nach einem Test im Simulator (Konzept 6). -->
+<iq:manifest xmlns:iq="http://www.garmin.com/xml/connectiq" version="3">
+    <iq:application id="BC6A9EE033EF433F803B4AF7D36E9667" type="watch-app" name="@Strings.AppName" entry="TrailBuddyApp" launcherIcon="@Drawables.LauncherIcon" minApiLevel="3.1.0">
+        <iq:products>
+            <iq:product id="fenix5"/>
+        </iq:products>
+        <iq:permissions>
+            <iq:uses-permission id="Positioning"/>
+            <iq:uses-permission id="Sensor"/>
+        </iq:permissions>
+        <iq:languages>
+            <iq:language>deu</iq:language>
+            <iq:language>eng</iq:language>
+        </iq:languages>
+        <iq:barrels/>
+    </iq:application>
+</iq:manifest>

@@ -107,7 +107,7 @@ was öffentlich sein MUSS (Impressum, Datenschutzerklärung).
 - **Version Guard** (ci.yml): Code-Änderung ohne Bump in `pubspec.yaml`
   blockiert den Merge, sobald es einen Release-Tag gibt. Ausgenommen sind
   `*.md` (außer `CHANGELOG.md` und `CHANGELOG.en.md`, die liegen als Asset im Binary), `.github/`,
-  `tool/`, `supabase/`, `docs/`, `.claude/`, `.codex/`, `.mcp.json`. Er prüft, DASS gebumpt wurde; WELCHE Stelle
+  `tool/`, `supabase/`, `docs/`, `garmin/` (die Uhr-App ist nicht im APK), `.claude/`, `.codex/`, `.mcp.json`. Er prüft, DASS gebumpt wurde; WELCHE Stelle
   nach den Regeln oben, ist Sache des PRs.
 - **Changelog**: `CHANGELOG.md` wird in der App unter „Was ist neu" gezeigt,
   auf Englisch `CHANGELOG.en.md` (ab 0.120.0, darunter die älteren
@@ -209,6 +209,7 @@ Code liegt — nicht wieder hierher.
 | `lib/l10n/CLAUDE.md` | Sprachen der Oberfläche: ARB, Vorlage Deutsch, erzeugte Dateien, Testgerät Deutsch (#209) |
 | `web/CLAUDE.md` | Kein Netzziel ohne Datenschutzerklärung · Web (Service Worker, Build) |
 | `android/CLAUDE.md` | Android (Flavors, Backup-Ausschlüsse) · Die Dev-App (#356) · Play Store vorbereitet, nicht eingereicht |
+| `garmin/CLAUDE.md` | Die Uhr-App (Connect IQ, fēnix 5): Bauen, Tests, Vorführmodus, Watchdog, Speicher, Farben, Testroute |
 | `test/CLAUDE.md` | Dart-MCP (`analyze_files`, `run_tests`, `lsp`: Pfad-Fallen, Messung) · Gegenprobe · Fallen im Harness (pumpApp, FakeSettings, Touren, Isolates, FakeMapView) |
 
 Was es bewusst noch nicht gibt:

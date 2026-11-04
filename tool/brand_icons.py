@@ -31,6 +31,8 @@ Geschrieben werden:
 - `mipmap-*/ic_launcher.png` — das Symbol für Android vor 8.0.
 - `web/icons/Icon-{192,512}.png`, `Icon-maskable-{192,512}.png`,
   `web/favicon.png`, `web/favicon.svg`.
+- `garmin/resources/drawables/launcher_icon.png` — das Symbol der
+  Uhr-App (40 px, `launcherIcon` der fēnix 5), runde Lime-Scheibe.
 
 Die Textdateien prüft `--check` als Fixpunkt (ohne Werkzeug); die PNGs
 braucht `rsvg-convert` (librsvg) und stehen mit Prüfsumme in
@@ -280,6 +282,10 @@ def png_targets():
         t[f"web/icons/Icon-maskable-{px}.png"] = symbol_svg(px, MASKABLE_SCALE, BRAND, 0)
     # Die PNG ist der Rückfall für Browser ohne SVG-Favicon: eine Farbe.
     t["web/favicon.png"] = symbol_svg(32, 1.0, None, 0, color=MOSS, size="S")
+    # Die Uhr (docs/konzept-garmin.md): 40 px, die Liste der Apps ist rund
+    # und dunkel — eine volle Scheibe, Größe L (ab 32 px).
+    t[os.path.join("garmin", "resources", "drawables", "launcher_icon.png")] = \
+        symbol_svg(40, LEGACY_SCALE, BRAND, 0.5)
     return t
 
 

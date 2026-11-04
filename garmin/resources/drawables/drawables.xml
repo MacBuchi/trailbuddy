@@ -1,0 +1,4 @@
+<drawables>
+    <!-- Erzeugt von tool/brand_icons.py, nie von Hand tauschen. -->
+    <bitmap id="LauncherIcon" filename="launcher_icon.png"/>
+</drawables>

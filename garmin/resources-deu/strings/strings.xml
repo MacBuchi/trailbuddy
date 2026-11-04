@@ -1,0 +1,14 @@
+<strings>
+    <string id="AppName">TrailBuddy</string>
+    <string id="Loading">Lade Route</string>
+    <string id="WaitGps">Warte auf GPS</string>
+    <string id="Arrived">ANGEKOMMEN</string>
+    <string id="OffRoute">NEBEN DER ROUTE</string>
+    <string id="ToGoal">BIS ZUM ZIEL</string>
+    <string id="Quit">Navigation beenden?</string>
+    <string id="Speed">KM/H</string>
+    <string id="Time">ZEIT</string>
+    <string id="Altitude">HÖHE</string>
+    <string id="Left">NOCH</string>
+    <string id="DecimalSep">,</string>
+</strings>

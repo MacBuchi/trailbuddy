@@ -1,0 +1,6 @@
+<resources>
+    <!-- Die erfundene Testroute von G1 (tool/garmin_route.py). Mit
+         tool/garmin_build.sh mit der Option gpx ersetzt das Skript sie nur in der
+         Kopie unter build/, nie hier. -->
+    <jsonData id="Route" filename="route.json"/>
+</resources>
