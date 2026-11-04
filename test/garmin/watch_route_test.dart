@@ -138,7 +138,10 @@ void main() {
     expect(watch, contains('"$kWatchQuery".equals(t)'));
     final kotlin = File('android/app/src/main/kotlin/de/mcbuchi/trailbuddy/GarminBridge.kt').readAsStringSync();
     expect(kotlin, contains('"open" ->'));
-    expect(kotlin, contains('invokeMethod("device", "CONNECTED")'));
+    // Kotlin reicht den Namen aus `IQDeviceStatus` weiter, Dart hört auf CONNECTED.
+    expect(kotlin, contains('invokeMethod("device", status.name)'));
+    final io = File('lib/features/garmin/garmin_bridge_io.dart').readAsStringSync();
+    expect(io, contains("call.method == 'device' && call.arguments == 'CONNECTED'"));
     expect(watchQuery, {'t': 'q'});
     expect(watchHelloOf({'t': 'hi', 'id': 'ab12', 'v': 1}), (hello: true, id: 'ab12'));
     expect(watchHelloOf({'t': 'hi', 'v': 1}), (hello: true, id: null));
