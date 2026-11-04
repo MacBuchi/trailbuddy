@@ -34,12 +34,13 @@ import java.io.InputStream
 import java.util.zip.GZIPInputStream
 
 /**
- * Der einzige native Code im Projekt (Muster PilzBuddy): fünf
+ * Der einzige native Code im Projekt (Muster PilzBuddy): sechs
  * MethodChannels — die geladene Update-APK an den System-Installer geben,
  * lesen, warum die App beim letzten Mal beendet wurde (#40), den
  * Bildschirm in der Navigation anlassen und die Navigation als
  * Bild-im-Bild (beide #232), den Messbereich der Sensoren für die
- * Rohdaten (#36) — und der Benachrichtigungs-Kanal für Push (#34).
+ * Rohdaten (#36), die Route auf die Garmin-Uhr (#449, eigene Datei
+ * `GarminBridge.kt`) — und der Benachrichtigungs-Kanal für Push (#34).
  *
  * Beendigungsgründe: Android führt seit Version 11 selbst Buch darüber,
  * und eine App darf ihre EIGENEN Einträge ohne jede Berechtigung lesen.
@@ -136,6 +137,8 @@ class MainActivity : FlutterActivity() {
      * (`AppShell` in `router.dart`).
      */
     override fun onDestroy() {
+        garmin?.dispose()
+        garmin = null
         unregisterReceiver(pipStopReceiver)
         super.onDestroy()
     }
@@ -143,6 +146,9 @@ class MainActivity : FlutterActivity() {
     // ---- Bild-im-Bild (#232, Konzept-Routing 9.6) ----
 
     private var pipChannel: MethodChannel? = null
+
+    /** Die Garmin-Uhr (#449); das SDK startet erst beim ersten `status`. */
+    private var garmin: GarminBridge? = null
 
     /** Nur bei laufender Navigation; Dart schaltet es mit ihr an und aus. */
     private var pipAllowed = false
@@ -314,6 +320,8 @@ class MainActivity : FlutterActivity() {
                     else -> result.notImplemented()
                 }
             }
+
+        garmin = GarminBridge(applicationContext, flutterEngine.dartExecutor.binaryMessenger)
 
         pipChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, PIP_CHANNEL).apply {
             setMethodCallHandler { call, result ->

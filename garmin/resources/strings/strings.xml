@@ -18,4 +18,11 @@
     <string id="ToFinish">TO FINISH</string>
     <string id="Clock">CLOCK</string>
     <string id="Trails">trails</string>
+    <string id="AirShort">Air</string>
+    <string id="WheelieShort">Wheelie</string>
+    <string id="WheelieM">WHEELIE M</string>
+    <string id="Airtime">AIRTIME</string>
+    <string id="Angle">ANGLE</string>
+    <string id="Jumps">JUMPS</string>
+    <string id="Wheelies">WHEELIES</string>
 </strings>

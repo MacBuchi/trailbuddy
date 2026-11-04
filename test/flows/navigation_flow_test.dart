@@ -21,6 +21,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:pmtiles/pmtiles.dart';
 import 'package:trailbuddy/core/picture_in_picture.dart';
 import 'package:trailbuddy/core/screen_awake.dart';
+import 'package:trailbuddy/features/garmin/garmin_bridge.dart' show WatchSendResult;
 import 'package:trailbuddy/features/map/map_view/map_view.dart';
 import 'package:trailbuddy/features/offline_areas/area_plan.dart';
 import 'package:trailbuddy/features/offline_areas/area_store.dart';
@@ -38,6 +39,7 @@ import 'package:trailbuddy/features/trails/grade_shield.dart';
 import 'package:trailbuddy/models/trail.dart';
 
 import '../fakes/fake_backend.dart';
+import '../fakes/fake_garmin.dart';
 import '../fakes/fake_keep_alive.dart';
 import '../fakes/fake_map_view.dart';
 import '../fakes/route_lines.dart';
@@ -184,6 +186,7 @@ void main() {
       FakeNavServiceBridge? navBridge,
       FakeTrailRepository? trails,
       FakePositionFix? positionFix,
+      FakeGarminBridge? garmin,
       _FakePip? pip}) async {
     if (phone) {
       tester.view.physicalSize = const Size(1080, 2400);
@@ -199,6 +202,7 @@ void main() {
         areaStore: areaStore,
         keepAlive: keepAlive,
         navBridge: navBridge,
+        garmin: garmin,
         rideFix: FakeRideFix()
           ..next = RidePoint(lat: start.latitude, lng: start.longitude, at: DateTime.now().toUtc(), accuracyM: 5),
         positionStream: fixes.stream,
@@ -523,6 +527,57 @@ void main() {
     await tester.pump(const Duration(seconds: 1));
     await settle(tester, frames: 2);
     expect(find.byKey(const ValueKey('nav-done')), findsNothing);
+  });
+
+  testWidgets('#449 G2: ohne Uhr kein Schalter „Auf der Uhr zeigen", nichts gesendet',
+      (tester) async {
+    // Ohne Uhr (ab Werk im Harness) kein Schalter, nichts gesendet.
+    final none = FakeGarminBridge();
+    await startFromRides(tester, garmin: none);
+    expect(find.byKey(const ValueKey('nav-go')), findsOneWidget);
+    expect(find.byKey(const ValueKey('nav-watch')), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('nav-go')));
+    await settle(tester);
+    expect(none.sent, isEmpty);
+  });
+
+  testWidgets('#449 G2: mit verbundener Uhr geht die Route hin, die Antwort der Uhr sagt die Leiste', (tester) async {
+    final watch = FakeGarminBridge.connected();
+    await startFromRides(tester, garmin: watch);
+    expect(find.byKey(const ValueKey('nav-watch')), findsOneWidget);
+    expect(find.textContaining('fēnix 5'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('nav-go')));
+    await settle(tester, frames: 10);
+    final parts = watch.routeParts;
+    expect(parts, isNotEmpty);
+    expect(parts.first['v'], 1);
+    final pts = [for (final p in parts) ...(p['pts'] as List)];
+    expect(pts.take(2), [(_lat * 1e5).round(), (_lng(0) * 1e5).round()]);
+    expect(find.byKey(const ValueKey('map-watch-stored')), findsNothing, reason: 'die Uhr hat noch nicht geantwortet');
+    watch.answer({'t': 'ok', 'id': parts.first['id']});
+    await settle(tester, frames: 4);
+    expect(find.byKey(const ValueKey('map-watch-stored')), findsOneWidget);
+    expect(find.byKey(const ValueKey('nav-approach')), findsOneWidget, reason: 'die Navigation hier läuft');
+  });
+
+  testWidgets('#449 G2: Schalter aus heißt nichts an die Uhr', (tester) async {
+    final watch = FakeGarminBridge.connected();
+    await startFromRides(tester, garmin: watch);
+    await tester.tap(find.byKey(const ValueKey('nav-watch')));
+    await settle(tester, frames: 2);
+    await tester.tap(find.byKey(const ValueKey('nav-go')));
+    await settle(tester, frames: 10);
+    expect(watch.sent, isEmpty);
+  });
+
+  testWidgets('#449 G2: kommt die Route nicht an, sagt es die Leiste', (tester) async {
+    final watch = FakeGarminBridge.connected(result: const WatchSendResult('FAILURE_DEVICE_NOT_CONNECTED', 0));
+    await startFromRides(tester, garmin: watch);
+    await tester.tap(find.byKey(const ValueKey('nav-go')));
+    await settle(tester, frames: 10);
+    expect(watch.routeParts, isNotEmpty);
+    expect(find.byKey(const ValueKey('map-watch-failed')), findsOneWidget);
+    expect(find.byKey(const ValueKey('nav-approach')), findsOneWidget);
   });
 
   testWidgets('taps on the map do nothing while navigating; Beenden asks nothing', (tester) async {

@@ -18,4 +18,11 @@
     <string id="ToFinish">ZUM ZIEL</string>
     <string id="Clock">UHRZEIT</string>
     <string id="Trails">Trails</string>
+    <string id="AirShort">Flug</string>
+    <string id="WheelieShort">Wheelie</string>
+    <string id="WheelieM">WHEELIE M</string>
+    <string id="Airtime">FLUGZEIT</string>
+    <string id="Angle">WINKEL</string>
+    <string id="Jumps">SPRÜNGE</string>
+    <string id="Wheelies">WHEELIES</string>
 </strings>

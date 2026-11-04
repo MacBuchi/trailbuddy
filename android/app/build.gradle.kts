@@ -151,4 +151,7 @@ configurations.all {
 dependencies {
     // Für isCoreLibraryDesugaringEnabled (flutter_local_notifications, #116).
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
+    // Die Route auf die Garmin-Uhr (#449 G2, `GarminBridge.kt`): Garmins
+    // Companion-SDK, spricht über die Garmin-Connect-App mit der Uhr.
+    implementation("com.garmin.connectiq:ciq-companion-app-sdk:2.4.0@aar")
 }

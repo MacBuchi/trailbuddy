@@ -23,6 +23,7 @@ import 'package:trailbuddy/core/settings.dart';
 import 'package:trailbuddy/core/update_check.dart';
 import 'package:trailbuddy/core/widgets/start_splash.dart';
 import 'package:trailbuddy/data/providers.dart';
+import 'package:trailbuddy/features/garmin/garmin_bridge.dart';
 import 'package:trailbuddy/features/map/base_map_providers.dart';
 import 'package:trailbuddy/features/map/contour_layer.dart' show computeContours;
 import 'package:trailbuddy/features/map/contour_providers.dart';
@@ -49,6 +50,7 @@ import 'package:trailbuddy/features/trails/outbox_providers.dart';
 import 'package:trailbuddy/features/trails/trail_providers.dart';
 
 import 'fake_backend.dart';
+import 'fake_garmin.dart';
 import 'fake_map_view.dart';
 import 'fake_official_trails.dart';
 import 'fake_outbox.dart';
@@ -111,6 +113,7 @@ List<Override> overridesFor(FakeBackend backend,
         FakeRideServiceBridge? rideBridge,
         FakeRideService? rideService,
         FakeNavServiceBridge? navBridge,
+        FakeGarminBridge? garmin,
         FakeOutbox? outbox,
         FakeTrailCache? trailCache,
         MemoryAreaStore? areaStore,
@@ -198,6 +201,8 @@ List<Override> overridesFor(FakeBackend backend,
       // Die Navigation im Dienst (#232) legt eine Datei ab — ohne die
       // Naht ginge jeder Navigations-Test an `path_provider`.
       navServiceBridgeProvider.overrideWithValue(navBridge ?? FakeNavServiceBridge()),
+      // Ab Werk keine Uhr (#449) — ohne die Zeile fragte der Kanal.
+      garminBridgeProvider.overrideWithValue(garmin ?? FakeGarminBridge()),
       ridePermissionProvider.overrideWithValue(() async => null),
       // Der Ausgangskorb (#30) im Speicher; der Netzwechsel kommt aus dem
       // Test (Vorgabe: WLAN, ohne Wechsel).
@@ -273,6 +278,7 @@ Future<void> pumpApp(WidgetTester tester, FakeBackend backend,
     FakeRideServiceBridge? rideBridge,
     FakeRideService? rideService,
     FakeNavServiceBridge? navBridge,
+    FakeGarminBridge? garmin,
     FakeOutbox? outbox,
     FakeTrailCache? trailCache,
     MemoryAreaStore? areaStore,
@@ -315,6 +321,7 @@ Future<void> pumpApp(WidgetTester tester, FakeBackend backend,
         rideBridge: rideBridge,
         rideService: rideService,
         navBridge: navBridge,
+        garmin: garmin,
         outbox: outbox,
         trailCache: trailCache,
         areaStore: areaStore,

@@ -155,6 +155,23 @@ Datenschutzerklärung sagt es ausdrücklich. Der Inhalt ist damit
 nutzergenerierter Inhalt, den Google nur zustellt — Dienstleister, *nicht
 geteilt*, dieselbe Einordnung wie Brevo.
 
+**⁶ Die Route auf die Garmin-Uhr (#449 G2) — geteilt?**
+Empfehlung: **nein, nutzerinitiiert.** Nur mit dem Schalter „Auf der Uhr
+zeigen" beim Start einer Navigation gibt die App die Route (vereinfachte
+Linie mit Höhen, Namen und S-Grade der Trails darauf) und während der
+Fahrt die Bestwerte der Erkennung (Zahlen, keine Spur) an die
+Garmin-Connect-App auf DEMSELBEN Telefon, die sie an die eigene Uhr des
+Nutzers bringt — dieselbe Ausnahme wie die Anfahrt. Kein Netzziel der
+App, kein Garmin-Konto, keine Garmin-Aktivität (Konzept-Garmin 0 und 4).
+Was Garmin Connect selbst überträgt, ist Garmins Sache; die
+Datenschutzerklärung sagt beides. **Paket-Sichtbarkeit:** Garmins
+Companion-SDK (`com.garmin.connectiq:ciq-companion-app-sdk`) bringt
+`<queries><package android:name="com.garmin.android.apps.connectmobile"/>`
+mit — genau ein Paket, keine `QUERY_ALL_PACKAGES`. Dazu einen exportierten
+Dienst `IQGarminBindingService` (Intent-Filter des SDK, über den Garmin
+Connect antwortet) und eine nicht exportierte Dialog-Activity; keine neue
+Berechtigung. Am AAB nachprüfen.
+
 **⁵ Sind beigesteuerte Linien „Fitnessdaten"?**
 Empfehlung: **nein.** Google meint mit *Fitness* Angaben über körperliche
 Aktivität (Schritte, Kalorien, Trainingseinheiten). Auf dem Server liegt

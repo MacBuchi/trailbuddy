@@ -43,3 +43,13 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
   ist ein ENTWURF für die rechtliche Prüfung (Konzept 10.7) mit den
   offenen Fragen; er gilt nicht und ist nirgends verlinkt, bis er geprüft
   als `web/nutzungsbedingungen.html` erscheint.
+- **Die Garmin-Uhr** (#449 G2, seit 0.150.0, `GarminBridge.kt`, Konzept
+  `docs/konzept-garmin.md` §3): Garmins Companion-SDK 2.4.0 als `@aar`
+  von Maven Central. Es bringt `<queries>` für genau ein Paket
+  (`com.garmin.android.apps.connectmobile`), einen exportierten
+  `IQGarminBindingService` und eine Dialog-Activity mit — alles über das
+  Manifest-Merging, nichts in unserem Manifest. Das SDK startet erst beim
+  ersten `status` (Startblatt der Navigation), `onDestroy` fährt es
+  herunter. Ein Kanal-Test hält Namen und App-Kennung
+  (`garmin/manifest.xml`) mit Dart zusammen; ob es kompiliert, sagt nur
+  `flutter build apk --debug --flavor github`.
