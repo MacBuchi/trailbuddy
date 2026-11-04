@@ -121,8 +121,12 @@ class PlanningGraph {
 /// [fillOnline] erlaubt das Nachladen fehlender Kacheln vom Host — nur,
 /// wenn das Gerät Empfang meldet. [maxTiles] ist die Grenze vor dem
 /// Lesen; null heißt keine.
+///
+/// Mit [only] nur diese Kacheln des Rahmens (der Korridor einer Linie,
+/// [tilesAlong]) — die Abzweigungen für die Uhr (#449); Grenze und
+/// Zählung gelten dann für sie.
 Future<PlanningGraph> loadPlanningGraph(Ref ref, LatBox box,
-    {bool fillOnline = true, int? maxTiles = kPlanMaxTiles}) async {
+    {bool fillOnline = true, int? maxTiles = kPlanMaxTiles, Set<(int, int)>? only}) async {
   List<StoredArea> areas;
   try {
     areas = await ref.read(storedAreasProvider.future);
@@ -140,7 +144,10 @@ Future<PlanningGraph> loadPlanningGraph(Ref ref, LatBox box,
   final session = ref.read(routingPieceSessionProvider);
   // Frische Stücke im Kachelspeicher (#380) — nur in einem Rahmen, den
   // der Lader auch liest.
-  final frame = roadGraphTiles(box, kTrailHeadMarginM);
+  final frame = [
+    for (final t in roadGraphTiles(box, kTrailHeadMarginM))
+      if (only == null || only.contains((t.x, t.y))) t,
+  ];
   final regions = <String>{
     for (final a in areas)
       if (a.maxZoom >= kRoadGraphZoom && a.bounds.intersects(roadGraphBounds(box, kTrailHeadMarginM))) a.region,
@@ -170,6 +177,7 @@ Future<PlanningGraph> loadPlanningGraph(Ref ref, LatBox box,
       fetchWaysOnline: online?.fetchWays,
       sourceKey: (a) => a.region,
       maxTiles: maxTiles,
+      only: only,
       covered: pieces.fresh.keys.toSet(),
     ));
     StallWatch.info('graph.tiles', '${read.tilesFound}/${read.tilesNeeded}');

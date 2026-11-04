@@ -6,8 +6,10 @@
 // Die Form ist die von `garmin/source/NavRoute.mc` und
 // `tool/garmin_route.py`: `pts` = [lat0, lon0, dLat1, dLon1, …] in 1e-5°,
 // der erste Punkt absolut, jeder weitere gegen den Vorgänger; `ele` je
-// Punkt in Metern; `sec` = [[vonPunkt, bisPunkt, sGrad, Name], …]. Ein
-// Test vergleicht mit den Zahlen des Werkzeugs.
+// Punkt in Metern; `sec` = [[vonPunkt, bisPunkt, sGrad, Name], …]; `br`
+// = [Punkt, dLat, dLon, …] je Stummel einer Kreuzung, sein Ende gegen den
+// Punkt der Linie (`watch_branches.dart`). Ein Test vergleicht mit den
+// Zahlen des Werkzeugs.
 import 'dart:collection';
 import 'dart:math' as math;
 
@@ -20,6 +22,7 @@ import '../trails/gpx.dart' show TrackPoint;
 import '../trails/trail_elevation.dart' show ElevationProfile;
 import '../trails/trail_geometry.dart' show simplify;
 import '../../core/geo.dart' as geo;
+import 'watch_branches.dart';
 
 /// Fassung des Protokolls (`v`); die Uhr lehnt eine andere ab.
 const kWatchProtocol = 1;
@@ -46,12 +49,15 @@ const kWatchStored = 'ok';
 
 /// Die Route für die Uhr, noch nicht in Stücken.
 class WatchRoute {
-  const WatchRoute({required this.id, required this.pts, required this.ele, required this.sec});
+  const WatchRoute({required this.id, required this.pts, required this.ele, required this.sec, this.br = const []});
 
   final String id;
   final List<int> pts;
   final List<int>? ele;
   final List<List<Object>> sec;
+
+  /// Die Stummel als `[Punkt, dLat, dLon, …]`, nach Punkt sortiert.
+  final List<int> br;
 
   int get pointCount => pts.length ~/ 2;
 
@@ -63,16 +69,44 @@ class WatchRoute {
         'pts': pts,
         'ele': ?ele,
         if (sec.isNotEmpty) 'sec': sec,
+        if (br.isNotEmpty) 'br': br,
       };
 
   /// Die Stücke, wie sie über die Brücke gehen: jedes mit `t`, `id`,
   /// Laufnummer `p` und Anzahl `n`; das erste trägt dazu `v` und `sec`.
-  /// Die Uhr hängt `pts` und `ele` in der Reihenfolge der Laufnummer
-  /// aneinander und hat dann wieder [toJson].
+  /// Die Stummel gehen mit dem Stück ihres Punkts (die Nummer bleibt die
+  /// der ganzen Linie) und zählen in [maxInts] mit. Die Uhr hängt `pts`,
+  /// `ele` und `br` in der Reihenfolge der Laufnummer aneinander und hat
+  /// dann wieder [toJson].
   List<Map<String, Object>> parts({int maxInts = kWatchPartInts}) {
     final perPoint = ele == null ? 2 : 3;
-    final step = math.max(1, maxInts ~/ perPoint);
-    final n = (pointCount + step - 1) ~/ step;
+    // Stummel je Punkt, in Zahlen.
+    final brInts = List<int>.filled(pointCount, 0);
+    for (var k = 0; k + 2 < br.length; k += 3) {
+      brInts[br[k]] += 3;
+    }
+    // Grenzen der Stücke: so viele Punkte, wie samt Stummeln passen.
+    final bounds = <int>[0];
+    var used = 0;
+    for (var i = 0; i < pointCount; i++) {
+      final cost = perPoint + brInts[i];
+      if (used > 0 && used + cost > maxInts) {
+        bounds.add(i);
+        used = 0;
+      }
+      used += cost;
+    }
+    bounds.add(pointCount);
+    final n = bounds.length - 1;
+    // Je Stück die Stummel seiner Punkte (Stellen in [br]).
+    final brAt = <int>[0];
+    for (var p = 0; p < n; p++) {
+      var k = brAt.last;
+      while (k + 2 < br.length && br[k] < bounds[p + 1]) {
+        k += 3;
+      }
+      brAt.add(k);
+    }
     return [
       for (var p = 0; p < n; p++)
         {
@@ -82,8 +116,9 @@ class WatchRoute {
           'n': n,
           if (p == 0) 'v': kWatchProtocol,
           if (p == 0 && sec.isNotEmpty) 'sec': sec,
-          'pts': pts.sublist(2 * p * step, 2 * math.min(pointCount, (p + 1) * step)),
-          if (ele != null) 'ele': ele!.sublist(p * step, math.min(pointCount, (p + 1) * step)),
+          'pts': pts.sublist(2 * bounds[p], 2 * bounds[p + 1]),
+          if (ele != null) 'ele': ele!.sublist(bounds[p], bounds[p + 1]),
+          if (brAt[p + 1] > brAt[p]) 'br': br.sublist(brAt[p], brAt[p + 1]),
         }
     ];
   }
@@ -94,8 +129,12 @@ class WatchRoute {
 /// Höhen aus dem Profil des Geländemodells (falls da), die Trails der
 /// Route als Abschnitte. Der Ziel-Trail hinter dem Ende („Zum
 /// Trailkopf") fährt nicht mit — er liegt nicht auf der Linie.
+///
+/// Die Punkte der [branches] (Nummern in [points]) bleiben beim
+/// Vereinfachen stehen: Die Uhr zeichnet einen Stummel vom Punkt der
+/// Linie aus — fiele die Kreuzung weg, begänne er am nächsten Knick.
 WatchRoute? watchRouteOf(List<LatLng> points, NavSections sections,
-    {ElevationProfile? heights, int maxPoints = kWatchMaxPoints}) {
+    {ElevationProfile? heights, List<WatchBranch> branches = const [], int maxPoints = kWatchMaxPoints}) {
   if (points.length < 2) return null;
   final track = [for (final p in points) TrackPoint(p.latitude, p.longitude)];
   // Lage ab Start je Originalpunkt — die Abschnitte stehen in Metern.
@@ -105,11 +144,17 @@ WatchRoute? watchRouteOf(List<LatLng> points, NavSections sections,
     cum.add(cum.last + geo.distanceMeters(a.latitude, a.longitude, b.latitude, b.longitude));
   }
   if (!(cum.last > 0)) return null;
+  final fixed = {
+    for (final b in branches)
+      if (b.index >= 0 && b.index < points.length) b.index,
+  };
   var tol = kWatchSimplifyM;
-  var kept = simplify(track, toleranceM: tol);
-  while (kept.length > maxPoints) {
+  var kept = _simplifyKeeping(track, fixed, tol);
+  // Die Stummel sind auf [kWatchMaxBranches] gekappt, es bleibt also
+  // immer genug für die Linie; die Grenze der Toleranz ist nur ein Riegel.
+  while (kept.length > maxPoints && tol < 1e5) {
     tol *= 2;
-    kept = simplify(track, toleranceM: tol);
+    kept = _simplifyKeeping(track, fixed, tol);
   }
   final index = LinkedHashMap<TrackPoint, int>.identity();
   for (var i = 0; i < track.length; i++) {
@@ -142,7 +187,34 @@ WatchRoute? watchRouteOf(List<LatLng> points, NavSections sections,
     if (to <= from) continue;
     sec.add([from, to, watchGrade(t), _short(t.name)]);
   }
-  return WatchRoute(id: watchRouteId(pts), pts: pts, ele: ele, sec: sec);
+  // Die Stummel an ihren Punkt der vereinfachten Linie, das Ende als
+  // Versatz gegen die Kreuzung.
+  final keptAt = {for (var i = 0; i < kept.length; i++) index[kept[i]]!: i};
+  final sorted = [
+    for (final b in branches)
+      if (keptAt[b.index] case final i?) (i: i, b: b),
+  ]..sort((x, y) => x.i.compareTo(y.i));
+  final br = <int>[];
+  for (final (:i, :b) in sorted) {
+    br.addAll([
+      i,
+      ((b.end.latitude - b.at.latitude) * 1e5).round(),
+      ((b.end.longitude - b.at.longitude) * 1e5).round(),
+    ]);
+  }
+  return WatchRoute(id: watchRouteId(pts), pts: pts, ele: ele, sec: sec, br: br);
+}
+
+/// Douglas-Peucker je Stück zwischen den Punkten in [fixed] — die bleiben.
+List<TrackPoint> _simplifyKeeping(List<TrackPoint> track, Set<int> fixed, double tol) {
+  if (fixed.isEmpty) return simplify(track, toleranceM: tol);
+  final cuts = {0, ...fixed, track.length - 1}.toList()..sort();
+  final out = <TrackPoint>[];
+  for (var k = 0; k + 1 < cuts.length; k++) {
+    final piece = simplify(track.sublist(cuts[k], cuts[k + 1] + 1), toleranceM: tol);
+    out.addAll(k == 0 ? piece : piece.skip(1));
+  }
+  return out;
 }
 
 /// Der S-Grad, wie die Uhr ihn färbt: 0–3 (ab S3 schwarz wie in der App),

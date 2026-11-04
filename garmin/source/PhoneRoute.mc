@@ -11,6 +11,8 @@ import Toybox.Lang;
 //!   sec  die Trails (nur im ersten Stück)
 //!   pts  ein Stück von `pts` (das erste beginnt mit dem absoluten Punkt)
 //!   ele  das Stück von `ele` dazu, oder fehlt
+//!   br   die Stummel der Punkte dieses Stücks (Punktnummern der ganzen
+//!        Linie), oder fehlt
 //!
 //! Jedes Stück geht sofort in den Speicher der Uhr (`Application.Storage`)
 //! und nicht in den Arbeitsspeicher: Die alte Route läuft weiter, bis die
@@ -85,6 +87,11 @@ module PhoneRoute {
         var ele = acc["ele"] as Array<Number>?;
         if (ele != null && part["ele"] != null) {
             ele.addAll(part["ele"] as Array<Number>);
+        }
+        var br = part["br"] as Array<Number>?;
+        if (br != null) {
+            if (acc["br"] == null) { acc["br"] = [] as Array<Number>; }
+            (acc["br"] as Array<Number>).addAll(br);
         }
     }
 

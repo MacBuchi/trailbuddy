@@ -2,6 +2,16 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## Junctions on the Garmin watch
+
+*Version 0.151.0, 2026-11-04*
+
+- The route on the watch now shows a short grey piece of the path that
+  branches off at every junction. You see where you can turn and where
+  the route goes on — without a map and without turn instructions.
+- The paths come from your saved areas (with reception also from the
+  server) and from the trails you see in the app.
+
 ## The route on your Garmin watch
 
 *Version 0.150.0, 2026-11-04*

@@ -133,9 +133,26 @@ Geländemodell entlang der Linie (höchstens 5 s Warten, sonst ohne). Die
 Uhr legt jedes Stück sofort in `Application.Storage` (zwei Fächer, die
 neue Route gilt erst mit dem letzten Stück, `garmin/source/PhoneRoute.mc`),
 lädt beim Start die gespeicherte statt der Testroute und antwortet
-`{t: "ok", id}`. Uphill-Trails gehen ohne Grad (-1), ab S3 als 3. Die
-Abzweigungen (`br`) kommen in einem eigenen PR (Betreiber, 2026-11-04):
-Beim Start der Navigation liegt kein Wegegraph im Speicher.
+`{t: "ok", id}`. Uphill-Trails gehen ohne Grad (-1), ab S3 als 3.
+
+**Die Abzweigungen (`br`)**, eigener PR nach G2 (Betreiber,
+2026-11-04): Beim Start der Navigation liegt kein Wegegraph im
+Speicher, und eine Fahrt aus „Meine Fahrten" hatte nie einen. Deshalb
+liest die App beim Senden die Kacheln im Korridor von 100 m um die Linie
+(`tilesAlong`, wie die Kalibrierung; Bereiche, vorgebackene Stücke, mit
+Empfang und Schalter vom Host), baut den Graphen in einem eigenen
+Rechen-Isolate samt der sichtbaren Trails und rechnet dort die Stummel
+(`lib/features/garmin/watch_branches.dart`). Eine Kreuzung der Route ist
+ein Knoten mit drei und mehr Kanten, höchstens 8 m neben der Linie, an
+dem mindestens eine Kante der Route folgt (15 m weiter höchstens 6 m
+daneben); jede andere Kante ab 10 m Länge gibt einen Stummel von 40 m
+(oder bis zu ihrem Ende). Höchstens 300 Stummel, darüber gleichmäßig
+ausgedünnt. Höhen und Stummel laufen zugleich; auf die Stummel wartet das
+Senden höchstens 15 s, danach geht die Route ohne. Die Kreuzung bleibt
+beim Vereinfachen als Punkt der Linie stehen, das Ende geht als Versatz
+gegen den Knoten (bei einer GPS-Fahrt liegt der Linienpunkt ein paar
+Meter daneben). Jeder Stummel fährt im Stück seines Punkts mit und zählt
+in dessen 800 Zahlen; die Uhr hängt `br` wie `pts` aneinander.
 **Die Uhr-App muss offen sein**, wenn die Route kommt — eine Watch-App
 empfängt nur, solange sie läuft; scheitert das Senden, sagt die Leiste
 „Ist die Uhr-App offen?". Ob Garmin Connect eine Nachricht für eine
