@@ -1,7 +1,9 @@
 import Toybox.Application;
 import Toybox.Lang;
 
-//! Die Route vom Handy (Konzept-Garmin 2 und 3, G2): Sie kommt in Stücken
+//! Die Route vom Handy (Konzept-Garmin 2 und 3, G2). Beim Start und auf
+//! die Frage `q` meldet sich die Uhr mit `{t: "hi", v, id}` — `id` ist
+//! [currentId], fehlt ohne Route vom Handy. Die Route kommt in Stücken
 //! (`lib/features/garmin/watch_route.dart`, `WatchRoute.parts`):
 //!
 //!   t    "r"
@@ -93,6 +95,13 @@ module PhoneRoute {
             if (acc["br"] == null) { acc["br"] = [] as Array<Number>; }
             (acc["br"] as Array<Number>).addAll(br);
         }
+    }
+
+    //! Die Kennung der gespeicherten Route, oder null (für „hallo").
+    function currentId() as String? {
+        var slot = Storage.getValue("cur") as String?;
+        if (slot == null) { return null; }
+        return Storage.getValue(slot + "id") as String?;
     }
 
     //! Die gespeicherte Route verwerfen (sie ließ die App abstürzen).

@@ -22,10 +22,13 @@ import java.util.concurrent.Executors
  * zusammen.
  *
  * Drei Methoden: `status` (Garmin Connect da? welche Uhr verbunden? unsere
- * App darauf?), `send` (Nachrichten der Reihe nach, jede wartet auf die
- * Bestätigung der vorigen), und von hier nach Dart `message` — die
- * Antwort der Uhr („gespeichert"). Das SDK wird erst beim ersten `status`
- * gestartet, nie beim App-Start: Wer keine Uhr hat, lädt nichts.
+ * App darauf?), `open` (die Uhr-App öffnen, sonst fragt die Uhr
+ * „TrailBuddy öffnen?"), `send` (Nachrichten der Reihe nach, jede wartet
+ * auf die Bestätigung der vorigen). Von hier nach Dart: `message` — was
+ * die Uhr schickt („hallo", „gespeichert") — und `device` mit dem Stand
+ * der Verbindung (`CONNECTED` …), von Garmin Connect gemeldet, nicht
+ * abgefragt. Das SDK wird erst beim ersten `status` gestartet, nie beim
+ * App-Start: Wer keine Uhr hat, lädt nichts.
  *
  * Kein Test-Netz für Kotlin; die Dart-Seite hat eines (Fake-Brücke).
  */
@@ -43,6 +46,9 @@ class GarminBridge(private val context: Context, messenger: BinaryMessenger) {
          * Simulator) — das Handy zeigte dann weder Erfolg noch Fehler.
          */
         const val ACK_TIMEOUT_MS = 20_000L
+
+        /** So lange wartet `open` auf Garmin Connect, dann `TIMEOUT`. */
+        const val OPEN_TIMEOUT_MS = 10_000L
     }
 
     private val channel = MethodChannel(messenger, CHANNEL)
@@ -73,6 +79,7 @@ class GarminBridge(private val context: Context, messenger: BinaryMessenger) {
                         status(id, call.argument<Boolean>("tethered") == true, result)
                     }
                 }
+                "open" -> open(result)
                 "send" -> {
                     @Suppress("UNCHECKED_CAST")
                     val messages = call.argument<List<Any>>("messages") ?: emptyList()
@@ -180,9 +187,22 @@ class GarminBridge(private val context: Context, messenger: BinaryMessenger) {
         }, { error -> answer(mapOf("connect" to true, "error" to error)) })
     }
 
-    /** Die Antworten der Uhr gehen als `message` an Dart. */
+    /**
+     * Die Antworten der Uhr gehen als `message` an Dart, der Stand der
+     * Verbindung als `device`: Verbindet die Uhr neu, fragt Dart, welche
+     * Route sie hat (`q`) — statt im Takt nachzusehen.
+     */
     private fun listen(sdk: ConnectIQ, device: IQDevice, id: String) {
         if (!listening.add(device.deviceIdentifier)) return
+        try {
+            sdk.registerForDeviceEvents(device, object : ConnectIQ.IQDeviceEventListener {
+                override fun onDeviceStatusChanged(device: IQDevice, status: IQDevice.IQDeviceStatus) {
+                    main.post { channel.invokeMethod("device", status.name) }
+                }
+            })
+        } catch (e: Exception) {
+            Log.w("TB-GARMIN", "registerForDeviceEvents", e)
+        }
         try {
             sdk.registerForAppEvents(device, IQApp(id), object : ConnectIQ.IQApplicationEventListener {
                 override fun onMessageReceived(
@@ -197,6 +217,55 @@ class GarminBridge(private val context: Context, messenger: BinaryMessenger) {
             })
         } catch (e: Exception) {
             listening.remove(device.deviceIdentifier)
+        }
+    }
+
+    /**
+     * Die Uhr-App auf der ersten verbundenen Uhr öffnen. Läuft sie nicht,
+     * fragt die Uhr „TrailBuddy öffnen?"; nach dem Ja meldet sich die App
+     * selbst (`hi`). Ergebnis: der Name aus `IQOpenApplicationStatus`
+     * (`APP_IS_ALREADY_RUNNING`, `PROMPT_SHOWN_ON_DEVICE`,
+     * `APP_IS_NOT_INSTALLED` …), `NOT_READY`, `FAILURE_DEVICE_NOT_CONNECTED`
+     * oder nach [OPEN_TIMEOUT_MS] `TIMEOUT`. Auf dem eigenen Thread wie
+     * `send` (Simulator-Modus: Socket).
+     */
+    private fun open(result: MethodChannel.Result) {
+        val sdk = iq
+        val id = appId
+        if (sdk == null || !ready || id == null) {
+            result.success("NOT_READY")
+            return
+        }
+        var answered = false
+        fun answer(status: String) {
+            main.post {
+                if (answered) return@post
+                answered = true
+                Log.i("TB-GARMIN", "open $status")
+                result.success(status)
+            }
+        }
+        main.postDelayed({ answer("TIMEOUT") }, OPEN_TIMEOUT_MS)
+        io.execute {
+            try {
+                val device = sdk.connectedDevices?.firstOrNull()
+                if (device == null) {
+                    answer("FAILURE_DEVICE_NOT_CONNECTED")
+                    return@execute
+                }
+                sdk.openApplication(device, IQApp(id), object : ConnectIQ.IQOpenApplicationListener {
+                    override fun onOpenApplicationResponse(
+                        device: IQDevice,
+                        app: IQApp,
+                        status: ConnectIQ.IQOpenApplicationStatus,
+                    ) {
+                        answer(status.name)
+                    }
+                })
+            } catch (e: Exception) {
+                Log.w("TB-GARMIN", "openApplication", e)
+                answer("UNKNOWN_FAILURE")
+            }
         }
     }
 

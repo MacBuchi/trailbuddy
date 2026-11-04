@@ -17,5 +17,11 @@ class _NoWatch implements GarminBridge {
       const WatchSendResult('NOT_SUPPORTED', 0);
 
   @override
+  Future<WatchOpen> open() async => WatchOpen.unknown;
+
+  @override
   Stream<Object?> get messages => const Stream.empty();
+
+  @override
+  Stream<void> get connected => const Stream.empty();
 }

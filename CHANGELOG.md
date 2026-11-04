@@ -2,6 +2,22 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Die Uhr holt sich die Route selbst
+
+*Version 0.152.0, 2026-11-04*
+
+- Ist TrailBuddy auf der Garmin-Uhr zu, wenn die Navigation beginnt,
+  fragt die Uhr jetzt „TrailBuddy öffnen?". Nach dem Ja kommt die Route
+  von selbst — vorher ging sie still verloren, obwohl das Handy „gesendet"
+  meinte.
+- „Route auf der Uhr" sagt die App erst, wenn die Uhr den Empfang
+  bestätigt hat. Antwortet sie nicht, sagt die Leiste das; öffnet man die
+  Uhr-App später, holt sie sich die Route.
+- Startet man unterwegs eine neue Route, geht sie ohne weiteres Zutun
+  auf die Uhr. Verliert die Uhr kurz die Verbindung, prüft das Handy
+  danach, ob sie noch die richtige Route hat.
+- Beim Öffnen der App fragt die Uhr nichts — nur beim Start einer
+  Navigation mit „Auf der Uhr zeigen".
 ## Bibliotheken aufgefrischt
 
 *Version 0.151.1, 2026-11-04*

@@ -121,8 +121,9 @@ Die Form steht in `garmin/source/NavRoute.mc` (Schlüssel `v`, `id`,
 `tool/garmin_route.py` schreibt sie. **Höchstens 2000 Punkte**
 (Messung 8.1): darüber vereinfacht die App stärker, bis es passt.
 
-Die Uhr schickt zurück: „angekommen und gespeichert" mit der Kennung,
-sonst nichts. Keine Position, keine Fahrt (A3).
+Die Uhr schickt zurück: „angekommen und gespeichert" mit der Kennung
+und „hallo" mit der Kennung der Route, die sie hat — sonst nichts. Keine
+Position, keine Fahrt (A3).
 
 **Gebaut in G2 (2026-11-04)**: `lib/features/garmin/watch_route.dart`
 kodiert und schneidet in **Stücke** (`t: "r"`, `id`, Laufnummer `p`, Anzahl
@@ -153,10 +154,41 @@ beim Vereinfachen als Punkt der Linie stehen, das Ende geht als Versatz
 gegen den Knoten (bei einer GPS-Fahrt liegt der Linienpunkt ein paar
 Meter daneben). Jeder Stummel fährt im Stück seines Punkts mit und zählt
 in dessen 800 Zahlen; die Uhr hängt `br` wie `pts` aneinander.
-**Die Uhr-App muss offen sein**, wenn die Route kommt — eine Watch-App
-empfängt nur, solange sie läuft; scheitert das Senden, sagt die Leiste
-„Ist die Uhr-App offen?". Ob Garmin Connect eine Nachricht für eine
-geschlossene App aufhebt, ist am Gerät zu prüfen (8.2).
+**Das Handy stößt an, die Uhr meldet sich** (Betreiber, 2026-11-04,
+nach dem ersten Test mit der fēnix 5 über Garmin Connect auf einem
+Pixel 7 Pro). Befund: Garmin Connect meldet `SUCCESS` auch, wenn die
+Uhr-App zu ist — die Uhr verwirft die Nachricht. Eine Watch-App empfängt
+nur, solange sie läuft; nur das `{t: "ok", id}` der Uhr zählt als
+angekommen (beantwortet 8.2). Deshalb:
+
+- **Beim Start der Navigation** mit „Auf der Uhr zeigen" ruft das Handy
+  `openApplication` (`GarminBridge.kt`, Methode `open`), zugleich mit
+  dem Rechnen von Höhen und Stummeln. Läuft die Uhr-App, gehen die
+  Stücke; sonst fragt die Uhr „TrailBuddy öffnen?", und die Leiste sagt
+  „Auf der Uhr TrailBuddy öffnen". Fehlt die App, sagt sie das, und
+  nichts geht hin.
+- **Die Uhr-App meldet sich beim Start** mit `{t: "hi", v, id}` — `id`
+  ist die gespeicherte Route, fehlt ohne eine vom Handy. Weicht sie von
+  der laufenden Navigation ab, schickt das Handy die aktuelle; stimmt
+  sie, gilt sie als gespeichert. Ein „hallo", das kommt, während das
+  Handy noch rechnet, wartet auf die fertige Route.
+- **Neu verbunden** meldet Garmin Connect (`device`, `CONNECTED`), dann
+  fragt das Handy `{t: "q"}`, und eine laufende Uhr-App antwortet mit
+  „hallo". Kein Abfragen im Takt.
+- **Die Uhr folgt der Navigation, bis sie endet**: Jede neue Linie der
+  Navigation (eine neue Route, auch ohne neues Startblatt) geht von
+  selbst hinterher, mit erneutem Anstoßen; die Uhr wechselt die Route
+  im Lauf. Mit dem Schalter aus oder nach dem Ende antwortet das Handy
+  auf kein „hallo" mehr. „Zurück zur Route" ist keine neue Linie: Die
+  Uhr zeigt dafür ihren eigenen Pfeil zurück.
+- **„Route auf der Uhr" erst nach dem `ok`**. Kommt es 15 s nach dem
+  Senden nicht (`kWatchAckWait`), sagt die Leiste „Die Uhr hat nicht
+  geantwortet"; öffnet man die Uhr-App danach, holt ihr „hallo" die
+  Route. Die Bestwerte gehen erst nach dem `ok` (vorher verwürfe sie
+  eine geschlossene App) und nach jedem passenden „hallo" noch einmal.
+- **Kein Anstoßen beim Start der App** (Betreiber, 2026-11-04): Die
+  Frage auf der Uhr gehört zum Start einer Fahrt. Eine nach einem
+  Neustart wiederaufgenommene Navigation folgt der Uhr nicht.
 
 **Bestwerte (Idee des Betreibers, in G2 gebaut)**: `{t: "b", jn, ja, wn,
 wl, wa, sn}` — Sprünge und längste Flugzeit in ms, Wheelies, längster in
@@ -279,7 +311,9 @@ Aus der Gerätedatei des SDK 9.3.0 und der Uhr selbst:
    2). Mit Ring und Seiten (2026-11-04): 2000 Punkte 76 KB. Am Gerät
    nachmessen.
 2. **Übertragung**: größte Nachricht, die ankommt; Dauer für eine
-   typische Runde.
+   typische Runde. Am Gerät (2026-11-04): Für eine geschlossene Uhr-App
+   meldet Garmin Connect `SUCCESS` und die Nachricht verfällt — daher
+   das Anstoßen und „hallo" (Abschnitt 2). Größe und Dauer offen.
 3. **Akku**: Prozent je Stunde mit GPS jede Sekunde und Anzeige an.
 4. **Lesbarkeit**: die S-Farben auf MIP in der Sonne.
 5. **Abseits**: Die 30-m-Regel mit dem GPS der Uhr — löst sie im Wald

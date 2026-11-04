@@ -131,4 +131,21 @@ void main() {
     expect(app, contains('PROTOCOL = $kWatchProtocol'));
     expect(manifest, contains('<iq:uses-permission id="Communications"/>'));
   });
+
+  test('#449: „hallo", Frage und Öffnen sprechen Uhr, Kotlin und Dart gleich', () {
+    final watch = File('garmin/source/TrailBuddyApp.mc').readAsStringSync();
+    expect(watch, contains('"t" => "$kWatchHello"'));
+    expect(watch, contains('"$kWatchQuery".equals(t)'));
+    final kotlin = File('android/app/src/main/kotlin/de/mcbuchi/trailbuddy/GarminBridge.kt').readAsStringSync();
+    expect(kotlin, contains('"open" ->'));
+    expect(kotlin, contains('invokeMethod("device", "CONNECTED")'));
+    expect(watchQuery, {'t': 'q'});
+    expect(watchHelloOf({'t': 'hi', 'id': 'ab12', 'v': 1}), (hello: true, id: 'ab12'));
+    expect(watchHelloOf({'t': 'hi', 'v': 1}), (hello: true, id: null));
+    expect(watchHelloOf({'t': 'ok', 'id': 'ab12'}).hello, isFalse);
+    expect(WatchOpen.fromChannel('PROMPT_SHOWN_ON_DEVICE'), WatchOpen.prompted);
+    expect(WatchOpen.fromChannel('APP_IS_ALREADY_RUNNING'), WatchOpen.running);
+    expect(WatchOpen.fromChannel('APP_IS_NOT_INSTALLED'), WatchOpen.notInstalled);
+    expect(WatchOpen.fromChannel('TIMEOUT'), WatchOpen.unknown);
+  });
 }

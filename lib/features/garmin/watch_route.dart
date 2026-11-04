@@ -41,11 +41,17 @@ const kWatchPartInts = 800;
 /// Namen kürzt die App: Die Uhr zeigt ohnehin nur eine Zeile.
 const kWatchNameChars = 24;
 
-/// Art der Nachricht (`t`): ein Stück Route, die Bestwerte, die Antwort
-/// der Uhr.
+/// Art der Nachricht (`t`): ein Stück Route, die Bestwerte, die Frage
+/// „welche Route hast du?" an die Uhr; zurück „gespeichert" und „hallo".
 const kWatchRoutePart = 'r';
 const kWatchBests = 'b';
+const kWatchQuery = 'q';
 const kWatchStored = 'ok';
+const kWatchHello = 'hi';
+
+/// Die Frage an die Uhr, nach dem Wiederverbinden: Läuft ihre App, meldet
+/// sie sich mit `hi` (läuft sie nicht, verfällt die Nachricht still).
+const Map<String, Object> watchQuery = {'t': kWatchQuery};
 
 /// Die Route für die Uhr, noch nicht in Stücken.
 class WatchRoute {
@@ -271,8 +277,17 @@ Map<String, Object>? watchBestsOf(AirtimeLog log) {
   };
 }
 
-/// Hat die Uhr [routeId] gespeichert? Ihre einzige Antwort (Konzept 2:
-/// „sonst nichts").
+/// Die Uhr-App meldet sich (beim Start und auf [watchQuery]) mit der
+/// Kennung der Route, die sie gespeichert hat: `(hello: true, id: …)`,
+/// `id` null ohne Route vom Handy. Keine Meldung: `hello` false.
+({bool hello, String? id}) watchHelloOf(Object? message) {
+  if (message is! Map || message['t'] != kWatchHello) return (hello: false, id: null);
+  final id = message['id'];
+  return (hello: true, id: id is String ? id : null);
+}
+
+/// Hat die Uhr [routeId] gespeichert? Ihre Antwort auf eine vollständige
+/// Route (Konzept 2).
 String? watchStoredId(Object? message) {
   if (message is! Map) return null;
   if (message['t'] != kWatchStored) return null;

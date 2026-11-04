@@ -272,13 +272,16 @@ function phoneRouteStoresOnlyWhenComplete(logger as Logger) as Boolean {
     Test.assert(PhoneRoute.take({"t" => "r", "id" => "x1", "p" => 2, "n" => 2, "pts" => [0, 0]}) == null);
     Test.assert(PhoneRoute.take(p0) == null);
     Test.assert(PhoneRoute.load() == null);
+    Test.assert(PhoneRoute.currentId() == null); // „hallo" ohne Kennung
     Test.assertEqual(PhoneRoute.take(p1), "x1");
+    Test.assertEqual(PhoneRoute.currentId(), "x1");
     var d = PhoneRoute.load() as Dictionary;
     Test.assertEqual((d["pts"] as Array).size(), 6);
     Test.assertEqual(d["id"], "x1");
     // Eine zweite Route kommt nur halb: Die erste bleibt die gespeicherte.
     PhoneRoute.take({"t" => "r", "id" => "x2", "p" => 0, "n" => 3, "v" => 1, "pts" => [0, 0]});
     Test.assertEqual((PhoneRoute.load() as Dictionary)["id"], "x1");
+    Test.assertEqual(PhoneRoute.currentId(), "x1");
     PhoneRoute.drop();
     Test.assert(PhoneRoute.load() == null);
     return true;
