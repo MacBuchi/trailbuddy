@@ -15,6 +15,7 @@ class TrailBuddyApp extends Application.AppBase {
     hidden var _route as NavRoute;
     hidden var _tracker as NavTracker;
     hidden var _view as NavView;
+    hidden var _stats as RideStats;
     hidden var _loader as Timer.Timer?;
     //! So viele Punkte je Häppchen: bleibt weit unter dem Watchdog
     //! (120 000 Schritte je Ereignis, NavRoute).
@@ -24,13 +25,18 @@ class TrailBuddyApp extends Application.AppBase {
         AppBase.initialize();
         _route = new NavRoute(WatchUi.loadResource(Rez.JsonData.Route) as Dictionary);
         _tracker = new NavTracker(_route);
-        _view = new NavView(_route);
+        _stats = new RideStats(_route.secFrom.size());
+        _view = new NavView(_route, _stats);
     }
 
     function onStart(state as Dictionary?) as Void {
         var t = new Timer.Timer();
         _loader = t;
         t.start(method(:loadStep), 50, true);
+        // Der Puls vom Handgelenk für die Seite „Fahrt" (bleibt auf der Uhr).
+        if (Sensor has :setEnabledSensors) {
+            Sensor.setEnabledSensors([Sensor.SENSOR_HEARTRATE]);
+        }
     }
 
     //! Ein Häppchen der Route; ist sie fertig, beginnt die Navigation.
@@ -81,11 +87,17 @@ class TrailBuddyApp extends Application.AppBase {
         if (s.leftRoute) {
             vibrateOnce();
         }
-        _view.setState(s, info.speed, info.altitude);
+        // Höhe vom Barometer, sonst vom GPS.
+        var alt = sensor has :altitude && sensor.altitude != null ? sensor.altitude : info.altitude;
+        var hr = sensor has :heartRate ? sensor.heartRate : null;
+        _stats.update(p[0], p[1], System.getTimer(), info.speed, alt, hr,
+            s.offRoute ? -1 : _route.sectionAt(s.alongM));
+        _view.setState(s, info.speed);
     }
 
     (:demo) hidden var _demoTimer as Timer.Timer?;
     (:demo) hidden var _demoScene as Number = 0;
+    (:demo) hidden var _demoMs as Number = 0;
 
     (:demo)
     function startDemo() as Void {
@@ -102,6 +114,15 @@ class TrailBuddyApp extends Application.AppBase {
         if (_demoScene % scenes.size() == 1) {
             _tracker = new NavTracker(_route); // „angekommen" bleibt sonst stehen
         }
+        // Vor jeder Szene auf der Linie ein Fix mitten im Trail davor, damit
+        // die Zusammenfassung befahrene Trails hat.
+        if (_route.secFrom.size() > 0) {
+            var k = _route.nextSection(sc[0]);
+            k = k < 0 ? _route.secFrom.size() - 1 : (k > 0 ? k - 1 : 0);
+            var c = _route.cum;
+            var q = _route.pointAt((c[_route.secFrom[k]] + c[_route.secTo[k]]) / 2);
+            _stats.update(q[0], q[1], _demoMs, 0.0, null, null, k);
+        }
         var along = sc[0];
         var h = _route.bearingAt(along);
         var p = _route.pointAt(along);
@@ -110,7 +131,16 @@ class TrailBuddyApp extends Application.AppBase {
         var y = p[1] - sc[1] * Math.sin(h).toFloat();
         var s = _tracker.update(x - 3 * Math.sin(h).toFloat(), y - 3 * Math.cos(h).toFloat(), h, 6.0, null);
         s = _tracker.update(x, y, h, 6.0, null);
-        _view.setState(s, 6.0, 812.0);
+        // Zahlen für die Seiten: erfundene Höhe (steigt stetig) und Puls.
+        _demoMs += 4000;
+        var demoAlt = 700.0 + _demoMs / 1000.0 * 0.5;
+        _stats.update(x, y, _demoMs, 6.0, demoAlt, 128 + _demoScene % 20,
+            s.offRoute ? -1 : _route.sectionAt(s.alongM));
+        // Strecke und Fahrzeit wie bis zu dieser Stelle gefahren (die Szenen
+        // springen, aus den Fixen käme nichts zusammen).
+        _stats.distanceM = sc[0];
+        _stats.movingS = sc[0] / 5.0;
+        _view.setState(s, 6.0);
         // Für die Messung 8.1: Speicher nach jedem Bild in die Konsole.
         var st = System.getSystemStats();
         System.println("demo " + _route.size() + " pts scene " + (_demoScene - 1) % scenes.size()
@@ -150,8 +180,9 @@ class DemoScenes {
     }
 }
 
-//! hoch/runter zoomt, START schaltet die Seite, ZURÜCK beendet nach
-//! Rückfrage (Konzept-Garmin 1).
+//! START blättert (Karte → Fahrt → Berg), hoch/runter zoomt auf der Karte
+//! und blättert auf den Zahlenseiten, ZURÜCK beendet nach Rückfrage
+//! (Konzept-Garmin 1).
 class NavDelegate extends WatchUi.BehaviorDelegate {
     hidden var _view as NavView;
 
@@ -161,17 +192,17 @@ class NavDelegate extends WatchUi.BehaviorDelegate {
     }
 
     function onPreviousPage() as Boolean {
-        _view.zoomIn();
+        _view.up();
         return true;
     }
 
     function onNextPage() as Boolean {
-        _view.zoomOut();
+        _view.down();
         return true;
     }
 
     function onSelect() as Boolean {
-        _view.togglePage();
+        _view.nextPage();
         return true;
     }
 

@@ -9,6 +9,13 @@
     <string id="Speed">KM/H</string>
     <string id="Time">ZEIT</string>
     <string id="Altitude">HÖHE</string>
-    <string id="Left">NOCH</string>
     <string id="DecimalSep">,</string>
+    <string id="Distance">STRECKE</string>
+    <string id="Climbed">BERGAUF</string>
+    <string id="Pulse">PULS</string>
+    <string id="Grade">STEIGUNG %</string>
+    <string id="ToTrail">ZUM TRAIL</string>
+    <string id="ToFinish">ZUM ZIEL</string>
+    <string id="Clock">UHRZEIT</string>
+    <string id="Trails">Trails</string>
 </strings>

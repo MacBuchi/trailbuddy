@@ -28,7 +28,7 @@ Garmin-Aktivität, kein Netz, keine Abbiegehinweise.
 - **Speicher** (Messung 8.1 im Simulator, 124 KB für die App): gut 20 Byte
   je Punkt auf ~29 KB Grundlast; 2000 Punkte 70 KB, ab 3000 „Out of
   Memory" schon beim Laden (rohe Daten und Felder liegen kurz zusammen).
-  Grenze für G2: 2000 Punkte.
+  Grenze für G2: 2000 Punkte. Mit Ring und Seiten 76 KB bei 2000.
 - **Unit-Tests** (`source/Tests.mc`): Jede Funktion mit `(:test)` muss
   `(logger as Logger) as Boolean` sein — Hilfsfunktionen liegen deshalb im
   Modul `TestRoutes`, das `(:test)` trägt. Gegenprobe gefahren
@@ -45,7 +45,17 @@ Garmin-Aktivität, kein Netz, keine Abbiegehinweise.
   `mapGrades`), Infofläche schwarz mit dem dunklen Satz (`gradeOnDark`).
   `dark.line` ist auf MIP schwarz und damit unsichtbar — dafür `555555`.
 - **Schrift**: Die Systemschrift hat keinen Pfeil „↑" — der Pfeil vor dem
-  Anstieg ist gezeichnet (`numberLine`). Unten wird der Kreis schnell
+  Anstieg ist gezeichnet (`numberLine`, `climbText`). Die Zahlenschrift
+  (`FONT_NUMBER_*`) hat kein Komma und kein „%": große Zahlen ganzzahlig,
+  die Einheit steht klein darüber.
+- **Ring** (`source/Ring.mc`): `drawArc` zählt 0° bei 3 Uhr und gegen
+  den Uhrzeigersinn, `TbRing.deg` rechnet den Anteil der Route um; gleiche
+  Winkel überspringt `arc()` (sonst zeichnet die Uhr einen vollen Kreis).
+  Was auf der Karte bis an den Rand reicht (N, Schilder, Pfeil zurück),
+  bleibt innerhalb `TbRing.MAP_R`.
+- **Zahlen der Seiten** (`source/RideStats.mc`): nur im Speicher, nichts
+  gespeichert (A3). Gegenprobe 2026-11-04: Tempo-Schwelle und Hysterese
+  auf 0 ⇒ beide RideStats-Tests rot. Unten wird der Kreis schnell
   schmal: Die Infofläche beginnt bei y 168, die Position steht bei y 128.
 - **Startsymbol** `resources/drawables/launcher_icon.png` kommt aus
   `tool/brand_icons.py` (40 px), Prüfsumme in `tool/generated_assets.json`.

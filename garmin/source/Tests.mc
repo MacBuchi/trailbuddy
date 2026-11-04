@@ -177,3 +177,57 @@ function relativeRouteAnchors(logger as Logger) as Boolean {
     Test.assert(r.lengthM > 1000.0 && r.lengthM < 1001.5);
     return true;
 }
+
+(:test)
+function rideStatsCountsOnlyWhileMoving(logger as Logger) as Boolean {
+    var st = new RideStats(2);
+    // Stehen mit GPS-Zittern zählt nicht; dann 10 s lang 10 m je Sekunde.
+    st.update(0.0, 0.0, 0, 0.2, null, null, -1);
+    st.update(3.0, 0.0, 1000, 0.3, null, null, -1);
+    for (var i = 1; i <= 10; i++) {
+        st.update(3.0 + 10 * i, 0.0, 1000 + 1000 * i, 10.0, null, 140, 1);
+    }
+    Test.assert(st.distanceM > 99.0 && st.distanceM < 101.0);
+    Test.assert(st.movingS > 9.9 && st.movingS < 10.1);
+    // Ein Sprung über 100 m (GPS wacht auf) zählt nicht.
+    st.update(1000.0, 0.0, 12000, 10.0, null, 141, -1);
+    Test.assert(st.distanceM < 101.0);
+    Test.assertEqual(st.heartRate, 141);
+    Test.assert(!st.ridden[0] && st.ridden[1]);
+    Test.assertEqual(st.riddenCount(), 1);
+    return true;
+}
+
+(:test)
+function rideStatsClimbAndGrade(logger as Logger) as Boolean {
+    var st = new RideStats(0);
+    // 100 m mit 8 % Steigung in Schritten zu 5 m, dann 2 m Rauschen.
+    for (var i = 0; i <= 20; i++) {
+        st.update(5.0 * i, 0.0, 1000 * i, 5.0, 500.0 + 0.4 * i, null, -1);
+    }
+    Test.assert(st.climbM > 5.9 && st.climbM <= 8.0);
+    Test.assertEqual(st.grade(), 8);
+    var before = st.climbM;
+    st.update(105.0, 0.0, 21000, 5.0, 506.0, null, -1);
+    st.update(110.0, 0.0, 22000, 5.0, 508.0, null, -1);
+    Test.assertEqual(st.climbM, before); // unter der Hysterese von 3 m
+    // Zu kurz für eine Steigung: null.
+    var fresh = new RideStats(0);
+    fresh.update(0.0, 0.0, 0, 5.0, 500.0, null, -1);
+    fresh.update(5.0, 0.0, 1000, 5.0, 501.0, null, -1);
+    Test.assert(fresh.grade() == null);
+    return true;
+}
+
+(:test)
+function ringAngles(logger as Logger) as Boolean {
+    // 0 rechts neben der Lücke oben, 1 links daneben, 0,25 bei 3 Uhr.
+    Test.assertEqual(TbRing.deg(0.0), 88);
+    Test.assertEqual(TbRing.deg(1.0), -268);
+    Test.assertEqual(TbRing.deg(0.25), -1);
+    Test.assertEqual(TbRing.deg(2.0), -268);
+    Test.assert(TbRing.share(500.0, 1000.0) == 0.5);
+    Test.assert(TbRing.share(1500.0, 1000.0) == 1.0);
+    Test.assert(TbRing.share(5.0, 0.0) == 0.0);
+    return true;
+}

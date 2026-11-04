@@ -884,7 +884,15 @@ Rand in Moos, Trails in ihrer Stufenfarbe, gefahrener Teil als dünne
 Linie in Moos, Abzweigungen als graue Stummel von 40 m, Schild als Form am
 Trailkopf voraus), **Infofläche schwarz** ab y 168 mit dem dunklen Satz
 (Schild + Name des nächsten Trails, Weg und Anstieg in Lime; auf dem
-Trail ein Balken in Stufenfarbe; abseits die ganze Fläche in Warnfarbe).
-Position bei y 128, „N" am Rand, Zahlenseite dunkel. Die Farben sind je
+Trail Name und Rest; abseits die ganze Fläche in Warnfarbe).
+Position bei y 128, „N" am Rand. **Der Ring** (Entwurf „Ring und
+Seiten", 2026-11-04, `garmin/source/Ring.mc`): 8 px auf Radius 114 in
+einem schwarzen Rand ab r 107 — die ganze Route im Uhrzeigersinn ab
+oben, gefahren Lime, voraus `555555`, Trails im dunklen Stufensatz,
+Marke weiß mit schwarzem Saum; auf allen Seiten. **Zahlenseiten**
+„Fahrt" und „Berg" schwarz: Einheit klein in Grau, Zahl groß, darunter
+vier Zellen (Name grau, Wert weiß; der Puls ganz in Grau, „dezent";
+Anstieg mit gezeichnetem Pfeil in Lime). Angekommen: eine schwarze
+Zusammenfassung mit den Schildern der befahrenen Trails. Die Farben sind je
 die nächste MIP-Farbe zur App-Farbe (`garmin/source/Colors.mc`, geprüft
 von `tool/garmin_route.py --self-test`); am Gerät in der Sonne prüfen.
