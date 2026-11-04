@@ -25,6 +25,8 @@ import '../../core/picture_in_picture.dart';
 import '../../core/screen_awake.dart';
 import '../../data/providers.dart' show currentUserIdProvider;
 import '../../l10n/l10n.dart';
+import '../garmin/garmin_bridge.dart' show WatchStatus;
+import '../garmin/watch_providers.dart' show watchStatusProvider;
 import '../map/map_buttons.dart';
 import '../map/map_view/map_view.dart';
 import '../rides/airtime_live.dart';
@@ -70,15 +72,19 @@ List<MapViewPolyline> navRouteLines(NavSession session) {
 
 /// Was der Start-Dialog zurückgibt.
 class NavStartChoice {
-  const NavStartChoice({required this.record});
+  const NavStartChoice({required this.record, this.watch = false});
 
   /// Die Fahrt mit aufzeichnen (9.4).
   final bool record;
+
+  /// Die Route an die Garmin-Uhr schicken (Konzept-Garmin 2).
+  final bool watch;
 }
 
-/// Vor dem Start: Aufzeichnen (nur wenn es geht und noch keine läuft)
-/// und Bildschirm (nur wo es den Weg gibt). Vorgabe beider: an
-/// (Betreiber, 2026-10-08). Null heißt abgebrochen. [summary] steht unter
+/// Vor dem Start: Aufzeichnen (nur wenn es geht und noch keine läuft),
+/// Bildschirm (nur wo es den Weg gibt) und „Auf der Uhr zeigen" (nur mit
+/// verbundener Garmin-Uhr, Konzept-Garmin 2). Vorgabe aller: an
+/// (Betreiber, 2026-10-08 und 2026-11-03). Null heißt abgebrochen. [summary] steht unter
 /// dem Titel („2 Trails · 18,6 km").
 Future<NavStartChoice?> showNavStartSheet(BuildContext context,
         {required String title, required bool canRecord, String? summary}) =>
@@ -110,6 +116,7 @@ class _NavStartSheet extends ConsumerStatefulWidget {
 
 class _NavStartSheetState extends ConsumerState<_NavStartSheet> {
   bool _record = true;
+  bool _watch = true;
 
   @override
   Widget build(BuildContext context) {
@@ -117,6 +124,7 @@ class _NavStartSheetState extends ConsumerState<_NavStartSheet> {
     final l = context.l10n;
     final screen = ref.watch(screenAwakeProvider).supported;
     final summary = widget.summary;
+    final watch = ref.watch(watchStatusProvider).valueOrNull ?? WatchStatus.none;
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
@@ -149,13 +157,23 @@ class _NavStartSheetState extends ConsumerState<_NavStartSheet> {
                 value: ref.watch(navKeepScreenOnProvider),
                 onChanged: (v) => ref.read(navKeepScreenOnProvider.notifier).set(v),
               ),
+            if (watch.canShow)
+              SwitchListTile(
+                key: const ValueKey('nav-watch'),
+                contentPadding: EdgeInsets.zero,
+                title: Text(l.navWatchTitle),
+                subtitle: Text(l.navWatchSubtitle(watch.device!)),
+                value: _watch,
+                onChanged: (v) => setState(() => _watch = v),
+              ),
             const SizedBox(height: 8),
             Text(l.navStartHint, style: theme.textTheme.bodySmall?.copyWith(color: theme.hintColor)),
             const SizedBox(height: 12),
             FilledButton.icon(
               key: const ValueKey('nav-go'),
               style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(48)),
-              onPressed: () => Navigator.of(context).pop(NavStartChoice(record: widget.canRecord && _record)),
+              onPressed: () => Navigator.of(context)
+                  .pop(NavStartChoice(record: widget.canRecord && _record, watch: watch.canShow && _watch)),
               icon: const Icon(Icons.navigation_outlined),
               label: Text(l.navStartButton),
             ),

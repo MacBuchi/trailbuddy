@@ -124,13 +124,44 @@ Die Form steht in `garmin/source/NavRoute.mc` (Schlüssel `v`, `id`,
 Die Uhr schickt zurück: „angekommen und gespeichert" mit der Kennung,
 sonst nichts. Keine Position, keine Fahrt (A3).
 
+**Gebaut in G2 (2026-11-04)**: `lib/features/garmin/watch_route.dart`
+kodiert und schneidet in **Stücke** (`t: "r"`, `id`, Laufnummer `p`, Anzahl
+`n`, im ersten `v` und `sec`; je Stück höchstens 800 Zahlen, rund 4 KB —
+Startwert bis Messung 8.2). Die Kennung ist ein FNV-Hash der Punkte:
+dieselbe Route noch einmal ist dieselbe. Die Höhen kommen aus dem
+Geländemodell entlang der Linie (höchstens 5 s Warten, sonst ohne). Die
+Uhr legt jedes Stück sofort in `Application.Storage` (zwei Fächer, die
+neue Route gilt erst mit dem letzten Stück, `garmin/source/PhoneRoute.mc`),
+lädt beim Start die gespeicherte statt der Testroute und antwortet
+`{t: "ok", id}`. Uphill-Trails gehen ohne Grad (-1), ab S3 als 3. Die
+Abzweigungen (`br`) kommen in einem eigenen PR (Betreiber, 2026-11-04):
+Beim Start der Navigation liegt kein Wegegraph im Speicher.
+**Die Uhr-App muss offen sein**, wenn die Route kommt — eine Watch-App
+empfängt nur, solange sie läuft; scheitert das Senden, sagt die Leiste
+„Ist die Uhr-App offen?". Ob Garmin Connect eine Nachricht für eine
+geschlossene App aufhebt, ist am Gerät zu prüfen (8.2).
+
+**Bestwerte (Idee des Betreibers, in G2 gebaut)**: `{t: "b", jn, ja, wn,
+wl, wa, sn}` — Sprünge und längste Flugzeit in ms, Wheelies, längster in
+m, größter Winkel in Grad, Stoppies; aus `AirtimeLog.kept`, nur plausible
+Sprünge. Die App schickt nach dem Senden der Route jeden neuen Stand,
+solange die Fahrt läuft; die Uhr zeigt sie auf einer vierten Seite
+„Sprünge" und in der Zusammenfassung. Die Erkennung meldet nur an die
+offene App (`airtimeLiveProvider`); im Hintergrund kommt nichts nach.
+
 ## 3. Der Weg vom Handy zur Uhr
 
-- **Android**: das Connect-IQ-Companion-SDK von Garmin, eingebunden als
-  kleine native Brücke (Kotlin, `MethodChannel`), wie die anderen
-  Dienste unter `android/`. Voraussetzung ist die Garmin-Connect-App,
-  mit der die Uhr gekoppelt ist. Fehlt sie oder ist keine Uhr da,
-  erscheint der Schalter nicht.
+- **Android**: das Connect-IQ-Companion-SDK von Garmin
+  (`com.garmin.connectiq:ciq-companion-app-sdk:2.4.0`, Maven Central),
+  eingebunden als kleine native Brücke (`GarminBridge.kt`, Kanal
+  `de.mcbuchi.trailbuddy/garmin`: `status`, `send`, zurück `message`).
+  Voraussetzung ist die Garmin-Connect-App, mit der die Uhr gekoppelt
+  ist. Fehlt sie, ist keine Uhr verbunden oder meldet Garmin Connect
+  unsere App als nicht installiert, erscheint der Schalter nicht; „weiß
+  nicht" (eine per USB geladene App meldet Garmin Connect nicht immer)
+  zeigt ihn. Das SDK startet erst, wenn das Startblatt der Navigation
+  fragt. Gegen den Simulator: Dev-App mit
+  `--dart-define=GARMIN_TETHERED=true` und `adb forward tcp:7381 tcp:7381`.
 - **Web**: keine Uhr. Wie das Aufzeichnen bleibt das Android (A9).
 - **Nachrichten klein halten.** Wie groß eine Nachricht werden darf und
   wie lange die Übertragung dauert, ist zu messen (Abschnitt 8);
@@ -236,7 +267,9 @@ Aus der Gerätedatei des SDK 9.3.0 und der Uhr selbst:
    (Entwurf „Ring und Seiten").
 2. **G2 — Protokoll und Android-Brücke** (`feat`, Bump): Kodierung in
    Dart, Brücke, Schalter „Auf der Uhr zeigen", Datenschutz und
-   Play-Console; Messung 2. Idee des Betreibers (2026-11-04) für die
+   Play-Console; Messung 2. Gebaut am 2026-11-04 (0.150.0) samt
+   Bestwerten; Messung 2 und die Abnahme am Gerät offen, die
+   Abzweigungen als eigener Schritt danach. Idee des Betreibers (2026-11-04) für die
    Brücke: Das Handy schickt während der Fahrt die Bestwerte seiner
    Erkennung (#36) — weitester und höchster Sprung, längster Wheelie,
    größter Wheelie-Winkel —, die Uhr zeigt sie auf „Fahrt" und in der

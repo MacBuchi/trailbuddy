@@ -1,5 +1,6 @@
 import Toybox.Application;
 import Toybox.Attention;
+import Toybox.Communications;
 import Toybox.Lang;
 import Toybox.Math;
 import Toybox.Position;
@@ -8,35 +9,67 @@ import Toybox.System;
 import Toybox.Timer;
 import Toybox.WatchUi;
 
-//! TrailBuddy auf der Uhr (docs/konzept-garmin.md). G1: eine feste
-//! Testroute aus der Ressource, eigenes GPS, keine Garmin-Aktivität
-//! (kein ActivityRecording, Konzept 4), kein Netz.
+//! TrailBuddy auf der Uhr (docs/konzept-garmin.md). Die Route kommt vom
+//! Handy (G2, `PhoneRoute`) und liegt danach im Speicher der Uhr; ohne
+//! eine gespeicherte die erfundene Testroute aus der Ressource (G1).
+//! Eigenes GPS, keine Garmin-Aktivität (kein ActivityRecording, Konzept
+//! 4), kein Netz — nur die eine Antwort „gespeichert" an das Handy.
 class TrailBuddyApp extends Application.AppBase {
     hidden var _route as NavRoute;
     hidden var _tracker as NavTracker;
     hidden var _view as NavView;
     hidden var _stats as RideStats;
     hidden var _loader as Timer.Timer?;
+    //! Die Bestwerte vom Handy (#36), bleiben über einen Routenwechsel.
+    hidden var _bests as Dictionary? = null;
+    //! Eine neue Route ist vollständig im Speicher und wartet auf den
+    //! Wechsel (der läuft im nächsten Ereignis, nicht im Rückruf).
+    hidden var _pendingId as String? = null;
+    hidden var _swap as Timer.Timer?;
     //! So viele Punkte je Häppchen: bleibt weit unter dem Watchdog
     //! (120 000 Schritte je Ereignis, NavRoute).
     static const DECODE_BUDGET = 300;
 
     function initialize() {
         AppBase.initialize();
-        _route = new NavRoute(WatchUi.loadResource(Rez.JsonData.Route) as Dictionary);
+        _route = new NavRoute(startRoute());
         _tracker = new NavTracker(_route);
         _stats = new RideStats(_route.secFrom.size());
         _view = new NavView(_route, _stats);
     }
 
+    //! Die gespeicherte Route vom Handy, sonst die Testroute. Brach das
+    //! Laden der gespeicherten beim letzten Mal ab (Speicher, Watchdog),
+    //! steht „loading" noch: Dann ist sie weg, sonst stürzte die App bei
+    //! jedem Start wieder ab.
+    hidden function startRoute() as Dictionary {
+        if (Storage.getValue("loading") == true) {
+            PhoneRoute.drop();
+            Storage.deleteValue("loading");
+        }
+        var d = PhoneRoute.load();
+        if (d != null) {
+            Storage.setValue("loading", true);
+            return d;
+        }
+        return WatchUi.loadResource(Rez.JsonData.Route) as Dictionary;
+    }
+
     function onStart(state as Dictionary?) as Void {
-        var t = new Timer.Timer();
-        _loader = t;
-        t.start(method(:loadStep), 50, true);
+        startLoader();
         // Der Puls vom Handgelenk für die Seite „Fahrt" (bleibt auf der Uhr).
         if (Sensor has :setEnabledSensors) {
             Sensor.setEnabledSensors([Sensor.SENSOR_HEARTRATE]);
         }
+        if (Communications has :registerForPhoneAppMessages) {
+            Communications.registerForPhoneAppMessages(method(:onPhone));
+        }
+    }
+
+    hidden function startLoader() as Void {
+        var t = new Timer.Timer();
+        _loader = t;
+        t.start(method(:loadStep), 50, true);
     }
 
     //! Ein Häppchen der Route; ist sie fertig, beginnt die Navigation.
@@ -47,6 +80,7 @@ class TrailBuddyApp extends Application.AppBase {
         }
         (_loader as Timer.Timer).stop();
         _loader = null;
+        Storage.deleteValue("loading");
         WatchUi.requestUpdate();
         if (self has :startDemo) {
             startDemo();
@@ -66,7 +100,59 @@ class TrailBuddyApp extends Application.AppBase {
         return [_view, new NavDelegate(_view)];
     }
 
+    //! Eine Nachricht vom Handy: ein Stück Route oder die Bestwerte.
+    function onPhone(msg as Communications.PhoneAppMessage) as Void {
+        var d = msg.data;
+        if (!(d instanceof Dictionary)) { return; }
+        var t = d["t"];
+        if ("b".equals(t)) {
+            _bests = d;
+            _stats.bests = d;
+            WatchUi.requestUpdate();
+            return;
+        }
+        if (!"r".equals(t)) { return; }
+        var id = PhoneRoute.take(d);
+        if (id == null) { return; }
+        // Die einzige Antwort (Konzept 2): gespeichert, mit Kennung.
+        Communications.transmit({"t" => "ok", "id" => id}, null, new PhoneAck());
+        if (id.equals(_route.id) && _route.isReady()) { return; }
+        _pendingId = id;
+        var timer = new Timer.Timer();
+        _swap = timer;
+        timer.start(method(:swapRoute), 50, false);
+    }
+
+    //! Die neue Route: GPS aus, die alte loslassen, die neue laden. Die
+    //! alte geht zuerst — beide zugleich passten nicht in den Speicher
+    //! (Messung 8.1).
+    function swapRoute() as Void {
+        _swap = null;
+        if (_pendingId == null) { return; }
+        _pendingId = null;
+        var t = _loader;
+        if (t != null) { t.stop(); _loader = null; }
+        Position.enableLocationEvents(Position.LOCATION_DISABLE, method(:onPosition));
+        var tiny = {"id" => "-", "pts" => [0, 0, 0, 1]} as Dictionary;
+        _route = NavRoute.decoded(tiny);
+        _tracker = new NavTracker(_route);
+        _view = new NavView(_route, _stats);
+        WatchUi.switchToView(_view, new NavDelegate(_view), WatchUi.SLIDE_IMMEDIATE);
+        var d = PhoneRoute.load();
+        if (d == null) { return; }
+        Storage.setValue("loading", true);
+        _route = new NavRoute(d);
+        d = null;
+        _tracker = new NavTracker(_route);
+        _stats = new RideStats(_route.secFrom.size());
+        _stats.bests = _bests;
+        _view = new NavView(_route, _stats);
+        WatchUi.switchToView(_view, new NavDelegate(_view), WatchUi.SLIDE_IMMEDIATE);
+        startLoader();
+    }
+
     function onPosition(info as Position.Info) as Void {
+        if (!_route.isReady()) { return; }
         var loc = info.position;
         if (loc == null || info.accuracy < Position.QUALITY_USABLE) {
             return;
@@ -213,6 +299,18 @@ class NavDelegate extends WatchUi.BehaviorDelegate {
             WatchUi.SLIDE_IMMEDIATE);
         return true;
     }
+}
+
+//! Die Antwort an das Handy: Ob sie ankommt, ändert nichts — die Route
+//! liegt ohnehin auf der Uhr.
+class PhoneAck extends Communications.ConnectionListener {
+    function initialize() {
+        ConnectionListener.initialize();
+    }
+
+    function onComplete() as Void {}
+
+    function onError() as Void {}
 }
 
 class QuitDelegate extends WatchUi.ConfirmationDelegate {

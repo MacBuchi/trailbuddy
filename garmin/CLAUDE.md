@@ -62,5 +62,27 @@ Garmin-Aktivität, kein Netz, keine Abbiegehinweise.
 - **Die Testroute** `resources/route/route.json` ist erfunden
   (`tool/garmin_route.py --points 1000`, am Äquator, `rel: true`): Die Uhr
   verankert sie am ersten GPS-Fix. Nie eine echte Route hier ablegen.
+- **Die Route vom Handy** (G2, `source/PhoneRoute.mc`): Stücke gehen
+  sofort in `Application.Storage`, zwei Fächer „a"/„b", `cur` zeigt erst
+  nach dem letzten Stück um — eine halbe Übertragung lässt die
+  gespeicherte heil. Beim Start lädt `startRoute()` die gespeicherte;
+  `loading` steht bis zum Ende des Dekodierens — steht es beim nächsten
+  Start noch, ist die Route verworfen (sonst stürzte die App bei jedem
+  Start). Beim Wechsel geht die alte Route ZUERST (`swapRoute`: kleine
+  Platzhalter-Route, dann laden), beide zusammen passten nicht in 124 KB.
+  Berechtigung `Communications` im Manifest. Die Fassung `PROTOCOL` liest
+  `test/garmin/watch_route_test.dart` aus dieser Datei.
+- **`==` vergleicht Zeichenketten als Objekte**, nicht nach Inhalt: Eine
+  Kennung aus `Application.Storage` oder einer Nachricht ist nie `==` dem
+  Literal. Immer `"r".equals(t)` bzw. `id.equals(…)` — so lief die
+  Zusammensetzung der Stücke zuerst ins Leere (jedes Stück begann das
+  Fach neu), der Test `phoneRouteStoresOnlyWhenComplete` fand es.
+- **`Test.assertEqual(x, null)` wirft** („Failed invoking <symbol>": es
+  ruft `equals` auf dem Wert) — für null `Test.assert(x == null)`. Nach
+  so einem Fehler hing der Simulator beim nächsten `--test`: Prozesse
+  `monkeydo`/`simulator` beenden, dann neu.
+- **Bestwerte** (`RideStats.bests`, vierte Seite „Sprünge" in `NavView`,
+  Zeile in der Zusammenfassung): nur im Speicher, bleiben über einen
+  Routenwechsel. Die Seite gibt es erst, wenn welche kamen (`pages()`).
 - **Entwurf** im Designer des Betreibers (privat, Link im PR #449-G1);
   das Aussehen steht in `docs/design/README.md` Abschnitt 15.

@@ -29,6 +29,12 @@ class RideStats {
     var heartRate as Number? = null;
     //! Je Abschnitt der Route: befahren?
     var ridden as Array<Boolean>;
+    //! Die Bestwerte der Erkennung vom Handy (#36, Idee des Betreibers
+    //! 2026-11-04; `watchBestsOf` in der App): `jn` Sprünge, `ja` längste
+    //! Flugzeit in ms, `wn` Wheelies, `wl` längster in m, `wa` größter
+    //! Winkel in Grad, `sn` Stoppies. Gemessen wird auf dem Handy, die Uhr
+    //! zeigt nur (Entscheidung 1). Null, solange keiner kam.
+    var bests as Dictionary? = null;
 
     hidden var _lastX as Float? = null;
     hidden var _lastY as Float? = null;
@@ -107,6 +113,14 @@ class RideStats {
             }
         }
         return null;
+    }
+
+    //! Eine Zahl der Bestwerte, oder 0.
+    function best(key as String) as Number {
+        var b = bests;
+        if (b == null) { return 0; }
+        var v = b[key];
+        return v instanceof Number ? v : 0;
     }
 
     function riddenCount() as Number {

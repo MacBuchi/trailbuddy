@@ -9,8 +9,9 @@ import Toybox.WatchUi;
 //! Karte und dunkle Infofläche (Design 13), oben gedreht in Fahrtrichtung
 //! die Route, die eigene Position im unteren Teil der Karte, unten „Was
 //! kommt als Nächstes?". Außen herum der Ring (TbRing) auf jeder Seite.
-//! START blättert: Karte → Fahrt → Berg. Kein Kartenbild — nur Route,
-//! ihre Trails und deren Schilder.
+//! START blättert: Karte → Fahrt → Berg, und sobald das Handy Bestwerte
+//! schickt (G2), → Sprünge. Kein Kartenbild — nur Route, ihre Trails und
+//! deren Schilder.
 class NavView extends WatchUi.View {
     //! Meter je Pixel der drei Zoomstufen (hoch/runter).
     static const ZOOM_MPP = [1.0, 2.5, 6.0] as Array<Float>;
@@ -28,7 +29,7 @@ class NavView extends WatchUi.View {
 
     hidden var _route as NavRoute;
     hidden var _state as NavState? = null;
-    //! Die Seiten: Karte, Fahrt, Berg.
+    //! Die Seiten: Karte, Fahrt, Berg — und Sprünge, wenn Bestwerte da sind.
     static const PAGES = 3;
 
     hidden var _zoom as Number = 1;
@@ -70,7 +71,7 @@ class NavView extends WatchUi.View {
     //! hoch: auf der Karte näher heran, sonst eine Seite zurück.
     function up() as Void {
         if (_page != 0) {
-            _page = (_page + PAGES - 1) % PAGES;
+            _page = (_page + pages() - 1) % pages();
         } else if (_zoom > 0) {
             _zoom--;
         }
@@ -80,15 +81,20 @@ class NavView extends WatchUi.View {
     //! runter: auf der Karte weiter weg, sonst eine Seite weiter.
     function down() as Void {
         if (_page != 0) {
-            _page = (_page + 1) % PAGES;
+            _page = (_page + 1) % pages();
         } else if (_zoom < ZOOM_MPP.size() - 1) {
             _zoom++;
         }
         WatchUi.requestUpdate();
     }
 
+    //! Wie viele Seiten es gerade gibt.
+    function pages() as Number {
+        return _stats.bests == null ? PAGES : PAGES + 1;
+    }
+
     function nextPage() as Void {
-        _page = (_page + 1) % PAGES;
+        _page = (_page + 1) % pages();
         WatchUi.requestUpdate();
     }
 
@@ -101,6 +107,8 @@ class NavView extends WatchUi.View {
                 drawRide(dc, w);
             } else if (_page == 2) {
                 drawMountain(dc, w);
+            } else if (_page == 3) {
+                drawBests(dc, w);
             } else {
                 drawArrived(dc, w);
             }
@@ -505,6 +513,24 @@ class NavView extends WatchUi.View {
             drawShield(dc, x, 186, _route.secGrade[k], 5, false, TbColors.FIELD);
             x += 20;
         }
+        if (_stats.bests != null) {
+            dc.setColor(TbColors.MUTED, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(cx, 202, Graphics.FONT_XTINY,
+                str(Rez.Strings.AirShort) + " " + seconds(_stats.best("ja")) + " · "
+                    + str(Rez.Strings.WheelieShort) + " " + _stats.best("wl") + " m",
+                Graphics.TEXT_JUSTIFY_CENTER);
+        }
+    }
+
+    //! „Sprünge": die Bestwerte der Erkennung vom Handy (#36, Konzept 9.2)
+    //! — längster Wheelie groß, darunter längste Flugzeit, größter Winkel
+    //! und die Anzahlen. Die Uhr misst nichts davon (Entscheidung 1).
+    hidden function drawBests(dc as Dc, w as Number) as Void {
+        big(dc, w, str(Rez.Strings.WheelieM), _stats.best("wl").toString());
+        cell(dc, w, 0, 104, str(Rez.Strings.Airtime), seconds(_stats.best("ja")), TbColors.TEXT_ON_FIELD);
+        cell(dc, w, 1, 104, str(Rez.Strings.Angle), _stats.best("wa") + "°", TbColors.TEXT_ON_FIELD);
+        cell(dc, w, 0, 150, str(Rez.Strings.Jumps), _stats.best("jn").toString(), TbColors.TEXT_ON_FIELD);
+        cell(dc, w, 1, 150, str(Rez.Strings.Wheelies), _stats.best("wn").toString(), TbColors.TEXT_ON_FIELD);
     }
 
     // --- Zahlenseiten ------------------------------------------------------
@@ -601,6 +627,12 @@ class NavView extends WatchUi.View {
     hidden function km(m as Float) as String {
         var tenths = (m / 100.0 + 0.5).toNumber();
         return (tenths / 10) + _sep + (tenths % 10);
+    }
+
+    //! Flugzeit „0,6 s" aus Millisekunden.
+    hidden function seconds(ms as Number) as String {
+        var tenths = (ms + 50) / 100;
+        return (tenths / 10) + _sep + (tenths % 10) + " s";
     }
 
     //! Fahrzeit „1:12" (Stunden:Minuten).

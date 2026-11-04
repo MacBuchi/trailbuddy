@@ -1,0 +1,48 @@
+import 'dart:async';
+
+import 'package:trailbuddy/features/garmin/garmin_bridge.dart';
+
+/// Die Garmin-Uhr im Test (Konzept-Garmin 3): ab Werk keine — wie ein
+/// Telefon ohne Garmin Connect. Mit [status] eine verbundene Uhr; was
+/// gesendet wird, liegt in [sent], [answer] spielt die Antwort der Uhr.
+class FakeGarminBridge implements GarminBridge {
+  FakeGarminBridge({this.status_ = WatchStatus.none, this.result = const WatchSendResult('SUCCESS', 0)});
+
+  /// Eine verbundene fēnix 5 mit unserer App.
+  FakeGarminBridge.connected({String device = 'fēnix 5', this.result = const WatchSendResult('SUCCESS', 0)})
+      : status_ = WatchStatus(connect: true, device: device, app: WatchApp.installed);
+
+  WatchStatus status_;
+  WatchSendResult result;
+  final sent = <List<Map<String, Object>>>[];
+  final _messages = StreamController<Object?>.broadcast();
+
+  /// Antwortet die Uhr gleich auf jedes vollständige Senden der Route?
+  bool autoStore = false;
+
+  @override
+  bool get supported => true;
+
+  @override
+  Future<WatchStatus> status() async => status_;
+
+  @override
+  Future<WatchSendResult> send(List<Map<String, Object>> messages) async {
+    sent.add(messages);
+    if (autoStore && result.ok && messages.isNotEmpty && messages.first['t'] == 'r') {
+      answer({'t': 'ok', 'id': messages.first['id']});
+    }
+    return result.ok ? WatchSendResult('SUCCESS', messages.length) : result;
+  }
+
+  void answer(Object? message) => _messages.add(message);
+
+  /// Alle gesendeten Stücke der Route (ohne Bestwerte).
+  List<Map<String, Object>> get routeParts =>
+      [for (final batch in sent) ...batch.where((m) => m['t'] == 'r')];
+
+  List<Map<String, Object>> get bests => [for (final batch in sent) ...batch.where((m) => m['t'] == 'b')];
+
+  @override
+  Stream<Object?> get messages => _messages.stream;
+}

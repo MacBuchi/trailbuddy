@@ -7,6 +7,7 @@ import 'package:geolocator/geolocator.dart' show Position;
 import 'package:go_router/go_router.dart';
 import 'package:latlong2/latlong.dart';
 
+import '../garmin/watch_providers.dart';
 import '../../core/app_colors.dart';
 import '../../core/geo.dart';
 import '../../core/connectivity.dart';
@@ -851,6 +852,19 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     }
     nav.onFix(LatLng(fix.latitude, fix.longitude), headingDeg: fix.heading, speedMps: fix.speed, at: fix.timestamp);
     _follow();
+    if (choice.watch) unawaited(_sendToWatch(request.points, request.sections ?? NavSections.none));
+  }
+
+  /// Die Route an die Garmin-Uhr (Konzept-Garmin 2). „Gespeichert" sagt
+  /// die Leiste, sobald die Uhr antwortet (`ref.listen` im Aufbau);
+  /// scheitert das Senden, sagt sie das — die Navigation hier läuft
+  /// weiter.
+  Future<void> _sendToWatch(List<LatLng> points, NavSections sections) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final l = context.l10n;
+    final result = await ref.read(watchSyncProvider.notifier).sendRoute(points, sections);
+    if (!mounted || result.ok) return;
+    messenger.showSnackBar(SnackBar(key: const ValueKey('map-watch-failed'), content: Text(l.mapWatchFailed)));
   }
 
   bool _beginNavigation(List<LatLng> points, String title, double startAlongM, NavSections? sections,
@@ -1135,6 +1149,11 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     // Einmal auf das Netz zoomen, sobald es da ist; danach nie wieder
     // von selbst — wer die Karte verschoben hat, will nicht zurückgeholt
     // werden.
+    ref.listen(watchSyncProvider.select((s) => s.phase), (previous, phase) {
+      if (phase != WatchSyncPhase.stored || previous == WatchSyncPhase.stored) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(key: const ValueKey('map-watch-stored'), content: Text(context.l10n.mapWatchStored)));
+    });
     ref.listen(trailsProvider, (_, next) {
       final list = next.valueOrNull;
       // Während einer Fahrt fragt der Dienst zu unbestätigten Meldungen

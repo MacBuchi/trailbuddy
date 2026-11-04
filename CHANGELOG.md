@@ -2,6 +2,21 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Die Route auf der Garmin-Uhr
+
+*Version 0.150.0, 2026-11-04*
+
+- Mit einer Garmin-Uhr, auf der die TrailBuddy-Uhr-App läuft, steht beim
+  Start der Navigation der Schalter „Auf der Uhr zeigen". Die Route geht
+  dann einmal über Garmin Connect auf die Uhr, und die Uhr navigiert ab da
+  selbst — auch wenn das Handy in der Tasche schläft oder die Verbindung
+  weg ist. Die Leiste sagt „Route auf der Uhr", sobald die Uhr sie
+  gespeichert hat.
+- Mit der Test-Erkennung gehen die Bestwerte der Fahrt (längste Flugzeit,
+  längster Wheelie, größter Winkel) als Zahlen mit auf die Uhr.
+- Die Uhr-App gibt es noch nicht im Garmin-Store; bis dahin bleibt der
+  GPX-Export der Weg auf jede Garmin-Uhr.
+
 ## Weniger falsche Wheelies
 
 *Version 0.149.1, 2026-11-03*

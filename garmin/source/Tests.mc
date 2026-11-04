@@ -1,3 +1,4 @@
+import Toybox.Application;
 import Toybox.Lang;
 import Toybox.Test;
 
@@ -229,5 +230,50 @@ function ringAngles(logger as Logger) as Boolean {
     Test.assert(TbRing.share(500.0, 1000.0) == 0.5);
     Test.assert(TbRing.share(1500.0, 1000.0) == 1.0);
     Test.assert(TbRing.share(5.0, 0.0) == 0.0);
+    return true;
+}
+
+//! Zwei Stücke vom Handy (`WatchRoute.parts`) setzen sich zur selben
+//! Route zusammen wie `straightRoute` in einem Stück.
+(:test)
+function phoneRouteJoinsParts(logger as Logger) as Boolean {
+    var acc = {} as Dictionary;
+    PhoneRoute.append(acc, {"t" => "r", "id" => "t", "p" => 0, "n" => 2, "v" => 1,
+        "sec" => [[1, 2, 2, "Testtrail"]], "pts" => [0, 0, 0, 300], "ele" => [500, 520]});
+    PhoneRoute.append(acc, {"t" => "r", "id" => "t", "p" => 1, "n" => 2,
+        "pts" => [0, 300, 0, 300], "ele" => [505, 540]});
+    var r = NavRoute.decoded(acc);
+    Test.assertEqual(r.size(), 4);
+    Test.assert(r.lengthM > 1000.0 && r.lengthM < 1001.5);
+    Test.assertEqual(r.secName[0], "Testtrail");
+    Test.assert(!r.relative);
+    Test.assertEqual((acc["ele"] as Array).size(), 4);
+    return true;
+}
+
+//! Erst mit dem letzten Stück gilt die neue Route; eine fremde Fassung,
+//! eine unvollständige Übertragung und ein Stück außerhalb fallen weg, die
+//! gespeicherte bleibt dabei heil. (`assertEqual` mit null wirft: Es ruft
+//! `equals` auf dem Wert.)
+(:test)
+function phoneRouteStoresOnlyWhenComplete(logger as Logger) as Boolean {
+    PhoneRoute.drop();
+    Application.Storage.deleteValue("a" + "id");
+    Application.Storage.deleteValue("b" + "id");
+    var p0 = {"t" => "r", "id" => "x1", "p" => 0, "n" => 2, "v" => 1, "pts" => [0, 0, 0, 300]};
+    var p1 = {"t" => "r", "id" => "x1", "p" => 1, "n" => 2, "pts" => [0, 300]};
+    Test.assert(PhoneRoute.take({"t" => "r", "id" => "x1", "p" => 0, "n" => 2, "v" => 9, "pts" => [0, 0]}) == null);
+    Test.assert(PhoneRoute.take({"t" => "r", "id" => "x1", "p" => 2, "n" => 2, "pts" => [0, 0]}) == null);
+    Test.assert(PhoneRoute.take(p0) == null);
+    Test.assert(PhoneRoute.load() == null);
+    Test.assertEqual(PhoneRoute.take(p1), "x1");
+    var d = PhoneRoute.load() as Dictionary;
+    Test.assertEqual((d["pts"] as Array).size(), 6);
+    Test.assertEqual(d["id"], "x1");
+    // Eine zweite Route kommt nur halb: Die erste bleibt die gespeicherte.
+    PhoneRoute.take({"t" => "r", "id" => "x2", "p" => 0, "n" => 3, "v" => 1, "pts" => [0, 0]});
+    Test.assertEqual((PhoneRoute.load() as Dictionary)["id"], "x1");
+    PhoneRoute.drop();
+    Test.assert(PhoneRoute.load() == null);
     return true;
 }

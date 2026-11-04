@@ -2,6 +2,20 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## The route on your Garmin watch
+
+*Version 0.150.0, 2026-11-04*
+
+- With a Garmin watch running the TrailBuddy watch app, the switch “Show
+  on the watch” appears when you start a navigation. The route then goes
+  to the watch once via Garmin Connect, and from there the watch navigates
+  on its own — even if the phone sleeps in your pocket or the connection
+  drops. The bar says “Route on the watch” once the watch has stored it.
+- With the test detection, the ride's best values (longest airtime,
+  longest wheelie, largest angle) go to the watch as numbers.
+- The watch app is not in the Garmin store yet; until then the GPX export
+  stays the way onto any Garmin watch.
+
 ## Fewer false wheelies
 
 *Version 0.149.1, 2026-11-03*
