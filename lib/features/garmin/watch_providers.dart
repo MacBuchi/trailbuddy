@@ -17,6 +17,7 @@
 // „Meine Fahrten" hatte nie einen.
 import 'dart:async';
 
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
 
@@ -34,6 +35,7 @@ import '../routing/nav_sections.dart';
 import '../routing/planning_graph.dart' show loadPlanningGraph;
 import '../routing/road_graph_loader.dart' show tilesAlong;
 import '../trails/terrain_heights.dart';
+import '../trails/trail_elevation.dart' show ElevationProfile;
 import 'garmin_bridge.dart';
 import 'watch_branches.dart';
 import 'watch_route.dart';
@@ -157,6 +159,14 @@ class WatchSync extends Notifier<WatchSyncState> {
   Timer? _ackTimer;
   Timer? _nudgeTimer;
 
+  /// Höhen und Abzweigungen, angestoßen, als das Startblatt die Uhr fand
+  /// ([prepare]) — „Los" wartet dann nicht noch einmal von vorn.
+  _Prepared? _prepared;
+
+  /// Wie oft Höhen und Abzweigungen angestoßen wurden (Test).
+  @visibleForTesting
+  int loads = 0;
+
   @override
   WatchSyncState build() {
     ref.onDispose(() {
@@ -203,12 +213,40 @@ class WatchSync extends Notifier<WatchSyncState> {
     _reconnects ??= bridge.connected.listen((_) => _onReconnect());
   }
 
+  /// Das Startblatt hat eine Uhr gefunden: Höhen und Abzweigungen für
+  /// [points] schon jetzt rechnen, solange gelesen wird. Ein Blatt ohne
+  /// „Los" oder eine andere Linie verwirft das Ergebnis ([discardPrepared],
+  /// [_show]); laufen lassen kostet nur die Rechnung, nichts geht hin.
+  void prepare(List<LatLng> points) {
+    if (points.length < 2) return;
+    final ready = _prepared;
+    if (ready != null && _sameLine(ready.line, points)) return;
+    _prepared = _Prepared(points, _heightsOf(points), _branchesOf(points));
+  }
+
+  void discardPrepared() => _prepared = null;
+
+  Future<ElevationProfile?> _heightsOf(List<LatLng> points) {
+    loads++;
+    return ref.read(terrainHeightsProvider).profile(points).catchError((Object e, StackTrace s) {
+      logError('Höhen für die Uhr', e, s);
+      return null;
+    });
+  }
+
+  Future<List<WatchBranch>> _branchesOf(List<LatLng> points) =>
+      ref.read(watchBranchesLoaderProvider)(points).catchError((Object e, StackTrace s) {
+        logError('Abzweigungen für die Uhr', e, s);
+        return const <WatchBranch>[];
+      });
+
   void _release() {
     _follow = false;
     _gen++;
     _line = null;
     _route = null;
     _early = null;
+    _prepared = null;
     _again = false;
     _ackTimer?.cancel();
     _nudgeTimer?.cancel();
@@ -217,7 +255,8 @@ class WatchSync extends Notifier<WatchSyncState> {
 
   /// Die Route an die Uhr: vereinfacht, mit Höhen, falls sie in
   /// [kWatchHeightsWait] kommen, und den Abzweigungen, falls sie in
-  /// [kWatchBranchesWait] kommen (beides zugleich). Derweil stößt das
+  /// [kWatchBranchesWait] kommen (beides zugleich; schon beim Startblatt
+  /// angestoßen, wenn es dieselbe Linie war — [prepare]). Derweil stößt das
   /// Handy die Uhr-App an; läuft sie, gehen die Stücke, sonst warten sie
   /// auf ihr `hi`.
   Future<void> _show(List<LatLng> points, NavSections sections) async {
@@ -232,21 +271,15 @@ class WatchSync extends Notifier<WatchSyncState> {
     // Die Frage auf der Uhr gleich: Bis jemand bestätigt, ist die Route
     // gerechnet.
     final opening = bridge.open();
-    final branchesSoon = ref
-        .read(watchBranchesLoaderProvider)(points)
-        .timeout(kWatchBranchesWait, onTimeout: () => const <WatchBranch>[])
-        .catchError((Object e, StackTrace s) {
-      logError('Abzweigungen für die Uhr', e, s);
-      return const <WatchBranch>[];
-    });
-    final heights = await ref
-        .read(terrainHeightsProvider)
-        .profile(points)
-        .timeout(kWatchHeightsWait, onTimeout: () => null)
-        .catchError((Object e, StackTrace s) {
-      logError('Höhen für die Uhr', e, s);
-      return null;
-    });
+    // Vorbereitet gilt nur für dieselbe Linie, und nur einmal: Jede
+    // spätere Route der Navigation rechnet selbst.
+    final ready = _prepared;
+    _prepared = null;
+    final same = ready != null && _sameLine(ready.line, points);
+    final branchesSoon = (same ? ready.branches : _branchesOf(points))
+        .timeout(kWatchBranchesWait, onTimeout: () => const <WatchBranch>[]);
+    final heights =
+        await (same ? ready.heights : _heightsOf(points)).timeout(kWatchHeightsWait, onTimeout: () => null);
     final branches = await branchesSoon;
     final open = await opening;
     if (gen != _gen) return;
@@ -375,6 +408,17 @@ class WatchSync extends Notifier<WatchSyncState> {
     }
   }
 
+  /// Die Navigation kopiert die Punkte (`NavRoute.of`): gleich heißt
+  /// Punkt für Punkt gleich.
+  static bool _sameLine(List<LatLng> a, List<LatLng> b) {
+    if (identical(a, b)) return true;
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
+  }
+
   static bool _same(Map<String, Object> a, Map<String, Object>? b) {
     if (b == null || a.length != b.length) return false;
     for (final k in a.keys) {
@@ -385,3 +429,11 @@ class WatchSync extends Notifier<WatchSyncState> {
 }
 
 final watchSyncProvider = NotifierProvider<WatchSync, WatchSyncState>(WatchSync.new);
+
+class _Prepared {
+  _Prepared(this.line, this.heights, this.branches);
+
+  final List<LatLng> line;
+  final Future<ElevationProfile?> heights;
+  final Future<List<WatchBranch>> branches;
+}
