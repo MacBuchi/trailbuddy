@@ -2,6 +2,14 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Bibliotheken aufgefrischt
+
+*Version 0.151.1, 2026-11-04*
+
+- Neun Bausteine der App auf ihren neuesten Stand gebracht, darunter die
+  Anbindung an den Server, Standort, Benachrichtigungen und die lokale
+  Datenbank. Für dich ändert sich nichts Sichtbares.
+
 ## Abzweigungen auf der Garmin-Uhr
 
 *Version 0.151.0, 2026-11-04*
