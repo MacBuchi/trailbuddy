@@ -14,6 +14,8 @@
 - If the watch does not answer, the phone now says after 20 seconds at
   most that the route did not arrive — before, it waited silently.
   Sending no longer stalls the map.
+- With a paired Garmin watch the app crashed as soon as the navigation
+  start sheet asked for the watch. Fixed.
 
 ## The route on your Garmin watch
 

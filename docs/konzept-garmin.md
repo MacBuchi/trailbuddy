@@ -186,6 +186,12 @@ offene App (`airtimeLiveProvider`); im Hintergrund kommt nichts nach.
   UI-Thread warf Android `NetworkOnMainThreadException`. Jedes Stück
   wartet höchstens 20 s auf die Bestätigung, dann `FAILURE_TIMEOUT`.
   Logcat-Marke `TB-GARMIN` (Ergebnis jedes Sendens).
+  **R8**: `android/app/proguard-rules.pro` hält das ganze SDK
+  (`com.garmin.**`). Garmin Connect schickt `IQDevice`/`IQApp` als
+  Parcelable zurück, Android packt sie über den Klassennamen aus; ohne
+  die Regel stürzte jeder Release-Build beim ersten `status` ab (0.150.0,
+  gesehen am Pixel 7 Pro mit fēnix 5). Der Simulator-Modus zeigt das
+  nicht — eine Abnahme braucht Garmin Connect und eine echte Uhr.
 - **Web**: keine Uhr. Wie das Aufzeichnen bleibt das Android (A9).
 - **Nachrichten klein halten.** Wie groß eine Nachricht werden darf und
   wie lange die Übertragung dauert, ist zu messen (Abschnitt 8);

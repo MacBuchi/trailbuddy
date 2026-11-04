@@ -14,6 +14,8 @@
 - Antwortet die Uhr nicht, sagt das Handy nach spätestens 20 Sekunden,
   dass die Route nicht angekommen ist — vorher wartete es still. Das
   Senden hält die Karte nicht mehr an.
+- Mit einer gekoppelten Garmin-Uhr stürzte die App ab, sobald das
+  Startblatt der Navigation nach der Uhr fragte. Behoben.
 
 ## Die Route auf der Garmin-Uhr
 
