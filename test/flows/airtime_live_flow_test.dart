@@ -69,10 +69,21 @@ void main() {
       expect(jump.plausible, isFalse);
     });
 
+    test('die Lage jetzt kommt an, wie sie losging', () {
+      final now = decodeAirtimeMessage(encodeAirtimeNow(
+              file, tick(3, pitch: 31.27, phase: FusionPhase.wheelie, phaseStart: 2, peak: 33.04)))
+          as AirtimeNowMessage;
+      expect(now.file, file);
+      final a = now.tick;
+      expect((a.tUs, a.pitchDeg, a.phase, a.phaseStartUs, a.peakDeg, a.speedKmh, a.upKnown),
+          (t0 + 3000000, 31.3, FusionPhase.wheelie, t0 + 2000000, 33.0, 18.0, true));
+    });
+
     test('Punkte der Fahrt und kaputte Nachrichten sind keine', () {
       expect(decodeAirtimeMessage('{"lat":1}'), isNull);
       expect(decodeAirtimeMessage(42), isNull);
       expect(decodeAirtimeMessage('air:live:{kaputt'), isNull);
+      expect(decodeAirtimeMessage('air:now:{"f":"a","v":[1]}'), isNull);
       expect(decodeAirtimeMessage('air:event:{"k":"x","f":"a","s":1,"d":1}'), isNull);
     });
   });
@@ -166,6 +177,36 @@ void main() {
       await tester.pump(const Duration(milliseconds: 16));
       expect(text('airtime-live-angle'), '29°');
       expect(tester.binding.hasScheduledFrame, isFalse);
+    });
+
+    testWidgets('die Lage jetzt schlägt den abgespielten Takt — Verzug 0,1 s statt 2,2 s; alt gilt wieder der Takt',
+        (tester) async {
+      final container = await startRide(tester);
+      final live = container.read(airtimeLiveProvider.notifier);
+      now = t0 + 3000000;
+      // Die Rechnung: ein Schub von 1 s, 2 s hinter der Uhr, flach.
+      live.accept(encodeAirtimeLive(file, [for (var i = 0; i < 10; i++) tick(1 + i / 10)]));
+      await tester.pump();
+      expect(text('airtime-live-angle'), '2°');
+      expect(find.text('18 km/h · 2,2 s Verzug'), findsOneWidget);
+
+      // Der Dienst schickt die Lage jetzt: Front 30° hoch, 0,1 s alt; die
+      // Phase ist noch die der Rechnung, die laufende Zeit gilt bis jetzt.
+      live.accept(encodeAirtimeNow(
+          file, tick(2.9, pitch: 30, phase: FusionPhase.wheelie, phaseStart: 1.9, peak: 22)));
+      await tester.pump();
+      expect(text('airtime-live-angle'), '30°');
+      expect(text('airtime-live-running'), '1,0 s · max 22°');
+      expect(find.text('18 km/h · 0,1 s Verzug'), findsOneWidget);
+      expect(tester.binding.hasScheduledFrame, isFalse, reason: 'jede Nachricht zeichnet neu, kein Ticker');
+
+      // Bleibt sie aus, spielt das Fenster mit dem nächsten Schub wieder
+      // die Takte ab.
+      now += kAirtimeNowFreshUs + 100000;
+      live.accept(encodeAirtimeLive(file, [tick(2, pitch: 5)]));
+      await tester.pump(const Duration(milliseconds: 16));
+      expect(text('airtime-live-angle'), isNot('30°'));
+      expect(find.textContaining('0,1 s Verzug'), findsNothing);
     });
 
     testWidgets('ohne gelernte Halterung kein Winkel, sondern was noch fehlt', (tester) async {

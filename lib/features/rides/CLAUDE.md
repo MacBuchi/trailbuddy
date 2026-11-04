@@ -307,8 +307,20 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
   - **Abgespielt wird nach der Zeit der Takte, mit Verzug**: Die Fusion
     rechnet je GPS-Punkt eine Sekunde auf einmal, 1,5 s hinter der Uhr
     (ohne GPS bis 30 s). `lagUs` reicht bis zum ältesten Takt jedes Schubs
-    plus 0,2 s, wird nur langsam kleiner; das Fenster zeigt ihn als
-    „Verzug". Die Sensorzeit ist Unix-Zeit (wie die Zeilen der Rohdaten),
+    plus 0,2 s, wird nur langsam kleiner. **Gezeigt wird seit 0.152.3
+    aber die Lage jetzt** (Betreiber 2026-11-04, 2,7 s waren zu viel):
+    `SensorFusion.preview()` dreht die letzte Lage der Rechnung mit den
+    wartenden Kreisel-Werten bis zum neuesten weiter, ohne Korrektur,
+    und lässt den Weg auf einer Kopie mitlaufen wie in `_tick` (ohne das
+    stand er nach „Front runter" bis 9° daneben). Der Logger schickt sie
+    alle 100 ms als `air:now:`, nur mit einem neuen Kreisel-Wert; frisch
+    (≤ 0,5 s, `kAirtimeNowFreshUs`) schlägt sie den abgespielten Takt,
+    „Verzug" ist dann ihr Alter (~0,1 s). Phase, Beginn und Spitze
+    bleiben die der Rechnung — der Zustand kommt also weiter 1,5 s
+    später als der Winkel. Synthetik: höchstens 2,9° gegen den späteren
+    Takt, außer am Sprung der Halterung bei 150 s (ohne Drehung, die der
+    Kreisel sähe). Nur Anzeige: Werkzeug und Ereignisse kennen sie
+    nicht. Die Sensorzeit ist Unix-Zeit (wie die Zeilen der Rohdaten),
     die Uhr `airtimeClockProvider` dieselbe Achse.
   - **Der Ticker läuft nur, solange noch Takte vor dem Abspielpunkt
     liegen** — sonst käme kein Widget-Test zur Ruhe, und ein Fenster, das

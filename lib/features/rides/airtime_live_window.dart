@@ -48,7 +48,7 @@ class _AirtimeLiveWindowState extends ConsumerState<AirtimeLiveWindow> with Sing
   }
 
   void _play(AirtimeLiveState state) {
-    if (state.ticks.isEmpty || state.collapsed) {
+    if ((state.ticks.isEmpty && state.now == null) || state.collapsed) {
       if (_ticker.isActive) _ticker.stop();
       return;
     }
@@ -60,8 +60,11 @@ class _AirtimeLiveWindowState extends ConsumerState<AirtimeLiveWindow> with Sing
     final state = ref.read(airtimeLiveProvider);
     final tick = state.tickAt(ref.read(airtimeClockProvider)());
     if (!identical(tick, _shown)) setState(() => _shown = tick);
-    // Beim letzten Takt angekommen: warten auf den nächsten Schub.
-    if (state.ticks.isEmpty || identical(tick, state.ticks.last)) _ticker.stop();
+    // Beim letzten Takt angekommen: warten auf den nächsten Schub. Die
+    // Lage jetzt ist immer die neueste — jede Nachricht zeichnet neu.
+    if (tick == null || identical(tick, state.now) || identical(tick, state.ticks.last)) {
+      _ticker.stop();
+    }
   }
 
   @override
@@ -127,7 +130,7 @@ class _AirtimeLiveWindowState extends ConsumerState<AirtimeLiveWindow> with Sing
                   ),
                 ],
               ),
-              _LiveBody(tick: tick, lagUs: state.lagUs),
+              _LiveBody(tick: tick, lagUs: state.shownLagUs(ref.read(airtimeClockProvider)())),
               if (event != null) ...[
                 const Divider(height: 16),
                 _PendingQuestion(

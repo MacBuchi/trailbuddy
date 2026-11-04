@@ -2,6 +2,15 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## The bike in the live window follows at once
+
+*Version 0.152.3, 2026-11-05*
+
+- The small window of the wheelie detection now shows the tilt with
+  almost no delay: about 0.1 seconds instead of around 2.7. Whether the
+  app detects a wheelie, jump or stoppie is still decided a second or
+  two later as before; only the display is faster.
+
 ## The route reaches the watch sooner
 
 *Version 0.152.2, 2026-11-04*

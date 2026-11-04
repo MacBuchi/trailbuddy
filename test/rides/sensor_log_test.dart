@@ -251,6 +251,40 @@ void main() {
     expect(saved.up.$3, closeTo(1, 1e-3), reason: 'die gelernte Halterung liegt für die nächste Fahrt bereit');
   });
 
+  test('die Lage jetzt geht alle paar Takte an die App, vor der Rechnung und nur mit neuen Werten', () async {
+    final mountFile = File('${dir.path}/rides/sensors/$kSensorMountFile');
+    await mountFile.parent.create(recursive: true);
+    await mountFile.writeAsString(
+        jsonEncode(const FusionMount(up: (0.0, 0.0, 1.0), forward: (1.0, 0.0, 0.0)).toJson()));
+    await sensorLogTick(
+        sources: sources, read: read, flushEvery: every, previewEvery: every, notices: notices, toApp: toApp.add);
+    const g = 9.80665;
+    final us = t.toInt();
+    // 6 s flach mit 5 m/s, in den letzten 0,3 s geht die Front 25° hoch —
+    // die Rechnung ist da noch 1,5 s dahinter.
+    double pitch(double s) => math.pi / 180 * 25 * math.max(0.0, math.min(1.0, (s - 5.7) / 0.3));
+    for (var i = 0; i <= 600; i++) {
+      final s = i / 100;
+      final at = us + i * 10000.0;
+      if (i % 100 == 0) gps.add([at, 7.1, 9.2, 4.0, 5.0, 800.0]);
+      final p = pitch(s);
+      accel.add([at, g * math.sin(p), 0.0, g * math.cos(p)]);
+      gyro.add([at + 2000, 0.0, -(pitch(s + 0.005) - pitch(s - 0.005)) / 0.01, 0.0]);
+    }
+    await wait();
+    final now = [for (final m in toApp.map(decodeAirtimeMessage)) if (m is AirtimeNowMessage) m.tick];
+    expect(now, isNotEmpty);
+    final last = now.last;
+    expect(last.tUs, us + 600 * 10000 + 2000, reason: 'der neueste Kreisel-Wert');
+    expect(last.pitchDeg, closeTo(25, 2));
+    final ticks = [for (final m in toApp.map(decodeAirtimeMessage)) if (m is AirtimeLiveMessage) ...m.ticks];
+    expect(ticks.last.tUs, lessThan(last.tUs - 1000000), reason: 'die Takte hinken nach');
+    // Kommt nichts Neues, schweigt sie.
+    final count = now.length;
+    await wait();
+    expect([for (final m in toApp.map(decodeAirtimeMessage)) if (m is AirtimeNowMessage) m], hasLength(count));
+  });
+
   test('die Antwort im Banner: l mit 1 oder 0, „verpasst": m — die Frage an den Trail bleibt unberührt',
       () async {
     final file = logFile();
