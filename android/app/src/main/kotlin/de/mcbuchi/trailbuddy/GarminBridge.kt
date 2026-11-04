@@ -129,6 +129,7 @@ class GarminBridge(private val context: Context, messenger: BinaryMessenger) {
         iq = sdk
         sdk.initialize(context, false, object : ConnectIQ.ConnectIQListener {
             override fun onSdkReady() {
+                Log.i("TB-GARMIN", "sdk ready $type")
                 ready = true
                 val all = waiting.toList()
                 waiting.clear()
@@ -136,6 +137,7 @@ class GarminBridge(private val context: Context, messenger: BinaryMessenger) {
             }
 
             override fun onInitializeError(status: ConnectIQ.IQSdkErrorStatus) {
+                Log.i("TB-GARMIN", "sdk error $status")
                 iq = null
                 // Alle Wartenden bekommen den Fehler, nicht nur der erste —
                 // ein `send` in der Reihe hielte sonst jedes weitere auf.
@@ -145,6 +147,7 @@ class GarminBridge(private val context: Context, messenger: BinaryMessenger) {
             }
 
             override fun onSdkShutDown() {
+                Log.i("TB-GARMIN", "sdk shut down")
                 ready = false
                 iq = null
                 listening.clear()
@@ -169,6 +172,9 @@ class GarminBridge(private val context: Context, messenger: BinaryMessenger) {
         fun answer(value: Map<String, Any?>) {
             if (answered) return
             answered = true
+            // Ohne Namen der Uhr: nur ob Connect, Uhr und App da sind.
+            Log.i("TB-GARMIN", "status connect=${value["connect"]} device=${value["device"] != null} " +
+                "app=${value["app"]} error=${value["error"]} tethered=$tethered")
             main.post { result.success(value) }
         }
         withSdk(tethered, then@{
@@ -225,8 +231,17 @@ class GarminBridge(private val context: Context, messenger: BinaryMessenger) {
                     message: List<Any>,
                     status: ConnectIQ.IQMessageStatus,
                 ) {
-                    if (status != ConnectIQ.IQMessageStatus.SUCCESS) return
-                    for (m in message) main.post { channel.invokeMethod("message", m) }
+                    if (status != ConnectIQ.IQMessageStatus.SUCCESS) {
+                        Log.i("TB-GARMIN", "receive $status")
+                        return
+                    }
+                    // Nur die Art der Nachricht (`t`, bei `ok`/`hi` die
+                    // Kennung der Route) — nie Inhalt mit Koordinaten.
+                    for (m in message) {
+                        val kind = (m as? Map<*, *>)?.let { "${it["t"]} ${it["id"] ?: ""}".trim() } ?: "?"
+                        Log.i("TB-GARMIN", "receive $kind")
+                        main.post { channel.invokeMethod("message", m) }
+                    }
                 }
             })
         } catch (e: Exception) {
@@ -246,6 +261,7 @@ class GarminBridge(private val context: Context, messenger: BinaryMessenger) {
     private fun open(result: MethodChannel.Result) {
         val id = appId
         if (id == null) {
+            Log.i("TB-GARMIN", "open NOT_READY")
             result.success("NOT_READY")
             return
         }
@@ -345,7 +361,11 @@ class GarminBridge(private val context: Context, messenger: BinaryMessenger) {
     }
 
     private fun sendNow(sdk: ConnectIQ, messages: List<Any>, result: MethodChannel.Result) {
-        val id = appId ?: return result.success(mapOf("status" to "NOT_READY", "sent" to 0))
+        val kind = (messages.firstOrNull() as? Map<*, *>)?.get("t") ?: "?"
+        val id = appId ?: run {
+            Log.i("TB-GARMIN", "send $kind NOT_READY")
+            return result.success(mapOf("status" to "NOT_READY", "sent" to 0))
+        }
         val device = try {
             sdk.connectedDevices?.firstOrNull()
         } catch (e: Exception) {
@@ -363,7 +383,7 @@ class GarminBridge(private val context: Context, messenger: BinaryMessenger) {
             main.post {
                 if (finished) return@post
                 finished = true
-                Log.i("TB-GARMIN", "send $status after $sent of ${messages.size}")
+                Log.i("TB-GARMIN", "send $kind $status after $sent of ${messages.size}")
                 pending?.let { main.removeCallbacks(it) }
                 result.success(mapOf("status" to status, "sent" to sent))
             }

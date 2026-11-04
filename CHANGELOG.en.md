@@ -9,6 +9,9 @@
 - When the navigation start sheet finds the watch, the app already works
   out heights and junctions for the watch while you are still reading.
   After "Go" the route goes across without waiting again.
+- If Garmin Connect wrongly reports at the start that TrailBuddy is
+  missing on the watch, the route is sent anyway. Only when the watch
+  does not answer does the app say that TrailBuddy is missing there.
 
 ## The watch stays connected more reliably
 

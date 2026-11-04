@@ -159,6 +159,12 @@ class WatchSync extends Notifier<WatchSyncState> {
   Timer? _ackTimer;
   Timer? _nudgeTimer;
 
+  /// `open` sagte „nicht installiert" — Garmin Connect sagt das auch zu
+  /// einer per USB geladenen App, die läuft (im Simulator-Modus gesehen,
+  /// 2026-11-04). Die Route geht trotzdem; erst ohne „gespeichert" heißt es
+  /// „fehlt".
+  bool _maybeMissing = false;
+
   /// Höhen und Abzweigungen, angestoßen, als das Startblatt die Uhr fand
   /// ([prepare]) — „Los" wartet dann nicht noch einmal von vorn.
   _Prepared? _prepared;
@@ -266,6 +272,7 @@ class WatchSync extends Notifier<WatchSyncState> {
     _early = null;
     _ackTimer?.cancel();
     _nudgeTimer?.cancel();
+    _maybeMissing = false;
     final bridge = ref.read(garminBridgeProvider);
     state = const WatchSyncState(phase: WatchSyncPhase.sending);
     // Die Frage auf der Uhr gleich: Bis jemand bestätigt, ist die Route
@@ -289,10 +296,7 @@ class WatchSync extends Notifier<WatchSyncState> {
       return;
     }
     _route = route;
-    if (open == WatchOpen.notInstalled) {
-      state = WatchSyncState(phase: WatchSyncPhase.failed, routeId: route.id, error: 'APP_IS_NOT_INSTALLED');
-      return;
-    }
+    _maybeMissing = open == WatchOpen.notInstalled;
     final early = _early;
     _early = null;
     if (early != null) return _onHello(early.id);
@@ -344,10 +348,15 @@ class WatchSync extends Notifier<WatchSyncState> {
     state = WatchSyncState(phase: WatchSyncPhase.sent, routeId: route.id, parts: parts.length);
     _ackTimer?.cancel();
     _ackTimer = Timer(kWatchAckWait, () {
-      if (gen == _gen && state.phase == WatchSyncPhase.sent) {
-        state = WatchSyncState(phase: WatchSyncPhase.unconfirmed, routeId: route.id, parts: parts.length);
-        _nudge(0);
+      if (gen != _gen || state.phase != WatchSyncPhase.sent) return;
+      if (_maybeMissing) {
+        // Ein spätes `hi` oder `ok` zählt trotzdem ([_onAnswer]).
+        state = WatchSyncState(
+            phase: WatchSyncPhase.failed, routeId: route.id, parts: parts.length, error: 'APP_IS_NOT_INSTALLED');
+        return;
       }
+      state = WatchSyncState(phase: WatchSyncPhase.unconfirmed, routeId: route.id, parts: parts.length);
+      _nudge(0);
     });
   }
 

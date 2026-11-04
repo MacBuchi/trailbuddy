@@ -828,14 +828,33 @@ void main() {
     expect(watch.routeParts.where((m) => m['p'] == 0), hasLength(2));
   });
 
-  testWidgets('#449: fehlt die Uhr-App, geht nichts hin und die Leiste sagt es', (tester) async {
+  testWidgets('#449: meldet das Öffnen „nicht installiert" und die Uhr schweigt, sagt die Leiste es', (tester) async {
     final watch = FakeGarminBridge.connected()..openResult = WatchOpen.notInstalled;
     await startFromRides(tester, garmin: watch);
     await tester.tap(find.byKey(const ValueKey('nav-go')));
     await settle(tester, frames: 10);
-    expect(watch.sent, isEmpty);
+    expect(watch.routeParts, isNotEmpty, reason: 'Garmin Connect irrt bei per USB geladenen Apps');
+    expect(find.byKey(const ValueKey('map-watch-missing')), findsNothing);
+    await tester.pump(kWatchAckWait);
+    await settle(tester, frames: 4);
     expect(find.byKey(const ValueKey('map-watch-missing')), findsOneWidget);
+    expect(watch.queries, 0, reason: 'eine fehlende App fragt man nicht nach');
     expect(find.byKey(const ValueKey('nav-approach')), findsOneWidget);
+  });
+
+  testWidgets('#449: meldet das Öffnen „nicht installiert", die Uhr speichert aber — dann gilt das', (tester) async {
+    // Im Simulator-Modus gesehen (2026-11-04): `status` sagt installiert,
+    // `openApplication` „nicht installiert", die App läuft.
+    final watch = FakeGarminBridge.connected()
+      ..openResult = WatchOpen.notInstalled
+      ..autoStore = true;
+    await startFromRides(tester, garmin: watch);
+    await tester.tap(find.byKey(const ValueKey('nav-go')));
+    await settle(tester, frames: 10);
+    expect(find.byKey(const ValueKey('map-watch-stored')), findsOneWidget);
+    await tester.pump(kWatchAckWait);
+    await settle(tester, frames: 4);
+    expect(find.byKey(const ValueKey('map-watch-missing')), findsNothing);
   });
 
   testWidgets('taps on the map do nothing while navigating; Beenden asks nothing', (tester) async {

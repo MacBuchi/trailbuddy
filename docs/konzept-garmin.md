@@ -171,8 +171,18 @@ angekommen (beantwortet 8.2). Deshalb:
   `openApplication` (`GarminBridge.kt`, Methode `open`), zugleich mit
   dem Rechnen von Höhen und Stummeln. Läuft die Uhr-App, gehen die
   Stücke; sonst fragt die Uhr „TrailBuddy öffnen?", und die Leiste sagt
-  „Auf der Uhr TrailBuddy öffnen". Fehlt die App, sagt sie das, und
-  nichts geht hin.
+  „Auf der Uhr TrailBuddy öffnen". Meldet `open` „nicht installiert",
+  geht die Route trotzdem hin (seit 0.152.2): Im Simulator-Modus sagte
+  `status` „installiert" und `openApplication` eine Sekunde später „nicht
+  installiert", bei laufender App — eine per USB geladene App kennt
+  Garmin Connect nicht sicher. Erst wenn das „gespeichert" in 15 s
+  ausbleibt, sagt die Leiste, TrailBuddy fehle auf der Uhr; ein spätes
+  „gespeichert" zählt trotzdem.
+- **Logcat `TB-GARMIN`** nennt seit 0.152.2 Start und Fehler des SDK,
+  jedes `status` (ob Connect, Uhr und App da sind — ohne den Namen der
+  Uhr), jedes `open`, die Art jeder gesendeten Nachricht (`r`, `q`, `b`)
+  und jede empfangene (`hi`, `ok` mit Kennung der Route) — nie Inhalt
+  mit Koordinaten.
 - **Die Uhr-App meldet sich beim Start** mit `{t: "hi", v, id}` — `id`
   ist die gespeicherte Route, fehlt ohne eine vom Handy. Weicht sie von
   der laufenden Navigation ab, schickt das Handy die aktuelle; stimmt

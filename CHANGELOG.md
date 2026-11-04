@@ -9,6 +9,9 @@
 - Findet das Startblatt der Navigation die Uhr, rechnet die App Höhen
   und Abzweigungen für die Uhr schon, während man noch liest. Nach
   „Los" geht die Route dann ohne erneutes Warten hinüber.
+- Meldet Garmin Connect beim Start fälschlich, TrailBuddy fehle auf
+  der Uhr, geht die Route trotzdem hin. Erst wenn die Uhr nicht
+  antwortet, sagt die App, dass TrailBuddy dort fehlt.
 
 ## Die Uhr bleibt verlässlicher verbunden
 
