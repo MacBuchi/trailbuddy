@@ -2,6 +2,14 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## The route reaches the watch sooner
+
+*Version 0.152.2, 2026-11-04*
+
+- When the navigation start sheet finds the watch, the app already works
+  out heights and junctions for the watch while you are still reading.
+  After "Go" the route goes across without waiting again.
+
 ## The watch stays connected more reliably
 
 *Version 0.152.1, 2026-11-04*

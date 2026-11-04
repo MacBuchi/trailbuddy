@@ -800,8 +800,13 @@ class _MapScreenState extends ConsumerState<MapScreen> {
           profile: request.profile,
           routePrefs: request.routePrefs);
     }
+    final watchSync = ref.read(watchSyncProvider.notifier);
     final choice = await showNavStartSheet(context,
-        title: request.title, canRecord: canRecord, summary: navStartSummary(l, request));
+        title: request.title,
+        canRecord: canRecord,
+        summary: navStartSummary(l, request),
+        onWatchFound: () => watchSync.prepare(request.points));
+    if (choice == null || !choice.watch) watchSync.discardPrepared();
     if (choice == null || !mounted) return;
     // Der erste Fix kann dauern (kalter Empfänger): Die Leiste sagt es,
     // bis er da ist (Konzept-Routing 10.6).

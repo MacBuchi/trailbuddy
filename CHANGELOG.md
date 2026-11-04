@@ -2,6 +2,14 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Die Route ist schneller auf der Uhr
+
+*Version 0.152.2, 2026-11-04*
+
+- Findet das Startblatt der Navigation die Uhr, rechnet die App Höhen
+  und Abzweigungen für die Uhr schon, während man noch liest. Nach
+  „Los" geht die Route dann ohne erneutes Warten hinüber.
+
 ## Die Uhr bleibt verlässlicher verbunden
 
 *Version 0.152.1, 2026-11-04*

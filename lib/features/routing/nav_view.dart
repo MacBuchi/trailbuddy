@@ -85,14 +85,17 @@ class NavStartChoice {
 /// Bildschirm (nur wo es den Weg gibt) und „Auf der Uhr zeigen" (nur mit
 /// verbundener Garmin-Uhr, Konzept-Garmin 2). Vorgabe aller: an
 /// (Betreiber, 2026-10-08 und 2026-11-03). Null heißt abgebrochen. [summary] steht unter
-/// dem Titel („2 Trails · 18,6 km").
+/// dem Titel („2 Trails · 18,6 km"). [onWatchFound] läuft einmal, sobald
+/// das Blatt eine Uhr gefunden hat — die Karte rechnet dann schon, was an
+/// die Uhr geht (#449), während noch gelesen wird.
 Future<NavStartChoice?> showNavStartSheet(BuildContext context,
-        {required String title, required bool canRecord, String? summary}) =>
+        {required String title, required bool canRecord, String? summary, VoidCallback? onWatchFound}) =>
     showModalBottomSheet<NavStartChoice>(
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
-      builder: (_) => _NavStartSheet(title: title, summary: summary, canRecord: canRecord),
+      builder: (_) =>
+          _NavStartSheet(title: title, summary: summary, canRecord: canRecord, onWatchFound: onWatchFound),
     );
 
 /// Der Untertitel des Start-Dialogs aus den Abschnitten: Trails und Länge.
@@ -104,11 +107,12 @@ String navStartSummary(AppLocalizations l, NavRequest request) {
 }
 
 class _NavStartSheet extends ConsumerStatefulWidget {
-  const _NavStartSheet({required this.title, required this.summary, required this.canRecord});
+  const _NavStartSheet({required this.title, required this.summary, required this.canRecord, this.onWatchFound});
 
   final String title;
   final String? summary;
   final bool canRecord;
+  final VoidCallback? onWatchFound;
 
   @override
   ConsumerState<_NavStartSheet> createState() => _NavStartSheetState();
@@ -117,6 +121,17 @@ class _NavStartSheet extends ConsumerStatefulWidget {
 class _NavStartSheetState extends ConsumerState<_NavStartSheet> {
   bool _record = true;
   bool _watch = true;
+  bool _found = false;
+
+  @override
+  void initState() {
+    super.initState();
+    ref.listenManual(watchStatusProvider, (_, next) {
+      if (_found || !(next.valueOrNull?.canShow ?? false)) return;
+      _found = true;
+      widget.onWatchFound?.call();
+    }, fireImmediately: true);
+  }
 
   @override
   Widget build(BuildContext context) {

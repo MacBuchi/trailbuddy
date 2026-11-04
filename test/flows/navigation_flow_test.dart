@@ -22,7 +22,8 @@ import 'package:pmtiles/pmtiles.dart';
 import 'package:trailbuddy/core/picture_in_picture.dart';
 import 'package:trailbuddy/core/screen_awake.dart';
 import 'package:trailbuddy/features/garmin/garmin_bridge.dart' show WatchOpen, WatchSendResult;
-import 'package:trailbuddy/features/garmin/watch_providers.dart' show kWatchAckWait, kWatchNudges;
+import 'package:trailbuddy/features/garmin/watch_providers.dart' show kWatchAckWait, kWatchNudges, watchBranchesLoaderProvider, watchSyncProvider;
+import 'package:trailbuddy/features/garmin/watch_branches.dart' show WatchBranch;
 import 'package:trailbuddy/features/map/map_view/map_view.dart';
 import 'package:trailbuddy/features/offline_areas/area_plan.dart';
 import 'package:trailbuddy/features/offline_areas/area_store.dart';
@@ -194,6 +195,7 @@ void main() {
       FakeTrailRepository? trails,
       FakePositionFix? positionFix,
       FakeGarminBridge? garmin,
+      List<Override> overrides = const [],
       _FakePip? pip}) async {
     if (phone) {
       tester.view.physicalSize = const Size(1080, 2400);
@@ -217,6 +219,7 @@ void main() {
         extraOverrides: [
           screenAwakeProvider.overrideWithValue(screen),
           if (pip != null) pictureInPictureProvider.overrideWithValue(pip),
+          ...overrides,
         ]);
     await openProfilePage(tester, 'rides');
     await settle(tester);
@@ -744,6 +747,56 @@ void main() {
     await tester.pump(const Duration(minutes: 2));
     await settle(tester, frames: 2);
     expect(watch.queries, 0);
+  });
+
+  testWidgets('#449: Höhen und Abzweigungen rechnen schon, während das Startblatt offen ist', (tester) async {
+    final watch = FakeGarminBridge.connected()..autoStore = true;
+    final branches = Completer<List<WatchBranch>>();
+    var calls = 0;
+    await startFromRides(tester, garmin: watch, overrides: [
+      watchBranchesLoaderProvider.overrideWithValue((_) {
+        calls++;
+        return branches.future;
+      }),
+    ]);
+    await settle(tester, frames: 4);
+    expect(calls, 1, reason: 'die Uhr ist gefunden, das Blatt noch offen');
+    expect(watch.routeParts, isEmpty, reason: 'gesendet wird erst mit „Los"');
+    branches.complete(const []);
+    await settle(tester, frames: 2);
+    await tester.tap(find.byKey(const ValueKey('nav-go')));
+    await settle(tester, frames: 10);
+    expect(watch.routeParts, isNotEmpty);
+    expect(calls, 1, reason: '„Los" rechnet nicht noch einmal');
+    final container = ProviderScope.containerOf(tester.element(find.byKey(const ValueKey('nav-stop'))));
+    expect(container.read(watchSyncProvider.notifier).loads, 1);
+    expect(find.byKey(const ValueKey('map-watch-stored')), findsOneWidget);
+  });
+
+  testWidgets('#449: ein Startblatt ohne „Los" lässt nichts Vorbereitetes liegen', (tester) async {
+    final watch = FakeGarminBridge.connected()..autoStore = true;
+    var calls = 0;
+    await startFromRides(tester, garmin: watch, overrides: [
+      watchBranchesLoaderProvider.overrideWithValue((_) async {
+        calls++;
+        return const <WatchBranch>[];
+      }),
+    ]);
+    await settle(tester, frames: 4);
+    expect(calls, 1);
+    final container = ProviderScope.containerOf(tester.element(find.byKey(const ValueKey('nav-go'))));
+    await tester.tapAt(const Offset(10, 10)); // Blatt zu, ohne „Los"
+    await settle(tester, frames: 4);
+    expect(find.byKey(const ValueKey('nav-go')), findsNothing);
+    expect(watch.routeParts, isEmpty);
+    // Eine Navigation derselben Linie ohne Startblatt rechnet selbst.
+    final sync = container.read(watchSyncProvider.notifier)..follow(true);
+    final before = sync.loads;
+    container.read(navigationProvider.notifier).start([for (var i = 0; i <= 20; i++) LatLng(_lat, _lng(i))], 'Hausrunde');
+    await settle(tester, frames: 10);
+    expect(sync.loads, before + 1, reason: 'das Verworfene zählt nicht');
+    expect(calls, 2);
+    expect(watch.routeParts, isNotEmpty);
   });
 
   testWidgets('#449: solange die Uhr gesucht wird, sagt es das Startblatt', (tester) async {

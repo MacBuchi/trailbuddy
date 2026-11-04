@@ -149,7 +149,13 @@ dem mindestens eine Kante der Route folgt (15 m weiter höchstens 6 m
 daneben); jede andere Kante ab 10 m Länge gibt einen Stummel von 40 m
 (oder bis zu ihrem Ende). Höchstens 300 Stummel, darüber gleichmäßig
 ausgedünnt. Höhen und Stummel laufen zugleich; auf die Stummel wartet das
-Senden höchstens 15 s, danach geht die Route ohne. Die Kreuzung bleibt
+Senden höchstens 15 s, danach geht die Route ohne. **Angestoßen werden
+beide, sobald das Startblatt die Uhr gefunden hat** (`WatchSync.prepare`,
+seit 0.152.2), nicht erst mit „Los": Wer liest, wartet nicht. „Los"
+nimmt das Vorbereitete, wenn die Linie Punkt für Punkt dieselbe ist, und
+wartet dann nur noch den Rest (die 5 bzw. 15 s zählen ab „Los"). Zu ohne
+„Los" oder mit dem Schalter aus verwirft es; jede spätere Route der
+Navigation rechnet selbst. Die Kreuzung bleibt
 beim Vereinfachen als Punkt der Linie stehen, das Ende geht als Versatz
 gegen den Knoten (bei einer GPS-Fahrt liegt der Linienpunkt ein paar
 Meter daneben). Jeder Stummel fährt im Stück seines Punkts mit und zählt
