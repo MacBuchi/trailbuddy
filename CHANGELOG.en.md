@@ -2,6 +2,14 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## Libraries refreshed
+
+*Version 0.151.1, 2026-11-04*
+
+- Nine building blocks of the app brought up to date, among them the
+  server connection, location, notifications and the local database.
+  Nothing visible changes for you.
+
 ## Junctions on the Garmin watch
 
 *Version 0.151.0, 2026-11-04*
