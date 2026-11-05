@@ -26,7 +26,7 @@ import '../../core/screen_awake.dart';
 import '../../data/providers.dart' show currentUserIdProvider;
 import '../../l10n/l10n.dart';
 import '../garmin/garmin_bridge.dart' show WatchStatus, garminBridgeProvider;
-import '../garmin/watch_providers.dart' show WatchSyncPhase, kWatchTooBig, watchStatusProvider, watchSyncProvider;
+import '../garmin/watch_providers.dart' show WatchSyncPhase, kWatchOutdatedPhone, kWatchOutdatedWatch, kWatchTooBig, watchStatusProvider, watchSyncProvider;
 import '../map/map_buttons.dart';
 import '../map/map_view/map_view.dart';
 import '../rides/airtime_live.dart';
@@ -423,6 +423,8 @@ class _WatchBadge extends ConsumerWidget {
       WatchSyncPhase.unconfirmed => (_p.warningText, l.mapWatchUnconfirmed),
       WatchSyncPhase.failed when sync.error == 'APP_IS_NOT_INSTALLED' => (_p.warningText, l.mapWatchMissing),
       WatchSyncPhase.failed when sync.error == kWatchTooBig => (_p.warningText, l.mapWatchTooBig),
+      WatchSyncPhase.failed when sync.error == kWatchOutdatedWatch => (_p.warningText, l.mapWatchOutdatedWatch),
+      WatchSyncPhase.failed when sync.error == kWatchOutdatedPhone => (_p.warningText, l.mapWatchOutdatedPhone),
       WatchSyncPhase.failed => (_p.warningText, l.mapWatchFailed),
       WatchSyncPhase.prompted => (_p.muted, l.mapWatchPrompted),
       _ => (_p.muted, l.navWatchSending),

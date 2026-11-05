@@ -207,11 +207,19 @@ void main() {
     final io = File('lib/features/garmin/garmin_bridge_io.dart').readAsStringSync();
     expect(io, contains("call.method == 'device' && call.arguments == 'CONNECTED'"));
     expect(watchQuery, {'t': 'q'});
-    expect(watchHelloOf({'t': 'hi', 'id': 'ab12', 'v': 2}), (hello: true, id: 'ab12', bad: null));
-    expect(watchHelloOf({'t': 'hi', 'v': 2}), (hello: true, id: null, bad: null));
-    expect(watchHelloOf({'t': 'hi', 'v': 2, 'bad': 'cd34'}), (hello: true, id: null, bad: 'cd34'));
+    expect(watchHelloOf({'t': 'hi', 'id': 'ab12', 'v': 2}), (hello: true, id: 'ab12', bad: null, v: 2));
+    expect(watchHelloOf({'t': 'hi', 'v': 2}), (hello: true, id: null, bad: null, v: 2));
+    expect(watchHelloOf({'t': 'hi', 'v': 2, 'bad': 'cd34'}), (hello: true, id: null, bad: 'cd34', v: 2));
+    expect(watchHelloOf({'t': 'hi'}).v, isNull);
+    // Welche Seite ist veraltet (#449)?
+    expect(watchOutdatedOf(kWatchProtocol), isNull);
+    expect(watchOutdatedOf(kWatchProtocol - 1), WatchOutdated.watch);
+    expect(watchOutdatedOf(null), WatchOutdated.watch);
+    expect(watchOutdatedOf(kWatchProtocol + 1), WatchOutdated.phone);
     expect(watchHelloOf({'t': 'ok', 'id': 'ab12'}).hello, isFalse);
-    expect(watchErrorOf({'t': 'x', 'id': 'ab12', 'c': 'mem'}), (id: 'ab12', code: kWatchErrMemory));
+    expect(watchErrorOf({'t': 'x', 'id': 'ab12', 'c': 'mem'}), (id: 'ab12', code: kWatchErrMemory, v: null));
+    expect(watchErrorOf({'t': 'x', 'id': 'ab12', 'c': 'ver', 'v': 3}), (id: 'ab12', code: kWatchErrVersion, v: 3));
+    expect(watchErrorWantsSmaller(kWatchErrVersion), isFalse);
     expect(watchErrorOf({'t': 'x', 'id': 'ab12'}), isNull);
     expect(watchErrorWantsSmaller(kWatchErrCrash), isTrue);
     expect(watchErrorWantsSmaller(kWatchErrBad), isFalse);
@@ -219,9 +227,16 @@ void main() {
     expect(watch, contains('"t" => "$kWatchError"'));
     expect(watch, contains('msg["bad"] = bad'));
     final phoneRoute = File('garmin/source/PhoneRoute.mc').readAsStringSync();
-    for (final code in [kWatchErrMemory, kWatchErrStorage, kWatchErrCrash, kWatchErrBad]) {
+    for (final code in [kWatchErrMemory, kWatchErrStorage, kWatchErrCrash, kWatchErrBad, kWatchErrVersion]) {
       expect(phoneRoute, contains('fail("$code")'));
     }
+    // Position vom Handy und „habe GPS" von der Uhr — dieselben Zeichen.
+    expect(watch, contains('"$kWatchPhonePosition".equals(t)'));
+    expect(watch, contains('phoneFix(d["la"], d["lo"])'));
+    expect(watch, contains('toPhone({"t" => "$kWatchHasGps"})'));
+    expect(watchPositionOf(const LatLng(47.123456, 11.5)), {'t': 'p', 'la': 4712346, 'lo': 1150000});
+    expect(watchHasGps({'t': 'g'}), isTrue);
+    expect(watchHasGps({'t': 'ok'}), isFalse);
     expect(WatchOpen.fromChannel('PROMPT_SHOWN_ON_DEVICE'), WatchOpen.prompted);
     expect(WatchOpen.fromChannel('APP_IS_ALREADY_RUNNING'), WatchOpen.running);
     expect(WatchOpen.fromChannel('APP_IS_NOT_INSTALLED'), WatchOpen.notInstalled);

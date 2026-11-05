@@ -3424,6 +3424,14 @@
   "@mapWatchTooBig": {
     "description": "Leiste auf der Karte: Die Garmin-Uhr konnte die Route nicht laden (zu wenig Speicher oder die Uhr-App stürzte ab), auch nicht mit halb so vielen Punkten; die Navigation auf dem Handy läuft trotzdem."
   },
+  "mapWatchOutdatedWatch": "Die Uhr-App ist veraltet und nimmt die Route nicht. Spiele TrailBuddy neu auf die Uhr — die Navigation hier läuft weiter.",
+  "@mapWatchOutdatedWatch": {
+    "description": "Leiste auf der Karte: Die Garmin-Uhr-App spricht ein älteres Protokoll als die App auf dem Handy; es geht nichts hin, bis sie neu aufgespielt ist."
+  },
+  "mapWatchOutdatedPhone": "TrailBuddy auf dem Handy ist älter als die Uhr-App. Aktualisiere die App — die Navigation hier läuft weiter.",
+  "@mapWatchOutdatedPhone": {
+    "description": "Leiste auf der Karte: Die Garmin-Uhr-App spricht ein neueres Protokoll als die App auf dem Handy; es geht nichts hin, bis die App aktualisiert ist."
+  },
   "navStartHint": "Die Karte zeigt die Route und dreht mit — ohne Abbiegehinweise, fahre nach Sicht.",
   "@navStartHint": {
     "description": "Hinweis im Start-Blatt, was die Navigation tut und was nicht."

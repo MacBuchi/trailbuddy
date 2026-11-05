@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:trailbuddy/features/garmin/garmin_bridge.dart';
+import 'package:trailbuddy/features/garmin/watch_route.dart' show kWatchProtocol;
 
 /// Die Garmin-Uhr im Test (Konzept-Garmin 3): ab Werk keine — wie ein
 /// Telefon ohne Garmin Connect. Mit [status] eine verbundene Uhr; was
@@ -78,7 +79,10 @@ class FakeGarminBridge implements GarminBridge {
   void reconnect() => _connected.add(null);
 
   /// Die Uhr-App startet und meldet sich mit der Route, die sie hat.
-  void hello(String? id) => answer({'t': 'hi', 'id': ?id, 'v': 2});
+  void hello(String? id, {int? v = kWatchProtocol}) => answer({'t': 'hi', 'id': ?id, 'v': ?v});
+
+  /// Die Positionen des Handys an die Uhr (`p`).
+  List<Map<String, Object>> get positions => [for (final batch in sent) ...batch.where((m) => m['t'] == 'p')];
 
   /// Alle gesendeten Stücke der Route (ohne Bestwerte).
   List<Map<String, Object>> get routeParts =>

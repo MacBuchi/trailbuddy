@@ -33,6 +33,12 @@ class TrailBuddyApp extends Application.AppBase {
     hidden var _calm as Timer.Timer?;
     //! Die Testroute ließ sich nicht dekodieren (dann nicht immer wieder).
     hidden var _testFailed as Boolean = false;
+    //! Die Uhr hat eigenes GPS gehabt: Ab da zählt die Position des Handys
+    //! nicht mehr (`p`, Konzept 2).
+    hidden var _ownFix as Boolean = false;
+    //! Der Stand kam bisher nur vom Handy — mit dem ersten eigenen Fix
+    //! beginnt die Verfolgung neu, damit „abseits" am eigenen GPS vibriert.
+    hidden var _phoneFixed as Boolean = false;
     //! So viele Punkte je Häppchen: bleibt weit unter dem Watchdog
     //! (120 000 Schritte je Ereignis, NavRoute).
     static const DECODE_BUDGET = 300;
@@ -194,6 +200,10 @@ class TrailBuddyApp extends Application.AppBase {
             sayHello();
             return;
         }
+        if ("p".equals(t)) {
+            phoneFix(d["la"], d["lo"]);
+            return;
+        }
         if ("b".equals(t)) {
             _bests = d;
             _stats.bests = d;
@@ -209,7 +219,9 @@ class TrailBuddyApp extends Application.AppBase {
         var err = PhoneRoute.lastError;
         if (err != null) {
             if (rid instanceof String) {
-                toPhone({"t" => "x", "id" => rid, "c" => err});
+                var x = {"t" => "x", "id" => rid, "c" => err} as Dictionary;
+            if ("ver".equals(err)) { x["v"] = PhoneRoute.PROTOCOL; }
+            toPhone(x);
             }
             return;
         }
@@ -253,11 +265,46 @@ class TrailBuddyApp extends Application.AppBase {
         startLoader();
     }
 
+    //! Die Position des Handys als erster Fix (Betreiber 2026-11-05): Bis
+    //! die Uhr eigenes GPS hat, zeigt sie damit Position, Weg zum Trail und
+    //! zum Ziel statt Strichen. Kein Vibrieren (das Handy kann ein paar
+    //! Sekunden alt sein), keine Zahlen der Fahrt; nichts wird gespeichert.
+    function phoneFix(la as Object?, lo as Object?) as Void {
+        if (_ownFix || !_route.isReady() || !(la instanceof Number) || !(lo instanceof Number)) { return; }
+        if (la < -9000000 || la > 9000000 || lo < -18000000 || lo > 18000000) { return; }
+        var lat = la.toDouble() / 100000.0d;
+        var lon = lo.toDouble() / 100000.0d;
+        if (_route.relative) {
+            _route.anchor(lat, lon);
+        }
+        var p = _route.toLocal(lat, lon);
+        var s = _tracker.update(p[0], p[1], null, null, compass());
+        _phoneFixed = true;
+        _view.setState(s, null, true);
+    }
+
+    hidden function compass() as Float? {
+        var sensor = Sensor.getInfo();
+        if (sensor has :heading && sensor.heading != null) {
+            return sensor.heading;
+        }
+        return null;
+    }
+
     function onPosition(info as Position.Info) as Void {
         if (!_route.isReady()) { return; }
         var loc = info.position;
         if (loc == null || info.accuracy < Position.QUALITY_USABLE) {
             return;
+        }
+        if (!_ownFix) {
+            _ownFix = true;
+            // Nur „ich habe GPS", keine Koordinate (A3): Das Handy hört auf.
+            toPhone({"t" => "g"});
+        }
+        if (_phoneFixed) {
+            _phoneFixed = false;
+            _tracker = new NavTracker(_route);
         }
         var deg = loc.toDegrees();
         var lat = deg[0].toDouble();
@@ -280,7 +327,7 @@ class TrailBuddyApp extends Application.AppBase {
         var hr = sensor has :heartRate ? sensor.heartRate : null;
         _stats.update(p[0], p[1], System.getTimer(), info.speed, alt, hr,
             s.offRoute ? -1 : _route.sectionAt(s.alongM));
-        _view.setState(s, info.speed);
+        _view.setState(s, info.speed, false);
     }
 
     (:demo) hidden var _demoTimer as Timer.Timer?;
@@ -343,7 +390,7 @@ class TrailBuddyApp extends Application.AppBase {
         // springen, aus den Fixen käme nichts zusammen).
         _stats.distanceM = sc[0];
         _stats.movingS = sc[0] / 5.0;
-        _view.setState(s, 6.0);
+        _view.setState(s, 6.0, false);
         // Für die Messung 8.1: Speicher nach jedem Bild in die Konsole.
         var st = System.getSystemStats();
         System.println("demo " + _route.size() + " pts scene " + (_demoScene - 1) % scenes.size()

@@ -126,6 +126,20 @@ Garmin-Aktivität, kein Netz, keine Abbiegehinweise.
   daraufhin die aktuelle Route, wenn sie abweicht (Konzept 2, „Das Handy
   stößt an"). `test/garmin/watch_route_test.dart` hält `hi`/`q` mit
   Dart und Kotlin zusammen.
+- **Die Position des Handys** (`phoneFix` in `TrailBuddyApp`, Konzept
+  2): `{t: "p", la, lo}` gilt nur bis zum ersten eigenen Fix
+  (`_ownFix`); sie geht durch den Tracker ohne Kurs und Tempo, ohne
+  Vibrieren und ohne `RideStats`. Mit dem ersten eigenen Fix schickt die
+  Uhr einmal `{t: "g"}` und legt einen NEUEN `NavTracker` an — sonst
+  stünde „abseits" schon vom Handy her, und das Abkommen am eigenen GPS
+  vibrierte nicht. `NavView.setState(…, phone)` zeichnet den Pfeil hohl
+  mit „HANDY-GPS". Eine andere Fassung im ersten Stück ist `ver` (mit
+  `v` in der Antwort), nicht `bad`.
+- **`--test` hängt manchmal ohne Ausgabe** (2026-11-05): Der Bau gelingt,
+  `monkeydo` schreibt nichts, auch mit vorher gestartetem Simulator.
+  Dann `monkeydo`/`MonkeyDoDeux` und den Simulator beenden; eine
+  Gegenprobe mit Dateikopie und `trap` zurückbauen, sonst bleibt die
+  entschärfte Fassung liegen.
 - **Bestwerte** (`RideStats.bests`, vierte Seite „Sprünge" in `NavView`,
   Zeile in der Zusammenfassung): nur im Speicher, bleiben über einen
   Routenwechsel. Die Seite gibt es erst, wenn welche kamen (`pages()`).

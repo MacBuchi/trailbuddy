@@ -2,6 +2,19 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## The watch knows where you are right away
+
+*Version 0.154.0, 2026-11-06*
+
+- Until the Garmin watch has its own GPS, it uses the phone's position:
+  it shows straight away where you are and how far it is to the trail and
+  to the finish, instead of waiting. The arrow is hollow then, with
+  "PHONE GPS" above it. That stops with the watch's first own GPS fix.
+  The position stays on the watch and is not stored.
+- If the watch app and the phone app don't match, the phone doesn't send
+  the route at all and says which side is out of date — instead of just
+  "The watch didn't answer".
+
 ## The watch stays stable
 
 *Version 0.153.2, 2026-11-05*

@@ -2,6 +2,19 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Die Uhr weiß gleich, wo du bist
+
+*Version 0.154.0, 2026-11-06*
+
+- Bis die Garmin-Uhr ihr eigenes GPS hat, nimmt sie die Position des
+  Handys: Sie zeigt gleich, wo du bist und wie weit es bis zum Trail und
+  zum Ziel ist, statt zu warten. Der Pfeil ist dann hohl, darüber steht
+  „Handy-GPS". Mit dem ersten eigenen GPS der Uhr hört das auf. Die
+  Position bleibt auf der Uhr und wird nicht gespeichert.
+- Passen Uhr-App und Handy-App nicht zusammen, schickt das Handy die
+  Route gar nicht erst und sagt, welche Seite veraltet ist — statt nur
+  „Die Uhr hat nicht geantwortet".
+
 ## Die Uhr bleibt stabil
 
 *Version 0.153.2, 2026-11-05*

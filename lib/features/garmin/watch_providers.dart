@@ -73,6 +73,20 @@ const _resumable = {'FAILURE_DURING_TRANSFER', 'FAILURE_TIMEOUT'};
 /// Punkten nicht nehmen konnte (Speicher, Absturz).
 const kWatchTooBig = 'WATCH_TOO_BIG';
 
+/// Die Uhr-App spricht ein älteres Protokoll (oder keins): neu aufspielen.
+const kWatchOutdatedWatch = 'WATCH_OUTDATED';
+
+/// Die Uhr-App spricht ein neueres Protokoll: die App aktualisieren.
+const kWatchOutdatedPhone = 'PHONE_OUTDATED';
+
+/// So oft geht die Position des Handys an die Uhr, solange die Uhr kein
+/// eigenes GPS meldet (Betreiber 2026-11-05) …
+const kWatchPositionEvery = Duration(seconds: 10);
+
+/// … und höchstens so lange nach dem „gespeichert": Die Uhr navigiert
+/// allein (A8), die Position des Handys ist nur ein Vorsprung beim Start.
+const kWatchPositionFor = Duration(minutes: 3);
+
 /// Der Korridor um die Linie, dessen Kacheln der Graph der Abzweigungen
 /// liest — ein Stummel ist 40 m lang, der Rest ist Luft für den Rand.
 const kWatchBranchCorridorM = 100.0;
@@ -167,7 +181,17 @@ class WatchSync extends Notifier<WatchSyncState> {
   bool _shrunk = false;
 
   /// Ein `hi`, das kam, während noch gerechnet wurde.
-  ({bool hello, String? id, String? bad})? _early;
+  ({String? id, String? bad})? _early;
+
+  /// Die Uhr-App spricht eine andere Fassung — dann geht nichts hin, bis
+  /// ein `hi` mit der passenden kommt.
+  WatchOutdated? _outdated;
+
+  /// Die Uhr hat eigenes GPS ([kWatchHasGps]); bis dahin geht die Position
+  /// des Handys im Takt [kWatchPositionEvery].
+  bool _gps = false;
+  Timer? _positionTimer;
+  int _positionTicks = 0;
 
   /// Zählt jede neue Route; eine Rechnung für eine alte fällt weg.
   int _gen = 0;
@@ -195,6 +219,7 @@ class WatchSync extends Notifier<WatchSyncState> {
       _reconnects?.cancel();
       _ackTimer?.cancel();
       _nudgeTimer?.cancel();
+      _positionTimer?.cancel();
     });
     // Jeder neue Bestwert geht hinterher, solange eine Route auf der Uhr
     // ist; die Fahrt zu Ende heißt: nichts mehr.
@@ -270,8 +295,10 @@ class WatchSync extends Notifier<WatchSyncState> {
     _early = null;
     _prepared = null;
     _again = false;
+    _gps = false;
     _ackTimer?.cancel();
     _nudgeTimer?.cancel();
+    _stopPositions();
     if (state.phase != WatchSyncPhase.idle) state = const WatchSyncState();
   }
 
@@ -318,9 +345,10 @@ class WatchSync extends Notifier<WatchSyncState> {
       state = WatchSyncState(phase: WatchSyncPhase.failed, routeId: route.id, error: 'APP_IS_NOT_INSTALLED');
       return;
     }
+    if (_outdated != null) return _failedOutdated();
     final early = _early;
     _early = null;
-    if (early != null) return _onHello(early.id, early.bad);
+    if (early != null) return _onHello(early.id, early.bad, kWatchProtocol);
     if (open == WatchOpen.prompted) {
       state = WatchSyncState(phase: WatchSyncPhase.prompted, routeId: route.id);
       _nudge(0);
@@ -343,6 +371,7 @@ class WatchSync extends Notifier<WatchSyncState> {
         _again = false;
         final route = _route;
         if (route == null || !_follow) return;
+        if (_outdated != null) return _failedOutdated();
         await _pushOnce(route);
       } while (_again);
     } finally {
@@ -403,10 +432,19 @@ class WatchSync extends Notifier<WatchSyncState> {
 
   void _onAnswer(Object? message) {
     final hello = watchHelloOf(message);
-    if (hello.hello) return _onHello(hello.id, hello.bad);
+    if (hello.hello) return _onHello(hello.id, hello.bad, hello.v);
+    if (watchHasGps(message)) {
+      _gps = true;
+      _stopPositions();
+      return;
+    }
     final error = watchErrorOf(message);
     if (error != null) {
       if (!_follow || error.id != _route?.id) return;
+      if (error.code == kWatchErrVersion) {
+        _outdated = watchOutdatedOf(error.v) ?? WatchOutdated.watch;
+        return _failedOutdated();
+      }
       return watchErrorWantsSmaller(error.code) ? _shrink() : _failed('WATCH_${error.code}');
     }
     final id = watchStoredId(message);
@@ -415,13 +453,22 @@ class WatchSync extends Notifier<WatchSyncState> {
     _stored(id);
   }
 
-  /// Die Uhr-App meldet sich: Hat sie die Route schon, gilt sie als
-  /// gespeichert; sonst geht die aktuelle.
-  void _onHello(String? id, [String? bad]) {
+  /// Die Uhr-App meldet sich: Spricht sie eine andere Fassung, geht nichts
+  /// hin, und die Leiste nennt die veraltete Seite. Hat sie die Route
+  /// schon, gilt sie als gespeichert; sonst geht die aktuelle. Eine neu
+  /// gestartete Uhr-App hat ihr GPS noch nicht.
+  void _onHello(String? id, String? bad, int? v) {
     if (!_follow) return;
+    _outdated = watchOutdatedOf(v);
+    _gps = false;
     final route = _route;
+    if (_outdated != null) {
+      _early = null;
+      if (route != null) _failedOutdated();
+      return;
+    }
     if (route == null) {
-      _early = (hello: true, id: id, bad: bad);
+      _early = (id: id, bad: bad);
       return;
     }
     if (id == route.id) return _stored(id!);
@@ -445,6 +492,9 @@ class WatchSync extends Notifier<WatchSyncState> {
     _route = smaller;
     unawaited(_push());
   }
+
+  void _failedOutdated() =>
+      _failed(_outdated == WatchOutdated.phone ? kWatchOutdatedPhone : kWatchOutdatedWatch);
 
   void _failed(String error) {
     _ackTimer?.cancel();
@@ -472,6 +522,37 @@ class WatchSync extends Notifier<WatchSyncState> {
       _lastBests = bests;
       unawaited(ref.read(garminBridgeProvider).send([bests]));
     }
+    _startPositions();
+  }
+
+  /// Die Position des Handys an die Uhr, gleich und dann alle
+  /// [kWatchPositionEvery], bis die Uhr eigenes GPS meldet, die
+  /// Navigation endet oder [kWatchPositionFor] um ist. Läuft der Takt
+  /// schon, bleibt er.
+  void _startPositions() {
+    if (_gps || _positionTimer != null) return;
+    _positionTicks = 0;
+    _sendPosition();
+    _positionTimer = Timer.periodic(kWatchPositionEvery, (_) {
+      _positionTicks++;
+      if (_positionTicks * kWatchPositionEvery.inSeconds >= kWatchPositionFor.inSeconds) {
+        _stopPositions();
+        return;
+      }
+      _sendPosition();
+    });
+  }
+
+  void _sendPosition() {
+    if (!_follow || _gps || _pushing || state.phase != WatchSyncPhase.stored) return;
+    final p = ref.read(navigationProvider)?.state?.position;
+    if (p == null) return;
+    unawaited(ref.read(garminBridgeProvider).send([watchPositionOf(p)]));
+  }
+
+  void _stopPositions() {
+    _positionTimer?.cancel();
+    _positionTimer = null;
   }
 
   /// Die Navigation kopiert die Punkte (`NavRoute.of`): gleich heißt

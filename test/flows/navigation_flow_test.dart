@@ -22,7 +22,7 @@ import 'package:pmtiles/pmtiles.dart';
 import 'package:trailbuddy/core/picture_in_picture.dart';
 import 'package:trailbuddy/core/screen_awake.dart';
 import 'package:trailbuddy/features/garmin/garmin_bridge.dart' show WatchOpen, WatchSendResult;
-import 'package:trailbuddy/features/garmin/watch_providers.dart' show kWatchAckWait, kWatchNudges, watchBranchesLoaderProvider, watchSyncProvider;
+import 'package:trailbuddy/features/garmin/watch_providers.dart' show kWatchAckWait, kWatchNudges, kWatchPositionEvery, kWatchPositionFor, watchBranchesLoaderProvider, watchSyncProvider;
 import 'package:trailbuddy/features/garmin/watch_branches.dart' show WatchBranch;
 import 'package:trailbuddy/features/garmin/watch_route.dart' show kWatchProtocol, watchUnpack;
 import 'package:trailbuddy/features/map/map_view/map_view.dart';
@@ -724,6 +724,82 @@ void main() {
     watch.hello('00000000');
     await settle(tester, frames: 4);
     expect(watch.routeParts.where((m) => m['p'] == 0), hasLength(2));
+  });
+
+  testWidgets('#449: spricht die Uhr-App eine andere Fassung, geht nichts hin — die Leiste nennt die veraltete Seite',
+      (tester) async {
+    final watch = FakeGarminBridge.connected()..openResult = WatchOpen.prompted;
+    await startFromRides(tester, garmin: watch);
+    await tester.tap(find.byKey(const ValueKey('nav-go')));
+    await settle(tester, frames: 10);
+    watch.hello(null, v: kWatchProtocol - 1);
+    await settle(tester, frames: 4);
+    expect(watch.routeParts, isEmpty, reason: 'eine alte Uhr-App verwürfe sie');
+    expect(find.byKey(const ValueKey('map-watch-outdated-watch')), findsOneWidget);
+    expect(find.byKey(const ValueKey('nav-watch-status-failed')), findsOneWidget);
+    watch.hello(null, v: null); // ganz alte Uhr-App ohne Fassung
+    await settle(tester, frames: 4);
+    expect(watch.routeParts, isEmpty);
+    // Die Uhr-App ist neuer als die App auf dem Handy.
+    watch.hello(null, v: kWatchProtocol + 1);
+    await settle(tester, frames: 4);
+    expect(watch.routeParts, isEmpty);
+    expect(find.byKey(const ValueKey('map-watch-outdated-phone')), findsOneWidget);
+    // Neu aufgespielt: Die Route geht.
+    watch.hello(null);
+    await settle(tester, frames: 4);
+    expect(watch.routeParts, isNotEmpty);
+    // Kommt die andere Fassung erst als Antwort auf ein Stück, ebenso.
+    watch.answer({'t': 'x', 'id': watch.routeParts.first['id'], 'c': 'ver', 'v': kWatchProtocol - 1});
+    await settle(tester, frames: 4);
+    expect(find.byKey(const ValueKey('map-watch-outdated-watch')), findsOneWidget);
+    final sends = watch.sent.length;
+    watch.reconnect();
+    await settle(tester, frames: 4);
+    expect(watch.routeParts.where((m) => m['p'] == 0), hasLength(1), reason: 'nichts geht noch einmal hin');
+    expect(watch.sent.length, lessThanOrEqualTo(sends + 1));
+  });
+
+  testWidgets('#449: nach dem „gespeichert" geht die Position des Handys, bis die Uhr eigenes GPS meldet',
+      (tester) async {
+    final watch = FakeGarminBridge.connected()..autoStore = true;
+    await startFromRides(tester, garmin: watch);
+    await tester.tap(find.byKey(const ValueKey('nav-go')));
+    await settle(tester, frames: 10);
+    expect(watch.positions, hasLength(1), reason: 'gleich mit dem „gespeichert"');
+    final p = watch.positions.first;
+    expect((p['la']! as int) / 1e5, closeTo(_lat, 0.01));
+    await tester.pump(kWatchPositionEvery);
+    expect(watch.positions, hasLength(2));
+    // Die Uhr hat eigenes GPS: keine weitere.
+    watch.answer({'t': 'g'});
+    await settle(tester, frames: 2);
+    await tester.pump(kWatchPositionEvery * 3);
+    expect(watch.positions, hasLength(2));
+    // Die Uhr-App startet neu: Sie hat ihr GPS noch nicht, der Takt beginnt
+    // wieder — und endet nach [kWatchPositionFor].
+    watch.hello(watch.routeParts.first['id'] as String);
+    await settle(tester, frames: 4);
+    expect(watch.positions, hasLength(3));
+    for (var t = Duration.zero; t < kWatchPositionFor * 2; t += kWatchPositionEvery) {
+      await tester.pump(kWatchPositionEvery);
+    }
+    final most = kWatchPositionFor.inSeconds ~/ kWatchPositionEvery.inSeconds;
+    expect(watch.positions.length - 3, lessThanOrEqualTo(most));
+    expect(watch.positions.length - 3, greaterThanOrEqualTo(most - 1));
+  });
+
+  testWidgets('#449: mit dem Ende der Navigation geht keine Position mehr an die Uhr', (tester) async {
+    final watch = FakeGarminBridge.connected()..autoStore = true;
+    await startFromRides(tester, garmin: watch);
+    await tester.tap(find.byKey(const ValueKey('nav-go')));
+    await settle(tester, frames: 10);
+    final container = ProviderScope.containerOf(tester.element(find.byKey(const ValueKey('nav-stop'))));
+    container.read(navigationProvider.notifier).stop();
+    await settle(tester);
+    final n = watch.positions.length;
+    await tester.pump(kWatchPositionEvery * 3);
+    expect(watch.positions, hasLength(n));
   });
 
   testWidgets('#449: eine neue Route der Navigation geht von selbst an die Uhr; nach dem Ende nichts mehr',
