@@ -101,6 +101,12 @@ Garmin-Aktivität, kein Netz, keine Abbiegehinweise.
   der Blöcke (≤ 63 Vergleiche), dann nur jeder `stride`-te Punkt
   (`OVERVIEW_SEGS` = 200 Stücke je Linie) — `range()` mit großem
   `_reach` liefe über alle Punkte und je Bild an den Watchdog.
+- **Der Build-Stempel** (`Rez.Strings.BuildStamp`, oben in der
+  Übersicht ohne Fix): `tool/garmin_build.sh` schreibt ihn in die Kopie
+  (`resources/strings/build.xml`: Commit, „+" mit Änderungen unter
+  `garmin/`, Datum und Uhrzeit); im Repo steht der Platzhalter „dev".
+  Connect IQ kann die Version der App zur Laufzeit nicht lesen. Steht
+  auf der Uhr ein alter Stempel, ist die neue `.prg` nicht drauf.
 - **Akku und Speicher** auf der Seite „Berg" nur im Vorführmodus:
   `drawMeasure` gibt es zweimal, `(:demo)` und `(:nodemo)` — der
   normale Build schließt `demo` aus, `--demo` schließt `nodemo` aus.

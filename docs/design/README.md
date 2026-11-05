@@ -897,7 +897,8 @@ Anstieg mit gezeichnetem Pfeil in Lime). Ein Trailname, der auf
 seiner Höhe nicht in den Kreis passt, nimmt die kleinere Schrift, erst
 dann „…". **Vor dem ersten Fix** die Übersicht: die Route genordet und
 eingepasst auf der hellen Karte, Start als schwarzer Punkt mit weißem
-Saum, darunter „Warte auf GPS" mit Länge und Anstieg. Angekommen: eine schwarze
+Saum, darunter „Warte auf GPS" mit Länge und Anstieg, oben klein in
+`555555` der Build-Stempel (Commit · Datum des Builds). Angekommen: eine schwarze
 Zusammenfassung mit den Schildern der befahrenen Trails. Die Farben sind je
 die nächste MIP-Farbe zur App-Farbe (`garmin/source/Colors.mc`, geprüft
 von `tool/garmin_route.py --self-test`); am Gerät in der Sonne prüfen.
