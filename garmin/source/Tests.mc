@@ -1,6 +1,7 @@
 import Toybox.Application;
 import Toybox.Lang;
 import Toybox.Test;
+import Toybox.WatchUi;
 
 //! Unit-Tests der Uhr-Seite (Konzept-Garmin 6): Dekodierung und die
 //! Regeln der Folgeansicht. `tool/garmin_build.sh --test` fährt sie im
@@ -9,23 +10,90 @@ import Toybox.Test;
 //! Die Testrouten — ein Modul, damit der Runner sie nicht für Tests hält.
 (:test)
 module TestRoutes {
+//! Eine Route in der Form von `route.json` (Protokoll 2) aus lesbaren
+//! Zahlen: [pts] = [lat0, lon0, dLat1, dLon1, …], [ele] je Punkt in Metern,
+//! [br] = [Punkt, dLat, dLon, …] — gepackt wie `WatchRoute.toJson`.
+function v2(id as String, rel as Boolean, pts as Array<Number>, ele as Array<Number>?,
+        sec as Array?, br as Array<Number>?) as Dictionary {
+    var np = pts.size() / 2;
+    var packed = [0] as Array<Number>;
+    for (var i = 1; i < np; i++) { packed.add(PhoneRoute.pack(pts[2 * i], pts[2 * i + 1])); }
+    var d = {"v" => PhoneRoute.PROTOCOL, "id" => id, "rel" => rel, "np" => np,
+        "o" => [pts[0], pts[1]], "pts" => packed} as Dictionary;
+    if (ele != null) {
+        d["e0"] = ele[0];
+        var pe = [] as Array<Number>;
+        for (var i = 0; i < np; i += 2) {
+            var a = i == 0 ? 0 : ele[i] - ele[i - 1];
+            var b = i + 1 < np ? ele[i + 1] - ele[i] : 0;
+            pe.add(PhoneRoute.pack(a, b));
+        }
+        d["ele"] = pe;
+    }
+    if (sec != null) { d["sec"] = sec; }
+    if (br != null) {
+        var pb = [] as Array<Number>;
+        for (var k = 0; k + 2 < br.size(); k += 3) { pb.add(br[k]); pb.add(PhoneRoute.pack(br[k + 1], br[k + 2])); }
+        d["br"] = pb;
+    }
+    return d;
+}
+
+//! [d] (ein Stück) in Nachrichten zu je [k] Punkten (gerade), wie
+//! `WatchRoute.parts`: Kopf im ersten, Stummel mit ihrem Punkt.
+function parts(d as Dictionary, k as Number) as Array<Dictionary> {
+    var np = d["np"] as Number;
+    var n = (np + k - 1) / k;
+    var out = [] as Array<Dictionary>;
+    for (var p = 0; p < n; p++) {
+        var a = p * k;
+        var b = a + k < np ? a + k : np;
+        var m = {"t" => "r", "id" => d["id"], "p" => p, "n" => n,
+            "pts" => (d["pts"] as Array).slice(a, b)} as Dictionary;
+        var ele = d["ele"] as Array?;
+        if (ele != null) { m["ele"] = ele.slice(a / 2, (b + 1) / 2); }
+        var br = d["br"] as Array<Number>?;
+        if (br != null) {
+            var mine = [] as Array<Number>;
+            for (var i = 0; i + 1 < br.size(); i += 2) {
+                if (br[i] >= a && br[i] < b) { mine.add(br[i]); mine.add(br[i + 1]); }
+            }
+            if (mine.size() > 0) { m["br"] = mine; }
+        }
+        if (p == 0) {
+            m["v"] = d["v"];
+            m["np"] = np;
+            m["o"] = d["o"];
+            if (d["e0"] != null) { m["e0"] = d["e0"]; }
+            if (d["sec"] != null) { m["sec"] = d["sec"]; }
+        }
+        out.add(m);
+    }
+    return out;
+}
+
 //! Gerade nach Osten, 900e-5° ≈ 1000,8 m, ein Trail.
+function straight() as Dictionary {
+    return v2("t", false, [0, 0, 0, 300, 0, 300, 0, 300], [500, 520, 505, 540],
+        [[1, 2, 2, "Testtrail"]], [1, 30, 0, 9, 1, 1]);
+}
+
 function straightRoute() as NavRoute {
-    return NavRoute.decoded({
-        "v" => 1, "id" => "t", "rel" => false,
-        "pts" => [0, 0, 0, 300, 0, 300, 0, 300],
-        "ele" => [500, 520, 505, 540],
-        "sec" => [[1, 2, 2, "Testtrail"]],
-        "br" => [1, 30, 0, 9, 1, 1]
-    });
+    return NavRoute.decoded(straight());
 }
 
 //! Hin und zurück auf derselben Linie: 1 km nach Osten, dann zurück.
 function outAndBack() as NavRoute {
-    return NavRoute.decoded({
-        "v" => 1, "id" => "oab", "rel" => false,
-        "pts" => [0, 0, 0, 450, 0, 450, 0, -450, 0, -450]
-    });
+    return NavRoute.decoded(v2("oab", false, [0, 0, 0, 450, 0, 450, 0, -450, 0, -450], null, null, null));
+}
+
+//! Den Speicher der Uhr für einen Test leeren.
+function wipe() as Void {
+    PhoneRoute.drop();
+    PhoneRoute.clear("a");
+    PhoneRoute.clear("b");
+    var keys = ["risk", "bad", "crashId", "crashN", "loading"] as Array<String>;
+    for (var i = 0; i < keys.size(); i++) { Application.Storage.deleteValue(keys[i]); }
 }
 }
 
@@ -149,7 +217,7 @@ function blockSearchFindsNearest(logger as Logger) as Boolean {
     var pts = [0, 0] as Array<Number>;
     for (var i = 0; i < 200; i++) { pts.add(0); pts.add(9); }   // 200 × 10 m nach Osten
     for (var i = 0; i < 200; i++) { pts.add(9); pts.add(0); }   // 200 × 10 m nach Norden
-    var r = NavRoute.decoded({ "v" => 1, "id" => "long", "rel" => false, "pts" => pts });
+    var r = NavRoute.decoded(TestRoutes.v2("long", false, pts, null, null, null));
     Test.assertEqual(r.blockCount(), 13);
     var t = new NavTracker(r);
     // 100 m neben dem zweiten Schenkel, Stand davor: Fußpunkt bei
@@ -168,7 +236,7 @@ function blockSearchFindsNearest(logger as Logger) as Boolean {
 
 (:test)
 function relativeRouteAnchors(logger as Logger) as Boolean {
-    var r = NavRoute.decoded({ "v" => 1, "id" => "rel", "rel" => true, "pts" => [0, 0, 0, 900] });
+    var r = NavRoute.decoded(TestRoutes.v2("rel", true, [0, 0, 0, 900], null, null, null));
     Test.assert(r.relative);
     r.anchor(10.0d, 20.0d);
     Test.assert(!r.relative);
@@ -233,27 +301,68 @@ function ringAngles(logger as Logger) as Boolean {
     return true;
 }
 
-//! Zwei Stücke vom Handy (`WatchRoute.parts`) setzen sich zur selben
-//! Route zusammen wie `straightRoute` in einem Stück.
+//! Packen hin und zurück, auch an den Rändern von 16 Bit.
 (:test)
-function phoneRouteJoinsParts(logger as Logger) as Boolean {
-    var acc = {} as Dictionary;
-    PhoneRoute.append(acc, {"t" => "r", "id" => "t", "p" => 0, "n" => 2, "v" => 1,
-        "sec" => [[1, 2, 2, "Testtrail"]], "pts" => [0, 0, 0, 300], "ele" => [500, 520],
-        "br" => [1, 30, 0]});
-    PhoneRoute.append(acc, {"t" => "r", "id" => "t", "p" => 1, "n" => 2,
-        "pts" => [0, 300, 0, 300], "ele" => [505, 540], "br" => [2, 0, -30, 3, 30, 0]});
-    var r = NavRoute.decoded(acc);
-    Test.assertEqual(r.size(), 4);
-    Test.assert(r.lengthM > 1000.0 && r.lengthM < 1001.5);
-    Test.assertEqual(r.secName[0], "Testtrail");
-    Test.assert(!r.relative);
-    Test.assertEqual((acc["ele"] as Array).size(), 4);
-    // Die Stummel aller Stücke hängen aneinander, die Nummern sind die der
-    // ganzen Linie.
+function packRoundTrip(logger as Logger) as Boolean {
+    var cases = [[0, 0], [1, -1], [-1, 1], [32767, -32768], [-32768, 32767], [-300, 450]] as Array<Array<Number>>;
+    for (var i = 0; i < cases.size(); i++) {
+        var v = PhoneRoute.pack(cases[i][0], cases[i][1]);
+        Test.assertEqual(PhoneRoute.unpackHi(v), cases[i][0]);
+        Test.assertEqual(PhoneRoute.unpackLo(v), cases[i][1]);
+    }
+    // Dieselbe Zahl wie `watchPack(1, 300)` in Dart und `pack` im Werkzeug.
+    Test.assertEqual(PhoneRoute.pack(1, 300), 65836);
+    Test.assertEqual(PhoneRoute.pack(-1, 300), -65236);
+    return true;
+}
+
+//! Drei Stücke vom Handy dekodieren zur selben Route wie eines — die
+//! Stummel aller Stücke hängen aneinander, die Nummern sind die der ganzen
+//! Linie, die Höhen laufen über die Grenzen weiter.
+(:test)
+function decodeFromParts(logger as Logger) as Boolean {
+    var d = TestRoutes.v2("j", false, [0, 0, 0, 300, 0, 300, 0, 300, 10, 0, 10, 0],
+        [500, 520, 505, 540, 530, 560], [[1, 2, 2, "Testtrail"]], [1, 30, 0, 2, 0, -30, 5, 30, 0]);
+    var one = NavRoute.decoded(d);
+    var msgs = TestRoutes.parts(d, 2);
+    Test.assertEqual(msgs.size(), 3);
+    var list = [] as Array<Array>;
+    for (var i = 0; i < msgs.size(); i++) { list.add(PhoneRoute.partOf(msgs[i]) as Array); }
+    var r = new NavRoute("j", false, PhoneRoute.headOf(msgs[0]) as Array, new RouteParts(null, list, 3));
+    while (!r.decodeStep(1)) {} // Punkt für Punkt, über jede Grenze
+    Test.assert(r.isReady());
+    Test.assertEqual(r.size(), 6);
+    Test.assert(r.lengthM == one.lengthM);
+    Test.assert(r.xs[5] == one.xs[5] && r.ys[5] == one.ys[5]);
+    Test.assert(r.climbLeft(0.0) == one.climbLeft(0.0));
     Test.assertEqual(r.brAt.size(), 3);
-    Test.assertEqual(r.brAt[1], 2);
-    Test.assert(r.brY[0] > 33.0 && r.brY[0] < 34.0);
+    Test.assertEqual(r.brAt[2], 5);
+    Test.assert(r.brX[1] == one.brX[1]);
+    Test.assertEqual(r.secName[0], "Testtrail");
+    return true;
+}
+
+//! Was nicht passt, macht die Route unbrauchbar statt die App kaputt: zu
+//! wenige oder zu viele Punkte für `np`, ein fehlendes Stück, Höhen zu kurz.
+(:test)
+function decodeFailsOnMismatch(logger as Logger) as Boolean {
+    var d = TestRoutes.straight();
+    d["np"] = 5;
+    Test.assert(NavRoute.decoded(d).failed);
+    d = TestRoutes.straight();
+    d["np"] = 3;
+    Test.assert(NavRoute.decoded(d).failed);
+    var head = PhoneRoute.headOf(TestRoutes.straight()) as Array;
+    var part = PhoneRoute.partOf(TestRoutes.straight()) as Array;
+    var gap = new NavRoute("g", false, head, new RouteParts(null, [part, part], 2));
+    while (!gap.decodeStep(100)) {}
+    Test.assert(gap.failed && !gap.isReady());
+    var shortEle = new NavRoute("e", false, head,
+        new RouteParts(null, [[part[0], [part[1][0]], part[2]]], 1));
+    while (!shortEle.decodeStep(100)) {}
+    Test.assert(shortEle.failed);
+    // Ein Wörterbuch in falscher Form gibt eine unbrauchbare Route, keinen Absturz.
+    Test.assert(NavRoute.fromDict({"id" => "x"}).failed);
     return true;
 }
 
@@ -263,26 +372,129 @@ function phoneRouteJoinsParts(logger as Logger) as Boolean {
 //! `equals` auf dem Wert.)
 (:test)
 function phoneRouteStoresOnlyWhenComplete(logger as Logger) as Boolean {
-    PhoneRoute.drop();
-    Application.Storage.deleteValue("a" + "id");
-    Application.Storage.deleteValue("b" + "id");
-    var p0 = {"t" => "r", "id" => "x1", "p" => 0, "n" => 2, "v" => 1, "pts" => [0, 0, 0, 300]};
-    var p1 = {"t" => "r", "id" => "x1", "p" => 1, "n" => 2, "pts" => [0, 300]};
-    Test.assert(PhoneRoute.take({"t" => "r", "id" => "x1", "p" => 0, "n" => 2, "v" => 9, "pts" => [0, 0]}) == null);
-    Test.assert(PhoneRoute.take({"t" => "r", "id" => "x1", "p" => 2, "n" => 2, "pts" => [0, 0]}) == null);
-    Test.assert(PhoneRoute.take(p0) == null);
-    Test.assert(PhoneRoute.load() == null);
+    TestRoutes.wipe();
+    var msgs = TestRoutes.parts(TestRoutes.v2("x1", false, [0, 0, 0, 300, 0, 300], null, null, null), 2);
+    Test.assertEqual(msgs.size(), 2);
+    var old = {"t" => "r", "id" => "x1", "p" => 0, "n" => 2, "v" => 1, "np" => 3, "o" => [0, 0], "pts" => [0, 0]};
+    Test.assert(PhoneRoute.take(old) == null);
+    Test.assertEqual(PhoneRoute.lastError, "bad");
+    Test.assert(PhoneRoute.take({"t" => "r", "id" => "x1", "p" => 2, "n" => 2, "pts" => [0]}) == null);
+    Test.assert(PhoneRoute.take(msgs[0]) == null);
+    Test.assert(PhoneRoute.lastError == null);
+    Test.assert(PhoneRoute.route() == null);
     Test.assert(PhoneRoute.currentId() == null); // „hallo" ohne Kennung
-    Test.assertEqual(PhoneRoute.take(p1), "x1");
+    Test.assertEqual(PhoneRoute.take(msgs[1]), "x1");
     Test.assertEqual(PhoneRoute.currentId(), "x1");
-    var d = PhoneRoute.load() as Dictionary;
-    Test.assertEqual((d["pts"] as Array).size(), 6);
-    Test.assertEqual(d["id"], "x1");
+    var r = PhoneRoute.route() as NavRoute;
+    while (!r.decodeStep(300)) {}
+    Test.assert(r.isReady());
+    Test.assertEqual(r.size(), 3);
+    Test.assertEqual(r.id, "x1");
     // Eine zweite Route kommt nur halb: Die erste bleibt die gespeicherte.
-    PhoneRoute.take({"t" => "r", "id" => "x2", "p" => 0, "n" => 3, "v" => 1, "pts" => [0, 0]});
-    Test.assertEqual((PhoneRoute.load() as Dictionary)["id"], "x1");
+    var next = TestRoutes.parts(TestRoutes.v2("x2", false, [0, 0, 0, 300, 0, 300, 0, 300, 0, 300], null, null, null), 2);
+    PhoneRoute.take(next[0]);
     Test.assertEqual(PhoneRoute.currentId(), "x1");
-    PhoneRoute.drop();
-    Test.assert(PhoneRoute.load() == null);
+    Test.assertEqual((PhoneRoute.route() as NavRoute).id, "x1");
+    TestRoutes.wipe();
+    Test.assert(PhoneRoute.route() == null);
+    return true;
+}
+
+//! Der Empfang nimmt nur Stücke in der richtigen Form, und Trails, die über
+//! die Linie hinausreichen, fallen weg (ein `von` hinter dem Ende hieße in
+//! jedem Bild ein Index außerhalb).
+(:test)
+function takeRejectsMalformed(logger as Logger) as Boolean {
+    TestRoutes.wipe();
+    var good = TestRoutes.parts(TestRoutes.straight(), 4)[0];
+    var bad = [
+        {"pts" => "x"},
+        {"pts" => [0, "a"]},
+        {"pts" => []},
+        {"ele" => [1]},          // zu kurz für vier Punkte
+        {"br" => [1]},           // ungerade
+        {"np" => 1},
+        {"o" => [0]},
+        {"e0" => "x"}
+    ] as Array<Dictionary>;
+    for (var i = 0; i < bad.size(); i++) {
+        var m = {} as Dictionary;
+        var keys = good.keys();
+        for (var k = 0; k < keys.size(); k++) { m[keys[k]] = good[keys[k]]; }
+        var change = bad[i].keys();
+        m[change[0]] = bad[i][change[0]];
+        Test.assert(PhoneRoute.take(m) == null);
+        Test.assertEqual(PhoneRoute.lastError, "bad");
+    }
+    Test.assert(PhoneRoute.currentId() == null);
+    var head = PhoneRoute.headOf({"v" => PhoneRoute.PROTOCOL, "np" => 4, "o" => [0, 0],
+        "sec" => [[1, 2, 2, "ok"], [2, 9, 1, "zu lang"], [3, 2, 0, "rückwärts"], [0, 1, 1], "kein Array"]}) as Array;
+    Test.assertEqual((head[5] as Array).size(), 1);
+    Test.assertEqual(PhoneRoute.take(good), "t");
+    TestRoutes.wipe();
+    return true;
+}
+
+//! Zweimal nicht sauber beendet, während dieselbe Route neu war: Sie ist
+//! weg, als `bad` gemerkt, und kommt nicht wieder herein. Ein sauberes Ende
+//! dazwischen zählt nicht.
+(:test)
+function crashGuardDropsAfterTwo(logger as Logger) as Boolean {
+    TestRoutes.wipe();
+    var msgs = TestRoutes.parts(TestRoutes.straight(), 4);
+    Test.assertEqual(PhoneRoute.take(msgs[0]), "t");
+    // Erster Absturz: gezählt, die Route bleibt.
+    CrashGuard.risk("t");
+    CrashGuard.atStart();
+    Test.assertEqual(PhoneRoute.currentId(), "t");
+    Test.assert(CrashGuard.bad() == null);
+    // Ein sauberer Lauf dazwischen setzt den Zähler zurück …
+    CrashGuard.atStart();
+    CrashGuard.risk("t");
+    CrashGuard.atStart();
+    Test.assertEqual(PhoneRoute.currentId(), "t");
+    // … zwei Abstürze nacheinander verwerfen sie.
+    CrashGuard.risk("t");
+    CrashGuard.atStart();
+    Test.assert(PhoneRoute.currentId() == null);
+    Test.assertEqual(CrashGuard.bad(), "t");
+    Test.assert(PhoneRoute.take(msgs[0]) == null);
+    Test.assertEqual(PhoneRoute.lastError, "crash");
+    // Eine andere Route geht weiter.
+    var other = TestRoutes.parts(TestRoutes.v2("u", false, [0, 0, 0, 300], null, null, null), 4);
+    Test.assertEqual(PhoneRoute.take(other[0]), "u");
+    // Ohne „risk" beim Start zählt nichts.
+    CrashGuard.calm();
+    CrashGuard.atStart();
+    Test.assertEqual(PhoneRoute.currentId(), "u");
+    TestRoutes.wipe();
+    return true;
+}
+
+//! Die Testroute aus der Ressource (1000 Punkte, ein Stück mit 1560
+//! Zahlen) dekodiert — die Grenze je Stück vom Handy gilt für sie nicht.
+//! Ohne diesen Test hing die App am Gerät bei „Lade Route 0 %" (2026-11-05).
+(:test)
+function resourceRouteDecodes(logger as Logger) as Boolean {
+    var r = NavRoute.decoded(WatchUi.loadResource(Rez.JsonData.Route) as Dictionary);
+    Test.assert(!r.failed);
+    Test.assert(r.isReady());
+    Test.assert(r.size() >= 1000);
+    return true;
+}
+
+//! Eine Route aus Protokoll 1 im Speicher (Stücke ohne Kopf) wird beim
+//! Laden weggeräumt, statt Platz zu belegen.
+(:test)
+function oldStoredRouteIsCleared(logger as Logger) as Boolean {
+    TestRoutes.wipe();
+    Application.Storage.setValue("cur", "a");
+    Application.Storage.setValue("aid", "alt");
+    Application.Storage.setValue("an", 1);
+    Application.Storage.setValue("a0", {"t" => "r", "pts" => [0, 0, 0, 300]});
+    Test.assert(PhoneRoute.route() == null);
+    Test.assert(PhoneRoute.currentId() == null);
+    Test.assert(Application.Storage.getValue("a0") == null);
+    TestRoutes.wipe();
     return true;
 }

@@ -2,6 +2,26 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## The watch stays stable
+
+*Version 0.153.2, 2026-11-05*
+
+- The TrailBuddy app on the Garmin watch crashed shortly after starting
+  ("IQ!") while it was still waiting for GPS: the route overview was too
+  much computing for the watch. It now works out the overview once and
+  then only draws it.
+- The route goes to the watch in a more compact form — half as many
+  numbers as before. That saves transfer time and memory on the watch.
+  If the transfer breaks off halfway, the missing parts are sent again
+  on their own.
+- If the watch can't load a route (not enough memory, or the app crashed
+  with it twice), the phone sends it once more, simplified; if that
+  fails too, it tells you. Navigation on the phone carries on either way.
+- At the bottom of the watch, distance and climb now fit inside the
+  round edge.
+- Important: update the watch app and the phone app together — the new
+  watch app only understands routes from the new phone app.
+
 ## The bike's angle is right again
 
 *Version 0.153.1, 2026-11-05*

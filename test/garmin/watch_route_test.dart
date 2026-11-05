@@ -23,19 +23,47 @@ NavTrailSection _trail(double from, double to, {int? grade, bool uphill = false,
     NavTrailSection(startM: from, endM: to, trailId: name, name: name, grade: grade, uphill: uphill, beyondRoute: beyond);
 
 void main() {
-  test('dieselbe Kodierung wie tool/garmin_route.py (encode, gerechnet 2026-11-04)', () {
+  test('dieselbe Kodierung wie tool/garmin_route.py (Protokoll 2, gerechnet 2026-11-05)', () {
     // python3 -c "import garmin_route as g; print(g.encode([(0,0),(0.0003,0.0002),
     //   (0.0006,0),(0.0009,0.0002)], ele=[700.2,712.8,705.1,690.3], sections=[[1,3,2,'X']]))"
     final heights = ElevationProfile.of(_line, [700.2, 712.8, 705.1, 690.3])!;
     final route = watchRouteOf(_line, NavSections([_trail(36, 110, grade: 2)]), heights: heights)!;
+    expect(route.pts, [0, 0, 30, 20, 30, -20, 30, 20], reason: 'lesbar bleibt die Linie, wie sie war');
+    expect(route.ele, [700, 713, 705, 690]);
     final json = route.toJson();
-    expect(json['pts'], [0, 0, 30, 20, 30, -20, 30, 20]);
-    expect(json['ele'], [700, 713, 705, 690]);
+    expect(json['pts'], [0, 1966100, 2031596, 1966100]);
+    expect(json['np'], 4);
+    expect(json['o'], [0, 0]);
+    expect(json['e0'], 700);
+    expect(json['ele'], [13, -458767]);
     expect(json['sec'], [
       [1, 3, 2, 'X']
     ]);
     expect(json['v'], kWatchProtocol);
     expect(json['rel'], false);
+  });
+
+  test('Packen: 16 Bit mit Vorzeichen je Hälfte, immer eine 32-Bit-Zahl', () {
+    for (final (hi, lo) in [(0, 0), (1, -1), (-1, 1), (32767, -32768), (-32768, 32767), (-300, 450)]) {
+      final v = watchPack(hi, lo);
+      expect(watchUnpack(v), (hi, lo));
+      expect(v, inInclusiveRange(-0x80000000, 0x7fffffff), reason: 'sonst käme es in Kotlin als Long an');
+    }
+    expect(watchPack(1, 300), 65836, reason: 'wie PhoneRoute.pack auf der Uhr');
+    expect(watchPack(-1, 300), -65236);
+  });
+
+  test('ein Schritt über 16 Bit bekommt Zwischenpunkte auf der Geraden', () {
+    // 100 km gerade nach Osten am Äquator: 0.9° sind 90 000 Einheiten zu
+    // 1e-5°, in 16 Bit passen 32 767.
+    final far = [const LatLng(0, 0), const LatLng(0, 0.9)];
+    final route = watchRouteOf(far, NavSections([_trail(0, 100000, grade: 1)]))!;
+    expect(route.pointCount, 4, reason: '90 000 Einheiten in drei Schritten zu 30 000');
+    for (var i = 1; i < route.pointCount; i++) {
+      expect(route.pts[2 * i + 1].abs(), lessThanOrEqualTo(kWatchMaxDelta));
+    }
+    expect(route.pts.skip(2).fold<int>(0, (a, b) => a + b), 90000, reason: 'das Ende bleibt, wo es war');
+    expect(route.sec.single.take(2), [0, 3], reason: 'der Trail reicht über die neuen Punkte');
   });
 
   test('Kuppen auf gerader Linie: die Uhr zählt dieselben Höhenmeter wie das Handy (#449, 2026-11-05)', () {
@@ -70,13 +98,28 @@ void main() {
       expect(p['id'], route.id);
       expect(p['p'], i);
       expect(p['n'], parts.length);
-      expect((p['pts'] as List).length + (p['ele'] as List).length, lessThanOrEqualTo(300));
-      expect(p.containsKey('sec'), i == 0, reason: 'Kopf und Trails nur im ersten Stück');
-      pts.addAll((p['pts'] as List).cast());
-      ele.addAll((p['ele'] as List).cast());
+      final k = (p['pts'] as List).length;
+      expect((p['ele'] as List).length, (k + 1) ~/ 2, reason: 'zwei Höhen je Zahl, wie die Uhr prüft');
+      expect(k + (p['ele'] as List).length + (i == 0 ? 13 : 0), lessThanOrEqualTo(300),
+          reason: 'Kopf und Trail zählen im ersten Stück mit');
+      for (final key in ['v', 'np', 'o', 'e0', 'sec']) {
+        expect(p.containsKey(key), i == 0, reason: 'Kopf und Trails nur im ersten Stück');
+      }
+      // Ausgepackt wie auf der Uhr: Schritte gegen den Vorgänger, die
+      // Höhen je Stück paarweise ab dessen erstem Punkt.
+      for (var j = 0; j < k; j++) {
+        final (a, b) = watchUnpack((p['pts'] as List<int>)[j]);
+        pts.addAll(pts.isEmpty ? [...(parts.first['o'] as List<int>)] : [a, b]);
+        final (eHi, eLo) = watchUnpack((p['ele'] as List<int>)[j ~/ 2]);
+        final d = j.isEven ? eHi : eLo;
+        ele.add(ele.isEmpty ? parts.first['e0'] as int : ele.last + d);
+      }
     }
     expect(pts, route.pts);
     expect(ele, route.ele);
+    // Gepackt halb so viele Zahlen wie vorher (drei je Punkt mit Höhen).
+    final ints = parts.fold<int>(0, (n, p) => n + (p['pts'] as List).length + (p['ele'] as List).length);
+    expect(ints, lessThanOrEqualTo(route.pointCount * 3 ~/ 2 + parts.length));
   });
 
   test('mehr als 2000 Punkte: stärker vereinfacht, bis es passt', () {
@@ -164,9 +207,21 @@ void main() {
     final io = File('lib/features/garmin/garmin_bridge_io.dart').readAsStringSync();
     expect(io, contains("call.method == 'device' && call.arguments == 'CONNECTED'"));
     expect(watchQuery, {'t': 'q'});
-    expect(watchHelloOf({'t': 'hi', 'id': 'ab12', 'v': 1}), (hello: true, id: 'ab12'));
-    expect(watchHelloOf({'t': 'hi', 'v': 1}), (hello: true, id: null));
+    expect(watchHelloOf({'t': 'hi', 'id': 'ab12', 'v': 2}), (hello: true, id: 'ab12', bad: null));
+    expect(watchHelloOf({'t': 'hi', 'v': 2}), (hello: true, id: null, bad: null));
+    expect(watchHelloOf({'t': 'hi', 'v': 2, 'bad': 'cd34'}), (hello: true, id: null, bad: 'cd34'));
     expect(watchHelloOf({'t': 'ok', 'id': 'ab12'}).hello, isFalse);
+    expect(watchErrorOf({'t': 'x', 'id': 'ab12', 'c': 'mem'}), (id: 'ab12', code: kWatchErrMemory));
+    expect(watchErrorOf({'t': 'x', 'id': 'ab12'}), isNull);
+    expect(watchErrorWantsSmaller(kWatchErrCrash), isTrue);
+    expect(watchErrorWantsSmaller(kWatchErrBad), isFalse);
+    // Die Uhr schickt dieselben Zeichen.
+    expect(watch, contains('"t" => "$kWatchError"'));
+    expect(watch, contains('msg["bad"] = bad'));
+    final phoneRoute = File('garmin/source/PhoneRoute.mc').readAsStringSync();
+    for (final code in [kWatchErrMemory, kWatchErrStorage, kWatchErrCrash, kWatchErrBad]) {
+      expect(phoneRoute, contains('fail("$code")'));
+    }
     expect(WatchOpen.fromChannel('PROMPT_SHOWN_ON_DEVICE'), WatchOpen.prompted);
     expect(WatchOpen.fromChannel('APP_IS_ALREADY_RUNNING'), WatchOpen.running);
     expect(WatchOpen.fromChannel('APP_IS_NOT_INSTALLED'), WatchOpen.notInstalled);

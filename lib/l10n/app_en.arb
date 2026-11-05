@@ -619,6 +619,7 @@
   "mapWatchPrompted": "Open TrailBuddy on the watch — the route then arrives by itself.",
   "mapWatchUnconfirmed": "The watch did not answer. Open TrailBuddy on the watch — the route then arrives by itself.",
   "mapWatchMissing": "TrailBuddy is not installed on the watch.",
+  "mapWatchTooBig": "The watch couldn't load the route, not even simplified. Navigation here carries on.",
   "navStartHint": "The map shows the route and turns with you — no turn instructions, ride by sight.",
   "navStartButton": "Start navigation",
   "navRotateTooltip": "Turn with the direction of travel",

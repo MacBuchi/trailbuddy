@@ -16,6 +16,7 @@
 // der Navigation liegt kein Wegegraph im Speicher, und eine Fahrt aus
 // „Meine Fahrten" hatte nie einen.
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -58,6 +59,19 @@ const kWatchAckWait = Duration(seconds: 15);
 /// holte sonst erst das nächste Wiederverbinden nach. Kein Abfragen im
 /// Takt: drei Mal, dann wartet es still auf die Uhr.
 const kWatchNudges = [Duration(seconds: 5), Duration(seconds: 15), Duration(seconds: 45)];
+
+/// Bricht die Übertragung mittendrin ab (Garmin Connect, Bluetooth), gehen
+/// nach dieser Pause die übrigen Stücke noch einmal — die Uhr hat die
+/// angekommenen schon abgelegt. Höchstens [kWatchResumes] Mal.
+const kWatchResumePause = Duration(seconds: 2);
+const kWatchResumes = 2;
+
+/// Fehler, nach denen die übrigen Stücke noch einmal gehen.
+const _resumable = {'FAILURE_DURING_TRANSFER', 'FAILURE_TIMEOUT'};
+
+/// Der Fehler im Zustand, wenn die Uhr die Route auch mit halb so vielen
+/// Punkten nicht nehmen konnte (Speicher, Absturz).
+const kWatchTooBig = 'WATCH_TOO_BIG';
 
 /// Der Korridor um die Linie, dessen Kacheln der Graph der Abzweigungen
 /// liest — ein Stummel ist 40 m lang, der Rest ist Luft für den Rand.
@@ -145,8 +159,15 @@ class WatchSync extends Notifier<WatchSyncState> {
   /// solange gerechnet wird.
   WatchRoute? _route;
 
+  /// Woraus [_route] entstand — für eine kleinere, wenn die Uhr sie nicht
+  /// nehmen kann ([_shrink]).
+  ({List<LatLng> points, NavSections sections, ElevationProfile? heights, List<WatchBranch> branches})? _inputs;
+
+  /// Diese Linie ging schon einmal mit halb so vielen Punkten.
+  bool _shrunk = false;
+
   /// Ein `hi`, das kam, während noch gerechnet wurde.
-  ({bool hello, String? id})? _early;
+  ({bool hello, String? id, String? bad})? _early;
 
   /// Zählt jede neue Route; eine Rechnung für eine alte fällt weg.
   int _gen = 0;
@@ -245,6 +266,7 @@ class WatchSync extends Notifier<WatchSyncState> {
     _gen++;
     _line = null;
     _route = null;
+    _inputs = null;
     _early = null;
     _prepared = null;
     _again = false;
@@ -263,6 +285,8 @@ class WatchSync extends Notifier<WatchSyncState> {
     final gen = ++_gen;
     _line = points;
     _route = null;
+    _inputs = null;
+    _shrunk = false;
     _early = null;
     _ackTimer?.cancel();
     _nudgeTimer?.cancel();
@@ -289,13 +313,14 @@ class WatchSync extends Notifier<WatchSyncState> {
       return;
     }
     _route = route;
+    _inputs = (points: points, sections: sections, heights: heights, branches: branches);
     if (open == WatchOpen.notInstalled) {
       state = WatchSyncState(phase: WatchSyncPhase.failed, routeId: route.id, error: 'APP_IS_NOT_INSTALLED');
       return;
     }
     final early = _early;
     _early = null;
-    if (early != null) return _onHello(early.id);
+    if (early != null) return _onHello(early.id, early.bad);
     if (open == WatchOpen.prompted) {
       state = WatchSyncState(phase: WatchSyncPhase.prompted, routeId: route.id);
       _nudge(0);
@@ -332,7 +357,19 @@ class WatchSync extends Notifier<WatchSyncState> {
     final parts = route.parts();
     _nudgeTimer?.cancel();
     state = WatchSyncState(phase: WatchSyncPhase.sending, routeId: route.id, parts: parts.length);
-    final result = await ref.read(garminBridgeProvider).send(parts);
+    final bridge = ref.read(garminBridgeProvider);
+    var result = await bridge.send(parts);
+    // Mittendrin abgebrochen: die übrigen Stücke noch einmal, die Uhr hat
+    // die angekommenen schon abgelegt.
+    var done = 0;
+    for (var k = 0; k < kWatchResumes && !result.ok && _resumable.contains(result.status); k++) {
+      done += result.sent;
+      if (done >= parts.length) break;
+      await Future<void>.delayed(kWatchResumePause);
+      if (gen != _gen || _route?.id != route.id) return;
+      final rest = await bridge.send(parts.sublist(done));
+      result = WatchSendResult(rest.status, rest.ok ? parts.length - done : rest.sent);
+    }
     if (gen != _gen) return;
     // „Gespeichert" kann vor dem Ende von `send` kommen.
     if (state.phase == WatchSyncPhase.stored && state.routeId == route.id) return;
@@ -366,7 +403,12 @@ class WatchSync extends Notifier<WatchSyncState> {
 
   void _onAnswer(Object? message) {
     final hello = watchHelloOf(message);
-    if (hello.hello) return _onHello(hello.id);
+    if (hello.hello) return _onHello(hello.id, hello.bad);
+    final error = watchErrorOf(message);
+    if (error != null) {
+      if (!_follow || error.id != _route?.id) return;
+      return watchErrorWantsSmaller(error.code) ? _shrink() : _failed('WATCH_${error.code}');
+    }
     final id = watchStoredId(message);
     // Nur die Bestätigung der Route, die gerade auf die Uhr gehört.
     if (id == null || !_follow || id != _route?.id) return;
@@ -375,15 +417,39 @@ class WatchSync extends Notifier<WatchSyncState> {
 
   /// Die Uhr-App meldet sich: Hat sie die Route schon, gilt sie als
   /// gespeichert; sonst geht die aktuelle.
-  void _onHello(String? id) {
+  void _onHello(String? id, [String? bad]) {
     if (!_follow) return;
     final route = _route;
     if (route == null) {
-      _early = (hello: true, id: id);
+      _early = (hello: true, id: id, bad: bad);
       return;
     }
     if (id == route.id) return _stored(id!);
+    // Die Uhr-App stürzte mit dieser Route zweimal ab und hat sie
+    // verworfen: Noch einmal dieselbe hieße noch ein Absturz.
+    if (bad == route.id) return _shrink();
     unawaited(_push());
+  }
+
+  /// Die Uhr kann die Route nicht nehmen (Speicher, Absturz): einmal mit
+  /// halb so vielen Punkten neu rechnen und schicken, sonst aufgeben. Eine
+  /// stärker vereinfachte Linie hat eine andere Kennung.
+  void _shrink() {
+    final route = _route, inputs = _inputs;
+    if (route == null) return;
+    if (_shrunk || inputs == null) return _failed(kWatchTooBig);
+    _shrunk = true;
+    final smaller = watchRouteOf(inputs.points, inputs.sections,
+        heights: inputs.heights, branches: inputs.branches, maxPoints: math.max(2, route.pointCount ~/ 2));
+    if (smaller == null || smaller.id == route.id) return _failed(kWatchTooBig);
+    _route = smaller;
+    unawaited(_push());
+  }
+
+  void _failed(String error) {
+    _ackTimer?.cancel();
+    _nudgeTimer?.cancel();
+    state = WatchSyncState(phase: WatchSyncPhase.failed, routeId: _route?.id, parts: state.parts, error: error);
   }
 
   /// Die Uhr ist wieder da: Läuft ihre App, sagt ihr `hi`, ob die Route

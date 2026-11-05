@@ -2,9 +2,15 @@
 """Routen für die Uhr-App (`garmin/`, docs/konzept-garmin.md).
 
 Schreibt eine Route in der Form, die `garmin/source/NavRoute.mc` liest —
-dieselbe, die ab G2 als Nachricht vom Handy kommt:
-`{"v": 1, "id", "rel", "pts": [lat0, lon0, dLat, dLon, …] in 1e-5°,
-"ele": [m, …], "sec": [[von, bis, sGrad, Name], …]}`.
+dieselbe wie ein einziges Stück vom Handy (Protokoll 2, #449,
+`lib/features/garmin/watch_route.dart`): `{"v": 2, "id", "rel", "np",
+"o": [lat0, lon0], "e0", "sec": [[von, bis, sGrad, Name], …], "pts",
+"ele", "br"}` — `pts` je Punkt `(dLat << 16) | dLon` in 1e-5° gegen den
+Vorgänger (der erste gegen `o`), `ele` die Differenzen in Metern zu zweit
+in einer Zahl (die erste gegen `e0`), `br` je Stummel `[Punkt,
+gepackt(dLat, dLon)]`. Schritte über 16 Bit teilt `encode` mit
+Zwischenpunkten (nur ohne Abschnitte und Stummel, deren Nummern sonst
+verrutschten).
 
 - `--points N`: die ERFUNDENE Testroute von G1 (A7) — eine Runde von gut
   5 km mit vier Test-Trails, N Punkte. `rel: true`: Die Uhr verankert sie
@@ -33,38 +39,83 @@ SIMPLIFY_M = 5.0
 
 
 BRANCH_M = 40.0  # so lang ist ein Stummel an einer Kreuzung
+PROTOCOL = 2
+MAX_DELTA = 32767  # ein Schritt in 16 Bit, wie kWatchMaxDelta
+
+
+def pack(hi, lo):
+    """Zwei Werte mit 16 Bit Vorzeichen in einer 32-Bit-Zahl mit Vorzeichen
+    (wie `watchPack` in Dart, `PhoneRoute.unpackHi/Lo` auf der Uhr)."""
+    v = ((hi & 0xFFFF) << 16) | (lo & 0xFFFF)
+    return v - (1 << 32) if v >= 1 << 31 else v
+
+
+def unpack(v):
+    hi, lo = (v >> 16) & 0xFFFF, v & 0xFFFF
+    return (hi - 0x10000 if hi >= 0x8000 else hi, lo - 0x10000 if lo >= 0x8000 else lo)
+
+
+def _split_long(e5, ele):
+    """Zwischenpunkte, bis jeder Schritt in 16 Bit passt."""
+    out, out_ele = [e5[0]], [ele[0]] if ele is not None else None
+    for i in range(1, len(e5)):
+        (a, b), (c, d) = out[-1], e5[i]
+        steps = max(1, -(-max(abs(c - a), abs(d - b)) // MAX_DELTA))
+        for k in range(1, steps + 1):
+            t = k / steps
+            out.append((round(a + (c - a) * t), round(b + (d - b) * t)) if k < steps else (c, d))
+            if out_ele is not None:
+                h0 = ele[i - 1]
+                out_ele.append(h0 + (ele[i] - h0) * t)
+    return out, out_ele
 
 
 def encode(latlon, ele=None, sections=(), rel=False, route_id="test", branches=()):
-    """[(lat, lon)] in Grad → das Dictionary der Uhr. [branches]:
+    """[(lat, lon)] in Grad → das Dictionary der Uhr (ein Stück). [branches]:
     [(Punkt, (lat, lon) des Stummel-Endes)]."""
     e5 = [(round(lat * 1e5), round(lon * 1e5)) for lat, lon in latlon]
-    pts = [e5[0][0], e5[0][1]]
-    for (a, b), (c, d) in zip(e5, e5[1:]):
-        pts += [c - a, d - b]
-    out = {"v": 1, "id": route_id, "rel": rel, "pts": pts}
+    if any(max(abs(c - a), abs(d - b)) > MAX_DELTA for (a, b), (c, d) in zip(e5, e5[1:])):
+        if sections or branches:
+            raise ValueError("Schritt über 16 Bit: mit Abschnitten oder Stummeln nicht teilbar")
+        e5, ele = _split_long(e5, ele)
+    pts = [0] + [pack(c - a, d - b) for (a, b), (c, d) in zip(e5, e5[1:])]
+    out = {"v": PROTOCOL, "id": route_id, "rel": rel, "np": len(e5), "o": list(e5[0]), "pts": pts}
     if ele is not None:
-        out["ele"] = [round(h) for h in ele]
+        m = [round(h) for h in ele]
+        out["e0"] = m[0]
+        deltas = [0] + [b - a for a, b in zip(m, m[1:])]
+        if len(deltas) % 2:
+            deltas.append(0)
+        out["ele"] = [pack(deltas[i], deltas[i + 1]) for i in range(0, len(deltas), 2)]
     if sections:
         out["sec"] = [list(s) for s in sections]
     if branches:
         br = []
         for i, (lat, lon) in branches:
-            br += [i, round(lat * 1e5) - e5[i][0], round(lon * 1e5) - e5[i][1]]
+            br += [i, pack(round(lat * 1e5) - e5[i][0], round(lon * 1e5) - e5[i][1])]
         out["br"] = br
     return out
 
 
 def decode(d):
-    """Gegenstück zu encode, für den Self-Test (wie NavRoute.initialize)."""
-    pts = d["pts"]
-    lat, lon = pts[0], pts[1]
-    out = [(lat / 1e5, lon / 1e5)]
-    for i in range(2, len(pts), 2):
-        lat += pts[i]
-        lon += pts[i + 1]
+    """Gegenstück zu encode, für den Self-Test (wie NavRoute.decodeStep)."""
+    lat, lon = d["o"]
+    out = []
+    for v in d["pts"]:
+        a, b = unpack(v)
+        lat += a
+        lon += b
         out.append((lat / 1e5, lon / 1e5))
     return out
+
+
+def decode_ele(d):
+    h, out = d["e0"], []
+    for v in d["ele"]:
+        for x in unpack(v):
+            h += x
+            out.append(h)
+    return out[:d["np"]]
 
 
 def _local(latlon):
@@ -194,25 +245,32 @@ def check_colors(root=REPO_ROOT):
 def self_test():
     route = [(0.0, 0.0), (0.0, 0.003), (0.00001, 0.006), (0.0, 0.009)]
     d = encode(route, [500, 510, 505, 540], [[1, 2, 2, "T"]])
-    assert d["pts"] == [0, 0, 0, 300, 1, 300, -1, 300], d["pts"]
+    assert d["pts"] == [0, 300, 65836, -65236], d["pts"]
+    assert d["np"] == 4 and d["o"] == [0, 0] and d["e0"] == 500
     assert decode(d) == route
+    assert decode_ele(d) == [500, 510, 505, 540]
+    assert unpack(pack(-32768, 32767)) == (-32768, 32767) and unpack(pack(-1, -1)) == (-1, -1)
+    # Ein Schritt über 16 Bit (1 km nach Osten) bekommt Zwischenpunkte.
+    far = encode([(0.0, 0.0), (0.0, 0.9)], [500, 600])
+    assert far["np"] == 4 and abs(decode(far)[-1][1] - 0.9) < 1e-9, far
+    assert decode_ele(far)[-1] == 600
     # Ein Knick von gut 1 m fällt bei 5 m weg, einer von 50 m bleibt.
     assert simplify(route) == [0, 3], simplify(route)
     bent = [(0.0, 0.0), (0.00045, 0.0045), (0.0, 0.009)]
     assert simplify(bent) == [0, 1, 2]
     s = synthetic(1000)
-    assert s["rel"] is True and len(s["pts"]) == 2000 and len(s["ele"]) == 1000
-    assert s["pts"][:2] == [0, 0]
+    assert s["rel"] is True and len(s["pts"]) == 1000 and len(s["ele"]) == 500 and s["np"] == 1000
+    assert s["o"] == [0, 0] and s["pts"][0] == 0
     end = decode(s)[-1]
     assert abs(end[0]) < 2e-5 and abs(end[1]) < 2e-5, end  # Runde
     assert [x[2] for x in s["sec"]] == [1, 2, 0, 3]
     # Abzweigungen: Dreiergruppen, Stummel ~40 m lang.
     br = s["br"]
-    assert len(br) % 3 == 0 and 20 < len(br) // 3 < 60, len(br)
-    stub = math.hypot(br[1], br[2]) / 1e5 * K_LAT
+    assert len(br) % 2 == 0 and 20 < len(br) // 2 < 60, len(br)
+    stub = math.hypot(*unpack(br[1])) / 1e5 * K_LAT
     assert 38 < stub < 42, stub
     d2 = encode(route, branches=[(1, (0.0003, 0.003))])
-    assert d2["br"] == [1, 30, 0], d2["br"]
+    assert d2["br"] == [1, pack(30, 0)], d2["br"]
     xy = _local(decode(s))
     length = sum(math.dist(a, b) for a, b in zip(xy, xy[1:]))
     assert 5000 < length < 7000, length
@@ -238,7 +296,7 @@ def main():
     if args.out:
         with open(args.out, "w", encoding="utf-8") as f:
             f.write(text + "\n")
-        print(f"{args.out}: {len(d['pts']) // 2} Punkte, {len(text)} Bytes", file=sys.stderr)
+        print(f"{args.out}: {d['np']} Punkte, {len(text)} Bytes", file=sys.stderr)
     else:
         print(text)
 

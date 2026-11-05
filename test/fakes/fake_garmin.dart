@@ -78,7 +78,7 @@ class FakeGarminBridge implements GarminBridge {
   void reconnect() => _connected.add(null);
 
   /// Die Uhr-App startet und meldet sich mit der Route, die sie hat.
-  void hello(String? id) => answer({'t': 'hi', 'id': ?id, 'v': 1});
+  void hello(String? id) => answer({'t': 'hi', 'id': ?id, 'v': 2});
 
   /// Alle gesendeten Stücke der Route (ohne Bestwerte).
   List<Map<String, Object>> get routeParts =>

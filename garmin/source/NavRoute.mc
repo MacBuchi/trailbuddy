@@ -1,25 +1,25 @@
 import Toybox.Lang;
 import Toybox.Math;
 
-//! Die Route auf der Uhr (Konzept-Garmin 2). Kommt als Dictionary — in
-//! G1 aus der Ressource `route.json`, ab G2 als Nachricht vom Handy, in
-//! derselben Form:
-//!
-//!   v    Protokollversion (1)
-//!   id   Kennung der Route
-//!   rel  true: Testroute, am ersten GPS-Fix verankert (G1)
-//!   pts  [lat0, lon0, dLat1, dLon1, …] — Ganzzahlen in 1e-5°, der
-//!        erste Punkt absolut, jeder weitere gegen den Vorgänger
-//!   ele  [m, …] je Punkt, oder fehlt
-//!   sec  [[vonPunkt, bisPunkt, sGrad, Name], …] — die Trails der Route;
-//!        sGrad 0…3, -1 ohne Grad
-//!   br   [Punkt, dLat, dLon, …] — die Abzweigungen: je Kreuzung ein
-//!        Stummel des abgehenden Wegs, sein Ende gegen den Punkt der
-//!        Route (1e-5°), oder fehlt
+//! Die Route auf der Uhr (Konzept-Garmin 2). Kommt in Stücken
+//! ([RouteParts]) mit einem Kopf (`PhoneRoute.headOf`): vom Handy aus dem
+//! Speicher der Uhr, die Testroute (G1) als ein Stück aus `route.json` —
+//! dieselbe Form, Protokoll 2 (`PhoneRoute`): je Punkt eine gepackte Zahl
+//! `(dLat << 16) | dLon` in 1e-5° gegen den Vorgänger, Höhendifferenzen
+//! zu zweit in einer Zahl, je Stummel `[Punkt, gepackt(dLat, dLon)]`.
 //!
 //! Gespeichert wird in Metern um den ersten Punkt (x Ost, y Nord): Für
 //! die Abstände, um die es geht, reicht die flache Näherung, und Float
 //! spart gegenüber Double die Hälfte.
+//!
+//! **Speicher** (#449, 2026-11-05): Die Felder `xs/ys/cum/climb` stehen
+//! von Anfang an in voller Länge (`np` aus dem Kopf), und [decodeStep]
+//! holt die Stücke einzeln — die rohe Route liegt nie ganz im
+//! Arbeitsspeicher, nur ein Stück. Vorher lagen rohe Daten und Felder
+//! kurz zusammen; ab 3000 Punkten hieß das „Out of Memory" beim Laden.
+//! Passt ein Stück nicht (fehlt, falsche Form, mehr oder weniger Punkte als
+//! `np`), steht [failed] — die App nimmt dann die Testroute, statt
+//! abzustürzen.
 //!
 //! Die fēnix 5 bricht jedes Ereignis nach 120 000 Bytecode-Schritten ab
 //! (Watchdog, `simulator.json`). Deshalb dekodiert [decodeStep] in
@@ -60,12 +60,19 @@ class NavRoute {
     var lengthM as Float = 0.0;
     var isLoop as Boolean = false;
 
-    // Stand des Dekodierens: Phase 0 Punkte, 1 Höhen, 2 Blöcke, 3 fertig.
-    hidden var _pts as Array<Number>?;
-    hidden var _ele as Array<Number>?;
-    hidden var _br as Array<Number>?;
+    //! Ein Stück passte nicht: Die Route ist unbrauchbar (nie [isReady]).
+    var failed as Boolean = false;
+
+    // Stand des Dekodierens: Phase 0 Punkte samt Höhen und Stummeln, 2
+    // Blöcke, 3 fertig.
+    hidden var _parts as RouteParts?;
+    hidden var _part as Array?;
+    hidden var _k as Number = 0;
+    hidden var _j as Number = 0;
+    hidden var _hasEle as Boolean = false;
+    hidden var _h as Number = 0;
     hidden var _phase as Number = 0;
-    hidden var _i as Number = 1;
+    hidden var _i as Number = 0;
     hidden var _dLat as Number = 0;
     hidden var _dLon as Number = 0;
     hidden var _gain as Float = 0.0;
@@ -73,121 +80,141 @@ class NavRoute {
     hidden var _extreme as Float = 0.0;
     hidden var _dir as Number = 0;
 
-    //! Legt die Route an; fertig ist sie erst, wenn [decodeStep] true
-    //! liefert (oder gleich mit [decoded] für kleine Routen und Tests).
-    function initialize(d as Dictionary) {
-        id = d["id"] as String;
-        relative = d["rel"] == true;
-        var pts = d["pts"] as Array<Number>;
-        _pts = pts;
-        var n = pts.size() / 2;
-        lat0 = pts[0].toDouble() / 100000.0d;
-        lon0 = pts[1].toDouble() / 100000.0d;
+    //! Legt die Route an: [head] wie `PhoneRoute.headOf` (`[np, lat0, lon0,
+    //! mitHöhen, e0, sec]`, geprüft), [parts] die Stücke. Fertig ist sie erst,
+    //! wenn [decodeStep] true liefert (oder gleich mit [decoded]).
+    function initialize(routeId as String, rel as Boolean, head as Array, parts as RouteParts) {
+        id = routeId;
+        relative = rel;
+        var n = head[0] as Number;
+        lat0 = (head[1] as Number).toDouble() / 100000.0d;
+        lon0 = (head[2] as Number).toDouble() / 100000.0d;
         kLon = (K_LAT * Math.cos(Math.toRadians(lat0))).toFloat();
         xs = new Array<Float>[n];
         ys = new Array<Float>[n];
         cum = new Array<Float>[n];
-        xs[0] = 0.0;
-        ys[0] = 0.0;
-        cum[0] = 0.0;
-        var ele = d["ele"] as Array<Number>?;
-        if (ele != null && ele.size() == n) {
-            _ele = ele;
+        _hasEle = head[3] == true;
+        _h = head[4] as Number;
+        if (_hasEle) {
             climb = new Array<Float>[n];
         }
-        _br = d["br"] as Array<Number>?;
-        var sec = d["sec"] as Array<Array>?;
-        if (sec != null) {
-            for (var i = 0; i < sec.size(); i++) {
-                var s = sec[i];
-                secFrom.add(s[0] as Number);
-                secTo.add(s[1] as Number);
-                secGrade.add(s[2] as Number);
-                secName.add(s[3] as String);
-            }
+        var sec = head[5] as Array<Array>;
+        for (var i = 0; i < sec.size(); i++) {
+            var s = sec[i];
+            secFrom.add(s[0] as Number);
+            secTo.add(s[1] as Number);
+            secGrade.add(s[2] as Number);
+            secName.add(s[3] as String);
         }
+        _parts = parts;
+    }
+
+    //! Aus einem Dictionary in der Form von `route.json` (ein Stück): die
+    //! Testroute und die Tests. Passt es nicht, eine Route, die gleich
+    //! [failed] ist.
+    static function fromDict(d as Dictionary) as NavRoute {
+        var head = PhoneRoute.headOf(d);
+        var part = PhoneRoute.partOf(d);
+        var id = d["id"] instanceof String ? d["id"] as String : "-";
+        if (head == null || part == null) {
+            var r = new NavRoute(id, false, [2, 0, 0, false, 0, []], new RouteParts(null, [], 0));
+            r.failed = true;
+            return r;
+        }
+        return new NavRoute(id, d["rel"] == true, head, new RouteParts(null, [part], 1));
     }
 
     //! Für Tests und kleine Routen: alles in einem Zug.
     static function decoded(d as Dictionary) as NavRoute {
-        var r = new NavRoute(d);
+        var r = fromDict(d);
         while (!r.decodeStep(100000)) {}
         return r;
     }
 
     function isReady() as Boolean {
-        return _phase >= 3;
+        return _phase >= 3 && !failed;
     }
 
     //! Wie weit das Dekodieren ist, 0…1.
     function progress() as Float {
         var n = xs.size().toFloat();
         if (_phase >= 3) { return 1.0; }
-        return (_phase * n + _i) / (3 * n);
+        return ((_phase == 0 ? 0 : n) + _i) / (2 * n);
     }
 
-    //! Dekodiert bis zu [budget] Punkte; true, wenn fertig.
+    //! Dekodiert bis zu [budget] Punkte; true, wenn fertig (oder [failed]).
     function decodeStep(budget as Number) as Boolean {
+        if (failed) { return true; }
         var n = xs.size();
-        var end = _i + budget;
         if (_phase == 0) {
-            var pts = _pts as Array<Number>;
-            var i = _i;
-            for (; i < n && i < end; i++) {
-                _dLat += pts[2 * i];
-                _dLon += pts[2 * i + 1];
-                var x = _dLon * kLon / 100000.0;
-                var y = _dLat * K_LAT / 100000.0;
-                xs[i] = x;
-                ys[i] = y;
-                var dx = x - xs[i - 1];
-                var dy = y - ys[i - 1];
-                cum[i] = cum[i - 1] + Math.sqrt(dx * dx + dy * dy).toFloat();
+            var done = 0;
+            while (done < budget && _i < n) {
+                var part = _part;
+                if (part == null) {
+                    part = (_parts as RouteParts).get(_k);
+                    if (!partFits(part)) { return fail(); }
+                    _part = part;
+                    _j = 0;
+                }
+                var p = part as Array;
+                var pts = p[0] as Array<Number>;
+                var ele = p[1] as Array<Number>;
+                var m = pts.size();
+                var j = _j;
+                var i = _i;
+                while (j < m && i < n && done < budget) {
+                    var v = pts[j];
+                    // Ausgepackt wie PhoneRoute.unpackHi/Lo, hier ohne Aufruf.
+                    var hi = (v >> 16) & 0xFFFF;
+                    var lo = v & 0xFFFF;
+                    _dLat += hi >= 0x8000 ? hi - 0x10000 : hi;
+                    _dLon += lo >= 0x8000 ? lo - 0x10000 : lo;
+                    var x = _dLon * kLon / 100000.0;
+                    var y = _dLat * K_LAT / 100000.0;
+                    xs[i] = x;
+                    ys[i] = y;
+                    if (i == 0) {
+                        cum[0] = 0.0;
+                    } else {
+                        var dx = x - xs[i - 1];
+                        var dy = y - ys[i - 1];
+                        cum[i] = cum[i - 1] + Math.sqrt(dx * dx + dy * dy).toFloat();
+                    }
+                    if (_hasEle) {
+                        var e = ele[j / 2];
+                        var d = j % 2 == 0 ? (e >> 16) & 0xFFFF : e & 0xFFFF;
+                        _h += d >= 0x8000 ? d - 0x10000 : d;
+                        climbAt(_h.toFloat(), i);
+                    }
+                    j++;
+                    i++;
+                    done++;
+                }
+                _j = j;
+                _i = i;
+                if (j < m) {
+                    // Mehr Punkte im Stück als `np`: Die Route passt nicht.
+                    if (i >= n) { return fail(); }
+                    return false;
+                }
+                // Das Stück ist durch: seine Stummel, dann das nächste.
+                branchesOf(p[2] as Array<Number>, i);
+                _part = null;
+                _k++;
             }
-            _i = i;
             if (_i < n) { return false; }
-            _pts = null;
+            if (_k != (_parts as RouteParts).size()) { return fail(); }
+            _parts = null;
             lengthM = cum[n - 1];
             var ex = xs[n - 1];
             var ey = ys[n - 1];
             isLoop = Math.sqrt(ex * ex + ey * ey) <= ARRIVE_M;
-            var br = _br;
-            if (br != null) {
-                for (var k = 0; k + 2 < br.size(); k += 3) {
-                    var at = br[k];
-                    if (at < 0 || at >= n) { continue; }
-                    brAt.add(at);
-                    brX.add(xs[at] + br[k + 2] * kLon / 100000.0);
-                    brY.add(ys[at] + br[k + 1] * K_LAT / 100000.0);
-                }
-                _br = null;
-            }
-            _phase = 1;
-            _i = 1;
-            var ele = _ele;
-            if (ele != null) {
-                _ref = ele[0].toFloat();
-                _extreme = _ref;
-                (climb as Array<Float>)[0] = 0.0;
-            }
-            return false;
-        }
-        if (_phase == 1) {
-            var ele = _ele;
-            if (ele != null) {
-                var i = _i;
-                for (; i < n && i < end; i++) {
-                    climbAt(ele, i);
-                }
-                _i = i;
-                if (_i < n) { return false; }
-            }
-            _ele = null;
             _phase = 2;
             _i = 0;
             return false;
         }
         if (_phase == 2) {
+            var end = _i + budget;
             var i = _i;
             for (; i < n - 1 && i < end; i += BLOCK) {
                 var last = i + BLOCK < n - 1 ? i + BLOCK : n - 1;
@@ -213,10 +240,47 @@ class NavRoute {
         return true;
     }
 
+    //! Hat [p] die Form `[pts, ele, br]`, mit Höhen für jeden Punkt, wenn
+    //! der Kopf welche ankündigt? Die Zahlen selbst prüfte `PhoneRoute`
+    //! beim Empfang (die Testroute schreibt das Werkzeug).
+    hidden function partFits(p as Array?) as Boolean {
+        if (p == null || p.size() != 3) { return false; }
+        var pts = p[0];
+        var ele = p[1];
+        if (!(pts instanceof Array) || pts.size() == 0 || !(ele instanceof Array) || !(p[2] instanceof Array)) {
+            return false;
+        }
+        return !_hasEle || ele.size() >= (pts.size() + 1) / 2;
+    }
+
+    //! Die Stummel eines Stücks: nur an schon dekodierten Punkten (`< n`).
+    hidden function branchesOf(br as Array<Number>, n as Number) as Void {
+        for (var k = 0; k + 1 < br.size(); k += 2) {
+            var at = br[k];
+            if (at < 0 || at >= n) { continue; }
+            var v = br[k + 1];
+            brAt.add(at);
+            brX.add(xs[at] + PhoneRoute.unpackLo(v) * kLon / 100000.0);
+            brY.add(ys[at] + PhoneRoute.unpackHi(v) * K_LAT / 100000.0);
+        }
+    }
+
+    hidden function fail() as Boolean {
+        failed = true;
+        _parts = null;
+        _part = null;
+        return true;
+    }
+
     //! Ein Schritt der Hysterese von `hysteresisClimb` (height_tiles.dart);
     //! der laufende Anstieg zählt schon mit, damit die Zahl nie springt.
-    hidden function climbAt(ele as Array<Number>, i as Number) as Void {
-        var h = ele[i].toFloat();
+    hidden function climbAt(h as Float, i as Number) as Void {
+        if (i == 0) {
+            _ref = h;
+            _extreme = h;
+            (climb as Array<Float>)[0] = 0.0;
+            return;
+        }
         var t = CLIMB_HYSTERESIS_M;
         if (_dir == 0) {
             if (h - _ref >= t) {

@@ -3420,6 +3420,10 @@
   "@mapWatchMissing": {
     "description": "Leiste auf der Karte: Garmin Connect meldet, dass die Uhr-App fehlt; die Navigation auf dem Handy läuft trotzdem."
   },
+  "mapWatchTooBig": "Die Uhr konnte die Route nicht laden, auch nicht vereinfacht. Die Navigation hier läuft weiter.",
+  "@mapWatchTooBig": {
+    "description": "Leiste auf der Karte: Die Garmin-Uhr konnte die Route nicht laden (zu wenig Speicher oder die Uhr-App stürzte ab), auch nicht mit halb so vielen Punkten; die Navigation auf dem Handy läuft trotzdem."
+  },
   "navStartHint": "Die Karte zeigt die Route und dreht mit — ohne Abbiegehinweise, fahre nach Sicht.",
   "@navStartHint": {
     "description": "Hinweis im Start-Blatt, was die Navigation tut und was nicht."

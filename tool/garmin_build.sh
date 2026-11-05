@@ -61,7 +61,7 @@ cp -R "$ROOT/garmin/." "$OUT/src/"
 # so sieht man auf der Uhr, ob die neue .prg wirklich drauf ist.
 stamp="$(git -C "$ROOT" rev-parse --short HEAD 2>/dev/null || echo dev)"
 if ! git -C "$ROOT" diff --quiet HEAD -- garmin 2>/dev/null; then stamp="$stamp+"; fi
-stamp="$stamp · $(date '+%d.%m. %H:%M')"
+stamp="$stamp $(date '+%d%m %H:%M')"
 cat > "$OUT/src/resources/strings/build.xml" <<STAMP
 <strings>
     <string id="BuildStamp">$stamp</string>

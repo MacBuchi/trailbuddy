@@ -14,7 +14,9 @@ import Toybox.WatchUi;
 //! eine gespeicherte die erfundene Testroute aus der Ressource (G1).
 //! Eigenes GPS, keine Garmin-Aktivität (kein ActivityRecording, Konzept
 //! 4), kein Netz — an das Handy nur „hallo" (`hi`, mit der Kennung der
-//! gespeicherten Route) und „gespeichert" (`ok`).
+//! gespeicherten Route), „gespeichert" (`ok`) und „ging nicht" (`x`).
+//! Eine Route, die die App abstürzen ließ, kommt nicht zweimal hinein
+//! ([CrashGuard]).
 class TrailBuddyApp extends Application.AppBase {
     hidden var _route as NavRoute;
     hidden var _tracker as NavTracker;
@@ -27,33 +29,54 @@ class TrailBuddyApp extends Application.AppBase {
     //! Wechsel (der läuft im nächsten Ereignis, nicht im Rückruf).
     hidden var _pendingId as String? = null;
     hidden var _swap as Timer.Timer?;
+    //! Läuft eine Minute nach dem Laden ohne Absturz: [CrashGuard.calm].
+    hidden var _calm as Timer.Timer?;
+    //! Die Testroute ließ sich nicht dekodieren (dann nicht immer wieder).
+    hidden var _testFailed as Boolean = false;
     //! So viele Punkte je Häppchen: bleibt weit unter dem Watchdog
     //! (120 000 Schritte je Ereignis, NavRoute).
     static const DECODE_BUDGET = 300;
 
     function initialize() {
         AppBase.initialize();
-        _route = new NavRoute(startRoute());
-        _tracker = new NavTracker(_route);
-        _stats = new RideStats(_route.secFrom.size());
-        _view = new NavView(_route, _stats);
+        var r = startRoute();
+        _route = r;
+        _tracker = new NavTracker(r);
+        _stats = new RideStats(r.secFrom.size());
+        _view = new NavView(r, _stats);
     }
 
-    //! Die gespeicherte Route vom Handy, sonst die Testroute. Brach das
-    //! Laden der gespeicherten beim letzten Mal ab (Speicher, Watchdog),
-    //! steht „loading" noch: Dann ist sie weg, sonst stürzte die App bei
-    //! jedem Start wieder ab.
-    hidden function startRoute() as Dictionary {
+    //! Die gespeicherte Route vom Handy, sonst die Testroute. Erst der
+    //! Schutz vor Abstürzen ([CrashGuard.atStart] verwirft eine Route, mit
+    //! der die App zweimal nicht sauber endete); brach das Laden der
+    //! gespeicherten beim letzten Mal ab (Speicher, Watchdog), steht
+    //! „loading" noch: Dann ist sie sofort weg.
+    hidden function startRoute() as NavRoute {
+        CrashGuard.atStart();
         if (Storage.getValue("loading") == true) {
             PhoneRoute.drop();
             Storage.deleteValue("loading");
         }
-        var d = PhoneRoute.load();
-        if (d != null) {
-            Storage.setValue("loading", true);
-            return d;
+        var r = PhoneRoute.route();
+        if (r != null) {
+            PhoneRoute.store("loading", true);
+            CrashGuard.risk(r.id);
+            return r;
         }
-        return WatchUi.loadResource(Rez.JsonData.Route) as Dictionary;
+        return testRoute();
+    }
+
+    hidden function testRoute() as NavRoute {
+        return NavRoute.fromDict(WatchUi.loadResource(Rez.JsonData.Route) as Dictionary);
+    }
+
+    //! Route, Verfolgung, Zahlen und Ansicht für [r]; die Bestwerte bleiben.
+    hidden function setRoute(r as NavRoute) as Void {
+        _route = r;
+        _tracker = new NavTracker(r);
+        _stats = new RideStats(r.secFrom.size());
+        _stats.bests = _bests;
+        _view = new NavView(r, _stats);
     }
 
     function onStart(state as Dictionary?) as Void {
@@ -76,6 +99,17 @@ class TrailBuddyApp extends Application.AppBase {
         var msg = {"t" => "hi", "v" => PhoneRoute.PROTOCOL} as Dictionary;
         var id = PhoneRoute.currentId();
         if (id != null) { msg["id"] = id; }
+        var bad = CrashGuard.bad();
+        if (bad != null) { msg["bad"] = bad; }
+        toPhone(msg);
+    }
+
+    //! An das Handy — nur, wenn eins verbunden ist: Sonst füllte jede
+    //! Nachricht die Warteschlange („transmit queue full"), und der
+    //! Simulator meldete bei jedem Start „There is no data connection".
+    //! Ein verlorenes „hallo" holt das Handy beim Verbinden mit `q` nach.
+    hidden function toPhone(msg as Dictionary) as Void {
+        if (!System.getDeviceSettings().phoneConnected) { return; }
         Communications.transmit(msg, null, new PhoneAck());
     }
 
@@ -86,6 +120,8 @@ class TrailBuddyApp extends Application.AppBase {
     }
 
     //! Ein Häppchen der Route; ist sie fertig, beginnt die Navigation.
+    //! Passte sie nicht ([NavRoute.failed]), ist sie weg — das Handy hört
+    //! davon, und die Testroute lädt.
     function loadStep() as Void {
         if (!_route.decodeStep(DECODE_BUDGET)) {
             WatchUi.requestUpdate();
@@ -94,7 +130,30 @@ class TrailBuddyApp extends Application.AppBase {
         (_loader as Timer.Timer).stop();
         _loader = null;
         Storage.deleteValue("loading");
+        if (_route.failed) {
+            var id = _route.id;
+            // Die Testroute selbst passte nicht: nicht noch einmal laden —
+            // das war eine Schleife alle 50 ms („Lade Route 0 %", fēnix 5,
+            // 2026-11-05). Die Ansicht sagt es.
+            if (!id.equals(PhoneRoute.currentId()) && _testFailed) {
+                WatchUi.requestUpdate();
+                return;
+            }
+            if (!id.equals(PhoneRoute.currentId())) { _testFailed = true; }
+            if (id.equals(PhoneRoute.currentId())) {
+                PhoneRoute.drop();
+                toPhone({"t" => "x", "id" => id, "c" => "bad"});
+            }
+            CrashGuard.calm();
+            setRoute(testRoute());
+            WatchUi.switchToView(_view, new NavDelegate(_view), WatchUi.SLIDE_IMMEDIATE);
+            startLoader();
+            return;
+        }
         WatchUi.requestUpdate();
+        var c = new Timer.Timer();
+        _calm = c;
+        c.start(method(:calmDown), CrashGuard.CALM_MS, false);
         if (self has :startDemo) {
             startDemo();
             return;
@@ -102,9 +161,18 @@ class TrailBuddyApp extends Application.AppBase {
         Position.enableLocationEvents(Position.LOCATION_CONTINUOUS, method(:onPosition));
     }
 
+    //! Eine Minute ohne Absturz: Die Route gilt als sicher — außer, gerade
+    //! kommt eine neue an.
+    function calmDown() as Void {
+        _calm = null;
+        if (_pendingId == null) { CrashGuard.calm(); }
+    }
+
     function onStop(state as Dictionary?) as Void {
         var t = _loader;
         if (t != null) { t.stop(); }
+        // Sauber beendet: Kein Absturz zählt gegen die Route.
+        CrashGuard.calm();
         if (self has :startDemo) { return; }
         Position.enableLocationEvents(Position.LOCATION_DISABLE, method(:onPosition));
     }
@@ -116,7 +184,11 @@ class TrailBuddyApp extends Application.AppBase {
     //! Eine Nachricht vom Handy: ein Stück Route oder die Bestwerte.
     function onPhone(msg as Communications.PhoneAppMessage) as Void {
         var d = msg.data;
-        if (!(d instanceof Dictionary)) { return; }
+        if (d instanceof Dictionary) { handle(d); }
+    }
+
+    //! Eine Nachricht vom Handy (auch aus dem Vorführmodus, ohne Bluetooth).
+    function handle(d as Dictionary) as Void {
         var t = d["t"];
         if ("q".equals(t)) {
             sayHello();
@@ -129,11 +201,25 @@ class TrailBuddyApp extends Application.AppBase {
             return;
         }
         if (!"r".equals(t)) { return; }
+        var rid = d["id"];
+        // Kommt eine Route an, ist sie neu — stürzt die App dabei ab, zählt
+        // es gegen sie (CrashGuard).
+        if (rid instanceof String) { CrashGuard.risk(rid); }
         var id = PhoneRoute.take(d);
+        var err = PhoneRoute.lastError;
+        if (err != null) {
+            if (rid instanceof String) {
+                toPhone({"t" => "x", "id" => rid, "c" => err});
+            }
+            return;
+        }
         if (id == null) { return; }
         // Die Antwort auf eine vollständige Route (Konzept 2): gespeichert.
-        Communications.transmit({"t" => "ok", "id" => id}, null, new PhoneAck());
-        if (id.equals(_route.id) && _route.isReady()) { return; }
+        toPhone({"t" => "ok", "id" => id});
+        if (id.equals(_route.id) && _route.isReady()) {
+            CrashGuard.calm();
+            return;
+        }
         // Kurz am Handgelenk: Die neue Route ist da (#449, 2026-11-05) —
         // dieselbe noch einmal bleibt still.
         vibrateShort();
@@ -145,28 +231,24 @@ class TrailBuddyApp extends Application.AppBase {
 
     //! Die neue Route: GPS aus, die alte loslassen, die neue laden. Die
     //! alte geht zuerst — beide zugleich passten nicht in den Speicher
-    //! (Messung 8.1).
+    //! (Messung 8.1). Die neue liest ihre Stücke einzeln aus dem Speicher.
     function swapRoute() as Void {
         _swap = null;
         if (_pendingId == null) { return; }
         _pendingId = null;
         var t = _loader;
         if (t != null) { t.stop(); _loader = null; }
+        var c = _calm;
+        if (c != null) { c.stop(); _calm = null; }
         Position.enableLocationEvents(Position.LOCATION_DISABLE, method(:onPosition));
-        var tiny = {"id" => "-", "pts" => [0, 0, 0, 1]} as Dictionary;
-        _route = NavRoute.decoded(tiny);
-        _tracker = new NavTracker(_route);
-        _view = new NavView(_route, _stats);
+        setRoute(NavRoute.decoded({"v" => PhoneRoute.PROTOCOL, "id" => "-", "np" => 2, "o" => [0, 0], "pts" => [0, 1]}));
         WatchUi.switchToView(_view, new NavDelegate(_view), WatchUi.SLIDE_IMMEDIATE);
-        var d = PhoneRoute.load();
-        if (d == null) { return; }
-        Storage.setValue("loading", true);
-        _route = new NavRoute(d);
-        d = null;
-        _tracker = new NavTracker(_route);
-        _stats = new RideStats(_route.secFrom.size());
-        _stats.bests = _bests;
-        _view = new NavView(_route, _stats);
+        var r = PhoneRoute.route();
+        if (r == null) { r = testRoute(); } else {
+            PhoneRoute.store("loading", true);
+            CrashGuard.risk(r.id);
+        }
+        setRoute(r);
         WatchUi.switchToView(_view, new NavDelegate(_view), WatchUi.SLIDE_IMMEDIATE);
         startLoader();
     }
@@ -205,15 +287,30 @@ class TrailBuddyApp extends Application.AppBase {
     (:demo) hidden var _demoScene as Number = 0;
     (:demo) hidden var _demoMs as Number = 0;
 
+    //! Der Empfang im Vorführmodus: nächstes Stück, -1 ohne Empfang.
+    (:demo) hidden var _demoRx as Number = -1;
+    (:demo) hidden var _demoRound as Number = 0;
+    //! So viele Punkte je Stück (gerade, damit die Höhen-Paare aufgehen;
+    //! mit Höhen gut 750 Zahlen wie die 800 der App).
+    (:demo) static const DEMO_PART_POINTS = 500;
+
     (:demo)
     function startDemo() as Void {
+        if (_demoTimer != null) { return; } // nach einem Wechsel läuft er schon
         _demoTimer = new Timer.Timer();
+        // Das erste Bild ohne Fix: die Übersicht, wie am Gerät vor dem GPS
+        // (dort brach sie den Watchdog, CIQ_LOG.YML 2026-11-05).
         (_demoTimer as Timer.Timer).start(method(:demoTick), 4000, true);
-        demoTick();
     }
 
     (:demo)
     function demoTick() as Void {
+        if (_demoRx >= 0) {
+            demoFeed();
+            return;
+        }
+        if (!_route.isReady()) { return; } // lädt gerade (nach dem Wechsel)
+        System.println("demo frame " + _route.size() + " pts");
         var scenes = DemoScenes.scenes(_route);
         var sc = scenes[_demoScene % scenes.size()];
         _demoScene++;
@@ -250,6 +347,54 @@ class TrailBuddyApp extends Application.AppBase {
         // Für die Messung 8.1: Speicher nach jedem Bild in die Konsole.
         var st = System.getSystemStats();
         System.println("demo " + _route.size() + " pts scene " + (_demoScene - 1) % scenes.size()
+            + " used " + st.usedMemory + " total " + st.totalMemory);
+        // Nach jeder Runde der Szenen kommt dieselbe Route noch einmal „vom
+        // Handy", mit neuer Kennung: Empfang, Ablegen, Wechsel, Dekodieren
+        // aus dem Speicher — ohne Bluetooth, mit den Grenzen der fēnix 5.
+        if (_demoScene % scenes.size() == 0) {
+            _demoRx = 0;
+            _demoRound++;
+        }
+    }
+
+    //! Ein Stück der Testroute, wie `WatchRoute.parts` es schickte. Die
+    //! Ressource liegt dabei kurz ganz im Speicher — die Messung ist also
+    //! strenger als der echte Empfang.
+    (:demo)
+    function demoFeed() as Void {
+        var d = WatchUi.loadResource(Rez.JsonData.Route) as Dictionary;
+        var np = d["np"] as Number;
+        var k = DEMO_PART_POINTS;
+        var n = (np + k - 1) / k;
+        var a = _demoRx * k;
+        var b = a + k < np ? a + k : np;
+        var msg = {"t" => "r", "id" => "demo-" + _demoRound, "p" => _demoRx, "n" => n,
+            "pts" => (d["pts"] as Array).slice(a, b)} as Dictionary;
+        var ele = d["ele"] as Array?;
+        if (ele != null) { msg["ele"] = ele.slice(a / 2, (b + 1) / 2); }
+        var br = d["br"] as Array<Number>?;
+        if (br != null) {
+            var mine = [] as Array<Number>;
+            for (var i = 0; i + 1 < br.size(); i += 2) {
+                if (br[i] >= a && br[i] < b) { mine.add(br[i]); mine.add(br[i + 1]); }
+            }
+            if (mine.size() > 0) { msg["br"] = mine; }
+        }
+        if (_demoRx == 0) {
+            msg["v"] = d["v"];
+            msg["np"] = np;
+            msg["o"] = d["o"];
+            if (d["e0"] != null) { msg["e0"] = d["e0"]; }
+            if (d["sec"] != null) { msg["sec"] = d["sec"]; }
+        }
+        d = null;
+        ele = null;
+        br = null;
+        var p = _demoRx;
+        _demoRx = p + 1 < n ? p + 1 : -1;
+        handle(msg);
+        var st = System.getSystemStats();
+        System.println("demo rx " + p + "/" + n + " err " + PhoneRoute.lastError
             + " used " + st.usedMemory + " total " + st.totalMemory);
     }
 
