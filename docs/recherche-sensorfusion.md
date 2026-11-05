@@ -316,6 +316,14 @@ mit GPS-dv/dt über 1,5 m/s² und ohne Kurve gab es nur wenige (0,4 s und
   beidem stand „vorn" nach 88 s bzw. 358 s, also 65–80 s nach „unten",
   Konsistenz 0,9, auf 1° bzw. 5° an der Richtung, die die Drehachse der
   langen Wheelies vorgibt.
+- **Kurven allein reichen nicht** (Fahrt 2026-11-01 14:17, #36): Nach
+  einem Verrutschen 30 s vor dem Ende lernten neun Kurven in 15 s „vorn"
+  neu — die Proben lagen 2–125° um die echte Richtung, die Prüfung
+  (fünf Proben, Konsistenz > 0,5) ließ sie durch, und „vorn" stand 57°
+  verdreht. Gespeichert, maß die App danach 91° Kippen als 35°. Seitdem
+  gilt „vorn" erst mit mindestens einer Brems-Probe (`FWD_MIN_BRAKES`);
+  auf den zwölf Dateien bis dahin dieselben Ereignisse, nur die eine
+  Fahrt ohne mitgebrachte Halterung hatte „vorn" nach 147 s statt 77 s.
 - **Verrutschen**: Die 3-s-Regel las jeden langen Wheelie (10–28 s bei
   35–44°) als verrutschte Halterung — neun Mal auf Fahrt 1. Jetzt erst
   nach 60 s Abweichung, wie die 60-s-Regel der App; gekippte Sekunden
@@ -391,7 +399,11 @@ beiden Sprachen:
 4. **Die Halterung der letzten Fahrt** startet die nächste
    (`rides/sensors/mount.json`, im Kopf der Datei als `# mount,…`, das
    Werkzeug rechnet von derselben aus); fünf ruhige Sekunden über 17°
-   daneben werfen sie weg.
+   daneben werfen sie weg. Gespeichert wird nur eine belastbare
+   (`solidMount`): die mitgebrachte, solange sie nicht verworfen ist, eine
+   neu gelernte erst ab 20 Proben, davon drei vom Bremsen — sonst bleibt
+   die Datei, wie sie war (die schiefe vom 2026-11-01 entstand in den
+   letzten 15 s und überschrieb die gute).
 
 Die App rechnet fortlaufend, aber mit Verzug: Ein Wert wird verarbeitet,
 sobald ein GPS-Punkt 1,5 s nach ihm da ist (die Vorausschau von dv/dt

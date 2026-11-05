@@ -330,7 +330,9 @@ class SensorLogger {
 
   /// Nur eine gelernte Halterung ersetzt die alte. Wirft nie.
   Future<void> _saveMount() async {
-    final mount = _fusion.mount;
+    // Nur eine belastbare: Eine in den letzten Sekunden vor dem Ende neu
+    // gelernte überschrieb am 2026-11-01 die gute (#36).
+    final mount = _fusion.solidMount;
     if (mount == null) return;
     try {
       final part = File('${_mountFile.path}.part');

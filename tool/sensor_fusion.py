@@ -63,6 +63,7 @@ LONG_YAW = 0.15
 LEAN_YAW = 0.15               # rad/s: a corner that teaches "forward" by the lean
 FWD_TICKS = 5
 FWD_CONSISTENCY = 0.5         # |sum| / sum of |terms|: one direction, not noise
+FWD_MIN_BRAKES = 1            # forward needs braking; corners alone scatter (#36, 2026-11-01)
 TILTED_RAD = 0.3              # gravity this far from "up" teaches nothing (wheelie)
 SLIP_RAD = 0.5                # this far ...
 SLIP_TICKS = 5                # ... for this many seconds of braking, accelerating
@@ -253,6 +254,7 @@ class Mount:
         self._fwd_sum = scale(unit(sub(fwd, scale(self.up, dot(fwd, self.up)))), FWD_TICKS)
         self._fwd_abs = float(FWD_TICKS)
         self._fwd_n = FWD_TICKS
+        self._brake_n = FWD_MIN_BRAKES
         self._orthogonalise()
         self.carried = self._confirming = True
         self._unconfirmed = 0
@@ -263,6 +265,7 @@ class Mount:
         self._fwd_sum = (0.0, 0.0, 0.0)
         self._fwd_abs = 0.0
         self._fwd_n = 0
+        self._brake_n = 0
         self._slip_n = 0
 
     def ready(self) -> bool:
@@ -322,7 +325,7 @@ class Mount:
             # Braking points backwards. Any rotation spoils it, not only
             # yaw: on rough ground the bike pitches and rolls while braking.
             h = sub(f, scale(self.up, dot(f, self.up)))
-            self._learn(t, scale(h, dvdt), abs(dvdt) * norm(h))
+            self._learn(t, scale(h, dvdt), abs(dvdt) * norm(h), brake=True)
         elif self.up and u and yaw > LEAN_YAW:
             # A corner: the bike leans into it, so the world's up seen from
             # the phone tips to the outside -- to the right in a left turn
@@ -333,18 +336,24 @@ class Mount:
             self._learn(t, scale(cross(self.up, h), turn * G), abs(turn) * G * norm(h))
         return False
 
-    def _learn(self, t: float, term: tuple, size: float) -> None:
+    def _fwd_enough(self) -> bool:
+        return (self._fwd_n >= FWD_TICKS and self._brake_n >= FWD_MIN_BRAKES
+                and norm(self._fwd_sum) > FWD_CONSISTENCY * self._fwd_abs)
+
+    def _learn(self, t: float, term: tuple, size: float, brake: bool = False) -> None:
         self._fwd_sum = add(self._fwd_sum, term)
         self._fwd_abs += size
         self._fwd_n += 1
-        if self._fwd_n >= FWD_TICKS and norm(self._fwd_sum) > FWD_CONSISTENCY * self._fwd_abs:
+        if brake:
+            self._brake_n += 1
+        if self._fwd_enough():
             if self.fwd_at is None:
                 self.fwd_at = t
             self._orthogonalise()
         return False
 
     def _orthogonalise(self) -> None:
-        if self._fwd_n < FWD_TICKS or norm(self._fwd_sum) <= FWD_CONSISTENCY * self._fwd_abs:
+        if not self._fwd_enough():
             return
         h = sub(self._fwd_sum, scale(self.up, dot(self._fwd_sum, self.up)))
         self.fwd = unit(h)

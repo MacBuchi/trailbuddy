@@ -154,6 +154,33 @@ List<(String, double, List<double>)> _synthetic({bool slipPitch = false}) {
 
 final _ride = _synthetic();
 
+/// 20 s geradeaus mit 6 m/s (oben lernt), dann 60 s Kurven, alle 5 s
+/// die Richtung gewechselt — kein Bremsen. Halterung [_mount0].
+List<(String, double, List<double>)> _cornersOnly() {
+  const hz = 100.0, v = 6.0, dt = 1 / hz;
+  final rnd = _Noise(7);
+  double rate(double t) => t < 20 ? 0.0 : ((t - 20) ~/ 5).isEven ? 0.4 : -0.4;
+  final out = <(String, double, List<double>)>[];
+  var yaw = 0.0;
+  _M att(double t, double yaw) => _mm(_rz(yaw), _rx(-math.atan2(v * rate(t), kG)));
+  var prev = att(0, 0);
+  for (var i = 1; i < (80 * hz).toInt(); i++) {
+    final t = i * dt;
+    yaw += rate(t) * dt;
+    final rWb = att(t, yaw);
+    final fW = [-v * rate(t) * math.sin(yaw), v * rate(t) * math.cos(yaw), kG];
+    final fP = _mv(_mount0, _mv(_mt(rWb), fW));
+    final rel = _mm(_mt(prev), rWb);
+    final wB = [rel[2][1] - rel[1][2], rel[0][2] - rel[2][0], rel[1][0] - rel[0][1]].map((c) => c * 0.5 / dt).toList();
+    final wP = _mv(_mount0, wB);
+    prev = rWb;
+    out.add(('a', t, [for (final c in fP) c + rnd.gauss(0.3)]));
+    out.add(('w', t + 0.002, [for (final c in wP) c + rnd.gauss(0.01)]));
+    if (i % hz.toInt() == 0) out.add(('g', t, [v]));
+  }
+  return out;
+}
+
 int _us(double t) => (t * 1e6).round();
 
 /// Füttert die Fahrt; [accelAhead] Werte der Beschleunigung kommen je
@@ -401,6 +428,28 @@ void main() {
     expect(wrong.mountDroppedAt, lessThanOrEqualTo(10));
     expect(wrong.forwardAt, lessThanOrEqualTo(45));
     expect(wrongEvents.whereType<WheelieEvent>(), hasLength(4));
+  });
+
+  test('nur Kurven, kein Bremsen: „vorn" entsteht nicht (#36, 2026-11-01)', () {
+    // Wie die letzten 15 s der Fahrt vom 2026-11-01: neun Kurven lernten
+    // „vorn" um 57° verdreht, und die App maß seitdem 91° als 35°.
+    final (fusion, _) = _run(ride: _cornersOnly());
+    expect(fusion.upAt, isNotNull, reason: 'oben lernt die ruhige Gerade');
+    expect(fusion.forwardAt, isNull);
+    expect(fusion.mount, isNull);
+    expect(fusion.solidMount, isNull);
+  });
+
+  test('gespeichert wird nur eine belastbare Halterung (#36)', () {
+    final (carried, _) = _run(carried: _mount(_mount0), ride: _cornersOnly());
+    expect(carried.mountDroppedAt, isNull);
+    expect(carried.solidMount, isNotNull, reason: 'mitgebracht und nie verworfen');
+    // Ohne mitgebrachte: gelernt, verrutscht bei 231 s, danach nur noch
+    // eine Bremsung — die neue „vorn" steht, taugt aber nicht für die
+    // nächste Fahrt; die alte Datei bleibt.
+    final (slipped, _) = _run(ride: _synthetic(slipPitch: true));
+    expect(slipped.slips, hasLength(1));
+    expect(slipped.solidMount, isNull);
   });
 
   test('FusionMount als JSON', () {

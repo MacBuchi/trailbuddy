@@ -58,6 +58,14 @@ const _longYaw = 0.15;
 const _leanYaw = 0.15;
 const _fwdTicks = 5;
 const _fwdConsistency = 0.5;
+/// „Vorn" gilt erst mit so vielen Proben vom Bremsen: Kurven allein
+/// streuen (am 2026-11-01 lernten neun Kurven in 15 s „vorn" um 57°
+/// verdreht, #36).
+const _fwdMinBrakes = 1;
+/// Gespeichert für die nächste Fahrt wird eine neu gelernte Halterung erst
+/// mit so viel Beleg ([FusionMount], `mount.json`) — sonst bleibt die alte.
+const kMountSolidBrakes = 3;
+const kMountSolidSamples = 20;
 const _tiltedRad = 0.3;
 const _slipRad = 0.5;
 const _slipTicks = 5;
@@ -305,7 +313,13 @@ class _Mount {
   Vec _fwdSum = _zero;
   double _fwdAbs = 0;
   int _fwdN = 0;
+  int _brakeN = 0;
   int _slipN = 0;
+
+  /// Neu gelernt seit dem Start oder dem letzten Verwerfen — dann gilt
+  /// [solid] erst mit genug Beleg; eine mitgebrachte gilt, solange sie
+  /// steht.
+  bool _fresh = true;
 
   void _reset() {
     _upSum = _zero;
@@ -313,6 +327,7 @@ class _Mount {
     _fwdSum = _zero;
     _fwdAbs = 0;
     _fwdN = 0;
+    _brakeN = 0;
     _slipN = 0;
   }
 
@@ -326,6 +341,8 @@ class _Mount {
     _fwdSum = _scale(_unit(_sub(m.forward, _scale(u, _dot(m.forward, u)))), _fwdTicks.toDouble());
     _fwdAbs = _fwdTicks.toDouble();
     _fwdN = _fwdTicks;
+    _brakeN = _fwdMinBrakes;
+    _fresh = false;
     _orthogonalise();
     carried = _confirming = true;
     _unconfirmed = 0;
@@ -333,8 +350,15 @@ class _Mount {
 
   bool get ready => fwd != null;
 
+  /// Taugt für die nächste Fahrt: mitgebracht und nicht verworfen, oder
+  /// neu gelernt aus [kMountSolidSamples] Proben, davon
+  /// [kMountSolidBrakes] vom Bremsen.
+  bool get solid =>
+      fwd != null && (!_fresh || (_brakeN >= kMountSolidBrakes && _fwdN >= kMountSolidSamples));
+
   void _drop() {
     up = fwd = left = null;
+    _fresh = true;
     _reset();
   }
 
@@ -392,7 +416,7 @@ class _Mount {
       // Bremsen zeigt nach hinten. Jede Drehung verdirbt es, nicht nur die
       // Gier: Auf rauem Grund nickt und rollt das Rad beim Bremsen.
       final h = _sub(f, _scale(up, _dot(f, up)));
-      _learn(t, _scale(h, dvdt), dvdt.abs() * _norm(h));
+      _learn(t, _scale(h, dvdt), dvdt.abs() * _norm(h), brake: true);
     } else if (up != null && u != null && yaw > _leanYaw) {
       // Kurve: Das Rad legt sich hinein, das Welt-Oben kippt vom Telefon
       // aus nach außen — in der Linkskurve (Gier > 0) nach rechts.
@@ -405,19 +429,23 @@ class _Mount {
     return false;
   }
 
-  void _learn(double t, Vec term, double size) {
+  void _learn(double t, Vec term, double size, {bool brake = false}) {
     _fwdSum = _add(_fwdSum, term);
     _fwdAbs += size;
     _fwdN++;
-    if (_fwdN >= _fwdTicks && _norm(_fwdSum) > _fwdConsistency * _fwdAbs) {
+    if (brake) _brakeN++;
+    if (_fwdEnough) {
       fwdAt ??= t;
       _orthogonalise();
     }
   }
 
+  bool get _fwdEnough =>
+      _fwdN >= _fwdTicks && _brakeN >= _fwdMinBrakes && _norm(_fwdSum) > _fwdConsistency * _fwdAbs;
+
   void _orthogonalise() {
     final up = this.up;
-    if (up == null || _fwdN < _fwdTicks || _norm(_fwdSum) <= _fwdConsistency * _fwdAbs) return;
+    if (up == null || !_fwdEnough) return;
     final h = _sub(_fwdSum, _scale(up, _dot(_fwdSum, up)));
     fwd = _unit(h);
     left = _cross(up, fwd!);
@@ -608,6 +636,10 @@ class SensorFusion {
     final up = _mount.up, fwd = _mount.fwd;
     return up == null || fwd == null ? null : FusionMount(up: up, forward: fwd);
   }
+
+  /// [mount], aber nur, wenn sie für die nächste Fahrt taugt
+  /// ([_Mount.solid]) — das schreibt der Logger nach `mount.json`.
+  FusionMount? get solidMount => _mount.solid ? mount : null;
 
   bool get mountCarried => _mount.carried;
   double? get mountDroppedAt => _mount.droppedAt;

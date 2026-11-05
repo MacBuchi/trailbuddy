@@ -2,6 +2,16 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Der Winkel des Rads stimmt wieder
+
+*Version 0.153.1, 2026-11-05*
+
+- Die Wheelie-Erkennung hatte sich auf einer Fahrt am Ende die Lage des
+  Telefons am Rad verdreht gemerkt und zeigte danach zu kleine Winkel:
+  90° Kippen erschienen als etwa 35°. Jetzt lernt sie die Fahrtrichtung
+  erst, wenn auch gebremst wurde, und merkt sich eine neu gelernte Lage
+  erst, wenn sie gut belegt ist. Bis dahin bleibt die alte.
+
 ## Die Uhr zeigt mehr und zählt richtig
 
 *Version 0.153.0, 2026-11-05*
