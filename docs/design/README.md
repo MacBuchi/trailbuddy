@@ -891,8 +891,13 @@ einem schwarzen Rand ab r 107 — die ganze Route im Uhrzeigersinn ab
 oben, gefahren Lime, voraus `555555`, Trails im dunklen Stufensatz,
 Marke weiß mit schwarzem Saum; auf allen Seiten. **Zahlenseiten**
 „Fahrt" und „Berg" schwarz: Einheit klein in Grau, Zahl groß, darunter
-vier Zellen (Name grau, Wert weiß; der Puls ganz in Grau, „dezent";
-Anstieg mit gezeichnetem Pfeil in Lime). Angekommen: eine schwarze
+vier Zellen in zwei Spalten 54 px links und rechts der Mitte (bei 36 px
+liefen „HÖHE" und „ZUM TRAIL" auf der Uhr ineinander; Name grau, Wert weiß; der Puls ganz in Grau, „dezent";
+Anstieg mit gezeichnetem Pfeil in Lime). Ein Trailname, der auf
+seiner Höhe nicht in den Kreis passt, nimmt die kleinere Schrift, erst
+dann „…". **Vor dem ersten Fix** die Übersicht: die Route genordet und
+eingepasst auf der hellen Karte, Start als schwarzer Punkt mit weißem
+Saum, darunter „Warte auf GPS" mit Länge und Anstieg. Angekommen: eine schwarze
 Zusammenfassung mit den Schildern der befahrenen Trails. Die Farben sind je
 die nächste MIP-Farbe zur App-Farbe (`garmin/source/Colors.mc`, geprüft
 von `tool/garmin_route.py --self-test`); am Gerät in der Sonne prüfen.

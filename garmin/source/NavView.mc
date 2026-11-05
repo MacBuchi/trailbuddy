@@ -26,6 +26,14 @@ class NavView extends WatchUi.View {
     static const TRAIL_W = 4;
     static const DONE_W = 3;
     static const BRANCH_W = 3;
+    //! Abstand der zwei Spalten der Zahlenseiten von der Mitte. Mit 36
+    //! liefen „HÖHE"/„ZUM TRAIL" ineinander und über den Trennstrich
+    //! (fēnix 5, 2026-11-05); bei 54 reicht der Kreis auch unten noch.
+    static const COL_X = 54;
+    //! Die Übersicht ohne GPS: so viele Stücke je Linie höchstens, und der
+    //! Radius, in den sie passt (innerhalb TbRing.MAP_R, über dem Text).
+    static const OVERVIEW_SEGS = 200;
+    static const OVERVIEW_R = 64;
 
     hidden var _route as NavRoute;
     hidden var _state as NavState? = null;
@@ -126,9 +134,8 @@ class NavView extends WatchUi.View {
         }
         var s = _state;
         if (s == null) {
-            dc.setColor(TbColors.TEXT, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(w / 2, dc.getHeight() / 2, Graphics.FONT_SMALL, str(Rez.Strings.WaitGps),
-                Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
+            drawOverview(dc, w);
+            drawRing(dc, w, null);
             return;
         }
         _cx = w / 2;
@@ -234,6 +241,88 @@ class NavView extends WatchUi.View {
         var y2 = sy(bx, by);
         dc.drawLine(x1, y1, x2, y2);
         if (joint > 0) { dc.fillCircle(x2, y2, joint); }
+    }
+
+    //! Ohne GPS-Fix die ganze Route, genordet und eingepasst, mit Start
+    //! und den Trailköpfen, darunter „Warte auf GPS" (#449, Feldbefund
+    //! 2026-11-05: bis zum ersten Fix sah man nichts). Je Linie höchstens
+    //! [OVERVIEW_SEGS] Stücke — jeder [stride]-te Punkt (Watchdog).
+    //! Eine Testroute (rel) liegt um ihren ersten Punkt wie jede andere.
+    hidden function drawOverview(dc as Dc, w as Number) as Void {
+        var nb = _route.blockCount();
+        if (nb == 0) { return; }
+        var minX = _route.bMinX[0];
+        var maxX = _route.bMaxX[0];
+        var minY = _route.bMinY[0];
+        var maxY = _route.bMaxY[0];
+        for (var b = 1; b < nb; b++) {
+            if (_route.bMinX[b] < minX) { minX = _route.bMinX[b]; }
+            if (_route.bMaxX[b] > maxX) { maxX = _route.bMaxX[b]; }
+            if (_route.bMinY[b] < minY) { minY = _route.bMinY[b]; }
+            if (_route.bMaxY[b] > maxY) { maxY = _route.bMaxY[b]; }
+        }
+        var span = maxX - minX > maxY - minY ? maxX - minX : maxY - minY;
+        _px = (minX + maxX) / 2;
+        _py = (minY + maxY) / 2;
+        _mpp = span / (2.0 * OVERVIEW_R);
+        if (_mpp < 0.5) { _mpp = 0.5; }
+        _sin = 0.0;
+        _cos = 1.0;
+        _cx = w / 2;
+        _cy = w / 2 - 20;
+        _reach = span + 1.0;
+        var n = _route.size();
+        var stride = (n + OVERVIEW_SEGS - 1) / OVERVIEW_SEGS;
+        if (stride < 1) { stride = 1; }
+        for (var pass = 0; pass < 2; pass++) {
+            var width = pass == 0 ? BAND_W : BAND_W - 4;
+            dc.setColor(pass == 0 ? TbColors.ROUTE_EDGE : TbColors.ROUTE, Graphics.COLOR_TRANSPARENT);
+            dc.setPenWidth(width);
+            strided(dc, 0, n - 1, stride, width / 2);
+        }
+        dc.setPenWidth(TRAIL_W - 1);
+        var k;
+        for (k = 0; k < _route.secFrom.size(); k++) {
+            dc.setColor(TbColors.grade(_route.secGrade[k]), Graphics.COLOR_TRANSPARENT);
+            strided(dc, _route.secFrom[k], _route.secTo[k] < n - 1 ? _route.secTo[k] : n - 1, stride, 0);
+        }
+        dc.setPenWidth(1);
+        var xs = _route.xs;
+        var ys = _route.ys;
+        for (k = 0; k < _route.secFrom.size(); k++) {
+            var head = _route.secFrom[k];
+            drawShield(dc, sx(xs[head], ys[head]), sy(xs[head], ys[head]), _route.secGrade[k], 4, true, TbColors.GROUND);
+        }
+        // Der Start: ein schwarzer Punkt mit weißem Saum.
+        var x0 = sx(xs[0], ys[0]);
+        var y0 = sy(xs[0], ys[0]);
+        dc.setColor(TbColors.GROUND, Graphics.COLOR_TRANSPARENT);
+        dc.fillCircle(x0, y0, 7);
+        dc.setColor(TbColors.TEXT, Graphics.COLOR_TRANSPARENT);
+        dc.fillCircle(x0, y0, 5);
+        field(dc, w, FIELD_Y, TbColors.FIELD);
+        dc.setColor(TbColors.MUTED, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(w / 2, FIELD_Y + 2, Graphics.FONT_XTINY, str(Rez.Strings.WaitGps), Graphics.TEXT_JUSTIFY_CENTER);
+        dc.setColor(TbColors.TEXT_ON_FIELD, Graphics.COLOR_TRANSPARENT);
+        numberLine(dc, w / 2, FIELD_Y + 28, meters(_route.lengthM), _route.climbLeft(0.0));
+        // Der schwarze Rand, auf dem der Ring liegt.
+        dc.setColor(TbColors.FIELD, Graphics.COLOR_TRANSPARENT);
+        dc.setPenWidth(w / 2 - TbRing.MAP_R + 2);
+        dc.drawCircle(w / 2, w / 2, (w / 2 + TbRing.MAP_R) / 2 + 1);
+        dc.setPenWidth(1);
+    }
+
+    //! Die Linie [lo, hi] über jeden [stride]-ten Punkt, das Ende immer.
+    hidden function strided(dc as Dc, lo as Number, hi as Number, stride as Number, joint as Number) as Void {
+        if (hi <= lo) { return; }
+        var xs = _route.xs;
+        var ys = _route.ys;
+        var a = lo;
+        while (a < hi) {
+            var b = a + stride < hi ? a + stride : hi;
+            seg(dc, xs[a], ys[a], xs[b], ys[b], joint);
+            a = b;
+        }
     }
 
     //! Die Stücke i in [lo, hi) — nur aus Blöcken, deren Hülle das
@@ -456,15 +545,42 @@ class NavView extends WatchUi.View {
         numberLine(dc, cx, FIELD_Y + 28, meters(s.remainingM), _route.climbLeft(s.alongM));
     }
 
-    //! Schild und Name, zusammen mittig.
+    //! Schild und Name, zusammen mittig. Ist der Name für die Breite des
+    //! Kreises auf dieser Höhe zu lang, nimmt er die kleinere Schrift und
+    //! erst dann ein „…" (Feldbefund 2026-11-05: „Schlosswald-Trai…" schnitt
+    //! der runde Rand ab).
     hidden function shieldLine(dc as Dc, cx as Number, y as Number, g as Number, name as String) as Void {
         var font = Graphics.FONT_TINY;
-        var tw = dc.getTextWidthInPixels(name, font);
-        var x = cx - (tw + 20) / 2;
         var fh = dc.getFontHeight(font);
+        var room = chord(cx, y + fh) - 26;
+        var tw = dc.getTextWidthInPixels(name, font);
+        if (tw > room) {
+            font = Graphics.FONT_XTINY;
+            fh = dc.getFontHeight(font);
+            room = chord(cx, y + fh) - 26;
+            tw = dc.getTextWidthInPixels(name, font);
+        }
+        if (tw > room) {
+            var cut = name.length();
+            var shown = name;
+            while (cut > 1 && tw > room) {
+                cut--;
+                shown = name.substring(0, cut) + "…";
+                tw = dc.getTextWidthInPixels(shown, font);
+            }
+            name = shown;
+        }
+        var x = cx - (tw + 20) / 2;
         drawShield(dc, x + 6, y + fh / 2, g, 5, false, TbColors.FIELD);
         dc.setColor(TbColors.TEXT_ON_FIELD, Graphics.COLOR_TRANSPARENT);
         dc.drawText(x + 20, y, font, name, Graphics.TEXT_JUSTIFY_LEFT);
+    }
+
+    //! Die Breite des Kreises (Radius [r] = [cx]) auf der Höhe [y].
+    hidden function chord(r as Number, y as Number) as Number {
+        var d = y > r ? y - r : r - y;
+        if (d >= r) { return 0; }
+        return (2 * Math.sqrt(r * r - d * d)).toNumber();
     }
 
     //! „1,2 km ▲80": der Weg weiß, der Anstieg in Lime mit gezeichnetem
@@ -544,13 +660,12 @@ class NavView extends WatchUi.View {
         cell(dc, w, 0, 104, str(Rez.Strings.Time), clock(_stats.movingS), TbColors.TEXT_ON_FIELD);
         cell(dc, w, 1, 104, str(Rez.Strings.Distance), km(_stats.distanceM) + " km", TbColors.TEXT_ON_FIELD);
         label(dc, w, 0, 150, str(Rez.Strings.Climbed));
-        climbText(dc, w / 2 - 36, 168, _stats.climbM, TbColors.TEXT_ON_FIELD);
+        climbText(dc, w / 2 - COL_X, 168, _stats.climbM, TbColors.TEXT_ON_FIELD);
         cell(dc, w, 1, 150, str(Rez.Strings.Pulse), hr == null ? "--" : hr.toString(), TbColors.MUTED);
     }
 
     //! „Berg": Steigung groß (Barometer über die letzten 30 m), Höhe, was
-    //! bis zum nächsten Trailkopf und bis zum Ziel noch hoch geht, Uhrzeit;
-    //! klein Akku und Speicher für die Messungen (Konzept-Garmin 8).
+    //! bis zum nächsten Trailkopf und bis zum Ziel noch hoch geht, Uhrzeit.
     hidden function drawMountain(dc as Dc, w as Number) as Void {
         var g = _stats.grade();
         big(dc, w, str(Rez.Strings.Grade), g == null ? "--" : g.toString());
@@ -565,16 +680,26 @@ class NavView extends WatchUi.View {
             toGoal = _route.climbLeft(s.alongM);
         }
         label(dc, w, 1, 104, str(Rez.Strings.ToTrail));
-        climbText(dc, w / 2 + 36, 122, toTrail, TbColors.TEXT_ON_FIELD);
+        climbText(dc, w / 2 + COL_X, 122, toTrail, TbColors.TEXT_ON_FIELD);
         label(dc, w, 0, 150, str(Rez.Strings.ToFinish));
-        climbText(dc, w / 2 - 36, 168, toGoal, TbColors.TEXT_ON_FIELD);
+        climbText(dc, w / 2 - COL_X, 168, toGoal, TbColors.TEXT_ON_FIELD);
         var t = System.getClockTime();
         cell(dc, w, 1, 150, str(Rez.Strings.Clock), t.hour + ":" + t.min.format("%02d"), TbColors.TEXT_ON_FIELD);
+        drawMeasure(dc, w);
+    }
+
+    //! Akku und Speicher für die Messungen (Konzept-Garmin 8) — nur im
+    //! Vorführmodus; auf der Uhr stand die Zeile mitten in der Seite.
+    (:demo)
+    hidden function drawMeasure(dc as Dc, w as Number) as Void {
         var stats = System.getSystemStats();
         dc.setColor(TbColors.MUTED, Graphics.COLOR_TRANSPARENT);
         dc.drawText(w / 2, 198, Graphics.FONT_XTINY,
             stats.battery.format("%.0f") + " % · " + (stats.usedMemory / 1024) + " KB", Graphics.TEXT_JUSTIFY_CENTER);
     }
+
+    (:nodemo)
+    hidden function drawMeasure(dc as Dc, w as Number) as Void {}
 
     //! Oben die Einheit klein, darunter die Zahl groß, ein Strich.
     hidden function big(dc as Dc, w as Number, unit as String, value as String) as Void {
@@ -594,12 +719,12 @@ class NavView extends WatchUi.View {
     hidden function cell(dc as Dc, w as Number, col as Number, y as Number, name as String, value as String, color as Number) as Void {
         label(dc, w, col, y, name);
         dc.setColor(color, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(w / 2 + (col == 0 ? -36 : 36), y + 18, Graphics.FONT_SMALL, value, Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(w / 2 + (col == 0 ? -COL_X : COL_X), y + 18, Graphics.FONT_SMALL, value, Graphics.TEXT_JUSTIFY_CENTER);
     }
 
     hidden function label(dc as Dc, w as Number, col as Number, y as Number, name as String) as Void {
         dc.setColor(TbColors.MUTED, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(w / 2 + (col == 0 ? -36 : 36), y, Graphics.FONT_XTINY, name, Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(w / 2 + (col == 0 ? -COL_X : COL_X), y, Graphics.FONT_XTINY, name, Graphics.TEXT_JUSTIFY_CENTER);
     }
 
     //! „▲120 m", mittig um [cx]: der Pfeil gezeichnet in Lime (die

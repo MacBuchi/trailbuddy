@@ -134,6 +134,9 @@ class TrailBuddyApp extends Application.AppBase {
         // Die Antwort auf eine vollständige Route (Konzept 2): gespeichert.
         Communications.transmit({"t" => "ok", "id" => id}, null, new PhoneAck());
         if (id.equals(_route.id) && _route.isReady()) { return; }
+        // Kurz am Handgelenk: Die neue Route ist da (#449, 2026-11-05) —
+        // dieselbe noch einmal bleibt still.
+        vibrateShort();
         _pendingId = id;
         var timer = new Timer.Timer();
         _swap = timer;
@@ -248,6 +251,14 @@ class TrailBuddyApp extends Application.AppBase {
         var st = System.getSystemStats();
         System.println("demo " + _route.size() + " pts scene " + (_demoScene - 1) % scenes.size()
             + " used " + st.usedMemory + " total " + st.totalMemory);
+    }
+
+    //! Ein kurzer Stoß für „neue Route da" — deutlich kürzer und schwächer
+    //! als das Abkommen, damit beides nicht zu verwechseln ist.
+    hidden function vibrateShort() as Void {
+        if (Attention has :vibrate) {
+            Attention.vibrate([new Attention.VibeProfile(50, 200)]);
+        }
     }
 
     //! Einmal beim Abkommen (Entscheidung 3) — kein Ton, nichts vor
