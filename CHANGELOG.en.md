@@ -12,6 +12,7 @@
   direction of travel only once the bike has also braked, and keeps a
   newly learned position only once it is well backed. Until then the
   old one stays.
+
 ## The watch shows more and counts right
 
 *Version 0.153.0, 2026-11-05*

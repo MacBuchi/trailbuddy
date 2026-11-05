@@ -11,6 +11,7 @@
   90° Kippen erschienen als etwa 35°. Jetzt lernt sie die Fahrtrichtung
   erst, wenn auch gebremst wurde, und merkt sich eine neu gelernte Lage
   erst, wenn sie gut belegt ist. Bis dahin bleibt die alte.
+
 ## Die Uhr zeigt mehr und zählt richtig
 
 *Version 0.153.0, 2026-11-05*
