@@ -97,5 +97,16 @@ Garmin-Aktivität, kein Netz, keine Abbiegehinweise.
 - **Bestwerte** (`RideStats.bests`, vierte Seite „Sprünge" in `NavView`,
   Zeile in der Zusammenfassung): nur im Speicher, bleiben über einen
   Routenwechsel. Die Seite gibt es erst, wenn welche kamen (`pages()`).
+- **Die Übersicht ohne Fix** (`drawOverview`): Rahmen aus den Hüllen
+  der Blöcke (≤ 63 Vergleiche), dann nur jeder `stride`-te Punkt
+  (`OVERVIEW_SEGS` = 200 Stücke je Linie) — `range()` mit großem
+  `_reach` liefe über alle Punkte und je Bild an den Watchdog.
+- **Akku und Speicher** auf der Seite „Berg" nur im Vorführmodus:
+  `drawMeasure` gibt es zweimal, `(:demo)` und `(:nodemo)` — der
+  normale Build schließt `demo` aus, `--demo` schließt `nodemo` aus.
+- **Zwei Spalten der Zahlenseiten** bei `COL_X` = 54 px um die Mitte;
+  unten (y 168–194) ist der Kreis noch ~190 px breit. Lange Namen in der
+  Infofläche misst `shieldLine` gegen `chord` (Kreisbreite auf der Höhe
+  der Zeile), erst kleinere Schrift, dann „…".
 - **Entwurf** im Designer des Betreibers (privat, Link im PR #449-G1);
   das Aussehen steht in `docs/design/README.md` Abschnitt 15.

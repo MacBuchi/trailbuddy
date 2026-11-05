@@ -2,6 +2,24 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## The watch shows more and counts right
+
+*Version 0.153.0, 2026-11-05*
+
+- On the Garmin watch, the climb "to finish" now matches the phone.
+  Until now, hilltops on straight paths could get lost when the route
+  was made smaller, and the watch showed too little.
+- Before the watch has GPS, it shows the whole route as an overview,
+  with start, trail heads, length and climb, instead of only "Waiting
+  for GPS".
+- When a new route arrives from the phone, the watch vibrates once,
+  briefly.
+- On the watch's number pages the labels sit further apart and no
+  longer run into each other; the test line with battery and memory is
+  gone. Long trail names get a smaller font before they are cut.
+- During navigation, the phone now shows a watch icon while the route
+  goes to the watch. Its dot shows the state, a tap says it in words.
+
 ## The bike in the live window follows at once
 
 *Version 0.152.3, 2026-11-05*

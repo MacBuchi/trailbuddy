@@ -71,8 +71,9 @@ dunkle Infofläche, „Was kommt als Nächstes?" statt „Wie weit noch?".
   Zweifelsfall mehr als eine Seite, aber nicht zu kompliziert"):
   Karte; „Fahrt" (Tempo groß, Fahrzeit, Strecke, bergauf, Puls);
   „Berg" (Steigung über die letzten 30 m aus dem Barometer, Höhe,
-  bergauf bis zum nächsten Trailkopf und bis zum Ziel, Uhrzeit; klein
-  Akku und Speicher für die Messungen). Der Puls vom Handgelenk
+  bergauf bis zum nächsten Trailkopf und bis zum Ziel, Uhrzeit; Akku
+  und Speicher für die Messungen nur noch im Vorführmodus — auf der Uhr
+  stand die Zeile mitten in der Seite, 2026-11-05). Der Puls vom Handgelenk
   dezent in Grau (Betreiber: „Ja, aber dezent"). Alle Werte misst die
   Uhr selbst; sie stehen nur im Speicher der laufenden App, nichts
   wird gespeichert oder verschickt (A3, Entscheidung 1: Anzeige).
@@ -80,6 +81,15 @@ dunkle Infofläche, „Was kommt als Nächstes?" statt „Wie weit noch?".
 - **„Angekommen"** wie in der App (unter 30 m vom Ende bzw. letzter
   Abschnitt einer Runde), mit einer Zusammenfassung (Betreiber: „Ja"):
   Strecke, Fahrzeit, bergauf und die befahrenen Trails als Schilder.
+- **Vor dem ersten GPS-Fix die Übersicht** (Feldbefund 2026-11-05,
+  bis dahin nur „Warte auf GPS"): die ganze Route genordet und
+  eingepasst, Start als Punkt, Trailköpfe als Schilder, unten „Warte auf
+  GPS" mit Länge und Höhenmetern der Route. Mit dem ersten Fix kommt die
+  gedrehte Karte.
+- **Kurz vibrieren bei einer neuen Route** (Betreiber, 2026-11-05):
+  ein kurzer, schwacher Stoß, sobald eine neue Route vom Handy ganz
+  gespeichert ist — dieselbe noch einmal bleibt still. Er ist deutlich
+  kürzer als das Abkommen, damit man beides nicht verwechselt.
 - **Vibrieren beim Abkommen** (Entscheidung 3): einmal, wenn „abseits"
   beginnt — dieselbe Regel wie 9.3 (mehr als 30 m neben der Linie, zwei
   Fixe in Folge). Kein zweites Vibrieren, bis man wieder auf der Linie
@@ -130,7 +140,14 @@ kodiert und schneidet in **Stücke** (`t: "r"`, `id`, Laufnummer `p`, Anzahl
 `n`, im ersten `v` und `sec`; je Stück höchstens 800 Zahlen, rund 4 KB —
 Startwert bis Messung 8.2). Die Kennung ist ein FNV-Hash der Punkte:
 dieselbe Route noch einmal ist dieselbe. Die Höhen kommen aus dem
-Geländemodell entlang der Linie (höchstens 5 s Warten, sonst ohne). Die
+Geländemodell entlang der Linie (höchstens 5 s Warten, sonst ohne).
+**Die Wendepunkte der Höhe bleiben beim Vereinfachen stehen**
+(`climbTurnIndices`, 2026-11-05): Douglas-Peucker sieht nur die Lage,
+und auf einem geraden Weg über eine Kuppe fiel der Gipfel weg — die
+fēnix 5 zeigte „Zum Ziel ▲198 m" bei 461 hm auf dem Handy. Behalten
+wird je bestätigter Gipfel und Senke der 10-m-Hysterese der nächste
+Punkt der Linie; so zählt die Uhr aus ihren Punkten dieselben
+Höhenmeter wie das Handy aus dem Profil. Die
 Uhr legt jedes Stück sofort in `Application.Storage` (zwei Fächer, die
 neue Route gilt erst mit dem letzten Stück, `garmin/source/PhoneRoute.mc`),
 lädt beim Start die gespeicherte statt der Testroute und antwortet

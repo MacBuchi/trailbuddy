@@ -613,6 +613,8 @@
   "navWatchTitle": "Show on the watch",
   "navWatchSubtitle": "Sent to {device}, a new route follows by itself — the watch then navigates on its own, even without the phone.",
   "mapWatchStored": "Route on the watch",
+  "navWatchSending": "Sending the route to the watch …",
+  "navWatchTooltip": "Watch",
   "mapWatchFailed": "The route did not reach the watch. Open TrailBuddy on the watch — it then arrives by itself.",
   "mapWatchPrompted": "Open TrailBuddy on the watch — the route then arrives by itself.",
   "mapWatchUnconfirmed": "The watch did not answer. Open TrailBuddy on the watch — the route then arrives by itself.",

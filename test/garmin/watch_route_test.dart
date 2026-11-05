@@ -3,12 +3,14 @@
 // die sich wieder zusammensetzen, höchstens 2000 Punkte, die Trails als
 // Abschnitte, die Bestwerte der Erkennung.
 import 'dart:io';
+import 'dart:math' as math;
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:trailbuddy/features/garmin/garmin_bridge.dart';
 import 'package:trailbuddy/features/garmin/garmin_bridge_io.dart' show kGarminChannel;
 import 'package:trailbuddy/features/garmin/watch_route.dart';
+import 'package:trailbuddy/features/offline_areas/height_tiles.dart' show hysteresisClimb, kClimbHysteresisM;
 import 'package:trailbuddy/features/rides/sensor_fusion.dart';
 import 'package:trailbuddy/features/rides/trail_values.dart';
 import 'package:trailbuddy/features/routing/nav_sections.dart';
@@ -34,6 +36,25 @@ void main() {
     ]);
     expect(json['v'], kWatchProtocol);
     expect(json['rel'], false);
+  });
+
+  test('Kuppen auf gerader Linie: die Uhr zählt dieselben Höhenmeter wie das Handy (#449, 2026-11-05)', () {
+    // Gerade nach Norden, 2 km, alle 10 m ein Punkt — Douglas-Peucker
+    // behielte nur Anfang und Ende. Drei Kuppen zu 60 m, dazwischen Rauschen
+    // unter der Hysterese.
+    final line = [for (var i = 0; i <= 200; i++) LatLng(i * 0.00009, 0)];
+    final ele = [
+      for (var i = 0; i <= 200; i++) 500 + 60 * math.sin(i / 200 * 3 * math.pi).abs() + (i.isEven ? 2.0 : 0.0)
+    ];
+    final heights = ElevationProfile.of(line, ele)!;
+    final route = watchRouteOf(line, NavSections(const []), heights: heights)!;
+    final (phone, _) = hysteresisClimb(heights.eleM, kClimbHysteresisM);
+    // So zählt die Uhr (`climbAt` in NavRoute.mc): dieselbe Hysterese über
+    // die Höhen IHRER Punkte.
+    final (watch, _) = hysteresisClimb([for (final h in route.ele!) h.toDouble()], kClimbHysteresisM);
+    expect(phone, closeTo(180, 3));
+    expect(watch, closeTo(phone, 3), reason: 'Gipfel und Senken bleiben beim Vereinfachen stehen');
+    expect(route.pointCount, lessThan(20), reason: 'nur die Wendepunkte kommen dazu, nicht jede Zacke');
   });
 
   test('die Stücke setzen sich in ihrer Reihenfolge wieder zur Route zusammen', () {

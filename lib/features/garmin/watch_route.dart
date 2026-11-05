@@ -22,6 +22,7 @@ import '../trails/gpx.dart' show TrackPoint;
 import '../trails/trail_elevation.dart' show ElevationProfile;
 import '../trails/trail_geometry.dart' show simplify;
 import '../../core/geo.dart' as geo;
+import '../offline_areas/height_tiles.dart' show kClimbHysteresisM;
 import 'watch_branches.dart';
 
 /// Fassung des Protokolls (`v`); die Uhr lehnt eine andere ab.
@@ -153,6 +154,10 @@ WatchRoute? watchRouteOf(List<LatLng> points, NavSections sections,
   final fixed = {
     for (final b in branches)
       if (b.index >= 0 && b.index < points.length) b.index,
+    // Die Wendepunkte der Höhe bleiben auch: Douglas-Peucker sieht nur die
+    // Lage, und auf einem geraden Forstweg über eine Kuppe fiel der Gipfel
+    // weg — die Uhr zählte bergauf 198 statt 461 hm (fēnix 5, 2026-11-05).
+    if (heights != null) ...climbTurnIndices(cum, heights),
   };
   var tol = kWatchSimplifyM;
   var kept = _simplifyKeeping(track, fixed, tol);
@@ -209,6 +214,43 @@ WatchRoute? watchRouteOf(List<LatLng> points, NavSections sections,
     ]);
   }
   return WatchRoute(id: watchRouteId(pts), pts: pts, ele: ele, sec: sec, br: br);
+}
+
+/// Die Punkte der Linie (Nummern in [cum]) an den Wendepunkten des
+/// Profils, wie die Hysterese der Uhr sie zählt (`climbAt` in
+/// `garmin/source/NavRoute.mc`, [kClimbHysteresisM]): jeder bestätigte
+/// Gipfel und jede bestätigte Senke, dazu der letzte Kandidat. Bleiben sie
+/// beim Vereinfachen stehen, zählt die Uhr aus den Höhen ihrer Punkte
+/// dieselben Höhenmeter wie das Handy aus dem Profil.
+Set<int> climbTurnIndices(List<double> cum, ElevationProfile heights, {double threshold = kClimbHysteresisM}) {
+  final d = heights.distM, e = heights.eleM;
+  if (d.length < 2 || !(cum.last > 0)) return const {};
+  final turns = <int>[];
+  var dir = 0, ref = e[0], extreme = e[0], at = 0;
+  for (var i = 1; i < e.length; i++) {
+    final h = e[i];
+    if (dir == 0) {
+      if ((h - ref).abs() >= threshold) {
+        dir = h > ref ? 1 : -1;
+        extreme = h;
+        at = i;
+      }
+    } else if (dir * (h - extreme) > 0) {
+      extreme = h;
+      at = i;
+    } else if (dir * (extreme - h) >= threshold) {
+      turns.add(at);
+      ref = extreme;
+      dir = -dir;
+      extreme = h;
+      at = i;
+    }
+  }
+  if (dir != 0) turns.add(at);
+  // Profil-Meter auf Linien-Meter (wie beim Lesen der Höhen), dann der
+  // nächste Punkt der Linie.
+  final scale = cum.last / d.last;
+  return {for (final i in turns) _nearest(cum, d[i] * scale)};
 }
 
 /// Douglas-Peucker je Stück zwischen den Punkten in [fixed] — die bleiben.

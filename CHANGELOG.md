@@ -2,6 +2,24 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Die Uhr zeigt mehr und zählt richtig
+
+*Version 0.153.0, 2026-11-05*
+
+- Auf der Garmin-Uhr stimmen die Höhenmeter „Zum Ziel" jetzt mit dem
+  Handy überein. Bisher konnten Kuppen auf geraden Wegen beim Verkleinern
+  der Route verloren gehen, und die Uhr zeigte zu wenig.
+- Bevor die Uhr GPS hat, zeigt sie die ganze Route im Überblick, mit
+  Start, Trailköpfen, Länge und Höhenmetern, statt nur „Warte auf GPS".
+- Kommt eine neue Route vom Handy an, vibriert die Uhr einmal kurz.
+- Auf den Zahlenseiten der Uhr stehen die Beschriftungen weiter
+  auseinander und laufen nicht mehr ineinander; die Messzeile mit Akku
+  und Speicher ist weg. Lange Trailnamen werden kleiner geschrieben,
+  bevor sie gekürzt werden.
+- In der Navigation auf dem Handy steht jetzt ein Uhr-Symbol, solange
+  die Route an die Uhr geht. Der Punkt daran zeigt den Stand, ein Tipp
+  sagt ihn in Worten.
+
 ## Das Rad im Live-Fenster folgt sofort
 
 *Version 0.152.3, 2026-11-05*

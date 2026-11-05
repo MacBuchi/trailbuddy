@@ -600,10 +600,20 @@ void main() {
     final pts = [for (final p in parts) ...(p['pts'] as List)];
     expect(pts.take(2), [(_lat * 1e5).round(), (_lng(0) * 1e5).round()]);
     expect(find.byKey(const ValueKey('map-watch-stored')), findsNothing, reason: 'die Uhr hat noch nicht geantwortet');
+    expect(find.byKey(const ValueKey('nav-watch-status-sent')), findsOneWidget, reason: 'das Symbol steht schon, grau');
     watch.answer({'t': 'ok', 'id': parts.first['id']});
     await settle(tester, frames: 4);
     expect(find.byKey(const ValueKey('map-watch-stored')), findsOneWidget);
     expect(find.byKey(const ValueKey('nav-approach')), findsOneWidget, reason: 'die Navigation hier läuft');
+    // Die Leiste geht, das Symbol bleibt (#449, 2026-11-05) und sagt auf
+    // Tipp den Stand.
+    ScaffoldMessenger.of(tester.element(find.byKey(const ValueKey('nav-approach')))).hideCurrentSnackBar();
+    await settle(tester, frames: 4);
+    expect(find.byKey(const ValueKey('map-watch-stored')), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('nav-watch-status-stored')));
+    await settle(tester, frames: 4);
+    expect(find.descendant(of: find.byKey(const ValueKey('nav-watch-status-note')), matching: find.text('Route auf der Uhr')),
+        findsOneWidget);
   });
 
   testWidgets('#449 G2: Schalter aus heißt nichts an die Uhr', (tester) async {
@@ -614,6 +624,8 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('nav-go')));
     await settle(tester, frames: 10);
     expect(watch.sent, isEmpty);
+    expect(find.byKey(const ValueKey('nav-watch-status-idle')), findsNothing, reason: 'ohne Uhr kein Uhr-Symbol');
+    expect(find.byKey(const ValueKey('nav-stop')), findsOneWidget);
   });
 
   testWidgets('#449 G2: kommt die Route nicht an, sagt es die Leiste', (tester) async {
@@ -624,6 +636,7 @@ void main() {
     expect(watch.routeParts, isNotEmpty);
     expect(find.byKey(const ValueKey('map-watch-failed')), findsOneWidget);
     expect(find.byKey(const ValueKey('nav-approach')), findsOneWidget);
+    expect(find.byKey(const ValueKey('nav-watch-status-failed')), findsOneWidget);
   });
 
   testWidgets('#449: läuft die Uhr-App nicht, fragt die Uhr — die Route geht erst mit ihrem „hi"', (tester) async {

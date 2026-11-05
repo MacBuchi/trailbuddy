@@ -26,7 +26,7 @@ import '../../core/screen_awake.dart';
 import '../../data/providers.dart' show currentUserIdProvider;
 import '../../l10n/l10n.dart';
 import '../garmin/garmin_bridge.dart' show WatchStatus, garminBridgeProvider;
-import '../garmin/watch_providers.dart' show watchStatusProvider;
+import '../garmin/watch_providers.dart' show WatchSyncPhase, watchStatusProvider, watchSyncProvider;
 import '../map/map_buttons.dart';
 import '../map/map_view/map_view.dart';
 import '../rides/airtime_live.dart';
@@ -370,6 +370,10 @@ class _NavOverlayState extends ConsumerState<NavOverlay> {
                           onPressed: () => unawaited(ref.read(pictureInPictureProvider).enter()),
                         ),
                       ],
+                      if (ref.watch(watchSyncProvider).phase != WatchSyncPhase.idle) ...[
+                        const SizedBox(width: 10),
+                        const _WatchBadge(),
+                      ],
                       const Spacer(),
                       FilledButton.icon(
                         key: const ValueKey('nav-stop'),
@@ -398,6 +402,58 @@ class _NavOverlayState extends ConsumerState<NavOverlay> {
             child: _TrailDoneSheet(key: ObjectKey(done), done: done, next: phase),
           ),
       ]),
+    );
+  }
+}
+
+/// Die Uhr in der Knopfreihe (#449, 2026-11-05): solange die Navigation
+/// der Uhr folgt, steht das Symbol da — die Leiste mit „Route auf der
+/// Uhr" ist nach ein paar Sekunden weg. Der Punkt sagt den Stand (Lime:
+/// auf der Uhr, Orange: nicht angekommen, grau: unterwegs), ein Tipp sagt
+/// ihn in Worten.
+class _WatchBadge extends ConsumerWidget {
+  const _WatchBadge();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l = context.l10n;
+    final sync = ref.watch(watchSyncProvider);
+    final (dot, text) = switch (sync.phase) {
+      WatchSyncPhase.stored => (AppColors.brand, l.mapWatchStored),
+      WatchSyncPhase.unconfirmed => (_p.warningText, l.mapWatchUnconfirmed),
+      WatchSyncPhase.failed when sync.error == 'APP_IS_NOT_INSTALLED' => (_p.warningText, l.mapWatchMissing),
+      WatchSyncPhase.failed => (_p.warningText, l.mapWatchFailed),
+      WatchSyncPhase.prompted => (_p.muted, l.mapWatchPrompted),
+      _ => (_p.muted, l.navWatchSending),
+    };
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        MapRoundButton(
+          key: ValueKey('nav-watch-status-${sync.phase.name}'),
+          dark: true,
+          tooltip: l.navWatchTooltip,
+          icon: Icons.watch_outlined,
+          onPressed: () => ScaffoldMessenger.of(context)
+            ..hideCurrentSnackBar()
+            ..showSnackBar(SnackBar(key: const ValueKey('nav-watch-status-note'), content: Text(text))),
+        ),
+        Positioned(
+          right: 2,
+          top: 2,
+          child: IgnorePointer(
+            child: Container(
+              width: 12,
+              height: 12,
+              decoration: BoxDecoration(
+                color: dot,
+                shape: BoxShape.circle,
+                border: Border.all(color: _p.surface, width: 2),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

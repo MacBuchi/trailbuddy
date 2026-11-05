@@ -3396,6 +3396,14 @@
   "@mapWatchStored": {
     "description": "Leiste auf der Karte, wenn die Garmin-Uhr bestätigt hat, dass sie die Route gespeichert hat."
   },
+  "navWatchSending": "Die Route geht an die Uhr …",
+  "@navWatchSending": {
+    "description": "Hinweis beim Tipp auf das Uhr-Symbol in der Navigation, solange die Route noch an die Garmin-Uhr geht und die Uhr sie nicht bestätigt hat."
+  },
+  "navWatchTooltip": "Uhr",
+  "@navWatchTooltip": {
+    "description": "Tooltip des Uhr-Symbols in der Knopfreihe der Navigation; der Tipp sagt, wie es um die Route auf der Garmin-Uhr steht."
+  },
   "mapWatchFailed": "Die Route kam nicht auf der Uhr an. Öffne TrailBuddy auf der Uhr — dann kommt sie von selbst.",
   "@mapWatchFailed": {
     "description": "Leiste auf der Karte, wenn das Senden der Route an die Garmin-Uhr scheiterte; die Navigation auf dem Handy läuft trotzdem."
