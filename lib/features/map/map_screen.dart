@@ -1155,6 +1155,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         WatchSyncPhase.unconfirmed => ('map-watch-unconfirmed', l.mapWatchUnconfirmed),
         WatchSyncPhase.failed when next.error == 'APP_IS_NOT_INSTALLED' =>
           ('map-watch-missing', l.mapWatchMissing),
+        WatchSyncPhase.failed when next.error == kWatchTooBig => ('map-watch-too-big', l.mapWatchTooBig),
         WatchSyncPhase.failed => ('map-watch-failed', l.mapWatchFailed),
         _ => (null, null),
       };

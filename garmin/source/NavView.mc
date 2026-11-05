@@ -32,8 +32,13 @@ class NavView extends WatchUi.View {
     static const COL_X = 54;
     //! Die Übersicht ohne GPS: so viele Stücke je Linie höchstens, und der
     //! Radius, in den sie passt (innerhalb TbRing.MAP_R, über dem Text).
-    static const OVERVIEW_SEGS = 200;
+    static const OVERVIEW_SEGS = 120;
     static const OVERVIEW_R = 62;
+    //! So viele Striche zeichnet ein Bild höchstens (`seg`), dann bricht es
+    //! ab — lieber ein unvollständiges Bild als der Watchdog. Die fēnix 5
+    //! brach am Gerät schon ab, wo der Simulator noch zeichnete
+    //! (CIQ_LOG.YML, 2026-11-05: `seg` ← `strided` ← `drawOverview`).
+    static const FRAME_SEGS = 400;
 
     hidden var _route as NavRoute;
     hidden var _state as NavState? = null;
@@ -45,6 +50,11 @@ class NavView extends WatchUi.View {
     hidden var _speed as Float? = null;
     hidden var _stats as RideStats;
     hidden var _sep as String;
+    //! Die Zeilen der Karte, die in jedem Bild stehen, einmal geladen (die
+    //! übrigen Seiten laden ihre wenigen selbst — jede hier gehaltene
+    //! Zeichenkette kostet dauerhaft Arbeitsspeicher).
+    hidden var _toGoal as String;
+    hidden var _offRoute as String;
 
     // Die Drehung des laufenden Bilds (drawRoute und seine Helfer).
     hidden var _px as Float = 0.0;
@@ -55,18 +65,33 @@ class NavView extends WatchUi.View {
     hidden var _cx as Number = 120;
     hidden var _cy as Number = POS_Y;
     hidden var _reach as Float = 400.0;
+    hidden var _segLeft as Number = FRAME_SEGS;
+
+    // Die Übersicht ohne Fix, einmal je Route in Bildpunkte gerechnet
+    // (#449, 2026-11-05): Sie ändert sich nicht, bis der erste Fix kommt —
+    // je Bild nur noch Linien zwischen fertigen Punkten, kein `sx`/`sy`.
+    hidden var _ovX as Array<Number>? = null;
+    hidden var _ovY as Array<Number>? = null;
+    hidden var _ovStride as Number = 1;
+    hidden var _ovHeads as Array<Number>? = null;
 
     function initialize(route as NavRoute, stats as RideStats) {
         View.initialize();
         _route = route;
         _stats = stats;
         _sep = str(Rez.Strings.DecimalSep);
+        _toGoal = str(Rez.Strings.ToGoal);
+        _offRoute = str(Rez.Strings.OffRoute);
     }
 
     //! Beim Abkommen kommt die Karte nach vorn: Dort sieht man den Weg
     //! zurück (Entwurf „Ring und Seiten").
     function setState(s as NavState, speed as Float?) as Void {
         _state = s;
+        // Mit dem ersten Fix braucht es die Übersicht nicht mehr.
+        _ovX = null;
+        _ovY = null;
+        _ovHeads = null;
         _speed = speed;
         if (s.leftRoute) { _page = 0; }
         WatchUi.requestUpdate();
@@ -108,6 +133,7 @@ class NavView extends WatchUi.View {
 
     function onUpdate(dc as Dc) as Void {
         var w = dc.getWidth();
+        _segLeft = FRAME_SEGS;
         if (_page != 0 || (_state != null && (_state as NavState).arrived)) {
             dc.setColor(TbColors.TEXT_ON_FIELD, TbColors.FIELD);
             dc.clear();
@@ -125,6 +151,12 @@ class NavView extends WatchUi.View {
         }
         dc.setColor(TbColors.TEXT, TbColors.GROUND);
         dc.clear();
+        if (_route.failed) {
+            dc.setColor(TbColors.TEXT, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(w / 2, dc.getHeight() / 2, Graphics.FONT_SMALL, str(Rez.Strings.RouteBroken),
+                Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
+            return;
+        }
         if (!_route.isReady()) {
             dc.setColor(TbColors.TEXT, Graphics.COLOR_TRANSPARENT);
             dc.drawText(w / 2, dc.getHeight() / 2, Graphics.FONT_SMALL,
@@ -235,6 +267,8 @@ class NavView extends WatchUi.View {
         var minY = (ay < by ? ay : by) - _py;
         var maxY = (ay < by ? by : ay) - _py;
         if (minX > _reach || maxX < -_reach || minY > _reach || maxY < -_reach) { return; }
+        if (_segLeft <= 0) { return; }
+        _segLeft--;
         var x1 = sx(ax, ay);
         var y1 = sy(ax, ay);
         var x2 = sx(bx, by);
@@ -249,6 +283,64 @@ class NavView extends WatchUi.View {
     //! [OVERVIEW_SEGS] Stücke — jeder [stride]-te Punkt (Watchdog).
     //! Eine Testroute (rel) liegt um ihren ersten Punkt wie jede andere.
     hidden function drawOverview(dc as Dc, w as Number) as Void {
+        if (_ovX == null) { overviewPoints(w); }
+        var ox = _ovX as Array<Number>;
+        var oy = _ovY as Array<Number>;
+        var m = ox.size();
+        if (m < 2) { return; }
+        for (var pass = 0; pass < 2; pass++) {
+            var width = pass == 0 ? BAND_W : BAND_W - 4;
+            dc.setColor(pass == 0 ? TbColors.ROUTE_EDGE : TbColors.ROUTE, Graphics.COLOR_TRANSPARENT);
+            dc.setPenWidth(width);
+            polyline(dc, ox, oy, 0, m - 1, width / 2);
+        }
+        dc.setPenWidth(TRAIL_W - 1);
+        var n = _route.size();
+        var k;
+        for (k = 0; k < _route.secFrom.size(); k++) {
+            dc.setColor(TbColors.grade(_route.secGrade[k]), Graphics.COLOR_TRANSPARENT);
+            var to = _route.secTo[k] < n - 1 ? _route.secTo[k] : n - 1;
+            var j1 = (to + _ovStride - 1) / _ovStride;
+            polyline(dc, ox, oy, _route.secFrom[k] / _ovStride, j1 < m - 1 ? j1 : m - 1, 0);
+        }
+        dc.setPenWidth(1);
+        var heads = _ovHeads as Array<Number>;
+        for (k = 0; k < _route.secFrom.size(); k++) {
+            drawShield(dc, heads[2 * k], heads[2 * k + 1], _route.secGrade[k], 4, true, TbColors.GROUND);
+        }
+        var x0 = ox[0];
+        var y0 = oy[0];
+        // Der Start: ein schwarzer Punkt mit weißem Saum.
+        dc.setColor(TbColors.GROUND, Graphics.COLOR_TRANSPARENT);
+        dc.fillCircle(x0, y0, 7);
+        dc.setColor(TbColors.TEXT, Graphics.COLOR_TRANSPARENT);
+        dc.fillCircle(x0, y0, 5);
+        field(dc, w, FIELD_Y, TbColors.FIELD);
+        dc.setColor(TbColors.MUTED, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(w / 2, FIELD_Y + 2, Graphics.FONT_XTINY, str(Rez.Strings.WaitGps), Graphics.TEXT_JUSTIFY_CENTER);
+        dc.setColor(TbColors.TEXT_ON_FIELD, Graphics.COLOR_TRANSPARENT);
+        numberLine(dc, w / 2, FIELD_Y + 28, meters(_route.lengthM), _route.climbLeft(0.0));
+        // Oben klein der Build-Stempel (Betreiber 2026-11-05): Commit und
+        // Datum des Builds — ob die neue .prg wirklich auf der Uhr ist.
+        dc.setColor(TbColors.MUTED_DARK, Graphics.COLOR_TRANSPARENT);
+        // Bei y 18 war der Kreis zu schmal (fēnix 5, 2026-11-05: halb
+        // abgeschnitten) — tiefer und kurz (`tool/garmin_build.sh`).
+        dc.drawText(w / 2, 34, Graphics.FONT_XTINY, str(Rez.Strings.BuildStamp), Graphics.TEXT_JUSTIFY_CENTER);
+        // Der schwarze Rand, auf dem der Ring liegt.
+        dc.setColor(TbColors.FIELD, Graphics.COLOR_TRANSPARENT);
+        dc.setPenWidth(w / 2 - TbRing.MAP_R + 2);
+        dc.drawCircle(w / 2, w / 2, (w / 2 + TbRing.MAP_R) / 2 + 1);
+        dc.setPenWidth(1);
+    }
+
+    //! Die Übersicht in Bildpunkten: Rahmen aus den Hüllen der Blöcke
+    //! (≤ 63 Vergleiche), genordet und eingepasst, jeder [_ovStride]-te
+    //! Punkt (höchstens [OVERVIEW_SEGS] Stücke), das Ende immer; dazu die
+    //! Trailköpfe. Einmal je Route, nicht je Bild.
+    hidden function overviewPoints(w as Number) as Void {
+        _ovX = [] as Array<Number>;
+        _ovY = [] as Array<Number>;
+        _ovHeads = [] as Array<Number>;
         var nb = _route.blockCount();
         if (nb == 0) { return; }
         var minX = _route.bMinX[0];
@@ -270,62 +362,34 @@ class NavView extends WatchUi.View {
         _cos = 1.0;
         _cx = w / 2;
         _cy = w / 2 - 16;
-        _reach = span + 1.0;
-        var n = _route.size();
+        var xs = _route.xs;
+        var ys = _route.ys;
+        var n = xs.size();
         var stride = (n + OVERVIEW_SEGS - 1) / OVERVIEW_SEGS;
         if (stride < 1) { stride = 1; }
-        for (var pass = 0; pass < 2; pass++) {
-            var width = pass == 0 ? BAND_W : BAND_W - 4;
-            dc.setColor(pass == 0 ? TbColors.ROUTE_EDGE : TbColors.ROUTE, Graphics.COLOR_TRANSPARENT);
-            dc.setPenWidth(width);
-            strided(dc, 0, n - 1, stride, width / 2);
+        _ovStride = stride;
+        var ox = _ovX as Array<Number>;
+        var oy = _ovY as Array<Number>;
+        for (var i = 0; i < n - 1; i += stride) {
+            ox.add(sx(xs[i], ys[i]));
+            oy.add(sy(xs[i], ys[i]));
         }
-        dc.setPenWidth(TRAIL_W - 1);
-        var k;
-        for (k = 0; k < _route.secFrom.size(); k++) {
-            dc.setColor(TbColors.grade(_route.secGrade[k]), Graphics.COLOR_TRANSPARENT);
-            strided(dc, _route.secFrom[k], _route.secTo[k] < n - 1 ? _route.secTo[k] : n - 1, stride, 0);
-        }
-        dc.setPenWidth(1);
-        var xs = _route.xs;
-        var ys = _route.ys;
-        for (k = 0; k < _route.secFrom.size(); k++) {
+        ox.add(sx(xs[n - 1], ys[n - 1]));
+        oy.add(sy(xs[n - 1], ys[n - 1]));
+        var heads = _ovHeads as Array<Number>;
+        for (var k = 0; k < _route.secFrom.size(); k++) {
             var head = _route.secFrom[k];
-            drawShield(dc, sx(xs[head], ys[head]), sy(xs[head], ys[head]), _route.secGrade[k], 4, true, TbColors.GROUND);
+            heads.add(sx(xs[head], ys[head]));
+            heads.add(sy(xs[head], ys[head]));
         }
-        // Der Start: ein schwarzer Punkt mit weißem Saum.
-        var x0 = sx(xs[0], ys[0]);
-        var y0 = sy(xs[0], ys[0]);
-        dc.setColor(TbColors.GROUND, Graphics.COLOR_TRANSPARENT);
-        dc.fillCircle(x0, y0, 7);
-        dc.setColor(TbColors.TEXT, Graphics.COLOR_TRANSPARENT);
-        dc.fillCircle(x0, y0, 5);
-        field(dc, w, FIELD_Y, TbColors.FIELD);
-        dc.setColor(TbColors.MUTED, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(w / 2, FIELD_Y + 2, Graphics.FONT_XTINY, str(Rez.Strings.WaitGps), Graphics.TEXT_JUSTIFY_CENTER);
-        dc.setColor(TbColors.TEXT_ON_FIELD, Graphics.COLOR_TRANSPARENT);
-        numberLine(dc, w / 2, FIELD_Y + 28, meters(_route.lengthM), _route.climbLeft(0.0));
-        // Oben klein der Build-Stempel (Betreiber 2026-11-05): Commit und
-        // Datum des Builds — ob die neue .prg wirklich auf der Uhr ist.
-        dc.setColor(TbColors.MUTED_DARK, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(w / 2, 18, Graphics.FONT_XTINY, str(Rez.Strings.BuildStamp), Graphics.TEXT_JUSTIFY_CENTER);
-        // Der schwarze Rand, auf dem der Ring liegt.
-        dc.setColor(TbColors.FIELD, Graphics.COLOR_TRANSPARENT);
-        dc.setPenWidth(w / 2 - TbRing.MAP_R + 2);
-        dc.drawCircle(w / 2, w / 2, (w / 2 + TbRing.MAP_R) / 2 + 1);
-        dc.setPenWidth(1);
     }
 
-    //! Die Linie [lo, hi] über jeden [stride]-ten Punkt, das Ende immer.
-    hidden function strided(dc as Dc, lo as Number, hi as Number, stride as Number, joint as Number) as Void {
-        if (hi <= lo) { return; }
-        var xs = _route.xs;
-        var ys = _route.ys;
-        var a = lo;
-        while (a < hi) {
-            var b = a + stride < hi ? a + stride : hi;
-            seg(dc, xs[a], ys[a], xs[b], ys[b], joint);
-            a = b;
+    //! Linien zwischen den fertigen Punkten [lo, hi] der Übersicht.
+    hidden function polyline(dc as Dc, ox as Array<Number>, oy as Array<Number>, lo as Number, hi as Number,
+            joint as Number) as Void {
+        for (var j = lo; j < hi; j++) {
+            dc.drawLine(ox[j], oy[j], ox[j + 1], oy[j + 1]);
+            if (joint > 0) { dc.fillCircle(ox[j + 1], oy[j + 1], joint); }
         }
     }
 
@@ -545,7 +609,7 @@ class NavView extends WatchUi.View {
             return;
         }
         dc.setColor(TbColors.MUTED, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx, FIELD_Y + 2, Graphics.FONT_XTINY, str(Rez.Strings.ToGoal), Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(cx, FIELD_Y + 2, Graphics.FONT_XTINY, _toGoal, Graphics.TEXT_JUSTIFY_CENTER);
         numberLine(dc, cx, FIELD_Y + 28, meters(s.remainingM), _route.climbLeft(s.alongM));
     }
 
@@ -581,6 +645,14 @@ class NavView extends WatchUi.View {
     }
 
     //! Die Breite des Kreises (Radius [r] = [cx]) auf der Höhe [y].
+    //! Breite des Kreises mit Radius [r] um die Mitte der Anzeige ([c], [c])
+    //! auf Höhe [y].
+    hidden function chordAround(c as Number, r as Number, y as Number) as Number {
+        var d = y > c ? y - c : c - y;
+        if (d >= r) { return 0; }
+        return (2 * Math.sqrt(r * r - d * d)).toNumber();
+    }
+
     hidden function chord(r as Number, y as Number) as Number {
         var d = y > r ? y - r : r - y;
         if (d >= r) { return 0; }
@@ -589,11 +661,22 @@ class NavView extends WatchUi.View {
 
     //! „1,2 km ▲80": der Weg weiß, der Anstieg in Lime mit gezeichnetem
     //! Pfeil (die Systemschrift hat keinen).
+    //! Unten wird der Kreis schmal: Passt die Zeile nicht in die Breite
+    //! innerhalb des Rings auf Höhe ihrer Unterkante, eine kleinere Schrift
+    //! („5,6 km ▲149" lief am Gerät rechts hinaus, 2026-11-05).
     hidden function numberLine(dc as Dc, cx as Number, y as Number, dist as String, climb as Float?) as Void {
-        var font = Graphics.FONT_SMALL;
         var up = climb != null && climb >= 1 ? (climb as Float).toNumber().toString() : null;
-        var dw = dc.getTextWidthInPixels(dist, font);
-        var uw = up == null ? 0 : dc.getTextWidthInPixels(up, font) + 22;
+        var fonts = [Graphics.FONT_SMALL, Graphics.FONT_TINY, Graphics.FONT_XTINY] as Array<Graphics.FontDefinition>;
+        var font = Graphics.FONT_XTINY;
+        var dw = 0;
+        var uw = 0;
+        for (var i = 0; i < fonts.size(); i++) {
+            font = fonts[i];
+            dw = dc.getTextWidthInPixels(dist, font);
+            uw = up == null ? 0 : dc.getTextWidthInPixels(up, font) + 22;
+            var bottom = y + dc.getFontHeight(font) - 4;
+            if (dw + uw <= chordAround(cx, TbRing.MAP_R - 4, bottom)) { break; }
+        }
         var x = cx - (dw + uw) / 2;
         dc.setColor(TbColors.TEXT_ON_FIELD, Graphics.COLOR_TRANSPARENT);
         dc.drawText(x, y, font, dist, Graphics.TEXT_JUSTIFY_LEFT);
@@ -610,7 +693,7 @@ class NavView extends WatchUi.View {
     hidden function drawOffField(dc as Dc, s as NavState, w as Number) as Void {
         field(dc, w, FIELD_Y, TbColors.WARNING);
         dc.setColor(TbColors.TEXT_ON_FIELD, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(w / 2, FIELD_Y + 2, Graphics.FONT_TINY, str(Rez.Strings.OffRoute), Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(w / 2, FIELD_Y + 2, Graphics.FONT_TINY, _offRoute, Graphics.TEXT_JUSTIFY_CENTER);
         dc.drawText(w / 2, FIELD_Y + 28, Graphics.FONT_SMALL, meters(s.offM), Graphics.TEXT_JUSTIFY_CENTER);
     }
 

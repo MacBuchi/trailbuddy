@@ -27,8 +27,38 @@ Garmin-Aktivität, kein Netz, keine Abbiegehinweise.
   ein — mit `--demo --points 2000` prüfen.
 - **Speicher** (Messung 8.1 im Simulator, 124 KB für die App): gut 20 Byte
   je Punkt auf ~29 KB Grundlast; 2000 Punkte 70 KB, ab 3000 „Out of
-  Memory" schon beim Laden (rohe Daten und Felder liegen kurz zusammen).
-  Grenze für G2: 2000 Punkte. Mit Ring und Seiten 76 KB bei 2000.
+  Memory" schon beim Laden (damals lagen rohe Daten und Felder kurz
+  zusammen — seit 2026-11-05 nicht mehr, nachzumessen). Grenze für G2:
+  2000 Punkte. Mit Ring und Seiten 76 KB bei 2000.
+- **Das Gerät ist strenger als der Simulator** (CIQ_LOG.YML, fēnix 5,
+  2026-11-05): Die Übersicht ohne Fix (200 Stücke je Durchgang, je Stück
+  vier `sx`/`sy`) lief im Simulator, am Gerät brach sie bei jedem Start
+  den Watchdog. Seitdem rechnet `overviewPoints` die Übersicht einmal je
+  Route in Bildpunkte, und `seg` zeichnet je Bild höchstens `FRAME_SEGS`
+  Striche. Ein Absturz am Gerät steht in `GARMIN/APPS/LOGS/CIQ_LOG.YML`
+  (vor dem Sync lesen, danach heißt es `.BAK`) — mit Datei, Zeile und
+  Funktion, sobald die `.prg` von `tool/garmin_build.sh` kommt.
+- **Protokoll 2** (`PhoneRoute.mc`, Konzept 2): je Punkt eine Zahl
+  `(dLat << 16) | dLon`, Höhen zu zweit, Stummel `[Punkt, gepackt]`.
+  `unpackHi/Lo` maskieren, damit es nicht darauf ankommt, ob `>>` das
+  Vorzeichen mitnimmt. `NavRoute` liest die Stücke über `RouteParts`
+  einzeln (Speicher oder Liste), `fromDict` für Testroute und Tests.
+  Die Grenze je Stück (`MAX_PART_INTS`) gilt nur für `take` — die
+  Testroute ist EIN Stück mit 1560 Zahlen; galt sie für alles, lud die
+  Uhr die Testroute alle 50 ms neu („Lade Route 0 %", ohne Ausweg,
+  2026-11-05; Test `resourceRouteDecodes`).
+- **`try/catch` fängt nur `Lang.Exception`** (`StorageFullException` …),
+  nicht „Out of Memory", Watchdog, Index außerhalb oder falschen Typ —
+  die beenden die App. Deshalb prüft `PhoneRoute.take` jedes Feld, bevor
+  es etwas ablegt, und `NavRoute` jede Stück-Form beim Dekodieren.
+- **`CrashGuard`** (`PhoneRoute.mc`): „risk" = Kennung der Route, solange
+  sie neu ist; `onStop` und eine ruhige Minute löschen es. Steht es beim
+  Start noch, zählt es; beim zweiten Mal in Folge ist die Route `bad`.
+  Ein sauberer Lauf dazwischen setzt den Zähler zurück.
+- **Simulator für `--test`**: Er muss laufen und bereit sein, bevor
+  `monkeydo -t` startet (nach `open` gut 10 s) — sonst wartet `monkeydo`
+  ohne Ausgabe. Die Konsole von `--demo` erreicht eine umgeleitete
+  Ausgabe nicht; Speicherzahlen dort nur im Fenster.
 - **Unit-Tests** (`source/Tests.mc`): Jede Funktion mit `(:test)` muss
   `(logger as Logger) as Boolean` sein — Hilfsfunktionen liegen deshalb im
   Modul `TestRoutes`, das `(:test)` trägt. Gegenprobe gefahren
@@ -70,11 +100,13 @@ Garmin-Aktivität, kein Netz, keine Abbiegehinweise.
   Start noch, ist die Route verworfen (sonst stürzte die App bei jedem
   Start). Beim Wechsel geht die alte Route ZUERST (`swapRoute`: kleine
   Platzhalter-Route, dann laden), beide zusammen passten nicht in 124 KB.
+  Im Speicher liegt je Stück nur `[pts, ele, br]`, der Kopf als `<fach>h`.
   Berechtigung `Communications` im Manifest. Die Fassung `PROTOCOL` liest
   `test/garmin/watch_route_test.dart` aus dieser Datei.
 - **Abzweigungen vom Handy** (`br`, Konzept 2): kommen je Stück mit den
-  Punkten, die sie tragen (Nummer der ganzen Linie), `PhoneRoute.append`
-  hängt sie an; `NavView` sieht beim Zeichnen alle an — `seg` schneidet
+  Punkten, die sie tragen (Nummer der ganzen Linie), `NavRoute`
+  dekodiert sie nach den Punkten ihres Stücks (`branchesOf`); `NavView`
+  sieht beim Zeichnen alle an — `seg` schneidet
   mit vier Vergleichen aus, 300 Stummel sind ~6 000 Schritte. Eine
   Grenze nach Weg entlang der Route wäre an Serpentinen falsch (ein Punkt
   1,5 km später liegt 50 m daneben).
@@ -88,7 +120,7 @@ Garmin-Aktivität, kein Netz, keine Abbiegehinweise.
   so einem Fehler hing der Simulator beim nächsten `--test`: Prozesse
   `monkeydo`/`simulator` beenden, dann neu.
 - **„Hallo"** (`sayHello` in `TrailBuddyApp`): beim Start und auf `q`
-  vom Handy `{t: "hi", v, id}` mit `PhoneRoute.currentId()` — der
+  vom Handy `{t: "hi", v, id, bad}` mit `PhoneRoute.currentId()` — der
   Kennung der GESPEICHERTEN Route, nicht der geladenen (eine fertig
   empfangene wartet vielleicht noch auf den Wechsel). Das Handy schickt
   daraufhin die aktuelle Route, wenn sie abweicht (Konzept 2, „Das Handy

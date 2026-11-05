@@ -24,6 +24,7 @@ import 'package:trailbuddy/core/screen_awake.dart';
 import 'package:trailbuddy/features/garmin/garmin_bridge.dart' show WatchOpen, WatchSendResult;
 import 'package:trailbuddy/features/garmin/watch_providers.dart' show kWatchAckWait, kWatchNudges, watchBranchesLoaderProvider, watchSyncProvider;
 import 'package:trailbuddy/features/garmin/watch_branches.dart' show WatchBranch;
+import 'package:trailbuddy/features/garmin/watch_route.dart' show kWatchProtocol, watchUnpack;
 import 'package:trailbuddy/features/map/map_view/map_view.dart';
 import 'package:trailbuddy/features/offline_areas/area_plan.dart';
 import 'package:trailbuddy/features/offline_areas/area_store.dart';
@@ -572,19 +573,64 @@ void main() {
     await settle(tester, frames: 20);
     final parts = watch.routeParts;
     expect(parts, isNotEmpty);
-    final br = [for (final p in parts) ...?(p['br'] as List?)];
-    expect(br, hasLength(6), reason: 'zwei Stummel an der einen Kreuzung, Osten und Westen');
+    // Auf dem Draht gepackt (Protokoll 2): [Punkt, (dLat << 16) | dLon].
+    final packed = [for (final p in parts) ...?(p['br'] as List?)].cast<int>();
+    expect(packed, hasLength(4), reason: 'zwei Stummel an der einen Kreuzung, Osten und Westen');
+    final br = <int>[];
+    for (var k = 0; k < packed.length; k += 2) {
+      final (a, b) = watchUnpack(packed[k + 1]);
+      br.addAll([packed[k], a, b]);
+    }
     // 40 m nach Osten und Westen, quer zur Route nach Norden.
     final dLon = (40 / (111194.93 * math.cos(48.0 * math.pi / 180)) * 1e5);
-    expect([br[2], br[5]].map((v) => (v as int).abs()).toSet().single, closeTo(dLon, 2));
-    expect((br[1] as int).abs() + (br[4] as int).abs(), lessThanOrEqualTo(2));
+    expect([br[2], br[5]].map((v) => v.abs()).toSet().single, closeTo(dLon, 2));
+    expect(br[1].abs() + br[4].abs(), lessThanOrEqualTo(2));
     // Der Punkt der Kreuzung ist ein Punkt der Linie an 48,0°.
     final pts = [for (final p in parts) ...(p['pts'] as List).cast<int>()];
-    var lat = 0;
-    for (var i = 0; i <= (br[0] as int); i++) {
-      lat += pts[2 * i];
+    var lat = (parts.first['o'] as List<int>)[0];
+    for (var i = 0; i <= br[0]; i++) {
+      lat += watchUnpack(pts[i]).$1;
     }
     expect(lat / 1e5, closeTo(48.0, 0.0002));
+  });
+
+  testWidgets('#449: kann die Uhr die Route nicht nehmen, geht sie einmal kleiner — dann sagt die Leiste es', (tester) async {
+    // Zickzack mit 33 m Ausschlag: Bei 5 m bleibt jeder Punkt, halb so
+    // viele gibt es erst stärker vereinfacht — eine andere Route.
+    final t0 = DateTime.utc(2026, 10, 8, 9);
+    store.rides[0] = Ride(
+      id: '20261008T090000Z',
+      startedAt: t0,
+      endedAt: t0.add(const Duration(hours: 1)),
+      points: [
+        for (var i = 0; i <= 20; i++) RidePoint(lat: _lat + (i.isEven ? 0 : 0.0003), lng: _lng(i), at: t0, accuracyM: 0)
+      ],
+      planned: true,
+      name: 'Hausrunde',
+    );
+    final watch = FakeGarminBridge.connected();
+    await startFromRides(tester, garmin: watch);
+    await tester.tap(find.byKey(const ValueKey('nav-go')));
+    await settle(tester, frames: 10);
+    final first = watch.routeParts;
+    final firstPoints = first.first['np'] as int;
+    watch.answer({'t': 'x', 'id': first.first['id'], 'c': 'mem'});
+    await settle(tester, frames: 10);
+    final second = [...watch.sent.last.where((m) => m['t'] == 'r')];
+    expect(second, isNotEmpty);
+    expect(second.first['id'], isNot(first.first['id']), reason: 'eine neue, kleinere Route');
+    expect(second.first['np'] as int, lessThanOrEqualTo((firstPoints / 2).ceil()));
+    expect(find.byKey(const ValueKey('map-watch-too-big')), findsNothing);
+    // Auch die kleinere geht nicht: kein drittes Mal, die Leiste sagt es.
+    final sends = watch.sent.length;
+    watch.answer({'t': 'x', 'id': second.first['id'], 'c': 'crash'});
+    await settle(tester, frames: 10);
+    expect(watch.sent.length, sends);
+    expect(find.byKey(const ValueKey('map-watch-too-big')), findsOneWidget);
+    // Eine Meldung zu einer fremden Route ändert nichts.
+    watch.answer({'t': 'x', 'id': 'fremd', 'c': 'mem'});
+    await settle(tester, frames: 4);
+    expect(watch.sent.length, sends);
   });
 
   testWidgets('#449 G2: mit verbundener Uhr geht die Route hin, die Antwort der Uhr sagt die Leiste', (tester) async {
@@ -596,9 +642,8 @@ void main() {
     await settle(tester, frames: 10);
     final parts = watch.routeParts;
     expect(parts, isNotEmpty);
-    expect(parts.first['v'], 1);
-    final pts = [for (final p in parts) ...(p['pts'] as List)];
-    expect(pts.take(2), [(_lat * 1e5).round(), (_lng(0) * 1e5).round()]);
+    expect(parts.first['v'], kWatchProtocol);
+    expect(parts.first['o'], [(_lat * 1e5).round(), (_lng(0) * 1e5).round()]);
     expect(find.byKey(const ValueKey('map-watch-stored')), findsNothing, reason: 'die Uhr hat noch nicht geantwortet');
     expect(find.byKey(const ValueKey('nav-watch-status-sent')), findsOneWidget, reason: 'das Symbol steht schon, grau');
     watch.answer({'t': 'ok', 'id': parts.first['id']});

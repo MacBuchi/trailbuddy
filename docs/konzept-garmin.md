@@ -126,9 +126,51 @@ Was die Nachricht trägt:
   (OSM-Wege und eigene Trails, keine fremden — A1, A2);
 - Kopf: Protokollversion, Länge, Höhenmeter, eine Kennung der Route.
 
-Die Form steht in `garmin/source/NavRoute.mc` (Schlüssel `v`, `id`,
-`pts`, `ele`, `sec`, `br`); G1 liest sie schon aus der Ressource,
-`tool/garmin_route.py` schreibt sie. **Höchstens 2000 Punkte**
+Die Form steht in `garmin/source/PhoneRoute.mc` und `NavRoute.mc`
+(Protokoll 2, Schlüssel `v`, `id`, `np`, `o`, `e0`, `sec`, `pts`, `ele`,
+`br`); die Testroute liest sie aus der Ressource, `tool/garmin_route.py`
+schreibt sie.
+
+**Protokoll 2 — gepackt** (#449, 2026-11-05, Betreiber: „sparsam mit
+Speicher und Datenstrom, robust mit Fehlerbehandlung"). Jede Zahl kostet
+auf dem Draht und im Speicher der Uhr ~5 Byte, gleich wie groß. Deshalb
+trägt eine Zahl zwei 16-Bit-Werte: je Punkt `(dLat << 16) | dLon` gegen
+den Vorgänger (der erste gegen `o`), die Höhendifferenzen zu zweit, je
+Stummel `[Punkt, gepackt(dLat, dLon)]` — halb so viele Zahlen wie mit
+Protokoll 1. Ein Schritt über 32 767 × 1e-5° (gut 240 m in der Länge bei
+47°) bekommt beim Handy Zwischenpunkte. Der Kopf (`v`, `np` = Anzahl der
+Punkte, `o`, `e0`, `sec`) steht im ersten Stück und zählt in dessen
+Grenze mit. Erster Test am Gerät (fēnix 5 über Garmin Connect,
+2026-11-05): eine Route „Zum Trailkopf" in 2 Stücken, beide bestätigt,
+die Uhr zeigte sie. Eine Uhr-App mit Protokoll 1 nimmt Protokoll 2 nicht
+und umgekehrt — beide Seiten kommen aus demselben Stand; dass das Handy
+die Fassung im „hallo" prüft und eine veraltete Seite benennt, ist der
+nächste Schritt.
+
+**Die Uhr hält nie die ganze Route roh** (2026-11-05): Sie legt jedes
+Stück geprüft (Typen, Größen, Trails innerhalb der Linie) als `[pts, ele,
+br]` in `Application.Storage` und dekodiert danach Stück für Stück in
+Felder, die von Anfang an ihre volle Länge haben. Vorher lagen rohe Daten
+und Felder kurz zusammen (Messung 8.1: ab 3000 Punkten „Out of Memory"
+beim Laden). Passt ein Stück nicht, ist die Route „unbrauchbar" und die
+Uhr nimmt die Testroute — statt abzustürzen; eine Route aus Protokoll 1
+im Speicher räumt sie weg.
+
+**Fehler sagt die Uhr dem Handy** (`{t: "x", id, c}`): `mem` (zu wenig
+Arbeitsspeicher zum Ablegen), `store` (der Speicher nahm es nicht),
+`bad` (falsche Form), `crash` (siehe unten). Bei `mem`, `store` und
+`crash` rechnet das Handy die Route EINMAL mit halb so vielen Punkten und
+schickt sie; scheitert auch das, sagt die Leiste „Die Uhr konnte die
+Route nicht laden, auch nicht vereinfacht". **Kein Absturz zweimal**:
+Solange eine Route neu ist (sie kommt an, oder sie lädt und lief noch
+keine Minute), merkt sich die Uhr ihre Kennung; endet die App so zweimal
+hintereinander nicht sauber, verwirft sie die Route, nimmt sie nicht
+mehr an und nennt sie im „hallo" (`bad`) — das Handy schickt dann die
+kleinere. **Bricht die Übertragung mittendrin ab**
+(`FAILURE_DURING_TRANSFER`, `FAILURE_TIMEOUT`), gehen nach 2 s die
+übrigen Stücke noch einmal, höchstens zweimal — die Uhr hat die
+angekommenen schon abgelegt. Die Uhr sendet nur, wenn ein Handy
+verbunden ist. **Höchstens 2000 Punkte**
 (Messung 8.1): darüber vereinfacht die App stärker, bis es passt.
 
 Die Uhr schickt zurück: „angekommen und gespeichert" mit der Kennung
@@ -352,7 +394,8 @@ Aus der Gerätedatei des SDK 9.3.0 und der Uhr selbst:
    2). Mit Ring und Seiten (2026-11-04): 2000 Punkte 76 KB. Am Gerät
    nachmessen.
 2. **Übertragung**: größte Nachricht, die ankommt; Dauer für eine
-   typische Runde. Am Gerät (2026-11-04): Für eine geschlossene Uhr-App
+   typische Runde. Seit Protokoll 2 (2026-11-05) halb so viele Zahlen
+   je Punkt; eine Route „Zum Trailkopf" ging in 2 Stücken. Am Gerät (2026-11-04): Für eine geschlossene Uhr-App
    meldet Garmin Connect `SUCCESS` und die Nachricht verfällt — daher
    das Anstoßen und „hallo" (Abschnitt 2). Größe und Dauer offen.
 3. **Akku**: Prozent je Stunde mit GPS jede Sekunde und Anzeige an.

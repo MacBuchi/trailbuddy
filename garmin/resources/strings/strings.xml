@@ -2,6 +2,7 @@
     <string id="AppName">TrailBuddy</string>
     <string id="Loading">Loading route</string>
     <string id="WaitGps">Waiting for GPS</string>
+    <string id="RouteBroken">Route unusable</string>
     <string id="Arrived">ARRIVED</string>
     <string id="OffRoute">OFF ROUTE</string>
     <string id="ToGoal">TO FINISH</string>

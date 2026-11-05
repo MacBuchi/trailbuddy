@@ -2,6 +2,27 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Die Uhr bleibt stabil
+
+*Version 0.153.2, 2026-11-05*
+
+- Die TrailBuddy-App auf der Garmin-Uhr stürzte kurz nach dem Start ab
+  („IQ!"), solange sie noch auf GPS wartete: Die Übersicht der Route war
+  für die Uhr zu viel Rechenarbeit. Jetzt rechnet sie die Übersicht
+  einmal und zeichnet danach nur noch.
+- Die Route geht kompakter auf die Uhr — mit halb so vielen Zahlen wie
+  bisher. Das spart Zeit bei der Übertragung und Speicher auf der Uhr.
+  Bricht die Übertragung mittendrin ab, gehen die fehlenden Teile von
+  selbst noch einmal.
+- Kann die Uhr eine Route nicht laden (zu wenig Speicher, oder die App
+  stürzte damit zweimal ab), schickt das Handy sie einmal vereinfacht;
+  klappt auch das nicht, sagt es Bescheid. Die Navigation auf dem Handy
+  läuft in jedem Fall weiter.
+- Unten auf der Uhr passen Strecke und Höhenmeter jetzt in den runden
+  Rand.
+- Wichtig: Uhr-App und Handy-App müssen zusammen aktualisiert werden —
+  die neue Uhr-App versteht nur die Route der neuen Handy-App.
+
 ## Der Winkel des Rads stimmt wieder
 
 *Version 0.153.1, 2026-11-05*

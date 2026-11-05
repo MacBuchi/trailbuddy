@@ -73,9 +73,10 @@ void main() {
     expect(cross, hasLength(2));
     expect(cross.first.index, 23, reason: 'y 506 liegt näher an 500 als 484');
     final route = watchRouteOf(wobbly, NavSections.none, branches: cross)!;
-    final json = route.toJson();
-    final b = json['br'] as List;
+    final b = route.br;
     expect(b.length, 6);
+    expect(route.toJson()['br'], [b[0], watchPack(b[1], b[2]), b[3], watchPack(b[4], b[5])],
+        reason: 'auf dem Draht gepackt: [Punkt, (dLat << 16) | dLon]');
     // Ende gegen die Kreuzung, nicht gegen den Punkt: ±40 bzw. −30 m Ost.
     final dLons = {b[2], b[5]};
     expect(dLons, {(40 / 111194.93 * 1e5).round(), (-30 / 111194.93 * 1e5).round()});
@@ -108,17 +109,18 @@ void main() {
     final br = <int>[];
     var offset = 0;
     for (final p in parts) {
-      final pts = (p['pts'] as List).length ~/ 2;
+      final pts = (p['pts'] as List).length;
       final own = (p['br'] as List?)?.cast<int>() ?? const <int>[];
-      expect((p['pts'] as List).length + own.length, lessThanOrEqualTo(100));
-      for (var k = 0; k < own.length; k += 3) {
+      expect(pts + own.length + (p['p'] == 0 ? 8 : 0), lessThanOrEqualTo(100), reason: 'samt Kopf im ersten');
+      for (var k = 0; k < own.length; k += 2) {
         expect(own[k], inInclusiveRange(offset, offset + pts - 1), reason: 'der Punkt liegt in diesem Stück');
+        final (dLat, dLon) = watchUnpack(own[k + 1]);
+        br.addAll([own[k], dLat, dLon]);
       }
-      br.addAll(own);
       offset += pts;
     }
     expect(br, route.br);
-    expect(route.toJson()['br'], route.br);
+    expect(route.toJson()['br'], route.packedBr());
   });
 
   test('mehr als die Uhr nimmt: gleichmäßig ausgedünnt', () {
