@@ -2,6 +2,16 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## The bike's angle is right again
+
+*Version 0.153.1, 2026-11-05*
+
+- At the end of one ride, the wheelie detection had stored the phone's
+  position on the bike twisted and afterwards showed angles that were
+  too small: tilting by 90° showed as about 35°. It now learns the
+  direction of travel only once the bike has also braked, and keeps a
+  newly learned position only once it is well backed. Until then the
+  old one stays.
 ## The watch shows more and counts right
 
 *Version 0.153.0, 2026-11-05*

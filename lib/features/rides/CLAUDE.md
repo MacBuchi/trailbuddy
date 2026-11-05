@@ -282,7 +282,13 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     gemeldet.
   - **Die Halterung der letzten Fahrt** liegt in
     `rides/sensors/mount.json` (geschrieben alle 60 s und beim Stopp,
-    nur eine gelernte) und steht als `# mount,…` im Kopf der neuen Datei;
+    seit 0.153.1 nur eine belastbare: `solidMount` — mitgebracht und nie
+    verworfen, oder neu gelernt mit `kMountSolidSamples` Proben, davon
+    `kMountSolidBrakes` vom Bremsen; „vorn" selbst gilt erst mit einer
+    Brems-Probe, `_fwdMinBrakes`. Am 2026-11-01 lernten neun Kurven in
+    den letzten 15 s „vorn" um 57° verdreht, gespeichert maß die App 91°
+    als 35°. Nachspielen mit den Kopfzeilen `# mount` der Dateien und dem
+    Tempo, Bestätigung beim Start prüft nur „oben") und steht als `# mount,…` im Kopf der neuen Datei;
     der Messbereich (`# range,…`) kommt über den Kanal
     `de.mcbuchi.trailbuddy/sensors` in `MainActivity.kt` — gelesen im
     Main-Isolate beim `arm` (`kRideDataSensorRange`), denn im Dienst gibt
