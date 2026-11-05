@@ -33,7 +33,7 @@ class NavView extends WatchUi.View {
     //! Die Übersicht ohne GPS: so viele Stücke je Linie höchstens, und der
     //! Radius, in den sie passt (innerhalb TbRing.MAP_R, über dem Text).
     static const OVERVIEW_SEGS = 200;
-    static const OVERVIEW_R = 64;
+    static const OVERVIEW_R = 62;
 
     hidden var _route as NavRoute;
     hidden var _state as NavState? = null;
@@ -269,7 +269,7 @@ class NavView extends WatchUi.View {
         _sin = 0.0;
         _cos = 1.0;
         _cx = w / 2;
-        _cy = w / 2 - 20;
+        _cy = w / 2 - 16;
         _reach = span + 1.0;
         var n = _route.size();
         var stride = (n + OVERVIEW_SEGS - 1) / OVERVIEW_SEGS;
@@ -305,6 +305,10 @@ class NavView extends WatchUi.View {
         dc.drawText(w / 2, FIELD_Y + 2, Graphics.FONT_XTINY, str(Rez.Strings.WaitGps), Graphics.TEXT_JUSTIFY_CENTER);
         dc.setColor(TbColors.TEXT_ON_FIELD, Graphics.COLOR_TRANSPARENT);
         numberLine(dc, w / 2, FIELD_Y + 28, meters(_route.lengthM), _route.climbLeft(0.0));
+        // Oben klein der Build-Stempel (Betreiber 2026-11-05): Commit und
+        // Datum des Builds — ob die neue .prg wirklich auf der Uhr ist.
+        dc.setColor(TbColors.MUTED_DARK, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(w / 2, 18, Graphics.FONT_XTINY, str(Rez.Strings.BuildStamp), Graphics.TEXT_JUSTIFY_CENTER);
         // Der schwarze Rand, auf dem der Ring liegt.
         dc.setColor(TbColors.FIELD, Graphics.COLOR_TRANSPARENT);
         dc.setPenWidth(w / 2 - TbRing.MAP_R + 2);
