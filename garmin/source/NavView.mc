@@ -39,6 +39,13 @@ class NavView extends WatchUi.View {
     //! brach am Gerät schon ab, wo der Simulator noch zeichnete
     //! (CIQ_LOG.YML, 2026-11-05: `seg` ← `strided` ← `drawOverview`).
     static const FRAME_SEGS = 400;
+    //! Der Lader (Design 1q, Abschnitt 15): das Logo als Spur, darauf
+    //! zeichnet es sich in der Marke ein, steht und springt zurück auf die
+    //! Spur — MIP kennt kein Ausblenden. Mitte des Logos und Zeile darunter.
+    static const LOADER_DRAW_MS = 850;
+    static const LOADER_PERIOD_MS = 1400;
+    static const LOGO_Y = 104;
+    static const LOADER_TEXT_Y = 176;
 
     hidden var _route as NavRoute;
     hidden var _state as NavState? = null;
@@ -78,6 +85,14 @@ class NavView extends WatchUi.View {
     hidden var _ovStride as Number = 1;
     hidden var _ovHeads as Array<Number>? = null;
 
+    //! Der Start wartet aufs Handy: der Text unter dem Lader, sonst null.
+    hidden var _wait as String? = null;
+    //! Die Navigation ist beendet: das ganze Logo und dieser Text.
+    hidden var _ended as String? = null;
+    //! Die Punkte des Logos (`resources/logo`), nur solange der Lader steht.
+    hidden var _logo as Array<Number>? = null;
+    hidden var _logoT as Number = 1;
+
     function initialize(route as NavRoute, stats as RideStats) {
         View.initialize();
         _route = route;
@@ -99,6 +114,16 @@ class NavView extends WatchUi.View {
         _speed = speed;
         if (s.leftRoute) { _page = 0; }
         WatchUi.requestUpdate();
+    }
+
+    //! Der Start wartet aufs Handy: Statt einer Route steht der Lader mit
+    //! [text]; null beendet das Warten.
+    function setWaiting(text as String?) as Void {
+        _wait = text;
+    }
+
+    function setEnded(text as String) as Void {
+        _ended = text;
     }
 
     function page() as Number {
@@ -138,6 +163,18 @@ class NavView extends WatchUi.View {
     function onUpdate(dc as Dc) as Void {
         var w = dc.getWidth();
         _segLeft = FRAME_SEGS;
+        var done = _ended;
+        if (done != null) {
+            drawLoader(dc, w, done, true);
+            return;
+        }
+        var waiting = _wait;
+        if (waiting != null || (!_route.isReady() && !_route.failed)) {
+            drawLoader(dc, w, waiting != null ? waiting
+                : str(Rez.Strings.Loading) + " " + (_route.progress() * 100).toNumber() + " %", false);
+            return;
+        }
+        _logo = null;
         if (_page != 0 || (_state != null && (_state as NavState).arrived)) {
             dc.setColor(TbColors.TEXT_ON_FIELD, TbColors.FIELD);
             dc.clear();
@@ -158,13 +195,6 @@ class NavView extends WatchUi.View {
         if (_route.failed) {
             dc.setColor(TbColors.TEXT, Graphics.COLOR_TRANSPARENT);
             dc.drawText(w / 2, dc.getHeight() / 2, Graphics.FONT_SMALL, str(Rez.Strings.RouteBroken),
-                Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
-            return;
-        }
-        if (!_route.isReady()) {
-            dc.setColor(TbColors.TEXT, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(w / 2, dc.getHeight() / 2, Graphics.FONT_SMALL,
-                str(Rez.Strings.Loading) + " " + (_route.progress() * 100).toNumber() + " %",
                 Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
             return;
         }
@@ -866,6 +896,48 @@ class NavView extends WatchUi.View {
 
     hidden function meters(m as Float) as String {
         return m < 1000 ? ((m + 0.5).toNumber() + " m") : (km(m) + " km");
+    }
+
+    //! Der Lader: schwarz, das Logo als Spur in Grau, darüber im Takt in
+    //! Lime, darunter [text]. Die Punkte kommen aus `tool/brand_icons.py`
+    //! (je zwei Zahlen: x/y und Radius/Weg in Zehntel, gepackt wie die
+    //! Route) — volle Kreise entlang der Mittellinie statt eines Polygons.
+    //! [full]: das ganze Zeichen in Lime, ohne Takt (Navigation beendet).
+    hidden function drawLoader(dc as Dc, w as Number, text as String, full as Boolean) as Void {
+        dc.setColor(TbColors.TEXT_ON_FIELD, TbColors.FIELD);
+        dc.clear();
+        var dots = _logo;
+        if (dots == null) {
+            var d = WatchUi.loadResource(Rez.JsonData.Logo) as Dictionary;
+            dots = d["d"] as Array<Number>;
+            _logo = dots;
+            _logoT = d["t"] as Number;
+        }
+        // Takt wie `loaderAt` in der App: einzeichnen (weich ein und aus),
+        // stehen, zurück.
+        var ms = System.getTimer() % LOADER_PERIOD_MS;
+        var x = ms >= LOADER_DRAW_MS ? 1.0 : ms.toFloat() / LOADER_DRAW_MS;
+        var to = full ? -1 : (_logoT * x * x * (3 - 2 * x)).toNumber();
+        var cx = w / 2;
+        if (!full) {
+            dc.setColor(TbColors.MUTED_DARK, Graphics.COLOR_TRANSPARENT);
+            logoDots(dc, dots, cx, -1);
+        }
+        dc.setColor(TbColors.ROUTE, Graphics.COLOR_TRANSPARENT);
+        logoDots(dc, dots, cx, to);
+        dc.setColor(TbColors.MUTED, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(cx, LOADER_TEXT_Y, Graphics.FONT_XTINY, text, Graphics.TEXT_JUSTIFY_CENTER);
+    }
+
+    //! Die Punkte bis zum Weg [to] (-1: alle).
+    hidden function logoDots(dc as Dc, dots as Array<Number>, cx as Number, to as Number) as Void {
+        for (var i = 0; i + 1 < dots.size(); i += 2) {
+            var rc = dots[i + 1];
+            if (to >= 0 && PhoneRoute.unpackLo(rc) > to) { return; }
+            var xy = dots[i];
+            dc.fillCircle(cx + PhoneRoute.unpackHi(xy) / 10, LOGO_Y + PhoneRoute.unpackLo(xy) / 10,
+                PhoneRoute.unpackHi(rc) / 10);
+        }
     }
 
     hidden function str(id as ResourceId) as String {

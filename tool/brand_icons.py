@@ -33,6 +33,8 @@ Geschrieben werden:
   `web/favicon.png`, `web/favicon.svg`.
 - `garmin/resources/drawables/launcher_icon.png` — das Symbol der
   Uhr-App (40 px, `launcherIcon` der fēnix 5), runde Lime-Scheibe.
+- `garmin/resources/logo/logo.json` — das Logo für den Lader der Uhr
+  als Punkte entlang der Mittellinie (`NavView.drawLoader`).
 
 Die Textdateien prüft `--check` als Fixpunkt (ohne Werkzeug); die PNGs
 braucht `rsvg-convert` (librsvg) und stehen mit Prüfsumme in
@@ -244,8 +246,49 @@ def dart_geometry():
     return "\n".join(out)
 
 
+# Der Lader der Uhr (docs/design/README.md 1q und 15): Punkte entlang der
+# Mittellinie, je mit Radius und Weg — die Uhr zeichnet volle Kreise
+# (`fillCircle`), kein Polygon. Größe L in 1,5 px je Einheit, um die
+# Mitte (50, 50); alles in Zehntel, damit die Uhr nur ganze Zahlen liest,
+# je Punkt zwei Zahlen: (x, y) und (Radius, Weg) gepackt.
+GARMIN_LOGO_SCALE = 1.5
+GARMIN_LOGO_STEP = 3  # jede dritte Stichprobe: ~2,8 px Abstand bei ~8 px Radius
+
+
+def garmin_logo_json():
+    g = GEO["L"]
+    s = g["samples"]
+    n = len(s) - 1
+    ds = g["length"] / n
+    k = GARMIN_LOGO_SCALE
+    dots = []
+
+    def pack(hi, lo):
+        # Wie `PhoneRoute.pack` auf der Uhr: zwei 16-Bit-Hälften in einer
+        # Zahl mit Vorzeichen (Monkey C `Number` hat 32 Bit).
+        v = ((hi & 0xFFFF) << 16) | (lo & 0xFFFF)
+        return v - (1 << 32) if v >= 1 << 31 else v
+
+    def add(x, y, r, c):
+        dots.extend([pack(round((x - 50) * k * 10), round((y - 50) * k * 10)),
+                     pack(round(r * k * 10), round(c * 10))])
+
+    for i in list(range(0, n, GARMIN_LOGO_STEP)) + [n]:
+        x, y, nx, ny, hl, hr = s[i]
+        # Mitte zwischen linkem und rechtem Rand: Die Anlieger sind
+        # einseitig breiter.
+        add(x + nx * (hl - hr) / 2, y + ny * (hl - hr) / 2, (hl + hr) / 2, i * ds)
+    for c0, ln, x1, y, wd in g["dashes"]:
+        steps = max(1, round(ln / 1.5))
+        for j in range(steps + 1):
+            add(x1 + ln * j / steps, y, wd / 2, c0 + ln * j / steps)
+    head = ('{"t": %d, "d": [' % round(g["total"] * 10))
+    return head + ", ".join(str(v) for v in dots) + "]}\n"
+
+
 def text_files():
     return {
+        os.path.join("garmin", "resources", "logo", "logo.json"): garmin_logo_json(),
         DART_GEOMETRY: dart_geometry(),
         os.path.join(RES, "drawable", "ic_notification.xml"): notification_xml(),
         os.path.join(RES, "drawable", "ic_launcher_foreground.xml"):

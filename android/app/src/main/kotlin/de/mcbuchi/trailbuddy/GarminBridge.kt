@@ -226,7 +226,12 @@ class GarminBridge(private val context: Context, messenger: BinaryMessenger) {
                     status: ConnectIQ.IQMessageStatus,
                 ) {
                     if (status != ConnectIQ.IQMessageStatus.SUCCESS) return
-                    for (m in message) main.post { channel.invokeMethod("message", m) }
+                    for (m in message) {
+                        // Nur die Art, nie Inhalt (Kennungen, Koordinaten):
+                        // für die Zeiten der Messung 8.2 im Log (#449).
+                        Log.i("TB-GARMIN", "receive ${(m as? Map<*, *>)?.get("t") ?: "?"}")
+                        main.post { channel.invokeMethod("message", m) }
+                    }
                 }
             })
         } catch (e: Exception) {

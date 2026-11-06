@@ -503,3 +503,43 @@ function oldStoredRouteIsCleared(logger as Logger) as Boolean {
     TestRoutes.wipe();
     return true;
 }
+
+//! „Route kommt · 1/2": [PhoneRoute.received] zählt die Stücke der
+//! ankommenden Route im freien Fach, nicht die einer anderen (#449,
+//! 2026-11-06).
+(:test)
+function receivedCountsArrivingParts(logger as Logger) as Boolean {
+    TestRoutes.wipe();
+    var msgs = TestRoutes.parts(TestRoutes.straight(), 1);
+    var id = msgs[0]["id"] as String;
+    Test.assert(PhoneRoute.take(msgs[0]) == null);
+    Test.assertEqual(PhoneRoute.received(id), 1);
+    Test.assertEqual(PhoneRoute.received("andere"), 0);
+    Test.assert(PhoneRoute.take(msgs[1]) == null);
+    Test.assertEqual(PhoneRoute.received(id), 2);
+    TestRoutes.wipe();
+    return true;
+}
+
+//! Das Logo des Laders (`tool/brand_icons.py`): Punkte paarweise, der Weg
+//! steigt (der Lader bricht beim ersten Punkt hinter dem Takt ab), Radien
+//! um 8 px, alles innerhalb des Kreises der Anzeige.
+(:test)
+function loaderLogoIsOrdered(logger as Logger) as Boolean {
+    var d = WatchUi.loadResource(Rez.JsonData.Logo) as Dictionary;
+    var dots = d["d"] as Array<Number>;
+    var total = d["t"] as Number;
+    Test.assert(dots.size() > 40 && dots.size() % 2 == 0);
+    var last = -1;
+    for (var i = 0; i < dots.size(); i += 2) {
+        var c = PhoneRoute.unpackLo(dots[i + 1]);
+        var r = PhoneRoute.unpackHi(dots[i + 1]);
+        var x = PhoneRoute.unpackHi(dots[i]) / 10;
+        var y = NavView.LOGO_Y + PhoneRoute.unpackLo(dots[i]) / 10;
+        Test.assert(c >= last && c <= total);
+        Test.assert(r >= 20 && r <= 120);
+        Test.assert(x * x + (y - 120) * (y - 120) < 110 * 110);
+        last = c;
+    }
+    return true;
+}

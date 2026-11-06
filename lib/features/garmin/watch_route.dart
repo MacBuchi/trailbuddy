@@ -67,6 +67,38 @@ const kWatchHello = 'hi';
 /// damit Position und Wege statt Strichen. Sie bleibt im Speicher der Uhr.
 const kWatchPhonePosition = 'p';
 
+/// Die Antwort auf `hi` beim Start der Uhr-App (Betreiber 2026-11-06):
+/// `{t: "n", id, np}` — eine neue Route kommt, in `np` Stücken (0: wird
+/// noch gerechnet); die Uhr zeigt dann den Lader statt der alten Route.
+/// `{t: "k", id}` — die gespeicherte ist aktuell. Ohne Antwort zeigt die
+/// Uhr nach 8 s die gespeicherte (gemessen: „hallo" hin und Antwort
+/// zurück 5–7 s über Garmin Connect, 2026-11-06). Beides kam neu dazu,
+/// ohne neue Fassung: Eine ältere Uhr übergeht unbekannte Arten, eine neue
+/// Uhr mit älterer App wartet nur die 8 s.
+const kWatchAnnounce = 'n';
+const kWatchCurrent = 'k';
+
+/// „Eine neue Route kommt" ([kWatchAnnounce]).
+Map<String, Object> watchAnnounceOf(String? id, int parts) =>
+    {'t': kWatchAnnounce, 'np': parts, 'id': ?id};
+
+/// „Deine Route ist aktuell" ([kWatchCurrent]).
+Map<String, Object> watchCurrentOf(String id) => {'t': kWatchCurrent, 'id': id};
+
+/// Die Navigation endet (`{t: "e", id}`, Betreiber 2026-11-06), in beide
+/// Richtungen: Endet sie auf dem Handy, schließt sich die Uhr-App; endet
+/// sie auf der Uhr, beendet das Handy seine Navigation — nur die, nie die
+/// Aufzeichnung (die läuft weiter, gespeichert wird wie bisher von Hand).
+/// [id] ist die Route, damit eine alte Nachricht keine andere Navigation
+/// beendet.
+const kWatchEnd = 'e';
+
+Map<String, Object> watchEndOf(String id) => {'t': kWatchEnd, 'id': id};
+
+/// Die Kennung aus „Navigation beendet" der Uhr, oder null.
+String? watchEndedId(Object? message) =>
+    message is Map && message['t'] == kWatchEnd && message['id'] is String ? message['id'] as String : null;
+
 /// Die Uhr hat ihr eigenes GPS (`{t: "g"}`) — ohne Koordinate (A3). Danach
 /// schickt das Handy keine Position mehr.
 const kWatchHasGps = 'g';

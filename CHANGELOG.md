@@ -2,6 +2,22 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Die Uhr zeigt nicht mehr erst die alte Route
+
+*Version 0.155.0, 2026-11-06*
+
+- Öffnet das Handy die TrailBuddy-App auf der Garmin-Uhr, zeigt sie
+  zuerst das TrailBuddy-Logo als Lader, bis die neue Route da ist —
+  statt kurz die Route vom letzten Mal. Darunter steht, wie weit die
+  Übertragung ist. Antwortet das Handy nicht innerhalb von 8 Sekunden,
+  zeigt die Uhr ihre gespeicherte Route wie bisher.
+- Beendest du die Navigation auf dem Handy, schließt sich die Uhr-App.
+  Beendest du sie auf der Uhr, endet sie auch auf dem Handy. Eine
+  laufende Aufzeichnung läuft dabei weiter, gespeichert wird sie wie
+  bisher auf dem Handy.
+- Die Route geht nicht mehr zweimal an die Uhr, wenn die Uhr sich meldet,
+  während sie noch unterwegs ist.
+
 ## Die Uhr weiß gleich, wo du bist
 
 *Version 0.154.0, 2026-11-06*

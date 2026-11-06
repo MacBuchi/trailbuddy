@@ -200,6 +200,18 @@ void main() {
     final watch = File('garmin/source/TrailBuddyApp.mc').readAsStringSync();
     expect(watch, contains('"t" => "$kWatchHello"'));
     expect(watch, contains('"$kWatchQuery".equals(t)'));
+    // Die Antwort auf „hallo" beim Start (Betreiber 2026-11-06).
+    expect(watch, contains('"$kWatchAnnounce".equals(t)'));
+    expect(watch, contains('"$kWatchCurrent".equals(t)'));
+    expect(watchAnnounceOf('ab12', 2), {'t': 'n', 'np': 2, 'id': 'ab12'});
+    expect(watchAnnounceOf(null, 0), {'t': 'n', 'np': 0});
+    expect(watchCurrentOf('ab12'), {'t': 'k', 'id': 'ab12'});
+    // Navigation beendet, in beide Richtungen.
+    expect(watch, contains('"$kWatchEnd".equals(t)'));
+    expect(watch, contains('{"t" => "$kWatchEnd", "id" => id}'));
+    expect(watchEndOf('ab12'), {'t': 'e', 'id': 'ab12'});
+    expect(watchEndedId({'t': 'e', 'id': 'ab12'}), 'ab12');
+    expect(watchEndedId({'t': 'e'}), isNull);
     final kotlin = File('android/app/src/main/kotlin/de/mcbuchi/trailbuddy/GarminBridge.kt').readAsStringSync();
     expect(kotlin, contains('"open" ->'));
     // Kotlin reicht den Namen aus `IQDeviceStatus` weiter, Dart hört auf CONNECTED.

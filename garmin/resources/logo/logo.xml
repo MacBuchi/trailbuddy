@@ -1,0 +1,6 @@
+<resources>
+    <!-- Das Logo für den Lader (Design 1q/15): Punkte, je (x, y) und (r, Weg) gepackt, in
+         Zehntel um die Mitte, ERZEUGT von tool/brand_icons.py aus
+         tool/brand/logo_c3.json — nicht von Hand ändern. -->
+    <jsonData id="Logo" filename="logo.json"/>
+</resources>

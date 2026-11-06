@@ -898,7 +898,17 @@ seiner Höhe nicht in den Kreis passt, nimmt die kleinere Schrift, erst
 dann „…". **Vor dem ersten Fix** die Übersicht: die Route genordet und
 eingepasst auf der hellen Karte, Start als schwarzer Punkt mit weißem
 Saum, darunter „Warte auf GPS" mit Länge und Anstieg, oben klein in
-`555555` der Build-Stempel (Commit · Datum des Builds). Angekommen: eine schwarze
+`555555` der Build-Stempel (Commit · Datum des Builds). **Davor der
+Lader** (seit 0.155.0): solange die Uhr aufs Handy wartet oder eine
+Route dekodiert, schwarz mit dem Logo (C3, Größe L, 1,5 px je Einheit)
+als Spur in `555555`, darauf zeichnet es sich in Lime `AAFF55` ein wie
+1q (0,85 s weich ein und aus), steht und springt nach 1,4 s zurück auf
+die Spur — MIP kennt kein Ausblenden, so steht nie ein halb
+ausgeblendetes Zeichen. Darunter klein in Grau „Lade Route", „Route
+kommt · 1/2" oder „Lade Route 40 %". Beendet: das ganze Zeichen in Lime
+ohne Spur, darunter „Navigation beendet", bis die App zugeht. Die Punkte entlang der Mittellinie
+(volle Kreise, kein Polygon) schreibt `tool/brand_icons.py` nach
+`garmin/resources/logo/`. Angekommen: eine schwarze
 Zusammenfassung mit den Schildern der befahrenen Trails. Die Farben sind je
 die nächste MIP-Farbe zur App-Farbe (`garmin/source/Colors.mc`, geprüft
 von `tool/garmin_route.py --self-test`); am Gerät in der Sonne prüfen.

@@ -2,6 +2,21 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## The watch no longer shows the old route first
+
+*Version 0.155.0, 2026-11-06*
+
+- When the phone opens the TrailBuddy app on the Garmin watch, the watch
+  first shows the TrailBuddy logo as a loader until the new route has
+  arrived, instead of briefly showing last time's route. Below it, the
+  watch shows how far the transfer has got. If the phone doesn't answer
+  within 8 seconds, the watch shows its stored route as before.
+- If you end the navigation on the phone, the watch app closes. If you
+  end it on the watch, it ends on the phone too. A running recording
+  keeps going and is saved on the phone as before.
+- The route no longer goes to the watch twice when the watch checks in
+  while it is still on its way.
+
 ## The watch knows where you are right away
 
 *Version 0.154.0, 2026-11-06*

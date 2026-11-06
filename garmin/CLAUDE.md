@@ -153,6 +153,28 @@ Garmin-Aktivität, kein Netz, keine Abbiegehinweise.
   `garmin/`, Datum und Uhrzeit); im Repo steht der Platzhalter „dev".
   Connect IQ kann die Version der App zur Laufzeit nicht lesen. Steht
   auf der Uhr ein alter Stempel, ist die neue `.prg` nicht drauf.
+- **Der Start wartet aufs Handy** (`_wait` in `TrailBuddyApp`, Betreiber
+  2026-11-06): Mit verbundenem Handy lädt `initialize` NICHT die
+  gespeicherte Route, sondern einen Platzhalter, und die Ansicht zeigt
+  den Lader (`NavView.setWaiting`). `n` vom Handy heißt „Route kommt"
+  (Frist 45 s je Stück), `k` „deine ist aktuell" → `loadStored`; ohne
+  Antwort nach `ANSWER_MS` = 8 s auch (3 s waren zu kurz: „hallo" hin
+  und Antwort zurück messen 5–7 s, 2026-11-06). Der Takt ist der Timer des
+  Dekodierens (`loadStep` → `waitStep`, ein Bild je 100 ms), kein
+  eigener — ältere Uhren haben nur wenige Timer. `startLoader` hält
+  vorher den alten Timer an. Solange gewartet wird, zählen weder
+  `onPosition` noch `phoneFix` (der Platzhalter ist „fertig").
+- **Das Logo des Laders** (`resources/logo/logo.json`, Test
+  `loaderLogoIsOrdered`): ERZEUGT von `tool/brand_icons.py`, nie von
+  Hand; je Punkt zwei gepackte Zahlen (x/y, Radius/Weg in Zehntel) —
+  halb so viel Speicher neben einer großen Route. Gezeichnet als
+  `fillCircle` entlang der Mittellinie, ~90 Punkte zweimal je Bild;
+  `_logo` fällt weg, sobald der Lader geht.
+- **Beenden** (`e`, `quit` in `TrailBuddyApp`): `QuitDelegate` ruft
+  `quit()` statt `System.exit()` — erst `transmit` ans Handy, zu im
+  `EndAck` (`onComplete`/`onError`) oder nach `END_WAIT_MS` = 5 s.
+  Sofort `System.exit()` verwürfe die Nachricht. Ein `e` vom Handy gilt
+  nur für `_route.id`, die gespeicherte oder die wartende Kennung.
 - **Akku und Speicher** auf der Seite „Berg" nur im Vorführmodus:
   `drawMeasure` gibt es zweimal, `(:demo)` und `(:nodemo)` — der
   normale Build schließt `demo` aus, `--demo` schließt `nodemo` aus.

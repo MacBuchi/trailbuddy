@@ -17,6 +17,18 @@ import Toybox.WatchUi;
 //! gespeicherten Route), „gespeichert" (`ok`) und „ging nicht" (`x`).
 //! Eine Route, die die App abstürzen ließ, kommt nicht zweimal hinein
 //! ([CrashGuard]).
+//!
+//! Ist ein Handy verbunden, zeigt der Start erst das Logo als Lader und
+//! wartet auf seine Antwort auf „hallo" (Betreiber 2026-11-06): `n` — eine
+//! neue Route kommt, die alte zeigt sie gar nicht erst —, `k` — die
+//! gespeicherte ist aktuell. Ohne Antwort in [ANSWER_MS] gilt die
+//! gespeicherte; bleibt eine angekündigte Route [INCOMING_MS] ohne neues
+//! Stück, auch.
+//!
+//! Die Navigation endet auf beiden Geräten (`e`, Betreiber 2026-11-06):
+//! Beendet das Handy, schließt sich die App; beendet man hier, hört es das
+//! Handy, bevor die App zugeht ([quit]). Die Uhr speichert nichts außer
+//! der Route, es geht also nichts verloren.
 class TrailBuddyApp extends Application.AppBase {
     hidden var _route as NavRoute;
     hidden var _tracker as NavTracker;
@@ -31,6 +43,32 @@ class TrailBuddyApp extends Application.AppBase {
     hidden var _swap as Timer.Timer?;
     //! Läuft eine Minute nach dem Laden ohne Absturz: [CrashGuard.calm].
     hidden var _calm as Timer.Timer?;
+    //! Der Start wartet aufs Handy: 0 nein, [WAIT_ANSWER] auf die Antwort
+    //! auf „hallo", [WAIT_ROUTE] auf eine angekündigte Route — bis
+    //! [_waitUntil] (`System.getTimer`), dann die gespeicherte. Der Takt
+    //! ist der Timer des Dekodierens ([loadStep]), kein eigener: Ältere
+    //! Uhren haben nur wenige Timer.
+    hidden var _wait as Number = 0;
+    hidden var _waitUntil as Number = 0;
+    hidden var _lastFrame as Number = 0;
+    hidden var _exit as Timer.Timer?;
+    static const WAIT_ANSWER = 1;
+    static const WAIT_ROUTE = 2;
+    //! So lange wartet der Start auf die Antwort auf „hallo". Erst 3 s
+    //! (Betreiber 2026-11-06); gemessen brauchen „hallo" hin und Antwort
+    //! zurück über Garmin Connect 5–7 s (eine kleine Nachricht 3,5 s je
+    //! Richtung), also 8 s (Betreiber, am selben Tag).
+    static const ANSWER_MS = 8000;
+    //! So lange wartet das Beenden auf der Uhr höchstens darauf, dass
+    //! Garmin Connect „beendet" abnimmt, bevor die App zugeht.
+    static const END_WAIT_MS = 5000;
+    //! So lange steht „Navigation beendet", wenn das Handy beendete.
+    static const ENDED_SHOW_MS = 1500;
+    //! So lange darf eine angekündigte Route ohne neues Stück sein (eins
+    //! braucht über Garmin Connect ~15 s, Messung 8.2).
+    static const INCOMING_MS = 45000;
+    //! Ein Bild des Laders höchstens alle so viele ms.
+    static const FRAME_MS = 100;
     //! Die Testroute ließ sich nicht dekodieren (dann nicht immer wieder).
     hidden var _testFailed as Boolean = false;
     //! Die Uhr hat eigenes GPS gehabt: Ab da zählt die Position des Handys
@@ -45,24 +83,31 @@ class TrailBuddyApp extends Application.AppBase {
 
     function initialize() {
         AppBase.initialize();
-        var r = startRoute();
-        _route = r;
-        _tracker = new NavTracker(r);
-        _stats = new RideStats(r.secFrom.size());
-        _view = new NavView(r, _stats);
-    }
-
-    //! Die gespeicherte Route vom Handy, sonst die Testroute. Erst der
-    //! Schutz vor Abstürzen ([CrashGuard.atStart] verwirft eine Route, mit
-    //! der die App zweimal nicht sauber endete); brach das Laden der
-    //! gespeicherten beim letzten Mal ab (Speicher, Watchdog), steht
-    //! „loading" noch: Dann ist sie sofort weg.
-    hidden function startRoute() as NavRoute {
         CrashGuard.atStart();
         if (Storage.getValue("loading") == true) {
             PhoneRoute.drop();
             Storage.deleteValue("loading");
         }
+        var r;
+        if ((Communications has :registerForPhoneAppMessages) && System.getDeviceSettings().phoneConnected) {
+            _wait = WAIT_ANSWER;
+            r = placeholder();
+        } else {
+            r = storedRoute();
+        }
+        _route = r;
+        _tracker = new NavTracker(r);
+        _stats = new RideStats(r.secFrom.size());
+        _view = new NavView(r, _stats);
+        if (_wait != 0) { _view.setWaiting(str(Rez.Strings.Loading)); }
+    }
+
+    //! Die gespeicherte Route vom Handy, sonst die Testroute. Vorher (in
+    //! [initialize]) der Schutz vor Abstürzen: [CrashGuard.atStart]
+    //! verwirft eine Route, mit der die App zweimal nicht sauber endete;
+    //! brach das Laden der gespeicherten beim letzten Mal ab (Speicher,
+    //! Watchdog), steht „loading" noch, dann ist sie sofort weg.
+    hidden function storedRoute() as NavRoute {
         var r = PhoneRoute.route();
         if (r != null) {
             PhoneRoute.store("loading", true);
@@ -70,6 +115,16 @@ class TrailBuddyApp extends Application.AppBase {
             return r;
         }
         return testRoute();
+    }
+
+    //! Eine Route aus zwei Punkten, solange keine geladen ist (Warten aufs
+    //! Handy, Wechsel): Die Ansicht zeigt dann den Lader.
+    hidden function placeholder() as NavRoute {
+        return NavRoute.decoded({"v" => PhoneRoute.PROTOCOL, "id" => "-", "np" => 2, "o" => [0, 0], "pts" => [0, 1]});
+    }
+
+    hidden function str(id as ResourceId) as String {
+        return WatchUi.loadResource(id) as String;
     }
 
     hidden function testRoute() as NavRoute {
@@ -86,6 +141,7 @@ class TrailBuddyApp extends Application.AppBase {
     }
 
     function onStart(state as Dictionary?) as Void {
+        _waitUntil = System.getTimer() + ANSWER_MS;
         startLoader();
         // Der Puls vom Handgelenk für die Seite „Fahrt" (bleibt auf der Uhr).
         if (Sensor has :setEnabledSensors) {
@@ -120,6 +176,8 @@ class TrailBuddyApp extends Application.AppBase {
     }
 
     hidden function startLoader() as Void {
+        var old = _loader;
+        if (old != null) { old.stop(); }
         var t = new Timer.Timer();
         _loader = t;
         t.start(method(:loadStep), 50, true);
@@ -129,6 +187,10 @@ class TrailBuddyApp extends Application.AppBase {
     //! Passte sie nicht ([NavRoute.failed]), ist sie weg — das Handy hört
     //! davon, und die Testroute lädt.
     function loadStep() as Void {
+        if (_wait != 0) {
+            waitStep();
+            return;
+        }
         if (!_route.decodeStep(DECODE_BUDGET)) {
             WatchUi.requestUpdate();
             return;
@@ -165,6 +227,80 @@ class TrailBuddyApp extends Application.AppBase {
             return;
         }
         Position.enableLocationEvents(Position.LOCATION_CONTINUOUS, method(:onPosition));
+    }
+
+    //! Der Start wartet aufs Handy: der Lader im Takt, und ist die Zeit um,
+    //! die gespeicherte Route.
+    hidden function waitStep() as Void {
+        var now = System.getTimer();
+        if (now - _waitUntil >= 0) {
+            endWait();
+            loadStored();
+            return;
+        }
+        if (now - _lastFrame >= FRAME_MS) {
+            _lastFrame = now;
+            WatchUi.requestUpdate();
+        }
+    }
+
+    hidden function endWait() as Void {
+        _wait = 0;
+        _view.setWaiting(null);
+    }
+
+    //! Die gespeicherte Route laden (oder die Testroute) und dekodieren.
+    hidden function loadStored() as Void {
+        var r = PhoneRoute.route();
+        if (r == null) { r = testRoute(); } else {
+            PhoneRoute.store("loading", true);
+            CrashGuard.risk(r.id);
+        }
+        setRoute(r);
+        WatchUi.switchToView(_view, new NavDelegate(_view), WatchUi.SLIDE_IMMEDIATE);
+        startLoader();
+    }
+
+    //! Der Lader sagt, wie weit die angekündigte Route ist: „Route kommt ·
+    //! 1/2" (das Stück, das gerade unterwegs ist).
+    hidden function waitForRoute(id as String?, n as Number) as Void {
+        _wait = WAIT_ROUTE;
+        _waitUntil = System.getTimer() + INCOMING_MS;
+        var text = str(Rez.Strings.RouteComing);
+        if (n > 0) {
+            var k = id == null ? 0 : PhoneRoute.received(id);
+            text += " · " + (k < n ? k + 1 : n) + "/" + n;
+        }
+        _view.setWaiting(text);
+        WatchUi.requestUpdate();
+    }
+
+    //! „Navigation beenden?" mit Ja: Ist die Route vom Handy und das Handy
+    //! verbunden, erst „beendet" ans Handy — es beendet seine Navigation
+    //! (die Aufzeichnung läuft weiter) —, dann zu, sobald Garmin Connect
+    //! die Nachricht abnahm ([EndAck]), höchstens nach [END_WAIT_MS]. Ging
+    //! die App sofort zu, verfiele die Nachricht.
+    function quit() as Void {
+        var id = _route.id;
+        if (_wait != 0 || !System.getDeviceSettings().phoneConnected || !id.equals(PhoneRoute.currentId())) {
+            System.exit();
+        }
+        Communications.transmit({"t" => "e", "id" => id}, null, new EndAck());
+        ended(END_WAIT_MS);
+    }
+
+    //! „Navigation beendet" auf dem Schirm, nach [ms] zu.
+    hidden function ended(ms as Number) as Void {
+        if (_exit != null) { return; }
+        _view.setEnded(str(Rez.Strings.NavEnded));
+        WatchUi.requestUpdate();
+        var t = new Timer.Timer();
+        _exit = t;
+        t.start(method(:exitNow), ms, false);
+    }
+
+    function exitNow() as Void {
+        System.exit();
     }
 
     //! Eine Minute ohne Absturz: Die Route gilt als sicher — außer, gerade
@@ -204,6 +340,33 @@ class TrailBuddyApp extends Application.AppBase {
             phoneFix(d["la"], d["lo"]);
             return;
         }
+        // Die Antwort auf „hallo": Eine neue Route kommt (`n`, mit der Zahl
+        // der Stücke, 0 = noch gerechnet), oder die gespeicherte ist
+        // aktuell (`k`). Nur beim Start — läuft schon eine Route, bleibt
+        // sie, bis die neue ganz da ist.
+        if ("n".equals(t)) {
+            var np = d["np"];
+            var nid = d["id"];
+            if (_wait != 0) { waitForRoute(nid instanceof String ? nid : null, np instanceof Number ? np : 0); }
+            return;
+        }
+        // Das Handy hat die Navigation beendet: Zeigt die Uhr eine Route
+        // davon, geht sie zu.
+        if ("e".equals(t)) {
+            var eid = d["id"];
+            if (eid instanceof String && (eid.equals(_route.id) || eid.equals(PhoneRoute.currentId())
+                    || (_pendingId != null && eid.equals(_pendingId)))) {
+                ended(ENDED_SHOW_MS);
+            }
+            return;
+        }
+        if ("k".equals(t)) {
+            if (_wait != 0) {
+                endWait();
+                loadStored();
+            }
+            return;
+        }
         if ("b".equals(t)) {
             _bests = d;
             _stats.bests = d;
@@ -225,7 +388,13 @@ class TrailBuddyApp extends Application.AppBase {
             }
             return;
         }
-        if (id == null) { return; }
+        if (id == null) {
+            // Ein Stück angenommen, es fehlen noch welche: Der Start wartet
+            // weiter, und der Lader zählt mit.
+            var n = d["n"];
+            if (_wait != 0 && rid instanceof String && n instanceof Number) { waitForRoute(rid, n); }
+            return;
+        }
         // Die Antwort auf eine vollständige Route (Konzept 2): gespeichert.
         toPhone({"t" => "ok", "id" => id});
         if (id.equals(_route.id) && _route.isReady()) {
@@ -248,21 +417,15 @@ class TrailBuddyApp extends Application.AppBase {
         _swap = null;
         if (_pendingId == null) { return; }
         _pendingId = null;
+        _wait = 0;
         var t = _loader;
         if (t != null) { t.stop(); _loader = null; }
         var c = _calm;
         if (c != null) { c.stop(); _calm = null; }
         Position.enableLocationEvents(Position.LOCATION_DISABLE, method(:onPosition));
-        setRoute(NavRoute.decoded({"v" => PhoneRoute.PROTOCOL, "id" => "-", "np" => 2, "o" => [0, 0], "pts" => [0, 1]}));
+        setRoute(placeholder());
         WatchUi.switchToView(_view, new NavDelegate(_view), WatchUi.SLIDE_IMMEDIATE);
-        var r = PhoneRoute.route();
-        if (r == null) { r = testRoute(); } else {
-            PhoneRoute.store("loading", true);
-            CrashGuard.risk(r.id);
-        }
-        setRoute(r);
-        WatchUi.switchToView(_view, new NavDelegate(_view), WatchUi.SLIDE_IMMEDIATE);
-        startLoader();
+        loadStored();
     }
 
     //! Die Position des Handys als erster Fix (Betreiber 2026-11-05): Bis
@@ -270,7 +433,7 @@ class TrailBuddyApp extends Application.AppBase {
     //! zum Ziel statt Strichen. Kein Vibrieren (das Handy kann ein paar
     //! Sekunden alt sein), keine Zahlen der Fahrt; nichts wird gespeichert.
     function phoneFix(la as Object?, lo as Object?) as Void {
-        if (_ownFix || !_route.isReady() || !(la instanceof Number) || !(lo instanceof Number)) { return; }
+        if (_ownFix || _wait != 0 || !_route.isReady() || !(la instanceof Number) || !(lo instanceof Number)) { return; }
         if (la < -9000000 || la > 9000000 || lo < -18000000 || lo > 18000000) { return; }
         var lat = la.toDouble() / 100000.0d;
         var lon = lo.toDouble() / 100000.0d;
@@ -292,7 +455,7 @@ class TrailBuddyApp extends Application.AppBase {
     }
 
     function onPosition(info as Position.Info) as Void {
-        if (!_route.isReady()) { return; }
+        if (_wait != 0 || !_route.isReady()) { return; }
         var loc = info.position;
         if (loc == null || info.accuracy < Position.QUALITY_USABLE) {
             return;
@@ -541,8 +704,23 @@ class QuitDelegate extends WatchUi.ConfirmationDelegate {
 
     function onResponse(response as WatchUi.Confirm) as Boolean {
         if (response == WatchUi.CONFIRM_YES) {
-            System.exit();
+            (Application.getApp() as TrailBuddyApp).quit();
         }
         return true;
+    }
+}
+
+//! „Beendet" ist beim Handy (oder ging nicht): jetzt zu.
+class EndAck extends Communications.ConnectionListener {
+    function initialize() {
+        ConnectionListener.initialize();
+    }
+
+    function onComplete() as Void {
+        (Application.getApp() as TrailBuddyApp).exitNow();
+    }
+
+    function onError() as Void {
+        (Application.getApp() as TrailBuddyApp).exitNow();
     }
 }
