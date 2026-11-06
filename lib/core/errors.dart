@@ -105,6 +105,7 @@ String? flutterErrorPhase(FlutterErrorDetails details) {
 /// nicht will, fragt sie [looksOffline] selbst.
 bool worthReporting(Object error) =>
     error is! NotSignedInException &&
+    !looksLikeSessionGone(error) &&
     // Der Kartenrenderer (`vector_map_tiles`) bricht Kachel-Aufträge ab,
     // sobald die Kachel aus dem Bild gewandert ist, und eine davon
     // entkommt als unbehandelter async-Fehler. Abgebrochen heißt
@@ -235,6 +236,20 @@ bool looksOffline(Object error) =>
 bool looksLikeGatewayTimeout(Object error) =>
     (error is AuthException && error.statusCode == '504') ||
     (error is PostgrestException && error.code == '504');
+
+/// Ist die Sitzung auf dem Server weg (abgelaufen, abgemeldet, ersetzt)?
+///
+/// GoTrue meldet sich in dem Fall selbst ab (`signedOut`, Grund
+/// `sessionExpired`), und der Router führt zum Login — der Nutzer sieht
+/// den Fall also schon. Der Bericht dazu war Lärm: W44 (#428) zählte einen
+/// `refresh_token_not_found` beim Laden der Trails im Web, eine Sitzung,
+/// die nach Wochen ohne Besuch verfallen war.
+///
+/// Wie [looksLikeMailRateLimit] bewusst ENG: nur diese beiden Codes. Ein
+/// anderer Auth-Fehler (falscher Schlüssel, Server kaputt) bleibt sichtbar.
+bool looksLikeSessionGone(Object error) =>
+    error is AuthException &&
+    (error.code == 'refresh_token_not_found' || error.code == 'session_not_found');
 
 /// Hat GoTrue den Mailversand abgelehnt, weil zu schnell wieder gefragt
 /// wurde?

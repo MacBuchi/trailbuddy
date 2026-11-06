@@ -2,6 +2,16 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## Two quiet errors fewer
+
+*Version 0.155.1, 2026-11-06*
+
+- When a ride started, the list of trails TrailBuddy offers to confirm
+  along the way could fail to save — two writes got in each other's way.
+  They now run one after the other.
+- If the sign-in in the browser has expired after a long break, the app
+  still takes you to the login, but no longer sends an error report.
+
 ## The watch no longer shows the old route first
 
 *Version 0.155.0, 2026-11-06*

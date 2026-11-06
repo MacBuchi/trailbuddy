@@ -213,7 +213,11 @@ class FileRideStore implements RideStore {
       _serialized(() async => (await _parse(await _active(), uid: uid))?.events ?? const []);
 
   @override
-  Future<void> writeConfirmTargets({required String uid, required List<ConfirmTarget> targets}) async {
+  Future<void> writeConfirmTargets({required String uid, required List<ConfirmTarget> targets}) =>
+      // In der Kette (W44, #428): Zwei Aufrufe kurz nacheinander (Start der
+      // Fahrt und das neu geladene Netz) schrieben dieselbe `.part`-Datei;
+      // das erste Umbenennen nahm sie mit, das zweite fand nichts mehr.
+      _serialized(() async {
     try {
       final file = File('${(await _dir()).path}/$_targetsName');
       final part = File('${file.path}.part');
@@ -224,7 +228,7 @@ class FileRideStore implements RideStore {
     } catch (e, stackTrace) {
       logError('Fahrt: Trails zum Bestätigen ablegen', e, stackTrace);
     }
-  }
+  });
 
   @override
   Future<List<ConfirmTarget>> readConfirmTargets({required String uid}) async {
