@@ -764,6 +764,13 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
       Trail mit, bleibt der direkte (`LoopSession.funEmpty`). Die Zahlen
       `kFun*` liest auch das Blatt „Route" von dort. Die Trails des Umwegs
       stehen immer im Graph-Rahmen, ein Stilwechsel lädt nicht neu.
+      **Der Pool ist ein Korridor um die Linie Start–Ziel** (#468, seit
+      0.155.2): Umweg über jedes Ende ≤ 2 × `kFunPoolSlackM`, höchstens
+      `kFunPoolMax` mit dem kleinsten Umweg. Vorher hing er an
+      `loopPoolOf`s 12 km um den Start — die zweite Hälfte einer langen
+      Route blieb leer, abseits des Starts kam alles hinein. Der Planer
+      selbst wählt ohne Blick auf die Lage (Meter je Sekunde Umweg;
+      `loop_planner_test` „der kleinere Umweg gewinnt").
     - **Getunt wird mit der Rechnung der GEZEIGTEN Planung**
       (`_planRequest.withTune`) — Pool, Stil, Rad, Ziel und Punkte von
       damals; das ersetzt `_planTarget`/`_planWaypoints`.

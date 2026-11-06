@@ -2,6 +2,16 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## „Spaßig" nimmt Trails auf der ganzen Strecke mit
+
+*Version 0.155.2, 2026-11-06*
+
+- Auf einer längeren Route im Stil „Spaßig" sah der Planer nur Trails
+  bis etwa 12 km um den Start. Darum nahm er am Anfang auch Trails mit
+  großem Umweg mit und fuhr später an Trails vorbei, die direkt an der
+  Route liegen. Jetzt zählen die Trails entlang der ganzen Strecke, und
+  die mit dem kleinsten Umweg kommen zuerst dran.
+
 ## Zwei leise Fehler weniger
 
 *Version 0.155.1, 2026-11-06*

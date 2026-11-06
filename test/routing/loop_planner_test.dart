@@ -110,6 +110,40 @@ void main() {
     expect(d.copyWith(style: RouteMode.easy).planRoute.easy, isFalse, reason: 'die Runde hat keinen Stil');
   });
 
+  test('Spaßig zum Ziel (#468): der kleinere Umweg gewinnt, auch spät an der Route', () {
+    // Eine 8 km lange Straße nach Osten; am Anfang ein langer Stich zu
+    // einem Trail (1,5 km hinauf), am Ende ein kurzer (300 m). Das Budget
+    // reicht für einen von beiden.
+    final g = buildRoadGraph([
+      _way([(0, 0), (1000, 0), (7000, 0), (8000, 0)]),
+      _way([(1000, 0), (1000, 1500)]),
+      _way([(7000, 0), (7000, 300)]),
+    ], lat0: 47.5).graph;
+    final from = _m([(0, 0)]).single, to = _m([(8000, 0)]).single;
+    final early = PoolTrail(
+        id: 'early', name: 'early', points: _m([(1000, 1500), (1100, 750), (1200, 0)]), lengthM: 1000, grade: 2, lossM: 100);
+    final late = PoolTrail(
+        id: 'late', name: 'late', points: _m([(7000, 300), (7100, 150), (7200, 0)]), lengthM: 1000, grade: 2, lossM: 100);
+    double timeWith(List<PoolTrail> pool) => planLoop(g,
+            start: from, profile: _bio, budget: kRouteDirectBudget, pool: pool, returnToStart: false, end: to, bare: true)
+        .summary!
+        .timeS;
+    final t0 = timeWith(const []), tEarly = timeWith([early]), tLate = timeWith([late]);
+    expect(tLate, lessThan(tEarly), reason: 'Vorbedingung: der späte Umweg ist der kleinere');
+    // Platz für den größeren allein, nicht für beide.
+    final room = tEarly + 1;
+    expect(tEarly + tLate - t0, greaterThan(room), reason: 'Vorbedingung: beide passen nicht');
+    final plan = planLoop(g,
+        start: from,
+        profile: _bio,
+        budget: LoopBudget(timeS: room / (1 - kLoopTimeReserve), climbM: 1e5, hikingM: 1e7),
+        pool: [early, late],
+        returnToStart: false,
+        end: to,
+        bare: true);
+    expect(plan.stops.map((s) => s.trail.id), ['late']);
+  });
+
   group('die Route ohne Trail (#356, bare)', () {
     // Von unten links nach oben rechts — zwei gleich lange Wege um das
     // Quadrat.
