@@ -638,8 +638,11 @@ nach.*
   **Seit 0.74.0 „Direkt" oder „Spaßig"** (#176): Spaßig ist der Planer
   mit Ziel (`planLoop(end:)`, der Ziel-Trail selbst nicht im Pool) im
   Budget 1,6 × die direkte Zeit (mindestens + 20 min) und 1,5 × deren
-  Höhenmeter (mindestens + 200) — Startwerte. Passt kein Trail, steht
-  der direkte Weg da, mit Satz. Dasselbe Blatt nimmt auch einen Punkt
+  Höhenmeter (mindestens + 200) — Startwerte. In Frage kommen die
+  Trails in einem Korridor um die Linie Start–Ziel (Umweg über ein Ende
+  höchstens 6 km, die 30 mit dem kleinsten zuerst; seit 0.155.2, #468 —
+  vorher nur in 12 km um den Start, die zweite Hälfte einer langen Route
+  blieb leer). Passt kein Trail, steht der direkte Weg da, mit Satz. Dasselbe Blatt nimmt auch einen Punkt
   als Ziel („Route bis hier", #177). **Seit 0.127.0 dazu „Bequem"**
   (#329, Stil in 2.4): der direkte Weg mit den Kosten des Stils, ein
   Satz darunter sagt, was er bevorzugt.

@@ -2,6 +2,16 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## "Spaßig" takes trails along the whole way
+
+*Version 0.155.2, 2026-11-06*
+
+- On a longer route in the "Spaßig" style, the planner only saw trails
+  within about 12 km of the start. So it took trails with a large detour
+  early on and later rode past trails right next to the route. Now trails
+  along the whole way count, and those with the smallest detour come
+  first.
+
 ## Two quiet errors fewer
 
 *Version 0.155.1, 2026-11-06*

@@ -31,9 +31,16 @@ const kFunExtraS = 20 * 60.0;
 const kFunClimbFactor = 1.5;
 const kFunExtraClimbM = 200.0;
 
-/// Wie weit die Trails des spaßigen Wegs vom Ziel liegen dürfen — weiter
-/// als der Start selbst plus das.
+/// Wie weit die Enden eines Trails des spaßigen Wegs neben der Linie
+/// Start–Ziel liegen dürfen — als Umweg gemessen: Start → Ende → Ziel
+/// höchstens die Luftlinie plus zweimal das (#468).
 const kFunPoolSlackM = 3000.0;
+
+/// Höchstens so viele Trails im Pool des spaßigen Wegs, die mit dem
+/// kleinsten Umweg zuerst (#468): Seit der Pool an der ganzen Linie hängt
+/// statt an 12 km um den Start, fasst eine lange Route sonst jeden Trail
+/// der Gegend — und jeder kostet eine Suche.
+const kFunPoolMax = 30;
 
 /// Das „Budget" des direkten Wegs: nur die Grenze der Suchen, geprüft wird
 /// es nie (kein Trail im Pool, Zwischenpunkte zählen ohnehin nicht).
@@ -47,15 +54,25 @@ LoopBudget funBudgetOf({required double timeS, required double gainM, required d
       hikingM: math.max(hikingKm * 1000, hikingM),
     );
 
-/// Die Abfahrten, die der spaßige Weg mitnehmen darf: in Reichweite des
-/// Starts, beide Enden nicht weiter vom Ziel als der Start selbst plus
-/// [kFunPoolSlackM], ohne Meldung — und nie [exceptId] (der Ziel-Trail,
-/// den fährt man danach).
+/// Die Abfahrten, die der spaßige Weg mitnehmen darf: beide Enden in
+/// einem Korridor um die Linie [from]–[to] (Umweg über das Ende höchstens
+/// 2 × [kFunPoolSlackM]), ohne Meldung, die [kFunPoolMax] mit dem kleinsten
+/// Umweg — und nie [exceptId] (der Ziel-Trail, den fährt man danach).
+///
+/// **Gleich, wo an der Linie** (#468): Bis 0.155.1 mussten beide Enden in
+/// 12 km um den Start liegen ([loopPoolOf]s Reichweite, gedacht für die
+/// Runde). Auf einer längeren Route nahm Spaßig dann Trails abseits des
+/// Starts mit, und an der zweiten Hälfte fuhr es an Trails vorbei, die es
+/// nie gesehen hatte. Wer gewinnt, entscheidet danach der Planer — nach
+/// Trail-Metern je Sekunde Umweg, ohne Blick auf die Lage.
 List<Trail> funPoolOf(List<Trail> trails, LatLng from, LatLng to, {String? exceptId}) {
-  double toTarget(LatLng p) => haversineM(p.latitude, p.longitude, to.latitude, to.longitude);
-  final reach = toTarget(from) + kFunPoolSlackM;
-  return [
-    for (final t in loopPoolOf(trails, from).inReach)
-      if (t.id != exceptId && toTarget(t.start) <= reach && toTarget(t.end) <= reach) t,
-  ];
+  double d(LatLng a, LatLng b) => haversineM(a.latitude, a.longitude, b.latitude, b.longitude);
+  final line = d(from, to);
+  double excess(LatLng p) => d(from, p) + d(p, to) - line;
+  final scored = <(Trail, double)>[
+    for (final t in loopPoolOf(trails, from, reachM: double.infinity).inReach)
+      if (t.id != exceptId)
+        if (math.max(excess(t.start), excess(t.end)) case final e when e <= 2 * kFunPoolSlackM) (t, e),
+  ]..sort((a, b) => a.$2.compareTo(b.$2));
+  return [for (final (t, _) in scored.take(kFunPoolMax)) t];
 }
