@@ -236,31 +236,31 @@ class NavOverlay extends ConsumerStatefulWidget {
 
 class _NavOverlayState extends ConsumerState<NavOverlay> {
   // Beim Aufbau gegriffen: Im `dispose` ist `ref` nicht mehr zu lesen.
-  late final ScreenAwake _screen = ref.read(screenAwakeProvider);
+  late final ScreenHolds _screen = ref.read(screenHoldsProvider);
 
   @override
   void initState() {
     super.initState();
-    if (ref.read(navKeepScreenOnProvider) && !widget.compact) unawaited(_screen.keepOn(true));
+    _screen.set(this, ref.read(navKeepScreenOnProvider) && !widget.compact);
   }
 
   @override
   void didUpdateWidget(NavOverlay old) {
     super.didUpdateWidget(old);
     if (old.compact != widget.compact) {
-      unawaited(_screen.keepOn(!widget.compact && ref.read(navKeepScreenOnProvider)));
+      _screen.set(this, !widget.compact && ref.read(navKeepScreenOnProvider));
     }
   }
 
   @override
   void dispose() {
-    unawaited(_screen.keepOn(false));
+    _screen.set(this, false);
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    ref.listen(navKeepScreenOnProvider, (_, on) => unawaited(_screen.keepOn(on && !widget.compact)));
+    ref.listen(navKeepScreenOnProvider, (_, on) => _screen.set(this, on && !widget.compact));
     final session = widget.session;
     final l = context.l10n;
     final keepOn = ref.watch(navKeepScreenOnProvider);

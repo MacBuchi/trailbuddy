@@ -588,6 +588,19 @@ Map<String, HighlightDemo> highlightDemos(AppLocalizations l) => {
       _androidOnly(l),
     ]),
   ),
+  'ride-screen': HighlightDemo(
+    route: '/',
+    script: _demo('ride-screen', [
+      CoachStep(
+        title: l.demoRideScreenTitle,
+        text: l.demoRideScreenText,
+        lit: [MapCoach.buttons],
+        ring: [MapCoach.record],
+        requires: [MapCoach.record],
+      ),
+      _androidOnly(l),
+    ]),
+  ),
   'takeover': HighlightDemo(
     route: '/trails',
     script: _demo('takeover', [

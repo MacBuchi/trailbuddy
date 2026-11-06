@@ -343,6 +343,20 @@ class RideNotifier extends Notifier<RecordedRide?> {
 
 final rideProvider = NotifierProvider<RideNotifier, RecordedRide?>(RideNotifier.new);
 
+/// Bildschirm an während einer Fahrt (#445), gemerkt auf dem Gerät; der
+/// Knopf über der Fahne schaltet ihn.
+final rideKeepScreenOnProvider = NotifierProvider<RememberedFlag, bool>(
+  () => RememberedFlag(
+    read: (s) => s.rideKeepScreenOn,
+    write: (s, v) => s.setRideKeepScreenOn(v),
+    label: 'Bildschirm-Schalter der Fahrt merken',
+  ),
+);
+
+/// Soll die Fahrt den Bildschirm gerade anlassen? Nur, solange eine läuft.
+final rideHoldsScreenProvider =
+    Provider<bool>((ref) => ref.watch(rideProvider) != null && ref.watch(rideKeepScreenOnProvider));
+
 /// Die gespeicherten Fahrten dieses Kontos, neueste zuerst.
 class RidesNotifier extends AsyncNotifier<List<Ride>> {
   @override

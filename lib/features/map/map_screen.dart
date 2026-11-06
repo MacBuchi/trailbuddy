@@ -22,6 +22,7 @@ import '../help/tab_tours.dart' show startWelcomeTour;
 import '../highlights/highlight_sheet.dart' show maybeShowHighlights;
 import '../rides/airtime_live.dart';
 import '../rides/airtime_live_window.dart';
+import '../../core/screen_awake.dart';
 import '../rides/ride_providers.dart';
 import '../rides/ride_split_sheet.dart';
 import '../rides/ride_task_handler.dart';
@@ -102,6 +103,10 @@ class MapScreen extends ConsumerStatefulWidget {
 }
 
 class _MapScreenState extends ConsumerState<MapScreen> {
+  // Beim Aufbau gegriffen: Im `dispose` ist `ref` nicht mehr zu lesen.
+  late final ScreenHolds _screen = ref.read(screenHoldsProvider);
+  static const _rideScreenHold = #ride;
+
   static const _dachCenter = LatLng(48.8, 10.5);
   static const _initialZoom = 6.0;
 
@@ -153,6 +158,9 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     // Eine Fahrt, die der Prozess-Kill unterbrochen hat, läuft weiter
     // (#28): Der Service hat derweil in die Datei geschrieben.
     unawaited(ref.read(rideProvider.notifier).restore());
+    // Bildschirm an, solange eine Fahrt läuft und ihr Knopf an ist (#445).
+    ref.listenManual<bool>(rideHoldsScreenProvider, (_, on) => _screen.set(_rideScreenHold, on),
+        fireImmediately: true);
     // Ebenso eine Navigation, die der Dienst weitergeführt hat (#232,
     // 9.5) — ohne Rückfrage, sie lief ja.
     unawaited(_restoreNavigation());
@@ -397,6 +405,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
 
   @override
   void dispose() {
+    _screen.set(_rideScreenHold, false);
     for (final unregister in _coachScenes) {
       unregister();
     }
@@ -1936,6 +1945,22 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                           // Fahrt (#105, E12): Fahne für „beginnt",
                           // Zielflagge für „endet"; läuft ein markierter
                           // Trail, Rand in der Marke.
+                          // Bildschirm an während der Fahrt (#445): aus ab
+                          // Werk, gemerkt; derselbe Knopf wie in der Navigation.
+                          if (canRecord && ride != null && _screen.supported) ...[
+                            const SizedBox(height: 14),
+                            MapRoundButton(
+                              key: const ValueKey('ride-screen-button'),
+                              tooltip: ref.watch(rideKeepScreenOnProvider)
+                                  ? context.l10n.navScreenOffTooltip
+                                  : context.l10n.navScreenTitle,
+                              icon: ref.watch(rideKeepScreenOnProvider) ? Icons.light_mode : Icons.light_mode_outlined,
+                              active: ref.watch(rideKeepScreenOnProvider),
+                              onPressed: () => ref
+                                  .read(rideKeepScreenOnProvider.notifier)
+                                  .set(!ref.read(rideKeepScreenOnProvider)),
+                            ),
+                          ],
                           if (canRecord && ride != null) ...[
                             const SizedBox(height: 14),
                             MapRoundButton(
