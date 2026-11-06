@@ -14,7 +14,7 @@ import Toybox.WatchUi;
 //! deren Schilder.
 class NavView extends WatchUi.View {
     //! Meter je Pixel der drei Zoomstufen (hoch/runter).
-    static const ZOOM_MPP = [1.0, 2.5, 6.0] as Array<Float>;
+    static const ZOOM_MPP = [1.0, 1.5, 4.0] as Array<Float>;
     //! Die eigene Position, und wo die Infofläche beginnt (240er Anzeige;
     //! darunter wird der Kreis zu schmal für zwei Zeilen).
     static const POS_Y = 128;
@@ -64,7 +64,7 @@ class NavView extends WatchUi.View {
     hidden var _py as Float = 0.0;
     hidden var _sin as Float = 0.0;
     hidden var _cos as Float = 1.0;
-    hidden var _mpp as Float = 2.5;
+    hidden var _mpp as Float = 1.5;
     hidden var _cx as Number = 120;
     hidden var _cy as Number = POS_Y;
     hidden var _reach as Float = 400.0;
@@ -400,7 +400,7 @@ class NavView extends WatchUi.View {
     //! Die Stücke i in [lo, hi) — nur aus Blöcken, deren Hülle das
     //! Quadrat ±reach um die Position schneidet, und Punkte, die näher als
     //! 4 px am zuletzt gezeichneten liegen, übersprungen (Watchdog,
-    //! NavRoute; bei 6 m Punktabstand und 2,5 m/px sonst jeder zweite
+    //! NavRoute; bei 6 m Punktabstand und 4 m/px sonst jeder zweite
     //! Strich unsichtbar kurz).
     hidden function range(dc as Dc, lo as Number, hi as Number, joint as Number) as Void {
         if (hi <= lo) { return; }

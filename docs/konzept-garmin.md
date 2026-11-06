@@ -102,7 +102,8 @@ dunkle Infofläche, „Was kommt als Nächstes?" statt „Wie weit noch?".
   Fixe in Folge). Kein zweites Vibrieren, bis man wieder auf der Linie
   war; nichts beim Zurückkommen, nichts vor Abzweigen.
 - **Tasten**: START blättert Karte → Fahrt → Berg; hoch/runter zoomt
-  auf der Karte (drei Stufen: 1, 2,5 und 6 m je Pixel) und blättert auf
+  auf der Karte (drei Stufen: 1, 1,5 und 4 m je Pixel,
+  Start auf 1,5 — gut 180 m voraus) und blättert auf
   den Zahlenseiten; beim Abkommen kommt die Karte von selbst nach vorn.
   ZURÜCK beendet nach Rückfrage. Tippziele gibt es nicht; A13 heißt hier:
   große Schrift, kräftige Linien.
