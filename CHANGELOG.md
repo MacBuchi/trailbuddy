@@ -2,6 +2,17 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Zwei leise Fehler weniger
+
+*Version 0.155.1, 2026-11-06*
+
+- Beim Start einer Fahrt konnte die Liste der Trails, die TrailBuddy
+  unterwegs zum Bestätigen anbietet, an einem Schreibfehler scheitern —
+  zwei Speichervorgänge kamen sich in die Quere. Sie laufen jetzt
+  nacheinander.
+- Ist die Anmeldung im Browser nach langer Pause abgelaufen, führt die
+  App wie bisher zum Login, schickt aber keinen Fehlerbericht mehr.
+
 ## Die Uhr zeigt nicht mehr erst die alte Route
 
 *Version 0.155.0, 2026-11-06*

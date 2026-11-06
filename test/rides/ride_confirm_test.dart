@@ -7,6 +7,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:trailbuddy/core/errors.dart';
 import 'package:trailbuddy/features/rides/ride_confirm.dart';
 import 'package:trailbuddy/features/rides/ride_confirm_notify.dart';
 import 'package:trailbuddy/features/rides/ride_store.dart';
@@ -228,6 +229,19 @@ void main() {
       expect((await FileRideStore(baseDir: dir).readConfirmTargets(uid: 'me')).single.trailId, 't1');
       expect(await store.readConfirmTargets(uid: 'other'), isEmpty);
       expect(await store.confirmTargetsModified(), isNotNull);
+    });
+
+    test('zwei Schreibvorgänge kurz nacheinander: kein Fehler, der letzte gilt (#428)', () async {
+      final store = FileRideStore(baseDir: dir);
+      final reports = <String>[];
+      setErrorSink((context, error, _) => reports.add('$context: $error'));
+      addTearDown(() => setErrorSink(null));
+      await Future.wait([
+        store.writeConfirmTargets(uid: 'me', targets: const []),
+        store.writeConfirmTargets(uid: 'me', targets: [target()]),
+      ]);
+      expect(reports, isEmpty);
+      expect((await store.readConfirmTargets(uid: 'me')).single.trailId, 't1');
     });
 
     test('die Kennung der Benachrichtigung ist fest und positiv', () {

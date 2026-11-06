@@ -140,7 +140,8 @@ class TrailsNotifier extends AsyncNotifier<List<Trail>>
         onLateError: (error, stackTrace) {
           if (!current()) return;
           ref.read(trailsAwaitNetworkProvider.notifier).state = false;
-          logError('Trails laden', error, stackTrace);
+          // Eine verfallene Sitzung führt GoTrue selbst zum Login (#428).
+          if (!looksLikeSessionGone(error)) logError('Trails laden', error, stackTrace);
           state = AsyncError<List<Trail>>(error, stackTrace).copyWithPrevious(state);
         },
       );
