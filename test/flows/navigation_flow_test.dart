@@ -1131,6 +1131,43 @@ void main() {
     expect(find.byKey(const ValueKey('nav-approach')), findsOneWidget);
   });
 
+  testWidgets('#464: „Route umplanen" from 100 m, the navigation ends from 500 m, „Weiter navigieren" brings it back',
+      (tester) async {
+    await startFromRides(tester);
+    await tester.tap(find.byKey(const ValueKey('nav-go')));
+    await settle(tester);
+    await fix(tester, _lat, _lng(2));
+    // 60 m daneben: abseits, nur „Zurück zur Route".
+    await fix(tester, _lat + 0.00055, _lng(3));
+    await fix(tester, _lat + 0.00055, _lng(3));
+    expect(find.byKey(const ValueKey('nav-rejoin')), findsOneWidget);
+    expect(find.byKey(const ValueKey('nav-replan')), findsNothing);
+    // 300 m daneben: beide Knöpfe nebeneinander, groß genug für Handschuhe.
+    await fix(tester, _lat + 0.0027, _lng(4));
+    expect(find.byKey(const ValueKey('nav-replan')), findsOneWidget);
+    expect(find.byKey(const ValueKey('nav-rejoin')), findsOneWidget);
+    expect(tester.getSize(find.byKey(const ValueKey('nav-replan'))).height, greaterThanOrEqualTo(44));
+    // Kein Bereich im Harness: Der Satz sagt es, die Route bleibt.
+    await tester.tap(find.byKey(const ValueKey('nav-replan')));
+    await settle(tester, frames: 10);
+    expect(textIn('nav-rejoin-note'), contains('umplanen geht erst wieder'));
+    expect(find.byKey(const ValueKey('nav-replan')), findsOneWidget);
+
+    // 700 m daneben, zwei Fixe: Die Navigation endet von selbst.
+    await fix(tester, _lat + 0.0063, _lng(5));
+    expect(find.byKey(const ValueKey('nav-off')), findsOneWidget);
+    await fix(tester, _lat + 0.0063, _lng(5));
+    expect(find.byKey(const ValueKey('nav-off')), findsNothing);
+    expect(find.byKey(const ValueKey('nav-stop')), findsNothing);
+    expect(find.byKey(const ValueKey('nav-left')), findsOneWidget);
+    expect(textIn('nav-left'), matches(RegExp(r'Navigation beendet: 70\d m neben der Route')));
+    // Die Leiste fährt noch herein.
+    await settle(tester, frames: 20);
+    await tester.tap(find.byKey(const ValueKey('nav-left-resume')));
+    await settle(tester);
+    expect(find.byKey(const ValueKey('nav-go')), findsOneWidget, reason: 'die Route kommt mit dem Start-Blatt zurück');
+  });
+
   testWidgets('zuletzt navigiert goes on where Beenden left off', (tester) async {
     await startFromRides(tester);
     await tester.tap(find.byKey(const ValueKey('nav-record')));

@@ -280,6 +280,7 @@ class NavState {
     required this.position,
     required this.rejoin,
     this.moving = false,
+    this.courseDeg,
   });
 
   final double alongM;
@@ -300,6 +301,33 @@ class NavState {
   /// In Fahrt (ab [kNavHeadingMinSpeedMps]) — am Trailkopf heißt stehen
   /// „am Kopf", rollen „auf dem Trail" (9.9).
   final bool moving;
+
+  /// Der letzte gültige GPS-Kurs; null, solange keiner kam. „Route
+  /// umplanen" (#464) macht damit Umkehren teuer — [headingDeg] fällt
+  /// ohne Kurs auf die Richtung der Linie zurück, und die sagt abseits
+  /// nichts darüber, wohin man fährt.
+  final double? courseDeg;
+}
+
+/// Wann die Navigation von selbst endet, weil man die Route verlassen hat
+/// (#464): mehr als [leaveM] neben der Linie, [kNavOffRouteFixes] Fixe in
+/// Folge — aber erst, nachdem man einmal auf der Route war. Sonst endete
+/// eine Fahrt aus „Meine Fahrten", die 600 m vor der Haustür beginnt,
+/// beim ersten Fix, und „Weiter navigieren" sofort wieder.
+class NavLeaveWatch {
+  NavLeaveWatch(this.leaveM);
+
+  /// 0 = nie.
+  final int leaveM;
+  bool _reached = false;
+  int _count = 0;
+
+  /// Ein Stand; true, sobald die Navigation enden soll.
+  bool update(NavState state) {
+    if (state.offM <= kNavOffRouteM) _reached = true;
+    _count = leaveM > 0 && state.offM > leaveM ? _count + 1 : 0;
+    return _reached && _count >= kNavOffRouteFixes;
+  }
 }
 
 /// Führt den Stand von Fix zu Fix: Fenster, Zähler für „abseits", der
@@ -345,6 +373,7 @@ class NavTracker {
       position: p,
       rejoin: route.pointAt(_along + kNavRejoinAheadM),
       moving: moving,
+      courseDeg: _heading,
     );
   }
 }

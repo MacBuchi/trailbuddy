@@ -944,6 +944,47 @@ offline.
   endet nach einer Minute oder mit einem Tipp. Läuft die Aufzeichnung
   mit, läuft sie weiter — beendet wird sie wie immer selbst.
 
+### 9.3a Route umplanen und Route verlassen (#464)
+
+*Feldwunsch 2026-11-05 (0.153.0), Betreiber 2026-11-07: „Rest der Route
+ab Standort", Anschluss am nächsten Trailkopf.* Seit 0.157.0. Die
+Entscheidung aus 9.7 (kein automatisches Neurechnen) bleibt: Umplanen
+ist ein Knopf; von selbst geschieht nur das Verlassen.
+
+- **„Route umplanen"** steht neben „Zurück zur Route", sobald man
+  abseits ist (9.3) UND mindestens so weit daneben wie die Schwelle der
+  Seite „Navigation" im Profil (Vorgabe 100 m, Wahl 50–500 m). Er bleibt,
+  bis man wieder auf der Linie ist — kein Flackern um die Schwelle.
+- **Wohin**: zum Kopf des nächsten Trails voraus; ohne Trail voraus
+  (Route von A nach B, nach dem letzten Trail, „Zum Trailkopf") zum Ende
+  der Linie. Die Trails der Route bleiben alle drin, frei wird nur die
+  Anfahrt. Der alte Weg zum Kopf liegt auf demselben Graphen: Ist er ab
+  einer Stelle der günstigste, nimmt die Suche ihn dort von selbst wieder
+  auf — eine eigene Suche nach dem „besten Anschluss" braucht es nicht.
+  Gezogene Zwischenpunkte zwischen Standort und Kopf fallen dabei weg;
+  die Navigation kennt nur die Linie. Geht der Weg zum Kopf nicht (Graph
+  zu groß, kein Weg), trifft das neue Stück 1 km voraus auf die Linie,
+  nie hinter dem Kopf; geht auch das nicht, sagt die Leiste es in einem
+  Satz wie bei „Zurück zur Route".
+- **Umkehren ist teuer, aber möglich**: zwei Suchen, eine ohne die Kanten,
+  die am Standort mehr als 100° gegen den letzten GPS-Kurs führen, eine
+  frei; die freie gewinnt nur, wenn sie um mehr als 180 s Kosten
+  günstiger ist. Ohne Kurs (noch nie gefahren) gibt es kein „zurück".
+- **Die neue Route ersetzt die alte** in der Folgeansicht, im Dienst
+  (neue Routen-Datei, 9.5), in „zuletzt navigiert" und auf der Uhr
+  (`docs/konzept-garmin.md`: jede neue Linie der Navigation geht
+  hinterher) — ohne Ende dazwischen. Gerechnet wird wie „Zurück zur
+  Route": im Rechen-Isolate, mit Rad und Stil der Route.
+- **Route verlassen**: Ab der zweiten Schwelle (Vorgabe 500 m, Wahl
+  200 m–2 km oder nie), zwei Fixe in Folge, endet die Navigation von
+  selbst — aber erst, nachdem man einmal auf der Route war (eine Fahrt aus
+  „Meine Fahrten" beginnt oft weit vor der Haustür). Die Aufzeichnung
+  läuft weiter, eine Leiste sagt es mit „Weiter navigieren" („zuletzt
+  navigiert"). Ist die App weggewischt, tut es der Dienst mit derselben
+  Regel; die Schwelle steht dafür in der Routen-Datei.
+
+Die Zahlen (100 m, 500 m, 180 s, 100°, 1 km) sind Startwerte wie in 9.7.
+
 ### 9.4 Aufzeichnen und Bildschirm
 
 - **Aufzeichnen** (Betreiber, 2026-10-08: Schalter, Vorgabe an): Beim
@@ -1060,7 +1101,9 @@ nur eng gewährt; PiP braucht keine.
 
 1. **Aufzeichnen**: Schalter beim Start, Vorgabe an (9.4).
 2. **Abseits**: zeigen plus Knopf „Zurück zur Route", kein
-   automatisches Neurechnen (9.3).
+   automatisches Neurechnen (9.3). Seit #464 (2026-11-07) dazu ein
+   zweiter Knopf „Route umplanen" und das Verlassen der Route von selbst
+   (9.3a).
 3. **Bildschirm an**: Schalter, Vorgabe an, nur in der Folgeansicht
    (9.4).
 

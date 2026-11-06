@@ -30,6 +30,9 @@ import '../friends/friend_providers.dart';
 import '../offline_areas/area_providers.dart' show storedAreasProvider;
 import '../offline_areas/height_tiles.dart' show kHeightsAttribution;
 import '../rides/ride_providers.dart' show rideRecordingAvailableProvider, ridesProvider, sensorLogAvailableProvider, sensorLogProvider;
+import '../../core/geo.dart' show formatMeters;
+import '../routing/nav_providers.dart'
+    show kNavLeaveChoices, kNavReplanOfferChoices, navLeaveDistanceProvider, navReplanOfferDistanceProvider;
 import '../routing/ride_calibration.dart';
 import '../routing/ride_calibrator.dart';
 import '../routing/route_profile.dart';
@@ -150,6 +153,14 @@ class ProfileScreen extends ConsumerWidget {
             title: l.profileRiderTitle,
             value: ref.watch(riderProfileProvider).label(l),
             onTap: () => context.push('/profile/rider'),
+          ),
+          _ProfileRow(
+            id: 'navigation',
+            icon: Icons.alt_route,
+            title: l.profileNavigationTitle,
+            value: l.profileNavigationValue(formatMeters(ref.watch(navReplanOfferDistanceProvider).toDouble()),
+                navLeaveLabel(l, ref.watch(navLeaveDistanceProvider))),
+            onTap: () => context.push('/profile/navigation'),
           ),
           _ProfileRow(
             id: 'appearance',
@@ -433,6 +444,81 @@ class RiderProfileScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) =>
       _ProfilePage(title: context.l10n.profileRiderTitle, children: const [_RiderProfileSection()]);
+}
+
+/// Die Schwellen der Navigation (#464): ab wann „Route umplanen" steht
+/// und ab wann die Navigation von selbst endet.
+class NavigationSettingsScreen extends StatelessWidget {
+  const NavigationSettingsScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) =>
+      _ProfilePage(title: context.l10n.profileNavigationTitle, children: const [_NavigationSection()]);
+}
+
+/// „500 m", „2 km" oder „nie".
+String navLeaveLabel(AppLocalizations l, int meters) =>
+    meters <= 0 ? l.navSettingsNever : formatMeters(meters.toDouble());
+
+class _NavigationSection extends ConsumerWidget {
+  const _NavigationSection();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l = context.l10n;
+    final text = Theme.of(context).textTheme;
+    final replan = ref.watch(navReplanOfferDistanceProvider);
+    final leave = ref.watch(navLeaveDistanceProvider);
+    // Ein Ende unter der Schwelle fürs Umplanen hieße: Der Knopf käme nie.
+    bool leaveAllowed(int m) => m <= 0 || m > replan;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(l.navSettingsReplanTitle, style: text.titleSmall),
+        const SizedBox(height: 4),
+        Text(l.navSettingsReplanText, style: text.bodySmall),
+        const SizedBox(height: 10),
+        SizedBox(
+          width: double.infinity,
+          child: SegmentedButton<int>(
+            key: const ValueKey('nav-replan-offer'),
+            showSelectedIcon: false,
+            segments: [
+              for (final m in kNavReplanOfferChoices)
+                ButtonSegment(value: m, label: FittedBox(child: Text(formatMeters(m.toDouble())))),
+            ],
+            selected: {replan},
+            onSelectionChanged: (s) {
+              final m = s.single;
+              ref.read(navReplanOfferDistanceProvider.notifier).set(m);
+              if (leave > 0 && leave <= m) {
+                ref.read(navLeaveDistanceProvider.notifier).set(kNavLeaveChoices.firstWhere((c) => c <= 0 || c > m));
+              }
+            },
+          ),
+        ),
+        const SizedBox(height: 24),
+        Text(l.navSettingsLeaveTitle, style: text.titleSmall),
+        const SizedBox(height: 4),
+        Text(l.navSettingsLeaveText, style: text.bodySmall),
+        const SizedBox(height: 10),
+        SizedBox(
+          width: double.infinity,
+          child: SegmentedButton<int>(
+            key: const ValueKey('nav-leave'),
+            showSelectedIcon: false,
+            segments: [
+              for (final m in kNavLeaveChoices)
+                ButtonSegment(
+                    value: m, enabled: leaveAllowed(m), label: FittedBox(child: Text(navLeaveLabel(l, m)))),
+            ],
+            selected: {leave},
+            onSelectionChanged: (s) => ref.read(navLeaveDistanceProvider.notifier).set(s.single),
+          ),
+        ),
+      ],
+    );
+  }
 }
 
 class AboutScreen extends StatelessWidget {

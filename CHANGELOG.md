@@ -2,6 +2,26 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Route umplanen und Route verlassen
+
+*Version 0.157.0, 2026-11-07*
+
+- Bist du beim Navigieren mehr als 100 m neben der Route, steht neben
+  „Zurück zur Route" auch „Route umplanen": Die App rechnet den Rest ab
+  deinem Standort neu, bis zum nächsten Trailkopf voraus — ohne Trail
+  voraus bis zum Ziel. Die Trails der Route bleiben alle drin, nur die
+  Anfahrt ist frei. So musst du nicht jeden Punkt vorher genau so setzen,
+  wie du dann wirklich fährst.
+- Umkehren nimmt die neue Route nur, wenn es deutlich kürzer ist; sonst
+  geht es in deiner Fahrtrichtung weiter.
+- Die Uhr bekommt die neue Route von selbst, ebenso die Benachrichtigung.
+- Bist du mehr als 500 m neben der Route, endet die Navigation von
+  selbst — erst, nachdem du einmal auf der Route warst. Die Aufzeichnung
+  läuft weiter, und „Weiter navigieren" holt die Route zurück. Das gilt
+  auch, wenn die App weggewischt ist.
+- Beide Abstände stellst du im Profil unter „Navigation" ein; das Ende
+  lässt sich auch ganz abschalten.
+
 ## Bildschirm an beim Aufzeichnen
 
 *Version 0.156.0, 2026-11-06*

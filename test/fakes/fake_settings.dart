@@ -17,6 +17,8 @@ class FakeSettings implements Settings {
       this.mapLegendOpen = false,
       this.navKeepScreenOn = true,
       this.rideKeepScreenOn = false,
+      this.navReplanOfferM,
+      this.navLeaveM,
       this.pushToken,
       this.pushLocale,
       this.appearance,
@@ -96,6 +98,22 @@ class FakeSettings implements Settings {
   @override
   Future<void> setNavKeepScreenOn(bool value) async {
     navKeepScreenOn = value;
+  }
+
+  @override
+  int? navReplanOfferM;
+
+  @override
+  Future<void> setNavReplanOfferM(int value) async {
+    navReplanOfferM = value;
+  }
+
+  @override
+  int? navLeaveM;
+
+  @override
+  Future<void> setNavLeaveM(int value) async {
+    navLeaveM = value;
   }
 
   @override

@@ -35,8 +35,13 @@ void main() {
     Finder value(String id, String text) =>
         find.descendant(of: find.byKey(ValueKey('profile-$id')), matching: find.text(text));
     expect(value('notifications', 'Aus'), findsOneWidget);
-    expect(value('appearance', 'Dunkel'), findsOneWidget);
     expect(value('rider', 'Bio-Bike'), findsOneWidget, reason: 'Vorgabe Bio-Bike');
+    expect(value('navigation', 'Umplanen ab 100 m · Ende ab 500 m'), findsOneWidget,
+        reason: 'Vorgaben von #464');
+    // Mit der Zeile „Navigation" (0.157.0) liegt das Erscheinungsbild unter
+    // dem Rand der faulen Liste.
+    await scrollTo(tester, find.byKey(const ValueKey('profile-appearance')));
+    expect(value('appearance', 'Dunkel'), findsOneWidget);
     // Mit der Zeile „Fahrerprofil" (0.70.0) liegt das Konto unter dem Rand
     // der faulen Liste — erst hinscrollen, sonst ist die Zeile nicht gebaut.
     await scrollTo(tester, find.byKey(const ValueKey('profile-account')));

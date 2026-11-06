@@ -1783,5 +1783,21 @@
   "usernameStepTitle": "How should your buddies find you?",
   "usernameStepBody": "Your username shows in the buddy search and on shared trails. Pick one your buddies will recognise — preferably not your full name.",
   "usernameStepSave": "Continue",
-  "usernameStepLater": "Later"
+  "usernameStepLater": "Later",
+  "navReplan": "Re-plan route",
+  "navReplanNoArea": "The app knows no ways here — re-planning works again in a saved area or with reception.",
+  "navReplanNoPath": "No new route found — ride on by sight or back to the route.",
+  "navLeftRoute": "Navigation ended: {distance} off the route. The recording keeps going.",
+  "navLeftResume": "Resume",
+  "profileNavigationTitle": "Navigation",
+  "profileNavigationValue": "Re-plan from {replan} · end from {leave}",
+  "navSettingsReplanTitle": "Offer “Re-plan route” from",
+  "navSettingsReplanText": "This far off the route, the navigation shows “Re-plan route”: the rest of the route is computed again from where you are, to the next trail head ahead. The new route turns back only if that is much shorter.",
+  "navSettingsLeaveTitle": "End navigation from",
+  "navSettingsLeaveText": "This far off the route, the navigation ends by itself — only after you have been on the route once. The recording keeps going, and “Resume” brings the route back.",
+  "navSettingsNever": "never",
+  "highlightNavReplanTitle": "Re-plan route",
+  "highlightNavReplanText": "Far off the route, one tap computes the rest again from where you are — to the next trail head, the trails stay in. Further away the navigation ends by itself; both thresholds are in Profile under “Navigation”.",
+  "demoNavReplanTitle": "Set up the navigation",
+  "demoNavReplanText": "Here you set from how far off the route the navigation offers “Re-plan route” (default 100 m) and when it ends by itself (default 500 m)."
 }

@@ -9548,5 +9548,82 @@
   "usernameStepLater": "Später",
   "@usernameStepLater": {
     "description": "Behält den vergebenen Namen (trailbuddy_…); ändern lässt er sich im Konto."
+  },
+  "navReplan": "Route umplanen",
+  "@navReplan": {
+    "description": "Knopf weit neben der Route (#464): den Rest der Route ab dem Standort neu rechnen, zum nächsten Trailkopf voraus."
+  },
+  "navReplanNoArea": "Hier kennt die App keine Wege — umplanen geht erst wieder in einem gespeicherten Bereich oder mit Empfang.",
+  "@navReplanNoArea": {
+    "description": "Satz, wenn „Route umplanen\" keinen Bereich oder keinen Weg am Standort findet."
+  },
+  "navReplanNoPath": "Keine neue Route gefunden — fahre nach Sicht weiter oder zurück zur Route.",
+  "@navReplanNoPath": {
+    "description": "Satz, wenn „Route umplanen\" auf den Kacheln keinen Weg findet."
+  },
+  "navLeftRoute": "Navigation beendet: {distance} neben der Route. Die Aufzeichnung läuft weiter.",
+  "@navLeftRoute": {
+    "description": "Leiste, wenn die Navigation von selbst endet, weil man weit neben der Route ist (#464).",
+    "placeholders": {
+      "distance": {
+        "type": "String"
+      }
+    }
+  },
+  "navLeftResume": "Weiter navigieren",
+  "@navLeftResume": {
+    "description": "Knopf in der Leiste „Navigation beendet\": die zuletzt navigierte Route wieder starten."
+  },
+  "profileNavigationTitle": "Navigation",
+  "@profileNavigationTitle": {
+    "description": "Profil, Zeile und Seitentitel: Schwellen für „Route umplanen\" und das Verlassen der Route."
+  },
+  "profileNavigationValue": "Umplanen ab {replan} · Ende ab {leave}",
+  "@profileNavigationValue": {
+    "description": "Profil, Wert der Zeile „Navigation\": beide Schwellen kurz.",
+    "placeholders": {
+      "replan": {
+        "type": "String"
+      },
+      "leave": {
+        "type": "String"
+      }
+    }
+  },
+  "navSettingsReplanTitle": "„Route umplanen\" anbieten ab",
+  "@navSettingsReplanTitle": {
+    "description": "Seite „Navigation\": Überschrift der ersten Schwelle."
+  },
+  "navSettingsReplanText": "So weit neben der Route steht in der Navigation „Route umplanen\": Der Rest der Route wird ab deinem Standort neu gerechnet, zum nächsten Trailkopf voraus. Umkehren nimmt die neue Route nur, wenn es viel kürzer ist.",
+  "@navSettingsReplanText": {
+    "description": "Seite „Navigation\": Erklärung der ersten Schwelle."
+  },
+  "navSettingsLeaveTitle": "Navigation beenden ab",
+  "@navSettingsLeaveTitle": {
+    "description": "Seite „Navigation\": Überschrift der zweiten Schwelle."
+  },
+  "navSettingsLeaveText": "So weit neben der Route endet die Navigation von selbst — erst, nachdem du einmal auf der Route warst. Die Aufzeichnung läuft weiter, und „Weiter navigieren\" holt die Route zurück.",
+  "@navSettingsLeaveText": {
+    "description": "Seite „Navigation\": Erklärung der zweiten Schwelle."
+  },
+  "navSettingsNever": "nie",
+  "@navSettingsNever": {
+    "description": "Seite „Navigation\" und Profil: die Navigation endet nie von selbst."
+  },
+  "highlightNavReplanTitle": "Route umplanen",
+  "@highlightNavReplanTitle": {
+    "description": "Entdecken, Eintrag „nav-replan“: Überschrift (auch im Neuheiten-Blatt nach einem Update)."
+  },
+  "highlightNavReplanText": "Weit neben der Route rechnet ein Tipp den Rest ab deinem Standort neu — zum nächsten Trailkopf, die Trails bleiben drin. Noch weiter weg endet die Navigation von selbst; beide Schwellen stehen im Profil unter „Navigation\".",
+  "@highlightNavReplanText": {
+    "description": "Entdecken, Eintrag „nav-replan“: Text, zwei bis drei Sätze (auch im Neuheiten-Blatt)."
+  },
+  "demoNavReplanTitle": "Navigation einstellen",
+  "@demoNavReplanTitle": {
+    "description": "Vorführung „nav-replan“ (Entdecken → Zeig es mir): Überschrift der Blase."
+  },
+  "demoNavReplanText": "Hier stellst du ein, ab wann die Navigation „Route umplanen\" anbietet (Vorgabe 100 m) und ab wann sie von selbst endet (Vorgabe 500 m).",
+  "@demoNavReplanText": {
+    "description": "Vorführung „nav-replan“ (Entdecken → Zeig es mir): Text der Blase."
   }
 }

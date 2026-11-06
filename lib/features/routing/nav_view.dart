@@ -275,8 +275,14 @@ class _NavOverlayState extends ConsumerState<NavOverlay> {
     final note = switch (session.rejoin) {
       NavRejoin.noArea => l.navRejoinNoArea,
       NavRejoin.noPath => l.navRejoinNoPath,
-      _ => null,
+      _ => switch (session.replan) {
+          NavReplan.noArea => l.navReplanNoArea,
+          NavReplan.noPath => l.navReplanNoPath,
+          _ => null,
+        },
     };
+    // „Route umplanen" ab der Schwelle der Seite „Navigation" (#464).
+    final replan = off && session.replanOffer;
     final Widget top;
     if (off && state != null) {
       top = _OffRouteCard(state: state, bearingDeg: session.bearingDeg);
@@ -335,8 +341,16 @@ class _NavOverlayState extends ConsumerState<NavOverlay> {
                     _RouteBand(session: session),
                     const SizedBox(height: 10),
                   ],
-                  if (offer) ...[
-                    Center(child: _RejoinButton(computing: session.rejoin == NavRejoin.computing)),
+                  if (offer || replan) ...[
+                    Wrap(
+                      alignment: WrapAlignment.center,
+                      spacing: 10,
+                      runSpacing: 10,
+                      children: [
+                        if (offer) _RejoinButton(computing: session.rejoin == NavRejoin.computing),
+                        if (replan) _ReplanButton(computing: session.replan == NavReplan.computing),
+                      ],
+                    ),
                     const SizedBox(height: 10),
                   ],
                   Row(
@@ -1199,6 +1213,32 @@ class _RejoinButton extends ConsumerWidget {
             ? const SizedBox.square(dimension: 18, child: CircularProgressIndicator(strokeWidth: 2))
             : const Icon(Icons.u_turn_left),
         label: Text(context.l10n.navRejoin),
+      );
+}
+
+/// „Route umplanen" (#464): neben „Zurück zur Route", gleich gebaut.
+class _ReplanButton extends ConsumerWidget {
+  const _ReplanButton({required this.computing});
+
+  final bool computing;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) => FilledButton.icon(
+        key: const ValueKey('nav-replan'),
+        style: FilledButton.styleFrom(
+          minimumSize: const Size(0, 48),
+          backgroundColor: _p.surface2,
+          foregroundColor: AppColors.brand,
+          disabledBackgroundColor: _p.surface2,
+          disabledForegroundColor: _p.muted,
+          shape: StadiumBorder(side: BorderSide(color: _p.line)),
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+        ),
+        onPressed: computing ? null : () => unawaited(ref.read(navigationProvider.notifier).replan()),
+        icon: computing
+            ? const SizedBox.square(dimension: 18, child: CircularProgressIndicator(strokeWidth: 2))
+            : const Icon(Icons.alt_route),
+        label: Text(context.l10n.navReplan),
       );
 }
 

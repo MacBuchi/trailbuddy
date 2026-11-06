@@ -2,6 +2,26 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## Re-plan the route, leave the route
+
+*Version 0.157.0, 2026-11-07*
+
+- When you are more than 100 m off the route while navigating, “Re-plan
+  route” sits next to “Back to the route”: the app computes the rest
+  again from where you are, up to the next trail head ahead — without a
+  trail ahead, to the destination. All trails of the route stay in, only
+  the way there is free. So you don't have to set every point exactly
+  the way you will actually ride.
+- The new route turns back only if that is clearly shorter; otherwise it
+  carries on in the direction you are riding.
+- The watch gets the new route by itself, and so does the notification.
+- When you are more than 500 m off the route, the navigation ends by
+  itself — only after you have been on the route once. The recording
+  keeps going, and “Resume” brings the route back. This also works when
+  the app has been swiped away.
+- You set both distances in Profile under “Navigation”; ending can also
+  be switched off.
+
 ## Screen on while recording
 
 *Version 0.156.0, 2026-11-06*
