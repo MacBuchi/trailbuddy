@@ -5,6 +5,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:trailbuddy/core/app_colors.dart';
+import 'package:trailbuddy/core/screen_awake.dart';
 import 'package:trailbuddy/features/map/map_buttons.dart';
 import 'package:trailbuddy/features/map/map_screen.dart' show kRidePulseExtent;
 import 'package:trailbuddy/features/map/map_view/map_view.dart';
@@ -17,9 +18,20 @@ import 'package:trailbuddy/features/rides/ride_track.dart';
 import '../fakes/fake_backend.dart';
 import '../fakes/fake_map_view.dart';
 import '../fakes/fake_rides.dart';
+import '../fakes/fake_settings.dart';
 import '../fakes/test_app.dart';
 
 const _portName = 'flutter_foreground_task/isolateComPort';
+
+class _FakeScreen implements ScreenAwake {
+  final calls = <bool>[];
+
+  @override
+  bool get supported => true;
+
+  @override
+  Future<void> keepOn(bool on) async => calls.add(on);
+}
 
 void main() {
   late FakeBackend backend;
@@ -223,6 +235,49 @@ void main() {
     expect(bridge.armed, isTrue, reason: 'der Service wird wieder aufgesetzt');
     expect(service.running, isTrue);
     expect(fix.calls, 0, reason: 'kein neuer Start, kein erster Fix');
+  });
+
+  testWidgets('Bildschirm an während der Fahrt (#445): aus ab Werk, ein Knopf, gemerkt, aus mit dem Ende',
+      (tester) async {
+    final screen = _FakeScreen();
+    final settings = FakeSettings();
+    final screenButton = find.byKey(const ValueKey('ride-screen-button'));
+    fix.next = pt(0);
+    await pumpApp(tester, backend,
+        rideStore: store,
+        rideFix: fix,
+        rideBridge: bridge,
+        rideService: service,
+        settings: settings,
+        extraOverrides: [screenAwakeProvider.overrideWithValue(screen)]);
+    expect(screenButton, findsNothing, reason: 'ohne Fahrt kein Knopf');
+
+    await tester.tap(button);
+    await settle(tester);
+    await drainSnackbars(tester);
+    expect(screenButton, findsOneWidget);
+    expect(tester.widget<MapRoundButton>(screenButton).active, isFalse);
+    expect(screen.calls.where((on) => on), isEmpty, reason: 'ab Werk aus');
+
+    await tester.tap(screenButton);
+    await settle(tester);
+    expect(tester.widget<MapRoundButton>(screenButton).active, isTrue);
+    expect(screen.calls.last, isTrue);
+    expect(settings.rideKeepScreenOn, isTrue, reason: 'gemerkt für die nächste Fahrt');
+
+    await tester.tap(screenButton);
+    await settle(tester);
+    expect(screen.calls.last, isFalse, reason: 'ein Tipp schaltet ihn wieder ab');
+    await tester.tap(screenButton);
+    await settle(tester);
+    expect(screen.calls.last, isTrue);
+
+    await store.appendPoint(pt(1));
+    await drainSnackbars(tester);
+    await tester.tap(button);
+    await settle(tester);
+    expect(screen.calls.last, isFalse, reason: 'mit dem Ende der Fahrt darf er wieder ausgehen');
+    expect(screenButton, findsNothing);
   });
 
   group('Marken während der Aufnahme (#105)', () {

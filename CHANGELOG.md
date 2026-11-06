@@ -2,6 +2,18 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Bildschirm an beim Aufzeichnen
+
+*Version 0.156.0, 2026-11-06*
+
+- Während einer Fahrt steht über der Fahne ein Sonnen-Knopf: Antippen,
+  und der Bildschirm bleibt an, solange die Fahrt läuft. Noch einmal
+  antippen, und er darf wieder ausgehen. Die Wahl merkt sich die App für
+  die nächste Fahrt; ab Werk ist sie aus, damit das Handy in der Tasche
+  keinen Akku verbraucht.
+- Endet eine Navigation, während die Fahrt weiterläuft, bleibt der
+  Bildschirm an, wenn die Fahrt ihn hält.
+
 ## „Spaßig" nimmt Trails auf der ganzen Strecke mit
 
 *Version 0.155.2, 2026-11-06*

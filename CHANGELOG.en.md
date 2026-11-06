@@ -2,6 +2,17 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## Screen on while recording
+
+*Version 0.156.0, 2026-11-06*
+
+- During a ride a sun button sits above the flag: tap it and the screen
+  stays on as long as the ride runs. Tap again and it may turn off. The
+  app remembers the choice for the next ride; it starts switched off so
+  a phone in the pocket doesn't drain its battery.
+- If a navigation ends while the ride goes on, the screen stays on when
+  the ride holds it.
+
 ## "Spaßig" takes trails along the whole way
 
 *Version 0.155.2, 2026-11-06*

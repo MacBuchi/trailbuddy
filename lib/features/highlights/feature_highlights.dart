@@ -83,6 +83,16 @@ class FeatureHighlight {
 final kFeatureHighlights = <FeatureHighlight>[
   // ─── Highlights ──────────────────────────────────────────────────
   FeatureHighlight(
+    id: 'ride-screen',
+    since: '0.156.0',
+    kind: HighlightKind.highlight,
+    tab: HighlightTab.map,
+    icon: Icons.light_mode_outlined,
+    title: (l) => l.highlightRideScreenTitle,
+    text: (l) => l.highlightRideScreenText,
+    target: '/',
+  ),
+  FeatureHighlight(
     id: 'one-report',
     since: '0.147.0',
     kind: HighlightKind.highlight,

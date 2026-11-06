@@ -6916,6 +6916,14 @@
   "@highlightMarksText": {
     "description": "Entdecken, Eintrag „marks“: Text, zwei bis drei Sätze (auch im Neuheiten-Blatt)."
   },
+  "highlightRideScreenTitle": "Bildschirm an beim Aufzeichnen",
+  "@highlightRideScreenTitle": {
+    "description": "Entdecken, Eintrag „ride-screen“: Überschrift (auch im Neuheiten-Blatt nach einem Update)."
+  },
+  "highlightRideScreenText": "Während einer Aufzeichnung steht über der Fahne ein Sonnen-Knopf. Antippen, und der Bildschirm bleibt an, solange die Fahrt läuft — noch einmal, und er darf wieder ausgehen. Die Wahl gilt auch für die nächste Fahrt.",
+  "@highlightRideScreenText": {
+    "description": "Entdecken, Eintrag „ride-screen“: Text, zwei bis drei Sätze (auch im Neuheiten-Blatt)."
+  },
   "highlightTakeoverTitle": "Einen Buddy-Trail zu deinem machen",
   "@highlightTakeoverTitle": {
     "description": "Entdecken, Eintrag „takeover“: Überschrift (auch im Neuheiten-Blatt nach einem Update)."
@@ -7504,6 +7512,14 @@
   "demoMarksText": "Läuft eine Aufzeichnung, steht über diesem Knopf eine Fahne: am Anfang eines Trails antippen, am Ende noch einmal.",
   "@demoMarksText": {
     "description": "Vorführung „marks“ (Entdecken → Zeig es mir): Text der Blase."
+  },
+  "demoRideScreenTitle": "Der Sonnen-Knopf kommt mit der Fahrt",
+  "@demoRideScreenTitle": {
+    "description": "Vorführung „ride-screen“ (Entdecken → Zeig es mir): Überschrift der Blase."
+  },
+  "demoRideScreenText": "Läuft eine Aufzeichnung, steht über diesem Knopf eine Sonne: Antippen lässt den Bildschirm an, bis die Fahrt endet.",
+  "@demoRideScreenText": {
+    "description": "Vorführung „ride-screen“ (Entdecken → Zeig es mir): Text der Blase."
   },
   "demoTakeoverTitle": "Beim ersten Befahren",
   "@demoTakeoverTitle": {

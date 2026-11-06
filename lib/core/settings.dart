@@ -153,6 +153,12 @@ abstract interface class Settings {
 
   Future<void> setNavKeepScreenOn(bool value);
 
+  /// Bleibt der Bildschirm während einer Fahrt an (#445)? Vorgabe: aus —
+  /// in der Tasche kostete er Akku und fängt Berührungen.
+  bool get rideKeepScreenOn;
+
+  Future<void> setRideKeepScreenOn(bool value);
+
   /// Das FCM-Token, mit dem dieses Gerät in `push_devices` steht — oder
   /// null, solange niemand Push eingeschaltet hat (#34).
   ///
@@ -337,6 +343,14 @@ class PrefsSettings implements Settings {
 
   @override
   Future<void> setNavKeepScreenOn(bool value) => _prefs.setBool(_navKeepScreenOnKey, value);
+
+  static const _rideKeepScreenOnKey = 'ride_keep_screen_on';
+
+  @override
+  bool get rideKeepScreenOn => _prefs.getBool(_rideKeepScreenOnKey) ?? false;
+
+  @override
+  Future<void> setRideKeepScreenOn(bool value) => _prefs.setBool(_rideKeepScreenOnKey, value);
 
   static const _pushTokenKey = 'push_token';
 

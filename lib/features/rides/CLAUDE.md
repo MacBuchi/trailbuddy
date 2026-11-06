@@ -55,6 +55,15 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
   `FakeRideStore`, `FakeRideFix`, `FakeRideServiceBridge` und
   `FakeRideService` ein, sonst ginge jeder Kartentest über `restore()`
   an `path_provider`.
+- **Bildschirm an während der Fahrt** (#445, seit 0.156.0): Sonnen-Knopf
+  über der Fahne (`ride-screen-button`, nur mit `ScreenAwake.supported`),
+  gemerkt in `Settings.rideKeepScreenOn`, **ab Werk aus** (in der Tasche
+  kostet er Akku und fängt Berührungen — anders als die Navigation, die
+  vorne liegt). Navigation und Fahrt teilen den Bildschirm über
+  `ScreenHolds` (`lib/core/screen_awake.dart`): an, solange EINER hält;
+  vorher schaltete das Ende der Navigation ihn auch für eine laufende
+  Fahrt aus. Die Karte hält über `rideHoldsScreenProvider`
+  (`listenManual`, `fireImmediately`), auch nach dem Wiederaufnehmen.
 - **Bestätigen durch Fahren** (#116, seit 0.52.0, `ride_confirm.dart`
   pur, `ride_confirm_notify.dart`, Wächter in `ride_task_handler.dart`):
   Wer aufzeichnet und AUF einen Trail mit unbestätigter Meldung oder
