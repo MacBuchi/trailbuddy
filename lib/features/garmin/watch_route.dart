@@ -62,6 +62,15 @@ const kWatchQuery = 'q';
 const kWatchStored = 'ok';
 const kWatchHello = 'hi';
 
+/// Die Position des Handys als erster Fix der Uhr (`{t: "p", la, lo}` in
+/// 1e-5°; Betreiber 2026-11-05): Bis die Uhr selbst GPS hat, zeigt sie
+/// damit Position und Wege statt Strichen. Sie bleibt im Speicher der Uhr.
+const kWatchPhonePosition = 'p';
+
+/// Die Uhr hat ihr eigenes GPS (`{t: "g"}`) — ohne Koordinate (A3). Danach
+/// schickt das Handy keine Position mehr.
+const kWatchHasGps = 'g';
+
 /// Die Uhr konnte ein Stück nicht nehmen (`{t: "x", id, c}`): `c` ist
 /// [kWatchErrMemory], [kWatchErrStorage], [kWatchErrCrash] oder
 /// [kWatchErrBad].
@@ -80,6 +89,9 @@ const kWatchErrCrash = 'crash';
 /// Das Stück passte nicht zur Form.
 const kWatchErrBad = 'bad';
 
+/// Das Stück hatte eine andere Fassung (`v` steht in der Antwort).
+const kWatchErrVersion = 'ver';
+
 /// Packt zwei Werte mit 16 Bit Vorzeichen in eine 32-Bit-Zahl, wie
 /// `PhoneRoute.unpackHi/unpackLo` sie auf der Uhr wieder auspacken. Auch
 /// im Web (32-Bit-Schieben ohne Vorzeichen) eine Zahl mit Vorzeichen —
@@ -93,6 +105,23 @@ int watchPack(int hi, int lo) => ((hi & 0xffff) << 16 | (lo & 0xffff)).toSigned(
 /// Die Frage an die Uhr, nach dem Wiederverbinden: Läuft ihre App, meldet
 /// sie sich mit `hi` (läuft sie nicht, verfällt die Nachricht still).
 const Map<String, Object> watchQuery = {'t': kWatchQuery};
+
+/// Die Position des Handys für die Uhr ([kWatchPhonePosition]).
+Map<String, Object> watchPositionOf(LatLng p) =>
+    {'t': kWatchPhonePosition, 'la': (p.latitude * 1e5).round(), 'lo': (p.longitude * 1e5).round()};
+
+/// Meldet die Uhr ihr eigenes GPS ([kWatchHasGps])?
+bool watchHasGps(Object? message) => message is Map && message['t'] == kWatchHasGps;
+
+/// Welche Seite ist veraltet, wenn die Uhr mit Fassung [v] spricht? Null,
+/// wenn sie passt; ohne Fassung gilt die Uhr als veraltet.
+WatchOutdated? watchOutdatedOf(int? v) {
+  if (v == kWatchProtocol) return null;
+  if (v == null || v < kWatchProtocol) return WatchOutdated.watch;
+  return WatchOutdated.phone;
+}
+
+enum WatchOutdated { watch, phone }
 
 /// Die Route für die Uhr, noch nicht in Stücken.
 class WatchRoute {
@@ -446,24 +475,27 @@ Map<String, Object>? watchBestsOf(AirtimeLog log) {
 /// `id` null ohne Route vom Handy. `bad` ist eine Route, die die Uhr-App
 /// zweimal abstürzen ließ und die sie deshalb verworfen hat. Keine
 /// Meldung: `hello` false.
-({bool hello, String? id, String? bad}) watchHelloOf(Object? message) {
-  if (message is! Map || message['t'] != kWatchHello) return (hello: false, id: null, bad: null);
-  final id = message['id'], bad = message['bad'];
-  return (hello: true, id: id is String ? id : null, bad: bad is String ? bad : null);
+///
+/// `v` ist die Fassung des Protokolls der Uhr-App (null, wenn sie fehlt).
+({bool hello, String? id, String? bad, int? v}) watchHelloOf(Object? message) {
+  if (message is! Map || message['t'] != kWatchHello) return (hello: false, id: null, bad: null, v: null);
+  final id = message['id'], bad = message['bad'], v = message['v'];
+  return (hello: true, id: id is String ? id : null, bad: bad is String ? bad : null, v: v is int ? v : null);
 }
 
 /// Die Uhr konnte ein Stück der Route [id] nicht nehmen: `(id, code)`
 /// mit `code` aus [kWatchErrMemory] …, sonst null.
-({String id, String code})? watchErrorOf(Object? message) {
+/// Bei [kWatchErrVersion] trägt `v` die Fassung der Uhr-App.
+({String id, String code, int? v})? watchErrorOf(Object? message) {
   if (message is! Map || message['t'] != kWatchError) return null;
-  final id = message['id'], code = message['c'];
+  final id = message['id'], code = message['c'], v = message['v'];
   if (id is! String || code is! String) return null;
-  return (id: id, code: code);
+  return (id: id, code: code, v: v is int ? v : null);
 }
 
 /// Hilft eine Route mit weniger Punkten? Bei Speicher und Absturz ja; ein
-/// Stück in falscher Form wird auch kleiner nicht richtig.
-bool watchErrorWantsSmaller(String code) => code != kWatchErrBad;
+/// Stück in falscher Form oder Fassung wird auch kleiner nicht richtig.
+bool watchErrorWantsSmaller(String code) => code != kWatchErrBad && code != kWatchErrVersion;
 
 /// Hat die Uhr [routeId] gespeichert? Ihre Antwort auf eine vollständige
 /// Route (Konzept 2).

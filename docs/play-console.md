@@ -159,7 +159,10 @@ geteilt*, dieselbe Einordnung wie Brevo.
 Empfehlung: **nein, nutzerinitiiert.** Nur mit dem Schalter „Auf der Uhr
 zeigen" beim Start einer Navigation gibt die App die Route (vereinfachte
 Linie mit Höhen, Namen und S-Grade der Trails darauf) und während der
-Fahrt die Bestwerte der Erkennung (Zahlen, keine Spur) an die
+Fahrt die Bestwerte der Erkennung (Zahlen, keine Spur), seit 0.154.0
+zu Beginn der Navigation auch die aktuelle Position (alle 10 s,
+höchstens 3 min, bis die Uhr eigenes GPS meldet — „genauer Standort",
+aber nur an das eigene Gerät des Nutzers) an die
 Garmin-Connect-App auf DEMSELBEN Telefon, die sie an die eigene Uhr des
 Nutzers bringt — dieselbe Ausnahme wie die Anfahrt. Kein Netzziel der
 App, kein Garmin-Konto, keine Garmin-Aktivität (Konzept-Garmin 0 und 4).

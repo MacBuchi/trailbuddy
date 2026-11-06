@@ -376,8 +376,13 @@ function phoneRouteStoresOnlyWhenComplete(logger as Logger) as Boolean {
     var msgs = TestRoutes.parts(TestRoutes.v2("x1", false, [0, 0, 0, 300, 0, 300], null, null, null), 2);
     Test.assertEqual(msgs.size(), 2);
     var old = {"t" => "r", "id" => "x1", "p" => 0, "n" => 2, "v" => 1, "np" => 3, "o" => [0, 0], "pts" => [0, 0]};
+    // Eine andere Fassung heißt `ver`, nicht `bad`: Das Handy nennt dann
+    // die veraltete Seite (#449). Älter wie neuer.
     Test.assert(PhoneRoute.take(old) == null);
-    Test.assertEqual(PhoneRoute.lastError, "bad");
+    Test.assertEqual(PhoneRoute.lastError, "ver");
+    old["v"] = PhoneRoute.PROTOCOL + 1;
+    Test.assert(PhoneRoute.take(old) == null);
+    Test.assertEqual(PhoneRoute.lastError, "ver");
     Test.assert(PhoneRoute.take({"t" => "r", "id" => "x1", "p" => 2, "n" => 2, "pts" => [0]}) == null);
     Test.assert(PhoneRoute.take(msgs[0]) == null);
     Test.assert(PhoneRoute.lastError == null);

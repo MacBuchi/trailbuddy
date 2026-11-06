@@ -86,6 +86,13 @@ dunkle Infofläche, „Was kommt als Nächstes?" statt „Wie weit noch?".
   eingepasst, Start als Punkt, Trailköpfe als Schilder, unten „Warte auf
   GPS" mit Länge und Höhenmetern der Route. Mit dem ersten Fix kommt die
   gedrehte Karte.
+- **Die Position des Handys als erster Fix** (Betreiber, 2026-11-05):
+  Bis die Uhr selbst GPS hat, nimmt sie die Position, die das Handy nach
+  dem „gespeichert" schickt — Karte, „Zum Trail", „Zum Ziel" und Anstieg
+  stehen damit sofort statt Strichen. Der Pfeil ist dann hohl, darüber
+  „HANDY-GPS". Kein Vibrieren beim Abkommen (die Position kann ein paar
+  Sekunden alt sein), keine Zahlen der Fahrt; mit dem ersten eigenen Fix
+  beginnt die Verfolgung neu, und nur noch das eigene GPS zählt.
 - **Kurz vibrieren bei einer neuen Route** (Betreiber, 2026-11-05):
   ein kurzer, schwacher Stoß, sobald eine neue Route vom Handy ganz
   gespeichert ist — dieselbe noch einmal bleibt still. Er ist deutlich
@@ -143,9 +150,14 @@ Punkte, `o`, `e0`, `sec`) steht im ersten Stück und zählt in dessen
 Grenze mit. Erster Test am Gerät (fēnix 5 über Garmin Connect,
 2026-11-05): eine Route „Zum Trailkopf" in 2 Stücken, beide bestätigt,
 die Uhr zeigte sie. Eine Uhr-App mit Protokoll 1 nimmt Protokoll 2 nicht
-und umgekehrt — beide Seiten kommen aus demselben Stand; dass das Handy
-die Fassung im „hallo" prüft und eine veraltete Seite benennt, ist der
-nächste Schritt.
+und umgekehrt — beide Seiten kommen aus demselben Stand. **Das Handy
+prüft die Fassung** (seit 0.154.0): Weicht `v` im „hallo" ab (oder
+fehlt), geht nichts hin, und die Leiste nennt die veraltete Seite —
+„Die Uhr-App ist veraltet …" bei einer kleineren, „TrailBuddy auf dem
+Handy ist älter …" bei einer größeren Fassung. Erst ein „hallo" mit der
+passenden Fassung gibt das Senden wieder frei. Ging das „hallo" verloren,
+antwortet die Uhr auf das erste Stück einer anderen Fassung mit
+`{t: "x", id, c: "ver", v}` statt `bad`; das Handy behandelt es gleich.
 
 **Die Uhr hält nie die ganze Route roh** (2026-11-05): Sie legt jedes
 Stück geprüft (Typen, Größen, Trails innerhalb der Linie) als `[pts, ele,
@@ -173,9 +185,18 @@ angekommenen schon abgelegt. Die Uhr sendet nur, wenn ein Handy
 verbunden ist. **Höchstens 2000 Punkte**
 (Messung 8.1): darüber vereinfacht die App stärker, bis es passt.
 
-Die Uhr schickt zurück: „angekommen und gespeichert" mit der Kennung
-und „hallo" mit der Kennung der Route, die sie hat — sonst nichts. Keine
-Position, keine Fahrt (A3).
+**Die Position des Handys** (Betreiber, 2026-11-05): Nach dem
+„gespeichert" schickt das Handy seine Position (`{t: "p", la, lo}` in
+1e-5°), gleich und dann alle 10 s (`kWatchPositionEvery`), bis die Uhr
+`{t: "g"}` meldet („ich habe eigenes GPS", ohne Koordinate), die
+Navigation endet oder 3 min um sind (`kWatchPositionFor`) — die Uhr
+navigiert allein (A8), das ist nur ein Vorsprung beim Start. Ein neues
+„hallo" (die Uhr-App startete neu) beginnt den Takt wieder. Die Uhr hält
+die Position nur im Speicher (A3).
+
+Die Uhr schickt zurück: „angekommen und gespeichert" mit der Kennung,
+„hallo" mit der Kennung der Route, die sie hat, und einmal „habe GPS" —
+sonst nichts. Keine Position, keine Fahrt (A3).
 
 **Gebaut in G2 (2026-11-04)**: `lib/features/garmin/watch_route.dart`
 kodiert und schneidet in **Stücke** (`t: "r"`, `id`, Laufnummer `p`, Anzahl

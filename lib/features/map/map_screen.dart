@@ -1147,7 +1147,9 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     // Die Uhr (Konzept-Garmin 3): „auf der Uhr" erst mit ihrem
     // „gespeichert"; die Navigation hier läuft in jedem Fall weiter.
     ref.listen(watchSyncProvider, (previous, next) {
-      if (previous?.phase == next.phase) return;
+      // Ein anderer Fehler in derselben Phase ist ein neuer Stand (#449:
+      // erst die Uhr-App veraltet, dann die App).
+      if (previous?.phase == next.phase && previous?.error == next.error) return;
       final l = context.l10n;
       final (key, text) = switch (next.phase) {
         WatchSyncPhase.stored => ('map-watch-stored', l.mapWatchStored),
@@ -1156,6 +1158,10 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         WatchSyncPhase.failed when next.error == 'APP_IS_NOT_INSTALLED' =>
           ('map-watch-missing', l.mapWatchMissing),
         WatchSyncPhase.failed when next.error == kWatchTooBig => ('map-watch-too-big', l.mapWatchTooBig),
+        WatchSyncPhase.failed when next.error == kWatchOutdatedWatch =>
+          ('map-watch-outdated-watch', l.mapWatchOutdatedWatch),
+        WatchSyncPhase.failed when next.error == kWatchOutdatedPhone =>
+          ('map-watch-outdated-phone', l.mapWatchOutdatedPhone),
         WatchSyncPhase.failed => ('map-watch-failed', l.mapWatchFailed),
         _ => (null, null),
       };

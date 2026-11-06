@@ -89,6 +89,9 @@ module PhoneRoute {
                 || n < 1 || n > MAX_PARTS || p < 0 || p >= n) {
             return fail("bad");
         }
+        // Eine andere Fassung sagt die Uhr als solche (`ver`), damit das
+        // Handy die veraltete Seite nennen kann (#449, 2026-11-05).
+        if (p == 0 && msg["v"] != PROTOCOL) { return fail("ver"); }
         var bad = Storage.getValue("bad");
         if (bad instanceof String && bad.equals(id)) { return fail("crash"); }
         var part = partOf(msg);

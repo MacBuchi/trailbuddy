@@ -48,6 +48,9 @@ class NavView extends WatchUi.View {
     hidden var _zoom as Number = 1;
     hidden var _page as Number = 0;
     hidden var _speed as Float? = null;
+    //! Der Stand kommt von der Position des Handys, nicht vom eigenen GPS:
+    //! Der Pfeil ist hohl, darüber steht „Handy-GPS".
+    hidden var _phone as Boolean = false;
     hidden var _stats as RideStats;
     hidden var _sep as String;
     //! Die Zeilen der Karte, die in jedem Bild stehen, einmal geladen (die
@@ -86,8 +89,9 @@ class NavView extends WatchUi.View {
 
     //! Beim Abkommen kommt die Karte nach vorn: Dort sieht man den Weg
     //! zurück (Entwurf „Ring und Seiten").
-    function setState(s as NavState, speed as Float?) as Void {
+    function setState(s as NavState, speed as Float?, phone as Boolean) as Void {
         _state = s;
+        _phone = phone;
         // Mit dem ersten Fix braucht es die Übersicht nicht mehr.
         _ovX = null;
         _ovY = null;
@@ -521,7 +525,8 @@ class NavView extends WatchUi.View {
     }
 
     //! Die eigene Position: ein Pfeil nach oben (die Ansicht dreht mit),
-    //! schwarz mit weißem Saum.
+    //! schwarz mit weißem Saum. Vom Handy (vor dem eigenen GPS) hohl, mit
+    //! „Handy-GPS" darüber.
     hidden function drawMe(dc as Dc) as Void {
         var cx = _cx;
         var cy = _cy;
@@ -529,6 +534,12 @@ class NavView extends WatchUi.View {
         dc.fillPolygon([[cx, cy - 18], [cx + 14, cy + 14], [cx, cy + 7], [cx - 14, cy + 14]]);
         dc.setColor(TbColors.TEXT, Graphics.COLOR_TRANSPARENT);
         dc.fillPolygon([[cx, cy - 13], [cx + 11, cy + 11], [cx, cy + 5], [cx - 11, cy + 11]]);
+        if (!_phone) { return; }
+        dc.setColor(TbColors.GROUND, Graphics.COLOR_TRANSPARENT);
+        dc.fillPolygon([[cx, cy - 7], [cx + 6, cy + 6], [cx, cy + 3], [cx - 6, cy + 6]]);
+        dc.setColor(TbColors.TEXT, TbColors.GROUND);
+        dc.drawText(cx, cy - 22, Graphics.FONT_XTINY, str(Rez.Strings.PhoneGps),
+            Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
     }
 
     //! Norden am Rand — die Karte dreht mit der Fahrt, so bleibt die

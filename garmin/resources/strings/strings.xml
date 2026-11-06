@@ -5,6 +5,7 @@
     <string id="RouteBroken">Route unusable</string>
     <string id="Arrived">ARRIVED</string>
     <string id="OffRoute">OFF ROUTE</string>
+    <string id="PhoneGps">PHONE GPS</string>
     <string id="ToGoal">TO FINISH</string>
     <string id="Quit">End navigation?</string>
     <string id="Speed">KM/H</string>
