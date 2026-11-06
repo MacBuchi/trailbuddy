@@ -227,6 +227,19 @@ module PhoneRoute {
         return new NavRoute(id, false, head, new RouteParts(slot, null, n));
     }
 
+    //! So viele Stücke der Route [id] liegen schon im freien Fach (für
+    //! „Route kommt · 1/2" im Lader).
+    function received(id as String) as Number {
+        var slot = freeSlot();
+        if (!id.equals(Storage.getValue(slot + "id"))) { return 0; }
+        var mask = Storage.getValue(slot + "mask");
+        var k = 0;
+        if (mask instanceof Number) {
+            for (var m = mask; m != 0; m = m >> 1) { k += m & 1; }
+        }
+        return k;
+    }
+
     //! Die Kennung der gespeicherten Route, oder null (für „hallo").
     function currentId() as String? {
         var slot = Storage.getValue("cur");

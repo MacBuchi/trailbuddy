@@ -259,6 +259,32 @@ angekommen (beantwortet 8.2). Deshalb:
   der laufenden Navigation ab, schickt das Handy die aktuelle; stimmt
   sie, gilt sie als gespeichert. Ein „hallo", das kommt, während das
   Handy noch rechnet, wartet auf die fertige Route.
+- **Das Handy antwortet sofort auf das „hallo"** (Betreiber,
+  2026-11-06: „Wen juckt die alte Route?"): `{t: "n", id, np}` — eine
+  neue Route kommt, in `np` Stücken (0: wird noch gerechnet), auch vor
+  jeder Übertragung —, oder `{t: "k", id}` — die gespeicherte ist
+  aktuell. Ist beim Start ein Handy verbunden, zeigt die Uhr bis dahin
+  das Logo als Lader statt der alten Route, nach `n` mit „Route kommt ·
+  1/2". Ohne Antwort in 8 s oder ohne neues Stück in 45 s zeigt sie die
+  gespeicherte, wie ohne Handy. Erst waren es 3 s; gemessen brauchen
+  „hallo" und Antwort über Garmin Connect zusammen 5–7 s (eine kleine
+  Nachricht 3,5 s je Richtung, 2026-11-06), also 8 s (Betreiber). Eine
+  laufende Navigation auf der Uhr übergeht `n`: Sie bleibt, bis die neue
+  Route ganz da ist. Ein „hallo", während dieselbe Route gerade
+  hinübergeht (etwa auf das Nachfassen `q`), schickt sie nicht noch
+  einmal. Beides kam ohne neue Fassung dazu — eine ältere Uhr übergeht
+  unbekannte Arten, eine neue Uhr mit älterer App wartet nur die 8 s.
+- **Die Navigation endet auf beiden Geräten** (`{t: "e", id}`,
+  Betreiber 2026-11-06). Endet sie auf dem Handy, zeigt die Uhr kurz
+  „Navigation beendet" und schließt sich — wenn sie eine Route dieser
+  Navigation zeigt. Beendet man sie auf der Uhr („Navigation
+  beenden?"), geht erst `e` ans Handy, die App schließt sich, sobald
+  Garmin Connect die Nachricht abnahm (höchstens 5 s); das Handy beendet
+  seine Navigation, wenn die Kennung zu einer Route dieses Folgens
+  gehört. **Die Aufzeichnung läuft weiter** — gespeichert wird die
+  Fahrt wie bisher auf dem Handy von Hand; die Uhr speichert nichts
+  außer der Route (A3), es geht also nichts verloren. Ohne Verbindung
+  beendet jede Seite nur sich selbst.
 - **Neu verbunden** meldet Garmin Connect (`device`, `CONNECTED`), dann
   fragt das Handy `{t: "q"}`, und eine laufende Uhr-App antwortet mit
   „hallo". Kein Abfragen im Takt — nur ein kurzes Nachfassen: Wartet das
@@ -399,7 +425,7 @@ Aus der Gerätedatei des SDK 9.3.0 und der Uhr selbst:
 - **Watchdog: 120 000 Bytecode-Schritte je Ereignis.** Schon 1000
   Punkte in einem Zug zu dekodieren löste ihn aus, ebenso das Zeichnen
   aller Stücke und die Suche über die ganze Linie. Deshalb dekodiert
-  die Uhr in Häppchen zu 300 Punkten (Timer, „Lade Route …"), und
+  die Uhr in Häppchen zu 300 Punkten (Timer, Lader „Lade Route …"), und
   Zeichnen wie Suche gehen über Blöcke zu 32 Punkten mit Hülle.
 - Die Uhr erscheint am Rechner als Laufwerk (Massenspeicher); gekoppelt
   wird mit der Garmin-Connect-App.

@@ -193,6 +193,18 @@ class WatchSync extends Notifier<WatchSyncState> {
   Timer? _positionTimer;
   int _positionTicks = 0;
 
+  /// Die Route, deren Stücke gerade hinübergehen — ein „hallo" währenddessen
+  /// (etwa auf das Nachfassen `q`) schickt sie nicht noch einmal (gemessen
+  /// 2026-11-06: dieselbe Route zweimal, 13 s umsonst).
+  String? _sendingId;
+
+  /// Jede Route, die in diesem Folgen an die Uhr ging: Nur deren
+  /// „Navigation beendet" beendet die Navigation des Handys.
+  final _sentIds = <String>{};
+
+  /// Die Uhr hat die Navigation beendet — dann geht kein „beendet" zurück.
+  bool _endedByWatch = false;
+
   /// Zählt jede neue Route; eine Rechnung für eine alte fällt weg.
   int _gen = 0;
 
@@ -237,6 +249,7 @@ class WatchSync extends Notifier<WatchSyncState> {
     // Navigation beendet das Folgen.
     ref.listen(navigationProvider, (_, next) {
       if (next == null) {
+        _sendEnd();
         _release();
       } else if (_follow && !identical(next.route.points, _line)) {
         unawaited(_show(next.route.points, next.sections));
@@ -286,8 +299,20 @@ class WatchSync extends Notifier<WatchSyncState> {
         return const <WatchBranch>[];
       });
 
+  /// Die Navigation endet auf dem Handy: Die Uhr-App schließt sich, wenn
+  /// sie eine Route dieser Navigation zeigt ([kWatchEnd]).
+  void _sendEnd() {
+    final id = _route?.id ?? state.routeId;
+    final byWatch = _endedByWatch;
+    _endedByWatch = false;
+    if (!_follow || byWatch || id == null) return;
+    unawaited(ref.read(garminBridgeProvider).send([watchEndOf(id)]));
+  }
+
   void _release() {
     _follow = false;
+    _sendingId = null;
+    _sentIds.clear();
     _gen++;
     _line = null;
     _route = null;
@@ -372,7 +397,12 @@ class WatchSync extends Notifier<WatchSyncState> {
         final route = _route;
         if (route == null || !_follow) return;
         if (_outdated != null) return _failedOutdated();
-        await _pushOnce(route);
+        _sendingId = route.id;
+        try {
+          await _pushOnce(route);
+        } finally {
+          _sendingId = null;
+        }
       } while (_again);
     } finally {
       _pushing = false;
@@ -387,6 +417,12 @@ class WatchSync extends Notifier<WatchSyncState> {
     _nudgeTimer?.cancel();
     state = WatchSyncState(phase: WatchSyncPhase.sending, routeId: route.id, parts: parts.length);
     final bridge = ref.read(garminBridgeProvider);
+    // Erst die Ankündigung: Sie ist klein und gleich da, die Stücke
+    // brauchen je ~15 s — eine startende Uhr zeigt so den Lader statt der
+    // alten Route. Eine laufende übergeht sie. Das SDK sendet der Reihe
+    // nach (GarminBridge.kt).
+    unawaited(bridge.send([watchAnnounceOf(route.id, parts.length)]));
+    _sentIds.add(route.id);
     var result = await bridge.send(parts);
     // Mittendrin abgebrochen: die übrigen Stücke noch einmal, die Uhr hat
     // die angekommenen schon abgelegt.
@@ -433,6 +469,15 @@ class WatchSync extends Notifier<WatchSyncState> {
   void _onAnswer(Object? message) {
     final hello = watchHelloOf(message);
     if (hello.hello) return _onHello(hello.id, hello.bad, hello.v);
+    final ended = watchEndedId(message);
+    if (ended != null) {
+      // Auf der Uhr beendet: die Navigation des Handys auch — die
+      // Aufzeichnung läuft weiter (NavController.stop).
+      if (!_follow || !_sentIds.contains(ended)) return;
+      _endedByWatch = true;
+      ref.read(navigationProvider.notifier).stop();
+      return;
+    }
     if (watchHasGps(message)) {
       _gps = true;
       _stopPositions();
@@ -467,14 +512,24 @@ class WatchSync extends Notifier<WatchSyncState> {
       if (route != null) _failedOutdated();
       return;
     }
+    final bridge = ref.read(garminBridgeProvider);
     if (route == null) {
       _early = (id: id, bad: bad);
+      // Die Uhr wartet beim Start auf eine Antwort: Es kommt eine, nur
+      // noch nicht fertig gerechnet.
+      unawaited(bridge.send([watchAnnounceOf(null, 0)]));
       return;
     }
-    if (id == route.id) return _stored(id!);
+    if (id == route.id) {
+      unawaited(bridge.send([watchCurrentOf(id!)]));
+      return _stored(id);
+    }
     // Die Uhr-App stürzte mit dieser Route zweimal ab und hat sie
     // verworfen: Noch einmal dieselbe hieße noch ein Absturz.
     if (bad == route.id) return _shrink();
+    // Sie geht gerade hinüber (das „hallo" kam auf das Nachfassen): nicht
+    // noch einmal.
+    if (_pushing && _sendingId == route.id) return;
     unawaited(_push());
   }
 

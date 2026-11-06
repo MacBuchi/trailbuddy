@@ -719,11 +719,41 @@ void main() {
     watch.hello(id);
     await settle(tester, frames: 4);
     expect(watch.routeParts.where((m) => m['p'] == 0), hasLength(1));
-    expect(watch.sent.length, batches + 1, reason: 'nur die Frage');
-    // Eine andere Kennung: Die aktuelle geht.
+    expect(watch.sent.length, batches + 2, reason: 'nur die Frage und „deine ist aktuell"');
+    // Die startende Uhr wartet auf eine Antwort (Betreiber 2026-11-06): Sie
+    // zeigt dann gleich ihre gespeicherte.
+    expect(watch.sent.last, [
+      {'t': 'k', 'id': id}
+    ]);
+    // Eine andere Kennung: Die aktuelle geht, angekündigt vor den Stücken.
     watch.hello('00000000');
     await settle(tester, frames: 4);
     expect(watch.routeParts.where((m) => m['p'] == 0), hasLength(2));
+    final announce = watch.sent.indexWhere((b) => b.length == 1 && b.single['t'] == 'n', batches + 2);
+    final parts = watch.sent.indexWhere((b) => b.isNotEmpty && b.first['t'] == 'r', batches + 2);
+    expect(announce, greaterThanOrEqualTo(0), reason: 'die Uhr zeigt den Lader statt der alten Route');
+    expect(announce, lessThan(parts));
+    expect(watch.sent[announce].single, {'t': 'n', 'np': watch.sent[parts].length, 'id': id});
+  });
+
+  testWidgets('#449: meldet sich die Uhr, während die Route noch rechnet, hört sie gleich „es kommt eine"',
+      (tester) async {
+    final watch = FakeGarminBridge.connected();
+    final branches = Completer<List<WatchBranch>>();
+    await startFromRides(tester, garmin: watch, overrides: [
+      watchBranchesLoaderProvider.overrideWithValue((_) => branches.future),
+    ]);
+    await tester.tap(find.byKey(const ValueKey('nav-go')));
+    await settle(tester, frames: 4);
+    expect(watch.routeParts, isEmpty, reason: 'die Abzweigungen rechnen noch');
+    watch.hello(null);
+    await settle(tester, frames: 2);
+    expect(watch.sent.last, [
+      {'t': 'n', 'np': 0}
+    ]);
+    branches.complete(const []);
+    await settle(tester, frames: 10);
+    expect(watch.routeParts, isNotEmpty, reason: 'danach gehen die Stücke wie gewohnt');
   });
 
   testWidgets('#449: spricht die Uhr-App eine andere Fassung, geht nichts hin — die Leiste nennt die veraltete Seite',
@@ -826,6 +856,56 @@ void main() {
     watch.reconnect();
     await settle(tester, frames: 4);
     expect(watch.sent.length, batches, reason: 'ohne Navigation folgt die Uhr nichts mehr');
+  });
+
+  testWidgets('#449: endet die Navigation auf dem Handy, hört es die Uhr — und beendet man auf der Uhr, endet sie hier',
+      (tester) async {
+    final watch = FakeGarminBridge.connected()..autoStore = true;
+    await startFromRides(tester, garmin: watch);
+    await tester.tap(find.byKey(const ValueKey('nav-go')));
+    await settle(tester, frames: 10);
+    final id = watch.routeParts.first['id'] as String;
+    // Eine fremde Kennung (eine alte Route auf der Uhr) beendet nichts.
+    watch.answer({'t': 'e', 'id': '00000000'});
+    await settle(tester, frames: 4);
+    expect(find.byKey(const ValueKey('nav-stop')), findsOneWidget);
+    // Auf der Uhr beendet: Die Navigation des Handys endet auch, und es
+    // geht kein „beendet" zurück.
+    final batches = watch.sent.length;
+    watch.answer({'t': 'e', 'id': id});
+    await settle(tester, frames: 4);
+    expect(find.byKey(const ValueKey('nav-stop')), findsNothing);
+    expect(watch.sent.skip(batches).expand((b) => b).where((m) => m['t'] == 'e'), isEmpty);
+
+    // Noch einmal, diesmal endet sie auf dem Handy: Die Uhr hört es.
+    await startFromRides(tester, garmin: watch);
+    await tester.tap(find.byKey(const ValueKey('nav-go')));
+    await settle(tester, frames: 10);
+    final second = watch.routeParts.last['id'] as String;
+    final container = ProviderScope.containerOf(tester.element(find.byKey(const ValueKey('nav-stop'))));
+    container.read(navigationProvider.notifier).stop();
+    await settle(tester);
+    expect(watch.sent.last, [
+      {'t': 'e', 'id': second}
+    ]);
+  });
+
+  testWidgets('#449: ein „hallo", während die Route hinübergeht, schickt sie nicht noch einmal', (tester) async {
+    final gate = Completer<void>();
+    final watch = FakeGarminBridge.connected()
+      ..autoStore = true
+      ..sendGate = gate;
+    await startFromRides(tester, garmin: watch);
+    await tester.tap(find.byKey(const ValueKey('nav-go')));
+    await settle(tester, frames: 10);
+    expect(watch.routeParts.where((m) => m['p'] == 0), hasLength(1));
+    // Die Uhr-App antwortet auf das Nachfassen, die Route ist noch unterwegs.
+    watch.hello(null);
+    await settle(tester, frames: 4);
+    gate.complete();
+    await settle(tester, frames: 10);
+    expect(watch.routeParts.where((m) => m['p'] == 0), hasLength(1), reason: 'gemessen: 13 s umsonst');
+    expect(find.byKey(const ValueKey('map-watch-stored')), findsOneWidget);
   });
 
   testWidgets('#449: eine neue Route während einer laufenden Übertragung geht danach, nie zwei zugleich',
