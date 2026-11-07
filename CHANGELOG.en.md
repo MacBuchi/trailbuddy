@@ -2,6 +2,17 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## Navigation: closer in, a longer bar
+
+*Version 0.157.1, 2026-11-07*
+
+- A navigation started from “My rides” while the map showed all of
+  Europe sometimes stayed zoomed out that far. Now it zooms back in with
+  the next position.
+- When the navigation ends because you are far off the route, the bar
+  with “Resume” now stays 30 instead of 10 seconds. It says the
+  recording keeps going only when one is actually running.
+
 ## Re-plan the route, leave the route
 
 *Version 0.157.0, 2026-11-07*

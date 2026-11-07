@@ -38,7 +38,7 @@ import '../routing/nav_providers.dart';
 import '../routing/nav_service.dart';
 import '../routing/nav_sections.dart';
 import '../routing/nav_view.dart';
-import '../routing/route_progress.dart' show followCenter, kNavPipZoom, kNavZoom, pipAheadPx;
+import '../routing/route_progress.dart' show followCenter, kNavMinFollowZoom, kNavPipZoom, kNavZoom, pipAheadPx;
 import '../routing/route_elevation.dart' show RouteCursorSymbol, routeProfileCursorProvider;
 import '../routing/route_profile.dart' show RiderProfile, RoutePrefs;
 import '../routing/route_via_providers.dart';
@@ -914,7 +914,8 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     final state = session?.state;
     if (session == null || state == null) return;
     final pip = ref.read(pipModeProvider);
-    final zoom = pip ? kNavPipZoom : _navZoom ?? _controller.zoom;
+    final camera = _controller.zoom;
+    final zoom = pip ? kNavPipZoom : _navZoom ?? (camera < kNavMinFollowZoom ? kNavZoom : camera);
     if (!pip) _navZoom = null;
     final bearing = session.bearingDeg;
     // Die Höhe des Fensters, nicht die der letzten Kamera: Gleich nach dem
@@ -1292,8 +1293,12 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         ..showSnackBar(SnackBar(
           key: const ValueKey('nav-left'),
           persist: false,
-          duration: const Duration(seconds: 10),
-          content: Text(l.navLeftRoute(formatMeters(offM))),
+          // Auf dem Rad schaut man nicht gleich hin (Gerätetest 2026-11-07:
+          // nach 10 s war sie weg, bevor der Finger kam).
+          duration: const Duration(seconds: 30),
+          content: Text(ref.read(rideProvider.notifier).isRunning
+              ? l.navLeftRouteRecording(formatMeters(offM))
+              : l.navLeftRoute(formatMeters(offM))),
           action: SnackBarAction(
             key: const ValueKey('nav-left-resume'),
             label: l.navLeftResume,

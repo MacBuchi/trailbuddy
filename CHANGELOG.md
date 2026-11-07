@@ -2,6 +2,18 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Navigation: näher heran, längere Leiste
+
+*Version 0.157.1, 2026-11-07*
+
+- Startete eine Navigation aus „Meine Fahrten", während die Karte ganz
+  Europa zeigte, blieb die Folgeansicht manchmal so weit herausgezoomt.
+  Jetzt geht sie mit der nächsten Position wieder nah heran.
+- Endet die Navigation, weil du weit neben der Route bist, bleibt die
+  Leiste mit „Weiter navigieren" jetzt 30 statt 10 Sekunden stehen.
+  Dass die Aufzeichnung weiterläuft, sagt sie nur noch, wenn wirklich
+  eine läuft.
+
 ## Route umplanen und Route verlassen
 
 *Version 0.157.0, 2026-11-07*

@@ -9561,7 +9561,7 @@
   "@navReplanNoPath": {
     "description": "Satz, wenn „Route umplanen\" auf den Kacheln keinen Weg findet."
   },
-  "navLeftRoute": "Navigation beendet: {distance} neben der Route. Die Aufzeichnung läuft weiter.",
+  "navLeftRoute": "Navigation beendet: {distance} neben der Route.",
   "@navLeftRoute": {
     "description": "Leiste, wenn die Navigation von selbst endet, weil man weit neben der Route ist (#464).",
     "placeholders": {
@@ -9625,5 +9625,14 @@
   "demoNavReplanText": "Hier stellst du ein, ab wann die Navigation „Route umplanen\" anbietet (Vorgabe 100 m) und ab wann sie von selbst endet (Vorgabe 500 m).",
   "@demoNavReplanText": {
     "description": "Vorführung „nav-replan“ (Entdecken → Zeig es mir): Text der Blase."
+  },
+  "navLeftRouteRecording": "Navigation beendet: {distance} neben der Route. Die Aufzeichnung läuft weiter.",
+  "@navLeftRouteRecording": {
+    "description": "Wie navLeftRoute, wenn dabei eine Fahrt aufgezeichnet wird.",
+    "placeholders": {
+      "distance": {
+        "type": "String"
+      }
+    }
   }
 }

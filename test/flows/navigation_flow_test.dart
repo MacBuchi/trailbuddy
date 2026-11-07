@@ -1161,11 +1161,44 @@ void main() {
     expect(find.byKey(const ValueKey('nav-stop')), findsNothing);
     expect(find.byKey(const ValueKey('nav-left')), findsOneWidget);
     expect(textIn('nav-left'), matches(RegExp(r'Navigation beendet: 70\d m neben der Route')));
+    // Aufzeichnen war an (Vorgabe des Start-Blatts) — nur dann sagt es die Leiste.
+    expect(textIn('nav-left'), contains('Die Aufzeichnung läuft weiter'));
     // Die Leiste fährt noch herein.
     await settle(tester, frames: 20);
     await tester.tap(find.byKey(const ValueKey('nav-left-resume')));
     await settle(tester);
     expect(find.byKey(const ValueKey('nav-go')), findsOneWidget, reason: 'die Route kommt mit dem Start-Blatt zurück');
+  });
+
+  testWidgets('a follow view stuck on country zoom goes back to 16 with the next fix (device check 2026-11-07)',
+      (tester) async {
+    await startFromRides(tester);
+    await tester.tap(find.byKey(const ValueKey('nav-go')));
+    await settle(tester);
+    expect(fakeMap(tester).zoom, 16);
+    // Wie am Pixel: Die Kamera steht noch auf der Länderansicht von vorher.
+    fakeMap(tester).move(fakeMap(tester).center, 5);
+    await fix(tester, _lat, _lng(2));
+    expect(fakeMap(tester).zoom, 16);
+    // Zwei Finger, die nur etwas weiter weg zoomen, bleiben stehen.
+    fakeMap(tester).move(fakeMap(tester).center, 13.5);
+    await fix(tester, _lat, _lng(3));
+    expect(fakeMap(tester).zoom, 13.5);
+  });
+
+  testWidgets('#464: without a recording the leave bar does not claim one (device check 2026-11-07)', (tester) async {
+    await startFromRides(tester);
+    await tester.tap(find.byKey(const ValueKey('nav-record')));
+    await tester.tap(find.byKey(const ValueKey('nav-go')));
+    await settle(tester);
+    expect(service.starts, 0);
+    await fix(tester, _lat, _lng(2));
+    await fix(tester, _lat + 0.0063, _lng(5));
+    await fix(tester, _lat + 0.0063, _lng(5));
+    expect(textIn('nav-left'), matches(RegExp(r'^Navigation beendet: 70\d m neben der Route\.')));
+    expect(textIn('nav-left'), isNot(contains('Aufzeichnung')));
+    // Sie steht lange genug, um auf dem Rad hinzuschauen.
+    expect(tester.widget<SnackBar>(find.byKey(const ValueKey('nav-left'))).duration, const Duration(seconds: 30));
   });
 
   testWidgets('zuletzt navigiert goes on where Beenden left off', (tester) async {
