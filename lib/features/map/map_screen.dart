@@ -33,7 +33,7 @@ import '../routing/loop_planner_providers.dart';
 import '../routing/loop_planner_sheet.dart';
 import '../routing/loop_tool_rail.dart';
 import '../routing/map_panel.dart';
-import '../routing/nav_notice.dart' show kNavMessageOpen, kNavMessageStop;
+import '../routing/nav_notice.dart' show kNavMessageLeft, kNavMessageOpen, kNavMessageStop;
 import '../routing/nav_providers.dart';
 import '../routing/nav_service.dart';
 import '../routing/nav_sections.dart';
@@ -369,6 +369,11 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     // „Navigation beenden" in der Benachrichtigung, ein Tipp darauf (#232).
     if (data == kNavMessageStop) {
       ref.read(navigationProvider.notifier).stop();
+      return;
+    }
+    // Der Dienst sah es zuerst (#464): weit neben der Route.
+    if (data is String && data.startsWith(kNavMessageLeft)) {
+      ref.read(navigationProvider.notifier).leave(double.tryParse(data.substring(kNavMessageLeft.length)) ?? 0);
       return;
     }
     if (data == kNavMessageOpen) {
@@ -1275,6 +1280,29 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) unawaited(_startNavigation(request));
       });
+    });
+    // Weit neben der Route endete die Navigation von selbst (#464): Die
+    // Leiste sagt es, „Weiter navigieren" holt „zuletzt navigiert".
+    ref.listen(navLeftProvider, (_, offM) {
+      if (offM == null) return;
+      ref.read(navLeftProvider.notifier).state = null;
+      final l = context.l10n;
+      ScaffoldMessenger.of(context)
+        ..clearSnackBars()
+        ..showSnackBar(SnackBar(
+          key: const ValueKey('nav-left'),
+          persist: false,
+          duration: const Duration(seconds: 10),
+          content: Text(l.navLeftRoute(formatMeters(offM))),
+          action: SnackBarAction(
+            key: const ValueKey('nav-left-resume'),
+            label: l.navLeftResume,
+            onPressed: () {
+              final last = ref.read(lastNavProvider);
+              if (last != null) ref.read(navRequestProvider.notifier).state = last;
+            },
+          ),
+        ));
     });
     // Jeder Fix rückt den Stand weiter und die Kamera nach.
     ref.listen(positionStreamProvider, (_, next) {

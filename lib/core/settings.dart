@@ -159,6 +159,18 @@ abstract interface class Settings {
 
   Future<void> setRideKeepScreenOn(bool value);
 
+  /// Ab wie vielen Metern neben der Route die Navigation „Route umplanen"
+  /// anbietet (#464)? Null: die Vorgabe (`kNavReplanOfferM`).
+  int? get navReplanOfferM;
+
+  Future<void> setNavReplanOfferM(int value);
+
+  /// Ab wie vielen Metern neben der Route die Navigation von selbst endet
+  /// (#464)? 0 heißt nie; null: die Vorgabe (`kNavLeaveM`).
+  int? get navLeaveM;
+
+  Future<void> setNavLeaveM(int value);
+
   /// Das FCM-Token, mit dem dieses Gerät in `push_devices` steht — oder
   /// null, solange niemand Push eingeschaltet hat (#34).
   ///
@@ -351,6 +363,21 @@ class PrefsSettings implements Settings {
 
   @override
   Future<void> setRideKeepScreenOn(bool value) => _prefs.setBool(_rideKeepScreenOnKey, value);
+
+  static const _navReplanOfferKey = 'nav_replan_offer_m';
+  static const _navLeaveKey = 'nav_leave_m';
+
+  @override
+  int? get navReplanOfferM => _prefs.getInt(_navReplanOfferKey);
+
+  @override
+  Future<void> setNavReplanOfferM(int value) => _prefs.setInt(_navReplanOfferKey, value);
+
+  @override
+  int? get navLeaveM => _prefs.getInt(_navLeaveKey);
+
+  @override
+  Future<void> setNavLeaveM(int value) => _prefs.setInt(_navLeaveKey, value);
 
   static const _pushTokenKey = 'push_token';
 

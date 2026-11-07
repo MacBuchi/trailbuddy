@@ -39,6 +39,10 @@ const kNavStopButton = 'nav_stop';
 const kNavMessageStop = 'nav:stop';
 const kNavMessageOpen = 'nav:open';
 
+/// Der Dienst hat die Navigation beendet, weil man die Route verlassen hat
+/// (#464) — gefolgt vom Abstand in Metern: `nav:left:640`.
+const kNavMessageLeft = 'nav:left:';
+
 const kNavRouteFileName = 'nav_route.json';
 
 /// Die Routen-Datei unter [baseDir] (dem Pfad aus `kRideDataDir`).
@@ -55,6 +59,7 @@ class NavRouteData {
     this.sections = const NavSections.empty(),
     this.climbDistM,
     this.climbEleM,
+    this.leaveM = 0,
   });
 
   final List<LatLng> points;
@@ -66,13 +71,17 @@ class NavRouteData {
   final List<double>? climbDistM;
   final List<double>? climbEleM;
 
+  /// Ab so viel Abstand endet die Navigation auch im Dienst (#464); 0 = nie.
+  final int leaveM;
+
   NavRouteData withStart(double alongM) => NavRouteData(
       points: points,
       title: title,
       startAlongM: alongM,
       sections: sections,
       climbDistM: climbDistM,
-      climbEleM: climbEleM);
+      climbEleM: climbEleM,
+      leaveM: leaveM);
 
   String encode() => jsonEncode({
         'v': 2,
@@ -83,6 +92,7 @@ class NavRouteData {
         ],
         if (sections.trails.isNotEmpty) 'secs': sections.encode(),
         if (climbDistM != null && climbEleM != null) 'climb': {'d': climbDistM, 'e': climbEleM},
+        if (leaveM > 0) 'leave': leaveM,
       });
 
   /// Null bei allem, was nicht genau so aussieht — eine halbe Route zu
@@ -109,6 +119,7 @@ class NavRouteData {
         sections: NavSections.decode(json['secs']),
         climbDistM: paired ? d : null,
         climbEleM: paired ? e : null,
+        leaveM: (json['leave'] as num?)?.toInt() ?? 0,
       );
     } catch (_) {
       return null;
@@ -162,6 +173,7 @@ class NavNoticeWatcher {
   int? _rev;
   NavRouteData? _data;
   NavTracker? _tracker;
+  NavLeaveWatch? _leave;
   DateTime? _arrivedAt;
 
   /// Ein Fix. Null, wenn keine Route liegt (oder die Datei unlesbar ist).
@@ -180,10 +192,19 @@ class NavNoticeWatcher {
         final route = NavRoute.of(data.points);
         _tracker = route == null ? null : NavTracker(route, startAlongM: data.startAlongM);
         _arrivedAt = null;
+        _leave = NavLeaveWatch(data.leaveM);
       }
     }
-    return _tracker?.update(p, headingDeg: headingDeg, speedMps: speedMps);
+    final state = _tracker?.update(p, headingDeg: headingDeg, speedMps: speedMps);
+    _left = state != null && (_leave?.update(state) ?? false);
+    return state;
   }
+
+  bool _left = false;
+
+  /// Der letzte Stand lag weit genug daneben (#464): Die Navigation endet
+  /// auch ohne App.
+  bool get left => _left;
 
   /// Die Phase zum Stand (9.9) — aus den Abschnitten der Routen-Datei
   /// (Fassung 2) und dem Profil; ohne Abschnitte die Anfahrt zum Ziel.
@@ -260,6 +281,7 @@ Future<NavState?> navTick({
   required bool recording,
   NavNoticeShow? show,
   Future<void> Function()? onLingered,
+  Future<void> Function(double offM)? onLeft,
   DateTime Function()? now,
   AirtimeLog Function()? events,
 }) async {
@@ -280,7 +302,11 @@ Future<NavState?> navTick({
     final notice = navNotice(l, state, phase,
         recording: recording, air: _airOnTrail(l, phase, (now ?? DateTime.now)(), events ?? sensorLogEvents));
     await (show ?? _show)(notice.title, notice.text);
-    if (watcher.lingered(state, (now ?? DateTime.now)())) await (onLingered ?? stopNavFromService)();
+    if (watcher.left) {
+      await (onLeft ?? (offM) => stopNavFromService(leftM: offM))(state.offM);
+    } else if (watcher.lingered(state, (now ?? DateTime.now)())) {
+      await (onLingered ?? stopNavFromService)();
+    }
     return state;
   } catch (_) {
     return null;
@@ -302,6 +328,7 @@ void resetNavTick() {
 Future<void> stopNavFromService({
   Future<void> Function()? stopService,
   Future<void> Function(String title, String text)? showRide,
+  double? leftM,
 }) async {
   try {
     await FlutterForegroundTask.saveData(key: kNavDataActive, value: false);
@@ -311,7 +338,7 @@ Future<void> stopNavFromService({
       if (await file.exists()) await file.delete();
     }
     _watcher = null;
-    FlutterForegroundTask.sendDataToMain(kNavMessageStop);
+    FlutterForegroundTask.sendDataToMain(leftM == null ? kNavMessageStop : '$kNavMessageLeft${leftM.round()}');
     final recording = await FlutterForegroundTask.getData<bool>(key: kRideDataActive) == true;
     if (recording) {
       // Der Knopf kann vor dem ersten Takt eines neu gestarteten Isolates

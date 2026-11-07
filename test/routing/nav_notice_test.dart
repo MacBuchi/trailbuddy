@@ -86,6 +86,12 @@ void main() {
       expect(odd.sections.isEmpty, isTrue);
     });
 
+    test('#464: the leave threshold goes along; without it the service never leaves', () {
+      expect(NavRouteData.decode(NavRouteData(points: _points, title: 'x', leaveM: 500).encode())!.leaveM, 500);
+      expect(NavRouteData.decode(NavRouteData(points: _points, title: 'x').encode())!.leaveM, 0);
+      expect(NavRouteData(points: _points, title: 'x', leaveM: 800).withStart(10).leaveM, 800);
+    });
+
     test('anything odd reads as no route — half a route would be worse', () {
       expect(NavRouteData.decode('kaputt'), isNull);
       expect(NavRouteData.decode('{"v":3,"pts":[[47,11],[47,11.1]]}'), isNull);
@@ -148,6 +154,32 @@ void main() {
   });
 
   group('navTick', () {
+    test('#464: far off the route the service ends the navigation — only after reaching it', () async {
+      await arm(NavRouteData(points: _points, title: 'Hausrunde', leaveM: 500));
+      final left = <double>[];
+      Future<void> tick(double lat, int i) => navTick(
+          fix: () async => _at(lat, _lng(i)),
+          recording: false,
+          show: (_, _) async {},
+          onLeft: (offM) async => left.add(offM));
+      // 0,01° nördlich ≈ 1,1 km: erst auf dem Weg zur Route.
+      await tick(_lat + 0.01, 0);
+      await tick(_lat + 0.01, 1);
+      expect(left, isEmpty);
+      await tick(_lat, 2);
+      await tick(_lat + 0.01, 3);
+      expect(left, isEmpty, reason: 'ein Ausreißer zählt nicht');
+      await tick(_lat + 0.01, 4);
+      expect(left.single, closeTo(1112, 20));
+      // Ohne Schwelle in der Datei (ältere App): nie.
+      resetNavTick();
+      await arm(NavRouteData(points: _points, title: 'alt'));
+      for (final lat in [_lat, _lat + 0.01, _lat + 0.01, _lat + 0.01]) {
+        await tick(lat, 5);
+      }
+      expect(left, hasLength(1));
+    });
+
     test('computes from its own fixes and writes the notification', () async {
       await arm(NavRouteData(points: _points, title: 'Hausrunde'));
       final shown = <String>[];

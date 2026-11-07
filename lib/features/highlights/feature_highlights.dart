@@ -83,6 +83,16 @@ class FeatureHighlight {
 final kFeatureHighlights = <FeatureHighlight>[
   // ─── Highlights ──────────────────────────────────────────────────
   FeatureHighlight(
+    id: 'nav-replan',
+    since: '0.157.0',
+    kind: HighlightKind.highlight,
+    tab: HighlightTab.profile,
+    icon: Icons.alt_route,
+    title: (l) => l.highlightNavReplanTitle,
+    text: (l) => l.highlightNavReplanText,
+    target: '/profile/navigation',
+  ),
+  FeatureHighlight(
     id: 'ride-screen',
     since: '0.156.0',
     kind: HighlightKind.highlight,

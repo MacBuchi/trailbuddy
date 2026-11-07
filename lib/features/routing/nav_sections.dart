@@ -89,6 +89,26 @@ class NavTrailSection {
 
   double get lengthM => endM - startM;
 
+  /// Derselbe Trail, um [byM] auf der Linie verschoben — „Route umplanen"
+  /// (#464) setzt ein neues Stück vor den Rest der alten Route. Nie vor
+  /// den Start. Mit [newApproach] gilt die Anfahrt davor als unbekannt:
+  /// Sie ist jetzt das neue Stück, nicht die Wege des Planers.
+  NavTrailSection shifted(double byM, {bool newApproach = false}) => NavTrailSection(
+        startM: math.max(0.0, startM + byM),
+        endM: math.max(0.0, endM + byM),
+        trailId: trailId,
+        name: name,
+        grade: grade,
+        uphill: uphill,
+        traits: traits,
+        lossM: lossM,
+        condition: condition,
+        conditionAt: conditionAt,
+        note: note,
+        approachWays: newApproach ? const [] : approachWays,
+        beyondRoute: beyondRoute,
+      );
+
   /// Für den Dienst (9.5): nur, was die Benachrichtigung braucht.
   List<Object?> encode() => [startM, endM, trailId, name, grade, lossM, beyondRoute];
 

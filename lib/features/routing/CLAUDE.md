@@ -884,6 +884,36 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     (`NavTracker(startAlongM:)`) — auf einer geraden Linie findet die
     Suche über die ganze Linie den Stand ohnehin, sichtbar wird es erst
     hin und zurück (`route_progress_test`).
+- **„Route umplanen" und „Route verlassen"** (#464, seit 0.157.0,
+  `nav_replan.dart` pur, Controller in `nav_providers.dart`;
+  Konzept-Routing 9.3a). Fünf Dinge, die man wissen muss:
+  - **Das Ziel ist der nächste Trailkopf** (`replanTargetsOf`, sonst das
+    Ende, dann 1 km voraus); die Suche nimmt den alten Weg von selbst
+    wieder auf, wo er der günstigste ist. `spliceReplan` setzt das neue
+    Stück vor den Rest ab dem Ziel; die Trails ab dort rücken mit
+    (`NavTrailSection.shifted`), der erste verliert seine `approachWays`.
+  - **Umkehren**: `backEdgesAt` misst die Richtung jeder Kante am
+    angehefteten Standort über 15 m, zwei Dijkstras (`allow:` ohne die
+    Kanten zurück, frei). Der Kurs ist `NavState.courseDeg` (der letzte
+    GPS-Kurs), NICHT `headingDeg` — der fällt ohne Kurs auf die Richtung
+    der Linie zurück, und die sagt abseits nichts.
+  - **Ersetzen geht über `_begin`, nie über `stop`**: Die Uhr
+    (`watch_providers.dart`) hört auf `navigationProvider` und hält
+    `null` für das Ende — sie bekäme dann „Navigation beendet" statt der
+    neuen Route. Rejoin und Umplanen teilen Runner und Rahmen
+    (`_graphFor`).
+  - **Verlassen erst nach dem Ankommen** (`NavLeaveWatch`, in App UND
+    Dienst; die Schwelle reist als `leave` in der Routen-Datei, ohne Feld
+    = nie). Sieht es der Dienst zuerst, schickt er `nav:left:<m>`
+    (`kNavMessageLeft`), die App beendet über `leave` wie selbst.
+    `navLeftProvider` trägt den Abstand zur Leiste (`nav-left`,
+    `nav-left-resume`, `persist: false`).
+  - **Die Schwellen** stehen in `Settings.navReplanOfferM`/`navLeaveM`
+    (null = Vorgabe), gelesen über `navReplanOfferDistanceProvider` und
+    `navLeaveDistanceProvider` (`RememberedMeters`); die Seite
+    „Navigation" im Profil (`/profile/navigation`) lässt kein Ende unter
+    der Umplan-Schwelle zu. Tests: `nav_replan_test` (pur und Controller),
+    `nav_notice_test` (#464), `navigation_flow_test` (#464).
 - **Navigation nach Abschnitten** (#312 N1, seit 0.114.0,
   `nav_sections.dart` pur, Phasen in `route_progress.dart`, Ansicht
   `nav_view.dart`; Konzept-Routing 9.9, Design 13). Sieben Dinge, die man
