@@ -382,3 +382,33 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     Betrag, damit Dart und Werkzeug bitgleich bleiben (2,9813512729506604 g
     auf der Synthetik). Gegenprobe mit dem Rohwert: der Test „ein
     einzelner Ausreißer" sieht 9,0 g statt unter 5.
+- **Airtime unter Buddys** (#36 Schritt 6, seit 0.158.0, Patch 029;
+  `airtime_share.dart` pur, `airtime_providers.dart`,
+  `airtime_widgets.dart`, `lib/data/airtime_repository.dart`; Konzept
+  Airtime 4/5, Design 16). Fünf Dinge, die man wissen muss:
+  - **Die Fahrten sind der Korb**: kein Auftrag im Ausgangskorb.
+    `AirtimeSync.run` rechnet alles neu (`computeAirtimeShare`: je Fahrt
+    `knownTrailSectionsOf` gegen das sichtbare Netz, `TrailValues.of` je
+    Stück) und schickt alle Bestwerte in einem Aufruf plus den Zähler;
+    Fehler werden geloggt, der nächste Anstoß schickt alles noch einmal.
+    Angestoßen von `AirtimeSyncTrigger` in der Hülle (Start, jede Änderung
+    von `ridesProvider`) und beim Einschalten. Läuft nie doppelt.
+  - **Gemessen heißt: es gibt Sensordaten** (`sensorLogPath != null`) —
+    ohne sie wäre eine leere Liste „Bodenpersonal". Geplante und
+    übernommene Fahrten zählen nie.
+  - **Wer nicht teilt, sieht nichts**: `airtimeBoardProvider` ist null,
+    solange `airtimeShareProvider` aus ist (und der hängt am Test-Schalter).
+    Ausschalten löscht ZUERST auf dem Server und schaltet erst dann um —
+    ohne Netz bleibt der Schalter an, mit Leiste.
+  - **`ref.invalidate(airtimeBoardProvider)` nicht aus dem
+    `AirtimeShareNotifier`**: Der Board-Provider hängt an ihm, das ist in
+    Riverpod ein `CircularDependencyError` (im Flow-Test gefunden). Er
+    lädt über `watch` von selbst neu.
+  - **Das 30-Tage-Fenster des Betrachters im Kalender**
+    (`airtimeCounterFresh`: `DateTime(y, m, d - 30)`), nicht mit
+    `subtract`: über die Zeitumstellung im Oktober lag die Grenze eine
+    Stunde neben Mitternacht (`airtime_share_test`).
+  Tests: `test/rides/airtime_share_test.dart` (pur),
+  `test/flows/airtime_share_flow_test.dart` (Gegenproben: ohne Abgleich
+  beim Start, Anzeige ohne Teilen, Ausschalten ohne Löschen — je rot),
+  RLS in `matcher_check.sql` Block 32, Rechte in `grants_check.sql`.

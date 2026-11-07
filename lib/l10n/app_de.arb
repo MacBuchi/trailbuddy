@@ -9634,5 +9634,152 @@
         "type": "String"
       }
     }
+  },
+  "airtimePanelTitle": "AIRTIME UNTER BUDDYS",
+  "@airtimePanelTitle": {
+    "description": "Trail-Blatt (#36 Schritt 6): Überschrift der Rangliste der Airtime je Durchfahrt unter Buddys, in Versalien wie die übrigen Panels."
+  },
+  "airtimeGameNote": "Spiel, kein Rekord",
+  "@airtimeGameNote": {
+    "description": "Neben jeder Rangliste der Airtime (Konzept Airtime 1.2): die Werte sind geschätzt, es geht ums Spiel."
+  },
+  "airtimeYou": "Du",
+  "@airtimeYou": {
+    "description": "Rangliste der Airtime: der eigene Eintrag statt des Namens."
+  },
+  "airtimeSecondsValue": "{seconds} s",
+  "@airtimeSecondsValue": {
+    "description": "Airtime in Sekunden, Zahl schon formatiert (eine Nachkommastelle).",
+    "placeholders": {
+      "seconds": {
+        "type": "String"
+      }
+    }
+  },
+  "airtimeMyLongest": "Airtime je Durchfahrt · dein längster Sprung {seconds} s",
+  "@airtimeMyLongest": {
+    "description": "Unter der Rangliste im Trail-Blatt: was gewertet wird, und der eigene längste Sprung auf diesem Trail.",
+    "placeholders": {
+      "seconds": {
+        "type": "String"
+      }
+    }
+  },
+  "airtimeRankingLabel": "Platz {place}: {name}, {seconds} Sekunden, {month}",
+  "@airtimeRankingLabel": {
+    "description": "Bildschirmleser: eine Zeile der Rangliste der Airtime.",
+    "placeholders": {
+      "place": {
+        "type": "int"
+      },
+      "name": {
+        "type": "String"
+      },
+      "seconds": {
+        "type": "String"
+      },
+      "month": {
+        "type": "String"
+      }
+    }
+  },
+  "airtimeCounterLine": "Airtime 30 Tage {seconds} s",
+  "@airtimeCounterLine": {
+    "description": "Buddy-Liste: die Airtime des Buddys in den letzten 30 Tagen (sein Gerät rechnet sie).",
+    "placeholders": {
+      "seconds": {
+        "type": "String"
+      }
+    }
+  },
+  "airtimeCounterAsOf": "Stand {date}",
+  "@airtimeCounterAsOf": {
+    "description": "Buddy-Liste: hinter dem Zähler, wenn er nicht von heute ist — das Fenster rückt nur mit dem Gerät des Buddys weiter.",
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "airtimeMyCardTitle": "DEINE AIRTIME · LETZTE 30 TAGE",
+  "@airtimeMyCardTitle": {
+    "description": "Buddys-Reiter: Überschrift der eigenen Karte mit Airtime und Sprüngen der letzten 30 Tage."
+  },
+  "airtimeMyJumps": "{count, plural, =1{1 Sprung} other{{count} Sprünge}}",
+  "@airtimeMyJumps": {
+    "description": "Buddys-Reiter: Zahl der Sprünge in den letzten 30 Tagen neben der eigenen Airtime.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "airtimeTitleGlider": "SEGELFLIEGER",
+  "@airtimeTitleGlider": {
+    "description": "Titel (Konzept Airtime 5): ein einzelner Sprung von mindestens einer Sekunde in den letzten 30 Tagen. Mit Augenzwinkern."
+  },
+  "airtimeTitleGroundCrew": "BODENPERSONAL",
+  "@airtimeTitleGroundCrew": {
+    "description": "Titel: in den letzten 30 Tagen gefahren, aber kein Sprung. Mit Augenzwinkern."
+  },
+  "airtimeTitleFrequentFlyer": "VIELFLIEGER",
+  "@airtimeTitleFrequentFlyer": {
+    "description": "Titel: die meisten Sprünge unter den eigenen Buddys in den letzten 30 Tagen."
+  },
+  "airtimeTitleTrailKing": "TRAILKÖNIG · {count}",
+  "@airtimeTitleTrailKing": {
+    "description": "Titel: Platz 1 der Airtime unter den Buddys auf so vielen Trails.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "airtimeTitleHint": "Titel aus der Airtime der letzten 30 Tage — ein Spiel, kein Rekord.",
+  "@airtimeTitleHint": {
+    "description": "Tooltip an den Titeln der Airtime."
+  },
+  "airtimeRankBehind": "#{place} hinter {name} ({seconds} s)",
+  "@airtimeRankBehind": {
+    "description": "„Trail geschafft“: Platz dieser Durchfahrt unter den Bestwerten der Buddys, mit dem Ersten davor.",
+    "placeholders": {
+      "place": {
+        "type": "int"
+      },
+      "name": {
+        "type": "String"
+      },
+      "seconds": {
+        "type": "String"
+      }
+    }
+  },
+  "airtimeRankFirst": "#1 unter deinen Buddys",
+  "@airtimeRankFirst": {
+    "description": "„Trail geschafft“: diese Durchfahrt schlägt alle Bestwerte der Buddys."
+  },
+  "airtimeNewBest": "Neuer Bestwert",
+  "@airtimeNewBest": {
+    "description": "„Trail geschafft“: diese Durchfahrt schlägt den eigenen geteilten Bestwert auf dem Trail."
+  },
+  "aboutAirtimeShareTitle": "Airtime mit Buddys teilen",
+  "@aboutAirtimeShareTitle": {
+    "description": "Seite „Über TrailBuddy“: Schalter unter der Erkennung (#36 Schritt 6), ab Werk aus."
+  },
+  "aboutAirtimeShareSubtitle": "Dein Bestwert je Trail, die Airtime der letzten 30 Tage und deine Titel. Keine Fahrt, kein Ort, kein Max G. Du siehst die Werte der Buddys, die auch teilen. Ausschalten löscht das Geteilte.",
+  "@aboutAirtimeShareSubtitle": {
+    "description": "Seite „Über TrailBuddy“: was geteilt wird und was nicht."
+  },
+  "aboutAirtimeShareOffFailed": "Ausschalten braucht Netz — deine Werte bleiben geteilt, bis es klappt.",
+  "@aboutAirtimeShareOffFailed": {
+    "description": "Leiste, wenn das Löschen beim Ausschalten scheitert (meist ohne Empfang)."
+  },
+  "airtimeMonthPattern": "MMM",
+  "@airtimeMonthPattern": {
+    "description": "Datumsmuster (intl) für den Monat eines Bestwerts in der Rangliste der Airtime — nie ein Tag (A3)."
+  },
+  "airtimeAsOfPattern": "d.M.",
+  "@airtimeAsOfPattern": {
+    "description": "Datumsmuster (intl) für den Stand des Airtime-Zählers eines Buddys („Stand 28.10.“)."
   }
 }

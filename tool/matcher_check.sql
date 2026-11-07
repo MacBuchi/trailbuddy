@@ -1724,4 +1724,122 @@ begin
   delete from app_internal.push_outbox where trail_id = t;
 end $$;
 
+\echo -- 32. Airtime unter Buddys (Patch 029, #36 Schritt 6)
+-- Der Bestwert je Trail sehen der Fahrer und seine direkten Buddys, die den
+-- Trail sehen (nicht bei „privat"); den Zähler der Nutzer und seine Buddys.
+-- Ein Wert wird nur besser; Rückzug, Zusammenführen und Ausschalten nehmen
+-- ihn mit.
+do $$
+declare
+  ua uuid := '11111111-1111-4111-8111-111111111111';
+  ub uuid := '22222222-2222-4222-8222-222222222222';
+  ug uuid := '77777777-7777-4777-8777-777777777777';
+  l1 double precision[] := tb_test.line(800, y0 => 210000);
+  l2 double precision[] := tb_test.shift(tb_test.line(800, y0 => 210000), 0, 25);
+  t uuid; solo uuid; t1 uuid; t2 uuid; n integer; code text;
+  best text := 'select count(*) from public.trail_airtime where trail_id = %L and user_id = %L';
+  counter text := 'select count(*) from public.airtime_counters where user_id = %L';
+begin
+  t := tb_test.contribute(ua, tb_test.line(400, y0 => 205000));
+  perform tb_test.check(tb_test.contribute(ug, tb_test.jitter(tb_test.line(400, y0 => 205000), 3.0, 0.9)) = t,
+                        'Gina fährt Annas Trail, derselbe Trail');
+  perform tb_test.check(app_internal.can_see_trail(ub, t) and app_internal.are_friends(ua, ub)
+                        and not app_internal.are_friends(ua, ug), 'Bernd ist Annas Buddy, Gina nicht');
+
+  -- Anna: 4,3 s je Durchfahrt, längster 0,9 s, im November.
+  perform tb_test.as_user(ua);
+  n := public.set_trail_airtime(jsonb_build_array(jsonb_build_object(
+         'trail_id', t, 'air_ds', 43, 'longest_ds', 9, 'month', '2026-11-15')));
+  perform tb_test.as_owner();
+  perform tb_test.check(n = 1 and (select (air_ds, longest_ds, month) = (43, 9, date '2026-11-01')
+                                     from public.trail_airtime where trail_id = t and user_id = ua),
+                        'der erste Bestwert steht, der Monat auf den Ersten gekappt');
+  -- Schlechter: nichts; nur der längste Sprung besser: nur der, Monat bleibt.
+  perform tb_test.as_user(ua);
+  n := public.set_trail_airtime(jsonb_build_array(jsonb_build_object(
+         'trail_id', t, 'air_ds', 30, 'longest_ds', 8, 'month', '2026-12-01')));
+  perform tb_test.as_owner();
+  perform tb_test.check(n = 0 and (select air_ds from public.trail_airtime where trail_id = t and user_id = ua) = 43,
+                        'ein schlechterer Wert ändert nichts');
+  perform tb_test.as_user(ua);
+  n := public.set_trail_airtime(jsonb_build_array(jsonb_build_object(
+         'trail_id', t, 'air_ds', 20, 'longest_ds', 12, 'month', '2026-12-01')));
+  perform tb_test.as_owner();
+  perform tb_test.check(n = 1 and (select (air_ds, longest_ds, month) = (43, 12, date '2026-11-01')
+                                     from public.trail_airtime where trail_id = t and user_id = ua),
+                        'nur der längere Sprung zählt, Airtime und Monat bleiben');
+
+  perform tb_test.check(tb_test.count_as(ub, format(best, t, ua)) = 1, 'Bernd (Buddy) sieht Annas Bestwert');
+  perform tb_test.check(tb_test.count_as(ug, format(best, t, ua)) = 0, 'Gina (kein Buddy) sieht ihn nicht');
+  perform tb_test.exec_as(ua, format('update public.trail_details set visibility = %L where trail_id = %L and user_id = %L',
+                                     'private', t, ua));
+  perform tb_test.check(tb_test.count_as(ub, format(best, t, ua)) = 0, 'Anna stellt auf privat: Bernd sieht nichts');
+  perform tb_test.exec_as(ua, format('update public.trail_details set visibility = %L where trail_id = %L and user_id = %L',
+                                     'buddies', t, ua));
+
+  -- Schreiben nur über die RPC; ein Trail, den man nicht sieht, fällt still heraus.
+  code := tb_test.state_of(ua, format('insert into public.trail_airtime (user_id, trail_id, air_ds, longest_ds, month) values (%L, %L, 99, 9, %L)',
+                                      ua, t, '2026-11-01'));
+  perform tb_test.check(code = '42501', format('direktes Schreiben abgelehnt (%s)', code));
+  solo := tb_test.contribute(ua, tb_test.line(300, y0 => 207000));
+  perform tb_test.exec_as(ua, format('update public.trail_details set visibility = %L where trail_id = %L and user_id = %L',
+                                     'private', solo, ua));
+  perform tb_test.as_user(ug);
+  n := public.set_trail_airtime(jsonb_build_array(jsonb_build_object(
+         'trail_id', solo, 'air_ds', 50, 'longest_ds', 10, 'month', '2026-11-01')));
+  perform tb_test.as_owner();
+  perform tb_test.check(n = 0 and not exists (select 1 from public.trail_airtime where trail_id = solo),
+                        'Gina sieht Annas privaten Trail nicht: kein Wert');
+  code := tb_test.state_of(ua, format('select public.set_trail_airtime(%L::jsonb)', '{"trail_id": 1}'));
+  perform tb_test.check(code = '22023', format('keine Liste: abgelehnt (%s)', code));
+
+  -- Der Zähler: Anna und Bernd sehen ihn, Gina nicht; kein Stand aus der Zukunft.
+  perform tb_test.exec_as(ua, format('insert into public.airtime_counters (user_id, air_ds, jumps, as_of, titles) values (%L, 184, 23, current_date, %L)',
+                                     ua, '{glider}'));
+  perform tb_test.check(tb_test.count_as(ub, format(counter, ua)) = 1 and tb_test.count_as(ug, format(counter, ua)) = 0,
+                        'Bernd sieht Annas Zähler, Gina nicht');
+  code := tb_test.state_of(ua, format('update public.airtime_counters set as_of = current_date + 5 where user_id = %L', ua));
+  perform tb_test.check(code = '42501', format('ein Stand in der Zukunft ist abgelehnt (%s)', code));
+  code := tb_test.state_of(ua, format('update public.airtime_counters set titles = %L where user_id = %L', '{crash_pilot}', ua));
+  perform tb_test.check(code = '23514', format('ein unbekannter Titel ist abgelehnt (%s)', code));
+  code := tb_test.state_of(ub, format('update public.airtime_counters set air_ds = 0 where user_id = %L', ua));
+  perform tb_test.check(code is null and (select air_ds from public.airtime_counters where user_id = ua) = 184,
+                        'Bernd kann Annas Zähler nicht ändern');
+
+  -- Zusammenführen: der behaltene Trail bekommt den besseren Wert.
+  t1 := tb_test.contribute(ua, l1, 'import');
+  t2 := tb_test.contribute(ua, l2, 'import');
+  perform tb_test.check(t1 <> t2, '25 m parallel: zwei eigene Trails');
+  perform tb_test.as_user(ua);
+  n := public.set_trail_airtime(jsonb_build_array(
+         jsonb_build_object('trail_id', t1, 'air_ds', 30, 'longest_ds', 10, 'month', '2026-10-01'),
+         jsonb_build_object('trail_id', t2, 'air_ds', 51, 'longest_ds', 7, 'month', '2026-09-01')));
+  perform tb_test.as_owner();
+  perform tb_test.check(n = 2, 'zwei Bestwerte in einem Aufruf');
+  perform tb_test.check(tb_test.merge_as(ua, t2, t1) = t1, 'Anna führt B in A');
+  perform tb_test.check((select (air_ds, longest_ds, month) = (51, 10, date '2026-09-01')
+                           from public.trail_airtime where trail_id = t1 and user_id = ua)
+                        and not exists (select 1 from public.trail_airtime where trail_id = t2),
+                        'A trägt das Bessere von beiden, B hat keinen Wert mehr');
+  perform tb_test.as_user(ua);
+  n := public.set_trail_airtime(jsonb_build_array(jsonb_build_object(
+         'trail_id', t2, 'air_ds', 60, 'longest_ds', 12, 'month', '2026-11-01')));
+  perform tb_test.as_owner();
+  perform tb_test.check(n = 1 and (select air_ds from public.trail_airtime where trail_id = t1 and user_id = ua) = 60
+                        and not exists (select 1 from public.trail_airtime where trail_id = t2),
+                        'ein späterer Wert für B landet auf A');
+
+  -- Rückzug vom Trail nimmt den Bestwert dort mit.
+  perform tb_test.exec_as(ua, format('select public.withdraw_contribution(%L)', t));
+  perform tb_test.check(not exists (select 1 from public.trail_airtime where trail_id = t and user_id = ua),
+                        'Rückzug: Annas Bestwert auf dem Trail ist weg');
+  -- Ausschalten: alles weg.
+  perform tb_test.exec_as(ua, 'select public.delete_my_airtime()');
+  perform tb_test.check(not exists (select 1 from public.trail_airtime where user_id = ua)
+                        and not exists (select 1 from public.airtime_counters where user_id = ua),
+                        'Ausschalten: Bestwerte und Zähler sind weg');
+  code := tb_test.state_of(ua, 'select count(*) from public.trail_airtime');
+  perform tb_test.check(code is null, 'lesen geht als angemeldeter Nutzer');
+end $$;
+
 \echo -- Alle Prüfungen bestanden.

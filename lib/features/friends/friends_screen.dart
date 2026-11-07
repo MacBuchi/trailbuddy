@@ -19,6 +19,7 @@ import '../help/tab_tours.dart';
 import '../help/tour_examples.dart';
 import '../profile/profile_providers.dart';
 import '../trails/trail_providers.dart';
+import '../rides/airtime_widgets.dart' show BuddyAirtimeLine, MyAirtimeCard;
 import 'buddy_alias.dart';
 import 'buddy_alias_dialog.dart';
 import 'connect_summary.dart';
@@ -283,6 +284,8 @@ class _FriendsScreenState extends ConsumerState<FriendsScreen> {
                           ),
                   ),
             ],
+            // Airtime unter Buddys (#36 Schritt 6): nur, wer teilt.
+            const Padding(padding: EdgeInsets.only(top: 16), child: MyAirtimeCard()),
             if (_connected case final c?) ...[
               const SizedBox(height: 16),
               _ConnectedCard(
@@ -709,6 +712,7 @@ class _BuddyRow extends StatelessWidget {
                     if (shared != null) Text(context.l10n.buddysSharedCount(shared!), style: muted),
                   ],
                 ),
+                BuddyAirtimeLine(userId: id),
               ],
             ),
           ),

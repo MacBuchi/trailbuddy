@@ -16,6 +16,7 @@ import '../../l10n/l10n.dart';
 import '../../models/trail.dart';
 import '../coach/coach.dart';
 import '../help/map_tour.dart' show SheetCoach;
+import '../rides/airtime_widgets.dart' show AirtimeRankingList, shownAirtimeRanking;
 import '../routing/loop_planner_providers.dart';
 import '../routing/navigate_choice.dart' show NavChoice;
 import '../routing/trail_head_providers.dart';
@@ -293,6 +294,16 @@ class _TrailSheetState extends ConsumerState<_TrailSheet> {
             const SizedBox(height: 8),
             _OpinionTiles(trail: trail),
             const SizedBox(height: 8),
+            // Airtime unter Buddys (#36 Schritt 6): nur, wer selbst teilt
+            // und wo es einen Wert gibt — sonst kein Panel, auch kein leeres.
+            if (shownAirtimeRanking(ref, trail.id) case final rows?) ...[
+              _Panel(
+                label: l.airtimePanelTitle,
+                panelKey: const ValueKey('airtime-panel'),
+                child: AirtimeRankingList(trailId: trail.id, rows: rows),
+              ),
+              const SizedBox(height: 8),
+            ],
             if (elevation != null)
               _Panel(
                 label: l.sheetPanelProfile,

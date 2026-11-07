@@ -30,6 +30,7 @@ import '../garmin/watch_providers.dart' show WatchSyncPhase, kWatchOutdatedPhone
 import '../map/map_buttons.dart';
 import '../map/map_view/map_view.dart';
 import '../rides/airtime_live.dart';
+import '../rides/airtime_widgets.dart' show airtimeRunRank;
 import '../rides/sensor_fusion.dart' show JumpEvent;
 import '../rides/trail_values.dart';
 import '../trails/grade_shield.dart';
@@ -1417,6 +1418,27 @@ class _TrailDoneSheetState extends ConsumerState<_TrailDoneSheet> {
                 if (_liveValues(ref, done.endedAt.subtract(done.duration), to: done.endedAt) case final v?) ...[
                   const SizedBox(height: 8),
                   _AirTiles(values: v, keyPrefix: 'nav-done-air'),
+                  // Der Platz unter den Buddys (#36 Schritt 6, Entwurf 1a):
+                  // nur, wer teilt, und nur mit einem Sprung.
+                  if (airtimeRunRank(ref, l, section.trailId, v.airS) case final r?) ...[
+                    const SizedBox(height: 8),
+                    Container(
+                      key: const ValueKey('nav-done-rank'),
+                      padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+                      decoration: BoxDecoration(
+                        color: _p.surface,
+                        border: Border.all(color: _p.line),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        if (r.rank.isNotEmpty) Text(r.rank, style: TextStyle(fontSize: 14, color: _p.text)),
+                        Text(
+                          [if (r.newBest) l.airtimeNewBest, l.airtimeGameNote].join(' · '),
+                          style: TextStyle(fontSize: 12, color: _p.muted),
+                        ),
+                      ]),
+                    ),
+                  ],
                 ],
                 if (signedIn) ...[
                   const SizedBox(height: 12),

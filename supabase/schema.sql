@@ -343,6 +343,35 @@ create index trail_reports_user_idx on public.trail_reports (user_id);
 create unique index trail_reports_client_id_key
   on public.trail_reports (user_id, client_id, kind)
   where client_id is not null;
+-- Airtime unter Buddys (Patch 029, #36 Schritt 6; docs/konzept-airtime.md
+-- 4/5): der eigene Bestwert je Trail — beste Airtime einer Durchfahrt
+-- (Summe) und längster Sprung in Zehntelsekunden, Monat statt Tag. Kein
+-- Ort, keine Fahrt (A3). Schreiben nur über set_trail_airtime (nur besser).
+create table public.trail_airtime (
+  user_id uuid not null references public.profiles(id) on delete cascade,
+  trail_id uuid not null references public.trails(id) on delete cascade,
+  air_ds integer not null check (air_ds between 1 and 6000),
+  longest_ds integer not null check (longest_ds between 1 and 600),
+  month date not null check (extract(day from month) = 1),
+  updated_at timestamptz not null default now(),
+  primary key (user_id, trail_id),
+  check (longest_ds <= air_ds)
+);
+create index trail_airtime_trail_idx on public.trail_airtime (trail_id);
+
+-- Je Nutzer EINE Zeile: Airtime und Sprünge der letzten 30 Tage, auf dem
+-- Gerät gerechnet, mit Stand und den Titeln, die das Gerät vergibt
+-- (Patch 029). Keine Tagessummen — die verrieten die Fahrtage.
+create table public.airtime_counters (
+  user_id uuid primary key references public.profiles(id) on delete cascade,
+  air_ds integer not null check (air_ds between 0 and 360000),
+  jumps integer not null check (jumps between 0 and 100000),
+  as_of date not null,
+  titles text[] not null default '{}'
+    constraint airtime_counters_titles_check check (titles <@ array['glider', 'ground_crew']::text[]),
+  updated_at timestamptz not null default now()
+);
+
 -- Der Text zu einer Meldung (Patch 028); hier, weil trail_notes vor
 -- trail_reports angelegt wird.
 alter table public.trail_notes
@@ -1755,7 +1784,8 @@ grant execute on function public.delete_own_account() to authenticated;
 
 -- Den eigenen Beitrag zu einem Trail zurückziehen (Konzept 4, „Löschen
 -- und DSGVO"): eigene Aufzeichnungen, eigene Hinweise, eigene
--- Meldungen (seit Patch 013) und der eigene Beitrag, in EINER
+-- Meldungen (seit Patch 013), den eigenen Bestwert der Airtime (seit
+-- Patch 029) und der eigene Beitrag, in EINER
 -- Transaktion. Einzeln aus der App wäre es nicht
 -- dasselbe: Fällt zuerst der Beitrag, steht „privat" nicht mehr da
 -- (`contributor_shares` sagt ohne Zeile „teilt"), und die eigenen
@@ -1786,6 +1816,8 @@ begin
    where t.trail_id = withdraw_contribution.trail_id and t.user_id = uid;
   delete from trail_reports m
    where m.trail_id = withdraw_contribution.trail_id and m.user_id = uid;
+  delete from trail_airtime a
+   where a.trail_id = withdraw_contribution.trail_id and a.user_id = uid;
   delete from trail_details d
    where d.trail_id = withdraw_contribution.trail_id and d.user_id = uid;
   return n;
@@ -1793,6 +1825,93 @@ end $$;
 
 revoke all on function public.withdraw_contribution(uuid) from public, anon;
 grant execute on function public.withdraw_contribution(uuid) to authenticated;
+
+-- Die Bestwerte des Geräts, alle auf einmal (der Abgleich schickt bei
+-- jedem Lauf alles, was er aus den Fahrten kennt — idempotent, der Server
+-- behält das Bessere). `items`: [{trail_id, air_ds, longest_ds, month}].
+-- Ein Trail, den der Aufrufer in einen anderen geführt hat, schreibt auf
+-- den behaltenen; einer, den er nicht (mehr) sieht, fällt still heraus —
+-- ein gelöschter Trail ist kein Fehler des Abgleichs. Gibt die Zahl der
+-- Zeilen zurück, die neu oder besser wurden.
+create or replace function public.set_trail_airtime(items jsonb)
+returns integer
+language plpgsql security definer set search_path = public as $$
+declare
+  uid uuid := auth.uid();
+  it jsonb;
+  t uuid;
+  n integer := 0;
+  k integer;
+begin
+  if uid is null then
+    raise exception 'Nicht angemeldet' using errcode = '28000';
+  end if;
+  if jsonb_typeof(items) is distinct from 'array' or jsonb_array_length(items) > 1000 then
+    raise exception 'Bis zu 1000 Werte als Liste erwartet' using errcode = '22023';
+  end if;
+  for it in select * from jsonb_array_elements(items) loop
+    select a.same_as into t from app_internal.trail_aliases a
+     where a.user_id = uid and a.trail_id = (it->>'trail_id')::uuid;
+    t := coalesce(t, (it->>'trail_id')::uuid);
+    continue when not exists (select 1 from trails where id = t)
+               or not app_internal.can_see_trail(uid, t);
+    insert into trail_airtime as cur (user_id, trail_id, air_ds, longest_ds, month)
+    values (uid, t, (it->>'air_ds')::integer, (it->>'longest_ds')::integer,
+            date_trunc('month', (it->>'month')::date)::date)
+    on conflict (user_id, trail_id) do update
+      set air_ds = greatest(cur.air_ds, excluded.air_ds),
+          longest_ds = greatest(cur.longest_ds, excluded.longest_ds),
+          month = case when excluded.air_ds > cur.air_ds then excluded.month else cur.month end,
+          updated_at = now()
+      where excluded.air_ds > cur.air_ds or excluded.longest_ds > cur.longest_ds;
+    get diagnostics k = row_count;
+    n := n + k;
+  end loop;
+  return n;
+end $$;
+revoke all on function public.set_trail_airtime(jsonb) from public, anon;
+grant execute on function public.set_trail_airtime(jsonb) to authenticated;
+
+-- Schalter aus: alles Geteilte weg, in EINER Transaktion. Security
+-- INVOKER — die RLS erlaubt beide Löschungen ohnehin.
+create or replace function public.delete_my_airtime()
+returns void
+language plpgsql security invoker set search_path = public as $$
+declare
+  uid uuid := auth.uid();
+begin
+  if uid is null then
+    raise exception 'Nicht angemeldet' using errcode = '28000';
+  end if;
+  delete from trail_airtime where user_id = uid;
+  delete from airtime_counters where user_id = uid;
+end $$;
+revoke all on function public.delete_my_airtime() from public, anon;
+grant execute on function public.delete_my_airtime() to authenticated;
+
+-- Zusammenführen (Patch 019) nimmt den Bestwert mit: Der behaltene Trail
+-- bekommt den besseren je Nutzer. Ein Trigger statt einer neuen Fassung
+-- von merge_own_into — die Zuordnung entsteht nur dort.
+create or replace function app_internal.move_airtime_on_alias()
+returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  insert into trail_airtime as cur (user_id, trail_id, air_ds, longest_ds, month)
+  select a.user_id, new.same_as, a.air_ds, a.longest_ds, a.month
+    from trail_airtime a
+   where a.user_id = new.user_id and a.trail_id = new.trail_id
+  on conflict (user_id, trail_id) do update
+    set air_ds = greatest(cur.air_ds, excluded.air_ds),
+        longest_ds = greatest(cur.longest_ds, excluded.longest_ds),
+        month = case when excluded.air_ds > cur.air_ds then excluded.month else cur.month end,
+        updated_at = now();
+  delete from trail_airtime where user_id = new.user_id and trail_id = new.trail_id;
+  return new;
+end $$;
+revoke all on function app_internal.move_airtime_on_alias() from public, anon, authenticated;
+create trigger trail_aliases_move_airtime
+  after insert on app_internal.trail_aliases
+  for each row execute function app_internal.move_airtime_on_alias();
 
 -- Melden (Patch 013, #101): eine Meldung („offen", „gesperrt" …) und/oder
 -- einen Zustand 1–5 zu einem Trail, den der Aufrufer SIEHT — gefahren
@@ -2320,6 +2439,8 @@ alter table public.trail_details     enable row level security;
 alter table public.trail_notes       enable row level security;
 alter table public.trail_note_photos enable row level security;
 alter table public.trail_reports     enable row level security;
+alter table public.trail_airtime     enable row level security;
+alter table public.airtime_counters  enable row level security;
 alter table app_internal.trail_overlaps enable row level security;
 alter table app_internal.trail_aliases  enable row level security;
 alter table app_internal.trail_distinct enable row level security;
@@ -2490,6 +2611,30 @@ create policy reports_select on public.trail_reports for select
 create policy reports_delete_own on public.trail_reports for delete
   using (user_id = auth.uid());
 
+-- trail_airtime (Patch 029): sehen wie Hinweise und Meldungen — der Fahrer
+-- und seine direkten Buddys, die den Trail selbst sehen, nicht bei
+-- „privat". Schreiben nur über set_trail_airtime (kein insert-Grant).
+create policy ta_select on public.trail_airtime for select
+  using (user_id = auth.uid()
+     or (app_internal.are_friends(user_id, auth.uid())
+         and app_internal.contributor_shares(user_id, trail_id)
+         and app_internal.can_see_trail(auth.uid(), trail_id)));
+create policy ta_delete_own on public.trail_airtime for delete
+  using (user_id = auth.uid());
+
+-- airtime_counters (Patch 029): der Nutzer und seine direkten Buddys.
+create policy ac_select on public.airtime_counters for select
+  using (user_id = auth.uid() or app_internal.are_friends(user_id, auth.uid()));
+-- Der Stand darf nicht in der Zukunft liegen (ein Tag Spielraum für
+-- Zeitzonen) — sonst altert ein Zähler nie sichtbar.
+create policy ac_insert_own on public.airtime_counters for insert
+  with check (user_id = auth.uid() and as_of <= current_date + 1);
+create policy ac_update_own on public.airtime_counters for update
+  using (user_id = auth.uid())
+  with check (user_id = auth.uid() and as_of <= current_date + 1);
+create policy ac_delete_own on public.airtime_counters for delete
+  using (user_id = auth.uid());
+
 -- ============================================================
 -- Grants — ausdrücklich, nicht über auto_expose
 -- ============================================================
@@ -2520,6 +2665,8 @@ grant select, insert, update, delete on public.trail_details to authenticated;
 grant select, insert, delete on public.trail_notes to authenticated;
 grant select, insert, delete on public.trail_note_photos to authenticated;
 grant select, delete on public.trail_reports to authenticated;       -- insert nur per RPC
+grant select, delete on public.trail_airtime to authenticated;       -- schreiben nur per RPC
+grant select, insert, update, delete on public.airtime_counters to authenticated;
 grant select on public.recordings_visible to authenticated;
 grant select, insert, update, delete on public.push_devices to authenticated;
 -- KEIN Grant auf public.trails, KEINER auf app_internal.trail_overlaps.
@@ -2651,5 +2798,6 @@ insert into public.applied_patches (filename) values
   ('patch_025_drop_details_status.sql'),
   ('patch_026_note_photos.sql'),
   ('patch_027_push_locale.sql'),
-  ('patch_028_note_report_link.sql')
+  ('patch_028_note_report_link.sql'),
+  ('patch_029_airtime.sql')
 on conflict do nothing;

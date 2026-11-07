@@ -2,6 +2,24 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Airtime unter Buddys (Test)
+
+*Version 0.158.0, 2026-11-07*
+
+- Wer unter „Über TrailBuddy" die Erkennung von Wheelie, Sprung und
+  Stoppie eingeschaltet hat, findet darunter einen neuen Schalter
+  „Airtime mit Buddys teilen". Ab Werk ist er aus.
+- Eingeschaltet teilt die App je Trail deine beste Airtime einer
+  Durchfahrt und deinen längsten Sprung (mit dem Monat, ohne Tag) und
+  deine Airtime der letzten 30 Tage — keine Fahrt, keinen Ort, kein Max G.
+  Gerechnet wird auf dem Telefon.
+- Im Trail-Blatt steht dann „Airtime unter Buddys" mit den ersten drei und
+  deinem Platz, in „Trail geschafft" dein Platz für diese Durchfahrt. Bei
+  den Buddys stehen ihre Airtime der letzten 30 Tage und Titel wie
+  Segelflieger, Vielflieger, Trailkönig und Bodenpersonal. Ein Spiel, kein
+  Rekord — und du siehst nur die Buddys, die auch teilen.
+- Ausschalten löscht, was du geteilt hast.
+
 ## Navigation: näher heran, längere Leiste
 
 *Version 0.157.1, 2026-11-07*

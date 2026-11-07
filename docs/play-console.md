@@ -52,6 +52,7 @@ verarbeitet*, *erforderlich oder optional* — plus die Zwecke.
 | **App-Aktivität → Andere nutzergenerierte Inhalte** | Ja | **Ja²** (nur Feedback) | Optional | App-Funktionalität, Entwicklerkommunikation | Beiträge zu Trails (`trail_details`: Name, Beschreibung, S-Grad, Charakter, Sterne, Sichtbarkeit, Link), Meldungen und Zustand (`trail_reports`), Texte zu Meldungen (`trail_notes`, bis 0.146 „Hinweise"; #433), Zuordnungen von Duplikaten (`trail_aliases`, `trail_distinct`; #107 — sichtbar für direkte Buddys, die beide Trails sehen), Aliase für Buddys (`friend_aliases`, nur für den Vergebenden sichtbar) — alles *nicht geteilt*¹. Feedback (`feedback`: Text, Typ, App-Version) wird als öffentliches GitHub-Issue veröffentlicht, ohne Benutzernamen — *geteilt*² |
 | **Fotos und Videos → Fotos** | Ja | Nein¹ | Optional | App-Funktionalität | Ein Foto je Text einer Meldung (#37, Patch 026): Bild ≤ 1024 px und Vorschau, ohne EXIF/XMP (entfernt und geprüft in `lib/core/photo_pipeline.dart`), im privaten Bucket `trail-note-photos`. Sichtbar für genau die, die den Text sehen; 90 Tage, mit dem Text gelöscht |
 | **Nachrichten → Andere In-App-Nachrichten** | Ja | Nein¹ | Optional | App-Funktionalität | `buddy_messages` (#34, Patch 021): Text, Absender, Empfänger, Zeitpunkt, gelesen. Nur Absender und Empfänger sehen sie, 30 Tage, nicht Ende-zu-Ende-verschlüsselt (Datenschutzerklärung). Schreiben nur unter Buddys oder bei offener Anfrage (höchstens drei je Seite). Mit eingeschalteten Benachrichtigungen geht der Text gekürzt über FCM (Patch 022, siehe ⁴) |
+| **App-Aktivität → Sonstige Aktionen** | Ja | Nein¹ | Optional | App-Funktionalität | Airtime unter Buddys (#36 Schritt 6, Patch 029; ab Werk aus, eigener Schalter): `trail_airtime` — je Trail der Bestwert (beste Airtime einer Durchfahrt, längster Sprung, Zehntelsekunden, Monat), sichtbar für direkte Buddys, die den Trail sehen; `airtime_counters` — eine Zeile je Nutzer mit Airtime und Sprüngen der letzten 30 Tage, Tag der Rechnung und Titeln, sichtbar für direkte Buddys. Auf dem Gerät aus den Sensordaten gerechnet; keine Fahrt, keine Position, keine Landewucht. Ausschalten löscht beides |
 | **App-Info und -Leistung → Absturzprotokolle** | Ja | Nein | Erforderlich | App-Funktionalität | `error_reports`: Kontext, Fehlertyp, Meldung, Stack, App-Version, Plattform, ggf. Nutzer-id. Dazu beim nächsten Start Androids eigene Beendigungsgründe (ANR, Absturz, nativer Absturz mit Tombstone) — keine Position, keine Trails |
 | **App-Info und -Leistung → Diagnose** | Ja | Nein | Erforderlich | App-Funktionalität | Speicherwerte (RSS/PSS in MB) und der Haupt-Thread-Auszug, die mit einem Beendigungsgrund kommen (`AppExit.summary`) |
 | **Geräte- oder andere IDs** | Ja⁴ | **Ja⁴** | Optional | App-Funktionalität | `push_devices.token` — die FCM-Gerätekennung, sobald jemand Benachrichtigungen einschaltet |
@@ -76,8 +77,9 @@ geht beim Melden nur ja oder nein. Ebenso die Sensordaten der Erkennung
 `rides/sensors/<id>.csv`, Beschleunigung und Kreisel mit 100 Hz, GPS je
 Sekunde, Ereignisse und Antworten) — ausgewertet auf dem Gerät, hinaus nur
 über „Sensordaten teilen" an einen Empfänger, den der Nutzer wählt; keine
-Berechtigung dazu. Erst Schritt 6 (Bestwert und Zähler auf dem Server)
-macht daraus eine erhobene Kategorie (siehe ⁵). Wer daran etwas ändert (eine Sicherung
+Berechtigung dazu. Seit Schritt 6 (0.158.0) gehen Bestwert und Zähler
+auf den Server, wenn der Nutzer teilt — oben unter „Sonstige Aktionen"
+(siehe ⁵). Wer daran etwas ändert (eine Sicherung
 der Fahrten in der Cloud, Konzept 10.4 „verworfen für jetzt"), ändert diese
 Tabelle.
 
@@ -180,9 +182,13 @@ Empfehlung: **nein.** Google meint mit *Fitness* Angaben über körperliche
 Aktivität (Schritte, Kalorien, Trainingseinheiten). Auf dem Server liegt
 eine Wegstrecke mit Höhen und einem Zeitpunkt — als Standortdatum bereits
 oben deklariert. Geschwindigkeit, Dauer, Herzfrequenz oder Leistung werden
-weder erhoben noch berechnet und hochgeladen. Kommt mit Airtime und
-Ranking (#36) eine Tabelle „Ereignis je Fahrt und Trail" dazu, ist diese
-Frage neu zu stellen.
+weder erhoben noch berechnet und hochgeladen. Airtime und Ranking (#36
+Schritt 6, 0.158.0) haben die Frage neu gestellt: Es gibt KEINE Tabelle
+„Ereignis je Fahrt und Trail", nur einen Bestwert je Trail (mit Monat) und
+eine Zahl der letzten 30 Tage — Sprungzeiten eines Spiels, keine
+Trainingseinheit, keine Kalorien, keine Herzfrequenz. Empfehlung bleibt
+**nein**, deklariert als „App-Aktivität → Sonstige Aktionen"; wer eine
+Dauer, Strecke oder Geschwindigkeit je Fahrt dazunimmt, stellt sie neu.
 
 ### Berechtigungen im Build
 

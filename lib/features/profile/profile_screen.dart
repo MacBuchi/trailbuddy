@@ -29,6 +29,7 @@ import '../highlights/highlight_sheet.dart' show unseenHighlightCountProvider;
 import '../friends/friend_providers.dart';
 import '../offline_areas/area_providers.dart' show storedAreasProvider;
 import '../offline_areas/height_tiles.dart' show kHeightsAttribution;
+import '../rides/airtime_providers.dart' show airtimeShareProvider;
 import '../rides/ride_providers.dart' show rideRecordingAvailableProvider, ridesProvider, sensorLogAvailableProvider, sensorLogProvider;
 import '../../core/geo.dart' show formatMeters;
 import '../routing/nav_providers.dart'
@@ -1151,6 +1152,28 @@ class _AboutSection extends ConsumerWidget {
             subtitle: Text('${l.aboutSensorLogSubtitle}\n${l.aboutSensorLogRisk}'),
             value: ref.watch(sensorLogProvider),
             onChanged: (value) => ref.read(sensorLogProvider.notifier).set(value),
+          ),
+        // Airtime mit Buddys teilen (#36 Schritt 6): nur unter der
+        // eingeschalteten Erkennung, ab Werk aus. Ausschalten löscht auf
+        // dem Server und scheitert ohne Netz sichtbar.
+        if (ref.watch(sensorLogAvailableProvider) && ref.watch(sensorLogProvider))
+          SwitchListTile(
+            key: const ValueKey('airtime-share-switch'),
+            contentPadding: EdgeInsets.zero,
+            dense: true,
+            secondary: const Icon(Icons.flight_takeoff),
+            title: Text(l.aboutAirtimeShareTitle),
+            subtitle: Text(l.aboutAirtimeShareSubtitle),
+            value: ref.watch(airtimeShareProvider),
+            onChanged: (value) async {
+              final messenger = ScaffoldMessenger.of(context);
+              try {
+                await ref.read(airtimeShareProvider.notifier).set(value);
+              } catch (e, s) {
+                logError('Airtime-Teilen umschalten', e, s);
+                messenger.showSnackBar(SnackBar(content: Text(l.aboutAirtimeShareOffFailed)));
+              }
+            },
           ),
         // Der Web-Gegenpart zu „Vorabversionen erhalten" — aber bewusst
         // KEIN Schalter: Die Vorschau liegt auf einem eigenen Origin, der

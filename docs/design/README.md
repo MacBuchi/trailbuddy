@@ -912,3 +912,33 @@ ohne Spur, darunter „Navigation beendet", bis die App zugeht. Die Punkte entla
 Zusammenfassung mit den Schildern der befahrenen Trails. Die Farben sind je
 die nächste MIP-Farbe zur App-Farbe (`garmin/source/Colors.mc`, geprüft
 von `tool/garmin_route.py --self-test`); am Gerät in der Sonne prüfen.
+
+## 16. Airtime unter Buddys (#36 Schritt 6) — `lib/features/rides/airtime_widgets.dart`
+
+*Entwurf 2026-11-07 im Designer („Airtime unter Buddys", zwei Varianten).
+Gebaut ist **Variante A „Zeile"**; B „Podest" (Podest im Trail-Blatt,
+Balken je Buddy relativ zum Spitzenreiter, „Noch 0,8 s bis Jan") fiel an
+zwei Stellen gegen das Konzept: Balken sind eine Bestenliste über den
+Zähler, und „noch … bis" ist der Anreiz zum Überbieten
+(`konzept-airtime.md` 1.3, 5, 10).*
+
+- **Trail-Blatt**: ein Panel wie das Höhenprofil (`_Panel`), Kopf „AIRTIME
+  UNTER BUDDYS", darunter „Spiel, kein Rekord" in `muted`. Je Zeile Platz
+  (Mono), Name (Alias vor Name, „Du" für sich), Monat (`MMM`), Wert in Mono
+  rechts; die eigene Zeile hinterlegt mit Lime 18 % und Platz in
+  `accentText`. Höchstens die ersten drei und der eigene Platz; darunter
+  „Airtime je Durchfahrt · dein längster Sprung 0,9 s". Ohne Wert steht
+  kein Panel, auch kein leeres. Die drei Kennzahl-Kacheln bleiben drei.
+- **„Trail geschafft"** (dunkel wie die Folgeansicht): unter den Werte-
+  Kacheln eine Karte `surface` mit Rand `line`: „#2 hinter Jan (5,1 s)"
+  bzw. „#1 unter deinen Buddys", darunter klein „Neuer Bestwert · Spiel,
+  kein Rekord". Kein „noch … bis".
+- **Buddys-Reiter**: oben die eigene Karte „DEINE AIRTIME · LETZTE 30 TAGE"
+  (Wert 28 px Mono, daneben die Zahl der Sprünge, darunter die eigenen
+  Titel); an jeder Buddy-Zeile unter „n gemeinsam" „Airtime 30 Tage 42,0 s"
+  (mit „Stand 28.10.", wenn nicht von heute) und die Titel. **Titel sind
+  Text-Chips** (`surface2`, 11 px, Versalien, `buddyText`, die eigenen in
+  `accentText`) — kein Symbol, kein Abzeichen am Avatar: liest sich ohne
+  Legende und für Bildschirmleser.
+- Max G steht nur in den Kacheln des Fahrers (Schritt 5), nie in einer
+  Rangliste und nie bei Buddys.

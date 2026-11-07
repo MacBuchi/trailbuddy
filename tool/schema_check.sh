@@ -391,6 +391,15 @@ check_rpc_protected "mark_distinct-RPC" "mark_distinct" \
 check_rpc_protected "unmark_distinct-RPC" "unmark_distinct" \
   '{"trail_a":"00000000-0000-4000-8000-000000000000","trail_b":"00000000-0000-4000-8000-000000000001"}'
 check_rpc_protected "trail_merges-RPC" "trail_merges" '{}'
+# Airtime unter Buddys (Patch 029, #36 Schritt 6): die Spalten, die
+# AirtimeRepository liest, und beide RPCs — alles nur für Angemeldete.
+check_get_protected "trail_airtime (Bestwert je Trail)" \
+  "/rest/v1/trail_airtime?select=user_id,trail_id,air_ds,longest_ds,month&limit=1"
+check_get_protected "airtime_counters (Airtime 30 Tage)" \
+  "/rest/v1/airtime_counters?select=user_id,air_ds,jumps,as_of,titles&limit=1"
+check_rpc_protected "set_trail_airtime-RPC" "set_trail_airtime" \
+  '{"items":[{"trail_id":"00000000-0000-4000-8000-000000000000","air_ds":10,"longest_ds":5,"month":"2026-11-01"}]}'
+check_rpc_protected "delete_my_airtime-RPC" "delete_my_airtime" '{}'
 
 if [ "$fail" -ne 0 ]; then
   echo "::error::Schema passt nicht zu den App-Queries. Fehlt ein supabase/patch_NNN_*.sql bzw. wurde er noch nicht eingespielt (tool/db_migrate.sh, Secret SUPABASE_DB_URL)?"
