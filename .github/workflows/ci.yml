@@ -67,6 +67,7 @@ jobs:
           python3 tool/generated_assets.py --self-test > /dev/null
           python3 tool/transform_map_style.py --self-test > /dev/null
           python3 tool/map_tiles.py --self-test > /dev/null
+          python3 tool/tile_delta.py --self-test > /dev/null
           python3 tool/poi_extract.py --self-test > /dev/null
           python3 tool/brand_icons.py --self-test > /dev/null
           python3 tool/garmin_route.py --self-test > /dev/null

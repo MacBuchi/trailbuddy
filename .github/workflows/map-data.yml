@@ -343,6 +343,30 @@ jobs:
           print(json.dumps(manifest, indent=2))
           PY
 
+      - name: Measure the delta against the current build (#479)
+        if: env.MODE == 'publish' && steps.r2.outputs.present == 'true'
+        # Before the manifest flips: the PUBLIC current build against the
+        # fresh extract, tile by tile (directories in full, the bytes of a
+        # sample per zoom). Protomaps keeps its daily builds for about a
+        # week, our previous build goes after 48 h — this run is the one
+        # moment both builds of a monthly step exist. A measurement only:
+        # it never stops a publish (docs/tile-delta-messung.md).
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          current=$(curl -sSL --fail --max-time 60 "$PUBLIC_BASE/$MAP_MANIFEST?delta=$file" \
+                      | python3 -c 'import json,sys; print(json.load(sys.stdin).get("file",""))' || true)
+          if [ -z "$current" ] || [ "$current" = "$(basename "$file")" ]; then
+            echo "No earlier build to compare with (manifest: '${current}')." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          area=("--bbox=$DACH_BBOX")
+          [ -z "$REGION_POLYGON" ] || area=("--region=$REGION_POLYGON")
+          python3 tool/tile_delta.py compare \
+            --old "$PUBLIC_BASE/${REGION_DIR}$current" --new "build/maps/$file" \
+            "${area[@]}" --minzoom 6 "--maxzoom=$MAXZOOM" --samples 300 \
+            --json build/tile-delta.json | tee -a "$GITHUB_STEP_SUMMARY"
+
       - name: Upload to R2
         if: env.MODE == 'publish' && steps.r2.outputs.present == 'true'
         env:
