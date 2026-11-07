@@ -2,6 +2,18 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## Planner: a route is called a route
+
+*Version 0.158.1, 2026-11-07*
+
+- When the planner computes towards a destination, the sheet says
+  "Route" while it computes — before, it said "Loop" and "Computing the
+  loop …" until the result arrived. The settings are then called
+  "Route settings".
+- When no saved area covers the way, the message now says "from the
+  start" instead of "from your location" — the start can also be a
+  tapped point or a trail head.
+
 ## Airtime among buddies (test)
 
 *Version 0.158.0, 2026-11-07*

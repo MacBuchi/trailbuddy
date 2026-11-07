@@ -1133,6 +1133,33 @@ void main() {
       expect(rides.rides.single.name, 'Route: Hexentanz');
     });
 
+    testWidgets('„Zum Ziel" heißt schon beim Rechnen „Route" — Kopf, Fortschritt, Parameter (Pixel 2026-11-07)',
+        (tester) async {
+      final runner = _HeldRunner();
+      await start(tester, areaStore: await _areaWithTrack(), runner: () => runner);
+      await openPlanner(tester);
+      await chooseEnd(tester, 'loop-end-target');
+      const target = LatLng(48.0092, _lon);
+      fakeMap(tester).move(target, 15);
+      await settle(tester, frames: 4);
+      await tapMapAt(tester, target);
+      await settle(tester);
+
+      await tapRail(tester, 'loop-rail-params');
+      expect(find.text('Parameter der Route'), findsOneWidget);
+      expect(find.text('Parameter der Runde'), findsNothing);
+      await tester.tapAt(const Offset(10, 10));
+      await settle(tester, frames: 10);
+
+      await tapRail(tester, 'loop-rail-compute');
+      await settle(tester, frames: 4);
+      expect(runner.held, hasLength(1), reason: 'die Rechnung hängt noch');
+      expect(find.text('Die Route wird gerechnet …'), findsOneWidget);
+      expect(find.text('Die Runde wird gerechnet …'), findsNothing);
+      expect(find.text('Route'), findsOneWidget, reason: 'der Kopf, bevor ein Ergebnis da ist');
+      expect(find.text('Runde'), findsNothing);
+    });
+
     /// Aus der Liste ins Trail-Blatt und dort auf [key].
     Future<void> fromTrailSheet(WidgetTester tester, String key) async {
       // Die Leiste „… dazugenommen" (#375) läge sonst über der Zeile.

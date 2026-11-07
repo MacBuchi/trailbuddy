@@ -4019,6 +4019,10 @@
   "@loopParamsTitle": {
     "description": "Titel des Blatts mit den Parametern des Rundenplaners."
   },
+  "routeParamsTitle": "Parameter der Route",
+  "@routeParamsTitle": {
+    "description": "Titel des Parameter-Blatts, wenn der Planer zu einem Ziel rechnet (Route statt Runde)."
+  },
   "loopStartMine": "Start: mein Standort",
   "@loopStartMine": {
     "description": "Parameter des Planers: die Runde beginnt am eigenen Standort."
@@ -4364,6 +4368,10 @@
   "@loopComputing": {
     "description": "Fortschritt im Ergebnis-Blatt des Planers."
   },
+  "routeComputing": "Die Route wird gerechnet …",
+  "@routeComputing": {
+    "description": "Fortschritt im Ergebnis-Blatt des Planers, wenn er zu einem Ziel rechnet."
+  },
   "loopBuildingGraph": "Das Wegenetz wird aufgebaut … Bei einem großen Gebiet kann das eine Minute dauern.",
   "@loopBuildingGraph": {
     "description": "Fortschritt im Ergebnis-Blatt des Planers, über dem Ladebalken, während aus den Kartenkacheln das Wegenetz entsteht."
@@ -4679,11 +4687,11 @@
   "@routeBlockerNoPosition": {
     "description": "Routen-Blatt: kein Standort. Zitiert den Knopf „Anfahrt“ (sheetNavigate)."
   },
-  "routeBlockerNoAreaTrailHead": "Kein gespeicherter Bereich deckt den Weg von deinem Standort zum Trailkopf, und online kam kein Weg dazu (kein Empfang, oder „Fehlende Wege online ergänzen“ in den Parametern des Planers ist aus). Speichere einen Bereich über den Knopf „Offline-Karten“ auf der Karte.",
+  "routeBlockerNoAreaTrailHead": "Kein gespeicherter Bereich deckt den Weg vom Start zum Trailkopf, und online kam kein Weg dazu (kein Empfang, oder „Fehlende Wege online ergänzen“ in den Parametern des Planers ist aus). Speichere einen Bereich über den Knopf „Offline-Karten“ auf der Karte.",
   "@routeBlockerNoAreaTrailHead": {
     "description": "Routen-Blatt zu einem Trail: keine Wege."
   },
-  "routeBlockerNoAreaPoint": "Kein gespeicherter Bereich deckt den Weg von deinem Standort zum Ziel, und online kam kein Weg dazu (kein Empfang, oder „Fehlende Wege online ergänzen“ in den Parametern des Planers ist aus). Speichere einen Bereich über den Knopf „Offline-Karten“ auf der Karte.",
+  "routeBlockerNoAreaPoint": "Kein gespeicherter Bereich deckt den Weg vom Start zum Ziel, und online kam kein Weg dazu (kein Empfang, oder „Fehlende Wege online ergänzen“ in den Parametern des Planers ist aus). Speichere einen Bereich über den Knopf „Offline-Karten“ auf der Karte.",
   "@routeBlockerNoAreaPoint": {
     "description": "Routen-Blatt zu einem Punkt: keine Wege."
   },
