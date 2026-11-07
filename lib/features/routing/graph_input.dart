@@ -166,7 +166,7 @@ typedef BuiltGraph = ({RoadGraph graph, GraphReport report});
 
 /// Baut den Graphen des Planers aus [input]: dekodieren, bauen, Höhen,
 /// Güte ([buildRoadGraphFrom]), dann die Trails auflegen ([applyTrails]),
-/// die Enden jeder Abfahrt anheften und zuletzt sperren, was gesperrt ist
+/// die Enden jeder Abfahrt anheften ([RoadGraph.anchor], mit Lücken, #492) und zuletzt sperren, was gesperrt ist
 /// ([blockClosures], #434) — dieselben Punkte, die
 /// `planLoop` anheftet (#188), seit #394 wie dort bis [kGraphSnapM]: So
 /// teilt ein später dazugewählter Trail aus dem Rahmen keine Kante mehr,
@@ -216,12 +216,14 @@ BuiltGraph buildGraphFrom(GraphInput input, {String builtIn = ''}) {
   }
   final graph = built.graph;
   final overlay =
-      PlanProgress.part(0.96, 0.99, () => StallWatch.mark('graph.trails', () => applyTrails(graph, input.trails)));
+      PlanProgress.part(0.96, 0.99, () => StallWatch.mark('graph.trails', () => applyTrails(graph, input.trails, heights: input.heights)));
+  // Die Enden jeder Abfahrt als eigener Knoten mit Lücken zu den Wegen
+  // daneben (#492) — `planLoop` findet sie dort wieder.
   StallWatch.mark('graph.attach', () {
     for (final t in input.trails) {
       if (t.role != TrailRole.downhill) continue;
-      graph.snap(t.points.first);
-      graph.snap(t.points.last);
+      graph.anchor(t.points.first);
+      graph.anchor(t.points.last);
     }
   });
   final closedEdges =

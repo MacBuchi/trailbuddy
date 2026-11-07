@@ -94,7 +94,8 @@ ReplanPlan planReplanRoute(RoadGraph g, LatLng from, double? courseDeg, LatLng t
   final back = courseDeg == null ? const <int>{} : backEdgesAt(g, src, courseDeg);
   final t = g.nodes[dst];
   final vMax = p.vDownKmh / 3.6;
-  double h(int n) => g.nodeDistance(n, t.x, t.y) / vMax;
+  // Mal [kTrailConnectorFactor]: Ein Verbinder ist billiger als seine Zeit.
+  double h(int n) => g.nodeDistance(n, t.x, t.y) / vMax * kTrailConnectorFactor;
   final free = dijkstra(g, src, p, target: dst, heuristic: h);
   var path = free.pathTo(dst);
   var turnedBack = path != null && path.isNotEmpty && back.contains(path.first);

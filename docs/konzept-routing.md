@@ -493,10 +493,23 @@ dieselben Konstanten geprüft):
   Mehrheit der sichtbaren Beiträge, bei Gleichstand nein). Ein
   **Uphill-Trail** (Uphill unter den angezeigten Merkmalen) ist ein
   Verbinder in seiner Richtung, eine **Verbindung** einer in beide; ein
-  Verbinder kostet Zeit × 0,8 statt Zeit × Aufschlag der Klasse
-  (`kTrailConnectorFactor`, Startwert, nicht gemessen) und zählt nicht
-  als Wanderweg. Kennt die Karte einen Verbinder nicht, wird er eine
-  eigene Kante zwischen seinen angehefteten Enden, mit seinen Höhen.
+  Verbinder kostet Zeit × 0,6 statt Zeit × Aufschlag der Klasse
+  (`kTrailConnectorFactor`, Startwert, nicht gemessen; bis 0.162.x 0,8 —
+  Betreiber 2026-11-07: „Transferstrecken noch positiver bewerten") und
+  zählt nicht als Wanderweg. **Seit #492 ist jeder Verbinder eine eigene
+  Linie**, auch wo die Karte ihn kennt, mit Höhen aus den Kacheln (sonst
+  seinen eigenen, nach Länge geteilt), angeschlossen an beiden Enden und
+  überall, wo er einen Weg kreuzt, an ihn herankommt, ihn verlässt oder
+  den Weg wechselt (Betreiber: „nicht nur Start- und Endpunkte, sondern
+  die gesamte Linie"). Bis dahin nur, wenn 80 % von ihm neben keinem Weg
+  lagen, und nur zwischen den Enden: Eine Lücke im Weg darunter machte
+  ihn unfahrbar. **Lücken kosten** (#492): Ein Trail-Ende ist ein
+  eigener Knoten mit je einer Lückenkante zum nächsten Punkt der bis zu
+  vier nächsten Wege in 30 m (sonst zum nächsten in 200 m); eine Lücke
+  zählt geschoben (1 m/s) in die Zeit und über 5 m mit 10 s je Meter in
+  die Kosten (Betreiber: „da kann auch mal komplett nichts sein, Dornen
+  oder Fels"). Bis dahin nahm das Ende den nächsten KNOTEN in 30 m, auch
+  wenn der Transferweg 2 m daneben lag, und der Sprung kostete nichts.
   Uphill-Trails und Verbinder stehen deshalb nicht mehr im Pool der
   Abfahrten. Mehrfach befahren darf man Verbinder wie jeden Weg —
   Verbindungen wurden nie bestraft, nur eine zweite ABFAHRT bringt

@@ -473,9 +473,13 @@ LoopPlan planLoop(
   // mitten im Wald hieß bis dahin „an keinem Weg", und der Trail fiel
   // aus der Planung. `buildGraphFrom` heftet die Enden schon beim Laden
   // so an — hier teilt dann keine Kante mehr.
+  // Trail-Enden seit #492 als eigener Knoten mit Lücken zu den Wegen
+  // daneben ([RoadGraph.anchor]): Die Suche wählt selbst, ob sie 2 m zum
+  // Transferweg oder 25 m zur Kreuzung nimmt — und die Lücke kostet.
   final snaps = <PointSnap>[];
   int? snap(LatLng p, SnapRole role, {int index = 0, String? trailId}) {
-    final s = g.snap(p);
+    final trailEnd = role == SnapRole.trailStart || role == SnapRole.trailEnd;
+    final s = trailEnd ? g.anchor(p) : g.snap(p);
     if (s != null && s.meters > kGraphAttachM) {
       snaps.add(PointSnap(role, g.nodeLatLng[s.node], s.meters, index: index, trailId: trailId));
     }

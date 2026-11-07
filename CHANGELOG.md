@@ -2,6 +2,21 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Der Planer nimmt deine Transferwege ernst
+
+*Version 0.163.0, 2026-11-07*
+
+- Verbindungen und Uphill-Trails sind jetzt mit ihrer ganzen Linie Teil
+  des Wegenetzes. Der Planer steigt auch mittendrin ein, wo ein Weg sie
+  kreuzt. Liegt unter einem Transfer nur zum Teil ein Weg der Karte,
+  fährt er trotzdem darüber.
+- Transfers und Uphills sind ihm noch lieber als bisher, denn genau
+  dafür hast du sie eingetragen.
+- Ein Trail endet neben dem Transferweg? Dann nimmt der Planer ihn,
+  statt quer durchs Gelände zur nächsten Kreuzung zu springen. Jeder
+  Meter ohne Weg zählt jetzt als geschoben und kostet extra, denn dort
+  können Dornen, Fels oder gar nichts sein.
+
 ## Aufzeichnung an der Uhr starten und stoppen
 
 *Version 0.162.0, 2026-11-07*

@@ -2,6 +2,21 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## The planner takes your transfers seriously
+
+*Version 0.163.0, 2026-11-07*
+
+- Connections and uphill trails are now part of the network along their
+  whole line. The planner can join them midway where a path crosses.
+  If a map path covers a transfer only in part, the planner still uses
+  it.
+- The planner prefers transfers and uphills even more than before —
+  that is exactly why you entered them.
+- A trail ends next to the transfer? The planner now takes it instead
+  of jumping across the terrain to the nearest junction. Every metre
+  without a path now counts as pushed and costs extra, because there
+  may be thorns, rock or nothing at all.
+
 ## Start and stop recording on the watch
 
 *Version 0.162.0, 2026-11-07*

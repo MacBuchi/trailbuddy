@@ -685,9 +685,33 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     blockBackward`, geprüft in `edgeOpenFrom` neben der Einbahn), außer
     „in beide Richtungen fahrbar" (Patch 016, `Trail.twoWay`: die eigene
     Angabe, sonst die Mehrheit, Gleichstand nein). Uphill-Trails und
-    Verbindungen sind Verbinder (`kTrailConnectorFactor` 0,8, kein
-    Wanderweg), fehlen sie in OSM, werden sie eine eigene Kante; sie
-    stehen nicht mehr im Pool (`loopPoolOf(...).connectors`).
+    Verbindungen sind Verbinder (`kTrailConnectorFactor` 0,6 seit #492,
+    vorher 0,8; kein Wanderweg); sie stehen nicht mehr im Pool
+    (`loopPoolOf(...).connectors`).
+  - **Verbinder mit der ganzen Linie, Lücken mit Preis** (#492, seit
+    0.163.0; Betreiber 2026-11-07, Konzept-Routing 2.2). Vier Dinge, die
+    man wissen muss:
+    - **Jeder Verbinder ist eine eigene Linie** (`_addConnectorLine`),
+      auch über einem Kartenweg — parallele Kanten sind gewollt, die
+      eigene ist billiger. Die Anschlüsse sucht sie Probe für Probe
+      (5 m) VOR dem ersten eigenen Stück: in den Korridor hinein, hinaus,
+      Wechsel des nächsten Wegs, nächste Stelle ≤ `kGapFreeM` (Kreuzung);
+      nicht dichter als 15 m, nicht in 30 m um die Enden (dort hängt
+      `anchor` an jedem Weg — sonst drei Stücke mit zwei teuren Lücken
+      statt einem, im Overlay-Test gefunden).
+    - **`RoadGraph.anchor` statt `snap` für Trail-Enden** (`buildGraphFrom`
+      und `planLoop`): ein eigener Knoten genau am Ende, Lückenkanten
+      (`GraphEdge.gap`, Klasse des Wegs, an dem sie hängen) zu den
+      `kGapCandidates` nächsten Kanten. Ein zweiter Aufruf gibt denselben
+      Knoten ohne neue Lücken — der Suchspeicher bleibt gültig. Getippte
+      Punkte nehmen weiter `snap`. `nearest` überspringt Lücken.
+    - **Eine Lücke kostet auch unter 5 m ihre Schiebezeit** (`gapTimeS`,
+      1 m/s): Gratis war eine 3-m-Lücke billiger als die 3 m Weg daneben,
+      und der Planer fuhr sie statt des Forstwegs.
+    - **A* bleibt zulässig**: Die Heuristik (`shortestPath`,
+      `planReplanRoute`) rechnet die Luftlinie mal
+      `kTrailConnectorFactor` — ein Verbinder kostet weniger als seine
+      Zeit. Tests: `connector_line_test` (fünf Gegenproben rot).
     `splitEdge` gibt Trail, Sperre und Höhen (anteilig) an BEIDE Hälften
     — bis 0.73.0 verlor die zweite Hälfte ihre Höhen.
   - **Direkt oder Spaßig** (`RouteMode` in `trail_head_providers.dart`,

@@ -25,10 +25,15 @@
 // Forstweg. Die Richtung sagt die Lage der ersten und der letzten Probe
 // entlang des Trails.
 //
-// Ein Verbinder, den die Karte nicht kennt (die meisten privaten Trails
-// stehen nicht in OSM), kommt als EIGENE Kante dazu, von Anfang zu Ende,
-// angeheftet in [kGraphAttachM]. Abfahrten brauchen das nicht: Die
-// fährt der Planer als Halt, von Kopf zu Ende.
+// Jeder Verbinder kommt außerdem als EIGENE Linie dazu (#492, Betreiber
+// 2026-11-07: „nicht nur Start- und Endpunkte, sondern die gesamte
+// Linie"), auch wenn die Karte ihn kennt: Die meisten privaten Trails
+// stehen nicht in OSM, und einer, der zu 85 % auf Wegen liegt, hat oft
+// genau eine Lücke, über die nur er führt. Angeschlossen ist die Linie an
+// beiden Enden und überall, wo sie einen Weg der Karte kreuzt, an ihn
+// herankommt, ihn verlässt oder den Weg wechselt — je mit einer Lücke
+// ([GraphEdge.gap]), die über [kGapFreeM] kostet. Abfahrten brauchen keine
+// eigene Linie: Die fährt der Planer als Halt, von Kopf zu Ende.
 //
 // Gesperrt (#434, Betreiber 2026-10-31): Ein Trail mit der Meldung
 // „gesperrt" oder „zerstört" ([GraphTrail.closed]) und ein gesperrter
@@ -45,6 +50,7 @@ import 'dart:math' as math;
 import 'package:latlong2/latlong.dart';
 
 import '../../core/line_geometry.dart';
+import '../offline_areas/height_tiles.dart';
 import 'road_graph.dart';
 import 'route_profile.dart';
 
@@ -101,7 +107,11 @@ typedef TrailOverlayResult = ({int edgesOnTrails, int blocked, int addedEdges});
 /// Verbinder) und fügt Verbinder ein, die die Karte nicht kennt. Vor dem
 /// Anheften der Trail-Enden und Startpunkte aufrufen — `splitEdge` gibt
 /// die Markierung an beide Hälften weiter.
-TrailOverlayResult applyTrails(RoadGraph g, List<GraphTrail> trails) {
+///
+/// [heights] gibt der eigenen Linie eines Verbinders ihre Höhen je Stück;
+/// ohne (oder wo eine Probe fehlt) gelten die des Trails, nach Länge
+/// geteilt.
+TrailOverlayResult applyTrails(RoadGraph g, List<GraphTrail> trails, {HeightTiles? heights}) {
   final prepared = <_Prepared>[];
   for (final t in trails) {
     if (t.points.length < 2) continue;
@@ -143,28 +153,16 @@ TrailOverlayResult applyTrails(RoadGraph g, List<GraphTrail> trails) {
     }
     blocked++;
   }
-  // 2. Verbinder, die die Karte nicht führt: eine eigene Kante.
+  // 2. Jeder Verbinder als EIGENE Linie (#492), angeschlossen überall, wo
+  //    er die Karte trifft. Bis 0.162.x nur, wenn 80 % von ihm neben
+  //    keinem Weg lagen, und dann nur an seinen beiden Enden: Eine Lücke
+  //    im Weg darunter machte ihn unfahrbar, und mittendrin einsteigen
+  //    ging nie.
   var added = 0;
   for (final p in prepared) {
     final t = p.trail;
     if (!t.connector || t.closed) continue;
-    var covered = 0;
-    for (final s in p.samples) {
-      if (g.nearest(g.proj.latLng(s), kMatchCorridorM) != null) covered++;
-    }
-    if (p.samples.isNotEmpty && covered / p.samples.length >= kMatchCoverage) continue;
-    final a = g.attach(t.points.first), b = g.attach(t.points.last);
-    if (a == null || b == null || a == b) continue;
-    final ei = g.addEdge(a, b, WayClass.wanderweg, false, [g.nodeLatLng[a], ...t.points, g.nodeLatLng[b]]);
-    final e = g.edges[ei]..trail = EdgeTrail(id: t.id, name: t.name, connector: true);
-    if (t.gainM != null && t.lossM != null) {
-      e
-        ..gain = t.gainM!
-        ..loss = t.lossM!
-        ..hasHeights = true;
-    }
-    if (t.blocksReverse) e.blockBackward = true;
-    added++;
+    added += _addConnectorLine(g, p, heights);
   }
   return (edgesOnTrails: onTrails, blocked: blocked, addedEdges: added);
 }
@@ -173,6 +171,86 @@ TrailOverlayResult applyTrails(RoadGraph g, List<GraphTrail> trails) {
 /// ihm offen ([blockClosures]) — die Stummel, an denen seine Enden hängen.
 /// Durchfahren lässt sich der Trail über sie nicht.
 const kClosedEndOpenM = 30.0;
+
+/// Anschlüsse eines Verbinders liegen mindestens so weit auseinander
+/// (#492) — sonst teilte jede Probe an einer Kreuzung eine Kante.
+const kConnectorJunctionSpacingM = 15.0;
+
+/// Legt die eigene Linie des Verbinders [p] auf [g] (#492) und gibt die
+/// Zahl ihrer Stücke. Die Anschlüsse sucht sie VOR dem ersten neuen Stück,
+/// auf dem Graphen ohne sie: Probe für Probe der nächste Weg im Korridor
+/// ([kMatchCorridorM]); ein Anschluss ist, wo die Linie in den Korridor
+/// kommt oder ihn verlässt, wo der nächste Weg wechselt (Abzweig, Kante
+/// zu Ende) und wo sie einem Weg am nächsten ist, ohne Lücke
+/// ([kGapFreeM] — die Kreuzung).
+int _addConnectorLine(RoadGraph g, _Prepared p, HeightTiles? heights) {
+  final t = p.trail;
+  final total = p.cum.last;
+  final samples = p.samples;
+  if (total <= 0 || samples.length < 2) return 0;
+  final hits = [for (final s in samples) g.nearest(g.proj.latLng(s), kMatchCorridorM)];
+  double along(int k) => math.min(k * kMatchSampleStepM, total);
+  final wanted = <int>{};
+  for (var k = 1; k < samples.length - 1; k++) {
+    final h = hits[k], before = hits[k - 1], after = hits[k + 1];
+    if (h != null && before == null) wanted.add(k);
+    if (h == null && before != null) wanted.add(k - 1);
+    if (h != null && before != null && h.edge != before.edge) wanted.add(k);
+    if (h != null && h.d <= kGapFreeM && (before == null || h.d <= before.d) && (after == null || h.d <= after.d)) {
+      wanted.add(k);
+    }
+  }
+  // Nicht dichter als [kConnectorJunctionSpacingM], und nicht in
+  // [kGraphAttachM] um die Enden — die heftet [RoadGraph.anchor] selbst an
+  // jeden Weg dort. Von zwei nahen gilt der mit der kleineren Lücke.
+  final junctions = <int>[];
+  for (final k in wanted.toList()..sort()) {
+    if (along(k) < kGraphAttachM || total - along(k) < kGraphAttachM) continue;
+    if (junctions.isNotEmpty && along(k) - along(junctions.last) < kConnectorJunctionSpacingM) {
+      if (hits[k]!.d < hits[junctions.last]!.d) junctions[junctions.length - 1] = k;
+      continue;
+    }
+    junctions.add(k);
+  }
+  // Die Knoten der Linie: Anfang, Anschlüsse, Ende — in Trail-Richtung.
+  final first = t.points.first, last = t.points.last;
+  final nodes = <int>[g.anchor(first)?.node ?? g.node(first)];
+  final at = <double>[0];
+  for (final k in junctions) {
+    final pt = g.proj.latLng(samples[k]);
+    nodes.add(g.anchor(pt, candidates: 1)?.node ?? g.node(pt));
+    at.add(along(k));
+  }
+  nodes.add(g.anchor(last)?.node ?? g.node(last));
+  at.add(total);
+  // Die Stücke dazwischen: die Stützpunkte des Trails, die zwischen zwei
+  // Anschlüssen liegen, mit den Knoten als Enden.
+  var added = 0;
+  var i = 1;
+  for (var s = 1; s < nodes.length; s++) {
+    final a = nodes[s - 1], b = nodes[s];
+    final pts = <LatLng>[g.nodeLatLng[a]];
+    while (i < t.points.length - 1 && p.cum[i] < at[s]) {
+      if (p.cum[i] > at[s - 1]) pts.add(t.points[i]);
+      i++;
+    }
+    pts.add(g.nodeLatLng[b]);
+    if (a == b) continue;
+    final ei = g.addEdge(a, b, WayClass.wanderweg, false, pts);
+    final e = g.edges[ei]..trail = EdgeTrail(id: t.id, name: t.name, connector: true);
+    final hasOwn = heights != null && applyHeightsFrom(e, heights);
+    if (!hasOwn && t.gainM != null && t.lossM != null) {
+      final share = (at[s] - at[s - 1]) / total;
+      e
+        ..gain = t.gainM! * share
+        ..loss = t.lossM! * share
+        ..hasHeights = true;
+    }
+    if (t.blocksReverse) e.blockBackward = true;
+    added++;
+  }
+  return added;
+}
 
 /// Sperrt die Kanten auf gesperrten Trails ([GraphTrail.closed]) und unter
 /// gesperrten Abschnitten der offiziellen Quelle ([closures], #41) in beide

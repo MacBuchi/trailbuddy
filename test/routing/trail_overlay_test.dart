@@ -67,7 +67,8 @@ const _bio = RiderProfile.bio;
   final from = upward ? bottom : top, to = upward ? top : bottom;
   final r = shortestPath(g, from, to, _bio)!;
   return (
-    viaPath: r.edges.any((ei) => g.edges[ei].cls == WayClass.wanderweg),
+    // Eine Lücke (#492) trägt die Klasse ihres Wegs, ist aber kein Stück davon.
+    viaPath: r.edges.any((ei) => g.edges[ei].cls == WayClass.wanderweg && !g.edges[ei].gap),
     summary: summarizePath(g, r.edges, from, _bio),
   );
 }
@@ -100,7 +101,7 @@ void main() {
     expect(up.summary.hikingM, 0, reason: 'zählt nicht gegen „höchstens Wanderweg"');
     expect(up.summary.trailUpM, closeTo(1000, 1));
     expect(_route(g, upward: false).viaPath, isFalse, reason: 'gegen seine Richtung gesperrt');
-    // Billiger als derselbe Pfad ohne Trail: der Aufschlag ist 0,8 statt 1,4.
+    // Billiger als derselbe Pfad ohne Trail: der Aufschlag ist 0,6 statt 1,4.
     final plain = _graph();
     final bottom = plain.attach(_m([(0, 0)]).single)!, top = plain.attach(_m([(0, 1000)]).single)!;
     final rewarded = shortestPath(g, g.attach(_m([(0, 0)]).single)!, g.attach(_m([(0, 1000)]).single)!, _bio)!;
@@ -248,8 +249,8 @@ void main() {
     final g = _graph();
     final trails = [_trail(TrailRole.downhill, closed: true)];
     applyTrails(g, trails);
-    g.snap(trails.single.points.first);
-    g.snap(trails.single.points.last);
+    g.anchor(trails.single.points.first);
+    g.anchor(trails.single.points.last);
     blockClosures(g, trails);
     final pool = [
       PoolTrail(id: 't', name: 'Hang', points: _m([(3, 1000), (3, 500), (3, 0)]), lengthM: 1000, grade: 2, lossM: 100),
