@@ -38,8 +38,9 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
   Berechtigungen, die beiden Vordergrunddienst-Deklarationen und das
   Store-Listing aus dem Code — ändert sich, was die App erhebt, wohin sie
   verbindet oder welche Berechtigung sie braucht, gehört die Datei in
-  denselben PR (PR-Vorlage). Die Berechtigungsliste ist aus den Manifesten
-  ABGELEITET, noch nicht am AAB gemessen. `docs/nutzungsbedingungen-entwurf.md`
+  denselben PR (PR-Vorlage). Die Berechtigungsliste ist am AAB gemessen
+  (0.158.0, 2026-11-07, `bundletool dump manifest`); vor dem Upload mit
+  dessen AAB wiederholen. `docs/nutzungsbedingungen-entwurf.md`
   ist ein ENTWURF für die rechtliche Prüfung (Konzept 10.7) mit den
   offenen Fragen; er gilt nicht und ist nirgends verlinkt, bis er geprüft
   als `web/nutzungsbedingungen.html` erscheint.
