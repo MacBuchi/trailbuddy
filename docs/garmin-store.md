@@ -98,8 +98,9 @@ navigierst, auf deiner Uhr — gedacht für Mountainbike-Trails.
 - Seiten mit Tempo, Strecke, Höhenmetern und Puls
 - Nach der Übertragung navigiert die Uhr auch ohne Handy weiter
 - Freie Fahrt ohne Route: eigene Spur, Tempo, Strecke, Höhenmeter
-- Die Uhr zeichnet jede Fahrt auf und gibt sie beim nächsten Kontakt an
-  die TrailBuddy-App auf dem Handy
+- Aufzeichnung mit START, Pause-Menü mit Verwerfen, Trails markieren mit
+  der Runden-Taste; die Fahrt geht beim nächsten Kontakt an die
+  TrailBuddy-App auf dem Handy
 
 Voraussetzung: die TrailBuddy-App auf einem Android-Handy und Garmin
 Connect. Die Uhr-App legt keine Garmin-Aktivität an und hat keine
@@ -120,8 +121,9 @@ on your watch — made for mountain bike trails.
 - Pages with speed, distance, elevation gain and heart rate
 - Once transferred, the watch keeps navigating without the phone
 - Free ride without a route: your own track, speed, distance, climb
-- The watch records every ride and hands it to the TrailBuddy app on
-  the phone the next time they meet
+- Recording with START, pause menu with discard, trail marks with the
+  lap button; the ride goes to the TrailBuddy app on the phone the next
+  time they meet
 
 Requires the TrailBuddy app on an Android phone and Garmin Connect. The
 watch app creates no Garmin activity and has no internet connection; a
@@ -145,7 +147,7 @@ einer echten Route (`--gpx`), eine Fahrt beginnt an der Haustür.
 |---|---|
 | `Positioning` | GPS der Uhr: eigene Position auf der Route, Abseits-Regel, die Fahrt auf der Uhr (geht nur ans eigene Handy) |
 | `Sensor` | Puls vom Handgelenk, Kompass, Höhe vom Barometer — angezeigt; nur die Höhe geht in die Fahrt auf der Uhr, der Puls nie |
-| `Communications` | Route und Bestwerte vom Handy empfangen, „gespeichert"/„beendet" und die Fahrt zurück — nur mit der TrailBuddy-App, kein Netz |
+| `Communications` | Route und Bestwerte vom Handy empfangen, „gespeichert"/„beendet", die Fahrt mit ihren Trail-Marken und Start/Trail/Ende der Aufzeichnung (nur Uhrzeiten, seit 1.2.0) zurück — nur mit der TrailBuddy-App, kein Netz |
 
 ## 6. Uhren im Paket
 
