@@ -1292,8 +1292,12 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         ..showSnackBar(SnackBar(
           key: const ValueKey('nav-left'),
           persist: false,
-          duration: const Duration(seconds: 10),
-          content: Text(l.navLeftRoute(formatMeters(offM))),
+          // Auf dem Rad schaut man nicht gleich hin (Gerätetest 2026-11-07:
+          // nach 10 s war sie weg, bevor der Finger kam).
+          duration: const Duration(seconds: 30),
+          content: Text(ref.read(rideProvider.notifier).isRunning
+              ? l.navLeftRouteRecording(formatMeters(offM))
+              : l.navLeftRoute(formatMeters(offM))),
           action: SnackBarAction(
             key: const ValueKey('nav-left-resume'),
             label: l.navLeftResume,
