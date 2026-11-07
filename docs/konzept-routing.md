@@ -464,9 +464,15 @@ dieselben Konstanten geprüft):
     R2-Class-B-Operation (#55), mit Höhen höchstens 150 Anfragen. Höhen
     nur für die nachgeladenen Kacheln; einem Bereich ohne Höhen (vor
     0.69.0) reicht das hier nichts nach.
-  - **Nur für die Sitzung**: im Speicher (`OnlineTileCache`, 300 je
-    Sorte, die ältesten fallen zuerst), damit ein zweiter Plan dieselbe
-    Gegend nicht noch einmal holt. Behalten ist #155.
+  - **Behalten auf dem Gerät** (#478, seit 0.159.0; bis 0.158 nur für
+    die Sitzung): Was kam, geht mit seinem Bau in den Kachelspeicher der
+    Region, gehalten vom unsichtbaren Bereich „Unterwegs geladen"
+    (`kept_tiles.dart`, `lib/features/offline_areas/CLAUDE.md`).
+    Aktualisiert beim Nutzen (eine behaltene Kachel aus älterem Bau holt
+    die nächste Planung mit Empfang neu, nur sie), verdrängt nach letzter
+    Nutzung über 50 MB je Region, nie mit „Aktualisieren" der Region.
+    Schritt 2 des Issues (Umkreis um Orte, an denen man war) erst nach
+    Messung (`graph.online` je Planung).
   - **Ein Netzfehler beendet das Nachladen, nicht die Planung**: Jeder
     Schritt hat 10 s Frist; was bis dahin da ist, wird gerechnet, und
     das Blatt nennt den Grund für den Rest (Grenze, Abbruch, außerhalb
@@ -752,7 +758,7 @@ nach.*
 | 5 | `loop_planner.dart`, Planer-Blatt, Pool, Pflicht-Trails — **gebaut, 0.72.0** (`loop_planner.dart` pur, `loop_planner_sheet.dart`, `loop_planner_providers.dart`; geplante Fahrt in „Meine Fahrten", „Als Fahrt speichern" auch bei „Zum Trailkopf") | #158/5 | feat |
 | 6 | Kalibrierung aus eigenen Fahrten, je Profil (Steigrate je Klasse, Flachgeschwindigkeit), im Profil sichtbar („Bio-Bike: 520 hm/h aus 14 Fahrten") und zurücksetzbar; `Ride.profile` kommt mit Schritt 3 — **gebaut, 0.73.0** (`ride_calibration.dart` pur als Spiegel von `ride_sections`/`class_mix_along` im Werkzeug, `ride_calibrator.dart`; auf Knopfdruck unter „Fahrerprofil", Median je Klassengruppe ab drei Aufstiegen, plausible Spanne; die Planer lesen `calibratedRiderProvider`); seit 0.82.0 auch aus Fahrten, die der GPX-Import mit Profil in „Meine Fahrten" übernimmt (#188) | #158 | feat |
 | 7 | Rund machen nach dem ersten Feldeinsatz: Blätter ohne Modal und über der Karte eingepasst, Planung über den vorhandenen Teil der Kacheln, Trail-Richtung und Verbinder auf dem Graphen (Patch 016 „in beide Richtungen"), Direkt/Spaßig, Navi-Symbol, langer Druck, Auswählen statt öffnen — **gebaut, 0.74.0** | #174 #176 #177 #178 #185 | feat |
-| 8 | Fehlende Wege- und Höhenkacheln mit Empfang vom eigenen Host, gedeckelt, nur für die Sitzung, abschaltbar (2.7) — **gebaut, 0.78.0** | #187 | feat |
+| 8 | Fehlende Wege- und Höhenkacheln mit Empfang vom eigenen Host, gedeckelt, abschaltbar (2.7) — **gebaut, 0.78.0**; seit 0.159.0 auf dem Gerät behalten (#478) | #187 | feat |
 | 9 | Navigationsmodus: Folgeansicht (Karte dreht mit, Fortschritt, Abstand, „Zurück zur Route", Bildschirm an), Einstieg aus Ergebnis und „Meine Fahrten" (9.1–9.4) | #232 | feat |
 | 10 | Dauerbenachrichtigung mit Fortschritt aus dem Dienst (9.5) | #232 | feat |
 | 11 | Bild-im-Bild auf Android (9.6) | #232 | feat |

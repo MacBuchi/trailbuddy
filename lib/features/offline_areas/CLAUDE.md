@@ -130,6 +130,37 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     `TileLayer.values` baut, holt sie versehentlich herein. MBTiles
     `format = x-trailbuddy-routing`; `TileStore.builds` liest den Bau
     einzelner Kacheln ohne den ganzen Index.
+  - **„Unterwegs geladen" ist ein unsichtbarer Bereich** (#478, seit
+    0.159.0, `kept_tiles.dart`; Konzept 8.7a): Je Region EIN Halter
+    `kept-<region>` (`StoredArea.kept`, z13, `keptUse` = Schlüssel →
+    Bytes in Reihenfolge der letzten Nutzung, im Index als Liste, weil
+    `TileSetShape.toJson` sortiert). Der Planer legt dort ab, was er
+    online ergänzt hat (`planning_graph.dart`). Vier Dinge, die man
+    wissen muss:
+    - **Wer Bereiche ZEIGT oder AKTUALISIERT, filtert ihn**
+      (`visibleAreas`): „Meine Bereiche", Werkzeugleiste
+      (`storedTileKeysProvider`, `storedRegionBoundsProvider`), Radierer
+      (`planTrim`), Maske der Karte, Profilzähler, `planRefresh`/
+      `refreshRegion`, `regionTileAgeProvider`, `_dropOrphanOverviews`.
+      Wer Kacheln LIEST (Planer, Höhen, Wege, Karte, Backen), nimmt ihn
+      mit — dafür ist er ein Bereich. Eine neue Stelle, die Bereiche
+      zeigt, gehört in die Liste.
+    - **Der Planer liest die Halter aus dem `AreaStore`, nicht aus dem
+      Provider**: Die Liste neu zu lesen baut den Kartenstil neu; das
+      passiert nur, wenn ein Halter neu ist oder erstmals Höhen/Wege hat
+      (`relist`).
+    - **Aktualisiert beim Nutzen, vor dem Lesen** (`staleKeptTiles`):
+      Die veraltete Kachel kommt VOR `findPieces` neu in den Speicher —
+      dann ist ihr Stück alt und backt wie jedes andere. Höhen werden
+      dabei nicht neu geholt (das Geländemodell ändert sich nicht mit
+      dem Kartenbau). Die neu geholten Kacheln adoptiert `PieceLookup`
+      (`adopt`), ihr Stück geht in den Speicher statt an die Sitzung.
+    - **Verdrängt wird nach `keptUse`** über `kKeptMaxBytes` (50 MB
+      dezimal, damit „50,0 MB" dasteht), nie, was die Planung gerade
+      braucht, und aus dem Speicher nur, was kein Bereich deckt.
+    Tests: `kept_tiles_test.dart`, Flow „#478" im Planer (zweite Planung
+    nach Neustart ohne Anfrage, neuer Bau holt nur Behaltenes) und in
+    „Meine Bereiche" — jede Zusicherung mit Gegenprobe.
   Der Harness hängt `MemoryTileStore` ein (`pumpApp(tileStore:)`); wer
   einen `ProviderContainer` ohne Harness baut und Bereiche liest, setzt
   `tileStoreProvider` selbst — sonst öffnet er eine SQLite-Datei unter

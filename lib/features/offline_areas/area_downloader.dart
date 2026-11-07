@@ -726,7 +726,9 @@ class AreaDownloader {
   /// (`staleTiles`), gemessen mit den Längen im Verzeichnis des neuen
   /// Baus. Eine Ebene ohne Archiv oder Manifest bleibt, wie sie ist.
   Future<RegionRefreshPlan> planRefresh(List<StoredArea> areas) async {
-    final here = [for (final a in areas) if (a.region == region) a];
+    // Der Halter „Unterwegs geladen" (#478) bleibt draußen: Ein neuer Bau
+    // holte sonst alles, was man je unterwegs geplant hat.
+    final here = [for (final a in areas) if (a.region == region && !a.kept) a];
     final drop = <TileLayer, List<int>>{};
     Future<LayerPlan> layer(PmTilesArchive? source, TileLayer l, String? build) async {
       if (source == null || build == null) return LayerPlan.none;
@@ -814,7 +816,7 @@ class AreaDownloader {
     final all = await store.list();
     final updated = [
       for (final a in all)
-        if (a.region != region)
+        if (a.region != region || a.kept)
           a
         else
           a.copyWith(

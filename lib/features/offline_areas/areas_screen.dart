@@ -12,6 +12,9 @@
 // Seit 0.105.0 auch die Übersicht einer Region (#220 Schritt 4): eine
 // eigene Zeile mit Größe und Löschen-Knopf, und wo sie fehlt oder älter
 // ist, ein Knopf, der nur sie holt.
+// Seit 0.159.0 (#478) je Region eine Zeile „Unterwegs geladen": was der
+// Planer online ergänzt und behalten hat — Größe und „Leeren", kein
+// Bereich, kein Aktualisieren, kein Rand auf der Karte.
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -54,7 +57,10 @@ class AreasScreen extends ConsumerWidget {
           padding: const EdgeInsets.all(24),
           child: Text(l.areasLoadError),
         ),
-        data: (areas) {
+        data: (all) {
+          // Die Halter „Unterwegs geladen" (#478) sind keine Bereiche.
+          final areas = visibleAreas(all);
+          final kept = [for (final a in all) if (a.kept) a];
           // Die ganze Region, wo sie noch nicht liegt (nur auf dem Telefon).
           final wholeOffers = ref.watch(wholeRegionSupportedProvider)
               ? [
@@ -62,7 +68,7 @@ class AreasScreen extends ConsumerWidget {
                     if (!areas.any((a) => a.region == r.id && a.shape is RegionShape)) _WholeRegionTile(r),
                 ]
               : const <Widget>[];
-          if (areas.isEmpty && overviews.isEmpty) {
+          if (areas.isEmpty && overviews.isEmpty && kept.isEmpty) {
             if (wholeOffers.isNotEmpty) {
               return ListView(children: [
                 Padding(
@@ -140,6 +146,8 @@ class AreasScreen extends ConsumerWidget {
                       waysMissing: ref.watch(areaWaysAvailableProvider(region)).valueOrNull != null && a.waysBuild == null)
                 else
                   _AreaTile(a, heightsMissing: false, waysMissing: false),
+              for (final k in kept)
+                _KeptTile(k, region: regions.where((r) => r.id == k.region).firstOrNull),
               for (final r in overviewRegions)
                 _OverviewTile(
                   regionId: r.id,
@@ -190,7 +198,7 @@ class _AreaTile extends ConsumerWidget {
   Future<void> _delete(BuildContext context, WidgetRef ref) async {
     // Der letzte Bereich einer Region nimmt ihre Übersicht mit (#220
     // Schritt 4) — der Dialog sagt es, mit Größe.
-    final areas = ref.read(storedAreasProvider).valueOrNull ?? const <StoredArea>[];
+    final areas = visibleAreas(ref.read(storedAreasProvider).valueOrNull ?? const <StoredArea>[]);
     final last = !areas.any((a) => a.id != area.id && a.region == area.region);
     final overview = last
         ? (ref.read(storedOverviewsProvider).valueOrNull ?? const <StoredOverview>[])
@@ -287,6 +295,59 @@ class _AreaTile extends ConsumerWidget {
         StatefulNavigationShell.of(context).goBranch(kMapBranchIndex);
         ref.read(mapFocusAreaProvider.notifier).state = area;
       },
+    );
+  }
+}
+
+/// „Unterwegs geladen" einer Region (#478, `kept_tiles.dart`): was der
+/// Planer mit Empfang ergänzt und behalten hat. Nur Größe und „Leeren" —
+/// keine Karte zum Zeigen (die Kacheln haben keinen Rand), kein
+/// Aktualisieren (sie werden beim Nutzen neu geholt).
+class _KeptTile extends ConsumerWidget {
+  const _KeptTile(this.holder, {required this.region});
+
+  final StoredArea holder;
+  final MapRegion? region;
+
+  Future<void> _clear(BuildContext context, WidgetRef ref) async {
+    final alone = await ref.read(areaExclusiveBytesProvider(holder.id).future);
+    if (!context.mounted) return;
+    final l = context.l10n;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l.areasKeptClearTitle),
+        content: Text(l.areasKeptClearText(formatBytes(alone))),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(context).pop(false), child: Text(l.commonCancel)),
+          FilledButton(
+              key: const ValueKey('area-kept-clear-ok'),
+              onPressed: () => Navigator.of(context).pop(true),
+              child: Text(l.areasKeptClear)),
+        ],
+      ),
+    );
+    if (ok != true || !context.mounted) return;
+    await ref.read(storedAreasProvider.notifier).delete(holder.id);
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final busy = ref.watch(areaDownloadProvider.select((s) => s.busy));
+    final l = context.l10n;
+    final alone = ref.watch(areaExclusiveBytesProvider(holder.id)).valueOrNull;
+    final r = region;
+    return ListTile(
+      key: ValueKey('area-kept-${holder.region}'),
+      leading: const Icon(Icons.route_outlined),
+      title: Text(r == null || r.isDach ? l.areasKeptTitle : l.areasKeptRegionTitle(r.name)),
+      subtitle: Text(l.areasKeptText(formatBytes(alone ?? holder.bytes), formatBytes(kKeptMaxBytes))),
+      isThreeLine: true,
+      trailing: TextButton(
+        key: ValueKey('area-kept-clear-${holder.region}'),
+        onPressed: busy ? null : () => _clear(context, ref),
+        child: Text(l.areasKeptClear),
+      ),
     );
   }
 }

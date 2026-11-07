@@ -28,6 +28,7 @@ import 'package:trailbuddy/features/offline_areas/area_overlay.dart';
 import 'package:trailbuddy/features/offline_areas/area_plan.dart';
 import 'package:trailbuddy/features/offline_areas/area_providers.dart';
 import 'package:trailbuddy/features/offline_areas/area_store.dart';
+import 'package:trailbuddy/features/offline_areas/kept_tiles.dart';
 import 'package:trailbuddy/features/offline_areas/pmtiles_writer.dart';
 import 'package:trailbuddy/features/routing/routing_bake.dart';
 import 'package:trailbuddy/features/offline_areas/tile_store.dart';
@@ -602,6 +603,49 @@ void main() {
     await tester.tap(find.text('Meine Bereiche'));
     await settle(tester, frames: 20);
   }
+
+  testWidgets('„Unterwegs geladen" (#478): eine Zeile mit Leeren, kein Bereich, nie mit der Region aktualisiert',
+      (tester) async {
+    await store.putArchive('old', _sourceBytes());
+    await store.saveIndex([oldArea(build: '20260801')]);
+    // Vom Planer behalten, aus einem älteren Bau als der Host.
+    final t = tileAt(48.0, 9.0, 13);
+    await keepOnlineTiles(
+      areas: store,
+      tiles: tiles,
+      region: 'dach',
+      builds: (map: '20260801', heights: null, ways: null),
+      fetched: [KeptFetch(t.x, t.y, map: Uint8List(2000))],
+    );
+    await start(tester);
+    await openAreas(tester);
+    final row = find.byKey(const ValueKey('area-kept-dach'));
+    expect(row, findsOneWidget);
+    expect(find.descendant(of: row, matching: find.textContaining('2 kB · vom Planer online ergänzt')), findsOneWidget);
+    expect(find.descendant(of: row, matching: find.textContaining('über 50,0 MB')), findsOneWidget);
+    expect(find.text('kept'), findsNothing, reason: 'kein Bereich in der Liste');
+    expect(find.descendant(of: find.byKey(const ValueKey('region-dach')), matching: find.textContaining('3 davon älter')),
+        findsOneWidget,
+        reason: 'die behaltene Kachel zählt nicht als veraltet — sie kommt beim Nutzen neu');
+
+    await tester.tap(find.byKey(const ValueKey('region-refresh-dach')));
+    await settle(tester, frames: 20);
+    expect(find.textContaining('3 Kacheln werden ersetzt'), findsOneWidget);
+    await tester.tap(find.widgetWithText(FilledButton, 'Aktualisieren'));
+    await settle(tester, frames: 40);
+    final id = tileIdOf((z: 13, x: t.x, y: t.y));
+    expect((await tiles.index('dach', TileLayer.map))[id]!.build, '20260801', reason: 'keine Anfrage für Behaltenes');
+    expect(bakeCalls.last, ['old', 'kept-dach'], reason: 'gebacken wird lokal, auch für den Halter — geholt nichts');
+
+    await tester.tap(find.byKey(const ValueKey('area-kept-clear-dach')));
+    await settle(tester);
+    expect(find.textContaining('Gibt 2 kB frei'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('area-kept-clear-ok')));
+    await settle(tester, frames: 20);
+    expect((await store.list()).single.id, 'old');
+    expect((await tiles.index('dach', TileLayer.map)).containsKey(id), isFalse);
+    expect(row, findsNothing);
+  });
 
   testWidgets('die ganze Region (#229 Schritt 5): gemessen, gefragt, gespeichert — danach kein Angebot mehr',
       (tester) async {

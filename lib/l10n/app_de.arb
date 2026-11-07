@@ -4236,7 +4236,7 @@
   "@loopFillOnline": {
     "description": "Schalter im Planer; der Name wird auch in Hinweisen zitiert."
   },
-  "loopFillOnlineOn": "Mit Empfang kommen Wege, die deine Bereiche nicht haben, vom Kartenhost — höchstens {max} Kacheln je Planung, nur für diese Sitzung.",
+  "loopFillOnlineOn": "Mit Empfang kommen Wege, die deine Bereiche nicht haben, vom Kartenhost — höchstens {max} Kacheln je Planung, und sie bleiben auf dem Gerät („Unterwegs geladen“).",
   "@loopFillOnlineOn": {
     "description": "Untertitel von „Fehlende Wege online ergänzen“, an.",
     "placeholders": {
@@ -7200,7 +7200,7 @@
   "@demoOnlineFill1Title": {
     "description": "Vorführung „online-fill“ (Entdecken → Zeig es mir), Schritt 1: Überschrift der Blase."
   },
-  "demoOnlineFill1Text": "Der Planer rechnet über die Wege deiner Bereiche. Mit Empfang holt er, was fehlt, vom Kartenhost — höchstens {tiles} Kacheln je Planung, nur für diese Sitzung.",
+  "demoOnlineFill1Text": "Der Planer rechnet über die Wege deiner Bereiche. Mit Empfang holt er, was fehlt, vom Kartenhost — höchstens {tiles} Kacheln je Planung — und behält sie auf dem Gerät. So wächst dein Offline-Netz mit, wo du planst.",
   "@demoOnlineFill1Text": {
     "description": "Vorführung „online-fill“ (Entdecken → Zeig es mir), Schritt 1: Text der Blase.",
     "placeholders": {
@@ -7783,6 +7783,48 @@
   "areasAlone": "{size} allein",
   "@areasAlone": {
     "description": "Teil der Zeile eines Bereichs: was nur dieser Bereich belegt; size formatiert.",
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "areasKeptTitle": "Unterwegs geladen",
+  "@areasKeptTitle": {
+    "description": "Titel der Zeile je Region in „Meine Bereiche“ für Kacheln, die der Planer online ergänzt und behalten hat (#478)."
+  },
+  "areasKeptRegionTitle": "Unterwegs geladen · {region}",
+  "@areasKeptRegionTitle": {
+    "description": "Titel derselben Zeile außerhalb DACH, mit dem Namen der Region.",
+    "placeholders": {
+      "region": {
+        "type": "String"
+      }
+    }
+  },
+  "areasKeptText": "{size} · vom Planer online ergänzt, für Routen ohne Netz. Was du am längsten nicht brauchst, fällt über {max} weg.",
+  "@areasKeptText": {
+    "description": "Untertitel der Zeile „Unterwegs geladen“; size und max formatiert.",
+    "placeholders": {
+      "size": {
+        "type": "String"
+      },
+      "max": {
+        "type": "String"
+      }
+    }
+  },
+  "areasKeptClear": "Leeren",
+  "@areasKeptClear": {
+    "description": "Knopf an der Zeile „Unterwegs geladen“: alles daraus löschen."
+  },
+  "areasKeptClearTitle": "Unterwegs Geladenes leeren?",
+  "@areasKeptClearTitle": {
+    "description": "Titel der Rückfrage vor dem Leeren."
+  },
+  "areasKeptClearText": "Gibt {size} frei. Mit Empfang holt der Planer, was er braucht, wieder vom Kartenhost.",
+  "@areasKeptClearText": {
+    "description": "Text der Rückfrage vor dem Leeren; size formatiert.",
     "placeholders": {
       "size": {
         "type": "String"

@@ -21,6 +21,7 @@ import 'package:trailbuddy/features/trails/elevation_profile_chart.dart';
 import 'package:trailbuddy/features/routing/trail_head_providers.dart' show RouteMode;
 import 'package:trailbuddy/features/offline_areas/area_store.dart';
 import 'package:trailbuddy/features/offline_areas/pmtiles_writer.dart';
+import 'package:trailbuddy/features/offline_areas/tile_store.dart';
 import 'package:trailbuddy/features/map/pmtiles_tile_provider.dart';
 import 'package:trailbuddy/features/profile/profile_providers.dart';
 import 'package:trailbuddy/features/routing/graph_input.dart';
@@ -229,6 +230,7 @@ void main() {
 
   Future<void> start(WidgetTester tester,
       {MemoryAreaStore? areaStore,
+      MemoryTileStore? tileStore,
       FakePositionFix? positionFix,
       FakeSettings? settings,
       OnlineFill Function()? onlineFill,
@@ -242,6 +244,7 @@ void main() {
     await pumpApp(tester, backend,
         trails: trails,
         areaStore: areaStore,
+        tileStore: tileStore,
         rideStore: rides,
         positionFix: positionFix ?? FakePositionFix(fakePosition(_fromLat, _lon)),
         settings: settings,
@@ -1768,6 +1771,64 @@ void main() {
     await settle(tester);
     expect(find.textContaining('online nachgeladen'), findsOneWidget);
     expect(cache.length, greaterThan(0), reason: 'die Kacheln bleiben für die Sitzung');
+  });
+
+  testWidgets('#478: was online kam, bleibt — nach dem Neustart ohne Anfrage, ein neuer Bau holt nur das Behaltene neu',
+      (tester) async {
+    final host = _trackArchive().bytes;
+    final areaStore = MemoryAreaStore();
+    final tileStore = MemoryTileStore();
+    final fills = <OnlineFill>[];
+    var build = '20261101';
+    OnlineFill fill() {
+      final f = OnlineFill(
+        openRoads: () async => PmTilesVectorTileProvider.openBytes(host),
+        openHeights: () async => null,
+        // Jeder Start eine frische Sitzung: kein Speicher von vorher.
+        cache: OnlineTileCache(),
+        keep: () async => (region: 'dach', builds: (map: build, heights: null, ways: null)),
+      );
+      fills.add(f);
+      return f;
+    }
+
+    Future<void> plan() async {
+      await start(tester, areaStore: areaStore, tileStore: tileStore, onlineFill: fill);
+      await openPlanner(tester);
+      await zoomToTrails(tester);
+      await tapMapAt(tester, const LatLng(48.004, _lon));
+      await settle(tester);
+      await tapRail(tester, 'loop-rail-compute');
+      await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 50)));
+      await settle(tester, frames: 30);
+      expect(find.byKey(const ValueKey('loop-summary')), findsOneWidget);
+    }
+
+    await plan();
+    final first = fills.last.roadRequests;
+    final holder = (await areaStore.list()).single;
+    expect(holder.kept, isTrue, reason: 'ein Halter „Unterwegs geladen", kein Bereich');
+    final kept = holder.keptUse.length;
+    expect(kept, greaterThan(0));
+    expect(kept, first, reason: 'jede Kachel, die der Host lieferte, bleibt');
+    final map = await tileStore.index('dach', TileLayer.map);
+    expect(map.length, kept);
+    expect(map.values.every((t) => t.build == '20261101'), isTrue, reason: 'mit ihrem Bau');
+
+    // Neustart: frische Sitzung, dieselben Speicher.
+    await tester.pumpWidget(const SizedBox());
+    await plan();
+    expect(fills.last.roadRequests, first - kept,
+        reason: 'das Behaltene kommt vom Gerät, keine Anfrage');
+    expect(fills.last.takeKept(), isEmpty);
+
+    // Ein neuer Bau des Hosts: Beim Nutzen kommt genau das Behaltene neu.
+    build = '20261201';
+    await tester.pumpWidget(const SizedBox());
+    await plan();
+    expect(fills.last.roadRequests, first);
+    expect((await tileStore.index('dach', TileLayer.map)).values.every((t) => t.build == '20261201'), isTrue);
+    expect((await areaStore.list()).single.keptUse.length, kept);
   });
 
   testWidgets('#187: „Fehlende Wege online ergänzen" aus — gerechnet wird wie ohne Empfang', (tester) async {

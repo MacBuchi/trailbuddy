@@ -25,6 +25,14 @@
 // sucht der Lader frische Stücke im Kachelspeicher; deren Kacheln liest er
 // nicht, die übrigen backt der Rechen-Isolate, und [PlanningGraph.keep]
 // legt die neuen Stücke nach dem Bau ab.
+//
+// **Was online kam, bleibt** (#478, `kept_tiles.dart`): Nach dem Lesen
+// legt der Lader die vom Host geholten Kacheln in den Kachelspeicher der
+// Region („Unterwegs geladen"); ihre Stücke backen dorthin. VOR dem Lesen
+// holt er behaltene Kacheln aus einem älteren Bau neu, die im Rahmen
+// liegen — nur mit Empfang, nur sie, und innerhalb derselben Grenze
+// [kOnlineFillMaxTiles]. Eine Zeile `graph.online` nennt die Anfragen je
+// Planung (Messung für Schritt 2 des Issues).
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
 
@@ -35,9 +43,11 @@ import '../../core/stall_watch.dart';
 import '../../l10n/l10n.dart';
 import '../../models/trail.dart';
 import '../official/official_trails_source.dart';
+import '../offline_areas/area_plan.dart' show TileSetShape, kAreaShapeZoom;
 import '../offline_areas/area_providers.dart';
 import '../offline_areas/area_store.dart';
 import '../offline_areas/height_tiles.dart';
+import '../offline_areas/kept_tiles.dart';
 import '../offline_areas/tile_store.dart';
 import '../rides/road_index.dart' show RoadCoverage;
 import '../trails/trail_providers.dart';
@@ -47,7 +57,7 @@ import 'online_fill.dart';
 import 'road_graph.dart' show kRoadGraphZoom;
 import 'road_graph_loader.dart';
 import 'routing_pieces.dart';
-import 'routing_tile.dart' show RoutingPiece;
+import 'routing_tile.dart' show RoutingPiece, pieceBuild;
 import 'trail_head_route.dart' show kTrailHeadMarginM;
 
 class PlanningGraph {
@@ -133,6 +143,17 @@ Future<PlanningGraph> loadPlanningGraph(Ref ref, LatBox box,
   } catch (_) {
     areas = const [];
   }
+  final store = ref.read(areaStoreProvider);
+  final tileStore = ref.read(tileStoreProvider);
+  // Die Halter „Unterwegs geladen" wie sie JETZT liegen: Die Liste des
+  // Providers wird nicht nach jeder Planung neu gelesen (das baute den
+  // Kartenstil neu), der Index schon geschrieben.
+  try {
+    final kept = [for (final a in await store.list()) if (a.kept) a];
+    areas = [for (final a in areas) if (!a.kept) a, ...kept];
+  } catch (_) {
+    // Dann eben der Stand des Providers.
+  }
   HeightReader? heights;
   try {
     heights = await ref.read(areaHeightReaderProvider.future);
@@ -140,7 +161,6 @@ Future<PlanningGraph> loadPlanningGraph(Ref ref, LatBox box,
     // Ohne Höhen rechnet die Suche flach und sagt es; der Weg steht trotzdem.
     logError('Höhen für die Planung öffnen', e, s);
   }
-  final store = ref.read(areaStoreProvider);
   final session = ref.read(routingPieceSessionProvider);
   // Frische Stücke im Kachelspeicher (#380) — nur in einem Rahmen, den
   // der Lader auch liest.
@@ -148,16 +168,56 @@ Future<PlanningGraph> loadPlanningGraph(Ref ref, LatBox box,
     for (final t in roadGraphTiles(box, kTrailHeadMarginM))
       if (only == null || only.contains((t.x, t.y))) t,
   ];
+  final tooLarge = maxTiles != null && frame.length > maxTiles;
+  final online =
+      fillOnline && !tooLarge && !ref.read(noConnectivityProvider) ? ref.read(onlineFillFactoryProvider)(box) : null;
+  // Wohin Geholtes gehört (#478) — null ohne Manifest oder ohne Naht.
+  ({String region, KeptBuilds builds})? keep;
+  if (online?.keep case final target?) {
+    try {
+      keep = await target().timeout(kOnlineFillTimeout);
+    } catch (e, s) {
+      if (!looksOffline(e)) logError('Ziel für online geholte Kacheln', e, s);
+    }
+  }
+  // Behaltene Kacheln aus einem älteren Bau: genau diese neu (#478).
+  var refreshed = 0;
+  if (online != null && keep != null) {
+    final stale = await staleKeptTiles(
+        tiles: tileStore,
+        areas: areas,
+        region: keep.region,
+        frame: frame,
+        mapBuild: keep.builds.map,
+        max: kOnlineFillMaxTiles);
+    for (final t in stale) {
+      try {
+        if (await online.fetch(t, fresh: true) == null) continue;
+        refreshed++;
+        await online.fetchWays(t);
+      } catch (_) {
+        break; // Netz weg: Die alte Kachel gilt.
+      }
+    }
+    if (refreshed > 0) {
+      await _keep(ref, keep, online.takeKept(), const [], pieces: null);
+      try {
+        final kept = [for (final a in await store.list()) if (a.kept) a];
+        areas = [for (final a in areas) if (!a.kept) a, ...kept];
+      } catch (_) {
+        // Der alte Stand trägt; die Kachel liest der Lader trotzdem.
+      }
+    }
+  }
   final regions = <String>{
     for (final a in areas)
       if (a.maxZoom >= kRoadGraphZoom && a.bounds.intersects(roadGraphBounds(box, kTrailHeadMarginM))) a.region,
   };
-  final pieces = maxTiles != null && frame.length > maxTiles || regions.isEmpty
+  final pieces = tooLarge || regions.isEmpty
       ? PieceLookup.none(session)
-      : await StallWatch.time('graph.pieces', () => findPieces(ref.read(tileStoreProvider), regions, frame, session));
+      : await StallWatch.time('graph.pieces', () => findPieces(tileStore, regions, frame, session));
   final open = ref.read(areaArchiveOpenerProvider);
   final openWays = ref.read(areaWaysOpenerProvider);
-  final online = fillOnline && !ref.read(noConnectivityProvider) ? ref.read(onlineFillFactoryProvider)(box) : null;
   if (online != null) {
     // Die Höhen der nachgeladenen Kacheln kommen als LETZTE Quelle dazu;
     // der Leser der Bereiche gehört seinem Provider und bleibt offen.
@@ -172,7 +232,8 @@ Future<PlanningGraph> loadPlanningGraph(Ref ref, LatBox box,
       box: box,
       open: (a) => open(store, a),
       marginM: kTrailHeadMarginM,
-      fetchOnline: online?.fetch,
+      fetchOnline: online == null ? null : (t) => online.fetch(t),
+      maxOnline: kOnlineFillMaxTiles - refreshed,
       openWays: (a) => openWays(store, a),
       fetchWaysOnline: online?.fetchWays,
       sourceKey: (a) => a.region,
@@ -191,6 +252,23 @@ Future<PlanningGraph> loadPlanningGraph(Ref ref, LatBox box,
       final h = heights;
       tiles = await StallWatch.time(
           'graph.heights', () => HeightTiles.read(h, [for (final r in bake) (x: r.tile.x, y: r.tile.y)]));
+    }
+    if (online != null) {
+      final fetched = online.takeKept();
+      StallWatch.info('graph.online',
+          'roads=${online.roadRequests} heights=${online.heightRequests} ways=${online.wayRequests} refreshed=$refreshed');
+      if (keep != null) {
+        await _keep(ref, keep, fetched, [for (final t in frame) TileSetShape.keyOf(t.x, t.y, kAreaShapeZoom)],
+            pieces: pieces);
+      }
+    } else if (!tooLarge) {
+      // Ohne Empfang zählt die Nutzung trotzdem: Was man fährt, bleibt.
+      final region = areas.where((a) => a.kept && a.bounds.intersects(roadGraphBounds(box, kTrailHeadMarginM)));
+      for (final holder in region) {
+        await _keep(ref, (region: holder.region, builds: (map: holder.build, heights: null, ways: null)), const [],
+            [for (final t in frame) TileSetShape.keyOf(t.x, t.y, kAreaShapeZoom)],
+            pieces: null);
+      }
     }
   } catch (e, s) {
     logError('Wege für die Planung lesen', e, s);
@@ -227,6 +305,43 @@ Future<PlanningGraph> loadPlanningGraph(Ref ref, LatBox box,
     tooLarge: read.tooLarge,
     pieces: input == null ? null : pieces,
   );
+}
+
+/// Legt [fetched] in den Halter von [target] und merkt [used] als gebraucht
+/// (#478); die Stücke der geholten Kacheln gehören danach in den Speicher
+/// ([PieceLookup.adopt]). Wirft nie: Ein Fehler lässt die Kacheln bei der
+/// Sitzung, wie bis 0.158.
+Future<void> _keep(Ref ref, ({String region, KeptBuilds builds}) target, List<KeptFetch> fetched, List<int> used,
+    {required PieceLookup? pieces}) async {
+  final tiles = ref.read(tileStoreProvider);
+  try {
+    final r = await keepOnlineTiles(
+      areas: ref.read(areaStoreProvider),
+      tiles: tiles,
+      region: target.region,
+      builds: target.builds,
+      fetched: fetched,
+      used: used,
+    );
+    pieces?.adopt(tiles, {
+      for (final f in fetched)
+        (f.x, f.y): (
+          region: target.region,
+          build: pieceBuild(
+            map: target.builds.map,
+            heights: f.heights == null ? null : target.builds.heights,
+            ways: f.ways == null ? null : target.builds.ways,
+          ),
+        ),
+    });
+    if (fetched.isNotEmpty || r.evicted > 0) {
+      StallWatch.info('graph.kept', 'kept=${fetched.length} evicted=${r.evicted}');
+    }
+    // Neu in der Region: Karte und Höhen kennen sie erst nach dem Neulesen.
+    if (r.relist) await ref.read(storedAreasProvider.notifier).refresh();
+  } catch (e, s) {
+    logError('Online geholte Kacheln behalten', e, s);
+  }
 }
 
 /// Die gesperrten Abschnitte der offiziellen Quelle (#41) in [box] — für

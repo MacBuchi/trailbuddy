@@ -602,6 +602,31 @@ Inventar (#230) zählt das Bündel zum Bau.
    Ganzen); die Hervorhebung zeigt sie als EIN auf Zoom 13 gerastertes
    Loch, ohne Rand, und Kacheln anderer Bereiche darin fallen dort weg.
 
+### 8.7a „Unterwegs geladen" (#478, seit 0.159.0)
+
+Was der Planer mit Empfang ergänzt (Routing-Kacheln bei z13: Karte,
+Höhen, Wege-Archiv), geht mit seinem Bau in denselben Speicher der
+Region. Gehalten wird es von EINEM unsichtbaren Bereich je Region
+(`StoredArea.kept`, Kennung `kept-<region>`, Form: Kachelmenge bei
+z13) — so bleibt die Verweis-Regel aus 8.2 eine einzige: Löschen und
+Radierer nehmen nur, was keine Form deckt. Er ist die eine Ausnahme von
+„Bereiche werden nie verdrängt", und deshalb kein Bereich, den man sieht
+(Betreiber, 2026-11-07):
+
+- **Aktualisiert beim Nutzen, nicht im Ganzen**: Liest eine Planung mit
+  Empfang eine behaltene Kachel aus einem älteren Bau, holt sie genau
+  diese neu; ohne Empfang gilt die alte. „Aktualisieren" der Region und
+  ihre Altersanzeige lassen ihn aus.
+- **Verdrängt nach letzter Nutzung** über 50 MB je Region
+  (`kKeptMaxBytes`); eine Kachel, die ein Bereich auch deckt, bleibt.
+- **Kein eigenes Aussehen**: kein Rand auf der Karte, kein zweiter Typ
+  in der Liste — eine Zeile je Region in „Meine Bereiche" mit Größe und
+  „Leeren". Neue Bereiche nutzen, was er schon hat (Speichern lädt nur,
+  was fehlt).
+
+Ein Umkreis um Orte, an denen man war (Schritt 2 im Issue), kommt erst,
+wenn die Zeile `graph.online` je Planung Lücken zeigt.
+
 ### 8.8 Offen, beim Bau zu klären
 
 - **MapLibre und ein wachsender Speicher**: Die Datei ist nur lesend

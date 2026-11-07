@@ -2,6 +2,21 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Unterwegs geladen bleibt
+
+*Version 0.159.0, 2026-11-07*
+
+- Was der Planer mit Empfang vom Kartenhost ergänzt, bleibt jetzt auf
+  dem Gerät — bisher war es mit dem Schließen der App weg. Planst du
+  an derselben Stelle wieder, braucht es kein Netz mehr; so wächst
+  dein Offline-Netz Stück für Stück mit, wo du unterwegs bist.
+- In „Meine Bereiche" steht dafür je Region eine Zeile „Unterwegs
+  geladen" mit Größe und „Leeren". Es ist kein Bereich: kein Rand auf
+  der Karte, und „Aktualisieren" lädt es nicht neu.
+- Gibt es einen neueren Kartenstand, holt der Planer beim nächsten
+  Planen mit Empfang nur die Stücke neu, die er gerade braucht. Über
+  50 MB je Region fällt weg, was du am längsten nicht gebraucht hast.
+
 ## Planer: Route heißt Route
 
 *Version 0.158.1, 2026-11-07*
