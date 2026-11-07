@@ -1787,7 +1787,7 @@
   "navReplan": "Re-plan route",
   "navReplanNoArea": "The app knows no ways here — re-planning works again in a saved area or with reception.",
   "navReplanNoPath": "No new route found — ride on by sight or back to the route.",
-  "navLeftRoute": "Navigation ended: {distance} off the route. The recording keeps going.",
+  "navLeftRoute": "Navigation ended: {distance} off the route.",
   "navLeftResume": "Resume",
   "profileNavigationTitle": "Navigation",
   "profileNavigationValue": "Re-plan from {replan} · end from {leave}",
@@ -1799,5 +1799,6 @@
   "highlightNavReplanTitle": "Re-plan route",
   "highlightNavReplanText": "Far off the route, one tap computes the rest again from where you are — to the next trail head, the trails stay in. Further away the navigation ends by itself; both thresholds are in Profile under “Navigation”.",
   "demoNavReplanTitle": "Set up the navigation",
-  "demoNavReplanText": "Here you set from how far off the route the navigation offers “Re-plan route” (default 100 m) and when it ends by itself (default 500 m)."
+  "demoNavReplanText": "Here you set from how far off the route the navigation offers “Re-plan route” (default 100 m) and when it ends by itself (default 500 m).",
+  "navLeftRouteRecording": "Navigation ended: {distance} off the route. The recording keeps going."
 }
