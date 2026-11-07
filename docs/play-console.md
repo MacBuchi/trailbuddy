@@ -192,13 +192,14 @@ Dauer, Strecke oder Geschwindigkeit je Fahrt dazunimmt, stellt sie neu.
 
 ### Berechtigungen im Build
 
-**Abgeleitet, noch nicht am Binary gemessen.** Die Liste unten stammt aus
-`android/app/src/main/AndroidManifest.xml` und den Manifesten der Plugins
-in `.dart_tool/package_config.json`. Vor dem ersten Upload am gebauten AAB
-nachprüfen und das Ergebnis hier eintragen:
+**Am AAB gemessen** (0.158.0+242, Artefakt `android-aab` des Release-Laufs,
+2026-11-07, `bundletool` 1.18.3). Die Liste stimmt mit dem Binary überein;
+vor jedem Upload mit dem AAB dieses Uploads wiederholen und Abweichungen
+hier eintragen:
 
 ```bash
-bundletool dump manifest --bundle trailbuddy-v<version>.aab | grep uses-permission
+bundletool dump manifest --bundle trailbuddy-v<version>.aab \
+  | grep -E 'uses-permission|uses-feature|foregroundServiceType|<queries|<package '
 ```
 
 | Berechtigung | Wofür | Herkunft |
@@ -213,11 +214,27 @@ bundletool dump manifest --bundle trailbuddy-v<version>.aab | grep uses-permissi
 | `VIBRATE` | Rückfrage während der Fahrt im Kanal `trailbuddy_meldungen` | Manifest, `flutter_local_notifications` |
 | `ACCESS_NETWORK_STATE` | Verbindung zurück ⇒ Ausgangskorb senden; ohne Empfang kein Kartenabruf | `connectivity_plus`, `firebase_messaging` |
 | `WAKE_LOCK` | Fahrt und Download über den Bildschirm-Timeout hinaus | `flutter_foreground_task`, `firebase_messaging` |
-| `com.google.android.c2dm.permission.RECEIVE` | Push entgegennehmen (keine Laufzeitabfrage, im Store nicht gelistet) | Firebase-Bibliothek — am AAB bestätigen |
+| `ACCESS_WIFI_STATE` | Netzstatus der Karte (keine Laufzeitabfrage); zieht `uses-feature android.hardware.wifi` mit `required="false"` nach sich, schließt also kein Gerät aus | MapLibre (`android-sdk-opengl`) |
+| `com.google.android.c2dm.permission.RECEIVE` | Push entgegennehmen (keine Laufzeitabfrage, im Store nicht gelistet) | Firebase-Bibliothek — am AAB bestätigt |
+| `de.mcbuchi.trailbuddy.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION` | Eigene Signatur-Berechtigung, mit der `ContextCompat.registerReceiver` nicht exportierte Empfänger schützt; kein Nutzer sieht sie | `androidx.core` (erzeugt) |
 | `REQUEST_INSTALL_PACKAGES` | Update der GitHub-APK in der App | Manifest — **nur im `github`-Flavor**, im `play`-Flavor per `tools:node="remove"` entfernt |
 
 **Entfernt:** `RECEIVE_BOOT_COMPLETED` (`flutter_foreground_task` bringt es
-für einen Autostart mit, den die App nicht nutzt) per `tools:node="remove"`.
+für einen Autostart mit, den die App nicht nutzt) per `tools:node="remove"`
+— am AAB bestätigt. Der Empfänger des Plugins für `BOOT_COMPLETED` steht
+noch im Manifest, bekommt ohne die Berechtigung aber nichts zugestellt.
+`REQUEST_INSTALL_PACKAGES` fehlt im AAB wie vorgesehen (`play`-Flavor).
+**Paketsichtbarkeit:** genau ein `<queries>`-Eintrag,
+`com.garmin.android.apps.connectmobile`, aus Garmins Companion-SDK
+(`android/CLAUDE.md`, „Die Garmin-Uhr") — kein `QUERY_ALL_PACKAGES`, also
+keine Deklaration in der Console. **Sensoren:** Beschleunigung und Gyro
+(#36) laufen mit 10 ms (`kSensorSamplingPeriod`), unter der Grenze von
+200 Hz, ab der Android 12 `HIGH_SAMPLING_RATE_SENSORS` verlangt; wer den
+Takt unter 5 ms setzt, braucht die Berechtigung und trägt sie hier ein.
+**Dienst-Typen im AAB:** `ForegroundService` (`flutter_foreground_task`)
+mit `dataSync|location`, dazu `GeolocatorLocationService` mit `location`
+(aus `geolocator_android`, von der App nicht gestartet, derselbe Typ wie
+in der Deklaration unten).
 **Fehlt bewusst:** `ACCESS_BACKGROUND_LOCATION`, `CAMERA`, alle
 Speicher-Berechtigungen — auch seit dem Foto am Hinweis (#37):
 `image_picker` nimmt die Kamera über den System-Intent und die Galerie
@@ -387,7 +404,7 @@ Ehrlich antworten, sonst passt die Bewertung nicht zum Binary:
 
 - [ ] Rechtliche Prüfung von Nutzungsbedingungen und Datenschutzerklärung (Konzept 10.7)
 - [ ] Erste Beförderung gelaufen — sonst sind Datenschutz-, Impressums- und Löschseite nicht erreichbar
-- [ ] AAB aus dem Release-Workflow (Artefakt `android-aab`), nicht die APK; Berechtigungen am AAB gemessen und oben eingetragen
+- [ ] AAB aus dem Release-Workflow (Artefakt `android-aab`), nicht die APK; Berechtigungen am AAB gemessen (0.158.0, 2026-11-07) — mit dem AAB des Uploads wiederholen
 - [ ] Im Play-Build fehlt der Update-Hinweis (`PLAY_BUILD=true`)
 - [ ] Beide Demo-Videos der Vordergrunddienste aufgenommen
 - [ ] Store-Grafiken unter `store/`
