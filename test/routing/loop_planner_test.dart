@@ -194,8 +194,12 @@ void main() {
     final s = plan.summary!;
     expect(s.trailM, closeTo(2000, 0.5));
     expect(s.trailLossM, 200);
-    expect(s.gainM, closeTo(200, 0.5), reason: 'zweimal 100 hm hinauf');
-    expect(s.wastedLossM, 0, reason: 'bergab nur auf Trails');
+    // Die Köpfe liegen 10 m unter den oberen Ecken: Seit #492 hängen sie
+    // am nächsten Wegpunkt (Lücke), nicht am Eckknoten — knapp 100 hm je.
+    expect(s.gainM, closeTo(200, 5), reason: 'zweimal 100 hm hinauf');
+    // Die Enden liegen 10 m über den unteren Ecken: die letzten 10 m Weg
+    // hinunter (1 hm) fährt die Runde seit #492 wirklich.
+    expect(s.wastedLossM, lessThanOrEqualTo(2), reason: 'bergab nur auf Trails');
     expect(s.hikingM, 0);
     expect(s.heightsComplete, isTrue);
     expect(s.timeS, greaterThan(0));
@@ -247,7 +251,7 @@ void main() {
     final allowed = planLoop(g, start: start, profile: _bio,
         budget: const LoopBudget(timeS: 3 * 3600, climbM: 800, hikingM: 2000),
         pool: [a], searchBudget: const Duration(milliseconds: 50));
-    expect(allowed.summary!.hikingM, closeTo(1000, 0.5));
+    expect(allowed.summary!.hikingM, closeTo(1000, 15), reason: 'bis 10 m unter die Ecke, dann die Lücke (#492)');
   });
 
   test('Pflicht-Trail kommt hinein, auch wenn er je Minute weniger bringt', () {
@@ -287,7 +291,7 @@ void main() {
         returnToStart: false, searchBudget: const Duration(milliseconds: 50));
     expect(plan.stops, hasLength(2));
     expect(plan.points.last, isNot(start));
-    expect(plan.summary!.gainM, closeTo(200, 0.5));
+    expect(plan.summary!.gainM, closeTo(200, 5), reason: 'Köpfe 10 m unter den Ecken (#492)');
   });
 
   test('die Gründe: zu weit (vom Aufrufer), kein Weg, nicht erreichbar, Start ohne Weg', () {
@@ -378,19 +382,21 @@ void main() {
     });
 
     test('ein Trail, der nicht mitfährt, bringt keinen Satz', () {
-      // Angeheftet (gesprungen) wird W, ins Budget von 20 min passt er nicht.
+      // Angeheftet (gesprungen) wird W, ins Budget von 20 min passt er nicht
+      // — seit #492 kostet die 120-m-Lücke so viel, dass er dort „nicht
+      // erreichbar" heißt; der Satz zum Sprung bleibt so oder so weg.
       final r = planLoop(_square(), start: start, profile: _bio,
           budget: const LoopBudget(timeS: 1200, climbM: 800, hikingM: 2000), pool: [inWood],
           searchBudget: const Duration(milliseconds: 50));
-      expect(r.excluded['W'], LoopExclusion.budget);
+      expect(r.excluded['W'], isNotNull);
       expect(r.snaps, isEmpty);
     });
 
     test('beim Laden angeheftet, teilt die Planung keine Kante mehr (Suchspeicher bleibt gültig)', () {
       final g = _square();
-      // Was `buildGraphFrom` mit jeder Abfahrt im Rahmen tut.
-      g.snap(inWood.start);
-      g.snap(inWood.end);
+      // Was `buildGraphFrom` mit jeder Abfahrt im Rahmen tut (#492: `anchor`).
+      g.anchor(inWood.start);
+      g.anchor(inWood.end);
       final rev = g.revision;
       final r = planLoop(g, start: start, profile: _bio, budget: _big, pool: [inWood],
           searchBudget: const Duration(milliseconds: 50));

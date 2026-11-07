@@ -101,6 +101,8 @@ class SearchResult {
   final forward = e.a == from;
   final gain = forward ? e.gain : e.loss;
   final loss = forward ? e.loss : e.gain;
+  // Eine Lücke (#492) hat keinen Weg und keine Höhe: geschoben, teuer.
+  if (e.gap) return (cost: gapCostS(e.length), gain: 0.0, loss: 0.0, steep: 0.0);
   if (e.connector) {
     final cost = edgeTimeS(p, e.cls, lengthM: e.length, gainM: gain, lossM: loss) * kTrailConnectorFactor;
     return (cost: cost, gain: gain, loss: loss, steep: 0.0);
@@ -210,11 +212,12 @@ SearchResult dijkstra(RoadGraph g, int src, RiderParams p,
 }
 
 /// Der günstigste Weg von [src] nach [dst] (A* mit Luftlinie durch die
-/// Abfahrtsgeschwindigkeit — nie überschätzt), oder null.
+/// Abfahrtsgeschwindigkeit mal [kTrailConnectorFactor] — nie überschätzt,
+/// auch nicht auf einem Verbinder), oder null.
 ({double costS, double climbM, List<int> edges})? shortestPath(RoadGraph g, int src, int dst, RiderParams p) {
   final t = g.nodes[dst];
   final vMax = p.vDownKmh / 3.6;
-  final r = dijkstra(g, src, p, target: dst, heuristic: (n) => g.nodeDistance(n, t.x, t.y) / vMax);
+  final r = dijkstra(g, src, p, target: dst, heuristic: (n) => g.nodeDistance(n, t.x, t.y) / vMax * kTrailConnectorFactor);
   final path = r.pathTo(dst);
   if (path == null) return null;
   return (costS: r.costTo(dst)!, climbM: r.climbTo(dst)!, edges: path);
@@ -287,7 +290,7 @@ PathSummary summarizePath(RoadGraph g, List<int> path, int src, RiderParams p) {
     gain += c.gain;
     loss += c.loss;
     steep += c.steep;
-    time += edgeTimeS(p, e.cls, lengthM: e.length, gainM: c.gain, lossM: c.loss);
+    time += e.gap ? gapTimeS(e.length) : edgeTimeS(p, e.cls, lengthM: e.length, gainM: c.gain, lossM: c.loss);
     mix[e.cls] = (mix[e.cls] ?? 0) + e.length;
     if (e.hiking) hiking += e.length;
     if (e.connector) trailUp += e.length;

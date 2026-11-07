@@ -45,6 +45,25 @@ const kGraphAttachM = 30.0;
 /// — dann ist der Punkt eher falsch als ungenau.
 const kGraphSnapM = 200.0;
 
+/// Eine Lücke bis zu so vielen Metern kostet keinen Aufschlag (#492): die
+/// GPS-Unschärfe zwischen einer eingetragenen Linie und dem Weg der Karte.
+const kGapFreeM = 5.0;
+
+/// Jeder Meter einer Lücke zählt als geschoben (1 m/s) in die Zeit — auch
+/// unter [kGapFreeM], sonst wäre eine 3-m-Lücke billiger als die 3 m Weg
+/// daneben (im Overlay-Test gefunden) …
+const kGapSpeedMps = 1.0;
+
+/// … und über [kGapFreeM] kostet jeder Meter so viele Sekunden obendrauf (#492, Betreiber 2026-11-07:
+/// „da kann auch mal komplett nichts sein, Dornen oder Fels"). 25 m Lücke
+/// kosten etwa so viel wie 1 km Forstweg; 200 m sind das letzte Mittel.
+/// Ein Startwert, nicht gemessen.
+const kGapCostPerM = 10.0;
+
+/// So viele Kanten bekommt ein Trail-Ende höchstens eine Lücke (#492) —
+/// die nächsten; die Suche wählt dann selbst.
+const kGapCandidates = 4;
+
 /// Zellgröße des Gitters über Knoten und Segmenten, in Metern.
 const kGraphCellM = 50.0;
 
@@ -353,7 +372,14 @@ class GraphEdge {
   bool get connector => trail?.connector ?? false;
 
   /// Zählt gegen „höchstens Wanderweg".
-  bool get hiking => cls.hiking && !connector;
+  bool get hiking => cls.hiking && !connector && !gap;
+
+  /// Eine Lücke (#492): die Luftlinie von einem Trail-Ende oder einem
+  /// Anschluss eines Verbinders zum Weg der Karte, ohne Weg darunter. Sie
+  /// kostet über [kGapFreeM] hinaus ([gapCostS]); die Klasse ist die des
+  /// Wegs, an dem sie hängt — so zeichnet und zählt die Route sie mit ihm.
+  bool get gap => _g._flag(index, _kGap);
+  set gap(bool v) => _g._setFlag(index, _kGap, v);
 
   /// Darf die Kante von Knoten [from] aus befahren werden?
   /// ([RoadGraph.openFrom]).
@@ -411,7 +437,14 @@ class GraphEdge {
   int get hashCode => index;
 }
 
-const _kOneway = 1, _kBlockForward = 2, _kBlockBackward = 4, _kHasHeights = 8;
+const _kOneway = 1, _kBlockForward = 2, _kBlockBackward = 4, _kHasHeights = 8, _kGap = 16;
+
+/// Die Zeit einer Lücke von [lengthM] Metern (#492): geschoben.
+double gapTimeS(double lengthM) => lengthM / kGapSpeedMps;
+
+/// Die Kosten einer Lücke (#492): ihre Zeit plus [kGapCostPerM] je Meter
+/// über [kGapFreeM].
+double gapCostS(double lengthM) => gapTimeS(lengthM) + kGapCostPerM * math.max(0.0, lengthM - kGapFreeM);
 
 /// Eine Liste nur zum Lesen — die Sichten auf die Felder des Graphen.
 abstract class _ReadOnlyList<T> extends ListBase<T> {
@@ -541,7 +574,9 @@ class EdgeTrail {
 /// sollten belohnt werden"): unter Forstweg (1,0), damit die Suche sie
 /// vorzieht, wo sie hinführen. Ein Startwert, nicht gemessen — die Zeit
 /// bleibt die der Klasse, nur die Wahl wird günstiger.
-const kTrailConnectorFactor = 0.8;
+/// Seit #492 0,6 (bis 0.162.x 0,8; Betreiber 2026-11-07: „Transferstrecken
+/// noch positiver bewerten, weil man sie genau dafür eingetragen hat").
+const kTrailConnectorFactor = 0.6;
 
 /// Ein Gitter über Zahlen (#378) — Knoten je Zelle oder Segmente je Zelle
 /// (die Nummer des ersten Linienpunkts im Punktspeicher). In typisierten
@@ -1031,7 +1066,8 @@ class RoadGraph {
         for (var k = _segCells.first(cx + dx, cy + dy); k >= 0; k = _segCells.next(k)) {
           final o = _segCells.value(k);
           final ei = _pedge[o], i = o - _eoff[ei];
-          if (excludeEdges.contains(ei) || !seen.add(o)) continue;
+          // Eine Lücke (#492) ist kein Weg, an den man etwas heftet.
+          if (excludeEdges.contains(ei) || _flag(ei, _kGap) || !seen.add(o)) continue;
           if (i + 1 >= _ecnt[ei]) continue; // veraltet nach einer Teilung
           final ax = _px[o], ay = _py[o], bx = _px[o + 1], by = _py[o + 1];
           final (d, t) = _pointSegment(xy.x, xy.y, ax, ay, bx, by);
@@ -1044,6 +1080,76 @@ class RoadGraph {
     }
     return best;
   }
+
+  /// Je Kante innerhalb von [radius] ihr nächster Punkt, nächste zuerst —
+  /// ohne Lücken ([GraphEdge.gap]) und ohne [excludeEdges].
+  List<EdgeHit> nearestPerEdge(LatLng p, double radius, {Set<int> excludeEdges = const {}}) {
+    final xy = proj.xy(p);
+    final (cx, cy) = _cell(xy);
+    final reach = (radius / kGraphCellM).ceil();
+    final best = <int, EdgeHit>{};
+    final seen = <int>{};
+    for (var dx = -reach; dx <= reach; dx++) {
+      for (var dy = -reach; dy <= reach; dy++) {
+        for (var k = _segCells.first(cx + dx, cy + dy); k >= 0; k = _segCells.next(k)) {
+          final o = _segCells.value(k);
+          final ei = _pedge[o], i = o - _eoff[ei];
+          if (excludeEdges.contains(ei) || _flag(ei, _kGap) || !seen.add(o)) continue;
+          if (i + 1 >= _ecnt[ei]) continue; // veraltet nach einer Teilung
+          final ax = _px[o], ay = _py[o], bx = _px[o + 1], by = _py[o + 1];
+          final (d, t) = _pointSegment(xy.x, xy.y, ax, ay, bx, by);
+          final had = best[ei];
+          if (d <= radius && (had == null || d < had.d)) {
+            final px = math.Point(ax + t * (bx - ax), ay + t * (by - ay));
+            best[ei] = (d: d, edge: ei, seg: i, t: t, at: proj.latLng(px));
+          }
+        }
+      }
+    }
+    return best.values.toList()..sort((a, b) => a.d.compareTo(b.d));
+  }
+
+  /// Ein Trail-Ende oder ein Anschluss eines Verbinders als EIGENER Knoten
+  /// genau an [p], mit einer Lücke ([GraphEdge.gap]) zum nächsten Punkt
+  /// jeder der [kGapCandidates] nächsten Kanten in [kGraphAttachM] — sonst
+  /// zur nächsten in [kGraphSnapM] (#492). Bis 0.162.x nahm [attach] den
+  /// nächsten KNOTEN in 30 m, auch wenn eine Kante 2 m daneben lag, und der
+  /// Sprung kostete nichts: Der Planer nahm 25 m durchs Gestrüpp zur
+  /// Kreuzung statt den eingetragenen Transferweg.
+  ///
+  /// Ein zweiter Aufruf mit demselben Punkt gibt denselben Knoten, ohne
+  /// neue Lücken — `planLoop` heftet so dieselben Enden an wie
+  /// `buildGraphFrom`, und der Suchspeicher bleibt gültig. [meters] ist die
+  /// kürzeste Lücke; null, wenn kein Weg in [kGraphSnapM] liegt.
+  ({int node, double meters})? anchor(LatLng p, {Set<int> excludeEdges = const {}, int candidates = kGapCandidates}) {
+    final existing = _key[_keyOf(p)];
+    if (existing != null && _deg[existing] > 0) return (node: existing, meters: _anchorGap[existing] ?? 0.0);
+    // Liegt der Punkt (fast) auf einem Knoten, ist der der Anschluss.
+    final onNode = nearestNode(proj.xy(p), 0.5);
+    if (onNode != null && _deg[onNode] > 0) return (node: onNode, meters: 0);
+    var hits = nearestPerEdge(p, kGraphAttachM, excludeEdges: excludeEdges);
+    if (hits.isEmpty) {
+      final far = nearest(p, kGraphSnapM, excludeEdges: excludeEdges);
+      if (far == null) return null;
+      hits = [far];
+    }
+    final n = node(p);
+    final shortest = hits.first.d;
+    for (final h in hits.take(candidates)) {
+      // Je Kante ein Treffer: Eine Teilung verschiebt nur die eigene Kante.
+      final level = _elevel[h.edge], cls = WayClass.values[_ecls[h.edge]];
+      final m = splitEdge(h.edge, h.seg, h.at);
+      if (m == n) continue;
+      final gi = addEdge(n, m, cls, false, [p, nodeLatLng[m]], level: level);
+      _setFlag(gi, _kGap, true);
+      _setFlag(gi, _kHasHeights, true);
+    }
+    _anchorGap[n] = shortest;
+    return (node: n, meters: shortest);
+  }
+
+  /// Die kürzeste Lücke je Knoten aus [anchor] — für den zweiten Aufruf.
+  final _anchorGap = <int, double>{};
 
   /// Abstand von (px, py) zur Strecke a–b und der Anteil des Fußpunkts —
   /// dieselbe Rechnung wie bis 0.133.x über `math.Point`.
@@ -1338,6 +1444,13 @@ void addClimbsFrom(RoadGraph g, HeightTiles heights) {
     if (i & 255 == 0) PlanProgress.steps(i, g.edges.length);
     _applyProfile(g.edges[i], heights.profileAlong(g.edges[i].points));
   }
+}
+
+/// Höhen für EINE Kante aus vorab gelesenen Kacheln (#492: die eigene
+/// Linie eines Verbinders); falsch, wenn eine Probe keine Höhe hatte.
+bool applyHeightsFrom(GraphEdge e, HeightTiles heights) {
+  _applyProfile(e, heights.profileAlong(e.points));
+  return e.hasHeights;
 }
 
 void _applyProfile(GraphEdge e, ({List<double> heights, List<double> stepsM})? profile) {
