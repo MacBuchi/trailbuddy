@@ -21,6 +21,9 @@
   the app has been swiped away.
 - You set both distances in Profile under “Navigation”; ending can also
   be switched off.
+- Fixed: a navigation started from “My rides” while the map showed all of
+  Europe sometimes stayed zoomed out that far. Now it zooms back in with
+  the next position.
 
 ## Screen on while recording
 

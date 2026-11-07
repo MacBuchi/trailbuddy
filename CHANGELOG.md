@@ -21,6 +21,10 @@
   auch, wenn die App weggewischt ist.
 - Beide Abstände stellst du im Profil unter „Navigation" ein; das Ende
   lässt sich auch ganz abschalten.
+- Behoben: Startete eine Navigation aus „Meine Fahrten", während die
+  Karte ganz Europa zeigte, blieb die Folgeansicht manchmal so weit
+  herausgezoomt. Jetzt geht sie mit der nächsten Position wieder nah
+  heran.
 
 ## Bildschirm an beim Aufzeichnen
 
