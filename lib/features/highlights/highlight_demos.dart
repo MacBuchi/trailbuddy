@@ -575,6 +575,19 @@ Map<String, HighlightDemo> highlightDemos(AppLocalizations l) => {
       ),
     ]),
   ),
+  'mark-name': HighlightDemo(
+    route: '/',
+    script: _demo('mark-name', [
+      CoachStep(
+        title: l.demoMarkNameTitle,
+        text: l.demoMarkNameText,
+        lit: [MapCoach.buttons],
+        ring: [MapCoach.record],
+        requires: [MapCoach.record],
+      ),
+      _androidOnly(l),
+    ]),
+  ),
   'marks': HighlightDemo(
     route: '/',
     script: _demo('marks', [

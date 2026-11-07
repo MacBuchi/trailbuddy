@@ -331,6 +331,24 @@ class RideNotifier extends Notifier<RecordedRide?> {
     return mark;
   }
 
+  /// Ein Nachtrag zum Ende [end] (#486): der Name ([name]) oder, ohne
+  /// Namen und mit [discard], das Paar zurücknehmen. Wie bei
+  /// [toggleMark] trägt der Zustand ihn erst, wenn die Datei ihn nahm.
+  Future<bool> annotateMark(RideMark end, {String? name, bool discard = false}) async {
+    final current = state;
+    final trimmed = name?.trim();
+    if (current == null || end.kind != RideMarkKind.end) return false;
+    if (!discard && (trimmed == null || trimmed.isEmpty)) return false;
+    final note = discard
+        ? RideMark(kind: RideMarkKind.discard, at: end.at)
+        : RideMark(kind: RideMarkKind.label, at: end.at, name: trimmed);
+    if (!await ref.read(rideStoreProvider).appendMark(note)) return false;
+    final now = state;
+    if (now == null || !now.startedAt.isAtSameMomentAs(current.startedAt)) return false;
+    state = (startedAt: now.startedAt, points: now.points, marks: foldRideMarks([...now.marks, note]));
+    return true;
+  }
+
   /// Hört die Aufzeichnung auf, weil die Fahrt zu lange läuft? Der
   /// Service selbst kennt die Grenze nicht, er misst, solange die Brücke
   /// „aktiv" sagt.

@@ -197,16 +197,18 @@ void main() {
     final t0 = DateTime.utc(2026, 9, 28, 10);
     RideMark begins(int s) => RideMark(kind: RideMarkKind.start, at: t0.add(Duration(seconds: s)));
     RideMark ends(int s) => RideMark(kind: RideMarkKind.end, at: t0.add(Duration(seconds: s)));
+    List<(int, int)> pairs(List<TrackPoint> pts, List<RideMark> marks) =>
+        [for (final r in markedRanges(pts, marks)) (r.from, r.to)];
 
     test('gepaart in zeitlicher Reihenfolge, je Marke der zeitlich nächste Punkt', () {
       final pts = ride(2000, (_) => 500);
       // 41 s liegt näher an Punkt 10 (40 s) als an 11 (44 s).
-      expect(markedRanges(pts, [ends(81), begins(41)]), [(10, 20)],
+      expect(pairs(pts, [ends(81), begins(41)]), [(10, 20)],
           reason: 'die Reihenfolge der Liste zählt nicht, die Zeit schon');
-      expect(markedRanges(pts, [begins(40), begins(120), ends(200)]), [(10, 30), (30, 50)],
+      expect(pairs(pts, [begins(40), begins(120), ends(200)]), [(10, 30), (30, 50)],
           reason: 'ein zweiter Beginn schließt den ersten dort — zwei Trails hintereinander');
       expect(markedRanges(pts, [ends(40)]), isEmpty, reason: 'ein Ende ohne Beginn zählt nicht');
-      expect(markedRanges(pts, [begins(360)]), [(90, pts.length - 1)],
+      expect(pairs(pts, [begins(360)]), [(90, pts.length - 1)],
           reason: 'eine offene Marke gilt bis zum letzten Punkt');
       expect(markedRanges(pts, [begins(40), ends(41)]), isEmpty, reason: 'ein Punkt ist kein Stück');
       final untimed = [for (final p in pts) TrackPoint(p.lat, p.lon)];
@@ -251,6 +253,71 @@ void main() {
       // Reicht die Marke weit darüber hinaus, bleibt sie Kandidat.
       final longer = splitRide(points: pts, trails: [t], roads: noRoads, marks: [begins(40), ends(320)]);
       expect(longer.candidates.single.marked, isTrue);
+    });
+  });
+
+  group('Name und zweimal gefahren (#486)', () {
+    final t0 = DateTime.utc(2026, 9, 28, 10);
+    RideMark begins(int i) => RideMark(kind: RideMarkKind.start, at: t0.add(Duration(seconds: 4 * i)));
+    RideMark ends(int i, [String? name]) =>
+        RideMark(kind: RideMarkKind.end, at: t0.add(Duration(seconds: 4 * i)), name: name);
+
+    /// Dieselbe Abfahrt zweimal: Punkte 0–50 nach Norden (0–1 000 m), 51–101
+    /// 300 m östlich zurück nach Süden (der Anstieg), 102–152 wieder nach
+    /// Norden, 2 m daneben — wie GPS beim zweiten Mal. Alle 4 s ein Punkt.
+    List<TrackPoint> twice() {
+      final out = <TrackPoint>[];
+      void leg(double from, double to, double eastM) {
+        final step = from < to ? 20.0 : -20.0;
+        for (var m = from; step > 0 ? m <= to : m >= to; m += step) {
+          final p = at(m, eastM: eastM);
+          out.add(TrackPoint(p.latitude, p.longitude, time: t0.add(Duration(seconds: 4 * out.length))));
+        }
+      }
+      leg(0, 1000, 0);
+      leg(1000, 0, 300);
+      leg(0, 1000, 2);
+      return out;
+    }
+
+    test('der Name am Ende kommt in den Kandidaten', () {
+      final pts = twice();
+      expect(pts, hasLength(153));
+      final split = splitRide(points: pts, trails: const [], roads: noRoads, marks: [begins(5), ends(45, 'Hexenstieg')]);
+      expect(split.candidates.single.name, 'Hexenstieg');
+      expect(split.candidates.single.rides, 1);
+    });
+
+    test('zweimal markiert über dieselbe Strecke: EIN Kandidat, zweimal gefahren, mit Namen', () {
+      final split = splitRide(
+        points: twice(),
+        trails: const [],
+        roads: noRoads,
+        marks: [begins(5), ends(45), begins(107), ends(147, 'Hexenstieg')],
+      );
+      final c = split.candidates.single;
+      expect((c.start, c.end), (5, 45), reason: 'der erste Durchgang bleibt');
+      expect(c.rides, 2);
+      expect(c.name, 'Hexenstieg', reason: 'der Name wandert vom zweiten zum behaltenen');
+    });
+
+    test('der Anstieg dazwischen ist eine andere Strecke und bleibt', () {
+      final split = splitRide(
+        points: twice(),
+        trails: const [],
+        roads: noRoads,
+        marks: [begins(5), ends(45), begins(56), ends(96)],
+      );
+      expect(split.candidates, hasLength(2));
+      expect([for (final c in split.candidates) c.rides], [1, 1]);
+    });
+
+    test('der zweite Durchgang über einen bekannten Trail wird kein Duplikat', () {
+      final t = trail('t1', 100, 900);
+      final split = splitRide(points: twice(), trails: [t], roads: noRoads, marks: [begins(107), ends(147)]);
+      expect(split.known.single.trail.id, 't1');
+      expect(split.candidates, isEmpty, reason: 'sonst legte der Server einen zweiten Trail daneben');
+      expect(split.known.single.rides, 2);
     });
   });
 }

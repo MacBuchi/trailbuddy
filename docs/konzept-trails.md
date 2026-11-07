@@ -574,6 +574,18 @@ Er schlägt die Heuristik, wo beide sich überschneiden, und weicht nur
 einem bekannten Trail, der ihn deckt; eine offene Marke gilt bis zum
 Ende der Fahrt.
 
+**Seit 0.161.0 (#486): Name beim Ende, zweimal gefahren.** Nach „Trail
+endet" geht ein Namensfeld von selbst auf (Speichern · Speichern,
+nächster beginnt · Später · Verwerfen); der Name steht als eigene Zeile
+in der Fahrt-Datei und im Zerlege-Blatt schon im Feld. Vorgeschlagen
+wird er nur aus dem, was der Fahrer ohnehin sieht — einem sichtbaren
+Trail, auf dem das Stück liegt, oder demselben Stück früher in dieser
+Fahrt —, auf dem Gerät, ohne Netz. Fährt man dieselbe Strecke zweimal
+(beidseitig gedeckt wie beim Abgleich), wird daraus EINE Zeile mit
+„2× gefahren", auch gegen einen bekannten Trail: Vorher nahm das Blatt
+je Trail nur einen Durchgang, und der zweite ging als neuer Trail
+hinaus.
+
 **Seit 0.55.0 (#102): Übernehmen beim ersten Befahren.** Wer einen
 bekannten Trail fährt, zu dem er noch KEINEN eigenen Beitrag hat, macht
 ihn sich im Zerlege-Blatt zu eigen: Name, S-Grad, Charakter und Sterne

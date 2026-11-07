@@ -28,7 +28,7 @@ import '../../core/line_geometry.dart';
 import '../../models/trail.dart';
 import '../trails/gpx.dart';
 import '../trails/trail_geometry.dart';
-import 'ride_track.dart' show RideMark, RideMarkKind;
+import 'ride_track.dart' show RideMark, RideMarkKind, foldRideMarks;
 import 'road_index.dart';
 
 /// Ein Fix, der weiter streut als das, ist keine Messung im 15-m-Korridor
@@ -67,11 +67,16 @@ const kSplitCorridorGap = 2;
 /// Ein Stück der Fahrt: Punkt [start] bis [end], beide eingeschlossen,
 /// als Indizes in [RideSplit.points].
 sealed class RideSection {
-  const RideSection({required this.start, required this.end, required this.lengthM});
+  const RideSection({required this.start, required this.end, required this.lengthM, this.rides = 1});
 
   final int start;
   final int end;
   final double lengthM;
+
+  /// Wie oft die Fahrt dieses Stück gefahren ist (#486): Ein zweiter
+  /// Durchgang über dieselbe Strecke wird keine eigene Zeile — er ginge
+  /// sonst als Duplikat hinaus —, er zählt hier mit.
+  final int rides;
 
   int get pointCount => end - start + 1;
 }
@@ -83,9 +88,13 @@ class KnownTrailSection extends RideSection {
     required super.start,
     required super.end,
     required super.lengthM,
+    super.rides,
   });
 
   final Trail trail;
+
+  KnownTrailSection withRides(int rides) =>
+      KnownTrailSection(trail: trail, start: start, end: end, lengthM: lengthM, rides: rides);
 }
 
 /// Ein Vorschlag für einen neuen Trail — gefunden, vom Nutzer über die
@@ -102,7 +111,26 @@ class CandidateSection extends RideSection {
     required this.nearEnd,
     this.manual = false,
     this.marked = false,
+    this.name,
+    super.rides,
   });
+
+  /// Der Name, den der Fahrer unterwegs vergeben hat (#486), sonst null.
+  final String? name;
+
+  CandidateSection copyWith({int? rides, String? name}) => CandidateSection(
+        start: start,
+        end: end,
+        lengthM: lengthM,
+        lossM: lossM,
+        offRoadShare: offRoadShare,
+        nearStart: nearStart,
+        nearEnd: nearEnd,
+        manual: manual,
+        marked: marked,
+        name: name ?? this.name,
+        rides: rides ?? this.rides,
+      );
 
   /// Höhenverlust über das Stück, aus den geglätteten Höhen; beim
   /// selbst gewählten Stück aus den rohen (null ohne Höhen).
@@ -288,7 +316,7 @@ RideSplit splitRide({
   bool nearHome(math.Point<double> p) =>
       p.distanceTo(startXy) <= kSplitHomeM || p.distanceTo(endXy) <= kSplitHomeM;
   final marked = <CandidateSection>[];
-  for (final (from, to) in markedRanges(kept, marks)) {
+  for (final (:from, :to, :name) in markedRanges(kept, marks)) {
     final lengthM = cum[to] - cum[from];
     // Deckt ein bekannter Trail das Stück, IST es dieser Trail: Seine
     // Zeile steht schon im Blatt; ein Kandidat daneben steuerte dieselbe
@@ -304,6 +332,7 @@ RideSplit splitRide({
       nearStart: nearHome(xy[from]),
       nearEnd: nearHome(xy[to]),
       marked: true,
+      name: name,
     ));
   }
   if (marked.isNotEmpty) {
@@ -312,10 +341,14 @@ RideSplit splitRide({
       ..addAll(marked)
       ..sort((a, b) => a.start.compareTo(b.start));
   }
+
+  // 5. Zweimal gefahren (#486): Ein Kandidat über dieselbe Strecke wie ein
+  //    bekannter Trail oder ein anderer Kandidat ist kein neuer Trail.
+  final repeats = _dropRepeats(known, candidates, xy, proj);
   return RideSplit(
     points: kept,
-    known: known,
-    candidates: candidates,
+    known: repeats.known,
+    candidates: repeats.candidates,
     roads: roads.coverage,
     hasElevation: ele != null,
     droppedInaccurate: dropped,
@@ -323,15 +356,19 @@ RideSplit splitRide({
   );
 }
 
+/// Ein Stück zwischen zwei Marken, mit dem Namen, den das Ende trägt.
+typedef MarkedRange = ({int from, int to, String? name});
+
 /// Die Stücke zwischen den Marken (#105), als Indizes in [points]. Je
 /// Marke der Punkt, der ihr zeitlich am nächsten liegt; ohne Zeiten gibt
 /// es keine. Gepaart wird in zeitlicher Reihenfolge: Ein Beginn öffnet,
 /// ein Ende schließt. Ein zweiter Beginn schließt den offenen dort
 /// (zwei Trails hintereinander), ein Ende ohne Beginn zählt nicht, und
-/// ein offener Beginn läuft bis zum letzten Punkt (Rework 5.2).
-List<(int, int)> markedRanges(List<TrackPoint> points, List<RideMark> marks) {
+/// ein offener Beginn läuft bis zum letzten Punkt (Rework 5.2). Der Name
+/// kommt vom Ende (#486); wer ohne Ende weiterfährt, hat keinen.
+List<MarkedRange> markedRanges(List<TrackPoint> points, List<RideMark> marks) {
   if (points.length < 2 || marks.isEmpty) return const [];
-  final sorted = [...marks]..sort((a, b) => a.at.compareTo(b.at));
+  final sorted = foldRideMarks(marks)..sort((a, b) => a.at.compareTo(b.at));
   int? indexAt(DateTime at) {
     int? best;
     var bestGap = 0;
@@ -347,11 +384,11 @@ List<(int, int)> markedRanges(List<TrackPoint> points, List<RideMark> marks) {
     return best;
   }
 
-  final out = <(int, int)>[];
+  final out = <MarkedRange>[];
   int? open;
-  void close(int end) {
+  void close(int end, String? name) {
     final from = open;
-    if (from != null && end > from) out.add((from, end));
+    if (from != null && end > from) out.add((from: from, to: end, name: name));
     open = null;
   }
 
@@ -360,14 +397,66 @@ List<(int, int)> markedRanges(List<TrackPoint> points, List<RideMark> marks) {
     if (i == null) return const [];
     switch (m.kind) {
       case RideMarkKind.start:
-        if (open != null) close(i);
+        if (open != null) close(i, null);
         open = i;
       case RideMarkKind.end:
-        if (open != null) close(i);
+        if (open != null) close(i, m.name);
+      case RideMarkKind.label:
+      case RideMarkKind.discard:
+        break; // gefaltet, kommt hier nicht mehr vor
     }
   }
-  if (open != null) close(points.length - 1);
+  if (open != null) close(points.length - 1, null);
   return out;
+}
+
+/// Dieselbe Strecke (#486)? Beidseitig gedeckt mit den Schwellen des
+/// Abgleichs (15 m, 0,8) — dieselbe Regel, mit der der Server zwei
+/// Aufzeichnungen zu einem Trail verschmilzt. Eine Hälfte des anderen
+/// ist es nicht.
+bool sameStretch(List<math.Point<double>> a, List<math.Point<double>> b) {
+  if (a.length < 2 || b.length < 2) return false;
+  final ab = coverageWithin(resampleXy(a, kMatchSampleStepM), SegmentGrid([b], kMatchCorridorM), kMatchCorridorM);
+  if (ab < kMatchCoverage) return false;
+  return coverageWithin(resampleXy(b, kMatchSampleStepM), SegmentGrid([a], kMatchCorridorM), kMatchCorridorM) >=
+      kMatchCoverage;
+}
+
+/// Zweimal gefahren (#486): Wer einen Trail zweimal fährt, findet ihn
+/// beim zweiten Mal nicht noch einmal als Kandidat. Ein Kandidat über
+/// die Strecke eines bekannten Trails fällt weg (der bekannte zählt ihn
+/// mit — [knownTrailSectionsOf] nimmt je Trail nur EINEN Durchgang),
+/// ebenso einer über die Strecke eines früheren Kandidaten; markierte
+/// gehen vor gefundenen, und ein Name wandert zum behaltenen mit.
+({List<KnownTrailSection> known, List<CandidateSection> candidates}) _dropRepeats(
+  List<KnownTrailSection> known,
+  List<CandidateSection> candidates,
+  List<math.Point<double>> xy,
+  FlatProjection proj,
+) {
+  if (candidates.isEmpty) return (known: known, candidates: candidates);
+  List<math.Point<double>> slice(RideSection s) => xy.sublist(s.start, s.end + 1);
+  final knownOut = List.of(known);
+  final knownLines = [for (final k in known) proj.line(k.trail.points)];
+  final order = List.of(candidates)
+    ..sort((a, b) => a.marked != b.marked ? (a.marked ? -1 : 1) : a.start.compareTo(b.start));
+  final kept = <CandidateSection>[];
+  for (final c in order) {
+    final line = slice(c);
+    final k = knownLines.indexWhere((l) => sameStretch(line, l));
+    if (k >= 0) {
+      knownOut[k] = knownOut[k].withRides(knownOut[k].rides + c.rides);
+      continue;
+    }
+    final o = kept.indexWhere((other) => sameStretch(line, slice(other)));
+    if (o >= 0) {
+      kept[o] = kept[o].copyWith(rides: kept[o].rides + c.rides, name: kept[o].name ?? c.name);
+      continue;
+    }
+    kept.add(c);
+  }
+  kept.sort((a, b) => a.start.compareTo(b.start));
+  return (known: knownOut, candidates: kept);
 }
 
 /// Wie viel von [from]…[to] (Länge über [cum]) in bekannten Stücken liegt.

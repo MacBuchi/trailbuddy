@@ -68,37 +68,92 @@ class RidePoint {
 /// Ort sagt die Spur, und das Zerlege-Blatt nimmt den Punkt, der ihr
 /// zeitlich am nächsten liegt. Ein eigener Fix beim Tippen wäre eine
 /// zweite Messung derselben Stelle, die der Takt ohnehin macht.
-enum RideMarkKind { start, end }
+///
+/// Zwei Nachträge zu einem Ende (#486): [label] gibt ihm den Namen, den
+/// der Fahrer gleich danach eingetippt hat, [discard] nimmt das Paar
+/// zurück (versehentlich markiert). Beide stehen als EIGENE Zeile in der
+/// Datei — sie wird nur angehängt, nie umgeschrieben — und zeigen mit
+/// ihrer Zeit auf das Ende, zu dem sie gehören. Eine ältere App kennt die
+/// Art nicht und überliest die Zeile ([RideMark.fromJson] gibt null).
+/// [foldRideMarks] macht daraus die Liste, die alle lesen: nur Beginn und
+/// Ende, das Ende mit Namen.
+enum RideMarkKind { start, end, label, discard }
 
 class RideMark {
-  const RideMark({required this.kind, required this.at});
+  const RideMark({required this.kind, required this.at, this.name});
 
   final RideMarkKind kind;
   final DateTime at;
+
+  /// Der Name des Trails an einem Ende (gefaltet) oder in einem [label].
+  final String? name;
 
   /// Steht als eigene Zeile in der Fahrt-Datei, erkennbar am Schlüssel —
   /// `RidePoint.fromJson` ließe sie ohnehin liegen (keine Koordinate).
   static bool isMark(Map<String, dynamic> json) => json.containsKey('mark');
 
-  Map<String, dynamic> toJson() => {'mark': kind.name, 'at': at.toUtc().toIso8601String()};
+  Map<String, dynamic> toJson() => {
+        'mark': kind.name,
+        'at': at.toUtc().toIso8601String(),
+        if (name != null) 'name': name,
+      };
 
   static RideMark? fromJson(Map<String, dynamic> json) {
     final kind = switch (json['mark']) {
       'start' => RideMarkKind.start,
       'end' => RideMarkKind.end,
+      'label' => RideMarkKind.label,
+      'discard' => RideMarkKind.discard,
       _ => null,
     };
     final at = DateTime.tryParse(json['at'] as String? ?? '');
     if (kind == null || at == null) return null;
-    return RideMark(kind: kind, at: at.toUtc());
+    final name = (json['name'] as String?)?.trim();
+    if (kind == RideMarkKind.label && (name == null || name.isEmpty)) return null;
+    return RideMark(kind: kind, at: at.toUtc(), name: name == null || name.isEmpty ? null : name);
   }
+}
+
+/// Wendet die Nachträge an (#486): Ein [RideMarkKind.label] gibt dem Ende
+/// mit derselben Zeit seinen Namen (der letzte gilt), ein
+/// [RideMarkKind.discard] streicht dieses Ende samt dem Beginn davor.
+/// Ein Nachtrag ohne sein Ende zählt nicht. Das Ergebnis enthält nur
+/// Beginn und Ende, in der Reihenfolge der Datei — für die Liste, die
+/// schon gefaltet ist, ändert ein zweiter Lauf nichts.
+List<RideMark> foldRideMarks(List<RideMark> marks) {
+  final out = <RideMark>[];
+  int? endAt(DateTime at) {
+    for (var i = out.length - 1; i >= 0; i--) {
+      if (out[i].kind == RideMarkKind.end && out[i].at.isAtSameMomentAs(at)) return i;
+    }
+    return null;
+  }
+
+  for (final m in marks) {
+    switch (m.kind) {
+      case RideMarkKind.start:
+      case RideMarkKind.end:
+        out.add(m);
+      case RideMarkKind.label:
+        final i = endAt(m.at);
+        if (i != null) out[i] = RideMark(kind: RideMarkKind.end, at: out[i].at, name: m.name);
+      case RideMarkKind.discard:
+        final i = endAt(m.at);
+        if (i == null) continue;
+        out.removeAt(i);
+        if (i > 0 && out[i - 1].kind == RideMarkKind.start) out.removeAt(i - 1);
+    }
+  }
+  return out;
 }
 
 /// Läuft gerade ein markierter Trail? Die letzte Marke ist ein Beginn.
 /// Dieselbe Regel für den Knopf (was der nächste Tipp setzt, ob er einen
 /// Rand trägt) und das Zerlege-Blatt (offene Marke bis zum Ende).
-bool markedTrailOpen(List<RideMark> marks) =>
-    marks.isNotEmpty && marks.last.kind == RideMarkKind.start;
+bool markedTrailOpen(List<RideMark> marks) {
+  final folded = foldRideMarks(marks);
+  return folded.isNotEmpty && folded.last.kind == RideMarkKind.start;
+}
 
 /// Die laufende Fahrt: wann sie begann, was seither gemessen und was
 /// markiert wurde.

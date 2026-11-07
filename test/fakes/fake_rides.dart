@@ -81,7 +81,7 @@ class FakeRideStore implements RideStore {
   @override
   Future<RecordedRide?> readActive({required String uid}) async {
     if (startedAt == null || this.uid != uid) return null;
-    return (startedAt: startedAt!, points: List.of(points), marks: List.of(marks));
+    return (startedAt: startedAt!, points: List.of(points), marks: foldRideMarks(marks));
   }
 
   @override
@@ -93,7 +93,7 @@ class FakeRideStore implements RideStore {
         endedAt: endedAt,
         points: List.of(points),
         events: List.of(events),
-        marks: List.of(marks));
+        marks: foldRideMarks(marks));
     rides.insert(0, ride);
     startedAt = null;
     points.clear();

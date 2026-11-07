@@ -400,6 +400,65 @@
   "@rideMarkFailed": {
     "description": "Leiste: Marke nicht gespeichert."
   },
+  "rideMarkNameTitle": "Wie heißt der Trail?",
+  "@rideMarkNameTitle": {
+    "description": "Titel des Namensfelds, das nach „Trail endet“ von selbst aufgeht (#486)."
+  },
+  "rideMarkNameFromNetwork": "Den kennst du schon — Name vorgeschlagen.",
+  "@rideMarkNameFromNetwork": {
+    "description": "Zeile über dem Namensfeld: Die Strecke liegt auf einem sichtbaren Trail, dessen Name im Feld steht."
+  },
+  "rideMarkNameFromRide": "Den bist du heute schon gefahren — Name von vorhin.",
+  "@rideMarkNameFromRide": {
+    "description": "Zeile über dem Namensfeld: Dieselbe Strecke wurde früher in dieser Fahrt markiert und benannt."
+  },
+  "rideMarkNameSave": "Speichern",
+  "@rideMarkNameSave": {
+    "description": "Knopf im Namensfeld: Namen an die Marke hängen."
+  },
+  "rideMarkNameSaveNext": "Speichern, nächster beginnt",
+  "@rideMarkNameSaveNext": {
+    "description": "Knopf im Namensfeld: Namen speichern und sofort den nächsten Trail beginnen (zwei Trails am Stück)."
+  },
+  "rideMarkNameLater": "Später",
+  "@rideMarkNameLater": {
+    "description": "Knopf im Namensfeld: ohne Namen weiter, das Zerlege-Blatt fragt nach der Fahrt."
+  },
+  "rideMarkNameDiscard": "Verwerfen",
+  "@rideMarkNameDiscard": {
+    "description": "Knopf im Namensfeld: Die Marke war ein Versehen, Beginn und Ende zurücknehmen."
+  },
+  "rideMarkNamed": "„{name}“ markiert. Er steht nach der Fahrt im Zerlege-Blatt.",
+  "@rideMarkNamed": {
+    "description": "Leiste nach dem Speichern des Namens.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "rideMarkNamedNext": "„{name}“ markiert — der nächste Trail läuft.",
+  "@rideMarkNamedNext": {
+    "description": "Leiste nach „Speichern, nächster beginnt“.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "rideMarkDiscarded": "Marke verworfen.",
+  "@rideMarkDiscarded": {
+    "description": "Leiste nach „Verwerfen“ im Namensfeld."
+  },
+  "splitRodeTimes": "{count}× gefahren",
+  "@splitRodeTimes": {
+    "description": "Zusatz an einer Zeile des Zerlege-Blatts: Die Fahrt ging mehrmals über dieselbe Strecke (#486).",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "rideRunningStatus": "Fahrt läuft · {length} · {duration}",
   "@rideRunningStatus": {
     "description": "Karte auf der Karte während der Aufnahme; length und duration sind fertig formatiert.",
@@ -6936,6 +6995,14 @@
   "@highlightMarksText": {
     "description": "Entdecken, Eintrag „marks“: Text, zwei bis drei Sätze (auch im Neuheiten-Blatt)."
   },
+  "highlightMarkNameTitle": "Den Trail gleich benennen",
+  "@highlightMarkNameTitle": {
+    "description": "Neuheit (#486): Titel — nach „Trail endet“ fragt die App nach dem Namen."
+  },
+  "highlightMarkNameText": "Nach „Trail endet“ fragt die App gleich nach dem Namen und schlägt ihn vor, wenn sie die Strecke kennt. Zweimal gefahren wird eine Zeile, kein Duplikat.",
+  "@highlightMarkNameText": {
+    "description": "Neuheit (#486): Text, höchstens zwei Sätze."
+  },
   "highlightRideScreenTitle": "Bildschirm an beim Aufzeichnen",
   "@highlightRideScreenTitle": {
     "description": "Entdecken, Eintrag „ride-screen“: Überschrift (auch im Neuheiten-Blatt nach einem Update)."
@@ -7532,6 +7599,14 @@
   "demoMarksText": "Läuft eine Aufzeichnung, steht über diesem Knopf eine Fahne: am Anfang eines Trails antippen, am Ende noch einmal.",
   "@demoMarksText": {
     "description": "Vorführung „marks“ (Entdecken → Zeig es mir): Text der Blase."
+  },
+  "demoMarkNameTitle": "Am Ende gleich den Namen",
+  "@demoMarkNameTitle": {
+    "description": "Vorführung (#486): Schritt am Aufnahmeknopf."
+  },
+  "demoMarkNameText": "Läuft eine Aufzeichnung, tippst du am Ende eines Trails auf die Zielflagge über diesem Knopf — dann fragt die App, wie der Trail heißt.",
+  "@demoMarkNameText": {
+    "description": "Vorführung (#486): Text am Aufnahmeknopf."
   },
   "demoRideScreenTitle": "Der Sonnen-Knopf kommt mit der Fahrt",
   "@demoRideScreenTitle": {
