@@ -156,7 +156,7 @@ class _ParamsSheet extends ConsumerWidget {
       controller: scroll,
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
       children: [
-        Text(l.loopParamsTitle, style: theme.textTheme.titleLarge),
+        Text(prefs.endMode == LoopEndMode.target ? l.routeParamsTitle : l.loopParamsTitle, style: theme.textTheme.titleLarge),
         const SizedBox(height: 12),
         Text(
           start == null
@@ -642,7 +642,11 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
         MapPanelHeader(
           title: switch (_namedTarget(session)) {
             final t? => l.routeNameTrailHead(t.displayName(l)),
-            null => session.planEnd == LoopEndMode.loop ? l.loopTitle : l.loopRouteTitle,
+            // Vor dem ersten Ergebnis zählt der Regler, danach das Gezeigte —
+            // sonst hieß eine Route bis zum Ergebnis „Runde".
+            null => (plan != null ? session.planEnd : session.prefs.endMode) == LoopEndMode.loop
+                ? l.loopTitle
+                : l.loopRouteTitle,
           },
           // Kein Untertitel: Die Summe steht direkt darunter, auch
           // eingeklappt — zweimal dieselben Zahlen nahmen dem Profil den
@@ -667,7 +671,14 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
               LoopPhase.loading => [_progressBar(context, l.routingLoadingWays, null, cancel: true)],
               LoopPhase.building => [_progressBar(context, l.loopBuildingGraph, session.progress, cancel: true)],
               LoopPhase.idle when session.changed => [_changedCard(context)],
-              LoopPhase.computing || LoopPhase.idle => [_progressBar(context, l.loopComputing, session.progress, cancel: session.phase == LoopPhase.computing)],
+              LoopPhase.computing || LoopPhase.idle => [
+                  _progressBar(
+                    context,
+                    session.prefs.endMode == LoopEndMode.target ? l.routeComputing : l.loopComputing,
+                    session.progress,
+                    cancel: session.phase == LoopPhase.computing,
+                  ),
+                ],
               // Geht es nicht, bleibt zu einem Ziel die Navi-App (#151).
               LoopPhase.result => session.blocker != null || plan == null
                   ? [_blockerCard(context, session, session.blocker ?? LoopBlocker.failed), ?_external(context, session)]

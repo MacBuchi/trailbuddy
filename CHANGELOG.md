@@ -2,6 +2,18 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Planer: Route heißt Route
+
+*Version 0.158.1, 2026-11-07*
+
+- Rechnet der Planer zu einem Ziel, heißt das Blatt schon während der
+  Rechnung „Route" — vorher stand dort bis zum Ergebnis „Runde" und
+  „Die Runde wird gerechnet …". Auch die Parameter heißen dann
+  „Parameter der Route".
+- Deckt kein gespeicherter Bereich den Weg, sagt die Meldung „vom
+  Start" statt „von deinem Standort" — der Start kann auch ein
+  getippter Punkt oder ein Trailkopf sein.
+
 ## Airtime unter Buddys (Test)
 
 *Version 0.158.0, 2026-11-07*
