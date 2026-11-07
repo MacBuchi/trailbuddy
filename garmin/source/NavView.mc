@@ -46,6 +46,9 @@ class NavView extends WatchUi.View {
     static const LOADER_PERIOD_MS = 1400;
     static const LOGO_Y = 104;
     static const LOADER_TEXT_Y = 176;
+    //! Der zweizeilige Hinweis ohne Route steht höher: Bei y 176 schnitt
+    //! der Kreis die zweite Zeile ab (Simulator fēnix 5, 2026-11-07).
+    static const IDLE_TEXT_Y = 150;
 
     hidden var _route as NavRoute;
     hidden var _state as NavState? = null;
@@ -89,6 +92,8 @@ class NavView extends WatchUi.View {
     hidden var _wait as String? = null;
     //! Die Navigation ist beendet: das ganze Logo und dieser Text.
     hidden var _ended as String? = null;
+    //! Store-Bau ohne Route: das ganze Logo und der Hinweis auf die App.
+    hidden var _idle as String? = null;
     //! Die Punkte des Logos (`resources/logo`), nur solange der Lader steht.
     hidden var _logo as Array<Number>? = null;
     hidden var _logoT as Number = 1;
@@ -124,6 +129,12 @@ class NavView extends WatchUi.View {
 
     function setEnded(text as String) as Void {
         _ended = text;
+    }
+
+    //! Keine Route da (Store-Bau): Logo und [text], ohne Takt — es wartet
+    //! nichts, bis die App eine Route schickt.
+    function setIdle(text as String) as Void {
+        _idle = text;
     }
 
     function page() as Number {
@@ -165,13 +176,18 @@ class NavView extends WatchUi.View {
         _segLeft = FRAME_SEGS;
         var done = _ended;
         if (done != null) {
-            drawLoader(dc, w, done, true);
+            drawLoader(dc, w, done, true, LOADER_TEXT_Y);
+            return;
+        }
+        var idle = _idle;
+        if (idle != null) {
+            drawLoader(dc, w, idle, true, IDLE_TEXT_Y);
             return;
         }
         var waiting = _wait;
         if (waiting != null || (!_route.isReady() && !_route.failed)) {
             drawLoader(dc, w, waiting != null ? waiting
-                : str(Rez.Strings.Loading) + " " + (_route.progress() * 100).toNumber() + " %", false);
+                : str(Rez.Strings.Loading) + " " + (_route.progress() * 100).toNumber() + " %", false, LOADER_TEXT_Y);
             return;
         }
         _logo = null;
@@ -902,8 +918,9 @@ class NavView extends WatchUi.View {
     //! Lime, darunter [text]. Die Punkte kommen aus `tool/brand_icons.py`
     //! (je zwei Zahlen: x/y und Radius/Weg in Zehntel, gepackt wie die
     //! Route) — volle Kreise entlang der Mittellinie statt eines Polygons.
-    //! [full]: das ganze Zeichen in Lime, ohne Takt (Navigation beendet).
-    hidden function drawLoader(dc as Dc, w as Number, text as String, full as Boolean) as Void {
+    //! [full]: das ganze Zeichen in Lime, ohne Takt (Navigation beendet,
+    //! keine Route). [textY]: Oberkante des Texts.
+    hidden function drawLoader(dc as Dc, w as Number, text as String, full as Boolean, textY as Number) as Void {
         dc.setColor(TbColors.TEXT_ON_FIELD, TbColors.FIELD);
         dc.clear();
         var dots = _logo;
@@ -926,7 +943,7 @@ class NavView extends WatchUi.View {
         dc.setColor(TbColors.ROUTE, Graphics.COLOR_TRANSPARENT);
         logoDots(dc, dots, cx, to);
         dc.setColor(TbColors.MUTED, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx, LOADER_TEXT_Y, Graphics.FONT_XTINY, text, Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(cx, textY, Graphics.FONT_XTINY, text, Graphics.TEXT_JUSTIFY_CENTER);
     }
 
     //! Die Punkte bis zum Weg [to] (-1: alle).

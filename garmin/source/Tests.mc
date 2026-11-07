@@ -537,7 +537,9 @@ function loaderLogoIsOrdered(logger as Logger) as Boolean {
         var x = PhoneRoute.unpackHi(dots[i]) / 10;
         var y = NavView.LOGO_Y + PhoneRoute.unpackLo(dots[i]) / 10;
         Test.assert(c >= last && c <= total);
-        Test.assert(r >= 20 && r <= 120);
+        // Radius in Zehntel px: der dickste Punkt des erzeugten Logos misst
+        // 12,8 px (die Anlieger), die Grenze ist nur ein Plausibilitätsrahmen.
+        Test.assert(r >= 20 && r <= 140);
         Test.assert(x * x + (y - 120) * (y - 120) < 110 * 110);
         last = c;
     }
