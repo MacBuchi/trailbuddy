@@ -2,6 +2,13 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Neue Kontaktadresse
+
+*Version 0.159.1, 2026-11-07*
+
+- Impressum, Datenschutzerklärung und die Seite zum Löschen des Kontos
+  nennen jetzt macbuchi.apps@gmail.com als Kontakt.
+
 ## Unterwegs geladen bleibt
 
 *Version 0.159.0, 2026-11-07*
