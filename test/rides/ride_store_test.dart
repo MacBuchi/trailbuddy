@@ -95,6 +95,20 @@ void main() {
     expect(await store.saveImported(uid: 'me', name: 'leer', points: const []), ImportSave.failed);
   });
 
+  test('eine Fahrt der Uhr trägt ihre Trail-Marken (LAP an der Uhr) in die Datei', () async {
+    final store = FileRideStore(baseDir: dir);
+    final pts = [for (var i = 0; i < 4; i++) point(i)];
+    final marks = [
+      RideMark(kind: RideMarkKind.start, at: pts[1].at),
+      RideMark(kind: RideMarkKind.end, at: pts[2].at),
+    ];
+    expect(await store.saveImported(uid: 'me', name: null, points: pts, source: kRideSourceWatch, marks: marks),
+        ImportSave.saved);
+    final ride = (await store.list(uid: 'me')).single;
+    expect(ride.marks.map((m) => (m.kind, m.at)), [(RideMarkKind.start, pts[1].at), (RideMarkKind.end, pts[2].at)]);
+    expect(ride.points.length, 4, reason: 'die Marken sind keine Punkte');
+  });
+
   test('Punkte überstehen Schreiben und Lesen, auch die Höhe', () async {
     final store = FileRideStore(baseDir: dir);
     await store.begin(uid: 'me', startedAt: start);

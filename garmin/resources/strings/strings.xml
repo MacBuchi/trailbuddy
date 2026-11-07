@@ -29,10 +29,25 @@
     <string id="Angle">ANGLE</string>
     <string id="Jumps">JUMPS</string>
     <string id="Wheelies">WHEELIES</string>
-    <string id="QuitRide">End ride?</string>
     <string id="FreeRide">FREE RIDE</string>
     <string id="StorageFull">STORAGE FULL</string>
     <string id="RideSending">Ride to phone</string>
     <string id="RideOnPhone">Ride is on the phone</string>
     <string id="RideWaits">Ride saved\nwaits for the phone</string>
+    <string id="RecIdle">START: RECORD</string>
+    <string id="RecPaused">PAUSED</string>
+    <string id="RecTrail">TRAIL</string>
+    <string id="RecStarted">Recording</string>
+    <string id="TrailStart">Trail starts</string>
+    <string id="TrailEnd">Trail ends</string>
+    <string id="TrailDiscarded">Trail discarded</string>
+    <string id="Resume">Resume</string>
+    <string id="Save">Save</string>
+    <string id="Discard">Discard</string>
+    <string id="Keep">Keep</string>
+    <string id="EndsNav">ends navigation</string>
+    <string id="DiscardRide">Discard ride?</string>
+    <string id="RideDiscarded">Ride discarded</string>
+    <string id="RideTooShort">Ride too short\nnot saved</string>
+    <string id="AppQuit">Quit TrailBuddy?</string>
 </strings>

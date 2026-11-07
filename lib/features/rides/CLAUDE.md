@@ -70,6 +70,16 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
   ohne `rideOverlaps` einer). Gelauscht wird ab dem Start, sobald
   `Settings.watchSeen` (gesetzt von `watchStatusProvider`); die Leiste
   „Fahrt von der Uhr übernommen" zeigt `WatchRideListener` in `app.dart`.
+  Seit 0.162.0 (Konzept-Garmin 0.6): Die Uhr zeichnet erst ab START auf;
+  ihre Trail-Marken (LAP) kommen als `m` mit und gehen über
+  `saveFromWatch(marks:)` → `saveImported(marks:)` als Markenzeilen in
+  die Datei. `rs` (START an der Uhr) startet hier `RideNotifier.start`,
+  wenn keine Fahrt läuft; `rt` hängt Beginn und Ende per `addMarks` an;
+  `re` beendet nur eine Fahrt, die `rs` begann (verworfen ⇒ löschen).
+  Ohne Punkt nach `kWatchRecordCheck` (45 s) wird sie zurückgenommen —
+  im Hintergrund darf der Dienst mit Standort nicht starten (Messung 8.7,
+  Logcat `TB-GARMIN rs:`). Gegenprobe: drei Tests in
+  `watch_ride_test.dart`, einer in `ride_store_test.dart`.
 - **Bildschirm an während der Fahrt** (#445, seit 0.156.0): Sonnen-Knopf
   über der Fahne (`ride-screen-button`, nur mit `ScreenAwake.supported`),
   gemerkt in `Settings.rideKeepScreenOn`, **ab Werk aus** (in der Tasche

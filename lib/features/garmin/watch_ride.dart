@@ -9,12 +9,21 @@
 //   Uhr  → `{t: "w", id, p, n, c}`       Nachricht p von n, `c` = Stücke
 //   Handy → `{t: "wk", id}`              abgelegt (oder lag schon da)
 //
+// Die erste Nachricht trägt dazu die Trail-Marken der Uhr (`m`, LAP an der
+// Uhr): `[Art, t, Art, t, …]`, Art 0 „Trail beginnt", 1 „Trail endet",
+// t in Sekunden seit 1970 — wie [RideMark], nur die Zeit.
+//
+// Während der Fahrt (Betreiber 2026-11-07: Aufzeichnung an der Uhr):
+//   Uhr  → `{t: "rs"}`                    START gedrückt
+//   Uhr  → `{t: "rt", s, e}`              ein markierter Trail, behalten
+//   Uhr  → `{t: "re", k}`                 gespeichert (k true) / verworfen
+//
 // Ein Stück ist `[lat, lon, t, e, acc, p1, q1, p2, q2, …]`: der erste
 // Punkt in 1e-5°, Sekunden seit 1970 (UTC), Höhe in Dezimetern, Klasse der
 // Genauigkeit 0–3; danach je Punkt `p = (dLat << 16) | dLon` und
 // `q = (dt << 16) | (dE << 2) | acc` gegen den Vorgänger, dE in dm mit 14
 // Bit Vorzeichen.
-import '../rides/ride_track.dart' show RidePoint;
+import '../rides/ride_track.dart' show RideMark, RideMarkKind, RidePoint;
 import 'watch_route.dart' show watchPack, watchUnpack;
 
 /// Eine Nachricht der Fahrt, „schick" und „abgelegt".
@@ -27,15 +36,57 @@ const kWatchRideAck = 'wk';
 /// GOOD und USABLE; das Zerlege-Blatt verwirft über 30 m.
 const kWatchAccuracyM = [5.0, 15.0, 40.0, 100.0];
 
+/// START, ein behaltener Trail und das Ende der Aufzeichnung an der Uhr.
+const kWatchRecordStart = 'rs';
+const kWatchTrailKept = 'rt';
+const kWatchRecordEnd = 're';
+
+/// Was die Uhr über ihre Aufzeichnung sagt, oder null bei einer anderen
+/// Nachricht. [trail] ist der behaltene Trail, [keep] das Ende.
+({bool start, RideMark? trailStart, RideMark? trailEnd, bool? keep})? watchRecordOf(Object? message) {
+  if (message is! Map) return null;
+  switch (message['t']) {
+    case kWatchRecordStart:
+      return (start: true, trailStart: null, trailEnd: null, keep: null);
+    case kWatchTrailKept:
+      final s = message['s'], e = message['e'];
+      if (s is! int || e is! int || e < s) return null;
+      return (
+        start: false,
+        trailStart: RideMark(kind: RideMarkKind.start, at: _utc(s)),
+        trailEnd: RideMark(kind: RideMarkKind.end, at: _utc(e)),
+        keep: null,
+      );
+    case kWatchRecordEnd:
+      final k = message['k'];
+      return (start: false, trailStart: null, trailEnd: null, keep: k is bool ? k : true);
+  }
+  return null;
+}
+
+DateTime _utc(int s) => DateTime.fromMillisecondsSinceEpoch(s * 1000, isUtc: true);
+
+/// Die Trail-Marken der Uhr (`m`) als [RideMark]; Unlesbares fällt weg.
+List<RideMark> watchMarksOf(Object? m) {
+  if (m is! List) return const [];
+  final out = <RideMark>[];
+  for (var i = 0; i + 1 < m.length; i += 2) {
+    final kind = m[i], t = m[i + 1];
+    if (t is! int || (kind != 0 && kind != 1)) continue;
+    out.add(RideMark(kind: kind == 0 ? RideMarkKind.start : RideMarkKind.end, at: _utc(t)));
+  }
+  return out;
+}
+
 /// „Schick die wartenden Fahrten" — die Antwort auf ein „hallo" mit `rq`.
 const Map<String, Object> watchRidePull = {'t': kWatchRidePull};
 
 /// „Die Fahrt [id] liegt auf dem Handy" — erst dann löscht die Uhr sie.
 Map<String, Object> watchRideAckOf(String id) => {'t': kWatchRideAck, 'id': id};
 
-/// Eine Nachricht der Fahrt: `(id, p, n, chunks)`, oder null bei falscher
-/// Form.
-({String id, int p, int n, List<List<int>> chunks})? watchRidePartOf(Object? message) {
+/// Eine Nachricht der Fahrt: `(id, p, n, chunks, marks)`, oder null bei
+/// falscher Form. [marks] trägt nur die erste.
+({String id, int p, int n, List<List<int>> chunks, List<RideMark> marks})? watchRidePartOf(Object? message) {
   if (message is! Map || message['t'] != kWatchRide) return null;
   final id = message['id'], p = message['p'], n = message['n'], c = message['c'];
   if (id is! String || p is! int || n is! int || c is! List || n < 1 || p < 0 || p >= n) return null;
@@ -49,7 +100,7 @@ Map<String, Object> watchRideAckOf(String id) => {'t': kWatchRideAck, 'id': id};
     }
     chunks.add(ints);
   }
-  return (id: id, p: p, n: n, chunks: chunks);
+  return (id: id, p: p, n: n, chunks: chunks, marks: p == 0 ? watchMarksOf(message['m']) : const <RideMark>[]);
 }
 
 /// Die Stücke einer Fahrt als Punkte, in ihrer Reihenfolge — oder null,

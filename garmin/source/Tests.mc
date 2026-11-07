@@ -576,6 +576,7 @@ function loaderLogoIsOrdered(logger as Logger) as Boolean {
 function rideLogPacksAndQueues(logger as Logger) as Boolean {
     TestRoutes.wipeRides();
     var log = new RideLog();
+    log.start();
     // Jede Sekunde ein Fix, nur jeder fünfte zählt: 70 Punkte.
     Test.assertEqual(TestRoutes.ride(log, 1700000000, 350, 1), 70);
     Test.assert(log.recording());
@@ -616,6 +617,7 @@ function rideLogPacksAndQueues(logger as Logger) as Boolean {
 function rideLogSplitsOnGap(logger as Logger) as Boolean {
     TestRoutes.wipeRides();
     var log = new RideLog();
+    log.start();
     TestRoutes.ride(log, 1700000000, 30, 5);
     Test.assert(log.add(1.0d, 0.001d, 1700000200, 380.0, 3));
     TestRoutes.ride(log, 1700000205, 30, 5);
@@ -639,12 +641,14 @@ function rideLogSplitsOnGap(logger as Logger) as Boolean {
 function rideLogDropsShortRide(logger as Logger) as Boolean {
     TestRoutes.wipeRides();
     var log = new RideLog();
+    log.start();
     TestRoutes.ride(log, 1700000000, 10, 5);
     Test.assert(log.finish() == null);
     Test.assertEqual(RideLog.queue().size(), 0);
     Test.assert(Application.Storage.getValue(RideLog.key("1700000000", 0)) == null);
     // Lange genug, aber im Stand: auch nichts.
     var still = new RideLog();
+    still.start();
     for (var i = 0; i < 40; i++) { still.add(0.0d, 0.0d, 1700001000 + i * 5, 400.0, 4); }
     Test.assert(still.finish() == null);
     Test.assertEqual(RideLog.queue().size(), 0);
@@ -657,6 +661,7 @@ function rideLogDropsShortRide(logger as Logger) as Boolean {
 function rideLogDeletesOnlyOnAck(logger as Logger) as Boolean {
     TestRoutes.wipeRides();
     var log = new RideLog();
+    log.start();
     TestRoutes.ride(log, 1700000000, 40, 5);
     var id = log.finish() as String;
     Test.assert(!RideLog.ack("1700000001"));
@@ -676,6 +681,7 @@ function rideLogStopsWhenFull(logger as Logger) as Boolean {
     TestRoutes.wipeRides();
     RideLog.enqueue("1600000000", 0, RideLog.MAX_POINTS);
     var log = new RideLog();
+    log.start();
     Test.assertEqual(TestRoutes.ride(log, 1700000000, 30, 5), 0);
     Test.assert(log.full);
     Test.assert(!log.recording());
@@ -690,6 +696,7 @@ function rideLogStopsWhenFull(logger as Logger) as Boolean {
 function rideLogRecoversAfterCrash(logger as Logger) as Boolean {
     TestRoutes.wipeRides();
     var log = new RideLog();
+    log.start();
     TestRoutes.ride(log, 1700000000, 37, 5); // gespeichert bis Punkt 36
     RideLog.recover();
     var q = RideLog.queue();
@@ -700,5 +707,95 @@ function rideLogRecoversAfterCrash(logger as Logger) as Boolean {
     var c = RideLog.message(q[0], 0)["c"] as Array<Array<Number>>;
     Test.assertEqual(RideLog.unpack(c[0]).size(), 36);
     TestRoutes.wipeRides();
+    return true;
+}
+
+//! Aufgezeichnet wird erst nach START (Betreiber 2026-11-07, „wie
+//! Garmin"); in der Pause nichts, und der Sprung über die Pause zählt
+//! nicht als Strecke.
+(:test)
+function rideLogWaitsForStartAndPauses(logger as Logger) as Boolean {
+    TestRoutes.wipeRides();
+    var log = new RideLog();
+    Test.assertEqual(log.state(), RideLog.IDLE);
+    Test.assertEqual(TestRoutes.ride(log, 1700000000, 10, 5), 0);
+    Test.assert(!log.recording());
+    log.start();
+    Test.assertEqual(log.state(), RideLog.RECORDING);
+    Test.assertEqual(TestRoutes.ride(log, 1700000000, 30, 5), 30);
+    var before = log.distanceM;
+    log.pause();
+    Test.assertEqual(log.state(), RideLog.PAUSED);
+    Test.assert(!log.add(0.5d, 0.001d, 1700000400, 400.0, 4));
+    log.resume();
+    // 0,48° weiter nördlich, gut 50 km: kein Teil der Strecke.
+    Test.assert(log.add(0.5d, 0.001d, 1700000500, 400.0, 4));
+    Test.assert(log.distanceM - before < 1.0);
+    Test.assert(log.add(0.5005d, 0.001d, 1700000505, 400.0, 4));
+    Test.assert(log.distanceM - before > 50.0);
+    Test.assert(log.finish() != null);
+    Test.assertEqual(log.state(), RideLog.IDLE);
+    TestRoutes.wipeRides();
+    return true;
+}
+
+//! Trail-Marken: LAP setzt Beginn und Ende im Wechsel, „Verwerfen" nimmt
+//! das letzte Paar zurück, die übrigen reisen mit der ersten Nachricht
+//! (`m`); Verwerfen der Fahrt räumt alles weg. Gegenprobe: ohne
+//! `storeMarks` fehlt `m` in der Nachricht.
+(:test)
+function rideLogCarriesTrailMarks(logger as Logger) as Boolean {
+    TestRoutes.wipeRides();
+    var log = new RideLog();
+    log.start();
+    Test.assertEqual(log.mark(1700000000), -1); // noch kein Punkt
+    TestRoutes.ride(log, 1700000000, 30, 5);
+    Test.assertEqual(log.mark(1700000050), 0);
+    Test.assert(log.trailOpen());
+    Test.assertEqual(log.mark(1700000100), 1);
+    Test.assert(!log.trailOpen());
+    Test.assertEqual(log.lastTrail()[1], 1700000100);
+    Test.assertEqual(log.mark(1700000110), 0);
+    Test.assertEqual(log.mark(1700000120), 1);
+    Test.assertEqual(log.dropLastTrail()[0], 1700000110);
+    var id = log.finish() as String;
+    var m = RideLog.message(RideLog.queue()[0], 0)["m"] as Array<Number>;
+    Test.assertEqual(m.size(), 4);
+    Test.assertEqual(m[0], 0);
+    Test.assertEqual(m[1], 1700000050);
+    Test.assertEqual(m[2], 1);
+    Test.assertEqual(m[3], 1700000100);
+    Test.assert(RideLog.ack(id));
+    Test.assert(Application.Storage.getValue(RideLog.markKey(id)) == null);
+    // Verwerfen: nichts wartet, nichts bleibt liegen.
+    var gone = new RideLog();
+    gone.start();
+    TestRoutes.ride(gone, 1700010000, 40, 5);
+    gone.mark(1700010050);
+    gone.discard();
+    Test.assertEqual(RideLog.queue().size(), 0);
+    Test.assert(Application.Storage.getValue("wo") == null);
+    Test.assert(Application.Storage.getValue(RideLog.key("1700010000", 0)) == null);
+    Test.assert(Application.Storage.getValue(RideLog.markKey("1700010000")) == null);
+    TestRoutes.wipeRides();
+    return true;
+}
+
+//! In der Pause zählen Strecke und Fahrzeit nicht (RideStats.counting).
+(:test)
+function rideStatsStopsWhenNotCounting(logger as Logger) as Boolean {
+    var st = new RideStats(0);
+    st.update(0.0, 0.0, 0, 5.0, 400.0, null, -1);
+    st.update(0.0, 50.0, 10000, 5.0, 410.0, null, -1);
+    var d = st.distanceM;
+    Test.assert(d > 49.0);
+    st.counting = false;
+    st.update(0.0, 100.0, 20000, 5.0, 420.0, null, -1);
+    Test.assertEqual(st.distanceM, d);
+    var climbed = st.climbM;
+    st.counting = true;
+    st.update(0.0, 150.0, 30000, 5.0, 421.0, null, -1);
+    // Der Anstieg in der Pause (410 → 420) zählt nicht nach.
+    Test.assert(st.climbM - climbed < 3.0);
     return true;
 }

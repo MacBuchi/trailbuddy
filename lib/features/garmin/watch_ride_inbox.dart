@@ -7,15 +7,24 @@
 // Gelauscht wird ab dem Start der App, sobald einmal eine Uhr mit unserer
 // App gefunden wurde (`Settings.watchSeen`, Betreiber 2026-11-07); die Uhr
 // wird dabei nicht geöffnet (Konzept 2, „Kein Anstoßen beim Start").
+//
+// Dieselbe Leitung hört, wenn an der Uhr aufgezeichnet wird (Betreiber
+// 2026-11-07): START an der Uhr startet die Aufzeichnung hier mit, wenn
+// keine läuft; ein behaltener Trail der Uhr wird hier eine Marke; Speichern
+// oder Verwerfen an der Uhr beendet eine Aufzeichnung, die die Uhr begann,
+// genauso. Ob Android das aus dem Hintergrund erlaubt, ist zu messen
+// (Konzept-Garmin 8.7): Kommt in [kWatchRecordCheck] kein Punkt, nimmt
+// das Handy die Aufzeichnung still zurück.
 import 'dart:async';
 
-import 'package:flutter/foundation.dart' show visibleForTesting;
+import 'package:flutter/foundation.dart' show debugPrint, visibleForTesting;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/errors.dart';
 import '../../core/settings.dart';
 import '../profile/profile_providers.dart' show riderProfileProvider;
-import '../rides/ride_providers.dart' show ridesProvider, WatchRideSave;
+import '../rides/ride_providers.dart' show rideProvider, ridesProvider, RideStartResult, WatchRideSave;
+import '../rides/ride_track.dart' show RideMark;
 import 'garmin_bridge.dart';
 import 'watch_ride.dart';
 import 'watch_route.dart' show watchHelloOf;
@@ -24,12 +33,24 @@ import 'watch_route.dart' show watchHelloOf;
 /// fängt sie von vorn an (die Uhr schickt sie beim nächsten Mal ganz).
 const kWatchRidePartWait = Duration(minutes: 2);
 
+/// So lange darf eine Aufzeichnung, die die Uhr anstieß, ohne Punkt sein;
+/// danach war es wohl der Hintergrund (Android lässt dort keinen Dienst
+/// mit Standort starten), und sie wird zurückgenommen.
+const kWatchRecordCheck = Duration(seconds: 45);
+
 /// Zählt die Fahrten der Uhr, die in dieser Sitzung abgelegt wurden — die
 /// Hülle zeigt bei jeder neuen eine Leiste (`WatchRideListener`).
 class WatchRideInbox extends Notifier<int> {
   StreamSubscription<Object?>? _messages;
   final _incoming = <String, _Incoming>{};
   final _saving = <String>{};
+  /// Die laufende Aufzeichnung begann auf START der Uhr.
+  bool _byWatch = false;
+  Timer? _check;
+
+  /// Die Frist ohne Punkt (Test).
+  @visibleForTesting
+  Duration recordCheck = kWatchRecordCheck;
 
   /// Die Uhr der Fristen (Test).
   @visibleForTesting
@@ -39,6 +60,7 @@ class WatchRideInbox extends Notifier<int> {
   int build() {
     ref.onDispose(() {
       _messages?.cancel();
+      _check?.cancel();
     });
     return 0;
   }
@@ -67,6 +89,8 @@ class WatchRideInbox extends Notifier<int> {
       if (hello.rides.isNotEmpty) await ref.read(garminBridgeProvider).send([watchRidePull]);
       return;
     }
+    final record = watchRecordOf(message);
+    if (record != null) return _onRecord(record);
     final part = watchRidePartOf(message);
     if (part == null) return;
     final t = now();
@@ -74,18 +98,19 @@ class WatchRideInbox extends Notifier<int> {
     var inc = _incoming[part.id];
     if (inc == null || inc.n != part.n) inc = _incoming[part.id] = _Incoming(part.n);
     inc.parts[part.p] = part.chunks;
+    if (part.p == 0) inc.marks = part.marks;
     inc.touched = t;
     if (inc.parts.length < inc.n) return;
     _incoming.remove(part.id);
     if (!_saving.add(part.id)) return;
     try {
-      await _save(part.id, [for (var p = 0; p < inc.n; p++) ...inc.parts[p]!]);
+      await _save(part.id, [for (var p = 0; p < inc.n; p++) ...inc.parts[p]!], inc.marks);
     } finally {
       _saving.remove(part.id);
     }
   }
 
-  Future<void> _save(String id, List<List<int>> chunks) async {
+  Future<void> _save(String id, List<List<int>> chunks, List<RideMark> marks) async {
     final bridge = ref.read(garminBridgeProvider);
     final points = decodeWatchRide(chunks);
     if (points == null || points.length < 2) {
@@ -96,10 +121,59 @@ class WatchRideInbox extends Notifier<int> {
       return;
     }
     final profile = ref.read(riderProfileProvider).name;
-    final result = await ref.read(ridesProvider.notifier).saveFromWatch(points, profile: profile);
+    final result = await ref.read(ridesProvider.notifier).saveFromWatch(points, profile: profile, marks: marks);
     if (result == WatchRideSave.failed) return;
     await bridge.send([watchRideAckOf(id)]);
     if (result == WatchRideSave.saved) state = state + 1;
+  }
+}
+
+extension on WatchRideInbox {
+  Future<void> _onRecord(({bool start, RideMark? trailStart, RideMark? trailEnd, bool? keep}) r) async {
+    final rides = ref.read(rideProvider.notifier);
+    if (r.start) {
+      if (rides.isRunning) {
+        debugPrint('TB-GARMIN rs: Handy nimmt schon auf');
+        return;
+      }
+      final result = await rides.start();
+      debugPrint('TB-GARMIN rs: $result');
+      if (result != RideStartResult.started) return;
+      _byWatch = true;
+      _check?.cancel();
+      _check = Timer(recordCheck, () => unawaited(_checkRecording()));
+      return;
+    }
+    final s = r.trailStart, e = r.trailEnd;
+    if (s != null && e != null) {
+      if (rides.isRunning) await rides.addMarks([s, e]);
+      return;
+    }
+    // Das Ende an der Uhr: nur eine Aufzeichnung, die die Uhr begann.
+    if (!_byWatch) return;
+    _byWatch = false;
+    _check?.cancel();
+    if (!rides.isRunning) return;
+    final ride = await rides.stop();
+    if (ride == null) return;
+    debugPrint('TB-GARMIN re: ${r.keep == false ? 'verworfen' : 'gespeichert'}, ${ride.points.length} Punkte');
+    if (r.keep == false || ride.points.length < 2) {
+      await ref.read(ridesProvider.notifier).delete(ride.id);
+    } else {
+      ref.invalidate(ridesProvider);
+    }
+  }
+
+  /// Kam kein Punkt, lief der Dienst nicht (Hintergrund): zurücknehmen —
+  /// die Uhr zeichnet ohnehin auf.
+  Future<void> _checkRecording() async {
+    final rides = ref.read(rideProvider.notifier);
+    final current = ref.read(rideProvider);
+    if (!_byWatch || current == null || current.points.isNotEmpty) return;
+    _byWatch = false;
+    debugPrint('TB-GARMIN rs: kein Punkt in ${recordCheck.inSeconds} s, zurückgenommen');
+    final ride = await rides.stop();
+    if (ride != null) await ref.read(ridesProvider.notifier).delete(ride.id);
   }
 }
 
@@ -108,6 +182,7 @@ class _Incoming {
 
   final int n;
   final parts = <int, List<List<int>>>{};
+  List<RideMark> marks = const [];
   DateTime touched = DateTime.fromMillisecondsSinceEpoch(0);
 }
 

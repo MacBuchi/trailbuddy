@@ -2,6 +2,26 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Aufzeichnung an der Uhr starten und stoppen
+
+*Version 0.162.0, 2026-11-07*
+
+- Auf der Garmin-Uhr steuerst du die Aufzeichnung jetzt selbst, wie bei
+  Garmins eigenen Aktivitäten: START beginnt sie, noch einmal START hält
+  an. In der Pause gibt es ein Menü mit Weiter, Speichern und Verwerfen.
+  Verworfen ist die Fahrt ganz weg.
+- Die Runden-Taste (ZURÜCK) markiert unterwegs „Trail beginnt" und „Trail
+  endet". Nach dem Ende kannst du den Trail behalten oder verwerfen. Die
+  Marken kommen mit der Fahrt aufs Handy, das Zerlege-Blatt nimmt sie wie
+  die vom Handy.
+- Oben auf der Karte steht immer, was die Aufzeichnung tut: START,
+  PAUSE, TRAIL oder ein roter Punkt. Hoch und runter blättern die Seiten,
+  langes Drücken von HOCH zoomt die Karte.
+- Läuft TrailBuddy auf dem Handy, nimmt es mit auf, sobald du an der Uhr
+  START drückst, und beendet die Aufzeichnung mit der Uhr.
+- Eine Runde, die das Handy auf die Uhr schicken wollte, blieb manchmal
+  aus, und die Uhr zeigte nur „Freie Fahrt". Jetzt fragt die Uhr in der
+  freien Fahrt immer wieder nach, und die Route kommt nach.
 ## Den Trail gleich beim Fahren benennen
 
 *Version 0.161.0, 2026-11-07*
