@@ -19,6 +19,13 @@
   auch mit dem Handy aufgezeichnet, bleibt es bei der Fahrt des Handys.
   Garmin bekommt davon nichts, es entsteht keine Garmin-Aktivität.
 
+## Neue Kontaktadresse
+
+*Version 0.159.1, 2026-11-07*
+
+- Impressum, Datenschutzerklärung und die Seite zum Löschen des Kontos
+  nennen jetzt macbuchi.apps@gmail.com als Kontakt.
+
 ## Unterwegs geladen bleibt
 
 *Version 0.159.0, 2026-11-07*

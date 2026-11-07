@@ -19,6 +19,13 @@
   the phone too, the phone's ride is kept. Garmin gets none of it, and
   no Garmin activity is created.
 
+## New contact address
+
+*Version 0.159.1, 2026-11-07*
+
+- The imprint, the privacy policy and the account deletion page now
+  name macbuchi.apps@gmail.com as the contact.
+
 ## Loaded on the way stays
 
 *Version 0.159.0, 2026-11-07*
