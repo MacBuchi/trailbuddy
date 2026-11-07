@@ -29,10 +29,25 @@
     <string id="Angle">WINKEL</string>
     <string id="Jumps">SPRÜNGE</string>
     <string id="Wheelies">WHEELIES</string>
-    <string id="QuitRide">Fahrt beenden?</string>
     <string id="FreeRide">FREIE FAHRT</string>
     <string id="StorageFull">SPEICHER VOLL</string>
     <string id="RideSending">Fahrt geht ans Handy</string>
     <string id="RideOnPhone">Fahrt ist auf dem Handy</string>
     <string id="RideWaits">Fahrt gespeichert\nwartet aufs Handy</string>
+    <string id="RecIdle">START: AUFNAHME</string>
+    <string id="RecPaused">PAUSE</string>
+    <string id="RecTrail">TRAIL</string>
+    <string id="RecStarted">Aufzeichnung läuft</string>
+    <string id="TrailStart">Trail beginnt</string>
+    <string id="TrailEnd">Trail endet</string>
+    <string id="TrailDiscarded">Trail verworfen</string>
+    <string id="Resume">Weiter</string>
+    <string id="Save">Speichern</string>
+    <string id="Discard">Verwerfen</string>
+    <string id="Keep">Behalten</string>
+    <string id="EndsNav">beendet die Navigation</string>
+    <string id="DiscardRide">Fahrt verwerfen?</string>
+    <string id="RideDiscarded">Fahrt verworfen</string>
+    <string id="RideTooShort">Fahrt zu kurz\nnicht gespeichert</string>
+    <string id="AppQuit">TrailBuddy beenden?</string>
 </strings>

@@ -35,6 +35,10 @@ class RideStats {
     //! Winkel in Grad, `sn` Stoppies. Gemessen wird auf dem Handy, die Uhr
     //! zeigt nur (Entscheidung 1). Null, solange keiner kam.
     var bests as Dictionary? = null;
+    //! Zählen Strecke, Fahrzeit und bergauf mit? Nur, solange die Uhr
+    //! aufzeichnet (vor START und in der Pause nicht, wie bei Garmin);
+    //! Höhe, Steigung und Puls stehen trotzdem.
+    var counting as Boolean = true;
 
     hidden var _lastX as Float? = null;
     hidden var _lastY as Float? = null;
@@ -53,7 +57,7 @@ class RideStats {
     //! gerade ist (-1 = keiner).
     function update(x as Float, y as Float, ms as Number, speed as Float?, alt as Float?,
                     hr as Number?, section as Number) as Void {
-        var moving = speed != null && speed >= MOVING_MPS;
+        var moving = counting && speed != null && speed >= MOVING_MPS;
         var lx = _lastX;
         var ly = _lastY;
         var lm = _lastMs;
@@ -73,7 +77,12 @@ class RideStats {
         if (section >= 0 && section < ridden.size()) { ridden[section] = true; }
         if (alt == null) { return; }
         altitude = alt;
-        climb(alt);
+        // In der Pause beginnt der Anstieg danach am dann tiefsten Punkt.
+        if (!counting) {
+            _ref = alt;
+        } else {
+            climb(alt);
+        }
         sampleGrade(alt);
     }
 

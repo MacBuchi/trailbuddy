@@ -19,6 +19,12 @@ import Toybox.Math;
 //! dLon`, q = `(dt << 16) | (dE << 2) | acc` mit dE in Dezimetern (14 Bit).
 //! Passt ein Schritt nicht hinein (Lücke im GPS), beginnt ein neues Stück.
 //!
+//! Aufgezeichnet wird erst nach START ([start], Betreiber 2026-11-07:
+//! „wie Garmin"), [pause] hält an, [resume] macht weiter, [finish]
+//! speichert, [discard] wirft alles weg. Dazu die Trail-Marken ([mark]):
+//! `m<id>` = `[Art, t, Art, t, …]`, Art 0 „Trail beginnt", 1 „Trail
+//! endet", t Sekunden seit 1970 — wie `RideMark` der App, nur die Zeit.
+//!
 //! Jedes Stück liegt unter `w<id>_<k>` in `Application.Storage`; das
 //! offene wird alle [FLUSH_POINTS] Punkte neu geschrieben, dazu `wo` =
 //! `[id, k, Punkte]`. Ein Absturz kostet also höchstens eine Minute; der
@@ -42,6 +48,12 @@ class RideLog {
     //! So viele Punkte der Spur hält die Ansicht der freien Fahrt (25 min).
     static const TRACK_N = 300;
     static const K_LAT = 111194.9;
+    //! So viele Marken hält eine Fahrt höchstens (100 Trails).
+    static const MAX_MARKS = 200;
+    //! Die Stände der Aufzeichnung ([state]).
+    static const IDLE = 0;
+    static const RECORDING = 1;
+    static const PAUSED = 2;
 
     //! Die Warteschlange ist voll: Die Aufzeichnung steht, bis das Handy
     //! Fahrten abnahm — nichts wird still überschrieben.
@@ -60,6 +72,15 @@ class RideLog {
     hidden var _kLon as Float = K_LAT;
 
     hidden var _id as String? = null;
+    //! START gedrückt (bis [finish]/[discard]) und gerade nicht pausiert.
+    hidden var _started as Boolean = false;
+    hidden var _active as Boolean = false;
+    //! Nach einer Pause zählt der Sprung zum ersten Punkt nicht als Strecke.
+    hidden var _gap as Boolean = false;
+    //! Die Marken der offenen Fahrt, flach `[Art, t, …]`.
+    hidden var _marks as Array<Number> = [] as Array<Number>;
+    //! Das letzte [finish] warf die Fahrt weg, weil sie zu kurz war.
+    var lastShort as Boolean = false;
     hidden var _k as Number = 0;
     hidden var _chunk as Array<Number>? = null;
     hidden var _n as Number = 0;
@@ -77,7 +98,7 @@ class RideLog {
     //! Ein Fix. [t] Sekunden seit 1970, [ele] Meter oder null, [quality]
     //! `Position.QUALITY_*`. Liefert true, wenn der Punkt in die Fahrt ging.
     function add(latDeg as Double, lonDeg as Double, t as Number, ele as Float?, quality as Number) as Boolean {
-        if (full) { return false; }
+        if (full || !_active) { return false; }
         if (_id != null && t - _lastT < EVERY_S) { return false; }
         var la = Math.round(latDeg * 100000.0d).toNumber();
         var lo = Math.round(lonDeg * 100000.0d).toNumber();
@@ -100,7 +121,7 @@ class RideLog {
         var dLon = lo - _lastLon;
         var dt = t - _lastT;
         var dE = e - _lastE;
-        if (_n > 0) {
+        if (_n > 0 && !_gap) {
             var dy = dLat * K_LAT / 100000.0;
             var dx = dLon * K_LAT * Math.cos(Math.toRadians(la / 100000.0)) / 100000.0;
             distanceM += Math.sqrt(dx * dx + dy * dy).toFloat();
@@ -116,6 +137,7 @@ class RideLog {
             c.add(PhoneRoute.pack(dLat, dLon));
             c.add(PhoneRoute.pack(dt, ((dE & 0x3FFF) << 2) | acc));
         }
+        _gap = false;
         _n++;
         _lastLat = la;
         _lastLon = lo;
@@ -151,9 +173,97 @@ class RideLog {
         if (trackCount < TRACK_N) { trackCount++; }
     }
 
-    //! Läuft eine Fahrt?
+    //! Hat die Fahrt schon Punkte (und damit eine Kennung)?
     function recording() as Boolean {
         return _id != null;
+    }
+
+    //! [IDLE] vor START, [RECORDING], [PAUSED].
+    function state() as Number {
+        return !_started ? IDLE : (_active ? RECORDING : PAUSED);
+    }
+
+    //! START: Ab dem nächsten Fix wird aufgezeichnet.
+    function start() as Void {
+        _started = true;
+        _active = true;
+        lastShort = false;
+    }
+
+    //! Anhalten: Der Stand geht in den Speicher, es kommen keine Punkte mehr.
+    function pause() as Void {
+        if (!_active) { return; }
+        _active = false;
+        flush();
+    }
+
+    function resume() as Void {
+        if (!_started || _active) { return; }
+        _active = true;
+        _gap = true;
+    }
+
+    // --- Trail-Marken ---------------------------------------------------------
+
+    //! Läuft ein markierter Trail? Die letzte Marke ist ein Beginn
+    //! (`markedTrailOpen` in der App).
+    function trailOpen() as Boolean {
+        var n = _marks.size();
+        return n >= 2 && _marks[n - 2] == 0;
+    }
+
+    //! LAP: „Trail beginnt", solange keiner läuft, sonst „Trail endet" —
+    //! zur Zeit [t]. Liefert die Art (0/1), -1 ohne Punkte (noch kein GPS)
+    //! oder wenn die Fahrt schon so viele Marken hat.
+    function mark(t as Number) as Number {
+        var id = _id;
+        if (id == null || !_started || _marks.size() >= MAX_MARKS) { return -1; }
+        var kind = trailOpen() ? 1 : 0;
+        _marks.add(kind);
+        _marks.add(t);
+        storeMarks(id);
+        return kind;
+    }
+
+    //! „Trail verwerfen" nach einem Ende: das letzte Paar weg. Liefert die
+    //! Zeiten `[Beginn, Ende]` des Paars, sonst null.
+    function dropLastTrail() as [Number, Number]? {
+        var id = _id;
+        var n = _marks.size();
+        if (id == null || n < 4 || _marks[n - 2] != 1 || _marks[n - 4] != 0) { return null; }
+        var pair = [_marks[n - 3], _marks[n - 1]] as [Number, Number];
+        _marks = _marks.slice(0, n - 4);
+        storeMarks(id);
+        return pair;
+    }
+
+    //! Das letzte Paar `[Beginn, Ende]`, wenn die letzte Marke ein Ende ist.
+    function lastTrail() as [Number, Number]? {
+        var n = _marks.size();
+        if (n < 4 || _marks[n - 2] != 1 || _marks[n - 4] != 0) { return null; }
+        return [_marks[n - 3], _marks[n - 1]] as [Number, Number];
+    }
+
+    hidden function storeMarks(id as String) as Void {
+        if (_marks.size() == 0) {
+            Storage.deleteValue(markKey(id));
+        } else {
+            PhoneRoute.store(markKey(id), _marks);
+        }
+    }
+
+    static function markKey(id as String) as String {
+        return "m" + id;
+    }
+
+    //! Die Marken einer gespeicherten Fahrt, geprüft (gerade Länge, nur Zahlen).
+    static function marksOf(id as String) as Array<Number>? {
+        var m = Storage.getValue(markKey(id));
+        if (!(m instanceof Array) || m.size() % 2 != 0) { return null; }
+        for (var i = 0; i < m.size(); i++) {
+            if (!(m[i] instanceof Number)) { return null; }
+        }
+        return m as Array<Number>;
     }
 
     hidden function begin(t as Number) as Void {
@@ -162,6 +272,8 @@ class RideLog {
         _n = 0;
         _since = 0;
         _chunk = null;
+        _gap = false;
+        _marks = [] as Array<Number>;
         distanceM = 0.0;
     }
 
@@ -182,7 +294,13 @@ class RideLog {
     //! war. Liefert die Kennung, wenn sie wartet, sonst null.
     function finish() as String? {
         var id = _id;
-        if (id == null) { return null; }
+        var wasStarted = _started;
+        _started = false;
+        _active = false;
+        if (id == null) {
+            lastShort = wasStarted;
+            return null;
+        }
         flush();
         var keep = _n >= MIN_POINTS && distanceM >= MIN_M;
         var chunks = _k + 1;
@@ -190,12 +308,30 @@ class RideLog {
         _id = null;
         _chunk = null;
         _n = 0;
+        _marks = [] as Array<Number>;
         Storage.deleteValue("wo");
+        lastShort = !keep;
         if (!keep) {
             RideLog.drop(id, chunks);
             return null;
         }
         return RideLog.enqueue(id, chunks, n) ? id : null;
+    }
+
+    //! „Verwerfen": die offene Fahrt samt Marken weg, nichts wartet.
+    function discard() as Void {
+        var id = _id;
+        _started = false;
+        _active = false;
+        lastShort = false;
+        if (id == null) { return; }
+        var chunks = _k + 1;
+        _id = null;
+        _chunk = null;
+        _n = 0;
+        _marks = [] as Array<Number>;
+        Storage.deleteValue("wo");
+        RideLog.drop(id, chunks);
     }
 
     //! Beim Start: Endete der letzte Lauf mitten in einer Fahrt (Absturz,
@@ -264,8 +400,8 @@ class RideLog {
         return (chunks + CHUNKS_PER_MSG - 1) / CHUNKS_PER_MSG;
     }
 
-    //! Nachricht [p] der wartenden Fahrt [entry]: `{t: "w", id, p, n, c}`,
-    //! `c` die Stücke `[[lat, lon, t, e, acc, …], …]`. Ein fehlendes Stück
+    //! Nachricht [p] der wartenden Fahrt [entry]: `{t: "w", id, p, n, c}`
+    //! (die erste dazu `m`, die Trail-Marken), `c` die Stücke `[[lat, lon, t, e, acc, …], …]`. Ein fehlendes Stück
     //! fällt weg — der Rest der Fahrt ist mehr wert als nichts.
     static function message(entry as Array, p as Number) as Dictionary {
         var id = entry[0] as String;
@@ -275,7 +411,13 @@ class RideLog {
             var v = Storage.getValue(key(id, k));
             if (v instanceof Array) { c.add(v); }
         }
-        return {"t" => "w", "id" => id, "p" => p, "n" => messageCount(entry), "c" => c} as Dictionary;
+        var msg = {"t" => "w", "id" => id, "p" => p, "n" => messageCount(entry), "c" => c} as Dictionary;
+        // Die Trail-Marken reisen mit der ersten Nachricht (`m`).
+        if (p == 0) {
+            var m = marksOf(id);
+            if (m != null && m.size() > 0) { msg["m"] = m; }
+        }
+        return msg;
     }
 
     //! Das Handy hat die Fahrt [id] (`wk`): aus der Warteschlange und dem
@@ -296,6 +438,7 @@ class RideLog {
 
     static function drop(id as String, chunks as Number) as Void {
         for (var k = 0; k < chunks; k++) { Storage.deleteValue(key(id, k)); }
+        Storage.deleteValue(markKey(id));
     }
 
     //! Ein Stück entpackt in `[[lat, lon, t, e, acc], …]` (für die Tests;

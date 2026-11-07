@@ -212,7 +212,9 @@ Abbiegehinweise.
   (Sicherung: `docs/garmin-store.md`).
 - **Die Fahrt auf der Uhr** (`source/RideLog.mc`, #484, Konzept 2a):
   `onPosition` gibt JEDEN eigenen Fix an `_log.add` (alle 5 s ein Punkt,
-  ob Navigation oder freie Fahrt; die Position des Handys nie). Stücke zu
+  ob Navigation oder freie Fahrt; die Position des Handys nie) — genommen
+  wird er erst nach `start()` und nicht in der Pause (siehe „Aufzeichnung
+  an der Uhr"). Stücke zu
   60 Punkten unter `w<id>_<k>`, das offene alle 12 Punkte neu mit `wo`;
   `RideLog.recover()` in `initialize` nimmt eine abgebrochene Fahrt in die
   Warteschlange `rq`. `finish()` in `closeDown` UND `onStop` (dort ein
@@ -232,3 +234,24 @@ Abbiegehinweise.
   `GARMIN_DEVICE=<id> tool/garmin_build.sh --test`. Bildschirmfotos nur
   vom Fenster des Simulators (`screencapture -R` mit dessen Lage, vorher
   nach vorn holen), nie vom ganzen Schirm.
+- **Aufzeichnung an der Uhr** (Konzept-Garmin 0.6 und 1, Betreiber
+  2026-11-07, „wie Garmin"): `NavDelegate` ruft `startKey`/`backKey`/
+  `menuKey` der App; START → `RideLog.start/pause/resume` (Stände `IDLE`,
+  `RECORDING`, `PAUSED`), in der Pause das `Menu2` Weiter · Speichern ·
+  Verwerfen (`PauseMenuDelegate`, Verwerfen fragt über
+  `DiscardDelegate`), ZURÜCK = LAP → `RideLog.mark` (−1 ohne Punkt: „Warte
+  auf GPS"), nach „Trail endet" Behalten · Verwerfen
+  (`TrailMenuDelegate`, ZURÜCK behält). `closeDown(tellPhone, keep)`:
+  `keep` false → `RideLog.discard`. `RideStats.counting` hält Strecke,
+  Fahrzeit und bergauf vor START und in der Pause an. Marken unter
+  `m<id>`, `drop` löscht sie mit; die erste Nachricht der Fahrt trägt
+  `m`. Ans Handy `rs`, `rt` (nur beim Behalten), `re` (nur wenn START
+  gedrückt war) — `test/garmin/watch_ride_test.dart` hält die Zeilen mit
+  Dart zusammen. Gegenprobe 2026-11-07: ohne `!_active` in `add` und ohne
+  `storeMarks` zwei Tests rot. Die Tasten im Simulator ließen sich von
+  hier nicht drücken (Klick und Enter über System Events kamen nicht an)
+  — die Menüs sind am Gerät abzunehmen.
+- **Freie Fahrt fragt wieder** (`HELLO_AGAIN_MS` = 30 s, höchstens 20-mal,
+  in `onPosition` vor der Qualitätsprüfung): Feldbefund 2026-11-07, Runde
+  vom Handy, die Uhr blieb in der freien Fahrt (Konzept 8.8). Das Handy
+  antwortet nur, wenn es einer Navigation folgt; sonst bleibt es still.

@@ -915,7 +915,15 @@ helle Karte gedreht wie in der Navigation, die eigene Spur der letzten
 25 min dünn in Moos (wie der gefahrene Teil einer Route), „N" und der
 Pfeil; unten schwarz klein „FREIE FAHRT" (voll: „SPEICHER VOLL") und
 darunter Strecke und Anstieg wie die Zeile „bis zum Ziel"; kein Ring.
-Vor dem ersten Fix dort „Warte auf GPS". Die Punkte entlang der Mittellinie
+Vor dem ersten Fix dort „Warte auf GPS". **Die Aufzeichnung**
+(Konzept-Garmin 1, Entscheidung 6, seit 0.162.0) als Schild in
+`FONT_XTINY`, auf der Karte bei y 44 (höher schneidet der Kreis es ab),
+auf den Zahlenseiten bei y 214: vor START „START: AUFNAHME" Lime auf
+Schwarz, „PAUSE" weiß auf Warnfarbe, „TRAIL" schwarz auf Lime, sonst nur
+ein roter Punkt (`S2`) mit weißem Saum. Einblendungen („Trail beginnt",
+„Aufzeichnung läuft") 2,5 s als schwarzes Schild in `FONT_SMALL` bei y 82
+bzw. 176; die Menüs (Pause, Trail endet) sind `Menu2` der Uhr. Der
+Build-Stempel der Übersicht steht deshalb bei y 56. Die Punkte entlang der Mittellinie
 (volle Kreise, kein Polygon) schreibt `tool/brand_icons.py` nach
 `garmin/resources/logo/`. Angekommen: eine schwarze
 Zusammenfassung mit den Schildern der befahrenen Trails. Die Farben sind je

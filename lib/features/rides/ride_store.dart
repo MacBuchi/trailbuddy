@@ -91,6 +91,7 @@ abstract interface class RideStore {
     required List<RidePoint> points,
     String? profile,
     String? source,
+    List<RideMark> marks = const [],
   });
 
   /// Alle gespeicherten Fahrten dieses Kontos, neueste zuerst. Wirft nie.
@@ -377,6 +378,7 @@ class FileRideStore implements RideStore {
     required List<RidePoint> points,
     String? profile,
     String? source,
+    List<RideMark> marks = const [],
   }) =>
       _serialized(() async {
         if (points.isEmpty) return ImportSave.failed;
@@ -394,6 +396,8 @@ class FileRideStore implements RideStore {
               'source': ?source,
             }),
             for (final p in points) jsonEncode(p.toJson()),
+            // Marken der Uhr (LAP) wie die des Handys als eigene Zeilen.
+            for (final m in marks) jsonEncode(m.toJson()),
             jsonEncode({'endedAt': points.last.at.toUtc().toIso8601String()}),
           ];
           // Am Stück über `.part` + `rename`, wie die geplante Fahrt.

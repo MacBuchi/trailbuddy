@@ -37,6 +37,18 @@ des Betreibers. Dieses Dokument kommt vor dem ersten Code.*
    behält es seine Fahrt und verwirft die der Uhr. Das Handy lauscht ab
    dem Start der App, sobald einmal eine Uhr gefunden wurde — geöffnet
    wird die Uhr dabei nicht.
+6. **Die Aufzeichnung steuert man an der Uhr, „wie Garmin"** (Betreiber
+   2026-11-07, nach 1.1.0: „Aufzeichnung stop start sowie Trail
+   Aufzeichnungen stop start würde ich gern an der Uhr machen, und beim
+   Stoppen/Verlassen irgendein sinnvolles Menü, wo ich an der Uhr gleich
+   verwerfen angeben kann"). START beginnt die Aufzeichnung — erst dann,
+   nicht mehr beim ersten Fix —, START hält an und zeigt das Menü
+   *Weiter · Speichern · Verwerfen*; ZURÜCK ist LAP und markiert „Trail
+   beginnt" / „Trail endet", nach dem Ende *Behalten · Verwerfen*;
+   hoch/runter blättern die Seiten. Dazu stößt die Uhr die Aufzeichnung
+   am Handy an, wenn TrailBuddy dort läuft („erst messen", Abschnitt 8.7).
+   Das schränkt Entscheidung 5 ein: Die Uhr zeichnet jede Fahrt auf, die
+   man mit START beginnt.
 
 ## 1. Was die Uhr zeigt
 
@@ -114,20 +126,38 @@ dunkle Infofläche, „Was kommt als Nächstes?" statt „Wie weit noch?".
   beginnt — dieselbe Regel wie 9.3 (mehr als 30 m neben der Linie, zwei
   Fixe in Folge). Kein zweites Vibrieren, bis man wieder auf der Linie
   war; nichts beim Zurückkommen, nichts vor Abzweigen.
-- **Tasten**: START blättert Karte → Fahrt → Berg; hoch/runter zoomt
-  auf der Karte (drei Stufen: 1, 1,5 und 4 m je Pixel,
-  Start auf 1,5 — gut 180 m voraus) und blättert auf
-  den Zahlenseiten; beim Abkommen kommt die Karte von selbst nach vorn.
-  ZURÜCK beendet nach Rückfrage. Tippziele gibt es nicht; A13 heißt hier:
-  große Schrift, kräftige Linien.
+- **Tasten** (Entscheidung 6, wie Garmins eigene Aktivitäten): **START**
+  beginnt die Aufzeichnung, hält sie an (Menü *Weiter · Speichern ·
+  Verwerfen*, mit Route steht unter „Speichern" „beendet die Navigation";
+  ZURÜCK lässt die Pause stehen, START macht weiter) und macht weiter.
+  **ZURÜCK/LAP** setzt während der Aufzeichnung „Trail beginnt" bzw.
+  „Trail endet" (kurz vibrieren, Einblendung), nach dem Ende das Menü
+  *Behalten · Verwerfen* (ZURÜCK behält); in der Pause öffnet es das Menü;
+  vor START fragt es „Navigation beenden?" bzw. „TrailBuddy beenden?".
+  **hoch/runter** blättern Karte → Fahrt → Berg (→ Sprünge), **langes
+  HOCH** (MENU) holt die Karte nach vorn und schaltet die drei Zoomstufen
+  durch (1, 1,5 und 4 m je Pixel, Start auf 1,5 — gut 180 m voraus).
+  Beim Abkommen kommt die Karte von selbst nach vorn. „Verwerfen" der
+  Fahrt fragt noch einmal. Tippziele gibt es nicht; A13 heißt hier: große
+  Schrift, kräftige Linien.
+- **Was die Aufzeichnung tut**, steht immer da: auf der Karte oben, auf
+  den Zahlenseiten unten ein Schild — vor START „START: AUFNAHME" in Lime
+  auf Schwarz, in der Pause „PAUSE" in Warnfarbe, auf einem markierten
+  Trail „TRAIL" schwarz auf Lime, sonst ein roter Punkt. Ist man vor
+  START schon zehn Fixe über 9 km/h unterwegs, vibriert die Uhr einmal
+  kurz und blendet „START: AUFNAHME" ein. Vor START und in der Pause
+  zählen Strecke, Fahrzeit und bergauf nicht.
 
 - **Ohne Route die freie Fahrt** (#484, Store-Paket ohne Testroute):
   Statt „Navigation starten in der TrailBuddy-App" schaltet die Uhr GPS
   ein und zeigt die eigene Spur der letzten 25 min (300 Punkte) dünn in
   Moos auf der gedrehten Karte, „N", den Pfeil, unten „Freie Fahrt" mit
-  Strecke und Anstieg; „Fahrt" und „Berg" wie sonst, kein Ring. ZURÜCK
-  fragt „Fahrt beenden?". Kommt eine Route vom Handy, wechselt die Uhr in
-  die Navigation, die Aufzeichnung läuft weiter.
+  Strecke und Anstieg; „Fahrt" und „Berg" wie sonst, kein Ring. Beendet
+  wird über das Menü der Pause, vor START mit „TrailBuddy beenden?".
+  Kommt eine Route vom Handy, wechselt die Uhr in die Navigation, die
+  Aufzeichnung läuft weiter. Mit Handy sagt die freie Fahrt alle 30 s
+  wieder „hallo" (Messung 8.8): Eine Route, deren erstes Senden verloren
+  ging, kommt so doch noch.
 
 Kein Kartenbild: Die fēnix 5 hat keine Karten, und Kacheln passen nicht
 in den Speicher einer App (Abschnitt 7). Gezeigt werden nur Route,
@@ -358,9 +388,11 @@ Entscheidung 5. Gebaut in `garmin/source/RideLog.mc` (Uhr),
 `lib/features/garmin/watch_ride.dart` (Form, pur) und
 `watch_ride_inbox.dart` (Empfang).
 
-- **Aufgezeichnet wird jede Fahrt**, mit Route oder ohne: ab dem ersten
-  EIGENEN Fix (die Position des Handys zählt nicht), alle 5 s ein Punkt
-  wie die Fahrt des Handys. Je Punkt Lage in 1e-5°, Zeit in Sekunden,
+- **Aufgezeichnet wird ab START** (Entscheidung 6), mit Route oder ohne:
+  jeder EIGENE Fix danach (die Position des Handys zählt nicht), alle 5 s
+  ein Punkt wie die Fahrt des Handys; in der Pause keiner, und der
+  Sprung über die Pause zählt nicht als Strecke. „Verwerfen" löscht die
+  offene Fahrt samt Marken, nichts wartet. Je Punkt Lage in 1e-5°, Zeit in Sekunden,
   Höhe vom Barometer (sonst GPS) in Dezimetern und die Klasse der
   Genauigkeit (gut, brauchbar, … — auf dem Handy 5, 15, 40, 100 m).
   Kein Puls.
@@ -377,8 +409,25 @@ Entscheidung 5. Gebaut in `garmin/source/RideLog.mc` (Uhr),
   Schlange voll, steht die Aufzeichnung („Speicher voll") — nichts
   Wartendes wird überschrieben. Die Grenze ist ein Startwert bis zur
   Messung 8.6.
-- **Beim Beenden** („Fahrt beenden?" bzw. „Navigation beenden?", oder das
-  Handy beendet die Navigation): die Fahrt in die Warteschlange; ist ein
+- **Die Trail-Marken** (LAP an der Uhr): wie `RideMark` der App nur die
+  Zeit, unter `m<id>` = `[Art, t, …]` (0 Beginn, 1 Ende), sofort im
+  Speicher; „Verwerfen" nach dem Ende nimmt das letzte Paar weg. Sie
+  reisen mit der ersten Nachricht der Fahrt (`m`) und stehen auf dem
+  Handy in der Datei wie die eigenen — das Zerlege-Blatt nimmt sie als
+  „markiert". Den Namen gibt man dort, die Uhr hat keine Tastatur.
+- **Das Handy nimmt mit auf** (Entscheidung 6): START an der Uhr schickt
+  `{t: "rs"}`; läuft TrailBuddy und keine Aufzeichnung, beginnt das
+  Handy eine (mit Sensoren, `WatchRideInbox`). Ein behaltener Trail geht
+  als `{t: "rt", s, e}` und wird dort eine Marke, das Ende als `{t: "re",
+  k}` (gespeichert/verworfen) und beendet nur eine Aufzeichnung, die die
+  Uhr begann. Kommt in 45 s kein Punkt (der Dienst mit Standort darf aus
+  dem Hintergrund nicht starten), nimmt das Handy sie still zurück —
+  Messung 8.7. Hat das Handy aufgezeichnet, bleibt beim Ablegen dessen
+  Fahrt (Überdeckung, unten) und die der Uhr fällt weg; die Marken hat es
+  dann schon aus `rt`.
+- **Beim Beenden** („Speichern" im Menü der Pause, „Navigation beenden?"
+  vor START, oder das Handy beendet die Navigation): die Fahrt in die
+  Warteschlange (zu kurz: „Fahrt zu kurz, nicht gespeichert"); ist ein
   Handy verbunden, gehen die wartenden Fahrten hinüber — `{t: "w", id,
   p, n, c}`, je Nachricht bis zu 6 Stücke (~740 Zahlen), eine nach der
   anderen; die Uhr zeigt „Fahrt geht ans Handy · 1/2". Erst `{t: "wk",
@@ -548,6 +597,22 @@ Aus der Gerätedatei des SDK 9.3.0 und der Uhr selbst:
    Punkte der Warteschlange? Wie lange dauert die Übertragung einer
    Stunde (720 Punkte, 2 Nachrichten)? Danach `RideLog.MAX_POINTS`
    festlegen.
+7. **Das Handy nimmt mit auf** (Entscheidung 6): Startet `rs` die
+   Aufzeichnung am Pixel 7 Pro, wenn TrailBuddy im Vordergrund ist, im
+   Hintergrund und bei ausgeschaltetem Bildschirm? Kommt `rs` überhaupt
+   an, wenn die App im Hintergrund ist? Logcat `TB-GARMIN rs: …` sagt
+   gestartet, „kein Punkt … zurückgenommen" oder nichts. Geht es im
+   Hintergrund nicht, ist der nächste Schritt eine Benachrichtigung über
+   Garmin Connect (`openWebPage`, ein Tipp öffnet die App) — nur mit
+   Befund.
+8. **Runde vom Handy, Uhr bleibt in der freien Fahrt** (Feldbefund
+   2026-11-07, 1.1.0, Uhr vom Handy geöffnet, kein Vibrieren — die Route
+   kam nie ganz an). Wahrscheinlich: Die Antwort auf „hallo" kam nach den
+   8 s (das Handy rechnet erst Höhen und Abzweigungen der Runde), oder ein
+   Senden scheiterte, und ohne neues „hallo" versuchte das Handy es nicht
+   wieder. Seitdem sagt die Uhr in der freien Fahrt mit Handy alle 30 s
+   wieder „hallo" (höchstens 20-mal), das Handy schickt dann nach.
+   Bestätigen mit Logcat (`TB-GARMIN`, `send`/`receive`) am Gerät.
 
 ## 9. Umsetzung in Schritten (je ein PR)
 
@@ -574,6 +639,10 @@ Aus der Gerätedatei des SDK 9.3.0 und der Uhr selbst:
 4. **G4 — Freie Fahrt und Fahrt auf der Uhr** (#484, `feat`, Bump):
    Entscheidung 5, Abschnitt 2a; Messung 8.6 und die Abnahme an der
    fēnix 5 offen.
+5. **G5 — Aufzeichnung an der Uhr** (`feat`, Bump): Entscheidung 6 —
+   START/Pause mit Menü, LAP-Marken, Verwerfen, Handy nimmt mit auf; dazu
+   das erneute „hallo" der freien Fahrt (8.8). Messung 8.7 und die
+   Abnahme an der fēnix 5 offen.
 
 ## 10. Abgleich mit den Kernanforderungen
 

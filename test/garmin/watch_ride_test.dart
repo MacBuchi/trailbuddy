@@ -15,6 +15,7 @@ import 'package:trailbuddy/features/garmin/watch_ride_inbox.dart';
 import 'package:trailbuddy/features/garmin/watch_route.dart';
 import 'package:trailbuddy/features/rides/ride_import.dart';
 import 'package:trailbuddy/features/rides/ride_providers.dart';
+import 'package:trailbuddy/features/rides/ride_service.dart';
 import 'package:trailbuddy/features/rides/ride_track.dart';
 
 import '../fakes/fake_garmin.dart';
@@ -80,14 +81,34 @@ void main() {
       expect(watchRidePull, {'t': 'wq'});
     });
 
+    test('Trail-Marken der Uhr und Nachrichten zur Aufzeichnung', () {
+      final c = encodeWatchRide(ridePoints(3));
+      final first = watchRidePartOf({...rideMessage('17', 0, 2, c), 'm': [0, 1700000005, 1, 1700000010, 7, 1, 'x', 2]});
+      expect(first!.marks.map((m) => (m.kind, m.at.millisecondsSinceEpoch ~/ 1000)),
+          [(RideMarkKind.start, 1700000005), (RideMarkKind.end, 1700000010)]);
+      // Nur die erste Nachricht trägt sie.
+      expect(watchRidePartOf({...rideMessage('17', 1, 2, c), 'm': [0, 1]})!.marks, isEmpty);
+      expect(watchRecordOf({'t': 'rs'})!.start, isTrue);
+      final kept = watchRecordOf({'t': 'rt', 's': 1700000005, 'e': 1700000010})!;
+      expect(kept.trailStart!.kind, RideMarkKind.start);
+      expect(kept.trailEnd!.at, DateTime.utc(2023, 11, 14, 22, 13, 30));
+      expect(watchRecordOf({'t': 'rt', 's': 10, 'e': 5}), isNull);
+      expect(watchRecordOf({'t': 're', 'k': false})!.keep, isFalse);
+      expect(watchRecordOf({'t': 'w'}), isNull);
+    });
+
     test('Uhr und Dart sprechen dieselben Arten', () {
       final app = File('garmin/source/TrailBuddyApp.mc').readAsStringSync();
       expect(app, contains('"$kWatchRidePull".equals(t)'));
       expect(app, contains('"$kWatchRideAck".equals(t)'));
       expect(app, contains('msg["rq"] = rq'));
+      expect(app, contains('{"t" => "$kWatchRecordStart"}'));
+      expect(app, contains('{"t" => "$kWatchTrailKept", "s" => pair[0], "e" => pair[1]}'));
+      expect(app, contains('{"t" => "$kWatchRecordEnd", "k" => keep}'));
       final log = File('garmin/source/RideLog.mc').readAsStringSync();
       expect(log, contains('{"t" => "$kWatchRide", "id" => id, "p" => p, "n" => messageCount(entry), "c" => c}'));
       expect(log, contains('static const CHUNK_POINTS = 60;'));
+      expect(log, contains('if (m != null && m.size() > 0) { msg["m"] = m; }'));
       final kotlin = File('android/app/src/main/kotlin/de/mcbuchi/trailbuddy/GarminBridge.kt').readAsStringSync();
       expect(kotlin, contains('"listen" ->'));
       final io = File('lib/features/garmin/garmin_bridge_io.dart').readAsStringSync();
@@ -114,10 +135,17 @@ void main() {
     late FakeSettings settings;
     late ProviderContainer container;
 
+    late FakeRideService service;
+    late FakeRideFix fix;
+
     ProviderContainer make({String? uid = 'me'}) {
       final c = ProviderContainer(overrides: [
         garminBridgeProvider.overrideWithValue(bridge),
         rideStoreProvider.overrideWithValue(store),
+        rideFixProvider.overrideWithValue(fix.call),
+        rideServiceBridgeProvider.overrideWithValue(FakeRideServiceBridge()),
+        rideServiceProvider.overrideWithValue(service),
+        ridePermissionProvider.overrideWithValue(() async => null),
         settingsProvider.overrideWithValue(settings),
         currentUserIdProvider.overrideWithValue(uid),
       ]);
@@ -129,6 +157,8 @@ void main() {
       bridge = FakeGarminBridge.connected();
       store = FakeRideStore();
       settings = FakeSettings();
+      service = FakeRideService();
+      fix = FakeRideFix();
       container = make();
     });
 
@@ -220,6 +250,71 @@ void main() {
       expect(store.rides.length, 1);
       expect(bridge.rideAnswers, [watchRideAckOf('1700000003')]);
       expect(container.read(watchRideInboxProvider), 0);
+    });
+
+    test('Marken der Uhr gehen mit der Fahrt in die Datei', () async {
+      await container.read(watchRideInboxProvider.notifier).start();
+      bridge.answer({...rideMessage('1700000000', 0, 1, encodeWatchRide(ridePoints(40))), 'm': [0, 1700000050, 1, 1700000100]});
+      await flush();
+      await flush();
+      final ride = store.rides.single;
+      expect(ride.marks.map((m) => m.kind), [RideMarkKind.start, RideMarkKind.end]);
+      expect(ride.marks.last.at, DateTime.fromMillisecondsSinceEpoch(1700000100 * 1000, isUtc: true));
+    });
+
+    test('START an der Uhr nimmt mit auf, ein behaltener Trail wird eine Marke, Verwerfen verwirft', () async {
+      fix.next = at(1700000000);
+      await container.read(watchRideInboxProvider.notifier).start();
+      bridge.answer({'t': 'rs'});
+      await flush();
+      await flush();
+      expect(container.read(rideProvider), isNotNull);
+      expect(service.running, isTrue);
+      bridge.answer({'t': 'rt', 's': 1700000005, 'e': 1700000010});
+      await flush();
+      expect(store.marks.map((m) => m.kind), [RideMarkKind.start, RideMarkKind.end]);
+      expect(container.read(rideProvider)!.marks.length, 2);
+      bridge.answer({'t': 're', 'k': false});
+      await flush();
+      await flush();
+      expect(container.read(rideProvider), isNull);
+      expect(service.running, isFalse);
+      expect(store.rides, isEmpty);
+    });
+
+    test('Speichern an der Uhr speichert; eine Fahrt, die das Handy selbst begann, bleibt', () async {
+      fix.next = at(1700000000);
+      final rides = container.read(rideProvider.notifier);
+      await container.read(watchRideInboxProvider.notifier).start();
+      bridge.answer({'t': 'rs'});
+      await flush();
+      await flush();
+      store.points.add(at(1700000060));
+      bridge.answer({'t': 're', 'k': true});
+      await flush();
+      await flush();
+      expect(container.read(rideProvider), isNull);
+      expect(store.rides.length, 1);
+      // Selbst gestartet: Das Ende an der Uhr lässt sie laufen.
+      await rides.start();
+      bridge.answer({'t': 'rs'});
+      bridge.answer({'t': 're', 'k': false});
+      await flush();
+      await flush();
+      expect(container.read(rideProvider), isNotNull);
+    });
+
+    test('kommt kein Punkt (Hintergrund), wird die Aufzeichnung zurückgenommen', () async {
+      container.read(watchRideInboxProvider.notifier).recordCheck = const Duration(milliseconds: 20);
+      await container.read(watchRideInboxProvider.notifier).start();
+      bridge.answer({'t': 'rs'});
+      await flush();
+      await flush();
+      expect(container.read(rideProvider), isNotNull);
+      await Future<void>.delayed(const Duration(milliseconds: 80));
+      await flush();
+      expect(container.read(rideProvider), isNull);
+      expect(store.rides, isEmpty);
     });
   });
 }

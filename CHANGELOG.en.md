@@ -2,6 +2,26 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## Start and stop recording on the watch
+
+*Version 0.162.0, 2026-11-07*
+
+- On the Garmin watch you now control the recording yourself, like
+  Garmin's own activities: START begins it, START again pauses. While
+  paused, a menu offers Resume, Save and Discard. A discarded ride is
+  gone completely.
+- The lap button (BACK) marks "trail starts" and "trail ends" on the way.
+  After the end you can keep the trail or discard it. The marks come to
+  the phone with the ride, and the split sheet treats them like the
+  phone's own.
+- The top of the map always shows what the recording is doing: START,
+  PAUSED, TRAIL or a red dot. Up and down flip the pages, holding UP
+  zooms the map.
+- If TrailBuddy is running on the phone, it records too as soon as you
+  press START on the watch, and it stops with the watch.
+- A loop the phone wanted to send to the watch sometimes never arrived,
+  and the watch only showed "Free ride". Now the watch keeps asking while
+  on a free ride, and the route follows.
 ## Name the trail while you ride
 
 *Version 0.161.0, 2026-11-07*

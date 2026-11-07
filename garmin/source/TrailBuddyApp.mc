@@ -35,6 +35,12 @@ import Toybox.WatchUi;
 //! gespeicherte; bleibt eine angekündigte Route [INCOMING_MS] ohne neues
 //! Stück, auch.
 //!
+//! Die Aufzeichnung steuert man an der Uhr (Betreiber 2026-11-07, „wie
+//! Garmin"): START beginnt sie, START hält an und zeigt das Menü Weiter ·
+//! Speichern · Verwerfen, LAP (ZURÜCK) markiert „Trail beginnt" / „Trail
+//! endet" und fragt nach dem Ende Behalten · Verwerfen. Das Handy hört
+//! davon (`rs`, `rt`, `re`) und nimmt mit auf, wenn die App läuft.
+//!
 //! Die Navigation endet auf beiden Geräten (`e`, Betreiber 2026-11-06):
 //! Beendet das Handy, schließt sich die App; beendet man hier, hört es das
 //! Handy, bevor die App zugeht ([quit]). Danach geht die Fahrt ans Handy
@@ -67,6 +73,8 @@ class TrailBuddyApp extends Application.AppBase {
     //! Die App geht zu ([closeDown]): Es zählt kein Fix mehr, ZURÜCK
     //! schließt sofort.
     hidden var _closing as Boolean = false;
+    //! Das Ende sagt schon etwas („verworfen", „zu kurz"): nicht überschreiben.
+    hidden var _noted as Boolean = false;
     //! Die Fahrt, die gerade ans Handy geht (`[id, Stücke, Punkte]`), die
     //! nächste Nachricht und seit wann.
     hidden var _tx as Array? = null;
@@ -109,6 +117,20 @@ class TrailBuddyApp extends Application.AppBase {
     //! So viele Punkte je Häppchen: bleibt weit unter dem Watchdog
     //! (120 000 Schritte je Ereignis, NavRoute).
     static const DECODE_BUDGET = 300;
+    //! In der freien Fahrt mit Handy sagt die Uhr so oft wieder „hallo",
+    //! höchstens [HELLO_AGAIN_N]-mal: Ging die Antwort beim Start
+    //! verloren (sie kam nach [ANSWER_MS]) oder scheiterte das Senden der
+    //! Route, schickt das Handy sie dann nach (Feldbefund 2026-11-07:
+    //! Runde vom Handy gestartet, die Uhr blieb in der freien Fahrt).
+    static const HELLO_AGAIN_MS = 30000;
+    static const HELLO_AGAIN_N = 20;
+    hidden var _helloAt as Number = 0;
+    hidden var _hellos as Number = 0;
+    //! Vor START schon in Fahrt: einmal kurz vibrieren und erinnern.
+    static const NUDGE_MPS = 2.5;
+    static const NUDGE_FIXES = 10;
+    hidden var _fast as Number = 0;
+    hidden var _nudged as Boolean = false;
 
     function initialize() {
         AppBase.initialize();
@@ -182,8 +204,10 @@ class TrailBuddyApp extends Application.AppBase {
         _tracker = new NavTracker(r);
         _stats = new RideStats(r.secFrom.size());
         _stats.bests = _bests;
+        _stats.counting = _log.state() == RideLog.RECORDING;
         _view = new NavView(r, _stats, _log);
         if (_free) { _view.setFree(); }
+        _view.setRecord(_log.state(), _log.trailOpen());
     }
 
     function onStart(state as Dictionary?) as Void {
@@ -204,6 +228,7 @@ class TrailBuddyApp extends Application.AppBase {
     //! von der Navigation auf dem Handy ab, schickt es die aktuelle; folgt
     //! die Uhr keiner Navigation, bleibt die Nachricht ohne Antwort.
     hidden function sayHello() as Void {
+        _helloAt = System.getTimer();
         var msg = {"t" => "hi", "v" => PhoneRoute.PROTOCOL} as Dictionary;
         var id = PhoneRoute.currentId();
         if (id != null) { msg["id"] = id; }
@@ -348,9 +373,118 @@ class TrailBuddyApp extends Application.AppBase {
         WatchUi.requestUpdate();
     }
 
-    //! „Navigation beenden?" (bzw. „Fahrt beenden?") mit Ja.
+    //! „Navigation beenden?" (bzw. „TrailBuddy beenden?") mit Ja, und
+    //! „Speichern" im Menü der Pause.
     function quit() as Void {
-        closeDown(true);
+        closeDown(true, true);
+    }
+
+    //! „Fahrt verwerfen?" mit Ja: Die Fahrt ist weg, die App geht zu.
+    function discardRide() as Void {
+        closeDown(true, false);
+    }
+
+    // --- Aufzeichnung an der Uhr (Betreiber 2026-11-07) -----------------------
+
+    //! START: beginnen, anhalten (mit Menü) oder weitermachen.
+    function startKey() as Void {
+        if (_closing) { return; }
+        var st = _log.state();
+        if (st == RideLog.IDLE) {
+            _log.start();
+            _stats.counting = true;
+            vibrateShort();
+            _view.toast(str(Rez.Strings.RecStarted));
+            // Das Handy nimmt mit auf, wenn TrailBuddy dort läuft.
+            toPhone({"t" => "rs"});
+        } else if (st == RideLog.RECORDING) {
+            _log.pause();
+            _stats.counting = false;
+            vibrateShort();
+            pauseMenu();
+        } else {
+            _log.resume();
+            _stats.counting = true;
+            vibrateShort();
+            _view.toast(str(Rez.Strings.RecStarted));
+        }
+        _view.setRecord(_log.state(), _log.trailOpen());
+    }
+
+    //! ZURÜCK/LAP: in der Aufzeichnung eine Trail-Marke, in der Pause das
+    //! Menü, vor START die Frage nach dem Beenden.
+    function backKey() as Void {
+        if (_closing) {
+            exitNow();
+            return;
+        }
+        var st = _log.state();
+        if (st == RideLog.PAUSED) {
+            pauseMenu();
+            return;
+        }
+        if (st == RideLog.IDLE) {
+            WatchUi.pushView(
+                new WatchUi.Confirmation(str(_view.isFree() ? Rez.Strings.AppQuit : Rez.Strings.Quit)),
+                new QuitDelegate(),
+                WatchUi.SLIDE_IMMEDIATE);
+            return;
+        }
+        var kind = _log.mark(Time.now().value());
+        if (kind < 0) {
+            _view.toast(str(Rez.Strings.WaitGps));
+            return;
+        }
+        vibrateShort();
+        _view.setRecord(_log.state(), _log.trailOpen());
+        if (kind == 0) {
+            _view.toast(str(Rez.Strings.TrailStart));
+            return;
+        }
+        var menu = new WatchUi.Menu2({:title => str(Rez.Strings.TrailEnd)});
+        menu.addItem(new WatchUi.MenuItem(str(Rez.Strings.Keep), null, :keep, null));
+        menu.addItem(new WatchUi.MenuItem(str(Rez.Strings.Discard), null, :drop, null));
+        WatchUi.pushView(menu, new TrailMenuDelegate(), WatchUi.SLIDE_IMMEDIATE);
+    }
+
+    //! Das Menü der Pause: Weiter · Speichern · Verwerfen.
+    hidden function pauseMenu() as Void {
+        var menu = new WatchUi.Menu2({:title => str(Rez.Strings.RecPaused)});
+        menu.addItem(new WatchUi.MenuItem(str(Rez.Strings.Resume), null, :resume, null));
+        menu.addItem(new WatchUi.MenuItem(str(Rez.Strings.Save),
+            _view.isFree() ? null : str(Rez.Strings.EndsNav), :save, null));
+        menu.addItem(new WatchUi.MenuItem(str(Rez.Strings.Discard), null, :discard, null));
+        WatchUi.pushView(menu, new PauseMenuDelegate(), WatchUi.SLIDE_IMMEDIATE);
+    }
+
+    //! Ein Punkt des Menüs der Pause.
+    function pauseChoice(id as Object?) as Void {
+        if (id == :resume) {
+            WatchUi.popView(WatchUi.SLIDE_IMMEDIATE);
+            startKey();
+        } else if (id == :save) {
+            WatchUi.popView(WatchUi.SLIDE_IMMEDIATE);
+            quit();
+        } else if (id == :discard) {
+            WatchUi.switchToView(new WatchUi.Confirmation(str(Rez.Strings.DiscardRide)),
+                new DiscardDelegate(), WatchUi.SLIDE_IMMEDIATE);
+        }
+    }
+
+    //! Nach „Trail endet": behalten (das Handy hört davon) oder das Paar weg.
+    function trailChoice(keep as Boolean) as Void {
+        if (keep) {
+            var pair = _log.lastTrail();
+            if (pair != null) { toPhone({"t" => "rt", "s" => pair[0], "e" => pair[1]}); }
+        } else if (_log.dropLastTrail() != null) {
+            _view.toast(str(Rez.Strings.TrailDiscarded));
+        }
+        _view.setRecord(_log.state(), _log.trailOpen());
+    }
+
+    //! Langes HOCH (MENU): die nächste Zoomstufe der Karte.
+    function menuKey() as Void {
+        _view.zoomStep();
     }
 
     //! Das Ende, von der Uhr ([tellPhone]) oder vom Handy (`e`): Die Fahrt
@@ -359,19 +493,33 @@ class TrailBuddyApp extends Application.AppBase {
     //! Handy — es beendet seine Navigation —, und erst wenn Garmin Connect
     //! das abnahm ([EndAck]), höchstens nach [END_WAIT_MS], geht die Fahrt
     //! hinüber ([afterEnd]). Ging die App sofort zu, verfiele die Nachricht.
-    hidden function closeDown(tellPhone as Boolean) as Void {
+    //! [keep] false heißt „Verwerfen": Die offene Fahrt geht ganz weg.
+    hidden function closeDown(tellPhone as Boolean, keep as Boolean) as Void {
         if (_closing) { return; }
         _closing = true;
         var t = _loader;
         if (t != null) { t.stop(); _loader = null; }
-        _log.finish();
+        var started = _log.state() != RideLog.IDLE;
+        var note = null;
+        if (keep) {
+            _log.finish();
+            if (_log.lastShort) { note = str(Rez.Strings.RideTooShort); }
+        } else {
+            _log.discard();
+            note = str(Rez.Strings.RideDiscarded);
+        }
+        _noted = note != null;
+        // Das Handy hört, wie die Fahrt hier endete: Eine Aufzeichnung, die
+        // es auf `rs` begann, speichert oder verwirft es genauso.
+        if (started) { toPhone({"t" => "re", "k" => keep}); }
         var id = _route.id;
         if (tellPhone && _wait == 0 && System.getDeviceSettings().phoneConnected && id.equals(PhoneRoute.currentId())) {
-            showEnd(str(Rez.Strings.NavEnded));
+            showEnd(note != null ? note : str(Rez.Strings.NavEnded));
             send({"t" => "e", "id" => id}, new EndAck());
             armExit(END_WAIT_MS);
             return;
         }
+        if (note != null) { showEnd(note); }
         afterEnd();
     }
 
@@ -379,7 +527,7 @@ class TrailBuddyApp extends Application.AppBase {
     //! dass die Fahrt wartet, sonst zu.
     function afterEnd() as Void {
         if (startUpload()) { return; }
-        if (RideLog.queue().size() > 0) {
+        if (RideLog.queue().size() > 0 && !_noted) {
             showEnd(str(Rez.Strings.RideWaits));
             armExit(QUEUED_SHOW_MS);
             return;
@@ -546,7 +694,7 @@ class TrailBuddyApp extends Application.AppBase {
             if (eid instanceof String && (eid.equals(_route.id) || eid.equals(PhoneRoute.currentId())
                     || (_pendingId != null && eid.equals(_pendingId)))) {
                 showEnd(str(Rez.Strings.NavEnded));
-                closeDown(false);
+                closeDown(false, true);
             }
             return;
         }
@@ -647,6 +795,12 @@ class TrailBuddyApp extends Application.AppBase {
 
     function onPosition(info as Position.Info) as Void {
         if (_closing || _wait != 0 || !_route.isReady()) { return; }
+        // Die freie Fahrt fragt wieder nach einer Route ([HELLO_AGAIN_MS]).
+        if (_free && _hellos < HELLO_AGAIN_N && System.getTimer() - _helloAt >= HELLO_AGAIN_MS
+                && System.getDeviceSettings().phoneConnected) {
+            _hellos++;
+            sayHello();
+        }
         var loc = info.position;
         if (loc == null || info.accuracy < Position.QUALITY_USABLE) {
             return;
@@ -667,8 +821,11 @@ class TrailBuddyApp extends Application.AppBase {
         // Höhe vom Barometer, sonst vom GPS.
         var alt = sensor has :altitude && sensor.altitude != null ? sensor.altitude : info.altitude;
         var hr = sensor has :heartRate ? sensor.heartRate : null;
-        // Die Fahrt (#484): jeder eigene Fix, ob mit Route oder ohne.
+        // Die Fahrt (#484): jeder eigene Fix nach START, ob mit Route oder
+        // ohne; vor START und in der Pause nimmt [RideLog.add] nichts.
         _log.add(lat, lon, Time.now().value(), alt, info.accuracy);
+        _stats.counting = _log.state() == RideLog.RECORDING;
+        nudgeIdle(info.speed);
         if (_free) {
             var f = _log.toLocal(lat, lon);
             _stats.update(f[0], f[1], System.getTimer(), info.speed, alt, hr, -1);
@@ -690,6 +847,17 @@ class TrailBuddyApp extends Application.AppBase {
         _stats.update(p[0], p[1], System.getTimer(), info.speed, alt, hr,
             s.offRoute ? -1 : _route.sectionAt(s.alongM));
         _view.setState(s, info.speed, false);
+    }
+
+    //! Schon in Fahrt, aber kein START: einmal kurz vibrieren, oben steht
+    //! ohnehin „START: Aufnehmen".
+    hidden function nudgeIdle(speed as Float?) as Void {
+        if (_nudged || _log.state() != RideLog.IDLE) { return; }
+        _fast = speed != null && speed >= NUDGE_MPS ? _fast + 1 : 0;
+        if (_fast < NUDGE_FIXES) { return; }
+        _nudged = true;
+        vibrateShort();
+        _view.toast(str(Rez.Strings.RecIdle));
     }
 
     (:demo) hidden var _demoTimer as Timer.Timer?;
@@ -848,9 +1016,10 @@ class DemoScenes {
     }
 }
 
-//! START blättert (Karte → Fahrt → Berg), hoch/runter zoomt auf der Karte
-//! und blättert auf den Zahlenseiten, ZURÜCK beendet nach Rückfrage
-//! (Konzept-Garmin 1).
+//! Die Tasten wie bei Garmin (Betreiber 2026-11-07, Konzept-Garmin 1):
+//! START beginnt die Aufzeichnung bzw. hält sie an (Menü), ZURÜCK ist LAP
+//! (Trail beginnt / endet; vor START beenden), hoch/runter blättern die
+//! Seiten, langes HOCH (MENU) zoomt die Karte.
 class NavDelegate extends WatchUi.BehaviorDelegate {
     hidden var _view as NavView;
 
@@ -860,31 +1029,72 @@ class NavDelegate extends WatchUi.BehaviorDelegate {
     }
 
     function onPreviousPage() as Boolean {
-        _view.up();
+        _view.prevPage();
         return true;
     }
 
     function onNextPage() as Boolean {
-        _view.down();
-        return true;
-    }
-
-    function onSelect() as Boolean {
         _view.nextPage();
         return true;
     }
 
+    function onSelect() as Boolean {
+        (Application.getApp() as TrailBuddyApp).startKey();
+        return true;
+    }
+
+    function onMenu() as Boolean {
+        (Application.getApp() as TrailBuddyApp).menuKey();
+        return true;
+    }
+
+    //! Beim Zugehen (die Fahrt geht ans Handy) schließt ZURÜCK sofort, sie
+    //! wartet dann ([TrailBuddyApp.backKey]).
     function onBack() as Boolean {
-        var app = Application.getApp() as TrailBuddyApp;
-        // Beim Zugehen (die Fahrt geht ans Handy): sofort zu, sie wartet.
-        if (app.closing()) {
-            app.exitNow();
-            return true;
+        (Application.getApp() as TrailBuddyApp).backKey();
+        return true;
+    }
+}
+
+//! Das Menü der Pause (Weiter · Speichern · Verwerfen). ZURÜCK lässt die
+//! Aufzeichnung angehalten; START macht dann weiter.
+class PauseMenuDelegate extends WatchUi.Menu2InputDelegate {
+    function initialize() {
+        Menu2InputDelegate.initialize();
+    }
+
+    function onSelect(item as WatchUi.MenuItem) as Void {
+        (Application.getApp() as TrailBuddyApp).pauseChoice(item.getId());
+    }
+}
+
+//! Nach „Trail endet": Behalten · Verwerfen. ZURÜCK behält.
+class TrailMenuDelegate extends WatchUi.Menu2InputDelegate {
+    function initialize() {
+        Menu2InputDelegate.initialize();
+    }
+
+    function onSelect(item as WatchUi.MenuItem) as Void {
+        WatchUi.popView(WatchUi.SLIDE_IMMEDIATE);
+        (Application.getApp() as TrailBuddyApp).trailChoice(item.getId() != :drop);
+    }
+
+    function onBack() as Void {
+        WatchUi.popView(WatchUi.SLIDE_IMMEDIATE);
+        (Application.getApp() as TrailBuddyApp).trailChoice(true);
+    }
+}
+
+//! „Fahrt verwerfen?" — Nein lässt sie angehalten.
+class DiscardDelegate extends WatchUi.ConfirmationDelegate {
+    function initialize() {
+        ConfirmationDelegate.initialize();
+    }
+
+    function onResponse(response as WatchUi.Confirm) as Boolean {
+        if (response == WatchUi.CONFIRM_YES) {
+            (Application.getApp() as TrailBuddyApp).discardRide();
         }
-        WatchUi.pushView(
-            new WatchUi.Confirmation(WatchUi.loadResource(_view.isFree() ? Rez.Strings.QuitRide : Rez.Strings.Quit) as String),
-            new QuitDelegate(),
-            WatchUi.SLIDE_IMMEDIATE);
         return true;
     }
 }

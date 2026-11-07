@@ -317,6 +317,25 @@ class RideNotifier extends Notifier<RecordedRide?> {
   /// zurück; `null`, wenn keine Fahrt läuft oder die Datei sie nicht
   /// nahm — dann steht sie auch nicht im Zustand, sonst zeigte der Knopf
   /// eine Marke, die das Zerlege-Blatt nie sieht.
+  /// Marken mit fremder Zeit (ein behaltener Trail der Uhr, Betreiber
+  /// 2026-11-07): Beginn und Ende kommen zusammen, erst wenn der Fahrer an
+  /// der Uhr „Behalten" sagte. Wie bei [toggleMark] trägt der Zustand nur,
+  /// was die Datei nahm.
+  Future<bool> addMarks(List<RideMark> marks) async {
+    final current = state;
+    if (current == null || marks.isEmpty) return false;
+    final store = ref.read(rideStoreProvider);
+    final taken = <RideMark>[];
+    for (final m in marks) {
+      if (!await store.appendMark(m)) break;
+      taken.add(m);
+    }
+    final now = state;
+    if (now == null || !now.startedAt.isAtSameMomentAs(current.startedAt)) return false;
+    state = (startedAt: now.startedAt, points: now.points, marks: [...now.marks, ...taken]);
+    return taken.length == marks.length;
+  }
+
   Future<RideMark?> toggleMark() async {
     final current = state;
     if (current == null) return null;
@@ -486,7 +505,11 @@ class RidesNotifier extends AsyncNotifier<List<Ride>> {
   /// Rad des Fahrerprofils). Wie eine übernommene Datei: gemessen, aber
   /// nicht vom Handy. Hat das Handy dieselbe Zeit selbst aufgezeichnet
   /// ([rideOverlaps]), bleibt es bei dessen Fahrt.
-  Future<WatchRideSave> saveFromWatch(List<RidePoint> points, {required String profile}) async {
+  ///
+  /// [marks] sind die Trail-Marken, die an der Uhr per LAP gesetzt wurden
+  /// (Betreiber 2026-11-07) — sie gehen in die Datei wie die des Handys.
+  Future<WatchRideSave> saveFromWatch(List<RidePoint> points,
+      {required String profile, List<RideMark> marks = const []}) async {
     final uid = ref.read(currentUserIdProvider);
     if (uid == null || points.length < 2) return WatchRideSave.failed;
     final store = ref.read(rideStoreProvider);
@@ -494,7 +517,7 @@ class RidesNotifier extends AsyncNotifier<List<Ride>> {
     if (rideOnDevice(points, known)) return WatchRideSave.existed;
     if (rideOverlaps(points, known)) return WatchRideSave.overlap;
     final result = await store.saveImported(
-        uid: uid, name: null, points: points, profile: profile, source: kRideSourceWatch);
+        uid: uid, name: null, points: points, profile: profile, source: kRideSourceWatch, marks: marks);
     switch (result) {
       case ImportSave.saved:
         ref.invalidateSelf();

@@ -9,9 +9,11 @@ import Toybox.WatchUi;
 //! Karte und dunkle Infofläche (Design 13), oben gedreht in Fahrtrichtung
 //! die Route, die eigene Position im unteren Teil der Karte, unten „Was
 //! kommt als Nächstes?". Außen herum der Ring (TbRing) auf jeder Seite.
-//! START blättert: Karte → Fahrt → Berg, und sobald das Handy Bestwerte
-//! schickt (G2), → Sprünge. Kein Kartenbild — nur Route, ihre Trails und
-//! deren Schilder.
+//! hoch/runter blättern: Karte → Fahrt → Berg, und sobald das Handy
+//! Bestwerte schickt (G2), → Sprünge; langes HOCH zoomt die Karte. Oben
+//! auf der Karte (auf den Zahlenseiten unten) steht, was die Aufzeichnung
+//! tut ([setRecord]). Kein Kartenbild — nur Route, ihre Trails und deren
+//! Schilder.
 class NavView extends WatchUi.View {
     //! Meter je Pixel der drei Zoomstufen (hoch/runter).
     static const ZOOM_MPP = [1.0, 1.5, 4.0] as Array<Float>;
@@ -101,6 +103,17 @@ class NavView extends WatchUi.View {
     //! Die Punkte des Logos (`resources/logo`), nur solange der Lader steht.
     hidden var _logo as Array<Number>? = null;
     hidden var _logoT as Number = 1;
+    //! Die Aufzeichnung ([RideLog.state]) und ob ein markierter Trail läuft.
+    hidden var _rec as Number = RideLog.IDLE;
+    hidden var _trail as Boolean = false;
+    //! Eine kurze Einblendung („Trail beginnt" …) bis [_toastUntil].
+    hidden var _toast as String? = null;
+    hidden var _toastUntil as Number = 0;
+    static const TOAST_MS = 2500;
+    //! Die Zeile der Aufzeichnung: oben auf der Karte, unten auf den
+    //! Zahlenseiten (oben steht dort die Einheit).
+    static const STATUS_TOP_Y = 44;
+    static const STATUS_BOTTOM_Y = 214;
 
     function initialize(route as NavRoute, stats as RideStats, log as RideLog) {
         View.initialize();
@@ -170,23 +183,37 @@ class NavView extends WatchUi.View {
         return _page;
     }
 
-    //! hoch: auf der Karte näher heran, sonst eine Seite zurück.
-    function up() as Void {
+    function zoom() as Number {
+        return _zoom;
+    }
+
+    //! Langes HOCH: die Karte nach vorn und die nächste Zoomstufe (1 →
+    //! 1,5 → 4 m je Pixel und wieder von vorn).
+    function zoomStep() as Void {
         if (_page != 0) {
-            _page = (_page + pages() - 1) % pages();
-        } else if (_zoom > 0) {
-            _zoom--;
+            _page = 0;
+        } else {
+            _zoom = (_zoom + 1) % ZOOM_MPP.size();
         }
         WatchUi.requestUpdate();
     }
 
-    //! runter: auf der Karte weiter weg, sonst eine Seite weiter.
-    function down() as Void {
-        if (_page != 0) {
-            _page = (_page + 1) % pages();
-        } else if (_zoom < ZOOM_MPP.size() - 1) {
-            _zoom++;
-        }
+    //! Der Stand der Aufzeichnung für die Zeile oben bzw. unten.
+    function setRecord(state as Number, trailOpen as Boolean) as Void {
+        _rec = state;
+        _trail = trailOpen;
+        WatchUi.requestUpdate();
+    }
+
+    //! Eine kurze Einblendung für [TOAST_MS].
+    function toast(text as String) as Void {
+        _toast = text;
+        _toastUntil = System.getTimer() + TOAST_MS;
+        WatchUi.requestUpdate();
+    }
+
+    function prevPage() as Void {
+        _page = (_page + pages() - 1) % pages();
         WatchUi.requestUpdate();
     }
 
@@ -228,10 +255,12 @@ class NavView extends WatchUi.View {
                 drawArrived(dc, w);
             }
             if (!_free) { drawRing(dc, w, _state); }
+            drawStatus(dc, w, STATUS_BOTTOM_Y);
             return;
         }
         if (_free) {
             drawFree(dc, w);
+            drawStatus(dc, w, STATUS_TOP_Y);
             return;
         }
         dc.setColor(TbColors.TEXT, TbColors.GROUND);
@@ -246,6 +275,7 @@ class NavView extends WatchUi.View {
         if (s == null) {
             drawOverview(dc, w);
             drawRing(dc, w, null);
+            drawStatus(dc, w, STATUS_TOP_Y);
             return;
         }
         _cx = w / 2;
@@ -276,6 +306,56 @@ class NavView extends WatchUi.View {
         dc.drawCircle(w / 2, w / 2, (w / 2 + TbRing.MAP_R) / 2 + 1);
         dc.setPenWidth(1);
         drawRing(dc, w, s);
+        drawStatus(dc, w, STATUS_TOP_Y);
+    }
+
+    // --- Aufzeichnung --------------------------------------------------------
+
+    //! Was die Aufzeichnung tut, als Schild bei [y]: vor START schwarz mit
+    //! „START: Aufnehmen" in Lime, in der Pause in Warnfarbe „Pause", auf
+    //! einem markierten Trail Lime mit „Trail"; sonst nur ein roter Punkt.
+    //! Darüber die Einblendung, solange sie gilt.
+    hidden function drawStatus(dc as Dc, w as Number, y as Number) as Void {
+        var cx = w / 2;
+        var text = null;
+        var bg = TbColors.FIELD;
+        var fg = TbColors.ROUTE;
+        if (_rec == RideLog.IDLE) {
+            text = str(Rez.Strings.RecIdle);
+        } else if (_rec == RideLog.PAUSED) {
+            text = str(Rez.Strings.RecPaused);
+            bg = TbColors.WARNING;
+            fg = TbColors.TEXT_ON_FIELD;
+        } else if (_trail) {
+            text = str(Rez.Strings.RecTrail);
+            bg = TbColors.ROUTE;
+            fg = TbColors.TEXT;
+        }
+        if (text == null) {
+            dc.setColor(TbColors.GROUND, Graphics.COLOR_TRANSPARENT);
+            dc.fillCircle(cx, y, 6);
+            dc.setColor(TbColors.S2, Graphics.COLOR_TRANSPARENT);
+            dc.fillCircle(cx, y, 4);
+        } else {
+            pill(dc, cx, y, text, Graphics.FONT_XTINY, bg, fg);
+        }
+        var t = _toast;
+        if (t == null) { return; }
+        if (System.getTimer() - _toastUntil >= 0) {
+            _toast = null;
+            return;
+        }
+        pill(dc, cx, y == STATUS_TOP_Y ? 82 : 176, t, Graphics.FONT_SMALL, TbColors.FIELD, TbColors.TEXT_ON_FIELD);
+    }
+
+    hidden function pill(dc as Dc, cx as Number, y as Number, text as String, font as Graphics.FontType,
+                         bg as Number, fg as Number) as Void {
+        var tw = dc.getTextWidthInPixels(text, font);
+        var h = dc.getFontHeight(font);
+        dc.setColor(bg, Graphics.COLOR_TRANSPARENT);
+        dc.fillRoundedRectangle(cx - tw / 2 - 8, y - h / 2 - 1, tw + 16, h + 2, (h + 2) / 2);
+        dc.setColor(fg, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(cx, y, font, text, Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
     }
 
     // --- Ring --------------------------------------------------------------
@@ -403,7 +483,7 @@ class NavView extends WatchUi.View {
         dc.setColor(TbColors.MUTED_DARK, Graphics.COLOR_TRANSPARENT);
         // Bei y 18 war der Kreis zu schmal (fēnix 5, 2026-11-05: halb
         // abgeschnitten) — tiefer und kurz (`tool/garmin_build.sh`).
-        dc.drawText(w / 2, 34, Graphics.FONT_XTINY, str(Rez.Strings.BuildStamp), Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(w / 2, 56, Graphics.FONT_XTINY, str(Rez.Strings.BuildStamp), Graphics.TEXT_JUSTIFY_CENTER);
         // Der schwarze Rand, auf dem der Ring liegt.
         dc.setColor(TbColors.FIELD, Graphics.COLOR_TRANSPARENT);
         dc.setPenWidth(w / 2 - TbRing.MAP_R + 2);

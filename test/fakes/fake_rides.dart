@@ -146,6 +146,7 @@ class FakeRideStore implements RideStore {
     required List<RidePoint> points,
     String? profile,
     String? source,
+    List<RideMark> marks = const [],
   }) async {
     if (failOnImport) return ImportSave.failed;
     this.uid ??= uid;
@@ -159,6 +160,7 @@ class FakeRideStore implements RideStore {
         profile: profile,
         imported: true,
         name: name,
+        marks: marks,
         source: source));
     rides.sort((a, b) => b.startedAt.compareTo(a.startedAt));
     return ImportSave.saved;
