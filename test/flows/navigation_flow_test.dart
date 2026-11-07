@@ -1170,6 +1170,22 @@ void main() {
     expect(find.byKey(const ValueKey('nav-go')), findsOneWidget, reason: 'die Route kommt mit dem Start-Blatt zurück');
   });
 
+  testWidgets('a follow view stuck on country zoom goes back to 16 with the next fix (device check 2026-11-07)',
+      (tester) async {
+    await startFromRides(tester);
+    await tester.tap(find.byKey(const ValueKey('nav-go')));
+    await settle(tester);
+    expect(fakeMap(tester).zoom, 16);
+    // Wie am Pixel: Die Kamera steht noch auf der Länderansicht von vorher.
+    fakeMap(tester).move(fakeMap(tester).center, 5);
+    await fix(tester, _lat, _lng(2));
+    expect(fakeMap(tester).zoom, 16);
+    // Zwei Finger, die nur etwas weiter weg zoomen, bleiben stehen.
+    fakeMap(tester).move(fakeMap(tester).center, 13.5);
+    await fix(tester, _lat, _lng(3));
+    expect(fakeMap(tester).zoom, 13.5);
+  });
+
   testWidgets('#464: without a recording the leave bar does not claim one (device check 2026-11-07)', (tester) async {
     await startFromRides(tester);
     await tester.tap(find.byKey(const ValueKey('nav-record')));

@@ -40,6 +40,13 @@ const kNavHeadingMinSpeedMps = 2.0;
 /// Der Zoom der Folgeansicht beim Start (256er-Stufen der Fassade).
 const kNavZoom = 16.0;
 
+/// Darunter ist eine Folgeansicht nie gemeint: Die Karte kam aus der
+/// Länderansicht, und MapLibre hatte den ersten Schritt auf [kNavZoom]
+/// noch nicht übernommen, als der nächste Fix den Zoom der Kamera las —
+/// die Navigation folgte dann auf Länderzoom (Gerätetest 2026-11-07,
+/// Start aus „Meine Fahrten"). Ein Fix darunter nimmt wieder [kNavZoom].
+const kNavMinFollowZoom = 12.0;
+
 /// Der Zoom im Bild-im-Bild (#415, Konzept-Routing 9.6): Das Fenster ist
 /// ein Drittel so breit wie der Schirm (132 dp auf dem Pixel XL), 1,5
 /// Stufen weniger zeigen darin etwa den Boden der Folgeansicht. Mit
