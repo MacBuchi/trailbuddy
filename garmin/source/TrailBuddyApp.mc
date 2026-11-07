@@ -6,6 +6,7 @@ import Toybox.Math;
 import Toybox.Position;
 import Toybox.Sensor;
 import Toybox.System;
+import Toybox.Time;
 import Toybox.Timer;
 import Toybox.WatchUi;
 
@@ -16,7 +17,14 @@ import Toybox.WatchUi;
 //! starten ([fallbackRoute], `tool/garmin_build.sh --store`).
 //! Eigenes GPS, keine Garmin-Aktivität (kein ActivityRecording, Konzept
 //! 4), kein Netz — an das Handy nur „hallo" (`hi`, mit der Kennung der
-//! gespeicherten Route), „gespeichert" (`ok`) und „ging nicht" (`x`).
+//! gespeicherten Route und den wartenden Fahrten), „gespeichert" (`ok`),
+//! „ging nicht" (`x`) und die eigene Fahrt (`w`, [RideLog]).
+//!
+//! Ohne Route (Store-Bau ohne Handy, #484) beginnt die freie Fahrt: GPS,
+//! die eigene Spur auf der Karte, die Seiten „Fahrt" und „Berg". Die Uhr
+//! zeichnet in jedem Fall auf ([RideLog], Betreiber 2026-11-07); beim
+//! Beenden geht die Fahrt ans Handy, sonst wartet sie bis zum nächsten
+//! Start mit Handy.
 //! Eine Route, die die App abstürzen ließ, kommt nicht zweimal hinein
 //! ([CrashGuard]).
 //!
@@ -29,8 +37,8 @@ import Toybox.WatchUi;
 //!
 //! Die Navigation endet auf beiden Geräten (`e`, Betreiber 2026-11-06):
 //! Beendet das Handy, schließt sich die App; beendet man hier, hört es das
-//! Handy, bevor die App zugeht ([quit]). Die Uhr speichert nichts außer
-//! der Route, es geht also nichts verloren.
+//! Handy, bevor die App zugeht ([quit]). Danach geht die Fahrt ans Handy
+//! ([closeDown]).
 class TrailBuddyApp extends Application.AppBase {
     hidden var _route as NavRoute;
     hidden var _tracker as NavTracker;
@@ -54,6 +62,16 @@ class TrailBuddyApp extends Application.AppBase {
     hidden var _waitUntil as Number = 0;
     hidden var _lastFrame as Number = 0;
     hidden var _exit as Timer.Timer?;
+    //! Die eigene Fahrt (#484): läuft vom ersten eigenen Fix bis zum Ende.
+    hidden var _log as RideLog;
+    //! Die App geht zu ([closeDown]): Es zählt kein Fix mehr, ZURÜCK
+    //! schließt sofort.
+    hidden var _closing as Boolean = false;
+    //! Die Fahrt, die gerade ans Handy geht (`[id, Stücke, Punkte]`), die
+    //! nächste Nachricht und seit wann.
+    hidden var _tx as Array? = null;
+    hidden var _txP as Number = 0;
+    hidden var _txAt as Number = 0;
     static const WAIT_ANSWER = 1;
     static const WAIT_ROUTE = 2;
     //! So lange wartet der Start auf die Antwort auf „hallo". Erst 3 s
@@ -66,6 +84,12 @@ class TrailBuddyApp extends Application.AppBase {
     static const END_WAIT_MS = 5000;
     //! So lange steht „Navigation beendet", wenn das Handy beendete.
     static const ENDED_SHOW_MS = 1500;
+    //! So lange wartet das Beenden je Nachricht der Fahrt auf Garmin
+    //! Connect und nach der letzten auf das `wk` des Handys (eine
+    //! Nachricht braucht ~3,5 s, Messung 8.2); dann zu, die Fahrt wartet.
+    static const RIDE_WAIT_MS = 20000;
+    //! So lange steht „Fahrt gespeichert, wartet aufs Handy".
+    static const QUEUED_SHOW_MS = 2500;
     //! So lange darf eine angekündigte Route ohne neues Stück sein (eins
     //! braucht über Garmin Connect ~15 s, Messung 8.2).
     static const INCOMING_MS = 45000;
@@ -73,9 +97,9 @@ class TrailBuddyApp extends Application.AppBase {
     static const FRAME_MS = 100;
     //! Die Testroute ließ sich nicht dekodieren (dann nicht immer wieder).
     hidden var _testFailed as Boolean = false;
-    //! Store-Bau ohne Route: Die Ansicht zeigt den Hinweis, kein GPS, bis
-    //! eine Route vom Handy kommt ([fallbackRoute]).
-    hidden var _idle as Boolean = false;
+    //! Store-Bau ohne Route: freie Fahrt mit GPS und eigener Spur, bis
+    //! eine Route vom Handy kommt ([fallbackRoute], #484).
+    hidden var _free as Boolean = false;
     //! Die Uhr hat eigenes GPS gehabt: Ab da zählt die Position des Handys
     //! nicht mehr (`p`, Konzept 2).
     hidden var _ownFix as Boolean = false;
@@ -89,6 +113,9 @@ class TrailBuddyApp extends Application.AppBase {
     function initialize() {
         AppBase.initialize();
         CrashGuard.atStart();
+        // Eine Fahrt, die beim letzten Mal nicht zu Ende kam, wartet.
+        RideLog.recover();
+        _log = new RideLog();
         if (Storage.getValue("loading") == true) {
             PhoneRoute.drop();
             Storage.deleteValue("loading");
@@ -103,9 +130,9 @@ class TrailBuddyApp extends Application.AppBase {
         _route = r;
         _tracker = new NavTracker(r);
         _stats = new RideStats(r.secFrom.size());
-        _view = new NavView(r, _stats);
+        _view = new NavView(r, _stats, _log);
         if (_wait != 0) { _view.setWaiting(str(Rez.Strings.Loading)); }
-        if (_idle) { _view.setIdle(str(Rez.Strings.NoRoute)); }
+        if (_free) { _view.setFree(); }
     }
 
     //! Die gespeicherte Route vom Handy, sonst die Testroute. Vorher (in
@@ -114,7 +141,7 @@ class TrailBuddyApp extends Application.AppBase {
     //! brach das Laden der gespeicherten beim letzten Mal ab (Speicher,
     //! Watchdog), steht „loading" noch, dann ist sie sofort weg.
     hidden function storedRoute() as NavRoute {
-        _idle = false;
+        _free = false;
         var r = PhoneRoute.route();
         if (r != null) {
             PhoneRoute.store("loading", true);
@@ -141,11 +168,11 @@ class TrailBuddyApp extends Application.AppBase {
     }
 
     //! Ohne Route vom Handy, im Store-Bau: keine erfundene Runde um die
-    //! eigene Position, sondern der Hinweis auf die App. Die Testroute
+    //! eigene Position, sondern die freie Fahrt (#484). Die Testroute
     //! liegt gar nicht im Paket (`tool/garmin_build.sh --store`).
     (:store)
     hidden function fallbackRoute() as NavRoute {
-        _idle = true;
+        _free = true;
         return placeholder();
     }
 
@@ -155,8 +182,8 @@ class TrailBuddyApp extends Application.AppBase {
         _tracker = new NavTracker(r);
         _stats = new RideStats(r.secFrom.size());
         _stats.bests = _bests;
-        _view = new NavView(r, _stats);
-        if (_idle) { _view.setIdle(str(Rez.Strings.NoRoute)); }
+        _view = new NavView(r, _stats, _log);
+        if (_free) { _view.setFree(); }
     }
 
     function onStart(state as Dictionary?) as Void {
@@ -182,6 +209,9 @@ class TrailBuddyApp extends Application.AppBase {
         if (id != null) { msg["id"] = id; }
         var bad = CrashGuard.bad();
         if (bad != null) { msg["bad"] = bad; }
+        // Die wartenden Fahrten: Das Handy antwortet mit `wq` („schick").
+        var rq = RideLog.queuedIds();
+        if (rq.size() > 0) { msg["rq"] = rq; }
         toPhone(msg);
     }
 
@@ -203,9 +233,13 @@ class TrailBuddyApp extends Application.AppBase {
     //! Im Simulator (`--test`, `--demo`, `--run`) nichts: Er meldet ein
     //! verbundenes Handy, und ohne ADB öffnete der erste `transmit` bei
     //! jedem Lauf den Dialog „There is no data connection" (Betreiber
-    //! 2026-11-07). Die Tests rufen das Senden nicht auf.
+    //! 2026-11-07). Es gilt als gescheitert: Das Beenden wartet dann nicht,
+    //! und eine Fahrt bleibt in der Warteschlange. Die Tests rufen das
+    //! Senden nicht auf.
     (:sim)
-    hidden function send(msg as Dictionary, ack as Communications.ConnectionListener) as Void {}
+    hidden function send(msg as Dictionary, ack as Communications.ConnectionListener) as Void {
+        ack.onError();
+    }
 
     hidden function startLoader() as Void {
         var old = _loader;
@@ -254,9 +288,12 @@ class TrailBuddyApp extends Application.AppBase {
         var c = new Timer.Timer();
         _calm = c;
         c.start(method(:calmDown), CrashGuard.CALM_MS, false);
-        // Ohne Route kein GPS: Es gäbe nichts zu verfolgen, und der
-        // Platzhalter läge „abseits".
-        if (_idle) { return; }
+        // Ohne Route die freie Fahrt: GPS für Spur, Zahlen und Aufzeichnung,
+        // aber kein Verfolgen (der Platzhalter läge „abseits").
+        if (_free) {
+            Position.enableLocationEvents(Position.LOCATION_CONTINUOUS, method(:onPosition));
+            return;
+        }
         if (self has :startDemo) {
             startDemo();
             return;
@@ -286,7 +323,7 @@ class TrailBuddyApp extends Application.AppBase {
 
     //! Die gespeicherte Route laden (sonst [fallbackRoute]) und dekodieren.
     hidden function loadStored() as Void {
-        _idle = false;
+        _free = false;
         var r = PhoneRoute.route();
         if (r == null) { r = fallbackRoute(); } else {
             PhoneRoute.store("loading", true);
@@ -311,28 +348,131 @@ class TrailBuddyApp extends Application.AppBase {
         WatchUi.requestUpdate();
     }
 
-    //! „Navigation beenden?" mit Ja: Ist die Route vom Handy und das Handy
-    //! verbunden, erst „beendet" ans Handy — es beendet seine Navigation
-    //! (die Aufzeichnung läuft weiter) —, dann zu, sobald Garmin Connect
-    //! die Nachricht abnahm ([EndAck]), höchstens nach [END_WAIT_MS]. Ging
-    //! die App sofort zu, verfiele die Nachricht.
+    //! „Navigation beenden?" (bzw. „Fahrt beenden?") mit Ja.
     function quit() as Void {
-        var id = _route.id;
-        if (_wait != 0 || !System.getDeviceSettings().phoneConnected || !id.equals(PhoneRoute.currentId())) {
-            System.exit();
-        }
-        send({"t" => "e", "id" => id}, new EndAck());
-        ended(END_WAIT_MS);
+        closeDown(true);
     }
 
-    //! „Navigation beendet" auf dem Schirm, nach [ms] zu.
-    hidden function ended(ms as Number) as Void {
-        if (_exit != null) { return; }
-        _view.setEnded(str(Rez.Strings.NavEnded));
+    //! Das Ende, von der Uhr ([tellPhone]) oder vom Handy (`e`): Die Fahrt
+    //! kommt in die Warteschlange ([RideLog.finish]). Ist die Route vom
+    //! Handy und das Handy verbunden und endet es hier, erst „beendet" ans
+    //! Handy — es beendet seine Navigation —, und erst wenn Garmin Connect
+    //! das abnahm ([EndAck]), höchstens nach [END_WAIT_MS], geht die Fahrt
+    //! hinüber ([afterEnd]). Ging die App sofort zu, verfiele die Nachricht.
+    hidden function closeDown(tellPhone as Boolean) as Void {
+        if (_closing) { return; }
+        _closing = true;
+        var t = _loader;
+        if (t != null) { t.stop(); _loader = null; }
+        _log.finish();
+        var id = _route.id;
+        if (tellPhone && _wait == 0 && System.getDeviceSettings().phoneConnected && id.equals(PhoneRoute.currentId())) {
+            showEnd(str(Rez.Strings.NavEnded));
+            send({"t" => "e", "id" => id}, new EndAck());
+            armExit(END_WAIT_MS);
+            return;
+        }
+        afterEnd();
+    }
+
+    //! Nach dem Ende: die wartenden Fahrten ans Handy, sonst kurz sagen,
+    //! dass die Fahrt wartet, sonst zu.
+    function afterEnd() as Void {
+        if (startUpload()) { return; }
+        if (RideLog.queue().size() > 0) {
+            showEnd(str(Rez.Strings.RideWaits));
+            armExit(QUEUED_SHOW_MS);
+            return;
+        }
+        if (_view.isEnded()) {
+            armExit(ENDED_SHOW_MS);
+            return;
+        }
+        System.exit();
+    }
+
+    hidden function showEnd(text as String) as Void {
+        _view.setEnded(text);
         WatchUi.requestUpdate();
+    }
+
+    //! Ein Timer für das Zugehen, neu gestellt auf [ms].
+    hidden function armExit(ms as Number) as Void {
+        var old = _exit;
+        if (old != null) { old.stop(); }
         var t = new Timer.Timer();
         _exit = t;
         t.start(method(:exitNow), ms, false);
+    }
+
+    //! Geht die App gerade zu? ZURÜCK schließt dann sofort.
+    function closing() as Boolean {
+        return _closing;
+    }
+
+    // --- Die Fahrt ans Handy (#484) -----------------------------------------
+
+    //! Die älteste wartende Fahrt ans Handy, eine Nachricht nach der anderen
+    //! ([rideSent]); gelöscht wird sie erst mit `wk`. Nicht, solange eine
+    //! Route ankommt — eine Übertragung zur Zeit. false, wenn nichts geht.
+    hidden function startUpload() as Boolean {
+        if (!System.getDeviceSettings().phoneConnected) { return false; }
+        if (_tx != null && System.getTimer() - _txAt < RIDE_WAIT_MS) { return false; }
+        _tx = null;
+        if (!_closing && (_wait != 0 || _pendingId != null)) { return false; }
+        var q = RideLog.queue();
+        if (q.size() == 0) { return false; }
+        _tx = q[0];
+        _txP = 0;
+        sendRidePart();
+        return true;
+    }
+
+    hidden function sendRidePart() as Void {
+        var e = _tx as Array;
+        _txAt = System.getTimer();
+        var n = RideLog.messageCount(e);
+        if (_closing) {
+            showEnd(str(Rez.Strings.RideSending) + " · " + (_txP + 1) + "/" + n);
+            armExit(RIDE_WAIT_MS);
+        }
+        send(RideLog.message(e, _txP), new RideAck());
+    }
+
+    //! Garmin Connect nahm eine Nachricht der Fahrt ab ([ok]) oder nicht.
+    function rideSent(ok as Boolean) as Void {
+        var e = _tx;
+        if (e == null) { return; }
+        if (!ok) {
+            _tx = null;
+            if (_closing) { afterFailedUpload(); }
+            return;
+        }
+        _txP++;
+        _txAt = System.getTimer();
+        if (_txP < RideLog.messageCount(e)) {
+            sendRidePart();
+        }
+        // Sonst wartet sie auf `wk` — beim Beenden höchstens RIDE_WAIT_MS.
+    }
+
+    hidden function afterFailedUpload() as Void {
+        showEnd(str(Rez.Strings.RideWaits));
+        armExit(QUEUED_SHOW_MS);
+    }
+
+    //! Das Handy hat die Fahrt [id] gespeichert (oder hatte sie schon):
+    //! weg damit, kurz vibrieren, die nächste.
+    hidden function rideAcked(id as String) as Void {
+        if (!RideLog.ack(id)) { return; }
+        var e = _tx;
+        if (e != null && id.equals(e[0])) { _tx = null; }
+        vibrateShort();
+        if (startUpload()) { return; }
+        if (_closing) {
+            showEnd(str(Rez.Strings.RideOnPhone));
+            armExit(ENDED_SHOW_MS);
+        }
     }
 
     function exitNow() as Void {
@@ -349,6 +489,8 @@ class TrailBuddyApp extends Application.AppBase {
     function onStop(state as Dictionary?) as Void {
         var t = _loader;
         if (t != null) { t.stop(); }
+        // Ging die App anders zu als über [closeDown], wartet die Fahrt.
+        _log.finish();
         // Sauber beendet: Kein Absturz zählt gegen die Route.
         CrashGuard.calm();
         if (self has :startDemo) { return; }
@@ -372,6 +514,17 @@ class TrailBuddyApp extends Application.AppBase {
             sayHello();
             return;
         }
+        // Die Fahrt: „schick" (`wq`, die Antwort auf „hallo" mit `rq`) und
+        // „gespeichert" (`wk`).
+        if ("wq".equals(t)) {
+            if (!_closing) { startUpload(); }
+            return;
+        }
+        if ("wk".equals(t)) {
+            var wid = d["id"];
+            if (wid instanceof String) { rideAcked(wid); }
+            return;
+        }
         if ("p".equals(t)) {
             phoneFix(d["la"], d["lo"]);
             return;
@@ -392,7 +545,8 @@ class TrailBuddyApp extends Application.AppBase {
             var eid = d["id"];
             if (eid instanceof String && (eid.equals(_route.id) || eid.equals(PhoneRoute.currentId())
                     || (_pendingId != null && eid.equals(_pendingId)))) {
-                ended(ENDED_SHOW_MS);
+                showEnd(str(Rez.Strings.NavEnded));
+                closeDown(false);
             }
             return;
         }
@@ -459,7 +613,7 @@ class TrailBuddyApp extends Application.AppBase {
         var c = _calm;
         if (c != null) { c.stop(); _calm = null; }
         Position.enableLocationEvents(Position.LOCATION_DISABLE, method(:onPosition));
-        _idle = false;
+        _free = false;
         setRoute(placeholder());
         WatchUi.switchToView(_view, new NavDelegate(_view), WatchUi.SLIDE_IMMEDIATE);
         loadStored();
@@ -470,7 +624,7 @@ class TrailBuddyApp extends Application.AppBase {
     //! zum Ziel statt Strichen. Kein Vibrieren (das Handy kann ein paar
     //! Sekunden alt sein), keine Zahlen der Fahrt; nichts wird gespeichert.
     function phoneFix(la as Object?, lo as Object?) as Void {
-        if (_ownFix || _idle || _wait != 0 || !_route.isReady() || !(la instanceof Number) || !(lo instanceof Number)) { return; }
+        if (_ownFix || _free || _wait != 0 || !_route.isReady() || !(la instanceof Number) || !(lo instanceof Number)) { return; }
         if (la < -9000000 || la > 9000000 || lo < -18000000 || lo > 18000000) { return; }
         var lat = la.toDouble() / 100000.0d;
         var lon = lo.toDouble() / 100000.0d;
@@ -492,7 +646,7 @@ class TrailBuddyApp extends Application.AppBase {
     }
 
     function onPosition(info as Position.Info) as Void {
-        if (_idle || _wait != 0 || !_route.isReady()) { return; }
+        if (_closing || _wait != 0 || !_route.isReady()) { return; }
         var loc = info.position;
         if (loc == null || info.accuracy < Position.QUALITY_USABLE) {
             return;
@@ -502,29 +656,37 @@ class TrailBuddyApp extends Application.AppBase {
             // Nur „ich habe GPS", keine Koordinate (A3): Das Handy hört auf.
             toPhone({"t" => "g"});
         }
-        if (_phoneFixed) {
-            _phoneFixed = false;
-            _tracker = new NavTracker(_route);
-        }
         var deg = loc.toDegrees();
         var lat = deg[0].toDouble();
         var lon = deg[1].toDouble();
-        if (_route.relative) {
-            _route.anchor(lat, lon);
-        }
-        var p = _route.toLocal(lat, lon);
-        var compass = null;
         var sensor = Sensor.getInfo();
+        var compass = null;
         if (sensor has :heading && sensor.heading != null) {
             compass = sensor.heading;
-        }
-        var s = _tracker.update(p[0], p[1], info.heading, info.speed, compass);
-        if (s.leftRoute) {
-            vibrateOnce();
         }
         // Höhe vom Barometer, sonst vom GPS.
         var alt = sensor has :altitude && sensor.altitude != null ? sensor.altitude : info.altitude;
         var hr = sensor has :heartRate ? sensor.heartRate : null;
+        // Die Fahrt (#484): jeder eigene Fix, ob mit Route oder ohne.
+        _log.add(lat, lon, Time.now().value(), alt, info.accuracy);
+        if (_free) {
+            var f = _log.toLocal(lat, lon);
+            _stats.update(f[0], f[1], System.getTimer(), info.speed, alt, hr, -1);
+            _view.setFreeFix(f[0], f[1], info.heading, info.speed, compass);
+            return;
+        }
+        if (_phoneFixed) {
+            _phoneFixed = false;
+            _tracker = new NavTracker(_route);
+        }
+        if (_route.relative) {
+            _route.anchor(lat, lon);
+        }
+        var p = _route.toLocal(lat, lon);
+        var s = _tracker.update(p[0], p[1], info.heading, info.speed, compass);
+        if (s.leftRoute) {
+            vibrateOnce();
+        }
         _stats.update(p[0], p[1], System.getTimer(), info.speed, alt, hr,
             s.offRoute ? -1 : _route.sectionAt(s.alongM));
         _view.setState(s, info.speed, false);
@@ -713,8 +875,14 @@ class NavDelegate extends WatchUi.BehaviorDelegate {
     }
 
     function onBack() as Boolean {
+        var app = Application.getApp() as TrailBuddyApp;
+        // Beim Zugehen (die Fahrt geht ans Handy): sofort zu, sie wartet.
+        if (app.closing()) {
+            app.exitNow();
+            return true;
+        }
         WatchUi.pushView(
-            new WatchUi.Confirmation(WatchUi.loadResource(Rez.Strings.Quit) as String),
+            new WatchUi.Confirmation(WatchUi.loadResource(_view.isFree() ? Rez.Strings.QuitRide : Rez.Strings.Quit) as String),
             new QuitDelegate(),
             WatchUi.SLIDE_IMMEDIATE);
         return true;
@@ -747,17 +915,33 @@ class QuitDelegate extends WatchUi.ConfirmationDelegate {
     }
 }
 
-//! „Beendet" ist beim Handy (oder ging nicht): jetzt zu.
+//! „Beendet" ist beim Handy (oder ging nicht): jetzt die Fahrt.
 class EndAck extends Communications.ConnectionListener {
     function initialize() {
         ConnectionListener.initialize();
     }
 
     function onComplete() as Void {
-        (Application.getApp() as TrailBuddyApp).exitNow();
+        (Application.getApp() as TrailBuddyApp).afterEnd();
     }
 
     function onError() as Void {
-        (Application.getApp() as TrailBuddyApp).exitNow();
+        (Application.getApp() as TrailBuddyApp).afterEnd();
+    }
+}
+
+//! Eine Nachricht der Fahrt ist bei Garmin Connect (oder nicht) — die
+//! nächste geht erst dann ([TrailBuddyApp.rideSent]).
+class RideAck extends Communications.ConnectionListener {
+    function initialize() {
+        ConnectionListener.initialize();
+    }
+
+    function onComplete() as Void {
+        (Application.getApp() as TrailBuddyApp).rideSent(true);
+    }
+
+    function onError() as Void {
+        (Application.getApp() as TrailBuddyApp).rideSent(false);
     }
 }

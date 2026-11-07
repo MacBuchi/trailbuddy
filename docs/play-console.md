@@ -168,6 +168,10 @@ aber nur an das eigene Gerät des Nutzers) an die
 Garmin-Connect-App auf DEMSELBEN Telefon, die sie an die eigene Uhr des
 Nutzers bringt — dieselbe Ausnahme wie die Anfahrt. Kein Netzziel der
 App, kein Garmin-Konto, keine Garmin-Aktivität (Konzept-Garmin 0 und 4).
+Seit #484 auch die Gegenrichtung: Die Uhr zeichnet selbst auf und gibt
+die Fahrt (Position, Höhe, Zeit) über Garmin Connect an DIESES Telefon,
+wo sie unter „Meine Fahrten" liegt — auf dem Gerät, nicht erhoben und
+nicht geteilt, wie jede Aufzeichnung der App.
 Was Garmin Connect selbst überträgt, ist Garmins Sache; die
 Datenschutzerklärung sagt beides. **Paket-Sichtbarkeit:** Garmins
 Companion-SDK (`com.garmin.connectiq:ciq-companion-app-sdk`) bringt

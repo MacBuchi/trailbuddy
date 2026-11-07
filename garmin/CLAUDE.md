@@ -1,8 +1,9 @@
 # TrailBuddy — Arbeitsregeln für `garmin/`
 
 Teil der Root-`CLAUDE.md` (dort der Index aller Teildateien). Konzept:
-`docs/konzept-garmin.md` — die Uhr ist Anzeige, kein Sensor; keine
-Garmin-Aktivität, kein Netz, keine Abbiegehinweise.
+`docs/konzept-garmin.md` — die Uhr ist Anzeige, kein Sensor (außer der
+eigenen Spur, #484); keine Garmin-Aktivität, kein Netz, keine
+Abbiegehinweise.
 
 ## Technik-Notizen
 
@@ -189,20 +190,43 @@ Garmin-Aktivität, kein Netz, keine Abbiegehinweise.
 - **Drei Annotationspaare, eine Zeile** (`tool/garmin_build.sh`, die
   letzte `base.excludeAnnotations` in der Jungle-Kopie gilt):
   `demo`/`nodemo` (Vorführmodus), `testroute`/`store` (Testroute oder
-  Hinweis „Navigation starten" ohne Route, `fallbackRoute`), `nosim`/`sim`
+  freie Fahrt ohne Route, `fallbackRoute`), `nosim`/`sim`
   (Senden über Garmin Connect oder stumm). `monkey.jungle` im Repo ist
   der Bau für die Uhr: `demo;store;sim`.
 - **Kein `transmit` im Simulator** (`send` in `TrailBuddyApp`,
   Betreiber 2026-11-07): Der Simulator meldet ein verbundenes Handy, und
   ohne ADB öffnete der erste `transmit` bei jedem `--test`/`--demo`/`--run`
   den Dialog „There is no data connection", der den Lauf anhielt. Für
-  Simulator-Bauten ist `send` leer. Gegenprobe: vorher 21-mal „transmit
-  queue full" im Testlauf, danach 0.
-- **Store-Zweig ohne Route** (`_idle`): kein GPS (der Platzhalter läge
-  „abseits" und vibrierte), `onPosition`/`phoneFix` zählen nicht; eine
-  Route vom Handy löst ihn über `swapRoute`/`loadStored` ab. Der
-  Schlüssel des Store-Pakets bleibt für immer derselbe — mit einem
-  anderen nimmt der Store kein Update an (Sicherung: `docs/garmin-store.md`).
+  Simulator-Bauten ruft `send` nur `ack.onError()` (seit #484 — sonst
+  wartete das Beenden auf ein `EndAck`, das nie kommt; die Fahrt bleibt
+  dann in der Warteschlange). Gegenprobe: vorher 21-mal „transmit
+  queue full" im Testlauf, danach 0. Eine Übertragung an ein Handy im
+  Simulator braucht deshalb einen Bau mit `nosim`.
+- **Store-Zweig ohne Route = freie Fahrt** (`_free`, #484): GPS an,
+  kein `NavTracker` (der Platzhalter läge „abseits" und vibrierte),
+  `phoneFix` zählt nicht; die Ansicht zeichnet `drawFree` (Spur aus dem
+  Ring `RideLog.trackX/Y`, 300 Punkte, über `seg` mit `FRAME_SEGS`) und
+  auf den Zahlenseiten keinen Ring. Eine Route vom Handy löst sie über
+  `swapRoute`/`loadStored` ab. Der Schlüssel des Store-Pakets bleibt für
+  immer derselbe — mit einem anderen nimmt der Store kein Update an
+  (Sicherung: `docs/garmin-store.md`).
+- **Die Fahrt auf der Uhr** (`source/RideLog.mc`, #484, Konzept 2a):
+  `onPosition` gibt JEDEN eigenen Fix an `_log.add` (alle 5 s ein Punkt,
+  ob Navigation oder freie Fahrt; die Position des Handys nie). Stücke zu
+  60 Punkten unter `w<id>_<k>`, das offene alle 12 Punkte neu mit `wo`;
+  `RideLog.recover()` in `initialize` nimmt eine abgebrochene Fahrt in die
+  Warteschlange `rq`. `finish()` in `closeDown` UND `onStop` (dort ein
+  No-op, wenn schon beendet). Gelöscht wird NUR in `RideLog.ack` mit
+  `id.equals(…)` — Gegenprobe 2026-11-07: ohne den Vergleich ist
+  `rideLogDeletesOnlyOnAck` rot. Das Senden (`startUpload` →
+  `sendRidePart` → `RideAck` → `rideSent`) geht Nachricht für Nachricht;
+  beim Beenden stellt `armExit` den EINEN Timer `_exit` je Nachricht neu
+  (`RIDE_WAIT_MS` = 20 s), ZURÜCK schließt sofort (`closing()`). Nicht
+  senden, solange `_wait`/`_pendingId` (eine Route kommt). Die Spur der
+  Ansicht ist ein eigener Ring, nicht die Stücke — gelesen wird aus dem
+  Speicher nur beim Senden, Stück für Stück. Speicher im Simulator ohne
+  Route: 56 KB von 124 KB (2026-11-07). Die Grenze `MAX_POINTS` = 6000
+  ist ein Startwert bis zur Messung 8.6.
 - **Unit-Tests auf allen Uhren des Manifests**: je Uhr den Simulator neu
   starten (nach einem Gerätewechsel schrieb `monkeydo` sonst nichts) und
   `GARMIN_DEVICE=<id> tool/garmin_build.sh --test`. Bildschirmfotos nur

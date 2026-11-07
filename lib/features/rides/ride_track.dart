@@ -107,6 +107,9 @@ typedef RecordedRide = ({DateTime startedAt, List<RidePoint> points, List<RideMa
 /// Eine abgeschlossene Fahrt auf dem Gerät. [id] ist der Dateiname ohne
 /// Endung, abgeleitet aus dem Start — eindeutig genug, zwei Fahrten
 /// beginnen nie in derselben Sekunde.
+/// Die Quelle einer Fahrt von der Garmin-Uhr (Kopfzeile `source`, #484).
+const kRideSourceWatch = 'watch';
+
 class Ride {
   const Ride({
     required this.id,
@@ -119,6 +122,7 @@ class Ride {
     this.planned = false,
     this.imported = false,
     this.name,
+    this.source,
   });
 
   final String id;
@@ -143,6 +147,13 @@ class Ride {
   /// Der Name einer geplanten Fahrt („Runde: Hexentanz, Steinbruch") oder
   /// der Spur einer übernommenen Datei.
   final String? name;
+
+  /// Woher eine übernommene Fahrt kam: [kRideSourceWatch] für die eigene
+  /// Garmin-Uhr (#484), sonst null (eine GPX-Datei).
+  final String? source;
+
+  /// Von der eigenen Uhr aufgezeichnet (#484)?
+  bool get fromWatch => source == kRideSourceWatch;
 
   /// Das Fahrerprofil beim Start (`RiderProfile.name`, Konzept-Routing
   /// 2.1) — die Kalibrierung rechnet je Profil; Fahrten ohne (vor 0.70.0)

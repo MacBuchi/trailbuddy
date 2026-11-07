@@ -2,6 +2,23 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## The watch rides on its own
+
+*Version 0.160.0, 2026-11-07*
+
+- The TrailBuddy app on the Garmin watch now also starts without the
+  phone and without a navigation: without a route it shows your own
+  track, speed, distance and climb.
+- The watch records every ride itself — position, altitude and time, no
+  heart rate. When you end it, the ride goes to the phone if it is
+  there; otherwise it waits on the watch until you next open the watch
+  app with the phone nearby. The watch deletes it only once it is on
+  the phone.
+- On the phone it is listed under “My rides” as “From the watch” — like
+  any other ride to split and export. If you recorded the same time with
+  the phone too, the phone's ride is kept. Garmin gets none of it, and
+  no Garmin activity is created.
+
 ## New contact address
 
 *Version 0.159.1, 2026-11-07*

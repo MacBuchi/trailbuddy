@@ -29,3 +29,24 @@ bool rideOnDevice(List<RidePoint> points, List<Ride> rides) {
       r.points.isNotEmpty &&
       r.points.first.at.difference(first).inMilliseconds.abs() < 1000);
 }
+
+/// Hat das Handy für die Zeit von [points] schon eine eigene Fahrt (#484,
+/// Betreiber 2026-11-07: „Uhr nimmt immer auf, Handy prüft")? Eine
+/// gemessene Fahrt — Aufzeichnung oder übernommene Datei, keine geplante
+/// —, die mindestens [share] der Zeitspanne deckt. Dann ist die Spur der
+/// Uhr doppelt und wird nicht abgelegt.
+bool rideOverlaps(List<RidePoint> points, List<Ride> rides, {double share = 0.5}) {
+  if (points.length < 2) return false;
+  final a = points.first.at, b = points.last.at;
+  final span = b.difference(a).inMilliseconds;
+  if (span <= 0) return false;
+  for (final r in rides) {
+    if (r.planned || r.points.length < 2) continue;
+    final ra = r.points.first.at, rb = r.points.last.at;
+    final from = ra.isAfter(a) ? ra : a;
+    final to = rb.isBefore(b) ? rb : b;
+    final overlap = to.difference(from).inMilliseconds;
+    if (overlap >= share * span) return true;
+  }
+  return false;
+}

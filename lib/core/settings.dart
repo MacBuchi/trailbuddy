@@ -165,6 +165,13 @@ abstract interface class Settings {
 
   Future<void> setRideKeepScreenOn(bool value);
 
+  /// Wurde schon einmal eine Garmin-Uhr mit unserer App gefunden (#484)?
+  /// Dann lauscht die App ab dem Start auf die Uhr — sie schickt ihre
+  /// Fahrten. Ohne Uhr startet das SDK nie (Konzept-Garmin 3).
+  bool get watchSeen;
+
+  Future<void> setWatchSeen(bool value);
+
   /// Ab wie vielen Metern neben der Route die Navigation „Route umplanen"
   /// anbietet (#464)? Null: die Vorgabe (`kNavReplanOfferM`).
   int? get navReplanOfferM;
@@ -377,6 +384,14 @@ class PrefsSettings implements Settings {
 
   @override
   Future<void> setRideKeepScreenOn(bool value) => _prefs.setBool(_rideKeepScreenOnKey, value);
+
+  static const _watchSeenKey = 'watch_seen';
+
+  @override
+  bool get watchSeen => _prefs.getBool(_watchSeenKey) ?? false;
+
+  @override
+  Future<void> setWatchSeen(bool value) => _prefs.setBool(_watchSeenKey, value);
 
   static const _navReplanOfferKey = 'nav_replan_offer_m';
   static const _navLeaveKey = 'nav_leave_m';

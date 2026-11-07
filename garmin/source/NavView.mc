@@ -46,9 +46,9 @@ class NavView extends WatchUi.View {
     static const LOADER_PERIOD_MS = 1400;
     static const LOGO_Y = 104;
     static const LOADER_TEXT_Y = 176;
-    //! Der zweizeilige Hinweis ohne Route steht höher: Bei y 176 schnitt
-    //! der Kreis die zweite Zeile ab (Simulator fēnix 5, 2026-11-07).
-    static const IDLE_TEXT_Y = 150;
+    //! Zweizeilige Texte des Laders stehen höher: Bei y 176 schnitt der
+    //! Kreis die zweite Zeile ab (Simulator fēnix 5, 2026-11-07).
+    static const TWO_LINE_TEXT_Y = 150;
 
     hidden var _route as NavRoute;
     hidden var _state as NavState? = null;
@@ -92,16 +92,21 @@ class NavView extends WatchUi.View {
     hidden var _wait as String? = null;
     //! Die Navigation ist beendet: das ganze Logo und dieser Text.
     hidden var _ended as String? = null;
-    //! Store-Bau ohne Route: das ganze Logo und der Hinweis auf die App.
-    hidden var _idle as String? = null;
+    //! Ohne Route die freie Fahrt (#484): die eigene Spur aus [_log], der
+    //! Stand aus [setFreeFix], keine Infofläche „bis zum Ziel", kein Ring.
+    hidden var _free as Boolean = false;
+    hidden var _log as RideLog;
+    hidden var _fixed as Boolean = false;
+    hidden var _heading as Float = 0.0;
     //! Die Punkte des Logos (`resources/logo`), nur solange der Lader steht.
     hidden var _logo as Array<Number>? = null;
     hidden var _logoT as Number = 1;
 
-    function initialize(route as NavRoute, stats as RideStats) {
+    function initialize(route as NavRoute, stats as RideStats, log as RideLog) {
         View.initialize();
         _route = route;
         _stats = stats;
+        _log = log;
         _sep = str(Rez.Strings.DecimalSep);
         _toGoal = str(Rez.Strings.ToGoal);
         _offRoute = str(Rez.Strings.OffRoute);
@@ -131,10 +136,34 @@ class NavView extends WatchUi.View {
         _ended = text;
     }
 
-    //! Keine Route da (Store-Bau): Logo und [text], ohne Takt — es wartet
-    //! nichts, bis die App eine Route schickt.
-    function setIdle(text as String) as Void {
-        _idle = text;
+    function isEnded() as Boolean {
+        return _ended != null;
+    }
+
+    //! Keine Route da (Store-Bau): die freie Fahrt, bis eine Route kommt.
+    function setFree() as Void {
+        _free = true;
+    }
+
+    function isFree() as Boolean {
+        return _free;
+    }
+
+    //! Ein Fix der freien Fahrt in Metern ([RideLog.toLocal]). Gedreht wird
+    //! wie in der Navigation: in Fahrt nach dem GPS-Kurs, im Stand nach dem
+    //! Kompass, sonst bleibt die letzte Richtung.
+    function setFreeFix(x as Float, y as Float, gpsHeading as Float?, speed as Float?, compass as Float?) as Void {
+        _fixed = true;
+        _px = x;
+        _py = y;
+        _speed = speed;
+        var moving = speed != null && speed >= NavTracker.HEADING_MIN_SPEED_MPS;
+        if (moving && gpsHeading != null) {
+            _heading = gpsHeading;
+        } else if (!moving && compass != null) {
+            _heading = compass;
+        }
+        WatchUi.requestUpdate();
     }
 
     function page() as Number {
@@ -176,12 +205,7 @@ class NavView extends WatchUi.View {
         _segLeft = FRAME_SEGS;
         var done = _ended;
         if (done != null) {
-            drawLoader(dc, w, done, true, LOADER_TEXT_Y);
-            return;
-        }
-        var idle = _idle;
-        if (idle != null) {
-            drawLoader(dc, w, idle, true, IDLE_TEXT_Y);
+            drawLoader(dc, w, done, true, done.find("\n") != null ? TWO_LINE_TEXT_Y : LOADER_TEXT_Y);
             return;
         }
         var waiting = _wait;
@@ -203,7 +227,11 @@ class NavView extends WatchUi.View {
             } else {
                 drawArrived(dc, w);
             }
-            drawRing(dc, w, _state);
+            if (!_free) { drawRing(dc, w, _state); }
+            return;
+        }
+        if (_free) {
+            drawFree(dc, w);
             return;
         }
         dc.setColor(TbColors.TEXT, TbColors.GROUND);
@@ -235,7 +263,7 @@ class NavView extends WatchUi.View {
         if (s.offRoute) {
             drawRejoin(dc, s);
         }
-        drawNorth(dc, s, w);
+        drawNorth(dc, s.heading, w);
         drawMe(dc);
         if (s.offRoute) {
             drawOffField(dc, s, w);
@@ -590,10 +618,10 @@ class NavView extends WatchUi.View {
 
     //! Norden am Rand — die Karte dreht mit der Fahrt, so bleibt die
     //! Himmelsrichtung lesbar.
-    hidden function drawNorth(dc as Dc, s as NavState, w as Number) as Void {
+    hidden function drawNorth(dc as Dc, heading as Float, w as Number) as Void {
         var r = TbRing.MAP_R - 14;
-        var x = (w / 2 - r * Math.sin(s.heading)).toNumber();
-        var y = (w / 2 - r * Math.cos(s.heading)).toNumber();
+        var x = (w / 2 - r * Math.sin(heading)).toNumber();
+        var y = (w / 2 - r * Math.cos(heading)).toNumber();
         if (y > FIELD_Y - 14) { return; }
         dc.setColor(TbColors.TEXT, Graphics.COLOR_TRANSPARENT);
         dc.fillCircle(x, y, 12);
@@ -634,6 +662,55 @@ class NavView extends WatchUi.View {
                 [(bx + uy * half).toNumber(), (by - ux * half).toNumber()]
             ]);
         }
+    }
+
+    //! Die freie Fahrt (#484): helle Karte mit der eigenen Spur dünn in
+    //! Moos (wie der gefahrene Teil einer Route), Norden, die Position;
+    //! unten „Freie Fahrt" mit Strecke und bergauf. Vor dem ersten Fix
+    //! „Warte auf GPS". Die Spur sind höchstens [RideLog.TRACK_N] Punkte,
+    //! und `seg` zeichnet höchstens [FRAME_SEGS] Striche (Watchdog).
+    hidden function drawFree(dc as Dc, w as Number) as Void {
+        dc.setColor(TbColors.TEXT, TbColors.GROUND);
+        dc.clear();
+        _cx = w / 2;
+        _cy = POS_Y;
+        _mpp = ZOOM_MPP[_zoom];
+        _reach = 135 * _mpp;
+        _sin = Math.sin(_heading).toFloat();
+        _cos = Math.cos(_heading).toFloat();
+        if (_fixed) {
+            var log = _log;
+            var n = log.trackCount;
+            var start = (log.trackHead - n + RideLog.TRACK_N) % RideLog.TRACK_N;
+            dc.setColor(TbColors.ROUTE_EDGE, Graphics.COLOR_TRANSPARENT);
+            dc.setPenWidth(DONE_W);
+            for (var i = 1; i < n; i++) {
+                var a = (start + i - 1) % RideLog.TRACK_N;
+                var b = (start + i) % RideLog.TRACK_N;
+                seg(dc, log.trackX[a], log.trackY[a], log.trackX[b], log.trackY[b], 0);
+            }
+            if (n > 0) {
+                var l = (start + n - 1) % RideLog.TRACK_N;
+                seg(dc, log.trackX[l], log.trackY[l], _px, _py, 0);
+            }
+            dc.setPenWidth(1);
+            drawNorth(dc, _heading, w);
+            drawMe(dc);
+        }
+        field(dc, w, FIELD_Y, TbColors.FIELD);
+        var cx = w / 2;
+        dc.setColor(TbColors.MUTED, Graphics.COLOR_TRANSPARENT);
+        if (!_fixed) {
+            dc.drawText(cx, FIELD_Y + 2, Graphics.FONT_XTINY, str(Rez.Strings.WaitGps), Graphics.TEXT_JUSTIFY_CENTER);
+        } else {
+            dc.drawText(cx, FIELD_Y + 2, Graphics.FONT_XTINY,
+                str(_log.full ? Rez.Strings.StorageFull : Rez.Strings.FreeRide), Graphics.TEXT_JUSTIFY_CENTER);
+            numberLine(dc, cx, FIELD_Y + 28, km(_stats.distanceM) + " km", _stats.climbM);
+        }
+        dc.setColor(TbColors.FIELD, Graphics.COLOR_TRANSPARENT);
+        dc.setPenWidth(w / 2 - TbRing.MAP_R + 2);
+        dc.drawCircle(w / 2, w / 2, (w / 2 + TbRing.MAP_R) / 2 + 1);
+        dc.setPenWidth(1);
     }
 
     // --- Infofläche --------------------------------------------------------
@@ -806,6 +883,11 @@ class NavView extends WatchUi.View {
         label(dc, w, 0, 150, str(Rez.Strings.Climbed));
         climbText(dc, w / 2 - COL_X, 168, _stats.climbM, TbColors.TEXT_ON_FIELD);
         cell(dc, w, 1, 150, str(Rez.Strings.Pulse), hr == null ? "--" : hr.toString(), TbColors.MUTED);
+        // Die Aufzeichnung steht (#484): erst Fahrten ans Handy.
+        if (_log.full) {
+            dc.setColor(TbColors.WARNING, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(w / 2, 198, Graphics.FONT_XTINY, str(Rez.Strings.StorageFull), Graphics.TEXT_JUSTIFY_CENTER);
+        }
     }
 
     //! „Berg": Steigung groß (Barometer über die letzten 30 m), Höhe, was

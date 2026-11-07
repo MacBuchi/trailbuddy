@@ -2,6 +2,23 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Die Uhr fährt auch allein
+
+*Version 0.160.0, 2026-11-07*
+
+- Die TrailBuddy-App auf der Garmin-Uhr startet jetzt auch ohne Handy
+  und ohne Navigation: Ohne Route zeigt sie deine eigene Spur, Tempo,
+  Strecke und Höhenmeter.
+- Die Uhr zeichnet jede Fahrt selbst auf — Position, Höhe und Zeit, kein
+  Puls. Beim Beenden geht die Fahrt ans Handy, wenn es da ist; sonst
+  wartet sie auf der Uhr, bis du die Uhr-App das nächste Mal mit dem
+  Handy in der Nähe öffnest. Gelöscht wird sie auf der Uhr erst, wenn
+  sie auf dem Handy liegt.
+- Auf dem Handy steht sie unter „Meine Fahrten" mit „Von der Uhr" — wie
+  jede andere Fahrt zum Zerlegen und Exportieren. Hast du dieselbe Zeit
+  auch mit dem Handy aufgezeichnet, bleibt es bei der Fahrt des Handys.
+  Garmin bekommt davon nichts, es entsteht keine Garmin-Aktivität.
+
 ## Neue Kontaktadresse
 
 *Version 0.159.1, 2026-11-07*

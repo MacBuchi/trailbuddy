@@ -50,8 +50,9 @@ Vorher je Uhr die Unit-Tests: `GARMIN_DEVICE=<id> tool/garmin_build.sh
 
 Das Paket enthält: alle Uhren aus `garmin/manifest.xml`, ohne
 Debug-Infos (`-r`), ohne Testroute und ohne Vorführmodus. Ohne Route vom
-Handy zeigt die Uhr das Logo und „Navigation starten in der
-TrailBuddy-App" und schaltet kein GPS ein.
+Handy beginnt die freie Fahrt (#484): GPS, die eigene Spur, Tempo und
+Höhenmeter; aufgezeichnet wird wie immer, die Fahrt geht beim Beenden
+ans Handy oder wartet auf der Uhr.
 
 ## 3. Hochladen als Beta (👤, dann 📱)
 
@@ -96,11 +97,14 @@ navigierst, auf deiner Uhr — gedacht für Mountainbike-Trails.
 - Weg und Anstieg bis zum nächsten Trail und bis zum Ziel
 - Seiten mit Tempo, Strecke, Höhenmetern und Puls
 - Nach der Übertragung navigiert die Uhr auch ohne Handy weiter
+- Freie Fahrt ohne Route: eigene Spur, Tempo, Strecke, Höhenmeter
+- Die Uhr zeichnet jede Fahrt auf und gibt sie beim nächsten Kontakt an
+  die TrailBuddy-App auf dem Handy
 
 Voraussetzung: die TrailBuddy-App auf einem Android-Handy und Garmin
-Connect. Die Uhr-App zeichnet keine Garmin-Aktivität auf und hat keine
-Verbindung ins Netz; die Route bleibt auf der Uhr, bis die nächste sie
-ersetzt.
+Connect. Die Uhr-App legt keine Garmin-Aktivität an und hat keine
+Verbindung ins Netz; eine Fahrt bleibt auf der Uhr, bis sie auf dem
+Handy ist, die Route, bis die nächste sie ersetzt.
 ```
 
 **Beschreibung (EN):**
@@ -115,10 +119,14 @@ on your watch — made for mountain bike trails.
 - Distance and climb to the next trail and to the finish
 - Pages with speed, distance, elevation gain and heart rate
 - Once transferred, the watch keeps navigating without the phone
+- Free ride without a route: your own track, speed, distance, climb
+- The watch records every ride and hands it to the TrailBuddy app on
+  the phone the next time they meet
 
 Requires the TrailBuddy app on an Android phone and Garmin Connect. The
-watch app records no Garmin activity and has no internet connection; the
-route stays on the watch until the next one replaces it.
+watch app creates no Garmin activity and has no internet connection; a
+ride stays on the watch until it is on the phone, the route until the
+next one replaces it.
 ```
 
 **Datenschutz-Link:** `https://macbuchi.github.io/trailbuddy/datenschutz.html`
@@ -135,9 +143,9 @@ einer echten Route (`--gpx`), eine Fahrt beginnt an der Haustür.
 
 | Berechtigung | Wofür |
 |---|---|
-| `Positioning` | GPS der Uhr: eigene Position auf der Route, Abseits-Regel |
-| `Sensor` | Puls vom Handgelenk, Kompass, Höhe vom Barometer — nur angezeigt, nichts gespeichert |
-| `Communications` | Route und Bestwerte vom Handy empfangen, „gespeichert"/„beendet" zurück — nur mit der TrailBuddy-App, kein Netz |
+| `Positioning` | GPS der Uhr: eigene Position auf der Route, Abseits-Regel, die Fahrt auf der Uhr (geht nur ans eigene Handy) |
+| `Sensor` | Puls vom Handgelenk, Kompass, Höhe vom Barometer — angezeigt; nur die Höhe geht in die Fahrt auf der Uhr, der Puls nie |
+| `Communications` | Route und Bestwerte vom Handy empfangen, „gespeichert"/„beendet" und die Fahrt zurück — nur mit der TrailBuddy-App, kein Netz |
 
 ## 6. Uhren im Paket
 

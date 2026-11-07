@@ -83,12 +83,14 @@ abstract interface class RideStore {
   /// Legt eine Fahrt aus einer GPX-Datei ab (#188): [points] mit Zeit und
   /// Datei-Höhe, die Kennung aus dem ersten Punkt. Liegt dort schon eine
   /// Datei, wird nichts geschrieben ([ImportSave.exists]) — dieselbe Datei
-  /// zweimal gewählt legt keine zweite Fahrt an. Wirft nie.
+  /// zweimal gewählt legt keine zweite Fahrt an. Wirft nie. [source]:
+  /// [kRideSourceWatch] für eine Fahrt der Garmin-Uhr (#484, ohne Namen).
   Future<ImportSave> saveImported({
     required String uid,
-    required String name,
+    required String? name,
     required List<RidePoint> points,
     String? profile,
+    String? source,
   });
 
   /// Alle gespeicherten Fahrten dieses Kontos, neueste zuerst. Wirft nie.
@@ -371,9 +373,10 @@ class FileRideStore implements RideStore {
   @override
   Future<ImportSave> saveImported({
     required String uid,
-    required String name,
+    required String? name,
     required List<RidePoint> points,
     String? profile,
+    String? source,
   }) =>
       _serialized(() async {
         if (points.isEmpty) return ImportSave.failed;
@@ -386,8 +389,9 @@ class FileRideStore implements RideStore {
               'uid': uid,
               'startedAt': startedAt.toIso8601String(),
               'imported': true,
-              'name': name,
+              'name': ?name,
               'profile': ?profile,
+              'source': ?source,
             }),
             for (final p in points) jsonEncode(p.toJson()),
             jsonEncode({'endedAt': points.last.at.toUtc().toIso8601String()}),
@@ -428,6 +432,7 @@ class FileRideStore implements RideStore {
               planned: parsed.planned,
               imported: parsed.imported,
               name: parsed.name,
+              source: parsed.source,
             ));
           }
           rides.sort((a, b) => b.startedAt.compareTo(a.startedAt));
@@ -516,6 +521,7 @@ class FileRideStore implements RideStore {
             bool planned,
             bool imported,
             String? name,
+            String? source,
           })?>
       _parse(File file, {required String uid}) async {
     try {
@@ -572,6 +578,7 @@ class FileRideStore implements RideStore {
         planned: head['planned'] == true,
         imported: head['imported'] == true,
         name: head['name'] as String?,
+        source: head['source'] as String?,
       );
     } catch (_) {
       return null;

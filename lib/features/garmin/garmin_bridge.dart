@@ -105,6 +105,11 @@ abstract interface class GarminBridge {
   /// Die Uhr-App öffnen (Garmins Frage auf der Uhr, wenn sie nicht läuft).
   Future<WatchOpen> open();
 
+  /// Das SDK starten und auf die verbundene Uhr lauschen, OHNE die Uhr-App
+  /// zu öffnen (#484: beim Start der App, sobald einmal eine Uhr gesehen
+  /// wurde — sie schickt ihre Fahrten). true, wenn eine Uhr verbunden ist.
+  Future<bool> listen();
+
   /// Was die Uhr zurückschickt: „gespeichert" (`ok`) und „hallo" (`hi`,
   /// Konzept 2).
   Stream<Object?> get messages;

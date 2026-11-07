@@ -48,7 +48,11 @@ Beiträgen gerechnet.
 **A3 — Trail ≠ Fahrt ≠ Aufzeichnung; Fahrten verlassen das Gerät
 nie.** Eine Fahrt beginnt an der Haustür. Es gibt keine Tabelle für
 Fahrten, Sicherung ist der GPX-Export; zum Server geht nur der
-Ausschnitt, der einen Trail belegt.
+Ausschnitt, der einen Trail belegt. Die eigene Garmin-Uhr zählt zum
+Gerät (#484, Betreiber 2026-11-07): Sie zeichnet selbst auf und gibt
+die Fahrt per Bluetooth über Garmin Connect nur an das EIGENE Handy,
+wo sie als Fahrt liegt wie jede andere; Garmin bekommt keine Aktivität
+(`docs/konzept-garmin.md` 2a).
 *Quelle:* Konzept 0 (1), 10.4, 13 (4).
 *Geprüft durch:* Review — eine neue Tabelle oder ein Upload, der mit
 gefahrener Zeit wächst, ist eine Konzeptänderung.

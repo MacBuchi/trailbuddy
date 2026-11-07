@@ -21,14 +21,17 @@ import java.util.concurrent.Executors
  * `lib/features/garmin/garmin_bridge_io.dart`; ein Test hält beide
  * zusammen.
  *
- * Drei Methoden: `status` (Garmin Connect da? welche Uhr verbunden? unsere
+ * Vier Methoden: `status` (Garmin Connect da? welche Uhr verbunden? unsere
  * App darauf?), `open` (die Uhr-App öffnen, sonst fragt die Uhr
  * „TrailBuddy öffnen?"), `send` (Nachrichten der Reihe nach, jede wartet
- * auf die Bestätigung der vorigen). Von hier nach Dart: `message` — was
+ * auf die Bestätigung der vorigen) und `listen` (nur lauschen, ohne die
+ * Uhr-App zu öffnen — beim Start der App, sobald einmal eine Uhr gesehen
+ * wurde, damit ihre Fahrten ankommen, #484). Von hier nach Dart: `message` — was
  * die Uhr schickt („hallo", „gespeichert") — und `device` mit dem Stand
  * der Verbindung (`CONNECTED` …), von Garmin Connect gemeldet, nicht
- * abgefragt. Das SDK wird erst beim ersten `status` gestartet, nie beim
- * App-Start: Wer keine Uhr hat, lädt nichts.
+ * abgefragt. Das SDK wird erst beim ersten `status` oder `listen`
+ * gestartet; `listen` beim App-Start nur, wenn schon einmal eine Uhr da
+ * war: Wer keine Uhr hat, lädt nichts.
  *
  * Kein Test-Netz für Kotlin; die Dart-Seite hat eines (Fake-Brücke).
  */
@@ -90,6 +93,14 @@ class GarminBridge(private val context: Context, messenger: BinaryMessenger) {
                     }
                 }
                 "open" -> open(result)
+                "listen" -> {
+                    val id = call.argument<String>("appId")
+                    if (id.isNullOrEmpty()) {
+                        result.error("no_app", "appId fehlt", null)
+                    } else {
+                        listenOnly(id, call.argument<Boolean>("tethered") == true, result)
+                    }
+                }
                 "send" -> {
                     @Suppress("UNCHECKED_CAST")
                     val messages = call.argument<List<Any>>("messages") ?: emptyList()
@@ -199,6 +210,40 @@ class GarminBridge(private val context: Context, messenger: BinaryMessenger) {
                 answer(mapOf("connect" to true, "device" to device.friendlyName, "app" to "unknown"))
             }, 3000)
         }, { error -> answer(mapOf("connect" to true, "error" to error)) })
+    }
+
+    /**
+     * Nur lauschen (#484): SDK starten und für die verbundene Uhr auf
+     * Nachrichten und Verbindung hören, ohne `openApplication` — die Uhr
+     * wird nicht gefragt. `true`, wenn eine Uhr verbunden ist. Ohne Garmin
+     * Connect `false`, nichts startet.
+     */
+    private fun listenOnly(id: String, tethered: Boolean, result: MethodChannel.Result) {
+        appId = id
+        this.tethered = tethered
+        if (!tethered && !connectInstalled()) {
+            result.success(false)
+            return
+        }
+        var answered = false
+        fun answer(value: Boolean) {
+            main.post {
+                if (answered) return@post
+                answered = true
+                result.success(value)
+            }
+        }
+        withSdk(tethered, then@{
+            val sdk = iq ?: return@then answer(false)
+            val device = try {
+                sdk.connectedDevices?.firstOrNull()
+            } catch (e: Exception) {
+                null
+            }
+            if (device == null) return@then answer(false)
+            listen(sdk, device, id)
+            answer(true)
+        }, { _ -> answer(false) })
     }
 
     /**

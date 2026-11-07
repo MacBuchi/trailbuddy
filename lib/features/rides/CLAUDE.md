@@ -55,6 +55,21 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
   `FakeRideStore`, `FakeRideFix`, `FakeRideServiceBridge` und
   `FakeRideService` ein, sonst ginge jeder Kartentest über `restore()`
   an `path_provider`.
+- **Fahrt von der Uhr** (#484, seit 0.160.0, `lib/features/garmin/watch_ride.dart`
+  pur, `watch_ride_inbox.dart`, `watch_ride_listener.dart`; Konzept-Garmin
+  2a): Die Garmin-Uhr zeichnet selbst auf und schickt die Fahrt in
+  Stücken; das Handy legt sie über `RidesNotifier.saveFromWatch` als
+  übernommene Fahrt ab (`RideStore.saveImported` mit `source: watch`,
+  ohne Namen; `Ride.fromWatch`, Zeile „Von der Uhr", Uhr-Symbol).
+  Doppelt heißt: dieselbe Startsekunde (`rideOnDevice`) oder eine eigene
+  gemessene Fahrt über ≥ 50 % der Zeit (`rideOverlaps`, Betreiber: „Uhr
+  nimmt immer auf, Handy prüft") — dann bleibt die vorhandene. Das `wk`
+  an die Uhr geht NUR nach `saved`/`existed`/`overlap`; ohne Anmeldung
+  oder bei `failed` bleibt die Fahrt auf der Uhr (Gegenprobe 2026-11-07:
+  ohne die Regel zwei Tests in `test/garmin/watch_ride_test.dart` rot,
+  ohne `rideOverlaps` einer). Gelauscht wird ab dem Start, sobald
+  `Settings.watchSeen` (gesetzt von `watchStatusProvider`); die Leiste
+  „Fahrt von der Uhr übernommen" zeigt `WatchRideListener` in `app.dart`.
 - **Bildschirm an während der Fahrt** (#445, seit 0.156.0): Sonnen-Knopf
   über der Fahne (`ride-screen-button`, nur mit `ScreenAwake.supported`),
   gemerkt in `Settings.rideKeepScreenOn`, **ab Werk aus** (in der Tasche

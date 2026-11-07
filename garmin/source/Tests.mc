@@ -88,6 +88,29 @@ function outAndBack() as NavRoute {
 }
 
 //! Den Speicher der Uhr für einen Test leeren.
+//! Die Fahrten der Tests aus dem Speicher (#484).
+function wipeRides() as Void {
+    var q = RideLog.queue();
+    for (var i = 0; i < q.size(); i++) { RideLog.drop(q[i][0] as String, q[i][1] as Number); }
+    var wo = Application.Storage.getValue("wo");
+    if (wo instanceof Array && wo.size() == 3 && wo[0] instanceof String && wo[1] instanceof Number) {
+        RideLog.drop(wo[0] as String, (wo[1] as Number) + 1);
+    }
+    Application.Storage.deleteValue("rq");
+    Application.Storage.deleteValue("wo");
+}
+
+//! [n] Fixe am Äquator (erfunden), alle [dt] s, je 0,0005° nach Norden
+//! (55 m), Höhe steigt um 0,5 m, Qualität GOOD. Liefert, wie viele in
+//! die Fahrt gingen.
+function ride(log as RideLog, t0 as Number, n as Number, dt as Number) as Number {
+    var k = 0;
+    for (var i = 0; i < n; i++) {
+        if (log.add(i * 0.0005d, 0.001d, t0 + i * dt, 400.0 + i * 0.5, 4)) { k++; }
+    }
+    return k;
+}
+
 function wipe() as Void {
     PhoneRoute.drop();
     PhoneRoute.clear("a");
@@ -543,5 +566,139 @@ function loaderLogoIsOrdered(logger as Logger) as Boolean {
         Test.assert(x * x + (y - 120) * (y - 120) < 110 * 110);
         last = c;
     }
+    return true;
+}
+
+//! Die Fahrt auf der Uhr (#484): Punkte nur alle 5 s, gepackt und wieder
+//! entpackt dieselben Zahlen, Stücke zu 60 Punkten, die Nachricht ans
+//! Handy trägt sie alle.
+(:test)
+function rideLogPacksAndQueues(logger as Logger) as Boolean {
+    TestRoutes.wipeRides();
+    var log = new RideLog();
+    // Jede Sekunde ein Fix, nur jeder fünfte zählt: 70 Punkte.
+    Test.assertEqual(TestRoutes.ride(log, 1700000000, 350, 1), 70);
+    Test.assert(log.recording());
+    var id = log.finish() as String;
+    Test.assertEqual(id, "1700000000");
+    Test.assert(!log.recording());
+    var q = RideLog.queue();
+    Test.assertEqual(q.size(), 1);
+    Test.assertEqual(q[0][1], 2); // 60 + 10
+    Test.assertEqual(q[0][2], 70);
+    Test.assertEqual(RideLog.queuedIds()[0], id);
+    Test.assertEqual(RideLog.messageCount(q[0]), 1);
+    var m = RideLog.message(q[0], 0);
+    Test.assertEqual(m["t"], "w");
+    Test.assertEqual(m["n"], 1);
+    var c = m["c"] as Array<Array<Number>>;
+    Test.assertEqual(c.size(), 2);
+    var a = RideLog.unpack(c[0]);
+    var b = RideLog.unpack(c[1]);
+    Test.assertEqual(a.size(), 60);
+    Test.assertEqual(b.size(), 10);
+    // Punkt 61 = Fix 300 (0,15° Nord): Lage in 1e-5°, Zeit, Höhe in dm.
+    Test.assertEqual(b[0][0], 15000);
+    Test.assertEqual(b[0][1], 100);
+    Test.assertEqual(b[0][2], 1700000300);
+    Test.assertEqual(b[0][3], 5500);
+    Test.assertEqual(a[59][2], 1700000295);
+    Test.assertEqual(a[59][3], 5475);
+    Test.assertEqual(a[59][4], 0);
+    TestRoutes.wipeRides();
+    return true;
+}
+
+//! Eine Lücke im GPS (mehr als 32 767 · 1e-5° in einem Schritt) beginnt
+//! ein neues Stück mit eigenem Ursprung, statt falsch zu packen; eine
+//! sinkende Höhe kommt mit Vorzeichen zurück.
+(:test)
+function rideLogSplitsOnGap(logger as Logger) as Boolean {
+    TestRoutes.wipeRides();
+    var log = new RideLog();
+    TestRoutes.ride(log, 1700000000, 30, 5);
+    Test.assert(log.add(1.0d, 0.001d, 1700000200, 380.0, 3));
+    TestRoutes.ride(log, 1700000205, 30, 5);
+    log.finish();
+    var q = RideLog.queue();
+    Test.assertEqual(q[0][1], 3);
+    var c = RideLog.message(q[0], 0)["c"] as Array<Array<Number>>;
+    Test.assertEqual(c[1][0], 100000);
+    Test.assertEqual(c[1][4], 1); // USABLE
+    var last = RideLog.unpack(c[0]);
+    Test.assertEqual(last.size(), 30);
+    Test.assert(RideLog.fits(32767, -32767, 5, -8191));
+    Test.assert(!RideLog.fits(32768, 0, 5, 0));
+    Test.assert(!RideLog.fits(0, 0, 5, 8192));
+    TestRoutes.wipeRides();
+    return true;
+}
+
+//! Kurz ist keine Fahrt: unter 2 min oder 200 m bleibt nichts liegen.
+(:test)
+function rideLogDropsShortRide(logger as Logger) as Boolean {
+    TestRoutes.wipeRides();
+    var log = new RideLog();
+    TestRoutes.ride(log, 1700000000, 10, 5);
+    Test.assert(log.finish() == null);
+    Test.assertEqual(RideLog.queue().size(), 0);
+    Test.assert(Application.Storage.getValue(RideLog.key("1700000000", 0)) == null);
+    // Lange genug, aber im Stand: auch nichts.
+    var still = new RideLog();
+    for (var i = 0; i < 40; i++) { still.add(0.0d, 0.0d, 1700001000 + i * 5, 400.0, 4); }
+    Test.assert(still.finish() == null);
+    Test.assertEqual(RideLog.queue().size(), 0);
+    return true;
+}
+
+//! Gelöscht wird nur, was das Handy quittiert — eine andere Kennung lässt
+//! die Fahrt liegen (Kennungen mit `equals`, nicht `==`).
+(:test)
+function rideLogDeletesOnlyOnAck(logger as Logger) as Boolean {
+    TestRoutes.wipeRides();
+    var log = new RideLog();
+    TestRoutes.ride(log, 1700000000, 40, 5);
+    var id = log.finish() as String;
+    Test.assert(!RideLog.ack("1700000001"));
+    Test.assertEqual(RideLog.queue().size(), 1);
+    // Dieselbe Kennung als neues Objekt, wie aus einer Nachricht.
+    Test.assert(RideLog.ack("170000" + "0000"));
+    Test.assertEqual(RideLog.queue().size(), 0);
+    Test.assert(Application.Storage.getValue(RideLog.key(id, 0)) == null);
+    Test.assert(!RideLog.ack(id));
+    return true;
+}
+
+//! Ist die Warteschlange voll, steht die Aufzeichnung — nichts Wartendes
+//! wird überschrieben.
+(:test)
+function rideLogStopsWhenFull(logger as Logger) as Boolean {
+    TestRoutes.wipeRides();
+    RideLog.enqueue("1600000000", 0, RideLog.MAX_POINTS);
+    var log = new RideLog();
+    Test.assertEqual(TestRoutes.ride(log, 1700000000, 30, 5), 0);
+    Test.assert(log.full);
+    Test.assert(!log.recording());
+    Test.assertEqual(RideLog.queue().size(), 1);
+    TestRoutes.wipeRides();
+    return true;
+}
+
+//! Endete der Lauf mitten in der Fahrt (Absturz), wartet beim nächsten
+//! Start, was gespeichert war.
+(:test)
+function rideLogRecoversAfterCrash(logger as Logger) as Boolean {
+    TestRoutes.wipeRides();
+    var log = new RideLog();
+    TestRoutes.ride(log, 1700000000, 37, 5); // gespeichert bis Punkt 36
+    RideLog.recover();
+    var q = RideLog.queue();
+    Test.assertEqual(q.size(), 1);
+    Test.assertEqual(q[0][0], "1700000000");
+    Test.assertEqual(q[0][2], 36);
+    Test.assert(Application.Storage.getValue("wo") == null);
+    var c = RideLog.message(q[0], 0)["c"] as Array<Array<Number>>;
+    Test.assertEqual(RideLog.unpack(c[0]).size(), 36);
+    TestRoutes.wipeRides();
     return true;
 }
