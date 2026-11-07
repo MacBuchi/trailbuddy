@@ -863,7 +863,7 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     `Positioned.fill` allein schrumpfte der Stack auf die Größe der
     Fake-Karte — die Knöpfe lagen oben links (im Flow-Test gefunden).
   - **Unter `kNavMinFollowZoom` (12) folgt die Kamera nie** (seit
-    0.157.0, Gerätetest am Pixel 7 Pro): `_follow` nimmt nach dem ersten
+    0.157.1, Gerätetest am Pixel 7 Pro): `_follow` nimmt nach dem ersten
     Fix den Zoom der Kamera (die zwei Finger); kam die Karte aus der
     Länderansicht und hatte MapLibre den ersten Schritt auf 16 noch nicht
     übernommen, folgte die Navigation auf Länderzoom. Darunter gilt
