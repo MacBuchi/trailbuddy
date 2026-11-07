@@ -23,6 +23,8 @@ import '../highlights/highlight_sheet.dart' show maybeShowHighlights;
 import '../rides/airtime_live.dart';
 import '../rides/airtime_live_window.dart';
 import '../../core/screen_awake.dart';
+import '../rides/mark_name_dialog.dart';
+import '../rides/ride_mark_name.dart';
 import '../rides/ride_providers.dart';
 import '../rides/ride_split_sheet.dart';
 import '../rides/ride_task_handler.dart';
@@ -982,20 +984,46 @@ class _MapScreenState extends ConsumerState<MapScreen> {
 
   /// „Trail beginnt" / „Trail endet" (#105): eine Marke in der laufenden
   /// Fahrt. Die Leiste sagt, was gesetzt wurde — mit Handschuh auf dem
-  /// Trail sieht man den Rand am Knopf nicht immer.
+  /// Trail sieht man den Rand am Knopf nicht immer. Nach dem Ende geht
+  /// das Namensfeld auf (#486), mit einem Vorschlag, wenn die App die
+  /// Strecke kennt.
   Future<void> _toggleMark() async {
     final messenger = ScaffoldMessenger.of(context);
     final l = context.l10n;
-    final mark = await ref.read(rideProvider.notifier).toggleMark();
-    if (!mounted) return;
-    messenger
+    final rides = ref.read(rideProvider.notifier);
+    void say(String text) => messenger
       ..clearSnackBars()
-      ..showSnackBar(SnackBar(
-          content: Text(switch (mark?.kind) {
-        RideMarkKind.start => l.rideMarkStart,
-        RideMarkKind.end => l.rideMarkEnd,
-        null => l.rideMarkFailed,
-      })));
+      ..showSnackBar(SnackBar(content: Text(text)));
+    final mark = await rides.toggleMark();
+    if (!mounted) return;
+    if (mark == null) return say(l.rideMarkFailed);
+    if (mark.kind == RideMarkKind.start) return say(l.rideMarkStart);
+    final ride = ref.read(rideProvider);
+    final suggestion = ride == null
+        ? null
+        : suggestMarkName(
+            points: ride.points,
+            marks: ride.marks,
+            trails: ref.read(trailsProvider).value ?? const [],
+          );
+    messenger.clearSnackBars();
+    final choice = await showMarkNameDialog(context, suggestion: suggestion);
+    if (!mounted) return;
+    switch (choice) {
+      case MarkNameLater():
+        say(l.rideMarkEnd);
+      case MarkNameDiscarded():
+        say(await rides.annotateMark(mark, discard: true) ? l.rideMarkDiscarded : l.rideMarkFailed);
+      case MarkNameSaved(:final name, :final next):
+        if (!await rides.annotateMark(mark, name: name)) {
+          if (mounted) say(l.rideMarkFailed);
+          return;
+        }
+        if (!next) return say(l.rideMarkNamed(name));
+        final started = await rides.toggleMark();
+        if (!mounted) return;
+        say(started?.kind == RideMarkKind.start ? l.rideMarkNamedNext(name) : l.rideMarkFailed);
+    }
   }
 
   /// Das große Blatt des ausgewählten Trails (#178: der zweite Schritt).

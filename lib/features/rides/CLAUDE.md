@@ -134,7 +134,7 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
 - **Das Zerlege-Blatt** (#29, Konzept 5.1, `ride_split.dart` pur,
   `road_index.dart`, `ride_split_sheet.dart`, seit 0.20.0): nach der
   Aufzeichnung, aus „Meine Fahrten" (Schere) und aus dem GPX-Import für
-  Fahrten — EIN Blatt, EIN `SplitRequest`. Acht Dinge, die man wissen
+  Fahrten — EIN Blatt, EIN `SplitRequest`. Neun Dinge, die man wissen
   muss:
   - **Bekannt heißt: mit den Schwellen des Abgleichs gedeckt** (15 m,
     0,8, beidseitig, `kMatch*`), das Stück der Fahrt im Korridor wird
@@ -199,6 +199,31 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
       (sonst ginge dieselbe Strecke zweimal hinaus). Kandidat mit
       `marked`, vorangehakt, Griffe über die ganze Fahrt (`spansRide`),
       ohne Wege und ohne Höhen.
+  - **Name beim Ende und zweimal gefahren** (#486, seit 0.161.0,
+    `mark_name_dialog.dart`, `ride_mark_name.dart` pur): Nach „Trail
+    endet" geht das Namensfeld von selbst auf (Betreiber 2026-11-07).
+    Vier Dinge, die man wissen muss:
+    - **Nachträge sind eigene Zeilen** (`label`, `discard`), die mit
+      ihrer Zeit auf das Ende zeigen — die Datei wird nur angehängt. Eine
+      App bis 0.160 überliest sie (unbekannte Art ⇒ `fromJson` null).
+      `foldRideMarks` macht daraus Beginn/Ende mit Namen; ALLE lesen
+      gefaltet (Store, Fake, `markedTrailOpen`, `markedRanges`).
+      Verwerfen nimmt das Ende UND den Beginn davor.
+    - **„Speichern, nächster beginnt"** ist Name plus ein neuer Beginn
+      per `toggleMark` — keine eigene Regel.
+    - **Der Vorschlag** (`suggestMarkName`): erst das sichtbare Netz
+      (`knownTrailSectionsOf` auf dem Stück, deckt ≥ 0,8 seiner Länge,
+      Trail mit Namen), dann ein früher in der Fahrt benanntes Stück mit
+      `sameStretch`. Mit Vorschlag geht die Tastatur nicht auf.
+    - **Zweimal gefahren** (`_dropRepeats`, Schritt 5 von `splitRide`):
+      `knownTrailSectionsOf` nimmt je Trail nur EINEN Durchgang; ein
+      zweiter wurde vorher Kandidat neben dem bekannten Trail. Jetzt
+      fällt ein Kandidat weg, der mit `sameStretch` (beidseitig, 15 m,
+      0,8) auf einem bekannten Trail oder einem früheren Kandidaten liegt
+      (markierte vor gefundenen), und zählt dort in `rides` mit („2×
+      gefahren"); ein Name wandert zum behaltenen. Gegenproben
+      2026-11-07: ohne Regel, ohne den Vergleich mit bekannten Trails,
+      ohne Namenswanderung — je rot in `ride_split_test`.
 - **„Meine Fahrten" aufräumen** (#228, #227, seit 0.85.0,
   `rides_screen.dart`, `ride_profile_guess.dart` pur): das Rad je
   Fahrt als Chip mit Menü, nach links wischen löscht, langer Druck

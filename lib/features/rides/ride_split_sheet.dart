@@ -308,8 +308,11 @@ class _RideSplitSheetState extends ConsumerState<_RideSplitSheet> {
           .format((points.first.time ?? DateTime.now()).toLocal());
       _dateLabel = date;
       for (var i = 0; i < split.candidates.length; i++) {
-        _drafts.add(_CandidateDraft(split.candidates[i],
-            split.candidates.length == 1 ? l.splitCandidateName(date) : l.splitCandidateNameNumbered(i + 1, date)));
+        // Unterwegs benannt (#486): der Name des Fahrers, sonst nummeriert.
+        _drafts.add(_CandidateDraft(
+            split.candidates[i],
+            split.candidates[i].name ??
+                (split.candidates.length == 1 ? l.splitCandidateName(date) : l.splitCandidateNameNumbered(i + 1, date))));
       }
     });
     _pushPreview();
@@ -639,6 +642,7 @@ class _RideSplitSheetState extends ConsumerState<_RideSplitSheet> {
                   title: Text(split.known[i].trail.displayName(l)),
                   subtitle: Text([
                     formatLength(split.known[i].lengthM),
+                    if (split.known[i].rides > 1) l.splitRodeTimes(split.known[i].rides),
                     ?_airLine(split.known[i].start, split.known[i].end),
                   ].join(' · ')),
                 )),
@@ -978,6 +982,7 @@ class _RideSplitSheetState extends ConsumerState<_RideSplitSheet> {
                   if (share != null) context.l10n.splitPartOffRoad((share * 100).round()),
                   if (s.manual) context.l10n.splitPartManual,
                   if (s.marked) context.l10n.splitPartMarked,
+                  if (s.rides > 1) context.l10n.splitRodeTimes(s.rides),
                   if (tooShort) context.l10n.splitPartTooShort,
                   ?_airLine(d.start, d.end),
                 ].join(' · '),

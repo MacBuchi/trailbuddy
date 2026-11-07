@@ -503,6 +503,16 @@ final kFeatureHighlights = <FeatureHighlight>[
     target: '/profile',
   ),
   FeatureHighlight(
+    id: 'mark-name',
+    since: '0.161.0',
+    kind: HighlightKind.highlight,
+    tab: HighlightTab.map,
+    icon: Icons.drive_file_rename_outline,
+    title: (l) => l.highlightMarkNameTitle,
+    text: (l) => l.highlightMarkNameText,
+    target: '/',
+  ),
+  FeatureHighlight(
     id: 'marks',
     since: '0.57.0',
     kind: HighlightKind.highlight,

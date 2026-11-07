@@ -72,4 +72,47 @@ void main() {
     expect(markedTrailOpen([RideMark(kind: RideMarkKind.start, at: mark.at)]), isTrue);
     expect(markedTrailOpen([RideMark(kind: RideMarkKind.start, at: mark.at), mark]), isFalse);
   });
+
+  group('Nachträge zum Ende (#486)', () {
+    final t0 = DateTime.utc(2026, 11, 7, 10);
+    RideMark m(RideMarkKind kind, int s, [String? name]) =>
+        RideMark(kind: kind, at: t0.add(Duration(seconds: s)), name: name);
+
+    test('der Name überlebt JSON, ein leerer Name ist keiner', () {
+      final label = m(RideMarkKind.label, 60, 'Hexenstieg');
+      final back = RideMark.fromJson(jsonDecode(jsonEncode(label.toJson())) as Map<String, dynamic>)!;
+      expect(back.kind, RideMarkKind.label);
+      expect(back.name, 'Hexenstieg');
+      expect(RideMark.fromJson({'mark': 'label', 'at': '2026-11-07T10:00:00Z', 'name': '  '}), isNull);
+      expect(m(RideMarkKind.start, 0).toJson().containsKey('name'), isFalse);
+    });
+
+    test('ein Name gilt dem Ende mit derselben Zeit, der letzte gewinnt', () {
+      final folded = foldRideMarks([
+        m(RideMarkKind.start, 0),
+        m(RideMarkKind.end, 60),
+        m(RideMarkKind.label, 60, 'Erst'),
+        m(RideMarkKind.label, 60, 'Hexenstieg'),
+        m(RideMarkKind.label, 30, 'Ohne Ende'),
+      ]);
+      expect([for (final x in folded) x.kind], [RideMarkKind.start, RideMarkKind.end]);
+      expect(folded.last.name, 'Hexenstieg');
+      expect(foldRideMarks(folded).last.name, 'Hexenstieg', reason: 'ein zweiter Lauf ändert nichts');
+    });
+
+    test('Verwerfen nimmt Ende UND Beginn zurück, sonst nichts', () {
+      final marks = [
+        m(RideMarkKind.start, 0),
+        m(RideMarkKind.end, 60, 'Erster'),
+        m(RideMarkKind.start, 100),
+        m(RideMarkKind.end, 120),
+        m(RideMarkKind.discard, 120),
+      ];
+      final folded = foldRideMarks(marks);
+      expect([for (final x in folded) x.at], [t0, t0.add(const Duration(seconds: 60))]);
+      expect(markedTrailOpen(marks), isFalse, reason: 'der Knopf zeigt wieder „Trail beginnt"');
+      expect(foldRideMarks([...marks, m(RideMarkKind.discard, 500)]), hasLength(2),
+          reason: 'ein Verwerfen ohne sein Ende zählt nicht');
+    });
+  });
 }

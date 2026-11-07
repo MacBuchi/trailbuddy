@@ -2,6 +2,23 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Den Trail gleich beim Fahren benennen
+
+*Version 0.161.0, 2026-11-07*
+
+- Tippst du während der Aufzeichnung auf „Trail endet", fragt die App
+  gleich, wie der Trail heißt. Der Name steht nach der Fahrt schon im
+  Zerlege-Blatt — kein Rätseln mehr am Abend, welches Stück welches war.
+- Kennt die App die Strecke schon (dein Trail oder der eines Buddys,
+  oder du hast sie heute schon einmal benannt), steht der Name bereits
+  im Feld. Ein Tipp auf „Speichern" reicht.
+- „Speichern, nächster beginnt" für zwei Trails direkt hintereinander,
+  „Später", wenn du lieber weiterfährst, und „Verwerfen" für eine
+  versehentliche Marke.
+- Fährst du einen Trail zweimal, steht er im Zerlege-Blatt nur einmal,
+  mit „2× gefahren" — auch wenn er schon im Netz ist. Vorher wurde der
+  zweite Durchgang ein neuer Trail daneben.
+
 ## Die Uhr fährt auch allein
 
 *Version 0.160.0, 2026-11-07*

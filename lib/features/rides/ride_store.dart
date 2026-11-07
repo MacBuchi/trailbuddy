@@ -573,7 +573,7 @@ class FileRideStore implements RideStore {
         endedAt: endedAt,
         points: points,
         events: events,
-        marks: marks,
+        marks: foldRideMarks(marks),
         profile: head['profile'] as String?,
         planned: head['planned'] == true,
         imported: head['imported'] == true,

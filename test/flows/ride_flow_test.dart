@@ -306,6 +306,10 @@ void main() {
 
       await tester.tap(markButton);
       await settle(tester);
+      // Seit #486 geht nach dem Ende das Namensfeld auf; „Später" lässt
+      // es beim Alten.
+      await tester.tap(find.byKey(const ValueKey('ride-mark-name-later')));
+      await settle(tester);
       expect(find.textContaining('Trail endet — markiert'), findsOneWidget);
       expect([for (final m in store.marks) m.kind], [RideMarkKind.start, RideMarkKind.end]);
       expect(find.byTooltip('Trail beginnt'), findsOneWidget);
@@ -320,6 +324,71 @@ void main() {
       await tester.tap(find.text('Behalten'));
       await settle(tester);
       expect(markButton, findsNothing);
+    });
+
+    Future<void> startAndMark(WidgetTester tester) async {
+      fix.next = pt(0);
+      await pump(tester);
+      await tester.tap(button);
+      await settle(tester);
+      await drainSnackbars(tester);
+      await tester.tap(markButton);
+      await settle(tester);
+      await drainSnackbars(tester);
+      await tester.tap(markButton);
+      await settle(tester);
+    }
+
+    testWidgets('nach „Trail endet" geht das Namensfeld auf, der Name steht in der Fahrt (#486)',
+        (tester) async {
+      await startAndMark(tester);
+      expect(find.text('Wie heißt der Trail?'), findsOneWidget, reason: 'geht von selbst auf');
+      final save = find.byKey(const ValueKey('ride-mark-name-save'));
+      expect(tester.widget<FilledButton>(save).onPressed, isNull, reason: 'ohne Namen nichts zu speichern');
+      await tester.enterText(find.byKey(const ValueKey('ride-mark-name')), '  Hexenstieg ');
+      await tester.pump();
+      await tester.tap(save);
+      await settle(tester);
+      expect(find.textContaining('„Hexenstieg“ markiert'), findsOneWidget);
+      expect([for (final m in store.marks) m.kind], [RideMarkKind.start, RideMarkKind.end, RideMarkKind.label]);
+      expect(store.marks.last.name, 'Hexenstieg');
+      expect(store.marks.last.at, store.marks[1].at, reason: 'der Name zeigt auf sein Ende');
+      expect(find.byTooltip('Trail beginnt'), findsOneWidget);
+
+      await store.appendPoint(pt(1));
+      await drainSnackbars(tester);
+      await tester.tap(button);
+      await settle(tester);
+      expect(store.rides.single.marks.last.name, 'Hexenstieg', reason: 'die Fahrt liest ihn gefaltet');
+    });
+
+    testWidgets('„Speichern, nächster beginnt": zwei Trails am Stück (#486)', (tester) async {
+      await startAndMark(tester);
+      await tester.enterText(find.byKey(const ValueKey('ride-mark-name')), 'Erster');
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey('ride-mark-name-next')));
+      await settle(tester);
+      expect(find.textContaining('der nächste Trail läuft'), findsOneWidget);
+      expect([for (final m in store.marks) m.kind],
+          [RideMarkKind.start, RideMarkKind.end, RideMarkKind.label, RideMarkKind.start]);
+      expect(find.byTooltip('Trail endet'), findsOneWidget, reason: 'der nächste läuft schon');
+      expect(markActive(tester), isTrue);
+    });
+
+    testWidgets('„Verwerfen" nimmt eine versehentliche Marke zurück (#486)', (tester) async {
+      await startAndMark(tester);
+      await tester.tap(find.byKey(const ValueKey('ride-mark-name-discard')));
+      await settle(tester);
+      expect(find.text('Marke verworfen.'), findsOneWidget);
+      expect(store.marks.last.kind, RideMarkKind.discard);
+      expect(foldRideMarks(store.marks), isEmpty);
+      expect(find.byTooltip('Trail beginnt'), findsOneWidget);
+    });
+
+    testWidgets('unbekannte Strecke: leeres Feld, die Tastatur geht auf (#486)', (tester) async {
+      await startAndMark(tester);
+      expect(tester.widget<TextField>(find.byKey(const ValueKey('ride-mark-name'))).controller!.text, isEmpty);
+      expect(tester.widget<TextField>(find.byKey(const ValueKey('ride-mark-name'))).autofocus, isTrue);
     });
 
     testWidgets('nach dem Neustart weiß der Knopf, dass ein Trail läuft', (tester) async {

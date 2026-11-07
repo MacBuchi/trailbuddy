@@ -2,6 +2,22 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## Name the trail while you ride
+
+*Version 0.161.0, 2026-11-07*
+
+- When you tap "Trail ends" during a recording, the app asks right away
+  what the trail is called. After the ride the name is already in the
+  split sheet — no more guessing in the evening which section was which.
+- If the app already knows the stretch (your trail or a buddy's, or you
+  named it earlier today), the name is already in the field. One tap on
+  "Save" is enough.
+- "Save, next one starts" for two trails back to back, "Later" if you'd
+  rather keep riding, and "Discard" for a mark you set by accident.
+- Ride a trail twice and the split sheet shows it once, with "ridden 2×"
+  — also when it is already in the network. Before, the second run
+  became a new trail next to it.
+
 ## The watch rides on its own
 
 *Version 0.160.0, 2026-11-07*
