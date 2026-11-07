@@ -216,6 +216,28 @@ jobs:
           print(f"{m['tiles']} tiles, {m['bytes']} bytes ({100 * m['bytes'] / heights:.0f} % of the heights)")
           PY
 
+      - name: Measure the delta against the current build (#479)
+        if: env.MODE == 'plan' || steps.r2.outputs.present == 'true'
+        # The public current build against the fresh one, EVERY pair (the
+        # archive is ~130 MB, fetched in one GET instead of one Range
+        # request per tile). Also in plan mode: that measures without
+        # publishing. Never stops a run (docs/tile-delta-messung.md).
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          current=$(curl -sSL --fail --max-time 60 "$PUBLIC_BASE/$WAYS_MANIFEST?delta=$BUILD" \
+                      | python3 -c 'import json,sys; print(json.load(sys.stdin).get("file",""))' || true)
+          if [ -z "$current" ] || [ "$current" = "$file" ]; then
+            echo "No earlier way build to compare with (manifest: '${current}')." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          curl -sSL --fail --max-time 900 -o build/ways-previous.pmtiles "$PUBLIC_BASE/${REGION_DIR}$current"
+          python3 tool/tile_delta.py compare \
+            --old build/ways-previous.pmtiles --new "build/ways/$file" \
+            --bbox "$WAYS_BBOX" --minzoom 13 --maxzoom 13 --all --workers 1 \
+            --json build/ways-delta.json | tee -a "$GITHUB_STEP_SUMMARY"
+          rm -f build/ways-previous.pmtiles
+
       - name: Upload to R2
         if: env.MODE == 'publish' && steps.r2.outputs.present == 'true'
         env:
