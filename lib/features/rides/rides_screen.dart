@@ -357,7 +357,7 @@ class _RideTile extends ConsumerWidget {
       leading: selecting
           ? Icon(selected ? Icons.check_circle : Icons.radio_button_unchecked,
               key: ValueKey('ride-check-${ride.id}'))
-          : Icon(planned ? Icons.route_outlined : Icons.directions_bike),
+          : Icon(planned ? Icons.route_outlined : (ride.fromWatch ? Icons.watch : Icons.directions_bike)),
       title: Text(planned ? (ride.name ?? l.ridesPlannedFallback) : _date(l).format(ride.startedAt.toLocal())),
       subtitle: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -369,7 +369,10 @@ class _RideTile extends ConsumerWidget {
               l.ridesAbout(rideDurationLabel(ride.duration)),
               if (profile != null) profile.label(l),
             ] else ...[
-              if (ride.imported) l.ridesFromGpx(ride.name ?? l.ridesFileFallback),
+              if (ride.fromWatch)
+                l.ridesFromWatch
+              else if (ride.imported)
+                l.ridesFromGpx(ride.name ?? l.ridesFileFallback),
               formatMeters(ride.lengthM),
               rideDurationLabel(ride.duration),
               l.commonPoints(ride.points.length),

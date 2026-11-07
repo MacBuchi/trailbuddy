@@ -69,6 +69,19 @@ class _AndroidGarminBridge implements GarminBridge {
   }
 
   @override
+  Future<bool> listen() async {
+    if (!supported) return false;
+    _listen();
+    try {
+      return await _channel.invokeMethod<bool>('listen', {'appId': kWatchAppId, 'tethered': kGarminTethered}) ??
+          false;
+    } catch (e, s) {
+      logError('Auf die Uhr lauschen', e, s);
+      return false;
+    }
+  }
+
+  @override
   Stream<Object?> get messages => _messages.stream;
 
   @override

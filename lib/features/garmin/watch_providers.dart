@@ -38,6 +38,7 @@ import '../routing/road_graph_loader.dart' show tilesAlong;
 import '../trails/terrain_heights.dart';
 import '../trails/trail_elevation.dart' show ElevationProfile;
 import 'garmin_bridge.dart';
+import 'watch_ride_inbox.dart';
 import 'watch_branches.dart';
 import 'watch_route.dart';
 
@@ -121,7 +122,15 @@ Future<List<WatchBranch>> loadWatchBranches(Ref ref, List<LatLng> line) async {
 final watchStatusProvider = FutureProvider.autoDispose<WatchStatus>((ref) async {
   final bridge = ref.watch(garminBridgeProvider);
   if (!bridge.supported) return WatchStatus.none;
-  return bridge.status();
+  final status = await bridge.status();
+  // Eine Uhr mit unserer App: ab jetzt beim Start lauschen, und gleich
+  // auch — sie hält vielleicht schon Fahrten (#484).
+  if (status.canShow) {
+    final settings = ref.read(settingsProvider);
+    if (!settings.watchSeen) unawaited(settings.setWatchSeen(true));
+    unawaited(ref.read(watchRideInboxProvider.notifier).start());
+  }
+  return status;
 });
 
 enum WatchSyncPhase {

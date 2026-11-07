@@ -113,6 +113,9 @@ class FakeRideStore implements RideStore {
   /// Lässt [savePlanned] scheitern — die Oberfläche muss es sagen.
   bool failOnPlanned = false;
 
+  /// Das Ablegen einer übernommenen Fahrt scheitert (volle Platte).
+  bool failOnImport = false;
+
   @override
   Future<Ride?> savePlanned({
     required String uid,
@@ -139,10 +142,12 @@ class FakeRideStore implements RideStore {
   @override
   Future<ImportSave> saveImported({
     required String uid,
-    required String name,
+    required String? name,
     required List<RidePoint> points,
     String? profile,
+    String? source,
   }) async {
+    if (failOnImport) return ImportSave.failed;
     this.uid ??= uid;
     final id = 'imported-${points.first.at.toIso8601String().replaceAll(RegExp(r'[-:.]'), '')}';
     if (rides.any((r) => r.id == id)) return ImportSave.exists;
@@ -153,7 +158,8 @@ class FakeRideStore implements RideStore {
         points: points,
         profile: profile,
         imported: true,
-        name: name));
+        name: name,
+        source: source));
     rides.sort((a, b) => b.startedAt.compareTo(a.startedAt));
     return ImportSave.saved;
   }

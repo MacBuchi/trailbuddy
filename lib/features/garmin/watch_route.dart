@@ -509,10 +509,20 @@ Map<String, Object>? watchBestsOf(AirtimeLog log) {
 /// Meldung: `hello` false.
 ///
 /// `v` ist die Fassung des Protokolls der Uhr-App (null, wenn sie fehlt).
-({bool hello, String? id, String? bad, int? v}) watchHelloOf(Object? message) {
-  if (message is! Map || message['t'] != kWatchHello) return (hello: false, id: null, bad: null, v: null);
-  final id = message['id'], bad = message['bad'], v = message['v'];
-  return (hello: true, id: id is String ? id : null, bad: bad is String ? bad : null, v: v is int ? v : null);
+/// `rides` sind die Fahrten, die auf der Uhr auf das Handy warten (`rq`,
+/// #484, `watch_ride.dart`).
+({bool hello, String? id, String? bad, int? v, List<String> rides}) watchHelloOf(Object? message) {
+  if (message is! Map || message['t'] != kWatchHello) {
+    return (hello: false, id: null, bad: null, v: null, rides: const []);
+  }
+  final id = message['id'], bad = message['bad'], v = message['v'], rq = message['rq'];
+  return (
+    hello: true,
+    id: id is String ? id : null,
+    bad: bad is String ? bad : null,
+    v: v is int ? v : null,
+    rides: rq is List ? [for (final r in rq) if (r is String) r] : const <String>[],
+  );
 }
 
 /// Die Uhr konnte ein Stück der Route [id] nicht nehmen: `(id, code)`

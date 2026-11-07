@@ -3270,6 +3270,18 @@
       }
     }
   },
+  "ridesFromWatch": "Von der Uhr",
+  "@ridesFromWatch": {
+    "description": "Zeile unter einer Fahrt, die die Garmin-Uhr aufgezeichnet hat."
+  },
+  "watchRideSaved": "Fahrt von der Uhr übernommen",
+  "@watchRideSaved": {
+    "description": "Leiste, wenn eine Fahrt von der Garmin-Uhr in „Meine Fahrten“ abgelegt wurde."
+  },
+  "watchRideShow": "Ansehen",
+  "@watchRideShow": {
+    "description": "Knopf in der Leiste „Fahrt von der Uhr übernommen“: öffnet „Meine Fahrten“."
+  },
   "ridesFileFallback": "Datei",
   "@ridesFileFallback": {
     "description": "Ersatz, wenn eine importierte Fahrt keinen Namen hat."

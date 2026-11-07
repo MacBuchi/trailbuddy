@@ -463,10 +463,41 @@ class RidesNotifier extends AsyncNotifier<List<Ride>> {
     }
     return (saved: saved, existed: existed, failed: failed);
   }
+
+  /// Eine Fahrt der eigenen Garmin-Uhr ablegen (#484), mit [profile] (dem
+  /// Rad des Fahrerprofils). Wie eine übernommene Datei: gemessen, aber
+  /// nicht vom Handy. Hat das Handy dieselbe Zeit selbst aufgezeichnet
+  /// ([rideOverlaps]), bleibt es bei dessen Fahrt.
+  Future<WatchRideSave> saveFromWatch(List<RidePoint> points, {required String profile}) async {
+    final uid = ref.read(currentUserIdProvider);
+    if (uid == null || points.length < 2) return WatchRideSave.failed;
+    final store = ref.read(rideStoreProvider);
+    final known = await store.list(uid: uid);
+    if (rideOnDevice(points, known)) return WatchRideSave.existed;
+    if (rideOverlaps(points, known)) return WatchRideSave.overlap;
+    final result = await store.saveImported(
+        uid: uid, name: null, points: points, profile: profile, source: kRideSourceWatch);
+    switch (result) {
+      case ImportSave.saved:
+        ref.invalidateSelf();
+        await future;
+        return WatchRideSave.saved;
+      case ImportSave.exists:
+        return WatchRideSave.existed;
+      case ImportSave.failed:
+        return WatchRideSave.failed;
+    }
+  }
 }
 
 /// Was aus einem Stapel übernommener Fahrten wurde.
 typedef ImportRidesResult = ({int saved, int existed, int failed});
+
+/// Was aus einer Fahrt der Uhr wurde (#484): abgelegt, lag schon da
+/// (dieselbe Startsekunde), doppelt zu einer eigenen Fahrt des Handys,
+/// oder es ging nicht (ohne Anmeldung, volle Platte) — nur dann bleibt
+/// sie auf der Uhr.
+enum WatchRideSave { saved, existed, overlap, failed }
 
 final ridesProvider = AsyncNotifierProvider<RidesNotifier, List<Ride>>(RidesNotifier.new);
 

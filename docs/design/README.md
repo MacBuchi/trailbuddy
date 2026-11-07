@@ -906,10 +906,16 @@ als Spur in `555555`, darauf zeichnet es sich in Lime `AAFF55` ein wie
 die Spur — MIP kennt kein Ausblenden, so steht nie ein halb
 ausgeblendetes Zeichen. Darunter klein in Grau „Lade Route", „Route
 kommt · 1/2" oder „Lade Route 40 %". Beendet: das ganze Zeichen in Lime
-ohne Spur, darunter „Navigation beendet", bis die App zugeht. Ohne Route
-(nur im Store-Paket, das keine Testroute hat): ebenso das ganze Zeichen,
-darunter zweizeilig „Navigation starten / in der TrailBuddy-App", höher
-gesetzt (y 150), damit der Kreis die zweite Zeile nicht anschneidet. Die Punkte entlang der Mittellinie
+ohne Spur, darunter „Navigation beendet", bis die App zugeht; dann
+„Fahrt geht ans Handy · 1/2", „Fahrt ist auf dem Handy" oder zweizeilig
+„Fahrt gespeichert / wartet aufs Handy" (zweizeilige Texte höher, y 150,
+damit der Kreis die zweite Zeile nicht anschneidet). **Ohne Route die
+freie Fahrt** (#484, nur im Store-Paket, das keine Testroute hat): die
+helle Karte gedreht wie in der Navigation, die eigene Spur der letzten
+25 min dünn in Moos (wie der gefahrene Teil einer Route), „N" und der
+Pfeil; unten schwarz klein „FREIE FAHRT" (voll: „SPEICHER VOLL") und
+darunter Strecke und Anstieg wie die Zeile „bis zum Ziel"; kein Ring.
+Vor dem ersten Fix dort „Warte auf GPS". Die Punkte entlang der Mittellinie
 (volle Kreise, kein Polygon) schreibt `tool/brand_icons.py` nach
 `garmin/resources/logo/`. Angekommen: eine schwarze
 Zusammenfassung mit den Schildern der befahrenen Trails. Die Farben sind je

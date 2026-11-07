@@ -2,7 +2,6 @@
     <string id="AppName">TrailBuddy</string>
     <string id="Loading">Loading route</string>
     <string id="RouteComing">Route coming</string>
-    <string id="NoRoute">Start navigation\nin the TrailBuddy app</string>
     <string id="NavEnded">Navigation ended</string>
     <string id="WaitGps">Waiting for GPS</string>
     <string id="RouteBroken">Route unusable</string>
@@ -30,4 +29,10 @@
     <string id="Angle">ANGLE</string>
     <string id="Jumps">JUMPS</string>
     <string id="Wheelies">WHEELIES</string>
+    <string id="QuitRide">End ride?</string>
+    <string id="FreeRide">FREE RIDE</string>
+    <string id="StorageFull">STORAGE FULL</string>
+    <string id="RideSending">Ride to phone</string>
+    <string id="RideOnPhone">Ride is on the phone</string>
+    <string id="RideWaits">Ride saved\nwaits for the phone</string>
 </strings>

@@ -7,7 +7,8 @@ des Betreibers. Dieses Dokument kommt vor dem ersten Code.*
 
 ## 0. Entscheidungen des Betreibers (2026-11-03)
 
-1. **Die Uhr ist Anzeige, nicht Sensor.** Die fēnix 5 hat keinen
+1. **Die Uhr ist Anzeige, nicht Sensor** (eingeschränkt durch 5: die
+   eigene Spur zeichnet sie auf). Die fēnix 5 hat keinen
    Kreisel, nur Beschleunigung, Magnetfeld und Barometer; ohne Kreisel
    gibt es im Flug keine Lage und beim Bremsen keine verlässliche
    (`docs/recherche-sensorfusion.md`, Abschnitt 2). Messen bleibt Sache
@@ -25,6 +26,17 @@ des Betreibers. Dieses Dokument kommt vor dem ersten Code.*
    Vibrieren vor einer Kreuzung, kein Ton. Die App selbst bleibt still.
 4. **Der Code liegt in `garmin/` in diesem Repo.** Dann ändern sich
    Protokoll, Android-Brücke und Uhr-App im selben PR.
+5. **Die Uhr zeichnet die Fahrt auf** (Betreiber 2026-11-07, #484:
+   „auch ohne Handy bzw. ohne Navigation starten und aufnehmen, Sync bei
+   Beenden, wenn das Handy verfügbar ist"). Das schränkt Entscheidung 1
+   ein: Gemessen wird nur, was eine Fahrt des Handys auch hat — GPS,
+   Höhe (vom Barometer) und Zeit —, kein Puls, keine Sensor-Rohdaten,
+   keine Erkennung. Weiterhin **keine Garmin-Aktivität**: Die Fahrt geht
+   über Garmin Connect nur an das eigene Handy (Abschnitt 2a). Die Uhr
+   zeichnet immer auf; hat das Handy dieselbe Zeit selbst aufgezeichnet,
+   behält es seine Fahrt und verwirft die der Uhr. Das Handy lauscht ab
+   dem Start der App, sobald einmal eine Uhr gefunden wurde — geöffnet
+   wird die Uhr dabei nicht.
 
 ## 1. Was die Uhr zeigt
 
@@ -75,8 +87,9 @@ dunkle Infofläche, „Was kommt als Nächstes?" statt „Wie weit noch?".
   und Speicher für die Messungen nur noch im Vorführmodus — auf der Uhr
   stand die Zeile mitten in der Seite, 2026-11-05). Der Puls vom Handgelenk
   dezent in Grau (Betreiber: „Ja, aber dezent"). Alle Werte misst die
-  Uhr selbst; sie stehen nur im Speicher der laufenden App, nichts
-  wird gespeichert oder verschickt (A3, Entscheidung 1: Anzeige).
+  Uhr selbst; die Zahlen stehen nur im Speicher der laufenden App, die
+  Seiten speichern und verschicken nichts (die Fahrt selbst zeichnet
+  `RideLog` auf, Abschnitt 2a).
   Fahrzeit und Strecke zählen ab 1 m/s, bergauf mit 3 m Hysterese.
 - **„Angekommen"** wie in der App (unter 30 m vom Ende bzw. letzter
   Abschnitt einer Runde), mit einer Zusammenfassung (Betreiber: „Ja"):
@@ -107,6 +120,14 @@ dunkle Infofläche, „Was kommt als Nächstes?" statt „Wie weit noch?".
   den Zahlenseiten; beim Abkommen kommt die Karte von selbst nach vorn.
   ZURÜCK beendet nach Rückfrage. Tippziele gibt es nicht; A13 heißt hier:
   große Schrift, kräftige Linien.
+
+- **Ohne Route die freie Fahrt** (#484, Store-Paket ohne Testroute):
+  Statt „Navigation starten in der TrailBuddy-App" schaltet die Uhr GPS
+  ein und zeigt die eigene Spur der letzten 25 min (300 Punkte) dünn in
+  Moos auf der gedrehten Karte, „N", den Pfeil, unten „Freie Fahrt" mit
+  Strecke und Anstieg; „Fahrt" und „Berg" wie sonst, kein Ring. ZURÜCK
+  fragt „Fahrt beenden?". Kommt eine Route vom Handy, wechselt die Uhr in
+  die Navigation, die Aufzeichnung läuft weiter.
 
 Kein Kartenbild: Die fēnix 5 hat keine Karten, und Kacheln passen nicht
 in den Speicher einer App (Abschnitt 7). Gezeigt werden nur Route,
@@ -196,8 +217,9 @@ navigiert allein (A8), das ist nur ein Vorsprung beim Start. Ein neues
 die Position nur im Speicher (A3).
 
 Die Uhr schickt zurück: „angekommen und gespeichert" mit der Kennung,
-„hallo" mit der Kennung der Route, die sie hat, und einmal „habe GPS" —
-sonst nichts. Keine Position, keine Fahrt (A3).
+„hallo" mit der Kennung der Route, die sie hat (und den wartenden
+Fahrten), einmal „habe GPS" und die eigene Fahrt (Abschnitt 2a) — sonst
+nichts. Keine Position im Lauf.
 
 **Gebaut in G2 (2026-11-04)**: `lib/features/garmin/watch_route.dart`
 kodiert und schneidet in **Stücke** (`t: "r"`, `id`, Laufnummer `p`, Anzahl
@@ -282,9 +304,10 @@ angekommen (beantwortet 8.2). Deshalb:
   Garmin Connect die Nachricht abnahm (höchstens 5 s); das Handy beendet
   seine Navigation, wenn die Kennung zu einer Route dieses Folgens
   gehört. **Die Aufzeichnung läuft weiter** — gespeichert wird die
-  Fahrt wie bisher auf dem Handy von Hand; die Uhr speichert nichts
-  außer der Route (A3), es geht also nichts verloren. Ohne Verbindung
-  beendet jede Seite nur sich selbst.
+  Fahrt wie bisher auf dem Handy von Hand. Die Uhr schließt ihre eigene
+  Fahrt ab und schickt sie (Abschnitt 2a); das Handy verwirft sie, weil
+  es dieselbe Zeit selbst aufzeichnet. Ohne Verbindung beendet jede
+  Seite nur sich selbst.
 - **Neu verbunden** meldet Garmin Connect (`device`, `CONNECTED`), dann
   fragt das Handy `{t: "q"}`, und eine laufende Uhr-App antwortet mit
   „hallo". Kein Abfragen im Takt — nur ein kurzes Nachfassen: Wartet das
@@ -329,6 +352,63 @@ solange die Fahrt läuft; die Uhr zeigt sie auf einer vierten Seite
 „Sprünge" und in der Zusammenfassung. Die Erkennung meldet nur an die
 offene App (`airtimeLiveProvider`); im Hintergrund kommt nichts nach.
 
+## 2a. Die Fahrt auf der Uhr (#484)
+
+Entscheidung 5. Gebaut in `garmin/source/RideLog.mc` (Uhr),
+`lib/features/garmin/watch_ride.dart` (Form, pur) und
+`watch_ride_inbox.dart` (Empfang).
+
+- **Aufgezeichnet wird jede Fahrt**, mit Route oder ohne: ab dem ersten
+  EIGENEN Fix (die Position des Handys zählt nicht), alle 5 s ein Punkt
+  wie die Fahrt des Handys. Je Punkt Lage in 1e-5°, Zeit in Sekunden,
+  Höhe vom Barometer (sonst GPS) in Dezimetern und die Klasse der
+  Genauigkeit (gut, brauchbar, … — auf dem Handy 5, 15, 40, 100 m).
+  Kein Puls.
+- **Gepackt wie Protokoll 2**, in Stücken zu 60 Punkten (5 min): der
+  erste Punkt ganz, dann je Punkt `(dLat << 16) | dLon` und
+  `(dt << 16) | (dE << 2) | acc`; passt ein Schritt nicht (Lücke im
+  GPS), beginnt ein neues Stück. Je Stück 123 Zahlen, ~600 Byte im
+  Speicher der Uhr.
+- **Sofort im Speicher der Uhr** (`Application.Storage`): das offene Stück
+  jede Minute neu, dazu der Stand `wo`. Ein Absturz kostet höchstens eine
+  Minute; der nächste Start nimmt die Fahrt in die Warteschlange `rq`.
+  Unter 2 min oder 200 m ist es keine Fahrt (Start vom Sofa), sie fällt
+  weg. Höchstens 6000 Punkte (gut 8 h) und 20 Fahrten warten; ist die
+  Schlange voll, steht die Aufzeichnung („Speicher voll") — nichts
+  Wartendes wird überschrieben. Die Grenze ist ein Startwert bis zur
+  Messung 8.6.
+- **Beim Beenden** („Fahrt beenden?" bzw. „Navigation beenden?", oder das
+  Handy beendet die Navigation): die Fahrt in die Warteschlange; ist ein
+  Handy verbunden, gehen die wartenden Fahrten hinüber — `{t: "w", id,
+  p, n, c}`, je Nachricht bis zu 6 Stücke (~740 Zahlen), eine nach der
+  anderen; die Uhr zeigt „Fahrt geht ans Handy · 1/2". Erst `{t: "wk",
+  id}` vom Handy löscht sie auf der Uhr; dann kurz vibrieren, „Fahrt ist
+  auf dem Handy", zu. Ohne Antwort in 20 s, ohne Handy oder mit ZURÜCK
+  geht die App zu, und die Fahrt wartet („Fahrt gespeichert, wartet aufs
+  Handy").
+- **Beim nächsten Start** trägt das „hallo" die wartenden Fahrten (`rq`);
+  das Handy antwortet `{t: "wq"}` („schick"), und die Uhr schickt sie im
+  Lauf — nicht, solange eine Route ankommt: eine Übertragung zur Zeit.
+  Neue Arten, keine neue Fassung: Eine ältere Seite übergeht sie, die
+  Fahrt wartet dann einfach.
+- **Das Handy lauscht ab dem Start der App**, sobald das Startblatt einmal
+  eine Uhr mit unserer App fand (`Settings.watchSeen`, Kanal-Methode
+  `listen`: SDK starten, auf die Uhr hören, kein `openApplication`). Es
+  fragt die Uhr nicht (`q` bleibt der Navigation): Die Uhr-App meldet
+  sich bei jedem Start mit `rq` und schickt beim Beenden selbst.
+- **Das Handy legt ab, erst dann quittiert es**: Stücke je Kennung
+  zusammensetzen (eine halbe Fahrt verfällt nach 2 min), entpacken,
+  prüfen. Liegt dieselbe Startsekunde schon da, oder deckt eine eigene
+  gemessene Fahrt mindestens die halbe Zeit (`rideOverlaps`), bleibt es
+  bei der vorhandenen — quittiert wird trotzdem. Sonst als übernommene
+  Fahrt in „Meine Fahrten" (`source: watch`, „Von der Uhr", Rad des
+  Fahrerprofils), mit der Leiste „Fahrt von der Uhr übernommen ·
+  Ansehen". Ohne Anmeldung oder wenn das Ablegen scheitert, quittiert es
+  nicht: Die Fahrt bleibt auf der Uhr. Eine unlesbare Fahrt wird
+  quittiert — sie belegte die Uhr sonst für immer.
+- **Danach ist sie eine Fahrt wie jede andere** (A3): zerlegen, exportieren,
+  kalibrieren, löschen; sie verlässt das Telefon nicht.
+
 ## 3. Der Weg vom Handy zur Uhr
 
 - **Android**: das Connect-IQ-Companion-SDK von Garmin
@@ -371,7 +451,8 @@ offene App (`airtimeLiveProvider`); im Hintergrund kommt nichts nach.
 
 - **Keine Garmin-Aktivität** (`ActivityRecording`): Sie ginge beim
   nächsten Abgleich an Garmin Connect, und eine Fahrt beginnt an der
-  Haustür (A3, A5). Aufgezeichnet wird wie bisher auf dem Handy.
+  Haustür (A3, A5). Die eigene Aufzeichnung der Uhr (Abschnitt 2a) geht
+  nur an die TrailBuddy-App auf dem eigenen Handy.
 - **Kein Netz von der Uhr aus** (`makeWebRequest`): kein neuer Host
   (A6), keine Daten an uns oder Dritte.
 - **Keine Sensor-Rohdaten**, keine Airtime, keine Sprünge
@@ -398,8 +479,8 @@ offene App (`airtimeLiveProvider`); im Hintergrund kommt nichts nach.
    5 Plus, 5X Plus, 5S Plus, 6S, Forerunner 935, 945, 945 LTE), je mit
    den Unit-Tests im Simulator; am Gerät abgenommen ist nur die fēnix 5.
    Das Store-Paket (`tool/garmin_build.sh --store`) hat **keine
-   Testroute**: Ohne Route vom Handy zeigt die Uhr das Logo und
-   „Navigation starten in der TrailBuddy-App", ohne GPS. Ausfüllhilfe
+   Testroute**: Ohne Route vom Handy beginnt die freie Fahrt (#484,
+   Abschnitt 1). Ausfüllhilfe
    und Ablauf: `docs/garmin-store.md`.
 
 ## 6. Code und Build
@@ -462,6 +543,11 @@ Aus der Gerätedatei des SDK 9.3.0 und der Uhr selbst:
 4. **Lesbarkeit**: die S-Farben auf MIP in der Sonne.
 5. **Abseits**: Die 30-m-Regel mit dem GPS der Uhr — löst sie im Wald
    falsch aus? Das ist der Startwert, wie in der App.
+6. **Die Fahrt auf der Uhr** (#484): Wie viel nimmt `Application.Storage`
+   an der fēnix 5 neben einer Route mit 2000 Punkten — passen die 6000
+   Punkte der Warteschlange? Wie lange dauert die Übertragung einer
+   Stunde (720 Punkte, 2 Nachrichten)? Danach `RideLog.MAX_POINTS`
+   festlegen.
 
 ## 9. Umsetzung in Schritten (je ein PR)
 
@@ -485,17 +571,22 @@ Aus der Gerätedatei des SDK 9.3.0 und der Uhr selbst:
    (A3). Die Uhr misst dabei weiter nichts (Entscheidung 1).
 3. **G3 — Abnahme am Gerät** (📱) und die Entscheidung zum Store
    (gefallen 2026-11-07: Beta, 240er-Familie, Abschnitt 5).
+4. **G4 — Freie Fahrt und Fahrt auf der Uhr** (#484, `feat`, Bump):
+   Entscheidung 5, Abschnitt 2a; Messung 8.6 und die Abnahme an der
+   fēnix 5 offen.
 
 ## 10. Abgleich mit den Kernanforderungen
 
 - A1, A2: nur die Trails der Route, die der Nutzer schon sieht.
-- A3: keine Fahrt von der Uhr, keine Garmin-Aktivität; die Zahlen der
+- A3: die Fahrt der Uhr geht nur an das eigene Handy und bleibt dort
+  (Entscheidung 5, Abschnitt 2a), keine Garmin-Aktivität; die Zahlen der
   Seiten (Strecke, Puls, bergauf) nur im Speicher der laufenden App.
 - A5: Ausnahme nach Entscheidung 2.
 - A6: Datenschutz und Play-Console mit G2.
 - A7: Schlüssel und Testrouten nie im Repo; die Testroute in G1 ist
   erfunden.
-- A8: Die Uhr navigiert nach der Übertragung ohne Handy.
+- A8: Die Uhr navigiert nach der Übertragung ohne Handy; ohne Route
+  fährt und zeichnet sie frei, die Fahrt wartet aufs Handy.
 - A9: nur Android, wie das Aufzeichnen.
 - A12: zeigt; vibriert beim Abkommen (Entscheidung 3). Die Stummel der
   Abzweigungen sind Anzeige wie die Karte, kein Abbiegehinweis.

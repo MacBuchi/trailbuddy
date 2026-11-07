@@ -73,6 +73,19 @@ class FakeGarminBridge implements GarminBridge {
     return openResult;
   }
 
+  /// So oft wurde gelauscht ([GarminBridge.listen], #484).
+  int listens = 0;
+
+  @override
+  Future<bool> listen() async {
+    listens++;
+    return status_.device != null;
+  }
+
+  /// Die Antworten auf Fahrten (`wk`) und „schick" (`wq`).
+  List<Map<String, Object>> get rideAnswers =>
+      [for (final batch in sent) ...batch.where((m) => m['t'] == 'wk' || m['t'] == 'wq')];
+
   void answer(Object? message) => _messages.add(message);
 
   /// Garmin Connect meldet die Uhr wieder verbunden.

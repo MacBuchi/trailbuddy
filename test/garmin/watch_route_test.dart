@@ -197,6 +197,11 @@ void main() {
   });
 
   test('#449: „hallo", Frage und Öffnen sprechen Uhr, Kotlin und Dart gleich', () {
+    (bool, String?, String?, int?) hi(Object m) {
+      final h = watchHelloOf(m);
+      return (h.hello, h.id, h.bad, h.v);
+    }
+
     final watch = File('garmin/source/TrailBuddyApp.mc').readAsStringSync();
     expect(watch, contains('"t" => "$kWatchHello"'));
     expect(watch, contains('"$kWatchQuery".equals(t)'));
@@ -219,9 +224,10 @@ void main() {
     final io = File('lib/features/garmin/garmin_bridge_io.dart').readAsStringSync();
     expect(io, contains("call.method == 'device' && call.arguments == 'CONNECTED'"));
     expect(watchQuery, {'t': 'q'});
-    expect(watchHelloOf({'t': 'hi', 'id': 'ab12', 'v': 2}), (hello: true, id: 'ab12', bad: null, v: 2));
-    expect(watchHelloOf({'t': 'hi', 'v': 2}), (hello: true, id: null, bad: null, v: 2));
-    expect(watchHelloOf({'t': 'hi', 'v': 2, 'bad': 'cd34'}), (hello: true, id: null, bad: 'cd34', v: 2));
+    expect(hi({'t': 'hi', 'id': 'ab12', 'v': 2}), (true, 'ab12', null, 2));
+    expect(hi({'t': 'hi', 'v': 2}), (true, null, null, 2));
+    expect(hi({'t': 'hi', 'v': 2, 'bad': 'cd34'}), (true, null, 'cd34', 2));
+    expect(watchHelloOf({'t': 'hi', 'v': 2}).rides, isEmpty);
     expect(watchHelloOf({'t': 'hi'}).v, isNull);
     // Welche Seite ist veraltet (#449)?
     expect(watchOutdatedOf(kWatchProtocol), isNull);
