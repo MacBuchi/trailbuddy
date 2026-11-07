@@ -133,3 +133,24 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
   `tool/schema_local_test.sh` in einem `postgis/postgis:16-3.4`-Container
   (`docker run -v "$PWD":/src:ro -w /src … tool/schema_local_test.sh`,
   `TB_TEST_DIR=/tmp/…`), beide Wege, Dumps gleich.
+- **Airtime unter Buddys** (Patch 029, #36 Schritt 6): `trail_airtime`
+  (Bestwert je Nutzer und Trail, Sicht wie `notes_select`) und
+  `airtime_counters` (eine Zeile je Nutzer, Sicht eigene + direkte Buddys,
+  `as_of` nicht in der Zukunft — Riegel in der Policy, nicht als Check,
+  weil `current_date` nicht immutable ist). Drei Dinge, die man wissen
+  muss:
+  - **Schreiben nur über `set_trail_airtime(items jsonb)`** (Definer, kein
+    insert/update-Grant): nur besser (`greatest` je Feld, Monat mit der
+    besseren Airtime), Trails, die der Aufrufer nicht sieht, fallen STILL
+    heraus (ein gefegter Trail ist kein Fehler des Abgleichs), eine eigene
+    Zuordnung (`trail_aliases`) leitet auf den behaltenen um.
+  - **Zusammenführen per Trigger** (`trail_aliases_move_airtime`, after
+    insert) statt einer neuen Fassung von `merge_own_into` — die Zuordnung
+    entsteht nur dort. `withdraw_contribution` löscht den Bestwert mit
+    (neue Fassung im Patch, Signatur gleich).
+  - **Ausschalten ist `delete_my_airtime()`** (Invoker, eine Transaktion).
+  `matcher_check.sql` Block 32 (Gegenprobe: `ta_select` ohne
+  `are_friends` ⇒ „Gina sieht ihn nicht" rot), `grants_check.sql`
+  „airtime", `schema_check.sh` Spalten und RPCs. Beide Wege lokal mit
+  `tool/schema_local_test.sh` im `postgis/postgis:16-3.4`-Container, Dumps
+  gleich.

@@ -7,6 +7,7 @@ class FakeSettings implements Settings {
   FakeSettings(
       {this.prereleaseUpdatesEnabled = false,
       this.sensorLogEnabled = false,
+      this.airtimeShareEnabled = false,
       this.poiGroups,
       this.poiHiddenKinds,
       this.seenNoteIds,
@@ -114,6 +115,14 @@ class FakeSettings implements Settings {
   @override
   Future<void> setNavLeaveM(int value) async {
     navLeaveM = value;
+  }
+
+  @override
+  bool airtimeShareEnabled;
+
+  @override
+  Future<void> setAirtimeShareEnabled(bool value) async {
+    airtimeShareEnabled = value;
   }
 
   @override

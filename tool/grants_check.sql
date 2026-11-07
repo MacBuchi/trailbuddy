@@ -90,3 +90,23 @@ begin
   end if;
   raise notice 'grants_check messages: ok';
 end $$;
+
+-- Airtime (patch_029): anon bekommt nichts; den Bestwert schreibt nur
+-- set_trail_airtime — ein Tabellen-INSERT oder -UPDATE hebelte „nur
+-- besser" und die Sichtbarkeitsprüfung aus.
+do $$
+begin
+  if has_table_privilege('anon', 'public.trail_airtime', 'select')
+     or has_table_privilege('anon', 'public.airtime_counters', 'select') then
+    raise exception 'anon darf Airtime lesen';
+  end if;
+  if has_table_privilege('authenticated', 'public.trail_airtime', 'insert')
+     or has_table_privilege('authenticated', 'public.trail_airtime', 'update') then
+    raise exception 'authenticated darf trail_airtime direkt schreiben';
+  end if;
+  if has_function_privilege('anon', 'public.set_trail_airtime(jsonb)', 'execute')
+     or has_function_privilege('anon', 'public.delete_my_airtime()', 'execute') then
+    raise exception 'anon darf die Airtime-Funktionen aufrufen';
+  end if;
+  raise notice 'grants_check airtime: ok';
+end $$;

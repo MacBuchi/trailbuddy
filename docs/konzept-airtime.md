@@ -1,14 +1,17 @@
 # Konzept: Trail-Werte und Airtime unter Buddys (#36)
 
-*Stand 2026-10-31, Entscheidungen des Betreibers vom 2026-10-16 in
+*Stand 2026-11-07, Entscheidungen des Betreibers vom 2026-10-16 in
 Abschnitt 11, Punkt 5 neu entschieden am 2026-10-30, Stoppies in Punkt 2
-dazu am 2026-10-31; Schritt 5 gebaut (0.149.0). Baut auf `konzept-trails.md`
+dazu am 2026-10-31; Schritt 5 gebaut (0.149.0), Schritt 6 gebaut
+(0.158.0). Baut auf `konzept-trails.md`
 Abschnitt 7 und 9 und auf den Kernanforderungen (`anforderungen.md`,
 A1–A3, A6, A10, A11) auf; das Aussehen kommt aus dem Navi-Entwurf
 (`docs/design/navi/`, Betreiber 2026-10-13: „Trail-Werte … kommen mit
 #36"). Die Schwellen bleiben vorläufig, bis Abschnitt 8 sie misst; Schritt 5
 (Werte in der App, lokal) ist trotzdem gebaut (Betreiber 2026-10-31) und
-richtet sich danach. Geteilt wird erst mit gemessenen Schwellen.*
+richtet sich danach. Geteilt wird seit Schritt 6 (Betreiber 2026-11-07)
+schon vor der Messung, aber nur über einen eigenen Schalter, ab Werk aus
+und nur unter dem Test-Schalter; die Schwellen bleiben vorläufig.*
 
 ## 0. Worum es geht, in fünf Sätzen
 
@@ -226,6 +229,32 @@ Monat"), über alle Trails:
   ein Trail hat (A1, A4).
 - **Duplikate zusammenführen** (#107) nimmt die Bestwerte mit: Der
   behaltene Trail bekommt den besseren Wert je Nutzer.
+
+**Gebaut in 0.158.0** (Schritt 6, Patch 029, `trail_airtime` und
+`airtime_counters`). Abweichungen und Ergänzungen zum Plan oben:
+
+- **Der Zähler trägt auch die Zahl der Sprünge** (`jumps`) — „Vielflieger"
+  vergleicht Sprünge, nicht Sekunden. Gezählt wird nur auf Trails, nach
+  derselben Regel wie „bekannt" im Zerlege-Blatt.
+- **Kein Auftrag im Ausgangskorb**: Die eigenen Fahrten SIND der Korb.
+  Der Abgleich rechnet beim Start, nach jeder Änderung an den Fahrten und
+  beim Einschalten alles neu und schickt alle Bestwerte in EINEM Aufruf
+  (`set_trail_airtime`, der Server behält das Bessere und prüft, dass der
+  Aufrufer den Trail sieht); ohne Netz geht es beim nächsten Anstoß mit.
+- **Eigener Schalter, ab Werk aus** („Airtime mit Buddys teilen", unter
+  dem Test-Schalter). **Wer nicht teilt, sieht auch nichts**: Die App lädt
+  Bestwerte und Zähler der Buddys nur bei eingeschaltetem eigenen
+  Schalter — ein Spiel unter denen, die mitspielen. **Ausschalten löscht**
+  beides auf dem Server (`delete_my_airtime`) und scheitert ohne Netz
+  sichtbar, statt still geteilt zu bleiben.
+- **Ein Trail, den ich in einen anderen geführt habe**, schreibt auf den
+  behaltenen; das Zusammenführen selbst nimmt den Bestwert per Trigger an
+  `trail_aliases` mit (nicht über eine neue Fassung von `merge_own_into`).
+- **Gleichstand** teilt den Platz; vorn steht, wer es früher schaffte
+  (Monat). Trailkönig erst, wo mindestens zwei Werte stehen, Vielflieger
+  erst ab zwei frischen Zählern.
+- Die Anzeige folgt dem Entwurf „Airtime unter Buddys", Variante A
+  (`docs/design/README.md` Abschnitt 16).
 
 Das ist eine neue Tabelle und eine neue Datenkategorie: Patch,
 `schema.sql`, Saat-Liste, `schema_check.sh`, Datenschutzerklärung in
@@ -483,6 +512,12 @@ wollen auch fertig werden"):
    die Bestwerte mit; Segelflieger, Vielflieger, Bodenpersonal,
    Trailkönig — Bruchpilot erst, wenn die Max-G-Plausibilisierung
    gemessen ist.
+   **Gebaut** (0.158.0, Betreiber 2026-11-07: vor den Abnahmefahrten, eigener
+   Schalter ab Werk aus): siehe Abschnitt 4, „Gebaut in 0.158.0". Zeile im
+   Trail-Blatt („AIRTIME UNTER BUDDYS", die ersten drei und der eigene
+   Platz), Rangzeile in „Trail geschafft", Zähler und Titel an jeder
+   Buddy-Zeile und eine eigene Karte oben im Buddys-Reiter. Kein Eintrag bei
+   den Neuheiten, solange nur der Test-Schalter dahin führt (wie Schritt 5).
 
 Schritte 5 und 6 sind sichtbare Funktionen: je ein Eintrag in
 `kFeatureHighlights` mit Vorführung. Schritte 3 und 4 betreffen nur das

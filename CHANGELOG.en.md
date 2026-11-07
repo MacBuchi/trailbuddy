@@ -2,6 +2,23 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## Airtime among buddies (test)
+
+*Version 0.158.0, 2026-11-07*
+
+- If you switched on the detection of wheelies, jumps and stoppies under
+  “About TrailBuddy”, you now find a new switch below it: “Share airtime
+  with buddies”. It is off by default.
+- Switched on, the app shares per trail your best airtime of one run and
+  your longest jump (with the month, no day) and your airtime of the last
+  30 days — no ride, no place, no max G. It is computed on the phone.
+- The trail sheet then shows “Airtime among buddies” with the top three
+  and your place, and “Trail done” your place for this run. Your buddies
+  show their airtime of the last 30 days and titles like glider pilot,
+  frequent flyer, trail king and ground crew. A game, not a record — and
+  you only see buddies who share too.
+- Turning it off deletes what you shared.
+
 ## Navigation: closer in, a longer bar
 
 *Version 0.157.1, 2026-11-07*

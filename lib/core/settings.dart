@@ -42,6 +42,12 @@ abstract interface class Settings {
 
   Future<void> setSensorLogEnabled(bool value);
 
+  /// Airtime mit Buddys teilen (#36 Schritt 6): Bestwert je Trail, Zähler
+  /// der letzten 30 Tage, Titel. Vorgabe: aus (Betreiber, 2026-11-07).
+  bool get airtimeShareEnabled;
+
+  Future<void> setAirtimeShareEnabled(bool value);
+
   /// Die eingeschalteten Orte-Gruppen der Karte (`PoiGroup.name`), oder
   /// null, solange nie etwas umgelegt wurde — dann gilt die Vorgabe.
   /// Leer heißt „alles aus", nicht „Vorgabe".
@@ -281,6 +287,14 @@ class PrefsSettings implements Settings {
 
   @override
   Future<void> setSensorLogEnabled(bool value) => _prefs.setBool(_sensorLogEnabledKey, value);
+
+  static const _airtimeShareEnabledKey = 'airtime_share_enabled';
+
+  @override
+  bool get airtimeShareEnabled => _prefs.getBool(_airtimeShareEnabledKey) ?? false;
+
+  @override
+  Future<void> setAirtimeShareEnabled(bool value) => _prefs.setBool(_airtimeShareEnabledKey, value);
 
   static const _poiGroupsKey = 'poi_groups';
 

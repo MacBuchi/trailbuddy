@@ -31,7 +31,7 @@
 <body>
   <p class="lang"><a href="datenschutz.html" hreflang="de" lang="de">Deutsch</a> · English</p>
   <h1>TrailBuddy — Privacy policy</h1>
-  <p class="lead">As of 6 November 2026. Applies to the Android app and the
+  <p class="lead">As of 7 November 2026. Applies to the Android app and the
     web app at macbuchi.github.io/trailbuddy/.</p>
 
   <div class="note">
@@ -410,6 +410,20 @@
     backup. Only if you pass them on under “My rides” with “Share sensor
     data” do they go, through your system's share menu, to the recipient
     you choose. The app needs no additional permission for this.</p>
+  <p><strong>Sharing airtime with buddies</strong> (Android only, off by
+    default; its own switch under “About TrailBuddy”, only with detection
+    switched on): if you turn it on, the app computes from your rides
+    <strong>on the device</strong> and stores only two things at Supabase:
+    per trail your <strong>best</strong> (the best airtime of one run and
+    your longest jump, in tenths of a second, with the month — no day) and
+    <strong>one row</strong> with the airtime and the number of jumps of the
+    last 30 days, the day of that calculation and your titles (“Glider
+    pilot”, “Ground crew”). No ride, no position, no place of a jump, no
+    landing force. Your direct buddies who see the trail themselves see the
+    best (not if you chose “Only me” there), your direct buddies see the
+    row. In turn you see the values of buddies who share too; rankings and
+    further titles are computed by your app from what you see. Turning it
+    off deletes both; “Delete” on a trail removes the best there.</p>
 
   <h2>Storage period</h2>
   <ul>
@@ -434,6 +448,9 @@
       automatically. They are deleted immediately for both sides when a
       request is declined or withdrawn or a buddy is removed; you can take
       back your own messages at any time.</li>
+    <li>Shared airtime: until you turn sharing off, delete your
+      contribution to the trail or delete the account. The app overwrites
+      the row of the last 30 days on every sync.</li>
     <li>Error reports: 90 days.</li>
     <li>Device identifier for notifications: until you turn them off,
       delete the account or Google declares the identifier invalid (for

@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'airtime_repository.dart';
 import 'app_config_repository.dart';
 import 'auth_repository.dart';
 import 'feedback_repository.dart';
@@ -23,6 +24,9 @@ final friendRepositoryProvider =
 
 final messageRepositoryProvider =
     Provider((ref) => MessageRepository(ref.watch(supabaseClientProvider)));
+
+final airtimeRepositoryProvider =
+    Provider((ref) => AirtimeRepository(ref.watch(supabaseClientProvider)));
 
 final feedbackRepositoryProvider =
     Provider((ref) => FeedbackRepository(ref.watch(supabaseClientProvider)));

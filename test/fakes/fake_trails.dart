@@ -417,6 +417,11 @@ class FakeTrailRepository implements TrailRepository {
 
   final notes = <TrailNote>[];
 
+  /// Für andere Fakes (Airtime, Patch 029): sieht der angemeldete Nutzer
+  /// den Trail, und teilt [userId] ihn mit ihm?
+  bool canSeeTrail(String trailId) => _canSeeTrail(trailId);
+  bool sharedBy(String userId, String trailId) => _visible(userId, trailId);
+
   /// Spiegelt `app_internal.can_see_trail`.
   bool _canSeeTrail(String trailId) =>
       recordings.any((r) => r.trailId == trailId && _visible(r.userId, trailId));

@@ -20,6 +20,7 @@ import '../features/help/map_tour.dart' show NavCoach;
 import '../features/map/map_screen.dart';
 import '../features/profile/profile_screen.dart';
 import '../features/offline_areas/areas_screen.dart';
+import '../features/rides/airtime_providers.dart' show AirtimeSyncTrigger;
 import '../features/rides/rides_screen.dart';
 import '../features/routing/nav_providers.dart' show navigationProvider;
 import '../features/trails/still_valid_screen.dart';
@@ -232,7 +233,7 @@ class AppShell extends ConsumerWidget {
       // Rest der Tastatur schrumpfen.
       // Der Ausgangskorb (#30) hört in der Hülle, nicht in einem Reiter
       // — der Browser startet nach dem Neuladen auf dem Reiter der URL.
-      body: OutboxTrigger(child: KeyboardInsetBelowBar(child: navigationShell)),
+      body: OutboxTrigger(child: AirtimeSyncTrigger(child: KeyboardInsetBelowBar(child: navigationShell))),
       // Im Bild-im-Bild (#232, 9.6) ist die App nur noch Karte: keine
       // Reiterleiste, die das kleine Fenster zur Hälfte füllte. Und
       // solange navigiert wird, ist die Karte Vollbild (#312, Design 13):
