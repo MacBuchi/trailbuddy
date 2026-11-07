@@ -17,6 +17,10 @@ PATTERNS = [
     (re.compile(r"@(web\.de|gmx\.\w+|gmail\.com|t-online\.de|icloud\.com)"), "private mail address"),
     (re.compile(r"\b\d{2}\.\d{4,},\s*\d{1,2}\.\d{4,}\b"), "coordinate pair"),
 ]
+# Addresses that MUST be public (imprint, privacy policy, store contact) —
+# the operator's app contact since 2026-11-07. Only these exact addresses;
+# any other address on a private domain still fails.
+PUBLIC_ADDRESSES = ("macbuchi.apps@gmail.com",)
 FORBIDDEN_EXT = (".gpx", ".zip", ".kml", ".fit")
 ALLOW_SELF = os.path.relpath(__file__)
 
@@ -36,6 +40,8 @@ def main() -> int:
         except (UnicodeDecodeError, OSError):
             continue
         for n, line in enumerate(text.splitlines(), 1):
+            for addr in PUBLIC_ADDRESSES:
+                line = line.replace(addr, "")
             for pat, why in PATTERNS:
                 if pat.search(line):
                     print(f"{f}:{n}: {why}")

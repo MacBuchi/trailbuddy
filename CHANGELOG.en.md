@@ -2,6 +2,13 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## New contact address
+
+*Version 0.159.1, 2026-11-07*
+
+- The imprint, the privacy policy and the account deletion page now
+  name macbuchi.apps@gmail.com as the contact.
+
 ## Loaded on the way stays
 
 *Version 0.159.0, 2026-11-07*
