@@ -10,6 +10,11 @@
 #   tool/garmin_build.sh --run           im Simulator starten
 #   tool/garmin_build.sh --demo          im Simulator, ohne GPS: spielt die
 #                                        Zustände der Ansicht durch
+#   tool/garmin_build.sh --store         Store-Paket build/garmin/trailbuddy.iq
+#                                        für alle Uhren im Manifest: ohne
+#                                        Debug-Infos, ohne Testroute
+#   tool/garmin_build.sh --store --run   … und den Store-Zweig (ohne Testroute)
+#                                        im Simulator zeigen (GARMIN_DEVICE)
 #
 # Gebaut wird aus einer Kopie unter build/garmin/src — so ersetzt eine
 # eigene Route nie die Testroute im Repo. Auf die Uhr: die .prg per USB
@@ -31,6 +36,7 @@ DEVICE="${GARMIN_DEVICE:-fenix5}"
 OUT="$ROOT/build/garmin"
 
 mode=build
+store=0
 route_args=()
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -39,7 +45,8 @@ while [ $# -gt 0 ]; do
     --test) mode=test; shift ;;
     --run) mode=run; shift ;;
     --demo) mode=demo; shift ;;
-    -h|--help) sed -n '2,22p' "$0"; exit 0 ;;
+    --store) store=1; shift ;;
+    -h|--help) sed -n '2,27p' "$0"; exit 0 ;;
     *) echo "Unbekannt: $1" >&2; exit 2 ;;
   esac
 done
@@ -67,20 +74,47 @@ cat > "$OUT/src/resources/strings/build.xml" <<STAMP
     <string id="BuildStamp">$stamp</string>
 </strings>
 STAMP
+if [ "$store" = 1 ]; then
+  if [ "$mode" = test ] || [ "$mode" = demo ] || [ ${#route_args[@]} -gt 0 ]; then
+    echo "--store geht nur allein oder mit --run." >&2
+    exit 2
+  fi
+  # Ohne Testroute (garmin/CLAUDE.md, „Die Testroute"): Die Ressource fehlt
+  # im Paket, der Zweig (:testroute) auch — ohne Route vom Handy zeigt die
+  # Uhr den Hinweis auf die App.
+  rm -rf "$OUT/src/resources/route"
+fi
 if [ ${#route_args[@]} -gt 0 ]; then
   python3 "$ROOT/tool/garmin_route.py" ${route_args[@]+"${route_args[@]}"} --out "$OUT/src/resources/route/route.json"
 fi
 
 prg="$OUT/trailbuddy.prg"
 extra=()
-if [ "$mode" = demo ]; then
-  prg="$OUT/trailbuddy-demo.prg"
-  echo "base.excludeAnnotations = nodemo" >> "$OUT/src/monkey.jungle"
-fi
+# Welche Zweige wegfallen (die letzte Zeile in monkey.jungle gilt):
+# Vorführmodus (demo/nodemo), Testroute oder Store-Hinweis
+# (testroute/store), Senden über Garmin Connect oder stumm im Simulator
+# (nosim/sim — sonst öffnet der Simulator ohne ADB bei jedem Lauf den
+# Dialog „There is no data connection").
+excl="demo"
+if [ "$mode" = demo ]; then excl="nodemo"; prg="$OUT/trailbuddy-demo.prg"; fi
+if [ "$store" = 1 ]; then excl="$excl;testroute"; else excl="$excl;store"; fi
+if [ "$mode" = build ]; then excl="$excl;sim"; else excl="$excl;nosim"; fi
+echo "base.excludeAnnotations = $excl" >> "$OUT/src/monkey.jungle"
+
 if [ "$mode" = test ]; then
   prg="$OUT/trailbuddy-test.prg"
   extra=(--unit-test)
 fi
+if [ "$store" = 1 ] && [ "$mode" = build ]; then
+  # Das Paket für den Connect-IQ-Store: alle Uhren aus dem Manifest, ohne
+  # Debug-Infos. Signiert mit DEMSELBEN Schlüssel wie jede spätere Fassung —
+  # mit einem anderen nimmt der Store kein Update an.
+  iq="$OUT/trailbuddy.iq"
+  "$SDK/bin/monkeyc" -e -r -O 2 -f "$OUT/src/monkey.jungle" -o "$iq" -y "$KEY" -w
+  echo "gebaut: ${iq#"$ROOT"/} (Stempel $stamp)"
+  exit 0
+fi
+if [ "$store" = 1 ]; then prg="$OUT/trailbuddy-store.prg"; extra=(-r); fi
 "$SDK/bin/monkeyc" -d "$DEVICE" -f "$OUT/src/monkey.jungle" -o "$prg" -y "$KEY" -w ${extra[@]+"${extra[@]}"}
 echo "gebaut: ${prg#"$ROOT"/}"
 

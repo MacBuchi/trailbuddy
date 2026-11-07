@@ -12,8 +12,10 @@ Garmin-Aktivität, kein Netz, keine Abbiegehinweise.
   `--points N` setzt eine erfundene Testroute mit N Punkten ein,
   `--gpx DATEI` eine eigene (Koordinaten — bleibt unter `build/`),
   `--test` fährt die Unit-Tests im Simulator, `--demo` den Vorführmodus,
-  `--run` die App im Simulator. Auf die Uhr: die `.prg` per USB nach
-  `GARMIN/APPS/`. CI baut die Uhr-App nicht (SDK nur mit Garmin-Anmeldung);
+  `--run` die App im Simulator, `--store` das Store-Paket
+  `build/garmin/trailbuddy.iq` (alle Uhren des Manifests, `-r`, ohne
+  Testroute; `--store --run` zeigt diesen Zweig im Simulator). Auf die
+  Uhr: die `.prg` per USB nach `GARMIN/APPS/`. CI baut die Uhr-App nicht (SDK nur mit Garmin-Anmeldung);
   CI prüft `tool/garmin_route.py --self-test` und die Syntax des Skripts.
 - **Watchdog: 120 000 Bytecode-Schritte je Ereignis** (`simulator.json`
   der fēnix 5, `watchdogCount`). Ohne Gegenmaßnahme trafen ihn bei 1000
@@ -184,3 +186,25 @@ Garmin-Aktivität, kein Netz, keine Abbiegehinweise.
   der Zeile), erst kleinere Schrift, dann „…".
 - **Entwurf** im Designer des Betreibers (privat, Link im PR #449-G1);
   das Aussehen steht in `docs/design/README.md` Abschnitt 15.
+- **Drei Annotationspaare, eine Zeile** (`tool/garmin_build.sh`, die
+  letzte `base.excludeAnnotations` in der Jungle-Kopie gilt):
+  `demo`/`nodemo` (Vorführmodus), `testroute`/`store` (Testroute oder
+  Hinweis „Navigation starten" ohne Route, `fallbackRoute`), `nosim`/`sim`
+  (Senden über Garmin Connect oder stumm). `monkey.jungle` im Repo ist
+  der Bau für die Uhr: `demo;store;sim`.
+- **Kein `transmit` im Simulator** (`send` in `TrailBuddyApp`,
+  Betreiber 2026-11-07): Der Simulator meldet ein verbundenes Handy, und
+  ohne ADB öffnete der erste `transmit` bei jedem `--test`/`--demo`/`--run`
+  den Dialog „There is no data connection", der den Lauf anhielt. Für
+  Simulator-Bauten ist `send` leer. Gegenprobe: vorher 21-mal „transmit
+  queue full" im Testlauf, danach 0.
+- **Store-Zweig ohne Route** (`_idle`): kein GPS (der Platzhalter läge
+  „abseits" und vibrierte), `onPosition`/`phoneFix` zählen nicht; eine
+  Route vom Handy löst ihn über `swapRoute`/`loadStored` ab. Der
+  Schlüssel des Store-Pakets bleibt für immer derselbe — mit einem
+  anderen nimmt der Store kein Update an (Sicherung: `docs/garmin-store.md`).
+- **Unit-Tests auf allen Uhren des Manifests**: je Uhr den Simulator neu
+  starten (nach einem Gerätewechsel schrieb `monkeydo` sonst nichts) und
+  `GARMIN_DEVICE=<id> tool/garmin_build.sh --test`. Bildschirmfotos nur
+  vom Fenster des Simulators (`screencapture -R` mit dessen Lage, vorher
+  nach vorn holen), nie vom ganzen Schirm.

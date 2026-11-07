@@ -906,7 +906,10 @@ als Spur in `555555`, darauf zeichnet es sich in Lime `AAFF55` ein wie
 die Spur — MIP kennt kein Ausblenden, so steht nie ein halb
 ausgeblendetes Zeichen. Darunter klein in Grau „Lade Route", „Route
 kommt · 1/2" oder „Lade Route 40 %". Beendet: das ganze Zeichen in Lime
-ohne Spur, darunter „Navigation beendet", bis die App zugeht. Die Punkte entlang der Mittellinie
+ohne Spur, darunter „Navigation beendet", bis die App zugeht. Ohne Route
+(nur im Store-Paket, das keine Testroute hat): ebenso das ganze Zeichen,
+darunter zweizeilig „Navigation starten / in der TrailBuddy-App", höher
+gesetzt (y 150), damit der Kreis die zweite Zeile nicht anschneidet. Die Punkte entlang der Mittellinie
 (volle Kreise, kein Polygon) schreibt `tool/brand_icons.py` nach
 `garmin/resources/logo/`. Angekommen: eine schwarze
 Zusammenfassung mit den Schildern der befahrenen Trails. Die Farben sind je

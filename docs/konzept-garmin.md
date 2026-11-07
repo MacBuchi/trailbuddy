@@ -391,13 +391,25 @@ offene App (`airtimeLiveProvider`); im Hintergrund kommt nichts nach.
    der Satz zur Garmin-Connect-App in `web/datenschutz.html` und
    `web/privacy.html` und die Paket-Sichtbarkeit in `docs/play-console.md`
    (A6).
+   **Entscheidung (Betreiber, 2026-11-07):** erst als **Beta-App**, die
+   nur das Entwicklerkonto sieht, installiert über die Connect-IQ-App wie
+   bei echten Nutzern; danach dasselbe Paket öffentlich. Für die Uhren
+   der **240er-Familie** (240 × 240 px MIP, fünf Tasten: fēnix 5, 5X,
+   5 Plus, 5X Plus, 5S Plus, 6S, Forerunner 935, 945, 945 LTE), je mit
+   den Unit-Tests im Simulator; am Gerät abgenommen ist nur die fēnix 5.
+   Das Store-Paket (`tool/garmin_build.sh --store`) hat **keine
+   Testroute**: Ohne Route vom Handy zeigt die Uhr das Logo und
+   „Navigation starten in der TrailBuddy-App", ohne GPS. Ausfüllhilfe
+   und Ablauf: `docs/garmin-store.md`.
 
 ## 6. Code und Build
 
 - `garmin/`: `manifest.xml`, `monkey.jungle`, `source/`, `resources/`
   mit Texten auf Deutsch und Englisch (A14), Geräte in der
   Produktliste des Manifests — zuerst `fenix5`, weitere Uhren erst nach
-  einem Test im Simulator.
+  einem Test im Simulator (seit 2026-11-07 die 240er-Familie, Abschnitt
+  5). Andere Größen (fēnix 5S mit 218 px, fēnix 6/7 mit 260 px) brauchen
+  erst ein Layout, das aus der Bildschirmgröße rechnet.
 - **Bauen** lokal mit dem Connect-IQ-SDK (`monkeyc`), dazu ein Skript
   `tool/garmin_build.sh`. Ob CI die Uhr-App mitbauen kann, hängt daran,
   ob sich das SDK ohne Garmin-Anmeldung laden lässt — offen, bis es
@@ -471,7 +483,8 @@ Aus der Gerätedatei des SDK 9.3.0 und der Uhr selbst:
    größter Wheelie-Winkel —, die Uhr zeigt sie auf „Fahrt" und in der
    Zusammenfassung. Nur Zahlen, keine Spur; bleibt auf Handy und Uhr
    (A3). Die Uhr misst dabei weiter nichts (Entscheidung 1).
-3. **G3 — Abnahme am Gerät** (📱) und die Entscheidung zum Store.
+3. **G3 — Abnahme am Gerät** (📱) und die Entscheidung zum Store
+   (gefallen 2026-11-07: Beta, 240er-Familie, Abschnitt 5).
 
 ## 10. Abgleich mit den Kernanforderungen
 

@@ -11,7 +11,9 @@ import Toybox.WatchUi;
 
 //! TrailBuddy auf der Uhr (docs/konzept-garmin.md). Die Route kommt vom
 //! Handy (G2, `PhoneRoute`) und liegt danach im Speicher der Uhr; ohne
-//! eine gespeicherte die erfundene Testroute aus der Ressource (G1).
+//! eine gespeicherte im Entwicklerbau die erfundene Testroute aus der
+//! Ressource (G1), im Store-Bau der Hinweis, die Navigation in der App zu
+//! starten ([fallbackRoute], `tool/garmin_build.sh --store`).
 //! Eigenes GPS, keine Garmin-Aktivität (kein ActivityRecording, Konzept
 //! 4), kein Netz — an das Handy nur „hallo" (`hi`, mit der Kennung der
 //! gespeicherten Route), „gespeichert" (`ok`) und „ging nicht" (`x`).
@@ -71,6 +73,9 @@ class TrailBuddyApp extends Application.AppBase {
     static const FRAME_MS = 100;
     //! Die Testroute ließ sich nicht dekodieren (dann nicht immer wieder).
     hidden var _testFailed as Boolean = false;
+    //! Store-Bau ohne Route: Die Ansicht zeigt den Hinweis, kein GPS, bis
+    //! eine Route vom Handy kommt ([fallbackRoute]).
+    hidden var _idle as Boolean = false;
     //! Die Uhr hat eigenes GPS gehabt: Ab da zählt die Position des Handys
     //! nicht mehr (`p`, Konzept 2).
     hidden var _ownFix as Boolean = false;
@@ -100,6 +105,7 @@ class TrailBuddyApp extends Application.AppBase {
         _stats = new RideStats(r.secFrom.size());
         _view = new NavView(r, _stats);
         if (_wait != 0) { _view.setWaiting(str(Rez.Strings.Loading)); }
+        if (_idle) { _view.setIdle(str(Rez.Strings.NoRoute)); }
     }
 
     //! Die gespeicherte Route vom Handy, sonst die Testroute. Vorher (in
@@ -108,13 +114,14 @@ class TrailBuddyApp extends Application.AppBase {
     //! brach das Laden der gespeicherten beim letzten Mal ab (Speicher,
     //! Watchdog), steht „loading" noch, dann ist sie sofort weg.
     hidden function storedRoute() as NavRoute {
+        _idle = false;
         var r = PhoneRoute.route();
         if (r != null) {
             PhoneRoute.store("loading", true);
             CrashGuard.risk(r.id);
             return r;
         }
-        return testRoute();
+        return fallbackRoute();
     }
 
     //! Eine Route aus zwei Punkten, solange keine geladen ist (Warten aufs
@@ -127,8 +134,19 @@ class TrailBuddyApp extends Application.AppBase {
         return WatchUi.loadResource(id) as String;
     }
 
-    hidden function testRoute() as NavRoute {
+    //! Ohne Route vom Handy, im Entwicklerbau: die erfundene Testroute.
+    (:testroute)
+    hidden function fallbackRoute() as NavRoute {
         return NavRoute.fromDict(WatchUi.loadResource(Rez.JsonData.Route) as Dictionary);
+    }
+
+    //! Ohne Route vom Handy, im Store-Bau: keine erfundene Runde um die
+    //! eigene Position, sondern der Hinweis auf die App. Die Testroute
+    //! liegt gar nicht im Paket (`tool/garmin_build.sh --store`).
+    (:store)
+    hidden function fallbackRoute() as NavRoute {
+        _idle = true;
+        return placeholder();
     }
 
     //! Route, Verfolgung, Zahlen und Ansicht für [r]; die Bestwerte bleiben.
@@ -138,6 +156,7 @@ class TrailBuddyApp extends Application.AppBase {
         _stats = new RideStats(r.secFrom.size());
         _stats.bests = _bests;
         _view = new NavView(r, _stats);
+        if (_idle) { _view.setIdle(str(Rez.Strings.NoRoute)); }
     }
 
     function onStart(state as Dictionary?) as Void {
@@ -172,8 +191,21 @@ class TrailBuddyApp extends Application.AppBase {
     //! Ein verlorenes „hallo" holt das Handy beim Verbinden mit `q` nach.
     hidden function toPhone(msg as Dictionary) as Void {
         if (!System.getDeviceSettings().phoneConnected) { return; }
-        Communications.transmit(msg, null, new PhoneAck());
+        send(msg, new PhoneAck());
     }
+
+    //! Senden ans Handy. Auf der Uhr und im Store-Paket über Garmin Connect.
+    (:nosim)
+    hidden function send(msg as Dictionary, ack as Communications.ConnectionListener) as Void {
+        Communications.transmit(msg, null, ack);
+    }
+
+    //! Im Simulator (`--test`, `--demo`, `--run`) nichts: Er meldet ein
+    //! verbundenes Handy, und ohne ADB öffnete der erste `transmit` bei
+    //! jedem Lauf den Dialog „There is no data connection" (Betreiber
+    //! 2026-11-07). Die Tests rufen das Senden nicht auf.
+    (:sim)
+    hidden function send(msg as Dictionary, ack as Communications.ConnectionListener) as Void {}
 
     hidden function startLoader() as Void {
         var old = _loader;
@@ -213,7 +245,7 @@ class TrailBuddyApp extends Application.AppBase {
                 toPhone({"t" => "x", "id" => id, "c" => "bad"});
             }
             CrashGuard.calm();
-            setRoute(testRoute());
+            setRoute(fallbackRoute());
             WatchUi.switchToView(_view, new NavDelegate(_view), WatchUi.SLIDE_IMMEDIATE);
             startLoader();
             return;
@@ -222,6 +254,9 @@ class TrailBuddyApp extends Application.AppBase {
         var c = new Timer.Timer();
         _calm = c;
         c.start(method(:calmDown), CrashGuard.CALM_MS, false);
+        // Ohne Route kein GPS: Es gäbe nichts zu verfolgen, und der
+        // Platzhalter läge „abseits".
+        if (_idle) { return; }
         if (self has :startDemo) {
             startDemo();
             return;
@@ -249,10 +284,11 @@ class TrailBuddyApp extends Application.AppBase {
         _view.setWaiting(null);
     }
 
-    //! Die gespeicherte Route laden (oder die Testroute) und dekodieren.
+    //! Die gespeicherte Route laden (sonst [fallbackRoute]) und dekodieren.
     hidden function loadStored() as Void {
+        _idle = false;
         var r = PhoneRoute.route();
-        if (r == null) { r = testRoute(); } else {
+        if (r == null) { r = fallbackRoute(); } else {
             PhoneRoute.store("loading", true);
             CrashGuard.risk(r.id);
         }
@@ -285,7 +321,7 @@ class TrailBuddyApp extends Application.AppBase {
         if (_wait != 0 || !System.getDeviceSettings().phoneConnected || !id.equals(PhoneRoute.currentId())) {
             System.exit();
         }
-        Communications.transmit({"t" => "e", "id" => id}, null, new EndAck());
+        send({"t" => "e", "id" => id}, new EndAck());
         ended(END_WAIT_MS);
     }
 
@@ -423,6 +459,7 @@ class TrailBuddyApp extends Application.AppBase {
         var c = _calm;
         if (c != null) { c.stop(); _calm = null; }
         Position.enableLocationEvents(Position.LOCATION_DISABLE, method(:onPosition));
+        _idle = false;
         setRoute(placeholder());
         WatchUi.switchToView(_view, new NavDelegate(_view), WatchUi.SLIDE_IMMEDIATE);
         loadStored();
@@ -433,7 +470,7 @@ class TrailBuddyApp extends Application.AppBase {
     //! zum Ziel statt Strichen. Kein Vibrieren (das Handy kann ein paar
     //! Sekunden alt sein), keine Zahlen der Fahrt; nichts wird gespeichert.
     function phoneFix(la as Object?, lo as Object?) as Void {
-        if (_ownFix || _wait != 0 || !_route.isReady() || !(la instanceof Number) || !(lo instanceof Number)) { return; }
+        if (_ownFix || _idle || _wait != 0 || !_route.isReady() || !(la instanceof Number) || !(lo instanceof Number)) { return; }
         if (la < -9000000 || la > 9000000 || lo < -18000000 || lo > 18000000) { return; }
         var lat = la.toDouble() / 100000.0d;
         var lon = lo.toDouble() / 100000.0d;
@@ -455,7 +492,7 @@ class TrailBuddyApp extends Application.AppBase {
     }
 
     function onPosition(info as Position.Info) as Void {
-        if (_wait != 0 || !_route.isReady()) { return; }
+        if (_idle || _wait != 0 || !_route.isReady()) { return; }
         var loc = info.position;
         if (loc == null || info.accuracy < Position.QUALITY_USABLE) {
             return;
