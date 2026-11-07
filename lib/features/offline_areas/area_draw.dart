@@ -22,6 +22,7 @@ import '../map/map_view/map_view.dart';
 import 'area_overlay.dart' show mergeTileRects, offlineOverlayBox, rectRing, tileOutline;
 import 'area_plan.dart';
 import 'area_providers.dart' show storedAreasProvider;
+import 'area_store.dart' show visibleAreas;
 
 /// Größer als so viele Kacheln (Rahmen des Strichs, bei Zoom 13) wird
 /// ein Strich nicht ausgewertet: ein Kreis um halb Europa ist ein
@@ -161,7 +162,9 @@ class AreaDraft {
 /// Die ganze Region (`RegionShape`) steht NICHT darin — sie wären hundert-
 /// tausende Schlüssel; gegen sie rechnet [storedRegionBoundsProvider].
 final storedTileKeysProvider = Provider<Set<int>>((ref) {
-  final areas = ref.watch(storedAreasProvider).valueOrNull ?? const [];
+  // Ohne die Halter „Unterwegs geladen" (#478): Was sie halten, ist kein
+  // Bereich — der Entwurf darf es dazunehmen.
+  final areas = visibleAreas(ref.watch(storedAreasProvider).valueOrNull ?? const []);
   return {
     for (final a in areas)
       if (a.shape is! RegionShape) ...a.shape.keysAt(kAreaShapeZoom),
@@ -172,7 +175,7 @@ final storedTileKeysProvider = Provider<Set<int>>((ref) {
 /// nicht dazu — es liegt schon. Der Radierer lässt sie aus; eine Region
 /// geht nur im Ganzen (in „Meine Bereiche").
 final storedRegionBoundsProvider = Provider<List<AreaBounds>>((ref) {
-  final areas = ref.watch(storedAreasProvider).valueOrNull ?? const [];
+  final areas = visibleAreas(ref.watch(storedAreasProvider).valueOrNull ?? const []);
   return [for (final a in areas) if (a.shape case final RegionShape r) r.bounds];
 });
 

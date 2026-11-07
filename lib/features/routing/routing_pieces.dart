@@ -39,9 +39,9 @@ class PieceLookup {
   PieceLookup.none(this._session)
       : _store = null,
         fresh = const {},
-        _targets = const {};
+        _targets = {};
 
-  final TileStore? _store;
+  TileStore? _store;
   final Expando<Uint8List> _session;
 
   /// Die frischen Stücke aus dem Speicher, je Kachel.
@@ -80,6 +80,16 @@ class PieceLookup {
       }
     }
     return (roads: bake, pieces: pieces);
+  }
+
+  /// Kacheln, die erst diese Planung in den Speicher gelegt hat
+  /// („Unterwegs geladen", #478): Ihr Stück gehört jetzt dorthin, mit dem
+  /// Bau, den [findPieces] beim nächsten Mal liest — nicht mehr an die
+  /// Bytes der Sitzung. Vor [keep] zu rufen.
+  void adopt(TileStore store, Map<(int, int), ({String region, String build})> targets) {
+    if (targets.isEmpty) return;
+    _store ??= store;
+    _targets.addAll(targets);
   }
 
   /// Legt die Stücke aus [report] ab: in den Speicher, wo die Kachel aus

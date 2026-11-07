@@ -100,7 +100,8 @@ class StoredAreasNotifier extends AsyncNotifier<List<StoredArea>> {
 
   Future<void> _dropOrphanOverviews() async {
     final store = ref.read(areaStoreProvider);
-    final regions = {for (final a in await store.list()) a.region};
+    // Ein Halter „Unterwegs geladen" (#478) hält keine Übersicht.
+    final regions = {for (final a in visibleAreas(await store.list())) a.region};
     for (final o in await store.overviews()) {
       if (!regions.contains(o.region)) await store.deleteOverview(o.region);
     }
@@ -109,7 +110,8 @@ class StoredAreasNotifier extends AsyncNotifier<List<StoredArea>> {
   /// Was das Entfernen von [removes] (Kacheln bei Zoom 13) aus den
   /// gespeicherten Bereichen macht — lokal gemessen, ohne Netz.
   Future<TrimPlan> planTrim(Set<int> removes) async =>
-      AreaTrimmer(ref.read(areaStoreProvider), ref.read(tileStoreProvider)).plan(await future, removes);
+      // Der Radierer sieht die Halter nicht (#478) — ihre Kacheln bleiben.
+      AreaTrimmer(ref.read(areaStoreProvider), ref.read(tileStoreProvider)).plan(visibleAreas(await future), removes);
 
   Future<void> applyTrim(TrimPlan plan) async {
     await AreaTrimmer(ref.read(areaStoreProvider), ref.read(tileStoreProvider)).apply(plan);
@@ -184,8 +186,10 @@ class RegionTileAge {
 }
 
 final regionTileAgeProvider = FutureProvider.family<RegionTileAge, MapRegion>((ref, region) async {
+  // Ohne den Halter „Unterwegs geladen" (#478): Seine Kacheln werden beim
+  // Nutzen neu geholt, nie mit der Region.
   final areas = [
-    for (final a in await ref.watch(storedAreasProvider.future))
+    for (final a in visibleAreas(await ref.watch(storedAreasProvider.future)))
       if (a.region == region.id) a,
   ];
   final tiles = ref.watch(tileStoreProvider);

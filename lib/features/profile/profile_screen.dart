@@ -28,6 +28,7 @@ import '../help/tab_tours.dart' show ProfileCoach;
 import '../highlights/highlight_sheet.dart' show unseenHighlightCountProvider;
 import '../friends/friend_providers.dart';
 import '../offline_areas/area_providers.dart' show storedAreasProvider;
+import '../offline_areas/area_store.dart' show visibleAreas;
 import '../offline_areas/height_tiles.dart' show kHeightsAttribution;
 import '../rides/airtime_providers.dart' show airtimeShareProvider;
 import '../rides/ride_providers.dart' show rideRecordingAvailableProvider, ridesProvider, sensorLogAvailableProvider, sensorLogProvider;
@@ -135,7 +136,7 @@ class ProfileScreen extends ConsumerWidget {
             id: 'areas',
             icon: Icons.map_outlined,
             title: l.profileAreasTitle,
-            value: switch (areas?.length) {
+            value: switch (areas == null ? null : visibleAreas(areas).length) {
               null || 0 => l.profileAreasValue,
               final n => l.profileAreasValueCount(n),
             },

@@ -664,8 +664,11 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     Region" noch beim Laden; bis dahin „0 hm bergauf", das Profil
     darunter voller Berge, weil es jede Kachel fragt, und die Suche
     rechnete flach), 10 s Frist je
-    Schritt, ein Netzfehler beendet nur das Nachladen; nur für die
-    Sitzung im Speicher (`OnlineTileCache`, Behalten ist #155);
+    Schritt, ein Netzfehler beendet nur das Nachladen; seit 0.159.0
+    auf dem Gerät behalten (#478, „Unterwegs geladen",
+    `lib/features/offline_areas/CLAUDE.md`; der Sitzungsspeicher
+    `OnlineTileCache` bleibt als Rückfall), die Zeile `graph.online`
+    nennt die Anfragen je Planung;
     abschaltbar über `LoopPrefs.fillOnline` („Fehlende Wege online
     ergänzen", gilt auch für den Weg zum Trail); seit 0.104.0 aus der
     Region, deren Rahmen die Planung schneidet (#220,
@@ -1087,8 +1090,11 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
   - **„Bergab" überlebt das Runden** (`_cmLoss`, siehe „Bergab ist eine
     Stufe" oben); Anstieg und Abstieg in Zentimetern, die Richtung des
     Vergleichs bleibt — in beide Richtungen.
-  - **Gespeichert wird nur, was aus dem Speicher kam.** Online ergänzte
-    Kacheln (#187) backen nur für die Sitzung: `routingPieceSessionProvider`
+  - **Gespeichert wird nur, was aus dem Speicher kam.** Seit 0.159.0
+    (#478) kommen online ergänzte Kacheln in den Speicher, und
+    `PieceLookup.adopt` gibt ihrem Stück dort einen Platz; nur wenn das
+    Ablegen scheitert, gilt der alte Weg — online ergänzte Kacheln (#187)
+    backen nur für die Sitzung: `routingPieceSessionProvider`
     ist ein `Expando` an den Bytes aus `OnlineTileCache` (dieselbe Kachel
     kommt dort als dasselbe Objekt zurück). Ein Stück, das drüben nicht
     lesbar ist, steht in `GraphReport.broken`, `keep` nimmt es aus dem

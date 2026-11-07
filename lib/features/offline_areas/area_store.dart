@@ -55,7 +55,20 @@ class StoredArea {
     this.region = kDachRegionId,
     this.format = 1,
     this.complete = true,
+    this.keptUse = const {},
   }) : shape = shape ?? RectShape(bounds);
+
+  /// Der Halter „Unterwegs geladen" einer Region (#478, `kept_tiles.dart`):
+  /// hält die Kacheln, die der Planer online ergänzt hat. Kein Bereich,
+  /// den man sieht — „Meine Bereiche" zeigt ihn als eine Zeile je Region,
+  /// Karte, Werkzeugleiste und „Aktualisieren" lassen ihn aus.
+  bool get kept => id.startsWith(kKeptAreaPrefix);
+
+  /// Nur am Halter ([kept]): seine Kacheln (Schlüssel bei
+  /// [kAreaShapeZoom]) mit ihren Bytes über alle Ebenen, in der
+  /// Reihenfolge der letzten Nutzung — die erste ist am längsten
+  /// ungenutzt und fällt zuerst, wenn er über [kKeptMaxBytes] wächst.
+  final Map<int, int> keptUse;
 
   /// 2 ([kStoredAreaFormat]): ein Verweis auf den Kachelspeicher (seit
   /// 0.106.0). 1: ein Bereich mit eigenen Archiven, der noch übernommen
@@ -146,6 +159,7 @@ class StoredArea {
     String? waysBuild,
     int? format,
     bool? complete,
+    Map<int, int>? keptUse,
   }) =>
       StoredArea(
         id: id,
@@ -169,6 +183,7 @@ class StoredArea {
         region: region,
         format: format ?? this.format,
         complete: complete ?? this.complete,
+        keptUse: keptUse ?? this.keptUse,
       );
 
   Map<String, dynamic> toJson() => {
@@ -193,6 +208,7 @@ class StoredArea {
         'region': region,
         'format': format,
         'complete': complete,
+        if (keptUse.isNotEmpty) 'kept_use': [for (final e in keptUse.entries) [e.key, e.value]],
       };
 
   factory StoredArea.fromJson(Map<String, dynamic> j) => StoredArea(
@@ -217,8 +233,23 @@ class StoredArea {
         region: j['region'] as String? ?? kDachRegionId,
         format: j['format'] as int? ?? 1,
         complete: j['complete'] as bool? ?? true,
+        keptUse: {
+          for (final e in j['kept_use'] as List? ?? const [])
+            (e as List)[0] as int: e[1] as int,
+        },
       );
 }
+
+/// Die Kennung des Halters einer Region beginnt so ([StoredArea.kept]).
+const kKeptAreaPrefix = 'kept-';
+
+/// So groß wird der Halter einer Region höchstens (#478, Betreiber
+/// 2026-11-07: „z. B. 50 MB"); darüber fällt, was am längsten nicht
+/// gebraucht wurde. Bereiche werden nie verdrängt.
+const kKeptMaxBytes = 50 * 1000 * 1000;
+
+/// Die Bereiche, die man sieht — ohne die Halter „Unterwegs geladen".
+List<StoredArea> visibleAreas(Iterable<StoredArea> areas) => [for (final a in areas) if (!a.kept) a];
 
 /// Das Format eines Index-Eintrags, den 0.106.0 schreibt.
 const kStoredAreaFormat = 2;

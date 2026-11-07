@@ -2,6 +2,21 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## Loaded on the way stays
+
+*Version 0.159.0, 2026-11-07*
+
+- What the planner fills in from the map host with reception now stays
+  on the device — before, it was gone when the app closed. Plan in the
+  same spot again and no network is needed; so your offline network
+  grows bit by bit where you ride.
+- "My areas" shows one line per region for it, "Loaded on the way",
+  with its size and "Clear". It is not an area: no outline on the map,
+  and "Update" does not fetch it again.
+- When there is a newer map version, the planner fetches only the
+  pieces it needs right then, the next time you plan with reception.
+  Above 50 MB per region, what you have not needed the longest goes.
+
 ## Planner: a route is called a route
 
 *Version 0.158.1, 2026-11-07*

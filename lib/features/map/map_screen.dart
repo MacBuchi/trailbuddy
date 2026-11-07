@@ -1361,7 +1361,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     // Kamera-Stillstand eine Rechnung, die niemand sieht.
     final overlayOn = ref.watch(offlineOverlayProvider);
     final overlayAreas =
-        overlayOn ? ref.watch(storedAreasProvider).valueOrNull ?? const <StoredArea>[] : null;
+        overlayOn ? visibleAreas(ref.watch(storedAreasProvider).valueOrNull ?? const <StoredArea>[]) : null;
     // Um den Bestand ein durchgehender Rand in der Textfarbe des Modus
     // (Design Turn 2: dunkel hell, hell #131A16).
     final coverage = overlayAreas != null && camera != null
