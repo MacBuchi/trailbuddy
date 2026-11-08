@@ -23,6 +23,7 @@ import '../rides/airtime_widgets.dart' show BuddyAirtimeLine, MyAirtimeCard;
 import 'buddy_alias.dart';
 import 'buddy_alias_dialog.dart';
 import 'connect_summary.dart';
+import 'invite_qr.dart';
 import 'friend_providers.dart';
 import 'message_providers.dart';
 
@@ -94,10 +95,24 @@ class _FriendsScreenState extends ConsumerState<FriendsScreen> {
     }
   }
 
+  /// Einladung zeigen (#496): QR für das Telefon nebenan, Text für alles
+  /// andere. Der QR nennt nur die Invite-Adresse — welche Datei dahinter
+  /// liegt, entscheidet `web/install.html`, damit kein QR eine Version trägt.
+  Future<void> _showInvite() async {
+    // Das Profil wartet noch, wenn jemand gleich nach dem Start tippt: ohne
+    // Await stünde der QR ohne Namen, und der andere suchte einen Buddys-Namen,
+    // der nie genannt wurde.
+    final profile = await ref.read(myProfileProvider.future);
+    if (!mounted) return;
+    await showInviteDialog(context, username: profile?.username, shareText: _invite);
+  }
+
   /// Einladung teilen; wo das System-Teilen nicht verfügbar ist
   /// (z. B. Desktop-Browser), landet der Text in der Zwischenablage.
   Future<void> _invite() async {
-    final username = ref.read(myProfileProvider).valueOrNull?.username;
+    final profile = await ref.read(myProfileProvider.future);
+    if (!mounted) return;
+    final username = profile?.username;
     final text = AppInfo.inviteText(context.l10n, username);
     try {
       final result = await SharePlus.instance.share(ShareParams(text: text));
@@ -204,7 +219,7 @@ class _FriendsScreenState extends ConsumerState<FriendsScreen> {
             id: BuddysCoach.invite,
             child: IconButton(
               key: const ValueKey('invite-button'),
-              onPressed: _invite,
+              onPressed: _showInvite,
               icon: const Icon(Icons.share),
               tooltip: l.buddysInvite,
             ),

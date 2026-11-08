@@ -126,6 +126,7 @@ dependencies:
   # (vector_tile, latlong2). Deshalb steht xml wieder auf 6 (siehe dort).
   image: ^4.3.0
   sensors_plus: ^7.1.1
+  qr_flutter: ^4.1.0
 
 dev_dependencies:
   flutter_test:

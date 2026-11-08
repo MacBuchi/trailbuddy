@@ -1,7 +1,9 @@
 import 'package:flutter/widgets.dart' show Locale;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import 'package:package_info_plus/package_info_plus.dart';
 
+import 'app_distribution.dart';
 import '../l10n/l10n.dart';
 
 /// Öffentliche Links der App — für Einladungen und Hilfetexte.
@@ -10,6 +12,22 @@ class AppInfo {
   static const githubUrl = 'https://github.com/MacBuchi/TrailBuddy';
   static const apkDownloadUrl =
       'https://github.com/MacBuchi/TrailBuddy/releases/latest';
+
+  /// Die Seite hinter dem Einladung-QR (#496): statisch, ohne Versionsnummer,
+  /// damit ein gezeigter QR nie veraltet. Sie entscheidet, was geladen wird —
+  /// heute die APK vom neuesten Release, später der Play Store (#39).
+  static const installUrl = 'https://macbuchi.github.io/trailbuddy/install.html';
+
+  /// Das Ziel des Einladung-QR: die Installationsseite mit dem Namen des
+  /// einladenden Buddys. Im Play-Build führt sie in den Store, denn dorthin
+  /// gehören keine APK-Verweise (siehe [AppDistribution]).
+  static String inviteUrl(String? username) {
+    if (AppDistribution.isPlayBuild) return playStoreUrl;
+    final name = (username ?? '').trim();
+    return name.isEmpty
+        ? installUrl
+        : '$installUrl?invite=${Uri.encodeComponent(name)}';
+  }
 
   /// Der automatisch deployte Entwicklungsstand der Web-App.
   ///
