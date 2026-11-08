@@ -313,7 +313,7 @@ jobs:
             fi
             changed=$(
               {
-                git diff --name-only "$range" -- . ':!*.md' ':!.github' ':!tool' ':!supabase' ':!docs' ':!garmin' ':!.claude' ':!.codex' ':!.mcp.json' || true
+                git diff --name-only "$range" -- . ':!*.md' ':!.github' ':!tool' ':!supabase' ':!docs' ':!garmin' ':!.claude' ':!.codex' ':!.agents' ':!.mcp.json' || true
                 git diff --name-only "$range" -- CHANGELOG.md CHANGELOG.en.md || true
               } | grep -v '^$' || true
             )

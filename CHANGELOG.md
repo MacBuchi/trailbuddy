@@ -2,6 +2,20 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Große Offline-Gebiete laden, ohne das Handy zu überlasten
+
+*Version 0.163.1, 2026-11-08*
+
+- Kartenspiel und Offline-Bereiche laufen auf einer neueren MapLibre-
+  Fassung. Beim Download großer Gebiete merkte sich das Handy früher
+  jede Anfrage, bis ihm der Speicher ausging — das Gebiet brach ab.
+  Jetzt gibt es die Anfragen nach dem Gebrauch wieder frei.
+- Auch wenn du oft zwischen Karten wechselst, bleiben keine unsichtbaren
+  Reste der alten Karte im Hintergrund liegen.
+- Die Bau-App für die APK hat wieder durchgelaufen: Gradle bezieht sein
+  Paket nun in der kleineren Version, und Kotlin kommt direkt aus dem
+  Android-Baukasten statt aus einem Zusatz-Plugin.
+
 ## Der Planer nimmt deine Transferwege ernst
 
 *Version 0.163.0, 2026-11-07*

@@ -2,6 +2,20 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## Big offline areas load without straining the phone
+
+*Version 0.163.1, 2026-11-08*
+
+- The map and the offline areas run on a newer MapLibre release. When
+  downloading a large area, the phone used to remember every request
+  until it ran out of room — the download broke. Now it lets go of them
+  once they are done.
+- Switching between maps no longer leaves invisible leftovers of the
+  old map in the background.
+- The build for the APK works again: Gradle fetches its package in the
+  smaller form, and Kotlin now comes straight from the Android toolchain
+  instead of an extra plugin.
+
 ## The planner takes your transfers seriously
 
 *Version 0.163.0, 2026-11-07*

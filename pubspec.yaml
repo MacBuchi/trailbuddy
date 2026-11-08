@@ -4,7 +4,7 @@ publish_to: 'none'
 
 # Beide Teile erhöhen (z. B. 0.1.0+1 → 0.1.1+2). Ein Bump auf main taggt und
 # baut ein Prerelease (release.yml); ohne Bump kein Release (Version Guard).
-version: 0.163.0+249
+version: 0.163.1+250
 
 environment:
   sdk: ^3.11.0
@@ -43,14 +43,20 @@ dependencies:
   executor_lib: ^1.1.1
   # Die Karten-Engine auf Android (nativer GPU-Renderer maplibre-native).
   # 0.x und jung, deshalb exakt gepinnt; Upgrades nur bewusst. Web sieht
-  # das Paket nie (bedingter Import in map_view.dart).
-  maplibre: 0.3.5
-  # Die Android-Seite AUSDRÜCKLICH auf 0.3.5: 0.3.6 wendet in seinem
-  # build.gradle.kts das ktlint-Plugin ohne Version an, und Gradle findet
-  # es dann in keinem Plugin-Repository — der APK-Build bricht ab, bevor
-  # eine Zeile Kotlin kompiliert. PilzBuddy baut mit 0.3.5. Die native
-  # SDK darunter erzwingt android/app/build.gradle.kts auf 13.5.3 (#155).
-  maplibre_android: 0.3.5
+  # das Paket nie (bedingter Import in map_view.dart). 0.3.7+1 ist die
+  # letzte geplante 0.3-Fassung (nur Bugfixes). 0.4.0-pre ist eine eigene
+  # Generation: maplibre_native statt maplibre_android, onClick statt
+  # onEvent, queryRenderedFeatures statt featuresAtPoint — das ist ein
+  # Migrationsthema, kein Minor-Update.
+  maplibre: 0.3.7+1
+  # 0.3.5 war ein Notfall-Pin: 0.3.6 wollte ktlint ohne Version, Gradle
+  # fand das Plugin nicht, der APK-Build brach ab. 0.3.7 nimmt ktlint
+  # raus und migriert das Plugin auf Built-in Kotlin — damit fällt der
+  # letzte Kotlin-Gradle-Plugin-Blocker der App. Die native SDK darunter
+  # verlangt das Plugin selbst als `13.5.+` (aufgelöst zu 13.5.3, geprüft
+  # 2026-11-08). Die force-Zeile in android/app/build.gradle.kts (#155: „Gesehenes
+  # bleibt liegen“, Ambient-Cache für PMTiles erst ab 13.3.0) ist überflüssig.
+  maplibre_android: 0.3.7+1
 
   supabase_flutter: ^2.18.3
   flutter_riverpod: ^2.6.1
