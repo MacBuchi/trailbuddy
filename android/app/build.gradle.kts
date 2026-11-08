@@ -2,8 +2,9 @@ import java.util.Properties
 
 plugins {
     id("com.android.application")
-    id("kotlin-android")
-    // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
+    // Kein `kotlin-android`: ab AGP 9 mit `android.builtInKotlin=true`
+    // kompiliert AGP das Kotlin selbst (MainActivity.kt, GarminBridge.kt).
+    // The Flutter Gradle Plugin must be applied after the Android plugin.
     id("dev.flutter.flutter-gradle-plugin")
 }
 
@@ -136,18 +137,6 @@ kotlin {
 
 flutter {
     source = "../.."
-}
-
-// MapLibre Native AUSDRÜCKLICH auf 13.5.3 (#155), am Plugin vorbei:
-// maplibre_android 0.3.5 verlangt `13.0.+` (aufgelöst zu 13.0.3-pre0),
-// und erst 13.3.0 legt PMTiles-Bereiche in den Ambient Cache
-// (maplibre-native #4290, Schlüssel je Byte-Bereich) — ohne das kein
-// „Gesehenes bleibt liegen". 0.3.6 brächte 13.5, bricht aber den Build
-// (pubspec.yaml). Geprüft am 2026-10-08: Alle 1603 MapLibre-Methoden,
-// die die jnigen-Bindungen von 0.3.5 in 13.0 auflösen, gibt es in 13.5.3
-// mit derselben Signatur. Mit maplibre 0.3.6+ fällt die Zeile weg.
-configurations.all {
-    resolutionStrategy.force("org.maplibre.gl:android-sdk-opengl:13.5.3")
 }
 
 dependencies {

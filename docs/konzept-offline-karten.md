@@ -98,8 +98,10 @@ OSM-Rasterkacheln entfallen damit auch online. Ein Netzhost weniger
   nicht im `TileStore` der Bereiche, sondern im Ambient Cache von
   MapLibre Native (`mbgl-offline.db`, vom Backup ausgenommen). Erst
   13.3 legt dort auch PMTiles-Bereiche ab (maplibre-native #4290); das
-  Plugin 0.3.5 zieht 13.0, deshalb erzwingt Gradle 13.5.3 (geprüft: die
-  Bindungen des Plugins finden dort jede Methode wieder). Ohne Empfang
+  Plugin 0.3.5 zog 13.0, deshalb erzwang Gradle 13.5.3 (geprüft: die
+  Bindungen des Plugins finden dort jede Methode wieder). Seit 0.3.7+1
+  verlangt das Plugin selbst `13.5.+`, die force-Zeile ist überflüssig.
+  Ohne Empfang
   nennt der Stil die Archive aus dem zuletzt GEMERKTEN Manifest, über
   der Übersicht; MapLibre liefert die Kachel aus dem Cache, auch
   abgelaufen, und wo keine liegt, scheint die Übersicht durch. Die
