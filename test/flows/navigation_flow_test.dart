@@ -661,6 +661,70 @@ void main() {
         findsOneWidget);
   });
 
+  testWidgets('#499: die Uhr steht dauerhaft in der Leiste, und sagt, ob sie aufnimmt', (tester) async {
+    final watch = FakeGarminBridge.connected();
+    await startFromRides(tester, garmin: watch);
+    await tester.tap(find.byKey(const ValueKey('nav-watch')));
+    await settle(tester, frames: 2);
+    await tester.tap(find.byKey(const ValueKey('nav-go')));
+    await settle(tester, frames: 10);
+    // Kein Senden, die Schalter aus ist — die Uhr ist trotzdem da (#499).
+    expect(find.byKey(const ValueKey('nav-watch-status-idle')), findsOneWidget);
+    expect(find.byKey(const ValueKey('nav-watch-recording')), findsNothing);
+    watch.answer({'t': 'rs'});
+    await settle(tester, frames: 4);
+    expect(find.byKey(const ValueKey('nav-watch-recording')), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('nav-watch-status-idle')));
+    await settle(tester, frames: 4);
+    expect(find.descendant(of: find.byKey(const ValueKey('nav-watch-status-note')),
+        matching: find.text('Uhr verbunden · Die Uhr nimmt auf')), findsOneWidget);
+    // Pause und Ende: der Punkt bleibt, der Satz ändert sich.
+    watch.answer({'t': 'rp'});
+    await settle(tester, frames: 4);
+    expect(find.byKey(const ValueKey('nav-watch-recording')), findsOneWidget);
+    watch.answer({'t': 're', 'k': true});
+    await settle(tester, frames: 4);
+    expect(find.byKey(const ValueKey('nav-watch-recording')), findsNothing);
+  });
+
+  testWidgets('#499: eine pausierte Uhr sagt das auch in Worten', (tester) async {
+    final watch = FakeGarminBridge.connected();
+    await startFromRides(tester, garmin: watch);
+    await tester.tap(find.byKey(const ValueKey('nav-watch')));
+    await settle(tester, frames: 2);
+    await tester.tap(find.byKey(const ValueKey('nav-go')));
+    await settle(tester, frames: 10);
+    watch.answer({'t': 'rs'});
+    watch.answer({'t': 'rp'});
+    await settle(tester, frames: 4);
+    await tester.tap(find.byKey(const ValueKey('nav-watch-status-idle')));
+    await settle(tester, frames: 4);
+    expect(find.descendant(of: find.byKey(const ValueKey('nav-watch-status-note')),
+        matching: find.text('Uhr verbunden · Die Uhr pausiert')), findsOneWidget);
+  });
+
+  testWidgets('#500: meldet die Uhr einen anderen Ort, sagt es die Leiste', (tester) async {
+    final watch = FakeGarminBridge.connected();
+    await startFromRides(tester, garmin: watch);
+    await tester.tap(find.byKey(const ValueKey('nav-watch')));
+    await settle(tester, frames: 2);
+    await tester.tap(find.byKey(const ValueKey('nav-go')));
+    await settle(tester, frames: 10);
+    // Der erste eigene Fix der Uhr, 1,1 km vom Handy.
+    watch.answer({'t': 'g', 'la': (47.01 * 1e5).round(), 'lo': (11.0 * 1e5).round()});
+    await settle(tester, frames: 4);
+    expect(find.byKey(const ValueKey('nav-watch-dot-apart')), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('nav-watch-status-idle')));
+    await settle(tester, frames: 4);
+    expect(find.descendant(of: find.byKey(const ValueKey('nav-watch-status-note')),
+        matching: find.text('Die Uhr meldet einen Ort 1,1 km von hier · Uhr verbunden')), findsOneWidget);
+    // Dicht bei ihr: kein Alarm, der Punkt zeigt wieder die Sendung.
+    watch.answer({'t': 'g', 'la': (47.0004 * 1e5).round(), 'lo': (11.0 * 1e5).round()});
+    await settle(tester, frames: 4);
+    expect(find.byKey(const ValueKey('nav-watch-dot-apart')), findsNothing);
+    expect(find.byKey(const ValueKey('nav-watch-dot-idle')), findsOneWidget);
+  });
+
   testWidgets('#449 G2: Schalter aus heißt nichts an die Uhr', (tester) async {
     final watch = FakeGarminBridge.connected();
     await startFromRides(tester, garmin: watch);
@@ -669,7 +733,8 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('nav-go')));
     await settle(tester, frames: 10);
     expect(watch.sent, isEmpty);
-    expect(find.byKey(const ValueKey('nav-watch-status-idle')), findsNothing, reason: 'ohne Uhr kein Uhr-Symbol');
+    expect(find.byKey(const ValueKey('nav-watch-status-idle')), findsOneWidget,
+        reason: 'verbunden, nichts gesendet — das Symbol steht trotzdem (#499)');
     expect(find.byKey(const ValueKey('nav-stop')), findsOneWidget);
   });
 

@@ -251,10 +251,17 @@ void main() {
     // Position vom Handy und „habe GPS" von der Uhr — dieselben Zeichen.
     expect(watch, contains('"$kWatchPhonePosition".equals(t)'));
     expect(watch, contains('phoneFix(d["la"], d["lo"])'));
-    expect(watch, contains('toPhone({"t" => "$kWatchHasGps"})'));
+    expect(watch, contains('toPhone({"t" => "$kWatchHasGps"'));
+    // Seit #500 meldet die Uhr ihren ersten Fix mit — dieselbe Schreibweise
+    // wie die Position des Handys, in 1e-5 Grad.
+    expect(watch, contains('"la" => Math.round(deg[0].toDouble() * 100000.0)'));
     expect(watchPositionOf(const LatLng(47.123456, 11.5)), {'t': 'p', 'la': 4712346, 'lo': 1150000});
     expect(watchHasGps({'t': 'g'}), isTrue);
     expect(watchHasGps({'t': 'ok'}), isFalse);
+    expect(watchFixOf({'t': 'g', 'la': 4712346, 'lo': 1150000}), const LatLng(47.12346, 11.5),
+        reason: 'die Uhr sendet 1e-5 Grad, mehr Genauigkeit hat sie nicht');
+    expect(watchFixOf({'t': 'g'}), isNull, reason: 'eine alte Uhr-App sagt nur „habe GPS"');
+    expect(watchFixOf({'t': 'ok', 'la': 1, 'lo': 2}), isNull);
     expect(WatchOpen.fromChannel('PROMPT_SHOWN_ON_DEVICE'), WatchOpen.prompted);
     expect(WatchOpen.fromChannel('APP_IS_ALREADY_RUNNING'), WatchOpen.running);
     expect(WatchOpen.fromChannel('APP_IS_NOT_INSTALLED'), WatchOpen.notInstalled);

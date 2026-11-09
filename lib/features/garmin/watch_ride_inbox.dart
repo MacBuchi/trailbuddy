@@ -129,9 +129,15 @@ class WatchRideInbox extends Notifier<int> {
 }
 
 extension on WatchRideInbox {
-  Future<void> _onRecord(({bool start, RideMark? trailStart, RideMark? trailEnd, bool? keep}) r) async {
+  Future<void> _onRecord(
+      ({WatchRecordEvent event, RideMark? trailStart, RideMark? trailEnd, bool? keep}) r) async {
     final rides = ref.read(rideProvider.notifier);
-    if (r.start) {
+    if (r.event == WatchRecordEvent.pause || r.event == WatchRecordEvent.resume) {
+      // Die Pause an der Uhr betrifft nur die Uhr: Das Handy zeichnet weiter
+      // (#499 zeigt sie dem Nutzer; ob es mitstoppt, ist eine eigene Frage).
+      return;
+    }
+    if (r.event == WatchRecordEvent.start) {
       if (rides.isRunning) {
         debugPrint('TB-GARMIN rs: Handy nimmt schon auf');
         return;

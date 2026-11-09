@@ -270,6 +270,18 @@ function relativeRouteAnchors(logger as Logger) as Boolean {
     return true;
 }
 
+//! Weiter abseits, als die Karte zeigen kann, passt die ganze Linie in den
+//! Kreis (#498). Gegenprobe: den weitesten Zoom auf 1,0 m/px setzen, dann
+//! ist die Schwelle 135 m und der Test fällt.
+(:test)
+function farLineFitsTheView(logger as Logger) as Boolean {
+    var reach = NavView.ZOOM_MPP[2] * 135.0;
+    Test.assert(reach > 500.0 && reach < 600.0);
+    Test.assert(NavView.beyondView(12000.0, reach));
+    Test.assert(!NavView.beyondView(400.0, reach));
+    return true;
+}
+
 (:test)
 function rideStatsCountsOnlyWhileMoving(logger as Logger) as Boolean {
     var st = new RideStats(2);

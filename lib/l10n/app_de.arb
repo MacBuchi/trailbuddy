@@ -3475,6 +3475,27 @@
   "@navWatchTooltip": {
     "description": "Tooltip des Uhr-Symbols in der Knopfreihe der Navigation; der Tipp sagt, wie es um die Route auf der Garmin-Uhr steht."
   },
+  "navWatchConnected": "Uhr verbunden",
+  "@navWatchConnected": {
+    "description": "Stand am Uhr-Symbol in der Navigationsleiste (#499), wenn eine Garmin-Uhr mit TrailBuddy verbunden ist, englisch: Watch connected."
+  },
+  "navWatchRecording": "Die Uhr nimmt auf",
+  "@navWatchRecording": {
+    "description": "Stand am Uhr-Symbol in der Navigationsleiste und im Start-Blatt, wenn die Garmin-Uhr seit START eine Fahrt aufzeichnet (#499)."
+  },
+  "navWatchPaused": "Die Uhr pausiert",
+  "@navWatchPaused": {
+    "description": "Stand am Uhr-Symbol, wenn die Aufzeichnung auf der Garmin-Uhr pausiert (#499); das Handy zeichnet davon weiter."
+  },
+  "navWatchApart": "Die Uhr meldet einen Ort {dist} von hier",
+  "@navWatchApart": {
+    "description": "Stand am Uhr-Symbol, wenn der erste eigene GPS-Fix der Garmin-Uhr weiter als 200 m vom Handy entfernt ist (#500); die Uhr folgt dann einer anderen Linie. {dist} ist die Entfernung, englisch: The watch reports a place {dist} away.",
+    "placeholders": {
+      "dist": {
+        "type": "String"
+      }
+    }
+  },
   "mapWatchFailed": "Die Route kam nicht auf der Uhr an. Öffne TrailBuddy auf der Uhr — dann kommt sie von selbst.",
   "@mapWatchFailed": {
     "description": "Leiste auf der Karte, wenn das Senden der Route an die Garmin-Uhr scheiterte; die Navigation auf dem Handy läuft trotzdem."

@@ -99,9 +99,20 @@ Map<String, Object> watchEndOf(String id) => {'t': kWatchEnd, 'id': id};
 String? watchEndedId(Object? message) =>
     message is Map && message['t'] == kWatchEnd && message['id'] is String ? message['id'] as String : null;
 
-/// Die Uhr hat ihr eigenes GPS (`{t: "g"}`) — ohne Koordinate (A3). Danach
-/// schickt das Handy keine Position mehr.
+/// Die Uhr hat ihr eigenes GPS (`{t: "g"}`). Seit #500 meldet sie dabei
+/// ihren ersten Fix mit (`la`, `lo` in 1e-5°); danach schickt das Handy keine
+/// Position mehr. Die Koordinate bleibt im Speicher (A3), nichts wird
+/// gespeichert und nichts geht an Garmin.
 const kWatchHasGps = 'g';
+
+/// Der Fix der Uhr, oder null, wenn die Nachricht keiner ist — ältere
+/// Uhr-Apps sagen nur „habe GPS" (`{t: "g"}` ohne Zahlen).
+LatLng? watchFixOf(Object? message) {
+  if (message is! Map || message['t'] != kWatchHasGps) return null;
+  final la = message['la'], lo = message['lo'];
+  if (la is! num || lo is! num) return null;
+  return LatLng(la / 1e5, lo / 1e5);
+}
 
 /// Die Uhr konnte ein Stück nicht nehmen (`{t: "x", id, c}`): `c` ist
 /// [kWatchErrMemory], [kWatchErrStorage], [kWatchErrCrash] oder

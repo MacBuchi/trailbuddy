@@ -88,7 +88,10 @@ void main() {
           [(RideMarkKind.start, 1700000005), (RideMarkKind.end, 1700000010)]);
       // Nur die erste Nachricht trägt sie.
       expect(watchRidePartOf({...rideMessage('17', 1, 2, c), 'm': [0, 1]})!.marks, isEmpty);
-      expect(watchRecordOf({'t': 'rs'})!.start, isTrue);
+      expect(watchRecordOf({'t': 'rs'})!.event, WatchRecordEvent.start);
+      expect(watchRecordOf({'t': 'rp'})!.event, WatchRecordEvent.pause);
+      expect(watchRecordOf({'t': 'rr'})!.event, WatchRecordEvent.resume);
+      expect(watchRecordOf({'t': 're'})!.event, WatchRecordEvent.end);
       final kept = watchRecordOf({'t': 'rt', 's': 1700000005, 'e': 1700000010})!;
       expect(kept.trailStart!.kind, RideMarkKind.start);
       expect(kept.trailEnd!.at, DateTime.utc(2023, 11, 14, 22, 13, 30));
@@ -103,6 +106,8 @@ void main() {
       expect(app, contains('"$kWatchRideAck".equals(t)'));
       expect(app, contains('msg["rq"] = rq'));
       expect(app, contains('{"t" => "$kWatchRecordStart"}'));
+      expect(app, contains('{"t" => "$kWatchRecordPause"}'));
+      expect(app, contains('{"t" => "$kWatchRecordResume"}'));
       expect(app, contains('{"t" => "$kWatchTrailKept", "s" => pair[0], "e" => pair[1]}'));
       expect(app, contains('{"t" => "$kWatchRecordEnd", "k" => keep}'));
       final log = File('garmin/source/RideLog.mc').readAsStringSync();

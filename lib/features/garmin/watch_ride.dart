@@ -15,6 +15,8 @@
 //
 // Während der Fahrt (Betreiber 2026-11-07: Aufzeichnung an der Uhr):
 //   Uhr  → `{t: "rs"}`                    START gedrückt
+//   Uhr  → `{t: "rp"}`                    START nochmal: Pause (#499)
+//   Uhr  → `{t: "rr"}`                   Weiter aus der Pause (#499)
 //   Uhr  → `{t: "rt", s, e}`              ein markierter Trail, behalten
 //   Uhr  → `{t: "re", k}`                 gespeichert (k true) / verworfen
 //
@@ -36,30 +38,42 @@ const kWatchRideAck = 'wk';
 /// GOOD und USABLE; das Zerlege-Blatt verwirft über 30 m.
 const kWatchAccuracyM = [5.0, 15.0, 40.0, 100.0];
 
-/// START, ein behaltener Trail und das Ende der Aufzeichnung an der Uhr.
+/// START, Pause, Weiter, ein behaltener Trail und das Ende der Aufzeichnung
+/// an der Uhr. Pause und Weiter sagen es dem Handy seit #499; die Aufzeichnung
+/// auf dem Handy laufen sie weiter (die Uhr pausiert, das Handy nicht).
 const kWatchRecordStart = 'rs';
+const kWatchRecordPause = 'rp';
+const kWatchRecordResume = 'rr';
 const kWatchTrailKept = 'rt';
 const kWatchRecordEnd = 're';
 
+/// Was die Uhr über ihre Aufzeichnung meldet.
+enum WatchRecordEvent { start, pause, resume, trail, end }
+
 /// Was die Uhr über ihre Aufzeichnung sagt, oder null bei einer anderen
-/// Nachricht. [trail] ist der behaltene Trail, [keep] das Ende.
-({bool start, RideMark? trailStart, RideMark? trailEnd, bool? keep})? watchRecordOf(Object? message) {
+/// Nachricht. [trailStart] und [trailEnd] sind die Marke eines behaltenen
+/// Trails, [keep] das Ende.
+({WatchRecordEvent event, RideMark? trailStart, RideMark? trailEnd, bool? keep})? watchRecordOf(Object? message) {
   if (message is! Map) return null;
   switch (message['t']) {
     case kWatchRecordStart:
-      return (start: true, trailStart: null, trailEnd: null, keep: null);
+      return (event: WatchRecordEvent.start, trailStart: null, trailEnd: null, keep: null);
+    case kWatchRecordPause:
+      return (event: WatchRecordEvent.pause, trailStart: null, trailEnd: null, keep: null);
+    case kWatchRecordResume:
+      return (event: WatchRecordEvent.resume, trailStart: null, trailEnd: null, keep: null);
     case kWatchTrailKept:
       final s = message['s'], e = message['e'];
       if (s is! int || e is! int || e < s) return null;
       return (
-        start: false,
+        event: WatchRecordEvent.trail,
         trailStart: RideMark(kind: RideMarkKind.start, at: _utc(s)),
         trailEnd: RideMark(kind: RideMarkKind.end, at: _utc(e)),
         keep: null,
       );
     case kWatchRecordEnd:
       final k = message['k'];
-      return (start: false, trailStart: null, trailEnd: null, keep: k is bool ? k : true);
+      return (event: WatchRecordEvent.end, trailStart: null, trailEnd: null, keep: k is bool ? k : true);
   }
   return null;
 }
