@@ -1,6 +1,0 @@
-<!-- Der Build-Stempel (Commit · Datum) für die Übersicht ohne GPS.
-     tool/garmin_build.sh überschreibt ihn in der Kopie unter build/;
-     hier steht nur der Platzhalter. -->
-<strings>
-    <string id="BuildStamp">dev</string>
-</strings>

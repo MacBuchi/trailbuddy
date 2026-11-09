@@ -82,6 +82,11 @@ dunkle Infofläche, „Was kommt als Nächstes?" statt „Wie weit noch?".
   Trail voraus „BIS ZUM ZIEL" mit Rest-km und Rest-hm. Abseits wird die
   Fläche zur Warnfarbe mit dem Abstand, dazu ein gestrichelter Strich
   und ein Pfeil zum Punkt der Linie 50 m voraus (wie 9.3).
+  Steht man weiter von der Linie entfernt, als die Karte je zeigen kann
+  (über 540 m), passt stattdessen die ganze Linie genordet in den Kreis:
+  der nächste Punkt der Linie als Warnpunkt, ein gestrichelter Strich in
+  die eigene Richtung, dieselbe Warnfläche darunter (#498, fēnix 5
+  2026-11-08: sonst bleibt das Blatt leer).
 - **Der Ring außen herum** (Entwurf „Ring und Seiten" im Designer,
   2026-11-04; Betreiber: „den Balken (wie weit, wann kommt der nächste
   Trail) ringförmig außen herum", Variante A): Ein Umlauf ist die
@@ -240,16 +245,105 @@ verbunden ist. **Höchstens 2000 Punkte**
 **Die Position des Handys** (Betreiber, 2026-11-05): Nach dem
 „gespeichert" schickt das Handy seine Position (`{t: "p", la, lo}` in
 1e-5°), gleich und dann alle 10 s (`kWatchPositionEvery`), bis die Uhr
-`{t: "g"}` meldet („ich habe eigenes GPS", ohne Koordinate), die
+`{t: "g", la, lo}` meldet („ich habe eigenes GPS") und gleich diesen
+ersten eigenen Fix, die
 Navigation endet oder 3 min um sind (`kWatchPositionFor`) — die Uhr
 navigiert allein (A8), das ist nur ein Vorsprung beim Start. Ein neues
 „hallo" (die Uhr-App startete neu) beginnt den Takt wieder. Die Uhr hält
 die Position nur im Speicher (A3).
 
+**Der Abgleich der beiden GPS (#500, Betreiber 2026-11-09):** Mit dem
+ersten eigenen Fix nennt die Uhr ihren Ort. Das Handy vergleicht ihn mit
+der eigenen Navigationsposition: mehr als 200 m (`kWatchFixApartM`)
+auseinander, sagt die Uhr-Leiste „Die Uhr meldet einen Ort … von hier" —
+die Uhr folgt dann einer Linie, die hier nicht läuft, und meldet
+„neben der Route", obwohl niemand abweicht. Einmal, nicht dauerhaft:
+mehr darf die Uhr nicht senden (A8, A3), und eine ältere Uhr-App nennt
+keinen Ort — dann bleibt der Stand wie er ist.
+
 Die Uhr schickt zurück: „angekommen und gespeichert" mit der Kennung,
 „hallo" mit der Kennung der Route, die sie hat (und den wartenden
-Fahrten), einmal „habe GPS" und die eigene Fahrt (Abschnitt 2a) — sonst
-nichts. Keine Position im Lauf.
+Fahrten), einmal „habe GPS" mit ihrem ersten Fix, START/PAUSE/WEITER
+(2a), der Stand, wenn sie aus dem Blickfeld fährt (unten), und die
+eigene Fahrt. Kein Takt, keine Position im Lauf sonst.
+
+**Der Umkreis hat Vorrang, die Linie kommt in Teilen (#500, Betreiber
+2026-11-09):** Die Uhr hat rund 124 KB, die volle Linie nimmt schon bis
+2000 Punkte (Messung 8.1, ~70 KB); im Simulator 2026-11-09 standen 1000
+Punkte mit Ring und Seiten bei 94–99 KB. Deshalb gilt: **erst der
+Umkreis, dann die Linie.** Die Linie geht nicht mehr als Ganzes hin,
+sondern **stückweise um den Fortschritt** — das Handy kennt sie ganz und
+schickt die nächsten Stücke, wenn die Uhr ans Ende des Geladenen kommt.
+
+- **Wann die Uhr ihren Stand meldet:** nur, wenn sie ihn braucht. Den
+  ersten Fix mit `{t: "g", la, lo}` (schon gebaut, siehe Abgleich), dann
+  `{t: "d", la, lo, off}` sobald `offM` größer ist als die Sicht der
+  Ansicht (`_reach`, 540 m bei Zoom 4 — genau der Punkt, an dem die
+  Ansicht leer wird, #498), und erst wieder, wenn der Stand mindestens
+  300 m weiter liegt als die letzte Meldung. Kein Abfragen von
+  Handyseite: eine Nachricht über Connect braucht ~15 s (Messung 8.2),
+  ihre Antwort wäre beim Eintreffen schon 300 m alt (20 km/h), und jede
+  Anfrage kostet Akku auf beiden Seiten. Die Uhr rechnet selbst —
+  `NavTracker` weiß jeden Fix gegen die Linie, `offM` und `offRoute`
+  stehen schon.
+- **Wie groß das Fenster ist:** 800 m Umkreis. Die Ansicht sieht höchstens
+  540 m (`_reach = 135 px × mpp`, `ZOOM_MPP` 1,0 / 1,5 / 4,0), 800 m
+  tragen zwei Zoomstufen weiter, ohne dass die Uhr nachladen muss.
+  Nachgeladen wird die Linie, sobald weniger als 1 km vor dem Fortschritt
+  geladen ist.
+- **Was die Uhr dann nicht mehr sieht:** die ganze Linie. Die
+  eingepasste Übersicht (#498) zeigt, was geladen ist; „bis zum Ziel",
+  Länge und Höhenmeter kommen aus dem Kopf des ersten Stücks, nicht aus
+  den Punkten. Der Kopf muss sie tragen.
+- **Was im Fenster steht (Betreiber, 2026-11-09):** derselbe Ausschnitt,
+  den man auf dem Handy um sich herum sieht — nur als Linie, nicht als
+  Karte. Alles, was die Karte aus Vector zeichnet:
+  - die **Trails der Gruppe** im 800-m-Umkreis, in denselben Farben nach
+    Grad wie auf dem Handy; das Netz liegt unter der Route,
+  - die **Linie der Navigation** und ihre Stummel,
+  - Schilder mit Namen nur für Trails, die die Ansicht wirklich berührt.
+  Nicht hin können die Rasterkacheln und die Randlinien des Bestands:
+  dafür hat die Uhr keinen Platz (124 KB, MIP ohne Glättung). Sie liegen
+  auf dem Handy ohnehin nur als Gebietspakete; die Uhr zeichnet Linien.
+  Vereinfacht wird auf **10 m**, höchstens **800 Punkte** (rund 28 KB) —
+  sonst wird das Fenster dicker als die Linie. Was schon Teil der Linie
+  oder eines Stummels ist, wird nicht noch einmal geschickt. Ein neues
+  Fenster verdrängt das alte: die Uhr hält nie zwei.
+- **Was der Alarm auslöst (Betreiber, 2026-11-09):** von selbst. Weicht
+  die Uhr ab, rechnet das Handy eine neue Linie ab der Position der Uhr
+  (wie „Route umplanen", #464) und schickt sie. Die Uhr fragt kurz
+  „Route ab deiner Position?", wer nichts tut, nimmt sie nach 8 s an;
+  START oder Zurück lehnen. Ohne die Frage würde jemand unwissend auf
+  einer anderen Linie weiterfahren.
+- **Was genau hin geht (Entwurf, Zahlen noch zu messen):**
+  1. Kopf: Kennung, Fassung, Abschnitte, **Gesamtlänge und Aufstieg** —
+     die Uhr kennt nicht mehr die ganze Linie, „bis zum Ziel" muss aus
+     dem Kopf kommen.
+  2. Die Linie in Stücken à 800 Zahlen (~4 KB, ~15 s, Messung 8.2),
+     gepackt je Punkt eine Zahl; die Stummel `br` fahren im Stück ihres
+     Punkts mit.
+  3. Das Fenster: neue Art `w` — Mittelpunkt, Radius, gepackte Punkte
+     der Gruppen-Trails, Namen nur für die Trails, die die Ansicht
+     berührt.
+  4. Die Position des Handys bleibt, bis die Uhr eigenes GPS hat
+     (`p`, Abschnitt 2).
+  5. Zurück von der Uhr: `g` erster Fix, `d` „ich fahre hinaus" mit
+     Stand und Abstand, `ok` gespeichert, `rp`/`rr`/`rt`/`re` (2a).
+- **Wann die Uhr ihren Stand meldet (Betreiber, 2026-11-09):** erst wenn
+  die Fahrt wirklich läuft. Scharf ist die Prüfung, sobald die Uhr die
+  Linie einmal berührt hat — ein eigener Fix näher als 50 m (`kWatchArmM`)
+  — und erst, wenn das Handy selbst einen gültigen Stand hat. Vorher
+  (Anfahrt, Uhr im Pocket, Stand 12 km weit) ist ein Abstand normal: die
+  eingepasste Übersicht (#498) zeigt dann die Route, aber weder Alarm
+  noch Nachladen. Wer nie auf der Linie war, hat auch nichts verlassen.
+- **Offen noch:** die Punktgrenzen. Die Uhr hat 124 KB, davon sind
+  ~60 KB Ring, Seiten und Code (Simulator 2026-11-09: 1000 Punkte mit
+  Ring und Seiten 94–99 KB). Route und Fenster zusammen müssen in die
+  restlichen ~60 KB passen, und beim Empfang hält die Uhr ein Stück
+  samt Zwischenspeicher. Messung 8.9 an der fēnix 5: wie viel Netz
+  liegen real in 800 m, und wie viele Punkte passen, ohne dass die
+  Linie darunter leidet. Ob dafür eine neue App-Version nötig ist,
+  entscheidet die Store-Fassung (Abschnitt 5).
 
 **Gebaut in G2 (2026-11-04)**: `lib/features/garmin/watch_route.dart`
 kodiert und schneidet in **Stücke** (`t: "r"`, `id`, Laufnummer `p`, Anzahl
@@ -422,10 +516,20 @@ Entscheidung 5. Gebaut in `garmin/source/RideLog.mc` (Uhr),
   k}` (gespeichert/verworfen) und beendet nur eine Aufzeichnung, die die
   Uhr begann. Kommt in 45 s kein Punkt (der Dienst mit Standort darf aus
   dem Hintergrund nicht starten), nimmt das Handy sie still zurück —
-  Messung 8.7. Hat das Handy aufgezeichnet, bleibt beim Ablegen dessen
+  Messung 8.7. Pause und Weiter melden die Uhr dazu (`{t: "rp"}`, `{t: "rr"}`,
+  #499): Das Handy zeichnet davon unberührt weiter, gezeigt wird sie dem
+  Nutzer auf dem Handy (der nächste Punkt). Hat das Handy aufgezeichnet,
+  bleibt beim Ablegen dessen
   Fahrt (Überdeckung, unten) und die der Uhr fällt weg; die Marken hat es
   dann schon aus `rt`.
-- **Beim Beenden** („Speichern" im Menü der Pause, „Navigation beenden?"
+- **Der Stand der Uhr steht auf dem Handy** (#499, Betreiber 2026-11-09:
+  "der aktuelle Status der Uhr sollte auch auf dem Handydisplay angezeigt
+  werden — verbunden, nimmt auf"): Ist die Uhr gefunden, steht das
+  Uhren-Symbol in der Navigationsleiste dauerhaft, nicht nur während des
+  Sendens; nimmt die Uhr auf, ist es gefüllt und sagt es in Worten, Pause
+  und Weiter ebenso. Das Startblatt nennt denselben Stand, bevor die
+  Navigation beginnt.
+- **Beim Beenden** ("Speichern" im Menü der Pause, "Navigation beenden?"
   vor START, oder das Handy beendet die Navigation): die Fahrt in die
   Warteschlange (zu kurz: „Fahrt zu kurz, nicht gespeichert"); ist ein
   Handy verbunden, gehen die wartenden Fahrten hinüber — `{t: "w", id,
@@ -574,6 +678,17 @@ Aus der Gerätedatei des SDK 9.3.0 und der Uhr selbst:
 
 ## 8. Messplan (📱, an der fēnix 5)
 
+**Wer misst was** (Roadmap #501, 2026-11-09): Die Logik der Uhr-App — Kodierung,
+Stückteilung, Crash-Wächter, Fahrten-Log, die 540-m-Schwelle der Übersicht — prüft
+der Simulator mit `tool/garmin_build.sh --test`. `--demo` spielt reihum Anfahrt,
+Trail, abseits, angekommen und **weitab von der Linie** (#498), und die Konsole
+sagt je Szene, welche Ansicht genommen wird und wie viel Speicher Route, Ring und
+Seiten brauchen. Optik und Grenzen zeigen `--run` und `--points` im Simulator;
+Übertragung, Akku, Sonnen-lesbarkeit, Speicher unter Last und das GPS im Wald
+kann nur das echte Gerät.
+Alles, was über Garmin Connect geht (8.2, 8.7, 8.8), braucht das Telefon neben der
+Uhr — die Brücke sitzt dort, nicht auf der Uhr.
+
 1. **Speicher**: Wie viele Punkte passen in die 128 KB, mit Ansicht?
    Gemessen mit Routen von 500, 1000, 2000 und 4000 Punkten.
    **Im Simulator gemessen (2026-11-04, G1)**, 124 KB frei für die App:
@@ -613,6 +728,12 @@ Aus der Gerätedatei des SDK 9.3.0 und der Uhr selbst:
    wieder. Seitdem sagt die Uhr in der freien Fahrt mit Handy alle 30 s
    wieder „hallo" (höchstens 20-mal), das Handy schickt dann nach.
    Bestätigen mit Logcat (`TB-GARMIN`, `send`/`receive`) am Gerät.
+
+9. **Der Umkreis (#500)**: wie viel Netz der Gruppe real in 800 m um
+   einen Trailkopf liegt (Trails, Kilometer, Punkte bei 10 m
+   Vereinfachung), und wie viele Punkte Linie + Fenster + Ring zugleich
+   in die 124 KB passen, ohne dass die Linie darunter leidet. Erst mit
+   dem Befund stehen die Grenzen in Abschnitt 2.
 
 ## 9. Umsetzung in Schritten (je ein PR)
 

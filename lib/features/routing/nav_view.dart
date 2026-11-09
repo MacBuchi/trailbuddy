@@ -26,6 +26,7 @@ import '../../core/screen_awake.dart';
 import '../../data/providers.dart' show currentUserIdProvider;
 import '../../l10n/l10n.dart';
 import '../garmin/garmin_bridge.dart' show WatchStatus, garminBridgeProvider;
+import '../garmin/watch_presence.dart' show WatchRecord, kWatchFixApartM, watchPresenceProvider;
 import '../garmin/watch_providers.dart' show WatchSyncPhase, kWatchOutdatedPhone, kWatchOutdatedWatch, kWatchTooBig, watchStatusProvider, watchSyncProvider;
 import '../map/map_buttons.dart';
 import '../map/map_view/map_view.dart';
@@ -142,6 +143,7 @@ class _NavStartSheetState extends ConsumerState<_NavStartSheet> {
     final summary = widget.summary;
     final watchAsk = ref.watch(watchStatusProvider);
     final watch = watchAsk.valueOrNull ?? WatchStatus.none;
+    final presence = ref.watch(watchPresenceProvider);
     // Die erste Frage nach der Uhr startet das SDK und kann Sekunden
     // dauern: Die Zeile sagt es, statt dass der Schalter später auftaucht
     // und wer schnell „Los" tippt, ohne Uhr startet.
@@ -198,6 +200,16 @@ class _NavStartSheetState extends ConsumerState<_NavStartSheet> {
                 subtitle: Text(l.navWatchSubtitle(watch.device!)),
                 value: _watch,
                 onChanged: (v) => setState(() => _watch = v),
+              ),
+            // Auch hier vor dem Start: die Uhr sagt, was sie tut (#499).
+            if (watch.canShow && presence.recording)
+              Padding(
+                key: const ValueKey('nav-watch-record'),
+                padding: const EdgeInsets.only(bottom: 6),
+                child: Text(
+                  presence.record == WatchRecord.paused ? l.navWatchPaused : l.navWatchRecording,
+                  style: theme.textTheme.bodySmall?.copyWith(color: theme.hintColor),
+                ),
               ),
             const SizedBox(height: 8),
             Text(l.navStartHint, style: theme.textTheme.bodySmall?.copyWith(color: theme.hintColor)),
@@ -385,9 +397,10 @@ class _NavOverlayState extends ConsumerState<NavOverlay> {
                           onPressed: () => unawaited(ref.read(pictureInPictureProvider).enter()),
                         ),
                       ],
-                      if (ref.watch(watchSyncProvider).phase != WatchSyncPhase.idle) ...[
+                      if (ref.watch(watchPresenceProvider).shows ||
+                          ref.watch(watchSyncProvider).phase != WatchSyncPhase.idle) ...[
                         const SizedBox(width: 10),
-                        const _WatchBadge(),
+                        _WatchBadge(state: state),
                       ],
                       const Spacer(),
                       FilledButton.icon(
@@ -425,14 +438,28 @@ class _NavOverlayState extends ConsumerState<NavOverlay> {
 /// der Uhr folgt, steht das Symbol da — die Leiste mit „Route auf der
 /// Uhr" ist nach ein paar Sekunden weg. Der Punkt sagt den Stand (Lime:
 /// auf der Uhr, Orange: nicht angekommen, grau: unterwegs), ein Tipp sagt
-/// ihn in Worten.
+/// ihn in Worten. Seit #499 steht das Symbol, solange die Uhr verbunden
+/// ist, und ein zweiter Punkt unten links: die Uhr nimmt auf.
 class _WatchBadge extends ConsumerWidget {
-  const _WatchBadge();
+  const _WatchBadge({this.state});
+
+  /// Die Position dieser Navigation, um die Uhr damit zu vergleichen (#500).
+  final NavState? state;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l = context.l10n;
     final sync = ref.watch(watchSyncProvider);
+    final here = ref.watch(watchPresenceProvider);
+    // #500: Die Uhr meldet ihren ersten eigenen Fix. Weicht er deutlich vom
+    // Handy ab, folgt sie einer Linie, die hier nicht läuft — die Leiste sagt
+    // es, bevor die Uhr „neben der Route" meldet.
+    double? apartM;
+    final fix = here.watchFix, nav = state;
+    if (fix != null && nav != null) {
+      apartM = distanceMeters(fix.latitude, fix.longitude, nav.position.latitude, nav.position.longitude);
+    }
+    final apart = (apartM ?? 0) > kWatchFixApartM;
     final (dot, text) = switch (sync.phase) {
       WatchSyncPhase.stored => (AppColors.brand, l.mapWatchStored),
       WatchSyncPhase.unconfirmed => (_p.warningText, l.mapWatchUnconfirmed),
@@ -444,19 +471,32 @@ class _WatchBadge extends ConsumerWidget {
       WatchSyncPhase.prompted => (_p.muted, l.mapWatchPrompted),
       _ => (_p.muted, l.navWatchSending),
     };
+    // Der Stand in Worten: die Sendung, die Verbindung, die Aufzeichnung
+    // (#499). Steht die Uhr still, ist es der eine Satz der Sendung.
+    final note = [
+      if (apart) l.navWatchApart(formatMeters(apartM!)),
+      if (sync.phase != WatchSyncPhase.idle) text,
+      // Verbunden nur, wenn sonst nichts zu sagen ist — „Route auf der Uhr“
+      // sagt die Verbindung schon.
+      if (here.connected && sync.phase == WatchSyncPhase.idle) l.navWatchConnected,
+      if (here.record == WatchRecord.running) l.navWatchRecording,
+      if (here.record == WatchRecord.paused) l.navWatchPaused,
+    ].join(' · ');
     return Stack(
       clipBehavior: Clip.none,
       children: [
         MapRoundButton(
           key: ValueKey('nav-watch-status-${sync.phase.name}'),
           dark: true,
-          tooltip: l.navWatchTooltip,
-          icon: Icons.watch_outlined,
+          active: here.recording,
+          tooltip: note,
+          icon: here.recording ? Icons.watch : Icons.watch_outlined,
           onPressed: () => ScaffoldMessenger.of(context)
             ..hideCurrentSnackBar()
-            ..showSnackBar(SnackBar(key: const ValueKey('nav-watch-status-note'), content: Text(text))),
+            ..showSnackBar(SnackBar(key: const ValueKey('nav-watch-status-note'), content: Text(note))),
         ),
         Positioned(
+          key: ValueKey('nav-watch-dot-${apart ? 'apart' : sync.phase.name}'),
           right: 2,
           top: 2,
           child: IgnorePointer(
@@ -464,13 +504,32 @@ class _WatchBadge extends ConsumerWidget {
               width: 12,
               height: 12,
               decoration: BoxDecoration(
-                color: dot,
+                color: apart ? _p.warningText : dot,
                 shape: BoxShape.circle,
                 border: Border.all(color: _p.surface, width: 2),
               ),
             ),
           ),
         ),
+        // Unten links: die Uhr nimmt auf (#499). Oben rechts steht die
+        // Sendung; beides zusammen ist der Stand der Uhr.
+        if (here.recording)
+          Positioned(
+            key: const ValueKey('nav-watch-recording'),
+            left: 2,
+            bottom: 2,
+            child: IgnorePointer(
+              child: Container(
+                width: 10,
+                height: 10,
+                decoration: BoxDecoration(
+                  color: AppColors.brand,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: _p.surface, width: 2),
+                ),
+              ),
+            ),
+          ),
       ],
     );
   }

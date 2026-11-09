@@ -197,13 +197,15 @@ void main() {
   });
 
   test('#449: „hallo", Frage und Öffnen sprechen Uhr, Kotlin und Dart gleich', () {
-    (bool, String?, String?, int?) hi(Object m) {
+    (bool, String?, String?, int?, String?) hi(Object m) {
       final h = watchHelloOf(m);
-      return (h.hello, h.id, h.bad, h.v);
+      return (h.hello, h.id, h.bad, h.v, h.ver);
     }
 
     final watch = File('garmin/source/TrailBuddyApp.mc').readAsStringSync();
     expect(watch, contains('"t" => "$kWatchHello"'));
+    // Die Fassung der Uhr-App (#500): gebaut aus garmin/VERSION.
+    expect(watch, contains('msg["ver"] = TbVersion.VERSION;'));
     expect(watch, contains('"$kWatchQuery".equals(t)'));
     // Die Antwort auf „hallo" beim Start (Betreiber 2026-11-06).
     expect(watch, contains('"$kWatchAnnounce".equals(t)'));
@@ -224,9 +226,15 @@ void main() {
     final io = File('lib/features/garmin/garmin_bridge_io.dart').readAsStringSync();
     expect(io, contains("call.method == 'device' && call.arguments == 'CONNECTED'"));
     expect(watchQuery, {'t': 'q'});
-    expect(hi({'t': 'hi', 'id': 'ab12', 'v': 2}), (true, 'ab12', null, 2));
-    expect(hi({'t': 'hi', 'v': 2}), (true, null, null, 2));
-    expect(hi({'t': 'hi', 'v': 2, 'bad': 'cd34'}), (true, null, 'cd34', 2));
+    expect(hi({'t': 'hi', 'id': 'ab12', 'v': 2}), (true, 'ab12', null, 2, null));
+    expect(hi({'t': 'hi', 'v': 2}), (true, null, null, 2, null));
+    expect(hi({'t': 'hi', 'v': 2, 'bad': 'cd34'}), (true, null, 'cd34', 2, null));
+    // Ab dieser Fassung versteht die Uhr das Fenster um ihren Stand (#500).
+    expect(hi({'t': 'hi', 'v': 2, 'ver': '1.3.0-dev'}), (true, null, null, 2, '1.3.0-dev'));
+    expect(watchKnowsWindow('1.3.0-dev'), isTrue);
+    expect(watchKnowsWindow('1.4.0'), isTrue);
+    expect(watchKnowsWindow('1.2.0'), isFalse);
+    expect(watchKnowsWindow(null), isFalse, reason: 'eine alte Uhr-App nennt keine Fassung');
     expect(watchHelloOf({'t': 'hi', 'v': 2}).rides, isEmpty);
     expect(watchHelloOf({'t': 'hi'}).v, isNull);
     // Welche Seite ist veraltet (#449)?
@@ -251,10 +259,17 @@ void main() {
     // Position vom Handy und „habe GPS" von der Uhr — dieselben Zeichen.
     expect(watch, contains('"$kWatchPhonePosition".equals(t)'));
     expect(watch, contains('phoneFix(d["la"], d["lo"])'));
-    expect(watch, contains('toPhone({"t" => "$kWatchHasGps"})'));
+    expect(watch, contains('toPhone({"t" => "$kWatchHasGps"'));
+    // Seit #500 meldet die Uhr ihren ersten Fix mit — dieselbe Schreibweise
+    // wie die Position des Handys, in 1e-5 Grad.
+    expect(watch, contains('"la" => Math.round(deg[0].toDouble() * 100000.0)'));
     expect(watchPositionOf(const LatLng(47.123456, 11.5)), {'t': 'p', 'la': 4712346, 'lo': 1150000});
     expect(watchHasGps({'t': 'g'}), isTrue);
     expect(watchHasGps({'t': 'ok'}), isFalse);
+    expect(watchFixOf({'t': 'g', 'la': 4712346, 'lo': 1150000}), const LatLng(47.12346, 11.5),
+        reason: 'die Uhr sendet 1e-5 Grad, mehr Genauigkeit hat sie nicht');
+    expect(watchFixOf({'t': 'g'}), isNull, reason: 'eine alte Uhr-App sagt nur „habe GPS"');
+    expect(watchFixOf({'t': 'ok', 'la': 1, 'lo': 2}), isNull);
     expect(WatchOpen.fromChannel('PROMPT_SHOWN_ON_DEVICE'), WatchOpen.prompted);
     expect(WatchOpen.fromChannel('APP_IS_ALREADY_RUNNING'), WatchOpen.running);
     expect(WatchOpen.fromChannel('APP_IS_NOT_INSTALLED'), WatchOpen.notInstalled);

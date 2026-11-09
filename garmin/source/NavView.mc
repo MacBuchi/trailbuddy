@@ -130,10 +130,14 @@ class NavView extends WatchUi.View {
     function setState(s as NavState, speed as Float?, phone as Boolean) as Void {
         _state = s;
         _phone = phone;
-        // Mit dem ersten Fix braucht es die Übersicht nicht mehr.
-        _ovX = null;
-        _ovY = null;
-        _ovHeads = null;
+        // Mit dem ersten Fix braucht es die Übersicht nicht mehr — außer man
+        // steht weiter abseits, als die Karte zeigen kann: dann passt die
+        // ganze Linie in den Kreis (#498), und die ändert sich nicht.
+        if (!beyondView(s.offM, _reach)) {
+            _ovX = null;
+            _ovY = null;
+            _ovHeads = null;
+        }
         _speed = speed;
         if (s.leftRoute) { _page = 0; }
         WatchUi.requestUpdate();
@@ -286,6 +290,16 @@ class NavView extends WatchUi.View {
         // Der Kreis der Anzeige hat Radius 120 um (120, 120), die Position
         // steht 8 px darunter: Weiter als 135 px reicht kein Strich.
         _reach = 135 * _mpp;
+        // Weiter, als die Karte je zeigen kann (#498, fēnix 5 2026-11-08:
+        // „12 km neben der Route“ und ein leeres Blatt): die ganze Linie
+        // eingepasst, sonst sieht man keinen Strich.
+        if (s.offRoute && beyondView(s.offM, _reach)) {
+            drawFit(dc, w, s);
+            mapBorder(dc, w);
+            drawRing(dc, w, s);
+            drawStatus(dc, w, STATUS_TOP_Y);
+            return;
+        }
         _sin = Math.sin(s.heading).toFloat();
         _cos = Math.cos(s.heading).toFloat();
 
@@ -300,13 +314,60 @@ class NavView extends WatchUi.View {
         } else {
             drawNextField(dc, s, w);
         }
-        // Der schwarze Rand, auf dem der Ring liegt (Karte innen bis MAP_R).
+        mapBorder(dc, w);
+        drawRing(dc, w, s);
+        drawStatus(dc, w, STATUS_TOP_Y);
+    }
+
+    //! Der schwarze Rand, auf dem der Ring liegt (Karte innen bis MAP_R).
+    hidden function mapBorder(dc as Dc, w as Number) as Void {
         dc.setColor(TbColors.FIELD, Graphics.COLOR_TRANSPARENT);
         dc.setPenWidth(w / 2 - TbRing.MAP_R + 2);
         dc.drawCircle(w / 2, w / 2, (w / 2 + TbRing.MAP_R) / 2 + 1);
         dc.setPenWidth(1);
-        drawRing(dc, w, s);
-        drawStatus(dc, w, STATUS_TOP_Y);
+    }
+
+    //! Ist die Linie weiter entfernt, als die Karte zeigen kann? Der
+    //! weiteste Zoom (4 m/px) reacht 135 px, also 540 m (#498).
+    static function beyondView(offM as Float, reachM as Float) as Boolean {
+        return offM > reachM;
+    }
+
+    //! Der Vorführmodus (#498) will sehen, welche Ansicht eine Szene nimmt.
+    (:demo) function reachM() as Float {
+        return _reach;
+    }
+
+    //! Die ganze Linie eingepasst, wenn man weiter abseits steht, als die
+    //! Karte je zeigen kann (#498): genordet, der nächste Punkt der Linie
+    //! als Warnpunkt, ein gestrichelter Strich in die Richtung, in der man
+    //! steht. Ohne eigenen Fix weiß man hier nichts von der Fahrtrichtung.
+    hidden function drawFit(dc as Dc, w as Number, s as NavState) as Void {
+        if (!overviewLine(dc, w)) { return; }
+        var ax = sx(s.rejoinX, s.rejoinY);
+        var ay = sy(s.rejoinX, s.rejoinY);
+        var dx = (s.x - s.rejoinX).toFloat();
+        var dy = (s.y - s.rejoinY).toFloat();
+        var len = Math.sqrt(dx * dx + dy * dy).toFloat();
+        dc.setColor(TbColors.WARNING, Graphics.COLOR_TRANSPARENT);
+        dc.setPenWidth(3);
+        dc.fillCircle(ax, ay, 4);
+        if (len > 1.0) {
+            var ux = (dx / len).toFloat();
+            var uy = (-dy / len).toFloat();  // auf dem Bildschirm läuft y nach unten
+            var lim = (TbRing.MAP_R - 4).toFloat();
+            lim = lim * lim;
+            for (var d = 8.0; d < 44.0; d += 9.0) {
+                var x2 = ax + ux * (d + 5);
+                var y2 = ay + uy * (d + 5);
+                var ex = x2 - w / 2;
+                var ey = y2 - w / 2;
+                if (ex * ex + ey * ey > lim) { break; }
+                dc.drawLine(ax + ux * d, ay + uy * d, x2, y2);
+            }
+        }
+        dc.setPenWidth(1);
+        drawOffField(dc, s, w);
     }
 
     // --- Aufzeichnung --------------------------------------------------------
@@ -441,11 +502,31 @@ class NavView extends WatchUi.View {
     //! [OVERVIEW_SEGS] Stücke — jeder [stride]-te Punkt (Watchdog).
     //! Eine Testroute (rel) liegt um ihren ersten Punkt wie jede andere.
     hidden function drawOverview(dc as Dc, w as Number) as Void {
+        if (!overviewLine(dc, w)) { return; }
+        field(dc, w, FIELD_Y, TbColors.FIELD);
+        dc.setColor(TbColors.MUTED, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(w / 2, FIELD_Y + 2, Graphics.FONT_XTINY, str(Rez.Strings.WaitGps), Graphics.TEXT_JUSTIFY_CENTER);
+        dc.setColor(TbColors.TEXT_ON_FIELD, Graphics.COLOR_TRANSPARENT);
+        numberLine(dc, w / 2, FIELD_Y + 28, meters(_route.lengthM), _route.climbLeft(0.0));
+        // Oben klein die Fassung der Uhr-App (Betreiber 2026-11-09): kurz
+        // statt Commit und Datum — der Stempel steht in der Konsole beim
+        // Bau, auf der Uhr steht, welche Fassung läuft (#500, #8).
+        dc.setColor(TbColors.MUTED_DARK, Graphics.COLOR_TRANSPARENT);
+        // Bei y 18 war der Kreis zu schmal (fēnix 5, 2026-11-05: halb
+        // abgeschnitten) — tiefer und kurz (`tool/garmin_build.sh`).
+        dc.drawText(w / 2, 56, Graphics.FONT_XTINY, 'v' + TbVersion.VERSION, Graphics.TEXT_JUSTIFY_CENTER);
+        mapBorder(dc, w);
+    }
+
+    //! Die Linie der Übersicht: Band, Trails, Schilder, Startpunkt. true,
+    //! wenn etwas da ist. [overviewPoints] hat die Bildpunkte einmal je
+    //! Route gerechnet; gezeichnet werden höchstens [OVERVIEW_SEGS] Striche.
+    hidden function overviewLine(dc as Dc, w as Number) as Boolean {
         if (_ovX == null) { overviewPoints(w); }
         var ox = _ovX as Array<Number>;
         var oy = _ovY as Array<Number>;
         var m = ox.size();
-        if (m < 2) { return; }
+        if (m < 2) { return false; }
         for (var pass = 0; pass < 2; pass++) {
             var width = pass == 0 ? BAND_W : BAND_W - 4;
             dc.setColor(pass == 0 ? TbColors.ROUTE_EDGE : TbColors.ROUTE, Graphics.COLOR_TRANSPARENT);
@@ -473,22 +554,7 @@ class NavView extends WatchUi.View {
         dc.fillCircle(x0, y0, 7);
         dc.setColor(TbColors.TEXT, Graphics.COLOR_TRANSPARENT);
         dc.fillCircle(x0, y0, 5);
-        field(dc, w, FIELD_Y, TbColors.FIELD);
-        dc.setColor(TbColors.MUTED, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(w / 2, FIELD_Y + 2, Graphics.FONT_XTINY, str(Rez.Strings.WaitGps), Graphics.TEXT_JUSTIFY_CENTER);
-        dc.setColor(TbColors.TEXT_ON_FIELD, Graphics.COLOR_TRANSPARENT);
-        numberLine(dc, w / 2, FIELD_Y + 28, meters(_route.lengthM), _route.climbLeft(0.0));
-        // Oben klein der Build-Stempel (Betreiber 2026-11-05): Commit und
-        // Datum des Builds — ob die neue .prg wirklich auf der Uhr ist.
-        dc.setColor(TbColors.MUTED_DARK, Graphics.COLOR_TRANSPARENT);
-        // Bei y 18 war der Kreis zu schmal (fēnix 5, 2026-11-05: halb
-        // abgeschnitten) — tiefer und kurz (`tool/garmin_build.sh`).
-        dc.drawText(w / 2, 56, Graphics.FONT_XTINY, str(Rez.Strings.BuildStamp), Graphics.TEXT_JUSTIFY_CENTER);
-        // Der schwarze Rand, auf dem der Ring liegt.
-        dc.setColor(TbColors.FIELD, Graphics.COLOR_TRANSPARENT);
-        dc.setPenWidth(w / 2 - TbRing.MAP_R + 2);
-        dc.drawCircle(w / 2, w / 2, (w / 2 + TbRing.MAP_R) / 2 + 1);
-        dc.setPenWidth(1);
+        return true;
     }
 
     //! Die Übersicht in Bildpunkten: Rahmen aus den Hüllen der Blöcke

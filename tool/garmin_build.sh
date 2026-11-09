@@ -69,11 +69,20 @@ cp -R "$ROOT/garmin/." "$OUT/src/"
 stamp="$(git -C "$ROOT" rev-parse --short HEAD 2>/dev/null || echo dev)"
 if ! git -C "$ROOT" diff --quiet HEAD -- garmin 2>/dev/null; then stamp="$stamp+"; fi
 stamp="$stamp $(date '+%d%m %H:%M')"
-cat > "$OUT/src/resources/strings/build.xml" <<STAMP
-<strings>
-    <string id="BuildStamp">$stamp</string>
-</strings>
-STAMP
+# Die Fassung steht auf der Uhr (kurz, kein Stempel) und im „hallo" ans
+# Handy: nur eine Uhr, die `ver` meldet, bekommt später das Fenster.
+version="$(cat "$ROOT/garmin/VERSION" 2>/dev/null || echo 0.0.0)"
+if [ "$store" != 1 ]; then version="$version-dev"; fi
+cat > "$OUT/src/source/Version.mc" <<VER
+//! Von tool/garmin_build.sh gebaut, nie von Hand: die Fassung der Uhr-App
+//! (garmin/VERSION), im Simulator- und Gerätebau mit „-dev". Sie steht
+//! klein oben in der Übersicht und im „hallo" ans Handy (#500).
+class TbVersion {
+    static const VERSION = "$version";
+    static const STAMP = "$stamp";
+}
+VER
+echo "Fassung $version (Stempel $stamp)" 
 if [ "$store" = 1 ]; then
   if [ "$mode" = test ] || [ "$mode" = demo ] || [ ${#route_args[@]} -gt 0 ]; then
     echo "--store geht nur allein oder mit --run." >&2

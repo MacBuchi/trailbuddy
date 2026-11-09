@@ -230,6 +230,10 @@ class TrailBuddyApp extends Application.AppBase {
     hidden function sayHello() as Void {
         _helloAt = System.getTimer();
         var msg = {"t" => "hi", "v" => PhoneRoute.PROTOCOL} as Dictionary;
+        // Die Fassung der Uhr-App (#500): das Handy sieht daran, ob die Uhr
+        // ein Fenster um ihren Stand versteht. Eine alte Uhr sagt nichts —
+        // dann geht alles wie bisher.
+        msg["ver"] = TbVersion.VERSION;
         var id = PhoneRoute.currentId();
         if (id != null) { msg["id"] = id; }
         var bad = CrashGuard.bad();
@@ -402,11 +406,15 @@ class TrailBuddyApp extends Application.AppBase {
             _stats.counting = false;
             vibrateShort();
             pauseMenu();
+            // Steht auf dem Handy (#499): die Uhr pausiert.
+            toPhone({"t" => "rp"});
         } else {
             _log.resume();
             _stats.counting = true;
             vibrateShort();
             _view.toast(str(Rez.Strings.RecStarted));
+            // Und weiter, sagt dem Handy (#499).
+            toPhone({"t" => "rr"});
         }
         _view.setRecord(_log.state(), _log.trailOpen());
     }
@@ -805,12 +813,16 @@ class TrailBuddyApp extends Application.AppBase {
         if (loc == null || info.accuracy < Position.QUALITY_USABLE) {
             return;
         }
+        var deg = loc.toDegrees();
         if (!_ownFix) {
             _ownFix = true;
-            // Nur „ich habe GPS", keine Koordinate (A3): Das Handy hört auf.
-            toPhone({"t" => "g"});
+            // „ich habe GPS" — seit #500 mit diesem Fix, damit das Handy Uhr
+            // und eigene Position vergleichen kann. Nur im Speicher (A3),
+            // nichts wird gespeichert, nichts geht an Garmin.
+            toPhone({"t" => "g",
+                "la" => Math.round(deg[0].toDouble() * 100000.0),
+                "lo" => Math.round(deg[1].toDouble() * 100000.0)});
         }
-        var deg = loc.toDegrees();
         var lat = deg[0].toDouble();
         var lon = deg[1].toDouble();
         var sensor = Sensor.getInfo();
@@ -911,6 +923,11 @@ class TrailBuddyApp extends Application.AppBase {
         var y = p[1] - sc[1] * Math.sin(h).toFloat();
         var s = _tracker.update(x - 3 * Math.sin(h).toFloat(), y - 3 * Math.cos(h).toFloat(), h, 6.0, null);
         s = _tracker.update(x, y, h, 6.0, null);
+        // #498 im Simulator: welche Ansicht die Szene nimmt, sagt die Konsole.
+        System.println("demo Szene " + (_demoScene - 1) + ": "
+            + (s.offRoute ? "abseits " : "auf der Linie ") + Math.round(s.offM) + " m, Sicht "
+            + _view.reachM() + " m → "
+            + (NavView.beyondView(s.offM, _view.reachM()) ? "eingepasste Übersicht" : "Kartenausschnitt"));
         // Zahlen für die Seiten: erfundene Höhe (steigt stetig) und Puls.
         _demoMs += 4000;
         var demoAlt = 700.0 + _demoMs / 1000.0 * 0.5;
@@ -1012,6 +1029,9 @@ class DemoScenes {
             out.add([r.lengthM * 0.5, 55.0]);
         }
         out.add([r.lengthM - 5.0, 0.0]);
+        // #498: weitab von der Linie — zeigt im Simulator die eingefasste
+        // Übersicht (weiter als `_reach`, deshalb `drawFit`).
+        out.add([r.lengthM * 0.5, 1200.0]);
         return out;
     }
 }

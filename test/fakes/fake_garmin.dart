@@ -28,8 +28,11 @@ class FakeGarminBridge implements GarminBridge {
   /// Antwortet die Uhr gleich auf jedes vollständige Senden der Route?
   bool autoStore = false;
 
+  /// Eine Plattform ohne Uhr (A9, Web): das SDK fehlt, niemand fragt.
+  bool unsupported = false;
+
   @override
-  bool get supported => true;
+  bool get supported => !unsupported;
 
   /// Hält `status` an, bis der Test es freigibt (das SDK startet langsam).
   Completer<void>? statusGate;

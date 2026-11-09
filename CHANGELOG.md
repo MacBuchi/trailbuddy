@@ -2,6 +2,21 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Die Uhr zeigt, was sie tut
+
+*Version 0.165.0, 2026-11-11*
+
+- Liegt die Linie mehr als ein halbes Kilometer entfernt, zeigt die Uhr jetzt
+  die ganze Route eingepasst im Kreis, den nächsten Wiedereinstieg als Punkt
+  und eine gestrichelte Linie dahin. Bisher blieb die Karte in diesem Fall leer
+  und es stand nur die Entfernung da.
+- Die Navigationsleiste auf dem Handy sagt, ob die Uhr verbunden ist und ob sie
+  aufzeichnet oder pausiert. Die Uhr meldet das selbst; das Handy fragt sie nicht ab.
+- Meldet die Uhr einen anderen Ort als das Handy — mehr als 200 Meter — wird der
+  Punkt in der Leiste rot, und die Leiste sagt es in Worten.
+- Die Uhr nennt in ihrer Begrüßung ihre eigene Version (1.3.0), damit das Handy
+  sieht, welche Fassung wirklich läuft.
+
 ## Buddys einladen: QR-Code statt Tippen
 
 *Version 0.164.0, 2026-11-09*

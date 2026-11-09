@@ -2,6 +2,22 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## The watch says what it is doing
+
+*Version 0.165.0, 2026-11-11*
+
+- When the line is more than half a kilometre away, the watch now shows the
+  whole route fitted into the circle, the next rejoin point as a dot and a
+  dashed line to it. Until now the map stayed empty in that case and only the
+  distance was shown.
+- The navigation bar on the phone says whether the watch is connected and
+  whether it is recording or paused. The watch reports this itself; the phone
+  never asks it.
+- If the watch reports a place more than 200 metres from the phone, the dot in
+  the bar turns red and the bar says it in words.
+- The watch names its own version in its greeting (1.3.0), so the phone can see
+  which build is actually running.
+
 ## Inviting buddies: a QR code instead of typing
 
 *Version 0.164.0, 2026-11-09*
