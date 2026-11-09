@@ -295,15 +295,20 @@ schickt die nächsten Stücke, wenn die Uhr ans Ende des Geladenen kommt.
   eingepasste Übersicht (#498) zeigt, was geladen ist; „bis zum Ziel",
   Länge und Höhenmeter kommen aus dem Kopf des ersten Stücks, nicht aus
   den Punkten. Der Kopf muss sie tragen.
-- **Was im Fenster steht (Betreiber, 2026-11-09):** dasselbe, was man auf
-  dem Handy um sich herum sieht — die **Trails der Gruppe** im
-  800-m-Umkreis. Sie liegen auf dem Handy schon im Speicher (die Liste
-  ist für die Karte geladen, `LatBox.near` findet sie), es braucht keine
-  neue Abfrage, nur die Übertragung. Vereinfacht auf **10 m**, höchstens
-  **800 Punkte** (rund 28 KB), sonst wird das Fenster dicker als die
-  Linie. Alles, was schon Teil der Linie oder eines Stummels ist, wird
-  nicht noch einmal geschickt. Namen und shields bekommt die Uhr nur für
-  die Trails, die wirklich berührt werden.
+- **Was im Fenster steht (Betreiber, 2026-11-09):** derselbe Ausschnitt,
+  den man auf dem Handy um sich herum sieht — nur als Linie, nicht als
+  Karte. Alles, was die Karte aus Vector zeichnet:
+  - die **Trails der Gruppe** im 800-m-Umkreis, in denselben Farben nach
+    Grad wie auf dem Handy; das Netz liegt unter der Route,
+  - die **Linie der Navigation** und ihre Stummel,
+  - Schilder mit Namen nur für Trails, die die Ansicht wirklich berührt.
+  Nicht hin können die Rasterkacheln und die Randlinien des Bestands:
+  dafür hat die Uhr keinen Platz (124 KB, MIP ohne Glättung). Sie liegen
+  auf dem Handy ohnehin nur als Gebietspakete; die Uhr zeichnet Linien.
+  Vereinfacht wird auf **10 m**, höchstens **800 Punkte** (rund 28 KB) —
+  sonst wird das Fenster dicker als die Linie. Was schon Teil der Linie
+  oder eines Stummels ist, wird nicht noch einmal geschickt. Ein neues
+  Fenster verdrängt das alte: die Uhr hält nie zwei.
 - **Was der Alarm auslöst (Betreiber, 2026-11-09):** von selbst. Weicht
   die Uhr ab, rechnet das Handy eine neue Linie ab der Position der Uhr
   (wie „Route umplanen", #464) und schickt sie. Die Uhr fragt kurz
@@ -333,7 +338,7 @@ schickt die nächsten Stücke, wenn die Uhr ans Ende des Geladenen kommt.
   noch Nachladen. Wer nie auf der Linie war, hat auch nichts verlassen.
 - **Offen noch:** die Punktgrenzen. Die Uhr hat 124 KB, davon sind
   ~60 KB Ring, Seiten und Code (Simulator 2026-11-09: 1000 Punkte mit
-  Ring und Seiten 94–99 KB). Route und Fenster together müssen in die
+  Ring und Seiten 94–99 KB). Route und Fenster zusammen müssen in die
   restlichen ~60 KB passen, und beim Empfang hält die Uhr ein Stück
   samt Zwischenspeicher. Messung 8.9 an der fēnix 5: wie viel Netz
   liegen real in 800 m, und wie viele Punkte passen, ohne dass die
