@@ -2,6 +2,21 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## Inviting buddies: a QR code instead of typing
+
+*Version 0.164.0, 2026-11-09*
+
+- „Invite buddies“ now shows a QR code that the phone next to you scans with
+  its camera. It carries only the name of the inviting buddy, no version
+  number — the code stays valid even when the app is downloaded from
+  somewhere else later.
+- The page the code opens explains the way: load the app, create an account,
+  open Buddys, search for the name, send the request. Anyone who already has
+  TrailBuddy needs no new app and searches right away.
+- On iPhone or on a computer the page shows the web app instead of the
+  Android file.
+- Without a scanner it works as before: share the invitation as text.
+
 ## Big offline areas load without straining the phone
 
 *Version 0.163.1, 2026-11-08*

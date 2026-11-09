@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<!--
+  Ziel jedes Einladung-QR (#496): eine Adresse, die nie ihre Version trägt.
+  Der QR nennt nur den Namen des einladenden Buddys; was hier unten geladen
+  wird, entscheidet diese Seite. Solange die App nicht im Play Store steht
+  (#39), ist die GitHub-APK der einzige Weg — später kommt ein Store-Button
+  dazu, ohne dass ein einziger QR neu gedruckt werden müsste.
+  Kein Tracking: die Seite fragt nur das neueste Release ab (api.github.com),
+  nichts wird gespeichert.
+-->
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TrailBuddy — App laden</title>
+  <style>
+    :root { color-scheme: light dark; }
+    body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; line-height: 1.6; max-width: 42rem; margin: 0 auto; padding: 2rem 1.25rem 4rem; color: #22302c; background: #f3f7f5; }
+    h1 { font-size: 1.6rem; margin-bottom: .25rem; }
+    .lead { color: #5b6e67; margin-top: 0; }
+    .note { background: #e2efea; border-left: 4px solid #1f6f5f; padding: .75rem 1rem; margin: 1.5rem 0; border-radius: 0 6px 6px 0; }
+    a { color: #1f6f5f; }
+    .btn { display: inline-block; background: #1f6f5f; color: #fff; padding: .7rem 1.1rem; border-radius: 8px; text-decoration: none; font-weight: 600; }
+    .btn.alt { background: transparent; color: #1f6f5f; border: 1px solid #1f6f5f; }
+    .sub { font-size: .85rem; color: #5b6e67; margin: .3rem 0 0; }
+    ol { margin: 1rem 0 0; padding-left: 1.2rem; }
+    li { margin: .3rem 0; }
+    .foot { margin-top: 2rem; font-size: .9rem; color: #5b6e67; }
+    @media (prefers-color-scheme: dark) { body { color: #e4ebe8; background: #1b211f; } .lead, .foot, .sub { color: #a7b8b1; } .note { background: #26302c; border-left-color: #5fa892; } a { color: #7fcbb5; } .btn { background: #5fa892; color: #101816; } .btn.alt { background: transparent; color: #7fcbb5; border-color: #7fcbb5; } }
+  </style>
+</head>
+<body>
+  <h1>TrailBuddy</h1>
+  <p class="lead">TrailBuddy merkt deine Touren, zeigt sie Buddys und plant die nächste Runde.</p>
+
+  <p class="note" id="invite" hidden></p>
+
+  <p><a class="btn" id="apk" href="https://github.com/MacBuchi/TrailBuddy/releases/latest">Android-App laden</a></p>
+  <p class="sub" id="apkInfo" hidden></p>
+  <p class="sub" id="otherDevice" hidden>TrailBuddy gibt es als App für Android. Auf iPhone, iPad oder am Rechner nutzt du die Web-App.</p>
+  <p><a class="btn alt" id="web" href="https://macbuchi.github.io/trailbuddy/">Web-App öffnen</a></p>
+
+  <ol id="steps">
+    <li>App installieren und ein Konto anlegen.</li>
+    <li>Unten <strong>Buddys</strong> öffnen und nach dem Namen suchen.</li>
+    <li>Verbindung anfragen — der andere bestätigt, und die Trails sind geteilt.</li>
+  </ol>
+
+  <p class="foot">
+    TrailBuddy ist schon installiert? Dann brauchst du keine neue App: einfach
+    <strong>Buddys</strong> öffnen und nach dem Namen suchen.
+    Die App kommt als APK von GitHub. Android fragt dabei, ob eine App aus
+    „bekannter Quelle" installiert werden darf — das ist der Hinweis, nicht
+    die Datei. <a href="datenschutz.html">Datenschutz</a> ·
+    <a href="impressum.html">Impressum</a>
+  </p>
+
+  <script>
+    // Der Name aus dem QR: „Jan hat dich eingeladen". Nur Text, keine Anfrage —
+    // die Verbindung entsteht erst, wenn der Buddys-Screen geöffnet wird.
+    const invite = new URLSearchParams(location.search).get('invite');
+    if (invite) {
+      const box = document.getElementById('invite');
+      box.hidden = false;
+      box.textContent = invite + ' hat dich zu TrailBuddy eingeladen.';
+      document.getElementById('steps').innerHTML =
+        '<li>App installieren und ein Konto anlegen.</li>' +
+        '<li>Unten <strong>Buddys</strong> öffnen und nach „' + invite + '" suchen.</li>' +
+        '<li>Verbindung anfragen — der andere bestätigt, und die Trails sind geteilt.</li>';
+    }
+
+    // Ohne Android nützt die APK nichts: dann steht die Web-App im Vordergrund.
+    if (!/Android/.test(navigator.userAgent)) {
+      document.getElementById('apk').hidden = true;
+      document.getElementById('otherDevice').hidden = false;
+    }
+
+    // Direkt zum APK-Asset des neuesten Releases, statt erst die Release-Seite
+    // zu durchsuchen. Der Workflow legt die APK als trailbuddy-v<version>.apk ab
+    // (siehe lib/core/update_check.dart: dieselbe Namensregel).
+    fetch('https://api.github.com/repos/MacBuchi/TrailBuddy/releases/latest')
+      .then((r) => r.json())
+      .then((release) => {
+        const apk = (release.assets || []).find((a) => /^trailbuddy-v[\w.-]+\.apk$/.test(a.name));
+        if (apk && apk.browser_download_url) {
+          document.getElementById('apk').href = apk.browser_download_url;
+          const info = document.getElementById('apkInfo');
+          info.textContent = apk.name + ' · ' + (release.published_at || '').slice(0, 10);
+          info.hidden = false;
+        }
+      })
+      .catch(() => {}); // Ohne Antwort bleibt der Link auf die Release-Seite.
+  </script>
+</body>
+</html>

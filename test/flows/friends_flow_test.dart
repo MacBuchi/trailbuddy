@@ -2,7 +2,9 @@
 // gegen das In-Memory-Backend, das die Freundschafts-Regeln spiegelt.
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 
+import 'package:trailbuddy/core/app_info.dart';
 import 'package:trailbuddy/models/trail.dart';
 
 import '../fakes/fake_backend.dart';
@@ -36,6 +38,22 @@ void main() {
     expect(backend.friendships.single.status, 'pending');
     expect(find.text('GESENDETE ANFRAGEN · 1'), findsOneWidget);
     await drainSnackbars(tester);
+  });
+
+  testWidgets('der Teilen-Knopf zeigt den QR mit dem eigenen Namen (#496)',
+      (tester) async {
+    final (backend, me) = loggedInBackend();
+    await pumpApp(tester, backend);
+    await openTab(tester, 'Buddys');
+
+    await tester.tap(find.byKey(const ValueKey('invite-button')));
+    await settle(tester);
+    expect(find.byType(QrImageView), findsOneWidget);
+    expect(find.text(AppInfo.inviteUrl(me.username)), findsOneWidget,
+        reason: 'der QR muss dieselbe Adresse tragen wie der geteilte Text');
+    await tester.tap(find.text('Schließen'));
+    await settle(tester);
+    expect(find.byType(QrImageView), findsNothing);
   });
 
   testWidgets('Die Suche findet über die EXAKTE Adresse, nicht über Teile',

@@ -2,6 +2,21 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Buddys einladen: QR-Code statt Tippen
+
+*Version 0.164.0, 2026-11-09*
+
+- Beim „Buddys einladen“ erscheint nun ein QR-Code, den das Telefon nebenan
+  mit der Kamera scannt. Darauf steht nur der Name des einladenden Buddys,
+  keine Versionsnummer — der Code bleibt gültig, auch wenn die App später
+  woanders heruntergeladen wird.
+- Die Seite, die der Code öffnet, erklärt den Weg: App laden, Konto anlegen,
+  Buddys öffnen, den Namen suchen, Anfrage senden. Wer TrailBuddy schon hat,
+  braucht keine neue App und sucht direkt.
+- Auf dem iPhone oder am Rechner zeigt die Seite die Web-App statt der
+  Android-Datei.
+- Ohne Scanner geht es wie bisher: die Einladung als Text teilen.
+
 ## Große Offline-Gebiete laden, ohne das Handy zu überlasten
 
 *Version 0.163.1, 2026-11-08*
@@ -2753,7 +2768,7 @@
 
 - **Kein Fehler mehr bei langen Trail-Namen**: Manche Apps (etwa Locus bei
   Spuren aus Trailforks) schreiben Namen wie „DREI%20EICHEN%20-%20…" in
-  die Datei. Die App macht daraus wieder „DREI EICHEN - …" und kürzt, was
+  die Datei. Die App macht daraus wieder „DREI EICHEN — …" und kürzt, was
   länger als 80 Zeichen ist, statt den Import abzubrechen.
 - **Namenlose Trails reparieren**: Ist ein Trail dadurch früher ohne Namen
   angelegt worden, importiere die Datei einfach noch einmal — der Name
