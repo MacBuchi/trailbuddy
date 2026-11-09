@@ -12,6 +12,7 @@ import '../features/auth/signup_screen.dart';
 import '../features/auth/username_step.dart';
 import '../features/changelog/changelog_screen.dart';
 import '../features/friends/conversation_screen.dart';
+import '../features/friends/invite_link.dart';
 import '../features/friends/friends_screen.dart';
 import '../features/friends/message_providers.dart';
 import '../features/help/help_screen.dart';
@@ -63,7 +64,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       .where((state) => state.event != AuthChangeEvent.passwordRecovery));
   ref.onDispose(refresh.dispose);
 
-  return GoRouter(
+  final router = GoRouter(
     initialLocation: '/',
     refreshListenable: refresh,
     redirect: (context, state) {
@@ -71,6 +72,12 @@ final routerProvider = Provider<GoRouter>((ref) {
       final onAuthPage = state.matchedLocation == '/login' ||
           state.matchedLocation == '/signup';
       if (!loggedIn) return onAuthPage ? null : '/login';
+      // Ein gescannter QR (#502): Wer schon angemeldet ist, landet bei den
+      // Buddys; wer erst loginen muss, kommt nach der Anmeldung dort an —
+      // der Name bleibt solange liegen, bis ihn `FriendsScreen` holt.
+      if (ref.read(inviteProvider) != null && state.matchedLocation != '/friends') {
+        return '/friends';
+      }
       if (onAuthPage) return '/';
       return null;
     },
@@ -186,6 +193,15 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
     ],
   );
+
+  // Die Einladung kann auch unterwegs ankommen: die App läuft schon, und
+  // jemand scannt den QR. Beim ersten Aufbau sorgt der Redirect oben dafür,
+  // dass Buddys offen ist; hier geht es um jeden Scan danach.
+  ref.listen(inviteProvider, (previous, next) {
+    if (next != null && next != previous) router.go('/friends');
+  });
+
+  return router;
 });
 
 class AppShell extends ConsumerWidget {

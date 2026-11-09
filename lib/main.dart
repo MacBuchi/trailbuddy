@@ -1,5 +1,7 @@
 import 'dart:async';
+import 'dart:io' show Platform;
 
+import 'package:app_links/app_links.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -15,6 +17,7 @@ import 'core/supabase_config.dart';
 import 'data/error_report_repository.dart';
 import 'data/exit_info_repository.dart';
 import 'data/exit_reporting.dart';
+import 'features/friends/invite_link.dart';
 import 'features/rides/ride_service.dart';
 
 Future<void> main() async {
@@ -75,6 +78,21 @@ Future<void> main() async {
   // stumm — PilzBuddy #465. `test/rides/ride_live_bridge_test.dart`
   // prüft, dass sie hier steht.
   initRideCommunication();
+
+  // Eine gescannte Einladung (#502): Android schickt die Adresse als Intent,
+  // der Browser hat sie in Uri.base. Vor runApp, damit der Router beim ersten
+  // Aufbau weiß, wohin er soll. Ohne Kanal oder ohne Link startet die App
+  // ganz normal auf der Karte.
+  if (kIsWeb) {
+    launchLink = Uri.base;
+  } else if (Platform.isAndroid) {
+    try {
+      launchLink = await AppLinks().getInitialLink();
+    } catch (_) {
+      // Der Kanal antwortet nicht (Plugin nicht registriert): die Einladung
+      // ist dann einfach nicht da, die App öffnet die Karte.
+    }
+  }
 
   registerFontLicenses();
 

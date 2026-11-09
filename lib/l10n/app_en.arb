@@ -866,7 +866,7 @@
   "buddysInviteText": "Join me on TrailBuddy – let’s share our trails!\nWeb app: {webUrl}\nAndroid app: {apkUrl}",
   "buddysInviteTextWithName": "Join me on TrailBuddy – let’s share our trails!\nWeb app: {webUrl}\nAndroid app: {apkUrl}\nSign up and search for me as “{username}” so we can connect.",
   "buddysInviteQrTitle": "Show the invitation",
-  "buddysInviteQrHint": "The other person scans the QR with their phone camera. Without TrailBuddy they land on the download page. Anyone who already has TrailBuddy opens the buddies screen and searches for your name.",
+  "buddysInviteQrHint": "The other person scans the QR with their phone camera. Without TrailBuddy they land on the download page. Anyone who already has TrailBuddy goes straight to the buddies screen, with your name in the search box.",
   "buddysInviteShareText": "Share as text",
   "buddysSearchLabel": "Find a buddy",
   "buddysSearchHint": "Username or exact email",
