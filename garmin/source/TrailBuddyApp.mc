@@ -230,6 +230,10 @@ class TrailBuddyApp extends Application.AppBase {
     hidden function sayHello() as Void {
         _helloAt = System.getTimer();
         var msg = {"t" => "hi", "v" => PhoneRoute.PROTOCOL} as Dictionary;
+        // Die Fassung der Uhr-App (#500): das Handy sieht daran, ob die Uhr
+        // ein Fenster um ihren Stand versteht. Eine alte Uhr sagt nichts —
+        // dann geht alles wie bisher.
+        msg["ver"] = TbVersion.VERSION;
         var id = PhoneRoute.currentId();
         if (id != null) { msg["id"] = id; }
         var bad = CrashGuard.bad();

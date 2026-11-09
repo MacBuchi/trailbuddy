@@ -508,12 +508,13 @@ class NavView extends WatchUi.View {
         dc.drawText(w / 2, FIELD_Y + 2, Graphics.FONT_XTINY, str(Rez.Strings.WaitGps), Graphics.TEXT_JUSTIFY_CENTER);
         dc.setColor(TbColors.TEXT_ON_FIELD, Graphics.COLOR_TRANSPARENT);
         numberLine(dc, w / 2, FIELD_Y + 28, meters(_route.lengthM), _route.climbLeft(0.0));
-        // Oben klein der Build-Stempel (Betreiber 2026-11-05): Commit und
-        // Datum des Builds — ob die neue .prg wirklich auf der Uhr ist.
+        // Oben klein die Fassung der Uhr-App (Betreiber 2026-11-09): kurz
+        // statt Commit und Datum — der Stempel steht in der Konsole beim
+        // Bau, auf der Uhr steht, welche Fassung läuft (#500, #8).
         dc.setColor(TbColors.MUTED_DARK, Graphics.COLOR_TRANSPARENT);
         // Bei y 18 war der Kreis zu schmal (fēnix 5, 2026-11-05: halb
         // abgeschnitten) — tiefer und kurz (`tool/garmin_build.sh`).
-        dc.drawText(w / 2, 56, Graphics.FONT_XTINY, str(Rez.Strings.BuildStamp), Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(w / 2, 56, Graphics.FONT_XTINY, 'v' + TbVersion.VERSION, Graphics.TEXT_JUSTIFY_CENTER);
         mapBorder(dc, w);
     }
 

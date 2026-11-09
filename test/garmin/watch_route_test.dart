@@ -197,13 +197,15 @@ void main() {
   });
 
   test('#449: „hallo", Frage und Öffnen sprechen Uhr, Kotlin und Dart gleich', () {
-    (bool, String?, String?, int?) hi(Object m) {
+    (bool, String?, String?, int?, String?) hi(Object m) {
       final h = watchHelloOf(m);
-      return (h.hello, h.id, h.bad, h.v);
+      return (h.hello, h.id, h.bad, h.v, h.ver);
     }
 
     final watch = File('garmin/source/TrailBuddyApp.mc').readAsStringSync();
     expect(watch, contains('"t" => "$kWatchHello"'));
+    // Die Fassung der Uhr-App (#500): gebaut aus garmin/VERSION.
+    expect(watch, contains('msg["ver"] = TbVersion.VERSION;'));
     expect(watch, contains('"$kWatchQuery".equals(t)'));
     // Die Antwort auf „hallo" beim Start (Betreiber 2026-11-06).
     expect(watch, contains('"$kWatchAnnounce".equals(t)'));
@@ -224,9 +226,15 @@ void main() {
     final io = File('lib/features/garmin/garmin_bridge_io.dart').readAsStringSync();
     expect(io, contains("call.method == 'device' && call.arguments == 'CONNECTED'"));
     expect(watchQuery, {'t': 'q'});
-    expect(hi({'t': 'hi', 'id': 'ab12', 'v': 2}), (true, 'ab12', null, 2));
-    expect(hi({'t': 'hi', 'v': 2}), (true, null, null, 2));
-    expect(hi({'t': 'hi', 'v': 2, 'bad': 'cd34'}), (true, null, 'cd34', 2));
+    expect(hi({'t': 'hi', 'id': 'ab12', 'v': 2}), (true, 'ab12', null, 2, null));
+    expect(hi({'t': 'hi', 'v': 2}), (true, null, null, 2, null));
+    expect(hi({'t': 'hi', 'v': 2, 'bad': 'cd34'}), (true, null, 'cd34', 2, null));
+    // Ab dieser Fassung versteht die Uhr das Fenster um ihren Stand (#500).
+    expect(hi({'t': 'hi', 'v': 2, 'ver': '1.3.0-dev'}), (true, null, null, 2, '1.3.0-dev'));
+    expect(watchKnowsWindow('1.3.0-dev'), isTrue);
+    expect(watchKnowsWindow('1.4.0'), isTrue);
+    expect(watchKnowsWindow('1.2.0'), isFalse);
+    expect(watchKnowsWindow(null), isFalse, reason: 'eine alte Uhr-App nennt keine Fassung');
     expect(watchHelloOf({'t': 'hi', 'v': 2}).rides, isEmpty);
     expect(watchHelloOf({'t': 'hi'}).v, isNull);
     // Welche Seite ist veraltet (#449)?
