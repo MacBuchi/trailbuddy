@@ -47,8 +47,8 @@
   </ol>
 
   <p class="foot">
-    TrailBuddy ist schon installiert? Dann brauchst du keine neue App: einfach
-    <strong>Buddys</strong> öffnen und nach dem Namen suchen.
+    TrailBuddy ist schon installiert? Dann brauchst du keine neue App: denselben
+    Code scanen und die App öffnet die Buddys mit dem Namen.
     Die App kommt als APK von GitHub. Android fragt dabei, ob eine App aus
     „bekannter Quelle" installiert werden darf — das ist der Hinweis, nicht
     die Datei. <a href="datenschutz.html">Datenschutz</a> ·
@@ -63,6 +63,11 @@
       const box = document.getElementById('invite');
       box.hidden = false;
       box.textContent = invite + ' hat dich zu TrailBuddy eingeladen.';
+      // Ist die App auf diesem Telefon, öffnet sich beim Scannen direkt der
+      // Buddys-Screen mit dem Namen (#502) — derselbe Link, nur gefangen vom
+      // Intent-Filter im Manifest. Die Web-App nimmt den Namen mit.
+      document.getElementById('web').href =
+        'https://macbuchi.github.io/trailbuddy/?invite=' + encodeURIComponent(invite);
       document.getElementById('steps').innerHTML =
         '<li>App installieren und ein Konto anlegen.</li>' +
         '<li>Unten <strong>Buddys</strong> öffnen und nach „' + invite + '" suchen.</li>' +

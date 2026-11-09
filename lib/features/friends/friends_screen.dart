@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -14,6 +16,7 @@ import '../../data/providers.dart';
 import '../../models/friendship.dart';
 import '../coach/coach.dart';
 import '../../l10n/l10n.dart';
+import 'invite_link.dart';
 import '../help/help_link.dart';
 import '../help/tab_tours.dart';
 import '../help/tour_examples.dart';
@@ -49,6 +52,12 @@ class _FriendsScreenState extends ConsumerState<FriendsScreen> {
   @override
   void initState() {
     super.initState();
+    // Eine gescannte Einladung (#502): der Name steht schon in der Suche, und
+    // die Suche läuft gleich. Hier nur gelesen — einen Provider darf man
+    // nicht während des Aufbaus ändern; gelöscht wird sie, sobald die Suche
+    // durch ist. Wer später wieder vorbeikommt, sucht nicht denselben Namen.
+    final invite = ref.read(inviteProvider);
+    if (invite != null) _applyInvite(invite);
     _unregisterScene = ref.read(coachRegistryProvider).registerScene(BuddysCoach.chat, () async {
       final id = _firstBuddyId;
       if (id == null || !mounted) return () {};
@@ -69,6 +78,18 @@ class _FriendsScreenState extends ConsumerState<FriendsScreen> {
     _unregisterScene?.call();
     _searchController.dispose();
     super.dispose();
+  }
+
+  /// Eine gescannte Einladung (#502) in die Suche setzen und sofort suchen.
+  ///
+  /// Der Name wird erst nach der Suche genommen: einen Provider während des
+  /// Aufbaus ändern darf man nicht, und ohne das Löschen suchte jeder spätere
+  /// Besuch denselben Namen.
+  void _applyInvite(String name) {
+    _searchController.text = name;
+    unawaited(_search().then((_) {
+      if (mounted) ref.read(inviteProvider.notifier).take();
+    }));
   }
 
   void _showMessage(String message) {
@@ -182,6 +203,12 @@ class _FriendsScreenState extends ConsumerState<FriendsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Kommt die Einladung erst, während die Buddys schon offen sind (#502),
+    // fällt sie in die laufende Suche.
+    ref.listen(inviteProvider, (previous, next) {
+      if (next == null || next == previous) return;
+      _applyInvite(next);
+    });
     final l = context.l10n;
     final theme = Theme.of(context);
     final palette = AppPalette.of(context);

@@ -4891,7 +4891,7 @@
   "@buddysInviteQrTitle": {
     "description": "Titel des Dialogs hinter dem Teilen-Knopf (#496)."
   },
-  "buddysInviteQrHint": "Der andere scannt den QR mit der Kamera seines Telefons. Ohne TrailBuddy landet er auf der Seite zum Laden. Wer TrailBuddy schon hat, öffnet darin den Buddys-Screen und sucht nach deinem Namen.",
+  "buddysInviteQrHint": "Der andere scannt den QR mit der Kamera seines Telefons. Ohne TrailBuddy landet er auf der Seite zum Laden. Hat er TrailBuddy schon, öffnet sich der Buddys-Screen direkt mit deinem Namen in der Suche.",
   "@buddysInviteQrHint": {
     "description": "Erklärung unter dem QR: was der Scan tut, je nachdem ob die App schon da ist."
   },

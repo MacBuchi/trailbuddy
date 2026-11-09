@@ -2,6 +2,19 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## A scanned QR opens the buddies screen
+
+*Version 0.166.0, 2026-11-11*
+
+- Scanning an invite QR with TrailBuddy already installed goes straight to the
+  buddies screen: the inviting name sits in the search box and the search runs
+  right away. Until now everyone landed on the download page and had to search
+  by hand.
+- Without TrailBuddy on the phone nothing changes: the page to download it.
+- No account yet? Sign in first — the invite waits until then.
+- The web app understands the same suffix: `?invite=` opens its buddies screen
+  with the name.
+
 ## The watch says what it is doing
 
 *Version 0.165.0, 2026-11-11*

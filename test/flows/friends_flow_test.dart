@@ -3,8 +3,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:trailbuddy/core/app_info.dart';
+import 'package:trailbuddy/features/friends/invite_link.dart';
 import 'package:trailbuddy/models/trail.dart';
 
 import '../fakes/fake_backend.dart';
@@ -37,6 +39,47 @@ void main() {
     expect(backend.friendships.single.requesterId, me.id);
     expect(backend.friendships.single.status, 'pending');
     expect(find.text('GESENDETE ANFRAGEN · 1'), findsOneWidget);
+    await drainSnackbars(tester);
+  });
+
+  // Der gescannte QR landet als Startadresse in `launchLink` (main liest sie,
+  // im Test setzt sie der Fall selbst) — dieselbe Adresse, die der
+  // Intent-Filter im Manifest fängt.
+  Uri scannedQr(String name) =>
+      Uri.parse('https://macbuchi.github.io/trailbuddy/install.html?invite=$name');
+
+  testWidgets('ein gescannter QR öffnet die Buddys mit dem Namen (#502)',
+      (tester) async {
+    final (backend, _) = loggedInBackend();
+    backend.addUser(username: 'lilli92');
+    launchLink = scannedQr('lilli92');
+    addTearDown(() => launchLink = null);
+    await pumpApp(tester, backend);
+    await settle(tester);
+
+    // Nichts ist zu tippen: die Suche läuft von selbst, das Ergebnis steht.
+    expect(find.text('Anfragen'), findsOneWidget,
+        reason: 'die Suche musste gleich laufen, nicht erst nach einem Tipp');
+    expect(find.text('lilli92'), findsWidgets);
+    await drainSnackbars(tester);
+  });
+
+  testWidgets('die Einladung überlebt die Anmeldung (#502)', (tester) async {
+    final backend = FakeBackend();
+    final me = backend.addUser(username: 'testrail');
+    backend.addUser(username: 'lilli92');
+    launchLink = scannedQr('lilli92');
+    addTearDown(() => launchLink = null);
+    await pumpApp(tester, backend);
+    await settle(tester);
+    // Wer noch kein Konto hat, landet zuerst beim Login — die Einladung
+    // bleibt solange liegen.
+    expect(find.text('Anfragen'), findsNothing);
+
+    backend.setCurrentUser(me, AuthChangeEvent.signedIn);
+    await settle(tester);
+    expect(find.text('Anfragen'), findsOneWidget,
+        reason: 'nach der Anmeldung müssen die Buddys mit dem Namen offen sein');
     await drainSnackbars(tester);
   });
 

@@ -8,6 +8,7 @@ import 'dart:io';
 import 'package:flutter/painting.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:trailbuddy/core/app_colors.dart';
+import 'package:trailbuddy/core/app_info.dart';
 
 void main() {
   final gradle = File('android/app/build.gradle.kts').readAsStringSync();
@@ -29,6 +30,22 @@ void main() {
     expect(manifest, contains('android.intent.category.BROWSABLE'));
     final dart = File('lib/data/auth_repository.dart').readAsStringSync();
     expect(dart, contains("'\${info.packageName}://login-callback'"));
+  });
+
+  test('die gescannte Einladung (#502) fängt Android ab', () {
+    // Manifest, QR-Adresse in Dart und das Parsing müssen dieselbe Adresse
+    // nennen: weicht eine ab, öffnet sich weiter der Browser — still.
+    expect(manifest, contains('android:scheme="https" android:host="macbuchi.github.io"'));
+    expect(manifest, contains('android:pathPrefix="/trailbuddy/"'));
+    expect(manifest, contains('android:query="invite"'),
+        reason: 'ohne query öffnet jeder Klick auf die Seite die App');
+    expect(AppInfo.inviteUrl('Jan'), startsWith('https://macbuchi.github.io/trailbuddy/'));
+    final dart = File('lib/features/friends/invite_link.dart').readAsStringSync();
+    expect(dart, contains("inviteHost = 'macbuchi.github.io'"));
+    expect(dart, contains("invitePathPrefix = '/trailbuddy/'"));
+    // Die Play-Variante fügt nichts hinzu: das Flavor-Manifest nimmt nur
+    // die Install-Berechtigung heraus, der Filter gilt für beide Builds.
+    expect(play.contains('intent-filter'), isFalse);
   });
 
   test('der Install-Kanal heißt in Kotlin und Dart gleich', () {

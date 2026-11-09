@@ -4,7 +4,7 @@ publish_to: 'none'
 
 # Beide Teile erhöhen (z. B. 0.1.0+1 → 0.1.1+2). Ein Bump auf main taggt und
 # baut ein Prerelease (release.yml); ohne Bump kein Release (Version Guard).
-version: 0.165.0+252
+version: 0.166.0+253
 
 environment:
   sdk: ^3.11.0
@@ -59,6 +59,12 @@ dependencies:
   maplibre_android: 0.3.7+1
 
   supabase_flutter: ^2.18.3
+  # Die gescannte Einladung (#502): Android liefert die Adresse als Intent.
+  # app_links kommt ohnehin schon mit (supabase_flutter nutzt dasselbe Paket
+  # für den Anmeldungs-Rücksprung) — direkt, weil `invite_link.dart` den
+  # Link selbst liest und der Linter eine transitive Abhängigkeit nicht
+  # erlaubt.
+  app_links: ^7.2.1
   flutter_riverpod: ^2.6.1
   go_router: ^18.0.2
   intl: ^0.20.2

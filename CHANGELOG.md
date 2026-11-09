@@ -2,6 +2,18 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Eingeladen per QR: die Buddys sind gleich offen
+
+*Version 0.166.0, 2026-11-11*
+
+- Wer den Einladungs-QR scannt und TrailBuddy schon hat, landet direkt bei den
+  Buddys — der Name des Einladenden steht in der Suche, und die Suche läuft
+  gleich. Bisher öffneten alle den Browser und mussten selbst suchen.
+- Ohne TrailBuddy auf dem Telefon bleibt es wie bisher: die Seite zum Laden.
+- Noch kein Konto? Erst anmelden, die Einladung wartet so lange.
+- Die Web-App versteht denselben Zusatz: `?invite=` öffnet dort die Buddys mit
+  dem Namen.
+
 ## Die Uhr zeigt, was sie tut
 
 *Version 0.165.0, 2026-11-11*

@@ -74,6 +74,19 @@
                 <category android:name="android.intent.category.BROWSABLE"/>
                 <data android:scheme="${applicationId}" android:host="login-callback"/>
             </intent-filter>
+            <!-- Eine gescannte Einladung (#502): Der QR trägt für alle
+                 dieselbe Adresse — die Installationsseite mit dem Namen. Hat
+                 das Telefon TrailBuddy, fängt dieser Filter die Adresse und
+                 die App öffnet die Buddys; hat es sie nicht, bleibt der
+                 Browser. Ohne `query` landete auch ein ganz normaler Klick
+                 auf macbuchi.github.io in der App. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="https" android:host="macbuchi.github.io"
+                      android:pathPrefix="/trailbuddy/" android:query="invite"/>
+            </intent-filter>
         </activity>
         <!-- Der EINE Foreground-Service der App (flutter_foreground_task):
              die Fahrt (`location`) und der Bereichs-Download (`dataSync`),
