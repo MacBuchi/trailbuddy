@@ -283,6 +283,61 @@ function farLineFitsTheView(logger as Logger) as Boolean {
 }
 
 (:test)
+//! #500: Die Uhr meldet ihren Stand nur jenseits ihrer Sicht, erst wenn sie
+//! die Linie einmal berührte, und dann nicht jedes Mal, sondern 300 m weiter.
+function driftReportsOnlyBeyondView(logger as Logger) as Boolean {
+    var reach = NavView.ZOOM_MPP[2] * 135.0;
+    var t = new NavTracker(TestRoutes.straightRoute());
+    // Anfahrt, die Linie nie berührt: nichts, auch 700 m weitab.
+    t.update(100.0, 700.0, null, 0.0, null);
+    Test.assert(t.driftM(reach) == null);
+    // Auf der Linie: scharf, aber kein Abstand.
+    t.update(100.0, 0.0, null, 0.0, null);
+    Test.assert(t.driftM(reach) == null);
+    // Hinaus über die Sicht: die erste Meldung.
+    t.update(100.0, 600.0, null, 0.0, null);
+    var d = t.driftM(reach);
+    Test.assert(d != null && d > 599.0 && d < 601.0);
+    // Beim Wiederkommen bleibt sie still, bis 300 m mehr dazwischen liegen.
+    Test.assert(t.driftM(reach) == null);
+    t.update(100.0, 850.0, null, 0.0, null);
+    Test.assert(t.driftM(reach) == null);
+    t.update(100.0, 950.0, null, 0.0, null);
+    d = t.driftM(reach);
+    Test.assert(d != null && d > 949.0 && d < 951.0);
+    // Zurück auf der Linie: die Prüfung beginnt von vorn.
+    t.update(100.0, 0.0, null, 0.0, null);
+    t.update(100.0, 600.0, null, 0.0, null);
+    Test.assert(t.driftM(reach) != null);
+    return true;
+}
+
+(:test)
+//! #501: Die Frage nach einer neuen Linie steht, bis START oder ZURÜCK sie
+//! beantworten — genommen wird sie, wenn niemand etwas tut.
+function asksUntilAnswered(logger as Logger) as Boolean {
+    var v = new NavView(TestRoutes.straightRoute(), new RideStats(0), new RideLog());
+    Test.assert(!v.asking());
+    v.askRoute(8000);
+    Test.assert(v.asking());
+    v.clearAsk();
+    Test.assert(!v.asking());
+    return true;
+}
+
+(:test)
+//! #501: Eine neue Linie fragt nur, wenn schon eine Fahrt läuft. Der Lader
+//! (wait != 0) und die freie Fahrt nehmen sie still, ohne Route gibt es
+//! nichts zu fragen.
+function asksOnlyWhileARideRuns(logger as Logger) as Boolean {
+    Test.assert(TrailBuddyApp.asksBeforeSwap(0, false, true));
+    Test.assert(!TrailBuddyApp.asksBeforeSwap(1, false, true));   // der Lader lädt
+    Test.assert(!TrailBuddyApp.asksBeforeSwap(0, true, true));    // freie Fahrt
+    Test.assert(!TrailBuddyApp.asksBeforeSwap(0, false, false));  // noch nichts geladen
+    return true;
+}
+
+(:test)
 function rideStatsCountsOnlyWhileMoving(logger as Logger) as Boolean {
     var st = new RideStats(2);
     // Stehen mit GPS-Zittern zählt nicht; dann 10 s lang 10 m je Sekunde.

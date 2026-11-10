@@ -87,6 +87,10 @@ class TrailBuddyApp extends Application.AppBase {
     //! zurück über Garmin Connect 5–7 s (eine kleine Nachricht 3,5 s je
     //! Richtung), also 8 s (Betreiber, am selben Tag).
     static const ANSWER_MS = 8000;
+    //! Wie lange die Uhr fragt, ob sie eine neue Linie nehmen soll (#501,
+    //! Konzept 2). Wer nichts tut, nimmt sie; START oder ZURÜCK lassen sie
+    //! liegen.
+    static const ASK_MS = 8000;
     //! So lange wartet das Beenden auf der Uhr höchstens darauf, dass
     //! Garmin Connect „beendet" abnimmt, bevor die App zugeht.
     static const END_WAIT_MS = 5000;
@@ -393,6 +397,7 @@ class TrailBuddyApp extends Application.AppBase {
     //! START: beginnen, anhalten (mit Menü) oder weitermachen.
     function startKey() as Void {
         if (_closing) { return; }
+        if (declineReplan()) { return; }
         var st = _log.state();
         if (st == RideLog.IDLE) {
             _log.start();
@@ -426,6 +431,7 @@ class TrailBuddyApp extends Application.AppBase {
             exitNow();
             return;
         }
+        if (declineReplan()) { return; }
         var st = _log.state();
         if (st == RideLog.PAUSED) {
             pauseMenu();
@@ -453,6 +459,21 @@ class TrailBuddyApp extends Application.AppBase {
         menu.addItem(new WatchUi.MenuItem(str(Rez.Strings.Keep), null, :keep, null));
         menu.addItem(new WatchUi.MenuItem(str(Rez.Strings.Discard), null, :drop, null));
         WatchUi.pushView(menu, new TrailMenuDelegate(), WatchUi.SLIDE_IMMEDIATE);
+    }
+
+    //! START oder ZURÜCK während der Frage nach einer neuen Linie (#501):
+    //! sie bleibt liegen. Die Stücke liegen schon im Speicher der Uhr — weg
+    //! damit, sonst läge beim nächsten Start die abgelehnte Linie vor der
+    //! alten. Die alte bleibt in der App, solange sie läuft.
+    hidden function declineReplan() as Boolean {
+        if (_pendingId == null || _swap == null) { return false; }
+        _swap.stop();
+        _swap = null;
+        _pendingId = null;
+        PhoneRoute.drop();
+        _view.clearAsk();
+        WatchUi.requestUpdate();
+        return true;
     }
 
     //! Das Menü der Pause: Weiter · Speichern · Verwerfen.
@@ -663,6 +684,14 @@ class TrailBuddyApp extends Application.AppBase {
         if (d instanceof Dictionary) { handle(d); }
     }
 
+    //! #501 (Konzept 2): Eine neue Linie während einer laufenden Fahrt will
+    //! gefragt sein. Beim Start, im Lader [_wait] und in der freien Fahrt
+    //! [_free] nimmt sie still; dieselbe Linie kommt nie hier an, sie kehrt
+    //! schon vorher zurück (gleiche Kennung).
+    static function asksBeforeSwap(waiting as Number, free as Boolean, ready as Boolean) as Boolean {
+        return waiting == 0 && !free && ready;
+    }
+
     //! Eine Nachricht vom Handy (auch aus dem Vorführmodus, ohne Bluetooth).
     function handle(d as Dictionary) as Void {
         var t = d["t"];
@@ -749,10 +778,21 @@ class TrailBuddyApp extends Application.AppBase {
         }
         // Kurz am Handgelenk: Die neue Route ist da (#449, 2026-11-05) —
         // dieselbe noch einmal bleibt still.
-        vibrateShort();
         _pendingId = id;
+        if (_swap != null) { _swap.stop(); }   // eine offene Frage früherer Linien
         var timer = new Timer.Timer();
         _swap = timer;
+        // Läuft schon eine Fahrt, fragt die Uhr erst (#501, Konzept 2): Route
+        // ab deiner Position? Wer nichts tut, nimmt sie nach ASK_MS; START
+        // oder ZURÜCK lassen sie liegen. Beim Start, im Lader und in der
+        // freien Fahrt nimmt sie still, wie bisher.
+        if (asksBeforeSwap(_wait, _free, _route.isReady())) {
+            vibrateShort();
+            _view.askRoute(ASK_MS);
+            timer.start(method(:swapRoute), ASK_MS, false);
+            return;
+        }
+        vibrateShort();
         timer.start(method(:swapRoute), 50, false);
     }
 
@@ -859,6 +899,16 @@ class TrailBuddyApp extends Application.AppBase {
         _stats.update(p[0], p[1], System.getTimer(), info.speed, alt, hr,
             s.offRoute ? -1 : _route.sectionAt(s.alongM));
         _view.setState(s, info.speed, false);
+        // #500: Die Uhr meldet ihren Stand, wenn sie ihn braucht — jenseits
+        // ihrer Sicht, und erst 300 m weiter als zuletzt. Kein Takt, das
+        // Handy fragt nie nach (Konzept 2).
+        var drift = _tracker.driftM(_view.reachM());
+        if (drift != null) {
+            toPhone({"t" => "d",
+                "la" => Math.round(lat * 100000.0),
+                "lo" => Math.round(lon * 100000.0),
+                "off" => Math.round(drift)});
+        }
     }
 
     //! Schon in Fahrt, aber kein START: einmal kurz vibrieren, oben steht
@@ -894,12 +944,17 @@ class TrailBuddyApp extends Application.AppBase {
 
     (:demo)
     function demoTick() as Void {
+        demoAskProbe();
+        if (_demoAskDone == 2 && _route.id.equals("demo-2") && _route.isReady()) {
+            demoSameAgain();
+        }
         if (_demoRx >= 0) {
             demoFeed();
             return;
         }
         if (!_route.isReady()) { return; } // lädt gerade (nach dem Wechsel)
-        System.println("demo frame " + _route.size() + " pts");
+        System.println("demo frame " + _route.size() + " pts, Linie " + _route.id
+            + (_view.asking() ? ", Frage nach neuer Linie steht" : ""));
         var scenes = DemoScenes.scenes(_route);
         var sc = scenes[_demoScene % scenes.size()];
         _demoScene++;
@@ -923,11 +978,14 @@ class TrailBuddyApp extends Application.AppBase {
         var y = p[1] - sc[1] * Math.sin(h).toFloat();
         var s = _tracker.update(x - 3 * Math.sin(h).toFloat(), y - 3 * Math.cos(h).toFloat(), h, 6.0, null);
         s = _tracker.update(x, y, h, 6.0, null);
-        // #498 im Simulator: welche Ansicht die Szene nimmt, sagt die Konsole.
+        // #498 und #500 im Simulator: welche Ansicht die Szene nimmt und ob
+        // die Uhr dem Handy ihren Stand melden würde, sagt die Konsole.
+        var drift = _tracker.driftM(_view.reachM());
         System.println("demo Szene " + (_demoScene - 1) + ": "
             + (s.offRoute ? "abseits " : "auf der Linie ") + Math.round(s.offM) + " m, Sicht "
             + _view.reachM() + " m → "
-            + (NavView.beyondView(s.offM, _view.reachM()) ? "eingepasste Übersicht" : "Kartenausschnitt"));
+            + (NavView.beyondView(s.offM, _view.reachM()) ? "eingepasste Übersicht" : "Kartenausschnitt")
+            + (drift == null ? ", keine Meldung" : ", Meldung d " + Math.round(drift) + " m"));
         // Zahlen für die Seiten: erfundene Höhe (steigt stetig) und Puls.
         _demoMs += 4000;
         var demoAlt = 700.0 + _demoMs / 1000.0 * 0.5;
@@ -949,6 +1007,39 @@ class TrailBuddyApp extends Application.AppBase {
             _demoRx = 0;
             _demoRound++;
         }
+    }
+
+    //! #501 ohne Tasten: eine Runde wird abgelehnt (START oder ZURÜCK),
+    //! eine stehen gelassen — die Konsole zeigt, was dabei herauskommt.
+    (:demo) hidden var _demoAskDone as Number = 0;
+    (:demo) hidden var _demoSameDone as Boolean = false;
+
+    (:demo)
+    function demoAskProbe() as Void {
+        if (!_view.asking() || _demoAskDone >= 2) { return; }
+        _demoAskDone++;
+        if (_demoAskDone == 1) {
+            declineReplan();
+            System.println("demo 501 ablehnen: Frage weg " + (!_view.asking())
+                + ", Linie bleibt " + _route.id
+                + ", Speicher " + (PhoneRoute.currentId() == null ? "leer" : PhoneRoute.currentId()));
+        } else {
+            System.println("demo 501 annehmen: Frage steht, Linie " + _route.id
+                + ", neue wartet als " + _pendingId);
+        }
+    }
+
+    //! #501, Fall 501.11: dieselbe Linie noch einmal — die Uhr fragt nicht,
+    //! es liegt nichts bereit.
+    (:demo)
+    function demoSameAgain() as Void {
+        if (_demoSameDone) { return; }
+        _demoSameDone = true;
+        handle({"t" => "r", "id" => _route.id, "p" => 0, "np" => 1,
+            "pts" => [10, 11], "sf" => [0], "ec" => [1], "sh" => [1], "secl" => 2, "trc" => []});
+        System.println("demo 501 dieselbe nochmal: Frage " + (_view.asking() ? "ja" : "nein")
+            + ", Linie " + _route.id + ", "
+            + (_pendingId == null ? "nichts bereit" : "bereit " + _pendingId));
     }
 
     //! Ein Stück der Testroute, wie `WatchRoute.parts` es schickte. Die

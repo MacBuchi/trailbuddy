@@ -109,6 +109,8 @@ class NavView extends WatchUi.View {
     //! Eine kurze Einblendung („Trail beginnt" …) bis [_toastUntil].
     hidden var _toast as String? = null;
     hidden var _toastUntil as Number = 0;
+    //! #501: Die Frage, ob die Uhr die neue Linie nimmt, bis [_askUntil].
+    hidden var _askUntil as Number = 0;
     static const TOAST_MS = 2500;
     //! Die Zeile der Aufzeichnung: oben auf der Karte, unten auf den
     //! Zahlenseiten (oben steht dort die Einheit).
@@ -214,6 +216,24 @@ class NavView extends WatchUi.View {
         _toast = text;
         _toastUntil = System.getTimer() + TOAST_MS;
         WatchUi.requestUpdate();
+    }
+
+    //! #501 (Konzept 2): Die Uhr fragt, ob sie die neue Linie nimmt. Wer
+    //! nichts tut, nimmt sie, wenn [ms] um sind; START oder ZURÜCK sagen
+    //! nein.
+    function askRoute(ms as Number) as Void {
+        _askUntil = System.getTimer() + ms;
+        WatchUi.requestUpdate();
+    }
+
+    //! Die Frage ist beantwortet.
+    function clearAsk() as Void {
+        _askUntil = 0;
+    }
+
+    //! Steht die Frage noch?
+    function asking() as Boolean {
+        return _askUntil > 0 && System.getTimer() < _askUntil;
     }
 
     function prevPage() as Void {
@@ -333,8 +353,10 @@ class NavView extends WatchUi.View {
         return offM > reachM;
     }
 
-    //! Der Vorführmodus (#498) will sehen, welche Ansicht eine Szene nimmt.
-    (:demo) function reachM() as Float {
+    //! Wie weit die Karte um die Position zeigt (#498, #500): 135 px je
+    //! Zoomstufe. Der Vorführmodus (#498) sieht darin, welche Ansicht eine
+    //! Szene nimmt.
+    function reachM() as Float {
         return _reach;
     }
 
@@ -399,6 +421,11 @@ class NavView extends WatchUi.View {
             dc.fillCircle(cx, y, 4);
         } else {
             pill(dc, cx, y, text, Graphics.FONT_XTINY, bg, fg);
+        }
+        if (asking()) {
+            pill(dc, cx, y == STATUS_TOP_Y ? 82 : 176, str(Rez.Strings.AskReplan),
+                Graphics.FONT_SMALL, TbColors.FIELD, TbColors.TEXT_ON_FIELD);
+            return;
         }
         var t = _toast;
         if (t == null) { return; }

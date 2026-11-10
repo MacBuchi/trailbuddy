@@ -3,6 +3,7 @@
     <string id="Loading">Lade Route</string>
     <string id="RouteComing">Route kommt</string>
     <string id="NavEnded">Navigation beendet</string>
+    <string id="AskReplan">Route ab deiner Position?</string>
     <string id="WaitGps">Warte auf GPS</string>
     <string id="RouteBroken">Route unbrauchbar</string>
     <string id="Arrived">ANGEKOMMEN</string>
