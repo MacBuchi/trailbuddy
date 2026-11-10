@@ -743,6 +743,16 @@ Uhr — die Brücke sitzt dort, nicht auf der Uhr.
    Vereinfachung), und wie viele Punkte Linie + Fenster + Ring zugleich
    in die 124 KB passen, ohne dass die Linie darunter leidet. Erst mit
    dem Befund stehen die Grenzen in Abschnitt 2.
+10. **Die Frage an der Uhr (#501, am Gerät offen):** Steht der Pill
+   „Route ab deiner Position?“ auf der fēnix 5 lesbar, lehnen START und
+   ZURÜCK die neue Linie wirklich — die alte bleibt, der Speicher ist
+   leer — und nimmt der Rahmen sie nach den 8 s? Im Simulator spielt
+   `tool/garmin_scenario.sh` das schon durch (Frage, Ablehnung, Annahme
+   nach der Frist, dieselbe Linie nochmal ohne Frage), und
+   `garmin/source/Tests.mc` hält die Bedingungen. Was fehlt: die Tasten
+   am Handgelenk, die MIP-Lesbarkeit der Frage in der Sonne und der Weg
+   über Garmin Connect, solange der Store nur 1.2.0 kennt (1.3.0 liegt
+   fertig als `build/garmin/trailbuddy.iq` bereit).
 
 ## 9. Umsetzung in Schritten (je ein PR)
 
