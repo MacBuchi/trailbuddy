@@ -145,32 +145,41 @@ einer echten Route (`--gpx`), eine Fahrt beginnt an der Haustür.
 
 Der Text kommt beim Hochladen einer neuen Fassung in das „What's new"-Feld.
 Die Versionsnummer im Formular ist die der Uhr-App aus `garmin/VERSION`, nicht
-die aus `pubspec.yaml`.
+die aus `pubspec.yaml`. Garmin nimmt kein Update mit derselben Nummer an: jede
+hochgeladene Fassung braucht eine höhere. Semver dabei — neue Funktion Minor
+(1.4.0), Fix und Feinschliff Patch (1.3.1); die Nummer steigt mit jedem Paket,
+auch wenn inhaltlich dasselbe drin steht.
 
-**1.3.0 (DE):**
-
-```
-- Die Uhr meldet dem Handy ihren Stand, wenn sie weiter von ihrer Linie
-  abseits fährt, als die Anzeige reicht. Das Handy plant die Route ab
-  dieser Position neu.
-- Bevor eine neue Linie übernimmt, fragt die Uhr: „Route ab deiner
-  Position?“ — START oder ZURÜCK lassen sie liegen, wer nichts tut, nimmt
-  sie nach acht Sekunden. Beim Start, beim Laden und in der freien Fahrt
-  übernimmt sie sie weiter still.
-- Dieselbe Linie, die schon in der Uhr liegt, fragt nicht noch einmal.
-- Kleine Fassung oben in der Übersicht: welche Uhr-App läuft.
-```
-
-**1.3.0 (EN):**
+**1.3.1 (DE)** — nur was seit 1.3.0 anders ist, das Alte steht schon in der
+Store-Beschreibung:
 
 ```
-- The watch tells the phone where it is when it drifts further off its
-  line than the display can see; the phone replans the route from there.
-- Before a new line takes over, the watch asks: “Route from your position?”
-  START or BACK decline it, doing nothing accepts it after eight seconds.
-  At the start, while loading and in free riding it still takes it quietly.
-- A line already stored in the watch is not asked about again.
-- The watch app version now shows small at the top of the overview.
+- Keine erfundene Testroute mehr im Paket: ohne Linie startet die Uhr in der
+  freien Fahrt — GPS an, die eigene Spur der letzten 25 Minuten dünn in Moos,
+  unten „Freie Fahrt“ mit Strecke, Minuten und Anstieg.
+- Hat das Handy kein Navigationsziel, sucht es den Trail, dessen Linie am
+  nächsten an der Uhr liegt (800 m Reichweite, mindestens 250 m lang), und
+  schickt sie als Linie; die Uhr nimmt sie still. Liegt nichts da, bleibt sie
+  bei ihrer eigenen Spur.
+- Driftet die Uhr von so einer Linie ab, sagt sie es dem Handy, und das schickt
+  den nächsten Trail in Reichweite — die Uhr fragt vorher, ob sie ihn nimmt.
+- Die gezeichnete Spur zeigt auch, was vor START oder in einer Pause gelaufen
+  ist; gespeichert wird weiterhin erst ab START.
+```
+
+**1.3.1 (EN):**
+
+```
+- The package ships no invented test route: with no line in the watch it starts
+  free riding — GPS on, its own track of the last 25 minutes drawn faint moss,
+  “Free riding” at the bottom with distance, minutes and climb.
+- When the phone has no navigation target it looks for the trail whose line is
+  nearest to the watch (800 m range, at least 250 m long) and sends it as a
+  line; the watch takes it quietly. Nothing in range, nothing sent.
+- When the watch drifts off such a line it tells the phone, and the phone sends
+  the next trail in range — the watch asks first whether it should take it.
+- The drawn track also shows what ran before START or during a pause; storage
+  still only begins at START.
 ```
 
 ## 6. Berechtigungen (falls der Store danach fragt)

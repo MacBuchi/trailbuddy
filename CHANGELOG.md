@@ -2,6 +2,22 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Die Uhr bekommt die nächste Linie, ohne dass jemand navigiert
+
+*Version 0.168.0, 2026-11-10*
+
+- **Freie Fahrt mit Linie:** Hat die Uhr keine Linie und das Handy kein
+  Navigationsziel, sucht es den Trail, dessen Linie am nächsten an der Uhr
+  liegt (800 m Reichweite, mindestens 250 m lang), und schickt sie. Liegt
+  nichts da, bleibt die Uhr bei ihrer eigenen Spur.
+- **Schon vor START** zählt die Uhr Strecke, Minuten und Anstieg; die Spur
+  der letzten 25 Minuten sieht man dünn in Moos. Gespeichert wird
+  weiterhin erst ab START.
+- **Driftet die Uhr** von so einer Linie ab, meldet sie ihren Stand, und das
+  Handy schickt den nächsten Trail in Reichweite — die Uhr fragt vorher.
+- **Die Uhr-App (1.3.1) enthält keine erfundene Testroute mehr:** ohne Linie
+  startet sie in der freien Fahrt.
+
 ## Die Uhr fragt, bevor eine neue Linie kommt
 
 *Version 0.167.0, 2026-11-11*
