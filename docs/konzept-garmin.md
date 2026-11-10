@@ -812,3 +812,97 @@ Uhr — die Brücke sitzt dort, nicht auf der Uhr.
   Abzweigungen sind Anzeige wie die Karte, kein Abbiegehinweis.
 - A13: große Schrift, MIP-Farben am Gerät geprüft.
 - A14: Texte der Uhr-App in beiden Sprachen.
+
+## 11. Bedienkonzept 2.0 (Vorschlag, 2026-11-10 — nicht entschieden)
+
+*Bis der Betreiber entscheidet (`docs/konzept-geraete.md`, E2), gelten
+Entscheidung 6 und Abschnitt 1. Entwurf im Designer („TrailBuddy Uhr
+2.0", Link im PR).*
+
+Was heute hakt (Stand 1.3.1, `garmin/source/TrailBuddyApp.mc`):
+
+- **ZURÜCK hat vier Bedeutungen** (`backKey`): Trail-Marke in der
+  Aufzeichnung, Menü in der Pause, „beenden?" vor START, und es lehnt
+  eine angebotene Route ab.
+- **START lehnt ab** (`declineReplan`): Während der Frage „Route ab
+  deiner Position?" lehnen START und ZURÜCK beide, nur Abwarten nimmt
+  an. An jeder anderen Stelle der Uhr heißt START „ja".
+- **Für alles Weitere gibt es keinen Ort**: Langes HOCH schaltet nur den
+  Zoom. Trails in der Nähe, eine andere Route, Buddys oder „zurück zum
+  Start" hätten keine Taste.
+
+Der Vorschlag:
+
+| Zustand | START | ZURÜCK / LAP | hoch · runter | langes HOCH |
+|---|---|---|---|---|
+| Bereit | Aufnahme starten | verlassen, fragt nach | Seite | **Aktionsmenü** |
+| Aufnahme läuft | Pause (Weiter · Speichern · Verwerfen) | Trail beginnt / endet | Seite | **Aktionsmenü** |
+| Pause | Weiter | Pause-Menü | Seite | **Aktionsmenü** |
+| Frage offen | **ja** | nein | Frage bleibt | — |
+| Menü oder Liste | wählen | eine Ebene zurück | blättern | — |
+
+- **Das Aktionsmenü** (ein `Menu2`): Zoom · Trails in der Nähe · Route
+  (neu ab hier, nächsten Trail überspringen, zurück zum Start, beenden)
+  · Gespeicherte Routen · Buddys. Was gerade nicht geht, fehlt.
+- **Fragen sehen immer gleich aus**: ein Schild mit ablaufender Frist,
+  „JA" steht neben START, „NEIN" neben ZURÜCK. Nach der Frist gilt ja —
+  wie heute (`ASK_MS`).
+- **Zoom von selbst**: nach Tempo und Abstand zum nächsten Trailkopf;
+  von Hand im Menü. Dann fehlt die Taste niemandem.
+- **Navigation ist eine Ebene, kein Modus**: Freie Fahrt, Linie in der
+  Nähe (#506) und Route sind derselbe Bildschirm mit mehr oder weniger
+  Inhalt. „Route beenden" steht im Menü und lässt die Aufzeichnung
+  laufen; „Speichern" beendet die Fahrt, nicht „die Navigation".
+- **Bereit zeigt schon den Umkreis** (#500): Vor START stehen die Trails
+  in der Nähe und die Wege dorthin auf der Karte, unten der nächste
+  Trail mit Weg und Anstieg.
+
+Gebaut wird das erst auf dem Ablaufkern aus Abschnitt 12 (T1) — sonst
+ist jede dieser Regeln wieder nur am Gerät zu prüfen.
+
+## 12. Teststrategie (Vorschlag, 2026-11-10)
+
+*Anlass (Betreiber): „Ich muss ziemlich viel selbst auf der realen
+Hardware testen … meine Erwartung ist eigentlich, dass alle
+Anwendungsfälle sauber abgetestet werden können."*
+
+Warum heute so viel am Gerät landet:
+
+- Die Unit-Tests prüfen Bausteine (`NavTracker`, `RideLog`,
+  `PhoneRoute`, `RideStats`). Der **Ablauf** — welche Taste in welchem
+  Zustand was tut, welche Frist läuft, was ans Handy geht — steht in
+  `TrailBuddyApp.mc` und ist nur über den Vorführmodus erreichbar
+  (`demoKeys`, `tool/garmin_scenario.sh` liest die Konsole).
+- Menüs und Tasten ließen sich im Simulator nicht von außen drücken
+  (`garmin/CLAUDE.md`, „Aufzeichnung an der Uhr"); in Garmins
+  Dokumentation fand sich dafür am 2026-11-10 auch kein Weg. Nicht
+  abschließend geklärt.
+- Die Fake-Uhr der Dart-Tests (`test/fakes/fake_garmin.dart`) antwortet
+  sofort und verliert nichts. Die Feldbefunde 8.2, 8.7 und 8.8 waren
+  aber Laufzeit und Verlust auf der Strecke über Garmin Connect.
+- Das Aussehen prüft niemand automatisch.
+
+Die Schritte, je ein PR:
+
+| Nr. | Was | Wo |
+|---|---|---|
+| T1 | **Ablaufkern ohne Gerät**: der Ablauf als Zustandsautomat, der Ereignisse nimmt (Taste, Fix, Nachricht, Zeit) und Wirkungen ausgibt (senden, vibrieren, Ansichtszustand, Menü). `TrailBuddyApp` reicht nur noch durch. Jeder Fall ist dann ein Ereignis-Skript im Unit-Test, auch Menüwahl und Fristen. | ☁️ bauen, 💻 Simulator |
+| T2 | **Ein Gesprächskatalog für beide Seiten**: `docs/watch_cases.json` bekommt Nachrichtenfolgen (hin, zurück, erwarteter Stand); dieselbe Datei treibt die Dart-Tests und erzeugte Monkey-C-Tests. | ☁️ |
+| T3 | **Fake-Uhr mit Kanalmodell**: Laufzeit je Nachricht, `SUCCESS` bei geschlossener App, Verlust, Abbruch mitten in der Übertragung — die gemessenen Werte aus Abschnitt 2 und 8. | ☁️ |
+| T4 | **Fahrtenschreiber**: Die Uhr hält die letzten Ereignisse (Taste, Zustand, Art der Nachricht, Zeit — keine Koordinaten, A7) und gibt sie mit der Fahrt ans Handy. Ein Befund am Gerät wird so zum Skript für T1. | ☁️ bauen, 📱 abnehmen |
+| T5 | **Aussehen**: die Maße der Ansicht (y 128, y 168, Ring, Spalten) aus einer Quelle für Monkey C und Dart; ein Dart-Abbild der Ansicht mit den 64 Farben als Golden-Test. Zugleich der Weg zu anderen Größen (218, 260 px). | ☁️ |
+| T6 | **Uhr-Tests in CI versuchen**: Für Unit-Tests reicht ein Wegwerf-Schlüssel; offen ist, ob SDK und Simulator ohne Anmeldung auf dem Runner laufen (Abschnitt 6). | ⚙️ |
+| T7 | **Messstand**: Simulator im Tethered-Modus gegen die Dev-App (Abschnitt 3), als Skript — deckt Brücke und Kotlin ab. | 💻 |
+
+Risiko von T1: Der Code der Uhr-App teilt sich 124 KB mit der Route.
+Der Ablaufkern verschiebt Code, er verdoppelt ihn nicht; gemessen wird
+vorher und nachher (`--demo`, Speicher in der Konsole).
+
+**Am Gerät bleibt danach**, was nur dort geht: Akku (8.3), Lesbarkeit in
+der Sonne (8.4), GPS im Wald (8.5), Speicher unter Last (8.6) und die
+echten Laufzeiten über Garmin Connect (8.2, 8.7) — Messungen, keine
+Fehlersuche.
+
+**Wann T1 als gelungen gilt**: Ein Ablauf, der heute nur am Gerät zu
+prüfen ist — Pause, Menü, „Verwerfen", Rückfrage —, läuft als Unit-Test,
+und eine Gegenprobe macht ihn rot.
