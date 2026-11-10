@@ -10,7 +10,7 @@ davon gilt, entscheidet der Betreiber in Abschnitt 0. Gebaut ist davon
 nichts.*
 
 Die Entwürfe dazu liegen im Designer („TrailBuddy Uhr 2.0", privat, Link
-im PR): Tastenkarte, acht Bildschirme der Uhr, drei des Handys.
+im PR): Tastenkarte, die Bildschirme der Uhr, vier des Handys.
 
 ## 0. Offene Entscheidungen des Betreibers
 
@@ -43,8 +43,9 @@ Daraus die Aufstellungen, die es geben soll:
   wartet aufs Handy (heute: `RideLog`).
 - **Handy in der Tasche, Uhr am Lenker oder Arm.** Das Handy plant und
   plant um, die Uhr zeigt und zeichnet auf. Lage misst niemand (#491).
-- **Handy am Lenker.** Wie heute: Planer, Anzeige, Aufzeichner und
-  Lagesensor in einem.
+- **Handy am Rad** (Lenker oder Rahmen). Wie heute: Planer, Aufzeichner
+  und Lagesensor in einem; am Lenker auch Anzeige, am Rahmen zeigt die
+  Uhr.
 - **Handy in der Tasche, Sensor am Rahmen.** Das Handy liest den Sensor
   über Bluetooth; ein Display am Sensor ist eine zweite Anzeige.
 - **Uhr und Sensor ohne Handy.** Erst ab fēnix 5 Plus möglich
@@ -113,25 +114,55 @@ Nicht geprüft: Abtastraten und Genauigkeit des Kreisels einer fēnix 5
 Plus, und ob die Erkennung dort in den Speicher passt. Das wäre der
 Inhalt des Experiments E6.
 
-## 5. Handy: ein Einstieg „Fahrt"
+## 5. Handy: Planen und Losfahren — abgeglichen mit der App
 
-Heute gibt es den Aufnahmeknopf auf der Karte, den Planer mit vielen
-Einstiegen (`konzept-routing.md` 10.3), das Startblatt der Navigation
-mit drei Schaltern und zwei getrennte Enden (9.4: „Beim Beenden der
-Navigation läuft die Aufzeichnung weiter; umgekehrt …"). Vorschlag:
+*Stand 0.168.0, angesehen am 2026-11-10 im Test-Harness (echte
+Oberfläche, Schriften und Blätter; die Karte ist dort leer): Karte,
+Planer-Leiste, Parameter, Liste, Ergebnis, Start-Blatt, Folgeansicht mit
+Trail-Werten, Aufzeichnung und „Fahrt beendet". Nicht am Gerät.*
 
-- **Ein Blatt „Fahrt"**: Ziel (frei · Trail · Route · Runde), womit man
-  fährt (Uhr, Handy in der Tasche oder am Lenker, später Sensor, Buddys),
-  ein Knopf „Fahrt starten". Der Planer bleibt, wie er ist — er ist der
-  Weg zu „Route" und „Runde".
-- **Eine Fahrtleiste**, solange die Fahrt läuft: Zeit, Strecke,
-  Höhenmeter, der Stand der Uhr (heute `_WatchBadge`), der nächste Trail.
-- **Ein Ende**: Zusammenfassung mit den gefahrenen und den an der Uhr
-  markierten Trails, dann das Zerlege-Blatt.
+### 5.1 Was heute hakt
 
-Dieser Teil ist aus Konzept und Design-README abgeleitet, nicht aus der
-laufenden App; vor einem Bau gehört eine Durchsicht der echten
-Bildschirme dazu.
+| Wo | Befund |
+|---|---|
+| Karte | Fünf runde Knöpfe ohne Beschriftung; „Planen" (Gabel-Symbol) und „Aufzeichnen" (Lime-Punkt) erklären sich nicht, und nichts sagt, dass beide zu einer Fahrt gehören. |
+| Planer-Leiste | Neun Symbole ohne Wort (Start, Zwischenpunkt, Parameter, Liste, Gebiet +, Gebiet −, Auswahl leeren, Rechnen, Schließen). Der eine Knopf, auf den alles zuläuft, ist ein Symbol unter acht anderen. |
+| Runde oder Route | Die wichtigste Wahl steht im Parameter-Blatt unter vier Reglern und heißt „Ende der Fahrt" (`konzept-routing.md` 10.2 nennt das selbst). In der Leiste ist sie nicht zu sehen. |
+| Parameter | Ein Blatt über drei Bildschirmhöhen: Start, Rad, vier Regler, Ende, Zwischenpunkte, vier Schalter, Online-Ergänzen, Erklärtext. Was man jedes Mal anfasst (Zeit, Höhenmeter), steht neben dem, was man einmal einstellt. |
+| Ergebnis | Die Summe bricht als ein Satz in Mono über zwei Zeilen; „Navigieren" öffnet ein ZWEITES Blatt mit Schaltern und dem eigentlichen Startknopf — zwei Bestätigungen bis zur Fahrt. |
+| Meldungen | „… dazugenommen · Rückgängig" liegt über dem unteren Ende der Leiste und über „Meine Position". |
+| Fahrt läuft | Navigation und Aufzeichnung haben getrennte Enden (9.4); „Beenden" in der Folgeansicht beendet nur die Navigation. „Trail beginnt" ist eine Fahne ohne Wort. |
+
+Was gut ist und bleibt: die Folgeansicht (dunkle Karten, Band, Kacheln
+AIRTIME · MAX G · WHEELIE · STOPPIE), das Ergebnis über der Karte, Tipp
+auf den Trail als Auswahl, die Regeln aus 10.4/10.5.
+
+### 5.2 Vorschlag (Entwürfe im Designer)
+
+- **Ein Kopf im Planer** statt des Blatts für das Wichtigste: oben
+  „Runde | Route zu einem Ziel", darunter eine Zeile mit dem Budget
+  („ab Standort · 3 h · 800 hm · Bio") und „Anpassen".
+- **Die Leiste trägt nur, was man auf der Karte tut**, mit Wort: Start,
+  Punkt, Gebiet, Liste (bei „Route" dazu Ziel). „Leeren" und der Zähler
+  stehen unten bei der Auswahl.
+- **Ein Knopf mit Wort**: unten „Runde rechnen" / „Route rechnen", dort,
+  wo danach das Ergebnis steht.
+- **„Anpassen" in zwei Stufen**: Zeit, Höhenmeter, Rad sofort; Wanderweg,
+  Radius, Vorlieben und Online-Ergänzen unter „Feinheiten", eingeklappt.
+- **Ergebnis und Start in einem**: Summe als vier Kacheln, Profil, die
+  gemerkten Schalter als Chips (Aufzeichnen, Uhr, Bildschirm), EIN Knopf
+  „Fahrt starten". Speichern, „Auf die Uhr" (E3) und GPX darunter.
+- **Fahrt läuft**: die heutige Folgeansicht, dazu eine Zeile mit dem
+  Stand (Aufnahme, Uhr, Sprünge an) und „Trail beginnt" als Knopf. Ein
+  Ende „Fahrt beenden", das fragt, wenn nur die Navigation enden soll.
+- **Wo das Handy steckt**, fragt die App nicht dreifach: „am Rad" (Lenker
+  oder Rahmen — die Halterung lernt die Fusion ohnehin selbst,
+  `FusionMount`) oder „in der Tasche". Nur am Rad gibt es Sprünge und
+  Wheelies (#491), und nur dann zeigt die Uhr ihr Zeichen
+  (`konzept-garmin.md` 11).
+
+Die Regeln aus `konzept-routing.md` 10.4/10.5 bleiben; kommt der Kopf,
+ändern sich dort 4 und 10.2 im selben PR.
 
 ## 6. Buddys unterwegs — „Gruppenfahrt" (E4, nicht entschieden)
 
@@ -174,7 +205,8 @@ Kommt es, ändern sich im selben PR `anforderungen.md` (A1, A3, A6),
 1. Testbarkeit der Uhr-App (`konzept-garmin.md` 12, T1–T5).
 2. Bedienkonzept 2.0 der Uhr (`konzept-garmin.md` 11), darauf gebaut.
 3. Umkreis (#500) und Routenablage (E3).
-4. Der Einstieg „Fahrt" am Handy (Abschnitt 5).
+4. Planer-Kopf und „Ergebnis und Start in einem" am Handy (Abschnitt 5)
+   — unabhängig von der Uhr, kann parallel zu 1 laufen.
 5. Schnittstelle „Begleitgerät" (Abschnitt 2), wenn das zweite Gerät
    wirklich kommt — nicht vorher.
 6. Lagesensor (E5), danach E6; Buddys (E4) nach der Entscheidung.

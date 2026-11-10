@@ -857,6 +857,25 @@ Der Vorschlag:
   in der Nähe und die Wege dorthin auf der Karte, unten der nächste
   Trail mit Weg und Anstieg.
 
+- **Sprünge und Wheelies ohne neue Seite** (Betreiber, 2026-11-10:
+  „eine kleine Info … falls sauber aktiviert. Aber nicht zu viele
+  Screens"). Heute gibt es die vierte Seite „Sprünge" und eine Zeile in
+  der Zusammenfassung (9.2); beides zeigt Bestwerte, und nur, was das
+  Handy bei OFFENER App meldet. Was fehlt, ist der Moment und der Stand:
+  - **Ein Zeichen am Rand der Karte**, solange das Handy erkennt UND
+    seine Halterung gelernt hat (`FusionLive.mountReady`). Ohne beides
+    fehlt es — die Uhr behauptet nie eine Erkennung, die nicht läuft.
+  - **Ein Hinweis im Fußfeld für 3 s** („AIR 0,9 s", „WHEELIE 12 m"),
+    derselbe Platz wie das Schild einer Frage, danach wieder der Trail.
+    Eine Frage geht vor.
+  - **Keine fünfte Seite.** Die Seite „Sprünge" bleibt, wie sie ist, und
+    nur, wenn die Erkennung läuft.
+  Voraussetzung am Handy: Die Erkennung muss auch aus dem Dienst melden,
+  nicht nur an die offene App — bei gesperrtem Bildschirm kommt heute
+  nichts nach. Im Protokoll ist es ein Feld im Stand (`on`) und eine
+  Nachricht je Ereignis; bei ~3,5 s Laufzeit ist der Hinweis ein
+  Nachklang, keine Echtzeit. Das gehört in den Gesprächskatalog (T2).
+
 Gebaut wird das erst auf dem Ablaufkern aus Abschnitt 12 (T1) — sonst
 ist jede dieser Regeln wieder nur am Gerät zu prüfen.
 
