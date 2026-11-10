@@ -26,6 +26,7 @@ import '../../core/errors.dart';
 import '../../core/line_geometry.dart' show LatBox;
 import '../../core/settings.dart';
 import '../../core/stall_watch.dart';
+import '../../models/trail.dart';
 import '../profile/profile_providers.dart' show riderProfileProvider;
 import '../rides/airtime_live.dart';
 import '../rides/ride_providers.dart' show rideProvider;
@@ -37,7 +38,9 @@ import '../routing/planning_graph.dart' show loadPlanningGraph;
 import '../routing/road_graph_loader.dart' show tilesAlong;
 import '../trails/terrain_heights.dart';
 import '../trails/trail_elevation.dart' show ElevationProfile;
+import '../trails/trail_providers.dart' show trailsProvider;
 import 'garmin_bridge.dart';
+import 'watch_free.dart' show nearestTrailLine, freeSections;
 import 'watch_ride_inbox.dart';
 import 'watch_branches.dart';
 import 'watch_route.dart';
@@ -172,8 +175,13 @@ class WatchSync extends Notifier<WatchSyncState> {
   Map<String, Object>? _lastBests;
   bool _bests = false;
 
-  /// Folgt die Uhr der Navigation ([follow])?
+  /// Folgt die Uhr dem Handy ([follow])? An heißt: Diese Uhr bekommt Routen
+  /// — die der Navigation, oder in der freien Fahrt die nächste Linie (#484).
   bool _follow = false;
+
+  //! Die Route, die die Uhr hat (aus ihrem „hallo“). null, wenn sie keine
+  //! hat — dann fragt sie nach einer (#484, freie Fahrt).
+  String? _watchRouteId;
 
   /// Die Linie der Navigation, für die zuletzt gerechnet wurde.
   List<LatLng>? _line;
@@ -199,6 +207,14 @@ class WatchSync extends Notifier<WatchSyncState> {
   /// Die Uhr hat eigenes GPS ([kWatchHasGps]); bis dahin geht die Position
   /// des Handys im Takt [kWatchPositionEvery].
   bool _gps = false;
+  //! Der Stand, den die Uhr zuletzt meldete (#484, freie Fahrt).
+  LatLng? _watchFix;
+  //! Eine Linie für die freie Fahrt ging schon raus — nicht jede Nachricht
+  //! der Uhr rechnet neu.
+  bool _freeLine = false;
+  //! Welcher Trail der Uhr in der freien Fahrt zuletzt ging — derselbe
+  //! bleibt, auch wenn die Uhr weiter driftet.
+  String? _freeTrailId;
   Timer? _positionTimer;
   int _positionTicks = 0;
 
@@ -261,6 +277,9 @@ class WatchSync extends Notifier<WatchSyncState> {
     ref.listen(rideProvider, (previous, next) {
       if (previous != null && next == null) _bests = false;
     });
+    // Die Uhr redet auch ohne Navigation: in der freien Fahrt fragt sie nach
+    // einer Linie (#484), und das Handy antwortet mit dem Trail in Reichweite.
+    _answers ??= ref.read(garminBridgeProvider).messages.listen(_onAnswer);
     // Jede neue Linie der Navigation geht hinterher; das Ende der
     // Navigation beendet das Folgen.
     ref.listen(navigationProvider, (_, next) {
@@ -337,6 +356,10 @@ class WatchSync extends Notifier<WatchSyncState> {
     _prepared = null;
     _again = false;
     _gps = false;
+    _watchFix = null;
+    _freeLine = false;
+    _freeTrailId = null;
+    _watchRouteId = null;
     _ackTimer?.cancel();
     _nudgeTimer?.cancel();
     _stopPositions();
@@ -504,7 +527,9 @@ class WatchSync extends Notifier<WatchSyncState> {
     }
     if (watchHasGps(message)) {
       _gps = true;
+      _watchFix = watchFixOf(message);
       _stopPositions();
+      _offerFreeLine(_watchFix);
       return;
     }
     final error = watchErrorOf(message);
@@ -527,7 +552,15 @@ class WatchSync extends Notifier<WatchSyncState> {
   /// schon, gilt sie als gespeichert; sonst geht die aktuelle. Eine neu
   /// gestartete Uhr-App hat ihr GPS noch nicht.
   void _onHello(String? id, String? bad, int? v, String? ver) {
-    if (!_follow) return;
+    if (!_follow) {
+      // Keine Navigation auf dem Handy: Nur die Uhr ohne Linie bekommt eine —
+      // die nächste in Reichweite (#484). Sonst bleibt sie in Ruhe.
+      _watchRouteId = id;
+      _watchVer = ver;
+      if (id == null) _offerFreeLine(_watchFix);
+      return;
+    }
+    _watchRouteId = id;
     _watchVer = ver;
     _outdated = watchOutdatedOf(v);
     _gps = false;
@@ -543,6 +576,9 @@ class WatchSync extends Notifier<WatchSyncState> {
       // Die Uhr wartet beim Start auf eine Antwort: Es kommt eine, nur
       // noch nicht fertig gerechnet.
       unawaited(bridge.send([watchAnnounceOf(null, 0)]));
+      // Hat die Uhr gar keine Route und das Handy keine Navigation, fährt
+      // sie frei: der nächste Trail in Reichweite geht an sie (#484).
+      if (id == null) _offerFreeLine(_watchFix);
       return;
     }
     if (id == route.id) {
@@ -558,6 +594,24 @@ class WatchSync extends Notifier<WatchSyncState> {
     unawaited(_push());
   }
 
+  /// Die Uhr hat keine Linie, das Handy keine Navigation: die nächste
+  /// Trail-Linie in Reichweite geht an sie (#484, Konzept 2). Liegt nichts
+  /// da, bleibt die Uhr bei ihrer eigenen Spur — und eine neue Linie bringt
+  /// erst die Navigation oder die Driftmeldung der Uhr.
+  void _offerFreeLine(LatLng? at) {
+    if (at == null || _freeLine || _route != null || _pushing) return;
+    if (_watchRouteId != null) return; // Die Uhr hat schon eine Linie.
+    // Das Handy versorgt diese Uhr von nun an mit Linien.
+    if (ref.read(navigationProvider) != null) return;
+    final trails = ref.read(trailsProvider).valueOrNull ?? const <Trail>[];
+    final found = nearestTrailLine(trails, at);
+    if (found == null) return;
+    _follow = true;
+    _freeLine = true;
+    _freeTrailId = found.trail.id;
+    unawaited(_show(found.points, freeSections(found.trail, found.points)));
+  }
+
   /// #501 (Konzept 2): Die Uhr meldet, dass sie neben ihrer Linie fährt. Das
   /// Handy rechnet sie ab ihrem Stand um (wie Route umplanen, #464) und
   /// schickt die neue Linie — die Uhr-App ab 1.3.0 fragt vorher, ob sie sie
@@ -565,7 +619,17 @@ class WatchSync extends Notifier<WatchSyncState> {
   /// Gerechnet wird erst ab der Schwelle der Seite Navigation im Profil.
   void _replanForWatch(LatLng at, double offM) {
     if (!_follow || !watchKnowsAsk(_watchVer) || _replanRunning) return;
-    if (ref.read(navigationProvider) == null) return;
+    if (ref.read(navigationProvider) == null) {
+      // Freiheit statt Navigation: die Uhr fährt ohne Ziel. Liegt neben
+      // ihrer Linie ein anderer Trail, geht der an sie (#484).
+      _watchFix = at;
+      final trails = ref.read(trailsProvider).valueOrNull ?? const <Trail>[];
+      final found = nearestTrailLine(trails, at);
+      if (found == null || found.trail.id == _freeTrailId) return;
+      _freeTrailId = found.trail.id;
+      unawaited(_show(found.points, freeSections(found.trail, found.points)));
+      return;
+    }
     if (offM < ref.read(navReplanOfferDistanceProvider)) return;
     _replanRunning = true;
     unawaited(ref.read(navigationProvider.notifier)

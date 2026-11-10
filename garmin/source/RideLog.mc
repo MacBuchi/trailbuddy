@@ -98,6 +98,9 @@ class RideLog {
     //! Ein Fix. [t] Sekunden seit 1970, [ele] Meter oder null, [quality]
     //! `Position.QUALITY_*`. Liefert true, wenn der Punkt in die Fahrt ging.
     function add(latDeg as Double, lonDeg as Double, t as Number, ele as Float?, quality as Number) as Boolean {
+        // Die Spur der Ansicht zeigt auch, was vor START und in der Pause
+        // gelaufen ist; gespeichert wird erst, wenn START gedrückt wurde (#484).
+        addTrack(latDeg, lonDeg);
         if (full || !_active) { return false; }
         if (_id != null && t - _lastT < EVERY_S) { return false; }
         var la = Math.round(latDeg * 100000.0d).toNumber();
@@ -145,7 +148,6 @@ class RideLog {
         _lastE = e;
         _since++;
         if (_since >= FLUSH_POINTS) { flush(); }
-        addTrack(latDeg, lonDeg);
         return true;
     }
 
