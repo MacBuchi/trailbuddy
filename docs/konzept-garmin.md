@@ -164,6 +164,14 @@ dunkle Infofläche, „Was kommt als Nächstes?" statt „Wie weit noch?".
   wieder „hallo" (Messung 8.8): Eine Route, deren erstes Senden verloren
   ging, kommt so doch noch.
 
+Das Handy antwortet von selbst (#484, #501): Hat es kein Navigationsziel, sucht
+es den Trail, dessen Linie am nächsten liegt (800 m Reichweite, mindestens
+250 m Rest), und schickt sie ab dem nächstliegenden Punkt in die längere
+Richtung. Driftet die Uhr von dieser Linie ab, geht der nächste Trail in
+Reichweite hinterher; die Uhr fragt vorher, ob sie ihn nimmt (#501).
+Connect IQ weckt das Handy nicht: Die App muss laufen, gestartet wird die
+Uhr-App auf der Uhr.
+
 Kein Kartenbild: Die fēnix 5 hat keine Karten, und Kacheln passen nicht
 in den Speicher einer App (Abschnitt 7). Gezeigt werden nur Route,
 Trails der Route und die Stummel der Abzweigungen.
@@ -654,9 +662,12 @@ Entscheidung 5. Gebaut in `garmin/source/RideLog.mc` (Uhr),
   5). Andere Größen (fēnix 5S mit 218 px, fēnix 6/7 mit 260 px) brauchen
   erst ein Layout, das aus der Bildschirmgröße rechnet.
 - **Bauen** lokal mit dem Connect-IQ-SDK (`monkeyc`), dazu ein Skript
-  `tool/garmin_build.sh`. Ob CI die Uhr-App mitbauen kann, hängt daran,
-  ob sich das SDK ohne Garmin-Anmeldung laden lässt — offen, bis es
-  probiert ist.
+  `tool/garmin_build.sh`. Der normale Build — der, der auf die Uhr kommt —
+  enthält **keine erfundene Route**: ohne Route vom Handy beginnt die freie
+  Fahrt. Die Testroute steckt nur in den Prüf- und Messbauten
+  (`--test`, `--demo`, `--run`, `--demo-route`, `--points`, `--gpx`). Ob CI
+  die Uhr-App mitbauen kann, hängt daran, ob sich das SDK ohne
+  Garmin-Anmeldung laden lässt — offen, bis es probiert ist.
 - **Version Guard**: Die Uhr-App ist nicht im APK; `garmin/` wird wie
   `tool/` ausgenommen. Die Android-Brücke ist es nicht, sie bumpt.
 - **Tests**: Die Protokoll-Kodierung ist eine pure Dart-Funktion mit
