@@ -452,21 +452,27 @@ class NavController extends Notifier<NavSession?> {
   /// die Navigation: Ansicht, Dienst, „zuletzt navigiert" und die Uhr
   /// folgen ihr. Gerechnet wie „Zurück zur Route": im Rechen-Isolate, mit
   /// Rad und Stil der Route.
-  Future<void> replan() async {
+  /// [from] ist der Standort der Rechnung (Vorgabe: der eigene). Die Uhr
+  /// meldet ihren Stand (#500), und das Umplanen rechnet ab ihr (#501).
+  Future<void> replan({LatLng? from, double? courseDeg}) async {
     final session = state;
     final now = session?.state;
     if (session == null || now == null || session.replan == NavReplan.computing) return;
     state = session.withReplan(NavReplan.computing);
     var result = NavReplan.noPath;
     ({List<LatLng> points, NavSections sections})? next;
+    final start = from ?? now.position;
+    final course = courseDeg ?? now.courseDeg;
     try {
       final RiderProfile profile = session.profile ?? ref.read(riderProfileProvider);
       final prefs = LoopPrefs.parse(ref.read(settingsProvider).loopPlannerPrefs, profile);
       final rider = ref.read(calibratedRiderProvider(profile)).withPrefs(session.routePrefs ?? prefs.route);
-      final from = now.position;
-      for (final along in replanTargetsOf(session.route, session.sections, now.alongM)) {
+      // Steht die Uhr woanders, steht auch die Rechnung woanders: ab ihrer
+      // Projektion auf die Linie, nicht ab dem Stand des Handys.
+      final progress = from == null ? now.alongM : routeProgress(session.route, start, lastAlongM: now.alongM).alongM;
+      for (final along in replanTargetsOf(session.route, session.sections, progress)) {
         final target = session.route.pointAt(along);
-        final graph = await _graphFor(LatBox.of([from, target]), fillOnline: prefs.fillOnline);
+        final graph = await _graphFor(LatBox.of([start, target]), fillOnline: prefs.fillOnline);
         final runner = _rejoinRunner;
         // Zu weit für einen Graphen: der nähere Punkt voraus.
         if (graph == _NavGraph.tooLarge) continue;
@@ -474,7 +480,7 @@ class NavController extends Notifier<NavSession?> {
           result = NavReplan.noArea;
           break;
         }
-        final plan = await StallWatch.time('nav.replan', () => runner.run(ReplanJob(from, now.courseDeg, target, rider)));
+        final plan = await StallWatch.time('nav.replan', () => runner.run(ReplanJob(start, course, target, rider)));
         if (plan.points != null) {
           next = spliceReplan(session.route, session.sections, plan.points!, along);
           break;
@@ -506,7 +512,7 @@ class NavController extends Notifier<NavSession?> {
           routePrefs: after.routePrefs,
         ),
         0);
-    onFix(now.position, headingDeg: now.courseDeg, speedMps: now.moving ? kNavHeadingMinSpeedMps : 0);
+    onFix(start, headingDeg: course, speedMps: now.moving ? kNavHeadingMinSpeedMps : 0);
   }
 
   /// Die Route verlassen (#464): wie „Beenden", dazu sagt die Karte warum.

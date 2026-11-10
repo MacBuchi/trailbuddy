@@ -3488,6 +3488,15 @@
     "description": "Stand am Uhr-Symbol, wenn die Aufzeichnung auf der Garmin-Uhr pausiert (#499); das Handy zeichnet davon weiter."
   },
   "navWatchApart": "Die Uhr meldet einen Ort {dist} von hier",
+  "navWatchDrift": "Die Uhr ist {dist} neben ihrer Route",
+  "@navWatchDrift": {
+    "description": "Stand am Uhr-Symbol, wenn die Garmin-Uhr über die Sicht ihrer Ansicht hinaus von ihrer Linie abseits fährt und dem Handy ihren Stand meldet (#500). {dist} ist der Abstand zur Linie, englisch: The watch is {dist} off its route.",
+    "placeholders": {
+      "dist": {
+        "type": "String"
+      }
+    }
+  },
   "@navWatchApart": {
     "description": "Stand am Uhr-Symbol, wenn der erste eigene GPS-Fix der Garmin-Uhr weiter als 200 m vom Handy entfernt ist (#500); die Uhr folgt dann einer anderen Linie. {dist} ist die Entfernung, englisch: The watch reports a place {dist} away.",
     "placeholders": {

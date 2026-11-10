@@ -29,7 +29,7 @@ import '../../core/stall_watch.dart';
 import '../profile/profile_providers.dart' show riderProfileProvider;
 import '../rides/airtime_live.dart';
 import '../rides/ride_providers.dart' show rideProvider;
-import '../routing/nav_providers.dart' show navigationProvider;
+import '../routing/nav_providers.dart' show navigationProvider, navReplanOfferDistanceProvider;
 import '../routing/loop_plan_runner.dart' show loopPlanRunnerFactoryProvider;
 import '../routing/loop_planner.dart' show LoopPrefs;
 import '../routing/nav_sections.dart';
@@ -190,7 +190,7 @@ class WatchSync extends Notifier<WatchSyncState> {
   bool _shrunk = false;
 
   /// Ein `hi`, das kam, während noch gerechnet wurde.
-  ({String? id, String? bad})? _early;
+  ({String? id, String? bad, String? ver})? _early;
 
   /// Die Uhr-App spricht eine andere Fassung — dann geht nichts hin, bis
   /// ein `hi` mit der passenden kommt.
@@ -206,6 +206,13 @@ class WatchSync extends Notifier<WatchSyncState> {
   /// (etwa auf das Nachfassen `q`) schickt sie nicht noch einmal (gemessen
   /// 2026-11-06: dieselbe Route zweimal, 13 s umsonst).
   String? _sendingId;
+
+  /// Die Fassung der Uhr-App, wie sie ihr Hallo nennt. Unbekannt heißt alt:
+  /// sie fragt nicht, bevor eine neue Linie kommt (#501).
+  String? _watchVer;
+
+  /// Eine Umplan-Rechnung für die Uhr läuft schon.
+  bool _replanRunning = false;
 
   /// Jede Route, die in diesem Folgen an die Uhr ging: Nur deren
   /// „Navigation beendet" beendet die Navigation des Handys.
@@ -382,7 +389,7 @@ class WatchSync extends Notifier<WatchSyncState> {
     if (_outdated != null) return _failedOutdated();
     final early = _early;
     _early = null;
-    if (early != null) return _onHello(early.id, early.bad, kWatchProtocol);
+    if (early != null) return _onHello(early.id, early.bad, kWatchProtocol, early.ver);
     if (open == WatchOpen.prompted) {
       state = WatchSyncState(phase: WatchSyncPhase.prompted, routeId: route.id);
       _nudge(0);
@@ -477,7 +484,15 @@ class WatchSync extends Notifier<WatchSyncState> {
 
   void _onAnswer(Object? message) {
     final hello = watchHelloOf(message);
-    if (hello.hello) return _onHello(hello.id, hello.bad, hello.v);
+    if (hello.hello) return _onHello(hello.id, hello.bad, hello.v, hello.ver);
+    // #501 (Konzept 2, was der Alarm auslöst): Weicht die Uhr ab, rechnet
+    // das Handy die Linie ab ihrem Stand neu und schickt sie; die Uhr fragt
+    // kurz, ob sie sie nimmt.
+    final drift = watchDriftOf(message);
+    if (drift != null) {
+      _replanForWatch(drift.at, drift.offM);
+      return;
+    }
     final ended = watchEndedId(message);
     if (ended != null) {
       // Auf der Uhr beendet: die Navigation des Handys auch — die
@@ -511,8 +526,9 @@ class WatchSync extends Notifier<WatchSyncState> {
   /// hin, und die Leiste nennt die veraltete Seite. Hat sie die Route
   /// schon, gilt sie als gespeichert; sonst geht die aktuelle. Eine neu
   /// gestartete Uhr-App hat ihr GPS noch nicht.
-  void _onHello(String? id, String? bad, int? v) {
+  void _onHello(String? id, String? bad, int? v, String? ver) {
     if (!_follow) return;
+    _watchVer = ver;
     _outdated = watchOutdatedOf(v);
     _gps = false;
     final route = _route;
@@ -523,7 +539,7 @@ class WatchSync extends Notifier<WatchSyncState> {
     }
     final bridge = ref.read(garminBridgeProvider);
     if (route == null) {
-      _early = (id: id, bad: bad);
+      _early = (id: id, bad: bad, ver: ver);
       // Die Uhr wartet beim Start auf eine Antwort: Es kommt eine, nur
       // noch nicht fertig gerechnet.
       unawaited(bridge.send([watchAnnounceOf(null, 0)]));
@@ -540,6 +556,21 @@ class WatchSync extends Notifier<WatchSyncState> {
     // noch einmal.
     if (_pushing && _sendingId == route.id) return;
     unawaited(_push());
+  }
+
+  /// #501 (Konzept 2): Die Uhr meldet, dass sie neben ihrer Linie fährt. Das
+  /// Handy rechnet sie ab ihrem Stand um (wie Route umplanen, #464) und
+  /// schickt die neue Linie — die Uhr-App ab 1.3.0 fragt vorher, ob sie sie
+  /// nimmt; eine ältere nähme sie still, und die ließ man bisher in Ruhe.
+  /// Gerechnet wird erst ab der Schwelle der Seite Navigation im Profil.
+  void _replanForWatch(LatLng at, double offM) {
+    if (!_follow || !watchKnowsAsk(_watchVer) || _replanRunning) return;
+    if (ref.read(navigationProvider) == null) return;
+    if (offM < ref.read(navReplanOfferDistanceProvider)) return;
+    _replanRunning = true;
+    unawaited(ref.read(navigationProvider.notifier)
+        .replan(from: at)
+        .then((_) => _replanRunning = false));
   }
 
   /// Die Uhr kann die Route nicht nehmen (Speicher, Absturz): einmal mit

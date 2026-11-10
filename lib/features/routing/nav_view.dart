@@ -460,6 +460,9 @@ class _WatchBadge extends ConsumerWidget {
       apartM = distanceMeters(fix.latitude, fix.longitude, nav.position.latitude, nav.position.longitude);
     }
     final apart = (apartM ?? 0) > kWatchFixApartM;
+    // #500: Die Uhr meldet ihren Stand erst, wenn sie über ihre Sicht hinaus
+    // von ihrer Linie abseits fährt — das Handy weiß es, und sagt es.
+    final drift = here.watchOffM;
     final (dot, text) = switch (sync.phase) {
       WatchSyncPhase.stored => (AppColors.brand, l.mapWatchStored),
       WatchSyncPhase.unconfirmed => (_p.warningText, l.mapWatchUnconfirmed),
@@ -475,6 +478,7 @@ class _WatchBadge extends ConsumerWidget {
     // (#499). Steht die Uhr still, ist es der eine Satz der Sendung.
     final note = [
       if (apart) l.navWatchApart(formatMeters(apartM!)),
+      if (drift != null) l.navWatchDrift(formatMeters(drift)),
       if (sync.phase != WatchSyncPhase.idle) text,
       // Verbunden nur, wenn sonst nichts zu sagen ist — „Route auf der Uhr“
       // sagt die Verbindung schon.
