@@ -878,7 +878,10 @@ class NavView extends WatchUi.View {
         } else {
             dc.drawText(cx, FIELD_Y + 2, Graphics.FONT_XTINY,
                 str(_log.full ? Rez.Strings.StorageFull : Rez.Strings.FreeRide), Graphics.TEXT_JUSTIFY_CENTER);
-            numberLine(dc, cx, FIELD_Y + 28, km(_stats.distanceM) + " km", _stats.climbM);
+            var line = km(_stats.distanceM) + " km";
+            var mins = Math.round(_stats.movingS / 60.0).toNumber();
+            if (mins >= 1) { line = line + " · " + mins.toString() + " min"; }
+            numberLine(dc, cx, FIELD_Y + 28, line, _stats.climbM);
         }
         dc.setColor(TbColors.FIELD, Graphics.COLOR_TRANSPARENT);
         dc.setPenWidth(w / 2 - TbRing.MAP_R + 2);

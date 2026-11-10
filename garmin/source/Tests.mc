@@ -866,3 +866,27 @@ function rideStatsStopsWhenNotCounting(logger as Logger) as Boolean {
     Test.assert(st.climbM - climbed < 3.0);
     return true;
 }
+
+//! Die Spur der Ansicht zeigt auch, was vor START gelaufen ist — gespeichert
+//! wird erst nach START (freie Fahrt ohne Route, #484).
+(:test)
+function rideLogTracksWithoutStart(logger as Logger) as Boolean {
+    TestRoutes.wipeRides();
+    var log = new RideLog();
+    log.add(1.0d, 1.0d, 1000, 500.0f, 3);
+    log.add(1.0d, 1.0005d, 6000, 501.0f, 3);
+    Test.assertEqual(log.state(), RideLog.IDLE);
+    Test.assertEqual(log.trackCount, 2);
+    // Vor START liegt nichts im Speicher, obwohl die Spur läuft.
+    Test.assert(Application.Storage.getValue("wo") == null);
+    log.start();
+    log.add(1.0d, 1.001d, 11000, 502.0f, 3);
+    Test.assert(log.recording());
+    log.pause();
+    Test.assert(log.trackCount == 3);
+    Test.assert(Application.Storage.getValue("wo") != null);
+    log.discard();
+    Test.assert(Application.Storage.getValue("wo") == null);
+    TestRoutes.wipeRides();
+    return true;
+}

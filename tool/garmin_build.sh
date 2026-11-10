@@ -37,6 +37,8 @@ OUT="$ROOT/build/garmin"
 
 mode=build
 store=0
+# Die erfundene Route ist nur für Prüfungen und Messungen dabei.
+demoRoute=0
 route_args=()
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -46,10 +48,16 @@ while [ $# -gt 0 ]; do
     --run) mode=run; shift ;;
     --demo) mode=demo; shift ;;
     --store) store=1; shift ;;
+    --demo-route) demoRoute=1; shift ;;
     -h|--help) sed -n '2,27p' "$0"; exit 0 ;;
     *) echo "Unbekannt: $1" >&2; exit 2 ;;
   esac
 done
+
+# Für Prüfungen und Messungen bleibt die erfundene Route im Paket.
+case "$mode" in test|demo|run) demoRoute=1 ;; esac
+if [ ${#route_args[@]} -gt 0 ]; then demoRoute=1; fi
+if [ "$store" = 1 ]; then demoRoute=0; fi
 
 if [ -z "$SDK" ] || [ ! -x "$SDK/bin/monkeyc" ]; then
   echo "Kein Connect-IQ-SDK gefunden — SDK-Manager installieren oder GARMIN_SDK setzen." >&2
@@ -91,8 +99,9 @@ if [ "$store" = 1 ]; then
   # Ohne Testroute (garmin/CLAUDE.md, „Die Testroute"): Die Ressource fehlt
   # im Paket, der Zweig (:testroute) auch — ohne Route vom Handy zeigt die
   # Uhr den Hinweis auf die App.
-  rm -rf "$OUT/src/resources/route"
 fi
+# Kein Build mit der erfundenen Route trägt sie auch im Paket.
+if [ "$demoRoute" = 0 ]; then rm -rf "$OUT/src/resources/route"; fi
 if [ ${#route_args[@]} -gt 0 ]; then
   python3 "$ROOT/tool/garmin_route.py" ${route_args[@]+"${route_args[@]}"} --out "$OUT/src/resources/route/route.json"
 fi
@@ -106,7 +115,7 @@ extra=()
 # Dialog „There is no data connection").
 excl="demo"
 if [ "$mode" = demo ]; then excl="nodemo"; prg="$OUT/trailbuddy-demo.prg"; fi
-if [ "$store" = 1 ]; then excl="$excl;testroute"; else excl="$excl;store"; fi
+if [ "$demoRoute" = 1 ]; then excl="$excl;store"; else excl="$excl;testroute"; fi
 if [ "$mode" = build ]; then excl="$excl;sim"; else excl="$excl;nosim"; fi
 echo "base.excludeAnnotations = $excl" >> "$OUT/src/monkey.jungle"
 
@@ -126,6 +135,9 @@ fi
 if [ "$store" = 1 ]; then prg="$OUT/trailbuddy-store.prg"; extra=(-r); fi
 "$SDK/bin/monkeyc" -d "$DEVICE" -f "$OUT/src/monkey.jungle" -o "$prg" -y "$KEY" -w ${extra[@]+"${extra[@]}"}
 echo "gebaut: ${prg#"$ROOT"/}"
+if [ "$mode" = build ] && [ "$demoRoute" = 0 ]; then
+  echo "ohne Route: auf der Uhr öffnen, START für die freie Fahrt (#484)"
+fi
 
 if [ "$mode" = build ]; then
   exit 0

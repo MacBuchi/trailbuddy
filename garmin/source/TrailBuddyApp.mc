@@ -199,6 +199,9 @@ class TrailBuddyApp extends Application.AppBase {
     (:store)
     hidden function fallbackRoute() as NavRoute {
         _free = true;
+        // Nur für den Simulator: der Store-Bau startet ohne Route, am Gerät
+        // ist die Konsole still.
+        System.println("Store-Bau: freie Fahrt, keine Route im Paket (#484)");
         return placeholder();
     }
 
@@ -876,7 +879,10 @@ class TrailBuddyApp extends Application.AppBase {
         // Die Fahrt (#484): jeder eigene Fix nach START, ob mit Route oder
         // ohne; vor START und in der Pause nimmt [RideLog.add] nichts.
         _log.add(lat, lon, Time.now().value(), alt, info.accuracy);
-        _stats.counting = _log.state() == RideLog.RECORDING;
+        // In der freien Fahrt zählt die Uhr von selbst (ohne START), sonst
+        // wie Garmin: nur während der Aufzeichnung.
+        _stats.counting = _log.state() == RideLog.RECORDING
+            || (_free && _log.state() == RideLog.IDLE);
         nudgeIdle(info.speed);
         if (_free) {
             var f = _log.toLocal(lat, lon);
@@ -933,9 +939,29 @@ class TrailBuddyApp extends Application.AppBase {
     //! mit Höhen gut 750 Zahlen wie die 800 der App).
     (:demo) static const DEMO_PART_POINTS = 500;
 
+    //! Der Simulator behält seinen Speicher zwischen Läufen: ohne diese
+    //! Runde sähe das Szenario die Routen und Fahrten des letzten.
+    (:demo)
+    function demoWipe() as Void {
+        PhoneRoute.clear("a");
+        PhoneRoute.clear("b");
+        Application.Storage.deleteValue("cur");
+        Application.Storage.deleteValue("bad");
+        Application.Storage.deleteValue("risk");
+        var q = RideLog.queue();
+        for (var i = 0; i < q.size(); i++) { RideLog.drop(q[i][0] as String, q[i][1] as Number); }
+        var wo = Application.Storage.getValue("wo");
+        if (wo instanceof Array && wo.size() == 3 && wo[0] instanceof String && wo[1] instanceof Number) {
+            RideLog.drop(wo[0] as String, (wo[1] as Number) + 1);
+        }
+        Application.Storage.deleteValue("rq");
+        Application.Storage.deleteValue("wo");
+    }
+
     (:demo)
     function startDemo() as Void {
         if (_demoTimer != null) { return; } // nach einem Wechsel läuft er schon
+        demoWipe();
         _demoTimer = new Timer.Timer();
         // Das erste Bild ohne Fix: die Übersicht, wie am Gerät vor dem GPS
         // (dort brach sie den Watchdog, CIQ_LOG.YML 2026-11-05).
@@ -944,10 +970,22 @@ class TrailBuddyApp extends Application.AppBase {
 
     (:demo)
     function demoTick() as Void {
+        // Jeder Wechsel auf die Konsole: ohne ihn sähe man ihn nur, wenn
+        // zufällig ein Rahmen dazwischen fällt.
+        if (_route.isReady() && !_route.id.equals(_demoLastId)) {
+            _demoLastId = _route.id;
+            System.println("demo Linie jetzt " + _route.id + ", " + _route.size() + " pts");
+        }
         demoAskProbe();
-        if (_demoAskDone == 2 && _route.id.equals("demo-2") && _route.isReady()) {
+        // Die #501-Runde in fester Reihenfolge: erst ablehnen, dann die
+        // Frist, dann dieselbe Linie noch einmal — und erst wenn nichts mehr
+        // bereitliegt (sonst fragt sie gerade, und der Fall wäre falsch).
+        if (_demoAskDone >= 2 && _pendingId == null && _route.id.equals("demo-2") && _route.isReady()) {
             demoSameAgain();
         }
+        // Die Tasten probe erst, nachdem die #501-Runde durch ist: sie
+        // beendet die App (Verwerfen), sonst fehlte dem Szenario die Frage.
+        if (_demoAskDone >= 2 && _demoSameDone && _pendingId == null && !_view.asking()) { demoKeys(); }
         if (_demoRx >= 0) {
             demoFeed();
             return;
@@ -1003,7 +1041,9 @@ class TrailBuddyApp extends Application.AppBase {
         // Nach jeder Runde der Szenen kommt dieselbe Route noch einmal „vom
         // Handy", mit neuer Kennung: Empfang, Ablegen, Wechsel, Dekodieren
         // aus dem Speicher — ohne Bluetooth, mit den Grenzen der fēnix 5.
-        if (_demoScene % scenes.size() == 0) {
+        // Ist die #501-Runde durch, hört das Füttern auf: sonst fragt die
+        // Uhr weiter, und die Tastenprobe (#489) käme nie dran.
+        if (_demoScene % scenes.size() == 0 && !_demoSameDone) {
             _demoRx = 0;
             _demoRound++;
         }
@@ -1012,6 +1052,7 @@ class TrailBuddyApp extends Application.AppBase {
     //! #501 ohne Tasten: eine Runde wird abgelehnt (START oder ZURÜCK),
     //! eine stehen gelassen — die Konsole zeigt, was dabei herauskommt.
     (:demo) hidden var _demoAskDone as Number = 0;
+    (:demo) hidden var _demoLastId as String = "";
     (:demo) hidden var _demoSameDone as Boolean = false;
 
     (:demo)
@@ -1040,6 +1081,101 @@ class TrailBuddyApp extends Application.AppBase {
         System.println("demo 501 dieselbe nochmal: Frage " + (_view.asking() ? "ja" : "nein")
             + ", Linie " + _route.id + ", "
             + (_pendingId == null ? "nichts bereit" : "bereit " + _pendingId));
+    }
+
+    //! Die Tasten der Aufzeichnung ohne Handgelenk (#489): START, ZURÜCK
+    //! (LAP) und das Menü der Pause. Der Vorführmodus ruft genau die
+    //! Funktionen, die die Delegaten aufrufen — am Gerät bleibt nur, ob die
+    //! Tasten diese Wege wirklich nehmen. Die Fixe sind erfunden: einer je
+    //! 5 s, 22 m auseinander (MIN_POINTS und MIN_M der Fahrt sind damit erfüllt).
+    (:demo) hidden var _demoKeysDone as Boolean = false;
+
+    //! Die nächste Linie in Reichweite, 20 Punkte à 100 m, Protokoll 2 —
+    //! dasselbe Format, das das Handy für die freie Fahrt sendet (#502).
+    (:demo)
+    function demoNearbyLine() as Dictionary {
+        var pts = [] as Array<Number>;
+        for (var i = 0; i < 20; i++) {
+            pts.add(4800500 + i * 100);
+            pts.add(900000);
+        }
+        var packed = [0] as Array<Number>;
+        for (var i = 1; i < 20; i++) {
+            packed.add(PhoneRoute.pack(pts[2 * i], pts[2 * i + 1]));
+        }
+        return {"t" => "r", "v" => PhoneRoute.PROTOCOL, "id" => "nah-1", "p" => 0, "n" => 1,
+            "np" => 20, "o" => [pts[0], pts[1]], "pts" => packed} as Dictionary;
+    }
+
+    (:demo)
+    function demoKeys() as Void {
+        if (_demoKeysDone) { return; }
+        _demoKeysDone = true;
+        // Freie Fahrt ohne Route und ohne START: die Spur läuft, die Zeit
+        // zählt, gespeichert wird nichts (#484).
+        _free = true;
+        _view.setFree();
+        for (var f = 1; f <= 6; f++) {
+            _log.add(1.0d + f * 0.0002d, 1.0d, 900000 + f * 5000, 700.0 + f, 3);
+        }
+        _stats.counting = _log.state() == RideLog.RECORDING
+            || (_free && _log.state() == RideLog.IDLE);
+        System.println("demo keys freie Fahrt: Spur " + _log.trackCount
+            + ", " + (_stats.counting ? "zählt" : "zählt nicht")
+            + ", Warteschlange " + RideLog.queue().size());
+        _free = false;
+        startKey();
+        System.println("demo keys START: "
+            + (_log.state() == RideLog.RECORDING ? "zeichnet" : "steht")
+            + (_stats.counting ? ", zählt" : ", zählt nicht"));
+        backKey();
+        System.println("demo keys LAP vor dem ersten Fix: "
+            + (_log.trailOpen() ? "Marke" : "keine Marke, wartet auf GPS"));
+        var t = 1000000;
+        for (var i = 1; i <= 30; i++) {
+            _log.add(1.0d + i * 0.0002d, 1.0d, t + i * 5000, 700.0 + i, 3);
+        }
+        backKey();
+        System.println("demo keys Trail beginnt: " + (_log.trailOpen() ? "offen" : "zu"));
+        for (var i = 31; i <= 60; i++) {
+            _log.add(1.0d + i * 0.0002d, 1.0d, t + i * 5000, 700.0 + i, 3);
+        }
+        backKey();
+        trailChoice(false);
+        System.println("demo keys Trail verworfen: " + (_log.lastTrail() == null ? "kein Paar" : "Paar"));
+        for (var i = 61; i <= 90; i++) {
+            _log.add(1.0d + i * 0.0002d, 1.0d, t + i * 5000, 700.0 + i, 3);
+        }
+        backKey();
+        backKey();
+        trailChoice(true);
+        System.println("demo keys Trail behalten: " + (_log.lastTrail() != null ? "Paar da" : "kein Paar"));
+        startKey();
+        System.println("demo keys Pause: "
+            + (_log.state() == RideLog.PAUSED && !_stats.counting ? "hält" : "läuft"));
+        pauseChoice(:resume);
+        System.println("demo keys weiter: "
+            + (_log.state() == RideLog.RECORDING && _stats.counting ? "zeichnet" : "steht"));
+        startKey();
+        pauseChoice(:discard);
+        System.println("demo keys Verwerfen steht: "
+            + (_log.state() == RideLog.PAUSED ? "Fahrt hält" : "läuft"));
+        discardRide();
+        System.println("demo keys verworfen: Warteschlange " + RideLog.queue().size());
+        // Und die Linie aus der Nähe, so wie das Handy sie in der freien
+        // Fahrt schickt (#502): die Uhr nimmt sie still, ohne zu fragen.
+        // Der Weg führt direkt durch take und swapRoute — der Vorführmodus
+        // hat schon so viele Timer, dass handle() einen weiteren nicht mehr
+        // darf (Simulator: Too Many Timers).
+        _free = true;
+        _view.setFree();
+        var nid = PhoneRoute.take(demoNearbyLine());
+        System.println("demo freie Fahrt Linie " + nid
+            + ", Frage " + (asksBeforeSwap(_wait, _free, true) ? "ja" : "nein"));
+        _pendingId = nid;
+        swapRoute();
+        System.println("demo freie Fahrt Linie genommen: " + _route.id
+            + ", frei " + (_free ? "ja" : "nein"));
     }
 
     //! Ein Stück der Testroute, wie `WatchRoute.parts` es schickte. Die

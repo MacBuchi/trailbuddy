@@ -1,8 +1,9 @@
 {
-  "thema": "#500 und #501 — die Uhr meldet ihren Stand, das Handy rechnet um, die Uhr fragt",
+  "thema": "Use cases der Uhr-App — jeder Fall hat eine Prüfung (Unit-Test, Szenario oder Handy)",
   "quellen": [
-    "docs/konzept-garmin.md (Abschnitt 2, Betreiber 2026-11-09)",
-    "docs/konzept-routing.md (#464)"
+    "docs/konzept-garmin.md (Abschnitt 2 und 2a, Betreiber 2026-11-09)",
+    "docs/konzept-routing.md (#464)",
+    "garmin/CLAUDE.md (Technik-Notizen)"
   ],
   "pruefwege": {
     "uhr": "garmin/source/Tests.mc — Monkey-C-Unit-Tests im Simulator (tool/garmin_build.sh --test)",
@@ -104,6 +105,247 @@
         "demo 501 dieselbe nochmal: Frage nein",
         "nichts bereit"
       ]
+    },
+    {
+      "id": "484.1",
+      "erwartung": "Die Linie liegt erst, wenn alle Stücke da sind; eine halbe Übertragung lässt die alte heil.",
+      "uhr": "phoneRouteStoresOnlyWhenComplete",
+      "konstant": [
+        "MAX_PART_INTS"
+      ]
+    },
+    {
+      "id": "484.2",
+      "erwartung": "Ein Stück falscher Form wird abgelehnt, bevor etwas abgelegt wird.",
+      "uhr": "takeRejectsMalformed"
+    },
+    {
+      "id": "484.3",
+      "erwartung": "Crashet dieselbe Route zweimal hintereinander, ist sie verworfen; ein sauberer Lauf setzt den Zähler zurück.",
+      "uhr": "crashGuardDropsAfterTwo"
+    },
+    {
+      "id": "484.4",
+      "erwartung": "Beim Wechsel geht die alte Route zuerst, beide zusammen passen nicht in 124 KB.",
+      "uhr": "oldStoredRouteIsCleared"
+    },
+    {
+      "id": "484.5",
+      "erwartung": "Nur ankommende Stücke zählen; ein Stummel wird nicht doppelt gelegt.",
+      "uhr": "receivedCountsArrivingParts"
+    },
+    {
+      "id": "484.6",
+      "erwartung": "Die Testroute der Uhr decodiert in Häppchen (Watchdog 120 000 Schritte).",
+      "uhr": "resourceRouteDecodes"
+    },
+    {
+      "id": "484.7",
+      "erwartung": "Abseits gilt erst nach zwei Fixen, nicht nach einem GPS-Zittern.",
+      "uhr": "offRouteNeedsTwoFixes",
+      "konstant": [
+        "OFF_ROUTE_FIXES"
+      ]
+    },
+    {
+      "id": "484.8",
+      "erwartung": "Beim Abkommen vibriert die Uhr einmal, nicht jeden Fix.",
+      "uhr": "vibratesOncePerDeparture"
+    },
+    {
+      "id": "484.9",
+      "erwartung": "Am Ende der Linie ist die Fahrt angekommen; eine Schleife endet erst in der letzten Hälfte.",
+      "uhr": "arrivesAtEnd"
+    },
+    {
+      "id": "484.10",
+      "erwartung": "Die nächste Stelle sucht im Block mit der nächsten Hülle, nicht über alle Punkte.",
+      "uhr": "blockSearchFindsNearest",
+      "konstant": [
+        "BLOCK"
+      ]
+    },
+    {
+      "id": "484.11",
+      "erwartung": "Die erfundene Testroute wird am ersten eigenen Fix verankert.",
+      "uhr": "relativeRouteAnchors"
+    },
+    {
+      "id": "484.12",
+      "erwartung": "Reicht die Linie weiter als die Sicht, nimmt die Uhr die eingefasste Übersicht.",
+      "uhr": "farLineFitsTheView",
+      "konstant": [
+        "OVERVIEW_SEGS"
+      ]
+    },
+    {
+      "id": "484.13",
+      "erwartung": "Bergauf zählt mit Hysterese, GPS-Rauschen nicht.",
+      "uhr": "climbHysteresis",
+      "konstant": [
+        "CLIMB_HYSTERESIS_M"
+      ]
+    },
+    {
+      "id": "484.14",
+      "erwartung": "Der Ring rechnet den Anteil der Route in Garmin-Winkel um; gleiche Winkel zeichnet er nicht neu.",
+      "uhr": "ringAngles"
+    },
+    {
+      "id": "484.15",
+      "erwartung": "Das Logo des Laders kommt geordnet aus der erzeugten Datei, nie von Hand.",
+      "uhr": "loaderLogoIsOrdered"
+    },
+    {
+      "id": "484.16",
+      "erwartung": "Die Fahrt der Uhr liegt in Stücken zu 60 Punkten und wartet, bis das Handy sie abholt.",
+      "uhr": "rideLogPacksAndQueues",
+      "konstant": [
+        "CHUNK_POINTS"
+      ]
+    },
+    {
+      "id": "484.17",
+      "erwartung": "Ein Loch in der Spur (Pause, Funkloch) beginnt ein neues Stück.",
+      "uhr": "rideLogSplitsOnGap"
+    },
+    {
+      "id": "484.18",
+      "erwartung": "Zu kurze Fahrten kommen nicht in die Warteschlange.",
+      "uhr": "rideLogDropsShortRide",
+      "konstant": [
+        "MIN_POINTS",
+        "MIN_M"
+      ]
+    },
+    {
+      "id": "484.19",
+      "erwartung": "Gelöscht wird eine Fahrt nur, wenn das Handy sie quittiert hat.",
+      "uhr": "rideLogDeletesOnlyOnAck"
+    },
+    {
+      "id": "484.20",
+      "erwartung": "Voller Speicher: die Uhr hört auf zu zeichnen, statt zu crashen.",
+      "uhr": "rideLogStopsWhenFull",
+      "konstant": [
+        "MAX_POINTS"
+      ]
+    },
+    {
+      "id": "484.21",
+      "erwartung": "Nach einem Absturz nimmt die Uhr die abgebrochene Fahrt in die Warteschlange.",
+      "uhr": "rideLogRecoversAfterCrash"
+    },
+    {
+      "id": "484.22",
+      "erwartung": "Ohne Route vom Handy zeigt die Uhr die freie Fahrt: eigene Spur, Strecke und Zeit — gespeichert wird erst nach START.",
+      "uhr": "rideLogTracksWithoutStart",
+      "konstant": [
+        "TRACK_N"
+      ],
+      "szenario": [
+        "demo keys freie Fahrt: Spur 6, zählt, Warteschlange 0"
+      ]
+    },
+    {
+      "id": "489.1",
+      "erwartung": "START an der Uhr beginnt die Aufzeichnung, und die Zahlen zählen erst dann.",
+      "szenario": [
+        "demo keys START: zeichnet, zählt"
+      ],
+      "handy": "START an der Uhr nimmt mit auf, ein behaltener Trail wird eine Marke, Verwerfen verwirft"
+    },
+    {
+      "id": "489.2",
+      "erwartung": "LAP vor dem ersten Fix setzt keine Marke — die Uhr sagt „Warte auf GPS“.",
+      "szenario": [
+        "demo keys LAP vor dem ersten Fix: keine Marke, wartet auf GPS"
+      ]
+    },
+    {
+      "id": "489.3",
+      "erwartung": "LAP markiert Trailbeginn und Trailende; Behalten lässt das Paar stehen.",
+      "szenario": [
+        "demo keys Trail beginnt: offen",
+        "demo keys Trail behalten: Paar da"
+      ],
+      "handy": "Marken der Uhr gehen mit der Fahrt in die Datei"
+    },
+    {
+      "id": "489.4",
+      "erwartung": "„Trail verwerfen“ nimmt genau das letzte Paar.",
+      "szenario": [
+        "demo keys Trail verworfen: kein Paar"
+      ]
+    },
+    {
+      "id": "489.5",
+      "erwartung": "START in der Aufzeichnung hält an (Menü), Weiter zählt wieder.",
+      "szenario": [
+        "demo keys Pause: hält",
+        "demo keys weiter: zeichnet"
+      ],
+      "handy": "Trail-Marken der Uhr und Nachrichten zur Aufzeichnung"
+    },
+    {
+      "id": "489.6",
+      "erwartung": "Verwerfen in der Pause: die Fahrt liegt danach nicht in der Warteschlange.",
+      "szenario": [
+        "demo keys Verwerfen steht",
+        "demo keys verworfen: Warteschlange 0"
+      ],
+      "handy": "hat das Handy selbst aufgezeichnet, bleibt es bei dessen Fahrt"
+    },
+    {
+      "id": "449.1",
+      "erwartung": "Kennung, Kanal und Grenzen stehen gleich in Uhr, Kotlin und Dart.",
+      "handy": "App-Kennung, Kanal und Grenzen stehen gleich in Uhr, Kotlin und Dart"
+    },
+    {
+      "id": "449.2",
+      "erwartung": "Halb so viele Zahlen je Punkt (Protokoll 2): Uhr und Handy rechnen dieselbe Kodierung.",
+      "handy": "dieselbe Kodierung wie tool/garmin_route.py"
+    },
+    {
+      "id": "449.3",
+      "erwartung": "Bestwerte der Uhr bleiben Zahlen ohne Spur, unplausible Sprünge fallen raus.",
+      "handy": "und ohne unplausible Sprünge"
+    },
+    {
+      "id": "484.23",
+      "erwartung": "Hat die Uhr keine Linie, sucht das Handy den Trail in Reichweite (800 m) und schickt ihn — ohne dass jemand irgendwo etwas anmacht.",
+      "handy": "ohne Linie in der Uhr: die nächste in Reichweite geht raus"
+    },
+    {
+      "id": "484.24",
+      "erwartung": "Liegt kein Trail in Reichweite, bleibt die Uhr bei ihrer eigenen Spur; es geht nichts hin.",
+      "handy": "liegt nichts in Reichweite, geht nichts raus"
+    },
+    {
+      "id": "484.25",
+      "erwartung": "Die Linie fängt am nächstliegenden Punkt an und geht in die längere Richtung — weitergeht es beidenorts.",
+      "handy": "die Linie fängt dort an, wo die Uhr steht"
+    },
+    {
+      "id": "484.26",
+      "erwartung": "Ein Rest kürzer als 250 m ist kein Trail, sondern ein Stummel; die Uhr bleibt frei.",
+      "handy": "ein Stummel ist kein Trail"
+    },
+    {
+      "id": "484.27",
+      "erwartung": "Hat die Uhr schon eine Linie, mischt sich das Handy nicht ein.",
+      "handy": "hat die Uhr schon eine Linie, bleibt sie in Ruhe"
+    },
+    {
+      "id": "484.28",
+      "erwartung": "Nicht jeder Stand der Uhr schickt eine neue Linie — die erste geht einmal.",
+      "handy": "die Linie geht nur einmal, nicht bei jedem Stand"
+    },
+    {
+      "id": "484.29",
+      "erwartung": "Driftet die Uhr an einen anderen Trail, geht dieser an sie; die Uhr fragt vorher, ob sie ihn nimmt.",
+      "handy": "driftet die Uhr an einen anderen Trail, geht der",
+      "uhr": "asksOnlyWhileARideRuns"
     }
   ]
 }

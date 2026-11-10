@@ -141,7 +141,48 @@ nie von Hand ersetzen.
 (`tool/garmin_build.sh --demo`): Karte, Fahrt, Berg, Ankunft. Nie mit
 einer echten Route (`--gpx`), eine Fahrt beginnt an der Haustür.
 
-## 5. Berechtigungen (falls der Store danach fragt)
+## 5. Was neu ist — Text fürs Update-Formular (👤)
+
+Der Text kommt beim Hochladen einer neuen Fassung in das „What's new"-Feld.
+Die Versionsnummer im Formular ist die der Uhr-App aus `garmin/VERSION`, nicht
+die aus `pubspec.yaml`. Garmin nimmt kein Update mit derselben Nummer an: jede
+hochgeladene Fassung braucht eine höhere. Semver dabei — neue Funktion Minor
+(1.4.0), Fix und Feinschliff Patch (1.3.1); die Nummer steigt mit jedem Paket,
+auch wenn inhaltlich dasselbe drin steht.
+
+**1.3.1 (DE)** — nur was seit 1.3.0 anders ist, das Alte steht schon in der
+Store-Beschreibung:
+
+```
+- Keine erfundene Testroute mehr im Paket: ohne Linie startet die Uhr in der
+  freien Fahrt — GPS an, die eigene Spur der letzten 25 Minuten dünn in Moos,
+  unten „Freie Fahrt“ mit Strecke, Minuten und Anstieg.
+- Hat das Handy kein Navigationsziel, sucht es den Trail, dessen Linie am
+  nächsten an der Uhr liegt (800 m Reichweite, mindestens 250 m lang), und
+  schickt sie als Linie; die Uhr nimmt sie still. Liegt nichts da, bleibt sie
+  bei ihrer eigenen Spur.
+- Driftet die Uhr von so einer Linie ab, sagt sie es dem Handy, und das schickt
+  den nächsten Trail in Reichweite — die Uhr fragt vorher, ob sie ihn nimmt.
+- Die gezeichnete Spur zeigt auch, was vor START oder in einer Pause gelaufen
+  ist; gespeichert wird weiterhin erst ab START.
+```
+
+**1.3.1 (EN):**
+
+```
+- The package ships no invented test route: with no line in the watch it starts
+  free riding — GPS on, its own track of the last 25 minutes drawn faint moss,
+  “Free riding” at the bottom with distance, minutes and climb.
+- When the phone has no navigation target it looks for the trail whose line is
+  nearest to the watch (800 m range, at least 250 m long) and sends it as a
+  line; the watch takes it quietly. Nothing in range, nothing sent.
+- When the watch drifts off such a line it tells the phone, and the phone sends
+  the next trail in range — the watch asks first whether it should take it.
+- The drawn track also shows what ran before START or during a pause; storage
+  still only begins at START.
+```
+
+## 6. Berechtigungen (falls der Store danach fragt)
 
 | Berechtigung | Wofür |
 |---|---|
@@ -149,7 +190,7 @@ einer echten Route (`--gpx`), eine Fahrt beginnt an der Haustür.
 | `Sensor` | Puls vom Handgelenk, Kompass, Höhe vom Barometer — angezeigt; nur die Höhe geht in die Fahrt auf der Uhr, der Puls nie |
 | `Communications` | Route und Bestwerte vom Handy empfangen, „gespeichert"/„beendet", die Fahrt mit ihren Trail-Marken und Start/Trail/Ende der Aufzeichnung (nur Uhrzeiten, seit 1.2.0) zurück — nur mit der TrailBuddy-App, kein Netz |
 
-## 6. Uhren im Paket
+## 7. Uhren im Paket
 
 fēnix 5, 5X, 5 Plus, 5X Plus, 5S Plus, 6S, Forerunner 935, 945, 945 LTE —
 alle 240 × 240 px MIP mit fünf Tasten (die Ansicht ist darauf fest

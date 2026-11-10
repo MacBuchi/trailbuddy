@@ -2,6 +2,21 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## The watch gets the nearest line without anyone navigating
+
+*Version 0.168.0, 2026-11-10*
+
+- **Free riding with a line:** if the watch has no line and the phone has no
+  navigation target, the phone looks for the trail whose line is nearest to
+  the watch (800 m range, at least 250 m long) and sends it. Nothing in range,
+  the watch keeps its own track.
+- **Already before START** the watch counts distance, minutes and climb, and
+  draws the last 25 minutes faintly in moss. Storage still starts at START.
+- **When the watch drifts off such a line** it reports where it is, and the
+  phone sends the next trail in range — the watch asks first.
+- **The watch app (1.3.1) ships no invented test route:** with no line it
+  starts in free riding.
+
 ## The watch asks before a new line takes over
 
 *Version 0.167.0, 2026-11-11*
