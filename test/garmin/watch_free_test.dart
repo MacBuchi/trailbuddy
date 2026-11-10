@@ -106,7 +106,7 @@ void main() {
     test('ein Stummel ist kein Trail', () {
       // Nur 100 m Linie, die Uhr direkt daneben: zu kurz für eine Fahrt.
       final stub = trail('stummel', line(at(48.004, 9.000), at(48.005, 9.000), 3));
-      expect(nearestTrailLine([stub], at(48.0045, 9.0002)), isNull);
+      expect(nearestTrailLine([stub], at(48.004, 9.000)), isNull);
     });
 
     test('der nächste gewinnt, auch wenn der andere länger ist', () {
