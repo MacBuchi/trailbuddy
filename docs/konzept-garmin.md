@@ -314,7 +314,13 @@ schickt die nächsten Stücke, wenn die Uhr ans Ende des Geladenen kommt.
   (wie „Route umplanen", #464) und schickt sie. Die Uhr fragt kurz
   „Route ab deiner Position?", wer nichts tut, nimmt sie nach 8 s an;
   START oder Zurück lehnen. Ohne die Frage würde jemand unwissend auf
-  einer anderen Linie weiterfahren.
+  einer anderen Linie weiterfahren. Nachprüfbar ohne Gerät am Arm:
+  `tool/garmin_scenario.sh` spielt die Runde im Simulator (Frage, Ablehnung,
+  Annahme nach der Frist) und prüft die Konsole; `garmin/source/Tests.mc`
+  hält die Einheitentests dazu (gebaut 2026-11-11). Die Fälle, die dabei
+  geprüft werden, stehen gesammelt in `docs/watch_cases.json` —
+  `test/garmin/watch_cases_test.dart` kontrolliert, dass jeder Fall wirklich
+  eine Prüfung hat, damit die Abdeckung nicht leise kleiner wird.
 - **Was genau hin geht (Entwurf, Zahlen noch zu messen):**
   1. Kopf: Kennung, Fassung, Abschnitte, **Gesamtlänge und Aufstieg** —
      die Uhr kennt nicht mehr die ganze Linie, „bis zum Ziel" muss aus
@@ -329,10 +335,13 @@ schickt die nächsten Stücke, wenn die Uhr ans Ende des Geladenen kommt.
      (`p`, Abschnitt 2).
   5. Zurück von der Uhr: `g` erster Fix, `d` „ich fahre hinaus" mit
      Stand und Abstand, `ok` gespeichert, `rp`/`rr`/`rt`/`re` (2a).
-- **Wann die Uhr ihren Stand meldet (Betreiber, 2026-11-09):** erst wenn
-  die Fahrt wirklich läuft. Scharf ist die Prüfung, sobald die Uhr die
-  Linie einmal berührt hat — ein eigener Fix näher als 50 m (`kWatchArmM`)
-  — und erst, wenn das Handy selbst einen gültigen Stand hat. Vorher
+- **Wann die Uhr ihren Stand meldet (Betreiber, 2026-11-09, gebaut
+  2026-11-11):** erst wenn die Fahrt wirklich läuft. Scharf ist die
+  Prüfung, sobald die Uhr die Linie einmal berührt hat — ein eigener Fix
+  näher als 50 m (`ARM_M` in `garmin/source/NavTracker.mc`), und
+  `driftM` gibt den Abstand erst, wenn er 300 m weiter liegt als die
+  letzte Meldung (`DRIFT_STEP_M`). Zurück kommt `{t: "d", la, lo, off}`;
+  die Leiste auf dem Handy sagt „Die Uhr ist … neben ihrer Route". Vorher
   (Anfahrt, Uhr im Pocket, Stand 12 km weit) ist ein Abstand normal: die
   eingepasste Übersicht (#498) zeigt dann die Route, aber weder Alarm
   noch Nachladen. Wer nie auf der Linie war, hat auch nichts verlassen.

@@ -105,6 +105,25 @@ void main() {
     expect(ask().record, WatchRecord.running);
   });
 
+  test('die Uhr meldet ihren Stand, wenn sie abseits fährt (#500)', () async {
+    bridge = FakeGarminBridge.connected();
+    container = make();
+    ask();
+    await settle();
+    bridge.answer({'t': 'g', 'la': 4712346, 'lo': 1150000});
+    await settle();
+    expect(ask().watchOffM, isNull, reason: 'der erste Fix ist keine Drift');
+    bridge.answer({'t': 'd', 'la': 4713000, 'lo': 1151000, 'off': 620});
+    await settle();
+    expect(ask().watchFix, const LatLng(47.13, 11.51));
+    expect(ask().watchOffM, 620.0);
+    expect(ask().record, WatchRecord.idle, reason: 'ein Stand ist keine Aufzeichnung');
+    // Ohne Abstand ist die Meldung unlesbar und fällt weg.
+    bridge.answer({'t': 'd', 'la': 4713000, 'lo': 1151000});
+    await settle();
+    expect(ask().watchOffM, 620.0);
+  });
+
   test('eine Plattform ohne Uhr fragt niemand', () {
     bridge = FakeGarminBridge()..unsupported = true;
     container = make();

@@ -725,6 +725,34 @@ void main() {
     expect(find.byKey(const ValueKey('nav-watch-dot-idle')), findsOneWidget);
   });
 
+  testWidgets('#500: meldet die Uhr, dass sie neben ihrer Linie fährt, sagt es die Leiste', (tester) async {
+    final watch = FakeGarminBridge.connected();
+    await startFromRides(tester, garmin: watch);
+    await tester.tap(find.byKey(const ValueKey('nav-watch')));
+    await settle(tester, frames: 2);
+    await tester.tap(find.byKey(const ValueKey('nav-go')));
+    await settle(tester, frames: 10);
+    // Die Uhr meldet ihren Stand erst, wenn sie über ihre Sicht hinaus
+    // abseits liegt (NavTracker.driftM) — dicht beim Handy, 700 m neben der
+    // Linie. Das Handy sagt nur das, was es weiß.
+    watch.answer({'t': 'd', 'la': (47.0002 * 1e5).round(), 'lo': (11.0 * 1e5).round(), 'off': 700});
+    await settle(tester, frames: 4);
+    await tester.tap(find.byKey(const ValueKey('nav-watch-status-idle')));
+    await settle(tester, frames: 4);
+    expect(find.descendant(of: find.byKey(const ValueKey('nav-watch-status-note')),
+        matching: find.text('Die Uhr ist 700 m neben ihrer Route · Uhr verbunden')), findsOneWidget);
+    // Die SnackBar ist zu, dann der nächste Stand: weit vom Handy und weit
+    // von der Linie — beides in einem Satz.
+    await tester.pump(const Duration(seconds: 5));
+    watch.answer({'t': 'd', 'la': (47.01 * 1e5).round(), 'lo': (11.0 * 1e5).round(), 'off': 900});
+    await settle(tester, frames: 4);
+    await tester.tap(find.byKey(const ValueKey('nav-watch-status-idle')));
+    await settle(tester, frames: 4);
+    expect(find.descendant(of: find.byKey(const ValueKey('nav-watch-status-note')),
+        matching: find.text('Die Uhr meldet einen Ort 1,1 km von hier · Die Uhr ist 900 m neben ihrer Route · Uhr verbunden')),
+        findsOneWidget);
+  });
+
   testWidgets('#449 G2: Schalter aus heißt nichts an die Uhr', (tester) async {
     final watch = FakeGarminBridge.connected();
     await startFromRides(tester, garmin: watch);
