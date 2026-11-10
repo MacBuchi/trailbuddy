@@ -9,7 +9,7 @@ description: Ein TrailBuddy-Issue oder eine Änderungsanfrage vom Anfang bis zum
 Schritt steht hier, weil er schon einmal gefehlt hat. Der Skill bündelt;
 die Einzelheiten stehen dort, wo sie hingehören — Regeln in der
 Root-`CLAUDE.md`, Fachwissen in der `CLAUDE.md` des Ordners, Testfallen in
-`test/CLAUDE.md`, die Reihenfolge der Arbeit in #156.
+`test/CLAUDE.md`, die Reihenfolge der Arbeit in #520.
 
 ## Wie viel Ritual
 
@@ -37,7 +37,7 @@ den Plan schreiben („fertig, wenn …"), nicht abfragen.
      Ende.
 2. **Issue lesen, mit allen Kommentaren** (`gh api
    repos/{owner}/{repo}/issues/N` und `…/comments`). Entscheidungen des
-   Betreibers stehen oft im TEXT des Issues; in #156 steht, wo es im
+   Betreibers stehen oft im TEXT des Issues; in #520 steht, wo es im
    Fahrplan liegt — und mit welchem Tag (☁️ 💻 ⚙️ 📱 👤, Legende dort).
    Passt der Tag nicht zur laufenden Sitzung (z. B. 💻 messen in der
    Cloud), das VOR dem Bauen sagen und nur den Teil machen, der hier geht
@@ -100,7 +100,7 @@ den Plan schreiben („fertig, wenn …"), nicht abfragen.
 7. **Commit und PR** auf Englisch, Conventional Commits — der PR-Titel IST
    der Commit auf `main`. PR-Text nach `.github/pull_request_template.md`,
    Checkliste ehrlich abhaken, die gefahrene Gegenprobe nennen, `Closes #N`
-   in den Body. Gemergt wird vom Menschen. In #156 den Punkt abhaken
+   in den Body. Gemergt wird vom Menschen. In #520 den Punkt abhaken
    (der Umgebungs-Tag bleibt stehen); ein neu eingeplantes Issue bekommt
    dort seinen Tag.
 8. **Schnitt anbieten:** Ist die Aufgabe mit dem PR erledigt, die Antwort

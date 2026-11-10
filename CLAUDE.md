@@ -18,12 +18,13 @@ in `docs/anforderungen.md` (#221) — jeder Plan, auch zu einem Fehler,
 geht sie vorher durch. Die Schwellen des Abgleichs sind gemessen
 (`docs/trail-abgleich-messung.md`), nicht geraten. Wer Code ändert, der dem
 Konzept widerspricht, ändert das Konzept im selben PR — oder den Code.
-**Der Fahrplan ist #156** (Betreiber, 2026-10-05): Reihenfolge, Stand und
-die Einordnung neuer Issues werden dort direkt gepflegt, ohne PR; jedes
-eingeplante Issue hängt als Sub-Issue daran. `konzept-trails.md` §11 nennt
+**Der Fahrplan ist #520** (Roadmap II; Betreiber, 2026-11-10 — #156 ist
+als Roadmap I geschlossen, die Punktnummern gelten dort weiter):
+Reihenfolge, Stand und die Einordnung neuer Issues werden direkt
+gepflegt, ohne PR; jedes eingeplante Issue hängt als Sub-Issue daran. `konzept-trails.md` §11 nennt
 nur die Phasen — ein PR dort nur, wenn eine Phase dazukommt oder wegfällt.
 **Jeder offene Punkt trägt seine Umgebung** (Betreiber, 2026-10-07;
-Legende im Kopf von #156): ☁️ Cloud-Sitzung, 💻 Rechner des Betreibers,
+Legende im Kopf von #520): ☁️ Cloud-Sitzung, 💻 Rechner des Betreibers,
 ⚙️ nur als Workflow, 📱 Abnahme am Gerät, 👤 Entscheidung/Dashboard —
 mehrere heißen „bauen hier, messen/abnehmen dort". Wer ein Issue
 einplant, setzt den Tag; wer merkt, dass er nicht stimmt, korrigiert ihn
@@ -260,7 +261,7 @@ Kontext neu mit). **Kein `/rename` davor** (Betreiber, 2026-10-07): Ein
 Name spart nichts, er macht in der Kommandozeile nur einen alten Verlauf
 über `/resume` auffindbar; in einer Cloud-Sitzung gibt es das nicht, und
 nach `/clear` trüge die nächste Aufgabe den alten Namen. Was offen bleibt,
-gehört ins Issue, in den PR oder nach #156. **Gleiche Aufgabe, Kontext zu groß →
+gehört ins Issue, in den PR oder nach #520. **Gleiche Aufgabe, Kontext zu groß →
 `/compact`** (liest selbst den ganzen Verlauf, ist also nicht gratis).
 
 Beim Zusammenfassen BEHALTEN: Issue- und PR-Nummern, Branch, jede

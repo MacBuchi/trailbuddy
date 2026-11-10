@@ -1011,7 +1011,7 @@ Zustand, Link, Stück selbst wählen, Zwillinge, Zusammenführen):
 Touren, „Entdecken"): `docs/konzept-onboarding.md`, #137. Jeder Schritt
 zieht die betroffene Stelle im Konzept im selben PR nach.*
 
-**Der lebende Fahrplan ist #156** (Betreiber, 2026-10-05): Reihenfolge,
+**Der lebende Fahrplan ist #520** (Betreiber, 2026-11-10; bis dahin #156, jetzt Roadmap I und geschlossen — ihre Punktnummern gelten dort weiter; Betreiber, 2026-10-05): Reihenfolge,
 Stand und die Einordnung neuer Issues werden dort gepflegt, direkt und
 ohne PR — die Historie des Issues ist der Nachweis, und jedes eingeplante
 Issue hängt als Sub-Issue daran. Hier steht nur, welche Phasen es gibt
@@ -1066,7 +1066,7 @@ ein Häkchen oder eine neue Reihenfolge.
   Datei, gegen die jedes Konzept und jeder Fix geprüft wird (#221), und
   sparsamere Werkzeuge für die Entwicklung (#219).
 
-Was als Nächstes kommt, steht oben in #156.
+Was als Nächstes kommt, steht oben in #520.
 
 ## 12. Dezentral: der offene Weg
 
