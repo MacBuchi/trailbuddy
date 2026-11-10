@@ -141,7 +141,39 @@ nie von Hand ersetzen.
 (`tool/garmin_build.sh --demo`): Karte, Fahrt, Berg, Ankunft. Nie mit
 einer echten Route (`--gpx`), eine Fahrt beginnt an der Haustür.
 
-## 5. Berechtigungen (falls der Store danach fragt)
+## 5. Was neu ist — Text fürs Update-Formular (👤)
+
+Der Text kommt beim Hochladen einer neuen Fassung in das „What's new"-Feld.
+Die Versionsnummer im Formular ist die der Uhr-App aus `garmin/VERSION`, nicht
+die aus `pubspec.yaml`.
+
+**1.3.0 (DE):**
+
+```
+- Die Uhr meldet dem Handy ihren Stand, wenn sie weiter von ihrer Linie
+  abseits fährt, als die Anzeige reicht. Das Handy plant die Route ab
+  dieser Position neu.
+- Bevor eine neue Linie übernimmt, fragt die Uhr: „Route ab deiner
+  Position?“ — START oder ZURÜCK lassen sie liegen, wer nichts tut, nimmt
+  sie nach acht Sekunden. Beim Start, beim Laden und in der freien Fahrt
+  übernimmt sie sie weiter still.
+- Dieselbe Linie, die schon in der Uhr liegt, fragt nicht noch einmal.
+- Kleine Fassung oben in der Übersicht: welche Uhr-App läuft.
+```
+
+**1.3.0 (EN):**
+
+```
+- The watch tells the phone where it is when it drifts further off its
+  line than the display can see; the phone replans the route from there.
+- Before a new line takes over, the watch asks: “Route from your position?”
+  START or BACK decline it, doing nothing accepts it after eight seconds.
+  At the start, while loading and in free riding it still takes it quietly.
+- A line already stored in the watch is not asked about again.
+- The watch app version now shows small at the top of the overview.
+```
+
+## 6. Berechtigungen (falls der Store danach fragt)
 
 | Berechtigung | Wofür |
 |---|---|
@@ -149,7 +181,7 @@ einer echten Route (`--gpx`), eine Fahrt beginnt an der Haustür.
 | `Sensor` | Puls vom Handgelenk, Kompass, Höhe vom Barometer — angezeigt; nur die Höhe geht in die Fahrt auf der Uhr, der Puls nie |
 | `Communications` | Route und Bestwerte vom Handy empfangen, „gespeichert"/„beendet", die Fahrt mit ihren Trail-Marken und Start/Trail/Ende der Aufzeichnung (nur Uhrzeiten, seit 1.2.0) zurück — nur mit der TrailBuddy-App, kein Netz |
 
-## 6. Uhren im Paket
+## 7. Uhren im Paket
 
 fēnix 5, 5X, 5 Plus, 5X Plus, 5S Plus, 6S, Forerunner 935, 945, 945 LTE —
 alle 240 × 240 px MIP mit fünf Tasten (die Ansicht ist darauf fest
