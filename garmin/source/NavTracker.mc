@@ -39,6 +39,12 @@ class NavTracker {
     static const ARRIVE_M = 30.0;
     static const HEADING_MIN_SPEED_MPS = 2.0;
     static const REJOIN_AHEAD_M = 50.0;
+    //! Meldeschwelle für das Handy (#500): Die Uhr sagt ihren Stand nur, wenn
+    //! die Linie einmal berührt wurde (wer nie auf ihr war, hat nichts
+    //! verlassen) und wenn der Stand mindestens [DRIFT_STEP_M] weiter abseits
+    //! liegt als die letzte Meldung.
+    static const ARM_M = 50.0;
+    static const DRIFT_STEP_M = 300.0;
 
     var route as NavRoute;
     hidden var _along as Float = 0.0;
@@ -46,6 +52,9 @@ class NavTracker {
     hidden var _gpsHeading as Float? = null;
     hidden var _arrived as Boolean = false;
     hidden var _wasOff as Boolean = false;
+    hidden var _off as Float = 0.0;
+    hidden var _armed as Boolean = false;
+    hidden var _reportedOff as Float = -1.0;
 
     function initialize(r as NavRoute) {
         route = r;
@@ -73,6 +82,11 @@ class NavTracker {
             || (off <= OFF_ROUTE_M && remaining <= ARRIVE_M)
             || (nearEnd && (!route.isLoop || _along >= route.lengthM / 2));
 
+        _off = off;
+        if (off <= ARM_M) {
+            _armed = true;
+            _reportedOff = -1.0;
+        }
         var s = new NavState();
         s.x = x;
         s.y = y;
@@ -97,6 +111,16 @@ class NavTracker {
         s.rejoinX = r[0];
         s.rejoinY = r[1];
         return s;
+    }
+
+    //! Der Abstand, den die Uhr dem Handy melden muss (#500), oder null. Nur
+    //! jenseits der Sicht der Ansicht ([reachM], #498) und erst [DRIFT_STEP_M]
+    //! weiter als die letzte Meldung: kein Takt, keine Anfrage (Konzept 2).
+    function driftM(reachM as Float) as Float? {
+        if (!_armed || _off <= reachM) { return null; }
+        if (_reportedOff >= 0 && _off - _reportedOff < DRIFT_STEP_M) { return null; }
+        _reportedOff = _off;
+        return _off;
     }
 
     //! [alongM, offM]: zuerst im Fenster ab [last] (zurück 30 m, voraus

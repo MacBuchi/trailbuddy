@@ -51,8 +51,9 @@ const kWatchSimplifyM = 5.0;
 /// gelten 8 KB.
 const kWatchPartInts = 800;
 
-/// Fassung der Uhr-App, ab der sie ein Fenster um ihren Stand versteht
-/// (#500). Ohne Angabe ist die Uhr älter: sie bekommt nichts Neues.
+/// Fassung der Uhr-App, ab der sie ein Fenster um ihren Stand (#500) und
+/// die Frage nach einer neuen Linie (#501) versteht. Ohne Angabe ist die
+/// Uhr älter: sie bekommt nichts Neues.
 const kWatchWindowFrom = '1.3.0';
 
 /// „1.3.0-dev" ist dieselbe Fassung wie „1.3.0"; keine Angabe heißt alt.
@@ -67,6 +68,11 @@ bool watchKnowsWindow(String? version) {
   }
   return true;
 }
+
+/// Die Uhr fragt, bevor eine neue Linie ihre laufende Navigation ersetzt
+/// (#501). Eine ältere nähme sie still — wer auf der Uhr fährt, soll das
+/// nicht unwissend tun.
+bool watchKnowsAsk(String? version) => watchKnowsWindow(version);
 
 /// Namen kürzt die App: Die Uhr zeigt ohnehin nur eine Zeile.
 const kWatchNameChars = 24;
@@ -129,6 +135,21 @@ LatLng? watchFixOf(Object? message) {
   final la = message['la'], lo = message['lo'];
   if (la is! num || lo is! num) return null;
   return LatLng(la / 1e5, lo / 1e5);
+}
+
+/// „Ich fahre hinaus" (#500): Die Uhr meldet ihren Stand, sobald er über die
+/// Sicht ihrer Ansicht hinaus von der Linie abseits liegt, und erst 300 m
+/// weiter als die letzte Meldung (`garmin/source/NavTracker.mc`, `driftM`).
+/// Kein Takt, das Handy fragt nie nach.
+const kWatchDrift = 'd';
+
+/// Der Stand aus einer Drift-Meldung — Stand und Abstand zur Linie — oder
+/// null, wenn die Nachricht keine ist.
+({LatLng at, double offM})? watchDriftOf(Object? message) {
+  if (message is! Map || message['t'] != kWatchDrift) return null;
+  final la = message['la'], lo = message['lo'], off = message['off'];
+  if (la is! num || lo is! num || off is! num) return null;
+  return (at: LatLng(la / 1e5, lo / 1e5), offM: off.toDouble());
 }
 
 /// Die Uhr konnte ein Stück nicht nehmen (`{t: "x", id, c}`): `c` ist

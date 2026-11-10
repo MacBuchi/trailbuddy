@@ -15,6 +15,9 @@ import 'package:trailbuddy/core/connectivity.dart';
 import 'package:trailbuddy/core/geo.dart' as geo;
 import 'package:trailbuddy/core/line_geometry.dart';
 import 'package:trailbuddy/core/settings.dart';
+import 'package:trailbuddy/features/garmin/garmin_bridge.dart' show GarminBridge, garminBridgeProvider;
+import 'package:trailbuddy/features/garmin/watch_providers.dart' show watchSyncProvider;
+import 'package:trailbuddy/features/garmin/watch_route.dart' show kWatchProtocol;
 import 'package:trailbuddy/features/keep_alive/keep_alive.dart';
 import 'package:trailbuddy/features/offline_areas/area_store.dart';
 import 'package:trailbuddy/features/offline_areas/tile_store.dart';
@@ -29,6 +32,7 @@ import 'package:trailbuddy/features/routing/road_graph.dart';
 import 'package:trailbuddy/features/routing/route_profile.dart';
 import 'package:trailbuddy/features/routing/route_progress.dart';
 
+import '../fakes/fake_garmin.dart';
 import '../fakes/fake_keep_alive.dart';
 import '../fakes/fake_rides.dart';
 import '../fakes/fake_settings.dart';
@@ -46,6 +50,18 @@ WayLine _way(List<(double, double)> xy) =>
 double _dist(LatLng a, LatLng b) => geo.distanceMeters(a.latitude, a.longitude, b.latitude, b.longitude);
 
 const _trail = NavTrailSection(startM: 3000, endM: 4000, trailId: 't', name: 'Talweg', grade: 2);
+
+//! Eine Standmeldung der Uhr (#500): ihr Stand in 1e-5-Grad und der Abstand
+//! zur Linie, wie `NavTracker.driftM` sie schickt.
+Map<String, Object> _drift(double x, double y, double off) => {
+  't': 'd',
+  'la': (_m(x, y).latitude * 1e5).round(),
+  'lo': (_m(x, y).longitude * 1e5).round(),
+  'off': off,
+};
+
+//! Das „hallo“ der Uhr-App, wie sie es beim Start sendet.
+Map<String, Object> _hello(String ver) => {'t': 'hi', 'v': kWatchProtocol, 'ver': ver};
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -141,7 +157,7 @@ void main() {
 
     // Die Route nach Norden auf x = 0, ein Trail ab 1500 m; ein Weg
     // parallel auf x = 300, verbunden bei 0 und 1500 m.
-    ProviderContainer container({PlanningGraph? graph}) {
+    ProviderContainer container({PlanningGraph? graph, GarminBridge? bridge}) {
       jobs = [];
       final input = GraphInput(
         roads: roadTilesOf([
@@ -162,6 +178,7 @@ void main() {
         loopPlanRunnerFactoryProvider.overrideWithValue(() => _JobSpy(jobs)),
         planningGraphLoaderProvider.overrideWithValue((box, {fillOnline = true}) async =>
             graph ?? PlanningGraph(input: input, coverage: RoadCoverage.complete, tilesFound: 1, tilesNeeded: 1)),
+        if (bridge != null) garminBridgeProvider.overrideWithValue(bridge),
       ]);
       addTearDown(c.dispose);
       return c;
@@ -273,6 +290,111 @@ void main() {
       }
       expect(c.read(navigationProvider), isNotNull);
       expect(c.read(navLeftProvider), isNull);
+    });
+
+    // #501 (Konzept 2, was der Alarm auslöst): Die Uhr meldet ihren Stand,
+    // das Handy rechnet die Linie ab ihr um — erst die Uhr-App ab 1.3.0, die
+    // vorher fragt, ob sie die neue Linie nimmt.
+    test('die Uhr meldet ihren Stand, das Handy rechnet ab ihr um', () async {
+      final watch = FakeGarminBridge.connected()..autoStore = true;
+      final c = container(bridge: watch);
+      c.read(watchSyncProvider.notifier).follow(true);
+      final nav = c.read(navigationProvider.notifier);
+      nav.start(route, 'Hausrunde', sections: sections);
+      nav.onFix(_m(0, 100), headingDeg: 0, speedMps: 5);
+      await Future<void>.delayed(Duration.zero);
+      final old = c.read(navigationProvider)!.route;
+      final la = (_m(300, 700).latitude * 1e5).round(), lo = (_m(300, 700).longitude * 1e5).round();
+      final at = LatLng(la / 1e5, lo / 1e5);
+      // Eine alte Uhr-App kennt die Frage nicht: sie bleibt in Ruhe.
+      watch.answer(const {'t': 'hi', 'v': kWatchProtocol, 'ver': '1.2.0'});
+      watch.answer({'t': 'd', 'la': la, 'lo': lo, 'off': 300});
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+      expect(c.read(navigationProvider)!.route, same(old));
+      // Ab 1.3.0: 300 m daneben, über der Schwelle von 100 m.
+      watch.answer(const {'t': 'hi', 'v': kWatchProtocol, 'ver': '1.3.0-dev'});
+      watch.answer({'t': 'd', 'la': la, 'lo': lo, 'off': 60});
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+      expect(c.read(navigationProvider)!.route, same(old), reason: 'unter der Schwelle bleibt die Linie');
+      watch.answer({'t': 'd', 'la': la, 'lo': lo, 'off': 300});
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+      final next = c.read(navigationProvider)!.route;
+      expect(next, isNot(same(old)));
+      expect(next.points.first, at, reason: 'die neue Linie beginnt am Stand der Uhr');
+      expect(next.lengthM, closeTo(2100, 2), reason: '1100 m hin, dann der Trail');
+    });
+
+    // #501 (Konzept 2): Was die Standmeldung der Uhr auslöst — und was nicht.
+    test('501.6 meldet sich die Uhr nicht vorher, bleibt die Linie', () async {
+      final watch = FakeGarminBridge.connected()..autoStore = true;
+      final c = container(bridge: watch);
+      c.read(watchSyncProvider.notifier).follow(true);
+      final nav = c.read(navigationProvider.notifier);
+      nav.start(route, 'Hausrunde', sections: sections);
+      nav.onFix(_m(0, 100), headingDeg: 0, speedMps: 5);
+      await Future<void>.delayed(Duration.zero);
+      final old = c.read(navigationProvider)!.route;
+      watch.answer(_drift(300, 700, 300));
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+      expect(c.read(navigationProvider)!.route, same(old),
+          reason: 'ohne hallo kennt das Handy die Fassung der Uhr-App nicht');
+    });
+
+    test('501.7 endet die Navigation, folgt aus der Meldung nichts', () async {
+      final watch = FakeGarminBridge.connected()..autoStore = true;
+      final c = container(bridge: watch);
+      c.read(watchSyncProvider.notifier).follow(true);
+      final nav = c.read(navigationProvider.notifier);
+      nav.start(route, 'Hausrunde', sections: sections);
+      nav.onFix(_m(0, 100), headingDeg: 0, speedMps: 5);
+      watch.answer(_hello('1.3.0-dev'));
+      await Future<void>.delayed(Duration.zero);
+      nav.stop();
+      watch.answer(_drift(300, 700, 300));
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+      expect(c.read(navigationProvider), isNull,
+          reason: 'ohne laufende Navigation rechnet niemand um');
+    });
+
+    test('501.8 Schalter aus: die Meldung der Uhr bleibt folgenlos', () async {
+      final watch = FakeGarminBridge.connected()..autoStore = true;
+      final c = container(bridge: watch);
+      c.read(watchSyncProvider.notifier).follow(false);
+      final nav = c.read(navigationProvider.notifier);
+      nav.start(route, 'Hausrunde', sections: sections);
+      nav.onFix(_m(0, 100), headingDeg: 0, speedMps: 5);
+      await Future<void>.delayed(Duration.zero);
+      final old = c.read(navigationProvider)!.route;
+      watch.answer(_hello('1.3.0-dev'));
+      watch.answer(_drift(300, 700, 300));
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+      expect(c.read(navigationProvider)!.route, same(old), reason: 'der Schalter steht auf aus');
+      expect(watch.sent, isEmpty, reason: 'auch die Linie geht nicht hin');
+    });
+
+    test('501.9 zwei Meldungen zugleich, eine neue Linie', () async {
+      final watch = FakeGarminBridge.connected()..autoStore = true;
+      final c = container(bridge: watch);
+      c.read(watchSyncProvider.notifier).follow(true);
+      final nav = c.read(navigationProvider.notifier);
+      nav.start(route, 'Hausrunde', sections: sections);
+      nav.onFix(_m(0, 100), headingDeg: 0, speedMps: 5);
+      watch.answer(_hello('1.3.0-dev'));
+      await Future<void>.delayed(Duration.zero);
+      int heads() {
+        var n = 0;
+        for (final msgs in watch.sent) {
+          for (final m in msgs) {
+            if (m['t'] == 'r' && m['p'] == 0) n++;
+          }
+        }
+        return n;
+      }
+      final before = heads();
+      watch.answer(_drift(300, 700, 300));
+      watch.answer(_drift(320, 720, 320));
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+      expect(heads() - before, 1, reason: 'während das Handy rechnet, löst die zweite nichts an');
     });
   });
 

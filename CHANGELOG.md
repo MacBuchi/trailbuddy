@@ -2,6 +2,20 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Die Uhr fragt, bevor eine neue Linie kommt
+
+*Version 0.167.0, 2026-11-11*
+
+- **Fährt die Uhr neben ihrer Linie**, sagt sie dem Handy, wo sie ist —
+  und das Handy rechnet die Route ab dieser Position neu, so wie der Knopf
+  „Route umplanen“ es tut. Bisher blieb die alte Linie stehen, und man fuhr
+  einfach weiter, ohne es zu merken.
+- **Die Uhr fragt vorher:** „Route ab deiner Position?“ START oder ZURÜCK
+  lassen die neue Linie liegen, wer nichts tut, nimmt sie nach acht Sekunden.
+  Beim Start, beim Laden und in der freien Fahrt übernimmt sie sie weiter still.
+- **Gefragt wird nur, wenn wirklich eine Fahrt läuft.** Und eine Uhr-App, die
+  die Frage noch nicht kennt (älter als 1.3.0), wird in Ruhe gelassen.
+
 ## Eingeladen per QR: die Buddys sind gleich offen
 
 *Version 0.166.0, 2026-11-11*

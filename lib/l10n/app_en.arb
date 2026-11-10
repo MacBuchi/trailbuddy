@@ -632,6 +632,7 @@
   "navWatchConnected": "Watch connected",
   "navWatchRecording": "The watch is recording",
   "navWatchApart": "The watch reports a place {dist} away",
+  "navWatchDrift": "The watch is {dist} off its route",
   "navWatchPaused": "The watch is paused",
   "mapWatchFailed": "The route did not reach the watch. Open TrailBuddy on the watch — it then arrives by itself.",
   "mapWatchPrompted": "Open TrailBuddy on the watch — the route then arrives by itself.",

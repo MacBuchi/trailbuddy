@@ -10,7 +10,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
 
 import 'garmin_bridge.dart';
-import 'watch_route.dart' show watchFixOf;
+import 'watch_route.dart' show watchDriftOf, watchFixOf;
 import 'watch_ride.dart' show WatchRecordEvent, watchRecordOf;
 
 /// Die Aufzeichnung an der Uhr, so wie das Handy sie kennt.
@@ -30,16 +30,19 @@ const kWatchFixApartM = 200.0;
 
 /// Was das Handy über die Uhr weiß. [connected] kommt von Garmin Connect
 /// oder von einer Nachricht der Uhr — ein Abbruch meldet das SDK nicht.
-/// [watchFix] ist der erste eigene GPS-Fix der Uhr (#500), null, wenn sie
-/// ihn noch nicht gemeldet hat oder eine alte Uhr-App ihn nicht mitschickt.
+/// [watchFix] ist der letzte Stand, den die Uhr gemeldet hat (#500): ihr
+/// erster eigener Fix, danach jede Drift-Meldung. Null, wenn sie nichts
+/// meldete oder eine alte Uhr-App keine Koordinate schickt. [watchOffM] ist
+/// der Abstand, den die Uhr selbst zu ihrer Linie sieht.
 class WatchPresence {
-  const WatchPresence({this.connected = false, this.record = WatchRecord.idle, this.watchFix});
+  const WatchPresence({this.connected = false, this.record = WatchRecord.idle, this.watchFix, this.watchOffM});
 
   static const none = WatchPresence();
 
   final bool connected;
   final WatchRecord record;
   final LatLng? watchFix;
+  final double? watchOffM;
 
   bool get recording => record != WatchRecord.idle;
 
@@ -74,7 +77,20 @@ class WatchPresenceNotifier extends Notifier<WatchPresence> {
     // Jede Nachricht der Uhr heißt: sie ist verbunden.
     final fix = watchFixOf(message);
     if (fix != null) {
-      state = WatchPresence(connected: true, record: state.record, watchFix: fix);
+      state = WatchPresence(
+          connected: true, record: state.record, watchFix: fix, watchOffM: state.watchOffM);
+      return;
+    }
+    // #500: Die Uhr meldet ihren Stand, wenn sie über ihre Sicht hinaus von
+    // der Linie abseits fährt. Das Handy merkt sich ihn — die Grundlage für
+    // ein Umkreis-Fenster und ein Umplanen.
+    final drift = watchDriftOf(message);
+    if (drift != null) {
+      state = WatchPresence(
+          connected: true,
+          record: state.record,
+          watchFix: drift.at,
+          watchOffM: drift.offM);
       return;
     }
     final record = watchRecordOf(message);
@@ -95,7 +111,10 @@ class WatchPresenceNotifier extends Notifier<WatchPresence> {
   void _note(bool connected, WatchRecord record) {
     if (!connected && record == WatchRecord.idle) return;
     state = WatchPresence(
-        connected: connected || state.connected, record: record, watchFix: state.watchFix);
+        connected: connected || state.connected,
+        record: record,
+        watchFix: state.watchFix,
+        watchOffM: state.watchOffM);
   }
 }
 

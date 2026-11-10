@@ -1,0 +1,109 @@
+{
+  "thema": "#500 und #501 — die Uhr meldet ihren Stand, das Handy rechnet um, die Uhr fragt",
+  "quellen": [
+    "docs/konzept-garmin.md (Abschnitt 2, Betreiber 2026-11-09)",
+    "docs/konzept-routing.md (#464)"
+  ],
+  "pruefwege": {
+    "uhr": "garmin/source/Tests.mc — Monkey-C-Unit-Tests im Simulator (tool/garmin_build.sh --test)",
+    "szenario": "tool/garmin_scenario.sh — spielt die Runde im Simulator und prüft die Konsole",
+    "handy": "test/ — die Fake-Uhr in test/fakes/fake_garmin.dart"
+  },
+  "faelle": [
+    {
+      "id": "500.1",
+      "erwartung": "Wer die Linie nie berührte, meldet nichts — auch nicht 700 m weitab.",
+      "uhr": "driftReportsOnlyBeyondView"
+    },
+    {
+      "id": "500.2",
+      "erwartung": "Gemeldet wird erst, wenn der Abstand weiter reicht, als die Uhr sehen kann.",
+      "uhr": "driftReportsOnlyBeyondView"
+    },
+    {
+      "id": "500.3",
+      "erwartung": "Nicht jeder Fix meldet, erst 300 m mehr als die letzte Meldung (DRIFT_STEP_M).",
+      "uhr": "driftReportsOnlyBeyondView",
+      "konstant": [
+        "ARM_M = 50.0",
+        "DRIFT_STEP_M = 300.0"
+      ]
+    },
+    {
+      "id": "500.4",
+      "erwartung": "Die Leiste auf dem Handy sagt, dass die Uhr neben ihrer Linie fährt.",
+      "handy": "meldet die Uhr, dass sie neben ihrer Linie fährt, sagt es die Leiste"
+    },
+    {
+      "id": "500.5",
+      "erwartung": "Der erste eigene Fix der Uhr kommt als g an, die Leiste zeigt ihn.",
+      "handy": "die Uhr meldet ihren ersten eigenen Fix"
+    },
+    {
+      "id": "501.1",
+      "erwartung": "Die Frage nach der neuen Linie steht, bis sie beantwortet oder die Frist um ist.",
+      "uhr": "asksUntilAnswered"
+    },
+    {
+      "id": "501.2",
+      "erwartung": "Gefragt wird nur während einer laufenden Fahrt: Lader und freie Fahrt nehmen still.",
+      "uhr": "asksOnlyWhileARideRuns"
+    },
+    {
+      "id": "501.3",
+      "erwartung": "START oder ZURÜCK lehnen: die alte Linie bleibt, die neue liegt nicht im Speicher.",
+      "szenario": [
+        "demo 501 ablehnen: Frage weg true",
+        "Speicher leer"
+      ]
+    },
+    {
+      "id": "501.4",
+      "erwartung": "Wer nichts tut, nimmt die neue Linie nach der Frist (ASK_MS = 8000).",
+      "szenario": [
+        "demo 501 annehmen"
+      ],
+      "konstant": [
+        "ASK_MS = 8000"
+      ]
+    },
+    {
+      "id": "501.5",
+      "erwartung": "Ab der Schwelle der Navigationsseite rechnet das Handy ab der Position der Uhr um; darunter bleibt die Linie.",
+      "handy": "die Uhr meldet ihren Stand, das Handy rechnet ab ihr um"
+    },
+    {
+      "id": "501.6",
+      "erwartung": "Ohne hallo der Uhr-App ist ihre Fassung unbekannt: es bleibt still.",
+      "handy": "501.6 meldet sich die Uhr nicht vorher"
+    },
+    {
+      "id": "501.7",
+      "erwartung": "Ist keine Navigation laufend, folgt aus der Meldung nichts.",
+      "handy": "501.7 endet die Navigation"
+    },
+    {
+      "id": "501.8",
+      "erwartung": "Der Schalter aus heißt: keine Linie hin, keine Umplanung.",
+      "handy": "501.8 Schalter aus"
+    },
+    {
+      "id": "501.9",
+      "erwartung": "Während das Handy rechnet, löst die nächste Meldung keine zweite Umplanung an.",
+      "handy": "501.9 zwei Meldungen zugleich"
+    },
+    {
+      "id": "501.10",
+      "erwartung": "Eine Uhr-App unter 1.3.0 kennt die Frage nicht und bleibt in Ruhe.",
+      "handy": "die Uhr meldet ihren Stand, das Handy rechnet ab ihr um"
+    },
+    {
+      "id": "501.11",
+      "erwartung": "Dieselbe Linie noch einmal: die Uhr fragt nicht, es liegt nichts bereit.",
+      "szenario": [
+        "demo 501 dieselbe nochmal: Frage nein",
+        "nichts bereit"
+      ]
+    }
+  ]
+}
