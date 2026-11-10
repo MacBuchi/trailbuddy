@@ -1,4 +1,4 @@
-// Die Fälle von #500 und #501 stehen an einer Stelle: docs/watch_cases.json.
+// Alle Fälle der Uhr-App stehen an einer Stelle: docs/watch_cases.json.
 // Dieser Test prüft, dass jeder Fall wirklich geprüft ist — auf der Uhr
 // (Monkey-C-Unit-Test), im Simulator-Szenario (tool/garmin_scenario.sh) oder
 // am Handy (Fake-Uhr in test/). Ein Fall ohne Prüfung macht die Tests rot,
@@ -9,14 +9,19 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('alle Fälle von #500 und #501 haben eine Prüfung', () async {
+  test('jeder Fall der Uhr-App hat eine Prüfung', () async {
     final doc = jsonDecode(File('docs/watch_cases.json').readAsStringSync()) as Map<String, dynamic>;
     final faelle = (doc['faelle'] as List<dynamic>).cast<Map<String, dynamic>>();
     expect(faelle, isNotEmpty, reason: 'die Falldatei ist leer');
 
     final mc = File('garmin/source/Tests.mc').readAsStringSync();
-    final uhrCode = File('garmin/source/TrailBuddyApp.mc').readAsStringSync() +
-        File('garmin/source/NavTracker.mc').readAsStringSync();
+    // Konstanten stehen je nach Modul (PhoneRoute, RideLog, NavView …) —
+    // geprüft wird deshalb über alle Quellen der Uhr.
+    final uhrFiles = await Directory('garmin/source')
+        .list(recursive: true)
+        .where((e) => e is File && e.path.endsWith('.mc'))
+        .toList();
+    final uhrCode = uhrFiles.map((e) => File(e.path).readAsStringSync()).join('\n');
     final script = File('tool/garmin_scenario.sh').readAsStringSync();
 
     final dartSrc = <String>[];

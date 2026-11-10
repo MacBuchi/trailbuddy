@@ -20,6 +20,18 @@ need=(
   "Frage nach neuer Linie steht"
   "demo 501 dieselbe nochmal: Frage nein"
   "nichts bereit"
+  "demo keys freie Fahrt: Spur 6, zählt, Warteschlange 0"
+  "demo freie Fahrt Linie nah-1, Frage nein"
+  "demo freie Fahrt Linie genommen: nah-1, frei nein"
+  "demo keys START: zeichnet, zählt"
+  "demo keys LAP vor dem ersten Fix: keine Marke, wartet auf GPS"
+  "demo keys Trail beginnt: offen"
+  "demo keys Trail verworfen: kein Paar"
+  "demo keys Trail behalten: Paar da"
+  "demo keys Pause: hält"
+  "demo keys weiter: zeichnet"
+  "demo keys Verwerfen steht"
+  "demo keys verworfen: Warteschlange 0"
 )
 
 allThere() {
@@ -28,17 +40,16 @@ allThere() {
   return 0
 }
 
-# Nach der Annahme muss der Rahmen eine andere Linie zeigen als vorher.
+# Nach der Annahme muss die Uhr die wartende Linie zeigen.
 swapped() {
   awk '
     /demo 501 annehmen/ {
-      if (match($0, /Linie [A-Za-z0-9-]+/)) id = substr($0, RSTART + 6, RLENGTH - 6)
+      if (match($0, /wartet als demo-[0-9]+/)) want = substr($0, RSTART + 11, RLENGTH - 11)
       seen = 1; next
     }
-    seen && /demo frame/ {
-      if (match($0, /Linie [A-Za-z0-9-]+/)) {
-        cur = substr($0, RSTART + 6, RLENGTH - 6)
-        if (cur != id) { print cur; exit }
+    seen && /demo Linie jetzt demo-/ {
+      if (match($0, /Linie jetzt demo-[0-9]+/)) {
+        if (substr($0, RSTART + 12, RLENGTH - 12) == want) { print want; exit }
       }
     }' "$LOG"
 }
@@ -68,8 +79,14 @@ run() {
 }
 
 run
-if grep -q "Unable to connect to simulator" "$LOG"; then
-  echo "zweiter Versuch — der Simulator war noch nicht bereit"
+# Ein Simulator mit einer alten Appinstanz nimmt die .prg still: kein
+# "demo frame" in der Konsole (Feldbefund 2026-11-10). Dann neu starten.
+if grep -q "Unable to connect to simulator" "$LOG" || ! grep -q "demo frame" "$LOG"; then
+  echo "zweiter Versuch — der Simulator war nicht bereit"
+  pkill -f monkeydo 2>/dev/null || true
+  pkill -f "MacOS/simulator" 2>/dev/null || true
+  sleep 10
+  [ -n "$app" ] && open "$app"
   sleep 15
   run
 fi
@@ -78,7 +95,7 @@ if ! done_; then
 fi
 
 echo "--- Szenario #501 (Simulator ${GARMIN_DEVICE:-fenix5}, ${POINTS} Punkte) ---"
-grep -E "demo 501|Frage nach neuer Linie|Linie (test|demo)-" "$LOG" | tail -14
+grep -E "demo 501|demo keys|freie Fahrt Linie|Frage nach neuer Linie|Linie (test|demo)-" "$LOG" | tail -24
 n=0
 for w in "${need[@]}"; do
   if grep -q "$w" "$LOG"; then echo "OK    $w"; else echo "FEHLT $w"; n=$((n + 1)); fi
