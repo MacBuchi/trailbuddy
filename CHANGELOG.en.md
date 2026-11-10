@@ -2,6 +2,19 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## The watch asks before a new line takes over
+
+*Version 0.167.0, 2026-11-11*
+
+- **When the watch drifts off its line**, it tells the phone where it is, and
+  the phone replans the route from there — the same thing the “Replan route”
+  button does. Until now the old line simply stayed, and nobody noticed.
+- **The watch asks first:** “Route from your position?” START or BACK decline
+  the new line, and anyone who does nothing accepts it after eight seconds. At
+  the start, while loading and in free riding it still takes it quietly.
+- **It only asks when a ride is actually running.** A watch app that doesn’t
+  know the question yet (older than 1.3.0) is left alone.
+
 ## A scanned QR opens the buddies screen
 
 *Version 0.166.0, 2026-11-11*
