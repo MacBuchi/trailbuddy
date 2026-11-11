@@ -7,6 +7,12 @@ Abbiegehinweise.
 
 ## Technik-Notizen
 
+- **Prüfen über `tool/garmin_bench.sh`** (Skill `watch-bench`, Konzept
+  12): `cases` (Feldszenarien F1–F8 in `docs/watch_cases.json` gegen die
+  Fälle, `tool/watch_scenarios_check.py`), `unit`, `scenario`, `device`
+  (Tischabnahme mit Logcat), `chain` (Kettenstand, noch nicht gebaut —
+  #527). Wer hier einen Ablauf ändert, trägt erst den Fall ein und hängt
+  ihn an den Schritt eines Szenarios.
 - **Bauen nur über `tool/garmin_build.sh`** (Connect-IQ-SDK aus dem
   SDK-Manager, Schlüssel `~/.connectiq/developer_key.der` beim Betreiber,
   nie im Repo). Es baut aus einer Kopie unter `build/garmin/src`:
