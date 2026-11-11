@@ -40,7 +40,8 @@ niedrigsten Stufe, die ihn finden kann.
 
 `tool/garmin_bench.sh all` fährt alles, was ohne Gerät geht. S2–S5
 (Ablaufkern, Gesprächskatalog, Golden, Kettenstand) sind geplant, nicht
-gebaut: #508, #509, #511, #527. `chain` sagt bis dahin nur, was auf dem
+gebaut: #508, #509, #511, #527 (der Versuch zu S5 gelang am 2026-11-11
+mit 20 von 20 Runden, Branch `spike/watch-chain-bench`). `chain` sagt bis dahin nur, was auf dem
 Rechner dafür da ist, und endet mit 2.
 
 ## 3. Gegenprobe
@@ -81,10 +82,18 @@ wurde und welcher Test rot war.
   m`, `receive <Art>`. Garmin Connect meldet `SUCCESS` auch für eine
   geschlossene Uhr-App — nur `receive ok` heißt angekommen.
 - Tethered (`--dart-define=GARMIN_TETHERED=true`, `adb forward tcp:7381
-  tcp:7381`): erst das Startblatt öffnen, dann im Simulator „adb
-  Connection → Start", dann das Blatt neu öffnen. Von Hand war das
-  wackelig (`NOT_INSTALLED`, „ADB Disconnected") — gut für `status` und
-  `send`, nicht für Quittungen, bis #527 es gemessen hat.
+  tcp:7381`, auch gegen den Android-Emulator): **die Reihenfolge zählt**
+  — erst die Handy-App bis zum ersten `status` (das SDK lauscht), dann im
+  Simulator „adb Connection → Start", dann die Uhr-App laden. Ein
+  `nosim`-Bau, der vor der Verbindung startet, öffnet im Simulator einen
+  Dialog, und danach nimmt er keine App mehr an (`monkeydo` wartet stumm).
+- Im Tethered-Modus meldet der Simulator seine App ohne Kennung: Bis die
+  Änderung aus #527 in `GarminBridge.kt` ist (Empfang für `IQApp("")`),
+  kommen Nachrichten der Uhr am Handy NICHT an, obwohl `send` gelingt.
+  `openApplication` sagt dort immer `APP_IS_NOT_INSTALLED`.
+- Hängt ein echtes Telefon mit am Rechner, jeden adb-Aufruf auf den
+  Emulator festlegen (`ANDROID_SERIAL=emulator-5554`) — das Pixel mit dem
+  echten Konto wird nur gemessen, nie beschrieben.
 - Der Simulator-Weg zeigt keinen R8-Fehler. Eine Abnahme der Brücke
   braucht den Release-Bau, Garmin Connect und die echte Uhr.
 

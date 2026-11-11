@@ -933,7 +933,7 @@ Warum bisher so viel am Gerät landete:
 | S2 | **Ablaufkern**: Ereignis-Skripte gegen den Zustandsautomaten (T1, #508) | Tasten, Menüs, Fristen, Reihenfolgen | 💻 | offen |
 | S3 | **Gesprächskatalog** für beide Seiten und die Fake-Uhr mit Kanalmodell (T2, T3, #509) | Protokoll-Drift, Laufzeit, Verlust, geschlossene App | CI | offen |
 | S4 | **Dart-Abbild der Ansicht** mit Golden-Tests (T5, #511) | Aussehen, Textlängen, andere Größen | CI | offen |
-| S5 | **Kettenstand**: Android-Emulator und Simulator, verbunden über adb (T7, #527) | Brücke, Kotlin, SDK, beide Apps zusammen | 💻 | Versuch offen |
+| S5 | **Kettenstand**: Android-Emulator und Simulator, verbunden über adb (T7, #527) | Brücke, Kotlin, SDK, beide Apps zusammen | 💻 | Versuch gelungen (20/20), Bau offen |
 | S6 | **Tischabnahme**: Release-Bau am Pixel 7 Pro und fēnix 5, als Skript (#527) | Garmin Connect, R8, Hintergrund, alter Stand auf der Uhr | 📱, ~10 min | offen |
 | S7 | Feld | Messungen 8.3–8.6, 8.9 | 📱 | — |
 
@@ -971,12 +971,31 @@ Was er ist: beide Apps echt, nur Garmin Connect und der Funk fehlen.
   das Handy nimmt mit auf; Abkommen → Umplanen → Frage → Annahme nach
   der Frist; Fahrt hinüber → `wk`.
 
-**Erst ein Versuch, ein halber Tag.** Von Hand war die Verbindung
-wackelig (`NOT_INSTALLED` bei `openApplication`, „ADB Disconnected",
-keine `CONNECTED`-Ereignisse). Die Runde „hallo → Route → ok" läuft
-zwanzigmal: **Ab 19 von 20 ist S5 eine Stufe der Leiter**; darunter
-bleibt er ein Handwerkzeug, und S3 und S6 tragen die Last. Die Zahl steht
-in #527.
+**Der Versuch (2026-11-11, Branch `spike/watch-chain-bench`): 20 von 20.**
+Die Runde „Route → `ok`" lief zwischen dem Android-Emulator und dem
+Simulator zwanzigmal hintereinander durch, je rund 0,2 s; „hallo" auf `q`
+ebenso. Das Kriterium (ab 19 von 20) ist erfüllt — S5 wird eine Stufe der
+Leiter. Gemessen ist eine Sitzung mit einer Route aus einem Stück; mehrere
+Stücke, lange Läufe und der Neuaufbau der Verbindung stehen noch aus.
+Dass die Verbindung bisher als wackelig galt („gut für `status` und
+`send`, nicht für Quittungen"), hatte zwei Gründe, beide gefunden:
+
+- **Der Simulator meldet seine App ohne Kennung.** Der Empfang
+  (`registerForAppEvents`) muss im Tethered-Modus für `IQApp("")`
+  angemeldet sein; mit unserer Kennung kam nie eine Nachricht der Uhr an,
+  obwohl die Uhr `ok` sendete und der Simulator das Senden bestätigte.
+  Aus demselben Grund sagt `openApplication` dort `APP_IS_NOT_INSTALLED`
+  — das bleibt so und ist im Kettenstand kein Fehler.
+- **Die Reihenfolge beim Start.** Ein Bau, der wirklich sendet (`nosim`),
+  sagt beim Start „hallo". Steht die adb-Verbindung dann noch nicht,
+  öffnet der Simulator einen Dialog und nimmt keine App mehr an. Also:
+  erst die Handy-App (das SDK lauscht nach dem ersten `status`), dann
+  „adb Connection → Start", dann die Uhr-App laden.
+
+Der Klick im Menü des Simulators geht über System Events, auch ohne das
+Fenster nach vorn zu holen. Der Treiber braucht `integration_test` als
+Abhängigkeit und die Änderung in `GarminBridge.kt` — beides geht ins
+Binary bzw. in `pubspec.yaml`, also mit Bump in den PR zu #527.
 
 Was S5 nie zeigt: die 3,5 s je Nachricht, `SUCCESS` bei geschlossener
 App, Android, das die App schlafen legt (#524), R8. Dafür S3 und S6.

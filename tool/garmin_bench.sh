@@ -142,8 +142,9 @@ run_chain() {
   else miss "Entwicklerschlüssel (GARMIN_DEV_KEY)"; n=$((n + 1)); fi
   if command -v flutter > /dev/null 2>&1; then ok "flutter"; else miss "flutter"; n=$((n + 1)); fi
   say ""
-  say "Der Kettenstand selbst ist noch nicht gebaut — Plan und Abbruchkriterium"
-  say "(19 von 20 Runden) in #527 und docs/konzept-garmin.md 12.3."
+  say "Der Kettenstand selbst ist noch nicht gebaut. Der Versuch gelang"
+  say "(20 von 20 Runden, 2026-11-11) — Befund und Startreihenfolge in #527"
+  say "und docs/konzept-garmin.md 12.3."
   [ $n -eq 0 ] && say "Auf diesem Rechner ist alles da, um ihn zu bauen."
   return 2
 }
