@@ -10,8 +10,8 @@ Abbiegehinweise.
 - **Prüfen über `tool/garmin_bench.sh`** (Skill `watch-bench`, Konzept
   12): `cases` (Feldszenarien F1–F8 in `docs/watch_cases.json` gegen die
   Fälle, `tool/watch_scenarios_check.py`), `unit`, `scenario`, `device`
-  (Tischabnahme mit Logcat), `chain` (Kettenstand, noch nicht gebaut —
-  #527). Wer hier einen Ablauf ändert, trägt erst den Fall ein und hängt
+  (Tischabnahme mit Logcat), `chain` (Kettenstand, #527: Emulator +
+  Simulator über adb; `chain --break` muss rot werden). Wer hier einen Ablauf ändert, trägt erst den Fall ein und hängt
   ihn an den Schritt eines Szenarios.
 - **Bauen nur über `tool/garmin_build.sh`** (Connect-IQ-SDK aus dem
   SDK-Manager, Schlüssel `~/.connectiq/developer_key.der` beim Betreiber,
@@ -193,12 +193,22 @@ Abbiegehinweise.
   der Zeile), erst kleinere Schrift, dann „…".
 - **Entwurf** im Designer des Betreibers (privat, Link im PR #449-G1);
   das Aussehen steht in `docs/design/README.md` Abschnitt 15.
+- **Der Bench-Bau** (`tool/garmin_build.sh --bench`, `(:bench)`/`(:nobench)`
+  in `TrailBuddyApp.mc`, #527): sendet wirklich (`nosim`) und nimmt über
+  den Kanal Ereignisse für den Ablaufkern an — `_k` Taste/Menüpunkt, `_f`
+  Fixe, `_t` Zeitsprung (die Uhr des Wirts bekommt einen Versatz), `_x`
+  „diese Art nicht senden" — und antwortet mit `_s` (Stand). Menüs zeigt
+  er nicht an, `_s.menu` sagt, welches stünde. Der normale Bau schließt
+  `bench` aus (`monkey.jungle`); wer `now`, `send`, `menu` oder `onPhone`
+  ändert, ändert beide Fassungen. Der Treiber am Handy ist
+  `integration_test/watch_bench_test.dart`.
 - **Drei Annotationspaare, eine Zeile** (`tool/garmin_build.sh`, die
   letzte `base.excludeAnnotations` in der Jungle-Kopie gilt):
   `demo`/`nodemo` (Vorführmodus), `testroute`/`store` (Testroute oder
   freie Fahrt ohne Route, `fallbackRoute`), `nosim`/`sim`
-  (Senden über Garmin Connect oder stumm). `monkey.jungle` im Repo ist
-  der Bau für die Uhr: `demo;store;sim`.
+  (Senden über Garmin Connect oder stumm), dazu `bench`/`nobench`
+  (Kettenstand). `monkey.jungle` im Repo ist der Bau für die Uhr:
+  `demo;store;sim;bench`.
 - **Kein `transmit` im Simulator** (`transmit` in `TrailBuddyApp`,
   Betreiber 2026-11-07): Der Simulator meldet ein verbundenes Handy, und
   ohne ADB öffnete der erste `transmit` bei jedem `--test`/`--demo`/`--run`

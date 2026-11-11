@@ -19,7 +19,8 @@ niedrigsten Stufe, die ihn finden kann.
 1. Den Fall in `docs/watch_cases.json` unter `faelle` eintragen
    (Kennung `<Issue>.<n>`, `erwartung`, und womit er geprüft wird: `uhr`
    = Name des Monkey-C-Tests, `handy` = Titel des Dart-Tests, `szenario`
-   = Konsolenzeilen des Vorführmodus).
+   = Konsolenzeilen des Vorführmodus, `kette` = Name eines Schritts im
+   Treiber des Kettenstands, `integration_test/watch_bench_test.dart`).
 2. Ihn an den Schritt eines Szenarios F1–F8 hängen (`szenarien`), oder
    einen Schritt ergänzen. Was noch nicht geprüft werden kann, steht als
    `offen: [Issue]`, was nur am Gerät geht, als `geraet`.
@@ -35,15 +36,26 @@ niedrigsten Stufe, die ihn finden kann.
 | Tasten, Menüs, Fristen, Rückfrage (`WatchCore.mc`) | S2: Ereignis-Skript in `CoreTests.mc` gegen `FakeHost` | `tool/garmin_bench.sh unit` |
 | Der Wirt (`TrailBuddyApp.mc`: Timer, GPS, Senden, Menüs) | S2 + Vorführmodus | `tool/garmin_bench.sh scenario` |
 | Zeichnen (`NavView.mc`, `Ring.mc`) | Vorführmodus ansehen, Bildschirmfoto | `tool/garmin_build.sh --demo` |
-| `GarminBridge.kt`, Kanal, SDK, R8-Regeln | S6 | `tool/garmin_bench.sh device` |
+| `GarminBridge.kt`, Kanal, SDK; Nachrichten zwischen beiden Apps | S5 | `tool/garmin_bench.sh chain` |
+| R8-Regeln, Garmin Connect, Hintergrund | S6 | `tool/garmin_bench.sh device` |
 | Eine Nachricht, die beide Seiten kennen müssen | S0 + S1, und der Test, der beide Dateien liest (`test/garmin/watch_route_test.dart`, `watch_ride_test.dart`) | `cases`, `unit` |
 | Vor einer Beförderung mit Uhr-Anteil | S6 | `tool/garmin_bench.sh device` |
 
-`tool/garmin_bench.sh all` fährt alles, was ohne Gerät geht. S2 (Ablaufkern) steht seit #508; S3–S5
-(Gesprächskatalog, Golden, Kettenstand) sind geplant, nicht
-gebaut: #509, #511, #527 (der Versuch zu S5 gelang am 2026-11-11
-mit 20 von 20 Runden, Branch `spike/watch-chain-bench`). `chain` sagt bis dahin nur, was auf dem
-Rechner dafür da ist, und endet mit 2.
+`tool/garmin_bench.sh all` fährt alles, was ohne Gerät und ohne
+Emulator geht. S2 (Ablaufkern) steht seit #508, S5 (Kettenstand) seit
+#527; S3 und S4 (Gesprächskatalog, Golden) sind geplant: #509, #511.
+
+**Der Kettenstand** (`chain`, nur 💻): startet den ersten AVD ohne
+Fenster (läuft schon ein Emulator, nimmt er den), baut die Uhr mit
+`--bench`, startet den Simulator frisch, `adb forward`, dann den Treiber
+(`flutter test integration_test/watch_bench_test.dart --flavor dev`,
+Tethered) — und erst wenn der „sdk-up" schreibt, klickt er im Simulator
+„adb Connection → Start" und lädt die Uhr-App. Ergebnis je Schritt
+unten in der Ausgabe, Protokolle `build/garmin/chain.log` (Handy) und
+`chain-sim.log` (Uhr, mit `bench rx/tx`). `chain --break` lässt die Uhr
+nie `ok` senden und ist grün, wenn die Kette genau dort rot wird — nach
+einer Änderung am Skript oder Treiber einmal fahren. Ein Lauf dauert mit
+gebautem Treiber gut 3 min, der erste Bau einige Minuten mehr.
 
 ## 3. Gegenprobe
 
@@ -88,10 +100,16 @@ wurde und welcher Test rot war.
   Simulator „adb Connection → Start", dann die Uhr-App laden. Ein
   `nosim`-Bau, der vor der Verbindung startet, öffnet im Simulator einen
   Dialog, und danach nimmt er keine App mehr an (`monkeydo` wartet stumm).
-- Im Tethered-Modus meldet der Simulator seine App ohne Kennung: Bis die
-  Änderung aus #527 in `GarminBridge.kt` ist (Empfang für `IQApp("")`),
-  kommen Nachrichten der Uhr am Handy NICHT an, obwohl `send` gelingt.
-  `openApplication` sagt dort immer `APP_IS_NOT_INSTALLED`.
+- Im Tethered-Modus meldet der Simulator seine App ohne Kennung:
+  `GarminBridge.kt` hört dort deshalb auf `IQApp("")` (seit 0.168.2,
+  #527). `openApplication` sagt dort immer `APP_IS_NOT_INSTALLED` — kein
+  Fehler im Kettenstand.
+- Jede Nachricht kostet im Tethered-Modus einen festen Schlaf des SDK
+  („Simulating BLE"): eine Route in zwei Stücken bis `ok` 9,1 s, sehr
+  gleichmäßig (2026-11-11). Zeiten aus S5 sind keine Feldzeiten (8.2).
+- Der Bench-Bau verarbeitet Fixe aus `_f` einen je 50 ms: Alle in einem
+  Ereignis brachen den Watchdog (`NavTracker.update` über die Linie) —
+  ein Fehler des Prüfstands, am Gerät kommt ein Fix je Ereignis.
 - Hängt ein echtes Telefon mit am Rechner, jeden adb-Aufruf auf den
   Emulator festlegen (`ANDROID_SERIAL=emulator-5554`) — das Pixel mit dem
   echten Konto wird nur gemessen, nie beschrieben.

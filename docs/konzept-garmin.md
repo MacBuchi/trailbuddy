@@ -933,7 +933,7 @@ Warum bisher so viel am Gerät landete:
 | S2 | **Ablaufkern**: Ereignis-Skripte gegen den Zustandsautomaten (T1, #508; `WatchCore.mc`, Tests in `CoreTests.mc`) | Tasten, Menüs, Fristen, Reihenfolgen | 💻 | da |
 | S3 | **Gesprächskatalog** für beide Seiten und die Fake-Uhr mit Kanalmodell (T2, T3, #509) | Protokoll-Drift, Laufzeit, Verlust, geschlossene App | CI | offen |
 | S4 | **Dart-Abbild der Ansicht** mit Golden-Tests (T5, #511) | Aussehen, Textlängen, andere Größen | CI | offen |
-| S5 | **Kettenstand**: Android-Emulator und Simulator, verbunden über adb (T7, #527) | Brücke, Kotlin, SDK, beide Apps zusammen | 💻 | Versuch gelungen (20/20), Bau offen |
+| S5 | **Kettenstand**: Android-Emulator und Simulator, verbunden über adb (T7, #527) | Brücke, Kotlin, SDK, beide Apps zusammen | 💻 | da (`tool/garmin_bench.sh chain`) |
 | S6 | **Tischabnahme**: Release-Bau am Pixel 7 Pro und fēnix 5, als Skript (#527) | Garmin Connect, R8, Hintergrund, alter Stand auf der Uhr | 📱, ~10 min | offen |
 | S7 | Feld | Messungen 8.3–8.6, 8.9 | 📱 | — |
 
@@ -1010,6 +1010,35 @@ Der Klick im Menü des Simulators geht über System Events, auch ohne das
 Fenster nach vorn zu holen. Der Treiber braucht `integration_test` als
 Abhängigkeit und die Änderung in `GarminBridge.kt` — beides geht ins
 Binary bzw. in `pubspec.yaml`, also mit Bump in den PR zu #527.
+
+**Gebaut (#527, 0.168.2):** `tool/garmin_bench.sh chain` startet den
+Emulator (ohne Fenster), baut die Uhr mit `--bench`, startet den
+Simulator frisch, hält die Reihenfolge ein und druckt je Schritt OK oder
+FEHLT. Der Treiber ist `integration_test/watch_bench_test.dart`, die Uhr
+nimmt im Bench-Bau `_k` (Taste, Menüpunkt), `_f` (Fixe, einer je
+50 ms), `_t` (Zeitsprung), `_x` (eine Art nie senden) und antwortet mit
+`_s` (Stand); Menüs zeigt sie dort nicht an, `_s` sagt, welches stünde.
+Ein Lauf, gut 3 min mit gebautem Treiber (2026-11-11, grün):
+
+1. hallo auf `q` (7–9 s inkl. Verbindungsaufbau);
+2. fünfmal eine Route in zwei Stücken → `ok`, je 9,1 s (Streuung unter
+   10 ms — der feste Schlaf des SDK je Nachricht, keine Feldzeit);
+3. die Frage nach der neuen Linie läuft ab, sie lädt;
+4. START → `rs`, Fixe, Pause → `rp` mit dem Menü, Weiter → `rr`;
+5. weit neben der Linie → `d`;
+6. eine neue Linie während der Fahrt → `ok`, die Frage, nach der Frist
+   genommen, die Aufzeichnung läuft weiter;
+7. Speichern → `re`, die Fahrt in Nachrichten (41 Punkte, dekodiert),
+   `wk` → die Uhr schickt sie nicht noch einmal.
+
+`chain --break` lässt die Uhr nie `ok` senden und ist grün, wenn die
+Kette bei Runde 1 rot wird. Die Schritte hängen als Prüfweg `kette` an
+den Fällen 527.1–527.7 und darüber an F1–F4 (`docs/watch_cases.json`).
+Zwei Fallen des Prüfstands selbst, beide behoben: Alle Fixe in einem
+Ereignis brachen den Watchdog (am Gerät kommt einer je Ereignis), und
+der Simulator behält den Speicher der Uhr — eine Fahrt aus einem
+abgebrochenen Lauf kam als laufende Aufzeichnung zurück. Der Bench-Bau
+löscht deshalb beim Start alles.
 
 Was S5 nie zeigt: die 3,5 s je Nachricht, `SUCCESS` bei geschlossener
 App, Android, das die App schlafen legt (#524), R8. Dafür S3 und S6.

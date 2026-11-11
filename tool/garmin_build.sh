@@ -15,6 +15,11 @@
 #                                        Debug-Infos, ohne Testroute
 #   tool/garmin_build.sh --store --run   … und den Store-Zweig (ohne Testroute)
 #                                        im Simulator zeigen (GARMIN_DEVICE)
+#   tool/garmin_build.sh --bench         Bau für den Kettenstand (S5, #527):
+#                                        sendet wirklich (nosim) und nimmt
+#                                        Ereignisse über den Kanal (:bench) —
+#                                        build/garmin/trailbuddy-bench.prg,
+#                                        gestartet von garmin_bench.sh chain
 #
 # Gebaut wird aus einer Kopie unter build/garmin/src — so ersetzt eine
 # eigene Route nie die Testroute im Repo. Auf die Uhr: die .prg per USB
@@ -49,13 +54,14 @@ while [ $# -gt 0 ]; do
     --demo) mode=demo; shift ;;
     --store) store=1; shift ;;
     --demo-route) demoRoute=1; shift ;;
-    -h|--help) sed -n '2,27p' "$0"; exit 0 ;;
+    --bench) mode=bench; shift ;;
+    -h|--help) sed -n '2,32p' "$0"; exit 0 ;;
     *) echo "Unbekannt: $1" >&2; exit 2 ;;
   esac
 done
 
 # Für Prüfungen und Messungen bleibt die erfundene Route im Paket.
-case "$mode" in test|demo|run) demoRoute=1 ;; esac
+case "$mode" in test|demo|run|bench) demoRoute=1 ;; esac
 if [ ${#route_args[@]} -gt 0 ]; then demoRoute=1; fi
 if [ "$store" = 1 ]; then demoRoute=0; fi
 
@@ -92,7 +98,7 @@ class TbVersion {
 VER
 echo "Fassung $version (Stempel $stamp)" 
 if [ "$store" = 1 ]; then
-  if [ "$mode" = test ] || [ "$mode" = demo ] || [ ${#route_args[@]} -gt 0 ]; then
+  if [ "$mode" = test ] || [ "$mode" = demo ] || [ "$mode" = bench ] || [ ${#route_args[@]} -gt 0 ]; then
     echo "--store geht nur allein oder mit --run." >&2
     exit 2
   fi
@@ -112,11 +118,13 @@ extra=()
 # Vorführmodus (demo/nodemo), Testroute oder Store-Hinweis
 # (testroute/store), Senden über Garmin Connect oder stumm im Simulator
 # (nosim/sim — sonst öffnet der Simulator ohne ADB bei jedem Lauf den
-# Dialog „There is no data connection").
-excl="demo"
-if [ "$mode" = demo ]; then excl="nodemo"; prg="$OUT/trailbuddy-demo.prg"; fi
+# Dialog „There is no data connection"), Kettenstand (bench/nobench: nur
+# --bench nimmt Ereignisse über den Kanal, #527).
+excl="demo;bench"
+if [ "$mode" = demo ]; then excl="nodemo;bench"; prg="$OUT/trailbuddy-demo.prg"; fi
+if [ "$mode" = bench ]; then excl="demo;nobench"; prg="$OUT/trailbuddy-bench.prg"; fi
 if [ "$demoRoute" = 1 ]; then excl="$excl;store"; else excl="$excl;testroute"; fi
-if [ "$mode" = build ]; then excl="$excl;sim"; else excl="$excl;nosim"; fi
+if [ "$mode" = build ] || [ "$mode" = bench ]; then excl="$excl;sim"; else excl="$excl;nosim"; fi
 echo "base.excludeAnnotations = $excl" >> "$OUT/src/monkey.jungle"
 
 if [ "$mode" = test ]; then
@@ -139,7 +147,7 @@ if [ "$mode" = build ] && [ "$demoRoute" = 0 ]; then
   echo "ohne Route: auf der Uhr öffnen, START für die freie Fahrt (#484)"
 fi
 
-if [ "$mode" = build ]; then
+if [ "$mode" = build ] || [ "$mode" = bench ]; then
   exit 0
 fi
 # Simulator: läuft er nicht, starten und kurz warten.
