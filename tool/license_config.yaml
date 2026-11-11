@@ -78,3 +78,8 @@ approvedPackages:
     - flutter_localizations
     - flutter_test
     - flutter_web_plugins
+    # integration_test und was es mitbringt (Kettenstand der Uhr, #527,
+    # nur Entwicklung, nicht im APK) — dieselbe Lage: SDK-Pakete.
+    - integration_test
+    - flutter_driver
+    - fuchsia_remote_debug_protocol
