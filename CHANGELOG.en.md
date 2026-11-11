@@ -4,7 +4,13 @@
 
 ## The watch app checks its own flows
 
-*Version 0.168.1, 2026-11-11*
+*Versions 0.168.1–0.168.2, 2026-11-11*
+
+- **Phone and watch on the test bench together (0.168.2):** the real
+  connection to the watch can now be checked without a watch and without a
+  ride — the app in an emulated phone, the watch app in Garmin's simulator.
+  Route across, recording, pause, going off route, a new line and the ride
+  back all run there automatically. Nothing changes in the app.
 
 - **Under the hood of the watch:** buttons, menus, deadlines and messages
   from the phone now run through a flow part of their own that the tests

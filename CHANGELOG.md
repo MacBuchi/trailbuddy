@@ -4,7 +4,13 @@
 
 ## Die Uhr-App prüft ihre Abläufe selbst
 
-*Version 0.168.1, 2026-11-11*
+*Versionen 0.168.1–0.168.2, 2026-11-11*
+
+- **Handy und Uhr zusammen auf dem Prüfstand (0.168.2):** Die echte
+  Verbindung zur Uhr lässt sich jetzt ohne Uhr und ohne Fahrt prüfen — die
+  App in einem nachgebildeten Handy, die Uhr-App im Simulator von Garmin.
+  Route hinüber, Aufnehmen, Pause, Abkommen, neue Linie und die Fahrt
+  zurück laufen dort automatisch durch. In der App ändert sich nichts.
 
 - **Unter der Haube der Uhr:** Tasten, Menüs, Fristen und Nachrichten vom
   Handy laufen jetzt durch einen eigenen Ablaufteil, den die Tests ohne Uhr

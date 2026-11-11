@@ -4,7 +4,7 @@ publish_to: 'none'
 
 # Beide Teile erhöhen (z. B. 0.1.0+1 → 0.1.1+2). Ein Bump auf main taggt und
 # baut ein Prerelease (release.yml); ohne Bump kein Release (Version Guard).
-version: 0.168.1+256
+version: 0.168.2+257
 
 environment:
   sdk: ^3.11.0
@@ -136,6 +136,9 @@ dependencies:
 
 dev_dependencies:
   flutter_test:
+    sdk: flutter
+  # Nur der Kettenstand der Uhr (integration_test/, #527) — nicht im APK.
+  integration_test:
     sdk: flutter
   flutter_lints: ^6.0.0
 

@@ -2,5 +2,6 @@ project.manifest = manifest.xml
 # Der Vorführmodus gehört nur in den Simulator (tool/garmin_build.sh --demo),
 # der Zweig ohne Testroute nur ins Store-Paket (tool/garmin_build.sh --store),
 # der stumme Sendeweg nur in Bauten für den Simulator (--test, --demo, --run).
+# Die Ereignisse des Kettenstands (bench) nur in --bench (#527).
 # Das Skript ersetzt die Zeile für diese Fälle in seiner Kopie.
-base.excludeAnnotations = demo;store;sim
+base.excludeAnnotations = demo;store;sim;bench

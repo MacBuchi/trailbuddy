@@ -31,6 +31,7 @@ class TrailBuddyApp extends Application.AppBase {
 
     function initialize() {
         AppBase.initialize();
+        if (self has :benchWipe) { benchWipe(); }
         core = new WatchCore(self);
     }
 
@@ -58,6 +59,7 @@ class TrailBuddyApp extends Application.AppBase {
 
     // --- Der Wirt des Ablaufs ([WatchCore]) ---------------------------------
 
+    (:nobench)
     function now() as Number {
         return System.getTimer();
     }
@@ -85,9 +87,14 @@ class TrailBuddyApp extends Application.AppBase {
 
     //! An das Handy: einfach, „beendet" ([WatchCore.SEND_END]) oder ein
     //! Stück der Fahrt ([WatchCore.SEND_RIDE]) — die beiden melden zurück.
+    (:nobench)
     function send(msg as Dictionary, kind as Number) as Void {
-        transmit(msg, kind == WatchCore.SEND_END ? new EndAck()
-            : (kind == WatchCore.SEND_RIDE ? new RideAck() : new PhoneAck()));
+        transmit(msg, ackFor(kind));
+    }
+
+    hidden function ackFor(kind as Number) as Communications.ConnectionListener {
+        return kind == WatchCore.SEND_END ? new EndAck()
+            : (kind == WatchCore.SEND_RIDE ? new RideAck() : new PhoneAck());
     }
 
     //! Auf der Uhr und im Store-Paket über Garmin Connect.
@@ -121,6 +128,7 @@ class TrailBuddyApp extends Application.AppBase {
     //! Die Menüs: `:pause` Weiter · Speichern · Verwerfen, `:trail` nach
     //! „Trail endet" Behalten · Verwerfen, `:quit` beenden?, `:discard`
     //! Fahrt verwerfen? (ersetzt das Menü der Pause).
+    (:nobench)
     function menu(kind as Symbol) as Void {
         if (kind == :discard) {
             WatchUi.switchToView(new WatchUi.Confirmation(str(Rez.Strings.DiscardRide)),
@@ -195,6 +203,7 @@ class TrailBuddyApp extends Application.AppBase {
     // --- Ereignisse an den Ablauf -------------------------------------------
 
     //! Eine Nachricht vom Handy.
+    (:nobench)
     function onPhone(msg as Communications.PhoneAppMessage) as Void {
         var d = msg.data;
         if (d instanceof Dictionary) { core.handle(d); }
@@ -209,6 +218,179 @@ class TrailBuddyApp extends Application.AppBase {
         core.ownFix(deg != null ? deg[0].toDouble() : null, deg != null ? deg[1].toDouble() : 0.0d,
             info.accuracy, info.heading, info.speed, alt,
             sensor has :heartRate ? sensor.heartRate : null, compass(), Time.now().value());
+    }
+
+    // --- Der Kettenstand (S5, #527, nur `tool/garmin_build.sh --bench`) -----
+    //
+    // Der Simulator lässt sich von außen nicht an den Tasten drücken und
+    // hat ohne abgespielte Spur kein GPS. Im Bench-Bau nimmt die Uhr deshalb
+    // über den normalen Kanal Ereignisse für den Ablaufkern an und meldet
+    // danach ihren Stand. Alles andere — Garmin Connect über adb, die
+    // Brücke, die App am Handy — ist echt. Der normale Bau schließt
+    // `(:bench)` aus (monkey.jungle), dort gelten die `(:nobench)`-Fassungen.
+    //
+    //   `{t: "_k", k}`        Taste oder Menüpunkt: start, back, resume,
+    //                         save, discard, keep, drop, yes, no
+    //   `{t: "_f", la, lo, dt, sp}`  eigene Fixe (1e-5°), je dt Sekunden
+    //   `{t: "_t", ms}`       die Uhr des Ablaufs springt vor, dann ein Takt
+    //   `{t: "_x", drop}`     Nachrichten dieser Art nicht senden (der
+    //                         gewollte Bruch: „die Uhr antwortet nie ok")
+    //   `{t: "_s"}`           nur den Stand melden
+    //
+    // Antwort auf jedes Ereignis: `{t: "_s", rec, wait, free, ready, id,
+    // ask, closing, q, menu, fx, pend?}` — `fx` Fixe, die noch anstehen;
+    // auf `_f` erst, wenn alle verarbeitet sind.
+
+    (:bench) hidden var _shift as Number = 0;
+    (:bench) hidden var _fixT as Number = 0;
+    (:bench) hidden var _drop as String? = null;
+    //! Das Menü, das die Uhr gerade zeigen würde ("" keins).
+    (:bench) hidden var _benchMenu as String = "";
+    (:bench) hidden var _fixTimer as Timer.Timer?;
+    (:bench) hidden var _fixLa as Array? = null;
+    (:bench) hidden var _fixLo as Array? = null;
+    (:bench) hidden var _fixI as Number = 0;
+    (:bench) hidden var _fixDt as Number = 5;
+    (:bench) hidden var _fixSp as Float = 5.0;
+
+    //! Der Simulator behält den Speicher der Uhr zwischen Läufen: Eine
+    //! Fahrt aus einem abgebrochenen Lauf kam als laufende Aufzeichnung
+    //! zurück, START hieß dann Pause (2026-11-11). Jeder Lauf beginnt leer.
+    (:bench)
+    function benchWipe() as Void {
+        Application.Storage.clearValues();
+        System.println("bench wipe");
+    }
+
+    (:bench)
+    function now() as Number {
+        return System.getTimer() + _shift;
+    }
+
+    (:bench)
+    function send(msg as Dictionary, kind as Number) as Void {
+        var t = msg["t"];
+        var drop = _drop;
+        if (drop != null && drop.equals(t)) {
+            System.println("bench drop " + t);
+            return;
+        }
+        System.println("bench tx " + t);
+        transmit(msg, ackFor(kind));
+    }
+
+    //! Kein Menü auf dem Bildschirm: Der Treiber wählt mit `_k`, und `_s`
+    //! sagt ihm, welches stünde.
+    (:bench)
+    function menu(kind as Symbol) as Void {
+        _benchMenu = kind == :pause ? "pause" : (kind == :trail ? "trail" : (kind == :quit ? "quit" : "discard"));
+        System.println("bench menu " + _benchMenu);
+    }
+
+    (:bench)
+    function onPhone(msg as Communications.PhoneAppMessage) as Void {
+        var d = msg.data;
+        if (!(d instanceof Dictionary)) { return; }
+        var t = d["t"];
+        System.println("bench rx " + t);
+        if (t instanceof String && t.length() == 2 && "_".equals(t.substring(0, 1))) {
+            bench(t, d);
+            return;
+        }
+        core.handle(d);
+    }
+
+    (:bench)
+    hidden function bench(t as String, d as Dictionary) as Void {
+        if ("_k".equals(t)) {
+            var k = d["k"];
+            if (k instanceof String) { benchKey(k); }
+        } else if ("_f".equals(t)) {
+            // Der Stand kommt, wenn der letzte Fix verarbeitet ist.
+            benchFixes(d);
+            return;
+        } else if ("_t".equals(t)) {
+            var ms = d["ms"];
+            if (ms instanceof Number) { _shift += ms; }
+            core.tick();
+        } else if ("_x".equals(t)) {
+            var x = d["drop"];
+            _drop = x instanceof String ? x : null;
+        }
+        benchState();
+    }
+
+    (:bench)
+    hidden function benchKey(k as String) as Void {
+        var c = core;
+        var m = _benchMenu;
+        if ("start".equals(k)) {
+            c.startKey();
+        } else if ("back".equals(k)) {
+            c.backKey();
+        } else if ("resume".equals(k) || "save".equals(k) || "discard".equals(k)) {
+            _benchMenu = "";
+            c.pauseChoice("resume".equals(k) ? :resume : ("save".equals(k) ? :save : :discard));
+        } else if ("keep".equals(k) || "drop".equals(k)) {
+            _benchMenu = "";
+            c.trailChoice("keep".equals(k));
+        } else if ("yes".equals(k)) {
+            _benchMenu = "";
+            if ("quit".equals(m)) { c.quit(); } else if ("discard".equals(m)) { c.discardRide(); }
+        } else if ("no".equals(k)) {
+            _benchMenu = "";
+        }
+    }
+
+    //! Eigene Fixe wie vom GPS, gute Qualität, je `dt` Sekunden später —
+    //! auch die Uhr des Ablaufs geht so weit vor. Einer je Ereignis wie am
+    //! Gerät (ein eigener Takt, 50 ms): alle in einem Ereignis brachen den
+    //! Watchdog (`NavTracker.update` über die ganze Linie, 2026-11-11).
+    (:bench)
+    hidden function benchFixes(d as Dictionary) as Void {
+        var la = d["la"];
+        var lo = d["lo"];
+        if (!(la instanceof Array) || !(lo instanceof Array) || la.size() != lo.size()) { return; }
+        _fixLa = la;
+        _fixLo = lo;
+        _fixI = 0;
+        _fixDt = d["dt"] instanceof Number ? d["dt"] as Number : 5;
+        _fixSp = d["sp"] instanceof Number ? (d["sp"] as Number).toFloat() : 5.0;
+        if (_fixT == 0) { _fixT = Time.now().value(); }
+        var t = _fixTimer;
+        if (t == null) {
+            t = new Timer.Timer();
+            _fixTimer = t;
+        }
+        t.start(method(:benchFixStep), 50, true);
+    }
+
+    (:bench)
+    function benchFixStep() as Void {
+        var la = _fixLa as Array;
+        var lo = _fixLo as Array;
+        if (_fixI >= la.size()) {
+            (_fixTimer as Timer.Timer).stop();
+            benchState();
+            return;
+        }
+        _fixT += _fixDt;
+        _shift += _fixDt * 1000;
+        core.ownFix((la[_fixI] as Number).toDouble() / 100000.0d, (lo[_fixI] as Number).toDouble() / 100000.0d,
+            Position.QUALITY_GOOD, null, _fixSp, null, null, null, _fixT);
+        _fixI++;
+    }
+
+    (:bench)
+    hidden function benchState() as Void {
+        var c = core;
+        var m = {"t" => "_s", "rec" => c.log.state(), "wait" => c.wait, "free" => c.free,
+            "ready" => c.route.isReady(), "id" => c.route.id, "ask" => c.pendingId != null && c.swapAt != 0,
+            "closing" => c.closing, "q" => RideLog.queue().size(), "menu" => _benchMenu,
+            "fx" => _fixLa == null ? 0 : (_fixLa as Array).size() - _fixI} as Dictionary;
+        var p = c.pendingId;
+        if (p != null) { m["pend"] = p; }
+        transmit(m, new PhoneAck());
     }
 
     (:demo) hidden var _demoTimer as Timer.Timer?;

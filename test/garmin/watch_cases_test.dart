@@ -1,7 +1,8 @@
 // Alle Fälle der Uhr-App stehen an einer Stelle: docs/watch_cases.json.
 // Dieser Test prüft, dass jeder Fall wirklich geprüft ist — auf der Uhr
-// (Monkey-C-Unit-Test), im Simulator-Szenario (tool/garmin_scenario.sh) oder
-// am Handy (Fake-Uhr in test/). Ein Fall ohne Prüfung macht die Tests rot,
+// (Monkey-C-Unit-Test), im Simulator-Szenario (tool/garmin_scenario.sh), am
+// Handy (Fake-Uhr in test/) oder im Kettenstand (Schritt des Treibers in
+// integration_test/watch_bench_test.dart, #527). Ein Fall ohne Prüfung macht die Tests rot,
 // damit die Abdeckung nicht leise kleiner wird.
 import 'dart:convert';
 import 'dart:io';
@@ -28,6 +29,7 @@ void main() {
         .join('\n');
     expect(mc, contains('function coreStartBeginsRecording('), reason: 'CoreTests.mc nicht gelesen');
     final script = File('tool/garmin_scenario.sh').readAsStringSync();
+    final chain = File('integration_test/watch_bench_test.dart').readAsStringSync();
 
     final dartSrc = <String>[];
     await for (final e in Directory('test').list(recursive: true)) {
@@ -43,7 +45,9 @@ void main() {
       final uhr = f['uhr'] as String?;
       final handy = f['handy'] as String?;
       final szen = (f['szenario'] as List<dynamic>?)?.cast<String>();
-      expect(uhr != null || handy != null || (szen != null && szen.isNotEmpty), isTrue,
+      final kette = (f['kette'] as List<dynamic>?)?.cast<String>();
+      expect(uhr != null || handy != null || (szen != null && szen.isNotEmpty) || (kette != null && kette.isNotEmpty),
+          isTrue,
           reason: '$id hat keine Prüfung');
       if (uhr != null) {
         expect(mc, contains('function $uhr('), reason: '$id: der Unit-Test der Uhr fehlt');
@@ -53,6 +57,10 @@ void main() {
       }
       for (final s in szen ?? const <String>[]) {
         expect(script, contains(s), reason: '$id: das Szenario prüft es nicht');
+      }
+      // Der Name eines Schritts im Treiber: `step('<Name>…`.
+      for (final k in kette ?? const <String>[]) {
+        expect(chain, contains("step('$k"), reason: '$id: der Kettenstand hat den Schritt „$k“ nicht');
       }
       for (final k in (f['konstant'] as List<dynamic>?)?.cast<String>() ?? const <String>[]) {
         expect(uhrCode, contains(k), reason: '$id: die Konstante $k steht nicht in der Uhr');

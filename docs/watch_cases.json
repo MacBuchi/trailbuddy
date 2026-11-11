@@ -9,7 +9,8 @@
     "uhr": "garmin/source/Tests.mc und CoreTests.mc (Ablaufkern, #508) — Monkey-C-Unit-Tests im Simulator (tool/garmin_build.sh --test)",
     "szenario": "tool/garmin_scenario.sh — spielt die Runde im Simulator und prüft die Konsole",
     "handy": "test/ — die Fake-Uhr in test/fakes/fake_garmin.dart",
-    "szenarien": "tool/watch_scenarios_check.py — jeder Schritt eines Feldszenarios (docs/konzept-geraete.md 9) nennt Fälle, eine Messung am Gerät oder das offene Issue"
+    "szenarien": "tool/watch_scenarios_check.py — jeder Schritt eines Feldszenarios (docs/konzept-geraete.md 9) nennt Fälle, eine Messung am Gerät oder das offene Issue",
+    "kette": "integration_test/watch_bench_test.dart — der Kettenstand (S5, #527): die echte Brücke im Android-Emulator gegen die Uhr-App im Simulator (tool/garmin_bench.sh chain); `kette` nennt die Schritte des Treibers"
   },
   "faelle": [
     {
@@ -380,6 +381,62 @@
       "id": "508.10",
       "erwartung": "Ohne Handy startet die Uhr gleich mit der gespeicherten Route, ohne Lader.",
       "uhr": "coreWithoutPhoneLoadsStored"
+    },
+    {
+      "id": "527.1",
+      "erwartung": "Auf `q` antwortet die Uhr über die echte Brücke (Dart, GarminBridge.kt, Companion-SDK) mit `hi` — der Empfang am Handy hört im Tethered-Modus auf die App ohne Kennung.",
+      "kette": [
+        "hallo"
+      ]
+    },
+    {
+      "id": "527.2",
+      "erwartung": "Eine Route in mehreren Stücken kommt an, die Uhr quittiert mit `ok` und der Kennung — mehrmals hintereinander ohne Ausfall.",
+      "kette": [
+        "Route in Stücken → ok"
+      ]
+    },
+    {
+      "id": "527.3",
+      "erwartung": "START an der Uhr kommt als `rs` beim Handy an, die Uhr zeichnet auf.",
+      "kette": [
+        "START → rs",
+        "Aufzeichnung läuft"
+      ]
+    },
+    {
+      "id": "527.4",
+      "erwartung": "Pause (`rp`) öffnet das Menü der Pause, „Weiter“ kommt als `rr` an.",
+      "kette": [
+        "Pause → rp",
+        "Menü der Pause",
+        "Weiter → rr"
+      ]
+    },
+    {
+      "id": "527.5",
+      "erwartung": "Weit neben der Linie meldet die Uhr ihren Stand mit `d`.",
+      "kette": [
+        "abseits → d"
+      ]
+    },
+    {
+      "id": "527.6",
+      "erwartung": "Eine neue Linie während der Fahrt: `ok`, die Uhr fragt, und ohne Antwort nimmt sie die Linie nach der Frist — die Aufzeichnung läuft weiter.",
+      "kette": [
+        "neue Linie → ok",
+        "Frage steht",
+        "nach der Frist genommen"
+      ]
+    },
+    {
+      "id": "527.7",
+      "erwartung": "Speichern: `re` mit k, die Fahrt in Nachrichten ans Handy, lesbar dekodiert; nach `wk` schickt die Uhr sie nicht noch einmal.",
+      "kette": [
+        "Speichern → re",
+        "Fahrt hinüber",
+        "wk angenommen"
+      ]
     }
   ],
   "szenarien": [
@@ -414,7 +471,8 @@
             "489.6",
             "508.1",
             "508.2",
-            "508.3"
+            "508.3",
+            "527.4"
           ]
         },
         {
@@ -437,7 +495,8 @@
           "was": "Zu Hause holt das Handy die Fahrt; gelöscht wird erst nach der Quittung",
           "faelle": [
             "484.19",
-            "508.6"
+            "508.6",
+            "527.7"
           ]
         }
       ]
@@ -457,7 +516,8 @@
           "faelle": [
             "484.1",
             "484.2",
-            "484.5"
+            "484.5",
+            "527.2"
           ]
         },
         {
@@ -549,7 +609,8 @@
         {
           "was": "START an der Uhr: das Handy nimmt mit auf",
           "faelle": [
-            "489.1"
+            "489.1",
+            "527.3"
           ]
         }
       ]
@@ -564,7 +625,9 @@
             "449.1",
             "449.2",
             "484.1",
-            "508.5"
+            "508.5",
+            "527.1",
+            "527.2"
           ],
           "geraet": "Tischabnahme: Route, ok (Messung 8.2)"
         },
@@ -590,7 +653,8 @@
             "500.3",
             "500.4",
             "501.5",
-            "501.9"
+            "501.9",
+            "527.5"
           ]
         },
         {
@@ -599,7 +663,8 @@
             "501.1",
             "501.3",
             "501.4",
-            "501.11"
+            "501.11",
+            "527.6"
           ],
           "geraet": "Messung 8.10 (Frage an der fēnix 5)"
         },
