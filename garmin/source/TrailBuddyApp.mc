@@ -147,6 +147,7 @@ class TrailBuddyApp extends Application.AppBase {
             Storage.deleteValue("loading");
         }
         var r;
+        System.println("bench init phone " + System.getDeviceSettings().phoneConnected);
         if ((Communications has :registerForPhoneAppMessages) && System.getDeviceSettings().phoneConnected) {
             _wait = WAIT_ANSWER;
             r = placeholder();
@@ -263,6 +264,7 @@ class TrailBuddyApp extends Application.AppBase {
     //! Senden ans Handy. Auf der Uhr und im Store-Paket über Garmin Connect.
     (:nosim)
     hidden function send(msg as Dictionary, ack as Communications.ConnectionListener) as Void {
+        System.println("bench tx " + msg["t"]);
         Communications.transmit(msg, null, ack);
     }
 
@@ -684,6 +686,7 @@ class TrailBuddyApp extends Application.AppBase {
     //! Eine Nachricht vom Handy: ein Stück Route oder die Bestwerte.
     function onPhone(msg as Communications.PhoneAppMessage) as Void {
         var d = msg.data;
+        System.println("bench rx " + ((d instanceof Dictionary) ? d["t"] : "?"));
         if (d instanceof Dictionary) { handle(d); }
     }
 
@@ -1354,9 +1357,9 @@ class PhoneAck extends Communications.ConnectionListener {
         ConnectionListener.initialize();
     }
 
-    function onComplete() as Void {}
+    function onComplete() as Void { System.println("bench tx done"); }
 
-    function onError() as Void {}
+    function onError() as Void { System.println("bench tx ERROR"); }
 }
 
 class QuitDelegate extends WatchUi.ConfirmationDelegate {

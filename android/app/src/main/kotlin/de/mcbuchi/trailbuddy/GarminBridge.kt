@@ -263,7 +263,8 @@ class GarminBridge(private val context: Context, messenger: BinaryMessenger) {
             Log.w("TB-GARMIN", "registerForDeviceEvents", e)
         }
         try {
-            sdk.registerForAppEvents(device, IQApp(id), object : ConnectIQ.IQApplicationEventListener {
+            // Versuch #527: Der Simulator meldet seine App womöglich ohne Kennung.
+            sdk.registerForAppEvents(device, IQApp(if (tethered) "" else id), object : ConnectIQ.IQApplicationEventListener {
                 override fun onMessageReceived(
                     device: IQDevice,
                     app: IQApp,
