@@ -330,10 +330,10 @@ function asksUntilAnswered(logger as Logger) as Boolean {
 //! (wait != 0) und die freie Fahrt nehmen sie still, ohne Route gibt es
 //! nichts zu fragen.
 function asksOnlyWhileARideRuns(logger as Logger) as Boolean {
-    Test.assert(TrailBuddyApp.asksBeforeSwap(0, false, true));
-    Test.assert(!TrailBuddyApp.asksBeforeSwap(1, false, true));   // der Lader lädt
-    Test.assert(!TrailBuddyApp.asksBeforeSwap(0, true, true));    // freie Fahrt
-    Test.assert(!TrailBuddyApp.asksBeforeSwap(0, false, false));  // noch nichts geladen
+    Test.assert(WatchCore.asksBeforeSwap(0, false, true));
+    Test.assert(!WatchCore.asksBeforeSwap(1, false, true));   // der Lader lädt
+    Test.assert(!WatchCore.asksBeforeSwap(0, true, true));    // freie Fahrt
+    Test.assert(!WatchCore.asksBeforeSwap(0, false, false));  // noch nichts geladen
     return true;
 }
 

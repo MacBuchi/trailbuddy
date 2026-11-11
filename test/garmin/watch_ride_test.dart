@@ -101,7 +101,7 @@ void main() {
     });
 
     test('Uhr und Dart sprechen dieselben Arten', () {
-      final app = File('garmin/source/TrailBuddyApp.mc').readAsStringSync();
+      final app = File('garmin/source/WatchCore.mc').readAsStringSync();
       expect(app, contains('"$kWatchRidePull".equals(t)'));
       expect(app, contains('"$kWatchRideAck".equals(t)'));
       expect(app, contains('msg["rq"] = rq'));

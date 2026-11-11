@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
-# #501 am Simulator, ohne draußen zu stehen (Konzept 2): eine neue Linie
-# während einer laufenden Fahrt fragt die Uhr. START oder ZURÜCK lehnen;
-# wer nichts tut, nimmt sie nach ASK_MS. Der Vorführmodus spielt die Runde,
-# die Konsole wird gegen die erwarteten Zeilen geprüft. Exit 0, wenn alles
-# so lief — dasselbe Bild, jedes Mal, ohne Gerät am Arm.
+# Was nur die Ansicht im Simulator zeigen kann (#508): Die Abläufe selbst
+# — Rückfrage nach einer neuen Linie, Tasten, Fristen, freie Fahrt — prüft
+# der Ablaufkern als Unit-Test (`tool/garmin_bench.sh unit`). Hier läuft
+# der Vorführmodus: die Szenen auf der Linie, eine Route in Stücken „vom
+# Handy", die Frage auf der Karte (#501, Konzept 2) und der Wechsel nach
+# ASK_MS. Exit 0, wenn alles so lief — dasselbe Bild, jedes Mal, ohne
+# Gerät am Arm.
 #
 #   tool/garmin_scenario.sh                  (fenix5)
 #   GARMIN_DEVICE=fenix9 tool/garmin_scenario.sh
@@ -14,24 +16,10 @@ POINTS="${POINTS:-300}"
 DEADLINE="${DEADLINE:-180}"
 
 need=(
-  "demo 501 ablehnen: Frage weg true"
-  "Speicher leer"
-  "demo 501 annehmen"
+  "demo frame"
+  "demo rx 0/"
+  "demo 501 Frage steht"
   "Frage nach neuer Linie steht"
-  "demo 501 dieselbe nochmal: Frage nein"
-  "nichts bereit"
-  "demo keys freie Fahrt: Spur 6, zählt, Warteschlange 0"
-  "demo freie Fahrt Linie nah-1, Frage nein"
-  "demo freie Fahrt Linie genommen: nah-1, frei nein"
-  "demo keys START: zeichnet, zählt"
-  "demo keys LAP vor dem ersten Fix: keine Marke, wartet auf GPS"
-  "demo keys Trail beginnt: offen"
-  "demo keys Trail verworfen: kein Paar"
-  "demo keys Trail behalten: Paar da"
-  "demo keys Pause: hält"
-  "demo keys weiter: zeichnet"
-  "demo keys Verwerfen steht"
-  "demo keys verworfen: Warteschlange 0"
 )
 
 allThere() {
@@ -40,10 +28,10 @@ allThere() {
   return 0
 }
 
-# Nach der Annahme muss die Uhr die wartende Linie zeigen.
+# Nach der Frist muss die Uhr die wartende Linie zeigen.
 swapped() {
   awk '
-    /demo 501 annehmen/ {
+    /demo 501 Frage steht/ {
       if (match($0, /wartet als demo-[0-9]+/)) want = substr($0, RSTART + 11, RLENGTH - 11)
       seen = 1; next
     }
@@ -94,8 +82,8 @@ if ! done_; then
   echo "Szenario lief, aber die erwarteten Zeilen fehlen noch" >&2
 fi
 
-echo "--- Szenario #501 (Simulator ${GARMIN_DEVICE:-fenix5}, ${POINTS} Punkte) ---"
-grep -E "demo 501|demo keys|freie Fahrt Linie|Frage nach neuer Linie|Linie (test|demo)-" "$LOG" | tail -24
+echo "--- Szenario Ansicht (Simulator ${GARMIN_DEVICE:-fenix5}, ${POINTS} Punkte) ---"
+grep -E "demo 501|demo rx|Frage nach neuer Linie|Linie (test|demo)-" "$LOG" | tail -16
 n=0
 for w in "${need[@]}"; do
   if grep -q "$w" "$LOG"; then echo "OK    $w"; else echo "FEHLT $w"; n=$((n + 1)); fi

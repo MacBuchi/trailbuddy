@@ -6,7 +6,7 @@
     "garmin/CLAUDE.md (Technik-Notizen)"
   ],
   "pruefwege": {
-    "uhr": "garmin/source/Tests.mc — Monkey-C-Unit-Tests im Simulator (tool/garmin_build.sh --test)",
+    "uhr": "garmin/source/Tests.mc und CoreTests.mc (Ablaufkern, #508) — Monkey-C-Unit-Tests im Simulator (tool/garmin_build.sh --test)",
     "szenario": "tool/garmin_scenario.sh — spielt die Runde im Simulator und prüft die Konsole",
     "handy": "test/ — die Fake-Uhr in test/fakes/fake_garmin.dart",
     "szenarien": "tool/watch_scenarios_check.py — jeder Schritt eines Feldszenarios (docs/konzept-geraete.md 9) nennt Fälle, eine Messung am Gerät oder das offene Issue"
@@ -54,17 +54,12 @@
     {
       "id": "501.3",
       "erwartung": "START oder ZURÜCK lehnen: die alte Linie bleibt, die neue liegt nicht im Speicher.",
-      "szenario": [
-        "demo 501 ablehnen: Frage weg true",
-        "Speicher leer"
-      ]
+      "uhr": "coreDeclinesNewLine"
     },
     {
       "id": "501.4",
       "erwartung": "Wer nichts tut, nimmt die neue Linie nach der Frist (ASK_MS = 8000).",
-      "szenario": [
-        "demo 501 annehmen"
-      ],
+      "uhr": "coreAsksThenTakesAfterDeadline",
       "konstant": [
         "ASK_MS = 8000"
       ]
@@ -102,10 +97,7 @@
     {
       "id": "501.11",
       "erwartung": "Dieselbe Linie noch einmal: die Uhr fragt nicht, es liegt nichts bereit.",
-      "szenario": [
-        "demo 501 dieselbe nochmal: Frage nein",
-        "nichts bereit"
-      ]
+      "uhr": "coreSameLineStaysQuiet"
     },
     {
       "id": "484.1",
@@ -243,58 +235,40 @@
       "uhr": "rideLogTracksWithoutStart",
       "konstant": [
         "TRACK_N"
-      ],
-      "szenario": [
-        "demo keys freie Fahrt: Spur 6, zählt, Warteschlange 0"
       ]
     },
     {
       "id": "489.1",
       "erwartung": "START an der Uhr beginnt die Aufzeichnung, und die Zahlen zählen erst dann.",
-      "szenario": [
-        "demo keys START: zeichnet, zählt"
-      ],
+      "uhr": "coreStartBeginsRecording",
       "handy": "START an der Uhr nimmt mit auf, ein behaltener Trail wird eine Marke, Verwerfen verwirft"
     },
     {
       "id": "489.2",
       "erwartung": "LAP vor dem ersten Fix setzt keine Marke — die Uhr sagt „Warte auf GPS“.",
-      "szenario": [
-        "demo keys LAP vor dem ersten Fix: keine Marke, wartet auf GPS"
-      ]
+      "uhr": "coreLapWaitsForGps"
     },
     {
       "id": "489.3",
       "erwartung": "LAP markiert Trailbeginn und Trailende; Behalten lässt das Paar stehen.",
-      "szenario": [
-        "demo keys Trail beginnt: offen",
-        "demo keys Trail behalten: Paar da"
-      ],
+      "uhr": "coreLapMarksTrail",
       "handy": "Marken der Uhr gehen mit der Fahrt in die Datei"
     },
     {
       "id": "489.4",
       "erwartung": "„Trail verwerfen“ nimmt genau das letzte Paar.",
-      "szenario": [
-        "demo keys Trail verworfen: kein Paar"
-      ]
+      "uhr": "coreLapMarksTrail"
     },
     {
       "id": "489.5",
       "erwartung": "START in der Aufzeichnung hält an (Menü), Weiter zählt wieder.",
-      "szenario": [
-        "demo keys Pause: hält",
-        "demo keys weiter: zeichnet"
-      ],
+      "uhr": "corePauseAndResume",
       "handy": "Trail-Marken der Uhr und Nachrichten zur Aufzeichnung"
     },
     {
       "id": "489.6",
       "erwartung": "Verwerfen in der Pause: die Fahrt liegt danach nicht in der Warteschlange.",
-      "szenario": [
-        "demo keys Verwerfen steht",
-        "demo keys verworfen: Warteschlange 0"
-      ],
+      "uhr": "corePauseDiscard",
       "handy": "hat das Handy selbst aufgezeichnet, bleibt es bei dessen Fahrt"
     },
     {
@@ -347,6 +321,65 @@
       "erwartung": "Driftet die Uhr an einen anderen Trail, geht dieser an sie; die Uhr fragt vorher, ob sie ihn nimmt.",
       "handy": "driftet die Uhr an einen anderen Trail, geht der",
       "uhr": "asksOnlyWhileARideRuns"
+    },
+    {
+      "id": "508.1",
+      "erwartung": "Verwerfen in der Pause fragt erst; Nein lässt die Fahrt angehalten, nichts geht in die Warteschlange.",
+      "uhr": "corePauseDiscard"
+    },
+    {
+      "id": "508.2",
+      "erwartung": "ZURÜCK in der Pause zeigt das Menü wieder, statt eine Marke zu setzen.",
+      "uhr": "corePauseAndResume"
+    },
+    {
+      "id": "508.3",
+      "erwartung": "Speichern in der Pause legt die Fahrt in die Warteschlange und schickt sie gleich ans Handy.",
+      "uhr": "corePauseSave"
+    },
+    {
+      "id": "508.4",
+      "erwartung": "Antwortet das Handy beim Start nicht in ANSWER_MS, lädt die gespeicherte Route.",
+      "uhr": "coreNoAnswerLoadsStored",
+      "konstant": [
+        "ANSWER_MS = 8000"
+      ]
+    },
+    {
+      "id": "508.5",
+      "erwartung": "Nach `n` wartet der Start bis INCOMING_MS auf ein Stück, dann die gespeicherte; `k` lädt sie sofort.",
+      "uhr": "coreAnnouncedRouteTimesOut",
+      "konstant": [
+        "INCOMING_MS = 45000"
+      ]
+    },
+    {
+      "id": "508.6",
+      "erwartung": "Bleibt beim Beenden das `wk` aus, geht die App nach RIDE_WAIT_MS zu, die Fahrt wartet; ein spätes `wk` löscht sie.",
+      "uhr": "coreRideUploadWaitsForAck",
+      "konstant": [
+        "RIDE_WAIT_MS = 20000"
+      ]
+    },
+    {
+      "id": "508.7",
+      "erwartung": "`e` vom Handy für eine fremde Kennung ändert nichts, für die eigene Route endet die App.",
+      "uhr": "coreEndOnlyForOwnRoute"
+    },
+    {
+      "id": "508.8",
+      "erwartung": "In der freien Fahrt nimmt die Uhr eine Linie vom Handy still, ohne zu fragen (#502).",
+      "uhr": "coreFreeRide"
+    },
+    {
+      "id": "508.9",
+      "erwartung": "Nach dem Wechsel der Linie dekodiert die Uhr erst im nächsten Takt — sonst lägen alte und neue Route zugleich im Speicher.",
+      "uhr": "coreAsksThenTakesAfterDeadline"
+    },
+    {
+      "id": "508.10",
+      "erwartung": "Ohne Handy startet die Uhr gleich mit der gespeicherten Route, ohne Lader.",
+      "uhr": "coreWithoutPhoneLoadsStored"
     }
   ],
   "szenarien": [
@@ -378,11 +411,10 @@
           "was": "Pause, Weiter und Verwerfen über das Menü",
           "faelle": [
             "489.5",
-            "489.6"
-          ],
-          "geraet": "Menüs an der fēnix 5 abnehmen, bis der Ablaufkern sie als Unit-Test prüft",
-          "offen": [
-            508
+            "489.6",
+            "508.1",
+            "508.2",
+            "508.3"
           ]
         },
         {
@@ -404,7 +436,8 @@
         {
           "was": "Zu Hause holt das Handy die Fahrt; gelöscht wird erst nach der Quittung",
           "faelle": [
-            "484.19"
+            "484.19",
+            "508.6"
           ]
         }
       ]
@@ -429,8 +462,9 @@
         },
         {
           "was": "Uhr-App ohne Handy starten: die gespeicherte Route lädt",
-          "offen": [
-            508
+          "faelle": [
+            "508.10",
+            "508.4"
           ]
         },
         {
@@ -482,7 +516,8 @@
             "484.25",
             "484.26",
             "484.27",
-            "484.28"
+            "484.28",
+            "508.8"
           ]
         },
         {
@@ -528,14 +563,16 @@
           "faelle": [
             "449.1",
             "449.2",
-            "484.1"
+            "484.1",
+            "508.5"
           ],
           "geraet": "Tischabnahme: Route, ok (Messung 8.2)"
         },
         {
           "was": "Eine neue Route im Lauf ersetzt die alte",
           "faelle": [
-            "484.4"
+            "484.4",
+            "508.9"
           ]
         },
         {
@@ -584,6 +621,9 @@
           "was": "Die Navigation endet auf beiden Geräten, die Aufzeichnung läuft weiter",
           "offen": [
             509
+          ],
+          "faelle": [
+            "508.7"
           ]
         },
         {

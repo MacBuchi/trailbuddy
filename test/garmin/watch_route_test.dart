@@ -202,10 +202,10 @@ void main() {
       return (h.hello, h.id, h.bad, h.v, h.ver);
     }
 
-    final watch = File('garmin/source/TrailBuddyApp.mc').readAsStringSync();
+    final watch = File('garmin/source/WatchCore.mc').readAsStringSync();
     expect(watch, contains('"t" => "$kWatchHello"'));
     // Die Fassung der Uhr-App (#500): gebaut aus garmin/VERSION.
-    expect(watch, contains('msg["ver"] = TbVersion.VERSION;'));
+    expect(watch, contains('"ver" => TbVersion.VERSION'));
     expect(watch, contains('"$kWatchQuery".equals(t)'));
     // Die Antwort auf „hallo" beim Start (Betreiber 2026-11-06).
     expect(watch, contains('"$kWatchAnnounce".equals(t)'));
@@ -262,7 +262,7 @@ void main() {
     expect(watch, contains('toPhone({"t" => "$kWatchHasGps"'));
     // Seit #500 meldet die Uhr ihren ersten Fix mit — dieselbe Schreibweise
     // wie die Position des Handys, in 1e-5 Grad.
-    expect(watch, contains('"la" => Math.round(deg[0].toDouble() * 100000.0)'));
+    expect(watch, contains('"la" => Math.round(lat * 100000.0)'));
     expect(watchPositionOf(const LatLng(47.123456, 11.5)), {'t': 'p', 'la': 4712346, 'lo': 1150000});
     expect(watchHasGps({'t': 'g'}), isTrue);
     expect(watchHasGps({'t': 'ok'}), isFalse);
