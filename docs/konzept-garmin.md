@@ -930,17 +930,31 @@ Warum bisher so viel am Gerät landete:
 |---|---|---|---|---|
 | S0 | Dart-Tests gegen die Fake-Uhr (`test/garmin/`) | Logik am Handy, Kodierung | CI | da |
 | S1 | Monkey-C-Unit-Tests (`garmin/source/Tests.mc`) | Bausteine der Uhr | 💻, CI als Versuch (T6, #512) | da |
-| S2 | **Ablaufkern**: Ereignis-Skripte gegen den Zustandsautomaten (T1, #508) | Tasten, Menüs, Fristen, Reihenfolgen | 💻 | offen |
+| S2 | **Ablaufkern**: Ereignis-Skripte gegen den Zustandsautomaten (T1, #508; `WatchCore.mc`, Tests in `CoreTests.mc`) | Tasten, Menüs, Fristen, Reihenfolgen | 💻 | da |
 | S3 | **Gesprächskatalog** für beide Seiten und die Fake-Uhr mit Kanalmodell (T2, T3, #509) | Protokoll-Drift, Laufzeit, Verlust, geschlossene App | CI | offen |
 | S4 | **Dart-Abbild der Ansicht** mit Golden-Tests (T5, #511) | Aussehen, Textlängen, andere Größen | CI | offen |
 | S5 | **Kettenstand**: Android-Emulator und Simulator, verbunden über adb (T7, #527) | Brücke, Kotlin, SDK, beide Apps zusammen | 💻 | Versuch gelungen (20/20), Bau offen |
 | S6 | **Tischabnahme**: Release-Bau am Pixel 7 Pro und fēnix 5, als Skript (#527) | Garmin Connect, R8, Hintergrund, alter Stand auf der Uhr | 📱, ~10 min | offen |
 | S7 | Feld | Messungen 8.3–8.6, 8.9 | 📱 | — |
 
-Dazwischen bleibt, was es heute gibt: der Vorführmodus mit
-`tool/garmin_scenario.sh` (spielt Rückfrage, freie Fahrt und Tasten im
-Simulator und liest die Konsole). Mit S2 gibt er die Abläufe ab und
-behält, was die Ansicht braucht.
+Dazwischen bleibt der Vorführmodus mit `tool/garmin_scenario.sh`. Seit
+S2 (#508) spielt er nur noch, was die Ansicht braucht: die Szenen, eine
+Route in Stücken, die Frage auf der Karte und den Wechsel danach — die
+Abläufe (Rückfrage, freie Fahrt, Tasten, Fristen) prüft der Ablaufkern.
+
+**Der Ablaufkern** (`garmin/source/WatchCore.mc`): nimmt Ereignisse an
+(Taste, Menüpunkt, eigener Fix, Nachricht vom Handy, Ergebnis einer
+Übertragung, Takt) und wirkt nur über den Wirt — `TrailBuddyApp` auf
+der Uhr, `FakeHost` im Test — und die Ansicht. Kein Timer darin: Jede
+Frist ist ein Zeitpunkt, den der Takt gegen „jetzt" vergleicht, und der
+Test stellt die Uhr vor. Gemessen 2026-11-11 (fēnix 5, Simulator): Code
+im Release-Bau 62 236 → 62 556 Byte (+320); belegt im Vorführmodus mit
+1000 Punkten 101,8 KB → 98,0 KB (der Vorführmodus ist dabei kleiner
+geworden). Der Umbau fand selbst einen Fehler, den nur der Vorführmodus
+zeigte: Dekodiert der Kern die neue Route im selben Takt wie den
+Wechsel, hält die alte Ansicht noch die alte Route — „Out of Memory" bei
+1000 Punkten. Der Takt des Wechsels endet deshalb dort; ein Unit-Test
+wacht darüber (Fall 508.9).
 
 **Die Regel der Leiter:** Ein Fehler, der auf Stufe n gefunden wird,
 bekommt seinen Test auf der niedrigsten Stufe, die ihn hätte finden
@@ -961,8 +975,8 @@ Was er ist: beide Apps echt, nur Garmin Connect und der Funk fehlen.
   Bau ausschließt wie `demo`. Im Bench-Bau nimmt die Uhr über den
   normalen Kanal zusätzlich **Ereignisse** — Taste (`_k`), Fix (`_f`),
   Zeitsprung (`_t`) — und meldet ihren Ansichtszustand (`_s`). Das
-  umgeht das Tastenproblem und sitzt auf dem Ablaufkern (#508); bis der
-  steht, ruft es `startKey`/`backKey`/`menuKey`.
+  umgeht das Tastenproblem und sitzt auf dem Ablaufkern (#508): Es ruft
+  dessen `startKey`/`backKey`/`tick`.
 - **Treiber:** ein `integration_test` auf dem Emulator mit der echten
   `GarminBridge`; alles andere kommt aus den Fakes. Das GPS des Handys
   per `adb emu geo fix` aus einer **erfundenen** Spur

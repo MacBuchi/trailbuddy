@@ -2,6 +2,16 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Die Uhr-App prüft ihre Abläufe selbst
+
+*Version 0.168.1, 2026-11-11*
+
+- **Unter der Haube der Uhr:** Tasten, Menüs, Fristen und Nachrichten vom
+  Handy laufen jetzt durch einen eigenen Ablaufteil, den die Tests ohne Uhr
+  am Arm durchspielen — Aufnehmen, Pause, Trail-Marken, die Frage nach einer
+  neuen Linie, Warten aufs Handy beim Start und das Senden der Fahrt. Am
+  Handgelenk sieht alles aus wie vorher; in der App ändert sich nichts.
+
 ## Die Uhr bekommt die nächste Linie, ohne dass jemand navigiert
 
 *Version 0.168.0, 2026-11-10*

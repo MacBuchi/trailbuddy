@@ -128,14 +128,14 @@ Abbiegehinweise.
   ruft `equals` auf dem Wert) — für null `Test.assert(x == null)`. Nach
   so einem Fehler hing der Simulator beim nächsten `--test`: Prozesse
   `monkeydo`/`simulator` beenden, dann neu.
-- **„Hallo"** (`sayHello` in `TrailBuddyApp`): beim Start und auf `q`
+- **„Hallo"** (`sayHello` in `WatchCore`): beim Start und auf `q`
   vom Handy `{t: "hi", v, id, bad}` mit `PhoneRoute.currentId()` — der
   Kennung der GESPEICHERTEN Route, nicht der geladenen (eine fertig
   empfangene wartet vielleicht noch auf den Wechsel). Das Handy schickt
   daraufhin die aktuelle Route, wenn sie abweicht (Konzept 2, „Das Handy
   stößt an"). `test/garmin/watch_route_test.dart` hält `hi`/`q` mit
   Dart und Kotlin zusammen.
-- **Die Position des Handys** (`phoneFix` in `TrailBuddyApp`, Konzept
+- **Die Position des Handys** (`phoneFix` in `WatchCore`, Konzept
   2): `{t: "p", la, lo}` gilt nur bis zum ersten eigenen Fix
   (`_ownFix`); sie geht durch den Tracker ohne Kurs und Tempo, ohne
   Vibrieren und ohne `RideStats`. Mit dem ersten eigenen Fix schickt die
@@ -162,16 +162,16 @@ Abbiegehinweise.
   `garmin/`, Datum und Uhrzeit); im Repo steht der Platzhalter „dev".
   Connect IQ kann die Version der App zur Laufzeit nicht lesen. Steht
   auf der Uhr ein alter Stempel, ist die neue `.prg` nicht drauf.
-- **Der Start wartet aufs Handy** (`_wait` in `TrailBuddyApp`, Betreiber
+- **Der Start wartet aufs Handy** (`wait` in `WatchCore`, Betreiber
   2026-11-06): Mit verbundenem Handy lädt `initialize` NICHT die
   gespeicherte Route, sondern einen Platzhalter, und die Ansicht zeigt
   den Lader (`NavView.setWaiting`). `n` vom Handy heißt „Route kommt"
   (Frist 45 s je Stück), `k` „deine ist aktuell" → `loadStored`; ohne
   Antwort nach `ANSWER_MS` = 8 s auch (3 s waren zu kurz: „hallo" hin
-  und Antwort zurück messen 5–7 s, 2026-11-06). Der Takt ist der Timer des
-  Dekodierens (`loadStep` → `waitStep`, ein Bild je 100 ms), kein
-  eigener — ältere Uhren haben nur wenige Timer. `startLoader` hält
-  vorher den alten Timer an. Solange gewartet wird, zählen weder
+  und Antwort zurück messen 5–7 s, 2026-11-06). Der Takt ist der EINE Timer
+  des Wirts (`WatchCore.pace`: 50 ms beim Laden und Warten, 250 ms für
+  eine Frist, sonst keiner; `waitStep` zeichnet ein Bild je 100 ms) —
+  ältere Uhren haben nur wenige Timer. Solange gewartet wird, zählen weder
   `onPosition` noch `phoneFix` (der Platzhalter ist „fertig").
 - **Das Logo des Laders** (`resources/logo/logo.json`, Test
   `loaderLogoIsOrdered`): ERZEUGT von `tool/brand_icons.py`, nie von
@@ -179,9 +179,9 @@ Abbiegehinweise.
   halb so viel Speicher neben einer großen Route. Gezeichnet als
   `fillCircle` entlang der Mittellinie, ~90 Punkte zweimal je Bild;
   `_logo` fällt weg, sobald der Lader geht.
-- **Beenden** (`e`, `quit` in `TrailBuddyApp`): `QuitDelegate` ruft
+- **Beenden** (`e`, `quit` in `WatchCore`): `QuitDelegate` ruft
   `quit()` statt `System.exit()` — erst `transmit` ans Handy, zu im
-  `EndAck` (`onComplete`/`onError`) oder nach `END_WAIT_MS` = 5 s.
+  `EndAck` (`onComplete`/`onError` → `endSent`) oder nach `END_WAIT_MS` = 5 s.
   Sofort `System.exit()` verwürfe die Nachricht. Ein `e` vom Handy gilt
   nur für `_route.id`, die gespeicherte oder die wartende Kennung.
 - **Akku und Speicher** auf der Seite „Berg" nur im Vorführmodus:
@@ -199,11 +199,11 @@ Abbiegehinweise.
   freie Fahrt ohne Route, `fallbackRoute`), `nosim`/`sim`
   (Senden über Garmin Connect oder stumm). `monkey.jungle` im Repo ist
   der Bau für die Uhr: `demo;store;sim`.
-- **Kein `transmit` im Simulator** (`send` in `TrailBuddyApp`,
+- **Kein `transmit` im Simulator** (`transmit` in `TrailBuddyApp`,
   Betreiber 2026-11-07): Der Simulator meldet ein verbundenes Handy, und
   ohne ADB öffnete der erste `transmit` bei jedem `--test`/`--demo`/`--run`
   den Dialog „There is no data connection", der den Lauf anhielt. Für
-  Simulator-Bauten ruft `send` nur `ack.onError()` (seit #484 — sonst
+  Simulator-Bauten ruft `transmit` nur `ack.onError()` (seit #484 — sonst
   wartete das Beenden auf ein `EndAck`, das nie kommt; die Fahrt bleibt
   dann in der Warteschlange). Gegenprobe: vorher 21-mal „transmit
   queue full" im Testlauf, danach 0. Eine Übertragung an ein Handy im
@@ -228,7 +228,7 @@ Abbiegehinweise.
   `id.equals(…)` — Gegenprobe 2026-11-07: ohne den Vergleich ist
   `rideLogDeletesOnlyOnAck` rot. Das Senden (`startUpload` →
   `sendRidePart` → `RideAck` → `rideSent`) geht Nachricht für Nachricht;
-  beim Beenden stellt `armExit` den EINEN Timer `_exit` je Nachricht neu
+  beim Beenden stellt `armExit` die EINE Frist `exitAt` je Nachricht neu
   (`RIDE_WAIT_MS` = 20 s), ZURÜCK schließt sofort (`closing()`). Nicht
   senden, solange `_wait`/`_pendingId` (eine Route kommt). Die Spur der
   Ansicht ist ein eigener Ring, nicht die Stücke — gelesen wird aus dem
@@ -241,8 +241,8 @@ Abbiegehinweise.
   vom Fenster des Simulators (`screencapture -R` mit dessen Lage, vorher
   nach vorn holen), nie vom ganzen Schirm.
 - **Aufzeichnung an der Uhr** (Konzept-Garmin 0.6 und 1, Betreiber
-  2026-11-07, „wie Garmin"): `NavDelegate` ruft `startKey`/`backKey`/
-  `menuKey` der App; START → `RideLog.start/pause/resume` (Stände `IDLE`,
+  2026-11-07, „wie Garmin"): `NavDelegate` ruft `startKey`/`backKey` des
+  Ablaufkerns (langes HOCH zoomt direkt); START → `RideLog.start/pause/resume` (Stände `IDLE`,
   `RECORDING`, `PAUSED`), in der Pause das `Menu2` Weiter · Speichern ·
   Verwerfen (`PauseMenuDelegate`, Verwerfen fragt über
   `DiscardDelegate`), ZURÜCK = LAP → `RideLog.mark` (−1 ohne Punkt: „Warte
@@ -256,8 +256,25 @@ Abbiegehinweise.
   Dart zusammen. Gegenprobe 2026-11-07: ohne `!_active` in `add` und ohne
   `storeMarks` zwei Tests rot. Die Tasten im Simulator ließen sich von
   hier nicht drücken (Klick und Enter über System Events kamen nicht an)
-  — die Menüs sind am Gerät abzunehmen.
+  — die Abläufe prüft deshalb der Ablaufkern (`CoreTests.mc`), am Gerät
+  bleibt nur, ob die Tasten diese Wege nehmen.
 - **Freie Fahrt fragt wieder** (`HELLO_AGAIN_MS` = 30 s, höchstens 20-mal,
   in `onPosition` vor der Qualitätsprüfung): Feldbefund 2026-11-07, Runde
   vom Handy, die Uhr blieb in der freien Fahrt (Konzept 8.8). Das Handy
   antwortet nur, wenn es einer Navigation folgt; sonst bleibt es still.
+- **Der Ablaufkern** (`source/WatchCore.mc`, #508, Prüfleiter S2):
+  Tasten, Menüs, Fristen und Nachrichten stehen dort; `TrailBuddyApp`
+  ist nur der Wirt (`now`, `pace`, `connected`, `send`, `vibrate`,
+  `menu`, `exit`, `gps`, `fallback`, `newView`, `compass` —
+  gerufen ohne Typ, damit `FakeHost` in `CoreTests.mc` dieselben Namen
+  nimmt). Die Delegaten rufen `watchCore()`. **Kein Timer im Kern**: jede
+  Frist ist ein Zeitpunkt (`swapAt`, `exitAt`, …), `tick()` vergleicht
+  ihn mit `now`; jedes Ereignis holt `now` vom Wirt. Ein Test stellt
+  `FakeHost.t` vor und ruft `tick()` (`TestCore.run`). **Nach dem
+  Wechsel der Route endet der Takt** (`tick` → `swapRoute`, `return`):
+  Dekodierte er gleich weiter, hielte die alte Ansicht noch die alte
+  Route — „Out of Memory" bei 1000 Punkten (Vorführmodus 2026-11-11,
+  Fall 508.9; Gegenprobe: ohne das `return` ist
+  `coreAsksThenTakesAfterDeadline` rot). Wer einen Ablauf ändert,
+  schreibt erst das Ereignis-Skript. Messung 2026-11-11: Code +320 Byte
+  im Release-Bau (Grenze aus #508: 2 KB).

@@ -32,15 +32,16 @@ niedrigsten Stufe, die ihn finden kann.
 |---|---|---|
 | Kodierung, Protokoll, Logik am Handy (`lib/features/garmin/`) | S0 | `tool/garmin_bench.sh cases` |
 | Bausteine der Uhr (`NavTracker`, `RideLog`, `PhoneRoute`, `RideStats`, `NavRoute`) | S1 | `tool/garmin_bench.sh unit` |
-| Tasten, Menüs, Fristen, Rückfrage (`TrailBuddyApp.mc`) | S1 + Vorführmodus, bis #508 steht | `tool/garmin_bench.sh scenario` |
+| Tasten, Menüs, Fristen, Rückfrage (`WatchCore.mc`) | S2: Ereignis-Skript in `CoreTests.mc` gegen `FakeHost` | `tool/garmin_bench.sh unit` |
+| Der Wirt (`TrailBuddyApp.mc`: Timer, GPS, Senden, Menüs) | S2 + Vorführmodus | `tool/garmin_bench.sh scenario` |
 | Zeichnen (`NavView.mc`, `Ring.mc`) | Vorführmodus ansehen, Bildschirmfoto | `tool/garmin_build.sh --demo` |
 | `GarminBridge.kt`, Kanal, SDK, R8-Regeln | S6 | `tool/garmin_bench.sh device` |
 | Eine Nachricht, die beide Seiten kennen müssen | S0 + S1, und der Test, der beide Dateien liest (`test/garmin/watch_route_test.dart`, `watch_ride_test.dart`) | `cases`, `unit` |
 | Vor einer Beförderung mit Uhr-Anteil | S6 | `tool/garmin_bench.sh device` |
 
-`tool/garmin_bench.sh all` fährt alles, was ohne Gerät geht. S2–S5
-(Ablaufkern, Gesprächskatalog, Golden, Kettenstand) sind geplant, nicht
-gebaut: #508, #509, #511, #527 (der Versuch zu S5 gelang am 2026-11-11
+`tool/garmin_bench.sh all` fährt alles, was ohne Gerät geht. S2 (Ablaufkern) steht seit #508; S3–S5
+(Gesprächskatalog, Golden, Kettenstand) sind geplant, nicht
+gebaut: #509, #511, #527 (der Versuch zu S5 gelang am 2026-11-11
 mit 20 von 20 Runden, Branch `spike/watch-chain-bench`). `chain` sagt bis dahin nur, was auf dem
 Rechner dafür da ist, und endet mit 2.
 
@@ -65,8 +66,8 @@ wurde und welcher Test rot war.
   `MonkeyDoDeux` und den Simulator selbst beenden.
 - Nach einem Gerätewechsel (`GARMIN_DEVICE`) den Simulator neu starten.
 - Tasten lassen sich von außen nicht drücken (Klick und Enter über
-  System Events kamen nicht an). Abläufe mit Tasten gehen über den
-  Vorführmodus, später über den Ablaufkern.
+  System Events kamen nicht an). Abläufe mit Tasten prüft der Ablaufkern
+  (`CoreTests.mc`).
 - Ein Simulator-Bau sendet nicht (`sim`): `send` ruft nur
   `ack.onError()`. Für eine echte Übertragung braucht es `nosim`.
 - Der Simulator ist milder als die Uhr: Was dort unter dem Watchdog

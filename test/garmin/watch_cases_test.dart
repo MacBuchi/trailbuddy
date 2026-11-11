@@ -14,14 +14,19 @@ void main() {
     final faelle = (doc['faelle'] as List<dynamic>).cast<Map<String, dynamic>>();
     expect(faelle, isNotEmpty, reason: 'die Falldatei ist leer');
 
-    final mc = File('garmin/source/Tests.mc').readAsStringSync();
     // Konstanten stehen je nach Modul (PhoneRoute, RideLog, NavView …) —
-    // geprüft wird deshalb über alle Quellen der Uhr.
+    // geprüft wird deshalb über alle Quellen der Uhr. Die Unit-Tests liegen
+    // in `Tests.mc` und `CoreTests.mc` (der Ablaufkern, #508).
     final uhrFiles = await Directory('garmin/source')
         .list(recursive: true)
         .where((e) => e is File && e.path.endsWith('.mc'))
         .toList();
     final uhrCode = uhrFiles.map((e) => File(e.path).readAsStringSync()).join('\n');
+    final mc = uhrFiles
+        .where((e) => e.path.endsWith('Tests.mc'))
+        .map((e) => File(e.path).readAsStringSync())
+        .join('\n');
+    expect(mc, contains('function coreStartBeginsRecording('), reason: 'CoreTests.mc nicht gelesen');
     final script = File('tool/garmin_scenario.sh').readAsStringSync();
 
     final dartSrc = <String>[];

@@ -2,6 +2,17 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## The watch app checks its own flows
+
+*Version 0.168.1, 2026-11-11*
+
+- **Under the hood of the watch:** buttons, menus, deadlines and messages
+  from the phone now run through a flow part of their own that the tests
+  play through without a watch on the wrist — recording, pause, trail marks,
+  the question about a new line, waiting for the phone at start and sending
+  the ride. On the wrist everything looks as before; nothing changes in the
+  app.
+
 ## The watch gets the nearest line without anyone navigating
 
 *Version 0.168.0, 2026-11-10*
