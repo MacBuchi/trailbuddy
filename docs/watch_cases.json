@@ -8,7 +8,8 @@
   "pruefwege": {
     "uhr": "garmin/source/Tests.mc — Monkey-C-Unit-Tests im Simulator (tool/garmin_build.sh --test)",
     "szenario": "tool/garmin_scenario.sh — spielt die Runde im Simulator und prüft die Konsole",
-    "handy": "test/ — die Fake-Uhr in test/fakes/fake_garmin.dart"
+    "handy": "test/ — die Fake-Uhr in test/fakes/fake_garmin.dart",
+    "szenarien": "tool/watch_scenarios_check.py — jeder Schritt eines Feldszenarios (docs/konzept-geraete.md 9) nennt Fälle, eine Messung am Gerät oder das offene Issue"
   },
   "faelle": [
     {
@@ -346,6 +347,374 @@
       "erwartung": "Driftet die Uhr an einen anderen Trail, geht dieser an sie; die Uhr fragt vorher, ob sie ihn nimmt.",
       "handy": "driftet die Uhr an einen anderen Trail, geht der",
       "uhr": "asksOnlyWhileARideRuns"
+    }
+  ],
+  "szenarien": [
+    {
+      "id": "F1",
+      "titel": "Nur die Uhr dabei, die Fahrt aufzeichnen",
+      "schritte": [
+        {
+          "was": "Uhr-App ohne Handy öffnen: freie Fahrt mit der eigenen Spur",
+          "faelle": [
+            "484.22"
+          ]
+        },
+        {
+          "was": "START beginnt die Aufzeichnung, erst dann zählen die Zahlen",
+          "faelle": [
+            "489.1"
+          ]
+        },
+        {
+          "was": "LAP am Trail: Beginn und Ende, behalten oder verwerfen",
+          "faelle": [
+            "489.2",
+            "489.3",
+            "489.4"
+          ]
+        },
+        {
+          "was": "Pause, Weiter und Verwerfen über das Menü",
+          "faelle": [
+            "489.5",
+            "489.6"
+          ],
+          "geraet": "Menüs an der fēnix 5 abnehmen, bis der Ablaufkern sie als Unit-Test prüft",
+          "offen": [
+            508
+          ]
+        },
+        {
+          "was": "Speichern: die Fahrt liegt in Stücken und wartet aufs Handy",
+          "faelle": [
+            "484.16",
+            "484.17",
+            "484.18"
+          ]
+        },
+        {
+          "was": "Absturz oder voller Speicher unterwegs kosten höchstens eine Minute",
+          "faelle": [
+            "484.20",
+            "484.21"
+          ],
+          "geraet": "Messung 8.6 (Speicher), 8.3 (Akku)"
+        },
+        {
+          "was": "Zu Hause holt das Handy die Fahrt; gelöscht wird erst nach der Quittung",
+          "faelle": [
+            "484.19"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "F2",
+      "titel": "Route vorplanen, auf die Uhr spielen, ohne Handy fahren",
+      "schritte": [
+        {
+          "was": "Am Handy „Auf die Uhr legen“, ohne die Navigation zu starten",
+          "offen": [
+            515
+          ]
+        },
+        {
+          "was": "Die Route kommt ganz an; eine halbe Übertragung lässt die alte heil",
+          "faelle": [
+            "484.1",
+            "484.2",
+            "484.5"
+          ]
+        },
+        {
+          "was": "Uhr-App ohne Handy starten: die gespeicherte Route lädt",
+          "offen": [
+            508
+          ]
+        },
+        {
+          "was": "An der Uhr eine von mehreren Routen wählen und starten",
+          "geraet": "Messung 8.6 (wie viele Routen passen)",
+          "offen": [
+            515
+          ]
+        },
+        {
+          "was": "Navigieren: abseits nach zwei Fixen, einmal vibrieren, Übersicht weitab, Ankunft",
+          "faelle": [
+            "484.7",
+            "484.8",
+            "484.12",
+            "484.9"
+          ],
+          "geraet": "Messung 8.5 (30-m-Regel im Wald)"
+        },
+        {
+          "was": "Abseits ohne Handy: die Uhr sagt, dass sie nicht umplanen kann",
+          "offen": [
+            515
+          ]
+        },
+        {
+          "was": "Die Fahrt wird wie in F1 aufgezeichnet",
+          "faelle": [
+            "489.1"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "F3",
+      "titel": "Handy in der Tasche, Uhr am Lenker, einfach fahren und die Trails sehen",
+      "schritte": [
+        {
+          "was": "Uhr-App öffnen: der erste eigene Fix geht ans Handy",
+          "faelle": [
+            "500.5"
+          ]
+        },
+        {
+          "was": "Das Handy schickt von selbst den nächsten Trail",
+          "faelle": [
+            "484.23",
+            "484.24",
+            "484.25",
+            "484.26",
+            "484.27",
+            "484.28"
+          ]
+        },
+        {
+          "was": "Fährt man zu einem anderen Trail, fragt die Uhr, bevor sie ihn nimmt",
+          "faelle": [
+            "484.29"
+          ]
+        },
+        {
+          "was": "Die Trails der Gruppe und die Wege dorthin im Umkreis",
+          "geraet": "Messung 8.9 (Netz in 800 m)",
+          "offen": [
+            522
+          ]
+        },
+        {
+          "was": "Das Handy antwortet auch mit ausgeschaltetem Bildschirm aus der Tasche",
+          "geraet": "Messung 8.7",
+          "offen": [
+            524
+          ]
+        },
+        {
+          "was": "Geht eine Antwort verloren, fragt die Uhr wieder, statt still zu bleiben",
+          "offen": [
+            509
+          ]
+        },
+        {
+          "was": "START an der Uhr: das Handy nimmt mit auf",
+          "faelle": [
+            "489.1"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "F4",
+      "titel": "Handy in der Tasche, Uhr, Route oder Runde navigieren",
+      "schritte": [
+        {
+          "was": "Navigation am Handy starten: die Route geht in Stücken an die Uhr",
+          "faelle": [
+            "449.1",
+            "449.2",
+            "484.1"
+          ],
+          "geraet": "Tischabnahme: Route, ok (Messung 8.2)"
+        },
+        {
+          "was": "Eine neue Route im Lauf ersetzt die alte",
+          "faelle": [
+            "484.4"
+          ]
+        },
+        {
+          "was": "Abkommen: die Uhr vibriert einmal",
+          "faelle": [
+            "484.7",
+            "484.8"
+          ]
+        },
+        {
+          "was": "Die Uhr meldet ihren Stand, das Handy rechnet ab ihr um",
+          "faelle": [
+            "500.1",
+            "500.2",
+            "500.3",
+            "500.4",
+            "501.5",
+            "501.9"
+          ]
+        },
+        {
+          "was": "Die Uhr fragt „Route ab deiner Position?“; ablehnen oder nach der Frist annehmen",
+          "faelle": [
+            "501.1",
+            "501.3",
+            "501.4",
+            "501.11"
+          ],
+          "geraet": "Messung 8.10 (Frage an der fēnix 5)"
+        },
+        {
+          "was": "Schalter aus oder alte Uhr-App: es bleibt still",
+          "faelle": [
+            "501.6",
+            "501.8",
+            "501.10"
+          ]
+        },
+        {
+          "was": "Die Runde vom Handy kommt auch an, wenn die Antwort spät ist (Feldbefund 8.8)",
+          "offen": [
+            509
+          ]
+        },
+        {
+          "was": "Die Navigation endet auf beiden Geräten, die Aufzeichnung läuft weiter",
+          "offen": [
+            509
+          ]
+        },
+        {
+          "was": "Ankunft mit Zusammenfassung",
+          "faelle": [
+            "484.9"
+          ]
+        },
+        {
+          "was": "START heißt überall ja, auch bei der Frage",
+          "offen": [
+            513
+          ]
+        }
+      ]
+    },
+    {
+      "id": "F5",
+      "titel": "Handy am Lenker oder Rahmen, mit oder ohne Uhr: Wheelies und Sprünge",
+      "schritte": [
+        {
+          "was": "Fahrt starten: die App erkennt die feste Halterung und zeigt „Sprünge an“",
+          "offen": [
+            517
+          ]
+        },
+        {
+          "was": "Die Bestwerte gehen an die Uhr",
+          "faelle": [
+            "449.3"
+          ]
+        },
+        {
+          "was": "Ein Sprung oder Wheelie erscheint an der Uhr für 3 s, ohne neue Seite",
+          "offen": [
+            514
+          ]
+        },
+        {
+          "was": "Auch bei gesperrtem Bildschirm meldet die Erkennung",
+          "offen": [
+            514
+          ]
+        },
+        {
+          "was": "Handy in der Tasche: der Wheelie fehlt, mit Grund",
+          "offen": [
+            491,
+            517
+          ]
+        }
+      ]
+    },
+    {
+      "id": "F6",
+      "titel": "Nur das Handy in der Tasche, Navigation übers Ohr",
+      "schritte": [
+        {
+          "was": "Schalter „Ansagen“ beim Start der Fahrt",
+          "offen": [
+            525
+          ]
+        },
+        {
+          "was": "Abkommen und Zurückkommen werden gesagt, einmal",
+          "offen": [
+            525
+          ]
+        },
+        {
+          "was": "Der Trail voraus wird 200 m vorher mit Name und Grad gesagt",
+          "offen": [
+            525
+          ]
+        },
+        {
+          "was": "Musik wird leiser statt zu stoppen; es spricht auch mit Bildschirm aus",
+          "geraet": "Abnahme mit Kopfhörer",
+          "offen": [
+            525
+          ]
+        }
+      ]
+    },
+    {
+      "id": "F7",
+      "titel": "Ansage der Trails beim Befahren",
+      "schritte": [
+        {
+          "was": "Freie Fahrt: wer in einen bekannten Trail einfährt, hört Name und Grad",
+          "offen": [
+            525
+          ]
+        },
+        {
+          "was": "An der Uhr dasselbe als kurzes Vibrieren mit Namensschild",
+          "offen": [
+            525
+          ]
+        },
+        {
+          "was": "Derselbe Trail wird je Fahrt nicht zweimal angesagt",
+          "offen": [
+            525
+          ]
+        }
+      ]
+    },
+    {
+      "id": "F8",
+      "titel": "Ein Buddy fährt auch gerade in der Nähe",
+      "schritte": [
+        {
+          "was": "Beide haben „Buddys unterwegs“ eingeschaltet; sonst geschieht nichts",
+          "offen": [
+            526
+          ]
+        },
+        {
+          "was": "Ein Hinweis je Buddy und Fahrt, erst ab 1 km vom Start",
+          "offen": [
+            526
+          ]
+        },
+        {
+          "was": "Kein Abstand, keine Richtung, nichts gespeichert",
+          "offen": [
+            526
+          ]
+        }
+      ]
     }
   ]
 }

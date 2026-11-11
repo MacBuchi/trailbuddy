@@ -282,6 +282,11 @@ Punkte mit Ring und Seiten bei 94–99 KB. Deshalb gilt: **erst der
 Umkreis, dann die Linie.** Die Linie geht nicht mehr als Ganzes hin,
 sondern **stückweise um den Fortschritt** — das Handy kennt sie ganz und
 schickt die nächsten Stücke, wenn die Uhr ans Ende des Geladenen kommt.
+**Nur mit verbundenem Handy** (2026-11-11, Feldszenario F2 in
+`konzept-geraete.md` 9): Stückweise nachladen braucht das Handy unterwegs
+— eine Route, die vorher auf die Uhr gelegt wurde (Ablage, #515), liegt
+dort immer ganz und wird dafür so weit vereinfacht, bis sie passt. Sonst
+widerspräche der Umkreis A8 („die Uhr navigiert ohne Handy").
 
 - **Wann die Uhr ihren Stand meldet:** nur, wenn sie ihn braucht. Den
   ersten Fix mit `{t: "g", la, lo}` (schon gebaut, siehe Abgleich), dann
@@ -879,49 +884,180 @@ Der Vorschlag:
 Gebaut wird das erst auf dem Ablaufkern aus Abschnitt 12 (T1) — sonst
 ist jede dieser Regeln wieder nur am Gerät zu prüfen.
 
-## 12. Teststrategie (Vorschlag, 2026-11-10)
+## 12. Teststrategie: die Prüfleiter (2026-11-11)
 
-*Anlass (Betreiber): „Ich muss ziemlich viel selbst auf der realen
-Hardware testen … meine Erwartung ist eigentlich, dass alle
-Anwendungsfälle sauber abgetestet werden können."*
+*Anlass (Betreiber, 2026-11-10): „Ich muss ziemlich viel selbst auf der
+realen Hardware testen … meine Erwartung ist eigentlich, dass alle
+Anwendungsfälle sauber abgetestet werden können." Und 2026-11-11: „ein
+sauber aufgearbeitetes Setup / Skill / Toolkit, um möglichst die ganze
+Kette zu testen." Der Vorschlag vom 2026-11-10 (T1–T7) ist hier zur
+Leiter geordnet; die T-Nummern stehen in Klammern. Gebaut sind S0 und
+S1, dazu das Szenario im Vorführmodus.*
 
-Warum heute so viel am Gerät landet:
+### 12.1 Was erreichbar ist — und was nicht
+
+Kein Simulator sieht Garmin Connect (Laufzeit, Hintergrund, `SUCCESS`
+bei geschlossener App), Akku, Sonne und GPS im Wald. „Keine Fehler im
+Feld" ist deshalb kein Ziel, das sich halten lässt. Das Ziel ist:
+
+1. **Im Feld wird gemessen, nicht gesucht.** Was dort schiefgehen kann,
+   ist eine Zahl aus Abschnitt 8, kein Ablauf.
+2. **Jeder Ablauf ist geprüft, bevor die Uhr am Arm ist** — auf der
+   Stufe, die ihn am billigsten findet.
+3. **Jeder Feldbefund wird ein Skript** (Fahrtenschreiber, #510) und
+   bleibt als Test.
+
+Warum bisher so viel am Gerät landete:
 
 - Die Unit-Tests prüfen Bausteine (`NavTracker`, `RideLog`,
   `PhoneRoute`, `RideStats`). Der **Ablauf** — welche Taste in welchem
   Zustand was tut, welche Frist läuft, was ans Handy geht — steht in
-  `TrailBuddyApp.mc` und ist nur über den Vorführmodus erreichbar
-  (`demoKeys`, `tool/garmin_scenario.sh` liest die Konsole).
-- Menüs und Tasten ließen sich im Simulator nicht von außen drücken
-  (`garmin/CLAUDE.md`, „Aufzeichnung an der Uhr"); in Garmins
-  Dokumentation fand sich dafür am 2026-11-10 auch kein Weg. Nicht
-  abschließend geklärt.
-- Die Fake-Uhr der Dart-Tests (`test/fakes/fake_garmin.dart`) antwortet
-  sofort und verliert nichts. Die Feldbefunde 8.2, 8.7 und 8.8 waren
-  aber Laufzeit und Verlust auf der Strecke über Garmin Connect.
+  `TrailBuddyApp.mc` und ist nur über den Vorführmodus erreichbar.
+- Tasten und Menüs ließen sich im Simulator nicht von außen drücken
+  (`garmin/CLAUDE.md`, „Aufzeichnung an der Uhr").
+- Die Fake-Uhr der Dart-Tests antwortet sofort und verliert nichts; die
+  Feldbefunde 8.2, 8.7 und 8.8 waren aber Laufzeit und Verlust.
+- **Die Kette selbst** — Dart, Kotlin-Brücke, Companion-SDK, Uhr-App und
+  zurück — prüfte nichts. Der R8-Absturz von 0.150.0 und die veraltete
+  `.prg` vom 2026-11-04 lagen genau dort.
 - Das Aussehen prüft niemand automatisch.
+- Die Fälle in `docs/watch_cases.json` waren nach Issue geordnet, nicht
+  nach dem, was jemand im Feld tut.
 
-Die Schritte, je ein PR:
+### 12.2 Die Leiter
 
-| Nr. | Was | Wo |
-|---|---|---|
-| T1 | **Ablaufkern ohne Gerät**: der Ablauf als Zustandsautomat, der Ereignisse nimmt (Taste, Fix, Nachricht, Zeit) und Wirkungen ausgibt (senden, vibrieren, Ansichtszustand, Menü). `TrailBuddyApp` reicht nur noch durch. Jeder Fall ist dann ein Ereignis-Skript im Unit-Test, auch Menüwahl und Fristen. | ☁️ bauen, 💻 Simulator |
-| T2 | **Ein Gesprächskatalog für beide Seiten**: `docs/watch_cases.json` bekommt Nachrichtenfolgen (hin, zurück, erwarteter Stand); dieselbe Datei treibt die Dart-Tests und erzeugte Monkey-C-Tests. | ☁️ |
-| T3 | **Fake-Uhr mit Kanalmodell**: Laufzeit je Nachricht, `SUCCESS` bei geschlossener App, Verlust, Abbruch mitten in der Übertragung — die gemessenen Werte aus Abschnitt 2 und 8. | ☁️ |
-| T4 | **Fahrtenschreiber**: Die Uhr hält die letzten Ereignisse (Taste, Zustand, Art der Nachricht, Zeit — keine Koordinaten, A7) und gibt sie mit der Fahrt ans Handy. Ein Befund am Gerät wird so zum Skript für T1. | ☁️ bauen, 📱 abnehmen |
-| T5 | **Aussehen**: die Maße der Ansicht (y 128, y 168, Ring, Spalten) aus einer Quelle für Monkey C und Dart; ein Dart-Abbild der Ansicht mit den 64 Farben als Golden-Test. Zugleich der Weg zu anderen Größen (218, 260 px). | ☁️ |
-| T6 | **Uhr-Tests in CI versuchen**: Für Unit-Tests reicht ein Wegwerf-Schlüssel; offen ist, ob SDK und Simulator ohne Anmeldung auf dem Runner laufen (Abschnitt 6). | ⚙️ |
-| T7 | **Messstand**: Simulator im Tethered-Modus gegen die Dev-App (Abschnitt 3), als Skript — deckt Brücke und Kotlin ab. | 💻 |
+| Stufe | Was | Findet | Wo | Stand |
+|---|---|---|---|---|
+| S0 | Dart-Tests gegen die Fake-Uhr (`test/garmin/`) | Logik am Handy, Kodierung | CI | da |
+| S1 | Monkey-C-Unit-Tests (`garmin/source/Tests.mc`) | Bausteine der Uhr | 💻, CI als Versuch (T6, #512) | da |
+| S2 | **Ablaufkern**: Ereignis-Skripte gegen den Zustandsautomaten (T1, #508) | Tasten, Menüs, Fristen, Reihenfolgen | 💻 | offen |
+| S3 | **Gesprächskatalog** für beide Seiten und die Fake-Uhr mit Kanalmodell (T2, T3, #509) | Protokoll-Drift, Laufzeit, Verlust, geschlossene App | CI | offen |
+| S4 | **Dart-Abbild der Ansicht** mit Golden-Tests (T5, #511) | Aussehen, Textlängen, andere Größen | CI | offen |
+| S5 | **Kettenstand**: Android-Emulator und Simulator, verbunden über adb (T7, #527) | Brücke, Kotlin, SDK, beide Apps zusammen | 💻 | Versuch gelungen (20/20), Bau offen |
+| S6 | **Tischabnahme**: Release-Bau am Pixel 7 Pro und fēnix 5, als Skript (#527) | Garmin Connect, R8, Hintergrund, alter Stand auf der Uhr | 📱, ~10 min | offen |
+| S7 | Feld | Messungen 8.3–8.6, 8.9 | 📱 | — |
 
-Risiko von T1: Der Code der Uhr-App teilt sich 124 KB mit der Route.
+Dazwischen bleibt, was es heute gibt: der Vorführmodus mit
+`tool/garmin_scenario.sh` (spielt Rückfrage, freie Fahrt und Tasten im
+Simulator und liest die Konsole). Mit S2 gibt er die Abläufe ab und
+behält, was die Ansicht braucht.
+
+**Die Regel der Leiter:** Ein Fehler, der auf Stufe n gefunden wird,
+bekommt seinen Test auf der niedrigsten Stufe, die ihn hätte finden
+können. Findet ihn erst S6 oder S7, ist das ein Loch in der Leiter und
+steht im PR.
+
+### 12.3 Der Kettenstand (S5)
+
+Was er ist: beide Apps echt, nur Garmin Connect und der Funk fehlen.
+
+- **Handy:** der Android-Emulator mit der Dev-App,
+  `--dart-define=GARMIN_TETHERED=true` — das Companion-SDK spricht dann
+  über adb statt über Garmin Connect (Abschnitt 3). `adb forward
+  tcp:7381 tcp:7381`. Bisher lief das nur am echten Pixel von Hand; der
+  Weg ist derselbe.
+- **Uhr:** der Connect-IQ-Simulator mit einem Bau, der wirklich sendet
+  (`nosim`), und einer neuen Annotation **`(:bench)`**, die der normale
+  Bau ausschließt wie `demo`. Im Bench-Bau nimmt die Uhr über den
+  normalen Kanal zusätzlich **Ereignisse** — Taste (`_k`), Fix (`_f`),
+  Zeitsprung (`_t`) — und meldet ihren Ansichtszustand (`_s`). Das
+  umgeht das Tastenproblem und sitzt auf dem Ablaufkern (#508); bis der
+  steht, ruft es `startKey`/`backKey`/`menuKey`.
+- **Treiber:** ein `integration_test` auf dem Emulator mit der echten
+  `GarminBridge`; alles andere kommt aus den Fakes. Das GPS des Handys
+  per `adb emu geo fix` aus einer **erfundenen** Spur
+  (`tool/garmin_route.py`, A7 — nie eine echte Fahrt).
+- **Erste Runden:** hallo → Route in Stücken → `ok`; START an der Uhr →
+  das Handy nimmt mit auf; Abkommen → Umplanen → Frage → Annahme nach
+  der Frist; Fahrt hinüber → `wk`.
+
+**Der Versuch (2026-11-11, Branch `spike/watch-chain-bench`): 20 von 20.**
+Die Runde „Route → `ok`" lief zwischen dem Android-Emulator und dem
+Simulator zwanzigmal hintereinander durch, je rund 0,2 s; „hallo" auf `q`
+ebenso. Das Kriterium (ab 19 von 20) ist erfüllt — S5 wird eine Stufe der
+Leiter. Gemessen ist eine Sitzung mit einer Route aus einem Stück; mehrere
+Stücke, lange Läufe und der Neuaufbau der Verbindung stehen noch aus.
+Dass die Verbindung bisher als wackelig galt („gut für `status` und
+`send`, nicht für Quittungen"), hatte zwei Gründe, beide gefunden:
+
+- **Der Simulator meldet seine App ohne Kennung.** Der Empfang
+  (`registerForAppEvents`) muss im Tethered-Modus für `IQApp("")`
+  angemeldet sein; mit unserer Kennung kam nie eine Nachricht der Uhr an,
+  obwohl die Uhr `ok` sendete und der Simulator das Senden bestätigte.
+  Aus demselben Grund sagt `openApplication` dort `APP_IS_NOT_INSTALLED`
+  — das bleibt so und ist im Kettenstand kein Fehler.
+- **Die Reihenfolge beim Start.** Ein Bau, der wirklich sendet (`nosim`),
+  sagt beim Start „hallo". Steht die adb-Verbindung dann noch nicht,
+  öffnet der Simulator einen Dialog und nimmt keine App mehr an. Also:
+  erst die Handy-App (das SDK lauscht nach dem ersten `status`), dann
+  „adb Connection → Start", dann die Uhr-App laden.
+
+Der Klick im Menü des Simulators geht über System Events, auch ohne das
+Fenster nach vorn zu holen. Der Treiber braucht `integration_test` als
+Abhängigkeit und die Änderung in `GarminBridge.kt` — beides geht ins
+Binary bzw. in `pubspec.yaml`, also mit Bump in den PR zu #527.
+
+Was S5 nie zeigt: die 3,5 s je Nachricht, `SUCCESS` bei geschlossener
+App, Android, das die App schlafen legt (#524), R8. Dafür S3 und S6.
+
+### 12.4 Die Tischabnahme (S6)
+
+Zehn Minuten am Schreibtisch statt einer Fahrt, mit dem, was wirklich
+auf die Geräte geht: Release-Bau (R8) am Pixel 7 Pro, der Uhr-Bau auf
+der fēnix 5. `tool/garmin_bench.sh device` sagt jeden Schritt an, liest
+`adb logcat` nach `TB-GARMIN` und druckt je Schritt OK oder FEHLT:
+
+1. Build-Stempel der Uhr stimmt mit dem Stand überein (sonst ist die
+   neue `.prg` nicht drauf).
+2. `status` findet die Uhr, `open`, „hallo" mit der richtigen Fassung.
+3. Route in Stücken, `ok`; dieselbe noch einmal bleibt still.
+4. START an der Uhr → `rs`, das Handy nimmt auf; Pause, Weiter.
+5. Bildschirm zehn Minuten aus, dann START an der Uhr (#524).
+6. Speichern → Fahrt hinüber → `wk`, die Fahrt steht in „Meine Fahrten".
+
+**Pflicht vor jeder Beförderung**, die `lib/features/garmin/`,
+`GarminBridge.kt` oder die Uhr-App berührt. Bis das Skript die Schritte
+selbst liest, ist es die Liste im Skill `watch-bench`.
+
+### 12.5 Feldszenarien als Maß der Abdeckung
+
+`docs/watch_cases.json` hat neben den Fällen die **Szenarien F1–F8**
+(`konzept-geraete.md` 9): je Szenario die Schritte, die ein Fahrer tut.
+Jeder Schritt nennt entweder Fälle mit Prüfung, eine Messung am Gerät
+oder das Issue, das ihn noch schuldet. `tool/watch_scenarios_check.py`
+(CI, „Analyze & Test") macht rot, wenn ein Schritt nichts davon hat
+oder ein genannter Fall fehlt; mit `--online` (so ruft es
+`tool/garmin_bench.sh cases`) auch, wenn ein als offen genanntes Issue
+schon zu ist. Es druckt je Szenario, wie viele Schritte geprüft, zu
+messen und offen sind. So sieht man vor einer Fahrt, was sie beweisen
+soll — und was nicht.
+
+### 12.6 Werkzeug
+
+- **Ein Einstieg:** `tool/garmin_bench.sh` — `cases` (die Abdeckung der
+  Szenarien), `unit` (S1), `scenario` (Vorführmodus), `chain` (S5),
+  `device` (S6), `all`. Es räumt hängende `monkeydo`- und
+  Simulator-Prozesse vorher weg und sagt, was auf diesem Rechner fehlt.
+- **Der Skill `watch-bench`** (`.claude/skills/`): welche Stufe eine
+  Änderung braucht, die Befehle, die Gegenprobe und die bekannten Fallen.
+- **Wer an der Uhr etwas ändert**, trägt den Fall in
+  `docs/watch_cases.json` ein, bevor er baut, und hängt ihn an den
+  Schritt eines Szenarios.
+
+### 12.7 Reihenfolge und Risiko
+
+#508 zuerst, der Versuch zu #527 parallel, dann #509; #511, #510 und
+#512 danach, wie es passt.
+
+Risiko von S2: Der Code der Uhr-App teilt sich 124 KB mit der Route.
 Der Ablaufkern verschiebt Code, er verdoppelt ihn nicht; gemessen wird
-vorher und nachher (`--demo`, Speicher in der Konsole).
+vorher und nachher (`--demo`, Speicher in der Konsole), höchstens 2 KB
+mehr.
 
-**Am Gerät bleibt danach**, was nur dort geht: Akku (8.3), Lesbarkeit in
-der Sonne (8.4), GPS im Wald (8.5), Speicher unter Last (8.6) und die
-echten Laufzeiten über Garmin Connect (8.2, 8.7) — Messungen, keine
-Fehlersuche.
-
-**Wann T1 als gelungen gilt**: Ein Ablauf, der heute nur am Gerät zu
+**Wann S2 als gelungen gilt**: Ein Ablauf, der heute nur am Gerät zu
 prüfen ist — Pause, Menü, „Verwerfen", Rückfrage —, läuft als Unit-Test,
 und eine Gegenprobe macht ihn rot.
+
+**Am Gerät bleibt danach**, was nur dort geht: Akku (8.3), Lesbarkeit in
+der Sonne (8.4), GPS im Wald (8.5), Speicher unter Last (8.6), das Netz
+im Umkreis (8.9) — Messungen, keine Fehlersuche.

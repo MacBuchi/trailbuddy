@@ -247,7 +247,8 @@ Flutter-MCP-Server ein (`tool/dart_mcp.sh`, für Codex `.codex/config.toml`);
 wie man ihn benutzt und wo er still nichts prüft, steht in `test/CLAUDE.md`.
 `.claude/settings.json` startet jede Sitzung mit dem Lagebild
 (`tool/session_status.py`) und gibt lesende Befehle frei; der Skill
-`trail-issue` führt vom Issue zum PR.
+`trail-issue` führt vom Issue zum PR, `watch-bench` durch die Prüfleiter
+der Uhr (`tool/garmin_bench.sh`, `docs/konzept-garmin.md` 12).
 
 ## Compact instructions
 
