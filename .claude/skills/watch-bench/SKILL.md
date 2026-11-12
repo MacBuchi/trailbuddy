@@ -32,10 +32,10 @@ niedrigsten Stufe, die ihn finden kann.
 | Geändert | Mindestens | Befehl |
 |---|---|---|
 | Kodierung, Protokoll, Logik am Handy (`lib/features/garmin/`) | S0 | `tool/garmin_bench.sh cases` |
-| Bausteine der Uhr (`NavTracker`, `RideLog`, `PhoneRoute`, `RideStats`, `NavRoute`) | S1 | `tool/garmin_bench.sh unit` |
+| Bausteine der Uhr (`NavTracker`, `RideLog`, `PhoneRoute`, `RideStats`, `NavRoute`) | S1 | `tool/garmin_bench.sh unit` (Mac-Simulator) oder `sim-unit` (Container, S1c) |
 | Tasten, Menüs, Fristen, Rückfrage (`WatchCore.mc`) | S2: Ereignis-Skript in `CoreTests.mc` gegen `FakeHost` | `tool/garmin_bench.sh unit` |
 | Der Wirt (`TrailBuddyApp.mc`: Timer, GPS, Senden, Menüs) | S2 + Vorführmodus | `tool/garmin_bench.sh scenario` |
-| Zeichnen (`NavView.mc`, `Ring.mc`) | Vorführmodus ansehen, Bildschirmfoto | `tool/garmin_build.sh --demo` |
+| Zeichnen (`NavView.mc`, `Ring.mc`), Texte der Uhr | S1c: alle Zustände als Bilder, beide Sprachen, den Bogen ansehen, gegen `garmin/shots/` | `tool/garmin_sim.sh shots --check`; gewollt anders → `--update`, Bilder mitcommitten |
 | `GarminBridge.kt`, Kanal, SDK; Nachrichten zwischen beiden Apps | S5 | `tool/garmin_bench.sh chain` |
 | R8-Regeln, Garmin Connect, Hintergrund | S6 | `tool/garmin_bench.sh device` |
 | Eine Nachricht, die beide Seiten kennen müssen | S3: ein Gespräch im Katalog (beide Seiten), dazu der Test, der beide Dateien liest (`test/garmin/watch_route_test.dart`, `watch_ride_test.dart`) | `cases`, `unit` |
@@ -43,9 +43,22 @@ niedrigsten Stufe, die ihn finden kann.
 | Vor einer Beförderung mit Uhr-Anteil | S6 | `tool/garmin_bench.sh device` |
 
 `tool/garmin_bench.sh all` fährt alles, was ohne Gerät und ohne
-Emulator geht. S2 (Ablaufkern) steht seit #508, S5 (Kettenstand) seit
+Emulator geht — läuft Docker, auch S1c. S2 (Ablaufkern) steht seit #508, S5 (Kettenstand) seit
 #527, S3 (Gesprächskatalog, Kanalmodell) seit #509; S4 (Golden) ist
 geplant: #511.
+
+**Der Simulator im Container** (S1c, #533, `tool/garmin_sim.sh`): der
+Linux-Simulator unter Xvfb, auch bei gesperrtem Mac, ohne SDK und
+Schlüssel des Betreibers. `up` (einmal, baut beim ersten Mal das Bild),
+dann `build --demo`, `run`, `wait "<Konsolenzeile>"`, `press start|back|
+up|down [--long]`, `shot <name>` → `build/garmin/sim/<name>.png` — das
+Bild mit `Read` ansehen. `shots` fährt alle Zustände (Szenen, Seiten,
+Menüs, Aufnahme, freie Fahrt) in Deutsch und Englisch und legt je
+Sprache einen Bogen `sheet.png` an; ein Lauf gut 2 min je Sprache.
+`unit` entscheidet nach der letzten Zeile (`PASSED`/`FAILED`). Dialoge
+aus `menu` (z. B. File → View Memory) zeigt `shot <name> --screen`. Was
+dort anders ist als am Mac und was nicht erreichbar ist:
+`garmin/CLAUDE.md`, „Der Simulator im Container".
 
 **Der Gesprächskatalog** (S3): Wer eine Nachricht, einen Schlüssel oder
 einen Ablauf zwischen beiden Apps ändert, ändert erst das Gespräch in
@@ -88,16 +101,28 @@ wurde und welcher Test rot war.
   Wer `garmin_build.sh --test` direkt ruft, muss `monkeydo`,
   `MonkeyDoDeux` und den Simulator selbst beenden.
 - Nach einem Gerätewechsel (`GARMIN_DEVICE`) den Simulator neu starten.
-- Tasten lassen sich von außen nicht drücken (Klick und Enter über
-  System Events kamen nicht an). Abläufe mit Tasten prüft der Ablaufkern
-  (`CoreTests.mc`).
+- Im Mac-Simulator lassen sich Tasten von außen nicht drücken (Klick und
+  Enter über System Events kamen nicht an) — im Container schon
+  (`garmin_sim.sh press`, Klick aufs Gerätebild). Abläufe mit Tasten
+  prüft trotzdem zuerst der Ablaufkern (`CoreTests.mc`); der Container
+  zeigt, wie es aussieht.
 - Ein Simulator-Bau sendet nicht (`sim`): `send` ruft nur
   `ack.onError()`. Für eine echte Übertragung braucht es `nosim`.
 - Der Simulator ist milder als die Uhr: Was dort unter dem Watchdog
   (120 000 Schritte je Ereignis) durchläuft, kann am Gerät abbrechen.
   Nach jeder Schleife über Punkte: `tool/garmin_build.sh --demo --points 2000`.
-- Bildschirmfotos nur vom Fenster des Simulators (`screencapture -R`
-  mit dessen Lage, vorher nach vorn holen), nie vom ganzen Schirm.
+- Bilder der Uhr aus dem Container (`garmin_sim.sh shot`/`shots`). Der
+  Mac gibt bei gesperrtem Schirm oder schlafendem Display kein
+  Fensterbild (`screencapture -l/-R` scheitern, „Save Screen Capture"
+  öffnet keinen Dialog). Vom Mac-Simulator nur bei entsperrtem Schirm und
+  nur vom Fenster (`screencapture -l <Fenster-ID>`, die ID aus
+  `CGWindowListCopyWindowInfo`; ungeprüft — am 2026-11-12 war der Schirm
+  gesperrt), nie vom ganzen Schirm.
+- Der Vorführmodus läuft im Takt von 4 s weiter: Eine Tastenfolge
+  beginnt an einer Konsolenzeile (`wait "^demo Szene 0:"`), und ein Bild
+  wird im Moment kopiert, nicht erst umgewandelt (gut 1 s unter Rosetta).
+  „abseits" holt die Karte nach vorn (`leftRoute`), auch von einer
+  Zahlenseite.
 
 **Handy und adb**
 - `adb` liegt oft nicht im PATH; `garmin_bench.sh` sucht es selbst, sonst
