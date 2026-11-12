@@ -318,10 +318,48 @@ function driftReportsOnlyBeyondView(logger as Logger) as Boolean {
 function asksUntilAnswered(logger as Logger) as Boolean {
     var v = new NavView(TestRoutes.straightRoute(), new RideStats(0), new RideLog());
     Test.assert(!v.asking());
-    v.askRoute(8000);
+    v.askRoute(8000, false);
     Test.assert(v.asking());
     v.clearAsk();
     Test.assert(!v.asking());
+    return true;
+}
+
+(:test)
+//! 513.6: Der Zoom von selbst — nah vor einem Trailkopf, weit bei
+//! schneller Fahrt, sonst mittel; an jeder Grenze eine Hysterese.
+function autoZoomHysteresis(logger as Logger) as Boolean {
+    Test.assertEqual(NavView.autoZoom(1, 3.0, 400.0), 1);
+    Test.assertEqual(NavView.autoZoom(1, null, null), 1);
+    Test.assertEqual(NavView.autoZoom(1, 3.0, 140.0), 0);
+    Test.assertEqual(NavView.autoZoom(0, 3.0, 200.0), 0);    // bleibt nah
+    Test.assertEqual(NavView.autoZoom(1, 3.0, 200.0), 1);    // wird nicht nah
+    Test.assertEqual(NavView.autoZoom(0, 3.0, 260.0), 1);
+    Test.assertEqual(NavView.autoZoom(1, 7.5, null), 2);
+    Test.assertEqual(NavView.autoZoom(2, 6.0, null), 2);     // bleibt weit
+    Test.assertEqual(NavView.autoZoom(1, 6.0, null), 1);     // wird nicht weit
+    Test.assertEqual(NavView.autoZoom(2, 5.0, null), 1);
+    Test.assertEqual(NavView.autoZoom(2, 9.0, 100.0), 0);    // der Trailkopf geht vor
+    return true;
+}
+
+(:test)
+//! 513.7: Ein Zoom von Hand gilt bis zum nächsten Trailkopf, dann wieder
+//! von selbst.
+function manualZoomHoldsUntilHead(logger as Logger) as Boolean {
+    var v = new NavView(TestRoutes.straightRoute(), new RideStats(1), new RideLog());
+    var s = new NavState();
+    s.alongM = 0.0;
+    v.setState(s, 3.0, false);
+    Test.assertEqual(v.zoom(), 1);
+    v.setZoomMode(2);
+    s.alongM = 250.0;       // 80 m vor dem Kopf: von selbst wäre es nah
+    v.setState(s, 3.0, false);
+    Test.assertEqual(v.zoom(), 2);
+    s.alongM = 340.0;       // auf dem Trail: der Kopf ist erreicht
+    v.setState(s, 3.0, false);
+    Test.assertEqual(v.zoomMode(), NavView.ZOOM_AUTO);
+    Test.assertEqual(v.zoom(), 1);
     return true;
 }
 

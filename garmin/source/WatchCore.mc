@@ -14,7 +14,7 @@ import Toybox.WatchUi;
 //!   Tests: `now()`, `pace(ms)` (Takt an/aus), `connected()`,
 //!   `send(msg, kind)` (0 einfach, [SEND_END], [SEND_RIDE]),
 //!   `vibrate(long)`, `menu(sym)` (`:pause`, `:trail`, `:quit`,
-//!   `:discard`), `exit()`, `gps(on, free)`, `fallback()` (Testroute,
+//!   `:discard`, `:action`, `:zoom`), `exit()`, `gps(on, free)`, `fallback()` (Testroute,
 //!   null = freie Fahrt), `newView(core)`, `compass()`;
 //! - die Ansicht [ui] ([NavView]), die der Wirt baut.
 //!
@@ -96,8 +96,8 @@ class WatchCore {
     //! Richtung), also 8 s (Betreiber, am selben Tag).
     static const ANSWER_MS = 8000;
     //! Wie lange die Uhr fragt, ob sie eine neue Linie nehmen soll (#501,
-    //! Konzept 2). Wer nichts tut, nimmt sie; START oder ZURÜCK lassen sie
-    //! liegen.
+    //! Konzept 2). Wer nichts tut, nimmt sie; START nimmt sie sofort,
+    //! ZURÜCK lässt sie liegen (#513, Entscheidung E2 vom 2026-11-12).
     static const ASK_MS = 8000;
     //! So lange wartet das Beenden auf der Uhr höchstens darauf, dass
     //! Garmin Connect „beendet" abnimmt, bevor die App zugeht.
@@ -195,7 +195,11 @@ class WatchCore {
     hidden function setRoute(r as NavRoute) as Void {
         route = r;
         tracker = new NavTracker(r);
+        var old = stats;
         stats = new RideStats(r.secFrom.size());
+        // Die Fahrt geht weiter, auch wenn die Route wechselt oder endet
+        // (#513: Navigation ist eine Ebene, kein Modus).
+        stats.carryFrom(old);
         stats.bests = _bests;
         stats.counting = log.state() == RideLog.RECORDING;
         ui = _host.newView(self);
@@ -228,6 +232,8 @@ class WatchCore {
     //! Der Takt: Fristen, Lader, Häppchen der Route.
     function tick() as Void {
         now = _host.now();
+        // Die Frist der Frage läuft sichtbar ab (#513).
+        if (swapAt != 0 && ui.asking()) { WatchUi.requestUpdate(); }
         if (exitAt != 0 && now - exitAt >= 0) {
             exitAt = 0;
             _host.exit();
@@ -381,7 +387,7 @@ class WatchCore {
     //! START: beginnen, anhalten (mit Menü) oder weitermachen.
     function startKey() as Void {
         now = _host.now();
-        if (closing || declineReplan()) { return; }
+        if (closing || answerAsk(true)) { return; }
         var st = log.state();
         if (st == RideLog.RECORDING) {
             log.pause();
@@ -413,7 +419,7 @@ class WatchCore {
             _host.exit();
             return;
         }
-        if (declineReplan()) { return; }
+        if (answerAsk(false)) { return; }
         var st = log.state();
         if (st != RideLog.RECORDING) {
             _host.menu(st == RideLog.PAUSED ? :pause : :quit);
@@ -433,18 +439,89 @@ class WatchCore {
         }
     }
 
-    //! START oder ZURÜCK während der Frage nach einer neuen Linie (#501):
-    //! sie bleibt liegen. Die Stücke liegen schon im Speicher der Uhr — weg
-    //! damit, sonst läge beim nächsten Start die abgelehnte Linie vor der
-    //! alten. Die alte bleibt in der App, solange sie läuft.
-    hidden function declineReplan() as Boolean {
-        if (pendingId == null || swapAt == 0) { return false; }
-        swapAt = 0;
-        pendingId = null;
-        PhoneRoute.drop();
+    //! Steht die Frage nach einer neuen Linie (#501)?
+    function asking() as Boolean {
+        return pendingId != null && swapAt != 0 && ui.asking();
+    }
+
+    //! Eine Taste während der Frage nach einer neuen Linie (#513, E2:
+    //! START heißt überall ja). [yes]: im nächsten Takt wechseln, wie nach
+    //! der Frist. Nein (ZURÜCK): sie bleibt liegen — die Stücke liegen schon
+    //! im Speicher der Uhr, weg damit, sonst läge beim nächsten Start die
+    //! abgelehnte Linie vor der alten. false, wenn keine Frage steht.
+    hidden function answerAsk(yes as Boolean) as Boolean {
+        if (!asking()) { return false; }
         ui.clearAsk();
+        if (yes) {
+            swapAt = now;
+        } else {
+            swapAt = 0;
+            pendingId = null;
+            PhoneRoute.drop();
+        }
         WatchUi.requestUpdate();
         return true;
+    }
+
+    // --- Das Aktionsmenü (#513, langes HOCH) ---------------------------------
+
+    //! Langes HOCH: das Aktionsmenü. Nicht, solange eine Frage steht (die
+    //! Frage bleibt), im Lader oder beim Zugehen.
+    function menuKey() as Void {
+        now = _host.now();
+        if (closing || wait != 0 || asking() || !route.isReady()) { return; }
+        _host.menu(:action);
+    }
+
+    //! Die Punkte des Aktionsmenüs — nur, was gerade gehen kann (#513):
+    //! Zoom immer, „Route beenden" nur mit einer Route. Die Punkte anderer
+    //! Issues (Trails in der Nähe, Routenablage, Aufträge, Buddys) kommen
+    //! mit ihnen.
+    function actions() as Array<Symbol> {
+        var a = [:zoom] as Array<Symbol>;
+        if (!free && !route.failed) { a.add(:endRoute); }
+        return a;
+    }
+
+    //! Ein Punkt des Aktionsmenüs — oder eine Zoomstufe aus dessen
+    //! Untermenü (eine Zahl: [NavView.ZOOM_AUTO] oder die Stufe in
+    //! [NavView.ZOOM_MPP]; von Hand gilt sie bis zum nächsten Trailkopf).
+    function actionChoice(id as Object?) as Void {
+        now = _host.now();
+        if (id == :zoom) {
+            _host.menu(:zoom);
+        } else if (id == :endRoute) {
+            endRoute();
+        } else if (id instanceof Number) {
+            ui.setZoomMode(id);
+        }
+    }
+
+    //! „Route beenden" (#513): Die Navigation endet, die Aufzeichnung läuft
+    //! weiter — die Uhr fährt frei weiter, mit Strecke und Zeit. Das Handy
+    //! hört es wie ein Beenden an der Uhr (`e`) und beendet seine
+    //! Navigation; seine Aufzeichnung läuft auch dort weiter (G2d). Die
+    //! gespeicherte Route ist weg, sonst käme sie beim nächsten Start wieder.
+    function endRoute() as Void {
+        now = _host.now();
+        if (closing || free) { return; }
+        var id = route.id;
+        if (id.equals(PhoneRoute.currentId())) {
+            toPhone({"t" => "e", "id" => id});
+            PhoneRoute.drop();
+        }
+        swapAt = 0;
+        pendingId = null;
+        loading = false;
+        _calmAt = 0;
+        CrashGuard.calm();
+        free = true;
+        var p = placeholder();
+        ui.forget(p);
+        setRoute(p);
+        ui.toast(str(Rez.Strings.NavEnded));
+        _host.gps(true, true);
+        pace();
     }
 
     //! Ein Punkt des Menüs der Pause: Weiter · Speichern · Verwerfen (fragt
@@ -698,12 +775,16 @@ class WatchCore {
         // Kurz am Handgelenk: Die neue Route ist da (#449, 2026-11-05).
         // Läuft schon eine Fahrt, fragt die Uhr erst (#501, Konzept 2):
         // Route ab deiner Position? Wer nichts tut, nimmt sie nach ASK_MS;
-        // START oder ZURÜCK lassen sie liegen. Beim Start, im Lader und in
+        // START nimmt sie gleich, ZURÜCK lässt sie liegen (#513). Beim Start, im Lader und in
         // der freien Fahrt nimmt sie still, im nächsten Takt.
         pendingId = id;
         _host.vibrate(false);
         if (asksBeforeSwap(wait, free, route.isReady())) {
-            ui.askRoute(ASK_MS);
+            // Groß „START = JA" nur bei der ersten Frage nach dem Update
+            // (#513: START lehnte bis 1.3.x ab), danach klein.
+            var first = Application.Storage.getValue("askSeen") != true;
+            if (first) { PhoneRoute.store("askSeen", true); }
+            ui.askRoute(ASK_MS, first);
             swapAt = now + ASK_MS;
         } else {
             swapAt = now + 1;
@@ -722,7 +803,9 @@ class WatchCore {
         _calmAt = 0;
         _host.gps(false, false);
         free = false;
-        setRoute(placeholder());
+        var p = placeholder();
+        ui.forget(p);
+        setRoute(p);
         loadStored();
     }
 

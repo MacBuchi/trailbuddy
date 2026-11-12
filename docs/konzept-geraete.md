@@ -17,7 +17,7 @@ im PR): Tastenkarte, die Bildschirme der Uhr, vier des Handys.
 | Nr. | Frage | Vorschlag |
 |---|---|---|
 | E1 | Reihenfolge: erst Testbarkeit, dann Bedienung? | Ja — `konzept-garmin.md` 12, T1 vor allem anderen |
-| E2 | Tastenkarte „eine Taste, eine Bedeutung" (`konzept-garmin.md` 11) | annehmen; ändert Entscheidung 6 nur bei der Frage (START = ja) und beim langen HOCH |
+| E2 | Tastenkarte „eine Taste, eine Bedeutung" (`konzept-garmin.md` 11) | **angenommen** (Betreiber, 2026-11-12); ändert Entscheidung 6 nur bei der Frage (START = ja) und beim langen HOCH — gebaut in #513 |
 | E3 | Routenablage auf der Uhr (vorher synchronisiert, ohne Handy wählbar) | ja, Größe nach Messung 8.6 |
 | E4 | Buddys unterwegs sehen („Gruppenfahrt", Abschnitt 6) | offen — berührt A1, A3, A6 und den Satz „Kein Live-Standort" in `play-console.md` |
 | E5 | Eigener BLE-Lagesensor als nächstes Messgerät | ja, vor jedem Versuch mit einer Uhr |

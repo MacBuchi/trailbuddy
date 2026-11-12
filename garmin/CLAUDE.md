@@ -251,13 +251,13 @@ Abbiegehinweise.
   vom Fenster des Simulators (`screencapture -R` mit dessen Lage, vorher
   nach vorn holen), nie vom ganzen Schirm.
 - **Aufzeichnung an der Uhr** (Konzept-Garmin 0.6 und 1, Betreiber
-  2026-11-07, „wie Garmin"): `NavDelegate` ruft `startKey`/`backKey` des
-  Ablaufkerns (langes HOCH zoomt direkt); START → `RideLog.start/pause/resume` (Stände `IDLE`,
+  2026-11-07, „wie Garmin"): `NavDelegate` ruft `startKey`/`backKey`/
+  `menuKey` des Ablaufkerns; START → `RideLog.start/pause/resume` (Stände `IDLE`,
   `RECORDING`, `PAUSED`), in der Pause das `Menu2` Weiter · Speichern ·
-  Verwerfen (`PauseMenuDelegate`, Verwerfen fragt über
+  Verwerfen (`MenuDelegate(:pause)`, Verwerfen fragt über
   `DiscardDelegate`), ZURÜCK = LAP → `RideLog.mark` (−1 ohne Punkt: „Warte
   auf GPS"), nach „Trail endet" Behalten · Verwerfen
-  (`TrailMenuDelegate`, ZURÜCK behält). `closeDown(tellPhone, keep)`:
+  (`MenuDelegate(:trail)`, ZURÜCK behält). `closeDown(tellPhone, keep)`:
   `keep` false → `RideLog.discard`. `RideStats.counting` hält Strecke,
   Fahrzeit und bergauf vor START und in der Pause an. Marken unter
   `m<id>`, `drop` löscht sie mit; die erste Nachricht der Fahrt trägt
@@ -305,3 +305,37 @@ Abbiegehinweise.
   erst beim nächsten Start. Jetzt merkt der Kern es sich und sendet am
   Ende von `loadStep`. Gegenprobe 2026-11-12: ohne das ist
   `talk_fahrt_wartet` rot.
+- **Eine Taste, eine Bedeutung** (#513, E2 vom 2026-11-12): Bei einer
+  Frage (`asking()` im Kern) heißt START ja (`swapAt = now`, Wechsel im
+  nächsten Takt wie nach der Frist) und ZURÜCK nein — beides vor jeder
+  anderen Bedeutung der Taste (`answerAsk`). Das Schild zeichnet
+  `NavView.drawAsk` (Frist als Balken, JA rechts oben an START, NEIN
+  rechts unten an ZURÜCK); groß „START = JA" nur bei der ersten Frage
+  (`askSeen` im Speicher). Langes HOCH → `menuKey` → `menu(:action)`;
+  die Punkte liefert `WatchCore.actions()` (nur, was gehen kann), damit
+  sie ohne Gerät prüfbar sind. „Route beenden" (`endRoute`) schickt `e`,
+  verwirft die gespeicherte Route und fährt frei weiter;
+  `RideStats.carryFrom` hält Strecke, Zeit und bergauf über jeden
+  Routenwechsel (vorher fingen sie bei einem Wechsel von vorn an). Der
+  Zoom von selbst ist `NavView.autoZoom` (rein, mit Hysterese); eine
+  Stufe von Hand gilt, bis `nextSection` einen anderen Trail nennt.
+  Gegenprobe 2026-11-12: START = nein, ohne `carryFrom`, ohne die
+  Hysterese hinaus und ohne den Rücksprung des Hand-Zooms ⇒ fünf Tests
+  rot (`coreStartTakesNewLine`, `talk_frage_start_ja`,
+  `coreEndRouteKeepsRecording`, `autoZoomHysteresis`,
+  `manualZoomHoldsUntilHead`).
+- **Speicher im Gerätebau** (#513, Vorführmodus 2026-11-12, 1000
+  Punkte): Jede Funktion, Klasse, Konstante und jeder Text kostet im
+  Debug-Bau (Gerät und `--demo`, ohne `-O`) dauerhaft Speicher neben der
+  Route. #513 kam erst auf +3,4 KB (98,1 → 101,5 KB) und stürzte beim
+  Wechsel nach der Frage im Lader ab (`drawLoader` lädt das Logo). Darum:
+  ein `MenuDelegate(kind)` statt vier Klassen, Zoomstufen als Meter
+  statt Wörter, die Schwellen von `autoZoom` als Zahlen statt
+  Konstanten — jetzt 100,4 KB. Die eigentliche Ursache war die Spitze:
+  WatchUi gibt die alte Ansicht erst nach dem nächsten Bild frei, und sie
+  hielt ihre Route — deshalb lässt `swapRoute`/`endRoute` sie vorher
+  über `NavView.forget(Platzhalter)` los. Gegenprobe: ohne `forget`
+  Absturz beim Wechsel, mit ihm läuft er durch. `--demo --points 2000`
+  stürzt schon auf `main` (0.168.3) beim Laden der Testroute ab
+  (`fallback` → `fromDict`); die Grenze 2000 gilt für eine Route vom
+  Handy, die stückweise kommt, nicht für die Testroute als Ressource.

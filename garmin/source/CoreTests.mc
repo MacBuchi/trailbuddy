@@ -281,26 +281,137 @@ function coreAsksThenTakesAfterDeadline(logger as Logger) as Boolean {
     return true;
 }
 
-//! 501.3: START lehnt die neue Linie ab — die alte bleibt, die neue liegt
-//! nicht im Speicher, und START beginnt dabei KEINE Aufzeichnung. ZURÜCK
-//! genauso, ohne nach dem Beenden zu fragen.
+//! 513.1: START heißt bei der Frage ja (#513, E2) — die neue Linie kommt
+//! gleich, nicht erst nach der Frist, und START beginnt dabei KEINE
+//! Aufzeichnung.
 (:test)
-function coreDeclinesNewLine(logger as Logger) as Boolean {
+function coreStartTakesNewLine(logger as Logger) as Boolean {
+    var h = new FakeHost();
+    var c = TestCore.loaded(h);
+    TestCore.newLine(c, "neu");
+    Test.assert(c.asking());
+    c.startKey();
+    Test.assert(!c.asking() && !c.ui.asking());
+    Test.assertEqual(c.log.state(), RideLog.IDLE);
+    Test.assert(h.last("rs") == null);
+    TestCore.run(c, h, 250);
+    Test.assert("neu".equals(c.route.id));
+    TestCore.run(c, h, 500);
+    Test.assert(c.route.isReady());
+    Test.assertEqual(c.log.state(), RideLog.IDLE);
+    TestCore.done();
+    return true;
+}
+
+//! 501.3: ZURÜCK heißt nein — die alte Linie bleibt, die neue liegt nicht
+//! im Speicher, und es fragt nicht nach dem Beenden.
+(:test)
+function coreBackDeclinesNewLine(logger as Logger) as Boolean {
+    var h = new FakeHost();
+    var c = TestCore.loaded(h);
+    TestCore.newLine(c, "neu");
+    c.backKey();
+    Test.assert(c.pendingId == null && c.swapAt == 0);
+    Test.assert(PhoneRoute.currentId() == null);
+    Test.assertEqual(h.menus.size(), 0);
+    TestCore.run(c, h, WatchCore.ASK_MS + 1000);
+    Test.assert("t".equals(c.route.id));
+    Test.assertEqual(c.log.state(), RideLog.IDLE);
+    TestCore.done();
+    return true;
+}
+
+//! 513.2: Die erste Frage nach dem Update sagt groß „START = JA", die
+//! nächste nicht mehr.
+(:test)
+function coreAskHintOnce(logger as Logger) as Boolean {
+    var h = new FakeHost();
+    var c = TestCore.loaded(h);
+    Application.Storage.deleteValue("askSeen");
+    TestCore.newLine(c, "neu");
+    Test.assert(c.ui.askBig());
+    c.backKey();
+    TestCore.newLine(c, "neu2");
+    Test.assert(c.asking());
+    Test.assert(!c.ui.askBig());
+    Application.Storage.deleteValue("askSeen");
+    TestCore.done();
+    return true;
+}
+
+//! 513.3: Langes HOCH öffnet das Aktionsmenü — nicht, solange eine Frage
+//! steht (die Frage bleibt), und nicht im Lader.
+(:test)
+function coreMenuKeyOpensActions(logger as Logger) as Boolean {
+    var h = new FakeHost();
+    var c = TestCore.loaded(h);
+    c.menuKey();
+    Test.assert(h.lastMenu() == :action);
+    TestCore.newLine(c, "neu");
+    c.menuKey();
+    Test.assertEqual(h.menus.size(), 1);
+    Test.assert(c.asking());
+    c.actionChoice(:zoom);
+    Test.assert(h.lastMenu() == :zoom);
+    c.actionChoice(2);
+    Test.assertEqual(c.ui.zoomMode(), 2);
+    Test.assertEqual(c.ui.zoom(), 2);
+    c.actionChoice(NavView.ZOOM_AUTO);
+    Test.assertEqual(c.ui.zoomMode(), NavView.ZOOM_AUTO);
+    TestCore.done();
+    return true;
+}
+
+//! 513.4: Im Aktionsmenü steht nur, was gerade geht: mit Route Zoom und
+//! „Route beenden", in der freien Fahrt nur Zoom.
+(:test)
+function coreActionsOnlyWhatWorks(logger as Logger) as Boolean {
+    var h = new FakeHost();
+    var c = TestCore.loaded(h);
+    var a = c.actions();
+    Test.assertEqual(a.size(), 2);
+    Test.assert(a[0] == :zoom && a[1] == :endRoute);
+    h = new FakeHost();
+    h.fallbackDict = null;
+    c = TestCore.fresh(h);
+    TestCore.run(c, h, 250);
+    Test.assert(c.free);
+    a = c.actions();
+    Test.assertEqual(a.size(), 1);
+    Test.assert(a[0] == :zoom);
+    TestCore.done();
+    return true;
+}
+
+//! 513.5: „Route beenden" — die Navigation endet (das Handy hört `e`, die
+//! gespeicherte Route ist weg), die Aufzeichnung läuft weiter, die Uhr
+//! fährt frei, und Strecke und Zeit bleiben.
+(:test)
+function coreEndRouteKeepsRecording(logger as Logger) as Boolean {
     var h = new FakeHost();
     var c = TestCore.loaded(h);
     TestCore.newLine(c, "neu");
     c.startKey();
-    Test.assert(c.pendingId == null && c.swapAt == 0);
+    TestCore.run(c, h, 1000);
+    Test.assert("neu".equals(c.route.id) && c.route.isReady());
+    c.startKey();
+    Test.assertEqual(c.log.state(), RideLog.RECORDING);
+    TestCore.fixes(c, h, 0, 6);
+    var km = c.stats.distanceM;
+    Test.assert(km > 100.0);
+    c.actionChoice(:endRoute);
+    Test.assert(c.free && !c.closing);
+    Test.assertEqual(c.log.state(), RideLog.RECORDING);
+    var e = h.last("e");
+    Test.assert(e != null && "neu".equals(e["id"]));
+    Test.assert(h.last("re") == null);
     Test.assert(PhoneRoute.currentId() == null);
-    Test.assertEqual(c.log.state(), RideLog.IDLE);
-    TestCore.run(c, h, WatchCore.ASK_MS + 1000);
-    Test.assert("t".equals(c.route.id));
-    TestCore.newLine(c, "neu2");
-    c.backKey();
-    Test.assert(c.pendingId == null);
-    Test.assertEqual(h.menus.size(), 0);
-    TestCore.run(c, h, WatchCore.ASK_MS + 1000);
-    Test.assert("t".equals(c.route.id));
+    Test.assert(h.gpsOn);
+    Test.assertEqual(c.stats.distanceM, km);
+    Test.assertEqual(c.actions().size(), 1);
+    TestCore.fixes(c, h, 6, 9);
+    Test.assert(c.stats.distanceM > km);
+    Test.assert(!h.exited);
     TestCore.done();
     return true;
 }
@@ -581,6 +692,8 @@ function act(s as Dictionary) as Void {
         c.trailChoice(true);
     } else if ("quit".equals(tu)) {
         c.quit();
+    } else if ("endRoute".equals(tu)) {
+        c.actionChoice(:endRoute);
     } else if ("fixes".equals(tu)) {
         TestCore.fixes(c, h, s["fa"] as Number, s["fb"] as Number);
     } else {

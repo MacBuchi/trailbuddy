@@ -10,13 +10,16 @@ import Toybox.WatchUi;
 //! die Route, die eigene Position im unteren Teil der Karte, unten „Was
 //! kommt als Nächstes?". Außen herum der Ring (TbRing) auf jeder Seite.
 //! hoch/runter blättern: Karte → Fahrt → Berg, und sobald das Handy
-//! Bestwerte schickt (G2), → Sprünge; langes HOCH zoomt die Karte. Oben
+//! Bestwerte schickt (G2), → Sprünge; den Zoom wählt die Uhr selbst
+//! ([autoZoom]), von Hand im Aktionsmenü (langes HOCH, #513). Oben
 //! auf der Karte (auf den Zahlenseiten unten) steht, was die Aufzeichnung
 //! tut ([setRecord]). Kein Kartenbild — nur Route, ihre Trails und deren
 //! Schilder.
 class NavView extends WatchUi.View {
-    //! Meter je Pixel der drei Zoomstufen (hoch/runter).
+    //! Meter je Pixel der drei Zoomstufen: nah, mittel, weit.
     static const ZOOM_MPP = [1.0, 1.5, 4.0] as Array<Float>;
+    //! Der Zoom von selbst ([autoZoom], #513).
+    static const ZOOM_AUTO = -1;
     //! Die eigene Position, und wo die Infofläche beginnt (240er Anzeige;
     //! darunter wird der Kreis zu schmal für zwei Zeilen).
     static const POS_Y = 128;
@@ -58,6 +61,11 @@ class NavView extends WatchUi.View {
     static const PAGES = 3;
 
     hidden var _zoom as Number = 1;
+    //! [ZOOM_AUTO] oder die Stufe, die man im Menü gewählt hat. Von Hand
+    //! gilt sie bis zum nächsten Trailkopf: [_manualNext] ist der Trail,
+    //! der beim Wählen voraus lag (-2: noch kein Stand).
+    hidden var _zoomMode as Number = ZOOM_AUTO;
+    hidden var _manualNext as Number = -2;
     hidden var _page as Number = 0;
     hidden var _speed as Float? = null;
     //! Der Stand kommt von der Position des Handys, nicht vom eigenen GPS:
@@ -109,8 +117,10 @@ class NavView extends WatchUi.View {
     //! Eine kurze Einblendung („Trail beginnt" …) bis [_toastUntil].
     hidden var _toast as String? = null;
     hidden var _toastUntil as Number = 0;
-    //! #501: Die Frage, ob die Uhr die neue Linie nimmt, bis [_askUntil].
+    //! #501: Die Frage, ob die Uhr die neue Linie nimmt, bis [_askUntil];
+    //! [_askBig]: „START = JA" groß (die erste nach 1.3.x).
     hidden var _askUntil as Number = 0;
+    hidden var _askBig as Boolean = false;
     static const TOAST_MS = 2500;
     //! Die Zeile der Aufzeichnung: oben auf der Karte, unten auf den
     //! Zahlenseiten (oben steht dort die Einheit).
@@ -142,7 +152,52 @@ class NavView extends WatchUi.View {
         }
         _speed = speed;
         if (s.leftRoute) { _page = 0; }
+        var next = _route.nextSection(s.alongM);
+        var head = null;
+        if (next >= 0 && !s.offRoute) { head = _route.cum[_route.secFrom[next]] - s.alongM; }
+        followZoom(speed, head, next);
         WatchUi.requestUpdate();
+    }
+
+    //! Der Zoom von selbst ([autoZoom]), oder die Stufe von Hand, bis der
+    //! Trail voraus ein anderer ist ([next], -1 ohne).
+    hidden function followZoom(speed as Float?, head as Float?, next as Number) as Void {
+        if (_zoomMode != ZOOM_AUTO) {
+            if (_manualNext == -2) {
+                _manualNext = next;
+            } else if (next != _manualNext) {
+                _zoomMode = ZOOM_AUTO;
+            }
+        }
+        if (_zoomMode == ZOOM_AUTO) { _zoom = autoZoom(_zoom, speed, head); }
+    }
+
+    //! Die Zoomstufe von selbst (#513, Konzept-Garmin 11) aus der jetzigen
+    //! [cur], dem Tempo (m/s) und dem Weg zum nächsten Trailkopf (null:
+    //! keiner voraus): nah ab 150 m vor einem Trailkopf (hinaus erst ab
+    //! 250 m), weit ab 7 m/s = 25 km/h (zurück erst unter 5,5 m/s), sonst
+    //! mittel — je eine Schwelle hinein und eine hinaus, damit die Karte an
+    //! der Grenze nicht springt. Die Zahlen stehen hier statt als
+    //! Konstanten: Im Gerätebau kostet jede Konstante Speicher neben der
+    //! Route (Vorführmodus 2026-11-12).
+    static function autoZoom(cur as Number, speed as Float?, headM as Float?) as Number {
+        if (headM != null && (headM < 150.0 || (cur == 0 && headM < 250.0))) { return 0; }
+        var v = speed == null ? 0.0 : speed;
+        if (v >= 7.0 || (cur == 2 && v >= 5.5)) { return 2; }
+        return 1;
+    }
+
+    //! Die alte Ansicht lässt ihre Route los, bevor die neue lädt (#513):
+    //! WatchUi gibt sie erst nach dem nächsten Bild frei, und bis dahin
+    //! lagen alte Route und Logo des Laders zusammen über dem Speicher
+    //! (Vorführmodus 2026-11-12, Out of Memory in `drawLoader` bei 1000
+    //! Punkten). Bis dahin zeichnet sie [r], den Platzhalter.
+    function forget(r as NavRoute) as Void {
+        _route = r;
+        _state = null;
+        _ovX = null;
+        _ovY = null;
+        _ovHeads = null;
     }
 
     //! Der Start wartet aufs Handy: Statt einer Route steht der Lader mit
@@ -182,6 +237,7 @@ class NavView extends WatchUi.View {
         } else if (!moving && compass != null) {
             _heading = compass;
         }
+        followZoom(speed, null, -1);
         WatchUi.requestUpdate();
     }
 
@@ -193,15 +249,20 @@ class NavView extends WatchUi.View {
         return _zoom;
     }
 
-    //! Langes HOCH: die Karte nach vorn und die nächste Zoomstufe (1 →
-    //! 1,5 → 4 m je Pixel und wieder von vorn).
-    function zoomStep() as Void {
-        if (_page != 0) {
-            _page = 0;
-        } else {
-            _zoom = (_zoom + 1) % ZOOM_MPP.size();
+    //! Die Wahl im Aktionsmenü (#513): [mode] [ZOOM_AUTO] oder eine Stufe;
+    //! die Karte kommt nach vorn.
+    function setZoomMode(mode as Number) as Void {
+        _zoomMode = mode;
+        if (mode != ZOOM_AUTO) {
+            _zoom = mode;
+            _manualNext = _state == null || _free ? -2 : _route.nextSection((_state as NavState).alongM);
         }
+        _page = 0;
         WatchUi.requestUpdate();
+    }
+
+    function zoomMode() as Number {
+        return _zoomMode;
     }
 
     //! Der Stand der Aufzeichnung für die Zeile oben bzw. unten.
@@ -219,11 +280,17 @@ class NavView extends WatchUi.View {
     }
 
     //! #501 (Konzept 2): Die Uhr fragt, ob sie die neue Linie nimmt. Wer
-    //! nichts tut, nimmt sie, wenn [ms] um sind; START oder ZURÜCK sagen
-    //! nein.
-    function askRoute(ms as Number) as Void {
+    //! nichts tut, nimmt sie, wenn [ms] um sind; START sagt ja, ZURÜCK nein
+    //! (#513). [big]: „START = JA" groß, die erste Frage nach dem Update.
+    function askRoute(ms as Number, big as Boolean) as Void {
         _askUntil = System.getTimer() + ms;
+        _askBig = big;
+        _page = 0;
         WatchUi.requestUpdate();
+    }
+
+    function askBig() as Boolean {
+        return _askBig;
     }
 
     //! Die Frage ist beantwortet.
@@ -423,8 +490,7 @@ class NavView extends WatchUi.View {
             pill(dc, cx, y, text, Graphics.FONT_XTINY, bg, fg);
         }
         if (asking()) {
-            pill(dc, cx, y == STATUS_TOP_Y ? 82 : 176, str(Rez.Strings.AskReplan),
-                Graphics.FONT_SMALL, TbColors.FIELD, TbColors.TEXT_ON_FIELD);
+            drawAsk(dc, w, y == STATUS_TOP_Y ? 86 : 150);
             return;
         }
         var t = _toast;
@@ -434,6 +500,24 @@ class NavView extends WatchUi.View {
             return;
         }
         pill(dc, cx, y == STATUS_TOP_Y ? 82 : 176, t, Graphics.FONT_SMALL, TbColors.FIELD, TbColors.TEXT_ON_FIELD);
+    }
+
+    //! Eine Frage sieht immer gleich aus (#513, Konzept-Garmin 11): ein
+    //! Schild mit der Frage und darunter ihre ablaufende Frist, „JA" neben
+    //! START (rechts oben), „NEIN" neben ZURÜCK (rechts unten). Nach der
+    //! Frist gilt ja. Die erste Frage nach dem Update sagt an START groß
+    //! „START = JA".
+    hidden function drawAsk(dc as Dc, w as Number, y as Number) as Void {
+        pill(dc, w / 2, y, str(Rez.Strings.AskReplan), Graphics.FONT_SMALL, TbColors.FIELD, TbColors.TEXT_ON_FIELD);
+        // Die Frist als Balken darunter, der kürzer wird.
+        var left = _askUntil - System.getTimer();
+        dc.setColor(TbColors.ROUTE, Graphics.COLOR_TRANSPARENT);
+        dc.fillRectangle(40, y + 16, left > 0 ? 160 * left / WatchCore.ASK_MS : 0, 4);
+        // An den Tasten: START rechts oben, ZURÜCK rechts unten (fēnix 5).
+        var yes = str(Rez.Strings.AskYes);
+        pill(dc, _askBig ? 160 : 198, 64, _askBig ? "START = " + yes : yes,
+            _askBig ? Graphics.FONT_SMALL : Graphics.FONT_XTINY, TbColors.ROUTE, TbColors.TEXT);
+        pill(dc, 194, 176, str(Rez.Strings.AskNo), Graphics.FONT_XTINY, TbColors.MUTED_DARK, TbColors.TEXT_ON_FIELD);
     }
 
     hidden function pill(dc as Dc, cx as Number, y as Number, text as String, font as Graphics.FontType,

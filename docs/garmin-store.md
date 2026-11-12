@@ -150,6 +150,35 @@ hochgeladene Fassung braucht eine höhere. Semver dabei — neue Funktion Minor
 (1.4.0), Fix und Feinschliff Patch (1.3.1); die Nummer steigt mit jedem Paket,
 auch wenn inhaltlich dasselbe drin steht.
 
+**1.4.0 (DE)** — die Bedienung 2.0 (#513); ist 1.3.1 nie hochgeladen
+worden, gehören deren Punkte mit darunter:
+
+```
+- Eine Taste, eine Bedeutung: Fragt die Uhr, ob sie eine neue Route nehmen
+  soll, heißt START jetzt ja und ZURÜCK nein. Bisher lehnte START ab. Die
+  erste Frage sagt es noch einmal groß.
+- Jede Frage sieht gleich aus: ein Schild mit ablaufender Frist, JA neben
+  START, NEIN neben ZURÜCK. Wer nichts tut, nimmt die Route.
+- Langes HOCH öffnet ein Menü: Zoom und „Route beenden“. Die Route endet,
+  die Aufnahme läuft weiter, Strecke und Zeit bleiben stehen.
+- Die Karte zoomt von selbst: nah vor einem Trail, weit bei schneller
+  Fahrt. Ein Zoom von Hand aus dem Menü gilt bis zum nächsten Trail.
+```
+
+**1.4.0 (EN):**
+
+```
+- One button, one meaning: when the watch asks whether to take a new route,
+  START now means yes and BACK means no. START used to decline. The first
+  question says so once in large type.
+- Every question looks the same: a shield with a running deadline, YES next to
+  START, NO next to BACK. Doing nothing takes the route.
+- Holding UP opens a menu: zoom and “End route”. The route ends, the
+  recording goes on, distance and time stay.
+- The map zooms by itself: close before a trail, far when riding fast. A zoom
+  chosen in the menu holds until the next trail.
+```
+
 **1.3.1 (DE)** — nur was seit 1.3.0 anders ist, das Alte steht schon in der
 Store-Beschreibung:
 

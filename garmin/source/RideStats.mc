@@ -124,6 +124,17 @@ class RideStats {
         return null;
     }
 
+    //! Die Fahrt geht weiter, die Route nicht (#513: Wechsel oder „Route
+    //! beenden"): Strecke, Fahrzeit, bergauf, Höhe und Puls bleiben. Der
+    //! letzte Ort nicht — die neue Route rechnet in anderen Metern.
+    function carryFrom(old as RideStats) as Void {
+        distanceM = old.distanceM;
+        movingS = old.movingS;
+        climbM = old.climbM;
+        altitude = old.altitude;
+        heartRate = old.heartRate;
+    }
+
     //! Eine Zahl der Bestwerte, oder 0.
     function best(key as String) as Number {
         var b = bests;

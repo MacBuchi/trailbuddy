@@ -115,6 +115,29 @@ function talk_abseits_umplanen(logger as Logger) as Boolean {
     ] as Array<Dictionary>);
 }
 
+//! Die Uhr fragt vor einer neuen Linie, START heißt ja: sie kommt sofort, nicht erst nach der Frist (#513)
+(:test)
+function talk_frage_start_ja(logger as Logger) as Boolean {
+    return TestTalk.play("frage-start-ja", ["geladen"] as Array<String>, [
+        {"von" => "handy", "msg" => {"t" => "n", "id" => "$a", "np" => 2}},
+        {"von" => "handy", "msg" => {"t" => "r", "id" => "$a"}},
+        {"von" => "uhr", "msg" => {"t" => "ok", "id" => "$a"}, "dann" => ["fragt"]},
+        {"von" => "uhr", "tu" => "startKey", "nach_ms" => 1000, "dann" => ["route:$a"]}
+    ] as Array<Dictionary>);
+}
+
+//! „Route beenden“ an der Uhr: das Handy beendet seine Navigation, die Uhr fährt frei weiter (#513)
+(:test)
+function talk_route_beenden(logger as Logger) as Boolean {
+    return TestTalk.play("route-beenden", ["handy"] as Array<String>, [
+        {"von" => "uhr", "tu" => "start", "msg" => {"t" => "hi", "v" => 2, "ver" => "1.3.0"}},
+        {"von" => "handy", "msg" => {"t" => "n", "id" => "$a", "np" => 2}},
+        {"von" => "handy", "msg" => {"t" => "r", "id" => "$a"}},
+        {"von" => "uhr", "msg" => {"t" => "ok", "id" => "$a"}, "nach_ms" => 500, "dann" => ["route:$a"]},
+        {"von" => "uhr", "tu" => "endRoute", "msg" => {"t" => "e", "id" => "$a"}, "dann" => ["frei"]}
+    ] as Array<Dictionary>);
+}
+
 //! Die Route geht verloren: kein ok, das Handy fragt nach (`q`), das hallo holt sie
 (:test)
 function talk_nachfragen(logger as Logger) as Boolean {
