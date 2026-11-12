@@ -38,12 +38,23 @@ niedrigsten Stufe, die ihn finden kann.
 | Zeichnen (`NavView.mc`, `Ring.mc`) | Vorführmodus ansehen, Bildschirmfoto | `tool/garmin_build.sh --demo` |
 | `GarminBridge.kt`, Kanal, SDK; Nachrichten zwischen beiden Apps | S5 | `tool/garmin_bench.sh chain` |
 | R8-Regeln, Garmin Connect, Hintergrund | S6 | `tool/garmin_bench.sh device` |
-| Eine Nachricht, die beide Seiten kennen müssen | S0 + S1, und der Test, der beide Dateien liest (`test/garmin/watch_route_test.dart`, `watch_ride_test.dart`) | `cases`, `unit` |
+| Eine Nachricht, die beide Seiten kennen müssen | S3: ein Gespräch im Katalog (beide Seiten), dazu der Test, der beide Dateien liest (`test/garmin/watch_route_test.dart`, `watch_ride_test.dart`) | `cases`, `unit` |
+| Laufzeit, Verlust, geschlossene App (Feldbefund) | S3: `WatchChannel` | `cases` |
 | Vor einer Beförderung mit Uhr-Anteil | S6 | `tool/garmin_bench.sh device` |
 
 `tool/garmin_bench.sh all` fährt alles, was ohne Gerät und ohne
 Emulator geht. S2 (Ablaufkern) steht seit #508, S5 (Kettenstand) seit
-#527; S3 und S4 (Gesprächskatalog, Golden) sind geplant: #509, #511.
+#527, S3 (Gesprächskatalog, Kanalmodell) seit #509; S4 (Golden) ist
+geplant: #511.
+
+**Der Gesprächskatalog** (S3): Wer eine Nachricht, einen Schlüssel oder
+einen Ablauf zwischen beiden Apps ändert, ändert erst das Gespräch in
+`docs/watch_cases.json` (`gespraeche`), dann `python3
+tool/watch_talks.py` und `python3 tool/generated_assets.py --update`
+(die erzeugte `GeneratedTalks.mc` gehört in denselben Commit). Die
+Seite des Handys läuft mit `cases`, die der Uhr mit `unit`. Einen
+Feldbefund mit Zeit oder Verlust stellt `WatchChannel` nach
+(`test/garmin/watch_channel_test.dart`).
 
 **Der Kettenstand** (`chain`, nur 💻): startet den ersten AVD ohne
 Fenster (läuft schon ein Emulator, nimmt er den), baut die Uhr mit

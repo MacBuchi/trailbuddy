@@ -10,7 +10,20 @@
     "szenario": "tool/garmin_scenario.sh — spielt die Runde im Simulator und prüft die Konsole",
     "handy": "test/ — die Fake-Uhr in test/fakes/fake_garmin.dart",
     "szenarien": "tool/watch_scenarios_check.py — jeder Schritt eines Feldszenarios (docs/konzept-geraete.md 9) nennt Fälle, eine Messung am Gerät oder das offene Issue",
-    "kette": "integration_test/watch_bench_test.dart — der Kettenstand (S5, #527): die echte Brücke im Android-Emulator gegen die Uhr-App im Simulator (tool/garmin_bench.sh chain); `kette` nennt die Schritte des Treibers"
+    "kette": "integration_test/watch_bench_test.dart — der Kettenstand (S5, #527): die echte Brücke im Android-Emulator gegen die Uhr-App im Simulator (tool/garmin_bench.sh chain); `kette` nennt die Schritte des Treibers",
+    "gespraeche": "`gespraeche` unten (S3, #509) — jedes Gespräch spielt BEIDE Seiten: test/garmin/watch_talks_test.dart die des Handys gegen den echten WatchSync/WatchRideInbox, garmin/source/GeneratedTalks.mc (erzeugt von tool/watch_talks.py, Spieler `TestTalk` in CoreTests.mc) die der Uhr gegen den Ablaufkern"
+  },
+  "gespraeche_form": {
+    "_": "Ein Gespräch: `handy` und `uhr` nennen den Aufbau je Seite, `nur` (handy|uhr) spielt es auf einer Seite, wenn die andere die Nachricht nie so senden kann. Je Schritt: `von` (handy|uhr) sendet `msg`; `tu` ist die Handlung auf dieser Seite, die es auslöst (ohne: die Antwort auf den Schritt davor). Die sendende Seite sucht die Nachricht unter dem, was sie seit dem letzten Treffer schickte; die andere bekommt sie. Danach läuft die Zeit `nach_ms` weiter, dann gelten die Stände in `dann`.",
+    "msg": "Jeder Schlüssel muss in der gesendeten Nachricht stehen (ein umbenannter Schlüssel ist rot); der Wert zählt nur für `t`, für `$name` (die sendende Seite legt ihn fest, die andere setzt ihn ein — ungebunden der Name selbst) und für die Schlüssel in `gleich`. Sonst ist der Wert ein Beispiel, das die empfangende Seite bekommt. `r` steht für die ganze Route in Stücken, `w` mit `c: \"*\"` für eine erfundene Fahrt.",
+    "verloren": "Die Nachricht geht unterwegs verloren: gesendet ja, angekommen nicht.",
+    "still": "Die Seite `von` sendet in `nach_ms` nichts.",
+    "handy_aufbau": "nav (Navigation mit Uhr, Route nach Norden um 47,5/11,5), frei (keine Navigation, ein Trail bei 48/9), sprung (ein Sprung liegt vor, die Bestwerte gehen hin); die Fahrten der Uhr hört das Handy immer",
+    "uhr_aufbau": "handy (startet mit verbundenem Handy, also mit dem Lader), geladen (ohne Handy gestartet, Testroute geladen, dann das Handy da), ohne_route (Store-Bau: freie Fahrt), bad:$x (die Route $x stürzte zweimal ab), fahrt (eine Fahrt wartet aufs Handy)",
+    "handlungen_handy": "navigation (Navigation mit „Auf der Uhr zeigen“ starten, ein Fix auf der Route), beenden",
+    "handlungen_uhr": "start, neustart, START, ZURÜCK, Weiter, Speichern, Verwerfen, Ja (Fahrt verwerfen), Behalten, beenden (Navigation beenden: Ja), fixe A-B (eigene Fixe nach Norden, 55 m je Fix, alle 5 s)",
+    "staende_handy": "idle, sendet, gefragt, gesendet, gespeichert, unbestaetigt, fehler, fehler:<Code> (WatchSync); nav_an, nav_aus; nimmt_auf, aus, marken:<n> (Aufzeichnung des Handys)",
+    "staende_uhr": "wartet (auf die Antwort aufs hallo), route_kommt, frei, fragt, route:$x, nimmt_auf, pause, zu, keine_fahrt, fahrt_wartet, bestwerte"
   },
   "faelle": [
     {
@@ -437,6 +450,217 @@
         "Fahrt hinüber",
         "wk angenommen"
       ]
+    },
+    {
+      "id": "509.1",
+      "erwartung": "Jede Art Nachricht beider Richtungen kommt in einem Gespräch vor, und beide Seiten spielen es gleich.",
+      "handy": "jede Art Nachricht kommt in einem Gespräch vor"
+    },
+    {
+      "id": "509.2",
+      "erwartung": "Für eine geschlossene Uhr-App meldet Garmin Connect SUCCESS und die Route verfällt; erst das `ok` gilt, das Handy fragt nach (Messung 8.2).",
+      "handy": "8.2 die geschlossene App schluckt die Route, nur ok zählt"
+    },
+    {
+      "id": "509.3",
+      "erwartung": "Rechnet das Handy noch, wenn das hallo ankommt, hört die Uhr innerhalb ihrer 8 s „es kommt eine“; die Runde kommt trotzdem an (Feldbefund 8.8).",
+      "handy": "8.8 die Antwort auf hallo kommt nach den 8 s, die Runde kommt trotzdem an"
+    },
+    {
+      "id": "509.4",
+      "erwartung": "Kommt nach `rs` in 45 s kein Punkt, nimmt das Handy die Aufzeichnung zurück (Messung 8.7).",
+      "handy": "8.7 rs kommt an, kein Fix in 45 s, die Aufzeichnung wird zurückgenommen"
+    },
+    {
+      "id": "509.5",
+      "erwartung": "Bricht die Übertragung mittendrin ab, gehen nur die übrigen Stücke noch einmal; ein verlorenes Stück holt das Nachfragen nach.",
+      "handy": "ein Abbruch mitten in den Stücken schickt nur den Rest"
+    },
+    {
+      "id": "509.6",
+      "erwartung": "Ein spätes `ok` für eine alte Route macht die neue nicht zur gespeicherten.",
+      "handy": "ein spätes ok der alten Route zählt nicht für die neue"
+    },
+    {
+      "id": "509.7",
+      "erwartung": "„Schick“ (`wq`) während die Uhr noch aufs Handy wartet, geht nicht verloren: die Fahrt geht, sobald das Warten endet.",
+      "uhr": "talk_fahrt_wartet"
+    },
+    {
+      "id": "509.8",
+      "erwartung": "Ging die Route in der freien Fahrt verloren, sagt die Uhr nach 30 s (`HELLO_AGAIN_MS`) wieder „hallo“, und das Handy schickt sie noch einmal (Feldbefund 2026-11-07, 8.8).",
+      "uhr": "talk_frei_fragt_wieder"
+    },
+    {
+      "id": "509.9",
+      "erwartung": "Endet die Navigation an der Uhr, endet sie am Handy auch; endet sie am Handy, geht die Uhr zu — beide Seiten gegen denselben Katalog.",
+      "uhr": "talk_ende_an_der_uhr"
+    }
+  ],
+  "gespraeche": [
+    {
+      "id": "hallo-neue-route",
+      "titel": "Die Uhr-App startet, das Handy navigiert: Route in Stücken, ok, Bestwerte; nach dem Neustart „deine ist aktuell“; Ende am Handy",
+      "handy": ["nav", "sprung"],
+      "uhr": ["handy"],
+      "schritte": [
+        {"von": "uhr", "tu": "start", "msg": {"t": "hi", "v": 2, "ver": "1.3.0"}, "gleich": ["v"], "dann": {"uhr": "wartet", "handy": "idle"}},
+        {"von": "handy", "tu": "navigation", "msg": {"t": "n", "id": "$a", "np": 2}, "dann": {"uhr": "route_kommt"}},
+        {"von": "handy", "msg": {"t": "r", "id": "$a"}, "dann": {"handy": "gesendet"}},
+        {"von": "uhr", "msg": {"t": "ok", "id": "$a"}, "nach_ms": 500, "dann": {"handy": "gespeichert", "uhr": "route:$a"}},
+        {"von": "handy", "msg": {"t": "b", "jn": 1, "ja": 600}, "dann": {"uhr": "bestwerte"}},
+        {"von": "handy", "msg": {"t": "p", "la": 4750090, "lo": 1150000}},
+        {"von": "uhr", "tu": "neustart", "msg": {"t": "hi", "v": 2, "ver": "1.3.0", "id": "$a"}, "dann": {"uhr": "wartet"}},
+        {"von": "handy", "msg": {"t": "k", "id": "$a"}, "nach_ms": 500, "dann": {"uhr": "route:$a", "handy": "gespeichert"}},
+        {"von": "handy", "tu": "beenden", "msg": {"t": "e", "id": "$a"}, "dann": {"handy": "nav_aus", "uhr": "zu"}}
+      ]
+    },
+    {
+      "id": "fassung-uhr-alt",
+      "titel": "Eine Uhr-App mit einer anderen Fassung: nichts geht hin, die Leiste nennt sie",
+      "nur": "handy",
+      "warum_nur": "Die Uhr sendet immer ihre eigene Fassung.",
+      "handy": ["nav"],
+      "uhr": ["handy"],
+      "schritte": [
+        {"von": "handy", "tu": "navigation", "msg": {"t": "n", "id": "$a", "np": 2}},
+        {"von": "handy", "msg": {"t": "r", "id": "$a"}},
+        {"von": "uhr", "msg": {"t": "hi", "v": 1, "ver": "1.0.0"}, "dann": {"handy": "fehler:WATCH_OUTDATED"}},
+        {"von": "handy", "still": true, "nach_ms": 30000, "dann": {"handy": "fehler:WATCH_OUTDATED"}}
+      ]
+    },
+    {
+      "id": "fassung-handy-alt",
+      "titel": "Ein Stück mit einer anderen Fassung: die Uhr sagt `x ver` mit ihrer",
+      "nur": "uhr",
+      "warum_nur": "Das Handy sendet immer seine eigene Fassung.",
+      "handy": ["nav"],
+      "uhr": ["geladen"],
+      "schritte": [
+        {"von": "handy", "msg": {"t": "r", "id": "$a", "v": 1}},
+        {"von": "uhr", "msg": {"t": "x", "id": "$a", "c": "ver", "v": 2}, "gleich": ["c", "v"], "dann": {"uhr": "route:t"}}
+      ]
+    },
+    {
+      "id": "kleiner-nach-absturz",
+      "titel": "Die Uhr nimmt die Route nicht (zweimal abgestürzt): das Handy schickt sie halb so groß",
+      "handy": ["nav"],
+      "uhr": ["geladen", "bad:$a"],
+      "schritte": [
+        {"von": "handy", "tu": "navigation", "msg": {"t": "n", "id": "$a", "np": 2}},
+        {"von": "handy", "msg": {"t": "r", "id": "$a"}},
+        {"von": "uhr", "msg": {"t": "x", "id": "$a", "c": "crash"}, "gleich": ["c"]},
+        {"von": "handy", "msg": {"t": "n", "id": "$b", "np": 1}},
+        {"von": "handy", "msg": {"t": "r", "id": "$b"}},
+        {"von": "uhr", "msg": {"t": "ok", "id": "$b"}, "dann": {"handy": "gespeichert", "uhr": "fragt"}}
+      ]
+    },
+    {
+      "id": "ende-an-der-uhr",
+      "titel": "Navigation an der Uhr beendet: das Handy beendet seine auch",
+      "handy": ["nav"],
+      "uhr": ["handy"],
+      "schritte": [
+        {"von": "uhr", "tu": "start", "msg": {"t": "hi", "v": 2, "ver": "1.3.0"}},
+        {"von": "handy", "tu": "navigation", "msg": {"t": "n", "id": "$a", "np": 2}},
+        {"von": "handy", "msg": {"t": "r", "id": "$a"}},
+        {"von": "uhr", "msg": {"t": "ok", "id": "$a"}, "nach_ms": 500, "dann": {"uhr": "route:$a", "handy": "nav_an"}},
+        {"von": "uhr", "tu": "beenden", "msg": {"t": "e", "id": "$a"}, "dann": {"uhr": "zu", "handy": "nav_aus"}}
+      ]
+    },
+    {
+      "id": "aufzeichnung",
+      "titel": "START an der Uhr: das Handy nimmt mit auf; Trail behalten, Pause, Weiter, Speichern, die Fahrt hinüber",
+      "handy": [],
+      "uhr": ["geladen"],
+      "schritte": [
+        {"von": "uhr", "tu": "START", "msg": {"t": "rs"}, "dann": {"uhr": "nimmt_auf", "handy": "nimmt_auf"}},
+        {"von": "uhr", "tu": "fixe 0-10", "msg": {"t": "g", "la": 0, "lo": 100}},
+        {"von": "uhr", "tu": "ZURÜCK"},
+        {"von": "uhr", "tu": "fixe 10-20"},
+        {"von": "uhr", "tu": "ZURÜCK"},
+        {"von": "uhr", "tu": "Behalten", "msg": {"t": "rt", "s": 1700000050, "e": 1700000100}, "dann": {"handy": "marken:2"}},
+        {"von": "uhr", "tu": "START", "msg": {"t": "rp"}, "dann": {"uhr": "pause", "handy": "nimmt_auf"}},
+        {"von": "uhr", "tu": "Weiter", "msg": {"t": "rr"}, "dann": {"uhr": "nimmt_auf"}},
+        {"von": "uhr", "tu": "fixe 20-30"},
+        {"von": "uhr", "tu": "START", "msg": {"t": "rp"}},
+        {"von": "uhr", "tu": "Speichern", "msg": {"t": "re", "k": true}, "gleich": ["k"], "dann": {"handy": "aus", "uhr": "zu"}},
+        {"von": "uhr", "msg": {"t": "w", "id": "$f", "p": 0, "n": 1, "c": "*"}},
+        {"von": "handy", "msg": {"t": "wk", "id": "$f"}, "dann": {"uhr": "keine_fahrt"}}
+      ]
+    },
+    {
+      "id": "fahrt-wartet",
+      "titel": "Eine Fahrt wartet auf der Uhr: hallo mit `rq`, das Handy sagt „schick“, die Fahrt geht nach dem Warten hinüber",
+      "handy": [],
+      "uhr": ["handy", "fahrt"],
+      "schritte": [
+        {"von": "uhr", "tu": "start", "msg": {"t": "hi", "v": 2, "ver": "1.3.0", "rq": ["$f"]}, "dann": {"uhr": ["wartet", "fahrt_wartet"]}},
+        {"von": "handy", "msg": {"t": "wq"}, "nach_ms": 9000},
+        {"von": "uhr", "msg": {"t": "w", "id": "$f", "p": 0, "n": 1, "c": "*"}},
+        {"von": "handy", "msg": {"t": "wk", "id": "$f"}, "dann": {"uhr": "keine_fahrt"}}
+      ]
+    },
+    {
+      "id": "freie-fahrt-linie",
+      "titel": "Freie Fahrt: der erste eigene Fix geht ans Handy, es schickt den Trail in Reichweite, die Uhr nimmt ihn still",
+      "handy": ["frei"],
+      "uhr": ["handy", "ohne_route"],
+      "schritte": [
+        {"von": "uhr", "tu": "start", "msg": {"t": "hi", "v": 2, "ver": "1.3.0"}, "nach_ms": 9000, "dann": {"uhr": "frei", "handy": "idle"}},
+        {"von": "uhr", "tu": "fixe 0-3", "msg": {"t": "g", "la": 4800500, "lo": 900010}},
+        {"von": "handy", "msg": {"t": "n", "id": "$a", "np": 1}},
+        {"von": "handy", "msg": {"t": "r", "id": "$a"}},
+        {"von": "uhr", "msg": {"t": "ok", "id": "$a"}, "nach_ms": 500, "dann": {"uhr": "route:$a", "handy": "gespeichert"}}
+      ]
+    },
+    {
+      "id": "abseits-umplanen",
+      "titel": "Die Uhr fährt weit neben ihrer Linie: `d`, das Handy rechnet ab ihr um, die Uhr fragt vor der neuen",
+      "handy": ["nav"],
+      "uhr": ["handy"],
+      "schritte": [
+        {"von": "uhr", "tu": "start", "msg": {"t": "hi", "v": 2, "ver": "1.3.0"}},
+        {"von": "handy", "tu": "navigation", "msg": {"t": "n", "id": "$a", "np": 2}},
+        {"von": "handy", "msg": {"t": "r", "id": "$a"}},
+        {"von": "uhr", "msg": {"t": "ok", "id": "$a"}, "nach_ms": 500, "dann": {"uhr": "route:$a", "handy": "gespeichert"}},
+        {"von": "uhr", "tu": "fixe 0-1", "msg": {"t": "g", "la": 4750090, "lo": 1150000}},
+        {"von": "uhr", "tu": "fixe 1-40", "msg": {"t": "d", "la": 4750630, "lo": 1150399, "off": 300}},
+        {"von": "handy", "msg": {"t": "n", "id": "$b", "np": 2}},
+        {"von": "handy", "msg": {"t": "r", "id": "$b"}},
+        {"von": "uhr", "msg": {"t": "ok", "id": "$b"}, "dann": {"uhr": "fragt", "handy": "gespeichert"}}
+      ]
+    },
+    {
+      "id": "nachfragen",
+      "titel": "Die Route geht verloren: kein ok, das Handy fragt nach (`q`), das hallo holt sie",
+      "handy": ["nav"],
+      "uhr": ["geladen"],
+      "schritte": [
+        {"von": "handy", "tu": "navigation", "msg": {"t": "n", "id": "$a", "np": 2}},
+        {"von": "handy", "msg": {"t": "r", "id": "$a"}, "verloren": true, "dann": {"handy": "gesendet"}},
+        {"von": "handy", "msg": {"t": "q"}, "dann": {"handy": "unbestaetigt"}},
+        {"von": "uhr", "msg": {"t": "hi", "v": 2, "ver": "1.3.0"}},
+        {"von": "handy", "msg": {"t": "n", "id": "$a", "np": 2}},
+        {"von": "handy", "msg": {"t": "r", "id": "$a"}},
+        {"von": "uhr", "msg": {"t": "ok", "id": "$a"}, "dann": {"handy": "gespeichert", "uhr": "fragt"}}
+      ]
+    },
+    {
+      "id": "frei-fragt-wieder",
+      "titel": "Die Route geht in der freien Fahrt verloren: nach 30 s fragt die Uhr wieder (`hi`), dann kommt sie an",
+      "handy": ["nav"],
+      "uhr": ["handy", "ohne_route"],
+      "schritte": [
+        {"von": "uhr", "tu": "start", "msg": {"t": "hi", "v": 2, "ver": "1.3.0"}, "nach_ms": 9000, "dann": {"uhr": "frei", "handy": "idle"}},
+        {"von": "handy", "tu": "navigation", "msg": {"t": "n", "id": "$a", "np": 2}, "verloren": true},
+        {"von": "handy", "msg": {"t": "r", "id": "$a"}, "verloren": true, "dann": {"handy": "gesendet"}},
+        {"von": "uhr", "tu": "fixe 0-7", "msg": {"t": "g", "la": 0, "lo": 100}},
+        {"von": "uhr", "msg": {"t": "hi", "v": 2, "ver": "1.3.0"}},
+        {"von": "handy", "msg": {"t": "n", "id": "$a", "np": 2}},
+        {"von": "handy", "msg": {"t": "r", "id": "$a"}},
+        {"von": "uhr", "msg": {"t": "ok", "id": "$a"}, "nach_ms": 500, "dann": {"uhr": "route:$a", "handy": "gespeichert"}}
+      ]
     }
   ],
   "szenarien": [
@@ -494,6 +718,7 @@
         {
           "was": "Zu Hause holt das Handy die Fahrt; gelöscht wird erst nach der Quittung",
           "faelle": [
+            "509.7",
             "484.19",
             "508.6",
             "527.7"
@@ -602,13 +827,15 @@
         },
         {
           "was": "Geht eine Antwort verloren, fragt die Uhr wieder, statt still zu bleiben",
-          "offen": [
-            509
+          "faelle": [
+            "509.5",
+            "509.8"
           ]
         },
         {
           "was": "START an der Uhr: das Handy nimmt mit auf",
           "faelle": [
+            "509.4",
             "489.1",
             "527.3"
           ]
@@ -622,6 +849,8 @@
         {
           "was": "Navigation am Handy starten: die Route geht in Stücken an die Uhr",
           "faelle": [
+            "509.2",
+            "509.6",
             "449.1",
             "449.2",
             "484.1",
@@ -678,17 +907,16 @@
         },
         {
           "was": "Die Runde vom Handy kommt auch an, wenn die Antwort spät ist (Feldbefund 8.8)",
-          "offen": [
-            509
+          "faelle": [
+            "509.3",
+            "509.8"
           ]
         },
         {
           "was": "Die Navigation endet auf beiden Geräten, die Aufzeichnung läuft weiter",
-          "offen": [
-            509
-          ],
           "faelle": [
-            "508.7"
+            "508.7",
+            "509.9"
           ]
         },
         {

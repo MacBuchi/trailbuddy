@@ -75,6 +75,7 @@ jobs:
           bash -n tool/garmin_bench.sh
           python3 tool/watch_scenarios_check.py --self-test > /dev/null
           python3 tool/watch_scenarios_check.py > /dev/null
+          python3 tool/watch_talks.py --self-test > /dev/null
           python3 tool/highlights_preview.py --self-test > /dev/null
           python3 tool/route_measure.py --self-test > /dev/null
           python3 tool/height_tiles.py --self-test > /dev/null

@@ -4,7 +4,17 @@
 
 ## Die Uhr-App prüft ihre Abläufe selbst
 
-*Versionen 0.168.1–0.168.2, 2026-11-11*
+*Versionen 0.168.1–0.168.3, 2026-11-11 bis 2026-11-12*
+
+- **Handy und Uhr reden nach Drehbuch (0.168.3):** Jedes Gespräch zwischen
+  App und Uhr — Route hinüber, Aufnehmen, Fahrt zurück, Abkommen, Ende —
+  steht jetzt einmal aufgeschrieben, und beide Seiten werden dagegen
+  geprüft. Dazu läuft die nachgebildete Uhr so langsam und unzuverlässig
+  wie Garmin Connect im Feld: Nachrichten brauchen Sekunden, gehen
+  verloren oder landen bei einer geschlossenen Uhr-App. Gefunden und
+  behoben in der Uhr-App: Fragte das Handy beim Start der Uhr nach einer
+  wartenden Fahrt, ging sie erst beim nächsten Start hinüber — jetzt
+  gleich, sobald die Route geladen ist. In der App ändert sich nichts.
 
 - **Handy und Uhr zusammen auf dem Prüfstand (0.168.2):** Die echte
   Verbindung zur Uhr lässt sich jetzt ohne Uhr und ohne Fahrt prüfen — die

@@ -61,6 +61,13 @@
     "garmin/resources/drawables/launcher_icon.png": {
       "sha256": "de326a486bee4cb3e881573f44b9b1502a4998b25a987c8cac168148353495cc",
       "regenerate": "python3 tool/brand_icons.py (braucht rsvg-convert aus librsvg)"
+    },
+    "garmin/source/GeneratedTalks.mc": {
+      "sha256": "229bcdfefcb3eec6a00716bd1ebe6c5efe4a7432f01ecb37c76523c937966577",
+      "regenerate": "python3 tool/watch_talks.py (aus docs/watch_cases.json, `gespraeche`)",
+      "checks": {
+        "watch_talks_fixpoint": "tool/watch_talks.py"
+      }
     }
   }
 }

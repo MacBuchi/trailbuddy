@@ -85,6 +85,11 @@ Gegenprobe der Vorgabe.
   ändert nur die Zeichenfläche, `MediaQuery` meldet weiter 800×600):
   `tester.view.physicalSize = …; tester.view.devicePixelRatio = 1.0;
   addTearDown(tester.view.reset);`
+- **Ein Provider mit echter Ein- und Ausgabe unter `testWidgets`**
+  (`trailsProvider` über `FakeTrailRepository`): `await` darauf hängt
+  unter `FakeAsync` für immer, auch mit `pump` — der Lauf bricht erst
+  nach 10 min ab. `await tester.runAsync(() => …future)`
+  (`test/garmin/watch_talks_test.dart`, #509).
 - **Plattform-Kanäle mocken** (`setMockMethodCallHandler`): Unter
   `FakeAsync` löst sich die Antwort eines nicht gemockten Kanals nie auf —
   der Knopf bleibt folgenlos, ohne Fehler.

@@ -4,7 +4,17 @@
 
 ## The watch app checks its own flows
 
-*Versions 0.168.1–0.168.2, 2026-11-11*
+*Versions 0.168.1–0.168.3, 2026-11-11 to 2026-11-12*
+
+- **Phone and watch talk by the script (0.168.3):** every conversation
+  between the app and the watch — route across, recording, the ride back,
+  going off route, ending — is now written down once, and both sides are
+  checked against it. The emulated watch is also as slow and unreliable as
+  Garmin Connect in the field: messages take seconds, get lost or reach a
+  closed watch app. Found and fixed in the watch app: when the phone asked
+  for a waiting ride while the watch was starting, the ride only went
+  across at the next start — now it goes as soon as the route has loaded.
+  Nothing changes in the app.
 
 - **Phone and watch on the test bench together (0.168.2):** the real
   connection to the watch can now be checked without a watch and without a

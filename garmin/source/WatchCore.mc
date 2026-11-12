@@ -64,6 +64,10 @@ class WatchCore {
     var tx as Array? = null;
     var txP as Number = 0;
     hidden var _txAt as Number = 0;
+    //! Eine Fahrt wartet, durfte aber nicht gehen, weil eine Route kam
+    //! ([startUpload]): Sie geht, sobald die Route geladen ist (#509, Fall
+    //! 509.7 — sonst verfiel ein „schick" während des Wartens).
+    hidden var _uploadLater as Boolean = false;
     //! Die Testroute ließ sich nicht dekodieren (dann nicht immer wieder).
     hidden var _testFailed as Boolean = false;
     //! Ohne Route: freie Fahrt mit GPS und eigener Spur, bis eine Route
@@ -322,6 +326,10 @@ class WatchCore {
         }
         WatchUi.requestUpdate();
         _calmAt = now + CrashGuard.CALM_MS;
+        if (_uploadLater) {
+            _uploadLater = false;
+            startUpload();
+        }
         // Ohne Route die freie Fahrt: GPS für Spur, Zahlen und Aufzeichnung,
         // aber kein Verfolgen (der Platzhalter läge „abseits").
         _host.gps(true, free);
@@ -549,9 +557,12 @@ class WatchCore {
         if (!_host.connected()) { return false; }
         if (tx != null && now - _txAt < RIDE_WAIT_MS) { return false; }
         tx = null;
-        if (!closing && (wait != 0 || pendingId != null)) { return false; }
         var q = RideLog.queue();
         if (q.size() == 0) { return false; }
+        if (!closing && (wait != 0 || pendingId != null)) {
+            _uploadLater = true;
+            return false;
+        }
         tx = q[0];
         txP = 0;
         sendRidePart();

@@ -931,7 +931,7 @@ Warum bisher so viel am Gerät landete:
 | S0 | Dart-Tests gegen die Fake-Uhr (`test/garmin/`) | Logik am Handy, Kodierung | CI | da |
 | S1 | Monkey-C-Unit-Tests (`garmin/source/Tests.mc`) | Bausteine der Uhr | 💻, CI als Versuch (T6, #512) | da |
 | S2 | **Ablaufkern**: Ereignis-Skripte gegen den Zustandsautomaten (T1, #508; `WatchCore.mc`, Tests in `CoreTests.mc`) | Tasten, Menüs, Fristen, Reihenfolgen | 💻 | da |
-| S3 | **Gesprächskatalog** für beide Seiten und die Fake-Uhr mit Kanalmodell (T2, T3, #509) | Protokoll-Drift, Laufzeit, Verlust, geschlossene App | CI | offen |
+| S3 | **Gesprächskatalog** für beide Seiten und die Fake-Uhr mit Kanalmodell (T2, T3, #509) | Protokoll-Drift, Laufzeit, Verlust, geschlossene App | CI (Handy, Frische der Uhr-Seite), 💻 (Uhr) | da |
 | S4 | **Dart-Abbild der Ansicht** mit Golden-Tests (T5, #511) | Aussehen, Textlängen, andere Größen | CI | offen |
 | S5 | **Kettenstand**: Android-Emulator und Simulator, verbunden über adb (T7, #527) | Brücke, Kotlin, SDK, beide Apps zusammen | 💻 | da (`tool/garmin_bench.sh chain`) |
 | S6 | **Tischabnahme**: Release-Bau am Pixel 7 Pro und fēnix 5, als Skript (#527) | Garmin Connect, R8, Hintergrund, alter Stand auf der Uhr | 📱, ~10 min | offen |
@@ -955,6 +955,26 @@ zeigte: Dekodiert der Kern die neue Route im selben Takt wie den
 Wechsel, hält die alte Ansicht noch die alte Route — „Out of Memory" bei
 1000 Punkten. Der Takt des Wechsels endet deshalb dort; ein Unit-Test
 wacht darüber (Fall 508.9).
+
+**Der Gesprächskatalog** (S3, #509): `docs/watch_cases.json` →
+`gespraeche`, je Gespräch die Schritte beider Seiten (wer sendet was,
+welche Handlung löst es aus, wie viel Zeit vergeht, welcher Stand dann
+gilt; die Form in `gespraeche_form`). Die Seite des Handys spielt
+`test/garmin/watch_talks_test.dart` gegen den echten `WatchSync` und
+`WatchRideInbox`; die Seite der Uhr steht erzeugt in
+`garmin/source/GeneratedTalks.mc` (`tool/watch_talks.py`, Frische über
+`tool/generated_assets.py` in CI) und läuft mit dem Spieler `TestTalk`
+in `CoreTests.mc` gegen den Ablaufkern — im Takt, den der Kern beim
+Wirt verlangt. Jede Art Nachricht beider Richtungen muss in einem
+Gespräch vorkommen (Fall 509.1); ein umbenannter Schlüssel ist auf der
+sendenden Seite rot. Das Kanalmodell (`WatchChannel` in
+`test/fakes/fake_garmin.dart`, ab Werk aus) gibt der Fake-Uhr die
+gemessenen Laufzeiten (3,5 s je kleiner Nachricht, 14,5 s je Stück),
+die geschlossene App, die trotz `SUCCESS` nichts bekommt, Verlust und
+Abbruch mittendrin; `test/garmin/watch_channel_test.dart` stellt damit
+die Befunde 8.2, 8.7 und 8.8 nach. Der erste Lauf fand einen Fehler
+der Uhr: Ein „schick" (`wq`) während des Wartens auf das Handy verfiel,
+die Fahrt ging erst beim nächsten Start (Fall 509.7).
 
 **Die Regel der Leiter:** Ein Fehler, der auf Stufe n gefunden wird,
 bekommt seinen Test auf der niedrigsten Stufe, die ihn hätte finden
