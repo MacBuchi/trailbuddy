@@ -4,13 +4,19 @@
 #   tool/garmin_bench.sh cases      Feldszenarien F1–F8 gegen den Fallkatalog
 #                                   und die Dart-Tests der Uhr (S0)
 #   tool/garmin_bench.sh unit       Monkey-C-Unit-Tests im Simulator (S1)
+#   tool/garmin_bench.sh sim-unit   dieselben im Container (S1c, #533): ohne
+#                                   SDK, ohne Schlüssel, ohne Bildschirm
+#   tool/garmin_bench.sh sim-shots  alle Zustände der Ansicht als Bilder
+#                                   aus dem Container (S1c); mit --check
+#                                   gegen die Referenzen
 #   tool/garmin_bench.sh scenario   Vorführmodus: Rückfrage, freie Fahrt, Tasten
 #   tool/garmin_bench.sh chain      Kettenstand Emulator + Simulator (S5, #527):
 #                                   die echte Brücke gegen die echte Uhr-App
 #   tool/garmin_bench.sh chain --break   … mit gewolltem Bruch (muss rot werden)
 #   tool/garmin_bench.sh device     Tischabnahme am Pixel mit der fēnix 5 (S6):
 #                                   sagt jeden Schritt an und liest Logcat
-#   tool/garmin_bench.sh all        cases, unit, scenario — was ohne Gerät geht
+#   tool/garmin_bench.sh all        cases, unit, scenario — was ohne Gerät geht;
+#                                   läuft Docker, dazu sim-unit und sim-shots
 #
 # Umgebung: GARMIN_DEVICE (Vorgabe fenix5), ANDROID_SERIAL bei zwei Geräten,
 # ADB (Vorgabe: adb im PATH, sonst die Homebrew-Kommandozeilenwerkzeuge),
@@ -281,8 +287,29 @@ run_device() {
   return $n
 }
 
+# S1c (#533): der Simulator im Container — läuft auch bei gesperrtem Mac.
+run_sim_unit() {
+  say "--- Monkey-C-Unit-Tests im Container (S1c, ${GARMIN_DEVICE:-fenix5}) ---"
+  tool/garmin_sim.sh up "${GARMIN_DEVICE:-fenix5}" > /dev/null || { miss "Container (tool/garmin_sim.sh up)"; return 1; }
+  if tool/garmin_sim.sh unit 2>&1 | grep -v WARNING | tail -3; then ok "Unit-Tests im Container (build/garmin/sim/unit.log)"; return 0; fi
+  miss "Unit-Tests im Container (build/garmin/sim/unit.log)"
+  return 1
+}
+
+run_sim_shots() {
+  say "--- Bilder der Ansicht im Container (S1c) ---"
+  tool/garmin_sim.sh up "${GARMIN_DEVICE:-fenix5}" > /dev/null || { miss "Container (tool/garmin_sim.sh up)"; return 1; }
+  if tool/garmin_sim.sh shots "$@" 2>&1 | grep -v -E 'WARNING|^$'; then ok "Bilder (build/garmin/sim/shots/)"; return 0; fi
+  miss "Bilder (build/garmin/sim/shots/)"
+  return 1
+}
+
+docker_up() { command -v docker > /dev/null 2>&1 && docker info > /dev/null 2>&1; }
+
 case "${1:-}" in
   cases) run_cases ;;
+  sim-unit) run_sim_unit ;;
+  sim-shots) shift; run_sim_shots "$@" ;;
   unit) run_unit ;;
   scenario) run_scenario ;;
   chain) shift; run_chain "$@" ;;
@@ -292,10 +319,18 @@ case "${1:-}" in
     run_cases || rc=1
     run_unit || rc=1
     run_scenario || rc=1
+    if docker_up; then
+      run_sim_unit || rc=1
+      # Mit Referenzen im Repo wird verglichen, sonst nur gebaut und gezeigt.
+      if [ -d garmin/shots ]; then run_sim_shots --check || rc=1; else run_sim_shots || rc=1; fi
+    else
+      miss "Docker läuft nicht — S1c (sim-unit, sim-shots) ausgelassen (open -a Docker)"
+      rc=1
+    fi
     exit $rc
     ;;
   *)
-    sed -n '2,23p' "$0" | sed 's/^# \{0,1\}//'
+    sed -n '2,28p' "$0" | sed 's/^# \{0,1\}//'
     exit 64
     ;;
 esac

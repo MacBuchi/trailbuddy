@@ -247,9 +247,11 @@ Abbiegehinweise.
   ist ein Startwert bis zur Messung 8.6.
 - **Unit-Tests auf allen Uhren des Manifests**: je Uhr den Simulator neu
   starten (nach einem Gerätewechsel schrieb `monkeydo` sonst nichts) und
-  `GARMIN_DEVICE=<id> tool/garmin_build.sh --test`. Bildschirmfotos nur
-  vom Fenster des Simulators (`screencapture -R` mit dessen Lage, vorher
-  nach vorn holen), nie vom ganzen Schirm.
+  `GARMIN_DEVICE=<id> tool/garmin_build.sh --test`. Bilder der Uhr kommen
+  aus dem Container (`tool/garmin_sim.sh shot`, siehe „Der Simulator im
+  Container"); vom Mac-Simulator nur mit entsperrtem Schirm und nur vom
+  Fenster (`screencapture -l <Fenster-ID>`, ungeprüft), nie vom ganzen
+  Schirm.
 - **Aufzeichnung an der Uhr** (Konzept-Garmin 0.6 und 1, Betreiber
   2026-11-07, „wie Garmin"): `NavDelegate` ruft `startKey`/`backKey`/
   `menuKey` des Ablaufkerns; START → `RideLog.start/pause/resume` (Stände `IDLE`,
@@ -264,10 +266,11 @@ Abbiegehinweise.
   `m`. Ans Handy `rs`, `rt` (nur beim Behalten), `re` (nur wenn START
   gedrückt war) — `test/garmin/watch_ride_test.dart` hält die Zeilen mit
   Dart zusammen. Gegenprobe 2026-11-07: ohne `!_active` in `add` und ohne
-  `storeMarks` zwei Tests rot. Die Tasten im Simulator ließen sich von
-  hier nicht drücken (Klick und Enter über System Events kamen nicht an)
-  — die Abläufe prüft deshalb der Ablaufkern (`CoreTests.mc`), am Gerät
-  bleibt nur, ob die Tasten diese Wege nehmen.
+  `storeMarks` zwei Tests rot. Die Tasten im Mac-Simulator ließen sich
+  von hier nicht drücken (Klick und Enter über System Events kamen nicht
+  an) — die Abläufe prüft deshalb der Ablaufkern (`CoreTests.mc`). Im
+  Container gehen sie (`tool/garmin_sim.sh press`, #533); am Gerät bleibt
+  nur, ob die echten Tasten diese Wege nehmen.
 - **Freie Fahrt fragt wieder** (`HELLO_AGAIN_MS` = 30 s, höchstens 20-mal,
   in `onPosition` vor der Qualitätsprüfung): Feldbefund 2026-11-07, Runde
   vom Handy, die Uhr blieb in der freien Fahrt (Konzept 8.8). Das Handy
@@ -339,3 +342,48 @@ Abbiegehinweise.
   stürzt schon auf `main` (0.168.3) beim Laden der Testroute ab
   (`fallback` → `fromDict`); die Grenze 2000 gilt für eine Route vom
   Handy, die stückweise kommt, nicht für die Testroute als Ressource.
+- **Der Simulator im Container** (S1c, #533, `tool/garmin_sim.sh`; Bild
+  in `tool/garmin_sim.Dockerfile`, per Digest festgenagelt): der
+  Linux-Simulator unter Xvfb, das Bild direkt aus dem Bildspeicher
+  (`-fbdir`, XWD → PNG über `tool/xwd_png.py`) — geht bei gesperrtem
+  Mac, ohne SDK und ohne Schlüssel des Betreibers (der Container baut mit
+  einem Wegwerf-Schlüssel). Das Bild ist von einem Dritten (SDK 9.2.0,
+  der Mac hat 9.3.0): ein Unterschied zwischen beiden Simulatoren ist ein
+  Befund. Was dort gilt (gemessen 2026-11-12):
+  - **Tasten = Klicks aufs Gerätebild.** Lage der Tasten aus
+    `simulator.json` des Geräts (`keys`), Lage des Gerätebilds im
+    Bildschirm einmal je Start gesucht (`xwd_png.py --find`); langes HOCH
+    ist der Eintrag `menu` (`isHold`), 1–2 s gedrückt. `xdotool key` ist
+    kein Ersatz: `Return` und `Up` taten nichts.
+  - **Sprache** steht in `/root/.Garmin/ConnectIQ/simulator.ini`
+    (`Language=7` Deutsch, `4` Englisch) und wirkt beim Start des
+    Simulators — kein Menüklick. **Konsole** nur mit `LANG=C.UTF-8`
+    richtig (sonst `???` statt `→` und Umlauten; das Dockerfile setzt es).
+  - **Port:** Startet der Simulator neu, solange 1234 noch belegt ist,
+    lauscht er auf dem nächsten (bis 1238); `monkeydo` findet ihn dort.
+  - **Menüleiste:** Einträge ohne Untermenü gehen über
+    `garmin_sim.sh menu` (Tabelle im Skript, Zeilen 25 px, nur für das
+    festgenagelte Bild); Untermenüs nicht. Xvfb ist 1200 px hoch, sonst
+    rutscht „Settings" nach oben.
+  - **Was `shots` nicht erreicht:** die eingepasste Übersicht (#498) —
+    Szene 4 des Vorführmodus liegt hinter „angekommen", und die
+    Zusammenfassung bleibt stehen; eine echte Tastenfolge mit Route vom
+    Handy, GPS aus einer Datei (Simulation → Activity Data öffnet einen
+    Dialog), die Kette über adb (#527, noch ungemessen).
+  - **Bilder sind gleich** zwischen Läufen (Bytes, 28 von 28), wenn der
+    Stempel fest ist (`GARMIN_STAMP` in `garmin_build.sh`) und jeder Lauf
+    mit leerem App-Speicher beginnt (`run --fresh`; sonst steht „START =
+    JA" nur beim ersten Mal). Nicht verglichen: Lader, „Berg" (Uhrzeit),
+    Frage (Frist als Balken). **Referenzen** in `garmin/shots/` (Betreiber
+    2026-11-12), nur von der Testroute: Wer das Zeichnen oder einen Text
+    der Uhr ändert, fährt `tool/garmin_sim.sh shots --update` und
+    committet die Bilder mit; `garmin_bench.sh all` vergleicht.
+  - **Takt:** Eine Umwandlung XWD → PNG und jeder Python-Aufruf kosten
+    unter Rosetta gut 1 s — `shots` kopiert im Moment nur den Bildspeicher
+    und hält die Tastenlagen im Zwischenspeicher, sonst rutscht ein Bild
+    in die nächste Szene. „abseits" holt die Karte nach vorn
+    (`leftRoute`), auch von einer Zahlenseite.
+  - **Befund A** (#533): Eine `.prg` vom Mac (SDK 9.3.0) läuft im
+    Container gleich (100,4 KB im Vorführmodus, über den Routenwechsel);
+    der Container-Bau (9.2.0) belegt ~0,7 KB weniger. Der „Out of
+    Memory" vom Spike kam von einer `.prg` vor dem `forget`-Fix aus #513.

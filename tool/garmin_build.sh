@@ -20,6 +20,13 @@
 #                                        Ereignisse über den Kanal (:bench) —
 #                                        build/garmin/trailbuddy-bench.prg,
 #                                        gestartet von garmin_bench.sh chain
+#   tool/garmin_build.sh --prepare-only --demo
+#                                        nur die Kopie unter build/garmin/src
+#                                        vorbereiten (Version.mc, Testroute,
+#                                        excludeAnnotations) und den Plan in
+#                                        build/garmin/src/build.env schreiben —
+#                                        ohne SDK und ohne Schlüssel; gebaut
+#                                        wird im Container (garmin_sim.sh, #533)
 #
 # Gebaut wird aus einer Kopie unter build/garmin/src — so ersetzt eine
 # eigene Route nie die Testroute im Repo. Auf die Uhr: die .prg per USB
@@ -42,6 +49,7 @@ OUT="$ROOT/build/garmin"
 
 mode=build
 store=0
+prepare=0
 # Die erfundene Route ist nur für Prüfungen und Messungen dabei.
 demoRoute=0
 route_args=()
@@ -55,7 +63,8 @@ while [ $# -gt 0 ]; do
     --store) store=1; shift ;;
     --demo-route) demoRoute=1; shift ;;
     --bench) mode=bench; shift ;;
-    -h|--help) sed -n '2,32p' "$0"; exit 0 ;;
+    --prepare-only) prepare=1; shift ;;
+    -h|--help) sed -n '2,39p' "$0"; exit 0 ;;
     *) echo "Unbekannt: $1" >&2; exit 2 ;;
   esac
 done
@@ -65,11 +74,13 @@ case "$mode" in test|demo|run|bench) demoRoute=1 ;; esac
 if [ ${#route_args[@]} -gt 0 ]; then demoRoute=1; fi
 if [ "$store" = 1 ]; then demoRoute=0; fi
 
-if [ -z "$SDK" ] || [ ! -x "$SDK/bin/monkeyc" ]; then
+if [ "$prepare" = 1 ]; then
+  :
+elif [ -z "$SDK" ] || [ ! -x "$SDK/bin/monkeyc" ]; then
   echo "Kein Connect-IQ-SDK gefunden — SDK-Manager installieren oder GARMIN_SDK setzen." >&2
   exit 1
 fi
-if [ ! -f "$KEY" ]; then
+if [ "$prepare" = 0 ] && [ ! -f "$KEY" ]; then
   echo "Kein Entwicklerschlüssel unter $KEY — GARMIN_DEV_KEY setzen." >&2
   exit 1
 fi
@@ -83,6 +94,9 @@ cp -R "$ROOT/garmin/." "$OUT/src/"
 stamp="$(git -C "$ROOT" rev-parse --short HEAD 2>/dev/null || echo dev)"
 if ! git -C "$ROOT" diff --quiet HEAD -- garmin 2>/dev/null; then stamp="$stamp+"; fi
 stamp="$stamp $(date '+%d%m %H:%M')"
+# Ein fester Stempel (GARMIN_STAMP) macht die Bilder des Containers
+# zwischen zwei Bauten vergleichbar (garmin_sim.sh shots --check, #533).
+if [ -n "${GARMIN_STAMP:-}" ]; then stamp="$GARMIN_STAMP"; fi
 # Die Fassung steht auf der Uhr (kurz, kein Stempel) und im „hallo" ans
 # Handy: nur eine Uhr, die `ver` meldet, bekommt später das Fenster.
 version="$(cat "$ROOT/garmin/VERSION" 2>/dev/null || echo 0.0.0)"
@@ -130,6 +144,22 @@ echo "base.excludeAnnotations = $excl" >> "$OUT/src/monkey.jungle"
 if [ "$mode" = test ]; then
   prg="$OUT/trailbuddy-test.prg"
   extra=(--unit-test)
+fi
+if [ "$prepare" = 1 ]; then
+  # Der Plan für den Bau im Container: welcher Modus, welche Datei.
+  if [ "$store" = 1 ] && [ "$mode" = build ]; then
+    echo "--prepare-only baut kein Store-Paket (.iq) — das bleibt beim Betreiber." >&2
+    exit 2
+  fi
+  if [ "$store" = 1 ]; then prg="$OUT/trailbuddy-store.prg"; extra=(-r); fi
+  {
+    echo "mode=$mode"
+    echo "prg=$(basename "$prg")"
+    echo "extra=\"${extra[*]+"${extra[*]}"}\""
+    echo "route=$([ ${#route_args[@]} -gt 0 ] && echo "${route_args[0]#--}" || echo testroute)"
+  } > "$OUT/src/build.env"
+  echo "vorbereitet: ${OUT#"$ROOT"/}/src ($excl)"
+  exit 0
 fi
 if [ "$store" = 1 ] && [ "$mode" = build ]; then
   # Das Paket für den Connect-IQ-Store: alle Uhren aus dem Manifest, ohne

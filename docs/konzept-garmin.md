@@ -925,13 +925,16 @@ Warum bisher so viel am Gerät landete:
   Zustand was tut, welche Frist läuft, was ans Handy geht — steht in
   `TrailBuddyApp.mc` und ist nur über den Vorführmodus erreichbar.
 - Tasten und Menüs ließen sich im Simulator nicht von außen drücken
-  (`garmin/CLAUDE.md`, „Aufzeichnung an der Uhr").
+  (`garmin/CLAUDE.md`, „Aufzeichnung an der Uhr") — im Mac-Simulator.
+  Im Container (S1c, #533) gehen sie: Klick auf die Taste im Gerätebild.
 - Die Fake-Uhr der Dart-Tests antwortet sofort und verliert nichts; die
   Feldbefunde 8.2, 8.7 und 8.8 waren aber Laufzeit und Verlust.
 - **Die Kette selbst** — Dart, Kotlin-Brücke, Companion-SDK, Uhr-App und
   zurück — prüfte nichts. Der R8-Absturz von 0.150.0 und die veraltete
   `.prg` vom 2026-11-04 lagen genau dort.
-- Das Aussehen prüft niemand automatisch.
+- Das Aussehen prüfte niemand automatisch. Seit S1c (#533) zeichnet der
+  Simulator im Container jeden erreichbaren Zustand als Bild, und zwei
+  Läufe lassen sich Bildpunkt für Bildpunkt vergleichen.
 - Die Fälle in `docs/watch_cases.json` waren nach Issue geordnet, nicht
   nach dem, was jemand im Feld tut.
 
@@ -941,9 +944,10 @@ Warum bisher so viel am Gerät landete:
 |---|---|---|---|---|
 | S0 | Dart-Tests gegen die Fake-Uhr (`test/garmin/`) | Logik am Handy, Kodierung | CI | da |
 | S1 | Monkey-C-Unit-Tests (`garmin/source/Tests.mc`) | Bausteine der Uhr | 💻, CI als Versuch (T6, #512) | da |
+| S1c | **Simulator im Container** (#533): bauen, Unit-Tests, Tasten drücken, jeden Zustand als Bild — ohne Bildschirm, SDK und Schlüssel des Betreibers | Zeichnen, Texte in beiden Sprachen, was eine Taste in der echten Ansicht tut | 💻 mit Docker, CI später (#512) | da (`tool/garmin_sim.sh`) |
 | S2 | **Ablaufkern**: Ereignis-Skripte gegen den Zustandsautomaten (T1, #508; `WatchCore.mc`, Tests in `CoreTests.mc`) | Tasten, Menüs, Fristen, Reihenfolgen | 💻 | da |
 | S3 | **Gesprächskatalog** für beide Seiten und die Fake-Uhr mit Kanalmodell (T2, T3, #509) | Protokoll-Drift, Laufzeit, Verlust, geschlossene App | CI (Handy, Frische der Uhr-Seite), 💻 (Uhr) | da |
-| S4 | **Dart-Abbild der Ansicht** mit Golden-Tests (T5, #511) | Aussehen, Textlängen, andere Größen | CI | offen |
+| S4 | **Dart-Abbild der Ansicht** mit Golden-Tests (T5, #511; kleiner seit S1c) | Textlängen, andere Größen | CI | offen |
 | S5 | **Kettenstand**: Android-Emulator und Simulator, verbunden über adb (T7, #527) | Brücke, Kotlin, SDK, beide Apps zusammen | 💻 | da (`tool/garmin_bench.sh chain`) |
 | S6 | **Tischabnahme**: Release-Bau am Pixel 7 Pro und fēnix 5, als Skript (#527) | Garmin Connect, R8, Hintergrund, alter Stand auf der Uhr | 📱, ~10 min | offen |
 | S7 | Feld | Messungen 8.3–8.6, 8.9 | 📱 | — |
@@ -986,6 +990,37 @@ Abbruch mittendrin; `test/garmin/watch_channel_test.dart` stellt damit
 die Befunde 8.2, 8.7 und 8.8 nach. Der erste Lauf fand einen Fehler
 der Uhr: Ein „schick" (`wq`) während des Wartens auf das Handy verfiel,
 die Fahrt ging erst beim nächsten Start (Fall 509.7).
+
+**Der Simulator im Container** (S1c, #533): Der Mac gibt bei gesperrtem
+Schirm oder schlafendem Display kein Fensterbild — und jeder fertige
+MCP-Server für den Simulator nimmt auf dem Mac `screencapture`. Der
+Linux-Simulator läuft dagegen unter Xvfb, und das Bild kommt direkt aus
+dessen Bildspeicher (`-fbdir`). `tool/garmin_sim.sh` baut im Container
+(Wegwerf-Schlüssel), startet die App, drückt Tasten als Klick auf das
+Gerätebild (Lage aus `simulator.json`), stellt die Sprache über
+`simulator.ini` und fährt mit `shots` alle Zustände durch, die der
+Vorführmodus und die Tasten erreichen — Lader, Übersicht, die Szenen,
+die Frage, Zahlenseiten, Aktions- und Zoommenü, „beenden?", Aufnahme,
+Pause, „verwerfen?", freie Fahrt —, je Sprache mit einem Bogen. Das
+Grundbild ist von einem Dritten (Connect IQ SDK 9.2.0, 4,5 GB, nur amd64,
+auf Apple silicon über Rosetta), festgenagelt per Digest in
+`tool/garmin_sim.Dockerfile`; der Mac hat 9.3.0, ein Unterschied ist ein
+Befund. Gemessen 2026-11-12 (fēnix 5, gesperrter Mac): Bau 11 s,
+Unit-Tests samt Bau 29 s (70 grün), `shots` für beide Sprachen gut 6 min (vier
+Läufe der App je Sprache). Bilder zweier Läufe: 28 von 28 verglichenen
+bytegleich, sobald jeder Lauf mit leerem App-Speicher beginnt (sonst
+steht „START = JA" groß nur beim ersten Mal); eine 1-px-Änderung an der
+Pfeilspitze in `NavView.mc` macht genau die drei Bilder mit dem Pfeil
+rot. Nur angesehen, nicht verglichen: Lader (bewegt sich), Seite „Berg"
+(Uhrzeit), Frage (die Frist läuft als Balken). Nicht erreichbar sind dort
+die eingepasste Übersicht (Szene 4 liegt hinter „angekommen", die
+Zusammenfassung bleibt stehen), GPS aus einer Datei und alles, was S5
+und S6 brauchen. Die Referenzbilder liegen in `garmin/shots/<gerät>/<sprache>/`
+(Betreiber, 2026-11-12: ins Repo, nur von der erfundenen Testroute);
+`garmin_bench.sh all` vergleicht sie, wer das Zeichnen ändert, zieht sie
+mit `tool/garmin_sim.sh shots --update` nach, und der PR zeigt den
+Unterschied. #511 (S4) wird dafür kleiner: Andere Größen und lange
+Texte bleiben dort, der Vergleich mit dem Simulator von Auge entfällt.
 
 **Die Regel der Leiter:** Ein Fehler, der auf Stufe n gefunden wird,
 bekommt seinen Test auf der niedrigsten Stufe, die ihn hätte finden
@@ -1109,8 +1144,9 @@ soll — und was nicht.
 ### 12.6 Werkzeug
 
 - **Ein Einstieg:** `tool/garmin_bench.sh` — `cases` (die Abdeckung der
-  Szenarien), `unit` (S1), `scenario` (Vorführmodus), `chain` (S5),
-  `device` (S6), `all`. Es räumt hängende `monkeydo`- und
+  Szenarien), `unit` (S1), `sim-unit` und `sim-shots` (S1c, im
+  Container), `scenario` (Vorführmodus), `chain` (S5),
+  `device` (S6), `all` (mit S1c, wenn Docker läuft). Es räumt hängende `monkeydo`- und
   Simulator-Prozesse vorher weg und sagt, was auf diesem Rechner fehlt.
 - **Der Skill `watch-bench`** (`.claude/skills/`): welche Stufe eine
   Änderung braucht, die Befehle, die Gegenprobe und die bekannten Fallen.
