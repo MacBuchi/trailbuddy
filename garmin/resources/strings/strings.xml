@@ -51,4 +51,9 @@
     <string id="RideDiscarded">Ride discarded</string>
     <string id="RideTooShort">Ride too short\nnot saved</string>
     <string id="AppQuit">Quit TrailBuddy?</string>
+    <string id="AskYes">YES</string>
+    <string id="AskNo">NO</string>
+    <string id="Zoom">Zoom</string>
+    <string id="ZoomAuto">Automatic</string>
+    <string id="EndRoute">End route</string>
 </strings>

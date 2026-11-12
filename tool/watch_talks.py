@@ -45,6 +45,7 @@ ACTIONS = {
     "Ja": "discardYes",
     "Behalten": "keep",
     "beenden": "quit",
+    "Route beenden": "endRoute",
 }
 FIXES = re.compile(r"^fixe (\d+)-(\d+)$")
 

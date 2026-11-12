@@ -127,9 +127,18 @@ class TrailBuddyApp extends Application.AppBase {
 
     //! Die Menüs: `:pause` Weiter · Speichern · Verwerfen, `:trail` nach
     //! „Trail endet" Behalten · Verwerfen, `:quit` beenden?, `:discard`
-    //! Fahrt verwerfen? (ersetzt das Menü der Pause).
+    //! Fahrt verwerfen? (ersetzt das Menü der Pause), `:action` das
+    //! Aktionsmenü (langes HOCH, #513), `:zoom` die Zoomstufen.
     (:nobench)
     function menu(kind as Symbol) as Void {
+        if (kind == :action) {
+            actionMenu();
+            return;
+        }
+        if (kind == :zoom) {
+            zoomMenu();
+            return;
+        }
         if (kind == :discard) {
             WatchUi.switchToView(new WatchUi.Confirmation(str(Rez.Strings.DiscardRide)),
                 new DiscardDelegate(), WatchUi.SLIDE_IMMEDIATE);
@@ -145,14 +154,47 @@ class TrailBuddyApp extends Application.AppBase {
             m = new WatchUi.Menu2({:title => str(Rez.Strings.TrailEnd)});
             m.addItem(new WatchUi.MenuItem(str(Rez.Strings.Keep), null, :keep, null));
             m.addItem(new WatchUi.MenuItem(str(Rez.Strings.Discard), null, :drop, null));
-            WatchUi.pushView(m, new TrailMenuDelegate(), WatchUi.SLIDE_IMMEDIATE);
+            WatchUi.pushView(m, new MenuDelegate(:trail), WatchUi.SLIDE_IMMEDIATE);
             return;
         }
         m = new WatchUi.Menu2({:title => str(Rez.Strings.RecPaused)});
         m.addItem(new WatchUi.MenuItem(str(Rez.Strings.Resume), null, :resume, null));
         m.addItem(new WatchUi.MenuItem(str(Rez.Strings.Save), core.free ? null : str(Rez.Strings.EndsNav), :save, null));
         m.addItem(new WatchUi.MenuItem(str(Rez.Strings.Discard), null, :discard, null));
-        WatchUi.pushView(m, new PauseMenuDelegate(), WatchUi.SLIDE_IMMEDIATE);
+        WatchUi.pushView(m, new MenuDelegate(:pause), WatchUi.SLIDE_IMMEDIATE);
+    }
+
+    //! Das Aktionsmenü (#513): nur die Punkte, die gerade gehen
+    //! ([WatchCore.actions]).
+    (:nobench)
+    hidden function actionMenu() as Void {
+        var m = new WatchUi.Menu2({:title => str(Rez.Strings.AppName)});
+        var a = core.actions();
+        for (var i = 0; i < a.size(); i++) {
+            if (a[i] == :zoom) {
+                m.addItem(new WatchUi.MenuItem(str(Rez.Strings.Zoom), zoomLabel(core.ui.zoomMode()), :zoom, null));
+            } else if (a[i] == :endRoute) {
+                m.addItem(new WatchUi.MenuItem(str(Rez.Strings.EndRoute), null, :endRoute, null));
+            }
+        }
+        WatchUi.pushView(m, new MenuDelegate(:action), WatchUi.SLIDE_IMMEDIATE);
+    }
+
+    //! Von selbst · 135 m · 203 m · 540 m; die jetzige Wahl hat den Fokus.
+    (:nobench)
+    hidden function zoomMenu() as Void {
+        var m = new WatchUi.Menu2({:title => str(Rez.Strings.Zoom)});
+        for (var z = NavView.ZOOM_AUTO; z < NavView.ZOOM_MPP.size(); z++) {
+            m.addItem(new WatchUi.MenuItem(zoomLabel(z), null, z, null));
+        }
+        m.setFocus(core.ui.zoomMode() - NavView.ZOOM_AUTO);
+        WatchUi.switchToView(m, new MenuDelegate(:zoom), WatchUi.SLIDE_IMMEDIATE);
+    }
+
+    //! Eine Stufe heißt nach dem, was die Karte voraus zeigt (135 px):
+    //! „135 m", „203 m", „540 m" — Zahlen statt Wörter sparen Texte.
+    hidden function zoomLabel(z as Number) as String {
+        return z < 0 ? str(Rez.Strings.ZoomAuto) : (135 * NavView.ZOOM_MPP[z]).toNumber() + " m";
     }
 
     function exit() as Void {
@@ -230,7 +272,9 @@ class TrailBuddyApp extends Application.AppBase {
     // `(:bench)` aus (monkey.jungle), dort gelten die `(:nobench)`-Fassungen.
     //
     //   `{t: "_k", k}`        Taste oder Menüpunkt: start, back, resume,
-    //                         save, discard, keep, drop, yes, no
+    //                         save, discard, keep, drop, yes, no; langes
+    //                         HOCH `menu`, im Aktionsmenü `zoom`,
+    //                         `end_route`, in den Zoomstufen `z-1` … `z2`
     //   `{t: "_f", la, lo, dt, sp}`  eigene Fixe (1e-5°), je dt Sekunden
     //   `{t: "_t", ms}`       die Uhr des Ablaufs springt vor, dann ein Takt
     //   `{t: "_x", drop}`     Nachrichten dieser Art nicht senden (der
@@ -283,7 +327,8 @@ class TrailBuddyApp extends Application.AppBase {
     //! sagt ihm, welches stünde.
     (:bench)
     function menu(kind as Symbol) as Void {
-        _benchMenu = kind == :pause ? "pause" : (kind == :trail ? "trail" : (kind == :quit ? "quit" : "discard"));
+        _benchMenu = kind == :pause ? "pause" : (kind == :trail ? "trail" : (kind == :quit ? "quit"
+            : (kind == :action ? "action" : (kind == :zoom ? "zoom" : "discard"))));
         System.println("bench menu " + _benchMenu);
     }
 
@@ -339,6 +384,15 @@ class TrailBuddyApp extends Application.AppBase {
             if ("quit".equals(m)) { c.quit(); } else if ("discard".equals(m)) { c.discardRide(); }
         } else if ("no".equals(k)) {
             _benchMenu = "";
+        } else if ("menu".equals(k)) {
+            c.menuKey();
+        } else if ("zoom".equals(k) || "end_route".equals(k)) {
+            _benchMenu = "";
+            c.actionChoice("zoom".equals(k) ? :zoom : :endRoute);
+        } else if (k.length() > 1 && "z".equals(k.substring(0, 1))) {
+            _benchMenu = "";
+            var z = k.substring(1, null).toNumber();
+            if (z != null) { c.actionChoice(z); }
         }
     }
 
@@ -593,10 +647,12 @@ function watchCore() as WatchCore {
     return (Application.getApp() as TrailBuddyApp).core;
 }
 
-//! Die Tasten wie bei Garmin (Betreiber 2026-11-07, Konzept-Garmin 1):
-//! START beginnt die Aufzeichnung bzw. hält sie an (Menü), ZURÜCK ist LAP
-//! (Trail beginnt / endet; vor START beenden), hoch/runter blättern die
-//! Seiten, langes HOCH (MENU) zoomt die Karte.
+//! Die Tasten wie bei Garmin (Betreiber 2026-11-07, Konzept-Garmin 1),
+//! eine Taste eine Bedeutung (#513, E2): START beginnt die Aufzeichnung
+//! bzw. hält sie an (Menü) und heißt bei einer Frage ja, ZURÜCK ist LAP
+//! (Trail beginnt / endet; vor START beenden) und bei einer Frage nein,
+//! hoch/runter blättern die Seiten, langes HOCH (MENU) öffnet das
+//! Aktionsmenü.
 class NavDelegate extends WatchUi.BehaviorDelegate {
     hidden var _view as NavView;
 
@@ -621,7 +677,7 @@ class NavDelegate extends WatchUi.BehaviorDelegate {
     }
 
     function onMenu() as Boolean {
-        _view.zoomStep();
+        watchCore().menuKey();
         return true;
     }
 
@@ -633,35 +689,36 @@ class NavDelegate extends WatchUi.BehaviorDelegate {
     }
 }
 
-//! Das Menü der Pause (Weiter · Speichern · Verwerfen). ZURÜCK lässt die
-//! Aufzeichnung angehalten; START macht dann weiter. Verwerfen ersetzt das
-//! Menü durch die Rückfrage.
-class PauseMenuDelegate extends WatchUi.Menu2InputDelegate {
-    function initialize() {
+//! Die Menüs der Uhr in einer Klasse (#513 — jede Klasse kostet Speicher
+//! neben der Route): [_kind] `:pause` Weiter · Speichern · Verwerfen
+//! (ZURÜCK lässt die Aufzeichnung angehalten, Verwerfen ersetzt das Menü
+//! durch die Rückfrage), `:trail` nach „Trail endet" Behalten · Verwerfen
+//! (ZURÜCK behält), `:action` das Aktionsmenü („Zoom" ersetzt es durch die
+//! Stufen), `:zoom` die Stufen (die Kennung ist die Stufe).
+class MenuDelegate extends WatchUi.Menu2InputDelegate {
+    hidden var _kind as Symbol;
+
+    function initialize(kind as Symbol) {
         Menu2InputDelegate.initialize();
+        _kind = kind;
     }
 
     function onSelect(item as WatchUi.MenuItem) as Void {
         var id = item.getId();
-        if (id != :discard) { WatchUi.popView(WatchUi.SLIDE_IMMEDIATE); }
-        watchCore().pauseChoice(id);
-    }
-}
-
-//! Nach „Trail endet": Behalten · Verwerfen. ZURÜCK behält.
-class TrailMenuDelegate extends WatchUi.Menu2InputDelegate {
-    function initialize() {
-        Menu2InputDelegate.initialize();
-    }
-
-    function onSelect(item as WatchUi.MenuItem) as Void {
-        WatchUi.popView(WatchUi.SLIDE_IMMEDIATE);
-        watchCore().trailChoice(item.getId() != :drop);
+        if (id != :discard && id != :zoom) { WatchUi.popView(WatchUi.SLIDE_IMMEDIATE); }
+        var c = watchCore();
+        if (_kind == :pause) {
+            c.pauseChoice(id);
+        } else if (_kind == :trail) {
+            c.trailChoice(id != :drop);
+        } else {
+            c.actionChoice(id);
+        }
     }
 
     function onBack() as Void {
         WatchUi.popView(WatchUi.SLIDE_IMMEDIATE);
-        watchCore().trailChoice(true);
+        if (_kind == :trail) { watchCore().trailChoice(true); }
     }
 }
 

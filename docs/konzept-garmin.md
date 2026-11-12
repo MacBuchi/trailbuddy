@@ -140,8 +140,11 @@ dunkle Infofläche, „Was kommt als Nächstes?" statt „Wie weit noch?".
   *Behalten · Verwerfen* (ZURÜCK behält); in der Pause öffnet es das Menü;
   vor START fragt es „Navigation beenden?" bzw. „TrailBuddy beenden?".
   **hoch/runter** blättern Karte → Fahrt → Berg (→ Sprünge), **langes
-  HOCH** (MENU) holt die Karte nach vorn und schaltet die drei Zoomstufen
-  durch (1, 1,5 und 4 m je Pixel, Start auf 1,5 — gut 180 m voraus).
+  HOCH** (MENU) öffnet seit #513 das Aktionsmenü (Abschnitt 11): Zoom
+  (von selbst · nah · mittel · weit — 1, 1,5 und 4 m je Pixel) und
+  „Route beenden" (die Aufzeichnung läuft weiter). **Bei einer Frage**
+  heißt START ja und ZURÜCK nein (#513; bis 1.3.x lehnte auch START
+  ab).
   Beim Abkommen kommt die Karte von selbst nach vorn. „Verwerfen" der
   Fahrt fragt noch einmal. Tippziele gibt es nicht; A13 heißt hier: große
   Schrift, kräftige Linien.
@@ -818,11 +821,14 @@ Uhr — die Brücke sitzt dort, nicht auf der Uhr.
 - A13: große Schrift, MIP-Farben am Gerät geprüft.
 - A14: Texte der Uhr-App in beiden Sprachen.
 
-## 11. Bedienkonzept 2.0 (Vorschlag, 2026-11-10 — nicht entschieden)
+## 11. Bedienkonzept 2.0 (Vorschlag 2026-11-10, entschieden 2026-11-12)
 
-*Bis der Betreiber entscheidet (`docs/konzept-geraete.md`, E2), gelten
-Entscheidung 6 und Abschnitt 1. Entwurf im Designer („TrailBuddy Uhr
-2.0", Link im PR).*
+*Der Betreiber hat die Tastenkarte am 2026-11-12 angenommen
+(`docs/konzept-geraete.md`, E2). Gebaut in #513 (Uhr-App 1.4.0): START =
+ja mit dem einheitlichen Frageschild, das Aktionsmenü mit Zoom und „Route
+beenden", der Zoom von selbst. Die übrigen Menüpunkte kommen mit ihren
+Issues (#515, #523, #519). Entwurf im Designer („TrailBuddy Uhr 2.0",
+Link im PR).*
 
 Was heute hakt (Stand 1.3.1, `garmin/source/TrailBuddyApp.mc`):
 
@@ -853,7 +859,12 @@ Der Vorschlag:
   „JA" steht neben START, „NEIN" neben ZURÜCK. Nach der Frist gilt ja —
   wie heute (`ASK_MS`).
 - **Zoom von selbst**: nach Tempo und Abstand zum nächsten Trailkopf;
-  von Hand im Menü. Dann fehlt die Taste niemandem.
+  von Hand im Menü. Dann fehlt die Taste niemandem. Gebaut (#513,
+  `NavView.autoZoom`): nah (1 m/px) ab 150 m vor einem Trailkopf, zurück
+  erst ab 250 m; weit (4 m/px) ab 7 m/s (25 km/h), zurück erst unter
+  5,5 m/s; sonst mittel (1,5 m/px). Ein Zoom von Hand gilt, bis ein
+  anderer Trail voraus liegt. Die Schwellen sind Startwerte, bis eine
+  Fahrt sie misst.
 - **Navigation ist eine Ebene, kein Modus**: Freie Fahrt, Linie in der
   Nähe (#506) und Route sind derselbe Bildschirm mit mehr oder weniger
   Inhalt. „Route beenden" steht im Menü und lässt die Aufzeichnung

@@ -51,4 +51,9 @@
     <string id="RideDiscarded">Fahrt verworfen</string>
     <string id="RideTooShort">Fahrt zu kurz\nnicht gespeichert</string>
     <string id="AppQuit">TrailBuddy beenden?</string>
+    <string id="AskYes">JA</string>
+    <string id="AskNo">NEIN</string>
+    <string id="Zoom">Zoom</string>
+    <string id="ZoomAuto">Von selbst</string>
+    <string id="EndRoute">Route beenden</string>
 </strings>
