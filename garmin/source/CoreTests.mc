@@ -843,3 +843,265 @@ function check(st as String) as Void {
     Test.assertMessage(ok, _where + ": Stand der Uhr " + st);
 }
 }
+
+// --- Der Ereignis-Rekorder (#510, T4) ----------------------------------------
+
+//! Ein aufgezeichneter Ring gegen einen frischen Kern — dasselbe, was
+//! `tool/garmin_events.py` als Skript ausgibt. Eingaben (Taste, Menüpunkt,
+//! Nachricht vom Handy, Ergebnis einer Übertragung, Fix) werden gespielt;
+//! Folgen (Nachricht ans Handy, Stand, Frist) wartet die Wiedergabe ab, im
+//! Takt von 250 ms, höchstens bis zur nächsten Sekunde. Zwischen den
+//! Ereignissen kommt alle 5 s ein Fix der zuletzt gesehenen Klasse: auf
+//! der Linie, abseits (1,1 km östlich) oder keiner. Eine Route vom Handy
+//! (`r`) wird [TestCore.newLine], eine Fahrt zum Quittieren die erste der
+//! Warteschlange.
+(:test)
+module TestReplay {
+var _cls as Number = -1;
+var _fixAt as Number = 0;
+var _i as Number = 0;
+
+function kind(e as Number) as Number { return (e >> 27) & 0x1F; }
+function detail(e as Number) as Number { return (e >> 24) & 7; }
+function sec(e as Number) as Number { return e & 0xFFFFFF; }
+
+//! Art und Detail des Rings, ohne Zeit: "0.1,9.1,1.0".
+function shape(ev as Array<Number>) as String {
+    var s = "";
+    for (var i = 0; i < ev.size(); i++) { s += (i > 0 ? "," : "") + kind(ev[i]) + "." + detail(ev[i]); }
+    return s;
+}
+
+function play(h as FakeHost, ev as Array<Number>) as WatchCore {
+    var boot = ev.size() > 0 && kind(ev[0]) == 0;
+    h.link = boot && detail(ev[0]) == 1;
+    var c = TestCore.fresh(h);
+    // Ein Handy war da, wenn je eine Nachricht ging oder kam.
+    for (var i = 0; i < ev.size(); i++) {
+        var k = kind(ev[i]);
+        if (k >= 3 && k <= 7) { h.link = true; }
+    }
+    var t0 = h.t - (boot || ev.size() == 0 ? 0 : sec(ev[0]) * 1000);
+    var base = EventLog.total - (boot ? 1 : 0);
+    _cls = -1;
+    _fixAt = h.t;
+    _i = 0;
+    for (var i = boot ? 1 : 0; i < ev.size(); i++) {
+        var e = ev[i];
+        var k = kind(e);
+        var d = detail(e);
+        var at = t0 + sec(e) * 1000;
+        // Folgen: Nachricht ans Handy (5, 6), Stand (8), Frist (10).
+        if (k == 5 || k == 6 || k == 8 || k == 10) {
+            while (EventLog.total - base <= i && h.t < at + 1000) { step(c, h); }
+            continue;
+        }
+        while (h.t < at) { step(c, h); }
+        input(c, h, k, d, i > 0 && kind(ev[i - 1]) == 3 && detail(ev[i - 1]) == 7);
+    }
+    return c;
+}
+
+function step(c as WatchCore, h as FakeHost) as Void {
+    h.t += 250;
+    c.tick();
+    if (_cls >= 0 && h.t - _fixAt >= 5000) { fix(c, h); }
+}
+
+function fix(c as WatchCore, h as FakeHost) as Void {
+    _fixAt = h.t;
+    _i++;
+    if (_cls == 0) {
+        c.ownFix(null, 0.0d, Position.QUALITY_NOT_AVAILABLE, null, null, null, null, null, 1000000 + _i * 5);
+        return;
+    }
+    c.ownFix(_i * 0.0005d, _cls == 2 ? 0.01d : 0.001d, Position.QUALITY_GOOD, null, 5.0, 400.0 + _i, null, null,
+        1000000 + _i * 5);
+}
+
+function input(c as WatchCore, h as FakeHost, k as Number, d as Number, afterRoute as Boolean) as Void {
+    if (k == 1) {
+        if (d == 0) { c.startKey(); } else if (d == 1) { c.backKey(); } else { c.menuKey(); }
+    } else if (k == 2) {
+        if (d <= 2) {
+            c.pauseChoice([:resume, :save, :discard][d]);
+        } else if (d == 3) {
+            if (h.lastMenu() == :discard) { c.discardRide(); } else { c.quit(); }
+        } else if (d == 4) {
+            c.confirmNo();
+        } else if (d <= 6) {
+            c.trailChoice(d == 5);
+        } else {
+            c.endRoute();
+        }
+    } else if (k == 3) {
+        var t = EventLog.IN_T.substring(d * 3 + 1, d * 3 + 3) as String;
+        if (t.find(" ") != null) { t = t.substring(0, 1); }
+        if (d == 7) {
+            if (!afterRoute) { TestCore.newLine(c, "replay"); }
+        } else if (d == 2) {
+            var ids = RideLog.queuedIds();
+            if (ids.size() > 0) { c.handle({"t" => t, "id" => ids[0]}); }
+        } else if (d == 3) {
+            c.handle({"t" => t, "la" => 100, "lo" => 100});
+        } else if (d == 4) {
+            c.handle({"t" => t, "id" => "replay", "np" => 2});
+        } else if (d == 6) {
+            c.handle({"t" => t, "id" => c.route.id});
+        } else {
+            c.handle({"t" => t});
+        }
+    } else if (k == 4) {
+        if (d == 0) { c.handle({"t" => "b"}); }
+    } else if (k == 7) {
+        if (d <= 1) { c.endAcked(d == 0); } else { c.rideSent(d == 2); }
+    } else if (k == 9) {
+        _cls = d;
+        fix(c, h);
+    }
+}
+}
+
+//! #510: Der Ring wächst nie — 500 Ereignisse, 120 bleiben, die jüngsten.
+(:test)
+function eventsRingHolds120(logger as Logger) as Boolean {
+    TestRoutes.wipe();
+    EventLog.boot(0, false);
+    for (var i = 1; i <= 500; i++) { EventLog.rec(8 + i % 3, i * 1000); }
+    var ev = EventLog.list();
+    Test.assertEqual(ev.size(), EventLog.SIZE);
+    Test.assertEqual(TestReplay.sec(ev[0]), 381);
+    Test.assertEqual(TestReplay.sec(ev[119]), 500);
+    Test.assertEqual(TestReplay.detail(ev[119]), 500 % 3);
+    Test.assertEqual(TestReplay.kind(ev[119]), 1);
+    Test.assertEqual(EventLog.total, 501);
+    TestCore.done();
+    return true;
+}
+
+//! #510, Abnahme: Pause → Verwerfen → Nein, aufgezeichnet und gegen einen
+//! frischen Kern gespielt, endet gleich — in der Pause, das Menü
+//! „verwerfen?" zuletzt, dieselben Nachrichten ans Handy, derselbe Ring.
+(:test)
+function eventsReplayPauseDiscardNo(logger as Logger) as Boolean {
+    var h = new FakeHost();
+    var c = TestCore.loaded(h);
+    c.startKey();
+    TestCore.fixes(c, h, 0, 6);
+    c.startKey();
+    c.pauseChoice(:discard);
+    c.confirmNo();
+    var ev = EventLog.list();
+    var types = h.types();
+    Test.assertEqual(c.log.state(), RideLog.PAUSED);
+    Test.assert(h.lastMenu() == :discard);
+
+    var h2 = new FakeHost();
+    var c2 = TestReplay.play(h2, ev);
+    Test.assertEqual(c2.log.state(), RideLog.PAUSED);
+    Test.assert(!c2.closing);
+    Test.assert(h2.lastMenu() == :discard);
+    Test.assertEqual(h2.types(), types);
+    Test.assertEqual(TestReplay.shape(EventLog.list()), TestReplay.shape(ev));
+    TestCore.done();
+    return true;
+}
+
+//! #510: Keine Koordinaten im Ring — ein Fix ist nur seine Klasse, und sie
+//! steht nur, wenn sie wechselt (auf der Linie, abseits, keiner).
+(:test)
+function eventsFixOnlyOnChange(logger as Logger) as Boolean {
+    var h = new FakeHost();
+    var c = TestCore.loaded(h);
+    var before = EventLog.total;
+    // Zwei Fixe auf der Linie (die Testlinie ist kurz, der dritte läge
+    // schon abseits): einmal „ich habe GPS" ans Handy, einmal die Klasse.
+    TestCore.fixes(c, h, 0, 2);
+    Test.assertEqual(EventLog.total - before, 2);
+    Test.assert(TestReplay.shape(EventLog.list()).find("5.3,9.1") != null);
+    // Der dritte liegt abseits: eine neue Klasse.
+    TestCore.fixes(c, h, 2, 3);
+    Test.assert(TestReplay.shape(EventLog.list()).find("9.1,9.2") != null);
+    h.t += 5000;
+    c.ownFix(null, 0.0d, Position.QUALITY_NOT_AVAILABLE, null, null, null, null, null, 1000100);
+    var ev = EventLog.list();
+    Test.assertEqual(TestReplay.kind(ev[ev.size() - 1]), 9);
+    Test.assertEqual(TestReplay.detail(ev[ev.size() - 1]), 0);
+    TestCore.done();
+    return true;
+}
+
+//! #510: Der Ring reist mit der Fahrt (`ev` in ihrer ersten Nachricht) und
+//! ist mit ihr weg, sobald das Handy sie quittiert.
+(:test)
+function eventsTravelWithRide(logger as Logger) as Boolean {
+    var h = new FakeHost();
+    var c = TestCore.loaded(h);
+    c.startKey();
+    TestCore.fixes(c, h, 0, 30);
+    c.startKey();
+    c.pauseChoice(:save);
+    var q = RideLog.queue();
+    Test.assertEqual(q.size(), 1);
+    var id = q[0][0] as String;
+    var m = RideLog.message(q[0], 0);
+    Test.assert(m["ev"] instanceof Array);
+    var ev = m["ev"] as Array<Number>;
+    Test.assertEqual(TestReplay.kind(ev[0]), 0);
+    // Zuletzt „Speichern" und „geht zu".
+    Test.assert(TestReplay.shape(ev).find("2.1,8.5") != null);
+    c.handle({"t" => "wk", "id" => id});
+    Test.assert(Application.Storage.getValue("ev_" + id) == null);
+    TestCore.done();
+    return true;
+}
+
+//! #510: Ging die App nicht zu (Absturz), reist der alte Ring mit dem
+//! nächsten „hallo" (`ev`); nach einer Antwort des Handys ist er weg. Ein
+//! sauberes Ende hinterlässt keinen.
+(:test)
+function eventsCrashRingInHello(logger as Logger) as Boolean {
+    var h = new FakeHost();
+    var c = TestCore.loaded(h);
+    c.startKey();
+    // Kein stop(): die App „stürzt ab".
+    EventLog.save(h.t);
+    var h2 = new FakeHost();
+    h2.link = true;
+    var c2 = new WatchCore(h2);
+    c2.start();
+    var hi = h2.last("hi") as Dictionary;
+    Test.assert(hi["ev"] instanceof Array);
+    Test.assert(TestReplay.shape(hi["ev"] as Array<Number>).find("1.0") != null);
+    c2.handle({"t" => "k"});
+    Test.assert(EventLog.crashed(false) == null);
+    c2.stop();
+
+    var h3 = new FakeHost();
+    h3.link = true;
+    var c3 = new WatchCore(h3);
+    c3.start();
+    Test.assert((h3.last("hi") as Dictionary)["ev"] == null);
+    c3.stop();
+    TestCore.done();
+    return true;
+}
+
+//! #510: Die Art einer Nachricht aus EINER Zeichenkette — jede Art der
+//! Liste trifft ihre Stelle, eine fremde wird x.7.
+(:test)
+function eventsMessageCodes(logger as Logger) as Boolean {
+    Test.assertEqual(EventLog.msgCode("q", false), 24);
+    Test.assertEqual(EventLog.msgCode("wk", false), 26);
+    Test.assertEqual(EventLog.msgCode("k", false), 29);
+    Test.assertEqual(EventLog.msgCode("r", false), 31);
+    Test.assertEqual(EventLog.msgCode("b", false), 32);
+    Test.assertEqual(EventLog.msgCode("zz", false), 39);
+    Test.assertEqual(EventLog.msgCode(null, false), 39);
+    Test.assertEqual(EventLog.msgCode("hi", true), 40);
+    Test.assertEqual(EventLog.msgCode("e", true), 45);
+    Test.assertEqual(EventLog.msgCode("re", true), 47);
+    Test.assertEqual(EventLog.msgCode("w", true), 51);
+    Test.assertEqual(EventLog.msgCode("rq", true), 55);
+    return true;
+}

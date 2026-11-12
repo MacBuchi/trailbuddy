@@ -387,3 +387,28 @@ Abbiegehinweise.
     Container gleich (100,4 KB im Vorführmodus, über den Routenwechsel);
     der Container-Bau (9.2.0) belegt ~0,7 KB weniger. Der „Out of
     Memory" vom Spike kam von einer `.prg` vor dem `forget`-Fix aus #513.
+- **Der Ereignis-Rekorder** (`source/EventLog.mc`, #510, T4): je
+  Ereignis EINE Zahl `(Code << 24) | Sekunden seit Start`, Code =
+  `Art << 3 | Detail`; die Tabelle steht als Kommentar in `EventLog.mc`,
+  in `tool/garmin_events.py` (`KINDS`) und in
+  `lib/features/garmin/watch_events.dart` — `test/garmin/watch_events_test.dart`
+  liest `IN_T`/`OUT_T`/`SIZE` aus der `.mc`-Datei. Aufgezeichnet wird im
+  Kern über `ev(code)` mit **Zahlen statt Konstanten**: Die erste Fassung
+  mit Konstanten und String-Arrays kostete im Vorführmodus +5,0 KB
+  (99,6 → 104,6 KB, 1000 Punkte), die jetzige +3,45 KB (→ 103,1 KB):
+  Ring 0,6 KB, 25 Aufrufstellen ~1,1 KB (rund 44 Byte je Aufruf im
+  Debug-Bau), der Rest Code des Moduls. Gemessen im Container mit einer
+  vorübergehenden Zeile `System.getSystemStats().usedMemory` im
+  Vorführmodus; der Routenwechsel lief durch. Ein Fix steht nur, wenn
+  seine Klasse wechselt (`fixEv`), Nachrichten nach ihrer Stelle in
+  `IN_T`/`OUT_T` (`msgCode`). „evr" steht, solange die App läuft — steht
+  es beim Start noch, wird „ev" zu „evc" (Absturz-Ring fürs „hallo",
+  weg nach `n`/`k`/`wq` oder dem nächsten sauberen Ende); eine Fahrt
+  nimmt den Ring als „ev_<id>" mit, `RideLog.drop` löscht ihn mit.
+  `TestReplay.play` spielt einen Ring gegen einen frischen Kern:
+  Eingaben werden gespielt, Folgen (Art 5, 6, 8, 10) abgewartet, alle
+  5 s ein Fix der zuletzt gesehenen Klasse. Gegenprobe 2026-11-12: Ring
+  ohne Deckel, Fix ohne Wechselprüfung, Wiedergabe ohne START ⇒
+  `eventsRingHolds120`, `eventsFixOnlyOnChange`,
+  `eventsReplayPauseDiscardNo` rot. **In einem `module` gibt es kein
+  `hidden`** (Bau bricht mit „extraneous input 'hidden'").

@@ -729,7 +729,11 @@ class DiscardDelegate extends WatchUi.ConfirmationDelegate {
     }
 
     function onResponse(response as WatchUi.Confirm) as Boolean {
-        if (response == WatchUi.CONFIRM_YES) { watchCore().discardRide(); }
+        if (response == WatchUi.CONFIRM_YES) {
+            watchCore().discardRide();
+        } else {
+            watchCore().confirmNo();
+        }
         return true;
     }
 }
@@ -740,7 +744,11 @@ class QuitDelegate extends WatchUi.ConfirmationDelegate {
     }
 
     function onResponse(response as WatchUi.Confirm) as Boolean {
-        if (response == WatchUi.CONFIRM_YES) { watchCore().quit(); }
+        if (response == WatchUi.CONFIRM_YES) {
+            watchCore().quit();
+        } else {
+            watchCore().confirmNo();
+        }
         return true;
     }
 }
@@ -765,11 +773,11 @@ class EndAck extends Communications.ConnectionListener {
     }
 
     function onComplete() as Void {
-        watchCore().endSent();
+        watchCore().endAcked(true);
     }
 
     function onError() as Void {
-        watchCore().endSent();
+        watchCore().endAcked(false);
     }
 }
 

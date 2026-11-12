@@ -115,7 +115,7 @@ function wipe() as Void {
     PhoneRoute.drop();
     PhoneRoute.clear("a");
     PhoneRoute.clear("b");
-    var keys = ["risk", "bad", "crashId", "crashN", "loading"] as Array<String>;
+    var keys = ["risk", "bad", "crashId", "crashN", "loading", "ev", "evr", "evc"] as Array<String>;
     for (var i = 0; i < keys.size(); i++) { Application.Storage.deleteValue(keys[i]); }
 }
 }

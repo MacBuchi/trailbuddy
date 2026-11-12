@@ -6,6 +6,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:trailbuddy/data/feedback_repository.dart';
 import 'package:trailbuddy/data/outbox.dart';
+import 'package:trailbuddy/features/garmin/watch_event_store.dart';
+import 'package:trailbuddy/features/garmin/watch_events.dart';
 import 'package:trailbuddy/features/trails/trail_providers.dart';
 
 import '../fakes/fake_backend.dart';
@@ -170,5 +172,61 @@ void main() {
     await settle(tester);
     expect(backend.feedback, isEmpty);
     expect(find.text('Wünsch dir was!'), findsNothing);
+  });
+
+  testWidgets('#510: Fehler mit Uhr-Protokoll — nur auf Wunsch, Liste vorher sichtbar', (tester) async {
+    final backend = FakeBackend();
+    backend.signInAs(backend.addUser(username: 'anna').id);
+    final events = MemoryWatchEventStore();
+    final ring = [packWatchEvent(0, 1, 0), packWatchEvent(1, 0, 12), packWatchEvent(2, 4, 40)];
+    await events.add(WatchEventLog(at: DateTime.now(), fromCrash: true, events: ring));
+    await pumpApp(tester, backend, watchEvents: events);
+    await openFeedback(tester);
+
+    // Bei einer Idee gibt es nichts anzuhängen.
+    expect(find.text('Uhr-Protokoll anhängen'), findsNothing);
+    await tester.tap(find.text('Fehler'));
+    await settle(tester);
+    expect(find.text('Uhr-Protokoll anhängen'), findsOneWidget);
+    expect(find.textContaining('3 Schritte der Uhr-App vor einem Absturz'), findsOneWidget);
+    expect(find.textContaining('keine Position'), findsOneWidget);
+
+    // Die Liste, bevor etwas geht.
+    await tester.ensureVisible(find.text('Liste ansehen'));
+    await settle(tester);
+    await tester.tap(find.text('Liste ansehen'));
+    await settle(tester);
+    expect(find.textContaining('Start mit Handy'), findsOneWidget);
+    expect(find.textContaining('Taste START'), findsOneWidget);
+    expect(find.textContaining('Nein'), findsOneWidget);
+
+    // Ohne Haken bleibt das Protokoll auf dem Telefon.
+    await writeAndSend(tester, 'Uhr hängt nach Pause');
+    expect(backend.feedback.single['message'], 'Uhr hängt nach Pause');
+
+    await openFeedback(tester);
+    await tester.tap(find.text('Fehler'));
+    await settle(tester);
+    await tester.ensureVisible(find.text('Uhr-Protokoll anhängen'));
+    await settle(tester);
+    await tester.tap(find.text('Uhr-Protokoll anhängen'));
+    await settle(tester);
+    await writeAndSend(tester, 'Uhr hängt nach Pause');
+    final message = backend.feedback.last['message'] as String;
+    expect(message, startsWith('Uhr hängt nach Pause\n\nUhr-Protokoll (3 Schritte): ev1:'));
+    expect(decodeWatchEvents(message), ring);
+  });
+
+  testWidgets('#510: ein Protokoll älter als ein Tag wird nicht angeboten', (tester) async {
+    final backend = FakeBackend();
+    backend.signInAs(backend.addUser(username: 'anna').id);
+    final events = MemoryWatchEventStore();
+    await events.add(WatchEventLog(
+        at: DateTime.now().subtract(const Duration(days: 2)), fromCrash: false, events: [packWatchEvent(0, 0, 0)]));
+    await pumpApp(tester, backend, watchEvents: events);
+    await openFeedback(tester);
+    await tester.tap(find.text('Fehler'));
+    await settle(tester);
+    expect(find.text('Uhr-Protokoll anhängen'), findsNothing);
   });
 }

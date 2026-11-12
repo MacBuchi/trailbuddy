@@ -1857,5 +1857,18 @@
   "aboutAirtimeShareSubtitle": "Your best per trail, the airtime of the last 30 days and your titles. No ride, no place, no max G. You see the values of buddies who share too. Turning it off deletes what you shared.",
   "aboutAirtimeShareOffFailed": "Turning it off needs a connection — your values stay shared until it works.",
   "airtimeMonthPattern": "MMM",
-  "airtimeAsOfPattern": "MMM d"
+  "airtimeAsOfPattern": "MMM d",
+  "feedbackWatchLogAttach": "Attach watch log",
+  "feedbackWatchLogInfo": "{count} steps of the watch app {source, select, crash{before a crash} other{up to the end of the last ride}}: buttons, menu items, kinds of messages and seconds — no position. Becomes public with your text.",
+  "feedbackWatchLogShow": "Show the list",
+  "feedbackWatchLogLine": "Watch log ({count} steps):",
+  "watchEvStart": "{d, select, d0{Start without phone} d1{Start with phone} other{?}}",
+  "watchEvKey": "{d, select, d0{START button} d1{BACK button} d2{long UP} other{?}}",
+  "watchEvMenu": "{d, select, d0{Menu: resume} d1{Menu: save} d2{Menu: discard} d3{Answer: yes} d4{Answer: no} d5{Keep trail} d6{Discard trail} d7{End route} other{?}}",
+  "watchEvIn": "from phone: {type}",
+  "watchEvOut": "to phone: {type}",
+  "watchEvSent": "{d, select, d0{End accepted} d1{End not accepted} d2{Ride accepted} d3{Ride not accepted} other{?}}",
+  "watchEvState": "{d, select, d0{State: ready} d1{State: recording} d2{State: paused} d3{State: free ride} d4{State: route loaded} d5{State: closing} d6{State: route swap} d7{State: loader waits} other{?}}",
+  "watchEvFix": "{d, select, d0{GPS: none} d1{GPS: on the route} d2{GPS: off route} d3{GPS: free} other{?}}",
+  "watchEvDue": "{d, select, d0{Deadline: close} d1{Deadline: swap} d2{Deadline: calm minute} d3{Deadline: wait over} other{?}}"
 }
