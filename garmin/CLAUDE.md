@@ -429,3 +429,25 @@ Abbiegehinweise.
   **Fixe mit Abstand zu `RideLog.MIN_POINTS`**: Mit 40 Fixen kamen mal 24,
   mal 23 Punkte an, und die Uhr verwarf die Fahrt still als zu kurz
   (zweimal „Fahrt hinüber FEHLT" ohne Fehler im Log); jetzt 60.
+- **Speicher neben der größten Route im Kettenstand** (#510,
+  2026-11-13): `_s` meldet `mem`, `peak` (je Takt gemessen, `(:bench)
+  onTick`) und `tot`; der Treiber schickt am Ende eine Zickzack-Route mit
+  `kWatchMaxPoints` Punkten samt Höhen, startet die Aufnahme und wechselt
+  während der Fahrt auf eine zweite gleich große. `CHAIN_BIG=N
+  tool/garmin_bench.sh chain` fährt nur diesen Teil mit N Punkten (gleich
+  nach dem „hallo"); eine Ablehnung schreibt der Treiber mit Grund
+  (`BENCH abgelehnt: mem`). **Genau N Rohpunkte schicken**: Mit mehr als
+  `kWatchMaxPoints` verdoppelt `watchRouteOf` die Toleranz, und das
+  gleichmäßige Zickzack fiel auf 23 Punkte — der erste Lauf war grün und
+  hatte nichts gemessen. Gemessen (Bench-Bau, 123,8 KB für die App):
+  | Punkte | Laden | belegt (Spitze) | Wechsel gleich groß |
+  |---|---|---|---|
+  | 2000, 1750 | „Out of Memory" in `PhoneRoute.get` — **auch auf `main` ohne Ring** | – | – |
+  | 1500 | geht | 109,9 KB (112,6) | `x` mem |
+  | 1250 | geht | 104,9 KB (111,1) | `x` mem |
+  | 1000 | geht | 99,4–99,8 KB (102,4–106,2) | `x` mem |
+  | 800 | geht | 95,8 KB (102,3) | geht, 96,9 KB |
+  Der Ring kostet neben einer Route mit 1500 Punkten 4,2 KB (`main`
+  105,7 KB, Spitze 108,9). Die Grenze der App sinkt deshalb auf 800
+  (Betreiber, 2026-11-13); `x` mem ist der Schutz in `PhoneRoute.take`
+  (4 KB + 16 B je Zahl frei), die alte Route bleibt.

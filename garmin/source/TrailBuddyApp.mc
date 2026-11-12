@@ -75,8 +75,18 @@ class TrailBuddyApp extends Application.AppBase {
         t.start(method(:onTick), ms, true);
     }
 
+    (:nobench)
     function onTick() as Void {
         core.tick();
+    }
+
+    //! Im Kettenstand misst jeder Takt den Speicher mit — die Spitze liegt
+    //! mitten im Dekodieren und beim Routenwechsel, nicht dann, wenn der
+    //! Treiber fragt (#510).
+    (:bench)
+    function onTick() as Void {
+        core.tick();
+        benchPeak();
     }
 
     //! Ein Handy, das Nachrichten nehmen kann: Sonst füllte jede Nachricht
@@ -287,8 +297,10 @@ class TrailBuddyApp extends Application.AppBase {
     //                         Speicher — der Absturz-Ring kommt im „hallo"
     //
     // Antwort auf jedes Ereignis: `{t: "_s", rec, wait, free, ready, id,
-    // ask, closing, q, menu, fx, pend?}` — `fx` Fixe, die noch anstehen;
-    // auf `_f` erst, wenn alle verarbeitet sind.
+    // ask, closing, q, menu, fx, pend?, mem, peak, tot}` — `fx` Fixe, die
+    // noch anstehen (auf `_f` erst, wenn alle verarbeitet sind), `mem`
+    // belegter Speicher, `peak` die Spitze seit dem Start (je Takt
+    // gemessen), `tot` der ganze (#510).
 
     (:bench) hidden var _shift as Number = 0;
     (:bench) hidden var _fixT as Number = 0;
@@ -301,6 +313,13 @@ class TrailBuddyApp extends Application.AppBase {
     (:bench) hidden var _fixI as Number = 0;
     (:bench) hidden var _fixDt as Number = 5;
     (:bench) hidden var _fixSp as Float = 5.0;
+    (:bench) hidden var _peak as Number = 0;
+
+    (:bench)
+    hidden function benchPeak() as Void {
+        var m = System.getSystemStats().usedMemory;
+        if (m > _peak) { _peak = m; }
+    }
 
     //! Der Simulator behält den Speicher der Uhr zwischen Läufen: Eine
     //! Fahrt aus einem abgebrochenen Lauf kam als laufende Aufzeichnung
@@ -463,6 +482,12 @@ class TrailBuddyApp extends Application.AppBase {
             "ready" => c.route.isReady(), "id" => c.route.id, "ask" => c.pendingId != null && c.swapAt != 0,
             "closing" => c.closing, "q" => RideLog.queue().size(), "menu" => _benchMenu,
             "fx" => _fixLa == null ? 0 : (_fixLa as Array).size() - _fixI} as Dictionary;
+        // Speicher (#510): jetzt, die Spitze seit dem Start, das Ganze.
+        benchPeak();
+        var st = System.getSystemStats();
+        m["mem"] = st.usedMemory;
+        m["peak"] = _peak;
+        m["tot"] = st.totalMemory;
         var p = c.pendingId;
         if (p != null) { m["pend"] = p; }
         transmit(m, new PhoneAck());

@@ -190,6 +190,8 @@ run_chain() {
   : > "$log"
   local defs=(--dart-define=GARMIN_TETHERED=true --dart-define=ROUNDS="${CHAIN_ROUNDS:-5}")
   [ $brk = 1 ] && defs+=(--dart-define=BREAK_OK=true)
+  # Nur die Speichermessung mit N Punkten: CHAIN_BIG=N tool/garmin_bench.sh chain
+  [ -n "${CHAIN_BIG:-}" ] && defs+=(--dart-define=BIG_ONLY="$CHAIN_BIG")
   say "Treiber auf dem Emulator (baut beim ersten Mal ein paar Minuten) …"
   flutter test integration_test/watch_bench_test.dart -d "$serial" --flavor dev "${defs[@]}" > "$log" 2>&1 &
   fpid=$!
@@ -238,7 +240,7 @@ run_chain() {
   done
   wait "$fpid"; rc=$?
   { kill "$mpid"; wait "$mpid"; } 2>/dev/null
-  grep -E "BENCH (step|hallo|route median|Fahrt|Protokoll|Absturz|result)" "$log" | sed 's/^.*BENCH /  /'
+  grep -E "BENCH (step|hallo|route median|Fahrt|Protokoll|Absturz|Speicher|result)" "$log" | sed 's/^.*BENCH /  /'
   if [ $brk = 1 ]; then
     if [ $rc -ne 0 ] && grep -q "BENCH step Route in Stücken → ok (1/.* FEHLT" "$log"; then
       ok "gewollter Bruch: die Kette wird rot, wo sie soll ($log)"; return 0
