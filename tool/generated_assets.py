@@ -17,6 +17,10 @@ gibt — eine gezielte Zusatzprüfung:
   Folge wäre lautlos — vector_tile_renderer lässt Ebenen, deren
   Ausdrücke er nicht versteht, einfach weg (graue Landflächen, keine
   Beschriftung), und genau dagegen wurde das Skript geschrieben.
+- **watch_talks_fixpoint**: Die Seite der Uhr des Gesprächskatalogs
+  (`garmin/source/GeneratedTalks.mc`, #509) muss genau das sein, was
+  `tool/watch_talks.py` aus `docs/watch_cases.json` erzeugt — sonst
+  spielt die Uhr ein anderes Gespräch als das Handy.
 - **self_recorded_sha256**: Das Waldgitter trägt seine Prüfsumme und
   Größe längst in `forest_manifest.json` — geschrieben vom Erzeuger,
   bis hierher von niemandem nachgerechnet. Statt die Zahl ein zweites
@@ -96,8 +100,29 @@ def _check_self_recorded_sha256(root, relpath, manifest_relpath):
     return "; ".join(problems) or None
 
 
+def _check_watch_talks(root, relpath, tool_relpath):
+    """Ist die Seite der Uhr des Gesprächskatalogs frisch erzeugt (#509)?"""
+    if TOOL_DIR not in sys.path:
+        sys.path.insert(0, TOOL_DIR)
+    import watch_talks
+
+    with open(os.path.join(root, "docs", "watch_cases.json"), encoding="utf-8") as handle:
+        doc = json.load(handle)
+    try:
+        rebuilt = watch_talks.render(doc)
+    except ValueError as error:
+        return f"der Katalog lässt sich nicht übersetzen: {error}"
+    with open(os.path.join(root, relpath), encoding="utf-8") as handle:
+        if handle.read() == rebuilt:
+            return None
+    return (f"ist nicht das, was {tool_relpath} aus docs/watch_cases.json "
+            f"erzeugt — ein Gespräch kam dazu oder änderte sich, ohne dass "
+            f"die Uhr es spielt.")
+
+
 EXTRA_CHECKS = {
     "transform_noop": _check_transform_noop,
+    "watch_talks_fixpoint": _check_watch_talks,
     "self_recorded_sha256": _check_self_recorded_sha256,
 }
 

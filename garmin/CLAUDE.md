@@ -288,3 +288,20 @@ Abbiegehinweise.
   `coreAsksThenTakesAfterDeadline` rot). Wer einen Ablauf ändert,
   schreibt erst das Ereignis-Skript. Messung 2026-11-11: Code +320 Byte
   im Release-Bau (Grenze aus #508: 2 KB).
+- **Der Gesprächskatalog** (S3, #509; Konzept 12.2): Die Gespräche
+  zwischen Handy und Uhr stehen in `docs/watch_cases.json`
+  (`gespraeche`); `source/GeneratedTalks.mc` ist ERZEUGT
+  (`python3 tool/watch_talks.py`, danach `tool/generated_assets.py
+  --update`), nie von Hand. Der Spieler `TestTalk` (`CoreTests.mc`)
+  tickt im Takt, den der Kern beim Wirt verlangt (`FakeHost.paceMs`) —
+  mit festen 250 ms wie `TestCore.run` war eine Route nach 500 ms noch
+  halb dekodiert, und ein Neustart verwarf sie über `loading`.
+  Fehlermeldungen nennen Schritt, gesendete Arten und den Stand des
+  Kerns. **`has` ist in Monkey C ein Schlüsselwort** (`obj has :sym`) —
+  eine Funktion dieses Namens bricht den Bau mit „extraneous input".
+- **Ein „schick" während des Wartens** (`_uploadLater` in `WatchCore`,
+  Fall 509.7): `startUpload` darf nicht senden, solange eine Route kommt
+  (`wait`, `pendingId`) — bis #509 verfiel das `wq` dann, die Fahrt ging
+  erst beim nächsten Start. Jetzt merkt der Kern es sich und sendet am
+  Ende von `loadStep`. Gegenprobe 2026-11-12: ohne das ist
+  `talk_fahrt_wartet` rot.

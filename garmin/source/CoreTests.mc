@@ -452,3 +452,281 @@ function coreEndOnlyForOwnRoute(logger as Logger) as Boolean {
     TestCore.done();
     return true;
 }
+
+//! Der Spieler des Gesprächskatalogs (#509, Prüfleiter S3): spielt die
+//! Seite der Uhr eines Gesprächs aus `docs/watch_cases.json` gegen den
+//! Ablaufkern. Die Gespräche stehen erzeugt in GeneratedTalks.mc
+//! (`tool/watch_talks.py`); die Form in `gespraeche_form` der Falldatei.
+//! Schritt der Uhr: Handlung [act], dann muss die Nachricht unter dem
+//! stehen, was die Uhr seit dem letzten Treffer schickte. Schritt des
+//! Handys: Die Nachricht kommt an ([deliver]), außer sie ging verloren.
+(:test)
+module TestTalk {
+var _h as FakeHost?;
+var _c as WatchCore?;
+var _vars as Dictionary = {};
+var _np as Dictionary = {};
+var _cursor as Number = 0;
+var _where as String = "";
+
+function play(id as String, setup as Array<String>, steps as Array<Dictionary>) as Boolean {
+    TestRoutes.wipe();
+    TestRoutes.wipeRides();
+    _vars = {};
+    _np = {};
+    _cursor = 0;
+    _where = id;
+    var h = new FakeHost();
+    _h = h;
+    // Erst was vor dem Start im Speicher liegt, dann die Uhr.
+    if (inList(setup, "fahrt")) {
+        var log = new RideLog();
+        log.start();
+        TestRoutes.ride(log, 1700000000, 30, 5);
+        log.finish();
+    }
+    if (inList(setup, "ohne_route")) { h.fallbackDict = null; }
+    if (inList(setup, "geladen")) {
+        var c = new WatchCore(h);
+        c.start();
+        TestCore.run(c, h, 500);
+        Test.assertMessage(c.route.isReady() && c.wait == 0, id + ": die Testroute lud nicht");
+        h.link = true;
+        _c = c;
+    } else {
+        h.link = inList(setup, "handy");
+        _c = new WatchCore(h);
+    }
+    for (var i = 0; i < setup.size(); i++) {
+        var s = setup[i];
+        if (s.find("bad:") == 0) { Application.Storage.setValue("bad", value(s.substring(4, s.length()))); }
+    }
+    for (var n = 0; n < steps.size(); n++) {
+        _where = id + " Schritt " + (n + 1);
+        step(steps[n]);
+    }
+    TestCore.done();
+    return true;
+}
+
+function inList(a as Array<String>, s as String) as Boolean {
+    for (var i = 0; i < a.size(); i++) {
+        if (s.equals(a[i])) { return true; }
+    }
+    return false;
+}
+
+function step(s as Dictionary) as Void {
+    var h = _h as FakeHost;
+    var msg = s["msg"] as Dictionary?;
+    var wait = s["nach_ms"] instanceof Number ? s["nach_ms"] as Number : 0;
+    if ("uhr".equals(s["von"])) {
+        var before = h.sent.size();
+        if (s["tu"] != null) { act(s); }
+        if (msg != null) { expectSent(msg, s["gleich"] as Array?); }
+        run(wait);
+        if (s["still"] == true) { Test.assertMessage(h.sent.size() == before, _where + ": die Uhr sollte still sein"); }
+    } else {
+        if (msg != null && s["verloren"] != true && s["still"] != true) { deliver(msg); }
+        run(wait);
+    }
+    var dann = s["dann"] as Array?;
+    if (dann != null) {
+        for (var i = 0; i < dann.size(); i++) { check(dann[i] as String); }
+    }
+}
+
+//! Die Uhr um [ms] vorstellen, im Takt, den der Kern beim Wirt verlangt
+//! (50 ms beim Laden und Warten, 250 ms für eine Frist, sonst keiner) —
+//! wie auf der Uhr. Feste 250 ms ließen eine Route länger halb geladen.
+function run(ms as Number) as Void {
+    var h = _h as FakeHost;
+    var end = h.t + ms;
+    while (end - h.t > 0) {
+        var p = h.paceMs;
+        if (p <= 0) {
+            h.t = end;
+            return;
+        }
+        h.t += end - h.t < p ? end - h.t : p;
+        (_c as WatchCore).tick();
+    }
+}
+
+//! Eine Handlung an der Uhr (Kennungen aus `tool/watch_talks.py`).
+function act(s as Dictionary) as Void {
+    var h = _h as FakeHost;
+    var c = _c as WatchCore;
+    var tu = s["tu"] as String;
+    if ("start".equals(tu)) {
+        c.start();
+    } else if ("restart".equals(tu)) {
+        c.stop();
+        c = new WatchCore(h);
+        _c = c;
+        c.start();
+    } else if ("startKey".equals(tu)) {
+        c.startKey();
+    } else if ("back".equals(tu)) {
+        c.backKey();
+    } else if ("resume".equals(tu)) {
+        c.pauseChoice(:resume);
+    } else if ("save".equals(tu)) {
+        c.pauseChoice(:save);
+    } else if ("discard".equals(tu)) {
+        c.pauseChoice(:discard);
+    } else if ("discardYes".equals(tu)) {
+        c.discardRide();
+    } else if ("keep".equals(tu)) {
+        c.trailChoice(true);
+    } else if ("quit".equals(tu)) {
+        c.quit();
+    } else if ("fixes".equals(tu)) {
+        TestCore.fixes(c, h, s["fa"] as Number, s["fb"] as Number);
+    } else {
+        Test.assertMessage(false, _where + ": unbekannte Handlung " + tu);
+    }
+}
+
+//! `$name`: was eine Seite festlegte, ungebunden der Name selbst.
+function value(v as Object?) as Object? {
+    if (v instanceof String && v.find("$") == 0) {
+        var name = v.substring(1, v.length());
+        var bound = _vars[name];
+        return bound != null ? bound : name;
+    }
+    if (v instanceof Array) {
+        var out = [] as Array;
+        for (var i = 0; i < v.size(); i++) { out.add(value(v[i])); }
+        return out;
+    }
+    return v;
+}
+
+function same(a as Object?, b as Object?) as Boolean {
+    if (a == null || b == null) { return a == b; }
+    if (a instanceof String) { return a.equals(b); }
+    return a == b;
+}
+
+//! Passen die gebundenen Platzhalter von [want] zu [got]?
+function fits(want as Dictionary, got as Dictionary) as Boolean {
+    var keys = want.keys();
+    for (var i = 0; i < keys.size(); i++) {
+        var v = want[keys[i]];
+        if (v instanceof String && v.find("$") == 0) {
+            var bound = _vars[v.substring(1, v.length())];
+            if (bound != null && !same(bound, got[keys[i]])) { return false; }
+        }
+    }
+    return true;
+}
+
+//! Die Platzhalter von [want] an die Werte der gesendeten Nachricht binden
+//! (auch der erste einer Liste, `rq`).
+function bind(want as Dictionary, got as Dictionary) as Void {
+    var keys = want.keys();
+    for (var i = 0; i < keys.size(); i++) {
+        var v = want[keys[i]];
+        var g = got[keys[i]];
+        if (v instanceof Array && v.size() > 0 && g instanceof Array && g.size() > 0) {
+            v = v[0];
+            g = g[0];
+        }
+        if (v instanceof String && v.find("$") == 0 && g != null) {
+            var name = v.substring(1, v.length());
+            if (_vars[name] == null) { _vars[name] = g; }
+        }
+    }
+}
+
+//! Die Uhr muss [want] gesendet haben — gesucht ab dem letzten Treffer.
+function expectSent(want as Dictionary, gleich as Array?) as Void {
+    var h = _h as FakeHost;
+    var t = want["t"] as String;
+    for (var i = _cursor; i < h.sent.size(); i++) {
+        var got = h.sent[i];
+        if (!t.equals(got["t"]) || !fits(want, got)) { continue; }
+        var keys = want.keys();
+        for (var k = 0; k < keys.size(); k++) {
+            Test.assertMessage(got.hasKey(keys[k]), _where + ": `" + t + "` ohne Schlüssel `" + keys[k] + "`");
+        }
+        if (gleich != null) {
+            for (var k = 0; k < gleich.size(); k++) {
+                var key = gleich[k];
+                Test.assertMessage(same(got[key], want[key]), _where + ": `" + t + "." + key + "` ist " + got[key]);
+            }
+        }
+        bind(want, got);
+        _cursor = i + 1;
+        return;
+    }
+    var c = _c as WatchCore;
+    Test.assertMessage(false, _where + ": die Uhr sendete kein `" + t + "` " + want + " — gesendet: " + h.types()
+        + ", zuletzt " + h.last(t) + "; Kern: route " + c.route.id + " bereit " + c.route.isReady()
+        + " wait " + c.wait + " frei " + c.free + " zu " + c.closing);
+}
+
+//! Eine Nachricht des Handys kommt an. `r` heißt: die ganze Route in den
+//! Stücken, die das `n` davor ankündigte (sonst zwei); die übrigen
+//! Schlüssel des Schritts (`v`) gelten für jedes Stück.
+function deliver(want as Dictionary) as Void {
+    var c = _c as WatchCore;
+    var m = {} as Dictionary;
+    var keys = want.keys();
+    for (var i = 0; i < keys.size(); i++) { m[keys[i]] = value(want[keys[i]]); }
+    bind(want, m);
+    var t = m["t"] as String;
+    if ("n".equals(t) && m["id"] != null) { _np[m["id"]] = m["np"]; }
+    if (!"r".equals(t)) {
+        c.handle(m);
+        return;
+    }
+    var id = m["id"] as String;
+    var np = _np[id] instanceof Number && (_np[id] as Number) > 0 ? _np[id] as Number : 2;
+    var parts = TestRoutes.parts(TestRoutes.v2(id, false, [0, 0, 0, 300, 0, 300, 0, 300], null, null, null), (4 + np - 1) / np);
+    for (var p = 0; p < parts.size(); p++) {
+        var part = parts[p];
+        for (var i = 0; i < keys.size(); i++) {
+            var k = keys[i];
+            if (!"t".equals(k) && !"id".equals(k)) { part[k] = m[k]; }
+        }
+        c.handle(part);
+    }
+}
+
+//! Ein Stand der Uhr (`gespraeche_form.staende_uhr`).
+function check(st as String) as Void {
+    var c = _c as WatchCore;
+    var ok;
+    if (st.find("route:") == 0) {
+        var id = value(st.substring(6, st.length()));
+        ok = same(c.route.id, id);
+        st += " (ist " + c.route.id + ")";
+    } else if ("wartet".equals(st)) {
+        ok = c.wait == WatchCore.WAIT_ANSWER;
+    } else if ("route_kommt".equals(st)) {
+        ok = c.wait == WatchCore.WAIT_ROUTE;
+    } else if ("frei".equals(st)) {
+        ok = c.free;
+    } else if ("fragt".equals(st)) {
+        ok = c.ui.asking();
+    } else if ("nimmt_auf".equals(st)) {
+        ok = c.log.state() == RideLog.RECORDING;
+    } else if ("pause".equals(st)) {
+        ok = c.log.state() == RideLog.PAUSED;
+    } else if ("zu".equals(st)) {
+        ok = c.closing;
+    } else if ("keine_fahrt".equals(st)) {
+        ok = RideLog.queue().size() == 0;
+    } else if ("fahrt_wartet".equals(st)) {
+        ok = RideLog.queue().size() > 0;
+    } else if ("bestwerte".equals(st)) {
+        ok = c.stats.bests != null;
+    } else {
+        ok = false;
+        st = "unbekannt: " + st;
+    }
+    Test.assertMessage(ok, _where + ": Stand der Uhr " + st);
+}
+}

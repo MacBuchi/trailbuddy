@@ -51,6 +51,8 @@ run_cases() {
   local online=""
   command -v gh > /dev/null 2>&1 && online="--online"
   python3 tool/watch_scenarios_check.py $online || return 1
+  # Die Seite der Uhr des Gesprächskatalogs (#509) ist erzeugt.
+  python3 tool/watch_talks.py --check || return 1
   say "--- Dart-Tests der Uhr (S0) ---"
   flutter test test/garmin
 }

@@ -17,14 +17,15 @@ void main() {
 
     // Konstanten stehen je nach Modul (PhoneRoute, RideLog, NavView …) —
     // geprüft wird deshalb über alle Quellen der Uhr. Die Unit-Tests liegen
-    // in `Tests.mc` und `CoreTests.mc` (der Ablaufkern, #508).
+    // in `Tests.mc`, `CoreTests.mc` (der Ablaufkern, #508) und — erzeugt aus
+    // dem Gesprächskatalog — `GeneratedTalks.mc` (#509).
     final uhrFiles = await Directory('garmin/source')
         .list(recursive: true)
         .where((e) => e is File && e.path.endsWith('.mc'))
         .toList();
     final uhrCode = uhrFiles.map((e) => File(e.path).readAsStringSync()).join('\n');
     final mc = uhrFiles
-        .where((e) => e.path.endsWith('Tests.mc'))
+        .where((e) => e.path.endsWith('Tests.mc') || e.path.endsWith('GeneratedTalks.mc'))
         .map((e) => File(e.path).readAsStringSync())
         .join('\n');
     expect(mc, contains('function coreStartBeginsRecording('), reason: 'CoreTests.mc nicht gelesen');
