@@ -37,7 +37,9 @@ const _linkWait = Duration(seconds: int.fromEnvironment('LINK_WAIT', defaultValu
 const _breakOk = bool.fromEnvironment('BREAK_OK');
 
 /// Eine erfundene Linie im Zickzack (sonst vereinfacht `watchRouteOf` sie
-/// auf zwei Punkte), [n] Punkte, je rund 25 m.
+/// auf zwei Punkte), [n] Punkte, je rund 25 m. Höchstens
+/// [kWatchMaxPoints]: Mit mehr verdoppelt `watchRouteOf` die Toleranz, das
+/// Zickzack fällt in sich zusammen, und die Route geht als EIN Stück.
 List<LatLng> _line(int seed, int n) => [
       for (var i = 0; i < n; i++)
         LatLng(0.001 * seed + 0.0002 * i, 0.0001 * i + (i.isEven ? 0.0001 : 0)),
@@ -138,7 +140,7 @@ void main() {
         WatchRoute? last;
         final times = <int>[];
         for (var r = 1; r <= _rounds; r++) {
-          final wr = watchRouteOf(_line(r, 1200), NavSections.none)!;
+          final wr = watchRouteOf(_line(r, kWatchMaxPoints), NavSections.none)!;
           final t0 = DateTime.now();
           await step('Route in Stücken → ok ($r/$_rounds, ${wr.parts().length} Stücke)', () => route(wr));
           times.add(DateTime.now().difference(t0).inMilliseconds);
@@ -161,7 +163,7 @@ void main() {
         await step('Aufzeichnung läuft', () => stateUntil((s) => s['rec'] == 1));
 
         // Fixe entlang der Linie, damit die Fahrt Punkte hat.
-        final pts = _line(_rounds, 1200);
+        final pts = _line(_rounds, kWatchMaxPoints);
         Map<String, Object> fixes(int from, int to) => {
               't': '_f',
               'la': [for (var i = from; i < to; i++) (pts[i].latitude * 1e5).round()],

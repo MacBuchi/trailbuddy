@@ -40,11 +40,12 @@ module PhoneRoute {
     //! Fassung des Protokolls (`kWatchProtocol` in Dart; ein Test der App
     //! liest diese Zeile).
     const PROTOCOL = 2;
-    //! Mehr Stücke nimmt die Uhr nicht an (2000 Punkte gepackt in Stücken
-    //! zu 800 Zahlen: 4; Luft für kleinere Stücke).
+    //! Mehr Stücke nimmt die Uhr nicht an (800 Punkte gepackt in Stücken
+    //! zu 800 Zahlen: 2; Luft für kleinere Stücke).
     const MAX_PARTS = 30;
-    //! Mehr Punkte nimmt die Uhr nicht an (die App schickt höchstens 2000;
-    //! Messung 8.1).
+    //! Mehr Punkte nimmt die Uhr nicht an (die App schickt höchstens 800,
+    //! `kWatchMaxPoints`; schon 1750 passen nicht in den Speicher — die
+    //! Grenze hier ist nur ein Riegel gegen Unsinn).
     const MAX_POINTS = 4000;
     //! So viele Zahlen je Stück höchstens: Je Wert nimmt der Speicher
     //! 8 KB, eine Zahl sind ~5 Byte (Handy: 800).

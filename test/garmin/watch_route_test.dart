@@ -1,6 +1,6 @@
 // Die Nachrichten an die Uhr (#449 G2, docs/konzept-garmin.md 2): dieselbe
 // Form wie `tool/garmin_route.py` und `garmin/source/NavRoute.mc`, Stücke,
-// die sich wieder zusammensetzen, höchstens 2000 Punkte, die Trails als
+// die sich wieder zusammensetzen, höchstens kWatchMaxPoints Punkte, die Trails als
 // Abschnitte, die Bestwerte der Erkennung.
 import 'dart:io';
 import 'dart:math' as math;
@@ -122,7 +122,14 @@ void main() {
     expect(ints, lessThanOrEqualTo(route.pointCount * 3 ~/ 2 + parts.length));
   });
 
-  test('mehr als 2000 Punkte: stärker vereinfacht, bis es passt', () {
+  test('die Grenze ist gemessen: 800 Punkte, nicht mehr', () {
+    // 2000 stürzte beim Laden ab, über 800 lehnt die Uhr den Wechsel
+    // während der Fahrt ab (Kettenstand, `CHAIN_BIG=N`). Wer sie hebt,
+    // misst vorher dort neu.
+    expect(kWatchMaxPoints, lessThanOrEqualTo(800));
+  });
+
+  test('mehr als kWatchMaxPoints: stärker vereinfacht, bis es passt', () {
     // Zickzack mit 8 m Ausschlag: Bei 5 m bliebe jeder Punkt.
     final line = [for (var i = 0; i < 5000; i++) LatLng(i * 0.0001, i.isEven ? 0 : 0.0001)];
     final route = watchRouteOf(line, NavSections.none)!;

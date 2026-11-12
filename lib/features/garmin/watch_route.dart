@@ -37,9 +37,11 @@ const kWatchProtocol = 2;
 /// in der Länge bei 47° gut 240 m. Längere Abschnitte teilt [watchRouteOf].
 const kWatchMaxDelta = 32767;
 
-/// Mehr Punkte trägt die fēnix 5 nicht (Messung 8.1 im Simulator: 2000
-/// Punkte 76 KB von 124 KB, ab 3000 „Out of Memory" schon beim Laden).
-const kWatchMaxPoints = 2000;
+/// So viele Punkte trägt die fēnix 5 mit Reserve (Kettenstand 2026-11-13,
+/// `garmin/CLAUDE.md`): 2000 und 1750 enden beim Laden in „Out of Memory",
+/// 1500 lädt noch, aber erst bei 800 nimmt die Uhr während der Fahrt eine
+/// zweite gleich große Route an (darüber `x` mem) — Spitze 102 von 124 KB.
+const kWatchMaxPoints = 800;
 
 /// Startwert der Vereinfachung (Konzept 2); passt es nicht, verdoppelt.
 const kWatchSimplifyM = 5.0;

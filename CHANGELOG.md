@@ -2,6 +2,17 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Lange Routen stürzen die Uhr nicht mehr ab
+
+*Version 0.169.1, 2026-11-13*
+
+- **Höchstens 800 Punkte auf die Uhr:** Eine sehr lange oder sehr
+  verwinkelte Route konnte die Uhr-App beim Laden zum Absturz bringen —
+  der Prüfstand zeigte es ab 1750 Punkten. Die App vereinfacht eine Route
+  für die Uhr jetzt auf höchstens 800 Punkte. Damit bleibt genug Platz,
+  dass die Uhr auch unterwegs eine neue Route annimmt. Die Linie auf der
+  Uhr wird bei langen Routen etwas gröber, Kurven bleiben erhalten.
+
 ## Die Uhr-App prüft ihre Abläufe selbst
 
 *Versionen 0.168.1–0.168.3, 2026-11-11 bis 2026-11-12*
