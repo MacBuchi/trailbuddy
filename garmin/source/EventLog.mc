@@ -31,8 +31,9 @@ import Toybox.Lang;
 //!                  2 abseits, 3 frei (ohne Route)
 //!  10 Frist        0 zu, 1 Wechsel, 2 ruhige Minute, 3 Warten vorbei
 //!
-//! Geschrieben nach `Application.Storage` („ev"), wenn die App zugeht und
-//! höchstens alle 5 min — ein Absturz („IQ!") behält den Stand bis dahin.
+//! Geschrieben nach `Application.Storage` („ev"), wenn die App zugeht, bei
+//! Start, Taste und Menüpunkt und sonst höchstens alle 5 min — ein Absturz
+//! („IQ!") behält den Stand bis dahin.
 //! Stand „evr" beim Start noch, ging die App nicht sauber zu: Der alte Ring
 //! wird „evc" und reist mit dem nächsten „hallo" (`ev`). Eine Fahrt nimmt
 //! beim Speichern den Ring mit („ev_<id>", [keepFor]) und schickt ihn in
@@ -73,14 +74,17 @@ module EventLog {
     }
 
     //! Ein Ereignis mit [code] (`Art << 3 | Detail`) in den Ring; der
-    //! älteste fällt heraus. Alle 5 min in den Speicher.
+    //! älteste fällt heraus. In den Speicher bei Start, Taste und Menüpunkt
+    //! (Art 0–2: selten, und genau dort stürzt ein Ablauf ab — nur alle
+    //! 5 min hätte ein Absturz in den ersten Minuten nichts hinterlassen,
+    //! Kettenstand 2026-11-12), sonst höchstens alle 5 min.
     function rec(code as Number, now as Number) as Void {
         var sec = (now - _t0) / 1000;
         _ring[_head] = (code << 24) | (sec > 0 ? sec & 0xFFFFFF : 0);
         _head = (_head + 1) % SIZE;
         if (_n < SIZE) { _n++; }
         total++;
-        if (now - _savedAt >= 300000) { save(now); }
+        if (code < 24 || now - _savedAt >= 300000) { save(now); }
     }
 
     //! Der Code einer Nachricht nach ihrer Art `t`: vom Handy ab 24 (Art

@@ -14,11 +14,18 @@
 //
 // Jede Zeile `BENCH step <Name> OK|FEHLT` liest das Skript. Die Routen
 // sind erfunden und liegen am Äquator (A7).
+//
+// Das Uhr-Protokoll (#510): Die Fahrt muss ihren Ring (`ev`) heil über die
+// Brücke bringen; danach startet die Uhr-App neu (Zeile `BENCH relaunch`,
+// das Skript startet `monkeydo` noch einmal) — nach einem sauberen Ende
+// ohne Ring im „hallo", nach einem echten Absturz (`_z`) mit, und nach
+// einer Antwort des Handys wieder ohne.
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:trailbuddy/features/garmin/garmin_bridge_io.dart';
+import 'package:trailbuddy/features/garmin/watch_events.dart';
 import 'package:trailbuddy/features/garmin/watch_ride.dart';
 import 'package:trailbuddy/features/garmin/watch_route.dart';
 import 'package:trailbuddy/features/routing/nav_sections.dart';
@@ -109,6 +116,25 @@ void main() {
         return null;
       }
 
+      /// Die Uhr-App neu starten lassen (das Skript sieht die Zeile) und
+      /// auf ihr „hallo" warten.
+      Future<Map<Object?, Object?>?> relaunched() async {
+        inbox.clear();
+        debugPrint('BENCH relaunch');
+        // Der Simulator startet ganz neu (gut 25 s) und verbindet sich wieder.
+        final end = DateTime.now().add(_linkWait * 3);
+        while (DateTime.now().isBefore(end)) {
+          final hi = await waitFor((m) => m['t'] == 'hi', const Duration(seconds: 3));
+          if (hi != null) return hi;
+          await bridge.status();
+          await send({'t': 'q'});
+        }
+        return null;
+      }
+
+      bool hasEvent(List<int> ev, int kind, int detail) =>
+          ev.any((v) => unpackWatchEvent(v).kind == kind && unpackWatchEvent(v).detail == detail);
+
       /// Eine Route in Stücken an die Uhr; true, wenn sie `ok` sagt.
       Future<bool> route(WatchRoute r) async {
         final sent = await bridge.send(r.parts());
@@ -179,15 +205,17 @@ void main() {
         await step('Menü der Pause', () => stateUntil((s) => s['menu'] == 'pause' && s['rec'] == 2));
         await send({'t': '_k', 'k': 'resume'});
         await step('Weiter → rr', () => waitFor((m) => m['t'] == kWatchRecordResume));
-        await send(fixes(20, 40));
+        // Weit über RideLog.MIN_POINTS (24): Mit 40 Fixen kamen mal 24, mal
+        // 23 Punkte an, und die Uhr verwarf die Fahrt als zu kurz (#510).
+        await send(fixes(20, 60));
         await step('Fixe verarbeitet', () => stateUntil((s) => s['fx'] == 0));
 
         // Abkommen: weit neben der Linie meldet die Uhr ihren Stand (`d`).
         inbox.clear();
         await send({
           't': '_f',
-          'la': [(pts[40].latitude * 1e5).round() + 5000],
-          'lo': [(pts[40].longitude * 1e5).round()],
+          'la': [(pts[60].latitude * 1e5).round() + 5000],
+          'lo': [(pts[60].longitude * 1e5).round()],
           'dt': 5,
           'sp': 6,
         });
@@ -209,6 +237,7 @@ void main() {
         await step('Pause vor dem Speichern', () => stateUntil((s) => s['menu'] == 'pause'));
         await send({'t': '_k', 'k': 'save'});
         await step('Speichern → re', () => waitFor((m) => m['t'] == kWatchRecordEnd && m['k'] == true));
+        List<int>? rideEvents;
         final ride = await step('Fahrt hinüber', () async {
           final parts = <int, List<List<int>>>{};
           String? id;
@@ -219,6 +248,7 @@ void main() {
             if (part == null) continue;
             id = part.id;
             parts[part.p] = part.chunks;
+            if (part.p == 0) rideEvents = watchEventsOf(m!['ev']);
             if (parts.length == part.n) {
               final points = decodeWatchRide([for (var p = 0; p < part.n; p++) ...parts[p]!]);
               return points == null ? null : (id: id, points: points.length);
@@ -227,11 +257,50 @@ void main() {
           return null;
         });
         debugPrint('BENCH Fahrt ${ride.points} Punkte');
+        // #510: Der Ring kam mit, heil über Kotlin und das SDK — mit START
+        // am Anfang und „Speichern" am Ende.
+        final ev = await step('Protokoll mit der Fahrt', () async {
+          final ev = rideEvents;
+          if (ev == null) return null;
+          final last = unpackWatchEvent(ev.last);
+          debugPrint('BENCH Protokoll ${ev.length} Ereignisse, zuletzt ${last.kind}.${last.detail}');
+          return hasEvent(ev, 1, 0) && hasEvent(ev, 2, 1) && hasEvent(ev, 9, 1) ? ev : null;
+        });
+        debugPrint('BENCH Protokoll ${encodeWatchEvents(ev).length} Zeichen im Feedback');
+        // Der nächste Start behält den Speicher (sonst wischt der Bench-Bau).
+        await send({'t': '_r'});
         await send(watchRideAckOf(ride.id));
         // Die Uhr löscht sie mit `wk` und geht zu: kein neues `w` mehr.
         await step('wk angenommen', () async {
           final again = await waitFor((m) => m['t'] == kWatchRide, const Duration(seconds: 8));
           return again == null;
+        });
+        // Sauber zu: Beim nächsten Start kein Absturz-Ring.
+        final clean = await step('Neustart nach sauberem Ende', relaunched);
+        await step('hallo ohne Protokoll', () async => clean['ev'] == null);
+
+        // Ein echter Absturz nach START (gespeichert wird bei jeder Taste).
+        await send({'t': '_t', 'ms': 9000});
+        await step('Route nach Neustart', () => stateUntil((s) => s['ready'] == true && s['wait'] == 0));
+        inbox.clear();
+        await send({'t': '_k', 'k': 'start'});
+        await step('START → rs (vor dem Absturz)', () => waitFor((m) => m['t'] == kWatchRecordStart));
+        await send({'t': '_z'});
+        final crashed = await step('Neustart nach Absturz', relaunched);
+        await step('hallo mit Protokoll', () async {
+          final ev = watchEventsOf(crashed['ev']);
+          if (ev == null) return null;
+          debugPrint('BENCH Absturz-Protokoll ${ev.length} Ereignisse');
+          return hasEvent(ev, 1, 0) ? ev : null;
+        });
+        // Das Handy antwortet (die Route ist aktuell): Der Ring ist angekommen.
+        await send({'t': 'k'});
+        await Future<void>.delayed(const Duration(seconds: 2));
+        inbox.clear();
+        await send({'t': 'q'});
+        await step('nach der Antwort ohne Protokoll', () async {
+          final hi = await waitFor((m) => m['t'] == 'hi');
+          return hi != null && hi['ev'] == null;
         });
         debugPrint('BENCH result grün');
       } on _StepFailed catch (e) {

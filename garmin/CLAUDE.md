@@ -412,3 +412,20 @@ Abbiegehinweise.
   `eventsRingHolds120`, `eventsFixOnlyOnChange`,
   `eventsReplayPauseDiscardNo` rot. **In einem `module` gibt es kein
   `hidden`** (Bau bricht mit „extraneous input 'hidden'").
+  **Gespeichert wird bei Start, Taste und Menüpunkt** (`code < 24`), sonst
+  alle 5 min: Nur alle 5 min hätte ein Absturz in den ersten Minuten
+  nichts hinterlassen (der Kettenstand fand es). Gegenprobe: ohne die
+  Bedingung ist `eventsCrashRingInHello` rot.
+- **Der Kettenstand prüft das Protokoll** (#510, `tool/garmin_bench.sh
+  chain`): `ev` an der Fahrt heil über Kotlin und SDK, Neustart nach
+  sauberem Ende ohne, echter Absturz (`_z`: Index außerhalb) mit Ring im
+  „hallo", nach `k` wieder ohne. Ein Neustart der Uhr-App ist ein
+  **Neustart des ganzen Simulators** samt „adb Connection → Start" (Zeile
+  `BENCH relaunch`, das Skript sieht sie) — ein zweites `monkeydo` im
+  laufenden Simulator schreibt nichts und lädt nichts. Der Speicher der
+  App bleibt dabei, wenn der Treiber vorher `_r` (oder `_z`) schickt:
+  Merker `benchKeep` mit Zeit, gilt 2 min — ein alter aus einem
+  abgebrochenen Lauf ließ sonst den nächsten mit altem Speicher beginnen.
+  **Fixe mit Abstand zu `RideLog.MIN_POINTS`**: Mit 40 Fixen kamen mal 24,
+  mal 23 Punkte an, und die Uhr verwarf die Fahrt still als zu kurz
+  (zweimal „Fahrt hinüber FEHLT" ohne Fehler im Log); jetzt 60.

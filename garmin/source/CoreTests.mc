@@ -1048,6 +1048,10 @@ function eventsTravelWithRide(logger as Logger) as Boolean {
     Test.assert(m["ev"] instanceof Array);
     var ev = m["ev"] as Array<Number>;
     Test.assertEqual(TestReplay.kind(ev[0]), 0);
+    // Garmin Connect nimmt das Ende ab: Die Fahrt geht hinüber, mit Ring.
+    c.endAcked(true);
+    var w = h.last("w");
+    Test.assert(w != null && (w as Dictionary)["ev"] instanceof Array);
     // Zuletzt „Speichern" und „geht zu".
     Test.assert(TestReplay.shape(ev).find("2.1,8.5") != null);
     c.handle({"t" => "wk", "id" => id});
@@ -1064,8 +1068,7 @@ function eventsCrashRingInHello(logger as Logger) as Boolean {
     var h = new FakeHost();
     var c = TestCore.loaded(h);
     c.startKey();
-    // Kein stop(): die App „stürzt ab".
-    EventLog.save(h.t);
+    // Kein stop(): die App „stürzt ab". Gespeichert hat schon die Taste.
     var h2 = new FakeHost();
     h2.link = true;
     var c2 = new WatchCore(h2);

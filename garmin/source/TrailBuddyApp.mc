@@ -280,6 +280,11 @@ class TrailBuddyApp extends Application.AppBase {
     //   `{t: "_x", drop}`     Nachrichten dieser Art nicht senden (der
     //                         gewollte Bruch: „die Uhr antwortet nie ok")
     //   `{t: "_s"}`           nur den Stand melden
+    //   `{t: "_r"}`           der nächste Start (binnen 2 min) behält den
+    //                         Speicher (der Treiber startet neu, #510)
+    //   `{t: "_z"}`           ein echter Absturz (Index außerhalb, „IQ!"),
+    //                         ohne onStop; der nächste Start behält den
+    //                         Speicher — der Absturz-Ring kommt im „hallo"
     //
     // Antwort auf jedes Ereignis: `{t: "_s", rec, wait, free, ready, id,
     // ask, closing, q, menu, fx, pend?}` — `fx` Fixe, die noch anstehen;
@@ -302,6 +307,14 @@ class TrailBuddyApp extends Application.AppBase {
     //! zurück, START hieß dann Pause (2026-11-11). Jeder Lauf beginnt leer.
     (:bench)
     function benchWipe() as Void {
+        // Nur ein frischer Merker (2 min): Einer aus einem abgebrochenen
+        // Lauf ließ sonst den nächsten Lauf mit altem Speicher beginnen.
+        var keep = Application.Storage.getValue("benchKeep");
+        Application.Storage.deleteValue("benchKeep");
+        if (keep instanceof Number && Time.now().value() - keep < 120) {
+            System.println("bench keep");
+            return;
+        }
         Application.Storage.clearValues();
         System.println("bench wipe");
     }
@@ -361,6 +374,13 @@ class TrailBuddyApp extends Application.AppBase {
         } else if ("_x".equals(t)) {
             var x = d["drop"];
             _drop = x instanceof String ? x : null;
+        } else if ("_r".equals(t) || "_z".equals(t)) {
+            Application.Storage.setValue("benchKeep", Time.now().value());
+            if ("_z".equals(t)) {
+                System.println("bench crash");
+                var a = [] as Array<Number>;
+                a[d.size()] = 0;
+            }
         }
         benchState();
     }
@@ -384,6 +404,7 @@ class TrailBuddyApp extends Application.AppBase {
             if ("quit".equals(m)) { c.quit(); } else if ("discard".equals(m)) { c.discardRide(); }
         } else if ("no".equals(k)) {
             _benchMenu = "";
+            c.confirmNo();
         } else if ("menu".equals(k)) {
             c.menuKey();
         } else if ("zoom".equals(k) || "end_route".equals(k)) {
