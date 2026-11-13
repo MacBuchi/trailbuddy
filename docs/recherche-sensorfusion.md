@@ -581,13 +581,31 @@ sind, zeigt erst eine Fahrt mit Antworten — ohne das Handy
 herauszuholen: angesagte Sprünge zählen, oder die Antwort auf der Uhr
 (#514 zeigt das Zeichen, START = ja seit #513).
 
+**Auf dem Trail?** (Konzept §2, Bedingung 3: beide Fixe ≤ 20 m vom
+Trail — die App prüft das, das Werkzeug mangels Trails bisher nicht.)
+Abgeglichen gegen 584 Trails als GPX (Stand 2026-09-27, lokal):
+
+- Alle „War keiner" vom 2026-11-07 liegen über 100 m von jedem Trail,
+  darunter zwei Gruppen von drei bis vier Flügen in wenigen Sekunden in
+  der Ebene — Bordsteine, Schwellen oder Treppenstufen (Betreiber).
+- Die harten Landungen (≥ 3,5 g) aus der Tasche liegen fast alle auf
+  einem Trail: 3 von 3 und 11 von 12.
+- Keine Regel reicht allein: „auf dem Trail" ließe weiche Flüge beim
+  Treten bergauf auf dem Trail durch (1,8–2,5 g), die Landung allein
+  einen Flug abseits. Beide zusammen lassen 3 bzw. 11 übrig.
+- Die GPX-Linien sind grob: Von den sechs bestätigten Sprüngen am
+  Lenker liegen nur drei innerhalb von 20 m, die übrigen 28–41 m daneben,
+  und nur 13–58 % der Fahrten lagen überhaupt an einem dieser Trails.
+  Die 20 m gehören gegen die Trails der App geprüft, nicht gegen diese
+  Sammlung.
+
 **Folgerungen für den Bau** (nach #517, das „am Rad / in der Tasche"
 fragt; die Erkennung sichert die Angabe ab):
 
 1. In der Tasche — angegeben oder erkannt — keine Wheelies und
    Stoppies, und die Halterung wird nicht gespeichert.
-2. Sprünge in der Tasche nur mit Landung ab 3,5 g (vorläufig, bis eine
-   beantwortete Taschen-Fahrt da ist).
+2. Sprünge in der Tasche nur mit Landung ab 3,5 g UND auf dem Trail
+   (vorläufig, bis eine beantwortete Taschen-Fahrt da ist).
 3. Steht „am Rad" und die Erkennung sagt „Tasche", gilt die Erkennung
    für diese Fahrt; umgekehrt nicht — eine ruhige Tasche auf langer
    Abfahrt sieht aus wie ein Lenker.
