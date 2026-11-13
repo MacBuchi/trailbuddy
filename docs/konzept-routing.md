@@ -1833,37 +1833,67 @@ Es fehlt die Stufe davor.
 3. **Bearbeitet wird am Vorschlag** — die heutige Leiste ist die zweite
    Stufe, nicht der Einstieg.
 
-Kein Assistent mit mehreren Schritten (Betreiber, 2026-11-13: ein Blatt):
-Das Stufen-Blatt wurde mit 0.74.0 abgeschafft, weil es die Karte
-verdeckte (4). Der Einstieg ist EIN kleines Blatt, kein Modal; sobald
-gerechnet wird, ist es weg.
+Geführt, aber ohne Schirm für Schirm (Betreiber, 2026-11-13: ein Blatt,
+die Fragen als Folge darin): Das Stufen-Blatt wurde mit 0.74.0
+abgeschafft, weil es die Karte verdeckte (4). Der Einstieg ist EIN
+kleines Blatt, kein Modal; sobald gerechnet wird, ist es weg.
 
-### 12.3 Der Einstieg: „Was hast du vor?"
+### 12.3 Der Einstieg: geführt, in einem Blatt
+
+*Betreiber, 2026-11-13, zum ersten Entwurf („Runde von hier"): „Warum
+von hier? Das wäre ja ein folgender Schritt in der Führung je nach
+Auswahl, von hier bzw. aktueller Standort oder auf Karte wählen. Und bei
+Start/Ziel-Streckenplanung dasselbe."*
 
 Der Planer-Knopf öffnet ein Blatt (Persistent Bottom Sheet wie das
-Ergebnis, `map_panel.dart`) mit zwei großen Kacheln und einer Zeile:
+Ergebnis, `map_panel.dart`). Es fragt von oben nach unten; jede Antwort
+klappt die nächste Zeile auf, und jede Zeile ist vorbelegt — wer mit der
+Vorgabe einverstanden ist, tippt nur den Knopf.
 
-| Wahl | Was folgt | Tipps bis zum Vorschlag |
+```
+Was hast du vor?     [ Runde ]   [ Route ]  
+
+Runde                               Route  
+Start   (•) Mein Standort           Start   (•) Mein Standort
+        ( ) Auf der Karte wählen            ( ) Auf der Karte wählen
+Zeit    [ − ]  etwa 3 h  [ + ]      Ziel    ( ) Mein Standort
+                                            (•) Auf der Karte wählen
+[ Runde vorschlagen ]               [ Route rechnen ]
+```
+
+| Absicht | Fragen danach | Tipps mit Vorgaben |
 |---|---|---|
-| **Runde von hier** | im selben Blatt: die Zeit (12.5), darunter eine Zeile „ab Standort · Bio" (antippbar), dann **„Runde vorschlagen"** | 3 |
-| **Zu einem Ziel** | das Blatt klappt auf den Kopf ein: „Tippe auf einen Trail, einen Ort oder eine Stelle" — der Tipp rechnet sofort | 3 |
-| *Selbst zusammenstellen* (Textzeile) | die Bearbeitungsansicht (12.7), leer wie heute | — |
+| **Runde** | Start (Standort · Karte), Zeit (12.5) | Planer → Runde → „Runde vorschlagen": 3 |
+| **Route** (von A nach B) | Start (Standort · Karte), Ziel (Standort · Karte) | Planer → Route → Tipp auf die Karte: 3 — mit gesetztem Ziel rechnet es sofort |
 
-- Die zuletzt gewählte Kachel steht aufgeklappt vorn; wer immer Runden
-  fährt, tippt Planer → „Runde vorschlagen".
-- **„Zu einem Ziel"** ist `beginRoute` (10.3): derselbe Weg wie „Zum
-  Trailkopf", nur vom Planer-Knopf aus auffindbar. Ein Tipp auf einen
-  Trail nimmt dessen Kopf, auf einen Ort dessen Lage, sonst die Stelle.
-  Der Stil (Direkt · Bequem · Spaßig) bleibt im Ergebnis und rechnet
-  dort sofort um (10.2).
-- **Leere Fälle sagt das Blatt selbst**, mit dem nächsten Schritt: kein
-  Standort ⇒ „Start auf der Karte tippen"; keine Trails im Umkreis ⇒
-  ein Satz und „Zu einem Ziel"; kein Bereich ⇒ der Satz mit dem
-  Ebenen-Knopf (4).
-- Alle Einstiege aus 10.3, die mit einem fertigen Auftrag kommen (Trail-
-  Blatt, Navi-Symbol, langer Druck, Ort-Blatt), überspringen das Blatt
-  wie bisher.
-- Zurück am Einstiegsblatt schließt den Planer (eine Stufe, 10.5).
+- **„Auf der Karte wählen"** klappt das Blatt auf den Kopf ein, oben
+  steht „Tippe auf einen Trail, einen Ort oder eine Stelle" mit
+  Abbrechen; der Tipp setzt die Fahne, das Blatt kommt wieder (bei der
+  Route mit beidem gesetzt gleich das Ergebnis). Ein Tipp auf einen
+  Trail nimmt dessen Kopf, auf einen Ort dessen Lage — wie heute
+  (`takePick`, `takePlace`).
+- **Ziel „Mein Standort"** ist der Weg zurück zu sich (vom Parkplatz,
+  vom Trailende): Der Start springt dann auf „Auf der Karte wählen" —
+  beides am Standort wäre eine Runde.
+- **Die letzte Absicht steht aufgeklappt vorn**, die Zeit ist die
+  letzte; wer immer Runden fährt, tippt Planer → „Runde vorschlagen".
+- **„Selbst zusammenstellen"** als Textzeile unten: die
+  Bearbeitungsansicht (12.7), leer wie heute.
+- **Die Route** ist `beginRoute` (10.3): derselbe Weg wie „Zum
+  Trailkopf", nur vom Planer-Knopf aus auffindbar. Der Stil (Direkt ·
+  Bequem · Spaßig) bleibt im Ergebnis und rechnet dort sofort um (10.2).
+- **Leere Fälle sagt das Blatt selbst**: kein Standort ⇒ „Mein
+  Standort" ist grau mit dem Grund, „Auf der Karte wählen" ist
+  vorgewählt; keine Trails im Umkreis ⇒ ein Satz und „Route"; kein
+  Bereich ⇒ der Satz mit dem Ebenen-Knopf (4).
+- Alle Einstiege aus 10.3 mit fertigem Auftrag (Trail-Blatt,
+  Navi-Symbol, langer Druck, Ort-Blatt) überspringen das Blatt wie
+  bisher. Zurück am Einstiegsblatt schließt den Planer (10.5).
+- **Später: gemerkte Startpunkte** (#543, eigenes Thema; Betreiber:
+  „favorisierte Startpunkte (Parkplätze) anlegen/auswählen, die ebenso
+  geteilt werden können mit Buddys … vereinfacht das Von-wo"). Die Zeile
+  „Start" bekommt dann eine dritte Wahl; das Blatt ist dafür gebaut,
+  mehr nicht.
 
 ### 12.4 Die vorgeschlagene Runde
 
@@ -1907,7 +1937,10 @@ die Regel aus 4 („ab Werk ist nichts gewählt"): Sie gilt nur noch für
 
 *Betreiber, 2026-11-13: „Genaue Zeit ist hier der Parameter. Sollte aber
 als Orientierung dienen und keine Obergrenze sein, dass bei einer Minute
-Überschreitung z. B. ein Trail weggelassen wird. Wäre schade."*
+Überschreitung z. B. ein Trail weggelassen wird. Wäre schade." — und zur
+Toleranz: „bis eine halbe Stunde … Einfache Rechnung: Wenn in der halben
+Stunde das Trail-zu-Strecken-Verhältnis ein Optimum findet, wäre das der
+Vorschlagswert?"*
 
 - **Eingabe**: die Zeit in Schritten von 30 min, 1–6 h (2.3), mit
   großen Tasten − / + und der Zahl in der Mitte (A13: kein Regler, den
@@ -1915,25 +1948,93 @@ als Orientierung dienen und keine Obergrenze sein, dass bei einer Minute
 - **Heute** rechnet der Planer hart gegen 90 % der Zeit
   (`kLoopTimeReserve`, 2.3) — eine Runde von 2 h 43 bei 3 h ist voll,
   und ein Trail, der sie auf 2 h 44 brächte, fällt weg.
-- **Künftig ist die Zeit das Ziel**: Die Reserve entfällt als Abzug; der
-  Planer füllt bis zur Zeit und darf sie um eine **Toleranz**
-  überschreiten, wenn dafür ein Trail mitkommt — Vorschlag 10 %,
-  mindestens 10 min (3 h ⇒ bis 3 h 18). Unter zwei Runden gleicher
-  Trail-Meter gewinnt weiter die kürzere.
+- **Künftig ein Fenster um die Zeit, und darin gewinnt der Trail-
+  Anteil** (`kLoopTimeWindow`, 30 min): Der Planer baut die Runde wie
+  bisher Trail für Trail auf, jetzt bis zur Zeit PLUS 30 min, und merkt
+  sich jeden Stand, dessen Schätzung zwischen Zeit − 30 min und Zeit
+  + 30 min liegt. **Der Vorschlag ist der Stand mit dem besten
+  Verhältnis von Trail-Metern zur ganzen Strecke** (mit der Vorliebe aus
+  12.4 gewichtet); bei Gleichstand der, der näher an der Zeit liegt. Bei
+  3 h kann das 2 h 40 sein, wenn der nächste Trail nur über eine lange
+  Verbindung zu haben wäre — oder 3 h 25, wenn er fast am Weg liegt.
+  Die Reserve entfällt als Abzug.
+  - Liegt kein Stand im Fenster (zu wenige Trails im Umkreis), gilt der
+    längste darunter, und das Blatt sagt es: „Mehr Trails liegen nicht
+    in 12 km" mit „Weiter suchen" (nächster Umkreis).
+  - Zu prüfen an eigenen Runden (12.8): ob 30 min bei 1 h und 1,5 h zu
+    viel sind. Wenn ja, dort höchstens ein Viertel der Zeit —
+    Vorschlag, nicht entschieden.
 - **Die Summe sagt die Schätzung**, nicht das Ziel: „ca. 3 h 10". Die
   Schätzung kennt weiter keine Pausen; das steht als Satz darunter,
   statt still in der Rechnung zu stecken.
-- **Bleibt die Runde deutlich darunter** (unter 75 % der Zeit), sagt das
-  Blatt, warum: „Mehr Trails liegen nicht in 12 km" mit „Weiter suchen"
-  (nächster Umkreis) — statt einer kurzen Runde ohne Erklärung.
-- **Dieselbe Regel gilt beim Bearbeiten**: Der Regler heißt dann „Etwa
-  3 h" statt „Höchstens". **Höhenmeter und Wanderweg bleiben Obergrenzen**
-  („Höchstens 800 hm") — was die Beine nicht hergeben, soll eine
-  Toleranz nicht überschreiten. Im Vorschlag sind die Höhenmeter
-  abgeleitet und damit selten der engste Wert; ist er es doch, nennt das
-  Blatt den ausgelassenen Trail mit Grund wie heute.
+- **Dieselbe Regel gilt beim Bearbeiten**: Der Regler heißt „Etwa 3 h"
+  statt „Höchstens". Mit einer eigenen Auswahl gilt das Fenster ebenso —
+  gewählte Trails fallen erst weg, wenn sie über Zeit + 30 min führen.
+- **Höhenmeter und Wanderweg bleiben Obergrenzen** (Betreiber,
+  2026-11-13: „passt") — was die Beine nicht hergeben, soll ein Fenster
+  nicht überschreiten. Ist das Limit der engste Wert, nennt das Blatt
+  den ausgelassenen Trail mit Grund wie heute.
 - Pflicht-Trails (Stern) und Zwischenpunkte kommen wie bisher auch über
   jedes Budget hinaus mit.
+
+### 12.5a Das Limit zeigen — und aus Fahrten anheben
+
+*Betreiber, 2026-11-13: Das Limit „sollte dann aber angezeigt werden
+(vielleicht sogar als Skala oder Ring, wie viel von seinem Limit man bei
+der aktuellen Routenplanung hat). Wenn man selbst aufgezeichnet hat,
+sollte das Limit basierend auf den Daten automatisch nach oben (nur nach
+oben) angepasst werden, denn das hat man ja geschafft. Userbestätigung
+wäre dafür aber schon notwendig. Wenn es eine Bio-Bike-Tour war,
+vielleicht noch mit der Rückfrage, ob es evtl. eine E-Bike-Tour war …
+Sollte generell wenig distracting sein, auf ein notwendiges Minimum und
+nicht nach jeder Fahrt mehrere Fragen."*
+
+**Anzeige im Ergebnis.** Die Kacheln „Zeit" und „Höhenmeter" der Summe
+(#517) tragen unter der Zahl eine schmale Skala:
+
+- **Höhenmeter**: gefüllt bis zum Anteil am Limit, daneben „640 von
+  800 hm". Voll heißt am Limit; die Skala läuft nie über, weil das Limit
+  hält — außer nach dem Ziehen von Gummipunkten oder mit Pflicht-Trails:
+  Dann ist sie in der Warnfarbe voll, mit einem Strich an der Stelle des
+  Limits und der Zahl dazu (Form UND Farbe, A13).
+- **Zeit**: dieselbe Skala mit einer Marke bei der gewählten Zeit und
+  dem Fenster ± 30 min als hellerem Feld — man sieht, dass 3 h 10
+  „im Rahmen" ist und keine Überschreitung.
+- **Eine Skala, kein Ring** (Vorschlag): Sie passt unter die Zahl, ohne
+  die Kachel zu vergrößern, und liest sich in der Sonne schneller; ein
+  Ring bräuchte die Fläche der Zahl. Im Designer gegenzuprüfen
+  (`docs/design/README.md` zieht nach).
+- Ein Tipp auf die Kachel öffnet „Anpassen" an dieser Stelle.
+
+**Das Limit wächst mit dem, was man gefahren ist — auf Nachfrage.**
+
+- **Anlass**: eine selbst AUFGEZEICHNETE Fahrt (nicht geplant, nicht
+  aus GPX übernommen), deren Anstieg das Höhenmeter-Limit ihres Rads um
+  mindestens einen Schritt (100 hm) übertrifft. Gemessen wie im
+  Zerlege-Blatt (`hysteresisClimb`, geglättet), auf 100 hm abgerundet.
+- **Nur nach oben, nur mit Ja**: Die App schlägt vor, sie stellt nichts
+  von selbst. „1 150 hm geschafft — Limit fürs Bio-Bike von 800 auf
+  1 100 hm anheben?" mit „Anheben" und „Nein".
+- **Wo**: als EINE Zeile im Blatt am Ende der Fahrt (#517), unter der
+  Summe — kein Dialog, keine Benachrichtigung, nichts während der Fahrt.
+  Wer das Blatt schließt, ohne zu antworten, findet dieselbe Zeile
+  einmal im Einstieg des Planers wieder; danach ist sie weg.
+- **Höchstens eine Frage je Fahrt, und selten**: Ein „Nein" gilt, bis
+  eine Fahrt den abgelehnten Wert um einen weiteren Schritt übertrifft.
+  Keine Frage, wenn das Limit schon darüber steht.
+- **Bio oder E?** Sagt die Steigrate der Fahrt deutlich „E-Bike",
+  während sie als Bio aufgezeichnet wurde (`guessRideProfile`,
+  `ride_profile_guess.dart`, #227 — im Zweifel kein Vorschlag), ist DAS
+  die eine Frage: „Sah nach E-Bike aus — war es eins?" Ein Ja ordnet
+  die Fahrt um (Kopf der Datei, damit auch die Kalibrierung richtig
+  lernt) und vergleicht mit dem E-Limit; ein Nein hebt das Bio-Limit
+  an, ohne zweite Frage — die Antwort war die Bestätigung, die Zeile
+  sagt es („Limit jetzt 1 100 hm · Rückgängig").
+- **Die Zeit bekommt keine Frage**: Sie ist je Fahrt eine Wahl, kein
+  Können. Die Steigrate und das Tempo lernt weiter die Kalibrierung
+  (2.1), auf Knopfdruck.
+- Alles lokal: Das Limit steht in `Settings.loopPlannerPrefs`, die
+  Antwort („Nein bis …") ebenso (A3).
 
 ### 12.6 Start und Ziel: eine Darstellung, dieselben Wörter
 
@@ -1992,7 +2093,7 @@ Jede Option hat genau eine Ebene:
 
 | Ebene | Optionen |
 |---|---|
-| gefragt im Einstieg | Absicht; Zeit (Runde) oder Ziel (Route) |
+| gefragt im Einstieg | Absicht; Start; Zeit (Runde) oder Ziel (Route) |
 | sichtbar beim Bearbeiten | Start, Ziel, Zeit, Höhenmeter, Rad; Auswahl, Pflicht, Zwischenpunkte |
 | im Ergebnis | Stil (Route), Rad — rechnen sofort (10.2) |
 | „Feinheiten", eingeklappt | Wanderweg-Budget, Radius der Liste, Bergauf bequem, Straßen / Wanderwege / steile Rampen meiden, Online ergänzen |
@@ -2017,7 +2118,7 @@ einem Schritt auf der normalen Karte.
   Rechenzeit, wenn der Pool „alles im Umkreis" ist, je Zeitstufe —
   gegen `kPlanMaxTiles` (300) und die Budgets aus 10.7. Daraus die
   Umkreise in 12.4. Dazu an drei, vier eigenen Runden: Was ändern
-  Toleranz und Vorliebe am Ergebnis, und liest es sich wie eine Runde,
+  Fenster und Vorliebe am Ergebnis, und liest es sich wie eine Runde,
   die man fahren würde?
 - **Touren und Vorführungen**: Anker der Leiste (`loop-rail-params`,
   `loop-rail-compute`) ziehen um; die Vorführung `loop-planner` zeigt
@@ -2028,20 +2129,29 @@ einem Schritt auf der normalen Karte.
 1. **Bearbeitungsansicht** (#516): Kopf mit Start/Ziel/Budget, Leiste
    mit Wort, Auswahlzeile mit dem einen Knopf, „Anpassen" in zwei
    Stufen, Fahnen immer, die Wörter aus 12.6 — ☁️ bauen · 📱.
-2. **Einstiegsblatt** mit „Zu einem Ziel" und „Selbst zusammenstellen";
-   „Runde von hier" führt bis Schritt 4 in die Bearbeitungsansicht —
-   ☁️ bauen · 📱.
-3. **Zeit als Orientierung** (12.5): Toleranz statt Reserve, „Etwa",
-   Summe mit „ca.", der Satz zur zu kurzen Runde; Spiegel in
-   `tool/route_measure.py`, falls dort gerechnet — ☁️ bauen · 💻 an
-   eigenen Runden prüfen.
+2. **Einstiegsblatt** (12.3) mit „Route" und „Selbst
+   zusammenstellen"; „Runde" führt bis Schritt 4 mit Start und Zeit in
+   die Bearbeitungsansicht — ☁️ bauen · 📱.
+3. **Zeit als Orientierung** (12.5): Fenster ± 30 min statt Reserve,
+   der Stand mit dem besten Trail-Anteil, „Etwa", Summe mit „ca.", der
+   Satz zur zu kurzen Runde; die Skalen an Zeit und Höhenmetern (12.5a);
+   Spiegel in `tool/route_measure.py`, falls dort gerechnet — ☁️ bauen ·
+   💻 an eigenen Runden prüfen.
 4. **„Runde vorschlagen"** (12.4) nach der Messung aus 12.8: Pool aus
    dem Umkreis, abgeleitete Höhenmeter, „Bearbeiten" am Ergebnis —
    💻 messen · ☁️ bauen · 📱.
 5. **Vorliebe** (12.4): Zähler je Trail, Aufschlag in der Zielfunktion
    — ☁️ bauen · 💻 prüfen.
+6. **Limit aus Fahrten** (12.5a): die eine Zeile am Ende der Fahrt,
+   Bio-oder-E-Frage, „Nein bis …" — ☁️ bauen · 📱 nach einer Fahrt.
 
-**Bewusst nicht:** ein Assistent mit mehreren Schirmen; Vorschläge aus
+Gemerkte Startpunkte (#543) sind ein eigenes Thema mit eigenem Konzept
+(neue Datenkategorie, Teilen unter Buddys) und hängen nicht an diesen
+Schritten.
+
+**Bewusst nicht:** ein Assistent mit mehreren Schirmen (die Führung
+steht in EINEM Blatt); ein Limit, das sich ohne Ja ändert oder je
+sinkt; mehr als eine Frage nach einer Fahrt; Vorschläge aus
 Trails, die der Fahrer nicht sieht; eine Vorliebe als Filter; Zeit als
 freie Minuteneingabe; die Fahnen mit dem Finger ziehen (Marker nehmen
 keine Gesten an — wenn, dann als Griffe wie die Gummipunkte, eigener
