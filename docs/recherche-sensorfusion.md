@@ -575,7 +575,7 @@ davor:
 Vorschlag für die Tasche: ein Flug zählt nur mit **Landung ab 3,5 g**.
 Das behält alle sechs bestätigten vom Lenker, verwirft alle sechs
 „War keiner" vom 2026-11-07 (die siebte war unplausibel) und lässt von
-37 bzw. 32 Flügen 3 bzw. 12 übrig, fast alle bergab; ein „War keiner"
+37 bzw. 32 Flügen 3 bzw. 12 übrig, alle bergab auf einem Trail; ein „War keiner"
 vom 2026-11-08 (7,6 g, bergab) bleibt drin. Ob die übrigen Sprünge
 sind, zeigt erst eine Fahrt mit Antworten — ohne das Handy
 herauszuholen: angesagte Sprünge zählen, oder die Antwort auf der Uhr
@@ -583,21 +583,23 @@ herauszuholen: angesagte Sprünge zählen, oder die Antwort auf der Uhr
 
 **Auf dem Trail?** (Konzept §2, Bedingung 3: beide Fixe ≤ 20 m vom
 Trail — die App prüft das, das Werkzeug mangels Trails bisher nicht.)
-Abgeglichen gegen 584 Trails als GPX (Stand 2026-09-27, lokal):
+Abgeglichen lokal gegen die Trails, die das Testkonto sieht (533
+Aufzeichnungen, 506 Trails, 2026-11-13; 2 s vor und nach dem Flug):
 
+- Die sechs bestätigten Sprünge am Lenker liegen alle 0–4 m auf dem
+  Trail — die 20 m tragen. (Eine Sammlung von 584 GPX aus dem Netz lag
+  bei dreien 28–41 m daneben: Gegen die Linien der App prüfen, nicht
+  gegen fremde.)
 - Alle „War keiner" vom 2026-11-07 liegen über 100 m von jedem Trail,
   darunter zwei Gruppen von drei bis vier Flügen in wenigen Sekunden in
   der Ebene — Bordsteine, Schwellen oder Treppenstufen (Betreiber).
-- Die harten Landungen (≥ 3,5 g) aus der Tasche liegen fast alle auf
-  einem Trail: 3 von 3 und 11 von 12.
-- Keine Regel reicht allein: „auf dem Trail" ließe weiche Flüge beim
-  Treten bergauf auf dem Trail durch (1,8–2,5 g), die Landung allein
-  einen Flug abseits. Beide zusammen lassen 3 bzw. 11 übrig.
-- Die GPX-Linien sind grob: Von den sechs bestätigten Sprüngen am
-  Lenker liegen nur drei innerhalb von 20 m, die übrigen 28–41 m daneben,
-  und nur 13–58 % der Fahrten lagen überhaupt an einem dieser Trails.
-  Die 20 m gehören gegen die Trails der App geprüft, nicht gegen diese
-  Sammlung.
+- Die harten Landungen (≥ 3,5 g) aus der Tasche liegen alle auf einem
+  Trail (≤ 12 m): 3 von 3 und 12 von 12.
+- Auf dem Trail liegen aber auch weiche Flüge beim Treten (1,4–3,4 g,
+  oft bergauf oder flach) — „auf dem Trail" allein reicht nicht, die
+  Landung allein auf diesen Fahrten schon; der Trail fängt, was abseits
+  hart landet (Treppe, Bordstein). Beide zusammen lassen 3 bzw. 12
+  übrig.
 
 **Folgerungen für den Bau** (nach #517, das „am Rad / in der Tasche"
 fragt; die Erkennung sichert die Angabe ab):
