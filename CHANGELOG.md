@@ -13,6 +13,21 @@
   dass die Uhr auch unterwegs eine neue Route annimmt. Die Linie auf der
   Uhr wird bei langen Routen etwas gröber, Kurven bleiben erhalten.
 
+## Das Uhr-Protokoll
+
+*Version 0.169.0, 2026-11-12*
+
+- **Wenn die Uhr-App klemmt, kann sie es erzählen (0.169.0):** Die
+  Uhr-App merkt sich ihre letzten 120 Schritte — welche Taste, welcher
+  Menüpunkt, welche Nachricht, ob GPS da war und ob du auf der Route
+  warst, mit den Sekunden seit dem Start; keine Position, keine Namen.
+  Das Protokoll kommt mit jeder Fahrt und nach einem Absturz der Uhr-App
+  aufs Handy und bleibt dort. Meldest du über die Glühbirne einen Fehler,
+  bietet der Dialog an, das Protokoll anzuhängen — nur wenn du den Haken
+  setzt, und vorher zeigt er dir die Liste. So lässt sich ein Fehler von
+  unterwegs am Schreibtisch nachspielen, statt ihn noch einmal fahren zu
+  müssen. Braucht die neue Uhr-App 1.5.0.
+
 ## Die Uhr-App prüft ihre Abläufe selbst
 
 *Versionen 0.168.1–0.168.3, 2026-11-11 bis 2026-11-12*

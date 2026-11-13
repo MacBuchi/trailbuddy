@@ -317,6 +317,8 @@ class RideLog {
             RideLog.drop(id, chunks);
             return null;
         }
+        // Der Ring der Ereignisse reist mit der Fahrt (#510).
+        EventLog.keepFor(id, false);
         return RideLog.enqueue(id, chunks, n) ? id : null;
     }
 
@@ -351,6 +353,8 @@ class RideLog {
             return;
         }
         enqueue(id, chunks, n);
+        // Der Ring vom Lauf, der abbrach (#510).
+        EventLog.keepFor(id, true);
     }
 
     static function enqueue(id as String, chunks as Number, n as Number) as Boolean {
@@ -418,6 +422,9 @@ class RideLog {
         if (p == 0) {
             var m = marksOf(id);
             if (m != null && m.size() > 0) { msg["m"] = m; }
+            // Und der Ring der Ereignisse (#510, `ev`).
+            var ev = Storage.getValue("ev_" + id);
+            if (ev instanceof Array) { msg["ev"] = ev; }
         }
         return msg;
     }
@@ -441,6 +448,7 @@ class RideLog {
     static function drop(id as String, chunks as Number) as Void {
         for (var k = 0; k < chunks; k++) { Storage.deleteValue(key(id, k)); }
         Storage.deleteValue(markKey(id));
+        Storage.deleteValue("ev_" + id);
     }
 
     //! Ein Stück entpackt in `[[lat, lon, t, e, acc], …]` (für die Tests;

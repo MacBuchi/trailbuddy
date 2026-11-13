@@ -392,3 +392,67 @@ Abbiegehinweise.
     Container gleich (100,4 KB im Vorführmodus, über den Routenwechsel);
     der Container-Bau (9.2.0) belegt ~0,7 KB weniger. Der „Out of
     Memory" vom Spike kam von einer `.prg` vor dem `forget`-Fix aus #513.
+- **Der Ereignis-Rekorder** (`source/EventLog.mc`, #510, T4): je
+  Ereignis EINE Zahl `(Code << 24) | Sekunden seit Start`, Code =
+  `Art << 3 | Detail`; die Tabelle steht als Kommentar in `EventLog.mc`,
+  in `tool/garmin_events.py` (`KINDS`) und in
+  `lib/features/garmin/watch_events.dart` — `test/garmin/watch_events_test.dart`
+  liest `IN_T`/`OUT_T`/`SIZE` aus der `.mc`-Datei. Aufgezeichnet wird im
+  Kern über `ev(code)` mit **Zahlen statt Konstanten**: Die erste Fassung
+  mit Konstanten und String-Arrays kostete im Vorführmodus +5,0 KB
+  (99,6 → 104,6 KB, 1000 Punkte), die jetzige +3,45 KB (→ 103,1 KB):
+  Ring 0,6 KB, 25 Aufrufstellen ~1,1 KB (rund 44 Byte je Aufruf im
+  Debug-Bau), der Rest Code des Moduls. Gemessen im Container mit einer
+  vorübergehenden Zeile `System.getSystemStats().usedMemory` im
+  Vorführmodus; der Routenwechsel lief durch. Ein Fix steht nur, wenn
+  seine Klasse wechselt (`fixEv`), Nachrichten nach ihrer Stelle in
+  `IN_T`/`OUT_T` (`msgCode`). „evr" steht, solange die App läuft — steht
+  es beim Start noch, wird „ev" zu „evc" (Absturz-Ring fürs „hallo",
+  weg nach `n`/`k`/`wq` oder dem nächsten sauberen Ende); eine Fahrt
+  nimmt den Ring als „ev_<id>" mit, `RideLog.drop` löscht ihn mit.
+  `TestReplay.play` spielt einen Ring gegen einen frischen Kern:
+  Eingaben werden gespielt, Folgen (Art 5, 6, 8, 10) abgewartet, alle
+  5 s ein Fix der zuletzt gesehenen Klasse. Gegenprobe 2026-11-12: Ring
+  ohne Deckel, Fix ohne Wechselprüfung, Wiedergabe ohne START ⇒
+  `eventsRingHolds120`, `eventsFixOnlyOnChange`,
+  `eventsReplayPauseDiscardNo` rot. **In einem `module` gibt es kein
+  `hidden`** (Bau bricht mit „extraneous input 'hidden'").
+  **Gespeichert wird bei Start, Taste und Menüpunkt** (`code < 24`), sonst
+  alle 5 min: Nur alle 5 min hätte ein Absturz in den ersten Minuten
+  nichts hinterlassen (der Kettenstand fand es). Gegenprobe: ohne die
+  Bedingung ist `eventsCrashRingInHello` rot.
+- **Der Kettenstand prüft das Protokoll** (#510, `tool/garmin_bench.sh
+  chain`): `ev` an der Fahrt heil über Kotlin und SDK, Neustart nach
+  sauberem Ende ohne, echter Absturz (`_z`: Index außerhalb) mit Ring im
+  „hallo", nach `k` wieder ohne. Ein Neustart der Uhr-App ist ein
+  **Neustart des ganzen Simulators** samt „adb Connection → Start" (Zeile
+  `BENCH relaunch`, das Skript sieht sie) — ein zweites `monkeydo` im
+  laufenden Simulator schreibt nichts und lädt nichts. Der Speicher der
+  App bleibt dabei, wenn der Treiber vorher `_r` (oder `_z`) schickt:
+  Merker `benchKeep` mit Zeit, gilt 2 min — ein alter aus einem
+  abgebrochenen Lauf ließ sonst den nächsten mit altem Speicher beginnen.
+  **Fixe mit Abstand zu `RideLog.MIN_POINTS`**: Mit 40 Fixen kamen mal 24,
+  mal 23 Punkte an, und die Uhr verwarf die Fahrt still als zu kurz
+  (zweimal „Fahrt hinüber FEHLT" ohne Fehler im Log); jetzt 60.
+- **Speicher neben der größten Route im Kettenstand** (#510,
+  2026-11-13): `_s` meldet `mem`, `peak` (je Takt gemessen, `(:bench)
+  onTick`) und `tot`; der Treiber schickt am Ende eine Zickzack-Route mit
+  `kWatchMaxPoints` Punkten samt Höhen, startet die Aufnahme und wechselt
+  während der Fahrt auf eine zweite gleich große. `CHAIN_BIG=N
+  tool/garmin_bench.sh chain` fährt nur diesen Teil mit N Punkten (gleich
+  nach dem „hallo"); eine Ablehnung schreibt der Treiber mit Grund
+  (`BENCH abgelehnt: mem`). **Genau N Rohpunkte schicken**: Mit mehr als
+  `kWatchMaxPoints` verdoppelt `watchRouteOf` die Toleranz, und das
+  gleichmäßige Zickzack fiel auf 23 Punkte — der erste Lauf war grün und
+  hatte nichts gemessen. Gemessen (Bench-Bau, 123,8 KB für die App):
+  | Punkte | Laden | belegt (Spitze) | Wechsel gleich groß |
+  |---|---|---|---|
+  | 2000, 1750 | „Out of Memory" in `PhoneRoute.get` — **auch auf `main` ohne Ring** | – | – |
+  | 1500 | geht | 109,9 KB (112,6) | `x` mem |
+  | 1250 | geht | 104,9 KB (111,1) | `x` mem |
+  | 1000 | geht | 99,4–99,8 KB (102,4–106,2) | `x` mem |
+  | 800 | geht | 95,8 KB (102,3) | geht, 96,9 KB |
+  Der Ring kostet neben einer Route mit 1500 Punkten 4,2 KB (`main`
+  105,7 KB, Spitze 108,9). Die Grenze der App sinkt deshalb auf 800
+  (Betreiber, 2026-11-13); `x` mem ist der Schutz in `PhoneRoute.take`
+  (4 KB + 16 B je Zahl frei), die alte Route bleibt.

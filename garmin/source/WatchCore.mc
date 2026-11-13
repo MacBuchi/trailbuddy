@@ -85,6 +85,8 @@ class WatchCore {
     hidden var _nudged as Boolean = false;
     //! Der Takt, den der Wirt gerade hält (ms, 0 = keiner).
     hidden var _pace as Number = 0;
+    //! Die Klasse des letzten Fixes im Ring (#510), -1 noch keiner.
+    hidden var _fixCls as Number = -1;
 
     static const WAIT_ANSWER = 1;
     static const WAIT_ROUTE = 2;
@@ -137,6 +139,9 @@ class WatchCore {
     function initialize(host) {
         _host = host;
         now = host.now();
+        // Zuerst: Der alte Ring wird nach einem Absturz „evc", und eine
+        // abgebrochene Fahrt nimmt ihn mit (#510).
+        EventLog.boot(now, host.connected());
         CrashGuard.atStart();
         RideLog.recover();
         log = new RideLog();
@@ -156,7 +161,10 @@ class WatchCore {
         tracker = new NavTracker(r);
         stats = new RideStats(0);
         setRoute(r);
-        if (wait != 0) { ui.setWaiting(str(Rez.Strings.Loading)); }
+        if (wait != 0) {
+            ui.setWaiting(str(Rez.Strings.Loading));
+            ev(71); // Stand: Lader wartet
+        }
     }
 
     //! Eine Route aus zwei Punkten, solange keine geladen ist (Warten aufs
@@ -236,6 +244,7 @@ class WatchCore {
         if (swapAt != 0 && ui.asking()) { WatchUi.requestUpdate(); }
         if (exitAt != 0 && now - exitAt >= 0) {
             exitAt = 0;
+            ev(80); // Frist: zu
             _host.exit();
             return;
         }
@@ -245,6 +254,7 @@ class WatchCore {
                 // Ansicht die alte Route, und beide zusammen passen nicht in
                 // den Speicher (Out of Memory bei 1000 Punkten, Vorführmodus
                 // 2026-11-11).
+                ev(81); // Frist: Wechsel
                 swapRoute();
                 pace();
                 return;
@@ -253,6 +263,7 @@ class WatchCore {
                 // Eine Minute ohne Absturz: Die Route gilt als sicher —
                 // außer, gerade kommt eine neue an.
                 _calmAt = 0;
+                ev(82); // Frist: ruhige Minute
                 if (pendingId == null) { CrashGuard.calm(); }
             }
             if (wait != 0) {
@@ -268,6 +279,7 @@ class WatchCore {
     //! kein Absturz zählt gegen die Route.
     function stop() as Void {
         log.finish();
+        EventLog.stop(_host.now());
         CrashGuard.calm();
         _host.gps(false, false);
     }
@@ -288,6 +300,10 @@ class WatchCore {
         // Die wartenden Fahrten: Das Handy antwortet mit `wq` („schick").
         var rq = RideLog.queuedIds();
         if (rq.size() > 0) { msg["rq"] = rq; }
+        // Ging die App beim letzten Mal nicht zu, reist der alte Ring mit
+        // (#510); ein älteres Handy übersieht den Schlüssel.
+        var crash = EventLog.crashed(_host.connected());
+        if (crash != null) { msg["ev"] = crash; }
         toPhone(msg);
     }
 
@@ -295,7 +311,27 @@ class WatchCore {
     //! Nachricht die Warteschlange („transmit queue full"). Ein verlorenes
     //! „hallo" holt das Handy beim Verbinden mit `q` nach.
     hidden function toPhone(msg as Dictionary) as Void {
-        if (_host.connected()) { _host.send(msg, 0); }
+        if (_host.connected()) { send(msg, 0); }
+    }
+
+    //! Ein Ereignis in den Ring (#510): [code] = `Art << 3 | Detail`, die
+    //! Tabelle steht in [EventLog]. Zahlen statt Konstanten, des Speichers
+    //! wegen.
+    hidden function ev(code as Number) as Void {
+        EventLog.rec(code, now);
+    }
+
+    //! Ein Fix nach seiner Klasse (Art 9) — nur, wenn sie wechselt.
+    hidden function fixEv(cls as Number) as Void {
+        if (cls == _fixCls) { return; }
+        _fixCls = cls;
+        ev(72 + cls);
+    }
+
+    //! Alles ans Handy geht hier durch — der Ring merkt sich die Art.
+    hidden function send(msg as Dictionary, kind as Number) as Void {
+        ev(EventLog.msgCode(msg["t"], true));
+        _host.send(msg, kind);
     }
 
     //! Ein Häppchen der Route; ist sie fertig, beginnt die Navigation.
@@ -331,6 +367,7 @@ class WatchCore {
             return;
         }
         WatchUi.requestUpdate();
+        ev(free ? 67 : 68); // Stand: frei / Route geladen
         _calmAt = now + CrashGuard.CALM_MS;
         if (_uploadLater) {
             _uploadLater = false;
@@ -345,6 +382,7 @@ class WatchCore {
     //! die gespeicherte Route.
     hidden function waitStep() as Void {
         if (now - _waitUntil >= 0) {
+            ev(83); // Frist: Warten vorbei
             endWait();
             loadStored();
             return;
@@ -387,6 +425,7 @@ class WatchCore {
     //! START: beginnen, anhalten (mit Menü) oder weitermachen.
     function startKey() as Void {
         now = _host.now();
+        ev(8); // Taste START
         if (closing || answerAsk(true)) { return; }
         var st = log.state();
         if (st == RideLog.RECORDING) {
@@ -406,6 +445,7 @@ class WatchCore {
             ui.toast(str(Rez.Strings.RecStarted));
         }
         stats.counting = st != RideLog.RECORDING;
+        ev(64 + log.state()); // Stand der Aufnahme
         _host.vibrate(false);
         if (st == RideLog.RECORDING) { _host.menu(:pause); }
         ui.setRecord(log.state(), log.trailOpen());
@@ -415,6 +455,7 @@ class WatchCore {
     //! Menü, vor START die Frage nach dem Beenden; beim Zugehen sofort zu.
     function backKey() as Void {
         now = _host.now();
+        ev(9); // Taste ZURÜCK
         if (closing) {
             _host.exit();
             return;
@@ -469,6 +510,7 @@ class WatchCore {
     //! Frage bleibt), im Lader oder beim Zugehen.
     function menuKey() as Void {
         now = _host.now();
+        ev(10); // langes HOCH
         if (closing || wait != 0 || asking() || !route.isReady()) { return; }
         _host.menu(:action);
     }
@@ -505,6 +547,7 @@ class WatchCore {
     function endRoute() as Void {
         now = _host.now();
         if (closing || free) { return; }
+        ev(23); // Menü: Route beenden
         var id = route.id;
         if (id.equals(PhoneRoute.currentId())) {
             toPhone({"t" => "e", "id" => id});
@@ -527,11 +570,15 @@ class WatchCore {
     //! Ein Punkt des Menüs der Pause: Weiter · Speichern · Verwerfen (fragt
     //! erst, [discardRide]).
     function pauseChoice(id as Object?) as Void {
+        now = _host.now();
         if (id == :resume) {
+            ev(16); // Menü: Weiter
             startKey();
         } else if (id == :save) {
-            quit();
+            ev(17); // Menü: Speichern
+            closeDown(true, true);
         } else if (id == :discard) {
+            ev(18); // Menü: Verwerfen
             _host.menu(:discard);
         }
     }
@@ -539,6 +586,7 @@ class WatchCore {
     //! Nach „Trail endet": behalten (das Handy hört davon) oder das Paar weg.
     function trailChoice(keep as Boolean) as Void {
         now = _host.now();
+        ev(keep ? 21 : 22); // Menü: Trail behalten / verwerfen
         if (keep) {
             var pair = log.lastTrail();
             if (pair != null) { toPhone({"t" => "rt", "s" => pair[0], "e" => pair[1]}); }
@@ -552,12 +600,21 @@ class WatchCore {
     //! „Speichern" im Menü der Pause.
     function quit() as Void {
         now = _host.now();
+        ev(19); // Menü: Ja
         closeDown(true, true);
+    }
+
+    //! „Nein" auf „Fahrt verwerfen?" oder „… beenden?": Am Ablauf ändert
+    //! sich nichts, aber der Ring weiß es (#510).
+    function confirmNo() as Void {
+        now = _host.now();
+        ev(20); // Menü: Nein
     }
 
     //! „Fahrt verwerfen?" mit Ja: Die Fahrt ist weg, die App geht zu.
     function discardRide() as Void {
         now = _host.now();
+        ev(19); // Menü: Ja
         closeDown(true, false);
     }
 
@@ -572,6 +629,7 @@ class WatchCore {
         if (closing) { return; }
         closing = true;
         loading = false;
+        ev(69); // Stand: geht zu
         var started = log.state() != RideLog.IDLE;
         var note = null;
         if (keep) {
@@ -589,7 +647,7 @@ class WatchCore {
         if (tellPhone && wait == 0 && _host.connected() && id.equals(PhoneRoute.currentId())) {
             showEnd(note != null ? note : str(Rez.Strings.NavEnded));
             armExit(END_WAIT_MS);
-            _host.send({"t" => "e", "id" => id}, SEND_END);
+            send({"t" => "e", "id" => id}, SEND_END);
             return;
         }
         if (note != null) { showEnd(note); }
@@ -599,6 +657,13 @@ class WatchCore {
     //! Nach dem Ende („beendet" ist beim Handy oder ging nicht): die
     //! wartenden Fahrten ans Handy, sonst kurz sagen, dass die Fahrt
     //! wartet, sonst zu.
+    //! Garmin Connect hat das „beendet" abgenommen ([ok]) oder nicht.
+    function endAcked(ok as Boolean) as Void {
+        now = _host.now();
+        ev(ok ? 56 : 57); // Übertragung: Ende
+        endSent();
+    }
+
     function endSent() as Void {
         now = _host.now();
         if (startUpload()) { return; }
@@ -653,7 +718,7 @@ class WatchCore {
             showEnd(str(Rez.Strings.RideSending) + " · " + (txP + 1) + "/" + RideLog.messageCount(e));
             armExit(RIDE_WAIT_MS);
         }
-        _host.send(RideLog.message(e, txP), SEND_RIDE);
+        send(RideLog.message(e, txP), SEND_RIDE);
     }
 
     //! Garmin Connect nahm eine Nachricht der Fahrt ab ([ok]) oder nicht.
@@ -661,6 +726,7 @@ class WatchCore {
         now = _host.now();
         var e = tx;
         if (e == null) { return; }
+        ev(ok ? 58 : 59); // Übertragung: Fahrt
         if (!ok) {
             tx = null;
             if (closing) {
@@ -703,11 +769,14 @@ class WatchCore {
     function handle(d as Dictionary) as Void {
         now = _host.now();
         var t = d["t"];
+        ev(EventLog.msgCode(t, false));
         var id = d["id"];
         if (!(id instanceof String)) { id = null; }
         if ("q".equals(t)) {
             sayHello();
         } else if ("wq".equals(t)) {
+            // Eine Antwort auf „hallo": Der Absturz-Ring kam mit an.
+            EventLog.delivered();
             // Die Fahrt: „schick" (die Antwort auf „hallo" mit `rq`) …
             if (!closing) { startUpload(); }
         } else if ("wk".equals(t)) {
@@ -716,12 +785,14 @@ class WatchCore {
         } else if ("p".equals(t)) {
             phoneFix(d["la"], d["lo"]);
         } else if ("n".equals(t)) {
+            EventLog.delivered();
             // Die Antwort auf „hallo": Eine neue Route kommt (mit der Zahl
             // der Stücke, 0 = noch gerechnet). Nur beim Start — läuft schon
             // eine Route, bleibt sie, bis die neue ganz da ist.
             var np = d["np"];
             if (wait != 0) { waitForRoute(id, np instanceof Number ? np : 0); }
         } else if ("k".equals(t)) {
+            EventLog.delivered();
             // … oder die gespeicherte ist aktuell.
             if (wait != 0) {
                 endWait();
@@ -797,6 +868,7 @@ class WatchCore {
     function swapRoute() as Void {
         swapAt = 0;
         if (pendingId == null) { return; }
+        ev(70); // Stand: Routenwechsel
         pendingId = null;
         wait = 0;
         loading = false;
@@ -836,7 +908,10 @@ class WatchCore {
             _hellos++;
             sayHello();
         }
-        if (lat == null || accuracy < Position.QUALITY_USABLE) { return; }
+        if (lat == null || accuracy < Position.QUALITY_USABLE) {
+            fixEv(0);
+            return;
+        }
         if (!_ownFix) {
             _ownFix = true;
             // „ich habe GPS" — seit #500 mit diesem Fix, damit das Handy Uhr
@@ -854,6 +929,7 @@ class WatchCore {
             var f = log.toLocal(lat, lon);
             stats.update(f[0], f[1], now, speed, alt, hr, -1);
             ui.setFreeFix(f[0], f[1], heading, speed, compass);
+            fixEv(3);
             return;
         }
         if (_phoneFixed) {
@@ -866,6 +942,7 @@ class WatchCore {
         // Einmal beim Abkommen (Entscheidung 3) — kein Ton, nichts vor
         // Abzweigen.
         if (s.leftRoute) { _host.vibrate(true); }
+        fixEv(s.offRoute ? 2 : 1);
         stats.update(p[0], p[1], now, speed, alt, hr, s.offRoute ? -1 : route.sectionAt(s.alongM));
         ui.setState(s, speed, false);
         // #500: Die Uhr meldet ihren Stand, wenn sie ihn braucht — jenseits

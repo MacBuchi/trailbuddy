@@ -49,7 +49,7 @@ verarbeitet*, *erforderlich oder optional* — plus die Zwecke.
 | **Persönliche Infos → E-Mail-Adresse** | Ja | Nein³ | Erforderlich | App-Funktionalität, Kontoverwaltung | Supabase Auth; Buddy-Suche über die exakte Adresse; Konto-Mails über Brevo; bei Anmeldung über einen Anbieter von dort⁵ |
 | **Persönliche Infos → Name** | Ja | Nein¹ | Erforderlich | App-Funktionalität, Kontoverwaltung | `profiles.username` (Pflicht, über das Präfix suchbar) und `display_name` |
 | **Persönliche Infos → Nutzer-IDs** | Ja | Nein | Erforderlich | App-Funktionalität, Kontoverwaltung | `profiles.id` (UUID aus `auth.users`) |
-| **App-Aktivität → Andere nutzergenerierte Inhalte** | Ja | **Ja²** (nur Feedback) | Optional | App-Funktionalität, Entwicklerkommunikation | Beiträge zu Trails (`trail_details`: Name, Beschreibung, S-Grad, Charakter, Sterne, Sichtbarkeit, Link), Meldungen und Zustand (`trail_reports`), Texte zu Meldungen (`trail_notes`, bis 0.146 „Hinweise"; #433), Zuordnungen von Duplikaten (`trail_aliases`, `trail_distinct`; #107 — sichtbar für direkte Buddys, die beide Trails sehen), Aliase für Buddys (`friend_aliases`, nur für den Vergebenden sichtbar) — alles *nicht geteilt*¹. Feedback (`feedback`: Text, Typ, App-Version) wird als öffentliches GitHub-Issue veröffentlicht, ohne Benutzernamen — *geteilt*² |
+| **App-Aktivität → Andere nutzergenerierte Inhalte** | Ja | **Ja²** (nur Feedback) | Optional | App-Funktionalität, Entwicklerkommunikation | Beiträge zu Trails (`trail_details`: Name, Beschreibung, S-Grad, Charakter, Sterne, Sichtbarkeit, Link), Meldungen und Zustand (`trail_reports`), Texte zu Meldungen (`trail_notes`, bis 0.146 „Hinweise"; #433), Zuordnungen von Duplikaten (`trail_aliases`, `trail_distinct`; #107 — sichtbar für direkte Buddys, die beide Trails sehen), Aliase für Buddys (`friend_aliases`, nur für den Vergebenden sichtbar) — alles *nicht geteilt*¹. Feedback (`feedback`: Text, Typ, App-Version; bei einer Fehlermeldung auf Wunsch das Uhr-Protokoll im Text, #510 — Tasten, Menüpunkte, Arten von Nachrichten, Sekunden seit dem Start der Uhr-App, keine Position) wird als öffentliches GitHub-Issue veröffentlicht, ohne Benutzernamen — *geteilt*² |
 | **Fotos und Videos → Fotos** | Ja | Nein¹ | Optional | App-Funktionalität | Ein Foto je Text einer Meldung (#37, Patch 026): Bild ≤ 1024 px und Vorschau, ohne EXIF/XMP (entfernt und geprüft in `lib/core/photo_pipeline.dart`), im privaten Bucket `trail-note-photos`. Sichtbar für genau die, die den Text sehen; 90 Tage, mit dem Text gelöscht |
 | **Nachrichten → Andere In-App-Nachrichten** | Ja | Nein¹ | Optional | App-Funktionalität | `buddy_messages` (#34, Patch 021): Text, Absender, Empfänger, Zeitpunkt, gelesen. Nur Absender und Empfänger sehen sie, 30 Tage, nicht Ende-zu-Ende-verschlüsselt (Datenschutzerklärung). Schreiben nur unter Buddys oder bei offener Anfrage (höchstens drei je Seite). Mit eingeschalteten Benachrichtigungen geht der Text gekürzt über FCM (Patch 022, siehe ⁴) |
 | **App-Aktivität → Sonstige Aktionen** | Ja | Nein¹ | Optional | App-Funktionalität | Airtime unter Buddys (#36 Schritt 6, Patch 029; ab Werk aus, eigener Schalter): `trail_airtime` — je Trail der Bestwert (beste Airtime einer Durchfahrt, längster Sprung, Zehntelsekunden, Monat), sichtbar für direkte Buddys, die den Trail sehen; `airtime_counters` — eine Zeile je Nutzer mit Airtime und Sprüngen der letzten 30 Tage, Tag der Rechnung und Titeln, sichtbar für direkte Buddys. Auf dem Gerät aus den Sensordaten gerechnet; keine Fahrt, keine Position, keine Landewucht. Ausschalten löscht beides |
@@ -171,7 +171,12 @@ App, kein Garmin-Konto, keine Garmin-Aktivität (Konzept-Garmin 0 und 4).
 Seit #484 auch die Gegenrichtung: Die Uhr zeichnet selbst auf und gibt
 die Fahrt (Position, Höhe, Zeit) über Garmin Connect an DIESES Telefon,
 wo sie unter „Meine Fahrten" liegt — auf dem Gerät, nicht erhoben und
-nicht geteilt, wie jede Aufzeichnung der App.
+nicht geteilt, wie jede Aufzeichnung der App. Seit #510 kommt mit jeder
+Fahrt und nach einem Absturz der Uhr-App das Uhr-Protokoll (die letzten
+120 Schritte des Ablaufs: Taste, Menüpunkt, Art der Nachricht, Klasse des
+Fixes, Sekunden — keine Position, keine Kennung) und bleibt auf dem
+Telefon (die letzten fünf); erhoben wird es erst, wenn der Nutzer es an
+eine Fehlermeldung hängt (dann Feedback, ²).
 Was Garmin Connect selbst überträgt, ist Garmins Sache; die
 Datenschutzerklärung sagt beides. **Paket-Sichtbarkeit:** Garmins
 Companion-SDK (`com.garmin.connectiq:ciq-companion-app-sdk`) bringt

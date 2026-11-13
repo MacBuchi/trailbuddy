@@ -919,7 +919,14 @@ Feld" ist deshalb kein Ziel, das sich halten lässt. Das Ziel ist:
 2. **Jeder Ablauf ist geprüft, bevor die Uhr am Arm ist** — auf der
    Stufe, die ihn am billigsten findet.
 3. **Jeder Feldbefund wird ein Skript** (Fahrtenschreiber, #510) und
-   bleibt als Test.
+   bleibt als Test. Seit 0.169.0 (Uhr-App 1.5.0): `EventLog.mc` hält die
+   letzten 120 Ereignisse des Ablaufkerns (eine Zahl je Ereignis, Art,
+   Detail, Sekunden — keine Koordinaten, keine Kennungen, A7), sie reisen
+   mit der Fahrt (`w`, `ev`) und nach einem Absturz mit dem nächsten
+   „hallo" (`hi`, `ev`) aufs Handy; dort hängt sie der Nutzer auf Wunsch
+   an eine Fehlermeldung (die Liste sieht er vorher), und
+   `tool/garmin_events.py` macht aus dem Issue-Text einen Test, der den
+   Ring über `TestReplay.play` (`CoreTests.mc`) gegen den Kern spielt.
 
 Warum bisher so viel am Gerät landete:
 
