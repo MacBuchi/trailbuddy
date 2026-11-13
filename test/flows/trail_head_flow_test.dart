@@ -207,7 +207,7 @@ void main() {
 
     await tapTrailHead(tester);
     expect(find.byKey(const ValueKey('loop-summary')), findsOneWidget);
-    expect(find.textContaining('hm bergauf'), findsOneWidget);
+    expect(find.byKey(const ValueKey('loop-tile-climb')), findsOneWidget);
     expect(find.textContaining('Forstweg'), findsOneWidget);
     expect(find.textContaining('Untergrenze'), findsOneWidget, reason: 'der Bereich hat keine Höhen');
     expect(find.textContaining('Wanderweg, Fußweg oder Stufen'), findsNothing);
@@ -401,14 +401,15 @@ void main() {
         .first;
     await tester.drag(list, const Offset(0, -400));
     await settle(tester, frames: 4);
+    // Ergebnis und Start in einem (#517): Aufzeichnen aus — sonst bräuchte
+    // der Test einen Fix des Dienstes —, dann EIN Knopf, kein zweites Blatt.
+    await tester.ensureVisible(find.byKey(const ValueKey('nav-record')));
+    await tester.tap(find.byKey(const ValueKey('nav-record')));
+    await settle(tester, frames: 2);
     await tester.ensureVisible(find.byKey(const ValueKey('loop-navigate')));
     await tester.tap(find.byKey(const ValueKey('loop-navigate')));
     await settle(tester);
-    // Aufzeichnen aus — sonst bräuchte der Test einen Fix des Dienstes.
-    await tester.tap(find.byKey(const ValueKey('nav-record')));
-    await settle(tester, frames: 2);
-    await tester.tap(find.byKey(const ValueKey('nav-go')));
-    await settle(tester);
+    expect(find.byKey(const ValueKey('nav-go')), findsNothing, reason: 'kein Start-Blatt mehr');
     expect(find.byKey(const ValueKey('loop-summary')), findsNothing);
     expect(find.byKey(const ValueKey('nav-approach')), findsOneWidget);
     final route = routeWhole(tester);

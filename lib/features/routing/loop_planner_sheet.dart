@@ -27,6 +27,7 @@ import '../../core/geo.dart' show formatMeters;
 import '../../core/gpx_share.dart';
 import '../../models/trail.dart';
 import '../map/map_view/map_view.dart';
+import '../garmin/watch_providers.dart' show watchSyncProvider;
 import '../official/official_trails_source.dart';
 import '../rides/ride_providers.dart';
 import '../rides/ride_track.dart';
@@ -40,6 +41,7 @@ import 'loop_planner_providers.dart';
 import 'map_panel.dart';
 import 'nav_providers.dart';
 import 'nav_sections.dart';
+import 'nav_view.dart' show NavStartButton, NavStartOptions, navStartChoiceOf;
 import 'planning_graph.dart' show planningCoverageNote;
 import 'road_graph.dart';
 import 'road_graph_loader.dart' show kOnlineFillMaxTiles, kPlanMaxTiles;
@@ -815,53 +817,64 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
     final s = plan.summary!;
     final trails = ref.read(trailsProvider).valueOrNull ?? const <Trail>[];
     final byId = {for (final t in trails) t.id: t};
+    final canRecord = ref.watch(rideRecordingAvailableProvider) && ref.watch(rideProvider) == null;
     return [
-      Text(
+      // Vier Kacheln statt eines Satzes (#517, Konzept-Geräte 5.2): Länge,
+      // bergauf, auf Trails (ohne Trail — die Route von A nach B, #356 —
+      // bergab), Zeit.
+      Row(
         key: const ValueKey('loop-summary'),
-        // Ohne Trail (die Route von A nach B, #356) gibt es keine
-        // Trail-Meter — dieselbe Zeile wie im Blatt „Route".
-        plan.isEmpty
-            ? l.routeSummary(formatMeters(s.lengthM), s.gainM.round(), s.lossM.round(), routeTimeLabel(l, s.timeS))
-            : l.loopSummary(formatMeters(s.lengthM), s.gainM.round(), formatMeters(s.trailM), routeTimeLabel(l, s.timeS)),
-        style: theme.textTheme.titleMedium?.copyWith(fontFamily: AppFonts.mono),
+        children: [
+          for (final (i, (key, label, value)) in [
+            ('length', l.loopTileLength, formatMeters(s.lengthM)),
+            ('climb', l.loopTileClimb, '${s.gainM.round()} hm'),
+            plan.isEmpty
+                ? ('descent', l.loopTileDescent, '${s.lossM.round()} hm')
+                : ('trail', l.loopTileTrail, formatMeters(s.trailM)),
+            ('time', l.loopTileTime, routeTimeLabel(l, s.timeS)),
+          ].indexed) ...[
+            if (i > 0) const SizedBox(width: 6),
+            Expanded(child: _SummaryTile(key: ValueKey('loop-tile-$key'), label: label, value: value)),
+          ],
+        ],
       ),
-      // Das Profil der Runde (#234) gleich unter der Summe, dann die Knöpfe —
+      const SizedBox(height: 4),
+      // Das Profil der Runde (#234) gleich unter der Summe, dann der Start —
       // eingeklappt ist das immer dasselbe Bild. Die Anmerkungen stehen
       // darunter (Feldbefund 2026-10-29: sie schoben das Profil aus dem
       // eingeklappten Blatt).
       RouteElevationProfile(plan.points, key: const ValueKey('loop-elevation')),
       const SizedBox(height: 8),
-      // „Navigieren" vorn (#232): Wer die Runde fahren will, braucht den
-      // Rest nicht. Speichern und GPX darunter.
-      Row(key: _buttonsKey, children: [
-        Expanded(
-          child: FilledButton.icon(
-            key: const ValueKey('loop-navigate'),
-            style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(48)),
-            onPressed: () => ref.read(navRequestProvider.notifier).state = NavRequest(
-                points: plan.points,
-                title: _name(l, session, plan),
-                sections: navSectionsOfLoop(context.l10n, plan,
-                    trailById: trailByIdOf(ref), beyond: _targetTrail(session)),
-                fromPlanner: true,
-                profile: session.profile,
-                routePrefs: session.prefs.planRoute),
-            icon: const Icon(Icons.navigation_outlined),
-            label: Text(l.commonNavigate),
-          ),
+      // Ergebnis und Start in einem (#517): die gemerkten Schalter als
+      // Chips, EIN Knopf — kein zweites Blatt mehr.
+      NavStartOptions(
+        canRecord: canRecord,
+        onWatchFound: () => ref.read(watchSyncProvider.notifier).prepare(plan.points),
+      ),
+      const SizedBox(height: 8),
+      KeyedSubtree(
+        key: _buttonsKey,
+        child: NavStartButton(
+          buttonKey: 'loop-navigate',
+          onPressed: () => ref.read(navRequestProvider.notifier).state = NavRequest(
+              points: plan.points,
+              title: _name(l, session, plan),
+              sections: navSectionsOfLoop(context.l10n, plan,
+                  trailById: trailByIdOf(ref), beyond: _targetTrail(session)),
+              fromPlanner: true,
+              profile: session.profile,
+              routePrefs: session.prefs.planRoute,
+              start: navStartChoiceOf(ref, canRecord: canRecord)),
         ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: OutlinedButton.icon(
-            key: const ValueKey('loop-save'),
-            style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
-            onPressed: () => _saveRide(session, plan),
-            icon: const Icon(Icons.bookmark_add_outlined),
-            label: Text(l.commonSave),
-          ),
-        ),
-      ]),
+      ),
+      // Speichern und GPX darunter.
       Wrap(children: [
+        TextButton.icon(
+          key: const ValueKey('loop-save'),
+          onPressed: () => _saveRide(session, plan),
+          icon: const Icon(Icons.bookmark_add_outlined),
+          label: Text(l.commonSave),
+        ),
         TextButton.icon(
           key: const ValueKey('loop-gpx'),
           onPressed: () => _exportGpx(session, plan),
@@ -1178,4 +1191,38 @@ List<MapViewPolyline> loopPreviewLines(LoopPlan plan) {
       if (!s.isTrail)
         (points: s.points, hiking: s.hiking, hitValue: s.leg == null ? null : RouteLegHit(s.leg!, legs[s.leg]!)),
   ]);
+}
+
+/// Eine Kachel der Summe (#517): Beschriftung klein, Zahl in Mono.
+class _SummaryTile extends StatelessWidget {
+  const _SummaryTile({super.key, required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.fromLTRB(10, 5, 8, 5),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.labelSmall?.copyWith(color: theme.hintColor)),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(value, maxLines: 1, style: AppFonts.numbers(theme.textTheme.titleMedium)),
+          ),
+        ],
+      ),
+    );
+  }
 }

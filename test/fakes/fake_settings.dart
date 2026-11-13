@@ -18,6 +18,9 @@ class FakeSettings implements Settings {
       this.mapLegendOpen = false,
       this.navKeepScreenOn = true,
       this.rideKeepScreenOn = false,
+      this.navRecord = true,
+      this.navWatch = true,
+      this.ridePhoneInPocket = false,
       this.watchSeen = false,
       this.navReplanOfferM,
       this.navLeaveM,
@@ -132,6 +135,30 @@ class FakeSettings implements Settings {
   @override
   Future<void> setRideKeepScreenOn(bool value) async {
     rideKeepScreenOn = value;
+  }
+
+  @override
+  bool navRecord;
+
+  @override
+  Future<void> setNavRecord(bool value) async {
+    navRecord = value;
+  }
+
+  @override
+  bool navWatch;
+
+  @override
+  Future<void> setNavWatch(bool value) async {
+    navWatch = value;
+  }
+
+  @override
+  bool ridePhoneInPocket;
+
+  @override
+  Future<void> setRidePhoneInPocket(bool value) async {
+    ridePhoneInPocket = value;
   }
 
   @override

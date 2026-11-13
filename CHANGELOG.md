@@ -2,6 +2,29 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Ein Knopf bis zur Fahrt, ein Ende
+
+*Version 0.171.0, 2026-11-13*
+
+- **Ergebnis und Start in einem:** Das Ergebnis des Planers zeigt die
+  Summe als vier Kacheln (Strecke, bergauf, Trails oder bergab, Zeit),
+  darunter das Profil und die Schalter als Chips: Aufzeichnen, Uhr,
+  Bildschirm an. Ein Tipp auf „Fahrt starten" — das zweite Blatt mit den
+  Schaltern gibt es nicht mehr. Die App merkt sich die Wahl für das
+  nächste Mal.
+- **Ein Ende:** In der Folgeansicht heißt der Knopf jetzt „Fahrt
+  beenden". Läuft eine Aufzeichnung mit, fragt er, ob alles enden soll
+  oder nur die Navigation.
+- **Unterwegs sichtbar:** Eine Zeile über den Knöpfen sagt, was läuft —
+  Aufnahme, Uhr, Sprünge an. „Trail beginnt" und „Trail endet" stehen
+  dort als Knopf mit Wort.
+- **Handy in der Tasche** (mit der Wheelie-Erkennung im Test): Ein Chip
+  sagt, ob das Handy am Rad oder in der Tasche steckt; die App erkennt
+  die Tasche nach ein, zwei Minuten ruhiger Fahrt auch selbst. In der
+  Tasche gibt es keine Wheelies und Stoppies mehr, einen Sprung nur mit
+  harter Landung — und die Halterung aus der Tasche wird nicht mehr für
+  die nächste Fahrt gespeichert.
+
 ## Sprung und Wheelie auf der Uhr
 
 *Version 0.170.0, 2026-11-13 (Uhr-App 1.6.0)*

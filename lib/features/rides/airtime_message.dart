@@ -17,6 +17,12 @@ const kAirtimeMessagePrefix = 'air:';
 const _livePrefix = 'air:live:';
 const _eventPrefix = 'air:event:';
 const _nowPrefix = 'air:now:';
+const _pocketPrefix = 'air:pocket:';
+
+/// Steckt das Handy in der Tasche (#491)? [declared]: der Fahrer sagt es,
+/// sonst hat die Regel es erkannt. Kommt bei jedem Schreiben des Loggers.
+String encodeAirtimePocket(String file, {required bool pocket, required bool declared}) =>
+    _pocketPrefix + jsonEncode({'f': file, 'p': pocket, 'd': declared});
 
 /// Ein Schub Takte mit der Datei der Fahrt (für die Antworten).
 String encodeAirtimeLive(String file, List<FusionLive> ticks) => _livePrefix +
@@ -83,6 +89,13 @@ class AirtimeNowMessage extends AirtimeMessage {
   final FusionLive tick;
 }
 
+class AirtimePocketMessage extends AirtimeMessage {
+  const AirtimePocketMessage(super.file, {required this.pocket, required this.declared});
+
+  final bool pocket;
+  final bool declared;
+}
+
 class AirtimeEventMessage extends AirtimeMessage {
   const AirtimeEventMessage(super.file, this.event);
 
@@ -102,6 +115,10 @@ AirtimeMessage? decodeAirtimeMessage(Object? data) {
     if (data.startsWith(_nowPrefix)) {
       final json = jsonDecode(data.substring(_nowPrefix.length)) as Map<String, dynamic>;
       return AirtimeNowMessage(json['f'] as String, _decodeTick(json['v'] as List<Object?>));
+    }
+    if (data.startsWith(_pocketPrefix)) {
+      final json = jsonDecode(data.substring(_pocketPrefix.length)) as Map<String, dynamic>;
+      return AirtimePocketMessage(json['f'] as String, pocket: json['p'] == true, declared: json['d'] == true);
     }
     if (data.startsWith(_eventPrefix)) {
       final json = jsonDecode(data.substring(_eventPrefix.length)) as Map<String, dynamic>;

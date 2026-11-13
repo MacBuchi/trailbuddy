@@ -2,6 +2,28 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## One button to ride, one end
+
+*Version 0.171.0, 2026-11-13*
+
+- **Result and start in one:** the planner's result shows the totals as
+  four tiles (distance, climb, trails or descent, time), the profile
+  below and the switches as chips: record, watch, screen on. One tap on
+  "Start ride" — the second sheet with the switches is gone. The app
+  remembers your choice for next time.
+- **One end:** in the follow view the button is now "End ride". If a
+  recording runs along, it asks whether everything should end or only
+  the navigation.
+- **Visible on the way:** a line above the buttons says what is running
+  — recording, watch, jumps on. "Trail starts" and "Trail ends" sit
+  there as a button with a word.
+- **Phone in a pocket** (with the wheelie detection under test): a chip
+  says whether the phone is on the bike or in a pocket; after a minute
+  or two of calm riding the app also recognises the pocket by itself.
+  In a pocket there are no wheelies or stoppies any more, a jump only
+  with a hard landing — and the mount from the pocket is no longer saved
+  for the next ride.
+
 ## Jumps and wheelies on the watch
 
 *Version 0.170.0, 2026-11-13 (watch app 1.6.0)*

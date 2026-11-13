@@ -165,6 +165,24 @@ abstract interface class Settings {
 
   Future<void> setRideKeepScreenOn(bool value);
 
+  /// Startet „Fahrt starten" die Aufzeichnung mit (#517, Konzept-Routing
+  /// 9.4)? Vorgabe: an (Betreiber, 2026-10-08) — gemerkt seit 0.171.0.
+  bool get navRecord;
+
+  Future<void> setNavRecord(bool value);
+
+  /// Folgt die Uhr der Navigation (#517), wenn eine da ist? Vorgabe: an.
+  bool get navWatch;
+
+  Future<void> setNavWatch(bool value);
+
+  /// Steckt das Handy während der Fahrt in der Tasche (#491, #517)? Dann
+  /// keine Halterung, keine Wheelies und Stoppies, Sprünge nur mit harter
+  /// Landung. Vorgabe: am Rad — die Tasche erkennt die Fusion auch selbst.
+  bool get ridePhoneInPocket;
+
+  Future<void> setRidePhoneInPocket(bool value);
+
   /// Wurde schon einmal eine Garmin-Uhr mit unserer App gefunden (#484)?
   /// Dann lauscht die App ab dem Start auf die Uhr — sie schickt ihre
   /// Fahrten. Ohne Uhr startet das SDK nie (Konzept-Garmin 3).
@@ -384,6 +402,30 @@ class PrefsSettings implements Settings {
 
   @override
   Future<void> setRideKeepScreenOn(bool value) => _prefs.setBool(_rideKeepScreenOnKey, value);
+
+  static const _navRecordKey = 'nav_record';
+
+  @override
+  bool get navRecord => _prefs.getBool(_navRecordKey) ?? true;
+
+  @override
+  Future<void> setNavRecord(bool value) => _prefs.setBool(_navRecordKey, value);
+
+  static const _navWatchKey = 'nav_watch';
+
+  @override
+  bool get navWatch => _prefs.getBool(_navWatchKey) ?? true;
+
+  @override
+  Future<void> setNavWatch(bool value) => _prefs.setBool(_navWatchKey, value);
+
+  static const _ridePhoneInPocketKey = 'ride_phone_in_pocket';
+
+  @override
+  bool get ridePhoneInPocket => _prefs.getBool(_ridePhoneInPocketKey) ?? false;
+
+  @override
+  Future<void> setRidePhoneInPocket(bool value) => _prefs.setBool(_ridePhoneInPocketKey, value);
 
   static const _watchSeenKey = 'watch_seen';
 

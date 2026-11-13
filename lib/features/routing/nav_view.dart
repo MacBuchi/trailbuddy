@@ -31,6 +31,7 @@ import '../garmin/watch_providers.dart' show WatchSyncPhase, kWatchOutdatedPhone
 import '../map/map_buttons.dart';
 import '../map/map_view/map_view.dart';
 import '../rides/airtime_live.dart';
+import '../rides/ride_providers.dart' show ridePhoneInPocketProvider, rideProvider, sensorLogProvider;
 import '../rides/airtime_widgets.dart' show airtimeRunRank;
 import '../rides/sensor_fusion.dart' show JumpEvent;
 import '../rides/trail_values.dart';
@@ -72,24 +73,14 @@ List<MapViewPolyline> navRouteLines(NavSession session) {
   ];
 }
 
-/// Was der Start-Dialog zurückgibt.
-class NavStartChoice {
-  const NavStartChoice({required this.record, this.watch = false});
-
-  /// Die Fahrt mit aufzeichnen (9.4).
-  final bool record;
-
-  /// Die Route an die Garmin-Uhr schicken (Konzept-Garmin 2).
-  final bool watch;
-}
-
-/// Vor dem Start: Aufzeichnen (nur wenn es geht und noch keine läuft),
-/// Bildschirm (nur wo es den Weg gibt) und „Auf der Uhr zeigen" (nur mit
-/// verbundener Garmin-Uhr, Konzept-Garmin 2). Vorgabe aller: an
-/// (Betreiber, 2026-10-08 und 2026-11-03). Null heißt abgebrochen. [summary] steht unter
-/// dem Titel („2 Trails · 18,6 km"). [onWatchFound] läuft einmal, sobald
-/// das Blatt eine Uhr gefunden hat — die Karte rechnet dann schon, was an
-/// die Uhr geht (#449), während noch gelesen wird.
+/// Vor dem Start (#517): EIN Blatt mit den gemerkten Schaltern als Chips
+/// und EINEM Knopf „Fahrt starten" — für die Wege ohne Ergebnis des
+/// Planers („Meine Fahrten", „zuletzt navigiert"). Das Ergebnis des
+/// Planers zeigt dieselben Chips selbst ([NavStartOptions]). Null heißt
+/// abgebrochen. [summary] steht unter dem Titel („2 Trails · 18,6 km").
+/// [onWatchFound] läuft einmal, sobald eine Uhr gefunden ist — die Karte
+/// rechnet dann schon, was an die Uhr geht (#449), während noch gelesen
+/// wird.
 Future<NavStartChoice?> showNavStartSheet(BuildContext context,
         {required String title, required bool canRecord, String? summary, VoidCallback? onWatchFound}) =>
     showModalBottomSheet<NavStartChoice>(
@@ -108,21 +99,32 @@ String navStartSummary(AppLocalizations l, NavRequest request) {
   return l.navStartSummary(trails, formatMeters(route.lengthM));
 }
 
-class _NavStartSheet extends ConsumerStatefulWidget {
-  const _NavStartSheet({required this.title, required this.summary, required this.canRecord, this.onWatchFound});
+/// Was die Chips gerade sagen ([NavStartOptions]): Aufzeichnen nur, wenn
+/// es geht und noch keine Fahrt läuft ([canRecord]); die Uhr nur, wenn
+/// eine da ist.
+NavStartChoice navStartChoiceOf(WidgetRef ref, {required bool canRecord}) {
+  final watch = ref.read(watchStatusProvider).valueOrNull ?? WatchStatus.none;
+  return NavStartChoice(
+    record: canRecord && ref.read(navRecordProvider),
+    watch: watch.canShow && ref.read(navWatchProvider),
+  );
+}
 
-  final String title;
-  final String? summary;
+/// Die gemerkten Schalter vor dem Start als Chips (#517, Konzept-Geräte
+/// 5.2): Aufzeichnen (nur mit [canRecord]), Uhr (nur mit Uhr), Bildschirm
+/// (nur wo es den Weg gibt), Handy am Rad oder in der Tasche (nur mit
+/// laufender Erkennung, #491). Alle gemerkt; Vorgabe an, die Tasche aus.
+class NavStartOptions extends ConsumerStatefulWidget {
+  const NavStartOptions({super.key, required this.canRecord, this.onWatchFound});
+
   final bool canRecord;
   final VoidCallback? onWatchFound;
 
   @override
-  ConsumerState<_NavStartSheet> createState() => _NavStartSheetState();
+  ConsumerState<NavStartOptions> createState() => _NavStartOptionsState();
 }
 
-class _NavStartSheetState extends ConsumerState<_NavStartSheet> {
-  bool _record = true;
-  bool _watch = true;
+class _NavStartOptionsState extends ConsumerState<NavStartOptions> {
   bool _found = false;
 
   @override
@@ -140,14 +142,112 @@ class _NavStartSheetState extends ConsumerState<_NavStartSheet> {
     final theme = Theme.of(context);
     final l = context.l10n;
     final screen = ref.watch(screenAwakeProvider).supported;
-    final summary = widget.summary;
     final watchAsk = ref.watch(watchStatusProvider);
     final watch = watchAsk.valueOrNull ?? WatchStatus.none;
     final presence = ref.watch(watchPresenceProvider);
     // Die erste Frage nach der Uhr startet das SDK und kann Sekunden
-    // dauern: Die Zeile sagt es, statt dass der Schalter später auftaucht
-    // und wer schnell „Los" tippt, ohne Uhr startet.
+    // dauern: Der Chip sagt es, statt dass er später auftaucht und wer
+    // schnell startet, ohne Uhr fährt.
     final watchSearching = watchAsk.isLoading && ref.watch(garminBridgeProvider).supported;
+    final record = widget.canRecord && ref.watch(navRecordProvider);
+    // Wo das Handy steckt, zählt nur für die Erkennung (#491) — und nur,
+    // wenn aufgezeichnet wird oder schon eine Fahrt läuft.
+    final place = ref.watch(sensorLogProvider) && (record || ref.watch(rideProvider) != null);
+    final pocket = ref.watch(ridePhoneInPocketProvider);
+    Widget chip(String key, IconData icon, String label, bool on, ValueChanged<bool> set) => FilterChip(
+          key: ValueKey(key),
+          avatar: Icon(icon, size: 18),
+          label: Text(label),
+          selected: on,
+          showCheckmark: false,
+          onSelected: set,
+          // Eingeklappt muss das Ergebnis bis „Fahrt starten" passen
+          // (Pixel XL, `loop_planner_flow_test`).
+          visualDensity: VisualDensity.compact,
+          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Wrap(
+          key: const ValueKey('nav-start-chips'),
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            if (widget.canRecord)
+              chip('nav-record', Icons.fiber_manual_record_outlined, l.navChipRecord, record,
+                  (v) => ref.read(navRecordProvider.notifier).set(v)),
+            if (watch.canShow)
+              // Der Name der Uhr sagt, welche (#449).
+              chip('nav-watch', Icons.watch_outlined, watch.device ?? l.navChipWatch, ref.watch(navWatchProvider),
+                  (v) => ref.read(navWatchProvider.notifier).set(v))
+            else if (watchSearching)
+              Chip(
+                key: const ValueKey('nav-watch-searching'),
+                avatar: const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2)),
+                label: Text(l.navWatchSearching),
+              ),
+            if (screen)
+              chip('nav-screen', Icons.light_mode_outlined, l.navChipScreen, ref.watch(navKeepScreenOnProvider),
+                  (v) => ref.read(navKeepScreenOnProvider.notifier).set(v)),
+            if (place)
+              chip('nav-pocket', pocket ? Icons.back_hand_outlined : Icons.pedal_bike,
+                  pocket ? l.navChipPocket : l.navChipBike, pocket,
+                  (v) => ref.read(ridePhoneInPocketProvider.notifier).set(v)),
+          ],
+        ),
+        // Auch hier vor dem Start: die Uhr sagt, was sie tut (#499).
+        if (watch.canShow && presence.recording)
+          Padding(
+            key: const ValueKey('nav-watch-record'),
+            padding: const EdgeInsets.only(top: 6),
+            child: Text(
+              presence.record == WatchRecord.paused ? l.navWatchPaused : l.navWatchRecording,
+              style: theme.textTheme.bodySmall?.copyWith(color: theme.hintColor),
+            ),
+          ),
+        if (place && pocket)
+          Padding(
+            key: const ValueKey('nav-pocket-note'),
+            padding: const EdgeInsets.only(top: 6),
+            child: Text(l.navPocketNote, style: theme.textTheme.bodySmall?.copyWith(color: theme.hintColor)),
+          ),
+      ],
+    );
+  }
+}
+
+/// „Fahrt starten" — derselbe Knopf im Ergebnis und im Blatt.
+class NavStartButton extends StatelessWidget {
+  const NavStartButton({super.key, required this.onPressed, this.buttonKey = 'nav-go'});
+
+  final VoidCallback onPressed;
+  final String buttonKey;
+
+  @override
+  Widget build(BuildContext context) => FilledButton.icon(
+        key: ValueKey(buttonKey),
+        style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(48)),
+        onPressed: onPressed,
+        icon: const Icon(Icons.navigation_outlined),
+        label: Text(context.l10n.navStartButton),
+      );
+}
+
+class _NavStartSheet extends ConsumerWidget {
+  const _NavStartSheet({required this.title, required this.summary, required this.canRecord, this.onWatchFound});
+
+  final String title;
+  final String? summary;
+  final bool canRecord;
+  final VoidCallback? onWatchFound;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final l = context.l10n;
+    final summary = this.summary;
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
@@ -156,71 +256,18 @@ class _NavStartSheetState extends ConsumerState<_NavStartSheet> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(l.navStartTitle, style: theme.textTheme.titleLarge),
-            Text(widget.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodyMedium),
+            Text(title, maxLines: 2, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodyMedium),
             if (summary != null && summary.isNotEmpty)
               KeyedSubtree(
                   key: const ValueKey('nav-summary'),
                   child: Text(summary, style: theme.textTheme.bodySmall?.copyWith(color: theme.hintColor))),
-            const SizedBox(height: 8),
-            if (widget.canRecord)
-              SwitchListTile(
-                key: const ValueKey('nav-record'),
-                contentPadding: EdgeInsets.zero,
-                title: Text(l.navRecordTitle),
-                subtitle: Text(l.navRecordSubtitle),
-                value: _record,
-                onChanged: (v) => setState(() => _record = v),
-              ),
-            if (screen)
-              SwitchListTile(
-                key: const ValueKey('nav-screen'),
-                contentPadding: EdgeInsets.zero,
-                title: Text(l.navScreenTitle),
-                subtitle: Text(l.navScreenSubtitle),
-                value: ref.watch(navKeepScreenOnProvider),
-                onChanged: (v) => ref.read(navKeepScreenOnProvider.notifier).set(v),
-              ),
-            if (watchSearching)
-              Padding(
-                key: const ValueKey('nav-watch-searching'),
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                child: Row(children: [
-                  const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)),
-                  const SizedBox(width: 12),
-                  Expanded(
-                      child: Text(l.navWatchSearching,
-                          style: theme.textTheme.bodyMedium?.copyWith(color: theme.hintColor))),
-                ]),
-              ),
-            if (watch.canShow)
-              SwitchListTile(
-                key: const ValueKey('nav-watch'),
-                contentPadding: EdgeInsets.zero,
-                title: Text(l.navWatchTitle),
-                subtitle: Text(l.navWatchSubtitle(watch.device!)),
-                value: _watch,
-                onChanged: (v) => setState(() => _watch = v),
-              ),
-            // Auch hier vor dem Start: die Uhr sagt, was sie tut (#499).
-            if (watch.canShow && presence.recording)
-              Padding(
-                key: const ValueKey('nav-watch-record'),
-                padding: const EdgeInsets.only(bottom: 6),
-                child: Text(
-                  presence.record == WatchRecord.paused ? l.navWatchPaused : l.navWatchRecording,
-                  style: theme.textTheme.bodySmall?.copyWith(color: theme.hintColor),
-                ),
-              ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
+            NavStartOptions(canRecord: canRecord, onWatchFound: onWatchFound),
+            const SizedBox(height: 12),
             Text(l.navStartHint, style: theme.textTheme.bodySmall?.copyWith(color: theme.hintColor)),
             const SizedBox(height: 12),
-            FilledButton.icon(
-              key: const ValueKey('nav-go'),
-              style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(48)),
-              onPressed: () => Navigator.of(context)
-                  .pop(NavStartChoice(record: widget.canRecord && _record, watch: watch.canShow && _watch)),
-              icon: const Icon(Icons.navigation_outlined),
-              label: Text(l.navStartButton),
+            NavStartButton(
+              onPressed: () => Navigator.of(context).pop(navStartChoiceOf(ref, canRecord: canRecord)),
             ),
           ],
         ),
@@ -237,10 +284,24 @@ class _NavStartSheetState extends ConsumerState<_NavStartSheet> {
 /// Bildschirm-Schalter gilt nicht, dann ist die Benachrichtigung die
 /// Anzeige (9.4).
 class NavOverlay extends ConsumerStatefulWidget {
-  const NavOverlay({super.key, required this.session, required this.onStop, this.compact = false});
+  const NavOverlay(
+      {super.key,
+      required this.session,
+      required this.onStop,
+      this.onMark,
+      this.markOpen = false,
+      this.compact = false});
 
   final NavSession session;
+
+  /// „Fahrt beenden" (#517): Die Karte fragt, wenn eine Aufzeichnung
+  /// mitläuft ([showNavEndSheet]).
   final VoidCallback onStop;
+
+  /// „Trail beginnt" / „Trail endet" (#105) als Knopf mit Wort (#517); null
+  /// ohne laufende Aufzeichnung. [markOpen]: ein markierter Trail läuft.
+  final VoidCallback? onMark;
+  final bool markOpen;
   final bool compact;
 
   @override
@@ -354,6 +415,7 @@ class _NavOverlayState extends ConsumerState<NavOverlay> {
                     _RouteBand(session: session),
                     const SizedBox(height: 10),
                   ],
+                  _RideStatusRow(onMark: widget.onMark, markOpen: widget.markOpen),
                   if (offer || replan) ...[
                     Wrap(
                       alignment: WrapAlignment.center,
@@ -402,19 +464,30 @@ class _NavOverlayState extends ConsumerState<NavOverlay> {
                         const SizedBox(width: 10),
                         _WatchBadge(state: state),
                       ],
-                      const Spacer(),
-                      FilledButton.icon(
-                        key: const ValueKey('nav-stop'),
-                        style: FilledButton.styleFrom(
-                          minimumSize: const Size(0, 48),
-                          backgroundColor: AppColors.brand,
-                          foregroundColor: AppColors.onBrand,
-                          shape: const StadiumBorder(),
-                          padding: const EdgeInsets.fromLTRB(16, 0, 20, 0),
+                      const SizedBox(width: 10),
+                      // „Fahrt beenden" (#517) nimmt den Rest der Reihe; mit
+                      // allen vier runden Knöpfen auf 360 dp schrumpft die
+                      // Schrift, statt über den Rand zu laufen.
+                      Expanded(
+                        child: Align(
+                          alignment: Alignment.centerRight,
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: FilledButton.icon(
+                              key: const ValueKey('nav-stop'),
+                              style: FilledButton.styleFrom(
+                                minimumSize: const Size(0, 48),
+                                backgroundColor: AppColors.brand,
+                                foregroundColor: AppColors.onBrand,
+                                shape: const StadiumBorder(),
+                                padding: const EdgeInsets.fromLTRB(14, 0, 18, 0),
+                              ),
+                              onPressed: widget.onStop,
+                              icon: const Icon(Icons.stop_circle_outlined, size: 18),
+                              label: Text(l.navStop),
+                            ),
+                          ),
                         ),
-                        onPressed: widget.onStop,
-                        icon: const Icon(Icons.close, size: 18),
-                        label: Text(l.navStop),
                       ),
                     ],
                   ),
@@ -428,6 +501,118 @@ class _NavOverlayState extends ConsumerState<NavOverlay> {
           Align(
             alignment: Alignment.bottomCenter,
             child: _TrailDoneSheet(key: ObjectKey(done), done: done, next: phase),
+          ),
+      ]),
+    );
+  }
+}
+
+/// Was „Fahrt beenden" beendet (#517).
+enum NavEnd {
+  /// Navigation und Aufzeichnung, danach das Zerlege-Blatt.
+  all,
+
+  /// Nur die Navigation; die Aufzeichnung läuft weiter (9.4).
+  navOnly,
+}
+
+/// Die Frage hinter „Fahrt beenden", wenn eine Aufzeichnung mitläuft
+/// (#517, Konzept-Routing 9.4). Null heißt: weiterfahren.
+Future<NavEnd?> showNavEndSheet(BuildContext context) => showModalBottomSheet<NavEnd>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) {
+        final l = context.l10n;
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+                child: Text(l.navEndTitle, style: Theme.of(context).textTheme.titleLarge),
+              ),
+              ListTile(
+                key: const ValueKey('nav-end-all'),
+                leading: const Icon(Icons.stop_circle_outlined),
+                title: Text(l.navEndAll),
+                subtitle: Text(l.navEndAllHint),
+                onTap: () => Navigator.of(context).pop(NavEnd.all),
+              ),
+              ListTile(
+                key: const ValueKey('nav-end-nav-only'),
+                leading: const Icon(Icons.navigation_outlined),
+                title: Text(l.navEndNavOnly),
+                subtitle: Text(l.navEndNavOnlyHint),
+                onTap: () => Navigator.of(context).pop(NavEnd.navOnly),
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        );
+      },
+    );
+
+/// Der Stand der Fahrt über den Knöpfen (#517, Konzept-Geräte 5.2 und F5):
+/// Aufnahme · Uhr · Sprünge an (oder „Halterung lernt", „Tasche: nur
+/// Sprünge"), daneben „Trail beginnt"/„Trail endet" als Knopf mit Wort.
+/// Ohne Aufnahme und ohne Uhr steht nichts da.
+class _RideStatusRow extends ConsumerWidget {
+  const _RideStatusRow({required this.onMark, required this.markOpen});
+
+  final VoidCallback? onMark;
+  final bool markOpen;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l = context.l10n;
+    final recording = ref.watch(rideProvider) != null;
+    final watch = ref.watch(watchSyncProvider).phase != WatchSyncPhase.idle;
+    final live = ref.watch(airtimeLiveProvider);
+    final jumps = !live.active
+        ? null
+        : live.pocket
+            ? l.navStatusPocket
+            : (live.now ?? live.ticks.lastOrNull)?.mountReady ?? false
+                ? l.navStatusJumps
+                : l.navStatusLearning;
+    final parts = [
+      if (recording) l.navStatusRecording,
+      if (watch) l.navStatusWatch,
+      ?jumps,
+    ];
+    if (parts.isEmpty && onMark == null) return const SizedBox.shrink();
+    final mark = onMark;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(children: [
+        Expanded(
+          key: const ValueKey('nav-ride-status'),
+          child: Text(
+            parts.join(' · '),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: _p.text,
+              shadows: const [Shadow(blurRadius: 6, color: Color(0xCC000000))],
+            ),
+          ),
+        ),
+        if (mark != null)
+          FilledButton.icon(
+            key: const ValueKey('nav-mark'),
+            style: FilledButton.styleFrom(
+              minimumSize: const Size(0, 44),
+              backgroundColor: markOpen ? AppColors.brand : _p.ground,
+              foregroundColor: markOpen ? AppColors.onBrand : _p.text,
+              shape: StadiumBorder(side: BorderSide(color: markOpen ? AppColors.brand : _p.line)),
+              padding: const EdgeInsets.fromLTRB(14, 0, 18, 0),
+            ),
+            onPressed: mark,
+            icon: Icon(markOpen ? Icons.sports_score : Icons.flag_outlined, size: 18),
+            label: Text(markOpen ? l.rideMarkEndTooltip : l.rideMarkStartTooltip),
           ),
       ]),
     );
@@ -1565,16 +1750,21 @@ TrailValues? _liveValues(WidgetRef ref, DateTime? from, {DateTime? to}) {
 
 /// AIRTIME · MAX G · WHEELIE · STOPPIE (Entwurf 1a, Stoppie dazu vom
 /// Betreiber 2026-10-31) — auf dem Trail und im Blatt „Trail geschafft".
-class _AirTiles extends StatelessWidget {
+///
+/// Steckt das Handy in der Tasche (#491), stehen statt Wheelie und Stoppie
+/// eine Kachel mit dem Grund — keine Nullen, die nach „nicht geschafft"
+/// aussähen.
+class _AirTiles extends ConsumerWidget {
   const _AirTiles({required this.values, required this.keyPrefix});
 
   final TrailValues values;
   final String keyPrefix;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l = context.l10n;
     final v = values;
+    final pocket = ref.watch(airtimeLiveProvider.select((s) => s.pocket));
     final tiles = [
       _DoneTile(
         key: ValueKey('$keyPrefix-time'),
@@ -1588,6 +1778,14 @@ class _AirTiles extends StatelessWidget {
         value: v.maxG == null ? '–' : airtimeNumber(l, v.maxG!, 1),
         unit: 'G',
       ),
+      if (pocket)
+        _DoneTile(
+          key: ValueKey('$keyPrefix-pocket'),
+          label: l.navValuePocketLabel,
+          value: '–',
+          unit: l.navValuePocket,
+        )
+      else ...[
       _DoneTile(
         key: ValueKey('$keyPrefix-wheelie'),
         label: l.navValueWheelie,
@@ -1600,11 +1798,13 @@ class _AirTiles extends StatelessWidget {
         value: '${v.stoppies}',
         unit: v.stoppies == 0 ? '' : l.navValueStoppieUnit(airtimeNumber(l, v.steepestStoppieDeg, 0)),
       ),
+      ],
     ];
     return Row(children: [
       for (final (i, t) in tiles.indexed) ...[
         if (i > 0) const SizedBox(width: 6),
-        Expanded(child: t),
+        // Die Kachel der Tasche steht für zwei.
+        Expanded(flex: pocket && i == 2 ? 2 : 1, child: t),
       ],
     ]);
   }

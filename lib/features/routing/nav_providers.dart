@@ -41,7 +41,8 @@ class NavRequest {
       this.sections,
       this.fromPlanner = false,
       this.profile,
-      this.routePrefs});
+      this.routePrefs,
+      this.start});
 
   /// Die Linie in Fahrtrichtung, wie sie die Karte zeichnet.
   final List<LatLng> points;
@@ -65,6 +66,23 @@ class NavRequest {
   /// das aktuelle Profil und die gemerkten Vorlieben.
   final RiderProfile? profile;
   final RoutePrefs? routePrefs;
+
+  /// Schon gewählt (#517): Das Ergebnis des Planers IST das Start-Blatt —
+  /// die Karte fragt dann nicht noch einmal. Null: Sie fragt
+  /// (`showNavStartSheet`, aus „Meine Fahrten" und „zuletzt navigiert").
+  final NavStartChoice? start;
+}
+
+/// Was beim Start gewählt ist: Aufzeichnen, Uhr. Bildschirm und Ort des
+/// Handys sind gemerkte Schalter, die gelten ohnehin.
+class NavStartChoice {
+  const NavStartChoice({required this.record, this.watch = false});
+
+  /// Die Fahrt mit aufzeichnen (9.4).
+  final bool record;
+
+  /// Die Route an die Garmin-Uhr schicken (Konzept-Garmin 2).
+  final bool watch;
 }
 
 final navRequestProvider = StateProvider<NavRequest?>((ref) => null);
@@ -638,5 +656,23 @@ final navKeepScreenOnProvider = NotifierProvider<RememberedFlag, bool>(
     read: (s) => s.navKeepScreenOn,
     write: (s, v) => s.setNavKeepScreenOn(v),
     label: 'Bildschirm-Schalter der Navigation merken',
+  ),
+);
+
+/// „Aufzeichnen" beim Start (#517, 9.4), gemerkt auf dem Gerät.
+final navRecordProvider = NotifierProvider<RememberedFlag, bool>(
+  () => RememberedFlag(
+    read: (s) => s.navRecord,
+    write: (s, v) => s.setNavRecord(v),
+    label: 'Aufzeichnen-Schalter der Navigation merken',
+  ),
+);
+
+/// „Uhr" beim Start (#517), gemerkt auf dem Gerät.
+final navWatchProvider = NotifierProvider<RememberedFlag, bool>(
+  () => RememberedFlag(
+    read: (s) => s.navWatch,
+    write: (s, v) => s.setNavWatch(v),
+    label: 'Uhr-Schalter der Navigation merken',
   ),
 );

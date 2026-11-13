@@ -32,6 +32,7 @@ import 'package:trailbuddy/features/offline_areas/pmtiles_writer.dart';
 import 'package:trailbuddy/features/keep_alive/keep_alive.dart';
 import 'package:trailbuddy/features/rides/airtime_live.dart';
 import 'package:trailbuddy/features/rides/airtime_message.dart';
+import 'package:trailbuddy/features/rides/ride_providers.dart' show rideProvider;
 import 'package:trailbuddy/features/rides/ride_track.dart';
 import 'package:trailbuddy/features/rides/sensor_fusion.dart';
 import 'package:trailbuddy/features/routing/nav_notice.dart';
@@ -47,6 +48,7 @@ import '../fakes/fake_keep_alive.dart';
 import '../fakes/fake_map_view.dart';
 import '../fakes/route_lines.dart';
 import '../fakes/fake_rides.dart';
+import '../fakes/fake_settings.dart';
 import '../fakes/fake_tiles.dart';
 import '../fakes/fake_trails.dart';
 import '../fakes/test_app.dart';
@@ -197,6 +199,8 @@ void main() {
       FakePositionFix? positionFix,
       FakeGarminBridge? garmin,
       List<Override> overrides = const [],
+      FakeSettings? settings,
+      FakeRideServiceBridge? rideBridge,
       _FakePip? pip}) async {
     if (phone) {
       tester.view.physicalSize = const Size(1080, 2400);
@@ -213,6 +217,8 @@ void main() {
         keepAlive: keepAlive,
         navBridge: navBridge,
         garmin: garmin,
+        settings: settings,
+        rideBridge: rideBridge,
         rideFix: FakeRideFix()
           ..next = RidePoint(lat: start.latitude, lng: start.longitude, at: DateTime.now().toUtc(), accuracyM: 5),
         positionStream: fixes.stream,
@@ -243,8 +249,8 @@ void main() {
     await startFromRides(tester);
     // Der Start-Dialog: beide Schalter an (Betreiber, 2026-10-08).
     expect(find.byKey(const ValueKey('nav-go')), findsOneWidget);
-    expect(tester.widget<SwitchListTile>(find.byKey(const ValueKey('nav-record'))).value, isTrue);
-    expect(tester.widget<SwitchListTile>(find.byKey(const ValueKey('nav-screen'))).value, isTrue);
+    expect(tester.widget<FilterChip>(find.byKey(const ValueKey('nav-record'))).selected, isTrue);
+    expect(tester.widget<FilterChip>(find.byKey(const ValueKey('nav-screen'))).selected, isTrue);
     await tester.tap(find.byKey(const ValueKey('nav-go')));
     await settle(tester);
 
@@ -474,6 +480,16 @@ void main() {
     expect(textIn('nav-air-wheelie'), contains('bis 8 m'));
     expect(textIn('nav-air-stoppie'), contains('bis 17°'));
     await tester.pump(const Duration(seconds: 2));
+    // Erkennt der Dienst die Tasche (#491), steht statt Wheelie und Stoppie
+    // eine Kachel mit dem Grund — keine Nullen; zurück am Rad wieder beide.
+    final live = container.read(airtimeLiveProvider.notifier);
+    live.accept(encodeAirtimePocket(file, pocket: true, declared: false));
+    await settle(tester, frames: 2);
+    expect(find.byKey(const ValueKey('nav-air-wheelie')), findsNothing);
+    expect(textIn('nav-air-pocket'), contains('nur am Rad'));
+    live.accept(encodeAirtimePocket(file, pocket: false, declared: false));
+    await settle(tester, frames: 2);
+    expect(find.byKey(const ValueKey('nav-air-wheelie')), findsOneWidget);
 
     // Am Ende: dieselben Werte in der Bilanz.
     await fix(tester, 48.011, 9.0, heading: 0, speed: 5, at: t.add(const Duration(seconds: 102)));
@@ -1143,6 +1159,90 @@ void main() {
     expect(watch.sent, isEmpty);
     expect(find.byKey(const ValueKey('map-watch-missing')), findsOneWidget);
     expect(find.byKey(const ValueKey('nav-approach')), findsOneWidget);
+  });
+
+  // #517: EIN Ende. Läuft eine Aufzeichnung mit, fragt „Fahrt beenden",
+  // ob nur die Navigation enden soll; die Fahne steht als Knopf mit Wort.
+  testWidgets('#517: Fahrt beenden fragt, wenn aufgezeichnet wird — nur Navigation, die Fahrt läuft weiter',
+      (tester) async {
+    await startFromRides(tester);
+    expect(tester.widget<FilterChip>(find.byKey(const ValueKey('nav-record'))).selected, isTrue);
+    await tester.tap(find.byKey(const ValueKey('nav-go')));
+    await settle(tester);
+    expect(service.starts, 1, reason: 'Aufzeichnen ist ab Werk an');
+    expect(textIn('nav-ride-status'), contains('Aufnahme'));
+    expect(find.text('Trail beginnt'), findsOneWidget, reason: 'die Fahne mit Wort');
+    await tester.tap(find.byKey(const ValueKey('nav-mark')));
+    await settle(tester);
+    expect(find.text('Trail endet'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('nav-stop')));
+    await settle(tester);
+    expect(find.byKey(const ValueKey('nav-approach')), findsOneWidget, reason: 'erst fragen');
+    await tester.tap(find.byKey(const ValueKey('nav-end-nav-only')));
+    await settle(tester);
+    expect(find.byKey(const ValueKey('nav-approach')), findsNothing);
+    final container = ProviderScope.containerOf(tester.element(find.byType(NavigationBar)));
+    expect(container.read(rideProvider), isNotNull, reason: 'die Aufzeichnung läuft weiter');
+    expect(find.byKey(const ValueKey('ride-mark-button')), findsOneWidget);
+  });
+
+  testWidgets('#517: Fahrt beenden — beides endet, und abbrechen fährt weiter', (tester) async {
+    await startFromRides(tester);
+    await tester.tap(find.byKey(const ValueKey('nav-go')));
+    await settle(tester);
+    final container = ProviderScope.containerOf(tester.element(find.byKey(const ValueKey('nav-stop'))));
+    // Weggewischt: weiterfahren.
+    await tester.tap(find.byKey(const ValueKey('nav-stop')));
+    await settle(tester);
+    await tester.tapAt(const Offset(10, 10));
+    await settle(tester);
+    expect(find.byKey(const ValueKey('nav-approach')), findsOneWidget);
+    expect(container.read(rideProvider), isNotNull);
+
+    await tester.tap(find.byKey(const ValueKey('nav-stop')));
+    await settle(tester);
+    await tester.tap(find.byKey(const ValueKey('nav-end-all')));
+    await settle(tester);
+    expect(find.byKey(const ValueKey('nav-approach')), findsNothing);
+    expect(container.read(rideProvider), isNull, reason: 'Navigation UND Aufzeichnung');
+    expect(container.read(navigationProvider), isNull);
+  });
+
+  testWidgets('#491/#517: der Ort des Handys als Chip — gemerkt und in der Brücke, nur mit Erkennung', (tester) async {
+    final settings = FakeSettings()..sensorLogEnabled = true;
+    final bridge = FakeRideServiceBridge();
+    await startFromRides(tester, settings: settings, rideBridge: bridge);
+    expect(find.text('Handy am Rad'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('nav-pocket')));
+    await settle(tester, frames: 2);
+    expect(find.text('Handy in der Tasche'), findsOneWidget);
+    expect(find.byKey(const ValueKey('nav-pocket-note')), findsOneWidget);
+    expect(settings.ridePhoneInPocket, isTrue);
+    // Ohne Aufzeichnen zählt der Ort nicht: Der Chip geht.
+    await tester.tap(find.byKey(const ValueKey('nav-record')));
+    await settle(tester, frames: 2);
+    expect(find.byKey(const ValueKey('nav-pocket')), findsNothing);
+    expect(settings.navRecord, isFalse, reason: 'gemerkt');
+    await tester.tap(find.byKey(const ValueKey('nav-record')));
+    await settle(tester, frames: 2);
+    await tester.tap(find.byKey(const ValueKey('nav-go')));
+    await settle(tester);
+    expect(bridge.sensorLog, isTrue);
+    expect(bridge.phoneInPocket, isTrue);
+
+    // In der Tasche (vom Dienst gemeldet): kein Wheelie, keine Null — die
+    // Zeile sagt es.
+    final container = ProviderScope.containerOf(tester.element(find.byKey(const ValueKey('nav-stop'))));
+    container.read(airtimeLiveProvider.notifier)
+        .accept(encodeAirtimePocket('/rides/sensors/x.csv', pocket: true, declared: true));
+    await settle(tester, frames: 2);
+    expect(textIn('nav-ride-status'), contains('Tasche: nur Sprünge'));
+  });
+
+  testWidgets('#491: ohne Erkennung kein Chip für den Ort des Handys', (tester) async {
+    await startFromRides(tester);
+    expect(find.byKey(const ValueKey('nav-pocket')), findsNothing);
   });
 
   testWidgets('taps on the map do nothing while navigating; Beenden asks nothing', (tester) async {

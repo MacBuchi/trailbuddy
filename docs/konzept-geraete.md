@@ -134,7 +134,7 @@ Trail-Werten, Aufzeichnung und „Fahrt beendet". Nicht am Gerät.*
 | Parameter | Ein Blatt über drei Bildschirmhöhen: Start, Rad, vier Regler, Ende, Zwischenpunkte, vier Schalter, Online-Ergänzen, Erklärtext. Was man jedes Mal anfasst (Zeit, Höhenmeter), steht neben dem, was man einmal einstellt. |
 | Ergebnis | Die Summe bricht als ein Satz in Mono über zwei Zeilen; „Navigieren" öffnet ein ZWEITES Blatt mit Schaltern und dem eigentlichen Startknopf — zwei Bestätigungen bis zur Fahrt. |
 | Meldungen | „… dazugenommen · Rückgängig" liegt über dem unteren Ende der Leiste und über „Meine Position". |
-| Fahrt läuft | Navigation und Aufzeichnung haben getrennte Enden (9.4); „Beenden" in der Folgeansicht beendet nur die Navigation. „Trail beginnt" ist eine Fahne ohne Wort. |
+| Fahrt läuft | Navigation und Aufzeichnung haben getrennte Enden (9.4); „Beenden" in der Folgeansicht beendet nur die Navigation. „Trail beginnt" ist eine Fahne ohne Wort. **Gebaut in 0.171.0 (#517):** ein Ende mit Frage, Stand-Zeile, Fahne mit Wort. |
 
 Was gut ist und bleibt: die Folgeansicht (dunkle Karten, Band, Kacheln
 AIRTIME · MAX G · WHEELIE · STOPPIE), das Ergebnis über der Karte, Tipp
@@ -155,6 +155,9 @@ auf den Trail als Auswahl, die Regeln aus 10.4/10.5.
 - **Ergebnis und Start in einem**: Summe als vier Kacheln, Profil, die
   gemerkten Schalter als Chips (Aufzeichnen, Uhr, Bildschirm), EIN Knopf
   „Fahrt starten". Speichern, „Auf die Uhr" (E3) und GPX darunter.
+  **Gebaut in 0.171.0 (#517)**, ohne „Auf die Uhr" (wartet auf E3,
+  #515); das eingeklappte Ergebnis darf dafür bis 60 % hoch werden
+  (vorher 55 %).
 - **Fahrt läuft**: die heutige Folgeansicht, dazu eine Zeile mit dem
   Stand (Aufnahme, Uhr, Sprünge an) und „Trail beginnt" als Knopf. Ein
   Ende „Fahrt beenden", das fragt, wenn nur die Navigation enden soll.
@@ -163,7 +166,11 @@ auf den Trail als Auswahl, die Regeln aus 10.4/10.5.
   `FusionMount`) oder „in der Tasche". Nur am Rad gibt es Wheelies und
   Stoppies, in der Tasche Sprünge nur mit harter Landung, und erkennt
   die App die Tasche selbst, gilt das auch ohne Angabe (#491,
-  `recherche-sensorfusion.md` 11). Das Zeichen der Uhr kommt nur mit
+  `recherche-sensorfusion.md` 11). **Gebaut in 0.171.0** als Chip
+  „Handy am Rad / in der Tasche" (nur mit Erkennung und Aufzeichnen) und
+  als Regel im Dienst (`pocket_watch.dart`, bitgleich zu
+  `tool/pocket_measure.py`); in der Tasche wird keine Halterung geladen
+  oder gespeichert. Das Zeichen der Uhr kommt nur mit
   gelernter Halterung (`konzept-garmin.md` 11).
 
 Die Regeln aus `konzept-routing.md` 10.4/10.5 bleiben; kommt der Kopf,
@@ -306,8 +313,10 @@ intuitiv?)"
     Schalter „nur Wheelie".
   - „Am Rad" fragt die App nicht ab, sie erkennt es: Hat die Fusion die
     Halterung gelernt (`FusionLive.mountReady`), steht in der Zeile des
-    Fahrt-Stands ein Chip „Sprünge an". Ohne feste Halterung steht dort
-    „Handy nicht am Rad" und die Wheelie-Kachel fehlt — mit Grund, nicht
+    Fahrt-Stands „Sprünge an". Gebaut (0.171.0) mit drei Wörtern statt
+    zwei: „Sprünge an", „Halterung lernt" (noch keine — am Anfang jeder
+    Fahrt ohne mitgebrachte) und „Tasche: nur Sprünge"; in der Tasche
+    fehlen Wheelie- und Stoppie-Kachel mit Grund („nur am Rad"), nicht
     mit einer Null (#491, #494).
   - Wer nichts gespeichert haben will, verwirft am Ende. Eine Fahrt ohne
     Speichern ist kein eigener Modus.

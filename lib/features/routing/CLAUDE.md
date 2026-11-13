@@ -525,7 +525,9 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     Einrast-Hinweis. **Eingeklappt heißt gemessen**: `_maybeFit` wartet
     einen Frame und fährt auf die Höhe bis unter die Knöpfe
     (`_resultSize`, `MapPanelController.fullHeight`), zwischen
-    `kMapPanelResult` (0,4) und `kMapPanelResultMax` (0,55) — 0,4 fest
+    `kMapPanelResult` (0,4) und `kMapPanelResultMax` (0,6; bis 0.170.0
+    0,55 — die Chips vor „Fahrt starten", #517, brauchten auf dem Pixel
+    XL 24 px mehr, auch mit kompakten Chips) — 0,4 fest
     schnitt am Pixel XL die Knöpfe ab, mit Stil-Wahl auch das Profil.
     Die Stil-Wahl bleibt oben: Unter den Knöpfen lag sie eingeklappt
     außer Sicht (ausprobiert, Flow-Tests rot).
@@ -873,7 +875,8 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
   - **Der Wunsch kommt von außen, die Karte löst ein**
     (`navRequestProvider`, Muster `trailHeadRequestProvider`): Ergebnis-
     Blätter und „Meine Fahrten" stellen ihn, `MapScreen` fragt
-    (`showNavStartSheet`: Aufzeichnen nur ohne laufende Fahrt, Bildschirm
+    (seit 0.171.0 nur ohne `NavRequest.start` — das Ergebnis des Planers
+    hat schon gewählt, #517; `showNavStartSheet`: Aufzeichnen nur ohne laufende Fahrt, Bildschirm
     nur mit `ScreenAwake.supported`), holt den EINEN Fix und schließt
     Blatt, Planer und Auswahl. Ohne Fix keine Navigation.
   - **Der Stand sucht zuerst im Fenster voraus** (800 m, 30 m zurück),
@@ -948,6 +951,37 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     „Navigation" im Profil (`/profile/navigation`) lässt kein Ende unter
     der Umplan-Schwelle zu. Tests: `nav_replan_test` (pur und Controller),
     `nav_notice_test` (#464), `navigation_flow_test` (#464).
+- **Ergebnis und Start in einem, ein Ende** (#517, seit 0.171.0;
+  Konzept-Routing 9.4, Konzept-Geräte 5.2). Fünf Dinge, die man wissen
+  muss:
+  - **`NavRequest.start` IST die Wahl**: Das Ergebnis des Planers setzt
+    sie aus den Chips (`navStartChoiceOf`), die Karte fragt dann nicht;
+    ohne (`Meine Fahrten`, „zuletzt navigiert") zeigt sie das Start-Blatt
+    mit DENSELBEN Chips (`NavStartOptions`) und demselben Knopf
+    (`NavStartButton`, im Ergebnis mit dem alten Schlüssel
+    `loop-navigate`, im Blatt `nav-go`). `canRecord` rechnet die Karte
+    beim Start noch einmal — eine inzwischen gestartete Fahrt gewinnt.
+  - **Alle Chips sind gemerkt** (`navRecordProvider`, `navWatchProvider`,
+    `navKeepScreenOnProvider`, `ridePhoneInPocketProvider`). Ein Test,
+    der Aufzeichnen ausschaltet, schaltet es für den REST des Tests aus
+    — ein zweites Start-Blatt im selben Test steht schon auf aus.
+  - **Der Chip „Handy am Rad / in der Tasche"** steht nur mit Erkennung
+    (`sensorLogProvider`) UND Aufzeichnen (oder laufender Fahrt) — ohne
+    Aufnahme gibt es nichts zu erkennen. Die Uhr heißt im Chip mit ihrem
+    Namen („fēnix 5").
+  - **„Fahrt beenden" fragt nur mit Aufzeichnung** (`_endFromNav` in
+    `map_screen.dart`, `showNavEndSheet`); „beides" ruft `_endRide`, den
+    Teil von `_toggleRide`, der auch das Zerlege-Blatt öffnet.
+    Bild-im-Bild beendet weiter nur die Navigation.
+  - **Die Fahne in der Folgeansicht** (`nav-mark`, `_RideStatusRow`) ruft
+    dasselbe `_toggleMark` wie die Karte; die Leiste „Trail beginnt …"
+    fällt dort weg, sie lag über „Fahrt beenden" (im Flow-Test gefunden:
+    der Tipp auf `nav-stop` traf die Leiste). Der Knopf „Fahrt beenden"
+    sitzt in `Expanded` + `FittedBox` — mit allen vier runden Knöpfen
+    lief er auf 360 dp 7 px über den Rand.
+  Tests: `navigation_flow_test` (#517, #491/#517), `trail_head_flow_test`
+  („Navigieren": kein Start-Blatt mehr). Gegenproben 2026-11-13: ohne
+  `start:` im Ergebnis, ohne die Frage, ohne die Taschen-Kachel — je rot.
 - **Navigation nach Abschnitten** (#312 N1, seit 0.114.0,
   `nav_sections.dart` pur, Phasen in `route_progress.dart`, Ansicht
   `nav_view.dart`; Konzept-Routing 9.9, Design 13). Sieben Dinge, die man

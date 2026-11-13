@@ -220,11 +220,14 @@ class FakeRideServiceBridge implements RideServiceBridge {
   DateTime? startedAt;
   int arms = 0;
   bool sensorLog = false;
+  bool phoneInPocket = false;
 
   @override
-  Future<void> arm({required String uid, required DateTime startedAt, bool sensorLog = false}) async {
+  Future<void> arm(
+      {required String uid, required DateTime startedAt, bool sensorLog = false, bool phoneInPocket = false}) async {
     armed = true;
     this.sensorLog = sensorLog;
+    this.phoneInPocket = phoneInPocket;
     arms++;
     this.uid = uid;
     this.startedAt = startedAt;

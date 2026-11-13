@@ -814,14 +814,20 @@ class _MapScreenState extends ConsumerState<MapScreen> {
           sections: navSectionsOfLine(context.l10n, request.points, trails),
           fromPlanner: request.fromPlanner,
           profile: request.profile,
-          routePrefs: request.routePrefs);
+          routePrefs: request.routePrefs,
+          start: request.start);
     }
     final watchSync = ref.read(watchSyncProvider.notifier);
-    final choice = await showNavStartSheet(context,
-        title: request.title,
-        canRecord: canRecord,
-        summary: navStartSummary(l, request),
-        onWatchFound: () => watchSync.prepare(request.points));
+    // Aus dem Ergebnis des Planers ist schon gewählt (#517): kein zweites
+    // Blatt. Sonst fragt das Start-Blatt mit denselben Chips.
+    final chosen = request.start;
+    final choice = chosen != null
+        ? NavStartChoice(record: canRecord && chosen.record, watch: chosen.watch)
+        : await showNavStartSheet(context,
+            title: request.title,
+            canRecord: canRecord,
+            summary: navStartSummary(l, request),
+            onWatchFound: () => watchSync.prepare(request.points));
     if (choice == null || !choice.watch) watchSync.discardPrepared();
     if (choice == null || !mounted) return;
     // Der erste Fix kann dauern (kalter Empfänger): Die Leiste sagt es,
@@ -964,7 +970,15 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       messenger.showSnackBar(SnackBar(content: Text(text)));
       return;
     }
-    final ride = await notifier.stop();
+    await _endRide();
+  }
+
+  /// Die Aufzeichnung beenden, dann das Zerlege-Blatt — vom Knopf auf der
+  /// Karte und von „Fahrt beenden" in der Folgeansicht (#517).
+  Future<void> _endRide() async {
+    final messenger = ScaffoldMessenger.of(context);
+    final l = context.l10n;
+    final ride = await ref.read(rideProvider.notifier).stop();
     if (!mounted) return;
     if (ride == null) return;
     if (ride.points.length < 2) {
@@ -987,6 +1001,21 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   /// Trail sieht man den Rand am Knopf nicht immer. Nach dem Ende geht
   /// das Namensfeld auf (#486), mit einem Vorschlag, wenn die App die
   /// Strecke kennt.
+  /// „Fahrt beenden" in der Folgeansicht (#517, Konzept-Routing 9.4): EIN
+  /// Ende. Läuft eine Aufzeichnung mit, fragt ein Blatt, ob nur die
+  /// Navigation enden soll; sonst endet sie ohne Frage.
+  Future<void> _endFromNav() async {
+    final nav = ref.read(navigationProvider.notifier);
+    if (!ref.read(rideProvider.notifier).isRunning) {
+      nav.stop();
+      return;
+    }
+    final end = await showNavEndSheet(context);
+    if (!mounted || end == null) return;
+    nav.stop();
+    if (end == NavEnd.all) await _endRide();
+  }
+
   Future<void> _toggleMark() async {
     final messenger = ScaffoldMessenger.of(context);
     final l = context.l10n;
@@ -997,7 +1026,12 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     final mark = await rides.toggleMark();
     if (!mounted) return;
     if (mark == null) return say(l.rideMarkFailed);
-    if (mark.kind == RideMarkKind.start) return say(l.rideMarkStart);
+    if (mark.kind == RideMarkKind.start) {
+      // In der Folgeansicht sagt es der Knopf selbst („Trail endet", #517) —
+      // die Leiste läge dort über „Fahrt beenden".
+      if (ref.read(navigationProvider) == null) say(l.rideMarkStart);
+      return;
+    }
     final ride = ref.read(rideProvider);
     final suggestion = ride == null
         ? null
@@ -1656,7 +1690,9 @@ class _MapScreenState extends ConsumerState<MapScreen> {
             NavOverlay(
               session: nav,
               compact: ref.watch(pipModeProvider),
-              onStop: () => ref.read(navigationProvider.notifier).stop(),
+              onStop: _endFromNav,
+              onMark: ride != null && canRecord ? _toggleMark : null,
+              markOpen: ride != null && markedTrailOpen(ride.marks),
             ),
           if (nav == null) ...[
           // Solange ein Werkzeug auf seinen Strich wartet, liegt die

@@ -798,9 +798,14 @@ Sonne liest sich Lime auf Dunkel. Im Code ist das der dunkle Satz
 `#2A3630`, Text `#F2F4EF`, gedämpft `#9AA69D`, Marke `#B6F04A`, Warnung
 `#FF8A3D`, Hinweis `#FFD23F`, Stufenfarben des dunklen Satzes (S2
 `#F0605C`). Karten mit Radius 14, 1 px Rand, Schatten; die runden
-Knöpfe tragen `dark: true` (`MapRoundButton`), „Beenden" ist eine
-Lime-Pille. **Die Reiterleiste ist weg, solange navigiert wird**
-(Vollbild) — „Beenden" bringt sie zurück.
+Knöpfe tragen `dark: true` (`MapRoundButton`), „Fahrt beenden" ist
+eine Lime-Pille (seit 0.171.0, #517; nimmt den Rest der Knopfzeile und
+verkleinert die Schrift, statt auf 360 dp über den Rand zu laufen).
+**Die Reiterleiste ist weg, solange navigiert wird** (Vollbild) —
+„Fahrt beenden" bringt sie zurück. Über der Knopfzeile die Stand-Zeile
+(„Aufnahme · Uhr · Sprünge an", 13 px, Text mit Schatten auf der Karte)
+und rechts „Trail beginnt"/„Trail endet" als Pille mit Wort: dunkel mit
+Rand, während ein markierter Trail läuft in Lime.
 
 **Oben steht der Abschnitt** (1a, je ein Zustand):
 
@@ -817,9 +822,14 @@ Lime-Pille. **Die Reiterleiste ist weg, solange navigiert wird**
 nach Länge — Anfahrten `#E8ECE6`, gefahrene Anfahrt `#2A3630`, Trails
 in Stufenfarbe, der Stand als 4-px-Strich in Lime; darunter die Namen
 der Trails, wo ≥ 40 px Platz ist, rechts „Ziel". Dann die Knopfzeile
-(Kompass, Bildschirm, „Beenden"); abseits darüber „Zurück zur Route"
-als dunkle Pille mit Lime-Text. Das Start-Blatt (1e) bekommt den
-Untertitel „2 Trails · 18,6 km".
+(Kompass, Bildschirm, „Fahrt beenden"); abseits darüber „Zurück zur
+Route" als dunkle Pille mit Lime-Text. Das Start-Blatt (1e) bekommt den
+Untertitel „2 Trails · 18,6 km". **Seit 0.171.0 (#517) ist das Ergebnis
+des Planers selbst der Start**: vier Kacheln (Strecke, Bergauf, Trails
+bzw. Bergab, Zeit; Fläche `surfaceContainerHighest`, Radius 12, Zahl in
+Mono), Profil, die Schalter als kompakte `FilterChip`s, „Fahrt starten"
+als volle Taste; Speichern und GPX als Textknöpfe darunter. Das
+Start-Blatt bleibt für „Meine Fahrten" mit denselben Chips.
 
 **Abweichungen vom Entwurf, bewusst:**
 

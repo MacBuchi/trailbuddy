@@ -352,6 +352,37 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     `de.mcbuchi.trailbuddy/sensors` in `MainActivity.kt` — gelesen im
     Main-Isolate beim `arm` (`kRideDataSensorRange`), denn im Dienst gibt
     es den Kanal der Activity nicht.
+- **Handy in der Tasche** (#491, seit 0.171.0, `pocket_watch.dart` pur;
+  Recherche Sensorfusion 11). Vier Dinge, die man wissen muss:
+  - **Die Regel ist die des Werkzeugs, bitgleich**: `PocketWatch` =
+    `windows` + `classify` aus `tool/pocket_measure.py` (10-s-Fenster in
+    Fahrt, ruhig = Streuung |a| < 4 m/s², Tasche = Median der Drehung der
+    letzten 12 ruhigen Fenster > 0,35 rad/s). Die Synthetik zieht in
+    beiden Sprachen dasselbe `Noise` in ganzen Mikrosekunden;
+    `pocket_watch_test` vergleicht neun Stellen mit
+    `pocket_measure.py --fingerprint`. Wer die Regel ändert, ändert beide
+    und druckt die Zahlen neu. Ein Fenster schließt erst, wenn beide
+    Sensoren UND ein GPS-Punkt hinter seinem Ende liegen.
+  - **Die Fusion bleibt unberührt** (Dart = Werkzeug, oben): Die Tasche
+    filtert im Logger (`pocketKeeps`: kein Wheelie, kein Stoppie, Sprung
+    nur mit Landung ≥ 3,5 g) — weder Zeile noch Banner noch Nachricht.
+    Die Rohdaten bleiben vollständig; `# pocket` im Kopf (angegeben) und
+    die Zeile `o,<µs>,1|0` (erkannt) sagen dem Werkzeug, was galt.
+  - **Halterung**: angegeben ⇒ keine geladen, keine gespeichert; erkannt
+    ⇒ ab da keine gespeichert, und hatte diese Fahrt schon eine
+    geschrieben, kommt die mitgebrachte zurück (ohne mitgebrachte wird
+    die Datei gelöscht). Diesen letzten Weg deckt KEIN Test — eine
+    belastbare neu gelernte Halterung braucht Bremsproben, die die
+    Synthetik der Logger-Tests nicht hat.
+  - **Die App erfährt es über `air:pocket:`** bei jedem Schreiben (2 s),
+    nicht nur beim Wechsel — die Ansicht kann mitten in der Fahrt
+    aufgehen. `AirtimeLiveState.pocket` blendet Wheelie und Stoppie in
+    den Kacheln aus und setzt die Stand-Zeile auf „Tasche: nur Sprünge".
+    Die Angabe reist als `kRideDataPhonePocket` über die Brücke (nur mit
+    Erkennung), gilt also ab der nächsten Fahrt.
+  Tests: `pocket_watch_test`, `sensor_log_test` (angegeben, erkannt).
+  Gegenproben 2026-11-13: ohne Filter, mit geladener Halterung, ohne die
+  Speichersperre, ohne den Ruhe-Filter — je rot.
 - **Die Live-Ansicht** (#36 Schritt 4c, seit 0.148.0,
   `airtime_message.dart`, `airtime_live.dart`, `airtime_live_window.dart`):
   ein kleines Fenster unter der Fahrt-Karte oben auf der Karte — Fully von

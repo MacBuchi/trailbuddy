@@ -48,6 +48,8 @@ class AirtimeLiveState {
     this.pending = const [],
     this.log = AirtimeLog.empty,
     this.collapsed = false,
+    this.pocket = false,
+    this.pocketDeclared = false,
   });
 
   /// Die Rohdaten der laufenden Fahrt; `null`, bis der erste Schub da ist.
@@ -80,6 +82,11 @@ class AirtimeLiveState {
   /// Zum Knopf verkleinert — gilt bis zur nächsten Fahrt.
   final bool collapsed;
 
+  /// Das Handy steckt in der Tasche (#491) — angegeben ([pocketDeclared])
+  /// oder vom Logger erkannt. Dann gibt es keine Wheelies und Stoppies.
+  final bool pocket;
+  final bool pocketDeclared;
+
   bool get active => file != null;
 
   /// Der Takt, der zur Uhrzeit [nowUs] zu sehen ist; `null` vor dem ersten.
@@ -101,7 +108,9 @@ class AirtimeLiveState {
           int? nowAtUs,
           List<FusionEvent>? pending,
           AirtimeLog? log,
-          bool? collapsed}) =>
+          bool? collapsed,
+          bool? pocket,
+          bool? pocketDeclared}) =>
       AirtimeLiveState(
           file: file,
           ticks: ticks ?? this.ticks,
@@ -110,7 +119,9 @@ class AirtimeLiveState {
           nowAtUs: nowAtUs ?? this.nowAtUs,
           pending: pending ?? this.pending,
           log: log ?? this.log,
-          collapsed: collapsed ?? this.collapsed);
+          collapsed: collapsed ?? this.collapsed,
+          pocket: pocket ?? this.pocket,
+          pocketDeclared: pocketDeclared ?? this.pocketDeclared);
 }
 
 /// Die Uhr der Ansicht in µs seit 1970 — dieselbe Achse wie die Zeiten der
@@ -157,6 +168,8 @@ class AirtimeLiveNotifier extends Notifier<AirtimeLiveState> {
         current = current.copyWith(ticks: all, lagUs: lag);
       case AirtimeNowMessage(:final tick):
         current = current.copyWith(now: tick, nowAtUs: ref.read(airtimeClockProvider)());
+      case AirtimePocketMessage(:final pocket, :final declared):
+        current = current.copyWith(pocket: pocket, pocketDeclared: declared);
       case AirtimeEventMessage(:final event):
         final pending = [...current.pending, event];
         current = current.copyWith(

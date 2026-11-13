@@ -37,8 +37,10 @@ const kMapPanelPool = 0.45;
 /// auf dem Pixel XL schnitt 0,4 Profil und Knöpfe ab).
 const kMapPanelResult = 0.4;
 
-/// Obergrenze dafür: Über dem Blatt bleibt die Route im Bild.
-const kMapPanelResultMax = 0.55;
+/// Obergrenze dafür: Über dem Blatt bleibt die Route im Bild. 0,6 seit
+/// #517 — die Chips vor „Fahrt starten" brauchen auf dem Pixel XL eine
+/// Zeile mehr; 40 % Karte darüber reichen für die eingepasste Runde.
+const kMapPanelResultMax = 0.6;
 
 /// Griff an das offene Blatt: verkleinern/vergrößern und schließen.
 class MapPanelController {

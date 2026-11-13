@@ -38,6 +38,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:sensors_plus/sensors_plus.dart';
 
 import 'airtime_message.dart';
+import 'pocket_watch.dart';
 import 'ride_store.dart' show rideIdFor;
 import 'ride_task_handler.dart';
 import 'sensor_fusion.dart';
@@ -51,6 +52,11 @@ const kRideDataSensorLog = 'ride_sensor_log';
 /// beim Start der Fahrt (der Kanal hängt an der Activity), geschrieben in
 /// den Kopf der Datei: Ein Sprung, der am Anschlag landet, misst zu wenig.
 const kRideDataSensorRange = 'ride_sensor_range';
+
+/// Schalter der Brücke: Das Handy steckt laut Fahrer in der Tasche (#491,
+/// #517) — keine Halterung laden oder speichern, Wheelie und Stoppie aus,
+/// Sprünge nur mit harter Landung ([pocketKeeps]).
+const kRideDataPhonePocket = 'ride_phone_pocket';
 
 /// Der Name steht auch in `MainActivity.kt`; `android_manifest_test` hält
 /// beide zusammen.
@@ -114,13 +120,16 @@ const kSensorLogHeader = '# trailbuddy sensor log v3\n'
     '# s,start_us,duration_s,max_down_deg,decel_mps2,landing_g = stoppie detected in the app (front down against the way while braking)\n'
     '# p,t_us,start_us,1|0 = answer to the stoppie at start_us (1 = "Stimmt")\n'
     '# m,t_us = "Wheelie verpasst" pressed; n,t_us = "Sprung verpasst" pressed; q,t_us = "Stoppie verpasst" pressed\n'
+    '# o,t_us,1|0 = the app recognised the phone in a pocket (1) or on the bike (0) from here on (tool/pocket_measure.py)\n'
+    '# pocket = the rider said the phone is in a pocket: no mount, no wheelie or stoppie, jumps only from a hard landing\n'
     '# mount up_xyz forward_xyz = the mount the fusion started from (the last ride), if any\n'
     '# range accel_mps2 gyro_rads = the sensors\' maximum range, if known\n';
 
 /// Der Kopf einer neuen Datei: [kSensorLogHeader], dann die Werte, mit
 /// denen diese Fahrt beginnt.
-String sensorLogHead({FusionMount? mount, String? range}) {
+String sensorLogHead({FusionMount? mount, String? range, bool pocket = false}) {
   final b = StringBuffer(kSensorLogHeader);
+  if (pocket) b.writeln('# pocket');
   if (mount != null) {
     final (ux, uy, uz) = mount.up;
     final (fx, fy, fz) = mount.forward;
@@ -163,6 +172,8 @@ String stoppieAnswerLine(DateTime at, {required int startUs, required bool yes})
 
 String stoppieMissedLine(DateTime at) => 'q,${at.microsecondsSinceEpoch}\n';
 
+String pocketLine(int tUs, {required bool pocket}) => 'o,$tUs,${pocket ? 1 : 0}\n';
+
 /// Kurz genug für 30 MB je Stunde, genau genug für 0,01 m/s².
 String _num(double v) => v.isFinite ? v.toStringAsFixed(4) : '';
 
@@ -202,6 +213,7 @@ class SensorLogger {
       this.flushEvery = kSensorFlushInterval,
       this.previewEvery = kAirtimePreviewInterval,
       this.range,
+      this.declaredPocket = false,
       WheelieNotices? notices,
       void Function(Object message)? toApp})
       : _sources = sources ?? SensorSources.platform,
@@ -213,6 +225,23 @@ class SensorLogger {
 
   /// Messbereich aus der Brücke ([kRideDataSensorRange]).
   final String? range;
+
+  /// Der Fahrer sagt: Das Handy steckt in der Tasche
+  /// ([kRideDataPhonePocket]).
+  final bool declaredPocket;
+
+  /// Die Taschenregel des Werkzeugs, neben der Fusion (#491).
+  final _pocketWatch = PocketWatch();
+  bool? _pocketSeen;
+
+  /// Die Halterung, mit der die Fahrt begann, und ob diese Fahrt schon
+  /// eine gespeichert hat — erkennt die Regel die Tasche erst später,
+  /// kommt die alte zurück.
+  FusionMount? _carried;
+  bool _savedMount = false;
+
+  /// Steckt das Handy in der Tasche — angegeben oder erkannt?
+  bool get inPocket => declaredPocket || _pocketWatch.state == true;
 
   /// Fragt beim Schreiben, ob noch gemessen werden soll; `false` beendet.
   final Future<bool> Function()? stillWanted;
@@ -252,10 +281,12 @@ class SensorLogger {
 
   Future<void> start() async {
     await file.parent.create(recursive: true);
-    final carried = await _readMount();
+    // In der Tasche gibt es keine Halterung — auch keine mitgebrachte.
+    final carried = declaredPocket ? null : await _readMount();
+    _carried = carried;
     _fusion = SensorFusion(carried: carried)..keepLive = true;
     if (!await file.exists() || await file.length() == 0) {
-      await file.writeAsString(sensorLogHead(mount: carried, range: range), flush: true);
+      await file.writeAsString(sensorLogHead(mount: carried, range: range, pocket: declaredPocket), flush: true);
     }
     void listen(String kind, Stream<List<double>> Function() source,
         [void Function(List<double> v)? also]) {
@@ -267,19 +298,48 @@ class SensorLogger {
       }, onError: (Object _) {}));
     }
 
-    listen('a', _sources.accel, (v) => _onEvents(_fusion.addAccel(v[0].toInt(), v[1], v[2], v[3])));
-    listen('w', _sources.gyro, (v) => _onEvents(_fusion.addGyro(v[0].toInt(), v[1], v[2], v[3])));
-    listen('g', _sources.gps, (v) => _onEvents(_fusion.addGps(v[0].toInt(), v[4])));
+    listen('a', _sources.accel, (v) {
+      _pocketWatch.addAccel(v[0].toInt(), v[1], v[2], v[3]);
+      _onEvents(_fusion.addAccel(v[0].toInt(), v[1], v[2], v[3]));
+    });
+    listen('w', _sources.gyro, (v) {
+      _pocketWatch.addGyro(v[0].toInt(), v[1], v[2], v[3]);
+      _onEvents(_fusion.addGyro(v[0].toInt(), v[1], v[2], v[3]));
+    });
+    listen('g', _sources.gps, (v) {
+      _pocketWatch.addGps(v[0].toInt(), v[4]);
+      _onPocket(v[0].toInt());
+      _onEvents(_fusion.addGps(v[0].toInt(), v[4]));
+    });
+    _sendPocket();
     _timer = Timer.periodic(flushEvery, (_) => _onTimer());
     _previewTimer = Timer.periodic(previewEvery, (_) => _sendPreview());
     _sinceMountSaved.start();
     await _notices.showMissed(file: file.path);
   }
 
+  /// Die Regel schließt ihre Fenster mit einem GPS-Punkt ab: Hat sich die
+  /// Einordnung geändert, steht es als Zeile `o` in der Datei, und die
+  /// Ansicht erfährt es.
+  void _onPocket(int tUs) {
+    final state = _pocketWatch.state;
+    if (state == null || state == _pocketSeen) return;
+    _pocketSeen = state;
+    _buffer.write(pocketLine(tUs, pocket: state));
+    _sendPocket();
+    if (state && !declaredPocket && _savedMount) unawaited(_restoreMount());
+  }
+
+  void _sendPocket() =>
+      _send(encodeAirtimePocket(file.path, pocket: inPocket, declared: declaredPocket));
+
   void _onEvents(List<FusionEvent> events) {
     final live = _fusion.takeLive();
     if (live.isNotEmpty) _send(encodeAirtimeLive(file.path, live));
     for (final event in events) {
+      // In der Tasche: kein Wheelie, kein Stoppie, nur harte Landungen
+      // (#491) — weder Datei noch Banner noch Ansicht.
+      if (inPocket && !pocketKeeps(event)) continue;
       log = log.withEvent(event);
       _send(encodeAirtimeEvent(file.path, event));
       // Nicht abgewartet: Das Banner darf den Strom nicht aufhalten.
@@ -330,16 +390,41 @@ class SensorLogger {
 
   /// Nur eine gelernte Halterung ersetzt die alte. Wirft nie.
   Future<void> _saveMount() async {
+    // In der Tasche lernt die Fusion eine falsche und hielt sie für die
+    // nächste Fahrt fest (2026-11-08 begann am Lenker mit der der Tasche).
+    if (inPocket) return;
     // Nur eine belastbare: Eine in den letzten Sekunden vor dem Ende neu
     // gelernte überschrieb am 2026-11-01 die gute (#36).
     final mount = _fusion.solidMount;
     if (mount == null) return;
+    if (await _writeMount(mount)) _savedMount = true;
+  }
+
+  /// Die Tasche wurde erst erkannt, nachdem diese Fahrt schon eine
+  /// Halterung gespeichert hatte: Die alte kommt zurück, ohne alte keine.
+  Future<void> _restoreMount() async {
+    _savedMount = false;
+    final carried = _carried;
+    if (carried != null) {
+      await _writeMount(carried);
+      return;
+    }
+    try {
+      await _mountFile.delete();
+    } catch (_) {
+      // Keine Datei: nichts zu tun.
+    }
+  }
+
+  Future<bool> _writeMount(FusionMount mount) async {
     try {
       final part = File('${_mountFile.path}.part');
       await part.writeAsString(jsonEncode(mount.toJson()), flush: true);
       await part.rename(_mountFile.path);
+      return true;
     } catch (_) {
       // Dann beginnt die nächste Fahrt mit der vorigen oder von vorn.
+      return false;
     }
   }
 
@@ -349,6 +434,9 @@ class SensorLogger {
       await stop();
       return;
     }
+    // Die Ansicht kann mitten in der Fahrt aufgehen — der Stand der Tasche
+    // kommt deshalb mit jedem Schreiben, nicht nur beim Wechsel.
+    _sendPocket();
     if (_sinceMountSaved.elapsed >= kSensorMountSaveEvery) {
       _sinceMountSaved.reset();
       await _saveMount();
@@ -436,6 +524,7 @@ Future<void> sensorLogTick({
       flushEvery: flushEvery,
       previewEvery: previewEvery,
       range: await get<String>(kRideDataSensorRange),
+      declaredPocket: await get<bool>(kRideDataPhonePocket) == true,
       notices: notices,
       toApp: toApp,
     );

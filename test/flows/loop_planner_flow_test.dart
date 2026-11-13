@@ -318,7 +318,8 @@ void main() {
         reason: 'der Bereich hat keine Höhen — kein Profil, kein erfundenes (#234)');
     // Hexentanz trägt 4 Sterne: Die zweite Abfahrt bringt noch 30 %, und
     // das Budget reicht — also zweimal, 1,3 km Trail-Meter, „noch einmal".
-    expect(find.textContaining('1,3 km Trail'), findsOneWidget);
+    expect(find.descendant(of: find.byKey(const ValueKey('loop-tile-trail')), matching: find.text('1,3 km')),
+        findsOneWidget);
     expect(find.descendant(of: find.byKey(const ValueKey('loop-stop-0')), matching: find.text('Hexentanz')),
         findsOneWidget);
     expect(routeBand(tester).where((l) => l.pass == 1), isNotEmpty,
@@ -1483,7 +1484,8 @@ void main() {
 
       await tapRail(tester, 'loop-rail-compute');
       expect(find.byKey(const ValueKey('loop-summary')), findsOneWidget);
-      expect(find.textContaining('hm bergab'), findsOneWidget, reason: 'die Zeile der Route, ohne Trail-Meter');
+      expect(find.byKey(const ValueKey('loop-tile-descent')), findsOneWidget, reason: 'die Route: bergab statt Trail-Meter');
+      expect(find.byKey(const ValueKey('loop-tile-trail')), findsNothing);
       expect(find.byKey(const ValueKey('loop-route-mode')), findsOneWidget);
       expect(find.byKey(const ValueKey('loop-stop-0')), findsNothing);
       expect(find.text('Route'), findsOneWidget);
