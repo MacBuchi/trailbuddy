@@ -52,7 +52,7 @@ FIXES = re.compile(r"^fixe (\d+)-(\d+)$")
 # Die Stände der Uhr (`gespraeche_form.staende_uhr`), die `TestTalk.check`
 # kennt; `route:$x` nimmt eine Kennung.
 STATES = {"wartet", "route_kommt", "frei", "fragt", "nimmt_auf", "pause", "zu",
-          "keine_fahrt", "fahrt_wartet", "bestwerte"}
+          "keine_fahrt", "fahrt_wartet", "bestwerte", "erkennt", "erkennt_nicht", "hinweis"}
 
 # Der Aufbau der Uhr (`gespraeche_form.uhr_aufbau`); `bad:$x` nimmt eine
 # Kennung.

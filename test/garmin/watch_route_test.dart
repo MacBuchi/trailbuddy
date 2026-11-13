@@ -175,7 +175,7 @@ void main() {
     const j1 = JumpEvent(startUs: 3, duration: Duration(milliseconds: 620), landingG: 3, upright: true, plausible: true);
     const j2 = JumpEvent(startUs: 4, duration: Duration(milliseconds: 1900), landingG: 1, upright: true, plausible: false);
     final log = const AirtimeLog(events: [w1, w2, j1, j2]).withAnswer(w2, yes: false);
-    expect(watchBestsOf(log), {'t': kWatchBests, 'jn': 1, 'ja': 620, 'wn': 1, 'wl': 18, 'wa': 31, 'sn': 0});
+    expect(watchBestsOf(log), {'t': kWatchBests, 'on': 0, 'jn': 1, 'ja': 620, 'wn': 1, 'wl': 18, 'wa': 31, 'sn': 0});
   });
 
   test('die Antwort der Uhr: nur „gespeichert" mit Kennung', () {

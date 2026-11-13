@@ -2,6 +2,22 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Sprung und Wheelie auf der Uhr
+
+*Version 0.170.0, 2026-11-13 (Uhr-App 1.6.0)*
+
+- **Kurz eingeblendet, ohne neue Seite:** Erkennt das Handy einen Sprung,
+  Wheelie oder Stoppie, zeigt die Uhr ihn 3 Sekunden lang oben auf der
+  Karte, etwa „Flug 0,9 s" oder „Wheelie 12 m". Danach ist wieder der
+  Trail zu sehen. Fragt die Uhr gerade etwas, geht die Frage vor.
+  Höchstens ein Hinweis alle 10 Sekunden, und nur, solange er frisch
+  ist — die Nachricht zur Uhr braucht ein paar Sekunden.
+- **Ein Zeichen, wenn die Erkennung läuft:** Links am Rand der Karte
+  steht ein kleiner Punkt mit Bogen, solange das Handy erkennt und seine
+  Halterung gelernt hat. Fehlt er, erkennt das Handy gerade nichts.
+- **Die Seite „Sprünge"** erscheint wie bisher erst mit dem ersten
+  Bestwert.
+
 ## Lange Routen stürzen die Uhr nicht mehr ab
 
 *Version 0.169.1, 2026-11-13*

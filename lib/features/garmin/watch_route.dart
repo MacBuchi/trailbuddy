@@ -19,7 +19,7 @@ import 'dart:math' as math;
 
 import 'package:latlong2/latlong.dart';
 
-import '../rides/sensor_fusion.dart' show JumpEvent, StoppieEvent, WheelieEvent;
+import '../rides/sensor_fusion.dart' show FusionEvent, FusionLive, JumpEvent, StoppieEvent, WheelieEvent;
 import '../rides/trail_values.dart' show AirtimeLog;
 import '../routing/nav_sections.dart';
 import '../trails/gpx.dart' show TrackPoint;
@@ -522,9 +522,14 @@ String watchRouteId(List<int> pts) {
 
 /// Die Bestwerte der Erkennung (#36) für die Seite „Fahrt" und die
 /// Zusammenfassung auf der Uhr (Idee des Betreibers, Konzept 9.2): nur
-/// Zahlen, keine Spur, nichts, was die Uhr misst. Null ohne Ereignis.
-/// Mit „War keiner" Beantwortetes zählt nicht ([AirtimeLog.kept]).
-Map<String, Object>? watchBestsOf(AirtimeLog log) {
+/// Zahlen, keine Spur, nichts, was die Uhr misst. Mit „War keiner"
+/// Beantwortetes zählt nicht ([AirtimeLog.kept]).
+///
+/// `on` (#514): Das Handy erkennt gerade UND kennt seine Halterung
+/// ([watchDetecting]) — dann zeigt die Uhr ihr Zeichen am Rand der Karte.
+/// Null nur ohne Ereignis und ohne Erkennung; das „aus" nach einem „an"
+/// schickt [WatchSync] trotzdem, mit lauter Nullen.
+Map<String, Object>? watchBestsOf(AirtimeLog log, {bool on = false}) {
   var jumps = 0, wheelies = 0, stoppies = 0;
   var airMs = 0, wheelieM = 0.0, wheelieDeg = 0.0;
   for (final e in log.kept) {
@@ -541,15 +546,54 @@ Map<String, Object>? watchBestsOf(AirtimeLog log) {
         stoppies++;
     }
   }
-  if (jumps + wheelies + stoppies == 0) return null;
+  if (jumps + wheelies + stoppies == 0 && !on) return null;
   return {
     't': kWatchBests,
+    'on': on ? 1 : 0,
     'jn': jumps,
     'ja': airMs,
     'wn': wheelies,
     'wl': wheelieM.round(),
     'wa': wheelieDeg.round(),
     'sn': stoppies,
+  };
+}
+
+/// Ein Ereignis der Erkennung als kurzer Hinweis im Fußfeld der Uhr
+/// (#514): `{t: "c", k: "air"|"wh"|"st", v}` — Flugzeit und Stoppie in
+/// ms, Wheelie in Metern. Eine ältere Uhr übergeht die Art.
+const kWatchCue = 'c';
+
+/// Höchstens ein Hinweis je [kWatchCueEvery]: Eine Nachricht braucht über
+/// Garmin Connect ~3,5 s (8.2) — dazwischen gehen nur die Bestwerte.
+const kWatchCueEvery = Duration(seconds: 10);
+
+/// Ein Ereignis, das beim Absenden länger als [kWatchCueMaxAge] vorbei
+/// ist, geht nicht mehr hin: Die Uhr zeigt „gerade eben", keine
+/// Geschichte. Gemessen wird am Handy — eine gemeinsame Uhrzeit mit der
+/// Uhr gibt es nicht. Ein Ereignis kommt 2–4 s nach der Landung aus der
+/// Erkennung (`lib/features/rides/CLAUDE.md`).
+const kWatchCueMaxAge = Duration(seconds: 8);
+
+/// Bis so lange nach dem letzten Takt der Erkennung gilt sie als laufend.
+/// Die Takte kommen je GPS-Punkt (1 s), die Lage jetzt alle 100 ms.
+const kWatchDetectFresh = Duration(seconds: 5);
+
+/// Erkennt das Handy gerade mit gelernter Halterung? [latest] ist der
+/// jüngste Takt (Unix-µs, die Achse der Sensoren), [nowUs] die Uhrzeit.
+bool watchDetecting(FusionLive? latest, int nowUs) =>
+    latest != null && latest.mountReady && nowUs - latest.tUs <= kWatchDetectFresh.inMicroseconds;
+
+/// Der Hinweis zu [e], oder null, wenn es zur Uhrzeit [nowUs] schon zu
+/// lange vorbei ist ([kWatchCueMaxAge]) oder ein Sprung unplausibel war.
+Map<String, Object>? watchCueOf(FusionEvent e, int nowUs) {
+  final endUs = e.startUs + e.duration.inMicroseconds;
+  if (nowUs - endUs > kWatchCueMaxAge.inMicroseconds) return null;
+  return switch (e) {
+    JumpEvent(:final plausible) when !plausible => null,
+    JumpEvent() => {'t': kWatchCue, 'k': 'air', 'v': e.duration.inMilliseconds},
+    WheelieEvent() => {'t': kWatchCue, 'k': 'wh', 'v': e.lengthM.round()},
+    StoppieEvent() => {'t': kWatchCue, 'k': 'st', 'v': e.duration.inMilliseconds},
   };
 }
 

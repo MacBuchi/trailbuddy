@@ -28,7 +28,8 @@ import 'package:trailbuddy/features/rides/ride_providers.dart';
 import 'package:trailbuddy/features/rides/ride_service.dart';
 import 'package:trailbuddy/features/rides/ride_track.dart';
 import 'package:trailbuddy/features/rides/road_index.dart' show RoadCoverage;
-import 'package:trailbuddy/features/rides/sensor_fusion.dart' show JumpEvent;
+import 'package:trailbuddy/features/rides/airtime_message.dart' show encodeAirtimeEvent, encodeAirtimeLive;
+import 'package:trailbuddy/features/rides/sensor_fusion.dart' show FusionLive, FusionPhase, JumpEvent;
 import 'package:trailbuddy/features/rides/trail_values.dart' show AirtimeLog;
 import 'package:trailbuddy/features/routing/graph_input.dart';
 import 'package:trailbuddy/features/routing/loop_plan_runner.dart';
@@ -51,6 +52,9 @@ import '../fakes/fake_trails.dart' show FakeTrailRepository;
 import '../fakes/graph_tiles.dart';
 
 const _lat0 = 47.5, _lon0 = 11.5;
+
+/// Die Rohdaten der erfundenen Fahrt, an der die Erkennung hängt.
+const kWatchPhoneSensorFile = '/rides/sensors/r1.csv';
 final _proj = FlatProjection(_lat0);
 final _o = _proj.xy(const LatLng(_lat0, _lon0));
 
@@ -131,6 +135,10 @@ class WatchPhone {
   final service = FakeRideService();
   late final ProviderContainer c;
 
+  /// Die Uhr der Erkennung (µs, Achse der Sensoren) — unter `testWidgets`
+  /// läuft `DateTime.now` nicht mit der falschen Zeit (#514).
+  int clockUs = 1700000000000000;
+
   /// Den Container bauen, den Abgleich mit der Uhr und das Hören auf ihre
   /// Fahrten anwerfen.
   Future<void> open() async {
@@ -172,6 +180,7 @@ class WatchPhone {
       rideServiceProvider.overrideWithValue(service),
       ridePermissionProvider.overrideWithValue(() async => null),
       if (jumped) airtimeLiveProvider.overrideWith(_Jumped.new),
+      airtimeClockProvider.overrideWithValue(() => clockUs),
     ]);
     c.read(watchSyncProvider);
     await c.read(watchRideInboxProvider.notifier).start();
@@ -186,6 +195,25 @@ class WatchPhone {
   }
 
   void endNavigation() => c.read(navigationProvider.notifier).stop();
+
+  /// Die Erkennung meldet einen Takt mit gelernter Halterung, 1,5 s hinter
+  /// der Uhr (#514).
+  void detect() => c.read(airtimeLiveProvider.notifier).accept(encodeAirtimeLive(kWatchPhoneSensorFile, [
+        FusionLive(tUs: clockUs - 1500000, pitchDeg: 2, speedKmh: 15, upKnown: true, phase: FusionPhase.none),
+      ]));
+
+  /// Ein Sprung von 0,9 s, vor 3 s — samt frischem Takt.
+  void jump() {
+    detect();
+    c.read(airtimeLiveProvider.notifier).accept(encodeAirtimeEvent(
+        kWatchPhoneSensorFile,
+        JumpEvent(
+            startUs: clockUs - 3000000,
+            duration: const Duration(milliseconds: 900),
+            landingG: 2.4,
+            upright: true,
+            plausible: true)));
+  }
 
   /// Alles, was das Handy sendete, der Reihe nach.
   List<Map<String, Object>> get sent => [for (final batch in bridge.sent) ...batch];

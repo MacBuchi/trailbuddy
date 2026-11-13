@@ -157,6 +157,17 @@ Abbiegehinweise.
 - **Bestwerte** (`RideStats.bests`, vierte Seite „Sprünge" in `NavView`,
   Zeile in der Zusammenfassung): nur im Speicher, bleiben über einen
   Routenwechsel. Die Seite gibt es erst, wenn welche kamen (`pages()`).
+  Seit #514 (1.6.0) erscheint sie erst mit einem Zähler über 0
+  (`RideStats.hasBests`) — `on` allein ist kein Bestwert. **`on`** in `b`
+  zeichnet `NavView.drawDetect` (Punkt mit Bogen links am Rand der Karte,
+  in Karte, freier Fahrt und eingepasster Übersicht); **`c`** ist ein
+  Hinweis für 3 s über `NavView.cue` im Platz der Einblendung, nur wenn
+  keine Frage steht (`WatchCore.handle`). Text aus `AirShort`/
+  `WheelieShort`, „Stoppie" als Literal. `c` steht in `EventLog.IN_T`
+  (Stelle 9, Code 33) — Dart und Werkzeug lesen die Zeile mit.
+  Speicher (Kettenstand `CHAIN_BIG=800`, 2026-11-13): geladen 96,6 KB
+  (vorher 95,8), nach dem Wechsel 97,4 KB (96,9), Spitze 102,1 KB von
+  123,8 KB — +0,8 KB, der Wechsel gleich großer Routen geht weiter.
 - **Die Übersicht ohne Fix** (`drawOverview`): Rahmen aus den Hüllen
   der Blöcke (≤ 63 Vergleiche), dann nur jeder `stride`-te Punkt
   (`OVERVIEW_SEGS` = 200 Stücke je Linie) — `range()` mit großem
