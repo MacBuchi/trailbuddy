@@ -11,7 +11,10 @@ Abbiegehinweise.
   12): `cases` (Feldszenarien F1–F8 in `docs/watch_cases.json` gegen die
   Fälle, `tool/watch_scenarios_check.py`), `unit`, `scenario`, `device`
   (Tischabnahme mit Logcat), `chain` (Kettenstand, #527: Emulator +
-  Simulator über adb; `chain --break` muss rot werden). Wer hier einen Ablauf ändert, trägt erst den Fall ein und hängt
+  Simulator über adb; `chain --break` muss rot werden; danach beendet
+  das Skript den Simulator — ohne adb-Gegenseite öffnete er je
+  Verbindungsversuch ein Fenster „ADB Disconnected.", über 20 nach einem
+  Abend, abschalten lässt es sich nicht; `GARMIN_KEEP_SIM=1` hält ihn). Wer hier einen Ablauf ändert, trägt erst den Fall ein und hängt
   ihn an den Schritt eines Szenarios.
 - **Bauen nur über `tool/garmin_build.sh`** (Connect-IQ-SDK aus dem
   SDK-Manager, Schlüssel `~/.connectiq/developer_key.der` beim Betreiber,
