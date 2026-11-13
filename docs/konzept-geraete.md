@@ -176,6 +176,13 @@ auf den Trail als Auswahl, die Regeln aus 10.4/10.5.
 Die Regeln aus `konzept-routing.md` 10.4/10.5 bleiben; kommt der Kopf,
 ändern sich dort 4 und 10.2 im selben PR.
 
+**Stand 2026-11-13:** Die drei Planer-Punkte oben (Kopf, Leiste, ein
+Knopf, „Anpassen") sind in `konzept-routing.md` 12 weitergedacht und
+dort maßgeblich — statt „Runde | Route" stehen Start und Ziel als zwei
+Zeilen im Kopf, und davor kommt ein Einstieg mit Vorschlag (Betreiber:
+„für den initialen Vorschlag sollte es sehr einfach mit wenigen Klicks
+gehen"). „Ergebnis und Start in einem" ist mit 0.171.0 gebaut (#517).
+
 ## 6. Buddys unterwegs — „Gruppenfahrt" (E4, nicht entschieden)
 
 Der Wunsch: Buddys auf der Karte des Handys und auf der Uhr sehen, ein-
