@@ -60,6 +60,10 @@ abstract final class MapCoach {
   static const loopRail = 'map.loopRail';
   static String loopRailButton(String key) => 'map.loopRail.$key';
 
+  /// Das Einstiegsblatt des Planers (#516, Konzept-Routing 12.3) — Anker
+  /// UND Szene: Sie öffnet den Planer mit dem Blatt.
+  static const loopEntry = 'map.loopEntry';
+
   /// Der Kopf des Planers (#516): Start, Ziel, Budget und „Anpassen".
   static const loopHead = 'map.loopHead';
 

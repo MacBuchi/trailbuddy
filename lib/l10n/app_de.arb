@@ -10092,5 +10092,78 @@
   "demoPlannerEdit2Text": "Oben Start und Ziel — ein Tipp auf „Ziel“ macht aus der Runde eine Route. Darunter Zeit, Höhenmeter und Rad mit „Anpassen“; unten zählt die Zeile die Auswahl und rechnet.",
   "@demoPlannerEdit2Text": {
     "description": "Vorführung „planner-edit“: Text der Blase am Kopf des Planers."
+  },
+  "loopEntryTitle": "Was hast du vor?",
+  "@loopEntryTitle": {
+    "description": "Planer, Einstiegsblatt (#516): die erste Frage, über „Runde | Route“."
+  },
+  "loopEntryLoop": "Runde",
+  "@loopEntryLoop": {
+    "description": "Planer, Einstiegsblatt: Absicht — eine Runde zurück zum Start."
+  },
+  "loopEntryRoute": "Route",
+  "@loopEntryRoute": {
+    "description": "Planer, Einstiegsblatt: Absicht — eine Route von A nach B."
+  },
+  "loopEntryPickOnMap": "Auf der Karte wählen",
+  "@loopEntryPickOnMap": {
+    "description": "Planer, Einstiegsblatt: Start oder Ziel per Tipp auf die Karte (das Blatt tritt dafür zurück)."
+  },
+  "loopEntryTime": "Zeit",
+  "@loopEntryTime": {
+    "description": "Planer, Einstiegsblatt: Beschriftung der Zeile mit − / + für die Dauer der Runde."
+  },
+  "loopEntryLess": "Weniger Zeit",
+  "@loopEntryLess": {
+    "description": "Planer, Einstiegsblatt: Tooltip der Taste −, eine halbe Stunde weniger."
+  },
+  "loopEntryMore": "Mehr Zeit",
+  "@loopEntryMore": {
+    "description": "Planer, Einstiegsblatt: Tooltip der Taste +, eine halbe Stunde mehr."
+  },
+  "loopEntryTrails": "Trails wählen",
+  "@loopEntryTrails": {
+    "description": "Planer, Einstiegsblatt: Knopf bei „Runde“ — weiter zur Bearbeitung, wo man die Trails antippt."
+  },
+  "loopEntrySelf": "Selbst zusammenstellen",
+  "@loopEntrySelf": {
+    "description": "Planer, Einstiegsblatt: Textknopf unten — die leere Bearbeitungsansicht ohne Fragen."
+  },
+  "loopEntryNoPosition": "Kein Standort — wähle das Ziel auf der Karte.",
+  "@loopEntryNoPosition": {
+    "description": "Planer, Einstiegsblatt: „Mein Standort“ als Ziel fand keine Position."
+  },
+  "highlightPlannerEntryTitle": "Planen mit zwei Fragen",
+  "@highlightPlannerEntryTitle": {
+    "description": "Entdecken, Eintrag „planner-entry“ (#516): Überschrift (auch im Neuheiten-Blatt nach einem Update)."
+  },
+  "highlightPlannerEntryText": "Der Planer fragt erst, was du vorhast: Runde oder Route, von wo, wie lange oder wohin. Eine Route ist mit drei Tipps gerechnet; „Selbst zusammenstellen“ führt wie bisher zur Auswahl.",
+  "@highlightPlannerEntryText": {
+    "description": "Entdecken, Eintrag „planner-entry“: Text, zwei bis drei Sätze (auch im Neuheiten-Blatt)."
+  },
+  "demoPlannerEntry1Title": "Planer öffnen",
+  "@demoPlannerEntry1Title": {
+    "description": "Vorführung „planner-entry“: Titel der Blase am Planer-Knopf."
+  },
+  "demoPlannerEntry1Text": "Der Knopf öffnet den Planer — er fragt zuerst, was du vorhast.",
+  "@demoPlannerEntry1Text": {
+    "description": "Vorführung „planner-entry“: Text der Blase am Planer-Knopf."
+  },
+  "demoPlannerEntry2Title": "Runde oder Route",
+  "@demoPlannerEntry2Title": {
+    "description": "Vorführung „planner-entry“: Titel der Blase am Einstiegsblatt."
+  },
+  "demoPlannerEntry2Text": "Wähle Runde oder Route, dann Start und Zeit oder Ziel — alles ist vorbelegt. Bei der Route rechnet die App, sobald das Ziel steht.",
+  "@demoPlannerEntry2Text": {
+    "description": "Vorführung „planner-entry“: Text der Blase am Einstiegsblatt."
+  },
+  "loopEntryHours": "etwa {time}",
+  "@loopEntryHours": {
+    "description": "Planer, Einstiegsblatt: die gewählte Zeit zwischen − und +, eine Orientierung, keine Obergrenze (Konzept-Routing 12.5).",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
   }
 }

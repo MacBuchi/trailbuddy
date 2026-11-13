@@ -273,9 +273,16 @@ void main() {
     await tester.tapAt(rect.topCenter + const Offset(0, 8));
   }
 
+  /// Der Planer in der Bearbeitung: Seit #516 Schritt 2 fragt der Knopf
+  /// erst nach der Absicht — „Selbst zusammenstellen" ist die Bearbeitung
+  /// wie vorher.
   Future<void> openPlanner(WidgetTester tester) async {
     await tester.tap(find.byKey(const ValueKey('loop-button')));
     await settle(tester, frames: 10);
+    if (find.byKey(const ValueKey('loop-entry')).evaluate().isNotEmpty) {
+      await tester.tap(find.byKey(const ValueKey('loop-entry-self')));
+      await settle(tester, frames: 6);
+    }
     expect(find.byKey(const ValueKey('loop-tool-rail')), findsOneWidget);
   }
 
@@ -2124,5 +2131,143 @@ void main() {
     await settle(tester, frames: 30);
     expect(find.byKey(const ValueKey('nav-choice-external')), findsNothing);
     expect(find.text('Zum Trailkopf: Hexentanz'), findsOneWidget);
+  });
+
+  group('Einstieg (#516 Schritt 2, Konzept-Routing 12.3)', () {
+    LoopSession session(WidgetTester tester) =>
+        ProviderScope.containerOf(tester.element(find.byType(MaterialApp))).read(loopPlannerProvider);
+    final target = LatLng(_fromLat + 0.0015, _lon);
+
+    Future<void> openEntry(WidgetTester tester) async {
+      await tester.tap(find.byKey(const ValueKey('loop-button')));
+      await settle(tester, frames: 10);
+      expect(find.byKey(const ValueKey('loop-entry')), findsOneWidget);
+    }
+
+    Future<void> tapKey(WidgetTester tester, String key, {int frames = 6}) async {
+      await tester.tap(find.byKey(ValueKey(key)));
+      await settle(tester, frames: frames);
+    }
+
+    String hours(WidgetTester tester) => tester.widget<Text>(find.byKey(const ValueKey('loop-entry-hours'))).data!;
+
+    testWidgets('der Knopf fragt erst: Runde vorbelegt, Zeit mit − / +, „Trails wählen" führt in die Bearbeitung',
+        (tester) async {
+      final settings = FakeSettings();
+      await start(tester, areaStore: await _areaWithTrack(), settings: settings);
+      await openEntry(tester);
+      expect(find.text('Was hast du vor?'), findsOneWidget);
+      expect(find.byKey(const ValueKey('loop-tool-rail')), findsNothing, reason: 'erst die Frage, dann die Werkzeuge');
+      expect(find.byKey(const ValueKey('loop-head')), findsNothing);
+      expect(find.byKey(const ValueKey('loop-bar')), findsNothing);
+      expect(tester.widget<ChoiceChip>(find.byKey(const ValueKey('loop-entry-start-me'))).selected, isTrue);
+      expect(hours(tester), 'etwa 3 h');
+
+      await tapKey(tester, 'loop-entry-more');
+      expect(hours(tester), 'etwa 3 h 30 min');
+      await tapKey(tester, 'loop-entry-less');
+      await tapKey(tester, 'loop-entry-less');
+      expect(hours(tester), 'etwa 2 h 30 min');
+      expect(settings.loopPlannerPrefs, contains('h=2.5'), reason: 'die Zeit ist gemerkt');
+
+      await tapKey(tester, 'loop-entry-go');
+      expect(find.byKey(const ValueKey('loop-entry')), findsNothing);
+      expect(find.byKey(const ValueKey('loop-tool-rail')), findsOneWidget);
+      expect(find.byKey(const ValueKey('loop-head')), findsOneWidget);
+      expect(session(tester).prefs.endMode, LoopEndMode.loop);
+      expect(find.textContaining('2 h 30 min'), findsOneWidget, reason: 'das Budget im Kopf trägt die Zeit');
+    });
+
+    testWidgets('Route in drei Tipps: Planer, „Route", Tipp auf die Karte — gerechnet, gemerkt', (tester) async {
+      final settings = FakeSettings();
+      await start(tester, areaStore: await _areaWithTrack(), settings: settings);
+      await openEntry(tester);
+      await tapKey(tester, 'loop-entry-route');
+      // Ohne Ziel wartet „Route" gleich auf den Tipp; das Blatt tritt zurück.
+      expect(find.byKey(const ValueKey('loop-pick-banner')), findsOneWidget);
+      expect(find.byKey(const ValueKey('loop-entry')), findsNothing);
+      expect(settings.loopPlannerPrefs, contains('a=1'));
+      fakeMap(tester).move(target, 15);
+      await settle(tester, frames: 4);
+      await tapMapAt(tester, target);
+      await settle(tester, frames: 30);
+
+      expect(find.byKey(const ValueKey('loop-summary')), findsOneWidget, reason: 'mit dem Ziel rechnet es sofort');
+      expect(session(tester).entry, isFalse);
+      expect(session(tester).prefs.endMode, LoopEndMode.target);
+      final whole = routeWhole(tester);
+      expect(whole.first.latitude, closeTo(_fromLat, 1e-9), reason: 'Start am Standort');
+      expect(whole.last.latitude, closeTo(target.latitude, 1e-9));
+
+      // Zu und wieder auf: Die letzte Absicht steht vorn, ohne Ziel und
+      // ohne gleich zu warten.
+      await tester.tap(find.byKey(const ValueKey('loop-close')));
+      await settle(tester, frames: 10);
+      await tapKey(tester, 'loop-head-close', frames: 10);
+      await openEntry(tester);
+      expect(tester.widget<SegmentedButton<bool>>(find.byType(SegmentedButton<bool>)).selected, {true});
+      expect(find.byKey(const ValueKey('loop-entry-target-map')), findsOneWidget);
+      expect(find.byKey(const ValueKey('loop-entry-hours')), findsNothing, reason: 'die Route fragt das Ziel, nicht die Zeit');
+      expect(find.byKey(const ValueKey('loop-pick-banner')), findsNothing);
+    });
+
+    testWidgets('Ziel „Mein Standort": der Start springt auf die Karte, nach dem Tipp wird gerechnet',
+        (tester) async {
+      await start(tester, areaStore: await _areaWithTrack(), settings: FakeSettings()..loopPlannerPrefs = 'a=1');
+      await openEntry(tester);
+      await tapKey(tester, 'loop-entry-target-me', frames: 10);
+      expect(session(tester).targetMine, isTrue);
+      expect(find.byKey(const ValueKey('loop-pick-banner')), findsOneWidget, reason: 'beides am Standort wäre eine Runde');
+      expect(find.textContaining('wo die Runde beginnt'), findsOneWidget);
+      fakeMap(tester).move(target, 15);
+      await settle(tester, frames: 4);
+      await tapMapAt(tester, target);
+      await settle(tester, frames: 30);
+
+      expect(find.byKey(const ValueKey('loop-summary')), findsOneWidget);
+      final whole = routeWhole(tester);
+      expect(whole.first.latitude, closeTo(target.latitude, 1e-9), reason: 'Start am Tipp');
+      expect(whole.last.latitude, closeTo(_fromLat, 1e-9), reason: 'Ziel am Standort');
+      await tester.tap(find.byKey(const ValueKey('loop-close')));
+      await settle(tester, frames: 10);
+      expect(tester.widget<Text>(find.byKey(const ValueKey('loop-head-target-value'))).data, 'Mein Standort');
+    });
+
+    testWidgets('kein Standort fürs Ziel: ein Satz statt eines Ziels', (tester) async {
+      await start(tester,
+          areaStore: await _areaWithTrack(),
+          positionFix: FakePositionFix(),
+          settings: FakeSettings()..loopPlannerPrefs = 'a=1');
+      await openEntry(tester);
+      await tapKey(tester, 'loop-entry-target-me', frames: 10);
+      expect(find.byKey(const ValueKey('loop-entry-no-position')), findsOneWidget);
+      expect(session(tester).target, isNull);
+      expect(find.byKey(const ValueKey('loop-pick-banner')), findsNothing);
+    });
+
+    testWidgets('Abbrechen beim Tipp holt das Blatt zurück; Zurück am Blatt schließt den Planer', (tester) async {
+      await start(tester, areaStore: await _areaWithTrack());
+      await openEntry(tester);
+      await tapKey(tester, 'loop-entry-start-map');
+      expect(find.byKey(const ValueKey('loop-entry')), findsNothing);
+      await tapKey(tester, 'loop-pick-cancel');
+      expect(find.byKey(const ValueKey('loop-entry')), findsOneWidget);
+      await tester.binding.handlePopRoute();
+      await settle(tester, frames: 10);
+      expect(session(tester).open, isFalse);
+      expect(find.byKey(const ValueKey('loop-entry')), findsNothing);
+    });
+
+    testWidgets('ein Trail angetippt statt einer Antwort: Bearbeitung, der Trail gewählt', (tester) async {
+      await start(tester, areaStore: await _areaWithTrack());
+      await openEntry(tester);
+      fakeMap(tester).move(const LatLng(48.004, _lon), 15);
+      await settle(tester, frames: 4);
+      await tapMapAt(tester, const LatLng(48.004, _lon));
+      await settle(tester, frames: 6);
+      expect(session(tester).selected, {hex});
+      expect(find.byKey(const ValueKey('loop-entry')), findsNothing);
+      expect(find.byKey(const ValueKey('loop-tool-rail')), findsOneWidget);
+    });
   });
 }

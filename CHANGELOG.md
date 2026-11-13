@@ -2,6 +2,24 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Der Planer fragt zuerst, was du vorhast
+
+*Version 0.173.0, 2026-11-13*
+
+- **Zwei Fragen statt Werkzeugkasten:** Der Planer-Knopf öffnet ein
+  kleines Blatt: Runde oder Route? Darunter, je nach Wahl, der Start
+  (dein Standort oder ein Punkt auf der Karte) und die Zeit mit großen
+  Tasten − und + — oder das Ziel. Alles ist vorbelegt; die letzte Wahl
+  steht beim nächsten Mal vorn.
+- **Eine Route mit drei Tipps:** Planer, „Route", Tipp auf die Karte —
+  sobald das Ziel steht, rechnet die App. Mit „Mein Standort" als Ziel
+  geht es zurück zu dir; den Start tippst du dann auf die Karte.
+- **Runde:** „Trails wählen" führt mit Start und Zeit in die gewohnte
+  Auswahl. Einen fertigen Vorschlag rechnet der Planer in einem der
+  nächsten Schritte.
+- **„Selbst zusammenstellen"** öffnet den Planer wie bisher, ohne
+  Fragen. Ein Trail, den du antippst, tut dasselbe.
+
 ## Der Planer zum Bearbeiten, aufgeräumt
 
 *Version 0.172.0, 2026-11-13*

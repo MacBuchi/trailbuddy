@@ -31,6 +31,7 @@ import '../rides/ride_task_handler.dart';
 import '../rides/ride_track.dart';
 import '../routing/loop_planner.dart' show LoopEndMode, LoopOutcome;
 import '../routing/loop_edit_bars.dart';
+import '../routing/loop_entry_sheet.dart';
 import '../routing/loop_planner_controller.dart';
 import '../routing/loop_planner_providers.dart';
 import '../routing/loop_planner_sheet.dart';
@@ -265,6 +266,14 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       ..add(coach.registerScene(MapCoach.loopRail, () async {
         final wasOpen = ref.read(loopPlannerProvider).open;
         if (!wasOpen) await _openLoopPlanner();
+        return () {
+          if (!wasOpen && mounted) ref.read(loopPlannerProvider.notifier).close();
+        };
+      }))
+      // Das Einstiegsblatt (#516): ein frischer Planer mit dem Blatt.
+      ..add(coach.registerScene(MapCoach.loopEntry, () async {
+        final wasOpen = ref.read(loopPlannerProvider).open;
+        if (!wasOpen) await _openLoopPlanner(entry: true);
         return () {
           if (!wasOpen && mounted) ref.read(loopPlannerProvider.notifier).close();
         };
@@ -507,18 +516,28 @@ class _MapScreenState extends ConsumerState<MapScreen> {
 
   /// Wartet der Planer auf seinen Start oder sein Ziel (#331), ist der
   /// Tipp dieser Punkt.
-  bool _takeLoopStart(MapTap tap) => ref.read(loopPlannerProvider.notifier).takePick(tap.point);
+  bool _takeLoopStart(MapTap tap) => _takeLoopPick(tap.point);
+
+  /// Ein Tipp für Start, Ziel oder Zwischenpunkt. Steht danach im
+  /// Einstieg eine Route bereit (#516, Konzept-Routing 12.3: mit
+  /// gesetztem Ziel gleich das Ergebnis), wird gerechnet.
+  bool _takeLoopPick(LatLng p) {
+    final notifier = ref.read(loopPlannerProvider.notifier);
+    if (!notifier.takePick(p)) return false;
+    if (notifier.entryRouteReady) unawaited(_computeLoop());
+    return true;
+  }
 
   /// Der Planer als Modus (seit 0.74.0): Leiste links, Tipps wählen
   /// Trails. Die Leiste „Offline-Karten" geht dafür zu — zwei Leisten links passen
   /// nicht nebeneinander.
-  Future<void> _openLoopPlanner({LatLng? start}) async {
+  Future<void> _openLoopPlanner({LatLng? start, bool entry = false}) async {
     if (ref.read(offlineOverlayProvider)) {
       await _closeTools();
       if (!mounted || ref.read(offlineOverlayProvider)) return;
     }
     setState(() => _selectedTrailId = null);
-    ref.read(loopPlannerProvider.notifier).open(start: start);
+    ref.read(loopPlannerProvider.notifier).open(start: start, entry: entry);
   }
 
   /// Der Trailkopf als Start oder Ziel (#331 Schritt 2), aus dem
@@ -730,7 +749,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     // Auch ein Tipp auf eine Linie ist ein Punkt, solange der Planer
     // seinen Start sucht — ein Trailkopf ist ein guter Start. Ein Ort
     // gibt seine Lage, nicht die des Fingers (#331 Schritt 3).
-    if (ref.read(loopPlannerProvider.notifier).takePick(hit is Poi ? hit.position : tap.point)) return;
+    if (_takeLoopPick(hit is Poi ? hit.position : tap.point)) return;
     switch (hit) {
       // Ein Tipp auf die Verbindung eines Ergebnisses: ein Zwischenpunkt
       // (#234), solange sein Ergebnis die Punkte annimmt.
@@ -1781,7 +1800,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                   // Der Kopf des Planers (#516): Start, Ziel, Budget, X —
                   // wie es geht, sagt die Auswahlzeile unten. Solange ein
                   // Ergebnis offen ist, nur eine Zeile (`compact`).
-                  if (loop.open)
+                  if (loop.open && !loop.entry)
                     LoopEditHeader(
                       compact: panelInset > 0,
                       onAdjust: () => unawaited(showLoopParamsSheet(context)),
@@ -1900,7 +1919,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
           // Leiste „Offline-Karten"; beide sind nie zugleich offen. Seit
           // #516 steht oben der Kopf und unten die Auswahlzeile: Die
           // Leiste hält zu beiden Abstand und scrollt, wenn es eng wird.
-          if (loop.open)
+          if (loop.open && !loop.entry)
             SafeArea(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(8, kLoopRailTopInset, 0, kLoopRailBottomInset),
@@ -1948,7 +1967,22 @@ class _MapScreenState extends ConsumerState<MapScreen> {
           // Knopfspalte, wo danach das Ergebnis steht — solange es offen
           // ist, rechnet dessen „Neu rechnen". Solange ein Strich oder ein
           // Tipp erwartet wird, gehört die Karte ihm (wie bei der Legende).
-          if (loop.open && panelInset == 0 && loop.drawTool == null && !loopPicking)
+          // Der Einstieg (#516, Konzept-Routing 12.3) an derselben Stelle,
+          // solange er fragt; ein Tipp auf die Karte blendet ihn aus.
+          if (loop.open && loop.entry && panelInset == 0 && !loopPicking)
+            SafeArea(
+              child: Align(
+                alignment: Alignment.bottomLeft,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 0, 76, 12),
+                  child: LoopEntrySheet(
+                    onCompute: () => unawaited(_computeLoop()),
+                    onClose: _closeLoopPlanner,
+                  ),
+                ),
+              ),
+            ),
+          if (loop.open && !loop.entry && panelInset == 0 && loop.drawTool == null && !loopPicking)
             SafeArea(
               child: Align(
                 alignment: Alignment.bottomLeft,
@@ -2060,7 +2094,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                               // Öffnet und schließt den Planer — wie der
                               // Knopf „Offline-Karten" seine Leiste.
                               active: loop.open,
-                              onPressed: () => loop.open ? _closeLoopPlanner() : unawaited(_openLoopPlanner()),
+                              onPressed: () => loop.open ? _closeLoopPlanner() : unawaited(_openLoopPlanner(entry: true)),
                             ),
                           ),
                           const SizedBox(height: 10),

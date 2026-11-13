@@ -601,6 +601,25 @@ Map<String, HighlightDemo> highlightDemos(AppLocalizations l) => {
       _androidOnly(l),
     ]),
   ),
+  'planner-entry': HighlightDemo(
+    route: '/',
+    script: _demo('planner-entry', [
+      CoachStep(
+        title: l.demoPlannerEntry1Title,
+        text: l.demoPlannerEntry1Text,
+        lit: [MapCoach.loop],
+        gesture: CoachGesture.tap,
+        requires: [MapCoach.loop],
+      ),
+      CoachStep(
+        title: l.demoPlannerEntry2Title,
+        text: l.demoPlannerEntry2Text,
+        scene: MapCoach.loopEntry,
+        lit: const [MapCoach.loopEntry],
+        requires: const [MapCoach.loop],
+      ),
+    ]),
+  ),
   'planner-edit': HighlightDemo(
     route: '/',
     script: _demo('planner-edit', [
