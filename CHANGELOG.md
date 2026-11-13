@@ -2,6 +2,24 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Die Zeit ist ein Richtwert
+
+*Version 0.174.0, 2026-11-13*
+
+- **Eine Minute drüber kostet keinen Trail mehr:** Die Zeit im Planer
+  heißt jetzt „Etwa 3 h". Die Runde darf eine halbe Stunde kürzer oder
+  länger sein; darin nimmt der Planer die Fassung mit dem meisten
+  Trail-Anteil. Liegt der nächste Trail nur über eine lange Anfahrt,
+  bleibt die Runde lieber etwas kürzer — liegt er fast am Weg, fährt er
+  mit, auch wenn es dann 3 h 20 werden.
+- **Wie viel vom Limit:** Unter „Bergauf" und „Zeit" im Ergebnis einer
+  Runde steht eine schmale Skala — die Höhenmeter gegen dein Limit, die
+  Zeit mit dem Fenster ± 30 min. Läuft etwas über (mit Pflicht-Trails
+  oder gezogenen Punkten), wird die Skala orange.
+- **Ehrlich geschätzt:** Die Zeit heißt „ca. …", und darunter steht,
+  dass sie ohne Pausen geschätzt ist. Bleibt die Runde deutlich kürzer,
+  weil nicht mehr Trails hineinpassen, sagt das Blatt es.
+
 ## Der Planer fragt zuerst, was du vorhast
 
 *Version 0.173.0, 2026-11-13*

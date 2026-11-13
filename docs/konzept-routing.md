@@ -181,8 +181,9 @@ Dazu das Ende der Fahrt (Vorgabe: Runde) — zurück am Start, am Ende des
 letzten Trails oder an einem getippten Zielpunkt (seit 0.123.0, #331).
 Die Vorgaben merkt sich das Gerät mit der letzten Planung; den Zielpunkt
 nicht, er gilt wie ein getippter Start nur für die Sitzung.
-Eine Reserve von 10 % auf die Zeit bleibt eingebaut (die Schätzung
-kennt keine Pausen).
+Die Zeit ist seit 0.174.0 ein Richtwert mit einem Fenster von ± 30 min
+statt einer Grenze mit 10 % Reserve (12.5); die Schätzung kennt keine
+Pausen, und das Ergebnis sagt es als Satz.
 
 ### 2.4 Wegklassen und Kosten
 
@@ -843,7 +844,8 @@ M5; M2 und M4 nur der lokale.
   Vorgabe 2 km begrenzen den Schaden; der Nutzer sieht die Linie, bevor
   er fährt.
 - **Das Zeitmodell ist ohne Kalibrierung grob** (±30 %). Deshalb
-  „etwa", deshalb Schritt 6, deshalb die Reserve.
+  „etwa", deshalb Schritt 6, deshalb das Fenster um die Zeit (12.5;
+  bis 0.173.0 eine Reserve von 10 %).
 - **Große Pools.** Hundert Trails im Rahmen sind 201 Dijkstra-Läufe;
   die Budget-Grenze hält jeden klein. Über 150 Trails nimmt der Planer
   die nächsten 150 zum Start und sagt es.
@@ -1825,7 +1827,8 @@ und Endpunkt. Der Endpunkt erscheint auch erst nach Longpress …
 Generell sind es vielleicht etwas zu viele Optionen … Zum Bearbeiten ist
 es ok, aber für den initialen Vorschlag sollte es sehr einfach mit
 wenigen Klicks gehen." Dieser Abschnitt ist der Plan dazu; gebaut ist
-Schritt 1 aus 12.9 (0.172.0) und Schritt 2 (0.173.0). Er ersetzt den Entwurf „Planer" aus `konzept-geraete.md`
+Schritt 1 aus 12.9 (0.172.0), Schritt 2 (0.173.0) und Schritt 3
+(0.174.0). Er ersetzt den Entwurf „Planer" aus `konzept-geraete.md`
 5.2 (Kopf mit „Runde | Route") und erweitert #516. Wo er 4, 10.2 und
 10.3 widerspricht, gilt er, sobald der jeweilige Schritt aus 12.9 gebaut
 ist — der PR zieht die Stelle dann nach.*
@@ -1971,11 +1974,11 @@ Vorschlagswert?"*
 - **Eingabe**: die Zeit in Schritten von 30 min, 1–6 h (2.3), mit
   großen Tasten − / + und der Zahl in der Mitte (A13: kein Regler, den
   man mit Handschuh treffen muss); vorbelegt mit dem letzten Wert.
-- **Heute** rechnet der Planer hart gegen 90 % der Zeit
-  (`kLoopTimeReserve`, 2.3) — eine Runde von 2 h 43 bei 3 h ist voll,
-  und ein Trail, der sie auf 2 h 44 brächte, fällt weg.
+- **Bis 0.173.0** rechnete der Planer hart gegen 90 % der Zeit
+  (`kLoopTimeReserve`, 2.3) — eine Runde von 2 h 43 bei 3 h war voll,
+  und ein Trail, der sie auf 2 h 44 brächte, fiel weg.
 - **Künftig ein Fenster um die Zeit, und darin gewinnt der Trail-
-  Anteil** (`kLoopTimeWindow`, 30 min): Der Planer baut die Runde wie
+  Anteil** (`kLoopTimeWindowS`, 30 min): Der Planer baut die Runde wie
   bisher Trail für Trail auf, jetzt bis zur Zeit PLUS 30 min, und merkt
   sich jeden Stand, dessen Schätzung zwischen Zeit − 30 min und Zeit
   + 30 min liegt. **Der Vorschlag ist der Stand mit dem besten
@@ -2209,6 +2212,38 @@ einem Schritt auf der normalen Karte.
    Satz zur zu kurzen Runde; die Skalen an Zeit und Höhenmetern (12.5a);
    Spiegel in `tool/route_measure.py`, falls dort gerechnet — ☁️ bauen ·
    💻 an eigenen Runden prüfen.
+   **Gebaut, 0.174.0** (`loop_planner.dart`: `LoopBudget.windowS`,
+   `chooseState`; `LoopBudgetScale` in `loop_planner_sheet.dart`; das
+   Werkzeug rechnet keine Runden, also kein Spiegel). Beim Bau
+   entschieden:
+   - **Der Trail-Anteil ist Trail-Meter je Meter Strecke**, die zweite
+     Abfahrt mit ihrem Anteil (wie in der Zielfunktion), die Strecke mit
+     Trails und Verbindungen. Gleichstand heißt
+     `kLoopShareTie` (0,5 Prozentpunkte).
+   - **Gewählt wird unter den Ständen des Greedy**, danach tauscht die
+     lokale Suche nur noch bis zur Zeit des gewählten Stands — sonst
+     füllte sie die Runde wieder bis Zeit + 30 min auf, und der Anteil
+     hätte nichts entschieden. Pflicht-Trails passen bis Zeit + 30 min.
+   - **Ohne Fenster ist die Zeit eine Grenze** (`windowS: 0`): Das
+     Budget des spaßigen Wegs (`funBudgetOf`) IST eine Grenze, kein
+     Richtwert, und die direkte Route (`kRouteDirectBudget`) prüft
+     ohnehin nichts. Die Teilung durch 0,9 dort fällt mit der Reserve.
+   - **Skalen, „ca." und der Satz zu den Pausen nur an einer Runde**
+     (Runde oder Ende am letzten Trail, mit Trail): Eine Route zu einem
+     Ziel rechnet ohne Zeit als Richtwert. „von 800" steht rechts neben
+     „Bergauf", die Zahl darunter bleibt kurz — „640 von 800 hm" als Zahl
+     wäre in der Kachel auf 411 dp kaum lesbar.
+   - **Der Satz zu den Pausen steht in der Zeile unter den Knöpfen**
+     (`loop-details`), nicht unter der Summe: Eingeklappt müssen Profil
+     und „Fahrt starten" ganz zu sehen sein (`lib/features/routing/
+     CLAUDE.md`, „Reihenfolge im Blatt"). Ebenso „Kürzer als etwa 3 h …"
+     (`loop-short`), wenn kein Stand im Fenster lag; „Weiter suchen"
+     kommt mit dem Pool aus dem Umkreis (Schritt 4) — beim Bearbeiten
+     ist der Pool die Auswahl, weiter suchen hieße mehr wählen.
+   - **Nicht gebaut: ein Tipp auf die Kachel öffnet „Anpassen"** — über
+     einem Ergebnis gibt es „Anpassen" nicht (Schritt 1); erst mit dem
+     „Bearbeiten" am Vorschlag (Schritt 4) hat der Tipp ein Ziel.
+   - Offen (💻): ob 30 min bei 1 h und 1,5 h zu viel sind.
 4. **„Runde vorschlagen"** (12.4) nach der Messung aus 12.8: Pool aus
    dem Umkreis, abgeleitete Höhenmeter, „Bearbeiten" am Ergebnis —
    💻 messen · ☁️ bauen · 📱.

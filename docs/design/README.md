@@ -633,6 +633,18 @@ Schwierigkeit (E9) —, eine unbestätigte Meldung gedämpft mit „?"
   auf dem Gerät; was nicht geladen ist, fällt weg statt als 0
   dazustehen, im Web gibt es keine Fahrten.
 
+- **Summe im Ergebnis des Planers** (#517, Skalen seit 0.174.0, #516;
+  `loop_planner_sheet.dart`: `_SummaryTile`, `LoopBudgetScale`): vier
+  Kacheln Strecke / Bergauf / Trails / Zeit, Beschriftung `labelSmall`,
+  Zahl in Mono. Eine Runde trägt unter „Bergauf" und „Zeit" eine
+  **Skala, keinen Ring** (Konzept-Routing 12.5a): 4 px hoch, Spur in
+  `line`, Füllung in `brandMark`, ein 2 px breiter Strich in `text` am
+  Limit bzw. an der gewählten Zeit; bei der Zeit das Fenster ± 30 min
+  als Feld in `brandMark` mit 30 % Deckung. Über dem Erlaubten (Limit,
+  Fensterende — getunt oder mit Pflicht-Trails) ist die Füllung
+  `warningText`, und der Strich steht mitten in ihr: Form UND Farbe.
+  Das Limit steht als „von 800" rechts in der Beschriftungszeile, die
+  Zeit als „ca. 3 h 10 min". Eine Route zu einem Ziel hat keine Skala.
 - **Kurzanleitung** (#131, seit 0.59.0, `help_screen.dart`): kein
   Entwurf im Turn; gebaut im Stil der Profil-Unterseiten. Oben die
   Kachel des Sicherheitshinweises (Warnton 10 % auf der Fläche, Rand

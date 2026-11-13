@@ -15,6 +15,7 @@
 //   GPX". Beim Ergebnis klappt es ein und die Karte passt die Runde
 //   DARÜBER ein. Zu heißt: Ergebnis weg, Modus und Auswahl bleiben.
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -710,7 +711,7 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
   }
 
   bool _fitsBudget(LoopSummary s, LoopBudget b) =>
-      s.timeS <= b.plannedTimeS + 1 && s.gainM <= b.climbM + 1 && s.hikingM <= b.hikingM + 1;
+      s.timeS <= b.maxTimeS + 1 && s.gainM <= b.climbM + 1 && s.hikingM <= b.hikingM + 1;
 
   List<Widget> _result(BuildContext context, LoopSession session, LoopPlan plan) {
     final theme = Theme.of(context);
@@ -727,23 +728,52 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
     final trails = ref.read(trailsProvider).valueOrNull ?? const <Trail>[];
     final byId = {for (final t in trails) t.id: t};
     final canRecord = ref.watch(rideRecordingAvailableProvider) && ref.watch(rideProvider) == null;
+    // Das Budget, an dem eine Runde gerechnet wurde (Runde oder Ende am
+    // letzten Trail); eine Route zu einem Ziel rechnet ohne Zeit als
+    // Richtwert, die Skalen sagten dort nichts.
+    final budget = !plan.isEmpty && !session.planBare && session.planEnd != LoopEndMode.target
+        ? session.prefs.budget
+        : null;
     return [
       // Vier Kacheln statt eines Satzes (#517, Konzept-Geräte 5.2): Länge,
       // bergauf, auf Trails (ohne Trail — die Route von A nach B, #356 —
-      // bergab), Zeit.
+      // bergab), Zeit. Eine Runde trägt unter „Bergauf" und „Zeit" ihre
+      // Skala (Konzept-Routing 12.5a): wie viel vom Limit, wo im Fenster.
       Row(
         key: const ValueKey('loop-summary'),
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          for (final (i, (key, label, value)) in [
-            ('length', l.loopTileLength, formatMeters(s.lengthM)),
-            ('climb', l.loopTileClimb, '${s.gainM.round()} hm'),
+          for (final (i, tile) in [
+            _SummaryTile(key: const ValueKey('loop-tile-length'), label: l.loopTileLength, value: formatMeters(s.lengthM)),
+            _SummaryTile(
+              key: const ValueKey('loop-tile-climb'),
+              label: l.loopTileClimb,
+              value: '${s.gainM.round()} hm',
+              trailing: budget == null ? null : l.loopTileOf('${budget.climbM.round()}'),
+              scale: budget == null
+                  ? null
+                  : LoopBudgetScale(key: const ValueKey('loop-scale-climb'), value: s.gainM, mark: budget.climbM),
+            ),
             plan.isEmpty
-                ? ('descent', l.loopTileDescent, '${s.lossM.round()} hm')
-                : ('trail', l.loopTileTrail, formatMeters(s.trailM)),
-            ('time', l.loopTileTime, routeTimeLabel(l, s.timeS)),
+                ? _SummaryTile(
+                    key: const ValueKey('loop-tile-descent'), label: l.loopTileDescent, value: '${s.lossM.round()} hm')
+                : _SummaryTile(key: const ValueKey('loop-tile-trail'), label: l.loopTileTrail, value: formatMeters(s.trailM)),
+            _SummaryTile(
+              key: const ValueKey('loop-tile-time'),
+              label: l.loopTileTime,
+              value: budget == null ? routeTimeLabel(l, s.timeS) : l.loopTimeAbout(routeTimeLabel(l, s.timeS)),
+              scale: budget == null
+                  ? null
+                  : LoopBudgetScale(
+                      key: const ValueKey('loop-scale-time'),
+                      value: s.timeS,
+                      mark: budget.timeS,
+                      windowFrom: budget.minTimeS,
+                      windowTo: budget.maxTimeS),
+            ),
           ].indexed) ...[
             if (i > 0) const SizedBox(width: 6),
-            Expanded(child: _SummaryTile(key: ValueKey('loop-tile-$key'), label: label, value: value)),
+            Expanded(child: tile),
           ],
         ],
       ),
@@ -798,9 +828,23 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
         [
           if (!plan.isEmpty) l.loopDescents(s.trailLossM.round(), s.wastedLossM.round()),
           if (s.mix.isNotEmpty) wayMixLine(l, s.mix),
+          // Die Schätzung kennt keine Pausen (Konzept-Routing 12.5) — als
+          // Satz, seit die Reserve nicht mehr still in der Rechnung steckt.
+          if (budget != null) l.loopNoBreaks,
         ].join(' · '),
         style: theme.textTheme.bodyMedium,
       ),
+      // Kein Stand im Fenster (Konzept-Routing 12.5): der längste darunter,
+      // und das Blatt sagt es. „Weiter suchen" kommt mit dem Pool aus dem
+      // Umkreis (12.9 Schritt 4) — beim Bearbeiten ist der Pool die Auswahl.
+      if (budget != null && !session.tuned && s.timeS < budget.minTimeS) ...[
+        const SizedBox(height: 4),
+        Text(
+          key: const ValueKey('loop-short'),
+          l.loopShortNote(loopHoursLabel(l, session.prefs.hours)),
+          style: theme.textTheme.bodyMedium,
+        ),
+      ],
       if (session.planBare && session.prefs.style == RouteMode.easy) ...[
         const SizedBox(height: 4),
         Text(key: const ValueKey('loop-easy-note'), l.routeEasyNote, style: theme.textTheme.bodyMedium),
@@ -1103,16 +1147,21 @@ List<MapViewPolyline> loopPreviewLines(LoopPlan plan) {
   ]);
 }
 
-/// Eine Kachel der Summe (#517): Beschriftung klein, Zahl in Mono.
+/// Eine Kachel der Summe (#517): Beschriftung klein, Zahl in Mono; bei
+/// einer Runde rechts neben der Beschriftung das Limit ([trailing]) und
+/// unter der Zahl die Skala ([scale], Konzept-Routing 12.5a).
 class _SummaryTile extends StatelessWidget {
-  const _SummaryTile({super.key, required this.label, required this.value});
+  const _SummaryTile({super.key, required this.label, required this.value, this.trailing, this.scale});
 
   final String label;
   final String value;
+  final String? trailing;
+  final Widget? scale;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final small = theme.textTheme.labelSmall?.copyWith(color: theme.hintColor);
     return Container(
       padding: const EdgeInsets.fromLTRB(10, 5, 8, 5),
       decoration: BoxDecoration(
@@ -1122,17 +1171,109 @@ class _SummaryTile extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.labelSmall?.copyWith(color: theme.hintColor)),
+          Row(children: [
+            Flexible(child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: small)),
+            if (trailing case final t?) ...[
+              const SizedBox(width: 4),
+              Expanded(
+                child: Text(t,
+                    maxLines: 1, overflow: TextOverflow.ellipsis, textAlign: TextAlign.end, style: AppFonts.numbers(small)),
+              ),
+            ],
+          ]),
           FittedBox(
             fit: BoxFit.scaleDown,
             alignment: Alignment.centerLeft,
             child: Text(value, maxLines: 1, style: AppFonts.numbers(theme.textTheme.titleMedium)),
           ),
+          if (scale case final w?) ...[const SizedBox(height: 3), w],
         ],
       ),
     );
   }
+}
+
+/// Die Skala unter einer Kachel (Konzept-Routing 12.5a): gefüllt bis
+/// [value], ein Strich bei [mark] (das Limit, die gewählte Zeit) und — bei
+/// der Zeit — das Fenster [windowFrom]…[windowTo] als helleres Feld. Läuft
+/// der Wert über das Ende des Erlaubten (das Limit, oder das Fenster), ist
+/// die Füllung in der Warnfarbe: Form (der Strich mitten in der Füllung)
+/// UND Farbe, A13.
+class LoopBudgetScale extends StatelessWidget {
+  const LoopBudgetScale({super.key, required this.value, required this.mark, this.windowFrom, this.windowTo});
+
+  final double value;
+  final double mark;
+  final double? windowFrom;
+  final double? windowTo;
+
+  /// Das Ende des Erlaubten: das Fenster, sonst das Limit.
+  double get limit => windowTo ?? mark;
+
+  /// Über dem Erlaubten — getunt oder mit Pflicht-Trails.
+  bool get over => value > limit + 1;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = AppPalette.of(context);
+    return SizedBox(
+      height: 6,
+      width: double.infinity,
+      child: CustomPaint(
+        painter: _ScalePainter(
+          value: value,
+          mark: mark,
+          windowFrom: windowFrom,
+          windowTo: windowTo,
+          track: p.line,
+          fill: over ? p.warningText : p.brandMark,
+          tick: p.text,
+        ),
+      ),
+    );
+  }
+}
+
+class _ScalePainter extends CustomPainter {
+  _ScalePainter({
+    required this.value,
+    required this.mark,
+    required this.windowFrom,
+    required this.windowTo,
+    required this.track,
+    required this.fill,
+    required this.tick,
+  });
+
+  final double value, mark;
+  final double? windowFrom, windowTo;
+  final Color track, fill, tick;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final end = math.max(math.max(mark, windowTo ?? 0), value);
+    if (end <= 0) return;
+    double x(double v) => (v / end).clamp(0.0, 1.0) * size.width;
+    const barH = 4.0;
+    final top = (size.height - barH) / 2;
+    final r = const Radius.circular(barH / 2);
+    canvas.drawRRect(RRect.fromLTRBR(0, top, size.width, top + barH, r), Paint()..color = track);
+    if (windowFrom != null && windowTo != null) {
+      canvas.drawRect(Rect.fromLTRB(x(math.max(0, windowFrom!)), top, x(windowTo!), top + barH),
+          Paint()..color = fill.withValues(alpha: 0.3));
+    }
+    canvas.drawRRect(RRect.fromLTRBR(0, top, x(value), top + barH, r), Paint()..color = fill);
+    final m = x(mark);
+    canvas.drawRect(Rect.fromLTRB(m - 1, 0, m + 1, size.height), Paint()..color = tick);
+  }
+
+  @override
+  bool shouldRepaint(_ScalePainter old) =>
+      old.value != value ||
+      old.mark != mark ||
+      old.windowFrom != windowFrom ||
+      old.windowTo != windowTo ||
+      old.fill != fill ||
+      old.track != track ||
+      old.tick != tick;
 }

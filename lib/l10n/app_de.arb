@@ -4087,9 +4087,9 @@
   "@routeParamsTitle": {
     "description": "Titel des Parameter-Blatts, wenn der Planer zu einem Ziel rechnet (Route statt Runde)."
   },
-  "loopMaxTime": "Höchstens {time}",
+  "loopMaxTime": "Etwa {time}",
   "@loopMaxTime": {
-    "description": "Regler im Planer: Zeitbudget; time ist fertig formatiert (z. B. 2 h 30 min).",
+    "description": "Regler im Planer: die Zeit als Richtwert (Konzept-Routing 12.5, ± 30 min); time ist fertig formatiert (z. B. 2 h 30 min).",
     "placeholders": {
       "time": {
         "type": "String"
@@ -9939,6 +9939,37 @@
   "loopTileTime": "Zeit",
   "@loopTileTime": {
     "description": "Kachel im Ergebnis des Planers (#517)."
+  },
+  "loopTimeAbout": "ca. {time}",
+  "@loopTimeAbout": {
+    "description": "Kachel „Zeit“ im Ergebnis einer Runde (Konzept-Routing 12.5): die Schätzung, nicht das Ziel; time ist fertig formatiert.",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "loopTileOf": "von {limit}",
+  "@loopTileOf": {
+    "description": "Kachel „Bergauf“ im Ergebnis einer Runde (Konzept-Routing 12.5a): das Höhenmeter-Limit neben der Beschriftung, z. B. „von 800“.",
+    "placeholders": {
+      "limit": {
+        "type": "String"
+      }
+    }
+  },
+  "loopNoBreaks": "Zeit ohne Pausen geschätzt",
+  "@loopNoBreaks": {
+    "description": "Satz im Ergebnis einer Runde (Konzept-Routing 12.5): Die Schätzung kennt keine Pausen."
+  },
+  "loopShortNote": "Kürzer als etwa {time}: Mehr Trails passen nicht in diese Runde.",
+  "@loopShortNote": {
+    "description": "Satz im Ergebnis einer Runde, wenn sie unter Zeit − 30 min bleibt (Konzept-Routing 12.5); time ist die gewählte Zeit, fertig formatiert.",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
   },
   "highlightRideStartTitle": "Ein Knopf bis zur Fahrt",
   "@highlightRideStartTitle": {
