@@ -279,6 +279,25 @@ class NavView extends WatchUi.View {
         WatchUi.requestUpdate();
     }
 
+    //! #514: ein Ereignis der Erkennung vom Handy für 3 s — [k] "air"
+    //! (Flugzeit), "wh" (Wheelie, [v] Meter) oder "st" (Stoppie), [v] in
+    //! ms. Unbekanntes bleibt still.
+    function cue(k as Object?, v as Object?) as Void {
+        if (!(v instanceof Number)) { return; }
+        var text = "air".equals(k) ? str(Rez.Strings.AirShort) + " " + seconds(v)
+            : "wh".equals(k) ? str(Rez.Strings.WheelieShort) + " " + v + " m"
+            : "st".equals(k) ? "Stoppie " + seconds(v) : null;
+        if (text == null) { return; }
+        _toast = text;
+        _toastUntil = System.getTimer() + 3000;
+        WatchUi.requestUpdate();
+    }
+
+    //! Die Einblendung, solange sie steht (Tests).
+    function toastText() as String? {
+        return System.getTimer() - _toastUntil >= 0 ? null : _toast;
+    }
+
     //! #501 (Konzept 2): Die Uhr fragt, ob sie die neue Linie nimmt. Wer
     //! nichts tut, nimmt sie, wenn [ms] um sind; START sagt ja, ZURÜCK nein
     //! (#513). [big]: „START = JA" groß, die erste Frage nach dem Update.
@@ -310,7 +329,7 @@ class NavView extends WatchUi.View {
 
     //! Wie viele Seiten es gerade gibt.
     function pages() as Number {
-        return _stats.bests == null ? PAGES : PAGES + 1;
+        return _stats.hasBests() ? PAGES + 1 : PAGES;
     }
 
     function nextPage() as Void {
@@ -351,6 +370,7 @@ class NavView extends WatchUi.View {
         }
         if (_free) {
             drawFree(dc, w);
+            drawDetect(dc, w);
             drawStatus(dc, w, STATUS_TOP_Y);
             return;
         }
@@ -384,6 +404,7 @@ class NavView extends WatchUi.View {
             drawFit(dc, w, s);
             mapBorder(dc, w);
             drawRing(dc, w, s);
+            drawDetect(dc, w);
             drawStatus(dc, w, STATUS_TOP_Y);
             return;
         }
@@ -403,7 +424,25 @@ class NavView extends WatchUi.View {
         }
         mapBorder(dc, w);
         drawRing(dc, w, s);
+        drawDetect(dc, w);
         drawStatus(dc, w, STATUS_TOP_Y);
+    }
+
+    //! #514: Das Handy erkennt Sprünge und Wheelies mit gelernter
+    //! Halterung (`on` in den Bestwerten) — ein Punkt in Marke mit Bogen
+    //! links am Rand der Karte. Ohne `on` nichts: Die Uhr behauptet keine
+    //! Erkennung, die nicht läuft.
+    hidden function drawDetect(dc as Dc, w as Number) as Void {
+        if (_stats.best("on") != 1) { return; }
+        var x = w / 2 - TbRing.MAP_R + 12;
+        var y = w / 2;
+        dc.setColor(TbColors.FIELD, Graphics.COLOR_TRANSPARENT);
+        dc.fillCircle(x, y, 8);
+        dc.setColor(TbColors.ROUTE, Graphics.COLOR_TRANSPARENT);
+        dc.fillCircle(x, y + 2, 3);
+        dc.setPenWidth(2);
+        dc.drawArc(x, y + 2, 6, Graphics.ARC_COUNTER_CLOCKWISE, 30, 150);
+        dc.setPenWidth(1);
     }
 
     //! Der schwarze Rand, auf dem der Ring liegt (Karte innen bis MAP_R).
@@ -1110,7 +1149,7 @@ class NavView extends WatchUi.View {
             drawShield(dc, x, 186, _route.secGrade[k], 5, false, TbColors.FIELD);
             x += 20;
         }
-        if (_stats.bests != null) {
+        if (_stats.hasBests()) {
             dc.setColor(TbColors.MUTED, Graphics.COLOR_TRANSPARENT);
             dc.drawText(cx, 202, Graphics.FONT_XTINY,
                 str(Rez.Strings.AirShort) + " " + seconds(_stats.best("ja")) + " · "

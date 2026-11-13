@@ -2,6 +2,21 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## Jumps and wheelies on the watch
+
+*Version 0.170.0, 2026-11-13 (watch app 1.6.0)*
+
+- **A short cue, no new page:** when the phone detects a jump, wheelie
+  or stoppie, the watch shows it for 3 seconds at the top of the map,
+  such as "Air 0.9 s" or "Wheelie 12 m". Then the trail is back. If the
+  watch is asking a question, the question wins. At most one cue every
+  10 seconds, and only while it is fresh — a message to the watch takes
+  a few seconds.
+- **A sign while detection runs:** a small dot with an arc sits at the
+  left edge of the map while the phone detects and has learned its
+  mount. If it is missing, the phone is not detecting right now.
+- **The "Jumps" page** still appears only with the first best value.
+
 ## Long routes no longer crash the watch
 
 *Version 0.169.1, 2026-11-13*

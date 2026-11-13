@@ -22,6 +22,21 @@ function talk_hallo_neue_route(logger as Logger) as Boolean {
     ] as Array<Dictionary>);
 }
 
+//! Sprung und Wheelie an der Uhr (#514): Erkennung an, ein Sprung als Hinweis samt Bestwert, dann bleiben die Takte aus
+(:test)
+function talk_sprung_hinweis(logger as Logger) as Boolean {
+    return TestTalk.play("sprung-hinweis", ["handy"] as Array<String>, [
+        {"von" => "uhr", "tu" => "start", "msg" => {"t" => "hi", "v" => 2, "ver" => "1.6.0"}, "gleich" => ["v"], "dann" => ["wartet"]},
+        {"von" => "handy", "msg" => {"t" => "n", "id" => "$a", "np" => 2}, "dann" => ["route_kommt"]},
+        {"von" => "handy", "msg" => {"t" => "r", "id" => "$a"}},
+        {"von" => "uhr", "msg" => {"t" => "ok", "id" => "$a"}, "nach_ms" => 500, "dann" => ["route:$a", "erkennt_nicht"]},
+        {"von" => "handy", "msg" => {"t" => "b", "on" => 1, "jn" => 0}, "gleich" => ["on", "jn"], "dann" => ["erkennt"]},
+        {"von" => "handy", "msg" => {"t" => "c", "k" => "air", "v" => 900}, "gleich" => ["k", "v"], "dann" => ["hinweis"]},
+        {"von" => "handy", "msg" => {"t" => "b", "on" => 1, "jn" => 1, "ja" => 900}, "gleich" => ["on", "jn", "ja"], "dann" => ["erkennt", "bestwerte"]},
+        {"von" => "handy", "msg" => {"t" => "b", "on" => 0, "jn" => 1}, "gleich" => ["on", "jn"], "dann" => ["erkennt_nicht"]}
+    ] as Array<Dictionary>);
+}
+
 //! Ein Stück mit einer anderen Fassung: die Uhr sagt `x ver` mit ihrer
 (:test)
 function talk_fassung_handy_alt(logger as Logger) as Boolean {

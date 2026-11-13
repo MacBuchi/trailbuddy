@@ -20,10 +20,10 @@
     "still": "Die Seite `von` sendet in `nach_ms` nichts.",
     "handy_aufbau": "nav (Navigation mit Uhr, Route nach Norden um 47,5/11,5), frei (keine Navigation, ein Trail bei 48/9), sprung (ein Sprung liegt vor, die Bestwerte gehen hin); die Fahrten der Uhr hört das Handy immer",
     "uhr_aufbau": "handy (startet mit verbundenem Handy, also mit dem Lader), geladen (ohne Handy gestartet, Testroute geladen, dann das Handy da), ohne_route (Store-Bau: freie Fahrt), bad:$x (die Route $x stürzte zweimal ab), fahrt (eine Fahrt wartet aufs Handy)",
-    "handlungen_handy": "navigation (Navigation mit „Auf der Uhr zeigen“ starten, ein Fix auf der Route), beenden",
+    "handlungen_handy": "navigation (Navigation mit „Auf der Uhr zeigen“ starten, ein Fix auf der Route), beenden, erkennung an (ein Takt mit gelernter Halterung), sprung (ein Sprung von 0,9 s, 3 s her), takte aus (6 s ohne Takt; #514)",
     "handlungen_uhr": "start, neustart, START, ZURÜCK, Weiter, Speichern, Verwerfen, Ja (Fahrt verwerfen), Behalten, beenden (Navigation beenden: Ja), Route beenden (Aktionsmenü, #513), fixe A-B (eigene Fixe nach Norden, 55 m je Fix, alle 5 s)",
     "staende_handy": "idle, sendet, gefragt, gesendet, gespeichert, unbestaetigt, fehler, fehler:<Code> (WatchSync); nav_an, nav_aus; nimmt_auf, aus, marken:<n> (Aufzeichnung des Handys)",
-    "staende_uhr": "wartet (auf die Antwort aufs hallo), route_kommt, frei, fragt, route:$x, nimmt_auf, pause, zu, keine_fahrt, fahrt_wartet, bestwerte"
+    "staende_uhr": "wartet (auf die Antwort aufs hallo), route_kommt, frei, fragt, route:$x, nimmt_auf, pause, zu, keine_fahrt, fahrt_wartet, bestwerte, erkennt (das Handy erkennt mit gelernter Halterung, `on`), erkennt_nicht, hinweis (ein Sprung/Wheelie steht 3 s, #514)"
   },
   "faelle": [
     {
@@ -530,6 +530,28 @@
       "id": "509.9",
       "erwartung": "Endet die Navigation an der Uhr, endet sie am Handy auch; endet sie am Handy, geht die Uhr zu — beide Seiten gegen denselben Katalog.",
       "uhr": "talk_ende_an_der_uhr"
+    },
+    {
+      "id": "514.1",
+      "erwartung": "Ein Sprung oder Wheelie vom Handy (`c`) steht 3 s an der Stelle der Frage („Flug 0,9 s“, „Wheelie 12 m“); eine unbekannte Art bleibt still.",
+      "uhr": "coreCueShows",
+      "handy": "Hinweis: Flugzeit und Stoppie in ms"
+    },
+    {
+      "id": "514.2",
+      "erwartung": "Eine Frage geht vor: Ein Hinweis, der während der Frage kommt, verfällt.",
+      "uhr": "coreCueYieldsToAsk"
+    },
+    {
+      "id": "514.3",
+      "erwartung": "`on` allein macht keine Seite „Sprünge“, erst ein Bestwert — und nie eine fünfte Seite; `on` 0 nimmt das Zeichen am Rand der Karte weg.",
+      "uhr": "coreDetectNoNewPage"
+    },
+    {
+      "id": "514.4",
+      "erwartung": "Das Handy schickt `on` nur mit gelernter Halterung und frischem Takt, das „aus“ binnen 2 s nach 5 s ohne Takt; höchstens einen Hinweis je 10 s, keinen, der beim Absenden älter als 8 s ist — Gespräch `sprung-hinweis`.",
+      "uhr": "talk_sprung_hinweis",
+      "handy": "ein Sprung: Hinweis und Bestwerte in einer Sendung"
     }
   ],
   "gespraeche": [
@@ -548,6 +570,22 @@
         {"von": "uhr", "tu": "neustart", "msg": {"t": "hi", "v": 2, "ver": "1.3.0", "id": "$a"}, "dann": {"uhr": "wartet"}},
         {"von": "handy", "msg": {"t": "k", "id": "$a"}, "nach_ms": 500, "dann": {"uhr": "route:$a", "handy": "gespeichert"}},
         {"von": "handy", "tu": "beenden", "msg": {"t": "e", "id": "$a"}, "dann": {"handy": "nav_aus", "uhr": "zu"}}
+      ]
+    },
+    {
+      "id": "sprung-hinweis",
+      "titel": "Sprung und Wheelie an der Uhr (#514): Erkennung an, ein Sprung als Hinweis samt Bestwert, dann bleiben die Takte aus",
+      "handy": ["nav"],
+      "uhr": ["handy"],
+      "schritte": [
+        {"von": "uhr", "tu": "start", "msg": {"t": "hi", "v": 2, "ver": "1.6.0"}, "gleich": ["v"], "dann": {"uhr": "wartet"}},
+        {"von": "handy", "tu": "navigation", "msg": {"t": "n", "id": "$a", "np": 2}, "dann": {"uhr": "route_kommt"}},
+        {"von": "handy", "msg": {"t": "r", "id": "$a"}},
+        {"von": "uhr", "msg": {"t": "ok", "id": "$a"}, "nach_ms": 500, "dann": {"handy": "gespeichert", "uhr": ["route:$a", "erkennt_nicht"]}},
+        {"von": "handy", "tu": "erkennung an", "msg": {"t": "b", "on": 1, "jn": 0}, "gleich": ["on", "jn"], "dann": {"uhr": "erkennt"}},
+        {"von": "handy", "tu": "sprung", "msg": {"t": "c", "k": "air", "v": 900}, "gleich": ["k", "v"], "dann": {"uhr": "hinweis"}},
+        {"von": "handy", "msg": {"t": "b", "on": 1, "jn": 1, "ja": 900}, "gleich": ["on", "jn", "ja"], "dann": {"uhr": ["erkennt", "bestwerte"]}},
+        {"von": "handy", "tu": "takte aus", "msg": {"t": "b", "on": 0, "jn": 1}, "gleich": ["on", "jn"], "dann": {"uhr": "erkennt_nicht"}}
       ]
     },
     {
@@ -1012,14 +1050,17 @@
         },
         {
           "was": "Ein Sprung oder Wheelie erscheint an der Uhr für 3 s, ohne neue Seite",
-          "offen": [
-            514
+          "faelle": [
+            "514.1",
+            "514.2",
+            "514.3",
+            "514.4"
           ]
         },
         {
           "was": "Auch bei gesperrtem Bildschirm meldet die Erkennung",
           "offen": [
-            514
+            524
           ]
         },
         {

@@ -41,7 +41,7 @@ import Toybox.Lang;
 module EventLog {
     const SIZE = 120;
     //! Die Arten der Nachrichten, je drei Zeichen ab Stelle 0.
-    const IN_T = " q  wq wk p  n  k  e  r  b  ";
+    const IN_T = " q  wq wk p  n  k  e  r  b  c  ";
     const OUT_T = " hi x  ok g  d  e  rs re rp rr rt w  ";
 
     var _ring as Array = [];

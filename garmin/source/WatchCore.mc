@@ -807,9 +807,15 @@ class WatchCore {
                 closeDown(false, true);
             }
         } else if ("b".equals(t)) {
+            // Bestwerte samt `on` (#514): Das Handy erkennt mit gelernter
+            // Halterung — die Karte zeigt ihr Zeichen am Rand.
             _bests = d;
             stats.bests = d;
             WatchUi.requestUpdate();
+        } else if ("c".equals(t)) {
+            // Ein Sprung, Wheelie oder Stoppie vom Handy, 3 s an der Stelle
+            // der Frage (#514); eine Frage geht vor, der Hinweis verfällt.
+            if (!ui.asking()) { ui.cue(d["k"], d["v"]); }
         } else if ("r".equals(t)) {
             routePart(d, id);
         }

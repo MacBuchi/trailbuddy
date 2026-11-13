@@ -836,6 +836,12 @@ function check(st as String) as Void {
         ok = RideLog.queue().size() > 0;
     } else if ("bestwerte".equals(st)) {
         ok = c.stats.bests != null;
+    } else if ("erkennt".equals(st)) {
+        ok = c.stats.best("on") == 1;
+    } else if ("erkennt_nicht".equals(st)) {
+        ok = c.stats.best("on") != 1;
+    } else if ("hinweis".equals(st)) {
+        ok = c.ui.toastText() != null;
     } else {
         ok = false;
         st = "unbekannt: " + st;
@@ -1106,5 +1112,56 @@ function eventsMessageCodes(logger as Logger) as Boolean {
     Test.assertEqual(EventLog.msgCode("re", true), 47);
     Test.assertEqual(EventLog.msgCode("w", true), 51);
     Test.assertEqual(EventLog.msgCode("rq", true), 55);
+    return true;
+}
+
+// --- Sprung und Wheelie an der Uhr (#514) ------------------------------------
+
+//! 514.1: Ein Hinweis vom Handy steht 3 s; eine unbekannte Art bleibt still.
+(:test)
+function coreCueShows(logger as Logger) as Boolean {
+    var h = new FakeHost();
+    var c = TestCore.loaded(h);
+    c.handle({"t" => "c", "k" => "zz", "v" => 900});
+    Test.assert(c.ui.toastText() == null);
+    c.handle({"t" => "c", "k" => "air", "v" => 900});
+    var t = c.ui.toastText();
+    Test.assert(t != null && (t as String).find("0") != null);
+    c.handle({"t" => "c", "k" => "wh", "v" => 12});
+    t = c.ui.toastText();
+    Test.assert(t != null && (t as String).find("12 m") != null);
+    TestCore.done();
+    return true;
+}
+
+//! 514.2: Eine Frage geht vor — ein Hinweis während der Frage verfällt.
+(:test)
+function coreCueYieldsToAsk(logger as Logger) as Boolean {
+    var h = new FakeHost();
+    var c = TestCore.loaded(h);
+    TestCore.newLine(c, "neu");
+    Test.assert(c.ui.asking());
+    c.handle({"t" => "c", "k" => "air", "v" => 900});
+    Test.assert(c.ui.toastText() == null);
+    TestCore.done();
+    return true;
+}
+
+//! 514.3: `on` allein macht keine Seite „Sprünge" — erst ein Bestwert; nie
+//! eine fünfte Seite.
+(:test)
+function coreDetectNoNewPage(logger as Logger) as Boolean {
+    var h = new FakeHost();
+    var c = TestCore.loaded(h);
+    var base = c.ui.pages();
+    c.handle({"t" => "b", "on" => 1, "jn" => 0, "ja" => 0, "wn" => 0, "wl" => 0, "wa" => 0, "sn" => 0});
+    Test.assertEqual(c.stats.best("on"), 1);
+    Test.assertEqual(c.ui.pages(), base);
+    c.handle({"t" => "b", "on" => 1, "jn" => 1, "ja" => 900, "wn" => 0, "wl" => 0, "wa" => 0, "sn" => 0});
+    Test.assertEqual(c.ui.pages(), base + 1);
+    c.handle({"t" => "b", "on" => 0, "jn" => 1, "ja" => 900, "wn" => 2, "wl" => 9, "wa" => 30, "sn" => 1});
+    Test.assertEqual(c.stats.best("on"), 0);
+    Test.assertEqual(c.ui.pages(), base + 1);
+    TestCore.done();
     return true;
 }

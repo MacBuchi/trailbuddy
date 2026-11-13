@@ -30,6 +30,8 @@ import '../../models/trail.dart';
 import '../profile/profile_providers.dart' show riderProfileProvider;
 import '../rides/airtime_live.dart';
 import '../rides/ride_providers.dart' show rideProvider;
+import '../rides/sensor_fusion.dart' show FusionEvent, FusionLive;
+import '../rides/trail_values.dart' show AirtimeLog;
 import '../routing/nav_providers.dart' show navigationProvider, navReplanOfferDistanceProvider;
 import '../routing/loop_plan_runner.dart' show loopPlanRunnerFactoryProvider;
 import '../routing/loop_planner.dart' show LoopPrefs;
@@ -175,6 +177,15 @@ class WatchSync extends Notifier<WatchSyncState> {
   Map<String, Object>? _lastBests;
   bool _bests = false;
 
+  /// Solange die Uhr „Erkennung an" hat: prüft alle 2 s, ob die Takte
+  /// ausbleiben — ohne neuen Takt käme sonst kein „aus" (#514).
+  Timer? _detectTimer;
+
+  /// Der jüngste Beginn eines Ereignisses, das schon betrachtet wurde, und
+  /// wann (Uhr der Erkennung, µs) der letzte Hinweis hinging (#514).
+  int _cueSeenUs = 0;
+  int _cueAtUs = 0;
+
   /// Folgt die Uhr dem Handy ([follow])? An heißt: Diese Uhr bekommt Routen
   /// — die der Navigation, oder in der freien Fahrt die nächste Linie (#484).
   bool _follow = false;
@@ -264,18 +275,24 @@ class WatchSync extends Notifier<WatchSyncState> {
       _ackTimer?.cancel();
       _nudgeTimer?.cancel();
       _positionTimer?.cancel();
+      _detectTimer?.cancel();
     });
-    // Jeder neue Bestwert geht hinterher, solange eine Route auf der Uhr
-    // ist; die Fahrt zu Ende heißt: nichts mehr.
-    ref.listen(airtimeLiveProvider.select((s) => s.log), (_, log) {
-      if (!_bests) return;
-      final bests = watchBestsOf(log);
-      if (bests == null || _same(bests, _lastBests)) return;
-      _lastBests = bests;
-      unawaited(ref.read(garminBridgeProvider).send([bests]));
+    // Jeder neue Bestwert und jeder Wechsel der Erkennung geht hinterher,
+    // solange eine Route auf der Uhr ist; ein neues Ereignis zuerst als
+    // Hinweis (#514). Die Fahrt zu Ende heißt: aus, dann nichts mehr.
+    ref.listen(airtimeLiveProvider, (previous, next) {
+      final cue = identical(previous?.log, next.log) ? null : _cueOf(next.log);
+      _sendBests(cue: cue);
     });
     ref.listen(rideProvider, (previous, next) {
-      if (previous != null && next == null) _bests = false;
+      if (previous != null && next == null) {
+        _sendBests(off: true);
+        _bests = false;
+        _detectTimer?.cancel();
+        _detectTimer = null;
+        _cueSeenUs = 0;
+        _cueAtUs = 0;
+      }
     });
     // Die Uhr redet auch ohne Navigation: in der freien Fahrt fragt sie nach
     // einer Linie (#484), und das Handy antwortet mit dem Trail in Reichweite.
@@ -676,12 +693,60 @@ class WatchSync extends Notifier<WatchSyncState> {
     // Uhr-App sie. Startete die Uhr-App neu, hat sie sie vergessen.
     _bests = true;
     _lastBests = null;
-    final bests = watchBestsOf(ref.read(airtimeLiveProvider).log);
-    if (bests != null) {
-      _lastBests = bests;
-      unawaited(ref.read(garminBridgeProvider).send([bests]));
-    }
+    _sendBests();
     _startPositions();
+  }
+
+  /// Erkennt das Handy gerade, mit gelernter Halterung? Der jüngste Takt
+  /// ist der abgespielte oder die Lage jetzt, was neuer ist.
+  bool _detecting() {
+    final live = ref.read(airtimeLiveProvider);
+    FusionLive? latest = live.ticks.isEmpty ? null : live.ticks.last;
+    final now = live.now;
+    if (now != null && (latest == null || now.tUs > latest.tUs)) latest = now;
+    return watchDetecting(latest, ref.read(airtimeClockProvider)());
+  }
+
+  /// Bestwerte samt `on` an die Uhr, wenn sie sich geändert haben — mit
+  /// [cue] davor in derselben Sendung. [off]: Die Fahrt ist zu Ende, die
+  /// Erkennung aus, egal was die Takte sagen.
+  void _sendBests({Map<String, Object>? cue, bool off = false}) {
+    if (!_bests) return;
+    final on = !off && _detecting();
+    var bests = watchBestsOf(ref.read(airtimeLiveProvider).log, on: on);
+    // Nach einem „an" geht auch das „aus", ohne Ereignis mit lauter Nullen.
+    if (bests == null && _lastBests?['on'] == 1) {
+      bests = {'t': kWatchBests, 'on': 0, 'jn': 0, 'ja': 0, 'wn': 0, 'wl': 0, 'wa': 0, 'sn': 0};
+    }
+    if (on && !off) {
+      _detectTimer ??= Timer.periodic(const Duration(seconds: 2), (_) => _sendBests());
+    } else {
+      _detectTimer?.cancel();
+      _detectTimer = null;
+    }
+    final changed = bests != null && !_same(bests, _lastBests);
+    if (changed) _lastBests = bests;
+    final out = [?cue, if (changed) bests];
+    if (out.isEmpty) return;
+    unawaited(ref.read(garminBridgeProvider).send(out));
+  }
+
+  /// Der Hinweis zum neuesten Ereignis in [log], wenn es neu ist, frisch
+  /// genug ([kWatchCueMaxAge]) und der letzte länger als [kWatchCueEvery]
+  /// her ist; sonst null. Ein Ereignis wird nur einmal betrachtet.
+  Map<String, Object>? _cueOf(AirtimeLog log) {
+    if (!_bests) return null;
+    FusionEvent? newest;
+    for (final e in log.events) {
+      if (e.startUs > _cueSeenUs && (newest == null || e.startUs > newest.startUs)) newest = e;
+    }
+    if (newest == null) return null;
+    _cueSeenUs = newest.startUs;
+    final now = ref.read(airtimeClockProvider)();
+    if (_cueAtUs != 0 && now - _cueAtUs < kWatchCueEvery.inMicroseconds) return null;
+    final cue = watchCueOf(newest, now);
+    if (cue != null) _cueAtUs = now;
+    return cue;
   }
 
   /// Die Position des Handys an die Uhr, gleich und dann alle

@@ -131,6 +131,12 @@ class _PhoneSide {
           phone.navigate();
         case 'beenden':
           phone.endNavigation();
+        case 'erkennung an':
+          phone.detect();
+        case 'sprung':
+          phone.jump();
+        case 'takte aus':
+          phone.clockUs += 6000000;
         case final other:
           fail('$where: unbekannte Handlung am Handy „$other“');
       }

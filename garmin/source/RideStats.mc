@@ -135,6 +135,11 @@ class RideStats {
         heartRate = old.heartRate;
     }
 
+    //! Gibt es Bestwerte zu zeigen? `on` allein (#514) ist keiner.
+    function hasBests() as Boolean {
+        return best("jn") + best("wn") + best("sn") > 0;
+    }
+
     //! Eine Zahl der Bestwerte, oder 0.
     function best(key as String) as Number {
         var b = bests;

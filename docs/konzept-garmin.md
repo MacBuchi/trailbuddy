@@ -889,11 +889,23 @@ Der Vorschlag:
     Eine Frage geht vor.
   - **Keine fünfte Seite.** Die Seite „Sprünge" bleibt, wie sie ist, und
     nur, wenn die Erkennung läuft.
-  Voraussetzung am Handy: Die Erkennung muss auch aus dem Dienst melden,
-  nicht nur an die offene App — bei gesperrtem Bildschirm kommt heute
-  nichts nach. Im Protokoll ist es ein Feld im Stand (`on`) und eine
-  Nachricht je Ereignis; bei ~3,5 s Laufzeit ist der Hinweis ein
-  Nachklang, keine Echtzeit. Das gehört in den Gesprächskatalog (T2).
+  **Gebaut (#514, 0.170.0, Uhr-App 1.6.0):** `b` trägt `on` (Takt der
+  Erkennung höchstens 5 s alt und Halterung gelernt, `watchDetecting`)
+  und geht bei jedem Wechsel, auch ohne Bestwert; das „aus" merkt das
+  Handy binnen 2 s, auch wenn keine Takte mehr kommen. Je Ereignis
+  `{t: "c", k: "air"|"wh"|"st", v}` (ms, Wheelie in Metern), höchstens
+  einer je 10 s, keiner, dessen Ende beim Absenden älter als 8 s ist —
+  eine gemeinsame Uhrzeit mit der Uhr gibt es nicht, also misst das
+  Handy. Der Hinweis steht an der Stelle der Frage (auf der Karte oben),
+  eine Frage verwirft ihn; das Zeichen ist ein Punkt mit Bogen links am
+  Rand der Karte. Die Seite „Sprünge" kommt erst mit einem Bestwert
+  (`on` allein ist keiner). Bei ~3,5 s Laufzeit ist der Hinweis ein
+  Nachklang, keine Echtzeit. Gespräch `sprung-hinweis`, Fälle 514.1–514.4.
+  **Der Dienst-Schritt fiel weg:** Der Dienst schickt jedes Ereignis
+  ohnehin an die App (`sendDataToMain`), auch bei gesperrtem Bildschirm,
+  solange ihr Prozess lebt — und die Verbindung zur Uhr hängt an
+  derselben Engine (`MainActivity`). Ist die App weg, fehlt mit ihr auch
+  die Brücke; das ist Messung 8.7 und #524, nicht hier.
 
 Gebaut wird das erst auf dem Ablaufkern aus Abschnitt 12 (T1) — sonst
 ist jede dieser Regeln wieder nur am Gerät zu prüfen.
