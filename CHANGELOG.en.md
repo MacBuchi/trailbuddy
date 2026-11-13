@@ -2,6 +2,17 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## Long routes no longer crash the watch
+
+*Version 0.169.1, 2026-11-13*
+
+- **At most 800 points to the watch:** a very long or very winding route
+  could crash the watch app while loading — the test bench showed it from
+  1750 points. The app now simplifies a route for the watch to at most
+  800 points. That leaves enough room for the watch to accept a new route
+  on the way, too. On long routes the line on the watch gets a little
+  coarser; bends are kept.
+
 ## The watch log
 
 *Version 0.169.0, 2026-11-12*

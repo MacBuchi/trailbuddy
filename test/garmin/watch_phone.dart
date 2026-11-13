@@ -17,6 +17,7 @@ import 'package:trailbuddy/features/garmin/watch_branches.dart' show WatchBranch
 import 'package:trailbuddy/features/garmin/watch_free.dart' show lineLengthM;
 import 'package:trailbuddy/features/garmin/watch_providers.dart';
 import 'package:trailbuddy/features/garmin/watch_ride_inbox.dart';
+import 'package:trailbuddy/features/garmin/watch_route.dart' show kWatchMaxPoints;
 import 'package:trailbuddy/features/keep_alive/keep_alive.dart';
 import 'package:trailbuddy/features/offline_areas/area_providers.dart' show areaHeightReaderProvider;
 import 'package:trailbuddy/features/offline_areas/area_store.dart';
@@ -63,10 +64,12 @@ WayLine _way(List<(double, double)> xy) =>
 /// Linie fiele beim Vereinfachen auf zwei Punkte, und „halb so groß“ hätte
 /// dieselbe Kennung.
 final phoneRoute = [phoneM(0, 0), phoneM(40, 500), phoneM(0, 1000), phoneM(40, 1500), phoneM(0, 2000), phoneM(0, 2500)];
-/// Eine lange Route, die zwei Stücke braucht (`kWatchPartInts`): 1200
-/// Punkte im Zickzack nach Norden, 30 m hin und her — das Vereinfachen
-/// lässt die Zacken stehen.
-List<LatLng> longPhoneRoute() => [for (var i = 0; i < 1200; i++) phoneM(i.isEven ? 0 : 30, i * 2.0)];
+/// Eine lange Route, die zwei Stücke braucht (`kWatchPartInts`):
+/// [kWatchMaxPoints] Punkte im Zickzack nach Norden, 30 m hin und her —
+/// das Vereinfachen lässt die Zacken stehen. Mehr wären es nicht: Über der
+/// Grenze verdoppelt `watchRouteOf` die Toleranz, und das Zickzack fiele
+/// in sich zusammen.
+List<LatLng> longPhoneRoute() => [for (var i = 0; i < kWatchMaxPoints; i++) phoneM(i.isEven ? 0 : 30, i * 2.0)];
 
 final phoneSections = NavSections([
   const NavTrailSection(startM: 1500, endM: 2500, trailId: 't', name: 'Talweg', grade: 2),

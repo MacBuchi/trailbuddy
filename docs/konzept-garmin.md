@@ -250,8 +250,11 @@ kleinere. **Bricht die Übertragung mittendrin ab**
 (`FAILURE_DURING_TRANSFER`, `FAILURE_TIMEOUT`), gehen nach 2 s die
 übrigen Stücke noch einmal, höchstens zweimal — die Uhr hat die
 angekommenen schon abgelegt. Die Uhr sendet nur, wenn ein Handy
-verbunden ist. **Höchstens 2000 Punkte**
-(Messung 8.1): darüber vereinfacht die App stärker, bis es passt.
+verbunden ist. **Höchstens 800 Punkte**
+(Kettenstand 2026-11-13; bis dahin 2000 nach Messung 8.1 — die stürzten
+beim Laden ab, neben dem heutigen Code passen sie nicht mehr; erst bei
+800 nimmt die Uhr während der Fahrt eine zweite gleich große Route an):
+darüber vereinfacht die App stärker, bis es passt.
 
 **Die Position des Handys** (Betreiber, 2026-11-05): Nach dem
 „gespeichert" schickt das Handy seine Position (`{t: "p", la, lo}` in

@@ -37,8 +37,13 @@ Abbiegehinweise.
 - **Speicher** (Messung 8.1 im Simulator, 124 KB für die App): gut 20 Byte
   je Punkt auf ~29 KB Grundlast; 2000 Punkte 70 KB, ab 3000 „Out of
   Memory" schon beim Laden (damals lagen rohe Daten und Felder kurz
-  zusammen — seit 2026-11-05 nicht mehr, nachzumessen). Grenze für G2:
-  2000 Punkte. Mit Ring und Seiten 76 KB bei 2000.
+  zusammen — seit 2026-11-05 nicht mehr, nachzumessen). Mit Ring und
+  Seiten 76 KB bei 2000. **Überholt**: Neben dem heutigen Code stürzen
+  2000 Punkte vom Handy beim Laden ab (Kettenstand 2026-11-13, `CHAIN_BIG`
+  in `tool/garmin_bench.sh`); die Grenze `kWatchMaxPoints` ist seit
+  0.169.1 800 — die größte, bei der die Uhr während der Fahrt noch eine
+  zweite gleich große Route annimmt (Messwerte bei „Speicher neben der
+  größten Route", #510).
 - **Das Gerät ist strenger als der Simulator** (CIQ_LOG.YML, fēnix 5,
   2026-11-05): Die Übersicht ohne Fix (200 Stücke je Durchgang, je Stück
   vier `sx`/`sy`) lief im Simulator, am Gerät brach sie bei jedem Start
