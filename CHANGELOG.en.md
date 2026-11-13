@@ -2,6 +2,23 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## The planner asks first what you have in mind
+
+*Version 0.173.0, 2026-11-13*
+
+- **Two questions instead of a toolbox:** the planner button opens a
+  small sheet: loop or route? Below it, depending on the choice, the
+  start (your location or a point on the map) and the time with large
+  − and + keys — or the end. Everything is preset; your last choice is
+  in front next time.
+- **A route in three taps:** planner, "Route", a tap on the map — as
+  soon as the end is set, the app computes. With "My location" as the
+  end it takes you back to yourself; you then tap the start on the map.
+- **Loop:** "Choose trails" takes start and time into the usual
+  selection. A ready-made suggestion follows in one of the next steps.
+- **"Put it together yourself"** opens the planner as before, without
+  questions. Tapping a trail does the same.
+
 ## The planner for editing, tidied up
 
 *Version 0.172.0, 2026-11-13*

@@ -420,6 +420,16 @@ void main() {
       await settle(tester, frames: 20);
       await tester.tap(find.byKey(const ValueKey('loop-button')));
       await settle(tester, frames: 10);
+      // Der Einstieg (#516 Schritt 2) auf Englisch, dann die Bearbeitung.
+      for (final text in ['What are you planning?', 'Loop', 'Route', 'My location', 'Choose on the map', 'Time',
+        'about 3 h', 'Choose trails', 'Put it together yourself']) {
+        expect(find.text(text), findsOneWidget, reason: text);
+      }
+      for (final tip in ['Less time', 'More time']) {
+        expect(find.byTooltip(tip), findsOneWidget, reason: tip);
+      }
+      await tester.tap(find.byKey(const ValueKey('loop-entry-self')));
+      await settle(tester, frames: 6);
       // Leiste mit Wort (#516), Kopf, Auswahlzeile — alles auf Englisch.
       for (final text in ['Point', 'Area', 'List', 'Start', 'End', 'Back to the start (loop)', 'Adjust',
         'Tap the trails you want in the loop.', 'Compute loop']) {

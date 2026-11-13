@@ -1075,6 +1075,7 @@ class LoopPrefs {
     this.route = const RoutePrefs(),
     this.style = RouteMode.direct,
     this.easyUp = false,
+    this.intentRoute = false,
   });
 
   final double hours;
@@ -1109,6 +1110,11 @@ class LoopPrefs {
   /// alle Verbindungen mit den Kosten des Stils Bequem
   /// (`RoutePrefs.easy`). Vorgabe aus, gemerkt wie die Regler.
   final bool easyUp;
+
+  /// Die letzte Absicht im Einstieg des Planers (#516, Konzept-Routing
+  /// 12.3): „Route" statt „Runde" — sie steht beim nächsten Öffnen vorn.
+  /// Eigenes Feld, weil `r` = 2 (Ziel) beim Lesen als Runde gilt.
+  final bool intentRoute;
 
   /// Die Vorlieben, mit denen der Planer rechnet: zu einem Ziel im Stil
   /// Bequem, sonst mit „Bergauf bequem" die Kosten des Stils — die Trails
@@ -1161,12 +1167,13 @@ class LoopPrefs {
         _ => RouteMode.direct,
       },
       easyUp: fields['u'] == '1',
+      intentRoute: fields['a'] == '1',
     );
   }
 
   String encode() => 'h=$hours;c=$climbM;w=$hikingKm;r=${switch (endMode) { LoopEndMode.loop => 1, LoopEndMode.lastTrail => 0, LoopEndMode.target => 2 }};k=$radiusKm;o=${fillOnline ? 1 : 0}'
       ';sr=${route.avoidRoads ? 1 : 0};sw=${route.avoidHiking ? 1 : 0};ss=${route.avoidSteep ? 1 : 0}'
-      ';y=${switch (style) { RouteMode.direct => 'd', RouteMode.fun => 'f', RouteMode.easy => 'e' }};u=${easyUp ? 1 : 0}';
+      ';y=${switch (style) { RouteMode.direct => 'd', RouteMode.fun => 'f', RouteMode.easy => 'e' }};u=${easyUp ? 1 : 0};a=${intentRoute ? 1 : 0}';
 
   LoopBudget get budget => LoopBudget(timeS: hours * 3600, climbM: climbM, hikingM: hikingKm * 1000);
 
@@ -1179,7 +1186,8 @@ class LoopPrefs {
           bool? fillOnline,
           RoutePrefs? route,
           RouteMode? style,
-          bool? easyUp}) =>
+          bool? easyUp,
+          bool? intentRoute}) =>
       LoopPrefs(
         hours: hours ?? this.hours,
         climbM: climbM ?? this.climbM,
@@ -1190,6 +1198,7 @@ class LoopPrefs {
         route: route ?? this.route,
         style: style ?? this.style,
         easyUp: easyUp ?? this.easyUp,
+        intentRoute: intentRoute ?? this.intentRoute,
       );
 }
 

@@ -1825,7 +1825,7 @@ und Endpunkt. Der Endpunkt erscheint auch erst nach Longpress …
 Generell sind es vielleicht etwas zu viele Optionen … Zum Bearbeiten ist
 es ok, aber für den initialen Vorschlag sollte es sehr einfach mit
 wenigen Klicks gehen." Dieser Abschnitt ist der Plan dazu; gebaut ist
-Schritt 1 aus 12.9 (0.172.0). Er ersetzt den Entwurf „Planer" aus `konzept-geraete.md`
+Schritt 1 aus 12.9 (0.172.0) und Schritt 2 (0.173.0). Er ersetzt den Entwurf „Planer" aus `konzept-geraete.md`
 5.2 (Kopf mit „Runde | Route") und erweitert #516. Wo er 4, 10.2 und
 10.3 widerspricht, gilt er, sobald der jeweilige Schritt aus 12.9 gebaut
 ist — der PR zieht die Stelle dann nach.*
@@ -2180,6 +2180,30 @@ einem Schritt auf der normalen Karte.
 2. **Einstiegsblatt** (12.3) mit „Route" und „Selbst
    zusammenstellen"; „Runde" führt bis Schritt 4 mit Start und Zeit in
    die Bearbeitungsansicht — ☁️ bauen · 📱.
+   **Gebaut, 0.173.0** (`loop_entry_sheet.dart`). Beim Bau entschieden:
+   - **Eine Karte im Body, kein Persistent Bottom Sheet**: an der Stelle
+     der Auswahlzeile, und solange ein Tipp erwartet wird, tritt sie
+     zurück wie die Auswahlzeile — ein Blatt am Scaffold ginge dafür zu
+     und wieder auf und meldete jedes Mal seine Höhe an die Karte.
+   - **„Route" ohne Ziel wartet gleich auf den Tipp** — so sind es die
+     drei Tipps aus der Tabelle. Öffnet der Planer mit der gemerkten
+     Route, wartet er nicht; der Knopf „Route rechnen" fragt dann das
+     Ziel.
+   - **Der Knopf bei „Runde" heißt „Trails wählen"**, bis Schritt 4 den
+     Vorschlag rechnet.
+   - **Die Absicht ist ein eigenes gemerktes Feld** (`LoopPrefs.intentRoute`,
+     `a`): `r` = 2 liest sich seit #356 als Runde. Wer den Einstieg
+     verlässt, bekommt das Ende der Absicht (`leaveEntry`): Route ⇒ Ziel,
+     Runde ⇒ zurück zum Start; ein gemerktes „Ende am letzten Trail"
+     bleibt, und ein Ziel, das von außen kam („Ziel hier"), auch.
+   - **Ein Trail, der angetippt wird, statt zu antworten**, ist „Selbst
+     zusammenstellen" — die Bearbeitung mit ihm gewählt.
+   - **„Mein Standort" als Ziel holt den Fix beim Wählen** (der Nutzer hat
+     danach gefragt); ohne Fix sagt das Blatt es. Vom Leerfall-Absatz aus
+     12.3 ist nur dieser gebaut: Ohne Standort als Start meldet es weiter
+     das Ergebnis (`noPosition`) — vorab den Standort zu prüfen, hieße,
+     beim Öffnen nach der Berechtigung zu fragen. „Keine Trails im
+     Umkreis" kommt mit dem Pool in Schritt 4.
 3. **Zeit als Orientierung** (12.5): Fenster ± 30 min statt Reserve,
    der Stand mit dem besten Trail-Anteil, „Etwa", Summe mit „ca.", der
    Satz zur zu kurzen Runde; die Skalen an Zeit und Höhenmetern (12.5a);

@@ -62,7 +62,9 @@ class LoopEditHeader extends ConsumerWidget {
       LoopEndMode.lastTrail => l.loopHeadTargetLast,
       LoopEndMode.target => s.target == null
           ? l.loopHeadTargetNone
-          : targetTrail?.displayName(l) ?? l.loopHeadPicked,
+          : s.targetMine
+              ? l.loopHeadMine
+              : targetTrail?.displayName(l) ?? l.loopHeadPicked,
     };
     final budget = l.loopHeadBudget(
         loopHoursLabel(l, s.prefs.hours), s.prefs.climbM.round(), s.profile.label(l));

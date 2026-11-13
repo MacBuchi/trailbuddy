@@ -1885,5 +1885,22 @@
   "demoPlannerEdit1Title": "Open the planner",
   "demoPlannerEdit1Text": "The button opens the planner — every trail you tap goes into the loop.",
   "demoPlannerEdit2Title": "Start and end",
-  "demoPlannerEdit2Text": "At the top start and end — a tap on “End” turns the loop into a route. Below them time, climb and bike with “Adjust”; at the bottom the row counts the selection and computes."
+  "demoPlannerEdit2Text": "At the top start and end — a tap on “End” turns the loop into a route. Below them time, climb and bike with “Adjust”; at the bottom the row counts the selection and computes.",
+  "loopEntryTitle": "What are you planning?",
+  "loopEntryLoop": "Loop",
+  "loopEntryRoute": "Route",
+  "loopEntryPickOnMap": "Choose on the map",
+  "loopEntryTime": "Time",
+  "loopEntryLess": "Less time",
+  "loopEntryMore": "More time",
+  "loopEntryTrails": "Choose trails",
+  "loopEntrySelf": "Put it together yourself",
+  "loopEntryNoPosition": "No location — choose the end on the map.",
+  "highlightPlannerEntryTitle": "Planning with two questions",
+  "highlightPlannerEntryText": "The planner first asks what you have in mind: loop or route, from where, how long or to where. A route takes three taps; “Put it together yourself” leads to the selection as before.",
+  "demoPlannerEntry1Title": "Open the planner",
+  "demoPlannerEntry1Text": "The button opens the planner — it first asks what you have in mind.",
+  "demoPlannerEntry2Title": "Loop or route",
+  "demoPlannerEntry2Text": "Pick loop or route, then start and time or end — everything is preset. For a route the app computes as soon as the end is set.",
+  "loopEntryHours": "about {time}"
 }

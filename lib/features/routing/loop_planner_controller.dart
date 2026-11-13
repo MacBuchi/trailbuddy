@@ -117,10 +117,22 @@ class LoopSession {
     this.planBare = false,
     this.funEmpty = false,
     this.quick = false,
+    this.entry = false,
+    this.targetMine = false,
   });
 
   /// Der Planer-Modus ist an: Leiste links, Tipps wählen Trails.
   final bool open;
+
+  /// Das Einstiegsblatt steht (#516, Konzept-Routing 12.3): Der
+  /// Planer-Knopf fragt erst nach der Absicht; Kopf, Leiste und
+  /// Auswahlzeile der Bearbeitung kommen danach.
+  final bool entry;
+
+  /// Das Ziel ist der eigene Standort, beim Wählen genommen (der Weg
+  /// zurück zu sich, Konzept-Routing 12.3) — der Kopf sagt dann „Mein
+  /// Standort" statt „Auf der Karte gesetzt".
+  final bool targetMine;
 
   /// Der getippte Start; null heißt der eigene Standort.
   final LatLng? start;
@@ -239,6 +251,8 @@ class LoopSession {
     bool? planBare,
     bool? funEmpty,
     bool? quick,
+    bool? entry,
+    bool? targetMine,
   }) =>
       LoopSession(
         open: open ?? this.open,
@@ -266,6 +280,8 @@ class LoopSession {
         planBare: clearPlan ? (planBare ?? false) : (planBare ?? this.planBare),
         funEmpty: clearPlan ? (funEmpty ?? false) : (funEmpty ?? this.funEmpty),
         quick: quick ?? this.quick,
+        entry: entry ?? this.entry,
+        targetMine: targetMine ?? this.targetMine,
       );
 }
 
@@ -352,11 +368,59 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
 
   List<Trail> get _trails => ref.read(trailsProvider).valueOrNull ?? const <Trail>[];
 
-  /// Den Modus öffnen; [start] aus „Route ab hier".
-  void open({LatLng? start}) {
+  /// Den Modus öffnen; [start] aus „Start hier". [entry] vom
+  /// Planer-Knopf (#516): ein frischer Planer beginnt mit dem
+  /// Einstiegsblatt — ein schon offener bleibt, wie er ist.
+  void open({LatLng? start, bool entry = false}) {
+    final fresh = !state.open;
     // Schon offen und ohne neuen Start: Der getippte bleibt stehen.
-    state = state.copyWith(open: true, pickingStart: false, pickingTarget: false, pickingWaypoint: false, clearDrawTool: true);
+    state = state.copyWith(
+        open: true,
+        pickingStart: false,
+        pickingTarget: false,
+        pickingWaypoint: false,
+        clearDrawTool: true,
+        entry: entry && fresh && start == null ? true : null);
     if (start != null) takeStart(start);
+  }
+
+  /// „Runde" oder „Route" im Einstieg — gemerkt für das nächste Öffnen.
+  void setIntent({required bool route}) {
+    if (route == state.prefs.intentRoute) return;
+    setPrefs(state.prefs.copyWith(intentRoute: route));
+  }
+
+  /// Das Einstiegsblatt verlassen, in die Bearbeitung oder zum Rechnen:
+  /// Die Absicht wird zum Ende der Fahrt — „Route" heißt Ziel, „Runde"
+  /// zurück zum Start (ein gemerktes „Ende am letzten Trail" bleibt, das
+  /// stellt nur die Bearbeitung). Kam das Ziel von außen („Ziel hier",
+  /// „Als Ziel" bei offenem Einstieg), bleibt es eine Route.
+  void leaveEntry() {
+    if (!state.entry) return;
+    final endMode = state.prefs.endMode;
+    final mode = state.prefs.intentRoute || (endMode == LoopEndMode.target && state.target != null)
+        ? LoopEndMode.target
+        : endMode == LoopEndMode.lastTrail
+            ? LoopEndMode.lastTrail
+            : LoopEndMode.loop;
+    if (mode != state.prefs.endMode) setPrefs(state.prefs.copyWith(endMode: mode));
+    state = state.copyWith(entry: false, pickingStart: false, pickingTarget: false, pickingWaypoint: false);
+  }
+
+  /// Im Einstieg „Route" gewählt, und alles liegt bereit: ein Ziel, und
+  /// kein Start, der erst noch getippt werden muss (Ziel am Standort
+  /// braucht einen Start auf der Karte). Dann rechnet die Karte gleich.
+  bool get entryRouteReady {
+    final s = state;
+    return s.entry && s.prefs.intentRoute && s.target != null && !s.picking && !(s.targetMine && s.start == null);
+  }
+
+  /// Das Ziel am eigenen Standort ([p] ist der Fix) — der Start muss dann
+  /// woanders liegen: Steht er auf dem Standort, wartet der Planer auf
+  /// einen Tipp für ihn (Konzept-Routing 12.3).
+  void takeTargetMine(LatLng p) {
+    _edit(state.copyWith(target: p, clearTargetTrail: true, pickingTarget: false, targetMine: true));
+    if (state.start == null) armStartPick();
   }
 
   /// Den Modus schließen, aufgeräumt (Konzept-Routing 10.5): Auswahl,
@@ -401,7 +465,8 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
         clearDrawTool: true,
         prefs: state.prefs,
         profile: state.profile,
-        quick: quick);
+        quick: quick,
+        entry: false);
     final plan = s.plan;
     if (plan != null && plan.outcome == LoopOutcome.ok) ref.read(routeViaProvider.notifier).begin(ViaOwner.loop, _vias);
   }
@@ -421,6 +486,9 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
   LoopToggle toggle(Trail t) {
     if (t.pending) return LoopToggle.pending;
     if (trailRoleOf(t) != TrailRole.downhill) return LoopToggle.connector;
+    // Ein Trail angetippt statt einer Antwort: Das ist „Selbst
+    // zusammenstellen" (#516).
+    leaveEntry();
     final selected = {...state.selected};
     final mandatory = {...state.mandatory};
     final on = selected.add(t.id);
@@ -508,7 +576,8 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
     setWaypoints([...state.waypoints]..removeAt(k));
   }
 
-  void takeTarget(LatLng p) => _edit(state.copyWith(target: p, clearTargetTrail: true, pickingTarget: false));
+  void takeTarget(LatLng p) =>
+      _edit(state.copyWith(target: p, clearTargetTrail: true, pickingTarget: false, targetMine: false));
 
   /// Wohin der nächste Tipp geht: Start, Ziel oder Zwischenpunkt. Falsch,
   /// wenn der Planer auf keinen wartet.
@@ -652,6 +721,9 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
   /// Rechnen. Jeder Ausgang ist eine Phase oder ein Grund.
   Future<void> compute() async {
     if (state.busy) return;
+    // Gerechnet wird in der Bearbeitung — auch, wenn der Einstieg gleich
+    // rechnet (Route mit Ziel) oder ein Ziel von außen kam.
+    leaveEntry();
     // Frei gerechnet: Die Punkte der alten Runde gelten nicht mehr.
     ref.read(routeViaProvider.notifier).end(ViaOwner.loop);
     _vias = RouteVias.none;

@@ -996,6 +996,29 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
   Tests: `loop_planner_flow_test` („Kopf und Anpassen", „ein Tipp auf die
   Fahne", „Als Ziel bei offenem Planer", „Leeren mit Rückgängig",
   Gebiet), `l10n_test` (alles auf Englisch), `trail_head_flow_test`.
+- **Der Einstieg des Planers** (#516 Schritt 2, seit 0.173.0;
+  Konzept-Routing 12.3 und 12.9; `loop_entry_sheet.dart`). Vier Dinge,
+  die man wissen muss:
+  - **Nur der Planer-Knopf zeigt ihn** (`open(entry: true)`, und nur bei
+    einem frischen Planer). Alle Einstiege mit Auftrag (Trail-Blatt,
+    langer Druck, Ort-Blatt, die Tour-Szene `loopRail`) gehen wie bisher
+    gleich in die Bearbeitung; die Szene `MapCoach.loopEntry` öffnet ihn.
+    Solange `LoopSession.entry` steht, fehlen Kopf, Leiste und
+    Auswahlzeile; das Pick-Banner oben ist dasselbe.
+  - **Raus geht es nur über `leaveEntry`** — Knopf, „Selbst
+    zusammenstellen", `toggle` (ein angetippter Trail) und `compute`
+    rufen es. Es setzt das Ende aus der Absicht; wer `entry` anders
+    zurücksetzt, rechnet eine Route als Runde.
+  - **Nach jedem Tipp fragt die Karte `entryRouteReady`**
+    (`_takeLoopPick` in `map_screen.dart`, alle drei Pick-Stellen): Route
+    mit Ziel und ohne ausstehenden Start ⇒ `_computeLoop`. Ziel „Mein
+    Standort" (`takeTargetMine`, `LoopSession.targetMine`) setzt das Ziel
+    auf den Fix und wartet auf einen Start auf der Karte.
+  - **Tests** öffnen die Bearbeitung über `openPlanner` (tippt „Selbst
+    zusammenstellen"); den Einstieg prüft die Gruppe „Einstieg" in
+    `loop_planner_flow_test`, auf Englisch `l10n_test`. Gegenproben
+    2026-11-13: ohne `entry` am Knopf (6 rot), ohne Rechnen nach dem Tipp
+    (2 rot), ohne `leaveEntry` im Toggle (1 rot).
 - **Ergebnis und Start in einem, ein Ende** (#517, seit 0.171.0;
   Konzept-Routing 9.4, Konzept-Geräte 5.2). Fünf Dinge, die man wissen
   muss:

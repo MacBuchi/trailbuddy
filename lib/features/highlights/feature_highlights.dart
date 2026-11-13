@@ -83,6 +83,16 @@ class FeatureHighlight {
 final kFeatureHighlights = <FeatureHighlight>[
   // ─── Highlights ──────────────────────────────────────────────────
   FeatureHighlight(
+    id: 'planner-entry',
+    since: '0.173.0',
+    kind: HighlightKind.highlight,
+    tab: HighlightTab.map,
+    icon: Icons.alt_route,
+    title: (l) => l.highlightPlannerEntryTitle,
+    text: (l) => l.highlightPlannerEntryText,
+    target: '/',
+  ),
+  FeatureHighlight(
     id: 'planner-edit',
     since: '0.172.0',
     kind: HighlightKind.highlight,
