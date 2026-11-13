@@ -52,9 +52,15 @@ Die Halterung entscheidet, was überhaupt messbar ist (Entwurf 1e,
 
 | Wert | Lenker | Hosentasche | Rucksack |
 |---|---|---|---|
-| Airtime | ● | ● | ◐ (der Körper federt mit) |
-| Max G | ● | ● | – (Rucksack dämpft) |
+| Airtime | ● | ◐ (nur mit harter Landung) | ◐ (der Körper federt mit) |
+| Max G | ● | ◐ | – (Rucksack dämpft) |
 | Manual | ● | – | – |
+
+Die Hosentasche gemessen (2026-11-13, #491, Recherche Sensorfusion
+Abschnitt 11): Das Bein macht beim Treten Flüge von 0,15–0,2 s mit
+weicher Landung; ein Sprung zählt dort deshalb nur mit Landung ab
+3,5 g (vorläufig). Die App erkennt die Tasche am Kreisel auf ruhigem
+Untergrund und lernt dann keine Halterung.
 
 - **Airtime**: Betrag der Beschleunigung nahe 0 (Startwert < 0,3 g)
   länger als 150 ms (Konzept 9) ⇒ ein Sprung; seine Dauer ist die Zeit

@@ -160,9 +160,11 @@ auf den Trail als Auswahl, die Regeln aus 10.4/10.5.
   Ende „Fahrt beenden", das fragt, wenn nur die Navigation enden soll.
 - **Wo das Handy steckt**, fragt die App nicht dreifach: „am Rad" (Lenker
   oder Rahmen — die Halterung lernt die Fusion ohnehin selbst,
-  `FusionMount`) oder „in der Tasche". Nur am Rad gibt es Sprünge und
-  Wheelies (#491), und nur dann zeigt die Uhr ihr Zeichen
-  (`konzept-garmin.md` 11).
+  `FusionMount`) oder „in der Tasche". Nur am Rad gibt es Wheelies und
+  Stoppies, in der Tasche Sprünge nur mit harter Landung, und erkennt
+  die App die Tasche selbst, gilt das auch ohne Angabe (#491,
+  `recherche-sensorfusion.md` 11). Das Zeichen der Uhr kommt nur mit
+  gelernter Halterung (`konzept-garmin.md` 11).
 
 Die Regeln aus `konzept-routing.md` 10.4/10.5 bleiben; kommt der Kopf,
 ändern sich dort 4 und 10.2 im selben PR.
