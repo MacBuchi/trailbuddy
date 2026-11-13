@@ -22,7 +22,8 @@
 # ADB (Vorgabe: adb im PATH, sonst die Homebrew-Kommandozeilenwerkzeuge),
 # STEP_WAIT (Sekunden je Schritt der Tischabnahme, Vorgabe 90), UNIT_SILENT
 # (so lange darf der Simulator nach dem Bau schweigen, Vorgabe 60),
-# CHAIN_ROUNDS (Runden „Route → ok", Vorgabe 5), CHAIN_AVD (sonst der erste).
+# CHAIN_ROUNDS (Runden „Route → ok", Vorgabe 5), CHAIN_AVD (sonst der erste),
+# GARMIN_KEEP_SIM=1 (Simulator nach dem Kettenstand nicht beenden).
 #
 # Nichts hier schreibt Koordinaten oder Gerätekennungen in eine Datei des
 # Repos (A7); das Logcat der Tischabnahme liegt unter build/.
@@ -39,6 +40,18 @@ miss() { say "FEHLT $*"; }
 cleanup_sim() {
   pkill -f monkeydo 2>/dev/null || true
   pkill -f MonkeyDoDeux 2>/dev/null || true
+}
+
+# Den Simulator ganz beenden. Nach dem Kettenstand ist das Pflicht: Endet
+# der Treiber auf dem Emulator, verliert der Simulator seine
+# adb-Gegenseite und öffnet je Verbindungsversuch ein Fenster „ADB
+# Disconnected." — einen Schalter dagegen hat er nicht (SDK 9.3.0,
+# `simulator.ini` und Binary durchgesehen); 2026-11-12 standen danach über
+# 20 Fenster offen. Mit dem Prozess gehen auch schon offene Fenster zu.
+# `GARMIN_KEEP_SIM=1` lässt ihn nach dem Lauf stehen (zum Ansehen).
+stop_sim() {
+  cleanup_sim
+  pkill -f "MacOS/simulator" 2>/dev/null || true
 }
 
 find_adb() {
@@ -68,8 +81,7 @@ run_cases() {
 # wieder gesehen 2026-11-11). Dann hilft nur ein frischer Simulator.
 restart_sim() {
   local sdk app
-  cleanup_sim
-  pkill -f "MacOS/simulator" 2>/dev/null || true
+  stop_sim
   sleep 5
   sdk="${GARMIN_SDK:-$HOME/Library/Application Support/Garmin/ConnectIQ/Sdks}"
   app="$(find "$sdk" -maxdepth 4 -name ConnectIQ.app 2>/dev/null | head -1)"
@@ -143,6 +155,14 @@ emu_serial() {
   "$1" devices 2>/dev/null | awk '/^emulator-[0-9]+[[:space:]]+device$/ {print $1; exit}'
 }
 
+# Nach dem Kettenstand: Simulator zu (siehe stop_sim), Weiterleitung weg —
+# erst der Simulator, sonst meldet er die weggenommene Weiterleitung.
+end_chain_sim() {
+  if [ "${GARMIN_KEEP_SIM:-0}" = 1 ]; then cleanup_sim; return; fi
+  stop_sim
+  "$1" forward --remove tcp:7381 > /dev/null 2>&1 || true
+}
+
 run_chain() {
   local brk=0 adb emu avd serial sdk ciq prg log flog fpid mpid rc end
   [ "${1:-}" = "--break" ] && brk=1
@@ -195,7 +215,7 @@ run_chain() {
   say "Treiber auf dem Emulator (baut beim ersten Mal ein paar Minuten) …"
   flutter test integration_test/watch_bench_test.dart -d "$serial" --flavor dev "${defs[@]}" > "$log" 2>&1 &
   fpid=$!
-  trap 'kill "$fpid" 2>/dev/null; cleanup_sim' RETURN
+  trap 'kill "$fpid" 2>/dev/null; end_chain_sim "$adb"' RETURN
 
   end=$((SECONDS + ${CHAIN_BUILD_WAIT:-900}))
   while [ $SECONDS -lt $end ] && ! grep -q "BENCH sdk-up" "$log"; do
@@ -239,7 +259,9 @@ run_chain() {
     sleep 1
   done
   wait "$fpid"; rc=$?
+  # Gleich zu, bevor der Simulator die verlorene Verbindung meldet.
   { kill "$mpid"; wait "$mpid"; } 2>/dev/null
+  end_chain_sim "$adb"
   grep -E "BENCH (step|hallo|route median|Fahrt|Protokoll|Absturz|Speicher|result)" "$log" | sed 's/^.*BENCH /  /'
   if [ $brk = 1 ]; then
     if [ $rc -ne 0 ] && grep -q "BENCH step Route in Stücken → ok (1/.* FEHLT" "$log"; then
