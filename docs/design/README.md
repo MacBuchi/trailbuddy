@@ -483,7 +483,10 @@ Schnellkarte — Schild, Name, Länge, Sterne, das Navi-Symbol (#176), ein
 Pfeil und ein X. Ein Tipp auf sie oder ein zweiter auf den Trail öffnet
 das Blatt; ein Tipp ins Leere, das X oder Zurück heben auf. Ein langer
 Druck auf die Karte setzt eine Nadel in der Marke und öffnet das Menü
-„Route ab hier / Route bis hier / Mit der Navi-App hierher" (#177).
+„Route ab hier / Route bis hier / Mit der Navi-App hierher" (#177). Seit
+#356 „Start hier / Route bis hier / Zwischenpunkt hier / Mit der
+Navi-App hierher", seit 0.172.0 (#516) „Ziel hier" statt „Route bis
+hier".
 
 **Die Leiste des Planers seit 0.74.0** (`loop_tool_rail.dart`): derselbe
 Look wie die Leiste „Ebenen" (52 dp, Knöpfe 44 dp, aktives Werkzeug in
@@ -494,6 +497,16 @@ Marke — seit 0.83.3 (#233) deckend, 12 px, mit dunkler Kontur (2 px,
 Pflicht 3,5 px deckend) unter der Linie wie der Leuchtrand (#195); 55 %
 ohne Kontur ging im weißen Saum unter. Der getippte Start ist eine Fahne
 in der Marke mit dunkler Kontur und Schein (`LoopStartFlag`).
+**Seit 0.172.0 (#516, Konzept-Routing 12.6/12.7)** trägt die Leiste nur
+Punkt, Gebiet und Liste, je mit einem Wort in `labelSmall` unter dem
+Symbol (Gebiet scharf: darunter zwei 44-dp-Knöpfe dazu/weg, A13). Oben steht
+der Kopf als Karte bei den Bannern — zwei Zeilen „Start" / „Ziel" mit
+der Fahne in kleiner Größe (20 px) davor, darunter das Budget in Mono
+mit „Anpassen", rechts das X; über einem Ergebnis nur eine Zeile
+„Start → Ziel" mit X. Unten links neben der Knopfspalte die
+Auswahlzeile: Zahl in Mono, „Leeren", darunter EIN Knopf in Lime über
+die ganze Breite („Runde rechnen" / „Route rechnen"). Die Fahnen stehen
+immer, auch am Standort.
 Die im Höhenprofil gewählte Stelle (#332, seit 0.122.0) ist eine
 Scheibe in der Marke (30 px) mit dunklem Rand und Mountainbike
 (`RouteCursorSymbol`, seit 0.137.2 gezeichnet: `MtbGlyphPainter` —

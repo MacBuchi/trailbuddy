@@ -2,6 +2,34 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## The planner for editing, tidied up
+
+*Version 0.172.0, 2026-11-13*
+
+- **Start and end at the top:** the planner shows start and end as two
+  rows at the very top, below them time, climb and bike with "Adjust".
+  A tap on "End" decides whether it becomes a loop (back to the start),
+  a route to a point on the map or an end at the last trail — no more
+  hunting for the destination.
+- **The bar on the left with words:** Point, Area, List — nothing else.
+  "Area" is one tool; while it is active you switch between add and
+  remove below it.
+- **One button at the bottom:** the row at the bottom counts what is
+  selected, has "Clear" and ONE button "Compute loop" or "Compute
+  route". What a tap on a trail changed is said in the same row with
+  Undo — the bar above it used to cover "My location".
+- **"Adjust" in two tiers:** bike, time and climb at once; what you set
+  once (hiking trails, list radius, preferences, filling in paths
+  online) is folded away under "Fine-tuning".
+- **The flags are always there:** the start flag also at your location,
+  the end flag as soon as an end is set. A tap on a flag opens the same
+  choice as its row.
+- **The same words everywhere:** the long press says "Start here",
+  "Destination here", "Via point here"; trail and place sheets "As
+  destination", "As start" (and for a place "As via point"). "As
+  destination" computes at once — with the planner open it is the end of
+  exactly this plan, without asking.
+
 ## One button to ride, one end
 
 *Version 0.171.0, 2026-11-13*

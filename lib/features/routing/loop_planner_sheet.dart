@@ -1,16 +1,16 @@
 // Die Blätter des Planers (#158 Schritt 5, seit 0.74.0 als Modus mit
 // Leiste, `loop_tool_rail.dart`; Zustand in `loop_planner_controller.dart`):
 //
-// - **Parameter** (Knopf „Parameter" der Leiste): Start, Profil, die drei
-//   Regler aus Konzept-Routing 2.3, das Ende (Runde, letzter Trail, Ziel —
-//   #331) und der Radius
-//   der Trail-Liste. Die Regler merkt sich das Gerät.
+// - **Anpassen** (Knopf im Kopf des Planers, #516): Rad, Zeit und
+//   Höhenmeter, eingeklappt die Feinheiten (Wanderweg, Radius der Liste,
+//   Vorlieben, Online ergänzen). Die Regler merkt sich das Gerät. Start
+//   und Ziel stehen im Kopf (`loop_edit_bars.dart`).
 // - **Liste** (Knopf „Liste"): die wählbaren Trails im Radius um den Start,
 //   mit Haken, Stern („muss dabei sein"), „Alle" und „Keine". Gemeldete
 //   stehen abseits; Uphill-Trails und Verbinder sind nicht wählbar — die
 //   Runde nutzt sie von selbst bergauf (#185).
-// - **Ergebnis** (Knopf „Rechnen"): kein Modal (`map_panel.dart`), die
-//   Karte bleibt bedienbar; Fortschritt, der Grund, wenn es nicht geht,
+// - **Ergebnis** („Runde rechnen" / „Route rechnen" unten): kein Modal
+//   (`map_panel.dart`), die Karte bleibt bedienbar; Fortschritt, der Grund, wenn es nicht geht,
 //   oder Summen, Reihenfolge, Ausgelassene, „Als Fahrt speichern", „Als
 //   GPX". Beim Ergebnis klappt es ein und die Karte passt die Runde
 //   DARÜBER ein. Zu heißt: Ergebnis weg, Modus und Auswahl bleiben.
@@ -127,15 +127,19 @@ class LoopWaypointPin extends StatelessWidget {
       );
 }
 
-// ─── Parameter ──────────────────────────────────────────────────────────
+// ─── Anpassen ───────────────────────────────────────────────────────────
 
+/// „Anpassen" aus dem Kopf des Planers (#516, Konzept-Routing 12.7): in
+/// zwei Stufen — Rad, Zeit und Höhenmeter sofort, alles, was man einmal
+/// stellt, eingeklappt unter „Feinheiten". Start, Ziel und Zwischenpunkte
+/// stehen nicht mehr hier, sondern im Kopf und auf der Karte.
 Future<void> showLoopParamsSheet(BuildContext context) => showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
       builder: (_) => DraggableScrollableSheet(
         expand: false,
-        initialChildSize: 0.75,
+        initialChildSize: 0.6,
         maxChildSize: 0.92,
         builder: (context, scroll) => _ParamsSheet(scroll: scroll),
       ),
@@ -152,39 +156,14 @@ class _ParamsSheet extends ConsumerWidget {
     final session = ref.watch(loopPlannerProvider);
     final notifier = ref.read(loopPlannerProvider.notifier);
     final prefs = session.prefs;
-    final start = session.start;
     final l = context.l10n;
     return ListView(
       controller: scroll,
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
       children: [
-        Text(prefs.endMode == LoopEndMode.target ? l.routeParamsTitle : l.loopParamsTitle, style: theme.textTheme.titleLarge),
+        Text(prefs.endMode == LoopEndMode.loop ? l.loopParamsTitle : l.routeParamsTitle,
+            style: theme.textTheme.titleLarge),
         const SizedBox(height: 12),
-        Text(
-          start == null
-              ? l.loopStartMine
-              : l.loopStartPicked(start.latitude.toStringAsFixed(4), start.longitude.toStringAsFixed(4)),
-          key: const ValueKey('loop-start'),
-          style: theme.textTheme.bodyMedium,
-        ),
-        Wrap(crossAxisAlignment: WrapCrossAlignment.center, children: [
-          TextButton.icon(
-            key: const ValueKey('loop-pick'),
-            onPressed: () {
-              notifier.armStartPick();
-              Navigator.of(context).pop();
-            },
-            icon: const Icon(Icons.touch_app_outlined),
-            label: Text(l.loopPickOnMap),
-          ),
-          if (start != null)
-            TextButton(
-              key: const ValueKey('loop-start-me'),
-              onPressed: notifier.useMyPosition,
-              child: Text(l.loopUseMyPosition),
-            ),
-        ]),
-        const SizedBox(height: 8),
         SegmentedButton<RiderProfile>(
           key: const ValueKey('loop-profile'),
           segments: [for (final p in RiderProfile.values) ButtonSegment(value: p, label: Text(p.label(l)))],
@@ -195,7 +174,7 @@ class _ParamsSheet extends ConsumerWidget {
         const SizedBox(height: 12),
         _LoopSlider(
           key: const ValueKey('loop-time'),
-          label: l.loopMaxTime(_hoursLabel(l, prefs.hours)),
+          label: l.loopMaxTime(loopHoursLabel(l, prefs.hours)),
           value: prefs.hours,
           min: LoopPrefs.minHours,
           max: LoopPrefs.maxHours,
@@ -211,155 +190,85 @@ class _ParamsSheet extends ConsumerWidget {
           step: LoopPrefs.climbStep,
           onChanged: (v) => notifier.setPrefs(prefs.copyWith(climbM: v)),
         ),
-        _LoopSlider(
-          key: const ValueKey('loop-hiking'),
-          label: prefs.hikingKm == 0 ? l.loopNoHiking : l.loopMaxHiking(formatMeters(prefs.hikingKm * 1000)),
-          value: prefs.hikingKm,
-          min: LoopPrefs.minHikingKm,
-          max: LoopPrefs.maxHikingKm,
-          step: LoopPrefs.hikingStep,
-          onChanged: (v) => notifier.setPrefs(prefs.copyWith(hikingKm: v)),
-        ),
-        _LoopSlider(
-          key: const ValueKey('loop-radius'),
-          label: l.loopRadius(prefs.radiusKm.round()),
-          value: prefs.radiusKm,
-          min: LoopPrefs.minRadiusKm,
-          max: LoopPrefs.maxRadiusKm,
-          step: LoopPrefs.radiusStep,
-          onChanged: (v) => notifier.setPrefs(prefs.copyWith(radiusKm: v)),
-        ),
-        const SizedBox(height: 8),
-        Text(l.loopEndTitle, style: theme.textTheme.titleSmall),
-        const SizedBox(height: 4),
-        SegmentedButton<LoopEndMode>(
-          key: const ValueKey('loop-end'),
-          segments: [
-            ButtonSegment(
-                value: LoopEndMode.loop, label: Text(l.loopEndLoop, key: const ValueKey('loop-end-loop'))),
-            ButtonSegment(
-                value: LoopEndMode.lastTrail,
-                label: Text(l.loopEndLastTrail, key: const ValueKey('loop-end-last'))),
-            ButtonSegment(
-                value: LoopEndMode.target, label: Text(l.loopEndTarget, key: const ValueKey('loop-end-target'))),
-          ],
-          selected: {prefs.endMode},
-          showSelectedIcon: false,
-          onSelectionChanged: (sel) {
-            notifier.setPrefs(prefs.copyWith(endMode: sel.single));
-            // Ohne Ziel gleich auf die Karte — wie „Auf der Karte tippen"
-            // beim Start.
-            if (sel.single == LoopEndMode.target && session.target == null) {
-              notifier.armTargetPick();
-              Navigator.of(context).pop();
-            }
-          },
-        ),
-        const SizedBox(height: 4),
-        Text(
-          switch (prefs.endMode) {
-            LoopEndMode.loop => l.loopReturnOn,
-            LoopEndMode.lastTrail => l.loopReturnOff,
-            LoopEndMode.target => session.target == null
-                ? l.loopTargetNone
-                : l.loopTargetPicked(
-                    session.target!.latitude.toStringAsFixed(4), session.target!.longitude.toStringAsFixed(4)),
-          },
-          key: const ValueKey('loop-end-note'),
-          style: theme.textTheme.bodySmall,
-        ),
-        if (prefs.endMode == LoopEndMode.target && session.target != null)
-          Align(
-            alignment: Alignment.centerLeft,
-            child: TextButton.icon(
-              key: const ValueKey('loop-pick-target'),
-              onPressed: () {
-                notifier.armTargetPick();
-                Navigator.of(context).pop();
-              },
-              icon: const Icon(Icons.touch_app_outlined),
-              label: Text(l.loopPickOnMap),
-            ),
-          ),
-        // Vorab gesetzte Zwischenpunkte (#331 Schritt 4).
-        const SizedBox(height: 8),
-        Text(l.loopWaypointsTitle, style: theme.textTheme.titleSmall),
-        const SizedBox(height: 4),
-        Text(
-          session.waypoints.isEmpty ? l.loopWaypointsNone : l.loopWaypointsSome(session.waypoints.length),
-          key: const ValueKey('loop-waypoints-note'),
-          style: theme.textTheme.bodySmall,
-        ),
-        Wrap(
-          spacing: 8,
-          children: [
-            TextButton.icon(
-              key: const ValueKey('loop-pick-waypoint'),
-              onPressed: () {
-                notifier.armWaypointPick();
-                Navigator.of(context).pop();
-              },
-              icon: const Icon(Icons.add_location_alt_outlined),
-              label: Text(l.loopWaypointAdd),
-            ),
-            if (session.waypoints.isNotEmpty)
-              TextButton.icon(
-                key: const ValueKey('loop-waypoints-clear'),
-                onPressed: () => notifier.setWaypoints(const []),
-                icon: const Icon(Icons.wrong_location_outlined),
-                label: Text(l.loopWaypointsClear),
+        // Was man einmal stellt (Konzept-Routing 12.7): eingeklappt.
+        Theme(
+          data: theme.copyWith(dividerColor: Colors.transparent),
+          child: ExpansionTile(
+            key: const ValueKey('loop-fine'),
+            tilePadding: EdgeInsets.zero,
+            childrenPadding: EdgeInsets.zero,
+            expandedCrossAxisAlignment: CrossAxisAlignment.start,
+            title: Text(l.loopFine, style: theme.textTheme.titleSmall),
+            children: [
+              _LoopSlider(
+                key: const ValueKey('loop-hiking'),
+                label: prefs.hikingKm == 0 ? l.loopNoHiking : l.loopMaxHiking(formatMeters(prefs.hikingKm * 1000)),
+                value: prefs.hikingKm,
+                min: LoopPrefs.minHikingKm,
+                max: LoopPrefs.maxHikingKm,
+                step: LoopPrefs.hikingStep,
+                onChanged: (v) => notifier.setPrefs(prefs.copyWith(hikingKm: v)),
               ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        const SizedBox(height: 4),
-        Text(l.loopOnTheWay, style: theme.textTheme.titleSmall),
-        // Zu einem Ziel sagt das der Stil im Ergebnis (#356 PR 7b).
-        if (prefs.endMode != LoopEndMode.target)
-          _PrefSwitch(
-            tileKey: const ValueKey('loop-easy-up'),
-            title: l.loopEasyUp,
-            on: l.loopEasyUpOn,
-            off: l.loopEasyUpOff,
-            value: prefs.easyUp,
-            onChanged: (v) => notifier.setPrefs(prefs.copyWith(easyUp: v)),
+              _LoopSlider(
+                key: const ValueKey('loop-radius'),
+                label: l.loopRadius(prefs.radiusKm.round()),
+                value: prefs.radiusKm,
+                min: LoopPrefs.minRadiusKm,
+                max: LoopPrefs.maxRadiusKm,
+                step: LoopPrefs.radiusStep,
+                onChanged: (v) => notifier.setPrefs(prefs.copyWith(radiusKm: v)),
+              ),
+              const SizedBox(height: 4),
+              Text(l.loopOnTheWay, style: theme.textTheme.titleSmall),
+              // Zu einem Ziel sagt das der Stil im Ergebnis (#356 PR 7b).
+              if (prefs.endMode != LoopEndMode.target)
+                _PrefSwitch(
+                  tileKey: const ValueKey('loop-easy-up'),
+                  title: l.loopEasyUp,
+                  on: l.loopEasyUpOn,
+                  off: l.loopEasyUpOff,
+                  value: prefs.easyUp,
+                  onChanged: (v) => notifier.setPrefs(prefs.copyWith(easyUp: v)),
+                ),
+              _PrefSwitch(
+                tileKey: const ValueKey('loop-pref-roads'),
+                title: l.loopPrefRoads,
+                on: l.loopPrefRoadsOn,
+                off: l.loopPrefRoadsOff,
+                value: prefs.route.avoidRoads,
+                onChanged: (v) => notifier.setPrefs(prefs.copyWith(route: prefs.route.copyWith(avoidRoads: v))),
+              ),
+              _PrefSwitch(
+                tileKey: const ValueKey('loop-pref-hiking'),
+                title: l.loopPrefHiking,
+                on: l.loopPrefHikingOn,
+                off: l.loopPrefHikingOff,
+                value: prefs.route.avoidHiking,
+                onChanged: (v) => notifier.setPrefs(prefs.copyWith(route: prefs.route.copyWith(avoidHiking: v))),
+              ),
+              _PrefSwitch(
+                tileKey: const ValueKey('loop-pref-steep'),
+                title: l.loopPrefSteep,
+                on: l.loopPrefSteepOn,
+                off: l.loopPrefSteepOff,
+                value: prefs.route.avoidSteep,
+                onChanged: (v) => notifier.setPrefs(prefs.copyWith(route: prefs.route.copyWith(avoidSteep: v))),
+              ),
+              Text(
+                l.loopPrefsNote,
+                style: theme.textTheme.bodySmall?.copyWith(color: theme.hintColor),
+              ),
+              const SizedBox(height: 4),
+              SwitchListTile(
+                key: const ValueKey('loop-fill-online'),
+                contentPadding: EdgeInsets.zero,
+                title: Text(l.loopFillOnline),
+                subtitle: Text(prefs.fillOnline ? l.loopFillOnlineOn(kOnlineFillMaxTiles) : l.loopFillOnlineOff),
+                value: prefs.fillOnline,
+                onChanged: (v) => notifier.setPrefs(prefs.copyWith(fillOnline: v)),
+              ),
+            ],
           ),
-        _PrefSwitch(
-          tileKey: const ValueKey('loop-pref-roads'),
-          title: l.loopPrefRoads,
-          on: l.loopPrefRoadsOn,
-          off: l.loopPrefRoadsOff,
-          value: prefs.route.avoidRoads,
-          onChanged: (v) => notifier.setPrefs(prefs.copyWith(route: prefs.route.copyWith(avoidRoads: v))),
-        ),
-        _PrefSwitch(
-          tileKey: const ValueKey('loop-pref-hiking'),
-          title: l.loopPrefHiking,
-          on: l.loopPrefHikingOn,
-          off: l.loopPrefHikingOff,
-          value: prefs.route.avoidHiking,
-          onChanged: (v) => notifier.setPrefs(prefs.copyWith(route: prefs.route.copyWith(avoidHiking: v))),
-        ),
-        _PrefSwitch(
-          tileKey: const ValueKey('loop-pref-steep'),
-          title: l.loopPrefSteep,
-          on: l.loopPrefSteepOn,
-          off: l.loopPrefSteepOff,
-          value: prefs.route.avoidSteep,
-          onChanged: (v) => notifier.setPrefs(prefs.copyWith(route: prefs.route.copyWith(avoidSteep: v))),
-        ),
-        Text(
-          l.loopPrefsNote,
-          style: theme.textTheme.bodySmall?.copyWith(color: theme.hintColor),
-        ),
-        const SizedBox(height: 4),
-        SwitchListTile(
-          key: const ValueKey('loop-fill-online'),
-          contentPadding: EdgeInsets.zero,
-          title: Text(l.loopFillOnline),
-          subtitle: Text(prefs.fillOnline ? l.loopFillOnlineOn(kOnlineFillMaxTiles) : l.loopFillOnlineOff),
-          value: prefs.fillOnline,
-          onChanged: (v) => notifier.setPrefs(prefs.copyWith(fillOnline: v)),
         ),
         const SizedBox(height: 8),
         Text(
@@ -1149,7 +1058,8 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
       };
 }
 
-String _hoursLabel(AppLocalizations l, double h) {
+/// „3 h" oder „2 h 30" — die Zeit des Budgets, im Kopf und in „Anpassen".
+String loopHoursLabel(AppLocalizations l, double h) {
   final whole = h.floor();
   final half = h - whole >= 0.5;
   return half ? l.routingTimeHoursMinutes(whole, 30) : l.routingTimeHours(whole);

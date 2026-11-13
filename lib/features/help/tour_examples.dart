@@ -247,39 +247,33 @@ class _ExampleTrailSheet extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 8),
-            CoachAnchor(
-              id: SheetCoach.trailHead,
-              child: OutlinedButton.icon(
-                style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
-                onPressed: _nothing,
-                icon: const Icon(Icons.route_outlined),
-                label: Text(l.sheetTrailHead),
-              ),
-            ),
-            const SizedBox(height: 8),
-            CoachAnchor(
-              id: SheetCoach.plan,
-              child: Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
-                      onPressed: _nothing,
-                      icon: const Icon(Icons.trip_origin),
-                      label: Text(l.sheetPlanFrom),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
+            // Wie im echten Blatt (#516): „Als Ziel" und „Als Start".
+            Row(
+              children: [
+                Expanded(
+                  child: CoachAnchor(
+                    id: SheetCoach.trailHead,
                     child: OutlinedButton.icon(
                       style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
                       onPressed: _nothing,
                       icon: const Icon(Icons.sports_score),
-                      label: Text(l.sheetPlanTo),
+                      label: Text(l.sheetAsTarget),
                     ),
                   ),
-                ],
-              ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: CoachAnchor(
+                    id: SheetCoach.plan,
+                    child: OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
+                      onPressed: _nothing,
+                      icon: const Icon(Icons.trip_origin),
+                      label: Text(l.sheetAsStart),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ],
         ),

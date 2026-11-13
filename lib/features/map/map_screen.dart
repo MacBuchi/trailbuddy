@@ -30,6 +30,7 @@ import '../rides/ride_split_sheet.dart';
 import '../rides/ride_task_handler.dart';
 import '../rides/ride_track.dart';
 import '../routing/loop_planner.dart' show LoopEndMode, LoopOutcome;
+import '../routing/loop_edit_bars.dart';
 import '../routing/loop_planner_controller.dart';
 import '../routing/loop_planner_providers.dart';
 import '../routing/loop_planner_sheet.dart';
@@ -139,6 +140,11 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   MapViewCamera? _camera;
 
   Timer? _loadDebounce;
+
+  /// Was die Auswahlzeile des Planers gerade meldet (#516): ein Tipp auf
+  /// einen Trail oder „Leeren", mit Rückgängig — für ein paar Sekunden.
+  LoopBarNote? _loopNote;
+  Timer? _loopNoteTimer;
   String? _requestedPois;
   String? _requestedOfficial;
 
@@ -418,6 +424,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     }
     FlutterForegroundTask.removeTaskDataCallback(_onRideTick);
     _loadDebounce?.cancel();
+    _loopNoteTimer?.cancel();
     super.dispose();
   }
 
@@ -551,12 +558,48 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       ));
   }
 
+  /// Eine Meldung in der Auswahlzeile des Planers (#516), mit Rückgängig;
+  /// die nächste ersetzt sie, nach ein paar Sekunden ist sie weg.
+  void _showLoopNote(String text, VoidCallback undo) {
+    _loopNoteTimer?.cancel();
+    setState(() => _loopNote = (
+          text: text,
+          undo: () {
+            undo();
+            _clearLoopNote();
+          }
+        ));
+    _loopNoteTimer = Timer(kLoopNoteDuration, _clearLoopNote);
+  }
+
+  void _clearLoopNote() {
+    _loopNoteTimer?.cancel();
+    _loopNoteTimer = null;
+    if (mounted && _loopNote != null) setState(() => _loopNote = null);
+  }
+
+  /// „Leeren" in der Auswahlzeile: Trails, Sterne und Zwischenpunkte
+  /// heraus — mit Rückgängig statt Rückfrage.
+  void _clearLoopSelection() {
+    final notifier = ref.read(loopPlannerProvider.notifier);
+    final before = ref.read(loopPlannerProvider);
+    notifier
+      ..clearSelection()
+      ..setWaypoints(const []);
+    _showLoopNote(context.l10n.loopBarCleared, () {
+      notifier
+        ..restoreSelection(before.selected, before.mandatory)
+        ..setWaypoints(before.waypoints);
+    });
+  }
+
   /// Schließen: Ergebnis-Blatt zu, Modus aus, aufgeräumt (Konzept-Routing
   /// 10.5). War etwas gesetzt, kommt eine Meldung mit „Rückgängig" statt
   /// einer Rückfrage; [undo] falsch, wenn nicht der Nutzer schließt
   /// (Navigation startet).
   LoopClosed? _closeLoopPlanner({bool undo = true}) {
     if (_loopPanelOpen) closeMapPanel();
+    _clearLoopNote();
     final closed = ref.read(loopPlannerProvider.notifier).close();
     if (closed == null || !undo) return closed;
     ScaffoldMessenger.of(context)
@@ -606,7 +649,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     await shown;
     if (!identical(_loopPanel, shown)) return;
     _loopPanel = null;
-    if (!mounted || _replacingPlan) return;
+    if (!mounted) return;
     final s = ref.read(loopPlannerProvider);
     if (!s.open || !s.quick) return;
     final back = _quickReturnTrailId;
@@ -619,10 +662,6 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   Future<void>? _loopPanel;
   bool get _loopPanelOpen => _loopPanel != null;
 
-  /// Ein Einstieg ersetzt gerade den laufenden Auftrag: Das Blatt, das
-  /// dafür zugeht, schließt nicht „schnell" den neuen Planer mit.
-  bool _replacingPlan = false;
-
   /// Der Trail, der vor einem Einstieg mit fertigem Auftrag ausgewählt
   /// war — „Schnell zu" wählt ihn wieder (Konzept-Routing 10.5).
   String? _quickReturnTrailId;
@@ -632,75 +671,43 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   LoopClosed? _navReturn;
 
   /// Ein Einstieg mit fertigem Auftrag (#356 PR 7, Konzept-Routing 10.3):
-  /// „Zum Trailkopf", das Navi-Symbol, ohne offenen Planer auch „Route bis
-  /// hier" und „Route hierher" ([_routeTo]). Ein frischer Planer mit Ziel,
-  /// gerechnet wird sofort. Liegt schon eine
-  /// Auswahl im Planer, wird erst gefragt — es gibt nur EINE Planung. Ein
-  /// dort getippter Start bleibt: Es ist dieselbe Planung (#373,
-  /// Konzept-Routing 10.4).
+  /// „Als Ziel" im Trail-Blatt, das Navi-Symbol, „Ziel hier", „Als Ziel"
+  /// im Ort-Blatt — ohne offenen Planer ([_routeTo]). Ein frischer Planer
+  /// mit Ziel, gerechnet wird sofort. Bei offenem Planer ist jeder dieser
+  /// Einstiege seit #516 das Ziel DIESER Planung; die Rückfrage „Planung
+  /// ersetzen?" (bis 0.171.0) gibt es damit nicht mehr.
   Future<void> _planRoute(LatLng target, {String? trailId, RouteMode? style}) async {
     final returnTo = _selectedTrailId;
-    final planner = ref.read(loopPlannerProvider);
-    final keepStart = planner.open ? planner.start : null;
-    if (!await _mayReplacePlan() || !mounted) return;
     if (ref.read(offlineOverlayProvider)) {
       await _closeTools();
       if (!mounted || ref.read(offlineOverlayProvider)) return;
     }
-    final panel = _loopPanel;
-    if (panel != null) {
-      _replacingPlan = true;
-      closeMapPanel();
-      await panel;
-      _replacingPlan = false;
-      if (!mounted) return;
-    }
     setState(() => _selectedTrailId = null);
     _quickReturnTrailId = returnTo;
-    ref.read(loopPlannerProvider.notifier).beginRoute(target, trailId: trailId, style: style, start: keepStart);
+    ref.read(loopPlannerProvider.notifier).beginRoute(target, trailId: trailId, style: style);
     await _showLoopResult();
   }
 
-  /// „Route bis hier" und „Route hierher": Bei offenem Planer ist der Punkt
-  /// das Ziel DIESER Planung (#418) — Auswahl, Sterne, Start und
+  /// „Ziel hier" und „Als Ziel" (bis #516 „Route bis hier", „Route
+  /// hierher", „Zum Trailkopf"): Bei offenem Planer ist der Punkt — oder
+  /// der Kopf von [trail] — das Ziel DIESER Planung (#418) — Auswahl, Sterne, Start und
   /// Zwischenpunkte bleiben, also keine Rückfrage, und gerechnet wird
   /// sofort. Am Pixel stand der Planer auf „Kein Ziel gesetzt", und „Route
   /// bis hier" wollte den gewählten Trail verwerfen. Ohne Planer ein
   /// fertiger Auftrag wie bisher.
-  Future<void> _routeTo(LatLng target) async {
-    if (!ref.read(loopPlannerProvider).open) return _planRoute(target);
+  Future<void> _routeTo(LatLng target, {Trail? trail}) async {
+    if (!ref.read(loopPlannerProvider).open) return _planRoute(target, trailId: trail?.id);
     final planner = ref.read(loopPlannerProvider.notifier);
-    planner.takePlace(target, LoopPlaceRole.target);
+    if (trail != null) {
+      planner.takeTrailHead(trail, asTarget: true);
+    } else {
+      planner.takePlace(target, LoopPlaceRole.target);
+    }
     if (_loopPanelOpen) {
       unawaited(planner.compute());
       return;
     }
     await _showLoopResult();
-  }
-
-  /// Darf ein neuer Auftrag den laufenden ersetzen? Ohne Auswahl und
-  /// Zwischenpunkte ja; sonst fragt die Karte (Konzept-Routing 10.4).
-  Future<bool> _mayReplacePlan() async {
-    final s = ref.read(loopPlannerProvider);
-    if (!s.open || (s.selected.isEmpty && s.waypoints.isEmpty)) return true;
-    final l = context.l10n;
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        key: const ValueKey('loop-replace'),
-        title: Text(l.loopReplaceTitle),
-        content: Text(l.loopReplaceText),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(false), child: Text(l.commonCancel)),
-          FilledButton(
-            key: const ValueKey('loop-replace-ok'),
-            onPressed: () => Navigator.of(context).pop(true),
-            child: Text(l.loopReplaceOk),
-          ),
-        ],
-      ),
-    );
-    return ok == true;
   }
 
   /// Ein Tipp auf einen Zwischenpunkt nimmt ihn weg — mit Rückgängig.
@@ -731,6 +738,11 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         ref.read(routeViaProvider.notifier).insert(h, tap.point);
       case LoopWaypointHit(:final index):
         _removeWaypoint(index);
+      // Eine Fahne öffnet dieselbe Wahl wie ihre Zeile im Kopf (#516).
+      case LoopFlagHit.start:
+        unawaited(showLoopStartChoice(context));
+      case LoopFlagHit.target:
+        unawaited(showLoopTargetChoice(context));
       case final Trail t:
         // Im Planer wählt ein Tipp den Trail an oder ab (#178).
         if (ref.read(loopPlannerProvider).open) {
@@ -739,23 +751,21 @@ class _MapScreenState extends ConsumerState<MapScreen> {
           final result = planner.toggle(t);
           final l = context.l10n;
           final name = t.displayName(l);
-          ScaffoldMessenger.of(context)
-            ..clearSnackBars()
-            ..showSnackBar(switch (result) {
-              LoopToggle.connector || LoopToggle.pending => SnackBar(
-                  key: const ValueKey('loop-not-pickable'),
-                  content: Text(result == LoopToggle.connector ? l.mapLoopConnector(name) : l.mapLoopPending(name))),
-              // Jeder Tipp sagt, was er geändert hat, mit Rückgängig
-              // (#375) — eine still geänderte Auswahl fiel nicht auf.
-              LoopToggle.selected || LoopToggle.deselected => SnackBar(
-                  key: const ValueKey('loop-toggled'),
-                  content: Text(result == LoopToggle.selected ? l.mapLoopAdded(name) : l.mapLoopRemoved(name)),
-                  action: SnackBarAction(
-                      key: const ValueKey('loop-toggled-undo'),
-                      label: l.commonUndo,
-                      onPressed: () => planner.restoreSelection(before.selected, before.mandatory)),
-                  persist: false),
-            });
+          switch (result) {
+            case LoopToggle.connector || LoopToggle.pending:
+              ScaffoldMessenger.of(context)
+                ..clearSnackBars()
+                ..showSnackBar(SnackBar(
+                    key: const ValueKey('loop-not-pickable'),
+                    content:
+                        Text(result == LoopToggle.connector ? l.mapLoopConnector(name) : l.mapLoopPending(name))));
+            // Jeder Tipp sagt, was er geändert hat, mit Rückgängig (#375) —
+            // seit #516 in der Auswahlzeile: Als Leiste verdeckte es die
+            // Leiste und „Meine Position".
+            case LoopToggle.selected || LoopToggle.deselected:
+              _showLoopNote(result == LoopToggle.selected ? l.mapLoopAdded(name) : l.mapLoopRemoved(name),
+                  () => planner.restoreSelection(before.selected, before.mandatory));
+          }
           return;
         }
         // Sonst: auswählen — er leuchtet, unten die Schnellkarte; ein
@@ -1075,12 +1085,18 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   void _openTrailHead(TrailHeadRequest request) {
     final trail = ref.read(trailByIdProvider(request.trailId));
     if (trail == null) return;
+    // „Als Ziel" bei offenem Planer: das Ziel DIESER Planung, wie „Ziel
+    // hier" (#516, Konzept-Routing 12.6) — keine Frage, Auswahl bleibt.
+    if (ref.read(loopPlannerProvider).open) {
+      unawaited(_routeTo(trail.start, trail: trail));
+      return;
+    }
     unawaited(_planRoute(trail.start, trailId: trail.id, style: request.mode));
   }
 
   /// Langer Druck (#177): eine Nadel am Punkt und ein kleines Menü —
-  /// Start hier, Route bis hier (rechnet sofort), Zwischenpunkt hier (alle
-  /// im Planer, #356 PR 7), oder die Navi-App.
+  /// Start hier, Ziel hier (rechnet sofort; bis #516 „Route bis hier"),
+  /// Zwischenpunkt hier (alle im Planer, #356 PR 7), oder die Navi-App.
   Future<void> _onLongPress(MapTap tap) async {
     if (_takeLoopStart(tap)) return;
     final box = context.findRenderObject() as RenderBox?;
@@ -1182,7 +1198,11 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     final loopLine = loopPlan != null && loopPlan.outcome == LoopOutcome.ok && loopPlan.points.length >= 2
         ? loopPlan.points
         : null;
-    final loopStartPin = !loop.open ? null : loop.start ?? loopLine?.first;
+    // Die Fahnen stehen immer (#516, Konzept-Routing 12.6): die Startfahne
+    // auch am Standort, solange nichts getippt und nichts gerechnet ist.
+    final loopStartPin = !loop.open
+        ? null
+        : loop.start ?? loopLine?.first ?? (position == null ? null : LatLng(position.latitude, position.longitude));
     final loopEndPin = !loop.open
         ? null
         : loopLine != null
@@ -1554,6 +1574,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
             width: 32,
             height: 32,
             alignment: Alignment.topCenter,
+            hitValue: LoopFlagHit.start,
             child: const LoopStartFlag(),
           ),
         if (loopEndPin != null)
@@ -1563,6 +1584,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
             width: 32,
             height: 32,
             alignment: Alignment.topCenter,
+            hitValue: LoopFlagHit.target,
             child: const LoopStartFlag(finish: true),
           ),
         // Vorab gesetzte Zwischenpunkte (#331 Schritt 4), nummeriert in der
@@ -1756,19 +1778,14 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                   const UpdateBanner(),
                   const _OutboxBanner(),
                   const _CachedNotice(),
-                  // Im Planer, solange nichts gewählt ist: wie es geht — zum
-                  // Ziel auch ganz ohne Trail (#356); nicht über einer Route.
-                  if (loop.open && !loopPicking && loop.drawTool == null && loop.selected.isEmpty && loop.plan == null)
-                    Card(
-                      key: const ValueKey('loop-hint'),
-                      margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                      child: ListTile(
-                        dense: true,
-                        leading: const Icon(Icons.alt_route),
-                        title: Text(loop.prefs.endMode == LoopEndMode.target
-                            ? context.l10n.mapLoopHintRoute
-                            : context.l10n.mapLoopHint),
-                      ),
+                  // Der Kopf des Planers (#516): Start, Ziel, Budget, X —
+                  // wie es geht, sagt die Auswahlzeile unten. Solange ein
+                  // Ergebnis offen ist, nur eine Zeile (`compact`).
+                  if (loop.open)
+                    LoopEditHeader(
+                      compact: panelInset > 0,
+                      onAdjust: () => unawaited(showLoopParamsSheet(context)),
+                      onClose: _closeLoopPlanner,
                     ),
                   // Der Planer wartet auf seinen Start (#158 Schritt 5).
                   if (loopPicking)
@@ -1880,22 +1897,19 @@ class _MapScreenState extends ConsumerState<MapScreen> {
               ),
             ),
           // Die Leiste des Planers (seit 0.74.0) — derselbe Platz wie die
-          // Leiste „Offline-Karten"; beide sind nie zugleich offen.
+          // Leiste „Offline-Karten"; beide sind nie zugleich offen. Seit
+          // #516 steht oben der Kopf und unten die Auswahlzeile: Die
+          // Leiste hält zu beiden Abstand und scrollt, wenn es eng wird.
           if (loop.open)
             SafeArea(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(8, 56, 0, 64),
+                padding: const EdgeInsets.fromLTRB(8, kLoopRailTopInset, 0, kLoopRailBottomInset),
                 child: Align(
                   alignment: Alignment.centerLeft,
                   child: SingleChildScrollView(
                     child: CoachAnchor(
                       id: MapCoach.loopRail,
-                      child: LoopToolRail(
-                        onParams: () => showLoopParamsSheet(context),
-                        onList: () => showLoopListSheet(context, ref),
-                        onCompute: _computeLoop,
-                        onClose: _closeLoopPlanner,
-                      ),
+                      child: LoopToolRail(onList: () => showLoopListSheet(context, ref)),
                     ),
                   ),
                 ),
@@ -1926,6 +1940,27 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                     trail: selected,
                     onOpen: _openSelected,
                     onClose: () => setState(() => _selectedTrailId = null),
+                  ),
+                ),
+              ),
+            ),
+          // Die Auswahlzeile des Planers (#516): unten links neben der
+          // Knopfspalte, wo danach das Ergebnis steht — solange es offen
+          // ist, rechnet dessen „Neu rechnen". Solange ein Strich oder ein
+          // Tipp erwartet wird, gehört die Karte ihm (wie bei der Legende).
+          if (loop.open && panelInset == 0 && loop.drawTool == null && !loopPicking)
+            SafeArea(
+              child: Align(
+                alignment: Alignment.bottomLeft,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 0, 76, 12),
+                  child: LoopSelectionBar(
+                    note: _loopNote,
+                    onCompute: () {
+                      _clearLoopNote();
+                      unawaited(_computeLoop());
+                    },
+                    onClear: _clearLoopSelection,
                   ),
                 ),
               ),

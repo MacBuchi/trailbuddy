@@ -408,7 +408,7 @@ void main() {
 
   // Stufe (d2): Rundenplaner, Weg zum Trailkopf und die Navigation.
   group('Planer und Navigation auf Englisch', () {
-    testWidgets('Leiste und Parameter des Planers', (tester) async {
+    testWidgets('Kopf, Leiste, Auswahlzeile und „Anpassen" des Planers', (tester) async {
       tester.view.physicalSize = const Size(1080, 2400);
       tester.view.devicePixelRatio = 3;
       addTearDown(tester.view.reset);
@@ -420,17 +420,20 @@ void main() {
       await settle(tester, frames: 20);
       await tester.tap(find.byKey(const ValueKey('loop-button')));
       await settle(tester, frames: 10);
-      for (final tip in ['Settings', 'Choose trails from the list', 'Clear selection', 'Close planner',
-        'Compute — choose trails or waypoints first']) {
-        expect(find.byTooltip(tip), findsOneWidget, reason: tip);
-      }
-      expect(find.byTooltip('Planer schließen'), findsNothing);
-      await tester.tap(find.byKey(const ValueKey('loop-rail-params')));
-      await settle(tester, frames: 20);
-      for (final text in ['Loop settings', 'Start: my location', 'Tap on the map', 'Bike']) {
+      // Leiste mit Wort (#516), Kopf, Auswahlzeile — alles auf Englisch.
+      for (final text in ['Point', 'Area', 'List', 'Start', 'End', 'Back to the start (loop)', 'Adjust',
+        'Tap the trails you want in the loop.', 'Compute loop']) {
         expect(find.text(text), findsOneWidget, reason: text);
       }
-      expect(find.text('Parameter der Runde'), findsNothing);
+      for (final tip in ['Choose trails from the list', 'Close planner']) {
+        expect(find.byTooltip(tip), findsOneWidget, reason: tip);
+      }
+      await tester.tap(find.byKey(const ValueKey('loop-adjust')));
+      await settle(tester, frames: 20);
+      for (final text in ['Adjust the loop', 'Bike', 'Fine-tuning']) {
+        expect(find.text(text), findsOneWidget, reason: text);
+      }
+      expect(find.text('Runde anpassen'), findsNothing);
     });
 
     test('Wegklassen, Navi-Auswahl und Zeit sind in beiden Sprachen benannt und verschieden', () {

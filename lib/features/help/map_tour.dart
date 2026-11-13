@@ -54,9 +54,17 @@ abstract final class MapCoach {
   static const loop = 'map.loop';
 
   /// Die Leiste des Planers (seit 0.74.0) — Anker UND Szene (sie öffnet
-  /// den Modus), und je Knopf `map.loopRail.<key>`.
+  /// den Modus), und je Bedienelement `map.loopRail.<key>` — auch die im
+  /// Kopf ([loopHead]) und in der Auswahlzeile ([loopBar]) des Planers
+  /// (#516): Es ist dieselbe Szene.
   static const loopRail = 'map.loopRail';
   static String loopRailButton(String key) => 'map.loopRail.$key';
+
+  /// Der Kopf des Planers (#516): Start, Ziel, Budget und „Anpassen".
+  static const loopHead = 'map.loopHead';
+
+  /// Die Auswahlzeile des Planers (#516): Zahl, „Leeren", „Rechnen".
+  static const loopBar = 'map.loopBar';
 
   /// Das Schild am Anfang des Trails, dessen Blatt die Tour öffnet.
   static const trailBadge = 'map.trailBadge';
@@ -111,13 +119,15 @@ abstract final class SheetCoach {
   /// „Anfahrt" — der Trailkopf an eine Navi-App (#151).
   static const navigate = 'sheet.navigate';
 
-  /// „Zum Trailkopf" (#158 Schritt 4) — der Weg aus den eigenen Bereichen.
+  /// „Als Ziel" (bis #516 „Zum Trailkopf", #158 Schritt 4) — der Weg aus
+  /// den eigenen Bereichen.
   static const trailHead = 'sheet.trailHead';
 
   /// „Als GPX exportieren" (#150).
   static const export = 'sheet.export';
 
-  /// „Start im Planer" / „Ziel im Planer" (#331) — der Trailkopf im Planer.
+  /// „Als Start" (bis #516 „Start im Planer" / „Ziel im Planer", #331) —
+  /// der Trailkopf im Planer.
   static const plan = 'sheet.plan';
 }
 
