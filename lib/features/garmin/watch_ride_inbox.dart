@@ -26,6 +26,8 @@ import '../profile/profile_providers.dart' show riderProfileProvider;
 import '../rides/ride_providers.dart' show rideProvider, ridesProvider, RideStartResult, WatchRideSave;
 import '../rides/ride_track.dart' show RideMark;
 import 'garmin_bridge.dart';
+import 'watch_event_store.dart';
+import 'watch_events.dart';
 import 'watch_ride.dart';
 import 'watch_route.dart' show watchHelloOf;
 
@@ -86,6 +88,11 @@ class WatchRideInbox extends Notifier<int> {
   Future<void> _onMessage(Object? message) async {
     final hello = watchHelloOf(message);
     if (hello.hello) {
+      // Nach einem Absturz der Uhr-App reist ihr Protokoll mit (#510).
+      final crash = watchEventsOf((message as Map)['ev']);
+      if (crash != null) {
+        await ref.read(watchEventStoreProvider).add(WatchEventLog(at: now(), fromCrash: true, events: crash));
+      }
       if (hello.rides.isNotEmpty) await ref.read(garminBridgeProvider).send([watchRidePull]);
       return;
     }
@@ -98,13 +105,21 @@ class WatchRideInbox extends Notifier<int> {
     var inc = _incoming[part.id];
     if (inc == null || inc.n != part.n) inc = _incoming[part.id] = _Incoming(part.n);
     inc.parts[part.p] = part.chunks;
-    if (part.p == 0) inc.marks = part.marks;
+    if (part.p == 0) {
+      inc.marks = part.marks;
+      // Das Protokoll der Uhr (#510) reist mit der ersten Nachricht.
+      inc.events = watchEventsOf((message as Map)['ev']);
+    }
     inc.touched = t;
     if (inc.parts.length < inc.n) return;
     _incoming.remove(part.id);
     if (!_saving.add(part.id)) return;
     try {
       await _save(part.id, [for (var p = 0; p < inc.n; p++) ...inc.parts[p]!], inc.marks);
+      final ev = inc.events;
+      if (ev != null) {
+        await ref.read(watchEventStoreProvider).add(WatchEventLog(at: t, fromCrash: false, events: ev));
+      }
     } finally {
       _saving.remove(part.id);
     }
@@ -189,6 +204,7 @@ class _Incoming {
   final int n;
   final parts = <int, List<List<int>>>{};
   List<RideMark> marks = const [];
+  List<int>? events;
   DateTime touched = DateTime.fromMillisecondsSinceEpoch(0);
 }
 

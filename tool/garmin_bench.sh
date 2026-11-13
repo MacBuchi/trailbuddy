@@ -190,6 +190,8 @@ run_chain() {
   : > "$log"
   local defs=(--dart-define=GARMIN_TETHERED=true --dart-define=ROUNDS="${CHAIN_ROUNDS:-5}")
   [ $brk = 1 ] && defs+=(--dart-define=BREAK_OK=true)
+  # Nur die Speichermessung mit N Punkten: CHAIN_BIG=N tool/garmin_bench.sh chain
+  [ -n "${CHAIN_BIG:-}" ] && defs+=(--dart-define=BIG_ONLY="$CHAIN_BIG")
   say "Treiber auf dem Emulator (baut beim ersten Mal ein paar Minuten) …"
   flutter test integration_test/watch_bench_test.dart -d "$serial" --flavor dev "${defs[@]}" > "$log" 2>&1 &
   fpid=$!
@@ -215,9 +217,30 @@ run_chain() {
   "$sdk/bin/monkeydo" "$prg" "${GARMIN_DEVICE:-fenix5}" > "$flog" 2>&1 &
   mpid=$!
 
+  # #510: Verlangt der Treiber einen Neustart der Uhr-App (`BENCH
+  # relaunch` — nach dem sauberen Ende und nach dem Absturz), startet der
+  # ganze Simulator neu, samt „adb Connection → Start": Ein zweites
+  # monkeydo im laufenden Simulator schreibt nichts und lädt nichts
+  # (2026-11-12). Der Speicher der Uhr-App bleibt dabei liegen.
+  local seen=0 n
+  while kill -0 "$fpid" 2>/dev/null; do
+    n=$(grep -c "BENCH relaunch" "$log" 2>/dev/null || true)
+    if [ "${n:-0}" -gt "$seen" ]; then
+      seen=$n
+      { kill "$mpid"; wait "$mpid"; } 2>/dev/null
+      restart_sim
+      osascript -e 'tell application "System Events" to tell process "simulator" to click menu item "Start" of menu 1 of menu bar item "adb Connection" of menu bar 1' > /dev/null 2>&1 \
+        || say "Klick „adb Connection → Start“ nach dem Neustart ging nicht"
+      sleep 3
+      echo "--- Neustart $seen ---" >> "$flog"
+      "$sdk/bin/monkeydo" "$prg" "${GARMIN_DEVICE:-fenix5}" >> "$flog" 2>&1 &
+      mpid=$!
+    fi
+    sleep 1
+  done
   wait "$fpid"; rc=$?
   { kill "$mpid"; wait "$mpid"; } 2>/dev/null
-  grep -E "BENCH (step|hallo|route median|Fahrt|result)" "$log" | sed 's/^.*BENCH /  /'
+  grep -E "BENCH (step|hallo|route median|Fahrt|Protokoll|Absturz|Speicher|result)" "$log" | sed 's/^.*BENCH /  /'
   if [ $brk = 1 ]; then
     if [ $rc -ne 0 ] && grep -q "BENCH step Route in Stücken → ok (1/.* FEHLT" "$log"; then
       ok "gewollter Bruch: die Kette wird rot, wo sie soll ($log)"; return 0

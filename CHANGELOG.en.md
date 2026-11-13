@@ -2,6 +2,21 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## The watch log
+
+*Version 0.169.0, 2026-11-12*
+
+- **When the watch app gets stuck, it can tell (0.169.0):** The watch
+  app remembers its last 120 steps — which button, which menu item,
+  which message, whether there was GPS and whether you were on the
+  route, with the seconds since it started; no position, no names. The
+  log comes to the phone with every ride and after a crash of the watch
+  app, and stays there. When you report a bug with the light bulb, the
+  dialog offers to attach the log — only if you tick the box, and it
+  shows you the list first. That way a problem from the trail can be
+  replayed at the desk instead of having to ride it again. Needs the new
+  watch app 1.5.0.
+
 ## The watch app checks its own flows
 
 *Versions 0.168.1–0.168.3, 2026-11-11 to 2026-11-12*

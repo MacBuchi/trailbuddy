@@ -9960,5 +9960,115 @@
   "airtimeAsOfPattern": "d.M.",
   "@airtimeAsOfPattern": {
     "description": "Datumsmuster (intl) für den Stand des Airtime-Zählers eines Buddys („Stand 28.10.“)."
+  },
+  "feedbackWatchLogAttach": "Uhr-Protokoll anhängen",
+  "@feedbackWatchLogAttach": {
+    "description": "Schalter im Feedback-Dialog (nur bei „Fehler“ und nur mit einem Protokoll der Garmin-Uhr von höchstens einem Tag, #510)."
+  },
+  "feedbackWatchLogInfo": "{count} Schritte der Uhr-App {source, select, crash{vor einem Absturz} other{bis zum Ende der letzten Fahrt}}: Tasten, Menüpunkte, Arten von Nachrichten und Sekunden — keine Position. Wird mit deinem Text öffentlich.",
+  "@feedbackWatchLogInfo": {
+    "description": "Erklärung unter dem Schalter „Uhr-Protokoll anhängen“: was drin steht und dass es öffentlich wird.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "source": {
+        "type": "String"
+      }
+    }
+  },
+  "feedbackWatchLogShow": "Liste ansehen",
+  "@feedbackWatchLogShow": {
+    "description": "Aufklapper im Feedback-Dialog: zeigt das Uhr-Protokoll Zeile für Zeile, bevor es gesendet wird."
+  },
+  "feedbackWatchLogLine": "Uhr-Protokoll ({count} Schritte):",
+  "@feedbackWatchLogLine": {
+    "description": "Zeile im gesendeten Feedback-Text vor dem kodierten Uhr-Protokoll (erscheint im öffentlichen Issue).",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "watchEvStart": "{d, select, d0{Start ohne Handy} d1{Start mit Handy} other{?}}",
+  "@watchEvStart": {
+    "description": "Uhr-Protokoll, Zeile: die Uhr-App startete. d = d0/d1.",
+    "placeholders": {
+      "d": {
+        "type": "String"
+      }
+    }
+  },
+  "watchEvKey": "{d, select, d0{Taste START} d1{Taste ZURÜCK} d2{langes HOCH} other{?}}",
+  "@watchEvKey": {
+    "description": "Uhr-Protokoll, Zeile: eine Taste der Uhr (Namen der Tasten wie auf der fēnix).",
+    "placeholders": {
+      "d": {
+        "type": "String"
+      }
+    }
+  },
+  "watchEvMenu": "{d, select, d0{Menü: Weiter} d1{Menü: Speichern} d2{Menü: Verwerfen} d3{Antwort: Ja} d4{Antwort: Nein} d5{Trail behalten} d6{Trail verwerfen} d7{Route beenden} other{?}}",
+  "@watchEvMenu": {
+    "description": "Uhr-Protokoll, Zeile: ein Menüpunkt oder eine Antwort an der Uhr.",
+    "placeholders": {
+      "d": {
+        "type": "String"
+      }
+    }
+  },
+  "watchEvIn": "vom Handy: {type}",
+  "@watchEvIn": {
+    "description": "Uhr-Protokoll, Zeile: eine Nachricht vom Handy; type ist ihre Kurzform (z. B. „wq“), nicht übersetzen.",
+    "placeholders": {
+      "type": {
+        "type": "String"
+      }
+    }
+  },
+  "watchEvOut": "ans Handy: {type}",
+  "@watchEvOut": {
+    "description": "Uhr-Protokoll, Zeile: eine Nachricht der Uhr ans Handy; type ist ihre Kurzform (z. B. „hi“).",
+    "placeholders": {
+      "type": {
+        "type": "String"
+      }
+    }
+  },
+  "watchEvSent": "{d, select, d0{Ende abgenommen} d1{Ende nicht abgenommen} d2{Fahrt abgenommen} d3{Fahrt nicht abgenommen} other{?}}",
+  "@watchEvSent": {
+    "description": "Uhr-Protokoll, Zeile: ob Garmin Connect eine Nachricht der Uhr abnahm.",
+    "placeholders": {
+      "d": {
+        "type": "String"
+      }
+    }
+  },
+  "watchEvState": "{d, select, d0{Stand: bereit} d1{Stand: Aufnahme} d2{Stand: Pause} d3{Stand: freie Fahrt} d4{Stand: Route geladen} d5{Stand: geht zu} d6{Stand: Routenwechsel} d7{Stand: Lader wartet} other{?}}",
+  "@watchEvState": {
+    "description": "Uhr-Protokoll, Zeile: der Ablauf der Uhr wechselte seinen Stand.",
+    "placeholders": {
+      "d": {
+        "type": "String"
+      }
+    }
+  },
+  "watchEvFix": "{d, select, d0{GPS: keins} d1{GPS: auf der Route} d2{GPS: abseits} d3{GPS: frei} other{?}}",
+  "@watchEvFix": {
+    "description": "Uhr-Protokoll, Zeile: die Klasse des GPS-Fixes wechselte (keine Position).",
+    "placeholders": {
+      "d": {
+        "type": "String"
+      }
+    }
+  },
+  "watchEvDue": "{d, select, d0{Frist: zu} d1{Frist: Wechsel} d2{Frist: ruhige Minute} d3{Frist: Warten vorbei} other{?}}",
+  "@watchEvDue": {
+    "description": "Uhr-Protokoll, Zeile: eine Frist der Uhr lief ab.",
+    "placeholders": {
+      "d": {
+        "type": "String"
+      }
+    }
   }
 }

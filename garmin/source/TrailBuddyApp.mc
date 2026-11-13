@@ -75,8 +75,18 @@ class TrailBuddyApp extends Application.AppBase {
         t.start(method(:onTick), ms, true);
     }
 
+    (:nobench)
     function onTick() as Void {
         core.tick();
+    }
+
+    //! Im Kettenstand misst jeder Takt den Speicher mit — die Spitze liegt
+    //! mitten im Dekodieren und beim Routenwechsel, nicht dann, wenn der
+    //! Treiber fragt (#510).
+    (:bench)
+    function onTick() as Void {
+        core.tick();
+        benchPeak();
     }
 
     //! Ein Handy, das Nachrichten nehmen kann: Sonst füllte jede Nachricht
@@ -280,10 +290,17 @@ class TrailBuddyApp extends Application.AppBase {
     //   `{t: "_x", drop}`     Nachrichten dieser Art nicht senden (der
     //                         gewollte Bruch: „die Uhr antwortet nie ok")
     //   `{t: "_s"}`           nur den Stand melden
+    //   `{t: "_r"}`           der nächste Start (binnen 2 min) behält den
+    //                         Speicher (der Treiber startet neu, #510)
+    //   `{t: "_z"}`           ein echter Absturz (Index außerhalb, „IQ!"),
+    //                         ohne onStop; der nächste Start behält den
+    //                         Speicher — der Absturz-Ring kommt im „hallo"
     //
     // Antwort auf jedes Ereignis: `{t: "_s", rec, wait, free, ready, id,
-    // ask, closing, q, menu, fx, pend?}` — `fx` Fixe, die noch anstehen;
-    // auf `_f` erst, wenn alle verarbeitet sind.
+    // ask, closing, q, menu, fx, pend?, mem, peak, tot}` — `fx` Fixe, die
+    // noch anstehen (auf `_f` erst, wenn alle verarbeitet sind), `mem`
+    // belegter Speicher, `peak` die Spitze seit dem Start (je Takt
+    // gemessen), `tot` der ganze (#510).
 
     (:bench) hidden var _shift as Number = 0;
     (:bench) hidden var _fixT as Number = 0;
@@ -296,12 +313,27 @@ class TrailBuddyApp extends Application.AppBase {
     (:bench) hidden var _fixI as Number = 0;
     (:bench) hidden var _fixDt as Number = 5;
     (:bench) hidden var _fixSp as Float = 5.0;
+    (:bench) hidden var _peak as Number = 0;
+
+    (:bench)
+    hidden function benchPeak() as Void {
+        var m = System.getSystemStats().usedMemory;
+        if (m > _peak) { _peak = m; }
+    }
 
     //! Der Simulator behält den Speicher der Uhr zwischen Läufen: Eine
     //! Fahrt aus einem abgebrochenen Lauf kam als laufende Aufzeichnung
     //! zurück, START hieß dann Pause (2026-11-11). Jeder Lauf beginnt leer.
     (:bench)
     function benchWipe() as Void {
+        // Nur ein frischer Merker (2 min): Einer aus einem abgebrochenen
+        // Lauf ließ sonst den nächsten Lauf mit altem Speicher beginnen.
+        var keep = Application.Storage.getValue("benchKeep");
+        Application.Storage.deleteValue("benchKeep");
+        if (keep instanceof Number && Time.now().value() - keep < 120) {
+            System.println("bench keep");
+            return;
+        }
         Application.Storage.clearValues();
         System.println("bench wipe");
     }
@@ -361,6 +393,13 @@ class TrailBuddyApp extends Application.AppBase {
         } else if ("_x".equals(t)) {
             var x = d["drop"];
             _drop = x instanceof String ? x : null;
+        } else if ("_r".equals(t) || "_z".equals(t)) {
+            Application.Storage.setValue("benchKeep", Time.now().value());
+            if ("_z".equals(t)) {
+                System.println("bench crash");
+                var a = [] as Array<Number>;
+                a[d.size()] = 0;
+            }
         }
         benchState();
     }
@@ -384,6 +423,7 @@ class TrailBuddyApp extends Application.AppBase {
             if ("quit".equals(m)) { c.quit(); } else if ("discard".equals(m)) { c.discardRide(); }
         } else if ("no".equals(k)) {
             _benchMenu = "";
+            c.confirmNo();
         } else if ("menu".equals(k)) {
             c.menuKey();
         } else if ("zoom".equals(k) || "end_route".equals(k)) {
@@ -442,6 +482,12 @@ class TrailBuddyApp extends Application.AppBase {
             "ready" => c.route.isReady(), "id" => c.route.id, "ask" => c.pendingId != null && c.swapAt != 0,
             "closing" => c.closing, "q" => RideLog.queue().size(), "menu" => _benchMenu,
             "fx" => _fixLa == null ? 0 : (_fixLa as Array).size() - _fixI} as Dictionary;
+        // Speicher (#510): jetzt, die Spitze seit dem Start, das Ganze.
+        benchPeak();
+        var st = System.getSystemStats();
+        m["mem"] = st.usedMemory;
+        m["peak"] = _peak;
+        m["tot"] = st.totalMemory;
         var p = c.pendingId;
         if (p != null) { m["pend"] = p; }
         transmit(m, new PhoneAck());
@@ -729,7 +775,11 @@ class DiscardDelegate extends WatchUi.ConfirmationDelegate {
     }
 
     function onResponse(response as WatchUi.Confirm) as Boolean {
-        if (response == WatchUi.CONFIRM_YES) { watchCore().discardRide(); }
+        if (response == WatchUi.CONFIRM_YES) {
+            watchCore().discardRide();
+        } else {
+            watchCore().confirmNo();
+        }
         return true;
     }
 }
@@ -740,7 +790,11 @@ class QuitDelegate extends WatchUi.ConfirmationDelegate {
     }
 
     function onResponse(response as WatchUi.Confirm) as Boolean {
-        if (response == WatchUi.CONFIRM_YES) { watchCore().quit(); }
+        if (response == WatchUi.CONFIRM_YES) {
+            watchCore().quit();
+        } else {
+            watchCore().confirmNo();
+        }
         return true;
     }
 }
@@ -765,11 +819,11 @@ class EndAck extends Communications.ConnectionListener {
     }
 
     function onComplete() as Void {
-        watchCore().endSent();
+        watchCore().endAcked(true);
     }
 
     function onError() as Void {
-        watchCore().endSent();
+        watchCore().endAcked(false);
     }
 }
 

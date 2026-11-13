@@ -24,6 +24,7 @@ import 'package:trailbuddy/core/update_check.dart';
 import 'package:trailbuddy/core/widgets/start_splash.dart';
 import 'package:trailbuddy/data/providers.dart';
 import 'package:trailbuddy/features/garmin/garmin_bridge.dart';
+import 'package:trailbuddy/features/garmin/watch_event_store.dart';
 import 'package:trailbuddy/features/map/base_map_providers.dart';
 import 'package:trailbuddy/features/map/contour_layer.dart' show computeContours;
 import 'package:trailbuddy/features/map/contour_providers.dart';
@@ -110,6 +111,7 @@ List<Override> overridesFor(FakeBackend backend,
         Stream<Position?>? positionStream,
         FakePositionFix? positionFix,
         FakeRideStore? rideStore,
+        MemoryWatchEventStore? watchEvents,
         FakeRideFix? rideFix,
         FakeRideServiceBridge? rideBridge,
         FakeRideService? rideService,
@@ -199,6 +201,7 @@ List<Override> overridesFor(FakeBackend backend,
       // Zeilen ginge jeder Kartentest beim ersten Frame (`restore`) an
       // `path_provider`.
       rideStoreProvider.overrideWithValue(rideStore ?? FakeRideStore()),
+      watchEventStoreProvider.overrideWithValue(watchEvents ?? MemoryWatchEventStore()),
       rideFixProvider.overrideWithValue((rideFix ?? FakeRideFix()).call),
       rideServiceBridgeProvider.overrideWithValue(rideBridge ?? FakeRideServiceBridge()),
       rideServiceProvider.overrideWithValue(rideService ?? FakeRideService()),
@@ -278,6 +281,7 @@ Future<void> pumpApp(WidgetTester tester, FakeBackend backend,
     Stream<Position?>? positionStream,
     FakePositionFix? positionFix,
     FakeRideStore? rideStore,
+    MemoryWatchEventStore? watchEvents,
     FakeRideFix? rideFix,
     FakeRideServiceBridge? rideBridge,
     FakeRideService? rideService,
@@ -322,6 +326,7 @@ Future<void> pumpApp(WidgetTester tester, FakeBackend backend,
         positionStream: positionStream,
         positionFix: positionFix,
         rideStore: rideStore,
+        watchEvents: watchEvents,
         rideFix: rideFix,
         rideBridge: rideBridge,
         rideService: rideService,
