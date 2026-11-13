@@ -258,8 +258,10 @@ Stand nach dem Prototyp (Abschnitt 7):
   Sollwerte noch nicht gemessen (die Banner der zweiten Fahrt sind
   unbeantwortet).
 - Die Vibrationsenergie am Lenker gegenüber dem Oberrohr.
-- Hosentasche: keine feste Halterung — Stufe 1 findet dann nichts; dort
-  bleibt nur Airtime (Konzept §2).
+- ~~Hosentasche: keine feste Halterung — Stufe 1 findet dann nichts; dort
+  bleibt nur Airtime (Konzept §2)~~ — Stufe 1 findet sehr wohl etwas,
+  und zwar Falsches; erkennen lässt sich die Tasche am Kreisel auf
+  ruhigem Untergrund, Sprünge nur mit harter Landung (Abschnitt 11).
 - Sprünge: Auf beiden Fahrten keiner; Flug und Landung sind nur
   synthetisch geprüft.
 
@@ -506,6 +508,110 @@ Stunden. Die Halterung kam ab der zweiten Fahrt aus der letzten und hielt
   Schwelle. Bis dahin bleibt die Regel, wie sie ist, als Zahl im Test.
 - Offen: ob der Bildschirm aus war und der Akku vorher/nachher — nicht
   notiert.
+
+## 11. Handy in der Hosentasche (2026-11-13, #491)
+
+Zwei Fahrten mit dem Handy in der Hosentasche (2026-11-07, 2,3 h, und
+2026-11-08, 3,1 h; Fusion an), dagegen neun Fahrten mit Halterung
+an Lenker oder Oberrohr (2026-10-30 und 2026-11-01, gut 5 h). Werkzeug:
+`tool/pocket_measure.py` (Regel und Kontext je Flug) neben
+`airtime_measure.py --fused --list`. Der Betreiber ist in der Tasche
+auch gesprungen, hat aber kaum geantwortet — das Handy holt man dafür
+nicht heraus; beantwortet sind 16 Meldungen, alle „War keiner".
+
+**Was die Fusion heute in der Tasche tut:**
+
+- Sie lernt eine Halterung, und zwar eine falsche: „oben" nach 203 bzw.
+  312 s, „vorn" nach 24 bzw. 35 min (am Lenker 6 s und 2,5 min), dann
+  19 bzw. 11 Mal „verrutscht" (am Lenker 0–1).
+- Sie **speichert** sie: Die Fahrt vom 2026-11-08 startete mit der
+  Halterung aus der Tasche vom Vortag (`# mount,` im Kopf). Eine
+  folgende Fahrt am Lenker verwirft sie erst nach fünf ruhigen Sekunden
+  daneben (Abschnitt 8, Punkt 4) — bis dahin rechnet sie mit der
+  falschen.
+- Gemeldet hat die App in der Tasche 14 Wheelies, 69 Sprünge und 27
+  Stoppies. Wheelie und Stoppie haben dort keine Radachsen, das ist das
+  Bein.
+- Rohregel und Fusion zählen in der Tasche Hunderte Flüge unter 0,3 g ab
+  100 ms; ab 150 ms noch 37 bzw. 32 — das sind die gemeldeten. Die
+  Annahme aus Konzept §2, in der Tasche bleibe Airtime ohne Abstriche,
+  hält damit nicht.
+
+**Die Tasche erkennen.** Wie weit die Schwerkraft im Telefon wandert,
+trennt schlecht (Median 3,6–5,3° gegen 1,6–2,3° je 10 s), der Takt der
+Tritte gar nicht (auch am Lenker schwingt es im Tritt). Die Drehrate
+trennt: In der Tasche dreht das Telefon mit dem Oberschenkel, am Lenker
+kaum. Auf ruppigen Abfahrten dreht sich aber auch das Rad selbst —
+zwei Lenker-Fahrten kamen dort auf 25–45 % „Tasche". Deshalb zählen nur
+**ruhige** Fenster:
+
+- je 10 s in Fahrt (> 8 km/h an beiden Enden): Vibration = Streuung von
+  |a|, Drehung = Effektivwert des Kreisels nach 0,15 s Tiefpass;
+- ruhig = Vibration unter 4 m/s²;
+- **Tasche = Median der Drehung über die letzten zwölf ruhigen Fenster
+  über 0,35 rad/s.**
+
+| Fahrten | ruhige Fenster | Drehung, Median | „Tasche" |
+|---|---|---|---|
+| neun mit Halterung | 5–510 je Fahrt | 0,12–0,22 rad/s | 0 % (zwei kurze ohne Entscheidung) |
+| Tasche 2026-11-07 | 239 | 0,65 rad/s | 96 %, ab 720 s |
+| Tasche 2026-11-08 | 211 | 1,05 rad/s | 100 %, ab 430 s |
+
+Mit sechs statt zwölf Fenstern käme die Entscheidung früher, aber die
+Lenker-Fahrten hätten dann 1–9 % „Tasche". Zwei Taschen-Fahrten mit derselben Hose sind wenig: Die
+Schwelle ist vorläufig, der Abstand (0,22 gegen 0,65) groß.
+
+**Sprünge aus der Tasche.** Je Flug (Mahony, 0,3 g / 150 ms) Tempo,
+Gefälle über ±15 s aus den GPS-Höhen, Drehung und Vibration in den 6 s
+davor:
+
+- Die sechs bestätigten Sprünge am Lenker (2026-11-01): alle bergab
+  (−7 bis −11 %), ruppig (Vibration 6,5–15 m/s²), Landung 3,7–7,2 g.
+- Die sieben „War keiner" aus der Tasche (2026-11-07): alle in der Ebene
+  beim Treten (±1,5 %), 0,15–0,17 s, Landung 2,0–3,0 g — das Bein.
+- Ein Teil der unbeantworteten sieht aus wie die bestätigten (bergab,
+  ruppig, harte Landung), am 2026-11-08 viele.
+
+Vorschlag für die Tasche: ein Flug zählt nur mit **Landung ab 3,5 g**.
+Das behält alle sechs bestätigten vom Lenker, verwirft alle sechs
+„War keiner" vom 2026-11-07 (die siebte war unplausibel) und lässt von
+37 bzw. 32 Flügen 3 bzw. 12 übrig, fast alle bergab; ein „War keiner"
+vom 2026-11-08 (7,6 g, bergab) bleibt drin. Ob die übrigen Sprünge
+sind, zeigt erst eine Fahrt mit Antworten — ohne das Handy
+herauszuholen: angesagte Sprünge zählen, oder die Antwort auf der Uhr
+(#514 zeigt das Zeichen, START = ja seit #513).
+
+**Auf dem Trail?** (Konzept §2, Bedingung 3: beide Fixe ≤ 20 m vom
+Trail — die App prüft das, das Werkzeug mangels Trails bisher nicht.)
+Abgeglichen gegen 584 Trails als GPX (Stand 2026-09-27, lokal):
+
+- Alle „War keiner" vom 2026-11-07 liegen über 100 m von jedem Trail,
+  darunter zwei Gruppen von drei bis vier Flügen in wenigen Sekunden in
+  der Ebene — Bordsteine, Schwellen oder Treppenstufen (Betreiber).
+- Die harten Landungen (≥ 3,5 g) aus der Tasche liegen fast alle auf
+  einem Trail: 3 von 3 und 11 von 12.
+- Keine Regel reicht allein: „auf dem Trail" ließe weiche Flüge beim
+  Treten bergauf auf dem Trail durch (1,8–2,5 g), die Landung allein
+  einen Flug abseits. Beide zusammen lassen 3 bzw. 11 übrig.
+- Die GPX-Linien sind grob: Von den sechs bestätigten Sprüngen am
+  Lenker liegen nur drei innerhalb von 20 m, die übrigen 28–41 m daneben,
+  und nur 13–58 % der Fahrten lagen überhaupt an einem dieser Trails.
+  Die 20 m gehören gegen die Trails der App geprüft, nicht gegen diese
+  Sammlung.
+
+**Folgerungen für den Bau** (nach #517, das „am Rad / in der Tasche"
+fragt; die Erkennung sichert die Angabe ab):
+
+1. In der Tasche — angegeben oder erkannt — keine Wheelies und
+   Stoppies, und die Halterung wird nicht gespeichert.
+2. Sprünge in der Tasche nur mit Landung ab 3,5 g UND auf dem Trail
+   (vorläufig, bis eine beantwortete Taschen-Fahrt da ist).
+3. Steht „am Rad" und die Erkennung sagt „Tasche", gilt die Erkennung
+   für diese Fahrt; umgekehrt nicht — eine ruhige Tasche auf langer
+   Abfahrt sieht aus wie ein Lenker.
+4. Die Halterung der letzten Fahrt wird erst mitgenommen, wenn die
+   Erkennung „am Rad" sagt — sonst startet eine Taschen-Fahrt mit der
+   Lenker-Halterung und umgekehrt.
 
 ## Quellen
 

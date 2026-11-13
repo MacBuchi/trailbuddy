@@ -71,6 +71,7 @@ jobs:
           python3 tool/poi_extract.py --self-test > /dev/null
           python3 tool/brand_icons.py --self-test > /dev/null
           python3 tool/garmin_route.py --self-test > /dev/null
+          python3 tool/pocket_measure.py --self-test > /dev/null
           bash -n tool/garmin_build.sh
           bash -n tool/garmin_bench.sh
           bash -n tool/garmin_sim.sh
