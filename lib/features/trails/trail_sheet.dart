@@ -454,83 +454,78 @@ class _TrailSheetState extends ConsumerState<_TrailSheet> {
                   label: Text(l.sheetReport),
                 ),
               ),
-            // „Zum Trailkopf" (#158 Schritt 4) und „Karte" in einer Zeile;
-            // die Anfahrt (#151) steht seit #224 als Symbol im Kopf. Den
-            // Trailkopf gibt es auch für wartende Trails — Punkte haben
-            // sie, der Trailkopf steht fest.
+            // Die Anfahrt (#151) steht seit #224 als Symbol im Kopf. Den
+            // Trailkopf gibt es auch für wartende Trails — Punkte haben sie,
+            // der Trailkopf steht fest.
             if (!trail.pending) const SizedBox(height: 8),
+            // „Als Ziel" und „Als Start" (#516, Konzept-Routing 12.6 — bis
+            // dahin „Zum Trailkopf", „Start im Planer", „Ziel im Planer"):
+            // dieselben Wörter wie Fahnen und Kopf des Planers. „Als Ziel"
+            // rechnet sofort wie früher „Zum Trailkopf"; bei offenem Planer
+            // ist der Kopf das Ziel DIESER Planung (`_openTrailHead`).
             Row(
               children: [
                 Expanded(
                   child: CoachAnchor(
                     id: SheetCoach.trailHead,
                     child: OutlinedButton.icon(
-                    key: const ValueKey('trail-head'),
-                    style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
-                    onPressed: () {
-                      // Der Weg wird auf der Karte gezeigt: erst das Blatt zu,
-                      // dann der Reiter, dann der Wunsch — die Karte löst ihn
-                      // nach dem nächsten Bild ein (wie der Fokus-Wunsch).
-                      final request = ref.read(trailHeadRequestProvider.notifier);
-                      Navigator.of(context).pop();
-                      StatefulNavigationShell.maybeOf(context)?.goBranch(kMapBranchIndex);
-                      // Der Stil des Navi-Symbols, wenn eins gemerkt ist
-                      // (Konzept-Routing 10.3); sonst der des Planers.
-                      final mode = NavChoice.parse(ref.read(settingsProvider).navDefault)?.style;
-                      request.state = (trailId: trail.id, mode: mode);
-                    },
-                    icon: const Icon(Icons.route_outlined),
-                    label: Text(l.sheetTrailHead),
-                  )),
-                ),
-                if (widget.showOnMapButton) ...[
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: CoachAnchor(
-                      id: SheetCoach.showOnMap,
-                      child: OutlinedButton.icon(
-                      key: const ValueKey('trail-show-on-map'),
+                      key: const ValueKey('trail-head'),
                       style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
                       onPressed: () {
-                        // Erst der Reiter, dann der Wunsch (PilzBuddy #345).
+                        // Der Weg wird auf der Karte gezeigt: erst das Blatt
+                        // zu, dann der Reiter, dann der Wunsch — die Karte
+                        // löst ihn nach dem nächsten Bild ein.
+                        final request = ref.read(trailHeadRequestProvider.notifier);
                         Navigator.of(context).pop();
-                        StatefulNavigationShell.maybeOf(context)
-                            ?.goBranch(kMapBranchIndex);
-                        ref.read(mapFocusTrailProvider.notifier).state = trail.id;
+                        StatefulNavigationShell.maybeOf(context)?.goBranch(kMapBranchIndex);
+                        // Der Stil des Navi-Symbols, wenn eins gemerkt ist
+                        // (Konzept-Routing 10.3); sonst der des Planers.
+                        final mode = NavChoice.parse(ref.read(settingsProvider).navDefault)?.style;
+                        request.state = (trailId: trail.id, mode: mode);
                       },
-                      icon: const Icon(Icons.map),
-                      label: Text(l.sheetShowOnMap),
-                    )),
+                      icon: const Icon(Icons.sports_score),
+                      label: Text(l.sheetAsTarget),
+                    ),
                   ),
-                ],
-              ],
-            ),
-            // Der Trailkopf als Start oder Ziel des Planers (#331 Schritt 2)
-            // — ein Wunsch an die Karte wie „Zum Trailkopf".
-            const SizedBox(height: 8),
-            CoachAnchor(
-              id: SheetCoach.plan,
-              child: Row(
-              children: [
-                for (final asTarget in [false, true]) ...[
-                  if (asTarget) const SizedBox(width: 8),
-                  Expanded(
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: CoachAnchor(
+                    id: SheetCoach.plan,
                     child: OutlinedButton.icon(
-                      key: ValueKey(asTarget ? 'trail-plan-to' : 'trail-plan-from'),
+                      key: const ValueKey('trail-plan-from'),
                       style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
                       onPressed: () {
                         final request = ref.read(loopTrailHeadRequestProvider.notifier);
                         Navigator.of(context).pop();
                         StatefulNavigationShell.maybeOf(context)?.goBranch(kMapBranchIndex);
-                        request.state = (trailId: trail.id, asTarget: asTarget);
+                        request.state = (trailId: trail.id, asTarget: false);
                       },
-                      icon: Icon(asTarget ? Icons.sports_score : Icons.trip_origin),
-                      label: Text(asTarget ? l.sheetPlanTo : l.sheetPlanFrom),
+                      icon: const Icon(Icons.trip_origin),
+                      label: Text(l.sheetAsStart),
                     ),
                   ),
-                ],
+                ),
               ],
-            )),
+            ),
+            if (widget.showOnMapButton) ...[
+              const SizedBox(height: 8),
+              CoachAnchor(
+                id: SheetCoach.showOnMap,
+                child: OutlinedButton.icon(
+                  key: const ValueKey('trail-show-on-map'),
+                  style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
+                  onPressed: () {
+                    // Erst der Reiter, dann der Wunsch (PilzBuddy #345).
+                    Navigator.of(context).pop();
+                    StatefulNavigationShell.maybeOf(context)?.goBranch(kMapBranchIndex);
+                    ref.read(mapFocusTrailProvider.notifier).state = trail.id;
+                  },
+                  icon: const Icon(Icons.map),
+                  label: Text(l.sheetShowOnMap),
+                ),
+              ),
+            ],
           ],
         ),
       ),

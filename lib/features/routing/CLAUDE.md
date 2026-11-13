@@ -239,8 +239,9 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     jeder neue Fix des Standorts neu (am Pixel 12–44 s je „Neu
     rechnen"); Flow-Test „#370", Gegenprobe mit dem alten Controller rot.
   - **Der getippte Start ist ein Dialog mit der Karte**
-    (`LoopSession.pickingStart`, oberster Knopf der Leiste oder „Auf der
-    Karte tippen" in den Parametern): oben ein Banner mit Abbrechen, der
+    (`LoopSession.pickingStart`, seit #516 Zeile „Start" im Kopf → „Auf
+    der Karte tippen"; bis dahin oberster Knopf der Leiste oder die
+    Parameter): oben ein Banner mit Abbrechen, der
     nächste Tipp — auch auf eine Linie — ist der Start (Fahne in der
     Marke, `_takeLoopStart`); Zurück bricht ab. Keine eigene
     Zeichenfläche: Ein Tipp ist eine Geste, die die Fassade schon hat.
@@ -951,6 +952,50 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     „Navigation" im Profil (`/profile/navigation`) lässt kein Ende unter
     der Umplan-Schwelle zu. Tests: `nav_replan_test` (pur und Controller),
     `nav_notice_test` (#464), `navigation_flow_test` (#464).
+- **Die Bearbeitungsansicht** (#516, seit 0.172.0; Konzept-Routing
+  12.6/12.7, Schritt 1 aus 12.9; `loop_edit_bars.dart`,
+  `loop_tool_rail.dart`). Sechs Dinge, die man wissen muss:
+  - **Drei Orte, eine Wahrheit**: Kopf oben (`LoopEditHeader`: Start,
+    Ziel, Budget mit „Anpassen", X), Leiste links (Punkt, Gebiet, Liste),
+    Auswahlzeile unten (`LoopSelectionBar`: Zahl, „Leeren", EIN Knopf).
+    Alle lesen `loopPlannerProvider`. „Runde | Route" ist keine eigene
+    Wahl, sondern die Zeile „Ziel" (`LoopEndMode`, `loopIsRoute`); der
+    Knopf heißt danach. Schlüssel: `loop-head-start`/`-target` (Wert unter
+    `…-value`), `loop-adjust`, `loop-head-close`, `loop-compute`,
+    `loop-clear`, `loop-bar-count`, `loop-rail-area` (+ `-add`/`-remove`
+    nur scharf), `loop-fine` (die eingeklappten Feinheiten). Die alten
+    `loop-rail-start/-target/-params/-clear/-compute/-close`,
+    `loop-end`, `loop-waypoints-*` gibt es nicht mehr.
+  - **Über einem Ergebnis ist der Kopf EINE Zeile** (`compact`,
+    `panelInset > 0`), die Auswahlzeile fehlt: Eingepasst wird nur über
+    dem Blatt; der volle Kopf lag über dem oberen Drittel der Route
+    (Flow-Test `trail_head_flow_test`, Gummipunkt bei y = 140 unter dem
+    Kopf). „Anpassen" gibt es dort nicht — Tests schließen erst das
+    Ergebnis (`loop-close`).
+  - **Die Auswahlzeile tritt zurück, solange gezeichnet oder getippt
+    wird** — sie lag sonst unter dem Strich (Gebiet-Test). Eine Zeile mit
+    Hinweis ist bis zu 200 dp hoch; die Hinweise sind deshalb kurz und
+    `bodySmall`. Die Leiste hält `kLoopRailTopInset`/`kLoopRailBottomInset`
+    Abstand und scrollt.
+  - **Was ein Tipp geändert hat, sagt die Zeile** (`_showLoopNote` in
+    `map_screen.dart`, Schlüssel weiter `loop-toggled`/`-undo`), vier
+    Sekunden (`kLoopNoteDuration`); ein Test wartet mit
+    `tester.pump(kLoopNoteDuration)`. Verbinder und wartende Trails melden
+    sich weiter als Leiste (`loop-not-pickable`). „Leeren" nimmt Trails,
+    Sterne und Zwischenpunkte, Rückgängig holt alle drei.
+  - **Ein Ziel bei offenem Planer ist immer das Ziel DIESER Planung**:
+    `_openTrailHead` (Trail-Blatt „Als Ziel", Navi-Symbol) geht bei
+    offenem Planer über `_routeTo(trail:)` → `takeTrailHead(asTarget:
+    true)`; `_planRoute`/`beginRoute` sehen nur noch einen geschlossenen
+    Planer. `loop-replace` und `beginRoute(start:)` (#373) sind weg.
+  - **Fahnen tragen `LoopFlagHit`** und öffnen `showLoopStartChoice` /
+    `showLoopTargetChoice` — dieselben Blätter wie die Zeilen. Die
+    Startfahne am Standort braucht den laufenden Strom
+    (`positionStreamProvider`); der Harness hat ihn nur mit
+    `position:`/`positionStream:` — ohne steht dort keine Fahne.
+  Tests: `loop_planner_flow_test` („Kopf und Anpassen", „ein Tipp auf die
+  Fahne", „Als Ziel bei offenem Planer", „Leeren mit Rückgängig",
+  Gebiet), `l10n_test` (alles auf Englisch), `trail_head_flow_test`.
 - **Ergebnis und Start in einem, ein Ende** (#517, seit 0.171.0;
   Konzept-Routing 9.4, Konzept-Geräte 5.2). Fünf Dinge, die man wissen
   muss:

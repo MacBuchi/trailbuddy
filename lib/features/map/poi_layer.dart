@@ -192,8 +192,9 @@ class CakeSlicePainter extends CustomPainter {
 
 /// Was man über einen Ort wissen will: Art, Name, Öffnungszeiten — und
 /// der Weg zu allem Weiteren auf openstreetmap.org.
-/// [onPlan] (#331 Schritte 3 und 4): der Ort als Start, Zwischenpunkt oder
-/// Ziel des Planers — die Karte gibt es mit, das Blatt schließt vorher.
+/// [onPlan] (#331 Schritte 3 und 4): der Ort als Start oder Zwischenpunkt
+/// des Planers, [onRoute] als Ziel (seit #516 der einzige Weg dorthin) —
+/// die Karte gibt es mit, das Blatt schließt vorher.
 Future<void> showPoiSheet(BuildContext context, Poi poi,
         {void Function(LoopPlaceRole role)? onPlan, VoidCallback? onRoute}) =>
     showModalBottomSheet<void>(
@@ -239,42 +240,11 @@ Future<void> showPoiSheet(BuildContext context, Poi poi,
                       Uri.parse('https://www.openstreetmap.org/${poi.id}'),
                       mode: LaunchMode.externalApplication),
                 ),
-                if (onPlan != null) ...[
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      for (final asTarget in [false, true]) ...[
-                        if (asTarget) const SizedBox(width: 8),
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            key: ValueKey(asTarget ? 'poi-plan-to' : 'poi-plan-from'),
-                            style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
-                            onPressed: () {
-                              Navigator.of(context).pop();
-                              onPlan(asTarget ? LoopPlaceRole.target : LoopPlaceRole.start);
-                            },
-                            icon: Icon(asTarget ? Icons.sports_score : Icons.trip_origin),
-                            label: Text(asTarget ? l.sheetPlanTo : l.sheetPlanFrom),
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                  // Drei nebeneinander passen auf 360 dp nicht.
-                  const SizedBox(height: 8),
-                  OutlinedButton.icon(
-                    key: const ValueKey('poi-plan-via'),
-                    style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
-                    onPressed: () {
-                      Navigator.of(context).pop();
-                      onPlan(LoopPlaceRole.waypoint);
-                    },
-                    icon: const Icon(Icons.add_location_alt_outlined),
-                    label: Text(l.poiPlanVia),
-                  ),
-                ],
-                // „Route hierher" rechnet sofort (#356 PR 7, Konzept-Routing
-                // 10.3): der Planer mit dem Ort als Ziel, Start am Standort.
+                // „Als Ziel", „Als Start", „Als Zwischenpunkt" (#516,
+                // Konzept-Routing 12.6) — dieselben Wörter wie im Planer.
+                // „Als Ziel" rechnet sofort (#356 PR 7): ohne Planer vom
+                // Standort, mit offenem Planer das Ziel dieser Planung.
+                // Untereinander: drei nebeneinander passen auf 360 dp nicht.
                 if (onRoute != null) ...[
                   const SizedBox(height: 8),
                   FilledButton.icon(
@@ -284,10 +254,27 @@ Future<void> showPoiSheet(BuildContext context, Poi poi,
                       Navigator.of(context).pop();
                       onRoute();
                     },
-                    icon: const Icon(Icons.route_outlined),
-                    label: Text(l.poiRouteHere),
+                    icon: const Icon(Icons.sports_score),
+                    label: Text(l.sheetAsTarget),
                   ),
                 ],
+                if (onPlan != null)
+                  for (final (role, key, icon, label) in [
+                    (LoopPlaceRole.start, 'poi-plan-from', Icons.trip_origin, l.sheetAsStart),
+                    (LoopPlaceRole.waypoint, 'poi-plan-via', Icons.add_location_alt_outlined, l.poiAsVia),
+                  ]) ...[
+                    const SizedBox(height: 8),
+                    OutlinedButton.icon(
+                      key: ValueKey(key),
+                      style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                        onPlan(role);
+                      },
+                      icon: Icon(icon),
+                      label: Text(label),
+                    ),
+                  ],
               ],
             ),
           ),

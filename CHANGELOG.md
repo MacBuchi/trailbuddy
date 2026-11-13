@@ -2,6 +2,34 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Der Planer zum Bearbeiten, aufgeräumt
+
+*Version 0.172.0, 2026-11-13*
+
+- **Start und Ziel oben im Kopf:** Im Planer stehen Start und Ziel als
+  zwei Zeilen ganz oben, darunter Zeit, Höhenmeter und Rad mit
+  „Anpassen". Ein Tipp auf „Ziel" entscheidet, ob es eine Runde wird
+  (zurück zum Start), eine Route zu einem Punkt auf der Karte oder ein
+  Ende am letzten Trail — das Ziel muss man nicht mehr suchen.
+- **Die Leiste links mit Wörtern:** Punkt, Gebiet, Liste — mehr nicht.
+  „Gebiet" ist ein Werkzeug; solange es aktiv ist, schaltest du darunter
+  zwischen dazu und weg.
+- **Ein Knopf unten:** Die Zeile unten zählt, was gewählt ist, hat
+  „Leeren" und EINEN Knopf „Runde rechnen" oder „Route rechnen". Was ein
+  Tipp auf einen Trail geändert hat, sagt dieselbe Zeile mit
+  Rückgängig — die Leiste darüber verdeckte vorher „Meine Position".
+- **„Anpassen" in zwei Stufen:** Rad, Zeit und Höhenmeter sofort; was
+  man einmal stellt (Wanderweg, Radius der Liste, Vorlieben, Wege online
+  ergänzen), steht eingeklappt unter „Feinheiten".
+- **Die Fahnen stehen immer:** die Startfahne auch an deinem Standort,
+  die Zielfahne, sobald ein Ziel gesetzt ist. Ein Tipp auf eine Fahne
+  öffnet dieselbe Wahl wie ihre Zeile.
+- **Überall dieselben Wörter:** Der lange Druck sagt „Start hier",
+  „Ziel hier", „Zwischenpunkt hier"; Trail- und Ort-Blatt „Als Ziel",
+  „Als Start" (und beim Ort „Als Zwischenpunkt"). „Als Ziel" rechnet
+  sofort — bei offenem Planer ist es das Ziel genau dieser Planung, ohne
+  Rückfrage.
+
 ## Ein Knopf bis zur Fahrt, ein Ende
 
 *Version 0.171.0, 2026-11-13*

@@ -636,7 +636,9 @@ Messung und spiegelt Kostentabelle und Zeitmodell; wie bei
 *Ab #356 gibt es EINEN Planer (Abschnitt 10): Das Ziel-Blatt des
 Trail-Blatts, „Route bis hier" und das Navi-Symbol gehen in ihm auf.
 Was hier steht, ist der Stand bis dahin; jeder PR aus #356 zieht es
-nach.*
+nach. Seit 0.172.0 (#516) gilt für die Bearbeitungsansicht 12.6/12.7 —
+Kopf mit Start und Ziel, Leiste mit Wort, Auswahlzeile mit einem
+Knopf.*
 
 *Geplant (#516, Abschnitt 12): ein Einstieg mit Vorschlag vor der Leiste,
 Start und Ziel als zwei Zeilen im Kopf, die Zeit als Orientierung. Bis
@@ -731,6 +733,14 @@ die Schritte aus 12.9 gebaut sind, gilt, was hier steht.*
   wartende auch nicht. Das Ergebnis kommt als Blatt von unten (kein
   Modal); zu heißt Ergebnis weg, Leiste und Auswahl bleiben. Zurück geht
   stufenweise: Start-Tipp, Zeichnen, Planer.
+  *Seit 0.172.0 (#516, 12.6/12.7):* Die Leiste trägt nur noch Punkt,
+  Gebiet (ein Werkzeug, darunter der Umschalter dazu/weg, solange es
+  scharf ist) und Liste, je mit Wort. Start, Ziel, Budget mit „Anpassen"
+  und das X stehen im Kopf oben, Zahl, „Leeren" und „Runde rechnen" /
+  „Route rechnen" in der Auswahlzeile unten; „Anpassen" ist zweistufig
+  (Rad, Zeit, Höhenmeter; der Rest unter „Feinheiten"), „Start ist auch
+  Ziel" bzw. „Ende der Fahrt" gibt es dort nicht mehr — das Ende ist die
+  Zeile „Ziel".
 - **Zwischenpunkte zum Ziehen** (#234, seit 0.93.0; Feldbericht 0.82.2:
   „Gummipunkte, die man ziehen kann, um die Wegführung manuell zu
   tunen"): In jedem Ergebnis — Runde, „Zum Trailkopf"/„Route hierher",
@@ -1272,8 +1282,9 @@ A nach B ist der Fall mit leerer Auswahl, nicht ein zweites Werkzeug.
 
 ### 10.2 Ziel: Runde oder Route
 
-Der Planer hat ein **Ziel**, gewählt oben in den Parametern und in der
-Leiste sichtbar:
+Der Planer hat ein **Ziel**, seit 0.172.0 (#516, 12.6) gewählt über die
+Zeile „Ziel" im Kopf (bis dahin oben in den Parametern und als Knopf der
+Leiste):
 
 - **Runde** — zurück zum Start; braucht mindestens einen gewählten
   Trail (sonst gibt es nichts zu fahren) und rechnet wie in 3.
@@ -1313,12 +1324,14 @@ Parametern. Der Schalter gilt für die Runde UND für „am letzten Trail"
 (beide haben keinen Stil im Ergebnis); zu einem Ziel entscheidet der
 Stil. Direkt mit Auswahl ohne Stern ist die Route von A nach B, und das
 Blatt sagt, dass die übrige Auswahl bei Bequem und Spaßig mitkommt. Die
-Wahl Runde | Route heißt in den Parametern noch „Ende der Fahrt".
+Wahl Runde | Route hieß in den Parametern bis 0.171.0 „Ende der Fahrt";
+seit 0.172.0 ist sie die Zeile „Ziel" im Kopf (Zurück zum Start (Runde)
+· Auf der Karte tippen · Ende am letzten Trail).
 
 Gemerkt wird wie bisher (2.3): Ziel, Stil und Regler ja, der Zielpunkt
-nicht. Öffnet der Planer mit „Route" ohne Zielpunkt, steht der Ziel-Knopf
-der Leiste vorn, und „Rechnen" sagt „Erst ein Ziel wählen" — bis 0.127.2
-blieb der Modus gespeichert und das Ziel leer.
+nicht. Öffnet der Planer mit „Route" ohne Zielpunkt, sagt die Zeile
+„Ziel" „Noch nicht gesetzt — antippen", und das Ergebnis sagt „Kein Ziel
+gesetzt" — bis 0.127.2 blieb der Modus gespeichert und das Ziel leer.
 
 ### 10.3 Einstiege
 
@@ -1363,6 +1376,18 @@ Ziel gesetzt", und „Route bis hier" bot an, den Trail zu verwerfen.
 „Zum Trailkopf" und das Navi-Symbol bleiben ein neuer Auftrag — für
 den Trail als Ziel der laufenden Planung gibt es „Ziel im Planer".
 
+*Seit 0.172.0 (#516, 12.6):* Überall dieselben Wörter — langer Druck
+„Start hier · Ziel hier · Zwischenpunkt hier · Mit der Navi-App
+hierher", Trail-Blatt „Als Ziel · Als Start", Ort-Blatt „Als Ziel · Als
+Start · Als Zwischenpunkt". „Als Ziel" ist der alte „Zum Trailkopf" bzw.
+„Route hierher" und ersetzt „Ziel im Planer": ohne offenen Planer ein
+fertiger Auftrag, der sofort rechnet; bei offenem Planer — auch über
+das Navi-Symbol — das Ziel DIESER Planung, wie seit #418 „Route bis
+hier". Ein fertiger Auftrag trifft damit nie mehr auf einen offenen
+Planer: Die Rückfrage „Planung ersetzen?" (`loop-replace`) und das
+Weiterreichen des getippten Starts (#373) sind weg; der Stil des
+Navi-Symbols gilt nur für den neuen Auftrag.
+
 ### 10.4 Bedienregeln
 
 - **Eine Änderung verwirft das Ergebnis, sie rechnet nicht neu** (D3).
@@ -1379,10 +1404,11 @@ den Trail als Ziel der laufenden Planung gibt es „Ziel im Planer".
   Auswahl geändert, schließt Zurück oder X am Ergebnis den ganzen
   Planer — sonst stünde man nach „Zum Trailkopf" in einer leeren
   Leiste.
-- **Nie zwei Planungen zugleich.** Es gibt nur noch einen; ein neuer
-  Einstieg ersetzt den laufenden Auftrag (mit Auswahl: erst fragen);
-  ein Punkt als Ziel bei offenem Planer ist kein neuer Auftrag (10.3,
-  #418).
+- **Nie zwei Planungen zugleich.** Es gibt nur noch einen; ein Ziel bei
+  offenem Planer ist kein neuer Auftrag, sondern das Ziel dieser
+  Planung (10.3, #418; seit 0.172.0 jedes Ziel, also keine Rückfrage
+  mehr — bis dahin ersetzten „Zum Trailkopf" und das Navi-Symbol den
+  laufenden Auftrag, mit Auswahl nach einer Frage).
 - **Das Fahrerprofil gilt sofort**: Eine neue Kalibrierung oder ein
   anderes Rad in den Einstellungen erreicht den offenen Planer, nicht
   erst den nächsten.
@@ -1799,7 +1825,7 @@ und Endpunkt. Der Endpunkt erscheint auch erst nach Longpress …
 Generell sind es vielleicht etwas zu viele Optionen … Zum Bearbeiten ist
 es ok, aber für den initialen Vorschlag sollte es sehr einfach mit
 wenigen Klicks gehen." Dieser Abschnitt ist der Plan dazu; gebaut ist
-davon nichts. Er ersetzt den Entwurf „Planer" aus `konzept-geraete.md`
+Schritt 1 aus 12.9 (0.172.0). Er ersetzt den Entwurf „Planer" aus `konzept-geraete.md`
 5.2 (Kopf mit „Runde | Route") und erweitert #516. Wo er 4, 10.2 und
 10.3 widerspricht, gilt er, sobald der jeweilige Schritt aus 12.9 gebaut
 ist — der PR zieht die Stelle dann nach.*
@@ -2129,6 +2155,28 @@ einem Schritt auf der normalen Karte.
 1. **Bearbeitungsansicht** (#516): Kopf mit Start/Ziel/Budget, Leiste
    mit Wort, Auswahlzeile mit dem einen Knopf, „Anpassen" in zwei
    Stufen, Fahnen immer, die Wörter aus 12.6 — ☁️ bauen · 📱.
+   **Gebaut, 0.172.0** (`loop_edit_bars.dart`, `loop_tool_rail.dart`).
+   Beim Bau entschieden:
+   - **Über einem Ergebnis ist der Kopf eine Zeile** („Start → Ziel" und
+     das X): Die Karte passt die Route über dem Blatt ein, die drei
+     Zeilen lagen über ihrem oberen Drittel (im Flow-Test: ein
+     Gummipunkt war nicht mehr zu greifen). Budget und „Anpassen" gehören
+     zur Bearbeitung — erst das Ergebnis zu (Tabelle in 12.7: im
+     Ergebnis rechnen Stil und Rad). Die Auswahlzeile steht dann nicht.
+   - **Die Auswahlzeile tritt zurück, solange ein Strich oder ein Tipp
+     erwartet wird** (Gebiet, Start, Ziel, Punkt) — die Karte gehört dem
+     Strich, wie bei der Legende; sie lag sonst unter dem Finger.
+   - **„Leeren" nimmt Trails, Sterne UND Zwischenpunkte**, mit
+     Rückgängig in derselben Zeile statt einer Rückfrage; die Zeile zählt
+     beides („3 Trails gewählt · 1 Zwischenpunkt"). Einzelne Punkte nimmt
+     weiter ein Tipp auf ihre Nummer weg; „Alle entfernen" im Blatt ist
+     damit weg.
+   - **Die Startfahne am Standort braucht den laufenden Standort** (den
+     Strom, `positionStreamProvider`): Der Planer fragt beim Öffnen nicht
+     nach der Berechtigung — erst „Meine Position" oder das Rechnen tun
+     es, wie bisher.
+   - **Die Meldung eines Tipps steht vier Sekunden** in der Zeile
+     (`kLoopNoteDuration`), so lange wie eine Leiste ohne Aktion.
 2. **Einstiegsblatt** (12.3) mit „Route" und „Selbst
    zusammenstellen"; „Runde" führt bis Schritt 4 mit Start und Zeit in
    die Bearbeitungsansicht — ☁️ bauen · 📱.
