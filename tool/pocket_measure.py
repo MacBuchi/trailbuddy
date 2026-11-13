@@ -37,10 +37,11 @@ from __future__ import annotations
 
 import bisect
 import math
-import random
 import re
 import statistics
 import sys
+
+import sensor_fusion
 
 WINDOW_S = 10.0
 RIDING_KMH = 8.0
@@ -191,17 +192,19 @@ def flight_context(listing: str, acc, gyro, fixes) -> list[str]:
 def synthetic(pocket: bool, seed: int):
     """A 25 min ride at 118 Hz: calm road, a rough descent in the middle.
     Mounted: small rotation, on the descent a lot. Pocket: the thigh swings
-    at the cadence (1.3 Hz) while pedalling, everywhere but the descent."""
-    rnd = random.Random(seed)
+    at the cadence (1.3 Hz) while pedalling, everywhere but the descent.
+
+    Drawn with sensor_fusion.Noise and whole microseconds, so the Dart test
+    (test/rides/pocket_watch_test.dart) builds this very ride."""
+    rnd = sensor_fusion.Noise(seed)
     acc, gyro, fixes = [], [], []
-    dt = 1 / 118
-    n = int(25 * 60 / dt)
+    n = 25 * 60 * 118
     for i in range(n):
-        t = i * dt
+        t = (i * 1000000 // 118) / 1e6
         rough = 600 <= t < 900
         pedalling = not rough
         vib = 6.0 if rough else 1.2
-        a = 9.81 + rnd.gauss(0, vib)
+        a = 9.81 + rnd.gauss(vib)
         acc.append((t, 0.0, 0.0, a))
         # The bike's own rotation is slow (steering, pitching over roots),
         # so it survives the low pass; sensor noise on top does not.
@@ -209,11 +212,26 @@ def synthetic(pocket: bool, seed: int):
                 0.8 * math.sin(2 * math.pi * 0.4 * t + 2)) if rough else (
                 0.1 * math.sin(2 * math.pi * 0.3 * t), 0.05 * math.sin(2 * math.pi * 0.5 * t), 0.0)
         swing = 1.4 * math.sin(2 * math.pi * 1.3 * t) if pocket and pedalling else 0.0
-        gyro.append((t, bike[0] + swing + rnd.gauss(0, 0.3), bike[1] + rnd.gauss(0, 0.3),
-                     bike[2] + rnd.gauss(0, 0.3)))
+        gx = bike[0] + swing + rnd.gauss(0.3)
+        gy = bike[1] + rnd.gauss(0.3)
+        gz = bike[2] + rnd.gauss(0.3)
+        gyro.append((t, gx, gy, gz))
     for s in range(25 * 60 + 1):
         fixes.append((float(s), 6.0 if s >= 5 else 0.0, 500.0 - (s * 0.6 if 600 <= s < 900 else 0)))
     return acc, gyro, fixes
+
+
+def fingerprint(pocket: bool) -> list[str]:
+    """What the Dart test compares: windows, first decision, a few values."""
+    acc, gyro, fixes = synthetic(pocket, seed=491)
+    rows = windows(acc, gyro, fixes)
+    states = classify(rows)
+    first = next((i for i, s in enumerate(states) if s is not None), None)
+    lines = [f"{'pocket' if pocket else 'mounted'}: {len(rows)} windows, first decision at window {first} "
+             f"({rows[first][0]:.0f} s) = {states[first]}, pocket in {sum(1 for s in states if s)}"]
+    for i in (0, 1, 60, 70, len(rows) - 1):
+        lines.append(f"  window {i}: start {rows[i][0]:.1f} rotation {rows[i][1]:.9f} vibration {rows[i][2]:.9f}")
+    return lines
 
 
 def _self_test() -> None:
@@ -238,6 +256,10 @@ def _self_test() -> None:
 def main(argv: list[str]) -> int:
     if "--self-test" in argv:
         _self_test()
+        return 0
+    if "--fingerprint" in argv:
+        for pocket in (False, True):
+            print("\n".join(fingerprint(pocket)))
         return 0
     paths = [a for a in argv if not a.startswith("--")]
     if not paths:

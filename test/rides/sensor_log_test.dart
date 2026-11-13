@@ -83,6 +83,35 @@ void main() {
   File logFile() => sensorLogFile(dir.path, '20261030T091503Z');
   final t = DateTime.utc(2026, 10, 30, 9, 16).microsecondsSinceEpoch.toDouble();
 
+  /// 40 s mit 5 m/s; Front hoch um 25° von 20 bis 23 s (der Kreisel dreht
+  /// mit), frei fallend 30,0–30,5 s und Landung mit 3 g; Stoppie: ab 35 s
+  /// bremsen mit 2,5 m/s² bis 1 m/s, die Front 18° unten von 35,3 bis
+  /// 36,6 s, dann wieder antreten.
+  Future<void> feedRide() async {
+      const g = 9.80665;
+      final us = t.toInt();
+      double ramp(double s, double t0, double t1) => math.max(0.0, math.min(1.0, math.min((s - t0) / 0.3, (t1 - s) / 0.3)));
+      double pitch(double s) => math.pi / 180 * (25 * ramp(s, 20, 23) - 18 * ramp(s, 35.3, 36.6));
+      double speed(double s) => s < 35
+          ? 5.0
+          : s < 36.6
+              ? 5 - 2.5 * (s - 35)
+              : math.min(5.0, 1 + 2 * (s - 36.6));
+      for (var i = 0; i < 4000; i++) {
+        final s = i / 100;
+        final at = us + i * 10000.0;
+        if (i % 100 == 0) gps.add([at, 7.1, 9.2, 4.0, speed(s), 800.0]);
+        final p = pitch(s);
+        final dv = (speed(s + 0.005) - speed(s - 0.005)) / 0.01;
+        var f = [g * math.sin(p) + dv * math.cos(p), 0.0, g * math.cos(p) - dv * math.sin(p)];
+        if (s >= 30 && s < 30.5) f = [0.0, 0.0, 0.0];
+        if (s >= 30.5 && s < 30.55) f = [0.0, 0.0, 3 * g];
+        accel.add([at, ...f]);
+        gyro.add([at + 2000, 0.0, -(pitch(s + 0.005) - pitch(s - 0.005)) / 0.01, 0.0]);
+        if (i % 500 == 0) await Future<void>.delayed(Duration.zero);
+      }
+  }
+
   test('Fahrt mit Schalter: Kopf, dann je Ereignis eine Zeile mit der Zeit des Sensors', () async {
     await tick();
     expect(currentSensorLogger?.running, isTrue);
@@ -170,32 +199,8 @@ void main() {
     bridge[kRideDataSensorRange] = '78.453,34.907';
     await tick();
     expect(notices.calls, ['showMissed ${logFile().path}']);
-    const g = 9.80665;
     final us = t.toInt();
-    // 40 s mit 5 m/s; Front hoch um 25° von 20 bis 23 s (der Kreisel dreht
-    // mit), frei fallend 30,0–30,5 s und Landung mit 3 g; Stoppie: ab 35 s
-    // bremsen mit 2,5 m/s² bis 1 m/s, die Front 18° unten von 35,3 bis
-    // 36,6 s, dann wieder antreten.
-    double ramp(double s, double t0, double t1) => math.max(0.0, math.min(1.0, math.min((s - t0) / 0.3, (t1 - s) / 0.3)));
-    double pitch(double s) => math.pi / 180 * (25 * ramp(s, 20, 23) - 18 * ramp(s, 35.3, 36.6));
-    double speed(double s) => s < 35
-        ? 5.0
-        : s < 36.6
-            ? 5 - 2.5 * (s - 35)
-            : math.min(5.0, 1 + 2 * (s - 36.6));
-    for (var i = 0; i < 4000; i++) {
-      final s = i / 100;
-      final at = us + i * 10000.0;
-      if (i % 100 == 0) gps.add([at, 7.1, 9.2, 4.0, speed(s), 800.0]);
-      final p = pitch(s);
-      final dv = (speed(s + 0.005) - speed(s - 0.005)) / 0.01;
-      var f = [g * math.sin(p) + dv * math.cos(p), 0.0, g * math.cos(p) - dv * math.sin(p)];
-      if (s >= 30 && s < 30.5) f = [0.0, 0.0, 0.0];
-      if (s >= 30.5 && s < 30.55) f = [0.0, 0.0, 3 * g];
-      accel.add([at, ...f]);
-      gyro.add([at + 2000, 0.0, -(pitch(s + 0.005) - pitch(s - 0.005)) / 0.01, 0.0]);
-      if (i % 500 == 0) await Future<void>.delayed(Duration.zero);
-    }
+    await feedRide();
     await wait();
     await stopSensorLog();
 
@@ -249,6 +254,64 @@ void main() {
 
     final saved = FusionMount.fromJson(jsonDecode(await mountFile.readAsString()))!;
     expect(saved.up.$3, closeTo(1, 1e-3), reason: 'die gelernte Halterung liegt für die nächste Fahrt bereit');
+  });
+
+  test('Handy in der Tasche (#491): keine Halterung, kein Wheelie oder Stoppie, nur harte Landungen', () async {
+    final mountFile = File('${dir.path}/rides/sensors/$kSensorMountFile');
+    await mountFile.parent.create(recursive: true);
+    final before = jsonEncode(const FusionMount(up: (0.0, 0.0, 1.0), forward: (1.0, 0.0, 0.0)).toJson());
+    await mountFile.writeAsString(before);
+    bridge[kRideDataPhonePocket] = true;
+    await tick();
+    await feedRide();
+    await wait();
+    await stopSensorLog();
+
+    // Der Sprung landet mit 3 g — in der Tasche zu weich (3,5 g).
+    expect(notices.calls, ['showMissed ${logFile().path}', 'cancelMissed']);
+    final lines = (await logFile().readAsString()).split('\n');
+    expect(lines, contains('# pocket'));
+    expect(lines.where((l) => l.startsWith('# mount,')), isEmpty, reason: 'keine mitgebrachte Halterung');
+    expect(lines.where((l) => RegExp(r'^[ejs],').hasMatch(l)), isEmpty);
+    expect(await mountFile.readAsString(), before, reason: 'die Halterung vom Rad bleibt für die nächste Fahrt');
+    final messages = toApp.map(decodeAirtimeMessage).toList();
+    expect(messages.whereType<AirtimeEventMessage>(), isEmpty);
+    final pocket = messages.whereType<AirtimePocketMessage>().toList();
+    expect(pocket, isNotEmpty);
+    expect(pocket.every((m) => m.pocket && m.declared), isTrue);
+  });
+
+  test('die Tasche erkannt (#491): Zeile o, die App erfährt es, und keine Halterung wird gespeichert', () async {
+    // Die Halterung vom Rad, in einer Schreibweise, die `jsonEncode` nie
+    // erzeugt: Schreibt der Logger, ändert sich der Text.
+    final mountFile = File('${dir.path}/rides/sensors/$kSensorMountFile');
+    await mountFile.parent.create(recursive: true);
+    const before = '{ "up": [0.0, 0.0, 1.0], "forward": [1.0, 0.0, 0.0] }';
+    await mountFile.writeAsString(before);
+    expect(FusionMount.fromJson(jsonDecode(before)), isNotNull);
+    await tick();
+    final us = t.toInt();
+    // 140 s ruhig in Fahrt, der Oberschenkel schwingt im Tritt.
+    for (var i = 0; i < 14000; i++) {
+      final at = us + i * 10000.0;
+      if (i % 100 == 0) gps.add([at, 7.1, 9.2, 4.0, 6.0, 800.0]);
+      accel.add([at, 0.0, 0.0, 9.81 + (i.isEven ? 0.5 : -0.5)]);
+      gyro.add([at, 1.0 * math.sin(2 * math.pi * 1.3 * i / 100), 0.0, 0.0]);
+      if (i % 500 == 0) await Future<void>.delayed(Duration.zero);
+    }
+    gps.add([us + 14000 * 10000.0, 7.1, 9.2, 4.0, 6.0, 800.0]);
+    await wait();
+    expect(currentSensorLogger!.inPocket, isTrue);
+    await stopSensorLog();
+    final lines = (await logFile().readAsString()).split('\n');
+    expect(lines.where((l) => l.startsWith('o,')), hasLength(1));
+    expect(lines.firstWhere((l) => l.startsWith('o,')), endsWith(',1'));
+    expect(lines, isNot(contains('# pocket')));
+    final pocket = toApp.map(decodeAirtimeMessage).whereType<AirtimePocketMessage>().toList();
+    expect(pocket.first.pocket, isFalse, reason: 'erst unentschieden');
+    expect(pocket.last.pocket, isTrue);
+    expect(pocket.last.declared, isFalse);
+    expect(await mountFile.readAsString(), before, reason: 'in der Tasche gilt keine Halterung als gelernt');
   });
 
   test('die Lage jetzt geht alle paar Takte an die App, vor der Rechnung und nur mit neuen Werten', () async {

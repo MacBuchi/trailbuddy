@@ -3430,38 +3430,13 @@
       }
     }
   },
-  "navRecordTitle": "Fahrt mit aufzeichnen",
-  "@navRecordTitle": {
-    "description": "Schalter im Start-Blatt: die Fahrt parallel aufzeichnen."
-  },
-  "navRecordSubtitle": "Wie der Knopf auf der Karte — danach zerlegst du sie wie immer.",
-  "@navRecordSubtitle": {
-    "description": "Erklärung unter dem Schalter „Fahrt mit aufzeichnen\"."
-  },
   "navScreenTitle": "Bildschirm anlassen",
   "@navScreenTitle": {
     "description": "Schalter im Start-Blatt und Tooltip des Knopfs: Bildschirm bleibt an."
   },
-  "navScreenSubtitle": "Solange die Navigation vorne ist.",
-  "@navScreenSubtitle": {
-    "description": "Erklärung unter dem Schalter „Bildschirm anlassen\"."
-  },
   "navWatchSearching": "Uhr wird gesucht …",
   "@navWatchSearching": {
     "description": "Zeile im Start-Blatt der Navigation, solange die App nach einer verbundenen Garmin-Uhr fragt (kann beim ersten Mal ein paar Sekunden dauern)."
-  },
-  "navWatchTitle": "Auf der Uhr zeigen",
-  "@navWatchTitle": {
-    "description": "Schalter im Start-Blatt der Navigation: die Route an die verbundene Garmin-Uhr schicken; sie folgt der Navigation, bis sie endet."
-  },
-  "navWatchSubtitle": "Geht an {device}, eine neue Route von selbst hinterher — die Uhr navigiert dann selbst, auch ohne Handy.",
-  "@navWatchSubtitle": {
-    "description": "Erklärung unter „Auf der Uhr zeigen\"; device ist der Name der Uhr aus Garmin Connect (z. B. „fēnix 5\").",
-    "placeholders": {
-      "device": {
-        "type": "String"
-      }
-    }
   },
   "mapWatchStored": "Route auf der Uhr",
   "@mapWatchStored": {
@@ -3537,9 +3512,9 @@
   "@navStartHint": {
     "description": "Hinweis im Start-Blatt, was die Navigation tut und was nicht."
   },
-  "navStartButton": "Navigation starten",
+  "navStartButton": "Fahrt starten",
   "@navStartButton": {
-    "description": "Knopf im Start-Blatt."
+    "description": "Knopf „Fahrt starten“ im Ergebnis und im Start-Blatt (#517)."
   },
   "navRotateTooltip": "Mit der Fahrtrichtung drehen",
   "@navRotateTooltip": {
@@ -3553,9 +3528,9 @@
   "@navScreenOffTooltip": {
     "description": "Tooltip des Bildschirm-Knopfs, solange der Bildschirm angelassen wird."
   },
-  "navStop": "Beenden",
+  "navStop": "Fahrt beenden",
   "@navStop": {
-    "description": "Knopf: Navigation beenden."
+    "description": "Knopf der Folgeansicht: die Fahrt beenden (fragt, wenn auch aufgezeichnet wird; #517)."
   },
   "navRejoin": "Zurück zur Route",
   "@navRejoin": {
@@ -4486,24 +4461,6 @@
       }
     }
   },
-  "loopSummary": "{length} · {climb} hm bergauf · {trail} Trail · etwa {time}",
-  "@loopSummary": {
-    "description": "Summe der Runde; length, trail und time fertig formatiert.",
-    "placeholders": {
-      "length": {
-        "type": "String"
-      },
-      "climb": {
-        "type": "int"
-      },
-      "trail": {
-        "type": "String"
-      },
-      "time": {
-        "type": "String"
-      }
-    }
-  },
   "loopDescents": "{trailLoss} hm bergab auf Trails · {wasted} hm verschenkt",
   "@loopDescents": {
     "description": "Zweite Zeile der Summe der Runde: Höhenmeter bergab auf Trails und verschenkte Höhe.",
@@ -4710,24 +4667,6 @@
   "routeEasyNote": "Radwege und kleine Straßen zuerst, Schotter wenn nötig, so wenig Höhe wie möglich.",
   "@routeEasyNote": {
     "description": "Satz unter der Summe im Routen-Blatt, wenn „Bequem“ gewählt ist."
-  },
-  "routeSummary": "{length} · {climb} hm bergauf · {descent} hm bergab · etwa {time}",
-  "@routeSummary": {
-    "description": "Summe des Wegs; length und time fertig formatiert.",
-    "placeholders": {
-      "length": {
-        "type": "String"
-      },
-      "climb": {
-        "type": "int"
-      },
-      "descent": {
-        "type": "int"
-      },
-      "time": {
-        "type": "String"
-      }
-    }
   },
   "routeFunEmpty": "Auf dem Weg dorthin passt kein Trail in den Umweg — das ist der direkte Weg.",
   "@routeFunEmpty": {
@@ -10070,5 +10009,113 @@
         "type": "String"
       }
     }
+  },
+  "navChipRecord": "Aufzeichnen",
+  "@navChipRecord": {
+    "description": "Chip im Start (#517): die Fahrt mit aufzeichnen."
+  },
+  "navChipWatch": "Uhr",
+  "@navChipWatch": {
+    "description": "Chip im Start (#517): die Route auf der Garmin-Uhr zeigen."
+  },
+  "navChipScreen": "Bildschirm an",
+  "@navChipScreen": {
+    "description": "Chip im Start (#517): den Bildschirm in der Folgeansicht anlassen."
+  },
+  "navChipBike": "Handy am Rad",
+  "@navChipBike": {
+    "description": "Chip im Start (#491, #517), aus: das Handy steckt am Lenker oder Rahmen."
+  },
+  "navChipPocket": "Handy in der Tasche",
+  "@navChipPocket": {
+    "description": "Chip im Start (#491, #517), an: das Handy steckt in der Tasche."
+  },
+  "navPocketNote": "In der Tasche gibt es keine Wheelies und Stoppies, Sprünge nur mit harter Landung.",
+  "@navPocketNote": {
+    "description": "Zeile unter den Chips, wenn das Handy in der Tasche steckt (#491)."
+  },
+  "navEndTitle": "Fahrt beenden?",
+  "@navEndTitle": {
+    "description": "Titel der Frage, wenn Navigation und Aufzeichnung laufen (#517)."
+  },
+  "navEndAll": "Fahrt beenden",
+  "@navEndAll": {
+    "description": "Zeile: Navigation und Aufzeichnung beenden (#517)."
+  },
+  "navEndAllHint": "Navigation und Aufzeichnung enden, danach zerlegst du die Fahrt.",
+  "@navEndAllHint": {
+    "description": "Erklärung unter „Fahrt beenden“ (#517)."
+  },
+  "navEndNavOnly": "Nur Navigation beenden",
+  "@navEndNavOnly": {
+    "description": "Zeile: nur die Navigation beenden, die Aufzeichnung läuft weiter (#517)."
+  },
+  "navEndNavOnlyHint": "Die Aufzeichnung läuft weiter — beenden kannst du sie auf der Karte.",
+  "@navEndNavOnlyHint": {
+    "description": "Erklärung unter „Nur Navigation beenden“ (#517)."
+  },
+  "navStatusRecording": "Aufnahme",
+  "@navStatusRecording": {
+    "description": "Stand-Zeile der Folgeansicht (#517): die Fahrt wird aufgezeichnet."
+  },
+  "navStatusWatch": "Uhr",
+  "@navStatusWatch": {
+    "description": "Stand-Zeile der Folgeansicht (#517): die Uhr folgt."
+  },
+  "navStatusJumps": "Sprünge an",
+  "@navStatusJumps": {
+    "description": "Stand-Zeile (#517, F5): die Erkennung hat die Halterung gelernt."
+  },
+  "navStatusLearning": "Halterung lernt",
+  "@navStatusLearning": {
+    "description": "Stand-Zeile (#517, F5): die Erkennung läuft, die Halterung ist noch nicht gelernt."
+  },
+  "navStatusPocket": "Tasche: nur Sprünge",
+  "@navStatusPocket": {
+    "description": "Stand-Zeile (#491, #517): das Handy steckt in der Tasche."
+  },
+  "navValuePocketLabel": "WHEELIE · STOPPIE",
+  "@navValuePocketLabel": {
+    "description": "Kachel statt Wheelie und Stoppie, wenn das Handy in der Tasche steckt (#491)."
+  },
+  "navValuePocket": "nur am Rad",
+  "@navValuePocket": {
+    "description": "Grund in der Kachel: Wheelie und Stoppie gibt es nur mit dem Handy am Rad (#491)."
+  },
+  "loopTileLength": "Strecke",
+  "@loopTileLength": {
+    "description": "Kachel im Ergebnis des Planers (#517)."
+  },
+  "loopTileClimb": "Bergauf",
+  "@loopTileClimb": {
+    "description": "Kachel im Ergebnis des Planers (#517)."
+  },
+  "loopTileTrail": "Trails",
+  "@loopTileTrail": {
+    "description": "Kachel im Ergebnis des Planers (#517): Länge auf Trails."
+  },
+  "loopTileDescent": "Bergab",
+  "@loopTileDescent": {
+    "description": "Kachel im Ergebnis des Planers (#517), bei einer Route ohne Trail."
+  },
+  "loopTileTime": "Zeit",
+  "@loopTileTime": {
+    "description": "Kachel im Ergebnis des Planers (#517)."
+  },
+  "highlightRideStartTitle": "Ein Knopf bis zur Fahrt",
+  "@highlightRideStartTitle": {
+    "description": "Entdecken, Eintrag „ride-start“: Überschrift (auch im Neuheiten-Blatt nach einem Update)."
+  },
+  "highlightRideStartText": "Im Ergebnis des Planers stehen Aufzeichnen, Uhr und Bildschirm als Chips, darunter „Fahrt starten“ — kein zweites Blatt mehr. Unterwegs gibt es ein Ende, „Fahrt beenden“, und „Trail beginnt“ als Knopf mit Wort.",
+  "@highlightRideStartText": {
+    "description": "Entdecken, Eintrag „ride-start“: Text, zwei bis drei Sätze (auch im Neuheiten-Blatt)."
+  },
+  "demoRideStartTitle": "Planen, ein Tipp, los",
+  "@demoRideStartTitle": {
+    "description": "Vorführung „ride-start“: Überschrift der Blase am Planer-Knopf."
+  },
+  "demoRideStartText": "Hier planst du Runde oder Route. Im Ergebnis stehen die Schalter als Chips und „Fahrt starten“ — die Wahl merkt sich die App für das nächste Mal.",
+  "@demoRideStartText": {
+    "description": "Vorführung „ride-start“: Text der Blase am Planer-Knopf."
   }
 }

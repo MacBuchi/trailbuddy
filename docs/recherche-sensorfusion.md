@@ -537,6 +537,11 @@ nicht heraus; beantwortet sind 16 Meldungen, alle „War keiner".
   Annahme aus Konzept §2, in der Tasche bleibe Airtime ohne Abstriche,
   hält damit nicht.
 
+**In der App seit 0.171.0** (#517): Regel und Landeschwelle unten laufen
+im Dienst (`lib/features/rides/pocket_watch.dart`, bitgleich zum
+Werkzeug), dazu die Angabe „Handy in der Tasche" beim Start. Offen bleibt
+die Bestätigung der 3,5 g mit einer beantworteten Taschen-Fahrt.
+
 **Die Tasche erkennen.** Wie weit die Schwerkraft im Telefon wandert,
 trennt schlecht (Median 3,6–5,3° gegen 1,6–2,3° je 10 s), der Takt der
 Tritte gar nicht (auch am Lenker schwingt es im Tritt). Die Drehrate

@@ -25,7 +25,7 @@ import 'ride_service.dart';
 import 'ride_store.dart';
 import 'ride_task_handler.dart';
 import 'ride_track.dart';
-import 'sensor_log.dart' show kRideDataSensorLog, kRideDataSensorRange, readSensorRange;
+import 'sensor_log.dart' show kRideDataPhonePocket, kRideDataSensorLog, kRideDataSensorRange, readSensorRange;
 import 'trail_values.dart';
 
 /// Gibt es die Aufzeichnung auf dieser Plattform? Im Browser nicht: Dort
@@ -134,7 +134,7 @@ final rideAirtimeProvider = FutureProvider.autoDispose.family<AirtimeLog, String
 /// stecken — im Widget-Test gibt es beide nicht.
 abstract interface class RideServiceBridge {
   /// [sensorLog]: Rohdaten der Sensoren mitschreiben (#36, Dev-App).
-  Future<void> arm({required String uid, required DateTime startedAt, bool sensorLog = false});
+  Future<void> arm({required String uid, required DateTime startedAt, bool sensorLog = false, bool phoneInPocket = false});
   Future<void> disarm();
 }
 
@@ -142,7 +142,8 @@ class PlatformRideServiceBridge implements RideServiceBridge {
   const PlatformRideServiceBridge();
 
   @override
-  Future<void> arm({required String uid, required DateTime startedAt, bool sensorLog = false}) async {
+  Future<void> arm(
+      {required String uid, required DateTime startedAt, bool sensorLog = false, bool phoneInPocket = false}) async {
     // Der Pfad wird EINMAL hier aufgelöst: Er ist eine Konstante des
     // Geräts, und drüben je Takt einen Kanal zu bemühen wäre eine
     // Fehlerquelle mehr.
@@ -152,6 +153,7 @@ class PlatformRideServiceBridge implements RideServiceBridge {
     await FlutterForegroundTask.saveData(
         key: kRideDataStartedAt, value: startedAt.toUtc().toIso8601String());
     await FlutterForegroundTask.saveData(key: kRideDataSensorLog, value: sensorLog);
+    await FlutterForegroundTask.saveData(key: kRideDataPhonePocket, value: sensorLog && phoneInPocket);
     // Der Kanal hängt an der Activity — drüben im Dienst gibt es ihn nicht.
     await FlutterForegroundTask.saveData(
         key: kRideDataSensorRange, value: sensorLog ? await readSensorRange() : '');
@@ -281,7 +283,11 @@ class RideNotifier extends Notifier<RecordedRide?> {
   Future<void> _arm(String uid, DateTime startedAt) async {
     await ref
         .read(rideServiceBridgeProvider)
-        .arm(uid: uid, startedAt: startedAt, sensorLog: ref.read(sensorLogProvider));
+        .arm(
+            uid: uid,
+            startedAt: startedAt,
+            sensorLog: ref.read(sensorLogProvider),
+            phoneInPocket: ref.read(ridePhoneInPocketProvider));
     await ref.read(rideServiceProvider).start(
           title: serviceL10n().rideNoticeTitle,
           text: serviceL10n().rideNoticeText,
@@ -387,6 +393,16 @@ final rideKeepScreenOnProvider = NotifierProvider<RememberedFlag, bool>(
     read: (s) => s.rideKeepScreenOn,
     write: (s, v) => s.setRideKeepScreenOn(v),
     label: 'Bildschirm-Schalter der Fahrt merken',
+  ),
+);
+
+/// Steckt das Handy in der Tasche (#491, #517)? Gilt ab der NÄCHSTEN
+/// Fahrt — er reist beim `arm` über die Brücke in den Dienst.
+final ridePhoneInPocketProvider = NotifierProvider<RememberedFlag, bool>(
+  () => RememberedFlag(
+    read: (s) => s.ridePhoneInPocket,
+    write: (s, v) => s.setRidePhoneInPocket(v),
+    label: 'Ort des Handys merken',
   ),
 );
 

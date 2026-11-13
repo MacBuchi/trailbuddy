@@ -601,6 +601,18 @@ Map<String, HighlightDemo> highlightDemos(AppLocalizations l) => {
       _androidOnly(l),
     ]),
   ),
+  'ride-start': HighlightDemo(
+    route: '/',
+    script: _demo('ride-start', [
+      CoachStep(
+        title: l.demoRideStartTitle,
+        text: l.demoRideStartText,
+        lit: [MapCoach.buttons],
+        ring: [MapCoach.loop],
+        requires: [MapCoach.loop],
+      ),
+    ]),
+  ),
   'ride-screen': HighlightDemo(
     route: '/',
     script: _demo('ride-screen', [

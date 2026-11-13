@@ -921,11 +921,12 @@ offline.
   liest man als Fehler. Der Rest der ganzen Route steht unten im
   Routenband.
 - **Unten** das Routenband (9.9), „Zurück zur Route" (nur abseits, 9.3),
-  „Norden", der Bildschirm-Schalter (9.4) und „Beenden". Solange
+  „Norden", der Bildschirm-Schalter (9.4) und „Fahrt beenden". Solange
   navigiert wird, ist die Karte Vollbild — keine Reiterleiste (Design
-  13; „Beenden" bringt sie zurück). Beenden fragt nicht — aus
-  Versehen beendet ist mit einem Tipp wieder an (dieselbe Route liegt
-  noch als „zuletzt navigiert" oben in „Meine Fahrten").
+  13; „Fahrt beenden" bringt sie zurück). Ohne Aufzeichnung fragt es
+  nicht — aus Versehen beendet ist mit einem Tipp wieder an (dieselbe
+  Route liegt noch als „zuletzt navigiert" oben in „Meine Fahrten");
+  mit Aufzeichnung fragt es, ob nur die Navigation enden soll (9.4).
 - **Taps auf die Karte tun in der Folgeansicht nichts.** Die
   Treffer-Prüfung (`map_hit_test.dart`) rechnet ohne Drehung; sie zu
   drehen lohnt erst, wenn jemand unterwegs einen Trail antippen will.
@@ -1006,13 +1007,33 @@ Die Zahlen (100 m, 500 m, 180 s, 100°, 1 km) sind Startwerte wie in 9.7.
 
 ### 9.4 Aufzeichnen und Bildschirm
 
-- **Aufzeichnen** (Betreiber, 2026-10-08: Schalter, Vorgabe an): Beim
-  Start steht „Fahrt mit aufzeichnen" an. Dann startet die Navigation
+- **Ergebnis und Start in einem** (#517, seit 0.171.0; Konzept-Geräte
+  5.2): Das Ergebnis des Planers trägt die Schalter als Chips —
+  Aufzeichnen, Uhr, Bildschirm an, mit Erkennung dazu „Handy am Rad /
+  in der Tasche" (#491) — und EINEN Knopf „Fahrt starten"; ein zweites
+  Blatt gibt es von dort nicht mehr. Alle Chips sind gemerkt
+  (`Settings.navRecord`, `navWatch`, `navKeepScreenOn`,
+  `ridePhoneInPocket`). Wo kein Ergebnis davor steht („Meine Fahrten",
+  „zuletzt navigiert"), fragt das Start-Blatt mit denselben Chips und
+  demselben Knopf.
+- **Aufzeichnen** (Betreiber, 2026-10-08: Schalter, Vorgabe an; seit
+  0.171.0 gemerkt): Dann startet die Navigation
   die Aufzeichnung wie der Knopf auf der Karte — dieselbe Fahrt,
   derselbe Dienst, danach dasselbe Zerlege-Blatt. Ist schon eine
-  Aufzeichnung an, gibt es keinen Schalter, sie läuft einfach weiter.
-  Beim Beenden der Navigation läuft die Aufzeichnung weiter; umgekehrt
-  beendet das Beenden der Aufzeichnung auch die Navigation nicht.
+  Aufzeichnung an, gibt es keinen Chip, sie läuft einfach weiter.
+- **Ein Ende** (#517, seit 0.171.0): Der Knopf der Folgeansicht heißt
+  „Fahrt beenden". Läuft eine Aufzeichnung mit, fragt er: „Fahrt
+  beenden" (Navigation und Aufzeichnung, danach das Zerlege-Blatt) oder
+  „Nur Navigation beenden" (die Aufzeichnung läuft weiter und endet
+  über den Knopf auf der Karte). Ohne Aufzeichnung fragt er nicht.
+  Bis 0.170.0 hatten Navigation und Aufzeichnung getrennte Enden, und
+  „Beenden" beendete nur die Navigation.
+- **Der Stand unterwegs** (#517): Eine Zeile über den Knöpfen sagt, was
+  läuft — „Aufnahme · Uhr · Sprünge an" (ohne gelernte Halterung
+  „Halterung lernt", in der Tasche „Tasche: nur Sprünge") —, daneben
+  „Trail beginnt"/„Trail endet" als Knopf mit Wort (die Fahne der
+  Karte, #105). Die Leiste „Trail beginnt …" entfällt in der
+  Folgeansicht: Sie läge über „Fahrt beenden", der Knopf sagt es selbst.
 - **Bildschirm an** (Betreiber, 2026-10-08: Schalter, Vorgabe an,
   gemerkt in `Settings`): solange die Folgeansicht vorne ist. Android
   über `FLAG_KEEP_SCREEN_ON` am Fenster (ein Methodenkanal, kein
