@@ -42,9 +42,17 @@ import 'route_vias.dart';
 import 'trail_head_route.dart' show RouteSection, sectionsOf;
 import 'trail_overlay.dart';
 
-/// Reserve auf die Zeit: Geplant wird auf 90 % des Zeitbudgets
-/// (Konzept-Routing 2.3) — die Schätzung kennt keine Pausen.
-const kLoopTimeReserve = 0.10;
+/// Die Zeit ist eine Orientierung, keine Obergrenze (Konzept-Routing
+/// 12.5, Betreiber 2026-11-13): Der Planer baut die Runde bis zur Zeit
+/// PLUS diesem Fenster auf und nimmt unter allen Ständen zwischen Zeit −
+/// Fenster und Zeit + Fenster den mit dem besten Trail-Anteil. Ersetzt die
+/// Reserve von 10 % (bis 0.173.0), bei der ein Trail wegfiel, der die
+/// Runde um eine Minute über 90 % gebracht hätte.
+const kLoopTimeWindowS = 30 * 60.0;
+
+/// Gleichstand im Trail-Anteil (Konzept-Routing 12.5): Liegen zwei
+/// Stände näher als das beieinander, gewinnt der näher an der Zeit.
+const kLoopShareTie = 0.005;
 
 /// Ab dieser Bewertung (Median, wie angezeigt) bringt eine ZWEITE
 /// Abfahrt desselben Trails noch Trail-Meter — [kLoopSecondPassShare]
@@ -66,15 +74,24 @@ const kLoopMaxPasses = 2;
 const kLoopSearchBudget = Duration(milliseconds: 300);
 
 /// Die drei Regler (Konzept-Routing 2.3), in Sekunden, Metern, Metern.
+///
+/// [windowS] ist das Fenster um die Zeit (Konzept-Routing 12.5); 0 macht
+/// die Zeit zur harten Obergrenze — so rechnet der spaßige Weg (#176),
+/// dessen Budget schon die Grenze IST.
 class LoopBudget {
-  const LoopBudget({required this.timeS, required this.climbM, required this.hikingM});
+  const LoopBudget({required this.timeS, required this.climbM, required this.hikingM, this.windowS = kLoopTimeWindowS});
 
   final double timeS;
   final double climbM;
   final double hikingM;
+  final double windowS;
 
-  /// Die Zeit, die die Planung wirklich verplant: Budget minus Reserve.
-  double get plannedTimeS => timeS * (1 - kLoopTimeReserve);
+  /// Bis hierhin baut der Planer die Runde auf — und so weit suchen die
+  /// Dijkstras.
+  double get maxTimeS => timeS + windowS;
+
+  /// Ab hier liegt ein Stand im Fenster.
+  double get minTimeS => timeS - windowS;
 }
 
 /// Ein Trail im Pool: Punkte in Trail-Richtung, S-Grad und Sterne wie
@@ -416,7 +433,7 @@ Object _riderKey(RiderParams p) => (
 /// und der gewählten Verbindung je Abschnitt ([legs]: eine je Halt, dazu
 /// die letzte zurück zum Ziel, wenn es eines gibt).
 class _Route {
-  _Route(this.seq, this.legs, this.timeS, this.climbM, this.hikingM, this.wastedM, this.trailM);
+  _Route(this.seq, this.legs, this.timeS, this.climbM, this.hikingM, this.wastedM, this.trailM, this.lengthM);
 
   final List<int> seq;
   final List<_Conn> legs;
@@ -425,6 +442,13 @@ class _Route {
   final double hikingM;
   final double wastedM;
   final double trailM;
+
+  /// Die ganze Strecke: Trails und Verbindungen.
+  final double lengthM;
+
+  /// Der Trail-Anteil (Konzept-Routing 12.5): Trail-Meter (zweite Abfahrt
+  /// mit ihrem Anteil) je Meter Strecke.
+  double get share => lengthM <= 0 ? 0 : trailM / lengthM;
 
   /// Besser im Sinn der Zielfunktion (Konzept-Routing 3.3).
   bool beats(_Route other) {
@@ -570,7 +594,7 @@ class _Planner {
   SearchResult _search(int from, {required bool noHiking}) => cache._searches.putIfAbsent((from, noHiking), () {
         cache.searchesRun++;
         final r = dijkstra(g, from, p,
-            limit: budget.timeS, allow: noHiking ? (e) => !e.hiking : null, costs: cache._costs ??= EdgeCosts(g, p));
+            limit: budget.maxTimeS, allow: noHiking ? (e) => !e.hiking : null, costs: cache._costs ??= EdgeCosts(g, p));
         // Der Ladebalken (#356): Die Zeit steckt in den Suchen, eine vom
         // Start und eine je Trail-Ende; was danach kommt, ist kurz. Die
         // Suchen ohne Wanderweg kommen nur manchmal dazu — daher die
@@ -629,12 +653,13 @@ class _Planner {
       final alt = conn(froms[worst], tos[worst], noHiking: true);
       if (alt != null) legs[worst] = alt;
     }
-    var time = 0.0, climb = 0.0, hiking = 0.0, wasted = 0.0, trailM = 0.0;
+    var time = 0.0, climb = 0.0, hiking = 0.0, wasted = 0.0, trailM = 0.0, length = 0.0;
     final seen = <int>{};
     for (var k = 0; k < seq.length; k++) {
       final t = pool[seq[k]];
       time += t.timeS;
       climb += t.gainM;
+      length += t.lengthM;
       trailM += seen.add(seq[k]) ? t.lengthM : t.secondPassM;
     }
     for (final c in legs) {
@@ -642,12 +667,18 @@ class _Planner {
       climb += c.summary.gainM;
       hiking += c.summary.hikingM;
       wasted += c.summary.lossM;
+      length += c.summary.lengthM;
     }
-    return _Route(seq, legs, time, climb, hiking, wasted, trailM);
+    return _Route(seq, legs, time, climb, hiking, wasted, trailM, length);
   }
 
+  /// Die Zeit, bis zu der eine Runde passt: zuerst Zeit + Fenster; ist
+  /// der Stand gewählt (Schritt 2b in [run]), dessen Zeit — die lokale
+  /// Suche tauscht dann nur noch darunter.
+  late double timeCap = budget.maxTimeS;
+
   bool fits(_Route r) =>
-      r.timeS <= budget.plannedTimeS + 1e-6 &&
+      r.timeS <= timeCap + 1e-6 &&
       r.climbM <= budget.climbM + 1e-6 &&
       r.hikingM <= budget.hikingM + 1e-6;
 
@@ -665,6 +696,24 @@ class _Planner {
       if (best == null || dt < best.dt) best = (route: r, dt: dt);
     }
     return best;
+  }
+
+  /// Der Stand aus dem Greedy, den der Vorschlag nimmt (Konzept-Routing
+  /// 12.5). [states] wächst mit der Zeit; die Stände mit Pflicht-Trails
+  /// und Zwischenpunkten zählen mit wie jeder andere.
+  _Route chooseState(List<_Route> states) {
+    _Route? best;
+    for (final r in states) {
+      if (r.seq.isEmpty || r.timeS < budget.minTimeS - 1e-6) continue;
+      if (best == null) {
+        best = r;
+        continue;
+      }
+      final d = r.share - best.share;
+      final closer = (r.timeS - budget.timeS).abs() < (best.timeS - budget.timeS).abs();
+      if (d > kLoopShareTie || (d.abs() <= kLoopShareTie && closer)) best = r;
+    }
+    return best ?? states.last;
   }
 
   LoopPlan run(Duration searchBudget) {
@@ -701,7 +750,9 @@ class _Planner {
     }
     final fixed = {...route.seq};
     // 2. Greedy: der Kandidat mit den meisten Trail-Metern je Sekunde
-    //    Zuwachs; zweite Abfahrten nur, wenn sie etwas bringen.
+    //    Zuwachs; zweite Abfahrten nur, wenn sie etwas bringen — bis zur
+    //    Zeit plus Fenster. Jeder Stand wird gemerkt.
+    final states = [route];
     while (true) {
       ({int i, _Route route, double ratio})? best;
       for (var i = 0; i < pool.length; i++) {
@@ -717,7 +768,13 @@ class _Planner {
       }
       if (best == null) break;
       route = best.route;
+      states.add(route);
     }
+    // 2b. Der Stand (Konzept-Routing 12.5): im Fenster um die Zeit der mit
+    //     dem besten Trail-Anteil, bei Gleichstand der näher an der Zeit.
+    //     Liegt keiner im Fenster, der längste darunter — der letzte.
+    route = chooseState(states);
+    timeCap = route.timeS;
     // 3. Lokale Suche mit Zeitdeckel: einen Halt gegen einen anderen
     //    tauschen oder herausnehmen und etwas Besseres einfügen; zwei
     //    Halte vertauschen. Nur Verbesserungen im Sinn der Zielfunktion.
@@ -799,12 +856,13 @@ class _Planner {
       if (r.edges == null) return LoopPlan(LoopOutcome.viaFailed, excluded: _trailsOnly(excluded));
       legs.add(_Conn(froms[k], r.edges!, summarizePath(g, r.edges!, froms[k], p)));
     }
-    var time = 0.0, climb = 0.0, hiking = 0.0, wasted = 0.0, trailM = 0.0;
+    var time = 0.0, climb = 0.0, hiking = 0.0, wasted = 0.0, trailM = 0.0, length = 0.0;
     final seen = <int>{};
     for (final i in seq) {
       final t = pool[i];
       time += t.timeS;
       climb += t.gainM;
+      length += t.lengthM;
       trailM += seen.add(i) ? t.lengthM : t.secondPassM;
     }
     for (final c in legs) {
@@ -812,11 +870,12 @@ class _Planner {
       climb += c.summary.gainM;
       hiking += c.summary.hikingM;
       wasted += c.summary.lossM;
+      length += c.summary.lengthM;
     }
     for (var i = 0; i < pool.length; i++) {
       if (!seq.contains(i) && !pool[i].waypoint) excluded.putIfAbsent(pool[i].id, () => LoopExclusion.budget);
     }
-    return _assemble(_Route(seq, legs, time, climb, hiking, wasted, trailM));
+    return _assemble(_Route(seq, legs, time, climb, hiking, wasted, trailM, length));
   }
 
   LoopPlan _assemble(_Route route) {

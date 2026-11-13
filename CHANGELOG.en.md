@@ -2,6 +2,24 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## Time is a guide, not a limit
+
+*Version 0.174.0, 2026-11-13*
+
+- **One minute over no longer costs a trail:** the planner's time now
+  reads "About 3 h". The loop may be half an hour shorter or longer;
+  within that, the planner picks the version with the most trail share.
+  If the next trail is only reachable by a long approach, the loop stays
+  a little shorter — if it lies almost on the way, it comes along, even
+  if that makes 3 h 20.
+- **How much of your limit:** under "Climb" and "Time" in a loop's
+  result there is a slim scale — the climb against your limit, the time
+  with its ± 30 min window. If something goes over (with must-ride
+  trails or dragged points), the scale turns orange.
+- **Honest estimate:** the time reads "approx. …", and below it says
+  that it is estimated without breaks. If the loop stays clearly
+  shorter because no more trails fit, the sheet says so.
+
 ## The planner asks first what you have in mind
 
 *Version 0.173.0, 2026-11-13*

@@ -136,7 +136,7 @@ void main() {
     final plan = planLoop(g,
         start: from,
         profile: _bio,
-        budget: LoopBudget(timeS: room / (1 - kLoopTimeReserve), climbM: 1e5, hikingM: 1e7),
+        budget: LoopBudget(timeS: room, climbM: 1e5, hikingM: 1e7, windowS: 0),
         pool: [early, late],
         returnToStart: false,
         end: to,
@@ -216,12 +216,67 @@ void main() {
     // Ein Trail: 1 km Aufstieg (~13 min + 100 hm ≈ 13 min) + Abfahrt +
     // Rückweg: knapp unter einer Stunde. Zwei passen nicht.
     final plan = planLoop(_square(), start: start, profile: _bio,
-        budget: const LoopBudget(timeS: 55 * 60, climbM: 800, hikingM: 2000),
+        budget: const LoopBudget(timeS: 49 * 60, climbM: 800, hikingM: 2000, windowS: 0),
         pool: [a, b], searchBudget: const Duration(milliseconds: 50));
     expect(plan.outcome, LoopOutcome.ok);
     expect(plan.stops, hasLength(1));
     expect(plan.excluded.values.single, LoopExclusion.budget);
-    expect(plan.summary!.timeS, lessThanOrEqualTo(55 * 60 * 0.9));
+    expect(plan.summary!.timeS, lessThanOrEqualTo(49 * 60));
+  });
+
+  group('die Zeit ist eine Orientierung (Konzept-Routing 12.5)', () {
+    LoopPlan run(List<PoolTrail> pool, double timeS, {double windowS = kLoopTimeWindowS}) => planLoop(_square(),
+        start: start,
+        profile: _bio,
+        budget: LoopBudget(timeS: timeS, climbM: 800, hikingM: 2000, windowS: windowS),
+        pool: pool,
+        searchBudget: const Duration(milliseconds: 50));
+    double share(LoopPlan p) => p.summary!.trailM / p.summary!.lengthM;
+
+    test('ein Trail, der die Runde ein paar Minuten über die Zeit bringt, fährt mit', () {
+      final one = run([a], 24 * 3600).summary!.timeS;
+      final plan = run([a], one - 5 * 60);
+      expect(plan.stops.map((s) => s.trail.id), ['A'], reason: 'bis 0.173.0 fiel er weg (90 % der Zeit)');
+      expect(plan.excluded, isEmpty);
+      // Ohne Fenster ist die Zeit wieder eine Grenze.
+      expect(run([a], one - 5 * 60, windowS: 0).outcome, LoopOutcome.empty);
+    });
+
+    test('im Fenster gewinnt der Stand mit dem besten Trail-Anteil, nicht der längste', () {
+      // Flach: ein Stich hinauf neben dem Start, daneben Trail N; Trail F
+      // am Ende von 3 km Forstweg. F bringt die Runde ins Fenster, aber nur
+      // über 6 km Verbindung hin und zurück.
+      final g = buildRoadGraph([
+        _way([(0, 0), (0, 1000)]),
+        _way([(0, 0), (3000, 0), (3000, 1000)]),
+      ], lat0: 47.5).graph;
+      PoolTrail down(String id, double x) =>
+          PoolTrail(id: id, name: id, points: _m([(x + 10, 990), (x + 10, 500), (x + 10, 10)]), lengthM: 1000, grade: 2);
+      final near = down('N', 0), far = down('F', 3000);
+      LoopPlan go(double timeS, {double windowS = kLoopTimeWindowS}) => planLoop(g,
+          start: start,
+          profile: _bio,
+          budget: LoopBudget(timeS: timeS, climbM: 800, hikingM: 2000, windowS: windowS),
+          pool: [near, far],
+          searchBudget: const Duration(milliseconds: 50));
+      final both = go(24 * 3600, windowS: 0);
+      final t1 = planLoop(g, start: start, profile: _bio, budget: _big, pool: [near]).summary!.timeS;
+      final t2 = both.summary!.timeS;
+      expect(both.stops, hasLength(2), reason: 'Vorbedingung');
+      expect(t2 - t1, lessThan(2 * kLoopTimeWindowS), reason: 'Vorbedingung: beide Stände im Fenster um die Mitte');
+      final plan = go((t1 + t2) / 2);
+      expect(share(plan), greaterThan(share(both)), reason: 'Vorbedingung: N allein hat den besseren Anteil');
+      expect(plan.stops.map((s) => s.trail.id), ['N'], reason: 'der längste Stand wäre N + F');
+      expect(plan.excluded, {'F': LoopExclusion.budget});
+      // Liegt nur noch die volle Runde im Fenster, gewinnt sie.
+      expect(go(t1 + kLoopTimeWindowS + 60).stops, hasLength(2));
+    });
+
+    test('ohne Stand im Fenster der längste darunter', () {
+      final plan = run([a, b], 6 * 3600);
+      expect(plan.stops, hasLength(2), reason: 'zwei Trails sind weit unter 6 h − 30 min');
+      expect(plan.excluded, isEmpty);
+    });
   });
 
   test('Höhenbudget und Wanderweg-Budget greifen', () {
@@ -261,11 +316,11 @@ void main() {
     final c = PoolTrail(
         id: 'C', name: 'C', points: _m([(1010, 990), (1010, 800)]), lengthM: 200, grade: 1, lossM: 20);
     final free = planLoop(_square(), start: start, profile: _bio,
-        budget: const LoopBudget(timeS: 40 * 60, climbM: 800, hikingM: 2000),
+        budget: const LoopBudget(timeS: 36 * 60, climbM: 800, hikingM: 2000, windowS: 0),
         pool: [a, b, c], searchBudget: const Duration(milliseconds: 50));
     expect(free.stops.map((s) => s.trail.id), ['A']);
     final must = planLoop(_square(), start: start, profile: _bio,
-        budget: const LoopBudget(timeS: 40 * 60, climbM: 800, hikingM: 2000),
+        budget: const LoopBudget(timeS: 36 * 60, climbM: 800, hikingM: 2000, windowS: 0),
         pool: [a, b, PoolTrail(id: 'C', name: 'C', points: c.points, lengthM: 200, grade: 1, lossM: 20, mandatory: true)],
         searchBudget: const Duration(milliseconds: 50));
     expect(must.stops.map((s) => s.trail.id), contains('C'));
@@ -386,7 +441,7 @@ void main() {
       // — seit #492 kostet die 120-m-Lücke so viel, dass er dort „nicht
       // erreichbar" heißt; der Satz zum Sprung bleibt so oder so weg.
       final r = planLoop(_square(), start: start, profile: _bio,
-          budget: const LoopBudget(timeS: 1200, climbM: 800, hikingM: 2000), pool: [inWood],
+          budget: const LoopBudget(timeS: 1080, climbM: 800, hikingM: 2000, windowS: 0), pool: [inWood],
           searchBudget: const Duration(milliseconds: 50));
       expect(r.excluded['W'], isNotNull);
       expect(r.snaps, isEmpty);
@@ -416,8 +471,11 @@ void main() {
     expect(r.points.last, r.points.first);
   });
 
-  test('das Budget: 10 % Reserve auf die Zeit', () {
-    expect(const LoopBudget(timeS: 3600, climbM: 1, hikingM: 1).plannedTimeS, closeTo(3240, 1e-9));
+  test('das Budget: ± 30 min um die Zeit, ohne Fenster eine Grenze', () {
+    const b = LoopBudget(timeS: 3600, climbM: 1, hikingM: 1);
+    expect(b.maxTimeS, 5400);
+    expect(b.minTimeS, 1800);
+    expect(const LoopBudget(timeS: 3600, climbM: 1, hikingM: 1, windowS: 0).maxTimeS, 3600);
   });
 
   group('Suchen über die Rechnung hinaus (#188)', () {
@@ -546,7 +604,7 @@ void main() {
     });
 
     test('der Punkt geht vor dem Budget — dann bleibt für den Trail keins', () {
-      final tight = LoopBudget(timeS: plan([a]).summary!.timeS / (1 - kLoopTimeReserve) + 60, climbM: 800, hikingM: 2000);
+      final tight = LoopBudget(timeS: plan([a]).summary!.timeS + 60, climbM: 800, hikingM: 2000, windowS: 0);
       expect(plan([a], budget: tight).stops, hasLength(1), reason: 'ohne Punkt passt A');
       final r = plan([a], budget: tight, waypoints: [corner]);
       expect(r.outcome, LoopOutcome.empty);

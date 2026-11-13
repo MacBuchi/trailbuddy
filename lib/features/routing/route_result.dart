@@ -44,14 +44,18 @@ const kFunPoolMax = 30;
 
 /// Das „Budget" des direkten Wegs: nur die Grenze der Suchen, geprüft wird
 /// es nie (kein Trail im Pool, Zwischenpunkte zählen ohnehin nicht).
-const kRouteDirectBudget = LoopBudget(timeS: 24 * 3600, climbM: 1e5, hikingM: 1e7);
+const kRouteDirectBudget = LoopBudget(timeS: 24 * 3600, climbM: 1e5, hikingM: 1e7, windowS: 0);
 
 /// Das Budget des spaßigen Wegs aus den Summen des direkten.
 LoopBudget funBudgetOf({required double timeS, required double gainM, required double hikingM, required double hikingKm}) =>
     LoopBudget(
-      timeS: math.max(timeS * kFunTimeFactor, timeS + kFunExtraS) / (1 - kLoopTimeReserve),
+      timeS: math.max(timeS * kFunTimeFactor, timeS + kFunExtraS),
       climbM: math.max(gainM * kFunClimbFactor, gainM + kFunExtraClimbM),
       hikingM: math.max(hikingKm * 1000, hikingM),
+      // Das Budget IST hier die Grenze, kein Richtwert (Konzept-Routing
+      // 12.5 gilt der Runde) — ohne Fenster nimmt der Planer den letzten
+      // Stand, wie mit der alten Reserve.
+      windowS: 0,
     );
 
 /// Die Abfahrten, die der spaßige Weg mitnehmen darf: beide Enden in

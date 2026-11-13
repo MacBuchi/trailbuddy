@@ -1019,6 +1019,26 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     `loop_planner_flow_test`, auf Englisch `l10n_test`. Gegenproben
     2026-11-13: ohne `entry` am Knopf (6 rot), ohne Rechnen nach dem Tipp
     (2 rot), ohne `leaveEntry` im Toggle (1 rot).
+- **Die Zeit als Richtwert** (#516 Schritt 3, seit 0.174.0;
+  Konzept-Routing 12.5/12.5a). Vier Dinge, die man wissen muss:
+  - **`LoopBudget.windowS` (± 30 min) statt Reserve**: Der Greedy baut
+    bis `maxTimeS`, `chooseState` nimmt unter seinen Ständen im Fenster
+    den mit dem besten Trail-Anteil (`_Route.share`), danach tauscht die
+    lokale Suche nur bis zur Zeit des Stands (`timeCap`). Dijkstras und
+    Suchspeicher rechnen mit `maxTimeS`.
+  - **`windowS: 0` macht die Zeit zur Grenze**: der spaßige Weg
+    (`funBudgetOf`) und `kRouteDirectBudget`. Planer-Tests, die eine
+    knappe Zeit als Grenze brauchen (Pflicht, Wanderweg, Sprung der
+    Enden), setzen `windowS: 0` und die alten 90 % als Zeit.
+  - **Ein Test des Anteils braucht eine schlechte Verbindung**: Im
+    Quadrat gewinnt ohnehin die volle Runde, der Test bleibt bei
+    „immer der letzte Stand" grün. `loop_planner_test` baut dafür einen
+    Trail am Ende von 3 km Forstweg (Gegenprobe rot).
+  - **Skalen, „ca." und `loop-short` nur an einer Runde mit Trail**
+    (`budget` in `_result`); der Pausen-Satz hängt an `loop-details`
+    unter den Knöpfen — eingeklappt muss „Fahrt starten" zu sehen sein.
+    `LoopBudgetScale` trägt `value`, `mark`, `windowFrom/To`, `over`
+    für Tests.
 - **Ergebnis und Start in einem, ein Ende** (#517, seit 0.171.0;
   Konzept-Routing 9.4, Konzept-Geräte 5.2). Fünf Dinge, die man wissen
   muss:

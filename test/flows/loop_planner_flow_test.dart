@@ -31,7 +31,7 @@ import 'package:trailbuddy/features/routing/loop_plan_runner.dart';
 import 'package:trailbuddy/features/routing/route_profile.dart' show RiderProfile;
 import 'package:trailbuddy/features/routing/loop_planner_controller.dart';
 import 'package:trailbuddy/features/routing/loop_edit_bars.dart' show kLoopNoteDuration;
-import 'package:trailbuddy/features/routing/loop_planner.dart' show LoopEndMode, LoopPlan, LoopSearchCache;
+import 'package:trailbuddy/features/routing/loop_planner.dart' show LoopEndMode, LoopPlan, LoopPrefs, LoopSearchCache, kLoopTimeWindowS;
 import 'package:trailbuddy/features/routing/online_fill.dart';
 import 'package:trailbuddy/features/rides/road_index.dart' show RoadCoverage;
 import 'package:trailbuddy/features/routing/planning_graph.dart';
@@ -50,7 +50,7 @@ import '../fakes/fake_map_view.dart';
 import '../fakes/fake_pois.dart';
 import '../fakes/route_lines.dart';
 import 'package:trailbuddy/features/map/map_view/map_hit_test.dart' show projectToScreen;
-import 'package:trailbuddy/features/routing/loop_planner_sheet.dart' show LoopStartFlag, kLoopPickWidth;
+import 'package:trailbuddy/features/routing/loop_planner_sheet.dart' show LoopBudgetScale, LoopStartFlag, kLoopPickWidth;
 import 'package:trailbuddy/features/map/map_screen.dart' show kSelectionGlowWidth;
 import '../fakes/fake_rides.dart';
 import '../fakes/fake_tiles.dart';
@@ -344,6 +344,23 @@ void main() {
     // das Budget reicht — also zweimal, 1,3 km Trail-Meter, „noch einmal".
     expect(find.descendant(of: find.byKey(const ValueKey('loop-tile-trail')), matching: find.text('1,3 km')),
         findsOneWidget);
+    // Die Zeit ist ein Richtwert (Konzept-Routing 12.5): „ca." in der
+    // Kachel, die Skalen darunter, und weil eine Abfahrt keine 3 h füllt,
+    // sagt das Blatt, dass die Runde kürzer bleibt.
+    final timeScale = tester.widget<LoopBudgetScale>(find.byKey(const ValueKey('loop-scale-time')));
+    expect(timeScale.mark, 3 * 3600, reason: 'Vorgabe 3 h');
+    expect((timeScale.windowFrom, timeScale.windowTo), (3 * 3600 - kLoopTimeWindowS, 3 * 3600 + kLoopTimeWindowS));
+    expect(timeScale.over, isFalse);
+    expect(
+        find.descendant(
+            of: find.byKey(const ValueKey('loop-tile-time')), matching: find.textContaining(RegExp(r'^ca\. '))),
+        findsOneWidget);
+    final climbScale = tester.widget<LoopBudgetScale>(find.byKey(const ValueKey('loop-scale-climb')));
+    expect(climbScale.mark, LoopPrefs.defaults(RiderProfile.bio).climbM);
+    expect(find.descendant(of: find.byKey(const ValueKey('loop-tile-climb')), matching: find.text('von 800')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey('loop-short')), findsOneWidget);
+    expect(find.textContaining('ohne Pausen geschätzt'), findsOneWidget);
     expect(find.descendant(of: find.byKey(const ValueKey('loop-stop-0')), matching: find.text('Hexentanz')),
         findsOneWidget);
     expect(routeBand(tester).where((l) => l.pass == 1), isNotEmpty,
@@ -1172,6 +1189,7 @@ void main() {
 
       await tapRail(tester, 'loop-compute');
       expect(find.byKey(const ValueKey('loop-summary')), findsOneWidget);
+      expect(find.byType(LoopBudgetScale), findsNothing, reason: 'eine Route rechnet ohne Zeit als Richtwert');
       expect(find.text('Route'), findsOneWidget, reason: 'endet nicht am Start: keine „Runde"');
       expect(find.text('Runde'), findsNothing);
       final whole = routeWhole(tester);
@@ -1189,6 +1207,8 @@ void main() {
       await tester.tap(fun);
       await settle(tester, frames: 30);
       expect(routeWhole(tester).last.latitude, closeTo(target.latitude, 1e-9));
+      expect(find.byKey(const ValueKey('loop-stop-0')), findsOneWidget, reason: 'Vorbedingung: der Trail fährt mit');
+      expect(find.byType(LoopBudgetScale), findsNothing, reason: 'auch Spaßig: das Budget ist dort die Grenze, kein Richtwert');
 
       await tester.ensureVisible(find.byKey(const ValueKey('loop-save')));
       await settle(tester, frames: 2);
