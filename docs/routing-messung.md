@@ -1254,3 +1254,74 @@ Empfehlung: nicht bauen (wie #377). Ob der Rahmen auf dem Pixel nach
 #380 schnell genug ist, zeigen die Szenarien 2′/4 (15h1); bleibt dort
 das Zusammensetzen der teure Teil, ist der Hebel ein engerer Rahmen oder
 eine Grenze je Suche, nicht das Nachladen.
+
+## #516 — „Runde vorschlagen": Pool im Umkreis, Fenster (gemessen 2026-11-14, am Rechner, öffentliche Daten)
+
+Frage aus `konzept-routing.md` 12.8: Was kostet der Vorschlag, wenn der
+Pool ALLES im Umkreis ist — je Zeitstufe der Umkreis aus 12.4 —, gegen
+`kPlanMaxTiles` (300) und die Budgets aus 10.7? Und was ändern Fenster
+und abgeleitete Höhenmeter am Ergebnis?
+
+Daten: die offiziellen Trails Tirols (`official-trails-data`,
+`tirol.geojson`, 185 Trails) als Pool, Start an der öffentlichen
+Ortsmitte von Innsbruck (wie `tool/routing_tiles.py`), 13 × 13 z13-Kacheln
+vom eigenen Host (Karte `dach-20261101`, Wege `ways-20261103`, Höhen
+`heights-20261001`), einmal gebacken (169 Stücke, 2,9 s), je Zeile
+zusammengesetzt wie in der App (`GraphInput.bake` mit Stücken). Höhenmeter
+nach 12.4: Vorgabe des Rads (3 h) linear mit der Zeit, auf 100 hm
+gerundet. `tool/loop_suggest_measure.dart` (JIT, Zeiten in ms; Pool =
+beide Enden im Umkreis, Rahmen = Start + Pool + 500 m wie im Planer):
+
+| Zeit | Umkreis | Pool | Kacheln (voller Kreis) | Zusammensetzen | Rechnung Bio / E | Bio: Trails, Schätzung, Anteil, hm | E: Trails, Schätzung, Anteil, hm |
+|---|---|---:|---:|---:|---:|---|---|
+| 1 h | 5 km | 10 | 6 (20) | 54–80 | 26 / 40 | 5 · 0 h 54 · 13 % · 277/300 | 1 · 1 h 11 · 28 % · 446/500 |
+| 1,5 h | 7 km | 11 | 12 (25) | 84 | 48 / 63 | 1 · 1 h 29 · 19 % · 378/400 | 1 · 1 h 11 · 28 % · 446/700 |
+| 2 h | 8 km | 13 | 16 (42) | 100 | 68 / 71 | 1 · 1 h 54 · 25 % · 477/500 | 2 · 1 h 52 · 30 % · 720/900 |
+| 3 h | 12 km | 23 | 30 (81) | 147 | 139 / 188 | 2 · 2 h 53 · 26 % · 739/800 | 3 · 2 h 59 · 36 % · 1166/1400 |
+| 4 h | 15 km | 23 | 30 (110) | 134–141 | 157 / 246 | 3 · 3 h 40 · 31 % · 949/1100 | 8 · 3 h 59 · 29 % · 1577/1900 |
+| 5 h | 15 km | 23 | 30 (110) | 144 | 237 / 294 | 3 · 4 h 33 · 35 % · 1176/1300 | 11 · 5 h 25 · 21 % · 2150/2300 |
+
+Der ganze Rahmen (169 Kacheln, 116 582 Kanten) setzt sich in 290 ms
+zusammen. Zum Vergleich ein dichter Pool (`perf_loop_planner_measure.dart`,
+erfundenes Gitter, 60 Trails in 12 km, E-MTB 5 h): erste Rechnung 572 ms.
+
+Fenster gegen Grenze, dieselben Zeilen (nur wo es etwas ändert):
+
+| Fall | ohne Fenster (Grenze) | ¼ der Zeit | ± 30 min | ± 30 min, hm frei |
+|---|---|---|---|---|
+| Bio 1,5 h | 6 · 1 h 06 · 13 % | 1 · 1 h 29 · 19 % | 1 · 1 h 29 · 19 % | 2 · 1 h 45 · 22 % |
+| Bio 2 h | 2 · 1 h 45 · 22 % | – | 1 · 1 h 54 · 25 % | gleich |
+| Bio 3 h | gleich | – | 2 · 2 h 53 · 26 % | 2 · 3 h 06 · 33 % |
+| E 1 h | 6 · 0 h 53 · 13 % | 1 · 1 h 00 · 19 % | 1 · 1 h 11 · 28 % | gleich |
+| E 1,5 h | gleich | gleich | 1 · 1 h 11 · 28 % | 2 · 1 h 52 · 30 % |
+| E 5 h | 10 · 4 h 12 · 28 % | – | 11 · 5 h 25 · 21 % | gleich |
+
+Vier Dinge, die die Messung gezeigt hat:
+
+1. **Die Umkreise aus 12.4 passen.** Selbst ein voller Kreis von 15 km
+   sind 110 Kacheln (Grenze 300); echte Pools liegen in einem Teil davon
+   (hier 30). Zusammensetzen ≤ 0,3 s, erste Rechnung ≤ 0,3 s am Rechner —
+   auf dem Pixel (Faktor ~10, #380) zusammen ≤ 6 s; mit einem dichten
+   Pool wie im Gitter (60 Trails) eher 6 s für die Rechnung allein. Das
+   liegt über dem Ziel von 5 s aus 10.7, ist aber der Fall mit Balken
+   (0.132.0). Am Gerät zu bestätigen mit dem ersten gebauten Vorschlag.
+2. **Das Fenster tut, was es soll, meist mit dem Anteil.** Bio 1,5 h,
+   2 h und E 1 h: Statt vieler kleiner Trails mit langen Wegen dazwischen
+   gewinnt eine Runde mit höherem Trail-Anteil, näher an der Zeit oder
+   wenig darüber (+11 min bei 1 h E). Ein Viertel der Zeit statt 30 min
+   bei 1 h hielte die Runde dort bei 1 h 00 (19 % statt 28 %).
+3. **Unter dem Fenster zählt kein Stand — auch kein besserer.** E 5 h:
+   Ohne Fenster endet die Runde bei 4 h 12 mit 28 %, mit Fenster ist
+   4 h 12 unter 4 h 30 und darf nicht gewinnen; der Vorschlag wird
+   5 h 25 mit 21 %. Das ist die Regel aus 12.5 („im Fenster gewinnt der
+   Anteil"), aber kein Ergebnis, das sie wollte. Offen für den Betreiber.
+4. **Die abgeleiteten Höhenmeter sind im Alpental fast immer der engste
+   Wert** (Bio: 92–97 % des Limits in jeder Stufe). „Frei" ändert Bio
+   1,5 h und 3 h und E 1,5 h — die Zeit wäre dort mehr wert gewesen. Das
+   ist die Regel aus 12.5 („Höhenmeter bleiben Obergrenze"); im
+   Mittelgebirge des Betreibers vermutlich seltener.
+
+Nicht gemessen (💻, eigene Gegend): der Pool aus dem eigenen Netz des
+Betreibers (dichter und kürzer als die offiziellen Tiroler Trails, die
+oft mehrere Kilometer lang sind) und ob sich die Vorschläge an drei,
+vier eigenen Runden wie Runden lesen, die man fahren würde.
