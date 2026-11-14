@@ -31,9 +31,11 @@ import 'package:trailbuddy/features/routing/loop_plan_runner.dart';
 import 'package:trailbuddy/features/routing/route_profile.dart' show RiderProfile;
 import 'package:trailbuddy/features/routing/loop_planner_controller.dart';
 import 'package:trailbuddy/features/routing/loop_edit_bars.dart' show kLoopNoteDuration;
-import 'package:trailbuddy/features/routing/loop_planner.dart' show LoopEndMode, LoopPlan, LoopPrefs, LoopSearchCache, kLoopTimeWindowS;
+import 'package:trailbuddy/features/routing/loop_planner.dart' show LoopEndMode, LoopPlan, LoopPrefs, LoopSearchCache, kLoopSecondPassShare, kLoopTimeWindowS;
 import 'package:trailbuddy/features/routing/online_fill.dart';
 import 'package:trailbuddy/features/rides/road_index.dart' show RoadCoverage;
+import 'package:trailbuddy/features/rides/ride_track.dart';
+import 'package:trailbuddy/features/rides/trail_ride_counts.dart';
 import 'package:trailbuddy/features/routing/planning_graph.dart';
 import 'package:trailbuddy/features/routing/road_graph_loader.dart' show kPlanMaxTiles;
 import 'package:trailbuddy/features/routing/road_graph.dart' show RoadGraph;
@@ -2214,6 +2216,33 @@ void main() {
       expect(session(tester).selected, {hex});
       expect(session(tester).suggestReachM, isNull, reason: 'neu gerechnet wird aus der Auswahl');
       expect(find.textContaining('2 h 30 min'), findsOneWidget, reason: 'das Budget im Kopf trägt die Zeit');
+    });
+
+    testWidgets('die Vorliebe (#516 Schritt 5): eigene Sterne und eigene Fahrten wiegen im Pool', (tester) async {
+      // Anna hat den Hexentanz selbst mit 4 Sternen bewertet; eine Fahrt auf
+      // dem Gerät hat ihn befahren (aus der Datei, nicht neu gerechnet).
+      final t0 = DateTime.utc(2026, 11, 1, 10);
+      rides
+        ..uid = backend.currentUserId
+        ..rides.add(Ride(id: 'r1', startedAt: t0, endedAt: t0.add(const Duration(hours: 1)), points: [
+          RidePoint(lat: 48.0, lng: _lon, at: t0, accuracyM: 5),
+          RidePoint(lat: 48.001, lng: _lon, at: t0.add(const Duration(minutes: 1)), accuracyM: 5),
+        ]))
+        ..trailCounts = TrailRideCounts({
+          'r1': [hex],
+        }).encode();
+      final runner = _SpyRunner();
+      await start(tester, areaStore: await _areaWithTrack(), runner: () => runner);
+      await openEntry(tester);
+      await tapKey(tester, 'loop-entry-go', frames: 30);
+      final pool = runner.requests.last.pool;
+      expect(pool.map((t) => t.id), [hex]);
+      expect(pool.single.weight, closeTo(1 + 0.15 + 0.06, 1e-9), reason: '4 eigene Sterne und eine Fahrt');
+      expect(rides.countWrites, 0, reason: 'die Fahrt stand schon in der Datei');
+      final plan = session(tester).plan!;
+      final passes = plan.stops.length; // die zweite Abfahrt (4 Sterne) mit 30 %
+      expect(plan.summary!.trailM, closeTo(pool.single.lengthM * (1 + (passes - 1) * kLoopSecondPassShare), 1),
+          reason: 'die Summe zeigt echte Meter, nicht gewichtete');
     });
 
     testWidgets('kein Trail im Umkreis: ein Satz und „Weiter suchen" im nächsten Umkreis', (tester) async {

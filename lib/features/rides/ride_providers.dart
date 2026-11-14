@@ -26,6 +26,7 @@ import 'ride_store.dart';
 import 'ride_task_handler.dart';
 import 'ride_track.dart';
 import 'sensor_log.dart' show kRideDataPhonePocket, kRideDataSensorLog, kRideDataSensorRange, readSensorRange;
+import 'trail_ride_counts.dart';
 import 'trail_values.dart';
 
 /// Gibt es die Aufzeichnung auf dieser Plattform? Im Browser nicht: Dort
@@ -557,6 +558,27 @@ typedef ImportRidesResult = ({int saved, int existed, int failed});
 enum WatchRideSave { saved, existed, overlap, failed }
 
 final ridesProvider = AsyncNotifierProvider<RidesNotifier, List<Ride>>(RidesNotifier.new);
+
+/// Wie oft ich jeden Trail gefahren bin (#516 Schritt 5, Konzept-Routing
+/// 12.4, `trail_ride_counts.dart`): aus der Datei neben den Fahrten,
+/// fortgeschrieben um die Fahrten, die seitdem dazukamen. Im Web gibt es
+/// keine Fahrten (A9) — dort leer, und die Vorliebe zählt nur Sterne.
+final trailRideCountsProvider = FutureProvider<TrailRideCounts>((ref) async {
+  if (kIsWeb) return TrailRideCounts.empty;
+  final rides = await ref.watch(ridesProvider.future);
+  final store = ref.read(rideStoreProvider);
+  final old = TrailRideCounts.parse(await store.readTrailCounts());
+  // Gelesen, nicht beobachtet: Ein neu geladenes Netz rechnet die alten
+  // Fahrten nicht nach (die Datei hält je Fahrt den Stand ihres Rechnens).
+  final trails = await ref.read(trailsProvider.future);
+  // Ohne Netz (noch nicht geladen) zählte jede Fahrt dauerhaft null.
+  if (trails.isEmpty) return old;
+  final next = await updateTrailRideCounts(old,
+      rides: rides, trails: trails, between: () => Future<void>.delayed(Duration.zero));
+  if (next == null) return old;
+  await store.writeTrailCounts(next.encode());
+  return next;
+});
 
 /// Wunsch der Liste an die Karte: diese gespeicherte Fahrt zeigen. Die
 /// Karte zeichnet sie, bis der Nutzer sie wegtippt.

@@ -1952,9 +1952,10 @@ die Regel aus 4 („ab Werk ist nichts gewählt"): Sie gilt nur noch für
   Befahrungen), zusammen höchstens +50 %; an eigenen Runden zu prüfen.
   - **Quelle der Häufigkeit sind die Fahrten auf dem Gerät** (A3: sie
     verlassen es nie): ein kleiner Zähler je Trail-Kennung, lokal,
-    fortgeschrieben, wenn eine Fahrt zerlegt oder ein Trail durch Fahren
-    bestätigt wird — nicht bei jeder Planung alle Fahrten lesen. Kein
-    Feld in der Datenbank, nichts für Buddys.
+    fortgeschrieben um jede Fahrt, die neu dazukam — nicht bei jeder
+    Planung alle Fahrten lesen. Kein Feld in der Datenbank, nichts für
+    Buddys. (Gebaut 0.176.0 als Datei je Fahrt statt Haken am
+    Zerlege-Blatt und an der Bestätigung, siehe 12.9 Schritt 5.)
   - **Im Web** gibt es keine Fahrten (A9 nennt die Ausnahme
     „Aufzeichnen"): dort zählt nur die eigene Bewertung.
   - Die zweite Abfahrt eines 4–5-Sterne-Trails (3) bleibt, wie sie ist.
@@ -2289,6 +2290,33 @@ einem Schritt auf der normalen Karte.
      ohnehin an dieser Stelle ansetzt.
 5. **Vorliebe** (12.4): Zähler je Trail, Aufschlag in der Zielfunktion
    — ☁️ bauen · 💻 prüfen.
+   **Gebaut, 0.176.0** (`loop_planner.dart`: `loopPreferenceWeight`,
+   `PoolTrail.weight`; `trail_ride_counts.dart`,
+   `trailRideCountsProvider`). Beim Bau entschieden:
+   - **Das Gewicht** ist 1 + Sterne + Fahrten, höchstens 1,5: 5 eigene
+     Sterne +30 %, 4 Sterne +15 %, darunter nichts (eine schlechte
+     Bewertung straft nicht ab, das wäre ein halber Filter); je Fahrt
+     +6 %, voll ab fünf. Es zählt die EIGENE Bewertung
+     (`Trail.myDetails`), nicht der Median.
+   - **Es wirkt überall, wo die Zielfunktion wählt**: Greedy (Meter je
+     Zeitzuwachs), lokale Suche (`_Route.beats`) und der Trail-Anteil
+     des Stands (12.5) — beim Vorschlag, beim Bearbeiten und beim
+     spaßigen Weg. Die Summe im Blatt zeigt echte Meter (`trailM`),
+     gerechnet wird mit `valueM`.
+   - **Der Zähler ist eine Datei je Fahrt** (`rides/trail_counts.json`,
+     im Backup-Ausschluss wie die Fahrten): je Fahrt einmal die Trails,
+     die sie nach der Regel des Zerlege-Blatts befährt
+     (`knownTrailSectionsOf`). Die erste Planung danach rechnet nur die
+     neuen Fahrten nach, gelöschte fallen heraus. So kommen auch die
+     Fahrten von vor 0.176.0 mit, ohne Haken im Zerlege-Blatt oder in
+     der Bestätigung (die beide nur sehen, was gerade gefahren wurde).
+     Eine Fahrt bleibt bei dem Netz, gegen das sie gerechnet wurde: Ein
+     später hinzugekommener Trail zählt alte Fahrten nicht mit. Ohne
+     geladenes Netz wird nichts festgeschrieben.
+   - **Kein Satz im Blatt**: Die Vorliebe ist kein Grund, den das Blatt
+     nennen müsste; „Vorschlag" sagt schon, dass der Planer gewählt hat.
+   - Offen (💻): an eigenen Runden, ob +30 % / +30 % / 50 % spürbar und
+     nicht zu stark sind.
 6. **Limit aus Fahrten** (12.5a): die eine Zeile am Ende der Fahrt,
    Bio-oder-E-Frage, „Nein bis …" — ☁️ bauen · 📱 nach einer Fahrt.
 

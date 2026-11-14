@@ -41,6 +41,20 @@ class FakeRideStore implements RideStore {
   /// Fragen und Antworten der laufenden Fahrt (#116).
   final events = <ConfirmEvent>[];
 
+  /// Der Zähler je Trail (#516 Schritt 5), wie abgelegt; [countWrites]
+  /// zählt das Schreiben.
+  String? trailCounts;
+  int countWrites = 0;
+
+  @override
+  Future<String?> readTrailCounts() async => trailCounts;
+
+  @override
+  Future<void> writeTrailCounts(String encoded) async {
+    trailCounts = encoded;
+    countWrites++;
+  }
+
   /// Was die App zuletzt als Trails zum Bestätigen abgelegt hat.
   List<ConfirmTarget> targets = const [];
   String? targetsUid;

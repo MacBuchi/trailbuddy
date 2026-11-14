@@ -78,6 +78,28 @@ const kLoopShareTie = 0.005;
 const kLoopSecondPassRating = 4;
 const kLoopSecondPassShare = 0.3;
 
+/// Die Vorliebe (Konzept-Routing 12.4, #516 Schritt 5): ein Aufschlag auf
+/// die Trail-Meter in der Zielfunktion, nie ein Filter. Bis
+/// [kLoopPrefRatingMax] für die eigene Bewertung (5 Sterne voll, 4 halb,
+/// darunter nichts), bis [kLoopPrefRidesMax] für die Häufigkeit (voll ab
+/// [kLoopPrefRidesFull] Fahrten), zusammen höchstens [kLoopPrefMax].
+/// Startwerte des Konzepts, an eigenen Runden zu prüfen.
+const kLoopPrefRatingMax = 0.3;
+const kLoopPrefRidesMax = 0.3;
+const kLoopPrefRidesFull = 5;
+const kLoopPrefMax = 0.5;
+
+/// Das Gewicht eines Trails aus [ownRating] (die EIGENE Bewertung, nicht
+/// der Median) und [rides] (Fahrten auf dem Gerät, die ihn befahren) —
+/// 1 ohne beides.
+double loopPreferenceWeight({int? ownRating, int rides = 0}) {
+  final r = ownRating ?? 0;
+  final byRating = r >= 5 ? kLoopPrefRatingMax : (r == 4 ? kLoopPrefRatingMax / 2 : 0.0);
+  final byRides = kLoopPrefRidesMax * (rides.clamp(0, kLoopPrefRidesFull) / kLoopPrefRidesFull);
+  final bonus = byRating + byRides;
+  return 1 + (bonus > kLoopPrefMax ? kLoopPrefMax : bonus);
+}
+
 /// Die Kennung eines vorab gesetzten Zwischenpunkts im Pool, mit seiner
 /// Nummer dahinter — keine Trail-Kennung beginnt so.
 const kLoopWaypointPrefix = 'via:';
@@ -133,6 +155,7 @@ class PoolTrail {
     this.lossM = 0,
     this.mandatory = false,
     this.waypoint = false,
+    this.weight = 1,
   }) : assert(points.length >= 2);
 
   /// Ein vorab gesetzter Zwischenpunkt (#331 Schritt 4) als Halt ohne
@@ -151,6 +174,10 @@ class PoolTrail {
   final bool mandatory;
   final bool waypoint;
 
+  /// Die Vorliebe ([loopPreferenceWeight]): So viel zählen seine Meter in
+  /// der Zielfunktion. Die Summe ([LoopSummary.trailM]) bleibt echt.
+  final double weight;
+
   LatLng get start => points.first;
   LatLng get end => points.last;
 
@@ -160,6 +187,10 @@ class PoolTrail {
   /// Was die zweite Abfahrt noch an Trail-Metern bringt.
   double get secondPassM =>
       (rating ?? 0) >= kLoopSecondPassRating ? lengthM * kLoopSecondPassShare : 0;
+
+  /// Was er in der Zielfunktion wiegt: die Meter mal [weight].
+  double get valueM => lengthM * weight;
+  double get secondPassValueM => secondPassM * weight;
 }
 
 enum LoopOutcome {
@@ -464,7 +495,8 @@ Object _riderKey(RiderParams p) => (
 /// und der gewählten Verbindung je Abschnitt ([legs]: eine je Halt, dazu
 /// die letzte zurück zum Ziel, wenn es eines gibt).
 class _Route {
-  _Route(this.seq, this.legs, this.timeS, this.climbM, this.hikingM, this.wastedM, this.trailM, this.lengthM);
+  _Route(this.seq, this.legs, this.timeS, this.climbM, this.hikingM, this.wastedM, this.trailM, this.lengthM,
+      this.valueM);
 
   final List<int> seq;
   final List<_Conn> legs;
@@ -477,13 +509,17 @@ class _Route {
   /// Die ganze Strecke: Trails und Verbindungen.
   final double lengthM;
 
+  /// Die Trail-Meter, mit der Vorliebe gewichtet ([PoolTrail.weight]) —
+  /// damit rechnet die Zielfunktion, angezeigt wird [trailM].
+  final double valueM;
+
   /// Der Trail-Anteil (Konzept-Routing 12.5): Trail-Meter (zweite Abfahrt
-  /// mit ihrem Anteil) je Meter Strecke.
-  double get share => lengthM <= 0 ? 0 : trailM / lengthM;
+  /// mit ihrem Anteil, mit der Vorliebe gewichtet) je Meter Strecke.
+  double get share => lengthM <= 0 ? 0 : valueM / lengthM;
 
   /// Besser im Sinn der Zielfunktion (Konzept-Routing 3.3).
   bool beats(_Route other) {
-    if ((trailM - other.trailM).abs() > 0.5) return trailM > other.trailM;
+    if ((valueM - other.valueM).abs() > 0.5) return valueM > other.valueM;
     if ((climbM - other.climbM).abs() > 0.5) return climbM < other.climbM;
     return wastedM < other.wastedM - 0.5;
   }
@@ -684,14 +720,16 @@ class _Planner {
       final alt = conn(froms[worst], tos[worst], noHiking: true);
       if (alt != null) legs[worst] = alt;
     }
-    var time = 0.0, climb = 0.0, hiking = 0.0, wasted = 0.0, trailM = 0.0, length = 0.0;
+    var time = 0.0, climb = 0.0, hiking = 0.0, wasted = 0.0, trailM = 0.0, length = 0.0, value = 0.0;
     final seen = <int>{};
     for (var k = 0; k < seq.length; k++) {
       final t = pool[seq[k]];
       time += t.timeS;
       climb += t.gainM;
       length += t.lengthM;
-      trailM += seen.add(seq[k]) ? t.lengthM : t.secondPassM;
+      final first = seen.add(seq[k]);
+      trailM += first ? t.lengthM : t.secondPassM;
+      value += first ? t.valueM : t.secondPassValueM;
     }
     for (final c in legs) {
       time += c.summary.timeS;
@@ -700,7 +738,7 @@ class _Planner {
       wasted += c.summary.lossM;
       length += c.summary.lengthM;
     }
-    return _Route(seq, legs, time, climb, hiking, wasted, trailM, length);
+    return _Route(seq, legs, time, climb, hiking, wasted, trailM, length, value);
   }
 
   /// Die Zeit, bis zu der eine Runde passt: zuerst Zeit + Fenster; ist
@@ -807,7 +845,8 @@ class _Planner {
         if (!usable(i)) continue;
         final n = passes(route.seq, i);
         if (n >= kLoopMaxPasses) continue;
-        final gain = n == 0 ? pool[i].lengthM : pool[i].secondPassM;
+        // Mit der Vorliebe gewichtet (Konzept-Routing 12.4).
+        final gain = n == 0 ? pool[i].valueM : pool[i].secondPassValueM;
         if (gain <= 0) continue;
         final ins = bestInsertion(route, i);
         if (ins == null) continue;
@@ -904,14 +943,16 @@ class _Planner {
       if (r.edges == null) return LoopPlan(LoopOutcome.viaFailed, excluded: _trailsOnly(excluded));
       legs.add(_Conn(froms[k], r.edges!, summarizePath(g, r.edges!, froms[k], p)));
     }
-    var time = 0.0, climb = 0.0, hiking = 0.0, wasted = 0.0, trailM = 0.0, length = 0.0;
+    var time = 0.0, climb = 0.0, hiking = 0.0, wasted = 0.0, trailM = 0.0, length = 0.0, value = 0.0;
     final seen = <int>{};
     for (final i in seq) {
       final t = pool[i];
       time += t.timeS;
       climb += t.gainM;
       length += t.lengthM;
-      trailM += seen.add(i) ? t.lengthM : t.secondPassM;
+      final first = seen.add(i);
+      trailM += first ? t.lengthM : t.secondPassM;
+      value += first ? t.valueM : t.secondPassValueM;
     }
     for (final c in legs) {
       time += c.summary.timeS;
@@ -923,7 +964,7 @@ class _Planner {
     for (var i = 0; i < pool.length; i++) {
       if (!seq.contains(i) && !pool[i].waypoint) excluded.putIfAbsent(pool[i].id, () => LoopExclusion.budget);
     }
-    return _assemble(_Route(seq, legs, time, climb, hiking, wasted, trailM, length));
+    return _assemble(_Route(seq, legs, time, climb, hiking, wasted, trailM, length, value));
   }
 
   LoopPlan _assemble(_Route route) {
@@ -1064,7 +1105,7 @@ double? loopSuggestNextReachM(double reachM) =>
 
 /// Ein Trail der Karte als Pool-Eintrag: Punkte in Trail-Richtung, Grad
 /// und Sterne wie angezeigt, Höhenmeter aus seinem Profil (0 ohne Höhen).
-PoolTrail poolTrailOf(AppLocalizations l, Trail t, {bool mandatory = false}) => PoolTrail(
+PoolTrail poolTrailOf(AppLocalizations l, Trail t, {bool mandatory = false, double weight = 1}) => PoolTrail(
       id: t.id,
       name: t.displayName(l),
       points: t.directedPoints,
@@ -1074,6 +1115,7 @@ PoolTrail poolTrailOf(AppLocalizations l, Trail t, {bool mandatory = false}) => 
       gainM: t.elevation?.gainM ?? 0,
       lossM: t.elevation?.lossM ?? 0,
       mandatory: mandatory,
+      weight: weight,
     );
 
 /// Was vom sichtbaren Netz für eine Runde ab [start] in Frage kommt:
