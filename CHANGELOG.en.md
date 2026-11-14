@@ -2,6 +2,16 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## Your favourite trails count for more
+
+*Version 0.177.1, 2026-11-14*
+
+- **Trails you ride often weigh twice as much in the suggestion:** each
+  ride on a trail now gives it 12 % more weight (full from five rides),
+  together with your stars at most 80 %. Before, the preference was so
+  weak that it hardly ever changed the suggestion. A trail you never
+  rode stays in play when it lies well.
+
 ## The climb limit grows with your rides
 
 *Version 0.177.0, 2026-11-14*

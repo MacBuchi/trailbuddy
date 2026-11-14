@@ -1413,3 +1413,10 @@ samt Bau in 40 s). Was die Zahlen sagen:
    Höhen, nicht wie in der App aus den Aufzeichnungen). In der App
    möglich, wenn zwei Abfahrten gegenläufig einen Weg teilen; nicht
    weiter verfolgt.
+
+**Nach der Entscheidung des Betreibers (2026-11-14, gebaut in 0.177.1)**:
++12 % je Fahrt, zusammen höchstens +80 %. Derselbe Lauf, B gegen A: 3 von
+11 Runden anders (L1 4 Trails, L7 6, L15 4), Anteil auf je gefahrenen
+Trails 23 → 39 %, 42 → 46 %, 35 → 54 %, Trail-Anteil gleich (± 1 Punkt);
+L7 wird kürzer (1 h 42 → 1 h 28) und liegt zu 46 % auf Trails dieser
+Fahrt (vorher 13 %), L15 1 h 34 statt 2 h 07 — beide im Fenster.

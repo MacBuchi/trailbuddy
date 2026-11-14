@@ -2,6 +2,16 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Deine Lieblingstrails zählen mehr
+
+*Version 0.177.1, 2026-11-14*
+
+- **Häufig gefahrene Trails wiegen im Vorschlag doppelt so viel:** Jede
+  Fahrt über einen Trail gibt ihm jetzt 12 % mehr Gewicht (voll ab fünf
+  Fahrten), zusammen mit deinen Sternen höchstens 80 %. Vorher war die
+  Vorliebe so schwach, dass sie den Vorschlag fast nie verändert hat.
+  Ein nie gefahrener Trail bleibt wählbar, wenn er gut liegt.
+
 ## Das Höhenmeter-Limit wächst mit deinen Fahrten
 
 *Version 0.177.0, 2026-11-14*

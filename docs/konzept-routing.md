@@ -1951,6 +1951,8 @@ die Regel aus 4 („ab Werk ist nichts gewählt"): Sie gilt nur noch für
   liegt. Vorschlag für die Startwerte: bis +30 % für die eigene
   Bewertung (5 Sterne), bis +30 % für die Häufigkeit (gesättigt ab fünf
   Befahrungen), zusammen höchstens +50 %; an eigenen Runden zu prüfen.
+  **Seit 0.177.1 bis +60 % für die Häufigkeit, zusammen +80 %** (Messung
+  im eigenen Netz, Betreiber 2026-11-14 — Schritt 5 in 12.9).
   - **Quelle der Häufigkeit sind die Fahrten auf dem Gerät** (A3: sie
     verlassen es nie): ein kleiner Zähler je Trail-Kennung, lokal,
     fortgeschrieben um jede Fahrt, die neu dazukam — nicht bei jeder
@@ -2299,10 +2301,10 @@ einem Schritt auf der normalen Karte.
    **Gebaut, 0.176.0** (`loop_planner.dart`: `loopPreferenceWeight`,
    `PoolTrail.weight`; `trail_ride_counts.dart`,
    `trailRideCountsProvider`). Beim Bau entschieden:
-   - **Das Gewicht** ist 1 + Sterne + Fahrten, höchstens 1,5: 5 eigene
-     Sterne +30 %, 4 Sterne +15 %, darunter nichts (eine schlechte
-     Bewertung straft nicht ab, das wäre ein halber Filter); je Fahrt
-     +6 %, voll ab fünf. Es zählt die EIGENE Bewertung
+   - **Das Gewicht** ist 1 + Sterne + Fahrten, höchstens 1,8 (bis
+     0.177.0 1,5): 5 eigene Sterne +30 %, 4 Sterne +15 %, darunter
+     nichts (eine schlechte Bewertung straft nicht ab, das wäre ein
+     halber Filter); je Fahrt +12 % (bis 0.177.0 +6 %), voll ab fünf. Es zählt die EIGENE Bewertung
      (`Trail.myDetails`), nicht der Median.
    - **Es wirkt überall, wo die Zielfunktion wählt**: Greedy (Meter je
      Zeitzuwachs), lokale Suche (`_Route.beats`) und der Trail-Anteil
@@ -2326,7 +2328,8 @@ einem Schritt auf der normalen Karte.
      „#516 — der Vorschlag im eigenen Netz", ohne Sterne): kaum spürbar —
      in 1 von 11 Runden ein Trail anders. Dreifach (+18 % je Fahrt)
      ändert 4 von 11 Runden und hebt den Anteil gefahrener Trails, ohne
-     den Trail-Anteil zu senken. Neue Werte entscheidet der Betreiber.
+     den Trail-Anteil zu senken. Betreiber 2026-11-14: +12 % je Fahrt,
+     zusammen höchstens +80 % — gebaut in 0.177.1.
 6. **Limit aus Fahrten** (12.5a): die eine Zeile am Ende der Fahrt,
    Bio-oder-E-Frage, „Nein bis …" — ☁️ bauen · 📱 nach einer Fahrt.
    **Gebaut, 0.177.0** (`climb_limit_offer.dart` rein,
