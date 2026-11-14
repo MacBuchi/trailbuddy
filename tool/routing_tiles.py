@@ -9,6 +9,11 @@ stitch. Before anything is built, the size per tile and the stitch time
 are measured — this tool fetches the inputs for that measurement:
 
     python3 tool/routing_tiles.py sample --out DIR [--frame innsbruck] [--size 11]
+    python3 tool/routing_tiles.py sample --out DIR --center-file FILE --size 19
+
+`--center-file` names a local JSON file `{"start": [lat, lon]}` for a
+private frame (the operator's own area, #516): the point stays on the
+machine, the frame is written as DIR/own.
 
 For each frame it writes the z13 tiles of a size x size block around a
 public town centre, exactly as the app reads them:
@@ -88,14 +93,15 @@ def tile_bytes(archive, x, y):
     return map_tiles.decompress(archive.tile_bytes(entry), archive.header.tile_compression)
 
 
-def sample(out, frames, size):
+def sample(out, frames, size, centers=None):
+    centers = dict(FRAMES, **(centers or {}))
     archives = {
         "roads": host_archive("dach.json"),
         "ways": host_archive("ways.json"),
         "heights": host_archive("heights.json"),
     }
     for name in frames:
-        lat, lon = FRAMES[name]
+        lat, lon = centers[name]
         tiles = block(lat, lon, size)
         base = os.path.join(out, name)
         stats = {}
@@ -145,6 +151,7 @@ def main(argv=None):
     ap.add_argument("mode", nargs="?", choices=["sample"])
     ap.add_argument("--out")
     ap.add_argument("--frame", action="append", choices=sorted(FRAMES))
+    ap.add_argument("--center-file", help="local JSON {\"start\": [lat, lon]}; frame DIR/own")
     ap.add_argument("--size", type=int, default=11, help="tiles per side (11 x 11 = 121, the planner's limit)")
     ap.add_argument("--self-test", action="store_true")
     args = ap.parse_args(argv)
@@ -153,6 +160,11 @@ def main(argv=None):
         return 0
     if args.mode != "sample" or not args.out:
         ap.error("usage: sample --out DIR (or --self-test)")
+    if args.center_file:
+        with open(args.center_file, encoding="utf-8") as fh:
+            lat, lon = json.load(fh)["start"]
+        sample(args.out, ["own"], args.size, {"own": (lat, lon)})
+        return 0
     sample(args.out, args.frame or sorted(FRAMES), args.size)
     return 0
 

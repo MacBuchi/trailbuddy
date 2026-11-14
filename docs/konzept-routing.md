@@ -2245,7 +2245,12 @@ einem Schritt auf der normalen Karte.
    - **Nicht gebaut: ein Tipp auf die Kachel öffnet „Anpassen"** — über
      einem Ergebnis gibt es „Anpassen" nicht (Schritt 1); erst mit dem
      „Bearbeiten" am Vorschlag (Schritt 4) hat der Tipp ein Ziel.
-   - Offen (💻): ob 30 min bei 1 h und 1,5 h zu viel sind.
+   - Offen (💻): ob 30 min bei 1 h und 1,5 h zu viel sind. **Gemessen
+     2026-11-14 im eigenen Netz** (`routing-messung.md`, „#516 — der
+     Vorschlag im eigenen Netz"): Mit dem Viertel (seit 0.175.0) bleibt
+     1 h bei 0 h 58, ± 30 min gäbe 0 h 44; bei 1,5 h kein Unterschied —
+     das Viertel bleibt. Über 2 h liegt der Vorschlag meist am oberen
+     Ende des Fensters (2 h → bis 2 h 26).
 4. **„Runde vorschlagen"** (12.4) nach der Messung aus 12.8: Pool aus
    dem Umkreis, abgeleitete Höhenmeter, „Bearbeiten" am Ergebnis —
    💻 messen · ☁️ bauen · 📱.
@@ -2317,7 +2322,11 @@ einem Schritt auf der normalen Karte.
    - **Kein Satz im Blatt**: Die Vorliebe ist kein Grund, den das Blatt
      nennen müsste; „Vorschlag" sagt schon, dass der Planer gewählt hat.
    - Offen (💻): an eigenen Runden, ob +30 % / +30 % / 50 % spürbar und
-     nicht zu stark sind.
+     nicht zu stark sind. **Gemessen 2026-11-14** (`routing-messung.md`,
+     „#516 — der Vorschlag im eigenen Netz", ohne Sterne): kaum spürbar —
+     in 1 von 11 Runden ein Trail anders. Dreifach (+18 % je Fahrt)
+     ändert 4 von 11 Runden und hebt den Anteil gefahrener Trails, ohne
+     den Trail-Anteil zu senken. Neue Werte entscheidet der Betreiber.
 6. **Limit aus Fahrten** (12.5a): die eine Zeile am Ende der Fahrt,
    Bio-oder-E-Frage, „Nein bis …" — ☁️ bauen · 📱 nach einer Fahrt.
    **Gebaut, 0.177.0** (`climb_limit_offer.dart` rein,
@@ -2352,6 +2361,11 @@ einem Schritt auf der normalen Karte.
      `Settings.climbLimitPending`; der Einstieg liest und leert sie beim
      Aufgehen und zeigt sie nur, wenn das Limit nicht inzwischen darüber
      steht. Wer die Fahrt verwirft, wird auch dort nicht gefragt.
+   - **Gemessen 2026-11-14** (`routing-messung.md`, „#516 — der
+     Vorschlag im eigenen Netz"): Die eigenen Fahrten höben Bio von 800
+     auf 1100 hm und E auf 2500 (eine Alpenfahrt); im eigenen Netz ändert
+     das keinen Vorschlag — dort begrenzt die Zeit. Eine Fahrt mit Lift
+     oder Shuttle höbe das Limit ebenso; dagegen steht das „Ja".
 
 Gemerkte Startpunkte (#543) sind ein eigenes Thema mit eigenem Konzept
 (neue Datenkategorie, Teilen unter Buddys) und hängen nicht an diesen
