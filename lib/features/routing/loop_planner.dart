@@ -1240,7 +1240,9 @@ enum RouteMode { direct, fun, easy }
 class LoopPrefs {
   const LoopPrefs({
     required this.hours,
-    required this.climbM,
+    required this.bike,
+    required this.climbBioM,
+    required this.climbEbikeM,
     required this.hikingKm,
     required this.endMode,
     this.radiusKm = kLoopReachM / 1000,
@@ -1249,10 +1251,56 @@ class LoopPrefs {
     this.style = RouteMode.direct,
     this.easyUp = false,
     this.intentRoute = false,
+    this.declinedBioM,
+    this.declinedEbikeM,
   });
 
   final double hours;
-  final double climbM;
+
+  /// Das Rad, dessen Limit [climbM] ist — beim Lesen das gewählte Profil,
+  /// danach [withBike]. Nicht gemerkt: Das Rad steht in
+  /// `Settings.riderProfile`.
+  final RiderProfile bike;
+
+  /// Das Höhenmeter-Limit je Rad (#516 Schritt 6, Konzept-Routing 12.5a):
+  /// Bio und E-Bike haben je ihres, der Regler stellt das des gewählten
+  /// Rads, eine Fahrt hebt das ihres Rads an (Betreiber, 2026-11-14). Bis
+  /// 0.176.0 gab es eine Zahl für beide (`c`), die beim Radwechsel nur
+  /// mitsprang, solange sie auf der Vorgabe stand.
+  final double climbBioM, climbEbikeM;
+
+  /// Ein „Nein" zum Anheben (12.5a): der abgelehnte Wert je Rad. Gefragt
+  /// wird erst wieder, wenn eine Fahrt ihn um einen Schritt übertrifft.
+  final double? declinedBioM, declinedEbikeM;
+
+  /// Das Limit des Rads, mit dem gerade geplant wird.
+  double get climbM => climbOf(bike);
+
+  double climbOf(RiderProfile p) => p == RiderProfile.ebike ? climbEbikeM : climbBioM;
+
+  double? declinedOf(RiderProfile p) => p == RiderProfile.ebike ? declinedEbikeM : declinedBioM;
+
+  /// Dieselben Regler für ein anderes Rad — sein eigenes Limit.
+  LoopPrefs withBike(RiderProfile p) => _with(bike: p);
+
+  /// Das Limit eines Rads, geklemmt auf die Spanne des Reglers.
+  LoopPrefs withClimb(RiderProfile p, double m) {
+    final v = m.clamp(minClimb, maxClimb).toDouble();
+    return p == RiderProfile.ebike ? _with(climbEbikeM: v) : _with(climbBioM: v);
+  }
+
+  /// Limits und „Nein" aus [other], alles andere bleibt — „Rückgängig"
+  /// nach einer Antwort, ohne Regler zurückzudrehen, die seither standen.
+  LoopPrefs withLimitsOf(LoopPrefs other) => _with(
+      climbBioM: other.climbBioM,
+      climbEbikeM: other.climbEbikeM,
+      declinedBioM: () => other.declinedBioM,
+      declinedEbikeM: () => other.declinedEbikeM);
+
+  /// Ein „Nein" merken ([m]) oder vergessen (null).
+  LoopPrefs withDeclined(RiderProfile p, double? m) => p == RiderProfile.ebike
+      ? _with(declinedEbikeM: () => m)
+      : _with(declinedBioM: () => m);
   final double hikingKm;
   /// Gemerkt wird der Modus, nicht das Ziel — das gilt wie ein getippter
   /// Start nur für die Sitzung.
@@ -1301,8 +1349,13 @@ class LoopPrefs {
   static const minRadiusKm = 2.0, maxRadiusKm = 30.0, radiusStep = 1.0;
 
   /// Die Vorgaben je Profil (die Höhenmeter hängen am Profil).
-  static LoopPrefs defaults(RiderProfile p) =>
-      LoopPrefs(hours: kBudgetHours, climbM: p.budgetClimbM, hikingKm: kBudgetHikingKm, endMode: LoopEndMode.loop);
+  static LoopPrefs defaults(RiderProfile p) => LoopPrefs(
+      hours: kBudgetHours,
+      bike: p,
+      climbBioM: RiderProfile.bio.budgetClimbM,
+      climbEbikeM: RiderProfile.ebike.budgetClimbM,
+      hikingKm: kBudgetHikingKm,
+      endMode: LoopEndMode.loop);
 
   /// Liest, was gespeichert ist; Unlesbares oder Fehlendes ergibt die
   /// Vorgabe, jeder Wert einzeln auf seine Spanne geklemmt.
@@ -1316,9 +1369,17 @@ class LoopPrefs {
     }
     double clamp(String key, double fallback, double lo, double hi) =>
         (double.tryParse(fields[key] ?? '') ?? fallback).clamp(lo, hi).toDouble();
+    double? declined(String key) => double.tryParse(fields[key] ?? '');
+    // Bis 0.176.0 eine Zahl für beide Räder (`c`): Sie gilt für das Rad,
+    // das gerade gewählt ist, das andere beginnt mit seiner Vorgabe.
+    final old = clamp('c', d.climbM, minClimb, maxClimb);
     return LoopPrefs(
       hours: clamp('h', d.hours, minHours, maxHours),
-      climbM: clamp('c', d.climbM, minClimb, maxClimb),
+      bike: p,
+      climbBioM: clamp('cb', p == RiderProfile.bio ? old : d.climbBioM, minClimb, maxClimb),
+      climbEbikeM: clamp('ce', p == RiderProfile.ebike ? old : d.climbEbikeM, minClimb, maxClimb),
+      declinedBioM: declined('nb'),
+      declinedEbikeM: declined('ne'),
       hikingKm: clamp('w', d.hikingKm, minHikingKm, maxHikingKm),
       // `r` war bis 0.122 ein Schalter (1/0); 2 ist das Ziel. Ältere Apps
       // lesen jedes „nicht 0" als Runde — und seit #356 auch diese: Das
@@ -1344,7 +1405,10 @@ class LoopPrefs {
     );
   }
 
-  String encode() => 'h=$hours;c=$climbM;w=$hikingKm;r=${switch (endMode) { LoopEndMode.loop => 1, LoopEndMode.lastTrail => 0, LoopEndMode.target => 2 }};k=$radiusKm;o=${fillOnline ? 1 : 0}'
+  // `c` bleibt für ältere Apps: das Limit des Rads von eben.
+  String encode() => 'h=$hours;c=$climbM;cb=$climbBioM;ce=$climbEbikeM'
+      '${declinedBioM == null ? '' : ';nb=$declinedBioM'}${declinedEbikeM == null ? '' : ';ne=$declinedEbikeM'}'
+      ';w=$hikingKm;r=${switch (endMode) { LoopEndMode.loop => 1, LoopEndMode.lastTrail => 0, LoopEndMode.target => 2 }};k=$radiusKm;o=${fillOnline ? 1 : 0}'
       ';sr=${route.avoidRoads ? 1 : 0};sw=${route.avoidHiking ? 1 : 0};ss=${route.avoidSteep ? 1 : 0}'
       ';y=${switch (style) { RouteMode.direct => 'd', RouteMode.fun => 'f', RouteMode.easy => 'e' }};u=${easyUp ? 1 : 0};a=${intentRoute ? 1 : 0}';
 
@@ -1361,6 +1425,7 @@ class LoopPrefs {
     return scaled.clamp(minClimb, math.max(minClimb, climbM)).toDouble();
   }
 
+  /// [climbM] stellt das Limit des Rads [bike].
   LoopPrefs copyWith(
           {double? hours,
           double? climbM,
@@ -1372,9 +1437,40 @@ class LoopPrefs {
           RouteMode? style,
           bool? easyUp,
           bool? intentRoute}) =>
+      (climbM == null ? this : withClimb(bike, climbM))._with(
+        hours: hours,
+        hikingKm: hikingKm,
+        endMode: endMode,
+        radiusKm: radiusKm,
+        fillOnline: fillOnline,
+        route: route,
+        style: style,
+        easyUp: easyUp,
+        intentRoute: intentRoute,
+      );
+
+  LoopPrefs _with(
+          {double? hours,
+          RiderProfile? bike,
+          double? climbBioM,
+          double? climbEbikeM,
+          double? Function()? declinedBioM,
+          double? Function()? declinedEbikeM,
+          double? hikingKm,
+          LoopEndMode? endMode,
+          double? radiusKm,
+          bool? fillOnline,
+          RoutePrefs? route,
+          RouteMode? style,
+          bool? easyUp,
+          bool? intentRoute}) =>
       LoopPrefs(
         hours: hours ?? this.hours,
-        climbM: climbM ?? this.climbM,
+        bike: bike ?? this.bike,
+        climbBioM: climbBioM ?? this.climbBioM,
+        climbEbikeM: climbEbikeM ?? this.climbEbikeM,
+        declinedBioM: declinedBioM == null ? this.declinedBioM : declinedBioM(),
+        declinedEbikeM: declinedEbikeM == null ? this.declinedEbikeM : declinedEbikeM(),
         hikingKm: hikingKm ?? this.hikingKm,
         endMode: endMode ?? this.endMode,
         radiusKm: radiusKm ?? this.radiusKm,

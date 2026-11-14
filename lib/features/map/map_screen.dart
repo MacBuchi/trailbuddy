@@ -22,6 +22,7 @@ import '../help/tab_tours.dart' show startWelcomeTour;
 import '../highlights/highlight_sheet.dart' show maybeShowHighlights;
 import '../rides/airtime_live.dart';
 import '../rides/airtime_live_window.dart';
+import '../rides/climb_limit_row.dart' show offerClimbLimitAfter, takePendingClimbLimit;
 import '../../core/screen_awake.dart';
 import '../rides/mark_name_dialog.dart';
 import '../rides/ride_mark_name.dart';
@@ -1029,8 +1030,14 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     }
     _fittedOnce = true;
     _fitPoints([for (final p in ride.points) LatLng(p.lat, p.lng)]);
-    final discard = await showRideSplitSheet(context, SplitRequest.fromRide(ride), offerDiscard: true);
+    // Höhenmeter über dem Limit des Rads? EINE Zeile im Blatt (#516
+    // Schritt 6, Konzept-Routing 12.5a).
+    final climbOffer = offerClimbLimitAfter(ref, ride);
+    final discard =
+        await showRideSplitSheet(context, SplitRequest.fromRide(ride), offerDiscard: true, climbOffer: climbOffer);
     if (!mounted || !discard) return;
+    // Eine verworfene Fahrt fragt auch im Planer nichts mehr.
+    if (climbOffer != null) takePendingClimbLimit(ref);
     await ref.read(ridesProvider.notifier).delete(ride.id);
   }
 

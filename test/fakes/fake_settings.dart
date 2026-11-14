@@ -198,6 +198,14 @@ class FakeSettings implements Settings {
   String? loopPlannerPrefs;
 
   @override
+  String? climbLimitPending;
+
+  @override
+  Future<void> setClimbLimitPending(String? value) async {
+    climbLimitPending = value;
+  }
+
+  @override
   Future<void> setLoopPlannerPrefs(String value) async {
     loopPlannerPrefs = value;
   }

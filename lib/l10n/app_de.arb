@@ -10263,5 +10263,85 @@
         "type": "String"
       }
     }
+  },
+  "climbLimitAsk": "{climb} hm geschafft — Limit fürs {bike} von {from} auf {to} hm anheben?",
+  "@climbLimitAsk": {
+    "description": "Eine Zeile am Ende der Fahrt (Zerlege-Blatt) und einmal im Einstieg des Planers: Die Fahrt stieg mehr als das Höhenmeter-Limit des Rads; Vorschlag, es anzuheben.",
+    "placeholders": {
+      "climb": {
+        "type": "int"
+      },
+      "bike": {
+        "type": "String"
+      },
+      "from": {
+        "type": "int"
+      },
+      "to": {
+        "type": "int"
+      }
+    }
+  },
+  "climbLimitRaise": "Anheben",
+  "@climbLimitRaise": {
+    "description": "Knopf an der Frage climbLimitAsk: das Limit anheben."
+  },
+  "climbLimitKeep": "Nein",
+  "@climbLimitKeep": {
+    "description": "Knopf an der Frage climbLimitAsk: das Limit lassen."
+  },
+  "climbLimitEbikeAsk": "{climb} hm — sah nach E-Bike aus. War es eins?",
+  "@climbLimitEbikeAsk": {
+    "description": "Statt climbLimitAsk, wenn die als Bio-Bike aufgezeichnete Fahrt nach der Steigrate deutlich nach E-Bike aussah.",
+    "placeholders": {
+      "climb": {
+        "type": "int"
+      }
+    }
+  },
+  "climbLimitEbikeYes": "Ja, E-Bike",
+  "@climbLimitEbikeYes": {
+    "description": "Knopf an climbLimitEbikeAsk: die Fahrt als E-Bike-Fahrt einordnen."
+  },
+  "climbLimitEbikeNo": "Nein, Bio-Bike",
+  "@climbLimitEbikeNo": {
+    "description": "Knopf an climbLimitEbikeAsk: es war das Bio-Bike — das hebt dessen Limit an."
+  },
+  "climbLimitRaised": "Limit fürs {bike} jetzt {to} hm",
+  "@climbLimitRaised": {
+    "description": "Nach dem Anheben: das neue Höhenmeter-Limit des Rads, daneben Rückgängig.",
+    "placeholders": {
+      "bike": {
+        "type": "String"
+      },
+      "to": {
+        "type": "int"
+      }
+    }
+  },
+  "climbLimitMoved": "Als E-Bike-Fahrt gespeichert",
+  "@climbLimitMoved": {
+    "description": "Nach „Ja, E-Bike“, wenn die Fahrt das Limit des E-Bikes nicht übertrifft."
+  },
+  "climbLimitMovedRaised": "Als E-Bike-Fahrt gespeichert · Limit fürs E-Bike jetzt {to} hm",
+  "@climbLimitMovedRaised": {
+    "description": "Nach „Ja, E-Bike“, wenn die Fahrt auch das Limit des E-Bikes übertraf: Es ist angehoben.",
+    "placeholders": {
+      "to": {
+        "type": "int"
+      }
+    }
+  },
+  "climbLimitDeclined": "Limit fürs {bike} bleibt bei {from} hm",
+  "@climbLimitDeclined": {
+    "description": "Nach „Nein“ an climbLimitAsk; gefragt wird erst wieder nach einer Fahrt mit noch mehr Anstieg.",
+    "placeholders": {
+      "bike": {
+        "type": "String"
+      },
+      "from": {
+        "type": "int"
+      }
+    }
   }
 }

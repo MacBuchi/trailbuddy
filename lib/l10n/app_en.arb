@@ -1917,5 +1917,15 @@
   "demoPlannerEntry1Text": "The button opens the planner — it first asks what you have in mind.",
   "demoPlannerEntry2Title": "Loop or route",
   "demoPlannerEntry2Text": "Pick loop or route, then start and time or end — everything is preset. For a route the app computes as soon as the end is set.",
-  "loopEntryHours": "about {time}"
+  "loopEntryHours": "about {time}",
+  "climbLimitAsk": "{climb} m climbed — raise the limit for the {bike} from {from} to {to} m?",
+  "climbLimitRaise": "Raise",
+  "climbLimitKeep": "No",
+  "climbLimitEbikeAsk": "{climb} m climbed — looked like an e-bike. Was it one?",
+  "climbLimitEbikeYes": "Yes, e-bike",
+  "climbLimitEbikeNo": "No, bio bike",
+  "climbLimitRaised": "Limit for the {bike} now {to} m",
+  "climbLimitMoved": "Saved as an e-bike ride",
+  "climbLimitMovedRaised": "Saved as an e-bike ride · e-bike limit now {to} m",
+  "climbLimitDeclined": "Limit for the {bike} stays at {from} m"
 }

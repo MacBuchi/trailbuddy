@@ -2,6 +2,28 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Das Höhenmeter-Limit wächst mit deinen Fahrten
+
+*Version 0.177.0, 2026-11-14*
+
+- **Ein Limit je Rad:** Bio-Bike und E-Bike haben im Planer jetzt je ihr
+  eigenes Höhenmeter-Limit. Wechselst du das Rad, gilt dessen Limit;
+  was du vorher eingestellt hattest, gilt weiter für das Rad, das
+  gerade gewählt war.
+- **Mehr geschafft, als das Limit sagt?** Bist du mit einer
+  aufgezeichneten Fahrt mindestens 100 hm über dem Limit deines Rads
+  gefahren, fragt eine Zeile im Blatt am Ende der Fahrt: „1100 hm
+  geschafft — Limit fürs Bio-Bike von 800 auf 1100 hm anheben?" Die App
+  hebt nur an, wenn du „Anheben" tippst, und senkt nie. Mit
+  „Rückgängig" nimmst du die Antwort zurück.
+- **Nur eine Frage, und selten:** Nach „Nein" fragt die App erst wieder,
+  wenn eine Fahrt noch einmal 100 hm mehr hatte. Sah eine als Bio-Bike
+  aufgezeichnete Fahrt deutlich nach E-Bike aus, lautet die eine Frage
+  „War es eins?" — „Ja" ordnet die Fahrt um, „Nein" hebt das Limit des
+  Bio-Bikes an. Schließt du das Blatt ohne Antwort, steht die Zeile
+  einmal im Planer, wenn du ihn das nächste Mal öffnest. Alles bleibt
+  auf dem Gerät.
+
 ## Der Vorschlag kennt deine Lieblings-Trails
 
 *Version 0.176.0, 2026-11-14*
