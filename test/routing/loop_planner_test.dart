@@ -145,16 +145,17 @@ void main() {
   });
 
   group('die Vorliebe (#516 Schritt 5, Konzept-Routing 12.4)', () {
-    test('das Gewicht: eigene Sterne und Fahrten, je bis +30 %, zusammen höchstens +50 %', () {
+    test('das Gewicht: eigene Sterne und Fahrten, Sterne bis +30 %, Fahrten bis +60 %, zusammen höchstens +80 %', () {
       expect(loopPreferenceWeight(), 1);
       expect(loopPreferenceWeight(ownRating: 3), 1, reason: 'nur gute Sterne zählen');
       expect(loopPreferenceWeight(ownRating: 4), closeTo(1.15, 1e-9));
       expect(loopPreferenceWeight(ownRating: 5), closeTo(1.3, 1e-9));
-      expect(loopPreferenceWeight(rides: 1), closeTo(1.06, 1e-9));
-      expect(loopPreferenceWeight(rides: 5), closeTo(1.3, 1e-9));
-      expect(loopPreferenceWeight(rides: 50), closeTo(1.3, 1e-9), reason: 'gesättigt ab fünf');
-      expect(loopPreferenceWeight(ownRating: 5, rides: 5), closeTo(1.5, 1e-9));
-      expect(loopPreferenceWeight(ownRating: 4, rides: 2), closeTo(1.27, 1e-9));
+      expect(loopPreferenceWeight(rides: 1), closeTo(1.12, 1e-9));
+      expect(loopPreferenceWeight(rides: 5), closeTo(1.6, 1e-9));
+      expect(loopPreferenceWeight(rides: 50), closeTo(1.6, 1e-9), reason: 'gesättigt ab fünf');
+      expect(loopPreferenceWeight(ownRating: 5, rides: 5), closeTo(1.8, 1e-9));
+      expect(loopPreferenceWeight(ownRating: 5, rides: 4), closeTo(1.78, 1e-9), reason: 'unter der Kappe');
+      expect(loopPreferenceWeight(ownRating: 4, rides: 2), closeTo(1.39, 1e-9));
     });
 
     // Eine Straße nach Osten mit zwei Stichen zu je einem Trail: der frühe

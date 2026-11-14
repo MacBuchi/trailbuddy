@@ -2237,7 +2237,7 @@ void main() {
       await tapKey(tester, 'loop-entry-go', frames: 30);
       final pool = runner.requests.last.pool;
       expect(pool.map((t) => t.id), [hex]);
-      expect(pool.single.weight, closeTo(1 + 0.15 + 0.06, 1e-9), reason: '4 eigene Sterne und eine Fahrt');
+      expect(pool.single.weight, closeTo(1 + 0.15 + 0.12, 1e-9), reason: '4 eigene Sterne und eine Fahrt');
       expect(rides.countWrites, 0, reason: 'die Fahrt stand schon in der Datei');
       final plan = session(tester).plan!;
       final passes = plan.stops.length; // die zweite Abfahrt (4 Sterne) mit 30 %

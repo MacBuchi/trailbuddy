@@ -83,11 +83,15 @@ const kLoopSecondPassShare = 0.3;
 /// [kLoopPrefRatingMax] für die eigene Bewertung (5 Sterne voll, 4 halb,
 /// darunter nichts), bis [kLoopPrefRidesMax] für die Häufigkeit (voll ab
 /// [kLoopPrefRidesFull] Fahrten), zusammen höchstens [kLoopPrefMax].
-/// Startwerte des Konzepts, an eigenen Runden zu prüfen.
+/// Seit 0.177.1 die Fahrten doppelt so stark (+12 % je Fahrt) und
+/// zusammen +80 %: Mit den Startwerten (+6 %, +50 %) änderte die Vorliebe
+/// im eigenen Netz 1 von 11 Vorschlägen um einen Trail
+/// (`docs/routing-messung.md`, „#516 — der Vorschlag im eigenen Netz";
+/// Betreiber 2026-11-14).
 const kLoopPrefRatingMax = 0.3;
-const kLoopPrefRidesMax = 0.3;
+const kLoopPrefRidesMax = 0.6;
 const kLoopPrefRidesFull = 5;
-const kLoopPrefMax = 0.5;
+const kLoopPrefMax = 0.8;
 
 /// Das Gewicht eines Trails aus [ownRating] (die EIGENE Bewertung, nicht
 /// der Median) und [rides] (Fahrten auf dem Gerät, die ihn befahren) —
