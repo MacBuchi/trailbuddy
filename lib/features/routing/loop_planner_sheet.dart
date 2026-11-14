@@ -480,9 +480,13 @@ class _ListSheet extends ConsumerWidget {
 /// Rechnet und zeigt das Ergebnis am Scaffold der Karte. Zu heißt:
 /// Ergebnis weg, der Modus bleibt. Ohne [compute] zeigt es, was schon
 /// da ist („Rückgängig" nach dem Schließen, Konzept-Routing 10.5).
-Future<void> showLoopResultPanel(ScaffoldState scaffold, {bool compute = true}) async {
+///
+/// Mit [suggest] rechnet es den Vorschlag (#516 Schritt 4, „Runde
+/// vorschlagen").
+Future<void> showLoopResultPanel(ScaffoldState scaffold, {bool compute = true, bool suggest = false}) async {
   final container = ProviderScope.containerOf(scaffold.context, listen: false);
-  if (compute) unawaited(container.read(loopPlannerProvider.notifier).compute());
+  final planner = container.read(loopPlannerProvider.notifier);
+  if (compute) unawaited(suggest ? planner.suggest() : planner.compute());
   await showMapPanel(
     scaffold,
     initialSize: kMapPanelPool,
@@ -675,11 +679,29 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
         child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Icon(Icons.info_outline, color: palette.warningText),
           const SizedBox(width: 10),
-          Expanded(child: _notice(context, _blockerText(context.l10n, session, b))),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              _notice(context, _blockerText(context.l10n, session, b)),
+              if (b == LoopBlocker.noTrailsInReach)
+                if (ref.read(loopPlannerProvider.notifier).widerReachM case final wider?) _widerButton(context, wider),
+            ]),
+          ),
         ]),
       ),
     );
   }
+
+  /// „Weiter suchen" (Konzept-Routing 12.5): derselbe Vorschlag aus dem
+  /// nächsten Umkreis [wider].
+  Widget _widerButton(BuildContext context, double wider) => Align(
+        alignment: Alignment.centerLeft,
+        child: TextButton.icon(
+          key: const ValueKey('loop-wider'),
+          onPressed: () => unawaited(ref.read(loopPlannerProvider.notifier).suggestWider()),
+          icon: const Icon(Icons.zoom_out_map),
+          label: Text(context.l10n.loopSuggestWider(loopReachLabel(wider))),
+        ),
+      );
 
   /// Eine Eingabe hat sich geändert (#356, D3): Die Linie ist weg, und
   /// gerechnet wird erst auf Wunsch — wer mehrere Trails dazunimmt, will
@@ -732,9 +754,21 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
     // letzten Trail); eine Route zu einem Ziel rechnet ohne Zeit als
     // Richtwert, die Skalen sagten dort nichts.
     final budget = !plan.isEmpty && !session.planBare && session.planEnd != LoopEndMode.target
-        ? session.prefs.budget
+        ? session.planBudget
         : null;
+    final reach = session.suggestReachM;
+    final wider = ref.read(loopPlannerProvider.notifier).widerReachM;
     return [
+      // Der Planer hat selbst gewählt (#516 Schritt 4, Konzept-Routing
+      // 12.4): Das Blatt sagt, dass es ein Vorschlag ist.
+      if (reach != null) ...[
+        Text(
+          key: const ValueKey('loop-suggest'),
+          l.loopSuggestLine({for (final st in plan.stops) st.trail.id}.length, loopReachLabel(reach)),
+          style: theme.textTheme.titleSmall,
+        ),
+        const SizedBox(height: 6),
+      ],
       // Vier Kacheln statt eines Satzes (#517, Konzept-Geräte 5.2): Länge,
       // bergauf, auf Trails (ohne Trail — die Route von A nach B, #356 —
       // bergab), Zeit. Eine Runde trägt unter „Bergauf" und „Zeit" ihre
@@ -806,8 +840,16 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
               start: navStartChoiceOf(ref, canRecord: canRecord)),
         ),
       ),
-      // Speichern und GPX darunter.
+      // Speichern und GPX darunter, beim Vorschlag zuerst „Bearbeiten":
+      // in die Bearbeitung, mit den Trails des Vorschlags gewählt.
       Wrap(children: [
+        if (reach != null)
+          TextButton.icon(
+            key: const ValueKey('loop-edit'),
+            onPressed: widget.panel.close,
+            icon: const Icon(Icons.edit_outlined),
+            label: Text(l.loopSuggestEdit),
+          ),
         TextButton.icon(
           key: const ValueKey('loop-save'),
           onPressed: () => _saveRide(session, plan),
@@ -834,16 +876,20 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
         ].join(' · '),
         style: theme.textTheme.bodyMedium,
       ),
-      // Kein Stand im Fenster (Konzept-Routing 12.5): der längste darunter,
-      // und das Blatt sagt es. „Weiter suchen" kommt mit dem Pool aus dem
-      // Umkreis (12.9 Schritt 4) — beim Bearbeiten ist der Pool die Auswahl.
+      // Unter dem Fenster (Konzept-Routing 12.5): bewusst, weil der
+      // Trail-Anteil deutlich besser war (Betreiber, 2026-11-14) — oder
+      // weil nichts mehr passte; dann beim Vorschlag „Weiter suchen" im
+      // nächsten Umkreis. Beim Bearbeiten ist der Pool die Auswahl.
       if (budget != null && !session.tuned && s.timeS < budget.minTimeS) ...[
         const SizedBox(height: 4),
         Text(
-          key: const ValueKey('loop-short'),
-          l.loopShortNote(loopHoursLabel(l, session.prefs.hours)),
+          key: ValueKey(plan.shortForShare ? 'loop-short-share' : 'loop-short'),
+          plan.shortForShare
+              ? l.loopShortShareNote(loopHoursLabel(l, session.prefs.hours))
+              : l.loopShortNote(loopHoursLabel(l, session.prefs.hours)),
           style: theme.textTheme.bodyMedium,
         ),
+        if (!plan.shortForShare && wider != null) _widerButton(context, wider),
       ],
       if (session.planBare && session.prefs.style == RouteMode.easy) ...[
         const SizedBox(height: 4),
@@ -890,7 +936,7 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
         onReset: () => unawaited(ref.read(loopPlannerProvider.notifier).resetTuning()),
         keyPrefix: 'loop',
       ),
-      if (session.tuned && !_fitsBudget(s, session.prefs.budget))
+      if (session.tuned && !_fitsBudget(s, session.planBudget))
         Text(
           key: const ValueKey('loop-tuned-over'),
           l.loopTunedOver,
@@ -1058,6 +1104,7 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
     final route = session.prefs.endMode == LoopEndMode.target && session.selected.isEmpty;
     return switch (b) {
       LoopBlocker.noTrails => l.loopBlockerNoTrails,
+      LoopBlocker.noTrailsInReach => l.loopBlockerNoTrailsInReach(loopReachLabel(session.suggestReachM ?? kLoopReachM)),
       LoopBlocker.noPosition => route ? l.routeBlockerNoPosition : l.loopBlockerNoPosition,
       LoopBlocker.noTarget => l.loopBlockerNoTarget,
       LoopBlocker.noArea => !route
@@ -1277,3 +1324,7 @@ class _ScalePainter extends CustomPainter {
       old.track != track ||
       old.tick != tick;
 }
+
+/// Ein Umkreis des Vorschlags (#516 Schritt 4): ganze Kilometer ohne
+/// „,0" („10 km", „6,5 km").
+String loopReachLabel(double m) => formatMeters(m).replaceAll(',0 km', ' km');

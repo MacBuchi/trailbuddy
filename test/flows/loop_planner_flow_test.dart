@@ -2171,7 +2171,7 @@ void main() {
 
     String hours(WidgetTester tester) => tester.widget<Text>(find.byKey(const ValueKey('loop-entry-hours'))).data!;
 
-    testWidgets('der Knopf fragt erst: Runde vorbelegt, Zeit mit − / +, „Trails wählen" führt in die Bearbeitung',
+    testWidgets('der Knopf fragt erst: Runde vorbelegt, Zeit mit − / +, „Runde vorschlagen" rechnet aus dem Umkreis',
         (tester) async {
       final settings = FakeSettings();
       await start(tester, areaStore: await _areaWithTrack(), settings: settings);
@@ -2190,12 +2190,47 @@ void main() {
       expect(hours(tester), 'etwa 2 h 30 min');
       expect(settings.loopPlannerPrefs, contains('h=2.5'), reason: 'die Zeit ist gemerkt');
 
-      await tapKey(tester, 'loop-entry-go');
+      // Drei Tipps (12.3): Planer → Runde (vorbelegt) → „Runde vorschlagen".
+      expect(find.text('Runde vorschlagen'), findsOneWidget);
+      await tapKey(tester, 'loop-entry-go', frames: 30);
       expect(find.byKey(const ValueKey('loop-entry')), findsNothing);
-      expect(find.byKey(const ValueKey('loop-tool-rail')), findsOneWidget);
+      expect(find.byKey(const ValueKey('loop-summary')), findsOneWidget, reason: 'gerechnet, ohne einen Trail anzutippen');
+      final s = session(tester);
+      expect(s.suggestReachM, 10000, reason: '2,5 h → 10 km (Konzept-Routing 12.4)');
+      expect(s.plan!.stops.map((st) => st.trail.id).toSet(), {hex},
+          reason: 'gemeldet bleibt draußen (8.8), Fernweh liegt 22 km weit');
+      expect(s.selected, {hex}, reason: 'die Trails des Vorschlags sind die Auswahl');
+      expect(s.changed, isFalse);
+      expect(s.prefs.endMode, LoopEndMode.loop);
+      expect(find.text('Vorschlag: 1 Trail in 10 km'), findsOneWidget);
+
+      // „Bearbeiten": das Ergebnis geht zu, die Auswahl bleibt.
+      await tester.ensureVisible(find.byKey(const ValueKey('loop-edit')));
+      await settle(tester, frames: 4);
+      await tapKey(tester, 'loop-edit', frames: 10);
+      expect(find.byKey(const ValueKey('loop-summary')), findsNothing);
+      expect(find.byKey(const ValueKey('loop-bar')), findsOneWidget);
       expect(find.byKey(const ValueKey('loop-head')), findsOneWidget);
-      expect(session(tester).prefs.endMode, LoopEndMode.loop);
+      expect(session(tester).selected, {hex});
+      expect(session(tester).suggestReachM, isNull, reason: 'neu gerechnet wird aus der Auswahl');
       expect(find.textContaining('2 h 30 min'), findsOneWidget, reason: 'das Budget im Kopf trägt die Zeit');
+    });
+
+    testWidgets('kein Trail im Umkreis: ein Satz und „Weiter suchen" im nächsten Umkreis', (tester) async {
+      // 6,7 km südlich des Trails, 1 h → 5 km: nichts im Umkreis.
+      const far = LatLng(48.0 - 0.06, _lon);
+      await start(tester,
+          areaStore: await _areaWithTrack(),
+          settings: FakeSettings()..loopPlannerPrefs = 'h=1',
+          positionFix: FakePositionFix(fakePosition(far.latitude, far.longitude)));
+      await openEntry(tester);
+      await tapKey(tester, 'loop-entry-go', frames: 30);
+      expect(session(tester).blocker, LoopBlocker.noTrailsInReach);
+      expect(find.textContaining('Keine Trails in 5 km um den Start'), findsOneWidget);
+      expect(find.text('Weiter suchen: 8 km'), findsOneWidget);
+      await tapKey(tester, 'loop-wider', frames: 30);
+      expect(session(tester).suggestReachM, 8000, reason: 'derselbe Vorschlag im nächsten Umkreis');
+      expect(session(tester).blocker, isNot(LoopBlocker.noTrailsInReach), reason: 'in 8 km liegt der Hexentanz');
     });
 
     testWidgets('Route in drei Tipps: Planer, „Route", Tipp auf die Karte — gerechnet, gemerkt', (tester) async {

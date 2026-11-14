@@ -1827,8 +1827,8 @@ und Endpunkt. Der Endpunkt erscheint auch erst nach Longpress …
 Generell sind es vielleicht etwas zu viele Optionen … Zum Bearbeiten ist
 es ok, aber für den initialen Vorschlag sollte es sehr einfach mit
 wenigen Klicks gehen." Dieser Abschnitt ist der Plan dazu; gebaut ist
-Schritt 1 aus 12.9 (0.172.0), Schritt 2 (0.173.0) und Schritt 3
-(0.174.0). Er ersetzt den Entwurf „Planer" aus `konzept-geraete.md`
+Schritt 1 aus 12.9 (0.172.0), Schritt 2 (0.173.0), Schritt 3
+(0.174.0) und Schritt 4 (0.175.0). Er ersetzt den Entwurf „Planer" aus `konzept-geraete.md`
 5.2 (Kopf mit „Runde | Route") und erweitert #516. Wo er 4, 10.2 und
 10.3 widerspricht, gilt er, sobald der jeweilige Schritt aus 12.9 gebaut
 ist — der PR zieht die Stelle dann nach.*
@@ -2255,6 +2255,38 @@ einem Schritt auf der normalen Karte.
    Anteil verliert (E 5 h: 5 h 25 mit 21 % statt 4 h 12 mit 28 %), und
    bei 1 h hebt ± 30 min die Runde auf 1 h 11; der Pool aus dem eigenen
    Netz ist noch nicht gemessen (💻).
+   **Betreiber, 2026-11-14, nach der Messung**: Ein Stand unter dem
+   Fenster gewinnt, wenn sein Anteil deutlich besser ist; unter 2 h ist
+   das Fenster ein Viertel der Zeit („Für den initialen Vorschlag finde
+   ich deine Lösung gut").
+   **Gebaut, 0.175.0** (`loop_planner.dart`: `loopSuggestReachM`,
+   `LoopPrefs.suggestBudget`, `loopWindowFor`, `chooseState`;
+   `LoopPlannerNotifier.suggest`/`suggestWider`). Beim Bau entschieden:
+   - **Der Umkreis** ist linear zwischen 1 h → 5 km, 2 h → 8 km, 3 h →
+     12 km und 4 h → 15 km, darüber 15 km. „Weiter suchen" nimmt die
+     nächste Stufe aus 5 · 8 · 12 · 15 · 20 km — im Ergebnis, wenn kein
+     Stand im Fenster lag, und beim leeren Umkreis
+     (`LoopBlocker.noTrailsInReach`, ein Satz mit „Route" als Rat).
+   - **Die Höhenmeter skalieren das gemerkte Limit**, nicht die Vorgabe
+     des Rads: `climbM × Zeit / 3 h`, auf 100 hm gerundet, nie über dem
+     Limit. Unverändert ist das die Vorgabe aus 12.4; ein angehobenes
+     Limit (12.5a) zählt mit. Über 3 h bleibt es beim Limit — anders
+     als in der Messung, die über 3 h weiter linear rechnete.
+   - **Ein Stand unter dem Fenster gewinnt ab 5 Prozentpunkten mehr
+     Anteil** (`kLoopShareBelow`), nicht unter Zeit − 2 × Fenster
+     (`LoopBudget.floorTimeS`) — sonst gewänne bei 5 h eine 40-min-Runde
+     mit einem Trail am Start. Das Blatt sagt es anders als „nichts
+     passte mehr" (`LoopPlan.shortForShare`, `loop-short-share`).
+     Messung danach: E-Bike 5 h 4 h 03 mit 29 % statt 5 h 25 mit 21 %.
+   - **Das Fenster gilt auch beim Bearbeiten** (`LoopPrefs.budget`), wie
+     12.5 es für die Zeit verlangt.
+   - **Nach dem Vorschlag sind seine Trails die Auswahl** (ohne
+     „geändert"); „Bearbeiten" schließt das Ergebnis, die Bearbeitung
+     rechnet danach aus der Auswahl mit dem Regler der Bearbeitung.
+     Rad und Stil im Ergebnis rechnen den Vorschlag neu, aus dem Umkreis.
+   - **Nicht gebaut: ein Tipp auf die Kachel öffnet „Anpassen"** — er
+     bleibt bei #549 (die Zeitskala mit den Ständen als Punkte), die
+     ohnehin an dieser Stelle ansetzt.
 5. **Vorliebe** (12.4): Zähler je Trail, Aufschlag in der Zielfunktion
    — ☁️ bauen · 💻 prüfen.
 6. **Limit aus Fahrten** (12.5a): die eine Zeile am Ende der Fahrt,

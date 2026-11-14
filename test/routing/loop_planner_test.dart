@@ -268,8 +268,49 @@ void main() {
       expect(share(plan), greaterThan(share(both)), reason: 'Vorbedingung: N allein hat den besseren Anteil');
       expect(plan.stops.map((s) => s.trail.id), ['N'], reason: 'der längste Stand wäre N + F');
       expect(plan.excluded, {'F': LoopExclusion.budget});
-      // Liegt nur noch die volle Runde im Fenster, gewinnt sie.
-      expect(go(t1 + kLoopTimeWindowS + 60).stops, hasLength(2));
+      expect(plan.shortForShare, isFalse, reason: 'N liegt im Fenster');
+      // Liegt nur noch die volle Runde im Fenster, gewinnt N darunter, weil
+      // sein Anteil deutlich besser ist (Betreiber, 2026-11-14) …
+      expect(share(plan) - share(both), greaterThan(kLoopShareBelow), reason: 'Vorbedingung');
+      final below = go(t1 + kLoopTimeWindowS + 60);
+      expect(below.stops.map((s) => s.trail.id), ['N']);
+      expect(below.shortForShare, isTrue);
+      // … aber nicht unter Zeit − 2 × Fenster: Dort gewinnt die volle Runde.
+      final floor = go(t1 + 2 * kLoopTimeWindowS + 60);
+      expect(floor.stops, hasLength(2), reason: 'N liegt unter der Untergrenze');
+      expect(floor.shortForShare, isFalse);
+    });
+
+    test('der Vorschlag: Umkreis und Höhenmeter folgen der Zeit (Konzept-Routing 12.4)', () {
+      expect(loopSuggestReachM(1), 5000);
+      expect(loopSuggestReachM(1.5), 6500);
+      expect(loopSuggestReachM(2), 8000);
+      expect(loopSuggestReachM(3), 12000);
+      expect(loopSuggestReachM(4), 15000);
+      expect(loopSuggestReachM(6), 15000);
+      expect(loopSuggestNextReachM(5000), 8000);
+      expect(loopSuggestNextReachM(6500), 8000);
+      expect(loopSuggestNextReachM(20000), isNull);
+      final bio = LoopPrefs.defaults(RiderProfile.bio);
+      expect(bio.climbM, 800, reason: 'Vorbedingung: Vorgabe für 3 h');
+      expect(bio.copyWith(hours: 1).suggestBudget.climbM, 300, reason: '800 × 1/3, auf 100 gerundet');
+      expect(bio.copyWith(hours: 1.5).suggestBudget.climbM, 400);
+      expect(bio.copyWith(hours: 3).suggestBudget.climbM, 800);
+      expect(bio.copyWith(hours: 5).suggestBudget.climbM, 800, reason: 'nie über dem Limit');
+      // Ein angehobenes Limit zählt mit.
+      expect(bio.copyWith(hours: 1.5, climbM: 1200).suggestBudget.climbM, 600);
+      // Fenster und Zeit wie beim Bearbeiten.
+      expect(bio.copyWith(hours: 1).suggestBudget.windowS, 15 * 60);
+    });
+
+    test('unter 2 h ist das Fenster ein Viertel der Zeit (Betreiber, 2026-11-14)', () {
+      expect(loopWindowFor(3600), 15 * 60);
+      expect(loopWindowFor(1.5 * 3600), 22.5 * 60);
+      expect(loopWindowFor(2 * 3600), kLoopTimeWindowS);
+      expect(loopWindowFor(5 * 3600), kLoopTimeWindowS);
+      final prefs = LoopPrefs.defaults(RiderProfile.bio);
+      expect(prefs.copyWith(hours: 1).budget.windowS, 15 * 60);
+      expect(prefs.copyWith(hours: 3).budget.windowS, kLoopTimeWindowS);
     });
 
     test('ohne Stand im Fenster der längste darunter', () {

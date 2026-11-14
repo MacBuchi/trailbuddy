@@ -75,7 +75,7 @@ import 'trail_overlay.dart';
 /// Rechen-Isolate (am Pixel ~0,33 s je Kachel, #356), [computing] rechnet.
 enum LoopPhase { idle, locating, loading, building, computing, result }
 
-enum LoopBlocker { noPosition, noTarget, noArea, noTrails, failed, tooLarge }
+enum LoopBlocker { noPosition, noTarget, noArea, noTrails, noTrailsInReach, failed, tooLarge }
 
 /// So weit um Start, Ziel, Zwischenpunkte und gewählte Trails kommen
 /// Uphill-Trails und Verbinder in den Rahmen des Graphen (#356 PR 8,
@@ -119,7 +119,18 @@ class LoopSession {
     this.quick = false,
     this.entry = false,
     this.targetMine = false,
+    this.suggestReachM,
   });
+
+  /// Die gezeigte Planung ist ein Vorschlag (#516 Schritt 4,
+  /// Konzept-Routing 12.4): der Pool aus diesem Umkreis um den Start,
+  /// die Höhenmeter aus [LoopPrefs.suggestBudget]. Null für alles, was
+  /// aus einer Auswahl gerechnet ist.
+  final double? suggestReachM;
+
+  /// Das Budget, mit dem die gezeigte Planung gerechnet ist — Skalen,
+  /// „ca." und „Kürzer als …" im Blatt lesen es.
+  LoopBudget get planBudget => suggestReachM != null ? prefs.suggestBudget : prefs.budget;
 
   /// Der Planer-Modus ist an: Leiste links, Tipps wählen Trails.
   final bool open;
@@ -253,6 +264,7 @@ class LoopSession {
     bool? quick,
     bool? entry,
     bool? targetMine,
+    double? suggestReachM,
   }) =>
       LoopSession(
         open: open ?? this.open,
@@ -282,6 +294,7 @@ class LoopSession {
         quick: quick ?? this.quick,
         entry: entry ?? this.entry,
         targetMine: targetMine ?? this.targetMine,
+        suggestReachM: clearPlan ? suggestReachM : (suggestReachM ?? this.suggestReachM),
       );
 }
 
@@ -671,18 +684,38 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
   /// Der Stil im Ergebnis einer Route (#356, D3): gemerkt und sofort
   /// gerechnet — anders als die übrigen Eingaben.
   Future<void> setStyle(RouteMode style) {
-    final quick = state.quick;
+    final quick = state.quick, reach = state.suggestReachM;
     if (style != state.prefs.style) setPrefs(state.prefs.copyWith(style: style));
     state = state.copyWith(quick: quick);
-    return compute();
+    return compute(suggestReachM: reach);
   }
 
   /// Das Rad im Ergebnis (D3): sofort gerechnet.
   Future<void> switchProfile(RiderProfile next) {
-    final quick = state.quick;
+    final quick = state.quick, reach = state.suggestReachM;
     if (next != state.profile) setProfile(next);
     state = state.copyWith(quick: quick);
-    return compute();
+    // Ein Vorschlag bleibt ein Vorschlag: neu aus dem Umkreis, mit den
+    // Höhenmetern des anderen Rads.
+    return compute(suggestReachM: reach);
+  }
+
+  /// „Runde vorschlagen" im Einstieg (#516 Schritt 4, Konzept-Routing
+  /// 12.4): der Pool aus dem Umkreis der Zeit.
+  Future<void> suggest() => compute(suggestReachM: loopSuggestReachM(state.prefs.hours));
+
+  /// „Weiter suchen" (Konzept-Routing 12.5): derselbe Vorschlag aus dem
+  /// nächsten Umkreis. Ohne Vorschlag oder über dem letzten nichts.
+  Future<void> suggestWider() async {
+    final reach = state.suggestReachM;
+    final next = reach == null ? null : loopSuggestNextReachM(reach);
+    if (next != null) await compute(suggestReachM: next);
+  }
+
+  /// Der nächste Umkreis für „Weiter suchen", null ohne.
+  double? get widerReachM {
+    final reach = state.suggestReachM;
+    return reach == null ? null : loopSuggestNextReachM(reach);
   }
 
   /// Das Ergebnis weglegen (Blatt zu); Modus und Auswahl bleiben.
@@ -719,7 +752,13 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
   }
 
   /// Rechnen. Jeder Ausgang ist eine Phase oder ein Grund.
-  Future<void> compute() async {
+  ///
+  /// Mit [suggestReachM] ist es der Vorschlag (#516 Schritt 4): Der Pool
+  /// sind alle wählbaren Abfahrten mit beiden Enden in diesem Umkreis um
+  /// den Start (`loopPoolOf`, wie „Alle wählen"), die Höhenmeter aus
+  /// [LoopPrefs.suggestBudget]; danach sind die Trails des Vorschlags
+  /// die Auswahl — „Bearbeiten" fängt dort an.
+  Future<void> compute({double? suggestReachM}) async {
     if (state.busy) return;
     // Gerechnet wird in der Bearbeitung — auch, wenn der Einstieg gleich
     // rechnet (Route mit Ziel) oder ein Ziel von außen kam.
@@ -727,11 +766,17 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
     // Frei gerechnet: Die Punkte der alten Runde gelten nicht mehr.
     ref.read(routeViaProvider.notifier).end(ViaOwner.loop);
     _vias = RouteVias.none;
-    final chosen = [
-      for (final t in _trails)
-        if (state.selected.contains(t.id) && !t.pending && t.points.length >= 2) t,
-    ];
-    final endMode = state.prefs.endMode;
+    final suggest = suggestReachM != null;
+    var chosen = suggest
+        ? const <Trail>[]
+        : [
+            for (final t in _trails)
+              if (state.selected.contains(t.id) && !t.pending && t.points.length >= 2) t,
+          ];
+    // Ein Vorschlag ist eine Runde (oder endet am letzten Trail), nie eine
+    // Route zu einem Ziel.
+    final endMode =
+        suggest && state.prefs.endMode == LoopEndMode.target ? LoopEndMode.loop : state.prefs.endMode;
     final target = endMode == LoopEndMode.target ? state.target : null;
     if (endMode == LoopEndMode.target && target == null) {
       state = state.copyWith(phase: LoopPhase.result, blocker: LoopBlocker.noTarget, clearPlan: true, changed: false);
@@ -741,8 +786,8 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
     // Zwischenpunkte (#395): Runde zurück zum Start oder Ende am letzten
     // Punkt. Ohne beides ist nichts zu fahren.
     final waypoints = state.waypoints;
-    final bare = chosen.isEmpty && target != null;
-    final pointsOnly = chosen.isEmpty && target == null;
+    final bare = !suggest && chosen.isEmpty && target != null;
+    final pointsOnly = !suggest && chosen.isEmpty && target == null;
     if (pointsOnly && waypoints.isEmpty) {
       state = state.copyWith(phase: LoopPhase.result, blocker: LoopBlocker.noTrails, clearPlan: true, changed: false);
       return;
@@ -767,6 +812,14 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
           return;
         }
         start = LatLng(fix.latitude, fix.longitude);
+      }
+      if (suggest) {
+        chosen = loopPoolOf(_trails, start, reachM: suggestReachM).inReach;
+        if (chosen.isEmpty) {
+          state = state.copyWith(
+              phase: LoopPhase.result, blocker: LoopBlocker.noTrailsInReach, suggestReachM: suggestReachM);
+          return;
+        }
       }
       final fillOnline = state.prefs.fillOnline;
       // Die Trails, die eine spaßige Route mitnehmen darf, gleich in den
@@ -837,7 +890,11 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
           // Mit den gelernten Werten des Profils (Schritt 6), wo es welche
           // gibt; im Stil Bequem oder mit „Bergauf bequem" dessen Kosten.
           profile: ref.read(calibratedRiderProvider(state.profile)).withPrefs(state.prefs.planRoute),
-          budget: free ? kRouteDirectBudget : state.prefs.budget,
+          budget: free
+              ? kRouteDirectBudget
+              : suggest
+                  ? state.prefs.suggestBudget
+                  : state.prefs.budget,
           pool: [
             for (final t in chosen)
               if (!direct || state.mandatory.contains(t.id))
@@ -859,6 +916,9 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
       state = state.copyWith(
           phase: LoopPhase.result,
           plan: plan,
+          suggestReachM: suggestReachM,
+          // Die Trails des Vorschlags sind die Auswahl, ohne „geändert".
+          selected: suggest ? {for (final st in plan.stops) st.trail.id} : null,
           planStart: snapped(SnapRole.start) ?? start,
           planEnd: endMode,
           planBare: bare,

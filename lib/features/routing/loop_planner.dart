@@ -27,6 +27,8 @@
 // Die Engine urteilt nie über Erlaubnis (Konzept 7): Wanderweg zählt gegen
 // das Budget und steht im Ergebnis; ob man dort fahren darf, sagt sie
 // nicht. Rein, ohne Widgets, ohne Riverpod, ohne Platte.
+import 'dart:math' as math;
+
 import 'package:latlong2/latlong.dart';
 
 import '../../l10n/l10n.dart';
@@ -49,6 +51,21 @@ import 'trail_overlay.dart';
 /// Reserve von 10 % (bis 0.173.0), bei der ein Trail wegfiel, der die
 /// Runde um eine Minute über 90 % gebracht hätte.
 const kLoopTimeWindowS = 30 * 60.0;
+
+/// Unter dieser Zeit ist das Fenster ein Viertel der Zeit (Betreiber,
+/// 2026-11-14, nach der Messung in `docs/routing-messung.md` „#516"):
+/// ± 30 min hoben eine Runde von 1 h auf 1 h 11.
+const kLoopShortTimeS = 2 * 3600.0;
+
+/// Das Fenster um [timeS] (Konzept-Routing 12.5): ein Viertel der Zeit
+/// unter [kLoopShortTimeS], darüber [kLoopTimeWindowS].
+double loopWindowFor(double timeS) => timeS < kLoopShortTimeS ? timeS / 4 : kLoopTimeWindowS;
+
+/// So viel besser muss der Trail-Anteil eines Stands UNTER dem Fenster
+/// sein, damit er gegen den besten im Fenster gewinnt (Betreiber,
+/// 2026-11-14: E-Bike 5 h wurde sonst 5 h 25 mit 21 % statt 4 h 12 mit
+/// 28 %). Darunter zählt nichts unter Zeit − 2 × Fenster.
+const kLoopShareBelow = 0.05;
 
 /// Gleichstand im Trail-Anteil (Konzept-Routing 12.5): Liegen zwei
 /// Stände näher als das beieinander, gewinnt der näher an der Zeit.
@@ -92,6 +109,13 @@ class LoopBudget {
 
   /// Ab hier liegt ein Stand im Fenster.
   double get minTimeS => timeS - windowS;
+
+  /// Bis hierhin darf ein Stand unter dem Fenster mit deutlich besserem
+  /// Anteil gewinnen ([kLoopShareBelow]).
+  double get floorTimeS => timeS - 2 * windowS;
+
+  LoopBudget copyWith({double? climbM}) =>
+      LoopBudget(timeS: timeS, climbM: climbM ?? this.climbM, hikingM: hikingM, windowS: windowS);
 }
 
 /// Ein Trail im Pool: Punkte in Trail-Richtung, S-Grad und Sterne wie
@@ -292,9 +316,15 @@ class LoopPlan {
     this.points = const [],
     this.order = const [],
     this.snaps = const [],
+    this.shortForShare = false,
   });
 
   final LoopOutcome outcome;
+
+  /// Gewählt ist ein Stand UNTER dem Fenster, weil sein Trail-Anteil
+  /// deutlich besser war als der beste im Fenster ([kLoopShareBelow]) —
+  /// nicht, weil nichts mehr passte. Das Blatt sagt es anders.
+  final bool shortForShare;
   final List<LoopSection> sections;
   final LoopSummary? summary;
   final List<LoopStop> stops;
@@ -336,7 +366,8 @@ class LoopPlan {
             excluded: excluded,
             points: points,
             order: order,
-            snaps: kept);
+            snaps: kept,
+            shortForShare: shortForShare);
   }
 }
 
@@ -677,6 +708,9 @@ class _Planner {
   /// Suche tauscht dann nur noch darunter.
   late double timeCap = budget.maxTimeS;
 
+  /// Siehe [LoopPlan.shortForShare] — gesetzt in [chooseState].
+  bool shortForShare = false;
+
   bool fits(_Route r) =>
       r.timeS <= timeCap + 1e-6 &&
       r.climbM <= budget.climbM + 1e-6 &&
@@ -701,19 +735,33 @@ class _Planner {
   /// Der Stand aus dem Greedy, den der Vorschlag nimmt (Konzept-Routing
   /// 12.5). [states] wächst mit der Zeit; die Stände mit Pflicht-Trails
   /// und Zwischenpunkten zählen mit wie jeder andere.
+  ///
+  /// Ein Stand UNTER dem Fenster (bis [LoopBudget.floorTimeS]) gewinnt,
+  /// wenn sein Anteil um [kLoopShareBelow] besser ist als der beste im
+  /// Fenster (Betreiber, 2026-11-14).
   _Route chooseState(List<_Route> states) {
-    _Route? best;
-    for (final r in states) {
-      if (r.seq.isEmpty || r.timeS < budget.minTimeS - 1e-6) continue;
-      if (best == null) {
-        best = r;
-        continue;
-      }
-      final d = r.share - best.share;
-      final closer = (r.timeS - budget.timeS).abs() < (best.timeS - budget.timeS).abs();
-      if (d > kLoopShareTie || (d.abs() <= kLoopShareTie && closer)) best = r;
+    _Route? best, below;
+    bool better(_Route r, _Route? than) {
+      if (than == null) return true;
+      final d = r.share - than.share;
+      final closer = (r.timeS - budget.timeS).abs() < (than.timeS - budget.timeS).abs();
+      return d > kLoopShareTie || (d.abs() <= kLoopShareTie && closer);
     }
-    return best ?? states.last;
+
+    for (final r in states) {
+      if (r.seq.isEmpty) continue;
+      if (r.timeS >= budget.minTimeS - 1e-6) {
+        if (better(r, best)) best = r;
+      } else if (r.timeS >= budget.floorTimeS - 1e-6) {
+        if (better(r, below)) below = r;
+      }
+    }
+    if (best == null) return states.last;
+    if (below != null && below.share >= best.share + kLoopShareBelow) {
+      shortForShare = true;
+      return below;
+    }
+    return best;
   }
 
   LoopPlan run(Duration searchBudget) {
@@ -945,6 +993,7 @@ class _Planner {
     }
     return LoopPlan(
       LoopOutcome.ok,
+      shortForShare: shortForShare,
       sections: sections,
       summary: LoopSummary(
         lengthM: length,
@@ -989,6 +1038,29 @@ List<RouteSection> connectionSections(LoopPlan plan) => [
 /// 70 Kacheln). Seit 0.74.0 einstellbar (`LoopPrefs.radiusKm`) — und er
 /// begrenzt nur die LISTE: Was auf der Karte angetippt ist, gehört dazu.
 const kLoopReachM = 12000.0;
+
+/// Der Umkreis des Vorschlags je Zeit (Konzept-Routing 12.4, gemessen in
+/// `docs/routing-messung.md` „#516"): 1 h → 5 km, 2 h → 8 km, 3 h →
+/// 12 km, ab 4 h 15 km, dazwischen linear.
+double loopSuggestReachM(double hours) {
+  const knots = [(1.0, 5000.0), (2.0, 8000.0), (3.0, 12000.0), (4.0, 15000.0)];
+  if (hours <= knots.first.$1) return knots.first.$2;
+  for (var i = 1; i < knots.length; i++) {
+    final (h1, r1) = knots[i];
+    if (hours <= h1) {
+      final (h0, r0) = knots[i - 1];
+      return r0 + (r1 - r0) * (hours - h0) / (h1 - h0);
+    }
+  }
+  return knots.last.$2;
+}
+
+/// Die Stufen von „Weiter suchen" (Konzept-Routing 12.5): der nächste
+/// Umkreis über dem gerechneten, null über dem letzten.
+const kLoopSuggestReachStepsM = [5000.0, 8000.0, 12000.0, 15000.0, 20000.0];
+
+double? loopSuggestNextReachM(double reachM) =>
+    kLoopSuggestReachStepsM.where((r) => r > reachM + 1).firstOrNull;
 
 /// Ein Trail der Karte als Pool-Eintrag: Punkte in Trail-Richtung, Grad
 /// und Sterne wie angezeigt, Höhenmeter aus seinem Profil (0 ohne Höhen).
@@ -1234,7 +1306,18 @@ class LoopPrefs {
       ';sr=${route.avoidRoads ? 1 : 0};sw=${route.avoidHiking ? 1 : 0};ss=${route.avoidSteep ? 1 : 0}'
       ';y=${switch (style) { RouteMode.direct => 'd', RouteMode.fun => 'f', RouteMode.easy => 'e' }};u=${easyUp ? 1 : 0};a=${intentRoute ? 1 : 0}';
 
-  LoopBudget get budget => LoopBudget(timeS: hours * 3600, climbM: climbM, hikingM: hikingKm * 1000);
+  LoopBudget get budget =>
+      LoopBudget(timeS: hours * 3600, climbM: climbM, hikingM: hikingKm * 1000, windowS: loopWindowFor(hours * 3600));
+
+  /// Das Budget des Vorschlags (Konzept-Routing 12.4, #516 Schritt 4):
+  /// die Höhenmeter des Limits mit der Zeit skaliert — das Limit gilt für
+  /// [kBudgetHours], kürzer anteilig, länger nie darüber.
+  LoopBudget get suggestBudget => budget.copyWith(climbM: suggestClimbM);
+
+  double get suggestClimbM {
+    final scaled = (climbM * math.min(hours, kBudgetHours) / kBudgetHours / climbStep).round() * climbStep;
+    return scaled.clamp(minClimb, math.max(minClimb, climbM)).toDouble();
+  }
 
   LoopPrefs copyWith(
           {double? hours,

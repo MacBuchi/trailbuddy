@@ -1321,6 +1321,11 @@ Vier Dinge, die die Messung gezeigt hat:
    ist die Regel aus 12.5 („Höhenmeter bleiben Obergrenze"); im
    Mittelgebirge des Betreibers vermutlich seltener.
 
+**Nach den Entscheidungen des Betreibers (2026-11-14, gebaut in 0.175.0)**:
+derselbe Lauf mit Viertel-Fenster unter 2 h und „darunter gewinnt ab
+5 Prozentpunkten": E 1 h 1 · 1 h 00 · 19 % (vorher 1 h 11), E 5 h
+9 · 4 h 03 · 29 % (vorher 5 h 25 · 21 %); alle übrigen Zeilen gleich.
+
 Nicht gemessen (💻, eigene Gegend): der Pool aus dem eigenen Netz des
 Betreibers (dichter und kürzer als die offiziellen Tiroler Trails, die
 oft mehrere Kilometer lang sind) und ob sich die Vorschläge an drei,

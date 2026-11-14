@@ -422,7 +422,7 @@ void main() {
       await settle(tester, frames: 10);
       // Der Einstieg (#516 Schritt 2) auf Englisch, dann die Bearbeitung.
       for (final text in ['What are you planning?', 'Loop', 'Route', 'My location', 'Choose on the map', 'Time',
-        'about 3 h', 'Choose trails', 'Put it together yourself']) {
+        'about 3 h', 'Suggest a loop', 'Put it together yourself']) {
         expect(find.text(text), findsOneWidget, reason: text);
       }
       for (final tip in ['Less time', 'More time']) {
@@ -444,6 +444,16 @@ void main() {
         expect(find.text(text), findsOneWidget, reason: text);
       }
       expect(find.text('Runde anpassen'), findsNothing);
+    });
+
+    test('der Vorschlag (#516 Schritt 4) spricht Englisch', () async {
+      final en = await AppLocalizations.delegate.load(const Locale('en'));
+      expect(en.loopSuggestLine(1, '10 km'), 'Suggestion: 1 trail within 10 km');
+      expect(en.loopSuggestLine(4, '12 km'), 'Suggestion: 4 trails within 12 km');
+      expect(en.loopSuggestEdit, 'Edit');
+      expect(en.loopSuggestWider('8 km'), 'Search wider: 8 km');
+      expect(en.loopBlockerNoTrailsInReach('5 km'), startsWith('No trails within 5 km'));
+      expect(en.loopShortShareNote('5 h'), startsWith('Shorter than about 5 h, with more trail'));
     });
 
     test('Wegklassen, Navi-Auswahl und Zeit sind in beiden Sprachen benannt und verschieden', () {
