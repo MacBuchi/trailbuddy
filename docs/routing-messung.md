@@ -1330,3 +1330,86 @@ Nicht gemessen (💻, eigene Gegend): der Pool aus dem eigenen Netz des
 Betreibers (dichter und kürzer als die offiziellen Tiroler Trails, die
 oft mehrere Kilometer lang sind) und ob sich die Vorschläge an drei,
 vier eigenen Runden wie Runden lesen, die man fahren würde.
+
+## #516 — der Vorschlag im eigenen Netz (gemessen 2026-11-14, am Rechner, private Daten)
+
+Die 💻-Prüfungen der Schritte 3–6 aus `konzept-routing.md` 12.9, an
+der eigenen Trail-Sammlung des Betreibers (584 Trails, GPX) gegen seine
+Fahrten (30, 21 Bio und 9 E, aus Strava; `build/`, nie im Repo).
+Kacheln 23 × 23 z13 um den häufigsten Start (`tool/routing_tiles.py
+sample --center-file`, der Punkt bleibt in einer Datei am Rechner).
+`tool/loop_own_measure.dart` rechnet je eigene Runde (Start ≈ Ende,
+≥ 150 hm) den Vorschlag ab ihrem Start, mit ihrer Fahrzeit auf die halbe
+Stunde gerundet und ihrem Rad:
+
+- **A** wie die App seit 0.175.0 (Vorgabe-Limit, ohne Vorliebe),
+- **B** mit Vorliebe (0.176.0; Fahrten je Trail aus den ANDEREN Fahrten,
+  befahren = 80 % der Punkte in 30 m; Sterne trägt die Sammlung nicht),
+- **C** wie B mit dem Limit, das die Fahrten gehoben hätten (0.177.0),
+- **D** wie A mit ± 30 min statt einem Viertel der Zeit (nur unter 2 h),
+- **E** wie B mit dreifacher Vorliebe (+18 % je Fahrt, bis +90 %), nur
+  zum Vergleich.
+
+Die Trails sind nach den Höhenkacheln bergab gedreht, ohne Grad. 12 der
+18 Runden liegen im Rahmen (die übrigen sind Urlaubs- und Ausflugsfahrten).
+„In dieser Runde" = Anteil der vorgeschlagenen Trail-Meter auf Trails, die
+genau diese Fahrt befuhr; „je gefahren" = auf Trails, die irgendeine
+andere Fahrt befuhr.
+
+| Runde | Rad | gefahren: Zeit · hm · Trail-Anteil | A: Trails · Schätzung · Anteil · hm/Limit | in dieser Runde / je gefahren | B, C anders als A | E anders als A (je gefahren) |
+|---|---|---|---|---|---|---|
+| L1 | Bio | 2 h 07 · 659 · 8 % | 5 · 2 h 26 · 21 % · 456/500 | 0 / 23 % | 0 | 4 (39 %) |
+| L2 | Bio | 0 h 50 · 322 · 28 % | 3 · 0 h 58 · 44 % · 147/300 | 41 / 0 % | 0 | 0 |
+| L3 | Bio | 3 h 49 · 813 · 3 % | 7 · 4 h 10 · 12 % · 779/800 | 0 / 0 % | 0 | 0 |
+| L4 | Bio | 3 h 53 · 824 · 3 % | 7 · 4 h 10 · 12 % · 780/800 | 0 / 0 % | 0 | 0 |
+| L5 | Bio | 1 h 57 · 496 · 14 % | 7 · 2 h 20 · 29 % · 455/500 | 0 / 19 % | 0 | 5 (32 %) |
+| L6 | Bio | 1 h 01 · 466 · 39 % | 1 · 0 h 44 · 42 % · 166/300 | 100 / 0 % | 0 | 0 |
+| L7 | Bio | 1 h 23 · 528 · 16 % | 4 · 1 h 42 · 25 % · 332/400 | 13 / 42 % | 0 | 6 (46 %) |
+| L9 | Bio | 3 h 03 · 923 · 6 % | 3 · 3 h 29 · 57 % · 623/800 | 0 / 0 % | 0 | 0 |
+| L10 | Bio | 2 h 17 · 741 · 12 % | leer (82 × unerreichbar) | – | – | – |
+| L13 | Bio | 1 h 50 · 448 · 8 % | 5 · 2 h 26 · 28 % · 418/500 | 0 / 13 % | 0 | 0 |
+| L14 | Bio | 3 h 04 · 788 · 3 % | 6 · 3 h 06 · 16 % · 593/800 | 0 / 0 % | 0 | 0 |
+| L15 | E | 2 h 12 · 702 · 4 % | 5 · 2 h 07 · 21 % · 575/900 | 0 / 35 % | 1 | 6 (65 %) |
+
+Rechenzeit je Vorschlag am Rechner ≤ 0,3 s (Lauf: 12 Runden × 5 Fälle
+samt Bau in 40 s). Was die Zahlen sagen:
+
+1. **Die Vorliebe ist mit den Startwerten kaum zu spüren.** B weicht in
+   1 von 11 Runden um einen Trail von A ab. Ein Faktor 3 (E) ändert 4 von
+   11 Runden um 4–6 Trails und hebt den Anteil auf gefahrenen Trails
+   (23 → 39 %, 19 → 32 %, 42 → 46 %, 35 → 65 %), ohne die Runde schlechter
+   zu machen (Anteil 21–29 % wie A). Eigene 4–5 Sterne fehlen in dieser
+   Messung; sie gäben bis +30 % dazu. Vorschlag: je Fahrt +12 % (voll ab
+   fünf, also bis +60 %), zusammen höchstens +80 % — Entscheidung des
+   Betreibers.
+2. **Das Limit aus Fahrten ändert hier nichts** (C = B in allen Runden):
+   Die Fahrten höben Bio von 800 auf 1100 hm, E von 1400 auf 2500 (eine
+   Alpenfahrt mit rund 3400 hm, der Regler endet bei 2500); im
+   Mittelgebirge ist die Zeit die engere Grenze (A bleibt 50–150 hm unter
+   dem skalierten Limit). Anders als in Tirol (12 der Zeilen dort am
+   Limit).
+3. **Das Viertel-Fenster unter 2 h passt** (D gegen A): Nur L2 (1 h)
+   unterscheidet sich — mit ± 30 min 0 h 44 mit 2 Trails, mit dem Viertel
+   0 h 58 mit 3. Bei 1,5 h gleich. Kein Grund, zurück auf 30 min zu gehen.
+4. **Der Vorschlag liegt meist über der Zeit**: 2 h → 2 h 20–2 h 26
+   (dreimal), 4 h → 4 h 10, 3,5 h → 3 h 29; das Fenster wird an seinem
+   oberen Ende gewonnen, weil dort mehr Trails passen. Unter der Zeit nur
+   L6 (1 h → 0 h 44, ein Trail, 42 %) und L15 (2 h → 2 h 07). Mit „ca."
+   und Skala ist das im Blatt gesagt; ob man das am Gerät als „zu lang"
+   liest, gehört in die 📱-Abnahme.
+5. **Vorschläge und echte Runden sind verschiedene Runden.** Die
+   gefahrenen Runden liegen zu 3–39 % auf Trails der Sammlung, der
+   Vorschlag zu 12–57 %, und nur in L2, L6 und L7 nimmt er Trails, die
+   diese Fahrt auch fuhr. Ob die Vorschläge wie Runden aussehen, die man
+   fahren würde, sagt keine Zahl — das bleibt ein Blick auf die Karte
+   (📱 oder Bilder der Linien).
+6. **L10 ist leer, obwohl 82 Trails im Umkreis liegen**: Der Start liegt
+   auf einem Forstweg, über den ein Trail der Sammlung läuft; vom Start ist
+   nur eine Richtung offen, und die Suche erreicht in einer Stunde drei
+   Knoten. 150 m daneben findet der Vorschlag 3–4 Trails. Die
+   Komponente ist die größte, ungebacken ist es genauso — also die
+   Sperre gegen die Richtung, vermutlich zwei Trails der Sammlung
+   gegenläufig über demselben Weg (die Richtung kommt hier aus den
+   Höhen, nicht wie in der App aus den Aufzeichnungen). In der App
+   möglich, wenn zwei Abfahrten gegenläufig einen Weg teilen; nicht
+   weiter verfolgt.
