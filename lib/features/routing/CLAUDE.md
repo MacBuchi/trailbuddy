@@ -1067,6 +1067,34 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     Achtung bei der ersten: `if (false)` statt der Bedingung kompiliert
     nicht (`below` verliert die Beförderung) und sieht im Lauf aus wie
     ein roter Test.
+- **Die Vorliebe** (#516 Schritt 5, seit 0.176.0; Konzept-Routing 12.4,
+  12.9 Schritt 5; `loopPreferenceWeight`, `PoolTrail.weight`,
+  `lib/features/rides/trail_ride_counts.dart`). Vier Dinge, die man
+  wissen muss:
+  - **Zwei Summen in `_Route`**: `trailM` (echt, fürs Blatt) und
+    `valueM` (mit `weight`). Greedy, `beats` und `share` rechnen mit
+    `valueM` — wer eine weitere Stelle der Zielfunktion baut, nimmt
+    `valueM`, sonst tauscht die lokale Suche den Vorzug wieder weg.
+  - **Ein Test von `beats` braucht Höhen an den Stichen**: Ohne
+    Anstieg gleichen sich zwei Runden in Metern und Aufstieg, die lokale
+    Suche tauscht nicht, und die Mutation `beats` mit `trailM` bleibt
+    grün (beim Bau so passiert).
+  - **Die Gewichte holt der Controller vor jeder Rechnung**
+    (`_preferenceWeights`, eigene Sterne aus `Trail.myDetails`, Fahrten
+    aus `trailRideCountsProvider`); ein Fehler im Zähler kostet nur die
+    Fahrten, nie die Rechnung. Gewichte reisen im `PoolTrail` in den
+    Isolate, getunt rechnet `_planRequest` mit denen von damals.
+  - **Der Zähler** liegt in `rides/trail_counts.json` (`RideStore.
+    read/writeTrailCounts`, Fassung `kTrailRideCountsVersion` — wer die
+    Regel ändert, nach der eine Fahrt einen Trail befährt, zählt hoch).
+    Je Fahrt einmal gerechnet; ohne geladenes Netz wird nichts
+    geschrieben, sonst zählte die Fahrt für immer null. Ein `Ride` in
+    `FakeRideStore.rides` braucht `uid`, sonst listet `list` ihn nicht.
+  Tests: `loop_planner_test` („die Vorliebe"), `trail_ride_counts_test`,
+  `loop_planner_flow_test` („die Vorliebe"). Gegenproben 2026-11-14:
+  Gewicht im Greedy aus, `beats` mit `trailM`, Fahrten bekannter
+  Fahrten neu gerechnet, Pruning aus, Netz-Riegel aus, Duplikate nicht
+  mitgezählt, Gewicht nicht im Pool, ohne Fahrten, ohne Sterne — je rot.
 - **Ergebnis und Start in einem, ein Ende** (#517, seit 0.171.0;
   Konzept-Routing 9.4, Konzept-Geräte 5.2). Fünf Dinge, die man wissen
   muss:

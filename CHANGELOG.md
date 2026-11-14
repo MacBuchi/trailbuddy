@@ -2,6 +2,20 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Der Vorschlag kennt deine Lieblings-Trails
+
+*Version 0.176.0, 2026-11-14*
+
+- **Deine Trails zählen mehr:** Der Planer zieht Trails etwas vor, die
+  du selbst gut bewertet hast (4 oder 5 Sterne) oder schon oft gefahren
+  bist. Ausgeschlossen wird dadurch nichts: Ein Trail, den du noch nie
+  gefahren bist, kommt trotzdem mit, wenn er gut auf der Runde liegt.
+- **Wie oft du einen Trail gefahren bist,** zählt das Handy aus deinen
+  Fahrten unter „Meine Fahrten" — einmal je Fahrt, und nur auf dem
+  Gerät. Der Zähler geht nicht an den Server und auch nicht an deine
+  Buddys. In der Web-App gibt es keine Fahrten, dort zählen nur deine
+  Sterne.
+
 ## Eine Runde auf Vorschlag
 
 *Version 0.175.0, 2026-11-14*

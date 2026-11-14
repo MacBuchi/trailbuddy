@@ -114,6 +114,13 @@ abstract interface class RideStore {
   /// geschätzte Dauer ist damit gerechnet. Gibt zurück, ob geschrieben
   /// wurde. Wirft nie.
   Future<bool> setProfile(String id, String profile);
+
+  /// Der Zähler je Trail (#516 Schritt 5, `trail_ride_counts.dart`) als
+  /// Text, null ohne Datei. Wirft nie.
+  Future<String?> readTrailCounts();
+
+  /// Schreibt ihn (`.part` + `rename`). Wirft nie.
+  Future<void> writeTrailCounts(String encoded);
 }
 
 /// Was aus einer übernommenen Fahrt wurde.
@@ -128,6 +135,7 @@ class FileRideStore implements RideStore {
   static const dirName = 'rides';
   static const _activeName = 'active.jsonl';
   static const _targetsName = 'confirm_targets.json';
+  static const _countsName = 'trail_counts.json';
 
   /// Schreibvorgänge in einer Kette: Der Takt hängt an, während das
   /// Beenden liest — ohne die Kette verlöre einer von beiden seinen
@@ -487,6 +495,29 @@ class FileRideStore implements RideStore {
       return AirtimeLog.empty;
     }
   }
+
+  @override
+  Future<String?> readTrailCounts() async {
+    try {
+      final file = File('${(await _dir()).path}/$_countsName');
+      return await file.exists() ? await file.readAsString() : null;
+    } catch (_) {
+      // Unlesbar heißt neu zählen.
+      return null;
+    }
+  }
+
+  @override
+  Future<void> writeTrailCounts(String encoded) => _serialized(() async {
+        try {
+          final file = File('${(await _dir()).path}/$_countsName');
+          final part = File('${file.path}.part');
+          await part.writeAsString(encoded, flush: true);
+          await part.rename(file.path);
+        } catch (e, stackTrace) {
+          logError('Fahrt: Zähler je Trail ablegen', e, stackTrace);
+        }
+      });
 
   @override
   Future<bool> setProfile(String id, String profile) => _serialized(() async {

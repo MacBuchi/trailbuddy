@@ -144,6 +144,73 @@ void main() {
     expect(plan.stops.map((s) => s.trail.id), ['late']);
   });
 
+  group('die Vorliebe (#516 Schritt 5, Konzept-Routing 12.4)', () {
+    test('das Gewicht: eigene Sterne und Fahrten, je bis +30 %, zusammen höchstens +50 %', () {
+      expect(loopPreferenceWeight(), 1);
+      expect(loopPreferenceWeight(ownRating: 3), 1, reason: 'nur gute Sterne zählen');
+      expect(loopPreferenceWeight(ownRating: 4), closeTo(1.15, 1e-9));
+      expect(loopPreferenceWeight(ownRating: 5), closeTo(1.3, 1e-9));
+      expect(loopPreferenceWeight(rides: 1), closeTo(1.06, 1e-9));
+      expect(loopPreferenceWeight(rides: 5), closeTo(1.3, 1e-9));
+      expect(loopPreferenceWeight(rides: 50), closeTo(1.3, 1e-9), reason: 'gesättigt ab fünf');
+      expect(loopPreferenceWeight(ownRating: 5, rides: 5), closeTo(1.5, 1e-9));
+      expect(loopPreferenceWeight(ownRating: 4, rides: 2), closeTo(1.27, 1e-9));
+    });
+
+    // Eine Straße nach Osten mit zwei Stichen zu je einem Trail: der frühe
+    // 330 m lang, der späte 300 m. Das Budget reicht für einen.
+    final g = buildRoadGraph([
+      _way([(0, 0), (1000, 0), (7000, 0), (8000, 0)]),
+      _way([(1000, 0), (1000, 330)]),
+      _way([(7000, 0), (7000, 300)]),
+    ], lat0: 47.5).graph;
+    // Die Stiche steigen (10 %): Ohne Gewicht in der Zielfunktion tauschte
+    // die lokale Suche zurück zum Trail mit weniger Anstieg.
+    for (final e in g.edges) {
+      final a = g.nodes[e.a], b = g.nodes[e.b];
+      final dy = b.y - a.y;
+      if (dy.abs() > 1) {
+        e.gain = dy > 0 ? dy / 10 : 0;
+        e.loss = dy > 0 ? 0 : -dy / 10;
+      }
+      e.hasHeights = true;
+    }
+    final from = _m([(0, 0)]).single, to = _m([(8000, 0)]).single;
+    PoolTrail stich(String id, double x, double y, {double weight = 1}) => PoolTrail(
+        id: id,
+        name: id,
+        points: _m([(x, y), (x + 100, y / 2), (x + 200, 0)]),
+        lengthM: 1000,
+        grade: 2,
+        lossM: 100,
+        weight: weight);
+    LoopPlan plan(List<PoolTrail> pool, double timeS) => planLoop(g,
+        start: from,
+        profile: _bio,
+        budget: LoopBudget(timeS: timeS, climbM: 1e5, hikingM: 1e7, windowS: 0),
+        pool: pool,
+        returnToStart: false,
+        end: to,
+        bare: true);
+    double timeWith(List<PoolTrail> pool) => plan(pool, kRouteDirectBudget.timeS).summary!.timeS;
+
+    test('ein Aufschlag holt den etwas teureren Trail — ohne ihn der billigere', () {
+      final room = timeWith([stich('early', 1000, 330)]) + 1;
+      expect(timeWith([stich('early', 1000, 330), stich('late', 7000, 300)]), greaterThan(room),
+          reason: 'Vorbedingung: beide passen nicht');
+      expect(plan([stich('early', 1000, 330), stich('late', 7000, 300)], room).stops.map((s) => s.trail.id), ['late'],
+          reason: 'gleich lang, der kürzere Stich gewinnt');
+      final weighted = plan([stich('early', 1000, 330, weight: 1.3), stich('late', 7000, 300)], room);
+      expect(weighted.stops.map((s) => s.trail.id), ['early']);
+      expect(weighted.summary!.trailM, closeTo(1000, 1e-6), reason: 'angezeigt werden echte Meter');
+    });
+
+    test('kein Filter: ein nie gefahrener Trail kommt mit, wenn Platz ist', () {
+      final both = plan([stich('early', 1000, 330, weight: 1.5), stich('late', 7000, 300)], 4 * 3600);
+      expect(both.stops.map((s) => s.trail.id).toSet(), {'early', 'late'});
+    });
+  });
+
   group('die Route ohne Trail (#356, bare)', () {
     // Von unten links nach oben rechts — zwei gleich lange Wege um das
     // Quadrat.

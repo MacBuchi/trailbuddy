@@ -57,6 +57,8 @@ import '../../core/stall_watch.dart';
 import '../../l10n/l10n.dart';
 import '../../models/trail.dart';
 import '../map/position_provider.dart';
+import '../rides/ride_providers.dart' show trailRideCountsProvider;
+import '../rides/trail_ride_counts.dart';
 import '../offline_areas/area_draw.dart' show AreaDrawTool;
 import '../profile/profile_providers.dart';
 import '../trails/trail_providers.dart';
@@ -380,6 +382,27 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
   }
 
   List<Trail> get _trails => ref.read(trailsProvider).valueOrNull ?? const <Trail>[];
+
+  /// Die Gewichte der laufenden Rechnung ([loopPreferenceWeight]), je
+  /// Trail-Kennung; fehlt eine, wiegt der Trail 1.
+  Map<String, double> _weights = const {};
+
+  /// Die Vorliebe je Trail (Konzept-Routing 12.4): die EIGENE Bewertung und
+  /// wie oft er in Fahrten auf dem Gerät vorkommt. Ohne Zähler (Web, ein
+  /// Fehler) zählen nur die Sterne — nie ein Grund, nicht zu rechnen.
+  Future<Map<String, double>> _preferenceWeights(List<Trail> trails) async {
+    var counts = TrailRideCounts.empty;
+    try {
+      counts = await ref.read(trailRideCountsProvider.future);
+    } catch (e, s) {
+      logError('Planer: Fahrten je Trail lesen', e, s);
+    }
+    return {
+      for (final t in trails)
+        if (loopPreferenceWeight(ownRating: t.myDetails?.rating, rides: counts.of(t)) case final w when w != 1)
+          t.id: w,
+    };
+  }
 
   /// Den Modus öffnen; [start] aus „Start hier". [entry] vom
   /// Planer-Knopf (#516): ein frischer Planer beginnt mit dem
@@ -826,6 +849,9 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
       // Rahmen — ein Wechsel des Stils lädt dann nicht neu.
       // Den Ziel-Trail fährt man danach, nicht auf dem Weg dorthin.
       final fun = bare ? funPoolOf(_trails, start, target, exceptId: state.targetTrailId) : const <Trail>[];
+      // Die Vorliebe (#516 Schritt 5): eigene Sterne und eigene Fahrten.
+      _weights = await _preferenceWeights([...chosen, ...fun]);
+      if (generation != _generation) return;
       // Der Start gehört nicht in den Schlüssel (#370): `planLoop` heftet
       // ihn bei jeder Rechnung an, und ein neuer Fix des Standorts liegt
       // Meter neben dem alten. Neu gebaut wird erst, wenn er den Rahmen
@@ -898,7 +924,8 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
           pool: [
             for (final t in chosen)
               if (!direct || state.mandatory.contains(t.id))
-                poolTrailOf(serviceL10n(), t, mandatory: state.mandatory.contains(t.id)),
+                poolTrailOf(serviceL10n(), t,
+                    mandatory: state.mandatory.contains(t.id), weight: _weights[t.id] ?? 1),
           ],
           returnToStart: endMode == LoopEndMode.loop,
           end: target,
@@ -1005,7 +1032,7 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
         start: from,
         profile: rider,
         budget: funBudgetOf(timeS: s.timeS, gainM: s.gainM, hikingM: s.hikingM, hikingKm: prefs.hikingKm),
-        pool: [for (final t in fun) poolTrailOf(serviceL10n(), t)],
+        pool: [for (final t in fun) poolTrailOf(serviceL10n(), t, weight: _weights[t.id] ?? 1)],
         returnToStart: false,
         end: to,
         waypoints: waypoints,

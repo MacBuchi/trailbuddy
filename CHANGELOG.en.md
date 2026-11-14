@@ -2,6 +2,19 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## The suggestion knows your favourite trails
+
+*Version 0.176.0, 2026-11-14*
+
+- **Your trails count for more:** the planner leans a little towards
+  trails you rated well yourself (4 or 5 stars) or have ridden often.
+  Nothing is ruled out by it: a trail you have never ridden still comes
+  along when it lies well on the loop.
+- **How often you rode a trail** is counted by the phone from your rides
+  in "My rides" — once per ride, and only on the device. The count goes
+  neither to the server nor to your buddies. The web app has no rides,
+  so there only your stars count.
+
 ## A loop on suggestion
 
 *Version 0.175.0, 2026-11-14*
