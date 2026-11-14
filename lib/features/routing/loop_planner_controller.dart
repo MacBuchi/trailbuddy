@@ -697,11 +697,21 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
   }
 
   void setProfile(RiderProfile next) {
-    var prefs = state.prefs;
-    // Steht das Höhenbudget auf der Vorgabe des alten Profils, folgt es dem
-    // neuen — wer es selbst gestellt hat, behält es.
-    if (prefs.climbM == state.profile.budgetClimbM) prefs = prefs.copyWith(climbM: next.budgetClimbM);
-    _edit(state.copyWith(profile: next, prefs: prefs));
+    // Jedes Rad hat sein Limit (#516 Schritt 6): Der Wechsel holt das des
+    // anderen, gemerkt ist nichts Neues.
+    _edit(state.copyWith(profile: next, prefs: state.prefs.withBike(next)));
+  }
+
+  /// Die Limits von außen ändern (#516 Schritt 6: das Blatt am Ende der
+  /// Fahrt hebt an): gemerkt, ohne Plan und Ergebnis anzufassen — es ist
+  /// keine Eingabe dieser Planung, und das Ergebnis bleibt mit den alten
+  /// Zahlen gerechnet stehen wie nach [restore]. Über den Controller und
+  /// nicht direkt in die Einstellungen, sonst schriebe ein offener
+  /// Planer beim nächsten Regler die alten Limits zurück.
+  void updateLimits(LoopPrefs Function(LoopPrefs prefs) change) {
+    final prefs = change(state.prefs);
+    state = state.copyWith(prefs: prefs);
+    _remember(prefs);
   }
 
   /// Der Stil im Ergebnis einer Route (#356, D3): gemerkt und sofort

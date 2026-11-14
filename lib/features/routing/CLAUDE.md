@@ -338,8 +338,8 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     so ab.
   - **Die Regler merkt sich das Gerät** (`Settings.loopPlannerPrefs`,
     `LoopPrefs.encode/parse`, je Wert auf seine Spanne geklemmt); das
-    Höhenbudget folgt dem Profilwechsel nur, solange es auf der Vorgabe
-    des alten Profils steht. **Gerechnet wird seit 0.80.1 in einem
+    Höhenbudget ist seit 0.177.0 eins je Rad (siehe „Das Limit aus
+    Fahrten"). **Gerechnet wird seit 0.80.1 in einem
     dauerhaften Rechen-Isolate** (#188, `loop_plan_runner.dart`):
     `Isolate.run` je Rechnung half kaum — das Senden kopiert den Graphen
     im UI-Isolate (0,3–0,6 s Pause). Der Graph geht deshalb EINMAL
@@ -1095,6 +1095,31 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
   Gewicht im Greedy aus, `beats` mit `trailM`, Fahrten bekannter
   Fahrten neu gerechnet, Pruning aus, Netz-Riegel aus, Duplikate nicht
   mitgezählt, Gewicht nicht im Pool, ohne Fahrten, ohne Sterne — je rot.
+- **Das Limit aus Fahrten** (#516 Schritt 6, seit 0.177.0;
+  Konzept-Routing 12.5a, 12.9 Schritt 6; `lib/features/rides/
+  climb_limit_offer.dart` rein, `climb_limit_row.dart`). Vier Dinge, die
+  man wissen muss:
+  - **`LoopPrefs.climbM` ist das Limit des Rads `bike`**, nicht mehr
+    eine Zahl für beide: `climbBioM`/`climbEbikeM` (`cb`/`ce`),
+    `copyWith(climbM:)` stellt das von `bike`, `setProfile` ruft
+    `withBike`. Wer `LoopPrefs` außerhalb von `parse`/`defaults` baut,
+    gibt `bike` und beide Limits mit.
+  - **Von außen nur über `updateLimits`**: Es ändert die Prefs ohne
+    `_edit` (Ergebnis bleibt) und merkt sie. Direkt in
+    `Settings.loopPlannerPrefs` geschrieben, schriebe ein offener Planer
+    beim nächsten Regler die alten Limits zurück.
+  - **Die Frage kommt aus `_endRide`** (`offerClimbLimitAfter`, mit den
+    kalibrierten Profilen für die E-Frage) und steht im Zerlege-Blatt
+    unter der Summe; `takePendingClimbLimit` liest und leert die
+    gemerkte im Einstieg (`late final` im State — einmal je Aufgehen).
+  - **`FakeRideStore.finish` gibt das Rad mit** (seit 0.177.0) wie der
+    echte Speicher; vorher hatte eine im Test beendete Fahrt kein
+    `profile`.
+  Tests: `test/rides/climb_limit_offer_test.dart`,
+  `test/flows/climb_limit_flow_test.dart`. Gegenproben 2026-11-14: ohne
+  „Nein"-Regel, ohne Frage am Ende, Frage im Einstieg nicht geleert,
+  alter Radwechsel, ohne E-Frage, Fahrt nicht umgeordnet, keine Zeile im
+  Einstieg, altes `c` nicht übernommen, Uhr-Fahrten gefragt — je rot.
 - **Ergebnis und Start in einem, ein Ende** (#517, seit 0.171.0;
   Konzept-Routing 9.4, Konzept-Geräte 5.2). Fünf Dinge, die man wissen
   muss:

@@ -107,7 +107,9 @@ class FakeRideStore implements RideStore {
         endedAt: endedAt,
         points: List.of(points),
         events: List.of(events),
-        marks: foldRideMarks(marks));
+        marks: foldRideMarks(marks),
+        // Wie der echte Speicher: Das Rad steht im Kopf der Datei.
+        profile: profile);
     rides.insert(0, ride);
     startedAt = null;
     points.clear();

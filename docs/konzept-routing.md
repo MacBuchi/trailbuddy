@@ -1828,7 +1828,8 @@ Generell sind es vielleicht etwas zu viele Optionen … Zum Bearbeiten ist
 es ok, aber für den initialen Vorschlag sollte es sehr einfach mit
 wenigen Klicks gehen." Dieser Abschnitt ist der Plan dazu; gebaut ist
 Schritt 1 aus 12.9 (0.172.0), Schritt 2 (0.173.0), Schritt 3
-(0.174.0) und Schritt 4 (0.175.0). Er ersetzt den Entwurf „Planer" aus `konzept-geraete.md`
+(0.174.0), Schritt 4 (0.175.0), Schritt 5 (0.176.0) und Schritt 6
+(0.177.0). Er ersetzt den Entwurf „Planer" aus `konzept-geraete.md`
 5.2 (Kopf mit „Runde | Route") und erweitert #516. Wo er 4, 10.2 und
 10.3 widerspricht, gilt er, sobald der jeweilige Schritt aus 12.9 gebaut
 ist — der PR zieht die Stelle dann nach.*
@@ -2319,6 +2320,38 @@ einem Schritt auf der normalen Karte.
      nicht zu stark sind.
 6. **Limit aus Fahrten** (12.5a): die eine Zeile am Ende der Fahrt,
    Bio-oder-E-Frage, „Nein bis …" — ☁️ bauen · 📱 nach einer Fahrt.
+   **Gebaut, 0.177.0** (`climb_limit_offer.dart` rein,
+   `climb_limit_row.dart`; `LoopPrefs.climbBioM`/`climbEbikeM`,
+   `declinedBioM`/`declinedEbikeM`, `Settings.climbLimitPending`). Beim
+   Bau entschieden:
+   - **Ein Limit je Rad** (Betreiber, 2026-11-14): Bis 0.176.0 merkte
+     der Planer EINE Zahl, die beim Radwechsel nur mitsprang, solange sie
+     auf der Vorgabe stand. Jetzt hat jedes Rad seins (`cb`, `ce`), der
+     Regler stellt das des gewählten, der Wechsel holt das andere. Ein
+     altes `c` gilt fürs Rad, das beim ersten Lesen gewählt ist; `c`
+     wird für ältere Apps weiter geschrieben.
+   - **Uhr-Fahrten fragen nicht** (Betreiber, 2026-11-14: „erst einmal
+     nicht"): Sie kommen ohne das Blatt am Ende der Fahrt an. Ebenso
+     geplante und aus GPX übernommene Fahrten und Fahrten ohne Rad im
+     Kopf.
+   - **Gemessen wie das Zerlege-Blatt**: GPS-Höhe im Median über sieben
+     Punkte (`smoothElevation`), dann `hysteresisClimb` mit 10 m — der
+     Median kappt den Gipfel um ein paar Meter. Abgerundet auf 100 hm,
+     gefragt ab einem ganzen Schritt über dem Limit (und über einem
+     „Nein"), angehoben höchstens bis zum Ende des Reglers (2 500 hm).
+   - **Die E-Frage nur mit Anlass**: Sie kommt nur, wenn die Fahrt das
+     Bio-Limit übertrifft — es bleibt bei einer Frage je Fahrt. „Ja"
+     ordnet die Fahrt um (`RideStore.setProfile`) und hebt das E-Limit
+     nur, wenn die Fahrt auch das übertrifft; „Nein" hebt das Bio-Limit.
+   - **Die Antwort gilt sofort**, nicht erst mit „Behalten", und
+     „Rückgängig" nimmt nur Limits und „Nein" zurück (`withLimitsOf`),
+     nicht Regler, die inzwischen standen. Geschrieben wird über den
+     Controller (`updateLimits`), sonst schriebe ein offener Planer die
+     alten Limits zurück.
+   - **Einmal im Einstieg**: Die unbeantwortete Frage liegt in
+     `Settings.climbLimitPending`; der Einstieg liest und leert sie beim
+     Aufgehen und zeigt sie nur, wenn das Limit nicht inzwischen darüber
+     steht. Wer die Fahrt verwirft, wird auch dort nicht gefragt.
 
 Gemerkte Startpunkte (#543) sind ein eigenes Thema mit eigenem Konzept
 (neue Datenkategorie, Teilen unter Buddys) und hängen nicht an diesen

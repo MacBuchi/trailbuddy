@@ -2,6 +2,26 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## The climb limit grows with your rides
+
+*Version 0.177.0, 2026-11-14*
+
+- **One limit per bike:** the bio bike and the e-bike now each have
+  their own climb limit in the planner. Switch the bike and its limit
+  applies; what you had set before stays with the bike that was chosen
+  then.
+- **Climbed more than the limit says?** If a recorded ride climbed at
+  least 100 m more than your bike's limit, a line in the sheet at the end
+  of the ride asks: "1100 m climbed — raise the limit for the bio bike
+  from 800 to 1100 m?" The app only raises it when you tap "Raise", and
+  never lowers it. "Undo" takes the answer back.
+- **Only one question, and rarely:** after "No" the app asks again only
+  when a ride climbed another 100 m more. If a ride recorded as bio bike
+  clearly looked like an e-bike, the one question is "Was it one?" —
+  "Yes" moves the ride to the e-bike, "No" raises the bio bike's limit.
+  Close the sheet without answering and the line shows once in the
+  planner the next time you open it. Everything stays on the device.
+
 ## The suggestion knows your favourite trails
 
 *Version 0.176.0, 2026-11-14*

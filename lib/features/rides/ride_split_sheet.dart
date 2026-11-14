@@ -37,6 +37,8 @@ import '../trails/trail_condition.dart';
 import '../trails/trail_sheet.dart' show formatLength;
 import '../trails/trail_takeover.dart';
 import '../trails/trail_traits.dart';
+import 'climb_limit_offer.dart';
+import 'climb_limit_row.dart';
 import 'ride_confirm.dart';
 import 'ride_providers.dart' show rideStoreProvider;
 import 'ride_split.dart';
@@ -112,11 +114,14 @@ final mapSplitRequestProvider = StateProvider<SplitRequest?>((ref) => null);
 final rideSplitPreviewProvider = StateProvider<List<MapViewPolyline>>((ref) => const []);
 
 /// Zeigt das Blatt; `true` heißt „Fahrt verwerfen" (nur nach einer
-/// Aufzeichnung angeboten, [offerDiscard]).
+/// Aufzeichnung angeboten, [offerDiscard]). [climbOffer] ist die eine
+/// Zeile zum Höhenmeter-Limit unter der Summe (#516 Schritt 6, nur am
+/// Ende einer Aufzeichnung).
 Future<bool> showRideSplitSheet(
   BuildContext context,
   SplitRequest request, {
   bool offerDiscard = false,
+  ClimbLimitOffer? climbOffer,
 }) async {
   final container = ProviderScope.containerOf(context, listen: false);
   final discard = await showModalBottomSheet<bool>(
@@ -131,7 +136,7 @@ Future<bool> showRideSplitSheet(
       minChildSize: 0.3,
       maxChildSize: 0.95,
       builder: (context, scroll) =>
-          _RideSplitSheet(request: request, offerDiscard: offerDiscard, scroll: scroll),
+          _RideSplitSheet(request: request, offerDiscard: offerDiscard, climbOffer: climbOffer, scroll: scroll),
     ),
   );
   // Die Vorschau gehört dem Blatt; ohne Blatt keine Vorschau. Hier und
@@ -142,10 +147,12 @@ Future<bool> showRideSplitSheet(
 }
 
 class _RideSplitSheet extends ConsumerStatefulWidget {
-  const _RideSplitSheet({required this.request, required this.offerDiscard, required this.scroll});
+  const _RideSplitSheet(
+      {required this.request, required this.offerDiscard, this.climbOffer, required this.scroll});
 
   final SplitRequest request;
   final bool offerDiscard;
+  final ClimbLimitOffer? climbOffer;
   final ScrollController scroll;
 
   @override
@@ -599,6 +606,10 @@ class _RideSplitSheetState extends ConsumerState<_RideSplitSheet> {
             '${widget.rideDuration != null ? ' · ${rideDurationLabel(widget.rideDuration!)}' : ''}',
             style: theme.textTheme.bodyLarge,
           ),
+          if (widget.climbOffer != null) ...[
+            const SizedBox(height: 8),
+            ClimbLimitRow(offer: widget.climbOffer!),
+          ],
           const SizedBox(height: 12),
           if (_loading) ...[
             const LinearProgressIndicator(),

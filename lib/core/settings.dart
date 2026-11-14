@@ -89,6 +89,14 @@ abstract interface class Settings {
 
   Future<void> setLoopPlannerPrefs(String value);
 
+  /// Eine Frage nach dem Anheben des Höhenmeter-Limits (#516 Schritt 6,
+  /// Konzept-Routing 12.5a), die im Blatt am Ende der Fahrt unbeantwortet
+  /// blieb — der Einstieg des Planers zeigt sie EINMAL und leert sie dann.
+  /// Kodiert von `ClimbLimitOffer`; null heißt keine.
+  String? get climbLimitPending;
+
+  Future<void> setClimbLimitPending(String? value);
+
   /// Was das Navi-Symbol an einem Trail tut (#176): `external` (Navi-App),
   /// `direct` oder `fun` (Weg in TrailBuddy); null heißt: fragen.
   /// Gerätelokal wie das Profil.
@@ -489,6 +497,15 @@ class PrefsSettings implements Settings {
 
   @override
   Future<void> setLoopPlannerPrefs(String value) => _prefs.setString(_loopPlannerPrefsKey, value);
+
+  static const _climbLimitPendingKey = 'climb_limit_pending';
+
+  @override
+  String? get climbLimitPending => _prefs.getString(_climbLimitPendingKey);
+
+  @override
+  Future<void> setClimbLimitPending(String? value) =>
+      value == null ? _prefs.remove(_climbLimitPendingKey) : _prefs.setString(_climbLimitPendingKey, value);
 
   static const _pendingAuthCodeKey = 'pending_auth_code';
 

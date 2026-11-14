@@ -15,6 +15,10 @@
 //   Banner mit Abbrechen, wie in der Bearbeitung. Danach kommt es wieder.
 // - **„Selbst zusammenstellen"** ist die Bearbeitung, leer wie bisher.
 //
+// - **Die Frage zum Limit** (#516 Schritt 6, 12.5a): Blieb sie im Blatt am
+//   Ende der Fahrt unbeantwortet, steht sie hier EINMAL über dem Knopf —
+//   gelesen und geleert beim Aufgehen.
+//
 // Kein Persistent Bottom Sheet wie das Ergebnis (12.3 sah es so vor): Es
 // würde beim Tipp auf die Karte zu- und wieder aufgehen und die Karte
 // darüber einpassen; als Karte im Body tritt es einfach zurück, wie die
@@ -31,6 +35,8 @@ import '../../l10n/l10n.dart';
 import '../coach/coach.dart';
 import '../help/map_tour.dart' show MapCoach;
 import '../map/position_provider.dart';
+import '../rides/climb_limit_offer.dart' show ClimbLimitOffer;
+import '../rides/climb_limit_row.dart';
 import 'loop_planner.dart' show LoopPrefs;
 import 'loop_planner_controller.dart';
 import 'loop_planner_sheet.dart' show loopHoursLabel;
@@ -56,6 +62,9 @@ class _LoopEntrySheetState extends ConsumerState<LoopEntrySheet> {
   /// andere Wahl kommt.
   bool _noPosition = false;
   bool _locating = false;
+
+  /// Die gemerkte Frage zum Limit, einmal gelesen (und damit geleert).
+  late final ClimbLimitOffer? _climbOffer = takePendingClimbLimit(ref);
 
   LoopPlannerNotifier get _n => ref.read(loopPlannerProvider.notifier);
 
@@ -221,6 +230,11 @@ class _LoopEntrySheetState extends ConsumerState<LoopEntrySheet> {
                 child: Text(l.loopEntryNoPosition,
                     key: const ValueKey('loop-entry-no-position'),
                     style: theme.textTheme.bodySmall?.copyWith(color: AppPalette.of(context).warningText)),
+              ),
+            if (_climbOffer != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 8, right: 8),
+                child: ClimbLimitRow(offer: _climbOffer),
               ),
             const SizedBox(height: 8),
             Padding(
