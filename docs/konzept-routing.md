@@ -2247,6 +2247,14 @@ einem Schritt auf der normalen Karte.
 4. **„Runde vorschlagen"** (12.4) nach der Messung aus 12.8: Pool aus
    dem Umkreis, abgeleitete Höhenmeter, „Bearbeiten" am Ergebnis —
    💻 messen · ☁️ bauen · 📱.
+   **Gemessen 2026-11-14** mit öffentlichen Daten (Innsbruck, offizielle
+   Trails; `tool/loop_suggest_measure.dart`, `docs/routing-messung.md`
+   „#516"): Die Umkreise aus 12.4 bleiben — ein voller Kreis von 15 km
+   sind 110 Kacheln, Zusammensetzen und erste Rechnung je ≤ 0,3 s am
+   Rechner. Offen: ein Stand UNTER dem Fenster mit deutlich besserem
+   Anteil verliert (E 5 h: 5 h 25 mit 21 % statt 4 h 12 mit 28 %), und
+   bei 1 h hebt ± 30 min die Runde auf 1 h 11; der Pool aus dem eigenen
+   Netz ist noch nicht gemessen (💻).
 5. **Vorliebe** (12.4): Zähler je Trail, Aufschlag in der Zielfunktion
    — ☁️ bauen · 💻 prüfen.
 6. **Limit aus Fahrten** (12.5a): die eine Zeile am Ende der Fahrt,
