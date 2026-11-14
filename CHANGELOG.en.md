@@ -2,6 +2,27 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## A loop on suggestion
+
+*Version 0.175.0, 2026-11-14*
+
+- **Suggest a loop:** in the planner, the button under "Loop" now reads
+  "Suggest a loop". The planner picks the trails itself — from all in
+  your network near the start: within 5 km for 1 h, 8 km for 2 h, 12 km
+  for 3 h, 15 km beyond. Reported trails stay out. Above the result it
+  says "Suggestion: 4 trails within 12 km".
+- **Edit:** next to Save and GPX, "Edit" leads into the selection with
+  the suggested trails already chosen.
+- **Climb to match the time:** the suggestion uses your climb limit for
+  3 h, proportionally less for shorter loops, never more for longer ones.
+- **Search wider:** if no trail lies within the radius, or too few fit
+  the time, "Search wider" tries the next, larger radius.
+- **Short loops more precise:** under 2 h the loop may only differ by a
+  quarter of the time (15 min at 1 h); from 2 h on it stays half an hour.
+- **Rather shorter with more trail:** if a shorter loop has clearly more
+  trail share than any within the time window, the planner takes it and
+  says so in the result.
+
 ## Time is a guide, not a limit
 
 *Version 0.174.0, 2026-11-13*

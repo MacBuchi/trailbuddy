@@ -4,8 +4,10 @@
 // Ergebnis stehen; es fragt von oben nach unten, und jede Zeile ist
 // vorbelegt — wer einverstanden ist, tippt nur den Knopf.
 //
-// - **Runde**: Start (Standort · Karte) und Zeit; „Trails wählen" führt
-//   in die Bearbeitung. Den Vorschlag rechnet erst Schritt 4 (12.4).
+// - **Runde**: Start (Standort · Karte) und Zeit; „Runde vorschlagen"
+//   rechnet aus allen Trails im Umkreis der Zeit (12.4, Schritt 4).
+//   Wer selbst wählen will, nimmt „Selbst zusammenstellen" oder
+//   „Bearbeiten" am Vorschlag.
 // - **Route**: Start und Ziel (Standort · Karte); sobald das Ziel steht,
 //   rechnet die Karte (`entryRouteReady`). „Route" ohne Ziel wartet gleich
 //   auf den Tipp — Planer → Route → Tipp: drei Tipps.
@@ -34,11 +36,15 @@ import 'loop_planner_controller.dart';
 import 'loop_planner_sheet.dart' show loopHoursLabel;
 
 class LoopEntrySheet extends ConsumerStatefulWidget {
-  const LoopEntrySheet({super.key, required this.onCompute, required this.onClose});
+  const LoopEntrySheet({super.key, required this.onCompute, required this.onSuggest, required this.onClose});
 
   /// Die Route rechnen — dieselbe Stelle wie „Route rechnen" in der
   /// Auswahlzeile (das Ergebnis-Blatt geht auf).
   final VoidCallback onCompute;
+
+  /// „Runde vorschlagen" (#516 Schritt 4): das Ergebnis-Blatt mit dem
+  /// Vorschlag.
+  final VoidCallback onSuggest;
   final VoidCallback onClose;
 
   @override
@@ -79,7 +85,7 @@ class _LoopEntrySheetState extends ConsumerState<LoopEntrySheet> {
   void _go() {
     final s = ref.read(loopPlannerProvider);
     if (!s.prefs.intentRoute) {
-      _n.leaveEntry();
+      widget.onSuggest();
     } else if (s.target == null) {
       _n.armTargetPick();
     } else if (s.targetMine && s.start == null) {
@@ -228,7 +234,7 @@ class _LoopEntrySheetState extends ConsumerState<LoopEntrySheet> {
                 ),
                 onPressed: _locating ? null : _go,
                 icon: Icon(route ? Icons.alt_route : Icons.touch_app_outlined),
-                label: Text(route ? l.loopRailComputeRoute : l.loopEntryTrails),
+                label: Text(route ? l.loopRailComputeRoute : l.loopEntrySuggest),
               ),
             ),
             Align(

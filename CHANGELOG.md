@@ -2,6 +2,30 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Eine Runde auf Vorschlag
+
+*Version 0.175.0, 2026-11-14*
+
+- **Runde vorschlagen:** Im Planer heißt der Knopf bei „Runde" jetzt
+  „Runde vorschlagen". Der Planer wählt die Trails selbst — aus allen
+  in deinem Netz, die in der Nähe des Starts liegen: bei 1 h in 5 km,
+  bei 2 h in 8 km, bei 3 h in 12 km, darüber in 15 km. Gemeldete Trails
+  bleiben draußen. Über dem Ergebnis steht „Vorschlag: 4 Trails in
+  12 km".
+- **Bearbeiten:** Neben Speichern und GPX führt „Bearbeiten" in die
+  Auswahl, mit den Trails des Vorschlags schon gewählt.
+- **Höhenmeter passend zur Zeit:** Für den Vorschlag gilt dein
+  Höhenmeter-Limit für 3 h, bei kürzeren Runden anteilig weniger, bei
+  längeren nie mehr.
+- **Weiter suchen:** Liegt im Umkreis kein Trail oder passen zu wenige
+  in die Zeit, sucht „Weiter suchen" im nächsten, größeren Umkreis.
+- **Kurze Runden genauer:** Unter 2 h darf die Runde nur noch ein
+  Viertel der Zeit abweichen (bei 1 h also 15 min), darüber bleibt es
+  bei einer halben Stunde.
+- **Lieber kürzer mit mehr Trail:** Ist eine kürzere Runde deutlich
+  trailreicher als jede im Zeitfenster, nimmt der Planer sie und sagt es
+  im Ergebnis.
+
 ## Die Zeit ist ein Richtwert
 
 *Version 0.174.0, 2026-11-13*

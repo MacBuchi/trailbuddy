@@ -648,6 +648,15 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     await _showLoopResult(compute: false);
   }
 
+  /// „Runde vorschlagen" im Einstieg (#516 Schritt 4).
+  Future<void> _suggestLoop() async {
+    if (_loopPanelOpen) {
+      unawaited(ref.read(loopPlannerProvider.notifier).suggest());
+      return;
+    }
+    await _showLoopResult(suggest: true);
+  }
+
   Future<void> _computeLoop() async {
     if (_loopPanelOpen) {
       unawaited(ref.read(loopPlannerProvider.notifier).compute());
@@ -660,10 +669,10 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   /// Einstieg mit fertigem Auftrag und hat sich nichts geändert, schließt
   /// das Blatt den ganzen Planer (Schnell zu, Konzept-Routing 10.4) — und
   /// ein Trail, der vorher ausgewählt war, ist es wieder.
-  Future<void> _showLoopResult({bool compute = true}) async {
+  Future<void> _showLoopResult({bool compute = true, bool suggest = false}) async {
     final scaffold = _scaffoldKey.currentState;
     if (scaffold == null) return;
-    final shown = showLoopResultPanel(scaffold, compute: compute);
+    final shown = showLoopResultPanel(scaffold, compute: compute, suggest: suggest);
     _loopPanel = shown;
     await shown;
     if (!identical(_loopPanel, shown)) return;
@@ -1977,6 +1986,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                   padding: const EdgeInsets.fromLTRB(12, 0, 76, 12),
                   child: LoopEntrySheet(
                     onCompute: () => unawaited(_computeLoop()),
+                    onSuggest: () => unawaited(_suggestLoop()),
                     onClose: _closeLoopPlanner,
                   ),
                 ),

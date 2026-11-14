@@ -9971,6 +9971,73 @@
       }
     }
   },
+  "loopSuggestLine": "{count, plural, =1{Vorschlag: 1 Trail in {radius}} other{Vorschlag: {count} Trails in {radius}}}",
+  "@loopSuggestLine": {
+    "description": "Ergebnis des Planers über der Summe, wenn der Planer die Trails selbst gewählt hat (Konzept-Routing 12.4); radius ist der Umkreis um den Start, fertig formatiert („12 km“).",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "radius": {
+        "type": "String"
+      }
+    }
+  },
+  "loopSuggestEdit": "Bearbeiten",
+  "@loopSuggestEdit": {
+    "description": "Ergebnis eines Vorschlags: in die Bearbeitung, mit den Trails des Vorschlags gewählt."
+  },
+  "loopShortShareNote": "Kürzer als etwa {time}, dafür mehr Trail: Eine längere Runde bräuchte lange Wege zwischen den Trails.",
+  "@loopShortShareNote": {
+    "description": "Satz im Ergebnis einer Runde, die bewusst unter dem Zeitfenster bleibt, weil ihr Trail-Anteil deutlich besser ist (Betreiber, 2026-11-14); time ist die gewählte Zeit, fertig formatiert.",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "loopSuggestWider": "Weiter suchen: {radius}",
+  "@loopSuggestWider": {
+    "description": "Knopf im Ergebnis eines Vorschlags: derselbe Vorschlag aus dem nächsten, größeren Umkreis; radius fertig formatiert („15 km“).",
+    "placeholders": {
+      "radius": {
+        "type": "String"
+      }
+    }
+  },
+  "loopBlockerNoTrailsInReach": "Keine Trails in {radius} um den Start — such weiter oder plane eine Route von A nach B.",
+  "@loopBlockerNoTrailsInReach": {
+    "description": "Ergebnis eines Vorschlags: im Umkreis liegt keine wählbare Abfahrt; radius fertig formatiert („5 km“).",
+    "placeholders": {
+      "radius": {
+        "type": "String"
+      }
+    }
+  },
+  "highlightLoopSuggestTitle": "Eine Runde auf Vorschlag",
+  "@highlightLoopSuggestTitle": {
+    "description": "Entdecken, Eintrag „loop-suggest“: Überschrift (auch im Neuheiten-Blatt nach einem Update)."
+  },
+  "highlightLoopSuggestText": "„Runde vorschlagen“ wählt die Trails selbst: aus allen in der Nähe, so viele, wie in etwa die Zeit passen, mit möglichst wenig Weg dazwischen. „Bearbeiten“ führt mit diesen Trails zur Auswahl.",
+  "@highlightLoopSuggestText": {
+    "description": "Entdecken, Eintrag „loop-suggest“: zwei, höchstens drei Sätze."
+  },
+  "demoLoopSuggest1Title": "Planer öffnen",
+  "@demoLoopSuggest1Title": {
+    "description": "Vorführung „loop-suggest“, Schritt 1: Überschrift."
+  },
+  "demoLoopSuggest1Text": "Der Knopf öffnet den Planer mit der Frage, was du vorhast.",
+  "@demoLoopSuggest1Text": {
+    "description": "Vorführung „loop-suggest“, Schritt 1: Text."
+  },
+  "demoLoopSuggest2Title": "Runde vorschlagen",
+  "@demoLoopSuggest2Title": {
+    "description": "Vorführung „loop-suggest“, Schritt 2: Überschrift."
+  },
+  "demoLoopSuggest2Text": "Start und Zeit sind vorbelegt. Ein Tipp auf „Runde vorschlagen“, und der Planer wählt die Trails im Umkreis selbst.",
+  "@demoLoopSuggest2Text": {
+    "description": "Vorführung „loop-suggest“, Schritt 2: Text."
+  },
   "highlightRideStartTitle": "Ein Knopf bis zur Fahrt",
   "@highlightRideStartTitle": {
     "description": "Entdecken, Eintrag „ride-start“: Überschrift (auch im Neuheiten-Blatt nach einem Update)."
@@ -10152,9 +10219,9 @@
   "@loopEntryMore": {
     "description": "Planer, Einstiegsblatt: Tooltip der Taste +, eine halbe Stunde mehr."
   },
-  "loopEntryTrails": "Trails wählen",
-  "@loopEntryTrails": {
-    "description": "Planer, Einstiegsblatt: Knopf bei „Runde“ — weiter zur Bearbeitung, wo man die Trails antippt."
+  "loopEntrySuggest": "Runde vorschlagen",
+  "@loopEntrySuggest": {
+    "description": "Planer, Einstiegsblatt: Knopf bei „Runde“ — rechnet einen Vorschlag aus allen Trails im Umkreis (Konzept-Routing 12.4)."
   },
   "loopEntrySelf": "Selbst zusammenstellen",
   "@loopEntrySelf": {

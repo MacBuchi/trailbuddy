@@ -1019,7 +1019,8 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     `loop_planner_flow_test`, auf Englisch `l10n_test`. Gegenproben
     2026-11-13: ohne `entry` am Knopf (6 rot), ohne Rechnen nach dem Tipp
     (2 rot), ohne `leaveEntry` im Toggle (1 rot).
-- **Die Zeit als Richtwert** (#516 Schritt 3, seit 0.174.0;
+- **Die Zeit als Richtwert** (#516 Schritt 3, seit 0.174.0; Fenster
+  und Stand unter dem Fenster seit 0.175.0, siehe „Der Vorschlag";
   Konzept-Routing 12.5/12.5a). Vier Dinge, die man wissen muss:
   - **`LoopBudget.windowS` (± 30 min) statt Reserve**: Der Greedy baut
     bis `maxTimeS`, `chooseState` nimmt unter seinen Ständen im Fenster
@@ -1039,6 +1040,33 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     unter den Knöpfen — eingeklappt muss „Fahrt starten" zu sehen sein.
     `LoopBudgetScale` trägt `value`, `mark`, `windowFrom/To`, `over`
     für Tests.
+- **Der Vorschlag** (#516 Schritt 4, seit 0.175.0; Konzept-Routing
+  12.4/12.5, Messung `docs/routing-messung.md` „#516",
+  `tool/loop_suggest_measure.dart`). Fünf Dinge, die man wissen muss:
+  - **Es ist `compute(suggestReachM:)`, kein zweiter Rechenweg**: Pool =
+    `loopPoolOf(...).inReach` um den Start (nach dem Fix), Budget
+    `LoopPrefs.suggestBudget`; danach `selected` = die Trails des Plans,
+    ohne `_edit`. `LoopSession.suggestReachM` hängt am Plan (geht mit
+    `clearPlan`), `planBudget` ist, was das Blatt für Skalen, „ca." und
+    `loop-short` liest — nie `prefs.budget` direkt.
+  - **Rad und Stil im Ergebnis rechnen den Vorschlag neu**
+    (`switchProfile`/`setStyle` merken `suggestReachM` VOR `setProfile`
+    — dessen `_edit` räumt ihn mit dem Plan).
+  - **Das Fenster ist `loopWindowFor`** (¼ unter 2 h), auch in
+    `LoopPrefs.budget`; Tests, die ein festes Fenster brauchen, setzen
+    `windowS` selbst.
+  - **`chooseState` nimmt einen Stand unter dem Fenster** ab
+    `kLoopShareBelow` mehr Anteil, bis `floorTimeS` (Zeit − 2 × Fenster),
+    und setzt `shortForShare` — das Blatt zeigt dann `loop-short-share`
+    statt `loop-short` und kein „Weiter suchen" (`loop-wider`).
+  - **Tests**: `loop_planner_test` („im Fenster gewinnt …", „unter 2 h
+    …", „der Vorschlag …"), Gruppe „Einstieg" in `loop_planner_flow_test`
+    („Runde vorschlagen", „kein Trail im Umkreis"), `l10n_test`.
+    Gegenproben 2026-11-14: Regel unter dem Fenster aus, Untergrenze
+    aus, Viertel-Fenster aus, Pool leer, Auswahl nicht gesetzt — je rot.
+    Achtung bei der ersten: `if (false)` statt der Bedingung kompiliert
+    nicht (`below` verliert die Beförderung) und sieht im Lauf aus wie
+    ein roter Test.
 - **Ergebnis und Start in einem, ein Ende** (#517, seit 0.171.0;
   Konzept-Routing 9.4, Konzept-Geräte 5.2). Fünf Dinge, die man wissen
   muss:
