@@ -25,8 +25,20 @@ Abbiegehinweise.
   `--run` die App im Simulator, `--store` das Store-Paket
   `build/garmin/trailbuddy.iq` (alle Uhren des Manifests, `-r`, ohne
   Testroute; `--store --run` zeigt diesen Zweig im Simulator). Auf die
-  Uhr: die `.prg` per USB nach `GARMIN/APPS/`. CI baut die Uhr-App nicht (SDK nur mit Garmin-Anmeldung);
-  CI prüft `tool/garmin_route.py --self-test` und die Syntax des Skripts.
+  Uhr: die `.prg` per USB nach `GARMIN/APPS/`. CI („Analyze & Test")
+  prüft `tool/garmin_route.py --self-test` und die Syntax der Skripte.
+- **Unit-Tests in CI** (#512, T6): `watch-tests.yml` fährt
+  `tool/garmin_sim.sh up <uhr>` + `unit` für jede Uhr des Manifests im
+  Container (Bild des Dritten aus `tool/garmin_sim.Dockerfile`,
+  öffentlich, ohne Garmin-Anmeldung; Wegwerf-Schlüssel), nur wenn
+  `garmin/`, `lib/features/garmin/`, `docs/watch_cases.json`,
+  `tool/garmin_*` oder `tool/watch_layout.*` sich ändern; Ergebnis je
+  Uhr in der Run-Summary. Erster Lauf 2026-11-16: 9 Uhren × 80 Tests
+  grün in ~5 min; Gegenprobe `OFF_ROUTE_FIXES` 1 ⇒ rot. **Kein
+  Pflicht-Check**, bis er zwei Wochen stabil lief (`monkeydo -t` hängt
+  gelegentlich) — erst dann Pfadfilter raus und in den Branch-Schutz.
+  Eine neue Uhr im Manifest, die das Bild nicht kennt, macht den Job rot
+  („kein Simulator").
 - **Watchdog: 120 000 Bytecode-Schritte je Ereignis** (`simulator.json`
   der fēnix 5, `watchdogCount`). Ohne Gegenmaßnahme trafen ihn bei 1000
   Punkten nacheinander: Dekodieren (`climbOf`), Zeichnen aller Stücke, die

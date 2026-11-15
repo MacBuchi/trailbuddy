@@ -32,7 +32,7 @@ niedrigsten Stufe, die ihn finden kann.
 | Geändert | Mindestens | Befehl |
 |---|---|---|
 | Kodierung, Protokoll, Logik am Handy (`lib/features/garmin/`) | S0 | `tool/garmin_bench.sh cases` |
-| Bausteine der Uhr (`NavTracker`, `RideLog`, `PhoneRoute`, `RideStats`, `NavRoute`) | S1 | `tool/garmin_bench.sh unit` (Mac-Simulator) oder `sim-unit` (Container, S1c) |
+| Bausteine der Uhr (`NavTracker`, `RideLog`, `PhoneRoute`, `RideStats`, `NavRoute`) | S1 | `tool/garmin_bench.sh unit` (Mac-Simulator) oder `sim-unit` (Container, S1c); in CI `watch-tests.yml` auf jeder Uhr des Manifests (#512) |
 | Tasten, Menüs, Fristen, Rückfrage (`WatchCore.mc`) | S2: Ereignis-Skript in `CoreTests.mc` gegen `FakeHost` | `tool/garmin_bench.sh unit` |
 | Der Wirt (`TrailBuddyApp.mc`: Timer, GPS, Senden, Menüs) | S2 + Vorführmodus | `tool/garmin_bench.sh scenario` |
 | Zeichnen (`NavView.mc`, `Ring.mc`), Texte der Uhr | S1c: alle Zustände als Bilder, beide Sprachen, den Bogen ansehen, gegen `garmin/shots/` | `tool/garmin_sim.sh shots --check`; gewollt anders → `--update`, Bilder mitcommitten |
