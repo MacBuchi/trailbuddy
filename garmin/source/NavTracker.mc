@@ -33,7 +33,7 @@ class NavState {
 //! Kompass (Konzept-Garmin 1).
 class NavTracker {
     static const OFF_ROUTE_M = 30.0;
-    static const OFF_ROUTE_FIXES = 2;
+    static const OFF_ROUTE_FIXES = 1;
     static const AHEAD_WINDOW_M = 800.0;
     static const BACK_SLACK_M = 30.0;
     static const ARRIVE_M = 30.0;
