@@ -969,7 +969,7 @@ Warum bisher so viel am Gerät landete:
 | S1c | **Simulator im Container** (#533): bauen, Unit-Tests, Tasten drücken, jeden Zustand als Bild — ohne Bildschirm, SDK und Schlüssel des Betreibers | Zeichnen, Texte in beiden Sprachen, was eine Taste in der echten Ansicht tut | 💻 mit Docker, CI später (#512) | da (`tool/garmin_sim.sh`) |
 | S2 | **Ablaufkern**: Ereignis-Skripte gegen den Zustandsautomaten (T1, #508; `WatchCore.mc`, Tests in `CoreTests.mc`) | Tasten, Menüs, Fristen, Reihenfolgen | 💻 | da |
 | S3 | **Gesprächskatalog** für beide Seiten und die Fake-Uhr mit Kanalmodell (T2, T3, #509) | Protokoll-Drift, Laufzeit, Verlust, geschlossene App | CI (Handy, Frische der Uhr-Seite), 💻 (Uhr) | da |
-| S4 | **Dart-Abbild der Ansicht** mit Golden-Tests (T5, #511; kleiner seit S1c) | Textlängen, andere Größen | CI | offen |
+| S4 | **Dart-Abbild der Ansicht** mit Golden-Tests (T5, #511; kleiner seit S1c) | Textlängen, andere Größen | CI | da (`test/garmin/watch_twin_test.dart`) |
 | S5 | **Kettenstand**: Android-Emulator und Simulator, verbunden über adb (T7, #527) | Brücke, Kotlin, SDK, beide Apps zusammen | 💻 | da (`tool/garmin_bench.sh chain`) |
 | S6 | **Tischabnahme**: Release-Bau am Pixel 7 Pro und fēnix 5, als Skript (#527) | Garmin Connect, R8, Hintergrund, alter Stand auf der Uhr | 📱, ~10 min | offen |
 | S7 | Feld | Messungen 8.3–8.6, 8.9 | 📱 | — |
@@ -1043,6 +1043,18 @@ und S6 brauchen. Die Referenzbilder liegen in `garmin/shots/<gerät>/<sprache>/`
 mit `tool/garmin_sim.sh shots --update` nach, und der PR zeigt den
 Unterschied. #511 (S4) wird dafür kleiner: Andere Größen und lange
 Texte bleiben dort, der Vergleich mit dem Simulator von Auge entfällt.
+
+**Das Abbild der Ansicht** (S4, #511): Die Layoutzahlen stehen EINMAL in
+`tool/watch_layout.json`; `tool/watch_layout.py` schreibt sie hinter
+Marken in `NavView.mc`/`Ring.mc` (Kommentare, kein Speicher auf der
+Uhr). Das Dart-Abbild zeichnet daraus jede Phase und Fußzeile in beiden
+Sprachen mit den längsten Werten, auf fünf Uhren von 218 bis 280 px, mit
+den im Simulator gemessenen Schriftmaßen (`tool/watch_fonts.sh`), und
+meldet, welcher Text aus dem sichtbaren Kreis ragt oder einen anderen
+überdeckt. Der erste Lauf fand auf 240 px zwei Fehler (Trailname gegen
+den falschen Kreis gemessen, die Frage breiter als die Anzeige, beide
+behoben) und fünf offene Stellen (#555). Was Monkey C wirklich
+zeichnet, bleibt Sache von S1c.
 
 **Die Regel der Leiter:** Ein Fehler, der auf Stufe n gefunden wird,
 bekommt seinen Test auf der niedrigsten Stufe, die ihn hätte finden

@@ -1,0 +1,249 @@
+{
+ "_": [
+  "Die Layoutzahlen der Uhr-Ansicht (#511, Prüfleiter S4) — EINE Quelle.",
+  "Gilt für die 240er Anzeige (alle Uhren des Manifests). python3 tool/watch_layout.py schreibt die Werte",
+  "hinter die Marken /*L:name*/ und /*F:name*/ in den .mc-Dateien; CI prüft mit --check.",
+  "Andere Größen: jeder Wert mal Breite/240, gerundet, außer fixed; overrides je Breite gehen vor.",
+  "Das Dart-Abbild (test/garmin/watch_twin.dart) liest diese Datei und tool/watch_fonts/<gerät>.json."
+ ],
+ "base": 240,
+ "files": [
+  "garmin/source/Ring.mc",
+  "garmin/source/NavView.mc"
+ ],
+ "devices": [
+  "fenix5s",
+  "fenix5",
+  "fenix6s",
+  "fenix6",
+  "fenix6xpro"
+ ],
+ "values": {
+  "ring_r": {
+   "v": 114,
+   "note": "Radius der Ringmitte (Ring.mc)"
+  },
+  "ring_w": {
+   "v": 8,
+   "note": "Strichbreite des Rings",
+   "fixed": true
+  },
+  "map_r": {
+   "v": 107,
+   "note": "Karte innen bis hier, darüber der schwarze Rand"
+  },
+  "pos_y": {
+   "v": 128,
+   "note": "die eigene Position"
+  },
+  "field_y": {
+   "v": 168,
+   "note": "Oberkante der Infofläche"
+  },
+  "col_x": {
+   "v": 54,
+   "note": "Abstand der zwei Spalten der Zahlenseiten von der Mitte"
+  },
+  "overview_r": {
+   "v": 62,
+   "note": "Radius der Übersicht ohne GPS"
+  },
+  "logo_y": {
+   "v": 104,
+   "note": "Mitte des Logos im Lader"
+  },
+  "loader_text_y": {
+   "v": 176,
+   "note": "Text unter dem Lader"
+  },
+  "two_line_text_y": {
+   "v": 150,
+   "note": "zweizeiliger Text des Laders"
+  },
+  "status_top_y": {
+   "v": 44,
+   "note": "Schild der Aufzeichnung auf der Karte"
+  },
+  "status_bottom_y": {
+   "v": 214,
+   "note": "Schild der Aufzeichnung auf den Zahlenseiten"
+  },
+  "ask_y_map": {
+   "v": 86,
+   "note": "Frage auf der Karte"
+  },
+  "ask_y_page": {
+   "v": 150,
+   "note": "Frage auf einer Zahlenseite"
+  },
+  "toast_y_map": {
+   "v": 82,
+   "note": "Einblendung auf der Karte"
+  },
+  "toast_y_page": {
+   "v": 176,
+   "note": "Einblendung auf einer Zahlenseite"
+  },
+  "ask_bar_x": {
+   "v": 40,
+   "note": "Frist-Balken links"
+  },
+  "ask_bar_dy": {
+   "v": 16,
+   "note": "Frist-Balken unter der Frage"
+  },
+  "ask_bar_w": {
+   "v": 160,
+   "note": "Frist-Balken volle Breite"
+  },
+  "ask_yes_big_x": {
+   "v": 156,
+   "note": "START = JA (erste Frage)"
+  },
+  "ask_yes_x": {
+   "v": 198,
+   "note": "JA an START (rechts oben)"
+  },
+  "ask_yes_y": {
+   "v": 64,
+   "note": "Höhe von JA"
+  },
+  "ask_no_x": {
+   "v": 194,
+   "note": "NEIN an ZURÜCK (rechts unten)"
+  },
+  "ask_no_y": {
+   "v": 176,
+   "note": "Höhe von NEIN"
+  },
+  "field_line1_dy": {
+   "v": 2,
+   "note": "erste Zeile der Infofläche unter field_y"
+  },
+  "field_line2_dy": {
+   "v": 28,
+   "note": "zweite Zeile (Zahlen) unter field_y"
+  },
+  "version_y": {
+   "v": 56,
+   "note": "Fassung oben in der Übersicht"
+  },
+  "phone_gps_dy": {
+   "v": 22,
+   "note": "HANDY-GPS über dem Pfeil"
+  },
+  "arrived_title_y": {
+   "v": 30,
+   "note": "ANGEKOMMEN"
+  },
+  "arrived_km_y": {
+   "v": 60,
+   "note": "Strecke groß"
+  },
+  "arrived_time_dx": {
+   "v": 36,
+   "note": "Fahrzeit links der Mitte"
+  },
+  "arrived_row_y": {
+   "v": 112,
+   "note": "Fahrzeit und bergauf"
+  },
+  "arrived_climb_dx": {
+   "v": 40,
+   "note": "bergauf rechts der Mitte"
+  },
+  "arrived_trails_y": {
+   "v": 148,
+   "note": "Anzahl Trails"
+  },
+  "arrived_shields_y": {
+   "v": 186,
+   "note": "Schilder der Trails"
+  },
+  "arrived_bests_y": {
+   "v": 202,
+   "note": "Bestwerte"
+  },
+  "cell_row1_y": {
+   "v": 104,
+   "note": "obere Zellen der Zahlenseiten"
+  },
+  "cell_row2_y": {
+   "v": 150,
+   "note": "untere Zellen"
+  },
+  "climb_row2_y": {
+   "v": 168,
+   "note": "Anstieg in der unteren Zelle"
+  },
+  "page_note_y": {
+   "v": 198,
+   "note": "Hinweis unten (Speicher voll)"
+  },
+  "climb_row1_y": {
+   "v": 122,
+   "note": "Anstieg in der oberen Zelle"
+  },
+  "big_unit_y": {
+   "v": 20,
+   "note": "Einheit über der großen Zahl"
+  },
+  "big_value_y": {
+   "v": 40,
+   "note": "große Zahl"
+  },
+  "big_rule_x": {
+   "v": 36,
+   "note": "Trennstrich waagrecht, Abstand vom Rand"
+  },
+  "big_rule_y": {
+   "v": 100,
+   "note": "Trennstrich waagrecht"
+  },
+  "col_rule_top": {
+   "v": 108,
+   "note": "Trennstrich senkrecht oben"
+  },
+  "col_rule_bottom": {
+   "v": 196,
+   "note": "Trennstrich senkrecht unten"
+  },
+  "cell_value_dy": {
+   "v": 18,
+   "note": "Wert unter dem Namen der Zelle"
+  }
+ },
+ "fonts": {
+  "route_broken": "small",
+  "status": "xtiny",
+  "toast": "small",
+  "ask": "xtiny",
+  "ask_yes_big": "small",
+  "ask_yes": "xtiny",
+  "ask_no": "xtiny",
+  "field_note": "xtiny",
+  "version": "xtiny",
+  "phone_gps": "xtiny",
+  "north": "xtiny",
+  "field_name": "tiny",
+  "field_name_small": "xtiny",
+  "number_line": "small",
+  "number_line_2": "tiny",
+  "number_line_3": "xtiny",
+  "off_title": "tiny",
+  "off_value": "small",
+  "arrived_title": "tiny",
+  "arrived_km": "large",
+  "arrived_time": "small",
+  "arrived_trails": "xtiny",
+  "arrived_bests": "xtiny",
+  "page_note": "xtiny",
+  "big_unit": "xtiny",
+  "big_value": "numberMedium",
+  "cell_value": "small",
+  "cell_label": "xtiny",
+  "climb_value": "small",
+  "loader_text": "xtiny"
+ },
+ "overrides": {}
+}

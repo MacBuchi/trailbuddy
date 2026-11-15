@@ -2,6 +2,17 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## The watch shows long names and the question in full
+
+*Version 0.177.2, 2026-11-15 (watch app 1.6.1)*
+
+- **Long trail names:** at the bottom of the watch map a long name now
+  gets smaller and then shortened in time, before the black border cuts
+  it. Before, the watch measured against the whole round screen instead
+  of the map.
+- **The question "Route from your position?"** uses a smaller font and
+  now fits the screen; "START = YES" moves a little away from the edge.
+
 ## Your favourite trails count for more
 
 *Version 0.177.1, 2026-11-14*

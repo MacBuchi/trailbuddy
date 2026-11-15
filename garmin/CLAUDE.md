@@ -470,3 +470,35 @@ Abbiegehinweise.
   105,7 KB, Spitze 108,9). Die Grenze der App sinkt deshalb auf 800
   (Betreiber, 2026-11-13); `x` mem ist der Schutz in `PhoneRoute.take`
   (4 KB + 16 B je Zahl frei), die alte Route bleibt.
+- **Layoutzahlen aus EINER Quelle** (#511, S4): `tool/watch_layout.json`
+  hält jede Lage, jeden Radius und jede Schriftstufe von `NavView.mc` und
+  `Ring.mc` (240 px). In der `.mc` steht davor eine Marke `/*L:name*/`
+  bzw. `/*F:name*/Graphics.FONT_…` — ein Kommentar statt einer Konstante,
+  weil jede Konstante im Debug-Bau Speicher kostet. Wer eine Zahl ändert,
+  ändert die JSON und läuft `python3 tool/watch_layout.py` (schreibt die
+  Werte hinter die Marken); CI prüft mit `--check`, der Dart-Test auch.
+  Eine neue Lage oder ein neuer Text in der Ansicht bekommt eine Marke
+  und einen Eintrag, sonst sieht ihn das Abbild nicht.
+- **Das Abbild der Ansicht** (`test/garmin/watch_twin.dart`, Test
+  `watch_twin_test.dart`): zeichnet die Ansicht aus der JSON und den im
+  Simulator gemessenen Schriftmaßen (`tool/watch_fonts/<gerät>.json`,
+  `tool/watch_fonts.sh`: Unit-Test mit `getTextWidthInPixels` je Zeichen
+  in einem eigenen kleinen Projekt — die Uhr-App bleibt unberührt). Fünf
+  Geräte: fēnix 5S (218), 5 und 6S (240, Manifest), 6 (260), 6X Pro
+  (280); andere Größen = Werte × Breite/240 (`overrides` je Breite gehen
+  vor). Gemessen 2026-11-15: keine Unterschneidung (Satz = Summe der
+  Zeichen), die Buchstaben stehen von Höhe − Ascent + 1 bis zur
+  Grundlinie (Referenzbilder der fēnix 5); die 6S hat bei 240 px
+  dieselben `tiny`/`small`/`large` wie die 5, aber ein kleineres `xtiny`
+  (19 statt 26 px hoch, die Frage 166 statt 216 px breit) und
+  `FONT_NUMBER_MEDIUM` 68 px mit Ascent 50. Je Gerät und Sprache ein Bogen aller Bilder
+  (bildpunktgenau verglichen, selbst gerastert ohne Glättung — Skia
+  rastert auf Mac und Linux nicht gleich) und ein Bericht, was nicht
+  passt (`watch_twin/<gerät>.txt`, auch ein Golden). Nachziehen:
+  `flutter test --update-goldens test/garmin/watch_twin_test.dart`. Wer
+  die Ansicht in Monkey C ändert, zieht das Abbild mit; was der
+  Simulator wirklich zeichnet, vergleichen weiterhin `garmin/shots`.
+  Gefunden beim Bau: der Trailname maß gegen den Kreis der Anzeige statt
+  der Karte (jetzt `MAP_R` auf Höhe der Grundlinie), die Frage war in
+  `small` 250 px breit (jetzt `xtiny`) — beide behoben; was auf 240 px
+  noch nicht passt, steht in #555 und im Bericht.

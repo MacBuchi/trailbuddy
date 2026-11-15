@@ -2,6 +2,18 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Die Uhr zeigt lange Namen und die Frage ganz
+
+*Version 0.177.2, 2026-11-15 (Uhr-App 1.6.1)*
+
+- **Lange Trailnamen:** Unten auf der Karte der Uhr wird ein langer Name
+  jetzt rechtzeitig kleiner und dann gekürzt, bevor der schwarze Rand
+  ihn anschneidet. Vorher maß die Uhr gegen den ganzen Kreis der Anzeige
+  statt gegen die Karte.
+- **Die Frage „Route ab deiner Position?"** steht in kleinerer Schrift
+  und passt jetzt ganz auf die Anzeige; „START = JA" rückt etwas vom Rand
+  weg.
+
 ## Deine Lieblingstrails zählen mehr
 
 *Version 0.177.1, 2026-11-14*
