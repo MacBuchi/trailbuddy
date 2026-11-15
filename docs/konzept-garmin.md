@@ -676,9 +676,12 @@ Entscheidung 5. Gebaut in `garmin/source/RideLog.mc` (Uhr),
   `tool/garmin_build.sh`. Der normale Build — der, der auf die Uhr kommt —
   enthält **keine erfundene Route**: ohne Route vom Handy beginnt die freie
   Fahrt. Die Testroute steckt nur in den Prüf- und Messbauten
-  (`--test`, `--demo`, `--run`, `--demo-route`, `--points`, `--gpx`). Ob CI
-  die Uhr-App mitbauen kann, hängt daran, ob sich das SDK ohne
-  Garmin-Anmeldung laden lässt — offen, bis es probiert ist.
+  (`--test`, `--demo`, `--run`, `--demo-route`, `--points`, `--gpx`). CI
+  baut die Prüf-Bauten und fährt die Unit-Tests (`watch-tests.yml`, #512)
+  im Simulator-Container von #533: Das Bild eines Dritten bringt SDK und
+  Gerätedateien öffentlich mit, eine Garmin-Anmeldung braucht es nicht,
+  der Schlüssel ist ein Wegwerf-Schlüssel. Das Store-Paket (`.iq`) baut
+  weiter nur der Betreiber.
 - **Version Guard**: Die Uhr-App ist nicht im APK; `garmin/` wird wie
   `tool/` ausgenommen. Die Android-Brücke ist es nicht, sie bumpt.
 - **Tests**: Die Protokoll-Kodierung ist eine pure Dart-Funktion mit
@@ -965,8 +968,8 @@ Warum bisher so viel am Gerät landete:
 | Stufe | Was | Findet | Wo | Stand |
 |---|---|---|---|---|
 | S0 | Dart-Tests gegen die Fake-Uhr (`test/garmin/`) | Logik am Handy, Kodierung | CI | da |
-| S1 | Monkey-C-Unit-Tests (`garmin/source/Tests.mc`) | Bausteine der Uhr | 💻, CI als Versuch (T6, #512) | da |
-| S1c | **Simulator im Container** (#533): bauen, Unit-Tests, Tasten drücken, jeden Zustand als Bild — ohne Bildschirm, SDK und Schlüssel des Betreibers | Zeichnen, Texte in beiden Sprachen, was eine Taste in der echten Ansicht tut | 💻 mit Docker, CI später (#512) | da (`tool/garmin_sim.sh`) |
+| S1 | Monkey-C-Unit-Tests (`garmin/source/Tests.mc`) | Bausteine der Uhr | 💻, CI (`watch-tests.yml`, T6, #512; alle Uhren des Manifests, noch kein Pflicht-Check) | da |
+| S1c | **Simulator im Container** (#533): bauen, Unit-Tests, Tasten drücken, jeden Zustand als Bild — ohne Bildschirm, SDK und Schlüssel des Betreibers | Zeichnen, Texte in beiden Sprachen, was eine Taste in der echten Ansicht tut | 💻 mit Docker; in CI die Unit-Tests (#512), die Bilder noch nicht | da (`tool/garmin_sim.sh`) |
 | S2 | **Ablaufkern**: Ereignis-Skripte gegen den Zustandsautomaten (T1, #508; `WatchCore.mc`, Tests in `CoreTests.mc`) | Tasten, Menüs, Fristen, Reihenfolgen | 💻 | da |
 | S3 | **Gesprächskatalog** für beide Seiten und die Fake-Uhr mit Kanalmodell (T2, T3, #509) | Protokoll-Drift, Laufzeit, Verlust, geschlossene App | CI (Handy, Frische der Uhr-Seite), 💻 (Uhr) | da |
 | S4 | **Dart-Abbild der Ansicht** mit Golden-Tests (T5, #511; kleiner seit S1c) | Textlängen, andere Größen | CI | da (`test/garmin/watch_twin_test.dart`) |
