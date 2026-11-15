@@ -9,9 +9,9 @@ import Toybox.Math;
 module TbRing {
     //! Radius der Ringmitte, Strichbreite, und der schwarze Rand darunter
     //! (Karte innen bis MAP_R).
-    const RING_R = 114;
-    const RING_W = 8;
-    const MAP_R = 107;
+    const RING_R = /*L:ring_r*/114;
+    const RING_W = /*L:ring_w*/8;
+    const MAP_R = /*L:map_r*/107;
     //! Die Lücke oben in Grad (Start = Ziel).
     const GAP_DEG = 4;
 

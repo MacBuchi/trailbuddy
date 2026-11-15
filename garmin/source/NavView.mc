@@ -22,8 +22,8 @@ class NavView extends WatchUi.View {
     static const ZOOM_AUTO = -1;
     //! Die eigene Position, und wo die Infofläche beginnt (240er Anzeige;
     //! darunter wird der Kreis zu schmal für zwei Zeilen).
-    static const POS_Y = 128;
-    static const FIELD_Y = 168;
+    static const POS_Y = /*L:pos_y*/128;
+    static const FIELD_Y = /*L:field_y*/168;
     //! Das Band: Rand in Moos, Lime darin, Trails in S-Farbe darauf, der
     //! gefahrene Teil als dünne Linie in Moos (Design 2, „B+").
     static const EDGE_W = 12;
@@ -34,11 +34,11 @@ class NavView extends WatchUi.View {
     //! Abstand der zwei Spalten der Zahlenseiten von der Mitte. Mit 36
     //! liefen „HÖHE"/„ZUM TRAIL" ineinander und über den Trennstrich
     //! (fēnix 5, 2026-11-05); bei 54 reicht der Kreis auch unten noch.
-    static const COL_X = 54;
+    static const COL_X = /*L:col_x*/54;
     //! Die Übersicht ohne GPS: so viele Stücke je Linie höchstens, und der
     //! Radius, in den sie passt (innerhalb TbRing.MAP_R, über dem Text).
     static const OVERVIEW_SEGS = 120;
-    static const OVERVIEW_R = 62;
+    static const OVERVIEW_R = /*L:overview_r*/62;
     //! So viele Striche zeichnet ein Bild höchstens (`seg`), dann bricht es
     //! ab — lieber ein unvollständiges Bild als der Watchdog. Die fēnix 5
     //! brach am Gerät schon ab, wo der Simulator noch zeichnete
@@ -49,11 +49,11 @@ class NavView extends WatchUi.View {
     //! Spur — MIP kennt kein Ausblenden. Mitte des Logos und Zeile darunter.
     static const LOADER_DRAW_MS = 850;
     static const LOADER_PERIOD_MS = 1400;
-    static const LOGO_Y = 104;
-    static const LOADER_TEXT_Y = 176;
+    static const LOGO_Y = /*L:logo_y*/104;
+    static const LOADER_TEXT_Y = /*L:loader_text_y*/176;
     //! Zweizeilige Texte des Laders stehen höher: Bei y 176 schnitt der
     //! Kreis die zweite Zeile ab (Simulator fēnix 5, 2026-11-07).
-    static const TWO_LINE_TEXT_Y = 150;
+    static const TWO_LINE_TEXT_Y = /*L:two_line_text_y*/150;
 
     hidden var _route as NavRoute;
     hidden var _state as NavState? = null;
@@ -124,8 +124,8 @@ class NavView extends WatchUi.View {
     static const TOAST_MS = 2500;
     //! Die Zeile der Aufzeichnung: oben auf der Karte, unten auf den
     //! Zahlenseiten (oben steht dort die Einheit).
-    static const STATUS_TOP_Y = 44;
-    static const STATUS_BOTTOM_Y = 214;
+    static const STATUS_TOP_Y = /*L:status_top_y*/44;
+    static const STATUS_BOTTOM_Y = /*L:status_bottom_y*/214;
 
     function initialize(route as NavRoute, stats as RideStats, log as RideLog) {
         View.initialize();
@@ -378,7 +378,7 @@ class NavView extends WatchUi.View {
         dc.clear();
         if (_route.failed) {
             dc.setColor(TbColors.TEXT, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(w / 2, dc.getHeight() / 2, Graphics.FONT_SMALL, str(Rez.Strings.RouteBroken),
+            dc.drawText(w / 2, dc.getHeight() / 2, /*F:route_broken*/Graphics.FONT_SMALL, str(Rez.Strings.RouteBroken),
                 Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
             return;
         }
@@ -526,10 +526,10 @@ class NavView extends WatchUi.View {
             dc.setColor(TbColors.S2, Graphics.COLOR_TRANSPARENT);
             dc.fillCircle(cx, y, 4);
         } else {
-            pill(dc, cx, y, text, Graphics.FONT_XTINY, bg, fg);
+            pill(dc, cx, y, text, /*F:status*/Graphics.FONT_XTINY, bg, fg);
         }
         if (asking()) {
-            drawAsk(dc, w, y == STATUS_TOP_Y ? 86 : 150);
+            drawAsk(dc, w, y == STATUS_TOP_Y ? /*L:ask_y_map*/86 : /*L:ask_y_page*/150);
             return;
         }
         var t = _toast;
@@ -538,7 +538,7 @@ class NavView extends WatchUi.View {
             _toast = null;
             return;
         }
-        pill(dc, cx, y == STATUS_TOP_Y ? 82 : 176, t, Graphics.FONT_SMALL, TbColors.FIELD, TbColors.TEXT_ON_FIELD);
+        pill(dc, cx, y == STATUS_TOP_Y ? /*L:toast_y_map*/82 : /*L:toast_y_page*/176, t, /*F:toast*/Graphics.FONT_SMALL, TbColors.FIELD, TbColors.TEXT_ON_FIELD);
     }
 
     //! Eine Frage sieht immer gleich aus (#513, Konzept-Garmin 11): ein
@@ -547,16 +547,16 @@ class NavView extends WatchUi.View {
     //! Frist gilt ja. Die erste Frage nach dem Update sagt an START groß
     //! „START = JA".
     hidden function drawAsk(dc as Dc, w as Number, y as Number) as Void {
-        pill(dc, w / 2, y, str(Rez.Strings.AskReplan), Graphics.FONT_SMALL, TbColors.FIELD, TbColors.TEXT_ON_FIELD);
+        pill(dc, w / 2, y, str(Rez.Strings.AskReplan), /*F:ask*/Graphics.FONT_XTINY, TbColors.FIELD, TbColors.TEXT_ON_FIELD);
         // Die Frist als Balken darunter, der kürzer wird.
         var left = _askUntil - System.getTimer();
         dc.setColor(TbColors.ROUTE, Graphics.COLOR_TRANSPARENT);
-        dc.fillRectangle(40, y + 16, left > 0 ? 160 * left / WatchCore.ASK_MS : 0, 4);
+        dc.fillRectangle(/*L:ask_bar_x*/40, y + /*L:ask_bar_dy*/16, left > 0 ? /*L:ask_bar_w*/160 * left / WatchCore.ASK_MS : 0, 4);
         // An den Tasten: START rechts oben, ZURÜCK rechts unten (fēnix 5).
         var yes = str(Rez.Strings.AskYes);
-        pill(dc, _askBig ? 160 : 198, 64, _askBig ? "START = " + yes : yes,
-            _askBig ? Graphics.FONT_SMALL : Graphics.FONT_XTINY, TbColors.ROUTE, TbColors.TEXT);
-        pill(dc, 194, 176, str(Rez.Strings.AskNo), Graphics.FONT_XTINY, TbColors.MUTED_DARK, TbColors.TEXT_ON_FIELD);
+        pill(dc, _askBig ? /*L:ask_yes_big_x*/156 : /*L:ask_yes_x*/198, /*L:ask_yes_y*/64, _askBig ? "START = " + yes : yes,
+            _askBig ? /*F:ask_yes_big*/Graphics.FONT_SMALL : /*F:ask_yes*/Graphics.FONT_XTINY, TbColors.ROUTE, TbColors.TEXT);
+        pill(dc, /*L:ask_no_x*/194, /*L:ask_no_y*/176, str(Rez.Strings.AskNo), /*F:ask_no*/Graphics.FONT_XTINY, TbColors.MUTED_DARK, TbColors.TEXT_ON_FIELD);
     }
 
     hidden function pill(dc as Dc, cx as Number, y as Number, text as String, font as Graphics.FontType,
@@ -655,16 +655,16 @@ class NavView extends WatchUi.View {
         if (!overviewLine(dc, w)) { return; }
         field(dc, w, FIELD_Y, TbColors.FIELD);
         dc.setColor(TbColors.MUTED, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(w / 2, FIELD_Y + 2, Graphics.FONT_XTINY, str(Rez.Strings.WaitGps), Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(w / 2, FIELD_Y + /*L:field_line1_dy*/2, /*F:field_note*/Graphics.FONT_XTINY, str(Rez.Strings.WaitGps), Graphics.TEXT_JUSTIFY_CENTER);
         dc.setColor(TbColors.TEXT_ON_FIELD, Graphics.COLOR_TRANSPARENT);
-        numberLine(dc, w / 2, FIELD_Y + 28, meters(_route.lengthM), _route.climbLeft(0.0));
+        numberLine(dc, w / 2, FIELD_Y + /*L:field_line2_dy*/28, meters(_route.lengthM), _route.climbLeft(0.0));
         // Oben klein die Fassung der Uhr-App (Betreiber 2026-11-09): kurz
         // statt Commit und Datum — der Stempel steht in der Konsole beim
         // Bau, auf der Uhr steht, welche Fassung läuft (#500, #8).
         dc.setColor(TbColors.MUTED_DARK, Graphics.COLOR_TRANSPARENT);
         // Bei y 18 war der Kreis zu schmal (fēnix 5, 2026-11-05: halb
         // abgeschnitten) — tiefer und kurz (`tool/garmin_build.sh`).
-        dc.drawText(w / 2, 56, Graphics.FONT_XTINY, 'v' + TbVersion.VERSION, Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(w / 2, /*L:version_y*/56, /*F:version*/Graphics.FONT_XTINY, 'v' + TbVersion.VERSION, Graphics.TEXT_JUSTIFY_CENTER);
         mapBorder(dc, w);
     }
 
@@ -908,7 +908,7 @@ class NavView extends WatchUi.View {
         dc.setColor(TbColors.GROUND, Graphics.COLOR_TRANSPARENT);
         dc.fillPolygon([[cx, cy - 7], [cx + 6, cy + 6], [cx, cy + 3], [cx - 6, cy + 6]]);
         dc.setColor(TbColors.TEXT, TbColors.GROUND);
-        dc.drawText(cx, cy - 22, Graphics.FONT_XTINY, str(Rez.Strings.PhoneGps),
+        dc.drawText(cx, cy - /*L:phone_gps_dy*/22, /*F:phone_gps*/Graphics.FONT_XTINY, str(Rez.Strings.PhoneGps),
             Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
     }
 
@@ -922,7 +922,7 @@ class NavView extends WatchUi.View {
         dc.setColor(TbColors.TEXT, Graphics.COLOR_TRANSPARENT);
         dc.fillCircle(x, y, 12);
         dc.setColor(TbColors.GROUND, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(x, y, Graphics.FONT_XTINY, "N", Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
+        dc.drawText(x, y, /*F:north*/Graphics.FONT_XTINY, "N", Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
     }
 
     //! Abseits: ein gestrichelter Strich zum Punkt der Linie 50 m voraus
@@ -997,14 +997,14 @@ class NavView extends WatchUi.View {
         var cx = w / 2;
         dc.setColor(TbColors.MUTED, Graphics.COLOR_TRANSPARENT);
         if (!_fixed) {
-            dc.drawText(cx, FIELD_Y + 2, Graphics.FONT_XTINY, str(Rez.Strings.WaitGps), Graphics.TEXT_JUSTIFY_CENTER);
+            dc.drawText(cx, FIELD_Y + /*L:field_line1_dy*/2, /*F:field_note*/Graphics.FONT_XTINY, str(Rez.Strings.WaitGps), Graphics.TEXT_JUSTIFY_CENTER);
         } else {
-            dc.drawText(cx, FIELD_Y + 2, Graphics.FONT_XTINY,
+            dc.drawText(cx, FIELD_Y + /*L:field_line1_dy*/2, /*F:field_note*/Graphics.FONT_XTINY,
                 str(_log.full ? Rez.Strings.StorageFull : Rez.Strings.FreeRide), Graphics.TEXT_JUSTIFY_CENTER);
             var line = km(_stats.distanceM) + " km";
             var mins = Math.round(_stats.movingS / 60.0).toNumber();
             if (mins >= 1) { line = line + " · " + mins.toString() + " min"; }
-            numberLine(dc, cx, FIELD_Y + 28, line, _stats.climbM);
+            numberLine(dc, cx, FIELD_Y + /*L:field_line2_dy*/28, line, _stats.climbM);
         }
         dc.setColor(TbColors.FIELD, Graphics.COLOR_TRANSPARENT);
         dc.setPenWidth(w / 2 - TbRing.MAP_R + 2);
@@ -1030,35 +1030,39 @@ class NavView extends WatchUi.View {
         var on = _route.sectionAt(s.alongM);
         if (on >= 0) {
             var b = cum[_route.secTo[on]];
-            shieldLine(dc, cx, FIELD_Y + 2, _route.secGrade[on], _route.secName[on]);
-            numberLine(dc, cx, FIELD_Y + 28, meters(b - s.alongM), null);
+            shieldLine(dc, cx, FIELD_Y + /*L:field_line1_dy*/2, _route.secGrade[on], _route.secName[on]);
+            numberLine(dc, cx, FIELD_Y + /*L:field_line2_dy*/28, meters(b - s.alongM), null);
             return;
         }
         var next = _route.nextSection(s.alongM);
         if (next >= 0) {
             var head = cum[_route.secFrom[next]];
-            shieldLine(dc, cx, FIELD_Y + 2, _route.secGrade[next], _route.secName[next]);
-            numberLine(dc, cx, FIELD_Y + 28, meters(head - s.alongM), _route.climbBetween(s.alongM, head));
+            shieldLine(dc, cx, FIELD_Y + /*L:field_line1_dy*/2, _route.secGrade[next], _route.secName[next]);
+            numberLine(dc, cx, FIELD_Y + /*L:field_line2_dy*/28, meters(head - s.alongM), _route.climbBetween(s.alongM, head));
             return;
         }
         dc.setColor(TbColors.MUTED, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx, FIELD_Y + 2, Graphics.FONT_XTINY, _toGoal, Graphics.TEXT_JUSTIFY_CENTER);
-        numberLine(dc, cx, FIELD_Y + 28, meters(s.remainingM), _route.climbLeft(s.alongM));
+        dc.drawText(cx, FIELD_Y + /*L:field_line1_dy*/2, /*F:field_note*/Graphics.FONT_XTINY, _toGoal, Graphics.TEXT_JUSTIFY_CENTER);
+        numberLine(dc, cx, FIELD_Y + /*L:field_line2_dy*/28, meters(s.remainingM), _route.climbLeft(s.alongM));
     }
 
     //! Schild und Name, zusammen mittig. Ist der Name für die Breite des
     //! Kreises auf dieser Höhe zu lang, nimmt er die kleinere Schrift und
     //! erst dann ein „…" (Feldbefund 2026-11-05: „Schlosswald-Trai…" schnitt
-    //! der runde Rand ab).
+    //! der runde Rand ab). Gemessen gegen die Karte (MAP_R), nicht die
+    //! Anzeige: Darüber liegt der schwarze Rand mit dem Ring — gegen den
+    //! Kreis der Anzeige lief der Name weiter darunter (#511, Abbild).
+    //! Auf Höhe der Grundlinie (dort enden die Buchstaben); Schild und
+    //! Abstand brauchen 20 px, 2 px Luft.
     hidden function shieldLine(dc as Dc, cx as Number, y as Number, g as Number, name as String) as Void {
-        var font = Graphics.FONT_TINY;
+        var font = /*F:field_name*/Graphics.FONT_TINY;
         var fh = dc.getFontHeight(font);
-        var room = chord(cx, y + fh) - 26;
+        var room = chordAround(cx, TbRing.MAP_R, y + Graphics.getFontAscent(font)) - 22;
         var tw = dc.getTextWidthInPixels(name, font);
         if (tw > room) {
-            font = Graphics.FONT_XTINY;
+            font = /*F:field_name_small*/Graphics.FONT_XTINY;
             fh = dc.getFontHeight(font);
-            room = chord(cx, y + fh) - 26;
+            room = chordAround(cx, TbRing.MAP_R, y + Graphics.getFontAscent(font)) - 22;
             tw = dc.getTextWidthInPixels(name, font);
         }
         if (tw > room) {
@@ -1077,17 +1081,10 @@ class NavView extends WatchUi.View {
         dc.drawText(x + 20, y, font, name, Graphics.TEXT_JUSTIFY_LEFT);
     }
 
-    //! Die Breite des Kreises (Radius [r] = [cx]) auf der Höhe [y].
     //! Breite des Kreises mit Radius [r] um die Mitte der Anzeige ([c], [c])
     //! auf Höhe [y].
     hidden function chordAround(c as Number, r as Number, y as Number) as Number {
         var d = y > c ? y - c : c - y;
-        if (d >= r) { return 0; }
-        return (2 * Math.sqrt(r * r - d * d)).toNumber();
-    }
-
-    hidden function chord(r as Number, y as Number) as Number {
-        var d = y > r ? y - r : r - y;
         if (d >= r) { return 0; }
         return (2 * Math.sqrt(r * r - d * d)).toNumber();
     }
@@ -1099,7 +1096,7 @@ class NavView extends WatchUi.View {
     //! („5,6 km ▲149" lief am Gerät rechts hinaus, 2026-11-05).
     hidden function numberLine(dc as Dc, cx as Number, y as Number, dist as String, climb as Float?) as Void {
         var up = climb != null && climb >= 1 ? (climb as Float).toNumber().toString() : null;
-        var fonts = [Graphics.FONT_SMALL, Graphics.FONT_TINY, Graphics.FONT_XTINY] as Array<Graphics.FontDefinition>;
+        var fonts = [/*F:number_line*/Graphics.FONT_SMALL, /*F:number_line_2*/Graphics.FONT_TINY, /*F:number_line_3*/Graphics.FONT_XTINY] as Array<Graphics.FontDefinition>;
         var font = Graphics.FONT_XTINY;
         var dw = 0;
         var uw = 0;
@@ -1126,8 +1123,8 @@ class NavView extends WatchUi.View {
     hidden function drawOffField(dc as Dc, s as NavState, w as Number) as Void {
         field(dc, w, FIELD_Y, TbColors.WARNING);
         dc.setColor(TbColors.TEXT_ON_FIELD, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(w / 2, FIELD_Y + 2, Graphics.FONT_TINY, _offRoute, Graphics.TEXT_JUSTIFY_CENTER);
-        dc.drawText(w / 2, FIELD_Y + 28, Graphics.FONT_SMALL, meters(s.offM), Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(w / 2, FIELD_Y + /*L:field_line1_dy*/2, /*F:off_title*/Graphics.FONT_TINY, _offRoute, Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(w / 2, FIELD_Y + /*L:field_line2_dy*/28, /*F:off_value*/Graphics.FONT_SMALL, meters(s.offM), Graphics.TEXT_JUSTIFY_CENTER);
     }
 
     //! Angekommen: die Runde in Zahlen — Strecke, Fahrzeit, bergauf und
@@ -1135,23 +1132,23 @@ class NavView extends WatchUi.View {
     hidden function drawArrived(dc as Dc, w as Number) as Void {
         var cx = w / 2;
         dc.setColor(TbColors.ROUTE, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx, 30, Graphics.FONT_TINY, str(Rez.Strings.Arrived), Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(cx, /*L:arrived_title_y*/30, /*F:arrived_title*/Graphics.FONT_TINY, str(Rez.Strings.Arrived), Graphics.TEXT_JUSTIFY_CENTER);
         dc.setColor(TbColors.TEXT_ON_FIELD, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx, 60, Graphics.FONT_LARGE, km(_stats.distanceM) + " km", Graphics.TEXT_JUSTIFY_CENTER);
-        dc.drawText(cx - 36, 112, Graphics.FONT_SMALL, clock(_stats.movingS) + " h", Graphics.TEXT_JUSTIFY_CENTER);
-        climbText(dc, cx + 40, 112, _stats.climbM, TbColors.TEXT_ON_FIELD);
+        dc.drawText(cx, /*L:arrived_km_y*/60, /*F:arrived_km*/Graphics.FONT_LARGE, km(_stats.distanceM) + " km", Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(cx - /*L:arrived_time_dx*/36, /*L:arrived_row_y*/112, /*F:arrived_time*/Graphics.FONT_SMALL, clock(_stats.movingS) + " h", Graphics.TEXT_JUSTIFY_CENTER);
+        climbText(dc, cx + /*L:arrived_climb_dx*/40, /*L:arrived_row_y*/112, _stats.climbM, TbColors.TEXT_ON_FIELD);
         var n = _stats.riddenCount();
         dc.setColor(TbColors.MUTED, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx, 148, Graphics.FONT_XTINY, n + " " + str(Rez.Strings.Trails), Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(cx, /*L:arrived_trails_y*/148, /*F:arrived_trails*/Graphics.FONT_XTINY, n + " " + str(Rez.Strings.Trails), Graphics.TEXT_JUSTIFY_CENTER);
         var x = cx - (n - 1) * 10;
         for (var k = 0; k < _stats.ridden.size(); k++) {
             if (!_stats.ridden[k]) { continue; }
-            drawShield(dc, x, 186, _route.secGrade[k], 5, false, TbColors.FIELD);
+            drawShield(dc, x, /*L:arrived_shields_y*/186, _route.secGrade[k], 5, false, TbColors.FIELD);
             x += 20;
         }
         if (_stats.hasBests()) {
             dc.setColor(TbColors.MUTED, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(cx, 202, Graphics.FONT_XTINY,
+            dc.drawText(cx, /*L:arrived_bests_y*/202, /*F:arrived_bests*/Graphics.FONT_XTINY,
                 str(Rez.Strings.AirShort) + " " + seconds(_stats.best("ja")) + " · "
                     + str(Rez.Strings.WheelieShort) + " " + _stats.best("wl") + " m",
                 Graphics.TEXT_JUSTIFY_CENTER);
@@ -1163,10 +1160,10 @@ class NavView extends WatchUi.View {
     //! und die Anzahlen. Die Uhr misst nichts davon (Entscheidung 1).
     hidden function drawBests(dc as Dc, w as Number) as Void {
         big(dc, w, str(Rez.Strings.WheelieM), _stats.best("wl").toString());
-        cell(dc, w, 0, 104, str(Rez.Strings.Airtime), seconds(_stats.best("ja")), TbColors.TEXT_ON_FIELD);
-        cell(dc, w, 1, 104, str(Rez.Strings.Angle), _stats.best("wa") + "°", TbColors.TEXT_ON_FIELD);
-        cell(dc, w, 0, 150, str(Rez.Strings.Jumps), _stats.best("jn").toString(), TbColors.TEXT_ON_FIELD);
-        cell(dc, w, 1, 150, str(Rez.Strings.Wheelies), _stats.best("wn").toString(), TbColors.TEXT_ON_FIELD);
+        cell(dc, w, 0, /*L:cell_row1_y*/104, str(Rez.Strings.Airtime), seconds(_stats.best("ja")), TbColors.TEXT_ON_FIELD);
+        cell(dc, w, 1, /*L:cell_row1_y*/104, str(Rez.Strings.Angle), _stats.best("wa") + "°", TbColors.TEXT_ON_FIELD);
+        cell(dc, w, 0, /*L:cell_row2_y*/150, str(Rez.Strings.Jumps), _stats.best("jn").toString(), TbColors.TEXT_ON_FIELD);
+        cell(dc, w, 1, /*L:cell_row2_y*/150, str(Rez.Strings.Wheelies), _stats.best("wn").toString(), TbColors.TEXT_ON_FIELD);
     }
 
     // --- Zahlenseiten ------------------------------------------------------
@@ -1177,15 +1174,15 @@ class NavView extends WatchUi.View {
         var speed = _speed;
         big(dc, w, str(Rez.Strings.Speed), speed == null ? "--" : (speed * 3.6).format("%.0f"));
         var hr = _stats.heartRate;
-        cell(dc, w, 0, 104, str(Rez.Strings.Time), clock(_stats.movingS), TbColors.TEXT_ON_FIELD);
-        cell(dc, w, 1, 104, str(Rez.Strings.Distance), km(_stats.distanceM) + " km", TbColors.TEXT_ON_FIELD);
-        label(dc, w, 0, 150, str(Rez.Strings.Climbed));
-        climbText(dc, w / 2 - COL_X, 168, _stats.climbM, TbColors.TEXT_ON_FIELD);
-        cell(dc, w, 1, 150, str(Rez.Strings.Pulse), hr == null ? "--" : hr.toString(), TbColors.MUTED);
+        cell(dc, w, 0, /*L:cell_row1_y*/104, str(Rez.Strings.Time), clock(_stats.movingS), TbColors.TEXT_ON_FIELD);
+        cell(dc, w, 1, /*L:cell_row1_y*/104, str(Rez.Strings.Distance), km(_stats.distanceM) + " km", TbColors.TEXT_ON_FIELD);
+        label(dc, w, 0, /*L:cell_row2_y*/150, str(Rez.Strings.Climbed));
+        climbText(dc, w / 2 - COL_X, /*L:climb_row2_y*/168, _stats.climbM, TbColors.TEXT_ON_FIELD);
+        cell(dc, w, 1, /*L:cell_row2_y*/150, str(Rez.Strings.Pulse), hr == null ? "--" : hr.toString(), TbColors.MUTED);
         // Die Aufzeichnung steht (#484): erst Fahrten ans Handy.
         if (_log.full) {
             dc.setColor(TbColors.WARNING, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(w / 2, 198, Graphics.FONT_XTINY, str(Rez.Strings.StorageFull), Graphics.TEXT_JUSTIFY_CENTER);
+            dc.drawText(w / 2, /*L:page_note_y*/198, /*F:page_note*/Graphics.FONT_XTINY, str(Rez.Strings.StorageFull), Graphics.TEXT_JUSTIFY_CENTER);
         }
     }
 
@@ -1195,7 +1192,7 @@ class NavView extends WatchUi.View {
         var g = _stats.grade();
         big(dc, w, str(Rez.Strings.Grade), g == null ? "--" : g.toString());
         var alt = _stats.altitude;
-        cell(dc, w, 0, 104, str(Rez.Strings.Altitude), alt == null ? "--" : alt.toNumber() + " m", TbColors.TEXT_ON_FIELD);
+        cell(dc, w, 0, /*L:cell_row1_y*/104, str(Rez.Strings.Altitude), alt == null ? "--" : alt.toNumber() + " m", TbColors.TEXT_ON_FIELD);
         var s = _state;
         var toTrail = null;
         var toGoal = null;
@@ -1204,12 +1201,12 @@ class NavView extends WatchUi.View {
             if (next >= 0) { toTrail = _route.climbBetween(s.alongM, _route.cum[_route.secFrom[next]]); }
             toGoal = _route.climbLeft(s.alongM);
         }
-        label(dc, w, 1, 104, str(Rez.Strings.ToTrail));
-        climbText(dc, w / 2 + COL_X, 122, toTrail, TbColors.TEXT_ON_FIELD);
-        label(dc, w, 0, 150, str(Rez.Strings.ToFinish));
-        climbText(dc, w / 2 - COL_X, 168, toGoal, TbColors.TEXT_ON_FIELD);
+        label(dc, w, 1, /*L:cell_row1_y*/104, str(Rez.Strings.ToTrail));
+        climbText(dc, w / 2 + COL_X, /*L:climb_row1_y*/122, toTrail, TbColors.TEXT_ON_FIELD);
+        label(dc, w, 0, /*L:cell_row2_y*/150, str(Rez.Strings.ToFinish));
+        climbText(dc, w / 2 - COL_X, /*L:climb_row2_y*/168, toGoal, TbColors.TEXT_ON_FIELD);
         var t = System.getClockTime();
-        cell(dc, w, 1, 150, str(Rez.Strings.Clock), t.hour + ":" + t.min.format("%02d"), TbColors.TEXT_ON_FIELD);
+        cell(dc, w, 1, /*L:cell_row2_y*/150, str(Rez.Strings.Clock), t.hour + ":" + t.min.format("%02d"), TbColors.TEXT_ON_FIELD);
         drawMeasure(dc, w);
     }
 
@@ -1219,7 +1216,7 @@ class NavView extends WatchUi.View {
     hidden function drawMeasure(dc as Dc, w as Number) as Void {
         var stats = System.getSystemStats();
         dc.setColor(TbColors.MUTED, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(w / 2, 198, Graphics.FONT_XTINY,
+        dc.drawText(w / 2, /*L:page_note_y*/198, /*F:page_note*/Graphics.FONT_XTINY,
             stats.battery.format("%.0f") + " % · " + (stats.usedMemory / 1024) + " KB", Graphics.TEXT_JUSTIFY_CENTER);
     }
 
@@ -1230,13 +1227,13 @@ class NavView extends WatchUi.View {
     hidden function big(dc as Dc, w as Number, unit as String, value as String) as Void {
         var cx = w / 2;
         dc.setColor(TbColors.MUTED, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx, 20, Graphics.FONT_XTINY, unit, Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(cx, /*L:big_unit_y*/20, /*F:big_unit*/Graphics.FONT_XTINY, unit, Graphics.TEXT_JUSTIFY_CENTER);
         dc.setColor(TbColors.TEXT_ON_FIELD, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx, 40, Graphics.FONT_NUMBER_MEDIUM, value, Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(cx, /*L:big_value_y*/40, /*F:big_value*/Graphics.FONT_NUMBER_MEDIUM, value, Graphics.TEXT_JUSTIFY_CENTER);
         dc.setColor(TbColors.MUTED_DARK, Graphics.COLOR_TRANSPARENT);
         dc.setPenWidth(2);
-        dc.drawLine(36, 100, w - 36, 100);
-        dc.drawLine(cx, 108, cx, 196);
+        dc.drawLine(/*L:big_rule_x*/36, /*L:big_rule_y*/100, w - /*L:big_rule_x*/36, /*L:big_rule_y*/100);
+        dc.drawLine(cx, /*L:col_rule_top*/108, cx, /*L:col_rule_bottom*/196);
         dc.setPenWidth(1);
     }
 
@@ -1244,18 +1241,18 @@ class NavView extends WatchUi.View {
     hidden function cell(dc as Dc, w as Number, col as Number, y as Number, name as String, value as String, color as Number) as Void {
         label(dc, w, col, y, name);
         dc.setColor(color, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(w / 2 + (col == 0 ? -COL_X : COL_X), y + 18, Graphics.FONT_SMALL, value, Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(w / 2 + (col == 0 ? -COL_X : COL_X), y + /*L:cell_value_dy*/18, /*F:cell_value*/Graphics.FONT_SMALL, value, Graphics.TEXT_JUSTIFY_CENTER);
     }
 
     hidden function label(dc as Dc, w as Number, col as Number, y as Number, name as String) as Void {
         dc.setColor(TbColors.MUTED, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(w / 2 + (col == 0 ? -COL_X : COL_X), y, Graphics.FONT_XTINY, name, Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(w / 2 + (col == 0 ? -COL_X : COL_X), y, /*F:cell_label*/Graphics.FONT_XTINY, name, Graphics.TEXT_JUSTIFY_CENTER);
     }
 
     //! „▲120 m", mittig um [cx]: der Pfeil gezeichnet in Lime (die
     //! Systemschrift hat keinen), die Zahl in [color]; ohne Wert „--".
     hidden function climbText(dc as Dc, cx as Number, y as Number, m as Float?, color as Number) as Void {
-        var font = Graphics.FONT_SMALL;
+        var font = /*F:climb_value*/Graphics.FONT_SMALL;
         if (m == null) {
             dc.setColor(color, Graphics.COLOR_TRANSPARENT);
             dc.drawText(cx, y, font, "--", Graphics.TEXT_JUSTIFY_CENTER);
@@ -1324,7 +1321,7 @@ class NavView extends WatchUi.View {
         dc.setColor(TbColors.ROUTE, Graphics.COLOR_TRANSPARENT);
         logoDots(dc, dots, cx, to);
         dc.setColor(TbColors.MUTED, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx, textY, Graphics.FONT_XTINY, text, Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(cx, textY, /*F:loader_text*/Graphics.FONT_XTINY, text, Graphics.TEXT_JUSTIFY_CENTER);
     }
 
     //! Die Punkte bis zum Weg [to] (-1: alle).

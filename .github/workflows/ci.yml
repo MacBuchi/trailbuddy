@@ -80,6 +80,8 @@ jobs:
           python3 tool/watch_scenarios_check.py > /dev/null
           python3 tool/watch_talks.py --self-test > /dev/null
           python3 tool/garmin_events.py --self-test > /dev/null
+          python3 tool/watch_layout.py --self-test > /dev/null
+          bash -n tool/watch_fonts.sh
           python3 tool/highlights_preview.py --self-test > /dev/null
           python3 tool/route_measure.py --self-test > /dev/null
           python3 tool/height_tiles.py --self-test > /dev/null
@@ -98,6 +100,7 @@ jobs:
         run: |
           python3 tool/generated_assets.py --check > /dev/null
           python3 tool/brand_icons.py --check
+          python3 tool/watch_layout.py --check
       - name: Nothing private in the repository
         run: python3 tool/private_info_check.py
 

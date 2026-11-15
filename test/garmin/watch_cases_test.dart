@@ -34,7 +34,8 @@ void main() {
 
     final dartSrc = <String>[];
     await for (final e in Directory('test').list(recursive: true)) {
-      if (e is File) dartSrc.add(e.readAsStringSync());
+      // Nur Dart: unter test/ liegen auch Bilder (Bögen des Abbilds, #511).
+      if (e is File && e.path.endsWith('.dart')) dartSrc.add(e.readAsStringSync());
     }
 
     final ids = faelle.map((f) => f['id'] as String).toList();

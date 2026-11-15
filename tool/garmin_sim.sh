@@ -558,6 +558,13 @@ cmd_shots() {
     inside shots "$lang" || bad=1
   done
   [ $check = 1 ] || [ $update = 1 ] || exit $bad
+  # Ein gescheiterter Lauf schreibt keine Referenzen: Vorher löschte
+  # --update alle und kopierte nur, was ankam — nach einem hängenden
+  # Vorführmodus waren alle 28 weg (2026-11-15, #511).
+  if [ $update = 1 ] && [ $bad = 1 ]; then
+    echo "Lauf unvollständig — Referenzen bleiben, wie sie sind. Noch einmal versuchen." >&2
+    exit 1
+  fi
   for lang in $langs; do
     local got="$OUT/sim/shots/$dev/$lang" want="$REF/$dev/$lang"
     if [ $update = 1 ]; then
