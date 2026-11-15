@@ -1,0 +1,108 @@
+name: Watch tests
+
+# Monkey-C-Unit-Tests der Uhr-App (#512, T6; Prüfleiter S1/S1c in
+# docs/konzept-garmin.md 12) auf jeder Uhr des Manifests — im Simulator-
+# Container von tool/garmin_sim.sh (#533): Bild eines Dritten mit SDK und
+# Gerätedateien, öffentlich ladbar, festgenagelt per Digest in
+# tool/garmin_sim.Dockerfile. Keine Garmin-Anmeldung, kein Secret, ein
+# Wegwerf-Schlüssel aus dem Container — nie der Store-Schlüssel.
+#
+# Kein Pflicht-Check, bis er zwei Wochen stabil lief (#512; `monkeydo -t`
+# hängt gelegentlich, garmin/CLAUDE.md). Deshalb darf er einen Pfadfilter
+# haben: Ein Pflicht-Check mit Pfadfilter meldete sich auf fremden PRs nie
+# (workflow-lint.yml). Wird er Pflicht, fällt der Filter weg oder wandert
+# in den Job.
+
+on:
+  pull_request:
+    paths:
+      - 'garmin/**'
+      - 'lib/features/garmin/**'
+      - 'docs/watch_cases.json'
+      - 'tool/watch_layout.*'
+      - 'tool/garmin_*'
+      - '.github/workflows/watch-tests.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'garmin/**'
+      - 'lib/features/garmin/**'
+      - 'docs/watch_cases.json'
+      - 'tool/watch_layout.*'
+      - 'tool/garmin_*'
+      - '.github/workflows/watch-tests.yml'
+  workflow_dispatch:
+    inputs:
+      devices:
+        description: 'Uhren (Leerzeichen getrennt); leer = alle des Manifests'
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+
+concurrency:
+  group: watch-tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  unit:
+    name: Watch unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      # Das Grundbild hat 4,5 GB; einmal je Lauf geladen, danach je Uhr nur
+      # der Simulator neu gestartet.
+      - name: Simulator-Bild
+        run: tool/garmin_sim.sh up fenix5 > /dev/null
+      - name: Unit-Tests je Uhr
+        env:
+          DEVICES: ${{ inputs.devices }}
+        run: |
+          if [ -n "$DEVICES" ]; then
+            devices="$DEVICES"
+          else
+            devices="$(grep -o 'iq:product id="[a-z0-9]*"' garmin/manifest.xml | sed 's/.*id="//;s/"//' | sort -u)"
+          fi
+          fail=0
+          {
+            echo "## Monkey-C-Unit-Tests (#512)"
+            echo
+            echo "| Uhr | Ergebnis |"
+            echo "|---|---|"
+          } >> "$GITHUB_STEP_SUMMARY"
+          for d in $devices; do
+            echo "::group::$d"
+            res=""
+            if ! tool/garmin_sim.sh up "$d"; then
+              res="kein Simulator (Gerät im Bild?)"
+              fail=1
+            elif out="$(tool/garmin_sim.sh unit 2>&1)"; then
+              res="$(printf '%s\n' "$out" | grep -E '^PASSED' | tail -1)"
+            else
+              printf '%s\n' "$out" | grep -v WARNING | tail -40
+              res="$(printf '%s\n' "$out" | grep -E '^FAILED|kein Ergebnis|ERROR' | tail -1)"
+              [ -n "$res" ] || res="Bau- oder Startfehler"
+              fail=1
+            fi
+            mkdir -p build/garmin/ci
+            cp build/garmin/sim/unit.log "build/garmin/ci/unit_$d.log" 2>/dev/null || true
+            echo "::endgroup::"
+            echo "$d: $res"
+            echo "| $d | $res |" >> "$GITHUB_STEP_SUMMARY"
+          done
+          exit $fail
+      - name: Protokolle
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: watch-unit-logs
+          path: build/garmin/ci/
+          if-no-files-found: ignore
+          retention-days: 7
+      - name: Container beenden
+        if: always()
+        run: tool/garmin_sim.sh down
