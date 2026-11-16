@@ -2,6 +2,22 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Auf der Uhr passt alles in den Kreis
+
+*Version 0.177.3, 2026-11-16 (Uhr-App 1.6.2)*
+
+- **Unten auf der Karte** beginnt die schwarze Fläche etwas höher, und ab
+  10 km steht die Strecke ohne Nachkomma („123 km") — vorher lief die
+  Zeile mit Strecke und Anstieg am runden Rand hinaus.
+- **Freie Fahrt:** Die Fahrzeit steht jetzt oben neben „FREIE FAHRT",
+  darunter Strecke und Anstieg.
+- **Angekommen:** Die Schilder der Trails zählen selbst, die Bestwerte
+  (Flug und Wheelie) stehen darunter in zwei Zeilen und sind ganz lesbar.
+- **Zahlenseiten:** Vor dem Start steht unten ein grauer Punkt statt
+  „START: AUFNAHME" (der Text bleibt oben auf der Karte); „Speicher voll"
+  sagt die Karte. Der Zeitbalken einer Frage läuft nicht mehr unter
+  „NEIN".
+
 ## Die Uhr zeigt lange Namen und die Frage ganz
 
 *Version 0.177.2, 2026-11-15 (Uhr-App 1.6.1)*

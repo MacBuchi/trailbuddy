@@ -917,9 +917,11 @@ Folgeansicht aus Abschnitt 13, geschnitten für 240 × 240 Pixel MIP mit
 64 Farben und ohne Glättung: **Karte hell** (weißer Grund, Band „B+" mit
 Rand in Moos, Trails in ihrer Stufenfarbe, gefahrener Teil als dünne
 Linie in Moos, Abzweigungen als graue Stummel von 40 m, Schild als Form am
-Trailkopf voraus), **Infofläche schwarz** ab y 168 mit dem dunklen Satz
+Trailkopf voraus), **Infofläche schwarz** ab y 160 (seit #555; 168 ließ der Zahlenzeile am runden Rand zu wenig Breite) mit dem dunklen Satz
 (Schild + Name des nächsten Trails, Weg und Anstieg in Lime; auf dem
-Trail Name und Rest; abseits die ganze Fläche in Warnfarbe).
+Trail Name und Rest; abseits die ganze Fläche in Warnfarbe). Ab 10 km
+ohne Nachkomma („123 km") — „123,5 km ▲2345" passt unten nicht in den
+Kreis (#555).
 Position bei y 128, „N" am Rand. **Der Ring** (Entwurf „Ring und
 Seiten", 2026-11-04, `garmin/source/Ring.mc`): 8 px auf Radius 114 in
 einem schwarzen Rand ab r 107 — die ganze Route im Uhrzeigersinn ab
@@ -948,20 +950,26 @@ damit der Kreis die zweite Zeile nicht anschneidet). **Ohne Route die
 freie Fahrt** (#484, nur im Store-Paket, das keine Testroute hat): die
 helle Karte gedreht wie in der Navigation, die eigene Spur der letzten
 25 min dünn in Moos (wie der gefahrene Teil einer Route), „N" und der
-Pfeil; unten schwarz klein „FREIE FAHRT" (voll: „SPEICHER VOLL") und
-darunter Strecke und Anstieg wie die Zeile „bis zum Ziel"; kein Ring.
+Pfeil; unten schwarz klein „FREIE FAHRT · 9:59 h" (voll: nur „SPEICHER
+VOLL", das auf den Zahlenseiten nicht mehr steht) und darunter Strecke
+und Anstieg wie die Zeile „bis zum Ziel"; kein Ring.
 Vor dem ersten Fix dort „Warte auf GPS". **Die Aufzeichnung**
 (Konzept-Garmin 1, Entscheidung 6, seit 0.162.0) als Schild in
 `FONT_XTINY`, auf der Karte bei y 44 (höher schneidet der Kreis es ab),
 auf den Zahlenseiten bei y 214: vor START „START: AUFNAHME" Lime auf
 Schwarz, „PAUSE" weiß auf Warnfarbe, „TRAIL" schwarz auf Lime, sonst nur
-ein roter Punkt (`S2`) mit weißem Saum. Einblendungen („Trail beginnt",
+ein roter Punkt (`S2`) mit weißem Saum. Auf den Zahlenseiten steht vor
+START statt des Texts ein grauer Punkt (`MUTED_DARK`) — 161 px passen bei
+y 214 nicht in den Kreis, und rot hieße „nimmt auf" (#555). Einblendungen („Trail beginnt",
 „Aufzeichnung läuft") 2,5 s als schwarzes Schild in `FONT_SMALL` bei y 82
 bzw. 176; die Menüs (Pause, Trail endet) sind `Menu2` der Uhr. Der
 Build-Stempel der Übersicht steht deshalb bei y 56. Die Punkte entlang der Mittellinie
 (volle Kreise, kein Polygon) schreibt `tool/brand_icons.py` nach
 `garmin/resources/logo/`. Angekommen: eine schwarze
-Zusammenfassung mit den Schildern der befahrenen Trails. Die Farben sind je
+Zusammenfassung mit den Schildern der befahrenen Trails (sie zählen
+selbst, die Zeile „8 Trails" ist weg) und darunter zweizeilig den
+Bestwerten („Flug 1,2 s" / „Wheelie 123 m"; #555). Der Frist-Balken
+einer Frage ist 128 px breit und endet vor „NEIN". Die Farben sind je
 die nächste MIP-Farbe zur App-Farbe (`garmin/source/Colors.mc`, geprüft
 von `tool/garmin_route.py --self-test`); am Gerät in der Sonne prüfen.
 

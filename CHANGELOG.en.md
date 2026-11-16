@@ -2,6 +2,21 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## Everything fits the round watch screen
+
+*Version 0.177.3, 2026-11-16 (watch app 1.6.2)*
+
+- **At the bottom of the map** the black area starts a little higher, and
+  from 10 km the distance has no decimal ("123 km") — the line with
+  distance and climb used to run off the round edge.
+- **Free ride:** the riding time now sits next to "FREE RIDE", distance
+  and climb below.
+- **Arrived:** the trail shields count themselves, the best values (air
+  and wheelie) follow in two lines and are fully readable.
+- **Number pages:** before the start a grey dot replaces "START: RECORD"
+  at the bottom (the text stays at the top of the map); the map says
+  "Storage full". A question's time bar no longer runs under "NO".
+
 ## The watch shows long names and the question in full
 
 *Version 0.177.2, 2026-11-15 (watch app 1.6.1)*
