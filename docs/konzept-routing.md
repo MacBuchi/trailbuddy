@@ -1922,8 +1922,8 @@ Zeit    [ − ]  etwa 3 h  [ + ]      Ziel    ( ) Mein Standort
 - **Später: gemerkte Startpunkte** (#543, eigenes Thema; Betreiber:
   „favorisierte Startpunkte (Parkplätze) anlegen/auswählen, die ebenso
   geteilt werden können mit Buddys … vereinfacht das Von-wo"). Die Zeile
-  „Start" bekommt dann eine dritte Wahl; das Blatt ist dafür gebaut,
-  mehr nicht.
+  „Start" bekommt dann eine dritte Wahl „Gemerkt"; Konzept in
+  `konzept-startpunkte.md` (Betreiber 2026-11-16).
 
 ### 12.4 Die vorgeschlagene Runde
 
@@ -2371,8 +2371,8 @@ einem Schritt auf der normalen Karte.
      oder Shuttle höbe das Limit ebenso; dagegen steht das „Ja".
 
 Gemerkte Startpunkte (#543) sind ein eigenes Thema mit eigenem Konzept
-(neue Datenkategorie, Teilen unter Buddys) und hängen nicht an diesen
-Schritten.
+(`konzept-startpunkte.md`: neue Datenkategorie, Teilen unter Buddys) und
+hängen nicht an diesen Schritten.
 
 **Bewusst nicht:** ein Assistent mit mehreren Schirmen (die Führung
 steht in EINEM Blatt); ein Limit, das sich ohne Ja ändert oder je
