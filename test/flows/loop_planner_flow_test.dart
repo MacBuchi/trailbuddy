@@ -195,6 +195,23 @@ class _StripRunner extends _SpyRunner {
     final real = await super.plan(request, onProgress: onProgress);
     if (real.outcome != LoopOutcome.ok) return real;
     final t = request.budget.timeS;
+    if (request.overLimit) {
+      // „Auch über dem Limit" (#549 B): ein Stand mit 200 hm zu viel.
+      return LoopPlan(LoopOutcome.ok, over: [
+        LoopState(
+            timeS: t + 20 * 60,
+            share: 0.45,
+            trailShare: 0.45,
+            climbM: request.budget.climbM + 200,
+            lengthM: 24000,
+            trails: 2,
+            grade: 3,
+            addedId: 'Felsriegel',
+            addedName: 'Felsriegel',
+            addedGrade: 3,
+            order: const ['Felsriegel']),
+      ]);
+    }
     if (request.state == null) {
       states = [
         state(t - 45 * 60, 0.30, 1, 'Wurzelpfad', [...real.order]),
@@ -2343,6 +2360,80 @@ void main() {
       expect(session(tester).stripShown, 1);
       expect(session(tester).plan, same(first));
       expect(find.text('Vorschlag: 1 Trail in 12 km'), findsOneWidget);
+    });
+
+    testWidgets('„Runden im Vergleich" (#549 B): Kette, Gipfel, Karte, „Auch über dem Limit", Limit anheben',
+        (tester) async {
+      final runner = _StripRunner();
+      await start(tester, areaStore: await _areaWithTrack(), runner: () => runner);
+      await openEntry(tester);
+      await tapKey(tester, 'loop-entry-go', frames: 30);
+      await tapKey(tester, 'loop-strip-compare', frames: 10);
+      expect(find.byKey(const ValueKey('loop-compare')), findsOneWidget);
+      for (var k = 0; k < 3; k++) {
+        expect(find.byKey(ValueKey('loop-compare-point-$k')), findsOneWidget);
+      }
+      expect(find.byKey(const ValueKey('loop-compare-pick')), findsOneWidget);
+      // Der Vorschlag ist der Gipfel (38 % zwischen 30 und 25): voll, die
+      // übrigen blass; die Kette steigt und fällt mit dem Anteil.
+      double opacity(String k) => tester
+          .widget<Opacity>(find.descendant(of: find.byKey(ValueKey('loop-compare-point-$k')), matching: find.byType(Opacity)))
+          .opacity;
+      expect((opacity('0'), opacity('1'), opacity('2')), (0.5, 1.0, 0.5));
+      Offset at(String k) => tester.getCenter(find.byKey(ValueKey('loop-compare-point-$k')));
+      expect(at('1').dy, lessThan(at('0').dy), reason: 'mehr Anteil steht höher');
+      expect(at('0').dy, lessThan(at('2').dy));
+      expect(at('0').dx, lessThan(at('1').dx), reason: 'nach Zeit');
+      expect(find.text('+ Hexentanz'), findsOneWidget);
+      expect(tester.widget<Text>(find.byKey(const ValueKey('loop-compare-sub'))).data, 'Vorschlag des Planers');
+      expect(find.byKey(const ValueKey('loop-compare-back')), findsNothing);
+
+      // Ein Tipp auf den längeren: derselbe Weg wie auf der Leiste.
+      final requests = runner.requests.length;
+      await tester.tapAt(at('2'));
+      await settle(tester, frames: 10);
+      expect(runner.requests.length, requests + 1);
+      expect(runner.requests.last.state, same(runner.states[2].order));
+      expect(session(tester).stripShown, 2);
+      expect(find.text('+ Kammweg'), findsOneWidget);
+      expect(find.text('Anteil fällt – Verbindung lang'), findsOneWidget);
+      await tapKey(tester, 'loop-compare-back', frames: 10);
+      expect(session(tester).stripShown, 1);
+
+      // „Auch über dem Limit": erst jetzt gerechnet, mit den Eingaben der Planung.
+      expect(find.byKey(const ValueKey('loop-compare-point-over-0')), findsNothing);
+      await tapKey(tester, 'loop-compare-over', frames: 10);
+      expect(runner.requests.last.overLimit, isTrue);
+      expect(runner.requests.last.budget.climbM, runner.requests[requests - 1].budget.climbM);
+      expect(find.byKey(const ValueKey('loop-compare-point-over-0')), findsOneWidget);
+      await tester.tapAt(at('over-0'));
+      await settle(tester, frames: 10);
+      expect(session(tester).stripShown, 1, reason: 'ein Stand über dem Limit rechnet nichts nach');
+      expect(find.text('200 hm über dem Limit'), findsOneWidget);
+      expect(find.byKey(const ValueKey('loop-compare-take')), findsNothing, reason: 'nicht fahren — Limit anheben');
+      final notifier = ProviderScope.containerOf(tester.element(find.byType(MaterialApp))).read(loopPlannerProvider.notifier);
+      final over = session(tester).over!.single;
+      final limit = notifier.limitFor(over);
+      expect(find.text('Limit auf ${limit.round()} hm anheben'), findsOneWidget);
+      expect(limit, greaterThan(session(tester).prefs.climbM));
+
+      // Aus und wieder an: nichts mehr zu rechnen.
+      final before = runner.requests.length;
+      await tapKey(tester, 'loop-compare-over', frames: 4);
+      expect(find.byKey(const ValueKey('loop-compare-point-over-0')), findsNothing);
+      await tapKey(tester, 'loop-compare-over', frames: 4);
+      expect(runner.requests.length, before);
+      await tester.tapAt(at('over-0'));
+      await settle(tester, frames: 10);
+
+      // Anheben: gemerkt, neu gerechnet, der Vergleich zu.
+      await tapKey(tester, 'loop-compare-raise', frames: 30);
+      expect(session(tester).prefs.climbM, limit);
+      expect(runner.requests.length, before + 1);
+      expect(runner.requests.last.overLimit, isFalse);
+      expect(find.byKey(const ValueKey('loop-compare')), findsNothing);
+      expect(session(tester).overOn, isFalse, reason: 'neue Planung, Schalter wieder aus');
+      expect(find.byKey(const ValueKey('loop-strip')), findsOneWidget);
     });
 
     testWidgets('die Vorliebe (#516 Schritt 5): eigene Sterne und eigene Fahrten wiegen im Pool', (tester) async {

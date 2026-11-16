@@ -126,7 +126,21 @@ class LoopSession {
     this.stripPick,
     this.stripShown,
     this.stripRaw = false,
+    this.over,
+    this.overOn = false,
+    this.overBusy = false,
   });
+
+  /// „Auch über dem Limit" (#549, Konzept-Routing 12.10 B): die Stände,
+  /// die nur mit mehr Höhenmetern gingen ([LoopPlan.over]). Null, solange
+  /// der Schalter nie an war — gerechnet wird erst beim ersten Einschalten.
+  final List<LoopState>? over;
+
+  /// Der Schalter „Auch über dem Limit" (aus, je Planung).
+  final bool overOn;
+
+  /// Die Stände über dem Limit werden gerade gerechnet.
+  final bool overBusy;
 
   /// Die Leiste „andere Runden" (#549, Konzept-Routing 12.10): die Stände
   /// der gerechneten Runde ([LoopPlan.states]). Ein nachgerechneter Stand
@@ -291,6 +305,10 @@ class LoopSession {
     int? stripPick,
     int? stripShown,
     bool? stripRaw,
+    List<LoopState>? over,
+    bool clearOver = false,
+    bool? overOn,
+    bool? overBusy,
   }) =>
       LoopSession(
         open: open ?? this.open,
@@ -325,6 +343,9 @@ class LoopSession {
         stripPick: clearPlan ? stripPick : (stripPick ?? this.stripPick),
         stripShown: clearPlan ? stripShown : (stripShown ?? this.stripShown),
         stripRaw: clearPlan ? (stripRaw ?? false) : (stripRaw ?? this.stripRaw),
+        over: clearPlan || clearOver ? over : (over ?? this.over),
+        overOn: clearPlan || clearOver ? (overOn ?? false) : (overOn ?? this.overOn),
+        overBusy: clearPlan || clearOver ? (overBusy ?? false) : (overBusy ?? this.overBusy),
       );
 }
 
@@ -1187,6 +1208,65 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
       logError('Runde: anderer Stand', e, s);
       state = state.copyWith(stripRaw: false);
     }
+  }
+
+  /// Der Schalter „Auch über dem Limit" (#549, Konzept-Routing 12.10 B):
+  /// beim ersten Einschalten rechnet der Runner einen Greedy ohne
+  /// Höhenmeter-Grenze mit den Eingaben der gezeigten Planung; danach
+  /// schaltet er nur noch.
+  Future<void> setOverLimit(bool on) async {
+    final s0 = state;
+    if (!s0.hasStrip || on == s0.overOn) return;
+    if (!on || s0.over != null) {
+      state = s0.copyWith(overOn: on);
+      return;
+    }
+    final request = _planRequest;
+    final box = _graphBox;
+    if (request == null || box == null) return;
+    state = s0.copyWith(overOn: true, overBusy: true);
+    final generation = _generation;
+    try {
+      if (!_hasGraph) {
+        final blocked = await _loadGraph(box, fillOnline: _graphOnline, generation: generation, quiet: true);
+        if (generation != _generation) return;
+        if (blocked != null) {
+          state = state.copyWith(overOn: false, overBusy: false);
+          return;
+        }
+      }
+      final next = await _runner!.plan(request.withOverLimit());
+      if (generation != _generation) return;
+      state = state.copyWith(over: next.over, overBusy: false);
+    } catch (e, s) {
+      if (generation != _generation) return;
+      logError('Runde: über dem Limit', e, s);
+      state = state.copyWith(overOn: false, overBusy: false);
+    }
+  }
+
+  /// Das Limit, mit dem [s] ginge (#549): seine Höhenmeter auf den
+  /// nächsten Schritt aufgerundet. Beim Vorschlag ist das Limit mit der
+  /// Zeit skaliert ([LoopPrefs.suggestBudget]) — angehoben wird das Limit
+  /// des Rads so, dass das skalierte reicht.
+  double limitFor(LoopState s) {
+    final used = _planRequest?.budget.climbM ?? state.planBudget.climbM;
+    final prefs = state.prefs;
+    final need = used <= 0 ? s.climbM : prefs.climbM * s.climbM / used;
+    final v = (need / LoopPrefs.climbStep).ceil() * LoopPrefs.climbStep;
+    return v.clamp(LoopPrefs.minClimb, LoopPrefs.maxClimb).toDouble();
+  }
+
+  /// „Limit anheben" an einem Stand über dem Limit (Konzept-Routing 12.10
+  /// B, 12.5a): Das Limit des Rads steigt auf [limitFor], gemerkt, und
+  /// die Runde wird neu gerechnet — mit denselben Eingaben, Vorschlag
+  /// bleibt Vorschlag.
+  Future<void> raiseLimitFor(LoopState s) {
+    final reach = state.suggestReachM;
+    final quick = state.quick;
+    setPrefs(state.prefs.withClimb(state.prefs.bike, limitFor(s)));
+    state = state.copyWith(quick: quick);
+    return compute(suggestReachM: reach);
   }
 }
 

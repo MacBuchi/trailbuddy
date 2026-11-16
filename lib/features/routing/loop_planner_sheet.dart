@@ -39,6 +39,7 @@ import '../trails/trail_providers.dart';
 import 'loop_planner.dart';
 import 'loop_planner_controller.dart';
 import 'loop_planner_providers.dart';
+import 'loop_compare_view.dart' show showLoopCompare;
 import 'loop_state_strip.dart';
 import 'map_panel.dart';
 import 'nav_providers.dart';
@@ -840,6 +841,7 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
           shown: strip.stripShown!,
           budget: budget!,
           onShow: (k) => unawaited(ref.read(loopPlannerProvider.notifier).showState(k)),
+          onCompare: () => unawaited(showLoopCompare(context)),
         ),
       ],
       const SizedBox(height: 4),

@@ -69,6 +69,7 @@ class LoopStateStrip extends StatelessWidget {
     required this.shown,
     required this.budget,
     required this.onShow,
+    this.onCompare,
   });
 
   final List<LoopState> states;
@@ -80,6 +81,9 @@ class LoopStateStrip extends StatelessWidget {
   final int shown;
   final LoopBudget budget;
   final ValueChanged<int> onShow;
+
+  /// Öffnet „Runden im Vergleich" (Konzept-Routing 12.10 B).
+  final VoidCallback? onCompare;
 
   @override
   Widget build(BuildContext context) {
@@ -122,10 +126,33 @@ class LoopStateStrip extends StatelessWidget {
               child: Text(l.loopStripTitle, maxLines: 1, overflow: TextOverflow.ellipsis, style: head),
             ),
             const SizedBox(width: 6),
-            Text(
-              l.loopStripTarget(routeTimeLabel(l, budget.timeS), '${(budget.windowS / 60).round()}'),
-              style: small,
+            Flexible(
+              child: Text(
+                l.loopStripTarget(routeTimeLabel(l, budget.timeS), '${(budget.windowS / 60).round()}'),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: small,
+              ),
             ),
+            // „Vergleichen" (#549 B): in der Zeile des Kopfs, damit die
+            // Leiste im eingeklappten Blatt nicht höher wird.
+            if (onCompare != null) ...[
+              const SizedBox(width: 8),
+              InkWell(
+                key: const ValueKey('loop-strip-compare'),
+                onTap: onCompare,
+                borderRadius: BorderRadius.circular(6),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    Icon(Icons.open_in_full, size: 14, color: p.accentText),
+                    const SizedBox(width: 3),
+                    Text(l.loopCompareOpen,
+                        style: theme.textTheme.labelSmall?.copyWith(color: p.accentText, fontWeight: FontWeight.w600)),
+                  ]),
+                ),
+              ),
+            ],
           ]),
           // Platz für „VORSCHLAG" über dem höchsten Stiel.
           const SizedBox(height: 12),

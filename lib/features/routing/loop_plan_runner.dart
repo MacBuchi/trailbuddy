@@ -49,6 +49,7 @@ class LoopRequest implements GraphJob<LoopPlan> {
     this.waypoints = const [],
     this.bare = false,
     this.state,
+    this.overLimit = false,
   });
 
   final LatLng start;
@@ -74,6 +75,10 @@ class LoopRequest implements GraphJob<LoopPlan> {
   /// mit seiner Zeit als Deckel ([LoopState.order]).
   final List<String>? state;
 
+  /// „Auch über dem Limit" (#549): nur die Stände eines Greedy ohne
+  /// Höhenmeter-Grenze ([LoopPlan.over]).
+  final bool overLimit;
+
   /// Dieselbe Rechnung für einen Stand der Leiste — mit den Eingaben der
   /// gezeigten Planung, wie [withTune].
   LoopRequest withState(List<String> order) => LoopRequest(
@@ -87,6 +92,20 @@ class LoopRequest implements GraphJob<LoopPlan> {
       waypoints: waypoints,
       bare: bare,
       state: order);
+
+  /// Dieselbe Rechnung ohne Höhenmeter-Grenze, für „Auch über dem Limit"
+  /// (#549) — mit den Eingaben der gezeigten Planung.
+  LoopRequest withOverLimit() => LoopRequest(
+      start: start,
+      profile: profile,
+      budget: budget,
+      pool: pool,
+      returnToStart: returnToStart,
+      end: end,
+      searchBudget: searchBudget,
+      waypoints: waypoints,
+      bare: bare,
+      overLimit: true);
 
   /// Dieselbe Rechnung mit fester Folge — das Tunen (#234) braucht genau
   /// die Eingaben der gezeigten Planung, nicht die, die jetzt eingestellt
@@ -115,7 +134,8 @@ class LoopRequest implements GraphJob<LoopPlan> {
       tune: tune,
       waypoints: waypoints,
       bare: bare,
-      state: state);
+      state: state,
+      overLimit: overLimit);
 
   @override
   LoopPlan runOn(RoadGraph g, LoopSearchCache cache) => planOn(g, cache: cache);

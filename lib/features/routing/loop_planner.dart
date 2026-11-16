@@ -420,9 +420,17 @@ class LoopPlan {
     this.states = const [],
     this.pick,
     this.self,
+    this.over = const [],
   });
 
   final LoopOutcome outcome;
+
+  /// „Auch über dem Limit" (#549, Konzept-Routing 12.10 B): die Stände
+  /// eines zweiten Greedy OHNE Höhenmeter-Grenze, die über dem Limit
+  /// liegen — nach Zeit sortiert. Nur in der Antwort auf
+  /// [LoopRequest.withOverLimit], sonst leer; Runden, die man so nicht
+  /// fährt, sondern für die man das Limit anhebt.
+  final List<LoopState> over;
 
   /// Die Stände des Greedy bis Zeit + 2 × Fenster (#549), die Leiste
   /// „andere Runden". Leer ohne Fenster (Route, spaßiger Weg), getunt und
@@ -486,7 +494,8 @@ class LoopPlan {
             shortForShare: shortForShare,
             states: states,
             pick: pick,
-            self: self);
+            self: self,
+            over: over);
   }
 }
 
@@ -644,6 +653,7 @@ LoopPlan planLoop(
   List<LatLng> waypoints = const [],
   bool bare = false,
   List<String>? state,
+  bool overLimit = false,
 }) {
   final firstWaypoint = pool.length;
   pool = [...pool, for (var k = 0; k < waypoints.length; k++) PoolTrail.waypoint(k, waypoints[k])];
@@ -716,7 +726,9 @@ LoopPlan planLoop(
       ? planner.runTuned(tune)
       : state != null
           ? planner.runState(state, searchBudget)
-          : planner.run(searchBudget);
+          : overLimit
+              ? planner.runOverLimit()
+              : planner.run(searchBudget);
   return plan._withSnaps(snaps);
 }
 
@@ -844,9 +856,13 @@ class _Planner {
   /// Siehe [LoopPlan.shortForShare] — gesetzt in [chooseState].
   bool shortForShare = false;
 
+  /// Der zweite Greedy für „Auch über dem Limit" ([runOverLimit]) rechnet
+  /// ohne Höhenmeter-Grenze.
+  bool ignoreClimb = false;
+
   bool fits(_Route r) =>
       r.timeS <= timeCap + 1e-6 &&
-      r.climbM <= budget.climbM + 1e-6 &&
+      (ignoreClimb || r.climbM <= budget.climbM + 1e-6) &&
       r.hikingM <= budget.hikingM + 1e-6;
 
   int passes(List<int> seq, int i) => seq.where((x) => x == i).length;
@@ -897,7 +913,10 @@ class _Planner {
     return best;
   }
 
-  LoopPlan run(Duration searchBudget) {
+  /// Schritte 0 und 1 von [run]: Zwischenpunkte und Pflicht-Trails in
+  /// die leere Runde. [failed] ist das Ergebnis, wenn es nichts zu
+  /// planen gibt; [fixed] die Halte, die die lokale Suche nicht anfasst.
+  ({_Route? route, Set<int> fixed, LoopPlan? failed}) seed() {
     // Ohne Trail muss schon der Weg zum Ziel gehen — sonst gibt es nichts
     // zu planen, und jeder Trail hieße „nicht erreichbar".
     final bare = evaluate(const []);
@@ -905,7 +924,7 @@ class _Planner {
       for (final t in pool) {
         excluded.putIfAbsent(t.id, () => LoopExclusion.unreachable);
       }
-      return LoopPlan(LoopOutcome.empty, excluded: _trailsOnly(excluded));
+      return (route: null, fixed: const {}, failed: LoopPlan(LoopOutcome.empty, excluded: _trailsOnly(excluded)));
     }
     var route = bare;
     // 0. Die vorab gesetzten Zwischenpunkte, je an die beste Stelle — auch
@@ -913,7 +932,7 @@ class _Planner {
     for (var i = 0; i < pool.length; i++) {
       if (!pool[i].waypoint) continue;
       final ins = bestInsertion(route, i, mustFit: false);
-      if (ins == null) return LoopPlan(LoopOutcome.viaFailed, excluded: _trailsOnly(excluded));
+      if (ins == null) return (route: null, fixed: const {}, failed: LoopPlan(LoopOutcome.viaFailed, excluded: _trailsOnly(excluded)));
       route = ins.route;
     }
     // 1. Pflicht-Trails, in Pool-Reihenfolge, je an die beste Stelle. Was
@@ -929,11 +948,15 @@ class _Planner {
       }
       route = ins.route;
     }
-    final fixed = {...route.seq};
-    // 2. Greedy: der Kandidat mit den meisten Trail-Metern je Sekunde
-    //    Zuwachs; zweite Abfahrten nur, wenn sie etwas bringen — bis zur
-    //    Zeit plus Fenster. Jeder Stand wird gemerkt.
-    final states = [route];
+    return (route: route, fixed: {...route.seq}, failed: null);
+  }
+
+  /// Der Greedy (Schritt 2 von [run]): hängt an [states] je Stand die
+  /// Runde mit einem Trail mehr — erst bis Zeit + Fenster, dann (#549)
+  /// weiter bis Zeit + 2 × Fenster. Gibt zurück, wie viele Stände zur
+  /// ersten Phase gehören.
+  int growStates(List<_Route> states) {
+    var route = states.last;
     void grow() {
       while (true) {
         ({int i, _Route route, double ratio})? best;
@@ -955,6 +978,7 @@ class _Planner {
       }
     }
 
+    timeCap = budget.maxTimeS;
     grow();
     final inWindow = states.length;
     // 2a. Weiter bis Zeit + 2 × Fenster, für die Leiste (#549): erst
@@ -965,6 +989,39 @@ class _Planner {
       timeCap = budget.ceilTimeS;
       grow();
     }
+    return inWindow;
+  }
+
+  /// „Auch über dem Limit" (#549, Konzept-Routing 12.10 B): derselbe
+  /// Greedy ohne Höhenmeter-Grenze; zurück kommen nur die Stände über dem
+  /// Limit ([LoopPlan.over]). Keine lokale Suche, keine Linie — ein
+  /// solcher Stand wird nicht gefahren, sein Tipp hebt das Limit an.
+  LoopPlan runOverLimit() {
+    ignoreClimb = true;
+    final seeded = seed();
+    if (seeded.failed case final failed?) return failed;
+    final states = [seeded.route!];
+    growStates(states);
+    final over = <LoopState>[];
+    _Route? prev;
+    for (final r in states) {
+      if (r.climbM > budget.climbM + 1e-6 && r.seq.any((i) => !pool[i].waypoint)) over.add(stateOf(r, prev));
+      prev = r;
+    }
+    over.sort((a, b) => a.timeS.compareTo(b.timeS));
+    return LoopPlan(LoopOutcome.ok, over: over);
+  }
+
+  LoopPlan run(Duration searchBudget) {
+    final seeded = seed();
+    if (seeded.failed case final failed?) return failed;
+    var route = seeded.route!;
+    final fixed = seeded.fixed;
+    // 2. Greedy: der Kandidat mit den meisten Trail-Metern je Sekunde
+    //    Zuwachs; zweite Abfahrten nur, wenn sie etwas bringen — bis zur
+    //    Zeit plus Fenster. Jeder Stand wird gemerkt.
+    final states = [route];
+    final inWindow = growStates(states);
     // 2b. Der Stand (Konzept-Routing 12.5): im Fenster um die Zeit der mit
     //     dem besten Trail-Anteil, bei Gleichstand der näher an der Zeit.
     //     Liegt keiner im Fenster, der längste darunter — der letzte.
@@ -976,7 +1033,7 @@ class _Planner {
     // die ihn die lokale Suche gebracht hat.
     final strip = <LoopState>[];
     int? pick;
-    if (budget.windowS > 0 && !this.bare) {
+    if (budget.windowS > 0 && !bare) {
       _Route? prev;
       for (final r in states) {
         final hasTrail = r.seq.any((i) => !pool[i].waypoint);

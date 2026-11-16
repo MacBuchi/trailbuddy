@@ -83,6 +83,16 @@ class FeatureHighlight {
 final kFeatureHighlights = <FeatureHighlight>[
   // ─── Highlights ──────────────────────────────────────────────────
   FeatureHighlight(
+    id: 'loop-compare',
+    since: '0.180.0',
+    kind: HighlightKind.highlight,
+    tab: HighlightTab.map,
+    icon: Icons.scatter_plot_outlined,
+    title: (l) => l.highlightLoopCompareTitle,
+    text: (l) => l.highlightLoopCompareText,
+    target: '/',
+  ),
+  FeatureHighlight(
     id: 'loop-strip',
     since: '0.179.0',
     kind: HighlightKind.highlight,

@@ -2,6 +2,24 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Runden im Vergleich
+
+*Version 0.180.0, 2026-11-16*
+
+- **„Vergleichen" an der Leiste „andere Runden":** Eine eigene Ansicht
+  zeigt alle Runden als Kette — nach rechts die Zeit, nach oben der
+  Trail-Anteil. Jede Runde ist die davor plus ein Trail; wo die Kette
+  einen Gipfel hat, lohnt sich die Runde, die übrigen Punkte sind blass.
+- **Der Ring um jeden Punkt** zeigt, wie viel vom Höhenmeter-Limit die
+  Runde braucht; Form und Farbe darin sind der schwerste Grad. Ein Tipp
+  zeigt die Runde auf der Karte, die Karte darunter nennt den Trail, der
+  dazukam, Zeit, Anteil, Höhenmeter und Grad. „Diese Runde nehmen" oder
+  „Zurück zum Vorschlag".
+- **„Auch über dem Limit":** Der Schalter rechnet einmal nach, welche
+  Runden mit mehr Höhenmetern gingen — hohl und gestrichelt in der
+  Warnfarbe, mit „… hm über dem Limit". Gefahren wird so eine Runde
+  nicht; ihr Knopf hebt dein Limit fürs Rad an und rechnet neu.
+
 ## Andere Runden auf einen Blick
 
 *Version 0.179.0, 2026-11-16*
