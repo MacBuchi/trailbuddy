@@ -2,6 +2,21 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Startpunkte auf der Karte
+
+*Version 0.182.0, 2026-11-16*
+
+- **Als Startpunkt merken:** Halte die Karte lange gedrückt oder tippe
+  auf einen Ort (etwa einen Parkplatz) und wähle „Als Startpunkt
+  merken". Du gibst ihm einen Namen und entscheidest, ob deine Buddys
+  ihn sehen.
+- **Auf der Karte:** Deine Startpunkte stehen als Fahne auf einer
+  grünen Scheibe, die deiner Buddys als blauer Ring. Ein Tipp öffnet
+  ein Blatt: als Start oder Ziel in den Planer, mit der Navi-App
+  hinfahren — und an deinen eigenen umbenennen, privat schalten oder
+  löschen. Einen Punkt eines Buddys kannst du dir selbst merken.
+- **Abschaltbar:** Unter „Ebenen" gibt es den Schalter „Startpunkte".
+
 ## Startpunkte merken — die Grundlage
 
 *Version 0.181.0, 2026-11-16*
