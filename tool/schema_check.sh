@@ -400,6 +400,11 @@ check_get_protected "airtime_counters (Airtime 30 Tage)" \
 check_rpc_protected "set_trail_airtime-RPC" "set_trail_airtime" \
   '{"items":[{"trail_id":"00000000-0000-4000-8000-000000000000","air_ds":10,"longest_ds":5,"month":"2026-11-01"}]}'
 check_rpc_protected "delete_my_airtime-RPC" "delete_my_airtime" '{}'
+# Gemerkte Startpunkte (Patch 030, #543): genau die Spalten, die
+# kStartPointColumns liest (samt Embed nach dem Fremdschlüssel), nur für
+# Angemeldete. Wer sieht was, prüft matcher_check.sql Block 33.
+check_get_protected "start_points (gemerkte Startpunkte)" \
+  "/rest/v1/start_points?select=client_id,user_id,name,lat,lon,visibility,created_at,updated_at,owner:profiles!start_points_user_id_fkey(username)&limit=1"
 
 if [ "$fail" -ne 0 ]; then
   echo "::error::Schema passt nicht zu den App-Queries. Fehlt ein supabase/patch_NNN_*.sql bzw. wurde er noch nicht eingespielt (tool/db_migrate.sh, Secret SUPABASE_DB_URL)?"

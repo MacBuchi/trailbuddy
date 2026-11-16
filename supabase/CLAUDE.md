@@ -154,3 +154,29 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
   „airtime", `schema_check.sh` Spalten und RPCs. Beide Wege lokal mit
   `tool/schema_local_test.sh` im `postgis/postgis:16-3.4`-Container, Dumps
   gleich.
+- **Gemerkte Startpunkte** (Patch 030, #543; `docs/konzept-startpunkte.md`):
+  `start_points` — Name (1–60), `lat`/`lon` (kein PostGIS, der Server
+  rechnet nicht damit), `visibility` wie am Beitrag. Gehört dem, der ihn
+  anlegt; kein Abgleich. Drei Dinge, die man wissen muss:
+  - **Die App kennt einen Punkt unter `client_id`** (`not null`, unique
+    je Nutzer als echter Constraint, nicht als Teilindex — sonst nimmt
+    PostgREST `on_conflict=user_id,client_id` nicht an). Anlegen,
+    Umbenennen, Umschalten sind EIN Upsert, Löschen ein Delete auf
+    dieselbe Kennung; so trifft ein Korb-Auftrag auch einen Punkt, der
+    ohne Netz angelegt wurde. Direkte Tabellenrechte, keine RPC — die
+    RLS reicht (`sp_*`: lesen eigene + nicht private direkter Buddys,
+    schreiben nur eigene).
+  - **Obergrenze 100 je Konto per BEFORE-INSERT-Trigger, der den Punkt
+    selbst nicht mitzählt** (`client_id <> new.client_id`):
+    BEFORE-INSERT-Trigger laufen auch, wenn `on conflict` danach ein
+    Update daraus macht — am Limit ließe sich sonst nichts mehr
+    umbenennen. SQLSTATE 54000 → `StartPointLimitException`.
+  - **Entfreunden braucht keinen Trigger**: `sp_select` fragt
+    `are_friends` bei jedem Lesen.
+  `matcher_check.sql` Block 33 (Gegenproben: `sp_select` ohne
+  `are_friends` ⇒ „Gina sieht ihn nicht" rot; Limit ohne den
+  Ausschluss ⇒ „am Limit umbenennen" rot), `grants_check.sql`
+  „start_points", `schema_check.sh` die Spalten von
+  `kStartPointColumns`. Beide Wege lokal mit `tool/schema_local_test.sh`
+  im `postgis/postgis:16-3.4`-Container, Dumps gleich.
+

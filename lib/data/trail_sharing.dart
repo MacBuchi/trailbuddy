@@ -33,10 +33,12 @@ TrailSnapshot shareSnapshot(TrailSnapshot? previous, TrailSnapshot next) {
     reports: _share(previous.reports, next.reports, (r) => r.id, (a, b) => _sameRow(a.toRow(), b.toRow())),
     merges: _share(previous.merges, next.merges, (m) => '${m.kind.db}|${m.trailId}|${m.sameAs}',
         (a, b) => _sameRow(a.toRow(), b.toRow())),
+    startPoints: _share(previous.startPoints, next.startPoints, (p) => p.key,
+        (a, b) => _sameRow(a.toRow(), b.toRow())),
   );
 }
 
-/// Ob [a] und [b] alle fünf Listen mit denselben Objekten tragen — dann
+/// Ob [a] und [b] alle sechs Listen mit denselben Objekten tragen — dann
 /// hat sich am Netz nichts geändert, und die Kopie auf dem Gerät muss
 /// nicht neu geschrieben werden.
 bool sameSnapshot(TrailSnapshot a, TrailSnapshot b) =>
@@ -44,7 +46,8 @@ bool sameSnapshot(TrailSnapshot a, TrailSnapshot b) =>
     _sameItems(a.details, b.details) &&
     _sameItems(a.notes, b.notes) &&
     _sameItems(a.reports, b.reports) &&
-    _sameItems(a.merges, b.merges);
+    _sameItems(a.merges, b.merges) &&
+    _sameItems(a.startPoints, b.startPoints);
 
 /// Dieselbe Aufzeichnung, Punkt für Punkt.
 bool sameRecording(TrailRecording a, TrailRecording b) {

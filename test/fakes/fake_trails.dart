@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:latlong2/latlong.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' show PostgrestException;
 import 'package:trailbuddy/core/photo_pipeline.dart';
 import 'package:trailbuddy/core/errors.dart';
 import 'package:trailbuddy/data/trail_repository.dart';
@@ -8,6 +9,7 @@ import 'package:trailbuddy/features/trails/trail_geometry.dart';
 import 'package:trailbuddy/features/trails/trail_link.dart';
 import 'package:trailbuddy/features/trails/trail_merge_candidates.dart';
 import 'package:trailbuddy/features/trails/trail_providers.dart';
+import 'package:trailbuddy/models/start_point.dart';
 import 'package:trailbuddy/models/trail.dart';
 import 'package:trailbuddy/models/trail_merge.dart';
 
@@ -749,6 +751,85 @@ class FakeTrailRepository implements TrailRepository {
   Future<void> unmarkDistinct(String a, String b) async {
     final me = myId();
     distinct.removeWhere((d) => d.userId == me && {d.a, d.b}.containsAll({a, b}));
+  }
+
+  /// Die Tabelle `start_points` (Patch 030, #543) — ALLE Zeilen, auch
+  /// fremde; was ich sehe, entscheidet [fetchStartPoints] wie `sp_select`.
+  final startPoints = <StartPoint>[];
+  Object? failNextStartPointWrite;
+  int startPointFetches = 0;
+
+  /// Spiegelt `sp_select`: eigene, und die nicht privaten direkter Buddys.
+  @override
+  Future<List<StartPoint>> fetchStartPoints() async {
+    startPointFetches++;
+    if (failFetch != null) throw failFetch!;
+    final me = myId();
+    return [
+      for (final p in startPoints)
+        if (p.userId == me ||
+            (p.shared && (areFriends?.call(me, p.userId) ?? false)))
+          StartPoint(
+            clientId: p.clientId,
+            userId: p.userId,
+            name: p.name,
+            lat: p.lat,
+            lon: p.lon,
+            visibility: p.visibility,
+            createdAt: p.createdAt,
+            updatedAt: p.updatedAt,
+            username: usernames[p.userId],
+          ),
+    ];
+  }
+
+  /// Spiegelt den Upsert auf (user_id, client_id), die Policies
+  /// `sp_insert_own`/`sp_update_own`, den Namens-Check und
+  /// `start_points_limit` (54000 beim 101. eigenen Punkt).
+  @override
+  Future<void> saveStartPoint(StartPoint point) async {
+    if (failNextStartPointWrite != null) {
+      final e = failNextStartPointWrite!;
+      failNextStartPointWrite = null;
+      throw e;
+    }
+    final me = myId();
+    final name = point.name.trim();
+    if (name.isEmpty || name.runes.length > kStartPointNameMaxLength) {
+      throw const PostgrestException(message: 'start_points_name_check', code: '23514');
+    }
+    final at = startPoints.indexWhere((p) => p.userId == me && p.clientId == point.clientId);
+    final row = StartPoint(
+      clientId: point.clientId,
+      userId: me,
+      name: name,
+      lat: point.lat,
+      lon: point.lon,
+      visibility: point.visibility,
+      createdAt: at < 0 ? point.createdAt : startPoints[at].createdAt,
+      updatedAt: at < 0 ? null : DateTime.now(),
+    );
+    if (at >= 0) {
+      startPoints[at] = row;
+      return;
+    }
+    if (startPoints.where((p) => p.userId == me).length >= kStartPointMax) {
+      throw const StartPointLimitException();
+    }
+    startPoints.add(row);
+  }
+
+  /// Spiegelt `sp_delete_own`: ein fremder oder schon gelöschter Punkt
+  /// trifft nichts, ohne Fehler.
+  @override
+  Future<void> deleteStartPoint(String clientId) async {
+    if (failNextStartPointWrite != null) {
+      final e = failNextStartPointWrite!;
+      failNextStartPointWrite = null;
+      throw e;
+    }
+    final me = myId();
+    startPoints.removeWhere((p) => p.userId == me && p.clientId == clientId);
   }
 
   /// Spiegelt `unmerge_trail`.

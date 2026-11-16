@@ -8969,6 +8969,10 @@
   "@errorDailyLimit": {
     "description": "Fehlermeldung: Tageslimit für Aufzeichnungen erreicht."
   },
+  "errorStartPointLimit": "Du hast schon 100 Startpunkte gemerkt. Lösch einen, den du nicht mehr brauchst, dann passt ein neuer.",
+  "@errorStartPointLimit": {
+    "description": "Satz statt Fehler: Das Konto hat die Höchstzahl von 100 gemerkten Startpunkten erreicht (#543)."
+  },
   "errorMergeNotNear": "Die beiden Trails liegen nicht nah genug beieinander, um derselbe zu sein.",
   "@errorMergeNotNear": {
     "description": "Fehlermeldung beim Zusammenführen: Die Linien liegen zu weit auseinander."

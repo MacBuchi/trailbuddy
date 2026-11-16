@@ -115,6 +115,10 @@ class OutboxRunner {
           case FeedbackJob():
             await feedback.submit(job.type, job.message,
                 appVersion: job.appVersion, clientId: job.id);
+          case StartPointJob():
+            await repository.saveStartPoint(job.point);
+          case StartPointDeleteJob():
+            await repository.deleteStartPoint(job.clientId);
         }
         sent++;
       } catch (error) {
@@ -150,5 +154,7 @@ class OutboxRunner {
   /// Ein `23505` kommt hier nicht an: `contribute_recording` beantwortet
   /// eine bekannte `client_id` mit der Kennung von damals.
   bool _isFinal(Object error) =>
-      error is WriteRejectedException || error is PostgrestException;
+      error is WriteRejectedException ||
+      error is PostgrestException ||
+      error is StartPointLimitException;
 }

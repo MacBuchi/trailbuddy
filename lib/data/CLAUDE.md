@@ -10,12 +10,14 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
 
 - **Ausgangskorb** (#30, `lib/data/outbox*.dart` +
   `lib/features/trails/outbox_providers.dart`, seit 0.14.0; PilzBuddy
-  #267 als Vorlage): Genau VIER Aufträge — Aufzeichnung beisteuern
+  #267 als Vorlage): Genau SECHS Aufträge — Aufzeichnung beisteuern
   (`ContributeJob`, die Linie so, wie sie an die RPC ging, plus Name),
   eigenen Beitrag speichern (`DetailsJob`), melden (`ReportJob`, seit
   0.49.0, samt Text — „gesperrt" meldet man am Trail; seit 0.147.0, #433,
   auch Text allein, beides in EINEM `report_trail`-Aufruf) und Feedback
-  (`FeedbackJob`, seit 0.86.0, #218). Alles
+  (`FeedbackJob`, seit 0.86.0, #218), dazu seit 0.181.0 Startpunkt
+  merken/ändern und löschen (`StartPointJob`, `StartPointDeleteJob`,
+  #543 — unten „Gemerkte Startpunkte"). Alles
   andere (Höhen nachtragen, Fotos, Löschen) scheitert weiter
   sichtbar. **Feedback ist ein Auftrag, keine eigene Warteschlange**:
   derselbe Korb, dasselbe Banner, dieselben Auslöser, `outbox/` steht
@@ -260,3 +262,36 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
   überein (`--split-debug-info` dagegen ändert den Snapshot, und ein
   Mac-Build hat ohnehin eine andere). Die Funktionsnamen stehen in der
   `.symtab` der Datei.
+- **Gemerkte Startpunkte** (#543, seit 0.181.0; Konzept
+  `docs/konzept-startpunkte.md`, Datenbank in `supabase/CLAUDE.md`,
+  Modell `lib/models/start_point.dart`). Schritt 1 ist nur der Unterbau;
+  Karte und Planer folgen. Vier Dinge, die man wissen muss:
+  - **Sie reisen im `TrailSnapshot` mit** (sechste Liste
+    `startPoints`): derselbe Abruf, dieselbe Kopie auf dem Gerät
+    (`start_points` in `network.json`; eine Kopie von vor 0.181.0 liest
+    sich ohne), dasselbe Teilen unveränderter Objekte (`p.key`). So
+    ist die Liste am Parkplatz ohne Empfang da, ohne zweite Kopie.
+  - **Gelesen über `startPointsProvider`**, der `trailsProvider` und den
+    Korb beobachtet und `TrailsNotifier.startPoints` liest — Server-Stand
+    plus wartende und laufende Aufträge (`withPendingStartPoints`, pur,
+    der letzte Auftrag je Punkt gewinnt, nur EIGENE Punkte, ein
+    abgelehnter zählt nicht). Das trägt, weil jeder Datenstand eines
+    `AsyncNotifier` meldet, auch eine gleiche Liste.
+  - **Schreiben: `saveStartPoint`/`deleteStartPoint`** wie
+    `saveDetails` — sofort sichtbar, ohne Netz in den Korb, danach
+    `_rereadAfterWrite(startPoints: true)`, nie das ganze Netz. Auch der
+    Korb liest nach einem reinen Startpunkt-Lauf nur sie nach
+    (`sendOutbox`). `isTrailJob` hält Feedback und Startpunkte aus
+    `withPendingJobs` heraus (dieselbe Trail-Liste, die Karte zeichnet
+    nichts neu).
+  - **Die Obergrenze prüft das Gerät VOR dem Korb** (`kStartPointMax`,
+    nur für einen NEUEN eigenen Punkt): Ohne Netz läge sonst ein Auftrag,
+    den der Server sicher ablehnt. Der Korb behandelt
+    `StartPointLimitException` als endgültig, `friendlyError` macht einen
+    Satz daraus.
+  `test/start_points/start_points_test.dart`,
+  `test/flows/start_points_flow_test.dart` (Gegenproben: ohne
+  `start_points` in der Kopie, ohne Nachlesen nach dem Korb, ohne
+  Grenze vor dem Korb, Auftrag trifft fremden Punkt, Limit nicht
+  endgültig, Nachlesen ohne Startpunkte — jede rot).
+

@@ -59,7 +59,7 @@ Neue Tabelle `public.start_points` (Patch 030), Struktur in
 | `name` | `text` | `check (char_length(btrim(name)) between 1 and 60)` |
 | `lat`, `lon` | `double precision` | mit Bereichs-Check; kein PostGIS nötig, nichts rechnet auf dem Server mit der Lage |
 | `visibility` | `text` | `'buddies'` (Vorgabe) oder `'private'`, derselbe Check wie `trail_details.visibility` |
-| `client_id` | `uuid` | macht den Ausgangskorb idempotent, unique je `user_id` wie bei `trail_notes` |
+| `client_id` | `uuid` not null | der Schlüssel der App: unique je `user_id` (echter Constraint), Anlegen/Umbenennen/Umschalten sind ein Upsert darauf, Löschen ein Delete — so wiederholt der Ausgangskorb jeden Auftrag gefahrlos |
 | `created_at`, `updated_at` | `timestamptz` | `updated_at` über `touch_updated_at()` |
 
 **RLS:**
@@ -74,7 +74,9 @@ Neue Tabelle `public.start_points` (Patch 030), Struktur in
   `auto_expose_new_tables = false` lässt einen vergessenen Grant im Dry
   Run auffallen.
 - **Obergrenze 100 je Konto**, geprüft per Trigger: Das schützt vor
-  einem Ausgangskorb in einer Schleife, für den Gebrauch reicht es.
+  einem Ausgangskorb in einer Schleife, für den Gebrauch reicht es. Der
+  Upsert auf einen vorhandenen Punkt zählt nicht mit, sonst ließe sich am
+  Limit nichts umbenennen; die App prüft die Grenze schon vor dem Korb.
 
 **Kontolöschung:** Die Punkte gehen per Cascade mit dem Profil. Sie
 gehören in die Liste dessen, was `delete_own_account()` mitnimmt, und

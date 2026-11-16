@@ -2,6 +2,21 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Startpunkte merken — die Grundlage
+
+*Version 0.181.0, 2026-11-16*
+
+- **Unter der Haube für gemerkte Startpunkte:** Bald kannst du einen
+  Parkplatz oder den Eingang eines Trailcenters als Startpunkt merken
+  und mit deinen Buddys teilen — der Planer fragt dann nicht mehr jedes
+  Mal „Von wo?". Diese Version legt dafür den Speicher an: Ein
+  Startpunkt hat einen Namen, eine Lage und die Wahl, ob deine Buddys
+  ihn sehen. Er liegt mit den Trails auf deinem Gerät, damit er am
+  Parkplatz auch ohne Empfang da ist, und wartet ohne Netz im
+  Ausgangskorb. Knöpfe dafür kommen mit den nächsten Versionen.
+- **Datenschutzerklärung:** Sie nennt die gemerkten Startpunkte als neue
+  Art von Daten — wer sie sieht, wie lange sie bleiben.
+
 ## Runden im Vergleich
 
 *Version 0.180.0, 2026-11-16*
