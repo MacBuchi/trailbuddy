@@ -552,6 +552,21 @@
       "erwartung": "Das Handy schickt `on` nur mit gelernter Halterung und frischem Takt, das „aus“ binnen 2 s nach 5 s ohne Takt; höchstens einen Hinweis je 10 s, keinen, der beim Absenden älter als 8 s ist — Gespräch `sprung-hinweis`.",
       "uhr": "talk_sprung_hinweis",
       "handy": "ein Sprung: Hinweis und Bestwerte in einer Sendung"
+    },
+    {
+      "id": "517.1",
+      "erwartung": "Mit Erkennung sagt die Stand-Zeile der Fahrt erst „Halterung lernt“, mit gelernter Halterung „Sprünge an“.",
+      "handy": "#517: am Rad sagt die Stand-Zeile"
+    },
+    {
+      "id": "517.2",
+      "erwartung": "Mit Erkennung zeigt das Startblatt den Ort des Handys als Chip („Handy am Rad“ / „Handy in der Tasche“), gemerkt und an den Dienst gegeben; ohne Erkennung kein Chip.",
+      "handy": "#491/#517: der Ort des Handys als Chip"
+    },
+    {
+      "id": "517.3",
+      "erwartung": "Meldet der Dienst die Tasche, sagt die Stand-Zeile „Tasche: nur Sprünge“; in der Tasche keine Halterung, kein Wheelie und kein Stoppie, nur Sprünge mit harter Landung.",
+      "handy": "Handy in der Tasche (#491): keine Halterung, kein Wheelie oder Stoppie, nur harte Landungen"
     }
   ],
   "gespraeche": [
@@ -1038,8 +1053,9 @@
       "schritte": [
         {
           "was": "Fahrt starten: die App erkennt die feste Halterung und zeigt „Sprünge an“",
-          "offen": [
-            517
+          "faelle": [
+            "517.1",
+            "514.4"
           ]
         },
         {
@@ -1065,10 +1081,11 @@
         },
         {
           "was": "Handy in der Tasche: der Wheelie fehlt, mit Grund",
-          "offen": [
-            491,
-            517
-          ]
+          "faelle": [
+            "517.2",
+            "517.3"
+          ],
+          "geraet": "eine beantwortete Fahrt in der Tasche (#491: Sprünge erst ab 3,5 g Landung)"
         }
       ]
     },

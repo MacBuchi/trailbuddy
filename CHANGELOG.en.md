@@ -4,7 +4,7 @@
 
 ## The watch shows symbols instead of words
 
-*Version 0.178.0, 2026-11-16 (watch app 1.7.0)*
+*Versions 0.178.0–0.178.1, 2026-11-16 (watch app 1.7.0)*
 
 - **Number pages:** a small symbol precedes each value instead of the
   word — stopwatch for ride time, measure for distance, heart for pulse,
@@ -19,6 +19,9 @@
   stay words, and so do the questions.
 - **Arrived:** a stopwatch instead of "h", air and wheelie on one line.
 - The app itself is unchanged.
+- **Checked (0.178.1):** the line above the ride ("Learning the mount",
+  "Jumps on", "Pocket: jumps only") is now part of the check that
+  replays the flow between phone and watch. Nothing changes for you.
 
 ## Everything fits the round watch screen
 

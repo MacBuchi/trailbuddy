@@ -1240,6 +1240,27 @@ void main() {
     expect(textIn('nav-ride-status'), contains('Tasche: nur Sprünge'));
   });
 
+  // F5, erster Schritt: Die Stand-Zeile sagt, ob die Erkennung schon misst.
+  testWidgets('#517: am Rad sagt die Stand-Zeile „Halterung lernt", dann „Sprünge an"', (tester) async {
+    final settings = FakeSettings()..sensorLogEnabled = true;
+    await startFromRides(tester, settings: settings, rideBridge: FakeRideServiceBridge());
+    await tester.tap(find.byKey(const ValueKey('nav-go')));
+    await settle(tester);
+    expect(textIn('nav-ride-status'), isNot(contains('Sprünge')), reason: 'vor dem ersten Takt nichts');
+
+    FusionLive tick({required bool mount}) => FusionLive(
+        tUs: 1000000, pitchDeg: mount ? 2 : double.nan, speedKmh: 15, upKnown: mount, phase: FusionPhase.none);
+    final container = ProviderScope.containerOf(tester.element(find.byKey(const ValueKey('nav-stop'))));
+    final live = container.read(airtimeLiveProvider.notifier);
+    live.accept(encodeAirtimeLive('/rides/sensors/x.csv', [tick(mount: false)]));
+    await settle(tester, frames: 2);
+    expect(textIn('nav-ride-status'), contains('Halterung lernt'));
+    live.accept(encodeAirtimeLive('/rides/sensors/x.csv', [tick(mount: true)]));
+    await settle(tester, frames: 2);
+    expect(textIn('nav-ride-status'), contains('Sprünge an'));
+    expect(textIn('nav-ride-status'), isNot(contains('Halterung lernt')));
+  });
+
   testWidgets('#491: ohne Erkennung kein Chip für den Ort des Handys', (tester) async {
     await startFromRides(tester);
     expect(find.byKey(const ValueKey('nav-pocket')), findsNothing);

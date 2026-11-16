@@ -255,7 +255,9 @@ angekommenen schon abgelegt. Die Uhr sendet nur, wenn ein Handy
 verbunden ist. **Höchstens 800 Punkte**
 (Kettenstand 2026-11-13; bis dahin 2000 nach Messung 8.1 — die stürzten
 beim Laden ab, neben dem heutigen Code passen sie nicht mehr; erst bei
-800 nimmt die Uhr während der Fahrt eine zweite gleich große Route an):
+800 nimmt die Uhr während der Fahrt eine zweite gleich große Route an;
+mit den Zeichen von #558 am 2026-11-16 Spitze 103,4 von 123,8 KB beim
+Wechsel, 1,1 KB mehr als vorher):
 darüber vereinfacht die App stärker, bis es passt.
 
 **Die Position des Handys** (Betreiber, 2026-11-05): Nach dem
