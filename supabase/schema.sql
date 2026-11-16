@@ -372,6 +372,27 @@ create table public.airtime_counters (
   updated_at timestamptz not null default now()
 );
 
+-- Gemerkte Startpunkte (Patch 030, #543, docs/konzept-startpunkte.md):
+-- Name, Lage, Sichtbarkeit — mehr nicht. Gehört dem, der ihn anlegt; kein
+-- Abgleich, keine Zusammenführung (A1), nie aus Fahrten (A3). Die App
+-- kennt einen Punkt unter seiner client_id: Anlegen, Umbenennen und
+-- Umschalten sind ein Upsert auf (user_id, client_id), wiederholbar aus
+-- dem Ausgangskorb. Höchstens 100 je Konto (start_points_limit).
+create table public.start_points (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null,
+  client_id uuid not null,
+  name text not null check (char_length(btrim(name)) between 1 and 60),
+  lat double precision not null check (lat between -90 and 90),
+  lon double precision not null check (lon between -180 and 180),
+  visibility text not null default 'buddies' check (visibility in ('buddies', 'private')),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  constraint start_points_user_id_fkey foreign key (user_id)
+    references public.profiles(id) on delete cascade,
+  constraint start_points_client_id_key unique (user_id, client_id)
+);
+
 -- Der Text zu einer Meldung (Patch 028); hier, weil trail_notes vor
 -- trail_reports angelegt wird.
 alter table public.trail_notes
@@ -933,6 +954,28 @@ revoke all on function app_internal.touch_updated_at() from public, anon, authen
 create trigger trail_details_touch
   before update on public.trail_details
   for each row execute function app_internal.touch_updated_at();
+create trigger start_points_touch
+  before update on public.start_points
+  for each row execute function app_internal.touch_updated_at();
+
+-- Höchstens 100 Startpunkte je Konto (Patch 030) — gegen einen
+-- Ausgangskorb in einer Schleife. Ein Upsert auf einen VORHANDENEN Punkt
+-- zählt nicht: BEFORE-INSERT-Trigger laufen auch, wenn der Konflikt danach
+-- ein Update daraus macht, und am Limit ließe sich sonst nichts umbenennen.
+create or replace function app_internal.start_points_limit()
+returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if (select count(*) from start_points
+       where user_id = new.user_id and client_id <> new.client_id) >= 100 then
+    raise exception 'Höchstens 100 Startpunkte je Konto' using errcode = '54000';
+  end if;
+  return new;
+end $$;
+revoke all on function app_internal.start_points_limit() from public, anon, authenticated;
+create trigger start_points_limit
+  before insert on public.start_points
+  for each row execute function app_internal.start_points_limit();
 
 -- Aliase: Ende der Freundschaft löscht sie beider Seiten (PilzBuddy
 -- Patch 032; Definer, weil die delete-Policy jedem nur die EIGENEN gibt).
@@ -2441,6 +2484,7 @@ alter table public.trail_note_photos enable row level security;
 alter table public.trail_reports     enable row level security;
 alter table public.trail_airtime     enable row level security;
 alter table public.airtime_counters  enable row level security;
+alter table public.start_points      enable row level security;
 alter table app_internal.trail_overlaps enable row level security;
 alter table app_internal.trail_aliases  enable row level security;
 alter table app_internal.trail_distinct enable row level security;
@@ -2635,6 +2679,20 @@ create policy ac_update_own on public.airtime_counters for update
 create policy ac_delete_own on public.airtime_counters for delete
   using (user_id = auth.uid());
 
+-- start_points (Patch 030): der Besitzer und, wenn nicht „privat", seine
+-- direkten Buddys — nach dem Entfreunden sofort nichts mehr. Schreiben
+-- nur der Besitzer.
+create policy sp_select on public.start_points for select
+  using (user_id = auth.uid()
+     or (visibility = 'buddies' and app_internal.are_friends(user_id, auth.uid())));
+create policy sp_insert_own on public.start_points for insert
+  with check (user_id = auth.uid());
+create policy sp_update_own on public.start_points for update
+  using (user_id = auth.uid())
+  with check (user_id = auth.uid());
+create policy sp_delete_own on public.start_points for delete
+  using (user_id = auth.uid());
+
 -- ============================================================
 -- Grants — ausdrücklich, nicht über auto_expose
 -- ============================================================
@@ -2667,6 +2725,7 @@ grant select, insert, delete on public.trail_note_photos to authenticated;
 grant select, delete on public.trail_reports to authenticated;       -- insert nur per RPC
 grant select, delete on public.trail_airtime to authenticated;       -- schreiben nur per RPC
 grant select, insert, update, delete on public.airtime_counters to authenticated;
+grant select, insert, update, delete on public.start_points to authenticated;
 grant select on public.recordings_visible to authenticated;
 grant select, insert, update, delete on public.push_devices to authenticated;
 -- KEIN Grant auf public.trails, KEINER auf app_internal.trail_overlaps.
@@ -2799,5 +2858,6 @@ insert into public.applied_patches (filename) values
   ('patch_026_note_photos.sql'),
   ('patch_027_push_locale.sql'),
   ('patch_028_note_report_link.sql'),
-  ('patch_029_airtime.sql')
+  ('patch_029_airtime.sql'),
+  ('patch_030_start_points.sql')
 on conflict do nothing;

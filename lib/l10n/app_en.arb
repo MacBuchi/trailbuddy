@@ -1665,6 +1665,7 @@
   "errorPhotoMetadata": "The photo still carries metadata ({details}) — not uploaded.",
   "errorNotSignedIn": "No longer signed in — please sign in again.",
   "errorDailyLimit": "Today's limit is reached — you can continue tomorrow.",
+  "errorStartPointLimit": "You already have 100 saved start points. Delete one you no longer need to make room for a new one.",
   "errorMergeNotNear": "The two trails are not close enough to be the same one.",
   "errorMergeGone": "One of the two trails no longer exists or is no longer shared with you.",
   "errorWriteRejected": "This could not be saved — the entry is no longer yours or no longer shared with you.",

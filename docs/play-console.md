@@ -32,7 +32,7 @@ Tabellen unten; ein Werkzeug lohnt sich erst, wenn sich Antworten ändern.
 |---|---|---|
 | Erhebt oder teilt deine App die geforderten Nutzerdatentypen? | **Ja** | Konto, beigesteuerte Trail-Linien, Beiträge, Meldungen, Fehlerberichte |
 | Werden alle Daten bei der Übertragung verschlüsselt? | **Ja** | Alle Ziele sind HTTPS: das Supabase-Projekt, `tiles.mcbuchi.de` (Karte und Orte), `raw.githubusercontent.com` (offizielle Trails), `api.github.com` und `github.com` (Update-Prüfung, **nur GitHub-APK**), `macbuchi.github.io` (Web-App und Rechtsseiten); nur im Browser zusätzlich `fonts.gstatic.com` und — erst nach dem Einschalten der Benachrichtigungen — `www.gstatic.com`. Push läuft serverseitig über Firebase Cloud Messaging, die Konto-Mails über Brevo; die App selbst spricht mit keinem der beiden. `test/privacy_policy_test.dart` hält die Liste vollständig |
-| Können Nutzer die Löschung ihrer Daten beantragen? | **Ja** | In der App unter *Profil → Konto löschen* (sofort, Cascade über alle Tabellen) **und** ohne App über die URL unten. Zusätzlich je Trail „Löschen" im Trail-Blatt (`withdraw_contribution`: eigene Aufzeichnungen, Beitrag, Meldungen, Hinweise) |
+| Können Nutzer die Löschung ihrer Daten beantragen? | **Ja** | In der App unter *Profil → Konto löschen* (sofort, Cascade über alle Tabellen) **und** ohne App über die URL unten. Zusätzlich je Trail „Löschen" im Trail-Blatt (`withdraw_contribution`: eigene Aufzeichnungen, Beitrag, Meldungen, Hinweise) und je gemerktem Startpunkt „Löschen" (#543) |
 | URL zum Löschen des Kontos | `https://macbuchi.github.io/trailbuddy/konto-loeschen.html` | Erreichbar erst nach der ersten Beförderung (`promote.yml` baut Pages) |
 | Unabhängige Sicherheitsüberprüfung? | **Nein** | |
 | Enthält die App Werbung? | **Nein** | Keine Werbe- oder Analyse-SDKs in `pubspec.yaml`; von Firebase nur Messaging, kein Analytics, kein Crashlytics |
@@ -45,6 +45,7 @@ verarbeitet*, *erforderlich oder optional* — plus die Zwecke.
 | Datentyp | Erhoben | Geteilt | Pflicht? | Zweck | Woher |
 |---|---|---|---|---|---|
 | **Standort → Genauer Standort** | Ja | Nein¹ | Optional | App-Funktionalität | Die beigesteuerten Trail-Linien (`trail_recordings.geom`, Höhen `ele`, Zeitpunkt `recorded_at`). Nur die Ausschnitte, die der Nutzer im Zerlege-Blatt oder beim Import als Trail auswählt — die ganze Fahrt bleibt auf dem Gerät (siehe „Nicht erhoben"). Sichtbar für den Nutzer und seine direkten Buddys, bei „Nur für mich" nur für ihn |
+| **Standort → Genauer Standort** (Forts.) | Ja | Nein¹ | Optional | App-Funktionalität | Gemerkte Startpunkte (#543, Patch 030, `start_points`): Name, Lage (lat/lon), Sichtbarkeit — vom Nutzer eingegeben (Ort der Karte, langer Druck, Planer-Start oder „Mein Standort merken", das privat vorbelegt ist), nie aus Fahrten abgeleitet. Sichtbar für den Nutzer und seine direkten Buddys, bei „privat" nur für ihn; nach dem Entfreunden sofort nicht mehr. Löschbar je Punkt, per Cascade mit dem Konto. Im Formular dieselbe Zeile „Genauer Standort" wie die Trail-Linien |
 | **Standort → Ungefährer Standort** | Nein | — | — | — | `ACCESS_COARSE_LOCATION` ist deklariert, aber ein grober Fix wird nur auf dem Gerät benutzt (Punkt auf der Karte, „Ich bin vor Ort"); an den Server geht nie eine Position |
 | **Persönliche Infos → E-Mail-Adresse** | Ja | Nein³ | Erforderlich | App-Funktionalität, Kontoverwaltung | Supabase Auth; Buddy-Suche über die exakte Adresse; Konto-Mails über Brevo; bei Anmeldung über einen Anbieter von dort⁵ |
 | **Persönliche Infos → Name** | Ja | Nein¹ | Erforderlich | App-Funktionalität, Kontoverwaltung | `profiles.username` (Pflicht, über das Präfix suchbar) und `display_name` |
@@ -405,7 +406,8 @@ Ehrlich antworten, sonst passt die Bewertung nicht zum Binary:
   **Ja** — Buddy-Verbindungen, geteilte Trails, Meldungen und Hinweise,
   Nachrichten zwischen zwei Buddys (#34), Feedback.
 - **Können Nutzer ihren Standort mit anderen teilen?** **Ja** —
-  beigesteuerte Trail-Linien sind für Buddys sichtbar. Kein Live-Standort.
+  beigesteuerte Trail-Linien und gemerkte Startpunkte (#543) sind für
+  Buddys sichtbar. Kein Live-Standort.
 - Nutzergenerierte Inhalte werden nicht moderiert; Feedback wird
   öffentlich.
 

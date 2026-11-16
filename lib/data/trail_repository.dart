@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/errors.dart';
 import '../core/photo_pipeline.dart';
 import '../features/trails/trail_geometry.dart';
+import '../models/start_point.dart';
 import '../models/trail.dart';
 import '../models/trail_merge.dart';
 import 'session.dart';
@@ -108,6 +109,19 @@ abstract class TrailRepository {
 
   /// Das „verschieden" zurücknehmen (`unmark_distinct`).
   Future<void> unmarkDistinct(String a, String b);
+
+  /// Die gemerkten Startpunkte, die ich sehen darf (#543, Patch 030):
+  /// eigene und die nicht privaten meiner direkten Buddys.
+  Future<List<StartPoint>> fetchStartPoints();
+
+  /// Legt einen EIGENEN Startpunkt an oder ändert ihn — ein Upsert auf
+  /// (user_id, client_id), beliebig oft wiederholbar (Ausgangskorb).
+  /// Wirft [StartPointLimitException] beim 101. Punkt.
+  Future<void> saveStartPoint(StartPoint point);
+
+  /// Löscht den EIGENEN Startpunkt [clientId]. Ein zweiter Aufruf trifft
+  /// nichts und ist ein Erfolg.
+  Future<void> deleteStartPoint(String clientId);
 }
 
 /// Die Spalten der Sicht `recordings_visible` — dieselbe Liste prüft
@@ -135,6 +149,12 @@ const kNoteColumns =
     // trail_note_photos auf trail_notes UND profiles zeigt und PostgREST
     // sonst eine Verbindungstabelle vermuten könnte (PilzBuddy, PGRST201).
     'photo:trail_note_photos!trail_note_photos_note_id_fkey(key, expires_at)';
+
+/// Wie [kDetailsColumns]: Der Embed heißt nach dem Fremdschlüssel, und
+/// `tool/schema_check.sh` fragt genau diese Liste ab (Patch 030, #543).
+const kStartPointColumns =
+    'client_id, user_id, name, lat, lon, visibility, created_at, updated_at, '
+    'owner:profiles!start_points_user_id_fkey(username)';
 
 /// Der private Bucket der Fotos am Hinweis (Patch 026).
 const kNotePhotoBucket = 'trail-note-photos';
@@ -317,5 +337,30 @@ class SupabaseTrailRepository implements TrailRepository {
   Future<void> unmarkDistinct(String a, String b) async {
     _client.requireUid;
     await _client.rpc<dynamic>('unmark_distinct', params: {'trail_a': a, 'trail_b': b});
+  }
+
+  @override
+  Future<List<StartPoint>> fetchStartPoints() async {
+    _client.requireUid;
+    final rows = await _client.from('start_points').select(kStartPointColumns);
+    return [for (final r in rows) ?StartPoint.fromJson(r)];
+  }
+
+  @override
+  Future<void> saveStartPoint(StartPoint point) async {
+    final uid = _client.requireUid;
+    final row = point.toWriteRow()..['user_id'] = uid;
+    try {
+      await _client.from('start_points').upsert(row, onConflict: 'user_id,client_id');
+    } on PostgrestException catch (e) {
+      if (e.code == '54000') throw const StartPointLimitException();
+      rethrow;
+    }
+  }
+
+  @override
+  Future<void> deleteStartPoint(String clientId) async {
+    final uid = _client.requireUid;
+    await _client.from('start_points').delete().eq('user_id', uid).eq('client_id', clientId);
   }
 }

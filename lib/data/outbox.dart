@@ -21,14 +21,17 @@ import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 
 import '../features/trails/trail_geometry.dart' show RecordingSource;
+import '../models/start_point.dart';
 import '../models/trail.dart';
 import 'feedback_repository.dart' show FeedbackType;
 
-/// Ein Auftrag im Korb. Genau VIER Arten — die Schreibwege, die draußen
+/// Ein Auftrag im Korb. Genau SECHS Arten — die Schreibwege, die draußen
 /// vorkommen: eine Aufzeichnung beisteuern, den eigenen Beitrag speichern,
 /// melden (seit 0.49.0, #101 — die Meldung stand bis dahin im Beitrag,
-/// und „gesperrt" meldet man am Trail, also ohne Netz) und Feedback (seit
-/// 0.86.0, #218 — der Wunsch kommt draußen, und verworfen ist er weg).
+/// und „gesperrt" meldet man am Trail, also ohne Netz), Feedback (seit
+/// 0.86.0, #218 — der Wunsch kommt draußen, und verworfen ist er weg) und
+/// seit 0.181.0 einen Startpunkt merken bzw. löschen (#543 — gemerkt wird
+/// am Parkplatz, und dort ist oft kein Netz).
 /// Höhen nachtragen, Hinweise allein, Löschen scheitern weiter sichtbar:
 /// Schreibtischarbeit im WLAN.
 sealed class OutboxJob {
@@ -135,6 +138,16 @@ sealed class OutboxJob {
             attempts: attempts,
             failure: failure,
           );
+        case 'start_point':
+          final point = StartPoint.fromJson(json['point'] as Map<String, dynamic>);
+          if (point == null) return null;
+          return StartPointJob(
+              id: id, createdAt: createdAt, point: point, attempts: attempts, failure: failure);
+        case 'start_point_delete':
+          final clientId = json['client_id'] as String?;
+          if (clientId == null) return null;
+          return StartPointDeleteJob(
+              id: id, createdAt: createdAt, clientId: clientId, attempts: attempts, failure: failure);
         default:
           return null; // Ein Auftragstyp, den dieser Stand nicht kennt.
       }
@@ -383,6 +396,84 @@ class FeedbackJob extends OutboxJob {
         failure: clearFailure ? null : (failure ?? this.failure),
       );
 }
+
+/// Einen EIGENEN Startpunkt anlegen oder ändern (#543) — der ganze Punkt,
+/// wie er nach dem Tipp aussah. Beim Nachholen ein Upsert auf seine
+/// `client_id` (Patch 030): Mehrere Aufträge für denselben Punkt gehen der
+/// Reihe nach, der letzte gilt. Die eigene Kennung [id] ist die des
+/// Auftrags, nicht die des Punktes.
+class StartPointJob extends OutboxJob {
+  const StartPointJob({
+    required super.id,
+    required super.createdAt,
+    required this.point,
+    super.attempts,
+    super.failure,
+  });
+
+  final StartPoint point;
+
+  @override
+  Map<String, dynamic> toJson() => {
+        'kind': 'start_point',
+        'id': id,
+        'created_at': createdAt.toUtc().toIso8601String(),
+        'attempts': attempts,
+        'failure': failure,
+        'point': point.copyWith(pending: false, sending: false).toRow(),
+      };
+
+  @override
+  StartPointJob copyWith({int? attempts, String? failure, bool clearFailure = false}) =>
+      StartPointJob(
+        id: id,
+        createdAt: createdAt,
+        point: point,
+        attempts: attempts ?? this.attempts,
+        failure: clearFailure ? null : (failure ?? this.failure),
+      );
+}
+
+/// Einen EIGENEN Startpunkt löschen (#543). Wiederholbar: Ein zweites
+/// Löschen trifft nichts.
+class StartPointDeleteJob extends OutboxJob {
+  const StartPointDeleteJob({
+    required super.id,
+    required super.createdAt,
+    required this.clientId,
+    super.attempts,
+    super.failure,
+  });
+
+  final String clientId;
+
+  @override
+  Map<String, dynamic> toJson() => {
+        'kind': 'start_point_delete',
+        'id': id,
+        'created_at': createdAt.toUtc().toIso8601String(),
+        'attempts': attempts,
+        'failure': failure,
+        'client_id': clientId,
+      };
+
+  @override
+  StartPointDeleteJob copyWith({int? attempts, String? failure, bool clearFailure = false}) =>
+      StartPointDeleteJob(
+        id: id,
+        createdAt: createdAt,
+        clientId: clientId,
+        attempts: attempts ?? this.attempts,
+        failure: clearFailure ? null : (failure ?? this.failure),
+      );
+}
+
+/// Hängt der Auftrag an einem Trail (Karte, Liste, Neuladen des Netzes)?
+/// Feedback und Startpunkte nicht.
+bool isTrailJob(OutboxJob job) => switch (job) {
+      ContributeJob() || DetailsJob() || ReportJob() => true,
+      FeedbackJob() || StartPointJob() || StartPointDeleteJob() => false,
+    };
 
 /// Die Ablage-Form: EIN JSON-Text mit dem Konto, dem er gehört.
 String encodeOutbox(List<OutboxJob> jobs, {required String uid}) => jsonEncode({

@@ -2,6 +2,21 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## Saving start points — the groundwork
+
+*Version 0.181.0, 2026-11-16*
+
+- **Under the hood for saved start points:** soon you can save a car
+  park or the entrance of a trail centre as a start point and share it
+  with your buddies — then the planner no longer asks "From where?"
+  every time. This version sets up the storage: a start point has a
+  name, a location and the choice whether your buddies see it. It is
+  kept on your device with the trails, so it is there at the car park
+  without reception, and without a connection it waits in the outbox.
+  The buttons for it come with the next versions.
+- **Privacy policy:** it names saved start points as a new kind of data
+  — who sees them and how long they stay.
+
 ## Loops compared
 
 *Version 0.180.0, 2026-11-16*

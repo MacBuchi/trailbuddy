@@ -110,3 +110,23 @@ begin
   end if;
   raise notice 'grants_check airtime: ok';
 end $$;
+
+-- Gemerkte Startpunkte (patch_030): anon bekommt nichts, die Grenze
+-- je Konto ruft niemand von außen.
+do $$
+begin
+  if has_table_privilege('anon', 'public.start_points', 'select')
+     or has_table_privilege('anon', 'public.start_points', 'insert') then
+    raise exception 'anon darf start_points lesen oder schreiben';
+  end if;
+  if not (has_table_privilege('authenticated', 'public.start_points', 'select')
+          and has_table_privilege('authenticated', 'public.start_points', 'insert')
+          and has_table_privilege('authenticated', 'public.start_points', 'update')
+          and has_table_privilege('authenticated', 'public.start_points', 'delete')) then
+    raise exception 'authenticated fehlen die Grants auf start_points';
+  end if;
+  if has_function_privilege('authenticated', 'app_internal.start_points_limit()', 'execute') then
+    raise exception 'authenticated darf start_points_limit aufrufen';
+  end if;
+  raise notice 'grants_check start_points: ok';
+end $$;

@@ -16,6 +16,7 @@ import 'package:trailbuddy/data/trail_cache_idb.dart';
 import 'package:trailbuddy/features/map/seen_tiles.dart';
 import 'package:trailbuddy/features/trails/trail_geometry.dart';
 import 'package:trailbuddy/models/trail.dart';
+import 'package:trailbuddy/models/start_point.dart';
 import 'package:trailbuddy/models/trail_merge.dart';
 
 void main() {
@@ -65,6 +66,7 @@ void main() {
       notes: const <TrailNote>[],
       reports: const <TrailReport>[],
       merges: const <TrailMerge>[],
+      startPoints: const <StartPoint>[],
     );
     await IdbTrailCache(BrowserDb(factory)).write(uid: 'me', snapshot: snapshot, savedAt: at);
     final back = await IdbTrailCache(BrowserDb(factory)).read(uid: 'me');

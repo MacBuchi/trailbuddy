@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:trailbuddy/data/trail_cache.dart';
 import 'package:trailbuddy/features/trails/trail_geometry.dart';
+import 'package:trailbuddy/models/start_point.dart';
 import 'package:trailbuddy/models/trail.dart';
 import 'package:trailbuddy/models/trail_merge.dart';
 
@@ -57,6 +58,12 @@ void main() {
       const TrailMerge(trailId: 'trail-2', sameAs: 'trail-1', kind: TrailMergeKind.folded,
           reversed: true, byUsers: ['bob', 'carla']),
       const TrailMerge(trailId: 'trail-1', sameAs: 'trail-3', kind: TrailMergeKind.distinct),
+    ],
+    startPoints: [
+      StartPoint(clientId: 'sp-1', userId: 'me', name: 'Parkplatz Talboden', lat: 47.01, lon: 11.02,
+          visibility: TrailVisibility.private, createdAt: at.toLocal(), updatedAt: at.toLocal()),
+      StartPoint(clientId: 'sp-1', userId: 'bob', name: 'Trailcenter', lat: 47.03, lon: 11.04,
+          createdAt: at.toLocal(), username: 'bob'),
     ],
   );
 
@@ -121,6 +128,30 @@ void main() {
     expect(m2.kind, TrailMergeKind.distinct);
     expect(m2.reversed, isFalse);
     expect(m2.byUsers, isEmpty);
+    // Die gemerkten Startpunkte (#543): die Liste am Parkplatz ohne Empfang.
+    final p1 = back.snapshot.startPoints[0];
+    expect(p1.clientId, 'sp-1');
+    expect(p1.userId, 'me');
+    expect(p1.name, 'Parkplatz Talboden');
+    expect((p1.lat, p1.lon), (47.01, 11.02));
+    expect(p1.visibility, TrailVisibility.private);
+    expect(p1.createdAt, at.toLocal());
+    expect(p1.updatedAt, at.toLocal());
+    expect(p1.username, isNull);
+    final p2 = back.snapshot.startPoints[1];
+    expect(p2.key, 'bob/sp-1');
+    expect(p2.visibility, TrailVisibility.buddies);
+    expect(p2.updatedAt, isNull);
+    expect(p2.username, 'bob');
+  });
+
+  test('eine Kopie von vor 0.181.0 (ohne Startpunkte) liest sich ohne Startpunkte', () {
+    final text = encodeTrailCache(uid: 'me', snapshot: snapshot, savedAt: at)
+        .replaceAll(RegExp(r',"start_points":\[.*\]\}$'), '}');
+    expect(text, isNot(contains('start_points')));
+    final back = decodeTrailCache(text, uid: 'me')!;
+    expect(back.snapshot.startPoints, isEmpty);
+    expect(back.snapshot.merges, hasLength(2));
   });
 
   test('ein Hinweis aus einer Kopie von vor 0.113.0 (ohne Foto) liest sich ohne Foto', () {

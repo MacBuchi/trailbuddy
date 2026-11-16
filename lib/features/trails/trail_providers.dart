@@ -17,6 +17,7 @@ import '../../data/trail_cache.dart';
 import '../../data/trail_cache_idb.dart';
 import '../../data/trail_sharing.dart';
 import '../../data/trail_repository.dart';
+import '../../models/start_point.dart';
 import '../../models/trail.dart';
 import '../../models/trail_merge.dart';
 import '../map/map_view/map_view.dart' show MapViewBounds;
@@ -167,6 +168,7 @@ class TrailsNotifier extends AsyncNotifier<List<Trail>>
       repo.fetchNotes(),
       repo.fetchReports(),
       repo.fetchMerges(),
+      repo.fetchStartPoints(),
     ]);
     // Was sich nicht geändert hat, bleibt dasselbe Objekt — auch für die
     // Kopie auf dem Gerät, die einen unveränderten Stand dann nicht neu
@@ -177,6 +179,7 @@ class TrailsNotifier extends AsyncNotifier<List<Trail>>
       notes: results[2] as List<TrailNote>,
       reports: results[3] as List<TrailReport>,
       merges: results[4] as List<TrailMerge>,
+      startPoints: results[5] as List<StartPoint>,
     ));
   }
 
@@ -237,7 +240,11 @@ class TrailsNotifier extends AsyncNotifier<List<Trail>>
   /// Wert darunter. Ohne frischen Server-Stand (Kopie, anderes Konto)
   /// lädt es ganz neu.
   Future<bool> _rereadAfterWrite(String what,
-      {bool details = false, bool notes = false, bool reports = false, bool merges = false}) async {
+      {bool details = false,
+      bool notes = false,
+      bool reports = false,
+      bool merges = false,
+      bool startPoints = false}) async {
     final myId = ref.read(currentUserIdProvider);
     final fetchedAt = _fetchedAt;
     if (myId == null || fetchedAt == null || _snapshotFor(myId) == null || !state.hasValue) {
@@ -250,6 +257,7 @@ class TrailsNotifier extends AsyncNotifier<List<Trail>>
         if (notes) repo.fetchNotes(),
         if (reports) repo.fetchReports(),
         if (merges) repo.fetchMerges(),
+        if (startPoints) repo.fetchStartPoints(),
       ]);
       // Erst NACH dem Abruf auf den Stand legen: Ein Neuladen dazwischen
       // hat ihn vielleicht schon ersetzt.
@@ -262,6 +270,7 @@ class TrailsNotifier extends AsyncNotifier<List<Trail>>
         notes: notes ? fresh[i++] as List<TrailNote> : base.notes,
         reports: reports ? fresh[i++] as List<TrailReport> : base.reports,
         merges: merges ? fresh[i++] as List<TrailMerge> : base.merges,
+        startPoints: startPoints ? fresh[i++] as List<StartPoint> : base.startPoints,
       );
       _server = _fromSnapshot(next, myId);
       unawaited(ref.read(trailCacheProvider).write(uid: myId, snapshot: _snapshot!, savedAt: fetchedAt));
@@ -307,7 +316,7 @@ class TrailsNotifier extends AsyncNotifier<List<Trail>>
     // Ohne je einen Server-Stand und ohne Trail-Aufträge gibt es nichts zu
     // zeigen — der Fehlerzustand bleibt dann stehen. Feedback (#218) zählt
     // nicht: Es steht auf keiner Karte.
-    if (!state.hasValue && !jobs.any((j) => j is! FeedbackJob)) return;
+    if (!state.hasValue && !jobs.any(isTrailJob)) return;
     state = AsyncData(_composeWith(jobs, myId));
   }
 
@@ -415,11 +424,15 @@ class TrailsNotifier extends AsyncNotifier<List<Trail>>
     // Neu geladen wird nur, wenn ein TRAIL-Auftrag hinausging: Ein
     // nachgeholter Wunsch (#218) ändert am Netz nichts, und ein ganzes
     // Neuladen kostet die Karte (siehe „Speichern ohne Neuladen des Netzes").
-    final trailJobsLeft =
-        (ref.read(outboxJobsProvider).valueOrNull ?? const []).where((j) => j is! FeedbackJob).length;
-    final trailJobsSent = jobs.where((j) => j is! FeedbackJob).length > trailJobsLeft;
+    // Für Startpunkte (#543) reicht es, sie nachzulesen.
+    final left = ref.read(outboxJobsProvider).valueOrNull ?? const <OutboxJob>[];
+    bool isPointJob(OutboxJob j) => j is StartPointJob || j is StartPointDeleteJob;
+    final trailJobsSent = jobs.where(isTrailJob).length > left.where(isTrailJob).length;
+    final pointJobsSent = jobs.where(isPointJob).length > left.where(isPointJob).length;
     if (result.sent > 0 && trailJobsSent) {
       await reloadAfterWrite('Trails nach dem Ausgangskorb laden');
+    } else if (result.sent > 0 && pointJobsSent) {
+      await _rereadAfterWrite('Startpunkte nach dem Ausgangskorb laden', startPoints: true);
     }
     return result;
   }
@@ -633,6 +646,89 @@ class TrailsNotifier extends AsyncNotifier<List<Trail>>
     return (myId == null ? null : _snapshotFor(myId)?.merges) ?? const [];
   }
 
+  /// Die gemerkten Startpunkte (#543): die des Servers, wie die RLS sie
+  /// liefert (eigene und die nicht privaten direkter Buddys), plus was im
+  /// Korb liegt oder gerade unterwegs ist. Aus der Kopie, wenn das Netz
+  /// fehlt — sie liegen im selben Stand wie die Trails.
+  List<StartPoint> get startPoints {
+    final myId = ref.read(currentUserIdProvider);
+    if (myId == null) return const [];
+    final server = _snapshotFor(myId)?.startPoints ?? const <StartPoint>[];
+    final jobs = ref.read(outboxJobsProvider).valueOrNull ?? const <OutboxJob>[];
+    final queued = {for (final j in jobs) j.id};
+    final sending = [for (final j in _sending) if (!queued.contains(j.id)) j];
+    return withPendingStartPoints(server, [...jobs, ...sending],
+        myId: myId, sending: {for (final j in sending) j.id});
+  }
+
+  /// Merkt einen EIGENEN Startpunkt oder ändert ihn (Name, Lage,
+  /// Sichtbarkeit) — ein Auftrag für alles, ein Upsert auf seine
+  /// `client_id`. Er steht sofort da („wird übertragen"), ohne Netz im
+  /// Ausgangskorb. Ein NEUER Punkt über [kStartPointMax] wirft
+  /// [StartPointLimitException], bevor etwas hinausgeht — sonst wartete
+  /// ohne Netz ein Auftrag, den der Server sicher ablehnt.
+  Future<WriteOutcome> saveStartPoint(StartPoint point) async {
+    final myId = ref.read(currentUserIdProvider);
+    if (myId == null) throw const NotSignedInException();
+    final name = clampStartPointName(point.name);
+    if (name.isEmpty) throw ArgumentError.value(point.name, 'name', 'leer');
+    final own = startPoints.where((p) => p.isMine(myId));
+    final isNew = !own.any((p) => p.clientId == point.clientId);
+    if (isNew && own.length >= kStartPointMax) throw const StartPointLimitException();
+    final job = StartPointJob(
+      id: newClientId(),
+      createdAt: DateTime.now().toUtc(),
+      point: StartPoint(
+        clientId: point.clientId,
+        userId: myId,
+        name: name,
+        lat: point.lat,
+        lon: point.lon,
+        visibility: point.visibility,
+        createdAt: point.createdAt,
+        updatedAt: point.updatedAt,
+      ),
+    );
+    _beginSending(job, myId);
+    try {
+      try {
+        await ref.read(trailRepositoryProvider).saveStartPoint(job.point);
+      } catch (error, stackTrace) {
+        await _queueIfOffline(error, stackTrace, job);
+        return WriteOutcome.queued;
+      }
+      return await _rereadAfterWrite('Startpunkt speichern', startPoints: true)
+          ? WriteOutcome.done
+          : WriteOutcome.doneStale;
+    } finally {
+      _endSending(job, myId);
+    }
+  }
+
+  /// Löscht den EIGENEN Startpunkt [clientId] — sofort weg aus der
+  /// Anzeige, ohne Netz über den Ausgangskorb (Konzept 6: anders als ein
+  /// Beitrag ist ein Startpunkt nur ein Merker, ein spätes Löschen
+  /// schadet niemandem).
+  Future<WriteOutcome> deleteStartPoint(String clientId) async {
+    final myId = ref.read(currentUserIdProvider);
+    if (myId == null) throw const NotSignedInException();
+    final job = StartPointDeleteJob(id: newClientId(), createdAt: DateTime.now().toUtc(), clientId: clientId);
+    _beginSending(job, myId);
+    try {
+      try {
+        await ref.read(trailRepositoryProvider).deleteStartPoint(clientId);
+      } catch (error, stackTrace) {
+        await _queueIfOffline(error, stackTrace, job);
+        return WriteOutcome.queued;
+      }
+      return await _rereadAfterWrite('Startpunkt löschen', startPoints: true)
+          ? WriteOutcome.done
+          : WriteOutcome.doneStale;
+    } finally {
+      _endSending(job, myId);
+    }
+  }
+
   /// Höhen einer eigenen Aufzeichnung nachtragen (#16). Kein Neuladen
   /// hier: Der Import lädt einmal am Ende, nicht nach jeder Datei.
   Future<bool> attachElevation(ExistingRecording existing) {
@@ -677,6 +773,15 @@ final trailsAwaitNetworkProvider = StateProvider<bool>((ref) => false);
 final trailMergeRowsProvider = Provider<List<TrailMerge>>((ref) {
   ref.watch(trailsProvider);
   return ref.read(trailsProvider.notifier).mergeRows;
+});
+
+/// Die gemerkten Startpunkte (#543) zum angezeigten Stand, samt Korb —
+/// neu, sobald sich Netz oder Korb ändern. Jeder Schreibweg im Notifier
+/// endet mit einem neuen Zustand der Trails, und der meldet sich immer.
+final startPointsProvider = Provider<List<StartPoint>>((ref) {
+  ref.watch(trailsProvider);
+  ref.watch(outboxJobsProvider);
+  return ref.read(trailsProvider.notifier).startPoints;
 });
 
 /// Die Wiedervorlage (#30). Den Namen übernimmt sie über den Notifier,

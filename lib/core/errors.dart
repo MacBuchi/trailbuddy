@@ -174,6 +174,17 @@ class DailyLimitException implements Exception {
   String toString() => 'DailyLimitException: Tageslimit für Aufzeichnungen erreicht';
 }
 
+/// Das Konto hat schon 100 Startpunkte (#543, Trigger
+/// `start_points_limit`, SQLSTATE 54000). Eine Entscheidung des Servers,
+/// kein Fehler: Wer sie erreicht, bekommt einen Satz (Konzept 9.2), und ein
+/// Auftrag im Ausgangskorb wird dadurch nicht besser.
+class StartPointLimitException implements Exception {
+  const StartPointLimitException();
+
+  @override
+  String toString() => 'StartPointLimitException: Höchstzahl an Startpunkten erreicht';
+}
+
 /// Der Server nimmt eine Zuordnung „B ist ein Duplikat von A" nicht an
 /// (`merge_own_into`, Patch 019, #107). Eigener Typ, damit der Text sagt,
 /// WARUM — „Serverfehler (22023)" schickte jemanden auf die falsche Fährte.
@@ -293,6 +304,7 @@ String friendlyError(AppLocalizations l, Object error) {
   // lässt ihn dann vielleicht noch löschen, aber nicht mehr ändern —
   // deshalb nennt der Text beide Möglichkeiten, statt eine zu raten.
   if (error is DailyLimitException) return l.errorDailyLimit;
+  if (error is StartPointLimitException) return l.errorStartPointLimit;
   if (error is MergeRejectedException) {
     return switch (error.reason) {
       MergeRejection.notNear => l.errorMergeNotNear,

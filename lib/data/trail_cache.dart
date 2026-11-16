@@ -24,6 +24,7 @@ import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 
 import '../core/errors.dart';
+import '../models/start_point.dart';
 import '../models/trail.dart';
 import '../models/trail_merge.dart';
 
@@ -31,12 +32,15 @@ import '../models/trail_merge.dart';
 /// (die Meldungen seit Patch 013) und die Zuordnungen von Duplikaten
 /// (`trail_merges()`, Patch 019, #107) — die gehören in die Kopie, sonst
 /// stünde ein zusammengeführter Trail ohne Empfang wieder doppelt da.
+/// Dazu die gemerkten Startpunkte (#543, Patch 030): Die Liste muss am
+/// Parkplatz ohne Empfang da sein (A8).
 typedef TrailSnapshot = ({
   List<TrailRecording> recordings,
   List<TrailDetails> details,
   List<TrailNote> notes,
   List<TrailReport> reports,
   List<TrailMerge> merges,
+  List<StartPoint> startPoints,
 });
 
 /// Ein Abruf mit Herkunft: `cachedAt == null` heißt frisch aus dem Netz.
@@ -92,6 +96,7 @@ String encodeTrailCache({required String uid, required TrailSnapshot snapshot, r
       'notes': [for (final n in snapshot.notes) noteToRow(n)],
       'reports': [for (final r in snapshot.reports) r.toRow()],
       'merges': [for (final m in snapshot.merges) m.toRow()],
+      'start_points': [for (final p in snapshot.startPoints) p.toRow()],
     });
 
 /// Derselbe Text wie [encodeTrailCache], aber in Häppchen: Nach jeweils
@@ -126,6 +131,8 @@ Future<String> encodeTrailCacheInSlices({
     ..write(jsonEncode([for (final r in snapshot.reports) r.toRow()]))
     ..write(',"merges":')
     ..write(jsonEncode([for (final m in snapshot.merges) m.toRow()]))
+    ..write(',"start_points":')
+    ..write(jsonEncode([for (final p in snapshot.startPoints) p.toRow()]))
     ..write('}');
   return out.toString();
 }
@@ -151,6 +158,8 @@ Future<String> encodeTrailCacheInSlices({
         reports: [for (final r in rows('reports')) ?TrailReport.fromJson(r)],
         // Fehlt bei einer Kopie von vor 0.109.0: dann eben keine Zuordnungen.
         merges: [for (final m in rows('merges')) ?TrailMerge.fromJson(m)],
+        // Fehlt bei einer Kopie von vor 0.181.0: dann eben keine Startpunkte.
+        startPoints: [for (final p in rows('start_points')) ?StartPoint.fromJson(p)],
       ),
       savedAt: savedAt.toLocal(),
     );

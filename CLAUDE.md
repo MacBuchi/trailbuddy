@@ -194,7 +194,7 @@ Code liegt — nicht wieder hierher.
 
 | Datei | Themen |
 |---|---|
-| `supabase/CLAUDE.md` | Der Abgleich läuft in der Datenbank · `trails` hat keinen Client-Grant · Beitrag löschen · Duplikate zusammenführen · Fotos am Hinweis · Hinweis und Meldung als ein Eintrag · Airtime unter Buddys |
+| `supabase/CLAUDE.md` | Der Abgleich läuft in der Datenbank · `trails` hat keinen Client-Grant · Beitrag löschen · Duplikate zusammenführen · Fotos am Hinweis · Hinweis und Meldung als ein Eintrag · Airtime unter Buddys · Gemerkte Startpunkte |
 | `lib/features/trails/CLAUDE.md` | Importregel · Höhen · Schwierigkeit · Charakter · Farbe = Schwierigkeit · Link zur Quelle · Hinweise für Buddys · Ein Foto am Hinweis · Bewertung, Meldung, Zustand · Ein Eintrag „Melden“ · Suche, Filter, Sortierung der Trail-Liste · Übernehmen beim ersten Befahren · GPX-Export von Fahrten und Trails · Anfahrt zum Trailkopf · Duplikate zusammenführen in der App · „Sind das dieselben?" |
 | `lib/features/map/CLAUDE.md` | Orte auf der Karte · Glatte Linien und Namen am Trail · Eigene Position · Karten-Engine und Fassade (#31) · Die Tastatur überlagert, sie schiebt nicht · Die Legende auf der Karte · Die Ebene „Wege" (#212) · Gesehenes bleibt liegen (#155) · Höhenlinien (#271) · Regionen des Kartenhosts (#220) |
 | `lib/features/offline_areas/CLAUDE.md` | Der Kachelspeicher, Bereiche als Verweise (#229), die Ebene der Routing-Stücke (#380) · Gespeicherte Bereiche, Werkzeugleiste, Zeichnen (#67, #82) · Höhenkacheln je Bereich (`tool/height_tiles.py`, `height-data.yml`) · Bereiche je Region · Übersicht je Region (#220) |
@@ -202,7 +202,7 @@ Code liegt — nicht wieder hierher.
 | `lib/features/friends/CLAUDE.md` | Nach dem Annehmen einer Buddy-Anfrage · Nachrichten zwischen Buddys (#34) |
 | `lib/features/rides/CLAUDE.md` | Fahrt aufzeichnen · Bestätigen durch Fahren · Das Zerlege-Blatt · Sensor-Rohdaten (#36) · Wheelie und Sprung mit Rückmeldung (Fusion) · Die Live-Ansicht (#36, 4c) · Trail-Werte in der App (#36, 5) · Airtime unter Buddys (#36, 6) · Handy in der Tasche (#491) |
 | `lib/features/routing/CLAUDE.md` | Die Routing-Engine, Schritt 3: Graph, Profil, Suche · Steile Anstiege · Vorlieben und verschenkte Höhe · Der Stil „Bequem" · „Zum Trailkopf" · Der Rundenplaner · Kalibrierung aus eigenen Fahrten · Navigation rund · Die Folgeansicht der Navigation · Der Graph entsteht im Rechen-Isolate (#356) · Vorgebackene Routing-Kacheln (#380) · Die Bearbeitungsansicht (#516) · Das Limit aus Fahrten (#516) · Ergebnis und Start in einem, ein Ende (#517) · Die Leiste „andere Runden" (#549) · Runden im Vergleich, über dem Limit (#549 B) |
-| `lib/data/CLAUDE.md` | Ausgangskorb · Zwischenspeicher des Netzes · Speichern ohne Neuladen des Netzes · Beendigungsgründe |
+| `lib/data/CLAUDE.md` | Ausgangskorb · Zwischenspeicher des Netzes · Speichern ohne Neuladen des Netzes · Beendigungsgründe · Gemerkte Startpunkte |
 | `lib/core/CLAUDE.md` | Bewegung · Zurück nach Hierarchie · Der Stall-Wächter (#356) · Push (#34; auch `push_flush`, `send-push`, Web-Worker, Android-Kanal) · SnackBar mit Aktion braucht `persist` (#371) |
 | `lib/features/coach/CLAUDE.md` | Die Hinweis-Maschine und die Karten-Tour |
 | `lib/features/help/CLAUDE.md` | Einführung: Kurzanleitung, Sicherheitshinweis, Kontexthilfe · Die Karten-Tour beim ersten Start · Die Tour im Zerlege-Blatt · Touren je Reiter, Kette und Beispiele |

@@ -1842,4 +1842,76 @@ begin
   perform tb_test.check(code is null, 'lesen geht als angemeldeter Nutzer');
 end $$;
 
+\echo -- 33. Gemerkte Startpunkte (Patch 030, #543)
+-- Sehen: der Besitzer und, wenn nicht privat, seine direkten Buddys —
+-- nach dem Entfreunden nichts mehr. Schreiben nur der Besitzer, per Upsert
+-- auf (user_id, client_id), idempotent. Höchstens 100 je Konto; ein
+-- Upsert auf einen vorhandenen Punkt zählt nicht.
+do $$
+declare
+  ua uuid := '11111111-1111-4111-8111-111111111111';
+  ub uuid := '22222222-2222-4222-8222-222222222222';
+  ug uuid := '77777777-7777-4777-8777-777777777777';
+  c1 uuid := 'aaaaaaaa-0000-4000-8000-000000000001';
+  c2 uuid := 'aaaaaaaa-0000-4000-8000-000000000002';
+  upsert text := 'insert into public.start_points (user_id, client_id, name, lat, lon, visibility) '
+                 'values (%L, %L, %L, 48.1, 9.1, %L) on conflict (user_id, client_id) do update '
+                 'set name = excluded.name, lat = excluded.lat, lon = excluded.lon, visibility = excluded.visibility';
+  seen text := 'select count(*) from public.start_points where user_id = %L';
+  fid uuid; code text;
+begin
+  perform tb_test.check(app_internal.are_friends(ua, ub) and not app_internal.are_friends(ua, ug),
+                        'Bernd ist Annas Buddy, Gina nicht');
+  perform tb_test.exec_as(ua, format(upsert, ua, c1, 'Parkplatz Talboden', 'buddies'));
+  perform tb_test.exec_as(ua, format(upsert, ua, c1, 'Parkplatz Talboden', 'buddies'));
+  perform tb_test.check((select count(*) from public.start_points where user_id = ua) = 1,
+                        'derselbe Auftrag zweimal: ein Punkt');
+  perform tb_test.check(tb_test.count_as(ua, format(seen, ua)) = 1, 'Anna sieht ihren Punkt');
+  perform tb_test.check(tb_test.count_as(ub, format(seen, ua)) = 1, 'Bernd (Buddy) sieht ihn');
+  perform tb_test.check(tb_test.count_as(ug, format(seen, ua)) = 0, 'Gina (kein Buddy) sieht ihn nicht');
+
+  -- Umbenennen und auf privat: derselbe Upsert.
+  perform tb_test.exec_as(ua, format(upsert, ua, c1, 'Zuhause', 'private'));
+  perform tb_test.check((select (name, visibility) = ('Zuhause', 'private')
+                           from public.start_points where user_id = ua and client_id = c1)
+                        and (select count(*) from public.start_points where user_id = ua) = 1,
+                        'umbenannt und privat, weiter ein Punkt');
+  perform tb_test.check(tb_test.count_as(ub, format(seen, ua)) = 0, 'privat: Bernd sieht nichts');
+
+  -- Ein Buddy kann fremde Punkte weder anlegen noch ändern noch löschen.
+  code := tb_test.state_of(ub, format(upsert, ua, c2, 'Untergeschoben', 'buddies'));
+  perform tb_test.check(code = '42501', format('fremder Besitzer abgelehnt (%s)', code));
+  perform tb_test.exec_as(ua, format(upsert, ua, c2, 'Trailcenter', 'buddies'));
+  perform tb_test.exec_as(ub, format('update public.start_points set name = %L where user_id = %L', 'Weg', ua));
+  perform tb_test.exec_as(ub, format('delete from public.start_points where user_id = %L', ua));
+  perform tb_test.check((select count(*) from public.start_points where user_id = ua) = 2
+                        and not exists (select 1 from public.start_points where name = 'Weg'),
+                        'Bernd kann Annas Punkte nicht ändern oder löschen');
+  code := tb_test.state_of(ua, format(upsert, ua, gen_random_uuid(), '   ', 'buddies'));
+  perform tb_test.check(code = '23514', format('leerer Name abgelehnt (%s)', code));
+  code := tb_test.state_of(ua, format('insert into public.start_points (user_id, client_id, name, lat, lon) values (%L, %L, %L, 91, 9)',
+                                      ua, gen_random_uuid(), 'Nordpol+'));
+  perform tb_test.check(code = '23514', format('Breite außerhalb abgelehnt (%s)', code));
+
+  -- Entfreunden: Bernd sieht sofort nichts mehr.
+  select id into fid from public.friendships
+   where least(requester_id, addressee_id) = least(ua, ub) and greatest(requester_id, addressee_id) = greatest(ua, ub);
+  update public.friendships set status = 'pending' where id = fid;
+  perform tb_test.check(tb_test.count_as(ub, format(seen, ua)) = 0, 'nach dem Entfreunden sieht Bernd nichts');
+  update public.friendships set status = 'accepted' where id = fid;
+  perform tb_test.check(tb_test.count_as(ub, format(seen, ua)) = 1, 'wieder Buddys: Bernd sieht den geteilten Punkt');
+
+  -- Obergrenze: 100 je Konto; ein Upsert auf einen vorhandenen Punkt geht am Limit.
+  insert into public.start_points (user_id, client_id, name, lat, lon)
+    select ua, gen_random_uuid(), 'P' || i, 48, 9 from generate_series(1, 98) i;
+  perform tb_test.check((select count(*) from public.start_points where user_id = ua) = 100, '100 Punkte');
+  code := tb_test.state_of(ua, format(upsert, ua, gen_random_uuid(), 'Nummer 101', 'buddies'));
+  perform tb_test.check(code = '54000', format('der 101. ist abgelehnt (%s)', code));
+  code := tb_test.state_of(ua, format(upsert, ua, c2, 'Trailcenter Süd', 'buddies'));
+  perform tb_test.check(code is null and exists (select 1 from public.start_points where client_id = c2 and name = 'Trailcenter Süd'),
+                        format('am Limit lässt sich umbenennen (%s)', code));
+
+  delete from public.start_points where user_id = ua;
+end $$;
+
 \echo -- Alle Prüfungen bestanden.

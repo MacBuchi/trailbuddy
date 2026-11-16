@@ -4,8 +4,8 @@
 zum Planer-Konzept (`konzept-routing.md` 12.3): „favorisierte
 Startpunkte (Parkplätze) anlegen/auswählen, die ebenso geteilt werden
 können mit Buddys … vereinfacht das Von-wo". Die Fragen in Abschnitt 0
-hat der Betreiber am 2026-11-16 entschieden. Was in Abschnitt 9 noch
-als **Vorschlag** steht, ist nicht entschieden.*
+und die Vorschläge in Abschnitt 9 hat der Betreiber am 2026-11-16
+entschieden.*
 
 ## 0. Kurzfassung und Entscheidungen
 
@@ -59,7 +59,7 @@ Neue Tabelle `public.start_points` (Patch 030), Struktur in
 | `name` | `text` | `check (char_length(btrim(name)) between 1 and 60)` |
 | `lat`, `lon` | `double precision` | mit Bereichs-Check; kein PostGIS nötig, nichts rechnet auf dem Server mit der Lage |
 | `visibility` | `text` | `'buddies'` (Vorgabe) oder `'private'`, derselbe Check wie `trail_details.visibility` |
-| `client_id` | `uuid` | macht den Ausgangskorb idempotent, unique je `user_id` wie bei `trail_notes` |
+| `client_id` | `uuid` not null | der Schlüssel der App: unique je `user_id` (echter Constraint), Anlegen/Umbenennen/Umschalten sind ein Upsert darauf, Löschen ein Delete — so wiederholt der Ausgangskorb jeden Auftrag gefahrlos |
 | `created_at`, `updated_at` | `timestamptz` | `updated_at` über `touch_updated_at()` |
 
 **RLS:**
@@ -74,7 +74,9 @@ Neue Tabelle `public.start_points` (Patch 030), Struktur in
   `auto_expose_new_tables = false` lässt einen vergessenen Grant im Dry
   Run auffallen.
 - **Obergrenze 100 je Konto**, geprüft per Trigger: Das schützt vor
-  einem Ausgangskorb in einer Schleife, für den Gebrauch reicht es.
+  einem Ausgangskorb in einer Schleife, für den Gebrauch reicht es. Der
+  Upsert auf einen vorhandenen Punkt zählt nicht mit, sonst ließe sich am
+  Limit nichts umbenennen; die App prüft die Grenze schon vor dem Korb.
 
 **Kontolöschung:** Die Punkte gehen per Cascade mit dem Profil. Sie
 gehören in die Liste dessen, was `delete_own_account()` mitnimmt, und
@@ -116,7 +118,7 @@ wenn es einen gibt), **„Buddys sehen ihn"** als Schalter, **Merken**.
 
 **Die Haustür.** „Mein Standort merken" ist der einzige Weg, auf dem
 ein Punkt leicht dort entsteht, wo man wohnt. Deshalb steht der
-Schalter dort auf „privat" (Vorschlag, siehe 9), und unter dem Schalter
+Schalter dort auf „privat" (9), und unter dem Schalter
 steht ein Satz: „Liegt der Punkt bei dir zu Hause? Dann lass ihn
 privat — Buddys sähen sonst, wo du wohnst." Das ist eine Warnung und
 kein Riegel (A10). Auf den anderen drei Wegen fehlt der Satz: Wer einen
@@ -140,10 +142,11 @@ Start   (•) Mein Standort
   und fremde Punkte gemischt, sortiert nach Abstand vom Standort (ohne
   Standort von der Kartenmitte), mit dem Abstand rechts. Fremde Punkte
   tragen den Buddy-Namen (Alias, `buddyText`).
-- **Vorbelegt ist der zuletzt gewählte Punkt**, wenn er näher als
-  50 km liegt; sonst bleibt „Mein Standort" vorn. Wer immer vom selben
-  Parkplatz losfährt, tippt also weiterhin nur Planer → „Runde
-  vorschlagen".
+- **Vorbelegt ist ein gemerkter Punkt nur vor Ort**: Steht man
+  höchstens 300 m davon entfernt, ist er die Wahl, und am Parkplatz
+  bleibt es bei Planer → „Runde vorschlagen". Sonst bleibt „Mein
+  Standort" vorn, und der zuletzt gewählte Punkt steht oben in der
+  Liste (9).
 - Bei der **Route** steht „Gemerkt" auch in der Zeile „Ziel".
 - Ein gewählter Punkt ist für den Planer ein Start wie ein Ort
   (`takePlace`): die Lage, beschriftet mit dem Namen.
@@ -204,15 +207,21 @@ Im Schema-PR (A6):
 - kein Push, wenn ein Buddy einen Punkt anlegt;
 - auf der Uhr erst mit dem Routenregal (#515), nicht in diesem Thema.
 
-## 9. Noch offen (Vorschläge, nicht entschieden)
+## 9. Entschieden nach dem Entwurf (Betreiber, 2026-11-16)
 
-1. **„Mein Standort merken" privat vorbelegt** (4), während alle
-   anderen Wege auf „Buddys" stehen. Der Grund ist die Haustür; die
-   Alternative ist „Buddys" überall mit dem Warnsatz.
-2. **Obergrenze 100 je Konto** (2).
+1. **„Mein Standort merken" ist privat vorbelegt** (4), alle anderen
+   Wege stehen auf „Buddys": Eine verratene Haustür lässt sich nicht
+   zurückholen, ein Tipp mehr kostet nichts.
+2. **Obergrenze 100 je Konto** (2); wer sie erreicht, bekommt einen
+   Satz statt eines Fehlers.
 3. **Gleicher Platz innerhalb von 30 m**: Der eigene Punkt verdeckt den
-   fremden (1).
-4. **Vorbelegung „zuletzt gewählter Punkt" bis 50 km** (5.1).
+   fremden, auf der Karte und in der Liste (1).
+4. **Vorbelegt nur vor Ort**: Ein gemerkter Punkt steht in der Zeile
+   „Start" nur dann vorn, wenn der Standort höchstens 300 m davon
+   entfernt ist. Sonst bleibt „Mein Standort" vorn, und der zuletzt
+   gewählte Punkt steht oben in der Liste „Gemerkt". Der erste Entwurf
+   (zuletzt gewählter Punkt bis 50 km) hätte am Dienstag zu Hause still
+   vom Parkplatz des Samstags gerechnet.
 
 ## 10. Umsetzung (je ein PR)
 

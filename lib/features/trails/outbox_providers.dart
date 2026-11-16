@@ -15,6 +15,7 @@ import '../../data/browser_storage.dart';
 import '../../data/outbox.dart';
 import '../../data/outbox_idb.dart';
 import '../../data/providers.dart';
+import '../../models/start_point.dart';
 import '../../models/trail.dart';
 import 'trail_geometry.dart';
 
@@ -121,10 +122,10 @@ final failedJobCountProvider = Provider<int>((ref) =>
 /// laufender Beitrag vor, gilt der spätere in [jobs].
 List<Trail> withPendingJobs(List<Trail> server, List<OutboxJob> jobs,
     {required String myId, Set<String> sending = const {}}) {
-  // Feedback (#218) hängt an keinem Trail. Ein Korb, in dem nur Wünsche
-  // warten, gibt das Netz UNVERÄNDERT zurück — dieselbe Liste, damit die
-  // Karte nichts neu zeichnet.
-  if (!jobs.any((j) => j is! FeedbackJob)) return server;
+  // Feedback (#218) und Startpunkte (#543) hängen an keinem Trail. Ein
+  // Korb, in dem nur solche warten, gibt das Netz UNVERÄNDERT zurück —
+  // dieselbe Liste, damit die Karte nichts neu zeichnet.
+  if (!jobs.any(isTrailJob)) return server;
   final detailsByTrail = <String, DetailsJob>{
     for (final j in jobs)
       if (j is DetailsJob) j.details.trailId: j,
@@ -238,3 +239,41 @@ List<Trail> withPendingJobs(List<Trail> server, List<OutboxJob> jobs,
   }
   return result..sort(compareTrailNames);
 }
+
+/// Die Startpunkte des Servers plus, was im Korb liegt oder gerade
+/// unterwegs ist (#543): Ein gemerkter Punkt steht sofort in Liste und
+/// Karte, gekennzeichnet als wartend; ein gelöschter ist sofort weg. Die
+/// Aufträge gelten der Reihe nach — der letzte für einen Punkt gewinnt.
+/// Ohne Startpunkt-Aufträge kommt [server] UNVERÄNDERT zurück.
+///
+/// Ein abgelehnter Auftrag (`failure`) zählt nicht: Der Server hat den
+/// Punkt so nicht, und die Entscheidung fällt im Korb.
+List<StartPoint> withPendingStartPoints(List<StartPoint> server, List<OutboxJob> jobs,
+    {required String myId, Set<String> sending = const {}}) {
+  final relevant = [
+    for (final j in jobs)
+      if ((j is StartPointJob || j is StartPointDeleteJob) && j.failure == null) j,
+  ];
+  if (relevant.isEmpty) return server;
+  final result = [...server];
+  for (final j in relevant) {
+    final clientId = switch (j) {
+      StartPointJob(:final point) => point.clientId,
+      StartPointDeleteJob(:final clientId) => clientId,
+      _ => null,
+    };
+    final at = result.indexWhere((p) => p.userId == myId && p.clientId == clientId);
+    if (j is StartPointJob) {
+      final point = j.point.copyWith(pending: true, sending: sending.contains(j.id));
+      if (at < 0) {
+        result.add(point);
+      } else {
+        result[at] = point;
+      }
+    } else if (at >= 0) {
+      result.removeAt(at);
+    }
+  }
+  return result;
+}
+
