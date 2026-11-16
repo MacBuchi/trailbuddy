@@ -2381,3 +2381,92 @@ Trails, die der Fahrer nicht sieht; eine Vorliebe als Filter; Zeit als
 freie Minuteneingabe; die Fahnen mit dem Finger ziehen (Marker nehmen
 keine Gesten an — wenn, dann als Griffe wie die Gummipunkte, eigener
 Schritt).
+
+### 12.10 Andere Runden auf der Zeit (#549)
+
+*Betreiber, 2026-11-14 (beim Fenster aus 12.5): „Was hältst du von einer
+Art Zeitskala mit einem größeren Plus-minus-Range, an denen die
+einzelnen Routenvorschläge als Punkte oder so dargestellt werden können?
+Es ist ja nicht so, dass es ein lineares Problem ist, sondern diskrete
+Punkte bzw. Lösungen nur existieren mit entsprechender Trailquote. Dazu
+noch die Information, wie weit diese Routenführung ans persönliche
+Höhenmeter-Limit zum Beispiel geht und was der höchste
+Schwierigkeitsgrad [ist] …" — zwei Entwürfe als Skizze (A Zeitleiste im
+Ergebnis, B Anteil über der Zeit), 2026-11-16: „Bin dacore" zur
+Empfehlung A + B und zu den Vorschlägen unten.*
+
+**Die Punkte gibt es schon.** Der Greedy (3, 12.5) baut die Runde Trail
+für Trail und merkt jeden Stand; `chooseState` nimmt einen davon, die
+übrigen fallen weg. Jeder Stand ist der vorige plus EIN Trail — ein
+Punkt lässt sich also mit einem Satz sagen („Kürzer: ohne Hohlweg",
+„Länger: zusätzlich Eichkopf"). Je Stand trägt der Punkt: geschätzte
+Zeit, Trail-Anteil (`_Route.share`, der Wert, nach dem gewählt wird),
+Höhenmeter am Limit, höchster S-Grad der Runde, Zahl der Trails, Länge.
+
+**A — Zeitleiste im Ergebnis** (immer, wenn eine Runde mit Trail
+gerechnet ist; dort, wo 12.5a die Zeit-Skala hat):
+
+- Die Skala der Kachel „Zeit" wird zur Leiste über die ganze Breite
+  unter den Kacheln; die Kachel behält nur die Zahl. Die Leiste reicht
+  von Zeit − 2 × Fenster (`floorTimeS`, bis dahin schaut `chooseState`
+  ohnehin) bis Zeit + 2 × Fenster; Fenster als helles Feld, die gewählte
+  Zeit als Strich — wie bisher.
+- Jeder Stand ist ein **Stiel**: Höhe = Trail-Anteil, Kopf = höchster
+  S-Grad als Form und Farbe (Design 7). Der Vorschlag trägt das Wort
+  „VORSCHLAG", der gezeigte einen Ring in der Marke.
+- **Tippen oder waagrecht Ziehen rastet auf den nächsten Stand** —
+  nicht einzelne Tippflächen: Zwei Stände liegen oft wenige Minuten
+  auseinander (A13, Handschuh). Karte, Kacheln und Profil folgen dem
+  Stand; die Zeile unter der Leiste sagt Zeit · Anteil · höchster Grad
+  und den Satz „Kürzer: ohne …" / „Länger: zusätzlich …".
+- Der Platz: Das eingeklappte Blatt wird etwa 90 dp höher. Profil und
+  „Fahrt starten" müssen auf dem Pixel XL eingeklappt zu sehen bleiben
+  (`lib/features/routing/CLAUDE.md`, „Reihenfolge im Blatt") — vor dem
+  Bau messen; wenn es nicht passt, rückt das Profil unter die Knöpfe,
+  nicht die Leiste.
+
+**B — Anteil über der Zeit** (ein Tipp auf die Leiste oder das Blatt
+ganz hochgezogen; dieselben Stände, keine zweite Rechnung):
+
+- x = Zeit, y = Trail-Anteil; die Stände als Kette verbunden — man sieht,
+  dass jeder Punkt die Runde davor plus einen Trail ist.
+- **Ring um jeden Punkt = Höhenmeter am Limit** (der Ring aus 12.5a hat
+  hier seinen Platz; in der Kachel bleibt die Skala). Form und Farbe im
+  Ring = höchster Grad.
+- **Gipfel stechen heraus**: ein Stand mit mehr Anteil als seine beiden
+  Nachbarn voll, die übrigen blass — dort lohnt die Runde.
+- Darunter eine Karte zum gezeigten Stand (der hinzugekommene Trail mit
+  Schild, Zeit, Anteil, Höhenmeter mit Skala, höchster Grad) und „Diese
+  Runde nehmen" / „Zurück zum Vorschlag".
+- **„Auch über dem Limit"** (Schalter, aus): ein zweiter Greedy ohne
+  Höhenmeter-Grenze zeigt die Stände, die nur mit mehr Höhenmetern
+  gingen — hohl, gestrichelt in der Warnfarbe, „+80 hm über dem Limit".
+  Die Höhenmeter bleiben eine Grenze (12.5): Ein solcher Stand ist
+  nicht „Fahrt starten", sein Tipp führt zu „Limit anheben" (12.5a).
+
+**Rechnen:**
+
+- **Der Greedy läuft bis Zeit + 2 × Fenster** statt + Fenster, damit die
+  Leiste rechts Punkte hat; `chooseState` wählt unverändert im Fenster.
+  Die Dijkstras rechnen dann gegen die größere Zeit — vor dem Bau messen
+  (`tool/loop_suggest_measure.dart`, die Zeilen aus „#516").
+- **Die Stände sind roh, verfeinert wird beim Antippen**: Die lokale
+  Suche läuft wie heute nur am Vorschlag. Ein getippter Stand wird mit
+  seiner Zeit als `timeCap` nachgerechnet; bis dahin zeigt die Karte
+  die rohe Runde, danach wandert der Punkt (Anteil und Zeit können sich
+  ändern) — die Bewegung zeigt es, kein Spinner über der Leiste.
+- Die Stände reisen mit dem `LoopPlan` aus dem Isolate (sendbar, ohne
+  Linien — die Linie eines rohen Stands rechnet erst der Tipp).
+- **Nur an einer Runde mit Trail**, wie Skalen und „ca." (12.5): Eine
+  Route zu einem Ziel und Pflicht-Trails allein haben keine Leiste. Mit
+  Pflicht-Trails und Zwischenpunkten zählen die Stände wie heute ab dem
+  Stand, der sie schon enthält.
+
+**Umsetzung** (je ein PR, nach dem Designer — `docs/design/README.md`
+zieht nach):
+
+1. Stände im `LoopPlan`, Greedy bis Zeit + 2 × Fenster, Messung —
+   ☁️ bauen · 💻 messen.
+2. A: Leiste im Ergebnis, Einrasten, Nachrechnen beim Tipp — ☁️ · 📱.
+3. B: die Ansicht mit Ring und Gipfeln — ☁️ · 📱.
+4. „Auch über dem Limit" — ☁️ · 📱.
