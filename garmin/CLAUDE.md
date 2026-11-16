@@ -512,5 +512,14 @@ Abbiegehinweise.
   Simulator wirklich zeichnet, vergleichen weiterhin `garmin/shots`.
   Gefunden beim Bau: der Trailname maß gegen den Kreis der Anzeige statt
   der Karte (jetzt `MAP_R` auf Höhe der Grundlinie), die Frage war in
-  `small` 250 px breit (jetzt `xtiny`) — beide behoben; was auf 240 px
-  noch nicht passt, steht in #555 und im Bericht.
+  `small` 250 px breit (jetzt `xtiny`) — beide behoben. Die übrigen fünf
+  Befunde auf 240 px entschied der Betreiber am 2026-11-16 (#555) an
+  Variantenbildern aus einer Kopie des Abbilds (Werte und Schalter
+  überschrieben, Buchstaben aus `img.arial*` in die gemessenen Zellen
+  skaliert — lesbar genug zum Entscheiden): Infofläche ab 160, ab 10 km
+  ohne Nachkomma, freie Fahrt mit der Zeit in Zeile 1, „angekommen" ohne
+  „N Trails" mit zweizeiligen Bestwerten, vor START unten nur ein grauer
+  Punkt, kein „Speicher voll" auf „Fahrt", Frist-Balken 128. Seitdem sind
+  die Berichte aller fünf Größen leer. Gelernt: Am unteren Rand zählt
+  jeder Pixel Höhe doppelt — bei y 207 sind innerhalb `MAP_R` noch
+  ~130 px frei, bei y 217 nur ~70.

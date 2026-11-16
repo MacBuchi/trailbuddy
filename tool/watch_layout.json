@@ -37,7 +37,7 @@
    "note": "die eigene Position"
   },
   "field_y": {
-   "v": 168,
+   "v": 160,
    "note": "Oberkante der Infofläche"
   },
   "col_x": {
@@ -93,7 +93,7 @@
    "note": "Frist-Balken unter der Frage"
   },
   "ask_bar_w": {
-   "v": 160,
+   "v": 128,
    "note": "Frist-Balken volle Breite"
   },
   "ask_yes_big_x": {
@@ -121,7 +121,7 @@
    "note": "erste Zeile der Infofläche unter field_y"
   },
   "field_line2_dy": {
-   "v": 28,
+   "v": 24,
    "note": "zweite Zeile (Zahlen) unter field_y"
   },
   "version_y": {
@@ -152,17 +152,13 @@
    "v": 40,
    "note": "bergauf rechts der Mitte"
   },
-  "arrived_trails_y": {
-   "v": 148,
-   "note": "Anzahl Trails"
-  },
   "arrived_shields_y": {
-   "v": 186,
+   "v": 150,
    "note": "Schilder der Trails"
   },
   "arrived_bests_y": {
-   "v": 202,
-   "note": "Bestwerte"
+   "v": 164,
+   "note": "Bestwerte, zweizeilig"
   },
   "cell_row1_y": {
    "v": 104,
@@ -235,7 +231,6 @@
   "arrived_title": "tiny",
   "arrived_km": "large",
   "arrived_time": "small",
-  "arrived_trails": "xtiny",
   "arrived_bests": "xtiny",
   "page_note": "xtiny",
   "big_unit": "xtiny",

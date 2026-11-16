@@ -102,8 +102,8 @@ void main() {
     final d = WatchDevice.load('fenix5');
     final a = WatchTwin(d, 'deu')..draw(kTwinScenes.firstWhere((s) => s.name == 'anfahrt'));
     final y = a.boxes.firstWhere((b) => b.id == 'field_name').y0;
-    expect(y, 168 + 2 + 26 - 21 + 1, reason: 'field_y + field_line1_dy + Höhe − Ascent + 1');
-    expect(WatchLayout.forSize(260).v('field_y'), (168 * 260 / 240).round());
+    expect(y, 160 + 2 + 26 - 21 + 1, reason: 'field_y + field_line1_dy + Höhe − Ascent + 1');
+    expect(WatchLayout.forSize(260).v('field_y'), (160 * 260 / 240).round());
     expect(WatchLayout.forSize(260).v('ring_w'), 8, reason: 'fixed');
   });
 

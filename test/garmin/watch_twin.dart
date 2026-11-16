@@ -392,7 +392,8 @@ class WatchTwin {
     return '${m ~/ 60}:${(m % 60).toString().padLeft(2, '0')}';
   }
 
-  String meters(double m) => m < 1000 ? '${(m + 0.5).floor()} m' : '${km(m)} km';
+  String meters(double m) =>
+      m < 1000 ? '${(m + 0.5).floor()} m' : (m < 10000 ? '${km(m)} km' : '${(m / 1000 + 0.5).floor()} km');
 
   // --- Text ------------------------------------------------------------------
 
@@ -540,12 +541,14 @@ class WatchTwin {
     _overlay = true;
     final cx = w ~/ 2;
     final top = y == l.v('status_top_y');
+    final idle = sc.rec == TwinRec.idle;
     String? t;
     var bg = col('FIELD');
     var fg = col('ROUTE');
     switch (sc.rec) {
       case TwinRec.idle:
-        t = s['RecIdle'];
+        // Auf den Zahlenseiten nur ein grauer Punkt (#555).
+        if (top) t = s['RecIdle'];
       case TwinRec.paused:
         t = s['RecPaused'];
         bg = col('WARNING');
@@ -559,7 +562,7 @@ class WatchTwin {
     }
     if (t == null) {
       canvas.circle(cx, y, 6, col('GROUND'));
-      canvas.circle(cx, y, 4, col('S2'));
+      canvas.circle(cx, y, 4, idle ? col('MUTED_DARK') : col('S2'));
     } else {
       pill('status', cx, y, t, 'status', bg, fg);
     }
@@ -782,9 +785,10 @@ class WatchTwin {
         if (waiting) {
           text('field_note', cx, l1, 'field_note', s['WaitGps']!, col('MUTED'));
         } else {
-          text('field_note', cx, l1, 'field_note', s[sc.storageFull ? 'StorageFull' : 'FreeRide']!, col('MUTED'));
-          final mins = (TwinValues.movingS / 60).round();
-          numberLine(cx, l2, '${km(TwinValues.distanceM)} km · $mins min', TwinValues.climbM);
+          final note = s[sc.storageFull ? 'StorageFull' : 'FreeRide']!;
+          text('field_note', cx, l1, 'field_note', sc.storageFull ? note : '$note · ${clock(TwinValues.movingS)} h',
+              col('MUTED'));
+          numberLine(cx, l2, meters(TwinValues.distanceM), TwinValues.climbM);
         }
         mapBorder();
         _clip = screen;
@@ -803,9 +807,6 @@ class WatchTwin {
             label(0, l.v('cell_row2_y'), s['Climbed']!);
             climbText('climb_value', colX(0), l.v('climb_row2_y'), TwinValues.climbM, col('TEXT_ON_FIELD'));
             cell(1, l.v('cell_row2_y'), s['Pulse']!, TwinValues.pulse, col('MUTED'));
-            if (sc.storageFull) {
-              text('page_note', cx, l.v('page_note_y'), 'page_note', s['StorageFull']!, col('WARNING'));
-            }
           case TwinPhase.mountain:
             big(s['Grade']!, TwinValues.gradePct);
             cell(0, l.v('cell_row1_y'), s['Altitude']!, TwinValues.altitude, col('TEXT_ON_FIELD'));
@@ -828,15 +829,13 @@ class WatchTwin {
             text('arrived_time', cx - l.v('arrived_time_dx'), row, 'arrived_time', '${clock(TwinValues.movingS)} h',
                 col('TEXT_ON_FIELD'));
             climbText('arrived_climb', cx + l.v('arrived_climb_dx'), row, TwinValues.climbM, col('TEXT_ON_FIELD'));
-            text('arrived_trails', cx, l.v('arrived_trails_y'), 'arrived_trails', '${sc.trails} ${s['Trails']}',
-                col('MUTED'));
             var x = cx - (sc.trails - 1) * 10;
             for (var k = 0; k < sc.trails; k++) {
               shield(x, l.v('arrived_shields_y'), k % 4, 5, onMap: false);
               x += 20;
             }
             text('arrived_bests', cx, l.v('arrived_bests_y'), 'arrived_bests',
-                '${s['AirShort']} ${seconds(TwinValues.airMs)} · ${s['WheelieShort']} ${TwinValues.wheelieM} m',
+                '${s['AirShort']} ${seconds(TwinValues.airMs)}\n${s['WheelieShort']} ${TwinValues.wheelieM} m',
                 col('MUTED'));
         }
         ring(0.38, arrived: sc.phase == TwinPhase.arrived);
