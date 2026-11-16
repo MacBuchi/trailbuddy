@@ -4,7 +4,7 @@
 
 ## Die Uhr zeigt Zeichen statt Wörter
 
-*Version 0.178.0, 2026-11-16 (Uhr-App 1.7.0)*
+*Versionen 0.178.0–0.178.1, 2026-11-16 (Uhr-App 1.7.0)*
 
 - **Zahlenseiten:** Vor jedem Wert steht ein kleines Zeichen statt des
   Worts — Stoppuhr für die Fahrzeit, Maß für die Strecke, Herz für den
@@ -19,6 +19,9 @@
   bleiben Wörter, ebenso die Fragen.
 - **Angekommen:** Stoppuhr statt „h", Flug und Wheelie in einer Zeile.
 - Die App selbst bleibt unverändert.
+- **Geprüft (0.178.1):** Die Zeile über der Fahrt („Halterung lernt“,
+  „Sprünge an“, „Tasche: nur Sprünge“) ist jetzt Teil der Prüfung, die
+  den Ablauf mit Handy und Uhr nachstellt. Für dich ändert sich nichts.
 
 ## Auf der Uhr passt alles in den Kreis
 
