@@ -620,6 +620,25 @@ Map<String, HighlightDemo> highlightDemos(AppLocalizations l) => {
       ),
     ]),
   ),
+  'loop-compare': HighlightDemo(
+    route: '/',
+    script: _demo('loop-compare', [
+      CoachStep(
+        title: l.demoLoopStrip1Title,
+        text: l.demoLoopStrip1Text,
+        lit: [MapCoach.loop],
+        gesture: CoachGesture.tap,
+        requires: [MapCoach.loop],
+      ),
+      CoachStep(
+        title: l.demoLoopCompare2Title,
+        text: l.demoLoopCompare2Text,
+        scene: MapCoach.loopEntry,
+        lit: const [MapCoach.loopEntry],
+        requires: const [MapCoach.loop],
+      ),
+    ]),
+  ),
   'loop-suggest': HighlightDemo(
     route: '/',
     script: _demo('loop-suggest', [

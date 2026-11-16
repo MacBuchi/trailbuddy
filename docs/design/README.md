@@ -669,8 +669,29 @@ Schwierigkeit (E9) —, eine unbestätigte Meldung gedämpft mit „?"
   84 dp, und das Höhenprofil steht mit Leiste UNTER den Knöpfen — sonst
   lag „Fahrt starten" auf dem Pixel XL eingeklappt 124 px unter dem
   Rand (12.10: „rückt das Profil unter die Knöpfe, nicht die Leiste").
-  B (Anteil über der Zeit mit Ring = Höhenmeter am Limit) und „Auch über
-  dem Limit" folgen.
+  **Seit 0.180.0 B, „Runden im Vergleich"** (`loop_compare_view.dart`):
+  geöffnet über „Vergleichen" (`open_in_full` 14 dp + Text in
+  `accentText`) rechts im Kopf der Leiste — ein Tipp auf die Leiste
+  rastet ja schon ein. Ein Blatt über dem Ergebnis (92 % hoch): Kopf
+  „RUNDEN IM VERGLEICH" (Condensed, `accentText`), darunter „Etwa 3 h ·
+  Limit 800 hm", rechts Schließen. Die Grafik (180 dp statt 220 der
+  Skizze — auf 360 dp Breite stand die Karte sonst unter dem Rand) in
+  einer Karte wie die Leiste: y = echter Trail-Anteil in 5- oder
+  10-%-Schritten mit Gitter in `line`, Fenster und Zeit wie in der
+  Leiste, die Kette als 1,5-dp-Linie in `muted`. Je Punkt ein Ring
+  (30 dp, Spur `line`, gefüllt in `brandMark` bis zum Anteil am Limit,
+  darüber `warningText`) mit `GradeShape` (10 dp) in der Stufenfarbe;
+  Gipfel und gezeigter Punkt voll, die übrigen 50 %, der gezeigte mit
+  2-dp-Rahmen in `text`, „VORSCHLAG" darüber. „Auch über dem Limit" ist
+  ein `FilterChip`; seine Punkte haben einen gestrichelten Ring und einen
+  gestrichelten Kern in `warningText`, ihre Kette ist gestrichelt.
+  Darunter die Karte des gezeigten Punkts („+ Trail" mit Schild, rechts
+  „lohnt sich: Anteil steigt" / „Anteil fällt – Verbindung lang" /
+  „… hm über dem Limit" in `warningText`; Zeit, Trail, Bergauf mit
+  `LoopBudgetScale`, Bis mit Schild) und unten „Diese Runde nehmen" bzw.
+  „Limit auf … hm anheben", darunter „Zurück zum Vorschlag". Abweichung:
+  Beim Vorschlag heißt der Knopf auch „Diese Runde nehmen", nicht „Fahrt
+  starten" — gestartet wird im Ergebnis mit seinen Chips (#517).
 - **Kurzanleitung** (#131, seit 0.59.0, `help_screen.dart`): kein
   Entwurf im Turn; gebaut im Stil der Profil-Unterseiten. Oben die
   Kachel des Sicherheitshinweises (Warnton 10 % auf der Fläche, Rand

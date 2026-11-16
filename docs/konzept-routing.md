@@ -2482,5 +2482,24 @@ zieht nach):
    **Gebaut in 0.179.0** (`loop_state_strip.dart`); das Profil steht mit
    Leiste unter den Knöpfen, das eingeklappte Blatt geht bis 0,65 statt
    0,6 auf (Pixel XL). 📱 offen.
-3. B: die Ansicht mit Ring und Gipfeln — ☁️ · 📱.
-4. „Auch über dem Limit" — ☁️ · 📱.
+3. B: die Ansicht mit Ring und Gipfeln — ☁️ · 📱. **Gebaut in 0.180.0
+   zusammen mit 4** (`loop_compare_view.dart`). Beim Bau entschieden:
+   - **Geöffnet über „Vergleichen" im Kopf der Leiste**, nicht über einen
+     Tipp auf die Leiste (der rastet ein, 2) und nicht über das ganz
+     hochgezogene Blatt (dort stehen Knöpfe und Profil).
+   - **y ist der echte Trail-Anteil** (`trailShare`, beschriftet in %),
+     nicht der mit der Vorliebe gewichtete, nach dem gewählt wird — eine
+     Achse in Prozent muss die Zahl der Karte zeigen. Gipfel ebenso.
+   - **„Diese Runde nehmen" schließt die Ansicht**; gestartet wird im
+     Ergebnis mit seinen Chips (#517), auch beim Vorschlag.
+4. „Auch über dem Limit" — ☁️ · 📱. **Gebaut in 0.180.0**: Der Schalter
+   schickt beim ersten Einschalten EINE Rechnung
+   (`LoopRequest.withOverLimit`, `_Planner.runOverLimit`): derselbe
+   Greedy in zwei Phasen, Zwischenpunkte und Pflicht-Trails wie in
+   `run`, nur ohne Höhenmeter in `fits`; zurück kommen die Stände über
+   dem Limit (`LoopPlan.over`), ohne lokale Suche und ohne Linie. Die
+   Suchen liegen schon im Speicher des Isolates, die Rechnung ist der
+   Greedy allein. Ein Tipp auf einen solchen Punkt rechnet nichts nach;
+   sein Knopf „Limit auf … hm anheben" setzt das Limit des Rads auf
+   seine Höhenmeter, aufgerundet auf 100 — beim Vorschlag so, dass das
+   mit der Zeit skalierte Limit (12.4) reicht — und rechnet neu.

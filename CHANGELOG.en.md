@@ -2,6 +2,24 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## Loops compared
+
+*Version 0.180.0, 2026-11-16*
+
+- **"Compare" on the "other loops" strip:** a view of its own shows all
+  loops as a chain — time to the right, trail share upwards. Every loop
+  is the one before plus one trail; where the chain has a peak, the loop
+  is worth it, the other points are faded.
+- **The ring around each point** shows how much of your climb limit the
+  loop needs; shape and colour inside are its hardest grade. A tap shows
+  the loop on the map, the card below names the trail that was added,
+  time, share, climb and grade. "Take this loop" or "Back to the
+  suggestion".
+- **"Also above the limit":** the switch works out once which loops
+  more climbing would allow — hollow and dashed in the warning colour,
+  with "… m above the limit". Such a loop isn't ridden; its button
+  raises your bike's limit and plans again.
+
 ## Other loops at a glance
 
 *Version 0.179.0, 2026-11-16*

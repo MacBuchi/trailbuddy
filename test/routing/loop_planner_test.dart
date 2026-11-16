@@ -463,6 +463,35 @@ void main() {
       expect(route.states, isEmpty);
       expect(route.self, isNull);
     });
+
+    test('„Auch über dem Limit": ein Greedy ohne Höhenmeter-Grenze, nur die Stände darüber', () {
+      // F hat 500 hm, das Limit 300: Im Plan steht nur N, über dem Limit
+      // die Runde mit F — gleiche Zeit, gleicher Pool.
+      final steep = PoolTrail(
+          id: 'F', name: 'F', points: far.points, lengthM: 1000, grade: 3, gainM: 500);
+      LoopPlan run({bool overLimit = false}) => planLoop(g,
+          start: start,
+          profile: _bio,
+          budget: LoopBudget(timeS: t2, climbM: 300, hikingM: 2000),
+          pool: [near, steep],
+          overLimit: overLimit,
+          searchBudget: const Duration(milliseconds: 50));
+      final plan = run();
+      expect(plan.stops.map((s) => s.trail.id), ['N']);
+      expect(plan.states.map((s) => s.order), [
+        ['N'],
+      ], reason: 'F passt in keinen Stand der Leiste');
+      expect(plan.over, isEmpty, reason: 'nur auf Nachfrage');
+      final over = run(overLimit: true);
+      expect(over.outcome, LoopOutcome.ok);
+      expect(over.over.map((s) => s.order), [
+        ['N', 'F'],
+      ], reason: 'N allein liegt unter dem Limit und steht schon auf der Leiste');
+      expect(over.over.single.climbM, greaterThan(300));
+      expect((over.over.single.addedId, over.over.single.grade), ('F', 3));
+      expect(over.points, isEmpty, reason: 'keine Linie — ein solcher Stand wird nicht gefahren');
+      expect(over.states, isEmpty);
+    });
   });
 
   test('Höhenbudget und Wanderweg-Budget greifen', () {

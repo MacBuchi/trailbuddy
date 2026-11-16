@@ -10467,5 +10467,154 @@
   "demoLoopStrip2Text": "Im Ergebnis zeigt die Leiste unter den Zahlen die kürzeren und längeren Runden. Ein Tipp rastet auf die nächste ein; „Kürzer: ohne …“ und „Länger: zusätzlich …“ sagen, was sich ändert.",
   "@demoLoopStrip2Text": {
     "description": "Vorführung „loop-strip“, Schritt 2: Text."
+  },
+  "loopCompareOpen": "Vergleichen",
+  "@loopCompareOpen": {
+    "description": "Knopf in der Leiste „andere Runden“ (#549): öffnet die Ansicht „Runden im Vergleich“ (Anteil über der Zeit)."
+  },
+  "loopCompareTitle": "RUNDEN IM VERGLEICH",
+  "@loopCompareTitle": {
+    "description": "Kopf der Ansicht „Runden im Vergleich“ (#549, Konzept-Routing 12.10 B), in Großbuchstaben."
+  },
+  "loopCompareTarget": "Etwa {time} · Limit {climb} hm",
+  "@loopCompareTarget": {
+    "description": "Unterzeile im Kopf von „Runden im Vergleich“: Zielzeit (fertig formatiert) und Höhenmeter-Limit der Planung.",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      },
+      "climb": {
+        "type": "int"
+      }
+    }
+  },
+  "loopCompareAxis": "TRAIL-ANTEIL",
+  "@loopCompareAxis": {
+    "description": "Achse der Grafik „Runden im Vergleich“: nach oben der Trail-Anteil."
+  },
+  "loopCompareWindow": "Feld = Ziel ± {window} min",
+  "@loopCompareWindow": {
+    "description": "Rechts über der Grafik: das helle Feld ist das Fenster um die Zielzeit.",
+    "placeholders": {
+      "window": {
+        "type": "int"
+      }
+    }
+  },
+  "loopCompareLegendRing": "Ring = Höhenmeter vom Limit",
+  "@loopCompareLegendRing": {
+    "description": "Legende der Grafik: der Ring um jeden Punkt zeigt, wie viel vom Höhenmeter-Limit die Runde braucht."
+  },
+  "loopCompareLegendShape": "Form, Farbe = höchster Grad",
+  "@loopCompareLegendShape": {
+    "description": "Legende der Grafik: Form und Farbe im Ring sind der höchste S-Grad der Runde."
+  },
+  "loopCompareOver": "Auch über dem Limit",
+  "@loopCompareOver": {
+    "description": "Schalter in „Runden im Vergleich“: zeigt auch Runden, die nur mit mehr Höhenmetern als dem Limit gingen."
+  },
+  "loopCompareOverNone": "Keine Runde mehr über dem Limit",
+  "@loopCompareOverNone": {
+    "description": "Unter dem Schalter „Auch über dem Limit“, wenn es keine solche Runde gibt."
+  },
+  "loopCompareAdded": "+ {name}",
+  "@loopCompareAdded": {
+    "description": "Kopf der Karte zum gezeigten Punkt: der Trail, der zur Runde davor dazukam.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "loopCompareOverBy": "{climb} hm über dem Limit",
+  "@loopCompareOverBy": {
+    "description": "Karte zu einem Punkt über dem Limit: um wie viele Höhenmeter.",
+    "placeholders": {
+      "climb": {
+        "type": "int"
+      }
+    }
+  },
+  "loopComparePeak": "lohnt sich: Anteil steigt",
+  "@loopComparePeak": {
+    "description": "Karte zu einem Gipfel der Grafik: mehr Trail-Anteil als die Runden davor und danach."
+  },
+  "loopCompareDip": "Anteil fällt – Verbindung lang",
+  "@loopCompareDip": {
+    "description": "Karte zu einem Punkt, der kein Gipfel ist: der neue Trail braucht eine lange Verbindung."
+  },
+  "loopCompareGrade": "Bis",
+  "@loopCompareGrade": {
+    "description": "Feld der Karte: der höchste S-Grad der Runde („bis S2“)."
+  },
+  "loopCompareTake": "Diese Runde nehmen",
+  "@loopCompareTake": {
+    "description": "Knopf: die gezeigte Runde ins Ergebnis übernehmen und den Vergleich schließen."
+  },
+  "loopCompareBack": "Zurück zum Vorschlag",
+  "@loopCompareBack": {
+    "description": "Knopf: zurück auf die Runde, die der Planer vorgeschlagen hat."
+  },
+  "loopCompareRaise": "Limit auf {climb} hm anheben",
+  "@loopCompareRaise": {
+    "description": "Knopf an einer Runde über dem Limit: das Höhenmeter-Limit des Rads anheben und neu rechnen.",
+    "placeholders": {
+      "climb": {
+        "type": "int"
+      }
+    }
+  },
+  "loopCompareClose": "Vergleich schließen",
+  "@loopCompareClose": {
+    "description": "Bildschirmleser/Tooltip: der Knopf, der „Runden im Vergleich“ schließt."
+  },
+  "loopComparePointSemantics": "{time}, {share} Prozent Trail, {climb} von {limit} Höhenmetern",
+  "@loopComparePointSemantics": {
+    "description": "Bildschirmleser: ein Punkt der Grafik „Runden im Vergleich“; time ist fertig formatiert.",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      },
+      "share": {
+        "type": "int"
+      },
+      "climb": {
+        "type": "int"
+      },
+      "limit": {
+        "type": "int"
+      }
+    }
+  },
+  "loopCompareSemantics": "Runden im Vergleich, {index} von {count}: {state}",
+  "@loopCompareSemantics": {
+    "description": "Bildschirmleser: die Grafik als Regler, mit dem gezeigten Punkt.",
+    "placeholders": {
+      "index": {
+        "type": "int"
+      },
+      "count": {
+        "type": "int"
+      },
+      "state": {
+        "type": "String"
+      }
+    }
+  },
+  "highlightLoopCompareTitle": "Runden im Vergleich",
+  "@highlightLoopCompareTitle": {
+    "description": "Neuheit #549 B: die Ansicht „Runden im Vergleich“ (Anteil über der Zeit) aus der Leiste „andere Runden“."
+  },
+  "highlightLoopCompareText": "„Vergleichen“ an der Leiste „andere Runden“ zeigt alle Runden als Kette: nach rechts die Zeit, nach oben der Trail-Anteil, der Ring sagt, wie viel vom Höhenmeter-Limit sie braucht. „Auch über dem Limit“ zeigt, was mit mehr Höhenmetern ginge, und hebt das Limit auf Wunsch an.",
+  "@highlightLoopCompareText": {
+    "description": "Neuheit #549 B: Text."
+  },
+  "demoLoopCompare2Title": "Runden im Vergleich",
+  "@demoLoopCompare2Title": {
+    "description": "Vorführung „loop-compare“, Schritt 2: Titel."
+  },
+  "demoLoopCompare2Text": "Im Ergebnis öffnet „Vergleichen“ an der Leiste die Kette: Gipfel lohnen sich, ein Tipp zeigt die Runde. Mit „Auch über dem Limit“ kommen die Runden dazu, die mehr Höhenmeter bräuchten — ihr Knopf hebt das Limit an.",
+  "@demoLoopCompare2Text": {
+    "description": "Vorführung „loop-compare“, Schritt 2: Text."
   }
 }

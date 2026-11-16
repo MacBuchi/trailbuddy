@@ -1160,6 +1160,30 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     passiert). Gegenproben 2026-11-16: ohne zweite Phase, ohne
     `runState`, ohne Nachrechnen im Controller, ohne Abkürzung zum
     Vorschlag, ohne `refinedBy` — je rot.
+- **„Runden im Vergleich" und „Auch über dem Limit"** (#549 B, seit
+  0.180.0; Konzept-Routing 12.10 Schritte 3–4; `loop_compare_view.dart`).
+  Vier Dinge, die man wissen muss:
+  - **Keine eigene Auswahl für die Leiste**: Ein Tipp auf einen normalen
+    Punkt ist `showState` wie auf der Leiste; nur ein Punkt über dem
+    Limit ist eine Auswahl der Ansicht (`_over`) und rechnet nichts.
+  - **Über dem Limit rechnet der Runner einmal je Planung**
+    (`setOverLimit`, `LoopRequest.withOverLimit` → `runOverLimit`, der
+    `seed` und `growStates` mit `run` teilt; `ignoreClimb` in `fits`).
+    `LoopSession.over` ist null, bis der Schalter einmal an war; jede
+    neue Planung räumt `over`/`overOn` über `clearPlan` am Anfang von
+    `compute` weg — ein zweites Zurücksetzen am Ergebnis war tot
+    (Gegenprobe grün) und ist wieder raus.
+  - **`limitFor`** rundet auf 100 hm auf und rechnet beim Vorschlag
+    über das mit der Zeit skalierte Limit (`suggestBudget`) zurück aufs
+    Limit des Rads; `raiseLimitFor` merkt es (`setPrefs`) und ruft
+    `compute` mit demselben Umkreis.
+  - **Tests**: `loop_planner_test` („Auch über dem Limit" …),
+    `loop_planner_flow_test` („Runden im Vergleich" (#549 B) …, mit
+    `_StripRunner`, der auf `overLimit` einen Stand mit 200 hm zu viel
+    gibt). Die Karte liegt auf 360 dp nur mit der 180-dp-Grafik im Bild
+    — darunter ist sie für Finder „offstage" (beim Bau so gefunden).
+    Gegenproben 2026-11-16: ohne `ignoreClimb`, ohne Zwischenspeicher
+    der Stände über dem Limit, ohne `setPrefs` beim Anheben — je rot.
 - **Ergebnis und Start in einem, ein Ende** (#517, seit 0.171.0;
   Konzept-Routing 9.4, Konzept-Geräte 5.2). Fünf Dinge, die man wissen
   muss:
