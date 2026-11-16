@@ -645,6 +645,11 @@ Schwierigkeit (E9) —, eine unbestätigte Meldung gedämpft mit „?"
   `warningText`, und der Strich steht mitten in ihr: Form UND Farbe.
   Das Limit steht als „von 800" rechts in der Beschriftungszeile, die
   Zeit als „ca. 3 h 10 min". Eine Route zu einem Ziel hat keine Skala.
+  **Geplant (#549, Konzept-Routing 12.10):** Die Zeit-Skala wird zur
+  Leiste „andere Runden" über die ganze Breite (Stiel je Stand: Höhe =
+  Trail-Anteil, Kopf = höchster Grad als Form), ausklappbar zum
+  Diagramm Anteil über der Zeit mit Ring = Höhenmeter am Limit. Erst im
+  Designer, dann zieht dieser Absatz nach.
 - **Kurzanleitung** (#131, seit 0.59.0, `help_screen.dart`): kein
   Entwurf im Turn; gebaut im Stil der Profil-Unterseiten. Oben die
   Kachel des Sicherheitshinweises (Warnton 10 % auf der Fläche, Rand
