@@ -1,0 +1,18 @@
+{
+  "v": 3,
+  "createdOnFiles": {"v": 1, "at": "2026-11-16T10:00:00Z"},
+  "title": "Planer-Zeitskala #549",
+  "launch": {"view": "canvas"},
+  "pages": [],
+  "boards": {
+    "Main.dc.html": {"x": 0, "y": 0, "w": 390, "h": 844, "title": "A · Zeitleiste im Ergebnis", "is_interactive": true, "radius": 28},
+    "VariantB.dc.html": {"x": 470, "y": 0, "w": 390, "h": 844, "title": "B · Anteil über der Zeit", "is_interactive": true, "radius": 28}
+  },
+  "order": ["Main.dc.html", "VariantB.dc.html"],
+  "notes": {
+    "head": {"x": 0, "y": -300, "text": "#549 · Runden als Punkte auf der Zeit", "kind": "title1", "maxW": 860},
+    "noteA": {"x": 0, "y": 924, "w": 390, "fill": "green", "size": "s", "text": "A — Die Zeit-Skala der Kachel wird zur Leiste über die ganze Breite (±1 h = bis zur Untergrenze von chooseState). Jeder Stand des Greedy ein Stiel: Höhe = Trail-Anteil, Kopf = höchster S-Grad als Form + Farbe. Tipp/Ziehen rastet auf den nächsten Punkt, Karte und Kacheln folgen sofort. Passt ins eingeklappte Blatt."},
+    "noteB": {"x": 470, "y": 924, "w": 390, "fill": "blue", "size": "s", "text": "B — Eigene Ansicht (Blatt hochgezogen oder „Alternativen“): x = Zeit, y = Trail-Anteil. Ring um jeden Punkt = Anteil am Höhenmeter-Limit. Die Kette zeigt, dass jeder Punkt eine Runde mehr Trail ist; die Gipfel stechen heraus. Schalter zeigt Runden über dem Limit (hohl)."}
+  },
+  "designSystems": []
+}

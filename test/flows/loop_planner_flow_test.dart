@@ -31,7 +31,7 @@ import 'package:trailbuddy/features/routing/loop_plan_runner.dart';
 import 'package:trailbuddy/features/routing/route_profile.dart' show RiderProfile;
 import 'package:trailbuddy/features/routing/loop_planner_controller.dart';
 import 'package:trailbuddy/features/routing/loop_edit_bars.dart' show kLoopNoteDuration;
-import 'package:trailbuddy/features/routing/loop_planner.dart' show LoopEndMode, LoopPlan, LoopPrefs, LoopSearchCache, kLoopSecondPassShare, kLoopTimeWindowS;
+import 'package:trailbuddy/features/routing/loop_planner.dart' show LoopEndMode, LoopOutcome, LoopPlan, LoopState, LoopPrefs, LoopSearchCache, kLoopSecondPassShare, kLoopTimeWindowS;
 import 'package:trailbuddy/features/routing/online_fill.dart';
 import 'package:trailbuddy/features/rides/road_index.dart' show RoadCoverage;
 import 'package:trailbuddy/features/rides/ride_track.dart';
@@ -53,6 +53,7 @@ import '../fakes/fake_pois.dart';
 import '../fakes/route_lines.dart';
 import 'package:trailbuddy/features/map/map_view/map_hit_test.dart' show projectToScreen;
 import 'package:trailbuddy/features/routing/loop_planner_sheet.dart' show LoopBudgetScale, LoopStartFlag, kLoopPickWidth;
+import 'package:trailbuddy/features/routing/loop_state_strip.dart';
 import 'package:trailbuddy/features/map/map_screen.dart' show kSelectionGlowWidth;
 import '../fakes/fake_rides.dart';
 import '../fakes/fake_tiles.dart';
@@ -154,6 +155,57 @@ class _SpyRunner implements LoopPlanRunner {
 
   @override
   void dispose() => _inline.dispose();
+}
+
+/// Ein Runner, der der ersten Rechnung drei Stände für die Leiste „andere
+/// Runden" mitgibt (#549) — die Fixtur hat nur einen Trail, also gäbe es
+/// sonst einen Stiel. Ein Stand nachgerechnet kommt eine Viertelstunde vor
+/// seiner rohen Zeit an: Der Punkt rückt.
+class _StripRunner extends _SpyRunner {
+  late List<LoopState> states;
+
+  static LoopPlan copy(LoopPlan p, {List<LoopState>? states, int? pick, LoopState? self}) => LoopPlan(p.outcome,
+      sections: p.sections,
+      summary: p.summary,
+      stops: p.stops,
+      excluded: p.excluded,
+      points: p.points,
+      order: p.order,
+      snaps: p.snaps,
+      shortForShare: p.shortForShare,
+      states: states ?? p.states,
+      pick: pick ?? p.pick,
+      self: self ?? p.self);
+
+  static LoopState state(double timeS, double share, int grade, String added, List<String> order) => LoopState(
+      timeS: timeS,
+      share: share,
+      trailShare: share,
+      climbM: 500,
+      lengthM: 20000,
+      trails: 1,
+      grade: grade,
+      addedId: added,
+      addedName: added,
+      addedGrade: grade,
+      order: order);
+
+  @override
+  Future<LoopPlan> plan(LoopRequest request, {void Function(double value)? onProgress}) async {
+    final real = await super.plan(request, onProgress: onProgress);
+    if (real.outcome != LoopOutcome.ok) return real;
+    final t = request.budget.timeS;
+    if (request.state == null) {
+      states = [
+        state(t - 45 * 60, 0.30, 1, 'Wurzelpfad', [...real.order]),
+        state(t, 0.38, 2, 'Hexentanz', [...real.order]),
+        state(t + 50 * 60, 0.25, 3, 'Kammweg', [...real.order]),
+      ];
+      return last = copy(real, states: states, pick: 1);
+    }
+    final k = states.indexWhere((s) => identical(s.order, request.state));
+    return last = copy(real, self: state(states[k].timeS - 15 * 60, states[k].share, states[k].grade!, 'x', real.order));
+  }
 }
 
 /// Ein Runner, der erst antwortet, wenn der Test es sagt — wie der
@@ -349,10 +401,13 @@ void main() {
     // Die Zeit ist ein Richtwert (Konzept-Routing 12.5): „ca." in der
     // Kachel, die Skalen darunter, und weil eine Abfahrt keine 3 h füllt,
     // sagt das Blatt, dass die Runde kürzer bleibt.
-    final timeScale = tester.widget<LoopBudgetScale>(find.byKey(const ValueKey('loop-scale-time')));
-    expect(timeScale.mark, 3 * 3600, reason: 'Vorgabe 3 h');
-    expect((timeScale.windowFrom, timeScale.windowTo), (3 * 3600 - kLoopTimeWindowS, 3 * 3600 + kLoopTimeWindowS));
-    expect(timeScale.over, isFalse);
+    // Seit #549 ist die Skala der Zeit die Leiste „andere Runden" über die
+    // ganze Breite; die Kachel trägt nur die Zahl.
+    expect(find.byKey(const ValueKey('loop-scale-time')), findsNothing);
+    final strip = tester.widget<LoopStateStrip>(find.byType(LoopStateStrip));
+    expect(strip.budget.timeS, 3 * 3600, reason: 'Vorgabe 3 h');
+    expect(strip.budget.windowS, kLoopTimeWindowS);
+    expect(strip.shown, strip.pick);
     expect(
         find.descendant(
             of: find.byKey(const ValueKey('loop-tile-time')), matching: find.textContaining(RegExp(r'^ca\. '))),
@@ -434,10 +489,12 @@ void main() {
       expect(chart.profile.startM, closeTo(chart.profile.endM, 1));
       expect(chart.profile.startM, closeTo(await slopeHeightAt(LatLng(_fromLat, _lon)), 1));
       expect(chart.profile.maxM - chart.profile.minM, greaterThan(50), reason: 'der Hang ist darin');
-      // Unter der Summe, über den Knöpfen.
+      // Mit der Leiste „andere Runden" (#549) unter den Knöpfen
+      // (Konzept-Routing 12.10); ohne Leiste (Route) über ihnen — siehe
+      // „Route mit Stil-Wahl …".
       final profileTop = tester.getTopLeft(find.byKey(const ValueKey('loop-elevation'))).dy;
-      expect(profileTop, greaterThan(tester.getTopLeft(find.byKey(const ValueKey('loop-summary'))).dy));
-      expect(profileTop, lessThan(tester.getTopLeft(find.byKey(const ValueKey('loop-save'))).dy));
+      expect(find.byKey(const ValueKey('loop-strip')), findsOneWidget);
+      expect(profileTop, greaterThan(tester.getTopLeft(find.byKey(const ValueKey('loop-save'))).dy));
     });
 
     testWidgets('Ziehen im Profil (#332): das Rad wandert auf der Linie, die Karte bleibt stehen', (tester) async {
@@ -454,9 +511,13 @@ void main() {
       expect(cursor(), isNull, reason: 'ohne Wahl kein Symbol');
       expect(find.descendant(of: find.byKey(const ValueKey('loop-elevation')), matching: find.byKey(const ValueKey('elevation-axis'))),
           findsOneWidget, reason: 'kompakt mit km-Skala');
+      final scrub = find.descendant(of: find.byKey(const ValueKey('loop-elevation')), matching: find.byKey(const ValueKey('elevation-scrub')));
+      // Mit der Leiste „andere Runden" (#549) steht das Profil unter den
+      // Knöpfen — erst ins Bild.
+      await tester.ensureVisible(scrub);
+      await settle(tester, frames: 4);
       final camera = fakeMap(tester).center;
 
-      final scrub = find.descendant(of: find.byKey(const ValueKey('loop-elevation')), matching: find.byKey(const ValueKey('elevation-scrub')));
       final box = tester.getRect(scrub);
       final gesture = await tester.startGesture(box.centerLeft + const Offset(4, 0));
       await gesture.moveBy(const Offset(30, 0));
@@ -478,6 +539,9 @@ void main() {
       expect(find.byKey(const ValueKey('elevation-cursor-label')), findsOneWidget);
       expect(fakeMap(tester).center, camera, reason: 'keine Kamerafahrt — die ganze Strecke bleibt im Bild');
 
+      await tester.scrollUntilVisible(find.byKey(const ValueKey('loop-close')), -200,
+          scrollable: find.ancestor(of: find.byKey(const ValueKey('loop-elevation')), matching: find.byType(Scrollable)).first);
+      await settle(tester, frames: 4);
       await tester.tap(find.byKey(const ValueKey('loop-close')));
       await settle(tester, frames: 30);
       expect(find.byKey(const ValueKey('loop-elevation')), findsNothing);
@@ -517,7 +581,7 @@ void main() {
       tester.view.devicePixelRatio = 3;
     }
 
-    testWidgets('Runde eingeklappt: eine Summe, Profil, Knöpfe — Anmerkungen darunter', (tester) async {
+    testWidgets('Runde eingeklappt: Summe, Leiste „andere Runden“, Knöpfe — Profil und Anmerkungen darunter (#549)', (tester) async {
       await start(tester, areaStore: await _areaWithTrack(), extra: [areaHeights]);
       pixelXl(tester);
       await openPlanner(tester);
@@ -526,7 +590,17 @@ void main() {
       await settle(tester);
       await tapRail(tester, 'loop-compute');
       await settle(tester, frames: 10);
-      expectProfileAndButtonsFirst(tester);
+      // Eine Runde trägt die Leiste „andere Runden" (#549): Summe, Leiste
+      // und „Fahrt starten" eingeklappt ganz zu sehen; das Profil rückt
+      // unter die Knöpfe, nicht die Leiste (Konzept-Routing 12.10).
+      final bottom = tester.getRect(find.byType(NavigationBar)).top;
+      Rect rect(String key) => tester.getRect(find.byKey(ValueKey(key)));
+      final summary = rect('loop-summary'), strip = rect('loop-strip'), navigate = rect('loop-navigate');
+      expect(strip.top, greaterThanOrEqualTo(summary.bottom), reason: 'die Leiste gleich unter der Summe');
+      expect(navigate.top, greaterThanOrEqualTo(strip.bottom));
+      expect(navigate.bottom, lessThanOrEqualTo(bottom), reason: 'eingeklappt ganz zu sehen');
+      expect(rect('loop-elevation').top, greaterThan(navigate.bottom), reason: 'das Profil unter den Knöpfen');
+      expect(rect('loop-details').top, greaterThan(rect('loop-elevation').top));
       // Kein Untertitel mehr im Kopf: Die Summe steht nur einmal da.
       expect(find.textContaining(' hm · etwa '), findsNothing);
     });
@@ -2216,6 +2290,59 @@ void main() {
       expect(session(tester).selected, {hex});
       expect(session(tester).suggestReachM, isNull, reason: 'neu gerechnet wird aus der Auswahl');
       expect(find.textContaining('2 h 30 min'), findsOneWidget, reason: 'das Budget im Kopf trägt die Zeit');
+    });
+
+    testWidgets('die Leiste „andere Runden" (#549): Stiele, Einrasten, Nachrechnen, zurück zum Vorschlag', (tester) async {
+      final runner = _StripRunner();
+      await start(tester, areaStore: await _areaWithTrack(), runner: () => runner);
+      await openEntry(tester);
+      await tapKey(tester, 'loop-entry-go', frames: 30);
+      final first = session(tester).plan!;
+      expect(find.byKey(const ValueKey('loop-strip')), findsOneWidget);
+      for (var k = 0; k < 3; k++) {
+        expect(find.byKey(ValueKey('loop-strip-stem-$k')), findsOneWidget);
+      }
+      expect(find.byKey(const ValueKey('loop-strip-pick')), findsOneWidget, reason: '„VORSCHLAG" über dem gewählten');
+      expect(find.byKey(const ValueKey('loop-scale-time')), findsNothing, reason: 'die Kachel behält nur die Zahl');
+      expect(find.text('Vorschlag des Planers · zuletzt dazu: Hexentanz'), findsOneWidget);
+      expect(find.text('Vorschlag: 1 Trail in 12 km'), findsOneWidget);
+      // Der Vorschlag ist der höchste Stiel, der gezeigte trägt den Ring.
+      double stemH(int k) => tester.getSize(find.byKey(ValueKey('loop-strip-stem-$k'))).height;
+      expect(stemH(1), greaterThan(stemH(0)));
+      expect(stemH(0), greaterThan(stemH(2)));
+      Offset stem(int k) => tester.getBottomLeft(find.byKey(ValueKey('loop-strip-stem-$k'))) + const Offset(1, -2);
+      final requests = runner.requests.length;
+
+      // Tipp neben den längeren Stand: rastet ein, rechnet mit seiner Folge nach.
+      await tester.tapAt(stem(2) + const Offset(6, 0));
+      await settle(tester, frames: 10);
+      expect(runner.requests.length, requests + 1);
+      expect(runner.requests.last.state, same(runner.states[2].order));
+      final s = session(tester);
+      expect((s.stripShown, s.stripRaw), (2, false));
+      expect(s.strip[2].timeS, runner.states[2].timeS - 15 * 60, reason: 'der Punkt rückt an die nachgerechnete Zeit');
+      expect(s.plan, isNot(same(first)));
+      expect(s.selected, {hex}, reason: 'beim Vorschlag sind die Trails des Stands die Auswahl');
+      expect(find.text('Andere Runde: 1 Trail'), findsOneWidget);
+      expect(find.text('Vorschlag: 1 Trail in 12 km'), findsNothing);
+      expect(find.text('Länger: zusätzlich Kammweg'), findsOneWidget);
+
+      // Waagrecht ziehen bis zum kürzeren.
+      final drag = await tester.startGesture(stem(2));
+      await drag.moveTo(stem(0));
+      await drag.up();
+      await settle(tester, frames: 10);
+      expect(session(tester).stripShown, 0);
+      expect(find.text('Kürzer: ohne Hexentanz'), findsOneWidget);
+
+      // Zurück auf den Vorschlag: nichts zu rechnen, die erste Planung.
+      final before = runner.requests.length;
+      await tester.tapAt(stem(1));
+      await settle(tester, frames: 10);
+      expect(runner.requests.length, before);
+      expect(session(tester).stripShown, 1);
+      expect(session(tester).plan, same(first));
+      expect(find.text('Vorschlag: 1 Trail in 12 km'), findsOneWidget);
     });
 
     testWidgets('die Vorliebe (#516 Schritt 5): eigene Sterne und eigene Fahrten wiegen im Pool', (tester) async {

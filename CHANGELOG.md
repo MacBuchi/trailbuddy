@@ -2,6 +2,29 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Andere Runden auf einen Blick
+
+*Version 0.179.0, 2026-11-16*
+
+- **Die Leiste „andere Runden":** Im Ergebnis einer Runde steht unter
+  den Zahlen jede Runde, die der Planer auf dem Weg zum Vorschlag gebaut
+  hat, als Stiel auf der Zeit — von einer Stunde unter bis eine Stunde
+  über deiner Zeit. Je höher der Stiel, desto mehr Trail; oben sitzt der
+  schwerste Grad der Runde als Form und Farbe. Über dem Vorschlag steht
+  „VORSCHLAG".
+- **Tippen oder ziehen** rastet auf die nächste Runde ein. Die Zahlen
+  wechseln sofort, die Linie auf der Karte und das Profil folgen, sobald
+  die Runde fertig gerechnet ist. Darunter steht, was sich ändert:
+  „Kürzer: ohne …" oder „Länger: zusätzlich …". „Fahrt starten",
+  Speichern und GPX nehmen die gezeigte Runde.
+- **Die Kachel „Zeit"** zeigt nur noch die Zahl — ihre Skala ist zur
+  Leiste geworden. Das Höhenprofil steht bei einer Runde jetzt unter den
+  Knöpfen, damit „Fahrt starten" eingeklappt zu sehen bleibt; das Blatt
+  klappt dafür etwas höher auf.
+- Der Vorschlag selbst bleibt, wie er war; manchmal findet der Planer
+  jetzt eine Verbindung, die vorher knapp außer Reichweite lag, und die
+  Runde bekommt mehr Trail.
+
 ## Die Uhr zeigt Zeichen statt Wörter
 
 *Versionen 0.178.0–0.178.1, 2026-11-16 (Uhr-App 1.7.0)*

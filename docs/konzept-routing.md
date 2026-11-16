@@ -2392,7 +2392,8 @@ Punkte bzw. Lösungen nur existieren mit entsprechender Trailquote. Dazu
 noch die Information, wie weit diese Routenführung ans persönliche
 Höhenmeter-Limit zum Beispiel geht und was der höchste
 Schwierigkeitsgrad [ist] …" — zwei Entwürfe als Skizze (A Zeitleiste im
-Ergebnis, B Anteil über der Zeit), 2026-11-16: „Bin dacore" zur
+Ergebnis, B Anteil über der Zeit; Übergabe aus dem Designer in
+`docs/design/planer-zeitskala/`), 2026-11-16: „Bin dacore" zur
 Empfehlung A + B und zu den Vorschlägen unten.*
 
 **Die Punkte gibt es schon.** Der Greedy (3, 12.5) baut die Runde Trail
@@ -2448,13 +2449,22 @@ ganz hochgezogen; dieselben Stände, keine zweite Rechnung):
 
 - **Der Greedy läuft bis Zeit + 2 × Fenster** statt + Fenster, damit die
   Leiste rechts Punkte hat; `chooseState` wählt unverändert im Fenster.
-  Die Dijkstras rechnen dann gegen die größere Zeit — vor dem Bau messen
-  (`tool/loop_suggest_measure.dart`, die Zeilen aus „#516").
+  Gebaut in ZWEI Phasen: erst bis Zeit + Fenster wie bisher, dann vom
+  letzten Stand weiter — sonst nähme der Greedy schon früher einen
+  Trail, der nur mit der größeren Grenze passt, und der Vorschlag wäre
+  ein anderer. Die Dijkstras rechnen gegen die größere Zeit; gemessen
+  (`docs/routing-messung.md`, „#549"): +5 bis +60 % Rechenzeit, alles
+  unter 0,35 s; 4 von 40 Vorschlägen anders, alle mit mehr Anteil (eine
+  Verbindung, deren Kosten über der alten Grenze lagen, deren Zeit aber
+  passt).
 - **Die Stände sind roh, verfeinert wird beim Antippen**: Die lokale
   Suche läuft wie heute nur am Vorschlag. Ein getippter Stand wird mit
-  seiner Zeit als `timeCap` nachgerechnet; bis dahin zeigt die Karte
-  die rohe Runde, danach wandert der Punkt (Anteil und Zeit können sich
-  ändern) — die Bewegung zeigt es, kein Spinner über der Leiste.
+  seiner Zeit als `timeCap` nachgerechnet; bis dahin zeigen die Kacheln
+  die rohen Zahlen des Stands (gebaut: Die Karte behält so lange die
+  alte Linie — ein roher Stand trägt keine, siehe unten; das
+  Nachrechnen dauert gemessen 0–25 ms), danach wandert der Punkt (Anteil
+  und Zeit können sich ändern) — die Bewegung zeigt es, kein Spinner
+  über der Leiste.
 - Die Stände reisen mit dem `LoopPlan` aus dem Isolate (sendbar, ohne
   Linien — die Linie eines rohen Stands rechnet erst der Tipp).
 - **Nur an einer Runde mit Trail**, wie Skalen und „ca." (12.5): Eine
@@ -2466,7 +2476,11 @@ ganz hochgezogen; dieselben Stände, keine zweite Rechnung):
 zieht nach):
 
 1. Stände im `LoopPlan`, Greedy bis Zeit + 2 × Fenster, Messung —
-   ☁️ bauen · 💻 messen.
+   ☁️ bauen · 💻 messen. **Gebaut in 0.179.0 zusammen mit 2** (ein PR,
+   Betreiber 2026-11-16), gemessen mit öffentlichen Daten.
 2. A: Leiste im Ergebnis, Einrasten, Nachrechnen beim Tipp — ☁️ · 📱.
+   **Gebaut in 0.179.0** (`loop_state_strip.dart`); das Profil steht mit
+   Leiste unter den Knöpfen, das eingeklappte Blatt geht bis 0,65 statt
+   0,6 auf (Pixel XL). 📱 offen.
 3. B: die Ansicht mit Ring und Gipfeln — ☁️ · 📱.
 4. „Auch über dem Limit" — ☁️ · 📱.

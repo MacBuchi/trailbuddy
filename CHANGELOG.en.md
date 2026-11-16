@@ -2,6 +2,27 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## Other loops at a glance
+
+*Version 0.179.0, 2026-11-16*
+
+- **The "other loops" strip:** below the numbers of a loop's result,
+  every loop the planner built on the way to its suggestion stands as a
+  stem on the time line — from one hour below to one hour above your
+  time. The higher the stem, the more trail; on top sits the loop's
+  hardest grade as shape and colour. "SUGGESTED" marks the suggestion.
+- **Tap or drag** to snap to the nearest loop. The numbers change at
+  once; the line on the map and the profile follow as soon as the loop is
+  computed. Below it says what changes: "Shorter: without …" or "Longer:
+  also …". "Start ride", Save and GPX take the loop shown.
+- **The "Time" tile** shows only the number now — its scale has become
+  the strip. For a loop the elevation profile now sits below the buttons
+  so that "Start ride" stays visible when collapsed; the sheet opens a
+  little higher for it.
+- The suggestion itself stays as it was; sometimes the planner now finds
+  a connection that was just out of reach before, and the loop gets more
+  trail.
+
 ## The watch shows symbols instead of words
 
 *Versions 0.178.0–0.178.1, 2026-11-16 (watch app 1.7.0)*

@@ -39,6 +39,7 @@ import '../trails/trail_providers.dart';
 import 'loop_planner.dart';
 import 'loop_planner_controller.dart';
 import 'loop_planner_providers.dart';
+import 'loop_state_strip.dart';
 import 'map_panel.dart';
 import 'nav_providers.dart';
 import 'nav_sections.dart';
@@ -758,10 +759,28 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
         : null;
     final reach = session.suggestReachM;
     final wider = ref.read(loopPlannerProvider.notifier).widerReachM;
+    // Die Leiste „andere Runden" (#549): nur an einer Runde mit Trail und
+    // Ständen, nicht getunt. Ein roher Stand zeigt seine Zahlen in den
+    // Kacheln, bis die Linie nachgerechnet ist.
+    final strip = budget != null && session.hasStrip ? session : null;
+    final other = strip != null && strip.stripShown != strip.stripPick;
+    final raw = strip != null && strip.stripRaw ? strip.strip[strip.stripShown!] : null;
+    final lengthM = raw?.lengthM ?? s.lengthM;
+    final gainM = raw?.climbM ?? s.gainM;
+    final trailM = raw == null ? s.trailM : raw.trailShare * raw.lengthM;
+    final timeS = raw?.timeS ?? s.timeS;
     return [
+      if (other) ...[
+        Text(
+          key: const ValueKey('loop-strip-other'),
+          l.loopStripOther(strip.strip[strip.stripShown!].trails),
+          style: theme.textTheme.titleSmall,
+        ),
+        const SizedBox(height: 6),
+      ]
       // Der Planer hat selbst gewählt (#516 Schritt 4, Konzept-Routing
       // 12.4): Das Blatt sagt, dass es ein Vorschlag ist.
-      if (reach != null) ...[
+      else if (reach != null) ...[
         Text(
           key: const ValueKey('loop-suggest'),
           l.loopSuggestLine({for (final st in plan.stops) st.trail.id}.length, loopReachLabel(reach)),
@@ -778,25 +797,27 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           for (final (i, tile) in [
-            _SummaryTile(key: const ValueKey('loop-tile-length'), label: l.loopTileLength, value: formatMeters(s.lengthM)),
+            _SummaryTile(key: const ValueKey('loop-tile-length'), label: l.loopTileLength, value: formatMeters(lengthM)),
             _SummaryTile(
               key: const ValueKey('loop-tile-climb'),
               label: l.loopTileClimb,
-              value: '${s.gainM.round()} hm',
+              value: '${gainM.round()} hm',
               trailing: budget == null ? null : l.loopTileOf('${budget.climbM.round()}'),
               scale: budget == null
                   ? null
-                  : LoopBudgetScale(key: const ValueKey('loop-scale-climb'), value: s.gainM, mark: budget.climbM),
+                  : LoopBudgetScale(key: const ValueKey('loop-scale-climb'), value: gainM, mark: budget.climbM),
             ),
             plan.isEmpty
                 ? _SummaryTile(
                     key: const ValueKey('loop-tile-descent'), label: l.loopTileDescent, value: '${s.lossM.round()} hm')
-                : _SummaryTile(key: const ValueKey('loop-tile-trail'), label: l.loopTileTrail, value: formatMeters(s.trailM)),
+                : _SummaryTile(key: const ValueKey('loop-tile-trail'), label: l.loopTileTrail, value: formatMeters(trailM)),
             _SummaryTile(
               key: const ValueKey('loop-tile-time'),
               label: l.loopTileTime,
-              value: budget == null ? routeTimeLabel(l, s.timeS) : l.loopTimeAbout(routeTimeLabel(l, s.timeS)),
-              scale: budget == null
+              value: budget == null ? routeTimeLabel(l, timeS) : l.loopTimeAbout(routeTimeLabel(l, timeS)),
+              // Mit der Leiste behält die Kachel nur die Zahl (#549): Die
+              // Skala ist dort zur Leiste über die ganze Breite geworden.
+              scale: budget == null || strip != null
                   ? null
                   : LoopBudgetScale(
                       key: const ValueKey('loop-scale-time'),
@@ -811,13 +832,29 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
           ],
         ],
       ),
+      if (strip != null) ...[
+        const SizedBox(height: 6),
+        LoopStateStrip(
+          states: strip.strip,
+          pick: strip.stripPick!,
+          shown: strip.stripShown!,
+          budget: budget!,
+          onShow: (k) => unawaited(ref.read(loopPlannerProvider.notifier).showState(k)),
+        ),
+      ],
       const SizedBox(height: 4),
       // Das Profil der Runde (#234) gleich unter der Summe, dann der Start —
       // eingeklappt ist das immer dasselbe Bild. Die Anmerkungen stehen
       // darunter (Feldbefund 2026-10-29: sie schoben das Profil aus dem
-      // eingeklappten Blatt).
-      RouteElevationProfile(plan.points, key: const ValueKey('loop-elevation')),
-      const SizedBox(height: 8),
+      // eingeklappten Blatt). Mit der Leiste „andere Runden" (#549) passt
+      // beides nicht mehr ins eingeklappte Blatt (Pixel XL: „Fahrt starten"
+      // 124 px darunter) — dann rückt das Profil unter die Knöpfe, nicht
+      // die Leiste (Konzept-Routing 12.10).
+      if (strip == null) ...[
+        RouteElevationProfile(plan.points, key: const ValueKey('loop-elevation')),
+        const SizedBox(height: 8),
+      ] else
+        const SizedBox(height: 4),
       // Ergebnis und Start in einem (#517): die gemerkten Schalter als
       // Chips, EIN Knopf — kein zweites Blatt mehr.
       NavStartOptions(
@@ -864,6 +901,10 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
         ),
         ?_external(context, session),
       ]),
+      if (strip != null) ...[
+        const SizedBox(height: 4),
+        RouteElevationProfile(plan.points, key: const ValueKey('loop-elevation')),
+      ],
       const SizedBox(height: 4),
       Text(
         key: const ValueKey('loop-details'),
@@ -880,7 +921,7 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
       // Trail-Anteil deutlich besser war (Betreiber, 2026-11-14) — oder
       // weil nichts mehr passte; dann beim Vorschlag „Weiter suchen" im
       // nächsten Umkreis. Beim Bearbeiten ist der Pool die Auswahl.
-      if (budget != null && !session.tuned && s.timeS < budget.minTimeS) ...[
+      if (budget != null && !session.tuned && !other && s.timeS < budget.minTimeS) ...[
         const SizedBox(height: 4),
         Text(
           key: ValueKey(plan.shortForShare ? 'loop-short-share' : 'loop-short'),

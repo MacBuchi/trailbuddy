@@ -48,6 +48,7 @@ class LoopRequest implements GraphJob<LoopPlan> {
     this.tune,
     this.waypoints = const [],
     this.bare = false,
+    this.state,
   });
 
   final LatLng start;
@@ -68,6 +69,24 @@ class LoopRequest implements GraphJob<LoopPlan> {
 
   /// Eine Route ohne Trail ist auch ein Ergebnis (#356, A → B).
   final bool bare;
+
+  /// Ein Stand der Leiste „andere Runden" (#549): seine Folge, nachgerechnet
+  /// mit seiner Zeit als Deckel ([LoopState.order]).
+  final List<String>? state;
+
+  /// Dieselbe Rechnung für einen Stand der Leiste — mit den Eingaben der
+  /// gezeigten Planung, wie [withTune].
+  LoopRequest withState(List<String> order) => LoopRequest(
+      start: start,
+      profile: profile,
+      budget: budget,
+      pool: pool,
+      returnToStart: returnToStart,
+      end: end,
+      searchBudget: searchBudget,
+      waypoints: waypoints,
+      bare: bare,
+      state: order);
 
   /// Dieselbe Rechnung mit fester Folge — das Tunen (#234) braucht genau
   /// die Eingaben der gezeigten Planung, nicht die, die jetzt eingestellt
@@ -95,7 +114,8 @@ class LoopRequest implements GraphJob<LoopPlan> {
       cache: cache,
       tune: tune,
       waypoints: waypoints,
-      bare: bare);
+      bare: bare,
+      state: state);
 
   @override
   LoopPlan runOn(RoadGraph g, LoopSearchCache cache) => planOn(g, cache: cache);
