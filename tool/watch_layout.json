@@ -216,7 +216,7 @@
  },
  "overrides": {},
  "symbols": {
-  "_": "Zeichen von 16 px Höhe aus Fläche, Kreis, Linie und Vieleck (#558). Farbe m = die gereichte (grau, weiß), r = Lime. ops: p Vieleck x,y,…; r Rechteck x,y,w,h; c Kreis cx,cy,r; o Ring cx,cy,r,Strich; l Linie x1,y1,x2,y2,Strich. python3 tool/watch_layout.py schreibt garmin/source/Symbols.mc.",
+  "_": "Zeichen von 16 px Höhe aus Fläche, Kreis, Linie und Vieleck (#558). Farbe m = die gereichte (grau, weiß), r = Lime. ops: p Vieleck x,y,…; r Rechteck x,y,w,h; c Kreis cx,cy,r; o Ring cx,cy,Außenradius,Breite (gefüllter Kreis, innen schwarz — drawCircle zeichnet auf der fēnix 5 trotz Strichbreite nur 1 px); l Linie x1,y1,x2,y2,Strich. python3 tool/watch_layout.py schreibt garmin/source/Symbols.mc.",
   "list": ["stopwatch", "clock", "distance", "heart", "peaks", "signpost", "flag", "angle", "play", "pause", "plane", "wheelie", "stoppie"],
   "def": {
    "stopwatch": {
@@ -224,7 +224,7 @@
     "h": 16,
     "ops": [
      ["r", "m", 6, 0, 4, 2],
-     ["o", "m", 8, 9, 5, 2],
+     ["o", "m", 8, 9, 6, 2],
      ["l", "m", 8, 9, 8, 5, 2]
     ]
    },
@@ -232,7 +232,7 @@
     "w": 16,
     "h": 16,
     "ops": [
-     ["o", "m", 8, 8, 6, 2],
+     ["o", "m", 8, 8, 7, 2],
      ["l", "m", 8, 4, 8, 8, 2],
      ["l", "m", 8, 8, 11, 8, 2]
     ]
@@ -320,14 +320,11 @@
     "h": 16,
     "ops": [
      ["l", "r", 0, 15, 22, 15, 2],
-     ["o", "m", 5, 11, 3, 2],
-     ["o", "m", 16, 5, 3, 2],
-     ["l", "m", 5, 11, 7, 5, 1],
-     ["l", "m", 7, 5, 13, 2, 1],
-     ["l", "m", 7, 5, 11, 9, 1],
-     ["l", "m", 11, 9, 5, 11, 1],
-     ["l", "m", 11, 9, 13, 2, 1],
-     ["l", "m", 13, 2, 16, 5, 1]
+     ["l", "m", 5, 11, 16, 5, 2],
+     ["l", "m", 10, 8, 8, 3, 2],
+     ["l", "m", 16, 5, 13, 1, 2],
+     ["o", "m", 5, 11, 4, 2],
+     ["o", "m", 16, 5, 4, 2]
     ]
    },
    "stoppie": {
@@ -335,14 +332,11 @@
     "h": 16,
     "ops": [
      ["l", "r", 0, 15, 22, 15, 2],
-     ["o", "m", 17, 11, 3, 2],
-     ["o", "m", 6, 5, 3, 2],
-     ["l", "m", 6, 5, 10, 3, 1],
-     ["l", "m", 10, 3, 15, 5, 1],
-     ["l", "m", 10, 3, 11, 9, 1],
-     ["l", "m", 11, 9, 6, 5, 1],
-     ["l", "m", 11, 9, 15, 5, 1],
-     ["l", "m", 15, 5, 17, 11, 1]
+     ["l", "m", 17, 11, 6, 5, 2],
+     ["l", "m", 10, 7, 9, 2, 2],
+     ["l", "m", 17, 11, 15, 5, 2],
+     ["o", "m", 17, 11, 4, 2],
+     ["o", "m", 6, 5, 4, 2]
     ]
    }
   }

@@ -13,9 +13,9 @@ module TbSym {
 
     function code(id as Number) as String {
         if (id == 0) {  // stopwatch
-            return "rm6042om8952lm89852";
+            return "rm6042om8962lm89852";
         } else if (id == 1) {  // clock
-            return "om8862lm84882lm88;82";
+            return "om8872lm84882lm88;82";
         } else if (id == 2) {  // distance
             return "rm032:rm>32:rm37:2pm328656;pm3>8:5:;";
         } else if (id == 3) {  // heart
@@ -35,9 +35,9 @@ module TbSym {
         } else if (id == 10) {  // plane
             return "pm51:3<>5?3=2pm4873262;5pm43:163659lr1???2";
         } else if (id == 11) {  // wheelie
-            return "lr0?F?2om5;32om@532lm5;751lm75=21lm75;91lm;95;1lm;9=21lm=2@51";
+            return "lr0?F?2lm5;@52lm:8832lm@5=12om5;42om@542";
         } else if (id == 12) {  // stoppie
-            return "lr0?F?2omA;32om6532lm65:31lm:3?51lm:3;91lm;9651lm;9?51lm?5A;1";
+            return "lr0?F?2lmA;652lm:7922lmA;?52omA;42om6542";
         }
         return "";
     }
@@ -72,8 +72,10 @@ module TbSym {
                 dc.fillCircle(x + v(s, i), y + v(s, i + 1), v(s, i + 2));
                 i += 3;
             } else if (k == 'o') {
-                dc.setPenWidth(v(s, i + 3));
-                dc.drawCircle(x + v(s, i), y + v(s, i + 1), v(s, i + 2));
+                // Ring = Kreis, innen schwarz: drawCircle bleibt 1 px dünn.
+                dc.fillCircle(x + v(s, i), y + v(s, i + 1), v(s, i + 2));
+                dc.setColor(TbColors.FIELD, Graphics.COLOR_TRANSPARENT);
+                dc.fillCircle(x + v(s, i), y + v(s, i + 1), v(s, i + 2) - v(s, i + 3));
                 i += 4;
             } else {
                 dc.setPenWidth(v(s, i + 4));

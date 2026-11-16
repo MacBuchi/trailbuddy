@@ -211,8 +211,10 @@ def symbols_source(layout: dict) -> str:
         "                dc.fillCircle(x + v(s, i), y + v(s, i + 1), v(s, i + 2));",
         "                i += 3;",
         "            } else if (k == 'o') {",
-        "                dc.setPenWidth(v(s, i + 3));",
-        "                dc.drawCircle(x + v(s, i), y + v(s, i + 1), v(s, i + 2));",
+        "                // Ring = Kreis, innen schwarz: drawCircle bleibt 1 px dünn.",
+        "                dc.fillCircle(x + v(s, i), y + v(s, i + 1), v(s, i + 2));",
+        "                dc.setColor(TbColors.FIELD, Graphics.COLOR_TRANSPARENT);",
+        "                dc.fillCircle(x + v(s, i), y + v(s, i + 1), v(s, i + 2) - v(s, i + 3));",
         "                i += 4;",
         "            } else {",
         "                dc.setPenWidth(v(s, i + 4));",
@@ -344,6 +346,15 @@ def self_test() -> None:
     assert expected(layout, "F", "field_name") == "Graphics.FONT_XTINY"
     assert expected(layout, "L", "nope") is None
     assert len(set(CHARS)) == len(CHARS), "Zeichen doppelt"
+    sym = {"symbols": {"list": ["a", "b"], "def": {
+        "a": {"w": 16, "h": 16, "ops": [["p", "m", 1, 2, 3, 4, 10, 12], ["l", "r", 0, 15, 15, 15, 2]]},
+        "b": {"w": 22, "h": 16, "ops": [["o", "m", 5, 11, 3, 2]]}}}}
+    mc = symbols_source(sym)
+    # p + m + Anzahl 3 + sechs Zahlen; l + r + vier Zahlen + Strich
+    assert 'return "pm31234:<lr0???2";' in mc, mc
+    assert "dc.drawCircle" not in mc
+    assert "id == 1 ? 22 : 16" in mc, mc
+    assert expected(sym, "S", "b") == "1" and expected(sym, "S", "zz") is None
     src = fonts_source()
     assert "TBEND" in src and "fontMetrics" in src
     print("watch_layout.py: Selbsttest grün")

@@ -504,10 +504,11 @@ class NavView extends WatchUi.View {
 
     // --- Aufzeichnung --------------------------------------------------------
 
-    //! Was die Aufzeichnung tut, als Schild bei [y]: vor START schwarz mit
-    //! „START: Aufnehmen" in Lime, in der Pause in Warnfarbe „Pause", auf
-    //! einem markierten Trail Lime mit „Trail"; sonst nur ein roter Punkt.
-    //! Darüber die Einblendung, solange sie gilt.
+    //! Was die Aufzeichnung tut (#558: Zeichen statt Wörter): vor START
+    //! ein Dreieck in Lime rechts oben an der START-Taste, in der Pause
+    //! zwei Balken auf der Warnfarbe bei [y], auf einem markierten Trail
+    //! Lime mit „Trail"; sonst nur ein roter Punkt. Darüber die
+    //! Einblendung, solange sie gilt.
     hidden function drawStatus(dc as Dc, w as Number, y as Number) as Void {
         var cx = w / 2;
         var text = null;
@@ -951,6 +952,16 @@ class NavView extends WatchUi.View {
         var r = TbRing.MAP_R - 14;
         var x = (w / 2 - r * Math.sin(heading)).toNumber();
         var y = (w / 2 - r * Math.cos(heading)).toNumber();
+        // Vor START steht rechts oben das Dreieck an der Taste (#558), bei
+        // einer Frage „JA" — auf demselben Radius wie das „N". Läge es
+        // darunter, weicht es nach innen aus.
+        var dx = x - /*L:ask_yes_x*/198;
+        var dy = y - /*L:ask_yes_y*/64;
+        if ((_rec == RideLog.IDLE || asking()) && dx > -29 && dx < 29 && dy > -23 && dy < 23) {
+            r -= 34;
+            x = (w / 2 - r * Math.sin(heading)).toNumber();
+            y = (w / 2 - r * Math.cos(heading)).toNumber();
+        }
         if (y > FIELD_Y - 14) { return; }
         dc.setColor(TbColors.TEXT, Graphics.COLOR_TRANSPARENT);
         dc.fillCircle(x, y, 12);

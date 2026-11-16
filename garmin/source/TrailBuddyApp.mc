@@ -605,6 +605,16 @@ class TrailBuddyApp extends Application.AppBase {
         stats.distanceM = sc[0];
         stats.movingS = sc[0] / 5.0;
         view.setState(s, 6.0, false);
+        // #558: Bestwerte und in zwei Szenen ein Hinweis vom „Handy", damit
+        // die Bilder die Zeichen zeigen (Seite „Sprünge" mit Wheelie,
+        // Hinweise mit Flugzeug und Stoppie) — sonst sah sie nur das Abbild. Nicht in Szene 0 und nur
+        // auf der Karte: Von dort blättert `garmin_sim.sh shots` auf die
+        // Zahlenseiten, ein Hinweis läge 3 s über ihren Zellen.
+        c.handle({"t" => "b", "on" => 1, "jn" => 7, "ja" => 1200, "wn" => 4, "wl" => 123, "wa" => 38});
+        var cueK = (_demoScene - 1) % scenes.size();
+        if ((cueK == 1 || cueK == 2) && view.page() == 0) {
+            c.handle({"t" => "c", "k" => cueK == 1 ? "air" : "st", "v" => cueK == 1 ? 1200 : 800});
+        }
         // Für die Messung 8.1: Speicher nach jedem Bild in die Konsole.
         var st = System.getSystemStats();
         System.println("demo " + route.size() + " pts scene " + (_demoScene - 1) % scenes.size()

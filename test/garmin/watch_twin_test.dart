@@ -75,9 +75,15 @@ void main() {
     final seen = <String>{};
     for (final file in (j['files'] as List).cast<String>()) {
       final src = File(file).readAsStringSync();
-      for (final m in RegExp(r'/\*([LF]):(\w+)\*/\s*(-?\d+|Graphics\.FONT_\w+)').allMatches(src)) {
+      for (final m in RegExp(r'/\*([LFS]):(\w+)\*/\s*(-?\d+|Graphics\.FONT_\w+)').allMatches(src)) {
         final kind = m.group(1)!;
         final name = m.group(2)!;
+        if (kind == 'S') {
+          // Zeichen (#558): die Nummer ist die Stelle in symbols.list.
+          final list = ((j['symbols'] as Map<String, dynamic>)['list'] as List<dynamic>).cast<String>();
+          expect(m.group(3), '${list.indexOf(name)}', reason: '$file S:$name — python3 tool/watch_layout.py');
+          continue;
+        }
         seen.add('$kind:$name');
         final want = kind == 'L' ? '${(values[name] as Map?)?['v']}' : fonts[names[name]];
         expect(m.group(3), want, reason: '$file $kind:$name — python3 tool/watch_layout.py');
@@ -106,8 +112,8 @@ void main() {
             pts..add([a[0], a[1]])..add([a[0] + a[2], a[1] + a[3]]);
           case 'c':
           case 'o':
-            // Kreis: Mitte ± Radius (bei Ring ± halbe Strichbreite)
-            final r = a[2] + (op[0] == 'o' ? a[3] ~/ 2 : 0);
+            // Kreis und Ring: Mitte ± (Außen-)Radius
+            final r = a[2];
             pts..add([a[0] - r, a[1] - r])..add([a[0] + r, a[1] + r]);
           case 'l':
             // Die Enden zählen, die Kappen der Strichbreite nicht.

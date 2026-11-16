@@ -540,3 +540,12 @@ Abbiegehinweise.
   fēnix 5S über den Kreis. Offen: Lesbarkeit von Flugzeug (16 px) und
   Wegweiser/Fahne in der Sonne am Gerät, Kettenstand für den Speicher
   neben der größten Route.
+  **Review 2026-11-16** (drei Befunde, erst im echten Simulator sichtbar):
+  `drawCircle` bleibt auf der fēnix 5 trotz `setPenWidth(2)` 1 px dünn —
+  ein Ring („o") ist deshalb ein gefüllter Kreis mit schwarzem Innenkreis
+  (Zeichen stehen nur auf Schwarz). Das ▶ an der START-Taste liegt auf
+  demselben Radius wie das „N": `drawNorth` weicht vor START und bei einer
+  Frage 34 px nach innen aus. Der Vorführmodus schickt Bestwerte und in
+  Szene 1 und 2 einen Hinweis (nur auf der Karte, nicht in Szene 0 — von
+  dort blättert `shots` auf die Seiten), `shots` nimmt „spruenge" mit:
+  Vorher sah Flugzeug, Wheelie, Stoppie und „×" nur das Abbild.

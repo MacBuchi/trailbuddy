@@ -163,17 +163,6 @@ class MipCanvas {
     }
   }
 
-  /// Ein Kreis als Linie ([pen] breit), wie `drawCircle` mit `setPenWidth`.
-  void ringStroke(int cx, int cy, int r, int pen, int c) {
-    final o = r + pen;
-    for (var dy = -o; dy <= o; dy++) {
-      for (var dx = -o; dx <= o; dx++) {
-        final d = math.sqrt(dx * dx + dy * dy);
-        if ((d - r).abs() <= pen / 2) set(cx + dx, cy + dy, c);
-      }
-    }
-  }
-
   /// Ein Vieleck, Bildpunkt in der Mitte gegen die Kanten (gerade/ungerade).
   void polygon(List<List<num>> pts, int c) {
     final ys = pts.map((p) => p[1]);
@@ -732,7 +721,8 @@ class WatchTwin {
         case 'c':
           canvas.circle(x + a[0], y + a[1], a[2], c);
         case 'o':
-          canvas.ringStroke(x + a[0], y + a[1], a[2], a[3], c);
+          canvas.circle(x + a[0], y + a[1], a[2], c);
+          canvas.circle(x + a[0], y + a[1], a[2] - a[3], col('FIELD'));
         case 'l':
           canvas.line(x + a[0], y + a[1], x + a[2], y + a[3], a[4], c);
       }
