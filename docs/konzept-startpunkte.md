@@ -160,7 +160,8 @@ Start   (•) Mein Standort
   aussieht). Eigene Punkte in Markenfarbe, fremde in der Buddy-Farbe,
   dazu eine andere Form für A13 (eigene gefüllt, fremde mit Ring). Die
   Linienfarben der Karte bleiben hell (`AppColors.mapLines`). Das
-  Aussehen legt der Bau-PR in `docs/design/README.md` fest.
+  Aussehen steht seit Schritt 2 in `docs/design/README.md` Abschnitt 17
+  (Pins ab Zoom 10, wartende halb durchsichtig).
 - **Tipp auf den Pin** öffnet ein Blatt wie das Ort-Blatt: Name, „von
   <Buddy>" oder „privat"/„Buddys sehen ihn", dazu **Start im Planer ·
   Ziel im Planer · Mit der Navi-App hierher** (die Anfahrt mit dem Auto

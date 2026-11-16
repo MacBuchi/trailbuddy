@@ -10620,5 +10620,91 @@
   "demoLoopCompare2Text": "Im Ergebnis öffnet „Vergleichen“ an der Leiste die Kette: Gipfel lohnen sich, ein Tipp zeigt die Runde. Mit „Auch über dem Limit“ kommen die Runden dazu, die mehr Höhenmeter bräuchten — ihr Knopf hebt das Limit an.",
   "@demoLoopCompare2Text": {
     "description": "Vorführung „loop-compare“, Schritt 2: Text."
+  },
+  "startPointOwn": "Dein Startpunkt",
+  "@startPointOwn": {
+    "description": "Bedienhilfe am Pin eines eigenen gemerkten Startpunkts (#543)."
+  },
+  "startPointBuddy": "Startpunkt eines Buddys",
+  "@startPointBuddy": {
+    "description": "Bedienhilfe am Pin eines gemerkten Startpunkts, den ein Buddy angelegt hat (#543)."
+  },
+  "startPointRemember": "Als Startpunkt merken",
+  "@startPointRemember": {
+    "description": "Knopf/Menüeintrag und Titel des Dialogs: einen Punkt als gemerkten Startpunkt (Parkplatz o. ä.) anlegen (#543)."
+  },
+  "startPointRememberAction": "Merken",
+  "@startPointRememberAction": {
+    "description": "Knopf im Dialog „Als Startpunkt merken“: speichert den Punkt (#543)."
+  },
+  "startPointRename": "Umbenennen",
+  "@startPointRename": {
+    "description": "Eintrag am eigenen Startpunkt und Titel des Dialogs dazu (#543)."
+  },
+  "startPointName": "Name",
+  "@startPointName": {
+    "description": "Feld im Dialog „Als Startpunkt merken“ (#543)."
+  },
+  "startPointNameHint": "z. B. Parkplatz am Bach",
+  "@startPointNameHint": {
+    "description": "Platzhalter im Namensfeld eines Startpunkts (#543)."
+  },
+  "startPointShared": "Buddys sehen ihn",
+  "@startPointShared": {
+    "description": "Schalter: Der Startpunkt ist für direkte Buddys sichtbar, sonst privat (#543)."
+  },
+  "startPointSharedOn": "Deine Buddys sehen diesen Startpunkt.",
+  "@startPointSharedOn": {
+    "description": "Untertitel des Schalters, wenn er an ist (#543)."
+  },
+  "startPointSharedOff": "Privat — nur du siehst ihn.",
+  "@startPointSharedOff": {
+    "description": "Untertitel des Schalters, wenn er aus ist (#543)."
+  },
+  "startPointFrom": "von {name}",
+  "@startPointFrom": {
+    "description": "Unter dem Namen eines fremden Startpunkts: wer ihn angelegt hat (#543).",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "startPointQueued": "Wartet im Ausgangskorb",
+  "@startPointQueued": {
+    "description": "Unter dem Namen eines eigenen Startpunkts, der ohne Netz gemerkt wurde (#543)."
+  },
+  "startPointSaved": "Startpunkt gemerkt.",
+  "@startPointSaved": {
+    "description": "Leiste nach dem Anlegen eines Startpunkts (#543)."
+  },
+  "startPointRenamed": "Startpunkt umbenannt.",
+  "@startPointRenamed": {
+    "description": "Leiste nach dem Umbenennen (#543)."
+  },
+  "startPointNowShared": "Deine Buddys sehen ihn jetzt.",
+  "@startPointNowShared": {
+    "description": "Leiste nach dem Einschalten von „Buddys sehen ihn“ (#543)."
+  },
+  "startPointNowPrivate": "Jetzt privat.",
+  "@startPointNowPrivate": {
+    "description": "Leiste nach dem Ausschalten von „Buddys sehen ihn“ (#543)."
+  },
+  "startPointDeleted": "„{name}“ gelöscht.",
+  "@startPointDeleted": {
+    "description": "Leiste nach dem Löschen eines Startpunkts, mit Rückgängig (#543).",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "layersStartPoints": "Startpunkte",
+  "@layersStartPoints": {
+    "description": "Schalter im Blatt „Ebenen“: die gemerkten Startpunkte auf der Karte (#543)."
+  },
+  "layersStartPointsSubtitle": "Deine gemerkten Parkplätze und die deiner Buddys",
+  "@layersStartPointsSubtitle": {
+    "description": "Untertitel des Schalters „Startpunkte“ (#543)."
   }
 }

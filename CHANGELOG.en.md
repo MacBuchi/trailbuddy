@@ -2,6 +2,20 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## Start points on the map
+
+*Version 0.182.0, 2026-11-16*
+
+- **Save as start point:** long-press the map or tap a place (a car
+  park, say) and choose "Save as start point". You give it a name and
+  decide whether your buddies see it.
+- **On the map:** your start points show as a flag on a green disc,
+  your buddies' as a blue ring. A tap opens a sheet: as start or target
+  in the planner, drive there with your navigation app — and on your
+  own ones rename, make private or delete. You can save a buddy's point
+  as your own.
+- **Can be switched off:** "Layers" has a "Start points" switch.
+
 ## Saving start points — the groundwork
 
 *Version 0.181.0, 2026-11-16*

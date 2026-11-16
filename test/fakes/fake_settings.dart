@@ -15,6 +15,7 @@ class FakeSettings implements Settings {
       this.officialTrailsEnabled = true,
       this.wayLayerEnabled = true,
       this.contourLayerEnabled = false,
+      this.startPointLayerEnabled = true,
       this.mapLegendOpen = false,
       this.navKeepScreenOn = true,
       this.rideKeepScreenOn = false,
@@ -87,6 +88,14 @@ class FakeSettings implements Settings {
   @override
   Future<void> setContourLayerEnabled(bool value) async {
     contourLayerEnabled = value;
+  }
+
+  @override
+  bool startPointLayerEnabled;
+
+  @override
+  Future<void> setStartPointLayerEnabled(bool value) async {
+    startPointLayerEnabled = value;
   }
 
   @override

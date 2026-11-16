@@ -15,6 +15,7 @@ import 'contour_providers.dart';
 import 'map_view/map_view.dart';
 import 'poi.dart';
 import 'poi_source.dart';
+import 'start_point_layer.dart';
 import 'way_layer.dart';
 
 /// Die Orte als Stecknadeln — seit der Kartenfassade (#31) keine Ebene
@@ -195,8 +196,10 @@ class CakeSlicePainter extends CustomPainter {
 /// [onPlan] (#331 Schritte 3 und 4): der Ort als Start oder Zwischenpunkt
 /// des Planers, [onRoute] als Ziel (seit #516 der einzige Weg dorthin) —
 /// die Karte gibt es mit, das Blatt schließt vorher.
+/// [onRemember] (#543): „Als Startpunkt merken" — Name und Lage des
+/// Ortes, keine OSM-Kennung (die Ortsdateien werden monatlich neu gebaut).
 Future<void> showPoiSheet(BuildContext context, Poi poi,
-        {void Function(LoopPlaceRole role)? onPlan, VoidCallback? onRoute}) =>
+        {void Function(LoopPlaceRole role)? onPlan, VoidCallback? onRoute, VoidCallback? onRemember}) =>
     showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
@@ -275,6 +278,19 @@ Future<void> showPoiSheet(BuildContext context, Poi poi,
                       label: Text(label),
                     ),
                   ],
+                if (onRemember != null) ...[
+                  const SizedBox(height: 8),
+                  OutlinedButton.icon(
+                    key: const ValueKey('poi-remember-start'),
+                    style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                      onRemember();
+                    },
+                    icon: const Icon(Icons.flag_outlined),
+                    label: Text(l.startPointRemember),
+                  ),
+                ],
               ],
             ),
           ),
@@ -309,6 +325,7 @@ class _PoiFilterSheet extends ConsumerWidget {
     final official = ref.watch(officialTrailsEnabledProvider);
     final ways = ref.watch(wayLayerEnabledProvider);
     final contours = ref.watch(contourLayerEnabledProvider);
+    final startPoints = ref.watch(startPointLayerEnabledProvider);
     final trails = ref.watch(trailsProvider).valueOrNull ?? const <Trail>[];
     final text = Theme.of(context).textTheme;
     final l = context.l10n;
@@ -391,6 +408,19 @@ class _PoiFilterSheet extends ConsumerWidget {
                 value: contours,
                 onChanged: (v) => ref.read(contourLayerEnabledProvider.notifier).set(v),
               ),
+            ),
+            // Gemerkte Startpunkte (#543): eigene und die der Buddys, ab
+            // Werk an (Konzept Startpunkte 5.2).
+            SwitchListTile(
+              key: const ValueKey('start-point-layer-switch'),
+              secondary: const CircleAvatar(
+                backgroundColor: AppColors.mapBackground,
+                child: StartPointPin(own: true),
+              ),
+              title: Text(l.layersStartPoints),
+              subtitle: Text(l.layersStartPointsSubtitle),
+              value: startPoints,
+              onChanged: (v) => ref.read(startPointLayerEnabledProvider.notifier).set(v),
             ),
             CoachAnchor(
               id: MapCoach.filterPois,

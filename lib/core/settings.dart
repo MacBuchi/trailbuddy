@@ -156,6 +156,12 @@ abstract interface class Settings {
 
   Future<void> setContourLayerEnabled(bool value);
 
+  /// Ist die Ebene „Startpunkte" an (#543)? Vorgabe: an (Konzept
+  /// Startpunkte 5.2).
+  bool get startPointLayerEnabled;
+
+  Future<void> setStartPointLayerEnabled(bool value);
+
   /// Ist die Legende auf der Karte aufgeklappt (#182)? Vorgabe: zu.
   bool get mapLegendOpen;
 
@@ -386,6 +392,14 @@ class PrefsSettings implements Settings {
 
   @override
   Future<void> setContourLayerEnabled(bool value) => _prefs.setBool(_contourLayerEnabledKey, value);
+
+  static const _startPointLayerEnabledKey = 'start_point_layer_enabled';
+
+  @override
+  bool get startPointLayerEnabled => _prefs.getBool(_startPointLayerEnabledKey) ?? true;
+
+  @override
+  Future<void> setStartPointLayerEnabled(bool value) => _prefs.setBool(_startPointLayerEnabledKey, value);
 
   static const _mapLegendOpenKey = 'map_legend_open';
 

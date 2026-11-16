@@ -486,7 +486,8 @@ Druck auf die Karte setzt eine Nadel in der Marke und öffnet das Menü
 „Route ab hier / Route bis hier / Mit der Navi-App hierher" (#177). Seit
 #356 „Start hier / Route bis hier / Zwischenpunkt hier / Mit der
 Navi-App hierher", seit 0.172.0 (#516) „Ziel hier" statt „Route bis
-hier".
+hier", seit 0.182.0 (#543) als fünfter Eintrag „Als Startpunkt
+merken" (Abschnitt 17).
 
 **Die Leiste des Planers seit 0.74.0** (`loop_tool_rail.dart`): derselbe
 Look wie die Leiste „Ebenen" (52 dp, Knöpfe 44 dp, aktives Werkzeug in
@@ -1066,3 +1067,31 @@ Zähler, und „noch … bis" ist der Anreiz zum Überbieten
   Legende und für Bildschirmleser.
 - Max G steht nur in den Kacheln des Fahrers (Schritt 5), nie in einer
   Rangliste und nie bei Buddys.
+
+## 17. Gemerkte Startpunkte (#543) — `lib/features/map/start_point_layer.dart`
+
+Konzept `docs/konzept-startpunkte.md` 5.2 überlässt das Aussehen diesem
+Abschnitt (Schritt 2, 0.182.0).
+
+- **Pin: eine Fahne auf einer Scheibe**, 30 px. Keine Nadel (die gehört
+  den Orten), kein „P" (sähe aus wie ein Parkplatz der Karte), keine
+  gezeichnete Fahne mit Schein (die ist der Start des Planers,
+  `LoopStartFlag`) — das Material-Symbol `flag` auf einer runden Fläche.
+- **Eigene gefüllt, fremde als Ring** (A13: die Form trägt den
+  Unterschied, nicht nur die Farbe): eigener Punkt `mapLines.mine` mit
+  weißem Rand 2 px und weißer Fahne; Punkt eines Buddys weiß mit Ring
+  3,5 px und Umriss-Fahne (`outlined_flag`) in `mapLines.buddy`. Die
+  Karte ist immer hell, also immer der helle Satz. Leichter Schatten wie
+  die Nadeln.
+- **Wartend** (Ausgangskorb) halb durchsichtig (55 %), wie eine Linie,
+  die noch nicht beim Server ist.
+- **Ab Zoom 10** (gerechnet) — früher als die Orte (12): Der Parkplatz
+  soll in der Talübersicht stehen, in der man eine Runde plant.
+- **Stapelung**: über den Orten, unter Anfang/Richtung und Schildern der
+  Trails.
+- **Das Blatt** wie das Ort-Blatt: Pin und Name, darunter „von <Buddy>"
+  in `buddyText` bzw. die Sichtbarkeit; „Als Start" (gefüllt), „Als
+  Ziel", „Mit der Navi-App hierher" (umrandet, 48 dp); am eigenen Punkt
+  nach einer Linie der Schalter „Buddys sehen ihn", „Umbenennen",
+  „Löschen" (Fehlerfarbe, mit Rückgängig); am fremden „Als Startpunkt
+  merken".

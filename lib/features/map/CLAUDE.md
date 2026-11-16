@@ -498,3 +498,21 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     ohne Harness baut und Karte, Orte, Höhen oder Bereiche liest, setzt
     `regionsLoaderProvider` selbst — sonst fragt der Test den echten
     Host (beim Bau mit einer Netz-Probe in den Ladern gesucht).
+- **Gemerkte Startpunkte auf der Karte** (#543 Schritt 2, seit 0.182.0;
+  Konzept `docs/konzept-startpunkte.md`, Daten in `lib/data/CLAUDE.md`,
+  Aussehen Design-README 17; `start_point_layer.dart`,
+  `start_point_sheet.dart`). Drei Dinge, die man wissen muss:
+  - **Die 30-m-Regel ist pur** (`shownStartPoints`): Ein eigener Punkt
+    verdeckt einen fremden am selben Platz, zwei fremde bleiben beide —
+    keine Zusammenführung, kein Zähler (A1). Der Planer (Schritt 3)
+    nimmt dieselbe Funktion für seine Liste.
+  - **Ein Weg zum Anlegen** (`rememberStartPoint`): Ort-Blatt, langer
+    Druck (fünfter Eintrag) und der fremde Pin enden im selben Dialog;
+    der Name eines Ortes übernimmt nur Name und Lage, keine OSM-Kennung.
+  - **Rückrufe aus dem Blatt laufen im Kontext der KARTE**: Das Blatt
+    schließt vor der Aktion, und ein Dialog aus seinem Kontext käme nie
+    zurück (`context.mounted` falsch, nichts gespeichert — im Test
+    gefunden). Deshalb `onStart`/`onTarget`/`onRemember` wie beim
+    Ort-Blatt; die Navi-App wird VOR dem Schließen gefragt.
+  `test/flows/start_point_map_flow_test.dart` (Gegenproben: ohne
+  30-m-Regel, ohne Zoomgrenze, Schalter ohne Wirkung — jede rot).

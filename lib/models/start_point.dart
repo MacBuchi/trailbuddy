@@ -7,6 +7,8 @@
 // je gesehen hat, und so treffen Umbenennen und Löschen aus dem
 // Ausgangskorb auch einen Punkt, der ohne Netz angelegt wurde. Eindeutig
 // ist sie nur je Konto — [key] nimmt deshalb den Besitzer dazu.
+import 'package:latlong2/latlong.dart';
+
 import 'trail.dart' show TrailVisibility;
 
 /// Wie lang ein Name sein darf — derselbe Check wie in der Datenbank.
@@ -53,6 +55,8 @@ class StartPoint {
   String get key => '$userId/$clientId';
 
   bool get shared => visibility == TrailVisibility.buddies;
+
+  LatLng get position => LatLng(lat, lon);
 
   bool isMine(String myId) => userId == myId;
 

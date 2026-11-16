@@ -14,6 +14,7 @@ import '../../core/connectivity.dart';
 import '../../core/picture_in_picture.dart';
 import '../../core/widgets/motion.dart';
 import '../../core/widgets/safety_note.dart';
+import '../../models/start_point.dart';
 import '../../models/trail.dart';
 import '../coach/coach.dart';
 import '../feedback/feedback_dialog.dart';
@@ -64,6 +65,7 @@ import '../offline_areas/area_store.dart';
 import '../offline_areas/offline_tool_rail.dart';
 import '../trails/grade_shield.dart' show trailColorOf, trailLineStyleOf;
 import '../../data/outbox.dart';
+import '../../data/providers.dart' show currentUserIdProvider;
 import '../../data/trail_cache.dart';
 import '../../l10n/l10n.dart';
 import '../trails/merge_proposal_card.dart' show mapComparePairProvider;
@@ -85,6 +87,8 @@ import 'trail_badges.dart';
 import 'trail_quick_card.dart';
 import 'position_provider.dart';
 import 'poi_source.dart';
+import 'start_point_layer.dart';
+import 'start_point_sheet.dart';
 
 /// Die Karte: hinter der Fassade `map_view/` (MapLibre auf Android,
 /// flutter_map im Web), darüber die Trails des eigenen Netzes als Linien.
@@ -556,10 +560,10 @@ class _MapScreenState extends ConsumerState<MapScreen> {
 
   /// Ein Ort als Start, Zwischenpunkt oder Ziel (#331 Schritte 3 und 4),
   /// aus seinem Blatt: Er liegt schon im Bild, also nichts einpassen.
-  Future<void> _planFromPlace(Poi p, LoopPlaceRole role) async {
+  Future<void> _planFromPlace(LatLng at, LoopPlaceRole role) async {
     if (!ref.read(loopPlannerProvider).open) await _openLoopPlanner();
     if (!mounted || !ref.read(loopPlannerProvider).open) return;
-    ref.read(loopPlannerProvider.notifier).takePlace(p.position, role);
+    ref.read(loopPlannerProvider.notifier).takePlace(at, role);
   }
 
   /// Ein Tipp auf einen vorab gesetzten Zwischenpunkt nimmt ihn weg — mit
@@ -759,7 +763,13 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     // Auch ein Tipp auf eine Linie ist ein Punkt, solange der Planer
     // seinen Start sucht — ein Trailkopf ist ein guter Start. Ein Ort
     // gibt seine Lage, nicht die des Fingers (#331 Schritt 3).
-    if (_takeLoopPick(hit is Poi ? hit.position : tap.point)) return;
+    if (_takeLoopPick(switch (hit) {
+      final Poi p => p.position,
+      final StartPoint p => p.position,
+      _ => tap.point,
+    })) {
+      return;
+    }
     switch (hit) {
       // Ein Tipp auf die Verbindung eines Ergebnisses: ein Zwischenpunkt
       // (#234), solange sein Ergebnis die Punkte annimmt.
@@ -808,7 +818,15 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         showOfficialTrailSheet(context, o);
       case final Poi p:
         showPoiSheet(context, p,
-            onPlan: (role) => unawaited(_planFromPlace(p, role)), onRoute: () => unawaited(_routeTo(p.position)));
+            onPlan: (role) => unawaited(_planFromPlace(p.position, role)),
+            onRoute: () => unawaited(_routeTo(p.position)),
+            onRemember: () => unawaited(rememberStartPoint(context, ref, p.position, name: p.name ?? p.kind.label(context.l10n))));
+      // Ein gemerkter Startpunkt (#543): wie ein Ort, mit Navi-App.
+      case final StartPoint p:
+        showStartPointSheet(context, p,
+            onStart: () => unawaited(_planFromPlace(p.position, LoopPlaceRole.start)),
+            onTarget: () => unawaited(_routeTo(p.position)),
+            onRemember: (p) => unawaited(rememberStartPoint(context, ref, p.position, name: p.name)));
     }
   }
 
@@ -1166,6 +1184,12 @@ class _MapScreenState extends ConsumerState<MapScreen> {
           value: 'external',
           child: ListTile(leading: const Icon(Icons.directions_outlined), title: Text(l.mapMenuExternalNav)),
         ),
+        // Fünfter Eintrag (#543, Konzept Startpunkte 4): ohne Namen.
+        PopupMenuItem(
+          key: const ValueKey('map-menu-remember'),
+          value: 'remember',
+          child: ListTile(leading: const Icon(Icons.flag_outlined), title: Text(l.startPointRemember)),
+        ),
       ],
     );
     if (!mounted) return;
@@ -1181,6 +1205,8 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         ref.read(loopPlannerProvider.notifier).takeWaypoint(tap.point);
       case 'external':
         await navigateToPoint(context, tap.point);
+      case 'remember':
+        await rememberStartPoint(context, ref, tap.point);
     }
   }
 
@@ -1213,6 +1239,9 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     final hidden = ref.watch(poiHiddenKindsProvider);
     final poiState = ref.watch(poiControllerProvider);
     final poiUnavailable = groups.isNotEmpty && poiState.unavailable;
+    final startPointsOn = ref.watch(startPointLayerEnabledProvider);
+    final startPoints = startPointsOn ? ref.watch(startPointsProvider) : const <StartPoint>[];
+    final myId = ref.watch(currentUserIdProvider);
     final officialOn = ref.watch(officialTrailsEnabledProvider);
     final position = ref.watch(positionStreamProvider).valueOrNull;
     final official = ref.watch(officialTrailsControllerProvider);
@@ -1595,6 +1624,9 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       markers: [
         if (camera != null && cells != null)
           ...poiMarkers(poiState, camera, cells, groups, hidden),
+        // Gemerkte Startpunkte (#543) über den Orten, unter den Zeichen
+        // des Netzes — eigene verdecken fremde am selben Platz.
+        if (startPointsOn) ...startPointMarkers(shownStartPoints(startPoints, myId), camera, myId),
         // Anfang, Richtung und Ende (#96) und das Schild am Trailanfang
         // (Design 4c) — über den Orten, weil sie zum Netz gehören; das
         // Schild zuoberst, es ist das Antippbare.
