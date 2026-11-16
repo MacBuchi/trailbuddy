@@ -2,6 +2,24 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Die Uhr zeigt Zeichen statt Wörter
+
+*Version 0.178.0, 2026-11-16 (Uhr-App 1.7.0)*
+
+- **Zahlenseiten:** Vor jedem Wert steht ein kleines Zeichen statt des
+  Worts — Stoppuhr für die Fahrzeit, Maß für die Strecke, Herz für den
+  Puls, Berge für die Höhe, Wegweiser „zum Trail", Fahne „zum Ziel", Uhr
+  für die Uhrzeit. Die Zahlen sind größer, die Einheit steht klein und
+  grau dahinter.
+- **Sprünge:** Links der Sprung (Flugzeug, Flugzeit, Anzahl), rechts der
+  Wheelie (Winkel, Anzahl). Die Hinweise während der Fahrt zeigen Zeichen
+  und Zahl: Flugzeug, Wheelie, Stoppie.
+- **Aufnahme:** Vor dem Start steht rechts oben an der START-Taste nur ein
+  Dreieck, in der Pause zwei Balken auf Orange. „TRAIL" und „ANGEKOMMEN"
+  bleiben Wörter, ebenso die Fragen.
+- **Angekommen:** Stoppuhr statt „h", Flug und Wheelie in einer Zeile.
+- Die App selbst bleibt unverändert.
+
 ## Auf der Uhr passt alles in den Kreis
 
 *Version 0.177.3, 2026-11-16 (Uhr-App 1.6.2)*

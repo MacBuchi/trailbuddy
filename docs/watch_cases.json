@@ -533,7 +533,7 @@
     },
     {
       "id": "514.1",
-      "erwartung": "Ein Sprung oder Wheelie vom Handy (`c`) steht 3 s an der Stelle der Frage („Flug 0,9 s“, „Wheelie 12 m“); eine unbekannte Art bleibt still.",
+      "erwartung": "Ein Sprung oder Wheelie vom Handy (`c`) steht 3 s an der Stelle der Frage (Zeichen und Zahl statt Wort, #558: Flugzeug „0,9 s“, Wheelie „12 m“); eine unbekannte Art bleibt still.",
       "uhr": "coreCueShows",
       "handy": "Hinweis: Flugzeit und Stoppie in ms"
     },

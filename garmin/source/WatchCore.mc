@@ -960,8 +960,8 @@ class WatchCore {
         }
     }
 
-    //! Schon in Fahrt, aber kein START: einmal kurz vibrieren, oben steht
-    //! ohnehin „START: Aufnehmen".
+    //! Schon in Fahrt, aber kein START: einmal kurz vibrieren und es
+    //! sagen — an der Taste steht sonst nur das Dreieck (#558).
     hidden function nudgeIdle(speed as Float?) as Void {
         if (_nudged || log.state() != RideLog.IDLE) { return; }
         _fast = speed != null && speed >= NUDGE_MPS ? _fast + 1 : 0;

@@ -2,6 +2,24 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## The watch shows symbols instead of words
+
+*Version 0.178.0, 2026-11-16 (watch app 1.7.0)*
+
+- **Number pages:** a small symbol precedes each value instead of the
+  word — stopwatch for ride time, measure for distance, heart for pulse,
+  mountains for altitude, signpost "to trail", flag "to finish", clock for
+  the time of day. The numbers are bigger, the unit sits small and grey
+  behind them.
+- **Jumps:** the jump on the left (plane, air time, count), the wheelie on
+  the right (angle, count). The cues during a ride show symbol and number:
+  plane, wheelie, stoppie.
+- **Recording:** before the start only a triangle sits at the top right by
+  the START key, in the pause two bars on orange. "TRAIL" and "ARRIVED"
+  stay words, and so do the questions.
+- **Arrived:** a stopwatch instead of "h", air and wheelie on one line.
+- The app itself is unchanged.
+
 ## Everything fits the round watch screen
 
 *Version 0.177.3, 2026-11-16 (watch app 1.6.2)*

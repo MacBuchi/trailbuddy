@@ -148,11 +148,12 @@ dunkle Infofläche, „Was kommt als Nächstes?" statt „Wie weit noch?".
   Beim Abkommen kommt die Karte von selbst nach vorn. „Verwerfen" der
   Fahrt fragt noch einmal. Tippziele gibt es nicht; A13 heißt hier: große
   Schrift, kräftige Linien.
-- **Was die Aufzeichnung tut**, steht immer da: auf der Karte oben, auf
-  den Zahlenseiten unten ein Schild — vor START „START: AUFNAHME" in Lime
-  auf Schwarz, in der Pause „PAUSE" in Warnfarbe, auf einem markierten
-  Trail „TRAIL" schwarz auf Lime, sonst ein roter Punkt (vor START auf
-  den Zahlenseiten ein grauer Punkt, der Text passt dort nicht; #555). Ist man vor
+- **Was die Aufzeichnung tut**, steht immer da (seit 1.7.0 als Zeichen,
+  #558): vor START ein Dreieck in Lime rechts oben an der START-Taste —
+  auf der Karte und den Zahlenseiten gleich, dort wo bei einer Frage „JA"
+  steht —, in der Pause zwei Balken auf der Warnfarbe (Karte oben,
+  Zahlenseiten unten), auf einem markierten Trail „TRAIL" schwarz auf
+  Lime, sonst ein roter Punkt. Ist man vor
   START schon zehn Fixe über 9 km/h unterwegs, vibriert die Uhr einmal
   kurz und blendet „START: AUFNAHME" ein. Vor START und in der Pause
   zählen Strecke, Fahrzeit und bergauf nicht.

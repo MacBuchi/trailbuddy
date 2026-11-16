@@ -117,6 +117,8 @@ class NavView extends WatchUi.View {
     //! Eine kurze Einblendung („Trail beginnt" …) bis [_toastUntil].
     hidden var _toast as String? = null;
     hidden var _toastUntil as Number = 0;
+    //! Das Zeichen vor der Einblendung (#558, TbSym), -1: keins.
+    hidden var _toastSym as Number = -1;
     //! #501: Die Frage, ob die Uhr die neue Linie nimmt, bis [_askUntil];
     //! [_askBig]: „START = JA" groß (die erste nach 1.3.x).
     hidden var _askUntil as Number = 0;
@@ -275,6 +277,7 @@ class NavView extends WatchUi.View {
     //! Eine kurze Einblendung für [TOAST_MS].
     function toast(text as String) as Void {
         _toast = text;
+        _toastSym = -1;
         _toastUntil = System.getTimer() + TOAST_MS;
         WatchUi.requestUpdate();
     }
@@ -284,11 +287,12 @@ class NavView extends WatchUi.View {
     //! ms. Unbekanntes bleibt still.
     function cue(k as Object?, v as Object?) as Void {
         if (!(v instanceof Number)) { return; }
-        var text = "air".equals(k) ? str(Rez.Strings.AirShort) + " " + seconds(v)
-            : "wh".equals(k) ? str(Rez.Strings.WheelieShort) + " " + v + " m"
-            : "st".equals(k) ? "Stoppie " + seconds(v) : null;
-        if (text == null) { return; }
-        _toast = text;
+        // Zeichen und Zahl statt Wort (#558): Flugzeug, Wheelie, Stoppie.
+        var air = "air".equals(k);
+        var wh = "wh".equals(k);
+        if (!air && !wh && !"st".equals(k)) { return; }
+        _toast = wh ? v + " m" : seconds(v);
+        _toastSym = air ? /*S:plane*/10 : wh ? /*S:wheelie*/11 : /*S:stoppie*/12;
         _toastUntil = System.getTimer() + 3000;
         WatchUi.requestUpdate();
     }
@@ -500,39 +504,50 @@ class NavView extends WatchUi.View {
 
     // --- Aufzeichnung --------------------------------------------------------
 
-    //! Was die Aufzeichnung tut, als Schild bei [y]: vor START schwarz mit
-    //! „START: Aufnehmen" in Lime, in der Pause in Warnfarbe „Pause", auf
-    //! einem markierten Trail Lime mit „Trail"; sonst nur ein roter Punkt.
-    //! Darüber die Einblendung, solange sie gilt.
+    //! Was die Aufzeichnung tut (#558: Zeichen statt Wörter): vor START
+    //! ein Dreieck in Lime rechts oben an der START-Taste, in der Pause
+    //! zwei Balken auf der Warnfarbe bei [y], auf einem markierten Trail
+    //! Lime mit „Trail"; sonst nur ein roter Punkt. Darüber die
+    //! Einblendung, solange sie gilt.
     hidden function drawStatus(dc as Dc, w as Number, y as Number) as Void {
         var cx = w / 2;
         var text = null;
         var bg = TbColors.FIELD;
         var fg = TbColors.ROUTE;
         var idle = _rec == RideLog.IDLE;
+        var asked = asking();
         if (idle) {
-            // Auf den Zahlenseiten passt „START: AUFNAHME" nicht in den
-            // runden Rand (#555): dort ein grauer Punkt, oben auf der
-            // Karte bleibt der Text.
-            if (y == STATUS_TOP_Y) { text = str(Rez.Strings.RecIdle); }
+            // Vor START nur das Dreieck an der Taste (#558): rechts oben,
+            // dort wo bei einer Frage „JA" steht — auf der Karte und den
+            // Zahlenseiten gleich; die Frage hat den Platz selbst.
+            if (!asked) {
+                dc.setColor(TbColors.FIELD, Graphics.COLOR_TRANSPARENT);
+                dc.fillRoundedRectangle(/*L:ask_yes_x*/198 - 17, /*L:ask_yes_y*/64 - 11, 34, 22, 11);
+                TbSym.draw(dc, /*S:play*/8, /*L:ask_yes_x*/198 - 8, /*L:ask_yes_y*/64 - 8, fg);
+            }
         } else if (_rec == RideLog.PAUSED) {
-            text = str(Rez.Strings.RecPaused);
-            bg = TbColors.WARNING;
-            fg = TbColors.TEXT_ON_FIELD;
+            // Zwei Balken auf der Warnfarbe statt „PAUSE".
+            dc.setColor(TbColors.WARNING, Graphics.COLOR_TRANSPARENT);
+            dc.fillRoundedRectangle(cx - 18, y - 11, 36, 22, 11);
+            TbSym.draw(dc, /*S:pause*/9, cx - 8, y - 8, TbColors.TEXT_ON_FIELD);
         } else if (_trail) {
             text = str(Rez.Strings.RecTrail);
             bg = TbColors.ROUTE;
             fg = TbColors.TEXT;
         }
-        if (text == null) {
-            dc.setColor(TbColors.GROUND, Graphics.COLOR_TRANSPARENT);
-            dc.fillCircle(cx, y, 6);
-            dc.setColor(idle ? TbColors.MUTED_DARK : TbColors.S2, Graphics.COLOR_TRANSPARENT);
-            dc.fillCircle(cx, y, 4);
+        if (_rec == RideLog.PAUSED) {
+            // schon gezeichnet
+        } else if (text == null) {
+            if (!idle) {
+                dc.setColor(TbColors.GROUND, Graphics.COLOR_TRANSPARENT);
+                dc.fillCircle(cx, y, 6);
+                dc.setColor(TbColors.S2, Graphics.COLOR_TRANSPARENT);
+                dc.fillCircle(cx, y, 4);
+            }
         } else {
             pill(dc, cx, y, text, /*F:status*/Graphics.FONT_XTINY, bg, fg);
         }
-        if (asking()) {
+        if (asked) {
             drawAsk(dc, w, y == STATUS_TOP_Y ? /*L:ask_y_map*/86 : /*L:ask_y_page*/150);
             return;
         }
@@ -542,7 +557,22 @@ class NavView extends WatchUi.View {
             _toast = null;
             return;
         }
-        pill(dc, cx, y == STATUS_TOP_Y ? /*L:toast_y_map*/82 : /*L:toast_y_page*/176, t, /*F:toast*/Graphics.FONT_SMALL, TbColors.FIELD, TbColors.TEXT_ON_FIELD);
+        var ty = y == STATUS_TOP_Y ? /*L:toast_y_map*/82 : /*L:toast_y_page*/176;
+        if (_toastSym < 0) {
+            pill(dc, cx, ty, t, /*F:toast*/Graphics.FONT_SMALL, TbColors.FIELD, TbColors.TEXT_ON_FIELD);
+            return;
+        }
+        // Zeichen und Zahl (#558): das Schild so breit wie beide zusammen.
+        var font = /*F:toast*/Graphics.FONT_SMALL;
+        var sw = TbSym.width(_toastSym);
+        var tw = dc.getTextWidthInPixels(t, font);
+        var h = dc.getFontHeight(font);
+        var x = cx - (sw + 5 + tw) / 2;
+        dc.setColor(TbColors.FIELD, Graphics.COLOR_TRANSPARENT);
+        dc.fillRoundedRectangle(x - 8, ty - h / 2 - 1, sw + 5 + tw + 16, h + 2, (h + 2) / 2);
+        TbSym.draw(dc, _toastSym, x, ty - 8, TbColors.TEXT_ON_FIELD);
+        dc.setColor(TbColors.TEXT_ON_FIELD, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(x + sw + 5, ty, font, t, Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
     }
 
     //! Eine Frage sieht immer gleich aus (#513, Konzept-Garmin 11): ein
@@ -922,6 +952,16 @@ class NavView extends WatchUi.View {
         var r = TbRing.MAP_R - 14;
         var x = (w / 2 - r * Math.sin(heading)).toNumber();
         var y = (w / 2 - r * Math.cos(heading)).toNumber();
+        // Vor START steht rechts oben das Dreieck an der Taste (#558), bei
+        // einer Frage „JA" — auf demselben Radius wie das „N". Läge es
+        // darunter, weicht es nach innen aus.
+        var dx = x - /*L:ask_yes_x*/198;
+        var dy = y - /*L:ask_yes_y*/64;
+        if ((_rec == RideLog.IDLE || asking()) && dx > -29 && dx < 29 && dy > -23 && dy < 23) {
+            r -= 34;
+            x = (w / 2 - r * Math.sin(heading)).toNumber();
+            y = (w / 2 - r * Math.cos(heading)).toNumber();
+        }
         if (y > FIELD_Y - 14) { return; }
         dc.setColor(TbColors.TEXT, Graphics.COLOR_TRANSPARENT);
         dc.fillCircle(x, y, 12);
@@ -1140,7 +1180,7 @@ class NavView extends WatchUi.View {
         dc.drawText(cx, /*L:arrived_title_y*/30, /*F:arrived_title*/Graphics.FONT_TINY, str(Rez.Strings.Arrived), Graphics.TEXT_JUSTIFY_CENTER);
         dc.setColor(TbColors.TEXT_ON_FIELD, Graphics.COLOR_TRANSPARENT);
         dc.drawText(cx, /*L:arrived_km_y*/60, /*F:arrived_km*/Graphics.FONT_LARGE, km(_stats.distanceM) + " km", Graphics.TEXT_JUSTIFY_CENTER);
-        dc.drawText(cx - /*L:arrived_time_dx*/36, /*L:arrived_row_y*/112, /*F:arrived_time*/Graphics.FONT_SMALL, clock(_stats.movingS) + " h", Graphics.TEXT_JUSTIFY_CENTER);
+        symText(dc, cx - /*L:arrived_time_dx*/40, /*L:arrived_row_y*/112, /*F:arrived_time*/Graphics.FONT_SMALL, /*S:stopwatch*/0, clock(_stats.movingS), TbColors.MUTED, TbColors.TEXT_ON_FIELD);
         climbText(dc, cx + /*L:arrived_climb_dx*/40, /*L:arrived_row_y*/112, _stats.climbM, TbColors.TEXT_ON_FIELD);
         // Die Schilder zählen die Trails selbst; die Zeile „8 Trails" ist
         // für die Bestwerte gewichen (#555).
@@ -1152,38 +1192,51 @@ class NavView extends WatchUi.View {
             x += 20;
         }
         if (_stats.hasBests()) {
-            dc.setColor(TbColors.MUTED, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(cx, /*L:arrived_bests_y*/164, /*F:arrived_bests*/Graphics.FONT_XTINY,
-                str(Rez.Strings.AirShort) + " " + seconds(_stats.best("ja")) + "\n"
-                    + str(Rez.Strings.WheelieShort) + " " + _stats.best("wl") + " m",
-                Graphics.TEXT_JUSTIFY_CENTER);
+            // Flugzeug und Wheelie in einer Zeile, weiß (#558).
+            var font = /*F:arrived_bests*/Graphics.FONT_SMALL;
+            var a = seconds(_stats.best("ja"));
+            var b = _stats.best("wl") + " m";
+            var aw = 16 + 4 + dc.getTextWidthInPixels(a, font);
+            var bw = 22 + 4 + dc.getTextWidthInPixels(b, font);
+            var x0 = cx - (aw + 10 + bw) / 2;
+            symText(dc, x0 + aw / 2, /*L:arrived_bests_y*/168, font, /*S:plane*/10, a, TbColors.MUTED, TbColors.TEXT_ON_FIELD);
+            symText(dc, x0 + aw + 10 + bw / 2, /*L:arrived_bests_y*/168, font, /*S:wheelie*/11, b, TbColors.MUTED, TbColors.TEXT_ON_FIELD);
         }
     }
 
     //! „Sprünge": die Bestwerte der Erkennung vom Handy (#36, Konzept 9.2)
-    //! — längster Wheelie groß, darunter längste Flugzeit, größter Winkel
-    //! und die Anzahlen. Die Uhr misst nichts davon (Entscheidung 1).
+    //! — längster Wheelie groß, darunter links der Sprung (Flugzeit,
+    //! Anzahl), rechts der Wheelie (Winkel, Anzahl). Zeichen statt Wörter
+    //! (#558). Die Uhr misst nichts davon (Entscheidung 1).
     hidden function drawBests(dc as Dc, w as Number) as Void {
-        big(dc, w, str(Rez.Strings.WheelieM), _stats.best("wl").toString());
-        cell(dc, w, 0, /*L:cell_row1_y*/104, str(Rez.Strings.Airtime), seconds(_stats.best("ja")), TbColors.TEXT_ON_FIELD);
-        cell(dc, w, 1, /*L:cell_row1_y*/104, str(Rez.Strings.Angle), _stats.best("wa") + "°", TbColors.TEXT_ON_FIELD);
-        cell(dc, w, 0, /*L:cell_row2_y*/150, str(Rez.Strings.Jumps), _stats.best("jn").toString(), TbColors.TEXT_ON_FIELD);
-        cell(dc, w, 1, /*L:cell_row2_y*/150, str(Rez.Strings.Wheelies), _stats.best("wn").toString(), TbColors.TEXT_ON_FIELD);
+        big(dc, w, /*S:wheelie*/11, "m", _stats.best("wl").toString());
+        var cx = w / 2;
+        symCell(dc, cx - COL_X, /*L:cell_row1_y*/106, /*S:plane*/10, false, tenths(_stats.best("ja")), "s", TbColors.TEXT_ON_FIELD);
+        symCell(dc, cx + COL_X, /*L:cell_row1_y*/106, /*S:wheelie*/11, false, _stats.best("wa") + "°", null, TbColors.TEXT_ON_FIELD);
+        count(dc, cx - COL_X, _stats.best("jn"));
+        count(dc, cx + COL_X, _stats.best("wn"));
+    }
+
+    //! „7 ×", klein und grau unter dem Wert.
+    hidden function count(dc as Dc, cx as Number, n as Number) as Void {
+        dc.setColor(TbColors.MUTED, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(cx, /*L:cell_row2_y*/150, /*F:cell_count*/Graphics.FONT_SMALL, n + " ×", Graphics.TEXT_JUSTIFY_CENTER);
     }
 
     // --- Zahlenseiten ------------------------------------------------------
 
     //! „Fahrt": Tempo groß, darunter Fahrzeit, Strecke, bergauf und der
     //! Puls — dezent in Grau (Betreiber 2026-11-04: „Ja, aber dezent").
+    //! Zeichen vor großen Werten, die Einheit klein dahinter (#558).
     hidden function drawRide(dc as Dc, w as Number) as Void {
         var speed = _speed;
-        big(dc, w, str(Rez.Strings.Speed), speed == null ? "--" : (speed * 3.6).format("%.0f"));
+        var cx = w / 2;
+        bigText(dc, w, str(Rez.Strings.Speed), speed == null ? "--" : (speed * 3.6).format("%.0f"));
         var hr = _stats.heartRate;
-        cell(dc, w, 0, /*L:cell_row1_y*/104, str(Rez.Strings.Time), clock(_stats.movingS), TbColors.TEXT_ON_FIELD);
-        cell(dc, w, 1, /*L:cell_row1_y*/104, str(Rez.Strings.Distance), km(_stats.distanceM) + " km", TbColors.TEXT_ON_FIELD);
-        label(dc, w, 0, /*L:cell_row2_y*/150, str(Rez.Strings.Climbed));
-        climbText(dc, w / 2 - COL_X, /*L:climb_row2_y*/168, _stats.climbM, TbColors.TEXT_ON_FIELD);
-        cell(dc, w, 1, /*L:cell_row2_y*/150, str(Rez.Strings.Pulse), hr == null ? "--" : hr.toString(), TbColors.MUTED);
+        symCell(dc, cx - COL_X, /*L:cell_row1_y*/106, /*S:stopwatch*/0, false, clock(_stats.movingS), null, TbColors.TEXT_ON_FIELD);
+        symCell(dc, cx + COL_X, /*L:cell_row1_y*/106, /*S:distance*/2, false, km(_stats.distanceM), "km", TbColors.TEXT_ON_FIELD);
+        climbCell(dc, cx - COL_X, /*L:cell_row2_y*/150, -1, _stats.climbM, "m");
+        symCell(dc, cx + COL_X, /*L:cell_row2_y*/150, /*S:heart*/3, false, hr == null ? "--" : hr.toString(), null, TbColors.MUTED);
         // „Speicher voll" (#484) sagt die Karte in Zeile 1 — hier unten
         // passt es nicht in den runden Rand (#555).
     }
@@ -1192,9 +1245,12 @@ class NavView extends WatchUi.View {
     //! bis zum nächsten Trailkopf und bis zum Ziel noch hoch geht, Uhrzeit.
     hidden function drawMountain(dc as Dc, w as Number) as Void {
         var g = _stats.grade();
-        big(dc, w, str(Rez.Strings.Grade), g == null ? "--" : g.toString());
+        var cx = w / 2;
+        big(dc, w, /*S:angle*/7, "%", g == null ? "--" : g.toString());
         var alt = _stats.altitude;
-        cell(dc, w, 0, /*L:cell_row1_y*/104, str(Rez.Strings.Altitude), alt == null ? "--" : alt.toNumber() + " m", TbColors.TEXT_ON_FIELD);
+        var altText = alt == null ? "--" : alt.toNumber().toString();
+        // Ab vier Stellen ohne „m": sonst reicht der Wert über den Mittelstrich.
+        symCell(dc, cx - COL_X, /*L:cell_row1_y*/106, /*S:peaks*/4, false, altText, altText.length() >= 4 ? null : "m", TbColors.TEXT_ON_FIELD);
         var s = _state;
         var toTrail = null;
         var toGoal = null;
@@ -1203,12 +1259,10 @@ class NavView extends WatchUi.View {
             if (next >= 0) { toTrail = _route.climbBetween(s.alongM, _route.cum[_route.secFrom[next]]); }
             toGoal = _route.climbLeft(s.alongM);
         }
-        label(dc, w, 1, /*L:cell_row1_y*/104, str(Rez.Strings.ToTrail));
-        climbText(dc, w / 2 + COL_X, /*L:climb_row1_y*/122, toTrail, TbColors.TEXT_ON_FIELD);
-        label(dc, w, 0, /*L:cell_row2_y*/150, str(Rez.Strings.ToFinish));
-        climbText(dc, w / 2 - COL_X, /*L:climb_row2_y*/168, toGoal, TbColors.TEXT_ON_FIELD);
+        climbCell(dc, cx + COL_X, /*L:cell_row1_y*/106, /*S:signpost*/5, toTrail, null);
+        climbCell(dc, cx - COL_X, /*L:cell_row2_y*/150, /*S:flag*/6, toGoal, null);
         var t = System.getClockTime();
-        cell(dc, w, 1, /*L:cell_row2_y*/150, str(Rez.Strings.Clock), t.hour + ":" + t.min.format("%02d"), TbColors.TEXT_ON_FIELD);
+        symCell(dc, cx + COL_X, /*L:cell_row2_y*/150, /*S:clock*/1, false, t.hour + ":" + t.min.format("%02d"), null, TbColors.TEXT_ON_FIELD);
         drawMeasure(dc, w);
     }
 
@@ -1225,11 +1279,22 @@ class NavView extends WatchUi.View {
     (:nodemo)
     hidden function drawMeasure(dc as Dc, w as Number) as Void {}
 
-    //! Oben die Einheit klein, darunter die Zahl groß, ein Strich.
-    hidden function big(dc as Dc, w as Number, unit as String, value as String) as Void {
-        var cx = w / 2;
+    //! Oben die Einheit klein, darunter die Zahl groß, ein Strich — mit
+    //! einem Zeichen vor der Einheit, wenn [sym] ≥ 0 (#558).
+    hidden function big(dc as Dc, w as Number, sym as Number, unit as String, value as String) as Void {
+        symText(dc, w / 2, /*L:big_unit_y*/20, /*F:big_unit*/Graphics.FONT_XTINY, sym, unit, TbColors.MUTED, TbColors.MUTED);
+        bigValue(dc, w, value);
+    }
+
+    //! Wie [big], die Einheit als Wort („KM/H" bleibt ein Wort).
+    hidden function bigText(dc as Dc, w as Number, unit as String, value as String) as Void {
         dc.setColor(TbColors.MUTED, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx, /*L:big_unit_y*/20, /*F:big_unit*/Graphics.FONT_XTINY, unit, Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(w / 2, /*L:big_unit_y*/20, /*F:big_unit*/Graphics.FONT_XTINY, unit, Graphics.TEXT_JUSTIFY_CENTER);
+        bigValue(dc, w, value);
+    }
+
+    hidden function bigValue(dc as Dc, w as Number, value as String) as Void {
+        var cx = w / 2;
         dc.setColor(TbColors.TEXT_ON_FIELD, Graphics.COLOR_TRANSPARENT);
         dc.drawText(cx, /*L:big_value_y*/40, /*F:big_value*/Graphics.FONT_NUMBER_MEDIUM, value, Graphics.TEXT_JUSTIFY_CENTER);
         dc.setColor(TbColors.MUTED_DARK, Graphics.COLOR_TRANSPARENT);
@@ -1239,16 +1304,63 @@ class NavView extends WatchUi.View {
         dc.setPenWidth(1);
     }
 
-    //! Eine von vier Zellen: [col] 0 links, 1 rechts.
-    hidden function cell(dc as Dc, w as Number, col as Number, y as Number, name as String, value as String, color as Number) as Void {
-        label(dc, w, col, y, name);
+    //! Eine Zeile aus Zeichen [sym] (graue Teile in [symColor]) und [text],
+    //! mittig um [cx], Oberkante der Schrift bei [y] (#558). [sym] < 0: nur
+    //! der Text.
+    hidden function symText(dc as Dc, cx as Number, y as Number, font as Graphics.FontType, sym as Number,
+                            text as String, symColor as Number, color as Number) as Void {
+        var tw = dc.getTextWidthInPixels(text, font);
+        if (sym < 0) {
+            dc.setColor(color, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(cx, y, font, text, Graphics.TEXT_JUSTIFY_CENTER);
+            return;
+        }
+        var sw = TbSym.width(sym);
+        var x = cx - (sw + 4 + tw) / 2;
+        TbSym.draw(dc, sym, x, y + (dc.getFontHeight(font) - 16) / 2, symColor);
         dc.setColor(color, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(w / 2 + (col == 0 ? -COL_X : COL_X), y + /*L:cell_value_dy*/18, /*F:cell_value*/Graphics.FONT_SMALL, value, Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(x + sw + 4, y, font, text, Graphics.TEXT_JUSTIFY_LEFT);
     }
 
-    hidden function label(dc as Dc, w as Number, col as Number, y as Number, name as String) as Void {
-        dc.setColor(TbColors.MUTED, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(w / 2 + (col == 0 ? -COL_X : COL_X), y, /*F:cell_label*/Graphics.FONT_XTINY, name, Graphics.TEXT_JUSTIFY_CENTER);
+    //! Eine Zelle der Zahlenseiten (#558): Zeichen, Wert groß, Einheit klein
+    //! und grau auf derselben Grundlinie, eine Zeile, mittig um [cx].
+    //! [arrow]: der Anstiegspfeil in Lime zwischen Zeichen und Wert.
+    hidden function symCell(dc as Dc, cx as Number, y as Number, sym as Number, arrow as Boolean,
+                            value as String, unit as String?, color as Number) as Void {
+        var vf = /*F:cell_value*/Graphics.FONT_MEDIUM;
+        var uf = /*F:cell_unit*/Graphics.FONT_XTINY;
+        var sw = sym < 0 ? 0 : TbSym.width(sym) + 2;
+        var aw = arrow ? 13 : 0;
+        var vw = dc.getTextWidthInPixels(value, vf);
+        var uw = unit == null ? 0 : 3 + dc.getTextWidthInPixels(unit, uf);
+        var x = cx - (sw + aw + vw + uw) / 2;
+        if (sym >= 0) {
+            TbSym.draw(dc, sym, x, y + (dc.getFontHeight(vf) - 16) / 2, TbColors.MUTED);
+        }
+        x += sw;
+        if (arrow) {
+            var my = y + dc.getFontHeight(vf) / 2;
+            dc.setColor(TbColors.ROUTE, Graphics.COLOR_TRANSPARENT);
+            dc.fillPolygon([[x + 5, my - 5], [x + 10, my + 4], [x, my + 4]]);
+            x += aw;
+        }
+        dc.setColor(color, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(x, y, vf, value, Graphics.TEXT_JUSTIFY_LEFT);
+        if (unit != null) {
+            dc.setColor(TbColors.MUTED, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(x + vw + 3, y + Graphics.getFontAscent(vf) - Graphics.getFontAscent(uf), uf, unit, Graphics.TEXT_JUSTIFY_LEFT);
+        }
+    }
+
+    //! Eine Zelle „bergauf" (#558): [sym] davor (-1: keins), der Pfeil, die
+    //! Meter; ohne Wert „--". Hinter dem Pfeil entfällt das „m" meist (wie in
+    //! der Zahlenzeile der Karte), [unit] sagt es.
+    hidden function climbCell(dc as Dc, cx as Number, y as Number, sym as Number, m as Float?, unit as String?) as Void {
+        if (m == null) {
+            symCell(dc, cx, y, sym, false, "--", null, TbColors.TEXT_ON_FIELD);
+            return;
+        }
+        symCell(dc, cx, y, sym, true, (m as Float).toNumber().toString(), unit, TbColors.TEXT_ON_FIELD);
     }
 
     //! „▲120 m", mittig um [cx]: der Pfeil gezeichnet in Lime (die
@@ -1280,8 +1392,13 @@ class NavView extends WatchUi.View {
 
     //! Flugzeit „0,6 s" aus Millisekunden.
     hidden function seconds(ms as Number) as String {
-        var tenths = (ms + 50) / 100;
-        return (tenths / 10) + _sep + (tenths % 10) + " s";
+        return tenths(ms) + " s";
+    }
+
+    //! „0,6" ohne Einheit.
+    hidden function tenths(ms as Number) as String {
+        var t = (ms + 50) / 100;
+        return (t / 10) + _sep + (t % 10);
     }
 
     //! Fahrzeit „1:12" (Stunden:Minuten).
