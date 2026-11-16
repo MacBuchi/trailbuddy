@@ -526,7 +526,8 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     Einrast-Hinweis. **Eingeklappt heißt gemessen**: `_maybeFit` wartet
     einen Frame und fährt auf die Höhe bis unter die Knöpfe
     (`_resultSize`, `MapPanelController.fullHeight`), zwischen
-    `kMapPanelResult` (0,4) und `kMapPanelResultMax` (0,6; bis 0.170.0
+    `kMapPanelResult` (0,4) und `kMapPanelResultMax` (0,65 seit #549,
+    0.179.0 — die Leiste „andere Runden"; 0,6 bis 0.178; bis 0.170.0
     0,55 — die Chips vor „Fahrt starten", #517, brauchten auf dem Pixel
     XL 24 px mehr, auch mit kompakten Chips) — 0,4 fest
     schnitt am Pixel XL die Knöpfe ab, mit Stil-Wahl auch das Profil.
@@ -1120,6 +1121,45 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
   „Nein"-Regel, ohne Frage am Ende, Frage im Einstieg nicht geleert,
   alter Radwechsel, ohne E-Frage, Fahrt nicht umgeordnet, keine Zeile im
   Einstieg, altes `c` nicht übernommen, Uhr-Fahrten gefragt — je rot.
+- **Die Leiste „andere Runden"** (#549, seit 0.179.0; Konzept-Routing
+  12.10 A, Entwurf `docs/design/planer-zeitskala/`;
+  `loop_state_strip.dart`). Fünf Dinge, die man wissen muss:
+  - **Der Greedy baut in zwei Phasen** (`grow` in `_Planner.run`): bis
+    `maxTimeS` wie bisher, dann vom letzten Stand weiter bis `ceilTimeS`
+    (Zeit + 2 × Fenster); `chooseState` sieht nur die erste Phase. In
+    einem Lauf mit der großen Grenze nähme der Greedy früher einen Trail,
+    der nur damit passt — der Vorschlag wäre ein anderer. Die Dijkstras
+    suchen bis `ceilTimeS`, der Suchspeicher hat das Fenster im Schlüssel.
+    Ohne Fenster (spaßiger Weg, Route) bleibt alles wie vorher und es gibt
+    keine Stände.
+  - **`LoopPlan.states` sind roh, `pick` ist schon verfeinert**: Der
+    Stand des Vorschlags trägt die Zahlen NACH der lokalen Suche (die
+    gezeigte Runde), alle anderen die des Greedy. `LoopPlan.self` ist die
+    gezeigte Runde als Stand; `planLoop(state: order)` (`runState`,
+    `LoopRequest.withState`) rechnet einen Stand mit seiner Zeit als
+    `timeCap` nach. Ein nachgerechneter Stand behält seinen Trail „was
+    dazukam" (`refinedBy`) — `self` kennt keinen Vorgänger, und „Länger:
+    zusätzlich …" verlor sonst den Namen (im Flow-Test gefunden).
+  - **Der Controller hält die Leiste in der Sitzung** (`strip`,
+    `stripPick`, `stripShown`, `stripRaw`, `hasStrip` — nicht getunt);
+    `showState` setzt sofort den Stand (die Kacheln zeigen seine rohen
+    Zahlen), rechnet nach und verwirft ein spätes Ergebnis (`_stateSeq`).
+    Zurück auf den Vorschlag rechnet nichts (`_pickPlan`). Beim
+    Vorschlag werden die Trails des Stands die Auswahl, ohne `_edit`.
+  - **Mit Leiste steht das Profil unter den Knöpfen** (Konzept 12.10):
+    Summe, Leiste und „Fahrt starten" passten auf dem Pixel XL
+    eingeklappt nicht mit Profil (124 px zu viel); dazu 0,65 als
+    Obergrenze. Ein Flow-Test, der im Profil zieht, scrollt es erst ins
+    Bild — und danach „Schließen" mit `scrollUntilVisible` zurück: Die
+    Liste baut den Kopf dann gar nicht mehr.
+  - **Tests**: `loop_planner_test` („die Stände für die Leiste …"),
+    `loop_planner_flow_test` („die Leiste „andere Runden" (#549)" mit
+    `_StripRunner`, der drei Stände mitgibt — die Fixtur hat nur einen
+    Trail; „Runde eingeklappt …" misst den Platz). Gleiche Listen für
+    `order` in einem Test-Runner verwechseln `identical` (beim Bau so
+    passiert). Gegenproben 2026-11-16: ohne zweite Phase, ohne
+    `runState`, ohne Nachrechnen im Controller, ohne Abkürzung zum
+    Vorschlag, ohne `refinedBy` — je rot.
 - **Ergebnis und Start in einem, ein Ende** (#517, seit 0.171.0;
   Konzept-Routing 9.4, Konzept-Geräte 5.2). Fünf Dinge, die man wissen
   muss:

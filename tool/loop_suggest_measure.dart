@@ -81,7 +81,7 @@ void main() {
 
     final all = _trails(trailsPath);
     // ignore: avoid_print
-    print('| Zeit | Umkreis | Rad | Pool | Kacheln (Kreis) | Zusammensetzen | Kanten | Fenster / Limit | Rechnung | Trails | Schätzung | Trail-Anteil | Anstieg |');
+    print('| Zeit | Umkreis | Rad | Pool | Kacheln (Kreis) | Zusammensetzen | Kanten | Fenster / Limit | Rechnung | Trails | Schätzung | Trail-Anteil | Anstieg | Stände (über dem Fenster) | Nachrechnen |');
     var warm = false;
     for (final profile in [RiderProfile.bio, RiderProfile.ebike]) {
       for (final (hours, reachM) in _steps) {
@@ -128,9 +128,28 @@ void main() {
           if (label == '¼' && hours >= 2) continue;
           final budget = LoopBudget(
               timeS: hours * 3600, climbM: climbM, hikingM: kBudgetHikingKm * 1000, windowS: windowS);
+          // Mit Suchspeicher wie der Rechen-Isolate: Das Nachrechnen eines
+          // Stands (#549) trifft dann die Suchen der ersten Rechnung.
+          final cache = LoopSearchCache();
           final planClock = Stopwatch()..start();
-          final plan = planLoop(built.graph, start: _start, profile: profile, budget: budget, pool: inReach);
+          final plan =
+              planLoop(built.graph, start: _start, profile: profile, budget: budget, pool: inReach, cache: cache);
           final planMs = planClock.elapsedMilliseconds;
+          // Die Leiste (#549): wie viele Stände, wie viele über dem Fenster,
+          // und was der längste nachzurechnen kostet.
+          final over = plan.states.where((st) => st.timeS > budget.maxTimeS).length;
+          var refine = '–';
+          if (plan.states.isNotEmpty) {
+            final refineClock = Stopwatch()..start();
+            planLoop(built.graph,
+                start: _start,
+                profile: profile,
+                budget: budget,
+                pool: inReach,
+                cache: cache,
+                state: plan.states.last.order);
+            refine = '${refineClock.elapsedMilliseconds} ms';
+          }
           final s = plan.summary;
           final share = s == null || s.lengthM == 0 ? null : s.trailM / s.lengthM;
           String hm(double sec) => '${sec ~/ 3600} h ${((sec % 3600) / 60).round().toString().padLeft(2, '0')}';
@@ -139,7 +158,7 @@ void main() {
               '| ${inReach.length} | ${frame.length} (${circle.length})${missing > 0 ? ' ($missing fehlen)' : ''} '
               '| $buildMs ms | ${built.report.edges} | $label / ${climbM.round()} | $planMs ms | ${plan.stops.length} '
               '| ${s == null ? '–' : hm(s.timeS)} | ${share == null ? '–' : '${(share * 100).round()} %'} '
-              '| ${s == null ? '–' : '${s.gainM.round()} hm'} |');
+              '| ${s == null ? '–' : '${s.gainM.round()} hm'} | ${plan.states.length} ($over) | $refine |');
         }
       }
     }

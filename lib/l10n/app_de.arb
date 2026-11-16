@@ -10343,5 +10343,129 @@
         "type": "int"
       }
     }
+  },
+  "loopStripTitle": "ANDERE RUNDEN · HÖHE = TRAIL-ANTEIL",
+  "@loopStripTitle": {
+    "description": "Kopf der Leiste im Ergebnis einer Runde (#549, Konzept-Routing 12.10): jeder Stiel ein anderer Stand des Planers, seine Höhe der Trail-Anteil. In Großbuchstaben wie die übrigen Panel-Köpfe."
+  },
+  "loopStripTarget": "Ziel {time} ± {window}",
+  "@loopStripTarget": {
+    "description": "Rechts im Kopf der Leiste „andere Runden“ (#549): die gewählte Zeit und das Fenster darum, beides fertig formatiert („3 h“, „30“).",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      },
+      "window": {
+        "type": "String"
+      }
+    }
+  },
+  "loopStripPick": "VORSCHLAG",
+  "@loopStripPick": {
+    "description": "Über dem Stiel der Leiste „andere Runden“ (#549), den der Planer gewählt hat. Kurz, in Großbuchstaben."
+  },
+  "loopStripShare": "{share} % Trail",
+  "@loopStripShare": {
+    "description": "Zeile unter der Leiste „andere Runden“ (#549): der Trail-Anteil der gezeigten Runde.",
+    "placeholders": {
+      "share": {
+        "type": "int"
+      }
+    }
+  },
+  "loopStripUpTo": "bis",
+  "@loopStripUpTo": {
+    "description": "Zeile unter der Leiste „andere Runden“ (#549), vor dem Schild des höchsten S-Grads der Runde: „bis [S3]“."
+  },
+  "loopStripNotePick": "Vorschlag des Planers · zuletzt dazu: {name}",
+  "@loopStripNotePick": {
+    "description": "Satz unter der Leiste „andere Runden“ (#549), wenn der Vorschlag gezeigt ist; name ist der Trail, der als letzter dazukam.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "loopStripNotePickPlain": "Vorschlag des Planers",
+  "@loopStripNotePickPlain": {
+    "description": "Satz unter der Leiste „andere Runden“ (#549), wenn der Vorschlag gezeigt ist und kein letzter Trail bekannt."
+  },
+  "loopStripShorter": "Kürzer: ohne {names}",
+  "@loopStripShorter": {
+    "description": "Satz unter der Leiste „andere Runden“ (#549) für eine kürzere Runde als der Vorschlag; names sind die Trails, die wegfallen, mit Komma.",
+    "placeholders": {
+      "names": {
+        "type": "String"
+      }
+    }
+  },
+  "loopStripLonger": "Länger: zusätzlich {names}",
+  "@loopStripLonger": {
+    "description": "Satz unter der Leiste „andere Runden“ (#549) für eine längere Runde als der Vorschlag; names sind die Trails, die dazukommen, mit Komma.",
+    "placeholders": {
+      "names": {
+        "type": "String"
+      }
+    }
+  },
+  "loopStripOther": "{count, plural, =1{Andere Runde: 1 Trail} other{Andere Runde: {count} Trails}}",
+  "@loopStripOther": {
+    "description": "Über der Summe, wenn auf der Leiste „andere Runden“ (#549) nicht der Vorschlag gewählt ist.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "loopStripSemantics": "Andere Runden, {index} von {count}: {state}",
+  "@loopStripSemantics": {
+    "description": "Bildschirmleser an der Leiste „andere Runden“ (#549); wischen hoch/runter wechselt den Stand. state ist die Beschreibung des gezeigten Stands.",
+    "placeholders": {
+      "index": {
+        "type": "int"
+      },
+      "count": {
+        "type": "int"
+      },
+      "state": {
+        "type": "String"
+      }
+    }
+  },
+  "loopStripStateSemantics": "{time}, {share} Prozent Trail",
+  "@loopStripStateSemantics": {
+    "description": "Bildschirmleser: ein Stand der Leiste „andere Runden“ (#549); time ist fertig formatiert.",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      },
+      "share": {
+        "type": "int"
+      }
+    }
+  },
+  "highlightLoopStripTitle": "Andere Runden auf einen Blick",
+  "@highlightLoopStripTitle": {
+    "description": "Neuheit #549: die Leiste „andere Runden“ im Ergebnis einer Runde."
+  },
+  "highlightLoopStripText": "Unter dem Ergebnis einer Runde steht jede Runde, die der Planer unterwegs gebaut hat, als Stiel auf der Zeit: je höher, desto mehr Trail, oben der schwerste Grad. Tippen oder ziehen zeigt sie auf der Karte.",
+  "@highlightLoopStripText": {
+    "description": "Neuheit #549: Text, zwei bis drei Sätze."
+  },
+  "demoLoopStrip1Title": "Planer öffnen",
+  "@demoLoopStrip1Title": {
+    "description": "Vorführung „loop-strip“, Schritt 1: Überschrift."
+  },
+  "demoLoopStrip1Text": "Der Knopf öffnet den Planer; rechne eine Runde, vorgeschlagen oder selbst zusammengestellt.",
+  "@demoLoopStrip1Text": {
+    "description": "Vorführung „loop-strip“, Schritt 1: Text."
+  },
+  "demoLoopStrip2Title": "Andere Runden",
+  "@demoLoopStrip2Title": {
+    "description": "Vorführung „loop-strip“, Schritt 2: Überschrift."
+  },
+  "demoLoopStrip2Text": "Im Ergebnis zeigt die Leiste unter den Zahlen die kürzeren und längeren Runden. Ein Tipp rastet auf die nächste ein; „Kürzer: ohne …“ und „Länger: zusätzlich …“ sagen, was sich ändert.",
+  "@demoLoopStrip2Text": {
+    "description": "Vorführung „loop-strip“, Schritt 2: Text."
   }
 }

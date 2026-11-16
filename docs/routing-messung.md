@@ -1420,3 +1420,35 @@ samt Bau in 40 s). Was die Zahlen sagen:
 Trails 23 → 39 %, 42 → 46 %, 35 → 54 %, Trail-Anteil gleich (± 1 Punkt);
 L7 wird kürzer (1 h 42 → 1 h 28) und liegt zu 46 % auf Trails dieser
 Fahrt (vorher 13 %), L15 1 h 34 statt 2 h 07 — beide im Fenster.
+
+## #549 — die Stände bis Zeit + 2 × Fenster (gemessen 2026-11-16, am Rechner, öffentliche Daten)
+
+Frage aus `konzept-routing.md` 12.10: Was kostet es, wenn der Greedy für
+die Leiste „andere Runden" bis Zeit + 2 × Fenster weiterbaut und die
+Dijkstras bis dorthin suchen? Ändert es den Vorschlag? Derselbe Lauf wie
+„#516" (Innsbruck, 185 offizielle Trails, dieselben Kacheln),
+`tool/loop_suggest_measure.dart` mit Suchspeicher wie im Rechen-Isolate,
+gegen `origin/main` (0.178.1) im selben Takt am selben Rechner (JIT):
+
+- **Rechenzeit**: je Zeile +5 bis +60 % (Fenster 30: 1 h bio 27 → 42 ms,
+  3 h 145 → 178 ms, 5 h 223 → 276 ms; E 5 h 265 → 317 ms; „frei" 4 h bio
+  159 → 305 ms als größter Sprung). Alles unter 0,35 s, im Isolate, weit
+  unter den Budgets aus 10.7.
+- **Stände**: 1–11 je Runde, über dem Fenster meist keiner — in Innsbruck
+  bindet das Höhenlimit, nicht die Zeit. Mit freiem Limit („30, frei")
+  bis 6 über dem Fenster (bio 5 h, E 2 h).
+- **Nachrechnen** des längsten Stands (lokale Suche mit seiner Zeit als
+  Deckel, Suchen aus dem Speicher): 0–25 ms.
+- **Vorschlag**: 36 von 40 Zeilen gleich. Vier anders, alle mit MEHR
+  Anteil: bio 1 h „frei" 13 → 19 %, bio 1,5 h „frei" 22 → 25 %, bio 2 h
+  „frei" 25 → 28 %, E 1 h „¼" 19 → 28 %. Ursache ist die größere
+  Grenze der Dijkstras (Kosten-Einheiten): Eine Verbindung, deren
+  KOSTEN über Zeit + Fenster lagen, deren ZEIT aber passt, galt vorher als
+  „nicht erreichbar". Der Greedy selbst wählt bis zum Fenster genau wie
+  vorher — die Stände darüber baut er erst danach (Test „über dem Fenster
+  weiter …", Gegenprobe ohne zweite Phase rot).
+
+Der dichte Pool (`perf_loop_planner_measure.dart`, erfundenes Gitter):
+dieselben Pläne (Fingerabdrücke gleich), erste Rechnung 12 Trails
+103 → 132 ms, 30 Trails 151 → 217 ms, 40 Trails 328 → 427 ms, 60 Trails
+(E-MTB 5 h) 572 → 698 ms.

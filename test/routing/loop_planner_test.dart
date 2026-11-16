@@ -388,6 +388,83 @@ void main() {
     });
   });
 
+  group('die Stände für die Leiste „andere Runden" (#549, Konzept-Routing 12.10)', () {
+    // Wie „im Fenster gewinnt …": N neben dem Start, F am Ende von 3 km
+    // Forstweg. Jeder Stand ist der vorige plus EIN Trail.
+    final g = buildRoadGraph([
+      _way([(0, 0), (0, 1000)]),
+      _way([(0, 0), (3000, 0), (3000, 1000)]),
+    ], lat0: 47.5).graph;
+    PoolTrail down(String id, double x, int grade) => PoolTrail(
+        id: id, name: id, points: _m([(x + 10, 990), (x + 10, 500), (x + 10, 10)]), lengthM: 1000, grade: grade);
+    final near = down('N', 0, 1), far = down('F', 3000, 3);
+    LoopPlan go(double timeS, {double windowS = kLoopTimeWindowS, List<String>? state}) => planLoop(g,
+        start: start,
+        profile: _bio,
+        budget: LoopBudget(timeS: timeS, climbM: 800, hikingM: 2000, windowS: windowS),
+        pool: [near, far],
+        state: state,
+        searchBudget: const Duration(milliseconds: 50));
+    final t1 = planLoop(g, start: start, profile: _bio, budget: _big, pool: [near]).summary!.timeS;
+    final t2 = go(24 * 3600, windowS: 0).summary!.timeS;
+
+    test('über dem Fenster weiter bis Zeit + 2 × Fenster — gewählt wird nur im Fenster', () {
+      expect(t2 - t1, inInclusiveRange(kLoopTimeWindowS / 2, 2 * kLoopTimeWindowS), reason: 'Vorbedingung');
+      // N + F liegt anderthalb Fenster über der Zeit: auf der Leiste, nie
+      // der Vorschlag.
+      final time = t2 - 1.5 * kLoopTimeWindowS;
+      final plan = go(time);
+      expect(plan.stops.map((s) => s.trail.id), ['N']);
+      expect(plan.states.map((s) => s.order), [
+        ['N'],
+        ['N', 'F'],
+      ]);
+      expect(plan.states.last.timeS, greaterThan(time + kLoopTimeWindowS));
+      expect(plan.states.last.timeS, lessThanOrEqualTo(time + 2 * kLoopTimeWindowS));
+      expect(plan.pick, 0);
+      expect(plan.states[plan.pick!].order, plan.order, reason: 'der Vorschlag ist die gezeigte Runde');
+      // Was ein Punkt sagt: der Trail, der dazukam, der höchste Grad, der Anteil.
+      final [first, second] = plan.states;
+      expect(first.addedId, 'N', reason: 'dazu zur Runde ohne Trail');
+      expect((second.addedId, second.addedName, second.addedGrade), ('F', 'F', 3));
+      expect((first.grade, second.grade), (1, 3));
+      expect((first.trails, second.trails), (1, 2));
+      expect(first.trailShare, greaterThan(second.trailShare), reason: 'F hängt an 6 km Verbindung');
+      expect(second.lengthM, greaterThan(first.lengthM));
+      // Über Zeit + 2 × Fenster nichts mehr.
+      expect(go(t2 - 2 * kLoopTimeWindowS - 120).states, hasLength(1));
+    });
+
+    test('ein Stand nachgerechnet: seine Folge, seine Zeit als Deckel', () {
+      final plan = go(t2 - 1.5 * kLoopTimeWindowS);
+      final other = go(t2 - 1.5 * kLoopTimeWindowS, state: plan.states.last.order);
+      expect(other.outcome, LoopOutcome.ok);
+      expect(other.stops.map((s) => s.trail.id), ['N', 'F']);
+      expect(other.summary!.timeS, lessThanOrEqualTo(plan.states.last.timeS + 1));
+      expect(other.states, isEmpty, reason: 'die Leiste bleibt die der ersten Rechnung');
+      expect(other.self!.order, other.order);
+      expect(other.excluded, isEmpty);
+      // Zurück auf den kürzeren: F hat seinen Grund.
+      final back = go(t2 - 1.5 * kLoopTimeWindowS, state: plan.states.first.order);
+      expect(back.stops.map((s) => s.trail.id), ['N']);
+      expect(back.excluded, {'F': LoopExclusion.budget});
+    });
+
+    test('ohne Fenster keine Leiste: spaßiger Weg, Route, Grenze', () {
+      expect(go(t2, windowS: 0).states, isEmpty);
+      final route = planLoop(g,
+          start: start,
+          profile: _bio,
+          budget: kRouteDirectBudget,
+          pool: const [],
+          end: _m([(2990, 0)]).single,
+          returnToStart: false,
+          bare: true);
+      expect(route.states, isEmpty);
+      expect(route.self, isNull);
+    });
+  });
+
   test('Höhenbudget und Wanderweg-Budget greifen', () {
     final climb = planLoop(_square(), start: start, profile: _bio,
         budget: const LoopBudget(timeS: 3 * 3600, climbM: 150, hikingM: 2000),

@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Anteil über der Zeit</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&amp;family=Barlow+Condensed:wght@600;700&amp;family=JetBrains+Mono:wght@500;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#B6F04A}a:hover{color:#D4FF8A}
+button{font:inherit}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: #0E1411; color: #F2F4EF; font-family: Barlow, sans-serif;">
+
+  <div style="position: absolute; left: 0; top: 0; width: 390px; height: 120px; background: #ECEDE4;">
+    <svg width="390" height="120" viewBox="0 0 390 120" aria-hidden="true">
+      <path d="M0 70 C80 60 140 90 210 82 S330 50 390 66" fill="none" stroke="#FFFFFF" stroke-width="5"></path>
+      <path d="M120 100 C150 60 200 40 260 50 S320 90 300 104 C240 112 160 112 120 100 Z" fill="none" stroke="#B6F04A" stroke-opacity="0.6" stroke-width="10" stroke-linejoin="round"></path>
+      <path d="M120 100 C150 60 200 40 260 50 S320 90 300 104 C240 112 160 112 120 100 Z" fill="none" stroke="#4F8A10" stroke-width="1.5" stroke-linejoin="round"></path>
+    </svg>
+  </div>
+
+  <div style="position: absolute; left: 0; top: 92px; width: 390px; height: 752px; background: #161E19; border-radius: 24px 24px 0 0; box-sizing: border-box; padding: 10px 20px 20px; display: flex; flex-direction: column; gap: 12px;">
+    <div style="align-self: center; width: 36px; height: 4px; border-radius: 2px; background: #2A3630;"></div>
+
+    <div style="display: flex; align-items: flex-start; gap: 12px;">
+      <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px;">
+        <div style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 13px; letter-spacing: 0.08em; color: #B6F04A;">RUNDEN IM VERGLEICH</div>
+        <div style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 26px; letter-spacing: 0.02em; text-transform: uppercase;">Etwa 3 h · Bio · 800 hm</div>
+      </div>
+      <button aria-label="Vergleich schließen" style="width: 44px; height: 44px; border-radius: 22px; border: none; background: #1F2923; color: #9AA69D; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg>
+      </button>
+    </div>
+
+    <div style="background: #1F2923; border-radius: 14px; padding: 12px; display: flex; flex-direction: column; gap: 6px;">
+      <div style="display: flex; justify-content: space-between; align-items: baseline;">
+        <div style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 12px; letter-spacing: 0.08em; color: #9AA69D;">TRAIL-ANTEIL</div>
+        <div style="font-size: 11px; color: #9AA69D;">Feld = Ziel ± 30 min</div>
+      </div>
+      <div style="display: flex; gap: 6px;">
+        <div style="position: relative; width: 26px; height: 220px; font-family: 'JetBrains Mono', monospace; font-size: 10px; color: #9AA69D;">
+          <span style="position: absolute; right: 0; top: 4px;">40</span>
+          <span style="position: absolute; right: 0; top: 71px;">35</span>
+          <span style="position: absolute; right: 0; top: 137px;">30</span>
+          <span style="position: absolute; right: 0; top: 204px;">25</span>
+        </div>
+        <div style="position: relative; width: 286px; height: 220px;">
+          <div style="position: absolute; left: 0; top: 10px; width: 286px; height: 1px; background: #2A3630;"></div>
+          <div style="position: absolute; left: 0; top: 77px; width: 286px; height: 1px; background: #2A3630;"></div>
+          <div style="position: absolute; left: 0; top: 143px; width: 286px; height: 1px; background: #2A3630;"></div>
+          <div style="position: absolute; left: 0; top: 210px; width: 286px; height: 1px; background: #3A4840;"></div>
+          <div style="position: absolute; left: 143px; top: 0; width: 82px; height: 220px; background: rgba(182,240,74,0.10); border-radius: 6px;"></div>
+          <div style="position: absolute; left: 183px; top: 0; width: 2px; height: 220px; background: rgba(242,244,239,0.5);"></div>
+          <svg width="286" height="220" viewBox="0 0 286 220" aria-hidden="true" style="position: absolute; left: 0; top: 0;">
+            <polyline points="{{chain}}" fill="none" stroke="#4A5A50" stroke-width="1.5"></polyline>
+            <polyline points="{{ghostChain}}" fill="none" stroke="#FF8A3D" stroke-width="1.5" stroke-dasharray="4 4"></polyline>
+          </svg>
+          <sc-for list="{{points}}" as="p" hint-placeholder-count="9">
+            <button aria-label="{{p.aria}}" onClick="{{p.pick}}" style="position: absolute; left: {{p.left}}px; top: {{p.top}}px; width: 44px; height: 44px; padding: 0; border: none; background: transparent; cursor: pointer; opacity: {{p.op}};">
+              <div style="position: absolute; left: 7px; top: 7px; width: 30px; height: 30px; border-radius: 50%; background: {{p.ring}}; {{p.selCss}}"></div>
+              <div style="position: absolute; left: 11px; top: 11px; width: 22px; height: 22px; border-radius: 50%; background: #1F2923; display: flex; align-items: center; justify-content: center;">
+                <div style="display: block; {{p.shapeCss}}"></div>
+              </div>
+              <sc-if value="{{p.isPick}}" hint-placeholder-val="{{false}}">
+                <div style="position: absolute; left: -10px; top: -8px; width: 64px; text-align: center; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 10px; letter-spacing: 0.08em; color: #B6F04A;">VORSCHLAG</div>
+              </sc-if>
+            </button>
+          </sc-for>
+        </div>
+      </div>
+      <div style="position: relative; margin-left: 32px; width: 286px; height: 14px; font-family: 'JetBrains Mono', monospace; font-size: 10px; color: #9AA69D;">
+        <span style="position: absolute; left: 14px;">1 h</span>
+        <span style="position: absolute; left: 96px;">2 h</span>
+        <span style="position: absolute; left: 178px;">3 h</span>
+        <span style="position: absolute; left: 260px;">4 h</span>
+      </div>
+      <div style="display: flex; gap: 14px; flex-wrap: wrap; font-size: 11px; color: #9AA69D; padding-top: 2px;">
+        <span style="display: inline-flex; align-items: center; gap: 6px;"><span style="display: inline-block; width: 12px; height: 12px; border-radius: 50%; background: conic-gradient(#B6F04A 0 70%, #2A3630 70% 100%);"></span>Ring = Höhenmeter vom Limit</span>
+        <span>Form, Farbe = höchster Grad</span>
+      </div>
+    </div>
+
+    <div style="display: flex; gap: 8px;">
+      <button onClick="{{toggleOver}}" aria-pressed="{{overPressed}}" style="min-height: 36px; padding: 0 12px; border-radius: 10px; border: 1px solid {{chipBorder}}; background: {{chipBg}}; color: #F2F4EF; font-size: 13px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">{{chipLabel}}</button>
+    </div>
+
+    <div style="background: #1F2923; border-radius: 14px; padding: 12px; display: flex; flex-direction: column; gap: 10px;">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 18px; text-transform: uppercase;">{{cur.head}}</span>
+        <span style="display: inline-flex; align-items: center; gap: 4px; padding: 2px 6px; border-radius: 4px; background: {{cur.addColor}}; color: #0E1411; font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 12px;"><span style="display: inline-block; {{cur.addShape}}"></span>{{cur.addGrade}}</span>
+        <span style="flex-grow: 1; text-align: right; font-size: 12px; color: {{cur.subColor}};">{{cur.sub}}</span>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px;">
+        <div style="display: flex; flex-direction: column; gap: 2px;">
+          <span style="font-size: 11px; color: #9AA69D;">Zeit</span>
+          <span style="font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 15px;">{{cur.time}}</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 2px;">
+          <span style="font-size: 11px; color: #9AA69D;">Trail</span>
+          <span style="font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 15px;">{{cur.share}} %</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 3px;">
+          <span style="font-size: 11px; color: #9AA69D;">Bergauf</span>
+          <span style="font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 15px; color: {{cur.hmColor}};">{{cur.hm}}</span>
+          <div style="position: relative; height: 4px; border-radius: 2px; background: #2A3630;"><div style="position: absolute; left: 0; top: 0; height: 4px; border-radius: 2px; width: {{cur.hmPct}}%; background: {{cur.hmFill}};"></div></div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 2px;">
+          <span style="font-size: 11px; color: #9AA69D;">Bis</span>
+          <span style="display: inline-flex; align-self: flex-start; align-items: center; gap: 4px; padding: 2px 6px; border-radius: 4px; background: {{cur.gradeColor}}; color: #0E1411; font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 12px;"><span style="display: inline-block; {{cur.shieldCss}}"></span>{{cur.grade}}</span>
+        </div>
+      </div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 4px; margin-top: auto;">
+      <button style="height: 52px; border-radius: 14px; border: none; background: #B6F04A; color: #0E1411; font-weight: 600; font-size: 16px; cursor: pointer;">{{cta}}</button>
+      <button onClick="{{reset}}" style="min-height: 44px; border: none; background: transparent; color: #B6F04A; font-weight: 600; font-size: 14px; cursor: pointer;">Zurück zum Vorschlag</button>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+var GRADE = ['#4CC46E', '#5A9BF0', '#F0605C', '#F2F4EF'];
+var STATES = [
+  { m: 58, share: 31, hm: 210, g: 1, n: 1, km: 11.2, add: 'Wurzelpfad', ag: 1 },
+  { m: 84, share: 34, hm: 320, g: 1, n: 2, km: 15.0, add: 'Buchenhang', ag: 1 },
+  { m: 112, share: 29, hm: 410, g: 2, n: 3, km: 19.8, add: 'Steinbruch', ag: 2 },
+  { m: 138, share: 33, hm: 520, g: 2, n: 4, km: 22.6, add: 'Bachtobel', ag: 2 },
+  { m: 151, share: 36, hm: 560, g: 2, n: 5, km: 24.1, add: 'Fuchsbau', ag: 1 },
+  { m: 172, share: 31, hm: 650, g: 2, n: 6, km: 27.9, add: 'Kammweg', ag: 0 },
+  { m: 186, share: 38, hm: 700, g: 3, n: 7, km: 29.6, add: 'Hohlweg', ag: 3 },
+  { m: 207, share: 35, hm: 770, g: 3, n: 8, km: 32.8, add: 'Eichkopf', ag: 2 },
+  { m: 224, share: 33, hm: 795, g: 3, n: 9, km: 35.4, add: 'Schanze', ag: 2 },
+  { m: 235, share: 37, hm: 880, g: 3, n: 10, km: 36.9, add: 'Felsriegel', ag: 3, over: true }
+];
+var PICK = 6, LIMIT = 800;
+function hm(m) { return Math.floor(m / 60) + ' h ' + String(m % 60).padStart(2, '0'); }
+function px(m) { return (m - 45) / 210 * 286; }
+function py(s) { return 10 + (40 - s) / 15 * 200; }
+function shape(g, size, color) {
+  var base = 'width:' + size + 'px;height:' + size + 'px;box-sizing:border-box;';
+  if (g === 0) return base + 'border-radius:50%;border:2px solid ' + color + ';';
+  if (g === 1) return base + 'border-radius:50%;background:' + color + ';';
+  if (g === 2) return base + 'border-radius:2px;background:' + color + ';';
+  var s = Math.round(size * 0.8);
+  return 'width:' + s + 'px;height:' + s + 'px;transform:rotate(45deg);background:' + color + ';';
+}
+function isPeak(i, list) {
+  var a = list[i - 1], b = list[i + 1];
+  return (!a || list[i].share > a.share) && (!b || list[i].share > b.share);
+}
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { sel: PICK, over: true }; }
+  renderVals() {
+    var self = this;
+    var showOver = this.state.over;
+    var sel = this.state.sel;
+    if (!showOver && STATES[sel].over) sel = PICK;
+    var list = STATES.filter(function (s) { return showOver || !s.over; });
+    var s = STATES[sel];
+    var points = list.map(function (st, j) {
+      var i = STATES.indexOf(st);
+      var pct = Math.min(100, st.hm / LIMIT * 100);
+      var isSel = i === sel;
+      return {
+        left: px(st.m) - 22,
+        top: py(st.share) - 22,
+        op: isSel || isPeak(j, list) ? 1 : 0.5,
+        ring: st.over ? '#FF8A3D' : 'conic-gradient(#B6F04A 0 ' + pct + '%, #2A3630 ' + pct + '% 100%)',
+        selCss: isSel ? 'box-shadow:0 0 0 2px #1F2923,0 0 0 4px #F2F4EF;' : '',
+        shapeCss: st.over ? 'width:10px;height:10px;box-sizing:border-box;border-radius:50%;border:1.5px dashed #FF8A3D;' : shape(st.g, 10, GRADE[st.g]),
+        isPick: i === PICK,
+        aria: hm(st.m) + ', ' + st.share + ' Prozent Trail, ' + st.hm + ' von ' + LIMIT + ' Höhenmetern, bis S' + st.g,
+        pick: function () { self.setState({ sel: i }); }
+      };
+    });
+    var normal = STATES.filter(function (x) { return !x.over; });
+    var chain = normal.map(function (x) { return px(x.m).toFixed(1) + ',' + py(x.share).toFixed(1); }).join(' ');
+    var last = normal[normal.length - 1], ghost = STATES[STATES.length - 1];
+    var ghostChain = showOver ? px(last.m).toFixed(1) + ',' + py(last.share).toFixed(1) + ' ' + px(ghost.m).toFixed(1) + ',' + py(ghost.share).toFixed(1) : '';
+    var sub;
+    if (s.over) sub = (s.hm - LIMIT) + ' hm über dem Limit';
+    else if (sel === PICK) sub = 'Vorschlag des Planers';
+    else if (isPeak(list.indexOf(s), list)) sub = 'lohnt sich: Anteil steigt';
+    else sub = 'Anteil fällt – Verbindung lang';
+    return {
+      points: points,
+      chain: chain,
+      ghostChain: ghostChain,
+      toggleOver: function () { self.setState({ over: !showOver }); },
+      overPressed: showOver ? 'true' : 'false',
+      chipLabel: showOver ? '✓ Auch über dem Limit' : 'Auch über dem Limit',
+      chipBorder: showOver ? '#B6F04A' : '#2A3630',
+      chipBg: showOver ? 'rgba(182,240,74,0.14)' : 'transparent',
+      reset: function () { self.setState({ sel: PICK }); },
+      cta: sel === PICK ? 'Fahrt starten' : 'Diese Runde nehmen',
+      cur: {
+        head: '+ ' + s.add,
+        addGrade: 'S' + s.ag,
+        addColor: GRADE[s.ag],
+        addShape: shape(s.ag, 8, '#0E1411'),
+        sub: sub,
+        subColor: s.over ? '#FF8A3D' : '#9AA69D',
+        time: hm(s.m),
+        share: s.share,
+        hm: s.hm,
+        hmPct: Math.min(100, s.hm / LIMIT * 100),
+        hmFill: s.over ? '#FF8A3D' : '#B6F04A',
+        hmColor: s.over ? '#FF8A3D' : '#F2F4EF',
+        grade: 'S' + s.g,
+        gradeColor: GRADE[s.g],
+        shieldCss: shape(s.g, 8, '#0E1411')
+      }
+    };
+  }
+}
+</script>
+</body>
+</html>

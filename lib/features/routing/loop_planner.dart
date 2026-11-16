@@ -129,9 +129,13 @@ class LoopBudget {
   final double hikingM;
   final double windowS;
 
-  /// Bis hierhin baut der Planer die Runde auf — und so weit suchen die
-  /// Dijkstras.
+  /// Bis hierhin zählt ein Stand zum Fenster.
   double get maxTimeS => timeS + windowS;
+
+  /// Bis hierhin baut der Greedy die Runde auf (#549, Konzept-Routing
+  /// 12.10) — die Stände über dem Fenster stehen nur auf der Leiste
+  /// „andere Runden" — und so weit suchen die Dijkstras.
+  double get ceilTimeS => timeS + 2 * windowS;
 
   /// Ab hier liegt ein Stand im Fenster.
   double get minTimeS => timeS - windowS;
@@ -338,6 +342,67 @@ class LoopSummary {
   final bool heightsComplete;
 }
 
+/// Ein Stand des Greedy (#549, Konzept-Routing 12.10): die Runde des
+/// vorigen Stands plus EIN Trail. Sendbar und ohne Linie — die rechnet
+/// erst ein Tipp ([planLoop] mit `state:`).
+class LoopState {
+  const LoopState({
+    required this.timeS,
+    required this.share,
+    required this.trailShare,
+    required this.climbM,
+    required this.lengthM,
+    required this.trails,
+    required this.order,
+    this.grade,
+    this.addedId,
+    this.addedName,
+    this.addedGrade,
+  });
+
+  final double timeS;
+
+  /// Der Anteil, nach dem gewählt wird (`_Route.share`, mit der Vorliebe
+  /// gewichtet) — die Höhe des Stiels.
+  final double share;
+
+  /// Der echte Trail-Anteil: Trail-Meter je Meter Strecke — die Zahl.
+  final double trailShare;
+  final double climbM;
+  final double lengthM;
+
+  /// Zahl der verschiedenen Trails.
+  final int trails;
+
+  /// Der höchste S-Grad der Runde; null, wenn kein Trail einen hat.
+  final int? grade;
+
+  /// Der Trail, der zum vorigen Stand dazukam (beim ersten: zur Runde
+  /// ohne Trail); null für einen nachgerechneten Stand ([LoopPlan.self]).
+  final String? addedId;
+  final String? addedName;
+  final int? addedGrade;
+
+  /// Die Folge der Halte (wie [LoopPlan.order]) — damit rechnet der Tipp.
+  final List<String> order;
+
+  /// Derselbe Stand, nachgerechnet: Zahlen und Folge aus [refined], der
+  /// Trail, der dazukam, bleibt dieser — [refined] kennt keinen Vorgänger.
+  LoopState refinedBy(LoopState refined) => LoopState(
+        timeS: refined.timeS,
+        share: refined.share,
+        trailShare: refined.trailShare,
+        climbM: refined.climbM,
+        lengthM: refined.lengthM,
+        trails: refined.trails,
+        grade: refined.grade,
+        order: refined.order,
+        addedId: addedId,
+        addedName: addedName,
+        addedGrade: addedGrade,
+      );
+}
+
 /// Ein Trail in der Runde, in Reihenfolge.
 typedef LoopStop = ({PoolTrail trail, bool secondPass});
 
@@ -352,9 +417,25 @@ class LoopPlan {
     this.order = const [],
     this.snaps = const [],
     this.shortForShare = false,
+    this.states = const [],
+    this.pick,
+    this.self,
   });
 
   final LoopOutcome outcome;
+
+  /// Die Stände des Greedy bis Zeit + 2 × Fenster (#549), die Leiste
+  /// „andere Runden". Leer ohne Fenster (Route, spaßiger Weg), getunt und
+  /// beim Nachrechnen eines Stands.
+  final List<LoopState> states;
+
+  /// Welcher von [states] der Vorschlag ist — schon nach der lokalen
+  /// Suche, also wo die gezeigte Runde liegt.
+  final int? pick;
+
+  /// Die gezeigte Runde als Stand: Zeit, Anteil, Grad nach der lokalen
+  /// Suche. Beim Nachrechnen eines Stands rückt sein Punkt dorthin.
+  final LoopState? self;
 
   /// Gewählt ist ein Stand UNTER dem Fenster, weil sein Trail-Anteil
   /// deutlich besser war als der beste im Fenster ([kLoopShareBelow]) —
@@ -402,7 +483,10 @@ class LoopPlan {
             points: points,
             order: order,
             snaps: kept,
-            shortForShare: shortForShare);
+            shortForShare: shortForShare,
+            states: states,
+            pick: pick,
+            self: self);
   }
 }
 
@@ -559,6 +643,7 @@ LoopPlan planLoop(
   LoopTune? tune,
   List<LatLng> waypoints = const [],
   bool bare = false,
+  List<String>? state,
 }) {
   final firstWaypoint = pool.length;
   pool = [...pool, for (var k = 0; k < waypoints.length; k++) PoolTrail.waypoint(k, waypoints[k])];
@@ -621,13 +706,18 @@ LoopPlan planLoop(
   }
   // Erst NACH dem Anheften: Hat es eine Kante geteilt, gilt nichts
   // Gemerktes mehr.
-  final searches = (cache ?? LoopSearchCache()).._bind(g, (_riderKey(profile), budget.timeS));
+  final searches = (cache ?? LoopSearchCache()).._bind(g, (_riderKey(profile), budget.timeS, budget.windowS));
   // Die Linie beginnt und endet am Weg, wo der Punkt gesprungen ist.
   LatLng moved(SnapRole role, LatLng p) => snaps.where((s) => s.role == role).firstOrNull?.at ?? p;
   final from = moved(SnapRole.start, start);
   final finish = end == null ? from : moved(SnapRole.end, end);
   final planner = _Planner(g, from, src, dst, finish, profile, budget, pool, heads, tails, out, searches, bare: bare);
-  return (tune == null ? planner.run(searchBudget) : planner.runTuned(tune))._withSnaps(snaps);
+  final plan = tune != null
+      ? planner.runTuned(tune)
+      : state != null
+          ? planner.runState(state, searchBudget)
+          : planner.run(searchBudget);
+  return plan._withSnaps(snaps);
 }
 
 class _Planner {
@@ -665,7 +755,7 @@ class _Planner {
   SearchResult _search(int from, {required bool noHiking}) => cache._searches.putIfAbsent((from, noHiking), () {
         cache.searchesRun++;
         final r = dijkstra(g, from, p,
-            limit: budget.maxTimeS, allow: noHiking ? (e) => !e.hiking : null, costs: cache._costs ??= EdgeCosts(g, p));
+            limit: budget.ceilTimeS, allow: noHiking ? (e) => !e.hiking : null, costs: cache._costs ??= EdgeCosts(g, p));
         // Der Ladebalken (#356): Die Zeit steckt in den Suchen, eine vom
         // Start und eine je Trail-Ende; was danach kommt, ist kurz. Die
         // Suchen ohne Wanderweg kommen nur manchmal dazu — daher die
@@ -745,9 +835,10 @@ class _Planner {
     return _Route(seq, legs, time, climb, hiking, wasted, trailM, length, value);
   }
 
-  /// Die Zeit, bis zu der eine Runde passt: zuerst Zeit + Fenster; ist
-  /// der Stand gewählt (Schritt 2b in [run]), dessen Zeit — die lokale
-  /// Suche tauscht dann nur noch darunter.
+  /// Die Zeit, bis zu der eine Runde passt: zuerst Zeit + Fenster, für
+  /// die Stände der Leiste (#549) danach Zeit + 2 × Fenster; ist der
+  /// Stand gewählt (Schritt 2b in [run]), dessen Zeit — die lokale Suche
+  /// tauscht dann nur noch darunter.
   late double timeCap = budget.maxTimeS;
 
   /// Siehe [LoopPlan.shortForShare] — gesetzt in [chooseState].
@@ -843,32 +934,131 @@ class _Planner {
     //    Zuwachs; zweite Abfahrten nur, wenn sie etwas bringen — bis zur
     //    Zeit plus Fenster. Jeder Stand wird gemerkt.
     final states = [route];
-    while (true) {
-      ({int i, _Route route, double ratio})? best;
-      for (var i = 0; i < pool.length; i++) {
-        if (!usable(i)) continue;
-        final n = passes(route.seq, i);
-        if (n >= kLoopMaxPasses) continue;
-        // Mit der Vorliebe gewichtet (Konzept-Routing 12.4).
-        final gain = n == 0 ? pool[i].valueM : pool[i].secondPassValueM;
-        if (gain <= 0) continue;
-        final ins = bestInsertion(route, i);
-        if (ins == null) continue;
-        final ratio = gain / (ins.dt <= 1 ? 1 : ins.dt);
-        if (best == null || ratio > best.ratio) best = (i: i, route: ins.route, ratio: ratio);
+    void grow() {
+      while (true) {
+        ({int i, _Route route, double ratio})? best;
+        for (var i = 0; i < pool.length; i++) {
+          if (!usable(i)) continue;
+          final n = passes(route.seq, i);
+          if (n >= kLoopMaxPasses) continue;
+          // Mit der Vorliebe gewichtet (Konzept-Routing 12.4).
+          final gain = n == 0 ? pool[i].valueM : pool[i].secondPassValueM;
+          if (gain <= 0) continue;
+          final ins = bestInsertion(route, i);
+          if (ins == null) continue;
+          final ratio = gain / (ins.dt <= 1 ? 1 : ins.dt);
+          if (best == null || ratio > best.ratio) best = (i: i, route: ins.route, ratio: ratio);
+        }
+        if (best == null) break;
+        route = best.route;
+        states.add(route);
       }
-      if (best == null) break;
-      route = best.route;
-      states.add(route);
+    }
+
+    grow();
+    final inWindow = states.length;
+    // 2a. Weiter bis Zeit + 2 × Fenster, für die Leiste (#549): erst
+    //     NACH dem Fenster, damit der Greedy bis dorthin genau so wählt wie
+    //     ohne — sonst nähme er früher einen Trail, der nur mit der
+    //     größeren Grenze passt, und der Vorschlag wäre ein anderer.
+    if (budget.windowS > 0) {
+      timeCap = budget.ceilTimeS;
+      grow();
     }
     // 2b. Der Stand (Konzept-Routing 12.5): im Fenster um die Zeit der mit
     //     dem besten Trail-Anteil, bei Gleichstand der näher an der Zeit.
     //     Liegt keiner im Fenster, der längste darunter — der letzte.
-    route = chooseState(states);
-    timeCap = route.timeS;
-    // 3. Lokale Suche mit Zeitdeckel: einen Halt gegen einen anderen
-    //    tauschen oder herausnehmen und etwas Besseres einfügen; zwei
-    //    Halte vertauschen. Nur Verbesserungen im Sinn der Zielfunktion.
+    final chosen = chooseState(states.sublist(0, inWindow));
+    timeCap = chosen.timeS;
+    route = improve(chosen, fixed, searchBudget);
+    giveReasons(route);
+    // Die Leiste: jeder Stand mit Trail; der gewählte an der Stelle, an
+    // die ihn die lokale Suche gebracht hat.
+    final strip = <LoopState>[];
+    int? pick;
+    if (budget.windowS > 0 && !this.bare) {
+      _Route? prev;
+      for (final r in states) {
+        final hasTrail = r.seq.any((i) => !pool[i].waypoint);
+        if (hasTrail) {
+          if (identical(r, chosen)) pick = strip.length;
+          strip.add(identical(r, chosen) ? stateOf(route, prev) : stateOf(r, prev));
+        }
+        prev = r;
+      }
+    }
+    return _assemble(route, states: strip, pick: pick);
+  }
+
+  /// Ein Stand der Leiste ([LoopPlan.states]) nachgerechnet (#549): seine
+  /// Folge, die lokale Suche mit seiner Zeit als Deckel.
+  LoopPlan runState(List<String> order, Duration searchBudget) {
+    final index = {for (var i = 0; i < pool.length; i++) pool[i].id: i};
+    final seq = [
+      for (final id in order)
+        if (index[id] case final i? when usable(i)) i,
+    ];
+    final r = evaluate(seq);
+    if (r == null || seq.every((i) => pool[i].waypoint)) {
+      return LoopPlan(LoopOutcome.empty, excluded: _trailsOnly(excluded));
+    }
+    timeCap = r.timeS;
+    final fixed = {
+      for (final i in seq)
+        if (pool[i].waypoint || pool[i].mandatory) i,
+    };
+    final route = improve(r, fixed, searchBudget);
+    giveReasons(route);
+    return _assemble(route);
+  }
+
+  /// Der Stand [r] für die Leiste; [prev] ist der davor.
+  LoopState stateOf(_Route r, _Route? prev) {
+    int? grade;
+    final ids = <int>{};
+    for (final i in r.seq) {
+      final t = pool[i];
+      if (t.waypoint) continue;
+      ids.add(i);
+      final g = t.grade;
+      if (g != null && (grade == null || g > grade)) grade = g;
+    }
+    // Was dazukam: der Index, der in [r] einmal öfter steht als in [prev].
+    int? added;
+    if (prev != null) {
+      final count = <int, int>{};
+      for (final i in prev.seq) {
+        count[i] = (count[i] ?? 0) + 1;
+      }
+      for (final i in r.seq) {
+        final n = count[i] ?? 0;
+        if (n == 0) {
+          added = i;
+          break;
+        }
+        count[i] = n - 1;
+      }
+    }
+    final a = added == null ? null : pool[added];
+    return LoopState(
+      timeS: r.timeS,
+      share: r.share,
+      trailShare: r.lengthM <= 0 ? 0 : r.trailM / r.lengthM,
+      climbM: r.climbM,
+      lengthM: r.lengthM,
+      trails: ids.length,
+      grade: grade,
+      addedId: a?.id,
+      addedName: a?.name,
+      addedGrade: a?.grade,
+      order: [for (final i in r.seq) pool[i].id],
+    );
+  }
+
+  /// 3. Lokale Suche mit Zeitdeckel ([timeCap]): einen Halt gegen einen
+  /// anderen tauschen oder herausnehmen und etwas Besseres einfügen; zwei
+  /// Halte vertauschen. Nur Verbesserungen im Sinn der Zielfunktion.
+  _Route improve(_Route route, Set<int> fixed, Duration searchBudget) {
     final clock = Stopwatch()..start();
     var improved = true;
     while (improved && clock.elapsed < searchBudget) {
@@ -907,7 +1097,11 @@ class _Planner {
         }
       }
     }
-    // 4. Die Gründe für alles, was nicht drin ist.
+    return route;
+  }
+
+  /// 4. Die Gründe für alles, was nicht drin ist.
+  void giveReasons(_Route route) {
     for (var i = 0; i < pool.length; i++) {
       final t = pool[i];
       if (t.waypoint || excluded.containsKey(t.id) || route.seq.contains(i)) continue;
@@ -915,7 +1109,6 @@ class _Planner {
           ? LoopExclusion.unreachable
           : LoopExclusion.budget;
     }
-    return _assemble(route);
   }
 
   /// Die festgelegte Folge, jedes Teilstück durch seine Zwischenpunkte.
@@ -971,7 +1164,7 @@ class _Planner {
     return _assemble(_Route(seq, legs, time, climb, hiking, wasted, trailM, length, value));
   }
 
-  LoopPlan _assemble(_Route route) {
+  LoopPlan _assemble(_Route route, {List<LoopState> states = const [], int? pick}) {
     // Nur Zwischenpunkte, kein Trail: Das ist keine Runde.
     if (!bare && route.seq.every((i) => pool[i].waypoint)) {
       return LoopPlan(LoopOutcome.empty, excluded: _trailsOnly(excluded));
@@ -1059,6 +1252,9 @@ class _Planner {
       excluded: _trailsOnly(excluded),
       points: points,
       order: [for (final i in route.seq) pool[i].id],
+      states: states,
+      pick: pick,
+      self: bare ? null : stateOf(route, null),
     );
   }
 }

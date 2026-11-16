@@ -40,7 +40,10 @@ const kMapPanelResult = 0.4;
 /// Obergrenze dafür: Über dem Blatt bleibt die Route im Bild. 0,6 seit
 /// #517 — die Chips vor „Fahrt starten" brauchen auf dem Pixel XL eine
 /// Zeile mehr; 40 % Karte darüber reichen für die eingepasste Runde.
-const kMapPanelResultMax = 0.6;
+/// 0,65 seit #549: Die Leiste „andere Runden" steht über den Knöpfen
+/// (Konzept-Routing 12.10 rechnete mit rund 90 dp mehr); mit der Zeile
+/// „Vorschlag: …" darüber fehlten auf dem Pixel XL sonst 26 px.
+const kMapPanelResultMax = 0.65;
 
 /// Griff an das offene Blatt: verkleinern/vergrößern und schließen.
 class MapPanelController {

@@ -122,7 +122,27 @@ class LoopSession {
     this.entry = false,
     this.targetMine = false,
     this.suggestReachM,
+    this.strip = const [],
+    this.stripPick,
+    this.stripShown,
+    this.stripRaw = false,
   });
+
+  /// Die Leiste „andere Runden" (#549, Konzept-Routing 12.10): die Stände
+  /// der gerechneten Runde ([LoopPlan.states]). Ein nachgerechneter Stand
+  /// rückt an seine neue Stelle; leer, wenn die Planung keine hat.
+  final List<LoopState> strip;
+
+  /// Welcher Stand der Vorschlag ist, und welcher gezeigt wird.
+  final int? stripPick;
+  final int? stripShown;
+
+  /// Der gezeigte Stand ist noch roh — die Kacheln zeigen seine Zahlen,
+  /// die Linie kommt mit dem Nachrechnen.
+  final bool stripRaw;
+
+  /// Die Leiste steht: eine Runde mit Ständen, nicht getunt.
+  bool get hasStrip => strip.isNotEmpty && stripPick != null && stripShown != null && !tuned;
 
   /// Die gezeigte Planung ist ein Vorschlag (#516 Schritt 4,
   /// Konzept-Routing 12.4): der Pool aus diesem Umkreis um den Start,
@@ -267,6 +287,10 @@ class LoopSession {
     bool? entry,
     bool? targetMine,
     double? suggestReachM,
+    List<LoopState>? strip,
+    int? stripPick,
+    int? stripShown,
+    bool? stripRaw,
   }) =>
       LoopSession(
         open: open ?? this.open,
@@ -297,6 +321,10 @@ class LoopSession {
         entry: entry ?? this.entry,
         targetMine: targetMine ?? this.targetMine,
         suggestReachM: clearPlan ? suggestReachM : (suggestReachM ?? this.suggestReachM),
+        strip: clearPlan ? (strip ?? const []) : (strip ?? this.strip),
+        stripPick: clearPlan ? stripPick : (stripPick ?? this.stripPick),
+        stripShown: clearPlan ? stripShown : (stripShown ?? this.stripShown),
+        stripRaw: clearPlan ? (stripRaw ?? false) : (stripRaw ?? this.stripRaw),
       );
 }
 
@@ -363,6 +391,14 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
   /// Die Zwischenpunkte, mit denen [LoopSession.plan] gerechnet ist.
   RouteVias _vias = RouteVias.none;
   int _tuneSeq = 0;
+
+  /// Zählt die Tipps auf die Leiste (#549): Ein späterer verwirft das
+  /// Nachrechnen eines früheren.
+  int _stateSeq = 0;
+
+  /// Die Planung des Vorschlags, wie [compute] sie brachte — zurück auf
+  /// ihn rechnet nichts.
+  LoopPlan? _pickPlan;
 
   @override
   LoopSession build() {
@@ -950,9 +986,15 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
       // nicht — der ist, wo man steht.
       LatLng? snapped(SnapRole role, [int k = 0]) =>
           plan.snaps.where((s) => s.role == role && s.index == k).firstOrNull?.at;
+      _pickPlan = plan;
+      _stateSeq++;
       state = state.copyWith(
           phase: LoopPhase.result,
           plan: plan,
+          strip: plan.states,
+          stripPick: plan.pick,
+          stripShown: plan.pick,
+          stripRaw: false,
           suggestReachM: suggestReachM,
           // Die Trails des Vorschlags sind die Auswahl, ohne „geändert".
           selected: suggest ? {for (final st in plan.stops) st.trail.id} : null,
@@ -1096,6 +1138,56 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
 
   /// Zurück zur frei gerechneten Runde.
   Future<void> resetTuning() => compute();
+
+  /// Ein anderer Stand der Leiste (#549, Konzept-Routing 12.10): Die
+  /// Kacheln zeigen sofort seine rohen Zahlen; die Linie rechnet der
+  /// Runner mit seiner Folge und seiner Zeit als Deckel nach, danach rückt
+  /// der Punkt an seine neue Stelle. Zurück auf den Vorschlag rechnet
+  /// nichts. Beim Vorschlag sind die Trails des Stands die Auswahl
+  /// („Bearbeiten" nimmt sie mit).
+  Future<void> showState(int k) async {
+    final s0 = state;
+    if (!s0.hasStrip || k < 0 || k >= s0.strip.length || k == s0.stripShown || s0.busy) return;
+    final suggest = s0.suggestReachM != null;
+    final seq = ++_stateSeq;
+    final pick = _pickPlan;
+    if (k == s0.stripPick && pick != null) {
+      state = s0.copyWith(
+          plan: pick,
+          stripShown: k,
+          stripRaw: false,
+          selected: suggest ? {for (final st in pick.stops) st.trail.id} : null);
+      return;
+    }
+    final request = _planRequest;
+    final box = _graphBox;
+    if (request == null || box == null) return;
+    state = s0.copyWith(stripShown: k, stripRaw: true);
+    final generation = _generation;
+    try {
+      if (!_hasGraph) {
+        final blocked = await _loadGraph(box, fillOnline: _graphOnline, generation: generation, quiet: true);
+        if (generation != _generation || seq != _stateSeq || blocked != null) return;
+      }
+      final next = await _runner!.plan(request.withState(s0.strip[k].order));
+      if (generation != _generation || seq != _stateSeq) return;
+      if (next.outcome != LoopOutcome.ok) {
+        state = state.copyWith(stripRaw: false);
+        return;
+      }
+      final strip = [...state.strip];
+      if (next.self case final self?) strip[k] = strip[k].refinedBy(self);
+      state = state.copyWith(
+          plan: next,
+          strip: strip,
+          stripRaw: false,
+          selected: suggest ? {for (final st in next.stops) st.trail.id} : null);
+    } catch (e, s) {
+      if (generation != _generation || seq != _stateSeq) return;
+      logError('Runde: anderer Stand', e, s);
+      state = state.copyWith(stripRaw: false);
+    }
+  }
 }
 
 final loopPlannerProvider = NotifierProvider<LoopPlannerNotifier, LoopSession>(LoopPlannerNotifier.new);
