@@ -961,19 +961,36 @@ und Anstieg wie die Zeile „bis zum Ziel"; kein Ring.
 Vor dem ersten Fix dort „Warte auf GPS". **Die Aufzeichnung**
 (Konzept-Garmin 1, Entscheidung 6, seit 0.162.0) als Schild in
 `FONT_XTINY`, auf der Karte bei y 44 (höher schneidet der Kreis es ab),
-auf den Zahlenseiten bei y 214: vor START „START: AUFNAHME" Lime auf
-Schwarz, „PAUSE" weiß auf Warnfarbe, „TRAIL" schwarz auf Lime, sonst nur
-ein roter Punkt (`S2`) mit weißem Saum. Auf den Zahlenseiten steht vor
-START statt des Texts ein grauer Punkt (`MUTED_DARK`) — 161 px passen bei
-y 214 nicht in den Kreis, und rot hieße „nimmt auf" (#555). Einblendungen („Trail beginnt",
+auf den Zahlenseiten bei y 214: „TRAIL" schwarz auf Lime, sonst nur
+ein roter Punkt (`S2`) mit weißem Saum. **Seit 1.7.0 (#558) Zeichen statt
+Wörter**, Designer-Canvas „TrailBuddy Uhr – Symbole statt Wörter" vom
+2026-11-16: vor START nur ein Dreieck in Lime auf Schwarz rechts oben an
+der START-Taste (dort, wo bei einer Frage „JA" steht; Karte und
+Zahlenseiten gleich), in der Pause zwei Balken weiß auf Warnfarbe. Der
+Satz — Stoppuhr (Fahrzeit), Uhr (Uhrzeit), Maß zwischen zwei Marken
+(Strecke), Herz (Puls, grau), zwei Gipfel (Höhe), Wegweiser (zum Trail),
+Fahne (zum Ziel), Winkel (Steigung), Flugzeug beim Abheben mit Bodenlinie
+(Airtime), Wheelie und Stoppie als Rad auf einem Rad über der Bodenlinie
+— ist 16 px hoch (12 zu klein, 8 ein Fleck), nur aus Fläche, Kreis, Linie
+und Vieleck, ohne Bilddatei; die Geometrie steht in
+`tool/watch_layout.json` (`symbols`), `tool/watch_layout.py` erzeugt
+`garmin/source/Symbols.mc`. Auf den Zahlenseiten eine Zeile je Zelle:
+Zeichen, Wert in `FONT_MEDIUM`, Einheit klein und grau auf derselben
+Grundlinie; hinter dem Anstiegspfeil entfällt das „m" („zum Trail",
+„zum Ziel"), ab vier Stellen auch bei der Höhe. „Sprünge": Wheelie-Weite
+oben, links der Sprung (Flugzeit groß, Anzahl klein darunter), rechts der
+Wheelie (Winkel, Anzahl). Wörter bleiben, wo ein Zeichen nichts sagt:
+„TRAIL", „ANGEKOMMEN", „KM/H", Fragen und Warnungen. Einblendungen („Trail beginnt",
+„Aufzeichnung läuft") 2,5 s („Trail beginnt",
 „Aufzeichnung läuft") 2,5 s als schwarzes Schild in `FONT_SMALL` bei y 82
 bzw. 176; die Menüs (Pause, Trail endet) sind `Menu2` der Uhr. Der
 Build-Stempel der Übersicht steht deshalb bei y 56. Die Punkte entlang der Mittellinie
 (volle Kreise, kein Polygon) schreibt `tool/brand_icons.py` nach
 `garmin/resources/logo/`. Angekommen: eine schwarze
 Zusammenfassung mit den Schildern der befahrenen Trails (sie zählen
-selbst, die Zeile „8 Trails" ist weg) und darunter zweizeilig den
-Bestwerten („Flug 1,2 s" / „Wheelie 123 m"; #555). Der Frist-Balken
+selbst, die Zeile „8 Trails" ist weg) und darunter in einer Zeile den
+Bestwerten (Flugzeug 1,2 s, Wheelie 123 m, weiß; die Fahrzeit mit
+Stoppuhr ohne „h"; #558). Der Frist-Balken
 einer Frage ist 128 px breit und endet vor „NEIN". Die Farben sind je
 die nächste MIP-Farbe zur App-Farbe (`garmin/source/Colors.mc`, geprüft
 von `tool/garmin_route.py --self-test`); am Gerät in der Sonne prüfen.

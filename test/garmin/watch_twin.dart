@@ -44,6 +44,9 @@ class WatchLayout {
     return WatchLayout._(size, values, (j['fonts'] as Map<String, dynamic>).cast<String, String>());
   }
 
+  /// Die Zeichen (#558): Name → Breite und Befehle.
+  static Map<String, dynamic> symbols() => (raw()['symbols'] as Map<String, dynamic>)['def'] as Map<String, dynamic>;
+
   int v(String name) => _values[name] ?? (throw ArgumentError('watch_layout.json: values.$name fehlt'));
   String font(String name) => _fonts[name] ?? (throw ArgumentError('watch_layout.json: fonts.$name fehlt'));
 }
@@ -156,6 +159,17 @@ class MipCanvas {
         final ex = xx < x + rad ? x + rad - xx : (xx >= x + rw - rad ? xx - (x + rw - rad - 1) : 0);
         final ey = yy < y + rad ? y + rad - yy : (yy >= y + rh - rad ? yy - (y + rh - rad - 1) : 0);
         if (ex * ex + ey * ey <= rad * rad) set(xx, yy, c);
+      }
+    }
+  }
+
+  /// Ein Kreis als Linie ([pen] breit), wie `drawCircle` mit `setPenWidth`.
+  void ringStroke(int cx, int cy, int r, int pen, int c) {
+    final o = r + pen;
+    for (var dy = -o; dy <= o; dy++) {
+      for (var dx = -o; dx <= o; dx++) {
+        final d = math.sqrt(dx * dx + dy * dy);
+        if ((d - r).abs() <= pen / 2) set(cx + dx, cy + dy, c);
       }
     }
   }
@@ -279,6 +293,8 @@ class TwinScene {
       this.ask = false,
       this.askBig = false,
       this.toast,
+      this.toastSym,
+      this.toastText,
       this.phone = false,
       this.storageFull = false,
       this.trails = 6,
@@ -292,6 +308,9 @@ class TwinScene {
   final bool askBig;
   /// Schlüssel eines Texts aus strings.xml für die Einblendung.
   final String? toast;
+  /// Zeichen und Zahl statt Text (#558): Name des Zeichens und sein Text.
+  final String? toastSym;
+  final String? toastText;
   final bool phone;
   final bool storageFull;
   final int trails;
@@ -316,7 +335,7 @@ class TwinValues {
   static const speed = '45';
   static const pulse = '188';
   static const gradePct = '-12';
-  static const altitude = '3456 m';
+  static const altitude = '3456';
   static const clock = '23:59';
   static const wheelieM = '123';
   static const airMs = 1234;
@@ -382,9 +401,11 @@ class WatchTwin {
     return '${t ~/ 10}$sep${t % 10}';
   }
 
-  String seconds(int ms) {
+  String seconds(int ms) => '${tenths(ms)} s';
+
+  String tenths(int ms) {
     final t = (ms + 50) ~/ 100;
-    return '${t ~/ 10}$sep${t % 10} s';
+    return '${t ~/ 10}$sep${t % 10}';
   }
 
   String clock(double secs) {
@@ -541,18 +562,22 @@ class WatchTwin {
     _overlay = true;
     final cx = w ~/ 2;
     final top = y == l.v('status_top_y');
-    final idle = sc.rec == TwinRec.idle;
     String? t;
     var bg = col('FIELD');
     var fg = col('ROUTE');
     switch (sc.rec) {
       case TwinRec.idle:
-        // Auf den Zahlenseiten nur ein grauer Punkt (#555).
-        if (top) t = s['RecIdle'];
+        // Vor START nur das Dreieck an der Taste (#558), rechts oben wie
+        // „JA" — die Frage hat den Platz selbst.
+        if (!sc.ask) {
+          final px = l.v('ask_yes_x');
+          final py = l.v('ask_yes_y');
+          canvas.roundRect(px - 17, py - 11, 34, 22, 11, col('FIELD'));
+          sym('play', px - 8, py - 8, fg);
+        }
       case TwinRec.paused:
-        t = s['RecPaused'];
-        bg = col('WARNING');
-        fg = col('TEXT_ON_FIELD');
+        canvas.roundRect(cx - 18, y - 11, 36, 22, 11, col('WARNING'));
+        sym('pause', cx - 8, y - 8, col('TEXT_ON_FIELD'));
       case TwinRec.trail:
         t = s['RecTrail'];
         bg = col('ROUTE');
@@ -560,11 +585,11 @@ class WatchTwin {
       case TwinRec.recording:
         t = null;
     }
-    if (t == null) {
-      canvas.circle(cx, y, 6, col('GROUND'));
-      canvas.circle(cx, y, 4, idle ? col('MUTED_DARK') : col('S2'));
-    } else {
+    if (t != null) {
       pill('status', cx, y, t, 'status', bg, fg);
+    } else if (sc.rec == TwinRec.recording) {
+      canvas.circle(cx, y, 6, col('GROUND'));
+      canvas.circle(cx, y, 4, col('S2'));
     }
     if (sc.ask) {
       ask(sc, top ? l.v('ask_y_map') : l.v('ask_y_page'));
@@ -572,9 +597,20 @@ class WatchTwin {
       return;
     }
     final toast = sc.toast;
-    if (toast != null) {
-      pill('toast', cx, top ? l.v('toast_y_map') : l.v('toast_y_page'), s[toast]!, 'toast', col('FIELD'),
-          col('TEXT_ON_FIELD'));
+    final ty = top ? l.v('toast_y_map') : l.v('toast_y_page');
+    if (sc.toastSym != null) {
+      // Zeichen und Zahl (#558): das Schild so breit wie beide zusammen.
+      final font = f('toast');
+      final tt = sc.toastText!;
+      final sw = symWidth(sc.toastSym!);
+      final tw = font.width(tt);
+      final x = cx - (sw + 5 + tw) ~/ 2;
+      canvas.roundRect(x - 8, ty - font.height ~/ 2 - 1, sw + 5 + tw + 16, font.height + 2, (font.height + 2) ~/ 2,
+          col('FIELD'));
+      sym(sc.toastSym!, x, ty - 8, col('TEXT_ON_FIELD'));
+      text('toast', x + sw + 5, ty, 'toast', tt, col('TEXT_ON_FIELD'), center: false, vcenter: true);
+    } else if (toast != null) {
+      pill('toast', cx, ty, s[toast]!, 'toast', col('FIELD'), col('TEXT_ON_FIELD'));
     }
     _overlay = false;
   }
@@ -658,9 +694,13 @@ class WatchTwin {
     text(id, x + 14, y, fontName, t, color, center: false);
   }
 
-  void big(String unit, String value) {
+  void big(String? symName, String unit, String value) {
     final cx = w ~/ 2;
-    text('big_unit', cx, l.v('big_unit_y'), 'big_unit', unit, col('MUTED'));
+    if (symName == null) {
+      text('big_unit', cx, l.v('big_unit_y'), 'big_unit', unit, col('MUTED'));
+    } else {
+      symText('big_unit', cx, l.v('big_unit_y'), 'big_unit', symName, unit, col('MUTED'), col('MUTED'));
+    }
     text('big_value', cx, l.v('big_value_y'), 'big_value', value, col('TEXT_ON_FIELD'));
     final rx = l.v('big_rule_x');
     final ry = l.v('big_rule_y');
@@ -674,12 +714,78 @@ class WatchTwin {
 
   int colX(int k) => w ~/ 2 + (k == 0 ? -l.v('col_x') : l.v('col_x'));
 
-  void label(int k, int y, String name) => text('cell_label', colX(k), y, 'cell_label', name, col('MUTED'));
+  // --- Zeichen (#558) ---------------------------------------------------------
 
-  void cell(int k, int y, String name, String value, int color) {
-    label(k, y, name);
-    text('cell_value', colX(k), y + l.v('cell_value_dy'), 'cell_value', value, color);
+  int symWidth(String name) => WatchLayout.symbols()[name]['w'] as int;
+
+  /// Wie `TbSym.draw`: linke obere Ecke bei [x], [y]; „m" in [main].
+  void sym(String name, int x, int y, int main) {
+    final d = WatchLayout.symbols()[name] as Map<String, dynamic>;
+    for (final op in (d['ops'] as List<dynamic>).cast<List<dynamic>>()) {
+      final c = op[1] == 'm' ? main : col('ROUTE');
+      final a = op.skip(2).cast<int>().toList();
+      switch (op[0]) {
+        case 'p':
+          canvas.polygon([for (var k = 0; k < a.length; k += 2) [x + a[k], y + a[k + 1]]], c);
+        case 'r':
+          canvas.rect(x + a[0], y + a[1], a[2], a[3], c);
+        case 'c':
+          canvas.circle(x + a[0], y + a[1], a[2], c);
+        case 'o':
+          canvas.ringStroke(x + a[0], y + a[1], a[2], a[3], c);
+        case 'l':
+          canvas.line(x + a[0], y + a[1], x + a[2], y + a[3], a[4], c);
+      }
+    }
+    obstacle('sym_$name', x, y, x + (d['w'] as int), y + 16);
   }
+
+  /// Wie `NavView.symText`: Zeichen, 4 px, Text, mittig um [cx].
+  void symText(String id, int cx, int y, String fontName, String? symName, String t, int symColor, int color) {
+    if (symName == null) {
+      text(id, cx, y, fontName, t, color);
+      return;
+    }
+    final font = f(fontName);
+    final sw = symWidth(symName);
+    final x = cx - (sw + 4 + font.width(t)) ~/ 2;
+    sym(symName, x, y + (font.height - 16) ~/ 2, symColor);
+    text(id, x + sw + 4, y, fontName, t, color, center: false);
+  }
+
+  /// Wie `NavView.symCell`: Zeichen, [arrow], Wert, Einheit klein dahinter.
+  void symCell(int k, int y, String? symName, bool arrow, String value, String? unit, int color) {
+    final vf = f('cell_value');
+    final uf = f('cell_unit');
+    final sw = symName == null ? 0 : symWidth(symName) + 2;
+    final aw = arrow ? 13 : 0;
+    final vw = vf.width(value);
+    final uw = unit == null ? 0 : 3 + uf.width(unit);
+    var x = colX(k) - (sw + aw + vw + uw) ~/ 2;
+    if (symName != null) sym(symName, x, y + (vf.height - 16) ~/ 2, col('MUTED'));
+    x += sw;
+    if (arrow) {
+      final my = y + vf.height ~/ 2;
+      canvas.polygon([[x + 5, my - 5], [x + 10, my + 4], [x, my + 4]], col('ROUTE'));
+      obstacle('cell_arrow', x, my - 5, x + 11, my + 4);
+      x += aw;
+    }
+    text('cell_value', x, y, 'cell_value', value, color, center: false);
+    if (unit != null) {
+      text('cell_unit', x + vw + 3, y + vf.ascent - uf.ascent, 'cell_unit', unit, col('MUTED'), center: false);
+    }
+  }
+
+  void climbCell(int k, int y, String? symName, double? m, String? unit) {
+    if (m == null) {
+      symCell(k, y, symName, false, '--', null, col('TEXT_ON_FIELD'));
+    } else {
+      symCell(k, y, symName, true, m.truncate().toString(), unit, col('TEXT_ON_FIELD'));
+    }
+  }
+
+  void count(int k, String n) =>
+      text('cell_count', colX(k), l.v('cell_row2_y'), 'cell_count', '$n ×', col('MUTED'));
 
   void loader(String t, {required bool full}) {
     canvas.clear(col('FIELD'));
@@ -801,42 +907,50 @@ class WatchTwin {
         _clip = inRing;
         switch (sc.phase) {
           case TwinPhase.ride:
-            big(s['Speed']!, TwinValues.speed);
-            cell(0, l.v('cell_row1_y'), s['Time']!, clock(TwinValues.movingS), col('TEXT_ON_FIELD'));
-            cell(1, l.v('cell_row1_y'), s['Distance']!, '${km(TwinValues.distanceM)} km', col('TEXT_ON_FIELD'));
-            label(0, l.v('cell_row2_y'), s['Climbed']!);
-            climbText('climb_value', colX(0), l.v('climb_row2_y'), TwinValues.climbM, col('TEXT_ON_FIELD'));
-            cell(1, l.v('cell_row2_y'), s['Pulse']!, TwinValues.pulse, col('MUTED'));
+            big(null, s['Speed']!, TwinValues.speed);
+            symCell(0, l.v('cell_row1_y'), 'stopwatch', false, clock(TwinValues.movingS), null, col('TEXT_ON_FIELD'));
+            symCell(1, l.v('cell_row1_y'), 'distance', false, km(TwinValues.distanceM), 'km', col('TEXT_ON_FIELD'));
+            climbCell(0, l.v('cell_row2_y'), null, TwinValues.climbM, 'm');
+            symCell(1, l.v('cell_row2_y'), 'heart', false, TwinValues.pulse, null, col('MUTED'));
           case TwinPhase.mountain:
-            big(s['Grade']!, TwinValues.gradePct);
-            cell(0, l.v('cell_row1_y'), s['Altitude']!, TwinValues.altitude, col('TEXT_ON_FIELD'));
-            label(1, l.v('cell_row1_y'), s['ToTrail']!);
-            climbText('climb_value', colX(1), l.v('climb_row1_y'), TwinValues.headClimbM, col('TEXT_ON_FIELD'));
-            label(0, l.v('cell_row2_y'), s['ToFinish']!);
-            climbText('climb_value', colX(0), l.v('climb_row2_y'), TwinValues.climbLeftM, col('TEXT_ON_FIELD'));
-            cell(1, l.v('cell_row2_y'), s['Clock']!, TwinValues.clock, col('TEXT_ON_FIELD'));
+            big('angle', '%', TwinValues.gradePct);
+            // Ab vier Stellen ohne „m": sonst reicht der Wert über den Mittelstrich.
+            symCell(0, l.v('cell_row1_y'), 'peaks', false, TwinValues.altitude,
+                TwinValues.altitude.length >= 4 ? null : 'm', col('TEXT_ON_FIELD'));
+            climbCell(1, l.v('cell_row1_y'), 'signpost', TwinValues.headClimbM, null);
+            climbCell(0, l.v('cell_row2_y'), 'flag', TwinValues.climbLeftM, null);
+            symCell(1, l.v('cell_row2_y'), 'clock', false, TwinValues.clock, null, col('TEXT_ON_FIELD'));
           case TwinPhase.bests:
-            big(s['WheelieM']!, TwinValues.wheelieM);
-            cell(0, l.v('cell_row1_y'), s['Airtime']!, seconds(TwinValues.airMs), col('TEXT_ON_FIELD'));
-            cell(1, l.v('cell_row1_y'), s['Angle']!, TwinValues.angle, col('TEXT_ON_FIELD'));
-            cell(0, l.v('cell_row2_y'), s['Jumps']!, TwinValues.counts, col('TEXT_ON_FIELD'));
-            cell(1, l.v('cell_row2_y'), s['Wheelies']!, TwinValues.counts, col('TEXT_ON_FIELD'));
+            big('wheelie', 'm', TwinValues.wheelieM);
+            symCell(0, l.v('cell_row1_y'), 'plane', false, tenths(TwinValues.airMs), 's', col('TEXT_ON_FIELD'));
+            symCell(1, l.v('cell_row1_y'), 'wheelie', false, TwinValues.angle, null, col('TEXT_ON_FIELD'));
+            count(0, TwinValues.counts);
+            count(1, TwinValues.counts);
           default:
             text('arrived_title', cx, l.v('arrived_title_y'), 'arrived_title', s['Arrived']!, col('ROUTE'));
             text('arrived_km', cx, l.v('arrived_km_y'), 'arrived_km', '${km(TwinValues.distanceM)} km',
                 col('TEXT_ON_FIELD'));
             final row = l.v('arrived_row_y');
-            text('arrived_time', cx - l.v('arrived_time_dx'), row, 'arrived_time', '${clock(TwinValues.movingS)} h',
-                col('TEXT_ON_FIELD'));
+            symText('arrived_time', cx - l.v('arrived_time_dx'), row, 'arrived_time', 'stopwatch',
+                clock(TwinValues.movingS), col('MUTED'), col('TEXT_ON_FIELD'));
             climbText('arrived_climb', cx + l.v('arrived_climb_dx'), row, TwinValues.climbM, col('TEXT_ON_FIELD'));
             var x = cx - (sc.trails - 1) * 10;
             for (var k = 0; k < sc.trails; k++) {
               shield(x, l.v('arrived_shields_y'), k % 4, 5, onMap: false);
               x += 20;
             }
-            text('arrived_bests', cx, l.v('arrived_bests_y'), 'arrived_bests',
-                '${s['AirShort']} ${seconds(TwinValues.airMs)}\n${s['WheelieShort']} ${TwinValues.wheelieM} m',
-                col('MUTED'));
+            // Flugzeug und Wheelie in einer Zeile, weiß (#558).
+            final bf = f('arrived_bests');
+            final a = seconds(TwinValues.airMs);
+            final b = '${TwinValues.wheelieM} m';
+            final aw = 16 + 4 + bf.width(a);
+            final bw = 22 + 4 + bf.width(b);
+            final x0 = cx - (aw + 10 + bw) ~/ 2;
+            final by = l.v('arrived_bests_y');
+            symText('arrived_bests', x0 + aw ~/ 2, by, 'arrived_bests', 'plane', a, col('MUTED'),
+                col('TEXT_ON_FIELD'));
+            symText('arrived_bests', x0 + aw + 10 + bw ~/ 2, by, 'arrived_bests', 'wheelie', b, col('MUTED'),
+                col('TEXT_ON_FIELD'));
         }
         ring(0.38, arrived: sc.phase == TwinPhase.arrived);
         _clip = screen;
@@ -892,6 +1006,10 @@ const kTwinScenes = <TwinScene>[
   TwinScene('frage', TwinPhase.map, ask: true, rec: TwinRec.idle),
   TwinScene('frage_gross', TwinPhase.map, ask: true, askBig: true, rec: TwinRec.idle),
   TwinScene('einblendung', TwinPhase.map, toast: 'TrailDiscarded', rec: TwinRec.idle),
+  TwinScene('flug', TwinPhase.map, toastSym: 'plane', toastText: '1,2 s'),
+  TwinScene('wheelie', TwinPhase.map, toastSym: 'wheelie', toastText: '123 m'),
+  TwinScene('stoppie', TwinPhase.map, toastSym: 'stoppie', toastText: '0,8 s'),
+  TwinScene('flug_seite', TwinPhase.ride, toastSym: 'plane', toastText: '1,2 s'),
   TwinScene('frei', TwinPhase.free),
   TwinScene('frei_voll', TwinPhase.free, storageFull: true, rec: TwinRec.paused),
   TwinScene('frei_ohne_gps', TwinPhase.freeWaiting, rec: TwinRec.idle),

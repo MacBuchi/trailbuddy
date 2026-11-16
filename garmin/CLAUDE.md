@@ -523,3 +523,20 @@ Abbiegehinweise.
   die Berichte aller fünf Größen leer. Gelernt: Am unteren Rand zählt
   jeder Pixel Höhe doppelt — bei y 207 sind innerhalb `MAP_R` noch
   ~130 px frei, bei y 217 nur ~70.
+- **Zeichen statt Wörter** (#558, 1.7.0): Die Geometrie der 13 Zeichen
+  steht in `tool/watch_layout.json` (`symbols`), `tool/watch_layout.py`
+  erzeugt `source/Symbols.mc` (nie von Hand, `--check` in CI); in
+  `NavView.mc` steht vor der Nummer eine Marke `/*S:name*/`. Das Abbild
+  zeichnet dieselben Befehle (`WatchTwin.sym`). **Speicher**: Je Zeichen
+  gerade Zeichenbefehle kosteten im Vorführmodus +5 KB (101 → 106 KB, Seite
+  „Berg", fēnix 5, 1000 Punkte) — jede Anweisung bleibt im Debug-Bau
+  dauerhaft im Speicher. Deshalb je Zeichen EINE Zeichenkette (Art, Farbe,
+  Zahlen als Zeichen ab „0") und ein kleiner Leser: +2 KB (103 KB). In
+  einem `module` gibt es kein `hidden` (Bau bricht mit „extraneous input").
+  `fillPolygon` verlangt `Array<[Numeric, Numeric]>`, kein
+  `Array<Array<Number>>`. Die Zelle einer Zahlenseite ist EINE Zeile
+  (`symCell`): Zeichen, 2 px, Wert in `FONT_MEDIUM`, Einheit klein auf
+  derselben Grundlinie; 2 px statt 4, sonst reichte „23:59" auf der
+  fēnix 5S über den Kreis. Offen: Lesbarkeit von Flugzeug (16 px) und
+  Wegweiser/Fahne in der Sonne am Gerät, Kettenstand für den Speicher
+  neben der größten Route.

@@ -56,7 +56,8 @@ PROBES = [
     "Route ab deiner Position?",
     "WAVY Tr. Äöüß",
 ]
-MARK = re.compile(r"/\*([LF]):([A-Za-z0-9_]+)\*/\s*(-?\d+|Graphics\.FONT_[A-Z_]+)")
+MARK = re.compile(r"/\*([LFS]):([A-Za-z0-9_]+)\*/\s*(-?\d+|Graphics\.FONT_[A-Z_]+)")
+SYMBOLS_MC = ROOT / "garmin" / "source" / "Symbols.mc"
 
 
 def load_layout() -> dict:
@@ -76,6 +77,9 @@ def scan(text: str) -> list[tuple[str, str, str, int, int]]:
 
 
 def expected(layout: dict, kind: str, name: str) -> str | None:
+    if kind == "S":
+        names = layout["symbols"]["list"]
+        return str(names.index(name)) if name in names else None
     if kind == "L":
         v = layout["values"].get(name)
         return None if v is None else str(v["v"])
@@ -108,6 +112,14 @@ def apply(layout: dict, write: bool) -> list[str]:
         if write and new != text:
             path.write_text(new, encoding="utf-8")
             print(f"geschrieben: {path.relative_to(ROOT)}")
+    want = symbols_source(layout)
+    have = SYMBOLS_MC.read_text(encoding="utf-8") if SYMBOLS_MC.exists() else ""
+    if have != want:
+        if write:
+            SYMBOLS_MC.write_text(want, encoding="utf-8")
+            print(f"geschrieben: {SYMBOLS_MC.relative_to(ROOT)}")
+        else:
+            errors.append(f"{SYMBOLS_MC.relative_to(ROOT)} weicht von watch_layout.json ab — python3 tool/watch_layout.py")
     for name in layout["values"]:
         if ("L", name) not in seen:
             errors.append(f"watch_layout.json: values.{name} hat keine Marke /*L:{name}*/")
@@ -118,6 +130,102 @@ def apply(layout: dict, write: bool) -> list[str]:
         if f not in FONT_CONST:
             errors.append(f"watch_layout.json: fonts.{name} = {f}, erlaubt {sorted(FONT_CONST)}")
     return errors
+
+
+# --- Zeichen (#558) -----------------------------------------------------------
+
+def symbols_source(layout: dict) -> str:
+    """`garmin/source/Symbols.mc`: je Zeichen EINE Zeichenkette (Befehl,
+    Farbe, Zahlen als Zeichen ab „0“) und ein kleiner Leser. Gerade
+    Zeichenbefehle je Zeichen kosteten im Debug-Bau gut 5 KB neben der
+    Route — jede Anweisung und jede Konstante bleibt dort dauerhaft im
+    Speicher (garmin/CLAUDE.md, „Speicher im Gerätebau"). Die Nummer ist
+    die Stelle in `symbols.list`; in NavView steht `/*S:name*/<nummer>`."""
+    sy = layout["symbols"]
+    names = sy["list"]
+    wide = [i for i, n in enumerate(names) if sy["def"][n]["w"] != 16]
+    cond = " || ".join(f"id == {i}" for i in wide) or "false"
+    wide_w = sy["def"][names[wide[0]]]["w"] if wide else 16
+    out = [
+        "// ERZEUGT von tool/watch_layout.py aus tool/watch_layout.json (symbols) — nie von Hand (#558).",
+        "import Toybox.Graphics;",
+        "import Toybox.Lang;",
+        "",
+        "//! Die Zeichen der Uhr, 16 px hoch, aus Fläche, Kreis, Linie und Vieleck.",
+        "//! Je Befehl: Art (p Vieleck, r Rechteck, c Kreis, o Ring, l Linie), Farbe",
+        "//! (m die gereichte, r Lime), dann die Zahlen je ein Zeichen, Wert + „0“.",
+        "module TbSym {",
+        "    //! Breite des Zeichens [id].",
+        "    function width(id as Number) as Number {",
+        f"        return {cond} ? {wide_w} : 16;",
+        "    }",
+        "",
+        "    function code(id as Number) as String {",
+    ]
+    for i, n in enumerate(names):
+        enc = []
+        for op in sy["def"][n]["ops"]:
+            kind, col, a = op[0], op[1], op[2:]
+            if kind == "p":
+                a = [len(a) // 2] + a
+            elif kind not in ("r", "c", "o", "l"):
+                raise SystemExit(f"watch_layout.json: symbols.{n}: unbekannte Operation {kind}")
+            if any(v < 0 or v > 70 for v in a):
+                raise SystemExit(f"watch_layout.json: symbols.{n}: Zahl außerhalb 0..70")
+            enc.append(kind + col + "".join(chr(48 + v) for v in a))
+        text = "".join(enc).replace("\\", "\\\\").replace('"', '\\"')
+        out.append(f'        {"if" if i == 0 else "} else if"} (id == {i}) {{  // {n}')
+        out.append(f'            return "{text}";')
+    out += [
+        "        }",
+        '        return "";',
+        "    }",
+        "",
+        "    function v(s as Array<Char>, i as Number) as Number {",
+        "        return s[i].toNumber() - 48;",
+        "    }",
+        "",
+        "    //! Zeichnet [id] mit der linken oberen Ecke bei [x], [y]; [c] ist die",
+        "    //! Farbe der Teile „m“, Lime bleibt Lime.",
+        "    function draw(dc as Dc, id as Number, x as Number, y as Number, c as Number) as Void {",
+        "        var s = code(id).toCharArray();",
+        "        var n = s.size();",
+        "        var i = 0;",
+        "        while (i < n) {",
+        "            var k = s[i];",
+        "            dc.setColor(s[i + 1] == 'm' ? c : TbColors.ROUTE, Graphics.COLOR_TRANSPARENT);",
+        "            i += 2;",
+        "            if (k == 'p') {",
+        "                var pts = [] as Array<[Numeric, Numeric]>;",
+        "                var cnt = v(s, i);",
+        "                i++;",
+        "                for (var j = 0; j < cnt; j++) {",
+        "                    pts.add([x + v(s, i), y + v(s, i + 1)]);",
+        "                    i += 2;",
+        "                }",
+        "                dc.fillPolygon(pts);",
+        "            } else if (k == 'r') {",
+        "                dc.fillRectangle(x + v(s, i), y + v(s, i + 1), v(s, i + 2), v(s, i + 3));",
+        "                i += 4;",
+        "            } else if (k == 'c') {",
+        "                dc.fillCircle(x + v(s, i), y + v(s, i + 1), v(s, i + 2));",
+        "                i += 3;",
+        "            } else if (k == 'o') {",
+        "                dc.setPenWidth(v(s, i + 3));",
+        "                dc.drawCircle(x + v(s, i), y + v(s, i + 1), v(s, i + 2));",
+        "                i += 4;",
+        "            } else {",
+        "                dc.setPenWidth(v(s, i + 4));",
+        "                dc.drawLine(x + v(s, i), y + v(s, i + 1), x + v(s, i + 2), y + v(s, i + 3));",
+        "                i += 5;",
+        "            }",
+        "        }",
+        "        dc.setPenWidth(1);",
+        "    }",
+        "}",
+        "",
+    ]
+    return "\n".join(out)
 
 
 # --- Schriftmaße -------------------------------------------------------------

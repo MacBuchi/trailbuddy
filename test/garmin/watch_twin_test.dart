@@ -86,6 +86,41 @@ void main() {
     expect(seen, {...values.keys.map((k) => 'L:$k'), ...names.keys.map((k) => 'F:$k')});
   });
 
+  test('jedes Zeichen liegt in seiner Box (#558) und ist in der Liste', () {
+    final sy = WatchLayout.raw()['symbols'] as Map<String, dynamic>;
+    final defs = sy['def'] as Map<String, dynamic>;
+    expect((sy['list'] as List).toSet(), defs.keys.toSet());
+    defs.forEach((name, v) {
+      final d = v as Map<String, dynamic>;
+      final w = d['w'] as int;
+      expect(d['h'], 16, reason: name);
+      for (final op in (d['ops'] as List<dynamic>).cast<List<dynamic>>()) {
+        final a = op.skip(2).cast<int>().toList();
+        final pts = <List<int>>[];
+        switch (op[0]) {
+          case 'p':
+            for (var k = 0; k < a.length; k += 2) {
+              pts.add([a[k], a[k + 1]]);
+            }
+          case 'r':
+            pts..add([a[0], a[1]])..add([a[0] + a[2], a[1] + a[3]]);
+          case 'c':
+          case 'o':
+            // Kreis: Mitte ± Radius (bei Ring ± halbe Strichbreite)
+            final r = a[2] + (op[0] == 'o' ? a[3] ~/ 2 : 0);
+            pts..add([a[0] - r, a[1] - r])..add([a[0] + r, a[1] + r]);
+          case 'l':
+            // Die Enden zählen, die Kappen der Strichbreite nicht.
+            pts..add([a[0], a[1]])..add([a[2], a[3]]);
+        }
+        for (final p in pts) {
+          expect(p[0], inInclusiveRange(0, w), reason: '$name x ${p[0]}');
+          expect(p[1], inInclusiveRange(0, 16), reason: '$name y ${p[1]}');
+        }
+      }
+    });
+  });
+
   test('jedes Gerät des Abbilds ist gemessen, die Uhren des Manifests mit 240 px', () {
     final manifest = _manifestDevices();
     for (final id in WatchDevice.all()) {
