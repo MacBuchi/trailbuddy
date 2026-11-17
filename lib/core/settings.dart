@@ -162,6 +162,13 @@ abstract interface class Settings {
 
   Future<void> setStartPointLayerEnabled(bool value);
 
+  /// Der zuletzt im Planer gewählte Startpunkt (#543, Konzept
+  /// Startpunkte 9.4) — sein Schlüssel `user/client`, keine Lage. Er steht
+  /// oben in der Liste „Gemerkt"; vorbelegt wird er nie.
+  String? get lastStartPoint;
+
+  Future<void> setLastStartPoint(String key);
+
   /// Ist die Legende auf der Karte aufgeklappt (#182)? Vorgabe: zu.
   bool get mapLegendOpen;
 
@@ -400,6 +407,14 @@ class PrefsSettings implements Settings {
 
   @override
   Future<void> setStartPointLayerEnabled(bool value) => _prefs.setBool(_startPointLayerEnabledKey, value);
+
+  static const _lastStartPointKey = 'last_start_point';
+
+  @override
+  String? get lastStartPoint => _prefs.getString(_lastStartPointKey);
+
+  @override
+  Future<void> setLastStartPoint(String key) => _prefs.setString(_lastStartPointKey, key);
 
   static const _mapLegendOpenKey = 'map_legend_open';
 

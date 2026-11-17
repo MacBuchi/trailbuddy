@@ -10706,5 +10706,57 @@
   "layersStartPointsSubtitle": "Deine gemerkten Parkplätze und die deiner Buddys",
   "@layersStartPointsSubtitle": {
     "description": "Untertitel des Schalters „Startpunkte“ (#543)."
+  },
+  "startPointPickStart": "Gemerkte Startpunkte",
+  "@startPointPickStart": {
+    "description": "Titel der Liste „Gemerkt“ im Planer, wenn ein Start gewählt wird (#543)."
+  },
+  "startPointPickTarget": "Gemerkte Punkte als Ziel",
+  "@startPointPickTarget": {
+    "description": "Titel der Liste „Gemerkt“ im Planer, wenn ein Ziel gewählt wird (#543)."
+  },
+  "startPointPrivate": "privat",
+  "@startPointPrivate": {
+    "description": "Untertitel eines eigenen, privaten Startpunkts in der Liste des Planers (#543)."
+  },
+  "startPointRememberHere": "Mein Standort merken",
+  "@startPointRememberHere": {
+    "description": "Letzte Zeile der Liste „Gemerkt“ und Zeile in der Wahl des Starts: den eigenen Standort als Startpunkt merken (#543)."
+  },
+  "startPointHomeWarning": "Liegt der Punkt bei dir zu Hause? Dann lass ihn privat — Buddys sähen sonst, wo du wohnst.",
+  "@startPointHomeWarning": {
+    "description": "Warnung im Dialog „Als Startpunkt merken“, wenn der eigene Standort gemerkt wird (#543, Konzept Startpunkte 4)."
+  },
+  "startPointNoPosition": "Kein Standort — tippe die Stelle lange auf der Karte an, um sie zu merken.",
+  "@startPointNoPosition": {
+    "description": "Leiste, wenn „Mein Standort merken“ keinen Standort bekommt (#543)."
+  },
+  "loopEntrySaved": "Gemerkt",
+  "@loopEntrySaved": {
+    "description": "Dritte Wahl in den Zeilen „Start“ und „Ziel“ des Planer-Einstiegs: ein gemerkter Startpunkt (#543)."
+  },
+  "loopStartSaved": "Gemerkter Startpunkt",
+  "@loopStartSaved": {
+    "description": "Zeile in der Wahl des Starts (und des Ziels) im Planer-Kopf: öffnet die Liste der gemerkten Startpunkte (#543)."
+  },
+  "loopStartRemember": "Start merken",
+  "@loopStartRemember": {
+    "description": "Zeile in der Wahl des Starts im Planer: den getippten Start als Startpunkt merken (#543)."
+  },
+  "highlightStartPointsTitle": "Gemerkte Startpunkte",
+  "@highlightStartPointsTitle": {
+    "description": "Neuheit (#543): Titel."
+  },
+  "highlightStartPointsText": "Merk dir Parkplätze als Startpunkte und teil sie mit deinen Buddys. Im Planer stehen sie unter „Gemerkt“ — am Parkplatz ist der Punkt schon gewählt.",
+  "@highlightStartPointsText": {
+    "description": "Neuheit (#543): Text."
+  },
+  "demoStartPoints2Title": "Start: Gemerkt",
+  "@demoStartPoints2Title": {
+    "description": "Vorführung „Gemerkte Startpunkte“ (#543), Schritt 2: Titel."
+  },
+  "demoStartPoints2Text": "In der Zeile „Start“ wählst du einen gemerkten Parkplatz — deinen oder den eines Buddys. Gemerkt wird lang auf der Karte, im Blatt eines Ortes oder mit „Start merken“.",
+  "@demoStartPoints2Text": {
+    "description": "Vorführung „Gemerkte Startpunkte“ (#543), Schritt 2: Text."
   }
 }

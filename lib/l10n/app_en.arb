@@ -1989,5 +1989,18 @@
   "startPointNowPrivate": "Private now.",
   "startPointDeleted": "“{name}” deleted.",
   "layersStartPoints": "Start points",
-  "layersStartPointsSubtitle": "Your saved car parks and your buddies'"
+  "layersStartPointsSubtitle": "Your saved car parks and your buddies'",
+  "startPointPickStart": "Saved start points",
+  "startPointPickTarget": "Saved points as target",
+  "startPointPrivate": "private",
+  "startPointRememberHere": "Save my location",
+  "startPointHomeWarning": "Is this your home? Then keep it private — otherwise your buddies would see where you live.",
+  "startPointNoPosition": "No location — long-press the spot on the map to save it.",
+  "loopEntrySaved": "Saved",
+  "loopStartSaved": "Saved start point",
+  "loopStartRemember": "Save start",
+  "highlightStartPointsTitle": "Saved start points",
+  "highlightStartPointsText": "Save car parks as start points and share them with your buddies. In the planner they're under “Saved” — at the car park the point is already chosen.",
+  "demoStartPoints2Title": "Start: Saved",
+  "demoStartPoints2Text": "In the “Start” row you pick a saved car park — yours or a buddy's. Save one with a long press on the map, in a place's sheet or with “Save start”."
 }

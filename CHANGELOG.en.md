@@ -2,6 +2,24 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## Start points in the planner
+
+*Version 0.183.0, 2026-11-17*
+
+- **"Saved" for start and target:** next to "My location" and "Choose on
+  the map" the planner offers a third choice. It opens the list of your
+  start points and your buddies', nearest first, the one you chose last
+  at the very top. For a route it works for the target too.
+- **Already chosen at the car park:** if you are within 300 m of a
+  saved point, it is the start when the planner opens. At home it stays
+  "My location".
+- **Save start:** tapping "Start" in the planner's header offers "Save
+  start" — over the result as well. "Save my location" is there and
+  below the list; it starts as private and reminds you not to share your
+  front door.
+- Start and target in the header now carry the name of the place or
+  start point you chose.
+
 ## Start points on the map
 
 *Version 0.182.0, 2026-11-16*

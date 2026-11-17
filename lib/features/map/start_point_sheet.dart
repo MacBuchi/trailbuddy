@@ -26,13 +26,15 @@ import 'start_point_layer.dart';
 /// Fragt Name und Sichtbarkeit ab und merkt den Punkt bei [at] — oder
 /// nichts, wenn der Dialog abgebrochen wird. [name] belegt das Feld vor
 /// (der Name des Ortes), [shared] den Schalter (Vorgabe „Buddys",
-/// Konzept 4). Das Ergebnis sagt eine Leiste; die Obergrenze (9.2) ist
-/// ein Satz, kein Fehler.
+/// Konzept 4). [home] ist „Mein Standort merken" und der eigene Standort
+/// als Start: Dort steht unter dem Schalter die Warnung vor der Haustür
+/// (Konzept 4, A10 — ein Satz, kein Riegel). Das Ergebnis sagt eine
+/// Leiste; die Obergrenze (9.2) ist ein Satz, kein Fehler.
 Future<void> rememberStartPoint(BuildContext context, WidgetRef ref, LatLng at,
-    {String? name, bool shared = true}) async {
+    {String? name, bool shared = true, bool home = false}) async {
   final result = await showDialog<({String name, bool shared})>(
     context: context,
-    builder: (_) => StartPointDialog(name: name ?? '', shared: shared),
+    builder: (_) => StartPointDialog(name: name ?? '', shared: shared, home: home),
   );
   if (result == null || !context.mounted) return;
   final myId = ref.read(currentUserIdProvider);
@@ -79,11 +81,15 @@ Future<void> _save(BuildContext context, WidgetRef ref, StartPoint point, {requi
 /// zurück, oder `null` bei „Abbrechen". [title] ist „Als Startpunkt
 /// merken" oder, beim Umbenennen, „Umbenennen" — dann ohne Schalter.
 class StartPointDialog extends StatefulWidget {
-  const StartPointDialog({super.key, required this.name, required this.shared, this.rename = false});
+  const StartPointDialog(
+      {super.key, required this.name, required this.shared, this.rename = false, this.home = false});
 
   final String name;
   final bool shared;
   final bool rename;
+
+  /// Der Punkt ist der eigene Standort — die Warnung vor der Haustür.
+  final bool home;
 
   @override
   State<StartPointDialog> createState() => _StartPointDialogState();
@@ -132,6 +138,13 @@ class _StartPointDialogState extends State<StartPointDialog> {
               value: _shared,
               onChanged: (v) => setState(() => _shared = v),
             ),
+          if (widget.home && !widget.rename)
+            Text(l.startPointHomeWarning,
+                key: const ValueKey('start-point-home-warning'),
+                style: Theme.of(context)
+                    .textTheme
+                    .bodySmall
+                    ?.copyWith(color: AppPalette.of(context).warningText)),
         ],
       ),
       actions: [

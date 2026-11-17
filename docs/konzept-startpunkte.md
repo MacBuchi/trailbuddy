@@ -232,6 +232,12 @@ Im Schema-PR (A6):
 | 2 | Karte: Ebene, Pin, Blatt; Anlegen über Ort-Blatt und langen Druck; Design-README | `feat(map)` |
 | 3 | Planer: „Gemerkt" in Start/Ziel, „Mein Standort merken", „Start merken" im Ergebnis; Neuheiten-Eintrag mit Vorführung | `feat(routing)` |
 
+Gebaut: Schritt 1 in 0.181.0 (PR #568), Schritt 2 in 0.182.0 (PR #569),
+Schritt 3 in 0.183.0. „Mein Standort merken" steht unter der Liste
+„Gemerkt" und in der Wahl des Starts im Kopf („Start merken" heißt dort
+so, solange der Start der eigene Standort ist) — ohne gemerkten Punkt
+gibt es die Liste nicht, und der Weg über den Kopf bleibt.
+
 Umgebung: ☁️ Bau (der Schema-Dry-Run läuft in CI) · 📱 Abnahme mit zwei
 Konten (sieht der Buddy den Punkt, den privaten nicht, nach dem
 Entfreunden keinen mehr; Liste am Parkplatz ohne Netz).

@@ -14,6 +14,11 @@
 // - **„Auf der Karte wählen"** blendet das Blatt aus; oben steht das
 //   Banner mit Abbrechen, wie in der Bearbeitung. Danach kommt es wieder.
 // - **„Selbst zusammenstellen"** ist die Bearbeitung, leer wie bisher.
+// - **„Gemerkt"** (#543, Konzept Startpunkte 5.1): dritte Wahl in Start
+//   und Ziel, nur wenn es einen sichtbaren Punkt gibt; öffnet die Liste
+//   (`pickStartPoint`). Steht man höchstens 300 m von einem Punkt, ist er
+//   beim Aufgehen schon der Start (9.4) — auch wenn der Standort erst
+//   danach kommt, solange niemand selbst gewählt hat.
 //
 // - **Die Frage zum Limit** (#516 Schritt 6, 12.5a): Blieb sie im Blatt am
 //   Ende der Fahrt unbeantwortet, steht sie hier EINMAL über dem Knopf —
@@ -34,12 +39,15 @@ import '../../core/app_theme.dart' show AppFonts;
 import '../../l10n/l10n.dart';
 import '../coach/coach.dart';
 import '../help/map_tour.dart' show MapCoach;
+import '../../data/providers.dart' show currentUserIdProvider;
 import '../map/position_provider.dart';
+import '../trails/trail_providers.dart' show startPointsProvider;
 import '../rides/climb_limit_offer.dart' show ClimbLimitOffer;
 import '../rides/climb_limit_row.dart';
 import 'loop_planner.dart' show LoopPrefs;
 import 'loop_planner_controller.dart';
 import 'loop_planner_sheet.dart' show loopHoursLabel;
+import 'start_point_pick.dart';
 
 class LoopEntrySheet extends ConsumerStatefulWidget {
   const LoopEntrySheet({super.key, required this.onCompute, required this.onSuggest, required this.onClose});
@@ -68,6 +76,41 @@ class _LoopEntrySheetState extends ConsumerState<LoopEntrySheet> {
 
   LoopPlannerNotifier get _n => ref.read(loopPlannerProvider.notifier);
 
+  /// Jemand hat Start oder Ziel selbst gewählt (oder die Vorbelegung ist
+  /// geschehen) — ein später Standort ändert dann nichts mehr.
+  bool _chose = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _preselect());
+  }
+
+  /// Vorbelegt nur vor Ort (Konzept Startpunkte 9.4): Ein gemerkter Punkt
+  /// höchstens [kStartPointNearM] vom laufenden Standort ist der Start.
+  /// Fragt nie nach dem Standort — ohne laufenden Punkt bleibt es bei
+  /// „Mein Standort".
+  void _preselect() {
+    if (_chose || !mounted) return;
+    final s = ref.read(loopPlannerProvider);
+    if (!s.entry || s.start != null) return;
+    final fix = ref.read(positionStreamProvider).valueOrNull;
+    if (fix == null) return;
+    final near = nearbyStartPoint(
+        ref.read(startPointsProvider), ref.read(currentUserIdProvider), LatLng(fix.latitude, fix.longitude));
+    if (near == null) return;
+    _chose = true;
+    _n.takeStartPoint(near, asTarget: false, remember: false);
+  }
+
+  Future<void> _pickSaved({required bool asTarget}) async {
+    _chose = true;
+    setState(() => _noPosition = false);
+    final picked = await pickStartPoint(context, ref, asTarget: asTarget);
+    if (!mounted || !picked) return;
+    if (_n.entryRouteReady) widget.onCompute();
+  }
+
   void _setRoute(bool route) {
     setState(() => _noPosition = false);
     _n.setIntent(route: route);
@@ -87,6 +130,7 @@ class _LoopEntrySheetState extends ConsumerState<LoopEntrySheet> {
       setState(() => _noPosition = true);
       return;
     }
+    _chose = true;
     _n.takeTargetMine(LatLng(fix.latitude, fix.longitude));
     if (_n.entryRouteReady) widget.onCompute();
   }
@@ -116,12 +160,15 @@ class _LoopEntrySheetState extends ConsumerState<LoopEntrySheet> {
     final l = context.l10n;
     final theme = Theme.of(context);
     final route = s.prefs.intentRoute;
+    final hasSaved = ref.watch(startPointsProvider).isNotEmpty;
+    ref.listen(positionStreamProvider, (_, _) => _preselect());
+    ref.listen(startPointsProvider, (_, _) => _preselect());
 
     Widget label(String text) => SizedBox(width: 52, child: Text(text, style: theme.textTheme.labelLarge));
 
     Widget choice(String key, String text, bool chosen, VoidCallback onTap) => ChoiceChip(
           key: ValueKey(key),
-          label: Text(text),
+          label: Text(text, maxLines: 1, overflow: TextOverflow.ellipsis),
           selected: chosen,
           onSelected: (_) => onTap(),
           materialTapTargetSize: MaterialTapTargetSize.padded,
@@ -137,13 +184,19 @@ class _LoopEntrySheetState extends ConsumerState<LoopEntrySheet> {
 
     final startLine = line(l.loopHeadStart, [
       choice('loop-entry-start-me', l.loopHeadMine, s.start == null, () {
+        _chose = true;
         setState(() => _noPosition = false);
         if (s.start != null) _n.useMyPosition();
       }),
-      choice('loop-entry-start-map', l.loopEntryPickOnMap, s.start != null, () {
+      choice('loop-entry-start-map', l.loopEntryPickOnMap, s.start != null && !s.startSaved, () {
+        _chose = true;
         setState(() => _noPosition = false);
         _n.armStartPick();
       }),
+      // Gewählt trägt die Wahl den Namen des Punkts (Konzept 5.1).
+      if (hasSaved || s.startSaved)
+        choice('loop-entry-start-saved', s.startSaved ? s.startName ?? l.loopEntrySaved : l.loopEntrySaved,
+            s.startSaved, () => unawaited(_pickSaved(asTarget: false))),
     ]);
 
     final timeLine = Padding(
@@ -181,10 +234,14 @@ class _LoopEntrySheetState extends ConsumerState<LoopEntrySheet> {
       choice('loop-entry-target-me', l.loopHeadMine, s.targetMine, () {
         if (!_locating) unawaited(_targetMine());
       }),
-      choice('loop-entry-target-map', l.loopEntryPickOnMap, s.target != null && !s.targetMine, () {
+      choice('loop-entry-target-map', l.loopEntryPickOnMap, s.target != null && !s.targetMine && !s.targetSaved, () {
+        _chose = true;
         setState(() => _noPosition = false);
         _n.armTargetPick();
       }),
+      if (hasSaved || s.targetSaved)
+        choice('loop-entry-target-saved', s.targetSaved ? s.targetName ?? l.loopEntrySaved : l.loopEntrySaved,
+            s.targetSaved, () => unawaited(_pickSaved(asTarget: true))),
     ]);
 
     return CoachAnchor(
