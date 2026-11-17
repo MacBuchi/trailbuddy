@@ -1184,10 +1184,15 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     — darunter ist sie für Finder „offstage" (beim Bau so gefunden).
     Gegenproben 2026-11-16: ohne `ignoreClimb`, ohne Zwischenspeicher
     der Stände über dem Limit, ohne `setPrefs` beim Anheben — je rot.
-- **Gemerkte Startpunkte im Planer** (#543 Schritt 3, seit 0.183.0;
+- **Gemerkte Startpunkte im Planer** (#543 Schritt 3, seit 0.183.0, „Gemerkt" immer seit 0.184.0;
   Konzept `docs/konzept-startpunkte.md` 4, 5.1, 9; `start_point_pick.dart`,
   Karte und Daten in `lib/features/map/CLAUDE.md` und `lib/data/CLAUDE.md`).
-  Vier Dinge, die man wissen muss:
+  Fünf Dinge, die man wissen muss:
+  - **„Gemerkt" beim Start immer, beim Ziel nur mit Punkten**
+    (Betreiber nach der Abnahme): ohne Punkt zeigt die Liste
+    `start-point-none` und „Mein Standort merken" — sonst erklärte die
+    Vorführung einen Chip, den ein neuer Nutzer nicht hat. Beim Ziel
+    böte eine leere Liste nichts an.
   - **Ein Punkt ist ein Ort mit Namen**: `takeStartPoint` →
     `takePlace(name:, saved: true)`. `LoopSession.startName`/`targetName`
     beschriften den Kopf (auch Orte der Karte tragen jetzt ihren Namen),
@@ -1211,7 +1216,8 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
   Tests: `test/start_points/start_point_pick_test.dart`,
   `test/flows/start_point_planner_flow_test.dart`. Gegenproben
   2026-11-17: 3 km statt 300 m, ohne `home`, ohne „zuletzt oben",
-  Vorbelegung als Wahl, Name bleibt beim Tipp — je rot.
+  Vorbelegung als Wahl, Name bleibt beim Tipp, Chip nur mit Punkten,
+  ohne Satz in der leeren Liste — je rot.
 - **Ergebnis und Start in einem, ein Ende** (#517, seit 0.171.0;
   Konzept-Routing 9.4, Konzept-Geräte 5.2). Fünf Dinge, die man wissen
   muss:

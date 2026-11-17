@@ -197,7 +197,6 @@ Future<void> showLoopStartChoice(BuildContext outer, WidgetRef outerRef) => show
         final s = ref.watch(loopPlannerProvider);
         final n = ref.read(loopPlannerProvider.notifier);
         final l = context.l10n;
-        final hasSaved = ref.watch(startPointsProvider).isNotEmpty;
         return SafeArea(
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             _ChoiceTile(
@@ -220,17 +219,17 @@ Future<void> showLoopStartChoice(BuildContext outer, WidgetRef outerRef) => show
                 n.armStartPick();
               },
             ),
-            if (hasSaved)
-              _ChoiceTile(
-                key: const ValueKey('loop-start-saved'),
-                icon: Icons.outlined_flag,
-                text: s.startSaved ? s.startName ?? l.loopStartSaved : l.loopStartSaved,
-                chosen: s.startSaved,
-                onTap: () {
-                  Navigator.of(context).pop();
-                  unawaited(pickStartPoint(outer, outerRef, asTarget: false));
-                },
-              ),
+            // Immer da, wie im Einstiegsblatt (Konzept Startpunkte 5.1).
+            _ChoiceTile(
+              key: const ValueKey('loop-start-saved'),
+              icon: Icons.outlined_flag,
+              text: s.startSaved ? s.startName ?? l.loopStartSaved : l.loopStartSaved,
+              chosen: s.startSaved,
+              onTap: () {
+                Navigator.of(context).pop();
+                unawaited(pickStartPoint(outer, outerRef, asTarget: false));
+              },
+            ),
             if (!s.startSaved) ...[
               const Divider(height: 1),
               ListTile(

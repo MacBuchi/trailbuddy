@@ -137,8 +137,12 @@ Start   (•) Mein Standort
         ( ) Gemerkt  ▸  Parkplatz Mühlbach · 2,1 km
 ```
 
-- **„Gemerkt"** gibt es nur, wenn es mindestens einen eigenen oder
-  sichtbaren fremden Punkt gibt. Ein Tipp klappt eine Liste auf: eigene
+- **„Gemerkt"** steht beim Start immer da (Betreiber, 2026-11-17, nach
+  der Abnahme: wer die Neuheit zum ersten Mal sieht, hat noch keinen
+  Punkt, und die Vorführung zeigte ins Leere). Ohne Punkt sagt die Liste
+  in einem Satz, wie einer entsteht, darunter „Mein Standort merken".
+  Beim Ziel gibt es „Gemerkt" nur mit mindestens einem eigenen oder
+  sichtbaren fremden Punkt. Ein Tipp klappt eine Liste auf: eigene
   und fremde Punkte gemischt, sortiert nach Abstand vom Standort (ohne
   Standort von der Kartenmitte), mit dem Abstand rechts. Fremde Punkte
   tragen den Buddy-Namen (Alias, `buddyText`).
@@ -233,11 +237,15 @@ Im Schema-PR (A6):
 | 3 | Planer: „Gemerkt" in Start/Ziel, „Mein Standort merken", „Start merken" im Ergebnis; Neuheiten-Eintrag mit Vorführung | `feat(routing)` |
 
 Gebaut: Schritt 1 in 0.181.0 (PR #568), Schritt 2 in 0.182.0 (PR #569),
-Schritt 3 in 0.183.0. „Mein Standort merken" steht unter der Liste
+Schritt 3 in 0.183.0 (PR #570), „Gemerkt" immer in 0.184.0. „Mein Standort merken" steht unter der Liste
 „Gemerkt" und in der Wahl des Starts im Kopf („Start merken" heißt dort
-so, solange der Start der eigene Standort ist) — ohne gemerkten Punkt
-gibt es die Liste nicht, und der Weg über den Kopf bleibt.
+so, solange der Start der eigene Standort ist); „Gemerkt" beim Start
+steht seit der Abnahme immer da (5.1).
 
 Umgebung: ☁️ Bau (der Schema-Dry-Run läuft in CI) · 📱 Abnahme mit zwei
 Konten (sieht der Buddy den Punkt, den privaten nicht, nach dem
-Entfreunden keinen mehr; Liste am Parkplatz ohne Netz).
+Entfreunden keinen mehr; Liste am Parkplatz ohne Netz). Abgenommen am
+2026-11-17 (Testkonto am Gerät, Betreiber als Buddy): Buddy sieht den
+geteilten, nicht den privaten; Liste ohne Netz vollständig. Offen am
+Gerät: Entfreunden (das Annehmen danach wäre ein Schreiben im Konto des
+Betreibers) — die Regel prüfen RLS und Dry Run.

@@ -84,11 +84,22 @@ void main() {
 
   ChoiceChip chip(WidgetTester tester, String key) => tester.widget<ChoiceChip>(find.byKey(ValueKey(key)));
 
-  testWidgets('ohne gemerkte Punkte gibt es kein „Gemerkt"', (tester) async {
+  testWidgets('ohne gemerkte Punkte: „Gemerkt" beim Start erklärt und bietet den Standort an', (tester) async {
     await start(tester);
     await openEntry(tester);
-    expect(find.byKey(const ValueKey('loop-entry-start-saved')), findsNothing);
     expect(chip(tester, 'loop-entry-start-me').selected, isTrue);
+    expect(chip(tester, 'loop-entry-start-saved').selected, isFalse);
+    // Beim Ziel nur mit Punkten — die leere Liste böte dort nichts an.
+    await tester.tap(find.byKey(const ValueKey('loop-entry-route')));
+    await settle(tester, frames: 8);
+    await tapKey(tester, 'loop-pick-cancel');
+    expect(find.byKey(const ValueKey('loop-entry-target-saved')), findsNothing);
+
+    await tapKey(tester, 'loop-entry-start-saved');
+    expect(find.byKey(const ValueKey('start-point-none')), findsOneWidget);
+    expect(find.byKey(const ValueKey('start-point-remember-here')), findsOneWidget);
+    await tapKey(tester, 'start-point-remember-here', frames: 12);
+    expect(find.byKey(const ValueKey('start-point-home-warning')), findsOneWidget, reason: 'privat, mit Warnung (4)');
   });
 
   testWidgets('zu Hause: „Mein Standort" bleibt, die Liste wählt — der Name steht im Kopf', (tester) async {
@@ -110,6 +121,7 @@ void main() {
     expect(find.text('von ben'), findsOneWidget);
     expect(find.text('privat'), findsOneWidget);
     expect(find.byKey(const ValueKey('start-point-remember-here')), findsOneWidget);
+    expect(find.byKey(const ValueKey('start-point-none')), findsNothing);
 
     await tester.tap(ben);
     await settle(tester, frames: 8);

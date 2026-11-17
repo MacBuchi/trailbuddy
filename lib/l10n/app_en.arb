@@ -1993,6 +1993,7 @@
   "startPointPickStart": "Saved start points",
   "startPointPickTarget": "Saved points as target",
   "startPointPrivate": "private",
+  "startPointNoneYet": "No start point saved yet. Long-press the map or tap a place and choose “Save as start point” — or save your location right away.",
   "startPointRememberHere": "Save my location",
   "startPointHomeWarning": "Is this your home? Then keep it private — otherwise your buddies would see where you live.",
   "startPointNoPosition": "No location — long-press the spot on the map to save it.",

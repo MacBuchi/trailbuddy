@@ -193,10 +193,11 @@ class _LoopEntrySheetState extends ConsumerState<LoopEntrySheet> {
         setState(() => _noPosition = false);
         _n.armStartPick();
       }),
-      // Gewählt trägt die Wahl den Namen des Punkts (Konzept 5.1).
-      if (hasSaved || s.startSaved)
-        choice('loop-entry-start-saved', s.startSaved ? s.startName ?? l.loopEntrySaved : l.loopEntrySaved,
-            s.startSaved, () => unawaited(_pickSaved(asTarget: false))),
+      // Gewählt trägt die Wahl den Namen des Punkts (Konzept 5.1). Beim
+      // Start immer da — ohne Punkt erklärt die Liste, wie einer entsteht,
+      // und bietet „Mein Standort merken" an.
+      choice('loop-entry-start-saved', s.startSaved ? s.startName ?? l.loopEntrySaved : l.loopEntrySaved,
+          s.startSaved, () => unawaited(_pickSaved(asTarget: false))),
     ]);
 
     final timeLine = Padding(
@@ -239,6 +240,7 @@ class _LoopEntrySheetState extends ConsumerState<LoopEntrySheet> {
         setState(() => _noPosition = false);
         _n.armTargetPick();
       }),
+      // Beim Ziel nur mit Punkten: eine leere Liste böte dort nichts an.
       if (hasSaved || s.targetSaved)
         choice('loop-entry-target-saved', s.targetSaved ? s.targetName ?? l.loopEntrySaved : l.loopEntrySaved,
             s.targetSaved, () => unawaited(_pickSaved(asTarget: true))),
