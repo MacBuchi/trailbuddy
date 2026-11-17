@@ -18,12 +18,12 @@ im PR): Tastenkarte, die Bildschirme der Uhr, vier des Handys.
 |---|---|---|
 | E1 | Reihenfolge: erst Testbarkeit, dann Bedienung? | Ja — `konzept-garmin.md` 12, T1 vor allem anderen |
 | E2 | Tastenkarte „eine Taste, eine Bedeutung" (`konzept-garmin.md` 11) | **angenommen** (Betreiber, 2026-11-12); ändert Entscheidung 6 nur bei der Frage (START = ja) und beim langen HOCH — gebaut in #513 |
-| E3 | Routenablage auf der Uhr (vorher synchronisiert, ohne Handy wählbar) | ja, Größe nach Messung 8.6 |
-| E4 | Buddys unterwegs sehen („Gruppenfahrt", Abschnitt 6) | offen — berührt A1, A3, A6 und den Satz „Kein Live-Standort" in `play-console.md` |
-| E5 | Eigener BLE-Lagesensor als nächstes Messgerät | ja, vor jedem Versuch mit einer Uhr |
-| E6 | fēnix 5 Plus und neuer als Lagesensor am Lenker | nur als Experiment nach E5; ändert Entscheidung 1 in `konzept-garmin.md` |
-| E7 | Ansagen übers Ohr (Abschnitt 9, F6/F7; #525) | ja, als Schalter und **ohne Abbiegeansagen** — ändert A12 |
-| E8 | „Buddy in der Nähe" einmal je Fahrt (Abschnitt 9, F8; #526) | ja, in der groben Form: Zelle statt Position, nichts gespeichert — berührt A1, A3, A6 |
+| E3 | Routenablage auf der Uhr (vorher synchronisiert, ohne Handy wählbar) | **angenommen** (Betreiber, 2026-11-17): wie vorgeschlagen, Größe nach Messung 8.6 (bis dahin 3 Routen oder 4000 Punkte) — #515 |
+| E4 | Buddys unterwegs sehen („Gruppenfahrt", Abschnitt 6) | **entschieden** (Betreiber, 2026-11-17): ja, **Opt-in**, in zwei Stufen — genau und live nur für Buddys in der Nähe, grob und nicht live für ausgewählte Buddys („Homies") außerhalb; Abschnitt 6 — #519 |
+| E5 | Eigener BLE-Lagesensor als nächstes Messgerät | **später** (Betreiber, 2026-11-17); ob E5 oder E6 zuerst kommt, entscheidet die verfügbare Hardware — #518 |
+| E6 | fēnix 5 Plus und neuer als Lagesensor am Lenker | **eingeplant** (Betreiber, 2026-11-17), als Experiment; kann vor E5 kommen, je nach Hardware; ändert Entscheidung 1 in `konzept-garmin.md` erst, wenn es trägt — #518 |
+| E7 | Ansagen übers Ohr (Abschnitt 9, F6/F7; #525) | **angenommen** (Betreiber, 2026-11-17): als Schalter, Vorgabe aus, **ohne Abbiegeansagen**, mit frischer Buddy-Meldung zum Trail voraus — ändert A12 im Bau-PR |
+| E8 | „Buddy in der Nähe" einmal je Fahrt (Abschnitt 9, F8; #526) | **entschieden** (Betreiber, 2026-11-17): grobe Form (Zelle, nichts gespeichert), aber **einmal gefragt mit „Ja" vorausgewählt**, auch bei offener App ohne Aufzeichnung — nie um ein lokales „Zuhause"; je Buddy zwei Schalter; Abschnitt 6 — berührt A1, A2, A3, A6 |
 | E9 | Reihenfolge weiterer Geräte (Abschnitt 11) | erst Kachel und Benachrichtigung am Handy, dann Garmin Edge und neuere Uhren, dann Wear OS |
 
 ## 1. Rollen statt Geräte
@@ -183,7 +183,7 @@ Zeilen im Kopf, und davor kommt ein Einstieg mit Vorschlag (Betreiber:
 „für den initialen Vorschlag sollte es sehr einfach mit wenigen Klicks
 gehen"). „Ergebnis und Start in einem" ist mit 0.171.0 gebaut (#517).
 
-## 6. Buddys unterwegs — „Gruppenfahrt" (E4, nicht entschieden)
+## 6. Buddys unterwegs — „Gruppenfahrt" (E4, E8)
 
 Der Wunsch: Buddys auf der Karte des Handys und auf der Uhr sehen, ein-
 und ausschaltbar. Heute gilt das Gegenteil — `play-console.md` sagt
@@ -204,6 +204,36 @@ Vorschlag, der so wenig wie möglich davon aufgibt:
 
 Kommt es, ändern sich im selben PR `anforderungen.md` (A1, A3, A6),
 `konzept-trails.md`, beide Datenschutzseiten und `play-console.md`.
+
+### 6.1 Entschieden (Betreiber, 2026-11-17)
+
+Der Vorschlag oben bleibt die Grundlage; der Betreiber hat ihn an vier
+Stellen geändert. E8 kommt weiter vor E4.
+
+- **„Buddys unterwegs" (E8) wird einmal gefragt, „Ja" vorausgewählt.**
+  Echtes Opt-out wäre bei einem Ort, der ohne eigenes Zutun hinausgeht
+  (auch als Zelle), mit DSGVO Art. 25 heikel; eine einmalige Frage ist
+  eine bewusste Zustimmung und wirkt doch wie Opt-out. Danach im Profil
+  abschaltbar.
+- **Auch bei offener App, nicht nur bei einer Aufzeichnung.** Ohne
+  Aufzeichnung fehlt der Start als Bezug für die 1 km; dafür gibt es
+  einen neuen Ort **„Zuhause"**, der nur auf dem Gerät liegt — in seinem
+  Umkreis meldet sich die App nie an (A3: nicht ab der Haustür). Mit
+  Aufzeichnung gilt zusätzlich die 1 km vom Start. Vorschlag für den
+  Bau: ohne Aufzeichnung nur im Vordergrund, kein eigener Dienst.
+- **Je Buddy zwei Schalter:** „Meldungen von ihm" (was ich bekomme) und
+  „sieht mich" (was ich preisgebe).
+- **Live-Standort (E4) als Opt-in, in zwei Stufen:** Buddys **in der
+  Nähe** (gleiche oder Nachbarzelle), die es auch eingeschaltet haben,
+  sehen die **genaue Position live**. Ausgewählte Buddys — „Homies", eine
+  neue Stufe unter den direkten Buddys (ändert A2) — sehen außerhalb der
+  Nähe eine **grobe Position, nicht live** (die Zelle, mit „zuletzt vor
+  …"). Alle anderen sehen nichts. Kein Verlauf, keine Tabelle,
+  „Zuhause" und die 1 km gelten auch hier.
+
+Offen für den Bau: der Umkreis um „Zuhause", wie „Homies" gewählt
+werden (Buddy-Liste), und ob die grobe Stufe die Zelle oder ihr
+Mittelpunkt auf der Karte ist.
 
 ## 7. Abgleich mit den Kernanforderungen
 
@@ -378,6 +408,9 @@ Der Betreiber: „5 km Umkreis? Einmal pro Fahrt reicht."
   das mit gefahrener Zeit wächst. Das ist die kleinste Form, die den
   Moment liefert („der ist ja auch hier!"), und die Stufe vor der
   Gruppenfahrt (Abschnitt 6, #519).
+- **Entschieden** (2026-11-17): Abschnitt 6.1 — einmal gefragt mit
+  „Ja" vorausgewählt, auch bei offener App (nie um „Zuhause"), je
+  Buddy zwei Schalter.
 - **Trägt:** #526.
 
 ### Was über alle Szenarien auffällt
