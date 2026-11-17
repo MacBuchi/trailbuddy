@@ -14,7 +14,7 @@
 ###    hintereinander am Start des Stacks, ohne dass ein Test lief.
 ### 2. Nur die Dienste, die der Dry Run braucht — weniger Images heißt
 ###    weniger Downloads, die gedrosselt werden können. `config.toml`
-###    schaltet Studio, Realtime, Analytics und den Pooler schon ab; hier
+###    schaltet Studio, Analytics und den Pooler schon ab; hier
 ###    fallen zusätzlich weg:
 ###      - imgproxy       (Bildumwandlung, nutzt kein Test)
 ###      - postgres-meta  (nur für Studio)
@@ -25,7 +25,9 @@
 ###    Es BLEIBEN: db (mit PostGIS), kong, gotrue, postgrest, mailpit
 ###    (`auth_reset_check.sh` liest dort die Codes) und seit Patch 026
 ###    storage-api (Bucket der Hinweis-Fotos; `photo_access_check.sh`
-###    prüft seine Policies).
+###    prüft seine Policies) und seit Patch 031 realtime (legt
+###    realtime.messages an; matcher_check.sql Block 34 prüft die
+###    Policies von „Buddy in der Nähe").
 ###    ⚠️ `-x` will die IMAGE-Namen. Die Namen aus `supabase start --help`
 ###    nimmt die CLI stillschweigend an und startet die Dienste trotzdem
 ###    (in FWApp mit `docker ps` nachgesehen).
@@ -36,7 +38,7 @@ set -euo pipefail
 unset SUPABASE_INTERNAL_IMAGE_REGISTRY
 
 for versuch in 1 2 3; do
-  if supabase start -x imgproxy,postgres-meta,vector,edge-runtime,logflare,realtime,studio; then
+  if supabase start -x imgproxy,postgres-meta,vector,edge-runtime,logflare,studio; then
     exit 0
   fi
   echo "::warning::supabase start scheiterte (Versuch $versuch/3) — neuer Versuch in $((versuch * 30)) s"

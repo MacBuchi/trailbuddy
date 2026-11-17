@@ -231,9 +231,44 @@ Stellen geändert. E8 kommt weiter vor E4.
   …"). Alle anderen sehen nichts. Kein Verlauf, keine Tabelle,
   „Zuhause" und die 1 km gelten auch hier.
 
-Offen für den Bau: der Umkreis um „Zuhause", wie „Homies" gewählt
-werden (Buddy-Liste), und ob die grobe Stufe die Zelle oder ihr
-Mittelpunkt auf der Karte ist.
+Offen für den Bau von #519: wie „Homies" gewählt werden (Buddy-Liste),
+und ob die grobe Stufe die Zelle oder ihr Mittelpunkt auf der Karte ist.
+
+### 6.2 Gebaut: „Buddy in der Nähe" (E8, #526, Patch 031)
+
+Entschieden beim Bau (Betreiber, 2026-11-18): **Realtime je Nutzer**
+statt eines Kanals je Zelle, „Zuhause" mit **1 km**.
+
+- **Ein privater Kanal je Nutzer** (`nearby:<uid>`). Darin legt er seine
+  Zelle als Presence ab; seine Buddys hören zu und vergleichen auf IHREM
+  Gerät (dieselbe oder eine Nachbarzelle). Ein Kanal je Zelle ging nicht:
+  Realtime prüft die Rechte beim Beitritt, nicht je Nachricht — jeder in
+  der Zelle sähe jeden, auch Fremde. Der Preis, bewusst: Ein Buddy sieht
+  die Zelle auch, wenn er weit weg ist (kein „nur in der Nähe" auf dem
+  Server). Kein Verlauf, keine Tabelle für Orte — Presence lebt im
+  Speicher des Dienstes.
+- **Rechte** in den Policies auf `realtime.messages`: setzen nur im
+  eigenen Kanal, lesen der Besitzer und direkte Buddys ohne „sieht mich"
+  aus. Realtime prüft beim Beitritt und bei jedem neuen JWT —
+  ausschließen wirkt also spätestens nach einer Stunde.
+- **Zwei Schalter je Buddy** in `buddy_nearby_prefs` (eine Zeile nur bei
+  Abweichung): `hidden` (sieht mich nicht) wirkt auf dem Server, `muted`
+  (keine Meldung) auf dem Gerät. Entfreunden löscht beide Richtungen.
+- **Wann geteilt wird** (`nearbyPause`): Schalter an; eine Position;
+  nie im Umkreis von 1 km um „Zuhause"; mit Aufzeichnung ab 1 km vom
+  Start, auch im Hintergrund (der Main-Isolate lebt neben dem Dienst);
+  ohne Aufzeichnung nur im Vordergrund und **nur mit festgelegtem
+  „Zuhause"** — sonst wüsste die App nicht, wo die Haustür ist.
+- **Die Frage** kommt einmal im Buddys-Reiter, sobald es einen Buddy gibt
+  und keine Tour läuft; „Ja" vorausgewählt, „Nein" ist eine Antwort.
+  Danach: Profil → Benachrichtigungen.
+- **Die Meldung**: einmal je Buddy und Fahrt (ohne Aufzeichnung: je
+  Sitzung der App); vorne als Leiste, mit Aufzeichnung im Hintergrund als
+  Benachrichtigung im Kanal `trailbuddy_meldungen`. Gemeldet wird erst,
+  wenn die Schalter je Buddy geladen sind.
+- **Übers Ohr**: Mit „Ansagen" (#525) und laufender Fahrt wird die
+  Meldung zusätzlich gesprochen.
+- **Noch nicht**: die Vibration mit Namensschild auf der Uhr.
 
 ## 7. Abgleich mit den Kernanforderungen
 
@@ -397,8 +432,8 @@ intuitiv?)"
 
 Der Betreiber: „5 km Umkreis? Einmal pro Fahrt reicht."
 
-- **Stand:** fehlt; berührt A1, A3, A6 und den Satz „Kein Live-Standort"
-  in `play-console.md`.
+- **Stand:** gebaut in #526 (Abschnitt 6.2); A2, A3, beide
+  Datenschutzseiten und `play-console.md` nachgezogen.
 - **Vorschlag (E8) — sagen, nicht zeigen:** beide haben „Buddys
   unterwegs" eingeschaltet; nur während einer Aufzeichnung und erst ab
   1 km vom Start; das Handy meldet eine grobe Zelle (rund 5 km), nie

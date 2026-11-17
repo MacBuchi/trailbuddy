@@ -179,4 +179,24 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
   „start_points", `schema_check.sh` die Spalten von
   `kStartPointColumns`. Beide Wege lokal mit `tool/schema_local_test.sh`
   im `postgis/postgis:16-3.4`-Container, Dumps gleich.
-
+- **Buddy in der Nähe** (Patch 031, #526; `docs/konzept-geraete.md` 6.2):
+  KEINE Tabelle für Orte — die Zelle ist Presence im privaten Kanal
+  `nearby:<uid>`. Drei Dinge, die man wissen muss:
+  - **Die Rechte stehen als Policies auf `realtime.messages`**
+    (`nearby_presence_read`: Presence, `may_read_nearby(realtime.topic())`
+    — eigener Kanal oder direkter Buddy ohne `hidden`; `nearby_presence_track`:
+    nur der eigene Kanal). `may_read_nearby` ist Definer und prüft den
+    Kanalnamen per Regex, bevor es castet; alles andere ist nein.
+  - **`buddy_nearby_prefs`** (Besitzer + Buddy, `hidden`, `muted`; eine
+    Zeile nur bei Abweichung, RLS nur der Besitzer, schreiben nur für
+    direkte Buddys). Entfreunden löscht beide Richtungen
+    (`friendships_delete_nearby_prefs`).
+  - **Realtime gibt es lokal nur als Shim** (`tool/auth_shim.sql`:
+    `realtime.messages`, `realtime.topic()` liest die GUC
+    `realtime.topic` wie der Dienst). Der Dry Run startet seit Patch 031
+    den Realtime-Dienst mit (`config.toml`, `ci_supabase_start.sh`), damit
+    `matcher_check.sql` Block 34 gegen die echte Tabelle läuft. Geprüft
+    wird so, wie Realtime selbst prüft: Thema setzen, als Nutzer lesen
+    bzw. einfügen. Gegenprobe: Lese-Policy ohne `may_read_nearby` ⇒
+    „Gina liest nichts" rot. Beide Wege lokal mit
+    `tool/schema_local_test.sh` im `postgis/postgis:16-3.4`-Container.

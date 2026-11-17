@@ -16,6 +16,11 @@
 --     storage.objects an. Live und im Dry Run kommt das Schema vom
 --     Storage-Dienst; hier nur die Spalten, die Policies und Prüfungen
 --     nennen, und foldername() wortgleich zum Dienst.
+--   - realtime.messages und realtime.topic() (Patch 031, Buddy in der
+--     Nähe): schema.sql legt Policies auf realtime.messages an. Live und
+--     im Dry Run kommt das Schema vom Realtime-Dienst; hier die Spalten,
+--     die Policies und Prüfungen nennen, und topic() wie beim Dienst
+--     (liest die GUC `realtime.topic`, die Realtime beim Prüfen setzt).
 --
 -- Dazu die Vorgabe des Supabase-Stacks, ohne die der Test das Falsche
 -- prüfte: `auto_expose_new_tables` gibt anon und authenticated auf JEDER
@@ -90,3 +95,24 @@ end $$;
 grant usage on schema storage to anon, authenticated, service_role;
 grant select, insert, delete on storage.objects to authenticated;
 grant all on storage.objects, storage.buckets to service_role;
+
+-- realtime (Patch 031) — nur, was schema.sql und matcher_check.sql brauchen.
+create schema if not exists realtime;
+create table if not exists realtime.messages (
+  id uuid not null default gen_random_uuid(),
+  topic text not null,
+  extension text not null,
+  payload jsonb,
+  event text,
+  private boolean default false,
+  inserted_at timestamp not null default now(),
+  updated_at timestamp not null default now()
+);
+alter table realtime.messages enable row level security;
+create or replace function realtime.topic()
+returns text language sql stable as $$
+  select nullif(current_setting('realtime.topic', true), '')::text;
+$$;
+grant usage on schema realtime to anon, authenticated, service_role;
+grant select, insert on realtime.messages to authenticated;
+grant all on realtime.messages to service_role;

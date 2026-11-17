@@ -52,6 +52,20 @@ abstract interface class Settings {
 
   Future<void> setAirtimeShareEnabled(bool value);
 
+  /// „Buddys unterwegs" (#526, E8): null heißt noch nie gefragt — dann
+  /// fragt die App EINMAL, „Ja" vorausgewählt (Betreiber 2026-11-17).
+  /// Gerätelokal: Es ist dieses Telefon, das unterwegs ist.
+  bool? get buddiesNearby;
+
+  Future<void> setBuddiesNearby(bool value);
+
+  /// „Zuhause" für „Buddys unterwegs" als `"<lat>,<lon>"`, oder null.
+  /// Liegt NUR auf dem Gerät; im Umkreis von 1 km meldet sich die App nie
+  /// (A3: nicht ab der Haustür).
+  String? get nearbyHome;
+
+  Future<void> setNearbyHome(String? value);
+
   /// Die eingeschalteten Orte-Gruppen der Karte (`PoiGroup.name`), oder
   /// null, solange nie etwas umgelegt wurde — dann gilt die Vorgabe.
   /// Leer heißt „alles aus", nicht „Vorgabe".
@@ -351,6 +365,23 @@ class PrefsSettings implements Settings {
 
   @override
   Future<void> setAirtimeShareEnabled(bool value) => _prefs.setBool(_airtimeShareEnabledKey, value);
+
+  static const _buddiesNearbyKey = 'buddies_nearby';
+
+  @override
+  bool? get buddiesNearby => _prefs.getBool(_buddiesNearbyKey);
+
+  @override
+  Future<void> setBuddiesNearby(bool value) => _prefs.setBool(_buddiesNearbyKey, value);
+
+  static const _nearbyHomeKey = 'nearby_home';
+
+  @override
+  String? get nearbyHome => _prefs.getString(_nearbyHomeKey);
+
+  @override
+  Future<void> setNearbyHome(String? value) =>
+      value == null ? _prefs.remove(_nearbyHomeKey) : _prefs.setString(_nearbyHomeKey, value);
 
   static const _poiGroupsKey = 'poi_groups';
 

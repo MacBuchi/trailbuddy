@@ -83,6 +83,16 @@ class FeatureHighlight {
 final kFeatureHighlights = <FeatureHighlight>[
   // ─── Highlights ──────────────────────────────────────────────────
   FeatureHighlight(
+    id: 'buddies-nearby',
+    since: '0.186.0',
+    kind: HighlightKind.highlight,
+    tab: HighlightTab.buddys,
+    icon: Icons.social_distance_outlined,
+    title: (l) => l.highlightBuddiesNearbyTitle,
+    text: (l) => l.highlightBuddiesNearbyText,
+    target: '/profile/notifications',
+  ),
+  FeatureHighlight(
     id: 'voice-cues',
     since: '0.185.0',
     kind: HighlightKind.highlight,

@@ -2770,6 +2770,92 @@ create policy note_photos_remove on storage.objects for delete
     and (storage.foldername(name))[1] = auth.uid()::text);
 
 -- ============================================================
+-- Realtime: Buddy in der Nähe (Patch 031, #526)
+-- ============================================================
+-- Jeder legt seine grobe Zelle als Presence in den eigenen privaten
+-- Kanal `nearby:<user_id>`; lesen dürfen er selbst und direkte Buddys,
+-- die er nicht über „sieht mich" ausgeschlossen hat. Keine Tabelle für
+-- Orte. Begründung und Grenzen im Kopf von patch_031. Lokal kommt
+-- realtime.messages aus tool/auth_shim.sql.
+
+create table public.buddy_nearby_prefs (
+  user_id uuid not null references public.profiles(id) on delete cascade,
+  buddy_id uuid not null references public.profiles(id) on delete cascade,
+  hidden boolean not null default false,
+  muted boolean not null default false,
+  updated_at timestamptz not null default now(),
+  primary key (user_id, buddy_id),
+  check (user_id <> buddy_id)
+);
+alter table public.buddy_nearby_prefs enable row level security;
+
+create policy bnp_select_own on public.buddy_nearby_prefs for select
+  using (user_id = auth.uid());
+create policy bnp_insert_own on public.buddy_nearby_prefs for insert
+  with check (user_id = auth.uid() and app_internal.are_friends(user_id, buddy_id));
+create policy bnp_update_own on public.buddy_nearby_prefs for update
+  using (user_id = auth.uid())
+  with check (user_id = auth.uid() and app_internal.are_friends(user_id, buddy_id));
+create policy bnp_delete_own on public.buddy_nearby_prefs for delete
+  using (user_id = auth.uid());
+
+revoke all on public.buddy_nearby_prefs from anon, authenticated;
+grant select, insert, update, delete on public.buddy_nearby_prefs to authenticated;
+
+create trigger buddy_nearby_prefs_touch
+  before update on public.buddy_nearby_prefs
+  for each row execute function app_internal.touch_updated_at();
+
+create or replace function app_internal.nearby_prefs_on_unfriend()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  delete from buddy_nearby_prefs p
+  where (p.user_id = old.requester_id and p.buddy_id = old.addressee_id)
+     or (p.user_id = old.addressee_id and p.buddy_id = old.requester_id);
+  return old;
+end;
+$$;
+revoke all on function app_internal.nearby_prefs_on_unfriend() from public, anon, authenticated;
+create trigger friendships_delete_nearby_prefs
+  after delete on public.friendships
+  for each row execute function app_internal.nearby_prefs_on_unfriend();
+
+-- Darf der Aufrufer die Presence im Kanal [topic] lesen? Der eigene
+-- Kanal immer; der eines anderen nur als direkter Buddy, den der Besitzer
+-- nicht ausgeschlossen hat. Alles, was nicht genau `nearby:<uuid>` ist,
+-- ist nein — ohne Cast-Fehler.
+create or replace function app_internal.may_read_nearby(topic text)
+returns boolean language plpgsql stable security definer set search_path = public as $$
+declare
+  owner uuid;
+  me uuid := auth.uid();
+begin
+  if me is null or topic is null
+     or topic !~ '^nearby:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' then
+    return false;
+  end if;
+  owner := substr(topic, 8)::uuid;
+  if owner = me then
+    return true;
+  end if;
+  return app_internal.are_friends(owner, me)
+    and not exists (select 1 from buddy_nearby_prefs p
+                    where p.user_id = owner and p.buddy_id = me and p.hidden);
+end;
+$$;
+revoke all on function app_internal.may_read_nearby(text) from public, anon;
+grant execute on function app_internal.may_read_nearby(text) to authenticated;
+
+create policy nearby_presence_read on realtime.messages for select
+  to authenticated
+  using (realtime.messages.extension = 'presence'
+    and app_internal.may_read_nearby((select realtime.topic())));
+create policy nearby_presence_track on realtime.messages for insert
+  to authenticated
+  with check (realtime.messages.extension = 'presence'
+    and (select realtime.topic()) = 'nearby:' || (select auth.uid())::text);
+
+-- ============================================================
 -- Aufräumjobs und Push-Versand (nur wo pg_cron verfügbar ist)
 -- ============================================================
 -- Supabase hat pg_cron; der nackte Postgres des Matcher-Tests nicht. Ein
@@ -2859,5 +2945,6 @@ insert into public.applied_patches (filename) values
   ('patch_027_push_locale.sql'),
   ('patch_028_note_report_link.sql'),
   ('patch_029_airtime.sql'),
-  ('patch_030_start_points.sql')
+  ('patch_030_start_points.sql'),
+  ('patch_031_buddy_nearby.sql')
 on conflict do nothing;

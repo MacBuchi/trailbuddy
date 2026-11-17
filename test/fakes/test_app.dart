@@ -51,6 +51,7 @@ import 'package:trailbuddy/features/trails/outbox_providers.dart';
 import 'package:trailbuddy/features/trails/trail_providers.dart';
 
 import 'fake_airtime.dart';
+import 'fake_nearby.dart';
 import 'fake_backend.dart';
 import 'fake_garmin.dart';
 import 'fake_map_view.dart';
@@ -126,6 +127,7 @@ List<Override> overridesFor(FakeBackend backend,
         FakePushRepository? push,
         Stream<RemoteMessage>? pushMessages,
         FakeAirtimeRepository? airtime,
+        FakeNearbyRepository? nearby,
         bool useRealMap = false,
         List<Override> extra = const []}) =>
     [
@@ -154,6 +156,8 @@ List<Override> overridesFor(FakeBackend backend,
       messageRepositoryProvider.overrideWithValue(FakeMessageRepository(backend)),
       // Airtime unter Buddys (#36 Schritt 6): im Speicher, ab Werk leer.
       airtimeRepositoryProvider.overrideWithValue(airtime ?? FakeAirtimeRepository(backend)),
+      // Buddy in der Nähe (#526): Kanäle im Speicher, ohne Realtime.
+      nearbyRepositoryProvider.overrideWithValue(nearby ?? FakeNearbyRepository(backend)),
       feedbackRepositoryProvider
           .overrideWithValue(FakeFeedbackRepository(backend)),
       // Die Karte beobachtet die Trails, und die kämen sonst aus
@@ -296,6 +300,7 @@ Future<void> pumpApp(WidgetTester tester, FakeBackend backend,
     FakePushRepository? push,
     Stream<RemoteMessage>? pushMessages,
     FakeAirtimeRepository? airtime,
+    FakeNearbyRepository? nearby,
     bool useRealMap = false,
     List<Locale> deviceLocales = const [Locale('de', 'DE')],
     List<Override> extraOverrides = const []}) async {
@@ -339,6 +344,7 @@ Future<void> pumpApp(WidgetTester tester, FakeBackend backend,
         keepAlive: keepAlive,
         connectivity: connectivity,
         airtime: airtime,
+        nearby: nearby,
         push: push,
         pushMessages: pushMessages,
         useRealMap: useRealMap,

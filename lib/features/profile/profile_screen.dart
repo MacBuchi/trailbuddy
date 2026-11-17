@@ -41,6 +41,7 @@ import '../routing/ride_calibrator.dart';
 import '../routing/route_profile.dart';
 import '../trails/merge_proposal_card.dart' show mergeProposalsProvider;
 import '../trails/trail_providers.dart' show stillValidQuestionsProvider, trailCacheProvider, trailsProvider;
+import '../nearby/nearby_widgets.dart' show NearbySection;
 import 'account_dialogs.dart';
 import 'profile_providers.dart';
 import 'push_providers.dart';
@@ -422,7 +423,12 @@ class NotificationsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) =>
-      _ProfilePage(title: context.l10n.profileNotificationsTitle, children: const [_PushSection()]);
+      _ProfilePage(title: context.l10n.profileNotificationsTitle, children: const [
+        _PushSection(),
+        Divider(height: 32),
+        // Buddy in der Nähe (#526): auch eine Meldung, deshalb hier.
+        NearbySection(),
+      ]);
 }
 
 class AppearanceScreen extends StatelessWidget {

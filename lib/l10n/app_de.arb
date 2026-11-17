@@ -10902,5 +10902,133 @@
   "demoVoiceCuesText": "Unter „Navigation“ schaltest du die Ansagen ein — oder im Start einer Fahrt mit dem Chip „Ansagen“. Ab Werk aus.",
   "@demoVoiceCuesText": {
     "description": "Vorführung „Ansagen“ (#525): Text der Blase."
+  },
+  "nearbyNoticeTitle": "Buddy in der Nähe",
+  "@nearbyNoticeTitle": {
+    "description": "Titel der Meldung „Buddy in der Nähe“ (#526), als Banner/Benachrichtigung."
+  },
+  "nearbyNotice": "{name} ist auch gerade unterwegs — in der Nähe",
+  "@nearbyNotice": {
+    "description": "Meldung „Buddy in der Nähe“ (#526): ein Buddy ist in derselben oder einer Nachbarzelle (~5 km) unterwegs. Bewusst ohne Abstand und Richtung.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "nearbyAskTitle": "Buddys unterwegs?",
+  "@nearbyAskTitle": {
+    "description": "Einmalige Frage zu „Buddys unterwegs“ (#526), Titel."
+  },
+  "nearbyAskBody": "Ist ein Buddy gerade in deiner Nähe unterwegs, sagt TrailBuddy es euch beiden — einmal je Fahrt. Dafür bekommen deine Buddys eine grobe Zelle von rund 5 km, nie deine Position. Nie im Umkreis von 1 km um „Zuhause“ und nie im ersten Kilometer einer Aufzeichnung. Im Profil jederzeit abschaltbar, je Buddy auch einzeln.",
+  "@nearbyAskBody": {
+    "description": "Einmalige Frage zu „Buddys unterwegs“ (#526), Text. Nennt Zelle, Zuhause und 1 km — so steht es in der Datenschutzerklärung."
+  },
+  "nearbyAskYes": "Ja, einschalten",
+  "@nearbyAskYes": {
+    "description": "Einmalige Frage „Buddys unterwegs“: vorausgewählte Zustimmung (Betreiber 2026-11-17: „Ja“ vorausgewählt)."
+  },
+  "nearbyAskNo": "Nein",
+  "@nearbyAskNo": {
+    "description": "Einmalige Frage „Buddys unterwegs“: ablehnen."
+  },
+  "nearbySwitchTitle": "Buddys unterwegs",
+  "@nearbySwitchTitle": {
+    "description": "Profil: Schalter „Buddys unterwegs“ (#526)."
+  },
+  "nearbySwitchSubtitle": "Sagt dir und deinen Buddys, wenn ihr gleichzeitig in der Nähe fahrt. Geteilt wird nur eine grobe Zelle (~5 km), nie die Position.",
+  "@nearbySwitchSubtitle": {
+    "description": "Profil: Unterzeile des Schalters „Buddys unterwegs“."
+  },
+  "nearbyStatusActive": "Gerade aktiv — deine Buddys sehen deine Zelle",
+  "@nearbyStatusActive": {
+    "description": "Profil, „Buddys unterwegs“: Zustand, während geteilt wird."
+  },
+  "nearbyPauseNoPosition": "Pausiert: keine Position",
+  "@nearbyPauseNoPosition": {
+    "description": "Profil, „Buddys unterwegs“: Zustand ohne Standort."
+  },
+  "nearbyPauseHome": "Pausiert: im Umkreis von „Zuhause“",
+  "@nearbyPauseHome": {
+    "description": "Profil, „Buddys unterwegs“: Zustand im Umkreis von 1 km um „Zuhause“."
+  },
+  "nearbyPauseNearStart": "Pausiert: erster Kilometer der Fahrt",
+  "@nearbyPauseNearStart": {
+    "description": "Profil, „Buddys unterwegs“: Aufzeichnung läuft, aber noch keinen Kilometer vom Start."
+  },
+  "nearbyPauseBackground": "Pausiert: App im Hintergrund (ohne Aufzeichnung)",
+  "@nearbyPauseBackground": {
+    "description": "Profil, „Buddys unterwegs“: ohne Aufzeichnung nur im Vordergrund."
+  },
+  "nearbyPauseNoHome": "Ohne Aufzeichnung erst, wenn „Zuhause“ festgelegt ist",
+  "@nearbyPauseNoHome": {
+    "description": "Profil, „Buddys unterwegs“: ohne Aufzeichnung braucht es „Zuhause“ — sonst wüsste die App nicht, wo die Haustür ist."
+  },
+  "nearbyHomeSet": "„Zuhause“ hier festlegen",
+  "@nearbyHomeSet": {
+    "description": "Profil, „Buddys unterwegs“: Knopf — die aktuelle Position wird „Zuhause“ (nur auf diesem Gerät)."
+  },
+  "nearbyHomeClear": "„Zuhause“ entfernen",
+  "@nearbyHomeClear": {
+    "description": "Profil, „Buddys unterwegs“: Knopf, „Zuhause“ vergessen."
+  },
+  "nearbyHomeIsSet": "„Zuhause“ ist festgelegt — nur auf diesem Gerät, Umkreis 1 km",
+  "@nearbyHomeIsSet": {
+    "description": "Profil, „Buddys unterwegs“: Zeile, wenn „Zuhause“ gesetzt ist."
+  },
+  "nearbyHomeNoPosition": "Keine Position — „Zuhause“ nicht festgelegt",
+  "@nearbyHomeNoPosition": {
+    "description": "Leiste, wenn „Zuhause hier festlegen“ ohne Standort getippt wurde."
+  },
+  "nearbyBuddyTooltip": "Buddys unterwegs",
+  "@nearbyBuddyTooltip": {
+    "description": "Buddy-Zeile: Tooltip des Knopfs mit den zwei Schaltern je Buddy (#526)."
+  },
+  "nearbyBuddySeesMe": "{name} sieht mich",
+  "@nearbyBuddySeesMe": {
+    "description": "Blatt je Buddy, „Buddys unterwegs“: Schalter — bekommt dieser Buddy meine grobe Zelle?",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "nearbyBuddySeesMeHint": "Wenn du unterwegs bist, bekommt {name} deine grobe Zelle (~5 km).",
+  "@nearbyBuddySeesMeHint": {
+    "description": "Blatt je Buddy: Unterzeile zu „sieht mich“.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "nearbyBuddyNotify": "Meldungen von {name}",
+  "@nearbyBuddyNotify": {
+    "description": "Blatt je Buddy, „Buddys unterwegs“: Schalter — will ich gemeldet bekommen, wenn dieser Buddy in der Nähe fährt?",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "nearbyBuddyOff": "„Buddys unterwegs“ ist im Profil aus.",
+  "@nearbyBuddyOff": {
+    "description": "Blatt je Buddy: Hinweis, solange der Schalter im Profil aus ist."
+  },
+  "highlightBuddiesNearbyTitle": "Buddys unterwegs",
+  "@highlightBuddiesNearbyTitle": {
+    "description": "Neuheit (#526): Titel."
+  },
+  "highlightBuddiesNearbyText": "Fährt ein Buddy gerade in deiner Nähe, sagt TrailBuddy es euch beiden — einmal je Fahrt, mit einer groben Zelle statt deiner Position.",
+  "@highlightBuddiesNearbyText": {
+    "description": "Neuheit (#526): Text."
+  },
+  "demoBuddiesNearbyTitle": "Buddys unterwegs",
+  "@demoBuddiesNearbyTitle": {
+    "description": "Vorführung „Buddys unterwegs“ (#526): Titel am Profil-Eintrag „Benachrichtigungen“."
+  },
+  "demoBuddiesNearbyText": "Unter „Benachrichtigungen“ schaltest du es an oder aus und legst „Zuhause“ fest — dort meldet sich die App nie. In der Buddy-Liste gibt es je Buddy zwei Schalter.",
+  "@demoBuddiesNearbyText": {
+    "description": "Vorführung „Buddys unterwegs“ (#526): Text am Profil-Eintrag „Benachrichtigungen“."
   }
 }

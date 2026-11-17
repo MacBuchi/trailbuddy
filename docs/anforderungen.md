@@ -41,7 +41,9 @@ nur über den exakten Namen oder die E-Mail, ohne Liste.
 **A2 — Sichtbar ist nur Eigenes und das direkter Buddys; nur
 Gefahrenes wandert weiter.** Nichts transitiv, kein „Weitergeben auf
 Tastendruck". Was man sieht, ist ausschließlich aus sichtbaren
-Beiträgen gerechnet.
+Beiträgen gerechnet. Ebenso „Buddys unterwegs" (#526): Die Zelle lesen nur
+direkte Buddys, die man nicht über „sieht mich" ausgeschlossen hat
+(Policies auf `realtime.messages`, `tool/matcher_check.sql` Block 34).
 *Quelle:* Konzept 0 (3), 10.1.
 *Geprüft durch:* RLS, `fake_trails.dart`, `tool/matcher_check.sql`.
 
@@ -53,6 +55,13 @@ Gerät (#484, Betreiber 2026-11-07): Sie zeichnet selbst auf und gibt
 die Fahrt per Bluetooth über Garmin Connect nur an das EIGENE Handy,
 wo sie als Fahrt liegt wie jede andere; Garmin bekommt keine Aktivität
 (`docs/konzept-garmin.md` 2a).
+Einzige Ausnahme ist „Buddys unterwegs" (#526, E8, Betreiber
+2026-11-17/18): Solange man unterwegs ist, geht eine grobe Zelle von
+rund 5 km — nie eine Position, nie ein Verlauf — als Presence an die
+direkten Buddys (A2), ungespeichert, nie im Umkreis von 1 km um ein
+gerätelokales „Zuhause" und nie im ersten Kilometer einer Aufzeichnung
+(`docs/konzept-geraete.md` 6.1). Ein Buddy sieht die Zelle auch aus der
+Ferne (Betreiber 2026-11-18, „Realtime je Nutzer").
 *Quelle:* Konzept 0 (1), 10.4, 13 (4).
 *Geprüft durch:* Review — eine neue Tabelle oder ein Upload, der mit
 gefahrener Zeit wächst, ist eine Konzeptänderung.

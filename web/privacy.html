@@ -31,7 +31,7 @@
 <body>
   <p class="lang"><a href="datenschutz.html" hreflang="de" lang="de">Deutsch</a> · English</p>
   <h1>TrailBuddy — Privacy policy</h1>
-  <p class="lead">As of 16 November 2026. Applies to the Android app and the
+  <p class="lead">As of 18 November 2026. Applies to the Android app and the
     web app at macbuchi.github.io/trailbuddy/.</p>
 
   <div class="note">
@@ -154,6 +154,24 @@
           save your current location, it starts out private, so you do not
           share your front door by accident</td>
         <td>Contract</td></tr>
+    <tr><td>“Buddies out riding” (only if switched on; asked once with
+          “Yes” preselected, can be switched off in your profile under
+          “Notifications”): a <strong>coarse cell</strong> of a grid of
+          about 5 km (two whole numbers, never your position) while you are
+          out riding. Plus two switches per buddy (“sees me”, “notices
+          about them”), only if you change one.</td>
+        <td>Telling you and your buddies that you are riding nearby at the
+          same time — once per ride, without distance or direction. Your
+          direct buddies whom you have not excluded via “sees me” see the
+          cell, also when they are far away; nobody else does. It only goes
+          through Supabase's realtime service and is <strong>not
+          stored</strong>: it disappears as soon as you are no longer out
+          riding or the connection drops. Never within 1 km of “Home”
+          (kept only on your device), never in the first kilometre of a
+          recording, without a recording only while the app is open and
+          only with “Home” set</td>
+        <td>Consent by answering “Yes” or switching it on, Art. 6(1)(a)
+          GDPR; withdrawn by switching it off</td></tr>
     <tr><td>Error reports: error message, stack, app version, platform,
           possibly your user ID. On Android 11 and later also the reason
           the system last terminated the app (crash, not responding, low
@@ -413,7 +431,10 @@
     (or the browser) asks once for permission to use your location. With
     permission, the map shows your position as a dot while the app is
     open. The location <strong>stays on the device</strong>: it is
-    transferred neither to Supabase nor to anyone else. Without
+    transferred neither to Supabase nor to anyone else. The only exception
+    is “Buddies out riding” (in the table above): when it is on, a coarse
+    cell of about 5 km goes to your buddies instead of the position, and
+    it is not stored. Without
     permission everything else works as before; you can revoke it in the
     settings of Android or the browser.</p>
   <p><strong>Recording a ride</strong> (Android only): when you start a
@@ -491,6 +512,11 @@
     <li>Saved start points: until you delete them or delete the account.
       When a buddy connection ends, the former buddy stops seeing them
       immediately.</li>
+    <li>“Buddies out riding”: the cell is not stored, it only lives as
+      long as your connection. The per-buddy switches stay until you reset
+      them, the connection ends or you delete the account. Excluding a
+      buddy takes effect within an hour at the latest (when their app
+      renews its sign-in).</li>
     <li>Error reports: 90 days.</li>
     <li>Device identifier for notifications: until you turn them off,
       delete the account or Google declares the identifier invalid (for

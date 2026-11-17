@@ -37,7 +37,7 @@
 <body>
   <p class="lang">Deutsch · <a href="privacy.html" hreflang="en" lang="en">English</a></p>
   <h1>TrailBuddy — Datenschutzerklärung</h1>
-  <p class="lead">Stand: 16. November 2026. Gilt für die Android-App und die
+  <p class="lead">Stand: 18. November 2026. Gilt für die Android-App und die
     Web-App unter macbuchi.github.io/trailbuddy/.</p>
 
   <h2>Verantwortlicher</h2>
@@ -156,6 +156,25 @@
           stellst. Merkst du deinen Standort, ist er erst einmal privat,
           damit nicht versehentlich deine Haustür geteilt wird</td>
         <td>Vertrag</td></tr>
+    <tr><td>„Buddys unterwegs" (nur wenn eingeschaltet; einmal gefragt,
+          „Ja" vorausgewählt, im Profil unter „Benachrichtigungen"
+          abschaltbar): eine <strong>grobe Zelle</strong> eines Rasters
+          von rund 5 km (zwei ganze Zahlen, nie deine Position), solange
+          du unterwegs bist. Dazu je Buddy zwei Schalter („sieht mich",
+          „Meldungen von ihm"), nur wenn du einen umlegst.</td>
+        <td>Dir und deinen Buddys sagen, dass ihr gleichzeitig in der
+          Nähe fahrt — einmal je Fahrt, ohne Abstand und Richtung. Die
+          Zelle sehen deine direkten Buddys, die du nicht über „sieht
+          mich" ausgeschlossen hast, und zwar auch, wenn sie weit weg
+          sind; sonst niemand. Sie geht nur über den Echtzeit-Dienst von
+          Supabase und wird <strong>nicht gespeichert</strong>: Sie
+          verschwindet, sobald du nicht mehr unterwegs bist oder die
+          Verbindung abreißt. Nie im Umkreis von 1 km um „Zuhause" (liegt
+          nur auf deinem Gerät), nie im ersten Kilometer einer
+          Aufzeichnung, ohne Aufzeichnung nur bei offener App und nur mit
+          festgelegtem „Zuhause"</td>
+        <td>Einwilligung durch „Ja" bzw. Einschalten, Art. 6 Abs. 1 a
+          DSGVO; widerrufen durch Ausschalten</td></tr>
     <tr><td>Fehlerberichte: Fehlermeldung, Stack, App-Version, Plattform,
           ggf. deine Nutzer-Kennung. Auf Android ab Version 11 auch der
           Grund, aus dem das System die App zuletzt beendet hat (Absturz,
@@ -429,7 +448,9 @@
     Erlaubnis für den Standort. Mit Erlaubnis zeigt die Karte deine
     Position als Punkt, solange die App offen ist. Der Standort
     <strong>bleibt auf dem Gerät</strong>: Er wird weder an Supabase noch
-    an sonst jemanden übertragen. Ohne Erlaubnis funktioniert alles
+    an sonst jemanden übertragen. Einzige Ausnahme ist „Buddys unterwegs"
+    (oben in der Tabelle): Ist es an, geht statt der Position eine grobe
+    Zelle von rund 5 km an deine Buddys, ungespeichert. Ohne Erlaubnis funktioniert alles
     andere wie bisher; zurücknehmen lässt sie sich in den Einstellungen
     von Android bzw. des Browsers.</p>
   <p><strong>Fahrt aufzeichnen</strong> (nur Android): Startest du eine
@@ -512,6 +533,11 @@
     <li>Gemerkte Startpunkte: bis du sie löschst oder das Konto löschst.
       Endet eine Buddy-Verbindung, sieht der frühere Buddy sie sofort
       nicht mehr.</li>
+    <li>„Buddys unterwegs": die Zelle wird nicht gespeichert, sie lebt nur
+      so lange wie deine Verbindung. Die Schalter je Buddy bleiben, bis du
+      sie zurückstellst, die Verbindung endet oder du das Konto löschst.
+      Schließt du einen Buddy aus, wirkt das spätestens nach einer
+      Stunde (wenn seine App ihre Anmeldung erneuert).</li>
     <li>Fehlerberichte: 90 Tage.</li>
     <li>Gerätekennung für Benachrichtigungen: bis du sie ausschaltest, das
       Konto löschst oder Google die Kennung für ungültig erklärt (etwa
