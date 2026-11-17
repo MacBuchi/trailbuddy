@@ -10,6 +10,7 @@ import 'core/widgets/start_splash.dart';
 import 'core/widgets/update_gate.dart';
 import 'features/coach/coach.dart';
 import 'features/garmin/watch_ride_listener.dart';
+import 'features/nearby/nearby_host.dart';
 import 'l10n/l10n.dart';
 
 class TrailBuddyApp extends ConsumerWidget {
@@ -39,7 +40,8 @@ class TrailBuddyApp extends ConsumerWidget {
       // darunter sind statisch, nichts geht verloren. Update-Banner und
       // Push-Leiste liegen während einer Tour im Dunkel — hinnehmbar.
       // `WatchRideListener` neben dem PushListener: Fahrten der Uhr kommen
-      // überall an (#484).
+      // überall an (#484). Ebenso `NearbyHost`: „Buddy in der Nähe“ (#526)
+      // meldet sich auf jeder Seite.
       // `CoachSemanticsGate` blendet für TalkBack aus, was darunter liegt.
       builder: (context, child) => StartSplash(
         child: Stack(
@@ -49,7 +51,9 @@ class TrailBuddyApp extends ConsumerWidget {
               child: PreviewRibbon(
                 child: PushListener(
                   child: WatchRideListener(
-                    child: UpdateGate(child: child ?? const SizedBox.shrink()),
+                    child: NearbyHost(
+                      child: UpdateGate(child: child ?? const SizedBox.shrink()),
+                    ),
                   ),
                 ),
               ),

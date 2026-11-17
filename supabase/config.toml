@@ -106,7 +106,11 @@ content_path = "./supabase/templates/email_change.html"
 enabled = false
 
 [realtime]
-enabled = false
+# Seit Patch 031 (#526) AN: schema.sql legt Policies auf
+# realtime.messages an (Buddy in der Nähe), und die Tabelle legen die
+# Migrationen des Realtime-Dienstes beim Start an. matcher_check.sql
+# Block 34 prüft die Policies dagegen.
+enabled = true
 
 [storage]
 # Seit Patch 026 (#37) AN: schema.sql legt den Bucket `trail-note-photos`

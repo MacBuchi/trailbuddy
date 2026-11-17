@@ -405,6 +405,11 @@ check_rpc_protected "delete_my_airtime-RPC" "delete_my_airtime" '{}'
 # Angemeldete. Wer sieht was, prüft matcher_check.sql Block 33.
 check_get_protected "start_points (gemerkte Startpunkte)" \
   "/rest/v1/start_points?select=client_id,user_id,name,lat,lon,visibility,created_at,updated_at,owner:profiles!start_points_user_id_fkey(username)&limit=1"
+# Buddy in der Nähe (Patch 031, #526): die Schalter je Buddy, genau die
+# Spalten von NearbyRepository.prefColumns. Wer welchen Kanal lesen darf, prüft
+# matcher_check.sql Block 34 (Policies auf realtime.messages).
+check_get_protected "buddy_nearby_prefs (Buddy in der Nähe)" \
+  "/rest/v1/buddy_nearby_prefs?select=buddy_id,hidden,muted&limit=1"
 
 if [ "$fail" -ne 0 ]; then
   echo "::error::Schema passt nicht zu den App-Queries. Fehlt ein supabase/patch_NNN_*.sql bzw. wurde er noch nicht eingespielt (tool/db_migrate.sh, Secret SUPABASE_DB_URL)?"

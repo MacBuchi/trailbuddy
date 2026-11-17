@@ -7,6 +7,7 @@ import 'auth_repository.dart';
 import 'feedback_repository.dart';
 import 'friend_repository.dart';
 import 'message_repository.dart';
+import 'nearby_repository.dart';
 import 'profile_repository.dart';
 import 'push_repository.dart';
 
@@ -27,6 +28,14 @@ final messageRepositoryProvider =
 
 final airtimeRepositoryProvider =
     Provider((ref) => AirtimeRepository(ref.watch(supabaseClientProvider)));
+
+/// Buddy in der Nähe (#526): Schalter je Buddy und der eigene Kanal. Ein
+/// Objekt mit Zustand (offene Kanäle) — deshalb schließt es beim Wegräumen.
+final nearbyRepositoryProvider = Provider<NearbyRepository>((ref) {
+  final repo = NearbyRepository(ref.watch(supabaseClientProvider));
+  ref.onDispose(repo.close);
+  return repo;
+});
 
 final feedbackRepositoryProvider =
     Provider((ref) => FeedbackRepository(ref.watch(supabaseClientProvider)));

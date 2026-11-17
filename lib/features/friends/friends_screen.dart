@@ -20,6 +20,8 @@ import 'invite_link.dart';
 import '../help/help_link.dart';
 import '../help/tab_tours.dart';
 import '../help/tour_examples.dart';
+import '../nearby/nearby_providers.dart' show buddiesNearbyProvider;
+import '../nearby/nearby_widgets.dart';
 import '../profile/profile_providers.dart';
 import '../trails/trail_providers.dart';
 import '../rides/airtime_widgets.dart' show BuddyAirtimeLine, MyAirtimeCard;
@@ -48,6 +50,10 @@ class _FriendsScreenState extends ConsumerState<FriendsScreen> {
   /// „Nachrichten" (#34).
   String? _firstBuddyId;
   VoidCallback? _unregisterScene;
+
+  /// „Buddys unterwegs" (#526) wird einmal gefragt — hier, sobald es einen
+  /// Buddy gibt und keine Tour läuft; je Öffnen höchstens ein Versuch.
+  bool _nearbyAsked = false;
 
   @override
   void initState() {
@@ -220,6 +226,15 @@ class _FriendsScreenState extends ConsumerState<FriendsScreen> {
     final outgoing = friendships.where((f) => f.isOutgoingFor(uid)).toList();
     final accepted = friendships.where((f) => f.isAccepted).toList();
     _firstBuddyId = accepted.firstOrNull?.otherId(uid);
+    if (!_nearbyAsked &&
+        accepted.isNotEmpty &&
+        ref.watch(buddiesNearbyProvider) == null &&
+        ref.watch(coachProvider) == null) {
+      _nearbyAsked = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && ref.read(coachProvider) == null) unawaited(askBuddiesNearbyOnce(context, ref));
+      });
+    }
     final names = ref.watch(buddyNamesViewProvider);
     // „n gemeinsam" aus dem, was ohnehin geladen ist (Konzept 12: nur
     // zählen, was ich sehe). Ohne Trails steht die Zeile ohne Zahl da.
@@ -758,6 +773,8 @@ class _BuddyRow extends StatelessWidget {
               ],
             ),
           ),
+          // Die zwei Schalter je Buddy (#526) — nur mit „Buddys unterwegs“.
+          NearbyBuddyButton(buddyId: id, name: alias ?? username),
           coach
               ? CoachAnchor(id: BuddysCoach.alias, child: AliasButton(friendId: id, username: username))
               : AliasButton(friendId: id, username: username),

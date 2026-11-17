@@ -46,7 +46,7 @@ verarbeitet*, *erforderlich oder optional* — plus die Zwecke.
 |---|---|---|---|---|---|
 | **Standort → Genauer Standort** | Ja | Nein¹ | Optional | App-Funktionalität | Die beigesteuerten Trail-Linien (`trail_recordings.geom`, Höhen `ele`, Zeitpunkt `recorded_at`). Nur die Ausschnitte, die der Nutzer im Zerlege-Blatt oder beim Import als Trail auswählt — die ganze Fahrt bleibt auf dem Gerät (siehe „Nicht erhoben"). Sichtbar für den Nutzer und seine direkten Buddys, bei „Nur für mich" nur für ihn |
 | **Standort → Genauer Standort** (Forts.) | Ja | Nein¹ | Optional | App-Funktionalität | Gemerkte Startpunkte (#543, Patch 030, `start_points`): Name, Lage (lat/lon), Sichtbarkeit — vom Nutzer eingegeben (Ort der Karte, langer Druck, Planer-Start oder „Mein Standort merken", das privat vorbelegt ist), nie aus Fahrten abgeleitet. Sichtbar für den Nutzer und seine direkten Buddys, bei „privat" nur für ihn; nach dem Entfreunden sofort nicht mehr. Löschbar je Punkt, per Cascade mit dem Konto. Im Formular dieselbe Zeile „Genauer Standort" wie die Trail-Linien |
-| **Standort → Ungefährer Standort** | Nein | — | — | — | `ACCESS_COARSE_LOCATION` ist deklariert, aber ein grober Fix wird nur auf dem Gerät benutzt (Punkt auf der Karte, „Ich bin vor Ort"); an den Server geht nie eine Position |
+| **Standort → Ungefährer Standort** | Ja | Nein¹ | Optional | App-Funktionalität | „Buddys unterwegs" (#526, Patch 031): eine Zelle eines Rasters von rund 5 km (`"<zeile>:<spalte>"`, nie eine Position), solange man unterwegs ist, als Presence im privaten Realtime-Kanal `nearby:<uid>` — **nicht gespeichert**, verschwindet mit der Verbindung. Sichtbar für direkte Buddys, die nicht über „sieht mich" ausgeschlossen sind (Policies auf `realtime.messages`). Einmal gefragt, „Ja" vorausgewählt; nie im Umkreis von 1 km um ein gerätelokales „Zuhause", nie im ersten Kilometer einer Aufzeichnung, ohne Aufzeichnung nur im Vordergrund. Dazu die Schalter je Buddy (`buddy_nearby_prefs`). `ACCESS_COARSE_LOCATION` selbst bleibt rein auf dem Gerät (Punkt auf der Karte, „Ich bin vor Ort") |
 | **Persönliche Infos → E-Mail-Adresse** | Ja | Nein³ | Erforderlich | App-Funktionalität, Kontoverwaltung | Supabase Auth; Buddy-Suche über die exakte Adresse; Konto-Mails über Brevo; bei Anmeldung über einen Anbieter von dort⁵ |
 | **Persönliche Infos → Name** | Ja | Nein¹ | Erforderlich | App-Funktionalität, Kontoverwaltung | `profiles.username` (Pflicht, über das Präfix suchbar) und `display_name` |
 | **Persönliche Infos → Nutzer-IDs** | Ja | Nein | Erforderlich | App-Funktionalität, Kontoverwaltung | `profiles.id` (UUID aus `auth.users`) |
@@ -407,7 +407,9 @@ Ehrlich antworten, sonst passt die Bewertung nicht zum Binary:
   Nachrichten zwischen zwei Buddys (#34), Feedback.
 - **Können Nutzer ihren Standort mit anderen teilen?** **Ja** —
   beigesteuerte Trail-Linien und gemerkte Startpunkte (#543) sind für
-  Buddys sichtbar. Kein Live-Standort.
+  Buddys sichtbar; mit „Buddys unterwegs" (#526) dazu eine grobe Zelle
+  von rund 5 km, solange man unterwegs ist (ungespeichert, nur direkte
+  Buddys). Kein genauer Live-Standort.
 - Nutzergenerierte Inhalte werden nicht moderiert; Feedback wird
   öffentlich.
 

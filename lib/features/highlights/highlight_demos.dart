@@ -620,6 +620,14 @@ Map<String, HighlightDemo> highlightDemos(AppLocalizations l) => {
       ),
     ]),
   ),
+  // Buddy in der Nähe (#526): der Schalter steht unter
+  // „Benachrichtigungen" — die Zeile zeigt, wo.
+  'buddies-nearby': HighlightDemo(
+    route: '/profile',
+    script: _demo('buddies-nearby', [
+      _profileRow('notifications', l.demoBuddiesNearbyTitle, l.demoBuddiesNearbyText),
+    ]),
+  ),
   'start-points': HighlightDemo(
     route: '/',
     script: _demo('start-points', [

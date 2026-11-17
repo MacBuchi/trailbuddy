@@ -8,6 +8,10 @@ class FakeSettings implements Settings {
       {this.prereleaseUpdatesEnabled = false,
       this.sensorLogEnabled = false,
       this.airtimeShareEnabled = false,
+      // „Buddys unterwegs" (#526): als schon beantwortet mit Nein — sonst
+      // käme die einmalige Frage in jeden Flow-Test mit Buddys.
+      this.buddiesNearby = false,
+      this.nearbyHome,
       this.poiGroups,
       this.poiHiddenKinds,
       this.seenNoteIds,
@@ -242,6 +246,22 @@ class FakeSettings implements Settings {
   @override
   Future<void> setPendingAuthCode(String? value) async {
     pendingAuthCode = value;
+  }
+
+  @override
+  bool? buddiesNearby;
+
+  @override
+  Future<void> setBuddiesNearby(bool value) async {
+    buddiesNearby = value;
+  }
+
+  @override
+  String? nearbyHome;
+
+  @override
+  Future<void> setNearbyHome(String? value) async {
+    nearbyHome = value;
   }
 
   @override

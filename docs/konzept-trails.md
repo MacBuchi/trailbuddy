@@ -79,6 +79,7 @@ wie Strava sie zwischen Segment und Aktivität macht.
 | **Trail** | Die Kennung für „dieses Stück Weg auf dem Boden". Trägt selbst nichts Sichtbares. | niemandem | — |
 | **Beitrag** | Alles, was ein Nutzer über einen Trail sagt: Name, Beschreibung, S-Grad, Typ, Status, Sichtbarkeit. Genau einer je Nutzer und Trail. | dem Nutzer | ja |
 | **Netz** | Die Trails, die ich sehe: eigene Beiträge plus Beiträge direkter Buddys. | — | — |
+| **Zelle** | Ein Feld von rund 5 km eines festen Rasters, aus der aktuellen Position gerechnet — nur für „Buddys unterwegs" (#526, `docs/konzept-geraete.md` 6.2). Nie eine Position, nie ein Verlauf, keine Fahrt. | niemandem, sie ist flüchtig | ja, solange man unterwegs ist, als Presence an die direkten Buddys; nicht gespeichert |
 
 Im Deutschen der Oberfläche heißt ein Trail „Trail"; „Strecke" oder
 „Abfahrt" wären enger (nicht jeder Trail geht bergab).

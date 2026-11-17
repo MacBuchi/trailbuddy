@@ -2,6 +2,23 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## Buddies out riding
+
+*Version 0.186.0, 2026-11-18*
+
+- **If a buddy is riding near you right now, TrailBuddy tells both of
+  you** — once per ride, without distance or direction. If you want to
+  meet, send a message.
+- **Only a coarse cell of about 5 km is shared**, never your position,
+  and it is not stored. Never within 1 km of "Home" (kept only on your
+  phone) and never in the first kilometre of a recording. Without a
+  recording only while the app is open.
+- **Asked once, with "Yes" preselected.** Afterwards you switch it on or
+  off under Profile → Notifications, where you also set "Home". In the
+  buddy list each buddy has two switches: whether they see you and
+  whether you get notices about them.
+- **With "Announcements" on you also hear it** while you are recording.
+
 ## Announcements in your ear
 
 *Version 0.185.0, 2026-11-17*

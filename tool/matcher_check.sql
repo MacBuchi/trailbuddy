@@ -1914,4 +1914,72 @@ begin
   delete from public.start_points where user_id = ua;
 end $$;
 
+\echo -- 34. Buddy in der Nähe (Patch 031, #526)
+-- Realtime prüft private Kanäle, indem es `realtime.topic` setzt und als
+-- Nutzer realtime.messages liest (Empfangen) bzw. einfügt (Senden) — hier
+-- genauso. Presence setzen nur im eigenen Kanal; lesen der Besitzer und
+-- direkte Buddys, die er nicht ausgeschlossen hat; nach dem Entfreunden
+-- niemand, und die Schalter fallen mit.
+do $$
+declare
+  ua uuid := '11111111-1111-4111-8111-111111111111';
+  ub uuid := '22222222-2222-4222-8222-222222222222';
+  ug uuid := '77777777-7777-4777-8777-777777777777';
+  topic_a text := 'nearby:' || ua;
+  peek text := 'select least(count(*), 1) from realtime.messages where topic = %L and extension = %L';
+  track text := 'insert into realtime.messages (topic, extension, payload) values (%L, %L, %L)';
+  fid uuid; code text;
+begin
+  -- Ein Presence-Eintrag in Annas Kanal, wie ihn der Dienst ablegt.
+  insert into realtime.messages (topic, extension, payload) values (topic_a, 'presence', '{"c":"1:2"}');
+
+  perform set_config('realtime.topic', topic_a, true);
+  perform tb_test.check(tb_test.count_as(ua, format(peek, topic_a, 'presence')) = 1, 'Anna liest ihren Kanal');
+  perform tb_test.check(tb_test.count_as(ub, format(peek, topic_a, 'presence')) = 1, 'Bernd (Buddy) liest Annas Kanal');
+  perform tb_test.check(tb_test.count_as(ug, format(peek, topic_a, 'presence')) = 0, 'Gina (kein Buddy) liest nichts');
+
+  -- Senden: nur im eigenen Kanal, nur Presence.
+  code := tb_test.state_of(ua, format(track, topic_a, 'presence', '{"c":"1:3"}'));
+  perform tb_test.check(code is null, format('Anna setzt Presence im eigenen Kanal (%s)', code));
+  code := tb_test.state_of(ub, format(track, topic_a, 'presence', '{"c":"9:9"}'));
+  perform tb_test.check(code = '42501', format('Bernd setzt nichts in Annas Kanal (%s)', code));
+  code := tb_test.state_of(ua, format(track, topic_a, 'broadcast', '{}'));
+  perform tb_test.check(code = '42501', format('Broadcast ist nicht freigegeben (%s)', code));
+
+  -- Ein anderer Kanalname ist nie lesbar, auch nicht mit Annas Kennung darin.
+  perform set_config('realtime.topic', 'nearby:' || ua || 'x', true);
+  perform tb_test.check(tb_test.count_as(ub, format(peek, topic_a, 'presence')) = 0, 'verlängerter Kanalname: nichts');
+  perform set_config('realtime.topic', 'cell:1:2', true);
+  perform tb_test.check(tb_test.count_as(ub, format(peek, topic_a, 'presence')) = 0, 'fremder Kanalname: nichts');
+  perform set_config('realtime.topic', topic_a, true);
+
+  -- „sieht mich" aus: Anna schließt Bernd aus. Nur Anna kann das setzen.
+  code := tb_test.state_of(ub, format('insert into public.buddy_nearby_prefs (user_id, buddy_id, hidden) values (%L, %L, true)', ua, ub));
+  perform tb_test.check(code = '42501', format('Bernd setzt Annas Schalter nicht (%s)', code));
+  code := tb_test.state_of(ua, format('insert into public.buddy_nearby_prefs (user_id, buddy_id, hidden) values (%L, %L, true)', ua, ug));
+  perform tb_test.check(code = '42501', format('kein Schalter für Nicht-Buddys (%s)', code));
+  perform tb_test.exec_as(ua, format('insert into public.buddy_nearby_prefs (user_id, buddy_id, hidden) values (%L, %L, true)', ua, ub));
+  perform tb_test.check(tb_test.count_as(ub, format(peek, topic_a, 'presence')) = 0, 'ausgeschlossen: Bernd liest nichts');
+  perform tb_test.check(tb_test.count_as(ub, format('select count(*) from public.buddy_nearby_prefs where user_id = %L', ua)) = 0,
+                        'Bernd sieht Annas Schalter nicht');
+  perform tb_test.exec_as(ua, format('update public.buddy_nearby_prefs set hidden = false, muted = true where user_id = %L and buddy_id = %L', ua, ub));
+  perform tb_test.check(tb_test.count_as(ub, format(peek, topic_a, 'presence')) = 1, 'nur stumm: Bernd liest wieder');
+
+  -- Entfreunden: niemand liest mehr, und die Schalter beider Seiten fallen.
+  select id into fid from public.friendships
+   where least(requester_id, addressee_id) = least(ua, ub) and greatest(requester_id, addressee_id) = greatest(ua, ub);
+  update public.friendships set status = 'pending' where id = fid;
+  perform tb_test.check(tb_test.count_as(ub, format(peek, topic_a, 'presence')) = 0, 'nach dem Entfreunden liest Bernd nichts');
+  update public.friendships set status = 'accepted' where id = fid;
+  insert into public.buddy_nearby_prefs (user_id, buddy_id, muted) values (ub, ua, true);
+  delete from public.friendships where id = fid;
+  perform tb_test.check(not exists (select 1 from public.buddy_nearby_prefs
+                                    where (user_id, buddy_id) in ((ua, ub), (ub, ua))),
+                        'Entfernen löscht die Schalter beider Seiten');
+  insert into public.friendships (id, requester_id, addressee_id, status) values (fid, ua, ub, 'accepted');
+
+  perform set_config('realtime.topic', '', true);
+  delete from realtime.messages where topic = topic_a;
+end $$;
+
 \echo -- Alle Prüfungen bestanden.

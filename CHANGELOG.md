@@ -2,6 +2,23 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Buddys unterwegs
+
+*Version 0.186.0, 2026-11-18*
+
+- **Fährt ein Buddy gerade in deiner Nähe, sagt TrailBuddy es euch
+  beiden** — einmal je Fahrt, ohne Abstand und ohne Richtung. Wer sich
+  treffen will, schreibt eine Nachricht.
+- **Geteilt wird nur eine grobe Zelle von rund 5 km**, nie deine
+  Position, und gespeichert wird sie nicht. Nie im Umkreis von 1 km um
+  „Zuhause" (liegt nur auf deinem Handy) und nie im ersten Kilometer
+  einer Aufzeichnung. Ohne Aufzeichnung nur bei offener App.
+- **Einmal gefragt, „Ja" vorausgewählt.** Danach unter Profil →
+  Benachrichtigungen ein- und ausschaltbar; dort legst du auch „Zuhause"
+  fest. In der Buddy-Liste hat jeder Buddy zwei Schalter: ob er dich
+  sieht und ob du Meldungen von ihm bekommst.
+- **Mit „Ansagen" hörst du es auch**, solange du aufzeichnest.
+
 ## Ansagen übers Ohr
 
 *Version 0.185.0, 2026-11-17*
