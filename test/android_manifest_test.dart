@@ -320,6 +320,25 @@ void main() {
     expect(queries, contains('android.intent.action.VIEW'));
   });
 
+  test('die Ansagen sehen die Sprachausgabe des Geräts (#525)', () {
+    // Ab Android 11 ohne <queries> keine TTS-Engine — die Ansagen blieben
+    // still, ohne Fehler. Und keine neue Berechtigung dafür.
+    final queries = RegExp(r'<queries>([\s\S]*?)</queries>').firstMatch(manifest)!.group(1)!;
+    expect(queries, contains('android.intent.action.TTS_SERVICE'));
+    // Der Kanal heißt in Java und Dart gleich, und das Plugin hängt in der
+    // App — sonst fehlte es auch in der Engine des Dienstes.
+    final java = File('packages/tb_voice/android/src/main/java/de/mcbuchi/trailbuddy/voice/TbVoicePlugin.java')
+        .readAsStringSync();
+    final dart = File('lib/features/routing/voice_service.dart').readAsStringSync();
+    final name = RegExp(r'CHANNEL = "([^"]+)"').firstMatch(java)!.group(1)!;
+    expect(dart, contains("MethodChannel('$name')"));
+    expect(File('pubspec.yaml').readAsStringSync(), contains('path: packages/tb_voice'));
+    // Java, kein Kotlin-Plugin: unter AGP 9 bräche der Build (flutter_tts).
+    final gradle = File('packages/tb_voice/android/build.gradle.kts').readAsStringSync();
+    expect(gradle, isNot(contains('org.jetbrains.kotlin')));
+    expect(gradle, isNot(contains('id("kotlin')));
+  });
+
   test('google-services nur mit Datei — und die Datei kennt den Paketnamen', () {
     // Das Plugin bricht den Build ab, wenn google-services.json fehlt; bis
     // der Betreiber das Firebase-Projekt anlegt, baut die App ohne. Liegt

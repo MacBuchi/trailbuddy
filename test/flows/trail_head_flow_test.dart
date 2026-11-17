@@ -375,6 +375,11 @@ void main() {
         find.descendant(of: find.byType(DraggableScrollableSheet), matching: find.byType(Scrollable)).first,
         const Offset(0, -400));
     await settle(tester, frames: 4);
+    // Die Zeile kann in der faulen Liste noch fehlen (seit #525 steht im
+    // Ergebnis ein Chip mehr): erst bauen lassen, dann zeigen.
+    await tester.scrollUntilVisible(find.byKey(const ValueKey('loop-tune-reset')), 100,
+        scrollable: find.descendant(of: find.byType(DraggableScrollableSheet), matching: find.byType(Scrollable)).first);
+    await settle(tester, frames: 2);
     await tester.ensureVisible(find.byKey(const ValueKey('loop-tune-reset')));
     await tester.tap(find.byKey(const ValueKey('loop-tune-reset')));
     await settle(tester);

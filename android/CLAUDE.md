@@ -54,3 +54,12 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
   herunter. Ein Kanal-Test hält Namen und App-Kennung
   (`garmin/manifest.xml`) mit Dart zusammen; ob es kompiliert, sagt nur
   `flutter build apk --debug --flavor github`.
+- **Ein Plugin aus dem Repo** (#525, seit 0.185.0, `packages/tb_voice`):
+  die Sprachausgabe für die Ansagen, in **Java** — unter AGP 9 mit
+  `android.builtInKotlin=true` bricht jedes Plugin, das `kotlin-android`
+  selbst anwendet (so `flutter_tts` 4.2.5; `firebase_core` warnt noch).
+  Als Plugin statt als Kanal in `MainActivity`, weil der
+  Vordergrund-Dienst eine eigene Engine hat, die nur Plugins aus
+  `pubspec.yaml` registriert. Die Dart-Seite liegt in der App
+  (`voice_service.dart`), das Paket hat keine — so prüft `flutter
+  analyze` dort nichts, was ohne eigenes `pub get` nicht auflöst.

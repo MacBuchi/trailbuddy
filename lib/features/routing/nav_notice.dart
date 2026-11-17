@@ -23,6 +23,8 @@ import '../rides/ride_task_handler.dart' show kRideDataActive, kRideDataDir;
 import '../rides/sensor_log.dart' show sensorLogEvents;
 import '../rides/trail_values.dart';
 import 'route_progress.dart';
+import 'voice_cues.dart';
+import 'voice_service.dart' show VoiceSpeak, speakCues;
 
 /// Schlüssel der Brücke (SharedPreferences, in beiden Isolaten lesbar).
 const kNavDataActive = 'nav_active';
@@ -60,6 +62,7 @@ class NavRouteData {
     this.climbDistM,
     this.climbEleM,
     this.leaveM = 0,
+    this.selfId,
   });
 
   final List<LatLng> points;
@@ -74,6 +77,9 @@ class NavRouteData {
   /// Ab so viel Abstand endet die Navigation auch im Dienst (#464); 0 = nie.
   final int leaveM;
 
+  /// Das eigene Konto (#525): Die eigene Meldung sagt die Ansage nicht an.
+  final String? selfId;
+
   NavRouteData withStart(double alongM) => NavRouteData(
       points: points,
       title: title,
@@ -81,7 +87,8 @@ class NavRouteData {
       sections: sections,
       climbDistM: climbDistM,
       climbEleM: climbEleM,
-      leaveM: leaveM);
+      leaveM: leaveM,
+      selfId: selfId);
 
   String encode() => jsonEncode({
         'v': 2,
@@ -93,6 +100,7 @@ class NavRouteData {
         if (sections.trails.isNotEmpty) 'secs': sections.encode(),
         if (climbDistM != null && climbEleM != null) 'climb': {'d': climbDistM, 'e': climbEleM},
         if (leaveM > 0) 'leave': leaveM,
+        if (selfId != null) 'me': selfId,
       });
 
   /// Null bei allem, was nicht genau so aussieht — eine halbe Route zu
@@ -120,6 +128,7 @@ class NavRouteData {
         climbDistM: paired ? d : null,
         climbEleM: paired ? e : null,
         leaveM: (json['leave'] as num?)?.toInt() ?? 0,
+        selfId: json['me'] as String?,
       );
     } catch (_) {
       return null;
@@ -175,6 +184,19 @@ class NavNoticeWatcher {
   NavTracker? _tracker;
   NavLeaveWatch? _leave;
   DateTime? _arrivedAt;
+
+  /// Die Ansagen (#525) — eine Maschine je Navigation, auch über „Route
+  /// umplanen" hinweg: Ein Trail, der schon angesagt war, kommt nicht noch
+  /// einmal, nur weil er auf der neuen Linie woanders liegt.
+  NavVoiceWatcher? _voice;
+
+  /// Die Ansagen zu [state]; leer ohne Route.
+  List<VoiceCue> voiceCues(NavState state, {required DateTime now, TrailValues? Function(DateTime since)? values}) {
+    final data = _data;
+    if (data == null) return const [];
+    final voice = _voice ??= NavVoiceWatcher(selfId: data.selfId);
+    return voice.update(state, data.sections, now: now, values: values);
+  }
 
   /// Ein Fix. Null, wenn keine Route liegt (oder die Datei unlesbar ist).
   Future<NavState?> onFix(LatLng p,
@@ -284,6 +306,8 @@ Future<NavState?> navTick({
   Future<void> Function(double offM)? onLeft,
   DateTime Function()? now,
   AirtimeLog Function()? events,
+  bool voice = false,
+  VoiceSpeak? speak,
 }) async {
   try {
     if (await FlutterForegroundTask.getData<bool>(key: kNavDataActive) != true) return null;
@@ -302,6 +326,16 @@ Future<NavState?> navTick({
     final notice = navNotice(l, state, phase,
         recording: recording, air: _airOnTrail(l, phase, (now ?? DateTime.now)(), events ?? sensorLogEvents));
     await (show ?? _show)(notice.title, notice.text);
+    if (voice) {
+      // Die Werte des Trails ab seinem Beginn — dieselben wie in der Leiste.
+      final at = (now ?? DateTime.now)();
+      final log = events ?? sensorLogEvents;
+      final cues = watcher.voiceCues(state, now: at, values: (since) {
+        final v = TrailValues.of(log().kept, fromUs: since.microsecondsSinceEpoch);
+        return v.isEmpty ? null : v;
+      });
+      await speakCues(cues, speak: speak, now: at);
+    }
     if (watcher.left) {
       await (onLeft ?? (offM) => stopNavFromService(leftM: offM))(state.offM);
     } else if (watcher.lingered(state, (now ?? DateTime.now)())) {

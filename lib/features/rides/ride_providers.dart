@@ -19,6 +19,7 @@ import '../../core/settings.dart';
 import '../../data/providers.dart';
 import '../routing/route_profile.dart';
 import '../trails/trail_providers.dart';
+import '../routing/voice_cues.dart' show voiceTrailsOf;
 import 'ride_confirm.dart';
 import 'ride_import.dart';
 import 'ride_service.dart';
@@ -246,6 +247,7 @@ class RideNotifier extends Notifier<RecordedRide?> {
     if (uid == null) return null;
     final store = ref.read(rideStoreProvider);
     await store.writeConfirmTargets(uid: uid, targets: const []);
+    await store.writeVoiceTrails(uid: uid, trails: const []);
     final done = await store.finish(uid: uid, endedAt: DateTime.now().toUtc());
     if (done != null) await _sendConfirmations(done);
     return done;
@@ -260,7 +262,13 @@ class RideNotifier extends Notifier<RecordedRide?> {
     final uid = ref.read(currentUserIdProvider);
     final trails = ref.read(trailsProvider).valueOrNull;
     if (uid == null || trails == null) return;
-    await ref.read(rideStoreProvider).writeConfirmTargets(uid: uid, targets: confirmTargetsOf(serviceL10n(), trails));
+    final store = ref.read(rideStoreProvider);
+    await store.writeConfirmTargets(uid: uid, targets: confirmTargetsOf(serviceL10n(), trails));
+    // Die Trails der freien Fahrt (#525, F7) nur mit Ansagen — sonst liegt
+    // das ganze Netz ohne Grund ein zweites Mal auf der Platte.
+    await store.writeVoiceTrails(
+        uid: uid,
+        trails: ref.read(voiceCuesProvider) ? voiceTrailsOf(serviceL10n(), trails, selfId: uid) : const []);
   }
 
   Future<void> _sendConfirmations(Ride ride) async {
@@ -396,6 +404,29 @@ final rideKeepScreenOnProvider = NotifierProvider<RememberedFlag, bool>(
     label: 'Bildschirm-Schalter der Fahrt merken',
   ),
 );
+
+/// Ansagen übers Ohr (#525, E7), gemerkt auf dem Gerät; Vorgabe aus.
+/// Der Dienst liest den Schalter je Takt selbst — umschalten wirkt sofort,
+/// auch mitten in der Fahrt; für die freie Fahrt legt es die Trails ab.
+final voiceCuesProvider = NotifierProvider<VoiceCuesFlag, bool>(VoiceCuesFlag.new);
+
+class VoiceCuesFlag extends RememberedFlag {
+  VoiceCuesFlag()
+      : super(
+          read: (s) => s.voiceCues,
+          write: (s, v) => s.setVoiceCues(v),
+          label: 'Ansagen-Schalter merken',
+        );
+
+  @override
+  void set(bool value) {
+    super.set(value);
+    unawaited(ref.read(rideProvider.notifier).syncConfirmTargets());
+  }
+}
+
+/// Gibt es Ansagen? Wie die Aufzeichnung nur mit Dienst — nicht im Web.
+final voiceCuesAvailableProvider = Provider<bool>((ref) => ref.watch(rideRecordingAvailableProvider));
 
 /// Steckt das Handy in der Tasche (#491, #517)? Gilt ab der NÄCHSTEN
 /// Fahrt — er reist beim `arm` über die Brücke in den Dienst.

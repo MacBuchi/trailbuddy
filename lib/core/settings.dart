@@ -10,6 +10,10 @@ import 'errors.dart';
 /// in `lib/l10n/l10n.dart`).
 const kLanguageSettingKey = 'app_language';
 
+/// Schlüssel der Ansagen übers Ohr (#525). Öffentlich aus demselben Grund:
+/// Der Dienst liest ihn je Takt direkt (`voice_service.dart`).
+const kVoiceCuesSettingKey = 'voice_cues';
+
 /// Gerätelokale Einstellungen — alles, was auf *diesem* Gerät gilt und
 /// nicht ins Konto gehört.
 ///
@@ -185,6 +189,12 @@ abstract interface class Settings {
   bool get rideKeepScreenOn;
 
   Future<void> setRideKeepScreenOn(bool value);
+
+  /// Ansagen übers Ohr (#525, E7) — bei Navigation und freier Fahrt?
+  /// Vorgabe: aus (Betreiber, 2026-11-17).
+  bool get voiceCues;
+
+  Future<void> setVoiceCues(bool value);
 
   /// Startet „Fahrt starten" die Aufzeichnung mit (#517, Konzept-Routing
   /// 9.4)? Vorgabe: an (Betreiber, 2026-10-08) — gemerkt seit 0.171.0.
@@ -439,6 +449,12 @@ class PrefsSettings implements Settings {
 
   @override
   Future<void> setRideKeepScreenOn(bool value) => _prefs.setBool(_rideKeepScreenOnKey, value);
+
+  @override
+  bool get voiceCues => _prefs.getBool(kVoiceCuesSettingKey) ?? false;
+
+  @override
+  Future<void> setVoiceCues(bool value) => _prefs.setBool(kVoiceCuesSettingKey, value);
 
   static const _navRecordKey = 'nav_record';
 

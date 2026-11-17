@@ -18,6 +18,9 @@ import 'package:trailbuddy/features/rides/sensor_fusion.dart';
 import 'package:trailbuddy/features/rides/trail_values.dart';
 import 'package:trailbuddy/features/routing/nav_notice.dart';
 import 'package:trailbuddy/features/routing/route_progress.dart';
+import 'package:trailbuddy/features/rides/ride_track.dart' show RidePoint;
+import 'package:trailbuddy/features/routing/voice_cues.dart';
+import 'package:trailbuddy/features/routing/voice_service.dart';
 import '../fakes/l10n_de.dart';
 
 /// Eine gerade Linie nach Osten: 20 Abschnitte à 0,001° (≈ 76 m).
@@ -303,6 +306,54 @@ void main() {
       return _at(_lat, _lng(2));
     });
     expect(asked, 1);
+  });
+
+  group('Ansagen im Dienst (#525)', () {
+    final sections = NavSections([const NavTrailSection(startM: 600, endM: 1200, trailId: 't', name: 'Rosskopf Süd', grade: 2)]);
+
+    test('navTick spricht nur mit dem Schalter — und je Moment einmal', () async {
+      await arm(NavRouteData(points: _points, title: 'x', sections: sections));
+      final said = <String>[];
+      Future<void> tick(int i, {bool voice = true}) => navTick(
+          fix: () async => _at(_lat, _lng(i)),
+          recording: false,
+          show: (_, _) async {},
+          voice: voice,
+          speak: (text, locale) async => said.add('${locale.languageCode}: $text'));
+      // 150 m vor dem Kopf — mit Schalter käme hier die Ansage.
+      await tick(6, voice: false);
+      expect(said, isEmpty, reason: 'aus heißt still');
+      resetNavTick();
+      await tick(5);
+      expect(said, isEmpty, reason: '220 m vor dem Kopf: noch nicht');
+      await tick(6);
+      expect(said, ['de: Trail Rosskopf Süd, S2, in 150 Metern.']);
+      await tick(6);
+      await tick(9);
+      expect(said.last, 'de: Trail Rosskopf Süd, S2.');
+      await tick(17);
+      expect(said.last, startsWith('de: Rosskopf Süd geschafft'));
+      expect(said, hasLength(3));
+    });
+
+    test('freie Fahrt: der Dienst liest die Trails aus der Datei der App', () async {
+      await FlutterForegroundTask.saveData(key: kRideDataUid, value: 'u');
+      await FlutterForegroundTask.saveData(key: kRideDataStartedAt, value: '2026-11-17T10:00:00Z');
+      final file = voiceTrailsFile(base.path);
+      await file.parent.create(recursive: true);
+      await file.writeAsString(encodeVoiceTrails(
+          uid: 'u', trails: [VoiceTrail(trailId: 't', name: 'Hangweg', grade: 3, line: _points)]));
+      resetFreeVoice();
+      final said = <String>[];
+      Future<void> tick(int i) => freeVoiceTick(
+          RidePoint(lat: _lat, lng: _lng(i), at: DateTime.utc(2026, 11, 17, 10), accuracyM: 5),
+          dir: base.path,
+          speak: (text, _) async => said.add(text));
+      await tick(3);
+      await tick(4);
+      await tick(5);
+      expect(said, ['Trail Hangweg, S3.']);
+    });
   });
 
   group('stopNavFromService', () {

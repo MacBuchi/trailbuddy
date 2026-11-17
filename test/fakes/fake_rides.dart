@@ -10,6 +10,7 @@ import 'package:trailbuddy/features/rides/ride_track.dart';
 import 'package:trailbuddy/features/rides/trail_values.dart';
 import 'package:trailbuddy/features/routing/nav_notice.dart';
 import 'package:trailbuddy/features/routing/nav_service.dart';
+import 'package:trailbuddy/features/routing/voice_cues.dart';
 
 class FakeRideStore implements RideStore {
   String? uid;
@@ -86,6 +87,14 @@ class FakeRideStore implements RideStore {
   Future<void> writeConfirmTargets({required String uid, required List<ConfirmTarget> targets}) async {
     targetsUid = uid;
     this.targets = targets;
+  }
+
+  /// Die Trails für die Ansagen (#525), wie zuletzt geschrieben.
+  List<VoiceTrail> voiceTrails = const [];
+
+  @override
+  Future<void> writeVoiceTrails({required String uid, required List<VoiceTrail> trails}) async {
+    voiceTrails = trails;
   }
 
   @override

@@ -2,6 +2,24 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## Announcements in your ear
+
+*Version 0.185.0, 2026-11-17*
+
+- **Phone in your pocket, earbuds in:** With the new "Announcements"
+  switch TrailBuddy tells you when a trail is coming up ("Trail Rosskopf
+  Süd, S2, in 200 metres"), when it starts and when you are done — with
+  your time and, if detection runs, your airtime. Also once when you
+  leave the route and when you are back on it, and "You have arrived".
+- **Your buddies' fresh reports come along:** "Max, 3 days ago: tree
+  down" — reports from the last two weeks, not your own.
+- **Without navigation too:** If you only record, you hear a known
+  trail's name and grade as you ride into it.
+- **No turn instructions.** The voice is your phone's own speech output,
+  no network needed; music only gets quieter. The switch is in your
+  profile under "Navigation" and as a chip when you start a ride. Off by
+  default, Android app only.
+
 ## "Saved" even without a start point
 
 *Version 0.184.0, 2026-11-17*

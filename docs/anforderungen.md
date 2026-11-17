@@ -132,9 +132,14 @@ global.
 *Quelle:* Konzept 7, 9.
 *Geprüft durch:* Review.
 
-**A12 — Navigation zeigt, sie sagt nicht an.** Keine Abbiegehinweise,
-keine Sprachausgabe; der Navigationsmodus zeigt Route, Position und
-Abstand. Die eine Ausnahme ist die Uhr: Sie vibriert einmal, wenn man
+**A12 — Navigation zeigt, sie sagt nicht an.** Keine Abbiegehinweise;
+der Navigationsmodus zeigt Route, Position und Abstand. **Sprachausgabe
+nur als Ansage der Momente** (Entscheidung E7, Betreiber 2026-11-17,
+#525; `konzept-routing.md` 9.10): als Schalter „Ansagen", ab Werk aus —
+Route verlassen und zurück, Trail voraus, Trail beginnt, Trail geschafft,
+angekommen, in der freien Fahrt der bekannte Trail beim Einfahren, dazu
+die frische Meldung eines Buddys. Nie eine Anweisung, wohin man fährt.
+Die Ausnahme für Vibration ist die Uhr: Sie vibriert einmal, wenn man
 die Route verlässt — eine Warnung, kein Abbiegehinweis
 (`konzept-garmin.md` 0, Betreiber 2026-11-03); dazu ein kurzer Stoß,
 wenn eine neue Route vom Handy angekommen ist — eine Empfangsbestätigung,

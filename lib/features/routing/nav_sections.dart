@@ -29,13 +29,31 @@ typedef NavWayLeg = ({WayClass cls, double lengthM});
 
 /// Der jüngste sichtbare Hinweis eines Buddys am Trail.
 class NavNote {
-  const NavNote({required this.body, required this.author, required this.createdAt});
+  const NavNote({required this.body, required this.author, required this.createdAt, this.authorId});
 
   final String body;
 
   /// Benutzername des Autors; null heißt „ein Buddy".
   final String? author;
   final DateTime createdAt;
+
+  /// Das Konto des Autors — die Ansage (#525) sagt die eigene nicht an.
+  final String? authorId;
+
+  /// Für den Dienst (#525): Text, Autor, Zeit, Konto.
+  List<Object?> encode() => [body, author, createdAt.toUtc().toIso8601String(), authorId];
+
+  static NavNote? decode(Object? raw) {
+    if (raw is! List || raw.length < 3) return null;
+    final body = raw[0], author = raw[1], at = raw[2] is String ? DateTime.tryParse(raw[2] as String) : null;
+    if (body is! String || at == null) return null;
+    return NavNote(
+      body: body,
+      author: author is String ? author : null,
+      createdAt: at,
+      authorId: raw.length > 3 && raw[3] is String ? raw[3] as String : null,
+    );
+  }
 }
 
 /// Ein Trail AUF der Route: Lage auf der Linie und was die Karten zeigen.
@@ -109,8 +127,10 @@ class NavTrailSection {
         beyondRoute: beyondRoute,
       );
 
-  /// Für den Dienst (9.5): nur, was die Benachrichtigung braucht.
-  List<Object?> encode() => [startM, endM, trailId, name, grade, lossM, beyondRoute];
+  /// Für den Dienst (9.5): nur, was die Benachrichtigung braucht — und
+  /// seit #525 die Meldung für die Ansage (achtes Feld, fehlt ohne).
+  List<Object?> encode() =>
+      [startM, endM, trailId, name, grade, lossM, beyondRoute, if (note != null) note!.encode()];
 
   static NavTrailSection? decode(Object? raw) {
     if (raw is! List || raw.length < 7) return null;
@@ -124,6 +144,7 @@ class NavTrailSection {
       grade: g is num ? g.toInt() : null,
       lossM: l is num ? l.toDouble() : null,
       beyondRoute: b == true,
+      note: raw.length > 7 ? NavNote.decode(raw[7]) : null,
     );
   }
 }
@@ -231,13 +252,18 @@ NavTrailSection _sectionOf(AppLocalizations l, {
   );
 }
 
-NavNote? _latestNote(Trail trail) {
+NavNote? _latestNote(Trail trail) => latestBuddyNote(trail);
+
+/// Der jüngste Hinweis am Trail; mit [selfId] nur die von Buddys (die
+/// Ansage, #525). Wartende (noch im Ausgangskorb) zählen nicht.
+NavNote? latestBuddyNote(Trail trail, {String? selfId}) {
   TrailNote? latest;
   for (final n in trail.notes) {
+    if (selfId != null && (n.userId == selfId || n.pending)) continue;
     if (latest == null || n.createdAt.isAfter(latest.createdAt)) latest = n;
   }
   if (latest == null) return null;
-  return NavNote(body: latest.body, author: latest.username, createdAt: latest.createdAt);
+  return NavNote(body: latest.body, author: latest.username, createdAt: latest.createdAt, authorId: latest.userId);
 }
 
 /// Die Wege zwischen zwei Trails, aufeinanderfolgende gleiche Klassen

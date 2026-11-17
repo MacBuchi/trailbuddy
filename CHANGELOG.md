@@ -2,6 +2,25 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Ansagen übers Ohr
+
+*Version 0.185.0, 2026-11-17*
+
+- **Handy in der Tasche, Ohrhörer drin:** Mit dem neuen Schalter
+  „Ansagen" sagt TrailBuddy an, wenn ein Trail kommt („Trail Rosskopf
+  Süd, S2, in 200 Metern"), wenn er beginnt und wenn du ihn geschafft
+  hast — mit deiner Zeit und, wenn die Erkennung läuft, der Airtime.
+  Dazu einmal, wenn du die Route verlässt und wenn du wieder drauf bist,
+  und „Angekommen".
+- **Frische Meldungen deiner Buddys hörst du mit:** „Max, vor 3 Tagen:
+  Baum quer" — Meldungen der letzten zwei Wochen, deine eigenen nicht.
+- **Auch ohne Navigation:** Zeichnest du nur auf, hörst du beim
+  Einfahren in einen bekannten Trail seinen Namen und Grad.
+- **Keine Abbiegehinweise.** Die Ansage kommt von der Sprachausgabe
+  deines Handys, ohne Netz; Musik wird dabei nur leiser. Den Schalter
+  findest du im Profil unter „Navigation" und als Chip beim Start einer
+  Fahrt. Ab Werk aus, nur in der Android-App.
+
 ## „Gemerkt" auch ohne Startpunkt
 
 *Version 0.184.0, 2026-11-17*

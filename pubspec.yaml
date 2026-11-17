@@ -4,7 +4,7 @@ publish_to: 'none'
 
 # Beide Teile erhöhen (z. B. 0.1.0+1 → 0.1.1+2). Ein Bump auf main taggt und
 # baut ein Prerelease (release.yml); ohne Bump kein Release (Version Guard).
-version: 0.184.0+279
+version: 0.185.0+280
 
 environment:
   sdk: ^3.11.0
@@ -133,7 +133,12 @@ dependencies:
   image: ^4.3.0
   sensors_plus: ^7.1.1
   qr_flutter: ^4.1.0
-
+  # Ansagen übers Ohr (#525): die Sprachausgabe des Geräts, ohne Netz und
+  # ohne neuen Host; ein eigenes Plugin, weil flutter_tts unter AGP 9
+  # (builtInKotlin) nicht baut, und ein Plugin statt eines Kanals in
+  # MainActivity, weil der Dienst eine eigene Engine hat.
+  tb_voice:
+    path: packages/tb_voice
 dev_dependencies:
   flutter_test:
     sdk: flutter
