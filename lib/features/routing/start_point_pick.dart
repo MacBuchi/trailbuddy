@@ -156,6 +156,12 @@ class _StartPointList extends ConsumerWidget {
           ),
           Flexible(
             child: ListView(shrinkWrap: true, children: [
+              if (choices.isEmpty)
+                Padding(
+                  key: const ValueKey('start-point-none'),
+                  padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
+                  child: Text(l.startPointNoneYet, style: theme.textTheme.bodyMedium),
+                ),
               for (final c in choices)
                 Builder(builder: (context) {
                   final p = c.point;

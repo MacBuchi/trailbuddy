@@ -2,6 +2,14 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## "Saved" even without a start point
+
+*Version 0.184.0, 2026-11-17*
+
+- **The "Saved" choice is always there for the start.** If you have no
+  start point yet, the list tells you how to save one — long-press the
+  map or tap a place — and offers "Save my location" right away.
+
 ## Start points in the planner
 
 *Version 0.183.0, 2026-11-17*

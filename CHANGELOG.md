@@ -2,6 +2,15 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## „Gemerkt" auch ohne Startpunkt
+
+*Version 0.184.0, 2026-11-17*
+
+- **Die Wahl „Gemerkt" steht beim Start immer da.** Hast du noch keinen
+  Startpunkt, sagt die Liste, wie du einen anlegst — lang auf die Karte
+  drücken oder einen Ort antippen —, und bietet gleich „Mein Standort
+  merken" an.
+
 ## Startpunkte im Planer
 
 *Version 0.183.0, 2026-11-17*

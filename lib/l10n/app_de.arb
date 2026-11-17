@@ -10719,6 +10719,10 @@
   "@startPointPrivate": {
     "description": "Untertitel eines eigenen, privaten Startpunkts in der Liste des Planers (#543)."
   },
+  "startPointNoneYet": "Noch kein Startpunkt gemerkt. Drück lange auf die Karte oder tippe einen Ort an und wähle „Als Startpunkt merken“ — oder merk dir gleich deinen Standort.",
+  "@startPointNoneYet": {
+    "description": "Satz in der leeren Liste „Gemerkt“ im Planer, über der Zeile „Mein Standort merken“ (#543, Konzept Startpunkte 5.1)."
+  },
   "startPointRememberHere": "Mein Standort merken",
   "@startPointRememberHere": {
     "description": "Letzte Zeile der Liste „Gemerkt“ und Zeile in der Wahl des Starts: den eigenen Standort als Startpunkt merken (#543)."
