@@ -996,6 +996,12 @@ Map<String, HighlightDemo> highlightDemos(AppLocalizations l) => {
       _profileRow('notifications', l.demoNotificationsTitle, l.demoNotificationsText),
     ]),
   ),
+  'voice-cues': HighlightDemo(
+    route: '/profile',
+    script: _demo('voice-cues', [
+      _profileRow('navigation', l.demoVoiceCuesTitle, l.demoVoiceCuesText),
+    ]),
+  ),
   'nav-replan': HighlightDemo(
     route: '/profile',
     script: _demo('nav-replan', [

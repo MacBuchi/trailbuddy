@@ -22,7 +22,7 @@ im PR): Tastenkarte, die Bildschirme der Uhr, vier des Handys.
 | E4 | Buddys unterwegs sehen („Gruppenfahrt", Abschnitt 6) | **entschieden** (Betreiber, 2026-11-17): ja, **Opt-in**, in zwei Stufen — genau und live nur für Buddys in der Nähe, grob und nicht live für ausgewählte Buddys („Homies") außerhalb; Abschnitt 6 — #519 |
 | E5 | Eigener BLE-Lagesensor als nächstes Messgerät | **später** (Betreiber, 2026-11-17); ob E5 oder E6 zuerst kommt, entscheidet die verfügbare Hardware — #518 |
 | E6 | fēnix 5 Plus und neuer als Lagesensor am Lenker | **eingeplant** (Betreiber, 2026-11-17), als Experiment; kann vor E5 kommen, je nach Hardware; ändert Entscheidung 1 in `konzept-garmin.md` erst, wenn es trägt — #518 |
-| E7 | Ansagen übers Ohr (Abschnitt 9, F6/F7; #525) | **angenommen** (Betreiber, 2026-11-17): als Schalter, Vorgabe aus, **ohne Abbiegeansagen**, mit frischer Buddy-Meldung zum Trail voraus — ändert A12 im Bau-PR |
+| E7 | Ansagen übers Ohr (Abschnitt 9, F6/F7; #525) | **angenommen** (Betreiber, 2026-11-17): als Schalter, Vorgabe aus, **ohne Abbiegeansagen**, mit frischer Buddy-Meldung zum Trail voraus — gebaut am Handy seit 0.185.0, A12 geändert, `konzept-routing.md` 9.10; die Uhr folgt |
 | E8 | „Buddy in der Nähe" einmal je Fahrt (Abschnitt 9, F8; #526) | **entschieden** (Betreiber, 2026-11-17): grobe Form (Zelle, nichts gespeichert), aber **einmal gefragt mit „Ja" vorausgewählt**, auch bei offener App ohne Aufzeichnung — nie um ein lokales „Zuhause"; je Buddy zwei Schalter; Abschnitt 6 — berührt A1, A2, A3, A6 |
 | E9 | Reihenfolge weiterer Geräte (Abschnitt 11) | erst Kachel und Benachrichtigung am Handy, dann Garmin Edge und neuere Uhren, dann Wear OS |
 
@@ -364,7 +364,8 @@ intuitiv?)"
 
 ### F6 — Nur das Handy in der Tasche, Navigation übers Ohr
 
-- **Stand:** fehlt, und **A12 verbietet es** („keine Sprachausgabe").
+- **Stand:** am Handy gebaut (0.185.0, #525, `konzept-routing.md`
+  9.10); A12 erlaubt seit E7 die Ansage der Momente, keine Richtung.
 - **Aus Nutzersicht:** Ohne Uhr und mit dem Handy im Rucksack ist die
   Navigation heute blind — man muss anhalten und das Handy herausholen.
   Das ist das Szenario, in dem die App am wenigsten hilft.
@@ -382,7 +383,8 @@ intuitiv?)"
 
 ### F7 — Ansage der Trails beim Befahren
 
-- **Stand:** fehlt.
+- **Stand:** am Handy gebaut (0.185.0, #525, `konzept-routing.md`
+  9.10); an der Uhr fehlt das Vibrieren mit Namensschild.
 - **Vorschlag:** dieselbe Maschine wie F6, auch in der freien Fahrt: Wer
   in einen bekannten Trail einfährt, hört Name und Grad — das Handy
   findet die nächste Linie schon (`watch_free.dart`). An der Uhr ein

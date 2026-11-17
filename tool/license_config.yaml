@@ -69,8 +69,8 @@ packageLicenseOverride:
   # Version 2.0". Apache-2.0 steht oben ohnehin auf der Erlaubt-Liste.
   latlong2: Apache-2.0
 
-# Pakete ohne eigene LICENSE-Datei. Das sind ausschließlich die
-# SDK-Pseudo-Pakete: Sie liegen IM Flutter-SDK und sind von dessen
+# Pakete ohne eigene LICENSE-Datei. Das sind die
+# SDK-Pseudo-Pakete (dazu unser eigenes Plugin, s. u.): Sie liegen IM Flutter-SDK und sind von dessen
 # BSD-3-Clause abgedeckt (`flutter` selbst wird oben korrekt so erkannt).
 # Eine eigene Datei haben sie nie gehabt.
 approvedPackages:
@@ -83,3 +83,6 @@ approvedPackages:
     - integration_test
     - flutter_driver
     - fuchsia_remote_debug_protocol
+    # Unser eigenes Plugin packages/tb_voice (Sprachausgabe, #525): liegt
+    # im Repo, steht unter der Lizenz des Repos, wird nie veröffentlicht.
+    - tb_voice

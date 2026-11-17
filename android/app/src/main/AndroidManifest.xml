@@ -169,5 +169,11 @@
             <action android:name="android.intent.action.VIEW"/>
             <data android:scheme="geo"/>
         </intent>
+        <!-- tb_voice: Ansagen übers Ohr (#525). Ohne diesen Eintrag
+             findet die App ab Android 11 keine Sprachausgabe des Geräts,
+             und die Ansagen bleiben still. -->
+        <intent>
+            <action android:name="android.intent.action.TTS_SERVICE"/>
+        </intent>
     </queries>
 </manifest>

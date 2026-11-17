@@ -1047,7 +1047,8 @@ ein Häkchen oder eine neue Reihenfolge.
 - **Navigationsmodus** (neu am 2026-10-05, #232): eine Ansicht zum
   Abfahren einer geplanten Route — Karte dreht mit, eigene Position,
   Route und Abstand zur Linie, Dauerbenachrichtigung, Bild-im-Bild über
-  anderen Apps. Ohne Abbiegehinweise und Sprachausgabe (13). Erst der
+  anderen Apps. Ohne Abbiegehinweise (13); Sprachausgabe seit 2026-11-17
+  nur als Ansage der Momente (E7, #525). Erst der
   Abschnitt im Routing-Konzept, dann der Bau.
 - **Wegqualität** (neu am 2026-10-02): Güteklasse, Belag und
   Schwierigkeit der Wege messen, als Archiv auf dem eigenen Host
@@ -1177,7 +1178,9 @@ der Cloud, keine Statistik über alle. **Seit 2026-10-05 mit einer Ausnahme**
 (Betreiber, #232): ein Navigationsmodus, der eine Route ZEIGT — Karte
 dreht mit, eigene Position, Route und Abstand zur Linie, eine
 Dauerbenachrichtigung und ein Bild-im-Bild-Fenster über anderen Apps.
-Abbiegehinweise und Sprachausgabe gibt es weiter nicht; die Übergabe an
+Abbiegehinweise gibt es weiter nicht, Sprachausgabe nur als Ansage der
+Momente (seit 2026-11-17, E7, #525: Trail voraus, geschafft, abgekommen —
+nie eine Richtung); die Übergabe an
 die Navi-App (#151, GPX) bleibt der Weg für alles darüber hinaus.
 **Seit 2026-11-03 auch auf der Garmin-Uhr** (Betreiber,
 `docs/konzept-garmin.md`): Die Uhr-App zeigt dieselbe Route und

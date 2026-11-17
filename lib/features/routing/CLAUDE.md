@@ -1349,6 +1349,38 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     (Neustart des Geräts), wird aufgeräumt statt geöffnet. Der Harness
     hängt `FakeNavServiceBridge` ein — ohne ginge jeder Navigations-Test
     an `path_provider`.
+- **Ansagen übers Ohr** (#525, seit 0.185.0, `voice_cues.dart` rein,
+  `voice_service.dart` im Dienst; Konzept-Routing 9.10, A12 seit E7).
+  Fünf Dinge, die man wissen muss:
+  - **Gesprochen wird im Dienst, nie in der App** — `navTick(voice:)`
+    mit Navigation, `freeVoiceTick` ohne (nur mit Aufzeichnung). Der
+    Schalter (`Settings.voiceCues`, Schlüssel `kVoiceCuesSettingKey`)
+    wird je Takt direkt aus den SharedPreferences gelesen
+    (`readServiceVoiceOn`, nach `refreshServiceLocale`, das neu lädt) —
+    keine Brücke, umschalten wirkt sofort.
+  - **Die Maschine lebt am `NavNoticeWatcher`**, also über „Route
+    umplanen" hinweg (dort bleibt der Watcher, nur der Tracker ist neu);
+    Schlüssel ist die `trailId`, deshalb kommt ein verschobener Trail
+    nicht noch einmal. `resetNavTick` und das Ende der Navigation
+    nehmen sie mit.
+  - **Die Meldung reist in der Routen-Datei** (achtes Feld der
+    Abschnitte, `NavNote.encode`), das eigene Konto als `me`
+    (`NavRouteData.selfId`); alte Dateien ohne beides lesen sich weiter.
+  - **Die freie Fahrt braucht die Trails im Dienst**:
+    `RideNotifier.syncConfirmTargets` schreibt `rides/voice_trails.json`
+    neben den Fragen aus #116, nur mit Ansagen (sonst läge das Netz
+    doppelt), leer beim Beenden; `VoiceCuesFlag.set` stößt das an.
+  - **Die Stimme ist ein eigenes Plugin** (`packages/tb_voice`, Java,
+    Kanal `de.mcbuchi.trailbuddy/voice`, Dart-Seite `speakVoice`):
+    `flutter_tts` 4.2.5 wendet `kotlin-android` selbst an und bricht den
+    Build unter AGP 9 (`builtInKotlin`); ein Kanal in `MainActivity`
+    käme im Dienst nicht an — `flutter_foreground_task` baut dort eine
+    eigene Engine nur mit den Plugins aus `pubspec.yaml`. Je Satz Fokus
+    „darf leiser machen", nach dem letzten frei. Ohne `<queries>` für
+    `TTS_SERVICE` bleibt es ab Android 11 still, ohne Fehler
+    (`android_manifest_test` hält Queries, Kanalnamen und „kein Kotlin"). Im Test
+    spricht die Naht `speak:`; ob es klingt, zeigt nur das Gerät
+    (Ohrhörer, Bildschirm aus, Musik).
 - **Bild-im-Bild** (#232 Schritt 3, seit 0.97.0, `lib/core/picture_in_picture*.dart`,
   Kanal `de.mcbuchi.trailbuddy/pip` in `MainActivity`; Konzept-Routing
   9.6). Vier Dinge:

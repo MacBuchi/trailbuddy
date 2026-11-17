@@ -62,7 +62,8 @@ Runde oder Route; „Zum Trailkopf" ist eine Route mit leerer Auswahl.
 
 Nicht-Ziele, damit sie nicht hineinwachsen:
 
-- **Keine Abbiegehinweise, keine Sprachausgabe** (Konzept 13). Die
+- **Keine Abbiegehinweise; Sprachausgabe nur als Ansage der Momente**
+  (Konzept 13; seit 2026-11-17 E7, #525 — Abschnitt 9.10). Die
   Runde geht als GPX an die Navi-App des Nutzers. **Erlaubt seit
   2026-10-05 (#232) ist ein Navigationsmodus, der nur ZEIGT:** Karte in
   Fahrtrichtung gedreht, eigene Position, Route und Abstand zur Linie,
@@ -892,7 +893,9 @@ die drei offenen Fragen entschieden am 2026-10-08 (9.7). Dieser
 Abschnitt kommt vor dem ersten Code, wie in 1 zugesagt.*
 
 Der Modus ZEIGT eine Route, er führt nicht. Keine Abbiegehinweise,
-keine Sprachausgabe, kein Ton bei einer Abweichung — wer das will,
+und bis 2026-11-17 auch keine Sprachausgabe und kein Ton bei einer
+Abweichung — seither gibt es die Ansagen als Schalter (9.10), die
+Momente sagen, nie eine Richtung. Wer Anweisungen will,
 nimmt die GPX-Übergabe an die eigene Navi-App (#150, #151). Was er
 kann, ist die Frage beantworten, die man unterwegs stellt: „Bin ich
 noch drauf, und wie weit ist es noch?"
@@ -1260,6 +1263,53 @@ selbst, die Hinweise der Buddys am Ort, danach die Werte.*
 
 Die Zahlen (100 m, 30 m, 2 m/s, 12 %, 20 s, 50 %, 10 m) sind Startwerte wie in
 9.7; sie ändert der Feldeinsatz.
+
+### 9.10 Ansagen übers Ohr (#525)
+
+*Betreiber, 2026-11-17, Entscheidung E7 in `konzept-geraete.md` (Feld-
+szenarien F6/F7): „als Schalter, Vorgabe aus, ohne Abbiegeansagen, mit
+frischer Buddy-Meldung zum Trail voraus". Ändert A12.*
+
+Handy in der Tasche, Ohrhörer drin: Die Abschnitts-Karte aus 9.9 kommt
+als kurzer Satz. Gebaut seit 0.185.0 (`voice_cues.dart` rein,
+`voice_service.dart` im Dienst).
+
+- **Die Momente** — je einer höchstens einmal, je Trail „voraus",
+  „beginnt" und „geschafft" je einmal, auch über „Route umplanen" (9.3a)
+  hinweg:
+  - **Route verlassen** (dieselbe Regel wie die Leiste: > 30 m, zwei
+    Fixe) und **wieder drauf** — erst, nachdem man einmal auf der Route
+    war (dieselbe Bedingung wie „Route verlassen", 9.3a).
+  - **Trail voraus** 200 m vor dem Kopf: „Trail Rosskopf Süd, S2, in 200
+    Metern" (auf 50 m gerundet). Näher als 40 m kommt statt dessen die
+    Ansage beim Einfahren.
+  - **Trail beginnt**: Name und Grad. **Trail geschafft**: Zeit auf dem
+    Trail, mit laufender Erkennung die Airtime (dieselben Werte wie in
+    der Benachrichtigung, #36).
+  - **Angekommen** — es schließt einen Trail, auf dem die Route endet.
+  - **Freie Fahrt** (F7, ohne Navigation, mit Aufzeichnung): beim
+    Einfahren in einen bekannten Trail Name und Grad. Einfahren heißt die
+    Regel aus „Bestätigen durch Fahren" (#116): zwei scharfe Fixe ≤ 20 m
+    von der Linie, ≥ 25 m auseinander. Die App legt die Trails dafür ab
+    (`rides/voice_trails.json`) — nur mit eingeschalteten Ansagen.
+  - **Die frische Meldung eines Buddys** zum Trail hängt an „voraus"
+    (sonst an „beginnt"): „Max, vor 3 Tagen: Baum quer" — nicht älter als
+    14 Tage, nie die eigene.
+- **Bewusst nicht:** Abbiegeansagen. Der Graph kennt Kreuzungen nicht
+  verlässlich, auf einem Trail löste jede Kehre eine aus — „du bist
+  abgekommen" stimmt, „in 50 Metern links" stimmte oft nicht.
+- **Wie:** Android `TextToSpeech` mit der Stimme des Geräts
+  (eigenes Plugin `packages/tb_voice` in Java — `flutter_tts` baut unter
+  AGP 9 nicht) — kein neuer Host (A6), ohne Netz (A8), keine neue
+  Berechtigung (nur `<queries>` für `TTS_SERVICE`). Gesprochen wird im
+  Dienst, also auch mit Bildschirm aus; Audio-Fokus „darf leiser
+  machen" — Musik wird leiser, sie stoppt nicht. Die Sprache folgt der
+  App. Nur Android (A9, wie die Aufzeichnung).
+- **Der Schalter** „Ansagen" steht im Start der Navigation (Chip) und
+  im Profil unter „Navigation" (dort, weil er auch die freie Fahrt
+  meint). Der Dienst liest ihn je Takt — umschalten wirkt sofort.
+- **Offen:** an der Uhr dieselben Momente als kurzes Vibrieren mit
+  Namensschild, ohne Ton (#525, eigener Schritt mit dem Kettenstand).
 
 ## 10. Ein Planer, und er hält die Oberfläche nicht an (#356)
 

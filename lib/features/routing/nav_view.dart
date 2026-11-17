@@ -31,7 +31,8 @@ import '../garmin/watch_providers.dart' show WatchSyncPhase, kWatchOutdatedPhone
 import '../map/map_buttons.dart';
 import '../map/map_view/map_view.dart';
 import '../rides/airtime_live.dart';
-import '../rides/ride_providers.dart' show ridePhoneInPocketProvider, rideProvider, sensorLogProvider;
+import '../rides/ride_providers.dart'
+    show ridePhoneInPocketProvider, rideProvider, sensorLogProvider, voiceCuesAvailableProvider, voiceCuesProvider;
 import '../rides/airtime_widgets.dart' show airtimeRunRank;
 import '../rides/sensor_fusion.dart' show JumpEvent;
 import '../rides/trail_values.dart';
@@ -112,8 +113,9 @@ NavStartChoice navStartChoiceOf(WidgetRef ref, {required bool canRecord}) {
 
 /// Die gemerkten Schalter vor dem Start als Chips (#517, Konzept-Geräte
 /// 5.2): Aufzeichnen (nur mit [canRecord]), Uhr (nur mit Uhr), Bildschirm
-/// (nur wo es den Weg gibt), Handy am Rad oder in der Tasche (nur mit
-/// laufender Erkennung, #491). Alle gemerkt; Vorgabe an, die Tasche aus.
+/// (nur wo es den Weg gibt), Ansagen (#525, nur mit Dienst), Handy am Rad
+/// oder in der Tasche (nur mit laufender Erkennung, #491). Alle gemerkt;
+/// Vorgabe an, Ansagen und Tasche aus.
 class NavStartOptions extends ConsumerStatefulWidget {
   const NavStartOptions({super.key, required this.canRecord, this.onWatchFound});
 
@@ -191,6 +193,10 @@ class _NavStartOptionsState extends ConsumerState<NavStartOptions> {
             if (screen)
               chip('nav-screen', Icons.light_mode_outlined, l.navChipScreen, ref.watch(navKeepScreenOnProvider),
                   (v) => ref.read(navKeepScreenOnProvider.notifier).set(v)),
+            // Ansagen übers Ohr (#525) — wo es den Dienst gibt.
+            if (ref.watch(voiceCuesAvailableProvider))
+              chip('nav-voice', Icons.record_voice_over_outlined, l.navChipVoice, ref.watch(voiceCuesProvider),
+                  (v) => ref.read(voiceCuesProvider.notifier).set(v)),
             if (place)
               chip('nav-pocket', pocket ? Icons.back_hand_outlined : Icons.pedal_bike,
                   pocket ? l.navChipPocket : l.navChipBike, pocket,

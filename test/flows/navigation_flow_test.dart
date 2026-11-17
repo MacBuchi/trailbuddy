@@ -32,7 +32,7 @@ import 'package:trailbuddy/features/offline_areas/pmtiles_writer.dart';
 import 'package:trailbuddy/features/keep_alive/keep_alive.dart';
 import 'package:trailbuddy/features/rides/airtime_live.dart';
 import 'package:trailbuddy/features/rides/airtime_message.dart';
-import 'package:trailbuddy/features/rides/ride_providers.dart' show rideProvider;
+import 'package:trailbuddy/features/rides/ride_providers.dart' show rideProvider, voiceCuesAvailableProvider;
 import 'package:trailbuddy/features/rides/ride_track.dart';
 import 'package:trailbuddy/features/rides/sensor_fusion.dart';
 import 'package:trailbuddy/features/routing/nav_notice.dart';
@@ -1259,6 +1259,27 @@ void main() {
     await settle(tester, frames: 2);
     expect(textIn('nav-ride-status'), contains('Sprünge an'));
     expect(textIn('nav-ride-status'), isNot(contains('Halterung lernt')));
+  });
+
+  testWidgets('#525: der Chip „Ansagen" — ab Werk aus, gemerkt, das Konto reist in der Routen-Datei', (tester) async {
+    final settings = FakeSettings();
+    final navBridge = FakeNavServiceBridge();
+    await startFromRides(tester, settings: settings, navBridge: navBridge);
+    final chip = find.byKey(const ValueKey('nav-voice'));
+    expect(chip, findsOneWidget);
+    expect(tester.widget<FilterChip>(chip).selected, isFalse, reason: 'ab Werk aus');
+    await tester.tap(chip);
+    await settle(tester, frames: 2);
+    expect(tester.widget<FilterChip>(chip).selected, isTrue);
+    expect(settings.voiceCues, isTrue, reason: 'gemerkt — der Dienst liest den Schalter selbst');
+    await tester.tap(find.byKey(const ValueKey('nav-go')));
+    await settle(tester);
+    expect(navBridge.armed?.selfId, isNotNull, reason: 'die eigene Meldung sagt die Ansage nicht an');
+  });
+
+  testWidgets('#525: ohne Dienst (Web) kein Chip „Ansagen"', (tester) async {
+    await startFromRides(tester, overrides: [voiceCuesAvailableProvider.overrideWithValue(false)]);
+    expect(find.byKey(const ValueKey('nav-voice')), findsNothing);
   });
 
   testWidgets('#491: ohne Erkennung kein Chip für den Ort des Handys', (tester) async {

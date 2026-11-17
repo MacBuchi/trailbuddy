@@ -19,6 +19,7 @@ import 'package:geolocator/geolocator.dart';
 
 import '../../l10n/l10n.dart' show refreshServiceLocale;
 import '../routing/nav_notice.dart';
+import '../routing/voice_service.dart';
 import 'ride_confirm.dart';
 import 'ride_confirm_notify.dart';
 import 'ride_store.dart';
@@ -204,11 +205,19 @@ Future<void> serviceTick({Future<Position?> Function()? fix}) async {
     await refreshServiceLocale();
     Future<Position?>? once;
     Future<Position?> shared() => once ??= (fix ?? _fix)();
-    if (recording) await recordRideTick(fix: shared);
+    final point = recording ? await recordRideTick(fix: shared) : null;
     // Die Rohdaten der Sensoren (#36, Dev-App): startet beim ersten Takt
     // der Fahrt; das Ende merkt der Logger selbst.
     await sensorLogTick();
-    if (navigating) await navTick(fix: shared, recording: recording);
+    // Ansagen übers Ohr (#525): mit Navigation spricht `navTick`, ohne
+    // die freie Fahrt (F7).
+    final voice = await readServiceVoiceOn();
+    if (navigating) {
+      await navTick(fix: shared, recording: recording, voice: voice);
+    } else if (voice && point != null) {
+      final dir = await FlutterForegroundTask.getData<String>(key: kRideDataDir);
+      if (dir != null) await freeVoiceTick(point, dir: dir);
+    }
   } catch (_) {
     // Der nächste Takt versucht es wieder.
   }

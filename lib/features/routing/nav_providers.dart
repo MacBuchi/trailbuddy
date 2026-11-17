@@ -11,6 +11,7 @@ import '../../core/errors.dart';
 import '../../core/line_geometry.dart';
 import '../../core/settings.dart';
 import '../../core/stall_watch.dart';
+import '../../data/providers.dart' show currentUserIdProvider;
 import '../../models/trail.dart';
 import '../profile/profile_providers.dart';
 import '../trails/trail_providers.dart' show trailsProvider;
@@ -331,7 +332,8 @@ class NavController extends Notifier<NavSession?> {
           title: title,
           startAlongM: startAlongM,
           sections: session.sections,
-          leaveM: ref.read(navLeaveDistanceProvider)));
+          leaveM: ref.read(navLeaveDistanceProvider),
+          selfId: ref.read(currentUserIdProvider)));
       await keepAlive.start();
     });
     unawaited(_loadClimb(session));
@@ -353,7 +355,8 @@ class NavController extends Notifier<NavSession?> {
           sections: session.sections,
           climbDistM: profile.distM,
           climbEleM: profile.eleM,
-          leaveM: ref.read(navLeaveDistanceProvider))));
+          leaveM: ref.read(navLeaveDistanceProvider),
+          selfId: ref.read(currentUserIdProvider))));
     } catch (_) {
       // Ohne Höhen zeigt die Leiste nur km — das Lesen meldet seine
       // Fehler selbst (`TerrainHeights`).

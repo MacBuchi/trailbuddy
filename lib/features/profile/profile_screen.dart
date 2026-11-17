@@ -31,7 +31,8 @@ import '../offline_areas/area_providers.dart' show storedAreasProvider;
 import '../offline_areas/area_store.dart' show visibleAreas;
 import '../offline_areas/height_tiles.dart' show kHeightsAttribution;
 import '../rides/airtime_providers.dart' show airtimeShareProvider;
-import '../rides/ride_providers.dart' show rideRecordingAvailableProvider, ridesProvider, sensorLogAvailableProvider, sensorLogProvider;
+import '../rides/ride_providers.dart'
+    show rideRecordingAvailableProvider, ridesProvider, sensorLogAvailableProvider, sensorLogProvider, voiceCuesAvailableProvider, voiceCuesProvider;
 import '../../core/geo.dart' show formatMeters;
 import '../routing/nav_providers.dart'
     show kNavLeaveChoices, kNavReplanOfferChoices, navLeaveDistanceProvider, navReplanOfferDistanceProvider;
@@ -449,7 +450,7 @@ class RiderProfileScreen extends StatelessWidget {
 }
 
 /// Die Schwellen der Navigation (#464): ab wann „Route umplanen" steht
-/// und ab wann die Navigation von selbst endet.
+/// und ab wann die Navigation von selbst endet — dazu die Ansagen (#525).
 class NavigationSettingsScreen extends StatelessWidget {
   const NavigationSettingsScreen({super.key});
 
@@ -518,6 +519,19 @@ class _NavigationSection extends ConsumerWidget {
             onSelectionChanged: (s) => ref.read(navLeaveDistanceProvider.notifier).set(s.single),
           ),
         ),
+        // Ansagen übers Ohr (#525) — auch für die freie Fahrt, deshalb
+        // hier und nicht nur im Start der Navigation.
+        if (ref.watch(voiceCuesAvailableProvider)) ...[
+          const SizedBox(height: 24),
+          SwitchListTile(
+            key: const ValueKey('nav-voice-setting'),
+            contentPadding: EdgeInsets.zero,
+            title: Text(l.navSettingsVoiceTitle, style: text.titleSmall),
+            subtitle: Text(l.navSettingsVoiceText, style: text.bodySmall),
+            value: ref.watch(voiceCuesProvider),
+            onChanged: (v) => ref.read(voiceCuesProvider.notifier).set(v),
+          ),
+        ],
       ],
     );
   }

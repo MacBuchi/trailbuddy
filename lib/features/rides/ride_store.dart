@@ -15,6 +15,8 @@ import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 
 import '../../core/errors.dart';
+import '../routing/voice_cues.dart' show VoiceTrail, encodeVoiceTrails;
+import '../routing/voice_service.dart' show kVoiceTrailsFileName;
 import 'ride_confirm.dart';
 import 'ride_track.dart';
 import 'sensor_log.dart' show kSensorDirName, sensorEventsPath;
@@ -56,6 +58,10 @@ abstract interface class RideStore {
   /// gefragt, gefahren wird trotzdem.
   Future<void> writeConfirmTargets({required String uid, required List<ConfirmTarget> targets});
   Future<List<ConfirmTarget>> readConfirmTargets({required String uid});
+
+  /// Die Trails für die Ansagen der freien Fahrt (#525, F7) — leer, wenn
+  /// die Ansagen aus sind oder die Fahrt endet. Wirft nie.
+  Future<void> writeVoiceTrails({required String uid, required List<VoiceTrail> trails});
 
   /// Die laufende Fahrt, oder `null`. Wirft nie.
   Future<RecordedRide?> readActive({required String uid});
@@ -252,6 +258,23 @@ class FileRideStore implements RideStore {
       return const [];
     }
   }
+
+  @override
+  Future<void> writeVoiceTrails({required String uid, required List<VoiceTrail> trails}) =>
+      _serialized(() async {
+    try {
+      final file = File('${(await _dir()).path}/$kVoiceTrailsFileName');
+      if (trails.isEmpty) {
+        if (await file.exists()) await file.delete();
+        return;
+      }
+      final part = File('${file.path}.part');
+      await part.writeAsString(encodeVoiceTrails(uid: uid, trails: trails), flush: true);
+      await part.rename(file.path);
+    } catch (e, stackTrace) {
+      logError('Fahrt: Trails für die Ansagen ablegen', e, stackTrace);
+    }
+  });
 
   /// Wann die Ziel-Datei zuletzt geschrieben wurde; der Service liest sie
   /// nur neu, wenn sich das ändert.

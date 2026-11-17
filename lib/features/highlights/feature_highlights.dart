@@ -83,6 +83,16 @@ class FeatureHighlight {
 final kFeatureHighlights = <FeatureHighlight>[
   // ─── Highlights ──────────────────────────────────────────────────
   FeatureHighlight(
+    id: 'voice-cues',
+    since: '0.185.0',
+    kind: HighlightKind.highlight,
+    tab: HighlightTab.profile,
+    icon: Icons.record_voice_over_outlined,
+    title: (l) => l.highlightVoiceCuesTitle,
+    text: (l) => l.highlightVoiceCuesText,
+    target: '/profile/navigation',
+  ),
+  FeatureHighlight(
     id: 'start-points',
     since: '0.183.0',
     kind: HighlightKind.highlight,

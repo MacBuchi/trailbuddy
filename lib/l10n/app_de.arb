@@ -10762,5 +10762,145 @@
   "demoStartPoints2Text": "In der Zeile „Start“ wählst du einen gemerkten Parkplatz — deinen oder den eines Buddys. Gemerkt wird lang auf der Karte, im Blatt eines Ortes oder mit „Start merken“.",
   "@demoStartPoints2Text": {
     "description": "Vorführung „Gemerkte Startpunkte“ (#543), Schritt 2: Text."
+  },
+  "voiceOffRoute": "Du hast die Route verlassen.",
+  "@voiceOffRoute": {
+    "description": "Ansage übers Ohr (#525): einmal beim Verlassen der Route."
+  },
+  "voiceBackOnRoute": "Wieder auf der Route.",
+  "@voiceBackOnRoute": {
+    "description": "Ansage (#525): zurück auf der Route nach „verlassen“."
+  },
+  "voiceArrived": "Angekommen.",
+  "@voiceArrived": {
+    "description": "Ansage (#525): am Ziel der Navigation."
+  },
+  "voiceTrailName": "Trail {name}",
+  "@voiceTrailName": {
+    "description": "Ansage (#525): Name eines Trails vorne im Satz, danach Grad und Abstand.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "voiceTrailUnnamed": "ohne Namen",
+  "@voiceTrailUnnamed": {
+    "description": "Ansage (#525): steht für den Namen, wenn ein Trail keinen hat („Trail ohne Namen“)."
+  },
+  "voiceInMeters": "in {meters} Metern",
+  "@voiceInMeters": {
+    "description": "Ansage (#525): Abstand zum Trailkopf, auf 50 m gerundet.",
+    "placeholders": {
+      "meters": {
+        "type": "int"
+      }
+    }
+  },
+  "voiceTrailDone": "{name} geschafft",
+  "@voiceTrailDone": {
+    "description": "Ansage (#525): am Ende eines Trails, danach die Zeit.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "voiceSeconds": "{seconds} Sekunden",
+  "@voiceSeconds": {
+    "description": "Ansage (#525): Zeit auf dem Trail unter einer Minute.",
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "voiceMinutes": "{minutes, plural, =1{eine Minute} other{{minutes} Minuten}} {seconds}",
+  "@voiceMinutes": {
+    "description": "Ansage (#525): Zeit auf dem Trail ab einer Minute, z. B. „3 Minuten 12“ — gesprochen, nicht gelesen.",
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      },
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "voiceAir": "Airtime {seconds} Sekunden, {jumps, plural, =1{ein Sprung} other{{jumps} Sprünge}}",
+  "@voiceAir": {
+    "description": "Ansage (#525): Airtime auf dem Trail, nur mit laufender Erkennung.",
+    "placeholders": {
+      "seconds": {
+        "type": "String"
+      },
+      "jumps": {
+        "type": "int"
+      }
+    }
+  },
+  "voiceNote": "{author}, {ago}: {body}",
+  "@voiceNote": {
+    "description": "Ansage (#525): die frische Meldung eines Buddys zum Trail, z. B. „Max, vor drei Tagen: Baum quer“.",
+    "placeholders": {
+      "author": {
+        "type": "String"
+      },
+      "ago": {
+        "type": "String"
+      },
+      "body": {
+        "type": "String"
+      }
+    }
+  },
+  "voiceNoteBuddy": "Ein Buddy",
+  "@voiceNoteBuddy": {
+    "description": "Ansage (#525): Autor einer Meldung ohne Benutzernamen."
+  },
+  "voiceToday": "heute",
+  "@voiceToday": {
+    "description": "Ansage (#525): Meldung von heute."
+  },
+  "voiceYesterday": "gestern",
+  "@voiceYesterday": {
+    "description": "Ansage (#525): Meldung von gestern."
+  },
+  "voiceDaysAgo": "vor {days} Tagen",
+  "@voiceDaysAgo": {
+    "description": "Ansage (#525): Alter einer Meldung in Tagen (ab zwei).",
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "navChipVoice": "Ansagen",
+  "@navChipVoice": {
+    "description": "Chip im Start der Navigation (#525): Ansagen übers Ohr an/aus."
+  },
+  "navSettingsVoiceTitle": "Ansagen",
+  "@navSettingsVoiceTitle": {
+    "description": "Profil › Navigation (#525): Überschrift des Schalters für Ansagen übers Ohr."
+  },
+  "navSettingsVoiceText": "Sagt an, wenn du die Route verlässt, ein Trail kommt, beginnt oder geschafft ist und wenn du angekommen bist — mit der frischen Meldung eines Buddys. Auch ohne Navigation: beim Einfahren in einen bekannten Trail. Keine Abbiegehinweise. Musik wird dabei nur leiser.",
+  "@navSettingsVoiceText": {
+    "description": "Profil › Navigation (#525): was die Ansagen sagen und was nicht."
+  },
+  "highlightVoiceCuesTitle": "Ansagen übers Ohr",
+  "@highlightVoiceCuesTitle": {
+    "description": "Neuheit „Ansagen“ (#525): Titel."
+  },
+  "highlightVoiceCuesText": "Handy in der Tasche, Ohrhörer drin: TrailBuddy sagt an, wenn ein Trail kommt, beginnt oder geschafft ist, wenn du die Route verlässt — und was ein Buddy frisch gemeldet hat. Keine Abbiegehinweise.",
+  "@highlightVoiceCuesText": {
+    "description": "Neuheit „Ansagen“ (#525): Text."
+  },
+  "demoVoiceCuesTitle": "Ansagen",
+  "@demoVoiceCuesTitle": {
+    "description": "Vorführung „Ansagen“ (#525): Titel der Blase an der Profilzeile „Navigation“."
+  },
+  "demoVoiceCuesText": "Unter „Navigation“ schaltest du die Ansagen ein — oder im Start einer Fahrt mit dem Chip „Ansagen“. Ab Werk aus.",
+  "@demoVoiceCuesText": {
+    "description": "Vorführung „Ansagen“ (#525): Text der Blase."
   }
 }
