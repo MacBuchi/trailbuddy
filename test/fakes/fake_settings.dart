@@ -99,6 +99,14 @@ class FakeSettings implements Settings {
   }
 
   @override
+  String? lastStartPoint;
+
+  @override
+  Future<void> setLastStartPoint(String key) async {
+    lastStartPoint = key;
+  }
+
+  @override
   bool mapLegendOpen;
 
   @override

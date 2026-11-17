@@ -10,6 +10,8 @@
 // „Runde | Route" ist keine eigene Einstellung: Sie folgt aus dem Ziel —
 // zurück zum Start heißt Runde, alles andere Route (`LoopEndMode` bleibt,
 // nur die Stelle der Wahl ist neu).
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -18,10 +20,11 @@ import '../../core/app_theme.dart' show AppFonts;
 import '../../l10n/l10n.dart';
 import '../coach/coach.dart';
 import '../help/map_tour.dart' show MapCoach;
-import '../trails/trail_providers.dart' show trailByIdProvider;
+import '../trails/trail_providers.dart' show startPointsProvider, trailByIdProvider;
 import 'loop_planner.dart' show LoopEndMode;
 import 'loop_planner_controller.dart';
 import 'loop_planner_sheet.dart' show LoopStartFlag, loopHoursLabel;
+import 'start_point_pick.dart';
 
 /// Die Fahnen des Planers sind antippbar (#516, Konzept-Routing 12.6): Ein
 /// Tipp öffnet dieselbe Wahl wie ihre Zeile im Kopf.
@@ -56,7 +59,7 @@ class LoopEditHeader extends ConsumerWidget {
     final l = context.l10n;
     final theme = Theme.of(context);
     final targetTrail = s.targetTrailId == null ? null : ref.watch(trailByIdProvider(s.targetTrailId!));
-    final startValue = s.start == null ? l.loopHeadMine : l.loopHeadPicked;
+    final startValue = s.start == null ? l.loopHeadMine : s.startName ?? l.loopHeadPicked;
     final targetValue = switch (s.prefs.endMode) {
       LoopEndMode.loop => l.loopHeadTargetLoop,
       LoopEndMode.lastTrail => l.loopHeadTargetLast,
@@ -64,7 +67,7 @@ class LoopEditHeader extends ConsumerWidget {
           ? l.loopHeadTargetNone
           : s.targetMine
               ? l.loopHeadMine
-              : targetTrail?.displayName(l) ?? l.loopHeadPicked,
+              : targetTrail?.displayName(l) ?? s.targetName ?? l.loopHeadPicked,
     };
     final budget = l.loopHeadBudget(
         loopHoursLabel(l, s.prefs.hours), s.prefs.climbM.round(), s.profile.label(l));
@@ -128,10 +131,10 @@ class LoopEditHeader extends ConsumerWidget {
           child: Padding(
             padding: const EdgeInsets.only(left: 8),
             child: Row(children: [
-              half('loop-head-start', const LoopStartFlag(size: 18), startValue, () => showLoopStartChoice(context)),
+              half('loop-head-start', const LoopStartFlag(size: 18), startValue, () => showLoopStartChoice(context, ref)),
               const Padding(padding: EdgeInsets.symmetric(horizontal: 4), child: Icon(Icons.arrow_forward, size: 16)),
               half('loop-head-target', const LoopStartFlag(size: 18, finish: true), targetValue,
-                  () => showLoopTargetChoice(context)),
+                  () => showLoopTargetChoice(context, ref)),
               close,
             ]),
           ),
@@ -150,9 +153,9 @@ class LoopEditHeader extends ConsumerWidget {
             Expanded(
               child: Column(mainAxisSize: MainAxisSize.min, children: [
                 row('loop-head-start', const LoopStartFlag(size: 20), l.loopHeadStart, startValue,
-                    () => showLoopStartChoice(context)),
+                    () => showLoopStartChoice(context, ref)),
                 row('loop-head-target', const LoopStartFlag(size: 20, finish: true), l.loopHeadTarget, targetValue,
-                    () => showLoopTargetChoice(context)),
+                    () => showLoopTargetChoice(context, ref)),
                 Row(children: [
                   const SizedBox(width: 32 + 44),
                   Expanded(
@@ -182,14 +185,19 @@ class LoopEditHeader extends ConsumerWidget {
   }
 }
 
-/// Die Wahl des Starts — aus dem Kopf und von der Startfahne.
-Future<void> showLoopStartChoice(BuildContext context) => showModalBottomSheet<void>(
-      context: context,
+/// Die Wahl des Starts — aus dem Kopf und von der Startfahne. Seit #543
+/// auch ein gemerkter Startpunkt und „Start merken" (über dem Ergebnis
+/// „aus dem Planer-Ergebnis", Konzept Startpunkte 4). [ref] gehört dem
+/// Aufrufer (Kopf, Karte): Liste und Dialog kommen NACH dem Schließen
+/// des Blatts, dessen eigener Kontext dann weg ist.
+Future<void> showLoopStartChoice(BuildContext outer, WidgetRef outerRef) => showModalBottomSheet<void>(
+      context: outer,
       showDragHandle: true,
       builder: (context) => Consumer(builder: (context, ref, _) {
         final s = ref.watch(loopPlannerProvider);
         final n = ref.read(loopPlannerProvider.notifier);
         final l = context.l10n;
+        final hasSaved = ref.watch(startPointsProvider).isNotEmpty;
         return SafeArea(
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             _ChoiceTile(
@@ -206,26 +214,51 @@ Future<void> showLoopStartChoice(BuildContext context) => showModalBottomSheet<v
               key: const ValueKey('loop-pick'),
               icon: Icons.touch_app_outlined,
               text: l.loopHeadPickOnMap,
-              chosen: s.start != null,
+              chosen: s.start != null && !s.startSaved,
               onTap: () {
                 Navigator.of(context).pop();
                 n.armStartPick();
               },
             ),
+            if (hasSaved)
+              _ChoiceTile(
+                key: const ValueKey('loop-start-saved'),
+                icon: Icons.outlined_flag,
+                text: s.startSaved ? s.startName ?? l.loopStartSaved : l.loopStartSaved,
+                chosen: s.startSaved,
+                onTap: () {
+                  Navigator.of(context).pop();
+                  unawaited(pickStartPoint(outer, outerRef, asTarget: false));
+                },
+              ),
+            if (!s.startSaved) ...[
+              const Divider(height: 1),
+              ListTile(
+                key: const ValueKey('loop-start-remember'),
+                leading: const Icon(Icons.bookmark_add_outlined),
+                title: Text(s.start == null ? l.startPointRememberHere : l.loopStartRemember),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  unawaited(rememberPlannerStart(outer, outerRef));
+                },
+              ),
+            ],
           ]),
         );
       }),
     );
 
 /// Die Wahl des Ziels — aus dem Kopf und von der Zielfahne. Sie ist
-/// zugleich „Runde oder Route" (Konzept-Routing 12.6).
-Future<void> showLoopTargetChoice(BuildContext context) => showModalBottomSheet<void>(
-      context: context,
+/// zugleich „Runde oder Route" (Konzept-Routing 12.6). Ein gemerkter
+/// Startpunkt ist auch ein Ziel (#543).
+Future<void> showLoopTargetChoice(BuildContext outer, WidgetRef outerRef) => showModalBottomSheet<void>(
+      context: outer,
       showDragHandle: true,
       builder: (context) => Consumer(builder: (context, ref, _) {
         final s = ref.watch(loopPlannerProvider);
         final n = ref.read(loopPlannerProvider.notifier);
         final l = context.l10n;
+        final hasSaved = ref.watch(startPointsProvider).isNotEmpty;
         final mode = s.prefs.endMode;
         void setMode(LoopEndMode m) {
           if (mode != m) n.setPrefs(s.prefs.copyWith(endMode: m));
@@ -247,13 +280,26 @@ Future<void> showLoopTargetChoice(BuildContext context) => showModalBottomSheet<
               key: const ValueKey('loop-pick-target'),
               icon: Icons.touch_app_outlined,
               text: l.loopHeadPickOnMap,
-              chosen: mode == LoopEndMode.target,
+              chosen: mode == LoopEndMode.target && !s.targetSaved,
               onTap: () {
                 Navigator.of(context).pop();
                 setMode(LoopEndMode.target);
                 n.armTargetPick();
               },
             ),
+            if (hasSaved)
+              _ChoiceTile(
+                key: const ValueKey('loop-target-saved'),
+                icon: Icons.outlined_flag,
+                text: mode == LoopEndMode.target && s.targetSaved
+                    ? s.targetName ?? l.loopStartSaved
+                    : l.loopStartSaved,
+                chosen: mode == LoopEndMode.target && s.targetSaved,
+                onTap: () {
+                  Navigator.of(context).pop();
+                  unawaited(pickStartPoint(outer, outerRef, asTarget: true));
+                },
+              ),
             _ChoiceTile(
               key: const ValueKey('loop-end-last'),
               icon: Icons.last_page,

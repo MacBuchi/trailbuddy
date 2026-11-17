@@ -2,6 +2,24 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Startpunkte im Planer
+
+*Version 0.183.0, 2026-11-17*
+
+- **„Gemerkt" in Start und Ziel:** Im Planer steht neben „Mein
+  Standort" und „Auf der Karte wählen" eine dritte Wahl. Sie öffnet die
+  Liste deiner Startpunkte und der deiner Buddys, der nächste oben, der
+  zuletzt gewählte ganz oben. Bei einer Route geht das auch für das Ziel.
+- **Am Parkplatz schon gewählt:** Stehst du höchstens 300 m von einem
+  gemerkten Punkt, ist er beim Öffnen des Planers schon der Start. Zu
+  Hause bleibt es bei „Mein Standort".
+- **Start merken:** Ein Tipp auf „Start" im Kopf des Planers bietet
+  „Start merken" an — auch über dem Ergebnis. „Mein Standort merken"
+  steht dort und unter der Liste; es ist privat vorbelegt und erinnert
+  daran, deine Haustür nicht zu teilen.
+- Start und Ziel heißen im Kopf jetzt wie der Ort oder der Startpunkt,
+  den du gewählt hast.
+
 ## Startpunkte auf der Karte
 
 *Version 0.182.0, 2026-11-16*

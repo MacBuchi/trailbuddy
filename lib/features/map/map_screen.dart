@@ -560,10 +560,18 @@ class _MapScreenState extends ConsumerState<MapScreen> {
 
   /// Ein Ort als Start, Zwischenpunkt oder Ziel (#331 Schritte 3 und 4),
   /// aus seinem Blatt: Er liegt schon im Bild, also nichts einpassen.
-  Future<void> _planFromPlace(LatLng at, LoopPlaceRole role) async {
+  Future<void> _planFromPlace(LatLng at, LoopPlaceRole role, {String? name}) async {
     if (!ref.read(loopPlannerProvider).open) await _openLoopPlanner();
     if (!mounted || !ref.read(loopPlannerProvider).open) return;
-    ref.read(loopPlannerProvider.notifier).takePlace(at, role);
+    ref.read(loopPlannerProvider.notifier).takePlace(at, role, name: name);
+  }
+
+  /// Ein gemerkter Startpunkt als Start aus seinem Blatt (#543): wie ein
+  /// Ort, mit Namen, und er ist der zuletzt gewählte.
+  Future<void> _planFromStartPoint(StartPoint p) async {
+    if (!ref.read(loopPlannerProvider).open) await _openLoopPlanner();
+    if (!mounted || !ref.read(loopPlannerProvider).open) return;
+    ref.read(loopPlannerProvider.notifier).takeStartPoint(p, asTarget: false);
   }
 
   /// Ein Tipp auf einen vorab gesetzten Zwischenpunkt nimmt ihn weg — mit
@@ -709,7 +717,8 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   /// mit Ziel, gerechnet wird sofort. Bei offenem Planer ist jeder dieser
   /// Einstiege seit #516 das Ziel DIESER Planung; die Rückfrage „Planung
   /// ersetzen?" (bis 0.171.0) gibt es damit nicht mehr.
-  Future<void> _planRoute(LatLng target, {String? trailId, RouteMode? style}) async {
+  Future<void> _planRoute(LatLng target,
+      {String? trailId, RouteMode? style, String? name, bool saved = false}) async {
     final returnTo = _selectedTrailId;
     if (ref.read(offlineOverlayProvider)) {
       await _closeTools();
@@ -717,7 +726,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     }
     setState(() => _selectedTrailId = null);
     _quickReturnTrailId = returnTo;
-    ref.read(loopPlannerProvider.notifier).beginRoute(target, trailId: trailId, style: style);
+    ref.read(loopPlannerProvider.notifier).beginRoute(target, trailId: trailId, style: style, targetName: name, targetSaved: saved);
     await _showLoopResult();
   }
 
@@ -728,13 +737,15 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   /// sofort. Am Pixel stand der Planer auf „Kein Ziel gesetzt", und „Route
   /// bis hier" wollte den gewählten Trail verwerfen. Ohne Planer ein
   /// fertiger Auftrag wie bisher.
-  Future<void> _routeTo(LatLng target, {Trail? trail}) async {
-    if (!ref.read(loopPlannerProvider).open) return _planRoute(target, trailId: trail?.id);
+  Future<void> _routeTo(LatLng target, {Trail? trail, String? name, bool saved = false}) async {
+    if (!ref.read(loopPlannerProvider).open) {
+      return _planRoute(target, trailId: trail?.id, name: name, saved: saved);
+    }
     final planner = ref.read(loopPlannerProvider.notifier);
     if (trail != null) {
       planner.takeTrailHead(trail, asTarget: true);
     } else {
-      planner.takePlace(target, LoopPlaceRole.target);
+      planner.takePlace(target, LoopPlaceRole.target, name: name, saved: saved);
     }
     if (_loopPanelOpen) {
       unawaited(planner.compute());
@@ -779,9 +790,9 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         _removeWaypoint(index);
       // Eine Fahne öffnet dieselbe Wahl wie ihre Zeile im Kopf (#516).
       case LoopFlagHit.start:
-        unawaited(showLoopStartChoice(context));
+        unawaited(showLoopStartChoice(context, ref));
       case LoopFlagHit.target:
-        unawaited(showLoopTargetChoice(context));
+        unawaited(showLoopTargetChoice(context, ref));
       case final Trail t:
         // Im Planer wählt ein Tipp den Trail an oder ab (#178).
         if (ref.read(loopPlannerProvider).open) {
@@ -818,14 +829,17 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         showOfficialTrailSheet(context, o);
       case final Poi p:
         showPoiSheet(context, p,
-            onPlan: (role) => unawaited(_planFromPlace(p.position, role)),
-            onRoute: () => unawaited(_routeTo(p.position)),
+            onPlan: (role) => unawaited(_planFromPlace(p.position, role, name: p.name)),
+            onRoute: () => unawaited(_routeTo(p.position, name: p.name)),
             onRemember: () => unawaited(rememberStartPoint(context, ref, p.position, name: p.name ?? p.kind.label(context.l10n))));
       // Ein gemerkter Startpunkt (#543): wie ein Ort, mit Navi-App.
       case final StartPoint p:
         showStartPointSheet(context, p,
-            onStart: () => unawaited(_planFromPlace(p.position, LoopPlaceRole.start)),
-            onTarget: () => unawaited(_routeTo(p.position)),
+            onStart: () => unawaited(_planFromStartPoint(p)),
+            onTarget: () {
+              ref.read(loopPlannerProvider.notifier).noteStartPointChosen(p);
+              unawaited(_routeTo(p.position, name: p.name, saved: true));
+            },
             onRemember: (p) => unawaited(rememberStartPoint(context, ref, p.position, name: p.name)));
     }
   }

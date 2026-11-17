@@ -1184,6 +1184,34 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     — darunter ist sie für Finder „offstage" (beim Bau so gefunden).
     Gegenproben 2026-11-16: ohne `ignoreClimb`, ohne Zwischenspeicher
     der Stände über dem Limit, ohne `setPrefs` beim Anheben — je rot.
+- **Gemerkte Startpunkte im Planer** (#543 Schritt 3, seit 0.183.0;
+  Konzept `docs/konzept-startpunkte.md` 4, 5.1, 9; `start_point_pick.dart`,
+  Karte und Daten in `lib/features/map/CLAUDE.md` und `lib/data/CLAUDE.md`).
+  Vier Dinge, die man wissen muss:
+  - **Ein Punkt ist ein Ort mit Namen**: `takeStartPoint` →
+    `takePlace(name:, saved: true)`. `LoopSession.startName`/`targetName`
+    beschriften den Kopf (auch Orte der Karte tragen jetzt ihren Namen),
+    `startSaved`/`targetSaved` sagen „gemerkt". `takeStart`/`takeTarget`
+    leeren beides (`clearStartName`/`clearTargetName`), der Sprung auf den
+    Weg nach der Rechnung (`copyWith(start:)`) behält es.
+  - **Vorbelegt nur vor Ort** (`nearbyStartPoint`, 300 m): Das
+    Einstiegsblatt fragt beim Aufgehen und bei jedem neuen Fix oder
+    Punkt den LAUFENDEN Strom (nie `currentPositionProvider` — kein
+    Systemdialog), bis jemand selbst wählt (`_chose`). Die Vorbelegung
+    ist keine Wahl: `remember: false`, `Settings.lastStartPoint` bleibt.
+  - **Wahl des Starts und des Ziels brauchen die `ref` des Aufrufers**
+    (`showLoopStartChoice(context, ref)`): Liste und Dialog kommen nach
+    dem Schließen des Blatts, dessen Kontext dann weg ist — dieselbe
+    Falle wie am Pin. „Start merken" heißt ohne getippten Start „Mein
+    Standort merken" (privat, Warnung vor der Haustür, `home: true`).
+  - **Im Flow-Test**: „Route" im Einstieg wartet gleich auf den Tipp
+    (Blatt weg) — erst `loop-pick-cancel`, dann `loop-entry-target-saved`.
+    Die Leiste „Startpunkt gemerkt." liegt vier Sekunden über der letzten
+    Zeile eines Blatts; ein zweites Merken wartet sie ab.
+  Tests: `test/start_points/start_point_pick_test.dart`,
+  `test/flows/start_point_planner_flow_test.dart`. Gegenproben
+  2026-11-17: 3 km statt 300 m, ohne `home`, ohne „zuletzt oben",
+  Vorbelegung als Wahl, Name bleibt beim Tipp — je rot.
 - **Ergebnis und Start in einem, ein Ende** (#517, seit 0.171.0;
   Konzept-Routing 9.4, Konzept-Geräte 5.2). Fünf Dinge, die man wissen
   muss:

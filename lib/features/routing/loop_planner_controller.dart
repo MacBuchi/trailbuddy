@@ -55,6 +55,7 @@ import '../../core/line_geometry.dart';
 import '../../core/settings.dart';
 import '../../core/stall_watch.dart';
 import '../../l10n/l10n.dart';
+import '../../models/start_point.dart';
 import '../../models/trail.dart';
 import '../map/position_provider.dart';
 import '../rides/ride_providers.dart' show trailRideCountsProvider;
@@ -121,6 +122,10 @@ class LoopSession {
     this.quick = false,
     this.entry = false,
     this.targetMine = false,
+    this.startName,
+    this.startSaved = false,
+    this.targetName,
+    this.targetSaved = false,
     this.suggestReachM,
     this.strip = const [],
     this.stripPick,
@@ -183,6 +188,21 @@ class LoopSession {
 
   /// Der getippte Start; null heißt der eigene Standort.
   final LatLng? start;
+
+  /// Der Name des Starts, wenn er einen hat — ein Ort der Karte oder ein
+  /// gemerkter Startpunkt (#543, Konzept Startpunkte 5.1). Der Kopf zeigt
+  /// ihn statt „Auf der Karte gesetzt"; ein Tipp auf die Karte leert ihn.
+  final String? startName;
+
+  /// Der Start ist ein gemerkter Startpunkt — „Start merken" fehlt dann
+  /// (Konzept Startpunkte 4).
+  final bool startSaved;
+
+  /// Der Name des Ziels, wie [startName].
+  final String? targetName;
+
+  /// Das Ziel ist ein gemerkter Startpunkt (die Zeile „Ziel" im Einstieg).
+  final bool targetSaved;
 
   /// Der nächste Tipp auf die Karte ist der Start.
   final bool pickingStart;
@@ -300,6 +320,12 @@ class LoopSession {
     bool? quick,
     bool? entry,
     bool? targetMine,
+    String? startName,
+    bool? startSaved,
+    bool clearStartName = false,
+    String? targetName,
+    bool? targetSaved,
+    bool clearTargetName = false,
     double? suggestReachM,
     List<LoopState>? strip,
     int? stripPick,
@@ -338,6 +364,13 @@ class LoopSession {
         quick: quick ?? this.quick,
         entry: entry ?? this.entry,
         targetMine: targetMine ?? this.targetMine,
+        // Ein neuer Start ohne Namen ist ein getippter (`takeStart` leert):
+        // Der alte Name ginge sonst mit an die neue Stelle. Der Sprung auf
+        // den Weg nach der Rechnung behält ihn.
+        startName: clearStart || clearStartName ? startName : (startName ?? this.startName),
+        startSaved: clearStart || clearStartName ? (startSaved ?? false) : (startSaved ?? this.startSaved),
+        targetName: clearTargetName ? targetName : (targetName ?? this.targetName),
+        targetSaved: clearTargetName ? (targetSaved ?? false) : (targetSaved ?? this.targetSaved),
         suggestReachM: clearPlan ? suggestReachM : (suggestReachM ?? this.suggestReachM),
         strip: clearPlan ? (strip ?? const []) : (strip ?? this.strip),
         stripPick: clearPlan ? stripPick : (stripPick ?? this.stripPick),
@@ -512,7 +545,8 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
   /// woanders liegen: Steht er auf dem Standort, wartet der Planer auf
   /// einen Tipp für ihn (Konzept-Routing 12.3).
   void takeTargetMine(LatLng p) {
-    _edit(state.copyWith(target: p, clearTargetTrail: true, pickingTarget: false, targetMine: true));
+    _edit(state.copyWith(
+        target: p, clearTargetTrail: true, pickingTarget: false, targetMine: true, clearTargetName: true));
     if (state.start == null) armStartPick();
   }
 
@@ -650,7 +684,8 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
   /// Zwischenpunkt.
   void cancelStartPick() => state = state.copyWith(pickingStart: false, pickingTarget: false, pickingWaypoint: false);
 
-  void takeStart(LatLng p) => _edit(state.copyWith(start: p, pickingStart: false));
+  void takeStart(LatLng p, {String? name, bool saved = false}) =>
+      _edit(state.copyWith(start: p, pickingStart: false, startName: name, startSaved: saved, clearStartName: true));
 
   void armTargetPick() =>
       state = state.copyWith(pickingTarget: true, pickingStart: false, pickingWaypoint: false, clearDrawTool: true);
@@ -669,8 +704,14 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
     setWaypoints([...state.waypoints]..removeAt(k));
   }
 
-  void takeTarget(LatLng p) =>
-      _edit(state.copyWith(target: p, clearTargetTrail: true, pickingTarget: false, targetMine: false));
+  void takeTarget(LatLng p, {String? name, bool saved = false}) => _edit(state.copyWith(
+      target: p,
+      clearTargetTrail: true,
+      pickingTarget: false,
+      targetMine: false,
+      targetName: name,
+      targetSaved: saved,
+      clearTargetName: true));
 
   /// Wohin der nächste Tipp geht: Start, Ziel oder Zwischenpunkt. Falsch,
   /// wenn der Planer auf keinen wartet.
@@ -706,7 +747,7 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
   /// #516 nicht mehr hierher: Dort ist der Punkt das Ziel DIESER Planung
   /// (`takePlace`, `takeTrailHead`), also auch kein getippter Start, den
   /// ein Auftrag behalten müsste (#373).
-  void beginRoute(LatLng target, {String? trailId, RouteMode? style}) {
+  void beginRoute(LatLng target, {String? trailId, RouteMode? style, String? targetName, bool targetSaved = false}) {
     if (state.open) close();
     final prefs = state.prefs.copyWith(endMode: LoopEndMode.target, style: style);
     if (prefs.encode() != state.prefs.encode()) _remember(prefs);
@@ -717,6 +758,8 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
         coverage: state.coverage,
         target: target,
         targetTrailId: trailId,
+        targetName: targetName,
+        targetSaved: targetSaved,
         quick: true);
   }
 
@@ -724,16 +767,35 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
   /// Karte — ein Ort aus der Ebene „Orte" (#331 Schritte 3 und 4) oder ein
   /// Trailkopf. Als Ziel schaltet er auf „Zum Ziel" (gemerkt wie über die
   /// Parameter).
-  void takePlace(LatLng p, LoopPlaceRole role) {
+  /// [name] beschriftet Start oder Ziel im Kopf (Name des Ortes, des
+  /// gemerkten Punkts); [saved] sagt, dass der Punkt schon gemerkt ist.
+  void takePlace(LatLng p, LoopPlaceRole role, {String? name, bool saved = false}) {
     switch (role) {
       case LoopPlaceRole.start:
-        takeStart(p);
+        takeStart(p, name: name, saved: saved);
       case LoopPlaceRole.waypoint:
         takeWaypoint(p);
       case LoopPlaceRole.target:
         if (state.prefs.endMode != LoopEndMode.target) setPrefs(state.prefs.copyWith(endMode: LoopEndMode.target));
-        takeTarget(p);
+        takeTarget(p, name: name, saved: saved);
     }
+  }
+
+  /// Ein gemerkter Startpunkt als Start oder Ziel (#543, Konzept
+  /// Startpunkte 5.1): ein Ort mit Namen. [remember] merkt ihn als
+  /// zuletzt gewählten (er steht dann oben in der Liste, 9.4) — die
+  /// Vorbelegung vor Ort tut das nicht, sie ist keine Wahl.
+  void takeStartPoint(StartPoint p, {required bool asTarget, bool remember = true}) {
+    takePlace(p.position, asTarget ? LoopPlaceRole.target : LoopPlaceRole.start, name: p.name, saved: true);
+    if (remember) noteStartPointChosen(p);
+  }
+
+  /// [p] ist der zuletzt gewählte Startpunkt (Konzept Startpunkte 9.4) —
+  /// gerätelokal, nur sein Schlüssel.
+  void noteStartPointChosen(StartPoint p) {
+    ref.read(settingsProvider).setLastStartPoint(p.key).catchError((Object e, StackTrace s) {
+      logError('Zuletzt gewählten Startpunkt merken', e, s);
+    });
   }
 
   void useMyPosition() => _edit(state.copyWith(clearStart: true));
