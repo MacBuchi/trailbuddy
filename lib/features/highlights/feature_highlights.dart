@@ -83,6 +83,16 @@ class FeatureHighlight {
 final kFeatureHighlights = <FeatureHighlight>[
   // ─── Highlights ──────────────────────────────────────────────────
   FeatureHighlight(
+    id: 'watch-shelf',
+    since: '0.189.0',
+    kind: HighlightKind.highlight,
+    tab: HighlightTab.profile,
+    icon: Icons.watch_outlined,
+    title: (l) => l.highlightWatchShelfTitle,
+    text: (l) => l.highlightWatchShelfText,
+    target: '/profile',
+  ),
+  FeatureHighlight(
     id: 'group-ride',
     since: '0.187.0',
     kind: HighlightKind.highlight,

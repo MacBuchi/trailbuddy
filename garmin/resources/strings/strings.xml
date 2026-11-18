@@ -40,4 +40,6 @@
     <string id="Zoom">Zoom</string>
     <string id="ZoomAuto">Automatic</string>
     <string id="EndRoute">End route</string>
+    <string id="Shelf">Saved routes</string>
+    <string id="OffNoPhone">OFF ROUTE · NO PHONE</string>
 </strings>

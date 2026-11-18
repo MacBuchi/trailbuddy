@@ -6,8 +6,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/router.dart';
+import '../../core/settings.dart';
 import '../../l10n/l10n.dart';
 import 'watch_ride_inbox.dart';
+import 'watch_shelf.dart';
 
 class WatchRideListener extends ConsumerStatefulWidget {
   const WatchRideListener({super.key, required this.child});
@@ -29,6 +31,8 @@ class _WatchRideListenerState extends ConsumerState<WatchRideListener> {
         if (next > (previous ?? 0)) _show();
       });
       ref.read(watchRideInboxProvider.notifier).startIfKnown();
+      // Die Ablage (#515) hört mit: Ihre Aufträge gehen beim „hallo" der Uhr.
+      if (ref.read(settingsProvider).watchSeen) ref.read(watchShelfProvider);
     });
   }
 

@@ -17,6 +17,8 @@ import 'package:trailbuddy/features/garmin/watch_branches.dart' show WatchBranch
 import 'package:trailbuddy/features/garmin/watch_free.dart' show lineLengthM;
 import 'package:trailbuddy/features/garmin/watch_providers.dart';
 import 'package:trailbuddy/features/garmin/watch_ride_inbox.dart';
+import 'package:trailbuddy/features/garmin/watch_shelf.dart'
+    show MemoryWatchShelfStore, watchShelfProvider, watchShelfStoreProvider;
 import 'package:trailbuddy/features/garmin/watch_route.dart' show kWatchMaxPoints;
 import 'package:trailbuddy/features/keep_alive/keep_alive.dart';
 import 'package:trailbuddy/features/offline_areas/area_providers.dart' show areaHeightReaderProvider;
@@ -168,6 +170,7 @@ class WatchPhone {
     c = ProviderContainer(overrides: [
       garminBridgeProvider.overrideWithValue(bridge),
       settingsProvider.overrideWithValue(settings),
+      watchShelfStoreProvider.overrideWithValue(MemoryWatchShelfStore()),
       currentUserIdProvider.overrideWithValue('me'),
       // Navigation und Umplanen.
       navServiceBridgeProvider.overrideWithValue(FakeNavServiceBridge()),
@@ -194,6 +197,8 @@ class WatchPhone {
       ...overrides,
     ]);
     c.read(watchSyncProvider);
+    // Die Ablage hört ab dem Start mit, wie in der App (#515).
+    c.read(watchShelfProvider);
     await c.read(watchRideInboxProvider.notifier).start();
   }
 

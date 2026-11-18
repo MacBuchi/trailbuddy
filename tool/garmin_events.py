@@ -52,6 +52,7 @@ KINDS: dict[int, tuple[str, list[str]]] = {
                   "geht zu", "Routenwechsel", "Lader wartet"]),
     9: ("Fix", ["keiner", "auf der Linie", "abseits", "frei"]),
     10: ("Frist", ["zu", "Wechsel", "ruhige Minute", "Warten vorbei"]),
+    11: ("Ablage", ["Route gestartet"]),
 }
 
 # Was die Wiedergabe spielt (Eingaben); der Rest sind Folgen, die sie

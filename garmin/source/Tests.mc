@@ -115,6 +115,9 @@ function wipe() as Void {
     PhoneRoute.drop();
     PhoneRoute.clear("a");
     PhoneRoute.clear("b");
+    // Die Ablage (#515).
+    for (var k = 0; k < PhoneRoute.SHELF_SLOTS; k++) { PhoneRoute.clear("s" + k); }
+    Application.Storage.deleteValue("sl");
     var keys = ["risk", "bad", "crashId", "crashN", "loading", "ev", "evr", "evc"] as Array<String>;
     for (var i = 0; i < keys.size(); i++) { Application.Storage.deleteValue(keys[i]); }
 }

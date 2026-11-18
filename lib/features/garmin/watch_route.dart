@@ -62,10 +62,13 @@ const kWatchPartInts = 800;
 const kWatchWindowFrom = '1.3.0';
 
 /// „1.3.0-dev" ist dieselbe Fassung wie „1.3.0"; keine Angabe heißt alt.
-bool watchKnowsWindow(String? version) {
+bool watchKnowsWindow(String? version) => watchVersionAtLeast(version, kWatchWindowFrom);
+
+/// Ist die Uhr-App [version] mindestens [from]? Ohne Angabe nein.
+bool watchVersionAtLeast(String? version, String from) {
   if (version == null) return false;
   final here = version.split('-').first.split('.');
-  final need = kWatchWindowFrom.split('.');
+  final need = from.split('.');
   int part(List<String> p, int i) => i < p.length ? (int.tryParse(p[i]) ?? 0) : 0;
   for (var i = 0; i < 3; i++) {
     final a = part(here, i), b = part(need, i);
@@ -211,7 +214,13 @@ enum WatchOutdated { watch, phone }
 
 /// Die Route für die Uhr, noch nicht in Stücken.
 class WatchRoute {
-  const WatchRoute({required this.id, required this.pts, required this.ele, required this.sec, this.br = const []});
+  const WatchRoute(
+      {required this.id,
+      required this.pts,
+      required this.ele,
+      required this.sec,
+      this.br = const [],
+      this.tolM = kWatchSimplifyM});
 
   final String id;
   final List<int> pts;
@@ -220,6 +229,11 @@ class WatchRoute {
 
   /// Die Stummel als `[Punkt, dLat, dLon, …]`, nach Punkt sortiert.
   final List<int> br;
+
+  /// Mit dieser Toleranz vereinfacht (Douglas-Peucker, m): mehr als
+  /// [kWatchSimplifyM] heißt, die Linie war für [kWatchMaxPoints] zu lang
+  /// (#515: die Ablage sagt es, wenn es viel war).
+  final double tolM;
 
   int get pointCount => pts.length ~/ 2;
 
@@ -419,7 +433,7 @@ WatchRoute? watchRouteOf(List<LatLng> points, NavSections sections,
       ((b.end.longitude - b.at.longitude) * 1e5).round(),
     ]);
   }
-  return WatchRoute(id: watchRouteId(pts), pts: pts, ele: ele, sec: sec, br: br);
+  return WatchRoute(id: watchRouteId(pts), pts: pts, ele: ele, sec: sec, br: br, tolM: tol);
 }
 
 /// Die vereinfachte Linie in 1e-5°, so dicht, dass jeder Schritt in 16 Bit

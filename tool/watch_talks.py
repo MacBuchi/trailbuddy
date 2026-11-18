@@ -46,6 +46,7 @@ ACTIONS = {
     "Behalten": "keep",
     "beenden": "quit",
     "Route beenden": "endRoute",
+    "aus der Ablage": "shelf0",
 }
 FIXES = re.compile(r"^fixe (\d+)-(\d+)$")
 
@@ -53,6 +54,8 @@ FIXES = re.compile(r"^fixe (\d+)-(\d+)$")
 # kennt; `route:$x` nimmt eine Kennung.
 STATES = {"wartet", "route_kommt", "frei", "fragt", "nimmt_auf", "pause", "zu",
           "keine_fahrt", "fahrt_wartet", "bestwerte", "erkennt", "erkennt_nicht", "hinweis"}
+# `ablage:<n>` (#515) nimmt eine Zahl.
+NUMBERED = ("route:", "ablage:")
 
 # Der Aufbau der Uhr (`gespraeche_form.uhr_aufbau`); `bad:$x` nimmt eine
 # Kennung.
@@ -109,7 +112,7 @@ def watch_steps(talk: dict) -> list[dict]:
             w["nach_ms"] = int(step["nach_ms"])
         states = _states((step.get("dann") or {}).get("uhr"))
         for st in states:
-            if st not in STATES and not st.startswith("route:"):
+            if st not in STATES and not st.startswith(NUMBERED):
                 raise ValueError(f"{where}: unbekannter Stand der Uhr „{st}“")
         if states:
             w["dann"] = states

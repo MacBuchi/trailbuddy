@@ -20,6 +20,7 @@ import '../features/highlights/discover_screen.dart';
 import '../features/help/map_tour.dart' show NavCoach;
 import '../features/map/map_screen.dart';
 import '../features/profile/profile_screen.dart';
+import '../features/garmin/watch_shelf_actions.dart' show WatchShelfScreen;
 import '../features/offline_areas/areas_screen.dart';
 import '../features/rides/airtime_providers.dart' show AirtimeSyncTrigger;
 import '../features/rides/rides_screen.dart';
@@ -168,6 +169,9 @@ final routerProvider = Provider<GoRouter>((ref) {
                   GoRoute(
                       path: 'navigation',
                       builder: (context, state) => const NavigationSettingsScreen()),
+                  GoRoute(
+                      path: 'watch',
+                      builder: (context, state) => const WatchShelfScreen()),
                   GoRoute(
                       path: 'appearance',
                       builder: (context, state) => const AppearanceScreen()),

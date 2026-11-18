@@ -352,6 +352,7 @@ String watchEventLabel(AppLocalizations l, int v) {
     'state' => l.watchEvState(d),
     'fix' => l.watchEvFix(d),
     'due' => l.watchEvDue(d),
+    'shelf' => l.watchEvShelf(d),
     _ => '? ${unpackWatchEvent(v).kind}.${p.detail}',
   };
 }

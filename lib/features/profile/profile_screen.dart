@@ -42,6 +42,8 @@ import '../routing/route_profile.dart';
 import '../trails/merge_proposal_card.dart' show mergeProposalsProvider;
 import '../trails/trail_providers.dart' show stillValidQuestionsProvider, trailCacheProvider, trailsProvider;
 import '../nearby/nearby_widgets.dart' show NearbySection;
+import '../garmin/watch_shelf.dart' show watchShelfProvider;
+import '../garmin/watch_shelf_actions.dart' show watchShelfAvailableProvider;
 import 'account_dialogs.dart';
 import 'profile_providers.dart';
 import 'push_providers.dart';
@@ -166,6 +168,15 @@ class ProfileScreen extends ConsumerWidget {
                 navLeaveLabel(l, ref.watch(navLeaveDistanceProvider))),
             onTap: () => context.push('/profile/navigation'),
           ),
+          // Die Ablage auf der Uhr (#515) — nur mit einer Garmin-Uhr.
+          if (ref.watch(watchShelfAvailableProvider))
+            _ProfileRow(
+              id: 'watch',
+              icon: Icons.watch_outlined,
+              title: l.profileWatchTitle,
+              value: l.profileWatchValue(ref.watch(watchShelfProvider).shown.length),
+              onTap: () => context.push('/profile/watch'),
+            ),
           _ProfileRow(
             id: 'appearance',
             icon: Icons.contrast,

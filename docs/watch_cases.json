@@ -20,10 +20,10 @@
     "still": "Die Seite `von` sendet in `nach_ms` nichts.",
     "handy_aufbau": "nav (Navigation mit Uhr, Route nach Norden um 47,5/11,5), frei (keine Navigation, ein Trail bei 48/9), sprung (ein Sprung liegt vor, die Bestwerte gehen hin); die Fahrten der Uhr hört das Handy immer",
     "uhr_aufbau": "handy (startet mit verbundenem Handy, also mit dem Lader), geladen (ohne Handy gestartet, Testroute geladen, dann das Handy da), ohne_route (Store-Bau: freie Fahrt), bad:$x (die Route $x stürzte zweimal ab), fahrt (eine Fahrt wartet aufs Handy)",
-    "handlungen_handy": "navigation (Navigation mit „Auf der Uhr zeigen“ starten, ein Fix auf der Route), beenden, erkennung an (ein Takt mit gelernter Halterung), sprung (ein Sprung von 0,9 s, 3 s her), takte aus (6 s ohne Takt; #514)",
-    "handlungen_uhr": "start, neustart, START, ZURÜCK, Weiter, Speichern, Verwerfen, Ja (Fahrt verwerfen), Behalten, beenden (Navigation beenden: Ja), Route beenden (Aktionsmenü, #513), fixe A-B (eigene Fixe nach Norden, 55 m je Fix, alle 5 s)",
-    "staende_handy": "idle, sendet, gefragt, gesendet, gespeichert, unbestaetigt, fehler, fehler:<Code> (WatchSync); nav_an, nav_aus; nimmt_auf, aus, marken:<n> (Aufzeichnung des Handys)",
-    "staende_uhr": "wartet (auf die Antwort aufs hallo), route_kommt, frei, fragt, route:$x, nimmt_auf, pause, zu, keine_fahrt, fahrt_wartet, bestwerte, erkennt (das Handy erkennt mit gelernter Halterung, `on`), erkennt_nicht, hinweis (ein Sprung/Wheelie steht 3 s, #514)"
+    "handlungen_handy": "navigation (Navigation mit „Auf der Uhr zeigen“ starten, ein Fix auf der Route), beenden, erkennung an (ein Takt mit gelernter Halterung), sprung (ein Sprung von 0,9 s, 3 s her), takte aus (6 s ohne Takt; #514), ablegen (eine Route auf die Uhr legen, #515), entfernen (die erste der Ablage wegnehmen)",
+    "handlungen_uhr": "start, neustart, START, ZURÜCK, Weiter, Speichern, Verwerfen, Ja (Fahrt verwerfen), Behalten, beenden (Navigation beenden: Ja), Route beenden (Aktionsmenü, #513), aus der Ablage (die erste Route der Ablage starten, #515), fixe A-B (eigene Fixe nach Norden, 55 m je Fix, alle 5 s)",
+    "staende_handy": "idle, sendet, gefragt, gesendet, gespeichert, unbestaetigt, fehler, fehler:<Code> (WatchSync); nav_an, nav_aus; nimmt_auf, aus, marken:<n> (Aufzeichnung des Handys); ablage:<n>, ablage_wartet (WatchShelf, #515)",
+    "staende_uhr": "wartet (auf die Antwort aufs hallo), route_kommt, frei, fragt, route:$x, nimmt_auf, pause, zu, keine_fahrt, fahrt_wartet, bestwerte, erkennt (das Handy erkennt mit gelernter Halterung, `on`), erkennt_nicht, hinweis (ein Sprung/Wheelie steht 3 s, #514), ablage:<n> (so viele Routen in der Ablage, #515)"
   },
   "faelle": [
     {
@@ -608,6 +608,45 @@
       "id": "517.3",
       "erwartung": "Meldet der Dienst die Tasche, sagt die Stand-Zeile „Tasche: nur Sprünge“; in der Tasche keine Halterung, kein Wheelie und kein Stoppie, nur Sprünge mit harter Landung.",
       "handy": "Handy in der Tasche (#491): keine Halterung, kein Wheelie oder Stoppie, nur harte Landungen"
+    },
+    {
+      "id": "515.1",
+      "erwartung": "Eine Route für die Ablage legt sich hin, ohne die Navigation zu stören (keine Frage, kein Wechsel, kein Vibrieren); die Uhr antwortet mit `sh`, das „hallo“ nennt die Ablage. Das Handy schickt erst nach dem „hallo“ einer Uhr-App ab 1.9.0, und erst `sh` nimmt den Auftrag.",
+      "uhr": "shelfTakesWithoutSwap",
+      "handy": "515.1 handy"
+    },
+    {
+      "id": "515.2",
+      "erwartung": "Ist die Ablage voll, fragt das Handy, welche Route weicht (`rp`); ohne `rp` sagt die Uhr `x full`. Die ersetzte geht erst, wenn die neue ganz da ist.",
+      "uhr": "shelfFullAsksReplace",
+      "handy": "515.2 handy"
+    },
+    {
+      "id": "515.3",
+      "erwartung": "An der Uhr ohne Handy: Aktionsmenü → „Gespeicherte Routen“ → die gewählte lädt im nächsten Takt, ohne Frage und ohne Nachricht.",
+      "uhr": "shelfStartsWithoutPhone"
+    },
+    {
+      "id": "515.4",
+      "erwartung": "Das Handy nimmt eine Route von der Uhr (`sd`), die Antwort `sh` sagt, was bleibt; eine, die erst kommt, nimmt es einfach zurück.",
+      "uhr": "shelfRemoveFromPhone",
+      "handy": "515.4 handy"
+    },
+    {
+      "id": "515.5",
+      "erwartung": "Eine gestartete Route der Ablage übersteht einen Neustart der Uhr; stürzt sie zweimal ab, ist sie auch aus der Ablage weg. Ein wartender Auftrag übersteht den Neustart der App.",
+      "uhr": "shelfSurvivesRestart",
+      "handy": "515.5 handy"
+    },
+    {
+      "id": "515.6",
+      "erwartung": "Eine neue Route der Navigation und „Route beenden“ löschen die Ablage nicht, auch nicht die Route, die gerade lief.",
+      "uhr": "shelfSurvivesNavRoute"
+    },
+    {
+      "id": "515.7",
+      "erwartung": "Startet man aus der Ablage, während eine Route vom Handy läuft, hört das Handy `e` für die alte; abseits ohne Handy sagt die Infofläche „ohne Handy“ statt einer Umplanung.",
+      "uhr": "shelfEndsPhoneRoute"
     }
   ],
   "gespraeche": [
@@ -830,6 +869,102 @@
         {"von": "handy", "msg": {"t": "r", "id": "$a"}},
         {"von": "uhr", "msg": {"t": "ok", "id": "$a"}, "nach_ms": 500, "dann": {"uhr": "route:$a", "handy": "gespeichert"}}
       ]
+    },
+    {
+      "id": "ablage",
+      "titel": "Die Ablage (#515): das Handy legt eine Route auf die Uhr, ohne Navigation; die Uhr startet sie ohne Handy; das Handy nimmt sie wieder weg",
+      "handy": [],
+      "uhr": [
+        "handy"
+      ],
+      "schritte": [
+        {
+          "von": "uhr",
+          "tu": "start",
+          "msg": {
+            "t": "hi",
+            "v": 2,
+            "ver": "1.9.0"
+          },
+          "gleich": [
+            "v"
+          ],
+          "dann": {
+            "uhr": "wartet",
+            "handy": "ablage:0"
+          }
+        },
+        {
+          "von": "handy",
+          "tu": "ablegen",
+          "msg": {
+            "t": "r",
+            "id": "$s",
+            "sh": 1,
+            "nm": "Hausrunde"
+          },
+          "gleich": [
+            "sh"
+          ],
+          "dann": {
+            "handy": "ablage_wartet"
+          }
+        },
+        {
+          "von": "uhr",
+          "msg": {
+            "t": "sh",
+            "id": "$s",
+            "l": [
+              [
+                "$s",
+                "Hausrunde",
+                2500,
+                0
+              ]
+            ]
+          },
+          "nach_ms": 9000,
+          "dann": {
+            "uhr": [
+              "ablage:1",
+              "route:t"
+            ],
+            "handy": "ablage:1"
+          }
+        },
+        {
+          "von": "uhr",
+          "tu": "aus der Ablage",
+          "still": true,
+          "nach_ms": 2000,
+          "dann": {
+            "uhr": "route:$s"
+          }
+        },
+        {
+          "von": "handy",
+          "tu": "entfernen",
+          "msg": {
+            "t": "sd",
+            "id": "$s"
+          }
+        },
+        {
+          "von": "uhr",
+          "msg": {
+            "t": "sh",
+            "l": []
+          },
+          "dann": {
+            "uhr": [
+              "ablage:0",
+              "route:$s"
+            ],
+            "handy": "ablage:0"
+          }
+        }
+      ]
     }
   ],
   "szenarien": [
@@ -901,8 +1036,11 @@
       "schritte": [
         {
           "was": "Am Handy „Auf die Uhr legen“, ohne die Navigation zu starten",
-          "offen": [
-            515
+          "faelle": [
+            "515.1",
+            "515.2",
+            "515.4",
+            "515.5"
           ]
         },
         {
@@ -924,8 +1062,9 @@
         {
           "was": "An der Uhr eine von mehreren Routen wählen und starten",
           "geraet": "Messung 8.6 (wie viele Routen passen)",
-          "offen": [
-            515
+          "faelle": [
+            "515.3",
+            "515.6"
           ]
         },
         {
@@ -940,8 +1079,8 @@
         },
         {
           "was": "Abseits ohne Handy: die Uhr sagt, dass sie nicht umplanen kann",
-          "offen": [
-            515
+          "faelle": [
+            "515.7"
           ]
         },
         {

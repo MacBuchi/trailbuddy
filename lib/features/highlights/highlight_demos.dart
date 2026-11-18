@@ -620,6 +620,25 @@ Map<String, HighlightDemo> highlightDemos(AppLocalizations l) => {
       ),
     ]),
   ),
+  // Routen auf der Uhr (#515): die Zeile gibt es nur mit einer Garmin-Uhr;
+  // ohne sagt ein Schritt, wo es steht.
+  'watch-shelf': HighlightDemo(
+    route: '/profile',
+    script: _demo('watch-shelf', [
+      CoachStep(
+        title: l.demoWatchShelf1Title,
+        text: l.demoWatchShelf1Text,
+        lit: [ProfileCoach.row('watch')],
+        scrollIn: ProfileCoach.list,
+        requires: [ProfileCoach.row('watch')],
+      ),
+      CoachStep(
+        title: l.demoWatchShelf2Title,
+        text: l.demoWatchShelf2Text,
+        unless: [ProfileCoach.row('watch')],
+      ),
+    ]),
+  ),
   // Gruppenfahrt (#519): Homies wählt man je Buddy (das Blatt an der
   // Zeile); Live schaltet man in der Fahrt — der Text sagt beides.
   'group-ride': HighlightDemo(

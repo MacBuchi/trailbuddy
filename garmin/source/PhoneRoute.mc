@@ -57,8 +57,19 @@ module PhoneRoute {
     const FREE_BASE = 4096;
     const FREE_PER_INT = 16;
 
+    //! So viele Routen liegen höchstens in der Ablage (#515, E3: bis zur
+    //! Messung 8.6 drei). Fächer gibt es eins mehr ([SHELF_SLOTS]): Eine
+    //! neue Route füllt immer ein freies, und erst wenn sie ganz da ist,
+    //! geht die, die sie ersetzt ([take] mit `rp`) — eine halbe Übertragung
+    //! lässt die Ablage heil, wie bei der Navigation.
+    const SHELF_MAX = 3;
+    const SHELF_SLOTS = 4;
+
     //! Der Grund, warum das letzte [take] nichts nahm, oder null.
     var lastError as String? = null;
+    //! Das letzte vollständige [take] ging in die Ablage (`sh`), nicht in
+    //! die Navigation — der Kern wechselt dann nicht.
+    var lastShelf as Boolean = false;
 
     //! Die oberen 16 Bit mit Vorzeichen (`watchPack` in Dart). Mit Maske,
     //! damit es nicht darauf ankommt, ob `>>` das Vorzeichen mitnimmt.
@@ -83,6 +94,7 @@ module PhoneRoute {
     //! noch welche).
     function take(msg as Dictionary) as String? {
         lastError = null;
+        lastShelf = msg["sh"] == 1;
         var id = msg["id"];
         var p = msg["p"];
         var n = msg["n"];
@@ -108,6 +120,12 @@ module PhoneRoute {
             if (head == null) { return fail("bad"); }
         }
         var slot = freeSlot();
+        if (lastShelf) {
+            // Liegt sie schon in der Ablage, ist nichts zu tun.
+            if (shelfAt(id) >= 0) { return id; }
+            slot = shelfSlotFor(id, msg["rp"]);
+            if (slot == null) { return fail("full"); }
+        }
         // Eine neue Kennung (oder eine andere Länge) beginnt das Fach von vorn.
         // Zeichenketten mit `equals`: `==` vergleicht in Monkey C die Objekte.
         if (!id.equals(Storage.getValue(slot + "id")) || Storage.getValue(slot + "n") != n) {
@@ -122,7 +140,8 @@ module PhoneRoute {
             clear(slot);
             return fail("mem");
         }
-        if ((head != null && !store(slot + "h", head)) || !store(slot + p, part)) {
+        if ((head != null && !store(slot + "h", head)) || !store(slot + p, part)
+                || (lastShelf && p == 0 && !store(slot + "m", metaOf(msg)))) {
             clear(slot);
             return fail("store");
         }
@@ -132,13 +151,147 @@ module PhoneRoute {
             return fail("store");
         }
         if (mask != (1 << n) - 1) { return null; }
+        if (lastShelf) { return shelve(id, slot); }
         var old = Storage.getValue("cur") as String?;
         if (!store("cur", slot)) {
             clear(slot);
             return fail("store");
         }
-        if (old != null) { clear(old); }
+        if (old != null) { release(old); }
         return id;
+    }
+
+    // --- Die Ablage (#515, E3) ----------------------------------------------
+    //
+    // „sl" hält je Route `[id, Fach, Name, Meter, bergauf]` — die Liste an
+    // der Uhr und das „hallo" brauchen nichts zu dekodieren. Die Stücke
+    // liegen in den Fächern „s0" … „s3" wie die der Navigation. Gestartet
+    // wird über `cur` ([useShelf]): Die Navigation liest dann aus dem Fach
+    // der Ablage, und keine neue Route vom Handy räumt es weg ([release]).
+
+    //! Die Ablage (höchstens [SHELF_MAX] Einträge).
+    function shelf() as Array {
+        var l = Storage.getValue("sl");
+        return l instanceof Array ? l : [];
+    }
+
+    //! Die Stelle von [id] in der Ablage, oder -1.
+    function shelfAt(id as String?) as Number {
+        if (id == null) { return -1; }
+        var l = shelf();
+        for (var i = 0; i < l.size(); i++) {
+            if (id.equals((l[i] as Array)[0])) { return i; }
+        }
+        return -1;
+    }
+
+    //! Liegt in [slot] ein Eintrag der Ablage?
+    function listed(slot as String) as Boolean {
+        var l = shelf();
+        for (var i = 0; i < l.size(); i++) {
+            if (slot.equals((l[i] as Array)[1])) { return true; }
+        }
+        return false;
+    }
+
+    //! Das Fach für [id]: das, das sie schon zur Hälfte hält, sonst ein
+    //! freies (nicht gelistet, nicht die laufende Route). Ist die Ablage
+    //! voll und ersetzt sie nichts ([rp]), null.
+    //! Nur das erste Stück trägt `rp` — ein späteres findet sein Fach über
+    //! die Kennung, bevor „voll" zählt.
+    function shelfSlotFor(id as String, rp as Object?) as String? {
+        var cur = Storage.getValue("cur");
+        var free = null;
+        for (var k = 0; k < SHELF_SLOTS; k++) {
+            var s = "s" + k;
+            if (listed(s) || s.equals(cur)) { continue; }
+            if (id.equals(Storage.getValue(s + "id"))) { return s; }
+            if (free == null) { free = s; }
+        }
+        if (shelf().size() >= SHELF_MAX && shelfAt(rp instanceof String ? rp : null) < 0) { return null; }
+        return free;
+    }
+
+    //! Was die Liste zeigt, aus dem ersten Stück: `[Name, Meter, bergauf,
+    //! ersetzt]`, geprüft (ohne Namen „Route", ohne Ersatz "").
+    function metaOf(msg as Dictionary) as Array {
+        var nm = msg["nm"];
+        var len = msg["len"];
+        var hm = msg["hm"];
+        var rp = msg["rp"];
+        return [nm instanceof String ? nm : "Route", len instanceof Number ? len : 0, hm instanceof Number ? hm : 0,
+            rp instanceof String ? rp : ""];
+    }
+
+    //! Die Route [id] in [slot] ist ganz da: in die Ablage, und die, die sie
+    //! ersetzt (`rp` des ersten Stücks), erst jetzt hinaus.
+    function shelve(id as String, slot as String) as String? {
+        var m = Storage.getValue(slot + "m");
+        if (!(m instanceof Array) || m.size() != 4) { m = ["Route", 0, 0, ""]; }
+        var rp = m[3];
+        var l = [] as Array;
+        var gone = null;
+        var old = shelf();
+        for (var i = 0; i < old.size(); i++) {
+            var e = old[i] as Array;
+            if (rp instanceof String && rp.equals(e[0])) {
+                gone = e[1];
+            } else {
+                l.add(e);
+            }
+        }
+        l.add([id, slot, m[0], m[1], m[2]]);
+        if (!store("sl", l)) {
+            clear(slot);
+            return fail("store");
+        }
+        Storage.deleteValue(slot + "m");
+        if (gone != null) { release(gone); }
+        return id;
+    }
+
+    //! [id] aus der Ablage nehmen (das Handy, ein Absturz, eine Route, die
+    //! sich nicht dekodieren ließ). Läuft sie gerade, bleiben ihre Stücke,
+    //! bis die nächste kommt.
+    function unshelve(id as String?) as Void {
+        var k = shelfAt(id);
+        if (k < 0) { return; }
+        var l = shelf();
+        var slot = (l[k] as Array)[1] as String;
+        l.remove(l[k]);
+        store("sl", l);
+        if (!slot.equals(Storage.getValue("cur"))) { clear(slot); }
+    }
+
+    //! Route [k] der Ablage starten: `cur` zeigt auf ihr Fach. Liefert ihre
+    //! Kennung, oder null.
+    function useShelf(k as Number) as String? {
+        var l = shelf();
+        if (k < 0 || k >= l.size()) { return null; }
+        var e = l[k] as Array;
+        var slot = e[1] as String;
+        var old = Storage.getValue("cur") as String?;
+        if (!store("cur", slot)) { return null; }
+        if (old != null && !old.equals(slot)) { release(old); }
+        return e[0] as String;
+    }
+
+    //! Die Ablage fürs Handy (`sh` im „hallo" und als Antwort): je Route
+    //! `[id, Name, Meter, bergauf]`.
+    function shelfOut() as Array {
+        var l = shelf();
+        var out = [];
+        for (var i = 0; i < l.size(); i++) {
+            var e = l[i] as Array;
+            out.add([e[0], e[2], e[3], e[4]]);
+        }
+        return out;
+    }
+
+    //! Ein Fach, das die Route nicht mehr braucht: leeren — außer, die
+    //! Ablage hält es.
+    function release(slot as String) as Void {
+        if (!listed(slot)) { clear(slot); }
     }
 
     function fail(why as String) as Null {
@@ -249,11 +402,13 @@ module PhoneRoute {
         return id instanceof String ? id : null;
     }
 
-    //! Die gespeicherte Route verwerfen (sie ließ die App abstürzen).
+    //! Die gespeicherte Route verwerfen (sie ließ die App abstürzen, sie
+    //! endet, sie wurde abgelehnt). Eine Route der Ablage bleibt dort —
+    //! dafür nimmt [unshelve] sie heraus.
     function drop() as Void {
         var slot = Storage.getValue("cur") as String?;
         Storage.deleteValue("cur");
-        if (slot != null) { clear(slot); }
+        if (slot != null) { release(slot); }
     }
 
     function freeSlot() as String {
@@ -269,6 +424,7 @@ module PhoneRoute {
         Storage.deleteValue(slot + "n");
         Storage.deleteValue(slot + "mask");
         Storage.deleteValue(slot + "h");
+        Storage.deleteValue(slot + "m");
     }
 }
 
@@ -331,6 +487,9 @@ module CrashGuard {
         PhoneRoute.store("bad", risk);
         Storage.deleteValue("crashId");
         Storage.deleteValue("crashN");
+        // Auch aus der Ablage (#515): sonst stürzte sie beim nächsten Start
+        // aus dem Menü wieder ab.
+        PhoneRoute.unshelve(risk);
         if (risk.equals(PhoneRoute.currentId())) { PhoneRoute.drop(); }
     }
 

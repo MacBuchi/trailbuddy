@@ -40,4 +40,6 @@
     <string id="Zoom">Zoom</string>
     <string id="ZoomAuto">Von selbst</string>
     <string id="EndRoute">Route beenden</string>
+    <string id="Shelf">Gespeicherte Routen</string>
+    <string id="OffNoPhone">ABSEITS · OHNE HANDY</string>
 </strings>

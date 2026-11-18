@@ -120,6 +120,28 @@ function done() as Void {
     TestRoutes.wipe();
     TestRoutes.wipeRides();
 }
+
+//! Eine Route [id] für die Ablage (#515), zwei Stücke; [rp] ersetzt eine,
+//! [upto] Stücke gehen (2 = alle).
+function shelfLine(c as WatchCore, id as String, rp as String?, upto as Number) as Void {
+    var msgs = TestRoutes.parts(TestRoutes.v2(id, false, [0, 0, 0, 300, 0, 300, 0, 300], null, null, null), 2);
+    var m0 = msgs[0];
+    m0["sh"] = 1;
+    m0["nm"] = "Runde " + id;
+    m0["len"] = 12340;
+    m0["hm"] = 450;
+    if (rp != null) { m0["rp"] = rp; }
+    msgs[1]["sh"] = 1;
+    for (var i = 0; i < upto && i < msgs.size(); i++) { c.handle(msgs[i]); }
+}
+
+//! Die Kennungen der Ablage, zusammen: "A,B".
+function shelfIds() as String {
+    var l = PhoneRoute.shelf();
+    var s = "";
+    for (var i = 0; i < l.size(); i++) { s += (i > 0 ? "," : "") + (l[i] as Array)[0]; }
+    return s;
+}
 }
 
 //! 489.1: START beginnt die Aufzeichnung, erst dann zählen die Zahlen; das
@@ -694,6 +716,8 @@ function act(s as Dictionary) as Void {
         c.quit();
     } else if ("endRoute".equals(tu)) {
         c.actionChoice(:endRoute);
+    } else if ("shelf0".equals(tu)) {
+        c.shelfChoice(0);
     } else if ("fixes".equals(tu)) {
         TestCore.fixes(c, h, s["fa"] as Number, s["fb"] as Number);
     } else {
@@ -816,6 +840,9 @@ function check(st as String) as Void {
         var id = value(st.substring(6, st.length()));
         ok = same(c.route.id, id);
         st += " (ist " + c.route.id + ")";
+    } else if (st.find("ablage:") == 0) {
+        ok = PhoneRoute.shelf().size() == st.substring(7, st.length()).toNumber();
+        st += " (ist " + PhoneRoute.shelf().size() + ")";
     } else if ("wartet".equals(st)) {
         ok = c.wait == WatchCore.WAIT_ANSWER;
     } else if ("route_kommt".equals(st)) {
@@ -1111,6 +1138,8 @@ function eventsMessageCodes(logger as Logger) as Boolean {
     Test.assertEqual(EventLog.msgCode("e", true), 45);
     Test.assertEqual(EventLog.msgCode("re", true), 47);
     Test.assertEqual(EventLog.msgCode("w", true), 51);
+    Test.assertEqual(EventLog.msgCode("sd", false), 35);
+    Test.assertEqual(EventLog.msgCode("sh", true), 52);
     Test.assertEqual(EventLog.msgCode("rq", true), 55);
     return true;
 }
@@ -1229,6 +1258,181 @@ function coreBuddiesOnMap(logger as Logger) as Boolean {
     c.handle({"t" => "u", "l" => []});
     TestCore.fix(c, h, 3);
     Test.assertEqual(c.ui.buddies.size(), 0);
+    TestCore.done();
+    return true;
+}
+
+// --- Die Ablage auf der Uhr (#515) -------------------------------------------
+
+//! 515.1: Eine Route für die Ablage legt sich hin, ohne die Navigation zu
+//! stören — keine Frage, kein Wechsel, kein Vibrieren; die Uhr antwortet
+//! mit der Ablage (`sh`), und das „hallo" nennt sie.
+(:test)
+function shelfTakesWithoutSwap(logger as Logger) as Boolean {
+    var h = new FakeHost();
+    var c = TestCore.loaded(h);
+    TestCore.shelfLine(c, "A", null, 2);
+    TestCore.run(c, h, 1000);
+    Test.assert("t".equals(c.route.id) && c.pendingId == null && !c.ui.asking());
+    Test.assertEqual(h.buzz, 0);
+    Test.assert(h.last("ok") == null);
+    var sh = h.last("sh");
+    Test.assert(sh != null && "A".equals(sh["id"]));
+    var e = (sh["l"] as Array)[0] as Array;
+    Test.assert("A".equals(e[0]) && "Runde A".equals(e[1]));
+    Test.assertEqual(e[2], 12340);
+    Test.assertEqual(e[3], 450);
+    c.handle({"t" => "q"});
+    var hi = h.last("hi");
+    Test.assert(hi != null && (hi["sh"] as Array).size() == 1);
+    Test.assert(hi["id"] == null);
+    TestCore.done();
+    return true;
+}
+
+//! 515.2: Voll heißt `x full`, außer die neue ersetzt eine (`rp`); die
+//! ersetzte geht erst, wenn die neue ganz da ist.
+(:test)
+function shelfFullAsksReplace(logger as Logger) as Boolean {
+    var h = new FakeHost();
+    var c = TestCore.loaded(h);
+    TestCore.shelfLine(c, "A", null, 2);
+    TestCore.shelfLine(c, "B", null, 2);
+    TestCore.shelfLine(c, "C", null, 2);
+    Test.assertEqual(TestCore.shelfIds(), "A,B,C");
+    TestCore.shelfLine(c, "D", null, 2);
+    var x = h.last("x");
+    Test.assert(x != null && "D".equals(x["id"]) && "full".equals(x["c"]));
+    Test.assertEqual(TestCore.shelfIds(), "A,B,C");
+    TestCore.shelfLine(c, "D", "B", 1);
+    Test.assertEqual(TestCore.shelfIds(), "A,B,C");
+    TestCore.shelfLine(c, "D", "B", 2);
+    Test.assertEqual(TestCore.shelfIds(), "A,C,D");
+    Test.assert("t".equals(c.route.id));
+    TestCore.done();
+    return true;
+}
+
+//! 515.3: An der Uhr wählen und starten, ohne Handy: Aktionsmenü →
+//! „Gespeicherte Routen" → die Route lädt im nächsten Takt, ohne Frage.
+(:test)
+function shelfStartsWithoutPhone(logger as Logger) as Boolean {
+    var h = new FakeHost();
+    var c = TestCore.loaded(h);
+    TestCore.shelfLine(c, "A", null, 2);
+    TestCore.shelfLine(c, "B", null, 2);
+    h.link = false;
+    var a = c.actions();
+    Test.assert(a.size() == 3 && a[1] == :shelf);
+    c.actionChoice(:shelf);
+    Test.assert(h.lastMenu() == :shelf);
+    var before = h.sent.size();
+    c.shelfChoice(1);
+    TestCore.run(c, h, 1000);
+    Test.assert("B".equals(c.route.id) && c.route.isReady() && !c.free);
+    Test.assert(!c.ui.asking());
+    Test.assertEqual(h.sent.size(), before);
+    Test.assertEqual(TestCore.shelfIds(), "A,B");
+    TestCore.done();
+    return true;
+}
+
+//! 515.4: Das Handy nimmt eine Route aus der Ablage (`sd`); die Antwort
+//! sagt, was bleibt. Ohne Ablage fehlt der Punkt im Menü.
+(:test)
+function shelfRemoveFromPhone(logger as Logger) as Boolean {
+    var h = new FakeHost();
+    var c = TestCore.loaded(h);
+    TestCore.shelfLine(c, "A", null, 2);
+    c.handle({"t" => "sd", "id" => "A"});
+    Test.assertEqual(TestCore.shelfIds(), "");
+    var sh = h.last("sh");
+    Test.assert(sh != null && (sh["l"] as Array).size() == 0);
+    Test.assertEqual(c.actions().size(), 2);
+    TestCore.done();
+    return true;
+}
+
+//! 515.5: Eine gestartete Route der Ablage übersteht einen Neustart (sie
+//! lädt wieder, die Ablage bleibt); stürzt sie zweimal ab, ist sie auch aus
+//! der Ablage weg.
+(:test)
+function shelfSurvivesRestart(logger as Logger) as Boolean {
+    var h = new FakeHost();
+    var c = TestCore.loaded(h);
+    TestCore.shelfLine(c, "A", null, 2);
+    TestCore.shelfLine(c, "B", null, 2);
+    c.shelfChoice(0);
+    TestCore.run(c, h, 1000);
+    Test.assert("A".equals(c.route.id));
+    c.stop();
+    h = new FakeHost();
+    c = new WatchCore(h);
+    c.start();
+    TestCore.run(c, h, 1000);
+    Test.assert("A".equals(c.route.id) && c.route.isReady());
+    Test.assertEqual(TestCore.shelfIds(), "A,B");
+    // Zweimal ohne sauberes Ende, solange sie neu ist.
+    c.shelfChoice(1);
+    TestCore.run(c, h, 1000);
+    Test.assert("B".equals(c.route.id));
+    c = new WatchCore(h);
+    c.start();
+    TestCore.run(c, h, 1000);
+    c = new WatchCore(h);
+    Test.assertEqual(TestCore.shelfIds(), "A");
+    Test.assert(PhoneRoute.currentId() == null);
+    TestCore.done();
+    return true;
+}
+
+//! 515.6: Eine neue Route der Navigation löscht die Ablage nicht — auch
+//! nicht die, die gerade lief; „Route beenden" auch nicht.
+(:test)
+function shelfSurvivesNavRoute(logger as Logger) as Boolean {
+    var h = new FakeHost();
+    var c = TestCore.loaded(h);
+    TestCore.shelfLine(c, "A", null, 2);
+    c.shelfChoice(0);
+    TestCore.run(c, h, 1000);
+    Test.assert("A".equals(c.route.id));
+    TestCore.newLine(c, "neu");
+    c.startKey();
+    TestCore.run(c, h, 1000);
+    Test.assert("neu".equals(c.route.id) && c.route.isReady());
+    Test.assertEqual(TestCore.shelfIds(), "A");
+    c.actionChoice(:endRoute);
+    Test.assert(c.free);
+    Test.assertEqual(TestCore.shelfIds(), "A");
+    c.shelfChoice(0);
+    TestCore.run(c, h, 1000);
+    Test.assert("A".equals(c.route.id) && c.route.isReady() && !c.free);
+    TestCore.done();
+    return true;
+}
+
+//! 515.7: Startet man aus der Ablage, während eine Route vom Handy läuft,
+//! hört das Handy „beendet" für die alte; abseits ohne Handy sagt die
+//! Infofläche „ohne Handy".
+(:test)
+function shelfEndsPhoneRoute(logger as Logger) as Boolean {
+    var h = new FakeHost();
+    var c = TestCore.loaded(h);
+    TestCore.newLine(c, "neu");
+    c.startKey();
+    TestCore.run(c, h, 1000);
+    Test.assert("neu".equals(c.route.id));
+    TestCore.shelfLine(c, "A", null, 2);
+    c.shelfChoice(0);
+    var e = h.last("e");
+    Test.assert(e != null && "neu".equals(e["id"]));
+    TestCore.run(c, h, 1000);
+    Test.assert("A".equals(c.route.id));
+    TestCore.fix(c, h, 1);
+    Test.assert(!c.ui.noPhone);
+    h.link = false;
+    TestCore.fix(c, h, 2);
+    Test.assert(c.ui.noPhone);
     TestCore.done();
     return true;
 }

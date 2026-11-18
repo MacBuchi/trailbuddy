@@ -8,6 +8,8 @@
 // falsche Steigrate bei), nach links wischen zum Löschen, langer Druck für
 // die Mehrfachauswahl. Gelöscht wird immer erst nach Nachfrage — die
 // Fahrt liegt nur hier.
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -27,6 +29,9 @@ import '../routing/route_profile.dart';
 import '../trails/gpx_writer.dart';
 import 'ride_export.dart';
 import 'ride_profile_guess.dart';
+import '../garmin/watch_shelf_actions.dart' show putOnWatch, watchShelfAvailableProvider;
+import '../routing/nav_sections.dart' show navSectionsOfLine;
+import '../trails/trail_providers.dart' show trailsProvider;
 import 'ride_providers.dart';
 import 'ride_split_sheet.dart';
 import 'ride_track.dart';
@@ -343,6 +348,19 @@ class _RideTile extends ConsumerWidget {
     );
   }
 
+  /// Auf die Uhr legen (#515): mit den Trails, die das Netz auf der Linie
+  /// kennt — wie die Navigation einer Fahrt.
+  void _putOnWatch(BuildContext context, WidgetRef ref) {
+    final points = [for (final p in ride.points) LatLng(p.lat, p.lng)];
+    final l = context.l10n;
+    unawaited(putOnWatch(context, ref,
+        points: points,
+        name: ride.planned
+            ? (ride.name ?? l.ridesPlannedFallback)
+            : l.ridesRideOn(_day(l).format(ride.startedAt.toLocal())),
+        sections: navSectionsOfLine(l, points, ref.read(trailsProvider).valueOrNull ?? const [])));
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     // Eine geplante Fahrt (#158 Schritt 5) ist eine Linie, keine Messung:
@@ -408,6 +426,7 @@ class _RideTile extends ConsumerWidget {
                 tooltip: l.commonMore,
                 onSelected: (value) => switch (value) {
                   'navigate' => _navigate(context, ref),
+                  'watch' => _putOnWatch(context, ref),
                   'export' => _export(context, ref),
                   'sensors' => _shareSensorLog(context, ref),
                   _ => _delete(context, ref),
@@ -419,6 +438,13 @@ class _RideTile extends ConsumerWidget {
                       key: ValueKey('ride-navigate-${ride.id}'),
                       value: 'navigate',
                       child: ListTile(leading: const Icon(Icons.navigation_outlined), title: Text(l.commonNavigate)),
+                    ),
+                  // Die Ablage auf der Uhr (#515): dieselbe Runde ohne Handy.
+                  if (ride.points.length >= 2 && ref.read(watchShelfAvailableProvider))
+                    PopupMenuItem(
+                      key: ValueKey('ride-watch-${ride.id}'),
+                      value: 'watch',
+                      child: ListTile(leading: const Icon(Icons.watch_outlined), title: Text(l.watchShelfPut)),
                     ),
                   PopupMenuItem(
                     key: ValueKey('ride-export-${ride.id}'),
