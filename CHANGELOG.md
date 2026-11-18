@@ -15,6 +15,9 @@
 - **Gruppenfahrt auf der Uhr**: Buddys, die „Live" mit dir teilen, stehen
   als Scheibe mit Anfangsbuchstaben auf der Uhrkarte; wer weiter weg ist,
   steht klein am Rand in seiner Richtung, eine alte Position als Ring.
+- **Die Uhr-App rechnet und speichert sparsamer**: gebaut wie das
+  Store-Paket, und Karte und Routenverfolgung rechnen weniger je Bild und
+  je GPS-Punkt — rund 4,6 KB mehr Luft auf der fēnix 5.
 - **Routen auf der Uhr höchstens 700 Punkte** statt 800: Lange Routen
   werden etwas stärker vereinfacht, damit die Uhr unterwegs weiter eine
   neue Route annimmt.

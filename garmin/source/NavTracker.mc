@@ -167,12 +167,13 @@ class NavTracker {
             var last = first + bs < n - 1 ? first + bs : n - 1;
             if (cum[first] > to) { break; }
             if (cum[last] < from) { continue; }
-            if (_bestOff >= 0 && route.blockDist2(b, px, py) > _bestOff * _bestOff) { continue; }
+            if (_bestOff >= 0 && route.blockDist2(b, px, py) > _bestOff) { continue; }
             searchBlock(b, px, py, from, to);
         }
-        return _bestOff < 0 ? null : [_bestAlong, _bestOff];
+        return _bestOff < 0 ? null : [_bestAlong, Math.sqrt(_bestOff).toFloat()];
     }
 
+    //! Das Quadrat des kleinsten Abstands der laufenden Suche (−1: keiner).
     hidden var _bestOff as Float = -1.0;
     hidden var _bestAlong as Float = 0.0;
 
@@ -197,7 +198,8 @@ class NavTracker {
             if (along < from || along > to) { continue; }
             var cx = ax + t * dx;
             var cy = ay + t * dy;
-            var off = Math.sqrt(cx * cx + cy * cy).toFloat();
+            // Im Quadrat verglichen, die Wurzel einmal am Ende ([nearest]).
+            var off = cx * cx + cy * cy;
             if (_bestOff < 0 || off < _bestOff) {
                 _bestOff = off;
                 _bestAlong = along;

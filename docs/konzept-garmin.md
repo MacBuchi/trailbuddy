@@ -270,7 +270,10 @@ angekommenen schon abgelegt. Die Uhr sendet nur, wenn ein Handy
 verbunden ist. **Höchstens 700 Punkte** (seit Uhr-App 1.8.0, Betreiber
 2026-11-18: mit 800 hatte der Wechsel zweier gleich großer Routen nur
 0,2 KB Luft, die Buddys und Schilder kosten ~2,3 KB; mit 700 geladen
-99,3 KB, Spitze beim Wechsel 103,7 von 123,8 KB; davor 800
+99,3 KB, Spitze beim Wechsel 103,7 von 123,8 KB. Seit jede `.prg` wie das
+Store-Paket mit `-r -O 2` gebaut wird, mit Aufnahme 94,8 KB, und auch 800
+gingen wieder: 96,5 KB, Spitze 100,8 KB — die Grenze bleibt 700, bis der
+Betreiber anders entscheidet; davor 800
 (Kettenstand 2026-11-13; bis dahin 2000 nach Messung 8.1 — die stürzten
 beim Laden ab, neben dem heutigen Code passen sie nicht mehr; erst bei
 800 nimmt die Uhr während der Fahrt eine zweite gleich große Route an;

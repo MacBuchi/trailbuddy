@@ -15,6 +15,9 @@
 - **Group ride on the watch**: buddies sharing "Live" with you appear on
   the watch map as a disc with their initial; those farther away sit
   small at the edge in their direction, an old position as a ring.
+- **The watch app computes and stores more sparingly**: built like the
+  store package, and the map and route tracking compute less per frame
+  and per GPS fix — about 4.6 KB more headroom on the fēnix 5.
 - **Routes on the watch at most 700 points** instead of 800: long routes
   are simplified a little more so the watch can still take a new route
   mid-ride.
