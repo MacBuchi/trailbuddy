@@ -32,9 +32,10 @@ class RouteVias {
 
   /// Alle Punkte mit ihrer Stelle — für Marker und Griffe.
   List<(ViaRef, LatLng)> get all => [
-        for (final e in byLeg.entries)
-          for (var i = 0; i < e.value.length; i++) ((leg: e.key, index: i), e.value[i]),
-      ];
+    for (final e in byLeg.entries)
+      for (var i = 0; i < e.value.length; i++)
+        ((leg: e.key, index: i), e.value[i]),
+  ];
 
   /// [p] ins Teilstück [leg], an die Stelle, an der es auf [legLine]
   /// (der bisher gezeichneten Linie des Teilstücks) liegt.
@@ -60,7 +61,9 @@ class RouteVias {
     final list = [...of(ref.leg)];
     if (ref.index >= list.length) return this;
     list.removeAt(ref.index);
-    return RouteVias({...byLeg, ref.leg: list}..removeWhere((_, l) => l.isEmpty));
+    return RouteVias(
+      {...byLeg, ref.leg: list}..removeWhere((_, l) => l.isEmpty),
+    );
   }
 
   @override
@@ -77,7 +80,8 @@ class RouteVias {
   }
 
   @override
-  int get hashCode => Object.hashAll([for (final (r, p) in all) (r.leg, r.index, p)]);
+  int get hashCode =>
+      Object.hashAll([for (final (r, p) in all) (r.leg, r.index, p)]);
 }
 
 /// Der Index des Linienpunkts, der [p] am nächsten liegt — in Grad,
@@ -86,7 +90,8 @@ int nearestIndexOn(List<LatLng> line, LatLng p) {
   var best = 0;
   var bestD = double.infinity;
   for (var i = 0; i < line.length; i++) {
-    final dy = line[i].latitude - p.latitude, dx = line[i].longitude - p.longitude;
+    final dy = line[i].latitude - p.latitude,
+        dx = line[i].longitude - p.longitude;
     final d = dx * dx + dy * dy;
     if (d < bestD) {
       bestD = d;
@@ -129,7 +134,12 @@ enum ViaFailure {
 /// Abschnitt A*, die Kanten aneinander. Heftet die Punkte an [g] — das
 /// teilt Kanten, wie bei jedem Anheften.
 ({List<int>? edges, ViaFailure? failure}) pathThrough(
-    RoadGraph g, int src, int dst, List<LatLng> via, RiderParams p) {
+  RoadGraph g,
+  int src,
+  int dst,
+  List<LatLng> via,
+  RiderParams p,
+) {
   final stops = <int>[src];
   for (final v in via) {
     final n = g.attach(v);

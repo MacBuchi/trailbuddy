@@ -33,38 +33,56 @@ class LoopToolRail extends ConsumerWidget {
     final notifier = ref.read(loopPlannerProvider.notifier);
     final p = AppPalette.of(context);
     final l = context.l10n;
-    final labelStyle = Theme.of(context).textTheme.labelSmall?.copyWith(color: p.text, height: 1.1);
+    final labelStyle = Theme.of(
+      context,
+    ).textTheme.labelSmall?.copyWith(color: p.text, height: 1.1);
     final drawing = session.drawTool != null;
 
     // Jedes Tippziel 44 dp (A13), auch der Umschalter des Gebiets.
-    Widget button(String key, String tip, IconData icon, VoidCallback onPressed,
-            {String? label, bool selected = false}) =>
-        CoachAnchor(
-          id: MapCoach.loopRailButton(key),
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            IconButton(
-              key: ValueKey(key),
-              tooltip: tip,
-              isSelected: selected,
-              iconSize: 22,
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints.tightFor(width: kMapButtonSize, height: kMapButtonSize),
-              style: IconButton.styleFrom(
-                backgroundColor: selected ? p.text : null,
-                foregroundColor: selected ? p.ground : p.text,
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              ),
-              onPressed: onPressed,
-              icon: Icon(icon),
+    Widget button(
+      String key,
+      String tip,
+      IconData icon,
+      VoidCallback onPressed, {
+      String? label,
+      bool selected = false,
+    }) => CoachAnchor(
+      id: MapCoach.loopRailButton(key),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          IconButton(
+            key: ValueKey(key),
+            tooltip: tip,
+            isSelected: selected,
+            iconSize: 22,
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints.tightFor(
+              width: kMapButtonSize,
+              height: kMapButtonSize,
             ),
-            // Das Wort unter dem Symbol (#516) — gelesen wird es, getippt
-            // wird das Symbol; die Zeile gehört zur Tippfläche nicht dazu.
-            if (label != null)
-              ExcludeSemantics(
-                child: Text(label, style: labelStyle, textAlign: TextAlign.center, maxLines: 1),
+            style: IconButton.styleFrom(
+              backgroundColor: selected ? p.text : null,
+              foregroundColor: selected ? p.ground : p.text,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            onPressed: onPressed,
+            icon: Icon(icon),
+          ),
+          // Das Wort unter dem Symbol (#516) — gelesen wird es, getippt
+          // wird das Symbol; die Zeile gehört zur Tippfläche nicht dazu.
+          if (label != null)
+            ExcludeSemantics(
+              child: Text(
+                label,
+                style: labelStyle,
+                textAlign: TextAlign.center,
+                maxLines: 1,
               ),
-          ]),
-        );
+            ),
+        ],
+      ),
+    );
 
     const gap = SizedBox(height: 6);
 
@@ -76,7 +94,13 @@ class LoopToolRail extends ConsumerWidget {
         color: p.surface,
         borderRadius: BorderRadius.circular(kRailWidth / 2),
         border: Border.all(color: p.line),
-        boxShadow: const [BoxShadow(blurRadius: 8, offset: Offset(0, 2), color: Color(0x33000000))],
+        boxShadow: const [
+          BoxShadow(
+            blurRadius: 8,
+            offset: Offset(0, 2),
+            color: Color(0x33000000),
+          ),
+        ],
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -85,7 +109,9 @@ class LoopToolRail extends ConsumerWidget {
             'loop-rail-waypoint',
             l.loopRailWaypoint,
             Icons.add_location_alt_outlined,
-            session.pickingWaypoint ? notifier.cancelStartPick : notifier.armWaypointPick,
+            session.pickingWaypoint
+                ? notifier.cancelStartPick
+                : notifier.armWaypointPick,
             label: l.loopRailPointLabel,
             selected: session.pickingWaypoint,
           ),
@@ -94,7 +120,9 @@ class LoopToolRail extends ConsumerWidget {
             'loop-rail-area',
             l.loopRailArea,
             Icons.gesture,
-            drawing ? notifier.disarmDraw : () => notifier.armDraw(AreaDrawTool.add),
+            drawing
+                ? notifier.disarmDraw
+                : () => notifier.armDraw(AreaDrawTool.add),
             label: l.loopRailAreaLabel,
             selected: drawing,
           ),
@@ -103,15 +131,31 @@ class LoopToolRail extends ConsumerWidget {
           if (drawing) ...[
             const SizedBox(height: 2),
             for (final (tool, key, tip, icon) in [
-              (AreaDrawTool.add, 'loop-rail-area-add', l.loopRailAreaAdd, Icons.add_circle_outline),
-              (AreaDrawTool.remove, 'loop-rail-area-remove', l.loopRailAreaRemove, Icons.remove_circle_outline),
+              (
+                AreaDrawTool.add,
+                'loop-rail-area-add',
+                l.loopRailAreaAdd,
+                Icons.add_circle_outline,
+              ),
+              (
+                AreaDrawTool.remove,
+                'loop-rail-area-remove',
+                l.loopRailAreaRemove,
+                Icons.remove_circle_outline,
+              ),
             ])
               button(key, tip, icon, () {
                 if (session.drawTool != tool) notifier.armDraw(tool);
               }, selected: session.drawTool == tool),
           ],
           gap,
-          button('loop-rail-list', l.loopRailList, Icons.format_list_bulleted, onList, label: l.loopRailListLabel),
+          button(
+            'loop-rail-list',
+            l.loopRailList,
+            Icons.format_list_bulleted,
+            onList,
+            label: l.loopRailListLabel,
+          ),
         ],
       ),
     );

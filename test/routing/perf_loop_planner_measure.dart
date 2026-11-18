@@ -55,11 +55,15 @@ const _lat0 = 47.3, _lon0 = 11.4;
 const _sizeM = 25000.0, _stepM = 200.0;
 
 double _height(double x, double y) =>
-    900 + 450 * math.sin(x / 2600) * math.cos(y / 3400) + 180 * math.sin((x + 2 * y) / 1300);
+    900 +
+    450 * math.sin(x / 2600) * math.cos(y / 3400) +
+    180 * math.sin((x + 2 * y) / 1300);
 
 /// Dauer und längste Pause des UI-Takts (alle 4 ms ein Timer) — die
 /// Pause ist, was man sieht: so lange steht Karte und Kreisel.
-Future<({T result, Duration total, Duration stall})> _watch<T>(Future<T> Function() f) async {
+Future<({T result, Duration total, Duration stall})> _watch<T>(
+  Future<T> Function() f,
+) async {
   final clock = Stopwatch()..start();
   var last = Duration.zero, stall = Duration.zero;
   void tick() {
@@ -81,26 +85,37 @@ void main() {
   final o = proj.xy(const LatLng(_lat0, _lon0));
   LatLng at(double x, double y) => proj.latLng(math.Point(o.x + x, o.y + y));
   final n = (_sizeM / _stepM).round() + 1;
-  const classes = [WayClass.forstweg, WayClass.wanderweg, WayClass.forstweg, WayClass.nebenstrasse];
+  const classes = [
+    WayClass.forstweg,
+    WayClass.wanderweg,
+    WayClass.forstweg,
+    WayClass.nebenstrasse,
+  ];
 
   /// Das Gitter als Linien in Grad — was im Archiv als Kacheln liegt.
   List<WayLine> lines() => [
-        for (var i = 0; i < n; i++) ...[
-          WayLine(
-              cls: classes[i % classes.length],
-              oneway: false,
-              points: [for (var j = 0; j < n; j++) at(i * _stepM, j * _stepM)]),
-          WayLine(
-              cls: classes[(i + 1) % classes.length],
-              oneway: false,
-              points: [for (var j = 0; j < n; j++) at(j * _stepM, i * _stepM)]),
-          if (i + 1 < n)
-            WayLine(
-                cls: WayClass.nebenstrasse,
-                oneway: false,
-                points: [for (var j = 0; j < n - 1; j++) at(j * _stepM + _stepM / 2, i * _stepM + _stepM / 2)]),
-        ],
-      ];
+    for (var i = 0; i < n; i++) ...[
+      WayLine(
+        cls: classes[i % classes.length],
+        oneway: false,
+        points: [for (var j = 0; j < n; j++) at(i * _stepM, j * _stepM)],
+      ),
+      WayLine(
+        cls: classes[(i + 1) % classes.length],
+        oneway: false,
+        points: [for (var j = 0; j < n; j++) at(j * _stepM, i * _stepM)],
+      ),
+      if (i + 1 < n)
+        WayLine(
+          cls: WayClass.nebenstrasse,
+          oneway: false,
+          points: [
+            for (var j = 0; j < n - 1; j++)
+              at(j * _stepM + _stepM / 2, i * _stepM + _stepM / 2),
+          ],
+        ),
+    ],
+  ];
 
   /// Die Eingabe des Planers: Kacheln, Höhenraster, Trails — wie sie der
   /// UI-Isolate sammelt und hinüberschickt.
@@ -123,7 +138,8 @@ void main() {
     final out = <(List<(int, int)>, double)>[];
     final mid = n ~/ 2, reach = (12000 / _stepM).floor() - 10;
     while (out.length < count) {
-      var i = mid + rnd.nextInt(2 * reach) - reach, j = mid + rnd.nextInt(2 * reach) - reach;
+      var i = mid + rnd.nextInt(2 * reach) - reach,
+          j = mid + rnd.nextInt(2 * reach) - reach;
       final cells = <(int, int)>[(i, j)];
       final steps = 5 + rnd.nextInt(6);
       for (var k = 0; k < steps; k++) {
@@ -131,7 +147,9 @@ void main() {
         var low = _height(i * _stepM, j * _stepM);
         for (final (di, dj) in const [(1, 0), (-1, 0), (0, 1), (0, -1)]) {
           final (a, b) = (i + di, j + dj);
-          if (a < 0 || b < 0 || a >= n || b >= n || cells.contains((a, b))) continue;
+          if (a < 0 || b < 0 || a >= n || b >= n || cells.contains((a, b))) {
+            continue;
+          }
           final h = _height(a * _stepM, b * _stepM);
           if (h < low) (low, best) = (h, (a, b));
         }
@@ -141,7 +159,9 @@ void main() {
       }
       if (cells.length < 6) continue;
       final first = cells.first, last = cells.last;
-      final loss = _height(first.$1 * _stepM, first.$2 * _stepM) - _height(last.$1 * _stepM, last.$2 * _stepM);
+      final loss =
+          _height(first.$1 * _stepM, first.$2 * _stepM) -
+          _height(last.$1 * _stepM, last.$2 * _stepM);
       if (loss < 60) continue;
       out.add((cells, loss));
     }
@@ -149,10 +169,26 @@ void main() {
   }
 
   for (final (count, profile, budget) in [
-    (12, RiderProfile.bio, const LoopBudget(timeS: 3 * 3600, climbM: 1000, hikingM: 2000)),
-    (30, RiderProfile.bio, const LoopBudget(timeS: 3 * 3600, climbM: 1000, hikingM: 2000)),
-    (40, RiderProfile.bio, const LoopBudget(timeS: 5 * 3600, climbM: 1600, hikingM: 3000)),
-    (60, RiderProfile.ebike, const LoopBudget(timeS: 5 * 3600, climbM: 2500, hikingM: 3000)),
+    (
+      12,
+      RiderProfile.bio,
+      const LoopBudget(timeS: 3 * 3600, climbM: 1000, hikingM: 2000),
+    ),
+    (
+      30,
+      RiderProfile.bio,
+      const LoopBudget(timeS: 3 * 3600, climbM: 1000, hikingM: 2000),
+    ),
+    (
+      40,
+      RiderProfile.bio,
+      const LoopBudget(timeS: 5 * 3600, climbM: 1600, hikingM: 3000),
+    ),
+    (
+      60,
+      RiderProfile.ebike,
+      const LoopBudget(timeS: 5 * 3600, climbM: 2500, hikingM: 3000),
+    ),
   ]) {
     test('$count Trails, ${profile.name}, ${budget.timeS ~/ 3600} h', () async {
       final rnd = math.Random(188 + count);
@@ -162,19 +198,27 @@ void main() {
       for (final (k, (cells, loss)) in chosen.indexed) {
         final pts = [for (final (i, j) in cells) at(i * _stepM, j * _stepM)];
         final id = 't$k';
-        overlay.add(GraphTrail(id: id, name: id, points: pts, role: TrailRole.downhill));
-        pool.add(PoolTrail(
-          id: id,
-          name: id,
-          points: pts,
-          lengthM: (cells.length - 1) * _stepM,
-          grade: rnd.nextInt(4),
-          rating: 1 + rnd.nextInt(5),
-          lossM: loss,
-        ));
+        overlay.add(
+          GraphTrail(id: id, name: id, points: pts, role: TrailRole.downhill),
+        );
+        pool.add(
+          PoolTrail(
+            id: id,
+            name: id,
+            points: pts,
+            lengthM: (cells.length - 1) * _stepM,
+            grade: rnd.nextInt(4),
+            rating: 1 + rnd.nextInt(5),
+            lossM: loss,
+          ),
+        );
       }
       final request = LoopRequest(
-          start: at(_sizeM / 2 - 100 + 13, _sizeM / 2 - 100), profile: profile, budget: budget, pool: pool);
+        start: at(_sizeM / 2 - 100 + 13, _sizeM / 2 - 100),
+        profile: profile,
+        budget: budget,
+        pool: pool,
+      );
       final graphInput = input(overlay);
 
       // An Ort und Stelle: so baute und rechnete der UI-Isolate bis 0.131.0.
@@ -191,26 +235,38 @@ void main() {
       final first = await _watch(() => runner.plan(request));
       final second = await _watch(() => runner.plan(request));
       final fewer = LoopRequest(
-          start: request.start, profile: profile, budget: budget, pool: pool.sublist(1));
+        start: request.start,
+        profile: profile,
+        budget: budget,
+        pool: pool.sublist(1),
+      );
       final third = await _watch(() => runner.plan(fewer));
       runner.dispose();
-      expect(second.result.stops.map((s) => s.trail.id), first.result.stops.map((s) => s.trail.id));
-      expect(first.result.stops.map((s) => s.trail.id), inline.result.stops.map((s) => s.trail.id));
+      expect(
+        second.result.stops.map((s) => s.trail.id),
+        first.result.stops.map((s) => s.trail.id),
+      );
+      expect(
+        first.result.stops.map((s) => s.trail.id),
+        inline.result.stops.map((s) => s.trail.id),
+      );
 
       final plan = inline.result;
       final report = build.result;
       String ms(Duration d) => '${d.inMilliseconds}';
       // ignore: avoid_print
-      print('| $count | ${profile.name} ${budget.timeS ~/ 3600} h / ${budget.climbM.round()} hm '
-          '| ${report.edges} | ${report.crossings} | ${(graphInput.bytes / 1024).round()} KB '
-          '| ${ms(localBuild.total)} (${report.blocked} gesperrt) '
-          '| ${ms(inline.total)} | ${ms(build.total)} / ${ms(build.stall)} '
-          '| ${ms(first.total)} / ${ms(first.stall)} '
-          '| ${ms(second.total)} / ${ms(second.stall)} '
-          '| ${ms(third.total)} / ${ms(third.stall)} '
-          '| ${cache.searchesRun} / ${cache.footprint.nodes} / ${cache.footprint.conns} / ${cache.footprint.points} / +${rssPlan >> 20} MB '
-          '| ${plan.stops.length} | ${plan.summary == null ? '–' : '${(plan.summary!.timeS / 60).round()} min'} '
-          '| ${_fingerprint(plan)} |');
+      print(
+        '| $count | ${profile.name} ${budget.timeS ~/ 3600} h / ${budget.climbM.round()} hm '
+        '| ${report.edges} | ${report.crossings} | ${(graphInput.bytes / 1024).round()} KB '
+        '| ${ms(localBuild.total)} (${report.blocked} gesperrt) '
+        '| ${ms(inline.total)} | ${ms(build.total)} / ${ms(build.stall)} '
+        '| ${ms(first.total)} / ${ms(first.stall)} '
+        '| ${ms(second.total)} / ${ms(second.stall)} '
+        '| ${ms(third.total)} / ${ms(third.stall)} '
+        '| ${cache.searchesRun} / ${cache.footprint.nodes} / ${cache.footprint.conns} / ${cache.footprint.points} / +${rssPlan >> 20} MB '
+        '| ${plan.stops.length} | ${plan.summary == null ? '–' : '${(plan.summary!.timeS / 60).round()} min'} '
+        '| ${_fingerprint(plan)} |',
+      );
     }, timeout: const Timeout(Duration(minutes: 5)));
   }
 }
@@ -220,7 +276,9 @@ void main() {
 /// Umbau, der „dieselben Pläne" verspricht, muss ihn halten.
 String _fingerprint(LoopPlan plan) {
   final s = plan.summary;
-  final line = _fnv([for (final p in plan.points) '${p.latitude},${p.longitude}'].join(';'));
+  final line = _fnv(
+    [for (final p in plan.points) '${p.latitude},${p.longitude}'].join(';'),
+  );
   return '${plan.stops.map((t) => t.trail.id).join(',')} '
       '${s?.timeS} ${s?.gainM} ${s?.lengthM} ${line.toRadixString(16)}';
 }

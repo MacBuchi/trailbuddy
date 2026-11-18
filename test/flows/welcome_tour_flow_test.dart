@@ -39,7 +39,8 @@ void main() {
   /// Die Schritte ohne Trail: Schild und Blatt fallen weg.
   final titles = [
     for (final s in welcomeTourScript(l10nDe).tourSteps)
-      if (s.title != 'Das Schild am Anfang' && s.title != 'Das Blatt zum Trail') s.title
+      if (s.title != 'Das Schild am Anfang' && s.title != 'Das Blatt zum Trail')
+        s.title,
   ];
 
   testWidgets('erster Start: erst der Hinweis, dann im selben Start die '
@@ -48,7 +49,11 @@ void main() {
     await pumpApp(tester, signedIn(), settings: settings);
 
     expect(find.text('Kurz vorweg'), findsOneWidget);
-    expect(intro, findsNothing, reason: 'zwei Überlagerungen gleichzeitig wären keine');
+    expect(
+      intro,
+      findsNothing,
+      reason: 'zwei Überlagerungen gleichzeitig wären keine',
+    );
     await tester.tap(find.text('Verstanden'));
     await settle(tester);
 
@@ -57,7 +62,9 @@ void main() {
     expect(find.text('Tour starten'), findsOneWidget);
   });
 
-  testWidgets('„Tour starten": der Reihe nach, dann nie wieder', (tester) async {
+  testWidgets('„Tour starten": der Reihe nach, dann nie wieder', (
+    tester,
+  ) async {
     final settings = FakeSettings(mapTourSeen: false);
     await pumpApp(tester, signedIn(), settings: settings);
     expect(intro, findsOneWidget);
@@ -67,13 +74,26 @@ void main() {
     await settle(tester);
 
     for (final title in titles) {
-      expect(find.descendant(of: bubble, matching: find.text(title)), findsOneWidget, reason: title);
+      expect(
+        find.descendant(of: bubble, matching: find.text(title)),
+        findsOneWidget,
+        reason: title,
+      );
       final last = title == titles.last;
       if (last) {
-        expect(find.descendant(of: bubble, matching: find.text('Kurzanleitung')), findsNothing,
-            reason: 'beim ersten Start geht es danach mit den Reitern weiter (#136)');
+        expect(
+          find.descendant(of: bubble, matching: find.text('Kurzanleitung')),
+          findsNothing,
+          reason:
+              'beim ersten Start geht es danach mit den Reitern weiter (#136)',
+        );
       }
-      await tester.tap(find.descendant(of: bubble, matching: find.text(last ? 'Los geht\'s' : 'Weiter')));
+      await tester.tap(
+        find.descendant(
+          of: bubble,
+          matching: find.text(last ? 'Los geht\'s' : 'Weiter'),
+        ),
+      );
       await settle(tester);
     }
     expect(settings.mapTourSeen, isTrue);
@@ -84,12 +104,17 @@ void main() {
     expect(intro, findsNothing);
   });
 
-  testWidgets('„Nicht jetzt" ist gemerkt: beim nächsten Start nichts (#417)', (tester) async {
+  testWidgets('„Nicht jetzt" ist gemerkt: beim nächsten Start nichts (#417)', (
+    tester,
+  ) async {
     final settings = FakeSettings(mapTourSeen: false);
     await pumpApp(tester, signedIn(), settings: settings);
     await settle(tester);
-    expect(find.textContaining('im Profil unter „Kurzanleitung“'), findsOneWidget,
-        reason: 'die Startseite sagt, wo die Tour später liegt');
+    expect(
+      find.textContaining('im Profil unter „Kurzanleitung“'),
+      findsOneWidget,
+      reason: 'die Startseite sagt, wo die Tour später liegt',
+    );
     await tester.tap(find.byKey(const ValueKey('coach-intro-later')));
     await settle(tester);
     expect(intro, findsNothing);
@@ -113,23 +138,38 @@ void main() {
     expect(await tester.binding.handlePopRoute(), isTrue);
     await settle(tester);
     expect(intro, findsNothing);
-    expect(settings.mapTourSeen, isTrue, reason: 'Zurück heißt „Nicht jetzt", und das ist gemerkt');
+    expect(
+      settings.mapTourSeen,
+      isTrue,
+      reason: 'Zurück heißt „Nicht jetzt", und das ist gemerkt',
+    );
   });
 
   testWidgets('beides gesehen: nichts über der Karte', (tester) async {
-    await pumpApp(tester, signedIn(),
-        settings: FakeSettings(safetyNoteSeen: true, mapTourSeen: true));
+    await pumpApp(
+      tester,
+      signedIn(),
+      settings: FakeSettings(safetyNoteSeen: true, mapTourSeen: true),
+    );
     expect(find.text('Kurz vorweg'), findsNothing);
     expect(intro, findsNothing);
     expect(bubble, findsNothing);
   });
 
-  testWidgets('aus der Kurzanleitung beginnt sie mit „Die Karte"', (tester) async {
+  testWidgets('aus der Kurzanleitung beginnt sie mit „Die Karte"', (
+    tester,
+  ) async {
     await pumpApp(tester, signedIn());
     await openProfilePage(tester, 'help');
     final start = find.byKey(const ValueKey('help-map-tour'));
-    await tester.scrollUntilVisible(start, 300,
-        scrollable: find.descendant(of: find.byKey(const ValueKey('help-list')), matching: find.byType(Scrollable)));
+    await tester.scrollUntilVisible(
+      start,
+      300,
+      scrollable: find.descendant(
+        of: find.byKey(const ValueKey('help-list')),
+        matching: find.byType(Scrollable),
+      ),
+    );
     await settle(tester);
     await tester.tap(start);
     await settle(tester);
@@ -137,13 +177,26 @@ void main() {
     expect(find.text('Willkommen bei TrailBuddy'), findsNothing);
   });
 
-  testWidgets('auf einem kleinen Schirm bleibt die Wahl im Bild', (tester) async {
+  testWidgets('auf einem kleinen Schirm bleibt die Wahl im Bild', (
+    tester,
+  ) async {
     tester.view.physicalSize = const Size(360, 560) * 3;
     tester.view.devicePixelRatio = 3;
     addTearDown(tester.view.reset);
-    await pumpApp(tester, signedIn(), settings: FakeSettings(mapTourSeen: false));
-    final start = tester.getRect(find.byKey(const ValueKey('coach-intro-start')));
-    expect((Offset.zero & const Size(360, 560)).contains(start.bottomRight - const Offset(1, 1)), isTrue);
+    await pumpApp(
+      tester,
+      signedIn(),
+      settings: FakeSettings(mapTourSeen: false),
+    );
+    final start = tester.getRect(
+      find.byKey(const ValueKey('coach-intro-start')),
+    );
+    expect(
+      (Offset.zero & const Size(360, 560)).contains(
+        start.bottomRight - const Offset(1, 1),
+      ),
+      isTrue,
+    );
     expect(tester.takeException(), isNull);
   });
 
@@ -165,8 +218,14 @@ void main() {
     testWidgets('bei reduzierter Bewegung steht das Endbild', (tester) async {
       tester.platformDispatcher.accessibilityFeaturesTestValue =
           const FakeAccessibilityFeatures(disableAnimations: true);
-      addTearDown(tester.platformDispatcher.clearAccessibilityFeaturesTestValue);
-      await pumpApp(tester, signedIn(), settings: FakeSettings(mapTourSeen: false));
+      addTearDown(
+        tester.platformDispatcher.clearAccessibilityFeaturesTestValue,
+      );
+      await pumpApp(
+        tester,
+        signedIn(),
+        settings: FakeSettings(mapTourSeen: false),
+      );
       expect(intro, findsOneWidget);
       // Kein Takt läuft: dasselbe Bild über Sekunden.
       await tester.pump(const Duration(seconds: 1));

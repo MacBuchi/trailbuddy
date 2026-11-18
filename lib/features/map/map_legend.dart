@@ -47,24 +47,27 @@ typedef LegendSample = ({
   bool contour,
 });
 
-LegendSample _line(String label, int group, Color color,
-        {List<double>? dash,
-        Color? border,
-        List<double>? borderDash,
-        double opacity = 1,
-        WayClass? way,
-        bool contour = false}) =>
-    (
-      label: label,
-      group: group,
-      color: color,
-      dash: dash,
-      border: border,
-      borderDash: borderDash,
-      opacity: opacity,
-      way: way,
-      contour: contour,
-    );
+LegendSample _line(
+  String label,
+  int group,
+  Color color, {
+  List<double>? dash,
+  Color? border,
+  List<double>? borderDash,
+  double opacity = 1,
+  WayClass? way,
+  bool contour = false,
+}) => (
+  label: label,
+  group: group,
+  color: color,
+  dash: dash,
+  border: border,
+  borderDash: borderDash,
+  opacity: opacity,
+  way: way,
+  contour: contour,
+);
 
 /// Die Gruppe der Wege-Proben je Wegart: Forstweg 4, Pfad 5.
 int _wayGroup(WayKind kind) => kind == WayKind.track ? 4 : 5;
@@ -80,7 +83,11 @@ int _wayGroup(WayKind kind) => kind == WayKind.track ? 4 : 5;
 /// ließe suchen. Ebenso die Höhenlinien (#271): nur, solange welche
 /// liegen, mit dem Abstand, den die Karte WIRKLICH zeigt ([contourM]) —
 /// er folgt dem Gelände, also muss ihn jemand sagen.
-List<LegendSample> legendSamples(AppLocalizations l, {bool ways = true, int? contourM}) {
+List<LegendSample> legendSamples(
+  AppLocalizations l, {
+  bool ways = true,
+  int? contourM,
+}) {
   const g = AppColors.mapGrades;
   const m = AppColors.mapLines;
   return [
@@ -98,11 +105,23 @@ List<LegendSample> legendSamples(AppLocalizations l, {bool ways = true, int? con
     _line(l.legendNewNote, 2, g.s1, border: m.note),
     _line(l.legendOfficial, 3, m.official, dash: const [6, 4]),
     if (ways)
-      for (final c in WayClass.values) _line(c.label(l), _wayGroup(c.kind), c.color, way: c),
+      for (final c in WayClass.values)
+        _line(c.label(l), _wayGroup(c.kind), c.color, way: c),
     if (contourM != null) ...[
-      _line(l.legendContourEvery(contourM), 6, AppColors.contourLine, opacity: kContourOpacity, contour: true),
-      _line(l.legendContourIndex(contourIndexStepM(contourM)), 6, AppColors.contourLine,
-          opacity: kContourIndexOpacity, contour: true),
+      _line(
+        l.legendContourEvery(contourM),
+        6,
+        AppColors.contourLine,
+        opacity: kContourOpacity,
+        contour: true,
+      ),
+      _line(
+        l.legendContourIndex(contourIndexStepM(contourM)),
+        6,
+        AppColors.contourLine,
+        opacity: kContourIndexOpacity,
+        contour: true,
+      ),
     ],
   ];
 }
@@ -111,14 +130,14 @@ List<LegendSample> legendSamples(AppLocalizations l, {bool ways = true, int? con
 /// Überschrift (offizielle Trails stehen unter „Am Trail"). Ohne sie
 /// musste man erraten, dass „abgerockt" ein Zustand ist (#231).
 String? legendGroupTitle(AppLocalizations l, int group) => switch (group) {
-      0 => l.legendGroupGrade,
-      1 => l.legendGroupCondition,
-      2 => l.legendGroupOnTrail,
-      4 => l.legendGroupTrack,
-      5 => l.legendGroupPath,
-      6 => l.contourLines,
-      _ => null,
-    };
+  0 => l.legendGroupGrade,
+  1 => l.legendGroupCondition,
+  2 => l.legendGroupOnTrail,
+  4 => l.legendGroupTrack,
+  5 => l.legendGroupPath,
+  6 => l.contourLines,
+  _ => null,
+};
 
 /// Zeichnet eine Probe als kurzes Linienstück.
 class LegendLinePainter extends CustomPainter {
@@ -146,18 +165,45 @@ class LegendLinePainter extends CustomPainter {
       // Ohne Saum, so dünn wie auf der Karte — doppelt so breit, damit man
       // die Probe in der Legende überhaupt sieht.
       final index = sample.opacity == kContourIndexOpacity;
-      _stroke(canvas, a, b, sample.color.withValues(alpha: sample.opacity),
-          2 * (index ? kContourIndexWidth : kContourWidth), null);
+      _stroke(
+        canvas,
+        a,
+        b,
+        sample.color.withValues(alpha: sample.opacity),
+        2 * (index ? kContourIndexWidth : kContourWidth),
+        null,
+      );
       return;
     }
     // Erst der Saum (weiß, auf Wunsch gestrichelt), dann ein farbiger
     // Rand, dann die Linie — dieselbe Reihenfolge wie auf der Karte.
-    _stroke(canvas, a, b, AppColors.mapLines.halo!, _width + 4, sample.borderDash);
+    _stroke(
+      canvas,
+      a,
+      b,
+      AppColors.mapLines.halo!,
+      _width + 4,
+      sample.borderDash,
+    );
     if (sample.border case final c?) _stroke(canvas, a, b, c, _width + 5, null);
-    _stroke(canvas, a, b, sample.color.withValues(alpha: sample.opacity), _width, sample.dash);
+    _stroke(
+      canvas,
+      a,
+      b,
+      sample.color.withValues(alpha: sample.opacity),
+      _width,
+      sample.dash,
+    );
   }
 
-  void _stroke(Canvas canvas, Offset a, Offset b, Color color, double width, List<double>? dash) {
+  void _stroke(
+    Canvas canvas,
+    Offset a,
+    Offset b,
+    Color color,
+    double width,
+    List<double>? dash,
+  ) {
     final paint = Paint()
       ..color = color
       ..strokeWidth = width
@@ -171,7 +217,13 @@ class LegendLinePainter extends CustomPainter {
     var i = 0;
     while (x < b.dx) {
       final len = dash[i % dash.length] * _width / 3;
-      if (i.isEven) canvas.drawLine(Offset(x, a.dy), Offset((x + len).clamp(a.dx, b.dx), a.dy), paint);
+      if (i.isEven) {
+        canvas.drawLine(
+          Offset(x, a.dy),
+          Offset((x + len).clamp(a.dx, b.dx), a.dy),
+          paint,
+        );
+      }
       x += len;
       i++;
     }
@@ -209,16 +261,22 @@ class MapLegend extends ConsumerWidget {
         : null;
     void toggle() => ref.read(mapLegendOpenProvider.notifier).set(!open);
     return AnimatedSize(
-      duration: reduceMotion(context) ? Duration.zero : const Duration(milliseconds: 180),
+      duration: reduceMotion(context)
+          ? Duration.zero
+          : const Duration(milliseconds: 180),
       curve: Curves.easeOutCubic,
       alignment: Alignment.centerLeft,
-      child: open ? _Panel(onClose: toggle, ways: ways, contourM: contourM) : _Tab(onOpen: toggle),
+      child: open
+          ? _Panel(onClose: toggle, ways: ways, contourM: contourM)
+          : _Tab(onOpen: toggle),
     );
   }
 }
 
 const _radius = BorderRadius.horizontal(right: Radius.circular(10));
-const _shadow = [BoxShadow(blurRadius: 4, offset: Offset(0, 1), color: Color(0x26000000))];
+const _shadow = [
+  BoxShadow(blurRadius: 4, offset: Offset(0, 1), color: Color(0x26000000)),
+];
 
 /// Zu: eine schmale Lasche mit den vier Pistenfarben — kaum sichtbar,
 /// aber erkennbar als „hier steht, was die Farben heißen".
@@ -267,7 +325,10 @@ class _Tab extends StatelessWidget {
                         width: 4,
                         height: 7,
                         margin: const EdgeInsets.symmetric(vertical: 1.5),
-                        decoration: BoxDecoration(color: c, borderRadius: BorderRadius.circular(2)),
+                        decoration: BoxDecoration(
+                          color: c,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
                       ),
                   ],
                 ),
@@ -283,7 +344,9 @@ class _Tab extends StatelessWidget {
 /// Die Überschrift vor Probe [i], wenn dort eine Gruppe mit eigener
 /// Überschrift beginnt.
 String? _titleAt(AppLocalizations l, List<LegendSample> samples, int i) =>
-    i == 0 || samples[i].group != samples[i - 1].group ? legendGroupTitle(l, samples[i].group) : null;
+    i == 0 || samples[i].group != samples[i - 1].group
+    ? legendGroupTitle(l, samples[i].group)
+    : null;
 
 /// Auf: die Proben untereinander, oben „Legende" mit dem Weg zurück.
 class _Panel extends StatelessWidget {
@@ -299,7 +362,10 @@ class _Panel extends StatelessWidget {
     final theme = Theme.of(context).textTheme;
     final label = theme.bodySmall?.copyWith(color: text);
     final heading = theme.labelSmall?.copyWith(
-        color: AppColors.light.muted, letterSpacing: 0.8, fontWeight: FontWeight.w600);
+      color: AppColors.light.muted,
+      letterSpacing: 0.8,
+      fontWeight: FontWeight.w600,
+    );
     final l = context.l10n;
     final samples = legendSamples(l, ways: ways, contourM: contourM);
     return Container(
@@ -320,7 +386,9 @@ class _Panel extends StatelessWidget {
             child: InkWell(
               key: const ValueKey('map-legend-close'),
               onTap: onClose,
-              borderRadius: const BorderRadius.only(topRight: Radius.circular(10)),
+              borderRadius: const BorderRadius.only(
+                topRight: Radius.circular(10),
+              ),
               child: ConstrainedBox(
                 constraints: const BoxConstraints(minHeight: kMapButtonSize),
                 child: Padding(
@@ -329,8 +397,10 @@ class _Panel extends StatelessWidget {
                     children: [
                       Expanded(
                         child: ExcludeSemantics(
-                          child: Text(l.legendTitle,
-                              style: theme.labelLarge?.copyWith(color: text)),
+                          child: Text(
+                            l.legendTitle,
+                            style: theme.labelLarge?.copyWith(color: text),
+                          ),
                         ),
                       ),
                       Icon(Icons.chevron_left, size: 22, color: text),
@@ -356,16 +426,19 @@ class _Panel extends StatelessWidget {
                       // Luft zwischen Gruppen — unter einer Überschrift
                       // hat die schon die Überschrift.
                       padding: EdgeInsets.only(
-                          top: i > 0 &&
-                                  samples[i].group != samples[i - 1].group &&
-                                  _titleAt(l, samples, i) == null
-                              ? 8
-                              : 2),
+                        top:
+                            i > 0 &&
+                                samples[i].group != samples[i - 1].group &&
+                                _titleAt(l, samples, i) == null
+                            ? 8
+                            : 2,
+                      ),
                       child: Row(
                         children: [
                           CustomPaint(
-                              size: const Size(26, 12),
-                              painter: LegendLinePainter(samples[i])),
+                            size: const Size(26, 12),
+                            painter: LegendLinePainter(samples[i]),
+                          ),
                           const SizedBox(width: 6),
                           Expanded(child: Text(samples[i].label, style: label)),
                         ],

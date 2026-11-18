@@ -49,15 +49,17 @@ typedef LearnResult = ({
   Map<RiderProfile, int> sectionsByProfile,
 });
 
-
 class RiderCalibrationsNotifier extends Notifier<RiderCalibrations> {
   @override
-  RiderCalibrations build() => RiderCalibrations.parse(ref.read(settingsProvider).riderCalibration);
+  RiderCalibrations build() =>
+      RiderCalibrations.parse(ref.read(settingsProvider).riderCalibration);
 
   Future<void> _save(RiderCalibrations next) async {
     state = next;
     try {
-      await ref.read(settingsProvider).setRiderCalibration(next.isEmpty ? null : next.encode());
+      await ref
+          .read(settingsProvider)
+          .setRiderCalibration(next.isEmpty ? null : next.encode());
     } catch (e, s) {
       logError('Kalibrierung merken', e, s);
     }
@@ -80,7 +82,7 @@ class RiderCalibrationsNotifier extends Notifier<RiderCalibrations> {
         withoutArea: 0,
         skipped: 0,
         ridesByProfile: rides,
-        sectionsByProfile: const <RiderProfile, int>{}
+        sectionsByProfile: const <RiderProfile, int>{},
       );
     }
     final all = await ref.read(rideStoreProvider).list(uid: uid);
@@ -106,18 +108,23 @@ class RiderCalibrationsNotifier extends Notifier<RiderCalibrations> {
     final runner = ref.read(loopPlanRunnerFactoryProvider)();
     try {
       for (final ride in taken) {
-        final profile = RiderProfile.values.firstWhere((p) => p.name == ride.profile);
+        final profile = RiderProfile.values.firstWhere(
+          (p) => p.name == ride.profile,
+        );
         final line = [for (final p in ride.points) LatLng(p.lat, p.lng)];
         List<CalibSample> found;
         try {
-          final read = await StallWatch.time('calib.graph', () => readRoadTiles(
-            areas: areas,
-            box: LatBox.of(line),
-            open: (a) => open(store, a),
-            marginM: kCalibCorridorM * 2,
-            only: tilesAlong(line, kCalibCorridorM * 2),
-            sourceKey: (a) => a.region,
-          ));
+          final read = await StallWatch.time(
+            'calib.graph',
+            () => readRoadTiles(
+              areas: areas,
+              box: LatBox.of(line),
+              open: (a) => open(store, a),
+              marginM: kCalibCorridorM * 2,
+              only: tilesAlong(line, kCalibCorridorM * 2),
+              sourceKey: (a) => a.region,
+            ),
+          );
           if (read.tilesFound == 0) {
             withoutArea++;
             continue;
@@ -125,8 +132,13 @@ class RiderCalibrationsNotifier extends Notifier<RiderCalibrations> {
           // Keine Höhen und keine Trails: Eingeordnet wird nur die
           // Wegklasse unter der Linie, die Höhen sind die der Fahrt.
           final box = LatBox.of(line);
-          await runner.build(GraphInput(roads: read.roads, lat0: (box.s + box.n) / 2));
-          found = await StallWatch.time('calib.samples', () => runner.run(CalibJob(ride)));
+          await runner.build(
+            GraphInput(roads: read.roads, lat0: (box.s + box.n) / 2),
+          );
+          found = await StallWatch.time(
+            'calib.samples',
+            () => runner.run(CalibJob(ride)),
+          );
         } catch (e, s) {
           logError('Fahrt zum Lernen einordnen', e, s);
           continue;
@@ -153,7 +165,7 @@ class RiderCalibrationsNotifier extends Notifier<RiderCalibrations> {
       withoutArea: withoutArea,
       skipped: usable.length - taken.length,
       ridesByProfile: rides,
-      sectionsByProfile: sections
+      sectionsByProfile: sections,
     );
   }
 }
@@ -164,20 +176,31 @@ String learnResultText(AppLocalizations l, LearnResult r) {
   final learned = [
     for (final p in RiderProfile.values)
       if ((r.ridesByProfile[p] ?? 0) > 0)
-        l.learnPart(p.label(l), r.ridesByProfile[p]!, r.sectionsByProfile[p] ?? 0),
+        l.learnPart(
+          p.label(l),
+          r.ridesByProfile[p]!,
+          r.sectionsByProfile[p] ?? 0,
+        ),
   ];
   if (r.rides == 0) return l.learnNoRides;
   if (r.usable == 0) return l.learnNoUsable;
   final seen = r.usable - r.skipped;
-  if (learned.isEmpty) return r.withoutArea == seen ? l.learnNoArea : l.learnNoClimb;
+  if (learned.isEmpty) {
+    return r.withoutArea == seen ? l.learnNoArea : l.learnNoClimb;
+  }
   final done = l.learnDone(learned.join(' · '));
-  return r.skipped == 0 ? done : '$done ${l.learnSkipped(r.skipped, kCalibMaxRides)}';
+  return r.skipped == 0
+      ? done
+      : '$done ${l.learnSkipped(r.skipped, kCalibMaxRides)}';
 }
 
 final riderCalibrationsProvider =
-    NotifierProvider<RiderCalibrationsNotifier, RiderCalibrations>(RiderCalibrationsNotifier.new);
+    NotifierProvider<RiderCalibrationsNotifier, RiderCalibrations>(
+      RiderCalibrationsNotifier.new,
+    );
 
 /// Das Profil, mit dem die Planer rechnen: die Vorgaben, überlagert von
 /// dem, was aus den Fahrten gelernt ist.
 final calibratedRiderProvider = Provider.family<RiderParams, RiderProfile>(
-    (ref, p) => CalibratedRider(p, ref.watch(riderCalibrationsProvider).of(p)));
+  (ref, p) => CalibratedRider(p, ref.watch(riderCalibrationsProvider).of(p)),
+);

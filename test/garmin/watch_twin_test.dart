@@ -22,21 +22,30 @@ const _gap = 6;
 
 Set<String> _manifestDevices() {
   final xml = File('garmin/manifest.xml').readAsStringSync();
-  return {for (final m in RegExp(r'product id="(\w+)"').allMatches(xml)) m.group(1)!};
+  return {
+    for (final m in RegExp(r'product id="(\w+)"').allMatches(xml)) m.group(1)!,
+  };
 }
 
 /// Alle Bilder eines Geräts und einer Sprache, dazu ihre Befunde.
 ({img.Image sheet, List<String> problems}) _render(WatchDevice d, String lang) {
   final w = d.screen;
   final rows = (kTwinScenes.length + _cols - 1) ~/ _cols;
-  final sheet = img.Image(width: _cols * (w + _gap) + _gap, height: rows * (w + _gap) + _gap);
+  final sheet = img.Image(
+    width: _cols * (w + _gap) + _gap,
+    height: rows * (w + _gap) + _gap,
+  );
   img.fill(sheet, color: img.ColorRgb8(0x30, 0x30, 0x30));
   final problems = <String>[];
   for (var i = 0; i < kTwinScenes.length; i++) {
     final sc = kTwinScenes[i];
     final twin = WatchTwin(d, lang)..draw(sc);
-    img.compositeImage(sheet, twin.canvas.toImage(),
-        dstX: _gap + (i % _cols) * (w + _gap), dstY: _gap + (i ~/ _cols) * (w + _gap));
+    img.compositeImage(
+      sheet,
+      twin.canvas.toImage(),
+      dstX: _gap + (i % _cols) * (w + _gap),
+      dstY: _gap + (i ~/ _cols) * (w + _gap),
+    );
     for (final p in twin.problems()) {
       problems.add('$lang ${sc.name}: $p');
     }
@@ -75,21 +84,38 @@ void main() {
     final seen = <String>{};
     for (final file in (j['files'] as List).cast<String>()) {
       final src = File(file).readAsStringSync();
-      for (final m in RegExp(r'/\*([LFS]):(\w+)\*/\s*(-?\d+|Graphics\.FONT_\w+)').allMatches(src)) {
+      for (final m in RegExp(
+        r'/\*([LFS]):(\w+)\*/\s*(-?\d+|Graphics\.FONT_\w+)',
+      ).allMatches(src)) {
         final kind = m.group(1)!;
         final name = m.group(2)!;
         if (kind == 'S') {
           // Zeichen (#558): die Nummer ist die Stelle in symbols.list.
-          final list = ((j['symbols'] as Map<String, dynamic>)['list'] as List<dynamic>).cast<String>();
-          expect(m.group(3), '${list.indexOf(name)}', reason: '$file S:$name — python3 tool/watch_layout.py');
+          final list =
+              ((j['symbols'] as Map<String, dynamic>)['list'] as List<dynamic>)
+                  .cast<String>();
+          expect(
+            m.group(3),
+            '${list.indexOf(name)}',
+            reason: '$file S:$name — python3 tool/watch_layout.py',
+          );
           continue;
         }
         seen.add('$kind:$name');
-        final want = kind == 'L' ? '${(values[name] as Map?)?['v']}' : fonts[names[name]];
-        expect(m.group(3), want, reason: '$file $kind:$name — python3 tool/watch_layout.py');
+        final want = kind == 'L'
+            ? '${(values[name] as Map?)?['v']}'
+            : fonts[names[name]];
+        expect(
+          m.group(3),
+          want,
+          reason: '$file $kind:$name — python3 tool/watch_layout.py',
+        );
       }
     }
-    expect(seen, {...values.keys.map((k) => 'L:$k'), ...names.keys.map((k) => 'F:$k')});
+    expect(seen, {
+      ...values.keys.map((k) => 'L:$k'),
+      ...names.keys.map((k) => 'F:$k'),
+    });
   });
 
   test('jedes Zeichen liegt in seiner Box (#558) und ist in der Liste', () {
@@ -109,15 +135,21 @@ void main() {
               pts.add([a[k], a[k + 1]]);
             }
           case 'r':
-            pts..add([a[0], a[1]])..add([a[0] + a[2], a[1] + a[3]]);
+            pts
+              ..add([a[0], a[1]])
+              ..add([a[0] + a[2], a[1] + a[3]]);
           case 'c':
           case 'o':
             // Kreis und Ring: Mitte ± (Außen-)Radius
             final r = a[2];
-            pts..add([a[0] - r, a[1] - r])..add([a[0] + r, a[1] + r]);
+            pts
+              ..add([a[0] - r, a[1] - r])
+              ..add([a[0] + r, a[1] + r]);
           case 'l':
             // Die Enden zählen, die Kappen der Strichbreite nicht.
-            pts..add([a[0], a[1]])..add([a[2], a[3]]);
+            pts
+              ..add([a[0], a[1]])
+              ..add([a[2], a[3]]);
         }
         for (final p in pts) {
           expect(p[0], inInclusiveRange(0, w), reason: '$name x ${p[0]}');
@@ -127,23 +159,35 @@ void main() {
     });
   });
 
-  test('jedes Gerät des Abbilds ist gemessen, die Uhren des Manifests mit 240 px', () {
-    final manifest = _manifestDevices();
-    for (final id in WatchDevice.all()) {
-      final d = WatchDevice.load(id);
-      expect(d.fonts.keys, containsAll(['xtiny', 'tiny', 'small', 'large', 'numberMedium']), reason: id);
-      if (manifest.contains(id)) expect(d.screen, 240, reason: id);
-    }
-    // Wer eine Uhr anderer Größe ins Manifest nimmt, braucht Layoutwerte
-    // je Größe im Monkey-C-Bau (heute nur 240, garmin/CLAUDE.md).
-    expect(WatchDevice.all().where(manifest.contains), isNotEmpty);
-  });
+  test(
+    'jedes Gerät des Abbilds ist gemessen, die Uhren des Manifests mit 240 px',
+    () {
+      final manifest = _manifestDevices();
+      for (final id in WatchDevice.all()) {
+        final d = WatchDevice.load(id);
+        expect(
+          d.fonts.keys,
+          containsAll(['xtiny', 'tiny', 'small', 'large', 'numberMedium']),
+          reason: id,
+        );
+        if (manifest.contains(id)) expect(d.screen, 240, reason: id);
+      }
+      // Wer eine Uhr anderer Größe ins Manifest nimmt, braucht Layoutwerte
+      // je Größe im Monkey-C-Bau (heute nur 240, garmin/CLAUDE.md).
+      expect(WatchDevice.all().where(manifest.contains), isNotEmpty);
+    },
+  );
 
   test('ein Wert in watch_layout.json verschiebt, was das Abbild zeichnet', () {
     final d = WatchDevice.load('fenix5');
-    final a = WatchTwin(d, 'deu')..draw(kTwinScenes.firstWhere((s) => s.name == 'anfahrt'));
+    final a = WatchTwin(d, 'deu')
+      ..draw(kTwinScenes.firstWhere((s) => s.name == 'anfahrt'));
     final y = a.boxes.firstWhere((b) => b.id == 'field_name').y0;
-    expect(y, 160 + 2 + 26 - 21 + 1, reason: 'field_y + field_line1_dy + Höhe − Ascent + 1');
+    expect(
+      y,
+      160 + 2 + 26 - 21 + 1,
+      reason: 'field_y + field_line1_dy + Höhe − Ascent + 1',
+    );
     expect(WatchLayout.forSize(260).v('field_y'), (160 * 260 / 240).round());
     expect(WatchLayout.forSize(260).v('ring_w'), 8, reason: 'fixed');
   });
@@ -160,16 +204,21 @@ void main() {
           if (autoUpdateGoldenFiles || !file.existsSync()) {
             file.parent.createSync(recursive: true);
             file.writeAsBytesSync(img.encodePng(r.sheet));
-            if (!autoUpdateGoldenFiles) fail('${file.path} neu geschrieben — ansehen und committen');
+            if (!autoUpdateGoldenFiles) {
+              fail('${file.path} neu geschrieben — ansehen und committen');
+            }
             return;
           }
           final want = img.decodePng(file.readAsBytesSync())!;
           final n = _diff(r.sheet, want);
           if (n != 0) {
-            final out = File('build/watch_twin/${id}_$lang.png')..parent.createSync(recursive: true);
+            final out = File('build/watch_twin/${id}_$lang.png')
+              ..parent.createSync(recursive: true);
             out.writeAsBytesSync(img.encodePng(r.sheet));
-            fail('${file.path}: ${n < 0 ? 'andere Größe' : '$n Bildpunkte anders'} — neu: ${out.path}; '
-                'gewollt? flutter test --update-goldens test/garmin/watch_twin_test.dart');
+            fail(
+              '${file.path}: ${n < 0 ? 'andere Größe' : '$n Bildpunkte anders'} — neu: ${out.path}; '
+              'gewollt? flutter test --update-goldens test/garmin/watch_twin_test.dart',
+            );
           }
         });
       }
@@ -181,8 +230,12 @@ void main() {
           return;
         }
         final want = file.existsSync() ? file.readAsStringSync() : '';
-        expect(const LineSplitter().convert(text), const LineSplitter().convert(want),
-            reason: '${file.path}: neue oder verschwundene Befunde — gewollt? --update-goldens');
+        expect(
+          const LineSplitter().convert(text),
+          const LineSplitter().convert(want),
+          reason:
+              '${file.path}: neue oder verschwundene Befunde — gewollt? --update-goldens',
+        );
       });
     });
   }

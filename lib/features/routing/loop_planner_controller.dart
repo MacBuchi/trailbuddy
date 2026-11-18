@@ -78,7 +78,15 @@ import 'trail_overlay.dart';
 /// Rechen-Isolate (am Pixel ~0,33 s je Kachel, #356), [computing] rechnet.
 enum LoopPhase { idle, locating, loading, building, computing, result }
 
-enum LoopBlocker { noPosition, noTarget, noArea, noTrails, noTrailsInReach, failed, tooLarge }
+enum LoopBlocker {
+  noPosition,
+  noTarget,
+  noArea,
+  noTrails,
+  noTrailsInReach,
+  failed,
+  tooLarge,
+}
 
 /// So weit um Start, Ziel, Zwischenpunkte und gewählte Trails kommen
 /// Uphill-Trails und Verbinder in den Rahmen des Graphen (#356 PR 8,
@@ -161,7 +169,8 @@ class LoopSession {
   final bool stripRaw;
 
   /// Die Leiste steht: eine Runde mit Ständen, nicht getunt.
-  bool get hasStrip => strip.isNotEmpty && stripPick != null && stripShown != null && !tuned;
+  bool get hasStrip =>
+      strip.isNotEmpty && stripPick != null && stripShown != null && !tuned;
 
   /// Die gezeigte Planung ist ein Vorschlag (#516 Schritt 4,
   /// Konzept-Routing 12.4): der Pool aus diesem Umkreis um den Start,
@@ -171,7 +180,8 @@ class LoopSession {
 
   /// Das Budget, mit dem die gezeigte Planung gerechnet ist — Skalen,
   /// „ca." und „Kürzer als …" im Blatt lesen es.
-  LoopBudget get planBudget => suggestReachM != null ? prefs.suggestBudget : prefs.budget;
+  LoopBudget get planBudget =>
+      suggestReachM != null ? prefs.suggestBudget : prefs.budget;
 
   /// Der Planer-Modus ist an: Leiste links, Tipps wählen Trails.
   final bool open;
@@ -335,51 +345,66 @@ class LoopSession {
     bool clearOver = false,
     bool? overOn,
     bool? overBusy,
-  }) =>
-      LoopSession(
-        open: open ?? this.open,
-        start: clearStart ? null : (start ?? this.start),
-        pickingStart: pickingStart ?? this.pickingStart,
-        target: target ?? this.target,
-        targetTrailId: clearTargetTrail ? null : (targetTrailId ?? this.targetTrailId),
-        pickingTarget: pickingTarget ?? this.pickingTarget,
-        waypoints: waypoints ?? this.waypoints,
-        pickingWaypoint: pickingWaypoint ?? this.pickingWaypoint,
-        drawTool: clearDrawTool ? null : (drawTool ?? this.drawTool),
-        selected: selected ?? this.selected,
-        mandatory: mandatory ?? this.mandatory,
-        prefs: prefs ?? this.prefs,
-        profile: profile ?? this.profile,
-        phase: phase ?? this.phase,
-        progress: progress ?? (phase != null && phase != this.phase ? null : this.progress),
-        blocker: clearBlocker ? null : (blocker ?? this.blocker),
-        plan: clearPlan ? null : (plan ?? this.plan),
-        planStart: clearPlan ? null : (planStart ?? this.planStart),
-        planEnd: planEnd ?? this.planEnd,
-        coverage: coverage ?? this.coverage,
-        tuned: clearPlan ? (tuned ?? false) : (tuned ?? this.tuned),
-        changed: changed ?? this.changed,
-        planBare: clearPlan ? (planBare ?? false) : (planBare ?? this.planBare),
-        funEmpty: clearPlan ? (funEmpty ?? false) : (funEmpty ?? this.funEmpty),
-        quick: quick ?? this.quick,
-        entry: entry ?? this.entry,
-        targetMine: targetMine ?? this.targetMine,
-        // Ein neuer Start ohne Namen ist ein getippter (`takeStart` leert):
-        // Der alte Name ginge sonst mit an die neue Stelle. Der Sprung auf
-        // den Weg nach der Rechnung behält ihn.
-        startName: clearStart || clearStartName ? startName : (startName ?? this.startName),
-        startSaved: clearStart || clearStartName ? (startSaved ?? false) : (startSaved ?? this.startSaved),
-        targetName: clearTargetName ? targetName : (targetName ?? this.targetName),
-        targetSaved: clearTargetName ? (targetSaved ?? false) : (targetSaved ?? this.targetSaved),
-        suggestReachM: clearPlan ? suggestReachM : (suggestReachM ?? this.suggestReachM),
-        strip: clearPlan ? (strip ?? const []) : (strip ?? this.strip),
-        stripPick: clearPlan ? stripPick : (stripPick ?? this.stripPick),
-        stripShown: clearPlan ? stripShown : (stripShown ?? this.stripShown),
-        stripRaw: clearPlan ? (stripRaw ?? false) : (stripRaw ?? this.stripRaw),
-        over: clearPlan || clearOver ? over : (over ?? this.over),
-        overOn: clearPlan || clearOver ? (overOn ?? false) : (overOn ?? this.overOn),
-        overBusy: clearPlan || clearOver ? (overBusy ?? false) : (overBusy ?? this.overBusy),
-      );
+  }) => LoopSession(
+    open: open ?? this.open,
+    start: clearStart ? null : (start ?? this.start),
+    pickingStart: pickingStart ?? this.pickingStart,
+    target: target ?? this.target,
+    targetTrailId: clearTargetTrail
+        ? null
+        : (targetTrailId ?? this.targetTrailId),
+    pickingTarget: pickingTarget ?? this.pickingTarget,
+    waypoints: waypoints ?? this.waypoints,
+    pickingWaypoint: pickingWaypoint ?? this.pickingWaypoint,
+    drawTool: clearDrawTool ? null : (drawTool ?? this.drawTool),
+    selected: selected ?? this.selected,
+    mandatory: mandatory ?? this.mandatory,
+    prefs: prefs ?? this.prefs,
+    profile: profile ?? this.profile,
+    phase: phase ?? this.phase,
+    progress:
+        progress ??
+        (phase != null && phase != this.phase ? null : this.progress),
+    blocker: clearBlocker ? null : (blocker ?? this.blocker),
+    plan: clearPlan ? null : (plan ?? this.plan),
+    planStart: clearPlan ? null : (planStart ?? this.planStart),
+    planEnd: planEnd ?? this.planEnd,
+    coverage: coverage ?? this.coverage,
+    tuned: clearPlan ? (tuned ?? false) : (tuned ?? this.tuned),
+    changed: changed ?? this.changed,
+    planBare: clearPlan ? (planBare ?? false) : (planBare ?? this.planBare),
+    funEmpty: clearPlan ? (funEmpty ?? false) : (funEmpty ?? this.funEmpty),
+    quick: quick ?? this.quick,
+    entry: entry ?? this.entry,
+    targetMine: targetMine ?? this.targetMine,
+    // Ein neuer Start ohne Namen ist ein getippter (`takeStart` leert):
+    // Der alte Name ginge sonst mit an die neue Stelle. Der Sprung auf
+    // den Weg nach der Rechnung behält ihn.
+    startName: clearStart || clearStartName
+        ? startName
+        : (startName ?? this.startName),
+    startSaved: clearStart || clearStartName
+        ? (startSaved ?? false)
+        : (startSaved ?? this.startSaved),
+    targetName: clearTargetName ? targetName : (targetName ?? this.targetName),
+    targetSaved: clearTargetName
+        ? (targetSaved ?? false)
+        : (targetSaved ?? this.targetSaved),
+    suggestReachM: clearPlan
+        ? suggestReachM
+        : (suggestReachM ?? this.suggestReachM),
+    strip: clearPlan ? (strip ?? const []) : (strip ?? this.strip),
+    stripPick: clearPlan ? stripPick : (stripPick ?? this.stripPick),
+    stripShown: clearPlan ? stripShown : (stripShown ?? this.stripShown),
+    stripRaw: clearPlan ? (stripRaw ?? false) : (stripRaw ?? this.stripRaw),
+    over: clearPlan || clearOver ? over : (over ?? this.over),
+    overOn: clearPlan || clearOver
+        ? (overOn ?? false)
+        : (overOn ?? this.overOn),
+    overBusy: clearPlan || clearOver
+        ? (overBusy ?? false)
+        : (overBusy ?? this.overBusy),
+  );
 }
 
 /// Was [LoopPlannerNotifier.close] weggeräumt hat — „Rückgängig" holt es
@@ -388,7 +413,13 @@ class LoopSession {
 /// ist mit dem Schließen weg, der nächste baut aus denselben Bytes
 /// denselben Graphen.
 class LoopClosed {
-  const LoopClosed._(this.session, this._graphBox, this._graphOnline, this._planRequest, this._vias);
+  const LoopClosed._(
+    this.session,
+    this._graphBox,
+    this._graphOnline,
+    this._planRequest,
+    this._vias,
+  );
 
   final LoopSession session;
   final LatBox? _graphBox;
@@ -459,7 +490,9 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
     ref.onDispose(() => _runner?.dispose());
     // Die Karte ändert die Punkte, hier wird gerechnet (#234).
     ref.listen(routeViaProvider, (_, next) {
-      if (next == null || next.owner != ViaOwner.loop || next.vias == _vias) return;
+      if (next == null || next.owner != ViaOwner.loop || next.vias == _vias) {
+        return;
+      }
       unawaited(_retune(next.vias));
     });
     // Das Fahrerprofil gilt sofort (10.4): Ein anderes Rad in den
@@ -468,10 +501,17 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
       if (next != state.profile) setProfile(next);
     });
     final profile = ref.read(riderProfileProvider);
-    return LoopSession(prefs: LoopPrefs.parse(ref.read(settingsProvider).loopPlannerPrefs, profile), profile: profile);
+    return LoopSession(
+      prefs: LoopPrefs.parse(
+        ref.read(settingsProvider).loopPlannerPrefs,
+        profile,
+      ),
+      profile: profile,
+    );
   }
 
-  List<Trail> get _trails => ref.read(trailsProvider).valueOrNull ?? const <Trail>[];
+  List<Trail> get _trails =>
+      ref.read(trailsProvider).valueOrNull ?? const <Trail>[];
 
   /// Die Gewichte der laufenden Rechnung ([loopPreferenceWeight]), je
   /// Trail-Kennung; fehlt eine, wiegt der Trail 1.
@@ -489,7 +529,11 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
     }
     return {
       for (final t in trails)
-        if (loopPreferenceWeight(ownRating: t.myDetails?.rating, rides: counts.of(t)) case final w when w != 1)
+        if (loopPreferenceWeight(
+              ownRating: t.myDetails?.rating,
+              rides: counts.of(t),
+            )
+            case final w when w != 1)
           t.id: w,
     };
   }
@@ -501,12 +545,13 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
     final fresh = !state.open;
     // Schon offen und ohne neuen Start: Der getippte bleibt stehen.
     state = state.copyWith(
-        open: true,
-        pickingStart: false,
-        pickingTarget: false,
-        pickingWaypoint: false,
-        clearDrawTool: true,
-        entry: entry && fresh && start == null ? true : null);
+      open: true,
+      pickingStart: false,
+      pickingTarget: false,
+      pickingWaypoint: false,
+      clearDrawTool: true,
+      entry: entry && fresh && start == null ? true : null,
+    );
     if (start != null) takeStart(start);
   }
 
@@ -524,13 +569,22 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
   void leaveEntry() {
     if (!state.entry) return;
     final endMode = state.prefs.endMode;
-    final mode = state.prefs.intentRoute || (endMode == LoopEndMode.target && state.target != null)
+    final mode =
+        state.prefs.intentRoute ||
+            (endMode == LoopEndMode.target && state.target != null)
         ? LoopEndMode.target
         : endMode == LoopEndMode.lastTrail
-            ? LoopEndMode.lastTrail
-            : LoopEndMode.loop;
-    if (mode != state.prefs.endMode) setPrefs(state.prefs.copyWith(endMode: mode));
-    state = state.copyWith(entry: false, pickingStart: false, pickingTarget: false, pickingWaypoint: false);
+        ? LoopEndMode.lastTrail
+        : LoopEndMode.loop;
+    if (mode != state.prefs.endMode) {
+      setPrefs(state.prefs.copyWith(endMode: mode));
+    }
+    state = state.copyWith(
+      entry: false,
+      pickingStart: false,
+      pickingTarget: false,
+      pickingWaypoint: false,
+    );
   }
 
   /// Im Einstieg „Route" gewählt, und alles liegt bereit: ein Ziel, und
@@ -538,15 +592,26 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
   /// braucht einen Start auf der Karte). Dann rechnet die Karte gleich.
   bool get entryRouteReady {
     final s = state;
-    return s.entry && s.prefs.intentRoute && s.target != null && !s.picking && !(s.targetMine && s.start == null);
+    return s.entry &&
+        s.prefs.intentRoute &&
+        s.target != null &&
+        !s.picking &&
+        !(s.targetMine && s.start == null);
   }
 
   /// Das Ziel am eigenen Standort ([p] ist der Fix) — der Start muss dann
   /// woanders liegen: Steht er auf dem Standort, wartet der Planer auf
   /// einen Tipp für ihn (Konzept-Routing 12.3).
   void takeTargetMine(LatLng p) {
-    _edit(state.copyWith(
-        target: p, clearTargetTrail: true, pickingTarget: false, targetMine: true, clearTargetName: true));
+    _edit(
+      state.copyWith(
+        target: p,
+        clearTargetTrail: true,
+        pickingTarget: false,
+        targetMine: true,
+        clearTargetName: true,
+      ),
+    );
     if (state.start == null) armStartPick();
   }
 
@@ -556,20 +621,29 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
   /// nichts gesetzt war.
   LoopClosed? close() {
     final s = state;
-    final kept = s.selected.isNotEmpty || s.waypoints.isNotEmpty || s.start != null || s.target != null
+    final kept =
+        s.selected.isNotEmpty ||
+            s.waypoints.isNotEmpty ||
+            s.start != null ||
+            s.target != null
         ? LoopClosed._(
             // Eine laufende Rechnung kommt nicht zurück, nur ihre Eingaben.
             s.busy ? s.copyWith(phase: LoopPhase.idle) : s,
             _graphBox,
             _graphOnline,
             _planRequest,
-            _vias)
+            _vias,
+          )
         : null;
     ref.read(routeViaProvider.notifier).end(ViaOwner.loop);
     _generation++;
     _runner?.dispose();
     _runner = null;
-    state = LoopSession(prefs: s.prefs, profile: s.profile, coverage: s.coverage);
+    state = LoopSession(
+      prefs: s.prefs,
+      profile: s.profile,
+      coverage: s.coverage,
+    );
     return kept;
   }
 
@@ -585,17 +659,20 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
     // Die Regler gelten, wie sie JETZT stehen — das Ergebnis ist mit den
     // alten gerechnet und bleibt trotzdem stehen, bis man neu rechnet.
     state = s.copyWith(
-        open: true,
-        pickingStart: false,
-        pickingTarget: false,
-        pickingWaypoint: false,
-        clearDrawTool: true,
-        prefs: state.prefs,
-        profile: state.profile,
-        quick: quick,
-        entry: false);
+      open: true,
+      pickingStart: false,
+      pickingTarget: false,
+      pickingWaypoint: false,
+      clearDrawTool: true,
+      prefs: state.prefs,
+      profile: state.profile,
+      quick: quick,
+      entry: false,
+    );
     final plan = s.plan;
-    if (plan != null && plan.outcome == LoopOutcome.ok) ref.read(routeViaProvider.notifier).begin(ViaOwner.loop, _vias);
+    if (plan != null && plan.outcome == LoopOutcome.ok) {
+      ref.read(routeViaProvider.notifier).begin(ViaOwner.loop, _vias);
+    }
   }
 
   /// Jede Eingabe ändert sich hierüber (#356, D3): Das Ergebnis ist weg,
@@ -606,8 +683,16 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
   void _edit(LoopSession next) {
     final shown = state.changed || state.phase != LoopPhase.idle;
     _generation++;
-    if (state.plan != null) ref.read(routeViaProvider.notifier).end(ViaOwner.loop);
-    state = next.copyWith(clearPlan: true, clearBlocker: true, phase: LoopPhase.idle, changed: shown, quick: false);
+    if (state.plan != null) {
+      ref.read(routeViaProvider.notifier).end(ViaOwner.loop);
+    }
+    state = next.copyWith(
+      clearPlan: true,
+      clearBlocker: true,
+      phase: LoopPhase.idle,
+      changed: shown,
+      quick: false,
+    );
   }
 
   LoopToggle toggle(Trail t) {
@@ -647,7 +732,8 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
     _edit(state.copyWith(selected: selected, mandatory: mandatory));
   }
 
-  void clearSelection() => _edit(state.copyWith(selected: const {}, mandatory: const {}));
+  void clearSelection() =>
+      _edit(state.copyWith(selected: const {}, mandatory: const {}));
 
   void toggleMandatory(String id) {
     final mandatory = {...state.mandatory};
@@ -664,7 +750,9 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
   int applyRing(List<LatLng> ring) {
     final tool = state.drawTool ?? AreaDrawTool.add;
     final hits = trailsInRing(
-        _trails.where((t) => !t.pending && trailRoleOf(t) == TrailRole.downhill), ring);
+      _trails.where((t) => !t.pending && trailRoleOf(t) == TrailRole.downhill),
+      ring,
+    );
     setSelected(hits, tool == AreaDrawTool.add);
     state = state.copyWith(clearDrawTool: true);
     return hits.length;
@@ -673,25 +761,53 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
   /// Ein Werkzeug scharf machen; derselbe Knopf noch einmal entschärft.
   void armDraw(AreaDrawTool tool) => state = state.drawTool == tool
       ? state.copyWith(clearDrawTool: true)
-      : state.copyWith(drawTool: tool, pickingStart: false, pickingTarget: false, pickingWaypoint: false);
+      : state.copyWith(
+          drawTool: tool,
+          pickingStart: false,
+          pickingTarget: false,
+          pickingWaypoint: false,
+        );
 
   void disarmDraw() => state = state.copyWith(clearDrawTool: true);
 
-  void armStartPick() =>
-      state = state.copyWith(pickingStart: true, pickingTarget: false, pickingWaypoint: false, clearDrawTool: true);
+  void armStartPick() => state = state.copyWith(
+    pickingStart: true,
+    pickingTarget: false,
+    pickingWaypoint: false,
+    clearDrawTool: true,
+  );
 
   /// Bricht ab, worauf der Tipp gerade wartet — Start, Ziel oder
   /// Zwischenpunkt.
-  void cancelStartPick() => state = state.copyWith(pickingStart: false, pickingTarget: false, pickingWaypoint: false);
+  void cancelStartPick() => state = state.copyWith(
+    pickingStart: false,
+    pickingTarget: false,
+    pickingWaypoint: false,
+  );
 
-  void takeStart(LatLng p, {String? name, bool saved = false}) =>
-      _edit(state.copyWith(start: p, pickingStart: false, startName: name, startSaved: saved, clearStartName: true));
+  void takeStart(LatLng p, {String? name, bool saved = false}) => _edit(
+    state.copyWith(
+      start: p,
+      pickingStart: false,
+      startName: name,
+      startSaved: saved,
+      clearStartName: true,
+    ),
+  );
 
-  void armTargetPick() =>
-      state = state.copyWith(pickingTarget: true, pickingStart: false, pickingWaypoint: false, clearDrawTool: true);
+  void armTargetPick() => state = state.copyWith(
+    pickingTarget: true,
+    pickingStart: false,
+    pickingWaypoint: false,
+    clearDrawTool: true,
+  );
 
-  void armWaypointPick() =>
-      state = state.copyWith(pickingWaypoint: true, pickingStart: false, pickingTarget: false, clearDrawTool: true);
+  void armWaypointPick() => state = state.copyWith(
+    pickingWaypoint: true,
+    pickingStart: false,
+    pickingTarget: false,
+    clearDrawTool: true,
+  );
 
   void takeWaypoint(LatLng p) => setWaypoints([...state.waypoints, p]);
 
@@ -704,14 +820,17 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
     setWaypoints([...state.waypoints]..removeAt(k));
   }
 
-  void takeTarget(LatLng p, {String? name, bool saved = false}) => _edit(state.copyWith(
+  void takeTarget(LatLng p, {String? name, bool saved = false}) => _edit(
+    state.copyWith(
       target: p,
       clearTargetTrail: true,
       pickingTarget: false,
       targetMine: false,
       targetName: name,
       targetSaved: saved,
-      clearTargetName: true));
+      clearTargetName: true,
+    ),
+  );
 
   /// Wohin der nächste Tipp geht: Start, Ziel oder Zwischenpunkt. Falsch,
   /// wenn der Planer auf keinen wartet.
@@ -736,7 +855,9 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
   void takeTrailHead(Trail t, {required bool asTarget}) {
     takePlace(t.start, asTarget ? LoopPlaceRole.target : LoopPlaceRole.start);
     if (asTarget) state = state.copyWith(targetTrailId: t.id);
-    if (!asTarget && !t.pending && trailRoleOf(t) == TrailRole.downhill) setSelected([t.id], true);
+    if (!asTarget && !t.pending && trailRoleOf(t) == TrailRole.downhill) {
+      setSelected([t.id], true);
+    }
   }
 
   /// Ein Einstieg mit fertigem Auftrag (#356 PR 7, Konzept-Routing 10.3):
@@ -747,20 +868,30 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
   /// #516 nicht mehr hierher: Dort ist der Punkt das Ziel DIESER Planung
   /// (`takePlace`, `takeTrailHead`), also auch kein getippter Start, den
   /// ein Auftrag behalten müsste (#373).
-  void beginRoute(LatLng target, {String? trailId, RouteMode? style, String? targetName, bool targetSaved = false}) {
+  void beginRoute(
+    LatLng target, {
+    String? trailId,
+    RouteMode? style,
+    String? targetName,
+    bool targetSaved = false,
+  }) {
     if (state.open) close();
-    final prefs = state.prefs.copyWith(endMode: LoopEndMode.target, style: style);
+    final prefs = state.prefs.copyWith(
+      endMode: LoopEndMode.target,
+      style: style,
+    );
     if (prefs.encode() != state.prefs.encode()) _remember(prefs);
     state = LoopSession(
-        open: true,
-        prefs: prefs,
-        profile: state.profile,
-        coverage: state.coverage,
-        target: target,
-        targetTrailId: trailId,
-        targetName: targetName,
-        targetSaved: targetSaved,
-        quick: true);
+      open: true,
+      prefs: prefs,
+      profile: state.profile,
+      coverage: state.coverage,
+      target: target,
+      targetTrailId: trailId,
+      targetName: targetName,
+      targetSaved: targetSaved,
+      quick: true,
+    );
   }
 
   /// Ein Punkt als Start, Zwischenpunkt oder Ziel, ohne Tipp auf die
@@ -769,14 +900,21 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
   /// Parameter).
   /// [name] beschriftet Start oder Ziel im Kopf (Name des Ortes, des
   /// gemerkten Punkts); [saved] sagt, dass der Punkt schon gemerkt ist.
-  void takePlace(LatLng p, LoopPlaceRole role, {String? name, bool saved = false}) {
+  void takePlace(
+    LatLng p,
+    LoopPlaceRole role, {
+    String? name,
+    bool saved = false,
+  }) {
     switch (role) {
       case LoopPlaceRole.start:
         takeStart(p, name: name, saved: saved);
       case LoopPlaceRole.waypoint:
         takeWaypoint(p);
       case LoopPlaceRole.target:
-        if (state.prefs.endMode != LoopEndMode.target) setPrefs(state.prefs.copyWith(endMode: LoopEndMode.target));
+        if (state.prefs.endMode != LoopEndMode.target) {
+          setPrefs(state.prefs.copyWith(endMode: LoopEndMode.target));
+        }
         takeTarget(p, name: name, saved: saved);
     }
   }
@@ -785,15 +923,27 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
   /// Startpunkte 5.1): ein Ort mit Namen. [remember] merkt ihn als
   /// zuletzt gewählten (er steht dann oben in der Liste, 9.4) — die
   /// Vorbelegung vor Ort tut das nicht, sie ist keine Wahl.
-  void takeStartPoint(StartPoint p, {required bool asTarget, bool remember = true}) {
-    takePlace(p.position, asTarget ? LoopPlaceRole.target : LoopPlaceRole.start, name: p.name, saved: true);
+  void takeStartPoint(
+    StartPoint p, {
+    required bool asTarget,
+    bool remember = true,
+  }) {
+    takePlace(
+      p.position,
+      asTarget ? LoopPlaceRole.target : LoopPlaceRole.start,
+      name: p.name,
+      saved: true,
+    );
     if (remember) noteStartPointChosen(p);
   }
 
   /// [p] ist der zuletzt gewählte Startpunkt (Konzept Startpunkte 9.4) —
   /// gerätelokal, nur sein Schlüssel.
   void noteStartPointChosen(StartPoint p) {
-    ref.read(settingsProvider).setLastStartPoint(p.key).catchError((Object e, StackTrace s) {
+    ref.read(settingsProvider).setLastStartPoint(p.key).catchError((
+      Object e,
+      StackTrace s,
+    ) {
       logError('Zuletzt gewählten Startpunkt merken', e, s);
     });
   }
@@ -802,15 +952,20 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
 
   void setPrefs(LoopPrefs prefs) {
     // Ohne den Modus „Zum Ziel" wartet auch kein Tipp mehr aufs Ziel.
-    _edit(state.copyWith(
-      prefs: prefs,
-      pickingTarget: prefs.endMode == LoopEndMode.target ? null : false,
-    ));
+    _edit(
+      state.copyWith(
+        prefs: prefs,
+        pickingTarget: prefs.endMode == LoopEndMode.target ? null : false,
+      ),
+    );
     _remember(prefs);
   }
 
   void _remember(LoopPrefs prefs) {
-    ref.read(settingsProvider).setLoopPlannerPrefs(prefs.encode()).catchError((Object e, StackTrace s) {
+    ref.read(settingsProvider).setLoopPlannerPrefs(prefs.encode()).catchError((
+      Object e,
+      StackTrace s,
+    ) {
       logError('Planer-Regler merken', e, s);
     });
   }
@@ -837,7 +992,9 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
   /// gerechnet — anders als die übrigen Eingaben.
   Future<void> setStyle(RouteMode style) {
     final quick = state.quick, reach = state.suggestReachM;
-    if (style != state.prefs.style) setPrefs(state.prefs.copyWith(style: style));
+    if (style != state.prefs.style) {
+      setPrefs(state.prefs.copyWith(style: style));
+    }
     state = state.copyWith(quick: quick);
     return compute(suggestReachM: reach);
   }
@@ -854,7 +1011,8 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
 
   /// „Runde vorschlagen" im Einstieg (#516 Schritt 4, Konzept-Routing
   /// 12.4): der Pool aus dem Umkreis der Zeit.
-  Future<void> suggest() => compute(suggestReachM: loopSuggestReachM(state.prefs.hours));
+  Future<void> suggest() =>
+      compute(suggestReachM: loopSuggestReachM(state.prefs.hours));
 
   /// „Weiter suchen" (Konzept-Routing 12.5): derselbe Vorschlag aus dem
   /// nächsten Umkreis. Ohne Vorschlag oder über dem letzten nichts.
@@ -875,7 +1033,12 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
     ref.read(routeViaProvider.notifier).end(ViaOwner.loop);
     // Eine Rechnung, die noch läuft, gehört zu diesem Ergebnis.
     _generation++;
-    state = state.copyWith(clearPlan: true, clearBlocker: true, phase: LoopPhase.idle, changed: false);
+    state = state.copyWith(
+      clearPlan: true,
+      clearBlocker: true,
+      phase: LoopPhase.idle,
+      changed: false,
+    );
   }
 
   /// „Abbrechen" am Ladebalken (#372): Die laufende Arbeit endet, die
@@ -887,7 +1050,8 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
   void cancel() {
     if (!state.busy) return;
     _generation++;
-    if (state.phase == LoopPhase.building || state.phase == LoopPhase.computing) {
+    if (state.phase == LoopPhase.building ||
+        state.phase == LoopPhase.computing) {
       _runner?.dispose();
       _runner = null;
     }
@@ -923,15 +1087,24 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
         ? const <Trail>[]
         : [
             for (final t in _trails)
-              if (state.selected.contains(t.id) && !t.pending && t.points.length >= 2) t,
+              if (state.selected.contains(t.id) &&
+                  !t.pending &&
+                  t.points.length >= 2)
+                t,
           ];
     // Ein Vorschlag ist eine Runde (oder endet am letzten Trail), nie eine
     // Route zu einem Ziel.
-    final endMode =
-        suggest && state.prefs.endMode == LoopEndMode.target ? LoopEndMode.loop : state.prefs.endMode;
+    final endMode = suggest && state.prefs.endMode == LoopEndMode.target
+        ? LoopEndMode.loop
+        : state.prefs.endMode;
     final target = endMode == LoopEndMode.target ? state.target : null;
     if (endMode == LoopEndMode.target && target == null) {
-      state = state.copyWith(phase: LoopPhase.result, blocker: LoopBlocker.noTarget, clearPlan: true, changed: false);
+      state = state.copyWith(
+        phase: LoopPhase.result,
+        blocker: LoopBlocker.noTarget,
+        clearPlan: true,
+        changed: false,
+      );
       return;
     }
     // Ohne Trail gibt es zu einem Ziel die Route (#356), sonst durch die
@@ -941,17 +1114,23 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
     final bare = !suggest && chosen.isEmpty && target != null;
     final pointsOnly = !suggest && chosen.isEmpty && target == null;
     if (pointsOnly && waypoints.isEmpty) {
-      state = state.copyWith(phase: LoopPhase.result, blocker: LoopBlocker.noTrails, clearPlan: true, changed: false);
+      state = state.copyWith(
+        phase: LoopPhase.result,
+        blocker: LoopBlocker.noTrails,
+        clearPlan: true,
+        changed: false,
+      );
       return;
     }
     state = state.copyWith(
-        clearPlan: true,
-        clearBlocker: true,
-        changed: false,
-        clearDrawTool: true,
-        pickingStart: false,
-        pickingTarget: false,
-        pickingWaypoint: false);
+      clearPlan: true,
+      clearBlocker: true,
+      changed: false,
+      clearDrawTool: true,
+      pickingStart: false,
+      pickingTarget: false,
+      pickingWaypoint: false,
+    );
     final generation = _generation;
     try {
       var start = state.start;
@@ -960,7 +1139,10 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
         final fix = await ref.read(currentPositionProvider)();
         if (generation != _generation) return;
         if (fix == null) {
-          state = state.copyWith(phase: LoopPhase.result, blocker: LoopBlocker.noPosition);
+          state = state.copyWith(
+            phase: LoopPhase.result,
+            blocker: LoopBlocker.noPosition,
+          );
           return;
         }
         start = LatLng(fix.latitude, fix.longitude);
@@ -969,7 +1151,10 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
         chosen = loopPoolOf(_trails, start, reachM: suggestReachM).inReach;
         if (chosen.isEmpty) {
           state = state.copyWith(
-              phase: LoopPhase.result, blocker: LoopBlocker.noTrailsInReach, suggestReachM: suggestReachM);
+            phase: LoopPhase.result,
+            blocker: LoopBlocker.noTrailsInReach,
+            suggestReachM: suggestReachM,
+          );
           return;
         }
       }
@@ -977,7 +1162,9 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
       // Die Trails, die eine spaßige Route mitnehmen darf, gleich in den
       // Rahmen — ein Wechsel des Stils lädt dann nicht neu.
       // Den Ziel-Trail fährt man danach, nicht auf dem Weg dorthin.
-      final fun = bare ? funPoolOf(_trails, start, target, exceptId: state.targetTrailId) : const <Trail>[];
+      final fun = bare
+          ? funPoolOf(_trails, start, target, exceptId: state.targetTrailId)
+          : const <Trail>[];
       // Die Vorliebe (#516 Schritt 5): eigene Sterne und eigene Fahrten.
       _weights = await _preferenceWeights([...chosen, ...fun]);
       if (generation != _generation) return;
@@ -988,8 +1175,11 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
       if (!_hasGraph ||
           !_graphBox!.near(LatBox.of([start]), kPlanStartSlackM) ||
           (target != null && !_graphBox!.contains(LatBox.of([target]))) ||
-          (waypoints.isNotEmpty && !_graphBox!.contains(LatBox.of(waypoints))) ||
-          !chosen.every((t) => _graphBox!.contains(LatBox.of(t.directedPoints))) ||
+          (waypoints.isNotEmpty &&
+              !_graphBox!.contains(LatBox.of(waypoints))) ||
+          !chosen.every(
+            (t) => _graphBox!.contains(LatBox.of(t.directedPoints)),
+          ) ||
           !fun.every((t) => _graphBox!.contains(LatBox.of(t.directedPoints))) ||
           _graphOnline != fillOnline) {
         final s0 = start;
@@ -1006,7 +1196,10 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
         ]);
         final connectors = [
           for (final t in _trails)
-            if (!t.pending && t.points.length >= 2 && trailRoleOf(t) != TrailRole.downhill && !t.status.blocksRouting)
+            if (!t.pending &&
+                t.points.length >= 2 &&
+                trailRoleOf(t) != TrailRole.downhill &&
+                !t.status.blocksRouting)
               if (LatBox.of(t.points).near(anchors, kPlanConnectorMarginM)) t,
         ];
         final box = LatBox.of([
@@ -1017,7 +1210,11 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
           for (final t in fun) ...t.directedPoints,
           for (final t in connectors) ...t.points,
         ]);
-        final built = await _loadGraph(box, fillOnline: fillOnline, generation: generation);
+        final built = await _loadGraph(
+          box,
+          fillOnline: fillOnline,
+          generation: generation,
+        );
         if (built != null || generation != _generation) return;
       }
       state = state.copyWith(phase: LoopPhase.computing);
@@ -1031,7 +1228,13 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
       final LoopRequest request;
       var funEmpty = false;
       if (bare) {
-        (plan, request, funEmpty) = await _planRoute(runner, from, target, waypoints, fun);
+        (plan, request, funEmpty) = await _planRoute(
+          runner,
+          from,
+          target,
+          waypoints,
+          fun,
+        );
       } else {
         // Direkt zu einem Ziel nimmt nur die Pflicht-Trails mit, auf
         // kürzestem Weg und ohne Budget (#356 PR 7b, Konzept-Routing 10.2);
@@ -1044,58 +1247,78 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
           start: from,
           // Mit den gelernten Werten des Profils (Schritt 6), wo es welche
           // gibt; im Stil Bequem oder mit „Bergauf bequem" dessen Kosten.
-          profile: ref.read(calibratedRiderProvider(state.profile)).withPrefs(state.prefs.planRoute),
+          profile: ref
+              .read(calibratedRiderProvider(state.profile))
+              .withPrefs(state.prefs.planRoute),
           budget: free
               ? kRouteDirectBudget
               : suggest
-                  ? state.prefs.suggestBudget
-                  : state.prefs.budget,
+              ? state.prefs.suggestBudget
+              : state.prefs.budget,
           pool: [
             for (final t in chosen)
               if (!direct || state.mandatory.contains(t.id))
-                poolTrailOf(serviceL10n(), t,
-                    mandatory: state.mandatory.contains(t.id), weight: _weights[t.id] ?? 1),
+                poolTrailOf(
+                  serviceL10n(),
+                  t,
+                  mandatory: state.mandatory.contains(t.id),
+                  weight: _weights[t.id] ?? 1,
+                ),
           ],
           returnToStart: endMode == LoopEndMode.loop,
           end: target,
           waypoints: waypoints,
           bare: free,
         );
-        plan = await StallWatch.time('plan.loop', () => runner.plan(request, onProgress: _progressFor(generation)));
+        plan = await StallWatch.time(
+          'plan.loop',
+          () => runner.plan(request, onProgress: _progressFor(generation)),
+        );
       }
       if (generation != _generation) return;
       _planRequest = request;
       // Auf den Weg gesprungen (#374): Die Nadeln gehen mit, der Standort
       // nicht — der ist, wo man steht.
-      LatLng? snapped(SnapRole role, [int k = 0]) =>
-          plan.snaps.where((s) => s.role == role && s.index == k).firstOrNull?.at;
+      LatLng? snapped(SnapRole role, [int k = 0]) => plan.snaps
+          .where((s) => s.role == role && s.index == k)
+          .firstOrNull
+          ?.at;
       _pickPlan = plan;
       _stateSeq++;
       state = state.copyWith(
-          phase: LoopPhase.result,
-          plan: plan,
-          strip: plan.states,
-          stripPick: plan.pick,
-          stripShown: plan.pick,
-          stripRaw: false,
-          suggestReachM: suggestReachM,
-          // Die Trails des Vorschlags sind die Auswahl, ohne „geändert".
-          selected: suggest ? {for (final st in plan.stops) st.trail.id} : null,
-          planStart: snapped(SnapRole.start) ?? start,
-          planEnd: endMode,
-          planBare: bare,
-          funEmpty: funEmpty,
-          start: state.start == null ? null : snapped(SnapRole.start),
-          target: snapped(SnapRole.end),
-          waypoints: plan.snaps.any((s) => s.role == SnapRole.waypoint)
-              ? [for (var k = 0; k < waypoints.length; k++) snapped(SnapRole.waypoint, k) ?? waypoints[k]]
-              : null);
-      if (plan.outcome == LoopOutcome.ok) ref.read(routeViaProvider.notifier).begin(ViaOwner.loop);
+        phase: LoopPhase.result,
+        plan: plan,
+        strip: plan.states,
+        stripPick: plan.pick,
+        stripShown: plan.pick,
+        stripRaw: false,
+        suggestReachM: suggestReachM,
+        // Die Trails des Vorschlags sind die Auswahl, ohne „geändert".
+        selected: suggest ? {for (final st in plan.stops) st.trail.id} : null,
+        planStart: snapped(SnapRole.start) ?? start,
+        planEnd: endMode,
+        planBare: bare,
+        funEmpty: funEmpty,
+        start: state.start == null ? null : snapped(SnapRole.start),
+        target: snapped(SnapRole.end),
+        waypoints: plan.snaps.any((s) => s.role == SnapRole.waypoint)
+            ? [
+                for (var k = 0; k < waypoints.length; k++)
+                  snapped(SnapRole.waypoint, k) ?? waypoints[k],
+              ]
+            : null,
+      );
+      if (plan.outcome == LoopOutcome.ok) {
+        ref.read(routeViaProvider.notifier).begin(ViaOwner.loop);
+      }
     } catch (e, s) {
       // Geschlossen, während er rechnete: kein Fehler, nur zu spät.
       if (generation != _generation) return;
       logError('Runde planen', e, s);
-      state = state.copyWith(phase: LoopPhase.result, blocker: LoopBlocker.failed);
+      state = state.copyWith(
+        phase: LoopPhase.result,
+        blocker: LoopBlocker.failed,
+      );
     }
   }
 
@@ -1103,13 +1326,26 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
   /// Null, wenn der Graph steht — sonst der Grund, als Phase gesetzt
   /// (außer [quiet]) und zurückgegeben. Was nach einer Änderung der
   /// Generation ankommt, setzt nichts mehr.
-  Future<LoopBlocker?> _loadGraph(LatBox box,
-      {required bool fillOnline, required int generation, bool quiet = false}) async {
+  Future<LoopBlocker?> _loadGraph(
+    LatBox box, {
+    required bool fillOnline,
+    required int generation,
+    bool quiet = false,
+  }) async {
     if (!quiet) state = state.copyWith(phase: LoopPhase.loading);
-    final loaded = await ref.read(planningGraphLoaderProvider)(box, fillOnline: fillOnline);
+    final loaded = await ref.read(planningGraphLoaderProvider)(
+      box,
+      fillOnline: fillOnline,
+    );
     if (generation != _generation) return LoopBlocker.failed;
     LoopBlocker? fail(LoopBlocker b) {
-      if (!quiet) state = state.copyWith(phase: LoopPhase.result, blocker: b, coverage: loaded.summary);
+      if (!quiet) {
+        state = state.copyWith(
+          phase: LoopPhase.result,
+          blocker: b,
+          coverage: loaded.summary,
+        );
+      }
       return b;
     }
 
@@ -1120,7 +1356,12 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
     if (!quiet) state = state.copyWith(phase: LoopPhase.building);
     try {
       final report = await StallWatch.time(
-          'graph.build', () => runner.build(input, onProgress: quiet ? null : _progressFor(generation)));
+        'graph.build',
+        () => runner.build(
+          input,
+          onProgress: quiet ? null : _progressFor(generation),
+        ),
+      );
       // Die neu gebackenen Stücke in den Speicher (#380) — ohne darauf zu
       // warten: Gerechnet wird drüben, geschrieben hier.
       unawaited(loaded.keep(report));
@@ -1141,40 +1382,68 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
   /// Schreibt den Fortschritt der laufenden Phase in den Zustand — nur,
   /// solange die Rechnung noch die von [generation] ist.
   void Function(double value) _progressFor(int generation) => (value) {
-        if (generation == _generation && state.busy) state = state.copyWith(progress: value);
-      };
+    if (generation == _generation && state.busy) {
+      state = state.copyWith(progress: value);
+    }
+  };
 
   /// Die Route ohne gewählten Trail (#356, `route_result.dart`): Direkt
   /// und Bequem in einer Rechnung, Spaßig in zwei — passt kein Trail in
   /// den Umweg, bleibt es beim direkten Weg ([LoopSession.funEmpty]).
   Future<(LoopPlan, LoopRequest, bool)> _planRoute(
-      LoopPlanRunner runner, LatLng from, LatLng to, List<LatLng> waypoints, List<Trail> fun) async {
+    LoopPlanRunner runner,
+    LatLng from,
+    LatLng to,
+    List<LatLng> waypoints,
+    List<Trail> fun,
+  ) async {
     final prefs = state.prefs;
-    final rider = ref.read(calibratedRiderProvider(state.profile)).withPrefs(prefs.planRoute);
+    final rider = ref
+        .read(calibratedRiderProvider(state.profile))
+        .withPrefs(prefs.planRoute);
     final direct = LoopRequest(
-        start: from,
-        profile: rider,
-        budget: kRouteDirectBudget,
-        pool: const [],
-        returnToStart: false,
-        end: to,
-        waypoints: waypoints,
-        bare: true);
-    final plan = await StallWatch.time('route.direct', () => runner.plan(direct));
-    if (prefs.style != RouteMode.fun || plan.outcome != LoopOutcome.ok) return (plan, direct, false);
+      start: from,
+      profile: rider,
+      budget: kRouteDirectBudget,
+      pool: const [],
+      returnToStart: false,
+      end: to,
+      waypoints: waypoints,
+      bare: true,
+    );
+    final plan = await StallWatch.time(
+      'route.direct',
+      () => runner.plan(direct),
+    );
+    if (prefs.style != RouteMode.fun || plan.outcome != LoopOutcome.ok) {
+      return (plan, direct, false);
+    }
     final s = plan.summary!;
     final funRequest = LoopRequest(
-        start: from,
-        profile: rider,
-        budget: funBudgetOf(timeS: s.timeS, gainM: s.gainM, hikingM: s.hikingM, hikingKm: prefs.hikingKm),
-        pool: [for (final t in fun) poolTrailOf(serviceL10n(), t, weight: _weights[t.id] ?? 1)],
-        returnToStart: false,
-        end: to,
-        waypoints: waypoints,
-        bare: true);
-    final funPlan =
-        await StallWatch.time('route.fun', () => runner.plan(funRequest, onProgress: _progressFor(_generation)));
-    if (funPlan.outcome == LoopOutcome.ok && !funPlan.isEmpty) return (funPlan, funRequest, false);
+      start: from,
+      profile: rider,
+      budget: funBudgetOf(
+        timeS: s.timeS,
+        gainM: s.gainM,
+        hikingM: s.hikingM,
+        hikingKm: prefs.hikingKm,
+      ),
+      pool: [
+        for (final t in fun)
+          poolTrailOf(serviceL10n(), t, weight: _weights[t.id] ?? 1),
+      ],
+      returnToStart: false,
+      end: to,
+      waypoints: waypoints,
+      bare: true,
+    );
+    final funPlan = await StallWatch.time(
+      'route.fun',
+      () => runner.plan(funRequest, onProgress: _progressFor(_generation)),
+    );
+    if (funPlan.outcome == LoopOutcome.ok && !funPlan.isEmpty) {
+      return (funPlan, funRequest, false);
+    }
     return (plan, direct, true);
   }
 
@@ -1186,7 +1455,11 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
     final plan = state.plan;
     final request = _planRequest;
     final box = _graphBox;
-    if (plan == null || plan.outcome != LoopOutcome.ok || request == null || box == null || state.busy) {
+    if (plan == null ||
+        plan.outcome != LoopOutcome.ok ||
+        request == null ||
+        box == null ||
+        state.busy) {
       ref.read(routeViaProvider.notifier).reject(_vias);
       return;
     }
@@ -1196,14 +1469,21 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
       // Nach „Rückgängig" (10.5) ist der Runner neu und ohne Graphen: aus
       // denselben Bytes derselbe Graph, die Punkte sind Koordinaten.
       if (!_hasGraph) {
-        final blocked = await _loadGraph(box, fillOnline: _graphOnline, generation: generation, quiet: true);
+        final blocked = await _loadGraph(
+          box,
+          fillOnline: _graphOnline,
+          generation: generation,
+          quiet: true,
+        );
         if (generation != _generation || seq != _tuneSeq) return;
         if (blocked != null) {
           ref.read(routeViaProvider.notifier).reject(_vias);
           return;
         }
       }
-      final next = await _runner!.plan(request.withTune(LoopTune.of(plan, vias)));
+      final next = await _runner!.plan(
+        request.withTune(LoopTune.of(plan, vias)),
+      );
       // Ein späterer Zug hat schon eine neue Rechnung geschickt.
       if (generation != _generation || seq != _tuneSeq) return;
       if (next.outcome != LoopOutcome.ok) {
@@ -1230,16 +1510,23 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
   /// („Bearbeiten" nimmt sie mit).
   Future<void> showState(int k) async {
     final s0 = state;
-    if (!s0.hasStrip || k < 0 || k >= s0.strip.length || k == s0.stripShown || s0.busy) return;
+    if (!s0.hasStrip ||
+        k < 0 ||
+        k >= s0.strip.length ||
+        k == s0.stripShown ||
+        s0.busy) {
+      return;
+    }
     final suggest = s0.suggestReachM != null;
     final seq = ++_stateSeq;
     final pick = _pickPlan;
     if (k == s0.stripPick && pick != null) {
       state = s0.copyWith(
-          plan: pick,
-          stripShown: k,
-          stripRaw: false,
-          selected: suggest ? {for (final st in pick.stops) st.trail.id} : null);
+        plan: pick,
+        stripShown: k,
+        stripRaw: false,
+        selected: suggest ? {for (final st in pick.stops) st.trail.id} : null,
+      );
       return;
     }
     final request = _planRequest;
@@ -1249,8 +1536,15 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
     final generation = _generation;
     try {
       if (!_hasGraph) {
-        final blocked = await _loadGraph(box, fillOnline: _graphOnline, generation: generation, quiet: true);
-        if (generation != _generation || seq != _stateSeq || blocked != null) return;
+        final blocked = await _loadGraph(
+          box,
+          fillOnline: _graphOnline,
+          generation: generation,
+          quiet: true,
+        );
+        if (generation != _generation || seq != _stateSeq || blocked != null) {
+          return;
+        }
       }
       final next = await _runner!.plan(request.withState(s0.strip[k].order));
       if (generation != _generation || seq != _stateSeq) return;
@@ -1261,10 +1555,11 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
       final strip = [...state.strip];
       if (next.self case final self?) strip[k] = strip[k].refinedBy(self);
       state = state.copyWith(
-          plan: next,
-          strip: strip,
-          stripRaw: false,
-          selected: suggest ? {for (final st in next.stops) st.trail.id} : null);
+        plan: next,
+        strip: strip,
+        stripRaw: false,
+        selected: suggest ? {for (final st in next.stops) st.trail.id} : null,
+      );
     } catch (e, s) {
       if (generation != _generation || seq != _stateSeq) return;
       logError('Runde: anderer Stand', e, s);
@@ -1290,7 +1585,12 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
     final generation = _generation;
     try {
       if (!_hasGraph) {
-        final blocked = await _loadGraph(box, fillOnline: _graphOnline, generation: generation, quiet: true);
+        final blocked = await _loadGraph(
+          box,
+          fillOnline: _graphOnline,
+          generation: generation,
+          quiet: true,
+        );
         if (generation != _generation) return;
         if (blocked != null) {
           state = state.copyWith(overOn: false, overBusy: false);
@@ -1332,4 +1632,6 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
   }
 }
 
-final loopPlannerProvider = NotifierProvider<LoopPlannerNotifier, LoopSession>(LoopPlannerNotifier.new);
+final loopPlannerProvider = NotifierProvider<LoopPlannerNotifier, LoopSession>(
+  LoopPlannerNotifier.new,
+);

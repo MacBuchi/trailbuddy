@@ -79,15 +79,19 @@ class _UpdateRequiredScreen extends ConsumerWidget {
                 children: [
                   const TrailBuddyMark(size: 88),
                   const SizedBox(height: 24),
-                  Text(l.updateRequiredTitle,
-                      style: textTheme.headlineSmall
-                          ?.copyWith(color: scheme.onSurface),
-                      textAlign: TextAlign.center),
+                  Text(
+                    l.updateRequiredTitle,
+                    style: textTheme.headlineSmall?.copyWith(
+                      color: scheme.onSurface,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
                   const SizedBox(height: 12),
                   Text(
                     l.updateRequiredBody,
-                    style: textTheme.bodyMedium
-                        ?.copyWith(color: scheme.onSurfaceVariant),
+                    style: textTheme.bodyMedium?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 20),
@@ -97,16 +101,18 @@ class _UpdateRequiredScreen extends ConsumerWidget {
                   if (current != null && minimum != null)
                     Text(
                       l.updateRequiredVersions(current, minimum),
-                      style: textTheme.bodySmall
-                          ?.copyWith(color: scheme.onSurfaceVariant),
+                      style: textTheme.bodySmall?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
                       textAlign: TextAlign.center,
                     ),
                   const SizedBox(height: 24),
                   FilledButton.icon(
                     onPressed: () => _openAction(url),
                     icon: const Icon(
-                        kIsWeb ? Icons.refresh : Icons.open_in_browser,
-                        size: 18),
+                      kIsWeb ? Icons.refresh : Icons.open_in_browser,
+                      size: 18,
+                    ),
                     label: Text(label),
                   ),
                 ],

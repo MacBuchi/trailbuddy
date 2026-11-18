@@ -18,7 +18,12 @@ class TrackPoint {
 /// hintereinander (ein Segmentbruch ist eine Lücke, kein neuer Trail) —
 /// oder ein `<rte>`, wenn die Datei nur eine Route trägt.
 class GpxTrack {
-  const GpxTrack({required this.name, required this.points, this.link, this.terrainHeights = false});
+  const GpxTrack({
+    required this.name,
+    required this.points,
+    this.link,
+    this.terrainHeights = false,
+  });
 
   final String name;
   final List<TrackPoint> points;
@@ -57,11 +62,13 @@ class GpxFormatException implements Exception {
   final String? detail;
   final String? root;
 
-  String message(AppLocalizations l) => root != null ? l.gpxNotGpx(root!) : l.gpxNotXml(detail ?? '');
+  String message(AppLocalizations l) =>
+      root != null ? l.gpxNotGpx(root!) : l.gpxNotXml(detail ?? '');
 
   @override
-  String toString() =>
-      root != null ? 'GpxFormatException: Wurzel <$root>' : 'GpxFormatException: kein XML ($detail)';
+  String toString() => root != null
+      ? 'GpxFormatException: Wurzel <$root>'
+      : 'GpxFormatException: kein XML ($detail)';
 }
 
 /// Liest alle Spuren einer GPX-Datei. Namensräume werden ignoriert:
@@ -96,16 +103,26 @@ List<GpxTrack> parseGpx(String xml, {String fallbackName = 'Ohne Namen'}) {
       _collect(seg.findElements('trkpt'), points, withEle: !terrain);
     }
     if (points.length >= 2) {
-      tracks.add(GpxTrack(
-          name: _name(trk) ?? fallbackName, points: points, link: _link(trk) ?? fileLink));
+      tracks.add(
+        GpxTrack(
+          name: _name(trk) ?? fallbackName,
+          points: points,
+          link: _link(trk) ?? fileLink,
+        ),
+      );
     }
   }
   for (final rte in root.findElements('rte')) {
     final points = <TrackPoint>[];
     _collect(rte.findElements('rtept'), points, withEle: !_terrainMarked(rte));
     if (points.length >= 2) {
-      tracks.add(GpxTrack(
-          name: _name(rte) ?? fallbackName, points: points, link: _link(rte) ?? fileLink));
+      tracks.add(
+        GpxTrack(
+          name: _name(rte) ?? fallbackName,
+          points: points,
+          link: _link(rte) ?? fileLink,
+        ),
+      );
     }
   }
   return tracks;
@@ -145,7 +162,11 @@ String decodeTrackName(String name) {
   }
 }
 
-void _collect(Iterable<XmlElement> elements, List<TrackPoint> into, {bool withEle = true}) {
+void _collect(
+  Iterable<XmlElement> elements,
+  List<TrackPoint> into, {
+  bool withEle = true,
+}) {
   for (final p in elements) {
     final lat = double.tryParse(p.getAttribute('lat') ?? '');
     final lon = double.tryParse(p.getAttribute('lon') ?? '');
@@ -156,7 +177,9 @@ void _collect(Iterable<XmlElement> elements, List<TrackPoint> into, {bool withEl
         (into.last.lon - lon).abs() < 1e-9) {
       continue;
     }
-    final ele = withEle ? double.tryParse(p.getElement('ele')?.innerText.trim() ?? '') : null;
+    final ele = withEle
+        ? double.tryParse(p.getElement('ele')?.innerText.trim() ?? '')
+        : null;
     final timeText = p.getElement('time')?.innerText.trim();
     final time = timeText == null ? null : DateTime.tryParse(timeText);
     into.add(TrackPoint(lat, lon, ele: ele, time: time?.toUtc()));

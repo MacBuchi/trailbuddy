@@ -29,7 +29,9 @@ const minUsernameLength = 3;
 /// kostet einen anderen Namen, nicht ein preisgegebenes Postfach.
 String? usernameProblem(AppLocalizations l, String username) {
   final name = username.trim();
-  if (name.length < minUsernameLength) return l.usernameTooShort(minUsernameLength);
+  if (name.length < minUsernameLength) {
+    return l.usernameTooShort(minUsernameLength);
+  }
   if (_emailShaped.hasMatch(name)) return l.usernameLooksLikeEmail;
   return null;
 }
@@ -38,7 +40,8 @@ final _emailShaped = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
 
 /// Ist das der Name, den der Trigger `handle_new_user` vergibt, wenn die
 /// Anmeldung keinen mitbringt — bei Google & Co. immer (#398, #422)?
-bool isAssignedUsername(String username) => _assignedUsername.hasMatch(username);
+bool isAssignedUsername(String username) =>
+    _assignedUsername.hasMatch(username);
 
 final _assignedUsername = RegExp(r'^trailbuddy_[0-9a-f]{8}$');
 
@@ -64,9 +67,9 @@ class Profile {
   });
 
   factory Profile.fromJson(Map<String, dynamic> json) => Profile(
-        id: json['id'] as String,
-        username: json['username'] as String,
-        displayName: json['display_name'] as String?,
-        avatar: json['avatar'] as int? ?? 0,
-      );
+    id: json['id'] as String,
+    username: json['username'] as String,
+    displayName: json['display_name'] as String?,
+    avatar: json['avatar'] as int? ?? 0,
+  );
 }

@@ -16,7 +16,8 @@
 //   Höhen.
 //
 // Rein: keine Widgets, kein Riverpod, keine Platte.
-import '../offline_areas/height_tiles.dart' show hysteresisClimb, kClimbHysteresisM;
+import '../offline_areas/height_tiles.dart'
+    show hysteresisClimb, kClimbHysteresisM;
 import '../routing/loop_planner.dart' show LoopPrefs;
 import '../routing/route_profile.dart';
 import 'ride_profile_guess.dart';
@@ -32,7 +33,9 @@ const kClimbLimitStepM = LoopPrefs.climbStep;
 /// ohne Höhen.
 double? rideClimbM(List<RidePoint> pts) {
   if (pts.length < 2 || pts.any((p) => p.altM == null)) return null;
-  final smooth = smoothElevation([for (final p in pts) p.altM!], kSplitSmoothWindow);
+  final smooth = smoothElevation([
+    for (final p in pts) p.altM!,
+  ], kSplitSmoothWindow);
   return hysteresisClimb(smooth, kClimbHysteresisM).$1;
 }
 
@@ -72,7 +75,13 @@ class ClimbLimitOffer {
     if (f[0].isEmpty || climb == null || to == null) return null;
     final bike = RiderProfile.values.where((p) => p.name == f[1]).firstOrNull;
     if (bike == null) return null;
-    return ClimbLimitOffer(rideId: f[0], bike: bike, climbM: climb, toM: to, askEbike: f[4] == '1');
+    return ClimbLimitOffer(
+      rideId: f[0],
+      bike: bike,
+      climbM: climb,
+      toM: to,
+      askEbike: f[4] == '1',
+    );
   }
 }
 
@@ -89,16 +98,25 @@ bool climbLimitExceeded(LoopPrefs prefs, RiderProfile bike, double climbM) {
 /// Der Vorschlag nach [ride], oder null. [bio] und [ebike] sind die
 /// Profile, mit denen geplant wird (gelernt, wo gelernt ist) — dieselben
 /// wie beim Vorschlag des Rads im Import (`guessRideProfile`, #227).
-ClimbLimitOffer? climbLimitOfferFor(Ride ride, LoopPrefs prefs,
-    {RiderParams bio = RiderProfile.bio, RiderParams ebike = RiderProfile.ebike}) {
+ClimbLimitOffer? climbLimitOfferFor(
+  Ride ride,
+  LoopPrefs prefs, {
+  RiderParams bio = RiderProfile.bio,
+  RiderParams ebike = RiderProfile.ebike,
+}) {
   if (ride.planned || ride.imported || ride.fromWatch) return null;
-  final bike = RiderProfile.values.where((p) => p.name == ride.profile).firstOrNull;
+  final bike = RiderProfile.values
+      .where((p) => p.name == ride.profile)
+      .firstOrNull;
   if (bike == null) return null;
   final raw = rideClimbM(ride.points);
   if (raw == null) return null;
   final climb = (raw / kClimbLimitStepM).floorToDouble() * kClimbLimitStepM;
   if (!climbLimitExceeded(prefs, bike, climb)) return null;
-  final askEbike = bike == RiderProfile.bio && guessRideProfile(ride.points, bio: bio, ebike: ebike) == RiderProfile.ebike;
+  final askEbike =
+      bike == RiderProfile.bio &&
+      guessRideProfile(ride.points, bio: bio, ebike: ebike) ==
+          RiderProfile.ebike;
   return ClimbLimitOffer(
     rideId: ride.id,
     bike: bike,
@@ -110,7 +128,12 @@ ClimbLimitOffer? climbLimitOfferFor(Ride ride, LoopPrefs prefs,
 
 /// Was eine Antwort bewirkt hat — für die Zeile danach und „Rückgängig".
 class ClimbLimitAnswer {
-  const ClimbLimitAnswer({required this.before, required this.after, this.raisedBike, this.movedToEbike = false});
+  const ClimbLimitAnswer({
+    required this.before,
+    required this.after,
+    this.raisedBike,
+    this.movedToEbike = false,
+  });
 
   /// Die Limits vor und nach der Antwort (Rückgängig stellt [before] her).
   final LoopPrefs before, after;
@@ -126,13 +149,18 @@ class ClimbLimitAnswer {
 /// Bestätigung, 12.5a): das Limit fürs Rad auf [ClimbLimitOffer.toM], ein
 /// altes „Nein" ist erledigt.
 ClimbLimitAnswer raiseClimbLimit(LoopPrefs prefs, ClimbLimitOffer offer) {
-  final after = prefs.withClimb(offer.bike, offer.toM).withDeclined(offer.bike, null);
+  final after = prefs
+      .withClimb(offer.bike, offer.toM)
+      .withDeclined(offer.bike, null);
   return ClimbLimitAnswer(before: prefs, after: after, raisedBike: offer.bike);
 }
 
 /// „Nein": gemerkt, bis eine Fahrt den Wert um einen Schritt übertrifft.
 ClimbLimitAnswer declineClimbLimit(LoopPrefs prefs, ClimbLimitOffer offer) =>
-    ClimbLimitAnswer(before: prefs, after: prefs.withDeclined(offer.bike, offer.climbM));
+    ClimbLimitAnswer(
+      before: prefs,
+      after: prefs.withDeclined(offer.bike, offer.climbM),
+    );
 
 /// „Ja, E-Bike": Die Fahrt wird umgeordnet (das macht der Aufrufer), und
 /// verglichen wird mit dem E-Limit — übertrifft sie es, hebt das Ja es an,
@@ -142,7 +170,9 @@ ClimbLimitAnswer ebikeClimbLimit(LoopPrefs prefs, ClimbLimitOffer offer) {
   if (!climbLimitExceeded(prefs, e, offer.climbM)) {
     return ClimbLimitAnswer(before: prefs, after: prefs, movedToEbike: true);
   }
-  final to = offer.climbM > LoopPrefs.maxClimb ? LoopPrefs.maxClimb : offer.climbM;
+  final to = offer.climbM > LoopPrefs.maxClimb
+      ? LoopPrefs.maxClimb
+      : offer.climbM;
   return ClimbLimitAnswer(
     before: prefs,
     after: prefs.withClimb(e, to).withDeclined(e, null),

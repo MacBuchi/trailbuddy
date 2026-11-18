@@ -37,6 +37,7 @@ abstract final class NavCoach {
 abstract final class MapCoach {
   /// Die Knopfspalte rechts.
   static const buttons = 'map.buttons';
+
   /// Die Glühbirne, seit 0.75.0 oben rechts (#180) — nicht mehr in [buttons].
   static const feedback = 'map.feedback';
 
@@ -140,123 +141,127 @@ abstract final class SheetCoach {
 /// bei PilzBuddy. „Nicht jetzt" merkt die Tour als gesehen (#417); sie
 /// bleibt in der Kurzanleitung startbar.
 CoachStep welcomeIntro(AppLocalizations l) => CoachStep(
-      id: 'welcome',
-      title: l.tourWelcomeTitle,
-      text: l.tourWelcomeText,
-      art: welcomeArt,
-      startLabel: l.tourWelcomeStart,
-    );
+  id: 'welcome',
+  title: l.tourWelcomeTitle,
+  text: l.tourWelcomeText,
+  art: welcomeArt,
+  startLabel: l.tourWelcomeStart,
+);
 
 /// Die Startseite, wenn die Karten-Tour aus der Kurzanleitung kommt.
 CoachStep mapIntro(AppLocalizations l) => CoachStep(
-      id: 'map.intro',
-      title: l.tourMapIntroTitle,
-      text: l.tourMapIntroText,
-      art: mapArt,
-    );
+  id: 'map.intro',
+  title: l.tourMapIntroTitle,
+  text: l.tourMapIntroText,
+  art: mapArt,
+);
 
 /// Zum Schluss der Karten-Tour die Bereiche unten, je ein Halbsatz.
 CoachStep navStep(AppLocalizations l) => CoachStep(
-      id: 'map.nav',
-      title: l.tourMapNavTitle,
-      text: l.tourMapNavText,
-      lit: const [NavCoach.bar],
-      ring: const [NavCoach.trails, NavCoach.buddys, NavCoach.profile],
-    );
+  id: 'map.nav',
+  title: l.tourMapNavTitle,
+  text: l.tourMapNavText,
+  lit: const [NavCoach.bar],
+  ring: const [NavCoach.trails, NavCoach.buddys, NavCoach.profile],
+);
 
 /// Die Karten-Tour. Eine Funktion und keine Konstante, weil die Texte aus
 /// den ARB-Dateien kommen (#209); Vorführungen finden ihre Schritte über
 /// die `id`, nie über den Titel — der ist je Sprache ein anderer.
 CoachScript mapTourScript(AppLocalizations l) => CoachScript(
-      id: 'map',
-      endLink: (l.helpTitle, '/profile/help'),
-      steps: [
-        mapIntro(l),
-        CoachStep(
-          id: 'map.badge',
-          title: l.tourMapBadgeTitle,
-          text: l.tourMapBadgeText,
-          lit: const [MapCoach.trailBadge],
-          gesture: CoachGesture.tap,
-          requires: const [MapCoach.trailBadge],
-        ),
-        CoachStep(
-          id: 'map.sheet',
-          title: l.tourMapSheetTitle,
-          text: l.tourMapSheetText,
-          scene: MapCoach.trailSheet,
-          lit: const [SheetCoach.metrics],
-          // Ohne Trail kein Blatt. Der Anker im Blatt steht NICHT in
-          // `requires` — er entsteht erst mit der Szene dieses Schritts.
-          unless: const [MapCoach.empty],
-        ),
-        CoachStep(
-          id: 'map.colors',
-          title: l.tourMapColorsTitle,
-          text: l.tourMapColorsText,
-          // Die Linien zeichnet die Engine, sie sind keine Widgets — aber die
-          // Legende auf der Karte ist eins (#182, seit 0.77.0). Bis dahin stand
-          // eine gezeichnete Mini-Legende in der Blase.
-          scene: MapCoach.legend,
-          lit: const [MapCoach.legend],
-        ),
-        CoachStep(
-          id: 'map.layers',
-          title: l.tourMapLayersTitle,
-          text: l.tourMapLayersText,
-          lit: const [MapCoach.buttons],
-          ring: const [MapCoach.layers],
-        ),
-        CoachStep(
-          id: 'map.layersSheet',
-          title: l.tourMapLayersSheetTitle,
-          text: l.tourMapLayersSheetText,
-          scene: MapCoach.layersSheet,
-          lit: const [MapCoach.filterOfficial, MapCoach.filterWays, MapCoach.filterPois],
-        ),
-        CoachStep(
-          id: 'map.offline',
-          title: l.tourMapOfflineTitle,
-          text: l.tourMapOfflineText,
-          lit: const [MapCoach.buttons],
-          ring: const [MapCoach.offline],
-        ),
-        CoachStep(
-          id: 'map.rail',
-          title: l.tourMapRailTitle,
-          text: l.tourMapRailText,
-          scene: MapCoach.rail,
-          lit: const [MapCoach.rail],
-          ring: const [MapCoach.railDraw],
-        ),
-        CoachStep(
-          id: 'map.position',
-          title: l.tourMapPositionTitle,
-          text: l.tourMapPositionText,
-          lit: const [MapCoach.buttons, MapCoach.feedback],
-          ring: const [MapCoach.feedback, MapCoach.locate],
-        ),
-        CoachStep(
-          id: 'map.record',
-          title: l.tourMapRecordTitle,
-          text: l.tourMapRecordText,
-          lit: const [MapCoach.buttons],
-          ring: const [MapCoach.record],
-          // Nur in der Android-App; im Browser fällt der Schritt weg.
-          requires: const [MapCoach.record],
-        ),
-        navStep(l),
+  id: 'map',
+  endLink: (l.helpTitle, '/profile/help'),
+  steps: [
+    mapIntro(l),
+    CoachStep(
+      id: 'map.badge',
+      title: l.tourMapBadgeTitle,
+      text: l.tourMapBadgeText,
+      lit: const [MapCoach.trailBadge],
+      gesture: CoachGesture.tap,
+      requires: const [MapCoach.trailBadge],
+    ),
+    CoachStep(
+      id: 'map.sheet',
+      title: l.tourMapSheetTitle,
+      text: l.tourMapSheetText,
+      scene: MapCoach.trailSheet,
+      lit: const [SheetCoach.metrics],
+      // Ohne Trail kein Blatt. Der Anker im Blatt steht NICHT in
+      // `requires` — er entsteht erst mit der Szene dieses Schritts.
+      unless: const [MapCoach.empty],
+    ),
+    CoachStep(
+      id: 'map.colors',
+      title: l.tourMapColorsTitle,
+      text: l.tourMapColorsText,
+      // Die Linien zeichnet die Engine, sie sind keine Widgets — aber die
+      // Legende auf der Karte ist eins (#182, seit 0.77.0). Bis dahin stand
+      // eine gezeichnete Mini-Legende in der Blase.
+      scene: MapCoach.legend,
+      lit: const [MapCoach.legend],
+    ),
+    CoachStep(
+      id: 'map.layers',
+      title: l.tourMapLayersTitle,
+      text: l.tourMapLayersText,
+      lit: const [MapCoach.buttons],
+      ring: const [MapCoach.layers],
+    ),
+    CoachStep(
+      id: 'map.layersSheet',
+      title: l.tourMapLayersSheetTitle,
+      text: l.tourMapLayersSheetText,
+      scene: MapCoach.layersSheet,
+      lit: const [
+        MapCoach.filterOfficial,
+        MapCoach.filterWays,
+        MapCoach.filterPois,
       ],
-    );
+    ),
+    CoachStep(
+      id: 'map.offline',
+      title: l.tourMapOfflineTitle,
+      text: l.tourMapOfflineText,
+      lit: const [MapCoach.buttons],
+      ring: const [MapCoach.offline],
+    ),
+    CoachStep(
+      id: 'map.rail',
+      title: l.tourMapRailTitle,
+      text: l.tourMapRailText,
+      scene: MapCoach.rail,
+      lit: const [MapCoach.rail],
+      ring: const [MapCoach.railDraw],
+    ),
+    CoachStep(
+      id: 'map.position',
+      title: l.tourMapPositionTitle,
+      text: l.tourMapPositionText,
+      lit: const [MapCoach.buttons, MapCoach.feedback],
+      ring: const [MapCoach.feedback, MapCoach.locate],
+    ),
+    CoachStep(
+      id: 'map.record',
+      title: l.tourMapRecordTitle,
+      text: l.tourMapRecordText,
+      lit: const [MapCoach.buttons],
+      ring: const [MapCoach.record],
+      // Nur in der Android-App; im Browser fällt der Schritt weg.
+      requires: const [MapCoach.record],
+    ),
+    navStep(l),
+  ],
+);
 
 /// Die Karten-Tour beim ersten Start: mit der Willkommensseite statt der
 /// Karten-Startseite und OHNE den Weg in die Kurzanleitung am Ende —
 /// `startWelcomeTour` (`tab_tours.dart`) hängt die Reiter-Touren an, und
 /// die Kette liefe sonst gleichzeitig in die Kurzanleitung.
 CoachScript welcomeTourScript(AppLocalizations l) => CoachScript(
-      id: 'map',
-      steps: [welcomeIntro(l), ...mapTourScript(l).tourSteps],
-    );
+  id: 'map',
+  steps: [welcomeIntro(l), ...mapTourScript(l).tourSteps],
+);
 
 /// Startet die Tour und merkt sich danach, dass sie gesehen wurde —
 /// durchgesehen, übersprungen ODER abgelehnt: Wer abbricht, hat
@@ -267,8 +272,13 @@ CoachScript welcomeTourScript(AppLocalizations l) => CoachScript(
 /// die Tour endet — und ein `ref` eines abgebauten Widgets wirft.
 void startMapTour(AppLocalizations l, WidgetRef ref) {
   final seen = ref.read(mapTourSeenProvider.notifier);
-  ref.read(coachProvider.notifier).start(mapTourScript(l),
-      onDone: () => seen.set(true), onDecline: () => seen.set(true));
+  ref
+      .read(coachProvider.notifier)
+      .start(
+        mapTourScript(l),
+        onDone: () => seen.set(true),
+        onDecline: () => seen.set(true),
+      );
 }
 
 /// Hat der Nutzer die Karten-Tour schon gesehen? Gerätelokal, Schlüssel

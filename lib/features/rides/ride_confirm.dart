@@ -67,12 +67,14 @@ class ConfirmTarget {
   final int? condition;
 
   Map<String, dynamic> toJson() => {
-        'trail': trailId,
-        'name': name,
-        if (status != null) 'status': status!.db,
-        if (condition != null) 'condition': condition,
-        'line': [for (final p in line) [p.latitude, p.longitude]],
-      };
+    'trail': trailId,
+    'name': name,
+    if (status != null) 'status': status!.db,
+    if (condition != null) 'condition': condition,
+    'line': [
+      for (final p in line) [p.latitude, p.longitude],
+    ],
+  };
 
   static ConfirmTarget? fromJson(Object? json) {
     if (json is! Map<String, dynamic>) return null;
@@ -84,7 +86,9 @@ class ConfirmTarget {
         if (p is List && p.length == 2 && p[0] is num && p[1] is num)
           LatLng((p[0] as num).toDouble(), (p[1] as num).toDouble()),
     ];
-    final status = json['status'] is String ? TrailStatus.fromDb(json['status'] as String) : null;
+    final status = json['status'] is String
+        ? TrailStatus.fromDb(json['status'] as String)
+        : null;
     final condition = (json['condition'] as num?)?.toInt();
     if (line.length < 2 || (status == null && condition == null)) return null;
     return ConfirmTarget(
@@ -92,7 +96,9 @@ class ConfirmTarget {
       name: json['name'] as String? ?? 'Trail',
       line: line,
       status: status,
-      condition: condition != null && condition >= 1 && condition <= 5 ? condition : null,
+      condition: condition != null && condition >= 1 && condition <= 5
+          ? condition
+          : null,
     );
   }
 }
@@ -101,27 +107,39 @@ class ConfirmTarget {
 /// angezeigten unbestätigten Meldung oder einem unbestätigten Zustand —
 /// auch die eigene („stimmt deine Meldung noch?"). Wartende Trails haben
 /// keine Kennung beim Server und fallen weg.
-List<ConfirmTarget> confirmTargetsOf(AppLocalizations l, Iterable<Trail> trails) => [
-      for (final t in trails)
-        if (!t.pending && t.points.length >= 2)
-          if (_unconfirmed(t) case (final status, final condition)
-              when status != null || condition != null)
-            ConfirmTarget(
-              trailId: t.id,
-              name: t.displayName(l),
-              line: t.points,
-              status: status,
-              condition: condition,
-            ),
-    ];
+List<ConfirmTarget> confirmTargetsOf(
+  AppLocalizations l,
+  Iterable<Trail> trails,
+) => [
+  for (final t in trails)
+    if (!t.pending && t.points.length >= 2)
+      if (_unconfirmed(t) case (
+        final status,
+        final condition,
+      ) when status != null || condition != null)
+        ConfirmTarget(
+          trailId: t.id,
+          name: t.displayName(l),
+          line: t.points,
+          status: status,
+          condition: condition,
+        ),
+];
 
-(TrailStatus?, int?) _unconfirmed(Trail t) =>
-    (t.shownStatus.unconfirmed?.status, t.shownCondition.unconfirmed?.condition);
+(TrailStatus?, int?) _unconfirmed(Trail t) => (
+  t.shownStatus.unconfirmed?.status,
+  t.shownCondition.unconfirmed?.condition,
+);
 
 /// Die Datei, die App und Service teilen. Das Konto steht darin: Die
 /// Ziele eines anderen Kontos gehören nicht in eine fremde Fahrt.
-String encodeConfirmTargets({required String uid, required List<ConfirmTarget> targets}) =>
-    jsonEncode({'uid': uid, 'targets': [for (final t in targets) t.toJson()]});
+String encodeConfirmTargets({
+  required String uid,
+  required List<ConfirmTarget> targets,
+}) => jsonEncode({
+  'uid': uid,
+  'targets': [for (final t in targets) t.toJson()],
+});
 
 List<ConfirmTarget> decodeConfirmTargets(String text, {required String uid}) {
   try {
@@ -147,12 +165,15 @@ ConfirmTarget? confirmPromptFor({
   required Set<String> asked,
 }) {
   if (previous == null) return null;
-  if (current.accuracyM > kConfirmMaxAccuracyM || previous.accuracyM > kConfirmMaxAccuracyM) {
+  if (current.accuracyM > kConfirmMaxAccuracyM ||
+      previous.accuracyM > kConfirmMaxAccuracyM) {
     return null;
   }
   final a = LatLng(previous.lat, previous.lng);
   final b = LatLng(current.lat, current.lng);
-  if (const Distance().as(LengthUnit.Meter, a, b) < kConfirmMinTravelM) return null;
+  if (const Distance().as(LengthUnit.Meter, a, b) < kConfirmMinTravelM) {
+    return null;
+  }
   final here = LatBox.of([a, b]);
   ConfirmTarget? best;
   var bestD = double.infinity;
@@ -160,7 +181,9 @@ ConfirmTarget? confirmPromptFor({
     if (asked.contains(t.trailId) || !t.box.near(here, kConfirmNearM)) continue;
     final dA = distanceToLineM(a, t.line);
     final dB = distanceToLineM(b, t.line);
-    if (dA == null || dB == null || dA > kConfirmNearM || dB > kConfirmNearM) continue;
+    if (dA == null || dB == null || dA > kConfirmNearM || dB > kConfirmNearM) {
+      continue;
+    }
     if (dB < bestD) {
       best = t;
       bestD = dB;
@@ -186,18 +209,26 @@ enum ConfirmChoice {
   const ConfirmChoice(this.id);
   final String id;
 
-  static ConfirmChoice? fromId(String? id) => values.where((c) => c.id == id).firstOrNull;
+  static ConfirmChoice? fromId(String? id) =>
+      values.where((c) => c.id == id).firstOrNull;
 }
 
 /// Was die Benachrichtigung zeigt. Der Trailname steht darin (Betreiber,
 /// 2026-09-30): Sie ist lokal, nichts davon geht über einen Server.
-typedef ConfirmNotice = ({String title, String body, List<(ConfirmChoice, String)> actions});
+typedef ConfirmNotice = ({
+  String title,
+  String body,
+  List<(ConfirmChoice, String)> actions,
+});
 
 ConfirmNotice confirmNoticeOf(AppLocalizations l, ConfirmTarget t) {
   final parts = <String>[
     if (t.status != null)
-      t.status == TrailStatus.open ? l.confirmReportedOpen : l.confirmReportedStatus(t.status!.label(l).toLowerCase()),
-    if (t.condition != null) l.confirmCondition(trailConditionLabel(l, t.condition!)),
+      t.status == TrailStatus.open
+          ? l.confirmReportedOpen
+          : l.confirmReportedStatus(t.status!.label(l).toLowerCase()),
+    if (t.condition != null)
+      l.confirmCondition(trailConditionLabel(l, t.condition!)),
   ];
   final warns = t.status != null && t.status!.warns;
   return (
@@ -211,7 +242,8 @@ ConfirmNotice confirmNoticeOf(AppLocalizations l, ConfirmTarget t) {
   );
 }
 
-String _capitalize(String s) => s.isEmpty ? s : s[0].toUpperCase() + s.substring(1);
+String _capitalize(String s) =>
+    s.isEmpty ? s : s[0].toUpperCase() + s.substring(1);
 
 /// Eine Zeile im Protokoll der Fahrt: gefragt (mit dem Wert, der da
 /// stand — die Ziel-Datei kann sich danach ändern) oder beantwortet.
@@ -229,14 +261,17 @@ sealed class ConfirmEvent {
     if (at == null) return null;
     final asked = json['asked'];
     if (asked is String) {
-      final status = json['status'] is String ? TrailStatus.fromDb(json['status'] as String) : null;
+      final status = json['status'] is String
+          ? TrailStatus.fromDb(json['status'] as String)
+          : null;
       final condition = (json['condition'] as num?)?.toInt();
       return ConfirmAsked(
-          trailId: asked,
-          at: at,
-          name: json['name'] as String? ?? 'Trail',
-          status: status,
-          condition: condition);
+        trailId: asked,
+        at: at,
+        name: json['name'] as String? ?? 'Trail',
+        status: status,
+        condition: condition,
+      );
     }
     final answered = json['answer'];
     final choice = ConfirmChoice.fromId(json['choice'] as String?);
@@ -260,7 +295,13 @@ class ConfirmAsked extends ConfirmEvent {
   });
 
   ConfirmAsked.of(ConfirmTarget t, {required DateTime at})
-      : this(trailId: t.trailId, at: at, name: t.name, status: t.status, condition: t.condition);
+    : this(
+        trailId: t.trailId,
+        at: at,
+        name: t.name,
+        status: t.status,
+        condition: t.condition,
+      );
 
   final String name;
   final TrailStatus? status;
@@ -268,24 +309,28 @@ class ConfirmAsked extends ConfirmEvent {
 
   @override
   Map<String, dynamic> toJson() => {
-        'asked': trailId,
-        'name': name,
-        if (status != null) 'status': status!.db,
-        if (condition != null) 'condition': condition,
-        'at': at.toUtc().toIso8601String(),
-      };
+    'asked': trailId,
+    'name': name,
+    if (status != null) 'status': status!.db,
+    if (condition != null) 'condition': condition,
+    'at': at.toUtc().toIso8601String(),
+  };
 }
 
 class ConfirmAnswered extends ConfirmEvent {
-  const ConfirmAnswered({required super.trailId, required super.at, required this.choice});
+  const ConfirmAnswered({
+    required super.trailId,
+    required super.at,
+    required this.choice,
+  });
   final ConfirmChoice choice;
 
   @override
   Map<String, dynamic> toJson() => {
-        'answer': trailId,
-        'choice': choice.id,
-        'at': at.toUtc().toIso8601String(),
-      };
+    'answer': trailId,
+    'choice': choice.id,
+    'at': at.toUtc().toIso8601String(),
+  };
 }
 
 /// Was aus den Antworten einer Fahrt als Meldung hinausgeht — je Trail
@@ -293,7 +338,12 @@ class ConfirmAnswered extends ConfirmEvent {
 /// ohne Antwort schreiben nichts (die fragt das Zerlege-Blatt). Eine
 /// Antwort ohne Frage (fremde Zeile) auch nicht: Was bestätigt wird,
 /// steht in der Frage.
-typedef ConfirmReport = ({String trailId, TrailStatus? status, int? condition, DateTime at});
+typedef ConfirmReport = ({
+  String trailId,
+  TrailStatus? status,
+  int? condition,
+  DateTime at,
+});
 
 List<ConfirmReport> confirmReportsOf(Iterable<ConfirmEvent> events) {
   final asked = <String, ConfirmAsked>{};
@@ -313,10 +363,20 @@ List<ConfirmReport> confirmReportsOf(Iterable<ConfirmEvent> events) {
   ];
 }
 
-ConfirmReport? _reportFor(ConfirmAsked q, ConfirmAnswered a) => switch (a.choice) {
-      ConfirmChoice.confirm when q.status != null || q.condition != null =>
-        (trailId: q.trailId, status: q.status, condition: q.condition, at: a.at),
-      ConfirmChoice.free => (trailId: q.trailId, status: TrailStatus.open, condition: null, at: a.at),
+ConfirmReport? _reportFor(ConfirmAsked q, ConfirmAnswered a) =>
+    switch (a.choice) {
+      ConfirmChoice.confirm when q.status != null || q.condition != null => (
+        trailId: q.trailId,
+        status: q.status,
+        condition: q.condition,
+        at: a.at,
+      ),
+      ConfirmChoice.free => (
+        trailId: q.trailId,
+        status: TrailStatus.open,
+        condition: null,
+        at: a.at,
+      ),
       _ => null,
     };
 
@@ -327,7 +387,11 @@ ConfirmReport? _reportFor(ConfirmAsked q, ConfirmAnswered a) => switch (a.choice
 /// keine Meldung von gestern. Wer unterwegs geantwortet hat, wird nicht
 /// noch einmal gefragt: Seine Meldung ist dann die jüngste bestätigte
 /// (auch wartend im Ausgangskorb), und die unbestätigte ist überholt.
-ConfirmTarget? splitQuestionFor(AppLocalizations l, Trail trail, DateTime? rodeAt) {
+ConfirmTarget? splitQuestionFor(
+  AppLocalizations l,
+  Trail trail,
+  DateTime? rodeAt,
+) {
   if (rodeAt == null || trail.pending || trail.points.length < 2) return null;
   bool before(TrailReport? r) => r != null && !r.reportedAt.isAfter(rodeAt);
   final s = trail.shownStatus.unconfirmed;

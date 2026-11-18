@@ -33,9 +33,9 @@ class HostPoiSource implements PoiSource {
     http.Client? client,
     Future<String?> Function(String name)? readLocal,
     Future<List<MapRegion>> Function()? regions,
-  })  : _client = client ?? http.Client(),
-        _readLocal = readLocal,
-        _regions = regions;
+  }) : _client = client ?? http.Client(),
+       _readLocal = readLocal,
+       _regions = regions;
 
   final http.Client _client;
 
@@ -63,14 +63,17 @@ class HostPoiSource implements PoiSource {
   Future<PoiManifest?> _loadManifest(MapRegion region) async {
     final cached = _manifests[region.id];
     if (cached != null) return cached;
-    if (region.isDach) return _manifests[region.id] = await fetchPoiManifest(_client);
+    if (region.isDach) {
+      return _manifests[region.id] = await fetchPoiManifest(_client);
+    }
     final uri = region.manifestUri(RegionLayer.pois);
     if (uri == null) return null;
     final res = await _client.get(uri).timeout(_timeout);
     if (res.statusCode != 200) throw PoiUnavailable(res.statusCode);
     return _manifests[region.id] = PoiManifest.fromJson(
-        jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>,
-        dir: region.dir);
+      jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>,
+      dir: region.dir,
+    );
   }
 
   @override
@@ -92,7 +95,8 @@ class HostPoiSource implements PoiSource {
     if (remaining.isEmpty) return out;
     // Je Zelle die Region, deren Rahmen sie schneidet (#220); eine Zelle
     // außerhalb aller fragt nichts.
-    final regions = await (_regions?.call() ?? Future.value(const [kDachRegion]));
+    final regions =
+        await (_regions?.call() ?? Future.value(const [kDachRegion]));
     final wanted = <(PoiManifest, PoiCell, PoiGroup)>[];
     final byRegion = <MapRegion, List<(PoiCell, PoiGroup)>>{};
     for (final (c, g) in remaining) {
@@ -120,7 +124,9 @@ class HostPoiSource implements PoiSource {
   }
 
   Future<List<Poi>> _fetchCell(PoiManifest m, PoiCell cell, PoiGroup g) async {
-    final uri = Uri.parse('$kMapTilesBase/${m.folder}/${poiCellFileName(cell, g)}');
+    final uri = Uri.parse(
+      '$kMapTilesBase/${m.folder}/${poiCellFileName(cell, g)}',
+    );
     final res = await _client.get(uri).timeout(_timeout);
     // Eine Datei, die das Manifest nennt und die nicht da ist: der Bau
     // wurde gerade abgelöst und das alte Präfix ist schon weg. Leer, und
@@ -135,14 +141,20 @@ class HostPoiSource implements PoiSource {
 /// veröffentlicht ist. Geteilt mit dem Bereichs-Download, der dieselben
 /// Dateien für seine Zellen holt.
 Future<PoiManifest> fetchPoiManifest(http.Client client) async {
-  final res = await client.get(Uri.parse(kPoiManifestUrl)).timeout(const Duration(seconds: 20));
+  final res = await client
+      .get(Uri.parse(kPoiManifestUrl))
+      .timeout(const Duration(seconds: 20));
   if (res.statusCode != 200) throw PoiUnavailable(res.statusCode);
   return PoiManifest.fromJson(jsonDecode(res.body) as Map<String, dynamic>);
 }
 
 /// Eine Orte-Datei vom Host als Text — null bei 404 (die Zelle ist seit
 /// dem Manifest verschwunden), [PoiUnavailable] bei allem anderen.
-Future<String?> fetchPoiFileFromHost(http.Client client, PoiManifest manifest, String name) async {
+Future<String?> fetchPoiFileFromHost(
+  http.Client client,
+  PoiManifest manifest,
+  String name,
+) async {
   final res = await client
       .get(Uri.parse('$kMapTilesBase/${manifest.folder}/$name'))
       .timeout(const Duration(seconds: 20));
@@ -161,9 +173,12 @@ class PoiUnavailable implements Exception {
   String toString() => 'Der Orte-Host antwortet mit $statusCode';
 }
 
-final poiSourceProvider = Provider<PoiSource>((ref) => HostPoiSource(
+final poiSourceProvider = Provider<PoiSource>(
+  (ref) => HostPoiSource(
     readLocal: ref.watch(areaStoreProvider).readPoiFile,
-    regions: () => ref.read(mapRegionsProvider.future)));
+    regions: () => ref.read(mapRegionsProvider.future),
+  ),
+);
 
 /// Die eingeschalteten Gruppen — gerätelokal gemerkt, wie
 /// [RememberedFlag]: Der Zustand springt sofort, das Merken läuft nach.
@@ -173,8 +188,7 @@ class PoiGroupsNotifier extends Notifier<Set<PoiGroup>> {
     final saved = ref.read(settingsProvider).poiGroups;
     if (saved == null) return PoiGroup.initial;
     return {
-      for (final name in saved)
-        ...PoiGroup.values.where((g) => g.name == name),
+      for (final name in saved) ...PoiGroup.values.where((g) => g.name == name),
     };
   }
 
@@ -182,15 +196,23 @@ class PoiGroupsNotifier extends Notifier<Set<PoiGroup>> {
     final next = {...state};
     if (!next.remove(group)) next.add(group);
     state = next;
-    unawaited(ref
-        .read(settingsProvider)
-        .setPoiGroups([for (final g in PoiGroup.values) if (next.contains(g)) g.name])
-        .catchError((Object e, StackTrace s) => logError('Orte-Filter merken', e, s)));
+    unawaited(
+      ref
+          .read(settingsProvider)
+          .setPoiGroups([
+            for (final g in PoiGroup.values)
+              if (next.contains(g)) g.name,
+          ])
+          .catchError(
+            (Object e, StackTrace s) => logError('Orte-Filter merken', e, s),
+          ),
+    );
   }
 }
 
-final poiGroupsProvider =
-    NotifierProvider<PoiGroupsNotifier, Set<PoiGroup>>(PoiGroupsNotifier.new);
+final poiGroupsProvider = NotifierProvider<PoiGroupsNotifier, Set<PoiGroup>>(
+  PoiGroupsNotifier.new,
+);
 
 /// Der Detailfilter: einzeln abgewählte Arten. Er blendet nur aus —
 /// geladen wird weiter je Gruppe, damit Zwischenspeicher und Abfrage
@@ -198,23 +220,33 @@ final poiGroupsProvider =
 class PoiHiddenKindsNotifier extends Notifier<Set<PoiKind>> {
   @override
   Set<PoiKind> build() => {
-        for (final name in ref.read(settingsProvider).poiHiddenKinds ?? const [])
-          ...PoiKind.values.where((k) => k.name == name),
-      };
+    for (final name in ref.read(settingsProvider).poiHiddenKinds ?? const [])
+      ...PoiKind.values.where((k) => k.name == name),
+  };
 
   void toggle(PoiKind kind) {
     final next = {...state};
     if (!next.remove(kind)) next.add(kind);
     state = next;
-    unawaited(ref
-        .read(settingsProvider)
-        .setPoiHiddenKinds([for (final k in PoiKind.values) if (next.contains(k)) k.name])
-        .catchError((Object e, StackTrace s) => logError('Orte-Detailfilter merken', e, s)));
+    unawaited(
+      ref
+          .read(settingsProvider)
+          .setPoiHiddenKinds([
+            for (final k in PoiKind.values)
+              if (next.contains(k)) k.name,
+          ])
+          .catchError(
+            (Object e, StackTrace s) =>
+                logError('Orte-Detailfilter merken', e, s),
+          ),
+    );
   }
 }
 
 final poiHiddenKindsProvider =
-    NotifierProvider<PoiHiddenKindsNotifier, Set<PoiKind>>(PoiHiddenKindsNotifier.new);
+    NotifierProvider<PoiHiddenKindsNotifier, Set<PoiKind>>(
+      PoiHiddenKindsNotifier.new,
+    );
 
 /// Was geladen ist, je Rasterzelle und Gruppe.
 @immutable
@@ -228,9 +260,9 @@ class PoiState {
 
   /// Die Orte der [groups] in den [cells].
   List<Poi> inCells(Iterable<PoiCell> cells, Set<PoiGroup> groups) => [
-        for (final c in cells)
-          for (final g in groups) ...?byCell[c]?[g],
-      ];
+    for (final c in cells)
+      for (final g in groups) ...?byCell[c]?[g],
+  ];
 }
 
 /// Lädt fehlende Zellen nach und merkt sich, was schon da ist — für die
@@ -324,5 +356,6 @@ class PoiController extends Notifier<PoiState> {
   }
 }
 
-final poiControllerProvider =
-    NotifierProvider<PoiController, PoiState>(PoiController.new);
+final poiControllerProvider = NotifierProvider<PoiController, PoiState>(
+  PoiController.new,
+);

@@ -28,7 +28,9 @@ import 'way_layer.dart';
 /// Die Zellen des Ausschnitts — oder null, wenn nichts zu laden ist
 /// (keine Gruppe an, Ausschnitt unter [kPoiMinZoom]).
 List<PoiCell>? poiCellsFor(MapViewCamera? camera, Set<PoiGroup> groups) {
-  if (camera == null || groups.isEmpty || camera.zoom < kPoiMinZoom) return null;
+  if (camera == null || groups.isEmpty || camera.zoom < kPoiMinZoom) {
+    return null;
+  }
   final b = camera.bounds;
   final cells = poiCellsCovering(b.south, b.west, b.north, b.east);
   // Mehr Zellen heißt, es wird gerade herausgezoomt — dann lieber gar
@@ -46,20 +48,19 @@ List<MapViewMarker> poiMarkers(
   List<PoiCell> cells,
   Set<PoiGroup> groups,
   Set<PoiKind> hidden,
-) =>
-    [
-      for (final p in state.inCells(cells, groups))
-        if (camera.bounds.contains(p.position) && !hidden.contains(p.kind))
-          MapViewMarker(
-            key: ValueKey('poi-${p.id}'),
-            point: p.position,
-            width: PoiPin.width,
-            height: PoiPin.height,
-            alignment: Alignment.topCenter,
-            hitValue: p,
-            child: PoiPin(kind: p.kind),
-          ),
-    ];
+) => [
+  for (final p in state.inCells(cells, groups))
+    if (camera.bounds.contains(p.position) && !hidden.contains(p.kind))
+      MapViewMarker(
+        key: ValueKey('poi-${p.id}'),
+        point: p.position,
+        width: PoiPin.width,
+        height: PoiPin.height,
+        alignment: Alignment.topCenter,
+        hitValue: p,
+        child: PoiPin(kind: p.kind),
+      ),
+];
 
 /// Eine Stecknadel: ein auf dem Kopf stehender Tropfen in der Farbe der
 /// Gruppe, darin das Symbol der Art (Kuchen, Bierkrug, Schlüssel …).
@@ -73,19 +74,19 @@ class PoiPin extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Semantics(
-        label: kind.label(context.l10n),
-        child: SizedBox(
-          width: width,
-          height: height,
-          child: CustomPaint(
-            painter: _PinPainter(kind.group.color),
-            child: Align(
-              alignment: const Alignment(0, -0.45),
-              child: PoiGlyph(kind: kind, size: 17, background: kind.group.color),
-            ),
-          ),
+    label: kind.label(context.l10n),
+    child: SizedBox(
+      width: width,
+      height: height,
+      child: CustomPaint(
+        painter: _PinPainter(kind.group.color),
+        child: Align(
+          alignment: const Alignment(0, -0.45),
+          child: PoiGlyph(kind: kind, size: 17, background: kind.group.color),
         ),
-      );
+      ),
+    ),
+  );
 }
 
 class _PinPainter extends CustomPainter {
@@ -104,18 +105,22 @@ class _PinPainter extends CustomPainter {
     final path = Path()
       ..moveTo(w / 2, h - 1)
       ..quadraticBezierTo(c.dx - r * 0.35, c.dy + r * 1.25, c.dx - r, c.dy)
-      ..arcToPoint(Offset(c.dx + r, c.dy),
-          radius: Radius.circular(r), clockwise: true)
+      ..arcToPoint(
+        Offset(c.dx + r, c.dy),
+        radius: Radius.circular(r),
+        clockwise: true,
+      )
       ..quadraticBezierTo(c.dx + r * 0.35, c.dy + r * 1.25, w / 2, h - 1)
       ..close();
     canvas.drawShadow(path, Colors.black, 2, false);
     canvas.drawPath(path, Paint()..color = color);
     canvas.drawPath(
-        path,
-        Paint()
-          ..color = Colors.white
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 1.5);
+      path,
+      Paint()
+        ..color = Colors.white
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.5,
+    );
   }
 
   @override
@@ -125,8 +130,12 @@ class _PinPainter extends CustomPainter {
 /// Das Symbol einer Art, weiß auf [background]: ein Material-Symbol oder,
 /// wo es keins gibt, gezeichnet (das Kuchenstück fürs Café).
 class PoiGlyph extends StatelessWidget {
-  const PoiGlyph(
-      {super.key, required this.kind, required this.size, required this.background});
+  const PoiGlyph({
+    super.key,
+    required this.kind,
+    required this.size,
+    required this.background,
+  });
 
   final PoiKind kind;
   final double size;
@@ -161,34 +170,38 @@ class CakeSlicePainter extends CustomPainter {
     final paint = Paint()..color = fill;
     // Der Keil: oben schräg von der Spitze zum Rand, unten gerade.
     canvas.drawPath(
-        Path()
-          ..moveTo(1.8, 12.8)
-          ..lineTo(21, 7.4)
-          ..quadraticBezierTo(22.4, 7.4, 22.4, 8.8)
-          ..lineTo(22.4, 21.5)
-          ..lineTo(1.8, 21.5)
-          ..close(),
-        paint);
+      Path()
+        ..moveTo(1.8, 12.8)
+        ..lineTo(21, 7.4)
+        ..quadraticBezierTo(22.4, 7.4, 22.4, 8.8)
+        ..lineTo(22.4, 21.5)
+        ..lineTo(1.8, 21.5)
+        ..close(),
+      paint,
+    );
     // Die Sahneschicht als Fuge in der Farbe darunter.
     canvas.drawLine(
-        const Offset(3.2, 16.6),
-        const Offset(22.4, 16.6),
-        Paint()
-          ..color = cut
-          ..strokeWidth = 1.6);
+      const Offset(3.2, 16.6),
+      const Offset(22.4, 16.6),
+      Paint()
+        ..color = cut
+        ..strokeWidth = 1.6,
+    );
     // Kirsche mit Stiel.
     canvas.drawCircle(const Offset(14.6, 6.0), 2.5, paint);
     canvas.drawLine(
-        const Offset(15.4, 3.7),
-        const Offset(17.4, 1.2),
-        Paint()
-          ..color = fill
-          ..strokeWidth = 1.3
-          ..strokeCap = StrokeCap.round);
+      const Offset(15.4, 3.7),
+      const Offset(17.4, 1.2),
+      Paint()
+        ..color = fill
+        ..strokeWidth = 1.3
+        ..strokeCap = StrokeCap.round,
+    );
   }
 
   @override
-  bool shouldRepaint(CakeSlicePainter old) => old.fill != fill || old.cut != cut;
+  bool shouldRepaint(CakeSlicePainter old) =>
+      old.fill != fill || old.cut != cut;
 }
 
 /// Was man über einen Ort wissen will: Art, Name, Öffnungszeiten — und
@@ -198,105 +211,133 @@ class CakeSlicePainter extends CustomPainter {
 /// die Karte gibt es mit, das Blatt schließt vorher.
 /// [onRemember] (#543): „Als Startpunkt merken" — Name und Lage des
 /// Ortes, keine OSM-Kennung (die Ortsdateien werden monatlich neu gebaut).
-Future<void> showPoiSheet(BuildContext context, Poi poi,
-        {void Function(LoopPlaceRole role)? onPlan, VoidCallback? onRoute, VoidCallback? onRemember}) =>
-    showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      builder: (context) {
-        final text = Theme.of(context).textTheme;
-        final l = context.l10n;
-        final water = switch ((poi.kind, poi.drinkable)) {
-          (_, true) => l.poiDrinkable,
-          (_, false) => l.poiNotDrinkable,
-          (PoiKind.spring || PoiKind.waterPoint, null) => l.poiDrinkableUnknown,
-          _ => null,
-        };
-        // Scrollbar: Mit drei Planer-Knöpfen (#331 Schritt 4) passt das
-        // Blatt quer nicht mehr in die Höhe, die ihm zusteht.
-        return SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
+Future<void> showPoiSheet(
+  BuildContext context,
+  Poi poi, {
+  void Function(LoopPlaceRole role)? onPlan,
+  VoidCallback? onRoute,
+  VoidCallback? onRemember,
+}) => showModalBottomSheet<void>(
+  context: context,
+  showDragHandle: true,
+  builder: (context) {
+    final text = Theme.of(context).textTheme;
+    final l = context.l10n;
+    final water = switch ((poi.kind, poi.drinkable)) {
+      (_, true) => l.poiDrinkable,
+      (_, false) => l.poiNotDrinkable,
+      (PoiKind.spring || PoiKind.waterPoint, null) => l.poiDrinkableUnknown,
+      _ => null,
+    };
+    // Scrollbar: Mit drei Planer-Knöpfen (#331 Schritt 4) passt das
+    // Blatt quer nicht mehr in die Höhe, die ihm zusteht.
+    return SafeArea(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
               children: [
-                Row(children: [
-                  PoiPin(kind: poi.kind),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(poi.name ?? poi.kind.label(l),
-                        style: text.titleLarge),
+                PoiPin(kind: poi.kind),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    poi.name ?? poi.kind.label(l),
+                    style: text.titleLarge,
                   ),
-                ]),
-                const SizedBox(height: 8),
-                if (poi.name != null) Text(poi.kind.label(l), style: text.bodyMedium),
-                if (poi.openingHours != null)
-                  Text(l.poiOpeningHours(poi.openingHours!),
-                      style: text.bodyMedium),
-                if (water != null) Text(water, style: text.bodyMedium),
-                const SizedBox(height: 8),
-                TextButton.icon(
-                  icon: const Icon(Icons.open_in_new),
-                  label: Text(l.poiOpenOsm),
-                  onPressed: () => launchUrl(
-                      Uri.parse('https://www.openstreetmap.org/${poi.id}'),
-                      mode: LaunchMode.externalApplication),
                 ),
-                // „Als Ziel", „Als Start", „Als Zwischenpunkt" (#516,
-                // Konzept-Routing 12.6) — dieselben Wörter wie im Planer.
-                // „Als Ziel" rechnet sofort (#356 PR 7): ohne Planer vom
-                // Standort, mit offenem Planer das Ziel dieser Planung.
-                // Untereinander: drei nebeneinander passen auf 360 dp nicht.
-                if (onRoute != null) ...[
-                  const SizedBox(height: 8),
-                  FilledButton.icon(
-                    key: const ValueKey('poi-route'),
-                    style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(48)),
-                    onPressed: () {
-                      Navigator.of(context).pop();
-                      onRoute();
-                    },
-                    icon: const Icon(Icons.sports_score),
-                    label: Text(l.sheetAsTarget),
-                  ),
-                ],
-                if (onPlan != null)
-                  for (final (role, key, icon, label) in [
-                    (LoopPlaceRole.start, 'poi-plan-from', Icons.trip_origin, l.sheetAsStart),
-                    (LoopPlaceRole.waypoint, 'poi-plan-via', Icons.add_location_alt_outlined, l.poiAsVia),
-                  ]) ...[
-                    const SizedBox(height: 8),
-                    OutlinedButton.icon(
-                      key: ValueKey(key),
-                      style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
-                      onPressed: () {
-                        Navigator.of(context).pop();
-                        onPlan(role);
-                      },
-                      icon: Icon(icon),
-                      label: Text(label),
-                    ),
-                  ],
-                if (onRemember != null) ...[
-                  const SizedBox(height: 8),
-                  OutlinedButton.icon(
-                    key: const ValueKey('poi-remember-start'),
-                    style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
-                    onPressed: () {
-                      Navigator.of(context).pop();
-                      onRemember();
-                    },
-                    icon: const Icon(Icons.flag_outlined),
-                    label: Text(l.startPointRemember),
-                  ),
-                ],
               ],
             ),
-          ),
-        );
-      },
+            const SizedBox(height: 8),
+            if (poi.name != null)
+              Text(poi.kind.label(l), style: text.bodyMedium),
+            if (poi.openingHours != null)
+              Text(
+                l.poiOpeningHours(poi.openingHours!),
+                style: text.bodyMedium,
+              ),
+            if (water != null) Text(water, style: text.bodyMedium),
+            const SizedBox(height: 8),
+            TextButton.icon(
+              icon: const Icon(Icons.open_in_new),
+              label: Text(l.poiOpenOsm),
+              onPressed: () => launchUrl(
+                Uri.parse('https://www.openstreetmap.org/${poi.id}'),
+                mode: LaunchMode.externalApplication,
+              ),
+            ),
+            // „Als Ziel", „Als Start", „Als Zwischenpunkt" (#516,
+            // Konzept-Routing 12.6) — dieselben Wörter wie im Planer.
+            // „Als Ziel" rechnet sofort (#356 PR 7): ohne Planer vom
+            // Standort, mit offenem Planer das Ziel dieser Planung.
+            // Untereinander: drei nebeneinander passen auf 360 dp nicht.
+            if (onRoute != null) ...[
+              const SizedBox(height: 8),
+              FilledButton.icon(
+                key: const ValueKey('poi-route'),
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size.fromHeight(48),
+                ),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  onRoute();
+                },
+                icon: const Icon(Icons.sports_score),
+                label: Text(l.sheetAsTarget),
+              ),
+            ],
+            if (onPlan != null)
+              for (final (role, key, icon, label) in [
+                (
+                  LoopPlaceRole.start,
+                  'poi-plan-from',
+                  Icons.trip_origin,
+                  l.sheetAsStart,
+                ),
+                (
+                  LoopPlaceRole.waypoint,
+                  'poi-plan-via',
+                  Icons.add_location_alt_outlined,
+                  l.poiAsVia,
+                ),
+              ]) ...[
+                const SizedBox(height: 8),
+                OutlinedButton.icon(
+                  key: ValueKey(key),
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size.fromHeight(48),
+                  ),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    onPlan(role);
+                  },
+                  icon: Icon(icon),
+                  label: Text(label),
+                ),
+              ],
+            if (onRemember != null) ...[
+              const SizedBox(height: 8),
+              OutlinedButton.icon(
+                key: const ValueKey('poi-remember-start'),
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size.fromHeight(48),
+                ),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  onRemember();
+                },
+                icon: const Icon(Icons.flag_outlined),
+                label: Text(l.startPointRemember),
+              ),
+            ],
+          ],
+        ),
+      ),
     );
+  },
+);
 
 /// Der Filter: oben die Ebene „Offizielle Trails" (#13), darunter vier
 /// Gruppen von Orten zum An- und Ausschalten, je Gruppe ihre Arten als
@@ -348,7 +389,9 @@ class _PoiFilterSheet extends ConsumerWidget {
                   padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
                   child: TrailFilterChips(
                     keyPrefix: 'map-trail',
-                    showOwner: trails.any((t) => t.isOwn) && trails.any((t) => !t.isOwn),
+                    showOwner:
+                        trails.any((t) => t.isOwn) &&
+                        trails.any((t) => !t.isOwn),
                   ),
                 ),
               ),
@@ -362,16 +405,22 @@ class _PoiFilterSheet extends ConsumerWidget {
             CoachAnchor(
               id: MapCoach.filterOfficial,
               child: SwitchListTile(
-              key: const ValueKey('official-trails-switch'),
-              secondary: CircleAvatar(
-                backgroundColor: AppPalette.of(context).map.official,
-                child: const Icon(Icons.verified_outlined, color: Colors.white, size: 20),
+                key: const ValueKey('official-trails-switch'),
+                secondary: CircleAvatar(
+                  backgroundColor: AppPalette.of(context).map.official,
+                  child: const Icon(
+                    Icons.verified_outlined,
+                    color: Colors.white,
+                    size: 20,
+                  ),
+                ),
+                title: Text(l.layersOfficial),
+                subtitle: Text(l.layersOfficialSubtitle),
+                value: official,
+                onChanged: (v) =>
+                    ref.read(officialTrailsEnabledProvider.notifier).set(v),
               ),
-              title: Text(l.layersOfficial),
-              subtitle: Text(l.layersOfficialSubtitle),
-              value: official,
-              onChanged: (v) => ref.read(officialTrailsEnabledProvider.notifier).set(v),
-            )),
+            ),
             // Die Wege (#212): Güte der Forstwege, Schwierigkeit der Pfade —
             // aus OSM, über der Basiskarte. Ab Werk an.
             CoachAnchor(
@@ -380,12 +429,17 @@ class _PoiFilterSheet extends ConsumerWidget {
                 key: const ValueKey('way-layer-switch'),
                 secondary: const CircleAvatar(
                   backgroundColor: AppColors.mapBackground,
-                  child: SizedBox(width: 26, height: 20, child: CustomPaint(painter: WaySwatchPainter())),
+                  child: SizedBox(
+                    width: 26,
+                    height: 20,
+                    child: CustomPaint(painter: WaySwatchPainter()),
+                  ),
                 ),
                 title: Text(l.layersWays),
                 subtitle: Text(l.layersWaysSubtitle(kWaysZoom)),
                 value: ways,
-                onChanged: (v) => ref.read(wayLayerEnabledProvider.notifier).set(v),
+                onChanged: (v) =>
+                    ref.read(wayLayerEnabledProvider.notifier).set(v),
               ),
             ),
             // Die Höhenlinien (#271, Betreiber: „pack es in die Ebenen") —
@@ -398,15 +452,22 @@ class _PoiFilterSheet extends ConsumerWidget {
                 key: const ValueKey('contour-layer-switch'),
                 secondary: const CircleAvatar(
                   backgroundColor: AppColors.mapBackground,
-                  child: SizedBox(width: 26, height: 20, child: CustomPaint(painter: ContourSwatchPainter())),
+                  child: SizedBox(
+                    width: 26,
+                    height: 20,
+                    child: CustomPaint(painter: ContourSwatchPainter()),
+                  ),
                 ),
                 title: Text(l.contourLines),
                 subtitle: Text(
-                  contours ? contourStatusText(l, ref.watch(contourStateProvider)) : l.contourStatusIdle,
+                  contours
+                      ? contourStatusText(l, ref.watch(contourStateProvider))
+                      : l.contourStatusIdle,
                   key: const ValueKey('contour-layer-status'),
                 ),
                 value: contours,
-                onChanged: (v) => ref.read(contourLayerEnabledProvider.notifier).set(v),
+                onChanged: (v) =>
+                    ref.read(contourLayerEnabledProvider.notifier).set(v),
               ),
             ),
             // Gemerkte Startpunkte (#543): eigene und die der Buddys, ab
@@ -420,7 +481,8 @@ class _PoiFilterSheet extends ConsumerWidget {
               title: Text(l.layersStartPoints),
               subtitle: Text(l.layersStartPointsSubtitle),
               value: startPoints,
-              onChanged: (v) => ref.read(startPointLayerEnabledProvider.notifier).set(v),
+              onChanged: (v) =>
+                  ref.read(startPointLayerEnabledProvider.notifier).set(v),
             ),
             CoachAnchor(
               id: MapCoach.filterPois,
@@ -428,59 +490,65 @@ class _PoiFilterSheet extends ConsumerWidget {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
-              child: Text(l.layersPois, style: text.titleLarge),
-            ),
-            for (final g in PoiGroup.values) ...[
-              SwitchListTile(
-                key: ValueKey('poi-group-${g.name}'),
-                secondary: CircleAvatar(
-                  backgroundColor: g.color,
-                  child: PoiGlyph(
-                      kind: PoiKind.values.firstWhere((k) => k.group == g),
-                      size: 20,
-                      background: g.color),
-                ),
-                title: Text(g.label(l)),
-                subtitle: Text(g.examples(l)),
-                value: groups.contains(g),
-                onChanged: (_) => ref.read(poiGroupsProvider.notifier).toggle(g),
-              ),
-              // Die Arten nur unter eingeschalteten Gruppen — unter einer
-              // ausgeschalteten wären es Schalter ohne Wirkung.
-              if (groups.contains(g))
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(72, 0, 16, 8),
-                  child: Wrap(
-                    spacing: 6,
-                    runSpacing: 4,
-                    children: [
-                      for (final k in PoiKind.values)
-                        if (k.group == g)
-                          FilterChip(
-                            key: ValueKey('poi-kind-${k.name}'),
-                            // Abgewählt: grau, damit man es ohne Hinsehen
-                            // auf den Chip-Hintergrund erkennt.
-                            avatar: CircleAvatar(
-                              backgroundColor:
-                                  hidden.contains(k) ? Colors.grey : g.color,
-                              child: PoiGlyph(
-                                  kind: k,
-                                  size: 14,
-                                  background:
-                                      hidden.contains(k) ? Colors.grey : g.color),
-                            ),
-                            label: Text(k.label(l)),
-                            selected: !hidden.contains(k),
-                            showCheckmark: false,
-                            onSelected: (_) =>
-                                ref.read(poiHiddenKindsProvider.notifier).toggle(k),
-                          ),
-                    ],
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
+                    child: Text(l.layersPois, style: text.titleLarge),
                   ),
-                ),
-            ],
+                  for (final g in PoiGroup.values) ...[
+                    SwitchListTile(
+                      key: ValueKey('poi-group-${g.name}'),
+                      secondary: CircleAvatar(
+                        backgroundColor: g.color,
+                        child: PoiGlyph(
+                          kind: PoiKind.values.firstWhere((k) => k.group == g),
+                          size: 20,
+                          background: g.color,
+                        ),
+                      ),
+                      title: Text(g.label(l)),
+                      subtitle: Text(g.examples(l)),
+                      value: groups.contains(g),
+                      onChanged: (_) =>
+                          ref.read(poiGroupsProvider.notifier).toggle(g),
+                    ),
+                    // Die Arten nur unter eingeschalteten Gruppen — unter einer
+                    // ausgeschalteten wären es Schalter ohne Wirkung.
+                    if (groups.contains(g))
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(72, 0, 16, 8),
+                        child: Wrap(
+                          spacing: 6,
+                          runSpacing: 4,
+                          children: [
+                            for (final k in PoiKind.values)
+                              if (k.group == g)
+                                FilterChip(
+                                  key: ValueKey('poi-kind-${k.name}'),
+                                  // Abgewählt: grau, damit man es ohne Hinsehen
+                                  // auf den Chip-Hintergrund erkennt.
+                                  avatar: CircleAvatar(
+                                    backgroundColor: hidden.contains(k)
+                                        ? Colors.grey
+                                        : g.color,
+                                    child: PoiGlyph(
+                                      kind: k,
+                                      size: 14,
+                                      background: hidden.contains(k)
+                                          ? Colors.grey
+                                          : g.color,
+                                    ),
+                                  ),
+                                  label: Text(k.label(l)),
+                                  selected: !hidden.contains(k),
+                                  showCheckmark: false,
+                                  onSelected: (_) => ref
+                                      .read(poiHiddenKindsProvider.notifier)
+                                      .toggle(k),
+                                ),
+                          ],
+                        ),
+                      ),
+                  ],
                 ],
               ),
             ),
@@ -498,7 +566,6 @@ class _PoiFilterSheet extends ConsumerWidget {
   }
 }
 
-
 /// Das Bild am Schalter „Höhenlinien": drei Linien übereinander, die
 /// mittlere kräftiger — wie auf der Karte.
 class ContourSwatchPainter extends CustomPainter {
@@ -514,7 +581,12 @@ class ContourSwatchPainter extends CustomPainter {
         ..style = PaintingStyle.stroke;
       final path = Path()
         ..moveTo(1, size.height * y + 2)
-        ..quadraticBezierTo(size.width / 2, size.height * y - 4, size.width - 1, size.height * y + 1);
+        ..quadraticBezierTo(
+          size.width / 2,
+          size.height * y - 4,
+          size.width - 1,
+          size.height * y + 1,
+        );
       canvas.drawPath(path, paint);
     }
   }

@@ -54,7 +54,12 @@ Uint8List _sourceBytes() {
   return writePmTiles(
     tiles: [
       for (final t in tilesCovering(wide, maxZoom: 10))
-        TileToWrite(t.z, t.x, t.y, Uint8List.fromList(utf8.encode('t${t.z}/${t.x}/${t.y}'))),
+        TileToWrite(
+          t.z,
+          t.x,
+          t.y,
+          Uint8List.fromList(utf8.encode('t${t.z}/${t.x}/${t.y}')),
+        ),
     ],
     tileCompression: Compression.none,
     bounds: const TileBounds(west: 8.5, south: 47.5, east: 9.5, north: 48.5),
@@ -66,15 +71,28 @@ Uint8List _waysBytes() {
   const wide = AreaBounds(south: 47.9, west: 8.9, north: 48.1, east: 9.1);
   return writePmTiles(
     tiles: [
-      for (final t in tilesCovering(wide, minZoom: kWaysZoom, maxZoom: kWaysZoom))
-        TileToWrite(t.z, t.x, t.y, Uint8List.fromList(utf8.encode('w${t.x}/${t.y}'))),
+      for (final t in tilesCovering(
+        wide,
+        minZoom: kWaysZoom,
+        maxZoom: kWaysZoom,
+      ))
+        TileToWrite(
+          t.z,
+          t.x,
+          t.y,
+          Uint8List.fromList(utf8.encode('w${t.x}/${t.y}')),
+        ),
     ],
     tileCompression: Compression.none,
     bounds: const TileBounds(west: 8.9, south: 47.9, east: 9.1, north: 48.1),
   );
 }
 
-const _waysManifest = WaysManifest(file: 'ways-20261007.pmtiles', bytes: 1, build: '20261007');
+const _waysManifest = WaysManifest(
+  file: 'ways-20261007.pmtiles',
+  bytes: 1,
+  build: '20261007',
+);
 
 /// Merkt sich, welche Bereiche backen sollten — der Host des Harness hat
 /// keine z13-Kacheln, gebacken würde nichts.
@@ -86,7 +104,8 @@ class _SpyBake extends RoutingBakeNotifier {
   var cancelled = 0;
 
   @override
-  void bakeAreas(Iterable<StoredArea> areas) => calls.add([for (final a in areas) a.id]);
+  void bakeAreas(Iterable<StoredArea> areas) =>
+      calls.add([for (final a in areas) a.id]);
 
   @override
   void cancel() {
@@ -94,7 +113,8 @@ class _SpyBake extends RoutingBakeNotifier {
     state = const RoutingBakeState();
   }
 
-  void show(String name, int done, int total) => state = RoutingBakeState(name: name, done: done, total: total);
+  void show(String name, int done, int total) =>
+      state = RoutingBakeState(name: name, done: done, total: total);
 }
 
 void main() {
@@ -111,7 +131,9 @@ void main() {
     final anna = backend.addUser(username: 'anna');
     backend.signInAs(anna.id);
     trails = FakeTrailRepository(
-        myId: () => backend.currentUserId ?? '', areFriends: backend.areFriends);
+      myId: () => backend.currentUserId ?? '',
+      areFriends: backend.areFriends,
+    );
     trails.seedTrail(backend.currentUserId!, name: 'Roots');
     store = MemoryAreaStore();
     tiles = MemoryTileStore();
@@ -119,42 +141,61 @@ void main() {
   });
 
   /// Zwei Orte in jeder Wasser-Zelle rund um den Trail.
-  const twoSprings = '{"format":1,"pois":['
+  const twoSprings =
+      '{"format":1,"pois":['
       '{"id":"n1","kind":"spring","lat":48.0,"lng":9.0},'
       '{"id":"n2","kind":"spring","lat":48.001,"lng":9.001}]}';
 
-  Future<void> start(WidgetTester tester,
-      {bool host = true,
-      bool pois = false,
-      bool ways = false,
-      bool wayLayer = true,
-      String? appearance,
-      Stream<List<ConnectivityResult>>? connectivity,
-      bool wholeRegion = true,
-      bool bakeOnStart = false}) async {
+  Future<void> start(
+    WidgetTester tester, {
+    bool host = true,
+    bool pois = false,
+    bool ways = false,
+    bool wayLayer = true,
+    String? appearance,
+    Stream<List<ConnectivityResult>>? connectivity,
+    bool wholeRegion = true,
+    bool bakeOnStart = false,
+  }) async {
     final source = _sourceBytes();
     final waysSource = _waysBytes();
     final cells = poiCellsCovering(47.5, 8.5, 48.5, 9.5);
-    await pumpApp(tester, backend,
-        trails: trails,
-        areaStore: store,
-        tileStore: tiles,
-        keepAlive: keepAlive,
-        connectivity: connectivity,
-        settings: FakeSettings(appearance: appearance, wayLayerEnabled: wayLayer),
-        extraOverrides: [
-          mapManifestLoaderProvider.overrideWithValue(() async => host ? _manifest : null),
-          areaSourceOpenerProvider.overrideWithValue((uri) =>
-              PmTilesArchive.fromBytes(uri.path.endsWith(_waysManifest.file) ? waysSource : source)),
-          areaWaysManifestLoaderProvider.overrideWithValue(() async => ways ? _waysManifest : null),
-          areaPoiManifestLoaderProvider.overrideWithValue(() async => pois
-              ? PoiManifest(build: '20260928', prefix: 'pois-20260928', cells: {PoiGroup.water: cells.toSet()})
-              : null),
-          areaPoiFileLoaderProvider.overrideWithValue((_, _) async => twoSprings),
-          wholeRegionSupportedProvider.overrideWithValue(wholeRegion),
-          routingBakeProvider.overrideWith(() => _SpyBake(bakeCalls)),
-          routingBakeOnStartProvider.overrideWithValue(bakeOnStart),
-        ]);
+    await pumpApp(
+      tester,
+      backend,
+      trails: trails,
+      areaStore: store,
+      tileStore: tiles,
+      keepAlive: keepAlive,
+      connectivity: connectivity,
+      settings: FakeSettings(appearance: appearance, wayLayerEnabled: wayLayer),
+      extraOverrides: [
+        mapManifestLoaderProvider.overrideWithValue(
+          () async => host ? _manifest : null,
+        ),
+        areaSourceOpenerProvider.overrideWithValue(
+          (uri) => PmTilesArchive.fromBytes(
+            uri.path.endsWith(_waysManifest.file) ? waysSource : source,
+          ),
+        ),
+        areaWaysManifestLoaderProvider.overrideWithValue(
+          () async => ways ? _waysManifest : null,
+        ),
+        areaPoiManifestLoaderProvider.overrideWithValue(
+          () async => pois
+              ? PoiManifest(
+                  build: '20260928',
+                  prefix: 'pois-20260928',
+                  cells: {PoiGroup.water: cells.toSet()},
+                )
+              : null,
+        ),
+        areaPoiFileLoaderProvider.overrideWithValue((_, _) async => twoSprings),
+        wholeRegionSupportedProvider.overrideWithValue(wholeRegion),
+        routingBakeProvider.overrideWith(() => _SpyBake(bakeCalls)),
+        routingBakeOnStartProvider.overrideWithValue(bakeOnStart),
+      ],
+    );
     await settle(tester, frames: 20);
   }
 
@@ -185,7 +226,9 @@ void main() {
 
   /// Was dazukommt, laut Leiste („+N").
   int draftTiles(WidgetTester tester) {
-    final text = (tester.widget(find.byKey(const ValueKey('area-draw-count'))) as Text).data!;
+    final text =
+        (tester.widget(find.byKey(const ValueKey('area-draw-count'))) as Text)
+            .data!;
     return text.startsWith('+') ? int.parse(text.substring(1)) : 0;
   }
 
@@ -197,110 +240,153 @@ void main() {
   }
 
   /// Die Schraffur einer Seite (Design Turn 2): durchgezogen, dünn.
-  Iterable<MapViewPolyline> hatch(WidgetTester tester, Color color) => fakeMapLayers(tester)
-      .polylines
-      .where((l) => l.color == color && l.dash == null && l.width == kAreaHatchWidth);
+  Iterable<MapViewPolyline> hatch(WidgetTester tester, Color color) =>
+      fakeMapLayers(tester).polylines.where(
+        (l) => l.color == color && l.dash == null && l.width == kAreaHatchWidth,
+      );
 
   /// Der gestrichelte Rand einer Seite.
   Iterable<MapViewPolyline> changeBorder(WidgetTester tester, Color color) =>
-      fakeMapLayers(tester).polylines.where((l) => l.color == color && l.dash != null);
+      fakeMapLayers(
+        tester,
+      ).polylines.where((l) => l.color == color && l.dash != null);
 
   /// Der durchgehende Rand um den Bestand.
-  Iterable<MapViewPolyline> stockOutline(WidgetTester tester) =>
-      fakeMapLayers(tester).polylines.where((l) => l.width == kOfflineOutlineWidth && l.dash == null);
+  Iterable<MapViewPolyline> stockOutline(WidgetTester tester) => fakeMapLayers(
+    tester,
+  ).polylines.where((l) => l.width == kOfflineOutlineWidth && l.dash == null);
 
   StoredArea oldArea({String build = '20260928'}) => StoredArea(
-        id: 'old',
-        name: 'Alt',
-        bounds: const AreaBounds(south: 47.99, west: 8.99, north: 48.02, east: 9.01),
-        minZoom: 8,
-        maxZoom: 10,
-        build: build,
-        tiles: 5,
-        bytes: 500,
-        savedAt: DateTime.utc(2026, 9, 28),
+    id: 'old',
+    name: 'Alt',
+    bounds: const AreaBounds(
+      south: 47.99,
+      west: 8.99,
+      north: 48.02,
+      east: 9.01,
+    ),
+    minZoom: 8,
+    maxZoom: 10,
+    build: build,
+    tiles: 5,
+    bytes: 500,
+    savedAt: DateTime.utc(2026, 9, 28),
+  );
+
+  testWidgets(
+    'Knöpfe rechts, Werkzeugleiste links — Maßstab und Quellenhinweis bleiben frei',
+    (tester) async {
+      // Ein kleines Telefon hochkant (360 × 740 dp): Die Leiste mit ihren
+      // 44-px-Knöpfen (Design 3e) passt ganz zwischen Banner und Maßstab.
+      // Die Test-Vorgabe 800 × 600 ist quer und zu kurz dafür — dort
+      // scrollt sie (tapRail).
+      tester.view.physicalSize = const Size(1080, 2220);
+      tester.view.devicePixelRatio = 3;
+      addTearDown(tester.view.reset);
+      await start(tester);
+      final size = tester.view.physicalSize / tester.view.devicePixelRatio;
+      expect(
+        tester.getCenter(find.byKey(const ValueKey('offline-button'))).dx,
+        greaterThan(size.width / 2),
+      );
+      expect(find.byKey(const ValueKey('offline-tool-rail')), findsNothing);
+      await openTools(tester);
+      final rail = tester.getRect(
+        find.byKey(const ValueKey('offline-tool-rail')),
+      );
+      expect(rail.center.dx, lessThan(size.width / 2));
+      // Orte und offizielle Trails stehen seit #190 nicht mehr in der
+      // Leiste — sie haben ihren eigenen Knopf, „Kartenebenen".
+      expect(find.byKey(const ValueKey('rail-filter')), findsNothing);
+      expect(rail.left, lessThan(24));
+      // Unten links stehen Maßstab und Quellenhinweis: die Leiste endet
+      // darüber (die Reiterleiste liegt noch unter der Karte).
+      final map = tester.getRect(find.byType(MapScreen));
+      expect(rail.bottom, lessThanOrEqualTo(map.bottom - 64));
+      expect(rail.top, greaterThanOrEqualTo(map.top + 56));
+      // Und jeder Knopf ist erreichbar, ohne zu scrollen.
+      expect(
+        tester.getRect(find.byKey(const ValueKey('offline-maps-close'))).bottom,
+        lessThanOrEqualTo(rail.bottom),
+      );
+    },
+  );
+
+  testWidgets(
+    'Ebenen dunkelt ab, gespeicherte Kacheln bleiben hell — beim Zoomen DIESELBEN, bis zum Schließen',
+    (tester) async {
+      await store.putArchive('old', _sourceBytes());
+      await store.saveIndex([oldArea()]);
+      await start(tester);
+      expect(
+        fakeMapLayers(tester).polygons,
+        isEmpty,
+        reason: 'ohne Leiste keine Maske',
       );
 
-  testWidgets('Knöpfe rechts, Werkzeugleiste links — Maßstab und Quellenhinweis bleiben frei',
-      (tester) async {
-    // Ein kleines Telefon hochkant (360 × 740 dp): Die Leiste mit ihren
-    // 44-px-Knöpfen (Design 3e) passt ganz zwischen Banner und Maßstab.
-    // Die Test-Vorgabe 800 × 600 ist quer und zu kurz dafür — dort
-    // scrollt sie (tapRail).
-    tester.view.physicalSize = const Size(1080, 2220);
-    tester.view.devicePixelRatio = 3;
-    addTearDown(tester.view.reset);
-    await start(tester);
-    final size = tester.view.physicalSize / tester.view.devicePixelRatio;
-    expect(tester.getCenter(find.byKey(const ValueKey('offline-button'))).dx, greaterThan(size.width / 2));
-    expect(find.byKey(const ValueKey('offline-tool-rail')), findsNothing);
-    await openTools(tester);
-    final rail = tester.getRect(find.byKey(const ValueKey('offline-tool-rail')));
-    expect(rail.center.dx, lessThan(size.width / 2));
-    // Orte und offizielle Trails stehen seit #190 nicht mehr in der
-    // Leiste — sie haben ihren eigenen Knopf, „Kartenebenen".
-    expect(find.byKey(const ValueKey('rail-filter')), findsNothing);
-    expect(rail.left, lessThan(24));
-    // Unten links stehen Maßstab und Quellenhinweis: die Leiste endet
-    // darüber (die Reiterleiste liegt noch unter der Karte).
-    final map = tester.getRect(find.byType(MapScreen));
-    expect(rail.bottom, lessThanOrEqualTo(map.bottom - 64));
-    expect(rail.top, greaterThanOrEqualTo(map.top + 56));
-    // Und jeder Knopf ist erreichbar, ohne zu scrollen.
-    expect(tester.getRect(find.byKey(const ValueKey('offline-maps-close'))).bottom, lessThanOrEqualTo(rail.bottom));
-  });
+      await openTools(tester);
+      final mask = fakeMapLayers(tester).polygons.single;
+      expect(mask.fillColor, kOfflineDimColor);
+      expect(mask.holes, isNotEmpty, reason: 'der Bereich liegt im Ausschnitt');
+      // Um den Bestand ein durchgehender Rand in der Textfarbe des Modus
+      // (die Test-App ist hell).
+      expect(stockOutline(tester), isNotEmpty);
+      expect(stockOutline(tester).map((l) => l.color).toSet(), {
+        AppColors.light.text,
+      });
+      // Die Löcher sind die Kacheln des Bereichs bei SEINEM Zoom (10).
+      Set<TileXYZ> covered(List<List<LatLng>> holes) => {
+        for (final h in holes)
+          ...tilesCovering(
+            AreaBounds(
+              south: h[2].latitude + 1e-7,
+              west: h[0].longitude + 1e-7,
+              north: h[0].latitude - 1e-7,
+              east: h[1].longitude - 1e-7,
+            ),
+            minZoom: 10,
+            maxZoom: 10,
+          ),
+      };
+      final before = covered(mask.holes);
+      expect(
+        before,
+        oldArea().shape
+            .tilesWithin(offlineOverlayBox(fakeMap(tester).camera.bounds), 10)
+            .toSet(),
+      );
 
-  testWidgets('Ebenen dunkelt ab, gespeicherte Kacheln bleiben hell — beim Zoomen DIESELBEN, bis zum Schließen',
-      (tester) async {
-    await store.putArchive('old', _sourceBytes());
-    await store.saveIndex([oldArea()]);
-    await start(tester);
-    expect(fakeMapLayers(tester).polygons, isEmpty, reason: 'ohne Leiste keine Maske');
+      // Herauszoomen: dieselben Kacheln, keine gröberen Eltern (0.27.0).
+      fakeMap(tester).move(fakeMap(tester).camera.center, 9);
+      await settle(tester);
+      expect(covered(fakeMapLayers(tester).polygons.single.holes), before);
 
-    await openTools(tester);
-    final mask = fakeMapLayers(tester).polygons.single;
-    expect(mask.fillColor, kOfflineDimColor);
-    expect(mask.holes, isNotEmpty, reason: 'der Bereich liegt im Ausschnitt');
-    // Um den Bestand ein durchgehender Rand in der Textfarbe des Modus
-    // (die Test-App ist hell).
-    expect(stockOutline(tester), isNotEmpty);
-    expect(stockOutline(tester).map((l) => l.color).toSet(), {AppColors.light.text});
-    // Die Löcher sind die Kacheln des Bereichs bei SEINEM Zoom (10).
-    Set<TileXYZ> covered(List<List<LatLng>> holes) => {
-          for (final h in holes)
-            ...tilesCovering(
-                AreaBounds(
-                    south: h[2].latitude + 1e-7,
-                    west: h[0].longitude + 1e-7,
-                    north: h[0].latitude - 1e-7,
-                    east: h[1].longitude - 1e-7),
-                minZoom: 10,
-                maxZoom: 10),
-        };
-    final before = covered(mask.holes);
-    expect(before, oldArea().shape.tilesWithin(offlineOverlayBox(fakeMap(tester).camera.bounds), 10).toSet());
+      // Ohne Änderung schließt das X ohne Rückfrage.
+      await tapRail(tester, 'offline-maps-close');
+      expect(find.text('Entwurf verwerfen?'), findsNothing);
+      expect(find.byKey(const ValueKey('offline-tool-rail')), findsNothing);
+      expect(
+        fakeMapLayers(tester).polygons,
+        isEmpty,
+        reason: 'zu heißt: keine Maske mehr',
+      );
+      expect(stockOutline(tester), isEmpty, reason: '… und kein Rand');
+    },
+  );
 
-    // Herauszoomen: dieselben Kacheln, keine gröberen Eltern (0.27.0).
-    fakeMap(tester).move(fakeMap(tester).camera.center, 9);
-    await settle(tester);
-    expect(covered(fakeMapLayers(tester).polygons.single.holes), before);
-
-    // Ohne Änderung schließt das X ohne Rückfrage.
-    await tapRail(tester, 'offline-maps-close');
-    expect(find.text('Entwurf verwerfen?'), findsNothing);
-    expect(find.byKey(const ValueKey('offline-tool-rail')), findsNothing);
-    expect(fakeMapLayers(tester).polygons, isEmpty, reason: 'zu heißt: keine Maske mehr');
-    expect(stockOutline(tester), isEmpty, reason: '… und kein Rand');
-  });
-
-  testWidgets('dunkler Modus: der Rand um den Bestand ist hell (Design Turn 2)', (tester) async {
-    await store.putArchive('old', _sourceBytes());
-    await store.saveIndex([oldArea()]);
-    await start(tester, appearance: 'dark');
-    await openTools(tester);
-    expect(stockOutline(tester), isNotEmpty);
-    expect(stockOutline(tester).map((l) => l.color).toSet(), {AppColors.dark.text});
-  });
+  testWidgets(
+    'dunkler Modus: der Rand um den Bestand ist hell (Design Turn 2)',
+    (tester) async {
+      await store.putArchive('old', _sourceBytes());
+      await store.saveIndex([oldArea()]);
+      await start(tester, appearance: 'dark');
+      await openTools(tester);
+      expect(stockOutline(tester), isNotEmpty);
+      expect(stockOutline(tester).map((l) => l.color).toSet(), {
+        AppColors.dark.text,
+      });
+    },
+  );
 
   testWidgets('ohne Bereich ist alles abgedunkelt', (tester) async {
     await start(tester);
@@ -308,294 +394,455 @@ void main() {
     final mask = fakeMapLayers(tester).polygons.single;
     expect(mask.holes, isEmpty);
     expect(draftTiles(tester), 0);
-    final save = tester.widget<IconButton>(find.byKey(const ValueKey('area-draw-save')));
+    final save = tester.widget<IconButton>(
+      find.byKey(const ValueKey('area-draw-save')),
+    );
     expect(save.onPressed, isNull, reason: 'ohne Kachel nichts zu speichern');
   });
 
-  testWidgets('Schnappschuss, Speichern mit Größe und Zahl der Orte, dann in der Liste und gelöscht',
-      (tester) async {
-    await start(tester, pois: true);
-    fakeMap(tester).move(const LatLng(48.0, 9.0), 12);
-    await settle(tester);
-    await openTools(tester);
-    await tapRail(tester, 'rail-snapshot');
-    expect(draftTiles(tester), greaterThan(0));
-    expect(hatch(tester, kAreaInkLight), isNotEmpty, reason: 'was dazukommt: hell schraffiert auf dunkel');
-    expect(changeBorder(tester, kAreaInkLight), isNotEmpty, reason: '… mit gestricheltem Rand');
-    expect(hatch(tester, kAreaInkDark), isEmpty);
-    expect(changeBorder(tester, kAreaInkDark), isEmpty);
+  testWidgets(
+    'Schnappschuss, Speichern mit Größe und Zahl der Orte, dann in der Liste und gelöscht',
+    (tester) async {
+      await start(tester, pois: true);
+      fakeMap(tester).move(const LatLng(48.0, 9.0), 12);
+      await settle(tester);
+      await openTools(tester);
+      await tapRail(tester, 'rail-snapshot');
+      expect(draftTiles(tester), greaterThan(0));
+      expect(
+        hatch(tester, kAreaInkLight),
+        isNotEmpty,
+        reason: 'was dazukommt: hell schraffiert auf dunkel',
+      );
+      expect(
+        changeBorder(tester, kAreaInkLight),
+        isNotEmpty,
+        reason: '… mit gestricheltem Rand',
+      );
+      expect(hatch(tester, kAreaInkDark), isEmpty);
+      expect(changeBorder(tester, kAreaInkDark), isEmpty);
 
-    await tapRail(tester, 'area-draw-save');
-    await settle(tester, frames: 20);
-    expect(find.text('Änderungen speichern?'), findsOneWidget);
-    final size = (tester.widget(find.byKey(const ValueKey('area-size'))) as Text).data!;
-    expect(size, matches(RegExp(r'^Lädt \d+ kB · \d+ Kacheln · \d+ Orte · ohne Höhen$')),
-        reason: 'der Harness hat kein Höhen-Manifest, und das steht da');
-    // Zwei Orte je Zelle, so viele Zellen wie der Ausschnitt berührt.
-    final orte = int.parse(RegExp(r'(\d+) Orte').firstMatch(size)!.group(1)!);
-    expect(orte, isPositive);
-    expect(orte.isEven, isTrue);
+      await tapRail(tester, 'area-draw-save');
+      await settle(tester, frames: 20);
+      expect(find.text('Änderungen speichern?'), findsOneWidget);
+      final size =
+          (tester.widget(find.byKey(const ValueKey('area-size'))) as Text)
+              .data!;
+      expect(
+        size,
+        matches(RegExp(r'^Lädt \d+ kB · \d+ Kacheln · \d+ Orte · ohne Höhen$')),
+        reason: 'der Harness hat kein Höhen-Manifest, und das steht da',
+      );
+      // Zwei Orte je Zelle, so viele Zellen wie der Ausschnitt berührt.
+      final orte = int.parse(RegExp(r'(\d+) Orte').firstMatch(size)!.group(1)!);
+      expect(orte, isPositive);
+      expect(orte.isEven, isTrue);
 
-    await tester.enterText(find.byKey(const ValueKey('area-name')), 'Roots-Runde');
-    await tester.tap(find.byKey(const ValueKey('area-save')));
-    await settle(tester, frames: 30);
-    expect(find.text('Änderungen speichern?'), findsNothing, reason: 'fertig heißt: Dialog zu');
-    expect(find.textContaining('„Roots-Runde" gespeichert'), findsOneWidget);
-    expect(keepAlive.starts, 1);
-    expect(keepAlive.running, isFalse);
+      await tester.enterText(
+        find.byKey(const ValueKey('area-name')),
+        'Roots-Runde',
+      );
+      await tester.tap(find.byKey(const ValueKey('area-save')));
+      await settle(tester, frames: 30);
+      expect(
+        find.text('Änderungen speichern?'),
+        findsNothing,
+        reason: 'fertig heißt: Dialog zu',
+      );
+      expect(find.textContaining('„Roots-Runde" gespeichert'), findsOneWidget);
+      expect(keepAlive.starts, 1);
+      expect(keepAlive.running, isFalse);
 
-    final saved = (await store.list()).single;
-    expect(saved.name, 'Roots-Runde');
-    expect(saved.maxZoom, 10);
-    expect(saved.shape, isA<TileSetShape>());
-    expect(saved.poiFiles, isNotEmpty);
-    expect(saved.complete, isTrue);
-    expect(bakeCalls, [
-      [saved.id]
-    ], reason: 'nach dem Speichern backt der Planer seine Stücke (#380 Weg C)');
-    expect((await tiles.index('dach', TileLayer.map)).length, saved.tiles,
-        reason: 'jede Kachel einmal im Speicher der Region');
-    // Der Entwurf ist erledigt, die Leiste bleibt offen, die neuen
-    // Kacheln sind hell.
-    expect(draftTiles(tester), 0);
-    expect(changeBorder(tester, kAreaInkLight), isEmpty);
-    expect(fakeMapLayers(tester).polygons.single.holes, isNotEmpty);
+      final saved = (await store.list()).single;
+      expect(saved.name, 'Roots-Runde');
+      expect(saved.maxZoom, 10);
+      expect(saved.shape, isA<TileSetShape>());
+      expect(saved.poiFiles, isNotEmpty);
+      expect(saved.complete, isTrue);
+      expect(
+        bakeCalls,
+        [
+          [saved.id],
+        ],
+        reason: 'nach dem Speichern backt der Planer seine Stücke (#380 Weg C)',
+      );
+      expect(
+        (await tiles.index('dach', TileLayer.map)).length,
+        saved.tiles,
+        reason: 'jede Kachel einmal im Speicher der Region',
+      );
+      // Der Entwurf ist erledigt, die Leiste bleibt offen, die neuen
+      // Kacheln sind hell.
+      expect(draftTiles(tester), 0);
+      expect(changeBorder(tester, kAreaInkLight), isEmpty);
+      expect(fakeMapLayers(tester).polygons.single.holes, isNotEmpty);
 
-    // Verwalten: Karte mit Zahnrad → „Meine Bereiche".
-    await tapRail(tester, 'manage-areas');
-    expect(find.text('Roots-Runde'), findsOneWidget);
-    expect(find.textContaining('Stand 28.09.2026'), findsOneWidget);
-    await tester.tap(find.byKey(ValueKey('area-delete-${saved.id}')));
-    await settle(tester);
-    await tester.tap(find.text('Löschen'));
-    await settle(tester);
-    expect(find.text('Roots-Runde'), findsNothing);
-    expect(await store.list(), isEmpty);
-    expect(await tiles.index('dach', TileLayer.map), isEmpty, reason: 'niemand braucht sie mehr');
-  });
+      // Verwalten: Karte mit Zahnrad → „Meine Bereiche".
+      await tapRail(tester, 'manage-areas');
+      expect(find.text('Roots-Runde'), findsOneWidget);
+      expect(find.textContaining('Stand 28.09.2026'), findsOneWidget);
+      await tester.tap(find.byKey(ValueKey('area-delete-${saved.id}')));
+      await settle(tester);
+      await tester.tap(find.text('Löschen'));
+      await settle(tester);
+      expect(find.text('Roots-Runde'), findsNothing);
+      expect(await store.list(), isEmpty);
+      expect(
+        await tiles.index('dach', TileLayer.map),
+        isEmpty,
+        reason: 'niemand braucht sie mehr',
+      );
+    },
+  );
 
-  testWidgets('ohne Kartenhost gibt es keinen Bereich, und der Dialog sagt es', (tester) async {
-    await start(tester, host: false);
-    fakeMap(tester).move(const LatLng(48.0, 9.0), 12);
-    await settle(tester);
-    await openTools(tester);
-    await tapRail(tester, 'rail-snapshot');
-    await tapRail(tester, 'area-draw-save');
-    await settle(tester, frames: 20);
-    expect(find.textContaining('Ohne Empfang lässt sich nichts dazuladen'), findsOneWidget);
-    final save = tester.widget<FilledButton>(find.byKey(const ValueKey('area-save')));
-    expect(save.onPressed, isNull);
-    await tester.tap(find.byKey(const ValueKey('area-save-cancel')));
-    await settle(tester);
-    expect(draftTiles(tester), greaterThan(0), reason: 'Abbrechen lässt den Entwurf stehen');
-  });
+  testWidgets(
+    'ohne Kartenhost gibt es keinen Bereich, und der Dialog sagt es',
+    (tester) async {
+      await start(tester, host: false);
+      fakeMap(tester).move(const LatLng(48.0, 9.0), 12);
+      await settle(tester);
+      await openTools(tester);
+      await tapRail(tester, 'rail-snapshot');
+      await tapRail(tester, 'area-draw-save');
+      await settle(tester, frames: 20);
+      expect(
+        find.textContaining('Ohne Empfang lässt sich nichts dazuladen'),
+        findsOneWidget,
+      );
+      final save = tester.widget<FilledButton>(
+        find.byKey(const ValueKey('area-save')),
+      );
+      expect(save.onPressed, isNull);
+      await tester.tap(find.byKey(const ValueKey('area-save-cancel')));
+      await settle(tester);
+      expect(
+        draftTiles(tester),
+        greaterThan(0),
+        reason: 'Abbrechen lässt den Entwurf stehen',
+      );
+    },
+  );
 
-  testWidgets('Stift, Radierer, Rückgängig — und Speichern macht den Entwurf zum Bereich', (tester) async {
-    await start(tester);
-    // Weit draußen: Der Host des Tests endet bei Zoom 10, gezählt wird
-    // bis dorthin — ein Strich soll mehrere 10er-Kacheln fassen.
-    fakeMap(tester).move(const LatLng(48.0, 9.0), 8);
-    await settle(tester);
-    await openTools(tester);
-    expect(find.byKey(const ValueKey('area-draw-surface')), findsNothing,
-        reason: 'ohne Werkzeug lässt sich die Karte verschieben');
+  testWidgets(
+    'Stift, Radierer, Rückgängig — und Speichern macht den Entwurf zum Bereich',
+    (tester) async {
+      await start(tester);
+      // Weit draußen: Der Host des Tests endet bei Zoom 10, gezählt wird
+      // bis dorthin — ein Strich soll mehrere 10er-Kacheln fassen.
+      fakeMap(tester).move(const LatLng(48.0, 9.0), 8);
+      await settle(tester);
+      await openTools(tester);
+      expect(
+        find.byKey(const ValueKey('area-draw-surface')),
+        findsNothing,
+        reason: 'ohne Werkzeug lässt sich die Karte verschieben',
+      );
 
-    await tapRail(tester, 'area-draw-add');
-    expect(find.byKey(const ValueKey('area-draw-surface')), findsOneWidget);
-    await stroke(tester, const [
-      Offset(250, 120), Offset(450, 120), Offset(550, 170), Offset(450, 230), Offset(250, 230), Offset(250, 125),
-    ]);
-    expect(find.byKey(const ValueKey('area-draw-surface')), findsNothing,
-        reason: 'nach dem Strich ist die Karte wieder frei');
-    final added = draftTiles(tester);
-    expect(added, greaterThan(5));
-    expect(changeBorder(tester, kAreaInkLight), isNotEmpty);
+      await tapRail(tester, 'area-draw-add');
+      expect(find.byKey(const ValueKey('area-draw-surface')), findsOneWidget);
+      await stroke(tester, const [
+        Offset(250, 120),
+        Offset(450, 120),
+        Offset(550, 170),
+        Offset(450, 230),
+        Offset(250, 230),
+        Offset(250, 125),
+      ]);
+      expect(
+        find.byKey(const ValueKey('area-draw-surface')),
+        findsNothing,
+        reason: 'nach dem Strich ist die Karte wieder frei',
+      );
+      final added = draftTiles(tester);
+      expect(added, greaterThan(5));
+      expect(changeBorder(tester, kAreaInkLight), isNotEmpty);
 
-    const erase = [Offset(240, 100), Offset(400, 100), Offset(400, 250), Offset(240, 250), Offset(240, 105)];
-    await tapRail(tester, 'area-draw-remove');
-    await stroke(tester, erase);
-    final erased = draftTiles(tester);
-    expect(erased, lessThan(added));
-    expect(erased, greaterThan(0));
+      const erase = [
+        Offset(240, 100),
+        Offset(400, 100),
+        Offset(400, 250),
+        Offset(240, 250),
+        Offset(240, 105),
+      ];
+      await tapRail(tester, 'area-draw-remove');
+      await stroke(tester, erase);
+      final erased = draftTiles(tester);
+      expect(erased, lessThan(added));
+      expect(erased, greaterThan(0));
 
-    await tapRail(tester, 'area-draw-undo');
-    expect(draftTiles(tester), added);
-    await tapRail(tester, 'area-draw-remove');
-    await stroke(tester, erase);
-    expect(draftTiles(tester), erased);
+      await tapRail(tester, 'area-draw-undo');
+      expect(draftTiles(tester), added);
+      await tapRail(tester, 'area-draw-remove');
+      await stroke(tester, erase);
+      expect(draftTiles(tester), erased);
 
-    await tapRail(tester, 'area-draw-save');
-    await settle(tester, frames: 20);
-    await tester.tap(find.byKey(const ValueKey('area-save')));
-    await settle(tester, frames: 30);
-    final saved = (await store.list()).single;
-    expect((saved.shape as TileSetShape).countTiles(maxZoom: 10), erased);
-    expect(draftTiles(tester), 0);
-  });
+      await tapRail(tester, 'area-draw-save');
+      await settle(tester, frames: 20);
+      await tester.tap(find.byKey(const ValueKey('area-save')));
+      await settle(tester, frames: 30);
+      final saved = (await store.list()).single;
+      expect((saved.shape as TileSetShape).countTiles(maxZoom: 10), erased);
+      expect(draftTiles(tester), 0);
+    },
+  );
 
-  testWidgets('Gespeichertes wegnehmen: dunkel gespiegelt schraffiert, offline gespeichert, der Bereich ist weg',
-      (tester) async {
-    await store.putArchive('old', _sourceBytes());
-    await store.saveIndex([oldArea()]);
-    // Ohne Kartenhost: Entfernen braucht kein Netz.
-    await start(tester, host: false);
-    fakeMap(tester).move(const LatLng(48.005, 9.0), 12);
-    await settle(tester);
-    await openTools(tester);
+  testWidgets(
+    'Gespeichertes wegnehmen: dunkel gespiegelt schraffiert, offline gespeichert, der Bereich ist weg',
+    (tester) async {
+      await store.putArchive('old', _sourceBytes());
+      await store.saveIndex([oldArea()]);
+      // Ohne Kartenhost: Entfernen braucht kein Netz.
+      await start(tester, host: false);
+      fakeMap(tester).move(const LatLng(48.005, 9.0), 12);
+      await settle(tester);
+      await openTools(tester);
 
-    // Der Stift über Gespeichertem ändert nichts: es liegt schon.
-    const loop = [Offset(250, 100), Offset(550, 100), Offset(550, 420), Offset(250, 420), Offset(250, 105)];
-    await tapRail(tester, 'area-draw-add');
-    await stroke(tester, loop);
-    expect(removedTiles(tester), 0);
+      // Der Stift über Gespeichertem ändert nichts: es liegt schon.
+      const loop = [
+        Offset(250, 100),
+        Offset(550, 100),
+        Offset(550, 420),
+        Offset(250, 420),
+        Offset(250, 105),
+      ];
+      await tapRail(tester, 'area-draw-add');
+      await stroke(tester, loop);
+      expect(removedTiles(tester), 0);
 
-    await tapRail(tester, 'area-draw-remove');
-    await stroke(tester, loop);
-    expect(draftTiles(tester), 0, reason: 'die offene Zugabe ist zurückgenommen');
-    expect(removedTiles(tester), greaterThan(0), reason: 'das Gespeicherte fällt weg');
-    expect(hatch(tester, kAreaInkDark), isNotEmpty, reason: 'dunkel schraffiert auf hell');
-    expect(changeBorder(tester, kAreaInkDark), isNotEmpty);
-    expect(hatch(tester, kAreaInkLight), isEmpty);
+      await tapRail(tester, 'area-draw-remove');
+      await stroke(tester, loop);
+      expect(
+        draftTiles(tester),
+        0,
+        reason: 'die offene Zugabe ist zurückgenommen',
+      );
+      expect(
+        removedTiles(tester),
+        greaterThan(0),
+        reason: 'das Gespeicherte fällt weg',
+      );
+      expect(
+        hatch(tester, kAreaInkDark),
+        isNotEmpty,
+        reason: 'dunkel schraffiert auf hell',
+      );
+      expect(changeBorder(tester, kAreaInkDark), isNotEmpty);
+      expect(hatch(tester, kAreaInkLight), isEmpty);
 
-    await tapRail(tester, 'area-draw-save');
-    await settle(tester, frames: 20);
-    final free = (tester.widget(find.byKey(const ValueKey('area-free'))) as Text).data!;
-    expect(free, matches(RegExp(r'^Gibt \d+ Byte|^Gibt \d+ kB|^Gibt [\d,]+ MB')));
-    expect(free, contains('1 Bereich ganz'));
-    expect(find.byKey(const ValueKey('area-name')), findsNothing, reason: 'kein neuer Bereich, kein Name');
-    await tester.tap(find.byKey(const ValueKey('area-save')));
-    await settle(tester, frames: 20);
-    expect(find.text('Änderungen speichern?'), findsNothing);
-    expect(await store.list(), isEmpty);
-    expect(await store.readArchive('old'), isNull);
-    expect(await tiles.index('dach', TileLayer.map), isEmpty);
-    expect(removedTiles(tester), 0);
-    expect(fakeMapLayers(tester).polygons.first.holes, isEmpty, reason: 'nichts liegt mehr — alles dunkel');
-    expect(keepAlive.starts, 0, reason: 'nichts geladen');
-  });
+      await tapRail(tester, 'area-draw-save');
+      await settle(tester, frames: 20);
+      final free =
+          (tester.widget(find.byKey(const ValueKey('area-free'))) as Text)
+              .data!;
+      expect(
+        free,
+        matches(RegExp(r'^Gibt \d+ Byte|^Gibt \d+ kB|^Gibt [\d,]+ MB')),
+      );
+      expect(free, contains('1 Bereich ganz'));
+      expect(
+        find.byKey(const ValueKey('area-name')),
+        findsNothing,
+        reason: 'kein neuer Bereich, kein Name',
+      );
+      await tester.tap(find.byKey(const ValueKey('area-save')));
+      await settle(tester, frames: 20);
+      expect(find.text('Änderungen speichern?'), findsNothing);
+      expect(await store.list(), isEmpty);
+      expect(await store.readArchive('old'), isNull);
+      expect(await tiles.index('dach', TileLayer.map), isEmpty);
+      expect(removedTiles(tester), 0);
+      expect(
+        fakeMapLayers(tester).polygons.first.holes,
+        isEmpty,
+        reason: 'nichts liegt mehr — alles dunkel',
+      );
+      expect(keepAlive.starts, 0, reason: 'nichts geladen');
+    },
+  );
 
-  testWidgets('Schließen mit Änderungen fragt nach: X, Knopf und Zurück-Taste', (tester) async {
-    await start(tester);
-    await openTools(tester);
-    await tapRail(tester, 'area-draw-trails');
-    final along = draftTiles(tester);
-    expect(along, greaterThan(0));
+  testWidgets(
+    'Schließen mit Änderungen fragt nach: X, Knopf und Zurück-Taste',
+    (tester) async {
+      await start(tester);
+      await openTools(tester);
+      await tapRail(tester, 'area-draw-trails');
+      final along = draftTiles(tester);
+      expect(along, greaterThan(0));
 
-    // X: „Weiter bearbeiten" lässt alles offen.
-    await tapRail(tester, 'offline-maps-close');
-    expect(find.text('Entwurf verwerfen?'), findsOneWidget);
-    await tester.tap(find.byKey(const ValueKey('draft-keep')));
-    await settle(tester);
-    expect(find.byKey(const ValueKey('offline-tool-rail')), findsOneWidget);
-    expect(draftTiles(tester), along);
+      // X: „Weiter bearbeiten" lässt alles offen.
+      await tapRail(tester, 'offline-maps-close');
+      expect(find.text('Entwurf verwerfen?'), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('draft-keep')));
+      await settle(tester);
+      expect(find.byKey(const ValueKey('offline-tool-rail')), findsOneWidget);
+      expect(draftTiles(tester), along);
 
-    // Zurück-Taste: dieselbe Frage statt die App zu verlassen.
-    await tester.binding.handlePopRoute();
-    await settle(tester);
-    expect(find.text('Entwurf verwerfen?'), findsOneWidget);
-    await tester.tap(find.byKey(const ValueKey('draft-keep')));
-    await settle(tester);
-    expect(find.byKey(const ValueKey('offline-tool-rail')), findsOneWidget);
+      // Zurück-Taste: dieselbe Frage statt die App zu verlassen.
+      await tester.binding.handlePopRoute();
+      await settle(tester);
+      expect(find.text('Entwurf verwerfen?'), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('draft-keep')));
+      await settle(tester);
+      expect(find.byKey(const ValueKey('offline-tool-rail')), findsOneWidget);
 
-    // Ein armiertes Werkzeug geht beim Schließen mit.
-    await tapRail(tester, 'area-draw-add');
-    expect(find.byKey(const ValueKey('area-draw-surface')), findsOneWidget);
+      // Ein armiertes Werkzeug geht beim Schließen mit.
+      await tapRail(tester, 'area-draw-add');
+      expect(find.byKey(const ValueKey('area-draw-surface')), findsOneWidget);
 
-    // Der Knopf „Offline-Karten": verwerfen.
-    await tester.tap(find.byTooltip('Offline-Karten'));
-    await settle(tester);
-    expect(find.text('Entwurf verwerfen?'), findsOneWidget);
-    await tester.tap(find.byKey(const ValueKey('draft-discard')));
-    await settle(tester);
-    expect(find.byKey(const ValueKey('offline-tool-rail')), findsNothing);
-    expect(find.byKey(const ValueKey('area-draw-surface')), findsNothing);
-    expect(fakeMapLayers(tester).polygons, isEmpty);
+      // Der Knopf „Offline-Karten": verwerfen.
+      await tester.tap(find.byTooltip('Offline-Karten'));
+      await settle(tester);
+      expect(find.text('Entwurf verwerfen?'), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('draft-discard')));
+      await settle(tester);
+      expect(find.byKey(const ValueKey('offline-tool-rail')), findsNothing);
+      expect(find.byKey(const ValueKey('area-draw-surface')), findsNothing);
+      expect(fakeMapLayers(tester).polygons, isEmpty);
 
-    // Wieder geöffnet: ein leerer Entwurf, kein Werkzeug.
-    await openTools(tester);
-    expect(draftTiles(tester), 0);
-    expect(find.byKey(const ValueKey('area-draw-surface')), findsNothing);
-  });
+      // Wieder geöffnet: ein leerer Entwurf, kein Werkzeug.
+      await openTools(tester);
+      expect(draftTiles(tester), 0);
+      expect(find.byKey(const ValueKey('area-draw-surface')), findsNothing);
+    },
+  );
 
-  testWidgets('Wege (#212): ein Bereich ohne Wege bekommt das Angebot, ein neuer bringt sie gleich mit',
-      (tester) async {
-    await store.putArchive('old', _sourceBytes());
-    await store.saveIndex([oldArea()]);
-    await start(tester, ways: true);
-    await openTab(tester, 'Profil');
-    await scrollTo(tester, find.text('Meine Bereiche'));
-    await tester.tap(find.text('Meine Bereiche'));
-    await settle(tester);
-    expect(find.textContaining('Wege verfügbar'), findsOneWidget,
-        reason: 'derselbe Kartenstand, aber noch ohne Wege gespeichert');
-    expect(find.textContaining('Neuerer Kartenstand'), findsNothing);
-    await tester.tap(find.byKey(const ValueKey('area-update-old')));
-    await settle(tester, frames: 40);
-    final area = (await store.list()).single;
-    expect(area.hasWays, isTrue);
-    expect(area.waysBuild, '20261007');
-    expect(await tiles.index('dach', TileLayer.ways), isNotEmpty);
-    expect(find.textContaining('Wege verfügbar'), findsNothing);
-    expect(find.textContaining('mit Wegen'), findsOneWidget);
-  });
+  testWidgets(
+    'Wege (#212): ein Bereich ohne Wege bekommt das Angebot, ein neuer bringt sie gleich mit',
+    (tester) async {
+      await store.putArchive('old', _sourceBytes());
+      await store.saveIndex([oldArea()]);
+      await start(tester, ways: true);
+      await openTab(tester, 'Profil');
+      await scrollTo(tester, find.text('Meine Bereiche'));
+      await tester.tap(find.text('Meine Bereiche'));
+      await settle(tester);
+      expect(
+        find.textContaining('Wege verfügbar'),
+        findsOneWidget,
+        reason: 'derselbe Kartenstand, aber noch ohne Wege gespeichert',
+      );
+      expect(find.textContaining('Neuerer Kartenstand'), findsNothing);
+      await tester.tap(find.byKey(const ValueKey('area-update-old')));
+      await settle(tester, frames: 40);
+      final area = (await store.list()).single;
+      expect(area.hasWays, isTrue);
+      expect(area.waysBuild, '20261007');
+      expect(await tiles.index('dach', TileLayer.ways), isNotEmpty);
+      expect(find.textContaining('Wege verfügbar'), findsNothing);
+      expect(find.textContaining('mit Wegen'), findsOneWidget);
+    },
+  );
 
-  testWidgets('Wege (#212): der Dialog nennt sie, und sie kommen mit, auch bei ausgeschalteter Ebene',
-      (tester) async {
-    await start(tester, ways: true, wayLayer: false);
-    fakeMap(tester).move(const LatLng(48.0, 9.0), 12);
-    await settle(tester);
-    await openTools(tester);
-    await tapRail(tester, 'rail-snapshot');
-    await tapRail(tester, 'area-draw-save');
-    await settle(tester, frames: 20);
-    final size = (tester.widget(find.byKey(const ValueKey('area-size'))) as Text).data!;
-    expect(size, endsWith(' · ohne Höhen · Wege'));
-    await tester.enterText(find.byKey(const ValueKey('area-name')), 'Mit Wegen');
-    await tester.tap(find.byKey(const ValueKey('area-save')));
-    await settle(tester, frames: 30);
-    final saved = (await store.list()).single;
-    expect(saved.hasWays, isTrue, reason: 'Betreiber: ein Bereich holt die Wege immer');
-    expect((await tiles.index('dach', TileLayer.ways)).length, saved.wayTiles);
-  });
+  testWidgets(
+    'Wege (#212): der Dialog nennt sie, und sie kommen mit, auch bei ausgeschalteter Ebene',
+    (tester) async {
+      await start(tester, ways: true, wayLayer: false);
+      fakeMap(tester).move(const LatLng(48.0, 9.0), 12);
+      await settle(tester);
+      await openTools(tester);
+      await tapRail(tester, 'rail-snapshot');
+      await tapRail(tester, 'area-draw-save');
+      await settle(tester, frames: 20);
+      final size =
+          (tester.widget(find.byKey(const ValueKey('area-size'))) as Text)
+              .data!;
+      expect(size, endsWith(' · ohne Höhen · Wege'));
+      await tester.enterText(
+        find.byKey(const ValueKey('area-name')),
+        'Mit Wegen',
+      );
+      await tester.tap(find.byKey(const ValueKey('area-save')));
+      await settle(tester, frames: 30);
+      final saved = (await store.list()).single;
+      expect(
+        saved.hasWays,
+        isTrue,
+        reason: 'Betreiber: ein Bereich holt die Wege immer',
+      );
+      expect(
+        (await tiles.index('dach', TileLayer.ways)).length,
+        saved.wayTiles,
+      );
+    },
+  );
 
-  testWidgets('Alter je Kachel (#229 Schritt 4): die Region zählt die veralteten, „Aktualisieren" holt nur sie',
-      (tester) async {
-    await store.putArchive('old', _sourceBytes());
-    await store.saveIndex([oldArea(build: '20260801')]);
-    // Ein Stück des Planers (#380) mit einem Bau, der älter ist als jeder
-    // Host-Bau: Es kommt nie vom Host und zählt deshalb nicht als veraltet
-    // (Gegenprobe: TileLayer.routing in der Liste von regionTileAgeProvider
-    // ⇒ „4 davon").
-    final piece = tileAt(48.0, 9.0, 13);
-    await tiles.put('dach', TileLayer.routing, [StoreTile(13, piece.x, piece.y, Uint8List(8), '1')]);
-    await start(tester);
-    await openTab(tester, 'Profil');
-    await scrollTo(tester, find.text('Meine Bereiche'));
-    await tester.tap(find.text('Meine Bereiche'));
-    await settle(tester, frames: 20);
-    final row = find.byKey(const ValueKey('region-dach'));
-    expect(find.descendant(of: row, matching: find.textContaining('3 davon älter als der Stand vom 28.09.2026')),
-        findsOneWidget);
-    expect(find.byKey(const ValueKey('area-update-old')), findsNothing,
-        reason: 'der neue Stand steht an der Region, nicht am Bereich');
-    await tester.tap(find.byKey(const ValueKey('region-refresh-dach')));
-    await settle(tester, frames: 20);
-    expect(find.text('Karte DACH aktualisieren?'), findsOneWidget);
-    expect(find.textContaining('3 Kacheln werden ersetzt'), findsOneWidget);
-    expect(find.textContaining('Mobilfunk'), findsNothing, reason: 'im WLAN keine Warnung');
-    await tester.tap(find.widgetWithText(FilledButton, 'Aktualisieren'));
-    await settle(tester, frames: 40);
-    final areas = await store.list();
-    expect(areas.single.id, 'old', reason: 'der Bereich bleibt, nur seine Kacheln sind neu');
-    expect(areas.single.build, '20260928');
-    expect(bakeCalls.last, ['old'], reason: 'nach dem Aktualisieren backen die Bereiche der Region neu');
-    expect({for (final i in (await tiles.index('dach', TileLayer.map)).values) i.build}, {'20260928'});
-    expect((await tiles.index('dach', TileLayer.routing)).values.single.build, '1',
-        reason: 'der Download fasst die Stücke nicht an — der Planer backt sie neu');
-    expect(find.descendant(of: row, matching: find.textContaining('Alle auf dem Stand vom 28.09.2026')),
-        findsOneWidget);
-    expect(find.byKey(const ValueKey('region-refresh-dach')), findsNothing);
-  });
+  testWidgets(
+    'Alter je Kachel (#229 Schritt 4): die Region zählt die veralteten, „Aktualisieren" holt nur sie',
+    (tester) async {
+      await store.putArchive('old', _sourceBytes());
+      await store.saveIndex([oldArea(build: '20260801')]);
+      // Ein Stück des Planers (#380) mit einem Bau, der älter ist als jeder
+      // Host-Bau: Es kommt nie vom Host und zählt deshalb nicht als veraltet
+      // (Gegenprobe: TileLayer.routing in der Liste von regionTileAgeProvider
+      // ⇒ „4 davon").
+      final piece = tileAt(48.0, 9.0, 13);
+      await tiles.put('dach', TileLayer.routing, [
+        StoreTile(13, piece.x, piece.y, Uint8List(8), '1'),
+      ]);
+      await start(tester);
+      await openTab(tester, 'Profil');
+      await scrollTo(tester, find.text('Meine Bereiche'));
+      await tester.tap(find.text('Meine Bereiche'));
+      await settle(tester, frames: 20);
+      final row = find.byKey(const ValueKey('region-dach'));
+      expect(
+        find.descendant(
+          of: row,
+          matching: find.textContaining(
+            '3 davon älter als der Stand vom 28.09.2026',
+          ),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('area-update-old')),
+        findsNothing,
+        reason: 'der neue Stand steht an der Region, nicht am Bereich',
+      );
+      await tester.tap(find.byKey(const ValueKey('region-refresh-dach')));
+      await settle(tester, frames: 20);
+      expect(find.text('Karte DACH aktualisieren?'), findsOneWidget);
+      expect(find.textContaining('3 Kacheln werden ersetzt'), findsOneWidget);
+      expect(
+        find.textContaining('Mobilfunk'),
+        findsNothing,
+        reason: 'im WLAN keine Warnung',
+      );
+      await tester.tap(find.widgetWithText(FilledButton, 'Aktualisieren'));
+      await settle(tester, frames: 40);
+      final areas = await store.list();
+      expect(
+        areas.single.id,
+        'old',
+        reason: 'der Bereich bleibt, nur seine Kacheln sind neu',
+      );
+      expect(areas.single.build, '20260928');
+      expect(bakeCalls.last, [
+        'old',
+      ], reason: 'nach dem Aktualisieren backen die Bereiche der Region neu');
+      expect(
+        {
+          for (final i in (await tiles.index('dach', TileLayer.map)).values)
+            i.build,
+        },
+        {'20260928'},
+      );
+      expect(
+        (await tiles.index('dach', TileLayer.routing)).values.single.build,
+        '1',
+        reason:
+            'der Download fasst die Stücke nicht an — der Planer backt sie neu',
+      );
+      expect(
+        find.descendant(
+          of: row,
+          matching: find.textContaining('Alle auf dem Stand vom 28.09.2026'),
+        ),
+        findsOneWidget,
+      );
+      expect(find.byKey(const ValueKey('region-refresh-dach')), findsNothing);
+    },
+  );
 
   Future<void> openAreas(WidgetTester tester) async {
     await openTab(tester, 'Profil');
@@ -604,84 +851,145 @@ void main() {
     await settle(tester, frames: 20);
   }
 
-  testWidgets('„Unterwegs geladen" (#478): eine Zeile mit Leeren, kein Bereich, nie mit der Region aktualisiert',
-      (tester) async {
-    await store.putArchive('old', _sourceBytes());
-    await store.saveIndex([oldArea(build: '20260801')]);
-    // Vom Planer behalten, aus einem älteren Bau als der Host.
-    final t = tileAt(48.0, 9.0, 13);
-    await keepOnlineTiles(
-      areas: store,
-      tiles: tiles,
-      region: 'dach',
-      builds: (map: '20260801', heights: null, ways: null),
-      fetched: [KeptFetch(t.x, t.y, map: Uint8List(2000))],
-    );
-    await start(tester);
-    await openAreas(tester);
-    final row = find.byKey(const ValueKey('area-kept-dach'));
-    expect(row, findsOneWidget);
-    expect(find.descendant(of: row, matching: find.textContaining('2 kB · vom Planer online ergänzt')), findsOneWidget);
-    expect(find.descendant(of: row, matching: find.textContaining('über 50,0 MB')), findsOneWidget);
-    expect(find.text('kept'), findsNothing, reason: 'kein Bereich in der Liste');
-    expect(find.descendant(of: find.byKey(const ValueKey('region-dach')), matching: find.textContaining('3 davon älter')),
+  testWidgets(
+    '„Unterwegs geladen" (#478): eine Zeile mit Leeren, kein Bereich, nie mit der Region aktualisiert',
+    (tester) async {
+      await store.putArchive('old', _sourceBytes());
+      await store.saveIndex([oldArea(build: '20260801')]);
+      // Vom Planer behalten, aus einem älteren Bau als der Host.
+      final t = tileAt(48.0, 9.0, 13);
+      await keepOnlineTiles(
+        areas: store,
+        tiles: tiles,
+        region: 'dach',
+        builds: (map: '20260801', heights: null, ways: null),
+        fetched: [KeptFetch(t.x, t.y, map: Uint8List(2000))],
+      );
+      await start(tester);
+      await openAreas(tester);
+      final row = find.byKey(const ValueKey('area-kept-dach'));
+      expect(row, findsOneWidget);
+      expect(
+        find.descendant(
+          of: row,
+          matching: find.textContaining('2 kB · vom Planer online ergänzt'),
+        ),
         findsOneWidget,
-        reason: 'die behaltene Kachel zählt nicht als veraltet — sie kommt beim Nutzen neu');
+      );
+      expect(
+        find.descendant(of: row, matching: find.textContaining('über 50,0 MB')),
+        findsOneWidget,
+      );
+      expect(
+        find.text('kept'),
+        findsNothing,
+        reason: 'kein Bereich in der Liste',
+      );
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('region-dach')),
+          matching: find.textContaining('3 davon älter'),
+        ),
+        findsOneWidget,
+        reason:
+            'die behaltene Kachel zählt nicht als veraltet — sie kommt beim Nutzen neu',
+      );
 
-    await tester.tap(find.byKey(const ValueKey('region-refresh-dach')));
-    await settle(tester, frames: 20);
-    expect(find.textContaining('3 Kacheln werden ersetzt'), findsOneWidget);
-    await tester.tap(find.widgetWithText(FilledButton, 'Aktualisieren'));
-    await settle(tester, frames: 40);
-    final id = tileIdOf((z: 13, x: t.x, y: t.y));
-    expect((await tiles.index('dach', TileLayer.map))[id]!.build, '20260801', reason: 'keine Anfrage für Behaltenes');
-    expect(bakeCalls.last, ['old', 'kept-dach'], reason: 'gebacken wird lokal, auch für den Halter — geholt nichts');
+      await tester.tap(find.byKey(const ValueKey('region-refresh-dach')));
+      await settle(tester, frames: 20);
+      expect(find.textContaining('3 Kacheln werden ersetzt'), findsOneWidget);
+      await tester.tap(find.widgetWithText(FilledButton, 'Aktualisieren'));
+      await settle(tester, frames: 40);
+      final id = tileIdOf((z: 13, x: t.x, y: t.y));
+      expect(
+        (await tiles.index('dach', TileLayer.map))[id]!.build,
+        '20260801',
+        reason: 'keine Anfrage für Behaltenes',
+      );
+      expect(bakeCalls.last, [
+        'old',
+        'kept-dach',
+      ], reason: 'gebacken wird lokal, auch für den Halter — geholt nichts');
 
-    await tester.tap(find.byKey(const ValueKey('area-kept-clear-dach')));
-    await settle(tester);
-    expect(find.textContaining('Gibt 2 kB frei'), findsOneWidget);
-    await tester.tap(find.byKey(const ValueKey('area-kept-clear-ok')));
-    await settle(tester, frames: 20);
-    expect((await store.list()).single.id, 'old');
-    expect((await tiles.index('dach', TileLayer.map)).containsKey(id), isFalse);
-    expect(row, findsNothing);
-  });
+      await tester.tap(find.byKey(const ValueKey('area-kept-clear-dach')));
+      await settle(tester);
+      expect(find.textContaining('Gibt 2 kB frei'), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('area-kept-clear-ok')));
+      await settle(tester, frames: 20);
+      expect((await store.list()).single.id, 'old');
+      expect(
+        (await tiles.index('dach', TileLayer.map)).containsKey(id),
+        isFalse,
+      );
+      expect(row, findsNothing);
+    },
+  );
 
-  testWidgets('die ganze Region (#229 Schritt 5): gemessen, gefragt, gespeichert — danach kein Angebot mehr',
-      (tester) async {
-    await start(tester);
-    await openAreas(tester);
-    expect(find.textContaining('oder gleich die ganze Region'), findsOneWidget);
-    await tester.tap(find.byKey(const ValueKey('whole-save-dach')));
-    await settle(tester, frames: 40);
-    expect(find.text('DACH ganz speichern?'), findsOneWidget);
-    expect(find.textContaining('„Fortsetzen" holt den Rest'), findsOneWidget);
-    await tester.tap(find.widgetWithText(FilledButton, 'Speichern'));
-    await settle(tester, frames: 60);
-    final saved = (await store.list()).single;
-    expect(saved.name, 'DACH komplett');
-    expect(saved.shape, isA<RegionShape>());
-    expect(saved.complete, isTrue);
-    expect(bakeCalls, [
-      [saved.id]
-    ], reason: 'übergeben wird auch sie; auslassen tut der Dienst selbst (routing_bake_test)');
-    expect((await tiles.index('dach', TileLayer.map)).length, saved.tiles,
-        reason: 'jede Kachel, die der Host in der Region hat');
-    expect(find.byKey(const ValueKey('whole-dach')), findsNothing, reason: 'die Region liegt schon');
-    expect(find.byKey(ValueKey('area-${saved.id}')), findsOneWidget);
-  });
+  testWidgets(
+    'die ganze Region (#229 Schritt 5): gemessen, gefragt, gespeichert — danach kein Angebot mehr',
+    (tester) async {
+      await start(tester);
+      await openAreas(tester);
+      expect(
+        find.textContaining('oder gleich die ganze Region'),
+        findsOneWidget,
+      );
+      await tester.tap(find.byKey(const ValueKey('whole-save-dach')));
+      await settle(tester, frames: 40);
+      expect(find.text('DACH ganz speichern?'), findsOneWidget);
+      expect(find.textContaining('„Fortsetzen" holt den Rest'), findsOneWidget);
+      await tester.tap(find.widgetWithText(FilledButton, 'Speichern'));
+      await settle(tester, frames: 60);
+      final saved = (await store.list()).single;
+      expect(saved.name, 'DACH komplett');
+      expect(saved.shape, isA<RegionShape>());
+      expect(saved.complete, isTrue);
+      expect(
+        bakeCalls,
+        [
+          [saved.id],
+        ],
+        reason:
+            'übergeben wird auch sie; auslassen tut der Dienst selbst (routing_bake_test)',
+      );
+      expect(
+        (await tiles.index('dach', TileLayer.map)).length,
+        saved.tiles,
+        reason: 'jede Kachel, die der Host in der Region hat',
+      );
+      expect(
+        find.byKey(const ValueKey('whole-dach')),
+        findsNothing,
+        reason: 'die Region liegt schon',
+      );
+      expect(find.byKey(ValueKey('area-${saved.id}')), findsOneWidget);
+    },
+  );
 
-  testWidgets('im Browser gibt es die ganze Region nicht (Betreiber, 2026-10-09)', (tester) async {
-    await start(tester, wholeRegion: false);
-    await openAreas(tester);
-    expect(find.byKey(const ValueKey('whole-dach')), findsNothing);
-    expect(find.textContaining('Noch kein Bereich. Speichere einen auf der Karte: Knopf'), findsOneWidget);
-  });
+  testWidgets(
+    'im Browser gibt es die ganze Region nicht (Betreiber, 2026-10-09)',
+    (tester) async {
+      await start(tester, wholeRegion: false);
+      await openAreas(tester);
+      expect(find.byKey(const ValueKey('whole-dach')), findsNothing);
+      expect(
+        find.textContaining(
+          'Noch kein Bereich. Speichere einen auf der Karte: Knopf',
+        ),
+        findsOneWidget,
+      );
+    },
+  );
 
-  testWidgets('über Mobilfunk warnt der Dialog vor dem Datenvolumen', (tester) async {
+  testWidgets('über Mobilfunk warnt der Dialog vor dem Datenvolumen', (
+    tester,
+  ) async {
     await store.putArchive('old', _sourceBytes());
     await store.saveIndex([oldArea(build: '20260801')]);
-    await start(tester, connectivity: Stream.value(const [ConnectivityResult.mobile]));
+    await start(
+      tester,
+      connectivity: Stream.value(const [ConnectivityResult.mobile]),
+    );
     await openTab(tester, 'Profil');
     await scrollTo(tester, find.text('Meine Bereiche'));
     await tester.tap(find.text('Meine Bereiche'));
@@ -691,16 +999,27 @@ void main() {
     expect(find.textContaining('über Mobilfunk verbunden'), findsOneWidget);
     await tester.tap(find.text('Abbrechen'));
     await settle(tester);
-    expect((await store.list()).single.build, '20260801', reason: 'abgebrochen heißt: nichts geholt');
+    expect(
+      (await store.list()).single.build,
+      '20260801',
+      reason: 'abgebrochen heißt: nichts geholt',
+    );
   });
 
   /// Ein Bereich als Verweis (#229), seine Kacheln (Zoom 8–10, 1 000 Byte
   /// je Kachel) im Speicher.
-  Future<StoredArea> seedRef(String id, AreaBounds b, {bool complete = true}) async {
+  Future<StoredArea> seedRef(
+    String id,
+    AreaBounds b, {
+    bool complete = true,
+  }) async {
     final shape = RectShape(b);
     final ts = shape.tiles(maxZoom: 10);
     if (complete) {
-      await tiles.put('dach', TileLayer.map, [for (final t in ts) StoreTile(t.z, t.x, t.y, Uint8List(1000), '20260928')]);
+      await tiles.put('dach', TileLayer.map, [
+        for (final t in ts)
+          StoreTile(t.z, t.x, t.y, Uint8List(1000), '20260928'),
+      ]);
     }
     final area = StoredArea(
       id: id,
@@ -719,84 +1038,131 @@ void main() {
     return area;
   }
 
-  testWidgets('beim Kartenstart backen die gespeicherten Bereiche nach (#410) — auch die von vor 0.137.0',
-      (tester) async {
-    final a = await seedRef('a', const AreaBounds(south: 47.99, west: 8.60, north: 48.02, east: 8.65));
-    await start(tester, bakeOnStart: true);
-    expect(bakeCalls, [
-      [a.id]
-    ], reason: 'ohne Speichern und ohne Aktualisieren');
-  });
+  testWidgets(
+    'beim Kartenstart backen die gespeicherten Bereiche nach (#410) — auch die von vor 0.137.0',
+    (tester) async {
+      final a = await seedRef(
+        'a',
+        const AreaBounds(south: 47.99, west: 8.60, north: 48.02, east: 8.65),
+      );
+      await start(tester, bakeOnStart: true);
+      expect(bakeCalls, [
+        [a.id],
+      ], reason: 'ohne Speichern und ohne Aktualisieren');
+    },
+  );
 
-  testWidgets('zwei Bereiche teilen ihre Kacheln (#229): „allein" in der Liste, Löschen nimmt nur, was keiner braucht',
-      (tester) async {
-    // Weit genug auseinander, dass sie bei Zoom 9 und 10 eigene Kacheln
-    // haben, und nah genug, dass sie sich die bei Zoom 8 teilen.
-    const a = AreaBounds(south: 47.99, west: 8.60, north: 48.02, east: 8.65);
-    const b = AreaBounds(south: 47.99, west: 9.30, north: 48.02, east: 9.35);
-    await seedRef('a', a);
-    await seedRef('b', b);
-    final shared = {
-      for (final t in const RectShape(a).tiles(maxZoom: 10)) tileIdOf(t),
-    }.intersection({for (final t in const RectShape(b).tiles(maxZoom: 10)) tileIdOf(t)});
-    final onlyA = {for (final t in const RectShape(a).tiles(maxZoom: 10)) tileIdOf(t)}.difference(shared);
-    expect(shared, isNotEmpty);
-    expect(onlyA, isNotEmpty);
-    await start(tester);
-    await openAreas(tester);
-    expect(
+  testWidgets(
+    'zwei Bereiche teilen ihre Kacheln (#229): „allein" in der Liste, Löschen nimmt nur, was keiner braucht',
+    (tester) async {
+      // Weit genug auseinander, dass sie bei Zoom 9 und 10 eigene Kacheln
+      // haben, und nah genug, dass sie sich die bei Zoom 8 teilen.
+      const a = AreaBounds(south: 47.99, west: 8.60, north: 48.02, east: 8.65);
+      const b = AreaBounds(south: 47.99, west: 9.30, north: 48.02, east: 9.35);
+      await seedRef('a', a);
+      await seedRef('b', b);
+      final shared =
+          {
+            for (final t in const RectShape(a).tiles(maxZoom: 10)) tileIdOf(t),
+          }.intersection({
+            for (final t in const RectShape(b).tiles(maxZoom: 10)) tileIdOf(t),
+          });
+      final onlyA = {
+        for (final t in const RectShape(a).tiles(maxZoom: 10)) tileIdOf(t),
+      }.difference(shared);
+      expect(shared, isNotEmpty);
+      expect(onlyA, isNotEmpty);
+      await start(tester);
+      await openAreas(tester);
+      expect(
         find.descendant(
-            of: find.byKey(const ValueKey('area-a')),
-            matching: find.textContaining('${formatBytes(onlyA.length * 1000)} allein')),
+          of: find.byKey(const ValueKey('area-a')),
+          matching: find.textContaining(
+            '${formatBytes(onlyA.length * 1000)} allein',
+          ),
+        ),
         findsOneWidget,
-        reason: 'A belegt allein nur, was B nicht auch deckt');
-    expect(onlyA.length, lessThan(const RectShape(a).tiles(maxZoom: 10).length));
+        reason: 'A belegt allein nur, was B nicht auch deckt',
+      );
+      expect(
+        onlyA.length,
+        lessThan(const RectShape(a).tiles(maxZoom: 10).length),
+      );
 
-    await tester.tap(find.byKey(const ValueKey('area-delete-a')));
-    await settle(tester);
-    expect(find.textContaining('${formatBytes(onlyA.length * 1000)} werden vom Gerät gelöscht'), findsOneWidget);
-    await tester.tap(find.text('Löschen'));
-    await settle(tester, frames: 20);
-    final left = (await tiles.index('dach', TileLayer.map)).keys.toSet();
-    expect(left.containsAll(shared), isTrue, reason: 'B braucht sie noch');
-    expect(left.intersection(onlyA), isEmpty);
-    expect((await store.list()).single.id, 'b');
-  });
+      await tester.tap(find.byKey(const ValueKey('area-delete-a')));
+      await settle(tester);
+      expect(
+        find.textContaining(
+          '${formatBytes(onlyA.length * 1000)} werden vom Gerät gelöscht',
+        ),
+        findsOneWidget,
+      );
+      await tester.tap(find.text('Löschen'));
+      await settle(tester, frames: 20);
+      final left = (await tiles.index('dach', TileLayer.map)).keys.toSet();
+      expect(left.containsAll(shared), isTrue, reason: 'B braucht sie noch');
+      expect(left.intersection(onlyA), isEmpty);
+      expect((await store.list()).single.id, 'b');
+    },
+  );
 
-  testWidgets('Meine Bereiche zeigt das Backen des Planers (#380) mit Abbrechen', (tester) async {
-    await store.putArchive('old', _sourceBytes());
-    await store.saveIndex([oldArea(build: '20260928')]);
-    await start(tester);
-    await openAreas(tester);
-    expect(find.byKey(const ValueKey('area-bake')), findsNothing, reason: 'nichts läuft, keine Zeile');
-    final bake = ProviderScope.containerOf(tester.element(find.byType(Scaffold).first)).read(routingBakeProvider.notifier)
-        as _SpyBake;
-    bake.show('Alt', 4, 16);
-    await settle(tester);
-    expect(find.text('Planer wird für „Alt“ vorbereitet …'), findsOneWidget);
-    final bar = tester.widget<LinearProgressIndicator>(
-        find.descendant(of: find.byKey(const ValueKey('area-bake')), matching: find.byType(LinearProgressIndicator)));
-    expect(bar.value, 0.25);
-    await tester.tap(find.byKey(const ValueKey('area-bake-cancel')));
-    await settle(tester);
-    expect(bake.cancelled, 1);
-    expect(find.byKey(const ValueKey('area-bake')), findsNothing);
-  });
+  testWidgets(
+    'Meine Bereiche zeigt das Backen des Planers (#380) mit Abbrechen',
+    (tester) async {
+      await store.putArchive('old', _sourceBytes());
+      await store.saveIndex([oldArea(build: '20260928')]);
+      await start(tester);
+      await openAreas(tester);
+      expect(
+        find.byKey(const ValueKey('area-bake')),
+        findsNothing,
+        reason: 'nichts läuft, keine Zeile',
+      );
+      final bake =
+          ProviderScope.containerOf(
+                tester.element(find.byType(Scaffold).first),
+              ).read(routingBakeProvider.notifier)
+              as _SpyBake;
+      bake.show('Alt', 4, 16);
+      await settle(tester);
+      expect(find.text('Planer wird für „Alt“ vorbereitet …'), findsOneWidget);
+      final bar = tester.widget<LinearProgressIndicator>(
+        find.descendant(
+          of: find.byKey(const ValueKey('area-bake')),
+          matching: find.byType(LinearProgressIndicator),
+        ),
+      );
+      expect(bar.value, 0.25);
+      await tester.tap(find.byKey(const ValueKey('area-bake-cancel')));
+      await settle(tester);
+      expect(bake.cancelled, 1);
+      expect(find.byKey(const ValueKey('area-bake')), findsNothing);
+    },
+  );
 
-  testWidgets('ein unvollständiger Bereich (#229): „Fortsetzen" holt den Rest, danach ist er vollständig',
-      (tester) async {
-    final pending = await seedRef('p', const AreaBounds(south: 47.99, west: 8.99, north: 48.02, east: 9.01),
-        complete: false);
-    await start(tester);
-    await openAreas(tester);
-    expect(find.textContaining('Unvollständig'), findsOneWidget);
-    expect(find.byKey(const ValueKey('area-update-p')), findsNothing, reason: 'kein Aktualisieren, Fortsetzen');
-    await tester.tap(find.byKey(const ValueKey('area-resume-p')));
-    await settle(tester, frames: 40);
-    final done = (await store.list()).single;
-    expect(done.id, 'p');
-    expect(done.complete, isTrue);
-    expect((await tiles.index('dach', TileLayer.map)).length, pending.tiles);
-    expect(find.textContaining('Unvollständig'), findsNothing);
-  });
+  testWidgets(
+    'ein unvollständiger Bereich (#229): „Fortsetzen" holt den Rest, danach ist er vollständig',
+    (tester) async {
+      final pending = await seedRef(
+        'p',
+        const AreaBounds(south: 47.99, west: 8.99, north: 48.02, east: 9.01),
+        complete: false,
+      );
+      await start(tester);
+      await openAreas(tester);
+      expect(find.textContaining('Unvollständig'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('area-update-p')),
+        findsNothing,
+        reason: 'kein Aktualisieren, Fortsetzen',
+      );
+      await tester.tap(find.byKey(const ValueKey('area-resume-p')));
+      await settle(tester, frames: 40);
+      final done = (await store.list()).single;
+      expect(done.id, 'p');
+      expect(done.complete, isTrue);
+      expect((await tiles.index('dach', TileLayer.map)).length, pending.tiles);
+      expect(find.textContaining('Unvollständig'), findsNothing);
+    },
+  );
 }

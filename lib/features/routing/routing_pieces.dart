@@ -37,9 +37,9 @@ class PieceLookup {
   /// Ohne Speicher oder ohne Bereich im Rahmen: nichts gefunden, nichts
   /// zu speichern.
   PieceLookup.none(this._session)
-      : _store = null,
-        fresh = const {},
-        _targets = {};
+    : _store = null,
+      fresh = const {},
+      _targets = {};
 
   TileStore? _store;
   final Expando<Uint8List> _session;
@@ -62,7 +62,9 @@ class PieceLookup {
 
   /// Teilt [roads] in die zu backenden und die, für die in dieser Sitzung
   /// schon ein Stück entstand (online ergänzte Kacheln, [_session]).
-  ({List<RoadTileBytes> roads, List<RoutingPiece> pieces}) split(List<RoadTileBytes> roads) {
+  ({List<RoadTileBytes> roads, List<RoutingPiece> pieces}) split(
+    List<RoadTileBytes> roads,
+  ) {
     final bake = <RoadTileBytes>[];
     final pieces = <RoutingPiece>[];
     for (final r in roads) {
@@ -86,7 +88,10 @@ class PieceLookup {
   /// („Unterwegs geladen", #478): Ihr Stück gehört jetzt dorthin, mit dem
   /// Bau, den [findPieces] beim nächsten Mal liest — nicht mehr an die
   /// Bytes der Sitzung. Vor [keep] zu rufen.
-  void adopt(TileStore store, Map<(int, int), ({String region, String build})> targets) {
+  void adopt(
+    TileStore store,
+    Map<(int, int), ({String region, String build})> targets,
+  ) {
     if (targets.isEmpty) return;
     _store ??= store;
     _targets.addAll(targets);
@@ -96,17 +101,23 @@ class PieceLookup {
   /// ihm kam (je Region ein Block), sonst an die Bytes der Sitzung. Nimmt
   /// Stücke, die sich drüben nicht lesen ließen, aus dem Speicher. Wirft
   /// nie — ein Fehler kostet nur die Abkürzung beim nächsten Mal.
-  Future<void> keep(GraphReport report) => keepPieces(report.baked, broken: report.broken);
+  Future<void> keep(GraphReport report) =>
+      keepPieces(report.baked, broken: report.broken);
 
   /// Dasselbe ohne Bericht — für das Backen im Hintergrund
   /// (`routing_bake.dart`), das keinen Graphen baut.
-  Future<void> keepPieces(List<RoutingPiece> baked, {List<(int, int)> broken = const []}) async {
+  Future<void> keepPieces(
+    List<RoutingPiece> baked, {
+    List<(int, int)> broken = const [],
+  }) async {
     final byRegion = <String, List<StoreTile>>{};
     for (final p in baked) {
       final xy = (p.x, p.y);
       final target = _targets[xy];
       if (target != null) {
-        (byRegion[target.region] ??= []).add(StoreTile(kRoutingTileZoom, p.x, p.y, p.bytes, target.build));
+        (byRegion[target.region] ??= []).add(
+          StoreTile(kRoutingTileZoom, p.x, p.y, p.bytes, target.build),
+        );
       } else if (_online[xy] case final bytes?) {
         _session[bytes] = p.bytes;
       }
@@ -140,7 +151,11 @@ class PieceLookup {
 /// Liest je Region und Ebene nur die Bauten dieser Kacheln
 /// ([TileStore.builds]), dann die Bytes der frischen Stücke.
 Future<PieceLookup> findPieces(
-    TileStore store, Iterable<String> regions, List<TileXYZ> tiles, Expando<Uint8List> session) async {
+  TileStore store,
+  Iterable<String> regions,
+  List<TileXYZ> tiles,
+  Expando<Uint8List> session,
+) async {
   final fresh = <(int, int), RoutingPiece>{};
   final targets = <(int, int), ({String region, String build})>{};
   final lookup = PieceLookup._(store, session, fresh, targets);
@@ -159,10 +174,20 @@ Future<PieceLookup> findPieces(
       final pieces = await store.builds(region, TileLayer.routing, map.keys);
       for (final MapEntry(key: id, value: mapBuild) in map.entries) {
         final t = ids[id]!;
-        final build = pieceBuild(map: mapBuild, heights: heights[id], ways: ways[id]);
+        final build = pieceBuild(
+          map: mapBuild,
+          heights: heights[id],
+          ways: ways[id],
+        );
         targets[(t.x, t.y)] = (region: region, build: build);
         if (pieces[id] != build) continue;
-        final bytes = await store.read(region, TileLayer.routing, kRoutingTileZoom, t.x, t.y);
+        final bytes = await store.read(
+          region,
+          TileLayer.routing,
+          kRoutingTileZoom,
+          t.x,
+          t.y,
+        );
         if (bytes == null) continue;
         fresh[(t.x, t.y)] = (x: t.x, y: t.y, bytes: bytes);
         lookup._regionOf[(t.x, t.y)] = region;
@@ -183,4 +208,6 @@ Future<PieceLookup> findPieces(
 
 /// Die Stücke online ergänzter Kacheln für die Sitzung — gehängt an die
 /// Bytes, die `OnlineTileCache` je Kachel als dasselbe Objekt liefert.
-final routingPieceSessionProvider = Provider<Expando<Uint8List>>((ref) => Expando('routing-pieces'));
+final routingPieceSessionProvider = Provider<Expando<Uint8List>>(
+  (ref) => Expando('routing-pieces'),
+);

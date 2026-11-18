@@ -31,14 +31,19 @@ void main() {
       final a = NearbyCell.of(lat, lon);
       expect(a.isNearTo(NearbyCell.of(north(lat, 12), lon)), isFalse);
       expect(a.isNearTo(NearbyCell(a.row, a.col + 2)), isFalse);
-      expect(a.isNearTo(NearbyCell(a.row + 1, a.col + 1)), isTrue, reason: 'Ecke');
+      expect(
+        a.isNearTo(NearbyCell(a.row + 1, a.col + 1)),
+        isTrue,
+        reason: 'Ecke',
+      );
     });
 
     test('ungefähr quadratisch, auch weit im Norden', () {
       for (final la in [0.0, 47.0, 65.0]) {
         final c = NearbyCell.of(la, 10);
         final right = NearbyCell(c.row, c.col + 1);
-        final km = (right.centerLon - c.centerLon) * 111.2 * _cosDeg(c.centerLat);
+        final km =
+            (right.centerLon - c.centerLon) * 111.2 * _cosDeg(c.centerLat);
         expect(km, closeTo(5.0, 0.1), reason: 'Breite $la');
       }
     });
@@ -47,7 +52,16 @@ void main() {
       final c = NearbyCell.of(lat, lon);
       expect(c.encode(), matches(RegExp(r'^-?\d+:-?\d+$')));
       expect(NearbyCell.tryParse(c.encode()), c);
-      for (final bad in [null, 3, '', '1', '1:2:3', 'a:b', '99999:1', {'c': '1:2'}]) {
+      for (final bad in [
+        null,
+        3,
+        '',
+        '1',
+        '1:2:3',
+        'a:b',
+        '99999:1',
+        {'c': '1:2'},
+      ]) {
         expect(NearbyCell.tryParse(bad), isNull, reason: '$bad');
       }
     });
@@ -66,8 +80,13 @@ void main() {
       NearbyPoint? home,
       NearbyPoint? rideStart,
       bool foreground = true,
-    }) =>
-        nearbyPause(enabled: enabled, position: position, home: home, rideStart: rideStart, foreground: foreground);
+    }) => nearbyPause(
+      enabled: enabled,
+      position: position,
+      home: home,
+      rideStart: rideStart,
+      foreground: foreground,
+    );
 
     test('aus oder nie gefragt: nichts', () {
       expect(pause(enabled: false, home: farHome), NearbyPause.off);
@@ -131,7 +150,11 @@ void main() {
 
     tearDown(() => engine.close());
 
-    Future<void> sync({NearbyCell? at, Set<String>? muted, Object session = 's1'}) async {
+    Future<void> sync({
+      NearbyCell? at,
+      Set<String>? muted,
+      Object session = 's1',
+    }) async {
       await engine.sync(
         mine: at,
         buddies: {anni.id, ben.id, gina.id},
@@ -151,17 +174,20 @@ void main() {
       expect(repo.listening, isEmpty, reason: 'wer nicht teilt, hört nicht zu');
     });
 
-    test('ein Buddy in der Nähe: einmal je Fahrt, eine neue Fahrt meldet neu', () async {
-      repo.setCell(anni.id, near);
-      await sync(at: mine);
-      expect(told, [anni.id]);
-      repo.setCell(anni.id, null);
-      repo.setCell(anni.id, near);
-      await sync(at: mine);
-      expect(told, [anni.id], reason: 'dieselbe Fahrt: nicht noch einmal');
-      await sync(at: mine, session: 's2');
-      expect(told, [anni.id, anni.id]);
-    });
+    test(
+      'ein Buddy in der Nähe: einmal je Fahrt, eine neue Fahrt meldet neu',
+      () async {
+        repo.setCell(anni.id, near);
+        await sync(at: mine);
+        expect(told, [anni.id]);
+        repo.setCell(anni.id, null);
+        repo.setCell(anni.id, near);
+        await sync(at: mine);
+        expect(told, [anni.id], reason: 'dieselbe Fahrt: nicht noch einmal');
+        await sync(at: mine, session: 's2');
+        expect(told, [anni.id, anni.id]);
+      },
+    );
 
     test('fern, stumm oder kein Buddy: keine Meldung', () async {
       repo.setCell(anni.id, far);
@@ -169,46 +195,66 @@ void main() {
       repo.setCell(gina.id, near);
       await sync(at: mine, muted: {ben.id});
       expect(told, isEmpty);
-      expect(repo.listening, {anni.id, ben.id}, reason: 'Gina ist kein Buddy — ihr Kanal ist zu');
+      expect(repo.listening, {
+        anni.id,
+        ben.id,
+      }, reason: 'Gina ist kein Buddy — ihr Kanal ist zu');
     });
 
-    test('„sieht mich" aus: Anni hört mich nicht und ich sie trotzdem', () async {
-      repo.hiddenBy[anni.id] = {me.id};
-      repo.setCell(anni.id, near);
-      await sync(at: mine);
-      expect(repo.listening.contains(anni.id), isFalse);
-      expect(told, isEmpty);
-    });
+    test(
+      '„sieht mich" aus: Anni hört mich nicht und ich sie trotzdem',
+      () async {
+        repo.hiddenBy[anni.id] = {me.id};
+        repo.setCell(anni.id, near);
+        await sync(at: mine);
+        expect(repo.listening.contains(anni.id), isFalse);
+        expect(told, isEmpty);
+      },
+    );
 
-    test('kommt der Buddy erst später in die Nähe, meldet es sich dann', () async {
-      repo.setCell(anni.id, far);
-      await sync(at: mine);
-      expect(told, isEmpty);
-      repo.setCell(anni.id, near);
-      await pumpEventQueue();
-      expect(told, [anni.id]);
-    });
+    test(
+      'kommt der Buddy erst später in die Nähe, meldet es sich dann',
+      () async {
+        repo.setCell(anni.id, far);
+        await sync(at: mine);
+        expect(told, isEmpty);
+        repo.setCell(anni.id, near);
+        await pumpEventQueue();
+        expect(told, [anni.id]);
+      },
+    );
 
-    test('Schalter je Buddy noch nicht geladen: erst melden, wenn sie da sind', () async {
-      repo.setCell(anni.id, near);
-      await engine.sync(mine: mine, buddies: {anni.id}, muted: null, session: 's1');
-      await pumpEventQueue();
-      expect(told, isEmpty);
-      await sync(at: mine);
-      expect(told, [anni.id]);
-    });
+    test(
+      'Schalter je Buddy noch nicht geladen: erst melden, wenn sie da sind',
+      () async {
+        repo.setCell(anni.id, near);
+        await engine.sync(
+          mine: mine,
+          buddies: {anni.id},
+          muted: null,
+          session: 's1',
+        );
+        await pumpEventQueue();
+        expect(told, isEmpty);
+        await sync(at: mine);
+        expect(told, [anni.id]);
+      },
+    );
 
-    test('ohne Empfang: nichts geteilt, nichts gemeldet, später schon', () async {
-      repo.offline = true;
-      repo.setCell(anni.id, near);
-      await sync(at: mine);
-      expect(repo.cellsOf.containsKey(me.id), isFalse);
-      expect(told, isEmpty);
-      repo.offline = false;
-      // Der nächste Abgleich kommt mit dem Takt; zuhören erst nach der Pause.
-      await sync(at: mine);
-      expect(repo.cellsOf[me.id], mine.encode());
-    });
+    test(
+      'ohne Empfang: nichts geteilt, nichts gemeldet, später schon',
+      () async {
+        repo.offline = true;
+        repo.setCell(anni.id, near);
+        await sync(at: mine);
+        expect(repo.cellsOf.containsKey(me.id), isFalse);
+        expect(told, isEmpty);
+        repo.offline = false;
+        // Der nächste Abgleich kommt mit dem Takt; zuhören erst nach der Pause.
+        await sync(at: mine);
+        expect(repo.cellsOf[me.id], mine.encode());
+      },
+    );
   });
 }
 

@@ -56,7 +56,11 @@ sealed class OutboxJob {
 
   Map<String, dynamic> toJson();
 
-  OutboxJob copyWith({int? attempts, String? failure, bool clearFailure = false});
+  OutboxJob copyWith({
+    int? attempts,
+    String? failure,
+    bool clearFailure = false,
+  });
 
   static OutboxJob? tryParse(Map<String, dynamic> json) {
     try {
@@ -67,7 +71,9 @@ sealed class OutboxJob {
       final failure = json['failure'] as String?;
       switch (json['kind']) {
         case 'contribute':
-          final coords = [for (final c in json['coords'] as List) (c as num).toDouble()];
+          final coords = [
+            for (final c in json['coords'] as List) (c as num).toDouble(),
+          ];
           final rawEles = json['eles'] as List?;
           final eles = rawEles == null
               ? null
@@ -79,14 +85,19 @@ sealed class OutboxJob {
             createdAt: createdAt,
             coords: coords,
             eles: eles,
-            source: RecordingSource.values
-                .firstWhere((s) => s.name == json['source'], orElse: () => RecordingSource.import),
-            recordedAt: DateTime.tryParse(json['recorded_at'] as String? ?? '')?.toUtc(),
+            source: RecordingSource.values.firstWhere(
+              (s) => s.name == json['source'],
+              orElse: () => RecordingSource.import,
+            ),
+            recordedAt: DateTime.tryParse(
+              json['recorded_at'] as String? ?? '',
+            )?.toUtc(),
             name: json['name'] as String?,
             link: json['link'] as String?,
             grade: json['grade'] as int?,
             traits: {
-              for (final t in json['traits'] as List? ?? const []) ?TrailTrait.fromDb(t as String?),
+              for (final t in json['traits'] as List? ?? const [])
+                ?TrailTrait.fromDb(t as String?),
             },
             rating: switch (json['rating']) {
               final int r when r >= 1 && r <= kRatingMax => r,
@@ -99,22 +110,32 @@ sealed class OutboxJob {
           final details = json['details'] as Map<String, dynamic>;
           // Ein Auftrag von vor 0.49.0 trägt den Status noch im Beitrag —
           // er geht beim Nachholen als Meldung raus, zu seiner Zeit.
-          final legacyAt = DateTime.tryParse(details['status_at'] as String? ?? '');
+          final legacyAt = DateTime.tryParse(
+            details['status_at'] as String? ?? '',
+          );
           return DetailsJob(
             id: id,
             createdAt: createdAt,
             details: TrailDetails.fromJson(details),
             note: json['note'] as String?,
-            legacyStatus: legacyAt == null ? null : TrailStatus.fromDb(details['status'] as String?),
+            legacyStatus: legacyAt == null
+                ? null
+                : TrailStatus.fromDb(details['status'] as String?),
             legacyStatusAt: legacyAt?.toUtc(),
             attempts: attempts,
             failure: failure,
           );
         case 'report':
-          final status = json['status'] == null ? null : TrailStatus.fromDb(json['status'] as String?);
+          final status = json['status'] == null
+              ? null
+              : TrailStatus.fromDb(json['status'] as String?);
           final condition = json['condition'] as int?;
           final note = (json['note'] as String?)?.trim();
-          if (status == null && condition == null && (note == null || note.isEmpty)) return null;
+          if (status == null &&
+              condition == null &&
+              (note == null || note.isEmpty)) {
+            return null;
+          }
           return ReportJob(
             id: id,
             createdAt: createdAt,
@@ -132,22 +153,36 @@ sealed class OutboxJob {
           return FeedbackJob(
             id: id,
             createdAt: createdAt,
-            type: json['type'] == 'bug' ? FeedbackType.bug : FeedbackType.feature,
+            type: json['type'] == 'bug'
+                ? FeedbackType.bug
+                : FeedbackType.feature,
             message: message,
             appVersion: json['app_version'] as String?,
             attempts: attempts,
             failure: failure,
           );
         case 'start_point':
-          final point = StartPoint.fromJson(json['point'] as Map<String, dynamic>);
+          final point = StartPoint.fromJson(
+            json['point'] as Map<String, dynamic>,
+          );
           if (point == null) return null;
           return StartPointJob(
-              id: id, createdAt: createdAt, point: point, attempts: attempts, failure: failure);
+            id: id,
+            createdAt: createdAt,
+            point: point,
+            attempts: attempts,
+            failure: failure,
+          );
         case 'start_point_delete':
           final clientId = json['client_id'] as String?;
           if (clientId == null) return null;
           return StartPointDeleteJob(
-              id: id, createdAt: createdAt, clientId: clientId, attempts: attempts, failure: failure);
+            id: id,
+            createdAt: createdAt,
+            clientId: clientId,
+            attempts: attempts,
+            failure: failure,
+          );
         default:
           return null; // Ein Auftragstyp, den dieser Stand nicht kennt.
       }
@@ -202,39 +237,45 @@ class ContributeJob extends OutboxJob {
 
   @override
   Map<String, dynamic> toJson() => {
-        'kind': 'contribute',
-        'id': id,
-        'created_at': createdAt.toUtc().toIso8601String(),
-        'attempts': attempts,
-        'failure': failure,
-        'coords': coords,
-        'eles': eles,
-        'source': source.name,
-        'recorded_at': recordedAt?.toUtc().toIso8601String(),
-        'name': name,
-        'link': link,
-        'grade': grade,
-        'traits': [for (final t in TrailTrait.values) if (traits.contains(t)) t.db],
-        'rating': rating,
-      };
+    'kind': 'contribute',
+    'id': id,
+    'created_at': createdAt.toUtc().toIso8601String(),
+    'attempts': attempts,
+    'failure': failure,
+    'coords': coords,
+    'eles': eles,
+    'source': source.name,
+    'recorded_at': recordedAt?.toUtc().toIso8601String(),
+    'name': name,
+    'link': link,
+    'grade': grade,
+    'traits': [
+      for (final t in TrailTrait.values)
+        if (traits.contains(t)) t.db,
+    ],
+    'rating': rating,
+  };
 
   @override
-  ContributeJob copyWith({int? attempts, String? failure, bool clearFailure = false}) =>
-      ContributeJob(
-        id: id,
-        createdAt: createdAt,
-        coords: coords,
-        eles: eles,
-        source: source,
-        recordedAt: recordedAt,
-        name: name,
-        link: link,
-        grade: grade,
-        traits: traits,
-        rating: rating,
-        attempts: attempts ?? this.attempts,
-        failure: clearFailure ? null : (failure ?? this.failure),
-      );
+  ContributeJob copyWith({
+    int? attempts,
+    String? failure,
+    bool clearFailure = false,
+  }) => ContributeJob(
+    id: id,
+    createdAt: createdAt,
+    coords: coords,
+    eles: eles,
+    source: source,
+    recordedAt: recordedAt,
+    name: name,
+    link: link,
+    grade: grade,
+    traits: traits,
+    rating: rating,
+    attempts: attempts ?? this.attempts,
+    failure: clearFailure ? null : (failure ?? this.failure),
+  );
 }
 
 /// Den eigenen Beitrag zu einem Trail speichern, der auf dem Server
@@ -266,31 +307,35 @@ class DetailsJob extends OutboxJob {
 
   @override
   Map<String, dynamic> toJson() => {
-        'kind': 'details',
-        'id': id,
-        'created_at': createdAt.toUtc().toIso8601String(),
-        'attempts': attempts,
-        'failure': failure,
-        'details': {
-          ...details.toRow(),
-          if (legacyStatus != null) 'status': legacyStatus!.db,
-          if (legacyStatusAt != null) 'status_at': legacyStatusAt!.toUtc().toIso8601String(),
-        },
-        'note': note,
-      };
+    'kind': 'details',
+    'id': id,
+    'created_at': createdAt.toUtc().toIso8601String(),
+    'attempts': attempts,
+    'failure': failure,
+    'details': {
+      ...details.toRow(),
+      if (legacyStatus != null) 'status': legacyStatus!.db,
+      if (legacyStatusAt != null)
+        'status_at': legacyStatusAt!.toUtc().toIso8601String(),
+    },
+    'note': note,
+  };
 
   @override
-  DetailsJob copyWith({int? attempts, String? failure, bool clearFailure = false}) =>
-      DetailsJob(
-        id: id,
-        createdAt: createdAt,
-        details: details,
-        note: note,
-        legacyStatus: legacyStatus,
-        legacyStatusAt: legacyStatusAt,
-        attempts: attempts ?? this.attempts,
-        failure: clearFailure ? null : (failure ?? this.failure),
-      );
+  DetailsJob copyWith({
+    int? attempts,
+    String? failure,
+    bool clearFailure = false,
+  }) => DetailsJob(
+    id: id,
+    createdAt: createdAt,
+    details: details,
+    note: note,
+    legacyStatus: legacyStatus,
+    legacyStatusAt: legacyStatusAt,
+    attempts: attempts ?? this.attempts,
+    failure: clearFailure ? null : (failure ?? this.failure),
+  );
 }
 
 /// Eine Meldung und/oder einen Zustand zu einem Trail (#101). [id] ist
@@ -322,30 +367,34 @@ class ReportJob extends OutboxJob {
 
   @override
   Map<String, dynamic> toJson() => {
-        'kind': 'report',
-        'id': id,
-        'created_at': createdAt.toUtc().toIso8601String(),
-        'attempts': attempts,
-        'failure': failure,
-        'trail_id': trailId,
-        'status': status?.db,
-        'condition': condition,
-        'on_site': onSite,
-        'note': note,
-      };
+    'kind': 'report',
+    'id': id,
+    'created_at': createdAt.toUtc().toIso8601String(),
+    'attempts': attempts,
+    'failure': failure,
+    'trail_id': trailId,
+    'status': status?.db,
+    'condition': condition,
+    'on_site': onSite,
+    'note': note,
+  };
 
   @override
-  ReportJob copyWith({int? attempts, String? failure, bool clearFailure = false}) => ReportJob(
-        id: id,
-        createdAt: createdAt,
-        trailId: trailId,
-        status: status,
-        condition: condition,
-        onSite: onSite,
-        note: note,
-        attempts: attempts ?? this.attempts,
-        failure: clearFailure ? null : (failure ?? this.failure),
-      );
+  ReportJob copyWith({
+    int? attempts,
+    String? failure,
+    bool clearFailure = false,
+  }) => ReportJob(
+    id: id,
+    createdAt: createdAt,
+    trailId: trailId,
+    status: status,
+    condition: condition,
+    onSite: onSite,
+    note: note,
+    attempts: attempts ?? this.attempts,
+    failure: clearFailure ? null : (failure ?? this.failure),
+  );
 }
 
 /// Ein Wunsch oder eine Fehlermeldung an den Betreiber (#218), geschrieben
@@ -374,27 +423,30 @@ class FeedbackJob extends OutboxJob {
 
   @override
   Map<String, dynamic> toJson() => {
-        'kind': 'feedback',
-        'id': id,
-        'created_at': createdAt.toUtc().toIso8601String(),
-        'attempts': attempts,
-        'failure': failure,
-        'type': type == FeedbackType.bug ? 'bug' : 'feature',
-        'message': message,
-        'app_version': appVersion,
-      };
+    'kind': 'feedback',
+    'id': id,
+    'created_at': createdAt.toUtc().toIso8601String(),
+    'attempts': attempts,
+    'failure': failure,
+    'type': type == FeedbackType.bug ? 'bug' : 'feature',
+    'message': message,
+    'app_version': appVersion,
+  };
 
   @override
-  FeedbackJob copyWith({int? attempts, String? failure, bool clearFailure = false}) =>
-      FeedbackJob(
-        id: id,
-        createdAt: createdAt,
-        type: type,
-        message: message,
-        appVersion: appVersion,
-        attempts: attempts ?? this.attempts,
-        failure: clearFailure ? null : (failure ?? this.failure),
-      );
+  FeedbackJob copyWith({
+    int? attempts,
+    String? failure,
+    bool clearFailure = false,
+  }) => FeedbackJob(
+    id: id,
+    createdAt: createdAt,
+    type: type,
+    message: message,
+    appVersion: appVersion,
+    attempts: attempts ?? this.attempts,
+    failure: clearFailure ? null : (failure ?? this.failure),
+  );
 }
 
 /// Einen EIGENEN Startpunkt anlegen oder ändern (#543) — der ganze Punkt,
@@ -415,23 +467,26 @@ class StartPointJob extends OutboxJob {
 
   @override
   Map<String, dynamic> toJson() => {
-        'kind': 'start_point',
-        'id': id,
-        'created_at': createdAt.toUtc().toIso8601String(),
-        'attempts': attempts,
-        'failure': failure,
-        'point': point.copyWith(pending: false, sending: false).toRow(),
-      };
+    'kind': 'start_point',
+    'id': id,
+    'created_at': createdAt.toUtc().toIso8601String(),
+    'attempts': attempts,
+    'failure': failure,
+    'point': point.copyWith(pending: false, sending: false).toRow(),
+  };
 
   @override
-  StartPointJob copyWith({int? attempts, String? failure, bool clearFailure = false}) =>
-      StartPointJob(
-        id: id,
-        createdAt: createdAt,
-        point: point,
-        attempts: attempts ?? this.attempts,
-        failure: clearFailure ? null : (failure ?? this.failure),
-      );
+  StartPointJob copyWith({
+    int? attempts,
+    String? failure,
+    bool clearFailure = false,
+  }) => StartPointJob(
+    id: id,
+    createdAt: createdAt,
+    point: point,
+    attempts: attempts ?? this.attempts,
+    failure: clearFailure ? null : (failure ?? this.failure),
+  );
 }
 
 /// Einen EIGENEN Startpunkt löschen (#543). Wiederholbar: Ein zweites
@@ -449,37 +504,40 @@ class StartPointDeleteJob extends OutboxJob {
 
   @override
   Map<String, dynamic> toJson() => {
-        'kind': 'start_point_delete',
-        'id': id,
-        'created_at': createdAt.toUtc().toIso8601String(),
-        'attempts': attempts,
-        'failure': failure,
-        'client_id': clientId,
-      };
+    'kind': 'start_point_delete',
+    'id': id,
+    'created_at': createdAt.toUtc().toIso8601String(),
+    'attempts': attempts,
+    'failure': failure,
+    'client_id': clientId,
+  };
 
   @override
-  StartPointDeleteJob copyWith({int? attempts, String? failure, bool clearFailure = false}) =>
-      StartPointDeleteJob(
-        id: id,
-        createdAt: createdAt,
-        clientId: clientId,
-        attempts: attempts ?? this.attempts,
-        failure: clearFailure ? null : (failure ?? this.failure),
-      );
+  StartPointDeleteJob copyWith({
+    int? attempts,
+    String? failure,
+    bool clearFailure = false,
+  }) => StartPointDeleteJob(
+    id: id,
+    createdAt: createdAt,
+    clientId: clientId,
+    attempts: attempts ?? this.attempts,
+    failure: clearFailure ? null : (failure ?? this.failure),
+  );
 }
 
 /// Hängt der Auftrag an einem Trail (Karte, Liste, Neuladen des Netzes)?
 /// Feedback und Startpunkte nicht.
 bool isTrailJob(OutboxJob job) => switch (job) {
-      ContributeJob() || DetailsJob() || ReportJob() => true,
-      FeedbackJob() || StartPointJob() || StartPointDeleteJob() => false,
-    };
+  ContributeJob() || DetailsJob() || ReportJob() => true,
+  FeedbackJob() || StartPointJob() || StartPointDeleteJob() => false,
+};
 
 /// Die Ablage-Form: EIN JSON-Text mit dem Konto, dem er gehört.
 String encodeOutbox(List<OutboxJob> jobs, {required String uid}) => jsonEncode({
-      'uid': uid,
-      'jobs': [for (final job in jobs) job.toJson()],
-    });
+  'uid': uid,
+  'jobs': [for (final job in jobs) job.toJson()],
+});
 
 /// Liest [text] zurück — oder `const []`, wenn nichts Brauchbares darin
 /// steht oder der Inhalt einem anderen Konto gehört. Wirft nie; ein
@@ -563,7 +621,8 @@ class FileOutbox implements Outbox {
   }
 
   @override
-  Future<void> append(OutboxJob job, {required String uid}) => _serialized(() async {
+  Future<void> append(OutboxJob job, {required String uid}) =>
+      _serialized(() async {
         final jobs = await _readUnlocked(uid: uid);
         await _writeUnlocked([...jobs, job], uid: uid);
       });
@@ -575,7 +634,10 @@ class FileOutbox implements Outbox {
   /// `.part` + `rename`: Ein Abbruch mitten im Schreiben darf keine halbe
   /// Datei hinterlassen. Anders als bei einer Kopie wird hier NICHTS
   /// geschluckt.
-  Future<void> _writeUnlocked(List<OutboxJob> jobs, {required String uid}) async {
+  Future<void> _writeUnlocked(
+    List<OutboxJob> jobs, {
+    required String uid,
+  }) async {
     final file = await _file();
     final temp = File('${file.path}.part');
     await temp.writeAsString(encodeOutbox(jobs, uid: uid), flush: true);

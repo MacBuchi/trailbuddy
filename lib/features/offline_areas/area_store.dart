@@ -160,84 +160,88 @@ class StoredArea {
     int? format,
     bool? complete,
     Map<int, int>? keptUse,
-  }) =>
-      StoredArea(
-        id: id,
-        name: name ?? this.name,
-        bounds: shape?.hull ?? bounds,
-        shape: shape ?? this.shape,
-        minZoom: minZoom,
-        maxZoom: maxZoom,
-        build: build ?? this.build,
-        tiles: tiles ?? this.tiles,
-        bytes: bytes ?? this.bytes,
-        savedAt: savedAt ?? this.savedAt,
-        poiFiles: poiFiles ?? this.poiFiles,
-        poiBuild: poiBuild ?? this.poiBuild,
-        heightTiles: heightTiles ?? this.heightTiles,
-        heightBytes: heightBytes ?? this.heightBytes,
-        heightsBuild: heightsBuild ?? this.heightsBuild,
-        wayTiles: wayTiles ?? this.wayTiles,
-        wayBytes: wayBytes ?? this.wayBytes,
-        waysBuild: waysBuild ?? this.waysBuild,
-        region: region,
-        format: format ?? this.format,
-        complete: complete ?? this.complete,
-        keptUse: keptUse ?? this.keptUse,
-      );
+  }) => StoredArea(
+    id: id,
+    name: name ?? this.name,
+    bounds: shape?.hull ?? bounds,
+    shape: shape ?? this.shape,
+    minZoom: minZoom,
+    maxZoom: maxZoom,
+    build: build ?? this.build,
+    tiles: tiles ?? this.tiles,
+    bytes: bytes ?? this.bytes,
+    savedAt: savedAt ?? this.savedAt,
+    poiFiles: poiFiles ?? this.poiFiles,
+    poiBuild: poiBuild ?? this.poiBuild,
+    heightTiles: heightTiles ?? this.heightTiles,
+    heightBytes: heightBytes ?? this.heightBytes,
+    heightsBuild: heightsBuild ?? this.heightsBuild,
+    wayTiles: wayTiles ?? this.wayTiles,
+    wayBytes: wayBytes ?? this.wayBytes,
+    waysBuild: waysBuild ?? this.waysBuild,
+    region: region,
+    format: format ?? this.format,
+    complete: complete ?? this.complete,
+    keptUse: keptUse ?? this.keptUse,
+  );
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'name': name,
-        'bounds': bounds.toJson(),
-        'shape': shape.toJson(),
-        'min_zoom': minZoom,
-        'max_zoom': maxZoom,
-        'build': build,
-        'tiles': tiles,
-        'bytes': bytes,
-        'saved_at': savedAt.toUtc().toIso8601String(),
-        'poi_files': poiFiles,
-        'poi_build': poiBuild,
-        'height_tiles': heightTiles,
-        'height_bytes': heightBytes,
-        'heights_build': heightsBuild,
-        'way_tiles': wayTiles,
-        'way_bytes': wayBytes,
-        'ways_build': waysBuild,
-        'region': region,
-        'format': format,
-        'complete': complete,
-        if (keptUse.isNotEmpty) 'kept_use': [for (final e in keptUse.entries) [e.key, e.value]],
-      };
+    'id': id,
+    'name': name,
+    'bounds': bounds.toJson(),
+    'shape': shape.toJson(),
+    'min_zoom': minZoom,
+    'max_zoom': maxZoom,
+    'build': build,
+    'tiles': tiles,
+    'bytes': bytes,
+    'saved_at': savedAt.toUtc().toIso8601String(),
+    'poi_files': poiFiles,
+    'poi_build': poiBuild,
+    'height_tiles': heightTiles,
+    'height_bytes': heightBytes,
+    'heights_build': heightsBuild,
+    'way_tiles': wayTiles,
+    'way_bytes': wayBytes,
+    'ways_build': waysBuild,
+    'region': region,
+    'format': format,
+    'complete': complete,
+    if (keptUse.isNotEmpty)
+      'kept_use': [
+        for (final e in keptUse.entries) [e.key, e.value],
+      ],
+  };
 
   factory StoredArea.fromJson(Map<String, dynamic> j) => StoredArea(
-        id: j['id'] as String,
-        name: j['name'] as String,
-        bounds: AreaBounds.fromJson(j['bounds'] as Map<String, dynamic>),
-        shape: j['shape'] == null ? null : AreaShape.fromJson(j['shape'] as Map<String, dynamic>),
-        minZoom: j['min_zoom'] as int,
-        maxZoom: j['max_zoom'] as int,
-        build: j['build'] as String,
-        tiles: j['tiles'] as int,
-        bytes: j['bytes'] as int,
-        savedAt: DateTime.parse(j['saved_at'] as String),
-        poiFiles: (j['poi_files'] as List? ?? const []).cast<String>(),
-        poiBuild: j['poi_build'] as String?,
-        heightTiles: j['height_tiles'] as int? ?? 0,
-        heightBytes: j['height_bytes'] as int? ?? 0,
-        heightsBuild: j['heights_build'] as String?,
-        wayTiles: j['way_tiles'] as int? ?? 0,
-        wayBytes: j['way_bytes'] as int? ?? 0,
-        waysBuild: j['ways_build'] as String?,
-        region: j['region'] as String? ?? kDachRegionId,
-        format: j['format'] as int? ?? 1,
-        complete: j['complete'] as bool? ?? true,
-        keptUse: {
-          for (final e in j['kept_use'] as List? ?? const [])
-            (e as List)[0] as int: e[1] as int,
-        },
-      );
+    id: j['id'] as String,
+    name: j['name'] as String,
+    bounds: AreaBounds.fromJson(j['bounds'] as Map<String, dynamic>),
+    shape: j['shape'] == null
+        ? null
+        : AreaShape.fromJson(j['shape'] as Map<String, dynamic>),
+    minZoom: j['min_zoom'] as int,
+    maxZoom: j['max_zoom'] as int,
+    build: j['build'] as String,
+    tiles: j['tiles'] as int,
+    bytes: j['bytes'] as int,
+    savedAt: DateTime.parse(j['saved_at'] as String),
+    poiFiles: (j['poi_files'] as List? ?? const []).cast<String>(),
+    poiBuild: j['poi_build'] as String?,
+    heightTiles: j['height_tiles'] as int? ?? 0,
+    heightBytes: j['height_bytes'] as int? ?? 0,
+    heightsBuild: j['heights_build'] as String?,
+    wayTiles: j['way_tiles'] as int? ?? 0,
+    wayBytes: j['way_bytes'] as int? ?? 0,
+    waysBuild: j['ways_build'] as String?,
+    region: j['region'] as String? ?? kDachRegionId,
+    format: j['format'] as int? ?? 1,
+    complete: j['complete'] as bool? ?? true,
+    keptUse: {
+      for (final e in j['kept_use'] as List? ?? const [])
+        (e as List)[0] as int: e[1] as int,
+    },
+  );
 }
 
 /// Die Kennung des Halters einer Region beginnt so ([StoredArea.kept]).
@@ -249,7 +253,10 @@ const kKeptAreaPrefix = 'kept-';
 const kKeptMaxBytes = 50 * 1000 * 1000;
 
 /// Die Bereiche, die man sieht — ohne die Halter „Unterwegs geladen".
-List<StoredArea> visibleAreas(Iterable<StoredArea> areas) => [for (final a in areas) if (!a.kept) a];
+List<StoredArea> visibleAreas(Iterable<StoredArea> areas) => [
+  for (final a in areas)
+    if (!a.kept) a,
+];
 
 /// Das Format eines Index-Eintrags, den 0.106.0 schreibt.
 const kStoredAreaFormat = 2;
@@ -274,17 +281,19 @@ class StoredOverview {
   final DateTime savedAt;
 
   Map<String, dynamic> toJson() => {
-        'region': region,
-        'build': build,
-        'bytes': bytes,
-        'max_zoom': maxZoom,
-        'saved_at': savedAt.toUtc().toIso8601String(),
-      };
+    'region': region,
+    'build': build,
+    'bytes': bytes,
+    'max_zoom': maxZoom,
+    'saved_at': savedAt.toUtc().toIso8601String(),
+  };
 
   factory StoredOverview.fromJson(Map<String, dynamic> j) {
     final region = j['region'] as String;
     // Die Kennung wird Teil eines Dateinamens.
-    if (!RegExp(r'^[a-z]{2,8}$').hasMatch(region)) throw FormatException('Region $region');
+    if (!RegExp(r'^[a-z]{2,8}$').hasMatch(region)) {
+      throw FormatException('Region $region');
+    }
     return StoredOverview(
       region: region,
       build: j['build'] as String,
@@ -366,8 +375,15 @@ abstract interface class AreaStore {
 
 /// Die Übersichten im Index ohne [region], mit [add] am Ende — für alle
 /// drei Ablagen dieselbe Regel.
-List<StoredOverview> replaceOverview(List<StoredOverview> all, String region, [StoredOverview? add]) =>
-    [for (final o in all) if (o.region != region) o, ?add];
+List<StoredOverview> replaceOverview(
+  List<StoredOverview> all,
+  String region, [
+  StoredOverview? add,
+]) => [
+  for (final o in all)
+    if (o.region != region) o,
+  ?add,
+];
 
 /// Im Speicher — für Tests und als Rückfall ohne Speicher.
 class MemoryAreaStore implements AreaStore {
@@ -384,10 +400,12 @@ class MemoryAreaStore implements AreaStore {
   Future<List<StoredArea>> list() async => List.unmodifiable(areas);
 
   @override
-  Future<void> saveIndex(List<StoredArea> areas) async => this.areas = List.of(areas);
+  Future<void> saveIndex(List<StoredArea> areas) async =>
+      this.areas = List.of(areas);
 
   @override
-  Future<void> putPoiFile(String name, String text) async => poiFiles[name] = text;
+  Future<void> putPoiFile(String name, String text) async =>
+      poiFiles[name] = text;
 
   @override
   Future<String?> readPoiFile(String name) async => poiFiles[name];
@@ -401,12 +419,16 @@ class MemoryAreaStore implements AreaStore {
 
   @override
   Future<void> delete(String id) async {
-    areas = [for (final a in areas) if (a.id != id) a];
+    areas = [
+      for (final a in areas)
+        if (a.id != id) a,
+    ];
     await deleteLegacy(id);
   }
 
   @override
-  Future<void> putArchive(String id, Uint8List bytes) async => archives[id] = bytes;
+  Future<void> putArchive(String id, Uint8List bytes) async =>
+      archives[id] = bytes;
 
   @override
   Future<String?> archivePath(String id) async => null;
@@ -415,7 +437,8 @@ class MemoryAreaStore implements AreaStore {
   Future<Uint8List?> readArchive(String id) async => archives[id];
 
   @override
-  Future<void> putHeights(String id, Uint8List bytes) async => heights[id] = bytes;
+  Future<void> putHeights(String id, Uint8List bytes) async =>
+      heights[id] = bytes;
 
   @override
   Future<String?> heightsPath(String id) async => null;
@@ -437,7 +460,8 @@ class MemoryAreaStore implements AreaStore {
       (legacyPoiFiles[id] ??= {})[name] = text;
 
   @override
-  Future<String?> readLegacyPoiFile(String id, String name) async => legacyPoiFiles[id]?[name];
+  Future<String?> readLegacyPoiFile(String id, String name) async =>
+      legacyPoiFiles[id]?[name];
 
   @override
   Future<void> deleteLegacy(String id) async {
@@ -448,7 +472,8 @@ class MemoryAreaStore implements AreaStore {
   }
 
   @override
-  Future<List<StoredOverview>> overviews() async => List.unmodifiable(overviewIndex);
+  Future<List<StoredOverview>> overviews() async =>
+      List.unmodifiable(overviewIndex);
 
   @override
   Future<void> putOverview(StoredOverview overview, Uint8List bytes) async {

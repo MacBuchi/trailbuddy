@@ -24,7 +24,9 @@ void main() {
 
   final hint = find.byKey(const ValueKey('map-empty-hint'));
 
-  testWidgets('Die leere Karte führt auf Tipp in die Kurzanleitung', (tester) async {
+  testWidgets('Die leere Karte führt auf Tipp in die Kurzanleitung', (
+    tester,
+  ) async {
     final (backend, _) = loggedInBackend();
     await pumpApp(tester, backend);
 
@@ -42,16 +44,24 @@ void main() {
 
   testWidgets('Mit dem ersten Trail verschwindet der Hinweis', (tester) async {
     final (backend, me) = loggedInBackend();
-    final trails = FakeTrailRepository(myId: () => backend.currentUserId ?? '', areFriends: backend.areFriends);
+    final trails = FakeTrailRepository(
+      myId: () => backend.currentUserId ?? '',
+      areFriends: backend.areFriends,
+    );
     trails.seedTrail(me.id, name: 'Hang');
     await pumpApp(tester, backend, trails: trails);
 
     expect(hint, findsNothing);
   });
 
-  testWidgets('Die Kurzanleitung steht im Profil und nennt sechs Schritte', (tester) async {
+  testWidgets('Die Kurzanleitung steht im Profil und nennt sechs Schritte', (
+    tester,
+  ) async {
     final (backend, me) = loggedInBackend();
-    final trails = FakeTrailRepository(myId: () => backend.currentUserId ?? '', areFriends: backend.areFriends);
+    final trails = FakeTrailRepository(
+      myId: () => backend.currentUserId ?? '',
+      areFriends: backend.areFriends,
+    );
     trails.seedTrail(me.id, name: 'Hang');
     await pumpApp(tester, backend, trails: trails);
 
@@ -63,13 +73,19 @@ void main() {
     for (var i = 0; i < 10; i++) {
       for (final step in helpSteps(l10nDe)) {
         if (find
-            .descendant(of: find.byType(HelpScreen), matching: find.text(step.title))
+            .descendant(
+              of: find.byType(HelpScreen),
+              matching: find.text(step.title),
+            )
             .evaluate()
             .isNotEmpty) {
           seen.add(step.title);
         }
       }
-      await tester.drag(find.byKey(const ValueKey('help-list')), const Offset(0, -250));
+      await tester.drag(
+        find.byKey(const ValueKey('help-list')),
+        const Offset(0, -250),
+      );
       await settle(tester, frames: 4);
     }
     expect(seen, containsAll(helpSteps(l10nDe).map((s) => s.title)));
@@ -83,7 +99,10 @@ void main() {
     await pumpApp(tester, backend);
     await openProfilePage(tester, 'help');
     for (var i = 0; i < 10; i++) {
-      await tester.drag(find.byKey(const ValueKey('help-list')), const Offset(0, -250));
+      await tester.drag(
+        find.byKey(const ValueKey('help-list')),
+        const Offset(0, -250),
+      );
       await settle(tester, frames: 4);
     }
     expect(tester.takeException(), isNull);
@@ -94,7 +113,9 @@ void main() {
     ('Buddys', (tester) => openTab(tester, 'Buddys')),
     ('Meine Fahrten', (tester) => openProfilePage(tester, 'rides')),
   ]) {
-    testWidgets('Der Leerzustand von „$label" führt in die Kurzanleitung', (tester) async {
+    testWidgets('Der Leerzustand von „$label" führt in die Kurzanleitung', (
+      tester,
+    ) async {
       final (backend, _) = loggedInBackend();
       await pumpApp(tester, backend);
       await open(tester);

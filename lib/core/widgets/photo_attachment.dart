@@ -78,47 +78,67 @@ class _PhotoAttachmentState extends State<PhotoAttachment> {
     if (_busy) {
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 8),
-        child: Row(children: [
-          const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)),
-          const SizedBox(width: 10),
-          Text(l.photoPreparing),
-        ]),
+        child: Row(
+          children: [
+            const SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+            const SizedBox(width: 10),
+            Text(l.photoPreparing),
+          ],
+        ),
       );
     }
     if (photo == null) {
-      return Row(children: [
-        // Nachgeben darf nur die Beschriftung: Im Dialog auf 360 dp bleibt
-        // neben der Kamera wenig Platz (PilzBuddy #596).
-        Flexible(
-          child: OutlinedButton.icon(
-            key: kAttachPhotoKey,
-            icon: const Icon(Icons.image_outlined, size: 18),
-            label: Text(widget.label ?? l.photoAttach, overflow: TextOverflow.ellipsis),
-            onPressed: () => _pick(PhotoSource.gallery),
+      return Row(
+        children: [
+          // Nachgeben darf nur die Beschriftung: Im Dialog auf 360 dp bleibt
+          // neben der Kamera wenig Platz (PilzBuddy #596).
+          Flexible(
+            child: OutlinedButton.icon(
+              key: kAttachPhotoKey,
+              icon: const Icon(Icons.image_outlined, size: 18),
+              label: Text(
+                widget.label ?? l.photoAttach,
+                overflow: TextOverflow.ellipsis,
+              ),
+              onPressed: () => _pick(PhotoSource.gallery),
+            ),
+          ),
+          IconButton(
+            key: kAttachPhotoCameraKey,
+            tooltip: l.photoTake,
+            icon: const Icon(Icons.photo_camera_outlined),
+            onPressed: () => _pick(PhotoSource.camera),
+          ),
+        ],
+      );
+    }
+    return Row(
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(6),
+          child: Image.memory(
+            photo.thumb,
+            width: 56,
+            height: 56,
+            fit: BoxFit.cover,
+            semanticLabel: l.photoAttached,
           ),
         ),
-        IconButton(
-          key: kAttachPhotoCameraKey,
-          tooltip: l.photoTake,
-          icon: const Icon(Icons.photo_camera_outlined),
-          onPressed: () => _pick(PhotoSource.camera),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(widget.attachedNote, style: theme.textTheme.bodySmall),
         ),
-      ]);
-    }
-    return Row(children: [
-      ClipRRect(
-        borderRadius: BorderRadius.circular(6),
-        child: Image.memory(photo.thumb,
-            width: 56, height: 56, fit: BoxFit.cover, semanticLabel: l.photoAttached),
-      ),
-      const SizedBox(width: 10),
-      Expanded(child: Text(widget.attachedNote, style: theme.textTheme.bodySmall)),
-      IconButton(
-        key: kRemovePhotoKey,
-        tooltip: l.photoRemove,
-        icon: const Icon(Icons.close),
-        onPressed: () => widget.onChanged(null),
-      ),
-    ]);
+        IconButton(
+          key: kRemovePhotoKey,
+          tooltip: l.photoRemove,
+          icon: const Icon(Icons.close),
+          onPressed: () => widget.onChanged(null),
+        ),
+      ],
+    );
   }
 }

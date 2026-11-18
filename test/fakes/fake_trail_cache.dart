@@ -9,13 +9,19 @@ class FakeTrailCache implements TrailCache {
   int clears = 0;
 
   @override
-  Future<({TrailSnapshot snapshot, DateTime savedAt})?> read({required String uid}) async {
+  Future<({TrailSnapshot snapshot, DateTime savedAt})?> read({
+    required String uid,
+  }) async {
     if (snapshot == null || this.uid != uid) return null;
     return (snapshot: snapshot!, savedAt: savedAt!);
   }
 
   @override
-  Future<void> write({required String uid, required TrailSnapshot snapshot, required DateTime savedAt}) async {
+  Future<void> write({
+    required String uid,
+    required TrailSnapshot snapshot,
+    required DateTime savedAt,
+  }) async {
     writes++;
     this.uid = uid;
     this.snapshot = snapshot;

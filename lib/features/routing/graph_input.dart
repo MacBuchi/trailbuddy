@@ -101,7 +101,9 @@ class BakeInput {
 
 /// Backt die Stücke für [input] — dieselben wie im Bau ([buildGraphFrom]).
 List<RoutingPiece> bakeFrom(BakeInput input) => StallWatch.mark(
-    'graph.bake', () => bakeTiles(roads: input.roads, ways: input.ways, heights: input.heights));
+  'graph.bake',
+  () => bakeTiles(roads: input.roads, ways: input.ways, heights: input.heights),
+);
 
 /// Eine Rechnung auf dem Graphen drüben (#356 PR 9): hinüber gehen nur
 /// ihre Eingaben, zurück kommt [R] — beides muss sendbar sein (keine
@@ -176,13 +178,22 @@ typedef BuiltGraph = ({RoadGraph graph, GraphReport report});
 BuiltGraph buildGraphFrom(GraphInput input, {String builtIn = ''}) {
   var baked = const <RoutingPiece>[];
   final broken = <(int, int)>[];
-  final ({RoadGraph graph, int joins, int crossings, int edgesWithoutHeights}) built;
+  final ({RoadGraph graph, int joins, int crossings, int edgesWithoutHeights})
+  built;
   if (!input.bake) {
     built = PlanProgress.part(
-        0,
-        0.96,
-        () => StallWatch.mark('graph.build',
-            () => buildRoadGraphFrom(roads: input.roads, ways: input.ways, heights: input.heights, lat0: input.lat0)));
+      0,
+      0.96,
+      () => StallWatch.mark(
+        'graph.build',
+        () => buildRoadGraphFrom(
+          roads: input.roads,
+          ways: input.ways,
+          heights: input.heights,
+          lat0: input.lat0,
+        ),
+      ),
+    );
   } else {
     // Den Balken teilen nach Arbeit: Backen kostet je Kachel etwa so viel
     // wie der Bau von heute, Zusammensetzen ein Zehntel (Konzept-Routing
@@ -190,22 +201,33 @@ BuiltGraph buildGraphFrom(GraphInput input, {String builtIn = ''}) {
     final work = input.roads.length + 0.1 * input.pieces.length;
     final bakeTo = work == 0 ? 0.0 : 0.96 * input.roads.length / work;
     baked = PlanProgress.part(
-        0,
-        bakeTo,
-        () => StallWatch.mark(
-            'graph.bake', () => bakeTiles(roads: input.roads, ways: input.ways, heights: input.heights)));
-    final stitched = PlanProgress.part(bakeTo, 0.96, () => StallWatch.mark('graph.stitch', () {
-          final decoded = <DecodedPiece>[];
-          for (final p in [...input.pieces, ...baked]) {
-            final d = unpackPiece(p.bytes);
-            if (d == null) {
-              broken.add((p.x, p.y));
-            } else {
-              decoded.add(d);
-            }
+      0,
+      bakeTo,
+      () => StallWatch.mark(
+        'graph.bake',
+        () => bakeTiles(
+          roads: input.roads,
+          ways: input.ways,
+          heights: input.heights,
+        ),
+      ),
+    );
+    final stitched = PlanProgress.part(
+      bakeTo,
+      0.96,
+      () => StallWatch.mark('graph.stitch', () {
+        final decoded = <DecodedPiece>[];
+        for (final p in [...input.pieces, ...baked]) {
+          final d = unpackPiece(p.bytes);
+          if (d == null) {
+            broken.add((p.x, p.y));
+          } else {
+            decoded.add(d);
           }
-          return stitchPieces(decoded, input.lat0);
-        }));
+        }
+        return stitchPieces(decoded, input.lat0);
+      }),
+    );
     final g = stitched.graph;
     built = (
       graph: g,
@@ -215,8 +237,14 @@ BuiltGraph buildGraphFrom(GraphInput input, {String builtIn = ''}) {
     );
   }
   final graph = built.graph;
-  final overlay =
-      PlanProgress.part(0.96, 0.99, () => StallWatch.mark('graph.trails', () => applyTrails(graph, input.trails, heights: input.heights)));
+  final overlay = PlanProgress.part(
+    0.96,
+    0.99,
+    () => StallWatch.mark(
+      'graph.trails',
+      () => applyTrails(graph, input.trails, heights: input.heights),
+    ),
+  );
   // Die Enden jeder Abfahrt als eigener Knoten mit Lücken zu den Wegen
   // daneben (#492) — `planLoop` findet sie dort wieder.
   StallWatch.mark('graph.attach', () {
@@ -226,8 +254,10 @@ BuiltGraph buildGraphFrom(GraphInput input, {String builtIn = ''}) {
       graph.anchor(t.points.last);
     }
   });
-  final closedEdges =
-      StallWatch.mark('graph.closures', () => blockClosures(graph, input.trails, closures: input.closures));
+  final closedEdges = StallWatch.mark(
+    'graph.closures',
+    () => blockClosures(graph, input.trails, closures: input.closures),
+  );
   return (
     graph: graph,
     report: GraphReport(
@@ -242,7 +272,9 @@ BuiltGraph buildGraphFrom(GraphInput input, {String builtIn = ''}) {
       closedEdges: closedEdges,
       builtIn: builtIn,
       baked: baked,
-      stitched: input.bake ? input.pieces.length + baked.length - broken.length : 0,
+      stitched: input.bake
+          ? input.pieces.length + baked.length - broken.length
+          : 0,
       broken: broken,
     ),
   );

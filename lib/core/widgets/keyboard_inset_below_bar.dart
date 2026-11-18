@@ -31,16 +31,19 @@ class KeyboardInsetBelowBar extends StatelessWidget {
     // Hier gelesen, nicht im LayoutBuilder: So baut das Widget neu, wenn
     // die Tastatur kommt oder geht.
     final media = MediaQuery.of(context);
-    return LayoutBuilder(builder: (context, constraints) {
-      final covered = media.size.height - constraints.maxHeight;
-      final inset = keyboardInsetBelow(media.viewInsets.bottom, covered);
-      if (inset == media.viewInsets.bottom) return child;
-      return MediaQuery(
-        data: media.copyWith(
-            viewInsets: media.viewInsets.copyWith(bottom: inset)),
-        child: child,
-      );
-    });
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final covered = media.size.height - constraints.maxHeight;
+        final inset = keyboardInsetBelow(media.viewInsets.bottom, covered);
+        if (inset == media.viewInsets.bottom) return child;
+        return MediaQuery(
+          data: media.copyWith(
+            viewInsets: media.viewInsets.copyWith(bottom: inset),
+          ),
+          child: child,
+        );
+      },
+    );
   }
 }
 

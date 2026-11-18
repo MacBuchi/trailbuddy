@@ -49,79 +49,79 @@ abstract final class SplitCoach {
 }
 
 CoachStep splitIntro(AppLocalizations l) => CoachStep(
-      id: 'split.intro',
-      title: l.tourSplitIntroTitle,
-      text: l.tourSplitIntroText,
-      art: splitArt,
-    );
+  id: 'split.intro',
+  title: l.tourSplitIntroTitle,
+  text: l.tourSplitIntroText,
+  art: splitArt,
+);
 
 /// Titel nie wie ein Text im Blatt („Wieder gefahren", „Stück selbst
 /// wählen", „Übernehmen" stehen dort) — der Test fände sonst das Element
 /// statt der Blase.
 CoachScript splitTourScript(AppLocalizations l) => CoachScript(
-      id: kSplitTourId,
-      steps: [
-        splitIntro(l),
-        CoachStep(
-          id: 'split.known',
-          title: l.tourSplitKnownTitle,
-          text: l.tourSplitKnownText,
-          lit: const [SplitCoach.known],
-          requires: const [SplitCoach.known],
-        ),
-        CoachStep(
-          id: 'split.takeOver',
-          title: l.tourSplitTakeOverTitle,
-          text: l.tourSplitTakeOverText,
-          lit: const [SplitCoach.takeOver],
-          requires: const [SplitCoach.takeOver],
-        ),
-        CoachStep(
-          id: 'split.question',
-          title: l.tourSplitQuestionTitle,
-          text: l.tourSplitQuestionText,
-          lit: const [SplitCoach.question],
-          requires: const [SplitCoach.question],
-        ),
-        CoachStep(
-          id: 'split.candidate',
-          title: l.tourSplitCandidateTitle,
-          text: l.tourSplitCandidateText,
-          // Nur die Griffe, nicht die ganze Karte des Kandidaten: Die ist mit
-          // Grad und Charakter so hoch, dass auf einem kleinen Schirm keine
-          // Blase mehr daneben passt (360×740 im Test).
-          lit: const [SplitCoach.range],
-          requires: const [SplitCoach.candidate],
-        ),
-        CoachStep(
-          id: 'split.home',
-          title: l.tourSplitHomeTitle,
-          text: l.tourSplitHomeText,
-          lit: const [SplitCoach.home],
-          requires: const [SplitCoach.home],
-        ),
-        CoachStep(
-          id: 'split.noRoads',
-          title: l.tourSplitNoRoadsTitle,
-          text: l.tourSplitNoRoadsText,
-          lit: const [SplitCoach.noRoads],
-          requires: const [SplitCoach.noRoads],
-        ),
-        CoachStep(
-          id: 'split.pick',
-          title: l.tourSplitPickTitle,
-          text: l.tourSplitPickText,
-          lit: const [SplitCoach.pick],
-          requires: const [SplitCoach.pick],
-        ),
-        CoachStep(
-          id: 'split.submit',
-          title: l.tourSplitSubmitTitle,
-          text: l.tourSplitSubmitText,
-          lit: const [SplitCoach.submit],
-        ),
-      ],
-    );
+  id: kSplitTourId,
+  steps: [
+    splitIntro(l),
+    CoachStep(
+      id: 'split.known',
+      title: l.tourSplitKnownTitle,
+      text: l.tourSplitKnownText,
+      lit: const [SplitCoach.known],
+      requires: const [SplitCoach.known],
+    ),
+    CoachStep(
+      id: 'split.takeOver',
+      title: l.tourSplitTakeOverTitle,
+      text: l.tourSplitTakeOverText,
+      lit: const [SplitCoach.takeOver],
+      requires: const [SplitCoach.takeOver],
+    ),
+    CoachStep(
+      id: 'split.question',
+      title: l.tourSplitQuestionTitle,
+      text: l.tourSplitQuestionText,
+      lit: const [SplitCoach.question],
+      requires: const [SplitCoach.question],
+    ),
+    CoachStep(
+      id: 'split.candidate',
+      title: l.tourSplitCandidateTitle,
+      text: l.tourSplitCandidateText,
+      // Nur die Griffe, nicht die ganze Karte des Kandidaten: Die ist mit
+      // Grad und Charakter so hoch, dass auf einem kleinen Schirm keine
+      // Blase mehr daneben passt (360×740 im Test).
+      lit: const [SplitCoach.range],
+      requires: const [SplitCoach.candidate],
+    ),
+    CoachStep(
+      id: 'split.home',
+      title: l.tourSplitHomeTitle,
+      text: l.tourSplitHomeText,
+      lit: const [SplitCoach.home],
+      requires: const [SplitCoach.home],
+    ),
+    CoachStep(
+      id: 'split.noRoads',
+      title: l.tourSplitNoRoadsTitle,
+      text: l.tourSplitNoRoadsText,
+      lit: const [SplitCoach.noRoads],
+      requires: const [SplitCoach.noRoads],
+    ),
+    CoachStep(
+      id: 'split.pick',
+      title: l.tourSplitPickTitle,
+      text: l.tourSplitPickText,
+      lit: const [SplitCoach.pick],
+      requires: const [SplitCoach.pick],
+    ),
+    CoachStep(
+      id: 'split.submit',
+      title: l.tourSplitSubmitTitle,
+      text: l.tourSplitSubmitText,
+      lit: const [SplitCoach.submit],
+    ),
+  ],
+);
 
 /// Die Kennung der Zerlege-Tour — der Merker in `seenCoachTours`.
 const kSplitTourId = 'split';
@@ -134,6 +134,11 @@ final requestedSplitTourProvider = StateProvider<bool>((ref) => false);
 /// gesehen (#417); aus der Kurzanleitung bleibt sie startbar.
 void startSplitTour(AppLocalizations l, WidgetRef ref) {
   final seen = ref.read(seenCoachToursProvider.notifier);
-  ref.read(coachProvider.notifier).start(splitTourScript(l),
-      onDone: () => seen.markSeen(kSplitTourId), onDecline: () => seen.markSeen(kSplitTourId));
+  ref
+      .read(coachProvider.notifier)
+      .start(
+        splitTourScript(l),
+        onDone: () => seen.markSeen(kSplitTourId),
+        onDecline: () => seen.markSeen(kSplitTourId),
+      );
 }

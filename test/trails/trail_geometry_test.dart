@@ -4,8 +4,13 @@ import 'package:trailbuddy/features/trails/trail_geometry.dart';
 
 /// Eine Linie nach Norden, `lengthM` lang, `stepM` je Punkt, mit linearer
 /// Höhe von `eleStart` nach `eleEnd` und optional Zeiten für `kmh`.
-List<TrackPoint> line(double lengthM,
-    {double stepM = 10, double? eleStart, double? eleEnd, double? kmh}) {
+List<TrackPoint> line(
+  double lengthM, {
+  double stepM = 10,
+  double? eleStart,
+  double? eleEnd,
+  double? kmh,
+}) {
   final n = (lengthM / stepM).round();
   const degPerM = 1 / 111320.0;
   return [
@@ -19,7 +24,10 @@ List<TrackPoint> line(double lengthM,
         time: kmh == null
             ? null
             : DateTime.utc(2026).add(
-                Duration(milliseconds: (i * stepM / (kmh / 3.6) * 1000).round())),
+                Duration(
+                  milliseconds: (i * stepM / (kmh / 3.6) * 1000).round(),
+                ),
+              ),
       ),
   ];
 }
@@ -36,13 +44,23 @@ void main() {
   });
 
   test('Importregel: kurz und bergab ist ein Trail, lang ist eine Fahrt', () {
-    expect(classifyTrack(line(1000, eleStart: 600, eleEnd: 500)), TrackKind.trail);
-    expect(classifyTrack(line(1000, eleStart: 500, eleEnd: 600)), TrackKind.ride);
+    expect(
+      classifyTrack(line(1000, eleStart: 600, eleEnd: 500)),
+      TrackKind.trail,
+    );
+    expect(
+      classifyTrack(line(1000, eleStart: 500, eleEnd: 600)),
+      TrackKind.ride,
+    );
     // Gemessen: alpine Trails bis 8 km, darüber Fahrten.
-    expect(classifyTrack(line(7000, stepM: 50, eleStart: 2000, eleEnd: 1300)),
-        TrackKind.trail);
-    expect(classifyTrack(line(9000, stepM: 50, eleStart: 2000, eleEnd: 1300)),
-        TrackKind.ride);
+    expect(
+      classifyTrack(line(7000, stepM: 50, eleStart: 2000, eleEnd: 1300)),
+      TrackKind.trail,
+    );
+    expect(
+      classifyTrack(line(9000, stepM: 50, eleStart: 2000, eleEnd: 1300)),
+      TrackKind.ride,
+    );
     // Ohne Höhen entscheidet die Länge — im Zweifel Trail.
     expect(classifyTrack(line(1000)), TrackKind.trail);
     // Mindestlänge 50 m (Patch 017): eine kurze Jump-Line ist ein Trail.

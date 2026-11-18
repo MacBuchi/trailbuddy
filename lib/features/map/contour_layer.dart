@@ -137,7 +137,12 @@ class ContourWindow {
     final y0 = nw.fy < m ? nw.y - 1 : nw.y;
     final x1 = se.fx > 1 - m ? se.x + 1 : se.x;
     final y1 = se.fy > 1 - m ? se.y + 1 : se.y;
-    return ContourWindow(math.min(x0, x1), math.min(y0, y1), math.max(x0, x1), math.max(y0, y1));
+    return ContourWindow(
+      math.min(x0, x1),
+      math.min(y0, y1),
+      math.max(x0, x1),
+      math.max(y0, y1),
+    );
   }
 
   final int x0, y0, x1, y1;
@@ -158,7 +163,11 @@ class ContourWindow {
 
   @override
   bool operator ==(Object other) =>
-      other is ContourWindow && other.x0 == x0 && other.y0 == y0 && other.x1 == x1 && other.y1 == y1;
+      other is ContourWindow &&
+      other.x0 == x0 &&
+      other.y0 == y0 &&
+      other.x1 == x1 &&
+      other.y1 == y1;
 
   @override
   int get hashCode => Object.hash(x0, y0, x1, y1);
@@ -168,7 +177,10 @@ class ContourWindow {
 /// ausgedünnte Raster ein Teilraster des Weltrasters bleibt: Zwei Fenster
 /// mit demselben Faktor tasten dieselben Punkte ab, auch wenn ihre erste
 /// Kachel eine andere ist.
-int contourSampleFactor(ContourWindow window, {int budget = kContourSampleBudget}) {
+int contourSampleFactor(
+  ContourWindow window, {
+  int budget = kContourSampleBudget,
+}) {
   final longest = math.max(window.columns, window.rows) * kContourStepsPerTile;
   for (final f in const [1, 2, 3, 4, 6, 8, 12, 16, 24, 48]) {
     if (longest ~/ f + 1 <= budget) return f;
@@ -179,7 +191,8 @@ int contourSampleFactor(ContourWindow window, {int budget = kContourSampleBudget
 const _worldTiles = 1 << kHeightTileZoom;
 
 /// Länge einer Weltraster-Spalte (auch gebrochen).
-double contourLonAt(double gx) => gx / kContourStepsPerTile / _worldTiles * 360 - 180;
+double contourLonAt(double gx) =>
+    gx / kContourStepsPerTile / _worldTiles * 360 - 180;
 
 /// Breite einer Weltraster-Zeile (auch gebrochen), Web-Mercator.
 double contourLatAt(double gy) {
@@ -213,12 +226,16 @@ class ContourField {
   /// Für die Maschine: Sie gibt Zeile + 0,5 herein (Zellmitte), die
   /// Proben hier liegen auf den ganzen Zahlen — deshalb − 0,5.
   double latAtRow(double row) => contourLatAt(gy0 + (row - 0.5) * factor);
-  double lonAtColumn(double column) => contourLonAt(gx0 + (column - 0.5) * factor);
+  double lonAtColumn(double column) =>
+      contourLonAt(gx0 + (column - 0.5) * factor);
 
   /// Meter zwischen zwei Nachbarproben auf der mittleren Breite.
   double get metersPerSample {
     final lat = contourLatAt(gy0 + (rows - 1) * factor / 2);
-    return 40075016.686 * math.cos(lat * math.pi / 180) / (_worldTiles * kContourStepsPerTile) * factor;
+    return 40075016.686 *
+        math.cos(lat * math.pi / 180) /
+        (_worldTiles * kContourStepsPerTile) *
+        factor;
   }
 
   bool get isEmpty => values.every((v) => v == kContourNoData);
@@ -282,14 +299,38 @@ ContourField contourFieldFrom(
     }
   }
   if (!smooth) {
-    return ContourField(values: raw, cols: cols, rows: rows, gx0: gx0, gy0: gy0, factor: f);
+    return ContourField(
+      values: raw,
+      cols: cols,
+      rows: rows,
+      gx0: gx0,
+      gy0: gy0,
+      factor: f,
+    );
   }
-  final smoothed = smooth3x3(raw, width: cols, height: rows, noData: kContourNoData);
+  final smoothed = smooth3x3(
+    raw,
+    width: cols,
+    height: rows,
+    noData: kContourNoData,
+  );
   final inner = Int32List((cols - 2) * (rows - 2));
   for (var row = 1; row < rows - 1; row++) {
-    inner.setRange((row - 1) * (cols - 2), row * (cols - 2), smoothed, row * cols + 1);
+    inner.setRange(
+      (row - 1) * (cols - 2),
+      row * (cols - 2),
+      smoothed,
+      row * cols + 1,
+    );
   }
-  return ContourField(values: inner, cols: cols - 2, rows: rows - 2, gx0: gx0 + f, gy0: gy0 + f, factor: f);
+  return ContourField(
+    values: inner,
+    cols: cols - 2,
+    rows: rows - 2,
+    gx0: gx0 + f,
+    gy0: gy0 + f,
+    factor: f,
+  );
 }
 
 /// Wie viele HÖHENMETER ein Bildschirmpixel typischerweise überwindet —
@@ -381,7 +422,11 @@ enum ContourGap {
 
 /// Was in den Rechen-Isolate geht: das Feld und der Maßstab.
 class ContourJob {
-  const ContourJob({required this.field, required this.metersPerPixel, required this.key});
+  const ContourJob({
+    required this.field,
+    required this.metersPerPixel,
+    required this.key,
+  });
 
   final ContourField field;
 
@@ -407,7 +452,10 @@ class ContourJob {
   final pixelsPerSample = field.metersPerSample / job.metersPerPixel;
   final relief = reliefPerPixel(field, pixelsPerSample: pixelsPerSample);
   if (relief == null) return (contours: null, gap: ContourGap.noHeights);
-  var equidistance = contourEquidistanceM(reliefPerPixel: relief, minSpacingPixels: minSpacingPixels);
+  var equidistance = contourEquidistanceM(
+    reliefPerPixel: relief,
+    minSpacingPixels: minSpacingPixels,
+  );
   if (equidistance == null) return (contours: null, gap: ContourGap.tooFarOut);
 
   // Beide Schwellen der Maschine in PIXELN gerechnet — eine feste Zahl in
@@ -416,24 +464,27 @@ class ContourJob {
   final minChain = math.max(2, (minLinePixels / pixelsPerSample).round());
 
   List<ContourLine> draw(int step) => contourLines(
-        values: field.values,
-        width: field.cols,
-        height: field.rows,
-        noData: kContourNoData,
-        levels: contourLevelsIn(field, step),
-        latAtRow: field.latAtRow,
-        lonAtColumn: field.lonAtColumn,
-        toleranceCells: tolerance,
-        minChainCells: minChain,
-        isIndex: (level) => level % contourIndexStepM(step) == 0,
-      );
+    values: field.values,
+    width: field.cols,
+    height: field.rows,
+    noData: kContourNoData,
+    levels: contourLevelsIn(field, step),
+    latAtRow: field.latAtRow,
+    lonAtColumn: field.lonAtColumn,
+    toleranceCells: tolerance,
+    minChainCells: minChain,
+    isIndex: (level) => level % contourIndexStepM(step) == 0,
+  );
 
   var lines = draw(equidistance);
   final points = lines.fold<int>(0, (n, l) => n + l.points.length);
   if (points > pointBudget) {
     // Genau EINMAL vergröbern: Die nächste Stufe halbiert die Linienzahl
     // ohnehin, ein zweiter Durchgang kostete so viel wie der erste.
-    final coarser = kContourSteps.firstWhere((s) => s > equidistance!, orElse: () => equidistance!);
+    final coarser = kContourSteps.firstWhere(
+      (s) => s > equidistance!,
+      orElse: () => equidistance!,
+    );
     if (coarser != equidistance) {
       equidistance = coarser;
       lines = draw(coarser);
@@ -454,7 +505,11 @@ class ContourJob {
 /// keinen Text entlang einer Linie kann (dort ist eine Zahl ein Marker mit
 /// Winkel). MapLibre setzt sie selbst (`symbol-placement: line`).
 class ContourLabel {
-  const ContourLabel({required this.point, required this.angleRadians, required this.level});
+  const ContourLabel({
+    required this.point,
+    required this.angleRadians,
+    required this.level,
+  });
 
   final LatLng point;
 
@@ -498,15 +553,19 @@ List<ContourLabel> contourLabels(
       while (placed < targets.length && targets[placed] <= next) {
         final from = line.points[i];
         final to = line.points[i + 1];
-        final t = segments[i] == 0 ? 0.0 : (targets[placed] - walked) / segments[i];
-        labels.add(ContourLabel(
-          point: LatLng(
-            from.latitude + (to.latitude - from.latitude) * t,
-            from.longitude + (to.longitude - from.longitude) * t,
+        final t = segments[i] == 0
+            ? 0.0
+            : (targets[placed] - walked) / segments[i];
+        labels.add(
+          ContourLabel(
+            point: LatLng(
+              from.latitude + (to.latitude - from.latitude) * t,
+              from.longitude + (to.longitude - from.longitude) * t,
+            ),
+            angleRadians: _uprightAngle(from, to),
+            level: line.level,
           ),
-          angleRadians: _uprightAngle(from, to),
-          level: line.level,
-        ));
+        );
         placed++;
       }
       walked = next;

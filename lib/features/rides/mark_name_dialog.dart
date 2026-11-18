@@ -35,7 +35,10 @@ class MarkNameDiscarded extends MarkNameChoice {
 /// Höhe der Knöpfe: A13 verlangt 44 dp, mit Handschuh lieber mehr.
 const _kButtonHeight = 52.0;
 
-Future<MarkNameChoice> showMarkNameDialog(BuildContext context, {MarkNameSuggestion? suggestion}) async {
+Future<MarkNameChoice> showMarkNameDialog(
+  BuildContext context, {
+  MarkNameSuggestion? suggestion,
+}) async {
   final choice = await showDialog<MarkNameChoice>(
     context: context,
     builder: (_) => _MarkNameDialog(suggestion: suggestion),
@@ -53,7 +56,9 @@ class _MarkNameDialog extends StatefulWidget {
 }
 
 class _MarkNameDialogState extends State<_MarkNameDialog> {
-  late final TextEditingController _name = TextEditingController(text: widget.suggestion?.name ?? '');
+  late final TextEditingController _name = TextEditingController(
+    text: widget.suggestion?.name ?? '',
+  );
 
   @override
   void initState() {
@@ -102,7 +107,10 @@ class _MarkNameDialogState extends State<_MarkNameDialog> {
               textCapitalization: TextCapitalization.sentences,
               textInputAction: TextInputAction.done,
               onSubmitted: (_) => _save(),
-              decoration: InputDecoration(labelText: l.detailsName, counterText: ''),
+              decoration: InputDecoration(
+                labelText: l.detailsName,
+                counterText: '',
+              ),
             ),
             const SizedBox(height: 16),
             FilledButton(
@@ -125,7 +133,8 @@ class _MarkNameDialogState extends State<_MarkNameDialog> {
                   child: TextButton(
                     key: const ValueKey('ride-mark-name-discard'),
                     style: TextButton.styleFrom(minimumSize: tall),
-                    onPressed: () => Navigator.of(context).pop(const MarkNameDiscarded()),
+                    onPressed: () =>
+                        Navigator.of(context).pop(const MarkNameDiscarded()),
                     child: Text(l.rideMarkNameDiscard),
                   ),
                 ),
@@ -133,7 +142,8 @@ class _MarkNameDialogState extends State<_MarkNameDialog> {
                   child: TextButton(
                     key: const ValueKey('ride-mark-name-later'),
                     style: TextButton.styleFrom(minimumSize: tall),
-                    onPressed: () => Navigator.of(context).pop(const MarkNameLater()),
+                    onPressed: () =>
+                        Navigator.of(context).pop(const MarkNameLater()),
                     child: Text(l.rideMarkNameLater),
                   ),
                 ),

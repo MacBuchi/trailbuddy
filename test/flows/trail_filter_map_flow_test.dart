@@ -27,49 +27,67 @@ void main() {
     backend.addFriendship(anna.id, bob.id);
     backend.signInAs(anna.id);
     trails = FakeTrailRepository(
-        myId: () => backend.currentUserId ?? '', areFriends: backend.areFriends);
+      myId: () => backend.currentUserId ?? '',
+      areFriends: backend.areFriends,
+    );
     trails.usernames[bob.id] = 'bob';
     trails.seedTrail(anna.id, name: 'Roßkopf Süd', grade: 1);
-    hexentanz = trails.seedTrail(bob.id, name: 'Hexentanz', lat: 48.01, grade: 4);
+    hexentanz = trails.seedTrail(
+      bob.id,
+      name: 'Hexentanz',
+      lat: 48.01,
+      grade: 4,
+    );
     trails.seedTrail(bob.id, name: 'Alter Weg', lat: 48.02);
   });
 
   /// Die Namen der Trails, die die Karte gerade zeichnet.
   Set<String> drawn(WidgetTester tester) => {
-        for (final l in fakeMapLayers(tester).polylines)
-          if (l.hitValue is Trail) (l.hitValue as Trail).displayName(l10nDe),
-      };
+    for (final l in fakeMapLayers(tester).polylines)
+      if (l.hitValue is Trail) (l.hitValue as Trail).displayName(l10nDe),
+  };
 
   Finder banner() => find.byKey(const ValueKey('map-filter-banner'));
 
-  testWidgets('in der Liste gesetzt, auf der Karte gezeichnet, gemeldet und dort zurückgesetzt',
-      (tester) async {
-    await pumpApp(tester, backend, trails: trails);
-    await settle(tester, frames: 20);
-    expect(drawn(tester), {'Roßkopf Süd', 'Hexentanz', 'Alter Weg'});
-    expect(banner(), findsNothing, reason: 'ohne Filter keine Zeile');
+  testWidgets(
+    'in der Liste gesetzt, auf der Karte gezeichnet, gemeldet und dort zurückgesetzt',
+    (tester) async {
+      await pumpApp(tester, backend, trails: trails);
+      await settle(tester, frames: 20);
+      expect(drawn(tester), {'Roßkopf Süd', 'Hexentanz', 'Alter Weg'});
+      expect(banner(), findsNothing, reason: 'ohne Filter keine Zeile');
 
-    await openTab(tester, 'Trails');
-    await settle(tester, frames: 20);
-    await setGradeRange(tester, max: 2);
-    await openTab(tester, 'Karte');
-    await settle(tester, frames: 20);
+      await openTab(tester, 'Trails');
+      await settle(tester, frames: 20);
+      await setGradeRange(tester, max: 2);
+      await openTab(tester, 'Karte');
+      await settle(tester, frames: 20);
 
-    expect(drawn(tester), {'Roßkopf Süd'}, reason: 'S4 und „ohne Einschätzung" fehlen');
-    expect(banner(), findsOneWidget);
-    expect(find.text('Gefiltert: bis S2'), findsOneWidget);
-    expect(find.text('1 von 3 Trails'), findsOneWidget);
+      expect(drawn(tester), {
+        'Roßkopf Süd',
+      }, reason: 'S4 und „ohne Einschätzung" fehlen');
+      expect(banner(), findsOneWidget);
+      expect(find.text('Gefiltert: bis S2'), findsOneWidget);
+      expect(find.text('1 von 3 Trails'), findsOneWidget);
 
-    await tester.tap(find.byKey(const ValueKey('map-filter-reset')));
-    await settle(tester, frames: 20);
-    expect(banner(), findsNothing);
-    expect(drawn(tester), hasLength(3));
+      await tester.tap(find.byKey(const ValueKey('map-filter-reset')));
+      await settle(tester, frames: 20);
+      expect(banner(), findsNothing);
+      expect(drawn(tester), hasLength(3));
 
-    // Zurückgesetzt heißt: auch in der Liste.
-    await openTab(tester, 'Trails');
-    await settle(tester, frames: 20);
-    expect(tester.widget<FilterChip>(find.byKey(const ValueKey('trail-filter-grade'))).selected, isFalse);
-  });
+      // Zurückgesetzt heißt: auch in der Liste.
+      await openTab(tester, 'Trails');
+      await settle(tester, frames: 20);
+      expect(
+        tester
+            .widget<FilterChip>(
+              find.byKey(const ValueKey('trail-filter-grade')),
+            )
+            .selected,
+        isFalse,
+      );
+    },
+  );
 
   testWidgets('im Blatt der Karte gesetzt, gilt in der Liste', (tester) async {
     await pumpApp(tester, backend, trails: trails);
@@ -89,21 +107,29 @@ void main() {
     expect(find.text('Hexentanz'), findsOneWidget);
   });
 
-  testWidgets('ein Sprung auf einen ausgeblendeten Trail setzt den Filter zurück und sagt es',
-      (tester) async {
-    await pumpApp(tester, backend, trails: trails);
-    await settle(tester, frames: 20);
-    final container = ProviderScope.containerOf(tester.element(find.byType(MapScreen)));
-    container.read(trailListFilterProvider.notifier).state =
-        container.read(trailListFilterProvider).copyWith(maxGrade: 2);
-    await settle(tester, frames: 20);
-    expect(drawn(tester), {'Roßkopf Süd'});
+  testWidgets(
+    'ein Sprung auf einen ausgeblendeten Trail setzt den Filter zurück und sagt es',
+    (tester) async {
+      await pumpApp(tester, backend, trails: trails);
+      await settle(tester, frames: 20);
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(MapScreen)),
+      );
+      container.read(trailListFilterProvider.notifier).state = container
+          .read(trailListFilterProvider)
+          .copyWith(maxGrade: 2);
+      await settle(tester, frames: 20);
+      expect(drawn(tester), {'Roßkopf Süd'});
 
-    // So landet eine Push-Meldung (`/trail/<id>`) auf der Karte.
-    container.read(mapFocusTrailProvider.notifier).state = hexentanz;
-    await settle(tester, frames: 20);
-    expect(find.text('Filter zurückgesetzt, damit der Trail zu sehen ist.'), findsOneWidget);
-    expect(drawn(tester), contains('Hexentanz'));
-    expect(banner(), findsNothing);
-  });
+      // So landet eine Push-Meldung (`/trail/<id>`) auf der Karte.
+      container.read(mapFocusTrailProvider.notifier).state = hexentanz;
+      await settle(tester, frames: 20);
+      expect(
+        find.text('Filter zurückgesetzt, damit der Trail zu sehen ist.'),
+        findsOneWidget,
+      );
+      expect(drawn(tester), contains('Hexentanz'));
+      expect(banner(), findsNothing);
+    },
+  );
 }

@@ -5,11 +5,19 @@ class _NoKeepAlive implements KeepAlive {
   const _NoKeepAlive();
 
   @override
-  Future<void> start(String title, String text, Set<KeepAliveType> types,
-      {List<KeepAliveButton> buttons = const []}) async {}
+  Future<void> start(
+    String title,
+    String text,
+    Set<KeepAliveType> types, {
+    List<KeepAliveButton> buttons = const [],
+  }) async {}
 
   @override
-  Future<void> update(String title, String text, {List<KeepAliveButton> buttons = const []}) async {}
+  Future<void> update(
+    String title,
+    String text, {
+    List<KeepAliveButton> buttons = const [],
+  }) async {}
 
   @override
   Future<void> setRepeat(Duration? every) async {}

@@ -94,118 +94,118 @@ abstract final class ProfileCoach {
 /// (#209): Die Texte kommen aus den ARB-Dateien, Vorführungen finden ihre
 /// Schritte über die `id`.
 CoachScript trailsTourScript(AppLocalizations l) => CoachScript(
-      id: kTrailsTourId,
-      examples: true,
-      steps: [
-        CoachStep(
-          id: 'trails.intro',
-          title: l.tourTrailsIntroTitle,
-          chainTitle: l.tourTrailsIntroChainTitle,
-          text: l.tourTrailsIntroText,
-          art: trailsArt,
-        ),
-        CoachStep(
-          id: 'trails.row',
-          title: l.tourTrailsRowTitle,
-          text: l.tourTrailsRowText,
-          lit: const [TrailsCoach.row],
-          ring: const [],
-          gesture: CoachGesture.tap,
-          requires: const [TrailsCoach.row],
-        ),
-        CoachStep(
-          id: 'trails.sheet',
-          title: l.tourTrailsSheetTitle,
-          text: l.tourTrailsSheetText,
-          scene: TrailsCoach.sheet,
-          lit: const [SheetCoach.metrics],
-          requires: const [TrailsCoach.row],
-        ),
-        CoachStep(
-          id: 'trails.grade',
-          title: l.tourTrailsGradeTitle,
-          text: l.tourTrailsGradeText,
-          scene: TrailsCoach.sheet,
-          lit: const [SheetCoach.ownGrade],
-          requires: const [TrailsCoach.rowOwn],
-        ),
-        CoachStep(
-          id: 'trails.contribution',
-          title: l.tourTrailsContributionTitle,
-          text: l.tourTrailsContributionText,
-          scene: TrailsCoach.sheet,
-          lit: const [SheetCoach.contribution],
-          requires: const [TrailsCoach.rowOwn],
-        ),
-        CoachStep(
-          id: 'trails.note',
-          title: l.tourTrailsNoteTitle,
-          text: l.tourTrailsNoteText,
-          scene: TrailsCoach.sheet,
-          lit: const [SheetCoach.report],
-          requires: const [TrailsCoach.row],
-        ),
-        CoachStep(
-          id: 'trails.search',
-          title: l.tourTrailsSearchTitle,
-          text: l.tourTrailsSearchText,
-          lit: const [TrailsCoach.search, TrailsCoach.chips],
-        ),
-        CoachStep(
-          id: 'trails.import',
-          title: l.tourTrailsImportTitle,
-          text: l.tourTrailsImportText,
-          lit: const [TrailsCoach.import],
-        ),
-      ],
-    );
+  id: kTrailsTourId,
+  examples: true,
+  steps: [
+    CoachStep(
+      id: 'trails.intro',
+      title: l.tourTrailsIntroTitle,
+      chainTitle: l.tourTrailsIntroChainTitle,
+      text: l.tourTrailsIntroText,
+      art: trailsArt,
+    ),
+    CoachStep(
+      id: 'trails.row',
+      title: l.tourTrailsRowTitle,
+      text: l.tourTrailsRowText,
+      lit: const [TrailsCoach.row],
+      ring: const [],
+      gesture: CoachGesture.tap,
+      requires: const [TrailsCoach.row],
+    ),
+    CoachStep(
+      id: 'trails.sheet',
+      title: l.tourTrailsSheetTitle,
+      text: l.tourTrailsSheetText,
+      scene: TrailsCoach.sheet,
+      lit: const [SheetCoach.metrics],
+      requires: const [TrailsCoach.row],
+    ),
+    CoachStep(
+      id: 'trails.grade',
+      title: l.tourTrailsGradeTitle,
+      text: l.tourTrailsGradeText,
+      scene: TrailsCoach.sheet,
+      lit: const [SheetCoach.ownGrade],
+      requires: const [TrailsCoach.rowOwn],
+    ),
+    CoachStep(
+      id: 'trails.contribution',
+      title: l.tourTrailsContributionTitle,
+      text: l.tourTrailsContributionText,
+      scene: TrailsCoach.sheet,
+      lit: const [SheetCoach.contribution],
+      requires: const [TrailsCoach.rowOwn],
+    ),
+    CoachStep(
+      id: 'trails.note',
+      title: l.tourTrailsNoteTitle,
+      text: l.tourTrailsNoteText,
+      scene: TrailsCoach.sheet,
+      lit: const [SheetCoach.report],
+      requires: const [TrailsCoach.row],
+    ),
+    CoachStep(
+      id: 'trails.search',
+      title: l.tourTrailsSearchTitle,
+      text: l.tourTrailsSearchText,
+      lit: const [TrailsCoach.search, TrailsCoach.chips],
+    ),
+    CoachStep(
+      id: 'trails.import',
+      title: l.tourTrailsImportTitle,
+      text: l.tourTrailsImportText,
+      lit: const [TrailsCoach.import],
+    ),
+  ],
+);
 
 CoachScript buddysTourScript(AppLocalizations l) => CoachScript(
-      id: kBuddysTourId,
-      examples: true,
-      steps: [
-        CoachStep(
-          id: 'buddys.intro',
-          title: l.tourBuddysIntroTitle,
-          chainTitle: l.tourBuddysIntroChainTitle,
-          text: l.tourBuddysIntroText,
-          art: buddysArt,
-        ),
-        CoachStep(
-          id: 'buddys.invite',
-          title: l.tourBuddysInviteTitle,
-          text: l.tourBuddysInviteText,
-          lit: const [BuddysCoach.invite],
-        ),
-        CoachStep(
-          // Nicht „Buddy finden": So heißt das Suchfeld selbst.
-          id: 'buddys.search',
-          title: l.tourBuddysSearchTitle,
-          text: l.tourBuddysSearchText,
-          lit: const [BuddysCoach.search],
-        ),
-        CoachStep(
-          id: 'buddys.requests',
-          title: l.tourBuddysRequestsTitle,
-          text: l.tourBuddysRequestsText,
-          lit: const [BuddysCoach.requests],
-          requires: const [BuddysCoach.requests],
-        ),
-        CoachStep(
-          id: 'buddys.row',
-          title: l.tourBuddysRowTitle,
-          text: l.tourBuddysRowText,
-          lit: const [BuddysCoach.row],
-          ring: const [BuddysCoach.alias, BuddysCoach.message],
-          requires: const [BuddysCoach.row],
-        ),
-        CoachStep(
-          id: 'buddys.connect',
-          title: l.tourBuddysConnectTitle,
-          text: l.tourBuddysConnectText,
-        ),
-      ],
-    );
+  id: kBuddysTourId,
+  examples: true,
+  steps: [
+    CoachStep(
+      id: 'buddys.intro',
+      title: l.tourBuddysIntroTitle,
+      chainTitle: l.tourBuddysIntroChainTitle,
+      text: l.tourBuddysIntroText,
+      art: buddysArt,
+    ),
+    CoachStep(
+      id: 'buddys.invite',
+      title: l.tourBuddysInviteTitle,
+      text: l.tourBuddysInviteText,
+      lit: const [BuddysCoach.invite],
+    ),
+    CoachStep(
+      // Nicht „Buddy finden": So heißt das Suchfeld selbst.
+      id: 'buddys.search',
+      title: l.tourBuddysSearchTitle,
+      text: l.tourBuddysSearchText,
+      lit: const [BuddysCoach.search],
+    ),
+    CoachStep(
+      id: 'buddys.requests',
+      title: l.tourBuddysRequestsTitle,
+      text: l.tourBuddysRequestsText,
+      lit: const [BuddysCoach.requests],
+      requires: const [BuddysCoach.requests],
+    ),
+    CoachStep(
+      id: 'buddys.row',
+      title: l.tourBuddysRowTitle,
+      text: l.tourBuddysRowText,
+      lit: const [BuddysCoach.row],
+      ring: const [BuddysCoach.alias, BuddysCoach.message],
+      requires: const [BuddysCoach.row],
+    ),
+    CoachStep(
+      id: 'buddys.connect',
+      title: l.tourBuddysConnectTitle,
+      text: l.tourBuddysConnectText,
+    ),
+  ],
+);
 
 /// Die Kennungen der Reiter-Touren — Merker in `seenCoachTours`, Wunsch
 /// aus der Kurzanleitung.
@@ -213,13 +213,16 @@ const kTrailsTourId = 'trails';
 const kBuddysTourId = 'buddys';
 
 /// Alle Reiter-Touren — für den Test, der sie gegen die Fake-Vorgabe hält.
-List<CoachScript> tabTourScripts(AppLocalizations l) => [trailsTourScript(l), buddysTourScript(l)];
+List<CoachScript> tabTourScripts(AppLocalizations l) => [
+  trailsTourScript(l),
+  buddysTourScript(l),
+];
 
 /// Die Reiter-Touren in der Reihenfolge der Leiste, mit ihrer Route.
 List<(CoachScript, String)> tabTours(AppLocalizations l) => [
-      (trailsTourScript(l), '/trails'),
-      (buddysTourScript(l), '/friends'),
-    ];
+  (trailsTourScript(l), '/trails'),
+  (buddysTourScript(l), '/friends'),
+];
 
 /// Eine ausdrücklich gewünschte Tour (aus der Kurzanleitung). Sie läuft
 /// auch, wenn sie schon gesehen ist, sobald ihr Reiter sichtbar wird.
@@ -232,14 +235,21 @@ class RequestedTabTour extends Notifier<String?> {
   void clear() => state = null;
 }
 
-final requestedTabTourProvider = NotifierProvider<RequestedTabTour, String?>(RequestedTabTour.new);
+final requestedTabTourProvider = NotifierProvider<RequestedTabTour, String?>(
+  RequestedTabTour.new,
+);
 
 /// Startet [script] und merkt sich danach, dass sie gesehen wurde — auch
 /// nach „Nicht jetzt" (#417).
 void startTabTour(WidgetRef ref, CoachScript script) {
   final seen = ref.read(seenCoachToursProvider.notifier);
-  ref.read(coachProvider.notifier).start(script,
-      onDone: () => seen.markSeen(script.id), onDecline: () => seen.markSeen(script.id));
+  ref
+      .read(coachProvider.notifier)
+      .start(
+        script,
+        onDone: () => seen.markSeen(script.id),
+        onDecline: () => seen.markSeen(script.id),
+      );
 }
 
 /// Der erste Start: Willkommensseite, Karten-Tour, danach die Reiter —
@@ -256,10 +266,14 @@ void startWelcomeTour(AppLocalizations l, WidgetRef ref, GoRouter router) {
   final coach = ref.read(coachProvider.notifier);
   final mapSeen = ref.read(mapTourSeenProvider.notifier);
   final seen = ref.read(seenCoachToursProvider.notifier);
-  coach.start(welcomeTourScript(l), onDone: () {
-    mapSeen.set(true);
-    unawaited(_continueChain(coach, router, seen, tabTours(l)));
-  }, onDecline: () => mapSeen.set(true));
+  coach.start(
+    welcomeTourScript(l),
+    onDone: () {
+      mapSeen.set(true);
+      unawaited(_continueChain(coach, router, seen, tabTours(l)));
+    },
+    onDecline: () => mapSeen.set(true),
+  );
 }
 
 Future<void> _continueChain(
@@ -280,13 +294,15 @@ Future<void> _continueChain(
   for (var i = 0; i < 3; i++) {
     await WidgetsBinding.instance.endOfFrame;
   }
-  coach.start(script,
-      chained: true,
-      onDone: () {
-        seen.markSeen(script.id);
-        unawaited(_continueChain(coach, router, seen, open.sublist(1)));
-      },
-      onDecline: () => seen.markSeen(script.id));
+  coach.start(
+    script,
+    chained: true,
+    onDone: () {
+      seen.markSeen(script.id);
+      unawaited(_continueChain(coach, router, seen, open.sublist(1)));
+    },
+    onDecline: () => seen.markSeen(script.id),
+  );
 }
 
 /// Startet die Tour seines Reiters, sobald es passt. Gehört einmal in den

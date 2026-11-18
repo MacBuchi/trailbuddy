@@ -14,24 +14,32 @@ import 'package:trailbuddy/core/photo_pipeline.dart';
 import 'package:trailbuddy/core/read_after_write.dart' show doneOrStale;
 import 'package:trailbuddy/core/update_check.dart';
 import 'package:trailbuddy/features/changelog/changelog_screen.dart';
-import 'package:trailbuddy/core/settings.dart' show kLanguageSettingKey, settingsProvider;
+import 'package:trailbuddy/core/settings.dart'
+    show kLanguageSettingKey, settingsProvider;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' show PostgrestException;
 import 'package:trailbuddy/features/trails/gpx.dart';
-import 'package:trailbuddy/features/trails/trail_geometry.dart' show RecordingSource;
+import 'package:trailbuddy/features/trails/trail_geometry.dart'
+    show RecordingSource;
 import 'package:trailbuddy/features/friends/connect_summary.dart';
 import 'package:trailbuddy/features/map/map_legend.dart';
 import 'package:trailbuddy/features/map/poi.dart';
 import 'package:trailbuddy/features/map/way_layer.dart';
-import 'package:trailbuddy/features/official/official_trails.dart' show OfficialStatus;
-import 'package:trailbuddy/features/official/official_trails_layer.dart' show officialStatusLine;
+import 'package:trailbuddy/features/official/official_trails.dart'
+    show OfficialStatus;
+import 'package:trailbuddy/features/official/official_trails_layer.dart'
+    show officialStatusLine;
 import 'package:trailbuddy/models/profile.dart' show usernameProblem;
-import 'package:trailbuddy/features/offline_areas/area_providers.dart' show OutsideRegions;
+import 'package:trailbuddy/features/offline_areas/area_providers.dart'
+    show OutsideRegions;
 import 'package:trailbuddy/features/rides/ride_confirm.dart';
 import 'package:trailbuddy/features/rides/ride_track.dart';
 import 'package:trailbuddy/features/routing/navigate_choice.dart';
-import 'package:trailbuddy/features/routing/route_profile.dart' as routing show WayClass;
-import 'package:trailbuddy/features/routing/trail_head_route.dart' show routeTimeLabel;
+import 'package:trailbuddy/features/routing/route_profile.dart'
+    as routing
+    show WayClass;
+import 'package:trailbuddy/features/routing/trail_head_route.dart'
+    show routeTimeLabel;
 import 'package:trailbuddy/models/trail.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
@@ -53,30 +61,35 @@ Map<String, dynamic> _arb(String lang) =>
 
 /// Die Texte einer ARB-Datei, ohne `@@locale` und `@key`-Beschreibungen.
 Map<String, String> _messages(Map<String, dynamic> arb) => {
-      for (final e in arb.entries)
-        if (!e.key.startsWith('@')) e.key: e.value as String,
-    };
+  for (final e in arb.entries)
+    if (!e.key.startsWith('@')) e.key: e.value as String,
+};
 
 /// Die Platzhalter eines Textes: `{name}` und der Kopf von
 /// `{count, plural, …}`. Was in einer Plural-Klammer steht, ist Text.
 Set<String> _placeholders(String message) => {
-      for (final m in RegExp(r'\{(\w+)\s*[,}]').allMatches(message)) m[1]!,
-    };
+  for (final m in RegExp(r'\{(\w+)\s*[,}]').allMatches(message)) m[1]!,
+};
 
 const _english = 'Development build — not released';
 const _german = 'Entwicklungsstand — nicht freigegeben';
 
-Future<void> _pumpPreview(WidgetTester tester,
-    {Locale? appLocale = const Locale('de'),
-    List<Locale> deviceLocales = const [Locale('de', 'DE')]}) async {
+Future<void> _pumpPreview(
+  WidgetTester tester, {
+  Locale? appLocale = const Locale('de'),
+  List<Locale> deviceLocales = const [Locale('de', 'DE')],
+}) async {
   final backend = FakeBackend();
   backend.signInAs(backend.addUser(username: 'anna').id);
-  await pumpApp(tester, backend,
-      deviceLocales: deviceLocales,
-      extraOverrides: [
-        webChannelProvider.overrideWithValue(WebChannel.preview),
-        appLocaleProvider.overrideWithValue(appLocale),
-      ]);
+  await pumpApp(
+    tester,
+    backend,
+    deviceLocales: deviceLocales,
+    extraOverrides: [
+      webChannelProvider.overrideWithValue(WebChannel.preview),
+      appLocaleProvider.overrideWithValue(appLocale),
+    ],
+  );
 }
 
 void main() {
@@ -92,10 +105,12 @@ void main() {
     test('haben dieselben Schlüssel', () {
       final deKeys = _messages(de).keys.toSet();
       final enKeys = _messages(en).keys.toSet();
-      expect(deKeys.difference(enKeys), isEmpty,
-          reason: 'fehlt in app_en.arb');
-      expect(enKeys.difference(deKeys), isEmpty,
-          reason: 'steht nur in app_en.arb — die Vorlage ist app_de.arb');
+      expect(deKeys.difference(enKeys), isEmpty, reason: 'fehlt in app_en.arb');
+      expect(
+        enKeys.difference(deKeys),
+        isEmpty,
+        reason: 'steht nur in app_en.arb — die Vorlage ist app_de.arb',
+      );
     });
 
     test('jeder Text hat eine Beschreibung in der Vorlage', () {
@@ -104,9 +119,11 @@ void main() {
       // als im Kartenbereich.
       for (final key in _messages(de).keys) {
         final meta = de['@$key'];
-        expect(meta is Map && (meta['description'] as String? ?? '').isNotEmpty,
-            isTrue,
-            reason: '@$key.description fehlt in app_de.arb');
+        expect(
+          meta is Map && (meta['description'] as String? ?? '').isNotEmpty,
+          isTrue,
+          reason: '@$key.description fehlt in app_de.arb',
+        );
       }
     });
 
@@ -114,8 +131,11 @@ void main() {
       final deMessages = _messages(de);
       for (final MapEntry(:key, value: english) in _messages(en).entries) {
         expect(english.trim(), isNotEmpty, reason: key);
-        expect(_placeholders(english), _placeholders(deMessages[key] ?? ''),
-            reason: key);
+        expect(
+          _placeholders(english),
+          _placeholders(deMessages[key] ?? ''),
+          reason: key,
+        );
       }
     });
   });
@@ -134,61 +154,98 @@ void main() {
     });
 
     test('eine weiter hinten genannte bekannte Sprache gewinnt', () {
-      expect(resolveAppLocale(const [Locale('fr'), Locale('de')]),
-          const Locale('de'));
-      expect(resolveAppLocale(const [Locale('it'), Locale('en'), Locale('de')]),
-          const Locale('en'));
+      expect(
+        resolveAppLocale(const [Locale('fr'), Locale('de')]),
+        const Locale('de'),
+      );
+      expect(
+        resolveAppLocale(const [Locale('it'), Locale('en'), Locale('de')]),
+        const Locale('en'),
+      );
     });
   });
 
   group('die App', () {
-    testWidgets('folgt einem englischen Gerät, solange nichts gewählt ist',
-        (tester) async {
+    testWidgets('folgt einem englischen Gerät, solange nichts gewählt ist', (
+      tester,
+    ) async {
       final backend = FakeBackend();
       backend.signInAs(backend.addUser(username: 'anna').id);
-      await pumpApp(tester, backend,
-          deviceLocales: const [Locale('en', 'US')],
-          extraOverrides: [
-            webChannelProvider.overrideWithValue(WebChannel.preview),
-          ]);
+      await pumpApp(
+        tester,
+        backend,
+        deviceLocales: const [Locale('en', 'US')],
+        extraOverrides: [
+          webChannelProvider.overrideWithValue(WebChannel.preview),
+        ],
+      );
       expect(find.text(_english), findsOneWidget);
       expect(find.text(_german), findsNothing);
     });
 
-    testWidgets('die Wahl im Profil schlägt das Gerät, sofort und gemerkt',
-        (tester) async {
+    testWidgets('die Wahl im Profil schlägt das Gerät, sofort und gemerkt', (
+      tester,
+    ) async {
       final settings = FakeSettings();
       final backend = FakeBackend();
       backend.signInAs(backend.addUser(username: 'anna').id);
-      await pumpApp(tester, backend, settings: settings, extraOverrides: [
-        webChannelProvider.overrideWithValue(WebChannel.preview),
-      ]);
+      await pumpApp(
+        tester,
+        backend,
+        settings: settings,
+        extraOverrides: [
+          webChannelProvider.overrideWithValue(WebChannel.preview),
+        ],
+      );
       expect(find.text(_german), findsOneWidget);
       await openTab(tester, 'Profil');
       final row = find.byKey(const ValueKey('profile-language'));
       await scrollTo(tester, row);
-      expect(find.descendant(of: row, matching: find.text('Deutsch · folgt dem Gerät')), findsOneWidget);
+      expect(
+        find.descendant(
+          of: row,
+          matching: find.text('Deutsch · folgt dem Gerät'),
+        ),
+        findsOneWidget,
+      );
       await tester.tap(row);
       await settle(tester);
       await tester.tap(find.text('English'));
       await settle(tester);
       expect(settings.language, 'en');
-      expect(find.text('Language'), findsOneWidget, reason: 'der Seitentitel wechselt sofort');
+      expect(
+        find.text('Language'),
+        findsOneWidget,
+        reason: 'der Seitentitel wechselt sofort',
+      );
       expect(find.text(_english), findsOneWidget);
-      expect(serviceL10n().localeName, 'en', reason: 'der Dienst spricht dieselbe Sprache');
+      expect(
+        serviceL10n().localeName,
+        'en',
+        reason: 'der Dienst spricht dieselbe Sprache',
+      );
       await tester.tap(find.text('Like the device'));
       await settle(tester);
       expect(settings.language, 'system');
       expect(find.text('Sprache'), findsOneWidget);
-      expect(chosenAppLocale, isNull, reason: 'der Dienst folgt wieder dem Gerät');
+      expect(
+        chosenAppLocale,
+        isNull,
+        reason: 'der Dienst folgt wieder dem Gerät',
+      );
     });
 
     testWidgets('eine gemerkte Wahl gilt ab dem Start', (tester) async {
       final backend = FakeBackend();
       backend.signInAs(backend.addUser(username: 'anna').id);
-      await pumpApp(tester, backend, settings: FakeSettings(language: 'en'), extraOverrides: [
-        webChannelProvider.overrideWithValue(WebChannel.preview),
-      ]);
+      await pumpApp(
+        tester,
+        backend,
+        settings: FakeSettings(language: 'en'),
+        extraOverrides: [
+          webChannelProvider.overrideWithValue(WebChannel.preview),
+        ],
+      );
       expect(find.text(_english), findsOneWidget);
       expect(serviceL10n().localeName, 'en');
     });
@@ -211,23 +268,32 @@ void main() {
       expect(find.text(_german), findsNothing);
     });
 
-    testWidgets('folgt offen der Gerätesprache: Französisch wird Englisch',
-        (tester) async {
-      await _pumpPreview(tester,
-          appLocale: null, deviceLocales: const [Locale('fr', 'FR')]);
+    testWidgets('folgt offen der Gerätesprache: Französisch wird Englisch', (
+      tester,
+    ) async {
+      await _pumpPreview(
+        tester,
+        appLocale: null,
+        deviceLocales: const [Locale('fr', 'FR')],
+      );
       expect(find.text(_english), findsOneWidget);
     });
 
-    testWidgets('folgt offen der Gerätesprache: das Testgerät ist deutsch',
-        (tester) async {
+    testWidgets('folgt offen der Gerätesprache: das Testgerät ist deutsch', (
+      tester,
+    ) async {
       // Die Vorgabe von pumpApp — trägt sie, bleiben alle deutschen
       // Flow-Tests grün, sobald die App der Gerätesprache folgt.
       final backend = FakeBackend();
       backend.signInAs(backend.addUser(username: 'anna').id);
-      await pumpApp(tester, backend, extraOverrides: [
-        webChannelProvider.overrideWithValue(WebChannel.preview),
-        appLocaleProvider.overrideWithValue(null),
-      ]);
+      await pumpApp(
+        tester,
+        backend,
+        extraOverrides: [
+          webChannelProvider.overrideWithValue(WebChannel.preview),
+          appLocaleProvider.overrideWithValue(null),
+        ],
+      );
       expect(find.text(_german), findsOneWidget);
     });
   });
@@ -238,21 +304,38 @@ void main() {
     Future<void> pumpMap(WidgetTester tester) async {
       final backend = FakeBackend();
       backend.signInAs(backend.addUser(username: 'anna').id);
-      await pumpApp(tester, backend,
-          settings: FakeSettings(),
-          extraOverrides: [appLocaleProvider.overrideWithValue(const Locale('en'))]);
+      await pumpApp(
+        tester,
+        backend,
+        settings: FakeSettings(),
+        extraOverrides: [
+          appLocaleProvider.overrideWithValue(const Locale('en')),
+        ],
+      );
       await settle(tester, frames: 20);
     }
 
     testWidgets('Knöpfe und Legende', (tester) async {
       await pumpMap(tester);
-      for (final tip in ['Map layers', 'Offline maps', 'Plan a loop', 'My location', 'Record a ride']) {
+      for (final tip in [
+        'Map layers',
+        'Offline maps',
+        'Plan a loop',
+        'My location',
+        'Record a ride',
+      ]) {
         expect(find.byTooltip(tip), findsOneWidget, reason: tip);
       }
       expect(find.byTooltip('Kartenebenen'), findsNothing);
       await tester.tap(find.byKey(const ValueKey('map-legend-tab')));
       await settle(tester);
-      for (final text in ['Legend', 'DIFFICULTY', 'CONDITION', 'worn', 'no grade']) {
+      for (final text in [
+        'Legend',
+        'DIFFICULTY',
+        'CONDITION',
+        'worn',
+        'no grade',
+      ]) {
         expect(find.text(text), findsOneWidget, reason: text);
       }
       expect(find.text('SCHWIERIGKEIT'), findsNothing);
@@ -263,27 +346,52 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('layers-button')));
       await settle(tester);
       // Ab Werk ist nur „Wasser" an — darunter stehen seine Arten.
-      for (final text in ['Layers', 'Official trails', 'Ways', 'Contour lines', 'Places on the map', 'Water',
-        'Drinking water', 'Spring']) {
+      for (final text in [
+        'Layers',
+        'Official trails',
+        'Ways',
+        'Contour lines',
+        'Places on the map',
+        'Water',
+        'Drinking water',
+        'Spring',
+      ]) {
         expect(find.text(text), findsOneWidget, reason: text);
       }
       expect(find.text('Orte auf der Karte'), findsNothing);
     });
 
-    test('Arten und Klassen sind in beiden Sprachen benannt und verschieden', () {
-      for (final locale in AppLocalizations.supportedLocales) {
-        final l = lookupAppLocalizations(locale);
-        final names = [
-          for (final g in PoiGroup.values) g.label(l),
-          for (final k in PoiKind.values) k.label(l),
-        ];
-        expect(names.where((n) => n.trim().isEmpty), isEmpty, reason: '$locale');
-        expect(names.toSet(), hasLength(names.length), reason: '$locale: Orte');
-        final legend = [for (final s in legendSamples(l)) s.label];
-        expect(legend.toSet(), hasLength(legend.length), reason: '$locale: Legende');
-        expect({for (final c in WayClass.values) c.label(l)}, hasLength(WayClass.values.length));
-      }
-    });
+    test(
+      'Arten und Klassen sind in beiden Sprachen benannt und verschieden',
+      () {
+        for (final locale in AppLocalizations.supportedLocales) {
+          final l = lookupAppLocalizations(locale);
+          final names = [
+            for (final g in PoiGroup.values) g.label(l),
+            for (final k in PoiKind.values) k.label(l),
+          ];
+          expect(
+            names.where((n) => n.trim().isEmpty),
+            isEmpty,
+            reason: '$locale',
+          );
+          expect(
+            names.toSet(),
+            hasLength(names.length),
+            reason: '$locale: Orte',
+          );
+          final legend = [for (final s in legendSamples(l)) s.label];
+          expect(
+            legend.toSet(),
+            hasLength(legend.length),
+            reason: '$locale: Legende',
+          );
+          expect({
+            for (final c in WayClass.values) c.label(l),
+          }, hasLength(WayClass.values.length));
+        }
+      },
+    );
   });
 
   // Stufe (c): Trails, Trail-Blatt und Import. Wie oben: Ein Text, der
@@ -294,13 +402,20 @@ void main() {
       final anna = backend.addUser(username: 'anna');
       backend.signInAs(anna.id);
       final trails = FakeTrailRepository(
-          myId: () => backend.currentUserId ?? '', areFriends: backend.areFriends);
+        myId: () => backend.currentUserId ?? '',
+        areFriends: backend.areFriends,
+      );
       trails.seedTrail(anna.id, name: 'Roßkopf Süd', grade: 1);
       trails.seedTrail(anna.id, name: 'Hexentanz', lat: 48.1, grade: 4);
-      await pumpApp(tester, backend,
-          trails: trails,
-          settings: FakeSettings(),
-          extraOverrides: [appLocaleProvider.overrideWithValue(const Locale('en'))]);
+      await pumpApp(
+        tester,
+        backend,
+        trails: trails,
+        settings: FakeSettings(),
+        extraOverrides: [
+          appLocaleProvider.overrideWithValue(const Locale('en')),
+        ],
+      );
       await settle(tester, frames: 20);
       await openTab(tester, 'Trails');
       await settle(tester, frames: 20);
@@ -308,13 +423,22 @@ void main() {
 
     testWidgets('Liste, Suche und Filter', (tester) async {
       await pumpTrails(tester);
-      for (final text in ['S grade', 'New report', 'Reported', 'Rating open', 'My trails (2)']) {
+      for (final text in [
+        'S grade',
+        'New report',
+        'Reported',
+        'Rating open',
+        'My trails (2)',
+      ]) {
         expect(find.text(text), findsOneWidget, reason: text);
       }
       expect(find.text('MINE'), findsNWidgets(2));
       expect(find.text('S-Grad'), findsNothing);
       expect(find.text('MEIN'), findsNothing);
-      await tester.enterText(find.byKey(const ValueKey('trail-search')), 'rosskopf sued');
+      await tester.enterText(
+        find.byKey(const ValueKey('trail-search')),
+        'rosskopf sued',
+      );
       await settle(tester);
       expect(find.text('One trail found.'), findsOneWidget);
       expect(find.byTooltip('Clear search'), findsOneWidget);
@@ -325,29 +449,47 @@ void main() {
       await pumpTrails(tester);
       await tester.tap(find.text('Hexentanz'));
       await settle(tester);
-      for (final text in ['Only you have recorded this trail.', 'LENGTH', 'ELEVATION', 'S GRADE']) {
+      for (final text in [
+        'Only you have recorded this trail.',
+        'LENGTH',
+        'ELEVATION',
+        'S GRADE',
+      ]) {
         expect(find.text(text), findsOneWidget, reason: text);
       }
       expect(find.text('LÄNGE'), findsNothing);
     });
 
-    test('Skala, Zustand, Sortierung und Besitz sind in beiden Sprachen benannt und verschieden', () {
-      for (final locale in AppLocalizations.supportedLocales) {
-        final l = lookupAppLocalizations(locale);
-        final groups = <String, List<String>>{
-          'Skala kurz': [for (final g in kSingletrailScale) g.short(l)],
-          'Skala lang': [for (final g in kSingletrailScale) g.description(l)],
-          'Zustand': [for (final c in kTrailConditions) c.label(l)],
-          'Zustand lang': [for (final c in kTrailConditions) c.description(l)],
-          'Sortierung': [for (final s in TrailSort.values) s.label(l)],
-          'Besitz': [for (final o in TrailOwnerFilter.values) o.label(l)],
-        };
-        for (final MapEntry(key: what, value: names) in groups.entries) {
-          expect(names.where((n) => n.trim().isEmpty), isEmpty, reason: '$locale: $what');
-          expect(names.toSet(), hasLength(names.length), reason: '$locale: $what');
+    test(
+      'Skala, Zustand, Sortierung und Besitz sind in beiden Sprachen benannt und verschieden',
+      () {
+        for (final locale in AppLocalizations.supportedLocales) {
+          final l = lookupAppLocalizations(locale);
+          final groups = <String, List<String>>{
+            'Skala kurz': [for (final g in kSingletrailScale) g.short(l)],
+            'Skala lang': [for (final g in kSingletrailScale) g.description(l)],
+            'Zustand': [for (final c in kTrailConditions) c.label(l)],
+            'Zustand lang': [
+              for (final c in kTrailConditions) c.description(l),
+            ],
+            'Sortierung': [for (final s in TrailSort.values) s.label(l)],
+            'Besitz': [for (final o in TrailOwnerFilter.values) o.label(l)],
+          };
+          for (final MapEntry(key: what, value: names) in groups.entries) {
+            expect(
+              names.where((n) => n.trim().isEmpty),
+              isEmpty,
+              reason: '$locale: $what',
+            );
+            expect(
+              names.toSet(),
+              hasLength(names.length),
+              reason: '$locale: $what',
+            );
+          }
         }
-      }
-    });
+      },
+    );
   });
 
   // Stufe (d1): Fahrten, Zerlege-Blatt und die Texte des Dienstes.
@@ -358,7 +500,10 @@ void main() {
       // einer deutschen App.
       addTearDown(() => chosenAppLocale = null);
       final container = ProviderContainer(
-          overrides: [settingsProvider.overrideWithValue(FakeSettings(language: 'en'))]);
+        overrides: [
+          settingsProvider.overrideWithValue(FakeSettings(language: 'en')),
+        ],
+      );
       addTearDown(container.dispose);
       expect(container.read(appLocaleProvider), const Locale('en'));
       expect(serviceL10n().localeName, 'en');
@@ -366,15 +511,20 @@ void main() {
 
     test('die Frage unterwegs', () {
       final notice = confirmNoticeOf(
-          lookupAppLocalizations(const Locale('en')),
-          ConfirmTarget(
-              trailId: 't1',
-              name: 'Hausrunde',
-              line: const [LatLng(47, 11), LatLng(47.001, 11)],
-              status: TrailStatus.closed,
-              condition: 2));
+        lookupAppLocalizations(const Locale('en')),
+        ConfirmTarget(
+          trailId: 't1',
+          name: 'Hausrunde',
+          line: const [LatLng(47, 11), LatLng(47.001, 11)],
+          status: TrailStatus.closed,
+          condition: 2,
+        ),
+      );
       expect(notice.body, endsWith('is that right?'));
-      expect([for (final a in notice.actions) a.$2], ['That’s right', 'Trail is open', 'Change…']);
+      expect(
+        [for (final a in notice.actions) a.$2],
+        ['That’s right', 'Trail is open', 'Change…'],
+      );
     });
 
     testWidgets('„Meine Fahrten"', (tester) async {
@@ -387,14 +537,33 @@ void main() {
       final t0 = DateTime.utc(2026, 9, 21, 9);
       final pts = [
         for (var i = 0; i <= 60; i++)
-          RidePoint(lat: 47 + i / 10000, lng: 11, at: t0.add(Duration(seconds: 10 * i)), accuracyM: 5, altM: 500),
+          RidePoint(
+            lat: 47 + i / 10000,
+            lng: 11,
+            at: t0.add(Duration(seconds: 10 * i)),
+            accuracyM: 5,
+            altM: 500,
+          ),
       ];
       final store = FakeRideStore()
         ..uid = anna.id
-        ..rides.add(Ride(id: '20260921T090000Z', startedAt: t0, endedAt: pts.last.at, points: pts, profile: 'bio'));
-      await pumpApp(tester, backend,
-          rideStore: store,
-          extraOverrides: [appLocaleProvider.overrideWithValue(const Locale('en'))]);
+        ..rides.add(
+          Ride(
+            id: '20260921T090000Z',
+            startedAt: t0,
+            endedAt: pts.last.at,
+            points: pts,
+            profile: 'bio',
+          ),
+        );
+      await pumpApp(
+        tester,
+        backend,
+        rideStore: store,
+        extraOverrides: [
+          appLocaleProvider.overrideWithValue(const Locale('en')),
+        ],
+      );
       await openProfilePage(tester, 'rides', tab: 'Profile');
       await settle(tester);
       expect(find.text('My rides'), findsOneWidget);
@@ -408,21 +577,37 @@ void main() {
 
   // Stufe (d2): Rundenplaner, Weg zum Trailkopf und die Navigation.
   group('Planer und Navigation auf Englisch', () {
-    testWidgets('Kopf, Leiste, Auswahlzeile und „Anpassen" des Planers', (tester) async {
+    testWidgets('Kopf, Leiste, Auswahlzeile und „Anpassen" des Planers', (
+      tester,
+    ) async {
       tester.view.physicalSize = const Size(1080, 2400);
       tester.view.devicePixelRatio = 3;
       addTearDown(tester.view.reset);
       final backend = FakeBackend();
       backend.signInAs(backend.addUser(username: 'anna').id);
-      await pumpApp(tester, backend,
-          settings: FakeSettings(),
-          extraOverrides: [appLocaleProvider.overrideWithValue(const Locale('en'))]);
+      await pumpApp(
+        tester,
+        backend,
+        settings: FakeSettings(),
+        extraOverrides: [
+          appLocaleProvider.overrideWithValue(const Locale('en')),
+        ],
+      );
       await settle(tester, frames: 20);
       await tester.tap(find.byKey(const ValueKey('loop-button')));
       await settle(tester, frames: 10);
       // Der Einstieg (#516 Schritt 2) auf Englisch, dann die Bearbeitung.
-      for (final text in ['What are you planning?', 'Loop', 'Route', 'My location', 'Choose on the map', 'Time',
-        'about 3 h', 'Suggest a loop', 'Put it together yourself']) {
+      for (final text in [
+        'What are you planning?',
+        'Loop',
+        'Route',
+        'My location',
+        'Choose on the map',
+        'Time',
+        'about 3 h',
+        'Suggest a loop',
+        'Put it together yourself',
+      ]) {
         expect(find.text(text), findsOneWidget, reason: text);
       }
       for (final tip in ['Less time', 'More time']) {
@@ -431,8 +616,17 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('loop-entry-self')));
       await settle(tester, frames: 6);
       // Leiste mit Wort (#516), Kopf, Auswahlzeile — alles auf Englisch.
-      for (final text in ['Point', 'Area', 'List', 'Start', 'End', 'Back to the start (loop)', 'Adjust',
-        'Tap the trails you want in the loop.', 'Compute loop']) {
+      for (final text in [
+        'Point',
+        'Area',
+        'List',
+        'Start',
+        'End',
+        'Back to the start (loop)',
+        'Adjust',
+        'Tap the trails you want in the loop.',
+        'Compute loop',
+      ]) {
         expect(find.text(text), findsOneWidget, reason: text);
       }
       for (final tip in ['Choose trails from the list', 'Close planner']) {
@@ -448,37 +642,64 @@ void main() {
 
     test('der Vorschlag (#516 Schritt 4) spricht Englisch', () async {
       final en = await AppLocalizations.delegate.load(const Locale('en'));
-      expect(en.loopSuggestLine(1, '10 km'), 'Suggestion: 1 trail within 10 km');
-      expect(en.loopSuggestLine(4, '12 km'), 'Suggestion: 4 trails within 12 km');
+      expect(
+        en.loopSuggestLine(1, '10 km'),
+        'Suggestion: 1 trail within 10 km',
+      );
+      expect(
+        en.loopSuggestLine(4, '12 km'),
+        'Suggestion: 4 trails within 12 km',
+      );
       expect(en.loopSuggestEdit, 'Edit');
       expect(en.loopSuggestWider('8 km'), 'Search wider: 8 km');
-      expect(en.loopBlockerNoTrailsInReach('5 km'), startsWith('No trails within 5 km'));
-      expect(en.loopShortShareNote('5 h'), startsWith('Shorter than about 5 h, with more trail'));
+      expect(
+        en.loopBlockerNoTrailsInReach('5 km'),
+        startsWith('No trails within 5 km'),
+      );
+      expect(
+        en.loopShortShareNote('5 h'),
+        startsWith('Shorter than about 5 h, with more trail'),
+      );
     });
 
-    test('Wegklassen, Navi-Auswahl und Zeit sind in beiden Sprachen benannt und verschieden', () {
-      for (final locale in AppLocalizations.supportedLocales) {
-        final l = lookupAppLocalizations(locale);
-        final groups = <String, List<String>>{
-          'Wegklassen': [for (final c in routing.WayClass.values) c.label(l)],
-          'Navi-Auswahl': [for (final c in NavChoice.values) c.label(l)],
-          'Navi-Auswahl lang': [for (final c in NavChoice.values) c.description(l)],
-        };
-        for (final MapEntry(key: what, value: names) in groups.entries) {
-          expect(names.where((n) => n.trim().isEmpty), isEmpty, reason: '$locale: $what');
-          expect(names.toSet(), hasLength(names.length), reason: '$locale: $what');
+    test(
+      'Wegklassen, Navi-Auswahl und Zeit sind in beiden Sprachen benannt und verschieden',
+      () {
+        for (final locale in AppLocalizations.supportedLocales) {
+          final l = lookupAppLocalizations(locale);
+          final groups = <String, List<String>>{
+            'Wegklassen': [for (final c in routing.WayClass.values) c.label(l)],
+            'Navi-Auswahl': [for (final c in NavChoice.values) c.label(l)],
+            'Navi-Auswahl lang': [
+              for (final c in NavChoice.values) c.description(l),
+            ],
+          };
+          for (final MapEntry(key: what, value: names) in groups.entries) {
+            expect(
+              names.where((n) => n.trim().isEmpty),
+              isEmpty,
+              reason: '$locale: $what',
+            );
+            expect(
+              names.toSet(),
+              hasLength(names.length),
+              reason: '$locale: $what',
+            );
+          }
         }
-      }
-      final en = lookupAppLocalizations(const Locale('en'));
-      expect(routeTimeLabel(en, 100), 'under 5 min');
-      expect(routeTimeLabel(en, 4800), '1 h 20 min');
-      expect(routing.WayClass.bundesstrasse.label(en), 'Highway');
-    });
+        final en = lookupAppLocalizations(const Locale('en'));
+        expect(routeTimeLabel(en, 100), 'under 5 min');
+        expect(routeTimeLabel(en, 4800), '1 h 20 min');
+        expect(routing.WayClass.bundesstrasse.label(en), 'Highway');
+      },
+    );
   });
 
   // Stufe (e1): Buddys — Liste, Anfragen, Alias, Verlauf, Einladung.
   group('Buddys auf Englisch', () {
-    testWidgets('Liste mit Anfrage und Buddy, Verlauf mit Grenze', (tester) async {
+    testWidgets('Liste mit Anfrage und Buddy, Verlauf mit Grenze', (
+      tester,
+    ) async {
       final backend = FakeBackend();
       final me = backend.addUser(username: 'anna');
       final jan = backend.addUser(username: 'jan');
@@ -486,13 +707,29 @@ void main() {
       backend.signInAs(me.id);
       backend.addFriendship(jan.id, me.id);
       backend.addFriendship(lea.id, me.id, status: 'pending');
-      await pumpApp(tester, backend,
-          extraOverrides: [appLocaleProvider.overrideWithValue(const Locale('en'))]);
+      await pumpApp(
+        tester,
+        backend,
+        extraOverrides: [
+          appLocaleProvider.overrideWithValue(const Locale('en')),
+        ],
+      );
       await openTab(tester, 'Buddies');
-      for (final text in ['BUDDIES', 'REQUESTS FOR YOU · 1', 'MY BUDDIES · 1', 'Accept', '0 shared']) {
+      for (final text in [
+        'BUDDIES',
+        'REQUESTS FOR YOU · 1',
+        'MY BUDDIES · 1',
+        'Accept',
+        '0 shared',
+      ]) {
         expect(find.text(text), findsOneWidget, reason: text);
       }
-      for (final tip in ['Invite buddies to TrailBuddy', 'Set alias', 'Remove buddy', 'Decline']) {
+      for (final tip in [
+        'Invite buddies to TrailBuddy',
+        'Set alias',
+        'Remove buddy',
+        'Decline',
+      ]) {
         expect(find.byTooltip(tip), findsOneWidget, reason: tip);
       }
       expect(find.text('MEINE BUDDYS · 1'), findsNothing);
@@ -500,20 +737,38 @@ void main() {
       // Die Anfrage von Lea: drei Nachrichten, bevor ich annehme.
       await tester.tap(find.byTooltip('Messages').first);
       await settle(tester);
-      expect(find.textContaining('Messages disappear after 30 days'), findsOneWidget);
+      expect(
+        find.textContaining('Messages disappear after 30 days'),
+        findsOneWidget,
+      );
     });
 
     test('Sätze mit Zahlen und die Einladung', () {
       final en = lookupAppLocalizations(const Locale('en'));
       const one = ConnectSummary(shared: 1, newFromBuddy: 2, newForBuddy: 0);
-      expect(one.sentence(en, 'Jan'), 'Connected with Jan: 1 trail shared, 2 new from Jan, 0 new for Jan.');
+      expect(
+        one.sentence(en, 'Jan'),
+        'Connected with Jan: 1 trail shared, 2 new from Jan, 0 new for Jan.',
+      );
       const none = ConnectSummary(shared: 0, newFromBuddy: 0, newForBuddy: 0);
       expect(none.sentence(en, 'Jan'), contains('no trails on either side'));
-      expect(en.messagesLeftOutgoing(1, 'Jan'), '1 message left until Jan accepts the request.');
-      expect(en.messagesLeftIncoming(3), '3 messages left before you accept the request.');
+      expect(
+        en.messagesLeftOutgoing(1, 'Jan'),
+        '1 message left until Jan accepts the request.',
+      );
+      expect(
+        en.messagesLeftIncoming(3),
+        '3 messages left before you accept the request.',
+      );
       expect(AppInfo.inviteText(en, null), isNot(contains('Sign up')));
-      expect(AppInfo.inviteText(en, 'anna'), allOf(contains(AppInfo.webAppUrl), contains('“anna”')));
-      expect(AppInfo.inviteText(l10nDe, 'anna'), contains('such mich dort als „anna“'));
+      expect(
+        AppInfo.inviteText(en, 'anna'),
+        allOf(contains(AppInfo.webAppUrl), contains('“anna”')),
+      );
+      expect(
+        AppInfo.inviteText(l10nDe, 'anna'),
+        contains('such mich dort als „anna“'),
+      );
     });
   });
 
@@ -528,24 +783,54 @@ void main() {
       final jan = backend.addUser(username: 'jan');
       backend.signInAs(me.id);
       backend.addFriendship(jan.id, me.id);
-      await pumpApp(tester, backend,
-          extraOverrides: [appLocaleProvider.overrideWithValue(const Locale('en'))]);
+      await pumpApp(
+        tester,
+        backend,
+        extraOverrides: [
+          appLocaleProvider.overrideWithValue(const Locale('en')),
+        ],
+      );
       for (final tab in ['Map', 'Trails', 'Buddies', 'Profile']) {
-        expect(find.descendant(of: find.byType(NavigationBar), matching: find.text(tab)), findsOneWidget,
-            reason: tab);
+        expect(
+          find.descendant(
+            of: find.byType(NavigationBar),
+            matching: find.text(tab),
+          ),
+          findsOneWidget,
+          reason: tab,
+        );
       }
       await openTab(tester, 'Profile');
-      expect(find.textContaining('1 buddy'), findsOneWidget, reason: 'Zahl im Kopf');
-      for (final text in ['Import trails', 'My rides', 'My areas', 'Notifications', 'Rider profile',
-          'Appearance', 'Account', 'Discover', 'Quick guide', 'About TrailBuddy']) {
+      expect(
+        find.textContaining('1 buddy'),
+        findsOneWidget,
+        reason: 'Zahl im Kopf',
+      );
+      for (final text in [
+        'Import trails',
+        'My rides',
+        'My areas',
+        'Notifications',
+        'Rider profile',
+        'Appearance',
+        'Account',
+        'Discover',
+        'Quick guide',
+        'About TrailBuddy',
+      ]) {
         await scrollTo(tester, find.text(text));
         expect(find.text(text), findsOneWidget, reason: text);
       }
       expect(find.text('Meine Bereiche'), findsNothing);
 
       await openProfilePage(tester, 'account', tab: 'Profile');
-      for (final text in ['Change username', 'Change email address', 'Change password',
-          'Sign out other devices', 'Delete account']) {
+      for (final text in [
+        'Change username',
+        'Change email address',
+        'Change password',
+        'Sign out other devices',
+        'Delete account',
+      ]) {
         expect(find.text(text), findsOneWidget, reason: text);
       }
       await tester.tap(find.text('Delete account'));
@@ -561,11 +846,19 @@ void main() {
       final backend = FakeBackend();
       final me = backend.addUser(username: 'anna');
       backend.signInAs(me.id);
-      await pumpApp(tester, backend,
-          extraOverrides: [appLocaleProvider.overrideWithValue(const Locale('en'))]);
+      await pumpApp(
+        tester,
+        backend,
+        extraOverrides: [
+          appLocaleProvider.overrideWithValue(const Locale('en')),
+        ],
+      );
       await openProfilePage(tester, 'rider', tab: 'Profile');
       expect(find.text('Learn from my rides'), findsOneWidget);
-      expect(find.text('Bike: defaults — nothing learned yet.'), findsOneWidget);
+      expect(
+        find.text('Bike: defaults — nothing learned yet.'),
+        findsOneWidget,
+      );
       expect(find.textContaining('Climb rate forest road:'), findsOneWidget);
       expect(find.textContaining('Steigrate'), findsNothing);
     });
@@ -576,20 +869,34 @@ void main() {
       expect(en.profileMergeValue(3), '3 pairs to check');
       expect(l10nDe.profileStatBuddys(2), '2 Buddys');
       expect(
-          l10nDe.riderProfileCalibLineAsOf('Bio-Bike', 'Forstweg 520 hm/h', l10nDe.riderProfileCalibRides(14),
-              l10nDe.riderProfileCalibClimbs(31), '1.10.2026'),
-          'Bio-Bike: Forstweg 520 hm/h — aus 14 Fahrten (31 Aufstiege), Stand 1.10.2026');
+        l10nDe.riderProfileCalibLineAsOf(
+          'Bio-Bike',
+          'Forstweg 520 hm/h',
+          l10nDe.riderProfileCalibRides(14),
+          l10nDe.riderProfileCalibClimbs(31),
+          '1.10.2026',
+        ),
+        'Bio-Bike: Forstweg 520 hm/h — aus 14 Fahrten (31 Aufstiege), Stand 1.10.2026',
+      );
     });
   });
 
   // Stufe (f1): Hinweis, Kurzanleitung, Maschine und Touren.
   group('Touren und Hilfe auf Englisch', () {
-    testWidgets('erster Start: Hinweis, Willkommensseite, Blase', (tester) async {
+    testWidgets('erster Start: Hinweis, Willkommensseite, Blase', (
+      tester,
+    ) async {
       final backend = FakeBackend();
       backend.signInAs(backend.addUser(username: 'anna').id);
       final settings = FakeSettings(safetyNoteSeen: false, mapTourSeen: false);
-      await pumpApp(tester, backend,
-          settings: settings, extraOverrides: [appLocaleProvider.overrideWithValue(const Locale('en'))]);
+      await pumpApp(
+        tester,
+        backend,
+        settings: settings,
+        extraOverrides: [
+          appLocaleProvider.overrideWithValue(const Locale('en')),
+        ],
+      );
       expect(find.text('Before you start'), findsOneWidget);
       expect(find.textContaining('You ride at your own risk.'), findsOneWidget);
       await tester.tap(find.text('Got it'));
@@ -600,11 +907,28 @@ void main() {
       await tester.tap(find.text('Start the tour'));
       await settle(tester);
       final bubble = find.byKey(const ValueKey('coach-bubble'));
-      expect(find.descendant(of: bubble, matching: find.text('Skip')), findsOneWidget);
-      expect(find.descendant(of: bubble, matching: find.textContaining(RegExp(r'^1 of \d+$'))), findsOneWidget);
-      expect(find.descendant(of: bubble, matching: find.textContaining(RegExp('[äöüß]'))), findsNothing,
-          reason: 'kein deutscher Satz in der Blase');
-      await tester.tap(find.descendant(of: bubble, matching: find.text('Skip')));
+      expect(
+        find.descendant(of: bubble, matching: find.text('Skip')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: bubble,
+          matching: find.textContaining(RegExp(r'^1 of \d+$')),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: bubble,
+          matching: find.textContaining(RegExp('[äöüß]')),
+        ),
+        findsNothing,
+        reason: 'kein deutscher Satz in der Blase',
+      );
+      await tester.tap(
+        find.descendant(of: bubble, matching: find.text('Skip')),
+      );
       await settle(tester);
       expect(settings.mapTourSeen, isTrue);
     });
@@ -615,16 +939,32 @@ void main() {
       addTearDown(tester.view.reset);
       final backend = FakeBackend();
       backend.signInAs(backend.addUser(username: 'anna').id);
-      await pumpApp(tester, backend,
-          extraOverrides: [appLocaleProvider.overrideWithValue(const Locale('en'))]);
+      await pumpApp(
+        tester,
+        backend,
+        extraOverrides: [
+          appLocaleProvider.overrideWithValue(const Locale('en')),
+        ],
+      );
       await openProfilePage(tester, 'help', tab: 'Profile');
       expect(find.text('Quick guide'), findsWidgets);
-      for (final text in ['Importing trails', 'Reading the map', 'Buddies and visibility',
-          'Show the tour on the map', 'Tour: Trails', 'Tour: Buddies', 'Discover features and tips']) {
+      for (final text in [
+        'Importing trails',
+        'Reading the map',
+        'Buddies and visibility',
+        'Show the tour on the map',
+        'Tour: Trails',
+        'Tour: Buddies',
+        'Discover features and tips',
+      ]) {
         await scrollTo(tester, find.text(text));
         expect(find.text(text), findsOneWidget, reason: text);
       }
-      expect(find.textContaining('“The trail is …” closed'), findsOneWidget, reason: 'Platzhalter {report}');
+      expect(
+        find.textContaining('“The trail is …” closed'),
+        findsOneWidget,
+        reason: 'Platzhalter {report}',
+      );
       expect(find.text('Die Karte lesen'), findsNothing);
     });
   });
@@ -638,12 +978,24 @@ void main() {
       addTearDown(tester.view.reset);
       final backend = FakeBackend();
       backend.signInAs(backend.addUser(username: 'anna').id);
-      await pumpApp(tester, backend,
-          extraOverrides: [appLocaleProvider.overrideWithValue(const Locale('en'))]);
+      await pumpApp(
+        tester,
+        backend,
+        extraOverrides: [
+          appLocaleProvider.overrideWithValue(const Locale('en')),
+        ],
+      );
       await openProfilePage(tester, 'discover', tab: 'Profile');
       expect(find.text('Discover'), findsWidgets);
-      expect(find.textContaining('“Show me” gives a short demo'), findsOneWidget);
-      expect(find.text('MAP'), findsOneWidget, reason: 'Gruppe nach Reiter, aus tabMap');
+      expect(
+        find.textContaining('“Show me” gives a short demo'),
+        findsOneWidget,
+      );
+      expect(
+        find.text('MAP'),
+        findsOneWidget,
+        reason: 'Gruppe nach Reiter, aus tabMap',
+      );
       expect(find.text('Minimise'), findsOneWidget);
       expect(find.text('Try it'), findsWidgets);
       expect(find.text('Show me'), findsWidgets);
@@ -654,18 +1006,32 @@ void main() {
       await tester.tap(show);
       await settle(tester, frames: 20);
       final bubble = find.byKey(const ValueKey('coach-bubble'));
-      expect(find.descendant(of: bubble, matching: find.text('From trail to trail')), findsOneWidget);
-      expect(find.descendant(of: bubble, matching: find.textContaining(RegExp('[äöüß]'))), findsNothing,
-          reason: 'kein deutscher Satz in der Blase');
+      expect(
+        find.descendant(of: bubble, matching: find.text('From trail to trail')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: bubble,
+          matching: find.textContaining(RegExp('[äöüß]')),
+        ),
+        findsNothing,
+        reason: 'kein deutscher Satz in der Blase',
+      );
     });
 
     testWidgets('das Blatt nach einem Update', (tester) async {
       final backend = FakeBackend();
       backend.signInAs(backend.addUser(username: 'anna').id);
-      await pumpApp(tester, backend,
-          settings: FakeSettings(highlightsSeenVersion: '0.56.0'),
-          appVersion: '0.58.0',
-          extraOverrides: [appLocaleProvider.overrideWithValue(const Locale('en'))]);
+      await pumpApp(
+        tester,
+        backend,
+        settings: FakeSettings(highlightsSeenVersion: '0.56.0'),
+        appVersion: '0.58.0',
+        extraOverrides: [
+          appLocaleProvider.overrideWithValue(const Locale('en')),
+        ],
+      );
       expect(find.text('New in TrailBuddy'), findsOneWidget);
       expect(find.text('Still valid?'), findsOneWidget);
       expect(find.text('All changes'), findsOneWidget);
@@ -689,23 +1055,37 @@ void main() {
       addTearDown(tester.view.reset);
       final backend = FakeBackend();
       backend.signInAs(backend.addUser(username: 'anna').id);
-      await pumpApp(tester, backend,
-          extraOverrides: [appLocaleProvider.overrideWithValue(const Locale('en'))]);
+      await pumpApp(
+        tester,
+        backend,
+        extraOverrides: [
+          appLocaleProvider.overrideWithValue(const Locale('en')),
+        ],
+      );
       await openProfilePage(tester, 'areas', tab: 'Profile');
       expect(find.text('My areas'), findsOneWidget);
       expect(find.textContaining('No area yet.'), findsOneWidget);
       expect(find.textContaining('Noch kein Bereich'), findsNothing);
-      expect(find.textContaining('Save all of'), findsWidgets, reason: 'ganze Region, nur auf dem Telefon');
+      expect(
+        find.textContaining('Save all of'),
+        findsWidgets,
+        reason: 'ganze Region, nur auf dem Telefon',
+      );
     });
 
     test('Sätze mit Zahlen', () {
       final en = lookupAppLocalizations(const Locale('en'));
       expect(en.areaSaveWholeAreas(1), '1 whole area');
       expect(l10nDe.areaSaveWholeAreas(2), '2 Bereiche ganz');
-      expect(en.areasTilesAndBuild(1, '01.10.2026'), '1 tile · version 01.10.2026');
+      expect(
+        en.areasTilesAndBuild(1, '01.10.2026'),
+        '1 tile · version 01.10.2026',
+      );
       expect(l10nDe.areasLoads('12 MB', 3), 'Lädt 12 MB · 3 Kacheln');
-      expect(const OutsideRegions(['DACH', 'Canada']).message(en),
-          'There is no map to save here — maps exist for DACH, Canada.');
+      expect(
+        const OutsideRegions(['DACH', 'Canada']).message(en),
+        'There is no map to save here — maps exist for DACH, Canada.',
+      );
     });
   });
 
@@ -715,9 +1095,17 @@ void main() {
     setUpAll(() => initializeDateFormatting('en'));
 
     testWidgets('Anmelden und Registrieren', (tester) async {
-      await pumpApp(tester, FakeBackend(),
-          extraOverrides: [appLocaleProvider.overrideWithValue(const Locale('en'))]);
-      expect(find.text('Share trails — only with your buddies.'), findsOneWidget);
+      await pumpApp(
+        tester,
+        FakeBackend(),
+        extraOverrides: [
+          appLocaleProvider.overrideWithValue(const Locale('en')),
+        ],
+      );
+      expect(
+        find.text('Share trails — only with your buddies.'),
+        findsOneWidget,
+      );
       expect(find.widgetWithText(FilledButton, 'Sign in'), findsOneWidget);
       expect(find.text('Anmelden'), findsNothing);
       await tester.tap(find.text('No account yet? Sign up'));
@@ -728,9 +1116,19 @@ void main() {
 
     test('Sätze der Quelle und Prüfungen', () {
       final en = lookupAppLocalizations(const Locale('en'));
-      expect(officialStatusLine(en, OfficialStatus.closed, 'Land Tirol', updated: '2026-09-28'),
-          'Closed according to Land Tirol, as of 28 Sep 2026.');
-      expect(usernameProblem(en, 'ab'), 'The username needs at least 3 characters.');
+      expect(
+        officialStatusLine(
+          en,
+          OfficialStatus.closed,
+          'Land Tirol',
+          updated: '2026-09-28',
+        ),
+        'Closed according to Land Tirol, as of 28 Sep 2026.',
+      );
+      expect(
+        usernameProblem(en, 'ab'),
+        'The username needs at least 3 characters.',
+      );
       expect(en.resendIn(42), 'Send again in 42 s');
     });
   });
@@ -740,13 +1138,33 @@ void main() {
     final en = lookupAppLocalizations(const Locale('en'));
 
     test('friendlyError nach Fehlerklasse', () {
-      expect(friendlyError(en, const SocketException('x')), 'No connection — please check your internet.');
-      expect(friendlyError(en, const PostgrestException(message: 'x', code: '42501')),
-          'This is no longer shared with you.');
-      expect(friendlyError(en, const PostgrestException(message: 'x')), 'Server error (unknown) — please try again later.');
-      expect(friendlyError(en, StateError('x')), 'Unexpected error (StateError) — please try again later.');
-      expect(friendlyError(l10nDe, const SocketException('x')), 'Keine Verbindung — bitte Internet prüfen.');
-      expect(friendlyError(en, const PhotoPipelineException.unreadable()), 'The app cannot read this image format.');
+      expect(
+        friendlyError(en, const SocketException('x')),
+        'No connection — please check your internet.',
+      );
+      expect(
+        friendlyError(
+          en,
+          const PostgrestException(message: 'x', code: '42501'),
+        ),
+        'This is no longer shared with you.',
+      );
+      expect(
+        friendlyError(en, const PostgrestException(message: 'x')),
+        'Server error (unknown) — please try again later.',
+      );
+      expect(
+        friendlyError(en, StateError('x')),
+        'Unexpected error (StateError) — please try again later.',
+      );
+      expect(
+        friendlyError(l10nDe, const SocketException('x')),
+        'Keine Verbindung — bitte Internet prüfen.',
+      );
+      expect(
+        friendlyError(en, const PhotoPipelineException.unreadable()),
+        'The app cannot read this image format.',
+      );
     });
 
     test('Merkmal, Zustand, Sichtbarkeit und der Platzhalter ohne Namen', () {
@@ -754,7 +1172,12 @@ void main() {
       expect(TrailTrait.flowy.label(l10nDe), 'Flowig');
       expect(TrailStatus.closed.label(en), 'Closed');
       expect(TrailVisibility.private.label(en), 'Only for me');
-      final unnamed = Trail(id: 't', myId: 'me', recordings: [_rec('t')], details: const []);
+      final unnamed = Trail(
+        id: 't',
+        myId: 'me',
+        recordings: [_rec('t')],
+        details: const [],
+      );
       expect(unnamed.displayName(en), 'Unnamed trail');
       expect(unnamed.displayName(l10nDe), 'Trail ohne Namen');
       expect(unnamed.name, isNull);
@@ -762,24 +1185,51 @@ void main() {
 
     test('Hinweise nach dem Speichern', () {
       expect(doneOrStale(en, 'Saved', fresh: true), 'Saved');
-      expect(doneOrStale(en, 'Saved', fresh: false), 'Saved — visible once the list reloads.');
-      expect(l10nDe.queuedHint, startsWith('Kein Netz — liegt im Ausgangskorb'));
+      expect(
+        doneOrStale(en, 'Saved', fresh: false),
+        'Saved — visible once the list reloads.',
+      );
+      expect(
+        l10nDe.queuedHint,
+        startsWith('Kein Netz — liegt im Ausgangskorb'),
+      );
     });
 
     test('eine Datei, die kein GPX ist', () {
-      expect(() => parseGpx('<kml/>'),
-          throwsA(isA<GpxFormatException>().having((e) => e.message(en), 'message', 'Not a GPX file (root is <kml>).')));
-      expect(() => parseGpx('<<<'),
-          throwsA(isA<GpxFormatException>().having((e) => e.message(l10nDe), 'message', startsWith('Kein gültiges XML: '))));
+      expect(
+        () => parseGpx('<kml/>'),
+        throwsA(
+          isA<GpxFormatException>().having(
+            (e) => e.message(en),
+            'message',
+            'Not a GPX file (root is <kml>).',
+          ),
+        ),
+      );
+      expect(
+        () => parseGpx('<<<'),
+        throwsA(
+          isA<GpxFormatException>().having(
+            (e) => e.message(l10nDe),
+            'message',
+            startsWith('Kein gültiges XML: '),
+          ),
+        ),
+      );
     });
 
     testWidgets('Update-Sperre', (tester) async {
-      await tester.pumpWidget(MaterialApp(
-        localizationsDelegates: AppLocalizations.localizationsDelegates,
-        supportedLocales: AppLocalizations.supportedLocales,
-        locale: const Locale('en'),
-        home: Builder(builder: (context) => Text(context.l10n.updateRequiredVersions('0.1.0', '0.2.0'))),
-      ));
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('en'),
+          home: Builder(
+            builder: (context) =>
+                Text(context.l10n.updateRequiredVersions('0.1.0', '0.2.0')),
+          ),
+        ),
+      );
       expect(find.text('Installed: 0.1.0\nRequired: 0.2.0'), findsOneWidget);
     });
   });
@@ -789,8 +1239,13 @@ void main() {
     testWidgets('der Feedback-Dialog', (tester) async {
       final backend = FakeBackend();
       backend.signInAs(backend.addUser(username: 'anna').id);
-      await pumpApp(tester, backend,
-          extraOverrides: [appLocaleProvider.overrideWithValue(const Locale('en'))]);
+      await pumpApp(
+        tester,
+        backend,
+        extraOverrides: [
+          appLocaleProvider.overrideWithValue(const Locale('en')),
+        ],
+      );
       await tester.tap(find.byTooltip('Report an idea or a bug'));
       await settle(tester);
       expect(find.text('Make a wish!'), findsOneWidget);
@@ -800,20 +1255,32 @@ void main() {
       await settle(tester);
       expect(find.text('What happened?'), findsOneWidget);
       expect(find.widgetWithText(FilledButton, 'Send'), findsOneWidget);
-      expect(find.textContaining(RegExp('[äöüß]')), findsNothing, reason: 'kein deutscher Satz im Dialog');
+      expect(
+        find.textContaining(RegExp('[äöüß]')),
+        findsNothing,
+        reason: 'kein deutscher Satz im Dialog',
+      );
     });
 
     testWidgets('Banner und Dialog eines Updates', (tester) async {
       final backend = FakeBackend();
       backend.signInAs(backend.addUser(username: 'anna').id);
-      await pumpApp(tester, backend, extraOverrides: [
-        appLocaleProvider.overrideWithValue(const Locale('en')),
-        updateInfoProvider.overrideWith((ref) => Future.value(const UpdateInfo(
-              latestVersion: '9.9.9',
-              downloadUrl: 'https://example.invalid/trailbuddy-v9.9.9.apk',
-              releaseNotes: 'Faster map',
-            ))),
-      ]);
+      await pumpApp(
+        tester,
+        backend,
+        extraOverrides: [
+          appLocaleProvider.overrideWithValue(const Locale('en')),
+          updateInfoProvider.overrideWith(
+            (ref) => Future.value(
+              const UpdateInfo(
+                latestVersion: '9.9.9',
+                downloadUrl: 'https://example.invalid/trailbuddy-v9.9.9.apk',
+                releaseNotes: 'Faster map',
+              ),
+            ),
+          ),
+        ],
+      );
       await settle(tester);
       expect(find.text('Update to v9.9.9 available'), findsOneWidget);
       expect(find.byTooltip('Hide for this session'), findsOneWidget);
@@ -826,12 +1293,14 @@ void main() {
     });
 
     testWidgets('die Seite „Was ist neu“', (tester) async {
-      await tester.pumpWidget(const MaterialApp(
-        localizationsDelegates: AppLocalizations.localizationsDelegates,
-        supportedLocales: AppLocalizations.supportedLocales,
-        locale: Locale('en'),
-        home: ChangelogScreen(),
-      ));
+      await tester.pumpWidget(
+        const MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: Locale('en'),
+          home: ChangelogScreen(),
+        ),
+      );
       expect(find.text("What's new"), findsOneWidget);
     });
 
@@ -845,14 +1314,14 @@ void main() {
 }
 
 TrailRecording _rec(String trail) => TrailRecording(
-      id: '$trail-r',
-      trailId: trail,
-      userId: 'me',
-      source: RecordingSource.import,
-      recordedAt: null,
-      reversed: false,
-      quality: 0.5,
-      createdAt: DateTime(2026, 1, 1),
-      points: const [LatLng(48, 9), LatLng(48.01, 9)],
-      lengthM: 1000,
-    );
+  id: '$trail-r',
+  trailId: trail,
+  userId: 'me',
+  source: RecordingSource.import,
+  recordedAt: null,
+  reversed: false,
+  quality: 0.5,
+  createdAt: DateTime(2026, 1, 1),
+  points: const [LatLng(48, 9), LatLng(48.01, 9)],
+  lengthM: 1000,
+);

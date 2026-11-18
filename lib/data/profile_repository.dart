@@ -14,8 +14,11 @@ class ProfileRepository {
   static const columns = 'id, username, display_name, avatar';
 
   Future<Profile> fetchMyProfile() async {
-    final row =
-        await _client.from('profiles').select(columns).eq('id', _uid).single();
+    final row = await _client
+        .from('profiles')
+        .select(columns)
+        .eq('id', _uid)
+        .single();
     return Profile.fromJson(row);
   }
 
@@ -29,6 +32,7 @@ class ProfileRepository {
   Future<void> updateUsername(String username) async {
     await _client
         .from('profiles')
-        .update({'username': username}).eq('id', _uid);
+        .update({'username': username})
+        .eq('id', _uid);
   }
 }

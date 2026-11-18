@@ -22,9 +22,9 @@ class ExitReporter {
     required ExitInfoRepository exits,
     required ErrorReportRepository reports,
     Future<Directory> Function()? directory,
-  })  : _exits = exits,
-        _reports = reports,
-        _directory = directory ?? getApplicationSupportDirectory;
+  }) : _exits = exits,
+       _reports = reports,
+       _directory = directory ?? getApplicationSupportDirectory;
 
   final ExitInfoRepository _exits;
   final ErrorReportRepository _reports;
@@ -42,10 +42,9 @@ class ExitReporter {
       final since = await _lastReported();
       // Älteste zuerst, damit der Merker am Ende auf dem Neuesten steht,
       // selbst wenn eine Meldung dazwischen scheitert.
-      final pending = exits
-          .where((e) => e.isFailure && e.timestamp.isAfter(since))
-          .toList()
-        ..sort((a, b) => a.timestamp.compareTo(b.timestamp));
+      final pending =
+          exits.where((e) => e.isFailure && e.timestamp.isAfter(since)).toList()
+            ..sort((a, b) => a.timestamp.compareTo(b.timestamp));
 
       for (final exit in pending) {
         await _reports.reportExit(

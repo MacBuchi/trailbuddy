@@ -15,19 +15,25 @@ Future<void> _signUpWithConfirmation(WidgetTester tester) async {
   await tester.tap(find.text('Noch kein Konto? Registrieren'));
   await settle(tester);
   await tester.enterText(
-      find.widgetWithText(TextField, 'Benutzername'), 'neuertrail');
+    find.widgetWithText(TextField, 'Benutzername'),
+    'neuertrail',
+  );
   await tester.enterText(
-      find.widgetWithText(TextField, 'E-Mail'), 'neu@example.org');
+    find.widgetWithText(TextField, 'E-Mail'),
+    'neu@example.org',
+  );
   await tester.enterText(
-      find.widgetWithText(TextField, 'Passwort (mind. 8 Zeichen)'),
-      'geheim123');
+    find.widgetWithText(TextField, 'Passwort (mind. 8 Zeichen)'),
+    'geheim123',
+  );
   await tester.tap(find.text('Konto erstellen'));
   await settle(tester);
 }
 
 void main() {
-  testWidgets('Ausgeloggt startet die App auf dem Login-Screen',
-      (tester) async {
+  testWidgets('Ausgeloggt startet die App auf dem Login-Screen', (
+    tester,
+  ) async {
     final backend = FakeBackend();
     await pumpApp(tester, backend);
 
@@ -36,15 +42,20 @@ void main() {
     expect(find.byType(NavigationBar), findsNothing);
   });
 
-  testWidgets('Falsches Passwort zeigt eine verständliche Fehlermeldung',
-      (tester) async {
+  testWidgets('Falsches Passwort zeigt eine verständliche Fehlermeldung', (
+    tester,
+  ) async {
     final backend = FakeBackend()..addUser(username: 'testrail');
     await pumpApp(tester, backend);
 
     await tester.enterText(
-        find.widgetWithText(TextField, 'E-Mail'), 'testrail@example.org');
+      find.widgetWithText(TextField, 'E-Mail'),
+      'testrail@example.org',
+    );
     await tester.enterText(
-        find.widgetWithText(TextField, 'Passwort'), 'falsches-passwort');
+      find.widgetWithText(TextField, 'Passwort'),
+      'falsches-passwort',
+    );
     await tester.tap(find.text('Anmelden'));
     await settle(tester);
 
@@ -59,9 +70,13 @@ void main() {
     await pumpApp(tester, backend);
 
     await tester.enterText(
-        find.widgetWithText(TextField, 'E-Mail'), 'testrail@example.org');
+      find.widgetWithText(TextField, 'E-Mail'),
+      'testrail@example.org',
+    );
     await tester.enterText(
-        find.widgetWithText(TextField, 'Passwort'), 'TrailTest#2026!');
+      find.widgetWithText(TextField, 'Passwort'),
+      'TrailTest#2026!',
+    );
     await tester.tap(find.text('Anmelden'));
     await settle(tester);
 
@@ -69,8 +84,9 @@ void main() {
     expect(backend.currentUserId, isNotNull);
   });
 
-  testWidgets('Registrierung meldet direkt an und landet auf der Karte',
-      (tester) async {
+  testWidgets('Registrierung meldet direkt an und landet auf der Karte', (
+    tester,
+  ) async {
     final backend = FakeBackend();
     await pumpApp(tester, backend);
 
@@ -79,12 +95,17 @@ void main() {
     expect(find.text('Konto erstellen'), findsOneWidget);
 
     await tester.enterText(
-        find.widgetWithText(TextField, 'Benutzername'), 'neuertrail');
+      find.widgetWithText(TextField, 'Benutzername'),
+      'neuertrail',
+    );
     await tester.enterText(
-        find.widgetWithText(TextField, 'E-Mail'), 'neu@example.org');
+      find.widgetWithText(TextField, 'E-Mail'),
+      'neu@example.org',
+    );
     await tester.enterText(
-        find.widgetWithText(TextField, 'Passwort (mind. 8 Zeichen)'),
-        'geheim123');
+      find.widgetWithText(TextField, 'Passwort (mind. 8 Zeichen)'),
+      'geheim123',
+    );
     await tester.tap(find.text('Konto erstellen'));
     await settle(tester);
 
@@ -93,8 +114,9 @@ void main() {
     expect(backend.currentUserId, backend.users.single.id);
   });
 
-  testWidgets('Vergebener Benutzername wird beim Registrieren abgefangen',
-      (tester) async {
+  testWidgets('Vergebener Benutzername wird beim Registrieren abgefangen', (
+    tester,
+  ) async {
     final backend = FakeBackend()..addUser(username: 'testrail');
     await pumpApp(tester, backend);
 
@@ -104,22 +126,31 @@ void main() {
     // Groß-/Kleinschreibung hinweg einmalig — für die Buddy-Suche wären
     // „TestRail" und „testrail" dasselbe Konto.
     await tester.enterText(
-        find.widgetWithText(TextField, 'Benutzername'), 'TestRail');
+      find.widgetWithText(TextField, 'Benutzername'),
+      'TestRail',
+    );
     await tester.enterText(
-        find.widgetWithText(TextField, 'E-Mail'), 'zweit@example.org');
+      find.widgetWithText(TextField, 'E-Mail'),
+      'zweit@example.org',
+    );
     await tester.enterText(
-        find.widgetWithText(TextField, 'Passwort (mind. 8 Zeichen)'),
-        'geheim123');
+      find.widgetWithText(TextField, 'Passwort (mind. 8 Zeichen)'),
+      'geheim123',
+    );
     await tester.tap(find.text('Konto erstellen'));
     await settle(tester);
 
-    expect(find.text('Dieser Benutzername ist schon vergeben.'), findsOneWidget);
+    expect(
+      find.text('Dieser Benutzername ist schon vergeben.'),
+      findsOneWidget,
+    );
     expect(backend.users, hasLength(1));
     await drainSnackbars(tester);
   });
 
-  testWidgets('Eine Mailadresse als Benutzername wird abgefangen',
-      (tester) async {
+  testWidgets('Eine Mailadresse als Benutzername wird abgefangen', (
+    tester,
+  ) async {
     // Leute tragen beim Benutzernamen aus Versehen ihre Mailadresse ein —
     // kein Wunder, das Mail-Feld liegt direkt darunter. Der Name ist aber
     // öffentlich, und die Buddy-Suche baut gerade darauf, dass Adressen
@@ -130,23 +161,32 @@ void main() {
     await tester.tap(find.text('Noch kein Konto? Registrieren'));
     await settle(tester);
     await tester.enterText(
-        find.widgetWithText(TextField, 'Benutzername'), 'neuer@example.org');
+      find.widgetWithText(TextField, 'Benutzername'),
+      'neuer@example.org',
+    );
     await tester.enterText(
-        find.widgetWithText(TextField, 'E-Mail'), 'neuer@example.org');
+      find.widgetWithText(TextField, 'E-Mail'),
+      'neuer@example.org',
+    );
     await tester.enterText(
-        find.widgetWithText(TextField, 'Passwort (mind. 8 Zeichen)'),
-        'geheim123');
+      find.widgetWithText(TextField, 'Passwort (mind. 8 Zeichen)'),
+      'geheim123',
+    );
     await tester.tap(find.text('Konto erstellen'));
     await settle(tester);
 
     expect(find.textContaining('E-Mail-Adresse'), findsOneWidget);
-    expect(backend.users, isEmpty,
-        reason: 'abgefangen heißt: es entsteht kein Konto');
+    expect(
+      backend.users,
+      isEmpty,
+      reason: 'abgefangen heißt: es entsteht kein Konto',
+    );
     await drainSnackbars(tester);
   });
 
-  testWidgets('Login- und Registrier-Felder hängen in einer AutofillGroup',
-      (tester) async {
+  testWidgets('Login- und Registrier-Felder hängen in einer AutofillGroup', (
+    tester,
+  ) async {
     // Ohne AutofillGroup meldet Flutter die Felder nicht beim Autofill-Dienst
     // an — Passwortmanager sehen das Formular dann gar nicht.
     void expectInAutofillGroup(String label) {
@@ -190,8 +230,9 @@ void main() {
   });
 
   group('Mit Bestätigungspflicht (Confirm email an)', () {
-    testWidgets('Registrierung endet im Hinweis statt stumm stehenzubleiben',
-        (tester) async {
+    testWidgets('Registrierung endet im Hinweis statt stumm stehenzubleiben', (
+      tester,
+    ) async {
       // Ohne Behandlung liefert signUp keine Sitzung, der Router bewegt
       // sich nicht und der Screen bliebe wortlos stehen.
       final backend = FakeBackend()..requireEmailConfirmation = true;
@@ -200,35 +241,46 @@ void main() {
 
       expect(find.text('Fast geschafft!'), findsOneWidget);
       expect(find.textContaining('neu@example.org'), findsOneWidget);
-      expect(find.widgetWithText(TextField, 'Code aus der Mail'),
-          findsOneWidget);
-      expect(find.byType(NavigationBar), findsNothing,
-          reason: 'Ohne bestätigte Adresse gibt es keine Sitzung.');
+      expect(
+        find.widgetWithText(TextField, 'Code aus der Mail'),
+        findsOneWidget,
+      );
+      expect(
+        find.byType(NavigationBar),
+        findsNothing,
+        reason: 'Ohne bestätigte Adresse gibt es keine Sitzung.',
+      );
       expect(backend.confirmationMails, ['neu@example.org']);
       expect(backend.currentUserId, isNull);
     });
 
-    testWidgets('Der Code aus der Mail bestätigt und meldet direkt an',
-        (tester) async {
+    testWidgets('Der Code aus der Mail bestätigt und meldet direkt an', (
+      tester,
+    ) async {
       final backend = FakeBackend()..requireEmailConfirmation = true;
       await pumpApp(tester, backend);
       await _signUpWithConfirmation(tester);
 
       await tester.enterText(
-          find.widgetWithText(TextField, 'Code aus der Mail'),
-          FakeBackend.signupCode);
+        find.widgetWithText(TextField, 'Code aus der Mail'),
+        FakeBackend.signupCode,
+      );
       await tester.tap(find.text('Adresse bestätigen'));
       await settle(tester);
 
-      expect(find.byType(MapScreen), findsOneWidget,
-          reason: 'verifyOTP liefert die Sitzung gleich mit.');
+      expect(
+        find.byType(MapScreen),
+        findsOneWidget,
+        reason: 'verifyOTP liefert die Sitzung gleich mit.',
+      );
       expect(backend.users.single.emailConfirmed, isTrue);
     });
 
     // #399: wie beim Passwort-Reset — ein Neuladen des Browsers ruft kein
     // `dispose`, der Merker bleibt und bringt die Code-Eingabe zurück.
-    testWidgets('Nach einem Neuladen steht die Code-Eingabe wieder da',
-        (tester) async {
+    testWidgets('Nach einem Neuladen steht die Code-Eingabe wieder da', (
+      tester,
+    ) async {
       final backend = FakeBackend()..requireEmailConfirmation = true;
       final before = FakeSettings();
       await pumpApp(tester, backend, settings: before);
@@ -247,8 +299,9 @@ void main() {
 
       expect(find.text('Fast geschafft!'), findsOneWidget);
       await tester.enterText(
-          find.widgetWithText(TextField, 'Code aus der Mail'),
-          FakeBackend.signupCode);
+        find.widgetWithText(TextField, 'Code aus der Mail'),
+        FakeBackend.signupCode,
+      );
       await tester.tap(find.text('Adresse bestätigen'));
       await settle(tester);
 
@@ -262,19 +315,24 @@ void main() {
       await _signUpWithConfirmation(tester);
 
       await tester.enterText(
-          find.widgetWithText(TextField, 'Code aus der Mail'), '000000');
+        find.widgetWithText(TextField, 'Code aus der Mail'),
+        '000000',
+      );
       await tester.tap(find.text('Adresse bestätigen'));
       await settle(tester);
 
-      expect(find.textContaining('Code ist falsch oder abgelaufen'),
-          findsOneWidget);
+      expect(
+        find.textContaining('Code ist falsch oder abgelaufen'),
+        findsOneWidget,
+      );
       expect(find.byType(NavigationBar), findsNothing);
       expect(backend.currentUserId, isNull);
       await drainSnackbars(tester);
     });
 
-    testWidgets('Die Bestätigungsmail lässt sich erneut anfordern',
-        (tester) async {
+    testWidgets('Die Bestätigungsmail lässt sich erneut anfordern', (
+      tester,
+    ) async {
       final backend = FakeBackend()..requireEmailConfirmation = true;
       await pumpApp(tester, backend);
       await _signUpWithConfirmation(tester);
@@ -291,8 +349,9 @@ void main() {
       await drainSnackbars(tester);
     });
 
-    testWidgets('Erneut senden und falscher Code sehen verschieden aus',
-        (tester) async {
+    testWidgets('Erneut senden und falscher Code sehen verschieden aus', (
+      tester,
+    ) async {
       // Vorher lief beides durch dieselbe SnackBar — Erfolg und Fehler
       // sollen sich unterscheiden lassen.
       final backend = FakeBackend()..requireEmailConfirmation = true;
@@ -302,19 +361,26 @@ void main() {
 
       await tester.tap(find.text('Mail nicht angekommen? Erneut senden'));
       await settle(tester);
-      expect(tester.widget<FormNotice>(find.byType(FormNotice)).tone,
-          NoticeTone.success);
+      expect(
+        tester.widget<FormNotice>(find.byType(FormNotice)).tone,
+        NoticeTone.success,
+      );
 
       await tester.enterText(
-          find.widgetWithText(TextField, 'Code aus der Mail'), '000000');
+        find.widgetWithText(TextField, 'Code aus der Mail'),
+        '000000',
+      );
       await tester.tap(find.text('Adresse bestätigen'));
       await settle(tester);
-      expect(tester.widget<FormNotice>(find.byType(FormNotice)).tone,
-          NoticeTone.error);
+      expect(
+        tester.widget<FormNotice>(find.byType(FormNotice)).tone,
+        NoticeTone.error,
+      );
     });
 
-    testWidgets('Zu häufiges Erneut-Senden nennt das Rate-Limit',
-        (tester) async {
+    testWidgets('Zu häufiges Erneut-Senden nennt das Rate-Limit', (
+      tester,
+    ) async {
       // Der Fall darf nicht als „Anmeldung fehlgeschlagen" ankommen —
       // mitten in der Registrierung.
       final backend = FakeBackend()
@@ -331,26 +397,34 @@ void main() {
       expect(find.textContaining('Anmeldung fehlgeschlagen'), findsNothing);
     });
 
-    testWidgets('Anmeldung ohne Bestätigung nennt den echten Grund',
-        (tester) async {
+    testWidgets('Anmeldung ohne Bestätigung nennt den echten Grund', (
+      tester,
+    ) async {
       // „E-Mail oder Passwort falsch" würde hier an der falschen Stelle
       // suchen lassen — das Passwort stimmt ja.
       final backend = FakeBackend()
         ..addUser(
-            username: 'unbestaetigt',
-            password: 'TrailTest#2026!',
-            emailConfirmed: false);
+          username: 'unbestaetigt',
+          password: 'TrailTest#2026!',
+          emailConfirmed: false,
+        );
       await pumpApp(tester, backend);
 
-      await tester.enterText(find.widgetWithText(TextField, 'E-Mail'),
-          'unbestaetigt@example.org');
       await tester.enterText(
-          find.widgetWithText(TextField, 'Passwort'), 'TrailTest#2026!');
+        find.widgetWithText(TextField, 'E-Mail'),
+        'unbestaetigt@example.org',
+      );
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Passwort'),
+        'TrailTest#2026!',
+      );
       await tester.tap(find.text('Anmelden'));
       await settle(tester);
 
-      expect(find.textContaining('bestätige zuerst deine E-Mail-Adresse'),
-          findsOneWidget);
+      expect(
+        find.textContaining('bestätige zuerst deine E-Mail-Adresse'),
+        findsOneWidget,
+      );
       expect(find.byType(NavigationBar), findsNothing);
       await drainSnackbars(tester);
     });

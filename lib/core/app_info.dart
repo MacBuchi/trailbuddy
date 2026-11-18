@@ -16,7 +16,8 @@ class AppInfo {
   /// Die Seite hinter dem Einladung-QR (#496): statisch, ohne Versionsnummer,
   /// damit ein gezeigter QR nie veraltet. Sie entscheidet, was geladen wird —
   /// heute die APK vom neuesten Release, später der Play Store (#39).
-  static const installUrl = 'https://macbuchi.github.io/trailbuddy/install.html';
+  static const installUrl =
+      'https://macbuchi.github.io/trailbuddy/install.html';
 
   /// Das Ziel des Einladung-QR: die Installationsseite mit dem Namen des
   /// einladenden Buddys. Im Play-Build führt sie in den Store, denn dorthin
@@ -37,8 +38,7 @@ class AppInfo {
   /// Origin hieße geteilter `localStorage` — die Vorschau benutzte also
   /// Sitzung und Einstellungen der echten App. Deshalb ist dort eine
   /// eigene Anmeldung nötig, und darauf muss der Hinweis hinweisen.
-  static const previewAppUrl =
-      'https://macbuchi.github.io/trailbuddy-preview/';
+  static const previewAppUrl = 'https://macbuchi.github.io/trailbuddy-preview/';
 
   /// Play-Store-Eintrag (applicationId aus android/app/build.gradle.kts).
   /// Nur für Play-Builds: dort sind Verweise auf APK-Downloads unzulässig.
@@ -87,8 +87,8 @@ class AppInfo {
 
   static String inviteText(AppLocalizations l, String? username) =>
       username != null && username.isNotEmpty
-          ? l.buddysInviteTextWithName(webAppUrl, apkDownloadUrl, username)
-          : l.buddysInviteText(webAppUrl, apkDownloadUrl);
+      ? l.buddysInviteTextWithName(webAppUrl, apkDownloadUrl, username)
+      : l.buddysInviteText(webAppUrl, apkDownloadUrl);
 }
 
 /// Installierte App-Version für die „Über"-Sektion im Profil.

@@ -20,7 +20,8 @@ import 'trail_traits.dart';
 /// Die Farbe eines Trails — EINE Regel für Karte, Streifen und Schild:
 /// Uphill (unter den angezeigten zwei Merkmalen, wie die Filter) trägt
 /// die Uphill-Farbe, sonst die Stufe des Medians.
-Color trailColorOf(Trail t, GradePalette p) => isUphill(t) ? p.uphill : p.of(t.grade);
+Color trailColorOf(Trail t, GradePalette p) =>
+    isUphill(t) ? p.uphill : p.of(t.grade);
 
 /// Uphill heißt: unter den ANGEZEIGTEN Merkmalen (`topTraits`) — dieselbe
 /// Lesart wie die Filter „Flowig"/„Jumps"; eine einzelne Nennung unter
@@ -31,7 +32,11 @@ bool isUphill(Trail t) => t.topTraits.contains(TrailTrait.uphill);
 /// (Rework E9, #101): Die Farbe ist die Schwierigkeit, der ZUSTAND ist
 /// die Art der Linie, und S4/S5 stehen im SAUM. Eine Regel für beide
 /// Engines; [TrailLineStyle.opacity] multipliziert die Farbe.
-typedef TrailLineStyle = ({List<double>? dash, double opacity, List<double>? haloDash});
+typedef TrailLineStyle = ({
+  List<double>? dash,
+  double opacity,
+  List<double>? haloDash,
+});
 
 /// Bröckelig: lange Striche, kurze Lücken — Zustand 3.
 const kLineDashWorn = [10.0, 3.0];
@@ -51,7 +56,9 @@ const kExpertGrade = 4;
 
 TrailLineStyle trailLineStyleOf(Trail t) {
   final haloDash = (t.grade ?? 0) >= kExpertGrade ? kHaloDashExpert : null;
-  if (t.pending) return (dash: kLineDashPending, opacity: 0.6, haloDash: haloDash);
+  if (t.pending) {
+    return (dash: kLineDashPending, opacity: 0.6, haloDash: haloDash);
+  }
   // Nur ein BESTÄTIGTER Zustand verändert die Linie — ein unbestätigter
   // steht verblasst im Blatt, auf der Karte wäre er eine Behauptung.
   return switch (t.shownCondition.confirmed?.condition) {
@@ -66,8 +73,14 @@ TrailLineStyle trailLineStyleOf(Trail t) {
 /// den Charakter-Symbolen (Design 4c) und ohne Grad, wenn es Merkmale
 /// gibt. Ohne Grad, Uphill und Merkmale: nichts.
 class GradeShield extends StatelessWidget {
-  const GradeShield(this.grade,
-      {super.key, this.fontSize = 12, this.uphill = false, this.traits = const [], this.palette});
+  const GradeShield(
+    this.grade, {
+    super.key,
+    this.fontSize = 12,
+    this.uphill = false,
+    this.traits = const [],
+    this.palette,
+  });
 
   final int? grade;
 
@@ -91,18 +104,27 @@ class GradeShield extends StatelessWidget {
     final p = palette ?? AppPalette.of(context).grade;
     final ink = p.ink;
     final g = grade == null ? null : singletrailGrade(grade!);
-    final shownTraits = [for (final t in traits) if (!(uphill && t == TrailTrait.uphill)) t];
-    if (g == null && !uphill && shownTraits.isEmpty) return const SizedBox.shrink();
+    final shownTraits = [
+      for (final t in traits)
+        if (!(uphill && t == TrailTrait.uphill)) t,
+    ];
+    if (g == null && !uphill && shownTraits.isEmpty) {
+      return const SizedBox.shrink();
+    }
     final label = [
       if (uphill) context.l10n.gradeUphill,
-      if (g != null) context.l10n.gradeShieldSemantics(g.label, g.short(context.l10n)),
+      if (g != null)
+        context.l10n.gradeShieldSemantics(g.label, g.short(context.l10n)),
       for (final t in shownTraits) t.label(context.l10n),
     ].join(', ');
     return Semantics(
       label: label,
       excludeSemantics: true,
       child: Container(
-        padding: EdgeInsets.symmetric(horizontal: fontSize * 0.55, vertical: fontSize * 0.2),
+        padding: EdgeInsets.symmetric(
+          horizontal: fontSize * 0.55,
+          vertical: fontSize * 0.2,
+        ),
         decoration: BoxDecoration(
           color: uphill ? p.uphill : p.of(grade),
           borderRadius: BorderRadius.circular(fontSize * 0.5),
@@ -116,9 +138,12 @@ class GradeShield extends StatelessWidget {
               GradeShape(grade!, size: fontSize * 0.75, color: ink),
             if (grade != null) ...[
               SizedBox(width: fontSize * 0.35),
-              Text(gradeLabel(grade!),
-                  style: AppFonts.numbers(TextStyle(fontSize: fontSize, height: 1.2))
-                      .copyWith(color: ink)),
+              Text(
+                gradeLabel(grade!),
+                style: AppFonts.numbers(
+                  TextStyle(fontSize: fontSize, height: 1.2),
+                ).copyWith(color: ink),
+              ),
             ],
             for (final t in shownTraits) ...[
               SizedBox(width: fontSize * 0.35),
@@ -134,7 +159,12 @@ class GradeShield extends StatelessWidget {
 /// Nur die Form eines Grads, ohne Schild — für Stellen, die ihren
 /// eigenen Grund haben (Erklärblatt).
 class GradeShape extends StatelessWidget {
-  const GradeShape(this.grade, {super.key, required this.size, required this.color});
+  const GradeShape(
+    this.grade, {
+    super.key,
+    required this.size,
+    required this.color,
+  });
 
   final int grade;
   final double size;
@@ -142,18 +172,18 @@ class GradeShape extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => CustomPaint(
-        size: Size(gradeShapeWidth(grade, size), size),
-        painter: _GradeShapePainter(grade, color),
-      );
+    size: Size(gradeShapeWidth(grade, size), size),
+    painter: _GradeShapePainter(grade, color),
+  );
 }
 
 /// Breite der Form bei Höhe [size]: eine Einheit, zwei Rauten bei S4,
 /// dazu ein Balken bei S5.
 double gradeShapeWidth(int grade, double size) => switch (grade) {
-      4 => size * 2 + size * 0.15,
-      5 => size * 2 + size * 0.15 + size * 0.2 + size * 0.3,
-      _ => size,
-    };
+  4 => size * 2 + size * 0.15,
+  5 => size * 2 + size * 0.15 + size * 0.2 + size * 0.3,
+  _ => size,
+};
 
 class _GradeShapePainter extends CustomPainter {
   _GradeShapePainter(this.grade, this.color);
@@ -176,19 +206,23 @@ class _GradeShapePainter extends CustomPainter {
       case 0:
         final w = u * 0.16;
         canvas.drawCircle(
-            center,
-            u / 2 - w / 2,
-            Paint()
-              ..color = color
-              ..style = PaintingStyle.stroke
-              ..strokeWidth = w);
+          center,
+          u / 2 - w / 2,
+          Paint()
+            ..color = color
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = w,
+        );
       case 1:
         canvas.drawCircle(center, u / 2, fill);
       case 2:
         // Etwas kleiner als die Einheit: Ein Quadrat mit voller Kante
         // wirkt neben dem Kreis zu schwer.
         final inset = u * 0.08;
-        canvas.drawRect(Rect.fromLTRB(inset, inset, u - inset, u - inset), fill);
+        canvas.drawRect(
+          Rect.fromLTRB(inset, inset, u - inset, u - inset),
+          fill,
+        );
       case 3:
         canvas.drawPath(diamond(0), fill);
       default:
@@ -202,7 +236,8 @@ class _GradeShapePainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_GradeShapePainter old) => old.grade != grade || old.color != color;
+  bool shouldRepaint(_GradeShapePainter old) =>
+      old.grade != grade || old.color != color;
 }
 
 /// Der Pfeil bergauf (↗) — gezeichnet wie die Formen, Barlow hat ihn
@@ -214,10 +249,8 @@ class UphillArrow extends StatelessWidget {
   final Color color;
 
   @override
-  Widget build(BuildContext context) => CustomPaint(
-        size: Size.square(size),
-        painter: _UphillArrowPainter(color),
-      );
+  Widget build(BuildContext context) =>
+      CustomPaint(size: Size.square(size), painter: _UphillArrowPainter(color));
 }
 
 class _UphillArrowPainter extends CustomPainter {
@@ -238,11 +271,12 @@ class _UphillArrowPainter extends CustomPainter {
     final inset = w / 2;
     canvas.drawLine(Offset(inset, u - inset), Offset(u - inset, inset), paint);
     canvas.drawPath(
-        Path()
-          ..moveTo(u * 0.42, inset)
-          ..lineTo(u - inset, inset)
-          ..lineTo(u - inset, u * 0.58),
-        paint);
+      Path()
+        ..moveTo(u * 0.42, inset)
+        ..lineTo(u - inset, inset)
+        ..lineTo(u - inset, u * 0.58),
+      paint,
+    );
   }
 
   @override

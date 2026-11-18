@@ -35,7 +35,9 @@ final contourLayerEnabledProvider = NotifierProvider<RememberedFlag, bool>(
 /// Sichtfenster und Maßstab beim letzten Stillstand der Karte —
 /// geschrieben vom Karten-Screen.
 final contourViewProvider =
-    StateProvider<({MapViewBounds bounds, double metersPerPixel})?>((ref) => null);
+    StateProvider<({MapViewBounds bounds, double metersPerPixel})?>(
+      (ref) => null,
+    );
 
 /// Der Maßstab, auf Achtelstufen gerastert: Beim Schieben ändert sich die
 /// gemessene Zahl mit der Breite ein wenig, und ohne Raster rechnete jeder
@@ -49,11 +51,18 @@ double contourScaleStep(double metersPerPixel) {
 /// derselben Kacheln schiebt.
 typedef ContourInput = ({ContourWindow window, double metersPerPixel});
 
-ContourInput? contourInputOf(({MapViewBounds bounds, double metersPerPixel})? view) {
+ContourInput? contourInputOf(
+  ({MapViewBounds bounds, double metersPerPixel})? view,
+) {
   if (view == null) return null;
   final b = view.bounds;
   return (
-    window: ContourWindow.covering(west: b.west, south: b.south, east: b.east, north: b.north),
+    window: ContourWindow.covering(
+      west: b.west,
+      south: b.south,
+      east: b.east,
+      north: b.north,
+    ),
     metersPerPixel: contourScaleStep(view.metersPerPixel),
   );
 }
@@ -88,54 +97,73 @@ class ContourState {
 /// Die Rechnung im Hintergrund; im Web und im Test an Ort und Stelle
 /// (`compute` rechnet im Web ohnehin inline; ein echter Isolate antwortet
 /// in der Test-Zone nie — der Harness ersetzt die Naht).
-typedef ContourCompute = Future<({TerrainContours? contours, ContourGap? gap})> Function(ContourJob job);
+typedef ContourCompute =
+    Future<({TerrainContours? contours, ContourGap? gap})> Function(
+      ContourJob job,
+    );
 
-final contourComputeProvider = Provider<ContourCompute>((ref) => (job) => compute(computeContours, job));
+final contourComputeProvider = Provider<ContourCompute>(
+  (ref) =>
+      (job) => compute(computeContours, job),
+);
 
 /// Die Höhenkacheln eines Fensters: erst die gespeicherten Bereiche, mit
 /// Empfang dahinter der Host über den Sitzungsspeicher (`OnlineHeights`,
 /// dieselbe Quelle wie Planer und Trail-Profil). Jede Kachel kostet online
 /// höchstens EINEN Abruf je Sitzung.
-final contourTilesProvider =
-    FutureProvider.autoDispose.family<Map<({int x, int y}), HeightTile?>, ContourWindow>((ref, window) async {
-  HeightReader? areas;
-  try {
-    areas = await ref.watch(areaHeightReaderProvider.future);
-  } catch (e, s) {
-    logError('Höhen der Bereiche öffnen', e, s);
-  }
-  final online = ref.watch(noConnectivityProvider) ? null : ref.read(onlineHeightsFactoryProvider)();
-  // Die Quellen der Bereiche gehören ihrem Provider und bleiben offen;
-  // geschlossen wird nur, was hier geöffnet wurde.
-  final reader = HeightReader([...?areas?.sources, ?online]);
-  try {
-    final entries = await Future.wait([
-      for (final t in window.tiles) reader.tileAt(t.x, t.y).then((tile) => MapEntry(t, tile)),
-    ]);
-    return Map.fromEntries(entries);
-  } finally {
-    await online?.close();
-  }
-});
+final contourTilesProvider = FutureProvider.autoDispose
+    .family<Map<({int x, int y}), HeightTile?>, ContourWindow>((
+      ref,
+      window,
+    ) async {
+      HeightReader? areas;
+      try {
+        areas = await ref.watch(areaHeightReaderProvider.future);
+      } catch (e, s) {
+        logError('Höhen der Bereiche öffnen', e, s);
+      }
+      final online = ref.watch(noConnectivityProvider)
+          ? null
+          : ref.read(onlineHeightsFactoryProvider)();
+      // Die Quellen der Bereiche gehören ihrem Provider und bleiben offen;
+      // geschlossen wird nur, was hier geöffnet wurde.
+      final reader = HeightReader([...?areas?.sources, ?online]);
+      try {
+        final entries = await Future.wait([
+          for (final t in window.tiles)
+            reader.tileAt(t.x, t.y).then((tile) => MapEntry(t, tile)),
+        ]);
+        return Map.fromEntries(entries);
+      } finally {
+        await online?.close();
+      }
+    });
 
 /// Die Höhenlinien — oder warum es keine gibt. Die Reihenfolge der
 /// Prüfungen IST die Zusage: erst der Schalter, dann die billigen
 /// Grenzen, erst dann die Kacheln.
 final contourStateProvider = FutureProvider<ContourState>((ref) async {
-  if (!ref.watch(contourLayerEnabledProvider)) return const ContourState(ContourStatus.off);
+  if (!ref.watch(contourLayerEnabledProvider)) {
+    return const ContourState(ContourStatus.off);
+  }
   final input = ref.watch(contourViewProvider.select(contourInputOf));
   if (input == null) return const ContourState(ContourStatus.waiting);
-  if (input.metersPerPixel > kContourMaxMetersPerPixel || input.window.tileCount > kContourMaxTiles) {
+  if (input.metersPerPixel > kContourMaxMetersPerPixel ||
+      input.window.tileCount > kContourMaxTiles) {
     return const ContourState(ContourStatus.tooFarOut);
   }
   final tiles = await ref.watch(contourTilesProvider(input.window).future);
-  if (tiles.values.every((t) => t == null)) return const ContourState(ContourStatus.noHeights);
+  if (tiles.values.every((t) => t == null)) {
+    return const ContourState(ContourStatus.noHeights);
+  }
   final field = contourFieldFrom(input.window, (x, y) => tiles[(x: x, y: y)]);
-  final result = await ref.read(contourComputeProvider)(ContourJob(
-    field: field,
-    metersPerPixel: input.metersPerPixel,
-    key: '${input.window.key}|${field.factor}',
-  ));
+  final result = await ref.read(contourComputeProvider)(
+    ContourJob(
+      field: field,
+      metersPerPixel: input.metersPerPixel,
+      key: '${input.window.key}|${field.factor}',
+    ),
+  );
   return switch (result.gap) {
     ContourGap.noHeights => const ContourState(ContourStatus.noHeights),
     ContourGap.tooFarOut => const ContourState(ContourStatus.tooFarOut),
@@ -155,12 +183,16 @@ final contourLabelsProvider = Provider<List<ContourLabel>>((ref) {
 /// beide dasselbe sagen.
 String contourStatusText(AppLocalizations l, AsyncValue<ContourState> state) {
   final s = state.valueOrNull;
-  if (s == null) return state.isLoading ? l.contourStatusComputing : l.contourStatusIdle;
+  if (s == null) {
+    return state.isLoading ? l.contourStatusComputing : l.contourStatusIdle;
+  }
   return switch (s.status) {
     ContourStatus.off || ContourStatus.waiting => l.contourStatusIdle,
     ContourStatus.tooFarOut => l.contourStatusTooFarOut,
     ContourStatus.noHeights => l.contourStatusNoHeights,
-    ContourStatus.shown =>
-      l.contourStatusShown(s.contours!.equidistanceM, contourIndexStepM(s.contours!.equidistanceM)),
+    ContourStatus.shown => l.contourStatusShown(
+      s.contours!.equidistanceM,
+      contourIndexStepM(s.contours!.equidistanceM),
+    ),
   };
 }

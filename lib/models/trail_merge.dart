@@ -30,7 +30,8 @@ enum TrailMergeKind {
   const TrailMergeKind(this.db);
   final String db;
 
-  static TrailMergeKind? fromDb(String? v) => values.where((k) => k.db == v).firstOrNull;
+  static TrailMergeKind? fromDb(String? v) =>
+      values.where((k) => k.db == v).firstOrNull;
 }
 
 /// Eine Zeile aus `trail_merges()` (Patch 019).
@@ -66,17 +67,22 @@ class TrailMerge {
       sameAs: sameAs,
       kind: kind,
       reversed: json['reversed'] == true,
-      byUsers: by is List ? [for (final u in by) if (u is String) u] : const [],
+      byUsers: by is List
+          ? [
+              for (final u in by)
+                if (u is String) u,
+            ]
+          : const [],
     );
   }
 
   Map<String, dynamic> toRow() => {
-        'trail_id': trailId,
-        'same_as': sameAs,
-        'reversed': reversed,
-        'kind': kind.db,
-        'by_users': byUsers.isEmpty ? null : byUsers,
-      };
+    'trail_id': trailId,
+    'same_as': sameAs,
+    'reversed': reversed,
+    'kind': kind.db,
+    'by_users': byUsers.isEmpty ? null : byUsers,
+  };
 }
 
 /// Wohin ein Duplikat bei mir gehört — Ergebnis von [resolveMerges].
@@ -117,8 +123,10 @@ class MergeTarget {
 ///
 /// [ageOf] sagt, wann ein Trail angelegt wurde (die älteste sichtbare
 /// Aufzeichnung); unbekannt zählt als jüngster.
-Map<String, MergeTarget> resolveMerges(Iterable<TrailMerge> merges,
-    {required DateTime? Function(String trailId) ageOf}) {
+Map<String, MergeTarget> resolveMerges(
+  Iterable<TrailMerge> merges, {
+  required DateTime? Function(String trailId) ageOf,
+}) {
   // Eine Kante je Duplikat.
   final edges = <String, ({TrailMerge row, bool own})>{};
   final folded = <String, List<TrailMerge>>{};
@@ -129,13 +137,17 @@ Map<String, MergeTarget> resolveMerges(Iterable<TrailMerge> merges,
         edges[m.trailId] = (row: m, own: true);
       case TrailMergeKind.folded:
         (folded[m.trailId] ??= []).add(m);
-      case TrailMergeKind.distinct || TrailMergeKind.proposed || TrailMergeKind.overlap:
+      case TrailMergeKind.distinct ||
+          TrailMergeKind.proposed ||
+          TrailMergeKind.overlap:
         break;
     }
   }
   int byAge(String a, String b) {
     final x = ageOf(a), y = ageOf(b);
-    if (x == null || y == null) return x == null ? (y == null ? a.compareTo(b) : 1) : -1;
+    if (x == null || y == null) {
+      return x == null ? (y == null ? a.compareTo(b) : 1) : -1;
+    }
     final c = x.compareTo(y);
     return c != 0 ? c : a.compareTo(b);
   }
@@ -168,8 +180,13 @@ Map<String, MergeTarget> resolveMerges(Iterable<TrailMerge> merges,
       done.addAll(path);
       if (!onPath.contains(at)) continue;
       final cycle = path.sublist(path.indexOf(at));
-      final breakable = [for (final t in cycle) if (!edges[t]!.own) t]..sort(byAge);
-      final drop = breakable.isNotEmpty ? breakable.first : (List.of(cycle)..sort(byAge)).first;
+      final breakable = [
+        for (final t in cycle)
+          if (!edges[t]!.own) t,
+      ]..sort(byAge);
+      final drop = breakable.isNotEmpty
+          ? breakable.first
+          : (List.of(cycle)..sort(byAge)).first;
       edges.remove(drop);
       changed = true;
       break;

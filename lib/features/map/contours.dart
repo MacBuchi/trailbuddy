@@ -94,21 +94,22 @@ List<ContourLine> contourLines({
 }) {
   final lines = <ContourLine>[];
   for (final level in levels) {
-    for (final chain
-        in _chainsAt(values, width, height, noData, level)) {
+    for (final chain in _chainsAt(values, width, height, noData, level)) {
       if (chain.length < minChainCells) continue;
       final simplified = _simplify(chain, toleranceCells);
       if (simplified.length < 2) continue;
       final rounded = _round(simplified, roundingPasses);
-      lines.add(ContourLine(
-        level: level,
-        cells: chain.length,
-        index: isIndex?.call(level) ?? false,
-        points: [
-          for (final point in rounded)
-            LatLng(latAtRow(point.dy + 0.5), lonAtColumn(point.dx + 0.5)),
-        ],
-      ));
+      lines.add(
+        ContourLine(
+          level: level,
+          cells: chain.length,
+          index: isIndex?.call(level) ?? false,
+          points: [
+            for (final point in rounded)
+              LatLng(latAtRow(point.dy + 0.5), lonAtColumn(point.dx + 0.5)),
+          ],
+        ),
+      );
     }
   }
   return lines;
@@ -170,7 +171,12 @@ Int32List smooth3x3(
 /// gelegentlich zerfallen — sichtbar als zerhackte Linien, unauffällig
 /// genug, um lange unbemerkt zu bleiben.
 List<List<_Point>> _chainsAt(
-    List<int> values, int width, int height, int noData, int level) {
+  List<int> values,
+  int width,
+  int height,
+  int noData,
+  int level,
+) {
   final stride = width + 1;
 
   // Kantenkennung: gerade = waagerechte Kante links von (x,y),
@@ -325,7 +331,7 @@ List<_Point> _simplify(List<_Point> points, double tolerance) {
   keep[0] = true;
   keep[points.length - 1] = true;
   final stack = <List<int>>[
-    [0, points.length - 1]
+    [0, points.length - 1],
   ];
   while (stack.isNotEmpty) {
     final range = stack.removeLast();
@@ -397,7 +403,8 @@ List<_Point> _simplify(List<_Point> points, double tolerance) {
 /// gesetzt wird.
 List<_Point> _round(List<_Point> points, int passes) {
   var current = points;
-  final closed = points.length > 3 &&
+  final closed =
+      points.length > 3 &&
       points.first.dx == points.last.dx &&
       points.first.dy == points.last.dy;
   for (var pass = 0; pass < passes; pass++) {

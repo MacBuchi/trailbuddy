@@ -24,19 +24,23 @@ const kTrailMarkSize = 14.0;
 /// Die Startmarke: Scheibe mit Pfeil, gedreht auf [bearingDeg] (0 = Nord,
 /// im Uhrzeigersinn wie ein Kompass).
 class TrailStartDot extends StatelessWidget {
-  const TrailStartDot({super.key, required this.color, required this.bearingDeg});
+  const TrailStartDot({
+    super.key,
+    required this.color,
+    required this.bearingDeg,
+  });
 
   final Color color;
   final double bearingDeg;
 
   @override
   Widget build(BuildContext context) => Semantics(
-        label: context.l10n.mapTrailStart,
-        child: CustomPaint(
-          size: const Size.square(kTrailMarkSize),
-          painter: _StartPainter(color, bearingDeg),
-        ),
-      );
+    label: context.l10n.mapTrailStart,
+    child: CustomPaint(
+      size: const Size.square(kTrailMarkSize),
+      painter: _StartPainter(color, bearingDeg),
+    ),
+  );
 }
 
 class _StartPainter extends CustomPainter {
@@ -66,5 +70,6 @@ class _StartPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_StartPainter old) => old.color != color || old.bearingDeg != bearingDeg;
+  bool shouldRepaint(_StartPainter old) =>
+      old.color != color || old.bearingDeg != bearingDeg;
 }

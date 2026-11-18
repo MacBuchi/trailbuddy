@@ -23,16 +23,22 @@ import '../fakes/test_app.dart';
 /// über dem Tooltip (den der IconButton selbst einzieht).
 Finder _button(Finder f) {
   final below = find.descendant(of: f, matching: find.byType(IconButton));
-  return below.evaluate().isNotEmpty ? below.first : find.ancestor(of: f, matching: find.byType(IconButton)).first;
+  return below.evaluate().isNotEmpty
+      ? below.first
+      : find.ancestor(of: f, matching: find.byType(IconButton)).first;
 }
 
-ButtonStyle _style(WidgetTester tester, Finder f) => tester.widget<IconButton>(_button(f)).style!;
+ButtonStyle _style(WidgetTester tester, Finder f) =>
+    tester.widget<IconButton>(_button(f)).style!;
 
 ButtonStyle _railStyle(WidgetTester tester, String key) =>
     tester.widget<IconButton>(find.byKey(ValueKey(key))).style!;
 
 void main() {
-  for (final (mode, palette) in [('light', AppColors.light), ('dark', AppColors.dark)]) {
+  for (final (mode, palette) in [
+    ('light', AppColors.light),
+    ('dark', AppColors.dark),
+  ]) {
     testWidgets('Knöpfe und Leiste ($mode)', (tester) async {
       tester.view.physicalSize = const Size(1080, 2220);
       tester.view.devicePixelRatio = 3;
@@ -52,12 +58,26 @@ void main() {
       for (final f in [idea, layers, offline, locate]) {
         expect(tester.getSize(_button(f)), const Size.square(kMapButtonSize));
       }
-      expect(tester.getSize(_button(record)), const Size.square(kRecordButtonSize));
-      final ys = [layers, offline, locate, record].map((f) => tester.getCenter(f).dy).toList();
+      expect(
+        tester.getSize(_button(record)),
+        const Size.square(kRecordButtonSize),
+      );
+      final ys = [
+        layers,
+        offline,
+        locate,
+        record,
+      ].map((f) => tester.getCenter(f).dy).toList();
       expect(ys, orderedEquals([...ys]..sort()));
-      expect(_style(tester, record).backgroundColor!.resolve({}), AppColors.brand);
+      expect(
+        _style(tester, record).backgroundColor!.resolve({}),
+        AppColors.brand,
+      );
       expect(find.byKey(const ValueKey('offline-tool-rail')), findsNothing);
-      expect(tester.widget<MapView>(find.byType(MapView)).config.bottomLeftInset, 0);
+      expect(
+        tester.widget<MapView>(find.byType(MapView)).config.bottomLeftInset,
+        0,
+      );
 
       // Die Glühbirne oben rechts (#180), abgesetzt von der Spalte.
       final map = tester.getRect(find.byType(MapScreen));
@@ -68,65 +88,127 @@ void main() {
 
       // Ein Banner oben hält Abstand zu ihr: Das X des Filters bleibt
       // frei, mit mindestens 8 dp Luft.
-      ProviderScope.containerOf(tester.element(find.byType(MapScreen)))
-          .read(trailListFilterProvider.notifier)
-          .state = const TrailListFilter(maxGrade: 2);
+      ProviderScope.containerOf(
+        tester.element(find.byType(MapScreen)),
+      ).read(trailListFilterProvider.notifier).state = const TrailListFilter(
+        maxGrade: 2,
+      );
       await settle(tester);
       // Die Fläche der Karte, nicht das Widget samt Rand (`margin`).
-      final banner = tester.getRect(find
-          .descendant(of: find.byKey(const ValueKey('map-filter-banner')), matching: find.byType(Material))
-          .first);
-      final reset = tester.getRect(find.byKey(const ValueKey('map-filter-reset')));
-      expect(banner.top, lessThan(bulb.bottom), reason: 'nebeneinander, nicht untereinander');
+      final banner = tester.getRect(
+        find
+            .descendant(
+              of: find.byKey(const ValueKey('map-filter-banner')),
+              matching: find.byType(Material),
+            )
+            .first,
+      );
+      final reset = tester.getRect(
+        find.byKey(const ValueKey('map-filter-reset')),
+      );
+      expect(
+        banner.top,
+        lessThan(bulb.bottom),
+        reason: 'nebeneinander, nicht untereinander',
+      );
       expect(bulb.left - banner.right, greaterThanOrEqualTo(8));
       expect(bulb.left - reset.right, greaterThanOrEqualTo(8));
-      ProviderScope.containerOf(tester.element(find.byType(MapScreen)))
-          .read(trailListFilterProvider.notifier)
-          .state = const TrailListFilter();
+      ProviderScope.containerOf(
+        tester.element(find.byType(MapScreen)),
+      ).read(trailListFilterProvider.notifier).state = const TrailListFilter();
       await settle(tester);
 
       // Kartenebenen: das Blatt direkt, keine Leiste (#190).
       await tester.tap(layers);
       await settle(tester);
-      expect(find.byKey(const ValueKey('official-trails-switch')), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('official-trails-switch')),
+        findsOneWidget,
+      );
       expect(find.byKey(const ValueKey('offline-tool-rail')), findsNothing);
-      await tester.tapAt(Offset(map.center.dx, map.top + 20)); // Blatt schließen
+      await tester.tapAt(
+        Offset(map.center.dx, map.top + 20),
+      ); // Blatt schließen
       await settle(tester);
-      expect(find.byKey(const ValueKey('official-trails-switch')), findsNothing);
+      expect(
+        find.byKey(const ValueKey('official-trails-switch')),
+        findsNothing,
+      );
 
       // Offline-Karten auf: links die Leiste, der Knopf rechts trägt die Marke.
       await tester.tap(offline);
       await settle(tester);
-      expect(_style(tester, offline).side!.resolve({})!.color, palette.brandMark);
-      final rail = tester.getRect(find.byKey(const ValueKey('offline-tool-rail')));
+      expect(
+        _style(tester, offline).side!.resolve({})!.color,
+        palette.brandMark,
+      );
+      final rail = tester.getRect(
+        find.byKey(const ValueKey('offline-tool-rail')),
+      );
       expect(rail.width, kRailWidth);
-      expect(tester.getSize(find.byKey(const ValueKey('area-draw-add'))), const Size.square(kMapButtonSize));
+      expect(
+        tester.getSize(find.byKey(const ValueKey('area-draw-add'))),
+        const Size.square(kMapButtonSize),
+      );
       // Maßstab und Quelle rücken neben die Leiste.
-      expect(tester.widget<MapView>(find.byType(MapView)).config.bottomLeftInset,
-          greaterThanOrEqualTo(kRailWidth));
+      expect(
+        tester.widget<MapView>(find.byType(MapView)).config.bottomLeftInset,
+        greaterThanOrEqualTo(kRailWidth),
+      );
 
       // Nichts im Entwurf: Speichern ist aus, nicht Lime.
-      expect(_railStyle(tester, 'area-draw-save').backgroundColor?.resolve({WidgetState.disabled}), isNot(AppColors.brand));
+      expect(
+        _railStyle(
+          tester,
+          'area-draw-save',
+        ).backgroundColor?.resolve({WidgetState.disabled}),
+        isNot(AppColors.brand),
+      );
 
       // Ein Werkzeug scharf: helle Fläche (Gegenhelligkeit der Leiste)
       // und oben die Zeile, was der Strich tut.
       await tester.tap(find.byKey(const ValueKey('area-draw-add')));
       await settle(tester);
-      expect(_railStyle(tester, 'area-draw-add').backgroundColor!.resolve({WidgetState.selected}), palette.text);
-      expect(_railStyle(tester, 'area-draw-add').foregroundColor!.resolve({WidgetState.selected}), palette.ground);
+      expect(
+        _railStyle(
+          tester,
+          'area-draw-add',
+        ).backgroundColor!.resolve({WidgetState.selected}),
+        palette.text,
+      );
+      expect(
+        _railStyle(
+          tester,
+          'area-draw-add',
+        ).foregroundColor!.resolve({WidgetState.selected}),
+        palette.ground,
+      );
       expect(find.byKey(const ValueKey('area-draw-hint')), findsOneWidget);
 
       // Etwas im Entwurf: Speichern wird Lime, der Zähler steht darunter.
       ProviderScope.containerOf(tester.element(find.byType(MapScreen)))
           .read(areaDraftProvider.notifier)
-          .addAll(tilesInBounds(const AreaBounds(south: 48, west: 9, north: 48.01, east: 9.01))!);
+          .addAll(
+            tilesInBounds(
+              const AreaBounds(south: 48, west: 9, north: 48.01, east: 9.01),
+            )!,
+          );
       await settle(tester);
-      expect(_railStyle(tester, 'area-draw-save').backgroundColor!.resolve({}), AppColors.brand);
+      expect(
+        _railStyle(tester, 'area-draw-save').backgroundColor!.resolve({}),
+        AppColors.brand,
+      );
       final save = tester.getRect(find.byKey(const ValueKey('area-draw-save')));
-      final count = tester.getRect(find.byKey(const ValueKey('area-draw-count')));
+      final count = tester.getRect(
+        find.byKey(const ValueKey('area-draw-count')),
+      );
       expect(count.top, greaterThanOrEqualTo(save.bottom));
       expect(count.top - save.bottom, lessThan(8));
-      expect((tester.widget(find.byKey(const ValueKey('area-draw-count'))) as Text).data, startsWith('+'));
+      expect(
+        (tester.widget(find.byKey(const ValueKey('area-draw-count'))) as Text)
+            .data,
+        startsWith('+'),
+      );
     });
   }
 }

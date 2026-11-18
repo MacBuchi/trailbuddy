@@ -48,7 +48,12 @@ Future<void> main() async {
   // liefert die Historie nichts. Dieselbe Bedingung wie der Sink oben —
   // ein Testlauf von der eigenen Maschine schreibt nichts.
   if (!kIsWeb || reportsFromHost(Uri.base.host)) {
-    unawaited(ExitReporter(exits: ExitInfoRepository(), reports: reports).reportPending());
+    unawaited(
+      ExitReporter(
+        exits: ExitInfoRepository(),
+        reports: reports,
+      ).reportPending(),
+    );
   }
 
   // Auch nicht gefangene Fehler melden. Android Vitals sieht davon nur die
@@ -96,8 +101,10 @@ Future<void> main() async {
 
   registerFontLicenses();
 
-  runApp(ProviderScope(
-    overrides: [settingsProvider.overrideWithValue(settings)],
-    child: const TrailBuddyApp(),
-  ));
+  runApp(
+    ProviderScope(
+      overrides: [settingsProvider.overrideWithValue(settings)],
+      child: const TrailBuddyApp(),
+    ),
+  );
 }

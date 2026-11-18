@@ -31,17 +31,25 @@ class IdbAreaStore implements AreaStore {
   @override
   Future<List<StoredArea>> list() async {
     try {
-      final text = await _db.readStore(kAreaIndexStore, (s) => s.getObject(_indexKey));
+      final text = await _db.readStore(
+        kAreaIndexStore,
+        (s) => s.getObject(_indexKey),
+      );
       if (text is! String) return const [];
-      return [for (final j in jsonDecode(text) as List) StoredArea.fromJson(j as Map<String, dynamic>)];
+      return [
+        for (final j in jsonDecode(text) as List)
+          StoredArea.fromJson(j as Map<String, dynamic>),
+      ];
     } catch (_) {
       return const [];
     }
   }
 
   @override
-  Future<void> saveIndex(List<StoredArea> areas) => _db.writeStore(kAreaIndexStore,
-      (s) => s.put(jsonEncode([for (final a in areas) a.toJson()]), _indexKey));
+  Future<void> saveIndex(List<StoredArea> areas) => _db.writeStore(
+    kAreaIndexStore,
+    (s) => s.put(jsonEncode([for (final a in areas) a.toJson()]), _indexKey),
+  );
 
   @override
   Future<void> putArchive(String id, Uint8List bytes) =>
@@ -52,7 +60,10 @@ class IdbAreaStore implements AreaStore {
 
   @override
   Future<Uint8List?> readArchive(String id) async {
-    final value = await _db.readStore(kAreaArchiveStore, (s) => s.getObject(id));
+    final value = await _db.readStore(
+      kAreaArchiveStore,
+      (s) => s.getObject(id),
+    );
     if (value is Uint8List) return value;
     if (value is List<int>) return Uint8List.fromList(value);
     return null;
@@ -71,7 +82,10 @@ class IdbAreaStore implements AreaStore {
 
   @override
   Future<Uint8List?> readHeights(String id) async {
-    final value = await _db.readStore(kAreaArchiveStore, (s) => s.getObject(_heightsKey(id)));
+    final value = await _db.readStore(
+      kAreaArchiveStore,
+      (s) => s.getObject(_heightsKey(id)),
+    );
     if (value is Uint8List) return value;
     if (value is List<int>) return Uint8List.fromList(value);
     return null;
@@ -89,7 +103,10 @@ class IdbAreaStore implements AreaStore {
 
   @override
   Future<Uint8List?> readWays(String id) async {
-    final value = await _db.readStore(kAreaArchiveStore, (s) => s.getObject(_waysKey(id)));
+    final value = await _db.readStore(
+      kAreaArchiveStore,
+      (s) => s.getObject(_waysKey(id)),
+    );
     if (value is Uint8List) return value;
     if (value is List<int>) return Uint8List.fromList(value);
     return null;
@@ -106,7 +123,10 @@ class IdbAreaStore implements AreaStore {
 
   @override
   Future<String?> readPoiFile(String name) async {
-    final value = await _db.readStore(kAreaPoiStore, (s) => s.getObject(_poiKey(name)));
+    final value = await _db.readStore(
+      kAreaPoiStore,
+      (s) => s.getObject(_poiKey(name)),
+    );
     return value is String ? value : null;
   }
 
@@ -127,14 +147,20 @@ class IdbAreaStore implements AreaStore {
 
   @override
   Future<String?> readLegacyPoiFile(String id, String name) async {
-    final value = await _db.readStore(kAreaPoiStore, (s) => s.getObject('$id/$name'));
+    final value = await _db.readStore(
+      kAreaPoiStore,
+      (s) => s.getObject('$id/$name'),
+    );
     return value is String ? value : null;
   }
 
   @override
   Future<void> delete(String id) async {
     final areas = await list();
-    await saveIndex([for (final a in areas) if (a.id != id) a]);
+    await saveIndex([
+      for (final a in areas)
+        if (a.id != id) a,
+    ]);
     await deleteLegacy(id);
   }
 
@@ -146,7 +172,9 @@ class IdbAreaStore implements AreaStore {
     // Die Orte des Altbestands lagen unter `<id>/…`.
     final prefix = '$id/';
     await _db.writeStore(kAreaPoiStore, (s) async {
-      for (final key in await s.getAllKeys(KeyRange.bound(prefix, '$prefix\uffff'))) {
+      for (final key in await s.getAllKeys(
+        KeyRange.bound(prefix, '$prefix\uffff'),
+      )) {
         await s.delete(key);
       }
     });
@@ -155,21 +183,35 @@ class IdbAreaStore implements AreaStore {
   @override
   Future<List<StoredOverview>> overviews() async {
     try {
-      final text = await _db.readStore(kAreaIndexStore, (s) => s.getObject(_overviewIndexKey));
+      final text = await _db.readStore(
+        kAreaIndexStore,
+        (s) => s.getObject(_overviewIndexKey),
+      );
       if (text is! String) return const [];
-      return [for (final j in jsonDecode(text) as List) StoredOverview.fromJson(j as Map<String, dynamic>)];
+      return [
+        for (final j in jsonDecode(text) as List)
+          StoredOverview.fromJson(j as Map<String, dynamic>),
+      ];
     } catch (_) {
       return const [];
     }
   }
 
   Future<void> _saveOverviews(List<StoredOverview> all) => _db.writeStore(
-      kAreaIndexStore, (s) => s.put(jsonEncode([for (final o in all) o.toJson()]), _overviewIndexKey));
+    kAreaIndexStore,
+    (s) =>
+        s.put(jsonEncode([for (final o in all) o.toJson()]), _overviewIndexKey),
+  );
 
   @override
   Future<void> putOverview(StoredOverview overview, Uint8List bytes) async {
-    await _db.writeStore(kAreaArchiveStore, (s) => s.put(bytes, _overviewKey(overview.region)));
-    await _saveOverviews(replaceOverview(await overviews(), overview.region, overview));
+    await _db.writeStore(
+      kAreaArchiveStore,
+      (s) => s.put(bytes, _overviewKey(overview.region)),
+    );
+    await _saveOverviews(
+      replaceOverview(await overviews(), overview.region, overview),
+    );
   }
 
   @override
@@ -177,7 +219,10 @@ class IdbAreaStore implements AreaStore {
 
   @override
   Future<Uint8List?> readOverview(String region) async {
-    final value = await _db.readStore(kAreaArchiveStore, (s) => s.getObject(_overviewKey(region)));
+    final value = await _db.readStore(
+      kAreaArchiveStore,
+      (s) => s.getObject(_overviewKey(region)),
+    );
     if (value is Uint8List) return value;
     if (value is List<int>) return Uint8List.fromList(value);
     return null;
@@ -186,6 +231,9 @@ class IdbAreaStore implements AreaStore {
   @override
   Future<void> deleteOverview(String region) async {
     await _saveOverviews(replaceOverview(await overviews(), region));
-    await _db.writeStore(kAreaArchiveStore, (s) => s.delete(_overviewKey(region)));
+    await _db.writeStore(
+      kAreaArchiveStore,
+      (s) => s.delete(_overviewKey(region)),
+    );
   }
 }

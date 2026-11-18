@@ -38,8 +38,10 @@ import 'package:latlong2/latlong.dart';
   }
   final t = seg[i] == 0 ? 0.0 : (rest / seg[i]).clamp(0.0, 1.0);
   final a = points[i], b = points[i + 1];
-  final point = LatLng(a.latitude + (b.latitude - a.latitude) * t,
-      a.longitude + (b.longitude - a.longitude) * t);
+  final point = LatLng(
+    a.latitude + (b.latitude - a.latitude) * t,
+    a.longitude + (b.longitude - a.longitude) * t,
+  );
   var angle = math.atan2(proj[i + 1].y - proj[i].y, proj[i + 1].x - proj[i].x);
   // Nie auf dem Kopf: Zeigt das Stück nach links, liest man es andersherum.
   if (angle > math.pi / 2) angle -= math.pi;

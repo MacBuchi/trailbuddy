@@ -12,18 +12,24 @@ import '../routing/route_profile.dart';
 /// (`Ride.profile`).
 class RiderProfileNotifier extends Notifier<RiderProfile> {
   @override
-  RiderProfile build() => RiderProfile.parse(ref.read(settingsProvider).riderProfile);
+  RiderProfile build() =>
+      RiderProfile.parse(ref.read(settingsProvider).riderProfile);
 
   void set(RiderProfile profile) {
     state = profile;
     ref
         .read(settingsProvider)
         .setRiderProfile(profile.name)
-        .catchError((Object e, StackTrace s) => logError('Fahrerprofil merken', e, s));
+        .catchError(
+          (Object e, StackTrace s) => logError('Fahrerprofil merken', e, s),
+        );
   }
 }
 
-final riderProfileProvider = NotifierProvider<RiderProfileNotifier, RiderProfile>(RiderProfileNotifier.new);
+final riderProfileProvider =
+    NotifierProvider<RiderProfileNotifier, RiderProfile>(
+      RiderProfileNotifier.new,
+    );
 
 class MyProfileNotifier extends AsyncNotifier<Profile?>
     with ReadAfterWrite<Profile?> {
@@ -45,5 +51,6 @@ class MyProfileNotifier extends AsyncNotifier<Profile?>
   }
 }
 
-final myProfileProvider =
-    AsyncNotifierProvider<MyProfileNotifier, Profile?>(MyProfileNotifier.new);
+final myProfileProvider = AsyncNotifierProvider<MyProfileNotifier, Profile?>(
+  MyProfileNotifier.new,
+);

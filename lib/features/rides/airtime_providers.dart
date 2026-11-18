@@ -22,7 +22,8 @@ import 'ride_providers.dart';
 class AirtimeShareNotifier extends Notifier<bool> {
   @override
   bool build() =>
-      ref.watch(sensorLogProvider) && ref.read(settingsProvider).airtimeShareEnabled;
+      ref.watch(sensorLogProvider) &&
+      ref.read(settingsProvider).airtimeShareEnabled;
 
   /// Einschalten teilt beim nächsten Abgleich (sofort angestoßen).
   /// Ausschalten löscht das Geteilte auf dem Server — und scheitert
@@ -37,8 +38,9 @@ class AirtimeShareNotifier extends Notifier<bool> {
   }
 }
 
-final airtimeShareProvider =
-    NotifierProvider<AirtimeShareNotifier, bool>(AirtimeShareNotifier.new);
+final airtimeShareProvider = NotifierProvider<AirtimeShareNotifier, bool>(
+  AirtimeShareNotifier.new,
+);
 
 /// Was ich sehen darf: alle sichtbaren Bestwerte und Zähler. null, solange
 /// ich nicht teile oder nicht angemeldet bin.
@@ -51,15 +53,19 @@ class AirtimeBoard {
   AirtimeCounter? counterOf(String userId) =>
       counters.where((c) => c.userId == userId).firstOrNull;
 
-  TrailAirtime? bestOf(String userId, String trailId) =>
-      bests.where((b) => b.userId == userId && b.trailId == trailId).firstOrNull;
+  TrailAirtime? bestOf(String userId, String trailId) => bests
+      .where((b) => b.userId == userId && b.trailId == trailId)
+      .firstOrNull;
 }
 
 final airtimeBoardProvider = FutureProvider<AirtimeBoard?>((ref) async {
   if (!ref.watch(airtimeShareProvider)) return null;
   if (ref.watch(currentUserIdProvider) == null) return null;
   final repo = ref.read(airtimeRepositoryProvider);
-  final (bests, counters) = await (repo.fetchBests(), repo.fetchCounters()).wait;
+  final (bests, counters) = await (
+    repo.fetchBests(),
+    repo.fetchCounters(),
+  ).wait;
   return AirtimeBoard(bests: bests, counters: counters);
 });
 
@@ -103,12 +109,25 @@ class AirtimeSync {
       final measured = <MeasuredRide>[
         for (final r in rides)
           if (!r.planned && !r.imported)
-            (ride: r, log: await store.airtimeLog(r.id), measured: await store.sensorLogPath(r.id) != null),
+            (
+              ride: r,
+              log: await store.airtimeLog(r.id),
+              measured: await store.sensorLogPath(r.id) != null,
+            ),
       ];
-      final share = computeAirtimeShare(rides: measured, trails: trails, now: now());
+      final share = computeAirtimeShare(
+        rides: measured,
+        trails: trails,
+        now: now(),
+      );
       final repo = _ref.read(airtimeRepositoryProvider);
       await repo.uploadBests(share.bests);
-      await repo.setCounter(airDs: share.airDs, jumps: share.jumps, asOf: now(), titles: share.titles);
+      await repo.setCounter(
+        airDs: share.airDs,
+        jumps: share.jumps,
+        asOf: now(),
+        titles: share.titles,
+      );
       _ref.invalidate(airtimeBoardProvider);
     } catch (e, s) {
       // Kein Ausgangskorb: Die Fahrten bleiben auf dem Gerät, der nächste
@@ -138,15 +157,21 @@ class _AirtimeSyncTriggerState extends ConsumerState<AirtimeSyncTrigger> {
   @override
   void initState() {
     super.initState();
-    if (ref.read(airtimeShareProvider)) unawaited(ref.read(airtimeSyncProvider).run());
+    if (ref.read(airtimeShareProvider)) {
+      unawaited(ref.read(airtimeSyncProvider).run());
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     ref.listen(ridesProvider, (prev, next) {
-      if (!next.hasValue || identical(prev?.valueOrNull, next.valueOrNull)) return;
+      if (!next.hasValue || identical(prev?.valueOrNull, next.valueOrNull)) {
+        return;
+      }
       if (prev?.hasValue != true) return; // der erste Stand: schon beim Start
-      if (ref.read(airtimeShareProvider)) unawaited(ref.read(airtimeSyncProvider).run());
+      if (ref.read(airtimeShareProvider)) {
+        unawaited(ref.read(airtimeSyncProvider).run());
+      }
     });
     return widget.child;
   }

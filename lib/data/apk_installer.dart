@@ -10,8 +10,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 /// es braucht kein `INSTALL_PACKAGES` (Signatur-Berechtigung, PilzBuddy #88).
 class ApkInstaller {
   const ApkInstaller({MethodChannel? channel})
-      : _channel =
-            channel ?? const MethodChannel('de.mcbuchi.trailbuddy/apk_install');
+    : _channel =
+          channel ?? const MethodChannel('de.mcbuchi.trailbuddy/apk_install');
 
   final MethodChannel _channel;
 
@@ -49,8 +49,7 @@ class ApkInstaller {
   Future<bool> install(String path) async {
     if (!supported) return false;
     try {
-      return await _channel
-              .invokeMethod<bool>('install', {'path': path}) ??
+      return await _channel.invokeMethod<bool>('install', {'path': path}) ??
           false;
     } catch (_) {
       return false;
@@ -58,5 +57,6 @@ class ApkInstaller {
   }
 }
 
-final apkInstallerProvider =
-    Provider<ApkInstaller>((ref) => const ApkInstaller());
+final apkInstallerProvider = Provider<ApkInstaller>(
+  (ref) => const ApkInstaller(),
+);

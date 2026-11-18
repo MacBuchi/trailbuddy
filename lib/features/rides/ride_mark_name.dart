@@ -34,7 +34,8 @@ MarkNameSuggestion? suggestMarkName({
   if (folded.isEmpty || folded.last.kind != RideMarkKind.end) return null;
   final kept = [
     for (final p in points)
-      if (p.accuracyM <= kSplitMaxAccuracyM) TrackPoint(p.lat, p.lng, time: p.at),
+      if (p.accuracyM <= kSplitMaxAccuracyM)
+        TrackPoint(p.lat, p.lng, time: p.at),
   ];
   final ranges = markedRanges(kept, folded);
   if (ranges.isEmpty) return null;
@@ -63,7 +64,9 @@ MarkNameSuggestion? suggestMarkName({
     final name = r.name;
     if (name == null) continue;
     final other = proj.line(latLng.sublist(r.from, r.to + 1));
-    if (sameStretch(xy, other)) return (name: name, source: MarkNameSource.earlierInRide);
+    if (sameStretch(xy, other)) {
+      return (name: name, source: MarkNameSource.earlierInRide);
+    }
   }
   return null;
 }

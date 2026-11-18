@@ -21,7 +21,8 @@ import '../fakes/graph_tiles.dart';
 
 void main() {
   test('backen, packen, lesen und zusammensetzen wie auf der VM', () {
-    final (tiles, nodes, edges, points, gainCm, cost) = routingTileFingerprint();
+    final (tiles, nodes, edges, points, gainCm, cost) =
+        routingTileFingerprint();
     expect((tiles, nodes, edges, points), (_vm.$1, _vm.$2, _vm.$3, _vm.$4));
     // Höhen und Kosten rechnen über sin/log in JavaScript — genau bis auf
     // die letzte Stelle ist dort nicht versprochen.
@@ -40,20 +41,52 @@ void main() {
   LatLng at(double x, double y) => proj.latLng(math.Point(o.x + x, o.y + y));
   final lines = [
     for (var i = 0; i <= 10; i++) ...[
-      WayLine(cls: WayClass.forstweg, oneway: false, points: [at(i * 600.0 - 3000, -3000), at(i * 600.0 - 2970, 310), at(i * 600.0 - 3000, 3000)]),
-      WayLine(cls: WayClass.wanderweg, oneway: false, points: [at(-3000, i * 600.0 - 3000), at(290, i * 600.0 - 2980), at(3000, i * 600.0 - 3000)]),
+      WayLine(
+        cls: WayClass.forstweg,
+        oneway: false,
+        points: [
+          at(i * 600.0 - 3000, -3000),
+          at(i * 600.0 - 2970, 310),
+          at(i * 600.0 - 3000, 3000),
+        ],
+      ),
+      WayLine(
+        cls: WayClass.wanderweg,
+        oneway: false,
+        points: [
+          at(-3000, i * 600.0 - 3000),
+          at(290, i * 600.0 - 2980),
+          at(3000, i * 600.0 - 3000),
+        ],
+      ),
     ],
-    WayLine(cls: WayClass.nebenstrasse, oneway: false, points: [at(-2900, -2810), at(2890, 2900)]),
+    WayLine(
+      cls: WayClass.nebenstrasse,
+      oneway: false,
+      points: [at(-2900, -2810), at(2890, 2900)],
+    ),
   ];
   final roads = roadTilesOf(lines);
-  final heights = heightTilesOf([for (final r in roads) r.tile], (p) => 40 + 30 * math.sin(proj.xy(p).x / 400));
+  final heights = heightTilesOf([
+    for (final r in roads) r.tile,
+  ], (p) => 40 + 30 * math.sin(proj.xy(p).x / 400));
   final pieces = bakeTiles(roads: roads, heights: heights);
-  final g = stitchPieces([for (final p in pieces) unpackPiece(p.bytes)!], lat0).graph;
-  final s = g.nearestNode(proj.xy(at(-3000, -3000)), 5)!, t = g.nearestNode(proj.xy(at(3000, 3000)), 5)!;
+  final g = stitchPieces([
+    for (final p in pieces) unpackPiece(p.bytes)!,
+  ], lat0).graph;
+  final s = g.nearestNode(proj.xy(at(-3000, -3000)), 5)!,
+      t = g.nearestNode(proj.xy(at(3000, 3000)), 5)!;
   final cost = dijkstra(g, s, RiderProfile.bio, target: t).costTo(t)!;
   final gainCm = g.edges.fold<int>(0, (a, e) => a + (e.gain * 100).round());
   final points = g.edges.fold<int>(0, (a, e) => a + e.points.length);
-  return (roads.length, g.nodes.length, g.edges.length, points, gainCm, (cost * 1000).roundToDouble() / 1000);
+  return (
+    roads.length,
+    g.nodes.length,
+    g.edges.length,
+    points,
+    gainCm,
+    (cost * 1000).roundToDouble() / 1000,
+  );
 }
 
 /// Auf der VM gerechnet (`routingTileFingerprint` aus einem VM-Test).

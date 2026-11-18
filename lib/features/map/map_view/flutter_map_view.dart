@@ -48,7 +48,11 @@ class _FlutterMapViewState extends ConsumerState<FlutterMapView>
     return MapViewCamera(
       center: camera.center,
       bounds: MapViewBounds(
-          west: b.west, east: b.east, south: b.south, north: b.north),
+        west: b.west,
+        east: b.east,
+        south: b.south,
+        north: b.north,
+      ),
       size: camera.nonRotatedSize,
     );
   }
@@ -92,14 +96,26 @@ class _FlutterMapViewState extends ConsumerState<FlutterMapView>
   }
 
   @override
-  void fit(List<LatLng> points, {required double padding, required double maxZoom, double bottomInset = 0}) {
+  void fit(
+    List<LatLng> points, {
+    required double padding,
+    required double maxZoom,
+    double bottomInset = 0,
+  }) {
     // Eingepasst wird genordet — gedreht sind nur die Fixe der Navigation.
     if (_mapController.camera.rotation != 0) _mapController.rotate(0);
-    _mapController.fitCamera(CameraFit.bounds(
-      bounds: LatLngBounds.fromPoints(points),
-      padding: EdgeInsets.fromLTRB(padding, padding, padding, padding + bottomInset),
-      maxZoom: maxZoom,
-    ));
+    _mapController.fitCamera(
+      CameraFit.bounds(
+        bounds: LatLngBounds.fromPoints(points),
+        padding: EdgeInsets.fromLTRB(
+          padding,
+          padding,
+          padding,
+          padding + bottomInset,
+        ),
+        maxZoom: maxZoom,
+      ),
+    );
   }
 
   @override
@@ -121,15 +137,18 @@ class _FlutterMapViewState extends ConsumerState<FlutterMapView>
     // Liefert die Online-Karte nur gesehene Kacheln (Browser, #155: kein
     // frisches Manifest), liegt die Übersicht darunter und scheint durch,
     // wo nichts liegt.
-    final showBaseMap = online == null ||
+    final showBaseMap =
+        online == null ||
         seenOnlyProviders(online.tileProviders) ||
         ref.watch(noConnectivityProvider);
-    final baseStyle =
-        showBaseMap ? ref.watch(baseMapStyleProvider).valueOrNull : null;
+    final baseStyle = showBaseMap
+        ? ref.watch(baseMapStyleProvider).valueOrNull
+        : null;
     // Darüber die gespeicherten Übersichten anderer Regionen (#220
     // Schritt 4), nach derselben Regel.
-    final regionOverviews =
-        showBaseMap ? ref.watch(areaOverviewStyleProvider).valueOrNull : null;
+    final regionOverviews = showBaseMap
+        ? ref.watch(areaOverviewStyleProvider).valueOrNull
+        : null;
     // Die gespeicherten Bereiche IMMER, zuoberst (#82) — dieselbe Regel
     // wie in der MapLibre-Engine, Begründung in area_providers.dart.
     final areas = ref.watch(areaMapStyleProvider).valueOrNull;
@@ -161,8 +180,8 @@ class _FlutterMapViewState extends ConsumerState<FlutterMapView>
           config.handleTap(
             MapTap(
               point: latLng,
-              screenPoint: tapPosition.relative ??
-                  camera.latLngToScreenOffset(latLng),
+              screenPoint:
+                  tapPosition.relative ?? camera.latLngToScreenOffset(latLng),
               camera: _cameraOf(camera),
             ),
             layers,
@@ -170,11 +189,14 @@ class _FlutterMapViewState extends ConsumerState<FlutterMapView>
         },
         onLongPress: (tapPosition, latLng) {
           final camera = _mapController.camera;
-          config.onLongPress?.call(MapTap(
-            point: latLng,
-            screenPoint: tapPosition.relative ?? camera.latLngToScreenOffset(latLng),
-            camera: _cameraOf(camera),
-          ));
+          config.onLongPress?.call(
+            MapTap(
+              point: latLng,
+              screenPoint:
+                  tapPosition.relative ?? camera.latLngToScreenOffset(latLng),
+              camera: _cameraOf(camera),
+            ),
+          );
         },
         onMapReady: () => _reportIdle(_mapController.camera),
         onMapEvent: (event) {
@@ -240,29 +262,36 @@ class _FlutterMapViewState extends ConsumerState<FlutterMapView>
         // MapLibre. Die Zahlen gleich dazu, damit Wege und Trails sie
         // überdecken statt umgekehrt.
         if (layers.contours case final contours?) ...[
-          PolylineLayer(polylines: [
-            for (final line in contours.lines)
-              Polyline(
-                points: line.points,
-                color: AppColors.contourLine
-                    .withValues(alpha: line.index ? kContourIndexOpacity : kContourOpacity),
-                strokeWidth: line.index ? kContourIndexWidth : kContourWidth,
-              ),
-          ]),
+          PolylineLayer(
+            polylines: [
+              for (final line in contours.lines)
+                Polyline(
+                  points: line.points,
+                  color: AppColors.contourLine.withValues(
+                    alpha: line.index ? kContourIndexOpacity : kContourOpacity,
+                  ),
+                  strokeWidth: line.index ? kContourIndexWidth : kContourWidth,
+                ),
+            ],
+          ),
           if (contours.labels.isNotEmpty)
             IgnorePointer(
-              child: MarkerLayer(markers: [
-                for (final label in contours.labels)
-                  Marker(
-                    point: label.point,
-                    width: 44,
-                    height: 20,
-                    child: Transform.rotate(
-                      angle: label.angleRadians,
-                      child: Center(child: ContourLabelText('${label.level}')),
+              child: MarkerLayer(
+                markers: [
+                  for (final label in contours.labels)
+                    Marker(
+                      point: label.point,
+                      width: 44,
+                      height: 20,
+                      child: Transform.rotate(
+                        angle: label.angleRadians,
+                        child: Center(
+                          child: ContourLabelText('${label.level}'),
+                        ),
+                      ),
                     ),
-                  ),
-              ]),
+                ],
+              ),
             ),
         ],
         if (ways != null)
@@ -286,31 +315,35 @@ class _FlutterMapViewState extends ConsumerState<FlutterMapView>
             maximumTileSubstitutionDifference: 0,
           ),
         if (layers.polygons.isNotEmpty)
-          PolygonLayer(polygons: [
-            for (final p in layers.polygons)
-              Polygon(
-                points: p.points,
-                holePointsList: p.holes.isEmpty ? null : p.holes,
-                color: p.fillColor,
-                borderColor: p.borderColor ?? Colors.transparent,
-                borderStrokeWidth: p.borderWidth,
-                // Kein Rand um die Löcher: Die gespeicherten Kacheln
-                // sollen hell sein, nicht umrahmt.
-                disableHolesBorder: true,
-              ),
-          ]),
+          PolygonLayer(
+            polygons: [
+              for (final p in layers.polygons)
+                Polygon(
+                  points: p.points,
+                  holePointsList: p.holes.isEmpty ? null : p.holes,
+                  color: p.fillColor,
+                  borderColor: p.borderColor ?? Colors.transparent,
+                  borderStrokeWidth: p.borderWidth,
+                  // Kein Rand um die Löcher: Die gespeicherten Kacheln
+                  // sollen hell sein, nicht umrahmt.
+                  disableHolesBorder: true,
+                ),
+            ],
+          ),
         if (layers.circles.isNotEmpty)
-          CircleLayer(circles: [
-            for (final c in layers.circles)
-              CircleMarker(
-                point: c.center,
-                radius: c.radiusM,
-                useRadiusInMeter: true,
-                color: c.fillColor,
-                borderColor: c.borderColor ?? Colors.transparent,
-                borderStrokeWidth: c.borderWidth,
-              ),
-          ]),
+          CircleLayer(
+            circles: [
+              for (final c in layers.circles)
+                CircleMarker(
+                  point: c.center,
+                  radius: c.radiusM,
+                  useRadiusInMeter: true,
+                  color: c.fillColor,
+                  borderColor: c.borderColor ?? Colors.transparent,
+                  borderStrokeWidth: c.borderWidth,
+                ),
+            ],
+          ),
         // Linien in Läufen gleicher Deckkraft, in ihrer Reihenfolge: Ein
         // durchsichtiger Lauf (die Route, #295) liegt als EINE Fläche in
         // `Opacity` — Rand und Linie erst deckend, dann zusammen
@@ -321,7 +354,8 @@ class _FlutterMapViewState extends ConsumerState<FlutterMapView>
               Opacity(opacity: run.first.opacity, child: _polylineLayer(run))
             else
               _polylineLayer(run),
-          if (run.any((l) => l.arrows != null)) IgnorePointer(child: _LineArrowsLayer(run)),
+          if (run.any((l) => l.arrows != null))
+            IgnorePointer(child: _LineArrowsLayer(run)),
         ],
         // Namen der Linien — flutter_map kann keinen Text entlang eines
         // Pfads, also einmal in der Mitte, gedreht (`lineLabelAnchor`).
@@ -330,17 +364,19 @@ class _FlutterMapViewState extends ConsumerState<FlutterMapView>
         if (layers.markers.isNotEmpty)
           // Kein Tipp am Marker: Die Fassade löst Tipps auf (map_view.dart).
           IgnorePointer(
-            child: MarkerLayer(markers: [
-              for (final m in layers.markers)
-                Marker(
-                  key: m.key,
-                  point: m.point,
-                  width: m.width,
-                  height: m.height,
-                  alignment: m.alignment,
-                  child: m.child,
-                ),
-            ]),
+            child: MarkerLayer(
+              markers: [
+                for (final m in layers.markers)
+                  Marker(
+                    key: m.key,
+                    point: m.point,
+                    width: m.width,
+                    height: m.height,
+                    alignment: m.alignment,
+                    child: m.child,
+                  ),
+              ],
+            ),
           ),
         // Steht links die Werkzeugleiste, rückt der Hinweis neben sie.
         Padding(
@@ -361,7 +397,6 @@ class _FlutterMapViewState extends ConsumerState<FlutterMapView>
     );
   }
 }
-
 
 /// Die Linien in Läufen: Ein neuer Lauf beginnt, wo Deckkraft oder
 /// Zeichnung (`pass`) wechselt, und nach einer Linie mit Pfeilen — die Pfeile liegen über
@@ -384,37 +419,43 @@ List<List<MapViewPolyline>> polylineRuns(List<MapViewPolyline> lines) {
 }
 
 Widget _polylineLayer(List<MapViewPolyline> lines) => PolylineLayer(
-      polylines: [
-        for (final line in lines)
-          if (line.width <= 0)
-            ...const <Polyline>[]
-          // Ein Rand mit eigenem Muster (S4/S5, #101) ist eine eigene,
-          // breitere Linie darunter — flutter_maps Rand teilt sonst
-          // das Muster der Linie.
-          else if (line.borderDash != null && line.borderColor != null && line.borderWidth > 0) ...[
-            Polyline(
-              points: line.points,
-              color: line.borderColor!,
-              strokeWidth: line.width + 2 * line.borderWidth,
-              pattern: StrokePattern.dashed(segments: line.borderDash!),
-            ),
-            Polyline(
-              points: line.points,
-              color: line.color,
-              strokeWidth: line.width,
-              pattern: line.dash == null ? const StrokePattern.solid() : StrokePattern.dashed(segments: line.dash!),
-            ),
-          ] else
-            Polyline(
-              points: line.points,
-              color: line.color,
-              strokeWidth: line.width,
-              pattern: line.dash == null ? const StrokePattern.solid() : StrokePattern.dashed(segments: line.dash!),
-              borderStrokeWidth: line.borderWidth,
-              borderColor: line.borderColor ?? Colors.transparent,
-            ),
-      ],
-    );
+  polylines: [
+    for (final line in lines)
+      if (line.width <= 0)
+        ...const <Polyline>[]
+      // Ein Rand mit eigenem Muster (S4/S5, #101) ist eine eigene,
+      // breitere Linie darunter — flutter_maps Rand teilt sonst
+      // das Muster der Linie.
+      else if (line.borderDash != null &&
+          line.borderColor != null &&
+          line.borderWidth > 0) ...[
+        Polyline(
+          points: line.points,
+          color: line.borderColor!,
+          strokeWidth: line.width + 2 * line.borderWidth,
+          pattern: StrokePattern.dashed(segments: line.borderDash!),
+        ),
+        Polyline(
+          points: line.points,
+          color: line.color,
+          strokeWidth: line.width,
+          pattern: line.dash == null
+              ? const StrokePattern.solid()
+              : StrokePattern.dashed(segments: line.dash!),
+        ),
+      ] else
+        Polyline(
+          points: line.points,
+          color: line.color,
+          strokeWidth: line.width,
+          pattern: line.dash == null
+              ? const StrokePattern.solid()
+              : StrokePattern.dashed(segments: line.dash!),
+          borderStrokeWidth: line.borderWidth,
+          borderColor: line.borderColor ?? Colors.transparent,
+        ),
+  ],
+);
 
 /// Pfeile entlang der Linien (#295) — flutter_map hat keine Symbole auf
 /// einem Pfad; gemalt wird je Bild aus der Kamera, wie MapLibre in festem
@@ -431,12 +472,11 @@ class _LineArrowsLayer extends StatelessWidget {
     return MobileLayerTransformer(
       child: CustomPaint(
         size: camera.size,
-        painter: _LineArrowsPainter(
-          [
-            for (final l in lines)
-              if (l.arrows case final a?) (a, [for (final p in l.points) camera.getOffsetFromOrigin(p)]),
-          ],
-        ),
+        painter: _LineArrowsPainter([
+          for (final l in lines)
+            if (l.arrows case final a?)
+              (a, [for (final p in l.points) camera.getOffsetFromOrigin(p)]),
+        ]),
       ),
     );
   }
@@ -463,7 +503,11 @@ class _LineArrowsPainter extends CustomPainter {
         if (!view.contains(c)) continue;
         final h = arrows.size / 3;
         final tip = c + a.dir * (h * 0.6), back = c - a.dir * (h * 0.6);
-        canvas.drawPoints(PointMode.polygon, [back - right * h, tip, back + right * h], paint);
+        canvas.drawPoints(PointMode.polygon, [
+          back - right * h,
+          tip,
+          back + right * h,
+        ], paint);
       }
     }
   }
@@ -476,7 +520,10 @@ class _LineArrowsPainter extends CustomPainter {
 /// nach einem halben Abstand, dann je [spacing]; mit der Richtung (Länge
 /// 1) des Stücks dort. Pur, damit ein Test ohne Karte zählen kann.
 @visibleForTesting
-List<({Offset at, Offset dir})> lineArrowPlaces(List<Offset> pts, double spacing) {
+List<({Offset at, Offset dir})> lineArrowPlaces(
+  List<Offset> pts,
+  double spacing,
+) {
   final out = <({Offset at, Offset dir})>[];
   if (pts.length < 2 || spacing <= 0) return out;
   var next = spacing / 2;
@@ -507,21 +554,23 @@ class _LineLabels extends StatelessWidget {
   Widget build(BuildContext context) {
     final camera = MapCamera.of(context);
     if (camera.zoom < kLineLabelMinZoom) return const SizedBox.shrink();
-    return MarkerLayer(markers: [
-      for (final l in lines)
-        if (l.label != null)
-          if (lineLabelAnchor(l.points) case final a?)
-            Marker(
-              point: a.point,
-              width: 12.0 * l.label!.length * 0.62 + 12,
-              height: 36,
-              child: Transform.rotate(
-                angle: a.angle,
-                // AUF der Mittellinie wie bei MapLibre (#181).
-                child: Center(child: _HaloText(l.label!)),
+    return MarkerLayer(
+      markers: [
+        for (final l in lines)
+          if (l.label != null)
+            if (lineLabelAnchor(l.points) case final a?)
+              Marker(
+                point: a.point,
+                width: 12.0 * l.label!.length * 0.62 + 12,
+                height: 36,
+                child: Transform.rotate(
+                  angle: a.angle,
+                  // AUF der Mittellinie wie bei MapLibre (#181).
+                  child: Center(child: _HaloText(l.label!)),
+                ),
               ),
-            ),
-    ]);
+      ],
+    );
   }
 }
 
@@ -533,21 +582,33 @@ class _HaloText extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const base = TextStyle(fontSize: 12, fontWeight: FontWeight.w600, height: 1);
-    return Stack(children: [
-      Text(text,
+    const base = TextStyle(
+      fontSize: 12,
+      fontWeight: FontWeight.w600,
+      height: 1,
+    );
+    return Stack(
+      children: [
+        Text(
+          text,
           maxLines: 1,
           style: base.copyWith(
-              foreground: Paint()
-                ..style = PaintingStyle.stroke
-                // Der Strich liegt zur Hälfte unter der Schrift.
-                ..strokeWidth = 2 * kLineLabelHaloWidth
-                ..color = Colors.white)),
-      Text(text, maxLines: 1, style: base.copyWith(color: const Color(0xFF131A16))),
-    ]);
+            foreground: Paint()
+              ..style = PaintingStyle.stroke
+              // Der Strich liegt zur Hälfte unter der Schrift.
+              ..strokeWidth = 2 * kLineLabelHaloWidth
+              ..color = Colors.white,
+          ),
+        ),
+        Text(
+          text,
+          maxLines: 1,
+          style: base.copyWith(color: const Color(0xFF131A16)),
+        ),
+      ],
+    );
   }
 }
-
 
 /// Die Zahl an einer Höhenlinie: klein, Graublau, mit weißem Hof — wie
 /// MapLibre sie setzt (`ContourLabelLayer`).
@@ -558,16 +619,29 @@ class ContourLabelText extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const base = TextStyle(fontSize: kContourLabelSize, height: 1, letterSpacing: 0.3);
-    return Stack(children: [
-      Text(text,
+    const base = TextStyle(
+      fontSize: kContourLabelSize,
+      height: 1,
+      letterSpacing: 0.3,
+    );
+    return Stack(
+      children: [
+        Text(
+          text,
           maxLines: 1,
           style: base.copyWith(
-              foreground: Paint()
-                ..style = PaintingStyle.stroke
-                ..strokeWidth = 2.8
-                ..color = Colors.white)),
-      Text(text, maxLines: 1, style: base.copyWith(color: AppColors.contourLabel)),
-    ]);
+            foreground: Paint()
+              ..style = PaintingStyle.stroke
+              ..strokeWidth = 2.8
+              ..color = Colors.white,
+          ),
+        ),
+        Text(
+          text,
+          maxLines: 1,
+          style: base.copyWith(color: AppColors.contourLabel),
+        ),
+      ],
+    );
   }
 }

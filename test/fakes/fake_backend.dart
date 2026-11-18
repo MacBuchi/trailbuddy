@@ -129,7 +129,8 @@ class FakeBackend {
   /// Rücksprünge vom Anbieter, die mit einem Fehler zurückkommen —
   /// [failProviderReturn] schickt einen.
   final _providerReturnErrors = StreamController<AuthException>.broadcast();
-  Stream<AuthException> get providerReturnErrors => _providerReturnErrors.stream;
+  Stream<AuthException> get providerReturnErrors =>
+      _providerReturnErrors.stream;
 
   /// GoTrue schickt `error`/`error_description` zurück (#398).
   void failProviderReturn(String description, {String code = 'server_error'}) =>
@@ -226,8 +227,8 @@ class FakeBackend {
 
   /// Wie der unique-Index `profiles_username_lower_key`: Vergeben ist ein
   /// Name auch, wenn er nur anders geschrieben ist.
-  bool usernameTaken(String username) => users
-      .any((u) => u.username.toLowerCase() == username.toLowerCase());
+  bool usernameTaken(String username) =>
+      users.any((u) => u.username.toLowerCase() == username.toLowerCase());
 
   /// Wie oft „andere Geräte abmelden" widerrufen hat — einzelne fremde
   /// Sitzungen modelliert der Fake nicht, aber der Effekt muss prüfbar
@@ -244,10 +245,12 @@ class FakeBackend {
   bool emailChangeNewConfirmed = false;
 
   /// Wie die SQL-Funktion `are_friends`: nur akzeptierte Freundschaften.
-  bool areFriends(String a, String b) => friendships.any((f) =>
-      f.status == 'accepted' &&
-      ((f.requesterId == a && f.addresseeId == b) ||
-          (f.requesterId == b && f.addresseeId == a)));
+  bool areFriends(String a, String b) => friendships.any(
+    (f) =>
+        f.status == 'accepted' &&
+        ((f.requesterId == a && f.addresseeId == b) ||
+            (f.requesterId == b && f.addresseeId == a)),
+  );
 
   void setCurrentUser(FakeUser? user, AuthChangeEvent event) {
     currentUserId = user?.id;
@@ -255,16 +258,16 @@ class FakeBackend {
   }
 
   Session sessionFor(FakeUser user) => Session(
-        accessToken: 'fake-token-${user.id}',
-        tokenType: 'bearer',
-        user: User(
-          id: user.id,
-          appMetadata: const {},
-          userMetadata: {'username': user.username},
-          aud: 'authenticated',
-          createdAt: '2026-01-01T00:00:00.000Z',
-        ),
-      );
+    accessToken: 'fake-token-${user.id}',
+    tokenType: 'bearer',
+    user: User(
+      id: user.id,
+      appMetadata: const {},
+      userMetadata: {'username': user.username},
+      aud: 'authenticated',
+      createdAt: '2026-01-01T00:00:00.000Z',
+    ),
+  );
 }
 
 class FakeAuthRepository implements AuthRepository {
@@ -298,8 +301,11 @@ class FakeAuthRepository implements AuthRepository {
     // Wie GoTrue mit Bestätigungspflicht: eigener Fehlercode, damit die
     // App nicht „E-Mail oder Passwort falsch" behauptet.
     if (!user.emailConfirmed) {
-      throw const AuthException('Email not confirmed',
-          statusCode: '400', code: 'email_not_confirmed');
+      throw const AuthException(
+        'Email not confirmed',
+        statusCode: '400',
+        code: 'email_not_confirmed',
+      );
     }
     backend.setCurrentUser(user, AuthChangeEvent.signedIn);
   }
@@ -313,14 +319,17 @@ class FakeAuthRepository implements AuthRepository {
     if (backend.usernameTaken(username)) {
       // Wie in echt: der Profil-Trigger scheitert am unique-Benutzernamen —
       // auch über Groß-/Kleinschreibung hinweg.
-      throw const AuthException('Database error saving new user',
-          statusCode: '500');
+      throw const AuthException(
+        'Database error saving new user',
+        statusCode: '500',
+      );
     }
     final user = backend.addUser(
-        username: username,
-        email: email,
-        password: password,
-        emailConfirmed: !backend.requireEmailConfirmation);
+      username: username,
+      email: email,
+      password: password,
+      emailConfirmed: !backend.requireEmailConfirmation,
+    );
     if (backend.requireEmailConfirmation) {
       // Wie echt: Konto ja, Sitzung nein — erst die Bestätigung öffnet es.
       backend.confirmationMails.add(email);
@@ -335,8 +344,10 @@ class FakeAuthRepository implements AuthRepository {
     final sent = backend.confirmationMails.where((m) => m == email).length;
     if (sent >= backend.confirmationMailLimit) {
       throw const AuthApiException(
-          'For security purposes, you can only request this after 60 seconds.',
-          statusCode: '429', code: 'over_email_send_rate_limit');
+        'For security purposes, you can only request this after 60 seconds.',
+        statusCode: '429',
+        code: 'over_email_send_rate_limit',
+      );
     }
     backend.confirmationMails.add(email);
   }
@@ -348,8 +359,11 @@ class FakeAuthRepository implements AuthRepository {
   }) async {
     final user = backend.users.where((u) => u.email == email).firstOrNull;
     if (user == null || code != FakeBackend.signupCode) {
-      throw const AuthException('Token has expired or is invalid',
-          statusCode: '403', code: 'otp_expired');
+      throw const AuthException(
+        'Token has expired or is invalid',
+        statusCode: '403',
+        code: 'otp_expired',
+      );
     }
     // Wie echt: verifyOTP bestätigt UND meldet an.
     user.emailConfirmed = true;
@@ -374,11 +388,13 @@ class FakeAuthRepository implements AuthRepository {
     if (backend.providerLaunchFails) {
       throw Exception('Could not launch');
     }
-    final user = backend.users
+    final user =
+        backend.users
             .where((u) => u.email == backend.providerEmail)
             .firstOrNull ??
         backend.addUser(
-          username: 'trailbuddy_${(backend.users.length + 1).toRadixString(16).padLeft(8, '0')}',
+          username:
+              'trailbuddy_${(backend.users.length + 1).toRadixString(16).padLeft(8, '0')}',
           email: backend.providerEmail,
           provider: provider,
         );
@@ -415,15 +431,20 @@ class FakeAuthRepository implements AuthRepository {
     // Wie in echt: erst die frische Anmeldung — das falsche Passwort
     // scheitert, BEVOR irgendetwas angestoßen wird.
     if (user.password != currentPassword) {
-      throw const AuthException('Invalid login credentials',
-          statusCode: '400', code: 'invalid_credentials');
-    }
-    if (backend.users
-        .any((u) => u.email.toLowerCase() == newEmail.toLowerCase())) {
       throw const AuthException(
-          'A user with this email address has already been registered',
-          statusCode: '422',
-          code: 'email_exists');
+        'Invalid login credentials',
+        statusCode: '400',
+        code: 'invalid_credentials',
+      );
+    }
+    if (backend.users.any(
+      (u) => u.email.toLowerCase() == newEmail.toLowerCase(),
+    )) {
+      throw const AuthException(
+        'A user with this email address has already been registered',
+        statusCode: '422',
+        code: 'email_exists',
+      );
     }
     backend.pendingEmailChange = newEmail;
     backend.emailChangeOldConfirmed = false;
@@ -449,8 +470,11 @@ class FakeAuthRepository implements AuthRepository {
     } else if (email == pending && code == backend.emailChangeNewCode) {
       backend.emailChangeNewConfirmed = true;
     } else {
-      throw const AuthException('Token has expired or is invalid',
-          statusCode: '403', code: 'otp_expired');
+      throw const AuthException(
+        'Token has expired or is invalid',
+        statusCode: '403',
+        code: 'otp_expired',
+      );
     }
     if (backend.emailChangeOldConfirmed && backend.emailChangeNewConfirmed) {
       user.email = pending;
@@ -478,14 +502,19 @@ class FakeAuthRepository implements AuthRepository {
       throw AuthRetryableFetchException(statusCode: '504');
     }
     if (backend.passwordResetFails) {
-      throw const AuthApiException('Password recovery requires an email',
-          statusCode: '400', code: 'validation_failed');
+      throw const AuthApiException(
+        'Password recovery requires an email',
+        statusCode: '400',
+        code: 'validation_failed',
+      );
     }
     final sent = backend.passwordResets.where((m) => m == email).length;
     if (sent >= backend.passwordResetMailLimit) {
       throw const AuthApiException(
-          'For security purposes, you can only request this after 24 seconds.',
-          statusCode: '429', code: 'over_email_send_rate_limit');
+        'For security purposes, you can only request this after 24 seconds.',
+        statusCode: '429',
+        code: 'over_email_send_rate_limit',
+      );
     }
     backend.passwordResets.add(email);
   }
@@ -504,14 +533,20 @@ class FakeAuthRepository implements AuthRepository {
     if (user == null || code != FakeBackend.resetCode) {
       // Wie GoTrue: derselbe Fehler für falschen Code und unbekannte
       // Adresse — sonst wäre auch das ein Konto-Orakel.
-      throw const AuthException('Token has expired or is invalid',
-          statusCode: '403', code: 'otp_expired');
+      throw const AuthException(
+        'Token has expired or is invalid',
+        statusCode: '403',
+        code: 'otp_expired',
+      );
     }
     backend.setCurrentUser(user, AuthChangeEvent.passwordRecovery);
     if (backend.weakPasswords.contains(newPassword)) {
-      throw const AuthException('Password is known to be weak and easy to '
-          'guess, please choose a different one.',
-          statusCode: '422', code: 'weak_password');
+      throw const AuthException(
+        'Password is known to be weak and easy to '
+        'guess, please choose a different one.',
+        statusCode: '422',
+        code: 'weak_password',
+      );
     }
     user.password = newPassword;
     backend.setCurrentUser(user, AuthChangeEvent.userUpdated);
@@ -532,17 +567,26 @@ class FakeAuthRepository implements AuthRepository {
     }
     final user = backend.userById(uid);
     if (user.password != currentPassword) {
-      throw const AuthException('Invalid login credentials',
-          statusCode: '400', code: 'invalid_credentials');
+      throw const AuthException(
+        'Invalid login credentials',
+        statusCode: '400',
+        code: 'invalid_credentials',
+      );
     }
     if (newPassword == currentPassword) {
-      throw const AuthException('New password should be different',
-          statusCode: '422', code: 'same_password');
+      throw const AuthException(
+        'New password should be different',
+        statusCode: '422',
+        code: 'same_password',
+      );
     }
     if (backend.weakPasswords.contains(newPassword)) {
-      throw const AuthException('Password is known to be weak and easy to '
-          'guess, please choose a different one.',
-          statusCode: '422', code: 'weak_password');
+      throw const AuthException(
+        'Password is known to be weak and easy to '
+        'guess, please choose a different one.',
+        statusCode: '422',
+        code: 'weak_password',
+      );
     }
     user.password = newPassword;
     backend.setCurrentUser(user, AuthChangeEvent.userUpdated);
@@ -557,8 +601,9 @@ class FakeAuthRepository implements AuthRepository {
   Future<void> deleteAccount() async {
     final uid = backend.currentUserId;
     if (uid == null) return;
-    backend.friendships
-        .removeWhere((f) => f.requesterId == uid || f.addresseeId == uid);
+    backend.friendships.removeWhere(
+      (f) => f.requesterId == uid || f.addresseeId == uid,
+    );
     backend.aliases.removeWhere((k, _) => k.owner == uid || k.friend == uid);
     backend.feedback.removeWhere((f) => f['user_id'] == uid);
     backend.users.removeWhere((u) => u.id == uid);
@@ -574,11 +619,8 @@ class FakeProfileRepository implements ProfileRepository {
   FakeUser get _me => backend.userById(backend.currentUserId!);
 
   @override
-  Future<Profile> fetchMyProfile() async => Profile(
-        id: _me.id,
-        username: _me.username,
-        avatar: _me.avatar,
-      );
+  Future<Profile> fetchMyProfile() async =>
+      Profile(id: _me.id, username: _me.username, avatar: _me.avatar);
 
   @override
   Future<void> updateAvatar(int avatar) async => _me.avatar = avatar;
@@ -589,13 +631,16 @@ class FakeProfileRepository implements ProfileRepository {
     // SQLSTATE 23505, nicht als Auth-Fehler — und sie greift über
     // Groß-/Kleinschreibung hinweg. Der eigene alte Name zählt nicht als
     // Kollision.
-    if (backend.users.any((u) =>
-        u.id != _me.id &&
-        u.username.toLowerCase() == username.toLowerCase())) {
+    if (backend.users.any(
+      (u) =>
+          u.id != _me.id && u.username.toLowerCase() == username.toLowerCase(),
+    )) {
       throw const PostgrestException(
-          message: 'duplicate key value violates unique constraint '
-              '"profiles_username_lower_key"',
-          code: '23505');
+        message:
+            'duplicate key value violates unique constraint '
+            '"profiles_username_lower_key"',
+        code: '23505',
+      );
     }
     _me.username = username;
   }
@@ -645,9 +690,11 @@ class FakeFriendRepository implements FriendRepository {
   @override
   Future<void> sendRequest(String addresseeId) async {
     backend.failIfOffline();
-    if (backend.friendships.any((f) =>
-        (f.requesterId == _uid && f.addresseeId == addresseeId) ||
-        (f.requesterId == addresseeId && f.addresseeId == _uid))) {
+    if (backend.friendships.any(
+      (f) =>
+          (f.requesterId == _uid && f.addresseeId == addresseeId) ||
+          (f.requesterId == addresseeId && f.addresseeId == _uid),
+    )) {
       // Wie in echt: unique-Constraint auf dem Freundschafts-Paar.
       throw StateError('duplicate friendship');
     }
@@ -668,14 +715,18 @@ class FakeFriendRepository implements FriendRepository {
     for (final f in gone) {
       // Trigger `friendships_delete_aliases`: die Aliase beider Seiten
       // gehen mit.
-      backend.aliases.removeWhere((k, _) =>
-          (k.owner == f.requesterId && k.friend == f.addresseeId) ||
-          (k.owner == f.addresseeId && k.friend == f.requesterId));
+      backend.aliases.removeWhere(
+        (k, _) =>
+            (k.owner == f.requesterId && k.friend == f.addresseeId) ||
+            (k.owner == f.addresseeId && k.friend == f.requesterId),
+      );
       // Trigger `friendships_delete_messages` (Patch 021): der Verlauf
       // beider Seiten geht mit.
-      backend.messages.removeWhere((m) =>
-          (m.senderId == f.requesterId && m.recipientId == f.addresseeId) ||
-          (m.senderId == f.addresseeId && m.recipientId == f.requesterId));
+      backend.messages.removeWhere(
+        (m) =>
+            (m.senderId == f.requesterId && m.recipientId == f.addresseeId) ||
+            (m.senderId == f.addresseeId && m.recipientId == f.requesterId),
+      );
     }
     backend.friendships.removeWhere((f) => f.id == friendshipId);
   }
@@ -703,7 +754,9 @@ class FakeFriendRepository implements FriendRepository {
     if (!backend.areFriends(_uid, friendId)) {
       throw StateError('RLS: fa_insert (kein bestätigter Buddy)');
     }
-    if (text.length > kAliasMaxLength) throw StateError('Check verletzt: alias');
+    if (text.length > kAliasMaxLength) {
+      throw StateError('Check verletzt: alias');
+    }
     backend.aliases[key] = text;
   }
 }
@@ -714,12 +767,19 @@ class FakeFeedbackRepository implements FeedbackRepository {
   final FakeBackend backend;
 
   @override
-  Future<void> submit(FeedbackType type, String message,
-      {String? appVersion, String? clientId}) async {
+  Future<void> submit(
+    FeedbackType type,
+    String message, {
+    String? appVersion,
+    String? clientId,
+  }) async {
     backend.failIfOffline();
     // `client_id unique` (Patch 018): Der Server antwortet 23505, das
     // Repository liest es als „stand schon" — hier gleich ohne zweite Zeile.
-    if (clientId != null && backend.feedback.any((f) => f['client_id'] == clientId)) return;
+    if (clientId != null &&
+        backend.feedback.any((f) => f['client_id'] == clientId)) {
+      return;
+    }
     backend.feedback.add({
       'user_id': backend.currentUserId,
       'type': type == FeedbackType.bug ? 'bug' : 'feature',
@@ -743,9 +803,11 @@ class FakeMessageRepository implements MessageRepository {
   var _next = 1;
 
   FakeFriendshipRow? _between(String a, String b) => backend.friendships
-      .where((f) =>
-          (f.requesterId == a && f.addresseeId == b) ||
-          (f.requesterId == b && f.addresseeId == a))
+      .where(
+        (f) =>
+            (f.requesterId == a && f.addresseeId == b) ||
+            (f.requesterId == b && f.addresseeId == a),
+      )
       .firstOrNull;
 
   @override
@@ -771,22 +833,24 @@ class FakeMessageRepository implements MessageRepository {
     final sent = backend.messages
         .where((m) => m.senderId == _uid && m.recipientId == recipientId)
         .length;
-    final allowed = f != null &&
-        (f.status == 'accepted' || sent < kPendingMessageLimit);
+    final allowed =
+        f != null && (f.status == 'accepted' || sent < kPendingMessageLimit);
     final text = body.trim();
     if (!allowed) throw const MessageRejectedException();
     if (text.isEmpty || text.length > kMessageMaxLength) {
       throw StateError('Check verletzt: body');
     }
     final now = DateTime.now();
-    backend.messages.add(BuddyMessage(
-      id: 'msg-${_next++}',
-      senderId: _uid,
-      recipientId: recipientId,
-      body: text,
-      createdAt: now,
-      expiresAt: now.add(const Duration(days: kMessageDays)),
-    ));
+    backend.messages.add(
+      BuddyMessage(
+        id: 'msg-${_next++}',
+        senderId: _uid,
+        recipientId: recipientId,
+        body: text,
+        createdAt: now,
+        expiresAt: now.add(const Duration(days: kMessageDays)),
+      ),
+    );
   }
 
   @override
@@ -814,8 +878,9 @@ class FakeMessageRepository implements MessageRepository {
   @override
   Future<void> delete(String messageId) async {
     backend.failIfOffline();
-    backend.messages
-        .removeWhere((m) => m.id == messageId && m.senderId == _uid);
+    backend.messages.removeWhere(
+      (m) => m.id == messageId && m.senderId == _uid,
+    );
   }
 }
 

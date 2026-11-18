@@ -13,7 +13,8 @@ import 'package:trailbuddy/core/line_geometry.dart';
 import 'package:trailbuddy/features/offline_areas/area_plan.dart';
 import 'package:trailbuddy/features/offline_areas/height_tiles.dart';
 import 'package:trailbuddy/features/routing/road_graph.dart';
-import 'package:trailbuddy/features/routing/road_graph_loader.dart' show RoadTileBytes;
+import 'package:trailbuddy/features/routing/road_graph_loader.dart'
+    show RoadTileBytes;
 import 'package:trailbuddy/features/routing/route_profile.dart';
 
 import 'fake_tiles.dart';
@@ -25,7 +26,8 @@ const _n = 1 << _z;
 math.Point<double> _tileXy(LatLng p) {
   final xf = (p.longitude + 180) / 360 * _n;
   final lat = p.latitude * math.pi / 180;
-  final yf = (1 - math.log(math.tan(lat) + 1 / math.cos(lat)) / math.pi) / 2 * _n;
+  final yf =
+      (1 - math.log(math.tan(lat) + 1 / math.cos(lat)) / math.pi) / 2 * _n;
   return math.Point(xf, yf);
 }
 
@@ -41,17 +43,17 @@ double _sinh(double x) => (math.exp(x) - math.exp(-x)) / 2;
 /// Wie Protomaps eine Klasse schreibt (`kind`, `kind_detail`) — die
 /// Umkehrung von `classifyWay`.
 (String, String?) _kindOf(WayClass cls) => switch (cls) {
-      WayClass.bundesstrasse => ('major_road', 'primary'),
-      WayClass.hauptstrasse => ('major_road', 'secondary'),
-      WayClass.landstrasse => ('medium_road', null),
-      WayClass.nebenstrasse => ('minor_road', 'residential'),
-      WayClass.zufahrt => ('minor_road', 'service'),
-      WayClass.forstweg => ('path', 'track'),
-      WayClass.radweg => ('path', 'cycleway'),
-      WayClass.wanderweg => ('path', 'path'),
-      WayClass.fussweg => ('path', 'footway'),
-      WayClass.stufen => ('path', 'steps'),
-    };
+  WayClass.bundesstrasse => ('major_road', 'primary'),
+  WayClass.hauptstrasse => ('major_road', 'secondary'),
+  WayClass.landstrasse => ('medium_road', null),
+  WayClass.nebenstrasse => ('minor_road', 'residential'),
+  WayClass.zufahrt => ('minor_road', 'service'),
+  WayClass.forstweg => ('path', 'track'),
+  WayClass.radweg => ('path', 'cycleway'),
+  WayClass.wanderweg => ('path', 'path'),
+  WayClass.fussweg => ('path', 'footway'),
+  WayClass.stufen => ('path', 'steps'),
+};
 
 /// Kodiert [lines] als z13-Kacheln über ihrem Rahmen: je Kachel die
 /// Stücke, die in ihr liegen, in Kachel-Pixeln.
@@ -70,21 +72,26 @@ List<RoadTileBytes> roadTilesOf(List<WayLine> lines) {
         for (final p in l.points)
           () {
             final xy = _tileXy(p);
-            return math.Point((xy.x - t.x) * kTileExtent, (xy.y - t.y) * kTileExtent);
+            return math.Point(
+              (xy.x - t.x) * kTileExtent,
+              (xy.y - t.y) * kTileExtent,
+            );
           }(),
       ];
       final (kind, detail) = _kindOf(l.cls);
       for (final piece in clipToTile(px, kTileExtent.toDouble())) {
-        roads.add(road(
-          [for (final p in piece) (p.x.round(), p.y.round())],
-          kind,
-          kindDetail: detail,
-          extra: {
-            if (l.oneway) 'oneway': true,
-            if (l.level > 0) 'is_bridge': true,
-            if (l.level < 0) 'is_tunnel': true,
-          },
-        ));
+        roads.add(
+          road(
+            [for (final p in piece) (p.x.round(), p.y.round())],
+            kind,
+            kindDetail: detail,
+            extra: {
+              if (l.oneway) 'oneway': true,
+              if (l.level > 0) 'is_bridge': true,
+              if (l.level < 0) 'is_tunnel': true,
+            },
+          ),
+        );
       }
     }
     if (roads.isNotEmpty) out.add((tile: t, bytes: mvtTile(roads)));
@@ -94,13 +101,19 @@ List<RoadTileBytes> roadTilesOf(List<WayLine> lines) {
 
 /// Höhenkacheln über [tiles] aus [height] (Meter am Punkt), abgetastet
 /// bei den Kachelbrüchen i/48 wie das Werkzeug.
-HeightTiles heightTilesOf(Iterable<TileXYZ> tiles, double Function(LatLng p) height) {
+HeightTiles heightTilesOf(
+  Iterable<TileXYZ> tiles,
+  double Function(LatLng p) height,
+) {
   final out = <int, HeightTile>{};
   for (final t in tiles) {
     final values = Int16List(kHeightGrid * kHeightGrid);
     for (var row = 0; row < kHeightGrid; row++) {
       for (var col = 0; col < kHeightGrid; col++) {
-        final p = tileLatLng(t.x + col / (kHeightGrid - 1), t.y + row / (kHeightGrid - 1));
+        final p = tileLatLng(
+          t.x + col / (kHeightGrid - 1),
+          t.y + row / (kHeightGrid - 1),
+        );
         values[row * kHeightGrid + col] = height(p).round();
       }
     }

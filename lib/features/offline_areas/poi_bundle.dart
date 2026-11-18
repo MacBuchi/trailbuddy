@@ -14,7 +14,8 @@ import 'dart:typed_data';
 import 'package:crypto/crypto.dart' as crypto;
 
 import '../map/poi.dart';
-import 'poi_bundle_lines_web.dart' if (dart.library.io) 'poi_bundle_lines_io.dart';
+import 'poi_bundle_lines_web.dart'
+    if (dart.library.io) 'poi_bundle_lines_io.dart';
 
 /// Das Bündel passt nicht zu seinem Manifest oder ist kaputt — kein
 /// Netzfehler; der Bereich bleibt unvollständig.
@@ -36,8 +37,14 @@ final _name = RegExp(r'^-?\d+_-?\d+\.[A-Za-z]+\.json$');
 /// Prüft Länge und Prüfsumme gegen [bundle] und liefert die Zellendateien
 /// als (Name, Inhalt) — erst, wenn die Kopfzeile zum Bau [build] passt;
 /// am Ende muss die Zahl stimmen, sonst wirft es.
-Stream<(String, String)> readPoiBundle(Uint8List bytes, PoiBundle bundle, String build) async* {
-  if (bytes.length != bundle.bytes) throw PoiBundleMismatch('${bytes.length} statt ${bundle.bytes} Bytes');
+Stream<(String, String)> readPoiBundle(
+  Uint8List bytes,
+  PoiBundle bundle,
+  String build,
+) async* {
+  if (bytes.length != bundle.bytes) {
+    throw PoiBundleMismatch('${bytes.length} statt ${bundle.bytes} Bytes');
+  }
   final sha = crypto.sha256.convert(bytes).toString();
   if (sha != bundle.sha256) throw PoiBundleMismatch('Prüfsumme $sha');
   var header = true;
@@ -51,7 +58,10 @@ Stream<(String, String)> readPoiBundle(Uint8List bytes, PoiBundle bundle, String
       } on FormatException {
         throw const PoiBundleMismatch('Kopfzeile ist kein JSON');
       }
-      if (h is! Map || h['format'] != 1 || h['build'] != build || h['files'] != bundle.files) {
+      if (h is! Map ||
+          h['format'] != 1 ||
+          h['build'] != build ||
+          h['files'] != bundle.files) {
         throw PoiBundleMismatch('Kopfzeile $line');
       }
       continue;
@@ -59,10 +69,14 @@ Stream<(String, String)> readPoiBundle(Uint8List bytes, PoiBundle bundle, String
     if (line.isEmpty) continue;
     final tab = line.indexOf('\t');
     final name = tab < 0 ? '' : line.substring(0, tab);
-    if (!_name.hasMatch(name)) throw PoiBundleMismatch('Zeile ${count + 1}: kein Dateiname');
+    if (!_name.hasMatch(name)) {
+      throw PoiBundleMismatch('Zeile ${count + 1}: kein Dateiname');
+    }
     count++;
     yield (name, '${line.substring(tab + 1)}\n');
   }
   if (header) throw const PoiBundleMismatch('leer');
-  if (count != bundle.files) throw PoiBundleMismatch('$count statt ${bundle.files} Dateien');
+  if (count != bundle.files) {
+    throw PoiBundleMismatch('$count statt ${bundle.files} Dateien');
+  }
 }

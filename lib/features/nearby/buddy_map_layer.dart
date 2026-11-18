@@ -22,12 +22,17 @@ import 'nearby_core.dart';
 
 /// Der Name eines direkten Buddys, wie ihn die Buddy-Liste zeigt (Alias
 /// vor Benutzername); unbekannt „?".
-final nearbyBuddyNameProvider = Provider<String Function(String buddyId)>((ref) {
+final nearbyBuddyNameProvider = Provider<String Function(String buddyId)>((
+  ref,
+) {
   final uid = ref.watch(currentUserIdProvider);
-  final friendships = ref.watch(friendshipsProvider).valueOrNull ?? const <FriendshipEntry>[];
+  final friendships =
+      ref.watch(friendshipsProvider).valueOrNull ?? const <FriendshipEntry>[];
   final names = ref.watch(buddyNamesViewProvider);
   return (id) {
-    final f = friendships.where((f) => uid != null && f.isAccepted && f.otherId(uid) == id).firstOrNull;
+    final f = friendships
+        .where((f) => uid != null && f.isAccepted && f.otherId(uid) == id)
+        .firstOrNull;
     return f == null || uid == null ? '?' : names.of(id, f.otherUsername(uid));
   };
 });
@@ -60,36 +65,48 @@ List<MapViewPolygon> buddyCellPolygons(List<BuddyMapEntry> entries) {
             LatLng(e.cell!.north, e.cell!.east),
             LatLng(e.cell!.north, e.cell!.west),
           ],
-          fillColor: map.buddy.withValues(alpha: e.seenAgo == null ? 0.08 : 0.04),
-          borderColor: map.buddy.withValues(alpha: e.seenAgo == null ? 0.45 : 0.25),
+          fillColor: map.buddy.withValues(
+            alpha: e.seenAgo == null ? 0.08 : 0.04,
+          ),
+          borderColor: map.buddy.withValues(
+            alpha: e.seenAgo == null ? 0.45 : 0.25,
+          ),
           borderWidth: 1.5,
         ),
   ];
 }
 
 /// Die Scheiben, über allem außer der eigenen Position.
-List<MapViewMarker> buddyMarkers(List<BuddyMapEntry> entries, String Function(String buddyId) nameOf) => [
-      for (final e in entries)
-        MapViewMarker(
-          key: ValueKey('buddy-${e.kind.name}-${e.buddyId}'),
-          point: LatLng(e.point.lat, e.point.lon),
-          width: BuddyDisc.extent,
-          height: BuddyDisc.extent,
-          hitValue: BuddyMapHit(e, nameOf(e.buddyId)),
-          child: BuddyDisc(
-            initial: buddyInitial(nameOf(e.buddyId)),
-            live: e.kind == BuddyMapKind.live,
-            seenAgo: e.seenAgo,
-          ),
-        ),
-    ];
+List<MapViewMarker> buddyMarkers(
+  List<BuddyMapEntry> entries,
+  String Function(String buddyId) nameOf,
+) => [
+  for (final e in entries)
+    MapViewMarker(
+      key: ValueKey('buddy-${e.kind.name}-${e.buddyId}'),
+      point: LatLng(e.point.lat, e.point.lon),
+      width: BuddyDisc.extent,
+      height: BuddyDisc.extent,
+      hitValue: BuddyMapHit(e, nameOf(e.buddyId)),
+      child: BuddyDisc(
+        initial: buddyInitial(nameOf(e.buddyId)),
+        live: e.kind == BuddyMapKind.live,
+        seenAgo: e.seenAgo,
+      ),
+    ),
+];
 
 /// „vor 4 min" — kurz, für unter die Scheibe.
 String buddySeenAgoShort(AppLocalizations l, Duration ago) =>
     l.buddyMapAgo(ago.inMinutes < 1 ? 1 : ago.inMinutes);
 
 class BuddyDisc extends StatelessWidget {
-  const BuddyDisc({super.key, required this.initial, required this.live, this.seenAgo});
+  const BuddyDisc({
+    super.key,
+    required this.initial,
+    required this.live,
+    this.seenAgo,
+  });
 
   final String initial;
   final bool live;
@@ -111,8 +128,16 @@ class BuddyDisc extends StatelessWidget {
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         color: live ? map.buddy : Colors.white,
-        border: live ? Border.all(color: Colors.white, width: 2.5) : Border.all(color: map.buddy, width: 3),
-        boxShadow: const [BoxShadow(color: Color(0x55000000), blurRadius: 3, offset: Offset(0, 1))],
+        border: live
+            ? Border.all(color: Colors.white, width: 2.5)
+            : Border.all(color: map.buddy, width: 3),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x55000000),
+            blurRadius: 3,
+            offset: Offset(0, 1),
+          ),
+        ],
       ),
       alignment: Alignment.center,
       child: Text(
@@ -126,7 +151,9 @@ class BuddyDisc extends StatelessWidget {
       ),
     );
     return Semantics(
-      label: live ? l.buddyMapLiveSemantics(initial) : l.buddyMapCellSemantics(initial),
+      label: live
+          ? l.buddyMapLiveSemantics(initial)
+          : l.buddyMapCellSemantics(initial),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -140,9 +167,15 @@ class BuddyDisc extends StatelessWidget {
                 ? Container(
                     padding: const EdgeInsets.symmetric(horizontal: 3),
                     color: Colors.white.withValues(alpha: 0.85),
-                    child: Text(buddySeenAgoShort(l, seenAgo!),
-                        key: const ValueKey('buddy-seen-ago'),
-                        style: const TextStyle(fontSize: 10, height: 1.3, color: Color(0xFF333333))),
+                    child: Text(
+                      buddySeenAgoShort(l, seenAgo!),
+                      key: const ValueKey('buddy-seen-ago'),
+                      style: const TextStyle(
+                        fontSize: 10,
+                        height: 1.3,
+                        color: Color(0xFF333333),
+                      ),
+                    ),
                   )
                 : null,
           ),
@@ -158,8 +191,14 @@ String buddyMapHitText(AppLocalizations l, BuddyMapHit hit) {
   final ago = e.seenAgo;
   return switch ((e.kind, ago)) {
     (BuddyMapKind.live, null) => l.buddyMapLiveNow(hit.name),
-    (BuddyMapKind.live, final a?) => l.buddyMapLiveAgo(hit.name, a.inMinutes < 1 ? 1 : a.inMinutes),
+    (BuddyMapKind.live, final a?) => l.buddyMapLiveAgo(
+      hit.name,
+      a.inMinutes < 1 ? 1 : a.inMinutes,
+    ),
     (BuddyMapKind.cell, null) => l.buddyMapCellNow(hit.name),
-    (BuddyMapKind.cell, final a?) => l.buddyMapCellAgo(hit.name, a.inMinutes < 1 ? 1 : a.inMinutes),
+    (BuddyMapKind.cell, final a?) => l.buddyMapCellAgo(
+      hit.name,
+      a.inMinutes < 1 ? 1 : a.inMinutes,
+    ),
   };
 }

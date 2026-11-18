@@ -27,7 +27,8 @@ import 'route_profile.dart' show RiderParamsPrefs, RiderProfile, RoutePrefs;
 import 'route_progress.dart';
 import 'trail_head_route.dart';
 
-export 'nav_replan.dart' show kNavLeaveM, kNavReplanOfferM, kNavLeaveChoices, kNavReplanOfferChoices;
+export 'nav_replan.dart'
+    show kNavLeaveM, kNavReplanOfferM, kNavLeaveChoices, kNavReplanOfferChoices;
 export 'route_progress.dart' show kNavArrivedLinger, kNavTrailDoneLinger;
 
 /// Was navigiert werden soll — gestellt von einem Ergebnis-Blatt oder aus
@@ -35,15 +36,16 @@ export 'route_progress.dart' show kNavArrivedLinger, kNavTrailDoneLinger;
 /// `trailHeadRequestProvider`): Die Karte fragt nach Aufzeichnen und
 /// Bildschirm, holt den Standort und startet.
 class NavRequest {
-  const NavRequest(
-      {required this.points,
-      required this.title,
-      this.startAlongM = 0,
-      this.sections,
-      this.fromPlanner = false,
-      this.profile,
-      this.routePrefs,
-      this.start});
+  const NavRequest({
+    required this.points,
+    required this.title,
+    this.startAlongM = 0,
+    this.sections,
+    this.fromPlanner = false,
+    this.profile,
+    this.routePrefs,
+    this.start,
+  });
 
   /// Die Linie in Fahrtrichtung, wie sie die Karte zeichnet.
   final List<LatLng> points;
@@ -187,30 +189,32 @@ class NavSession {
   final bool replanOffer;
 
   double get remainingM => state?.remainingM ?? route.lengthM;
-  double? get remainingClimbM => climbAfter(climbDistM, climbEleM, state?.alongM ?? 0);
+  double? get remainingClimbM =>
+      climbAfter(climbDistM, climbEleM, state?.alongM ?? 0);
 
   /// Wohin oben zeigt.
-  double get bearingDeg => north ? 0 : (state?.headingDeg ?? route.bearingAt(0));
+  double get bearingDeg =>
+      north ? 0 : (state?.headingDeg ?? route.bearingAt(0));
 
   /// Der Abschnitt, in dem man ist (9.9) — vor dem ersten Fix die Anfahrt
   /// ab Start.
   NavPhase get phase => navPhaseOf(
-        state ??
-            NavState(
-              alongM: 0,
-              remainingM: route.lengthM,
-              offM: 0,
-              offRoute: false,
-              arrived: false,
-              headingDeg: 0,
-              position: route.points.first,
-              rejoin: route.points.first,
-            ),
-        sections,
-        routeLengthM: route.lengthM,
-        climbDistM: climbDistM,
-        climbEleM: climbEleM,
-      );
+    state ??
+        NavState(
+          alongM: 0,
+          remainingM: route.lengthM,
+          offM: 0,
+          offRoute: false,
+          arrived: false,
+          headingDeg: 0,
+          position: route.points.first,
+          rejoin: route.points.first,
+        ),
+    sections,
+    routeLengthM: route.lengthM,
+    climbDistM: climbDistM,
+    climbEleM: climbEleM,
+  );
 
   NavSession _copy({
     NavState? state,
@@ -222,36 +226,47 @@ class NavSession {
     NavTrailDone? Function()? trailDone,
     NavReplan? replan,
     bool? replanOffer,
-  }) =>
-      NavSession(
-        route: route,
-        title: title,
-        sections: sections,
-        state: state ?? this.state,
-        climbDistM: climbDistM ?? this.climbDistM,
-        climbEleM: climbEleM ?? this.climbEleM,
-        north: north ?? this.north,
-        rejoin: rejoin ?? this.rejoin,
-        rejoinLine: rejoinLine != null ? rejoinLine() : this.rejoinLine,
-        trailDone: trailDone != null ? trailDone() : this.trailDone,
-        profile: profile,
-        routePrefs: routePrefs,
-        replan: replan ?? this.replan,
-        replanOffer: replanOffer ?? this.replanOffer,
-      );
+  }) => NavSession(
+    route: route,
+    title: title,
+    sections: sections,
+    state: state ?? this.state,
+    climbDistM: climbDistM ?? this.climbDistM,
+    climbEleM: climbEleM ?? this.climbEleM,
+    north: north ?? this.north,
+    rejoin: rejoin ?? this.rejoin,
+    rejoinLine: rejoinLine != null ? rejoinLine() : this.rejoinLine,
+    trailDone: trailDone != null ? trailDone() : this.trailDone,
+    profile: profile,
+    routePrefs: routePrefs,
+    replan: replan ?? this.replan,
+    replanOffer: replanOffer ?? this.replanOffer,
+  );
 
-  NavSession copyWith({NavState? state, List<double>? climbDistM, List<double>? climbEleM, bool? north}) =>
-      _copy(state: state, climbDistM: climbDistM, climbEleM: climbEleM, north: north);
+  NavSession copyWith({
+    NavState? state,
+    List<double>? climbDistM,
+    List<double>? climbEleM,
+    bool? north,
+  }) => _copy(
+    state: state,
+    climbDistM: climbDistM,
+    climbEleM: climbEleM,
+    north: north,
+  );
 
   /// Ein neuer Stand von „Zurück zur Route" — das Stück nur bei [NavRejoin.shown].
-  NavSession withRejoin(NavRejoin rejoin, [List<LatLng>? line]) =>
-      _copy(rejoin: rejoin, rejoinLine: () => rejoin == NavRejoin.shown ? line : null);
+  NavSession withRejoin(NavRejoin rejoin, [List<LatLng>? line]) => _copy(
+    rejoin: rejoin,
+    rejoinLine: () => rejoin == NavRejoin.shown ? line : null,
+  );
 
   /// Mit oder ohne Bilanz am Trail-Ende.
   NavSession withTrailDone(NavTrailDone? done) => _copy(trailDone: () => done);
 
   /// Ein neuer Stand von „Route umplanen".
-  NavSession withReplan(NavReplan replan, {bool? offer}) => _copy(replan: replan, replanOffer: offer);
+  NavSession withReplan(NavReplan replan, {bool? offer}) =>
+      _copy(replan: replan, replanOffer: offer);
 }
 
 /// Die Navigation endete von selbst, weil man die Route verlassen hat
@@ -297,17 +312,27 @@ class NavController extends Notifier<NavSession?> {
 
   /// Startet die Navigation auf [points] ab [startAlongM]; false, wenn die
   /// Linie keine Länge hat. Eine laufende wird ersetzt.
-  bool start(List<LatLng> points, String title,
-      {double startAlongM = 0, NavSections? sections, RiderProfile? profile, RoutePrefs? routePrefs}) {
+  bool start(
+    List<LatLng> points,
+    String title, {
+    double startAlongM = 0,
+    NavSections? sections,
+    RiderProfile? profile,
+    RoutePrefs? routePrefs,
+  }) {
     final route = NavRoute.of(points);
     if (route == null) return false;
     _dropRejoinGraph();
-    _begin(NavSession(
+    _begin(
+      NavSession(
         route: route,
         title: title,
         sections: sections ?? const NavSections.empty(),
         profile: profile,
-        routePrefs: routePrefs), startAlongM);
+        routePrefs: routePrefs,
+      ),
+      startAlongM,
+    );
     return true;
   }
 
@@ -327,13 +352,16 @@ class NavController extends Notifier<NavSession?> {
     final bridge = ref.read(navServiceBridgeProvider);
     final keepAlive = ref.read(navKeepAliveProvider);
     _queue(() async {
-      await bridge.arm(NavRouteData(
+      await bridge.arm(
+        NavRouteData(
           points: route.points,
           title: title,
           startAlongM: startAlongM,
           sections: session.sections,
           leaveM: ref.read(navLeaveDistanceProvider),
-          selfId: ref.read(currentUserIdProvider)));
+          selfId: ref.read(currentUserIdProvider),
+        ),
+      );
       await keepAlive.start();
     });
     unawaited(_loadClimb(session));
@@ -341,22 +369,32 @@ class NavController extends Notifier<NavSession?> {
 
   Future<void> _loadClimb(NavSession session) async {
     try {
-      final profile = await ref.read(terrainHeightsProvider).profile(session.route.points);
+      final profile = await ref
+          .read(terrainHeightsProvider)
+          .profile(session.route.points);
       // Inzwischen beendet oder eine andere Navigation: nichts mehr tun.
       if (profile == null || !identical(state?.route, session.route)) return;
-      state = state!.copyWith(climbDistM: profile.distM, climbEleM: profile.eleM);
+      state = state!.copyWith(
+        climbDistM: profile.distM,
+        climbEleM: profile.eleM,
+      );
       // Der Dienst rechnet die Höhenmeter für die Benachrichtigung selbst;
       // dieselbe Linie behält dort ihren Stand.
       final bridge = ref.read(navServiceBridgeProvider);
-      _queue(() => bridge.arm(NavRouteData(
-          points: session.route.points,
-          title: session.title,
-          startAlongM: _startAlongM,
-          sections: session.sections,
-          climbDistM: profile.distM,
-          climbEleM: profile.eleM,
-          leaveM: ref.read(navLeaveDistanceProvider),
-          selfId: ref.read(currentUserIdProvider))));
+      _queue(
+        () => bridge.arm(
+          NavRouteData(
+            points: session.route.points,
+            title: session.title,
+            startAlongM: _startAlongM,
+            sections: session.sections,
+            climbDistM: profile.distM,
+            climbEleM: profile.eleM,
+            leaveM: ref.read(navLeaveDistanceProvider),
+            selfId: ref.read(currentUserIdProvider),
+          ),
+        ),
+      );
     } catch (_) {
       // Ohne Höhen zeigt die Leiste nur km — das Lesen meldet seine
       // Fehler selbst (`TerrainHeights`).
@@ -380,16 +418,24 @@ class NavController extends Notifier<NavSession?> {
     // Wieder auf der Linie: Das Stück zurück und sein Satz fallen weg,
     // ebenso „Route umplanen".
     final back = !next.offRoute && session.rejoin != NavRejoin.none;
-    var updated = (back ? session.withRejoin(NavRejoin.none) : session).copyWith(state: next);
+    var updated = (back ? session.withRejoin(NavRejoin.none) : session)
+        .copyWith(state: next);
     if (!next.offRoute) {
       if (updated.replanOffer || updated.replan != NavReplan.none) {
         updated = updated.withReplan(NavReplan.none, offer: false);
       }
-    } else if (!updated.replanOffer && next.offM >= ref.read(navReplanOfferDistanceProvider)) {
+    } else if (!updated.replanOffer &&
+        next.offM >= ref.read(navReplanOfferDistanceProvider)) {
       updated = updated.withReplan(updated.replan, offer: true);
     }
-    final done = _trails?.update(next, session.sections, at ?? DateTime.now(),
-        speedMps: speedMps, climbDistM: session.climbDistM, climbEleM: session.climbEleM);
+    final done = _trails?.update(
+      next,
+      session.sections,
+      at ?? DateTime.now(),
+      speedMps: speedMps,
+      climbDistM: session.climbDistM,
+      climbEleM: session.climbEleM,
+    );
     if (done != null) {
       updated = updated.withTrailDone(done);
       _doneLinger?.cancel();
@@ -413,22 +459,38 @@ class NavController extends Notifier<NavSession?> {
   Future<void> rejoin() async {
     final session = state;
     final now = session?.state;
-    if (session == null || now == null || session.rejoin == NavRejoin.computing) return;
+    if (session == null ||
+        now == null ||
+        session.rejoin == NavRejoin.computing) {
+      return;
+    }
     final from = now.position;
     final target = session.route.pointAt(now.alongM + kNavRejoinTargetM);
     state = session.withRejoin(NavRejoin.computing);
     var result = NavRejoin.noPath;
     List<LatLng>? line;
     try {
-      final RiderProfile profile = session.profile ?? ref.read(riderProfileProvider);
-      final prefs = LoopPrefs.parse(ref.read(settingsProvider).loopPlannerPrefs, profile);
-      final rider = ref.read(calibratedRiderProvider(profile)).withPrefs(session.routePrefs ?? prefs.route);
-      final graph = await _graphFor(LatBox.of([from, target]), fillOnline: prefs.fillOnline);
+      final RiderProfile profile =
+          session.profile ?? ref.read(riderProfileProvider);
+      final prefs = LoopPrefs.parse(
+        ref.read(settingsProvider).loopPlannerPrefs,
+        profile,
+      );
+      final rider = ref
+          .read(calibratedRiderProvider(profile))
+          .withPrefs(session.routePrefs ?? prefs.route);
+      final graph = await _graphFor(
+        LatBox.of([from, target]),
+        fillOnline: prefs.fillOnline,
+      );
       final runner = _rejoinRunner;
       if (graph != _NavGraph.ready || runner == null) {
         result = NavRejoin.noArea;
       } else {
-        final plan = await StallWatch.time('nav.rejoin', () => runner.run(TrailHeadJob(from, target, rider)));
+        final plan = await StallWatch.time(
+          'nav.rejoin',
+          () => runner.run(TrailHeadJob(from, target, rider)),
+        );
         if (plan.route != null) {
           result = NavRejoin.shown;
           line = plan.route!.points;
@@ -445,7 +507,11 @@ class NavController extends Notifier<NavSession?> {
     }
     // Inzwischen beendet, ersetzt oder wieder auf der Linie: nichts tun.
     final after = state;
-    if (after == null || !identical(after.route, session.route) || after.rejoin != NavRejoin.computing) return;
+    if (after == null ||
+        !identical(after.route, session.route) ||
+        after.rejoin != NavRejoin.computing) {
+      return;
+    }
     state = after.withRejoin(result, line);
   }
 
@@ -453,15 +519,23 @@ class NavController extends Notifier<NavSession?> {
   /// umplanen" um [need]: Ein zweiter Tipp im selben Rahmen baut nicht neu.
   Future<_NavGraph> _graphFor(LatBox need, {required bool fillOnline}) async {
     final runner = _rejoinRunner ??= ref.read(loopPlanRunnerFactoryProvider)();
-    if (runner.hasGraph && (_rejoinBox?.contains(need) ?? false)) return _NavGraph.ready;
+    if (runner.hasGraph && (_rejoinBox?.contains(need) ?? false)) {
+      return _NavGraph.ready;
+    }
     // Mit Rand, damit der nächste Tipp ein Stück weiter denselben
     // Graphen nimmt; der Lader legt seinen eigenen noch dazu.
     final box = _grow(need, kNavRejoinGraphMarginM);
-    final loaded = await ref.read(planningGraphLoaderProvider)(box, fillOnline: fillOnline);
+    final loaded = await ref.read(planningGraphLoaderProvider)(
+      box,
+      fillOnline: fillOnline,
+    );
     if (loaded.tooLarge) return _NavGraph.tooLarge;
     final input = loaded.input;
     if (input == null) return _NavGraph.none;
-    final report = await StallWatch.time('graph.build', () => runner.build(input));
+    final report = await StallWatch.time(
+      'graph.build',
+      () => runner.build(input),
+    );
     unawaited(loaded.keep(report)); // die neu gebackenen Stücke (#380)
     _rejoinBox = box;
     return _NavGraph.ready;
@@ -478,22 +552,41 @@ class NavController extends Notifier<NavSession?> {
   Future<void> replan({LatLng? from, double? courseDeg}) async {
     final session = state;
     final now = session?.state;
-    if (session == null || now == null || session.replan == NavReplan.computing) return;
+    if (session == null ||
+        now == null ||
+        session.replan == NavReplan.computing) {
+      return;
+    }
     state = session.withReplan(NavReplan.computing);
     var result = NavReplan.noPath;
     ({List<LatLng> points, NavSections sections})? next;
     final start = from ?? now.position;
     final course = courseDeg ?? now.courseDeg;
     try {
-      final RiderProfile profile = session.profile ?? ref.read(riderProfileProvider);
-      final prefs = LoopPrefs.parse(ref.read(settingsProvider).loopPlannerPrefs, profile);
-      final rider = ref.read(calibratedRiderProvider(profile)).withPrefs(session.routePrefs ?? prefs.route);
+      final RiderProfile profile =
+          session.profile ?? ref.read(riderProfileProvider);
+      final prefs = LoopPrefs.parse(
+        ref.read(settingsProvider).loopPlannerPrefs,
+        profile,
+      );
+      final rider = ref
+          .read(calibratedRiderProvider(profile))
+          .withPrefs(session.routePrefs ?? prefs.route);
       // Steht die Uhr woanders, steht auch die Rechnung woanders: ab ihrer
       // Projektion auf die Linie, nicht ab dem Stand des Handys.
-      final progress = from == null ? now.alongM : routeProgress(session.route, start, lastAlongM: now.alongM).alongM;
-      for (final along in replanTargetsOf(session.route, session.sections, progress)) {
+      final progress = from == null
+          ? now.alongM
+          : routeProgress(session.route, start, lastAlongM: now.alongM).alongM;
+      for (final along in replanTargetsOf(
+        session.route,
+        session.sections,
+        progress,
+      )) {
         final target = session.route.pointAt(along);
-        final graph = await _graphFor(LatBox.of([start, target]), fillOnline: prefs.fillOnline);
+        final graph = await _graphFor(
+          LatBox.of([start, target]),
+          fillOnline: prefs.fillOnline,
+        );
         final runner = _rejoinRunner;
         // Zu weit für einen Graphen: der nähere Punkt voraus.
         if (graph == _NavGraph.tooLarge) continue;
@@ -501,9 +594,17 @@ class NavController extends Notifier<NavSession?> {
           result = NavReplan.noArea;
           break;
         }
-        final plan = await StallWatch.time('nav.replan', () => runner.run(ReplanJob(start, course, target, rider)));
+        final plan = await StallWatch.time(
+          'nav.replan',
+          () => runner.run(ReplanJob(start, course, target, rider)),
+        );
         if (plan.points != null) {
-          next = spliceReplan(session.route, session.sections, plan.points!, along);
+          next = spliceReplan(
+            session.route,
+            session.sections,
+            plan.points!,
+            along,
+          );
           break;
         }
         if (plan.outcome == ReplanOutcome.startOffNetwork) {
@@ -517,23 +618,32 @@ class NavController extends Notifier<NavSession?> {
     }
     // Inzwischen beendet, ersetzt oder wieder auf der Linie: nichts tun.
     final after = state;
-    if (after == null || !identical(after.route, session.route) || after.replan != NavReplan.computing) return;
+    if (after == null ||
+        !identical(after.route, session.route) ||
+        after.replan != NavReplan.computing) {
+      return;
+    }
     final route = next == null ? null : NavRoute.of(next.points);
     if (route == null) {
       state = after.withReplan(result);
       return;
     }
     _begin(
-        NavSession(
-          route: route,
-          title: after.title,
-          sections: next!.sections,
-          north: after.north,
-          profile: after.profile,
-          routePrefs: after.routePrefs,
-        ),
-        0);
-    onFix(start, headingDeg: course, speedMps: now.moving ? kNavHeadingMinSpeedMps : 0);
+      NavSession(
+        route: route,
+        title: after.title,
+        sections: next!.sections,
+        north: after.north,
+        profile: after.profile,
+        routePrefs: after.routePrefs,
+      ),
+      0,
+    );
+    onFix(
+      start,
+      headingDeg: course,
+      speedMps: now.moving ? kNavHeadingMinSpeedMps : 0,
+    );
   }
 
   /// Die Route verlassen (#464): wie „Beenden", dazu sagt die Karte warum.
@@ -614,7 +724,10 @@ class NavController extends Notifier<NavSession?> {
 const kNavRejoinGraphMarginM = 2000.0;
 
 enum _NavGraph { ready, none, tooLarge }
-final navigationProvider = NotifierProvider<NavController, NavSession?>(NavController.new);
+
+final navigationProvider = NotifierProvider<NavController, NavSession?>(
+  NavController.new,
+);
 
 /// Ab wie vielen Metern daneben „Route umplanen" steht (#464), gemerkt auf
 /// dem Gerät; die Seite „Navigation" stellt es.
@@ -637,7 +750,11 @@ final navLeaveDistanceProvider = NotifierProvider<RememberedMeters, int>(
 
 /// Eine gemerkte Zahl wie [RememberedFlag].
 class RememberedMeters extends Notifier<int> {
-  RememberedMeters({required this.read, required this.write, required this.label});
+  RememberedMeters({
+    required this.read,
+    required this.write,
+    required this.label,
+  });
 
   final int Function(Settings settings) read;
   final Future<void> Function(Settings settings, int value) write;
@@ -648,8 +765,12 @@ class RememberedMeters extends Notifier<int> {
 
   void set(int value) {
     state = value;
-    unawaited(write(ref.read(settingsProvider), value)
-        .catchError((Object e, StackTrace s) => logError(label, e, s)));
+    unawaited(
+      write(
+        ref.read(settingsProvider),
+        value,
+      ).catchError((Object e, StackTrace s) => logError(label, e, s)),
+    );
   }
 }
 

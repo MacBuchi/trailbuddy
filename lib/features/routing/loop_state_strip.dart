@@ -23,7 +23,11 @@ const kLoopStripChartH = 46.0;
 /// `chooseState` unter, bis dahin rechnet der Greedy über das Fenster).
 /// Liegt der Vorschlag darunter (kein Stand im Fenster), reicht sie bis
 /// zu ihm.
-({double from, double to}) loopStripRange(LoopBudget budget, List<LoopState> states, int? pick) {
+({double from, double to}) loopStripRange(
+  LoopBudget budget,
+  List<LoopState> states,
+  int? pick,
+) {
   var from = budget.floorTimeS;
   final to = budget.ceilTimeS;
   if (pick != null && pick < states.length) {
@@ -33,17 +37,28 @@ const kLoopStripChartH = 46.0;
 }
 
 /// Die Stände, die auf der Leiste stehen (Index in [states]).
-List<int> loopStripVisible(LoopBudget budget, List<LoopState> states, int? pick) {
+List<int> loopStripVisible(
+  LoopBudget budget,
+  List<LoopState> states,
+  int? pick,
+) {
   final r = loopStripRange(budget, states, pick);
   return [
     for (var i = 0; i < states.length; i++)
-      if (i == pick || (states[i].timeS >= r.from - 1 && states[i].timeS <= r.to + 1)) i,
+      if (i == pick ||
+          (states[i].timeS >= r.from - 1 && states[i].timeS <= r.to + 1))
+        i,
   ];
 }
 
 /// Der Satz unter der Leiste: was die gezeigte Runde vom Vorschlag
 /// unterscheidet — jeder Stand ist der vorige plus EIN Trail.
-String loopStripNote(AppLocalizations l, List<LoopState> states, int pick, int shown) {
+String loopStripNote(
+  AppLocalizations l,
+  List<LoopState> states,
+  int pick,
+  int shown,
+) {
   List<String> names(Iterable<int> idx) {
     final out = <String>[];
     for (final i in idx) {
@@ -55,10 +70,18 @@ String loopStripNote(AppLocalizations l, List<LoopState> states, int pick, int s
 
   if (shown == pick) {
     final last = states[pick].addedName;
-    return last == null || last.isEmpty ? l.loopStripNotePickPlain : l.loopStripNotePick(last);
+    return last == null || last.isEmpty
+        ? l.loopStripNotePickPlain
+        : l.loopStripNotePick(last);
   }
-  if (shown < pick) return l.loopStripShorter(names([for (var i = shown + 1; i <= pick; i++) i]).join(', '));
-  return l.loopStripLonger(names([for (var i = pick + 1; i <= shown; i++) i]).join(', '));
+  if (shown < pick) {
+    return l.loopStripShorter(
+      names([for (var i = shown + 1; i <= pick; i++) i]).join(', '),
+    );
+  }
+  return l.loopStripLonger(
+    names([for (var i = pick + 1; i <= shown; i++) i]).join(', '),
+  );
 }
 
 class LoopStateStrip extends StatelessWidget {
@@ -95,18 +118,28 @@ class LoopStateStrip extends StatelessWidget {
     final shares = [for (final i in visible) states[i].share];
     final lo = shares.reduce(math.min), hi = shares.reduce(math.max);
     final small = theme.textTheme.labelSmall?.copyWith(color: p.muted);
-    final head = theme.textTheme.labelSmall?.copyWith(fontFamily: AppFonts.display, color: p.muted, letterSpacing: 0.8);
+    final head = theme.textTheme.labelSmall?.copyWith(
+      fontFamily: AppFonts.display,
+      color: p.muted,
+      letterSpacing: 0.8,
+    );
     final s = states[shown];
     final timeText = l.loopTimeAbout(routeTimeLabel(l, s.timeS));
     final share = (s.trailShare * 100).round();
-    String describe(int i) => l.loopStripStateSemantics(routeTimeLabel(l, states[i].timeS), (states[i].trailShare * 100).round());
+    String describe(int i) => l.loopStripStateSemantics(
+      routeTimeLabel(l, states[i].timeS),
+      (states[i].trailShare * 100).round(),
+    );
     final pos = visible.indexOf(shown);
 
     void showNearest(double dx, double width) {
-      final t = range.from + (dx / width).clamp(0.0, 1.0) * (range.to - range.from);
+      final t =
+          range.from + (dx / width).clamp(0.0, 1.0) * (range.to - range.from);
       var best = visible.first;
       for (final i in visible) {
-        if ((states[i].timeS - t).abs() < (states[best].timeS - t).abs()) best = i;
+        if ((states[i].timeS - t).abs() < (states[best].timeS - t).abs()) {
+          best = i;
+        }
       }
       if (best != shown) onShow(best);
     }
@@ -121,99 +154,146 @@ class LoopStateStrip extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(children: [
-            Expanded(
-              child: Text(l.loopStripTitle, maxLines: 1, overflow: TextOverflow.ellipsis, style: head),
-            ),
-            const SizedBox(width: 6),
-            Flexible(
-              child: Text(
-                l.loopStripTarget(routeTimeLabel(l, budget.timeS), '${(budget.windowS / 60).round()}'),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: small,
-              ),
-            ),
-            // „Vergleichen" (#549 B): in der Zeile des Kopfs, damit die
-            // Leiste im eingeklappten Blatt nicht höher wird.
-            if (onCompare != null) ...[
-              const SizedBox(width: 8),
-              InkWell(
-                key: const ValueKey('loop-strip-compare'),
-                onTap: onCompare,
-                borderRadius: BorderRadius.circular(6),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                  child: Row(mainAxisSize: MainAxisSize.min, children: [
-                    Icon(Icons.open_in_full, size: 14, color: p.accentText),
-                    const SizedBox(width: 3),
-                    Text(l.loopCompareOpen,
-                        style: theme.textTheme.labelSmall?.copyWith(color: p.accentText, fontWeight: FontWeight.w600)),
-                  ]),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  l.loopStripTitle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: head,
                 ),
               ),
+              const SizedBox(width: 6),
+              Flexible(
+                child: Text(
+                  l.loopStripTarget(
+                    routeTimeLabel(l, budget.timeS),
+                    '${(budget.windowS / 60).round()}',
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: small,
+                ),
+              ),
+              // „Vergleichen" (#549 B): in der Zeile des Kopfs, damit die
+              // Leiste im eingeklappten Blatt nicht höher wird.
+              if (onCompare != null) ...[
+                const SizedBox(width: 8),
+                InkWell(
+                  key: const ValueKey('loop-strip-compare'),
+                  onTap: onCompare,
+                  borderRadius: BorderRadius.circular(6),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 4,
+                      vertical: 2,
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.open_in_full, size: 14, color: p.accentText),
+                        const SizedBox(width: 3),
+                        Text(
+                          l.loopCompareOpen,
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: p.accentText,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ],
-          ]),
+          ),
           // Platz für „VORSCHLAG" über dem höchsten Stiel.
           const SizedBox(height: 12),
           Semantics(
-            label: l.loopStripSemantics(pos + 1, visible.length, describe(shown)),
-            onIncrease: pos + 1 < visible.length ? () => onShow(visible[pos + 1]) : null,
+            label: l.loopStripSemantics(
+              pos + 1,
+              visible.length,
+              describe(shown),
+            ),
+            onIncrease: pos + 1 < visible.length
+                ? () => onShow(visible[pos + 1])
+                : null,
             onDecrease: pos > 0 ? () => onShow(visible[pos - 1]) : null,
             excludeSemantics: true,
-            child: LayoutBuilder(builder: (context, c) {
-              final w = c.maxWidth;
-              double x(double t) => ((t - range.from) / (range.to - range.from)).clamp(0.0, 1.0) * w;
-              double stemH(double v) =>
-                  hi - lo < 1e-6 ? kLoopStripChartH * 0.5 : 8 + (v - lo) / (hi - lo) * (kLoopStripChartH - 14);
-              final winFrom = x(budget.minTimeS), winTo = x(budget.maxTimeS);
-              return GestureDetector(
-                key: const ValueKey('loop-strip-chart'),
-                behavior: HitTestBehavior.opaque,
-                dragStartBehavior: DragStartBehavior.down,
-                onTapDown: (d) => showNearest(d.localPosition.dx, w),
-                onHorizontalDragUpdate: (d) => showNearest(d.localPosition.dx, w),
-                child: SizedBox(
-                  height: kLoopStripChartH,
-                  width: w,
-                  child: Stack(clipBehavior: Clip.none, children: [
-                    // Das Fenster um die Zeit und die Zeit selbst — wie die
-                    // Skala bisher (Konzept-Routing 12.5a).
-                    Positioned(
-                      left: winFrom,
-                      width: math.max(0, winTo - winFrom),
-                      top: 0,
-                      bottom: 0,
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(
-                          color: p.brandMark.withValues(alpha: 0.14),
-                          borderRadius: BorderRadius.circular(6),
+            child: LayoutBuilder(
+              builder: (context, c) {
+                final w = c.maxWidth;
+                double x(double t) =>
+                    ((t - range.from) / (range.to - range.from)).clamp(
+                      0.0,
+                      1.0,
+                    ) *
+                    w;
+                double stemH(double v) => hi - lo < 1e-6
+                    ? kLoopStripChartH * 0.5
+                    : 8 + (v - lo) / (hi - lo) * (kLoopStripChartH - 14);
+                final winFrom = x(budget.minTimeS), winTo = x(budget.maxTimeS);
+                return GestureDetector(
+                  key: const ValueKey('loop-strip-chart'),
+                  behavior: HitTestBehavior.opaque,
+                  dragStartBehavior: DragStartBehavior.down,
+                  onTapDown: (d) => showNearest(d.localPosition.dx, w),
+                  onHorizontalDragUpdate: (d) =>
+                      showNearest(d.localPosition.dx, w),
+                  child: SizedBox(
+                    height: kLoopStripChartH,
+                    width: w,
+                    child: Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        // Das Fenster um die Zeit und die Zeit selbst — wie die
+                        // Skala bisher (Konzept-Routing 12.5a).
+                        Positioned(
+                          left: winFrom,
+                          width: math.max(0, winTo - winFrom),
+                          top: 0,
+                          bottom: 0,
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              color: p.brandMark.withValues(alpha: 0.14),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                          ),
                         ),
-                      ),
+                        Positioned(
+                          left: x(budget.timeS) - 1,
+                          width: 2,
+                          top: 0,
+                          bottom: 0,
+                          child: ColoredBox(
+                            color: p.text.withValues(alpha: 0.5),
+                          ),
+                        ),
+                        Positioned(
+                          left: 0,
+                          right: 0,
+                          bottom: 0,
+                          height: 1,
+                          child: ColoredBox(color: p.line),
+                        ),
+                        for (final i in visible)
+                          ..._stem(
+                            context,
+                            key: i,
+                            x: x(states[i].timeS),
+                            h: stemH(states[i].share),
+                            grade: states[i].grade,
+                            isPick: i == pick,
+                            isShown: i == shown,
+                            p: p,
+                          ),
+                      ],
                     ),
-                    Positioned(
-                      left: x(budget.timeS) - 1,
-                      width: 2,
-                      top: 0,
-                      bottom: 0,
-                      child: ColoredBox(color: p.text.withValues(alpha: 0.5)),
-                    ),
-                    Positioned(left: 0, right: 0, bottom: 0, height: 1, child: ColoredBox(color: p.line)),
-                    for (final i in visible)
-                      ..._stem(
-                        context,
-                        key: i,
-                        x: x(states[i].timeS),
-                        h: stemH(states[i].share),
-                        grade: states[i].grade,
-                        isPick: i == pick,
-                        isShown: i == shown,
-                        p: p,
-                      ),
-                  ]),
-                ),
-              );
-            }),
+                  ),
+                );
+              },
+            ),
           ),
           _Axis(from: range.from, to: range.to, style: AppFonts.numbers(small)),
           const SizedBox(height: 4),
@@ -221,11 +301,17 @@ class LoopStateStrip extends StatelessWidget {
             key: const ValueKey('loop-strip-line'),
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              Text(timeText, style: AppFonts.numbers(theme.textTheme.bodyMedium)),
+              Text(
+                timeText,
+                style: AppFonts.numbers(theme.textTheme.bodyMedium),
+              ),
               Text('  ·  ', style: TextStyle(color: p.muted)),
               Text(l.loopStripShare(share), style: theme.textTheme.bodyMedium),
               if (s.grade != null) ...[
-                Text('  ·  ${l.loopStripUpTo} ', style: theme.textTheme.bodyMedium),
+                Text(
+                  '  ·  ${l.loopStripUpTo} ',
+                  style: theme.textTheme.bodyMedium,
+                ),
                 GradeShield(s.grade, fontSize: 11),
               ],
             ],
@@ -242,14 +328,16 @@ class LoopStateStrip extends StatelessWidget {
     );
   }
 
-  List<Widget> _stem(BuildContext context,
-      {required int key,
-      required double x,
-      required double h,
-      required int? grade,
-      required bool isPick,
-      required bool isShown,
-      required AppPalette p}) {
+  List<Widget> _stem(
+    BuildContext context, {
+    required int key,
+    required double x,
+    required double h,
+    required int? grade,
+    required bool isPick,
+    required bool isShown,
+    required AppPalette p,
+  }) {
     const headSize = 11.0;
     final color = p.grade.of(grade);
     final headW = grade == null ? headSize : gradeShapeWidth(grade, headSize);
@@ -260,7 +348,9 @@ class LoopStateStrip extends StatelessWidget {
         width: 2,
         bottom: 0,
         height: h,
-        child: ColoredBox(color: isShown ? p.accentText : p.muted.withValues(alpha: 0.6)),
+        child: ColoredBox(
+          color: isShown ? p.accentText : p.muted.withValues(alpha: 0.6),
+        ),
       ),
       // Der Kopf: höchster Grad als Form; der gezeigte Stand im Ring der
       // Marke.
@@ -273,13 +363,19 @@ class LoopStateStrip extends StatelessWidget {
           decoration: BoxDecoration(
             shape: BoxShape.rectangle,
             borderRadius: BorderRadius.circular(4),
-            border: Border.all(color: isShown ? p.accentText : Colors.transparent, width: 1.5),
+            border: Border.all(
+              color: isShown ? p.accentText : Colors.transparent,
+              width: 1.5,
+            ),
           ),
           child: grade == null
               ? Container(
                   width: headSize,
                   height: headSize,
-                  decoration: BoxDecoration(shape: BoxShape.circle, color: p.muted),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: p.muted,
+                  ),
                 )
               : GradeShape(grade, size: headSize, color: color),
         ),
@@ -294,10 +390,13 @@ class LoopStateStrip extends StatelessWidget {
             context.l10n.loopStripPick,
             textAlign: TextAlign.center,
             maxLines: 1,
-            style: Theme.of(context)
-                .textTheme
-                .labelSmall
-                ?.copyWith(fontFamily: AppFonts.display, color: p.accentText, fontWeight: FontWeight.w700, letterSpacing: 0.8, fontSize: 10),
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              fontFamily: AppFonts.display,
+              color: p.accentText,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.8,
+              fontSize: 10,
+            ),
           ),
         ),
     ];
@@ -315,7 +414,9 @@ class _Axis extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final span = to - from;
-    final step = span > 3 * 3600 ? 3600.0 : (span > 1.25 * 3600 ? 1800.0 : 900.0);
+    final step = span > 3 * 3600
+        ? 3600.0
+        : (span > 1.25 * 3600 ? 1800.0 : 900.0);
     final ticks = <double>[];
     for (var t = (from / step).ceil() * step; t <= to; t += step) {
       ticks.add(t);
@@ -326,19 +427,29 @@ class _Axis extends StatelessWidget {
       return m == 0 ? '$h h' : '$h:${m.toString().padLeft(2, '0')}';
     }
 
-    return LayoutBuilder(builder: (context, c) {
-      final w = c.maxWidth;
-      return SizedBox(
-        height: 14,
-        child: Stack(clipBehavior: Clip.none, children: [
-          for (final t in ticks)
-            Positioned(
-              left: ((t - from) / span * w - 20).clamp(0.0, w - 40),
-              width: 40,
-              child: Text(label(t), textAlign: TextAlign.center, maxLines: 1, style: style),
-            ),
-        ]),
-      );
-    });
+    return LayoutBuilder(
+      builder: (context, c) {
+        final w = c.maxWidth;
+        return SizedBox(
+          height: 14,
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              for (final t in ticks)
+                Positioned(
+                  left: ((t - from) / span * w - 20).clamp(0.0, w - 40),
+                  width: 40,
+                  child: Text(
+                    label(t),
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    style: style,
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
+    );
   }
 }

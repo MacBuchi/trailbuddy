@@ -55,7 +55,8 @@ String formatCoordinates(double lat, double lng) =>
 /// ignorieren, zentrieren auf den Pfad. Die verbreitete Kurzform
 /// `geo:0,0?q=…` schickt die zweite Gruppe in den Golf von Guinea.
 Uri geoUriFor({required double lat, required double lng, String? label}) {
-  final point = '${lat.toStringAsFixed(kCoordinateDigits)},'
+  final point =
+      '${lat.toStringAsFixed(kCoordinateDigits)},'
       '${lng.toStringAsFixed(kCoordinateDigits)}';
   final title = _sanitizeLabel(label);
   final query = title == null ? point : '$point($title)';
@@ -67,7 +68,10 @@ Uri geoUriFor({required double lat, required double lng, String? label}) {
 /// sie stehen), Leerraum wird zusammengefasst, Überlänge gekürzt.
 String? _sanitizeLabel(String? label) {
   if (label == null) return null;
-  var clean = label.replaceAll(RegExp(r'[()]'), ' ').replaceAll(RegExp(r'\s+'), ' ').trim();
+  var clean = label
+      .replaceAll(RegExp(r'[()]'), ' ')
+      .replaceAll(RegExp(r'\s+'), ' ')
+      .trim();
   if (clean.isEmpty) return null;
   if (clean.length > kMaxLabelLength) {
     clean = '${clean.substring(0, kMaxLabelLength).trimRight()}…';
@@ -109,10 +113,13 @@ Future<NavigationOutcome> openInNavigationApp({
     }
   }
   await Clipboard.setData(ClipboardData(text: formatCoordinates(lat, lng)));
-  return kIsWeb ? NavigationOutcome.copiedInBrowser : NavigationOutcome.copiedNoApp;
+  return kIsWeb
+      ? NavigationOutcome.copiedInBrowser
+      : NavigationOutcome.copiedNoApp;
 }
 
-Future<bool> _launchExternally(Uri uri) => launchUrl(uri, mode: LaunchMode.externalApplication);
+Future<bool> _launchExternally(Uri uri) =>
+    launchUrl(uri, mode: LaunchMode.externalApplication);
 
 /// Der Pin-Titel: der angezeigte Name, aber nicht der Platzhalter —
 /// „Trail ohne Namen" als Ziel in einer fremden App sagt nichts.
@@ -126,26 +133,45 @@ String? navigationLabelOf(Trail trail) => trail.name;
 /// dahinter wäre für niemanden. Die beiden Rückfälle dagegen sähen ohne
 /// Meldung aus wie ein Knopf, der nichts tut.
 Future<void> navigateToTrailHead(BuildContext context, Trail trail) =>
-    navigateToPoint(context, trail.start, name: navigationLabelOf(trail), trailHead: true);
+    navigateToPoint(
+      context,
+      trail.start,
+      name: navigationLabelOf(trail),
+      trailHead: true,
+    );
 
 /// Dasselbe für einen beliebigen Punkt (#177: „Route bis hier" mit der
 /// Navi-App). [trailHead] wählt den Satz der Rückfälle („Koordinaten des
 /// Trailkopfs …" statt „… des Ziels …") — ganze Sätze in den ARB-Dateien,
 /// kein Satzteil, den eine andere Sprache anders beugt (#209).
-Future<void> navigateToPoint(BuildContext context, LatLng point, {String? name, bool trailHead = false}) async {
+Future<void> navigateToPoint(
+  BuildContext context,
+  LatLng point, {
+  String? name,
+  bool trailHead = false,
+}) async {
   final messenger = ScaffoldMessenger.of(context);
   final l = context.l10n;
-  final outcome = await openInNavigationApp(lat: point.latitude, lng: point.longitude, label: name);
+  final outcome = await openInNavigationApp(
+    lat: point.latitude,
+    lng: point.longitude,
+    label: name,
+  );
   if (outcome == NavigationOutcome.opened) return;
   final coordinates = formatCoordinates(point.latitude, point.longitude);
   messenger
     ..clearSnackBars()
-    ..showSnackBar(SnackBar(
-      content: Text(switch ((outcome == NavigationOutcome.copiedNoApp, trailHead)) {
-        (true, true) => l.navNoAppTrailHead(coordinates),
-        (true, false) => l.navNoAppTarget(coordinates),
-        (false, true) => l.navCopiedTrailHead(coordinates),
-        (false, false) => l.navCopiedTarget(coordinates),
-      }),
-    ));
+    ..showSnackBar(
+      SnackBar(
+        content: Text(switch ((
+          outcome == NavigationOutcome.copiedNoApp,
+          trailHead,
+        )) {
+          (true, true) => l.navNoAppTrailHead(coordinates),
+          (true, false) => l.navNoAppTarget(coordinates),
+          (false, true) => l.navCopiedTrailHead(coordinates),
+          (false, false) => l.navCopiedTarget(coordinates),
+        }),
+      ),
+    );
 }

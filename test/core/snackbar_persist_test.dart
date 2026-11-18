@@ -25,38 +25,60 @@ void main() {
   test('jede SnackBar mit Aktion setzt persist ausdrücklich', () {
     final offenders = <String>[];
     var withAction = 0;
-    for (final f in Directory('lib').listSync(recursive: true).whereType<File>()) {
+    for (final f in Directory(
+      'lib',
+    ).listSync(recursive: true).whereType<File>()) {
       if (!f.path.endsWith('.dart')) continue;
       for (final call in snackBarCalls(f.readAsStringSync())) {
         if (!call.contains('SnackBarAction(')) continue;
         withAction++;
-        if (!RegExp(r'\bpersist:').hasMatch(call)) offenders.add('${f.path}: ${call.split('\n').first.trim()}');
+        if (!RegExp(r'\bpersist:').hasMatch(call)) {
+          offenders.add('${f.path}: ${call.split('\n').first.trim()}');
+        }
       }
     }
-    expect(withAction, greaterThanOrEqualTo(6), reason: 'der Scan findet die bekannten Stellen');
-    expect(offenders, isEmpty, reason: 'Flutter 3.47: Aktion ohne persist bleibt für immer stehen');
+    expect(
+      withAction,
+      greaterThanOrEqualTo(6),
+      reason: 'der Scan findet die bekannten Stellen',
+    );
+    expect(
+      offenders,
+      isEmpty,
+      reason: 'Flutter 3.47: Aktion ohne persist bleibt für immer stehen',
+    );
   });
 
-  testWidgets('eine Leiste mit Aktion und persist: false geht nach ihrer Dauer', (tester) async {
-    await tester.pumpWidget(MaterialApp(
-      home: Scaffold(
-        body: Builder(
-          builder: (context) => TextButton(
-            onPressed: () => ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-              content: const Text('Planer geschlossen'),
-              action: SnackBarAction(label: 'Rückgängig', onPressed: () {}),
-              persist: false,
-            )),
-            child: const Text('zeigen'),
+  testWidgets(
+    'eine Leiste mit Aktion und persist: false geht nach ihrer Dauer',
+    (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Builder(
+              builder: (context) => TextButton(
+                onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: const Text('Planer geschlossen'),
+                    action: SnackBarAction(
+                      label: 'Rückgängig',
+                      onPressed: () {},
+                    ),
+                    persist: false,
+                  ),
+                ),
+                child: const Text('zeigen'),
+              ),
+            ),
           ),
         ),
-      ),
-    ));
-    await tester.tap(find.text('zeigen'));
-    await tester.pumpAndSettle();
-    expect(find.text('Planer geschlossen'), findsOneWidget);
-    await tester.pump(const Duration(seconds: 5));
-    await tester.pumpAndSettle();
-    expect(find.text('Planer geschlossen'), findsNothing);
-  });
+      );
+      await tester.tap(find.text('zeigen'));
+      await tester.pumpAndSettle();
+      expect(find.text('Planer geschlossen'), findsOneWidget);
+      await tester.pump(const Duration(seconds: 5));
+      await tester.pumpAndSettle();
+      expect(find.text('Planer geschlossen'), findsNothing);
+    },
+  );
 }

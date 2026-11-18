@@ -51,7 +51,10 @@ Future<void> showInviteDialog(
                 QrImageView(
                   data: url,
                   backgroundColor: light.surface,
-                  eyeStyle: QrEyeStyle(eyeShape: QrEyeShape.square, color: light.text),
+                  eyeStyle: QrEyeStyle(
+                    eyeShape: QrEyeShape.square,
+                    color: light.text,
+                  ),
                   dataModuleStyle: QrDataModuleStyle(
                     dataModuleShape: QrDataModuleShape.square,
                     color: light.text,

@@ -13,8 +13,8 @@ import 'photo_pipeline.dart';
 /// Empfänger für Fehlerberichte. `main()` hängt hier das Schreiben nach
 /// Supabase ein (siehe `ErrorReportRepository`); in Tests bleibt der Haken
 /// leer, damit `flutter test` ohne Netz auskommt.
-typedef ErrorSink = void Function(
-    String context, Object error, StackTrace? stackTrace);
+typedef ErrorSink =
+    void Function(String context, Object error, StackTrace? stackTrace);
 
 ErrorSink? _sink;
 
@@ -31,12 +31,12 @@ void setErrorSink(ErrorSink? sink) => _sink = sink;
 /// Wochendigest zählte sie wie echte Nutzer. Echte Nutzer rufen die App
 /// nie über diese Adressen auf.
 bool reportsFromHost(String host) => !const {
-      'localhost',
-      '127.0.0.1',
-      '::1',
-      '[::1]',
-      '0.0.0.0',
-    }.contains(host.toLowerCase());
+  'localhost',
+  '127.0.0.1',
+  '::1',
+  '[::1]',
+  '0.0.0.0',
+}.contains(host.toLowerCase());
 
 /// Zentrales, bewusst minimales Logging: gefangene Fehler landen mit
 /// Stacktrace im Log (dart:developer → adb logcat / DevTools), statt
@@ -48,8 +48,12 @@ bool reportsFromHost(String host) => !const {
 /// Der Aufruf darf unter keinen Umständen werfen: ein Fehler beim Melden
 /// eines Fehlers würde sonst erneut hier landen und sich aufschaukeln.
 void logError(String context, Object error, [StackTrace? stackTrace]) {
-  developer.log(context,
-      name: 'trailbuddy', error: error, stackTrace: stackTrace);
+  developer.log(
+    context,
+    name: 'trailbuddy',
+    error: error,
+    stackTrace: stackTrace,
+  );
   if (kDebugMode) debugPrint('[$context] $error');
   try {
     _sink?.call(context, error, stackTrace);
@@ -171,7 +175,8 @@ class DailyLimitException implements Exception {
   const DailyLimitException();
 
   @override
-  String toString() => 'DailyLimitException: Tageslimit für Aufzeichnungen erreicht';
+  String toString() =>
+      'DailyLimitException: Tageslimit für Aufzeichnungen erreicht';
 }
 
 /// Das Konto hat schon 100 Startpunkte (#543, Trigger
@@ -182,7 +187,8 @@ class StartPointLimitException implements Exception {
   const StartPointLimitException();
 
   @override
-  String toString() => 'StartPointLimitException: Höchstzahl an Startpunkten erreicht';
+  String toString() =>
+      'StartPointLimitException: Höchstzahl an Startpunkten erreicht';
 }
 
 /// Der Server nimmt eine Zuordnung „B ist ein Duplikat von A" nicht an
@@ -260,7 +266,8 @@ bool looksLikeGatewayTimeout(Object error) =>
 /// anderer Auth-Fehler (falscher Schlüssel, Server kaputt) bleibt sichtbar.
 bool looksLikeSessionGone(Object error) =>
     error is AuthException &&
-    (error.code == 'refresh_token_not_found' || error.code == 'session_not_found');
+    (error.code == 'refresh_token_not_found' ||
+        error.code == 'session_not_found');
 
 /// Hat GoTrue den Mailversand abgelehnt, weil zu schnell wieder gefragt
 /// wurde?
@@ -417,8 +424,7 @@ String confirmErrorMessage(AppLocalizations l, AuthException error) {
   if (error.code == 'otp_expired' || error.statusCode == '403') {
     return l.authErrorCodeInvalid;
   }
-  if (error.code == 'over_email_send_rate_limit' ||
-      error.statusCode == '429') {
+  if (error.code == 'over_email_send_rate_limit' || error.statusCode == '429') {
     return l.authErrorMailRateLimit;
   }
   return l.authErrorConfirmFailed(error.message);

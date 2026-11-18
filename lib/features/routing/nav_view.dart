@@ -26,13 +26,26 @@ import '../../core/screen_awake.dart';
 import '../../data/providers.dart' show currentUserIdProvider;
 import '../../l10n/l10n.dart';
 import '../garmin/garmin_bridge.dart' show WatchStatus, garminBridgeProvider;
-import '../garmin/watch_presence.dart' show WatchRecord, kWatchFixApartM, watchPresenceProvider;
-import '../garmin/watch_providers.dart' show WatchSyncPhase, kWatchOutdatedPhone, kWatchOutdatedWatch, kWatchTooBig, watchStatusProvider, watchSyncProvider;
+import '../garmin/watch_presence.dart'
+    show WatchRecord, kWatchFixApartM, watchPresenceProvider;
+import '../garmin/watch_providers.dart'
+    show
+        WatchSyncPhase,
+        kWatchOutdatedPhone,
+        kWatchOutdatedWatch,
+        kWatchTooBig,
+        watchStatusProvider,
+        watchSyncProvider;
 import '../map/map_buttons.dart';
 import '../map/map_view/map_view.dart';
 import '../rides/airtime_live.dart';
 import '../rides/ride_providers.dart'
-    show ridePhoneInPocketProvider, rideProvider, sensorLogProvider, voiceCuesAvailableProvider, voiceCuesProvider;
+    show
+        ridePhoneInPocketProvider,
+        rideProvider,
+        sensorLogProvider,
+        voiceCuesAvailableProvider,
+        voiceCuesProvider;
 import '../rides/airtime_widgets.dart' show airtimeRunRank;
 import '../rides/sensor_fusion.dart' show JumpEvent;
 import '../rides/trail_values.dart';
@@ -60,7 +73,12 @@ List<MapViewPolyline> navRouteLines(NavSession session) {
   final along = session.state?.alongM ?? 0;
   final (done, rest) = session.route.splitAt(along);
   return [
-    if (done.length >= 2) MapViewPolyline(points: done, color: AppColors.routeEdge.withValues(alpha: 0.35), width: 4),
+    if (done.length >= 2)
+      MapViewPolyline(
+        points: done,
+        color: AppColors.routeEdge.withValues(alpha: 0.35),
+        width: 4,
+      ),
     ...routeBandLines(rest, opacity: kRouteFollowOpacity),
     if (session.rejoinLine case final back? when back.length >= 2)
       MapViewPolyline(
@@ -82,15 +100,23 @@ List<MapViewPolyline> navRouteLines(NavSession session) {
 /// [onWatchFound] läuft einmal, sobald eine Uhr gefunden ist — die Karte
 /// rechnet dann schon, was an die Uhr geht (#449), während noch gelesen
 /// wird.
-Future<NavStartChoice?> showNavStartSheet(BuildContext context,
-        {required String title, required bool canRecord, String? summary, VoidCallback? onWatchFound}) =>
-    showModalBottomSheet<NavStartChoice>(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      builder: (_) =>
-          _NavStartSheet(title: title, summary: summary, canRecord: canRecord, onWatchFound: onWatchFound),
-    );
+Future<NavStartChoice?> showNavStartSheet(
+  BuildContext context, {
+  required String title,
+  required bool canRecord,
+  String? summary,
+  VoidCallback? onWatchFound,
+}) => showModalBottomSheet<NavStartChoice>(
+  context: context,
+  isScrollControlled: true,
+  showDragHandle: true,
+  builder: (_) => _NavStartSheet(
+    title: title,
+    summary: summary,
+    canRecord: canRecord,
+    onWatchFound: onWatchFound,
+  ),
+);
 
 /// Der Untertitel des Start-Dialogs aus den Abschnitten: Trails und Länge.
 String navStartSummary(AppLocalizations l, NavRequest request) {
@@ -117,7 +143,11 @@ NavStartChoice navStartChoiceOf(WidgetRef ref, {required bool canRecord}) {
 /// oder in der Tasche (nur mit laufender Erkennung, #491). Alle gemerkt;
 /// Vorgabe an, Ansagen und Tasche aus.
 class NavStartOptions extends ConsumerStatefulWidget {
-  const NavStartOptions({super.key, required this.canRecord, this.onWatchFound});
+  const NavStartOptions({
+    super.key,
+    required this.canRecord,
+    this.onWatchFound,
+  });
 
   final bool canRecord;
   final VoidCallback? onWatchFound;
@@ -150,24 +180,33 @@ class _NavStartOptionsState extends ConsumerState<NavStartOptions> {
     // Die erste Frage nach der Uhr startet das SDK und kann Sekunden
     // dauern: Der Chip sagt es, statt dass er später auftaucht und wer
     // schnell startet, ohne Uhr fährt.
-    final watchSearching = watchAsk.isLoading && ref.watch(garminBridgeProvider).supported;
+    final watchSearching =
+        watchAsk.isLoading && ref.watch(garminBridgeProvider).supported;
     final record = widget.canRecord && ref.watch(navRecordProvider);
     // Wo das Handy steckt, zählt nur für die Erkennung (#491) — und nur,
     // wenn aufgezeichnet wird oder schon eine Fahrt läuft.
-    final place = ref.watch(sensorLogProvider) && (record || ref.watch(rideProvider) != null);
+    final place =
+        ref.watch(sensorLogProvider) &&
+        (record || ref.watch(rideProvider) != null);
     final pocket = ref.watch(ridePhoneInPocketProvider);
-    Widget chip(String key, IconData icon, String label, bool on, ValueChanged<bool> set) => FilterChip(
-          key: ValueKey(key),
-          avatar: Icon(icon, size: 18),
-          label: Text(label),
-          selected: on,
-          showCheckmark: false,
-          onSelected: set,
-          // Eingeklappt muss das Ergebnis bis „Fahrt starten" passen
-          // (Pixel XL, `loop_planner_flow_test`).
-          visualDensity: VisualDensity.compact,
-          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-        );
+    Widget chip(
+      String key,
+      IconData icon,
+      String label,
+      bool on,
+      ValueChanged<bool> set,
+    ) => FilterChip(
+      key: ValueKey(key),
+      avatar: Icon(icon, size: 18),
+      label: Text(label),
+      selected: on,
+      showCheckmark: false,
+      onSelected: set,
+      // Eingeklappt muss das Ergebnis bis „Fahrt starten" passen
+      // (Pixel XL, `loop_planner_flow_test`).
+      visualDensity: VisualDensity.compact,
+      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+    );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
@@ -178,29 +217,57 @@ class _NavStartOptionsState extends ConsumerState<NavStartOptions> {
           runSpacing: 8,
           children: [
             if (widget.canRecord)
-              chip('nav-record', Icons.fiber_manual_record_outlined, l.navChipRecord, record,
-                  (v) => ref.read(navRecordProvider.notifier).set(v)),
+              chip(
+                'nav-record',
+                Icons.fiber_manual_record_outlined,
+                l.navChipRecord,
+                record,
+                (v) => ref.read(navRecordProvider.notifier).set(v),
+              ),
             if (watch.canShow)
               // Der Name der Uhr sagt, welche (#449).
-              chip('nav-watch', Icons.watch_outlined, watch.device ?? l.navChipWatch, ref.watch(navWatchProvider),
-                  (v) => ref.read(navWatchProvider.notifier).set(v))
+              chip(
+                'nav-watch',
+                Icons.watch_outlined,
+                watch.device ?? l.navChipWatch,
+                ref.watch(navWatchProvider),
+                (v) => ref.read(navWatchProvider.notifier).set(v),
+              )
             else if (watchSearching)
               Chip(
                 key: const ValueKey('nav-watch-searching'),
-                avatar: const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2)),
+                avatar: const SizedBox(
+                  width: 14,
+                  height: 14,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
                 label: Text(l.navWatchSearching),
               ),
             if (screen)
-              chip('nav-screen', Icons.light_mode_outlined, l.navChipScreen, ref.watch(navKeepScreenOnProvider),
-                  (v) => ref.read(navKeepScreenOnProvider.notifier).set(v)),
+              chip(
+                'nav-screen',
+                Icons.light_mode_outlined,
+                l.navChipScreen,
+                ref.watch(navKeepScreenOnProvider),
+                (v) => ref.read(navKeepScreenOnProvider.notifier).set(v),
+              ),
             // Ansagen übers Ohr (#525) — wo es den Dienst gibt.
             if (ref.watch(voiceCuesAvailableProvider))
-              chip('nav-voice', Icons.record_voice_over_outlined, l.navChipVoice, ref.watch(voiceCuesProvider),
-                  (v) => ref.read(voiceCuesProvider.notifier).set(v)),
+              chip(
+                'nav-voice',
+                Icons.record_voice_over_outlined,
+                l.navChipVoice,
+                ref.watch(voiceCuesProvider),
+                (v) => ref.read(voiceCuesProvider.notifier).set(v),
+              ),
             if (place)
-              chip('nav-pocket', pocket ? Icons.back_hand_outlined : Icons.pedal_bike,
-                  pocket ? l.navChipPocket : l.navChipBike, pocket,
-                  (v) => ref.read(ridePhoneInPocketProvider.notifier).set(v)),
+              chip(
+                'nav-pocket',
+                pocket ? Icons.back_hand_outlined : Icons.pedal_bike,
+                pocket ? l.navChipPocket : l.navChipBike,
+                pocket,
+                (v) => ref.read(ridePhoneInPocketProvider.notifier).set(v),
+              ),
           ],
         ),
         // Auch hier vor dem Start: die Uhr sagt, was sie tut (#499).
@@ -209,15 +276,24 @@ class _NavStartOptionsState extends ConsumerState<NavStartOptions> {
             key: const ValueKey('nav-watch-record'),
             padding: const EdgeInsets.only(top: 6),
             child: Text(
-              presence.record == WatchRecord.paused ? l.navWatchPaused : l.navWatchRecording,
-              style: theme.textTheme.bodySmall?.copyWith(color: theme.hintColor),
+              presence.record == WatchRecord.paused
+                  ? l.navWatchPaused
+                  : l.navWatchRecording,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.hintColor,
+              ),
             ),
           ),
         if (place && pocket)
           Padding(
             key: const ValueKey('nav-pocket-note'),
             padding: const EdgeInsets.only(top: 6),
-            child: Text(l.navPocketNote, style: theme.textTheme.bodySmall?.copyWith(color: theme.hintColor)),
+            child: Text(
+              l.navPocketNote,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.hintColor,
+              ),
+            ),
           ),
       ],
     );
@@ -226,23 +302,32 @@ class _NavStartOptionsState extends ConsumerState<NavStartOptions> {
 
 /// „Fahrt starten" — derselbe Knopf im Ergebnis und im Blatt.
 class NavStartButton extends StatelessWidget {
-  const NavStartButton({super.key, required this.onPressed, this.buttonKey = 'nav-go'});
+  const NavStartButton({
+    super.key,
+    required this.onPressed,
+    this.buttonKey = 'nav-go',
+  });
 
   final VoidCallback onPressed;
   final String buttonKey;
 
   @override
   Widget build(BuildContext context) => FilledButton.icon(
-        key: ValueKey(buttonKey),
-        style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(48)),
-        onPressed: onPressed,
-        icon: const Icon(Icons.navigation_outlined),
-        label: Text(context.l10n.navStartButton),
-      );
+    key: ValueKey(buttonKey),
+    style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(48)),
+    onPressed: onPressed,
+    icon: const Icon(Icons.navigation_outlined),
+    label: Text(context.l10n.navStartButton),
+  );
 }
 
 class _NavStartSheet extends ConsumerWidget {
-  const _NavStartSheet({required this.title, required this.summary, required this.canRecord, this.onWatchFound});
+  const _NavStartSheet({
+    required this.title,
+    required this.summary,
+    required this.canRecord,
+    this.onWatchFound,
+  });
 
   final String title;
   final String? summary;
@@ -262,18 +347,36 @@ class _NavStartSheet extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(l.navStartTitle, style: theme.textTheme.titleLarge),
-            Text(title, maxLines: 2, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodyMedium),
+            Text(
+              title,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.bodyMedium,
+            ),
             if (summary != null && summary.isNotEmpty)
               KeyedSubtree(
-                  key: const ValueKey('nav-summary'),
-                  child: Text(summary, style: theme.textTheme.bodySmall?.copyWith(color: theme.hintColor))),
+                key: const ValueKey('nav-summary'),
+                child: Text(
+                  summary,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.hintColor,
+                  ),
+                ),
+              ),
             const SizedBox(height: 12),
             NavStartOptions(canRecord: canRecord, onWatchFound: onWatchFound),
             const SizedBox(height: 12),
-            Text(l.navStartHint, style: theme.textTheme.bodySmall?.copyWith(color: theme.hintColor)),
+            Text(
+              l.navStartHint,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.hintColor,
+              ),
+            ),
             const SizedBox(height: 12),
             NavStartButton(
-              onPressed: () => Navigator.of(context).pop(navStartChoiceOf(ref, canRecord: canRecord)),
+              onPressed: () => Navigator.of(
+                context,
+              ).pop(navStartChoiceOf(ref, canRecord: canRecord)),
             ),
           ],
         ),
@@ -290,13 +393,14 @@ class _NavStartSheet extends ConsumerWidget {
 /// Bildschirm-Schalter gilt nicht, dann ist die Benachrichtigung die
 /// Anzeige (9.4).
 class NavOverlay extends ConsumerStatefulWidget {
-  const NavOverlay(
-      {super.key,
-      required this.session,
-      required this.onStop,
-      this.onMark,
-      this.markOpen = false,
-      this.compact = false});
+  const NavOverlay({
+    super.key,
+    required this.session,
+    required this.onStop,
+    this.onMark,
+    this.markOpen = false,
+    this.compact = false,
+  });
 
   final NavSession session;
 
@@ -340,7 +444,10 @@ class _NavOverlayState extends ConsumerState<NavOverlay> {
 
   @override
   Widget build(BuildContext context) {
-    ref.listen(navKeepScreenOnProvider, (_, on) => _screen.set(this, on && !widget.compact));
+    ref.listen(
+      navKeepScreenOnProvider,
+      (_, on) => _screen.set(this, on && !widget.compact),
+    );
     final session = widget.session;
     final l = context.l10n;
     final keepOn = ref.watch(navKeepScreenOnProvider);
@@ -356,10 +463,10 @@ class _NavOverlayState extends ConsumerState<NavOverlay> {
       NavRejoin.noArea => l.navRejoinNoArea,
       NavRejoin.noPath => l.navRejoinNoPath,
       _ => switch (session.replan) {
-          NavReplan.noArea => l.navReplanNoArea,
-          NavReplan.noPath => l.navReplanNoPath,
-          _ => null,
-        },
+        NavReplan.noArea => l.navReplanNoArea,
+        NavReplan.noPath => l.navReplanNoPath,
+        _ => null,
+      },
     };
     // „Route umplanen" ab der Schwelle der Seite „Navigation" (#464).
     final replan = off && session.replanOffer;
@@ -375,140 +482,185 @@ class _NavOverlayState extends ConsumerState<NavOverlay> {
       };
     }
     return _NavTheme(
-      child: Stack(children: [
-        SafeArea(
-          child: Align(
-            alignment: Alignment.topCenter,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  top,
-                  const _AirToast(),
-                  if (note != null)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 8),
-                      child: _NavCard(
-                        key: const ValueKey('nav-rejoin-note'),
-                        child: Text(
-                          note,
-                          textAlign: TextAlign.center,
-                          style: TextStyle(color: _p.warningText, fontSize: 14, fontFamily: AppFonts.body),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          ),
-        ),
-        SafeArea(
-          child: Align(
-            alignment: Alignment.bottomCenter,
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  if (phase.kind == NavPhaseKind.onTrail && !off)
-                    if (_liveValues(ref, ref.read(navigationProvider.notifier).trailSince) case final v?) ...[
-                      _AirTiles(values: v, keyPrefix: 'nav-air'),
-                      const SizedBox(height: 10),
-                    ],
-                  if (!arrived && !off) ...[
-                    _RouteBand(session: session),
-                    const SizedBox(height: 10),
-                  ],
-                  _RideStatusRow(onMark: widget.onMark, markOpen: widget.markOpen),
-                  if (offer || replan) ...[
-                    Wrap(
-                      alignment: WrapAlignment.center,
-                      spacing: 10,
-                      runSpacing: 10,
-                      children: [
-                        if (offer) _RejoinButton(computing: session.rejoin == NavRejoin.computing),
-                        if (replan) _ReplanButton(computing: session.replan == NavReplan.computing),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                  ],
-                  Row(
-                    children: [
-                      MapRoundButton(
-                        key: const ValueKey('nav-north'),
-                        dark: true,
-                        tooltip: session.north ? l.navRotateTooltip : l.navNorthTooltip,
-                        icon: Icons.explore_outlined,
-                        active: session.north,
-                        onPressed: () => ref.read(navigationProvider.notifier).toggleNorth(),
-                      ),
-                      if (_screen.supported) ...[
-                        const SizedBox(width: 10),
-                        MapRoundButton(
-                          key: const ValueKey('nav-screen-toggle'),
-                          dark: true,
-                          tooltip: keepOn ? l.navScreenOffTooltip : l.navScreenTitle,
-                          icon: keepOn ? Icons.light_mode : Icons.light_mode_outlined,
-                          active: keepOn,
-                          onPressed: () => ref.read(navKeepScreenOnProvider.notifier).set(!keepOn),
-                        ),
-                      ],
-                      if (ref.watch(pipSupportedProvider).valueOrNull ?? false) ...[
-                        const SizedBox(width: 10),
-                        MapRoundButton(
-                          key: const ValueKey('nav-minimize'),
-                          dark: true,
-                          tooltip: l.navMinimizeTooltip,
-                          icon: Icons.picture_in_picture_alt,
-                          onPressed: () => unawaited(ref.read(pictureInPictureProvider).enter()),
-                        ),
-                      ],
-                      if (ref.watch(watchPresenceProvider).shows ||
-                          ref.watch(watchSyncProvider).phase != WatchSyncPhase.idle) ...[
-                        const SizedBox(width: 10),
-                        _WatchBadge(state: state),
-                      ],
-                      const SizedBox(width: 10),
-                      // „Fahrt beenden" (#517) nimmt den Rest der Reihe; mit
-                      // allen vier runden Knöpfen auf 360 dp schrumpft die
-                      // Schrift, statt über den Rand zu laufen.
-                      Expanded(
-                        child: Align(
-                          alignment: Alignment.centerRight,
-                          child: FittedBox(
-                            fit: BoxFit.scaleDown,
-                            child: FilledButton.icon(
-                              key: const ValueKey('nav-stop'),
-                              style: FilledButton.styleFrom(
-                                minimumSize: const Size(0, 48),
-                                backgroundColor: AppColors.brand,
-                                foregroundColor: AppColors.onBrand,
-                                shape: const StadiumBorder(),
-                                padding: const EdgeInsets.fromLTRB(14, 0, 18, 0),
-                              ),
-                              onPressed: widget.onStop,
-                              icon: const Icon(Icons.stop_circle_outlined, size: 18),
-                              label: Text(l.navStop),
+      child: Stack(
+        children: [
+          SafeArea(
+            child: Align(
+              alignment: Alignment.topCenter,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    top,
+                    const _AirToast(),
+                    if (note != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: _NavCard(
+                          key: const ValueKey('nav-rejoin-note'),
+                          child: Text(
+                            note,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: _p.warningText,
+                              fontSize: 14,
+                              fontFamily: AppFonts.body,
                             ),
                           ),
                         ),
                       ),
-                    ],
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
-        ),
-        // Am Ende eines Trails (9.9): die Bilanz über Band und Knöpfen.
-        if (session.trailDone case final done? when !off)
-          Align(
-            alignment: Alignment.bottomCenter,
-            child: _TrailDoneSheet(key: ObjectKey(done), done: done, next: phase),
+          SafeArea(
+            child: Align(
+              alignment: Alignment.bottomCenter,
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (phase.kind == NavPhaseKind.onTrail && !off)
+                      if (_liveValues(
+                            ref,
+                            ref.read(navigationProvider.notifier).trailSince,
+                          )
+                          case final v?) ...[
+                        _AirTiles(values: v, keyPrefix: 'nav-air'),
+                        const SizedBox(height: 10),
+                      ],
+                    if (!arrived && !off) ...[
+                      _RouteBand(session: session),
+                      const SizedBox(height: 10),
+                    ],
+                    _RideStatusRow(
+                      onMark: widget.onMark,
+                      markOpen: widget.markOpen,
+                    ),
+                    if (offer || replan) ...[
+                      Wrap(
+                        alignment: WrapAlignment.center,
+                        spacing: 10,
+                        runSpacing: 10,
+                        children: [
+                          if (offer)
+                            _RejoinButton(
+                              computing: session.rejoin == NavRejoin.computing,
+                            ),
+                          if (replan)
+                            _ReplanButton(
+                              computing: session.replan == NavReplan.computing,
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                    ],
+                    Row(
+                      children: [
+                        MapRoundButton(
+                          key: const ValueKey('nav-north'),
+                          dark: true,
+                          tooltip: session.north
+                              ? l.navRotateTooltip
+                              : l.navNorthTooltip,
+                          icon: Icons.explore_outlined,
+                          active: session.north,
+                          onPressed: () => ref
+                              .read(navigationProvider.notifier)
+                              .toggleNorth(),
+                        ),
+                        if (_screen.supported) ...[
+                          const SizedBox(width: 10),
+                          MapRoundButton(
+                            key: const ValueKey('nav-screen-toggle'),
+                            dark: true,
+                            tooltip: keepOn
+                                ? l.navScreenOffTooltip
+                                : l.navScreenTitle,
+                            icon: keepOn
+                                ? Icons.light_mode
+                                : Icons.light_mode_outlined,
+                            active: keepOn,
+                            onPressed: () => ref
+                                .read(navKeepScreenOnProvider.notifier)
+                                .set(!keepOn),
+                          ),
+                        ],
+                        if (ref.watch(pipSupportedProvider).valueOrNull ??
+                            false) ...[
+                          const SizedBox(width: 10),
+                          MapRoundButton(
+                            key: const ValueKey('nav-minimize'),
+                            dark: true,
+                            tooltip: l.navMinimizeTooltip,
+                            icon: Icons.picture_in_picture_alt,
+                            onPressed: () => unawaited(
+                              ref.read(pictureInPictureProvider).enter(),
+                            ),
+                          ),
+                        ],
+                        if (ref.watch(watchPresenceProvider).shows ||
+                            ref.watch(watchSyncProvider).phase !=
+                                WatchSyncPhase.idle) ...[
+                          const SizedBox(width: 10),
+                          _WatchBadge(state: state),
+                        ],
+                        const SizedBox(width: 10),
+                        // „Fahrt beenden" (#517) nimmt den Rest der Reihe; mit
+                        // allen vier runden Knöpfen auf 360 dp schrumpft die
+                        // Schrift, statt über den Rand zu laufen.
+                        Expanded(
+                          child: Align(
+                            alignment: Alignment.centerRight,
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: FilledButton.icon(
+                                key: const ValueKey('nav-stop'),
+                                style: FilledButton.styleFrom(
+                                  minimumSize: const Size(0, 48),
+                                  backgroundColor: AppColors.brand,
+                                  foregroundColor: AppColors.onBrand,
+                                  shape: const StadiumBorder(),
+                                  padding: const EdgeInsets.fromLTRB(
+                                    14,
+                                    0,
+                                    18,
+                                    0,
+                                  ),
+                                ),
+                                onPressed: widget.onStop,
+                                icon: const Icon(
+                                  Icons.stop_circle_outlined,
+                                  size: 18,
+                                ),
+                                label: Text(l.navStop),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ),
-      ]),
+          // Am Ende eines Trails (9.9): die Bilanz über Band und Knöpfen.
+          if (session.trailDone case final done? when !off)
+            Align(
+              alignment: Alignment.bottomCenter,
+              child: _TrailDoneSheet(
+                key: ObjectKey(done),
+                done: done,
+                next: phase,
+              ),
+            ),
+        ],
+      ),
     );
   }
 }
@@ -524,7 +676,8 @@ enum NavEnd {
 
 /// Die Frage hinter „Fahrt beenden", wenn eine Aufzeichnung mitläuft
 /// (#517, Konzept-Routing 9.4). Null heißt: weiterfahren.
-Future<NavEnd?> showNavEndSheet(BuildContext context) => showModalBottomSheet<NavEnd>(
+Future<NavEnd?> showNavEndSheet(BuildContext context) =>
+    showModalBottomSheet<NavEnd>(
       context: context,
       showDragHandle: true,
       builder: (context) {
@@ -536,7 +689,10 @@ Future<NavEnd?> showNavEndSheet(BuildContext context) => showModalBottomSheet<Na
             children: [
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
-                child: Text(l.navEndTitle, style: Theme.of(context).textTheme.titleLarge),
+                child: Text(
+                  l.navEndTitle,
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
               ),
               ListTile(
                 key: const ValueKey('nav-end-all'),
@@ -578,10 +734,10 @@ class _RideStatusRow extends ConsumerWidget {
     final jumps = !live.active
         ? null
         : live.pocket
-            ? l.navStatusPocket
-            : (live.now ?? live.ticks.lastOrNull)?.mountReady ?? false
-                ? l.navStatusJumps
-                : l.navStatusLearning;
+        ? l.navStatusPocket
+        : (live.now ?? live.ticks.lastOrNull)?.mountReady ?? false
+        ? l.navStatusJumps
+        : l.navStatusLearning;
     final parts = [
       if (recording) l.navStatusRecording,
       if (watch) l.navStatusWatch,
@@ -591,36 +747,47 @@ class _RideStatusRow extends ConsumerWidget {
     final mark = onMark;
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
-      child: Row(children: [
-        Expanded(
-          key: const ValueKey('nav-ride-status'),
-          child: Text(
-            parts.join(' · '),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: _p.text,
-              shadows: const [Shadow(blurRadius: 6, color: Color(0xCC000000))],
+      child: Row(
+        children: [
+          Expanded(
+            key: const ValueKey('nav-ride-status'),
+            child: Text(
+              parts.join(' · '),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: _p.text,
+                shadows: const [
+                  Shadow(blurRadius: 6, color: Color(0xCC000000)),
+                ],
+              ),
             ),
           ),
-        ),
-        if (mark != null)
-          FilledButton.icon(
-            key: const ValueKey('nav-mark'),
-            style: FilledButton.styleFrom(
-              minimumSize: const Size(0, 44),
-              backgroundColor: markOpen ? AppColors.brand : _p.ground,
-              foregroundColor: markOpen ? AppColors.onBrand : _p.text,
-              shape: StadiumBorder(side: BorderSide(color: markOpen ? AppColors.brand : _p.line)),
-              padding: const EdgeInsets.fromLTRB(14, 0, 18, 0),
+          if (mark != null)
+            FilledButton.icon(
+              key: const ValueKey('nav-mark'),
+              style: FilledButton.styleFrom(
+                minimumSize: const Size(0, 44),
+                backgroundColor: markOpen ? AppColors.brand : _p.ground,
+                foregroundColor: markOpen ? AppColors.onBrand : _p.text,
+                shape: StadiumBorder(
+                  side: BorderSide(color: markOpen ? AppColors.brand : _p.line),
+                ),
+                padding: const EdgeInsets.fromLTRB(14, 0, 18, 0),
+              ),
+              onPressed: mark,
+              icon: Icon(
+                markOpen ? Icons.sports_score : Icons.flag_outlined,
+                size: 18,
+              ),
+              label: Text(
+                markOpen ? l.rideMarkEndTooltip : l.rideMarkStartTooltip,
+              ),
             ),
-            onPressed: mark,
-            icon: Icon(markOpen ? Icons.sports_score : Icons.flag_outlined, size: 18),
-            label: Text(markOpen ? l.rideMarkEndTooltip : l.rideMarkStartTooltip),
-          ),
-      ]),
+        ],
+      ),
     );
   }
 }
@@ -648,7 +815,12 @@ class _WatchBadge extends ConsumerWidget {
     double? apartM;
     final fix = here.watchFix, nav = state;
     if (fix != null && nav != null) {
-      apartM = distanceMeters(fix.latitude, fix.longitude, nav.position.latitude, nav.position.longitude);
+      apartM = distanceMeters(
+        fix.latitude,
+        fix.longitude,
+        nav.position.latitude,
+        nav.position.longitude,
+      );
     }
     final apart = (apartM ?? 0) > kWatchFixApartM;
     // #500: Die Uhr meldet ihren Stand erst, wenn sie über ihre Sicht hinaus
@@ -657,10 +829,22 @@ class _WatchBadge extends ConsumerWidget {
     final (dot, text) = switch (sync.phase) {
       WatchSyncPhase.stored => (AppColors.brand, l.mapWatchStored),
       WatchSyncPhase.unconfirmed => (_p.warningText, l.mapWatchUnconfirmed),
-      WatchSyncPhase.failed when sync.error == 'APP_IS_NOT_INSTALLED' => (_p.warningText, l.mapWatchMissing),
-      WatchSyncPhase.failed when sync.error == kWatchTooBig => (_p.warningText, l.mapWatchTooBig),
-      WatchSyncPhase.failed when sync.error == kWatchOutdatedWatch => (_p.warningText, l.mapWatchOutdatedWatch),
-      WatchSyncPhase.failed when sync.error == kWatchOutdatedPhone => (_p.warningText, l.mapWatchOutdatedPhone),
+      WatchSyncPhase.failed when sync.error == 'APP_IS_NOT_INSTALLED' => (
+        _p.warningText,
+        l.mapWatchMissing,
+      ),
+      WatchSyncPhase.failed when sync.error == kWatchTooBig => (
+        _p.warningText,
+        l.mapWatchTooBig,
+      ),
+      WatchSyncPhase.failed when sync.error == kWatchOutdatedWatch => (
+        _p.warningText,
+        l.mapWatchOutdatedWatch,
+      ),
+      WatchSyncPhase.failed when sync.error == kWatchOutdatedPhone => (
+        _p.warningText,
+        l.mapWatchOutdatedPhone,
+      ),
       WatchSyncPhase.failed => (_p.warningText, l.mapWatchFailed),
       WatchSyncPhase.prompted => (_p.muted, l.mapWatchPrompted),
       _ => (_p.muted, l.navWatchSending),
@@ -673,7 +857,8 @@ class _WatchBadge extends ConsumerWidget {
       if (sync.phase != WatchSyncPhase.idle) text,
       // Verbunden nur, wenn sonst nichts zu sagen ist — „Route auf der Uhr“
       // sagt die Verbindung schon.
-      if (here.connected && sync.phase == WatchSyncPhase.idle) l.navWatchConnected,
+      if (here.connected && sync.phase == WatchSyncPhase.idle)
+        l.navWatchConnected,
       if (here.record == WatchRecord.running) l.navWatchRecording,
       if (here.record == WatchRecord.paused) l.navWatchPaused,
     ].join(' · ');
@@ -688,7 +873,12 @@ class _WatchBadge extends ConsumerWidget {
           icon: here.recording ? Icons.watch : Icons.watch_outlined,
           onPressed: () => ScaffoldMessenger.of(context)
             ..hideCurrentSnackBar()
-            ..showSnackBar(SnackBar(key: const ValueKey('nav-watch-status-note'), content: Text(note))),
+            ..showSnackBar(
+              SnackBar(
+                key: const ValueKey('nav-watch-status-note'),
+                content: Text(note),
+              ),
+            ),
         ),
         Positioned(
           key: ValueKey('nav-watch-dot-${apart ? 'apart' : sync.phase.name}'),
@@ -739,15 +929,22 @@ class _NavTheme extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => DefaultTextStyle.merge(
-        style: TextStyle(color: _p.text, fontFamily: AppFonts.body),
-        child: IconTheme.merge(data: IconThemeData(color: _p.text), child: child),
-      );
+    style: TextStyle(color: _p.text, fontFamily: AppFonts.body),
+    child: IconTheme.merge(
+      data: IconThemeData(color: _p.text),
+      child: child,
+    ),
+  );
 }
 
 /// Die gemeinsame Hülle: dunkle Fläche, Rand, Radius 14, Schatten.
 class _NavCard extends StatelessWidget {
-  const _NavCard({super.key, required this.child, this.border, this.padding = const EdgeInsets.fromLTRB(14, 12, 14, 10)});
-
+  const _NavCard({
+    super.key,
+    required this.child,
+    this.border,
+    this.padding = const EdgeInsets.fromLTRB(14, 12, 14, 10),
+  });
 
   final Widget child;
   final BorderSide? border;
@@ -755,31 +952,41 @@ class _NavCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        padding: padding,
-        decoration: BoxDecoration(
-          color: _p.ground,
-          borderRadius: BorderRadius.circular(_kCardRadius),
-          border: Border.fromBorderSide(border ?? BorderSide(color: _p.line)),
-          boxShadow: const [BoxShadow(blurRadius: 14, offset: Offset(0, 4), color: Color(0x40000000))],
+    padding: padding,
+    decoration: BoxDecoration(
+      color: _p.ground,
+      borderRadius: BorderRadius.circular(_kCardRadius),
+      border: Border.fromBorderSide(border ?? BorderSide(color: _p.line)),
+      boxShadow: const [
+        BoxShadow(
+          blurRadius: 14,
+          offset: Offset(0, 4),
+          color: Color(0x40000000),
         ),
-        child: child,
-      );
+      ],
+    ),
+    child: child,
+  );
 }
 
 /// Beschriftung in Versalien, 11 px, gesperrt — wie „BIS ZUM TRAILKOPF".
 class _Label extends StatelessWidget {
   const _Label(this.text, {this.color});
 
-
   final String text;
   final Color? color;
 
   @override
   Widget build(BuildContext context) => Text(
-        text,
-        style: TextStyle(
-            color: color ?? _p.muted, fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 0.9, height: 1.2),
-      );
+    text,
+    style: TextStyle(
+      color: color ?? _p.muted,
+      fontSize: 11,
+      fontWeight: FontWeight.w600,
+      letterSpacing: 0.9,
+      height: 1.2,
+    ),
+  );
 }
 
 /// Der Name eines Trails in Barlow Condensed, Versalien.
@@ -791,17 +998,27 @@ class _TrailName extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Text(
-        name.toUpperCase(),
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: TextStyle(
-            fontFamily: AppFonts.display, fontWeight: FontWeight.w800, fontSize: size, height: 1, letterSpacing: 0.3),
-      );
+    name.toUpperCase(),
+    maxLines: 1,
+    overflow: TextOverflow.ellipsis,
+    style: TextStyle(
+      fontFamily: AppFonts.display,
+      fontWeight: FontWeight.w800,
+      fontSize: size,
+      height: 1,
+      letterSpacing: 0.3,
+    ),
+  );
 }
 
 /// Eine große Zahl mit Einheit daneben: „2,4" + „km".
 class _BigNumber extends StatelessWidget {
-  const _BigNumber({super.key, required this.value, required this.unit, this.color});
+  const _BigNumber({
+    super.key,
+    required this.value,
+    required this.unit,
+    this.color,
+  });
 
   final String value;
   final String unit;
@@ -811,17 +1028,27 @@ class _BigNumber extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Row(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.baseline,
-        textBaseline: TextBaseline.alphabetic,
-        children: [
-          Text(value,
-              style: AppFonts.numbers(TextStyle(fontSize: size, height: 1, color: color ?? _p.text))
-                  .copyWith(letterSpacing: -1)),
-          const SizedBox(width: 4),
-          Text(unit, style: TextStyle(fontSize: size * 0.34, fontWeight: FontWeight.w500, color: _p.muted)),
-        ],
-      );
+    mainAxisSize: MainAxisSize.min,
+    crossAxisAlignment: CrossAxisAlignment.baseline,
+    textBaseline: TextBaseline.alphabetic,
+    children: [
+      Text(
+        value,
+        style: AppFonts.numbers(
+          TextStyle(fontSize: size, height: 1, color: color ?? _p.text),
+        ).copyWith(letterSpacing: -1),
+      ),
+      const SizedBox(width: 4),
+      Text(
+        unit,
+        style: TextStyle(
+          fontSize: size * 0.34,
+          fontWeight: FontWeight.w500,
+          color: _p.muted,
+        ),
+      ),
+    ],
+  );
 }
 
 /// „2,4 km" ⇒ („2,4", „km"); „758 m" ⇒ („758", „m").
@@ -852,7 +1079,8 @@ class _ApproachCard extends StatelessWidget {
         ? null
         : [
             ways.first.cls.label(l),
-            for (final w in ways.skip(1).take(2)) l.navWayThen(formatMeters(w.lengthM), w.cls.label(l)),
+            for (final w in ways.skip(1).take(2))
+              l.navWayThen(formatMeters(w.lengthM), w.cls.label(l)),
           ].join(', ');
     final along = session.state?.alongM ?? 0;
     final toM = section?.startM ?? session.route.lengthM;
@@ -867,7 +1095,12 @@ class _ApproachCard extends StatelessWidget {
               _Label(section == null ? l.navToGoal : l.navToHead),
               const Spacer(),
               if (section != null) ...[
-                GradeShield(section.grade, uphill: section.uphill, fontSize: 11, palette: _p.grade),
+                GradeShield(
+                  section.grade,
+                  uphill: section.uphill,
+                  fontSize: 11,
+                  palette: _p.grade,
+                ),
                 const SizedBox(width: 6),
                 Flexible(child: _TrailName(section.name)),
               ],
@@ -878,14 +1111,19 @@ class _ApproachCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.baseline,
             textBaseline: TextBaseline.alphabetic,
             children: [
-              _BigNumber(key: const ValueKey('nav-dist'), value: dist, unit: unit),
+              _BigNumber(
+                key: const ValueKey('nav-dist'),
+                value: dist,
+                unit: unit,
+              ),
               if (climb != null) ...[
                 const SizedBox(width: 18),
                 _BigNumber(
-                    key: const ValueKey('nav-climb'),
-                    value: '↑${climb.round()}',
-                    unit: l.navUnitHm,
-                    color: AppColors.brand),
+                  key: const ValueKey('nav-climb'),
+                  value: '↑${climb.round()}',
+                  unit: l.navUnitHm,
+                  color: AppColors.brand,
+                ),
               ],
             ],
           ),
@@ -896,7 +1134,11 @@ class _ApproachCard extends StatelessWidget {
               child: CustomPaint(
                 key: const ValueKey('nav-profile'),
                 painter: _MiniProfilePainter(
-                    distM: session.climbDistM!, eleM: session.climbEleM!, fromM: along, toM: toM),
+                  distM: session.climbDistM!,
+                  eleM: session.climbEleM!,
+                  fromM: along,
+                  toM: toM,
+                ),
                 size: Size.infinite,
               ),
             ),
@@ -907,18 +1149,31 @@ class _ApproachCard extends StatelessWidget {
               children: [
                 if (wayLine != null)
                   Expanded(
-                      child: Text(wayLine,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(fontSize: 12, color: _p.muted))),
+                    child: Text(
+                      wayLine,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(fontSize: 12, color: _p.muted),
+                    ),
+                  ),
                 if (ramp != null)
                   KeyedSubtree(
                     key: const ValueKey('nav-ramp'),
                     child: Text.rich(
-                      TextSpan(children: [
-                        TextSpan(text: '■ ', style: TextStyle(color: _p.warningText)),
-                        TextSpan(text: l.navRampAhead((ramp.grade * 100).round(), formatMeters(ramp.inM))),
-                      ]),
+                      TextSpan(
+                        children: [
+                          TextSpan(
+                            text: '■ ',
+                            style: TextStyle(color: _p.warningText),
+                          ),
+                          TextSpan(
+                            text: l.navRampAhead(
+                              (ramp.grade * 100).round(),
+                              formatMeters(ramp.inM),
+                            ),
+                          ),
+                        ],
+                      ),
                       style: TextStyle(fontSize: 12, color: _p.muted),
                     ),
                   ),
@@ -934,7 +1189,12 @@ class _ApproachCard extends StatelessWidget {
 /// Das Mini-Profil der Anfahrt: Fläche in `surface2`, Linie in der Marke,
 /// Rampen (ab [kNavRampGrade]) in Warnfarbe, ein Punkt am Stand.
 class _MiniProfilePainter extends CustomPainter {
-  const _MiniProfilePainter({required this.distM, required this.eleM, required this.fromM, required this.toM});
+  const _MiniProfilePainter({
+    required this.distM,
+    required this.eleM,
+    required this.fromM,
+    required this.toM,
+  });
 
   final List<double> distM;
   final List<double> eleM;
@@ -948,7 +1208,9 @@ class _MiniProfilePainter extends CustomPainter {
       for (var i = 1; i < distM.length; i++) {
         if (distM[i] >= m) {
           final span = distM[i] - distM[i - 1];
-          final t = span <= 0 ? 0.0 : ((m - distM[i - 1]) / span).clamp(0.0, 1.0);
+          final t = span <= 0
+              ? 0.0
+              : ((m - distM[i - 1]) / span).clamp(0.0, 1.0);
           return eleM[i - 1] + (eleM[i] - eleM[i - 1]) * t;
         }
       }
@@ -974,9 +1236,9 @@ class _MiniProfilePainter extends CustomPainter {
       hi = mid + 10;
     }
     Offset at(int i) => Offset(
-          (xs[i] - fromM) / span * size.width,
-          size.height - 3 - (ys[i] - lo) / (hi - lo) * (size.height - 6),
-        );
+      (xs[i] - fromM) / span * size.width,
+      size.height - 3 - (ys[i] - lo) / (hi - lo) * (size.height - 6),
+    );
     final fill = Path()..moveTo(0, size.height);
     for (var i = 0; i < xs.length; i++) {
       final o = at(i);
@@ -1006,7 +1268,10 @@ class _MiniProfilePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_MiniProfilePainter old) =>
-      old.fromM != fromM || old.toM != toM || !identical(old.distM, distM) || !identical(old.eleM, eleM);
+      old.fromM != fromM ||
+      old.toM != toM ||
+      !identical(old.distM, distM) ||
+      !identical(old.eleM, eleM);
 }
 
 /// Abseits schlägt alles: Rand in Warnfarbe, der große Pfeil zur Linie,
@@ -1022,8 +1287,13 @@ class _OffRouteCard extends StatelessWidget {
     final l = context.l10n;
     // Der Pfeil zeigt zur Linie voraus — gedreht gegen die Karte, damit er
     // auf dem Schirm stimmt.
-    final deg = bearingDegrees(
-            state.position.latitude, state.position.longitude, state.rejoin.latitude, state.rejoin.longitude) -
+    final deg =
+        bearingDegrees(
+          state.position.latitude,
+          state.position.longitude,
+          state.rejoin.latitude,
+          state.rejoin.longitude,
+        ) -
         bearingDeg;
     return _NavCard(
       key: const ValueKey('nav-off'),
@@ -1044,10 +1314,17 @@ class _OffRouteCard extends StatelessWidget {
               children: [
                 _Label(l.navOffRoute, color: _p.warningText),
                 const SizedBox(height: 2),
-                Text(formatMeters(state.offM),
-                    style: AppFonts.numbers(const TextStyle(fontSize: 36, height: 1)).copyWith(letterSpacing: -1)),
+                Text(
+                  formatMeters(state.offM),
+                  style: AppFonts.numbers(
+                    const TextStyle(fontSize: 36, height: 1),
+                  ).copyWith(letterSpacing: -1),
+                ),
                 const SizedBox(height: 2),
-                Text(l.navOffRouteHint, style: TextStyle(fontSize: 12, color: _p.muted)),
+                Text(
+                  l.navOffRouteHint,
+                  style: TextStyle(fontSize: 12, color: _p.muted),
+                ),
               ],
             ),
           ),
@@ -1066,13 +1343,18 @@ class _Chip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-        decoration: BoxDecoration(color: _p.surface2, borderRadius: BorderRadius.circular(8)),
-        child: Text(text,
-            style: mono
-                ? AppFonts.numbers(const TextStyle(fontSize: 12))
-                : const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
-      );
+    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+    decoration: BoxDecoration(
+      color: _p.surface2,
+      borderRadius: BorderRadius.circular(8),
+    ),
+    child: Text(
+      text,
+      style: mono
+          ? AppFonts.numbers(const TextStyle(fontSize: 12))
+          : const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+    ),
+  );
 }
 
 /// Der Moment vor dem Droppen (9.9): Stufe, Länge, Charakter, Zustand —
@@ -1098,7 +1380,12 @@ class _HeadCard extends StatelessWidget {
           const SizedBox(height: 10),
           Row(
             children: [
-              GradeShield(section.grade, uphill: section.uphill, fontSize: 13, palette: _p.grade),
+              GradeShield(
+                section.grade,
+                uphill: section.uphill,
+                fontSize: 13,
+                palette: _p.grade,
+              ),
               const SizedBox(width: 8),
               Expanded(child: _TrailName(section.name, size: 26)),
             ],
@@ -1108,11 +1395,19 @@ class _HeadCard extends StatelessWidget {
             spacing: 6,
             runSpacing: 6,
             children: [
-              if (section.lengthM > 0) _Chip(formatMeters(section.lengthM), mono: true),
-              if (section.lossM case final loss? when loss > 0) _Chip('↓${loss.round()} ${l.navUnitHm}', mono: true),
-              if (section.traits.isNotEmpty) _Chip(section.traits.map((t) => t.label(l)).join(' · ')),
+              if (section.lengthM > 0)
+                _Chip(formatMeters(section.lengthM), mono: true),
+              if (section.lossM case final loss? when loss > 0)
+                _Chip('↓${loss.round()} ${l.navUnitHm}', mono: true),
+              if (section.traits.isNotEmpty)
+                _Chip(section.traits.map((t) => t.label(l)).join(' · ')),
               if (condition != null && section.conditionAt != null)
-                _Chip(l.navConditionChip(trailCondition(condition).label(l), reportAgeLabel(l, section.conditionAt!))),
+                _Chip(
+                  l.navConditionChip(
+                    trailCondition(condition).label(l),
+                    reportAgeLabel(l, section.conditionAt!),
+                  ),
+                ),
             ],
           ),
           if (note != null) ...[
@@ -1128,11 +1423,20 @@ class _HeadCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  _Label(l.navNoteHeader((note.author ?? l.sheetBuddy).toUpperCase(),
-                      reportAgeLabel(l, note.createdAt).toUpperCase()),
-                      color: _p.noteText),
+                  _Label(
+                    l.navNoteHeader(
+                      (note.author ?? l.sheetBuddy).toUpperCase(),
+                      reportAgeLabel(l, note.createdAt).toUpperCase(),
+                    ),
+                    color: _p.noteText,
+                  ),
                   const SizedBox(height: 2),
-                  Text(note.body, maxLines: 3, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 14, height: 1.35)),
+                  Text(
+                    note.body,
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 14, height: 1.35),
+                  ),
                 ],
               ),
             ),
@@ -1155,10 +1459,17 @@ class _TrailBar extends StatelessWidget {
     final l = context.l10n;
     final section = phase.section!;
     final note = section.note;
-    final done = section.lengthM <= 0 ? 0.0 : (1 - phase.distM / section.lengthM).clamp(0.0, 1.0);
+    final done = section.lengthM <= 0
+        ? 0.0
+        : (1 - phase.distM / section.lengthM).clamp(0.0, 1.0);
     final color = section.uphill ? _p.grade.uphill : _p.grade.of(section.grade);
     final numbers = AppFonts.numbers(const TextStyle(fontSize: 20, height: 1));
-    final unit = TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: _p.muted, fontFamily: AppFonts.body);
+    final unit = TextStyle(
+      fontSize: 12,
+      fontWeight: FontWeight.w500,
+      color: _p.muted,
+      fontFamily: AppFonts.body,
+    );
     return _NavCard(
       key: const ValueKey('nav-trail'),
       padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
@@ -1168,21 +1479,28 @@ class _TrailBar extends StatelessWidget {
         children: [
           Row(
             children: [
-              GradeShield(section.grade, uphill: section.uphill, fontSize: 11, palette: _p.grade),
+              GradeShield(
+                section.grade,
+                uphill: section.uphill,
+                fontSize: 11,
+                palette: _p.grade,
+              ),
               const SizedBox(width: 7),
               Expanded(child: _TrailName(section.name, size: 20)),
               const SizedBox(width: 10),
               KeyedSubtree(
                 key: const ValueKey('nav-trail-rest'),
                 child: Text.rich(
-                  TextSpan(children: [
-                    TextSpan(text: formatMeters(phase.distM)),
-                    if (phase.lossM case final loss?) ...[
-                      const TextSpan(text: '   '),
-                      TextSpan(text: '↓${loss.round()}'),
-                      TextSpan(text: ' ${l.navUnitHm}', style: unit),
+                  TextSpan(
+                    children: [
+                      TextSpan(text: formatMeters(phase.distM)),
+                      if (phase.lossM case final loss?) ...[
+                        const TextSpan(text: '   '),
+                        TextSpan(text: '↓${loss.round()}'),
+                        TextSpan(text: ' ${l.navUnitHm}', style: unit),
+                      ],
                     ],
-                  ]),
+                  ),
                   style: numbers,
                   maxLines: 1,
                 ),
@@ -1194,10 +1512,15 @@ class _TrailBar extends StatelessWidget {
             borderRadius: BorderRadius.circular(3),
             child: SizedBox(
               height: 6,
-              child: Stack(children: [
-                Container(color: _p.line),
-                FractionallySizedBox(widthFactor: done, child: Container(color: color)),
-              ]),
+              child: Stack(
+                children: [
+                  Container(color: _p.line),
+                  FractionallySizedBox(
+                    widthFactor: done,
+                    child: Container(color: color),
+                  ),
+                ],
+              ),
             ),
           ),
           if (note != null) ...[
@@ -1205,12 +1528,17 @@ class _TrailBar extends StatelessWidget {
             KeyedSubtree(
               key: const ValueKey('nav-trail-note'),
               child: Text.rich(
-                TextSpan(children: [
-                  TextSpan(
+                TextSpan(
+                  children: [
+                    TextSpan(
                       text: '${note.author ?? l.sheetBuddy}: ',
-                      style: AppFonts.numbers(TextStyle(fontSize: 12, color: _p.noteText))),
-                  TextSpan(text: note.body),
-                ]),
+                      style: AppFonts.numbers(
+                        TextStyle(fontSize: 12, color: _p.noteText),
+                      ),
+                    ),
+                    TextSpan(text: note.body),
+                  ],
+                ),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(fontSize: 13, height: 1.3),
@@ -1241,7 +1569,10 @@ class _RouteBand extends StatelessWidget {
     final climb = session.remainingClimbM;
     final remaining = climb == null
         ? l.navBandRemaining(formatMeters(session.remainingM))
-        : l.navBandRemainingClimb(formatMeters(session.remainingM), climb.round());
+        : l.navBandRemainingClimb(
+            formatMeters(session.remainingM),
+            climb.round(),
+          );
     final head = [
       route.isLoop ? l.navBandLoop : l.navBandRoute,
       if (trails.isNotEmpty) l.navBandTrails(trails.length),
@@ -1259,31 +1590,49 @@ class _RouteBand extends StatelessWidget {
             children: [
               Expanded(child: _Label(head)),
               KeyedSubtree(
-                  key: const ValueKey('nav-remaining'),
-                  child: Text(remaining, style: AppFonts.numbers(const TextStyle(fontSize: 12)))),
+                key: const ValueKey('nav-remaining'),
+                child: Text(
+                  remaining,
+                  style: AppFonts.numbers(const TextStyle(fontSize: 12)),
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 7),
           _BandBar(session: session),
           const SizedBox(height: 4),
-          LayoutBuilder(builder: (context, c) {
-            final width = c.maxWidth;
-            double x(double m) => total <= 0 ? 0 : (m / total).clamp(0.0, 1.0) * width;
-            final style = TextStyle(fontSize: 11, color: _p.muted);
-            return SizedBox(
-              height: 14,
-              child: Stack(children: [
-                for (final p in parts)
-                  if (p.trail != null && x(p.to) - x(p.from) >= 40)
+          LayoutBuilder(
+            builder: (context, c) {
+              final width = c.maxWidth;
+              double x(double m) =>
+                  total <= 0 ? 0 : (m / total).clamp(0.0, 1.0) * width;
+              final style = TextStyle(fontSize: 11, color: _p.muted);
+              return SizedBox(
+                height: 14,
+                child: Stack(
+                  children: [
+                    for (final p in parts)
+                      if (p.trail != null && x(p.to) - x(p.from) >= 40)
+                        Positioned(
+                          left: x(p.from),
+                          width: x(p.to) - x(p.from),
+                          child: Text(
+                            p.trail!.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.clip,
+                            softWrap: false,
+                            style: style,
+                          ),
+                        ),
                     Positioned(
-                      left: x(p.from),
-                      width: x(p.to) - x(p.from),
-                      child: Text(p.trail!.name, maxLines: 1, overflow: TextOverflow.clip, softWrap: false, style: style),
+                      right: 0,
+                      child: Text(l.navBandGoal, style: style),
                     ),
-                Positioned(right: 0, child: Text(l.navBandGoal, style: style)),
-              ]),
-            );
-          }),
+                  ],
+                ),
+              );
+            },
+          ),
         ],
       ),
     );
@@ -1291,7 +1640,9 @@ class _RouteBand extends StatelessWidget {
 }
 
 /// Die Stücke des Bands: Anfahrt, Trail, Anfahrt, …, bis zum Ziel.
-List<({double from, double to, NavTrailSection? trail})> _bandParts(NavSession session) {
+List<({double from, double to, NavTrailSection? trail})> _bandParts(
+  NavSession session,
+) {
   final total = session.route.lengthM;
   final parts = <({double from, double to, NavTrailSection? trail})>[];
   var cursor = 0.0;
@@ -1300,7 +1651,9 @@ List<({double from, double to, NavTrailSection? trail})> _bandParts(NavSession s
     parts.add((from: t.startM, to: math.max(t.endM, t.startM), trail: t));
     cursor = math.max(t.endM, cursor);
   }
-  if (cursor < total || parts.isEmpty) parts.add((from: cursor, to: total, trail: null));
+  if (cursor < total || parts.isEmpty) {
+    parts.add((from: cursor, to: total, trail: null));
+  }
   return parts;
 }
 
@@ -1317,47 +1670,63 @@ class _BandBar extends StatelessWidget {
     final along = session.state?.alongM ?? 0;
     final total = session.route.lengthM;
     final parts = _bandParts(session);
-    return LayoutBuilder(builder: (context, c) {
-      final width = c.maxWidth;
-      double x(double m) => total <= 0 ? 0 : (m / total).clamp(0.0, 1.0) * width;
-      return SizedBox(
-        height: height + 6,
-        child: Stack(clipBehavior: Clip.none, children: [
-          Positioned(
-            top: 3,
-            left: 0,
-            right: 0,
-            height: height,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(4),
-              child: Stack(children: [
-                for (final p in parts)
-                  Positioned(
-                    left: x(p.from),
-                    width: math.max(0, x(p.to) - x(p.from) - (p == parts.last ? 0 : 2)),
-                    top: 0,
-                    bottom: 0,
-                    child: ColoredBox(
-                      color: p.trail != null
-                          ? (p.trail!.uphill ? _p.grade.uphill : _p.grade.of(p.trail!.grade))
-                          : (p.to <= along ? _p.line : _p.map.ride),
-                    ),
+    return LayoutBuilder(
+      builder: (context, c) {
+        final width = c.maxWidth;
+        double x(double m) =>
+            total <= 0 ? 0 : (m / total).clamp(0.0, 1.0) * width;
+        return SizedBox(
+          height: height + 6,
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Positioned(
+                top: 3,
+                left: 0,
+                right: 0,
+                height: height,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: Stack(
+                    children: [
+                      for (final p in parts)
+                        Positioned(
+                          left: x(p.from),
+                          width: math.max(
+                            0,
+                            x(p.to) - x(p.from) - (p == parts.last ? 0 : 2),
+                          ),
+                          top: 0,
+                          bottom: 0,
+                          child: ColoredBox(
+                            color: p.trail != null
+                                ? (p.trail!.uphill
+                                      ? _p.grade.uphill
+                                      : _p.grade.of(p.trail!.grade))
+                                : (p.to <= along ? _p.line : _p.map.ride),
+                          ),
+                        ),
+                    ],
                   ),
-              ]),
-            ),
+                ),
+              ),
+              Positioned(
+                left: x(along) - 2,
+                top: 0,
+                width: 4,
+                height: height + 6,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: AppColors.brand,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+            ],
           ),
-          Positioned(
-            left: x(along) - 2,
-            top: 0,
-            width: 4,
-            height: height + 6,
-            child: DecoratedBox(
-              decoration: BoxDecoration(color: AppColors.brand, borderRadius: BorderRadius.circular(2)),
-            ),
-          ),
-        ]),
-      );
-    });
+        );
+      },
+    );
   }
 }
 
@@ -1389,25 +1758,45 @@ class _PipCard extends StatelessWidget {
     final off = !arrived && (state?.offRoute ?? false);
     final phase = session.phase;
     final section = phase.section;
-    final number = AppFonts.numbers(TextStyle(fontSize: numberSize, height: 1, color: _p.text)).copyWith(letterSpacing: -0.5);
-    Widget shield() => GradeShield(section!.grade, uphill: section.uphill, fontSize: numberSize * 0.5, palette: _p.grade);
+    final number = AppFonts.numbers(
+      TextStyle(fontSize: numberSize, height: 1, color: _p.text),
+    ).copyWith(letterSpacing: -0.5);
+    Widget shield() => GradeShield(
+      section!.grade,
+      uphill: section.uphill,
+      fontSize: numberSize * 0.5,
+      palette: _p.grade,
+    );
     final (Widget sign, String text, Color color) = switch (phase.kind) {
       _ when off && state != null => (
-          // Der Pfeil der Folgeansicht: zur Linie voraus, gegen die Karte gedreht.
-          Transform.rotate(
-            key: const ValueKey('nav-pip-off-arrow'),
-            angle: (bearingDegrees(state.position.latitude, state.position.longitude, state.rejoin.latitude,
-                        state.rejoin.longitude) -
-                    session.bearingDeg) *
-                math.pi /
-                180,
-            child: Icon(Icons.navigation, size: iconSize, color: _p.warningText),
-          ),
-          formatMeters(state.offM),
-          _p.warningText,
+        // Der Pfeil der Folgeansicht: zur Linie voraus, gegen die Karte gedreht.
+        Transform.rotate(
+          key: const ValueKey('nav-pip-off-arrow'),
+          angle:
+              (bearingDegrees(
+                    state.position.latitude,
+                    state.position.longitude,
+                    state.rejoin.latitude,
+                    state.rejoin.longitude,
+                  ) -
+                  session.bearingDeg) *
+              math.pi /
+              180,
+          child: Icon(Icons.navigation, size: iconSize, color: _p.warningText),
         ),
-      NavPhaseKind.arrived => (Icon(Icons.sports_score, size: iconSize, color: AppColors.brand), l.navArrivedTitle, _p.text),
-      _ when section == null => (Icon(Icons.sports_score, size: iconSize, color: _p.text), formatMeters(phase.distM), _p.text),
+        formatMeters(state.offM),
+        _p.warningText,
+      ),
+      NavPhaseKind.arrived => (
+        Icon(Icons.sports_score, size: iconSize, color: AppColors.brand),
+        l.navArrivedTitle,
+        _p.text,
+      ),
+      _ when section == null => (
+        Icon(Icons.sports_score, size: iconSize, color: _p.text),
+        formatMeters(phase.distM),
+        _p.text,
+      ),
       NavPhaseKind.atHead => (shield(), l.navPipGo, AppColors.brand),
       _ => (shield(), formatMeters(phase.distM), _p.text),
     };
@@ -1421,7 +1810,12 @@ class _PipCard extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(8, 4, 8, 6),
           decoration: BoxDecoration(
             color: _p.ground,
-            border: Border(top: BorderSide(color: off ? _p.warningText : _p.line, width: off ? 2 : 1)),
+            border: Border(
+              top: BorderSide(
+                color: off ? _p.warningText : _p.line,
+                width: off ? 2 : 1,
+              ),
+            ),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1430,11 +1824,18 @@ class _PipCard extends StatelessWidget {
                 child: FittedBox(
                   fit: BoxFit.scaleDown,
                   alignment: Alignment.centerLeft,
-                  child: Row(mainAxisSize: MainAxisSize.min, children: [
-                    sign,
-                    SizedBox(width: numberSize * 0.3),
-                    Text(text, key: const ValueKey('nav-pip-number'), style: number.copyWith(color: color)),
-                  ]),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      sign,
+                      SizedBox(width: numberSize * 0.3),
+                      Text(
+                        text,
+                        key: const ValueKey('nav-pip-number'),
+                        style: number.copyWith(color: color),
+                      ),
+                    ],
+                  ),
                 ),
               ),
               if (!arrived) _BandBar(session: session, height: 5),
@@ -1453,22 +1854,27 @@ class _RejoinButton extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) => FilledButton.icon(
-        key: const ValueKey('nav-rejoin'),
-        style: FilledButton.styleFrom(
-          minimumSize: const Size(0, 48),
-          backgroundColor: _p.surface2,
-          foregroundColor: AppColors.brand,
-          disabledBackgroundColor: _p.surface2,
-          disabledForegroundColor: _p.muted,
-          shape: StadiumBorder(side: BorderSide(color: _p.line)),
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-        ),
-        onPressed: computing ? null : () => unawaited(ref.read(navigationProvider.notifier).rejoin()),
-        icon: computing
-            ? const SizedBox.square(dimension: 18, child: CircularProgressIndicator(strokeWidth: 2))
-            : const Icon(Icons.u_turn_left),
-        label: Text(context.l10n.navRejoin),
-      );
+    key: const ValueKey('nav-rejoin'),
+    style: FilledButton.styleFrom(
+      minimumSize: const Size(0, 48),
+      backgroundColor: _p.surface2,
+      foregroundColor: AppColors.brand,
+      disabledBackgroundColor: _p.surface2,
+      disabledForegroundColor: _p.muted,
+      shape: StadiumBorder(side: BorderSide(color: _p.line)),
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+    ),
+    onPressed: computing
+        ? null
+        : () => unawaited(ref.read(navigationProvider.notifier).rejoin()),
+    icon: computing
+        ? const SizedBox.square(
+            dimension: 18,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          )
+        : const Icon(Icons.u_turn_left),
+    label: Text(context.l10n.navRejoin),
+  );
 }
 
 /// „Route umplanen" (#464): neben „Zurück zur Route", gleich gebaut.
@@ -1479,22 +1885,27 @@ class _ReplanButton extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) => FilledButton.icon(
-        key: const ValueKey('nav-replan'),
-        style: FilledButton.styleFrom(
-          minimumSize: const Size(0, 48),
-          backgroundColor: _p.surface2,
-          foregroundColor: AppColors.brand,
-          disabledBackgroundColor: _p.surface2,
-          disabledForegroundColor: _p.muted,
-          shape: StadiumBorder(side: BorderSide(color: _p.line)),
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-        ),
-        onPressed: computing ? null : () => unawaited(ref.read(navigationProvider.notifier).replan()),
-        icon: computing
-            ? const SizedBox.square(dimension: 18, child: CircularProgressIndicator(strokeWidth: 2))
-            : const Icon(Icons.alt_route),
-        label: Text(context.l10n.navReplan),
-      );
+    key: const ValueKey('nav-replan'),
+    style: FilledButton.styleFrom(
+      minimumSize: const Size(0, 48),
+      backgroundColor: _p.surface2,
+      foregroundColor: AppColors.brand,
+      disabledBackgroundColor: _p.surface2,
+      disabledForegroundColor: _p.muted,
+      shape: StadiumBorder(side: BorderSide(color: _p.line)),
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+    ),
+    onPressed: computing
+        ? null
+        : () => unawaited(ref.read(navigationProvider.notifier).replan()),
+    icon: computing
+        ? const SizedBox.square(
+            dimension: 18,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          )
+        : const Icon(Icons.alt_route),
+    label: Text(context.l10n.navReplan),
+  );
 }
 
 class _ArrivedBar extends StatelessWidget {
@@ -1516,7 +1927,10 @@ class _ArrivedBar extends StatelessWidget {
         child: ListTile(
           leading: const Icon(Icons.sports_score, color: AppColors.brand),
           title: Text(l.navArrivedTitle, style: TextStyle(color: _p.text)),
-          subtitle: Text(l.navArrivedSubtitle, style: TextStyle(color: _p.muted)),
+          subtitle: Text(
+            l.navArrivedSubtitle,
+            style: TextStyle(color: _p.muted),
+          ),
           onTap: onStop,
         ),
       ),
@@ -1528,12 +1942,16 @@ class _ArrivedBar extends StatelessWidget {
 String navDoneTime(AppLocalizations l, Duration d) {
   String two(int n) => n.toString().padLeft(2, '0');
   final h = d.inHours, m = d.inMinutes % 60, sec = d.inSeconds % 60;
-  return h > 0 ? l.navDoneHours('$h:${two(m)}:${two(sec)}') : l.navDoneMinutes('${d.inMinutes}:${two(sec)}');
+  return h > 0
+      ? l.navDoneHours('$h:${two(m)}:${two(sec)}')
+      : l.navDoneMinutes('${d.inMinutes}:${two(sec)}');
 }
 
 /// Was der Knopf „Weiter" sagt: den nächsten Abschnitt, wenn einer kommt.
 String navDoneNextLabel(AppLocalizations l, NavPhase next) {
-  if (next.kind != NavPhaseKind.approach || next.distM <= 0) return l.navDoneClose;
+  if (next.kind != NavPhaseKind.approach || next.distM <= 0) {
+    return l.navDoneClose;
+  }
   final climb = next.climbM;
   return climb == null || climb < 1
       ? l.navDoneNext(formatMeters(next.distM))
@@ -1571,7 +1989,12 @@ class _TrailDoneSheetState extends ConsumerState<_TrailDoneSheet> {
     try {
       final outcome = await ref
           .read(trailsProvider.notifier)
-          .report(widget.done.section.trailId, condition: condition, onSite: true, at: widget.done.endedAt);
+          .report(
+            widget.done.section.trailId,
+            condition: condition,
+            onSite: true,
+            at: widget.done.endedAt,
+          );
       if (!mounted) return;
       setState(() {
         _outcome = outcome;
@@ -1600,7 +2023,13 @@ class _TrailDoneSheetState extends ConsumerState<_TrailDoneSheet> {
       decoration: BoxDecoration(
         color: _p.ground,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-        boxShadow: const [BoxShadow(blurRadius: 20, offset: Offset(0, -6), color: Color(0x40000000))],
+        boxShadow: const [
+          BoxShadow(
+            blurRadius: 20,
+            offset: Offset(0, -6),
+            color: Color(0x40000000),
+          ),
+        ],
       ),
       child: SafeArea(
         top: false,
@@ -1616,7 +2045,10 @@ class _TrailDoneSheetState extends ConsumerState<_TrailDoneSheet> {
                   child: Container(
                     width: 32,
                     height: 4,
-                    decoration: BoxDecoration(color: _p.muted.withValues(alpha: 0.4), borderRadius: BorderRadius.circular(2)),
+                    decoration: BoxDecoration(
+                      color: _p.muted.withValues(alpha: 0.4),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -1637,44 +2069,64 @@ class _TrailDoneSheetState extends ConsumerState<_TrailDoneSheet> {
                     Text(
                       navDoneTime(l, done.duration),
                       key: const ValueKey('nav-done-time'),
-                      style: AppFonts.numbers(TextStyle(fontSize: 13, color: _p.muted)),
+                      style: AppFonts.numbers(
+                        TextStyle(fontSize: 13, color: _p.muted),
+                      ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 12),
-                Row(children: [
-                  Expanded(
-                    child: _DoneTile(
-                      key: const ValueKey('nav-done-loss'),
-                      label: l.navDoneLoss,
-                      value: done.lossM == null ? '–' : '↓${done.lossM!.round()}',
-                      unit: l.navUnitHm,
+                Row(
+                  children: [
+                    Expanded(
+                      child: _DoneTile(
+                        key: const ValueKey('nav-done-loss'),
+                        label: l.navDoneLoss,
+                        value: done.lossM == null
+                            ? '–'
+                            : '↓${done.lossM!.round()}',
+                        unit: l.navUnitHm,
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: _DoneTile(
-                      key: const ValueKey('nav-done-speed'),
-                      label: l.navDoneSpeed,
-                      value: done.maxSpeedMps == null ? '–' : '${(done.maxSpeedMps! * 3.6).round()}',
-                      unit: l.navUnitKmh,
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _DoneTile(
+                        key: const ValueKey('nav-done-speed'),
+                        label: l.navDoneSpeed,
+                        value: done.maxSpeedMps == null
+                            ? '–'
+                            : '${(done.maxSpeedMps! * 3.6).round()}',
+                        unit: l.navUnitKmh,
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Builder(builder: (context) {
-                      final (value, unit) = _splitUnit(l, section.lengthM);
-                      return _DoneTile(
-                          key: const ValueKey('nav-done-length'), label: l.navDoneLength, value: value, unit: unit);
-                    }),
-                  ),
-                ]),
-                if (_liveValues(ref, done.endedAt.subtract(done.duration), to: done.endedAt) case final v?) ...[
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Builder(
+                        builder: (context) {
+                          final (value, unit) = _splitUnit(l, section.lengthM);
+                          return _DoneTile(
+                            key: const ValueKey('nav-done-length'),
+                            label: l.navDoneLength,
+                            value: value,
+                            unit: unit,
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+                if (_liveValues(
+                      ref,
+                      done.endedAt.subtract(done.duration),
+                      to: done.endedAt,
+                    )
+                    case final v?) ...[
                   const SizedBox(height: 8),
                   _AirTiles(values: v, keyPrefix: 'nav-done-air'),
                   // Der Platz unter den Buddys (#36 Schritt 6, Entwurf 1a):
                   // nur, wer teilt, und nur mit einem Sprung.
-                  if (airtimeRunRank(ref, l, section.trailId, v.airS) case final r?) ...[
+                  if (airtimeRunRank(ref, l, section.trailId, v.airS)
+                      case final r?) ...[
                     const SizedBox(height: 8),
                     Container(
                       key: const ValueKey('nav-done-rank'),
@@ -1684,13 +2136,23 @@ class _TrailDoneSheetState extends ConsumerState<_TrailDoneSheet> {
                         border: Border.all(color: _p.line),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                        if (r.rank.isNotEmpty) Text(r.rank, style: TextStyle(fontSize: 14, color: _p.text)),
-                        Text(
-                          [if (r.newBest) l.airtimeNewBest, l.airtimeGameNote].join(' · '),
-                          style: TextStyle(fontSize: 12, color: _p.muted),
-                        ),
-                      ]),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (r.rank.isNotEmpty)
+                            Text(
+                              r.rank,
+                              style: TextStyle(fontSize: 14, color: _p.text),
+                            ),
+                          Text(
+                            [
+                              if (r.newBest) l.airtimeNewBest,
+                              l.airtimeGameNote,
+                            ].join(' · '),
+                            style: TextStyle(fontSize: 12, color: _p.muted),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ],
@@ -1698,26 +2160,37 @@ class _TrailDoneSheetState extends ConsumerState<_TrailDoneSheet> {
                   const SizedBox(height: 12),
                   _Label(l.navDoneAsk),
                   const SizedBox(height: 6),
-                  Wrap(spacing: 6, runSpacing: 6, children: [
-                    for (final c in kTrailConditions.where((c) => c.value >= 2))
-                      _ConditionChoice(
-                        key: ValueKey('nav-done-condition-${c.value}'),
-                        label: c.label(l),
-                        tooltip: c.description(l),
-                        selected: _condition == c.value,
-                        onTap: _sending || sent ? null : () => _report(c.value),
-                      ),
-                  ]),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: [
+                      for (final c in kTrailConditions.where(
+                        (c) => c.value >= 2,
+                      ))
+                        _ConditionChoice(
+                          key: ValueKey('nav-done-condition-${c.value}'),
+                          label: c.label(l),
+                          tooltip: c.description(l),
+                          selected: _condition == c.value,
+                          onTap: _sending || sent
+                              ? null
+                              : () => _report(c.value),
+                        ),
+                    ],
+                  ),
                   if (sent || _failed) ...[
                     const SizedBox(height: 6),
                     Text(
                       _failed
                           ? l.confirmFailed
                           : _outcome == WriteOutcome.queued
-                              ? l.confirmSentQueued
-                              : l.confirmSent,
+                          ? l.confirmSentQueued
+                          : l.confirmSent,
                       key: const ValueKey('nav-done-sent'),
-                      style: TextStyle(fontSize: 13, color: _failed ? _p.warningText : _p.muted),
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: _failed ? _p.warningText : _p.muted,
+                      ),
                     ),
                   ],
                 ],
@@ -1730,9 +2203,14 @@ class _TrailDoneSheetState extends ConsumerState<_TrailDoneSheet> {
                     foregroundColor: AppColors.onBrand,
                     shape: const StadiumBorder(),
                     textStyle: const TextStyle(
-                        fontFamily: AppFonts.display, fontWeight: FontWeight.w700, fontSize: 16, letterSpacing: 0.8),
+                      fontFamily: AppFonts.display,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 16,
+                      letterSpacing: 0.8,
+                    ),
                   ),
-                  onPressed: () => ref.read(navigationProvider.notifier).dismissTrailDone(),
+                  onPressed: () =>
+                      ref.read(navigationProvider.notifier).dismissTrailDone(),
                   icon: const Icon(Icons.navigation, size: 20),
                   label: Text(navDoneNextLabel(l, widget.next).toUpperCase()),
                 ),
@@ -1751,7 +2229,11 @@ class _TrailDoneSheetState extends ConsumerState<_TrailDoneSheet> {
 TrailValues? _liveValues(WidgetRef ref, DateTime? from, {DateTime? to}) {
   final live = ref.watch(airtimeLiveProvider);
   if (!live.active || from == null) return null;
-  return TrailValues.of(live.log.kept, fromUs: from.microsecondsSinceEpoch, toUs: to?.microsecondsSinceEpoch);
+  return TrailValues.of(
+    live.log.kept,
+    fromUs: from.microsecondsSinceEpoch,
+    toUs: to?.microsecondsSinceEpoch,
+  );
 }
 
 /// AIRTIME · MAX G · WHEELIE · STOPPIE (Entwurf 1a, Stoppie dazu vom
@@ -1792,27 +2274,35 @@ class _AirTiles extends ConsumerWidget {
           unit: l.navValuePocket,
         )
       else ...[
-      _DoneTile(
-        key: ValueKey('$keyPrefix-wheelie'),
-        label: l.navValueWheelie,
-        value: '${v.wheelies}',
-        unit: v.wheelies == 0 ? '' : l.navValueWheelieUnit(airtimeNumber(l, v.longestWheelieM, 0)),
-      ),
-      _DoneTile(
-        key: ValueKey('$keyPrefix-stoppie'),
-        label: l.navValueStoppie,
-        value: '${v.stoppies}',
-        unit: v.stoppies == 0 ? '' : l.navValueStoppieUnit(airtimeNumber(l, v.steepestStoppieDeg, 0)),
-      ),
+        _DoneTile(
+          key: ValueKey('$keyPrefix-wheelie'),
+          label: l.navValueWheelie,
+          value: '${v.wheelies}',
+          unit: v.wheelies == 0
+              ? ''
+              : l.navValueWheelieUnit(airtimeNumber(l, v.longestWheelieM, 0)),
+        ),
+        _DoneTile(
+          key: ValueKey('$keyPrefix-stoppie'),
+          label: l.navValueStoppie,
+          value: '${v.stoppies}',
+          unit: v.stoppies == 0
+              ? ''
+              : l.navValueStoppieUnit(
+                  airtimeNumber(l, v.steepestStoppieDeg, 0),
+                ),
+        ),
       ],
     ];
-    return Row(children: [
-      for (final (i, t) in tiles.indexed) ...[
-        if (i > 0) const SizedBox(width: 6),
-        // Die Kachel der Tasche steht für zwei.
-        Expanded(flex: pocket && i == 2 ? 2 : 1, child: t),
+    return Row(
+      children: [
+        for (final (i, t) in tiles.indexed) ...[
+          if (i > 0) const SizedBox(width: 6),
+          // Die Kachel der Tasche steht für zwei.
+          Expanded(flex: pocket && i == 2 ? 2 : 1, child: t),
+        ],
       ],
-    ]);
+    );
   }
 }
 
@@ -1840,10 +2330,17 @@ class _AirToastState extends ConsumerState<_AirToast> {
 
   @override
   Widget build(BuildContext context) {
-    ref.listen(airtimeLiveProvider.select((s) => s.log.events), (before, after) {
+    ref.listen(airtimeLiveProvider.select((s) => s.log.events), (
+      before,
+      after,
+    ) {
       final known = before?.length ?? 0;
       if (after.length <= known) return;
-      final jump = after.skip(known).whereType<JumpEvent>().where((j) => j.plausible).lastOrNull;
+      final jump = after
+          .skip(known)
+          .whereType<JumpEvent>()
+          .where((j) => j.plausible)
+          .lastOrNull;
       if (jump == null) return;
       _hide?.cancel();
       _hide = Timer(kNavAirToastShown, () {
@@ -1859,9 +2356,18 @@ class _AirToastState extends ConsumerState<_AirToast> {
       child: _NavCard(
         key: const ValueKey('nav-air-toast'),
         child: Text(
-          l.navAirToast(airtimeNumber(l, jump.duration.inMilliseconds / 1000, 1), airtimeNumber(l, jump.landingG, 1)),
+          l.navAirToast(
+            airtimeNumber(l, jump.duration.inMilliseconds / 1000, 1),
+            airtimeNumber(l, jump.landingG, 1),
+          ),
           textAlign: TextAlign.center,
-          style: AppFonts.numbers(const TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.brand)),
+          style: AppFonts.numbers(
+            const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              color: AppColors.brand,
+            ),
+          ),
         ),
       ),
     );
@@ -1870,7 +2376,12 @@ class _AirToastState extends ConsumerState<_AirToast> {
 
 /// Eine Kachel der Bilanz: Beschriftung, Zahl, Einheit.
 class _DoneTile extends StatelessWidget {
-  const _DoneTile({super.key, required this.label, required this.value, required this.unit});
+  const _DoneTile({
+    super.key,
+    required this.label,
+    required this.value,
+    required this.unit,
+  });
 
   final String label;
   final String value;
@@ -1878,31 +2389,51 @@ class _DoneTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.fromLTRB(10, 9, 10, 9),
-        decoration: BoxDecoration(color: _p.surface, borderRadius: BorderRadius.circular(12)),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, letterSpacing: 0.8, color: _p.muted)),
-            const SizedBox(height: 2),
-            FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: Alignment.centerLeft,
-              child: Text(value, style: AppFonts.numbers(TextStyle(fontSize: 22, height: 1.15, color: _p.text))),
-            ),
-            Text(unit, style: TextStyle(fontSize: 11, color: _p.muted)),
-          ],
+    padding: const EdgeInsets.fromLTRB(10, 9, 10, 9),
+    decoration: BoxDecoration(
+      color: _p.surface,
+      borderRadius: BorderRadius.circular(12),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            fontSize: 10,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0.8,
+            color: _p.muted,
+          ),
         ),
-      );
+        const SizedBox(height: 2),
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerLeft,
+          child: Text(
+            value,
+            style: AppFonts.numbers(
+              TextStyle(fontSize: 22, height: 1.15, color: _p.text),
+            ),
+          ),
+        ),
+        Text(unit, style: TextStyle(fontSize: 11, color: _p.muted)),
+      ],
+    ),
+  );
 }
 
 /// Ein Zustand zum Antippen: Rand, gewählt in Lime.
 class _ConditionChoice extends StatelessWidget {
-  const _ConditionChoice(
-      {super.key, required this.label, required this.tooltip, required this.selected, required this.onTap});
+  const _ConditionChoice({
+    super.key,
+    required this.label,
+    required this.tooltip,
+    required this.selected,
+    required this.onTap,
+  });
 
   final String label;
   final String tooltip;
@@ -1911,26 +2442,39 @@ class _ConditionChoice extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Tooltip(
-        message: tooltip,
-        child: Semantics(
-          selected: selected,
-          button: true,
-          child: InkWell(
-            onTap: onTap,
+    message: tooltip,
+    child: Semantics(
+      selected: selected,
+      button: true,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(10),
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 44),
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          decoration: BoxDecoration(
+            color: selected ? _p.surface2 : null,
             borderRadius: BorderRadius.circular(10),
-            child: Container(
-              constraints: const BoxConstraints(minHeight: 44),
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              decoration: BoxDecoration(
-                color: selected ? _p.surface2 : null,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: selected ? AppColors.brand : _p.line, width: selected ? 1.5 : 1),
-              ),
-              child: Row(mainAxisSize: MainAxisSize.min, children: [
-                Text(label, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: _p.text)),
-              ]),
+            border: Border.all(
+              color: selected ? AppColors.brand : _p.line,
+              width: selected ? 1.5 : 1,
             ),
           ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: _p.text,
+                ),
+              ),
+            ],
+          ),
         ),
-      );
+      ),
+    ),
+  );
 }

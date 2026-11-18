@@ -41,14 +41,19 @@ void main() {
 
     await _tap(tester, find.text('Passwort vergessen?'));
 
-    expect(find.byType(TextField), findsOneWidget,
-        reason: 'Im Reset-Modus gibt es kein Passwortfeld — nur die E-Mail. '
-            'Sonst tippt man dort das vergessene Passwort ein.');
+    expect(
+      find.byType(TextField),
+      findsOneWidget,
+      reason:
+          'Im Reset-Modus gibt es kein Passwortfeld — nur die E-Mail. '
+          'Sonst tippt man dort das vergessene Passwort ein.',
+    );
     expect(find.text('Code anfordern'), findsOneWidget);
   });
 
-  testWidgets('Unbekannte Adresse verrät nicht, dass es kein Konto gibt',
-      (tester) async {
+  testWidgets('Unbekannte Adresse verrät nicht, dass es kein Konto gibt', (
+    tester,
+  ) async {
     final backend = FakeBackend()..addUser(username: 'testrail');
     await pumpApp(tester, backend);
 
@@ -57,8 +62,9 @@ void main() {
     // Dieselbe Meldung wie im Erfolgsfall, und die Anfrage ist trotzdem
     // vermerkt: Wer hier unterscheidet, baut ein Konto-Orakel.
     expect(
-        find.textContaining('Wenn es zu gibtesnicht@example.org ein Konto gibt'),
-        findsOneWidget);
+      find.textContaining('Wenn es zu gibtesnicht@example.org ein Konto gibt'),
+      findsOneWidget,
+    );
     expect(backend.passwordResets, ['gibtesnicht@example.org']);
     expect(find.widgetWithText(TextField, 'Code aus der Mail'), findsOneWidget);
   });
@@ -69,41 +75,56 @@ void main() {
     await _requestCode(tester, 'testrail@example.org');
 
     await tester.enterText(
-        find.widgetWithText(TextField, 'Code aus der Mail'), '000000');
+      find.widgetWithText(TextField, 'Code aus der Mail'),
+      '000000',
+    );
     await tester.enterText(
-        find.widgetWithText(TextField, 'Neues Passwort (mind. 8 Zeichen)'),
-        'NeuerTrail#2026!');
+      find.widgetWithText(TextField, 'Neues Passwort (mind. 8 Zeichen)'),
+      'NeuerTrail#2026!',
+    );
     await tester.enterText(
-        find.widgetWithText(TextField, 'Neues Passwort wiederholen'),
-        'NeuerTrail#2026!');
+      find.widgetWithText(TextField, 'Neues Passwort wiederholen'),
+      'NeuerTrail#2026!',
+    );
     await _tap(tester, find.text('Neues Passwort speichern'));
 
-    expect(find.textContaining('Code ist falsch oder abgelaufen'),
-        findsOneWidget);
-    expect(find.byType(MapScreen), findsNothing,
-        reason: 'Ein falscher Code darf die Karte nicht öffnen.');
+    expect(
+      find.textContaining('Code ist falsch oder abgelaufen'),
+      findsOneWidget,
+    );
+    expect(
+      find.byType(MapScreen),
+      findsNothing,
+      reason: 'Ein falscher Code darf die Karte nicht öffnen.',
+    );
     expect(backend.currentUserId, isNull);
   });
 
-  testWidgets('Zwei verschiedene Passwörter werden abgefangen',
-      (tester) async {
+  testWidgets('Zwei verschiedene Passwörter werden abgefangen', (tester) async {
     final backend = FakeBackend()..addUser(username: 'testrail');
     await pumpApp(tester, backend);
     await _requestCode(tester, 'testrail@example.org');
 
-    await tester.enterText(find.widgetWithText(TextField, 'Code aus der Mail'),
-        FakeBackend.resetCode);
     await tester.enterText(
-        find.widgetWithText(TextField, 'Neues Passwort (mind. 8 Zeichen)'),
-        'NeuerTrail#2026!');
+      find.widgetWithText(TextField, 'Code aus der Mail'),
+      FakeBackend.resetCode,
+    );
     await tester.enterText(
-        find.widgetWithText(TextField, 'Neues Passwort wiederholen'),
-        'Tippfehler#2026!');
+      find.widgetWithText(TextField, 'Neues Passwort (mind. 8 Zeichen)'),
+      'NeuerTrail#2026!',
+    );
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Neues Passwort wiederholen'),
+      'Tippfehler#2026!',
+    );
     await _tap(tester, find.text('Neues Passwort speichern'));
 
     expect(find.textContaining('stimmen nicht überein'), findsOneWidget);
-    expect(backend.currentUserId, isNull,
-        reason: 'Der Code wurde gar nicht erst eingelöst.');
+    expect(
+      backend.currentUserId,
+      isNull,
+      reason: 'Der Code wurde gar nicht erst eingelöst.',
+    );
   });
 
   testWidgets('Zu kurzes Passwort wird abgefangen', (tester) async {
@@ -111,45 +132,59 @@ void main() {
     await pumpApp(tester, backend);
     await _requestCode(tester, 'testrail@example.org');
 
-    await tester.enterText(find.widgetWithText(TextField, 'Code aus der Mail'),
-        FakeBackend.resetCode);
     await tester.enterText(
-        find.widgetWithText(TextField, 'Neues Passwort (mind. 8 Zeichen)'),
-        'kurz');
+      find.widgetWithText(TextField, 'Code aus der Mail'),
+      FakeBackend.resetCode,
+    );
     await tester.enterText(
-        find.widgetWithText(TextField, 'Neues Passwort wiederholen'), 'kurz');
+      find.widgetWithText(TextField, 'Neues Passwort (mind. 8 Zeichen)'),
+      'kurz',
+    );
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Neues Passwort wiederholen'),
+      'kurz',
+    );
     await _tap(tester, find.text('Neues Passwort speichern'));
 
     expect(find.textContaining('mindestens'), findsOneWidget);
     expect(backend.currentUserId, isNull);
   });
 
-  testWidgets('Richtiger Code setzt das Passwort und führt in die App',
-      (tester) async {
+  testWidgets('Richtiger Code setzt das Passwort und führt in die App', (
+    tester,
+  ) async {
     final backend = FakeBackend()
       ..addUser(username: 'testrail', password: 'AlterTrail#2026!');
     await pumpApp(tester, backend);
     await _requestCode(tester, 'testrail@example.org');
 
-    await tester.enterText(find.widgetWithText(TextField, 'Code aus der Mail'),
-        FakeBackend.resetCode);
     await tester.enterText(
-        find.widgetWithText(TextField, 'Neues Passwort (mind. 8 Zeichen)'),
-        'NeuerTrail#2026!');
+      find.widgetWithText(TextField, 'Code aus der Mail'),
+      FakeBackend.resetCode,
+    );
     await tester.enterText(
-        find.widgetWithText(TextField, 'Neues Passwort wiederholen'),
-        'NeuerTrail#2026!');
+      find.widgetWithText(TextField, 'Neues Passwort (mind. 8 Zeichen)'),
+      'NeuerTrail#2026!',
+    );
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Neues Passwort wiederholen'),
+      'NeuerTrail#2026!',
+    );
     await _tap(tester, find.text('Neues Passwort speichern'));
 
-    expect(find.byType(MapScreen), findsOneWidget,
-        reason: 'Nach dem Ändern öffnet das userUpdated-Ereignis die App.');
+    expect(
+      find.byType(MapScreen),
+      findsOneWidget,
+      reason: 'Nach dem Ändern öffnet das userUpdated-Ereignis die App.',
+    );
     expect(backend.currentUserId, isNotNull);
     // Der Effekt, nicht nur der Aufruf: das Passwort ist wirklich neu.
     expect(backend.users.single.password, 'NeuerTrail#2026!');
   });
 
-  testWidgets('Eine Recovery-Sitzung allein öffnet die App nicht',
-      (tester) async {
+  testWidgets('Eine Recovery-Sitzung allein öffnet die App nicht', (
+    tester,
+  ) async {
     final backend = FakeBackend();
     final user = backend.addUser(username: 'testrail');
     await pumpApp(tester, backend);
@@ -163,12 +198,16 @@ void main() {
     await settle(tester);
 
     expect(find.byType(MapScreen), findsNothing);
-    expect(find.text('Anmelden'), findsOneWidget,
-        reason: 'Erst das geänderte Passwort (userUpdated) darf hereinlassen.');
+    expect(
+      find.text('Anmelden'),
+      findsOneWidget,
+      reason: 'Erst das geänderte Passwort (userUpdated) darf hereinlassen.',
+    );
   });
 
-  testWidgets('Zurück zur Anmeldung stellt das Passwortfeld wieder her',
-      (tester) async {
+  testWidgets('Zurück zur Anmeldung stellt das Passwortfeld wieder her', (
+    tester,
+  ) async {
     final backend = FakeBackend()..addUser(username: 'testrail');
     await pumpApp(tester, backend);
 
@@ -183,16 +222,20 @@ void main() {
   // #399: Chrome lädt einen Tab im Hintergrund neu („Memory Saver"),
   // während man im Postfach den Code holt. Ein Neuladen ruft kein
   // `dispose` — nachgestellt mit dem Merker in frischen Einstellungen.
-  testWidgets('Nach einem Neuladen steht die Code-Eingabe wieder da',
-      (tester) async {
+  testWidgets('Nach einem Neuladen steht die Code-Eingabe wieder da', (
+    tester,
+  ) async {
     final backend = FakeBackend()..addUser(username: 'testrail');
     final before = FakeSettings();
     await pumpApp(tester, backend, settings: before);
     await _requestCode(tester, 'testrail@example.org');
     final remembered = before.pendingAuthCode;
     expect(remembered, isNotNull);
-    expect(remembered, isNot(contains('Passwort')),
-        reason: 'Gemerkt wird die Adresse, nie ein Passwort.');
+    expect(
+      remembered,
+      isNot(contains('Passwort')),
+      reason: 'Gemerkt wird die Adresse, nie ein Passwort.',
+    );
 
     await tester.pumpWidget(const SizedBox());
     final after = FakeSettings(pendingAuthCode: remembered);
@@ -201,24 +244,35 @@ void main() {
     expect(find.widgetWithText(TextField, 'Code aus der Mail'), findsOneWidget);
     expect(find.textContaining('testrail@example.org'), findsWidgets);
 
-    await tester.enterText(find.widgetWithText(TextField, 'Code aus der Mail'),
-        FakeBackend.resetCode);
     await tester.enterText(
-        find.widgetWithText(TextField, 'Neues Passwort (mind. 8 Zeichen)'),
-        'NeuerTrail#2026!');
+      find.widgetWithText(TextField, 'Code aus der Mail'),
+      FakeBackend.resetCode,
+    );
     await tester.enterText(
-        find.widgetWithText(TextField, 'Neues Passwort wiederholen'),
-        'NeuerTrail#2026!');
+      find.widgetWithText(TextField, 'Neues Passwort (mind. 8 Zeichen)'),
+      'NeuerTrail#2026!',
+    );
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Neues Passwort wiederholen'),
+      'NeuerTrail#2026!',
+    );
     await _tap(tester, find.text('Neues Passwort speichern'));
 
-    expect(find.byType(MapScreen), findsOneWidget,
-        reason: 'Der Code aus der Zeit vor dem Neuladen gilt weiter.');
-    expect(after.pendingAuthCode, isNull,
-        reason: 'Angemeldet wartet niemand mehr auf einen Code.');
+    expect(
+      find.byType(MapScreen),
+      findsOneWidget,
+      reason: 'Der Code aus der Zeit vor dem Neuladen gilt weiter.',
+    );
+    expect(
+      after.pendingAuthCode,
+      isNull,
+      reason: 'Angemeldet wartet niemand mehr auf einen Code.',
+    );
   });
 
-  testWidgets('Zurück zur Anmeldung vergisst den wartenden Code',
-      (tester) async {
+  testWidgets('Zurück zur Anmeldung vergisst den wartenden Code', (
+    tester,
+  ) async {
     final backend = FakeBackend()..addUser(username: 'testrail');
     final settings = FakeSettings();
     await pumpApp(tester, backend, settings: settings);
@@ -230,22 +284,25 @@ void main() {
     expect(settings.pendingAuthCode, isNull);
   });
 
-  testWidgets('Ein bekannt unsicheres Passwort wird abgelehnt',
-      (tester) async {
+  testWidgets('Ein bekannt unsicheres Passwort wird abgelehnt', (tester) async {
     // „zu kurz" wäre hier die falsche Erklärung, das Passwort ist lang
     // genug — der Server lehnt es als bekannt ab.
     final backend = FakeBackend()..addUser(username: 'testrail');
     await pumpApp(tester, backend);
     await _requestCode(tester, 'testrail@example.org');
 
-    await tester.enterText(find.widgetWithText(TextField, 'Code aus der Mail'),
-        FakeBackend.resetCode);
     await tester.enterText(
-        find.widgetWithText(TextField, 'Neues Passwort (mind. 8 Zeichen)'),
-        'passwort123');
+      find.widgetWithText(TextField, 'Code aus der Mail'),
+      FakeBackend.resetCode,
+    );
     await tester.enterText(
-        find.widgetWithText(TextField, 'Neues Passwort wiederholen'),
-        'passwort123');
+      find.widgetWithText(TextField, 'Neues Passwort (mind. 8 Zeichen)'),
+      'passwort123',
+    );
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Neues Passwort wiederholen'),
+      'passwort123',
+    );
     await _tap(tester, find.text('Neues Passwort speichern'));
 
     expect(find.textContaining('zu unsicher'), findsOneWidget);
@@ -264,8 +321,10 @@ void main() {
 
     await _tap(tester, find.text('Code nicht angekommen? Erneut senden'));
 
-    expect(backend.passwordResets,
-        ['testrail@example.org', 'testrail@example.org']);
+    expect(backend.passwordResets, [
+      'testrail@example.org',
+      'testrail@example.org',
+    ]);
     expect(find.textContaining('ein neuer Code'), findsOneWidget);
   });
 
@@ -280,13 +339,15 @@ void main() {
     await _tap(tester, find.text('Code nicht angekommen? Erneut senden'));
 
     expect(
-        find.textContaining('Wenn es zu gibtesnicht@example.org ein Konto gibt'),
-        findsOneWidget);
+      find.textContaining('Wenn es zu gibtesnicht@example.org ein Konto gibt'),
+      findsOneWidget,
+    );
     expect(backend.passwordResets.length, 2);
   });
 
-  testWidgets('Ohne Adresse behauptet das Erneut-Senden keine Mail',
-      (tester) async {
+  testWidgets('Ohne Adresse behauptet das Erneut-Senden keine Mail', (
+    tester,
+  ) async {
     // Das E-Mail-Feld steht auch im Code-Modus da und lässt sich leeren.
     // Ohne Prüfung fragte der zweite Weg trotzdem an, GoTrue antwortete
     // „Password recovery requires an email" (400), und die App meldete
@@ -301,14 +362,18 @@ void main() {
 
     expect(find.textContaining('gültige E-Mail-Adresse'), findsOneWidget);
     expect(find.textContaining('ein neuer Code'), findsNothing);
-    expect(tester.widget<FormNotice>(find.byType(FormNotice)).tone,
-        NoticeTone.error);
-    expect(backend.passwordResets, ['testrail@example.org'],
-        reason: 'Es darf keine zweite Anfrage rausgegangen sein.');
+    expect(
+      tester.widget<FormNotice>(find.byType(FormNotice)).tone,
+      NoticeTone.error,
+    );
+    expect(backend.passwordResets, [
+      'testrail@example.org',
+    ], reason: 'Es darf keine zweite Anfrage rausgegangen sein.');
   });
 
-  testWidgets('Ein abgelehnter Mailversand landet nicht im Fehlerbericht',
-      (tester) async {
+  testWidgets('Ein abgelehnter Mailversand landet nicht im Fehlerbericht', (
+    tester,
+  ) async {
     // Das Mail-Limit ist die vorgesehene Antwort auf zu häufiges Fragen —
     // ein normaler Vorgang, der den Wochendigest anführt, verstopft ihn
     // für die echten Funde.
@@ -327,12 +392,14 @@ void main() {
     // Nach außen bleibt es bei der einen Auskunft: Eine sichtbare
     // Ablehnung wäre wieder ein Konto-Orakel.
     expect(
-        find.textContaining('Wenn es zu testrail@example.org ein Konto gibt'),
-        findsOneWidget);
+      find.textContaining('Wenn es zu testrail@example.org ein Konto gibt'),
+      findsOneWidget,
+    );
   });
 
-  testWidgets('Ein 504 aus dem Reset landet nicht im Fehlerbericht',
-      (tester) async {
+  testWidgets('Ein 504 aus dem Reset landet nicht im Fehlerbericht', (
+    tester,
+  ) async {
     // Ein 504 heißt, das Gateway hat nicht geantwortet — `looksOffline`
     // führt das überall sonst als fehlenden Empfang. Ein `logError` mit
     // eigenem Kontext meldet ALLES, der Pfad muss also selbst filtern.
@@ -351,12 +418,14 @@ void main() {
     // Und nach außen bleibt es bei derselben einen Auskunft — eine
     // sichtbare Fehlermeldung wäre wieder ein Konto-Orakel.
     expect(
-        find.textContaining('Wenn es zu testrail@example.org ein Konto gibt'),
-        findsOneWidget);
+      find.textContaining('Wenn es zu testrail@example.org ein Konto gibt'),
+      findsOneWidget,
+    );
   });
 
-  testWidgets('Ein echter Auth-Fehler landet sehr wohl im Bericht',
-      (tester) async {
+  testWidgets('Ein echter Auth-Fehler landet sehr wohl im Bericht', (
+    tester,
+  ) async {
     // Die Gegenrichtung. Ohne sie wäre der Filter auch dann grün, wenn
     // er alles schluckte — und dann sähe niemand mehr, wenn der Reset
     // wirklich kaputt ist.
@@ -383,16 +452,23 @@ void main() {
       expect(tester.widget<TextField>(field).obscureText, isTrue);
 
       await _tap(
-          tester,
-          find.descendant(
-              of: field, matching: find.byIcon(Icons.visibility_outlined)));
+        tester,
+        find.descendant(
+          of: field,
+          matching: find.byIcon(Icons.visibility_outlined),
+        ),
+      );
 
-      expect(tester.widget<TextField>(field).obscureText, isFalse,
-          reason: 'Wer sein Passwort nicht sehen kann, tippt es blind falsch.');
+      expect(
+        tester.widget<TextField>(field).obscureText,
+        isFalse,
+        reason: 'Wer sein Passwort nicht sehen kann, tippt es blind falsch.',
+      );
     });
 
-    testWidgets('Die Übereinstimmung wird schon beim Tippen angezeigt',
-        (tester) async {
+    testWidgets('Die Übereinstimmung wird schon beim Tippen angezeigt', (
+      tester,
+    ) async {
       final backend = FakeBackend()..addUser(username: 'testrail');
       await pumpApp(tester, backend);
       await _requestCode(tester, 'testrail@example.org');
@@ -401,22 +477,32 @@ void main() {
       expect(find.textContaining('stimmen'), findsNothing);
 
       await tester.enterText(
-          find.widgetWithText(TextField, 'Neues Passwort (mind. 8 Zeichen)'),
-          'NeuerTrail#2026!');
+        find.widgetWithText(TextField, 'Neues Passwort (mind. 8 Zeichen)'),
+        'NeuerTrail#2026!',
+      );
       await tester.enterText(
-          find.widgetWithText(TextField, 'Neues Passwort wiederholen'),
-          'NeuerTrail#202');
+        find.widgetWithText(TextField, 'Neues Passwort wiederholen'),
+        'NeuerTrail#202',
+      );
       await settle(tester);
-      expect(find.text('Passwörter stimmen noch nicht überein'), findsOneWidget);
+      expect(
+        find.text('Passwörter stimmen noch nicht überein'),
+        findsOneWidget,
+      );
 
       await tester.enterText(
-          find.widgetWithText(TextField, 'Neues Passwort wiederholen'),
-          'NeuerTrail#2026!');
+        find.widgetWithText(TextField, 'Neues Passwort wiederholen'),
+        'NeuerTrail#2026!',
+      );
       await settle(tester);
 
-      expect(find.text('Passwörter stimmen überein'), findsOneWidget,
-          reason: 'Ohne Live-Abgleich merkt man den Tippfehler erst beim '
-              'Absenden.');
+      expect(
+        find.text('Passwörter stimmen überein'),
+        findsOneWidget,
+        reason:
+            'Ohne Live-Abgleich merkt man den Tippfehler erst beim '
+            'Absenden.',
+      );
     });
   });
 }

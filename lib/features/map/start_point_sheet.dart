@@ -30,11 +30,18 @@ import 'start_point_layer.dart';
 /// als Start: Dort steht unter dem Schalter die Warnung vor der Haustür
 /// (Konzept 4, A10 — ein Satz, kein Riegel). Das Ergebnis sagt eine
 /// Leiste; die Obergrenze (9.2) ist ein Satz, kein Fehler.
-Future<void> rememberStartPoint(BuildContext context, WidgetRef ref, LatLng at,
-    {String? name, bool shared = true, bool home = false}) async {
+Future<void> rememberStartPoint(
+  BuildContext context,
+  WidgetRef ref,
+  LatLng at, {
+  String? name,
+  bool shared = true,
+  bool home = false,
+}) async {
   final result = await showDialog<({String name, bool shared})>(
     context: context,
-    builder: (_) => StartPointDialog(name: name ?? '', shared: shared, home: home),
+    builder: (_) =>
+        StartPointDialog(name: name ?? '', shared: shared, home: home),
   );
   if (result == null || !context.mounted) return;
   final myId = ref.read(currentUserIdProvider);
@@ -48,26 +55,38 @@ Future<void> rememberStartPoint(BuildContext context, WidgetRef ref, LatLng at,
       name: result.name,
       lat: at.latitude,
       lon: at.longitude,
-      visibility: result.shared ? TrailVisibility.buddies : TrailVisibility.private,
+      visibility: result.shared
+          ? TrailVisibility.buddies
+          : TrailVisibility.private,
       createdAt: DateTime.now(),
     ),
     done: context.l10n.startPointSaved,
   );
 }
 
-Future<void> _save(BuildContext context, WidgetRef ref, StartPoint point, {required String done}) async {
+Future<void> _save(
+  BuildContext context,
+  WidgetRef ref,
+  StartPoint point, {
+  required String done,
+}) async {
   final messenger = ScaffoldMessenger.of(context);
   final l = context.l10n;
   try {
-    final outcome = await ref.read(trailsProvider.notifier).saveStartPoint(point);
+    final outcome = await ref
+        .read(trailsProvider.notifier)
+        .saveStartPoint(point);
     messenger
       ..clearSnackBars()
-      ..showSnackBar(SnackBar(
+      ..showSnackBar(
+        SnackBar(
           content: Text(switch (outcome) {
-        WriteOutcome.done => done,
-        WriteOutcome.doneStale => l.staleAfterWrite(done),
-        WriteOutcome.queued => l.queuedHint,
-      })));
+            WriteOutcome.done => done,
+            WriteOutcome.doneStale => l.staleAfterWrite(done),
+            WriteOutcome.queued => l.queuedHint,
+          }),
+        ),
+      );
   } catch (e, st) {
     // Die Obergrenze ist kein Fehler, sondern ein Satz (Konzept 9.2).
     if (e is! StartPointLimitException) logError('Startpunkt speichern', e, st);
@@ -81,8 +100,13 @@ Future<void> _save(BuildContext context, WidgetRef ref, StartPoint point, {requi
 /// zurück, oder `null` bei „Abbrechen". [title] ist „Als Startpunkt
 /// merken" oder, beim Umbenennen, „Umbenennen" — dann ohne Schalter.
 class StartPointDialog extends StatefulWidget {
-  const StartPointDialog(
-      {super.key, required this.name, required this.shared, this.rename = false, this.home = false});
+  const StartPointDialog({
+    super.key,
+    required this.name,
+    required this.shared,
+    this.rename = false,
+    this.home = false,
+  });
 
   final String name;
   final bool shared;
@@ -125,7 +149,10 @@ class _StartPointDialogState extends State<StartPointDialog> {
             autofocus: true,
             maxLength: kStartPointNameMaxLength,
             textCapitalization: TextCapitalization.sentences,
-            decoration: InputDecoration(labelText: l.startPointName, hintText: l.startPointNameHint),
+            decoration: InputDecoration(
+              labelText: l.startPointName,
+              hintText: l.startPointNameHint,
+            ),
             onChanged: (_) => setState(() {}),
             onSubmitted: (_) => _submit(),
           ),
@@ -134,25 +161,33 @@ class _StartPointDialogState extends State<StartPointDialog> {
               key: const ValueKey('start-point-shared'),
               contentPadding: EdgeInsets.zero,
               title: Text(l.startPointShared),
-              subtitle: Text(_shared ? l.startPointSharedOn : l.startPointSharedOff),
+              subtitle: Text(
+                _shared ? l.startPointSharedOn : l.startPointSharedOff,
+              ),
               value: _shared,
               onChanged: (v) => setState(() => _shared = v),
             ),
           if (widget.home && !widget.rename)
-            Text(l.startPointHomeWarning,
-                key: const ValueKey('start-point-home-warning'),
-                style: Theme.of(context)
-                    .textTheme
-                    .bodySmall
-                    ?.copyWith(color: AppPalette.of(context).warningText)),
+            Text(
+              l.startPointHomeWarning,
+              key: const ValueKey('start-point-home-warning'),
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: AppPalette.of(context).warningText,
+              ),
+            ),
         ],
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.of(context).pop(), child: Text(l.commonCancel)),
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(l.commonCancel),
+        ),
         FilledButton(
           key: const ValueKey('start-point-save'),
           onPressed: clampStartPointName(_name.text).isEmpty ? null : _submit,
-          child: Text(widget.rename ? l.commonSave : l.startPointRememberAction),
+          child: Text(
+            widget.rename ? l.commonSave : l.startPointRememberAction,
+          ),
         ),
       ],
     );
@@ -166,24 +201,32 @@ class _StartPointDialogState extends State<StartPointDialog> {
 /// weg, und ein Dialog daraus käme nie zurück; im Test gefunden).
 /// Navi-App, Umschalten, Umbenennen und Löschen bleiben im Blatt bzw.
 /// nehmen sich Leiste und Notifier, bevor es schließt.
-Future<void> showStartPointSheet(BuildContext context, StartPoint point,
-        {required VoidCallback onStart,
-        required VoidCallback onTarget,
-        required void Function(StartPoint point) onRemember}) =>
-    showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      builder: (_) => _StartPointSheet(
-          pointKey: point.key, fallback: point, onStart: onStart, onTarget: onTarget, onRemember: onRemember),
-    );
+Future<void> showStartPointSheet(
+  BuildContext context,
+  StartPoint point, {
+  required VoidCallback onStart,
+  required VoidCallback onTarget,
+  required void Function(StartPoint point) onRemember,
+}) => showModalBottomSheet<void>(
+  context: context,
+  showDragHandle: true,
+  builder: (_) => _StartPointSheet(
+    pointKey: point.key,
+    fallback: point,
+    onStart: onStart,
+    onTarget: onTarget,
+    onRemember: onRemember,
+  ),
+);
 
 class _StartPointSheet extends ConsumerWidget {
-  const _StartPointSheet(
-      {required this.pointKey,
-      required this.fallback,
-      required this.onStart,
-      required this.onTarget,
-      required this.onRemember});
+  const _StartPointSheet({
+    required this.pointKey,
+    required this.fallback,
+    required this.onStart,
+    required this.onTarget,
+    required this.onRemember,
+  });
 
   final String pointKey;
   final StartPoint fallback;
@@ -200,7 +243,12 @@ class _StartPointSheet extends ConsumerWidget {
     // Der aktuelle Stand: Umschalten und Umbenennen zeigen sich sofort.
     // Ist der Punkt weg (gelöscht, Freundschaft beendet), bleibt der
     // letzte bekannte stehen, bis das Blatt zugeht.
-    final point = ref.watch(startPointsProvider).where((p) => p.key == pointKey).firstOrNull ?? fallback;
+    final point =
+        ref
+            .watch(startPointsProvider)
+            .where((p) => p.key == pointKey)
+            .firstOrNull ??
+        fallback;
     final own = myId != null && point.isMine(myId);
     final names = ref.watch(buddyNamesViewProvider);
     final String who;
@@ -219,21 +267,35 @@ class _StartPointSheet extends ConsumerWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(children: [
-              StartPointPin(own: own, pending: point.pending),
-              const SizedBox(width: 12),
-              Expanded(child: Text(point.name, key: const ValueKey('start-point-title'), style: text.titleLarge)),
-            ]),
+            Row(
+              children: [
+                StartPointPin(own: own, pending: point.pending),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    point.name,
+                    key: const ValueKey('start-point-title'),
+                    style: text.titleLarge,
+                  ),
+                ),
+              ],
+            ),
             const SizedBox(height: 4),
-            Text(who,
-                key: const ValueKey('start-point-who'),
-                style: text.bodyMedium?.copyWith(color: own ? null : palette.buddyText)),
+            Text(
+              who,
+              key: const ValueKey('start-point-who'),
+              style: text.bodyMedium?.copyWith(
+                color: own ? null : palette.buddyText,
+              ),
+            ),
             const SizedBox(height: 12),
             // Dieselben Wörter wie am Ort (#516): „Als Ziel" rechnet
             // sofort, „Als Start" öffnet den Planer.
             FilledButton.icon(
               key: const ValueKey('start-point-as-start'),
-              style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(48)),
+              style: FilledButton.styleFrom(
+                minimumSize: const Size.fromHeight(48),
+              ),
               onPressed: () {
                 pop();
                 onStart();
@@ -244,7 +306,9 @@ class _StartPointSheet extends ConsumerWidget {
             const SizedBox(height: 8),
             OutlinedButton.icon(
               key: const ValueKey('start-point-as-target'),
-              style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
+              style: OutlinedButton.styleFrom(
+                minimumSize: const Size.fromHeight(48),
+              ),
               onPressed: () {
                 pop();
                 onTarget();
@@ -256,11 +320,15 @@ class _StartPointSheet extends ConsumerWidget {
             // Die Anfahrt mit dem Auto ist der häufigste Fall (Konzept 5.2).
             OutlinedButton.icon(
               key: const ValueKey('start-point-navigate'),
-              style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
+              style: OutlinedButton.styleFrom(
+                minimumSize: const Size.fromHeight(48),
+              ),
               onPressed: () {
                 // Erst die Navi-App fragen (sie holt sich die Leiste
                 // synchron), dann schließen.
-                unawaited(navigateToPoint(context, point.position, name: point.name));
+                unawaited(
+                  navigateToPoint(context, point.position, name: point.name),
+                );
                 pop();
               },
               icon: const Icon(Icons.directions_outlined),
@@ -272,14 +340,22 @@ class _StartPointSheet extends ConsumerWidget {
                 key: const ValueKey('start-point-shared-switch'),
                 contentPadding: EdgeInsets.zero,
                 title: Text(l.startPointShared),
-                subtitle: Text(point.shared ? l.startPointSharedOn : l.startPointSharedOff),
+                subtitle: Text(
+                  point.shared ? l.startPointSharedOn : l.startPointSharedOff,
+                ),
                 value: point.shared,
-                onChanged: (v) => unawaited(_save(
-                  context,
-                  ref,
-                  point.copyWith(visibility: v ? TrailVisibility.buddies : TrailVisibility.private),
-                  done: v ? l.startPointNowShared : l.startPointNowPrivate,
-                )),
+                onChanged: (v) => unawaited(
+                  _save(
+                    context,
+                    ref,
+                    point.copyWith(
+                      visibility: v
+                          ? TrailVisibility.buddies
+                          : TrailVisibility.private,
+                    ),
+                    done: v ? l.startPointNowShared : l.startPointNowPrivate,
+                  ),
+                ),
               ),
               ListTile(
                 key: const ValueKey('start-point-rename'),
@@ -289,16 +365,32 @@ class _StartPointSheet extends ConsumerWidget {
                 onTap: () async {
                   final result = await showDialog<({String name, bool shared})>(
                     context: context,
-                    builder: (_) => StartPointDialog(name: point.name, shared: point.shared, rename: true),
+                    builder: (_) => StartPointDialog(
+                      name: point.name,
+                      shared: point.shared,
+                      rename: true,
+                    ),
                   );
-                  if (result == null || result.name == point.name || !context.mounted) return;
-                  await _save(context, ref, point.copyWith(name: result.name), done: l.startPointRenamed);
+                  if (result == null ||
+                      result.name == point.name ||
+                      !context.mounted) {
+                    return;
+                  }
+                  await _save(
+                    context,
+                    ref,
+                    point.copyWith(name: result.name),
+                    done: l.startPointRenamed,
+                  );
                 },
               ),
               ListTile(
                 key: const ValueKey('start-point-delete'),
                 contentPadding: EdgeInsets.zero,
-                leading: Icon(Icons.delete_outline, color: Theme.of(context).colorScheme.error),
+                leading: Icon(
+                  Icons.delete_outline,
+                  color: Theme.of(context).colorScheme.error,
+                ),
                 title: Text(l.commonDelete),
                 onTap: () => unawaited(_delete(context, ref, point)),
               ),
@@ -308,7 +400,9 @@ class _StartPointSheet extends ConsumerWidget {
               const SizedBox(height: 8),
               OutlinedButton.icon(
                 key: const ValueKey('start-point-remember-copy'),
-                style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size.fromHeight(48),
+                ),
                 onPressed: () {
                   pop();
                   onRemember(point);
@@ -325,7 +419,11 @@ class _StartPointSheet extends ConsumerWidget {
 
   /// Löschen schließt das Blatt; „Rückgängig" merkt denselben Punkt
   /// wieder (dieselbe `client_id`, ein Upsert).
-  Future<void> _delete(BuildContext context, WidgetRef ref, StartPoint point) async {
+  Future<void> _delete(
+    BuildContext context,
+    WidgetRef ref,
+    StartPoint point,
+  ) async {
     final messenger = ScaffoldMessenger.of(context);
     final l = context.l10n;
     final notifier = ref.read(trailsProvider.notifier);
@@ -334,19 +432,26 @@ class _StartPointSheet extends ConsumerWidget {
       await notifier.deleteStartPoint(point.clientId);
       messenger
         ..clearSnackBars()
-        ..showSnackBar(SnackBar(
-          key: const ValueKey('start-point-deleted'),
-          content: Text(l.startPointDeleted(point.name)),
-          action: SnackBarAction(
+        ..showSnackBar(
+          SnackBar(
+            key: const ValueKey('start-point-deleted'),
+            content: Text(l.startPointDeleted(point.name)),
+            action: SnackBarAction(
               label: l.commonUndo,
-              onPressed: () => unawaited(notifier
-                  .saveStartPoint(point.copyWith(pending: false, sending: false))
-                  .catchError((Object e, StackTrace st) {
-                logError('Startpunkt wiederherstellen', e, st);
-                return WriteOutcome.done;
-              }))),
-          persist: false,
-        ));
+              onPressed: () => unawaited(
+                notifier
+                    .saveStartPoint(
+                      point.copyWith(pending: false, sending: false),
+                    )
+                    .catchError((Object e, StackTrace st) {
+                      logError('Startpunkt wiederherstellen', e, st);
+                      return WriteOutcome.done;
+                    }),
+              ),
+            ),
+            persist: false,
+          ),
+        );
     } catch (e, st) {
       logError('Startpunkt löschen', e, st);
       messenger

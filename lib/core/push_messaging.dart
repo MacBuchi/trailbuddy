@@ -35,9 +35,7 @@ import 'push_web_bridge.dart';
 /// noch (`push_config.dart`), gibt es keine App und kein Token.
 Future<void> _ensureFirebase() async {
   if (Firebase.apps.isNotEmpty) return;
-  await Firebase.initializeApp(
-    options: kIsWeb ? pushFirebaseOptions : null,
-  );
+  await Firebase.initializeApp(options: kIsWeb ? pushFirebaseOptions : null);
 }
 
 /// Fehlt diesem Build die Firebase-Konfiguration? Dann ist ein Scheitern
@@ -130,8 +128,9 @@ Future<PushTokenResult> requestPushToken() async {
 /// Im Widget-Test gibt es weder FCM noch Berechtigungsdialoge; das
 /// Harness überschreibt diesen Provider, sonst hinge jeder Test, der das
 /// Profil öffnet, an einer Plattform, die es dort nicht gibt.
-final pushTokenProvider =
-    Provider<Future<PushTokenResult> Function()>((ref) => requestPushToken);
+final pushTokenProvider = Provider<Future<PushTokenResult> Function()>(
+  (ref) => requestPushToken,
+);
 
 /// Auf das Antippen einer Meldung hören.
 ///
@@ -149,15 +148,17 @@ Stream<RemoteMessage> pushTaps() =>
     kIsWeb ? _bridged('tap') : FirebaseMessaging.onMessageOpenedApp;
 
 /// Dieselbe Naht für das Antippen.
-final pushTapListenerProvider =
-    Provider<Stream<RemoteMessage> Function()>((ref) => pushTaps);
+final pushTapListenerProvider = Provider<Stream<RemoteMessage> Function()>(
+  (ref) => pushTaps,
+);
 
 /// Die Meldung, mit deren Tipp die App aus dem BEENDETEN Zustand
 /// gestartet wurde. `onMessageOpenedApp` sieht nur den Fall „lief im
 /// Hintergrund"; ohne diese Abfrage öffnete ein Tipp nach einem Neustart
 /// nur die Karte, nie den Trail.
-final pushInitialMessageProvider =
-    Provider<Future<RemoteMessage?> Function()>((ref) => initialPushMessage);
+final pushInitialMessageProvider = Provider<Future<RemoteMessage?> Function()>(
+  (ref) => initialPushMessage,
+);
 
 /// Die Startmeldung — oder `null`, auch wenn Push hier gar nicht geht.
 ///
@@ -228,12 +229,15 @@ Stream<RemoteMessage> _bridged(String kind) => serviceWorkerMessages()
       data: data,
       notification: n is Map
           ? RemoteNotification(
-              title: n['title'] as String?, body: n['body'] as String?)
+              title: n['title'] as String?,
+              body: n['body'] as String?,
+            )
           : null,
     ),
   );
 }
 
 /// Dieselbe Naht für Vordergrund-Nachrichten.
-final pushMessageListenerProvider =
-    Provider<Stream<RemoteMessage> Function()>((ref) => pushMessages);
+final pushMessageListenerProvider = Provider<Stream<RemoteMessage> Function()>(
+  (ref) => pushMessages,
+);

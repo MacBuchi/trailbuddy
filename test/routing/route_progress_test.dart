@@ -7,13 +7,17 @@ const _origin = LatLng(5, 5);
 const _d = Distance();
 
 /// [m] Meter nach Osten und [n] Meter nach Norden vom Ursprung.
-LatLng _at(double m, [double n = 0]) => _d.offset(_d.offset(_origin, m, 90), n, 0);
+LatLng _at(double m, [double n = 0]) =>
+    _d.offset(_d.offset(_origin, m, 90), n, 0);
 
 void main() {
   group('NavRoute', () {
     test('lengths, points along and the bearing of the line', () {
       final r = NavRoute.of([_at(0), _at(1000), _at(1000, 500)])!;
-      expect(r.lengthM, closeTo(1500, 5)); // Haversine gegen Vincenty: ein Promille
+      expect(
+        r.lengthM,
+        closeTo(1500, 5),
+      ); // Haversine gegen Vincenty: ein Promille
       expect(r.pointAt(500).longitude, closeTo(_at(500).longitude, 1e-5));
       expect(r.bearingAt(200), closeTo(90, 0.5));
       expect(r.bearingAt(1200), closeTo(0, 0.5));
@@ -54,7 +58,13 @@ void main() {
     test('out and back on the same way: the window keeps the way out', () {
       // 1 km hin und dieselben Punkte zurück — 5 m daneben liegt man auf
       // beiden Richtungen gleich nah.
-      final r = NavRoute.of([_at(0), _at(500), _at(1000), _at(500, 1), _at(0, 1)])!;
+      final r = NavRoute.of([
+        _at(0),
+        _at(500),
+        _at(1000),
+        _at(500, 1),
+        _at(0, 1),
+      ])!;
       final out = routeProgress(r, _at(300, 3), lastAlongM: 200);
       expect(out.alongM, closeTo(300, 2));
       // Kurz vor der Wende, auf dem Rückweg: Der Stand von dort zählt.
@@ -70,15 +80,23 @@ void main() {
       expect(fix.offM, closeTo(5, 0.5));
     });
 
-    test('off the route: the distance is to the whole line, the place stays', () {
-      // Ein Haken: Hinweg nach Osten, zurück 100 m nördlich.
-      final r = NavRoute.of([_at(0), _at(1000), _at(1000, 100), _at(0, 100)])!;
-      // 60 m nördlich vom Hinweg, 40 m südlich vom Rückweg — abseits von
-      // beiden. Der Stand bleibt auf dem Hinweg, der Abstand ist 40 m.
-      final fix = routeProgress(r, _at(300, 60), lastAlongM: 300);
-      expect(fix.offM, closeTo(40, 0.5));
-      expect(fix.alongM, closeTo(300, 1));
-    });
+    test(
+      'off the route: the distance is to the whole line, the place stays',
+      () {
+        // Ein Haken: Hinweg nach Osten, zurück 100 m nördlich.
+        final r = NavRoute.of([
+          _at(0),
+          _at(1000),
+          _at(1000, 100),
+          _at(0, 100),
+        ])!;
+        // 60 m nördlich vom Hinweg, 40 m südlich vom Rückweg — abseits von
+        // beiden. Der Stand bleibt auf dem Hinweg, der Abstand ist 40 m.
+        final fix = routeProgress(r, _at(300, 60), lastAlongM: 300);
+        expect(fix.offM, closeTo(40, 0.5));
+        expect(fix.alongM, closeTo(300, 1));
+      },
+    );
   });
 
   group('NavTracker', () {
@@ -89,7 +107,11 @@ void main() {
       expect(s.offRoute, isFalse);
       s = t.update(_at(600, 50));
       expect(s.offM, closeTo(50, 0.5));
-      expect(s.offRoute, isFalse, reason: 'ein einzelner Ausreißer ist keine Abweichung');
+      expect(
+        s.offRoute,
+        isFalse,
+        reason: 'ein einzelner Ausreißer ist keine Abweichung',
+      );
       s = t.update(_at(650, 50));
       expect(s.offRoute, isTrue);
       // Der Pfeil zeigt auf die Linie voraus.
@@ -100,7 +122,10 @@ void main() {
 
     test('heading: GPS course only when moving, otherwise the line', () {
       final t = NavTracker(NavRoute.of([_at(0), _at(2000)])!);
-      expect(t.update(_at(100), headingDeg: 200, speedMps: 0.5).headingDeg, closeTo(90, 0.5));
+      expect(
+        t.update(_at(100), headingDeg: 200, speedMps: 0.5).headingDeg,
+        closeTo(90, 0.5),
+      );
       expect(t.update(_at(120), headingDeg: 80, speedMps: 5).headingDeg, 80);
       // Im Stand bleibt der letzte Kurs, auch wenn das GPS etwas anderes sagt.
       expect(t.update(_at(121), headingDeg: 270, speedMps: 0.2).headingDeg, 80);
@@ -118,7 +143,13 @@ void main() {
     test('resumes where it ended: out and back stays on the way back', () {
       // „Zuletzt navigiert" auf dem Rückweg: Ab Start gezählt läge man
       // auf dem Hinweg, 1,4 km zu viel vor sich.
-      final r = NavRoute.of([_at(0), _at(500), _at(1000), _at(500, 1), _at(0, 1)])!;
+      final r = NavRoute.of([
+        _at(0),
+        _at(500),
+        _at(1000),
+        _at(500, 1),
+        _at(0, 1),
+      ])!;
       expect(NavTracker(r).update(_at(300, 3)).alongM, closeTo(300, 2));
       final resumed = NavTracker(r, startAlongM: 1650).update(_at(300, 3));
       expect(resumed.alongM, closeTo(1700, 3));
@@ -126,7 +157,13 @@ void main() {
     });
 
     test('a loop does not arrive at its start', () {
-      final loop = NavRoute.of([_at(0), _at(1000), _at(1000, 1000), _at(0, 1000), _at(0, 10)])!;
+      final loop = NavRoute.of([
+        _at(0),
+        _at(1000),
+        _at(1000, 1000),
+        _at(0, 1000),
+        _at(0, 10),
+      ])!;
       expect(loop.isLoop, isTrue);
       final t = NavTracker(loop);
       expect(t.update(_at(0, 2)).arrived, isFalse);
@@ -156,19 +193,33 @@ void main() {
     expect(c.latitude, greaterThan(_origin.latitude));
   });
 
-  test('picture-in-picture: the position stands in the free part above the bar, not under it (#415)', () {
-    // Das Fenster auf dem Pixel XL: 176 dp hoch, unten die Zeile.
-    const h = 176.0;
-    final barTop = h * (1 - kNavPipBarShare);
-    final y = h / 2 + pipAheadPx(h);
-    expect(y, greaterThan(barTop * 0.6), reason: 'voraus mehr Route als dahinter');
-    expect(y, lessThan(barTop - 20), reason: 'die Position bleibt über der Zeile sichtbar');
-    // Bis 0.138 das Sechstel der Vollbildhöhe (731 dp), die die Kamera
-    // gleich nach dem Wechsel noch meldete: unter dem Fenster.
-    expect(h / 2 + 731 / 6, greaterThan(h));
-    // Negativ geht die Mitte hinter die Position.
-    final back = followCenter(_origin, 0, 16, 600, aheadPx: -100);
-    expect(back.latitude, lessThan(_origin.latitude));
-    expect(_d(_origin, back), closeTo(100 * 156543.03392 * 0.99619 / 65536, 0.5));
-  });
+  test(
+    'picture-in-picture: the position stands in the free part above the bar, not under it (#415)',
+    () {
+      // Das Fenster auf dem Pixel XL: 176 dp hoch, unten die Zeile.
+      const h = 176.0;
+      final barTop = h * (1 - kNavPipBarShare);
+      final y = h / 2 + pipAheadPx(h);
+      expect(
+        y,
+        greaterThan(barTop * 0.6),
+        reason: 'voraus mehr Route als dahinter',
+      );
+      expect(
+        y,
+        lessThan(barTop - 20),
+        reason: 'die Position bleibt über der Zeile sichtbar',
+      );
+      // Bis 0.138 das Sechstel der Vollbildhöhe (731 dp), die die Kamera
+      // gleich nach dem Wechsel noch meldete: unter dem Fenster.
+      expect(h / 2 + 731 / 6, greaterThan(h));
+      // Negativ geht die Mitte hinter die Position.
+      final back = followCenter(_origin, 0, 16, 600, aheadPx: -100);
+      expect(back.latitude, lessThan(_origin.latitude));
+      expect(
+        _d(_origin, back),
+        closeTo(100 * 156543.03392 * 0.99619 / 65536, 0.5),
+      );
+    },
+  );
 }

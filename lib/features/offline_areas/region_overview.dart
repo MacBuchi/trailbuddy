@@ -19,11 +19,12 @@ import '../map/online_map.dart';
 /// Holt eine Datei vom Host als Ganzes, mit Fortschritt und Abbruch
 /// zwischen den Stücken; null bei 404 (die Übersicht fehlt — der Bereich
 /// kommt ohne sie).
-typedef OverviewFetcher = Future<Uint8List?> Function(
-  Uri uri, {
-  void Function(int received, int total)? onProgress,
-  void Function()? check,
-});
+typedef OverviewFetcher =
+    Future<Uint8List?> Function(
+      Uri uri, {
+      void Function(int received, int total)? onProgress,
+      void Function()? check,
+    });
 
 Future<Uint8List?> fetchOverviewFile(
   Uri uri, {
@@ -32,10 +33,15 @@ Future<Uint8List?> fetchOverviewFile(
 }) async {
   final client = http.Client();
   try {
-    final response = await client.send(http.Request('GET', uri)).timeout(const Duration(seconds: 30));
+    final response = await client
+        .send(http.Request('GET', uri))
+        .timeout(const Duration(seconds: 30));
     if (response.statusCode == 404) return null;
     if (response.statusCode != 200) {
-      throw http.ClientException('${uri.path}: HTTP ${response.statusCode}', uri);
+      throw http.ClientException(
+        '${uri.path}: HTTP ${response.statusCode}',
+        uri,
+      );
     }
     final total = response.contentLength ?? 0;
     final out = BytesBuilder(copy: false);
@@ -51,7 +57,9 @@ Future<Uint8List?> fetchOverviewFile(
 }
 
 /// Die Naht für Tests; der Harness setzt sie auf eine, die nichts holt.
-final overviewFetcherProvider = Provider<OverviewFetcher>((ref) => fetchOverviewFile);
+final overviewFetcherProvider = Provider<OverviewFetcher>(
+  (ref) => fetchOverviewFile,
+);
 
 /// Die Datei passt nicht zu ihrem Manifest — kein Netzfehler, also kein
 /// zweiter Versuch: Der Bereich kommt ohne Übersicht.
@@ -77,7 +85,9 @@ Future<void> checkOverview(OverviewManifest manifest, Uint8List bytes) async {
   }
   try {
     if (archive.header.maxZoom != manifest.maxZoom) {
-      throw OverviewMismatch('Zoom ${archive.header.maxZoom} statt ${manifest.maxZoom}');
+      throw OverviewMismatch(
+        'Zoom ${archive.header.maxZoom} statt ${manifest.maxZoom}',
+      );
     }
   } finally {
     await archive.close();

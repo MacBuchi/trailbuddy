@@ -29,8 +29,17 @@ double _lng(int i) => 11 + i / 1000;
 final _points = [for (var i = 0; i <= 20; i++) LatLng(_lat, _lng(i))];
 
 Position _at(double lat, double lng) => Position(
-    latitude: lat, longitude: lng, timestamp: DateTime.utc(2026, 10, 8, 9), accuracy: 5, altitude: 0,
-    altitudeAccuracy: 0, heading: 90, headingAccuracy: 0, speed: 5, speedAccuracy: 0);
+  latitude: lat,
+  longitude: lng,
+  timestamp: DateTime.utc(2026, 10, 8, 9),
+  accuracy: 5,
+  altitude: 0,
+  altitudeAccuracy: 0,
+  heading: 90,
+  headingAccuracy: 0,
+  speed: 5,
+  speedAccuracy: 0,
+);
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -62,38 +71,86 @@ void main() {
 
   group('NavRouteData', () {
     test('round trip with and without the height profile', () {
-      final plain = NavRouteData.decode(NavRouteData(points: _points, title: 'Hausrunde').encode())!;
+      final plain = NavRouteData.decode(
+        NavRouteData(points: _points, title: 'Hausrunde').encode(),
+      )!;
       expect(plain.points, _points);
       expect(plain.title, 'Hausrunde');
       expect(plain.climbDistM, isNull);
-      final withClimb = NavRouteData.decode(NavRouteData(
-              points: _points, title: 'x', startAlongM: 120, climbDistM: [0, 50], climbEleM: [600, 640])
-          .encode())!;
+      final withClimb = NavRouteData.decode(
+        NavRouteData(
+          points: _points,
+          title: 'x',
+          startAlongM: 120,
+          climbDistM: [0, 50],
+          climbEleM: [600, 640],
+        ).encode(),
+      )!;
       expect(withClimb.startAlongM, 120);
       expect(withClimb.climbEleM, [600, 640]);
     });
 
-    test('Fassung 2 trägt die Abschnitte; eine Datei der Fassung 1 liest sich ohne (#312)', () {
-      final sections = NavSections([
-        const NavTrailSection(startM: 300, endM: 1100, trailId: 't1', name: 'Rosskopf Süd', grade: 2, lossM: 420),
-      ]);
-      final back = NavRouteData.decode(NavRouteData(points: _points, title: 'x', sections: sections).encode())!;
-      expect(back.sections.trails, hasLength(1));
-      expect(back.sections.trails.single.name, 'Rosskopf Süd');
-      expect(back.sections.trails.single.endM, 1100);
-      expect(back.sections.trails.single.lossM, 420);
-      final v1 = NavRouteData.decode('{"v":1,"title":"x","pts":[[47.0,11.0],[47.0,11.1]]}')!;
-      expect(v1.sections.isEmpty, isTrue);
-      // Ein kaputter Abschnitt fällt weg, die Route bleibt.
-      final odd = NavRouteData.decode('{"v":2,"title":"x","pts":[[47.0,11.0],[47.0,11.1]],"secs":[[5,2,"t","n"]]}')!;
-      expect(odd.sections.isEmpty, isTrue);
-    });
+    test(
+      'Fassung 2 trägt die Abschnitte; eine Datei der Fassung 1 liest sich ohne (#312)',
+      () {
+        final sections = NavSections([
+          const NavTrailSection(
+            startM: 300,
+            endM: 1100,
+            trailId: 't1',
+            name: 'Rosskopf Süd',
+            grade: 2,
+            lossM: 420,
+          ),
+        ]);
+        final back = NavRouteData.decode(
+          NavRouteData(
+            points: _points,
+            title: 'x',
+            sections: sections,
+          ).encode(),
+        )!;
+        expect(back.sections.trails, hasLength(1));
+        expect(back.sections.trails.single.name, 'Rosskopf Süd');
+        expect(back.sections.trails.single.endM, 1100);
+        expect(back.sections.trails.single.lossM, 420);
+        final v1 = NavRouteData.decode(
+          '{"v":1,"title":"x","pts":[[47.0,11.0],[47.0,11.1]]}',
+        )!;
+        expect(v1.sections.isEmpty, isTrue);
+        // Ein kaputter Abschnitt fällt weg, die Route bleibt.
+        final odd = NavRouteData.decode(
+          '{"v":2,"title":"x","pts":[[47.0,11.0],[47.0,11.1]],"secs":[[5,2,"t","n"]]}',
+        )!;
+        expect(odd.sections.isEmpty, isTrue);
+      },
+    );
 
-    test('#464: the leave threshold goes along; without it the service never leaves', () {
-      expect(NavRouteData.decode(NavRouteData(points: _points, title: 'x', leaveM: 500).encode())!.leaveM, 500);
-      expect(NavRouteData.decode(NavRouteData(points: _points, title: 'x').encode())!.leaveM, 0);
-      expect(NavRouteData(points: _points, title: 'x', leaveM: 800).withStart(10).leaveM, 800);
-    });
+    test(
+      '#464: the leave threshold goes along; without it the service never leaves',
+      () {
+        expect(
+          NavRouteData.decode(
+            NavRouteData(points: _points, title: 'x', leaveM: 500).encode(),
+          )!.leaveM,
+          500,
+        );
+        expect(
+          NavRouteData.decode(
+            NavRouteData(points: _points, title: 'x').encode(),
+          )!.leaveM,
+          0,
+        );
+        expect(
+          NavRouteData(
+            points: _points,
+            title: 'x',
+            leaveM: 800,
+          ).withStart(10).leaveM,
+          800,
+        );
+      },
+    );
 
     test('anything odd reads as no route — half a route would be worse', () {
       expect(NavRouteData.decode('kaputt'), isNull);
@@ -103,289 +160,518 @@ void main() {
   });
 
   group('navNotice (zwei Zeilen, #312 N3)', () {
-    NavState state({double along = 0, double remaining = 12400, double off = 4, bool offRoute = false, bool arrived = false}) =>
-        NavState(
-            alongM: along,
-            remainingM: remaining,
-            offM: off,
-            offRoute: offRoute,
-            arrived: arrived,
-            headingDeg: 0,
-            position: _points.first,
-            rejoin: _points.first,
-            moving: true);
-    const trail = NavTrailSection(startM: 2400, endM: 4200, trailId: 't', name: 'Rosskopf Süd', grade: 2);
+    NavState state({
+      double along = 0,
+      double remaining = 12400,
+      double off = 4,
+      bool offRoute = false,
+      bool arrived = false,
+    }) => NavState(
+      alongM: along,
+      remainingM: remaining,
+      offM: off,
+      offRoute: offRoute,
+      arrived: arrived,
+      headingDeg: 0,
+      position: _points.first,
+      rejoin: _points.first,
+      moving: true,
+    );
+    const trail = NavTrailSection(
+      startM: 2400,
+      endM: 4200,
+      trailId: 't',
+      name: 'Rosskopf Süd',
+      grade: 2,
+    );
 
     test('Anfahrt: oben bis zum Trailkopf, unten Rampe und Route', () {
       final n = navNotice(
-          l10nDe,
-          state(),
-          const NavPhase(
-              kind: NavPhaseKind.approach, section: trail, distM: 2400, climbM: 310.4, ramp: (grade: 0.14, inM: 1100)),
-          recording: false);
+        l10nDe,
+        state(),
+        const NavPhase(
+          kind: NavPhaseKind.approach,
+          section: trail,
+          distM: 2400,
+          climbM: 310.4,
+          ramp: (grade: 0.14, inM: 1100),
+        ),
+        recording: false,
+      );
       expect(n.title, '2,4 km · ↑310 hm bis Rosskopf Süd');
       expect(n.text, 'Rampe 14 % in 1,1 km · auf der Route');
       // Ohne Profil nur km; ohne Trail bis zum Ziel.
-      expect(navNotice(l10nDe, state(), const NavPhase(kind: NavPhaseKind.approach, section: trail, distM: 800),
-              recording: false)
-          .title, '800 m bis Rosskopf Süd');
-      expect(navNotice(l10nDe, state(), const NavPhase(kind: NavPhaseKind.approach, distM: 800, climbM: 40),
-              recording: false)
-          .title, '800 m · ↑40 hm bis zum Ziel');
+      expect(
+        navNotice(
+          l10nDe,
+          state(),
+          const NavPhase(
+            kind: NavPhaseKind.approach,
+            section: trail,
+            distM: 800,
+          ),
+          recording: false,
+        ).title,
+        '800 m bis Rosskopf Süd',
+      );
+      expect(
+        navNotice(
+          l10nDe,
+          state(),
+          const NavPhase(kind: NavPhaseKind.approach, distM: 800, climbM: 40),
+          recording: false,
+        ).title,
+        '800 m · ↑40 hm bis zum Ziel',
+      );
     });
 
     test('auf dem Trail, am Kopf, abseits, mit Aufzeichnung, angekommen', () {
       expect(
-          navNotice(l10nDe, state(along: 2400),
-                  const NavPhase(kind: NavPhaseKind.onTrail, section: trail, distM: 1800, lossM: 240), recording: false)
-              .title,
-          'Rosskopf Süd · noch 1,8 km · ↓240 hm');
-      expect(navNotice(l10nDe, state(), const NavPhase(kind: NavPhaseKind.atHead, section: trail, distM: 20),
-              recording: false)
-          .title, 'Am Trailkopf · Rosskopf Süd');
-      final off = navNotice(
+        navNotice(
           l10nDe,
-          state(off: 120, offRoute: true),
-          const NavPhase(kind: NavPhaseKind.approach, section: trail, distM: 2400, ramp: (grade: 0.14, inM: 1100)),
-          recording: true);
-      expect(off.text, '120 m neben der Route · Fahrt wird aufgezeichnet',
-          reason: 'abseits zählt keine Rampe; die Aufzeichnung steht immer da');
-      final arrived =
-          navNotice(l10nDe, state(arrived: true), const NavPhase(kind: NavPhaseKind.arrived, distM: 0), recording: false);
+          state(along: 2400),
+          const NavPhase(
+            kind: NavPhaseKind.onTrail,
+            section: trail,
+            distM: 1800,
+            lossM: 240,
+          ),
+          recording: false,
+        ).title,
+        'Rosskopf Süd · noch 1,8 km · ↓240 hm',
+      );
+      expect(
+        navNotice(
+          l10nDe,
+          state(),
+          const NavPhase(kind: NavPhaseKind.atHead, section: trail, distM: 20),
+          recording: false,
+        ).title,
+        'Am Trailkopf · Rosskopf Süd',
+      );
+      final off = navNotice(
+        l10nDe,
+        state(off: 120, offRoute: true),
+        const NavPhase(
+          kind: NavPhaseKind.approach,
+          section: trail,
+          distM: 2400,
+          ramp: (grade: 0.14, inM: 1100),
+        ),
+        recording: true,
+      );
+      expect(
+        off.text,
+        '120 m neben der Route · Fahrt wird aufgezeichnet',
+        reason: 'abseits zählt keine Rampe; die Aufzeichnung steht immer da',
+      );
+      final arrived = navNotice(
+        l10nDe,
+        state(arrived: true),
+        const NavPhase(kind: NavPhaseKind.arrived, distM: 0),
+        recording: false,
+      );
       expect(arrived.title, 'Angekommen');
     });
   });
 
   group('navTick', () {
-    test('#464: far off the route the service ends the navigation — only after reaching it', () async {
-      await arm(NavRouteData(points: _points, title: 'Hausrunde', leaveM: 500));
-      final left = <double>[];
-      Future<void> tick(double lat, int i) => navTick(
+    test(
+      '#464: far off the route the service ends the navigation — only after reaching it',
+      () async {
+        await arm(
+          NavRouteData(points: _points, title: 'Hausrunde', leaveM: 500),
+        );
+        final left = <double>[];
+        Future<void> tick(double lat, int i) => navTick(
           fix: () async => _at(lat, _lng(i)),
           recording: false,
           show: (_, _) async {},
-          onLeft: (offM) async => left.add(offM));
-      // 0,01° nördlich ≈ 1,1 km: erst auf dem Weg zur Route.
-      await tick(_lat + 0.01, 0);
-      await tick(_lat + 0.01, 1);
-      expect(left, isEmpty);
-      await tick(_lat, 2);
-      await tick(_lat + 0.01, 3);
-      expect(left, isEmpty, reason: 'ein Ausreißer zählt nicht');
-      await tick(_lat + 0.01, 4);
-      expect(left.single, closeTo(1112, 20));
-      // Ohne Schwelle in der Datei (ältere App): nie.
-      resetNavTick();
-      await arm(NavRouteData(points: _points, title: 'alt'));
-      for (final lat in [_lat, _lat + 0.01, _lat + 0.01, _lat + 0.01]) {
-        await tick(lat, 5);
-      }
-      expect(left, hasLength(1));
-    });
+          onLeft: (offM) async => left.add(offM),
+        );
+        // 0,01° nördlich ≈ 1,1 km: erst auf dem Weg zur Route.
+        await tick(_lat + 0.01, 0);
+        await tick(_lat + 0.01, 1);
+        expect(left, isEmpty);
+        await tick(_lat, 2);
+        await tick(_lat + 0.01, 3);
+        expect(left, isEmpty, reason: 'ein Ausreißer zählt nicht');
+        await tick(_lat + 0.01, 4);
+        expect(left.single, closeTo(1112, 20));
+        // Ohne Schwelle in der Datei (ältere App): nie.
+        resetNavTick();
+        await arm(NavRouteData(points: _points, title: 'alt'));
+        for (final lat in [_lat, _lat + 0.01, _lat + 0.01, _lat + 0.01]) {
+          await tick(lat, 5);
+        }
+        expect(left, hasLength(1));
+      },
+    );
 
     test('computes from its own fixes and writes the notification', () async {
       await arm(NavRouteData(points: _points, title: 'Hausrunde'));
       final shown = <String>[];
       final s = await navTick(
-          fix: () async => _at(_lat, _lng(10)),
-          recording: false,
-          show: (title, text) async => shown.add('$title | $text'));
+        fix: () async => _at(_lat, _lng(10)),
+        recording: false,
+        show: (title, text) async => shown.add('$title | $text'),
+      );
       expect(s, isNotNull);
       expect(shown.single, '758 m bis zum Ziel | auf der Route');
       // Der Stand liegt in der Brücke — eine neu gestartete App geht dort weiter.
-      expect(await FlutterForegroundTask.getData<double>(key: kNavDataAlong), closeTo(758, 5));
+      expect(
+        await FlutterForegroundTask.getData<double>(key: kNavDataAlong),
+        closeTo(758, 5),
+      );
     });
 
-    test('the same line again (heights arrived) keeps the stand; a new line starts over', () async {
-      // Hin und zurück auf derselben Linie: Ohne gemerkten Stand fände
-      // die Suche auf dem Rückweg die Hinfahrt.
-      final back = [..._points, for (var i = 19; i >= 0; i--) LatLng(_lat, _lng(i))];
-      await arm(NavRouteData(points: back, title: 'hin und zurück'));
-      final shown = <String>[];
-      Future<void> show(String title, String text) async => shown.add(title);
-      for (final i in [10, 18, 20]) {
-        await navTick(fix: () async => _at(_lat, _lng(i)), recording: false, show: show);
-      }
-      // Jetzt auf dem Rückweg bei 18: 2 Abschnitte zurück gefahren.
-      await arm(NavRouteData(points: back, title: 'hin und zurück', climbDistM: [0, 3000], climbEleM: [500, 600]));
-      await navTick(fix: () async => _at(_lat, _lng(18)), recording: false, show: show);
-      expect(shown.last, startsWith('1,4 km'), reason: 'Stand blieb auf dem Rückweg');
-      expect(shown.last, contains('hm'), reason: 'das Profil kam dazu');
+    test(
+      'the same line again (heights arrived) keeps the stand; a new line starts over',
+      () async {
+        // Hin und zurück auf derselben Linie: Ohne gemerkten Stand fände
+        // die Suche auf dem Rückweg die Hinfahrt.
+        final back = [
+          ..._points,
+          for (var i = 19; i >= 0; i--) LatLng(_lat, _lng(i)),
+        ];
+        await arm(NavRouteData(points: back, title: 'hin und zurück'));
+        final shown = <String>[];
+        Future<void> show(String title, String text) async => shown.add(title);
+        for (final i in [10, 18, 20]) {
+          await navTick(
+            fix: () async => _at(_lat, _lng(i)),
+            recording: false,
+            show: show,
+          );
+        }
+        // Jetzt auf dem Rückweg bei 18: 2 Abschnitte zurück gefahren.
+        await arm(
+          NavRouteData(
+            points: back,
+            title: 'hin und zurück',
+            climbDistM: [0, 3000],
+            climbEleM: [500, 600],
+          ),
+        );
+        await navTick(
+          fix: () async => _at(_lat, _lng(18)),
+          recording: false,
+          show: show,
+        );
+        expect(
+          shown.last,
+          startsWith('1,4 km'),
+          reason: 'Stand blieb auf dem Rückweg',
+        );
+        expect(shown.last, contains('hm'), reason: 'das Profil kam dazu');
 
-      await arm(NavRouteData(points: _points, title: 'neu'));
-      await navTick(fix: () async => _at(_lat, _lng(18)), recording: false, show: show);
-      expect(shown.last, startsWith('152 m'));
-    });
+        await arm(NavRouteData(points: _points, title: 'neu'));
+        await navTick(
+          fix: () async => _at(_lat, _lng(18)),
+          recording: false,
+          show: show,
+        );
+        expect(shown.last, startsWith('152 m'));
+      },
+    );
 
-    test('Fassung 2: the notice names the trail ahead, then the trail itself (#312 N3)', () async {
-      await arm(NavRouteData(
-          points: _points,
-          title: 'Hausrunde',
-          sections: NavSections([const NavTrailSection(startM: 600, endM: 1200, trailId: 't', name: 'Rosskopf Süd')])));
-      final shown = <String>[];
-      Future<void> show(String title, String text) async => shown.add('$title | $text');
-      await navTick(fix: () async => _at(_lat, _lng(2)), recording: true, show: show);
-      expect(shown.last, startsWith('448 m bis Rosskopf Süd | auf der Route · Fahrt wird aufgezeichnet'));
-      await navTick(fix: () async => _at(_lat, _lng(10)), recording: false, show: show);
-      expect(shown.last, startsWith('Rosskopf Süd · noch 442 m | auf der Route'));
-    });
+    test(
+      'Fassung 2: the notice names the trail ahead, then the trail itself (#312 N3)',
+      () async {
+        await arm(
+          NavRouteData(
+            points: _points,
+            title: 'Hausrunde',
+            sections: NavSections([
+              const NavTrailSection(
+                startM: 600,
+                endM: 1200,
+                trailId: 't',
+                name: 'Rosskopf Süd',
+              ),
+            ]),
+          ),
+        );
+        final shown = <String>[];
+        Future<void> show(String title, String text) async =>
+            shown.add('$title | $text');
+        await navTick(
+          fix: () async => _at(_lat, _lng(2)),
+          recording: true,
+          show: show,
+        );
+        expect(
+          shown.last,
+          startsWith(
+            '448 m bis Rosskopf Süd | auf der Route · Fahrt wird aufgezeichnet',
+          ),
+        );
+        await navTick(
+          fix: () async => _at(_lat, _lng(10)),
+          recording: false,
+          show: show,
+        );
+        expect(
+          shown.last,
+          startsWith('Rosskopf Süd · noch 442 m | auf der Route'),
+        );
+      },
+    );
 
-    test('#36 Schritt 5: on the trail the notice carries the values since entering it', () async {
-      await arm(NavRouteData(
-          points: _points,
-          title: 'Hausrunde',
-          sections: NavSections([const NavTrailSection(startM: 600, endM: 1200, trailId: 't', name: 'Rosskopf Süd')])));
-      final shown = <String>[];
-      Future<void> show(String title, String text) async => shown.add(text);
-      final enter = DateTime.utc(2026, 10, 31, 10);
-      var log = AirtimeLog.empty.withEvent(JumpEvent(
-          startUs: enter.microsecondsSinceEpoch - 1000000,
-          duration: const Duration(seconds: 1),
-          landingG: 2,
-          upright: true,
-          plausible: true));
-      Future<void> tick(int i, DateTime at) =>
-          navTick(fix: () async => _at(_lat, _lng(i)), recording: false, show: show, now: () => at, events: () => log);
-      await tick(2, enter.subtract(const Duration(minutes: 1)));
-      expect(shown.last, 'auf der Route', reason: 'vor dem Trail keine Werte');
-      await tick(9, enter);
-      expect(shown.last, 'auf der Route', reason: 'der Sprung kam vor der Einfahrt');
-      log = log.withEvent(JumpEvent(
-          startUs: enter.microsecondsSinceEpoch + 5000000,
-          duration: const Duration(milliseconds: 700),
-          landingG: 3.1,
-          upright: true,
-          plausible: true));
-      await tick(10, enter.add(const Duration(seconds: 10)));
-      expect(shown.last, 'auf der Route · Air 0,7 s (1×) · 3,1 G');
-      await tick(18, enter.add(const Duration(seconds: 40)));
-      expect(shown.last, 'auf der Route', reason: 'hinter dem Trail wieder ohne');
-    });
+    test(
+      '#36 Schritt 5: on the trail the notice carries the values since entering it',
+      () async {
+        await arm(
+          NavRouteData(
+            points: _points,
+            title: 'Hausrunde',
+            sections: NavSections([
+              const NavTrailSection(
+                startM: 600,
+                endM: 1200,
+                trailId: 't',
+                name: 'Rosskopf Süd',
+              ),
+            ]),
+          ),
+        );
+        final shown = <String>[];
+        Future<void> show(String title, String text) async => shown.add(text);
+        final enter = DateTime.utc(2026, 10, 31, 10);
+        var log = AirtimeLog.empty.withEvent(
+          JumpEvent(
+            startUs: enter.microsecondsSinceEpoch - 1000000,
+            duration: const Duration(seconds: 1),
+            landingG: 2,
+            upright: true,
+            plausible: true,
+          ),
+        );
+        Future<void> tick(int i, DateTime at) => navTick(
+          fix: () async => _at(_lat, _lng(i)),
+          recording: false,
+          show: show,
+          now: () => at,
+          events: () => log,
+        );
+        await tick(2, enter.subtract(const Duration(minutes: 1)));
+        expect(
+          shown.last,
+          'auf der Route',
+          reason: 'vor dem Trail keine Werte',
+        );
+        await tick(9, enter);
+        expect(
+          shown.last,
+          'auf der Route',
+          reason: 'der Sprung kam vor der Einfahrt',
+        );
+        log = log.withEvent(
+          JumpEvent(
+            startUs: enter.microsecondsSinceEpoch + 5000000,
+            duration: const Duration(milliseconds: 700),
+            landingG: 3.1,
+            upright: true,
+            plausible: true,
+          ),
+        );
+        await tick(10, enter.add(const Duration(seconds: 10)));
+        expect(shown.last, 'auf der Route · Air 0,7 s (1×) · 3,1 G');
+        await tick(18, enter.add(const Duration(seconds: 40)));
+        expect(
+          shown.last,
+          'auf der Route',
+          reason: 'hinter dem Trail wieder ohne',
+        );
+      },
+    );
 
     test('without a navigation the GPS is not even asked', () async {
       await arm(NavRouteData(points: _points, title: 'x'), active: false);
       var asked = 0;
       final s = await navTick(
-          fix: () async {
-            asked++;
-            return _at(_lat, _lng(1));
-          },
-          recording: false,
-          show: (_, _) async {});
+        fix: () async {
+          asked++;
+          return _at(_lat, _lng(1));
+        },
+        recording: false,
+        show: (_, _) async {},
+      );
       expect(s, isNull);
       expect(asked, 0);
     });
 
-    test('arrived and the minute is up: it ends itself, even without the app', () async {
-      await arm(NavRouteData(points: _points, title: 'x'));
-      var now = DateTime.utc(2026, 10, 8, 9);
-      var ended = 0;
-      Future<void> tick() => navTick(
+    test(
+      'arrived and the minute is up: it ends itself, even without the app',
+      () async {
+        await arm(NavRouteData(points: _points, title: 'x'));
+        var now = DateTime.utc(2026, 10, 8, 9);
+        var ended = 0;
+        Future<void> tick() => navTick(
           fix: () async => _at(_lat, _lng(20)),
           recording: false,
           show: (_, _) async {},
           onLingered: () async => ended++,
-          now: () => now);
-      await tick();
-      expect(ended, 0);
-      now = now.add(kNavArrivedLinger - const Duration(seconds: 5));
-      await tick();
-      expect(ended, 0);
-      now = now.add(const Duration(seconds: 5));
-      await tick();
-      expect(ended, 1);
-    });
+          now: () => now,
+        );
+        await tick();
+        expect(ended, 0);
+        now = now.add(kNavArrivedLinger - const Duration(seconds: 5));
+        await tick();
+        expect(ended, 0);
+        now = now.add(const Duration(seconds: 5));
+        await tick();
+        expect(ended, 1);
+      },
+    );
   });
 
   test('serviceTick: ride and navigation share ONE fix per tick', () async {
     await arm(NavRouteData(points: _points, title: 'x'));
     await FlutterForegroundTask.saveData(key: kRideDataActive, value: true);
     var asked = 0;
-    await serviceTick(fix: () async {
-      asked++;
-      return _at(_lat, _lng(2));
-    });
+    await serviceTick(
+      fix: () async {
+        asked++;
+        return _at(_lat, _lng(2));
+      },
+    );
     expect(asked, 1);
   });
 
   group('Ansagen im Dienst (#525)', () {
-    final sections = NavSections([const NavTrailSection(startM: 600, endM: 1200, trailId: 't', name: 'Rosskopf Süd', grade: 2)]);
+    final sections = NavSections([
+      const NavTrailSection(
+        startM: 600,
+        endM: 1200,
+        trailId: 't',
+        name: 'Rosskopf Süd',
+        grade: 2,
+      ),
+    ]);
 
-    test('navTick spricht nur mit dem Schalter — und je Moment einmal', () async {
-      await arm(NavRouteData(points: _points, title: 'x', sections: sections));
-      final said = <String>[];
-      Future<void> tick(int i, {bool voice = true}) => navTick(
+    test(
+      'navTick spricht nur mit dem Schalter — und je Moment einmal',
+      () async {
+        await arm(
+          NavRouteData(points: _points, title: 'x', sections: sections),
+        );
+        final said = <String>[];
+        Future<void> tick(int i, {bool voice = true}) => navTick(
           fix: () async => _at(_lat, _lng(i)),
           recording: false,
           show: (_, _) async {},
           voice: voice,
-          speak: (text, locale) async => said.add('${locale.languageCode}: $text'));
-      // 150 m vor dem Kopf — mit Schalter käme hier die Ansage.
-      await tick(6, voice: false);
-      expect(said, isEmpty, reason: 'aus heißt still');
-      resetNavTick();
-      await tick(5);
-      expect(said, isEmpty, reason: '220 m vor dem Kopf: noch nicht');
-      await tick(6);
-      expect(said, ['de: Trail Rosskopf Süd, S2, in 150 Metern.']);
-      await tick(6);
-      await tick(9);
-      expect(said.last, 'de: Trail Rosskopf Süd, S2.');
-      await tick(17);
-      expect(said.last, startsWith('de: Rosskopf Süd geschafft'));
-      expect(said, hasLength(3));
-    });
+          speak: (text, locale) async =>
+              said.add('${locale.languageCode}: $text'),
+        );
+        // 150 m vor dem Kopf — mit Schalter käme hier die Ansage.
+        await tick(6, voice: false);
+        expect(said, isEmpty, reason: 'aus heißt still');
+        resetNavTick();
+        await tick(5);
+        expect(said, isEmpty, reason: '220 m vor dem Kopf: noch nicht');
+        await tick(6);
+        expect(said, ['de: Trail Rosskopf Süd, S2, in 150 Metern.']);
+        await tick(6);
+        await tick(9);
+        expect(said.last, 'de: Trail Rosskopf Süd, S2.');
+        await tick(17);
+        expect(said.last, startsWith('de: Rosskopf Süd geschafft'));
+        expect(said, hasLength(3));
+      },
+    );
 
-    test('freie Fahrt: der Dienst liest die Trails aus der Datei der App', () async {
-      await FlutterForegroundTask.saveData(key: kRideDataUid, value: 'u');
-      await FlutterForegroundTask.saveData(key: kRideDataStartedAt, value: '2026-11-17T10:00:00Z');
-      final file = voiceTrailsFile(base.path);
-      await file.parent.create(recursive: true);
-      await file.writeAsString(encodeVoiceTrails(
-          uid: 'u', trails: [VoiceTrail(trailId: 't', name: 'Hangweg', grade: 3, line: _points)]));
-      resetFreeVoice();
-      final said = <String>[];
-      Future<void> tick(int i) => freeVoiceTick(
-          RidePoint(lat: _lat, lng: _lng(i), at: DateTime.utc(2026, 11, 17, 10), accuracyM: 5),
+    test(
+      'freie Fahrt: der Dienst liest die Trails aus der Datei der App',
+      () async {
+        await FlutterForegroundTask.saveData(key: kRideDataUid, value: 'u');
+        await FlutterForegroundTask.saveData(
+          key: kRideDataStartedAt,
+          value: '2026-11-17T10:00:00Z',
+        );
+        final file = voiceTrailsFile(base.path);
+        await file.parent.create(recursive: true);
+        await file.writeAsString(
+          encodeVoiceTrails(
+            uid: 'u',
+            trails: [
+              VoiceTrail(
+                trailId: 't',
+                name: 'Hangweg',
+                grade: 3,
+                line: _points,
+              ),
+            ],
+          ),
+        );
+        resetFreeVoice();
+        final said = <String>[];
+        Future<void> tick(int i) => freeVoiceTick(
+          RidePoint(
+            lat: _lat,
+            lng: _lng(i),
+            at: DateTime.utc(2026, 11, 17, 10),
+            accuracyM: 5,
+          ),
           dir: base.path,
-          speak: (text, _) async => said.add(text));
-      await tick(3);
-      await tick(4);
-      await tick(5);
-      expect(said, ['Trail Hangweg, S3.']);
-    });
+          speak: (text, _) async => said.add(text),
+        );
+        await tick(3);
+        await tick(4);
+        await tick(5);
+        expect(said, ['Trail Hangweg, S3.']);
+      },
+    );
   });
 
   group('stopNavFromService', () {
-    test('without a ride: bridge off, file gone, the whole service ends', () async {
-      await arm(NavRouteData(points: _points, title: 'x'));
-      var stopped = 0;
-      await stopNavFromService(stopService: () async => stopped++, showRide: (_, _) async => fail('keine Fahrt'));
-      expect(await FlutterForegroundTask.getData<bool>(key: kNavDataActive), isFalse);
-      expect(navRouteFile(base.path).existsSync(), isFalse);
-      expect(stopped, 1);
-    });
+    test(
+      'without a ride: bridge off, file gone, the whole service ends',
+      () async {
+        await arm(NavRouteData(points: _points, title: 'x'));
+        var stopped = 0;
+        await stopNavFromService(
+          stopService: () async => stopped++,
+          showRide: (_, _) async => fail('keine Fahrt'),
+        );
+        expect(
+          await FlutterForegroundTask.getData<bool>(key: kNavDataActive),
+          isFalse,
+        );
+        expect(navRouteFile(base.path).existsSync(), isFalse);
+        expect(stopped, 1);
+      },
+    );
 
     test('with a ride: the service stays and shows the ride again', () async {
       await arm(NavRouteData(points: _points, title: 'x'));
       await FlutterForegroundTask.saveData(key: kRideDataActive, value: true);
       final shown = <String>[];
       await stopNavFromService(
-          stopService: () async => fail('die Fahrt braucht den Dienst'),
-          showRide: (title, text) async => shown.add(title));
+        stopService: () async => fail('die Fahrt braucht den Dienst'),
+        showRide: (title, text) async => shown.add(title),
+      );
       expect(shown, [l10nDe.rideNoticeTitle]);
     });
 
-    test('reads the language from the profile before it speaks (#209)', () async {
-      await arm(NavRouteData(points: _points, title: 'x'));
-      await FlutterForegroundTask.saveData(key: kRideDataActive, value: true);
-      // Die App hat auf Englisch umgestellt, das Isolate hatte noch Deutsch.
-      await (await SharedPreferences.getInstance()).setString(kLanguageSettingKey, 'en');
-      final shown = <String>[];
-      await stopNavFromService(
+    test(
+      'reads the language from the profile before it speaks (#209)',
+      () async {
+        await arm(NavRouteData(points: _points, title: 'x'));
+        await FlutterForegroundTask.saveData(key: kRideDataActive, value: true);
+        // Die App hat auf Englisch umgestellt, das Isolate hatte noch Deutsch.
+        await (await SharedPreferences.getInstance()).setString(
+          kLanguageSettingKey,
+          'en',
+        );
+        final shown = <String>[];
+        await stopNavFromService(
           stopService: () async => fail('die Fahrt braucht den Dienst'),
-          showRide: (title, text) async => shown.add(title));
-      expect(shown, ['Recording a ride']);
-    });
+          showRide: (title, text) async => shown.add(title),
+        );
+        expect(shown, ['Recording a ride']);
+      },
+    );
   });
 }

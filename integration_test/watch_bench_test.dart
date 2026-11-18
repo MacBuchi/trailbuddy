@@ -37,11 +37,15 @@ import 'package:trailbuddy/features/trails/trail_elevation.dart';
 const _rounds = int.fromEnvironment('ROUNDS', defaultValue: 5);
 
 /// So lange wartet ein Schritt auf die Antwort der Uhr.
-const _wait = Duration(seconds: int.fromEnvironment('STEP_WAIT', defaultValue: 30));
+const _wait = Duration(
+  seconds: int.fromEnvironment('STEP_WAIT', defaultValue: 30),
+);
 
 /// So lange hat das Skript nach „sdk-up", um den Simulator zu verbinden und
 /// die Uhr-App zu laden.
-const _linkWait = Duration(seconds: int.fromEnvironment('LINK_WAIT', defaultValue: 40));
+const _linkWait = Duration(
+  seconds: int.fromEnvironment('LINK_WAIT', defaultValue: 40),
+);
 
 /// Der gewollte Bruch: Die Uhr sendet nie `ok` — die Kette muss rot werden.
 const _breakOk = bool.fromEnvironment('BREAK_OK');
@@ -56,9 +60,9 @@ const _bigN = _bigOnly > 0 ? _bigOnly : kWatchMaxPoints;
 /// [kWatchMaxPoints]: Mit mehr verdoppelt `watchRouteOf` die Toleranz, das
 /// Zickzack fällt in sich zusammen, und die Route geht als EIN Stück.
 List<LatLng> _line(int seed, int n) => [
-      for (var i = 0; i < n; i++)
-        LatLng(0.001 * seed + 0.0002 * i, 0.0001 * i + (i.isEven ? 0.0001 : 0)),
-    ];
+  for (var i = 0; i < n; i++)
+    LatLng(0.001 * seed + 0.0002 * i, 0.0001 * i + (i.isEven ? 0.0001 : 0)),
+];
 
 class _StepFailed implements Exception {
   _StepFailed(this.step);
@@ -70,7 +74,9 @@ class _StepFailed implements Exception {
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
-  testWidgets('Kettenstand: Handy und Uhr über die echte Brücke', (tester) async {
+  testWidgets('Kettenstand: Handy und Uhr über die echte Brücke', (
+    tester,
+  ) async {
     await tester.runAsync(() async {
       final bridge = createGarminBridge();
       final inbox = <Map<Object?, Object?>>[];
@@ -81,8 +87,10 @@ void main() {
         inbox.add(m);
       });
 
-      Future<Map<Object?, Object?>?> waitFor(bool Function(Map<Object?, Object?> m) test,
-          [Duration limit = _wait]) async {
+      Future<Map<Object?, Object?>?> waitFor(
+        bool Function(Map<Object?, Object?> m) test, [
+        Duration limit = _wait,
+      ]) async {
         final end = DateTime.now().add(limit);
         while (DateTime.now().isBefore(end)) {
           for (final m in inbox) {
@@ -114,12 +122,17 @@ void main() {
       }
 
       /// Den Stand der Uhr erfragen, bis [test] passt.
-      Future<Map<Object?, Object?>?> stateUntil(bool Function(Map<Object?, Object?> s) test) async {
+      Future<Map<Object?, Object?>?> stateUntil(
+        bool Function(Map<Object?, Object?> s) test,
+      ) async {
         final end = DateTime.now().add(_wait);
         while (DateTime.now().isBefore(end)) {
           inbox.removeWhere((m) => m['t'] == '_s');
           await send({'t': '_s'});
-          final s = await waitFor((m) => m['t'] == '_s', const Duration(seconds: 5));
+          final s = await waitFor(
+            (m) => m['t'] == '_s',
+            const Duration(seconds: 5),
+          );
           if (s != null && test(s)) return s;
           await Future<void>.delayed(const Duration(milliseconds: 300));
         }
@@ -134,7 +147,10 @@ void main() {
         // Der Simulator startet ganz neu (gut 25 s) und verbindet sich wieder.
         final end = DateTime.now().add(_linkWait * 3);
         while (DateTime.now().isBefore(end)) {
-          final hi = await waitFor((m) => m['t'] == 'hi', const Duration(seconds: 3));
+          final hi = await waitFor(
+            (m) => m['t'] == 'hi',
+            const Duration(seconds: 3),
+          );
           if (hi != null) return hi;
           await bridge.status();
           await send({'t': 'q'});
@@ -142,15 +158,21 @@ void main() {
         return null;
       }
 
-      bool hasEvent(List<int> ev, int kind, int detail) =>
-          ev.any((v) => unpackWatchEvent(v).kind == kind && unpackWatchEvent(v).detail == detail);
+      bool hasEvent(List<int> ev, int kind, int detail) => ev.any(
+        (v) =>
+            unpackWatchEvent(v).kind == kind &&
+            unpackWatchEvent(v).detail == detail,
+      );
 
       /// Eine Route in Stücken an die Uhr; true, wenn sie `ok` sagt.
       Future<bool> route(WatchRoute r) async {
         final sent = await bridge.send(r.parts());
         if (!sent.ok) return false;
         // Eine große Route braucht mehr Stücke (je ~4,5 s über adb).
-        final m = await waitFor((m) => (m['t'] == 'ok' || m['t'] == 'x') && m['id'] == r.id, _wait * 2);
+        final m = await waitFor(
+          (m) => (m['t'] == 'ok' || m['t'] == 'x') && m['id'] == r.id,
+          _wait * 2,
+        );
         // Den Grund einer Ablehnung („mem": zu wenig frei neben der Route).
         if (m?['t'] == 'x') debugPrint('BENCH abgelehnt: ${m!['c']}');
         return m?['t'] == 'ok';
@@ -159,13 +181,18 @@ void main() {
       try {
         // Erst lauscht das SDK, dann verbindet sich der Simulator (12.3).
         final first = await bridge.status();
-        debugPrint('BENCH sdk-up connect=${first.connect} device=${first.device}');
+        debugPrint(
+          'BENCH sdk-up connect=${first.connect} device=${first.device}',
+        );
         final hello = await step('hallo', () async {
           final end = DateTime.now().add(_linkWait);
           while (DateTime.now().isBefore(end)) {
             await bridge.status();
             await send({'t': 'q'});
-            final hi = await waitFor((m) => m['t'] == 'hi', const Duration(seconds: 3));
+            final hi = await waitFor(
+              (m) => m['t'] == 'hi',
+              const Duration(seconds: 3),
+            );
             if (hi != null) return hi;
           }
           return null;
@@ -181,47 +208,76 @@ void main() {
           WatchRoute? last;
           final times = <int>[];
           for (var r = 1; r <= _rounds; r++) {
-            final wr = watchRouteOf(_line(r, kWatchMaxPoints), NavSections.none)!;
+            final wr = watchRouteOf(
+              _line(r, kWatchMaxPoints),
+              NavSections.none,
+            )!;
             final t0 = DateTime.now();
-            await step('Route in Stücken → ok ($r/$_rounds, ${wr.parts().length} Stücke)', () => route(wr));
+            await step(
+              'Route in Stücken → ok ($r/$_rounds, ${wr.parts().length} Stücke)',
+              () => route(wr),
+            );
             times.add(DateTime.now().difference(t0).inMilliseconds);
             last = wr;
           }
           times.sort();
-          debugPrint('BENCH route median ${times[times.length ~/ 2]}ms max ${times.last}ms');
+          debugPrint(
+            'BENCH route median ${times[times.length ~/ 2]}ms max ${times.last}ms',
+          );
           final a = last!;
 
           // Die Frage nach der neuen Linie läuft ab, die Uhr nimmt sie.
           await step('letzte Route geladen', () async {
             await send({'t': '_t', 'ms': 9000});
-            return stateUntil((s) => s['id'] == a.id && s['ready'] == true && s['ask'] == false);
+            return stateUntil(
+              (s) => s['id'] == a.id && s['ready'] == true && s['ask'] == false,
+            );
           });
 
           // START an der Uhr → das Handy hört `rs`.
           inbox.clear();
           await send({'t': '_k', 'k': 'start'});
-          await step('START → rs', () => waitFor((m) => m['t'] == kWatchRecordStart));
-          await step('Aufzeichnung läuft', () => stateUntil((s) => s['rec'] == 1));
+          await step(
+            'START → rs',
+            () => waitFor((m) => m['t'] == kWatchRecordStart),
+          );
+          await step(
+            'Aufzeichnung läuft',
+            () => stateUntil((s) => s['rec'] == 1),
+          );
 
           // Fixe entlang der Linie, damit die Fahrt Punkte hat.
           final pts = _line(_rounds, kWatchMaxPoints);
           Map<String, Object> fixes(int from, int to) => {
-                't': '_f',
-                'la': [for (var i = from; i < to; i++) (pts[i].latitude * 1e5).round()],
-                'lo': [for (var i = from; i < to; i++) (pts[i].longitude * 1e5).round()],
-                'dt': 5,
-                'sp': 6,
-              };
+            't': '_f',
+            'la': [
+              for (var i = from; i < to; i++) (pts[i].latitude * 1e5).round(),
+            ],
+            'lo': [
+              for (var i = from; i < to; i++) (pts[i].longitude * 1e5).round(),
+            ],
+            'dt': 5,
+            'sp': 6,
+          };
           await send(fixes(0, 20));
           await step('Fixe verarbeitet', () => stateUntil((s) => s['fx'] == 0));
 
           // Pause und weiter.
           inbox.clear();
           await send({'t': '_k', 'k': 'start'});
-          await step('Pause → rp', () => waitFor((m) => m['t'] == kWatchRecordPause));
-          await step('Menü der Pause', () => stateUntil((s) => s['menu'] == 'pause' && s['rec'] == 2));
+          await step(
+            'Pause → rp',
+            () => waitFor((m) => m['t'] == kWatchRecordPause),
+          );
+          await step(
+            'Menü der Pause',
+            () => stateUntil((s) => s['menu'] == 'pause' && s['rec'] == 2),
+          );
           await send({'t': '_k', 'k': 'resume'});
-          await step('Weiter → rr', () => waitFor((m) => m['t'] == kWatchRecordResume));
+          await step(
+            'Weiter → rr',
+            () => waitFor((m) => m['t'] == kWatchRecordResume),
+          );
           // Weit über RideLog.MIN_POINTS (24): Mit 40 Fixen kamen mal 24, mal
           // 23 Punkte an, und die Uhr verwarf die Fahrt als zu kurz (#510).
           await send(fixes(20, 60));
@@ -241,33 +297,49 @@ void main() {
           // Umplanen: Eine neue Linie während der Fahrt — die Uhr fragt …
           final b = watchRouteOf(_line(_rounds + 50, 600), NavSections.none)!;
           await step('neue Linie → ok', () => route(b));
-          await step('Frage steht', () => stateUntil((s) => s['ask'] == true && s['pend'] == b.id));
+          await step(
+            'Frage steht',
+            () => stateUntil((s) => s['ask'] == true && s['pend'] == b.id),
+          );
           // … und nimmt sie, wenn niemand antwortet.
           await step('nach der Frist genommen', () async {
             await send({'t': '_t', 'ms': 9000});
-            return stateUntil((s) => s['id'] == b.id && s['ready'] == true && s['rec'] == 1);
+            return stateUntil(
+              (s) => s['id'] == b.id && s['ready'] == true && s['rec'] == 1,
+            );
           });
 
           // Speichern: Ende ans Handy, dann die Fahrt in Nachrichten, `wk`.
           inbox.clear();
           await send({'t': '_k', 'k': 'start'});
-          await step('Pause vor dem Speichern', () => stateUntil((s) => s['menu'] == 'pause'));
+          await step(
+            'Pause vor dem Speichern',
+            () => stateUntil((s) => s['menu'] == 'pause'),
+          );
           await send({'t': '_k', 'k': 'save'});
-          await step('Speichern → re', () => waitFor((m) => m['t'] == kWatchRecordEnd && m['k'] == true));
+          await step(
+            'Speichern → re',
+            () => waitFor((m) => m['t'] == kWatchRecordEnd && m['k'] == true),
+          );
           List<int>? rideEvents;
           final ride = await step('Fahrt hinüber', () async {
             final parts = <int, List<List<int>>>{};
             String? id;
             final end = DateTime.now().add(_wait * 2);
             while (DateTime.now().isBefore(end)) {
-              final m = await waitFor((m) => m['t'] == kWatchRide, const Duration(seconds: 2));
+              final m = await waitFor(
+                (m) => m['t'] == kWatchRide,
+                const Duration(seconds: 2),
+              );
               final part = watchRidePartOf(m);
               if (part == null) continue;
               id = part.id;
               parts[part.p] = part.chunks;
               if (part.p == 0) rideEvents = watchEventsOf(m!['ev']);
               if (parts.length == part.n) {
-                final points = decodeWatchRide([for (var p = 0; p < part.n; p++) ...parts[p]!]);
+                final points = decodeWatchRide([
+                  for (var p = 0; p < part.n; p++) ...parts[p]!,
+                ]);
                 return points == null ? null : (id: id, points: points.length);
               }
             }
@@ -280,16 +352,27 @@ void main() {
             final ev = rideEvents;
             if (ev == null) return null;
             final last = unpackWatchEvent(ev.last);
-            debugPrint('BENCH Protokoll ${ev.length} Ereignisse, zuletzt ${last.kind}.${last.detail}');
-            return hasEvent(ev, 1, 0) && hasEvent(ev, 2, 1) && hasEvent(ev, 9, 1) ? ev : null;
+            debugPrint(
+              'BENCH Protokoll ${ev.length} Ereignisse, zuletzt ${last.kind}.${last.detail}',
+            );
+            return hasEvent(ev, 1, 0) &&
+                    hasEvent(ev, 2, 1) &&
+                    hasEvent(ev, 9, 1)
+                ? ev
+                : null;
           });
-          debugPrint('BENCH Protokoll ${encodeWatchEvents(ev).length} Zeichen im Feedback');
+          debugPrint(
+            'BENCH Protokoll ${encodeWatchEvents(ev).length} Zeichen im Feedback',
+          );
           // Der nächste Start behält den Speicher (sonst wischt der Bench-Bau).
           await send({'t': '_r'});
           await send(watchRideAckOf(ride.id));
           // Die Uhr löscht sie mit `wk` und geht zu: kein neues `w` mehr.
           await step('wk angenommen', () async {
-            final again = await waitFor((m) => m['t'] == kWatchRide, const Duration(seconds: 8));
+            final again = await waitFor(
+              (m) => m['t'] == kWatchRide,
+              const Duration(seconds: 8),
+            );
             return again == null;
           });
           // Sauber zu: Beim nächsten Start kein Absturz-Ring.
@@ -298,10 +381,16 @@ void main() {
 
           // Ein echter Absturz nach START (gespeichert wird bei jeder Taste).
           await send({'t': '_t', 'ms': 9000});
-          await step('Route nach Neustart', () => stateUntil((s) => s['ready'] == true && s['wait'] == 0));
+          await step(
+            'Route nach Neustart',
+            () => stateUntil((s) => s['ready'] == true && s['wait'] == 0),
+          );
           inbox.clear();
           await send({'t': '_k', 'k': 'start'});
-          await step('START → rs (vor dem Absturz)', () => waitFor((m) => m['t'] == kWatchRecordStart));
+          await step(
+            'START → rs (vor dem Absturz)',
+            () => waitFor((m) => m['t'] == kWatchRecordStart),
+          );
           await send({'t': '_z'});
           final crashed = await step('Neustart nach Absturz', relaunched);
           await step('hallo mit Protokoll', () async {
@@ -328,37 +417,79 @@ void main() {
           // Genau so viele: Mit mehr verdoppelt watchRouteOf die Toleranz,
           // und das gleichmäßige Zickzack fällt auf ~20 Punkte zusammen.
           final p = _line(seed, _bigN);
-          final ele = [for (var i = 0; i < p.length; i++) 500 + 80 * math.sin(i / 40)];
-          return watchRouteOf(p, NavSections.none, heights: ElevationProfile.of(p, ele))!;
+          final ele = [
+            for (var i = 0; i < p.length; i++) 500 + 80 * math.sin(i / 40),
+          ];
+          return watchRouteOf(
+            p,
+            NavSections.none,
+            heights: ElevationProfile.of(p, ele),
+          )!;
         }
+
         String kb(Object? v) => v is int ? (v / 1024).toStringAsFixed(1) : '?';
-        void memLine(String what, Map<Object?, Object?> s) =>
-            debugPrint('BENCH Speicher $what: ${kb(s['mem'])} KB, Spitze ${kb(s['peak'])} KB von ${kb(s['tot'])} KB');
+        void memLine(String what, Map<Object?, Object?> s) => debugPrint(
+          'BENCH Speicher $what: ${kb(s['mem'])} KB, Spitze ${kb(s['peak'])} KB von ${kb(s['tot'])} KB',
+        );
         final big1 = big(_rounds + 100);
-        debugPrint('BENCH Speicher Route ${big1.pointCount} Punkte, ${big1.parts().length} Stücke');
-        if (big1.pointCount < _bigN * 0.9) throw _StepFailed('große Route hat nur ${big1.pointCount} Punkte');
+        debugPrint(
+          'BENCH Speicher Route ${big1.pointCount} Punkte, ${big1.parts().length} Stücke',
+        );
+        if (big1.pointCount < _bigN * 0.9)
+          throw _StepFailed('große Route hat nur ${big1.pointCount} Punkte');
         await step('${big1.pointCount} Punkte → ok', () => route(big1));
         await send({'t': '_t', 'ms': 9000});
-        memLine('geladen', await step('große Route geladen',
-            () => stateUntil((s) => s['id'] == big1.id && s['ready'] == true && s['ask'] == false)));
+        memLine(
+          'geladen',
+          await step(
+            'große Route geladen',
+            () => stateUntil(
+              (s) =>
+                  s['id'] == big1.id && s['ready'] == true && s['ask'] == false,
+            ),
+          ),
+        );
         final bigPts = _line(_rounds + 100, _bigN);
         inbox.clear();
         await send({'t': '_k', 'k': 'start'});
-        await step('START auf der großen Route', () => waitFor((m) => m['t'] == kWatchRecordStart));
+        await step(
+          'START auf der großen Route',
+          () => waitFor((m) => m['t'] == kWatchRecordStart),
+        );
         await send({
           't': '_f',
-          'la': [for (var i = 0; i < 40; i++) (bigPts[i].latitude * 1e5).round()],
-          'lo': [for (var i = 0; i < 40; i++) (bigPts[i].longitude * 1e5).round()],
+          'la': [
+            for (var i = 0; i < 40; i++) (bigPts[i].latitude * 1e5).round(),
+          ],
+          'lo': [
+            for (var i = 0; i < 40; i++) (bigPts[i].longitude * 1e5).round(),
+          ],
           'dt': 5,
           'sp': 6,
         });
-        memLine('mit Aufnahme', await step('Fixe auf der großen Route', () => stateUntil((s) => s['fx'] == 0)));
+        memLine(
+          'mit Aufnahme',
+          await step(
+            'Fixe auf der großen Route',
+            () => stateUntil((s) => s['fx'] == 0),
+          ),
+        );
         final big2 = big(_rounds + 101);
         await step('zweite große Route → ok', () => route(big2));
-        await step('Frage steht (große Route)', () => stateUntil((s) => s['ask'] == true && s['pend'] == big2.id));
+        await step(
+          'Frage steht (große Route)',
+          () => stateUntil((s) => s['ask'] == true && s['pend'] == big2.id),
+        );
         await send({'t': '_t', 'ms': 9000});
-        memLine('nach dem Wechsel', await step('Wechsel auf die zweite große Route',
-            () => stateUntil((s) => s['id'] == big2.id && s['ready'] == true && s['rec'] == 1)));
+        memLine(
+          'nach dem Wechsel',
+          await step(
+            'Wechsel auf die zweite große Route',
+            () => stateUntil(
+              (s) => s['id'] == big2.id && s['ready'] == true && s['rec'] == 1,
+            ),
+          ),
+        );
         debugPrint('BENCH result grün');
       } on _StepFailed catch (e) {
         debugPrint('BENCH result rot: ${e.step}');

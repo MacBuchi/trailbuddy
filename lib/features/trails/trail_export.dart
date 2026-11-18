@@ -24,8 +24,11 @@ import 'terrain_heights.dart';
 GpxTrack trailToGpx(Trail trail, {List<double>? terrain}) {
   final best = trail.best;
   final points = best.reversed ? best.points.reversed.toList() : best.points;
-  final recorded = best.ele == null ? null : (best.reversed ? best.ele!.reversed.toList() : best.ele!);
-  final fromTerrain = recorded == null && terrain != null && terrain.length == points.length;
+  final recorded = best.ele == null
+      ? null
+      : (best.reversed ? best.ele!.reversed.toList() : best.ele!);
+  final fromTerrain =
+      recorded == null && terrain != null && terrain.length == points.length;
   final ele = recorded ?? (fromTerrain ? terrain : null);
   return GpxTrack(
     name: trail.name ?? 'Trail',

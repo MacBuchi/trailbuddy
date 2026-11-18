@@ -33,11 +33,14 @@ class FakeErrorReports implements ErrorReportRepository {
     required String summary,
     required DateTime when,
     String? trace,
-  }) async =>
-      exits.add(ReportedExit(reason, summary, when, trace));
+  }) async => exits.add(ReportedExit(reason, summary, when, trace));
 
   @override
-  Future<void> report(String context, Object error, StackTrace? stackTrace) async {}
+  Future<void> report(
+    String context,
+    Object error,
+    StackTrace? stackTrace,
+  ) async {}
 }
 
 /// Liefert vorgegebene Einträge, statt die Plattform zu fragen.
@@ -62,15 +65,18 @@ class _FakeExits implements ExitInfoRepository {
   }
 }
 
-AppExit _exit(String reason, DateTime when,
-        {int rssKb = 0, bool hasTrace = false}) =>
-    AppExit(
-      timestamp: when,
-      reason: reason,
-      description: 'beschreibung',
-      rssKb: rssKb,
-      hasTrace: hasTrace,
-    );
+AppExit _exit(
+  String reason,
+  DateTime when, {
+  int rssKb = 0,
+  bool hasTrace = false,
+}) => AppExit(
+  timestamp: when,
+  reason: reason,
+  description: 'beschreibung',
+  rssKb: rssKb,
+  hasTrace: hasTrace,
+);
 
 void main() {
   // Für den MethodChannel-Mock im letzten Block (#394).
@@ -95,22 +101,28 @@ void main() {
   test('Ein ANR wird gemeldet, mit Zeitpunkt und Thread-Dump', () async {
     final when = DateTime(2026, 7, 26, 15, 39);
     final reports = FakeErrorReports();
-    final exits = _FakeExits(
-      [_exit('ANR', when, rssKb: 1900 * 1024, hasTrace: true)],
-      trace: '"main" prio=5 tid=1 Native',
-    );
+    final exits = _FakeExits([
+      _exit('ANR', when, rssKb: 1900 * 1024, hasTrace: true),
+    ], trace: '"main" prio=5 tid=1 Native');
 
     await reporter(reports, exits).reportPending();
 
     expect(reports.exits, hasLength(1));
     final report = reports.exits.single;
     expect(report.reason, 'ANR');
-    expect(report.when, when,
-        reason: 'Der Todeszeitpunkt, nicht der Meldezeitpunkt — sonst landet '
-            'ein Absturz von Freitagnacht im Digest der Folgewoche.');
+    expect(
+      report.when,
+      when,
+      reason:
+          'Der Todeszeitpunkt, nicht der Meldezeitpunkt — sonst landet '
+          'ein Absturz von Freitagnacht im Digest der Folgewoche.',
+    );
     expect(report.trace, contains('"main"'));
-    expect(report.summary, contains('RSS 1900 MB'),
-        reason: 'Bei #142 zeigte der RSS die Ursache vor jedem Stacktrace.');
+    expect(
+      report.summary,
+      contains('RSS 1900 MB'),
+      reason: 'Bei #142 zeigte der RSS die Ursache vor jedem Stacktrace.',
+    );
   });
 
   test('Ein normales Beenden wird NICHT gemeldet', () async {
@@ -128,16 +140,18 @@ void main() {
     expect(reports.exits, isEmpty);
   });
 
-  test('Derselbe Eintrag wird beim zweiten Start nicht erneut gemeldet',
-      () async {
-    final reports = FakeErrorReports();
-    final exits = _FakeExits([_exit('CRASH', DateTime(2026, 7, 26, 15))]);
+  test(
+    'Derselbe Eintrag wird beim zweiten Start nicht erneut gemeldet',
+    () async {
+      final reports = FakeErrorReports();
+      final exits = _FakeExits([_exit('CRASH', DateTime(2026, 7, 26, 15))]);
 
-    await reporter(reports, exits).reportPending();
-    await reporter(reports, exits).reportPending();
+      await reporter(reports, exits).reportPending();
+      await reporter(reports, exits).reportPending();
 
-    expect(reports.exits, hasLength(1));
-  });
+      expect(reports.exits, hasLength(1));
+    },
+  );
 
   test('Nur Einträge nach dem letzten gemeldeten kommen dazu', () async {
     final reports = FakeErrorReports();
@@ -170,7 +184,10 @@ void main() {
     final reports = FakeErrorReports();
 
     await expectLater(
-      reporter(reports, _FakeExits(const [], throwOnRead: true)).reportPending(),
+      reporter(
+        reports,
+        _FakeExits(const [], throwOnRead: true),
+      ).reportPending(),
       completes,
     );
     expect(reports.exits, isEmpty);
@@ -193,22 +210,24 @@ void main() {
   // damit als Ursache aus, ohne je gemessen worden zu sein.
   group('AppExit.summary', () {
     AppExit exitWith({int rssKb = 0, int pssKb = 0}) => AppExit(
-          timestamp: DateTime(2026, 7, 26, 22, 25),
-          reason: 'ANR',
-          rssKb: rssKb,
-          pssKb: pssKb,
-          importance: 100,
-        );
+      timestamp: DateTime(2026, 7, 26, 22, 25),
+      reason: 'ANR',
+      rssKb: rssKb,
+      pssKb: pssKb,
+      importance: 100,
+    );
 
-    test('Der Kanal liefert kB, der Bericht zeigt MB — genau einmal geteilt',
-        () {
-      // Androids getRss()/getPss() liefern kB. Diese eine Umrechnung ist
-      // die einzige, die es geben darf: MainActivity.kt teilte vorher
-      // schon einmal, und aus 1,9 GB wurden dadurch „2 MB".
-      final exit = exitWith(rssKb: 1900 * 1024, pssKb: 1000 * 1024);
-      expect(exit.summary, contains('RSS 1900 MB'));
-      expect(exit.summary, contains('PSS 1000 MB'));
-    });
+    test(
+      'Der Kanal liefert kB, der Bericht zeigt MB — genau einmal geteilt',
+      () {
+        // Androids getRss()/getPss() liefern kB. Diese eine Umrechnung ist
+        // die einzige, die es geben darf: MainActivity.kt teilte vorher
+        // schon einmal, und aus 1,9 GB wurden dadurch „2 MB".
+        final exit = exitWith(rssKb: 1900 * 1024, pssKb: 1000 * 1024);
+        expect(exit.summary, contains('RSS 1900 MB'));
+        expect(exit.summary, contains('PSS 1000 MB'));
+      },
+    );
 
     test('Nicht gemessen ist etwas anderes als null Megabyte', () {
       // Stirbt der Prozess, bevor das System eine Stichprobe nimmt, sind
@@ -244,9 +263,9 @@ void main() {
       debugDefaultTargetPlatformOverride = TargetPlatform.android;
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(channel, (call) async {
-        calls++;
-        return answer;
-      });
+            calls++;
+            return answer;
+          });
     });
 
     tearDown(() {
@@ -256,10 +275,10 @@ void main() {
     });
 
     AppExit exitWith(String reason, {bool hasTrace = true}) => AppExit(
-          timestamp: DateTime.utc(2026, 9, 7),
-          reason: reason,
-          hasTrace: hasTrace,
-        );
+      timestamp: DateTime.utc(2026, 9, 7),
+      reason: reason,
+      hasTrace: hasTrace,
+    );
 
     test('ein ANR kommt als Text und geht unverändert durch', () async {
       answer = '"main" prio=5 tid=1 Native';
@@ -271,8 +290,9 @@ void main() {
       // Genau der Fall aus #376: CRASH_NATIVE, und bis 1.121.0 kam er
       // ohne eine Zeile Spur an, obwohl Android das Tombstone bereithielt.
       answer = _tombstoneBytes();
-      final trace =
-          await ExitInfoRepository().traceFor(exitWith('CRASH_NATIVE'));
+      final trace = await ExitInfoRepository().traceFor(
+        exitWith('CRASH_NATIVE'),
+      );
       expect(trace, contains('signal 11 (SIGSEGV)'));
       expect(trace, contains('libc.so'));
     });
@@ -280,14 +300,17 @@ void main() {
     test('etwas Drittes ergibt null statt einer Ausnahme', () async {
       // Ein alter Build auf einem neuen Gerät oder umgekehrt.
       answer = 42;
-      expect(await ExitInfoRepository().traceFor(exitWith('CRASH_NATIVE')),
-          isNull);
+      expect(
+        await ExitInfoRepository().traceFor(exitWith('CRASH_NATIVE')),
+        isNull,
+      );
     });
 
     test('ohne Dump wird der Kanal gar nicht erst gefragt', () async {
       answer = 'sollte niemand sehen';
-      final trace = await ExitInfoRepository()
-          .traceFor(exitWith('LOW_MEMORY', hasTrace: false));
+      final trace = await ExitInfoRepository().traceFor(
+        exitWith('LOW_MEMORY', hasTrace: false),
+      );
       expect(trace, isNull);
       expect(calls, 0, reason: 'ein Aufruf je Eintrag beim Start ist genug');
     });
@@ -306,8 +329,11 @@ Uint8List _tombstoneBytes() {
     return out..add(x);
   }
 
-  List<int> field(int number, List<int> value) =>
-      [...varint((number << 3) | 2), ...varint(value.length), ...value];
+  List<int> field(int number, List<int> value) => [
+    ...varint((number << 3) | 2),
+    ...varint(value.length),
+    ...value,
+  ];
 
   final signal = [
     ...varint(1 << 3), ...varint(11), // number

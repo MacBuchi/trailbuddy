@@ -33,7 +33,8 @@ import 'watch_route.dart';
 /// Stück mit `sh` als Route der Navigation — sie bekommt keins.
 const kWatchShelfFrom = '1.9.0';
 
-bool watchKnowsShelf(String? version) => watchVersionAtLeast(version, kWatchShelfFrom);
+bool watchKnowsShelf(String? version) =>
+    watchVersionAtLeast(version, kWatchShelfFrom);
 
 /// So viele Routen liegen höchstens auf der Uhr (`PhoneRoute.SHELF_MAX`;
 /// E3: drei, bis Messung 8.6 eine andere Zahl sagt).
@@ -60,7 +61,12 @@ const kWatchShelfStrongTolM = kWatchSimplifyM * 4;
 
 /// Eine Route in der Ablage, wie die Liste sie zeigt.
 class WatchShelfEntry {
-  const WatchShelfEntry({required this.id, required this.name, required this.lengthM, required this.climbM});
+  const WatchShelfEntry({
+    required this.id,
+    required this.name,
+    required this.lengthM,
+    required this.climbM,
+  });
 
   final String id;
   final String name;
@@ -73,19 +79,24 @@ class WatchShelfEntry {
   static WatchShelfEntry? fromJson(Object? raw) {
     if (raw is! List || raw.length < 4) return null;
     final [id, name, len, hm, ...] = raw;
-    if (id is! String || name is! String || len is! int || hm is! int) return null;
+    if (id is! String || name is! String || len is! int || hm is! int) {
+      return null;
+    }
     return WatchShelfEntry(id: id, name: name, lengthM: len, climbM: hm);
   }
 }
 
-List<WatchShelfEntry> _entriesOf(Object? raw) =>
-    raw is List ? [for (final e in raw) ?WatchShelfEntry.fromJson(e)] : const [];
+List<WatchShelfEntry> _entriesOf(Object? raw) => raw is List
+    ? [for (final e in raw) ?WatchShelfEntry.fromJson(e)]
+    : const [];
 
 /// Die Ablage aus dem „hallo" (fehlt `sh`, ist sie leer) oder aus der
 /// Antwort `sh` (mit der Kennung der Route, die gerade ankam); sonst null.
 ({List<WatchShelfEntry> entries, String? id})? watchShelfOf(Object? message) {
   if (message is! Map) return null;
-  if (message['t'] == kWatchHello) return (entries: _entriesOf(message['sh']), id: null);
+  if (message['t'] == kWatchHello) {
+    return (entries: _entriesOf(message['sh']), id: null);
+  }
   if (message['t'] != kWatchShelf) return null;
   final id = message['id'];
   return (entries: _entriesOf(message['l']), id: id is String ? id : null);
@@ -93,31 +104,41 @@ List<WatchShelfEntry> _entriesOf(Object? raw) =>
 
 /// Die Stücke einer Route für die Ablage: jedes mit `sh`, das erste dazu mit
 /// Name, Länge und bergauf für die Liste, und `rp`, wenn sie eine ersetzt.
-List<Map<String, Object>> watchShelfParts(WatchRoute route, WatchShelfEntry entry, {String? replace}) => [
-      for (final (i, p) in route.parts().indexed)
-        {
-          ...p,
-          'sh': 1,
-          if (i == 0) ...{
-            'nm': entry.name,
-            'len': entry.lengthM,
-            'hm': entry.climbM,
-            'rp': ?replace,
-          },
-        }
-    ];
+List<Map<String, Object>> watchShelfParts(
+  WatchRoute route,
+  WatchShelfEntry entry, {
+  String? replace,
+}) => [
+  for (final (i, p) in route.parts().indexed)
+    {
+      ...p,
+      'sh': 1,
+      if (i == 0) ...{
+        'nm': entry.name,
+        'len': entry.lengthM,
+        'hm': entry.climbM,
+        'rp': ?replace,
+      },
+    },
+];
 
-Map<String, Object> watchShelfDropOf(String id) => {'t': kWatchShelfDrop, 'id': id};
+Map<String, Object> watchShelfDropOf(String id) => {
+  't': kWatchShelfDrop,
+  'id': id,
+};
 
 /// Ein Auftrag an die Ablage: hinlegen ([parts]) oder wegnehmen.
 class WatchShelfJob {
-  const WatchShelfJob.put(WatchShelfEntry this.entry, List<Map<String, Object>> this.parts, {this.replace})
-      : dropId = null;
+  const WatchShelfJob.put(
+    WatchShelfEntry this.entry,
+    List<Map<String, Object>> this.parts, {
+    this.replace,
+  }) : dropId = null;
 
   const WatchShelfJob.drop(String this.dropId)
-      : entry = null,
-        parts = null,
-        replace = null;
+    : entry = null,
+      parts = null,
+      replace = null;
 
   final WatchShelfEntry? entry;
   final List<Map<String, Object>>? parts;
@@ -139,8 +160,10 @@ class WatchShelfJob {
     final parts = raw['parts'];
     final rp = raw['rp'];
     if (entry == null || parts is! List) return null;
-    return WatchShelfJob.put(entry, [for (final p in parts) if (p is Map) Map<String, Object>.from(p)],
-        replace: rp is String ? rp : null);
+    return WatchShelfJob.put(entry, [
+      for (final p in parts)
+        if (p is Map) Map<String, Object>.from(p),
+    ], replace: rp is String ? rp : null);
   }
 }
 
@@ -179,11 +202,11 @@ class WatchShelfState {
   /// Was die Liste zeigt: die Ablage ohne das, was weg soll oder ersetzt
   /// wird, dann was kommt.
   List<WatchShelfEntry> get shown => [
-        for (final e in entries)
-          if (!removing.contains(e.id) && !jobs.any((j) => j.replace == e.id)) e,
-        for (final e in pending)
-          if (!entries.any((x) => x.id == e.id)) e,
-      ];
+    for (final e in entries)
+      if (!removing.contains(e.id) && !jobs.any((j) => j.replace == e.id)) e,
+    for (final e in pending)
+      if (!entries.any((x) => x.id == e.id)) e,
+  ];
 
   /// Ist die Ablage mit dem, was schon kommt, voll?
   bool get full => shown.length >= kWatchShelfMax;
@@ -194,19 +217,18 @@ class WatchShelfState {
     String? Function()? sendingId,
     String? Function()? failed,
     WatchShelfFailure? Function()? failure,
-  }) =>
-      WatchShelfState(
-        entries: entries ?? this.entries,
-        jobs: jobs ?? this.jobs,
-        sendingId: sendingId != null ? sendingId() : this.sendingId,
-        failed: failed != null ? failed() : this.failed,
-        failure: failure != null ? failure() : this.failure,
-      );
+  }) => WatchShelfState(
+    entries: entries ?? this.entries,
+    jobs: jobs ?? this.jobs,
+    sendingId: sendingId != null ? sendingId() : this.sendingId,
+    failed: failed != null ? failed() : this.failed,
+    failure: failure != null ? failure() : this.failure,
+  );
 
   String encode() => jsonEncode({
-        'e': [for (final e in entries) e.toJson()],
-        'j': [for (final j in jobs) j.toJson()],
-      });
+    'e': [for (final e in entries) e.toJson()],
+    'j': [for (final j in jobs) j.toJson()],
+  });
 
   static WatchShelfState parse(String? raw) {
     if (raw == null) return const WatchShelfState();
@@ -216,7 +238,9 @@ class WatchShelfState {
       final jobs = m['j'];
       return WatchShelfState(
         entries: _entriesOf(m['e']),
-        jobs: jobs is List ? [for (final j in jobs) ?WatchShelfJob.fromJson(j)] : const [],
+        jobs: jobs is List
+            ? [for (final j in jobs) ?WatchShelfJob.fromJson(j)]
+            : const [],
       );
     } catch (_) {
       // Unlesbar (eine ältere Fassung): leer anfangen, die Uhr meldet sich.
@@ -294,7 +318,9 @@ class MemoryWatchShelfStore implements WatchShelfStore {
   Future<void> write(String? v) async => value = v;
 }
 
-final watchShelfStoreProvider = Provider<WatchShelfStore>((ref) => FileWatchShelfStore());
+final watchShelfStoreProvider = Provider<WatchShelfStore>(
+  (ref) => FileWatchShelfStore(),
+);
 
 /// Wie [WatchShelf.put] ausging.
 enum WatchShelfPut {
@@ -331,28 +357,41 @@ class WatchShelf extends Notifier<WatchShelfState> {
     });
     _loaded = _load();
     final bridge = ref.read(garminBridgeProvider);
-    if (bridge.supported) _messages = bridge.messages.listen((m) => unawaited(_onMessage(m)));
+    if (bridge.supported) {
+      _messages = bridge.messages.listen((m) => unawaited(_onMessage(m)));
+    }
     return const WatchShelfState();
   }
 
   Future<void> _load() async {
-    final saved = WatchShelfState.parse(await ref.read(watchShelfStoreProvider).read());
+    final saved = WatchShelfState.parse(
+      await ref.read(watchShelfStoreProvider).read(),
+    );
     state = saved;
   }
 
   void _set(WatchShelfState next) {
     state = next;
-    unawaited(ref
-        .read(watchShelfStoreProvider)
-        .write(next.entries.isEmpty && next.jobs.isEmpty ? null : next.encode()));
+    unawaited(
+      ref
+          .read(watchShelfStoreProvider)
+          .write(
+            next.entries.isEmpty && next.jobs.isEmpty ? null : next.encode(),
+          ),
+    );
   }
 
   /// Eine Route auf die Uhr legen; [replace] ersetzt eine der Ablage (die
   /// Liste fragt, wenn sie voll ist). Liegt TrailBuddy auf der Uhr nicht
   /// offen, fragt die Uhr danach, und der Auftrag wartet auf ihr „hallo".
-  Future<WatchShelfPut> put(WatchShelfEntry entry, WatchRoute route, {String? replace}) async {
+  Future<WatchShelfPut> put(
+    WatchShelfEntry entry,
+    WatchRoute route, {
+    String? replace,
+  }) async {
     await _loaded;
-    if (state.entries.any((e) => e.id == entry.id) && !state.removing.contains(entry.id)) {
+    if (state.entries.any((e) => e.id == entry.id) &&
+        !state.removing.contains(entry.id)) {
       return WatchShelfPut.already;
     }
     var jobs = [
@@ -369,7 +408,13 @@ class WatchShelf extends Notifier<WatchShelfState> {
       rp = null;
     }
     // Die Stücke erst jetzt: `rp` steht im ersten.
-    jobs.add(WatchShelfJob.put(entry, watchShelfParts(route, entry, replace: rp), replace: rp));
+    jobs.add(
+      WatchShelfJob.put(
+        entry,
+        watchShelfParts(route, entry, replace: rp),
+        replace: rp,
+      ),
+    );
     _set(state.copyWith(jobs: jobs, failed: () => null, failure: () => null));
     if (_heard) {
       _flush();
@@ -377,10 +422,14 @@ class WatchShelf extends Notifier<WatchShelfState> {
     }
     final open = await ref.read(garminBridgeProvider).open();
     if (open == WatchOpen.notInstalled) {
-      _set(state.copyWith(jobs: [
-        for (final j in state.jobs)
-          if (j.id != entry.id) j,
-      ]));
+      _set(
+        state.copyWith(
+          jobs: [
+            for (final j in state.jobs)
+              if (j.id != entry.id) j,
+          ],
+        ),
+      );
       return WatchShelfPut.notInstalled;
     }
     // Sie läuft schon, aber ihr „hallo" kam vor diesem Lauf der App: fragen.
@@ -394,7 +443,9 @@ class WatchShelf extends Notifier<WatchShelfState> {
   /// schicken.
   Future<void> remove(String id) async {
     await _loaded;
-    final waiting = state.jobs.any((j) => j.isPut && j.id == id && j.id != state.sendingId);
+    final waiting = state.jobs.any(
+      (j) => j.isPut && j.id == id && j.id != state.sendingId,
+    );
     final jobs = [
       for (final j in state.jobs)
         if (j.id != id) j,
@@ -411,7 +462,12 @@ class WatchShelf extends Notifier<WatchShelfState> {
       _heard = true;
       _ver = hello.ver;
       _ackTimer?.cancel();
-      _set(state.copyWith(entries: watchShelfOf(message)!.entries, sendingId: () => null));
+      _set(
+        state.copyWith(
+          entries: watchShelfOf(message)!.entries,
+          sendingId: () => null,
+        ),
+      );
       _flush();
       return;
     }
@@ -422,8 +478,11 @@ class WatchShelf extends Notifier<WatchShelfState> {
       var jobs = state.jobs;
       // Die Antwort auf den laufenden Auftrag: hingelegt (mit Kennung) oder
       // weggenommen (die Kennung fehlt in der Liste).
-      final done = sending != null &&
-          (shelf.id == sending || !shelf.entries.any((e) => e.id == sending) && state.removing.contains(sending));
+      final done =
+          sending != null &&
+          (shelf.id == sending ||
+              !shelf.entries.any((e) => e.id == sending) &&
+                  state.removing.contains(sending));
       if (done) {
         _ackTimer?.cancel();
         jobs = [
@@ -431,7 +490,13 @@ class WatchShelf extends Notifier<WatchShelfState> {
             if (j.id != sending) j,
         ];
       }
-      _set(state.copyWith(entries: shelf.entries, jobs: jobs, sendingId: done ? () => null : null));
+      _set(
+        state.copyWith(
+          entries: shelf.entries,
+          jobs: jobs,
+          sendingId: done ? () => null : null,
+        ),
+      );
       if (done) _flush();
       return;
     }
@@ -439,19 +504,21 @@ class WatchShelf extends Notifier<WatchShelfState> {
     if (error != null && error.id == state.sendingId) {
       _ackTimer?.cancel();
       final job = state.jobs.firstWhere((j) => j.id == error.id);
-      _set(state.copyWith(
-        jobs: [
-          for (final j in state.jobs)
-            if (j.id != error.id) j,
-        ],
-        sendingId: () => null,
-        failed: () => job.entry?.name,
-        failure: () => switch (error.code) {
-          kWatchErrFull => WatchShelfFailure.full,
-          kWatchErrVersion => WatchShelfFailure.outdated,
-          _ => WatchShelfFailure.refused,
-        },
-      ));
+      _set(
+        state.copyWith(
+          jobs: [
+            for (final j in state.jobs)
+              if (j.id != error.id) j,
+          ],
+          sendingId: () => null,
+          failed: () => job.entry?.name,
+          failure: () => switch (error.code) {
+            kWatchErrFull => WatchShelfFailure.full,
+            kWatchErrVersion => WatchShelfFailure.outdated,
+            _ => WatchShelfFailure.refused,
+          },
+        ),
+      );
       _flush();
     }
   }
@@ -462,7 +529,12 @@ class WatchShelf extends Notifier<WatchShelfState> {
     if (!_heard || state.sendingId != null || state.jobs.isEmpty) return;
     if (!watchKnowsShelf(_ver)) {
       if (state.failure != WatchShelfFailure.outdated) {
-        _set(state.copyWith(failed: () => state.pending.firstOrNull?.name, failure: () => WatchShelfFailure.outdated));
+        _set(
+          state.copyWith(
+            failed: () => state.pending.firstOrNull?.name,
+            failure: () => WatchShelfFailure.outdated,
+          ),
+        );
       }
       return;
     }
@@ -473,7 +545,9 @@ class WatchShelf extends Notifier<WatchShelfState> {
 
   Future<void> _send(WatchShelfJob job) async {
     try {
-      final result = await ref.read(garminBridgeProvider).send(job.parts ?? [watchShelfDropOf(job.id)]);
+      final result = await ref
+          .read(garminBridgeProvider)
+          .send(job.parts ?? [watchShelfDropOf(job.id)]);
       if (!result.ok) return _giveUp(job.id);
     } catch (e, s) {
       logError('Ablage an die Uhr', e, s);
@@ -494,4 +568,6 @@ class WatchShelf extends Notifier<WatchShelfState> {
   }
 }
 
-final watchShelfProvider = NotifierProvider<WatchShelf, WatchShelfState>(WatchShelf.new);
+final watchShelfProvider = NotifierProvider<WatchShelf, WatchShelfState>(
+  WatchShelf.new,
+);

@@ -356,15 +356,18 @@ class PrefsSettings implements Settings {
   bool get sensorLogEnabled => _prefs.getBool(_sensorLogEnabledKey) ?? false;
 
   @override
-  Future<void> setSensorLogEnabled(bool value) => _prefs.setBool(_sensorLogEnabledKey, value);
+  Future<void> setSensorLogEnabled(bool value) =>
+      _prefs.setBool(_sensorLogEnabledKey, value);
 
   static const _airtimeShareEnabledKey = 'airtime_share_enabled';
 
   @override
-  bool get airtimeShareEnabled => _prefs.getBool(_airtimeShareEnabledKey) ?? false;
+  bool get airtimeShareEnabled =>
+      _prefs.getBool(_airtimeShareEnabledKey) ?? false;
 
   @override
-  Future<void> setAirtimeShareEnabled(bool value) => _prefs.setBool(_airtimeShareEnabledKey, value);
+  Future<void> setAirtimeShareEnabled(bool value) =>
+      _prefs.setBool(_airtimeShareEnabledKey, value);
 
   static const _buddiesNearbyKey = 'buddies_nearby';
 
@@ -372,7 +375,8 @@ class PrefsSettings implements Settings {
   bool? get buddiesNearby => _prefs.getBool(_buddiesNearbyKey);
 
   @override
-  Future<void> setBuddiesNearby(bool value) => _prefs.setBool(_buddiesNearbyKey, value);
+  Future<void> setBuddiesNearby(bool value) =>
+      _prefs.setBool(_buddiesNearbyKey, value);
 
   static const _nearbyHomeKey = 'nearby_home';
 
@@ -380,8 +384,9 @@ class PrefsSettings implements Settings {
   String? get nearbyHome => _prefs.getString(_nearbyHomeKey);
 
   @override
-  Future<void> setNearbyHome(String? value) =>
-      value == null ? _prefs.remove(_nearbyHomeKey) : _prefs.setString(_nearbyHomeKey, value);
+  Future<void> setNearbyHome(String? value) => value == null
+      ? _prefs.remove(_nearbyHomeKey)
+      : _prefs.setString(_nearbyHomeKey, value);
 
   static const _poiGroupsKey = 'poi_groups';
 
@@ -413,7 +418,8 @@ class PrefsSettings implements Settings {
   static const _stillValidSnoozesKey = 'still_valid_snoozes';
 
   @override
-  List<String>? get stillValidSnoozes => _prefs.getStringList(_stillValidSnoozesKey);
+  List<String>? get stillValidSnoozes =>
+      _prefs.getStringList(_stillValidSnoozesKey);
 
   @override
   Future<void> setStillValidSnoozes(List<String> entries) =>
@@ -431,23 +437,28 @@ class PrefsSettings implements Settings {
   bool get wayLayerEnabled => _prefs.getBool(_wayLayerEnabledKey) ?? true;
 
   @override
-  Future<void> setWayLayerEnabled(bool value) => _prefs.setBool(_wayLayerEnabledKey, value);
+  Future<void> setWayLayerEnabled(bool value) =>
+      _prefs.setBool(_wayLayerEnabledKey, value);
 
   static const _contourLayerEnabledKey = 'contour_layer_enabled';
 
   @override
-  bool get contourLayerEnabled => _prefs.getBool(_contourLayerEnabledKey) ?? false;
+  bool get contourLayerEnabled =>
+      _prefs.getBool(_contourLayerEnabledKey) ?? false;
 
   @override
-  Future<void> setContourLayerEnabled(bool value) => _prefs.setBool(_contourLayerEnabledKey, value);
+  Future<void> setContourLayerEnabled(bool value) =>
+      _prefs.setBool(_contourLayerEnabledKey, value);
 
   static const _startPointLayerEnabledKey = 'start_point_layer_enabled';
 
   @override
-  bool get startPointLayerEnabled => _prefs.getBool(_startPointLayerEnabledKey) ?? true;
+  bool get startPointLayerEnabled =>
+      _prefs.getBool(_startPointLayerEnabledKey) ?? true;
 
   @override
-  Future<void> setStartPointLayerEnabled(bool value) => _prefs.setBool(_startPointLayerEnabledKey, value);
+  Future<void> setStartPointLayerEnabled(bool value) =>
+      _prefs.setBool(_startPointLayerEnabledKey, value);
 
   static const _lastStartPointKey = 'last_start_point';
 
@@ -455,7 +466,8 @@ class PrefsSettings implements Settings {
   String? get lastStartPoint => _prefs.getString(_lastStartPointKey);
 
   @override
-  Future<void> setLastStartPoint(String key) => _prefs.setString(_lastStartPointKey, key);
+  Future<void> setLastStartPoint(String key) =>
+      _prefs.setString(_lastStartPointKey, key);
 
   static const _mapLegendOpenKey = 'map_legend_open';
 
@@ -463,7 +475,8 @@ class PrefsSettings implements Settings {
   bool get mapLegendOpen => _prefs.getBool(_mapLegendOpenKey) ?? false;
 
   @override
-  Future<void> setMapLegendOpen(bool value) => _prefs.setBool(_mapLegendOpenKey, value);
+  Future<void> setMapLegendOpen(bool value) =>
+      _prefs.setBool(_mapLegendOpenKey, value);
 
   static const _navKeepScreenOnKey = 'nav_keep_screen_on';
 
@@ -471,7 +484,8 @@ class PrefsSettings implements Settings {
   bool get navKeepScreenOn => _prefs.getBool(_navKeepScreenOnKey) ?? true;
 
   @override
-  Future<void> setNavKeepScreenOn(bool value) => _prefs.setBool(_navKeepScreenOnKey, value);
+  Future<void> setNavKeepScreenOn(bool value) =>
+      _prefs.setBool(_navKeepScreenOnKey, value);
 
   static const _rideKeepScreenOnKey = 'ride_keep_screen_on';
 
@@ -479,13 +493,15 @@ class PrefsSettings implements Settings {
   bool get rideKeepScreenOn => _prefs.getBool(_rideKeepScreenOnKey) ?? false;
 
   @override
-  Future<void> setRideKeepScreenOn(bool value) => _prefs.setBool(_rideKeepScreenOnKey, value);
+  Future<void> setRideKeepScreenOn(bool value) =>
+      _prefs.setBool(_rideKeepScreenOnKey, value);
 
   @override
   bool get voiceCues => _prefs.getBool(kVoiceCuesSettingKey) ?? false;
 
   @override
-  Future<void> setVoiceCues(bool value) => _prefs.setBool(kVoiceCuesSettingKey, value);
+  Future<void> setVoiceCues(bool value) =>
+      _prefs.setBool(kVoiceCuesSettingKey, value);
 
   static const _navRecordKey = 'nav_record';
 
@@ -509,7 +525,8 @@ class PrefsSettings implements Settings {
   bool get ridePhoneInPocket => _prefs.getBool(_ridePhoneInPocketKey) ?? false;
 
   @override
-  Future<void> setRidePhoneInPocket(bool value) => _prefs.setBool(_ridePhoneInPocketKey, value);
+  Future<void> setRidePhoneInPocket(bool value) =>
+      _prefs.setBool(_ridePhoneInPocketKey, value);
 
   static const _watchSeenKey = 'watch_seen';
 
@@ -526,7 +543,8 @@ class PrefsSettings implements Settings {
   int? get navReplanOfferM => _prefs.getInt(_navReplanOfferKey);
 
   @override
-  Future<void> setNavReplanOfferM(int value) => _prefs.setInt(_navReplanOfferKey, value);
+  Future<void> setNavReplanOfferM(int value) =>
+      _prefs.setInt(_navReplanOfferKey, value);
 
   @override
   int? get navLeaveM => _prefs.getInt(_navLeaveKey);
@@ -564,7 +582,8 @@ class PrefsSettings implements Settings {
   String? get riderProfile => _prefs.getString(_riderProfileKey);
 
   @override
-  Future<void> setRiderProfile(String value) => _prefs.setString(_riderProfileKey, value);
+  Future<void> setRiderProfile(String value) =>
+      _prefs.setString(_riderProfileKey, value);
 
   static const _loopPlannerPrefsKey = 'loop_planner_prefs';
 
@@ -572,7 +591,8 @@ class PrefsSettings implements Settings {
   String? get loopPlannerPrefs => _prefs.getString(_loopPlannerPrefsKey);
 
   @override
-  Future<void> setLoopPlannerPrefs(String value) => _prefs.setString(_loopPlannerPrefsKey, value);
+  Future<void> setLoopPlannerPrefs(String value) =>
+      _prefs.setString(_loopPlannerPrefsKey, value);
 
   static const _climbLimitPendingKey = 'climb_limit_pending';
 
@@ -580,8 +600,9 @@ class PrefsSettings implements Settings {
   String? get climbLimitPending => _prefs.getString(_climbLimitPendingKey);
 
   @override
-  Future<void> setClimbLimitPending(String? value) =>
-      value == null ? _prefs.remove(_climbLimitPendingKey) : _prefs.setString(_climbLimitPendingKey, value);
+  Future<void> setClimbLimitPending(String? value) => value == null
+      ? _prefs.remove(_climbLimitPendingKey)
+      : _prefs.setString(_climbLimitPendingKey, value);
 
   static const _pendingAuthCodeKey = 'pending_auth_code';
 
@@ -599,8 +620,9 @@ class PrefsSettings implements Settings {
   String? get navDefault => _prefs.getString(_navDefaultKey);
 
   @override
-  Future<void> setNavDefault(String? value) =>
-      value == null ? _prefs.remove(_navDefaultKey) : _prefs.setString(_navDefaultKey, value);
+  Future<void> setNavDefault(String? value) => value == null
+      ? _prefs.remove(_navDefaultKey)
+      : _prefs.setString(_navDefaultKey, value);
 
   static const _riderCalibrationKey = 'rider_calibration';
 
@@ -618,7 +640,8 @@ class PrefsSettings implements Settings {
   String? get seenMapManifest => _prefs.getString(_seenMapManifestKey);
 
   @override
-  Future<void> setSeenMapManifest(String value) => _prefs.setString(_seenMapManifestKey, value);
+  Future<void> setSeenMapManifest(String value) =>
+      _prefs.setString(_seenMapManifestKey, value);
 
   static const _seenWaysManifestKey = 'seen_ways_manifest';
 
@@ -626,7 +649,8 @@ class PrefsSettings implements Settings {
   String? get seenWaysManifest => _prefs.getString(_seenWaysManifestKey);
 
   @override
-  Future<void> setSeenWaysManifest(String value) => _prefs.setString(_seenWaysManifestKey, value);
+  Future<void> setSeenWaysManifest(String value) =>
+      _prefs.setString(_seenWaysManifestKey, value);
 
   static const _seenRegionsKey = 'seen_regions';
 
@@ -634,7 +658,8 @@ class PrefsSettings implements Settings {
   String? get seenRegions => _prefs.getString(_seenRegionsKey);
 
   @override
-  Future<void> setSeenRegions(String value) => _prefs.setString(_seenRegionsKey, value);
+  Future<void> setSeenRegions(String value) =>
+      _prefs.setString(_seenRegionsKey, value);
 
   static const _seenRegionManifestsKey = 'seen_region_manifests';
 
@@ -642,7 +667,8 @@ class PrefsSettings implements Settings {
   String? get seenRegionManifests => _prefs.getString(_seenRegionManifestsKey);
 
   @override
-  Future<void> setSeenRegionManifests(String value) => _prefs.setString(_seenRegionManifestsKey, value);
+  Future<void> setSeenRegionManifests(String value) =>
+      _prefs.setString(_seenRegionManifestsKey, value);
 
   static const _appearanceKey = 'appearance';
 
@@ -650,7 +676,8 @@ class PrefsSettings implements Settings {
   String? get language => _prefs.getString(kLanguageSettingKey);
 
   @override
-  Future<void> setLanguage(String value) => _prefs.setString(kLanguageSettingKey, value);
+  Future<void> setLanguage(String value) =>
+      _prefs.setString(kLanguageSettingKey, value);
 
   @override
   String? get appearance => _prefs.getString(_appearanceKey);
@@ -676,7 +703,8 @@ class PrefsSettings implements Settings {
   bool get mapTourSeen => _prefs.getBool(_mapTourSeenKey) ?? false;
 
   @override
-  Future<void> setMapTourSeen(bool value) => _prefs.setBool(_mapTourSeenKey, value);
+  Future<void> setMapTourSeen(bool value) =>
+      _prefs.setBool(_mapTourSeenKey, value);
 
   static const _usernameStepDoneKey = 'username_step_done';
 
@@ -686,12 +714,15 @@ class PrefsSettings implements Settings {
 
   @override
   Future<void> addUsernameStepDone(String uid) => _prefs.setStringList(
-      _usernameStepDoneKey, ({...usernameStepDoneFor, uid}.toList()..sort()));
+    _usernameStepDoneKey,
+    ({...usernameStepDoneFor, uid}.toList()..sort()),
+  );
 
   static const _seenCoachToursKey = 'seen_coach_tours';
 
   @override
-  Set<String> get seenCoachTours => (_prefs.getStringList(_seenCoachToursKey) ?? const []).toSet();
+  Set<String> get seenCoachTours =>
+      (_prefs.getStringList(_seenCoachToursKey) ?? const []).toSet();
 
   // Sortiert geschrieben: dieselbe Menge ergibt dieselbe Liste.
   @override
@@ -701,7 +732,8 @@ class PrefsSettings implements Settings {
   static const _highlightsSeenVersionKey = 'highlights_seen_version';
 
   @override
-  String? get highlightsSeenVersion => _prefs.getString(_highlightsSeenVersionKey);
+  String? get highlightsSeenVersion =>
+      _prefs.getString(_highlightsSeenVersionKey);
 
   @override
   Future<void> setHighlightsSeenVersion(String value) =>
@@ -710,7 +742,8 @@ class PrefsSettings implements Settings {
   static const _seenHighlightIdsKey = 'seen_highlight_ids';
 
   @override
-  Set<String> get seenHighlightIds => (_prefs.getStringList(_seenHighlightIdsKey) ?? const []).toSet();
+  Set<String> get seenHighlightIds =>
+      (_prefs.getStringList(_seenHighlightIdsKey) ?? const []).toSet();
 
   @override
   Future<void> setSeenHighlightIds(Set<String> value) =>
@@ -725,8 +758,10 @@ class PrefsSettings implements Settings {
 /// Kartenquelle sichtbar als Griff nach Kacheln, die es ohne Netz nicht
 /// gibt.
 final settingsProvider = Provider<Settings>((ref) {
-  throw StateError('settingsProvider muss überschrieben werden — '
-      'siehe main() und test/fakes/test_app.dart');
+  throw StateError(
+    'settingsProvider muss überschrieben werden — '
+    'siehe main() und test/fakes/test_app.dart',
+  );
 });
 
 /// Ein gerätelokal gemerkter An/Aus-Schalter.
@@ -758,7 +793,11 @@ class RememberedFlag extends Notifier<bool> {
 
   void set(bool value) {
     state = value;
-    unawaited(write(ref.read(settingsProvider), value)
-        .catchError((Object e, StackTrace s) => logError(label, e, s)));
+    unawaited(
+      write(
+        ref.read(settingsProvider),
+        value,
+      ).catchError((Object e, StackTrace s) => logError(label, e, s)),
+    );
   }
 }

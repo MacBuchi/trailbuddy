@@ -61,8 +61,11 @@ final routerProvider = Provider<GoRouter>((ref) {
   // `updateUser` das Passwort wirklich geändert hat — dessen
   // `userUpdated`-Ereignis öffnet die App dann (siehe
   // AuthRepository.resetPasswordWithCode).
-  final refresh = _AuthRefresh(authRepository.onAuthStateChange
-      .where((state) => state.event != AuthChangeEvent.passwordRecovery));
+  final refresh = _AuthRefresh(
+    authRepository.onAuthStateChange.where(
+      (state) => state.event != AuthChangeEvent.passwordRecovery,
+    ),
+  );
   ref.onDispose(refresh.dispose);
 
   final router = GoRouter(
@@ -70,13 +73,15 @@ final routerProvider = Provider<GoRouter>((ref) {
     refreshListenable: refresh,
     redirect: (context, state) {
       final loggedIn = authRepository.currentSession != null;
-      final onAuthPage = state.matchedLocation == '/login' ||
+      final onAuthPage =
+          state.matchedLocation == '/login' ||
           state.matchedLocation == '/signup';
       if (!loggedIn) return onAuthPage ? null : '/login';
       // Ein gescannter QR (#502): Wer schon angemeldet ist, landet bei den
       // Buddys; wer erst loginen muss, kommt nach der Anmeldung dort an —
       // der Name bleibt solange liegen, bis ihn `FriendsScreen` holt.
-      if (ref.read(inviteProvider) != null && state.matchedLocation != '/friends') {
+      if (ref.read(inviteProvider) != null &&
+          state.matchedLocation != '/friends') {
         return '/friends';
       }
       if (onAuthPage) return '/';
@@ -91,30 +96,42 @@ final routerProvider = Provider<GoRouter>((ref) {
       // statt als Aufruf, weil der Web-Worker die App aus dem Nichts
       // unter `#/trail/<id>` öffnet.
       GoRoute(
-          path: '/trail/:id',
-          redirect: (context, state) {
-            ref.read(mapFocusTrailProvider.notifier).state =
-                state.pathParameters['id'];
-            return '/';
-          }),
+        path: '/trail/:id',
+        redirect: (context, state) {
+          ref.read(mapFocusTrailProvider.notifier).state =
+              state.pathParameters['id'];
+          return '/';
+        },
+      ),
       GoRoute(
-          path: '/signup', builder: (context, state) => const SignupScreen()),
+        path: '/signup',
+        builder: (context, state) => const SignupScreen(),
+      ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) =>
             AppShell(navigationShell: navigationShell),
         branches: [
-          StatefulShellBranch(routes: [
-            GoRoute(path: '/', builder: (context, state) => const MapScreen()),
-          ]),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/',
+                builder: (context, state) => const MapScreen(),
+              ),
+            ],
+          ),
           // Der Reiter „Trails" steht direkt neben der Karte, weil er
           // dieselben Daten zeigt — nur als Liste.
-          StatefulShellBranch(routes: [
-            GoRoute(
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
                 path: '/trails',
-                builder: (context, state) => const TrailsScreen()),
-          ]),
-          StatefulShellBranch(routes: [
-            GoRoute(
+                builder: (context, state) => const TrailsScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
                 path: '/friends',
                 builder: (context, state) => const FriendsScreen(),
                 // Der Verlauf mit einem Buddy (#34) als Unterroute: Die
@@ -123,16 +140,19 @@ final routerProvider = Provider<GoRouter>((ref) {
                 // Element samt Textfeld des vorigen übernimmt.
                 routes: [
                   GoRoute(
-                      path: 'chat/:id',
-                      builder: (context, state) {
-                        final id = state.pathParameters['id'] ?? '';
-                        return ConversationScreen(
-                            key: ValueKey(id), otherId: id);
-                      }),
-                ]),
-          ]),
-          StatefulShellBranch(routes: [
-            GoRoute(
+                    path: 'chat/:id',
+                    builder: (context, state) {
+                      final id = state.pathParameters['id'] ?? '';
+                      return ConversationScreen(key: ValueKey(id), otherId: id);
+                    },
+                  ),
+                ],
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
                 path: '/profile',
                 builder: (context, state) => const ProfileScreen(),
                 // Unterrouten des Profil-Tabs statt imperativem
@@ -140,59 +160,78 @@ final routerProvider = Provider<GoRouter>((ref) {
                 // laufende Vorgänge überleben den Tab-Wechsel.
                 routes: [
                   GoRoute(
-                      path: 'import',
-                      builder: (context, state) => const TrailImportScreen()),
+                    path: 'import',
+                    builder: (context, state) => const TrailImportScreen(),
+                  ),
                   GoRoute(
-                      path: 'rides',
-                      builder: (context, state) => const RidesScreen()),
+                    path: 'rides',
+                    builder: (context, state) => const RidesScreen(),
+                  ),
                   GoRoute(
-                      path: 'still-valid',
-                      builder: (context, state) => const StillValidScreen()),
+                    path: 'still-valid',
+                    builder: (context, state) => const StillValidScreen(),
+                  ),
                   GoRoute(
-                      path: 'merge-proposals',
-                      builder: (context, state) => const MergeProposalsScreen()),
+                    path: 'merge-proposals',
+                    builder: (context, state) => const MergeProposalsScreen(),
+                  ),
                   GoRoute(
-                      path: 'areas',
-                      builder: (context, state) => const AreasScreen()),
+                    path: 'areas',
+                    builder: (context, state) => const AreasScreen(),
+                  ),
                   GoRoute(
-                      path: 'changelog',
-                      builder: (context, state) => const ChangelogScreen()),
+                    path: 'changelog',
+                    builder: (context, state) => const ChangelogScreen(),
+                  ),
                   GoRoute(
-                      path: 'account',
-                      builder: (context, state) => const AccountScreen()),
+                    path: 'account',
+                    builder: (context, state) => const AccountScreen(),
+                  ),
                   GoRoute(
-                      path: 'notifications',
-                      builder: (context, state) => const NotificationsScreen()),
+                    path: 'notifications',
+                    builder: (context, state) => const NotificationsScreen(),
+                  ),
                   GoRoute(
-                      path: 'rider',
-                      builder: (context, state) => const RiderProfileScreen()),
+                    path: 'rider',
+                    builder: (context, state) => const RiderProfileScreen(),
+                  ),
                   GoRoute(
-                      path: 'navigation',
-                      builder: (context, state) => const NavigationSettingsScreen()),
+                    path: 'navigation',
+                    builder: (context, state) =>
+                        const NavigationSettingsScreen(),
+                  ),
                   GoRoute(
-                      path: 'watch',
-                      builder: (context, state) => const WatchShelfScreen()),
+                    path: 'watch',
+                    builder: (context, state) => const WatchShelfScreen(),
+                  ),
                   GoRoute(
-                      path: 'appearance',
-                      builder: (context, state) => const AppearanceScreen()),
+                    path: 'appearance',
+                    builder: (context, state) => const AppearanceScreen(),
+                  ),
                   GoRoute(
-                      path: 'language',
-                      builder: (context, state) => const LanguageScreen()),
+                    path: 'language',
+                    builder: (context, state) => const LanguageScreen(),
+                  ),
                   GoRoute(
-                      path: 'about',
-                      builder: (context, state) => const AboutScreen()),
+                    path: 'about',
+                    builder: (context, state) => const AboutScreen(),
+                  ),
                   // Die Kurzanleitung (#131). Unter dem Profil, weil sie
                   // dort als Zeile steht; die Leerzustände der anderen
                   // Reiter springen mit `push` hierher.
                   GoRoute(
-                      path: 'help',
-                      builder: (context, state) => const HelpScreen()),
+                    path: 'help',
+                    builder: (context, state) => const HelpScreen(),
+                  ),
                   // „Entdecken" (#135): alle Funktionen und Tipps.
                   GoRoute(
-                      path: 'discover',
-                      builder: (context, state) => const DiscoverScreen()),
-                ]),
-          ]),
+                    path: 'discover',
+                    builder: (context, state) => const DiscoverScreen(),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ],
       ),
     ],
@@ -225,82 +264,98 @@ class AppShell extends ConsumerWidget {
     final onMap = navigationShell.currentIndex == kMapBranchIndex;
     // Die Namenswahl nach einer Anmeldung über einen Anbieter (#422) liegt
     // vor der GANZEN Hülle: keine Reiterleiste, keine Karte, keine Tour.
-    return UsernameGate(child: PopScope(
-      canPop: onMap,
-      onPopInvokedWithResult: (didPop, _) {
-        if (!didPop) navigationShell.goBranch(kMapBranchIndex);
-      },
-      child: Scaffold(
-      // Die Tastatur ÜBERLAGERT, sie schiebt nicht (PilzBuddy #397).
-      //
-      // Ab Werk schrumpft ein Scaffold seinen Body um `viewInsets.bottom`.
-      // Hier heißt das: Karte, Knopfspalte UND die Reiterleiste wandern
-      // hoch, sobald irgendwo ein Textfeld den Fokus bekommt — obwohl in
-      // dieser Hülle gar kein Eingabefeld liegt. Die Felder stecken alle
-      // in eigenen Routen (Blätter, Dialoge), und die rechnen ihr
-      // `viewInsets` selbst ein; ein Reiter mit eigenem Scaffold weicht
-      // weiter aus.
-      //
-      // Der eigentliche Anlass ist der seltene Fall aus dem Feld: Bleibt
-      // das Inset nach dem Schließen der Tastatur stehen, schrumpft der
-      // Scaffold WEITER — und was man dann sieht, ist das untere Drittel
-      // in `colorScheme.surface`, also weiß. Diese Zeile nimmt dem
-      // hängenden Inset die sichtbare Wirkung, und zwar strukturell: Was
-      // nicht schrumpft, kann keinen Streifen hinterlassen.
-      resizeToAvoidBottomInset: false,
-      // Und weil sie nicht ausweicht, liegt ihr Body schon eine
-      // Leistenhöhe über dem Rand — ein Reiter-Scaffold darf nur um den
-      // Rest der Tastatur schrumpfen.
-      // Der Ausgangskorb (#30) hört in der Hülle, nicht in einem Reiter
-      // — der Browser startet nach dem Neuladen auf dem Reiter der URL.
-      body: OutboxTrigger(child: AirtimeSyncTrigger(child: KeyboardInsetBelowBar(child: navigationShell))),
-      // Im Bild-im-Bild (#232, 9.6) ist die App nur noch Karte: keine
-      // Reiterleiste, die das kleine Fenster zur Hälfte füllte. Und
-      // solange navigiert wird, ist die Karte Vollbild (#312, Design 13):
-      // Die Leiste käme unter das Routenband, und wer fährt, wechselt
-      // keinen Reiter — „Beenden" bringt sie zurück.
-      bottomNavigationBar: ref.watch(pipModeProvider) || ref.watch(navigationProvider) != null
-          ? null
-          : CoachAnchor(
-        id: NavCoach.bar,
-        child: NavigationBar(
-          selectedIndex: navigationShell.currentIndex,
-          onDestinationSelected: (index) => navigationShell.goBranch(
-            index,
-            initialLocation: index == navigationShell.currentIndex,
+    return UsernameGate(
+      child: PopScope(
+        canPop: onMap,
+        onPopInvokedWithResult: (didPop, _) {
+          if (!didPop) navigationShell.goBranch(kMapBranchIndex);
+        },
+        child: Scaffold(
+          // Die Tastatur ÜBERLAGERT, sie schiebt nicht (PilzBuddy #397).
+          //
+          // Ab Werk schrumpft ein Scaffold seinen Body um `viewInsets.bottom`.
+          // Hier heißt das: Karte, Knopfspalte UND die Reiterleiste wandern
+          // hoch, sobald irgendwo ein Textfeld den Fokus bekommt — obwohl in
+          // dieser Hülle gar kein Eingabefeld liegt. Die Felder stecken alle
+          // in eigenen Routen (Blätter, Dialoge), und die rechnen ihr
+          // `viewInsets` selbst ein; ein Reiter mit eigenem Scaffold weicht
+          // weiter aus.
+          //
+          // Der eigentliche Anlass ist der seltene Fall aus dem Feld: Bleibt
+          // das Inset nach dem Schließen der Tastatur stehen, schrumpft der
+          // Scaffold WEITER — und was man dann sieht, ist das untere Drittel
+          // in `colorScheme.surface`, also weiß. Diese Zeile nimmt dem
+          // hängenden Inset die sichtbare Wirkung, und zwar strukturell: Was
+          // nicht schrumpft, kann keinen Streifen hinterlassen.
+          resizeToAvoidBottomInset: false,
+          // Und weil sie nicht ausweicht, liegt ihr Body schon eine
+          // Leistenhöhe über dem Rand — ein Reiter-Scaffold darf nur um den
+          // Rest der Tastatur schrumpfen.
+          // Der Ausgangskorb (#30) hört in der Hülle, nicht in einem Reiter
+          // — der Browser startet nach dem Neuladen auf dem Reiter der URL.
+          body: OutboxTrigger(
+            child: AirtimeSyncTrigger(
+              child: KeyboardInsetBelowBar(child: navigationShell),
+            ),
           ),
-          // Die Anker der Karten-Tour (#132): Sie nennt die Bereiche zum
-          // Schluss, der Ring liegt je Bereich.
-          destinations: [
-            CoachAnchor(
-                id: NavCoach.map,
-                child: NavigationDestination(
-                    icon: const Icon(Icons.map_outlined),
-                    selectedIcon: const Icon(Icons.map),
-                    label: context.l10n.tabMap)),
-            CoachAnchor(
-                id: NavCoach.trails,
-                child: NavigationDestination(
-                    icon: const Icon(Icons.route_outlined),
-                    selectedIcon: const Icon(Icons.route),
-                    label: context.l10n.tabTrails)),
-            CoachAnchor(
-                id: NavCoach.buddys,
-                child: NavigationDestination(
-                    icon: const BuddysNavIcon(selected: false),
-                    selectedIcon: const BuddysNavIcon(selected: true),
-                    label: context.l10n.tabBuddys)),
-            CoachAnchor(
-                id: NavCoach.profile,
-                child: NavigationDestination(
-                    icon: const Icon(Icons.person_outline),
-                    selectedIcon: const Icon(Icons.person),
-                    label: context.l10n.tabProfile)),
-          ],
+          // Im Bild-im-Bild (#232, 9.6) ist die App nur noch Karte: keine
+          // Reiterleiste, die das kleine Fenster zur Hälfte füllte. Und
+          // solange navigiert wird, ist die Karte Vollbild (#312, Design 13):
+          // Die Leiste käme unter das Routenband, und wer fährt, wechselt
+          // keinen Reiter — „Beenden" bringt sie zurück.
+          bottomNavigationBar:
+              ref.watch(pipModeProvider) ||
+                  ref.watch(navigationProvider) != null
+              ? null
+              : CoachAnchor(
+                  id: NavCoach.bar,
+                  child: NavigationBar(
+                    selectedIndex: navigationShell.currentIndex,
+                    onDestinationSelected: (index) => navigationShell.goBranch(
+                      index,
+                      initialLocation: index == navigationShell.currentIndex,
+                    ),
+                    // Die Anker der Karten-Tour (#132): Sie nennt die Bereiche zum
+                    // Schluss, der Ring liegt je Bereich.
+                    destinations: [
+                      CoachAnchor(
+                        id: NavCoach.map,
+                        child: NavigationDestination(
+                          icon: const Icon(Icons.map_outlined),
+                          selectedIcon: const Icon(Icons.map),
+                          label: context.l10n.tabMap,
+                        ),
+                      ),
+                      CoachAnchor(
+                        id: NavCoach.trails,
+                        child: NavigationDestination(
+                          icon: const Icon(Icons.route_outlined),
+                          selectedIcon: const Icon(Icons.route),
+                          label: context.l10n.tabTrails,
+                        ),
+                      ),
+                      CoachAnchor(
+                        id: NavCoach.buddys,
+                        child: NavigationDestination(
+                          icon: const BuddysNavIcon(selected: false),
+                          selectedIcon: const BuddysNavIcon(selected: true),
+                          label: context.l10n.tabBuddys,
+                        ),
+                      ),
+                      CoachAnchor(
+                        id: NavCoach.profile,
+                        child: NavigationDestination(
+                          icon: const Icon(Icons.person_outline),
+                          selectedIcon: const Icon(Icons.person),
+                          label: context.l10n.tabProfile,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
         ),
       ),
-    ),
-    ));
+    );
   }
 }
 
@@ -315,8 +370,10 @@ class BuddysNavIcon extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final unread =
-        ref.watch(unreadMessagesProvider).values.fold(0, (a, b) => a + b);
+    final unread = ref
+        .watch(unreadMessagesProvider)
+        .values
+        .fold(0, (a, b) => a + b);
     final icon = Icon(selected ? Icons.group : Icons.group_outlined);
     if (unread == 0) return icon;
     return Badge(

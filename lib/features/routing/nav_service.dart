@@ -54,7 +54,8 @@ class PlatformNavServiceBridge implements NavServiceBridge {
       // Umbenennen statt überschreiben: Der Dienst liest dieselbe Datei
       // aus einem anderen Isolate und soll nie eine halbe sehen.
       await part.rename(file.path);
-      final rev = await FlutterForegroundTask.getData<int>(key: kNavDataRev) ?? 0;
+      final rev =
+          await FlutterForegroundTask.getData<int>(key: kNavDataRev) ?? 0;
       await FlutterForegroundTask.saveData(key: kRideDataDir, value: base);
       await FlutterForegroundTask.saveData(key: kNavDataRev, value: rev + 1);
       await FlutterForegroundTask.saveData(key: kNavDataActive, value: true);
@@ -81,9 +82,13 @@ class PlatformNavServiceBridge implements NavServiceBridge {
   Future<NavRouteData?> restore() async {
     if (!_supported) return null;
     try {
-      if (await FlutterForegroundTask.getData<bool>(key: kNavDataActive) != true) return null;
+      if (await FlutterForegroundTask.getData<bool>(key: kNavDataActive) !=
+          true) {
+        return null;
+      }
       final file = navRouteFile((await getApplicationSupportDirectory()).path);
-      if (!await FlutterForegroundTask.isRunningService || !await file.exists()) {
+      if (!await FlutterForegroundTask.isRunningService ||
+          !await file.exists()) {
         // Liegen geblieben (Neustart des Geräts, Absturz): aufräumen statt
         // Stunden später eine alte Route aufzumachen.
         await disarm();
@@ -91,7 +96,9 @@ class PlatformNavServiceBridge implements NavServiceBridge {
       }
       final route = NavRouteData.decode(await file.readAsString());
       if (route == null) return null;
-      final along = await FlutterForegroundTask.getData<double>(key: kNavDataAlong);
+      final along = await FlutterForegroundTask.getData<double>(
+        key: kNavDataAlong,
+      );
       return along == null ? route : route.withStart(along);
     } catch (e, stackTrace) {
       logError('Navigation: laufende Navigation zurückholen', e, stackTrace);
@@ -100,7 +107,9 @@ class PlatformNavServiceBridge implements NavServiceBridge {
   }
 }
 
-final navServiceBridgeProvider = Provider<NavServiceBridge>((ref) => const PlatformNavServiceBridge());
+final navServiceBridgeProvider = Provider<NavServiceBridge>(
+  (ref) => const PlatformNavServiceBridge(),
+);
 
 /// Die Navigation als Melder am EINEN Dienst (9.5): Typ `location`, Takt
 /// wie die Fahrt, ein Knopf „Navigation beenden". Kein zweiter Dienst,
@@ -114,10 +123,13 @@ class NavKeepAlive {
 
   Future<void> start() async {
     final l = serviceL10n();
-    await _coordinator.start(key, l.navNoticeWaiting,
-        title: l.navNoticeTitle,
-        types: const {KeepAliveType.location},
-        buttons: [(id: kNavStopButton, text: l.navNoticeStop)]);
+    await _coordinator.start(
+      key,
+      l.navNoticeWaiting,
+      title: l.navNoticeTitle,
+      types: const {KeepAliveType.location},
+      buttons: [(id: kNavStopButton, text: l.navNoticeStop)],
+    );
     await _coordinator.setRepeat(key, kRideTickInterval);
   }
 
@@ -127,5 +139,6 @@ class NavKeepAlive {
   }
 }
 
-final navKeepAliveProvider =
-    Provider<NavKeepAlive>((ref) => NavKeepAlive(ref.watch(keepAliveCoordinatorProvider)));
+final navKeepAliveProvider = Provider<NavKeepAlive>(
+  (ref) => NavKeepAlive(ref.watch(keepAliveCoordinatorProvider)),
+);

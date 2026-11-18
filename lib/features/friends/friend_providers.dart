@@ -37,10 +37,23 @@ class FriendshipsNotifier extends AsyncNotifier<List<FriendshipEntry>>
     await reloadAfterWrite('Freundschaften neu laden');
     // Erst mit der Freundschaft werden seine Trails sichtbar — die Liste
     // muss neu vom Server kommen, nicht aus dem Zwischenspeicher.
-    final fresh = await ref.read(trailsProvider.notifier).reloadAfterWrite('Trails nach dem Verbinden laden');
+    final fresh = await ref
+        .read(trailsProvider.notifier)
+        .reloadAfterWrite('Trails nach dem Verbinden laden');
     final after = ref.read(trailsProvider).valueOrNull;
-    if (!fresh || before == null || after == null || myId == null || buddyId == null) return null;
-    return summarizeConnection(before: before, after: after, myId: myId, buddyId: buddyId);
+    if (!fresh ||
+        before == null ||
+        after == null ||
+        myId == null ||
+        buddyId == null) {
+      return null;
+    }
+    return summarizeConnection(
+      before: before,
+      after: after,
+      myId: myId,
+      buddyId: buddyId,
+    );
   }
 
   Future<void> remove(String friendshipId) async {
@@ -56,4 +69,5 @@ class FriendshipsNotifier extends AsyncNotifier<List<FriendshipEntry>>
 
 final friendshipsProvider =
     AsyncNotifierProvider<FriendshipsNotifier, List<FriendshipEntry>>(
-        FriendshipsNotifier.new);
+      FriendshipsNotifier.new,
+    );

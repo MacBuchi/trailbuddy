@@ -12,21 +12,37 @@ import 'package:trailbuddy/core/app_info.dart';
 
 void main() {
   final gradle = File('android/app/build.gradle.kts').readAsStringSync();
-  final manifest = File('android/app/src/main/AndroidManifest.xml').readAsStringSync();
-  final play = File('android/app/src/play/AndroidManifest.xml').readAsStringSync();
-  final appId = RegExp(r'applicationId = "([a-z.]+)"').firstMatch(gradle)!.group(1)!;
+  final manifest = File(
+    'android/app/src/main/AndroidManifest.xml',
+  ).readAsStringSync();
+  final play = File(
+    'android/app/src/play/AndroidManifest.xml',
+  ).readAsStringSync();
+  final appId = RegExp(
+    r'applicationId = "([a-z.]+)"',
+  ).firstMatch(gradle)!.group(1)!;
 
   test('applicationId ist die eine Quelle', () {
     expect(appId, 'de.mcbuchi.trailbuddy');
     expect(gradle, contains('namespace = "$appId"'));
-    expect(File('android/app/src/main/kotlin/${appId.replaceAll('.', '/')}/MainActivity.kt').existsSync(),
-        isTrue, reason: 'Kotlin-Verzeichnis passt nicht zur applicationId');
+    expect(
+      File(
+        'android/app/src/main/kotlin/${appId.replaceAll('.', '/')}/MainActivity.kt',
+      ).existsSync(),
+      isTrue,
+      reason: 'Kotlin-Verzeichnis passt nicht zur applicationId',
+    );
   });
 
   test('der Rücksprung der Anmeldung (#398) kommt in der App an', () {
     // Manifest und Dart bauen dieselbe Adresse; ein fester Name statt
     // `${applicationId}` schickte die Dev-App in die echte.
-    expect(manifest, contains('<data android:scheme="\${applicationId}" android:host="login-callback"/>'));
+    expect(
+      manifest,
+      contains(
+        '<data android:scheme="\${applicationId}" android:host="login-callback"/>',
+      ),
+    );
     expect(manifest, contains('android.intent.category.BROWSABLE'));
     final dart = File('lib/data/auth_repository.dart').readAsStringSync();
     expect(dart, contains("'\${info.packageName}://login-callback'"));
@@ -35,12 +51,23 @@ void main() {
   test('die gescannte Einladung (#502) fängt Android ab', () {
     // Manifest, QR-Adresse in Dart und das Parsing müssen dieselbe Adresse
     // nennen: weicht eine ab, öffnet sich weiter der Browser — still.
-    expect(manifest, contains('android:scheme="https" android:host="macbuchi.github.io"'));
+    expect(
+      manifest,
+      contains('android:scheme="https" android:host="macbuchi.github.io"'),
+    );
     expect(manifest, contains('android:pathPrefix="/trailbuddy/"'));
-    expect(manifest, contains('android:query="invite"'),
-        reason: 'ohne query öffnet jeder Klick auf die Seite die App');
-    expect(AppInfo.inviteUrl('Jan'), startsWith('https://macbuchi.github.io/trailbuddy/'));
-    final dart = File('lib/features/friends/invite_link.dart').readAsStringSync();
+    expect(
+      manifest,
+      contains('android:query="invite"'),
+      reason: 'ohne query öffnet jeder Klick auf die Seite die App',
+    );
+    expect(
+      AppInfo.inviteUrl('Jan'),
+      startsWith('https://macbuchi.github.io/trailbuddy/'),
+    );
+    final dart = File(
+      'lib/features/friends/invite_link.dart',
+    ).readAsStringSync();
     expect(dart, contains("inviteHost = 'macbuchi.github.io'"));
     expect(dart, contains("invitePathPrefix = '/trailbuddy/'"));
     // Die Play-Variante fügt nichts hinzu: das Flavor-Manifest nimmt nur
@@ -51,7 +78,9 @@ void main() {
   test('der Install-Kanal heißt in Kotlin und Dart gleich', () {
     // Ein Tippfehler auf einer Seite antwortet stumm mit „kein Kanal",
     // und Dart fällt dann für immer auf den Browser zurück.
-    final kotlin = File('android/app/src/main/kotlin/${appId.replaceAll('.', '/')}/MainActivity.kt').readAsStringSync();
+    final kotlin = File(
+      'android/app/src/main/kotlin/${appId.replaceAll('.', '/')}/MainActivity.kt',
+    ).readAsStringSync();
     final dart = File('lib/data/apk_installer.dart').readAsStringSync();
     const channel = 'de.mcbuchi.trailbuddy/apk_install';
     expect(kotlin, contains('"$channel"'));
@@ -61,7 +90,9 @@ void main() {
   });
 
   test('der Bildschirm-Kanal heißt in Kotlin und Dart gleich (#232)', () {
-    final kotlin = File('android/app/src/main/kotlin/${appId.replaceAll('.', '/')}/MainActivity.kt').readAsStringSync();
+    final kotlin = File(
+      'android/app/src/main/kotlin/${appId.replaceAll('.', '/')}/MainActivity.kt',
+    ).readAsStringSync();
     final dart = File('lib/core/screen_awake_io.dart').readAsStringSync();
     const channel = 'de.mcbuchi.trailbuddy/screen';
     expect(kotlin, contains('"$channel"'));
@@ -71,7 +102,9 @@ void main() {
   });
 
   test('der Sensor-Kanal heißt in Kotlin und Dart gleich (#36)', () {
-    final kotlin = File('android/app/src/main/kotlin/${appId.replaceAll('.', '/')}/MainActivity.kt').readAsStringSync();
+    final kotlin = File(
+      'android/app/src/main/kotlin/${appId.replaceAll('.', '/')}/MainActivity.kt',
+    ).readAsStringSync();
     final dart = File('lib/features/rides/sensor_log.dart').readAsStringSync();
     const channel = 'de.mcbuchi.trailbuddy/sensors';
     expect(kotlin, contains('"$channel"'));
@@ -79,82 +112,152 @@ void main() {
     expect(kotlin, contains('maximumRange'));
   });
 
-  test('Bild-im-Bild: Kanal in Kotlin und Dart gleich, Activity darf ins Fenster (#232)', () {
-    final kotlin = File('android/app/src/main/kotlin/${appId.replaceAll('.', '/')}/MainActivity.kt').readAsStringSync();
-    final dart = File('lib/core/picture_in_picture_io.dart').readAsStringSync();
-    const channel = 'de.mcbuchi.trailbuddy/pip';
-    expect(kotlin, contains('"$channel"'));
-    expect(dart, contains("'$channel'"));
-    // Ohne das Attribut wirft `enterPictureInPictureMode`; ohne die
-    // configChanges startete die Activity beim Schrumpfen neu.
-    final activity = RegExp(r'<activity[^>]*android:name="\.MainActivity"[^>]*>').firstMatch(manifest)!.group(0)!;
-    expect(activity, contains('android:supportsPictureInPicture="true"'));
-    final changes = RegExp(r'android:configChanges="([^"]+)"').firstMatch(activity)!.group(1)!.split('|');
-    expect(changes, containsAll(['screenSize', 'smallestScreenSize', 'screenLayout', 'orientation']));
-    // Hinein von selbst ab Android 12, darunter beim Verlassen; der Knopf
-    // im Fenster geht nur an uns selbst. Kein Overlay-Recht (9.6).
-    expect(kotlin, contains('setAutoEnterEnabled'));
-    expect(kotlin, contains('override fun onUserLeaveHint'));
-    expect(kotlin, contains('RECEIVER_NOT_EXPORTED'));
-    expect(manifest, isNot(contains('android.permission.SYSTEM_ALERT_WINDOW')));
-    // „Minimieren" (#312 N3): jede Methode, die Dart ruft, kennt Kotlin —
-    // eine fehlende endet still in `notImplemented`.
-    for (final method in ['allow', 'supported', 'enter']) {
-      expect(dart, contains("invokeMethod<${method == 'supported' ? 'bool' : 'void'}>('$method'"));
-      expect(kotlin, contains('"$method" ->'));
-    }
-    // Im Fenster bleibt Flutter „resumed" (#415): maplibre_android hält
-    // die Karte sonst an, und das Fenster zeigte ein eingefrorenes Bild.
-    // Ob es wirkt, sieht nur das Gerät.
-    final pause = RegExp(r'override fun onPause\(\) \{([^}]*)\}').firstMatch(kotlin)?.group(1) ?? '';
-    expect(pause, contains('if (isInPictureInPictureMode) keepResumedInPip()'));
-    expect(kotlin, contains('appIsResumed()'));
-  });
+  test(
+    'Bild-im-Bild: Kanal in Kotlin und Dart gleich, Activity darf ins Fenster (#232)',
+    () {
+      final kotlin = File(
+        'android/app/src/main/kotlin/${appId.replaceAll('.', '/')}/MainActivity.kt',
+      ).readAsStringSync();
+      final dart = File(
+        'lib/core/picture_in_picture_io.dart',
+      ).readAsStringSync();
+      const channel = 'de.mcbuchi.trailbuddy/pip';
+      expect(kotlin, contains('"$channel"'));
+      expect(dart, contains("'$channel'"));
+      // Ohne das Attribut wirft `enterPictureInPictureMode`; ohne die
+      // configChanges startete die Activity beim Schrumpfen neu.
+      final activity = RegExp(
+        r'<activity[^>]*android:name="\.MainActivity"[^>]*>',
+      ).firstMatch(manifest)!.group(0)!;
+      expect(activity, contains('android:supportsPictureInPicture="true"'));
+      final changes = RegExp(
+        r'android:configChanges="([^"]+)"',
+      ).firstMatch(activity)!.group(1)!.split('|');
+      expect(
+        changes,
+        containsAll([
+          'screenSize',
+          'smallestScreenSize',
+          'screenLayout',
+          'orientation',
+        ]),
+      );
+      // Hinein von selbst ab Android 12, darunter beim Verlassen; der Knopf
+      // im Fenster geht nur an uns selbst. Kein Overlay-Recht (9.6).
+      expect(kotlin, contains('setAutoEnterEnabled'));
+      expect(kotlin, contains('override fun onUserLeaveHint'));
+      expect(kotlin, contains('RECEIVER_NOT_EXPORTED'));
+      expect(
+        manifest,
+        isNot(contains('android.permission.SYSTEM_ALERT_WINDOW')),
+      );
+      // „Minimieren" (#312 N3): jede Methode, die Dart ruft, kennt Kotlin —
+      // eine fehlende endet still in `notImplemented`.
+      for (final method in ['allow', 'supported', 'enter']) {
+        expect(
+          dart,
+          contains(
+            "invokeMethod<${method == 'supported' ? 'bool' : 'void'}>('$method'",
+          ),
+        );
+        expect(kotlin, contains('"$method" ->'));
+      }
+      // Im Fenster bleibt Flutter „resumed" (#415): maplibre_android hält
+      // die Karte sonst an, und das Fenster zeigte ein eingefrorenes Bild.
+      // Ob es wirkt, sieht nur das Gerät.
+      final pause =
+          RegExp(
+            r'override fun onPause\(\) \{([^}]*)\}',
+          ).firstMatch(kotlin)?.group(1) ??
+          '';
+      expect(
+        pause,
+        contains('if (isInPictureInPictureMode) keepResumedInPip()'),
+      );
+      expect(kotlin, contains('appIsResumed()'));
+    },
+  );
 
-  test('Zurück auf der Karte legt die App in den Hintergrund, statt sie zu beenden', () {
-    // #175: Flutter ruft ohne Überschreibung `finish()` — die Karte
-    // startete danach von vorn. Der Weg dorthin ist Dart (AppShell); hier
-    // steht nur, dass am Ende `moveTaskToBack` steht und nicht `finish`.
-    final kotlin = File('android/app/src/main/kotlin/${appId.replaceAll('.', '/')}/MainActivity.kt').readAsStringSync();
-    final body = RegExp(r'override fun popSystemNavigator\(\): Boolean \{([^}]*)\}').firstMatch(kotlin);
-    expect(body, isNotNull, reason: 'popSystemNavigator ist nicht überschrieben');
-    expect(body!.group(1), contains('moveTaskToBack(true)'));
-    expect(body.group(1), contains('return true'));
-    expect(body.group(1), isNot(contains('finish')));
-  });
+  test(
+    'Zurück auf der Karte legt die App in den Hintergrund, statt sie zu beenden',
+    () {
+      // #175: Flutter ruft ohne Überschreibung `finish()` — die Karte
+      // startete danach von vorn. Der Weg dorthin ist Dart (AppShell); hier
+      // steht nur, dass am Ende `moveTaskToBack` steht und nicht `finish`.
+      final kotlin = File(
+        'android/app/src/main/kotlin/${appId.replaceAll('.', '/')}/MainActivity.kt',
+      ).readAsStringSync();
+      final body = RegExp(
+        r'override fun popSystemNavigator\(\): Boolean \{([^}]*)\}',
+      ).firstMatch(kotlin);
+      expect(
+        body,
+        isNotNull,
+        reason: 'popSystemNavigator ist nicht überschrieben',
+      );
+      expect(body!.group(1), contains('moveTaskToBack(true)'));
+      expect(body.group(1), contains('return true'));
+      expect(body.group(1), isNot(contains('finish')));
+    },
+  );
 
   test('Zurück geht auch mit Predictive Back immer an Dart', () {
     // #432: Ab Android 16 (targetSdk 36) gibt Android Zurück nur an
     // Flutter, solange dessen Rückruf angemeldet ist — und Dart meldete
     // nach dem Wiederöffnen „nein", obwohl das Trail-Blatt offen war. Der
     // Rückruf steht deshalb ab `onCreate` und bleibt, was Dart auch meldet.
-    final kotlin = File('android/app/src/main/kotlin/${appId.replaceAll('.', '/')}/MainActivity.kt').readAsStringSync();
-    final onCreate = RegExp(r'override fun onCreate\([^)]*\) \{\s*super\.onCreate\([^)]*\)\s*(//[^\n]*\n\s*)*registerOnBackInvokedCallback\(\)')
-        .hasMatch(kotlin);
-    expect(onCreate, isTrue, reason: 'onCreate meldet den Rückruf nicht gleich nach super an');
-    final body = RegExp(r'override fun setFrameworkHandlesBack\(frameworkHandlesBack: Boolean\) \{([^}]*)\}').firstMatch(kotlin);
-    expect(body, isNotNull, reason: 'setFrameworkHandlesBack ist nicht überschrieben');
+    final kotlin = File(
+      'android/app/src/main/kotlin/${appId.replaceAll('.', '/')}/MainActivity.kt',
+    ).readAsStringSync();
+    final onCreate = RegExp(
+      r'override fun onCreate\([^)]*\) \{\s*super\.onCreate\([^)]*\)\s*(//[^\n]*\n\s*)*registerOnBackInvokedCallback\(\)',
+    ).hasMatch(kotlin);
+    expect(
+      onCreate,
+      isTrue,
+      reason: 'onCreate meldet den Rückruf nicht gleich nach super an',
+    );
+    final body = RegExp(
+      r'override fun setFrameworkHandlesBack\(frameworkHandlesBack: Boolean\) \{([^}]*)\}',
+    ).firstMatch(kotlin);
+    expect(
+      body,
+      isNotNull,
+      reason: 'setFrameworkHandlesBack ist nicht überschrieben',
+    );
     expect(body!.group(1)!.trim(), 'super.setFrameworkHandlesBack(true)');
   });
 
-  test('der Beendigungs-Kanal heißt in Kotlin und Dart gleich, das Tombstone liest Dart', () {
-    // #40: Ein Tippfehler auf einer Seite hieße „keine Historie" — ohne
-    // Fehlermeldung, für immer. Und das Tombstone (Protobuf) gehört auf
-    // die Dart-Seite, die einen Test hat; Kotlin reicht es nur durch.
-    final kotlin = File('android/app/src/main/kotlin/${appId.replaceAll('.', '/')}/MainActivity.kt').readAsStringSync();
-    final dart = File('lib/data/exit_info_repository.dart').readAsStringSync();
-    final channel = RegExp(r"kExitInfoChannel = '([\w./]+)'").firstMatch(dart)!.group(1)!;
-    expect(channel, startsWith('$appId/'));
-    expect(kotlin, contains('"$channel"'));
-    expect(kotlin, contains('getHistoricalProcessExitReasons'));
-    expect(kotlin, isNot(contains('Tombstone.parseFrom')));
-    expect(kotlin, isNot(contains('import com.google.protobuf')));
-  });
+  test(
+    'der Beendigungs-Kanal heißt in Kotlin und Dart gleich, das Tombstone liest Dart',
+    () {
+      // #40: Ein Tippfehler auf einer Seite hieße „keine Historie" — ohne
+      // Fehlermeldung, für immer. Und das Tombstone (Protobuf) gehört auf
+      // die Dart-Seite, die einen Test hat; Kotlin reicht es nur durch.
+      final kotlin = File(
+        'android/app/src/main/kotlin/${appId.replaceAll('.', '/')}/MainActivity.kt',
+      ).readAsStringSync();
+      final dart = File(
+        'lib/data/exit_info_repository.dart',
+      ).readAsStringSync();
+      final channel = RegExp(
+        r"kExitInfoChannel = '([\w./]+)'",
+      ).firstMatch(dart)!.group(1)!;
+      expect(channel, startsWith('$appId/'));
+      expect(kotlin, contains('"$channel"'));
+      expect(kotlin, contains('getHistoricalProcessExitReasons'));
+      expect(kotlin, isNot(contains('Tombstone.parseFrom')));
+      expect(kotlin, isNot(contains('import com.google.protobuf')));
+    },
+  );
 
   test('zwei Flavors, eine App: play nimmt den Update-Weg heraus', () {
     expect(gradle, contains('create("github")'));
     expect(gradle, contains('create("play")'));
-    final code = gradle.split('\n').where((l) => !l.trimLeft().startsWith('//')).join('\n');
+    final code = gradle
+        .split('\n')
+        .where((l) => !l.trimLeft().startsWith('//'))
+        .join('\n');
     // Nur die Dev-App hat eine eigene Kennung; github und play sind EINE.
     expect('applicationIdSuffix'.allMatches(code), hasLength(1));
     expect(manifest, contains('android.permission.REQUEST_INSTALL_PACKAGES'));
@@ -164,34 +267,55 @@ void main() {
     expect(play, isNot(contains('--dart-define')));
   });
 
-  test('die Dev-App steht neben der echten: eigene Kennung, eigener Name, kein Update-Weg (#356)', () {
-    final dev = File('android/app/src/dev/AndroidManifest.xml').readAsStringSync();
-    final block = RegExp(r'create\("dev"\) \{([^}]*)\}').firstMatch(gradle)?.group(1);
-    expect(block, isNotNull, reason: 'kein dev-Flavor');
-    expect(block, contains('applicationIdSuffix = ".dev"'));
-    expect(block, contains('manifestPlaceholders["appLabel"] = "TrailBuddy Dev"'));
-    // Der Name kommt aus dem Platzhalter, die echte App heißt weiter so.
-    expect(manifest, contains(r'android:label="${appLabel}"'));
-    expect(gradle, contains('manifestPlaceholders["appLabel"] = "TrailBuddy"\n'));
-    // Zwei Apps, zwei Provider: eine feste Authority ließe die zweite
-    // Installation scheitern (INSTALL_FAILED_CONFLICTING_PROVIDER).
-    for (final a in RegExp(r'android:authorities="([^"]+)"').allMatches(manifest)) {
-      expect(a.group(1), startsWith(r'${applicationId}'));
-    }
-    // Firebase kennt `.dev` nicht — ohne das Abschalten bricht der Build.
-    expect(gradle, contains('name.contains("Dev") && name.endsWith("GoogleServices")'));
-    expect(dev, contains('android.permission.REQUEST_INSTALL_PACKAGES'));
-    expect(dev, contains('tools:node="remove"'));
-    expect(dev.replaceAll('<!--', '').replaceAll('-->', ''), isNot(contains('--')), reason: 'zwei Bindestriche brechen den ManifestMerger');
-  });
+  test(
+    'die Dev-App steht neben der echten: eigene Kennung, eigener Name, kein Update-Weg (#356)',
+    () {
+      final dev = File(
+        'android/app/src/dev/AndroidManifest.xml',
+      ).readAsStringSync();
+      final block = RegExp(
+        r'create\("dev"\) \{([^}]*)\}',
+      ).firstMatch(gradle)?.group(1);
+      expect(block, isNotNull, reason: 'kein dev-Flavor');
+      expect(block, contains('applicationIdSuffix = ".dev"'));
+      expect(
+        block,
+        contains('manifestPlaceholders["appLabel"] = "TrailBuddy Dev"'),
+      );
+      // Der Name kommt aus dem Platzhalter, die echte App heißt weiter so.
+      expect(manifest, contains(r'android:label="${appLabel}"'));
+      expect(
+        gradle,
+        contains('manifestPlaceholders["appLabel"] = "TrailBuddy"\n'),
+      );
+      // Zwei Apps, zwei Provider: eine feste Authority ließe die zweite
+      // Installation scheitern (INSTALL_FAILED_CONFLICTING_PROVIDER).
+      for (final a in RegExp(
+        r'android:authorities="([^"]+)"',
+      ).allMatches(manifest)) {
+        expect(a.group(1), startsWith(r'${applicationId}'));
+      }
+      // Firebase kennt `.dev` nicht — ohne das Abschalten bricht der Build.
+      expect(
+        gradle,
+        contains('name.contains("Dev") && name.endsWith("GoogleServices")'),
+      );
+      expect(dev, contains('android.permission.REQUEST_INSTALL_PACKAGES'));
+      expect(dev, contains('tools:node="remove"'));
+      expect(
+        dev.replaceAll('<!--', '').replaceAll('-->', ''),
+        isNot(contains('--')),
+        reason: 'zwei Bindestriche brechen den ManifestMerger',
+      );
+    },
+  );
 
   test('genau die Berechtigungen, die es bis Phase 2 braucht', () {
     // Standort im Vordergrund für den Punkt, im Foreground-Service für
     // die Fahrt (#28) — nie als Hintergrund-Berechtigung.
-    final perms = RegExp(r'android:name="android\.permission\.([A-Z_]+)"')
-        .allMatches(manifest)
-        .map((m) => m.group(1))
-        .toSet();
+    final perms = RegExp(
+      r'android:name="android\.permission\.([A-Z_]+)"',
+    ).allMatches(manifest).map((m) => m.group(1)).toSet();
     expect(perms, {
       'INTERNET',
       'REQUEST_INSTALL_PACKAGES',
@@ -206,28 +330,53 @@ void main() {
     });
     expect(manifest, isNot(contains('ACCESS_BACKGROUND_LOCATION"')));
     expect(
-        RegExp(r'RECEIVE_BOOT_COMPLETED"\s+tools:node="remove"').hasMatch(manifest), isTrue,
-        reason: 'das Plugin bringt sie mit, wir starten nie beim Booten');
+      RegExp(
+        r'RECEIVE_BOOT_COMPLETED"\s+tools:node="remove"',
+      ).hasMatch(manifest),
+      isTrue,
+      reason: 'das Plugin bringt sie mit, wir starten nie beim Booten',
+    );
   });
 
-  test('Fahrt und Bereichs-Download teilen EINEN Foreground-Service, Typen dataSync|location', () {
-    expect(manifest, contains('com.pravera.flutter_foreground_task.service.ForegroundService'));
-    // Die Obermenge dessen, was vorkommen KANN; welche Typen ein Lauf
-    // nennt, entscheidet der Koordinator je Start (PilzBuddy #338).
-    final type = RegExp(r'android:foregroundServiceType="([a-zA-Z|]+)"').firstMatch(manifest)!.group(1)!;
-    expect(type.split('|').toSet(), {'dataSync', 'location'});
-    // Der Meta-Data-Name des Symbols steht in Dart und im Manifest; das
-    // Plugin liefert bei einem Tippfehler stumm die Ressourcen-id 0.
-    final dart = File('lib/features/keep_alive/keep_alive_service.dart').readAsStringSync();
-    final name = RegExp(r"keepAliveNotificationIconMetaData = '([\w.]+)'").firstMatch(dart)!.group(1)!;
-    expect(name, startsWith('$appId.'));
-    expect(manifest, contains('android:name="$name"'));
-    expect(manifest, contains('android:resource="@drawable/ic_notification"'));
-    final icon = File('android/app/src/main/res/drawable/ic_notification.xml').readAsStringSync();
-    // Nur der Alphakanal zählt: jede Fläche weiß, keine zweite Farbe.
-    final colors = RegExp(r'android:(?:fill|stroke)Color="(#[0-9A-Fa-f]+)"').allMatches(icon).map((m) => m.group(1)).toSet();
-    expect(colors, {'#FFFFFFFF'});
-  });
+  test(
+    'Fahrt und Bereichs-Download teilen EINEN Foreground-Service, Typen dataSync|location',
+    () {
+      expect(
+        manifest,
+        contains(
+          'com.pravera.flutter_foreground_task.service.ForegroundService',
+        ),
+      );
+      // Die Obermenge dessen, was vorkommen KANN; welche Typen ein Lauf
+      // nennt, entscheidet der Koordinator je Start (PilzBuddy #338).
+      final type = RegExp(
+        r'android:foregroundServiceType="([a-zA-Z|]+)"',
+      ).firstMatch(manifest)!.group(1)!;
+      expect(type.split('|').toSet(), {'dataSync', 'location'});
+      // Der Meta-Data-Name des Symbols steht in Dart und im Manifest; das
+      // Plugin liefert bei einem Tippfehler stumm die Ressourcen-id 0.
+      final dart = File(
+        'lib/features/keep_alive/keep_alive_service.dart',
+      ).readAsStringSync();
+      final name = RegExp(
+        r"keepAliveNotificationIconMetaData =\s*'([\w.]+)'",
+      ).firstMatch(dart)!.group(1)!;
+      expect(name, startsWith('$appId.'));
+      expect(manifest, contains('android:name="$name"'));
+      expect(
+        manifest,
+        contains('android:resource="@drawable/ic_notification"'),
+      );
+      final icon = File(
+        'android/app/src/main/res/drawable/ic_notification.xml',
+      ).readAsStringSync();
+      // Nur der Alphakanal zählt: jede Fläche weiß, keine zweite Farbe.
+      final colors = RegExp(
+        r'android:(?:fill|stroke)Color="(#[0-9A-Fa-f]+)"',
+      ).allMatches(icon).map((m) => m.group(1)).toSet();
+      expect(colors, {'#FFFFFFFF'});
+    },
+  );
 
   test('der Push-Kanal ist deklariert, angelegt und laut (#34)', () {
     // Drei Stellen müssen zusammenpassen, und keine fällt beim Editieren
@@ -238,73 +387,119 @@ void main() {
     // Banner — und die Stufe lässt sich später NICHT mehr ändern.
     const idName = 'notification_channel_id';
     final declared = RegExp(
-            r'android:name="com\.google\.firebase\.messaging\.default_notification_channel_id"\s+android:value="([^"]+)"')
-        .allMatches(manifest)
-        .map((m) => m.group(1))
-        .toList();
-    expect(declared, ['@string/$idName'],
-        reason: 'Manifest nennt den Kanal nicht (oder mehrfach)');
-    final strings = File('android/app/src/main/res/values/strings.xml').readAsStringSync();
+      r'android:name="com\.google\.firebase\.messaging\.default_notification_channel_id"\s+android:value="([^"]+)"',
+    ).allMatches(manifest).map((m) => m.group(1)).toList();
+    expect(declared, [
+      '@string/$idName',
+    ], reason: 'Manifest nennt den Kanal nicht (oder mehrfach)');
+    final strings = File(
+      'android/app/src/main/res/values/strings.xml',
+    ).readAsStringSync();
     expect(strings, contains('name="$idName"'));
-    final kotlin = File('android/app/src/main/kotlin/${appId.replaceAll('.', '/')}/MainActivity.kt').readAsStringSync();
+    final kotlin = File(
+      'android/app/src/main/kotlin/${appId.replaceAll('.', '/')}/MainActivity.kt',
+    ).readAsStringSync();
     expect(kotlin, contains('createNotificationChannel'));
     expect(kotlin, contains('R.string.$idName'));
     expect(kotlin, contains('NotificationManager.IMPORTANCE_HIGH'));
     // Symbol und Tönung: Ohne die Symbol-Zeile nähme FCM das
     // Launcher-Icon — als Silhouette ein weißer Klotz (PilzBuddy #331).
     expect(
-        RegExp(r'android:name="com\.google\.firebase\.messaging\.default_notification_icon"\s+android:resource="@drawable/ic_notification"')
-            .hasMatch(manifest),
-        isTrue);
+      RegExp(
+        r'android:name="com\.google\.firebase\.messaging\.default_notification_icon"\s+android:resource="@drawable/ic_notification"',
+      ).hasMatch(manifest),
+      isTrue,
+    );
     expect(
-        RegExp(r'android:name="com\.google\.firebase\.messaging\.default_notification_color"\s+android:resource="@color/notification_color"')
-            .hasMatch(manifest),
-        isTrue);
-    expect(File('android/app/src/main/res/values/colors.xml').readAsStringSync(),
-        contains('name="notification_color"'));
+      RegExp(
+        r'android:name="com\.google\.firebase\.messaging\.default_notification_color"\s+android:resource="@color/notification_color"',
+      ).hasMatch(manifest),
+      isTrue,
+    );
+    expect(
+      File('android/app/src/main/res/values/colors.xml').readAsStringSync(),
+      contains('name="notification_color"'),
+    );
   });
 
-  test('die Frage während der Fahrt nimmt den lauten Kanal und hat ihren Empfänger (#116)', () {
-    // Der Kanal der Frage ist der der Meldungen — derselbe Name in Dart
-    // und strings.xml, sonst legte das Paket still einen zweiten an.
-    final dart = File('lib/features/rides/ride_confirm_notify.dart').readAsStringSync();
-    final id = RegExp(r"kConfirmChannelId = '([\w]+)'").firstMatch(dart)!.group(1)!;
-    final name = RegExp(r"kConfirmChannelName = '([^']+)'").firstMatch(dart)!.group(1)!;
-    final strings = File('android/app/src/main/res/values/strings.xml').readAsStringSync();
-    expect(strings, contains('name="notification_channel_id" translatable="false">$id<'));
-    expect(strings, contains('name="notification_channel_name">$name<'));
-    // Ohne Empfänger tut ein Knopf nichts, ohne Fehlermeldung.
-    expect(
-        RegExp(r'android:exported="false"\s+android:name="com\.dexterous\.flutterlocalnotifications\.ActionBroadcastReceiver"')
-            .hasMatch(manifest),
-        isTrue);
-    // Das Symbol ist dasselbe Alpha-Drawable wie bei Push und Fahrt.
-    expect(dart, contains("kConfirmNotificationIcon = 'ic_notification'"));
-    // Das Paket verlangt Desugaring; ohne bricht der Build ab.
-    final gradle = File('android/app/build.gradle.kts').readAsStringSync();
-    expect(gradle, contains('isCoreLibraryDesugaringEnabled = true'));
-    expect(gradle, contains('coreLibraryDesugaring("com.android.tools:desugar_jdk_libs'));
-  });
+  test(
+    'die Frage während der Fahrt nimmt den lauten Kanal und hat ihren Empfänger (#116)',
+    () {
+      // Der Kanal der Frage ist der der Meldungen — derselbe Name in Dart
+      // und strings.xml, sonst legte das Paket still einen zweiten an.
+      final dart = File(
+        'lib/features/rides/ride_confirm_notify.dart',
+      ).readAsStringSync();
+      final id = RegExp(
+        r"kConfirmChannelId = '([\w]+)'",
+      ).firstMatch(dart)!.group(1)!;
+      final name = RegExp(
+        r"kConfirmChannelName = '([^']+)'",
+      ).firstMatch(dart)!.group(1)!;
+      final strings = File(
+        'android/app/src/main/res/values/strings.xml',
+      ).readAsStringSync();
+      expect(
+        strings,
+        contains('name="notification_channel_id" translatable="false">$id<'),
+      );
+      expect(strings, contains('name="notification_channel_name">$name<'));
+      // Ohne Empfänger tut ein Knopf nichts, ohne Fehlermeldung.
+      expect(
+        RegExp(
+          r'android:exported="false"\s+android:name="com\.dexterous\.flutterlocalnotifications\.ActionBroadcastReceiver"',
+        ).hasMatch(manifest),
+        isTrue,
+      );
+      // Das Symbol ist dasselbe Alpha-Drawable wie bei Push und Fahrt.
+      expect(dart, contains("kConfirmNotificationIcon = 'ic_notification'"));
+      // Das Paket verlangt Desugaring; ohne bricht der Build ab.
+      final gradle = File('android/app/build.gradle.kts').readAsStringSync();
+      expect(gradle, contains('isCoreLibraryDesugaringEnabled = true'));
+      expect(
+        gradle,
+        contains('coreLibraryDesugaring("com.android.tools:desugar_jdk_libs'),
+      );
+    },
+  );
 
   test('das Startfenster trägt den Grund der App, hell und dunkel', () {
     String ground(String dir) => RegExp(r'name="ground">#([0-9A-F]{6})<')
-        .firstMatch(File('android/app/src/main/res/$dir/colors.xml').readAsStringSync())!
+        .firstMatch(
+          File('android/app/src/main/res/$dir/colors.xml').readAsStringSync(),
+        )!
         .group(1)!;
-    String hex(Color c) => c.toARGB32().toRadixString(16).toUpperCase().substring(2);
+    String hex(Color c) =>
+        c.toARGB32().toRadixString(16).toUpperCase().substring(2);
     expect(ground('values'), hex(AppColors.light.ground));
     expect(ground('values-night'), hex(AppColors.dark.ground));
     for (final d in ['drawable', 'drawable-v21']) {
-      expect(File('android/app/src/main/res/$d/launch_background.xml').readAsStringSync(),
-          contains('@color/ground'), reason: d);
+      expect(
+        File(
+          'android/app/src/main/res/$d/launch_background.xml',
+        ).readAsStringSync(),
+        contains('@color/ground'),
+        reason: d,
+      );
     }
-    for (final d in ['values', 'values-night', 'values-v31', 'values-night-v31']) {
-      final styles = File('android/app/src/main/res/$d/styles.xml').readAsStringSync();
+    for (final d in [
+      'values',
+      'values-night',
+      'values-v31',
+      'values-night-v31',
+    ]) {
+      final styles = File(
+        'android/app/src/main/res/$d/styles.xml',
+      ).readAsStringSync();
       expect(styles, isNot(contains('colorBackground')), reason: d);
       expect(styles, contains('@color/ground'), reason: d);
     }
     for (final d in ['values-v31', 'values-night-v31']) {
-      expect(File('android/app/src/main/res/$d/styles.xml').readAsStringSync(),
-          contains('windowSplashScreenBackground">@color/ground'), reason: d);
+      expect(
+        File('android/app/src/main/res/$d/styles.xml').readAsStringSync(),
+        contains('windowSplashScreenBackground">@color/ground'),
+        reason: d,
+      );
     }
   });
 
@@ -313,9 +508,13 @@ void main() {
     // Empfänger für geo:, der Wähler bleibt aus, und der Knopf fällt
     // still auf die Zwischenablage zurück — ein Fehler, der wie eine
     // Entscheidung aussieht. Das Schema steht in Dart und im Manifest.
-    final dart = File('lib/features/trails/trail_navigation.dart').readAsStringSync();
+    final dart = File(
+      'lib/features/trails/trail_navigation.dart',
+    ).readAsStringSync();
     final scheme = RegExp(r"kGeoScheme = '(\w+)'").firstMatch(dart)!.group(1)!;
-    final queries = RegExp(r'<queries>([\s\S]*?)</queries>').firstMatch(manifest)!.group(1)!;
+    final queries = RegExp(
+      r'<queries>([\s\S]*?)</queries>',
+    ).firstMatch(manifest)!.group(1)!;
     expect(queries, contains('android:scheme="$scheme"'));
     expect(queries, contains('android.intent.action.VIEW'));
   });
@@ -323,18 +522,28 @@ void main() {
   test('die Ansagen sehen die Sprachausgabe des Geräts (#525)', () {
     // Ab Android 11 ohne <queries> keine TTS-Engine — die Ansagen blieben
     // still, ohne Fehler. Und keine neue Berechtigung dafür.
-    final queries = RegExp(r'<queries>([\s\S]*?)</queries>').firstMatch(manifest)!.group(1)!;
+    final queries = RegExp(
+      r'<queries>([\s\S]*?)</queries>',
+    ).firstMatch(manifest)!.group(1)!;
     expect(queries, contains('android.intent.action.TTS_SERVICE'));
     // Der Kanal heißt in Java und Dart gleich, und das Plugin hängt in der
     // App — sonst fehlte es auch in der Engine des Dienstes.
-    final java = File('packages/tb_voice/android/src/main/java/de/mcbuchi/trailbuddy/voice/TbVoicePlugin.java')
-        .readAsStringSync();
-    final dart = File('lib/features/routing/voice_service.dart').readAsStringSync();
+    final java = File(
+      'packages/tb_voice/android/src/main/java/de/mcbuchi/trailbuddy/voice/TbVoicePlugin.java',
+    ).readAsStringSync();
+    final dart = File(
+      'lib/features/routing/voice_service.dart',
+    ).readAsStringSync();
     final name = RegExp(r'CHANNEL = "([^"]+)"').firstMatch(java)!.group(1)!;
     expect(dart, contains("MethodChannel('$name')"));
-    expect(File('pubspec.yaml').readAsStringSync(), contains('path: packages/tb_voice'));
+    expect(
+      File('pubspec.yaml').readAsStringSync(),
+      contains('path: packages/tb_voice'),
+    );
     // Java, kein Kotlin-Plugin: unter AGP 9 bräche der Build (flutter_tts).
-    final gradle = File('packages/tb_voice/android/build.gradle.kts').readAsStringSync();
+    final gradle = File(
+      'packages/tb_voice/android/build.gradle.kts',
+    ).readAsStringSync();
     expect(gradle, isNot(contains('org.jetbrains.kotlin')));
     expect(gradle, isNot(contains('id("kotlin')));
   });
@@ -343,44 +552,80 @@ void main() {
     // Das Plugin bricht den Build ab, wenn google-services.json fehlt; bis
     // der Betreiber das Firebase-Projekt anlegt, baut die App ohne. Liegt
     // die Datei da, muss sie DIESES Paket kennen, sonst scheitert Gradle.
-    expect(File('android/settings.gradle.kts').readAsStringSync(),
-        contains('id("com.google.gms.google-services")'));
-    final code = gradle.split('\n').where((l) => !l.trimLeft().startsWith('//')).join('\n');
+    expect(
+      File('android/settings.gradle.kts').readAsStringSync(),
+      contains('id("com.google.gms.google-services")'),
+    );
+    final code = gradle
+        .split('\n')
+        .where((l) => !l.trimLeft().startsWith('//'))
+        .join('\n');
     expect(code, contains('if (file("google-services.json").exists())'));
     expect(code, contains('apply(plugin = "com.google.gms.google-services")'));
     final json = File('android/app/google-services.json');
     if (json.existsSync()) {
-      expect(json.readAsStringSync(), contains('"package_name": "$appId"'),
-          reason: 'google-services.json kennt $appId nicht — neu aus der Firebase-Konsole holen');
+      expect(
+        json.readAsStringSync(),
+        contains('"package_name": "$appId"'),
+        reason:
+            'google-services.json kennt $appId nicht — neu aus der Firebase-Konsole holen',
+      );
     }
   });
 
   test('beide Backup-Regeln schließen dasselbe aus', () {
-    Set<String> excludes(String path) => RegExp(r'<exclude domain="(\w+)" path="([^"]+)"')
-        .allMatches(File(path).readAsStringSync())
-        .map((m) => '${m.group(1)}:${m.group(2)}')
-        .toSet();
+    Set<String> excludes(String path) =>
+        RegExp(r'<exclude domain="(\w+)" path="([^"]+)"')
+            .allMatches(File(path).readAsStringSync())
+            .map((m) => '${m.group(1)}:${m.group(2)}')
+            .toSet();
     final rules = excludes('android/app/src/main/res/xml/backup_rules.xml');
-    final legacy = excludes('android/app/src/main/res/xml/full_backup_content.xml');
+    final legacy = excludes(
+      'android/app/src/main/res/xml/full_backup_content.xml',
+    );
     expect(rules, legacy);
-    expect(rules, containsAll(['sharedpref:FlutterSharedPreferences.xml',
-        'file:rides', 'file:trail_cache', 'file:outbox', 'file:updates',
-        'file:official_trails', 'file:mbgl-offline.db']));
+    expect(
+      rules,
+      containsAll([
+        'sharedpref:FlutterSharedPreferences.xml',
+        'file:rides',
+        'file:trail_cache',
+        'file:outbox',
+        'file:updates',
+        'file:official_trails',
+        'file:mbgl-offline.db',
+      ]),
+    );
     expect(manifest, contains('@xml/backup_rules'));
     expect(manifest, contains('@xml/full_backup_content'));
   });
 
-  test('MapLibre Native mindestens 13.3, solange das Plugin 13.0 verlangt (#155)', () {
-    // Erst 13.3 legt PMTiles-Bereiche in den Ambient Cache — ohne das
-    // bliebe „Gesehenes bleibt liegen" auf Android still wirkungslos.
-    final force = RegExp(r'resolutionStrategy\.force\("org\.maplibre\.gl:android-sdk-opengl:(\d+)\.(\d+)\.\d+"\)')
-        .firstMatch(gradle);
-    final pubspec = File('pubspec.yaml').readAsStringSync();
-    final plugin = RegExp(r'^  maplibre_android: (\S+)', multiLine: true).firstMatch(pubspec)!.group(1);
-    if (plugin == '0.3.5') {
-      expect(force, isNotNull, reason: 'maplibre_android 0.3.5 zieht 13.0.+ — ohne force kein PMTiles-Cache');
-      final (major, minor) = (int.parse(force!.group(1)!), int.parse(force.group(2)!));
-      expect(major > 13 || (major == 13 && minor >= 3), isTrue);
-    }
-  });
+  test(
+    'MapLibre Native mindestens 13.3, solange das Plugin 13.0 verlangt (#155)',
+    () {
+      // Erst 13.3 legt PMTiles-Bereiche in den Ambient Cache — ohne das
+      // bliebe „Gesehenes bleibt liegen" auf Android still wirkungslos.
+      final force = RegExp(
+        r'resolutionStrategy\.force\("org\.maplibre\.gl:android-sdk-opengl:(\d+)\.(\d+)\.\d+"\)',
+      ).firstMatch(gradle);
+      final pubspec = File('pubspec.yaml').readAsStringSync();
+      final plugin = RegExp(
+        r'^  maplibre_android: (\S+)',
+        multiLine: true,
+      ).firstMatch(pubspec)!.group(1);
+      if (plugin == '0.3.5') {
+        expect(
+          force,
+          isNotNull,
+          reason:
+              'maplibre_android 0.3.5 zieht 13.0.+ — ohne force kein PMTiles-Cache',
+        );
+        final (major, minor) = (
+          int.parse(force!.group(1)!),
+          int.parse(force.group(2)!),
+        );
+        expect(major > 13 || (major == 13 && minor >= 3), isTrue);
+      }
+    },
+  );
 }

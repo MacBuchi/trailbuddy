@@ -29,26 +29,41 @@ class WatchLayout {
   final Map<String, String> _fonts;
 
   static Map<String, dynamic> raw() =>
-      jsonDecode(File('tool/watch_layout.json').readAsStringSync()) as Map<String, dynamic>;
+      jsonDecode(File('tool/watch_layout.json').readAsStringSync())
+          as Map<String, dynamic>;
 
   factory WatchLayout.forSize(int size) {
     final j = raw();
     final base = j['base'] as int;
-    final over = ((j['overrides'] as Map<String, dynamic>)['$size'] as Map<String, dynamic>?) ?? {};
+    final over =
+        ((j['overrides'] as Map<String, dynamic>)['$size']
+            as Map<String, dynamic>?) ??
+        {};
     final values = <String, int>{};
     (j['values'] as Map<String, dynamic>).forEach((k, v) {
       final e = v as Map<String, dynamic>;
       final n = e['v'] as int;
-      values[k] = over[k] as int? ?? (e['fixed'] == true ? n : (n * size / base).round());
+      values[k] =
+          over[k] as int? ??
+          (e['fixed'] == true ? n : (n * size / base).round());
     });
-    return WatchLayout._(size, values, (j['fonts'] as Map<String, dynamic>).cast<String, String>());
+    return WatchLayout._(
+      size,
+      values,
+      (j['fonts'] as Map<String, dynamic>).cast<String, String>(),
+    );
   }
 
   /// Die Zeichen (#558): Name → Breite und Befehle.
-  static Map<String, dynamic> symbols() => (raw()['symbols'] as Map<String, dynamic>)['def'] as Map<String, dynamic>;
+  static Map<String, dynamic> symbols() =>
+      (raw()['symbols'] as Map<String, dynamic>)['def'] as Map<String, dynamic>;
 
-  int v(String name) => _values[name] ?? (throw ArgumentError('watch_layout.json: values.$name fehlt'));
-  String font(String name) => _fonts[name] ?? (throw ArgumentError('watch_layout.json: fonts.$name fehlt'));
+  int v(String name) =>
+      _values[name] ??
+      (throw ArgumentError('watch_layout.json: values.$name fehlt'));
+  String font(String name) =>
+      _fonts[name] ??
+      (throw ArgumentError('watch_layout.json: fonts.$name fehlt'));
 }
 
 class WatchFont {
@@ -61,7 +76,10 @@ class WatchFont {
 
   /// Breite wie `getTextWidthInPixels`: Summe der Zeichen — gemessen ohne
   /// Unterschneidung (`kerning` leer). Ein unbekanntes Zeichen zählt wie „?".
-  int width(String s) => s.runes.fold(0, (a, r) => a + (chars[String.fromCharCode(r)] ?? chars['?']!));
+  int width(String s) => s.runes.fold(
+    0,
+    (a, r) => a + (chars[String.fromCharCode(r)] ?? chars['?']!),
+  );
 }
 
 class WatchDevice {
@@ -72,17 +90,24 @@ class WatchDevice {
   final Map<String, WatchFont> fonts;
 
   factory WatchDevice.load(String id) {
-    final j = jsonDecode(File('tool/watch_fonts/$id.json').readAsStringSync()) as Map<String, dynamic>;
+    final j =
+        jsonDecode(File('tool/watch_fonts/$id.json').readAsStringSync())
+            as Map<String, dynamic>;
     final fonts = <String, WatchFont>{};
     (j['fonts'] as Map<String, dynamic>).forEach((k, v) {
       final f = v as Map<String, dynamic>;
-      fonts[k] = WatchFont(f['height'] as int, f['ascent'] as int, f['descent'] as int,
-          (f['chars'] as Map<String, dynamic>).cast<String, int>());
+      fonts[k] = WatchFont(
+        f['height'] as int,
+        f['ascent'] as int,
+        f['descent'] as int,
+        (f['chars'] as Map<String, dynamic>).cast<String, int>(),
+      );
     });
     return WatchDevice._(id, j['screen'] as int, fonts);
   }
 
-  static List<String> all() => (WatchLayout.raw()['devices'] as List).cast<String>();
+  static List<String> all() =>
+      (WatchLayout.raw()['devices'] as List).cast<String>();
 }
 
 /// Die Texte der Uhr: Englisch aus `resources`, Deutsch aus `resources-deu`.
@@ -90,8 +115,13 @@ Map<String, String> watchStrings(String lang) {
   Map<String, String> read(String dir) {
     final xml = File('garmin/$dir/strings/strings.xml').readAsStringSync();
     return {
-      for (final m in RegExp(r'<string id="(\w+)">(.*?)</string>').allMatches(xml))
-        m.group(1)!: m.group(2)!.replaceAll(r'\n', '\n').replaceAll('&amp;', '&'),
+      for (final m in RegExp(
+        r'<string id="(\w+)">(.*?)</string>',
+      ).allMatches(xml))
+        m.group(1)!: m
+            .group(2)!
+            .replaceAll(r'\n', '\n')
+            .replaceAll('&amp;', '&'),
     };
   }
 
@@ -103,13 +133,18 @@ Map<String, String> watchStrings(String lang) {
 Map<String, int> watchColors() {
   final src = File('garmin/source/Colors.mc').readAsStringSync();
   return {
-    for (final m in RegExp(r'const (\w+) = 0x([0-9A-Fa-f]{6});').allMatches(src))
+    for (final m in RegExp(
+      r'const (\w+) = 0x([0-9A-Fa-f]{6});',
+    ).allMatches(src))
       m.group(1)!: 0xFF000000 | int.parse(m.group(2)!, radix: 16),
   };
 }
 
 List<int> watchLogo() =>
-    ((jsonDecode(File('garmin/resources/logo/logo.json').readAsStringSync()) as Map)['d'] as List).cast<int>();
+    ((jsonDecode(File('garmin/resources/logo/logo.json').readAsStringSync())
+                as Map)['d']
+            as List)
+        .cast<int>();
 
 int unpackHi(int v) {
   final h = (v >> 16) & 0xFFFF;
@@ -156,8 +191,12 @@ class MipCanvas {
   void roundRect(int x, int y, int rw, int rh, int rad, int c) {
     for (var yy = y; yy < y + rh; yy++) {
       for (var xx = x; xx < x + rw; xx++) {
-        final ex = xx < x + rad ? x + rad - xx : (xx >= x + rw - rad ? xx - (x + rw - rad - 1) : 0);
-        final ey = yy < y + rad ? y + rad - yy : (yy >= y + rh - rad ? yy - (y + rh - rad - 1) : 0);
+        final ex = xx < x + rad
+            ? x + rad - xx
+            : (xx >= x + rw - rad ? xx - (x + rw - rad - 1) : 0);
+        final ey = yy < y + rad
+            ? y + rad - yy
+            : (yy >= y + rh - rad ? yy - (y + rh - rad - 1) : 0);
         if (ex * ex + ey * ey <= rad * rad) set(xx, yy, c);
       }
     }
@@ -195,7 +234,10 @@ class MipCanvas {
     final nx = -dy / len * width / 2;
     final ny = dx / len * width / 2;
     polygon([
-      [x1 + nx, y1 + ny], [x2 + nx, y2 + ny], [x2 - nx, y2 - ny], [x1 - nx, y1 - ny],
+      [x1 + nx, y1 + ny],
+      [x2 + nx, y2 + ny],
+      [x2 - nx, y2 - ny],
+      [x1 - nx, y1 - ny],
     ], c);
   }
 
@@ -267,7 +309,20 @@ const kSlack = 1.0;
 // --- Stand der Ansicht ------------------------------------------------------
 
 /// Was #508 als Stand der Ansicht kennt, so weit es das Bild ändert.
-enum TwinPhase { overview, map, offRoute, free, freeWaiting, arrived, ride, mountain, bests, loader, ended, broken }
+enum TwinPhase {
+  overview,
+  map,
+  offRoute,
+  free,
+  freeWaiting,
+  arrived,
+  ride,
+  mountain,
+  bests,
+  loader,
+  ended,
+  broken,
+}
 
 /// Die Infofläche der Karte.
 enum TwinFooter { trailAhead, onTrail, toGoal }
@@ -276,18 +331,21 @@ enum TwinFooter { trailAhead, onTrail, toGoal }
 enum TwinRec { idle, recording, paused, trail }
 
 class TwinScene {
-  const TwinScene(this.name, this.phase,
-      {this.footer = TwinFooter.trailAhead,
-      this.rec = TwinRec.recording,
-      this.ask = false,
-      this.askBig = false,
-      this.toast,
-      this.toastSym,
-      this.toastText,
-      this.phone = false,
-      this.storageFull = false,
-      this.trails = 6,
-      this.loaderText});
+  const TwinScene(
+    this.name,
+    this.phase, {
+    this.footer = TwinFooter.trailAhead,
+    this.rec = TwinRec.recording,
+    this.ask = false,
+    this.askBig = false,
+    this.toast,
+    this.toastSym,
+    this.toastText,
+    this.phone = false,
+    this.storageFull = false,
+    this.trails = 6,
+    this.loaderText,
+  });
 
   final String name;
   final TwinPhase phase;
@@ -295,14 +353,17 @@ class TwinScene {
   final TwinRec rec;
   final bool ask;
   final bool askBig;
+
   /// Schlüssel eines Texts aus strings.xml für die Einblendung.
   final String? toast;
+
   /// Zeichen und Zahl statt Text (#558): Name des Zeichens und sein Text.
   final String? toastSym;
   final String? toastText;
   final bool phone;
   final bool storageFull;
   final int trails;
+
   /// Schlüssel des Laders (Loading, RouteComing, RideWaits, NavEnded …).
   final String? loaderText;
 }
@@ -338,15 +399,26 @@ class TwinValues {
 /// sichtbar ist (Karte und Seiten: innerhalb des Rings; was danach
 /// gezeichnet wird: die ganze Anzeige).
 class TwinBox {
-  TwinBox(this.id, this.text, this.x0, this.y0, this.x1, this.y1, this.clipR,
-      {this.text2 = true, this.overlay = false});
+  TwinBox(
+    this.id,
+    this.text,
+    this.x0,
+    this.y0,
+    this.x1,
+    this.y1,
+    this.clipR, {
+    this.text2 = true,
+    this.overlay = false,
+  });
 
   final String id;
   final String text;
   final int x0, y0, x1, y1;
   final double clipR;
+
   /// false: kein Text, nur ein Hindernis für die Überdeckung.
   final bool text2;
+
   /// Liegt mit eigenem Grund über dem Inhalt (Schild der Aufzeichnung,
   /// Frage, Einblendung) — überdeckt ihn absichtlich.
   final bool overlay;
@@ -359,11 +431,11 @@ class TwinBox {
 
 class WatchTwin {
   WatchTwin(this.device, this.lang)
-      : w = device.screen,
-        l = WatchLayout.forSize(device.screen),
-        s = watchStrings(lang),
-        c = watchColors(),
-        canvas = MipCanvas(device.screen);
+    : w = device.screen,
+      l = WatchLayout.forSize(device.screen),
+      s = watchStrings(lang),
+      c = watchColors(),
+      canvas = MipCanvas(device.screen);
 
   final WatchDevice device;
   final String lang;
@@ -382,7 +454,8 @@ class WatchTwin {
 
   String get sep => s['DecimalSep']!;
   WatchFont f(String name) => device.fonts[l.font(name)]!;
-  int col(String name) => c[name] ?? (throw ArgumentError('Colors.mc: $name fehlt'));
+  int col(String name) =>
+      c[name] ?? (throw ArgumentError('Colors.mc: $name fehlt'));
 
   // Zahlen wie NavView.km/seconds/clock/meters.
   String km(double m) {
@@ -402,15 +475,24 @@ class WatchTwin {
     return '${m ~/ 60}:${(m % 60).toString().padLeft(2, '0')}';
   }
 
-  String meters(double m) =>
-      m < 1000 ? '${(m + 0.5).floor()} m' : (m < 10000 ? '${km(m)} km' : '${(m / 1000 + 0.5).floor()} km');
+  String meters(double m) => m < 1000
+      ? '${(m + 0.5).floor()} m'
+      : (m < 10000 ? '${km(m)} km' : '${(m / 1000 + 0.5).floor()} km');
 
   // --- Text ------------------------------------------------------------------
 
   /// Wie `dc.drawText`: [x] links, Mitte oder rechts; [vcenter] legt die
   /// Mitte der Zeile auf [y]. Zeilen mit „\n" untereinander, je mittig.
-  void text(String id, int x, int y, String fontName, String t, int color,
-      {bool center = true, bool vcenter = false}) {
+  void text(
+    String id,
+    int x,
+    int y,
+    String fontName,
+    String t,
+    int color, {
+    bool center = true,
+    bool vcenter = false,
+  }) {
     final font = f(fontName);
     final lines = t.split('\n');
     var top = vcenter ? y - font.height * lines.length ~/ 2 : y;
@@ -424,8 +506,18 @@ class WatchTwin {
       // Unterlängen zählen nicht (ein Komma unten am Rand stört nicht), und
       // die Zeichen beginnen gut 1 px nach ihrem Vorschub (im Bild der
       // fēnix 5: „NEBEN DER ROUTE" 39..200, Summe der Breiten 38..203).
-      boxes.add(TwinBox(id, line, left + kBearing, top + font.height - font.ascent + 1, left + tw - kBearing,
-          top + font.ascent, _clip, overlay: _overlay));
+      boxes.add(
+        TwinBox(
+          id,
+          line,
+          left + kBearing,
+          top + font.height - font.ascent + 1,
+          left + tw - kBearing,
+          top + font.ascent,
+          _clip,
+          overlay: _overlay,
+        ),
+      );
       top += font.height;
     }
   }
@@ -447,14 +539,30 @@ class WatchTwin {
     }
   }
 
-  void obstacle(String id, int x0, int y0, int x1, int y1) =>
-      boxes.add(TwinBox(id, '', x0, y0, x1, y1, _clip, text2: false, overlay: _overlay));
+  void obstacle(String id, int x0, int y0, int x1, int y1) => boxes.add(
+    TwinBox(id, '', x0, y0, x1, y1, _clip, text2: false, overlay: _overlay),
+  );
 
-  void pill(String id, int cx, int y, String t, String fontName, int bg, int fg) {
+  void pill(
+    String id,
+    int cx,
+    int y,
+    String t,
+    String fontName,
+    int bg,
+    int fg,
+  ) {
     final font = f(fontName);
     final tw = font.width(t);
     final h = font.height;
-    canvas.roundRect(cx - tw ~/ 2 - 8, y - h ~/ 2 - 1, tw + 16, h + 2, (h + 2) ~/ 2, bg);
+    canvas.roundRect(
+      cx - tw ~/ 2 - 8,
+      y - h ~/ 2 - 1,
+      tw + 16,
+      h + 2,
+      (h + 2) ~/ 2,
+      bg,
+    );
     text(id, cx, y, fontName, t, fg, vcenter: true);
   }
 
@@ -476,7 +584,12 @@ class WatchTwin {
         canvas.rect(x - rr, y - rr, 2 * rr + 1, 2 * rr + 1, k);
       } else if (g == 3) {
         final d = rr + 2;
-        canvas.polygon([[x, y - d], [x + d, y], [x, y + d], [x - d, y]], k);
+        canvas.polygon([
+          [x, y - d],
+          [x + d, y],
+          [x, y + d],
+          [x - d, y],
+        ], k);
       } else {
         canvas.circle(x, y, rr, k);
       }
@@ -485,7 +598,8 @@ class WatchTwin {
     if (!onMap) obstacle('shield', x - r - 2, y - r - 2, x + r + 3, y + r + 3);
   }
 
-  void field(int color) => canvas.rect(0, l.v('field_y'), w, w - l.v('field_y'), color);
+  void field(int color) =>
+      canvas.rect(0, l.v('field_y'), w, w - l.v('field_y'), color);
 
   void mapBorder() {
     final mapR = l.v('map_r');
@@ -520,8 +634,18 @@ class WatchTwin {
   }
 
   void me(int cx, int cy) {
-    canvas.polygon([[cx, cy - 18], [cx + 14, cy + 14], [cx, cy + 7], [cx - 14, cy + 14]], col('GROUND'));
-    canvas.polygon([[cx, cy - 13], [cx + 11, cy + 11], [cx, cy + 5], [cx - 11, cy + 11]], col('TEXT'));
+    canvas.polygon([
+      [cx, cy - 18],
+      [cx + 14, cy + 14],
+      [cx, cy + 7],
+      [cx - 14, cy + 14],
+    ], col('GROUND'));
+    canvas.polygon([
+      [cx, cy - 13],
+      [cx + 11, cy + 11],
+      [cx, cy + 5],
+      [cx - 11, cy + 11],
+    ], col('TEXT'));
   }
 
   void north() {
@@ -541,8 +665,17 @@ class WatchTwin {
     canvas.line(cx, py, cx + 20, 0, 12, col('ROUTE_EDGE'));
     canvas.line(cx, py, cx + 20, 0, 8, col('ROUTE'));
     final t0 = trail ? py : py - 50;
-    canvas.line(cx + 20 * (py - t0) / py, t0, cx + 20 * (py - 10) / py, 10, 4, col('S${TwinValues.grade}'));
-    if (!trail) shield(cx + 20 * 50 ~/ py, py - 50, TwinValues.grade, 6, onMap: true);
+    canvas.line(
+      cx + 20 * (py - t0) / py,
+      t0,
+      cx + 20 * (py - 10) / py,
+      10,
+      4,
+      col('S${TwinValues.grade}'),
+    );
+    if (!trail) {
+      shield(cx + 20 * 50 ~/ py, py - 50, TwinValues.grade, 6, onMap: true);
+    }
   }
 
   // --- Teile der Ansicht -------------------------------------------------------
@@ -594,27 +727,72 @@ class WatchTwin {
       final sw = symWidth(sc.toastSym!);
       final tw = font.width(tt);
       final x = cx - (sw + 5 + tw) ~/ 2;
-      canvas.roundRect(x - 8, ty - font.height ~/ 2 - 1, sw + 5 + tw + 16, font.height + 2, (font.height + 2) ~/ 2,
-          col('FIELD'));
+      canvas.roundRect(
+        x - 8,
+        ty - font.height ~/ 2 - 1,
+        sw + 5 + tw + 16,
+        font.height + 2,
+        (font.height + 2) ~/ 2,
+        col('FIELD'),
+      );
       sym(sc.toastSym!, x, ty - 8, col('TEXT_ON_FIELD'));
-      text('toast', x + sw + 5, ty, 'toast', tt, col('TEXT_ON_FIELD'), center: false, vcenter: true);
+      text(
+        'toast',
+        x + sw + 5,
+        ty,
+        'toast',
+        tt,
+        col('TEXT_ON_FIELD'),
+        center: false,
+        vcenter: true,
+      );
     } else if (toast != null) {
-      pill('toast', cx, ty, s[toast]!, 'toast', col('FIELD'), col('TEXT_ON_FIELD'));
+      pill(
+        'toast',
+        cx,
+        ty,
+        s[toast]!,
+        'toast',
+        col('FIELD'),
+        col('TEXT_ON_FIELD'),
+      );
     }
     _overlay = false;
   }
 
   void ask(TwinScene sc, int y) {
-    pill('ask', w ~/ 2, y, s['AskReplan']!, 'ask', col('FIELD'), col('TEXT_ON_FIELD'));
+    pill(
+      'ask',
+      w ~/ 2,
+      y,
+      s['AskReplan']!,
+      'ask',
+      col('FIELD'),
+      col('TEXT_ON_FIELD'),
+    );
     final bx = l.v('ask_bar_x');
     final by = y + l.v('ask_bar_dy');
     canvas.rect(bx, by, l.v('ask_bar_w') * 2 ~/ 3, 4, col('ROUTE'));
     obstacle('ask_bar', bx, by, bx + l.v('ask_bar_w'), by + 4);
     final yes = s['AskYes']!;
-    pill('ask_yes', sc.askBig ? l.v('ask_yes_big_x') : l.v('ask_yes_x'), l.v('ask_yes_y'),
-        sc.askBig ? 'START = $yes' : yes, sc.askBig ? 'ask_yes_big' : 'ask_yes', col('ROUTE'), col('TEXT'));
-    pill('ask_no', l.v('ask_no_x'), l.v('ask_no_y'), s['AskNo']!, 'ask_no', col('MUTED_DARK'),
-        col('TEXT_ON_FIELD'));
+    pill(
+      'ask_yes',
+      sc.askBig ? l.v('ask_yes_big_x') : l.v('ask_yes_x'),
+      l.v('ask_yes_y'),
+      sc.askBig ? 'START = $yes' : yes,
+      sc.askBig ? 'ask_yes_big' : 'ask_yes',
+      col('ROUTE'),
+      col('TEXT'),
+    );
+    pill(
+      'ask_no',
+      l.v('ask_no_x'),
+      l.v('ask_no_y'),
+      s['AskNo']!,
+      'ask_no',
+      col('MUTED_DARK'),
+      col('TEXT_ON_FIELD'),
+    );
   }
 
   void shieldLine(int cx, int y, int g, String name) {
@@ -640,7 +818,15 @@ class WatchTwin {
     }
     final x = cx - (tw + 20) ~/ 2;
     shield(x + 6, y + font.height ~/ 2, g, 5, onMap: false);
-    text('field_name', x + 20, y, fontName, name, col('TEXT_ON_FIELD'), center: false);
+    text(
+      'field_name',
+      x + 20,
+      y,
+      fontName,
+      name,
+      col('TEXT_ON_FIELD'),
+      center: false,
+    );
   }
 
   void numberLine(int cx, int y, String dist, double? climb) {
@@ -658,12 +844,32 @@ class WatchTwin {
     }
     final font = f(fontName);
     final x = cx - (dw + uw) ~/ 2;
-    text('number_line', x, y, fontName, dist, col('TEXT_ON_FIELD'), center: false);
+    text(
+      'number_line',
+      x,
+      y,
+      fontName,
+      dist,
+      col('TEXT_ON_FIELD'),
+      center: false,
+    );
     if (up != null) {
       final ax = x + dw + 14;
       final my = y + font.height ~/ 2;
-      canvas.polygon([[ax, my - 7], [ax + 6, my + 4], [ax - 6, my + 4]], col('ROUTE'));
-      text('number_line_up', ax + 8, y, fontName, up, col('ROUTE'), center: false);
+      canvas.polygon([
+        [ax, my - 7],
+        [ax + 6, my + 4],
+        [ax - 6, my + 4],
+      ], col('ROUTE'));
+      text(
+        'number_line_up',
+        ax + 8,
+        y,
+        fontName,
+        up,
+        col('ROUTE'),
+        center: false,
+      );
     }
   }
 
@@ -678,7 +884,11 @@ class WatchTwin {
     final tw = font.width(t);
     final x = cx - (tw + 14) ~/ 2;
     final my = y + font.height ~/ 2;
-    canvas.polygon([[x + 5, my - 7], [x + 11, my + 4], [x - 1, my + 4]], col('ROUTE'));
+    canvas.polygon([
+      [x + 5, my - 7],
+      [x + 11, my + 4],
+      [x - 1, my + 4],
+    ], col('ROUTE'));
     obstacle('${id}_arrow', x - 1, my - 7, x + 12, my + 4);
     text(id, x + 14, y, fontName, t, color, center: false);
   }
@@ -688,9 +898,25 @@ class WatchTwin {
     if (symName == null) {
       text('big_unit', cx, l.v('big_unit_y'), 'big_unit', unit, col('MUTED'));
     } else {
-      symText('big_unit', cx, l.v('big_unit_y'), 'big_unit', symName, unit, col('MUTED'), col('MUTED'));
+      symText(
+        'big_unit',
+        cx,
+        l.v('big_unit_y'),
+        'big_unit',
+        symName,
+        unit,
+        col('MUTED'),
+        col('MUTED'),
+      );
     }
-    text('big_value', cx, l.v('big_value_y'), 'big_value', value, col('TEXT_ON_FIELD'));
+    text(
+      'big_value',
+      cx,
+      l.v('big_value_y'),
+      'big_value',
+      value,
+      col('TEXT_ON_FIELD'),
+    );
     final rx = l.v('big_rule_x');
     final ry = l.v('big_rule_y');
     canvas.line(rx, ry, w - rx, ry, 2, col('MUTED_DARK'));
@@ -715,7 +941,9 @@ class WatchTwin {
       final a = op.skip(2).cast<int>().toList();
       switch (op[0]) {
         case 'p':
-          canvas.polygon([for (var k = 0; k < a.length; k += 2) [x + a[k], y + a[k + 1]]], c);
+          canvas.polygon([
+            for (var k = 0; k < a.length; k += 2) [x + a[k], y + a[k + 1]],
+          ], c);
         case 'r':
           canvas.rect(x + a[0], y + a[1], a[2], a[3], c);
         case 'c':
@@ -731,7 +959,16 @@ class WatchTwin {
   }
 
   /// Wie `NavView.symText`: Zeichen, 4 px, Text, mittig um [cx].
-  void symText(String id, int cx, int y, String fontName, String? symName, String t, int symColor, int color) {
+  void symText(
+    String id,
+    int cx,
+    int y,
+    String fontName,
+    String? symName,
+    String t,
+    int symColor,
+    int color,
+  ) {
     if (symName == null) {
       text(id, cx, y, fontName, t, color);
       return;
@@ -744,7 +981,15 @@ class WatchTwin {
   }
 
   /// Wie `NavView.symCell`: Zeichen, [arrow], Wert, Einheit klein dahinter.
-  void symCell(int k, int y, String? symName, bool arrow, String value, String? unit, int color) {
+  void symCell(
+    int k,
+    int y,
+    String? symName,
+    bool arrow,
+    String value,
+    String? unit,
+    int color,
+  ) {
     final vf = f('cell_value');
     final uf = f('cell_unit');
     final sw = symName == null ? 0 : symWidth(symName) + 2;
@@ -752,17 +997,31 @@ class WatchTwin {
     final vw = vf.width(value);
     final uw = unit == null ? 0 : 3 + uf.width(unit);
     var x = colX(k) - (sw + aw + vw + uw) ~/ 2;
-    if (symName != null) sym(symName, x, y + (vf.height - 16) ~/ 2, col('MUTED'));
+    if (symName != null) {
+      sym(symName, x, y + (vf.height - 16) ~/ 2, col('MUTED'));
+    }
     x += sw;
     if (arrow) {
       final my = y + vf.height ~/ 2;
-      canvas.polygon([[x + 5, my - 5], [x + 10, my + 4], [x, my + 4]], col('ROUTE'));
+      canvas.polygon([
+        [x + 5, my - 5],
+        [x + 10, my + 4],
+        [x, my + 4],
+      ], col('ROUTE'));
       obstacle('cell_arrow', x, my - 5, x + 11, my + 4);
       x += aw;
     }
     text('cell_value', x, y, 'cell_value', value, color, center: false);
     if (unit != null) {
-      text('cell_unit', x + vw + 3, y + vf.ascent - uf.ascent, 'cell_unit', unit, col('MUTED'), center: false);
+      text(
+        'cell_unit',
+        x + vw + 3,
+        y + vf.ascent - uf.ascent,
+        'cell_unit',
+        unit,
+        col('MUTED'),
+        center: false,
+      );
     }
   }
 
@@ -770,12 +1029,26 @@ class WatchTwin {
     if (m == null) {
       symCell(k, y, symName, false, '--', null, col('TEXT_ON_FIELD'));
     } else {
-      symCell(k, y, symName, true, m.truncate().toString(), unit, col('TEXT_ON_FIELD'));
+      symCell(
+        k,
+        y,
+        symName,
+        true,
+        m.truncate().toString(),
+        unit,
+        col('TEXT_ON_FIELD'),
+      );
     }
   }
 
-  void count(int k, String n) =>
-      text('cell_count', colX(k), l.v('cell_row2_y'), 'cell_count', '$n ×', col('MUTED'));
+  void count(int k, String n) => text(
+    'cell_count',
+    colX(k),
+    l.v('cell_row2_y'),
+    'cell_count',
+    '$n ×',
+    col('MUTED'),
+  );
 
   void loader(String t, {required bool full}) {
     canvas.clear(col('FIELD'));
@@ -786,7 +1059,12 @@ class WatchTwin {
         final rc = dots[i + 1];
         if (to >= 0 && unpackLo(rc) > to) return;
         final xy = dots[i];
-        canvas.circle(cx + unpackHi(xy) ~/ 10, l.v('logo_y') + unpackLo(xy) ~/ 10, unpackHi(rc) ~/ 10, color);
+        canvas.circle(
+          cx + unpackHi(xy) ~/ 10,
+          l.v('logo_y') + unpackLo(xy) ~/ 10,
+          unpackHi(rc) ~/ 10,
+          color,
+        );
       }
     }
 
@@ -810,13 +1088,23 @@ class WatchTwin {
       case TwinPhase.loader:
       case TwinPhase.ended:
         _clip = screen;
-        final key = sc.loaderText ?? (sc.phase == TwinPhase.ended ? 'NavEnded' : 'Loading');
+        final key =
+            sc.loaderText ??
+            (sc.phase == TwinPhase.ended ? 'NavEnded' : 'Loading');
         final t = key == 'Loading' ? '${s['Loading']} 100 %' : s[key]!;
         loader(t, full: sc.phase == TwinPhase.ended);
       case TwinPhase.broken:
         _clip = screen;
         canvas.clear(col('GROUND'));
-        text('route_broken', cx, w ~/ 2, 'route_broken', s['RouteBroken']!, col('TEXT'), vcenter: true);
+        text(
+          'route_broken',
+          cx,
+          w ~/ 2,
+          'route_broken',
+          s['RouteBroken']!,
+          col('TEXT'),
+          vcenter: true,
+        );
       case TwinPhase.overview:
         canvas.clear(col('GROUND'));
         _clip = mapR;
@@ -826,8 +1114,20 @@ class WatchTwin {
         canvas.annulus(r - 4, r + 4, col('ROUTE'));
         field(col('FIELD'));
         text('field_note', cx, l1, 'field_note', s['WaitGps']!, col('MUTED'));
-        numberLine(cx, l2, meters(TwinValues.routeLengthM), TwinValues.climbLeftM);
-        text('version', cx, l.v('version_y'), 'version', 'v1.6.0-dev', col('MUTED_DARK'));
+        numberLine(
+          cx,
+          l2,
+          meters(TwinValues.routeLengthM),
+          TwinValues.climbLeftM,
+        );
+        text(
+          'version',
+          cx,
+          l.v('version_y'),
+          'version',
+          'v1.6.0-dev',
+          col('MUTED_DARK'),
+        );
         mapBorder();
         _clip = screen;
         ring(0);
@@ -842,13 +1142,40 @@ class WatchTwin {
         me(cx, l.v('pos_y'));
         if (sc.phone) {
           final py = l.v('pos_y');
-          canvas.polygon([[cx, py - 7], [cx + 6, py + 6], [cx, py + 3], [cx - 6, py + 6]], col('GROUND'));
-          text('phone_gps', cx, py - l.v('phone_gps_dy'), 'phone_gps', s['PhoneGps']!, col('TEXT'), vcenter: true);
+          canvas.polygon([
+            [cx, py - 7],
+            [cx + 6, py + 6],
+            [cx, py + 3],
+            [cx - 6, py + 6],
+          ], col('GROUND'));
+          text(
+            'phone_gps',
+            cx,
+            py - l.v('phone_gps_dy'),
+            'phone_gps',
+            s['PhoneGps']!,
+            col('TEXT'),
+            vcenter: true,
+          );
         }
         if (off) {
           field(col('WARNING'));
-          text('off_title', cx, l1, 'off_title', s['OffRoute']!, col('TEXT_ON_FIELD'));
-          text('off_value', cx, l2, 'off_value', meters(TwinValues.offM), col('TEXT_ON_FIELD'));
+          text(
+            'off_title',
+            cx,
+            l1,
+            'off_title',
+            s['OffRoute']!,
+            col('TEXT_ON_FIELD'),
+          );
+          text(
+            'off_value',
+            cx,
+            l2,
+            'off_value',
+            meters(TwinValues.offM),
+            col('TEXT_ON_FIELD'),
+          );
         } else {
           field(col('FIELD'));
           switch (sc.footer) {
@@ -857,10 +1184,27 @@ class WatchTwin {
               numberLine(cx, l2, meters(TwinValues.restOnTrailM), null);
             case TwinFooter.trailAhead:
               shieldLine(cx, l1, TwinValues.grade, TwinValues.trailName);
-              numberLine(cx, l2, meters(TwinValues.headM), TwinValues.headClimbM);
+              numberLine(
+                cx,
+                l2,
+                meters(TwinValues.headM),
+                TwinValues.headClimbM,
+              );
             case TwinFooter.toGoal:
-              text('field_note', cx, l1, 'field_note', s['ToGoal']!, col('MUTED'));
-              numberLine(cx, l2, meters(TwinValues.remainingM), TwinValues.climbLeftM);
+              text(
+                'field_note',
+                cx,
+                l1,
+                'field_note',
+                s['ToGoal']!,
+                col('MUTED'),
+              );
+              numberLine(
+                cx,
+                l2,
+                meters(TwinValues.remainingM),
+                TwinValues.climbLeftM,
+              );
           }
         }
         mapBorder();
@@ -882,8 +1226,14 @@ class WatchTwin {
           text('field_note', cx, l1, 'field_note', s['WaitGps']!, col('MUTED'));
         } else {
           final note = s[sc.storageFull ? 'StorageFull' : 'FreeRide']!;
-          text('field_note', cx, l1, 'field_note', sc.storageFull ? note : '$note · ${clock(TwinValues.movingS)} h',
-              col('MUTED'));
+          text(
+            'field_note',
+            cx,
+            l1,
+            'field_note',
+            sc.storageFull ? note : '$note · ${clock(TwinValues.movingS)} h',
+            col('MUTED'),
+          );
           numberLine(cx, l2, meters(TwinValues.distanceM), TwinValues.climbM);
         }
         mapBorder();
@@ -898,32 +1248,126 @@ class WatchTwin {
         switch (sc.phase) {
           case TwinPhase.ride:
             big(null, s['Speed']!, TwinValues.speed);
-            symCell(0, l.v('cell_row1_y'), 'stopwatch', false, clock(TwinValues.movingS), null, col('TEXT_ON_FIELD'));
-            symCell(1, l.v('cell_row1_y'), 'distance', false, km(TwinValues.distanceM), 'km', col('TEXT_ON_FIELD'));
+            symCell(
+              0,
+              l.v('cell_row1_y'),
+              'stopwatch',
+              false,
+              clock(TwinValues.movingS),
+              null,
+              col('TEXT_ON_FIELD'),
+            );
+            symCell(
+              1,
+              l.v('cell_row1_y'),
+              'distance',
+              false,
+              km(TwinValues.distanceM),
+              'km',
+              col('TEXT_ON_FIELD'),
+            );
             climbCell(0, l.v('cell_row2_y'), null, TwinValues.climbM, 'm');
-            symCell(1, l.v('cell_row2_y'), 'heart', false, TwinValues.pulse, null, col('MUTED'));
+            symCell(
+              1,
+              l.v('cell_row2_y'),
+              'heart',
+              false,
+              TwinValues.pulse,
+              null,
+              col('MUTED'),
+            );
           case TwinPhase.mountain:
             big('angle', '%', TwinValues.gradePct);
             // Ab vier Stellen ohne „m": sonst reicht der Wert über den Mittelstrich.
-            symCell(0, l.v('cell_row1_y'), 'peaks', false, TwinValues.altitude,
-                TwinValues.altitude.length >= 4 ? null : 'm', col('TEXT_ON_FIELD'));
-            climbCell(1, l.v('cell_row1_y'), 'signpost', TwinValues.headClimbM, null);
-            climbCell(0, l.v('cell_row2_y'), 'flag', TwinValues.climbLeftM, null);
-            symCell(1, l.v('cell_row2_y'), 'clock', false, TwinValues.clock, null, col('TEXT_ON_FIELD'));
+            symCell(
+              0,
+              l.v('cell_row1_y'),
+              'peaks',
+              false,
+              TwinValues.altitude,
+              TwinValues.altitude.length >= 4 ? null : 'm',
+              col('TEXT_ON_FIELD'),
+            );
+            climbCell(
+              1,
+              l.v('cell_row1_y'),
+              'signpost',
+              TwinValues.headClimbM,
+              null,
+            );
+            climbCell(
+              0,
+              l.v('cell_row2_y'),
+              'flag',
+              TwinValues.climbLeftM,
+              null,
+            );
+            symCell(
+              1,
+              l.v('cell_row2_y'),
+              'clock',
+              false,
+              TwinValues.clock,
+              null,
+              col('TEXT_ON_FIELD'),
+            );
           case TwinPhase.bests:
             big('wheelie', 'm', TwinValues.wheelieM);
-            symCell(0, l.v('cell_row1_y'), 'plane', false, tenths(TwinValues.airMs), 's', col('TEXT_ON_FIELD'));
-            symCell(1, l.v('cell_row1_y'), 'wheelie', false, TwinValues.angle, null, col('TEXT_ON_FIELD'));
+            symCell(
+              0,
+              l.v('cell_row1_y'),
+              'plane',
+              false,
+              tenths(TwinValues.airMs),
+              's',
+              col('TEXT_ON_FIELD'),
+            );
+            symCell(
+              1,
+              l.v('cell_row1_y'),
+              'wheelie',
+              false,
+              TwinValues.angle,
+              null,
+              col('TEXT_ON_FIELD'),
+            );
             count(0, TwinValues.counts);
             count(1, TwinValues.counts);
           default:
-            text('arrived_title', cx, l.v('arrived_title_y'), 'arrived_title', s['Arrived']!, col('ROUTE'));
-            text('arrived_km', cx, l.v('arrived_km_y'), 'arrived_km', '${km(TwinValues.distanceM)} km',
-                col('TEXT_ON_FIELD'));
+            text(
+              'arrived_title',
+              cx,
+              l.v('arrived_title_y'),
+              'arrived_title',
+              s['Arrived']!,
+              col('ROUTE'),
+            );
+            text(
+              'arrived_km',
+              cx,
+              l.v('arrived_km_y'),
+              'arrived_km',
+              '${km(TwinValues.distanceM)} km',
+              col('TEXT_ON_FIELD'),
+            );
             final row = l.v('arrived_row_y');
-            symText('arrived_time', cx - l.v('arrived_time_dx'), row, 'arrived_time', 'stopwatch',
-                clock(TwinValues.movingS), col('MUTED'), col('TEXT_ON_FIELD'));
-            climbText('arrived_climb', cx + l.v('arrived_climb_dx'), row, TwinValues.climbM, col('TEXT_ON_FIELD'));
+            symText(
+              'arrived_time',
+              cx - l.v('arrived_time_dx'),
+              row,
+              'arrived_time',
+              'stopwatch',
+              clock(TwinValues.movingS),
+              col('MUTED'),
+              col('TEXT_ON_FIELD'),
+            );
+            climbText(
+              'arrived_climb',
+              cx + l.v('arrived_climb_dx'),
+              row,
+              TwinValues.climbM,
+              col('TEXT_ON_FIELD'),
+            );
             var x = cx - (sc.trails - 1) * 10;
             for (var k = 0; k < sc.trails; k++) {
               shield(x, l.v('arrived_shields_y'), k % 4, 5, onMap: false);
@@ -937,10 +1381,26 @@ class WatchTwin {
             final bw = 22 + 4 + bf.width(b);
             final x0 = cx - (aw + 10 + bw) ~/ 2;
             final by = l.v('arrived_bests_y');
-            symText('arrived_bests', x0 + aw ~/ 2, by, 'arrived_bests', 'plane', a, col('MUTED'),
-                col('TEXT_ON_FIELD'));
-            symText('arrived_bests', x0 + aw + 10 + bw ~/ 2, by, 'arrived_bests', 'wheelie', b, col('MUTED'),
-                col('TEXT_ON_FIELD'));
+            symText(
+              'arrived_bests',
+              x0 + aw ~/ 2,
+              by,
+              'arrived_bests',
+              'plane',
+              a,
+              col('MUTED'),
+              col('TEXT_ON_FIELD'),
+            );
+            symText(
+              'arrived_bests',
+              x0 + aw + 10 + bw ~/ 2,
+              by,
+              'arrived_bests',
+              'wheelie',
+              b,
+              col('MUTED'),
+              col('TEXT_ON_FIELD'),
+            );
         }
         ring(0.38, arrived: sc.phase == TwinPhase.arrived);
         _clip = screen;
@@ -963,7 +1423,8 @@ class WatchTwin {
     }
 
     for (final b in boxes.where((b) => b.text2)) {
-      final ok = inside(b.x0, b.y0, b.clipR) &&
+      final ok =
+          inside(b.x0, b.y0, b.clipR) &&
           inside(b.x1, b.y0, b.clipR) &&
           inside(b.x0, b.y1, b.clipR) &&
           inside(b.x1, b.y1, b.clipR);
@@ -989,23 +1450,65 @@ class WatchTwin {
 const kTwinScenes = <TwinScene>[
   TwinScene('uebersicht', TwinPhase.overview, rec: TwinRec.idle),
   TwinScene('anfahrt', TwinPhase.map, rec: TwinRec.idle),
-  TwinScene('trail', TwinPhase.map, footer: TwinFooter.onTrail, rec: TwinRec.trail),
-  TwinScene('ziel', TwinPhase.map, footer: TwinFooter.toGoal, rec: TwinRec.paused),
+  TwinScene(
+    'trail',
+    TwinPhase.map,
+    footer: TwinFooter.onTrail,
+    rec: TwinRec.trail,
+  ),
+  TwinScene(
+    'ziel',
+    TwinPhase.map,
+    footer: TwinFooter.toGoal,
+    rec: TwinRec.paused,
+  ),
   TwinScene('abseits', TwinPhase.offRoute),
   TwinScene('handy_gps', TwinPhase.map, phone: true, rec: TwinRec.idle),
   TwinScene('frage', TwinPhase.map, ask: true, rec: TwinRec.idle),
-  TwinScene('frage_gross', TwinPhase.map, ask: true, askBig: true, rec: TwinRec.idle),
-  TwinScene('einblendung', TwinPhase.map, toast: 'TrailDiscarded', rec: TwinRec.idle),
+  TwinScene(
+    'frage_gross',
+    TwinPhase.map,
+    ask: true,
+    askBig: true,
+    rec: TwinRec.idle,
+  ),
+  TwinScene(
+    'einblendung',
+    TwinPhase.map,
+    toast: 'TrailDiscarded',
+    rec: TwinRec.idle,
+  ),
   TwinScene('flug', TwinPhase.map, toastSym: 'plane', toastText: '1,2 s'),
   TwinScene('wheelie', TwinPhase.map, toastSym: 'wheelie', toastText: '123 m'),
   TwinScene('stoppie', TwinPhase.map, toastSym: 'stoppie', toastText: '0,8 s'),
-  TwinScene('flug_seite', TwinPhase.ride, toastSym: 'plane', toastText: '1,2 s'),
+  TwinScene(
+    'flug_seite',
+    TwinPhase.ride,
+    toastSym: 'plane',
+    toastText: '1,2 s',
+  ),
   TwinScene('frei', TwinPhase.free),
-  TwinScene('frei_voll', TwinPhase.free, storageFull: true, rec: TwinRec.paused),
+  TwinScene(
+    'frei_voll',
+    TwinPhase.free,
+    storageFull: true,
+    rec: TwinRec.paused,
+  ),
   TwinScene('frei_ohne_gps', TwinPhase.freeWaiting, rec: TwinRec.idle),
   TwinScene('fahrt', TwinPhase.ride, rec: TwinRec.idle, storageFull: true),
-  TwinScene('fahrt_frage', TwinPhase.ride, ask: true, askBig: true, rec: TwinRec.paused),
-  TwinScene('berg', TwinPhase.mountain, toast: 'RideDiscarded', rec: TwinRec.idle),
+  TwinScene(
+    'fahrt_frage',
+    TwinPhase.ride,
+    ask: true,
+    askBig: true,
+    rec: TwinRec.paused,
+  ),
+  TwinScene(
+    'berg',
+    TwinPhase.mountain,
+    toast: 'RideDiscarded',
+    rec: TwinRec.idle,
+  ),
   TwinScene('spruenge', TwinPhase.bests, rec: TwinRec.trail),
   TwinScene('angekommen', TwinPhase.arrived, trails: 8),
   TwinScene('lader', TwinPhase.loader),

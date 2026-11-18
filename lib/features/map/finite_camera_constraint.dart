@@ -40,8 +40,10 @@ class FiniteCameraConstraint extends CameraConstraint {
       _reported = true;
       logError(
         'Kamera-Bewegung verworfen',
-        StateError('Nicht-endliche Kamera: zoom=${camera.zoom} '
-            'center=${camera.center} rotation=${camera.rotation}'),
+        StateError(
+          'Nicht-endliche Kamera: zoom=${camera.zoom} '
+          'center=${camera.center} rotation=${camera.rotation}',
+        ),
         StackTrace.current,
       );
     }

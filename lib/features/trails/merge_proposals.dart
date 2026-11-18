@@ -60,10 +60,12 @@ class MergeProposal {
   String get key => pairKey(duplicate.id, target.id);
 
   /// Gehört [trailId] zu diesem Paar — auch als Kennung von früher?
-  bool involves(String trailId) => duplicate.answersTo(trailId) || target.answersTo(trailId);
+  bool involves(String trailId) =>
+      duplicate.answersTo(trailId) || target.answersTo(trailId);
 
   /// Der andere aus Sicht von [trailId].
-  Trail otherThan(String trailId) => duplicate.answersTo(trailId) ? target : duplicate;
+  Trail otherThan(String trailId) =>
+      duplicate.answersTo(trailId) ? target : duplicate;
 }
 
 /// Ein Paar als Schlüssel, geordnet wie in `trail_distinct`.
@@ -71,16 +73,28 @@ String pairKey(String a, String b) => a.compareTo(b) < 0 ? '$a|$b' : '$b|$a';
 
 /// Die Vorschläge aus [rows] über [trails] (dem angezeigten Netz, nach den
 /// Zuordnungen): erklärte zuerst, dann nach Anteil. Je Paar einer.
-List<MergeProposal> mergeProposals(Iterable<Trail> trails, Iterable<TrailMerge> rows) {
-  final list = [for (final t in trails) if (!t.pending) t];
+List<MergeProposal> mergeProposals(
+  Iterable<Trail> trails,
+  Iterable<TrailMerge> rows,
+) {
+  final list = [
+    for (final t in trails)
+      if (!t.pending) t,
+  ];
   final byId = {for (final t in list) t.id: t};
-  Trail? find(String id) => byId[id] ?? list.where((t) => t.answersTo(id)).firstOrNull;
+  Trail? find(String id) =>
+      byId[id] ?? list.where((t) => t.answersTo(id)).firstOrNull;
 
   final out = <String, MergeProposal>{};
   for (final r in rows) {
     if (r.kind != TrailMergeKind.proposed) continue;
     final dup = find(r.trailId), target = find(r.sameAs);
-    if (dup == null || target == null || identical(dup, target) || dup.id == target.id) continue;
+    if (dup == null ||
+        target == null ||
+        identical(dup, target) ||
+        dup.id == target.id) {
+      continue;
+    }
     final key = pairKey(dup.id, target.id);
     final prev = out[key];
     out[key] = MergeProposal(
@@ -88,7 +102,10 @@ List<MergeProposal> mergeProposals(Iterable<Trail> trails, Iterable<TrailMerge> 
       target: target,
       source: ProposalSource.declared,
       share: prev?.share ?? mergeNearShare(dup.points, target.points),
-      byUsers: [...?prev?.byUsers, ...r.byUsers.where((u) => !(prev?.byUsers.contains(u) ?? false))],
+      byUsers: [
+        ...?prev?.byUsers,
+        ...r.byUsers.where((u) => !(prev?.byUsers.contains(u) ?? false)),
+      ],
       trimmable: prev?.trimmable ?? trimmableOf(dup, target),
     );
   }
@@ -109,12 +126,11 @@ List<MergeProposal> mergeProposals(Iterable<Trail> trails, Iterable<TrailMerge> 
       trimmable: trimmableOf(a, b),
     );
   }
-  return out.values.toList()
-    ..sort((x, y) {
-      if (x.source != y.source) return x.source.index.compareTo(y.source.index);
-      final c = y.share.compareTo(x.share);
-      return c != 0 ? c : x.key.compareTo(y.key);
-    });
+  return out.values.toList()..sort((x, y) {
+    if (x.source != y.source) return x.source.index.compareTo(y.source.index);
+    final c = y.share.compareTo(x.share);
+    return c != 0 ? c : x.key.compareTo(y.key);
+  });
 }
 
 /// Mein Trail von [a] und [b], der den anderen GANZ enthält und selbst
@@ -125,7 +141,8 @@ List<MergeProposal> mergeProposals(Iterable<Trail> trails, Iterable<TrailMerge> 
 Trail? trimmableOf(Trail a, Trail b) {
   for (final (outer, inner) in [(a, b), (b, a)]) {
     if (!outer.recordings.any((r) => r.userId == outer.myId)) continue;
-    if (lineCovers(outer.points, inner.points) && !lineCovers(inner.points, outer.points)) {
+    if (lineCovers(outer.points, inner.points) &&
+        !lineCovers(inner.points, outer.points)) {
       return outer;
     }
   }

@@ -19,7 +19,9 @@ const kBannerRightInset = kMapButtonSize + 8;
 /// Der Aufnahmeknopf ist größer: die Hauptaktion der Karte.
 const kRecordButtonSize = 60.0;
 
-const _shadow = [BoxShadow(blurRadius: 6, offset: Offset(0, 2), color: Color(0x33000000))];
+const _shadow = [
+  BoxShadow(blurRadius: 6, offset: Offset(0, 2), color: Color(0x33000000)),
+];
 
 class MapRoundButton extends StatelessWidget {
   const MapRoundButton({
@@ -46,7 +48,10 @@ class MapRoundButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final p = dark ? AppColors.dark : AppPalette.of(context);
     return DecoratedBox(
-      decoration: const BoxDecoration(shape: BoxShape.circle, boxShadow: _shadow),
+      decoration: const BoxDecoration(
+        shape: BoxShape.circle,
+        boxShadow: _shadow,
+      ),
       child: IconButton(
         tooltip: tooltip,
         onPressed: onPressed,
@@ -73,7 +78,11 @@ class MapRoundButton extends StatelessWidget {
 /// Aufnahme: Lime mit dunklem Punkt; läuft die Fahrt, Orange mit
 /// Stop-Quadrat.
 class RecordButton extends StatelessWidget {
-  const RecordButton({super.key, required this.recording, required this.onPressed});
+  const RecordButton({
+    super.key,
+    required this.recording,
+    required this.onPressed,
+  });
 
   final bool recording;
   final VoidCallback onPressed;
@@ -83,11 +92,19 @@ class RecordButton extends StatelessWidget {
     final bg = recording ? AppColors.mapLines.warning : AppColors.brand;
     final fg = recording ? Colors.white : AppColors.onBrand;
     return DecoratedBox(
-      decoration: const BoxDecoration(shape: BoxShape.circle, boxShadow: _shadow),
+      decoration: const BoxDecoration(
+        shape: BoxShape.circle,
+        boxShadow: _shadow,
+      ),
       child: IconButton(
-        tooltip: recording ? context.l10n.rideStopTooltip : context.l10n.rideRecordTooltip,
+        tooltip: recording
+            ? context.l10n.rideStopTooltip
+            : context.l10n.rideRecordTooltip,
         onPressed: onPressed,
-        icon: Icon(recording ? Icons.stop_rounded : Icons.circle, size: recording ? 30 : 22),
+        icon: Icon(
+          recording ? Icons.stop_rounded : Icons.circle,
+          size: recording ? 30 : 22,
+        ),
         style: IconButton.styleFrom(
           fixedSize: const Size.square(kRecordButtonSize),
           minimumSize: const Size.square(kRecordButtonSize),

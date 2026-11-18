@@ -50,7 +50,12 @@ import 'loop_planner_sheet.dart' show loopHoursLabel;
 import 'start_point_pick.dart';
 
 class LoopEntrySheet extends ConsumerStatefulWidget {
-  const LoopEntrySheet({super.key, required this.onCompute, required this.onSuggest, required this.onClose});
+  const LoopEntrySheet({
+    super.key,
+    required this.onCompute,
+    required this.onSuggest,
+    required this.onClose,
+  });
 
   /// Die Route rechnen — dieselbe Stelle wie „Route rechnen" in der
   /// Auswahlzeile (das Ergebnis-Blatt geht auf).
@@ -97,7 +102,10 @@ class _LoopEntrySheetState extends ConsumerState<LoopEntrySheet> {
     final fix = ref.read(positionStreamProvider).valueOrNull;
     if (fix == null) return;
     final near = nearbyStartPoint(
-        ref.read(startPointsProvider), ref.read(currentUserIdProvider), LatLng(fix.latitude, fix.longitude));
+      ref.read(startPointsProvider),
+      ref.read(currentUserIdProvider),
+      LatLng(fix.latitude, fix.longitude),
+    );
     if (near == null) return;
     _chose = true;
     _n.takeStartPoint(near, asTarget: false, remember: false);
@@ -115,7 +123,9 @@ class _LoopEntrySheetState extends ConsumerState<LoopEntrySheet> {
     setState(() => _noPosition = false);
     _n.setIntent(route: route);
     // Drei Tipps (12.3): Planer → Route → Tipp auf die Karte.
-    if (route && ref.read(loopPlannerProvider).target == null) _n.armTargetPick();
+    if (route && ref.read(loopPlannerProvider).target == null) {
+      _n.armTargetPick();
+    }
   }
 
   Future<void> _targetMine() async {
@@ -150,7 +160,9 @@ class _LoopEntrySheetState extends ConsumerState<LoopEntrySheet> {
 
   void _hours(double delta) {
     final prefs = ref.read(loopPlannerProvider).prefs;
-    final h = (prefs.hours + delta).clamp(LoopPrefs.minHours, LoopPrefs.maxHours).toDouble();
+    final h = (prefs.hours + delta)
+        .clamp(LoopPrefs.minHours, LoopPrefs.maxHours)
+        .toDouble();
     if (h != prefs.hours) _n.setPrefs(prefs.copyWith(hours: h));
   }
 
@@ -164,9 +176,13 @@ class _LoopEntrySheetState extends ConsumerState<LoopEntrySheet> {
     ref.listen(positionStreamProvider, (_, _) => _preselect());
     ref.listen(startPointsProvider, (_, _) => _preselect());
 
-    Widget label(String text) => SizedBox(width: 52, child: Text(text, style: theme.textTheme.labelLarge));
+    Widget label(String text) => SizedBox(
+      width: 52,
+      child: Text(text, style: theme.textTheme.labelLarge),
+    );
 
-    Widget choice(String key, String text, bool chosen, VoidCallback onTap) => ChoiceChip(
+    Widget choice(String key, String text, bool chosen, VoidCallback onTap) =>
+        ChoiceChip(
           key: ValueKey(key),
           label: Text(text, maxLines: 1, overflow: TextOverflow.ellipsis),
           selected: chosen,
@@ -175,12 +191,14 @@ class _LoopEntrySheetState extends ConsumerState<LoopEntrySheet> {
         );
 
     Widget line(String name, List<Widget> chips) => Padding(
-          padding: const EdgeInsets.only(top: 4),
-          child: Row(children: [
-            label(name),
-            Expanded(child: Wrap(spacing: 8, runSpacing: 0, children: chips)),
-          ]),
-        );
+      padding: const EdgeInsets.only(top: 4),
+      child: Row(
+        children: [
+          label(name),
+          Expanded(child: Wrap(spacing: 8, runSpacing: 0, children: chips)),
+        ],
+      ),
+    );
 
     final startLine = line(l.loopHeadStart, [
       choice('loop-entry-start-me', l.loopHeadMine, s.start == null, () {
@@ -188,62 +206,86 @@ class _LoopEntrySheetState extends ConsumerState<LoopEntrySheet> {
         setState(() => _noPosition = false);
         if (s.start != null) _n.useMyPosition();
       }),
-      choice('loop-entry-start-map', l.loopEntryPickOnMap, s.start != null && !s.startSaved, () {
-        _chose = true;
-        setState(() => _noPosition = false);
-        _n.armStartPick();
-      }),
+      choice(
+        'loop-entry-start-map',
+        l.loopEntryPickOnMap,
+        s.start != null && !s.startSaved,
+        () {
+          _chose = true;
+          setState(() => _noPosition = false);
+          _n.armStartPick();
+        },
+      ),
       // Gewählt trägt die Wahl den Namen des Punkts (Konzept 5.1). Beim
       // Start immer da — ohne Punkt erklärt die Liste, wie einer entsteht,
       // und bietet „Mein Standort merken" an.
-      choice('loop-entry-start-saved', s.startSaved ? s.startName ?? l.loopEntrySaved : l.loopEntrySaved,
-          s.startSaved, () => unawaited(_pickSaved(asTarget: false))),
+      choice(
+        'loop-entry-start-saved',
+        s.startSaved ? s.startName ?? l.loopEntrySaved : l.loopEntrySaved,
+        s.startSaved,
+        () => unawaited(_pickSaved(asTarget: false)),
+      ),
     ]);
 
     final timeLine = Padding(
       padding: const EdgeInsets.only(top: 4),
-      child: Row(children: [
-        label(l.loopEntryTime),
-        IconButton.filledTonal(
-          key: const ValueKey('loop-entry-less'),
-          tooltip: l.loopEntryLess,
-          iconSize: 28,
-          constraints: const BoxConstraints(minWidth: 52, minHeight: 52),
-          onPressed: s.prefs.hours > LoopPrefs.minHours ? () => _hours(-LoopPrefs.hoursStep) : null,
-          icon: const Icon(Icons.remove),
-        ),
-        Expanded(
-          child: Text(
-            l.loopEntryHours(loopHoursLabel(l, s.prefs.hours)),
-            key: const ValueKey('loop-entry-hours'),
-            textAlign: TextAlign.center,
-            style: AppFonts.numbers(theme.textTheme.titleMedium),
+      child: Row(
+        children: [
+          label(l.loopEntryTime),
+          IconButton.filledTonal(
+            key: const ValueKey('loop-entry-less'),
+            tooltip: l.loopEntryLess,
+            iconSize: 28,
+            constraints: const BoxConstraints(minWidth: 52, minHeight: 52),
+            onPressed: s.prefs.hours > LoopPrefs.minHours
+                ? () => _hours(-LoopPrefs.hoursStep)
+                : null,
+            icon: const Icon(Icons.remove),
           ),
-        ),
-        IconButton.filledTonal(
-          key: const ValueKey('loop-entry-more'),
-          tooltip: l.loopEntryMore,
-          iconSize: 28,
-          constraints: const BoxConstraints(minWidth: 52, minHeight: 52),
-          onPressed: s.prefs.hours < LoopPrefs.maxHours ? () => _hours(LoopPrefs.hoursStep) : null,
-          icon: const Icon(Icons.add),
-        ),
-      ]),
+          Expanded(
+            child: Text(
+              l.loopEntryHours(loopHoursLabel(l, s.prefs.hours)),
+              key: const ValueKey('loop-entry-hours'),
+              textAlign: TextAlign.center,
+              style: AppFonts.numbers(theme.textTheme.titleMedium),
+            ),
+          ),
+          IconButton.filledTonal(
+            key: const ValueKey('loop-entry-more'),
+            tooltip: l.loopEntryMore,
+            iconSize: 28,
+            constraints: const BoxConstraints(minWidth: 52, minHeight: 52),
+            onPressed: s.prefs.hours < LoopPrefs.maxHours
+                ? () => _hours(LoopPrefs.hoursStep)
+                : null,
+            icon: const Icon(Icons.add),
+          ),
+        ],
+      ),
     );
 
     final targetLine = line(l.loopHeadTarget, [
       choice('loop-entry-target-me', l.loopHeadMine, s.targetMine, () {
         if (!_locating) unawaited(_targetMine());
       }),
-      choice('loop-entry-target-map', l.loopEntryPickOnMap, s.target != null && !s.targetMine && !s.targetSaved, () {
-        _chose = true;
-        setState(() => _noPosition = false);
-        _n.armTargetPick();
-      }),
+      choice(
+        'loop-entry-target-map',
+        l.loopEntryPickOnMap,
+        s.target != null && !s.targetMine && !s.targetSaved,
+        () {
+          _chose = true;
+          setState(() => _noPosition = false);
+          _n.armTargetPick();
+        },
+      ),
       // Beim Ziel nur mit Punkten: eine leere Liste böte dort nichts an.
       if (hasSaved || s.targetSaved)
-        choice('loop-entry-target-saved', s.targetSaved ? s.targetName ?? l.loopEntrySaved : l.loopEntrySaved,
-            s.targetSaved, () => unawaited(_pickSaved(asTarget: true))),
+        choice(
+          'loop-entry-target-saved',
+          s.targetSaved ? s.targetName ?? l.loopEntrySaved : l.loopEntrySaved,
+          s.targetSaved,
+          () => unawaited(_pickSaved(asTarget: true)),
+        ),
     ]);
 
     return CoachAnchor(
@@ -253,72 +295,99 @@ class _LoopEntrySheetState extends ConsumerState<LoopEntrySheet> {
         margin: EdgeInsets.zero,
         child: Padding(
           padding: const EdgeInsets.fromLTRB(12, 4, 4, 8),
-          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-            Row(children: [
-              Expanded(child: Text(l.loopEntryTitle, style: theme.textTheme.titleMedium)),
-              IconButton(
-                key: const ValueKey('loop-entry-close'),
-                tooltip: l.loopRailClose,
-                onPressed: widget.onClose,
-                icon: const Icon(Icons.close),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      l.loopEntryTitle,
+                      style: theme.textTheme.titleMedium,
+                    ),
+                  ),
+                  IconButton(
+                    key: const ValueKey('loop-entry-close'),
+                    tooltip: l.loopRailClose,
+                    onPressed: widget.onClose,
+                    icon: const Icon(Icons.close),
+                  ),
+                ],
               ),
-            ]),
-            Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: SegmentedButton<bool>(
-                segments: [
-                  ButtonSegment(
+              Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: SegmentedButton<bool>(
+                  segments: [
+                    ButtonSegment(
                       value: false,
                       icon: const Icon(Icons.loop),
-                      label: Text(l.loopEntryLoop, key: const ValueKey('loop-entry-loop'))),
-                  ButtonSegment(
+                      label: Text(
+                        l.loopEntryLoop,
+                        key: const ValueKey('loop-entry-loop'),
+                      ),
+                    ),
+                    ButtonSegment(
                       value: true,
                       icon: const Icon(Icons.place_outlined),
-                      label: Text(l.loopEntryRoute, key: const ValueKey('loop-entry-route'))),
-                ],
-                selected: {route},
-                showSelectedIcon: false,
-                onSelectionChanged: (v) => _setRoute(v.first),
-              ),
-            ),
-            startLine,
-            if (route) targetLine else timeLine,
-            if (_noPosition)
-              Padding(
-                padding: const EdgeInsets.only(top: 4, right: 8),
-                child: Text(l.loopEntryNoPosition,
-                    key: const ValueKey('loop-entry-no-position'),
-                    style: theme.textTheme.bodySmall?.copyWith(color: AppPalette.of(context).warningText)),
-              ),
-            if (_climbOffer != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 8, right: 8),
-                child: ClimbLimitRow(offer: _climbOffer),
-              ),
-            const SizedBox(height: 8),
-            Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: FilledButton.icon(
-                key: const ValueKey('loop-entry-go'),
-                style: FilledButton.styleFrom(
-                  minimumSize: const Size.fromHeight(48),
-                  backgroundColor: AppColors.brand,
-                  foregroundColor: AppColors.onBrand,
+                      label: Text(
+                        l.loopEntryRoute,
+                        key: const ValueKey('loop-entry-route'),
+                      ),
+                    ),
+                  ],
+                  selected: {route},
+                  showSelectedIcon: false,
+                  onSelectionChanged: (v) => _setRoute(v.first),
                 ),
-                onPressed: _locating ? null : _go,
-                icon: Icon(route ? Icons.alt_route : Icons.touch_app_outlined),
-                label: Text(route ? l.loopRailComputeRoute : l.loopEntrySuggest),
               ),
-            ),
-            Align(
-              alignment: Alignment.center,
-              child: TextButton(
-                key: const ValueKey('loop-entry-self'),
-                onPressed: _n.leaveEntry,
-                child: Text(l.loopEntrySelf),
+              startLine,
+              if (route) targetLine else timeLine,
+              if (_noPosition)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4, right: 8),
+                  child: Text(
+                    l.loopEntryNoPosition,
+                    key: const ValueKey('loop-entry-no-position'),
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: AppPalette.of(context).warningText,
+                    ),
+                  ),
+                ),
+              if (_climbOffer != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8, right: 8),
+                  child: ClimbLimitRow(offer: _climbOffer),
+                ),
+              const SizedBox(height: 8),
+              Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: FilledButton.icon(
+                  key: const ValueKey('loop-entry-go'),
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size.fromHeight(48),
+                    backgroundColor: AppColors.brand,
+                    foregroundColor: AppColors.onBrand,
+                  ),
+                  onPressed: _locating ? null : _go,
+                  icon: Icon(
+                    route ? Icons.alt_route : Icons.touch_app_outlined,
+                  ),
+                  label: Text(
+                    route ? l.loopRailComputeRoute : l.loopEntrySuggest,
+                  ),
+                ),
               ),
-            ),
-          ]),
+              Align(
+                alignment: Alignment.center,
+                child: TextButton(
+                  key: const ValueKey('loop-entry-self'),
+                  onPressed: _n.leaveEntry,
+                  child: Text(l.loopEntrySelf),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

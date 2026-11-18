@@ -12,7 +12,7 @@ class PickedFile {
 
   /// Für Tests und für Aufrufer, die schon Text haben.
   PickedFile.text(this.name, String text)
-      : bytes = Uint8List.fromList(utf8.encode(text));
+    : bytes = Uint8List.fromList(utf8.encode(text));
 
   final String name;
   final Uint8List bytes;
@@ -36,7 +36,10 @@ class PickedGpx {
 /// Zip wird am Magic `PK\x03\x04` erkannt, nicht an der Endung: Manche
 /// Dateimanager reichen den Namen ohne Endung durch. Die Fehlerzeilen
 /// stehen so auf dem Schirm, daher [l] (#209).
-({List<PickedGpx> files, List<String> errors}) gpxFilesFrom(AppLocalizations l, PickedFile file) {
+({List<PickedGpx> files, List<String> errors}) gpxFilesFrom(
+  AppLocalizations l,
+  PickedFile file,
+) {
   if (_isZip(file.bytes)) {
     final Archive archive;
     try {
@@ -54,7 +57,12 @@ class PickedGpx {
     final files = <PickedGpx>[];
     for (final entry in archive.files) {
       if (!entry.isFile || !_isGpxEntry(entry.name)) continue;
-      files.add(PickedGpx(name: _baseName(entry.name), text: _decode(entry.content as List<int>)));
+      files.add(
+        PickedGpx(
+          name: _baseName(entry.name),
+          text: _decode(entry.content as List<int>),
+        ),
+      );
     }
     if (files.isEmpty) {
       return (files: const [], errors: [l.gpxZipNoGpx(file.name)]);
@@ -64,18 +72,27 @@ class PickedGpx {
   if (!file.name.toLowerCase().endsWith('.gpx') && !_looksLikeXml(file.bytes)) {
     return (files: const [], errors: [l.gpxNotGpxOrZip(file.name)]);
   }
-  return (files: [PickedGpx(name: file.name, text: _decode(file.bytes))], errors: const []);
+  return (
+    files: [PickedGpx(name: file.name, text: _decode(file.bytes))],
+    errors: const [],
+  );
 }
 
 bool _isZip(Uint8List b) =>
-    b.length > 4 && b[0] == 0x50 && b[1] == 0x4B && b[2] == 0x03 && b[3] == 0x04;
+    b.length > 4 &&
+    b[0] == 0x50 &&
+    b[1] == 0x4B &&
+    b[2] == 0x03 &&
+    b[3] == 0x04;
 
 /// macOS legt beim Zippen `__MACOSX/._name.gpx` daneben — Ressourcen-
 /// gabeln mit derselben Endung, aber ohne XML darin.
 bool _isGpxEntry(String path) {
   final lower = path.toLowerCase();
   if (!lower.endsWith('.gpx')) return false;
-  if (lower.startsWith('__macosx/') || lower.contains('/__macosx/')) return false;
+  if (lower.startsWith('__macosx/') || lower.contains('/__macosx/')) {
+    return false;
+  }
   return !_baseName(lower).startsWith('._');
 }
 

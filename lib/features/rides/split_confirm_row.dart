@@ -18,7 +18,12 @@ import '../trails/trail_providers.dart';
 import 'ride_confirm.dart';
 
 class SplitConfirmRow extends ConsumerStatefulWidget {
-  const SplitConfirmRow({super.key, required this.target, required this.rodeAt, required this.index});
+  const SplitConfirmRow({
+    super.key,
+    required this.target,
+    required this.rodeAt,
+    required this.index,
+  });
 
   final ConfirmTarget target;
   final DateTime rodeAt;
@@ -50,8 +55,15 @@ class _SplitConfirmRowState extends ConsumerState<SplitConfirmRow> {
   Future<void> _send({TrailStatus? status, int? condition}) async {
     setState(() => _stage = _Stage.sending);
     try {
-      final outcome = await ref.read(trailsProvider.notifier).report(widget.target.trailId,
-          status: status, condition: condition, onSite: true, at: widget.rodeAt);
+      final outcome = await ref
+          .read(trailsProvider.notifier)
+          .report(
+            widget.target.trailId,
+            status: status,
+            condition: condition,
+            onSite: true,
+            at: widget.rodeAt,
+          );
       if (!mounted) return;
       setState(() {
         _outcome = outcome;
@@ -74,42 +86,55 @@ class _SplitConfirmRowState extends ConsumerState<SplitConfirmRow> {
       padding: const EdgeInsets.only(left: 48, bottom: 8),
       child: switch (_stage) {
         _Stage.sent => Text(
-            key: ValueKey('$_k-sent'),
-            _outcome == WriteOutcome.queued
-                ? context.l10n.confirmSentQueued
-                : context.l10n.confirmSent,
-            style: muted),
+          key: ValueKey('$_k-sent'),
+          _outcome == WriteOutcome.queued
+              ? context.l10n.confirmSentQueued
+              : context.l10n.confirmSent,
+          style: muted,
+        ),
         _Stage.failed => Text(
-            key: ValueKey('$_k-failed'),
-            context.l10n.confirmFailed,
-            style: muted?.copyWith(color: palette.warningText)),
+          key: ValueKey('$_k-failed'),
+          context.l10n.confirmFailed,
+          style: muted?.copyWith(color: palette.warningText),
+        ),
         _Stage.sending => const LinearProgressIndicator(),
         _Stage.ask => Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(notice.body, key: ValueKey('$_k-question'), style: muted),
-              const SizedBox(height: 4),
-              Wrap(spacing: 8, runSpacing: 4, children: [
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(notice.body, key: ValueKey('$_k-question'), style: muted),
+            const SizedBox(height: 4),
+            Wrap(
+              spacing: 8,
+              runSpacing: 4,
+              children: [
                 for (final (choice, label) in notice.actions)
                   OutlinedButton(
                     key: ValueKey('$_k-${choice.id}'),
                     onPressed: () => switch (choice) {
-                      ConfirmChoice.confirm =>
-                        _send(status: widget.target.status, condition: widget.target.condition),
+                      ConfirmChoice.confirm => _send(
+                        status: widget.target.status,
+                        condition: widget.target.condition,
+                      ),
                       ConfirmChoice.free => _send(status: TrailStatus.open),
-                      ConfirmChoice.change => setState(() => _stage = _Stage.change),
+                      ConfirmChoice.change => setState(
+                        () => _stage = _Stage.change,
+                      ),
                     },
                     child: Text(label),
                   ),
-              ]),
-            ],
-          ),
+              ],
+            ),
+          ],
+        ),
         _Stage.change => Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (widget.target.status != null) ...[
-                Text(context.l10n.reportFieldLabel, style: muted),
-                Wrap(spacing: 6, runSpacing: 4, children: [
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (widget.target.status != null) ...[
+              Text(context.l10n.reportFieldLabel, style: muted),
+              Wrap(
+                spacing: 6,
+                runSpacing: 4,
+                children: [
                   for (final s in TrailStatus.values)
                     ChoiceChip(
                       key: ValueKey('$_k-status-${s.db}'),
@@ -117,12 +142,16 @@ class _SplitConfirmRowState extends ConsumerState<SplitConfirmRow> {
                       selected: _status == s,
                       onSelected: (_) => setState(() => _status = s),
                     ),
-                ]),
-              ],
-              if (widget.target.condition != null) ...[
-                const SizedBox(height: 4),
-                Text(context.l10n.reportCondition, style: muted),
-                Wrap(spacing: 6, runSpacing: 4, children: [
+                ],
+              ),
+            ],
+            if (widget.target.condition != null) ...[
+              const SizedBox(height: 4),
+              Text(context.l10n.reportCondition, style: muted),
+              Wrap(
+                spacing: 6,
+                runSpacing: 4,
+                children: [
                   for (final c in kTrailConditions)
                     ChoiceChip(
                       key: ValueKey('$_k-condition-${c.value}'),
@@ -131,15 +160,20 @@ class _SplitConfirmRowState extends ConsumerState<SplitConfirmRow> {
                       selected: _condition == c.value,
                       onSelected: (_) => setState(() => _condition = c.value),
                     ),
-                ]),
-              ],
-              const SizedBox(height: 4),
-              Row(children: [
+                ],
+              ),
+            ],
+            const SizedBox(height: 4),
+            Row(
+              children: [
                 FilledButton.tonal(
                   key: ValueKey('$_k-submit'),
                   onPressed: () => _send(
-                      status: widget.target.status != null ? _status : null,
-                      condition: widget.target.condition != null ? _condition : null),
+                    status: widget.target.status != null ? _status : null,
+                    condition: widget.target.condition != null
+                        ? _condition
+                        : null,
+                  ),
                   child: Text(context.l10n.reportSubmit),
                 ),
                 const SizedBox(width: 8),
@@ -147,9 +181,10 @@ class _SplitConfirmRowState extends ConsumerState<SplitConfirmRow> {
                   onPressed: () => setState(() => _stage = _Stage.ask),
                   child: Text(context.l10n.commonBack),
                 ),
-              ]),
-            ],
-          ),
+              ],
+            ),
+          ],
+        ),
       },
     );
   }

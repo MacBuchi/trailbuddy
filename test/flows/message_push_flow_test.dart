@@ -31,9 +31,14 @@ void main() {
     me = backend.addUser(username: 'testrail');
     // Mit echter UUID: Die Erlaubnisliste nimmt nur diese Form an, und
     // die Fake-Kennungen („user-2") hätten sie nie bestanden.
-    backend.users.add(FakeUser(
-        id: bertId, email: 'bert@example.org', password: 'pw12345678',
-        username: 'bert'));
+    backend.users.add(
+      FakeUser(
+        id: bertId,
+        email: 'bert@example.org',
+        password: 'pw12345678',
+        username: 'bert',
+      ),
+    );
     backend.signInAs(me.id);
     backend.addFriendship(me.id, bertId);
     foreground = StreamController<RemoteMessage>.broadcast();
@@ -43,33 +48,39 @@ void main() {
   });
 
   RemoteMessage pushFromBert(String text) => RemoteMessage(
-        notification: RemoteNotification(title: 'bert', body: text),
-        data: const {'route': '/friends/chat/$bertId'},
-      );
+    notification: RemoteNotification(title: 'bert', body: text),
+    data: const {'route': '/friends/chat/$bertId'},
+  );
 
   void arrive(String text) {
     final now = DateTime.now();
-    backend.messages.add(BuddyMessage(
-      id: 'm-${backend.messages.length}',
-      senderId: bertId,
-      recipientId: me.id,
-      body: text,
-      createdAt: now,
-      expiresAt: now.add(const Duration(days: kMessageDays)),
-    ));
+    backend.messages.add(
+      BuddyMessage(
+        id: 'm-${backend.messages.length}',
+        senderId: bertId,
+        recipientId: me.id,
+        body: text,
+        createdAt: now,
+        expiresAt: now.add(const Duration(days: kMessageDays)),
+      ),
+    );
   }
 
-  Future<void> start(WidgetTester tester,
-      {RemoteMessage? initial}) =>
-      pumpApp(tester, backend, extraOverrides: [
-        pushMessageListenerProvider.overrideWithValue(() => foreground.stream),
-        pushTapListenerProvider.overrideWithValue(() => taps.stream),
-        pushInitialMessageProvider.overrideWithValue(() async => initial),
-      ]);
+  Future<void> start(WidgetTester tester, {RemoteMessage? initial}) => pumpApp(
+    tester,
+    backend,
+    extraOverrides: [
+      pushMessageListenerProvider.overrideWithValue(() => foreground.stream),
+      pushTapListenerProvider.overrideWithValue(() => taps.stream),
+      pushInitialMessageProvider.overrideWithValue(() async => initial),
+    ],
+  );
 
   test('nur der Verlauf mit einem Buddy ist ein erlaubtes Ziel', () {
-    expect(pushRouteOf(const {'route': '/friends/chat/$bertId'}),
-        '/friends/chat/$bertId');
+    expect(
+      pushRouteOf(const {'route': '/friends/chat/$bertId'}),
+      '/friends/chat/$bertId',
+    );
     for (final route in [
       '/profile',
       '/friends/chat/bert',
@@ -91,13 +102,19 @@ void main() {
     await settle(tester, frames: 12);
 
     expect(find.text('Hast du Zeit?'), findsOneWidget);
-    expect(find.byKey(const Key('buddys-unread-badge')), findsWidgets,
-        reason: 'die Liste ist nach der Meldung neu geholt');
+    expect(
+      find.byKey(const Key('buddys-unread-badge')),
+      findsWidgets,
+      reason: 'die Liste ist nach der Meldung neu geholt',
+    );
     await tester.tap(find.text('Öffnen'));
     await settle(tester, frames: 16);
     expect(find.byKey(kMessageFieldKey), findsOneWidget);
-    expect(find.text('Hast du Zeit?'), findsOneWidget,
-        reason: 'jetzt im Verlauf, die Leiste ist weg');
+    expect(
+      find.text('Hast du Zeit?'),
+      findsOneWidget,
+      reason: 'jetzt im Verlauf, die Leiste ist weg',
+    );
     expect(backend.messages.single.readAt, isNotNull);
   });
 
@@ -113,8 +130,11 @@ void main() {
     await settle(tester, frames: 16);
 
     expect(find.text('Öffnen'), findsNothing);
-    expect(find.text('Bin gleich da'), findsOneWidget,
-        reason: 'einmal — im Verlauf, nicht noch einmal als Leiste');
+    expect(
+      find.text('Bin gleich da'),
+      findsOneWidget,
+      reason: 'einmal — im Verlauf, nicht noch einmal als Leiste',
+    );
   });
 
   testWidgets('Tipp auf die Meldung öffnet den Verlauf', (tester) async {
@@ -127,8 +147,7 @@ void main() {
     expect(find.text('Treffpunkt Trailkopf'), findsOneWidget);
   });
 
-  testWidgets('auch wenn die App erst durch den Tipp startet',
-      (tester) async {
+  testWidgets('auch wenn die App erst durch den Tipp startet', (tester) async {
     arrive('Guten Morgen');
     await start(tester, initial: pushFromBert('Guten Morgen'));
     await settle(tester, frames: 16);
@@ -139,13 +158,19 @@ void main() {
 
   testWidgets('ein fremdes Ziel wird nicht verfolgt', (tester) async {
     await start(tester);
-    taps.add(const RemoteMessage(
+    taps.add(
+      const RemoteMessage(
         notification: RemoteNotification(title: 'x', body: 'y'),
-        data: {'route': '/profile'}));
+        data: {'route': '/profile'},
+      ),
+    );
     await settle(tester, frames: 12);
 
     expect(find.byKey(kMessageFieldKey), findsNothing);
-    expect(tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex, 0,
-        reason: 'die Karte steht weiter vorne — nichts wurde geöffnet');
+    expect(
+      tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex,
+      0,
+      reason: 'die Karte steht weiter vorne — nichts wurde geöffnet',
+    );
   });
 }

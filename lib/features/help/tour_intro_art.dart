@@ -26,16 +26,16 @@ class _Stage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => SizedBox(
-        width: 240,
-        height: 150,
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(20),
-          child: ColoredBox(
-            color: AppPalette.of(context).ground,
-            child: CustomPaint(painter: painter),
-          ),
-        ),
-      );
+    width: 240,
+    height: 150,
+    child: ClipRRect(
+      borderRadius: BorderRadius.circular(20),
+      child: ColoredBox(
+        color: AppPalette.of(context).ground,
+        child: CustomPaint(painter: painter),
+      ),
+    ),
+  );
 }
 
 /// Wie weit der Punkt auf der Serpentine ist, 0…1, bei [t] (0…1, eine
@@ -62,9 +62,12 @@ class _WelcomeArt extends StatefulWidget {
   State<_WelcomeArt> createState() => _WelcomeArtState();
 }
 
-class _WelcomeArtState extends State<_WelcomeArt> with SingleTickerProviderStateMixin {
-  late final AnimationController _loop =
-      AnimationController(vsync: this, duration: const Duration(seconds: 4))..repeat();
+class _WelcomeArtState extends State<_WelcomeArt>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _loop = AnimationController(
+    vsync: this,
+    duration: const Duration(seconds: 4),
+  )..repeat();
 
   @override
   void dispose() {
@@ -91,7 +94,11 @@ class _WelcomeArtState extends State<_WelcomeArt> with SingleTickerProviderState
 }
 
 class _SerpentinePainter extends CustomPainter {
-  const _SerpentinePainter({required this.progress, required this.road, required this.rider});
+  const _SerpentinePainter({
+    required this.progress,
+    required this.road,
+    required this.rider,
+  });
 
   final double progress;
   final Color road;
@@ -107,7 +114,10 @@ class _SerpentinePainter extends CustomPainter {
     canvas.drawPath(geo.range(0, geo.length), Paint()..color = road);
     // Die auslaufenden Striche wie im Logo, halb durchsichtig — dort fährt
     // niemand mehr.
-    canvas.drawPath(geo.range(geo.length, geo.total), Paint()..color = road.withValues(alpha: 0.5));
+    canvas.drawPath(
+      geo.range(geo.length, geo.total),
+      Paint()..color = road.withValues(alpha: 0.5),
+    );
     final at = geo.pointAt(geo.length * progress);
     canvas.drawCircle(at, 5.5, Paint()..color = rider);
     canvas.drawCircle(at, 2.5, Paint()..color = road);
@@ -122,25 +132,25 @@ class _SerpentinePainter extends CustomPainter {
 /// weißem Saum auf dem Landton der Karte, am Anfang des mittleren das
 /// Schild. Steht still — die Karte selbst bewegt sich auch nicht.
 Widget mapArt(BuildContext context) => SizedBox(
-      width: 240,
-      height: 150,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(20),
-        child: const ColoredBox(
-          color: AppColors.mapBackground,
-          child: Stack(
-            children: [
-              Positioned.fill(child: CustomPaint(painter: _MapLinesPainter())),
-              Positioned(
-                left: 104,
-                top: 88,
-                child: GradeShield(1, fontSize: 12, palette: AppColors.mapGrades),
-              ),
-            ],
+  width: 240,
+  height: 150,
+  child: ClipRRect(
+    borderRadius: BorderRadius.circular(20),
+    child: const ColoredBox(
+      color: AppColors.mapBackground,
+      child: Stack(
+        children: [
+          Positioned.fill(child: CustomPaint(painter: _MapLinesPainter())),
+          Positioned(
+            left: 104,
+            top: 88,
+            child: GradeShield(1, fontSize: 12, palette: AppColors.mapGrades),
           ),
-        ),
+        ],
       ),
-    );
+    ),
+  ),
+);
 
 class _MapLinesPainter extends CustomPainter {
   const _MapLinesPainter();
@@ -152,7 +162,12 @@ class _MapLinesPainter extends CustomPainter {
     void line(List<Offset> pts, Color color) {
       final path = Path()..moveTo(pts.first.dx, pts.first.dy);
       for (var i = 1; i + 1 < pts.length; i += 2) {
-        path.quadraticBezierTo(pts[i].dx, pts[i].dy, pts[i + 1].dx, pts[i + 1].dy);
+        path.quadraticBezierTo(
+          pts[i].dx,
+          pts[i].dy,
+          pts[i + 1].dx,
+          pts[i + 1].dy,
+        );
       }
       Paint stroke(Color c, double w) => Paint()
         ..style = PaintingStyle.stroke
@@ -164,7 +179,13 @@ class _MapLinesPainter extends CustomPainter {
       canvas.drawPath(path, stroke(color, 5));
     }
 
-    line(const [Offset(18, 30), Offset(70, 20), Offset(96, 58), Offset(120, 92), Offset(170, 70)], g.s0);
+    line(const [
+      Offset(18, 30),
+      Offset(70, 20),
+      Offset(96, 58),
+      Offset(120, 92),
+      Offset(170, 70),
+    ], g.s0);
     line(const [Offset(110, 120), Offset(150, 40), Offset(214, 36)], g.s1);
     line(const [Offset(30, 130), Offset(60, 88), Offset(100, 110)], g.s2);
   }
@@ -178,16 +199,16 @@ class _MapLinesPainter extends CustomPainter {
 /// seiner Farbe mit den beiden Griffen — dieselben Farben wie die
 /// Vorschau auf der Karte (`ride_split_sheet.dart`). Steht still.
 Widget splitArt(BuildContext context) => SizedBox(
-      width: 240,
-      height: 150,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(20),
-        child: const ColoredBox(
-          color: AppColors.mapBackground,
-          child: CustomPaint(painter: _SplitPainter()),
-        ),
-      ),
-    );
+  width: 240,
+  height: 150,
+  child: ClipRRect(
+    borderRadius: BorderRadius.circular(20),
+    child: const ColoredBox(
+      color: AppColors.mapBackground,
+      child: CustomPaint(painter: _SplitPainter()),
+    ),
+  ),
+);
 
 class _SplitPainter extends CustomPainter {
   const _SplitPainter();
@@ -205,11 +226,15 @@ class _SplitPainter extends CustomPainter {
       ..strokeWidth = w
       ..strokeCap = StrokeCap.round
       ..color = c;
-    Path part(double a, double b) => metric.extractPath(metric.length * a, metric.length * b);
+    Path part(double a, double b) =>
+        metric.extractPath(metric.length * a, metric.length * b);
 
     canvas.drawPath(ride, stroke(m.halo!, 8));
     canvas.drawPath(ride, stroke(m.ride.withValues(alpha: 0.45), 4));
-    for (final (a, b, color) in [(0.12, 0.42, m.mine), (0.58, 0.88, m.candidate)]) {
+    for (final (a, b, color) in [
+      (0.12, 0.42, m.mine),
+      (0.58, 0.88, m.candidate),
+    ]) {
       canvas.drawPath(part(a, b), stroke(m.halo!, 10));
       canvas.drawPath(part(a, b), stroke(color, 6));
     }
@@ -230,24 +255,38 @@ class _SplitPainter extends CustomPainter {
 Widget trailsArt(BuildContext context) {
   final p = AppPalette.of(context);
   Widget row(Color stripe, double name, int grade) => Container(
-        height: 32,
-        margin: const EdgeInsets.only(bottom: 8),
-        padding: const EdgeInsets.symmetric(horizontal: 8),
-        decoration: BoxDecoration(
-          color: p.surface,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: p.line),
+    height: 32,
+    margin: const EdgeInsets.only(bottom: 8),
+    padding: const EdgeInsets.symmetric(horizontal: 8),
+    decoration: BoxDecoration(
+      color: p.surface,
+      borderRadius: BorderRadius.circular(8),
+      border: Border.all(color: p.line),
+    ),
+    child: Row(
+      children: [
+        Container(
+          width: 4,
+          height: 20,
+          decoration: BoxDecoration(
+            color: stripe,
+            borderRadius: BorderRadius.circular(2),
+          ),
         ),
-        child: Row(
-          children: [
-            Container(width: 4, height: 20, decoration: BoxDecoration(color: stripe, borderRadius: BorderRadius.circular(2))),
-            const SizedBox(width: 8),
-            Container(width: name, height: 8, decoration: BoxDecoration(color: p.muted.withValues(alpha: 0.5), borderRadius: BorderRadius.circular(4))),
-            const Spacer(),
-            GradeShield(grade, fontSize: 10),
-          ],
+        const SizedBox(width: 8),
+        Container(
+          width: name,
+          height: 8,
+          decoration: BoxDecoration(
+            color: p.muted.withValues(alpha: 0.5),
+            borderRadius: BorderRadius.circular(4),
+          ),
         ),
-      );
+        const Spacer(),
+        GradeShield(grade, fontSize: 10),
+      ],
+    ),
+  );
   return SizedBox(
     width: 240,
     height: 150,
@@ -272,7 +311,8 @@ Widget trailsArt(BuildContext context) {
 
 /// Die Startseite „Deine Buddys" (#136): zwei Spuren laufen zu einer
 /// zusammen — das Motiv von 1s („Buddy verbunden"), hier stehend.
-Widget buddysArt(BuildContext context) => const _Stage(painter: _MergePainter());
+Widget buddysArt(BuildContext context) =>
+    const _Stage(painter: _MergePainter());
 
 class _MergePainter extends CustomPainter {
   const _MergePainter();
@@ -293,8 +333,16 @@ class _MergePainter extends CustomPainter {
       ..cubicTo(70, 120, 90, 75, 130, 75);
     canvas.drawPath(left, stroke(m.mine));
     canvas.drawPath(right, stroke(m.buddy));
-    canvas.drawLine(const Offset(130, 75), const Offset(206, 75), stroke(AppColors.brand));
-    canvas.drawCircle(const Offset(214, 75), 8, Paint()..color = AppColors.brand);
+    canvas.drawLine(
+      const Offset(130, 75),
+      const Offset(206, 75),
+      stroke(AppColors.brand),
+    );
+    canvas.drawCircle(
+      const Offset(214, 75),
+      8,
+      Paint()..color = AppColors.brand,
+    );
   }
 
   @override

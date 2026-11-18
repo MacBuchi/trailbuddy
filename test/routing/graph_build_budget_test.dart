@@ -34,11 +34,19 @@ void main() {
     // so wie bei Kacheln, deren Vereinfachung die Knoten weggenommen hat.
     final lines = <WayLine>[
       for (var i = 0; i < n; i++) ...[
-        WayLine(cls: WayClass.forstweg, oneway: false, points: [for (var j = 0; j < n; j++) at(i * step, j * step)]),
         WayLine(
-            cls: WayClass.nebenstrasse,
-            oneway: false,
-            points: [for (var j = 0; j < n - 1; j++) at(j * step + step / 2, i * step + step / 2)]),
+          cls: WayClass.forstweg,
+          oneway: false,
+          points: [for (var j = 0; j < n; j++) at(i * step, j * step)],
+        ),
+        WayLine(
+          cls: WayClass.nebenstrasse,
+          oneway: false,
+          points: [
+            for (var j = 0; j < n - 1; j++)
+              at(j * step + step / 2, i * step + step / 2),
+          ],
+        ),
       ],
     ];
 
@@ -53,12 +61,21 @@ void main() {
     final build = buildRoadGraph(lines, lat0: lat0);
     clock.stop();
 
-    expect(build.crossings, 5550, reason: 'das Gitter prüft die Kreuzungsteilung nicht mehr');
+    expect(
+      build.crossings,
+      5550,
+      reason: 'das Gitter prüft die Kreuzungsteilung nicht mehr',
+    );
     expect(seen, hasLength(2000000));
-    final ratio = clock.elapsedMicroseconds / math.max(1, ref.elapsedMicroseconds);
+    final ratio =
+        clock.elapsedMicroseconds / math.max(1, ref.elapsedMicroseconds);
     final tooSlow = ratio > _maxRatio && clock.elapsed > _maxBuild;
-    expect(tooSlow, isFalse,
-        reason: 'Bau ${clock.elapsedMilliseconds} ms, Vergleich ${ref.elapsedMilliseconds} ms '
-            '(${ratio.toStringAsFixed(1)}-fach)');
+    expect(
+      tooSlow,
+      isFalse,
+      reason:
+          'Bau ${clock.elapsedMilliseconds} ms, Vergleich ${ref.elapsedMilliseconds} ms '
+          '(${ratio.toStringAsFixed(1)}-fach)',
+    );
   }, timeout: const Timeout(Duration(minutes: 3)));
 }

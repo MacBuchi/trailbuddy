@@ -50,4 +50,6 @@ class ScreenHolds {
   }
 }
 
-final screenHoldsProvider = Provider<ScreenHolds>((ref) => ScreenHolds(ref.watch(screenAwakeProvider)));
+final screenHoldsProvider = Provider<ScreenHolds>(
+  (ref) => ScreenHolds(ref.watch(screenAwakeProvider)),
+);

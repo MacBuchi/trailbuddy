@@ -44,19 +44,28 @@ const kFunPoolMax = 30;
 
 /// Das „Budget" des direkten Wegs: nur die Grenze der Suchen, geprüft wird
 /// es nie (kein Trail im Pool, Zwischenpunkte zählen ohnehin nicht).
-const kRouteDirectBudget = LoopBudget(timeS: 24 * 3600, climbM: 1e5, hikingM: 1e7, windowS: 0);
+const kRouteDirectBudget = LoopBudget(
+  timeS: 24 * 3600,
+  climbM: 1e5,
+  hikingM: 1e7,
+  windowS: 0,
+);
 
 /// Das Budget des spaßigen Wegs aus den Summen des direkten.
-LoopBudget funBudgetOf({required double timeS, required double gainM, required double hikingM, required double hikingKm}) =>
-    LoopBudget(
-      timeS: math.max(timeS * kFunTimeFactor, timeS + kFunExtraS),
-      climbM: math.max(gainM * kFunClimbFactor, gainM + kFunExtraClimbM),
-      hikingM: math.max(hikingKm * 1000, hikingM),
-      // Das Budget IST hier die Grenze, kein Richtwert (Konzept-Routing
-      // 12.5 gilt der Runde) — ohne Fenster nimmt der Planer den letzten
-      // Stand, wie mit der alten Reserve.
-      windowS: 0,
-    );
+LoopBudget funBudgetOf({
+  required double timeS,
+  required double gainM,
+  required double hikingM,
+  required double hikingKm,
+}) => LoopBudget(
+  timeS: math.max(timeS * kFunTimeFactor, timeS + kFunExtraS),
+  climbM: math.max(gainM * kFunClimbFactor, gainM + kFunExtraClimbM),
+  hikingM: math.max(hikingKm * 1000, hikingM),
+  // Das Budget IST hier die Grenze, kein Richtwert (Konzept-Routing
+  // 12.5 gilt der Runde) — ohne Fenster nimmt der Planer den letzten
+  // Stand, wie mit der alten Reserve.
+  windowS: 0,
+);
 
 /// Die Abfahrten, die der spaßige Weg mitnehmen darf: beide Enden in
 /// einem Korridor um die Linie [from]–[to] (Umweg über das Ende höchstens
@@ -69,14 +78,22 @@ LoopBudget funBudgetOf({required double timeS, required double gainM, required d
 /// Starts mit, und an der zweiten Hälfte fuhr es an Trails vorbei, die es
 /// nie gesehen hatte. Wer gewinnt, entscheidet danach der Planer — nach
 /// Trail-Metern je Sekunde Umweg, ohne Blick auf die Lage.
-List<Trail> funPoolOf(List<Trail> trails, LatLng from, LatLng to, {String? exceptId}) {
-  double d(LatLng a, LatLng b) => haversineM(a.latitude, a.longitude, b.latitude, b.longitude);
+List<Trail> funPoolOf(
+  List<Trail> trails,
+  LatLng from,
+  LatLng to, {
+  String? exceptId,
+}) {
+  double d(LatLng a, LatLng b) =>
+      haversineM(a.latitude, a.longitude, b.latitude, b.longitude);
   final line = d(from, to);
   double excess(LatLng p) => d(from, p) + d(p, to) - line;
   final scored = <(Trail, double)>[
     for (final t in loopPoolOf(trails, from, reachM: double.infinity).inReach)
       if (t.id != exceptId)
-        if (math.max(excess(t.start), excess(t.end)) case final e when e <= 2 * kFunPoolSlackM) (t, e),
+        if (math.max(excess(t.start), excess(t.end)) case final e
+            when e <= 2 * kFunPoolSlackM)
+          (t, e),
   ]..sort((a, b) => a.$2.compareTo(b.$2));
   return [for (final (t, _) in scored.take(kFunPoolMax)) t];
 }

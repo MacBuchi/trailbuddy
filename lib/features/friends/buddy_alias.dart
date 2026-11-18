@@ -29,8 +29,7 @@ class BuddyNames {
   final Map<String, String> aliases;
 
   /// Der eigene Alias für [userId], sonst `null`.
-  String? aliasOf(String? userId) =>
-      userId == null ? null : aliases[userId];
+  String? aliasOf(String? userId) => userId == null ? null : aliases[userId];
 
   /// Was angezeigt wird: der Alias, sonst der Name, sonst [fallback].
   String of(String? userId, String? username, {String fallback = 'Buddy'}) =>
@@ -56,7 +55,8 @@ class BuddyAliasesNotifier extends AsyncNotifier<Map<String, String>>
 
 final buddyAliasesProvider =
     AsyncNotifierProvider<BuddyAliasesNotifier, Map<String, String>>(
-        BuddyAliasesNotifier.new);
+      BuddyAliasesNotifier.new,
+    );
 
 /// Die Namensregel mit den geladenen Aliasen. Solange sie laden oder
 /// nicht laden können: ohne — dann steht der Name da.

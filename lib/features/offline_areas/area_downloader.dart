@@ -45,7 +45,12 @@ import 'tile_store.dart';
 
 /// Die Kacheln einer Ebene im Plan: was zu holen ist, was die Form deckt.
 class LayerPlan {
-  const LayerPlan({this.fetch = const [], this.fetchBytes = 0, this.covered = 0, this.coveredBytes = 0});
+  const LayerPlan({
+    this.fetch = const [],
+    this.fetchBytes = 0,
+    this.covered = 0,
+    this.coveredBytes = 0,
+  });
 
   static const none = LayerPlan();
 
@@ -121,7 +126,8 @@ class AreaPlan {
   final List<String> poiNames;
 
   /// Wie viele Orte in [poiFiles] stehen; null ohne Orte.
-  int? get poiCount => poiFiles?.values.fold<int>(0, (sum, text) => sum + _countPois(text));
+  int? get poiCount =>
+      poiFiles?.values.fold<int>(0, (sum, text) => sum + _countPois(text));
 
   /// Bytes der Orte-Dateien, als UTF-8 gezählt.
   int get poiBytes => poiFiles == null
@@ -161,7 +167,8 @@ class AreaPlan {
       overview == null;
 
   /// Alles zusammen, was auf das Gerät kommt.
-  int get totalBytes => bytes + poiBytes + heightBytes + wayBytes + overviewBytes;
+  int get totalBytes =>
+      bytes + poiBytes + heightBytes + wayBytes + overviewBytes;
 
   static int _countPois(String text) {
     try {
@@ -201,15 +208,21 @@ class AreaVerifyFailed implements Exception {
 /// Die groben Zoomstufen sind wenige, aber riesige Kacheln — nach Anzahl
 /// stand „Ganz speichern" für DACH über die ersten 230 MB auf 0 %.
 class AreaProgress {
-  const AreaProgress(
-      {required this.phase, required this.done, required this.total, this.doneBytes = 0, this.totalBytes = 0});
+  const AreaProgress({
+    required this.phase,
+    required this.done,
+    required this.total,
+    this.doneBytes = 0,
+    this.totalBytes = 0,
+  });
   final AreaPhase phase;
   final int done;
   final int total;
   final int doneBytes;
   final int totalBytes;
 
-  double get fraction => totalBytes > 0 ? doneBytes / totalBytes : (total == 0 ? 1 : done / total);
+  double get fraction =>
+      totalBytes > 0 ? doneBytes / totalBytes : (total == 0 ? 1 : done / total);
 }
 
 /// „Aktualisieren" einer Region (Konzept 8.2, Schritt 4): die liegenden
@@ -269,7 +282,8 @@ enum AreaPhase { tiles, pois, heights, ways, overview, writing }
 
 /// Die Id eines neuen Bereichs — auch für den Aufrufer, der sie vor dem
 /// ersten Versuch braucht (Wiederaufnehmen in denselben Bereich).
-String newAreaId(DateTime at) => 'area-${at.millisecondsSinceEpoch.toRadixString(36)}';
+String newAreaId(DateTime at) =>
+    'area-${at.millisecondsSinceEpoch.toRadixString(36)}';
 
 /// So lange darf ein Block ohne neue Kachel bleiben (seit 0.108.2): Eine
 /// Verbindung, die steht, ohne zu reißen („ein Balken"), meldet sonst
@@ -361,8 +375,12 @@ class AreaDownloader {
   /// Was eine Ebene für [wanted] holen würde: die Kacheln, die der Host
   /// hat, abzüglich der liegenden. Mit [refreshBefore] zählt eine liegende
   /// Kachel aus einem älteren Bau als fehlend (Aktualisieren).
-  Future<LayerPlan> _planLayer(PmTilesArchive source, TileLayer layer, Iterable<TileXYZ> wanted,
-      {String? refreshBefore}) async {
+  Future<LayerPlan> _planLayer(
+    PmTilesArchive source,
+    TileLayer layer,
+    Iterable<TileXYZ> wanted, {
+    String? refreshBefore,
+  }) async {
     final index = await tiles.index(region, layer);
     final fetch = <TileXYZ>[];
     var fetchBytes = 0, covered = 0, coveredBytes = 0;
@@ -373,35 +391,59 @@ class AreaDownloader {
       covered++;
       coveredBytes += entry.length;
       final have = index[id];
-      if (have != null && (refreshBefore == null || have.build.compareTo(refreshBefore) >= 0)) continue;
+      if (have != null &&
+          (refreshBefore == null || have.build.compareTo(refreshBefore) >= 0)) {
+        continue;
+      }
       fetch.add(t);
       fetchBytes += entry.length;
     }
-    return LayerPlan(fetch: fetch, fetchBytes: fetchBytes, covered: covered, coveredBytes: coveredBytes);
+    return LayerPlan(
+      fetch: fetch,
+      fetchBytes: fetchBytes,
+      covered: covered,
+      coveredBytes: coveredBytes,
+    );
   }
 
   /// Der Plan für [shape]. Mit [refresh] holt er auch liegende Kacheln
   /// älterer Bauten neu und die Orte-Dateien der Form noch einmal —
   /// „Aktualisieren".
-  Future<AreaPlan> plan(AreaShape shape, {bool withPois = false, bool refresh = false}) async {
+  Future<AreaPlan> plan(
+    AreaShape shape, {
+    bool withPois = false,
+    bool refresh = false,
+  }) async {
     final maxZoom = manifest.maxZoom;
     final whole = shape is RegionShape;
     // Die Grenze gilt für GEZEICHNETE Bereiche (Konzept 8.8) — wer mehr
     // will, nimmt die ganze Region.
     final count = whole ? 0 : shape.countTiles(maxZoom: maxZoom);
     if (count > kAreaMaxTiles) throw AreaTooLarge(count);
-    final map = await _planLayer(archive, TileLayer.map, shape.tiles(maxZoom: maxZoom),
-        refreshBefore: refresh ? manifest.sourceBuild : null);
+    final map = await _planLayer(
+      archive,
+      TileLayer.map,
+      shape.tiles(maxZoom: maxZoom),
+      refreshBefore: refresh ? manifest.sourceBuild : null,
+    );
     final h = heights;
     final heightPlan = h == null
         ? LayerPlan.none
-        : await _planLayer(h, TileLayer.heights, shape.tiles(minZoom: kHeightTileZoom, maxZoom: kHeightTileZoom),
-            refreshBefore: refresh ? heightsManifest?.build : null);
+        : await _planLayer(
+            h,
+            TileLayer.heights,
+            shape.tiles(minZoom: kHeightTileZoom, maxZoom: kHeightTileZoom),
+            refreshBefore: refresh ? heightsManifest?.build : null,
+          );
     final w = ways;
     final wayPlan = w == null
         ? LayerPlan.none
-        : await _planLayer(w, TileLayer.ways, shape.tiles(minZoom: kWaysZoom, maxZoom: kWaysZoom),
-            refreshBefore: refresh ? waysManifest?.build : null);
+        : await _planLayer(
+            w,
+            TileLayer.ways,
+            shape.tiles(minZoom: kWaysZoom, maxZoom: kWaysZoom),
+            refreshBefore: refresh ? waysManifest?.build : null,
+          );
     final names = _poiNames(shape);
     // Die ganze Region misst ihre Orte nicht vorab (zehntausende Dateien):
     // Sie kommen beim Download, als Bündel, wenn der Bau eins hat.
@@ -411,7 +453,9 @@ class AreaDownloader {
       bounds: shape.hull,
       maxZoom: maxZoom,
       map: map,
-      poiFiles: withPois && !whole ? await _fetchPois(names, refresh: refresh) : null,
+      poiFiles: withPois && !whole
+          ? await _fetchPois(names, refresh: refresh)
+          : null,
       poiBundle: bundle,
       poiNames: names,
       heights: heightPlan,
@@ -432,7 +476,8 @@ class AreaDownloader {
     if (shape is RegionShape) {
       return [
         for (final g in PoiGroup.values)
-          for (final c in pm.cells[g] ?? const <PoiCell>{}) poiCellFileName(c, g),
+          for (final c in pm.cells[g] ?? const <PoiCell>{})
+            poiCellFileName(c, g),
       ]..sort();
     }
     return [
@@ -444,8 +489,12 @@ class AreaDownloader {
 
   /// Holt die Orte-Dateien [names], die noch nicht liegen (mit [refresh]
   /// alle). Null ohne Manifest.
-  Future<Map<String, String>?> _fetchPois(List<String> names,
-      {bool refresh = false, void Function(int done, int total)? onProgress, void Function()? check}) async {
+  Future<Map<String, String>?> _fetchPois(
+    List<String> names, {
+    bool refresh = false,
+    void Function(int done, int total)? onProgress,
+    void Function()? check,
+  }) async {
     if (poiManifest == null) return null;
     final wanted = [
       for (final n in names)
@@ -466,10 +515,16 @@ class AreaDownloader {
   /// in [layer] ab — die Bytes des Hosts unverändert, mit dessen
   /// Kompression. Nach jedem Block eine Gegenprobe: die mittlere Kachel
   /// kommt aus dem Speicher Byte für Byte zurück.
-  Future<int> _fetchInto(PmTilesArchive source, TileLayer layer, List<TileXYZ> wanted, String build,
-      {required void Function() check,
-      required void Function(int done, int total, int doneBytes, int totalBytes) onProgress,
-      int? chunk}) async {
+  Future<int> _fetchInto(
+    PmTilesArchive source,
+    TileLayer layer,
+    List<TileXYZ> wanted,
+    String build, {
+    required void Function() check,
+    required void Function(int done, int total, int doneBytes, int totalBytes)
+    onProgress,
+    int? chunk,
+  }) async {
     final chunkSize = chunk ?? this.chunkSize;
     final byId = {for (final t in wanted) tileIdOf(t): t};
     final ids = byId.keys.toList()..sort();
@@ -489,7 +544,9 @@ class AreaDownloader {
     while (start < ids.length) {
       check();
       var end = start, bytes = 0;
-      while (end < ids.length && end - start < chunkSize && (end == start || bytes + lengths[end] <= chunkBytes)) {
+      while (end < ids.length &&
+          end - start < chunkSize &&
+          (end == start || bytes + lengths[end] <= chunkBytes)) {
         bytes += lengths[end];
         end++;
       }
@@ -510,7 +567,15 @@ class AreaDownloader {
       if (read.isNotEmpty) {
         await _readWatched(source.tiles(read), (tile) {
           final t = byId[tile.id]!;
-          block.add(StoreTile(t.z, t.x, t.y, Uint8List.fromList(tile.compressedBytes()), build));
+          block.add(
+            StoreTile(
+              t.z,
+              t.x,
+              t.y,
+              Uint8List.fromList(tile.compressedBytes()),
+              build,
+            ),
+          );
         });
       }
       if (block.isEmpty) continue;
@@ -518,7 +583,9 @@ class AreaDownloader {
       final probe = block[block.length ~/ 2];
       final back = await tiles.read(region, layer, probe.z, probe.x, probe.y);
       if (back == null || !_same(back, probe.bytes)) {
-        throw AreaVerifyFailed('Kachel ${probe.z}/${probe.x}/${probe.y} kommt aus dem Speicher anders zurück');
+        throw AreaVerifyFailed(
+          'Kachel ${probe.z}/${probe.x}/${probe.y} kommt aus dem Speicher anders zurück',
+        );
       }
       done += block.length;
       doneBytes += bytes;
@@ -531,7 +598,10 @@ class AreaDownloader {
   /// [stallTimeout] lang keine Kachel kam. Ein eigener Wächter statt
   /// `Stream.timeout`: Über dem Strom des Pakets lieferte der unter
   /// FakeAsync sein Ende nie, und jeder Flow-Test mit Speichern hing.
-  Future<void> _readWatched(Stream<Tile> tiles, void Function(Tile tile) onTile) {
+  Future<void> _readWatched(
+    Stream<Tile> tiles,
+    void Function(Tile tile) onTile,
+  ) {
     final done = Completer<void>();
     late final StreamSubscription<Tile> sub;
     Timer? timer;
@@ -543,20 +613,27 @@ class AreaDownloader {
 
     void arm() {
       timer?.cancel();
-      timer = Timer(stallTimeout, () => fail(TimeoutException('Block ohne neue Kachel', stallTimeout)));
+      timer = Timer(
+        stallTimeout,
+        () => fail(TimeoutException('Block ohne neue Kachel', stallTimeout)),
+      );
     }
 
-    sub = tiles.listen((tile) {
-      arm();
-      try {
-        onTile(tile);
-      } catch (e, s) {
-        fail(e, s);
-      }
-    }, onError: fail, onDone: () {
-      timer?.cancel();
-      if (!done.isCompleted) done.complete();
-    });
+    sub = tiles.listen(
+      (tile) {
+        arm();
+        try {
+          onTile(tile);
+        } catch (e, s) {
+          fail(e, s);
+        }
+      },
+      onError: fail,
+      onDone: () {
+        timer?.cancel();
+        if (!done.isCompleted) done.complete();
+      },
+    );
     arm();
     return done.future;
   }
@@ -585,63 +662,92 @@ class AreaDownloader {
 
     final at = (now ?? DateTime.now)().toUtc();
     final areaId = id ?? _newId(at);
-    final existing = (await store.list()).where((a) => a.id == areaId).firstOrNull;
+    final existing = (await store.list())
+        .where((a) => a.id == areaId)
+        .firstOrNull;
     final pm = poiManifest;
     // Der Verweis zuerst (Konzept 8.2): Was ab jetzt geschrieben wird,
     // gehört ihm. Ein liegender Bereich behält seinen Zustand — ein
     // abgebrochenes Aktualisieren lässt ihn vollständig, nur mit älteren
     // Kacheln dazwischen.
-    final area = (existing ??
-            StoredArea(
-              id: areaId,
+    final area =
+        (existing ??
+                StoredArea(
+                  id: areaId,
+                  name: name,
+                  bounds: plan.bounds,
+                  minZoom: kAreaMinZoom,
+                  maxZoom: plan.maxZoom,
+                  build: manifest.sourceBuild,
+                  tiles: 0,
+                  bytes: 0,
+                  savedAt: at,
+                  region: plan.region,
+                  format: kStoredAreaFormat,
+                  complete: false,
+                ))
+            .copyWith(
               name: name,
-              bounds: plan.bounds,
-              minZoom: kAreaMinZoom,
-              maxZoom: plan.maxZoom,
-              build: manifest.sourceBuild,
-              tiles: 0,
-              bytes: 0,
-              savedAt: at,
-              region: plan.region,
+              shape: plan.shape,
+              poiFiles: {...?existing?.poiFiles, ...plan.poiNames}.toList()
+                ..sort(),
               format: kStoredAreaFormat,
-              complete: false,
-            ))
-        .copyWith(
-      name: name,
-      shape: plan.shape,
-      poiFiles: {...?existing?.poiFiles, ...plan.poiNames}.toList()..sort(),
-      format: kStoredAreaFormat,
-    );
+            );
     await _saveEntry(area);
 
     final chunk = plan.shape is RegionShape ? regionChunkSize : chunkSize;
-    await _fetchInto(archive, TileLayer.map, plan.tiles, manifest.sourceBuild,
-        check: check,
-        chunk: chunk,
-        onProgress: (done, total, doneBytes, totalBytes) => onProgress?.call(AreaProgress(
-            phase: AreaPhase.tiles, done: done, total: total, doneBytes: doneBytes, totalBytes: totalBytes)));
+    await _fetchInto(
+      archive,
+      TileLayer.map,
+      plan.tiles,
+      manifest.sourceBuild,
+      check: check,
+      chunk: chunk,
+      onProgress: (done, total, doneBytes, totalBytes) => onProgress?.call(
+        AreaProgress(
+          phase: AreaPhase.tiles,
+          done: done,
+          total: total,
+          doneBytes: doneBytes,
+          totalBytes: totalBytes,
+        ),
+      ),
+    );
 
     // Die Orte: als Bündel (ganze Region), vom Messen mitgebracht oder
     // jetzt geholt.
     final bundle = plan.poiBundle;
     final pmFolder = pm?.folder;
     if (bundle != null && pmFolder != null && fetchPoiBundle != null) {
-      final bytes = await fetchPoiBundle!(Uri.parse('$kMapTilesBase/$pmFolder/${bundle.file}'),
-          check: check,
-          onProgress: (done, total) => onProgress
-              ?.call(AreaProgress(phase: AreaPhase.pois, done: done, total: total > 0 ? total : bundle.bytes)));
+      final bytes = await fetchPoiBundle!(
+        Uri.parse('$kMapTilesBase/$pmFolder/${bundle.file}'),
+        check: check,
+        onProgress: (done, total) => onProgress?.call(
+          AreaProgress(
+            phase: AreaPhase.pois,
+            done: done,
+            total: total > 0 ? total : bundle.bytes,
+          ),
+        ),
+      );
       if (bytes == null) throw const PoiBundleMismatch('nicht auf dem Host');
-      await for (final (name, text) in readPoiBundle(bytes, bundle, pm!.build)) {
+      await for (final (name, text) in readPoiBundle(
+        bytes,
+        bundle,
+        pm!.build,
+      )) {
         await store.putPoiFile(name, text);
       }
     } else {
-      final poiFiles = plan.poiFiles ??
+      final poiFiles =
+          plan.poiFiles ??
           await _fetchPois(
-                plan.poiNames,
-                check: check,
-                onProgress: (done, total) =>
-                    onProgress?.call(AreaProgress(phase: AreaPhase.pois, done: done, total: total)),
-              ) ??
+            plan.poiNames,
+            check: check,
+            onProgress: (done, total) => onProgress?.call(
+              AreaProgress(phase: AreaPhase.pois, done: done, total: total),
+            ),
+          ) ??
           const <String, String>{};
       for (final e in poiFiles.entries) {
         await store.putPoiFile(e.key, e.value);
@@ -652,11 +758,23 @@ class AreaDownloader {
     final h = heights;
     final heightsFetched = plan.heightTiles.isEmpty || h != null;
     if (h != null && plan.heightTiles.isNotEmpty) {
-      await _fetchInto(h, TileLayer.heights, plan.heightTiles, heightsManifest?.build ?? manifest.sourceBuild,
-          check: check,
-          chunk: chunk,
-          onProgress: (done, total, doneBytes, totalBytes) => onProgress?.call(AreaProgress(
-              phase: AreaPhase.heights, done: done, total: total, doneBytes: doneBytes, totalBytes: totalBytes)));
+      await _fetchInto(
+        h,
+        TileLayer.heights,
+        plan.heightTiles,
+        heightsManifest?.build ?? manifest.sourceBuild,
+        check: check,
+        chunk: chunk,
+        onProgress: (done, total, doneBytes, totalBytes) => onProgress?.call(
+          AreaProgress(
+            phase: AreaPhase.heights,
+            done: done,
+            total: total,
+            doneBytes: doneBytes,
+            totalBytes: totalBytes,
+          ),
+        ),
+      );
     }
 
     // Die Wege ebenso. Ist das Archiv beim Download nicht mehr da, kommt
@@ -665,11 +783,23 @@ class AreaDownloader {
     final wayBuild = plan.waysBuild ?? waysManifest?.build;
     var waysFetched = plan.wayTiles.isEmpty;
     if (w != null && plan.wayTiles.isNotEmpty && wayBuild != null) {
-      await _fetchInto(w, TileLayer.ways, plan.wayTiles, wayBuild,
-          check: check,
-          chunk: chunk,
-          onProgress: (done, total, doneBytes, totalBytes) => onProgress?.call(AreaProgress(
-              phase: AreaPhase.ways, done: done, total: total, doneBytes: doneBytes, totalBytes: totalBytes)));
+      await _fetchInto(
+        w,
+        TileLayer.ways,
+        plan.wayTiles,
+        wayBuild,
+        check: check,
+        chunk: chunk,
+        onProgress: (done, total, doneBytes, totalBytes) => onProgress?.call(
+          AreaProgress(
+            phase: AreaPhase.ways,
+            done: done,
+            total: total,
+            doneBytes: doneBytes,
+            totalBytes: totalBytes,
+          ),
+        ),
+      );
       waysFetched = true;
     }
 
@@ -679,22 +809,30 @@ class AreaDownloader {
     final ov = plan.overview;
     final fetch = fetchOverview;
     if (ov != null && fetch != null) {
-      final got = await fetch(ov.archiveUri,
-          check: check,
-          onProgress: (done, total) => onProgress?.call(
-              AreaProgress(phase: AreaPhase.overview, done: done, total: total > 0 ? total : ov.bytes)));
+      final got = await fetch(
+        ov.archiveUri,
+        check: check,
+        onProgress: (done, total) => onProgress?.call(
+          AreaProgress(
+            phase: AreaPhase.overview,
+            done: done,
+            total: total > 0 ? total : ov.bytes,
+          ),
+        ),
+      );
       if (got != null) {
         try {
           await checkOverview(ov, got);
           await store.putOverview(
-              StoredOverview(
-                region: plan.region,
-                build: ov.sourceBuild,
-                bytes: got.length,
-                maxZoom: ov.maxZoom,
-                savedAt: (now ?? DateTime.now)().toUtc(),
-              ),
-              got);
+            StoredOverview(
+              region: plan.region,
+              build: ov.sourceBuild,
+              bytes: got.length,
+              maxZoom: ov.maxZoom,
+              savedAt: (now ?? DateTime.now)().toUtc(),
+            ),
+            got,
+          );
         } on OverviewMismatch catch (e, s) {
           logError('Übersicht der Region ${plan.region} prüfen', e, s);
         }
@@ -709,12 +847,18 @@ class AreaDownloader {
       savedAt: (now ?? DateTime.now)().toUtc(),
       poiBuild: plan.poiNames.isEmpty ? area.poiBuild : pm?.build,
       heightTiles: heightsFetched ? plan.heights.covered : area.heightTiles,
-      heightBytes: heightsFetched ? plan.heights.coveredBytes : area.heightBytes,
-      heightsBuild: heightsFetched && plan.hasHeights ? heightsManifest?.build : area.heightsBuild,
+      heightBytes: heightsFetched
+          ? plan.heights.coveredBytes
+          : area.heightBytes,
+      heightsBuild: heightsFetched && plan.hasHeights
+          ? heightsManifest?.build
+          : area.heightsBuild,
       wayTiles: waysFetched ? plan.ways.covered : area.wayTiles,
       wayBytes: waysFetched ? plan.ways.coveredBytes : area.wayBytes,
       // Geholt ist geholt: Ein Bau bleibt, auch wenn das Manifest gerade fehlt.
-      waysBuild: waysFetched ? (plan.waysBuild ?? area.waysBuild) : area.waysBuild,
+      waysBuild: waysFetched
+          ? (plan.waysBuild ?? area.waysBuild)
+          : area.waysBuild,
       complete: true,
     );
     await _saveEntry(done);
@@ -728,9 +872,16 @@ class AreaDownloader {
   Future<RegionRefreshPlan> planRefresh(List<StoredArea> areas) async {
     // Der Halter „Unterwegs geladen" (#478) bleibt draußen: Ein neuer Bau
     // holte sonst alles, was man je unterwegs geplant hat.
-    final here = [for (final a in areas) if (a.region == region && !a.kept) a];
+    final here = [
+      for (final a in areas)
+        if (a.region == region && !a.kept) a,
+    ];
     final drop = <TileLayer, List<int>>{};
-    Future<LayerPlan> layer(PmTilesArchive? source, TileLayer l, String? build) async {
+    Future<LayerPlan> layer(
+      PmTilesArchive? source,
+      TileLayer l,
+      String? build,
+    ) async {
       if (source == null || build == null) return LayerPlan.none;
       final index = await tiles.index(region, l);
       final stale = staleTiles(index, referencedIn(here, l, index), build);
@@ -748,22 +899,37 @@ class AreaDownloader {
         bytes += entry.length;
       }
       if (gone.isNotEmpty) drop[l] = gone;
-      return LayerPlan(fetch: fetch, fetchBytes: bytes, covered: stale.ids.length, coveredBytes: stale.bytes);
+      return LayerPlan(
+        fetch: fetch,
+        fetchBytes: bytes,
+        covered: stale.ids.length,
+        coveredBytes: stale.bytes,
+      );
     }
 
     final map = await layer(archive, TileLayer.map, manifest.sourceBuild);
-    final heightPlan = await layer(heights, TileLayer.heights, heightsManifest?.build);
+    final heightPlan = await layer(
+      heights,
+      TileLayer.heights,
+      heightsManifest?.build,
+    );
     final wayPlan = await layer(ways, TileLayer.ways, waysManifest?.build);
     final pm = poiManifest;
     final poiNames = pm == null
         ? const <String>[]
         : ({
             for (final a in here)
-              if (a.poiBuild == null || a.poiBuild!.compareTo(pm.build) < 0) ...a.poiFiles,
-          }.toList()
-          ..sort());
+              if (a.poiBuild == null || a.poiBuild!.compareTo(pm.build) < 0)
+                ...a.poiFiles,
+          }.toList()..sort());
     return RegionRefreshPlan(
-        region: region, map: map, heights: heightPlan, ways: wayPlan, drop: drop, poiNames: poiNames);
+      region: region,
+      map: map,
+      heights: heightPlan,
+      ways: wayPlan,
+      drop: drop,
+      poiNames: poiNames,
+    );
   }
 
   /// Holt, was [plan] nennt, in den Speicher der Region — keine Liste von
@@ -779,32 +945,66 @@ class AreaDownloader {
       if (isCancelled?.call() ?? false) throw const AreaCancelled();
     }
 
-    void progress(AreaPhase phase, int done, int total, [int doneBytes = 0, int totalBytes = 0]) =>
-        onProgress?.call(
-            AreaProgress(phase: phase, done: done, total: total, doneBytes: doneBytes, totalBytes: totalBytes));
+    void progress(
+      AreaPhase phase,
+      int done,
+      int total, [
+      int doneBytes = 0,
+      int totalBytes = 0,
+    ]) => onProgress?.call(
+      AreaProgress(
+        phase: phase,
+        done: done,
+        total: total,
+        doneBytes: doneBytes,
+        totalBytes: totalBytes,
+      ),
+    );
 
-    await _fetchInto(archive, TileLayer.map, plan.map.fetch, manifest.sourceBuild,
-        check: check, onProgress: (d, t, db, tb) => progress(AreaPhase.tiles, d, t, db, tb));
+    await _fetchInto(
+      archive,
+      TileLayer.map,
+      plan.map.fetch,
+      manifest.sourceBuild,
+      check: check,
+      onProgress: (d, t, db, tb) => progress(AreaPhase.tiles, d, t, db, tb),
+    );
     final h = heights;
     final hb = heightsManifest?.build;
     if (h != null && hb != null && plan.heights.fetch.isNotEmpty) {
-      await _fetchInto(h, TileLayer.heights, plan.heights.fetch, hb,
-          check: check, onProgress: (d, t, db, tb) => progress(AreaPhase.heights, d, t, db, tb));
+      await _fetchInto(
+        h,
+        TileLayer.heights,
+        plan.heights.fetch,
+        hb,
+        check: check,
+        onProgress: (d, t, db, tb) => progress(AreaPhase.heights, d, t, db, tb),
+      );
     }
     final w = ways;
     final wb = waysManifest?.build;
     if (w != null && wb != null && plan.ways.fetch.isNotEmpty) {
-      await _fetchInto(w, TileLayer.ways, plan.ways.fetch, wb,
-          check: check, onProgress: (d, t, db, tb) => progress(AreaPhase.ways, d, t, db, tb));
+      await _fetchInto(
+        w,
+        TileLayer.ways,
+        plan.ways.fetch,
+        wb,
+        check: check,
+        onProgress: (d, t, db, tb) => progress(AreaPhase.ways, d, t, db, tb),
+      );
     }
     for (final e in plan.drop.entries) {
       await tiles.remove(region, e.key, e.value);
     }
     final poiFiles = plan.poiNames.isEmpty
         ? const <String, String>{}
-        : await _fetchPois(plan.poiNames,
-                refresh: true, check: check, onProgress: (d, t) => progress(AreaPhase.pois, d, t)) ??
-            const <String, String>{};
+        : await _fetchPois(
+                plan.poiNames,
+                refresh: true,
+                check: check,
+                onProgress: (d, t) => progress(AreaPhase.pois, d, t),
+              ) ??
+              const <String, String>{};
     for (final e in poiFiles.entries) {
       await store.putPoiFile(e.key, e.value);
     }
@@ -820,23 +1020,45 @@ class AreaDownloader {
           a
         else
           a.copyWith(
-            build: a.build.compareTo(manifest.sourceBuild) < 0 ? manifest.sourceBuild : null,
-            heightsBuild: hb != null && a.heightsBuild != null && a.heightsBuild!.compareTo(hb) < 0 ? hb : null,
-            waysBuild: wb != null && a.waysBuild != null && a.waysBuild!.compareTo(wb) < 0 ? wb : null,
-            poiBuild: pm != null && a.poiFiles.isNotEmpty && a.poiFiles.every(refreshedPois.contains) &&
+            build: a.build.compareTo(manifest.sourceBuild) < 0
+                ? manifest.sourceBuild
+                : null,
+            heightsBuild:
+                hb != null &&
+                    a.heightsBuild != null &&
+                    a.heightsBuild!.compareTo(hb) < 0
+                ? hb
+                : null,
+            waysBuild:
+                wb != null &&
+                    a.waysBuild != null &&
+                    a.waysBuild!.compareTo(wb) < 0
+                ? wb
+                : null,
+            poiBuild:
+                pm != null &&
+                    a.poiFiles.isNotEmpty &&
+                    a.poiFiles.every(refreshedPois.contains) &&
                     (a.poiBuild == null || a.poiBuild!.compareTo(pm.build) < 0)
                 ? pm.build
                 : null,
           ),
     ];
     await store.saveIndex(updated);
-    return [for (final a in updated) if (a.region == region) a];
+    return [
+      for (final a in updated)
+        if (a.region == region) a,
+    ];
   }
 
   Future<void> _saveEntry(StoredArea area) async {
     final all = await store.list();
     final i = all.indexWhere((a) => a.id == area.id);
-    await store.saveIndex(i < 0 ? [...all, area] : [...all.sublist(0, i), area, ...all.sublist(i + 1)]);
+    await store.saveIndex(
+      i < 0
+          ? [...all, area]
+          : [...all.sublist(0, i), area, ...all.sublist(i + 1)],
+    );
   }
 
   String _newId(DateTime at) => newAreaId(at);

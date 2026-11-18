@@ -39,7 +39,8 @@ typedef RouteBandPiece = ({List<LatLng> points, bool hiking, Object? hitValue});
 List<bool> repeatedSegments(List<LatLng> points) {
   final seen = <(int, int, int, int)>{};
   return [
-    for (var i = 0; i + 1 < points.length; i++) !seen.add(_segmentKey(points[i], points[i + 1])),
+    for (var i = 0; i + 1 < points.length; i++)
+      !seen.add(_segmentKey(points[i], points[i + 1])),
   ];
 }
 
@@ -47,7 +48,10 @@ List<bool> repeatedSegments(List<LatLng> points) {
 /// eingeschlossen)?
 List<bool> doubledSegments(List<LatLng> points) {
   final count = <(int, int, int, int), int>{};
-  final keys = [for (var i = 0; i + 1 < points.length; i++) _segmentKey(points[i], points[i + 1])];
+  final keys = [
+    for (var i = 0; i + 1 < points.length; i++)
+      _segmentKey(points[i], points[i + 1]),
+  ];
   for (final k in keys) {
     count[k] = (count[k] ?? 0) + 1;
   }
@@ -107,16 +111,17 @@ List<MapViewPolyline> routeBandLines(
   final repeated = repeatedSegments(points);
   final doubled = doubledSegments(points);
   MapViewPolyline band(List<LatLng> pts, int pass) => MapViewPolyline(
-        points: pts,
-        color: AppColors.routeBand,
-        width: kRouteBandWidth,
-        borderColor: AppColors.routeEdge,
-        borderWidth: kRouteEdgeWidth,
-        opacity: opacity,
-        pass: pass,
-      );
+    points: pts,
+    color: AppColors.routeBand,
+    width: kRouteBandWidth,
+    borderColor: AppColors.routeEdge,
+    borderWidth: kRouteEdgeWidth,
+    opacity: opacity,
+    pass: pass,
+  );
   return [
-    for (final run in _runsWhere(points, [for (final r in repeated) !r])) band(run, 0),
+    for (final run in _runsWhere(points, [for (final r in repeated) !r]))
+      band(run, 0),
     for (final run in _runsWhere(points, repeated)) band(run, 1),
     for (final p in pieces)
       if (p.hiking && p.points.length >= 2)

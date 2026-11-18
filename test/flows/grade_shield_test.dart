@@ -22,49 +22,69 @@ void main() {
     final backend = FakeBackend();
     final anna = backend.addUser(username: 'anna');
     backend.signInAs(anna.id);
-    final trails = FakeTrailRepository(myId: () => backend.currentUserId ?? '', areFriends: backend.areFriends);
-    trails.seedTrail(anna.id, name: 'Steiler Hang mit sehr langem Namen', grade: 5,
-        traits: {TrailTrait.rocky, TrailTrait.steep});
+    final trails = FakeTrailRepository(
+      myId: () => backend.currentUserId ?? '',
+      areFriends: backend.areFriends,
+    );
+    trails.seedTrail(
+      anna.id,
+      name: 'Steiler Hang mit sehr langem Namen',
+      grade: 5,
+      traits: {TrailTrait.rocky, TrailTrait.steep},
+    );
     trails.seedTrail(anna.id, name: 'Ohne Grad', lat: 48.1);
     return (backend, trails);
   }
 
-  testWidgets('Liste: Schild rechts oben mit Form und Satz — ohne Einschätzung keins, '
-      'und auf 360 dp läuft nichts über', (tester) async {
-    tester.view.physicalSize = const Size(1080, 2220);
-    tester.view.devicePixelRatio = 3;
-    addTearDown(tester.view.reset);
-    final (backend, trails) = setup();
-    await pumpApp(tester, backend, trails: trails);
-    await openTab(tester, 'Trails');
-    await settle(tester, frames: 20);
+  testWidgets(
+    'Liste: Schild rechts oben mit Form und Satz — ohne Einschätzung keins, '
+    'und auf 360 dp läuft nichts über',
+    (tester) async {
+      tester.view.physicalSize = const Size(1080, 2220);
+      tester.view.devicePixelRatio = 3;
+      addTearDown(tester.view.reset);
+      final (backend, trails) = setup();
+      await pumpApp(tester, backend, trails: trails);
+      await openTab(tester, 'Trails');
+      await settle(tester, frames: 20);
 
-    final shields = find.byKey(const ValueKey('grade-shield'));
-    expect(shields, findsOneWidget, reason: 'nur der Trail mit Einschätzung');
-    expect(findLabel('Schwierigkeit S5: extrem, kaum fahrbar'), findsOneWidget);
-    // Die Zahl steht nicht mehr doppelt in der Zahlenzeile.
-    expect(find.textContaining('· S5'), findsNothing);
-    // Rechts oben: über den Charakter-Symbolen, am rechten Rand der Karte.
-    final shield = tester.getRect(shields);
-    final icon = tester.getRect(find.byIcon(TrailTrait.rocky.icon));
-    expect(shield.bottom, lessThanOrEqualTo(icon.top));
-    expect(shield.right, greaterThan(300));
-    expect(tester.takeException(), isNull);
-  });
+      final shields = find.byKey(const ValueKey('grade-shield'));
+      expect(shields, findsOneWidget, reason: 'nur der Trail mit Einschätzung');
+      expect(
+        findLabel('Schwierigkeit S5: extrem, kaum fahrbar'),
+        findsOneWidget,
+      );
+      // Die Zahl steht nicht mehr doppelt in der Zahlenzeile.
+      expect(find.textContaining('· S5'), findsNothing);
+      // Rechts oben: über den Charakter-Symbolen, am rechten Rand der Karte.
+      final shield = tester.getRect(shields);
+      final icon = tester.getRect(find.byIcon(TrailTrait.rocky.icon));
+      expect(shield.bottom, lessThanOrEqualTo(icon.top));
+      expect(shield.right, greaterThan(300));
+      expect(tester.takeException(), isNull);
+    },
+  );
 
-  testWidgets('Blatt: Schild neben dem Namen, derselbe Median wie in der Kachel', (tester) async {
-    final (backend, trails) = setup();
-    await pumpApp(tester, backend, trails: trails);
-    await openTab(tester, 'Trails');
-    await settle(tester, frames: 20);
-    await tester.tap(find.text('Steiler Hang mit sehr langem Namen'));
-    await settle(tester);
+  testWidgets(
+    'Blatt: Schild neben dem Namen, derselbe Median wie in der Kachel',
+    (tester) async {
+      final (backend, trails) = setup();
+      await pumpApp(tester, backend, trails: trails);
+      await openTab(tester, 'Trails');
+      await settle(tester, frames: 20);
+      await tester.tap(find.text('Steiler Hang mit sehr langem Namen'));
+      await settle(tester);
 
-    final title = tester.getRect(find.byKey(const ValueKey('trail-sheet-title')));
-    final shield = find.descendant(
-        of: find.byType(BottomSheet), matching: find.byKey(const ValueKey('grade-shield')));
-    expect(shield, findsOneWidget);
-    expect(tester.getRect(shield).left, greaterThan(title.right - 1));
-    expect(findLabel('S5 · 1 Einschätzung'), findsOneWidget);
-  });
+      final title = tester.getRect(
+        find.byKey(const ValueKey('trail-sheet-title')),
+      );
+      final shield = find.descendant(
+        of: find.byType(BottomSheet),
+        matching: find.byKey(const ValueKey('grade-shield')),
+      );
+      expect(shield, findsOneWidget);
+      expect(tester.getRect(shield).left, greaterThan(title.right - 1));
+      expect(findLabel('S5 · 1 Einschätzung'), findsOneWidget);
+    },
+  );
 }

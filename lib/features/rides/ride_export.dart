@@ -20,16 +20,17 @@ String rideExportName(Ride ride) {
 }
 
 /// Der Dateiname: die Kennung der Fahrt ist schon ein Zeitstempel.
-String rideExportFileName(Ride ride) => 'trailbuddy-fahrt-${ride.id.toLowerCase()}.gpx';
+String rideExportFileName(Ride ride) =>
+    'trailbuddy-fahrt-${ride.id.toLowerCase()}.gpx';
 
 /// Eine geplante Fahrt geht OHNE Zeiten hinaus: Ihre Punkte tragen nur
 /// den Zeitpunkt des Speicherns, und eine Spur mit lauter gleichen Zeiten
 /// läse jede App als Stillstand. Ohne Zeiten ist sie, was sie ist — eine
 /// geplante Route (Konzept 5.2).
 GpxTrack rideToGpx(Ride ride) => GpxTrack(
-      name: rideExportName(ride),
-      points: [
-        for (final p in ride.points)
-          TrackPoint(p.lat, p.lng, ele: p.altM, time: ride.planned ? null : p.at),
-      ],
-    );
+  name: rideExportName(ride),
+  points: [
+    for (final p in ride.points)
+      TrackPoint(p.lat, p.lng, ele: p.altM, time: ride.planned ? null : p.at),
+  ],
+);

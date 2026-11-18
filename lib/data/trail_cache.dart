@@ -47,57 +47,68 @@ typedef TrailSnapshot = ({
 typedef TrailSnapshotResult = ({TrailSnapshot snapshot, DateTime? cachedAt});
 
 abstract interface class TrailCache {
-  Future<({TrailSnapshot snapshot, DateTime savedAt})?> read({required String uid});
-  Future<void> write({required String uid, required TrailSnapshot snapshot, required DateTime savedAt});
+  Future<({TrailSnapshot snapshot, DateTime savedAt})?> read({
+    required String uid,
+  });
+  Future<void> write({
+    required String uid,
+    required TrailSnapshot snapshot,
+    required DateTime savedAt,
+  });
   Future<void> clear();
 }
 
 Map<String, dynamic> recordingToRow(TrailRecording r) => {
-      'id': r.id,
-      'trail_id': r.trailId,
-      'user_id': r.userId,
-      'source': r.source.name,
-      'recorded_at': r.recordedAt?.toUtc().toIso8601String(),
-      'reversed': r.reversed,
-      'quality': r.quality,
-      'created_at': r.createdAt.toUtc().toIso8601String(),
-      'geojson': {
-        'type': 'LineString',
-        'coordinates': [for (final p in r.points) [p.longitude, p.latitude]],
-      },
-      'length_m': r.lengthM,
-      'ele': r.ele,
-    };
+  'id': r.id,
+  'trail_id': r.trailId,
+  'user_id': r.userId,
+  'source': r.source.name,
+  'recorded_at': r.recordedAt?.toUtc().toIso8601String(),
+  'reversed': r.reversed,
+  'quality': r.quality,
+  'created_at': r.createdAt.toUtc().toIso8601String(),
+  'geojson': {
+    'type': 'LineString',
+    'coordinates': [
+      for (final p in r.points) [p.longitude, p.latitude],
+    ],
+  },
+  'length_m': r.lengthM,
+  'ele': r.ele,
+};
 
 Map<String, dynamic> detailsToRow(TrailDetails d) => {
-      ...d.toRow(),
-      'updated_at': d.updatedAt?.toUtc().toIso8601String(),
-      'contributor': d.username == null ? null : {'username': d.username},
-    };
+  ...d.toRow(),
+  'updated_at': d.updatedAt?.toUtc().toIso8601String(),
+  'contributor': d.username == null ? null : {'username': d.username},
+};
 
 Map<String, dynamic> noteToRow(TrailNote n) => {
-      'id': n.id,
-      'trail_id': n.trailId,
-      'user_id': n.userId,
-      'body': n.body,
-      'created_at': n.createdAt.toUtc().toIso8601String(),
-      'author': n.username == null ? null : {'username': n.username},
-      'photo': n.photo?.toRow(),
-      'report_id': n.reportId,
-    };
+  'id': n.id,
+  'trail_id': n.trailId,
+  'user_id': n.userId,
+  'body': n.body,
+  'created_at': n.createdAt.toUtc().toIso8601String(),
+  'author': n.username == null ? null : {'username': n.username},
+  'photo': n.photo?.toRow(),
+  'report_id': n.reportId,
+};
 
 /// EIN JSON-Text mit dem Konto, dem er gehört.
-String encodeTrailCache({required String uid, required TrailSnapshot snapshot, required DateTime savedAt}) =>
-    jsonEncode({
-      'uid': uid,
-      'saved_at': savedAt.toUtc().toIso8601String(),
-      'recordings': [for (final r in snapshot.recordings) recordingToRow(r)],
-      'details': [for (final d in snapshot.details) detailsToRow(d)],
-      'notes': [for (final n in snapshot.notes) noteToRow(n)],
-      'reports': [for (final r in snapshot.reports) r.toRow()],
-      'merges': [for (final m in snapshot.merges) m.toRow()],
-      'start_points': [for (final p in snapshot.startPoints) p.toRow()],
-    });
+String encodeTrailCache({
+  required String uid,
+  required TrailSnapshot snapshot,
+  required DateTime savedAt,
+}) => jsonEncode({
+  'uid': uid,
+  'saved_at': savedAt.toUtc().toIso8601String(),
+  'recordings': [for (final r in snapshot.recordings) recordingToRow(r)],
+  'details': [for (final d in snapshot.details) detailsToRow(d)],
+  'notes': [for (final n in snapshot.notes) noteToRow(n)],
+  'reports': [for (final r in snapshot.reports) r.toRow()],
+  'merges': [for (final m in snapshot.merges) m.toRow()],
+  'start_points': [for (final p in snapshot.startPoints) p.toRow()],
+});
 
 /// Derselbe Text wie [encodeTrailCache], aber in Häppchen: Nach jeweils
 /// [slice] Rechenzeit gibt es den Haupt-Thread frei, damit Eingaben und
@@ -112,7 +123,9 @@ Future<String> encodeTrailCacheInSlices({
   Duration slice = const Duration(milliseconds: 4),
 }) async {
   final out = StringBuffer()
-    ..write('{"uid":${jsonEncode(uid)},"saved_at":${jsonEncode(savedAt.toUtc().toIso8601String())},"recordings":[');
+    ..write(
+      '{"uid":${jsonEncode(uid)},"saved_at":${jsonEncode(savedAt.toUtc().toIso8601String())},"recordings":[',
+    );
   final clock = Stopwatch()..start();
   for (var i = 0; i < snapshot.recordings.length; i++) {
     if (i > 0) out.write(',');
@@ -140,7 +153,10 @@ Future<String> encodeTrailCacheInSlices({
 /// Liest [text] zurück — `null`, wenn nichts Brauchbares darin steht oder
 /// der Inhalt einem anderen Konto gehört. Die Trails eines anderen
 /// Nutzers dürfen nie in einer fremden Sitzung auftauchen.
-({TrailSnapshot snapshot, DateTime savedAt})? decodeTrailCache(String text, {required String uid}) {
+({TrailSnapshot snapshot, DateTime savedAt})? decodeTrailCache(
+  String text, {
+  required String uid,
+}) {
   try {
     final json = jsonDecode(text);
     if (json is! Map<String, dynamic>) return null;
@@ -151,7 +167,9 @@ Future<String> encodeTrailCacheInSlices({
         (json[key] as List<dynamic>? ?? const []).cast<Map<String, dynamic>>();
     return (
       snapshot: (
-        recordings: [for (final r in rows('recordings')) TrailRecording.fromJson(r)],
+        recordings: [
+          for (final r in rows('recordings')) TrailRecording.fromJson(r),
+        ],
         details: [for (final d in rows('details')) TrailDetails.fromJson(d)],
         notes: [for (final n in rows('notes')) TrailNote.fromJson(n)],
         // Fehlt bei einer Kopie von vor 0.49.0: dann eben keine Meldungen.
@@ -159,7 +177,9 @@ Future<String> encodeTrailCacheInSlices({
         // Fehlt bei einer Kopie von vor 0.109.0: dann eben keine Zuordnungen.
         merges: [for (final m in rows('merges')) ?TrailMerge.fromJson(m)],
         // Fehlt bei einer Kopie von vor 0.181.0: dann eben keine Startpunkte.
-        startPoints: [for (final p in rows('start_points')) ?StartPoint.fromJson(p)],
+        startPoints: [
+          for (final p in rows('start_points')) ?StartPoint.fromJson(p),
+        ],
       ),
       savedAt: savedAt.toLocal(),
     );
@@ -200,22 +220,31 @@ abstract class QueuedTrailCache implements TrailCache {
   }
 
   @override
-  Future<void> write({required String uid, required TrailSnapshot snapshot, required DateTime savedAt}) =>
-      _enqueue((generation) async {
-        try {
-          if (generation != _generation) return;
-          final text = await encodeTrailCacheInSlices(uid: uid, snapshot: snapshot, savedAt: savedAt);
-          if (generation != _generation) return;
-          await storeText(text);
-        } catch (_) {
-          // Volle Platte, fehlende Rechte, voller Browser-Speicher: Dann
-          // gibt es eben keine Kopie. Der Abruf war erfolgreich und darf
-          // daran nicht scheitern.
-        }
-      });
+  Future<void> write({
+    required String uid,
+    required TrailSnapshot snapshot,
+    required DateTime savedAt,
+  }) => _enqueue((generation) async {
+    try {
+      if (generation != _generation) return;
+      final text = await encodeTrailCacheInSlices(
+        uid: uid,
+        snapshot: snapshot,
+        savedAt: savedAt,
+      );
+      if (generation != _generation) return;
+      await storeText(text);
+    } catch (_) {
+      // Volle Platte, fehlende Rechte, voller Browser-Speicher: Dann
+      // gibt es eben keine Kopie. Der Abruf war erfolgreich und darf
+      // daran nicht scheitern.
+    }
+  });
 
   @override
-  Future<({TrailSnapshot snapshot, DateTime savedAt})?> read({required String uid}) async {
+  Future<({TrailSnapshot snapshot, DateTime savedAt})?> read({
+    required String uid,
+  }) async {
     try {
       final text = await loadText();
       return text == null ? null : decodeTrailCache(text, uid: uid);
@@ -229,12 +258,12 @@ abstract class QueuedTrailCache implements TrailCache {
   /// nichts mehr verloren — es ist eine Kopie, es geht nichts verloren.
   @override
   Future<void> clear() => _enqueue((_) async {
-        try {
-          await removeText();
-        } catch (_) {
-          // Ein Löschfehler darf das Abmelden nicht aufhalten.
-        }
-      });
+    try {
+      await removeText();
+    } catch (_) {
+      // Ein Löschfehler darf das Abmelden nicht aufhalten.
+    }
+  });
 }
 
 /// Die Datei im App-Verzeichnis (Android). `trail_cache/` steht in beiden
@@ -286,10 +315,16 @@ class NoTrailCache implements TrailCache {
   const NoTrailCache();
 
   @override
-  Future<({TrailSnapshot snapshot, DateTime savedAt})?> read({required String uid}) async => null;
+  Future<({TrailSnapshot snapshot, DateTime savedAt})?> read({
+    required String uid,
+  }) async => null;
 
   @override
-  Future<void> write({required String uid, required TrailSnapshot snapshot, required DateTime savedAt}) async {}
+  Future<void> write({
+    required String uid,
+    required TrailSnapshot snapshot,
+    required DateTime savedAt,
+  }) async {}
 
   @override
   Future<void> clear() async {}
@@ -363,16 +398,20 @@ Future<TrailSnapshotResult> fetchWithCacheQuick({
   required void Function(Object error, StackTrace stackTrace) onLateError,
   void Function()? onStillWaiting,
 }) async {
-  final settled = fetch().then<_Fetched>((s) => _Fetched(s),
-      onError: (Object e, StackTrace st) => _Fetched.failed(e, st));
+  final settled = fetch().then<_Fetched>(
+    (s) => _Fetched(s),
+    onError: (Object e, StackTrace st) => _Fetched.failed(e, st),
+  );
   final first = Completer<_Fetched?>();
   final clock = Timer(patience, () {
     if (!first.isCompleted) first.complete(null);
   });
-  unawaited(settled.then((r) {
-    clock.cancel();
-    if (!first.isCompleted) first.complete(r);
-  }));
+  unawaited(
+    settled.then((r) {
+      clock.cancel();
+      if (!first.isCompleted) first.complete(r);
+    }),
+  );
 
   Future<TrailSnapshotResult> settle(_Fetched r) =>
       fetchWithCache(fetch: r.get, cache: cache, uid: uid, now: now);
@@ -381,17 +420,23 @@ Future<TrailSnapshotResult> fetchWithCacheQuick({
   if (quick != null) return settle(quick);
   final cached = await cache.read(uid: uid);
   if (cached == null) return settle(await settled);
-  unawaited(settled.then((r) async {
-    final error = r.error;
-    if (error == null) {
-      await cache.write(uid: uid, snapshot: r.snapshot!, savedAt: DateTime.now());
-      onLate(r.snapshot!);
-    } else if (looksOffline(error)) {
-      onLateOffline();
-    } else {
-      onLateError(error, r.stackTrace!);
-    }
-  }));
+  unawaited(
+    settled.then((r) async {
+      final error = r.error;
+      if (error == null) {
+        await cache.write(
+          uid: uid,
+          snapshot: r.snapshot!,
+          savedAt: DateTime.now(),
+        );
+        onLate(r.snapshot!);
+      } else if (looksOffline(error)) {
+        onLateOffline();
+      } else {
+        onLateError(error, r.stackTrace!);
+      }
+    }),
+  );
   onStillWaiting?.call();
   return (snapshot: cached.snapshot, cachedAt: cached.savedAt);
 }
@@ -399,10 +444,9 @@ Future<TrailSnapshotResult> fetchWithCacheQuick({
 /// Ausgang eines Abrufs, ohne zu werfen — damit er auf zwei Wegen
 /// abgewartet werden kann, ohne einen unbehandelten Fehler zu erzeugen.
 class _Fetched {
-  _Fetched(TrailSnapshot this.snapshot)
-      : error = null,
-        stackTrace = null;
-  _Fetched.failed(Object this.error, StackTrace this.stackTrace) : snapshot = null;
+  _Fetched(TrailSnapshot this.snapshot) : error = null, stackTrace = null;
+  _Fetched.failed(Object this.error, StackTrace this.stackTrace)
+    : snapshot = null;
 
   final TrailSnapshot? snapshot;
   final Object? error;

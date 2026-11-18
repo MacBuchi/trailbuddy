@@ -81,7 +81,8 @@ typedef RoutingPiece = ({int x, int y, Uint8List bytes});
 /// Ohne Zeitstempel: `GZipEncoder` schreibt die Uhrzeit in den Kopf
 /// (Bytes 4–7), gleiche Stücke hießen sonst je Sekunde anders; 0 heißt in
 /// gzip „keine Zeit".
-Uint8List packPiece(Uint8List raw) => Uint8List.fromList(GZipEncoder().encode(raw)!)..fillRange(4, 8, 0);
+Uint8List packPiece(Uint8List raw) =>
+    Uint8List.fromList(GZipEncoder().encode(raw)!)..fillRange(4, 8, 0);
 
 /// Liest ein gepacktes oder rohes Stück; null wie [decodePiece].
 DecodedPiece? unpackPiece(Uint8List bytes) {
@@ -109,7 +110,12 @@ List<RoutingPiece> bakeTiles({
 }) {
   final grades = <int, List<WayGradeLine>>{};
   for (final w in ways) {
-    grades[_key(w.tile.x, w.tile.y)] = wayGradeLinesFromTile(w.bytes, z: w.tile.z, x: w.tile.x, y: w.tile.y);
+    grades[_key(w.tile.x, w.tile.y)] = wayGradeLinesFromTile(
+      w.bytes,
+      z: w.tile.z,
+      x: w.tile.x,
+      y: w.tile.y,
+    );
   }
   final out = <RoutingPiece>[];
   for (var i = 0; i < roads.length; i++) {
@@ -123,7 +129,9 @@ List<RoutingPiece> bakeTiles({
           for (var dx = -1; dx <= 1; dx++)
             for (var dy = -1; dy <= 1; dy++) ...?grades[_key(x + dx, y + dy)],
         ];
-        return packPiece(bakeTile(x: x, y: y, road: r.bytes, ways: around, heights: heights));
+        return packPiece(
+          bakeTile(x: x, y: y, road: r.bytes, ways: around, heights: heights),
+        );
       }),
     ));
   }
@@ -269,14 +277,16 @@ Uint8List encodePiece(RoadGraph g, int x, int y) {
     final steep = e.steepUp + e.steepDown + e.steepWUp + e.steepWDown > 0;
     final carry = (e.carry * 1000).round();
     w
-      ..u(e.cls.index |
-          (e.oneway ? 1 << 4 : 0) |
-          (e.hasHeights ? 1 << 5 : 0) |
-          (e.level != 0 ? 1 << 6 : 0) |
-          (e.way != null ? 1 << 7 : 0) |
-          (e.uphill != null ? 1 << 8 : 0) |
-          (steep ? 1 << 9 : 0) |
-          (carry != 1000 ? 1 << 10 : 0))
+      ..u(
+        e.cls.index |
+            (e.oneway ? 1 << 4 : 0) |
+            (e.hasHeights ? 1 << 5 : 0) |
+            (e.level != 0 ? 1 << 6 : 0) |
+            (e.way != null ? 1 << 7 : 0) |
+            (e.uphill != null ? 1 << 8 : 0) |
+            (steep ? 1 << 9 : 0) |
+            (carry != 1000 ? 1 << 10 : 0),
+      )
       ..s(e.a - prevB)
       ..s(e.b - e.a)
       ..u(_cm(e.gain))
@@ -303,7 +313,10 @@ Uint8List encodePiece(RoadGraph g, int x, int y) {
     if (pix.every((p) => p != null)) {
       w.u(1);
       // Bezug ist Knoten a, wie ihn der Leser kennt: in Mikrograd.
-      final a = LatLng(_micro(pts.first.latitude) / 1e6, _micro(pts.first.longitude) / 1e6);
+      final a = LatLng(
+        _micro(pts.first.latitude) / 1e6,
+        _micro(pts.first.longitude) / 1e6,
+      );
       var (px, py) = _pixel(a, x, y, exact: false)!;
       for (final p in pix) {
         w
@@ -389,7 +402,13 @@ class PieceEdge {
 
 /// Ein gelesenes Stück.
 class DecodedPiece {
-  const DecodedPiece({required this.x, required this.y, required this.nodes, required this.border, required this.edges});
+  const DecodedPiece({
+    required this.x,
+    required this.y,
+    required this.nodes,
+    required this.border,
+    required this.edges,
+  });
 
   final int x, y;
   final List<LatLng> nodes;
@@ -403,7 +422,9 @@ class DecodedPiece {
 DecodedPiece? decodePiece(Uint8List bytes) {
   try {
     final r = _Reader(bytes);
-    if (r.u() != kRoutingTileFormat || r.u() != kRoutingTileVersion) return null;
+    if (r.u() != kRoutingTileFormat || r.u() != kRoutingTileVersion) {
+      return null;
+    }
     final x = r.u(), y = r.u();
     final count = r.u();
     var lon = _micro(_tileLon(x)), lat = _micro(_tileLat(y));
@@ -432,7 +453,9 @@ DecodedPiece? decodePiece(Uint8List bytes) {
       final level = head & 1 << 6 != 0 ? r.s() : 0;
       final way = head & 1 << 7 != 0 ? r.u() : null;
       final uphill = head & 1 << 8 != 0 ? r.u() : null;
-      final steep = head & 1 << 9 != 0 ? [r.u(), r.u(), r.u(), r.u()] : const [0, 0, 0, 0];
+      final steep = head & 1 << 9 != 0
+          ? [r.u(), r.u(), r.u(), r.u()]
+          : const [0, 0, 0, 0];
       final carry = head & 1 << 10 != 0 ? r.u() : 1000;
       final cls = head & 15;
       if (cls >= WayClass.values.length) return null;
@@ -447,7 +470,8 @@ DecodedPiece? decodePiece(Uint8List bytes) {
             inner.add(_fromPixel(px, py, x, y));
           }
         } else {
-          var plon = _micro(nodes[a].longitude), plat = _micro(nodes[a].latitude);
+          var plon = _micro(nodes[a].longitude),
+              plat = _micro(nodes[a].latitude);
           for (var k = n; k > 0; k--) {
             plon += r.s();
             plat += r.s();
@@ -455,21 +479,23 @@ DecodedPiece? decodePiece(Uint8List bytes) {
           }
         }
       }
-      edges.add(PieceEdge(
-        a: a,
-        b: b,
-        cls: WayClass.values[cls],
-        oneway: head & 1 << 4 != 0,
-        hasHeights: head & 1 << 5 != 0,
-        level: level,
-        way: way,
-        uphill: uphill,
-        gainCm: gain,
-        lossCm: loss,
-        steepDm: steep,
-        carry: carry,
-        inner: inner,
-      ));
+      edges.add(
+        PieceEdge(
+          a: a,
+          b: b,
+          cls: WayClass.values[cls],
+          oneway: head & 1 << 4 != 0,
+          hasHeights: head & 1 << 5 != 0,
+          level: level,
+          way: way,
+          uphill: uphill,
+          gainCm: gain,
+          lossCm: loss,
+          steepDm: steep,
+          carry: carry,
+          inner: inner,
+        ),
+      );
     }
     if (!r.atEnd) return null;
     return DecodedPiece(x: x, y: y, nodes: nodes, border: border, edges: edges);
@@ -499,7 +525,11 @@ StitchedGraph stitchPieces(List<DecodedPiece> pieces, double lat0) {
     for (final e in p.edges) {
       final a = ids[e.a], b = ids[e.b];
       if (a == b && e.inner.isEmpty) continue;
-      final ei = g.addEdge(a, b, e.cls, e.oneway, [p.nodes[e.a], ...e.inner, p.nodes[e.b]], level: e.level);
+      final ei = g.addEdge(a, b, e.cls, e.oneway, [
+        p.nodes[e.a],
+        ...e.inner,
+        p.nodes[e.b],
+      ], level: e.level);
       g.edges[ei]
         ..hasHeights = e.hasHeights
         ..way = e.way
@@ -522,13 +552,19 @@ StitchedGraph stitchPieces(List<DecodedPiece> pieces, double lat0) {
       if (g.degree(n) != 1) continue;
       var target = g.nearestNode(g.nodes[n], kGraphJoinM, exclude: n);
       if (target == null) {
-        final hit = g.nearest(g.nodeLatLng[n], kGraphJoinM, excludeEdges: g.adj[n].toSet());
+        final hit = g.nearest(
+          g.nodeLatLng[n],
+          kGraphJoinM,
+          excludeEdges: g.adj[n].toSet(),
+        );
         if (hit == null) continue;
         target = g.splitEdge(hit.edge, hit.seg, hit.at);
       }
       if (target == n) continue;
-      final ei =
-          g.addEdge(n, target, g.edges[g.adjFirst(n) >> 1].cls, false, [g.nodeLatLng[n], g.nodeLatLng[target]]);
+      final ei = g.addEdge(n, target, g.edges[g.adjFirst(n) >> 1].cls, false, [
+        g.nodeLatLng[n],
+        g.nodeLatLng[target],
+      ]);
       g.edges[ei].hasHeights = true; // ≤ 2 m, flach
       joins++;
     }

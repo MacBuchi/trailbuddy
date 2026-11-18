@@ -26,14 +26,14 @@ class BuddyMessage {
   bool isUnreadFor(String uid) => recipientId == uid && readAt == null;
 
   factory BuddyMessage.fromJson(Map<String, dynamic> json) => BuddyMessage(
-        id: json['id'] as String,
-        senderId: json['sender_id'] as String,
-        recipientId: json['recipient_id'] as String,
-        body: json['body'] as String,
-        createdAt: DateTime.parse(json['created_at'] as String),
-        expiresAt: DateTime.parse(json['expires_at'] as String),
-        readAt: json['read_at'] == null
-            ? null
-            : DateTime.parse(json['read_at'] as String),
-      );
+    id: json['id'] as String,
+    senderId: json['sender_id'] as String,
+    recipientId: json['recipient_id'] as String,
+    body: json['body'] as String,
+    createdAt: DateTime.parse(json['created_at'] as String),
+    expiresAt: DateTime.parse(json['expires_at'] as String),
+    readAt: json['read_at'] == null
+        ? null
+        : DateTime.parse(json['read_at'] as String),
+  );
 }

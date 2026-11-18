@@ -38,14 +38,19 @@ class IdbTrailCache extends QueuedTrailCache {
   static const _key = 'network';
 
   @override
-  Future<void> storeText(String text) => _db.writeStore(kTrailCacheStore, (s) => s.put(text, _key));
+  Future<void> storeText(String text) =>
+      _db.writeStore(kTrailCacheStore, (s) => s.put(text, _key));
 
   @override
   Future<String?> loadText() async {
-    final value = await _db.readStore(kTrailCacheStore, (s) => s.getObject(_key));
+    final value = await _db.readStore(
+      kTrailCacheStore,
+      (s) => s.getObject(_key),
+    );
     return value is String ? value : null;
   }
 
   @override
-  Future<void> removeText() => _db.writeStore(kTrailCacheStore, (s) => s.delete(_key));
+  Future<void> removeText() =>
+      _db.writeStore(kTrailCacheStore, (s) => s.delete(_key));
 }

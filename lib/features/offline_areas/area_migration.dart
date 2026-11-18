@@ -21,13 +21,23 @@ import 'tile_store.dart';
 import '../map/way_layer.dart' show kWaysZoom;
 
 /// Übernimmt jeden Bereich im Altformat und liefert den Index danach.
-Future<List<StoredArea>> migrateLegacyAreas(AreaStore store, TileStore tiles, {int chunkSize = 256}) async {
-  final legacy = [for (final a in await store.list()) if (a.legacy) a];
+Future<List<StoredArea>> migrateLegacyAreas(
+  AreaStore store,
+  TileStore tiles, {
+  int chunkSize = 256,
+}) async {
+  final legacy = [
+    for (final a in await store.list())
+      if (a.legacy) a,
+  ];
   for (final area in legacy) {
     try {
       await _migrate(store, tiles, area, chunkSize);
       final now = await store.list();
-      await store.saveIndex([for (final a in now) a.id == area.id ? a.copyWith(format: kStoredAreaFormat) : a]);
+      await store.saveIndex([
+        for (final a in now)
+          a.id == area.id ? a.copyWith(format: kStoredAreaFormat) : a,
+      ]);
       await store.deleteLegacy(area.id);
     } catch (e, s) {
       logError('Bereich in den Kachelspeicher übernehmen', e, s);
@@ -36,7 +46,12 @@ Future<List<StoredArea>> migrateLegacyAreas(AreaStore store, TileStore tiles, {i
   return store.list();
 }
 
-Future<void> _migrate(AreaStore store, TileStore tiles, StoredArea area, int chunkSize) async {
+Future<void> _migrate(
+  AreaStore store,
+  TileStore tiles,
+  StoredArea area,
+  int chunkSize,
+) async {
   await _copy(
     await _open(store.archivePath(area.id), store.readArchive(area.id)),
     tiles,
@@ -77,15 +92,25 @@ Future<void> _migrate(AreaStore store, TileStore tiles, StoredArea area, int chu
 /// Das Archiv aus dem Pfad (Telefon) oder den Bytes (Browser); null, wenn
 /// es fehlt — ein Index, der ein Archiv nennt, das nicht da ist, hat
 /// nichts zu übernehmen.
-Future<PmTilesArchive?> _open(Future<String?> path, Future<Uint8List?> bytes) async {
+Future<PmTilesArchive?> _open(
+  Future<String?> path,
+  Future<Uint8List?> bytes,
+) async {
   final p = await path;
   if (p != null) return PmTilesArchive.from(p);
   final b = await bytes;
   return b == null ? null : PmTilesArchive.fromBytes(b);
 }
 
-Future<void> _copy(PmTilesArchive? archive, TileStore tiles, String region, TileLayer layer,
-    List<TileXYZ> wanted, String build, int chunkSize) async {
+Future<void> _copy(
+  PmTilesArchive? archive,
+  TileStore tiles,
+  String region,
+  TileLayer layer,
+  List<TileXYZ> wanted,
+  String build,
+  int chunkSize,
+) async {
   if (archive == null) return;
   try {
     final byId = <int, TileXYZ>{};
@@ -106,11 +131,22 @@ Future<void> _copy(PmTilesArchive? archive, TileStore tiles, String region, Tile
     final ids = byId.keys.toList()..sort();
     StoreTile? probe;
     for (var start = 0; start < ids.length; start += chunkSize) {
-      final chunk = ids.sublist(start, start + chunkSize > ids.length ? ids.length : start + chunkSize);
+      final chunk = ids.sublist(
+        start,
+        start + chunkSize > ids.length ? ids.length : start + chunkSize,
+      );
       final block = <StoreTile>[];
       await for (final tile in archive.tiles(chunk)) {
         final t = byId[tile.id]!;
-        block.add(StoreTile(t.z, t.x, t.y, Uint8List.fromList(tile.compressedBytes()), build));
+        block.add(
+          StoreTile(
+            t.z,
+            t.x,
+            t.y,
+            Uint8List.fromList(tile.compressedBytes()),
+            build,
+          ),
+        );
       }
       await tiles.put(region, layer, block);
       probe ??= block.isEmpty ? null : block.first;
@@ -118,10 +154,16 @@ Future<void> _copy(PmTilesArchive? archive, TileStore tiles, String region, Tile
     if (probe != null) {
       final back = await tiles.read(region, layer, probe.z, probe.x, probe.y);
       if (back == null || back.length != probe.bytes.length) {
-        throw StateError('Kachel ${probe.z}/${probe.x}/${probe.y} kam nicht im Speicher an');
+        throw StateError(
+          'Kachel ${probe.z}/${probe.x}/${probe.y} kam nicht im Speicher an',
+        );
       }
       for (var i = 0; i < back.length; i++) {
-        if (back[i] != probe.bytes[i]) throw StateError('Kachel ${probe.z}/${probe.x}/${probe.y} kam anders an');
+        if (back[i] != probe.bytes[i]) {
+          throw StateError(
+            'Kachel ${probe.z}/${probe.x}/${probe.y} kam anders an',
+          );
+        }
       }
     }
   } finally {

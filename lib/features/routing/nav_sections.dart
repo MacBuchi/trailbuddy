@@ -29,7 +29,12 @@ typedef NavWayLeg = ({WayClass cls, double lengthM});
 
 /// Der jüngste sichtbare Hinweis eines Buddys am Trail.
 class NavNote {
-  const NavNote({required this.body, required this.author, required this.createdAt, this.authorId});
+  const NavNote({
+    required this.body,
+    required this.author,
+    required this.createdAt,
+    this.authorId,
+  });
 
   final String body;
 
@@ -41,11 +46,18 @@ class NavNote {
   final String? authorId;
 
   /// Für den Dienst (#525): Text, Autor, Zeit, Konto.
-  List<Object?> encode() => [body, author, createdAt.toUtc().toIso8601String(), authorId];
+  List<Object?> encode() => [
+    body,
+    author,
+    createdAt.toUtc().toIso8601String(),
+    authorId,
+  ];
 
   static NavNote? decode(Object? raw) {
     if (raw is! List || raw.length < 3) return null;
-    final body = raw[0], author = raw[1], at = raw[2] is String ? DateTime.tryParse(raw[2] as String) : null;
+    final body = raw[0],
+        author = raw[1],
+        at = raw[2] is String ? DateTime.tryParse(raw[2] as String) : null;
     if (body is! String || at == null) return null;
     return NavNote(
       body: body,
@@ -111,7 +123,8 @@ class NavTrailSection {
   /// (#464) setzt ein neues Stück vor den Rest der alten Route. Nie vor
   /// den Start. Mit [newApproach] gilt die Anfahrt davor als unbekannt:
   /// Sie ist jetzt das neue Stück, nicht die Wege des Planers.
-  NavTrailSection shifted(double byM, {bool newApproach = false}) => NavTrailSection(
+  NavTrailSection shifted(double byM, {bool newApproach = false}) =>
+      NavTrailSection(
         startM: math.max(0.0, startM + byM),
         endM: math.max(0.0, endM + byM),
         trailId: trailId,
@@ -129,13 +142,29 @@ class NavTrailSection {
 
   /// Für den Dienst (9.5): nur, was die Benachrichtigung braucht — und
   /// seit #525 die Meldung für die Ansage (achtes Feld, fehlt ohne).
-  List<Object?> encode() =>
-      [startM, endM, trailId, name, grade, lossM, beyondRoute, if (note != null) note!.encode()];
+  List<Object?> encode() => [
+    startM,
+    endM,
+    trailId,
+    name,
+    grade,
+    lossM,
+    beyondRoute,
+    if (note != null) note!.encode(),
+  ];
 
   static NavTrailSection? decode(Object? raw) {
     if (raw is! List || raw.length < 7) return null;
-    final s = raw[0], e = raw[1], id = raw[2], n = raw[3], g = raw[4], l = raw[5], b = raw[6];
-    if (s is! num || e is! num || id is! String || n is! String || e < s) return null;
+    final s = raw[0],
+        e = raw[1],
+        id = raw[2],
+        n = raw[3],
+        g = raw[4],
+        l = raw[5],
+        b = raw[6];
+    if (s is! num || e is! num || id is! String || n is! String || e < s) {
+      return null;
+    }
     return NavTrailSection(
       startM: s.toDouble(),
       endM: e.toDouble(),
@@ -152,8 +181,10 @@ class NavTrailSection {
 /// Alle Trails einer Route, nach Lage sortiert.
 class NavSections {
   NavSections(List<NavTrailSection> trails)
-      : trails = List<NavTrailSection>.unmodifiable(
-            List<NavTrailSection>.of(trails)..sort((a, b) => a.startM.compareTo(b.startM)));
+    : trails = List<NavTrailSection>.unmodifiable(
+        List<NavTrailSection>.of(trails)
+          ..sort((a, b) => a.startM.compareTo(b.startM)),
+      );
 
   const NavSections.empty() : trails = const [];
 
@@ -197,7 +228,10 @@ List<double> cumulativeM(List<LatLng> points) {
   final cum = <double>[0];
   for (var i = 1; i < points.length; i++) {
     final a = points[i - 1], b = points[i];
-    cum.add(cum.last + geo.distanceMeters(a.latitude, a.longitude, b.latitude, b.longitude));
+    cum.add(
+      cum.last +
+          geo.distanceMeters(a.latitude, a.longitude, b.latitude, b.longitude),
+    );
   }
   return cum;
 }
@@ -205,11 +239,21 @@ List<double> cumulativeM(List<LatLng> points) {
 /// Wo [target] auf der Linie liegt: der nächste Punkt ab Index [from],
 /// als (Index, Meter). Gesucht wird vorwärts, damit eine Runde, die eine
 /// Stelle zweimal berührt, die zweite nicht mit der ersten verwechselt.
-(int, double) _locate(List<LatLng> points, List<double> cum, LatLng target, int from) {
+(int, double) _locate(
+  List<LatLng> points,
+  List<double> cum,
+  LatLng target,
+  int from,
+) {
   var best = from;
   var bestD = double.infinity;
   for (var i = from; i < points.length; i++) {
-    final d = geo.distanceMeters(points[i].latitude, points[i].longitude, target.latitude, target.longitude);
+    final d = geo.distanceMeters(
+      points[i].latitude,
+      points[i].longitude,
+      target.latitude,
+      target.longitude,
+    );
     if (d < bestD) {
       bestD = d;
       best = i;
@@ -221,7 +265,8 @@ List<double> cumulativeM(List<LatLng> points) {
 
 /// Was die Karten über einen Trail wissen wollen — aus dem Netz, wenn er
 /// dort liegt; sonst nur, was der Planer mitbringt.
-NavTrailSection _sectionOf(AppLocalizations l, {
+NavTrailSection _sectionOf(
+  AppLocalizations l, {
   required double startM,
   required double endM,
   required String id,
@@ -263,7 +308,12 @@ NavNote? latestBuddyNote(Trail trail, {String? selfId}) {
     if (latest == null || n.createdAt.isAfter(latest.createdAt)) latest = n;
   }
   if (latest == null) return null;
-  return NavNote(body: latest.body, author: latest.username, createdAt: latest.createdAt, authorId: latest.userId);
+  return NavNote(
+    body: latest.body,
+    author: latest.username,
+    createdAt: latest.createdAt,
+    authorId: latest.userId,
+  );
 }
 
 /// Die Wege zwischen zwei Trails, aufeinanderfolgende gleiche Klassen
@@ -287,8 +337,12 @@ List<NavWayLeg> _legsOf(Iterable<({WayClass? cls, double lengthM})> parts) {
 /// dort nicht liegt, dann gelten die Werte des Planers. Mit [beyond] (das
 /// Ziel ist sein Kopf, #356 PR 7) steht dieser Trail hinter dem Ende, wie
 /// bis 0.129 im Blatt „Route" (`navSectionsOfTrailHead`).
-NavSections navSectionsOfLoop(AppLocalizations l, LoopPlan plan,
-    {required Trail? Function(String id) trailById, Trail? beyond}) {
+NavSections navSectionsOfLoop(
+  AppLocalizations l,
+  LoopPlan plan, {
+  required Trail? Function(String id) trailById,
+  Trail? beyond,
+}) {
   final points = plan.points;
   if (points.length < 2) return NavSections.none;
   final cum = cumulativeM(points);
@@ -305,42 +359,53 @@ NavSections navSectionsOfLoop(AppLocalizations l, LoopPlan plan,
     final (i0, startM) = _locate(points, cum, s.points.first, from);
     final (i1, endM) = _locate(points, cum, s.points.last, i0);
     from = i1;
-    out.add(_sectionOf(l,
-      startM: startM,
-      endM: math.max(endM, startM),
-      id: trail.id,
-      name: trail.name,
-      grade: trail.grade,
-      lossM: trail.lossM,
-      trail: trailById(trail.id),
-      approachWays: _legsOf(legs),
-    ));
+    out.add(
+      _sectionOf(
+        l,
+        startM: startM,
+        endM: math.max(endM, startM),
+        id: trail.id,
+        name: trail.name,
+        grade: trail.grade,
+        lossM: trail.lossM,
+        trail: trailById(trail.id),
+        approachWays: _legsOf(legs),
+      ),
+    );
     legs = [];
   }
   if (beyond != null) {
     final lengthM = cum.last;
-    out.add(_sectionOf(l,
-      startM: lengthM,
-      endM: lengthM,
-      id: beyond.id,
-      name: beyond.displayName(l),
-      trail: beyond,
-      approachWays: _legsOf(legs),
-      beyondRoute: true,
-    ));
+    out.add(
+      _sectionOf(
+        l,
+        startM: lengthM,
+        endM: lengthM,
+        id: beyond.id,
+        name: beyond.displayName(l),
+        trail: beyond,
+        approachWays: _legsOf(legs),
+        beyondRoute: true,
+      ),
+    );
   }
   return NavSections(out);
 }
 
 /// Die Abschnitte einer Fahrt: die Trails des Netzes, die die Linie deckt
 /// (dieselbe Regel wie „bekannt" im Zerlege-Blatt).
-NavSections navSectionsOfLine(AppLocalizations l, List<LatLng> points, List<Trail> trails) {
+NavSections navSectionsOfLine(
+  AppLocalizations l,
+  List<LatLng> points,
+  List<Trail> trails,
+) {
   if (points.length < 2 || trails.isEmpty) return NavSections.none;
   final cum = cumulativeM(points);
   final known = knownTrailSectionsOf(points, trails);
   return NavSections([
     for (final k in known)
-      _sectionOf(l,
+      _sectionOf(
+        l,
         startM: cum[k.start],
         endM: math.max(cum[k.end], cum[k.start]),
         id: k.trail.id,

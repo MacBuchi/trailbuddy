@@ -100,18 +100,27 @@ class _AreaDrawOverlayState extends State<AreaDrawOverlay> {
               child: Container(
                 key: const ValueKey('area-draw-hint'),
                 margin: const EdgeInsets.all(16),
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 9,
+                ),
                 decoration: BoxDecoration(
                   color: AppPalette.of(context).surface,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: AppPalette.of(context).line),
                   boxShadow: const [
-                    BoxShadow(blurRadius: 6, offset: Offset(0, 2), color: Color(0x33000000)),
+                    BoxShadow(
+                      blurRadius: 6,
+                      offset: Offset(0, 2),
+                      color: Color(0x33000000),
+                    ),
                   ],
                 ),
                 child: Text(
                   widget.hint ??
-                      (add ? context.l10n.areaDrawHintAdd : context.l10n.areaDrawHintRemove),
+                      (add
+                          ? context.l10n.areaDrawHintAdd
+                          : context.l10n.areaDrawHintRemove),
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
               ),
@@ -156,5 +165,6 @@ class _StrokePainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_StrokePainter old) => old.points.length != points.length || old.color != color;
+  bool shouldRepaint(_StrokePainter old) =>
+      old.points.length != points.length || old.color != color;
 }

@@ -23,7 +23,10 @@ Future<void> main(List<String> args) async {
     if (line.startsWith('# mount,')) {
       final v = line.substring(8).split(',').map(double.tryParse).toList();
       if (v.length == 6 && !v.contains(null)) {
-        carried = FusionMount(up: (v[0]!, v[1]!, v[2]!), forward: (v[3]!, v[4]!, v[5]!));
+        carried = FusionMount(
+          up: (v[0]!, v[1]!, v[2]!),
+          forward: (v[3]!, v[4]!, v[5]!),
+        );
       }
       continue;
     }
@@ -32,7 +35,9 @@ Future<void> main(List<String> args) async {
     final t = parts.length > 1 ? int.tryParse(parts[1]) : null;
     if (t == null) continue;
     origin ??= t;
-    final values = [for (final p in parts.skip(2)) double.tryParse(p) ?? double.nan];
+    final values = [
+      for (final p in parts.skip(2)) double.tryParse(p) ?? double.nan,
+    ];
     rows.add((parts[0], t, values));
   }
   final fusion = SensorFusion(carried: carried, originUs: origin);
@@ -53,25 +58,39 @@ Future<void> main(List<String> args) async {
 
   String at(double? s) => s == null ? 'never' : '${s.toStringAsFixed(0)} s';
   double rel(int us) => (us - origin!) / 1e6;
-  stdout.writeln('mount: ${fusion.mountCarried ? 'carried over, dropped at ${at(fusion.mountDroppedAt)}; ' : ''}'
-      'up at ${at(fusion.upAt)}, forward at ${at(fusion.forwardAt)}, slips ${fusion.slips.length}'
-      '${fusion.slips.isEmpty ? '' : ' (${fusion.slips.map(at).join(', ')})'}');
-  stdout.writeln('wheelies at $kFusionWheelieTiltDeg deg / $kFusionWheelieMinS s against the way:');
+  stdout.writeln(
+    'mount: ${fusion.mountCarried ? 'carried over, dropped at ${at(fusion.mountDroppedAt)}; ' : ''}'
+    'up at ${at(fusion.upAt)}, forward at ${at(fusion.forwardAt)}, slips ${fusion.slips.length}'
+    '${fusion.slips.isEmpty ? '' : ' (${fusion.slips.map(at).join(', ')})'}',
+  );
+  stdout.writeln(
+    'wheelies at $kFusionWheelieTiltDeg deg / $kFusionWheelieMinS s against the way:',
+  );
   for (final e in events.whereType<WheelieEvent>()) {
-    stdout.writeln('  t=${rel(e.startUs).toStringAsFixed(2).padLeft(8)}  '
-        '${(e.duration.inMicroseconds / 1e6).toStringAsFixed(1)} s  ${e.lengthM.toStringAsFixed(1)} m  '
-        '${e.maxTiltDeg.toStringAsFixed(0)} deg');
+    stdout.writeln(
+      '  t=${rel(e.startUs).toStringAsFixed(2).padLeft(8)}  '
+      '${(e.duration.inMicroseconds / 1e6).toStringAsFixed(1)} s  ${e.lengthM.toStringAsFixed(1)} m  '
+      '${e.maxTiltDeg.toStringAsFixed(0)} deg',
+    );
   }
-  stdout.writeln('flights at $kFusionFlightG g / ${kFusionFlightMinMs.toStringAsFixed(0)} ms:');
+  stdout.writeln(
+    'flights at $kFusionFlightG g / ${kFusionFlightMinMs.toStringAsFixed(0)} ms:',
+  );
   for (final e in events.whereType<JumpEvent>()) {
-    stdout.writeln('  t=${rel(e.startUs).toStringAsFixed(2).padLeft(8)}  '
-        '${(e.duration.inMicroseconds / 1e6).toStringAsFixed(2)} s  landing ${e.landingG.toStringAsFixed(1)} g'
-        '  ${e.plausible ? 'plausible' : 'NOT plausible'}${e.upright ? '' : ', not upright'}');
+    stdout.writeln(
+      '  t=${rel(e.startUs).toStringAsFixed(2).padLeft(8)}  '
+      '${(e.duration.inMicroseconds / 1e6).toStringAsFixed(2)} s  landing ${e.landingG.toStringAsFixed(1)} g'
+      '  ${e.plausible ? 'plausible' : 'NOT plausible'}${e.upright ? '' : ', not upright'}',
+    );
   }
-  stdout.writeln('stoppies at $kFusionStoppieTiltDeg deg / $kFusionStoppieDecel m/s2 against the way:');
+  stdout.writeln(
+    'stoppies at $kFusionStoppieTiltDeg deg / $kFusionStoppieDecel m/s2 against the way:',
+  );
   for (final e in events.whereType<StoppieEvent>()) {
-    stdout.writeln('  t=${rel(e.startUs).toStringAsFixed(2).padLeft(8)}  '
-        '${(e.duration.inMicroseconds / 1e6).toStringAsFixed(1)} s  ${e.maxTiltDeg.toStringAsFixed(0)} deg down  '
-        'braking ${e.decel.toStringAsFixed(1)} m/s2  landing ${e.landingG.toStringAsFixed(1)} g');
+    stdout.writeln(
+      '  t=${rel(e.startUs).toStringAsFixed(2).padLeft(8)}  '
+      '${(e.duration.inMicroseconds / 1e6).toStringAsFixed(1)} s  ${e.maxTiltDeg.toStringAsFixed(0)} deg down  '
+      'braking ${e.decel.toStringAsFixed(1)} m/s2  landing ${e.landingG.toStringAsFixed(1)} g',
+    );
   }
 }

@@ -34,7 +34,8 @@ import '../nearby/nearby_core.dart' show BuddySighting, buddyMapEntries;
 import '../rides/ride_providers.dart' show rideProvider;
 import '../rides/sensor_fusion.dart' show FusionEvent, FusionLive;
 import '../rides/trail_values.dart' show AirtimeLog;
-import '../routing/nav_providers.dart' show navigationProvider, navReplanOfferDistanceProvider;
+import '../routing/nav_providers.dart'
+    show navigationProvider, navReplanOfferDistanceProvider;
 import '../routing/loop_plan_runner.dart' show loopPlanRunnerFactoryProvider;
 import '../routing/loop_planner.dart' show LoopPrefs;
 import '../routing/nav_sections.dart';
@@ -67,7 +68,11 @@ const kWatchAckWait = Duration(seconds: 15);
 /// fragt es nach so langen Pausen noch einmal `q` — ein verlorenes `hi`
 /// holte sonst erst das nächste Wiederverbinden nach. Kein Abfragen im
 /// Takt: drei Mal, dann wartet es still auf die Uhr.
-const kWatchNudges = [Duration(seconds: 5), Duration(seconds: 15), Duration(seconds: 45)];
+const kWatchNudges = [
+  Duration(seconds: 5),
+  Duration(seconds: 15),
+  Duration(seconds: 45),
+];
 
 /// Bricht die Übertragung mittendrin ab (Garmin Connect, Bluetooth), gehen
 /// nach dieser Pause die übrigen Stücke noch einmal — die Uhr hat die
@@ -102,7 +107,10 @@ const kWatchBranchCorridorM = 100.0;
 
 /// Die Stummel entlang einer Linie — die Naht für Tests.
 final watchBranchesLoaderProvider =
-    Provider<Future<List<WatchBranch>> Function(List<LatLng> line)>((ref) => (line) => loadWatchBranches(ref, line));
+    Provider<Future<List<WatchBranch>> Function(List<LatLng> line)>(
+      (ref) =>
+          (line) => loadWatchBranches(ref, line),
+    );
 
 /// Liest die Kacheln unter [line] (wie der Planer: Bereiche, vorgebackene
 /// Stücke, mit Empfang und Schalter vom Host), baut den Graphen in einem
@@ -110,16 +118,29 @@ final watchBranchesLoaderProvider =
 Future<List<WatchBranch>> loadWatchBranches(Ref ref, List<LatLng> line) async {
   if (line.length < 2) return const [];
   final profile = ref.read(riderProfileProvider);
-  final prefs = LoopPrefs.parse(ref.read(settingsProvider).loopPlannerPrefs, profile);
-  final loaded = await StallWatch.time('watch.graph', () => loadPlanningGraph(ref, LatBox.of(line),
-      fillOnline: prefs.fillOnline, only: tilesAlong(line, kWatchBranchCorridorM)));
+  final prefs = LoopPrefs.parse(
+    ref.read(settingsProvider).loopPlannerPrefs,
+    profile,
+  );
+  final loaded = await StallWatch.time(
+    'watch.graph',
+    () => loadPlanningGraph(
+      ref,
+      LatBox.of(line),
+      fillOnline: prefs.fillOnline,
+      only: tilesAlong(line, kWatchBranchCorridorM),
+    ),
+  );
   final input = loaded.input;
   if (input == null) return const [];
   final runner = ref.read(loopPlanRunnerFactoryProvider)();
   try {
     final report = await runner.build(input);
     unawaited(loaded.keep(report)); // neu gebackene Stücke (#380)
-    return await StallWatch.time('watch.branches', () => runner.run(WatchBranchesJob(line)));
+    return await StallWatch.time(
+      'watch.branches',
+      () => runner.run(WatchBranchesJob(line)),
+    );
   } finally {
     runner.dispose();
   }
@@ -127,7 +148,9 @@ Future<List<WatchBranch>> loadWatchBranches(Ref ref, List<LatLng> line) async {
 
 /// Was die Uhr weiß — gefragt, wenn das Startblatt der Navigation
 /// aufgeht. Auf einer Plattform ohne Uhr (Web, Test) fragt niemand.
-final watchStatusProvider = FutureProvider.autoDispose<WatchStatus>((ref) async {
+final watchStatusProvider = FutureProvider.autoDispose<WatchStatus>((
+  ref,
+) async {
   final bridge = ref.watch(garminBridgeProvider);
   if (!bridge.supported) return WatchStatus.none;
   final status = await bridge.status();
@@ -162,7 +185,12 @@ enum WatchSyncPhase {
 }
 
 class WatchSyncState {
-  const WatchSyncState({this.phase = WatchSyncPhase.idle, this.routeId, this.parts = 0, this.error});
+  const WatchSyncState({
+    this.phase = WatchSyncPhase.idle,
+    this.routeId,
+    this.parts = 0,
+    this.error,
+  });
 
   final WatchSyncPhase phase;
   final String? routeId;
@@ -206,7 +234,13 @@ class WatchSync extends Notifier<WatchSyncState> {
 
   /// Woraus [_route] entstand — für eine kleinere, wenn die Uhr sie nicht
   /// nehmen kann ([_shrink]).
-  ({List<LatLng> points, NavSections sections, ElevationProfile? heights, List<WatchBranch> branches})? _inputs;
+  ({
+    List<LatLng> points,
+    NavSections sections,
+    ElevationProfile? heights,
+    List<WatchBranch> branches,
+  })?
+  _inputs;
 
   /// Diese Linie ging schon einmal mit halb so vielen Punkten.
   bool _shrunk = false;
@@ -359,14 +393,18 @@ class WatchSync extends Notifier<WatchSyncState> {
 
   Future<ElevationProfile?> _heightsOf(List<LatLng> points) {
     loads++;
-    return ref.read(terrainHeightsProvider).profile(points).catchError((Object e, StackTrace s) {
+    return ref.read(terrainHeightsProvider).profile(points).catchError((
+      Object e,
+      StackTrace s,
+    ) {
       logError('Höhen für die Uhr', e, s);
       return null;
     });
   }
 
-  Future<List<WatchBranch>> _branchesOf(List<LatLng> points) =>
-      ref.read(watchBranchesLoaderProvider)(points).catchError((Object e, StackTrace s) {
+  Future<List<WatchBranch>> _branchesOf(List<LatLng> points) => ref
+      .read(watchBranchesLoaderProvider)(points)
+      .catchError((Object e, StackTrace s) {
         logError('Abzweigungen für die Uhr', e, s);
         return const <WatchBranch>[];
       });
@@ -428,28 +466,51 @@ class WatchSync extends Notifier<WatchSyncState> {
     final ready = _prepared;
     _prepared = null;
     final same = ready != null && _sameLine(ready.line, points);
-    final branchesSoon = (same ? ready.branches : _branchesOf(points))
-        .timeout(kWatchBranchesWait, onTimeout: () => const <WatchBranch>[]);
-    final heights =
-        await (same ? ready.heights : _heightsOf(points)).timeout(kWatchHeightsWait, onTimeout: () => null);
+    final branchesSoon = (same ? ready.branches : _branchesOf(points)).timeout(
+      kWatchBranchesWait,
+      onTimeout: () => const <WatchBranch>[],
+    );
+    final heights = await (same ? ready.heights : _heightsOf(points)).timeout(
+      kWatchHeightsWait,
+      onTimeout: () => null,
+    );
     final branches = await branchesSoon;
     final open = await opening;
     if (gen != _gen) return;
-    final route = watchRouteOf(points, sections, heights: heights, branches: branches);
+    final route = watchRouteOf(
+      points,
+      sections,
+      heights: heights,
+      branches: branches,
+    );
     if (route == null) {
-      state = const WatchSyncState(phase: WatchSyncPhase.failed, error: 'EMPTY');
+      state = const WatchSyncState(
+        phase: WatchSyncPhase.failed,
+        error: 'EMPTY',
+      );
       return;
     }
     _route = route;
-    _inputs = (points: points, sections: sections, heights: heights, branches: branches);
+    _inputs = (
+      points: points,
+      sections: sections,
+      heights: heights,
+      branches: branches,
+    );
     if (open == WatchOpen.notInstalled) {
-      state = WatchSyncState(phase: WatchSyncPhase.failed, routeId: route.id, error: 'APP_IS_NOT_INSTALLED');
+      state = WatchSyncState(
+        phase: WatchSyncPhase.failed,
+        routeId: route.id,
+        error: 'APP_IS_NOT_INSTALLED',
+      );
       return;
     }
     if (_outdated != null) return _failedOutdated();
     final early = _early;
     _early = null;
-    if (early != null) return _onHello(early.id, early.bad, kWatchProtocol, early.ver);
+    if (early != null) {
+      return _onHello(early.id, early.bad, kWatchProtocol, early.ver);
+    }
     if (open == WatchOpen.prompted) {
       state = WatchSyncState(phase: WatchSyncPhase.prompted, routeId: route.id);
       _nudge(0);
@@ -491,7 +552,11 @@ class WatchSync extends Notifier<WatchSyncState> {
     final gen = _gen;
     final parts = route.parts();
     _nudgeTimer?.cancel();
-    state = WatchSyncState(phase: WatchSyncPhase.sending, routeId: route.id, parts: parts.length);
+    state = WatchSyncState(
+      phase: WatchSyncPhase.sending,
+      routeId: route.id,
+      parts: parts.length,
+    );
     final bridge = ref.read(garminBridgeProvider);
     // Erst die Ankündigung: Sie ist klein und gleich da, die Stücke
     // brauchen je ~15 s — eine startende Uhr zeigt so den Lader statt der
@@ -503,27 +568,48 @@ class WatchSync extends Notifier<WatchSyncState> {
     // Mittendrin abgebrochen: die übrigen Stücke noch einmal, die Uhr hat
     // die angekommenen schon abgelegt.
     var done = 0;
-    for (var k = 0; k < kWatchResumes && !result.ok && _resumable.contains(result.status); k++) {
+    for (
+      var k = 0;
+      k < kWatchResumes && !result.ok && _resumable.contains(result.status);
+      k++
+    ) {
       done += result.sent;
       if (done >= parts.length) break;
       await Future<void>.delayed(kWatchResumePause);
       if (gen != _gen || _route?.id != route.id) return;
       final rest = await bridge.send(parts.sublist(done));
-      result = WatchSendResult(rest.status, rest.ok ? parts.length - done : rest.sent);
+      result = WatchSendResult(
+        rest.status,
+        rest.ok ? parts.length - done : rest.sent,
+      );
     }
     if (gen != _gen) return;
     // „Gespeichert" kann vor dem Ende von `send` kommen.
-    if (state.phase == WatchSyncPhase.stored && state.routeId == route.id) return;
-    if (!result.ok) {
-      state = WatchSyncState(
-          phase: WatchSyncPhase.failed, routeId: route.id, parts: parts.length, error: result.status);
+    if (state.phase == WatchSyncPhase.stored && state.routeId == route.id) {
       return;
     }
-    state = WatchSyncState(phase: WatchSyncPhase.sent, routeId: route.id, parts: parts.length);
+    if (!result.ok) {
+      state = WatchSyncState(
+        phase: WatchSyncPhase.failed,
+        routeId: route.id,
+        parts: parts.length,
+        error: result.status,
+      );
+      return;
+    }
+    state = WatchSyncState(
+      phase: WatchSyncPhase.sent,
+      routeId: route.id,
+      parts: parts.length,
+    );
     _ackTimer?.cancel();
     _ackTimer = Timer(kWatchAckWait, () {
       if (gen == _gen && state.phase == WatchSyncPhase.sent) {
-        state = WatchSyncState(phase: WatchSyncPhase.unconfirmed, routeId: route.id, parts: parts.length);
+        state = WatchSyncState(
+          phase: WatchSyncPhase.unconfirmed,
+          routeId: route.id,
+          parts: parts.length,
+        );
         _nudge(0);
       }
     });
@@ -535,9 +621,13 @@ class WatchSync extends Notifier<WatchSyncState> {
     if (step >= kWatchNudges.length) return;
     final gen = _gen;
     _nudgeTimer = Timer(kWatchNudges[step], () {
-      final waiting = state.phase == WatchSyncPhase.prompted || state.phase == WatchSyncPhase.unconfirmed;
+      final waiting =
+          state.phase == WatchSyncPhase.prompted ||
+          state.phase == WatchSyncPhase.unconfirmed;
       if (gen != _gen || !_follow || !waiting) return;
-      if (!_pushing) unawaited(ref.read(garminBridgeProvider).send([watchQuery]));
+      if (!_pushing) {
+        unawaited(ref.read(garminBridgeProvider).send([watchQuery]));
+      }
       _nudge(step + 1);
     });
   }
@@ -580,7 +670,9 @@ class WatchSync extends Notifier<WatchSyncState> {
         _outdated = watchOutdatedOf(error.v) ?? WatchOutdated.watch;
         return _failedOutdated();
       }
-      return watchErrorWantsSmaller(error.code) ? _shrink() : _failed('WATCH_${error.code}');
+      return watchErrorWantsSmaller(error.code)
+          ? _shrink()
+          : _failed('WATCH_${error.code}');
     }
     final id = watchStoredId(message);
     // Nur die Bestätigung der Route, die gerade auf die Uhr gehört.
@@ -673,9 +765,12 @@ class WatchSync extends Notifier<WatchSyncState> {
     }
     if (offM < ref.read(navReplanOfferDistanceProvider)) return;
     _replanRunning = true;
-    unawaited(ref.read(navigationProvider.notifier)
-        .replan(from: at)
-        .then((_) => _replanRunning = false));
+    unawaited(
+      ref
+          .read(navigationProvider.notifier)
+          .replan(from: at)
+          .then((_) => _replanRunning = false),
+    );
   }
 
   /// Die Uhr kann die Route nicht nehmen (Speicher, Absturz): einmal mit
@@ -686,20 +781,33 @@ class WatchSync extends Notifier<WatchSyncState> {
     if (route == null) return;
     if (_shrunk || inputs == null) return _failed(kWatchTooBig);
     _shrunk = true;
-    final smaller = watchRouteOf(inputs.points, inputs.sections,
-        heights: inputs.heights, branches: inputs.branches, maxPoints: math.max(2, route.pointCount ~/ 2));
+    final smaller = watchRouteOf(
+      inputs.points,
+      inputs.sections,
+      heights: inputs.heights,
+      branches: inputs.branches,
+      maxPoints: math.max(2, route.pointCount ~/ 2),
+    );
     if (smaller == null || smaller.id == route.id) return _failed(kWatchTooBig);
     _route = smaller;
     unawaited(_push());
   }
 
-  void _failedOutdated() =>
-      _failed(_outdated == WatchOutdated.phone ? kWatchOutdatedPhone : kWatchOutdatedWatch);
+  void _failedOutdated() => _failed(
+    _outdated == WatchOutdated.phone
+        ? kWatchOutdatedPhone
+        : kWatchOutdatedWatch,
+  );
 
   void _failed(String error) {
     _ackTimer?.cancel();
     _nudgeTimer?.cancel();
-    state = WatchSyncState(phase: WatchSyncPhase.failed, routeId: _route?.id, parts: state.parts, error: error);
+    state = WatchSyncState(
+      phase: WatchSyncPhase.failed,
+      routeId: _route?.id,
+      parts: state.parts,
+      error: error,
+    );
   }
 
   /// Die Uhr ist wieder da: Läuft ihre App, sagt ihr `hi`, ob die Route
@@ -712,7 +820,11 @@ class WatchSync extends Notifier<WatchSyncState> {
   void _stored(String id) {
     _ackTimer?.cancel();
     _nudgeTimer?.cancel();
-    state = WatchSyncState(phase: WatchSyncPhase.stored, routeId: id, parts: state.parts);
+    state = WatchSyncState(
+      phase: WatchSyncPhase.stored,
+      routeId: id,
+      parts: state.parts,
+    );
     // Die Bestwerte gehen erst jetzt: Vorher verwarf eine geschlossene
     // Uhr-App sie. Startete die Uhr-App neu, hat sie sie vergessen.
     _bests = true;
@@ -740,10 +852,22 @@ class WatchSync extends Notifier<WatchSyncState> {
     var bests = watchBestsOf(ref.read(airtimeLiveProvider).log, on: on);
     // Nach einem „an" geht auch das „aus", ohne Ereignis mit lauter Nullen.
     if (bests == null && _lastBests?['on'] == 1) {
-      bests = {'t': kWatchBests, 'on': 0, 'jn': 0, 'ja': 0, 'wn': 0, 'wl': 0, 'wa': 0, 'sn': 0};
+      bests = {
+        't': kWatchBests,
+        'on': 0,
+        'jn': 0,
+        'ja': 0,
+        'wn': 0,
+        'wl': 0,
+        'wa': 0,
+        'sn': 0,
+      };
     }
     if (on && !off) {
-      _detectTimer ??= Timer.periodic(const Duration(seconds: 2), (_) => _sendBests());
+      _detectTimer ??= Timer.periodic(
+        const Duration(seconds: 2),
+        (_) => _sendBests(),
+      );
     } else {
       _detectTimer?.cancel();
       _detectTimer = null;
@@ -762,12 +886,17 @@ class WatchSync extends Notifier<WatchSyncState> {
     if (!_bests) return null;
     FusionEvent? newest;
     for (final e in log.events) {
-      if (e.startUs > _cueSeenUs && (newest == null || e.startUs > newest.startUs)) newest = e;
+      if (e.startUs > _cueSeenUs &&
+          (newest == null || e.startUs > newest.startUs)) {
+        newest = e;
+      }
     }
     if (newest == null) return null;
     _cueSeenUs = newest.startUs;
     final now = ref.read(airtimeClockProvider)();
-    if (_cueAtUs != 0 && now - _cueAtUs < kWatchCueEvery.inMicroseconds) return null;
+    if (_cueAtUs != 0 && now - _cueAtUs < kWatchCueEvery.inMicroseconds) {
+      return null;
+    }
     final cue = watchCueOf(newest, now);
     if (cue != null) _cueAtUs = now;
     return cue;
@@ -807,7 +936,11 @@ class WatchSync extends Notifier<WatchSyncState> {
       });
       return;
     }
-    final entries = buddyMapEntries(_sightings, homieOwners: const {}, now: now);
+    final entries = buddyMapEntries(
+      _sightings,
+      homieOwners: const {},
+      now: now,
+    );
     // Nie gesehen, nichts zu sagen — und die Namen hängen an der Anmeldung.
     if (entries.isEmpty && _lastBuddies == null) return;
     final msg = watchBuddiesOf(entries, ref.read(nearbyBuddyNameProvider));
@@ -830,7 +963,8 @@ class WatchSync extends Notifier<WatchSyncState> {
     _sendPosition();
     _positionTimer = Timer.periodic(kWatchPositionEvery, (_) {
       _positionTicks++;
-      if (_positionTicks * kWatchPositionEvery.inSeconds >= kWatchPositionFor.inSeconds) {
+      if (_positionTicks * kWatchPositionEvery.inSeconds >=
+          kWatchPositionFor.inSeconds) {
         _stopPositions();
         return;
       }
@@ -839,7 +973,9 @@ class WatchSync extends Notifier<WatchSyncState> {
   }
 
   void _sendPosition() {
-    if (!_follow || _gps || _pushing || state.phase != WatchSyncPhase.stored) return;
+    if (!_follow || _gps || _pushing || state.phase != WatchSyncPhase.stored) {
+      return;
+    }
     final p = ref.read(navigationProvider)?.state?.position;
     if (p == null) return;
     unawaited(ref.read(garminBridgeProvider).send([watchPositionOf(p)]));
@@ -870,7 +1006,9 @@ class WatchSync extends Notifier<WatchSyncState> {
   }
 }
 
-final watchSyncProvider = NotifierProvider<WatchSync, WatchSyncState>(WatchSync.new);
+final watchSyncProvider = NotifierProvider<WatchSync, WatchSyncState>(
+  WatchSync.new,
+);
 
 class _Prepared {
   _Prepared(this.line, this.heights, this.branches);

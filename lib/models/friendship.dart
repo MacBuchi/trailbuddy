@@ -26,10 +26,8 @@ class FriendshipEntry {
 
   bool isOutgoingFor(String uid) => status == 'pending' && requesterId == uid;
 
-  String otherUsername(String uid) => (requesterId == uid
-          ? addresseeUsername
-          : requesterUsername) ??
-      'Buddy';
+  String otherUsername(String uid) =>
+      (requesterId == uid ? addresseeUsername : requesterUsername) ?? 'Buddy';
 
   int otherAvatar(String uid) =>
       requesterId == uid ? addresseeAvatar : requesterAvatar;
@@ -37,21 +35,22 @@ class FriendshipEntry {
   /// Die id des jeweils anderen.
   String otherId(String uid) => requesterId == uid ? addresseeId : requesterId;
 
-  factory FriendshipEntry.fromJson(Map<String, dynamic> json) =>
-      FriendshipEntry(
-        id: json['id'] as String,
-        status: json['status'] as String,
-        requesterId: json['requester_id'] as String,
-        addresseeId: json['addressee_id'] as String,
-        requesterUsername:
-            (json['requester'] as Map<String, dynamic>?)?['username'] as String?,
-        addresseeUsername:
-            (json['addressee'] as Map<String, dynamic>?)?['username'] as String?,
-        requesterAvatar:
-            (json['requester'] as Map<String, dynamic>?)?['avatar'] as int? ?? 0,
-        addresseeAvatar:
-            (json['addressee'] as Map<String, dynamic>?)?['avatar'] as int? ?? 0,
-      );
+  factory FriendshipEntry.fromJson(
+    Map<String, dynamic> json,
+  ) => FriendshipEntry(
+    id: json['id'] as String,
+    status: json['status'] as String,
+    requesterId: json['requester_id'] as String,
+    addresseeId: json['addressee_id'] as String,
+    requesterUsername:
+        (json['requester'] as Map<String, dynamic>?)?['username'] as String?,
+    addresseeUsername:
+        (json['addressee'] as Map<String, dynamic>?)?['username'] as String?,
+    requesterAvatar:
+        (json['requester'] as Map<String, dynamic>?)?['avatar'] as int? ?? 0,
+    addresseeAvatar:
+        (json['addressee'] as Map<String, dynamic>?)?['avatar'] as int? ?? 0,
+  );
 }
 
 /// Suchtreffer der Buddy-Suche.

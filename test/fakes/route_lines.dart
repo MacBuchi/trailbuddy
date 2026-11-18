@@ -12,19 +12,22 @@ import 'fake_map_view.dart';
 /// Alle Zeichnungen des Bands; `pass == 1` sind die doppelten Stücke.
 /// Durchsichtig: Die Auswahl im Planer ist ebenso breit und Lime, aber
 /// deckend.
-Iterable<MapViewPolyline> routeBand(WidgetTester tester) =>
-    fakeMapLayers(tester).polylines.where((l) => l.width == kRouteBandWidth && l.opacity < 1);
+Iterable<MapViewPolyline> routeBand(WidgetTester tester) => fakeMapLayers(
+  tester,
+).polylines.where((l) => l.width == kRouteBandWidth && l.opacity < 1);
 
 /// Die ganze Route in Fahrtrichtung — die Pfeil-Linien decken sie lückenlos.
 List<LatLng> routeWhole(WidgetTester tester) => [
-      for (final l in fakeMapLayers(tester).polylines)
-        if (l.arrows != null && l.color == AppColors.routeArrow) ...l.points,
-    ];
+  for (final l in fakeMapLayers(tester).polylines)
+    if (l.arrows != null && l.color == AppColors.routeArrow) ...l.points,
+];
 
 /// Die Tippziele der Abschnitte (Zwischenpunkte, #234).
-Iterable<MapViewPolyline> routeHits(WidgetTester tester) =>
-    fakeMapLayers(tester).polylines.where((l) => l.width == 0 && l.hitValue != null);
+Iterable<MapViewPolyline> routeHits(WidgetTester tester) => fakeMapLayers(
+  tester,
+).polylines.where((l) => l.width == 0 && l.hitValue != null);
 
 /// Die gestrichelten Mittellinien über Wanderweg.
-Iterable<MapViewPolyline> routeHiking(WidgetTester tester) =>
-    fakeMapLayers(tester).polylines.where((l) => l.color == AppColors.routeEdge && l.dash != null);
+Iterable<MapViewPolyline> routeHiking(WidgetTester tester) => fakeMapLayers(
+  tester,
+).polylines.where((l) => l.color == AppColors.routeEdge && l.dash != null);

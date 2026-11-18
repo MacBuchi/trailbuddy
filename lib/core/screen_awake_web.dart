@@ -30,7 +30,9 @@ class _WebScreenAwake implements ScreenAwake {
       web.document.addEventListener('visibilitychange', _onVisible);
       await _request();
     } else {
-      if (_onVisible != null) web.document.removeEventListener('visibilitychange', _onVisible);
+      if (_onVisible != null) {
+        web.document.removeEventListener('visibilitychange', _onVisible);
+      }
       final s = _sentinel;
       _sentinel = null;
       try {

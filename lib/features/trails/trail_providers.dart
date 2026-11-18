@@ -29,23 +29,31 @@ import 'trail_geometry.dart';
 import 'trail_list.dart';
 
 final trailRepositoryProvider = Provider<TrailRepository>(
-    (ref) => SupabaseTrailRepository(ref.watch(supabaseClientProvider)));
+  (ref) => SupabaseTrailRepository(ref.watch(supabaseClientProvider)),
+);
 
 /// Was aus „Melden" geworden ist (#37, #433): [outcome] wie bei
 /// [TrailsNotifier.report], [photoError] gesetzt, wenn der Eintrag steht,
 /// sein Foto aber nicht, [photoDropped], wenn der Eintrag ohne Netz in den
 /// Korb ging und das Foto deshalb nicht mit.
-typedef ReportWriteResult = ({WriteOutcome outcome, Object? photoError, bool photoDropped});
+typedef ReportWriteResult = ({
+  WriteOutcome outcome,
+  Object? photoError,
+  bool photoDropped,
+});
 
 /// Die Vorschau eines Fotos am Hinweis (#37), je Pfad einmal je Sitzung —
 /// ~12 KB, und das Blatt öffnet sich oft.
 final notePhotoThumbProvider = FutureProvider.family<Uint8List, String>(
-    (ref, path) => ref.watch(trailRepositoryProvider).notePhotoBytes(path));
+  (ref, path) => ref.watch(trailRepositoryProvider).notePhotoBytes(path),
+);
 
 /// Das volle Bild (~150 KB), erst auf Tipp und nur, solange es offen ist —
 /// das ist der Egress-Hebel (PilzBuddy #532).
-final notePhotoFullProvider = FutureProvider.autoDispose.family<Uint8List, String>(
-    (ref, path) => ref.watch(trailRepositoryProvider).notePhotoBytes(path));
+final notePhotoFullProvider = FutureProvider.autoDispose
+    .family<Uint8List, String>(
+      (ref, path) => ref.watch(trailRepositoryProvider).notePhotoBytes(path),
+    );
 
 /// Was aus einem Schreibvorgang geworden ist (#30).
 enum WriteOutcome {
@@ -117,7 +125,12 @@ class TrailsNotifier extends AsyncNotifier<List<Trail>>
     final TrailSnapshotResult result;
     var waiting = false;
     if (_shownFor == myId) {
-      result = await fetchWithCache(fetch: fetch, cache: cache, uid: myId, now: now);
+      result = await fetchWithCache(
+        fetch: fetch,
+        cache: cache,
+        uid: myId,
+        now: now,
+      );
     } else {
       bool current() => generation == _builds;
       result = await fetchWithCacheQuick(
@@ -125,7 +138,9 @@ class TrailsNotifier extends AsyncNotifier<List<Trail>>
         cache: cache,
         uid: myId,
         now: now,
-        patience: ref.read(noConnectivityProvider) ? Duration.zero : kTrailsNetworkPatience,
+        patience: ref.read(noConnectivityProvider)
+            ? Duration.zero
+            : kTrailsNetworkPatience,
         onLate: (fresh) {
           if (!current()) return;
           ref.read(trailsAwaitNetworkProvider.notifier).state = false;
@@ -135,15 +150,22 @@ class TrailsNotifier extends AsyncNotifier<List<Trail>>
           state = AsyncData(_compose(myId));
         },
         onLateOffline: () {
-          if (current()) ref.read(trailsAwaitNetworkProvider.notifier).state = false;
+          if (current()) {
+            ref.read(trailsAwaitNetworkProvider.notifier).state = false;
+          }
         },
         onStillWaiting: () => waiting = true,
         onLateError: (error, stackTrace) {
           if (!current()) return;
           ref.read(trailsAwaitNetworkProvider.notifier).state = false;
           // Eine verfallene Sitzung führt GoTrue selbst zum Login (#428).
-          if (!looksLikeSessionGone(error)) logError('Trails laden', error, stackTrace);
-          state = AsyncError<List<Trail>>(error, stackTrace).copyWithPrevious(state);
+          if (!looksLikeSessionGone(error)) {
+            logError('Trails laden', error, stackTrace);
+          }
+          state = AsyncError<List<Trail>>(
+            error,
+            stackTrace,
+          ).copyWithPrevious(state);
         },
       );
     }
@@ -151,17 +173,23 @@ class TrailsNotifier extends AsyncNotifier<List<Trail>>
     ref.read(trailsCachedAtProvider.notifier).set(result.cachedAt);
     // Kam die Kopie, weil das Netz zu langsam war, läuft es noch — die
     // Hinweise sagen dann nicht „Kein Empfang".
-    if (generation == _builds) ref.read(trailsAwaitNetworkProvider.notifier).state = waiting;
+    if (generation == _builds) {
+      ref.read(trailsAwaitNetworkProvider.notifier).state = waiting;
+    }
     _server = _fromSnapshot(result.snapshot, myId);
     // Nur ein frischer Stand taugt als Grundlage für [_rereadAfterWrite];
     // eine Kopie vom letzten Mal lädt nach dem Schreiben ganz neu.
     _fetchedAt = result.cachedAt == null ? now : null;
     final cached = ref.read(outboxJobsProvider).valueOrNull;
-    final List<OutboxJob> jobs = cached ?? await ref.read(outboxJobsProvider.future);
+    final List<OutboxJob> jobs =
+        cached ?? await ref.read(outboxJobsProvider.future);
     return _composeWith(jobs, myId);
   }
 
-  Future<TrailSnapshot> _fetchSnapshot(TrailRepository repo, String myId) async {
+  Future<TrailSnapshot> _fetchSnapshot(
+    TrailRepository repo,
+    String myId,
+  ) async {
     final results = await Future.wait([
       repo.fetchRecordings(),
       repo.fetchDetails(),
@@ -192,14 +220,28 @@ class TrailsNotifier extends AsyncNotifier<List<Trail>>
   /// gewinnt.
   Future<void> retryCopy() async {
     final myId = ref.read(currentUserIdProvider);
-    if (myId == null || _retrying || ref.read(trailsCachedAtProvider) == null || !state.hasValue) return;
+    if (myId == null ||
+        _retrying ||
+        ref.read(trailsCachedAtProvider) == null ||
+        !state.hasValue) {
+      return;
+    }
     _retrying = true;
     final generation = _builds;
     try {
-      final fresh = await _fetchSnapshot(ref.read(trailRepositoryProvider), myId);
-      if (generation != _builds || ref.read(currentUserIdProvider) != myId) return;
+      final fresh = await _fetchSnapshot(
+        ref.read(trailRepositoryProvider),
+        myId,
+      );
+      if (generation != _builds || ref.read(currentUserIdProvider) != myId) {
+        return;
+      }
       final now = DateTime.now();
-      unawaited(ref.read(trailCacheProvider).write(uid: myId, snapshot: fresh, savedAt: now));
+      unawaited(
+        ref
+            .read(trailCacheProvider)
+            .write(uid: myId, snapshot: fresh, savedAt: now),
+      );
       ref.read(trailsAwaitNetworkProvider.notifier).state = false;
       ref.read(trailsCachedAtProvider.notifier).set(null);
       _server = _fromSnapshot(fresh, myId);
@@ -220,7 +262,8 @@ class TrailsNotifier extends AsyncNotifier<List<Trail>>
   TrailSnapshot? _snapshot;
   String? _snapshotUid;
 
-  TrailSnapshot? _snapshotFor(String myId) => _snapshotUid == myId ? _snapshot : null;
+  TrailSnapshot? _snapshotFor(String myId) =>
+      _snapshotUid == myId ? _snapshot : null;
 
   /// Wann [_snapshot] zuletzt GANZ vom Server kam — null, wenn er aus der
   /// Kopie stammt. Mit diesem Zeitpunkt schreibt [_rereadAfterWrite] die
@@ -239,15 +282,20 @@ class TrailsNotifier extends AsyncNotifier<List<Trail>>
   /// nach `error_reports`, und der Zustand steht auf `AsyncError` mit dem
   /// Wert darunter. Ohne frischen Server-Stand (Kopie, anderes Konto)
   /// lädt es ganz neu.
-  Future<bool> _rereadAfterWrite(String what,
-      {bool details = false,
-      bool notes = false,
-      bool reports = false,
-      bool merges = false,
-      bool startPoints = false}) async {
+  Future<bool> _rereadAfterWrite(
+    String what, {
+    bool details = false,
+    bool notes = false,
+    bool reports = false,
+    bool merges = false,
+    bool startPoints = false,
+  }) async {
     final myId = ref.read(currentUserIdProvider);
     final fetchedAt = _fetchedAt;
-    if (myId == null || fetchedAt == null || _snapshotFor(myId) == null || !state.hasValue) {
+    if (myId == null ||
+        fetchedAt == null ||
+        _snapshotFor(myId) == null ||
+        !state.hasValue) {
       return reloadAfterWrite(what);
     }
     final repo = ref.read(trailRepositoryProvider);
@@ -262,7 +310,9 @@ class TrailsNotifier extends AsyncNotifier<List<Trail>>
       // Erst NACH dem Abruf auf den Stand legen: Ein Neuladen dazwischen
       // hat ihn vielleicht schon ersetzt.
       final base = _snapshotFor(myId);
-      if (base == null || ref.read(currentUserIdProvider) != myId) return await reloadAfterWrite(what);
+      if (base == null || ref.read(currentUserIdProvider) != myId) {
+        return await reloadAfterWrite(what);
+      }
       var i = 0;
       final next = (
         recordings: base.recordings,
@@ -270,15 +320,24 @@ class TrailsNotifier extends AsyncNotifier<List<Trail>>
         notes: notes ? fresh[i++] as List<TrailNote> : base.notes,
         reports: reports ? fresh[i++] as List<TrailReport> : base.reports,
         merges: merges ? fresh[i++] as List<TrailMerge> : base.merges,
-        startPoints: startPoints ? fresh[i++] as List<StartPoint> : base.startPoints,
+        startPoints: startPoints
+            ? fresh[i++] as List<StartPoint>
+            : base.startPoints,
       );
       _server = _fromSnapshot(next, myId);
-      unawaited(ref.read(trailCacheProvider).write(uid: myId, snapshot: _snapshot!, savedAt: fetchedAt));
+      unawaited(
+        ref
+            .read(trailCacheProvider)
+            .write(uid: myId, snapshot: _snapshot!, savedAt: fetchedAt),
+      );
       state = AsyncData(_compose(myId));
       return true;
     } catch (error, stackTrace) {
       logError(what, error, stackTrace);
-      state = AsyncError<List<Trail>>(error, stackTrace).copyWithPrevious(state);
+      state = AsyncError<List<Trail>>(
+        error,
+        stackTrace,
+      ).copyWithPrevious(state);
       return false;
     }
   }
@@ -304,9 +363,16 @@ class TrailsNotifier extends AsyncNotifier<List<Trail>>
   /// beides, und eine Meldung stünde sonst doppelt da.
   List<Trail> _composeWith(List<OutboxJob> jobs, String myId) {
     final queued = {for (final j in jobs) j.id};
-    final sending = [for (final j in _sending) if (!queued.contains(j.id)) j];
-    return withPendingJobs(_server, [...jobs, ...sending],
-        myId: myId, sending: {for (final j in sending) j.id});
+    final sending = [
+      for (final j in _sending)
+        if (!queued.contains(j.id)) j,
+    ];
+    return withPendingJobs(
+      _server,
+      [...jobs, ...sending],
+      myId: myId,
+      sending: {for (final j in sending) j.id},
+    );
   }
 
   List<Trail> _compose(String myId) =>
@@ -335,7 +401,10 @@ class TrailsNotifier extends AsyncNotifier<List<Trail>>
     final next = AsyncData(_compose(myId));
     final current = state;
     state = current is AsyncError<List<Trail>>
-        ? AsyncError<List<Trail>>(current.error, current.stackTrace).copyWithPrevious(next)
+        ? AsyncError<List<Trail>>(
+            current.error,
+            current.stackTrace,
+          ).copyWithPrevious(next)
         : next;
   }
 
@@ -355,16 +424,23 @@ class TrailsNotifier extends AsyncNotifier<List<Trail>>
   /// [rodeAt] ist das Fahrdatum, das der Fahrer für eine Datei ohne Zeiten
   /// eingetragen hat (#120): Sie bleibt `planned` (die Linie ist
   /// gezeichnet), zählt aber als gefahren — `recorded_at` trägt es.
-  Future<ContributeResult> contribute(GpxTrack track,
-      {String? clientId, RecordingSource? source, int? grade,
-      Set<TrailTrait> traits = const {}, int? rating, DateTime? rodeAt}) async {
+  Future<ContributeResult> contribute(
+    GpxTrack track, {
+    String? clientId,
+    RecordingSource? source,
+    int? grade,
+    Set<TrailTrait> traits = const {},
+    int? rating,
+    DateTime? rodeAt,
+  }) async {
     final repo = ref.read(trailRepositoryProvider);
     final myId = ref.read(currentUserIdProvider);
     if (myId == null) throw const NotSignedInException();
     final pts = simplify(track.points);
     source ??= sourceOf(track.points);
-    final recordedAt =
-        source == RecordingSource.planned ? rodeAt?.toUtc() : track.points.first.time;
+    final recordedAt = source == RecordingSource.planned
+        ? rodeAt?.toUtc()
+        : track.points.first.time;
     // Der Auftrag entsteht VOR dem Sendeversuch, mit seiner Kennung: So
     // trägt schon der erste Versuch die `client_id`, und ein Abriss nach
     // dem Insert legt beim Nachholen keine zweite Aufzeichnung an.
@@ -389,8 +465,14 @@ class TrailsNotifier extends AsyncNotifier<List<Trail>>
         recordedAt: job.recordedAt,
         clientId: job.id,
       );
-      await adoptDetails(trailId, track.name,
-          grade: grade, traits: traits, link: track.link, rating: rating);
+      await adoptDetails(
+        trailId,
+        track.name,
+        grade: grade,
+        traits: traits,
+        link: track.link,
+        rating: rating,
+      );
       return (trailId: trailId, queued: false);
     } catch (error, stackTrace) {
       await _queueIfOffline(error, stackTrace, job);
@@ -400,7 +482,11 @@ class TrailsNotifier extends AsyncNotifier<List<Trail>>
 
   /// Nur `looksOffline` führt in den Korb; alles andere wirft weiter,
   /// samt dem Fall, dass der Korb selbst nicht schreiben kann.
-  Future<void> _queueIfOffline(Object error, StackTrace stackTrace, OutboxJob job) async {
+  Future<void> _queueIfOffline(
+    Object error,
+    StackTrace stackTrace,
+    OutboxJob job,
+  ) async {
     if (!looksOffline(error)) Error.throwWithStackTrace(error, stackTrace);
     try {
       await ref.read(outboxJobsProvider.notifier).append(job);
@@ -425,14 +511,21 @@ class TrailsNotifier extends AsyncNotifier<List<Trail>>
     // nachgeholter Wunsch (#218) ändert am Netz nichts, und ein ganzes
     // Neuladen kostet die Karte (siehe „Speichern ohne Neuladen des Netzes").
     // Für Startpunkte (#543) reicht es, sie nachzulesen.
-    final left = ref.read(outboxJobsProvider).valueOrNull ?? const <OutboxJob>[];
-    bool isPointJob(OutboxJob j) => j is StartPointJob || j is StartPointDeleteJob;
-    final trailJobsSent = jobs.where(isTrailJob).length > left.where(isTrailJob).length;
-    final pointJobsSent = jobs.where(isPointJob).length > left.where(isPointJob).length;
+    final left =
+        ref.read(outboxJobsProvider).valueOrNull ?? const <OutboxJob>[];
+    bool isPointJob(OutboxJob j) =>
+        j is StartPointJob || j is StartPointDeleteJob;
+    final trailJobsSent =
+        jobs.where(isTrailJob).length > left.where(isTrailJob).length;
+    final pointJobsSent =
+        jobs.where(isPointJob).length > left.where(isPointJob).length;
     if (result.sent > 0 && trailJobsSent) {
       await reloadAfterWrite('Trails nach dem Ausgangskorb laden');
     } else if (result.sent > 0 && pointJobsSent) {
-      await _rereadAfterWrite('Startpunkte nach dem Ausgangskorb laden', startPoints: true);
+      await _rereadAfterWrite(
+        'Startpunkte nach dem Ausgangskorb laden',
+        startPoints: true,
+      );
     }
     return result;
   }
@@ -442,7 +535,8 @@ class TrailsNotifier extends AsyncNotifier<List<Trail>>
   /// bleibt: Der Import überschreibt nicht, was jemand bewusst eingetragen
   /// hat. Kein Neuladen hier (der Import lädt einmal am Ende). Gibt
   /// zurück, ob geschrieben wurde.
-  Future<bool> adoptName(String trailId, String fileName) => adoptDetails(trailId, fileName);
+  Future<bool> adoptName(String trailId, String fileName) =>
+      adoptDetails(trailId, fileName);
 
   /// Wie [adoptName], dazu S-Grad und Charakter aus dem Zerlege-Blatt
   /// (#29, #72). Der Grad wird immer gesetzt — wer ihn gewählt hat, hat
@@ -455,8 +549,14 @@ class TrailsNotifier extends AsyncNotifier<List<Trail>>
   /// [rating] beim Übernehmen eines Buddy-Trails (#102). Ein fremder Name
   /// ([fileName] ist dann der angezeigte) wird so zum eigenen, wenn noch
   /// keiner steht: Danach hängt nichts mehr am Beitrag des Buddys.
-  Future<bool> adoptDetails(String trailId, String fileName,
-      {int? grade, Set<TrailTrait> traits = const {}, String? link, int? rating}) async {
+  Future<bool> adoptDetails(
+    String trailId,
+    String fileName, {
+    int? grade,
+    Set<TrailTrait> traits = const {},
+    String? link,
+    int? rating,
+  }) async {
     final myId = ref.read(currentUserIdProvider);
     if (myId == null) throw const NotSignedInException();
     final name = clampTrailName(fileName);
@@ -464,18 +564,27 @@ class TrailsNotifier extends AsyncNotifier<List<Trail>>
         ?.where((t) => t.id == trailId)
         .firstOrNull
         ?.myDetails;
-    final keepName = existing != null && (existing.name ?? '').trim().isNotEmpty;
+    final keepName =
+        existing != null && (existing.name ?? '').trim().isNotEmpty;
     final writesName = name.isNotEmpty && !keepName;
     final addsTraits = !(existing?.traits ?? const {}).containsAll(traits);
     final writesLink = link != null && (existing?.link ?? '').isEmpty;
     final writesRating = rating != null && existing?.rating == null;
-    if (!writesName && grade == null && !addsTraits && !writesLink && !writesRating) return false;
+    if (!writesName &&
+        grade == null &&
+        !addsTraits &&
+        !writesLink &&
+        !writesRating) {
+      return false;
+    }
     var details = existing ?? TrailDetails(trailId: trailId, userId: myId);
     if (writesName) details = details.copyWith(name: name);
     if (writesLink) details = details.copyWith(link: link);
     if (writesRating) details = details.copyWith(rating: rating);
     if (grade != null) details = details.copyWith(grade: grade);
-    if (addsTraits) details = details.copyWith(traits: {...details.traits, ...traits});
+    if (addsTraits) {
+      details = details.copyWith(traits: {...details.traits, ...traits});
+    }
     await ref.read(trailRepositoryProvider).saveDetails(details);
     return true;
   }
@@ -488,15 +597,21 @@ class TrailsNotifier extends AsyncNotifier<List<Trail>>
   ///
   /// [at] ist der Zeitpunkt der Angabe, wenn er nicht jetzt ist — eine
   /// Antwort unterwegs (#116) geht erst beim Beenden der Fahrt hinaus.
-  Future<WriteOutcome> report(String trailId,
-      {TrailStatus? status,
-      int? condition,
-      required bool onSite,
-      String? note,
-      DateTime? at}) async =>
-      (await reportEntry(trailId,
-              status: status, condition: condition, onSite: onSite, note: note, at: at))
-          .outcome;
+  Future<WriteOutcome> report(
+    String trailId, {
+    TrailStatus? status,
+    int? condition,
+    required bool onSite,
+    String? note,
+    DateTime? at,
+  }) async => (await reportEntry(
+    trailId,
+    status: status,
+    condition: condition,
+    onSite: onSite,
+    note: note,
+    at: at,
+  )).outcome;
 
   /// Wie [report], dazu das Foto zum Text (#433: Meldung, Text und Foto
   /// sind EIN Eintrag). **Der Eintrag ist das Original**: Scheitert das
@@ -504,13 +619,15 @@ class TrailsNotifier extends AsyncNotifier<List<Trail>>
   /// ([ReportWriteResult.photoError]). Ohne Netz geht der Eintrag in den
   /// Korb, das Foto nicht — Bytes liegen nie im Korb
   /// ([ReportWriteResult.photoDropped]).
-  Future<ReportWriteResult> reportEntry(String trailId,
-      {TrailStatus? status,
-      int? condition,
-      required bool onSite,
-      String? note,
-      PreparedPhoto? photo,
-      DateTime? at}) async {
+  Future<ReportWriteResult> reportEntry(
+    String trailId, {
+    TrailStatus? status,
+    int? condition,
+    required bool onSite,
+    String? note,
+    PreparedPhoto? photo,
+    DateTime? at,
+  }) async {
     final repo = ref.read(trailRepositoryProvider);
     final myId = ref.read(currentUserIdProvider);
     if (myId == null) throw const NotSignedInException();
@@ -529,21 +646,30 @@ class TrailsNotifier extends AsyncNotifier<List<Trail>>
       final String? noteId;
       try {
         noteId = await repo.report(
-            trailId: trailId,
-            status: status,
-            condition: condition,
-            note: text.isEmpty ? null : text,
-            onSite: onSite,
-            reportedAt: job.createdAt,
-            clientId: job.id);
+          trailId: trailId,
+          status: status,
+          condition: condition,
+          note: text.isEmpty ? null : text,
+          onSite: onSite,
+          reportedAt: job.createdAt,
+          clientId: job.id,
+        );
       } catch (error, stackTrace) {
         await _queueIfOffline(error, stackTrace, job);
-        return (outcome: WriteOutcome.queued, photoError: null, photoDropped: photo != null);
+        return (
+          outcome: WriteOutcome.queued,
+          photoError: null,
+          photoDropped: photo != null,
+        );
       }
       Object? photoError;
       if (photo != null && noteId != null) {
         try {
-          await repo.addNotePhoto(noteId: noteId, photoId: newClientId(), photo: photo);
+          await repo.addNotePhoto(
+            noteId: noteId,
+            photoId: newClientId(),
+            photo: photo,
+          );
         } catch (e, st) {
           // Gemeldet nur, was nicht nach fehlendem Netz aussieht — ein
           // Funkloch zwischen Text und Foto ist kein Fehler der App.
@@ -551,8 +677,11 @@ class TrailsNotifier extends AsyncNotifier<List<Trail>>
           photoError = e;
         }
       }
-      final fresh = await _rereadAfterWrite('Melden',
-          reports: status != null || condition != null, notes: text.isNotEmpty);
+      final fresh = await _rereadAfterWrite(
+        'Melden',
+        reports: status != null || condition != null,
+        notes: text.isNotEmpty,
+      );
       return (
         outcome: fresh ? WriteOutcome.done : WriteOutcome.doneStale,
         photoError: photoError,
@@ -569,7 +698,11 @@ class TrailsNotifier extends AsyncNotifier<List<Trail>>
     final repo = ref.read(trailRepositoryProvider);
     final myId = ref.read(currentUserIdProvider);
     if (myId == null) throw const NotSignedInException();
-    final job = DetailsJob(id: newClientId(), createdAt: DateTime.now().toUtc(), details: details);
+    final job = DetailsJob(
+      id: newClientId(),
+      createdAt: DateTime.now().toUtc(),
+      details: details,
+    );
     // Sofort zeigen, was gesetzt wurde (#183) — verblasst, bis Schreiben
     // und Neuladen durch sind. Ohne Netz übernimmt der Korb nahtlos: Der
     // Auftrag liegt dort, bevor er hier heruntergenommen wird.
@@ -610,11 +743,17 @@ class TrailsNotifier extends AsyncNotifier<List<Trail>>
   /// es sichtbar. Wirft, wenn das Schreiben scheitert
   /// ([MergeRejectedException], wenn der Server ablehnt); das Ergebnis
   /// sagt, ob die Anzeige danach frisch ist.
-  Future<({String keptId, bool fresh})> mergeInto(String duplicateId, String targetId) async {
+  Future<({String keptId, bool fresh})> mergeInto(
+    String duplicateId,
+    String targetId,
+  ) async {
     final kept = await ref
         .read(trailRepositoryProvider)
         .mergeInto(duplicateId: duplicateId, targetId: targetId);
-    return (keptId: kept, fresh: await reloadAfterWrite('Duplikat zusammenführen'));
+    return (
+      keptId: kept,
+      fresh: await reloadAfterWrite('Duplikat zusammenführen'),
+    );
   }
 
   /// Meine Zuordnung von [duplicateId] lösen: Er erscheint wieder, wo
@@ -654,11 +793,19 @@ class TrailsNotifier extends AsyncNotifier<List<Trail>>
     final myId = ref.read(currentUserIdProvider);
     if (myId == null) return const [];
     final server = _snapshotFor(myId)?.startPoints ?? const <StartPoint>[];
-    final jobs = ref.read(outboxJobsProvider).valueOrNull ?? const <OutboxJob>[];
+    final jobs =
+        ref.read(outboxJobsProvider).valueOrNull ?? const <OutboxJob>[];
     final queued = {for (final j in jobs) j.id};
-    final sending = [for (final j in _sending) if (!queued.contains(j.id)) j];
-    return withPendingStartPoints(server, [...jobs, ...sending],
-        myId: myId, sending: {for (final j in sending) j.id});
+    final sending = [
+      for (final j in _sending)
+        if (!queued.contains(j.id)) j,
+    ];
+    return withPendingStartPoints(
+      server,
+      [...jobs, ...sending],
+      myId: myId,
+      sending: {for (final j in sending) j.id},
+    );
   }
 
   /// Merkt einen EIGENEN Startpunkt oder ändert ihn (Name, Lage,
@@ -674,7 +821,9 @@ class TrailsNotifier extends AsyncNotifier<List<Trail>>
     if (name.isEmpty) throw ArgumentError.value(point.name, 'name', 'leer');
     final own = startPoints.where((p) => p.isMine(myId));
     final isNew = !own.any((p) => p.clientId == point.clientId);
-    if (isNew && own.length >= kStartPointMax) throw const StartPointLimitException();
+    if (isNew && own.length >= kStartPointMax) {
+      throw const StartPointLimitException();
+    }
     final job = StartPointJob(
       id: newClientId(),
       createdAt: DateTime.now().toUtc(),
@@ -712,7 +861,11 @@ class TrailsNotifier extends AsyncNotifier<List<Trail>>
   Future<WriteOutcome> deleteStartPoint(String clientId) async {
     final myId = ref.read(currentUserIdProvider);
     if (myId == null) throw const NotSignedInException();
-    final job = StartPointDeleteJob(id: newClientId(), createdAt: DateTime.now().toUtc(), clientId: clientId);
+    final job = StartPointDeleteJob(
+      id: newClientId(),
+      createdAt: DateTime.now().toUtc(),
+      clientId: clientId,
+    );
     _beginSending(job, myId);
     try {
       try {
@@ -734,7 +887,9 @@ class TrailsNotifier extends AsyncNotifier<List<Trail>>
   Future<bool> attachElevation(ExistingRecording existing) {
     final eles = existing.eles;
     if (eles == null) throw StateError('Datei ohne vollständige Höhen');
-    return ref.read(trailRepositoryProvider).attachElevation(
+    return ref
+        .read(trailRepositoryProvider)
+        .attachElevation(
           recordingId: existing.recording.id,
           coords: flatCoords(existing.points),
           eles: eles,
@@ -742,13 +897,15 @@ class TrailsNotifier extends AsyncNotifier<List<Trail>>
   }
 }
 
-final trailsProvider =
-    AsyncNotifierProvider<TrailsNotifier, List<Trail>>(TrailsNotifier.new);
+final trailsProvider = AsyncNotifierProvider<TrailsNotifier, List<Trail>>(
+  TrailsNotifier.new,
+);
 
 /// Die Kopie des Netzes (#32): Datei auf Android, IndexedDB im Browser
 /// (#153); ohne IndexedDB keine.
-final trailCacheProvider =
-    Provider<TrailCache>((ref) => chooseTrailCache(web: kIsWeb, factory: browserIdbFactory()));
+final trailCacheProvider = Provider<TrailCache>(
+  (ref) => chooseTrailCache(web: kIsWeb, factory: browserIdbFactory()),
+);
 
 /// Wann der angezeigte Stand geholt wurde — `null`, solange er frisch aus
 /// dem Netz kommt. Karte und Liste sagen es, sonst hielte man einen alten
@@ -761,7 +918,9 @@ class TrailsCachedAtNotifier extends Notifier<DateTime?> {
 }
 
 final trailsCachedAtProvider =
-    NotifierProvider<TrailsCachedAtNotifier, DateTime?>(TrailsCachedAtNotifier.new);
+    NotifierProvider<TrailsCachedAtNotifier, DateTime?>(
+      TrailsCachedAtNotifier.new,
+    );
 
 /// Die Kopie steht, weil das Netz beim Start zu langsam war — es läuft
 /// aber noch (#183). Dann sagen Karte und Liste nicht „Kein Empfang",
@@ -786,14 +945,23 @@ final startPointsProvider = Provider<List<StartPoint>>((ref) {
 
 /// Die Wiedervorlage (#30). Den Namen übernimmt sie über den Notifier,
 /// der den Bestand kennt und keinen bewusst eingetragenen überschreibt.
-final outboxRunnerProvider = Provider<OutboxRunner>((ref) => OutboxRunner(
-      repository: ref.watch(trailRepositoryProvider),
-      feedback: ref.watch(feedbackRepositoryProvider),
-      outbox: ref.watch(outboxProvider),
-      adoptDetails: (trailId, name, grade, traits, link, rating) => ref
-          .read(trailsProvider.notifier)
-          .adoptDetails(trailId, name, grade: grade, traits: traits, link: link, rating: rating),
-    ));
+final outboxRunnerProvider = Provider<OutboxRunner>(
+  (ref) => OutboxRunner(
+    repository: ref.watch(trailRepositoryProvider),
+    feedback: ref.watch(feedbackRepositoryProvider),
+    outbox: ref.watch(outboxProvider),
+    adoptDetails: (trailId, name, grade, traits, link, rating) => ref
+        .read(trailsProvider.notifier)
+        .adoptDetails(
+          trailId,
+          name,
+          grade: grade,
+          traits: traits,
+          link: link,
+          rating: rating,
+        ),
+  ),
+);
 
 /// Der Trail mit [id] — oder der, unter dem er als Duplikat steht (#107):
 /// Eine Kennung von früher (Push, Fokus, ein offenes Blatt) zeigt nach
@@ -820,15 +988,21 @@ class SeenNotesNotifier extends Notifier<Set<String>> {
     final next = {...state, ...ids}.where(known.contains).toSet();
     if (next.length == state.length && next.containsAll(state)) return;
     state = next;
-    unawaited(ref
-        .read(settingsProvider)
-        .setSeenNoteIds(next.toList())
-        .catchError((Object e, StackTrace s) => logError('Gelesene Hinweise merken', e, s)));
+    unawaited(
+      ref
+          .read(settingsProvider)
+          .setSeenNoteIds(next.toList())
+          .catchError(
+            (Object e, StackTrace s) =>
+                logError('Gelesene Hinweise merken', e, s),
+          ),
+    );
   }
 }
 
-final seenNotesProvider =
-    NotifierProvider<SeenNotesNotifier, Set<String>>(SeenNotesNotifier.new);
+final seenNotesProvider = NotifierProvider<SeenNotesNotifier, Set<String>>(
+  SeenNotesNotifier.new,
+);
 
 /// „Weiß nicht" bei „Noch gültig?" (#119): Kennung der Angabe → bis wann
 /// sie ruht. Gerätelokal wie [seenNotesProvider].
@@ -840,22 +1014,31 @@ class StillValidSnoozesNotifier extends Notifier<Map<String, DateTime>> {
   void snooze(String reportId, {DateTime? now}) {
     final at = (now ?? DateTime.now()).toUtc();
     state = {...state, reportId: at.add(kStillValidSnooze)};
-    unawaited(ref
-        .read(settingsProvider)
-        .setStillValidSnoozes(encodeStillValidSnoozes(state, now: at))
-        .catchError((Object e, StackTrace s) => logError('„Weiß nicht" merken', e, s)));
+    unawaited(
+      ref
+          .read(settingsProvider)
+          .setStillValidSnoozes(encodeStillValidSnoozes(state, now: at))
+          .catchError(
+            (Object e, StackTrace s) => logError('„Weiß nicht" merken', e, s),
+          ),
+    );
   }
 }
 
 final stillValidSnoozesProvider =
-    NotifierProvider<StillValidSnoozesNotifier, Map<String, DateTime>>(StillValidSnoozesNotifier.new);
+    NotifierProvider<StillValidSnoozesNotifier, Map<String, DateTime>>(
+      StillValidSnoozesNotifier.new,
+    );
 
 /// Die offenen Fragen „Noch gültig?" über alle geladenen Trails — für den
 /// Zähler im Profil und die Seite. Ohne geladene Trails keine.
 final stillValidQuestionsProvider = Provider<List<StillValidQuestion>>((ref) {
   final trails = ref.watch(trailsProvider).valueOrNull ?? const <Trail>[];
-  return stillValidQuestions(trails,
-      now: DateTime.now(), snoozed: ref.watch(stillValidSnoozesProvider));
+  return stillValidQuestions(
+    trails,
+    now: DateTime.now(),
+    snoozed: ref.watch(stillValidSnoozesProvider),
+  );
 });
 
 /// Wunsch der Liste an die Karte: diesen Trail zeigen (Muster PilzBuddy
@@ -865,7 +1048,9 @@ final trailSortProvider = StateProvider<TrailSort>((ref) => TrailSort.recent);
 
 /// Der Trail-Filter (#66) — für Liste UND Karte (seit 0.33.0), für die
 /// Sitzung: Wer die App neu öffnet, sieht wieder alles.
-final trailListFilterProvider = StateProvider<TrailListFilter>((ref) => const TrailListFilter());
+final trailListFilterProvider = StateProvider<TrailListFilter>(
+  (ref) => const TrailListFilter(),
+);
 
 /// „Auf der Karte" (#222): Die Liste zeigt nur, was im Ausschnitt der
 /// Karte liegt — nur für die Liste, für die Sitzung.

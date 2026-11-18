@@ -38,13 +38,13 @@ class AppExit {
   /// sonst füllt jedes Wegwischen aus der Übersicht den Wochendigest
   /// (dieselbe Lehre wie #124/#136).
   bool get isFailure => const {
-        'ANR',
-        'CRASH',
-        'CRASH_NATIVE',
-        'LOW_MEMORY',
-        'EXCESSIVE_RESOURCE_USAGE',
-        'INITIALIZATION_FAILURE',
-      }.contains(reason);
+    'ANR',
+    'CRASH',
+    'CRASH_NATIVE',
+    'LOW_MEMORY',
+    'EXCESSIVE_RESOURCE_USAGE',
+    'INITIALIZATION_FAILURE',
+  }.contains(reason);
 
   /// Was im Bericht steht: RSS ist der wichtigste Wert — bei #142 zeigten
   /// 1,7–1,9 GB die Ursache, bevor irgendein Stacktrace gelesen war.
@@ -96,19 +96,20 @@ class AppExit {
 /// merkt keinen Unterschied.
 class ExitInfoRepository {
   ExitInfoRepository({MethodChannel? channel})
-      : _channel = channel ??
-            const MethodChannel(kExitInfoChannel);
+    : _channel = channel ?? const MethodChannel(kExitInfoChannel);
 
   final MethodChannel _channel;
 
-  bool get _supported => !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
+  bool get _supported =>
+      !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
 
   /// Die letzten Beendigungen, neueste zuerst.
   Future<List<AppExit>> recentExits({int limit = 10}) async {
     if (!_supported) return const [];
     try {
-      final raw = await _channel
-          .invokeMethod<List<Object?>>('exitReasons', {'limit': limit});
+      final raw = await _channel.invokeMethod<List<Object?>>('exitReasons', {
+        'limit': limit,
+      });
       return (raw ?? const [])
           .whereType<Map<Object?, Object?>>()
           .map(AppExit.fromMap)
@@ -130,8 +131,9 @@ class ExitInfoRepository {
   Future<String?> traceFor(AppExit exit) async {
     if (!_supported || !exit.hasTrace) return null;
     try {
-      final raw = await _channel.invokeMethod<Object?>(
-          'exitTrace', {'timestamp': exit.timestamp.millisecondsSinceEpoch});
+      final raw = await _channel.invokeMethod<Object?>('exitTrace', {
+        'timestamp': exit.timestamp.millisecondsSinceEpoch,
+      });
       return switch (raw) {
         final String text => text,
         final Uint8List bytes => formatTombstone(bytes),

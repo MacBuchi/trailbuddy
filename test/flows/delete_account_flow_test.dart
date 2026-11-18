@@ -16,8 +16,9 @@ Future<void> _openProfileBottom(WidgetTester tester) async {
 }
 
 void main() {
-  testWidgets('Löschen entfernt Konto und alle abhängigen Daten',
-      (tester) async {
+  testWidgets('Löschen entfernt Konto und alle abhängigen Daten', (
+    tester,
+  ) async {
     final backend = FakeBackend();
     final me = backend.addUser(username: 'testrail');
     final freund = backend.addUser(username: 'lilli92');
@@ -32,12 +33,13 @@ void main() {
     expect(find.text('Konto endgültig löschen?'), findsOneWidget);
 
     // Solange der Benutzername nicht stimmt, bleibt der Knopf gesperrt.
-    final deleteButton =
-        find.widgetWithText(FilledButton, 'Endgültig löschen');
+    final deleteButton = find.widgetWithText(FilledButton, 'Endgültig löschen');
     expect(tester.widget<FilledButton>(deleteButton).onPressed, isNull);
 
     await tester.enterText(
-        find.widgetWithText(TextField, 'Benutzername'), 'testrail');
+      find.widgetWithText(TextField, 'Benutzername'),
+      'testrail',
+    );
     await settle(tester, frames: 3);
     expect(tester.widget<FilledButton>(deleteButton).onPressed, isNotNull);
 
@@ -66,14 +68,18 @@ void main() {
     await settle(tester);
 
     await tester.enterText(
-        find.widgetWithText(TextField, 'Benutzername'), 'testrailz');
+      find.widgetWithText(TextField, 'Benutzername'),
+      'testrailz',
+    );
     await settle(tester, frames: 3);
     expect(
-        tester
-            .widget<FilledButton>(
-                find.widgetWithText(FilledButton, 'Endgültig löschen'))
-            .onPressed,
-        isNull);
+      tester
+          .widget<FilledButton>(
+            find.widgetWithText(FilledButton, 'Endgültig löschen'),
+          )
+          .onPressed,
+      isNull,
+    );
 
     await tester.tap(find.text('Abbrechen'));
     await settle(tester);

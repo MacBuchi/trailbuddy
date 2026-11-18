@@ -13,26 +13,26 @@ extension TrailTraitView on TrailTrait {
   /// Ein paar Wörter: was man dort erwartet (Design Turn 4).
   /// #209: aus den ARB-Dateien.
   String description(AppLocalizations l) => switch (this) {
-        TrailTrait.flowy => l.traitFlowyDescription,
-        TrailTrait.jumps => l.traitJumpsDescription,
-        TrailTrait.rocky => l.traitRockyDescription,
-        TrailTrait.steep => l.traitSteepDescription,
-        TrailTrait.uphill => l.traitUphillDescription,
-        TrailTrait.natural => l.traitNaturalDescription,
-        TrailTrait.connection => l.traitConnectionDescription,
-      };
+    TrailTrait.flowy => l.traitFlowyDescription,
+    TrailTrait.jumps => l.traitJumpsDescription,
+    TrailTrait.rocky => l.traitRockyDescription,
+    TrailTrait.steep => l.traitSteepDescription,
+    TrailTrait.uphill => l.traitUphillDescription,
+    TrailTrait.natural => l.traitNaturalDescription,
+    TrailTrait.connection => l.traitConnectionDescription,
+  };
 
   /// Das Symbol — farblos: Die Farbe sagt, was ICH mit dem Trail zu tun
   /// habe (Design), nicht, wie er ist.
   IconData get icon => switch (this) {
-        TrailTrait.flowy => Icons.waves,
-        TrailTrait.jumps => Icons.flight_takeoff,
-        TrailTrait.rocky => Icons.landslide_outlined,
-        TrailTrait.steep => Icons.trending_down,
-        TrailTrait.uphill => Icons.trending_up,
-        TrailTrait.natural => Icons.forest_outlined,
-        TrailTrait.connection => Icons.alt_route,
-      };
+    TrailTrait.flowy => Icons.waves,
+    TrailTrait.jumps => Icons.flight_takeoff,
+    TrailTrait.rocky => Icons.landslide_outlined,
+    TrailTrait.steep => Icons.trending_down,
+    TrailTrait.uphill => Icons.trending_up,
+    TrailTrait.natural => Icons.forest_outlined,
+    TrailTrait.connection => Icons.alt_route,
+  };
 }
 
 /// Ein Merkmal zum Wählen: Symbol, Wort, Beschreibung als Tooltip. Gewählt
@@ -40,11 +40,17 @@ extension TrailTraitView on TrailTrait {
 /// allein war im Dunklen kaum vom Rest zu unterscheiden, und ein Haken
 /// verdrängte das Symbol, an dem man das Merkmal erkennt.
 class TrailTraitChip extends StatelessWidget {
-  const TrailTraitChip(this.trait,
-      {super.key, required this.selected, required this.onSelected, this.label});
+  const TrailTraitChip(
+    this.trait, {
+    super.key,
+    required this.selected,
+    required this.onSelected,
+    this.label,
+  });
 
   final TrailTrait trait;
   final bool selected;
+
   /// null sperrt den Chip (etwa während gespeichert wird).
   final ValueChanged<bool>? onSelected;
 
@@ -58,7 +64,10 @@ class TrailTraitChip extends StatelessWidget {
       message: trait.description(context.l10n),
       child: FilterChip(
         avatar: Icon(trait.icon, size: 18, color: fg),
-        label: Text(label ?? trait.label(context.l10n), style: fg == null ? null : TextStyle(color: fg)),
+        label: Text(
+          label ?? trait.label(context.l10n),
+          style: fg == null ? null : TextStyle(color: fg),
+        ),
         selected: selected,
         selectedColor: AppColors.brand,
         side: selected ? const BorderSide(color: AppColors.brand) : null,
@@ -79,16 +88,21 @@ class TrailTraitIcons extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          for (final t in traits)
-            Padding(
-              padding: const EdgeInsets.only(left: 4),
-              child: Tooltip(
-                message: t.label(context.l10n),
-                child: Icon(t.icon, size: size, color: color, semanticLabel: t.label(context.l10n)),
-              ),
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      for (final t in traits)
+        Padding(
+          padding: const EdgeInsets.only(left: 4),
+          child: Tooltip(
+            message: t.label(context.l10n),
+            child: Icon(
+              t.icon,
+              size: size,
+              color: color,
+              semanticLabel: t.label(context.l10n),
             ),
-        ],
-      );
+          ),
+        ),
+    ],
+  );
 }

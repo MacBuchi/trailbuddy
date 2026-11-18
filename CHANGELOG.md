@@ -2,6 +2,13 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Aufgeräumt
+
+*Version 0.189.1, 2026-11-18*
+
+- Nichts Neues zu sehen: Der Quelltext ist jetzt einheitlich formatiert.
+  Die App verhält sich genau wie vorher.
+
 ## Routen auf der Uhr
 
 *Version 0.189.0, 2026-11-18 (Uhr-App 1.9.0)*

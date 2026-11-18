@@ -11,8 +11,11 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   test('jeder Fall der Uhr-App hat eine Prüfung', () async {
-    final doc = jsonDecode(File('docs/watch_cases.json').readAsStringSync()) as Map<String, dynamic>;
-    final faelle = (doc['faelle'] as List<dynamic>).cast<Map<String, dynamic>>();
+    final doc =
+        jsonDecode(File('docs/watch_cases.json').readAsStringSync())
+            as Map<String, dynamic>;
+    final faelle = (doc['faelle'] as List<dynamic>)
+        .cast<Map<String, dynamic>>();
     expect(faelle, isNotEmpty, reason: 'die Falldatei ist leer');
 
     // Konstanten stehen je nach Modul (PhoneRoute, RideLog, NavView …) —
@@ -23,19 +26,33 @@ void main() {
         .list(recursive: true)
         .where((e) => e is File && e.path.endsWith('.mc'))
         .toList();
-    final uhrCode = uhrFiles.map((e) => File(e.path).readAsStringSync()).join('\n');
-    final mc = uhrFiles
-        .where((e) => e.path.endsWith('Tests.mc') || e.path.endsWith('GeneratedTalks.mc'))
+    final uhrCode = uhrFiles
         .map((e) => File(e.path).readAsStringSync())
         .join('\n');
-    expect(mc, contains('function coreStartBeginsRecording('), reason: 'CoreTests.mc nicht gelesen');
+    final mc = uhrFiles
+        .where(
+          (e) =>
+              e.path.endsWith('Tests.mc') ||
+              e.path.endsWith('GeneratedTalks.mc'),
+        )
+        .map((e) => File(e.path).readAsStringSync())
+        .join('\n');
+    expect(
+      mc,
+      contains('function coreStartBeginsRecording('),
+      reason: 'CoreTests.mc nicht gelesen',
+    );
     final script = File('tool/garmin_scenario.sh').readAsStringSync();
-    final chain = File('integration_test/watch_bench_test.dart').readAsStringSync();
+    final chain = File(
+      'integration_test/watch_bench_test.dart',
+    ).readAsStringSync();
 
     final dartSrc = <String>[];
     await for (final e in Directory('test').list(recursive: true)) {
       // Nur Dart: unter test/ liegen auch Bilder (Bögen des Abbilds, #511).
-      if (e is File && e.path.endsWith('.dart')) dartSrc.add(e.readAsStringSync());
+      if (e is File && e.path.endsWith('.dart')) {
+        dartSrc.add(e.readAsStringSync());
+      }
     }
 
     final ids = faelle.map((f) => f['id'] as String).toList();
@@ -48,24 +65,47 @@ void main() {
       final handy = f['handy'] as String?;
       final szen = (f['szenario'] as List<dynamic>?)?.cast<String>();
       final kette = (f['kette'] as List<dynamic>?)?.cast<String>();
-      expect(uhr != null || handy != null || (szen != null && szen.isNotEmpty) || (kette != null && kette.isNotEmpty),
-          isTrue,
-          reason: '$id hat keine Prüfung');
+      expect(
+        uhr != null ||
+            handy != null ||
+            (szen != null && szen.isNotEmpty) ||
+            (kette != null && kette.isNotEmpty),
+        isTrue,
+        reason: '$id hat keine Prüfung',
+      );
       if (uhr != null) {
-        expect(mc, contains('function $uhr('), reason: '$id: der Unit-Test der Uhr fehlt');
+        expect(
+          mc,
+          contains('function $uhr('),
+          reason: '$id: der Unit-Test der Uhr fehlt',
+        );
       }
       if (handy != null) {
-        expect(dartSrc.any((s) => s.contains(handy)), isTrue, reason: '$id: kein Test am Handy');
+        expect(
+          dartSrc.any((s) => s.contains(handy)),
+          isTrue,
+          reason: '$id: kein Test am Handy',
+        );
       }
       for (final s in szen ?? const <String>[]) {
         expect(script, contains(s), reason: '$id: das Szenario prüft es nicht');
       }
       // Der Name eines Schritts im Treiber: `step('<Name>…`.
       for (final k in kette ?? const <String>[]) {
-        expect(chain, contains("step('$k"), reason: '$id: der Kettenstand hat den Schritt „$k“ nicht');
+        expect(
+          chain,
+          matches(RegExp(r"step\(\s*'" + RegExp.escape(k))),
+          reason: '$id: der Kettenstand hat den Schritt „$k“ nicht',
+        );
       }
-      for (final k in (f['konstant'] as List<dynamic>?)?.cast<String>() ?? const <String>[]) {
-        expect(uhrCode, contains(k), reason: '$id: die Konstante $k steht nicht in der Uhr');
+      for (final k
+          in (f['konstant'] as List<dynamic>?)?.cast<String>() ??
+              const <String>[]) {
+        expect(
+          uhrCode,
+          contains(k),
+          reason: '$id: die Konstante $k steht nicht in der Uhr',
+        );
       }
     }
   });

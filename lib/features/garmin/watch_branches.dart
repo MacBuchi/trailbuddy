@@ -48,7 +48,8 @@ class WatchBranchesJob implements GraphJob<List<WatchBranch>> {
   final List<LatLng> line;
 
   @override
-  List<WatchBranch> runOn(RoadGraph g, LoopSearchCache cache) => watchBranchesOn(g, line);
+  List<WatchBranch> runOn(RoadGraph g, LoopSearchCache cache) =>
+      watchBranchesOn(g, line);
 }
 
 /// Je Knoten mit drei und mehr Kanten, der höchstens [kWatchBranchNodeM]
@@ -123,8 +124,10 @@ class _RouteIndex {
   _RouteIndex(this.xy) {
     for (var i = 0; i + 1 < xy.length; i++) {
       final a = xy[i], b = xy[i + 1];
-      final x0 = (math.min(a.x, b.x) / _cell).floor(), x1 = (math.max(a.x, b.x) / _cell).floor();
-      final y0 = (math.min(a.y, b.y) / _cell).floor(), y1 = (math.max(a.y, b.y) / _cell).floor();
+      final x0 = (math.min(a.x, b.x) / _cell).floor(),
+          x1 = (math.max(a.x, b.x) / _cell).floor();
+      final y0 = (math.min(a.y, b.y) / _cell).floor(),
+          y1 = (math.max(a.y, b.y) / _cell).floor();
       for (var cx = x0; cx <= x1; cx++) {
         for (var cy = y0; cy <= y1; cy++) {
           (_cells[(cx, cy)] ??= []).add(i);
@@ -160,7 +163,9 @@ class _RouteIndex {
           final a = xy[i], b = xy[i + 1];
           final ex = b.x - a.x, ey = b.y - a.y;
           final l2 = ex * ex + ey * ey;
-          final t = l2 == 0 ? 0.0 : (((x - a.x) * ex + (y - a.y) * ey) / l2).clamp(0.0, 1.0);
+          final t = l2 == 0
+              ? 0.0
+              : (((x - a.x) * ex + (y - a.y) * ey) / l2).clamp(0.0, 1.0);
           final qx = a.x + t * ex - x, qy = a.y + t * ey - y;
           final d = math.sqrt(qx * qx + qy * qy);
           // Bei gleichem Abstand das frühere Segment: Eine Runde berührt

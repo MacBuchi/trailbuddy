@@ -14,18 +14,22 @@ class FriendRepository {
   /// die EXAKTE E-Mail-Adresse. Die RPC ist nur für `authenticated`
   /// ausführbar; für anon wäre sie ein E-Mail-Orakel.
   Future<List<ProfileSearchResult>> search(String query) async {
-    final rows = await _client
-        .rpc('search_profiles', params: {'query': query}) as List<dynamic>;
+    final rows =
+        await _client.rpc('search_profiles', params: {'query': query})
+            as List<dynamic>;
     return rows
         .map((r) => ProfileSearchResult.fromJson(r as Map<String, dynamic>))
         .toList();
   }
 
   Future<List<FriendshipEntry>> fetchFriendships() async {
-    final rows = await _client.from('friendships').select(
-        'id, status, requester_id, addressee_id, '
-        'requester:profiles!friendships_requester_id_fkey(username, avatar), '
-        'addressee:profiles!friendships_addressee_id_fkey(username, avatar)');
+    final rows = await _client
+        .from('friendships')
+        .select(
+          'id, status, requester_id, addressee_id, '
+          'requester:profiles!friendships_requester_id_fkey(username, avatar), '
+          'addressee:profiles!friendships_addressee_id_fkey(username, avatar)',
+        );
     return rows.map((r) => FriendshipEntry.fromJson(r)).toList();
   }
 
@@ -39,7 +43,8 @@ class FriendRepository {
   Future<void> accept(String friendshipId) async {
     await _client
         .from('friendships')
-        .update({'status': 'accepted'}).eq('id', friendshipId);
+        .update({'status': 'accepted'})
+        .eq('id', friendshipId);
   }
 
   /// Ablehnen, Anfrage zurückziehen oder Freundschaft beenden.

@@ -28,14 +28,19 @@ import 'ride_track.dart';
 /// eine Antwort ihn leert). Ein Fehler kostet nur die Frage.
 ClimbLimitOffer? offerClimbLimitAfter(WidgetRef ref, Ride ride) {
   try {
-    final offer = climbLimitOfferFor(ride, ref.read(loopPlannerProvider).prefs,
-        bio: ref.read(calibratedRiderProvider(RiderProfile.bio)),
-        ebike: ref.read(calibratedRiderProvider(RiderProfile.ebike)));
+    final offer = climbLimitOfferFor(
+      ride,
+      ref.read(loopPlannerProvider).prefs,
+      bio: ref.read(calibratedRiderProvider(RiderProfile.bio)),
+      ebike: ref.read(calibratedRiderProvider(RiderProfile.ebike)),
+    );
     if (offer != null) {
       ref
           .read(settingsProvider)
           .setClimbLimitPending(offer.encode())
-          .catchError((Object e, StackTrace s) => logError('Limit-Frage merken', e, s));
+          .catchError(
+            (Object e, StackTrace s) => logError('Limit-Frage merken', e, s),
+          );
     }
     return offer;
   } catch (e, s) {
@@ -53,7 +58,9 @@ ClimbLimitOffer? takePendingClimbLimit(WidgetRef ref) {
   if (settings.climbLimitPending == null) return null;
   settings
       .setClimbLimitPending(null)
-      .catchError((Object e, StackTrace s) => logError('Limit-Frage vergessen', e, s));
+      .catchError(
+        (Object e, StackTrace s) => logError('Limit-Frage vergessen', e, s),
+      );
   if (offer == null) return null;
   final prefs = ref.read(loopPlannerProvider).prefs;
   return climbLimitExceeded(prefs, offer.bike, offer.climbM) ? offer : null;
@@ -73,7 +80,10 @@ class _ClimbLimitRowState extends ConsumerState<ClimbLimitRow> {
 
   /// Das Limit des Rads, als die Frage stand — „von 800" bleibt stehen,
   /// auch wenn die Antwort es ändert.
-  late final double _fromM = ref.read(loopPlannerProvider).prefs.climbOf(widget.offer.bike);
+  late final double _fromM = ref
+      .read(loopPlannerProvider)
+      .prefs
+      .climbOf(widget.offer.bike);
 
   ClimbLimitOffer get _offer => widget.offer;
 
@@ -87,13 +97,17 @@ class _ClimbLimitRowState extends ConsumerState<ClimbLimitRow> {
     }
   }
 
-  void _apply(ClimbLimitAnswer Function(LoopPrefs prefs, ClimbLimitOffer offer) answerOf) {
+  void _apply(
+    ClimbLimitAnswer Function(LoopPrefs prefs, ClimbLimitOffer offer) answerOf,
+  ) {
     late ClimbLimitAnswer answer;
     _planner.updateLimits((prefs) => (answer = answerOf(prefs, _offer)).after);
     ref
         .read(settingsProvider)
         .setClimbLimitPending(null)
-        .catchError((Object e, StackTrace s) => logError('Limit-Frage vergessen', e, s));
+        .catchError(
+          (Object e, StackTrace s) => logError('Limit-Frage vergessen', e, s),
+        );
     setState(() => _answer = answer);
     if (answer.movedToEbike) _setRideBike(RiderProfile.ebike);
   }
@@ -113,47 +127,102 @@ class _ClimbLimitRowState extends ConsumerState<ClimbLimitRow> {
     final bike = _offer.bike.label(l);
     final climb = _offer.climbM.round(), to = _offer.toM.round();
     if (answer != null) {
-      final raisedTo = answer.raisedBike == null ? 0 : answer.after.climbOf(answer.raisedBike!).round();
+      final raisedTo = answer.raisedBike == null
+          ? 0
+          : answer.after.climbOf(answer.raisedBike!).round();
       final text = answer.movedToEbike
-          ? (answer.raisedBike == null ? l.climbLimitMoved : l.climbLimitMovedRaised(raisedTo))
+          ? (answer.raisedBike == null
+                ? l.climbLimitMoved
+                : l.climbLimitMovedRaised(raisedTo))
           : answer.raisedBike == null
-              ? l.climbLimitDeclined(bike, _fromM.round())
-              : l.climbLimitRaised(bike, raisedTo);
-      return Row(key: const ValueKey('climb-limit'), children: [
-        Expanded(
-          child: Text(text,
+          ? l.climbLimitDeclined(bike, _fromM.round())
+          : l.climbLimitRaised(bike, raisedTo);
+      return Row(
+        key: const ValueKey('climb-limit'),
+        children: [
+          Expanded(
+            child: Text(
+              text,
               key: const ValueKey('climb-limit-done'),
-              style: theme.textTheme.bodyMedium?.copyWith(color: AppPalette.of(context).muted)),
-        ),
-        TextButton(key: const ValueKey('climb-limit-undo'), onPressed: _undo, child: Text(l.commonUndo)),
-      ]);
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: AppPalette.of(context).muted,
+              ),
+            ),
+          ),
+          TextButton(
+            key: const ValueKey('climb-limit-undo'),
+            onPressed: _undo,
+            child: Text(l.commonUndo),
+          ),
+        ],
+      );
     }
     final (question, yes, no) = _offer.askEbike
         ? (
             l.climbLimitEbikeAsk(climb),
-            (key: 'climb-limit-ebike-yes', text: l.climbLimitEbikeYes, answer: ebikeClimbLimit),
-            (key: 'climb-limit-ebike-no', text: l.climbLimitEbikeNo, answer: raiseClimbLimit),
+            (
+              key: 'climb-limit-ebike-yes',
+              text: l.climbLimitEbikeYes,
+              answer: ebikeClimbLimit,
+            ),
+            (
+              key: 'climb-limit-ebike-no',
+              text: l.climbLimitEbikeNo,
+              answer: raiseClimbLimit,
+            ),
           )
         : (
             l.climbLimitAsk(climb, bike, _fromM.round(), to),
-            (key: 'climb-limit-raise', text: l.climbLimitRaise, answer: raiseClimbLimit),
-            (key: 'climb-limit-keep', text: l.climbLimitKeep, answer: declineClimbLimit),
+            (
+              key: 'climb-limit-raise',
+              text: l.climbLimitRaise,
+              answer: raiseClimbLimit,
+            ),
+            (
+              key: 'climb-limit-keep',
+              text: l.climbLimitKeep,
+              answer: declineClimbLimit,
+            ),
           );
     return Column(
       key: const ValueKey('climb-limit'),
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Padding(
-            padding: const EdgeInsets.only(top: 2, right: 8),
-            child: Icon(Icons.trending_up, size: 20, color: AppPalette.of(context).accentText),
-          ),
-          Expanded(child: Text(question, key: const ValueKey('climb-limit-text'), style: theme.textTheme.bodyMedium)),
-        ]),
-        Wrap(spacing: 8, children: [
-          FilledButton.tonal(key: ValueKey(yes.key), onPressed: () => _apply(yes.answer), child: Text(yes.text)),
-          TextButton(key: ValueKey(no.key), onPressed: () => _apply(no.answer), child: Text(no.text)),
-        ]),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(top: 2, right: 8),
+              child: Icon(
+                Icons.trending_up,
+                size: 20,
+                color: AppPalette.of(context).accentText,
+              ),
+            ),
+            Expanded(
+              child: Text(
+                question,
+                key: const ValueKey('climb-limit-text'),
+                style: theme.textTheme.bodyMedium,
+              ),
+            ),
+          ],
+        ),
+        Wrap(
+          spacing: 8,
+          children: [
+            FilledButton.tonal(
+              key: ValueKey(yes.key),
+              onPressed: () => _apply(yes.answer),
+              child: Text(yes.text),
+            ),
+            TextButton(
+              key: ValueKey(no.key),
+              onPressed: () => _apply(no.answer),
+              child: Text(no.text),
+            ),
+          ],
+        ),
       ],
     );
   }

@@ -106,7 +106,11 @@ Gegenprobe der Vorgabe.
 
 - Während der Arbeit nur die betroffenen Dateien testen; die ganze Suite
   einmal am Ende.
-- Kein `dart format` (Root-`CLAUDE.md`).
+- Formatieren mit `tool/dart_format.sh` (Root-`CLAUDE.md`), nicht mit
+  `dart format .`: Das Skript lässt erzeugte Dateien aus. Tests, die
+  Quelltext lesen, suchen mit `\s*`/`\s+` statt mit festem Leerraum —
+  wie der Formatter umbricht, darf sie nicht brechen. Ein Flutter-Update
+  kann den Stil ändern: dann im selben PR einmal formatieren.
 - `flutter analyze`/`flutter test` haben `analysis_options.yaml` hier beim
   Messen NICHT verändert (anders als in PilzBuddy beobachtet). Steht die
   Datei trotzdem im Diff, ist es kein Teil der Änderung: `git restore`.

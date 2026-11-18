@@ -60,8 +60,9 @@ void main() {
     expect(find.text('Kurz vorweg'), findsNothing);
   });
 
-  testWidgets('Ohne Anmeldung nicht — er gehört zur App, nicht zum Login',
-      (tester) async {
+  testWidgets('Ohne Anmeldung nicht — er gehört zur App, nicht zum Login', (
+    tester,
+  ) async {
     final settings = FakeSettings(safetyNoteSeen: false);
     await pumpApp(tester, FakeBackend(), settings: settings);
     expect(find.text('Kurz vorweg'), findsNothing);
@@ -84,7 +85,10 @@ void main() {
     await tester.tap(row);
     await settle(tester);
 
-    expect(find.widgetWithText(AlertDialog, l10nDe.safetyNoteTitle), findsOneWidget);
+    expect(
+      find.widgetWithText(AlertDialog, l10nDe.safetyNoteTitle),
+      findsOneWidget,
+    );
     expect(find.text(l10nDe.safetyNote), findsOneWidget);
     await tester.tap(find.text('Schließen'));
     await settle(tester);

@@ -24,15 +24,19 @@ typedef PhotoPicker = Future<Uint8List?> Function(PhotoSource source);
 /// Pixel Kante viertelt die Arbeit des Dart-Dekodierers. Die Metadaten
 /// kopiert das Plugin dabei ZURÜCK — deshalb läuft danach
 /// `preparePhoto`, und nur deshalb darf dieser Schritt hier stehen.
-final photoPickerProvider = Provider<PhotoPicker>((ref) => (source) async {
-      final file = await ImagePicker().pickImage(
-        source: source == PhotoSource.camera ? ImageSource.camera : ImageSource.gallery,
-        maxWidth: 2048,
-        maxHeight: 2048,
-        imageQuality: 90,
-      );
-      return file?.readAsBytes();
-    });
+final photoPickerProvider = Provider<PhotoPicker>(
+  (ref) => (source) async {
+    final file = await ImagePicker().pickImage(
+      source: source == PhotoSource.camera
+          ? ImageSource.camera
+          : ImageSource.gallery,
+      maxWidth: 2048,
+      maxHeight: 2048,
+      imageQuality: 90,
+    );
+    return file?.readAsBytes();
+  },
+);
 
 /// Verkleinern und entkernen — im Isolate, damit die Oberfläche nicht
 /// steht (im Browser läuft `compute` auf demselben Faden, das Bild ist
@@ -41,5 +45,7 @@ final photoPickerProvider = Provider<PhotoPicker>((ref) => (source) async {
 /// es unter FakeAsync nicht.
 typedef PhotoPreparer = Future<PreparedPhoto> Function(Uint8List bytes);
 
-final photoPreparerProvider =
-    Provider<PhotoPreparer>((ref) => (bytes) => compute(preparePhoto, bytes));
+final photoPreparerProvider = Provider<PhotoPreparer>(
+  (ref) =>
+      (bytes) => compute(preparePhoto, bytes),
+);

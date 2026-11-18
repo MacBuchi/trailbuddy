@@ -58,7 +58,10 @@ class AreaBounds {
   final double east;
 
   /// Um die Punkte, mit [marginKm] Rand. Null ohne Punkte.
-  static AreaBounds? around(Iterable<LatLng> points, {double marginKm = kAreaTrailsMarginKm}) {
+  static AreaBounds? around(
+    Iterable<LatLng> points, {
+    double marginKm = kAreaTrailsMarginKm,
+  }) {
     var s = 90.0, w = 180.0, n = -90.0, e = -180.0;
     var any = false;
     for (final p in points) {
@@ -71,7 +74,8 @@ class AreaBounds {
     if (!any) return null;
     final dLat = marginKm / 111.0;
     final midLat = (s + n) / 2;
-    final dLon = marginKm / (111.0 * math.max(0.2, math.cos(midLat * math.pi / 180)));
+    final dLon =
+        marginKm / (111.0 * math.max(0.2, math.cos(midLat * math.pi / 180)));
     return AreaBounds(
       south: math.max(-85.0, s - dLat),
       west: math.max(-180.0, w - dLon),
@@ -81,22 +85,33 @@ class AreaBounds {
   }
 
   bool contains(LatLng p) =>
-      p.latitude >= south && p.latitude <= north && p.longitude >= west && p.longitude <= east;
+      p.latitude >= south &&
+      p.latitude <= north &&
+      p.longitude >= west &&
+      p.longitude <= east;
 
   /// Berührt der Rahmen [other]?
   bool intersects(AreaBounds other) =>
-      other.west <= east && other.east >= west && other.south <= north && other.north >= south;
+      other.west <= east &&
+      other.east >= west &&
+      other.south <= north &&
+      other.north >= south;
 
   LatLng get center => LatLng((south + north) / 2, (west + east) / 2);
 
-  Map<String, dynamic> toJson() => {'s': south, 'w': west, 'n': north, 'e': east};
+  Map<String, dynamic> toJson() => {
+    's': south,
+    'w': west,
+    'n': north,
+    'e': east,
+  };
 
   factory AreaBounds.fromJson(Map<String, dynamic> j) => AreaBounds(
-        south: (j['s'] as num).toDouble(),
-        west: (j['w'] as num).toDouble(),
-        north: (j['n'] as num).toDouble(),
-        east: (j['e'] as num).toDouble(),
-      );
+    south: (j['s'] as num).toDouble(),
+    west: (j['w'] as num).toDouble(),
+    north: (j['n'] as num).toDouble(),
+    east: (j['e'] as num).toDouble(),
+  );
 }
 
 /// Eine Kachel im Web-Mercator-Raster.
@@ -111,15 +126,22 @@ const _maxMercatorLat = 85.05112878;
   final n = 1 << z;
   final x = ((lon + 180) / 360 * n).floor().clamp(0, n - 1);
   final latRad = lat.clamp(-_maxMercatorLat, _maxMercatorLat) * math.pi / 180;
-  final y = ((1 - math.log(math.tan(latRad) + 1 / math.cos(latRad)) / math.pi) / 2 * n)
-      .floor()
-      .clamp(0, n - 1);
+  final y =
+      ((1 - math.log(math.tan(latRad) + 1 / math.cos(latRad)) / math.pi) /
+              2 *
+              n)
+          .floor()
+          .clamp(0, n - 1);
   return (x: x, y: y);
 }
 
 /// Alle Kacheln, die [bounds] von [minZoom] bis [maxZoom] berühren, nach
 /// Zoom und Zeile — die Reihenfolge ist egal, der Schreiber sortiert.
-List<TileXYZ> tilesCovering(AreaBounds bounds, {int minZoom = kAreaMinZoom, required int maxZoom}) {
+List<TileXYZ> tilesCovering(
+  AreaBounds bounds, {
+  int minZoom = kAreaMinZoom,
+  required int maxZoom,
+}) {
   final out = <TileXYZ>[];
   for (var z = minZoom; z <= maxZoom; z++) {
     final nw = tileAt(bounds.north, bounds.west, z);
@@ -135,7 +157,11 @@ List<TileXYZ> tilesCovering(AreaBounds bounds, {int minZoom = kAreaMinZoom, requ
 
 /// Wie viele Kacheln [tilesCovering] liefern würde — ohne die Liste zu
 /// bauen (für die Obergrenze, bevor jemand 40 000 Einträge anlegt).
-int countTilesCovering(AreaBounds bounds, {int minZoom = kAreaMinZoom, required int maxZoom}) {
+int countTilesCovering(
+  AreaBounds bounds, {
+  int minZoom = kAreaMinZoom,
+  required int maxZoom,
+}) {
   var count = 0;
   for (var z = minZoom; z <= maxZoom; z++) {
     final nw = tileAt(bounds.north, bounds.west, z);
@@ -191,16 +217,16 @@ sealed class AreaShape {
   Map<String, dynamic> toJson();
 
   static AreaShape fromJson(Map<String, dynamic> j) => switch (j['type']) {
-        'tiles' => TileSetShape(
-            zoom: j['zoom'] as int,
-            keys: {for (final k in j['keys'] as List) k as int},
-          ),
-        'region' => RegionShape(
-            region: j['region'] as String,
-            bounds: AreaBounds.fromJson(j['bounds'] as Map<String, dynamic>),
-          ),
-        _ => RectShape(AreaBounds.fromJson(j['bounds'] as Map<String, dynamic>)),
-      };
+    'tiles' => TileSetShape(
+      zoom: j['zoom'] as int,
+      keys: {for (final k in j['keys'] as List) k as int},
+    ),
+    'region' => RegionShape(
+      region: j['region'] as String,
+      bounds: AreaBounds.fromJson(j['bounds'] as Map<String, dynamic>),
+    ),
+    _ => RectShape(AreaBounds.fromJson(j['bounds'] as Map<String, dynamic>)),
+  };
 
   /// Die Kacheln entlang der Linien, [corridorKm] beiderseits — leer
   /// (null), wenn es keine Punkte gibt.
@@ -208,13 +234,18 @@ sealed class AreaShape {
   /// Abgetastet je halben Korridor: Um jede Probe kommt das Quadrat mit
   /// dem Korridor als halber Seite dazu (ein Quadrat statt eines Kreises
   /// — an den Ecken eine Kachel zu viel ist die harmlose Richtung).
-  static TileSetShape? alongLines(Iterable<List<LatLng>> lines,
-      {double corridorKm = kAreaTrailsCorridorKm, int zoom = kAreaShapeZoom}) {
+  static TileSetShape? alongLines(
+    Iterable<List<LatLng>> lines, {
+    double corridorKm = kAreaTrailsCorridorKm,
+    int zoom = kAreaShapeZoom,
+  }) {
     final keys = <int>{};
     final dLat = corridorKm / 111.0;
     final stepM = corridorKm * 1000 / 2;
     void sample(LatLng p) {
-      final dLon = corridorKm / (111.0 * math.max(0.2, math.cos(p.latitude * math.pi / 180)));
+      final dLon =
+          corridorKm /
+          (111.0 * math.max(0.2, math.cos(p.latitude * math.pi / 180)));
       final nw = tileAt(p.latitude + dLat, p.longitude - dLon, zoom);
       final se = tileAt(p.latitude - dLat, p.longitude + dLon, zoom);
       for (var x = nw.x; x <= se.x; x++) {
@@ -230,12 +261,22 @@ sealed class AreaShape {
       for (var i = 1; i < line.length; i++) {
         final a = line[i - 1], b = line[i];
         final dy = (b.latitude - a.latitude) * 111320.0;
-        final dx = (b.longitude - a.longitude) * 111320.0 * math.cos(a.latitude * math.pi / 180);
-        final steps = (math.sqrt(dx * dx + dy * dy) / stepM).ceil().clamp(1, 1 << 20);
+        final dx =
+            (b.longitude - a.longitude) *
+            111320.0 *
+            math.cos(a.latitude * math.pi / 180);
+        final steps = (math.sqrt(dx * dx + dy * dy) / stepM).ceil().clamp(
+          1,
+          1 << 20,
+        );
         for (var k = 1; k <= steps; k++) {
           final f = k / steps;
-          sample(LatLng(a.latitude + (b.latitude - a.latitude) * f,
-              a.longitude + (b.longitude - a.longitude) * f));
+          sample(
+            LatLng(
+              a.latitude + (b.latitude - a.latitude) * f,
+              a.longitude + (b.longitude - a.longitude) * f,
+            ),
+          );
         }
       }
     }
@@ -261,7 +302,8 @@ class RectShape extends AreaShape {
       countTilesCovering(bounds, minZoom: minZoom, maxZoom: maxZoom);
 
   @override
-  List<PoiCell> poiCells() => poiCellsCovering(bounds.south, bounds.west, bounds.north, bounds.east);
+  List<PoiCell> poiCells() =>
+      poiCellsCovering(bounds.south, bounds.west, bounds.north, bounds.east);
 
   @override
   List<TileXYZ> tilesWithin(AreaBounds box, int z) {
@@ -277,8 +319,9 @@ class RectShape extends AreaShape {
 
   @override
   Set<int> keysAt(int z) => {
-        for (final t in tilesCovering(bounds, minZoom: z, maxZoom: z)) TileSetShape.keyOf(t.x, t.y, z),
-      };
+    for (final t in tilesCovering(bounds, minZoom: z, maxZoom: z))
+      TileSetShape.keyOf(t.x, t.y, z),
+  };
 
   @override
   Map<String, dynamic> toJson() => {'type': 'rect', 'bounds': bounds.toJson()};
@@ -297,13 +340,18 @@ class RectShape extends AreaShape {
 /// nur im Ganzen zu löschen. [keysAt] würde deshalb niemand rufen; es
 /// rechnet trotzdem richtig.
 class RegionShape extends RectShape {
-  const RegionShape({required this.region, required AreaBounds bounds}) : super(bounds);
+  const RegionShape({required this.region, required AreaBounds bounds})
+    : super(bounds);
 
   /// Die Region des Hosts (`dach`, `ca`).
   final String region;
 
   @override
-  Map<String, dynamic> toJson() => {'type': 'region', 'region': region, 'bounds': bounds.toJson()};
+  Map<String, dynamic> toJson() => {
+    'type': 'region',
+    'region': region,
+    'bounds': bounds.toJson(),
+  };
 }
 
 /// Eine Menge Kacheln bei [zoom] (Schlüssel aus [keyOf]) — die Form
@@ -324,7 +372,10 @@ class TileSetShape extends AreaShape {
     if (z == zoom) return keys;
     if (z < zoom) {
       final d = zoom - z;
-      return {for (final k in keys) TileSetShape.keyOf(_xy(k).x >> d, _xy(k).y >> d, z)};
+      return {
+        for (final k in keys)
+          TileSetShape.keyOf(_xy(k).x >> d, _xy(k).y >> d, z),
+      };
     }
     final d = z - zoom;
     return {
@@ -337,9 +388,9 @@ class TileSetShape extends AreaShape {
 
   @override
   List<TileXYZ> tiles({int minZoom = kAreaMinZoom, required int maxZoom}) => [
-        for (var z = minZoom; z <= maxZoom; z++)
-          for (final k in _keysAt(z)) (z: z, x: k >> z, y: k & ((1 << z) - 1)),
-      ];
+    for (var z = minZoom; z <= maxZoom; z++)
+      for (final k in _keysAt(z)) (z: z, x: k >> z, y: k & ((1 << z) - 1)),
+  ];
 
   @override
   int countTiles({int minZoom = kAreaMinZoom, required int maxZoom}) {
@@ -379,7 +430,10 @@ class TileSetShape extends AreaShape {
     final se = tileAt(box.south, box.east, z);
     return [
       for (final k in _keysAt(z))
-        if ((k >> z) >= nw.x && (k >> z) <= se.x && (k & ((1 << z) - 1)) >= nw.y && (k & ((1 << z) - 1)) <= se.y)
+        if ((k >> z) >= nw.x &&
+            (k >> z) <= se.x &&
+            (k & ((1 << z) - 1)) >= nw.y &&
+            (k & ((1 << z) - 1)) <= se.y)
           (z: z, x: k >> z, y: k & ((1 << z) - 1)),
     ];
   }
@@ -388,12 +442,18 @@ class TileSetShape extends AreaShape {
   Set<int> keysAt(int z) => _keysAt(z);
 
   @override
-  Map<String, dynamic> toJson() => {'type': 'tiles', 'zoom': zoom, 'keys': keys.toList()..sort()};
+  Map<String, dynamic> toJson() => {
+    'type': 'tiles',
+    'zoom': zoom,
+    'keys': keys.toList()..sort(),
+  };
 }
 
 /// Lesbare Größe, wie sie das Blatt und die Liste zeigen.
 String formatBytes(int bytes) {
   if (bytes < 1000 * 1000) return '${(bytes / 1000).round()} kB';
-  if (bytes < 1000 * 1000 * 1000) return '${(bytes / 1e6).toStringAsFixed(1).replaceAll('.', ',')} MB';
+  if (bytes < 1000 * 1000 * 1000) {
+    return '${(bytes / 1e6).toStringAsFixed(1).replaceAll('.', ',')} MB';
+  }
   return '${(bytes / 1e9).toStringAsFixed(2).replaceAll('.', ',')} GB';
 }

@@ -14,10 +14,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:pmtiles/pmtiles.dart';
 import 'package:trailbuddy/core/gpx_share.dart';
-import 'package:trailbuddy/features/map/map_view/map_hit_test.dart' show projectToScreen;
+import 'package:trailbuddy/features/map/map_view/map_hit_test.dart'
+    show projectToScreen;
 import 'package:trailbuddy/features/map/map_view/map_view.dart';
 import 'package:trailbuddy/features/offline_areas/area_plan.dart';
-import 'package:trailbuddy/features/routing/ride_calibrator.dart' show calibratedRiderProvider;
+import 'package:trailbuddy/features/routing/ride_calibrator.dart'
+    show calibratedRiderProvider;
 import 'package:trailbuddy/features/routing/route_profile.dart';
 import 'package:trailbuddy/features/routing/trail_head_providers.dart';
 import 'package:trailbuddy/features/offline_areas/area_store.dart';
@@ -45,7 +47,10 @@ final _fromLat = math.max(_bounds.south + 0.0004, 48.0 - 0.003);
 (int, int) _px(double lat, double lon) {
   final x = ((lon + 180) / 360 * _n - _tile.x) * kTileExtent;
   final r = lat * math.pi / 180;
-  final y = ((1 - math.log(math.tan(r) + 1 / math.cos(r)) / math.pi) / 2 * _n - _tile.y) * kTileExtent;
+  final y =
+      ((1 - math.log(math.tan(r) + 1 / math.cos(r)) / math.pi) / 2 * _n -
+          _tile.y) *
+      kTileExtent;
   return (x.round(), y.round());
 }
 
@@ -61,22 +66,34 @@ Future<MemoryAreaStore> _areaWithTrack({bool withRoad = false}) async {
   for (var dx = -1; dx <= 1; dx++) {
     for (var dy = -1; dy <= 1; dy++) {
       final own = dx == 0 && dy == 0;
-      tiles.add(TileToWrite(
-        13,
-        _tile.x + dx,
-        _tile.y + dy,
-        mvtTile(own
-            ? [
-                road([_px(_fromLat - 0.0002, _lon), _px(48.0 + 0.0005, _lon)], 'path', kindDetail: 'track'),
-                if (withRoad)
-                  road([
-                    _px(_fromLat, _lon),
-                    _px((_fromLat + 48.0) / 2, _lon + 0.0009),
-                    _px(48.0, _lon),
-                  ], 'minor_road', kindDetail: 'residential'),
-              ]
-            : []),
-      ));
+      tiles.add(
+        TileToWrite(
+          13,
+          _tile.x + dx,
+          _tile.y + dy,
+          mvtTile(
+            own
+                ? [
+                    road(
+                      [_px(_fromLat - 0.0002, _lon), _px(48.0 + 0.0005, _lon)],
+                      'path',
+                      kindDetail: 'track',
+                    ),
+                    if (withRoad)
+                      road(
+                        [
+                          _px(_fromLat, _lon),
+                          _px((_fromLat + 48.0) / 2, _lon + 0.0009),
+                          _px(48.0, _lon),
+                        ],
+                        'minor_road',
+                        kindDetail: 'residential',
+                      ),
+                  ]
+                : [],
+          ),
+        ),
+      );
     }
   }
   final bytes = writePmTiles(
@@ -107,7 +124,10 @@ void main() {
   late FakeRideStore rides;
   late List<({String fileName, String xml})> shared;
 
-  Future<GpxShareOutcome> recorder({required String fileName, required String xml}) async {
+  Future<GpxShareOutcome> recorder({
+    required String fileName,
+    required String xml,
+  }) async {
     shared.add((fileName: fileName, xml: xml));
     return GpxShareOutcome.shared;
   }
@@ -117,22 +137,35 @@ void main() {
     backend = FakeBackend();
     final anna = backend.addUser(username: 'anna');
     backend.signInAs(anna.id);
-    trails = FakeTrailRepository(myId: () => backend.currentUserId ?? '', areFriends: backend.areFriends);
+    trails = FakeTrailRepository(
+      myId: () => backend.currentUserId ?? '',
+      areFriends: backend.areFriends,
+    );
     trails.seedTrail(anna.id, name: 'Hexentanz', grade: 2);
     rides = FakeRideStore();
   });
 
-  Future<void> start(WidgetTester tester,
-      {MemoryAreaStore? areaStore, FakePositionFix? positionFix, List<Override> overrides = const []}) async {
+  Future<void> start(
+    WidgetTester tester, {
+    MemoryAreaStore? areaStore,
+    FakePositionFix? positionFix,
+    List<Override> overrides = const [],
+  }) async {
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 3;
     addTearDown(tester.view.reset);
-    await pumpApp(tester, backend,
-        trails: trails,
-        areaStore: areaStore,
-        rideStore: rides,
-        positionFix: positionFix ?? FakePositionFix(fakePosition(_fromLat, _lon)),
-        extraOverrides: [gpxShareProvider.overrideWithValue(recorder), ...overrides]);
+    await pumpApp(
+      tester,
+      backend,
+      trails: trails,
+      areaStore: areaStore,
+      rideStore: rides,
+      positionFix: positionFix ?? FakePositionFix(fakePosition(_fromLat, _lon)),
+      extraOverrides: [
+        gpxShareProvider.overrideWithValue(recorder),
+        ...overrides,
+      ],
+    );
     await openTab(tester, 'Trails');
     await settle(tester, frames: 20);
     await tester.tap(find.text('Hexentanz'));
@@ -149,304 +182,418 @@ void main() {
   // Je Abschnitt ein Tippziel — so viele wie früher Linien.
   Iterable<dynamic> routeLines(WidgetTester tester) => routeHits(tester);
 
-  testWidgets('#329: „Bequem" nimmt die Nebenstraße statt des Forstwegs, die Zeit bleibt die des Rads',
-      (tester) async {
-    await start(tester, areaStore: await _areaWithTrack(withRoad: true));
-    await tapTrailHead(tester);
-    final summary = find.byKey(const ValueKey('loop-summary'));
-    expect(summary, findsOneWidget);
-    expect(find.textContaining('Forstweg'), findsOneWidget);
-    expect(find.textContaining('Nebenstraße'), findsNothing);
-    expect(find.byKey(const ValueKey('loop-easy-note')), findsNothing);
+  testWidgets(
+    '#329: „Bequem" nimmt die Nebenstraße statt des Forstwegs, die Zeit bleibt die des Rads',
+    (tester) async {
+      await start(tester, areaStore: await _areaWithTrack(withRoad: true));
+      await tapTrailHead(tester);
+      final summary = find.byKey(const ValueKey('loop-summary'));
+      expect(summary, findsOneWidget);
+      expect(find.textContaining('Forstweg'), findsOneWidget);
+      expect(find.textContaining('Nebenstraße'), findsNothing);
+      expect(find.byKey(const ValueKey('loop-easy-note')), findsNothing);
 
-    await tester.tap(find.descendant(of: find.byKey(const ValueKey('loop-route-mode')), matching: find.text('Bequem')));
-    await settle(tester, frames: 10);
-    final mode = tester.widget<SegmentedButton<RouteMode>>(find.byKey(const ValueKey('loop-route-mode')));
-    expect(mode.selected.single, RouteMode.easy);
-    expect(find.textContaining('Nebenstraße'), findsOneWidget);
-    expect(find.textContaining('Forstweg'), findsNothing);
-    expect(find.byKey(const ValueKey('loop-easy-note')), findsOneWidget);
-    expect(routeBand(tester), isNotEmpty);
+      await tester.tap(
+        find.descendant(
+          of: find.byKey(const ValueKey('loop-route-mode')),
+          matching: find.text('Bequem'),
+        ),
+      );
+      await settle(tester, frames: 10);
+      final mode = tester.widget<SegmentedButton<RouteMode>>(
+        find.byKey(const ValueKey('loop-route-mode')),
+      );
+      expect(mode.selected.single, RouteMode.easy);
+      expect(find.textContaining('Nebenstraße'), findsOneWidget);
+      expect(find.textContaining('Forstweg'), findsNothing);
+      expect(find.byKey(const ValueKey('loop-easy-note')), findsOneWidget);
+      expect(routeBand(tester), isNotEmpty);
 
-    // Zurück auf „Direkt": wieder der Forstweg.
-    await tester.tap(find.descendant(of: find.byKey(const ValueKey('loop-route-mode')), matching: find.text('Direkt')));
-    await settle(tester, frames: 10);
-    expect(find.textContaining('Forstweg'), findsOneWidget);
-    expect(find.byKey(const ValueKey('loop-easy-note')), findsNothing);
-  });
+      // Zurück auf „Direkt": wieder der Forstweg.
+      await tester.tap(
+        find.descendant(
+          of: find.byKey(const ValueKey('loop-route-mode')),
+          matching: find.text('Direkt'),
+        ),
+      );
+      await settle(tester, frames: 10);
+      expect(find.textContaining('Forstweg'), findsOneWidget);
+      expect(find.byKey(const ValueKey('loop-easy-note')), findsNothing);
+    },
+  );
 
-  testWidgets('#356: scheitert die Rechnung, liegt keine alte Linie mehr auf der Karte', (tester) async {
-    final rider = _FlakyRider();
-    await start(tester,
+  testWidgets(
+    '#356: scheitert die Rechnung, liegt keine alte Linie mehr auf der Karte',
+    (tester) async {
+      final rider = _FlakyRider();
+      await start(
+        tester,
         areaStore: await _areaWithTrack(withRoad: true),
-        overrides: [calibratedRiderProvider.overrideWith((ref, p) => rider)]);
-    await tapTrailHead(tester);
-    expect(find.byKey(const ValueKey('loop-summary')), findsOneWidget);
-    expect(routeBand(tester), isNotEmpty);
+        overrides: [calibratedRiderProvider.overrideWith((ref, p) => rider)],
+      );
+      await tapTrailHead(tester);
+      expect(find.byKey(const ValueKey('loop-summary')), findsOneWidget);
+      expect(routeBand(tester), isNotEmpty);
 
-    rider.broken = true;
-    await tester.tap(find.descendant(of: find.byKey(const ValueKey('loop-route-mode')), matching: find.text('Bequem')));
-    await settle(tester, frames: 10);
-    expect(find.text(l10nDe.routeBlockerFailed), findsOneWidget);
-    expect(find.byKey(const ValueKey('loop-summary')), findsNothing);
-    expect(routeBand(tester), isEmpty, reason: 'die Linie von „Direkt" gehört nicht zu „ging nicht"');
-    expect(tester.takeException(), isNull);
-  });
+      rider.broken = true;
+      await tester.tap(
+        find.descendant(
+          of: find.byKey(const ValueKey('loop-route-mode')),
+          matching: find.text('Bequem'),
+        ),
+      );
+      await settle(tester, frames: 10);
+      expect(find.text(l10nDe.routeBlockerFailed), findsOneWidget);
+      expect(find.byKey(const ValueKey('loop-summary')), findsNothing);
+      expect(
+        routeBand(tester),
+        isEmpty,
+        reason: 'die Linie von „Direkt" gehört nicht zu „ging nicht"',
+      );
+      expect(tester.takeException(), isNull);
+    },
+  );
 
-  testWidgets('aus dem Blatt auf die Karte: Weg, Summen, Vorschau, Profil, GPX', (tester) async {
-    await start(tester, areaStore: await _areaWithTrack());
-    // Im Blatt stehen „Als Ziel" und „Als Start" nebeneinander (#516),
-    // „Auf der Karte" darunter; die Anfahrt ist seit #224 ein Symbol im
-    // Kopf, neben dem Namen.
-    final head = find.byKey(const ValueKey('trail-head'));
-    final navigate = find.byKey(const ValueKey('trail-navigate'));
-    final asStart = find.byKey(const ValueKey('trail-plan-from'));
-    await tester.ensureVisible(find.byKey(const ValueKey('trail-show-on-map')));
-    expect(tester.getCenter(head).dy, closeTo(tester.getCenter(asStart).dy, 1));
-    expect(find.descendant(of: head, matching: find.text('Als Ziel')), findsOneWidget);
-    expect(tester.getCenter(navigate).dy,
-        closeTo(tester.getCenter(find.byKey(const ValueKey('trail-sheet-title'))).dy, 24));
+  testWidgets(
+    'aus dem Blatt auf die Karte: Weg, Summen, Vorschau, Profil, GPX',
+    (tester) async {
+      await start(tester, areaStore: await _areaWithTrack());
+      // Im Blatt stehen „Als Ziel" und „Als Start" nebeneinander (#516),
+      // „Auf der Karte" darunter; die Anfahrt ist seit #224 ein Symbol im
+      // Kopf, neben dem Namen.
+      final head = find.byKey(const ValueKey('trail-head'));
+      final navigate = find.byKey(const ValueKey('trail-navigate'));
+      final asStart = find.byKey(const ValueKey('trail-plan-from'));
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('trail-show-on-map')),
+      );
+      expect(
+        tester.getCenter(head).dy,
+        closeTo(tester.getCenter(asStart).dy, 1),
+      );
+      expect(
+        find.descendant(of: head, matching: find.text('Als Ziel')),
+        findsOneWidget,
+      );
+      expect(
+        tester.getCenter(navigate).dy,
+        closeTo(
+          tester.getCenter(find.byKey(const ValueKey('trail-sheet-title'))).dy,
+          24,
+        ),
+      );
 
-    await tapTrailHead(tester);
-    expect(find.byKey(const ValueKey('loop-summary')), findsOneWidget);
-    expect(find.byKey(const ValueKey('loop-tile-climb')), findsOneWidget);
-    expect(find.textContaining('Forstweg'), findsOneWidget);
-    expect(find.textContaining('Untergrenze'), findsOneWidget, reason: 'der Bereich hat keine Höhen');
-    expect(find.textContaining('Wanderweg, Fußweg oder Stufen'), findsNothing);
-    expect(find.byKey(const ValueKey('loop-notice')), findsNothing);
-    // Die Vorschau liegt als Linie der Fassade auf der Karte und beginnt
-    // am Standort.
-    final lines = routeLines(tester).toList();
-    expect(lines, hasLength(1));
-    expect(routeHiking(tester), isEmpty, reason: 'Forstweg: keine Striche');
-    expect(routeBand(tester), isNotEmpty);
-    final whole = routeWhole(tester);
-    expect(whole.first.latitude, closeTo(_fromLat, 1e-9));
-    expect(whole.last.latitude, closeTo(48.0, 1e-9));
-    // Eingepasst ÜBER dem Blatt, nicht darunter (Feldbericht 0.73.0).
-    expect(fakeMap(tester).lastFitBottomInset, greaterThan(100));
+      await tapTrailHead(tester);
+      expect(find.byKey(const ValueKey('loop-summary')), findsOneWidget);
+      expect(find.byKey(const ValueKey('loop-tile-climb')), findsOneWidget);
+      expect(find.textContaining('Forstweg'), findsOneWidget);
+      expect(
+        find.textContaining('Untergrenze'),
+        findsOneWidget,
+        reason: 'der Bereich hat keine Höhen',
+      );
+      expect(
+        find.textContaining('Wanderweg, Fußweg oder Stufen'),
+        findsNothing,
+      );
+      expect(find.byKey(const ValueKey('loop-notice')), findsNothing);
+      // Die Vorschau liegt als Linie der Fassade auf der Karte und beginnt
+      // am Standort.
+      final lines = routeLines(tester).toList();
+      expect(lines, hasLength(1));
+      expect(routeHiking(tester), isEmpty, reason: 'Forstweg: keine Striche');
+      expect(routeBand(tester), isNotEmpty);
+      final whole = routeWhole(tester);
+      expect(whole.first.latitude, closeTo(_fromLat, 1e-9));
+      expect(whole.last.latitude, closeTo(48.0, 1e-9));
+      // Eingepasst ÜBER dem Blatt, nicht darunter (Feldbericht 0.73.0).
+      expect(fakeMap(tester).lastFitBottomInset, greaterThan(100));
 
-    // Profilwechsel im Blatt rechnet auf dem stehenden Graphen neu. Erst
-    // das Blatt hochziehen: Seit „Als Fahrt speichern" (0.72.0) reicht das
-    // halbe Blatt nicht mehr, und ein Tipp unter seinem Rand träfe die
-    // Sperre dahinter — das Blatt ginge zu.
-    final list = find
-        .descendant(of: find.byType(DraggableScrollableSheet), matching: find.byType(Scrollable))
-        .first;
-    await tester.drag(list, const Offset(0, -400));
-    await settle(tester, frames: 4);
-    final ebike = find.descendant(
-        of: find.byKey(const ValueKey('loop-result-profile')), matching: find.text('E-Bike'));
-    await tester.ensureVisible(ebike);
-    await settle(tester, frames: 2);
-    await tester.tap(ebike);
-    await settle(tester);
-    expect(find.byKey(const ValueKey('loop-summary')), findsOneWidget);
-    expect(routeLines(tester), hasLength(1));
-
-    await tester.ensureVisible(find.byKey(const ValueKey('loop-gpx')));
-    await settle(tester, frames: 2);
-    await tester.tap(find.byKey(const ValueKey('loop-gpx')));
-    await settle(tester);
-    expect(shared, hasLength(1));
-    // Als Fahrt speichern (#158 Schritt 5): eine geplante Fahrt mit dem
-    // Weg als Punkten, ohne Höhen.
-    await tester.ensureVisible(find.byKey(const ValueKey('loop-save')));
-    await settle(tester, frames: 2);
-    await tester.tap(find.byKey(const ValueKey('loop-save')));
-    await settle(tester);
-    expect(rides.rides, hasLength(1));
-    expect(rides.rides.single.planned, isTrue);
-    expect(rides.rides.single.name, 'Zum Trailkopf: Hexentanz');
-    expect(rides.rides.single.points.first.lat, closeTo(_fromLat, 1e-9));
-    expect(rides.rides.single.points.every((p) => p.altM == null), isTrue);
-    expect(shared.single.fileName, 'trailbuddy-zum-trailkopf-hexentanz.gpx');
-    final track = parseGpx(shared.single.xml).single;
-    expect(track.name, 'Zum Trailkopf: Hexentanz');
-    expect(track.points.length, greaterThanOrEqualTo(2));
-    expect(track.points.first.lat, closeTo(_fromLat, 1e-9));
-    expect(track.points.every((p) => p.ele == null), isTrue);
-
-    // Runterziehen schließt NICHT (Feldbericht 0.73.0) — es verkleinert;
-    // die Route bleibt auf der Karte.
-    final sheetList = find
-        .descendant(of: find.byType(DraggableScrollableSheet), matching: find.byType(Scrollable))
-        .first;
-    for (var i = 0; i < 4; i++) {
-      await tester.drag(sheetList, const Offset(0, 1500));
+      // Profilwechsel im Blatt rechnet auf dem stehenden Graphen neu. Erst
+      // das Blatt hochziehen: Seit „Als Fahrt speichern" (0.72.0) reicht das
+      // halbe Blatt nicht mehr, und ein Tipp unter seinem Rand träfe die
+      // Sperre dahinter — das Blatt ginge zu.
+      final list = find
+          .descendant(
+            of: find.byType(DraggableScrollableSheet),
+            matching: find.byType(Scrollable),
+          )
+          .first;
+      await tester.drag(list, const Offset(0, -400));
       await settle(tester, frames: 4);
-    }
-    expect(find.text('Zum Trailkopf: Hexentanz'), findsOneWidget);
-    expect(routeLines(tester), hasLength(1));
+      final ebike = find.descendant(
+        of: find.byKey(const ValueKey('loop-result-profile')),
+        matching: find.text('E-Bike'),
+      );
+      await tester.ensureVisible(ebike);
+      await settle(tester, frames: 2);
+      await tester.tap(ebike);
+      await settle(tester);
+      expect(find.byKey(const ValueKey('loop-summary')), findsOneWidget);
+      expect(routeLines(tester), hasLength(1));
 
-    // Blatt zu (X) ⇒ Schnell zu (Konzept-Routing 10.4/10.5): nichts
-    // geändert, also der ganze Planer — die normale Karte, ohne Leiste,
-    // ohne Linie, ohne „Rückgängig".
-    await tester.tap(find.byKey(const ValueKey('loop-close')));
-    await settle(tester);
-    expect(find.byKey(const ValueKey('loop-summary')), findsNothing);
-    expect(routeLines(tester), isEmpty);
-    expect(find.byKey(const ValueKey('loop-tool-rail')), findsNothing);
-    expect(find.byKey(const ValueKey('loop-closed')), findsNothing);
-  });
+      await tester.ensureVisible(find.byKey(const ValueKey('loop-gpx')));
+      await settle(tester, frames: 2);
+      await tester.tap(find.byKey(const ValueKey('loop-gpx')));
+      await settle(tester);
+      expect(shared, hasLength(1));
+      // Als Fahrt speichern (#158 Schritt 5): eine geplante Fahrt mit dem
+      // Weg als Punkten, ohne Höhen.
+      await tester.ensureVisible(find.byKey(const ValueKey('loop-save')));
+      await settle(tester, frames: 2);
+      await tester.tap(find.byKey(const ValueKey('loop-save')));
+      await settle(tester);
+      expect(rides.rides, hasLength(1));
+      expect(rides.rides.single.planned, isTrue);
+      expect(rides.rides.single.name, 'Zum Trailkopf: Hexentanz');
+      expect(rides.rides.single.points.first.lat, closeTo(_fromLat, 1e-9));
+      expect(rides.rides.single.points.every((p) => p.altM == null), isTrue);
+      expect(shared.single.fileName, 'trailbuddy-zum-trailkopf-hexentanz.gpx');
+      final track = parseGpx(shared.single.xml).single;
+      expect(track.name, 'Zum Trailkopf: Hexentanz');
+      expect(track.points.length, greaterThanOrEqualTo(2));
+      expect(track.points.first.lat, closeTo(_fromLat, 1e-9));
+      expect(track.points.every((p) => p.ele == null), isTrue);
 
-  testWidgets('#356: Zurück am Ergebnis führt mit EINEM Schritt zur normalen Karte; eine Änderung erst in die Leiste',
-      (tester) async {
-    await start(tester, areaStore: await _areaWithTrack());
-    await tapTrailHead(tester);
-    expect(find.byKey(const ValueKey('loop-summary')), findsOneWidget);
-    expect(find.byKey(const ValueKey('loop-tool-rail')), findsOneWidget);
-    // Ein Stilwechsel ist keine Änderung der Auswahl: weiter Schnell zu.
-    await tester.tap(find.descendant(of: find.byKey(const ValueKey('loop-route-mode')), matching: find.text('Bequem')));
-    await settle(tester, frames: 10);
-    expect(find.byKey(const ValueKey('loop-summary')), findsOneWidget);
-    await tester.binding.handlePopRoute();
-    await settle(tester);
-    expect(find.byKey(const ValueKey('loop-summary')), findsNothing);
-    expect(find.byKey(const ValueKey('loop-tool-rail')), findsNothing);
-    expect(routeLines(tester), isEmpty);
+      // Runterziehen schließt NICHT (Feldbericht 0.73.0) — es verkleinert;
+      // die Route bleibt auf der Karte.
+      final sheetList = find
+          .descendant(
+            of: find.byType(DraggableScrollableSheet),
+            matching: find.byType(Scrollable),
+          )
+          .first;
+      for (var i = 0; i < 4; i++) {
+        await tester.drag(sheetList, const Offset(0, 1500));
+        await settle(tester, frames: 4);
+      }
+      expect(find.text('Zum Trailkopf: Hexentanz'), findsOneWidget);
+      expect(routeLines(tester), hasLength(1));
 
-    // Noch einmal hinein und einen Zwischenpunkt setzen: gebaut ⇒ Zurück
-    // schließt erst das Ergebnis, die Leiste bleibt.
-    await openTab(tester, 'Trails');
-    await settle(tester, frames: 10);
-    await tester.tap(find.text('Hexentanz'));
-    await settle(tester);
-    await tapTrailHead(tester);
-    expect(find.byKey(const ValueKey('loop-summary')), findsOneWidget);
-    await longPressMapAt(tester, LatLng(_fromLat, _lon + 0.0003));
-    await settle(tester);
-    await tester.tap(find.byKey(const ValueKey('map-menu-via')));
-    await settle(tester);
-    expect(find.byKey(const ValueKey('loop-changed')), findsOneWidget);
-    await tester.binding.handlePopRoute();
-    await settle(tester);
-    expect(find.byKey(const ValueKey('loop-changed')), findsNothing);
-    expect(find.byKey(const ValueKey('loop-tool-rail')), findsOneWidget);
-  });
+      // Blatt zu (X) ⇒ Schnell zu (Konzept-Routing 10.4/10.5): nichts
+      // geändert, also der ganze Planer — die normale Karte, ohne Leiste,
+      // ohne Linie, ohne „Rückgängig".
+      await tester.tap(find.byKey(const ValueKey('loop-close')));
+      await settle(tester);
+      expect(find.byKey(const ValueKey('loop-summary')), findsNothing);
+      expect(routeLines(tester), isEmpty);
+      expect(find.byKey(const ValueKey('loop-tool-rail')), findsNothing);
+      expect(find.byKey(const ValueKey('loop-closed')), findsNothing);
+    },
+  );
 
-  testWidgets('Zwischenpunkt (#234): Tipp auf die Linie, ziehen, zurück, entfernen', (tester) async {
-    await start(tester, areaStore: await _areaWithTrack());
-    await tapTrailHead(tester);
-    expect(find.byKey(const ValueKey('loop-tune-hint')), findsOneWidget);
-    expect(find.byKey(const ValueKey('via-handle-0-0')), findsNothing);
-    Iterable<MapViewMarker> viaMarks() =>
-        fakeMapLayers(tester).markers.where((m) => '${m.key}'.contains("'via-"));
+  testWidgets(
+    '#356: Zurück am Ergebnis führt mit EINEM Schritt zur normalen Karte; eine Änderung erst in die Leiste',
+    (tester) async {
+      await start(tester, areaStore: await _areaWithTrack());
+      await tapTrailHead(tester);
+      expect(find.byKey(const ValueKey('loop-summary')), findsOneWidget);
+      expect(find.byKey(const ValueKey('loop-tool-rail')), findsOneWidget);
+      // Ein Stilwechsel ist keine Änderung der Auswahl: weiter Schnell zu.
+      await tester.tap(
+        find.descendant(
+          of: find.byKey(const ValueKey('loop-route-mode')),
+          matching: find.text('Bequem'),
+        ),
+      );
+      await settle(tester, frames: 10);
+      expect(find.byKey(const ValueKey('loop-summary')), findsOneWidget);
+      await tester.binding.handlePopRoute();
+      await settle(tester);
+      expect(find.byKey(const ValueKey('loop-summary')), findsNothing);
+      expect(find.byKey(const ValueKey('loop-tool-rail')), findsNothing);
+      expect(routeLines(tester), isEmpty);
 
-    // Ein Tipp auf die Verbindung zwischen Standort und Trailkopf.
-    final mid = LatLng((_fromLat + 48.0) / 2, _lon);
-    await tapMapAt(tester, mid);
-    await settle(tester);
-    expect(viaMarks(), hasLength(1));
-    expect(viaMarks().single.point, mid);
-    expect(find.byKey(const ValueKey('via-handle-0-0')), findsOneWidget);
-    expect(find.byKey(const ValueKey('loop-tuned')), findsOneWidget);
-    expect(routeLines(tester), hasLength(1), reason: 'die Route liegt weiter auf der Karte');
+      // Noch einmal hinein und einen Zwischenpunkt setzen: gebaut ⇒ Zurück
+      // schließt erst das Ergebnis, die Leiste bleibt.
+      await openTab(tester, 'Trails');
+      await settle(tester, frames: 10);
+      await tester.tap(find.text('Hexentanz'));
+      await settle(tester);
+      await tapTrailHead(tester);
+      expect(find.byKey(const ValueKey('loop-summary')), findsOneWidget);
+      await longPressMapAt(tester, LatLng(_fromLat, _lon + 0.0003));
+      await settle(tester);
+      await tester.tap(find.byKey(const ValueKey('map-menu-via')));
+      await settle(tester);
+      expect(find.byKey(const ValueKey('loop-changed')), findsOneWidget);
+      await tester.binding.handlePopRoute();
+      await settle(tester);
+      expect(find.byKey(const ValueKey('loop-changed')), findsNothing);
+      expect(find.byKey(const ValueKey('loop-tool-rail')), findsOneWidget);
+    },
+  );
 
-    // Weit weg von jedem Weg gezogen: zurück an den Platz, mit Satz.
-    await tester.drag(find.byKey(const ValueKey('via-handle-0-0')), const Offset(300, 0));
-    await settle(tester);
-    expect(find.byKey(const ValueKey('via-rejected')), findsOneWidget);
-    expect(viaMarks().single.point, mid);
+  testWidgets(
+    'Zwischenpunkt (#234): Tipp auf die Linie, ziehen, zurück, entfernen',
+    (tester) async {
+      await start(tester, areaStore: await _areaWithTrack());
+      await tapTrailHead(tester);
+      expect(find.byKey(const ValueKey('loop-tune-hint')), findsOneWidget);
+      expect(find.byKey(const ValueKey('via-handle-0-0')), findsNothing);
+      Iterable<MapViewMarker> viaMarks() => fakeMapLayers(
+        tester,
+      ).markers.where((m) => '${m.key}'.contains("'via-"));
 
-    // Ein Stück den Weg entlang gezogen: der Punkt wandert mit.
-    await tester.drag(find.byKey(const ValueKey('via-handle-0-0')), const Offset(0, -40));
-    await settle(tester);
-    // Die ganzen 40 px, nicht 40 minus die Schwelle der Geste: Der Punkt
-    // bleibt unter dem Finger.
-    final cam = fakeMap(tester).camera;
-    final shift = projectToScreen(cam, viaMarks().single.point) - projectToScreen(cam, mid);
-    expect(shift.dy, closeTo(-40, 1));
-    expect(shift.dx, closeTo(0, 1));
+      // Ein Tipp auf die Verbindung zwischen Standort und Trailkopf.
+      final mid = LatLng((_fromLat + 48.0) / 2, _lon);
+      await tapMapAt(tester, mid);
+      await settle(tester);
+      expect(viaMarks(), hasLength(1));
+      expect(viaMarks().single.point, mid);
+      expect(find.byKey(const ValueKey('via-handle-0-0')), findsOneWidget);
+      expect(find.byKey(const ValueKey('loop-tuned')), findsOneWidget);
+      expect(
+        routeLines(tester),
+        hasLength(1),
+        reason: 'die Route liegt weiter auf der Karte',
+      );
 
-    // Ein Tipp auf den Punkt nimmt ihn weg, Rückgängig holt ihn zurück.
-    final moved = viaMarks().single.point;
-    await tester.tap(find.byKey(const ValueKey('via-handle-0-0')));
-    await settle(tester);
-    expect(viaMarks(), isEmpty);
-    expect(find.byKey(const ValueKey('via-removed')), findsOneWidget);
-    await tester.tap(find.text('Rückgängig'));
-    await settle(tester);
-    expect(viaMarks().single.point, moved);
+      // Weit weg von jedem Weg gezogen: zurück an den Platz, mit Satz.
+      await tester.drag(
+        find.byKey(const ValueKey('via-handle-0-0')),
+        const Offset(300, 0),
+      );
+      await settle(tester);
+      expect(find.byKey(const ValueKey('via-rejected')), findsOneWidget);
+      expect(viaMarks().single.point, mid);
 
-    // Zurücksetzen rechnet frei: keine Punkte, wieder der Hinweis. Erst
-    // das Blatt hochziehen — eingeklappt liegt die Zeile unter dem Rand.
-    await tester.drag(
-        find.descendant(of: find.byType(DraggableScrollableSheet), matching: find.byType(Scrollable)).first,
-        const Offset(0, -400));
-    await settle(tester, frames: 4);
-    // Die Zeile kann in der faulen Liste noch fehlen (seit #525 steht im
-    // Ergebnis ein Chip mehr): erst bauen lassen, dann zeigen.
-    await tester.scrollUntilVisible(find.byKey(const ValueKey('loop-tune-reset')), 100,
-        scrollable: find.descendant(of: find.byType(DraggableScrollableSheet), matching: find.byType(Scrollable)).first);
-    await settle(tester, frames: 2);
-    await tester.ensureVisible(find.byKey(const ValueKey('loop-tune-reset')));
-    await tester.tap(find.byKey(const ValueKey('loop-tune-reset')));
-    await settle(tester);
-    expect(viaMarks(), isEmpty);
-    expect(find.byKey(const ValueKey('loop-tune-hint')), findsOneWidget);
+      // Ein Stück den Weg entlang gezogen: der Punkt wandert mit.
+      await tester.drag(
+        find.byKey(const ValueKey('via-handle-0-0')),
+        const Offset(0, -40),
+      );
+      await settle(tester);
+      // Die ganzen 40 px, nicht 40 minus die Schwelle der Geste: Der Punkt
+      // bleibt unter dem Finger.
+      final cam = fakeMap(tester).camera;
+      final shift =
+          projectToScreen(cam, viaMarks().single.point) -
+          projectToScreen(cam, mid);
+      expect(shift.dy, closeTo(-40, 1));
+      expect(shift.dx, closeTo(0, 1));
 
-    // Blatt zu ⇒ keine Griffe mehr.
-    await tapMapAt(tester, mid);
-    await settle(tester);
-    expect(viaMarks(), hasLength(1));
-    await tester.ensureVisible(find.byKey(const ValueKey('loop-close')));
-    await settle(tester, frames: 2);
-    await tester.tap(find.byKey(const ValueKey('loop-close')));
-    await settle(tester);
-    expect(viaMarks(), isEmpty);
-    expect(find.byKey(const ValueKey('via-handles')), findsNothing);
-  });
+      // Ein Tipp auf den Punkt nimmt ihn weg, Rückgängig holt ihn zurück.
+      final moved = viaMarks().single.point;
+      await tester.tap(find.byKey(const ValueKey('via-handle-0-0')));
+      await settle(tester);
+      expect(viaMarks(), isEmpty);
+      expect(find.byKey(const ValueKey('via-removed')), findsOneWidget);
+      await tester.tap(find.text('Rückgängig'));
+      await settle(tester);
+      expect(viaMarks().single.point, moved);
 
-  testWidgets('„Navigieren" (#232): Blatt zu, die Folgeansicht fährt dieselbe Linie', (tester) async {
-    await start(tester, areaStore: await _areaWithTrack());
-    await tapTrailHead(tester);
-    final whole = routeWhole(tester);
-    // Erst hochziehen: Halb offen liegt die Knopfzeile unter dem Rand.
-    final list = find
-        .descendant(of: find.byType(DraggableScrollableSheet), matching: find.byType(Scrollable))
-        .first;
-    await tester.drag(list, const Offset(0, -400));
-    await settle(tester, frames: 4);
-    // Ergebnis und Start in einem (#517): Aufzeichnen aus — sonst bräuchte
-    // der Test einen Fix des Dienstes —, dann EIN Knopf, kein zweites Blatt.
-    await tester.ensureVisible(find.byKey(const ValueKey('nav-record')));
-    await tester.tap(find.byKey(const ValueKey('nav-record')));
-    await settle(tester, frames: 2);
-    await tester.ensureVisible(find.byKey(const ValueKey('loop-navigate')));
-    await tester.tap(find.byKey(const ValueKey('loop-navigate')));
-    await settle(tester);
-    expect(find.byKey(const ValueKey('nav-go')), findsNothing, reason: 'kein Start-Blatt mehr');
-    expect(find.byKey(const ValueKey('loop-summary')), findsNothing);
-    expect(find.byKey(const ValueKey('nav-approach')), findsOneWidget);
-    final route = routeWhole(tester);
-    expect(route.last, whole.last);
-    // Der Trail läuft nach Norden: Norden oben.
-    expect(fakeMap(tester).bearing, closeTo(0, 5)); // Kachelpixel: ein, zwei Grad
+      // Zurücksetzen rechnet frei: keine Punkte, wieder der Hinweis. Erst
+      // das Blatt hochziehen — eingeklappt liegt die Zeile unter dem Rand.
+      await tester.drag(
+        find
+            .descendant(
+              of: find.byType(DraggableScrollableSheet),
+              matching: find.byType(Scrollable),
+            )
+            .first,
+        const Offset(0, -400),
+      );
+      await settle(tester, frames: 4);
+      // Die Zeile kann in der faulen Liste noch fehlen (seit #525 steht im
+      // Ergebnis ein Chip mehr): erst bauen lassen, dann zeigen.
+      await tester.scrollUntilVisible(
+        find.byKey(const ValueKey('loop-tune-reset')),
+        100,
+        scrollable: find
+            .descendant(
+              of: find.byType(DraggableScrollableSheet),
+              matching: find.byType(Scrollable),
+            )
+            .first,
+      );
+      await settle(tester, frames: 2);
+      await tester.ensureVisible(find.byKey(const ValueKey('loop-tune-reset')));
+      await tester.tap(find.byKey(const ValueKey('loop-tune-reset')));
+      await settle(tester);
+      expect(viaMarks(), isEmpty);
+      expect(find.byKey(const ValueKey('loop-tune-hint')), findsOneWidget);
 
-    // Beenden (Konzept-Routing 10.5): Das Ergebnis steht wieder da, ohne
-    // neu zu rechnen; von dort EIN Schritt zur normalen Karte.
-    await tester.tap(find.byKey(const ValueKey('nav-stop')));
-    await settle(tester, frames: 20);
-    expect(find.byKey(const ValueKey('nav-approach')), findsNothing);
-    expect(find.byKey(const ValueKey('loop-summary')), findsOneWidget);
-    expect(routeWhole(tester).last, whole.last);
-    await tester.tap(find.byKey(const ValueKey('loop-close')));
-    await settle(tester);
-    expect(find.byKey(const ValueKey('loop-tool-rail')), findsNothing);
-    expect(routeLines(tester), isEmpty);
-  });
+      // Blatt zu ⇒ keine Griffe mehr.
+      await tapMapAt(tester, mid);
+      await settle(tester);
+      expect(viaMarks(), hasLength(1));
+      await tester.ensureVisible(find.byKey(const ValueKey('loop-close')));
+      await settle(tester, frames: 2);
+      await tester.tap(find.byKey(const ValueKey('loop-close')));
+      await settle(tester);
+      expect(viaMarks(), isEmpty);
+      expect(find.byKey(const ValueKey('via-handles')), findsNothing);
+    },
+  );
 
-  testWidgets('ohne gespeicherten Bereich: ein Satz und die Anfahrt, kein GPX', (tester) async {
-    await start(tester);
-    await tapTrailHead(tester);
-    expect(find.textContaining('Kein gespeicherter Bereich'), findsOneWidget);
-    expect(find.byKey(const ValueKey('loop-external')), findsOneWidget);
-    expect(find.byKey(const ValueKey('loop-gpx')), findsNothing);
-    expect(routeLines(tester), isEmpty);
-  });
+  testWidgets(
+    '„Navigieren" (#232): Blatt zu, die Folgeansicht fährt dieselbe Linie',
+    (tester) async {
+      await start(tester, areaStore: await _areaWithTrack());
+      await tapTrailHead(tester);
+      final whole = routeWhole(tester);
+      // Erst hochziehen: Halb offen liegt die Knopfzeile unter dem Rand.
+      final list = find
+          .descendant(
+            of: find.byType(DraggableScrollableSheet),
+            matching: find.byType(Scrollable),
+          )
+          .first;
+      await tester.drag(list, const Offset(0, -400));
+      await settle(tester, frames: 4);
+      // Ergebnis und Start in einem (#517): Aufzeichnen aus — sonst bräuchte
+      // der Test einen Fix des Dienstes —, dann EIN Knopf, kein zweites Blatt.
+      await tester.ensureVisible(find.byKey(const ValueKey('nav-record')));
+      await tester.tap(find.byKey(const ValueKey('nav-record')));
+      await settle(tester, frames: 2);
+      await tester.ensureVisible(find.byKey(const ValueKey('loop-navigate')));
+      await tester.tap(find.byKey(const ValueKey('loop-navigate')));
+      await settle(tester);
+      expect(
+        find.byKey(const ValueKey('nav-go')),
+        findsNothing,
+        reason: 'kein Start-Blatt mehr',
+      );
+      expect(find.byKey(const ValueKey('loop-summary')), findsNothing);
+      expect(find.byKey(const ValueKey('nav-approach')), findsOneWidget);
+      final route = routeWhole(tester);
+      expect(route.last, whole.last);
+      // Der Trail läuft nach Norden: Norden oben.
+      expect(
+        fakeMap(tester).bearing,
+        closeTo(0, 5),
+      ); // Kachelpixel: ein, zwei Grad
 
-  testWidgets('ohne Standort: ein Satz, gefragt wurde genau einmal', (tester) async {
+      // Beenden (Konzept-Routing 10.5): Das Ergebnis steht wieder da, ohne
+      // neu zu rechnen; von dort EIN Schritt zur normalen Karte.
+      await tester.tap(find.byKey(const ValueKey('nav-stop')));
+      await settle(tester, frames: 20);
+      expect(find.byKey(const ValueKey('nav-approach')), findsNothing);
+      expect(find.byKey(const ValueKey('loop-summary')), findsOneWidget);
+      expect(routeWhole(tester).last, whole.last);
+      await tester.tap(find.byKey(const ValueKey('loop-close')));
+      await settle(tester);
+      expect(find.byKey(const ValueKey('loop-tool-rail')), findsNothing);
+      expect(routeLines(tester), isEmpty);
+    },
+  );
+
+  testWidgets(
+    'ohne gespeicherten Bereich: ein Satz und die Anfahrt, kein GPX',
+    (tester) async {
+      await start(tester);
+      await tapTrailHead(tester);
+      expect(find.textContaining('Kein gespeicherter Bereich'), findsOneWidget);
+      expect(find.byKey(const ValueKey('loop-external')), findsOneWidget);
+      expect(find.byKey(const ValueKey('loop-gpx')), findsNothing);
+      expect(routeLines(tester), isEmpty);
+    },
+  );
+
+  testWidgets('ohne Standort: ein Satz, gefragt wurde genau einmal', (
+    tester,
+  ) async {
     final fix = FakePositionFix(null);
     await start(tester, areaStore: await _areaWithTrack(), positionFix: fix);
     await tapTrailHead(tester);

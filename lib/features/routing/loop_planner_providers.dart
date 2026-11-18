@@ -17,4 +17,6 @@ final mapFitRequestProvider = StateProvider<List<LatLng>?>((ref) => null);
 /// Karte. Die Karte nimmt den Wunsch und setzt ihn auf null.
 typedef LoopTrailHeadRequest = ({String trailId, bool asTarget});
 
-final loopTrailHeadRequestProvider = StateProvider<LoopTrailHeadRequest?>((ref) => null);
+final loopTrailHeadRequestProvider = StateProvider<LoopTrailHeadRequest?>(
+  (ref) => null,
+);

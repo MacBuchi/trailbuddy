@@ -43,8 +43,12 @@ class TourExampleBadge extends StatelessWidget {
         color: theme.colorScheme.tertiaryContainer,
         borderRadius: BorderRadius.circular(8),
       ),
-      child: Text(context.l10n.tourExampleBadge,
-          style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onTertiaryContainer)),
+      child: Text(
+        context.l10n.tourExampleBadge,
+        style: theme.textTheme.labelSmall?.copyWith(
+          color: theme.colorScheme.onTertiaryContainer,
+        ),
+      ),
     );
   }
 }
@@ -73,7 +77,9 @@ class ExampleTrailTile extends StatelessWidget {
           margin: EdgeInsets.zero,
           elevation: 0,
           shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14), side: BorderSide(color: palette.line)),
+            borderRadius: BorderRadius.circular(14),
+            side: BorderSide(color: palette.line),
+          ),
           child: ListTile(
             contentPadding: const EdgeInsets.fromLTRB(12, 6, 12, 6),
             horizontalTitleGap: 12,
@@ -83,18 +89,29 @@ class ExampleTrailTile extends StatelessWidget {
               child: Container(
                 width: 4,
                 height: 40,
-                decoration: BoxDecoration(color: palette.grade.s1, borderRadius: BorderRadius.circular(2)),
+                decoration: BoxDecoration(
+                  color: palette.grade.s1,
+                  borderRadius: BorderRadius.circular(2),
+                ),
               ),
             ),
-            title: Text(l.tourExampleTrailName,
-                style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
+            title: Text(
+              l.tourExampleTrailName,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
             subtitle: Row(
               children: [
                 Flexible(
-                  child: Text('${l.tourExampleTrailStats} · ${l.listTagMine}',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppFonts.numbers(theme.textTheme.bodySmall).copyWith(color: palette.muted)),
+                  child: Text(
+                    '${l.tourExampleTrailStats} · ${l.listTagMine}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppFonts.numbers(
+                      theme.textTheme.bodySmall,
+                    ).copyWith(color: palette.muted),
+                  ),
                 ),
                 const SizedBox(width: 6),
                 const TourExampleBadge(),
@@ -135,21 +152,21 @@ class _ExampleTrailSheet extends StatelessWidget {
     final muted = theme.textTheme.bodySmall?.copyWith(color: palette.muted);
     final l = context.l10n;
     Widget tile(String label, String value) => Expanded(
-          child: Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: palette.surface2,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(label, style: muted),
-                Text(value, style: AppFonts.numbers(theme.textTheme.titleLarge)),
-              ],
-            ),
-          ),
-        );
+      child: Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: palette.surface2,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(label, style: muted),
+            Text(value, style: AppFonts.numbers(theme.textTheme.titleLarge)),
+          ],
+        ),
+      ),
+    );
     return SafeArea(
       child: SingleChildScrollView(
         key: kExampleTrailSheetKey,
@@ -164,8 +181,12 @@ class _ExampleTrailSheet extends StatelessWidget {
                   child: Row(
                     children: [
                       Flexible(
-                        child: Text(l.tourExampleTrailName.toUpperCase(),
-                            style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800)),
+                        child: Text(
+                          l.tourExampleTrailName.toUpperCase(),
+                          style: theme.textTheme.headlineSmall?.copyWith(
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
                       ),
                       const SizedBox(width: 8),
                       const TourExampleBadge(),
@@ -214,7 +235,11 @@ class _ExampleTrailSheet extends StatelessWidget {
                     spacing: 6,
                     children: [
                       for (var g = 0; g <= 5; g++)
-                        ChoiceChip(label: Text('S$g'), selected: g == 1, onSelected: (_) => _nothing()),
+                        ChoiceChip(
+                          label: Text('S$g'),
+                          selected: g == 1,
+                          onSelected: (_) => _nothing(),
+                        ),
                     ],
                   ),
                 ],
@@ -222,13 +247,18 @@ class _ExampleTrailSheet extends StatelessWidget {
             ),
             CoachAnchor(
               id: SheetCoach.contribution,
-              child: TextButton(onPressed: _nothing, child: Text(l.sheetContribution)),
+              child: TextButton(
+                onPressed: _nothing,
+                child: Text(l.sheetContribution),
+              ),
             ),
             const SizedBox(height: 8),
             CoachAnchor(
               id: SheetCoach.report,
               child: FilledButton.icon(
-                style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(48)),
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size.fromHeight(48),
+                ),
                 onPressed: _nothing,
                 icon: const Icon(Icons.flag_outlined),
                 label: Text(l.sheetReport),
@@ -254,7 +284,9 @@ class _ExampleTrailSheet extends StatelessWidget {
                   child: CoachAnchor(
                     id: SheetCoach.trailHead,
                     child: OutlinedButton.icon(
-                      style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size.fromHeight(48),
+                      ),
                       onPressed: _nothing,
                       icon: const Icon(Icons.sports_score),
                       label: Text(l.sheetAsTarget),
@@ -266,7 +298,9 @@ class _ExampleTrailSheet extends StatelessWidget {
                   child: CoachAnchor(
                     id: SheetCoach.plan,
                     child: OutlinedButton.icon(
-                      style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size.fromHeight(48),
+                      ),
                       onPressed: _nothing,
                       icon: const Icon(Icons.trip_origin),
                       label: Text(l.sheetAsStart),
@@ -289,7 +323,9 @@ class ExampleBuddyTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final muted = theme.textTheme.bodySmall?.copyWith(color: AppPalette.of(context).muted);
+    final muted = theme.textTheme.bodySmall?.copyWith(
+      color: AppPalette.of(context).muted,
+    );
     final l = context.l10n;
     return CoachAnchor(
       id: BuddysCoach.row,
@@ -298,15 +334,23 @@ class ExampleBuddyTile extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 6),
         child: Row(
           children: [
-            const LetterAvatar(name: 'Mira', colorKey: 'tour-example', size: 44),
+            const LetterAvatar(
+              name: 'Mira',
+              colorKey: 'tour-example',
+              size: 44,
+            ),
             const SizedBox(width: 14),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(l.tourExampleBuddyName,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+                  Text(
+                    l.tourExampleBuddyName,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                   Row(
                     children: [
                       Text(l.buddysSharedCount(3), style: muted),

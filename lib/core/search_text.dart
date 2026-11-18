@@ -53,7 +53,8 @@ int nearContainsDistance(String needle, String hay) {
   for (var j = 1; j <= hay.length; j++) {
     current[0] = 0;
     for (var i = 1; i <= needle.length; i++) {
-      final substitution = previous[i - 1] + (needle[i - 1] == hay[j - 1] ? 0 : 1);
+      final substitution =
+          previous[i - 1] + (needle[i - 1] == hay[j - 1] ? 0 : 1);
       final insertion = current[i - 1] + 1;
       final deletion = previous[i] + 1;
       var value = substitution < insertion ? substitution : insertion;

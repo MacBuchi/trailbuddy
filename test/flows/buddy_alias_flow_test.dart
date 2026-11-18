@@ -45,8 +45,11 @@ void main() {
     await giveAlias(tester, '  Andi  ');
     expect(backend.aliases[(owner: me.id, friend: andi.id)], 'Andi');
     expect(find.text('Andi'), findsOneWidget);
-    expect(find.text('downhiller 1'), findsOneWidget,
-        reason: 'der echte Name steht darunter');
+    expect(
+      find.text('downhiller 1'),
+      findsOneWidget,
+      reason: 'der echte Name steht darunter',
+    );
 
     // Andi benennt sich um. Das ist der ganze Zweck des Features.
     andi.username = 'enduro 2';
@@ -79,8 +82,9 @@ void main() {
     expect(find.text('downhiller 1'), findsOneWidget);
   });
 
-  testWidgets('Ende der Freundschaft nimmt die Aliase beider Seiten mit',
-      (tester) async {
+  testWidgets('Ende der Freundschaft nimmt die Aliase beider Seiten mit', (
+    tester,
+  ) async {
     backend.addFriendship(me.id, andi.id);
     backend.aliases[(owner: me.id, friend: andi.id)] = 'Andi';
     backend.aliases[(owner: andi.id, friend: me.id)] = 'Trailkönig';

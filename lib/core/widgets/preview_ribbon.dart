@@ -40,16 +40,18 @@ class PreviewRibbon extends ConsumerWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.science_outlined,
-                      size: 13, color: Colors.white),
+                  const Icon(
+                    Icons.science_outlined,
+                    size: 13,
+                    color: Colors.white,
+                  ),
                   const SizedBox(width: 6),
                   Flexible(
                     child: Text(
                       context.l10n.previewRibbon,
-                      style: Theme.of(context)
-                          .textTheme
-                          .labelSmall
-                          ?.copyWith(color: Colors.white),
+                      style: Theme.of(
+                        context,
+                      ).textTheme.labelSmall?.copyWith(color: Colors.white),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),

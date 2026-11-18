@@ -19,20 +19,23 @@ void main() {
     expect(lines, isEmpty);
   });
 
-  test('eine Lücke wird gemeldet, ohne den Takt selbst, mit den Marken darin', () {
-    m.tick(0);
-    m.tick(16 * ms);
-    // Vor der Lücke: kurz, gehört nicht dazu (endete vor dem letzten Takt).
-    m.mark('vorher', 2 * ms, 10 * ms);
-    // In der Lücke: zwei Schritte, einer davon allein über der Schwelle.
-    m.mark('graph.nodes', 20 * ms, 60 * ms);
-    m.mark('graph.crossings', 60 * ms, 500 * ms);
-    m.tick(516 * ms);
-    expect(lines, [
-      'TB-STALL graph.crossings 440 ms',
-      'TB-STALL gap 484 ms [graph.nodes 40, graph.crossings 440]',
-    ]);
-  });
+  test(
+    'eine Lücke wird gemeldet, ohne den Takt selbst, mit den Marken darin',
+    () {
+      m.tick(0);
+      m.tick(16 * ms);
+      // Vor der Lücke: kurz, gehört nicht dazu (endete vor dem letzten Takt).
+      m.mark('vorher', 2 * ms, 10 * ms);
+      // In der Lücke: zwei Schritte, einer davon allein über der Schwelle.
+      m.mark('graph.nodes', 20 * ms, 60 * ms);
+      m.mark('graph.crossings', 60 * ms, 500 * ms);
+      m.tick(516 * ms);
+      expect(lines, [
+        'TB-STALL graph.crossings 440 ms',
+        'TB-STALL gap 484 ms [graph.nodes 40, graph.crossings 440]',
+      ]);
+    },
+  );
 
   test('knapp unter der Schwelle bleibt still, ab der Schwelle nicht', () {
     m.tick(0);
@@ -50,13 +53,16 @@ void main() {
     expect(lines, ['TB-STALL gap 268 ms']);
   });
 
-  test('ohne Takt (Isolate) bleibt das Gedächtnis gedeckelt, die Meldung kommt trotzdem', () {
-    for (var i = 0; i < 500; i++) {
-      m.mark('klein', i * ms, i * ms + 1);
-    }
-    m.mark('groß', 0, 150 * ms);
-    expect(lines, ['TB-STALL groß 150 ms']);
-  });
+  test(
+    'ohne Takt (Isolate) bleibt das Gedächtnis gedeckelt, die Meldung kommt trotzdem',
+    () {
+      for (var i = 0; i < 500; i++) {
+        m.mark('klein', i * ms, i * ms + 1);
+      }
+      m.mark('groß', 0, 150 * ms);
+      expect(lines, ['TB-STALL groß 150 ms']);
+    },
+  );
 
   test('ein Schritt mit await wird immer gemeldet', () {
     m.time('plan.loop', 5 * ms, 1845 * ms);
@@ -65,9 +71,16 @@ void main() {
   });
 
   test('ohne Schalter gibt StallWatch nur durch, auch Fehler', () async {
-    expect(kStallWatch, isFalse, reason: 'Tests bauen ohne --dart-define=STALL_WATCH');
+    expect(
+      kStallWatch,
+      isFalse,
+      reason: 'Tests bauen ohne --dart-define=STALL_WATCH',
+    );
     expect(StallWatch.mark('x', () => 42), 42);
     expect(await StallWatch.time('y', () async => 'ok'), 'ok');
-    expect(() => StallWatch.mark<int>('z', () => throw StateError('kaputt')), throwsStateError);
+    expect(
+      () => StallWatch.mark<int>('z', () => throw StateError('kaputt')),
+      throwsStateError,
+    );
   });
 }

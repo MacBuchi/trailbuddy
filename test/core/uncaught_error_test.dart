@@ -14,7 +14,10 @@ void main() {
   tearDown(() => setErrorSink(null));
 
   test('CancellationException ist behandelt und wird nicht gemeldet', () {
-    expect(handleUncaughtError(CancellationException(), StackTrace.empty), isTrue);
+    expect(
+      handleUncaughtError(CancellationException(), StackTrace.empty),
+      isTrue,
+    );
     expect(reported, isEmpty);
   });
 
@@ -25,7 +28,10 @@ void main() {
   });
 
   test('ohne Sitzung wird weder gemeldet noch verschluckt', () {
-    expect(handleUncaughtError(const NotSignedInException(), StackTrace.empty), isFalse);
+    expect(
+      handleUncaughtError(const NotSignedInException(), StackTrace.empty),
+      isFalse,
+    );
     expect(reported, isEmpty);
   });
 }

@@ -74,7 +74,11 @@ class PlanningGraph {
   }) : _pieces = pieces;
 
   /// Keine Kachel im Rahmen — kein Plan.
-  static const none = PlanningGraph(coverage: RoadCoverage.none, tilesFound: 0, tilesNeeded: 0);
+  static const none = PlanningGraph(
+    coverage: RoadCoverage.none,
+    tilesFound: 0,
+    tilesNeeded: 0,
+  );
 
   /// Die Eingabe für den Bau im Rechen-Isolate; null ohne Kachel, bei
   /// „zu groß" — und nach der Übergabe ([summary]), damit die Bytes nicht
@@ -135,8 +139,13 @@ class PlanningGraph {
 /// Mit [only] nur diese Kacheln des Rahmens (der Korridor einer Linie,
 /// [tilesAlong]) — die Abzweigungen für die Uhr (#449); Grenze und
 /// Zählung gelten dann für sie.
-Future<PlanningGraph> loadPlanningGraph(Ref ref, LatBox box,
-    {bool fillOnline = true, int? maxTiles = kPlanMaxTiles, Set<(int, int)>? only}) async {
+Future<PlanningGraph> loadPlanningGraph(
+  Ref ref,
+  LatBox box, {
+  bool fillOnline = true,
+  int? maxTiles = kPlanMaxTiles,
+  Set<(int, int)>? only,
+}) async {
   List<StoredArea> areas;
   try {
     areas = await ref.read(storedAreasProvider.future);
@@ -149,8 +158,15 @@ Future<PlanningGraph> loadPlanningGraph(Ref ref, LatBox box,
   // Providers wird nicht nach jeder Planung neu gelesen (das baute den
   // Kartenstil neu), der Index schon geschrieben.
   try {
-    final kept = [for (final a in await store.list()) if (a.kept) a];
-    areas = [for (final a in areas) if (!a.kept) a, ...kept];
+    final kept = [
+      for (final a in await store.list())
+        if (a.kept) a,
+    ];
+    areas = [
+      for (final a in areas)
+        if (!a.kept) a,
+      ...kept,
+    ];
   } catch (_) {
     // Dann eben der Stand des Providers.
   }
@@ -169,8 +185,9 @@ Future<PlanningGraph> loadPlanningGraph(Ref ref, LatBox box,
       if (only == null || only.contains((t.x, t.y))) t,
   ];
   final tooLarge = maxTiles != null && frame.length > maxTiles;
-  final online =
-      fillOnline && !tooLarge && !ref.read(noConnectivityProvider) ? ref.read(onlineFillFactoryProvider)(box) : null;
+  final online = fillOnline && !tooLarge && !ref.read(noConnectivityProvider)
+      ? ref.read(onlineFillFactoryProvider)(box)
+      : null;
   // Wohin Geholtes gehört (#478) — null ohne Manifest oder ohne Naht.
   ({String region, KeptBuilds builds})? keep;
   if (online?.keep case final target?) {
@@ -184,12 +201,13 @@ Future<PlanningGraph> loadPlanningGraph(Ref ref, LatBox box,
   var refreshed = 0;
   if (online != null && keep != null) {
     final stale = await staleKeptTiles(
-        tiles: tileStore,
-        areas: areas,
-        region: keep.region,
-        frame: frame,
-        mapBuild: keep.builds.map,
-        max: kOnlineFillMaxTiles);
+      tiles: tileStore,
+      areas: areas,
+      region: keep.region,
+      frame: frame,
+      mapBuild: keep.builds.map,
+      max: kOnlineFillMaxTiles,
+    );
     for (final t in stale) {
       try {
         if (await online.fetch(t, fresh: true) == null) continue;
@@ -202,8 +220,15 @@ Future<PlanningGraph> loadPlanningGraph(Ref ref, LatBox box,
     if (refreshed > 0) {
       await _keep(ref, keep, online.takeKept(), const [], pieces: null);
       try {
-        final kept = [for (final a in await store.list()) if (a.kept) a];
-        areas = [for (final a in areas) if (!a.kept) a, ...kept];
+        final kept = [
+          for (final a in await store.list())
+            if (a.kept) a,
+        ];
+        areas = [
+          for (final a in areas)
+            if (!a.kept) a,
+          ...kept,
+        ];
       } catch (_) {
         // Der alte Stand trägt; die Kachel liest der Lader trotzdem.
       }
@@ -211,11 +236,16 @@ Future<PlanningGraph> loadPlanningGraph(Ref ref, LatBox box,
   }
   final regions = <String>{
     for (final a in areas)
-      if (a.maxZoom >= kRoadGraphZoom && a.bounds.intersects(roadGraphBounds(box, kTrailHeadMarginM))) a.region,
+      if (a.maxZoom >= kRoadGraphZoom &&
+          a.bounds.intersects(roadGraphBounds(box, kTrailHeadMarginM)))
+        a.region,
   };
   final pieces = tooLarge || regions.isEmpty
       ? PieceLookup.none(session)
-      : await StallWatch.time('graph.pieces', () => findPieces(tileStore, regions, frame, session));
+      : await StallWatch.time(
+          'graph.pieces',
+          () => findPieces(tileStore, regions, frame, session),
+        );
   final open = ref.read(areaArchiveOpenerProvider);
   final openWays = ref.read(areaWaysOpenerProvider);
   if (online != null) {
@@ -227,20 +257,23 @@ Future<PlanningGraph> loadPlanningGraph(Ref ref, LatBox box,
   HeightTiles? tiles;
   ({List<RoadTileBytes> roads, List<RoutingPiece> pieces})? split;
   try {
-    read = await StallWatch.time('graph.load', () => readRoadTiles(
-      areas: areas,
-      box: box,
-      open: (a) => open(store, a),
-      marginM: kTrailHeadMarginM,
-      fetchOnline: online == null ? null : (t) => online.fetch(t),
-      maxOnline: kOnlineFillMaxTiles - refreshed,
-      openWays: (a) => openWays(store, a),
-      fetchWaysOnline: online?.fetchWays,
-      sourceKey: (a) => a.region,
-      maxTiles: maxTiles,
-      only: only,
-      covered: pieces.fresh.keys.toSet(),
-    ));
+    read = await StallWatch.time(
+      'graph.load',
+      () => readRoadTiles(
+        areas: areas,
+        box: box,
+        open: (a) => open(store, a),
+        marginM: kTrailHeadMarginM,
+        fetchOnline: online == null ? null : (t) => online.fetch(t),
+        maxOnline: kOnlineFillMaxTiles - refreshed,
+        openWays: (a) => openWays(store, a),
+        fetchWaysOnline: online?.fetchWays,
+        sourceKey: (a) => a.region,
+        maxTiles: maxTiles,
+        only: only,
+        covered: pieces.fresh.keys.toSet(),
+      ),
+    );
     StallWatch.info('graph.tiles', '${read.tilesFound}/${read.tilesNeeded}');
     // Was online ergänzt war und in dieser Sitzung schon ein Stück hat,
     // wird nicht noch einmal gebacken.
@@ -251,23 +284,41 @@ Future<PlanningGraph> loadPlanningGraph(Ref ref, LatBox box,
     if (bake.isNotEmpty && heights != null) {
       final h = heights;
       tiles = await StallWatch.time(
-          'graph.heights', () => HeightTiles.read(h, [for (final r in bake) (x: r.tile.x, y: r.tile.y)]));
+        'graph.heights',
+        () => HeightTiles.read(h, [
+          for (final r in bake) (x: r.tile.x, y: r.tile.y),
+        ]),
+      );
     }
     if (online != null) {
       final fetched = online.takeKept();
-      StallWatch.info('graph.online',
-          'roads=${online.roadRequests} heights=${online.heightRequests} ways=${online.wayRequests} refreshed=$refreshed');
+      StallWatch.info(
+        'graph.online',
+        'roads=${online.roadRequests} heights=${online.heightRequests} ways=${online.wayRequests} refreshed=$refreshed',
+      );
       if (keep != null) {
-        await _keep(ref, keep, fetched, [for (final t in frame) TileSetShape.keyOf(t.x, t.y, kAreaShapeZoom)],
-            pieces: pieces);
+        await _keep(ref, keep, fetched, [
+          for (final t in frame) TileSetShape.keyOf(t.x, t.y, kAreaShapeZoom),
+        ], pieces: pieces);
       }
     } else if (!tooLarge) {
       // Ohne Empfang zählt die Nutzung trotzdem: Was man fährt, bleibt.
-      final region = areas.where((a) => a.kept && a.bounds.intersects(roadGraphBounds(box, kTrailHeadMarginM)));
+      final region = areas.where(
+        (a) =>
+            a.kept &&
+            a.bounds.intersects(roadGraphBounds(box, kTrailHeadMarginM)),
+      );
       for (final holder in region) {
-        await _keep(ref, (region: holder.region, builds: (map: holder.build, heights: null, ways: null)), const [],
-            [for (final t in frame) TileSetShape.keyOf(t.x, t.y, kAreaShapeZoom)],
-            pieces: null);
+        await _keep(
+          ref,
+          (
+            region: holder.region,
+            builds: (map: holder.build, heights: null, ways: null),
+          ),
+          const [],
+          [for (final t in frame) TileSetShape.keyOf(t.x, t.y, kAreaShapeZoom)],
+          pieces: null,
+        );
       }
     }
   } catch (e, s) {
@@ -281,7 +332,9 @@ Future<PlanningGraph> loadPlanningGraph(Ref ref, LatBox box,
     final trails = ref.read(trailsProvider).valueOrNull ?? const <Trail>[];
     final near = [
       for (final t in trails)
-        if (t.points.length >= 2 && LatBox.of(t.points).near(box, kTrailHeadMarginM)) t,
+        if (t.points.length >= 2 &&
+            LatBox.of(t.points).near(box, kTrailHeadMarginM))
+          t,
     ];
     input = GraphInput(
       roads: split.roads,
@@ -311,8 +364,13 @@ Future<PlanningGraph> loadPlanningGraph(Ref ref, LatBox box,
 /// (#478); die Stücke der geholten Kacheln gehören danach in den Speicher
 /// ([PieceLookup.adopt]). Wirft nie: Ein Fehler lässt die Kacheln bei der
 /// Sitzung, wie bis 0.158.
-Future<void> _keep(Ref ref, ({String region, KeptBuilds builds}) target, List<KeptFetch> fetched, List<int> used,
-    {required PieceLookup? pieces}) async {
+Future<void> _keep(
+  Ref ref,
+  ({String region, KeptBuilds builds}) target,
+  List<KeptFetch> fetched,
+  List<int> used, {
+  required PieceLookup? pieces,
+}) async {
   final tiles = ref.read(tileStoreProvider);
   try {
     final r = await keepOnlineTiles(
@@ -335,7 +393,10 @@ Future<void> _keep(Ref ref, ({String region, KeptBuilds builds}) target, List<Ke
         ),
     });
     if (fetched.isNotEmpty || r.evicted > 0) {
-      StallWatch.info('graph.kept', 'kept=${fetched.length} evicted=${r.evicted}');
+      StallWatch.info(
+        'graph.kept',
+        'kept=${fetched.length} evicted=${r.evicted}',
+      );
     }
     // Neu in der Region: Karte und Höhen kennen sie erst nach dem Neulesen.
     if (r.relist) await ref.read(storedAreasProvider.notifier).refresh();
@@ -362,7 +423,8 @@ Future<List<List<LatLng>>> officialClosuresIn(Ref ref, LatBox box) async {
   return [
     for (final t in ref.read(officialTrailsControllerProvider).trails)
       for (final sec in t.sections)
-        if (sec.closed && LatBox.of(sec.points).near(box, kTrailHeadMarginM)) sec.points,
+        if (sec.closed && LatBox.of(sec.points).near(box, kTrailHeadMarginM))
+          sec.points,
   ];
 }
 
@@ -372,23 +434,35 @@ const kOfficialClosuresWait = Duration(seconds: 5);
 /// Der Satz unter dem Ergebnis, wenn nicht alles aus den Bereichen kam —
 /// EINE Fassung für Runde ([loop]) und Weg. Null, wenn es nichts zu sagen
 /// gibt.
-String? planningCoverageNote(AppLocalizations l, PlanningGraph g, {required bool loop}) {
+String? planningCoverageNote(
+  AppLocalizations l,
+  PlanningGraph g, {
+  required bool loop,
+}) {
   if (!g.usable) return null;
   final online = g.tilesOnline;
   if (!g.partial) {
-    return online == 0 ? null : (loop ? l.routingCoverageOnlineLoop(online) : l.routingCoverageOnlineRoute(online));
+    return online == 0
+        ? null
+        : (loop
+              ? l.routingCoverageOnlineLoop(online)
+              : l.routingCoverageOnlineRoute(online));
   }
   final head = l.routingCoveragePartial(g.tilesFound, g.tilesNeeded);
   if (online == 0) return '$head ${l.routingCoverageOffline}';
   final rest = g.onlineCapped
       ? l.routingCoverageCapped(online, kOnlineFillMaxTiles)
       : g.onlineBroken
-          ? l.routingCoverageBroken(online)
-          : l.routingCoverageOutside(online);
+      ? l.routingCoverageBroken(online)
+      : l.routingCoverageOutside(online);
   return '$head $rest';
 }
 
 /// Ein Provider, damit die Blätter [loadPlanningGraph] mit IHREM `ref`
 /// rufen können (`WidgetRef` ist kein `Ref`) und Tests die Naht haben.
-final planningGraphLoaderProvider = Provider<Future<PlanningGraph> Function(LatBox box, {bool fillOnline})>(
-    (ref) => (box, {fillOnline = true}) => loadPlanningGraph(ref, box, fillOnline: fillOnline));
+final planningGraphLoaderProvider =
+    Provider<Future<PlanningGraph> Function(LatBox box, {bool fillOnline})>(
+      (ref) =>
+          (box, {fillOnline = true}) =>
+              loadPlanningGraph(ref, box, fillOnline: fillOnline),
+    );

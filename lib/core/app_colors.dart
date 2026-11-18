@@ -261,7 +261,6 @@ class MapPalette {
   );
 }
 
-
 /// Die Farbe eines Trails ist seine Schwierigkeit (Betreiber,
 /// 2026-09-29: „nicht nach Buddy / mein Trail, sondern nach den
 /// Schwierigkeitsstufen"). Pistenfarben wie im Skigebiet: S0 grün,
@@ -309,12 +308,12 @@ class GradePalette {
   final Color ink;
 
   Color of(int? grade) => switch (grade) {
-        null => ungraded,
-        0 => s0,
-        1 => s1,
-        2 => s2,
-        _ => s3,
-      };
+    null => ungraded,
+    0 => s0,
+    1 => s1,
+    2 => s2,
+    _ => s3,
+  };
 
   static const light = GradePalette(
     s0: Color(0xFF1F7A3A),

@@ -12,11 +12,11 @@ import '../../../l10n/l10n.dart';
 /// Die Zeilen des Hinweises: Karte und Daten fest, dazu [extra] (die
 /// Quellen der offiziellen Trails), jede genau einmal.
 List<String> mapAttributionLines(List<String> extra) => {
-      'MapLibre',
-      '© OpenStreetMap-Mitwirkende (ODbL)',
-      'Protomaps',
-      ...extra,
-    }.toList();
+  'MapLibre',
+  '© OpenStreetMap-Mitwirkende (ODbL)',
+  'Protomaps',
+  ...extra,
+}.toList();
 
 /// Ein „i" unten links; ein Tipp klappt die Zeilen daneben auf.
 class MapAttribution extends StatefulWidget {
@@ -59,7 +59,10 @@ class _MapAttributionState extends State<MapAttribution> {
               if (_open)
                 Flexible(
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
                       color: p.surface,
                       borderRadius: BorderRadius.circular(12),

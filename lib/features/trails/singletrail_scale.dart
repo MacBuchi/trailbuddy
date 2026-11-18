@@ -20,25 +20,25 @@ class SingletrailGrade {
   /// Ein paar Wörter für Auswahllisten: „S2 · größere Wurzeln, Stufen"
   /// (#209: aus den ARB-Dateien).
   String short(AppLocalizations l) => switch (value) {
-        0 => l.scaleS0Short,
-        1 => l.scaleS1Short,
-        2 => l.scaleS2Short,
-        3 => l.scaleS3Short,
-        4 => l.scaleS4Short,
-        5 => l.scaleS5Short,
-        _ => throw StateError('Kein S-Grad: $value'),
-      };
+    0 => l.scaleS0Short,
+    1 => l.scaleS1Short,
+    2 => l.scaleS2Short,
+    3 => l.scaleS3Short,
+    4 => l.scaleS4Short,
+    5 => l.scaleS5Short,
+    _ => throw StateError('Kein S-Grad: $value'),
+  };
 
   /// Ein bis zwei Sätze für das Erklärblatt.
   String description(AppLocalizations l) => switch (value) {
-        0 => l.scaleS0Description,
-        1 => l.scaleS1Description,
-        2 => l.scaleS2Description,
-        3 => l.scaleS3Description,
-        4 => l.scaleS4Description,
-        5 => l.scaleS5Description,
-        _ => throw StateError('Kein S-Grad: $value'),
-      };
+    0 => l.scaleS0Description,
+    1 => l.scaleS1Description,
+    2 => l.scaleS2Description,
+    3 => l.scaleS3Description,
+    4 => l.scaleS4Description,
+    5 => l.scaleS5Description,
+    _ => throw StateError('Kein S-Grad: $value'),
+  };
 
   String get label => 'S$value';
 }
@@ -84,10 +84,7 @@ class SingletrailScaleSheet extends StatelessWidget {
           children: [
             Text(l.scaleSheetTitle, style: theme.textTheme.titleLarge),
             const SizedBox(height: 4),
-            Text(
-              l.scaleSheetIntro,
-              style: theme.textTheme.bodyMedium,
-            ),
+            Text(l.scaleSheetIntro, style: theme.textTheme.bodyMedium),
             const SizedBox(height: 12),
             for (final g in kSingletrailScale)
               Container(
@@ -99,9 +96,10 @@ class SingletrailScaleSheet extends StatelessWidget {
                       ? AppPalette.of(context).map.mine.withValues(alpha: 0.12)
                       : null,
                   border: Border.all(
-                      color: g.value == highlight
-                          ? AppPalette.of(context).map.mine
-                          : theme.colorScheme.outlineVariant),
+                    color: g.value == highlight
+                        ? AppPalette.of(context).map.mine
+                        : theme.colorScheme.outlineVariant,
+                  ),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
@@ -127,8 +125,9 @@ class SingletrailScaleSheet extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               l.scaleSheetFooter,
-              style: theme.textTheme.bodySmall
-                  ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
             ),
           ],
         ),
@@ -146,8 +145,8 @@ class SingletrailScaleButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => IconButton(
-        tooltip: context.l10n.scaleExplain,
-        icon: const Icon(Icons.help_outline),
-        onPressed: () => showSingletrailScaleSheet(context, highlight: highlight),
-      );
+    tooltip: context.l10n.scaleExplain,
+    icon: const Icon(Icons.help_outline),
+    onPressed: () => showSingletrailScaleSheet(context, highlight: highlight),
+  );
 }

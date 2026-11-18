@@ -24,51 +24,118 @@ void main() {
     reversed: true,
     quality: 0.6,
     createdAt: at.toLocal(),
-    points: const [LatLng(47.0, 11.0), LatLng(47.001, 11.001), LatLng(47.002, 11.0)],
+    points: const [
+      LatLng(47.0, 11.0),
+      LatLng(47.001, 11.001),
+      LatLng(47.002, 11.0),
+    ],
     lengthM: 250.5,
     ele: const [900, 890, 880],
   );
   final noEle = TrailRecording(
-    id: 'rec-2', trailId: 'trail-1', userId: 'bob', source: RecordingSource.planned,
-    recordedAt: null, reversed: false, quality: 0.1, createdAt: at.toLocal(),
-    points: const [LatLng(47.0, 11.0), LatLng(47.001, 11.001)], lengthM: 140,
+    id: 'rec-2',
+    trailId: 'trail-1',
+    userId: 'bob',
+    source: RecordingSource.planned,
+    recordedAt: null,
+    reversed: false,
+    quality: 0.1,
+    createdAt: at.toLocal(),
+    points: const [LatLng(47.0, 11.0), LatLng(47.001, 11.001)],
+    lengthM: 140,
   );
   final details = TrailDetails(
-    trailId: 'trail-1', userId: 'bob', username: 'bob', name: 'Roots',
-    description: 'wurzelig', grade: 3, traits: const {TrailTrait.rocky, TrailTrait.steep},
-    rating: 4, twoWay: true, link: 'https://verein.example/roots',
-    visibility: TrailVisibility.buddies, updatedAt: at.toLocal(),
+    trailId: 'trail-1',
+    userId: 'bob',
+    username: 'bob',
+    name: 'Roots',
+    description: 'wurzelig',
+    grade: 3,
+    traits: const {TrailTrait.rocky, TrailTrait.steep},
+    rating: 4,
+    twoWay: true,
+    link: 'https://verein.example/roots',
+    visibility: TrailVisibility.buddies,
+    updatedAt: at.toLocal(),
   );
   final note = TrailNote(
-      id: 'note-1', trailId: 'trail-1', userId: 'bob', body: 'Baum quer',
-      createdAt: at.toLocal(), username: 'bob',
-      photo: NotePhoto(key: 'bob/photo-1', expiresAt: at.add(const Duration(days: 90)).toLocal()));
+    id: 'note-1',
+    trailId: 'trail-1',
+    userId: 'bob',
+    body: 'Baum quer',
+    createdAt: at.toLocal(),
+    username: 'bob',
+    photo: NotePhoto(
+      key: 'bob/photo-1',
+      expiresAt: at.add(const Duration(days: 90)).toLocal(),
+    ),
+  );
   final statusReport = TrailReport(
-      id: 'rep-1', trailId: 'trail-1', userId: 'bob', kind: ReportKind.status,
-      status: TrailStatus.closed, confirmed: true, reportedAt: at.toLocal(), username: 'bob');
+    id: 'rep-1',
+    trailId: 'trail-1',
+    userId: 'bob',
+    kind: ReportKind.status,
+    status: TrailStatus.closed,
+    confirmed: true,
+    reportedAt: at.toLocal(),
+    username: 'bob',
+  );
   final conditionReport = TrailReport(
-      id: 'rep-2', trailId: 'trail-1', userId: 'carla', kind: ReportKind.condition,
-      condition: 2, confirmed: false, reportedAt: at.toLocal());
+    id: 'rep-2',
+    trailId: 'trail-1',
+    userId: 'carla',
+    kind: ReportKind.condition,
+    condition: 2,
+    confirmed: false,
+    reportedAt: at.toLocal(),
+  );
   final snapshot = (
     recordings: [recording, noEle],
     details: [details],
     notes: [note],
     reports: [statusReport, conditionReport],
     merges: [
-      const TrailMerge(trailId: 'trail-2', sameAs: 'trail-1', kind: TrailMergeKind.folded,
-          reversed: true, byUsers: ['bob', 'carla']),
-      const TrailMerge(trailId: 'trail-1', sameAs: 'trail-3', kind: TrailMergeKind.distinct),
+      const TrailMerge(
+        trailId: 'trail-2',
+        sameAs: 'trail-1',
+        kind: TrailMergeKind.folded,
+        reversed: true,
+        byUsers: ['bob', 'carla'],
+      ),
+      const TrailMerge(
+        trailId: 'trail-1',
+        sameAs: 'trail-3',
+        kind: TrailMergeKind.distinct,
+      ),
     ],
     startPoints: [
-      StartPoint(clientId: 'sp-1', userId: 'me', name: 'Parkplatz Talboden', lat: 47.01, lon: 11.02,
-          visibility: TrailVisibility.private, createdAt: at.toLocal(), updatedAt: at.toLocal()),
-      StartPoint(clientId: 'sp-1', userId: 'bob', name: 'Trailcenter', lat: 47.03, lon: 11.04,
-          createdAt: at.toLocal(), username: 'bob'),
+      StartPoint(
+        clientId: 'sp-1',
+        userId: 'me',
+        name: 'Parkplatz Talboden',
+        lat: 47.01,
+        lon: 11.02,
+        visibility: TrailVisibility.private,
+        createdAt: at.toLocal(),
+        updatedAt: at.toLocal(),
+      ),
+      StartPoint(
+        clientId: 'sp-1',
+        userId: 'bob',
+        name: 'Trailcenter',
+        lat: 47.03,
+        lon: 11.04,
+        createdAt: at.toLocal(),
+        username: 'bob',
+      ),
     ],
   );
 
   test('Rundlauf: die Kopie liest sich wie das Netz', () {
-    final back = decodeTrailCache(encodeTrailCache(uid: 'me', snapshot: snapshot, savedAt: at), uid: 'me')!;
+    final back = decodeTrailCache(
+      encodeTrailCache(uid: 'me', snapshot: snapshot, savedAt: at),
+      uid: 'me',
+    )!;
     expect(back.savedAt, at.toLocal());
     final r = back.snapshot.recordings[0];
     expect(r.id, 'rec-1');
@@ -145,42 +212,68 @@ void main() {
     expect(p2.username, 'bob');
   });
 
-  test('eine Kopie von vor 0.181.0 (ohne Startpunkte) liest sich ohne Startpunkte', () {
-    final text = encodeTrailCache(uid: 'me', snapshot: snapshot, savedAt: at)
-        .replaceAll(RegExp(r',"start_points":\[.*\]\}$'), '}');
-    expect(text, isNot(contains('start_points')));
-    final back = decodeTrailCache(text, uid: 'me')!;
-    expect(back.snapshot.startPoints, isEmpty);
-    expect(back.snapshot.merges, hasLength(2));
-  });
+  test(
+    'eine Kopie von vor 0.181.0 (ohne Startpunkte) liest sich ohne Startpunkte',
+    () {
+      final text = encodeTrailCache(
+        uid: 'me',
+        snapshot: snapshot,
+        savedAt: at,
+      ).replaceAll(RegExp(r',"start_points":\[.*\]\}$'), '}');
+      expect(text, isNot(contains('start_points')));
+      final back = decodeTrailCache(text, uid: 'me')!;
+      expect(back.snapshot.startPoints, isEmpty);
+      expect(back.snapshot.merges, hasLength(2));
+    },
+  );
 
-  test('ein Hinweis aus einer Kopie von vor 0.113.0 (ohne Foto) liest sich ohne Foto', () {
-    final row = Map<String, dynamic>.of(noteToRow(note))..remove('photo');
-    expect(TrailNote.fromJson(row).photo, isNull);
-    // Und PostgREST darf die Beziehung auch als Liste liefern.
-    final listed = Map<String, dynamic>.of(noteToRow(note))
-      ..['photo'] = [note.photo!.toRow()];
-    expect(TrailNote.fromJson(listed).photo?.key, 'bob/photo-1');
-    expect(TrailNote.fromJson(Map<String, dynamic>.of(listed)..['photo'] = []).photo, isNull);
-  });
+  test(
+    'ein Hinweis aus einer Kopie von vor 0.113.0 (ohne Foto) liest sich ohne Foto',
+    () {
+      final row = Map<String, dynamic>.of(noteToRow(note))..remove('photo');
+      expect(TrailNote.fromJson(row).photo, isNull);
+      // Und PostgREST darf die Beziehung auch als Liste liefern.
+      final listed = Map<String, dynamic>.of(noteToRow(note))
+        ..['photo'] = [note.photo!.toRow()];
+      expect(TrailNote.fromJson(listed).photo?.key, 'bob/photo-1');
+      expect(
+        TrailNote.fromJson(
+          Map<String, dynamic>.of(listed)..['photo'] = [],
+        ).photo,
+        isNull,
+      );
+    },
+  );
 
-  test('eine Kopie von vor 0.109.0 (ohne Zuordnungen) liest sich ohne Zuordnungen', () {
-    final text = encodeTrailCache(uid: 'me', snapshot: snapshot, savedAt: at)
-        .replaceAll(RegExp(r',"merges":\[.*\]\}$'), '}');
-    expect(text, isNot(contains('merges')));
-    final back = decodeTrailCache(text, uid: 'me')!;
-    expect(back.snapshot.merges, isEmpty);
-    expect(back.snapshot.reports, hasLength(2));
-  });
+  test(
+    'eine Kopie von vor 0.109.0 (ohne Zuordnungen) liest sich ohne Zuordnungen',
+    () {
+      final text = encodeTrailCache(
+        uid: 'me',
+        snapshot: snapshot,
+        savedAt: at,
+      ).replaceAll(RegExp(r',"merges":\[.*\]\}$'), '}');
+      expect(text, isNot(contains('merges')));
+      final back = decodeTrailCache(text, uid: 'me')!;
+      expect(back.snapshot.merges, isEmpty);
+      expect(back.snapshot.reports, hasLength(2));
+    },
+  );
 
-  test('eine Kopie von vor 0.49.0 (ohne Meldungen) liest sich ohne Meldungen', () {
-    final text = encodeTrailCache(uid: 'me', snapshot: snapshot, savedAt: at)
-        .replaceAll(RegExp(r',"reports":\[.*\]\}$'), '}');
-    expect(text, isNot(contains('reports')));
-    final back = decodeTrailCache(text, uid: 'me')!;
-    expect(back.snapshot.reports, isEmpty);
-    expect(back.snapshot.details.single.name, 'Roots');
-  });
+  test(
+    'eine Kopie von vor 0.49.0 (ohne Meldungen) liest sich ohne Meldungen',
+    () {
+      final text = encodeTrailCache(
+        uid: 'me',
+        snapshot: snapshot,
+        savedAt: at,
+      ).replaceAll(RegExp(r',"reports":\[.*\]\}$'), '}');
+      expect(text, isNot(contains('reports')));
+      final back = decodeTrailCache(text, uid: 'me')!;
+      expect(back.snapshot.reports, isEmpty);
+      expect(back.snapshot.details.single.name, 'Roots');
+    },
+  );
 
   test('fremdes Konto und Unlesbares ergeben keine Kopie', () {
     final text = encodeTrailCache(uid: 'me', snapshot: snapshot, savedAt: at);
@@ -189,16 +282,40 @@ void main() {
     expect(decodeTrailCache('{"uid":"me"}', uid: 'me'), isNull);
   });
 
-  test('in Häppchen geschrieben ist es derselbe Text (Feldbericht 2026-10-02)', () async {
-    final whole = encodeTrailCache(uid: 'me', snapshot: snapshot, savedAt: at);
-    // Ohne Rechenzeit je Häppchen gibt es nach JEDER Linie den Haupt-Thread frei.
-    expect(await encodeTrailCacheInSlices(uid: 'me', snapshot: snapshot, savedAt: at, slice: Duration.zero), whole);
-    expect(await encodeTrailCacheInSlices(uid: 'me', snapshot: snapshot, savedAt: at), whole);
-  });
+  test(
+    'in Häppchen geschrieben ist es derselbe Text (Feldbericht 2026-10-02)',
+    () async {
+      final whole = encodeTrailCache(
+        uid: 'me',
+        snapshot: snapshot,
+        savedAt: at,
+      );
+      // Ohne Rechenzeit je Häppchen gibt es nach JEDER Linie den Haupt-Thread frei.
+      expect(
+        await encodeTrailCacheInSlices(
+          uid: 'me',
+          snapshot: snapshot,
+          savedAt: at,
+          slice: Duration.zero,
+        ),
+        whole,
+      );
+      expect(
+        await encodeTrailCacheInSlices(
+          uid: 'me',
+          snapshot: snapshot,
+          savedAt: at,
+        ),
+        whole,
+      );
+    },
+  );
 
   group('FileTrailCache', () {
     late Directory dir;
-    setUp(() async => dir = await Directory.systemTemp.createTemp('trail_cache_'));
+    setUp(
+      () async => dir = await Directory.systemTemp.createTemp('trail_cache_'),
+    );
     tearDown(() async => dir.delete(recursive: true));
 
     test('schreiben, lesen, löschen — keine .part bleibt liegen', () async {
@@ -214,20 +331,27 @@ void main() {
       expect(await cache.read(uid: 'me'), isNull);
     });
 
-    test('Schreiben nacheinander: ein Löschen danach gewinnt, und das letzte Schreiben', () async {
-      final cache = FileTrailCache(baseDir: dir);
-      // Das Abmelden kommt, während die Kopie noch geschrieben wird: Sie
-      // darf danach nicht wieder dastehen.
-      unawaited(cache.write(uid: 'me', snapshot: snapshot, savedAt: at));
-      await cache.clear();
-      expect(await cache.read(uid: 'me'), isNull);
-      unawaited(cache.write(uid: 'me', snapshot: snapshot, savedAt: at));
-      await cache.write(uid: 'other', snapshot: snapshot, savedAt: at);
-      expect(await cache.read(uid: 'me'), isNull, reason: 'das ältere Schreiben ist übersprungen');
-      expect(await cache.read(uid: 'other'), isNotNull);
-      final files = dir.listSync(recursive: true).map((f) => f.path).toList();
-      expect(files.where((p) => p.endsWith('.part')), isEmpty);
-    });
+    test(
+      'Schreiben nacheinander: ein Löschen danach gewinnt, und das letzte Schreiben',
+      () async {
+        final cache = FileTrailCache(baseDir: dir);
+        // Das Abmelden kommt, während die Kopie noch geschrieben wird: Sie
+        // darf danach nicht wieder dastehen.
+        unawaited(cache.write(uid: 'me', snapshot: snapshot, savedAt: at));
+        await cache.clear();
+        expect(await cache.read(uid: 'me'), isNull);
+        unawaited(cache.write(uid: 'me', snapshot: snapshot, savedAt: at));
+        await cache.write(uid: 'other', snapshot: snapshot, savedAt: at);
+        expect(
+          await cache.read(uid: 'me'),
+          isNull,
+          reason: 'das ältere Schreiben ist übersprungen',
+        );
+        expect(await cache.read(uid: 'other'), isNotNull);
+        final files = dir.listSync(recursive: true).map((f) => f.path).toList();
+        expect(files.where((p) => p.endsWith('.part')), isEmpty);
+      },
+    );
 
     test('schreiben wirft nie, auch wenn es nicht geht', () async {
       await File('${dir.path}/blocked').writeAsString('x');
@@ -240,7 +364,12 @@ void main() {
   group('fetchWithCache', () {
     test('Netz geht: frisch, und die Kopie wird geschrieben', () async {
       final cache = FakeTrailCache();
-      final r = await fetchWithCache(fetch: () async => snapshot, cache: cache, uid: 'me', now: at);
+      final r = await fetchWithCache(
+        fetch: () async => snapshot,
+        cache: cache,
+        uid: 'me',
+        now: at,
+      );
       expect(r.cachedAt, isNull);
       expect(r.snapshot.recordings, hasLength(2));
       expect(cache.writes, 1);
@@ -253,8 +382,11 @@ void main() {
         ..snapshot = snapshot
         ..savedAt = at;
       final r = await fetchWithCache(
-          fetch: () async => throw const SocketException('offline'),
-          cache: cache, uid: 'me', now: at.add(const Duration(hours: 3)));
+        fetch: () async => throw const SocketException('offline'),
+        cache: cache,
+        uid: 'me',
+        now: at.add(const Duration(hours: 3)),
+      );
       expect(r.cachedAt, at);
       expect(r.snapshot.details.single.name, 'Roots');
       expect(cache.writes, 0);
@@ -262,10 +394,14 @@ void main() {
 
     test('kein Netz und keine Kopie: der Netzfehler', () async {
       expect(
-          fetchWithCache(
-              fetch: () async => throw const SocketException('offline'),
-              cache: FakeTrailCache(), uid: 'me', now: at),
-          throwsA(isA<SocketException>()));
+        fetchWithCache(
+          fetch: () async => throw const SocketException('offline'),
+          cache: FakeTrailCache(),
+          uid: 'me',
+          now: at,
+        ),
+        throwsA(isA<SocketException>()),
+      );
     });
 
     test('ein Serverfehler wird NICHT aus der Kopie bedient', () async {
@@ -274,10 +410,14 @@ void main() {
         ..snapshot = snapshot
         ..savedAt = at;
       expect(
-          fetchWithCache(
-              fetch: () async => throw StateError('42501: RLS'),
-              cache: cache, uid: 'me', now: at),
-          throwsA(isA<StateError>()));
+        fetchWithCache(
+          fetch: () async => throw StateError('42501: RLS'),
+          cache: cache,
+          uid: 'me',
+          now: at,
+        ),
+        throwsA(isA<StateError>()),
+      );
     });
   });
 
@@ -290,27 +430,36 @@ void main() {
       ..snapshot = snapshot
       ..savedAt = at;
 
-    ({List<TrailSnapshot> late, List<Object> errors, List<String> offline, List<String> waiting})
-        calls() => (late: [], errors: [], offline: [], waiting: []);
+    ({
+      List<TrailSnapshot> late,
+      List<Object> errors,
+      List<String> offline,
+      List<String> waiting,
+    })
+    calls() => (late: [], errors: [], offline: [], waiting: []);
 
     Future<TrailSnapshotResult> run(
       Future<TrailSnapshot> Function() fetch,
       FakeTrailCache cache,
-      ({List<TrailSnapshot> late, List<Object> errors, List<String> offline, List<String> waiting})
-          c, {
+      ({
+        List<TrailSnapshot> late,
+        List<Object> errors,
+        List<String> offline,
+        List<String> waiting,
+      })
+      c, {
       Duration p = patience,
-    }) =>
-        fetchWithCacheQuick(
-          fetch: fetch,
-          cache: cache,
-          uid: 'me',
-          now: at,
-          patience: p,
-          onLate: c.late.add,
-          onLateOffline: () => c.offline.add('offline'),
-          onLateError: (e, _) => c.errors.add(e),
-          onStillWaiting: () => c.waiting.add('waiting'),
-        );
+    }) => fetchWithCacheQuick(
+      fetch: fetch,
+      cache: cache,
+      uid: 'me',
+      now: at,
+      patience: p,
+      onLate: c.late.add,
+      onLateOffline: () => c.offline.add('offline'),
+      onLateError: (e, _) => c.errors.add(e),
+      onStillWaiting: () => c.waiting.add('waiting'),
+    );
 
     test('das Netz antwortet in der Frist: frisch, wie bisher', () async {
       final cache = filled();
@@ -323,27 +472,46 @@ void main() {
 
     test('schnell abgelehnt (Flugmodus): die Kopie, wie bisher', () async {
       final c = calls();
-      final r = await run(() async => throw const SocketException('offline'), filled(), c);
+      final r = await run(
+        () async => throw const SocketException('offline'),
+        filled(),
+        c,
+      );
       expect(r.cachedAt, at);
-      expect(c.offline, isEmpty, reason: 'kein später Ausgang — das Netz ist schon fertig');
-      expect(c.waiting, isEmpty, reason: 'sonst hieße es „das Netz antwortet noch"');
+      expect(
+        c.offline,
+        isEmpty,
+        reason: 'kein später Ausgang — das Netz ist schon fertig',
+      );
+      expect(
+        c.waiting,
+        isEmpty,
+        reason: 'sonst hieße es „das Netz antwortet noch"',
+      );
     });
 
-    test('das Netz zögert: SOFORT die Kopie, der frische Stand kommt nach', () async {
-      final net = Completer<TrailSnapshot>();
-      final cache = filled();
-      final c = calls();
-      final watch = Stopwatch()..start();
-      final r = await run(() => net.future, cache, c);
-      expect(r.cachedAt, at);
-      expect(watch.elapsed, lessThan(const Duration(seconds: 1)));
-      expect(c.waiting, hasLength(1));
-      expect(cache.writes, 0);
-      net.complete(snapshot);
-      await pumpEventQueue();
-      expect(c.late, hasLength(1));
-      expect(cache.writes, 1, reason: 'die Kopie ist neu, bevor der frische Stand gezeigt wird');
-    });
+    test(
+      'das Netz zögert: SOFORT die Kopie, der frische Stand kommt nach',
+      () async {
+        final net = Completer<TrailSnapshot>();
+        final cache = filled();
+        final c = calls();
+        final watch = Stopwatch()..start();
+        final r = await run(() => net.future, cache, c);
+        expect(r.cachedAt, at);
+        expect(watch.elapsed, lessThan(const Duration(seconds: 1)));
+        expect(c.waiting, hasLength(1));
+        expect(cache.writes, 0);
+        net.complete(snapshot);
+        await pumpEventQueue();
+        expect(c.late, hasLength(1));
+        expect(
+          cache.writes,
+          1,
+          reason: 'die Kopie ist neu, bevor der frische Stand gezeigt wird',
+        );
+      },
+    );
 
     test('das Netz zögert und gibt dann auf: die Kopie bleibt', () async {
       final net = Completer<TrailSnapshot>();
@@ -356,29 +524,35 @@ void main() {
       expect(c.errors, isEmpty);
     });
 
-    test('das Netz zögert und antwortet mit einem Serverfehler: der wird gemeldet', () async {
-      final net = Completer<TrailSnapshot>();
-      final c = calls();
-      await run(() => net.future, filled(), c);
-      net.completeError(StateError('42501: RLS kaputt'));
-      await pumpEventQueue();
-      expect(c.errors.single, isA<StateError>());
-    });
+    test(
+      'das Netz zögert und antwortet mit einem Serverfehler: der wird gemeldet',
+      () async {
+        final net = Completer<TrailSnapshot>();
+        final c = calls();
+        await run(() => net.future, filled(), c);
+        net.completeError(StateError('42501: RLS kaputt'));
+        await pumpEventQueue();
+        expect(c.errors.single, isA<StateError>());
+      },
+    );
 
-    test('ohne Kopie wird gewartet — eine leere Karte vorab wäre keine Antwort', () async {
-      final net = Completer<TrailSnapshot>();
-      final c = calls();
-      var done = false;
-      final result = run(() => net.future, FakeTrailCache(), c).then((r) {
-        done = true;
-        return r;
-      });
-      await Future<void>.delayed(patience * 3);
-      expect(done, isFalse);
-      net.complete(snapshot);
-      expect((await result).cachedAt, isNull);
-      expect(c.late, isEmpty);
-    });
+    test(
+      'ohne Kopie wird gewartet — eine leere Karte vorab wäre keine Antwort',
+      () async {
+        final net = Completer<TrailSnapshot>();
+        final c = calls();
+        var done = false;
+        final result = run(() => net.future, FakeTrailCache(), c).then((r) {
+          done = true;
+          return r;
+        });
+        await Future<void>.delayed(patience * 3);
+        expect(done, isFalse);
+        net.complete(snapshot);
+        expect((await result).cachedAt, isNull);
+        expect(c.late, isEmpty);
+      },
+    );
 
     test('ohne Kopie und das Netz gibt auf: der Netzfehler', () async {
       final net = Completer<TrailSnapshot>();
@@ -388,10 +562,18 @@ void main() {
       await expectLater(result, throwsA(isA<SocketException>()));
     });
 
-    test('ohne Empfang gemeldet (Frist 0): die Kopie, ohne zu warten', () async {
-      final net = Completer<TrailSnapshot>();
-      final r = await run(() => net.future, filled(), calls(), p: Duration.zero);
-      expect(r.cachedAt, at);
-    });
+    test(
+      'ohne Empfang gemeldet (Frist 0): die Kopie, ohne zu warten',
+      () async {
+        final net = Completer<TrailSnapshot>();
+        final r = await run(
+          () => net.future,
+          filled(),
+          calls(),
+          p: Duration.zero,
+        );
+        expect(r.cachedAt, at);
+      },
+    );
   });
 }

@@ -66,7 +66,9 @@ const kSensorChannel = 'de.mcbuchi.trailbuddy/sensors';
 /// Kanal (Web, Test) oder ohne Sensor. Wirft nie.
 Future<String> readSensorRange() async {
   try {
-    final r = await const MethodChannel(kSensorChannel).invokeMapMethod<String, Object?>('range');
+    final r = await const MethodChannel(
+      kSensorChannel,
+    ).invokeMapMethod<String, Object?>('range');
     final a = r?['accel'], g = r?['gyro'];
     return a is num && g is num ? '$a,$g' : '';
   } catch (_) {
@@ -109,7 +111,8 @@ String sensorEventsPath(String logPath) =>
 
 /// Die erste Zeile jeder Datei: sagt dem Werkzeug
 /// (`tool/airtime_measure.py`), was die Spalten heißen.
-const kSensorLogHeader = '# trailbuddy sensor log v3\n'
+const kSensorLogHeader =
+    '# trailbuddy sensor log v3\n'
     '# a,t_us,x,y,z = accelerometer incl. gravity (m/s^2)\n'
     '# w,t_us,x,y,z = gyroscope (rad/s)\n'
     '# g,t_us,lat,lng,accuracy_m,speed_mps,alt_m = GPS fix\n'
@@ -133,7 +136,9 @@ String sensorLogHead({FusionMount? mount, String? range, bool pocket = false}) {
   if (mount != null) {
     final (ux, uy, uz) = mount.up;
     final (fx, fy, fz) = mount.forward;
-    b.writeln('# mount,${[ux, uy, uz, fx, fy, fz].map((v) => v.toStringAsFixed(6)).join(',')}');
+    b.writeln(
+      '# mount,${[ux, uy, uz, fx, fy, fz].map((v) => v.toStringAsFixed(6)).join(',')}',
+    );
   }
   final r = range?.split(',').map(double.tryParse).toList();
   if (r != null && r.length == 2 && r.every((v) => v != null && v.isFinite)) {
@@ -145,16 +150,21 @@ String sensorLogHead({FusionMount? mount, String? range, bool pocket = false}) {
 String sensorLine(String kind, DateTime at, List<double> values) =>
     '$kind,${at.microsecondsSinceEpoch},${values.map(_num).join(',')}\n';
 
-String wheelieEventLine(WheelieEvent e) => 'e,${e.startUs},'
+String wheelieEventLine(WheelieEvent e) =>
+    'e,${e.startUs},'
     '${(e.duration.inMicroseconds / 1e6).toStringAsFixed(2)},'
     '${e.lengthM.toStringAsFixed(1)},${e.maxTiltDeg.toStringAsFixed(1)}\n';
 
-String wheelieAnswerLine(DateTime at, {required int startUs, required bool yes}) =>
-    'l,${at.microsecondsSinceEpoch},$startUs,${yes ? 1 : 0}\n';
+String wheelieAnswerLine(
+  DateTime at, {
+  required int startUs,
+  required bool yes,
+}) => 'l,${at.microsecondsSinceEpoch},$startUs,${yes ? 1 : 0}\n';
 
 String wheelieMissedLine(DateTime at) => 'm,${at.microsecondsSinceEpoch}\n';
 
-String jumpEventLine(JumpEvent e) => 'j,${e.startUs},'
+String jumpEventLine(JumpEvent e) =>
+    'j,${e.startUs},'
     '${(e.duration.inMicroseconds / 1e6).toStringAsFixed(3)},'
     '${e.landingG.toStringAsFixed(2)},${e.plausible ? 1 : 0}\n';
 
@@ -163,62 +173,79 @@ String jumpAnswerLine(DateTime at, {required int startUs, required bool yes}) =>
 
 String jumpMissedLine(DateTime at) => 'n,${at.microsecondsSinceEpoch}\n';
 
-String stoppieEventLine(StoppieEvent e) => 's,${e.startUs},'
+String stoppieEventLine(StoppieEvent e) =>
+    's,${e.startUs},'
     '${(e.duration.inMicroseconds / 1e6).toStringAsFixed(2)},${e.maxTiltDeg.toStringAsFixed(1)},'
     '${e.decel.toStringAsFixed(2)},${e.landingG.toStringAsFixed(2)}\n';
 
-String stoppieAnswerLine(DateTime at, {required int startUs, required bool yes}) =>
-    'p,${at.microsecondsSinceEpoch},$startUs,${yes ? 1 : 0}\n';
+String stoppieAnswerLine(
+  DateTime at, {
+  required int startUs,
+  required bool yes,
+}) => 'p,${at.microsecondsSinceEpoch},$startUs,${yes ? 1 : 0}\n';
 
 String stoppieMissedLine(DateTime at) => 'q,${at.microsecondsSinceEpoch}\n';
 
-String pocketLine(int tUs, {required bool pocket}) => 'o,$tUs,${pocket ? 1 : 0}\n';
+String pocketLine(int tUs, {required bool pocket}) =>
+    'o,$tUs,${pocket ? 1 : 0}\n';
 
 /// Kurz genug für 30 MB je Stunde, genau genug für 0,01 m/s².
 String _num(double v) => v.isFinite ? v.toStringAsFixed(4) : '';
 
 /// Die Quellen — im Test gegen Strom-Controller getauscht.
 class SensorSources {
-  const SensorSources({required this.accel, required this.gyro, required this.gps});
+  const SensorSources({
+    required this.accel,
+    required this.gyro,
+    required this.gps,
+  });
 
   final Stream<List<double>> Function() accel;
   final Stream<List<double>> Function() gyro;
   final Stream<List<double>> Function() gps;
 
   static final platform = SensorSources(
-    accel: () => accelerometerEventStream(samplingPeriod: kSensorSamplingPeriod)
-        .map((e) => [e.timestamp.microsecondsSinceEpoch.toDouble(), e.x, e.y, e.z]),
-    gyro: () => gyroscopeEventStream(samplingPeriod: kSensorSamplingPeriod)
-        .map((e) => [e.timestamp.microsecondsSinceEpoch.toDouble(), e.x, e.y, e.z]),
-    gps: () => Geolocator.getPositionStream(
-            locationSettings: AndroidSettings(
-                accuracy: LocationAccuracy.best, intervalDuration: kSensorGpsInterval))
-        .map((p) => [
-              p.timestamp.microsecondsSinceEpoch.toDouble(),
-              p.latitude,
-              p.longitude,
-              p.accuracy,
-              p.speed,
-              p.altitude,
-            ]),
+    accel: () =>
+        accelerometerEventStream(samplingPeriod: kSensorSamplingPeriod).map(
+          (e) => [e.timestamp.microsecondsSinceEpoch.toDouble(), e.x, e.y, e.z],
+        ),
+    gyro: () => gyroscopeEventStream(samplingPeriod: kSensorSamplingPeriod).map(
+      (e) => [e.timestamp.microsecondsSinceEpoch.toDouble(), e.x, e.y, e.z],
+    ),
+    gps: () =>
+        Geolocator.getPositionStream(
+          locationSettings: AndroidSettings(
+            accuracy: LocationAccuracy.best,
+            intervalDuration: kSensorGpsInterval,
+          ),
+        ).map(
+          (p) => [
+            p.timestamp.microsecondsSinceEpoch.toDouble(),
+            p.latitude,
+            p.longitude,
+            p.accuracy,
+            p.speed,
+            p.altitude,
+          ],
+        ),
   );
 }
 
 /// Schreibt die Rohdaten EINER Fahrt in EINE Datei.
 class SensorLogger {
-  SensorLogger(
-      {required this.file,
-      SensorSources? sources,
-      this.stillWanted,
-      this.flushEvery = kSensorFlushInterval,
-      this.previewEvery = kAirtimePreviewInterval,
-      this.range,
-      this.declaredPocket = false,
-      WheelieNotices? notices,
-      void Function(Object message)? toApp})
-      : _sources = sources ?? SensorSources.platform,
-        _notices = notices ?? WheelieNotices.platform,
-        _toApp = toApp ?? FlutterForegroundTask.sendDataToMain;
+  SensorLogger({
+    required this.file,
+    SensorSources? sources,
+    this.stillWanted,
+    this.flushEvery = kSensorFlushInterval,
+    this.previewEvery = kAirtimePreviewInterval,
+    this.range,
+    this.declaredPocket = false,
+    WheelieNotices? notices,
+    void Function(Object message)? toApp,
+  }) : _sources = sources ?? SensorSources.platform,
+       _notices = notices ?? WheelieNotices.platform,
+       _toApp = toApp ?? FlutterForegroundTask.sendDataToMain;
 
   final File file;
   final SensorSources _sources;
@@ -286,16 +313,29 @@ class SensorLogger {
     _carried = carried;
     _fusion = SensorFusion(carried: carried)..keepLive = true;
     if (!await file.exists() || await file.length() == 0) {
-      await file.writeAsString(sensorLogHead(mount: carried, range: range, pocket: declaredPocket), flush: true);
+      await file.writeAsString(
+        sensorLogHead(mount: carried, range: range, pocket: declaredPocket),
+        flush: true,
+      );
     }
-    void listen(String kind, Stream<List<double>> Function() source,
-        [void Function(List<double> v)? also]) {
+    void listen(
+      String kind,
+      Stream<List<double>> Function() source, [
+      void Function(List<double> v)? also,
+    ]) {
       // Fehlt ein Sensor (`NO_SENSOR`), schreiben die anderen weiter.
-      _subscriptions.add(source().listen((v) {
-        _buffer.write(sensorLine(
-            kind, DateTime.fromMicrosecondsSinceEpoch(v.first.toInt(), isUtc: true), v.sublist(1)));
-        also?.call(v);
-      }, onError: (Object _) {}));
+      _subscriptions.add(
+        source().listen((v) {
+          _buffer.write(
+            sensorLine(
+              kind,
+              DateTime.fromMicrosecondsSinceEpoch(v.first.toInt(), isUtc: true),
+              v.sublist(1),
+            ),
+          );
+          also?.call(v);
+        }, onError: (Object _) {}),
+      );
     }
 
     listen('a', _sources.accel, (v) {
@@ -330,8 +370,9 @@ class SensorLogger {
     if (state && !declaredPocket && _savedMount) unawaited(_restoreMount());
   }
 
-  void _sendPocket() =>
-      _send(encodeAirtimePocket(file.path, pocket: inPocket, declared: declaredPocket));
+  void _sendPocket() => _send(
+    encodeAirtimePocket(file.path, pocket: inPocket, declared: declaredPocket),
+  );
 
   void _onEvents(List<FusionEvent> events) {
     final live = _fusion.takeLive();
@@ -446,25 +487,27 @@ class SensorLogger {
 
   /// Hängt an, was sich gesammelt hat. Wirft nie.
   Future<void> flush() => _writing = _writing.then((_) async {
-        if (_events.isNotEmpty) {
-          final text = _events.toString();
-          _events.clear();
-          try {
-            await File(sensorEventsPath(file.path)).writeAsString(text, mode: FileMode.append, flush: true);
-          } catch (_) {
-            // Dann fehlen nur die Trail-Werte dieser Ereignisse.
-          }
-        }
-        if (_buffer.isEmpty) return;
-        final text = _buffer.toString();
-        _buffer.clear();
-        try {
-          await file.writeAsString(text, mode: FileMode.append, flush: true);
-        } catch (_) {
-          // Platte voll oder Datei weg: Die Fahrt läuft weiter, die
-          // Rohdaten sind ein Zusatz.
-        }
-      });
+    if (_events.isNotEmpty) {
+      final text = _events.toString();
+      _events.clear();
+      try {
+        await File(
+          sensorEventsPath(file.path),
+        ).writeAsString(text, mode: FileMode.append, flush: true);
+      } catch (_) {
+        // Dann fehlen nur die Trail-Werte dieser Ereignisse.
+      }
+    }
+    if (_buffer.isEmpty) return;
+    final text = _buffer.toString();
+    _buffer.clear();
+    try {
+      await file.writeAsString(text, mode: FileMode.append, flush: true);
+    } catch (_) {
+      // Platte voll oder Datei weg: Die Fahrt läuft weiter, die
+      // Rohdaten sind ein Zusatz.
+    }
+  });
 
   Future<void> stop() async {
     if (_stopped) return;
@@ -545,11 +588,15 @@ Future<void> stopSensorLog() async {
 
 Future<T?> _read<T>(String key) => FlutterForegroundTask.getData<T>(key: key);
 
-Future<({String dir, String id})?> _wantedRide(Future<T?> Function<T>(String key) get) async {
+Future<({String dir, String id})?> _wantedRide(
+  Future<T?> Function<T>(String key) get,
+) async {
   if (await get<bool>(kRideDataActive) != true) return null;
   if (await get<bool>(kRideDataSensorLog) != true) return null;
   final dir = await get<String>(kRideDataDir);
-  final started = DateTime.tryParse(await get<String>(kRideDataStartedAt) ?? '');
+  final started = DateTime.tryParse(
+    await get<String>(kRideDataStartedAt) ?? '',
+  );
   if (dir == null || started == null) return null;
   return (dir: dir, id: rideIdFor(started));
 }

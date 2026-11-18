@@ -48,7 +48,13 @@ class ViaDot extends StatelessWidget {
           color: Colors.white,
           shape: BoxShape.circle,
           border: Border.all(color: AppColors.mapLines.ride, width: 4),
-          boxShadow: const [BoxShadow(blurRadius: 4, offset: Offset(0, 1), color: Color(0x55000000))],
+          boxShadow: const [
+            BoxShadow(
+              blurRadius: 4,
+              offset: Offset(0, 1),
+              color: Color(0x55000000),
+            ),
+          ],
         ),
       ),
     );
@@ -57,15 +63,15 @@ class ViaDot extends StatelessWidget {
 
 /// Die Marker der Punkte für die Karte.
 List<MapViewMarker> viaMarkers(RouteVias vias) => [
-      for (final (ref, p) in vias.all)
-        MapViewMarker(
-          key: ValueKey('via-${ref.leg}-${ref.index}'),
-          point: p,
-          width: kViaDotSize + 6,
-          height: kViaDotSize + 6,
-          child: const ViaDot(),
-        ),
-    ];
+  for (final (ref, p) in vias.all)
+    MapViewMarker(
+      key: ValueKey('via-${ref.leg}-${ref.index}'),
+      point: p,
+      width: kViaDotSize + 6,
+      height: kViaDotSize + 6,
+      child: const ViaDot(),
+    ),
+];
 
 class ViaHandles extends StatefulWidget {
   const ViaHandles({
@@ -95,7 +101,9 @@ class _ViaHandlesState extends State<ViaHandles> {
       _dragging = null;
       _at = null;
     });
-    if (ref != null && at != null) widget.onMove(ref, unprojectFromScreen(widget.camera, at));
+    if (ref != null && at != null) {
+      widget.onMove(ref, unprojectFromScreen(widget.camera, at));
+    }
   }
 
   @override
@@ -136,7 +144,9 @@ class _ViaHandlesState extends State<ViaHandles> {
             top: at.dy - half,
             width: kViaHandleSize,
             height: kViaHandleSize,
-            child: const IgnorePointer(child: ViaDot(key: ValueKey('via-lifted'), lifted: true)),
+            child: const IgnorePointer(
+              child: ViaDot(key: ValueKey('via-lifted'), lifted: true),
+            ),
           ),
       ],
     );
@@ -146,7 +156,12 @@ class _ViaHandlesState extends State<ViaHandles> {
 /// Die Zeile im Ergebnis-Blatt: wie man tunt — oder, wenn getunt ist,
 /// dass es so ist, mit „Zurücksetzen".
 class RouteTuneNote extends StatelessWidget {
-  const RouteTuneNote({super.key, required this.tuned, required this.onReset, required this.keyPrefix});
+  const RouteTuneNote({
+    super.key,
+    required this.tuned,
+    required this.onReset,
+    required this.keyPrefix,
+  });
 
   final bool tuned;
   final VoidCallback onReset;
@@ -168,7 +183,13 @@ class RouteTuneNote extends StatelessWidget {
     }
     return Row(
       children: [
-        Expanded(child: Text(context.l10n.routingTuned, key: ValueKey('$keyPrefix-tuned'), style: style)),
+        Expanded(
+          child: Text(
+            context.l10n.routingTuned,
+            key: ValueKey('$keyPrefix-tuned'),
+            style: style,
+          ),
+        ),
         TextButton(
           key: ValueKey('$keyPrefix-tune-reset'),
           onPressed: onReset,

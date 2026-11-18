@@ -4,57 +4,57 @@ import 'package:trailbuddy/core/settings.dart';
 /// im Widget-Test nicht; ein Test, der den Neustart nachstellt, gibt die
 /// Instanz einfach an den zweiten `pumpApp`-Aufruf weiter.
 class FakeSettings implements Settings {
-  FakeSettings(
-      {this.prereleaseUpdatesEnabled = false,
-      this.sensorLogEnabled = false,
-      this.airtimeShareEnabled = false,
-      // „Buddys unterwegs" (#526): als schon beantwortet mit Nein — sonst
-      // käme die einmalige Frage in jeden Flow-Test mit Buddys.
-      this.buddiesNearby = false,
-      this.nearbyHome,
-      this.poiGroups,
-      this.poiHiddenKinds,
-      this.seenNoteIds,
-      this.stillValidSnoozes,
-      this.officialTrailsEnabled = true,
-      this.wayLayerEnabled = true,
-      this.contourLayerEnabled = false,
-      this.startPointLayerEnabled = true,
-      this.mapLegendOpen = false,
-      this.navKeepScreenOn = true,
-      this.rideKeepScreenOn = false,
-      this.voiceCues = false,
-      this.navRecord = true,
-      this.navWatch = true,
-      this.ridePhoneInPocket = false,
-      this.watchSeen = false,
-      this.navReplanOfferM,
-      this.navLeaveM,
-      this.pushToken,
-      this.pushLocale,
-      this.appearance,
-      this.language,
-      this.riderProfile,
-      this.loopPlannerPrefs,
-      this.navDefault,
-      this.pendingAuthCode,
-      this.riderCalibration,
-      this.seenMapManifest,
-      this.seenWaysManifest,
-      this.seenRegions,
-      this.seenRegionManifests,
-      // „Schon gesehen" ist die Vorgabe (#126): Jeder Flow-Test pumpt die
-      // App auf die Karte, und mit `false` läge über jedem der Hinweis.
-      // Tests für Hinweis und Tour geben ihre Einstellungen ausdrücklich mit.
-      this.safetyNoteSeen = true,
-      this.mapTourSeen = true,
-      Set<String>? usernameStepDoneFor,
-      this.seenCoachTours = const {'split', 'trails', 'buddys'},
-      // Ein Stand weit in der Zukunft: sonst läge über jedem Flow-Test
-      // das Blatt „Neu in TrailBuddy" (#135).
-      this.highlightsSeenVersion = '9999.0.0',
-      this.seenHighlightIds = const {}})
-      : usernameStepDoneFor = usernameStepDoneFor ?? {};
+  FakeSettings({
+    this.prereleaseUpdatesEnabled = false,
+    this.sensorLogEnabled = false,
+    this.airtimeShareEnabled = false,
+    // „Buddys unterwegs" (#526): als schon beantwortet mit Nein — sonst
+    // käme die einmalige Frage in jeden Flow-Test mit Buddys.
+    this.buddiesNearby = false,
+    this.nearbyHome,
+    this.poiGroups,
+    this.poiHiddenKinds,
+    this.seenNoteIds,
+    this.stillValidSnoozes,
+    this.officialTrailsEnabled = true,
+    this.wayLayerEnabled = true,
+    this.contourLayerEnabled = false,
+    this.startPointLayerEnabled = true,
+    this.mapLegendOpen = false,
+    this.navKeepScreenOn = true,
+    this.rideKeepScreenOn = false,
+    this.voiceCues = false,
+    this.navRecord = true,
+    this.navWatch = true,
+    this.ridePhoneInPocket = false,
+    this.watchSeen = false,
+    this.navReplanOfferM,
+    this.navLeaveM,
+    this.pushToken,
+    this.pushLocale,
+    this.appearance,
+    this.language,
+    this.riderProfile,
+    this.loopPlannerPrefs,
+    this.navDefault,
+    this.pendingAuthCode,
+    this.riderCalibration,
+    this.seenMapManifest,
+    this.seenWaysManifest,
+    this.seenRegions,
+    this.seenRegionManifests,
+    // „Schon gesehen" ist die Vorgabe (#126): Jeder Flow-Test pumpt die
+    // App auf die Karte, und mit `false` läge über jedem der Hinweis.
+    // Tests für Hinweis und Tour geben ihre Einstellungen ausdrücklich mit.
+    this.safetyNoteSeen = true,
+    this.mapTourSeen = true,
+    Set<String>? usernameStepDoneFor,
+    this.seenCoachTours = const {'split', 'trails', 'buddys'},
+    // Ein Stand weit in der Zukunft: sonst läge über jedem Flow-Test
+    // das Blatt „Neu in TrailBuddy" (#135).
+    this.highlightsSeenVersion = '9999.0.0',
+    this.seenHighlightIds = const {},
+  }) : usernameStepDoneFor = usernameStepDoneFor ?? {};
 
   @override
   bool prereleaseUpdatesEnabled;

@@ -2,6 +2,13 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## Tidied up
+
+*Version 0.189.1, 2026-11-18*
+
+- Nothing new to see: the source code is now formatted consistently.
+  The app behaves exactly as before.
+
 ## Routes on the watch
 
 *Version 0.189.0, 2026-11-18 (watch app 1.9.0)*

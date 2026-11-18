@@ -1,7 +1,8 @@
 import 'dart:async';
 
 import 'package:trailbuddy/features/garmin/garmin_bridge.dart';
-import 'package:trailbuddy/features/garmin/watch_route.dart' show kWatchProtocol;
+import 'package:trailbuddy/features/garmin/watch_route.dart'
+    show kWatchProtocol;
 
 /// Der Weg über Garmin Connect, wie er gemessen ist (#509, Prüfleiter S3):
 /// Laufzeit je Nachricht, eine geschlossene Uhr-App, die still verwirft,
@@ -40,12 +41,22 @@ class WatchChannel {
 /// Uhr-App erreicht, liegt in [delivered], und [fromWatch] braucht auf dem
 /// Rückweg genauso lange.
 class FakeGarminBridge implements GarminBridge {
-  FakeGarminBridge({this.status_ = WatchStatus.none, this.result = const WatchSendResult('SUCCESS', 0)});
+  FakeGarminBridge({
+    this.status_ = WatchStatus.none,
+    this.result = const WatchSendResult('SUCCESS', 0),
+  });
 
   /// Eine verbundene fēnix 5 mit unserer App.
-  FakeGarminBridge.connected(
-      {String device = 'fēnix 5', this.result = const WatchSendResult('SUCCESS', 0), this.channel, this.now})
-      : status_ = WatchStatus(connect: true, device: device, app: WatchApp.installed);
+  FakeGarminBridge.connected({
+    String device = 'fēnix 5',
+    this.result = const WatchSendResult('SUCCESS', 0),
+    this.channel,
+    this.now,
+  }) : status_ = WatchStatus(
+         connect: true,
+         device: device,
+         app: WatchApp.installed,
+       );
 
   /// Der gemessene Kanal, oder null: sofort und verlustfrei.
   WatchChannel? channel;
@@ -117,7 +128,10 @@ class FakeGarminBridge implements GarminBridge {
     }
     final ch = channel;
     if (ch != null) return _through(ch, messages);
-    if (autoStore && result.ok && messages.isNotEmpty && messages.first['t'] == 'r') {
+    if (autoStore &&
+        result.ok &&
+        messages.isNotEmpty &&
+        messages.first['t'] == 'r') {
       answer({'t': 'ok', 'id': messages.first['id']});
     }
     return result.ok ? WatchSendResult('SUCCESS', messages.length) : result;
@@ -126,7 +140,10 @@ class FakeGarminBridge implements GarminBridge {
   /// Senden über den gemessenen Kanal: eine Nachricht nach der anderen,
   /// jede mit ihrer Laufzeit. Eine geschlossene App oder ein Verlust
   /// ändern am Ergebnis nichts — Garmin Connect weiß davon nichts.
-  Future<WatchSendResult> _through(WatchChannel ch, List<Map<String, Object>> messages) async {
+  Future<WatchSendResult> _through(
+    WatchChannel ch,
+    List<Map<String, Object>> messages,
+  ) async {
     final before = _line;
     final done = Completer<void>();
     _line = done.future;
@@ -137,7 +154,9 @@ class FakeGarminBridge implements GarminBridge {
       if (route) ch.failRouteAfter = null;
       var n = 0;
       for (final m in messages) {
-        if (failAfter != null && n >= failAfter) return WatchSendResult('FAILURE_DURING_TRANSFER', n);
+        if (failAfter != null && n >= failAfter) {
+          return WatchSendResult('FAILURE_DURING_TRANSFER', n);
+        }
         await Future<void>.delayed(ch.delayOf(m));
         final k = _seq++;
         n++;
@@ -170,7 +189,9 @@ class FakeGarminBridge implements GarminBridge {
   }
 
   /// Die Arten, die die Uhr-App erreichten, der Reihe nach.
-  List<String> get deliveredTypes => [for (final d in delivered) d.msg['t'] as String];
+  List<String> get deliveredTypes => [
+    for (final d in delivered) d.msg['t'] as String,
+  ];
 
   @override
   Future<WatchOpen> open() async {
@@ -188,8 +209,10 @@ class FakeGarminBridge implements GarminBridge {
   }
 
   /// Die Antworten auf Fahrten (`wk`) und „schick" (`wq`).
-  List<Map<String, Object>> get rideAnswers =>
-      [for (final batch in sent) ...batch.where((m) => m['t'] == 'wk' || m['t'] == 'wq')];
+  List<Map<String, Object>> get rideAnswers => [
+    for (final batch in sent)
+      ...batch.where((m) => m['t'] == 'wk' || m['t'] == 'wq'),
+  ];
 
   void answer(Object? message) => _messages.add(message);
 
@@ -197,16 +220,22 @@ class FakeGarminBridge implements GarminBridge {
   void reconnect() => _connected.add(null);
 
   /// Die Uhr-App startet und meldet sich mit der Route, die sie hat.
-  void hello(String? id, {int? v = kWatchProtocol}) => answer({'t': 'hi', 'id': ?id, 'v': ?v});
+  void hello(String? id, {int? v = kWatchProtocol}) =>
+      answer({'t': 'hi', 'id': ?id, 'v': ?v});
 
   /// Die Positionen des Handys an die Uhr (`p`).
-  List<Map<String, Object>> get positions => [for (final batch in sent) ...batch.where((m) => m['t'] == 'p')];
+  List<Map<String, Object>> get positions => [
+    for (final batch in sent) ...batch.where((m) => m['t'] == 'p'),
+  ];
 
   /// Alle gesendeten Stücke der Route (ohne Bestwerte).
-  List<Map<String, Object>> get routeParts =>
-      [for (final batch in sent) ...batch.where((m) => m['t'] == 'r')];
+  List<Map<String, Object>> get routeParts => [
+    for (final batch in sent) ...batch.where((m) => m['t'] == 'r'),
+  ];
 
-  List<Map<String, Object>> get bests => [for (final batch in sent) ...batch.where((m) => m['t'] == 'b')];
+  List<Map<String, Object>> get bests => [
+    for (final batch in sent) ...batch.where((m) => m['t'] == 'b'),
+  ];
 
   @override
   Stream<Object?> get messages => _messages.stream;
@@ -215,5 +244,6 @@ class FakeGarminBridge implements GarminBridge {
   Stream<void> get connected => _connected.stream;
 
   /// Die Anfragen „welche Route hast du?" (`q`).
-  int get queries => [for (final batch in sent) ...batch.where((m) => m['t'] == 'q')].length;
+  int get queries =>
+      [for (final batch in sent) ...batch.where((m) => m['t'] == 'q')].length;
 }

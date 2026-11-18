@@ -3,12 +3,14 @@ import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
-import 'package:vector_map_tiles/vector_map_tiles.dart' show TileProviders, VectorTileProvider;
+import 'package:vector_map_tiles/vector_map_tiles.dart'
+    show TileProviders, VectorTileProvider;
 
 import '../../core/connectivity.dart';
 import '../../core/errors.dart';
 import '../../core/settings.dart';
-import '../offline_areas/height_tiles.dart' show kHeightGrid, kHeightTileZoom, kHeightsFormat;
+import '../offline_areas/height_tiles.dart'
+    show kHeightGrid, kHeightTileZoom, kHeightsFormat;
 import 'base_map_providers.dart';
 import 'map_regions.dart';
 import 'map_providers.dart';
@@ -49,7 +51,9 @@ class MapManifest {
   factory MapManifest.fromJson(Map<String, dynamic> j, {String dir = ''}) {
     final file = j['file'] as String;
     final folder = checkRegionDir(j['dir'] as String? ?? dir);
-    final pattern = folder.isEmpty ? RegExp(r'^dach-\d{8}\.pmtiles$') : RegExp(r'^map-\d{8}\.pmtiles$');
+    final pattern = folder.isEmpty
+        ? RegExp(r'^dach-\d{8}\.pmtiles$')
+        : RegExp(r'^map-\d{8}\.pmtiles$');
     if (!pattern.hasMatch(file)) {
       throw FormatException('Unerwarteter Archivname: $file');
     }
@@ -66,12 +70,12 @@ class MapManifest {
   /// zurück, mit derselben Prüfung. Der Ordner nur, wo es einen gibt: Für
   /// DACH bleibt der gemerkte Text, wie er vor #220 war.
   Map<String, dynamic> toJson() => {
-        'file': file,
-        'maxzoom': maxZoom,
-        'bytes': bytes,
-        'source_build': sourceBuild,
-        if (dir.isNotEmpty) 'dir': dir,
-      };
+    'file': file,
+    'maxzoom': maxZoom,
+    'bytes': bytes,
+    'source_build': sourceBuild,
+    if (dir.isNotEmpty) 'dir': dir,
+  };
 }
 
 /// Prüft den Ordner einer Region (#220): leer oder `<id>/` mit 2–8
@@ -111,10 +115,19 @@ class HeightsManifest {
     if (!RegExp(r'^heights-\d{8}\.pmtiles$').hasMatch(file)) {
       throw FormatException('Unerwarteter Archivname: $file');
     }
-    if (j['format'] != kHeightsFormat || j['grid'] != kHeightGrid || j['zoom'] != kHeightTileZoom) {
-      throw FormatException('Höhenformat ${j['format']}/${j['grid']}/${j['zoom']} unbekannt');
+    if (j['format'] != kHeightsFormat ||
+        j['grid'] != kHeightGrid ||
+        j['zoom'] != kHeightTileZoom) {
+      throw FormatException(
+        'Höhenformat ${j['format']}/${j['grid']}/${j['zoom']} unbekannt',
+      );
     }
-    return HeightsManifest(file: file, bytes: j['bytes'] as int, build: j['build'] as String, dir: folder);
+    return HeightsManifest(
+      file: file,
+      bytes: j['bytes'] as int,
+      build: j['build'] as String,
+      dir: folder,
+    );
   }
 }
 
@@ -152,14 +165,22 @@ class OverviewManifest {
   factory OverviewManifest.fromJson(Map<String, dynamic> j, {String dir = ''}) {
     final file = j['file'] as String;
     final folder = checkRegionDir(dir);
-    if (folder.isEmpty) throw const FormatException('Eine Übersicht gibt es nur im Ordner einer Region');
+    if (folder.isEmpty) {
+      throw const FormatException(
+        'Eine Übersicht gibt es nur im Ordner einer Region',
+      );
+    }
     if (!RegExp(r'^overview-\d{8}\.pmtiles$').hasMatch(file)) {
       throw FormatException('Unerwarteter Archivname: $file');
     }
     final sha = j['sha256'] as String;
-    if (!RegExp(r'^[0-9a-f]{64}$').hasMatch(sha)) throw FormatException('Unerwartete Prüfsumme: $sha');
+    if (!RegExp(r'^[0-9a-f]{64}$').hasMatch(sha)) {
+      throw FormatException('Unerwartete Prüfsumme: $sha');
+    }
     final maxZoom = j['maxzoom'] as int;
-    if (maxZoom < 0 || maxZoom > 10) throw FormatException('Unerwarteter Zoom der Übersicht: $maxZoom');
+    if (maxZoom < 0 || maxZoom > 10) {
+      throw FormatException('Unerwarteter Zoom der Übersicht: $maxZoom');
+    }
     return OverviewManifest(
       file: file,
       bytes: j['bytes'] as int,
@@ -177,11 +198,15 @@ Future<HeightsManifest?> fetchHeightsManifest() async {
   if (response.statusCode != 200) {
     throw http.ClientException('Höhen-Manifest: HTTP ${response.statusCode}');
   }
-  return HeightsManifest.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
+  return HeightsManifest.fromJson(
+    jsonDecode(response.body) as Map<String, dynamic>,
+  );
 }
 
 final heightsManifestLoaderProvider =
-    Provider<Future<HeightsManifest?> Function()>((ref) => fetchHeightsManifest);
+    Provider<Future<HeightsManifest?> Function()>(
+      (ref) => fetchHeightsManifest,
+    );
 
 /// Das Höhen-Manifest — oder null: kein Empfang, Host nicht erreichbar,
 /// noch kein Bau, unbekanntes Format. Null heißt: Ein Bereich kommt ohne
@@ -191,7 +216,9 @@ final heightsManifestProvider = FutureProvider<HeightsManifest?>((ref) async {
   try {
     return await ref.watch(heightsManifestLoaderProvider)();
   } catch (e, s) {
-    if (!looksOffline(e) && e is! FormatException) logError('Höhen-Manifest laden', e, s);
+    if (!looksOffline(e) && e is! FormatException) {
+      logError('Höhen-Manifest laden', e, s);
+    }
     return null;
   }
 });
@@ -222,15 +249,20 @@ const kSeenTilesCacheBytes = 100 * 1024 * 1024;
 
 /// Holt das Manifest vom Host — die Naht, die Tests ersetzen (kein Netz).
 Future<MapManifest?> fetchMapManifest() async {
-  final response = await http.get(Uri.parse(kMapManifestUrl)).timeout(kMapManifestTimeout);
+  final response = await http
+      .get(Uri.parse(kMapManifestUrl))
+      .timeout(kMapManifestTimeout);
   if (response.statusCode != 200) {
     throw http.ClientException('Manifest: HTTP ${response.statusCode}');
   }
-  return MapManifest.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
+  return MapManifest.fromJson(
+    jsonDecode(response.body) as Map<String, dynamic>,
+  );
 }
 
-final mapManifestLoaderProvider =
-    Provider<Future<MapManifest?> Function()>((ref) => fetchMapManifest);
+final mapManifestLoaderProvider = Provider<Future<MapManifest?> Function()>(
+  (ref) => fetchMapManifest,
+);
 
 /// Das Manifest — oder null: kein Empfang (dann wird gar nicht erst
 /// gefragt), Host nicht erreichbar, Datei kaputt. Null heißt für beide
@@ -252,11 +284,14 @@ final mapManifestProvider = FutureProvider<MapManifest?>((ref) async {
 /// Öffnet das Online-Archiv über Range-Anfragen — die Naht für Tests.
 final onlineArchiveOpenerProvider =
     Provider<Future<PmTilesVectorTileProvider> Function(Uri)>(
-        (ref) => PmTilesVectorTileProvider.openUri);
+      (ref) => PmTilesVectorTileProvider.openUri,
+    );
 
 /// Der Speicher gesehener Kacheln (#155) — im Browser IndexedDB, sonst
 /// keiner (Android: MapLibres Ambient Cache). Die Naht für Tests.
-final seenTileStoreProvider = Provider<SeenTileStore?>((ref) => createSeenTileStore());
+final seenTileStoreProvider = Provider<SeenTileStore?>(
+  (ref) => createSeenTileStore(),
+);
 
 /// Liest ein gemerktes Manifest (#155) — mit derselben Prüfung wie vom
 /// Host. Was nicht mehr passt (ein anderes Wege-Format nach einem Update),
@@ -273,10 +308,18 @@ T? rememberedManifest<T>(String? json, T Function(Map<String, dynamic>) parse) {
 /// Merkt ein frisches Manifest, nur wenn es sich geändert hat (einmal im
 /// Monat, nicht bei jedem Neubau des Stils). Beide Engines schreiben
 /// dieselben Schlüssel mit demselben Text.
-void rememberManifest(String? before, Map<String, dynamic> manifest, Future<void> Function(String) write) {
+void rememberManifest(
+  String? before,
+  Map<String, dynamic> manifest,
+  Future<void> Function(String) write,
+) {
   final json = jsonEncode(manifest);
   if (json == before) return;
-  unawaited(write(json).catchError((Object e, StackTrace s) => logError('Karten-Manifest merken', e, s)));
+  unawaited(
+    write(json).catchError(
+      (Object e, StackTrace s) => logError('Karten-Manifest merken', e, s),
+    ),
+  );
 }
 
 /// Öffnet ein Archiv des Hosts für flutter_map — mit Speicher gesehener
@@ -307,7 +350,12 @@ Future<VectorTileProvider?> openHostArchive(
     return online;
   }
   final provider = SeenTilesVectorTileProvider(
-      archive: file, store: store, online: online, minZoom: minZoom, maxZoom: maxZoom);
+    archive: file,
+    store: store,
+    online: online,
+    minZoom: minZoom,
+    maxZoom: maxZoom,
+  );
   ref.onDispose(provider.close);
   return provider;
 }
@@ -315,20 +363,29 @@ Future<VectorTileProvider?> openHostArchive(
 /// Ob eine Quelle nur gesehene Kacheln liefert — dann liegt die Übersicht
 /// darunter (dieselbe Regel wie im MapLibre-Stil: Übersicht, solange kein
 /// FRISCHES Manifest da ist). Bei mehreren Regionen (#220) zählt jede.
-bool seenOnlyProviders(TileProviders providers) => providers.tileProviderBySource.values.any((p) =>
-    (p is SeenTilesVectorTileProvider && p.seenOnly) ||
-    (p is RegionTileProvider &&
-        p.parts.any((part) => part.provider is SeenTilesVectorTileProvider &&
-            (part.provider as SeenTilesVectorTileProvider).seenOnly)));
+bool seenOnlyProviders(TileProviders providers) =>
+    providers.tileProviderBySource.values.any(
+      (p) =>
+          (p is SeenTilesVectorTileProvider && p.seenOnly) ||
+          (p is RegionTileProvider &&
+              p.parts.any(
+                (part) =>
+                    part.provider is SeenTilesVectorTileProvider &&
+                    (part.provider as SeenTilesVectorTileProvider).seenOnly,
+              )),
+    );
 
 /// Mehrere Regionen zu EINER Quelle (#220): mit nur einer bekannten
 /// Region ihr Archiv selbst — die Karte bis 0.103 —, sonst der Verteiler
 /// nach Lage. Null ohne ein einziges Archiv.
 VectorTileProvider? regionSource(
-    List<MapRegion> regions, List<({MapRegion region, VectorTileProvider? provider})> opened) {
+  List<MapRegion> regions,
+  List<({MapRegion region, VectorTileProvider? provider})> opened,
+) {
   final parts = [
     for (final o in opened)
-      if (o.provider case final provider?) (box: o.region.box, provider: provider),
+      if (o.provider case final provider?)
+        (box: o.region.box, provider: provider),
   ];
   if (parts.isEmpty) return null;
   if (regions.length == 1) return parts.single.provider;
@@ -344,24 +401,45 @@ Future<VectorTileProvider?> _regionMapArchive(Ref ref, MapRegion region) async {
     final settings = ref.watch(settingsProvider);
     if (region.isDach) {
       if (fresh != null) {
-        rememberManifest(settings.seenMapManifest, fresh.toJson(), settings.setSeenMapManifest);
+        rememberManifest(
+          settings.seenMapManifest,
+          fresh.toJson(),
+          settings.setSeenMapManifest,
+        );
       }
-      manifest ??= rememberedManifest(settings.seenMapManifest, MapManifest.fromJson);
+      manifest ??= rememberedManifest(
+        settings.seenMapManifest,
+        MapManifest.fromJson,
+      );
     } else {
-      if (fresh != null) rememberRegionManifest(settings, region, RegionLayer.map, fresh.toJson());
-      manifest ??= rememberedRegionManifest(settings, region, RegionLayer.map, MapManifest.fromJson);
+      if (fresh != null) {
+        rememberRegionManifest(
+          settings,
+          region,
+          RegionLayer.map,
+          fresh.toJson(),
+        );
+      }
+      manifest ??= rememberedRegionManifest(
+        settings,
+        region,
+        RegionLayer.map,
+        MapManifest.fromJson,
+      );
     }
   }
   if (manifest == null) return null;
-  return openHostArchive(ref,
-      // Der Schlüssel der gesehenen Kacheln trägt den Ordner mit: Zwei
-      // Regionen dürfen gleich datierte Dateien haben.
-      file: '${manifest.dir}${manifest.file}',
-      uri: manifest.archiveUri,
-      fresh: fresh != null,
-      minZoom: 0,
-      maxZoom: manifest.maxZoom,
-      label: 'Online-Karte öffnen');
+  return openHostArchive(
+    ref,
+    // Der Schlüssel der gesehenen Kacheln trägt den Ordner mit: Zwei
+    // Regionen dürfen gleich datierte Dateien haben.
+    file: '${manifest.dir}${manifest.file}',
+    uri: manifest.archiveUri,
+    fresh: fresh != null,
+    minZoom: 0,
+    maxZoom: manifest.maxZoom,
+    label: 'Online-Karte öffnen',
+  );
 }
 
 /// Die Online-Vektorkarte für die flutter_map-Engine: Archiv vom Host
@@ -380,16 +458,23 @@ final onlineMapStyleProvider = FutureProvider<BaseMapStyle?>((ref) async {
   try {
     // DACH sofort, die übrigen, sobald der Index da ist — DACH wartet nie
     // auf den Index.
-    final (dach, regions) = await (_regionMapArchive(ref, kDachRegion), regionsPatiently(ref)).wait;
+    final (dach, regions) = await (
+      _regionMapArchive(ref, kDachRegion),
+      regionsPatiently(ref),
+    ).wait;
     final opened = [
       (region: kDachRegion, provider: dach),
       for (final region in regions)
-        if (!region.isDach) (region: region, provider: await _regionMapArchive(ref, region)),
+        if (!region.isDach)
+          (region: region, provider: await _regionMapArchive(ref, region)),
     ];
     final archive = regionSource(regions, opened);
     if (archive == null) return null;
     final theme = await ref.watch(baseThemeWithoutBackgroundProvider.future);
-    return BaseMapStyle(theme: theme, tileProviders: TileProviders({'protomaps': archive}));
+    return BaseMapStyle(
+      theme: theme,
+      tileProviders: TileProviders({'protomaps': archive}),
+    );
   } catch (e, s) {
     if (!looksOffline(e)) logError('Online-Karte öffnen', e, s);
     return null;

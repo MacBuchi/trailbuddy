@@ -11,23 +11,29 @@ import 'nearby_repository.dart';
 import 'profile_repository.dart';
 import 'push_repository.dart';
 
-final supabaseClientProvider =
-    Provider<SupabaseClient>((ref) => Supabase.instance.client);
+final supabaseClientProvider = Provider<SupabaseClient>(
+  (ref) => Supabase.instance.client,
+);
 
-final authRepositoryProvider =
-    Provider((ref) => AuthRepository(ref.watch(supabaseClientProvider)));
+final authRepositoryProvider = Provider(
+  (ref) => AuthRepository(ref.watch(supabaseClientProvider)),
+);
 
-final profileRepositoryProvider =
-    Provider((ref) => ProfileRepository(ref.watch(supabaseClientProvider)));
+final profileRepositoryProvider = Provider(
+  (ref) => ProfileRepository(ref.watch(supabaseClientProvider)),
+);
 
-final friendRepositoryProvider =
-    Provider((ref) => FriendRepository(ref.watch(supabaseClientProvider)));
+final friendRepositoryProvider = Provider(
+  (ref) => FriendRepository(ref.watch(supabaseClientProvider)),
+);
 
-final messageRepositoryProvider =
-    Provider((ref) => MessageRepository(ref.watch(supabaseClientProvider)));
+final messageRepositoryProvider = Provider(
+  (ref) => MessageRepository(ref.watch(supabaseClientProvider)),
+);
 
-final airtimeRepositoryProvider =
-    Provider((ref) => AirtimeRepository(ref.watch(supabaseClientProvider)));
+final airtimeRepositoryProvider = Provider(
+  (ref) => AirtimeRepository(ref.watch(supabaseClientProvider)),
+);
 
 /// Buddy in der Nähe (#526): Schalter je Buddy und der eigene Kanal. Ein
 /// Objekt mit Zustand (offene Kanäle) — deshalb schließt es beim Wegräumen.
@@ -37,19 +43,23 @@ final nearbyRepositoryProvider = Provider<NearbyRepository>((ref) {
   return repo;
 });
 
-final feedbackRepositoryProvider =
-    Provider((ref) => FeedbackRepository(ref.watch(supabaseClientProvider)));
+final feedbackRepositoryProvider = Provider(
+  (ref) => FeedbackRepository(ref.watch(supabaseClientProvider)),
+);
 
-final appConfigRepositoryProvider =
-    Provider((ref) => AppConfigRepository(ref.watch(supabaseClientProvider)));
+final appConfigRepositoryProvider = Provider(
+  (ref) => AppConfigRepository(ref.watch(supabaseClientProvider)),
+);
 
-final pushRepositoryProvider =
-    Provider((ref) => PushRepository(ref.watch(supabaseClientProvider)));
+final pushRepositoryProvider = Provider(
+  (ref) => PushRepository(ref.watch(supabaseClientProvider)),
+);
 
 /// Auth-Zustand als Stream — steuert den Router-Redirect und sorgt dafür,
 /// dass alle Daten-Provider bei Login/Logout neu laden.
 final authStateProvider = StreamProvider<AuthState>(
-    (ref) => ref.watch(authRepositoryProvider).onAuthStateChange);
+  (ref) => ref.watch(authRepositoryProvider).onAuthStateChange,
+);
 
 final currentUserIdProvider = Provider<String?>((ref) {
   ref.watch(authStateProvider);

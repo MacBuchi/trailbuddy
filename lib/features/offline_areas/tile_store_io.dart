@@ -40,12 +40,17 @@ class SqliteTileStore implements TileStore {
     return _baseDir = Directory('${support.path}/offline_maps/store');
   }
 
-  Future<File> _file(String region, TileLayer layer) async =>
-      File('${(await _dir()).path}/${checkStoreRegion(region)}/${layer.name}.mbtiles');
+  Future<File> _file(String region, TileLayer layer) async => File(
+    '${(await _dir()).path}/${checkStoreRegion(region)}/${layer.name}.mbtiles',
+  );
 
   /// Die geöffnete Datei; mit [create] legt sie sie an, sonst null, wenn
   /// es sie nicht gibt.
-  Future<Database?> _db(String region, TileLayer layer, {bool create = false}) async {
+  Future<Database?> _db(
+    String region,
+    TileLayer layer, {
+    bool create = false,
+  }) async {
     final file = await _file(region, layer);
     final open = _dbs[file.path];
     if (open != null) return open;
@@ -55,12 +60,18 @@ class SqliteTileStore implements TileStore {
     // Vor der ersten Tabelle — danach wirkt es erst nach einem VACUUM.
     db.execute('PRAGMA auto_vacuum = INCREMENTAL');
     db.execute('PRAGMA journal_mode = WAL');
-    db.execute('CREATE TABLE IF NOT EXISTS metadata (name TEXT PRIMARY KEY, value TEXT)');
-    db.execute('CREATE TABLE IF NOT EXISTS tiles ('
-        'zoom_level INTEGER NOT NULL, tile_column INTEGER NOT NULL, tile_row INTEGER NOT NULL, '
-        'tile_data BLOB NOT NULL, build TEXT NOT NULL, '
-        'PRIMARY KEY (zoom_level, tile_column, tile_row))');
-    final meta = db.prepare('INSERT OR IGNORE INTO metadata (name, value) VALUES (?, ?)');
+    db.execute(
+      'CREATE TABLE IF NOT EXISTS metadata (name TEXT PRIMARY KEY, value TEXT)',
+    );
+    db.execute(
+      'CREATE TABLE IF NOT EXISTS tiles ('
+      'zoom_level INTEGER NOT NULL, tile_column INTEGER NOT NULL, tile_row INTEGER NOT NULL, '
+      'tile_data BLOB NOT NULL, build TEXT NOT NULL, '
+      'PRIMARY KEY (zoom_level, tile_column, tile_row))',
+    );
+    final meta = db.prepare(
+      'INSERT OR IGNORE INTO metadata (name, value) VALUES (?, ?)',
+    );
     try {
       meta.execute(['name', 'trailbuddy-$region-${layer.name}']);
       // Höhen und Routing-Stücke (#380) sind keine Vektorkacheln; MapLibre
@@ -85,33 +96,53 @@ class SqliteTileStore implements TileStore {
   Future<Map<int, StoredTileInfo>> index(String region, TileLayer layer) async {
     final db = await _db(region, layer);
     if (db == null) return const {};
-    final rows = db.select('SELECT zoom_level, tile_column, tile_row, length(tile_data), build FROM tiles');
+    final rows = db.select(
+      'SELECT zoom_level, tile_column, tile_row, length(tile_data), build FROM tiles',
+    );
     return {
       for (final r in rows)
-        ZXY(r.columnAt(0) as int, r.columnAt(1) as int, _row(r.columnAt(0) as int, r.columnAt(2) as int))
-                .toTileId():
-            StoredTileInfo(r.columnAt(3) as int, r.columnAt(4) as String),
+        ZXY(
+          r.columnAt(0) as int,
+          r.columnAt(1) as int,
+          _row(r.columnAt(0) as int, r.columnAt(2) as int),
+        ).toTileId(): StoredTileInfo(
+          r.columnAt(3) as int,
+          r.columnAt(4) as String,
+        ),
     };
   }
 
   @override
-  Future<Uint8List?> read(String region, TileLayer layer, int z, int x, int y) async {
+  Future<Uint8List?> read(
+    String region,
+    TileLayer layer,
+    int z,
+    int x,
+    int y,
+  ) async {
     final db = await _db(region, layer);
     if (db == null) return null;
     final rows = db.select(
-        'SELECT tile_data FROM tiles WHERE zoom_level = ? AND tile_column = ? AND tile_row = ?', [z, x, _row(z, y)]);
+      'SELECT tile_data FROM tiles WHERE zoom_level = ? AND tile_column = ? AND tile_row = ?',
+      [z, x, _row(z, y)],
+    );
     if (rows.isEmpty) return null;
     final value = rows.first.columnAt(0);
     return value is Uint8List ? value : Uint8List.fromList(value as List<int>);
   }
 
   @override
-  Future<Map<int, String>> builds(String region, TileLayer layer, Iterable<int> tileIds) async {
+  Future<Map<int, String>> builds(
+    String region,
+    TileLayer layer,
+    Iterable<int> tileIds,
+  ) async {
     final db = await _db(region, layer);
     if (db == null) return const {};
     final out = <int, String>{};
-    final select =
-        db.prepare('SELECT build FROM tiles WHERE zoom_level = ? AND tile_column = ? AND tile_row = ?');
+    final select = db.prepare(
+      'SELECT build FROM tiles WHERE zoom_level = ? AND tile_column = ? AND tile_row = ?',
+    );
     try {
       for (final id in tileIds) {
         final t = ZXY.fromTileId(id);
@@ -125,11 +156,17 @@ class SqliteTileStore implements TileStore {
   }
 
   @override
-  Future<void> put(String region, TileLayer layer, List<StoreTile> tiles) async {
+  Future<void> put(
+    String region,
+    TileLayer layer,
+    List<StoreTile> tiles,
+  ) async {
     if (tiles.isEmpty) return;
     final db = (await _db(region, layer, create: true))!;
-    final insert = db.prepare('INSERT OR REPLACE INTO tiles '
-        '(zoom_level, tile_column, tile_row, tile_data, build) VALUES (?, ?, ?, ?, ?)');
+    final insert = db.prepare(
+      'INSERT OR REPLACE INTO tiles '
+      '(zoom_level, tile_column, tile_row, tile_data, build) VALUES (?, ?, ?, ?, ?)',
+    );
     db.execute('BEGIN');
     try {
       for (final t in tiles) {
@@ -148,9 +185,13 @@ class SqliteTileStore implements TileStore {
   /// `minzoom`/`maxzoom` aus dem, was liegt — MapLibre liest sie einmal
   /// beim Öffnen der Quelle.
   void _updateZoomRange(Database db) {
-    final range = db.select('SELECT MIN(zoom_level), MAX(zoom_level) FROM tiles').first;
+    final range = db
+        .select('SELECT MIN(zoom_level), MAX(zoom_level) FROM tiles')
+        .first;
     if (range.columnAt(0) == null) return;
-    final set = db.prepare('INSERT OR REPLACE INTO metadata (name, value) VALUES (?, ?)');
+    final set = db.prepare(
+      'INSERT OR REPLACE INTO metadata (name, value) VALUES (?, ?)',
+    );
     try {
       set.execute(['minzoom', '${range.columnAt(0)}']);
       set.execute(['maxzoom', '${range.columnAt(1)}']);
@@ -160,12 +201,18 @@ class SqliteTileStore implements TileStore {
   }
 
   @override
-  Future<void> remove(String region, TileLayer layer, Iterable<int> tileIds) async {
+  Future<void> remove(
+    String region,
+    TileLayer layer,
+    Iterable<int> tileIds,
+  ) async {
     final db = await _db(region, layer);
     if (db == null) return;
     final ids = tileIds.toList();
     if (ids.isEmpty) return;
-    final delete = db.prepare('DELETE FROM tiles WHERE zoom_level = ? AND tile_column = ? AND tile_row = ?');
+    final delete = db.prepare(
+      'DELETE FROM tiles WHERE zoom_level = ? AND tile_column = ? AND tile_row = ?',
+    );
     db.execute('BEGIN');
     try {
       for (final id in ids) {

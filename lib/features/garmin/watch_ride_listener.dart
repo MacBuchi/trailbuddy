@@ -40,15 +40,17 @@ class _WatchRideListenerState extends ConsumerState<WatchRideListener> {
     if (!mounted) return;
     final messenger = ScaffoldMessenger.of(context);
     messenger.clearSnackBars();
-    messenger.showSnackBar(SnackBar(
-      content: Text(context.l10n.watchRideSaved),
-      duration: const Duration(seconds: 4),
-      action: SnackBarAction(
-        label: context.l10n.watchRideShow,
-        onPressed: () => ref.read(routerProvider).go('/profile/rides'),
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(context.l10n.watchRideSaved),
+        duration: const Duration(seconds: 4),
+        action: SnackBarAction(
+          label: context.l10n.watchRideShow,
+          onPressed: () => ref.read(routerProvider).go('/profile/rides'),
+        ),
+        persist: false,
       ),
-      persist: false,
-    ));
+    );
   }
 
   @override

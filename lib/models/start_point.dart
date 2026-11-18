@@ -67,20 +67,19 @@ class StartPoint {
     TrailVisibility? visibility,
     bool? pending,
     bool? sending,
-  }) =>
-      StartPoint(
-        clientId: clientId,
-        userId: userId,
-        name: name ?? this.name,
-        lat: lat ?? this.lat,
-        lon: lon ?? this.lon,
-        visibility: visibility ?? this.visibility,
-        createdAt: createdAt,
-        updatedAt: updatedAt,
-        username: username,
-        pending: pending ?? this.pending,
-        sending: sending ?? this.sending,
-      );
+  }) => StartPoint(
+    clientId: clientId,
+    userId: userId,
+    name: name ?? this.name,
+    lat: lat ?? this.lat,
+    lon: lon ?? this.lon,
+    visibility: visibility ?? this.visibility,
+    createdAt: createdAt,
+    updatedAt: updatedAt,
+    username: username,
+    pending: pending ?? this.pending,
+    sending: sending ?? this.sending,
+  );
 
   /// Liest eine Zeile wie vom Netz — oder `null`, wenn sie nicht taugt
   /// (eine Kopie, die ein späterer Stand anders geschrieben hat).
@@ -91,8 +90,13 @@ class StartPoint {
     final lat = (json['lat'] as num?)?.toDouble();
     final lon = (json['lon'] as num?)?.toDouble();
     final createdAt = DateTime.tryParse(json['created_at'] as String? ?? '');
-    if (clientId == null || userId == null || name == null || name.isEmpty ||
-        lat == null || lon == null || createdAt == null) {
+    if (clientId == null ||
+        userId == null ||
+        name == null ||
+        name.isEmpty ||
+        lat == null ||
+        lon == null ||
+        createdAt == null) {
       return null;
     }
     final owner = json['owner'];
@@ -104,34 +108,38 @@ class StartPoint {
       lon: lon,
       visibility: TrailVisibility.fromDb(json['visibility'] as String?),
       createdAt: createdAt.toLocal(),
-      updatedAt: DateTime.tryParse(json['updated_at'] as String? ?? '')?.toLocal(),
-      username: owner is Map<String, dynamic> ? owner['username'] as String? : null,
+      updatedAt: DateTime.tryParse(
+        json['updated_at'] as String? ?? '',
+      )?.toLocal(),
+      username: owner is Map<String, dynamic>
+          ? owner['username'] as String?
+          : null,
     );
   }
 
   /// Die Zeile, wie sie in die Kopie auf dem Gerät geht — die Hälfte zu
   /// [fromJson].
   Map<String, dynamic> toRow() => {
-        'client_id': clientId,
-        'user_id': userId,
-        'name': name,
-        'lat': lat,
-        'lon': lon,
-        'visibility': visibility.db,
-        'created_at': createdAt.toUtc().toIso8601String(),
-        'updated_at': updatedAt?.toUtc().toIso8601String(),
-        'owner': username == null ? null : {'username': username},
-      };
+    'client_id': clientId,
+    'user_id': userId,
+    'name': name,
+    'lat': lat,
+    'lon': lon,
+    'visibility': visibility.db,
+    'created_at': createdAt.toUtc().toIso8601String(),
+    'updated_at': updatedAt?.toUtc().toIso8601String(),
+    'owner': username == null ? null : {'username': username},
+  };
 
   /// Was an den Server geht: nur die Spalten, die der Besitzer setzt.
   Map<String, dynamic> toWriteRow() => {
-        'client_id': clientId,
-        'user_id': userId,
-        'name': name,
-        'lat': lat,
-        'lon': lon,
-        'visibility': visibility.db,
-      };
+    'client_id': clientId,
+    'user_id': userId,
+    'name': name,
+    'lat': lat,
+    'lon': lon,
+    'visibility': visibility.db,
+  };
 }
 
 /// Kürzt einen Namen auf das, was die Datenbank annimmt — `''` heißt:
@@ -140,5 +148,7 @@ class StartPoint {
 String clampStartPointName(String raw) {
   final t = raw.trim();
   if (t.runes.length <= kStartPointNameMaxLength) return t;
-  return String.fromCharCodes(t.runes.take(kStartPointNameMaxLength)).trimRight();
+  return String.fromCharCodes(
+    t.runes.take(kStartPointNameMaxLength),
+  ).trimRight();
 }

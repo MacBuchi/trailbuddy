@@ -73,7 +73,12 @@ const kRoadGraphZoom = 13;
 /// Ein brauchbarer Weg aus einer Kachel, in Grad, auf die Kachel
 /// zugeschnitten.
 class WayLine {
-  const WayLine({required this.cls, required this.oneway, required this.points, this.level = 0});
+  const WayLine({
+    required this.cls,
+    required this.oneway,
+    required this.points,
+    this.level = 0,
+  });
 
   final WayClass cls;
 
@@ -89,7 +94,12 @@ class WayLine {
 /// Die brauchbaren Wege einer Kachel (`roads`, Linien), klassifiziert,
 /// auf den Kachelrahmen zugeschnitten, doppelte Punkte entfernt. Eine
 /// Kachel, die sich nicht lesen lässt, liefert keine Linien.
-List<WayLine> wayLinesFromTile(Uint8List mvt, {required int z, required int x, required int y}) {
+List<WayLine> wayLinesFromTile(
+  Uint8List mvt, {
+  required int z,
+  required int x,
+  required int y,
+}) {
   final VectorTile tile;
   try {
     tile = VectorTile.fromBytes(bytes: mvt);
@@ -115,17 +125,23 @@ List<WayLine> wayLinesFromTile(Uint8List mvt, {required int z, required int x, r
       final level = _truthy(props['is_bridge'])
           ? 1
           : _truthy(props['is_tunnel'])
-              ? -1
-              : 0;
+          ? -1
+          : 0;
       for (final line in f.decodeLineString()) {
-        final px = [for (final p in line) math.Point(p[0].toDouble(), p[1].toDouble())];
+        final px = [
+          for (final p in line) math.Point(p[0].toDouble(), p[1].toDouble()),
+        ];
         for (final piece in clipToTile(px, extent)) {
           final pts = <LatLng>[];
           for (final p in piece) {
             final ll = _tileToLatLng(x + p.x / extent, y + p.y / extent, n);
             if (pts.isEmpty || pts.last != ll) pts.add(ll);
           }
-          if (pts.length >= 2) out.add(WayLine(cls: cls, oneway: oneway, points: pts, level: level));
+          if (pts.length >= 2) {
+            out.add(
+              WayLine(cls: cls, oneway: oneway, points: pts, level: level),
+            );
+          }
         }
       }
     }
@@ -146,7 +162,12 @@ class WayGradeLine {
 /// Die Linien einer Kachel des Wege-Archivs (Ebene `ways`) — `ways_from_tile`
 /// im Werkzeug. Nicht zugeschnitten: Der Puffer über den Rand schadet
 /// beim Abgleich nicht, er hilft an der Kachelgrenze.
-List<WayGradeLine> wayGradeLinesFromTile(Uint8List mvt, {required int z, required int x, required int y}) {
+List<WayGradeLine> wayGradeLinesFromTile(
+  Uint8List mvt, {
+  required int z,
+  required int x,
+  required int y,
+}) {
   final VectorTile tile;
   try {
     tile = VectorTile.fromBytes(bytes: mvt);
@@ -165,8 +186,13 @@ List<WayGradeLine> wayGradeLinesFromTile(Uint8List mvt, {required int z, require
       if (k == null) continue;
       final u = props['u']?.dartIntValue?.toInt();
       for (final line in f.decodeLineString()) {
-        final pts = [for (final p in line) _tileToLatLng(x + p[0] / extent, y + p[1] / extent, n)];
-        if (pts.length >= 2) out.add(WayGradeLine(way: k, uphill: u, points: pts));
+        final pts = [
+          for (final p in line)
+            _tileToLatLng(x + p[0] / extent, y + p[1] / extent, n),
+        ];
+        if (pts.length >= 2) {
+          out.add(WayGradeLine(way: k, uphill: u, points: pts));
+        }
       }
     }
   }
@@ -198,14 +224,24 @@ int addWayQuality(RoadGraph g, Iterable<WayGradeLine> lines) {
   final grid = <(int, int), List<int>>{};
   final segs = <(int, int?, math.Point<double>, math.Point<double>)>[];
   for (final l in lines) {
-    if (!kWayTrackClasses.contains(l.way) && !kWayPathClasses.contains(l.way)) continue;
+    if (!kWayTrackClasses.contains(l.way) && !kWayPathClasses.contains(l.way)) {
+      continue;
+    }
     final xy = g.proj.line(l.points);
     for (var i = 1; i < xy.length; i++) {
       final a = xy[i - 1], b = xy[i];
       final si = segs.length;
       segs.add((l.way, l.uphill, a, b));
-      for (var cx = (math.min(a.x, b.x) / cell).floor(); cx <= (math.max(a.x, b.x) / cell).floor(); cx++) {
-        for (var cy = (math.min(a.y, b.y) / cell).floor(); cy <= (math.max(a.y, b.y) / cell).floor(); cy++) {
+      for (
+        var cx = (math.min(a.x, b.x) / cell).floor();
+        cx <= (math.max(a.x, b.x) / cell).floor();
+        cx++
+      ) {
+        for (
+          var cy = (math.min(a.y, b.y) / cell).floor();
+          cy <= (math.max(a.y, b.y) / cell).floor();
+          cy++
+        ) {
           (grid[(cx, cy)] ??= []).add(si);
         }
       }
@@ -221,7 +257,9 @@ int addWayQuality(RoadGraph g, Iterable<WayGradeLine> lines) {
           final (k, u, a, b) = segs[si];
           if (!kinds.contains(k)) continue;
           final d = pointSegmentDistance(p, a, b);
-          if (d <= kWayMatchM && (best == null || d < best.$1)) best = (d, k, u);
+          if (d <= kWayMatchM && (best == null || d < best.$1)) {
+            best = (d, k, u);
+          }
         }
       }
     }
@@ -235,8 +273,8 @@ int addWayQuality(RoadGraph g, Iterable<WayGradeLine> lines) {
     final kinds = e.cls == WayClass.forstweg
         ? kWayTrackClasses
         : e.cls == WayClass.wanderweg
-            ? kWayPathClasses
-            : null;
+        ? kWayPathClasses
+        : null;
     if (kinds == null) continue;
     final samples = resampleXy(g.edgeXy(i), kWaySampleM);
     if (samples.isEmpty) continue;
@@ -281,14 +319,26 @@ double _sinh(double v) => (math.exp(v) - math.exp(-v)) / 2;
 /// Rand hinaus; ein Weg nahe der Grenze liegt in BEIDEN Nachbarn. Ohne
 /// Zuschnitt hielte der Graph ihn doppelt; mit ihm enden beide Kacheln am
 /// selben Grenzpunkt (± Quantisierung), und der Join bindet sie zusammen.
-List<List<math.Point<double>>> clipToTile(List<math.Point<double>> line, double extent) {
-  bool inside(math.Point<double> p) => p.x >= 0 && p.x <= extent && p.y >= 0 && p.y <= extent;
+List<List<math.Point<double>>> clipToTile(
+  List<math.Point<double>> line,
+  double extent,
+) {
+  bool inside(math.Point<double> p) =>
+      p.x >= 0 && p.x <= extent && p.y >= 0 && p.y <= extent;
 
-  (math.Point<double>, math.Point<double>)? cross(math.Point<double> a, math.Point<double> b) {
+  (math.Point<double>, math.Point<double>)? cross(
+    math.Point<double> a,
+    math.Point<double> b,
+  ) {
     // Liang–Barsky auf dem Kasten.
     var t0 = 0.0, t1 = 1.0;
     final dx = b.x - a.x, dy = b.y - a.y;
-    for (final (p, q) in [(-dx, a.x), (dx, extent - a.x), (-dy, a.y), (dy, extent - a.y)]) {
+    for (final (p, q) in [
+      (-dx, a.x),
+      (dx, extent - a.x),
+      (-dy, a.y),
+      (dy, extent - a.y),
+    ]) {
       if (p == 0) {
         if (q < 0) return null;
         continue;
@@ -303,7 +353,10 @@ List<List<math.Point<double>>> clipToTile(List<math.Point<double>> line, double 
       }
     }
     if (t0 > t1) return null;
-    return (math.Point(a.x + t0 * dx, a.y + t0 * dy), math.Point(a.x + t1 * dx, a.y + t1 * dy));
+    return (
+      math.Point(a.x + t0 * dx, a.y + t0 * dy),
+      math.Point(a.x + t1 * dx, a.y + t1 * dy),
+    );
   }
 
   final pieces = <List<math.Point<double>>>[];
@@ -431,20 +484,26 @@ class GraphEdge {
   set hasHeights(bool v) => _g._setFlag(index, _kHasHeights, v);
 
   @override
-  bool operator ==(Object other) => other is GraphEdge && identical(other._g, _g) && other.index == index;
+  bool operator ==(Object other) =>
+      other is GraphEdge && identical(other._g, _g) && other.index == index;
 
   @override
   int get hashCode => index;
 }
 
-const _kOneway = 1, _kBlockForward = 2, _kBlockBackward = 4, _kHasHeights = 8, _kGap = 16;
+const _kOneway = 1,
+    _kBlockForward = 2,
+    _kBlockBackward = 4,
+    _kHasHeights = 8,
+    _kGap = 16;
 
 /// Die Zeit einer Lücke von [lengthM] Metern (#492): geschoben.
 double gapTimeS(double lengthM) => lengthM / kGapSpeedMps;
 
 /// Die Kosten einer Lücke (#492): ihre Zeit plus [kGapCostPerM] je Meter
 /// über [kGapFreeM].
-double gapCostS(double lengthM) => gapTimeS(lengthM) + kGapCostPerM * math.max(0.0, lengthM - kGapFreeM);
+double gapCostS(double lengthM) =>
+    gapTimeS(lengthM) + kGapCostPerM * math.max(0.0, lengthM - kGapFreeM);
 
 /// Eine Liste nur zum Lesen — die Sichten auf die Felder des Graphen.
 abstract class _ReadOnlyList<T> extends ListBase<T> {
@@ -452,7 +511,8 @@ abstract class _ReadOnlyList<T> extends ListBase<T> {
   set length(int _) => throw UnsupportedError('Sicht auf den Graphen');
 
   @override
-  void operator []=(int i, T v) => throw UnsupportedError('Sicht auf den Graphen');
+  void operator []=(int i, T v) =>
+      throw UnsupportedError('Sicht auf den Graphen');
 }
 
 /// Die Punkte einer Kante, gelesen aus dem Punktspeicher.
@@ -537,7 +597,8 @@ class _Adjacency extends _ReadOnlyList<List<int>> {
 /// Wächst ein Feld über [need] hinaus, um ein Viertel — nicht aufs
 /// Doppelte: Nach [RoadGraph.compact] heftet das Laden noch Trail-Enden
 /// an, und ein Verdoppeln legte dafür jedes große Feld noch einmal an.
-int _grownLength(int length, int need) => need <= length ? length : need + (need >> 2) + 64;
+int _grownLength(int length, int need) =>
+    need <= length ? length : need + (need >> 2) + 64;
 
 Int32List _growI32(Int32List l, int need) {
   final n = _grownLength(l.length, need);
@@ -562,7 +623,11 @@ Int8List _growI8(Int8List l, int need) {
 /// Was auf einer Kante liegt: welcher Trail und ob er ein Verbinder ist
 /// (Uphill-Trail oder Verbindung, #185).
 class EdgeTrail {
-  const EdgeTrail({required this.id, required this.name, required this.connector});
+  const EdgeTrail({
+    required this.id,
+    required this.name,
+    required this.connector,
+  });
 
   final String id;
   final String name;
@@ -596,7 +661,10 @@ const kTrailConnectorFactor = 0.6;
 /// Platz eine Zahl und je Zelle ihre Koordinaten.
 class _CellGrid {
   var _cellCount = 0;
-  var _cx = Int32List(0), _cy = Int32List(0), _head = Int32List(0), _tail = Int32List(0);
+  var _cx = Int32List(0),
+      _cy = Int32List(0),
+      _head = Int32List(0),
+      _tail = Int32List(0);
   var _slots = Int32List(0);
   var _next = Int32List(0), _value = Int32List(0);
   var _entries = 0;
@@ -715,7 +783,10 @@ class RoadGraph {
   // Knoten: Lage in Metern (Projektion) und in Grad, je Knoten die erste
   // und letzte Nachbarkante und ihre Zahl.
   var _nodeCount = 0;
-  var _nx = Float64List(0), _ny = Float64List(0), _nlat = Float64List(0), _nlon = Float64List(0);
+  var _nx = Float64List(0),
+      _ny = Float64List(0),
+      _nlat = Float64List(0),
+      _nlon = Float64List(0);
   var _adjHead = Int32List(0), _adjTail = Int32List(0), _deg = Int32List(0);
 
   // Kanten. Jede hat zwei Nachbar-Plätze — 2·ei am Knoten a, 2·ei+1 am
@@ -723,7 +794,10 @@ class RoadGraph {
   // Eintragens ([adjFirst], [adjNext]); so sieht die Suche die Kanten in
   // derselben Reihenfolge wie die Listen bis 0.133.x.
   var _edgeCount = 0;
-  var _ea = Int32List(0), _eb = Int32List(0), _eoff = Int32List(0), _ecnt = Int32List(0);
+  var _ea = Int32List(0),
+      _eb = Int32List(0),
+      _eoff = Int32List(0),
+      _ecnt = Int32List(0);
   var _adjNext = Int32List(0);
   var _ecls = Uint8List(0), _eflags = Uint8List(0);
   var _elevel = Int8List(0), _eway = Int8List(0), _euphill = Int8List(0);
@@ -739,7 +813,10 @@ class RoadGraph {
   // Das Segmentgitter trägt je Segment die Nummer seines ersten Punkts;
   // _pedge nennt die Kante dazu, den Index im Abschnitt gibt _eoff.
   var _pointCount = 0;
-  var _plat = Float64List(0), _plon = Float64List(0), _px = Float64List(0), _py = Float64List(0);
+  var _plat = Float64List(0),
+      _plon = Float64List(0),
+      _px = Float64List(0),
+      _py = Float64List(0);
   var _pedge = Int32List(0);
 
   final _key = <(int, int), int>{};
@@ -765,7 +842,8 @@ class RoadGraph {
   int revision = 0;
 
   bool _flag(int ei, int bit) => _eflags[ei] & bit != 0;
-  void _setFlag(int ei, int bit, bool on) => _eflags[ei] = on ? _eflags[ei] | bit : _eflags[ei] & ~bit;
+  void _setFlag(int ei, int bit, bool on) =>
+      _eflags[ei] = on ? _eflags[ei] | bit : _eflags[ei] & ~bit;
 
   /// Knoten a und b der Kante [ei] — ohne Sicht, für die Suche.
   int edgeA(int ei) => _ea[ei];
@@ -800,14 +878,19 @@ class RoadGraph {
   /// erneute Projektion.
   List<math.Point<double>> edgeXy(int ei) {
     final off = _eoff[ei];
-    return [for (var i = 0; i < _ecnt[ei]; i++) math.Point(_px[off + i], _py[off + i])];
+    return [
+      for (var i = 0; i < _ecnt[ei]; i++)
+        math.Point(_px[off + i], _py[off + i]),
+    ];
   }
 
-  static (int, int) _cell(math.Point<double> p) => ((p.x / kGraphCellM).floor(), (p.y / kGraphCellM).floor());
+  static (int, int) _cell(math.Point<double> p) =>
+      ((p.x / kGraphCellM).floor(), (p.y / kGraphCellM).floor());
 
   /// Mikrograd, als Record: Zu EINER Zahl gepackt bräuchte er rund 57 Bit,
   /// im Web (dart2js) sind Zahlen nur bis 2^53 genau (#378).
-  static (int, int) _keyOf(LatLng p) => ((p.longitude * 1e6).round(), (p.latitude * 1e6).round());
+  static (int, int) _keyOf(LatLng p) =>
+      ((p.longitude * 1e6).round(), (p.latitude * 1e6).round());
 
   /// Der Knoten an [p] — zwei Punkte auf derselben Mikrograd-Koordinate
   /// sind EIN Knoten (so teilen zwei Linien ihren Scheitel).
@@ -898,9 +981,20 @@ class RoadGraph {
   void _indexSegments(int ei) {
     final off = _eoff[ei];
     for (var i = 0; i < _ecnt[ei] - 1; i++) {
-      final ax = _px[off + i], ay = _py[off + i], bx = _px[off + i + 1], by = _py[off + i + 1];
-      for (var cx = (math.min(ax, bx) / kGraphCellM).floor(); cx <= (math.max(ax, bx) / kGraphCellM).floor(); cx++) {
-        for (var cy = (math.min(ay, by) / kGraphCellM).floor(); cy <= (math.max(ay, by) / kGraphCellM).floor(); cy++) {
+      final ax = _px[off + i],
+          ay = _py[off + i],
+          bx = _px[off + i + 1],
+          by = _py[off + i + 1];
+      for (
+        var cx = (math.min(ax, bx) / kGraphCellM).floor();
+        cx <= (math.max(ax, bx) / kGraphCellM).floor();
+        cx++
+      ) {
+        for (
+          var cy = (math.min(ay, by) / kGraphCellM).floor();
+          cy <= (math.max(ay, by) / kGraphCellM).floor();
+          cy++
+        ) {
           _segCells.add(cx, cy, off + i);
         }
       }
@@ -918,16 +1012,39 @@ class RoadGraph {
     return sum;
   }
 
-  int addEdge(int a, int b, WayClass cls, bool oneway, List<LatLng> points, {int level = 0}) {
+  int addEdge(
+    int a,
+    int b,
+    WayClass cls,
+    bool oneway,
+    List<LatLng> points, {
+    int level = 0,
+  }) {
     final off = _pointCount;
     for (final p in points) {
       _addLatLng(p);
     }
-    return _addEdgeAt(a, b, cls.index, oneway ? _kOneway : 0, level, off, points.length);
+    return _addEdgeAt(
+      a,
+      b,
+      cls.index,
+      oneway ? _kOneway : 0,
+      level,
+      off,
+      points.length,
+    );
   }
 
   /// Legt eine Kante über die schon gespeicherten Punkte ab [off] an.
-  int _addEdgeAt(int a, int b, int cls, int flags, int level, int off, int count) {
+  int _addEdgeAt(
+    int a,
+    int b,
+    int cls,
+    int flags,
+    int level,
+    int off,
+    int count,
+  ) {
     final ei = _edgeCount++;
     if (ei >= _ea.length) {
       final need = ei + 1;
@@ -1006,13 +1123,23 @@ class RoadGraph {
     _link(mid, 2 * ei + 1);
     // Die zweite Hälfte erbt, was auf der Kante liegt — sonst ließe ein
     // angehefteter Trailkopf den Rest eines Trails rückwärts befahrbar.
-    final ni = _addEdgeAt(mid, oldB, _ecls[ei], _eflags[ei], _elevel[ei], secondOff, count - seg);
+    final ni = _addEdgeAt(
+      mid,
+      oldB,
+      _ecls[ei],
+      _eflags[ei],
+      _elevel[ei],
+      secondOff,
+      count - seg,
+    );
     _etrail[ni] = _etrail[ei];
     _eway[ni] = _eway[ei];
     _euphill[ni] = _euphill[ei];
     final firstLen = _elen[ei], secondLen = _elen[ni];
     // Der Trage-Aufschlag gehört der ganzen Treppe, nicht jeder Hälfte.
-    final carryShare = firstLen + secondLen == 0 ? 0.0 : secondLen / (firstLen + secondLen);
+    final carryShare = firstLen + secondLen == 0
+        ? 0.0
+        : secondLen / (firstLen + secondLen);
     _ecarry[ni] = _ecarry[ei] * carryShare;
     _ecarry[ei] = _ecarry[ei] * (1 - carryShare);
     if (_egain[ei] > 0 ||
@@ -1025,7 +1152,14 @@ class RoadGraph {
       // wäre falscher.
       final total = firstLen + secondLen;
       final share = total == 0 ? 0.0 : secondLen / total;
-      for (final f in [_egain, _eloss, _esteepUp, _esteepDown, _esteepWUp, _esteepWDown]) {
+      for (final f in [
+        _egain,
+        _eloss,
+        _esteepUp,
+        _esteepDown,
+        _esteepWUp,
+        _esteepWDown,
+      ]) {
         f[ni] = f[ei] * share;
         f[ei] = f[ei] * (1 - share);
       }
@@ -1040,7 +1174,11 @@ class RoadGraph {
     var bestD = radius;
     for (var dx = -reach; dx <= reach; dx++) {
       for (var dy = -reach; dy <= reach; dy++) {
-        for (var k = _nodeCells.first(cx + dx, cy + dy); k >= 0; k = _nodeCells.next(k)) {
+        for (
+          var k = _nodeCells.first(cx + dx, cy + dy);
+          k >= 0;
+          k = _nodeCells.next(k)
+        ) {
           final n = _nodeCells.value(k);
           if (n == exclude) continue;
           final d = nodeDistance(n, p.x, p.y);
@@ -1055,7 +1193,11 @@ class RoadGraph {
   }
 
   /// Der nächste Kantenpunkt innerhalb von [radius] Metern, oder null.
-  EdgeHit? nearest(LatLng p, double radius, {Set<int> excludeEdges = const {}}) {
+  EdgeHit? nearest(
+    LatLng p,
+    double radius, {
+    Set<int> excludeEdges = const {},
+  }) {
     final xy = proj.xy(p);
     final (cx, cy) = _cell(xy);
     final reach = (radius / kGraphCellM).ceil();
@@ -1063,11 +1205,17 @@ class RoadGraph {
     final seen = <int>{};
     for (var dx = -reach; dx <= reach; dx++) {
       for (var dy = -reach; dy <= reach; dy++) {
-        for (var k = _segCells.first(cx + dx, cy + dy); k >= 0; k = _segCells.next(k)) {
+        for (
+          var k = _segCells.first(cx + dx, cy + dy);
+          k >= 0;
+          k = _segCells.next(k)
+        ) {
           final o = _segCells.value(k);
           final ei = _pedge[o], i = o - _eoff[ei];
           // Eine Lücke (#492) ist kein Weg, an den man etwas heftet.
-          if (excludeEdges.contains(ei) || _flag(ei, _kGap) || !seen.add(o)) continue;
+          if (excludeEdges.contains(ei) || _flag(ei, _kGap) || !seen.add(o)) {
+            continue;
+          }
           if (i + 1 >= _ecnt[ei]) continue; // veraltet nach einer Teilung
           final ax = _px[o], ay = _py[o], bx = _px[o + 1], by = _py[o + 1];
           final (d, t) = _pointSegment(xy.x, xy.y, ax, ay, bx, by);
@@ -1083,7 +1231,11 @@ class RoadGraph {
 
   /// Je Kante innerhalb von [radius] ihr nächster Punkt, nächste zuerst —
   /// ohne Lücken ([GraphEdge.gap]) und ohne [excludeEdges].
-  List<EdgeHit> nearestPerEdge(LatLng p, double radius, {Set<int> excludeEdges = const {}}) {
+  List<EdgeHit> nearestPerEdge(
+    LatLng p,
+    double radius, {
+    Set<int> excludeEdges = const {},
+  }) {
     final xy = proj.xy(p);
     final (cx, cy) = _cell(xy);
     final reach = (radius / kGraphCellM).ceil();
@@ -1091,10 +1243,16 @@ class RoadGraph {
     final seen = <int>{};
     for (var dx = -reach; dx <= reach; dx++) {
       for (var dy = -reach; dy <= reach; dy++) {
-        for (var k = _segCells.first(cx + dx, cy + dy); k >= 0; k = _segCells.next(k)) {
+        for (
+          var k = _segCells.first(cx + dx, cy + dy);
+          k >= 0;
+          k = _segCells.next(k)
+        ) {
           final o = _segCells.value(k);
           final ei = _pedge[o], i = o - _eoff[ei];
-          if (excludeEdges.contains(ei) || _flag(ei, _kGap) || !seen.add(o)) continue;
+          if (excludeEdges.contains(ei) || _flag(ei, _kGap) || !seen.add(o)) {
+            continue;
+          }
           if (i + 1 >= _ecnt[ei]) continue; // veraltet nach einer Teilung
           final ax = _px[o], ay = _py[o], bx = _px[o + 1], by = _py[o + 1];
           final (d, t) = _pointSegment(xy.x, xy.y, ax, ay, bx, by);
@@ -1121,9 +1279,15 @@ class RoadGraph {
   /// neue Lücken — `planLoop` heftet so dieselben Enden an wie
   /// `buildGraphFrom`, und der Suchspeicher bleibt gültig. [meters] ist die
   /// kürzeste Lücke; null, wenn kein Weg in [kGraphSnapM] liegt.
-  ({int node, double meters})? anchor(LatLng p, {Set<int> excludeEdges = const {}, int candidates = kGapCandidates}) {
+  ({int node, double meters})? anchor(
+    LatLng p, {
+    Set<int> excludeEdges = const {},
+    int candidates = kGapCandidates,
+  }) {
     final existing = _key[_keyOf(p)];
-    if (existing != null && _deg[existing] > 0) return (node: existing, meters: _anchorGap[existing] ?? 0.0);
+    if (existing != null && _deg[existing] > 0) {
+      return (node: existing, meters: _anchorGap[existing] ?? 0.0);
+    }
     // Liegt der Punkt (fast) auf einem Knoten, ist der der Anschluss.
     final onNode = nearestNode(proj.xy(p), 0.5);
     if (onNode != null && _deg[onNode] > 0) return (node: onNode, meters: 0);
@@ -1153,7 +1317,14 @@ class RoadGraph {
 
   /// Abstand von (px, py) zur Strecke a–b und der Anteil des Fußpunkts —
   /// dieselbe Rechnung wie bis 0.133.x über `math.Point`.
-  static (double, double) _pointSegment(double px, double py, double ax, double ay, double bx, double by) {
+  static (double, double) _pointSegment(
+    double px,
+    double py,
+    double ax,
+    double ay,
+    double bx,
+    double by,
+  ) {
     final dx = bx - ax, dy = by - ay;
     final len2 = dx * dx + dy * dy;
     if (len2 == 0) {
@@ -1248,7 +1419,8 @@ class RoadGraph {
       (comp[find(_ea[i])] ??= []).add(i);
     }
     double lengthOf(List<int> es) => es.fold(0.0, (s, i) => s + _elen[i]);
-    return comp.values.toList()..sort((x, y) => lengthOf(y).compareTo(lengthOf(x)));
+    return comp.values.toList()
+      ..sort((x, y) => lengthOf(y).compareTo(lengthOf(x)));
   }
 
   double get totalLength {
@@ -1264,7 +1436,9 @@ class RoadGraph {
     final total = totalLength;
     if (total == 0) return 0;
     final largest = components().firstOrNull;
-    return largest == null ? 0 : largest.fold(0.0, (s, i) => s + _elen[i]) / total;
+    return largest == null
+        ? 0
+        : largest.fold(0.0, (s, i) => s + _elen[i]) / total;
   }
 
   int get edgesWithoutHeights {
@@ -1284,41 +1458,59 @@ typedef GraphBuild = ({RoadGraph graph, int joins, int crossings});
 /// innerhalb von [joinM] an den nächsten anderen Weg gebunden; dann
 /// (wenn [splitCrossings]) jede Kreuzung zweier Wege derselben Ebene
 /// ohne gemeinsamen Knoten geteilt.
-GraphBuild buildRoadGraph(Iterable<WayLine> lines,
-    {required double lat0, double joinM = kGraphJoinM, bool splitCrossings = true}) {
+GraphBuild buildRoadGraph(
+  Iterable<WayLine> lines, {
+  required double lat0,
+  double joinM = kGraphJoinM,
+  bool splitCrossings = true,
+}) {
   // Die drei Schritte als Marken (#356): Der Stall-Wächter nennt den,
   // der den Takt aufhielt.
-  final g = PlanProgress.part(0, 0.19, () => StallWatch.mark('graph.nodes', () {
-    final counts = <(int, int), int>{};
-    final all = lines.toList();
-    for (final l in all) {
-      for (final p in l.points) {
-        final k = RoadGraph._keyOf(p);
-        counts[k] = (counts[k] ?? 0) + 1;
+  final g = PlanProgress.part(
+    0,
+    0.19,
+    () => StallWatch.mark('graph.nodes', () {
+      final counts = <(int, int), int>{};
+      final all = lines.toList();
+      for (final l in all) {
+        for (final p in l.points) {
+          final k = RoadGraph._keyOf(p);
+          counts[k] = (counts[k] ?? 0) + 1;
+        }
       }
-    }
-    final g = RoadGraph(lat0);
-    for (var li = 0; li < all.length; li++) {
-      final l = all[li];
-      if (li & 255 == 0) PlanProgress.steps(li, all.length);
-      final cut = [0];
-      for (var i = 1; i < l.points.length - 1; i++) {
-        if ((counts[RoadGraph._keyOf(l.points[i])] ?? 0) >= 2) cut.add(i);
+      final g = RoadGraph(lat0);
+      for (var li = 0; li < all.length; li++) {
+        final l = all[li];
+        if (li & 255 == 0) PlanProgress.steps(li, all.length);
+        final cut = [0];
+        for (var i = 1; i < l.points.length - 1; i++) {
+          if ((counts[RoadGraph._keyOf(l.points[i])] ?? 0) >= 2) cut.add(i);
+        }
+        cut.add(l.points.length - 1);
+        for (var c = 0; c + 1 < cut.length; c++) {
+          final piece = l.points.sublist(cut[c], cut[c + 1] + 1);
+          final a = g.node(piece.first), b = g.node(piece.last);
+          if (a == b && piece.length < 3) continue;
+          g.addEdge(a, b, l.cls, l.oneway, piece, level: l.level);
+        }
       }
-      cut.add(l.points.length - 1);
-      for (var c = 0; c + 1 < cut.length; c++) {
-        final piece = l.points.sublist(cut[c], cut[c + 1] + 1);
-        final a = g.node(piece.first), b = g.node(piece.last);
-        if (a == b && piece.length < 3) continue;
-        g.addEdge(a, b, l.cls, l.oneway, piece, level: l.level);
-      }
-    }
-    return g;
-  }));
-  final joins =
-      joinM > 0 ? PlanProgress.part(0.19, 0.54, () => StallWatch.mark('graph.joins', () => _joinDeadEnds(g, joinM))) : 0;
-  final crossings =
-      splitCrossings ? PlanProgress.part(0.54, 1, () => StallWatch.mark('graph.crossings', () => _splitCrossings(g))) : 0;
+      return g;
+    }),
+  );
+  final joins = joinM > 0
+      ? PlanProgress.part(
+          0.19,
+          0.54,
+          () => StallWatch.mark('graph.joins', () => _joinDeadEnds(g, joinM)),
+        )
+      : 0;
+  final crossings = splitCrossings
+      ? PlanProgress.part(
+          0.54,
+          1,
+          () => StallWatch.mark('graph.crossings', () => _splitCrossings(g)),
+        )
+      : 0;
   g.compact();
   return (graph: g, joins: joins, crossings: crossings);
 }
@@ -1327,7 +1519,8 @@ GraphBuild buildRoadGraph(Iterable<WayLine> lines,
 /// Weg (Regel 2 aus M1); gibt die Zahl der Anbindungen.
 int _joinDeadEnds(RoadGraph g, double joinM) {
   var joins = 0;
-  final count = g.nodes.length; // neue Knoten aus Teilungen brauchen keinen Join
+  final count =
+      g.nodes.length; // neue Knoten aus Teilungen brauchen keinen Join
   for (var n = 0; n < count; n++) {
     if (n & 255 == 0) PlanProgress.steps(n, count);
     if (g.degree(n) != 1) continue;
@@ -1336,12 +1529,19 @@ int _joinDeadEnds(RoadGraph g, double joinM) {
       // Die eigene Kante liegt bei Abstand 0 — ohne Ausschluss würde
       // jeder T-Knoten ohne Scheitel übersprungen (so im ersten CI-Lauf
       // des Werkzeugs: 554 statt 11 000 Anbindungen).
-      final hit = g.nearest(g.nodeLatLng[n], joinM, excludeEdges: g.adj[n].toSet());
+      final hit = g.nearest(
+        g.nodeLatLng[n],
+        joinM,
+        excludeEdges: g.adj[n].toSet(),
+      );
       if (hit == null) continue;
       target = g.splitEdge(hit.edge, hit.seg, hit.at);
     }
     if (target != n) {
-      g.addEdge(n, target, g.edges[g.adjFirst(n) >> 1].cls, false, [g.nodeLatLng[n], g.nodeLatLng[target]]);
+      g.addEdge(n, target, g.edges[g.adjFirst(n) >> 1].cls, false, [
+        g.nodeLatLng[n],
+        g.nodeLatLng[target],
+      ]);
       joins++;
     }
   }
@@ -1371,7 +1571,11 @@ int _splitCrossings(RoadGraph g) {
 /// Schnittpunkt zweier Strecken, wenn sie sich in ihrem Inneren kreuzen,
 /// sonst null. Kollineare Überlappungen zählen nicht als Kreuzung.
 math.Point<double>? properCrossing(
-    math.Point<double> a, math.Point<double> b, math.Point<double> c, math.Point<double> d) {
+  math.Point<double> a,
+  math.Point<double> b,
+  math.Point<double> c,
+  math.Point<double> d,
+) {
   final rx = b.x - a.x, ry = b.y - a.y;
   final qx = d.x - c.x, qy = d.y - c.y;
   final den = rx * qy - ry * qx;
@@ -1416,7 +1620,10 @@ List<({LatLng at, int edgeA, int edgeB})> findCrossings(RoadGraph g) {
         final ob = segs[j];
         final eb = g._pedge[ob];
         if (eb == ea) continue;
-        if (ob - g._eoff[eb] + 1 >= g._ecnt[eb] || g._elevel[ea] != g._elevel[eb]) continue;
+        if (ob - g._eoff[eb] + 1 >= g._ecnt[eb] ||
+            g._elevel[ea] != g._elevel[eb]) {
+          continue;
+        }
         final key = ea < eb ? (oa, ob) : (ob, oa);
         if (!seen.add(key)) continue;
         final hit = properCrossing(a, b, g._pointXy(ob), g._pointXy(ob + 1));
@@ -1453,7 +1660,10 @@ bool applyHeightsFrom(GraphEdge e, HeightTiles heights) {
   return e.hasHeights;
 }
 
-void _applyProfile(GraphEdge e, ({List<double> heights, List<double> stepsM})? profile) {
+void _applyProfile(
+  GraphEdge e,
+  ({List<double> heights, List<double> stepsM})? profile,
+) {
   if (profile == null) {
     e.hasHeights = false;
     return;

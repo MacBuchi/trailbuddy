@@ -40,14 +40,19 @@ class HighlightDemo {
   /// erste, die die Vorführung benutzt, sonst ein Tipp.
   CoachGesture get gesture => script.steps
       .map((s) => s.gesture)
-      .firstWhere((g) => g != CoachGesture.none, orElse: () => CoachGesture.tap);
+      .firstWhere(
+        (g) => g != CoachGesture.none,
+        orElse: () => CoachGesture.tap,
+      );
 }
 
-CoachScript _demo(String id, List<CoachStep> steps) => CoachScript(id: 'demo.$id', steps: steps);
+CoachScript _demo(String id, List<CoachStep> steps) =>
+    CoachScript(id: 'demo.$id', steps: steps);
 
 /// Ein Schritt einer Tour, über seine `id` — nie über den Titel, der ist
 /// je Sprache ein anderer (#209).
-CoachStep _from(CoachScript script, String id) => script.steps.firstWhere((s) => s.id == id);
+CoachStep _from(CoachScript script, String id) =>
+    script.steps.firstWhere((s) => s.id == id);
 
 // Bausteine, die mehrere Vorführungen teilen.
 
@@ -89,11 +94,11 @@ CoachStep _findBuddyFirst(AppLocalizations l) => CoachStep(
 );
 
 CoachStep _profileRow(String id, String title, String text) => CoachStep(
-      title: title,
-      text: text,
-      lit: [ProfileCoach.row(id)],
-      scrollIn: ProfileCoach.list,
-    );
+  title: title,
+  text: text,
+  lit: [ProfileCoach.row(id)],
+  scrollIn: ProfileCoach.list,
+);
 
 /// Die Vorführungen je Kennung in `kFeatureHighlights`. Eine Funktion, weil
 /// sie Schritte der Touren übernehmen, und die bauen ihre Texte aus
@@ -158,9 +163,7 @@ Map<String, HighlightDemo> highlightDemos(AppLocalizations l) => {
   ),
   'map-legend': HighlightDemo(
     route: '/',
-    script: _demo('map-legend', [
-      _from(mapTourScript(l), 'map.colors'),
-    ]),
+    script: _demo('map-legend', [_from(mapTourScript(l), 'map.colors')]),
   ),
   'map-layers': HighlightDemo(
     route: '/',
@@ -658,7 +661,11 @@ Map<String, HighlightDemo> highlightDemos(AppLocalizations l) => {
   'buddies-nearby': HighlightDemo(
     route: '/profile',
     script: _demo('buddies-nearby', [
-      _profileRow('notifications', l.demoBuddiesNearbyTitle, l.demoBuddiesNearbyText),
+      _profileRow(
+        'notifications',
+        l.demoBuddiesNearbyTitle,
+        l.demoBuddiesNearbyText,
+      ),
     ]),
   ),
   'start-points': HighlightDemo(
@@ -785,10 +792,7 @@ Map<String, HighlightDemo> highlightDemos(AppLocalizations l) => {
   'takeover': HighlightDemo(
     route: '/trails',
     script: _demo('takeover', [
-      CoachStep(
-        title: l.demoTakeoverTitle,
-        text: l.demoTakeoverText,
-      ),
+      CoachStep(title: l.demoTakeoverTitle, text: l.demoTakeoverText),
     ]),
   ),
   'one-report': HighlightDemo(
@@ -852,7 +856,9 @@ Map<String, HighlightDemo> highlightDemos(AppLocalizations l) => {
   ),
   'import-split': HighlightDemo(
     route: '/trails',
-    script: _demo('import-split', [_from(trailsTourScript(l), 'trails.import')]),
+    script: _demo('import-split', [
+      _from(trailsTourScript(l), 'trails.import'),
+    ]),
   ),
   'offline-areas': HighlightDemo(
     route: '/',
@@ -863,7 +869,10 @@ Map<String, HighlightDemo> highlightDemos(AppLocalizations l) => {
   ),
   'ride-record': HighlightDemo(
     route: '/',
-    script: _demo('ride-record', [_from(mapTourScript(l), 'map.record'), _androidOnly(l)]),
+    script: _demo('ride-record', [
+      _from(mapTourScript(l), 'map.record'),
+      _androidOnly(l),
+    ]),
   ),
   'official-trails': HighlightDemo(
     route: '/',
@@ -1034,7 +1043,11 @@ Map<String, HighlightDemo> highlightDemos(AppLocalizations l) => {
   'notifications': HighlightDemo(
     route: '/profile',
     script: _demo('notifications', [
-      _profileRow('notifications', l.demoNotificationsTitle, l.demoNotificationsText),
+      _profileRow(
+        'notifications',
+        l.demoNotificationsTitle,
+        l.demoNotificationsText,
+      ),
     ]),
   ),
   'voice-cues': HighlightDemo(
@@ -1080,7 +1093,11 @@ Map<String, HighlightDemo> highlightDemos(AppLocalizations l) => {
 /// die Anker DA sind, und die des Zielreiters meldet erst sein Aufbau an.
 /// Bis dahin ist der Start vorgemerkt (`reserve`), damit die Tour des
 /// Reiters nicht dazwischenkommt.
-Future<void> startHighlightDemo(GoRouter router, CoachNotifier coach, HighlightDemo demo) async {
+Future<void> startHighlightDemo(
+  GoRouter router,
+  CoachNotifier coach,
+  HighlightDemo demo,
+) async {
   coach.reserve();
   router.go(demo.route);
   for (var i = 0; i < 3; i++) {

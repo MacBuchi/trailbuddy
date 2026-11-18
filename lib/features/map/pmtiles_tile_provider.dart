@@ -27,7 +27,10 @@ class PmTilesVectorTileProvider extends ClosableVectorTileProvider {
   static Future<PmTilesVectorTileProvider> open(String path) async {
     final archive = await PmTilesArchive.fromFile(File(path));
     return PmTilesVectorTileProvider._(
-        archive, archive.header.minZoom, archive.header.maxZoom);
+      archive,
+      archive.header.minZoom,
+      archive.header.maxZoom,
+    );
   }
 
   /// Aus Bytes — der Weg im Browser. Dort gibt es die Wahl nicht:
@@ -38,7 +41,10 @@ class PmTilesVectorTileProvider extends ClosableVectorTileProvider {
   static Future<PmTilesVectorTileProvider> openBytes(Uint8List bytes) async {
     final archive = await PmTilesArchive.fromBytes(bytes);
     return PmTilesVectorTileProvider._(
-        archive, archive.header.minZoom, archive.header.maxZoom);
+      archive,
+      archive.header.minZoom,
+      archive.header.maxZoom,
+    );
   }
 
   /// Über das Netz, kachelweise per Range-Anfrage — der Online-Weg beider
@@ -49,7 +55,10 @@ class PmTilesVectorTileProvider extends ClosableVectorTileProvider {
   static Future<PmTilesVectorTileProvider> openUri(Uri uri) async {
     final archive = await PmTilesArchive.fromUri(uri);
     return PmTilesVectorTileProvider._(
-        archive, archive.header.minZoom, archive.header.maxZoom);
+      archive,
+      archive.header.minZoom,
+      archive.header.maxZoom,
+    );
   }
 
   /// Gibt das Dateihandle frei — beim Neuaufbau aufrufen, sonst leaken
@@ -59,21 +68,27 @@ class PmTilesVectorTileProvider extends ClosableVectorTileProvider {
 
   @override
   Future<Uint8List> provide(TileIdentity tile) => _guarded(tile, () async {
-        final t = await _archive.tile(ZXY(tile.z, tile.x, tile.y).toTileId());
-        return Uint8List.fromList(t.bytes());
-      });
+    final t = await _archive.tile(ZXY(tile.z, tile.x, tile.y).toTileId());
+    return Uint8List.fromList(t.bytes());
+  });
 
   /// Die Kachel, wie sie im Archiv liegt — für den Speicher gesehener
   /// Kacheln im Browser (#155), der komprimiert ablegt. Eine Kompression
   /// außer gzip wird gleich ausgepackt (Protomaps schreibt gzip).
   Future<SeenTile> rawTile(TileIdentity tile) => _guarded(tile, () async {
-        final t = await _archive.tile(ZXY(tile.z, tile.x, tile.y).toTileId());
-        return switch (t.compression) {
-          Compression.gzip => SeenTile(Uint8List.fromList(t.compressedBytes()), gzip: true),
-          Compression.none => SeenTile(Uint8List.fromList(t.compressedBytes()), gzip: false),
-          _ => SeenTile(Uint8List.fromList(t.bytes()), gzip: false),
-        };
-      });
+    final t = await _archive.tile(ZXY(tile.z, tile.x, tile.y).toTileId());
+    return switch (t.compression) {
+      Compression.gzip => SeenTile(
+        Uint8List.fromList(t.compressedBytes()),
+        gzip: true,
+      ),
+      Compression.none => SeenTile(
+        Uint8List.fromList(t.compressedBytes()),
+        gzip: false,
+      ),
+      _ => SeenTile(Uint8List.fromList(t.bytes()), gzip: false),
+    };
+  });
 
   Future<T> _guarded<T>(TileIdentity tile, Future<T> Function() read) async {
     try {

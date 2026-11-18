@@ -53,11 +53,15 @@ Future<void> showFeedbackFlow(BuildContext context, WidgetRef ref) async {
         .read(feedbackRepositoryProvider)
         .submit(input.type, input.text, appVersion: version, clientId: job.id);
     if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(input.type == FeedbackType.bug
-          ? context.l10n.feedbackThanksBug
-          : context.l10n.feedbackThanksIdea),
-    ));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          input.type == FeedbackType.bug
+              ? context.l10n.feedbackThanksBug
+              : context.l10n.feedbackThanksIdea,
+        ),
+      ),
+    );
   } catch (e, st) {
     // Ohne Empfang wartet der Text im Ausgangskorb (#218) — draußen
     // fällt einem etwas ein, und verworfen wäre es weg. Nur
@@ -65,15 +69,16 @@ Future<void> showFeedbackFlow(BuildContext context, WidgetRef ref) async {
     // nicht sicher (Web, volle Platte), kommt der Netzfehler wie bisher.
     if (looksOffline(e) && await _queue(ref, job)) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(context.l10n.feedbackQueued),
-      ));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(context.l10n.feedbackQueued)));
       return;
     }
     logError('Feedback senden', e, st);
     if (!context.mounted) return;
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(friendlyError(context.l10n, e))));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(friendlyError(context.l10n, e))));
   }
 }
 
@@ -104,6 +109,7 @@ class FeedbackDialog extends ConsumerStatefulWidget {
 class _FeedbackDialogState extends ConsumerState<FeedbackDialog> {
   FeedbackType _type = FeedbackType.feature;
   final _text = TextEditingController();
+
   /// Das Uhr-Protokoll hängt an (#510) — nur bei einer Fehlermeldung, nur
   /// auf Wunsch, nie von selbst.
   bool _attachWatch = false;
@@ -127,10 +133,13 @@ class _FeedbackDialogState extends ConsumerState<FeedbackDialog> {
     final theme = Theme.of(context);
     final l = context.l10n;
     final waiting = [
-      for (final j in ref.watch(outboxJobsProvider).valueOrNull ?? const <OutboxJob>[])
+      for (final j
+          in ref.watch(outboxJobsProvider).valueOrNull ?? const <OutboxJob>[])
         if (j is FeedbackJob) j,
     ];
-    final watchLog = _type == FeedbackType.bug ? ref.watch(watchEventOfferProvider).valueOrNull : null;
+    final watchLog = _type == FeedbackType.bug
+        ? ref.watch(watchEventOfferProvider).valueOrNull
+        : null;
     final watchLine = _watchLine(l, watchLog);
     // `feedback.message` hat höchstens 2000 Zeichen — das Protokoll zählt mit.
     final maxText = 2000 - (watchLine == null ? 0 : watchLine.length + 2);
@@ -146,20 +155,24 @@ class _FeedbackDialogState extends ConsumerState<FeedbackDialog> {
             SegmentedButton<FeedbackType>(
               segments: [
                 ButtonSegment(
-                    value: FeedbackType.feature,
-                    icon: const Icon(Icons.lightbulb_outline),
-                    label: Text(l.feedbackTypeIdea)),
+                  value: FeedbackType.feature,
+                  icon: const Icon(Icons.lightbulb_outline),
+                  label: Text(l.feedbackTypeIdea),
+                ),
                 ButtonSegment(
-                    value: FeedbackType.bug,
-                    icon: const Icon(Icons.bug_report_outlined),
-                    label: Text(l.feedbackTypeBug)),
+                  value: FeedbackType.bug,
+                  icon: const Icon(Icons.bug_report_outlined),
+                  label: Text(l.feedbackTypeBug),
+                ),
               ],
               selected: {_type},
               onSelectionChanged: (s) => setState(() => _type = s.first),
             ),
             const SizedBox(height: 12),
             Text(
-              _type == FeedbackType.bug ? l.feedbackBugPrompt : l.feedbackIdeaPrompt,
+              _type == FeedbackType.bug
+                  ? l.feedbackBugPrompt
+                  : l.feedbackIdeaPrompt,
               style: theme.textTheme.bodySmall,
             ),
             const SizedBox(height: 12),
@@ -171,8 +184,9 @@ class _FeedbackDialogState extends ConsumerState<FeedbackDialog> {
               maxLength: maxText,
               textCapitalization: TextCapitalization.sentences,
               decoration: InputDecoration(
-                labelText:
-                    _type == FeedbackType.bug ? l.feedbackBugLabel : l.feedbackIdeaLabel,
+                labelText: _type == FeedbackType.bug
+                    ? l.feedbackBugLabel
+                    : l.feedbackIdeaLabel,
                 border: const OutlineInputBorder(),
               ),
             ),
@@ -180,13 +194,18 @@ class _FeedbackDialogState extends ConsumerState<FeedbackDialog> {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.public, size: 16, color: theme.colorScheme.onSurfaceVariant),
+                Icon(
+                  Icons.public,
+                  size: 16,
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(
                     l.feedbackPublicNote,
-                    style: theme.textTheme.bodySmall
-                        ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
                   ),
                 ),
               ],
@@ -213,7 +232,11 @@ class _FeedbackDialogState extends ConsumerState<FeedbackDialog> {
                   var text = _text.text.trim();
                   if (text.length > maxText) text = text.substring(0, maxText);
                   Navigator.of(context).pop(
-                      FeedbackInput(_type, watchLine == null ? text : '$text\n\n$watchLine'));
+                    FeedbackInput(
+                      _type,
+                      watchLine == null ? text : '$text\n\n$watchLine',
+                    ),
+                  );
                 }
               : null,
           child: Text(l.feedbackSend),
@@ -236,8 +259,12 @@ class _WaitingFeedback extends ConsumerWidget {
     final theme = Theme.of(context);
     final l = context.l10n;
     final failed = job.failure != null;
-    final text = job.message.length > 80 ? '${job.message.substring(0, 80)} …' : job.message;
-    final muted = theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant);
+    final text = job.message.length > 80
+        ? '${job.message.substring(0, 80)} …'
+        : job.message;
+    final muted = theme.textTheme.bodySmall?.copyWith(
+      color: theme.colorScheme.onSurfaceVariant,
+    );
     final notifier = ref.read(outboxJobsProvider.notifier);
     return Card(
       key: ValueKey('feedback-waiting-${job.id}'),
@@ -247,16 +274,20 @@ class _WaitingFeedback extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(children: [
-              Icon(failed ? Icons.error_outline : Icons.schedule, size: 16),
-              const SizedBox(width: 6),
-              Expanded(
-                child: Text(
-                  failed ? l.feedbackRejected('${job.failure}') : l.feedbackWaiting,
-                  style: theme.textTheme.labelMedium,
+            Row(
+              children: [
+                Icon(failed ? Icons.error_outline : Icons.schedule, size: 16),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    failed
+                        ? l.feedbackRejected('${job.failure}')
+                        : l.feedbackWaiting,
+                    style: theme.textTheme.labelMedium,
+                  ),
                 ),
-              ),
-            ]),
+              ],
+            ),
             const SizedBox(height: 4),
             Text(text, style: muted),
             Row(
@@ -292,7 +323,11 @@ class _WaitingFeedback extends ConsumerWidget {
 /// die Liste Zeile für Zeile — der Nutzer sieht, was öffentlich wird,
 /// bevor er sendet (A6).
 class _WatchLogOffer extends StatelessWidget {
-  const _WatchLogOffer({required this.log, required this.attached, required this.onChanged});
+  const _WatchLogOffer({
+    required this.log,
+    required this.attached,
+    required this.onChanged,
+  });
 
   final WatchEventLog log;
   final bool attached;
@@ -302,7 +337,9 @@ class _WatchLogOffer extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l = context.l10n;
-    final muted = theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant);
+    final muted = theme.textTheme.bodySmall?.copyWith(
+      color: theme.colorScheme.onSurfaceVariant,
+    );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -314,14 +351,20 @@ class _WatchLogOffer extends StatelessWidget {
           onChanged: (v) => onChanged(v ?? false),
           title: Text(l.feedbackWatchLogAttach),
           subtitle: Text(
-            l.feedbackWatchLogInfo(log.events.length, log.fromCrash ? 'crash' : 'ride'),
+            l.feedbackWatchLogInfo(
+              log.events.length,
+              log.fromCrash ? 'crash' : 'ride',
+            ),
             style: muted,
           ),
         ),
         ExpansionTile(
           key: const ValueKey('feedback-watch-log-list'),
           tilePadding: EdgeInsets.zero,
-          title: Text(l.feedbackWatchLogShow, style: theme.textTheme.labelLarge),
+          title: Text(
+            l.feedbackWatchLogShow,
+            style: theme.textTheme.labelLarge,
+          ),
           children: [
             for (final v in log.events)
               Align(

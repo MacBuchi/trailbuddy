@@ -39,7 +39,9 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
     // Nach dem Bild: Ein Provider darf während `build` nicht verändert werden.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      ref.read(seenHighlightIdsProvider.notifier).markSeen(kFeatureHighlights.map((h) => h.id));
+      ref
+          .read(seenHighlightIdsProvider.notifier)
+          .markSeen(kFeatureHighlights.map((h) => h.id));
     });
   }
 
@@ -54,7 +56,9 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
         children: [
           Text(
             context.l10n.discoverLead,
-            style: theme.textTheme.bodyMedium?.copyWith(color: AppPalette.of(context).muted),
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: AppPalette.of(context).muted,
+            ),
           ),
           for (final tab in HighlightTab.values) ..._section(context, tab),
         ],
@@ -65,16 +69,25 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
   List<Widget> _section(BuildContext context, HighlightTab tab) {
     // Highlights vor Tipps, sonst die Reihenfolge der Liste.
     final entries = [
-      ...kFeatureHighlights.where((h) => h.tab == tab && h.kind == HighlightKind.highlight),
-      ...kFeatureHighlights.where((h) => h.tab == tab && h.kind == HighlightKind.tip),
+      ...kFeatureHighlights.where(
+        (h) => h.tab == tab && h.kind == HighlightKind.highlight,
+      ),
+      ...kFeatureHighlights.where(
+        (h) => h.tab == tab && h.kind == HighlightKind.tip,
+      ),
     ];
     if (entries.isEmpty) return const [];
     return [
       Padding(
         padding: const EdgeInsets.only(top: 20, bottom: 4),
-        child: Text(tab.label(context.l10n).toUpperCase(),
-            style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                fontWeight: FontWeight.w700, letterSpacing: 0.8, color: AppPalette.of(context).muted)),
+        child: Text(
+          tab.label(context.l10n).toUpperCase(),
+          style: Theme.of(context).textTheme.labelMedium?.copyWith(
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.8,
+            color: AppPalette.of(context).muted,
+          ),
+        ),
       ),
       for (final h in entries)
         _Entry(
@@ -84,7 +97,11 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
           onTry: () => context.go(h.target),
           onShow: switch (highlightDemos(context.l10n)[h.id]) {
             null => null,
-            final demo => () => startHighlightDemo(GoRouter.of(context), ref.read(coachProvider.notifier), demo),
+            final demo => () => startHighlightDemo(
+              GoRouter.of(context),
+              ref.read(coachProvider.notifier),
+              demo,
+            ),
           },
         ),
     ];
@@ -92,7 +109,13 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
 }
 
 class _Entry extends StatelessWidget {
-  const _Entry({super.key, required this.highlight, required this.unseen, required this.onTry, this.onShow});
+  const _Entry({
+    super.key,
+    required this.highlight,
+    required this.unseen,
+    required this.onTry,
+    this.onShow,
+  });
 
   final FeatureHighlight highlight;
   final bool unseen;
@@ -125,13 +148,20 @@ class _Entry extends StatelessWidget {
                         spacing: 6,
                         crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
-                          Text(highlight.title(context.l10n), style: theme.textTheme.titleSmall),
+                          Text(
+                            highlight.title(context.l10n),
+                            style: theme.textTheme.titleSmall,
+                          ),
                           if (isTip) _Badge(context.l10n.discoverBadgeTip),
-                          if (unseen) _Badge(context.l10n.discoverBadgeNew, strong: true),
+                          if (unseen)
+                            _Badge(context.l10n.discoverBadgeNew, strong: true),
                         ],
                       ),
                       const SizedBox(height: 4),
-                      Text(highlight.text(context.l10n), style: theme.textTheme.bodySmall),
+                      Text(
+                        highlight.text(context.l10n),
+                        style: theme.textTheme.bodySmall,
+                      ),
                     ],
                   ),
                 ),
@@ -151,7 +181,10 @@ class _Entry extends StatelessWidget {
                     alignment: WrapAlignment.end,
                     spacing: 4,
                     children: [
-                      TextButton(onPressed: onTry, child: Text(context.l10n.discoverTry)),
+                      TextButton(
+                        onPressed: onTry,
+                        child: Text(context.l10n.discoverTry),
+                      ),
                       if (onShow != null)
                         FilledButton.tonalIcon(
                           key: ValueKey('show-${highlight.id}'),
@@ -188,8 +221,12 @@ class _Badge extends StatelessWidget {
         color: strong ? AppColors.brand : p.surface2,
         borderRadius: BorderRadius.circular(8),
       ),
-      child: Text(label,
-          style: Theme.of(context).textTheme.labelSmall?.copyWith(color: strong ? AppColors.onBrand : p.muted)),
+      child: Text(
+        label,
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+          color: strong ? AppColors.onBrand : p.muted,
+        ),
+      ),
     );
   }
 }

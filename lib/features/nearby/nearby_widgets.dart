@@ -49,7 +49,8 @@ Future<void> askBuddiesNearbyOnce(BuildContext context, WidgetRef ref) async {
 }
 
 /// Der Satz zum Zustand.
-String nearbyStatusText(AppLocalizations l, NearbyPause? pause) => switch (pause) {
+String nearbyStatusText(AppLocalizations l, NearbyPause? pause) =>
+    switch (pause) {
       null => l.nearbyStatusActive,
       NearbyPause.off => '',
       NearbyPause.noPosition => l.nearbyPauseNoPosition,
@@ -85,9 +86,13 @@ class NearbySection extends ConsumerWidget {
         if (enabled) ...[
           Padding(
             padding: const EdgeInsets.only(left: 56, bottom: 4),
-            child: Text(nearbyStatusText(l, pause),
-                key: const ValueKey('nearby-status'),
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(color: palette.muted)),
+            child: Text(
+              nearbyStatusText(l, pause),
+              key: const ValueKey('nearby-status'),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: palette.muted),
+            ),
           ),
           ListTile(
             key: const ValueKey('nearby-home'),
@@ -103,10 +108,15 @@ class NearbySection extends ConsumerWidget {
               final messenger = ScaffoldMessenger.of(context);
               final fix = await ref.read(positionFixProvider)();
               if (fix == null) {
-                messenger.showSnackBar(SnackBar(content: Text(l.nearbyHomeNoPosition)));
+                messenger.showSnackBar(
+                  SnackBar(content: Text(l.nearbyHomeNoPosition)),
+                );
                 return;
               }
-              ref.read(nearbyHomeProvider.notifier).set((lat: fix.latitude, lon: fix.longitude));
+              ref.read(nearbyHomeProvider.notifier).set((
+                lat: fix.latitude,
+                lon: fix.longitude,
+              ));
               // Erst jetzt darf der Strom laufen — die Berechtigung kam
               // eben über den Fix.
               ref.invalidate(positionStreamProvider);
@@ -121,14 +131,20 @@ class NearbySection extends ConsumerWidget {
 /// Der Knopf an der Buddy-Zeile: öffnet die zwei Schalter für [buddyId].
 /// Nur, solange „Buddys unterwegs“ an ist.
 class NearbyBuddyButton extends ConsumerWidget {
-  const NearbyBuddyButton({super.key, required this.buddyId, required this.name});
+  const NearbyBuddyButton({
+    super.key,
+    required this.buddyId,
+    required this.name,
+  });
 
   final String buddyId;
   final String name;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    if (ref.watch(buddiesNearbyProvider) != true) return const SizedBox.shrink();
+    if (ref.watch(buddiesNearbyProvider) != true) {
+      return const SizedBox.shrink();
+    }
     final palette = AppPalette.of(context);
     final pref = ref.watch(nearbyPrefsProvider).valueOrNull?[buddyId];
     final changed = pref != null && (pref.hidden || pref.muted);
@@ -144,19 +160,24 @@ class NearbyBuddyButton extends ConsumerWidget {
         builder: (_) => NearbyBuddySheet(buddyId: buddyId, name: name),
       ),
       icon: Icon(
-          changed
-              ? Icons.location_disabled_outlined
-              : homie
-                  ? Icons.favorite_border
-                  : Icons.social_distance_outlined,
-          color: palette.muted),
+        changed
+            ? Icons.location_disabled_outlined
+            : homie
+            ? Icons.favorite_border
+            : Icons.social_distance_outlined,
+        color: palette.muted,
+      ),
       tooltip: context.l10n.nearbyBuddyTooltip,
     );
   }
 }
 
 class NearbyBuddySheet extends ConsumerStatefulWidget {
-  const NearbyBuddySheet({super.key, required this.buddyId, required this.name});
+  const NearbyBuddySheet({
+    super.key,
+    required this.buddyId,
+    required this.name,
+  });
 
   final String buddyId;
   final String name;
@@ -184,7 +205,8 @@ class _NearbyBuddySheetState extends ConsumerState<NearbyBuddySheet> {
   Widget build(BuildContext context) {
     final l = context.l10n;
     final palette = AppPalette.of(context);
-    final pref = ref.watch(nearbyPrefsProvider).valueOrNull?[widget.buddyId] ??
+    final pref =
+        ref.watch(nearbyPrefsProvider).valueOrNull?[widget.buddyId] ??
         NearbyPref(buddyId: widget.buddyId);
     final on = ref.watch(buddiesNearbyProvider) == true;
     return SafeArea(
@@ -194,12 +216,19 @@ class _NearbyBuddySheetState extends ConsumerState<NearbyBuddySheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(l.nearbySwitchTitle, style: Theme.of(context).textTheme.titleMedium),
+            Text(
+              l.nearbySwitchTitle,
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
             if (!on)
               Padding(
                 padding: const EdgeInsets.only(top: 4),
-                child: Text(l.nearbyBuddyOff,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(color: palette.muted)),
+                child: Text(
+                  l.nearbyBuddyOff,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(color: palette.muted),
+                ),
               ),
             SwitchListTile(
               key: const ValueKey('nearby-buddy-sees-me'),
@@ -216,7 +245,9 @@ class _NearbyBuddySheetState extends ConsumerState<NearbyBuddySheet> {
               contentPadding: EdgeInsets.zero,
               title: Text(l.nearbyBuddyNotify(widget.name)),
               value: !pref.muted,
-              onChanged: _saving ? null : (v) => _save(pref.copyWith(muted: !v)),
+              onChanged: _saving
+                  ? null
+                  : (v) => _save(pref.copyWith(muted: !v)),
             ),
             // Homie (#519): sieht meine grobe Zelle auf der Karte — nur,
             // solange er mich überhaupt sieht.
@@ -226,7 +257,9 @@ class _NearbyBuddySheetState extends ConsumerState<NearbyBuddySheet> {
               title: Text(l.nearbyBuddyHomie(widget.name)),
               subtitle: Text(l.nearbyBuddyHomieHint(widget.name)),
               value: pref.homie && !pref.hidden,
-              onChanged: _saving || pref.hidden ? null : (v) => _save(pref.copyWith(homie: v)),
+              onChanged: _saving || pref.hidden
+                  ? null
+                  : (v) => _save(pref.copyWith(homie: v)),
             ),
           ],
         ),
@@ -243,10 +276,14 @@ class LiveShareButton extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    if (ref.watch(buddiesNearbyProvider) != true) return const SizedBox.shrink();
+    if (ref.watch(buddiesNearbyProvider) != true) {
+      return const SizedBox.shrink();
+    }
     final uid = ref.watch(currentUserIdProvider);
-    final hasBuddy = (ref.watch(friendshipsProvider).valueOrNull ?? const <FriendshipEntry>[])
-        .any((f) => uid != null && f.isAccepted);
+    final hasBuddy =
+        (ref.watch(friendshipsProvider).valueOrNull ??
+                const <FriendshipEntry>[])
+            .any((f) => uid != null && f.isAccepted);
     if (!hasBuddy) return const SizedBox.shrink();
     final on = ref.watch(liveShareProvider);
     final l = context.l10n;
@@ -261,11 +298,13 @@ class LiveShareButton extends ConsumerWidget {
           ref.read(liveShareProvider.notifier).set(!on);
           ScaffoldMessenger.of(context)
             ..clearSnackBars()
-            ..showSnackBar(SnackBar(
-              key: const ValueKey('live-share-note'),
-              content: Text(on ? l.liveShareOffNote : l.liveShareOnNote),
-              persist: false,
-            ));
+            ..showSnackBar(
+              SnackBar(
+                key: const ValueKey('live-share-note'),
+                content: Text(on ? l.liveShareOffNote : l.liveShareOnNote),
+                persist: false,
+              ),
+            );
         },
       ),
     );

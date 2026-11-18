@@ -38,8 +38,7 @@ Widget createMapLibreMapView({
   required MapViewConfig config,
   required MapViewController controller,
   required MapViewLayers layers,
-}) =>
-    MapLibreMapView(config: config, controller: controller, layers: layers);
+}) => MapLibreMapView(config: config, controller: controller, layers: layers);
 
 class MapLibreMapView extends ConsumerStatefulWidget {
   const MapLibreMapView({
@@ -95,7 +94,12 @@ class _MapLibreMapViewState extends ConsumerState<MapLibreMapView>
   String? get _contourAnchor {
     final style = _appliedStyle;
     if (style == null) return null;
-    if (_anchorOf case (style: final s, :final anchor) when identical(s, style)) return anchor;
+    if (_anchorOf case (
+      style: final s,
+      :final anchor,
+    ) when identical(s, style)) {
+      return anchor;
+    }
     String? anchor;
     try {
       anchor = contourAnchorIn(style, overlayPrefix: kWaysSourceId);
@@ -123,7 +127,13 @@ class _MapLibreMapViewState extends ConsumerState<MapLibreMapView>
     unawaited(_layerSync.sync(style, _desired));
     // Ohne Anker (ein Stil, der mit einer Fläche endet) unter die eigenen
     // Ebenen, nie über sie: Zuoberst lägen die Linien über den Trails.
-    unawaited(_contourSync.sync(style, _contourDesired, below: _contourAnchor ?? _layerSync.bottomLayerId));
+    unawaited(
+      _contourSync.sync(
+        style,
+        _contourDesired,
+        below: _contourAnchor ?? _layerSync.bottomLayerId,
+      ),
+    );
   }
 
   List<KeyedLayer> _contourLayersFor(MapViewContours? contours) {
@@ -139,7 +149,8 @@ class _MapLibreMapViewState extends ConsumerState<MapLibreMapView>
   /// Zoom auf das Netz beim Start): wird bei `onMapCreated` nachgeholt,
   /// statt still verloren zu gehen.
   (LatLng, double, double)? _pendingMove;
-  ({List<LatLng> points, double padding, double maxZoom, double bottomInset})? _pendingFit;
+  ({List<LatLng> points, double padding, double maxZoom, double bottomInset})?
+  _pendingFit;
 
   /// Sichtfenster vom letzten Kamera-Idle — Grundlage des
   /// Marker-Cullings. Vorher (Karte noch nicht bereit) werden KEINE
@@ -163,7 +174,10 @@ class _MapLibreMapViewState extends ConsumerState<MapLibreMapView>
     if (camera == null) return null;
     final region = controller.getVisibleRegion();
     return MapViewCamera(
-      center: LatLng(camera.center.lat.toDouble(), camera.center.lon.toDouble()),
+      center: LatLng(
+        camera.center.lat.toDouble(),
+        camera.center.lon.toDouble(),
+      ),
       bounds: MapViewBounds(
         west: region.longitudeWest,
         east: region.longitudeEast,
@@ -185,23 +199,27 @@ class _MapLibreMapViewState extends ConsumerState<MapLibreMapView>
     widget.config.onCameraIdle?.call(camera);
   }
 
-  static ml.Geographic _geo(LatLng p) => ml.Geographic(lon: p.longitude, lat: p.latitude);
+  static ml.Geographic _geo(LatLng p) =>
+      ml.Geographic(lon: p.longitude, lat: p.latitude);
 
   /// Übersetzt einen Fassaden-Marker in einen MapLibre-Marker — die
   /// Kind-Widgets bleiben unangetastet.
   static ml.Marker asMapLibreMarker(MapViewMarker marker) => ml.Marker(
-        point: _geo(marker.point),
-        size: Size(marker.width, marker.height),
-        // Gespiegelt: MapLibre versteht `alignment` umgekehrt zu
-        // flutter_map (PilzBuddy #409) — bei `topCenter` liegt der Punkt
-        // dort an der OBERKANTE, hier soll er an der Unterkante liegen.
-        alignment: marker.alignment * -1,
-        child: KeyedSubtree(key: marker.key, child: marker.child),
-      );
+    point: _geo(marker.point),
+    size: Size(marker.width, marker.height),
+    // Gespiegelt: MapLibre versteht `alignment` umgekehrt zu
+    // flutter_map (PilzBuddy #409) — bei `topCenter` liegt der Punkt
+    // dort an der OBERKANTE, hier soll er an der Unterkante liegen.
+    alignment: marker.alignment * -1,
+    child: KeyedSubtree(key: marker.key, child: marker.child),
+  );
 
   /// Ein Kreis in Metern als Polygon: MapLibres `circle-radius` ist ein
   /// Pixelmaß, der Genauigkeitskreis soll aber mit der Karte wachsen.
-  static ml.Feature<ml.Polygon> circlePolygon(MapViewCircle c, {int segments = 48}) {
+  static ml.Feature<ml.Polygon> circlePolygon(
+    MapViewCircle c, {
+    int segments = 48,
+  }) {
     final latRad = c.center.latitude * math.pi / 180;
     final dLat = c.radiusM / 111320;
     final dLon = c.radiusM / (111320 * math.cos(latRad));
@@ -219,37 +237,61 @@ class _MapLibreMapViewState extends ConsumerState<MapLibreMapView>
   /// Loch ein innerer Ring (`build` nimmt flache Ketten lon,lat,…).
   static ml.Feature<ml.Polygon> polygonFeature(MapViewPolygon p) {
     List<double> ring(List<LatLng> pts) => [
-          for (final q in pts) ...[q.longitude, q.latitude],
-          // Geschlossen: GeoJSON verlangt, dass der letzte Punkt der
-          // erste ist.
-          if (pts.isNotEmpty && pts.first != pts.last) ...[pts.first.longitude, pts.first.latitude],
-        ];
-    return ml.Feature(geometry: ml.Polygon.build([ring(p.points), for (final h in p.holes) ring(h)]));
+      for (final q in pts) ...[q.longitude, q.latitude],
+      // Geschlossen: GeoJSON verlangt, dass der letzte Punkt der
+      // erste ist.
+      if (pts.isNotEmpty && pts.first != pts.last) ...[
+        pts.first.longitude,
+        pts.first.latitude,
+      ],
+    ];
+    return ml.Feature(
+      geometry: ml.Polygon.build([
+        ring(p.points),
+        for (final h in p.holes) ring(h),
+      ]),
+    );
   }
 
   /// Die Flächen nach Stil gruppiert, in der Reihenfolge des ersten
   /// Auftretens — wie die Linien: Der Entwurf eines gezeichneten Bereichs
   /// (Stufe C) sind hunderte Rechtecke derselben Farbe, und eine
   /// Style-Ebene je Rechteck wäre für die Engine eine Zumutung.
-  static List<KeyedLayer> polygonLayers(List<MapViewPolygon> polygons, [MapLibreLineCache? cache]) {
+  static List<KeyedLayer> polygonLayers(
+    List<MapViewPolygon> polygons, [
+    MapLibreLineCache? cache,
+  ]) {
     final groups = <String, List<MapViewPolygon>>{};
     for (final p in polygons) {
       if (p.points.length < 3) continue;
-      final key = '${p.fillColor.toARGB32()}|${p.borderColor?.toARGB32() ?? ''}';
+      final key =
+          '${p.fillColor.toARGB32()}|${p.borderColor?.toARGB32() ?? ''}';
       (groups[key] ??= []).add(p);
     }
     return [
       for (final MapEntry(:key, value: group) in groups.entries)
         (
           key: 'poly:$key',
-          layer: (cache?.lookup('poly:$key', [for (final p in group) ...[p.points, ...p.holes]])?.single ??
-              cache?.store('poly:$key', [for (final p in group) ...[p.points, ...p.holes]], [
-                ml.PolygonLayer(
-                  polygons: [for (final p in group) polygonFeature(p)],
-                  color: group.first.fillColor,
-                  outlineColor: group.first.borderColor ?? group.first.fillColor,
-                ),
-              ]).single ??
+          layer:
+              (cache?.lookup('poly:$key', [
+                for (final p in group) ...[p.points, ...p.holes],
+              ])?.single ??
+              cache
+                  ?.store(
+                    'poly:$key',
+                    [
+                      for (final p in group) ...[p.points, ...p.holes],
+                    ],
+                    [
+                      ml.PolygonLayer(
+                        polygons: [for (final p in group) polygonFeature(p)],
+                        color: group.first.fillColor,
+                        outlineColor:
+                            group.first.borderColor ?? group.first.fillColor,
+                      ),
+                    ],
+                  )
+                  .single ??
               ml.PolygonLayer(
                 polygons: [for (final p in group) polygonFeature(p)],
                 color: group.first.fillColor,
@@ -262,8 +304,8 @@ class _MapLibreMapViewState extends ConsumerState<MapLibreMapView>
   /// Ein Strichmuster in Bildpunkten als MapLibre-`dasharray` — dort in
   /// Vielfachen der Linienbreite, ganzzahlig.
   static List<int> dashArrayFor(List<double> dash, double width) => [
-        for (final d in dash) math.max(1, (d / math.max(width, 1)).round()),
-      ];
+    for (final d in dash) math.max(1, (d / math.max(width, 1)).round()),
+  ];
 
   /// Die Linien nach Stil gruppiert, in der Reihenfolge des ersten
   /// Auftretens — MapLibre trägt Farbe, Breite und Strich am LAYER. Ein
@@ -275,7 +317,10 @@ class _MapLibreMapViewState extends ConsumerState<MapLibreMapView>
   /// mit 600 Trails in vier Farben wären das sonst Megabytes je Stern.
   /// Die Kennung (`line:<Stil>#<Fach>`) ist, was der Abgleich
   /// (`keyed_layers.dart`) vergleicht.
-  static List<KeyedLayer> polylineLayers(List<MapViewPolyline> lines, [MapLibreLineCache? cache]) {
+  static List<KeyedLayer> polylineLayers(
+    List<MapViewPolyline> lines, [
+    MapLibreLineCache? cache,
+  ]) {
     final groups = <String, List<MapViewPolyline>>{};
     final labels = <int, List<MapViewPolyline>>{};
     for (final line in lines) {
@@ -284,7 +329,11 @@ class _MapLibreMapViewState extends ConsumerState<MapLibreMapView>
       (groups['${line.styleKey}#$bucket'] ??= []).add(line);
       if (line.label != null) (labels[bucket] ??= []).add(line);
     }
-    List<ml.Layer> cached(String key, List<MapViewPolyline> group, List<ml.Layer> Function() build) =>
+    List<ml.Layer> cached(
+      String key,
+      List<MapViewPolyline> group,
+      List<ml.Layer> Function() build,
+    ) =>
         cache?.lookup(key, MapLibreLineCache.signatureOf(group)) ??
         cache?.store(key, MapLibreLineCache.signatureOf(group), build()) ??
         build();
@@ -299,7 +348,14 @@ class _MapLibreMapViewState extends ConsumerState<MapLibreMapView>
     // Die Namen zuletzt: über allen Linien.
     for (final bucket in labels.keys.toList()..sort()) {
       final labelled = labels[bucket]!;
-      out.add((key: 'labels#$bucket', layer: cached('labels#$bucket', labelled, () => [_labelLayer(labelled)]).single));
+      out.add((
+        key: 'labels#$bucket',
+        layer: cached(
+          'labels#$bucket',
+          labelled,
+          () => [_labelLayer(labelled)],
+        ).single,
+      ));
     }
     return out;
   }
@@ -307,7 +363,10 @@ class _MapLibreMapViewState extends ConsumerState<MapLibreMapView>
   /// Alle eigenen Ebenen in Zeichenreihenfolge: Flächen, Kreise, Linien,
   /// Namen. Kreise tragen ihre Nummer als Kennung — es ist einer, der
   /// Genauigkeitskreis, und er ändert sich mit jeder Position.
-  static List<KeyedLayer> keyedLayers(MapViewLayers layers, [MapLibreLineCache? cache]) {
+  static List<KeyedLayer> keyedLayers(
+    MapViewLayers layers, [
+    MapLibreLineCache? cache,
+  ]) {
     final out = <KeyedLayer>[
       ...polygonLayers(layers.polygons, cache),
       for (final (i, c) in layers.circles.indexed)
@@ -340,7 +399,9 @@ class _MapLibreMapViewState extends ConsumerState<MapLibreMapView>
           ]),
         ),
     ];
-    if (style.opacity < 1 || style.width <= 0) return _fadedGroupLayers(style, features);
+    if (style.opacity < 1 || style.width <= 0) {
+      return _fadedGroupLayers(style, features);
+    }
     final width = math.max(1, style.width.round());
     return [
       if (style.borderColor != null && style.borderWidth > 0)
@@ -350,13 +411,18 @@ class _MapLibreMapViewState extends ConsumerState<MapLibreMapView>
           width: width + (2 * style.borderWidth).round(),
           dashArray: style.borderDash == null
               ? null
-              : dashArrayFor(style.borderDash!, style.width + 2 * style.borderWidth),
+              : dashArrayFor(
+                  style.borderDash!,
+                  style.width + 2 * style.borderWidth,
+                ),
         ),
       RoundPolylineLayer(
         polylines: features,
         color: style.color,
         width: width,
-        dashArray: style.dash == null ? null : dashArrayFor(style.dash!, style.width),
+        dashArray: style.dash == null
+            ? null
+            : dashArrayFor(style.dash!, style.width),
       ),
     ];
   }
@@ -365,36 +431,46 @@ class _MapLibreMapViewState extends ConsumerState<MapLibreMapView>
   /// (`line-gap-width` = Breite der Linie), nicht darunter — sonst schiene
   /// er durch. Beide Ebenen tragen dieselbe Deckkraft, die Pfeile kommen
   /// als dritte darüber. Breite 0 heißt: nur die Pfeile.
-  static List<ml.Layer> _fadedGroupLayers(MapViewPolyline style, List<ml.Feature<ml.LineString>> features) => [
-        if (style.width > 0 && style.borderColor != null && style.borderWidth > 0)
-          FadedLineLayer(
-            features: features,
-            color: style.borderColor!,
-            width: style.borderWidth,
-            gapWidth: style.width,
-            opacity: style.opacity,
-            dashArray: style.borderDash == null ? null : dashArrayFor(style.borderDash!, style.borderWidth),
-          ),
-        if (style.width > 0)
-          FadedLineLayer(
-            features: features,
-            color: style.color,
-            width: style.width,
-            opacity: style.opacity,
-            dashArray: style.dash == null ? null : dashArrayFor(style.dash!, style.width),
-          ),
-        if (style.arrows case final arrows?) LineArrowLayer(features: features, arrows: arrows),
-      ];
+  static List<ml.Layer> _fadedGroupLayers(
+    MapViewPolyline style,
+    List<ml.Feature<ml.LineString>> features,
+  ) => [
+    if (style.width > 0 && style.borderColor != null && style.borderWidth > 0)
+      FadedLineLayer(
+        features: features,
+        color: style.borderColor!,
+        width: style.borderWidth,
+        gapWidth: style.width,
+        opacity: style.opacity,
+        dashArray: style.borderDash == null
+            ? null
+            : dashArrayFor(style.borderDash!, style.borderWidth),
+      ),
+    if (style.width > 0)
+      FadedLineLayer(
+        features: features,
+        color: style.color,
+        width: style.width,
+        opacity: style.opacity,
+        dashArray: style.dash == null
+            ? null
+            : dashArrayFor(style.dash!, style.width),
+      ),
+    if (style.arrows case final arrows?)
+      LineArrowLayer(features: features, arrows: arrows),
+  ];
 
-  static ml.Layer _labelLayer(List<MapViewPolyline> labelled) => LineLabelLayer(features: [
-        for (final l in labelled)
-          ml.Feature(
-            geometry: ml.LineString.build([
-              for (final p in l.points) ...[p.longitude, p.latitude],
-            ]),
-            properties: {'label': l.label!},
-          ),
-      ]);
+  static ml.Layer _labelLayer(List<MapViewPolyline> labelled) => LineLabelLayer(
+    features: [
+      for (final l in labelled)
+        ml.Feature(
+          geometry: ml.LineString.build([
+            for (final p in l.points) ...[p.longitude, p.latitude],
+          ]),
+          properties: {'label': l.label!},
+        ),
+    ],
+  );
 
   @override
   void initState() {
@@ -445,10 +521,20 @@ class _MapLibreMapViewState extends ConsumerState<MapLibreMapView>
   }
 
   @override
-  void fit(List<LatLng> points, {required double padding, required double maxZoom, double bottomInset = 0}) {
+  void fit(
+    List<LatLng> points, {
+    required double padding,
+    required double maxZoom,
+    double bottomInset = 0,
+  }) {
     final controller = _ml;
     if (controller == null) {
-      _pendingFit = (points: points, padding: padding, maxZoom: maxZoom, bottomInset: bottomInset);
+      _pendingFit = (
+        points: points,
+        padding: padding,
+        maxZoom: maxZoom,
+        bottomInset: bottomInset,
+      );
       return;
     }
     // Selbst gerechnet und OHNE Animation gesetzt (#68): `fitBounds`
@@ -456,8 +542,14 @@ class _MapLibreMapViewState extends ConsumerState<MapLibreMapView>
     // 0 ms („Null duration passed into animateCamera") — zehn Berichte
     // in 0.17–0.20, jedes Einpassen. `moveCamera` kennt keine Dauer.
     final size = _size.isEmpty ? MediaQuery.sizeOf(context) : _size;
-    final cam = cameraToFit(points, size,
-        padding: padding, maxZoom: maxZoom, minZoom: widget.config.minZoom, bottomInset: bottomInset);
+    final cam = cameraToFit(
+      points,
+      size,
+      padding: padding,
+      maxZoom: maxZoom,
+      minZoom: widget.config.minZoom,
+      bottomInset: bottomInset,
+    );
     _moveNow(controller, cam.center, cam.zoom, 'Karte einpassen');
   }
 
@@ -466,11 +558,21 @@ class _MapLibreMapViewState extends ConsumerState<MapLibreMapView>
   /// dann eben woanders, gemeldet wird er mit Kontext.
   /// [bearing] immer mit: Ohne bliebe eine gedrehte Karte nach der
   /// Navigation gedreht, und Gesten drehen sie nicht zurück.
-  void _moveNow(ml.MapController controller, LatLng center, double zoom, String context, {double bearing = 0}) {
+  void _moveNow(
+    ml.MapController controller,
+    LatLng center,
+    double zoom,
+    String context, {
+    double bearing = 0,
+  }) {
     unawaited(() async {
       try {
         // MapLibre zählt in 512er-Kacheln: eine Stufe weniger.
-        await controller.moveCamera(center: _geo(center), zoom: zoom - 1, bearing: bearing);
+        await controller.moveCamera(
+          center: _geo(center),
+          zoom: zoom - 1,
+          bearing: bearing,
+        );
       } catch (e, s) {
         logError(context, e, s);
       }
@@ -535,7 +637,12 @@ class _MapLibreMapViewState extends ConsumerState<MapLibreMapView>
         minZoom: widget.config.minZoom - 1,
         maxZoom: widget.config.maxZoom - 1,
         // Rotation und Neigung bleiben aus — wie bei flutter_map.
-        gestures: const ml.MapGestures(rotate: false, pan: true, zoom: true, pitch: false),
+        gestures: const ml.MapGestures(
+          rotate: false,
+          pan: true,
+          zoom: true,
+          pitch: false,
+        ),
       ),
       onStyleLoaded: (style) {
         // Erster Stil ODER ein neuer nach `setStyle`: Der hat alle eigenen
@@ -552,10 +659,16 @@ class _MapLibreMapViewState extends ConsumerState<MapLibreMapView>
         final pendingFit = _pendingFit;
         _pendingMove = null;
         _pendingFit = null;
-        if (pendingMove != null) move(pendingMove.$1, pendingMove.$2, bearing: pendingMove.$3);
+        if (pendingMove != null) {
+          move(pendingMove.$1, pendingMove.$2, bearing: pendingMove.$3);
+        }
         if (pendingFit != null) {
-          fit(pendingFit.points,
-              padding: pendingFit.padding, maxZoom: pendingFit.maxZoom, bottomInset: pendingFit.bottomInset);
+          fit(
+            pendingFit.points,
+            padding: pendingFit.padding,
+            maxZoom: pendingFit.maxZoom,
+            bottomInset: pendingFit.bottomInset,
+          );
         }
         // Erstes Sichtfenster nach dem Aufbau — ohne diesen Aufruf
         // erschienen Marker erst nach der ersten Geste.
@@ -568,7 +681,10 @@ class _MapLibreMapViewState extends ConsumerState<MapLibreMapView>
           if (camera == null) return;
           widget.config.handleTap(
             MapTap(
-              point: LatLng(event.point.lat.toDouble(), event.point.lon.toDouble()),
+              point: LatLng(
+                event.point.lat.toDouble(),
+                event.point.lon.toDouble(),
+              ),
               // `screenPoint` ist LOKAL zur Kartenfläche — genau das, was
               // die Trefferprüfung erwartet.
               screenPoint: event.screenPoint,
@@ -581,11 +697,16 @@ class _MapLibreMapViewState extends ConsumerState<MapLibreMapView>
           final controller = _ml;
           final camera = controller == null ? null : _cameraOf(controller);
           if (camera == null) return;
-          widget.config.onLongPress?.call(MapTap(
-            point: LatLng(event.point.lat.toDouble(), event.point.lon.toDouble()),
-            screenPoint: event.screenPoint,
-            camera: camera,
-          ));
+          widget.config.onLongPress?.call(
+            MapTap(
+              point: LatLng(
+                event.point.lat.toDouble(),
+                event.point.lon.toDouble(),
+              ),
+              screenPoint: event.screenPoint,
+              camera: camera,
+            ),
+          );
         }
         // Culling und Nachladen bei Kamera-Idle, NICHT pro Frame.
         if (event is ml.MapEventCameraIdle) _onIdle();
@@ -599,7 +720,10 @@ class _MapLibreMapViewState extends ConsumerState<MapLibreMapView>
         // Steht links die Werkzeugleiste, rücken beide neben sie.
         ml.MapScalebar(
           alignment: Alignment.bottomLeft,
-          padding: EdgeInsets.only(left: 44 + widget.config.bottomLeftInset, bottom: 12),
+          padding: EdgeInsets.only(
+            left: 44 + widget.config.bottomLeftInset,
+            bottom: 12,
+          ),
         ),
         // Der eigene Hinweis, nicht `ml.SourceAttribution`: der nennt jede
         // Quelle einzeln, also jeden gespeicherten Bereich noch einmal.
@@ -612,7 +736,10 @@ class _MapLibreMapViewState extends ConsumerState<MapLibreMapView>
             // Kein Tipp am Marker — die Fassade löst Tipps auf.
             allowInteraction: false,
             markers: [
-              for (final marker in visibleMarkers(layers.markers, _visibleBounds!))
+              for (final marker in visibleMarkers(
+                layers.markers,
+                _visibleBounds!,
+              ))
                 asMapLibreMarker(marker),
             ],
           ),
@@ -621,18 +748,23 @@ class _MapLibreMapViewState extends ConsumerState<MapLibreMapView>
   }
 }
 
-
 /// Die Linien-Ebenen, wie die Engine sie baut — für Tests erreichbar
 /// (die Platform-View selbst ist im Widget-Test nicht renderbar).
 @visibleForTesting
-List<ml.Layer> mapLibrePolylineLayers(List<MapViewPolyline> lines, [MapLibreLineCache? cache]) =>
-    [for (final k in _MapLibreMapViewState.polylineLayers(lines, cache)) k.layer];
+List<ml.Layer> mapLibrePolylineLayers(
+  List<MapViewPolyline> lines, [
+  MapLibreLineCache? cache,
+]) => [
+  for (final k in _MapLibreMapViewState.polylineLayers(lines, cache)) k.layer,
+];
 
 /// Alle eigenen Ebenen mit ihren Kennungen, in Zeichenreihenfolge — was
 /// [KeyedLayerSync] mit der Karte abgleicht.
 @visibleForTesting
-List<KeyedLayer> mapLibreKeyedLayers(MapViewLayers layers, [MapLibreLineCache? cache]) =>
-    _MapLibreMapViewState.keyedLayers(layers, cache);
+List<KeyedLayer> mapLibreKeyedLayers(
+  MapViewLayers layers, [
+  MapLibreLineCache? cache,
+]) => _MapLibreMapViewState.keyedLayers(layers, cache);
 
 /// In wie viele Fächer eine Stilgruppe zerfällt — mehr heißt weniger je
 /// Änderung, aber mehr Ebenen auf der Karte.
@@ -645,7 +777,8 @@ int lineBucketOf(List<LatLng> points) {
   final p = points.first;
   // Gemischt, nicht nur summiert: Linien in regelmäßigem Abstand fielen
   // sonst alle in dasselbe Fach (im Test gefunden).
-  var h = ((p.latitude * 1e4).floor() * 0x1f1f1f1f) ^ (p.longitude * 1e4).floor();
+  var h =
+      ((p.latitude * 1e4).floor() * 0x1f1f1f1f) ^ (p.longitude * 1e4).floor();
   h = ((h ^ (h >> 16)) * 0x45d9f3b) & 0x7fffffff;
   h = (h ^ (h >> 16)) & 0x7fffffff;
   return h % kLineBuckets;
@@ -666,8 +799,8 @@ class MapLibreLineCache {
   /// Was eine Liniengruppe ausmacht: dieselben Punktlisten, dieselben
   /// Namen, in derselben Reihenfolge.
   static List<Object?> signatureOf(List<MapViewPolyline> group) => [
-        for (final l in group) ...[l.points, l.label],
-      ];
+    for (final l in group) ...[l.points, l.label],
+  ];
 
   /// Vergisst, was dieser Aufbau nicht mehr braucht — sonst hielte der
   /// Speicher die Ebenen jedes Fachs, das je bestand.
@@ -687,7 +820,11 @@ class MapLibreLineCache {
     return hit != null && _same(hit.$1, signature) ? hit.$2 : null;
   }
 
-  List<ml.Layer> store(String key, List<Object?> signature, List<ml.Layer> layers) {
+  List<ml.Layer> store(
+    String key,
+    List<Object?> signature,
+    List<ml.Layer> layers,
+  ) {
     _last[key] = (signature, layers);
     return layers;
   }
@@ -705,7 +842,10 @@ class RoundPolylineLayer extends ml.PolylineLayer {
   });
 
   @override
-  Map<String, Object> getLayout() => const {'line-join': 'round', 'line-cap': 'round'};
+  Map<String, Object> getLayout() => const {
+    'line-join': 'round',
+    'line-cap': 'round',
+  };
 }
 
 /// Eine Linie mit gebrochener Breite, eigener Deckkraft und auf Wunsch
@@ -730,25 +870,28 @@ class FadedLineLayer extends ml.Layer<ml.Feature<ml.LineString>> {
 
   @override
   Map<String, Object> getPaint() => {
-        'line-color': _hex(color),
-        'line-opacity': opacity,
-        'line-width': width,
-        if (gapWidth > 0) 'line-gap-width': gapWidth,
-        'line-dasharray': ?dashArray,
-      };
+    'line-color': _hex(color),
+    'line-opacity': opacity,
+    'line-width': width,
+    if (gapWidth > 0) 'line-gap-width': gapWidth,
+    'line-dasharray': ?dashArray,
+  };
 
   @override
-  Map<String, Object> getLayout() => const {'line-join': 'round', 'line-cap': 'round'};
+  Map<String, Object> getLayout() => const {
+    'line-join': 'round',
+    'line-cap': 'round',
+  };
 
   @override
   ml.StyleLayer createStyleLayer(int index) => ml.LineStyleLayer(
-        id: getLayerId(index),
-        sourceId: getSourceId(index),
-        paint: getPaint(),
-        layout: getLayout(),
-        minZoom: minZoom,
-        maxZoom: maxZoom,
-      );
+    id: getLayerId(index),
+    sourceId: getSourceId(index),
+    paint: getPaint(),
+    layout: getLayout(),
+    minZoom: minZoom,
+    maxZoom: maxZoom,
+  );
 }
 
 /// Pfeile entlang der Linie (#295): ein „›" je `symbol-spacing`, gedreht
@@ -762,8 +905,10 @@ class FadedLineLayer extends ml.Layer<ml.Feature<ml.LineString>> {
 const kArrowGlyphScale = 1.5;
 
 class LineArrowLayer extends ml.Layer<ml.Feature<ml.LineString>> {
-  const LineArrowLayer({required List<ml.Feature<ml.LineString>> features, required this.arrows})
-      : super(list: features);
+  const LineArrowLayer({
+    required List<ml.Feature<ml.LineString>> features,
+    required this.arrows,
+  }) : super(list: features);
 
   final LineArrows arrows;
 
@@ -772,31 +917,31 @@ class LineArrowLayer extends ml.Layer<ml.Feature<ml.LineString>> {
 
   @override
   Map<String, Object> getLayout() => {
-        'symbol-placement': 'line',
-        'text-field': kLineArrowGlyph,
-        'text-font': const ['noto-sans-medium'],
-        // Ein „›" füllt etwa die halbe Schriftgröße; so ist es so hoch
-        // wie der gemalte Winkel auf flutter_map.
-        'text-size': arrows.size * kArrowGlyphScale,
-        'symbol-spacing': arrows.spacing,
-        'text-keep-upright': false,
-        'text-rotation-alignment': 'map',
-        'text-allow-overlap': true,
-        'text-ignore-placement': true,
-        // Ein „›" sitzt höher als die Mitte der Zeile; 0,1 em zieht es auf
-        // die Linie. Quer heißt in Fahrtrichtung: positiv = rechts.
-        'text-offset': [0, arrows.offset / (arrows.size * kArrowGlyphScale) + 0.1],
-      };
+    'symbol-placement': 'line',
+    'text-field': kLineArrowGlyph,
+    'text-font': const ['noto-sans-medium'],
+    // Ein „›" füllt etwa die halbe Schriftgröße; so ist es so hoch
+    // wie der gemalte Winkel auf flutter_map.
+    'text-size': arrows.size * kArrowGlyphScale,
+    'symbol-spacing': arrows.spacing,
+    'text-keep-upright': false,
+    'text-rotation-alignment': 'map',
+    'text-allow-overlap': true,
+    'text-ignore-placement': true,
+    // Ein „›" sitzt höher als die Mitte der Zeile; 0,1 em zieht es auf
+    // die Linie. Quer heißt in Fahrtrichtung: positiv = rechts.
+    'text-offset': [0, arrows.offset / (arrows.size * kArrowGlyphScale) + 0.1],
+  };
 
   @override
   ml.StyleLayer createStyleLayer(int index) => ml.SymbolStyleLayer(
-        id: getLayerId(index),
-        sourceId: getSourceId(index),
-        paint: getPaint(),
-        layout: getLayout(),
-        minZoom: minZoom,
-        maxZoom: maxZoom,
-      );
+    id: getLayerId(index),
+    sourceId: getSourceId(index),
+    paint: getPaint(),
+    layout: getLayout(),
+    minZoom: minZoom,
+    maxZoom: maxZoom,
+  );
 }
 
 /// Namen ENTLANG der Linie (`symbol-placement: line`) wie Straßennamen:
@@ -808,43 +953,42 @@ class LineArrowLayer extends ml.Layer<ml.Feature<ml.LineString>> {
 /// `assets/map_glyphs/`), kein Zeichen braucht Nachladen.
 class LineLabelLayer extends ml.Layer<ml.Feature<ml.LineString>> {
   const LineLabelLayer({required List<ml.Feature<ml.LineString>> features})
-      // MapLibre zählt Zoom in 512er-Kacheln, die Fassade in 256ern.
-      : super(list: features, minZoom: kLineLabelMinZoom - 1);
+    // MapLibre zählt Zoom in 512er-Kacheln, die Fassade in 256ern.
+    : super(list: features, minZoom: kLineLabelMinZoom - 1);
 
   @override
   Map<String, Object> getPaint() => {
-        'text-color': '#131A16',
-        'text-halo-color': '#FFFFFF',
-        'text-halo-width': kLineLabelHaloWidth,
-      };
+    'text-color': '#131A16',
+    'text-halo-color': '#FFFFFF',
+    'text-halo-width': kLineLabelHaloWidth,
+  };
 
   @override
   Map<String, Object> getLayout() => {
-        'symbol-placement': 'line',
-        // Token-Schreibweise: Ausdrücke gehen in 0.3.5 durch toJObject().
-        'text-field': '{label}',
-        // Der Stack-Name, wie er als Ordner in `assets/map_glyphs/` liegt —
-        // der Stil wird darauf umgeschrieben (`_rewriteFonts`), diese Ebene
-        // nicht; „Noto Sans Medium" fände MapLibre nicht und ließe den
-        // Namen still weg.
-        'text-font': const ['noto-sans-medium'],
-        'text-size': 12,
-        'text-max-angle': 35,
-        'symbol-spacing': 300,
-        'text-keep-upright': true,
-      };
+    'symbol-placement': 'line',
+    // Token-Schreibweise: Ausdrücke gehen in 0.3.5 durch toJObject().
+    'text-field': '{label}',
+    // Der Stack-Name, wie er als Ordner in `assets/map_glyphs/` liegt —
+    // der Stil wird darauf umgeschrieben (`_rewriteFonts`), diese Ebene
+    // nicht; „Noto Sans Medium" fände MapLibre nicht und ließe den
+    // Namen still weg.
+    'text-font': const ['noto-sans-medium'],
+    'text-size': 12,
+    'text-max-angle': 35,
+    'symbol-spacing': 300,
+    'text-keep-upright': true,
+  };
 
   @override
   ml.StyleLayer createStyleLayer(int index) => ml.SymbolStyleLayer(
-        id: getLayerId(index),
-        sourceId: getSourceId(index),
-        paint: getPaint(),
-        layout: getLayout(),
-        minZoom: minZoom,
-        maxZoom: maxZoom,
-      );
+    id: getLayerId(index),
+    sourceId: getSourceId(index),
+    paint: getPaint(),
+    layout: getLayout(),
+    minZoom: minZoom,
+    maxZoom: maxZoom,
+  );
 }
-
 
 /// Die Plätze der Höhenlinien beginnen hier — weit hinter allem, was der
 /// Abgleich der übrigen Ebenen je vergibt, damit keine Kennung doppelt ist.
@@ -854,29 +998,44 @@ const kContourFirstSlot = 1 << 20;
 /// Hauptlinien, Zahlen.
 List<KeyedLayer> contourKeyedLayers(MapViewContours contours) {
   ml.Feature<ml.LineString> feature(ContourLine l) => ml.Feature(
-        geometry: ml.LineString.build([
-          for (final p in l.points) ...[p.longitude, p.latitude],
-        ]),
-        properties: {'m': l.level},
-      );
-  final normal = [for (final l in contours.lines) if (!l.index) feature(l)];
-  final index = [for (final l in contours.lines) if (l.index) feature(l)];
+    geometry: ml.LineString.build([
+      for (final p in l.points) ...[p.longitude, p.latitude],
+    ]),
+    properties: {'m': l.level},
+  );
+  final normal = [
+    for (final l in contours.lines)
+      if (!l.index) feature(l),
+  ];
+  final index = [
+    for (final l in contours.lines)
+      if (l.index) feature(l),
+  ];
   return [
     (
       key: 'contour:normal',
       layer: ContourLineLayer(
-          features: normal, color: AppColors.contourLine, width: kContourWidth, opacity: kContourOpacity),
+        features: normal,
+        color: AppColors.contourLine,
+        width: kContourWidth,
+        opacity: kContourOpacity,
+      ),
     ),
     (
       key: 'contour:index',
       layer: ContourLineLayer(
-          features: index, color: AppColors.contourLine, width: kContourIndexWidth, opacity: kContourIndexOpacity),
+        features: index,
+        color: AppColors.contourLine,
+        width: kContourIndexWidth,
+        opacity: kContourIndexOpacity,
+      ),
     ),
     (key: 'contour:labels', layer: ContourLabelLayer(features: index)),
   ];
 }
 
-String _hex(Color c) => '#${(c.toARGB32() & 0xFFFFFF).toRadixString(16).padLeft(6, '0')}';
+String _hex(Color c) =>
+    '#${(c.toARGB32() & 0xFFFFFF).toRadixString(16).padLeft(6, '0')}';
 
 /// Eine Höhenlinien-Ebene mit gebrochener Breite und eigener Deckkraft —
 /// `ml.PolylineLayer` nimmt die Breite nur ganzzahlig, und 1 px wäre für
@@ -894,56 +1053,64 @@ class ContourLineLayer extends ml.Layer<ml.Feature<ml.LineString>> {
   final double opacity;
 
   @override
-  Map<String, Object> getPaint() => {'line-color': _hex(color), 'line-opacity': opacity, 'line-width': width};
+  Map<String, Object> getPaint() => {
+    'line-color': _hex(color),
+    'line-opacity': opacity,
+    'line-width': width,
+  };
 
   @override
-  Map<String, Object> getLayout() => const {'line-join': 'round', 'line-cap': 'round'};
+  Map<String, Object> getLayout() => const {
+    'line-join': 'round',
+    'line-cap': 'round',
+  };
 
   @override
   ml.StyleLayer createStyleLayer(int index) => ml.LineStyleLayer(
-        id: getLayerId(index),
-        sourceId: getSourceId(index),
-        paint: getPaint(),
-        layout: getLayout(),
-        minZoom: minZoom,
-        maxZoom: maxZoom,
-      );
+    id: getLayerId(index),
+    sourceId: getSourceId(index),
+    paint: getPaint(),
+    layout: getLayout(),
+    minZoom: minZoom,
+    maxZoom: maxZoom,
+  );
 }
 
 /// Die Zahlen ENTLANG der Hauptlinien, wie Straßennamen: MapLibre dreht
 /// sie mit der Kurve, nie kopfüber, und lässt sie weg, wo sie mit anderem
 /// kollidieren. Selten (`symbol-spacing`), klein, mit weißem Hof.
 class ContourLabelLayer extends ml.Layer<ml.Feature<ml.LineString>> {
-  const ContourLabelLayer({required List<ml.Feature<ml.LineString>> features}) : super(list: features);
+  const ContourLabelLayer({required List<ml.Feature<ml.LineString>> features})
+    : super(list: features);
 
   @override
   Map<String, Object> getPaint() => {
-        'text-color': _hex(AppColors.contourLabel),
-        'text-halo-color': '#FFFFFF',
-        'text-halo-width': 1.4,
-      };
+    'text-color': _hex(AppColors.contourLabel),
+    'text-halo-color': '#FFFFFF',
+    'text-halo-width': 1.4,
+  };
 
   @override
   Map<String, Object> getLayout() => {
-        'symbol-placement': 'line',
-        // Token-Schreibweise: Ausdrücke gehen in 0.3.5 durch toJObject().
-        'text-field': '{m}',
-        // Der Ordner in `assets/map_glyphs/`, nicht „Noto Sans Medium" —
-        // diese Ebene entsteht am Composer vorbei (wie `LineLabelLayer`).
-        'text-font': const ['noto-sans-medium'],
-        'text-size': kContourLabelSize,
-        'symbol-spacing': 420,
-        'text-max-angle': 30,
-        'text-keep-upright': true,
-      };
+    'symbol-placement': 'line',
+    // Token-Schreibweise: Ausdrücke gehen in 0.3.5 durch toJObject().
+    'text-field': '{m}',
+    // Der Ordner in `assets/map_glyphs/`, nicht „Noto Sans Medium" —
+    // diese Ebene entsteht am Composer vorbei (wie `LineLabelLayer`).
+    'text-font': const ['noto-sans-medium'],
+    'text-size': kContourLabelSize,
+    'symbol-spacing': 420,
+    'text-max-angle': 30,
+    'text-keep-upright': true,
+  };
 
   @override
   ml.StyleLayer createStyleLayer(int index) => ml.SymbolStyleLayer(
-        id: getLayerId(index),
-        sourceId: getSourceId(index),
-        paint: getPaint(),
-        layout: getLayout(),
-        minZoom: minZoom,
-        maxZoom: maxZoom,
-      );
+    id: getLayerId(index),
+    sourceId: getSourceId(index),
+    paint: getPaint(),
+    layout: getLayout(),
+    minZoom: minZoom,
+    maxZoom: maxZoom,
+  );
 }

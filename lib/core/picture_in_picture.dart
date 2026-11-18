@@ -10,7 +10,8 @@
 import 'package:flutter/foundation.dart' show VoidCallback;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'picture_in_picture_web.dart' if (dart.library.io) 'picture_in_picture_io.dart';
+import 'picture_in_picture_web.dart'
+    if (dart.library.io) 'picture_in_picture_io.dart';
 
 abstract interface class PictureInPicture {
   /// Darf die App beim Verlassen ins Fenster? Nur, solange eine
@@ -29,15 +30,22 @@ abstract interface class PictureInPicture {
 
   /// Die Rückrichtung: [onMode] beim Wechsel zwischen groß und klein,
   /// [onStop] beim Tipp auf „Beenden" im Fenster.
-  void listen({required void Function(bool inPip) onMode, required VoidCallback onStop});
+  void listen({
+    required void Function(bool inPip) onMode,
+    required VoidCallback onStop,
+  });
 }
 
 /// Tests ersetzen ihn — im Harness gibt es keinen Kanal.
-final pictureInPictureProvider = Provider<PictureInPicture>((ref) => createPictureInPicture());
+final pictureInPictureProvider = Provider<PictureInPicture>(
+  (ref) => createPictureInPicture(),
+);
 
 /// Ist die App gerade das kleine Fenster? Dann baut die Karte die
 /// schmale Fassung der Folgeansicht und die Hülle keine Reiterleiste.
 final pipModeProvider = StateProvider<bool>((ref) => false);
 
 /// Ob es den Knopf „Minimieren" gibt — einmal je Sitzung gefragt.
-final pipSupportedProvider = FutureProvider<bool>((ref) => ref.watch(pictureInPictureProvider).supported());
+final pipSupportedProvider = FutureProvider<bool>(
+  (ref) => ref.watch(pictureInPictureProvider).supported(),
+);

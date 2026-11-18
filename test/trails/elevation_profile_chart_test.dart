@@ -16,43 +16,73 @@ void main() {
     tester.view.physicalSize = const Size(411, 200);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
-    await tester.pumpWidget(MaterialApp(
-      localizationsDelegates: AppLocalizations.localizationsDelegates,
-      supportedLocales: AppLocalizations.supportedLocales,
-      locale: const Locale('de'),
-      home: Scaffold(
-        body: Padding(
-          padding: const EdgeInsets.all(16),
-          child: ElevationProfileChart(profile, compact: true, cursorM: cursorM, onScrub: (_) {}),
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        locale: const Locale('de'),
+        home: Scaffold(
+          body: Padding(
+            padding: const EdgeInsets.all(16),
+            child: ElevationProfileChart(
+              profile,
+              compact: true,
+              cursorM: cursorM,
+              onScrub: (_) {},
+            ),
+          ),
         ),
       ),
-    ));
+    );
   }
 
   // #412: In der Ecke oben links lag das Etikett direkt an „384 m".
   for (final share in [0.0, 0.2, 0.5, 0.6, 0.9, 1.0]) {
-    testWidgets('Etikett der Stelle bei ${(share * 100).round()} % liegt neben dem Strich, nie an der Achse',
-        (tester) async {
-      await pump(tester, share * profile.lengthM);
-      final label = tester.getRect(find.byKey(const ValueKey('elevation-cursor-label')));
-      final chart = tester.getRect(find.byKey(const ValueKey('elevation-profile')));
-      for (final axis in ['384 m', '180 m']) {
-        final r = tester.getRect(find.text(axis));
-        expect(label.overlaps(r.inflate(2)), isFalse, reason: '$axis frei');
-      }
-      expect(label.left, greaterThanOrEqualTo(chart.left), reason: 'in der Zeichnung, nicht in der Achsenspalte');
-      expect(label.right, lessThanOrEqualTo(chart.right + 0.01));
-      final x = chart.left + share * chart.width;
-      if (label.width + 6 <= chart.right - x || label.width + 6 <= x - chart.left) {
-        expect(x > label.left && x < label.right, isFalse, reason: 'der Strich bleibt frei');
-        final beside = (label.left - x).abs() < (label.right - x).abs() ? label.left - x : x - label.right;
-        expect(beside, closeTo(6, 0.5), reason: 'direkt neben dem Strich, nicht in einer Ecke');
-      }
-    });
+    testWidgets(
+      'Etikett der Stelle bei ${(share * 100).round()} % liegt neben dem Strich, nie an der Achse',
+      (tester) async {
+        await pump(tester, share * profile.lengthM);
+        final label = tester.getRect(
+          find.byKey(const ValueKey('elevation-cursor-label')),
+        );
+        final chart = tester.getRect(
+          find.byKey(const ValueKey('elevation-profile')),
+        );
+        for (final axis in ['384 m', '180 m']) {
+          final r = tester.getRect(find.text(axis));
+          expect(label.overlaps(r.inflate(2)), isFalse, reason: '$axis frei');
+        }
+        expect(
+          label.left,
+          greaterThanOrEqualTo(chart.left),
+          reason: 'in der Zeichnung, nicht in der Achsenspalte',
+        );
+        expect(label.right, lessThanOrEqualTo(chart.right + 0.01));
+        final x = chart.left + share * chart.width;
+        if (label.width + 6 <= chart.right - x ||
+            label.width + 6 <= x - chart.left) {
+          expect(
+            x > label.left && x < label.right,
+            isFalse,
+            reason: 'der Strich bleibt frei',
+          );
+          final beside = (label.left - x).abs() < (label.right - x).abs()
+              ? label.left - x
+              : x - label.right;
+          expect(
+            beside,
+            closeTo(6, 0.5),
+            reason: 'direkt neben dem Strich, nicht in einer Ecke',
+          );
+        }
+      },
+    );
   }
 
   // Gerätecheck 2026-10-29: „16.5 km" am Strich neben „17,3 km" in der Summe.
-  testWidgets('Etikett der Stelle schreibt km mit Komma wie die Summe', (tester) async {
+  testWidgets('Etikett der Stelle schreibt km mit Komma wie die Summe', (
+    tester,
+  ) async {
     final long = ElevationProfile.of(
       [for (var i = 0; i <= 30; i++) LatLng(48, 9 + i * 0.001)],
       [for (var i = 0; i <= 30; i++) 180.0 + i],
@@ -60,12 +90,21 @@ void main() {
     tester.view.physicalSize = const Size(411, 200);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
-    await tester.pumpWidget(MaterialApp(
-      localizationsDelegates: AppLocalizations.localizationsDelegates,
-      supportedLocales: AppLocalizations.supportedLocales,
-      locale: const Locale('de'),
-      home: Scaffold(body: ElevationProfileChart(long, compact: true, cursorM: 1550, onScrub: (_) {})),
-    ));
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        locale: const Locale('de'),
+        home: Scaffold(
+          body: ElevationProfileChart(
+            long,
+            compact: true,
+            cursorM: 1550,
+            onScrub: (_) {},
+          ),
+        ),
+      ),
+    );
     final label = find.descendant(
       of: find.byKey(const ValueKey('elevation-cursor-label')),
       matching: find.byType(Text),

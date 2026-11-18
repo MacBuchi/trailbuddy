@@ -30,53 +30,67 @@ import 'official_trails_source.dart';
   final b = camera.bounds;
   final view = (s: b.south, w: b.west, n: b.north, e: b.east);
   final index = state.index;
-  final missing = index == null ||
-      index.regions.any((r) =>
-          !state.byRegion.containsKey(r.id) && r.touches(view.s, view.w, view.n, view.e));
+  final missing =
+      index == null ||
+      index.regions.any(
+        (r) =>
+            !state.byRegion.containsKey(r.id) &&
+            r.touches(view.s, view.w, view.n, view.e),
+      );
   return missing ? view : null;
 }
 
 /// Die Linien: violett gestrichelt, gesperrte Teile grau, Varianten
 /// dünner; ein Tipp meldet den [OfficialTrail].
 List<MapViewPolyline> officialPolylines(OfficialTrailsState state) => [
-      for (final t in state.trails)
-        for (final s in t.sections)
-          MapViewPolyline(
-            points: s.points,
-            color: s.closed ? Colors.grey.shade600 : AppColors.mapLines.official,
-            width: s.variant ? 2.5 : 3.5,
-            dash: const [10, 6],
-            borderColor: AppColors.mapLines.halo,
-            borderWidth: AppColors.mapLines.haloBorderWidth,
-            hitValue: t,
-          ),
-    ];
+  for (final t in state.trails)
+    for (final s in t.sections)
+      MapViewPolyline(
+        points: s.points,
+        color: s.closed ? Colors.grey.shade600 : AppColors.mapLines.official,
+        width: s.variant ? 2.5 : 3.5,
+        dash: const [10, 6],
+        borderColor: AppColors.mapLines.halo,
+        borderWidth: AppColors.mapLines.haloBorderWidth,
+        hitValue: t,
+      ),
+];
 
 /// Die Aussage über den Status — immer mit der Quelle, denn sie kommt von
 /// dort und nicht von einem Buddy; eine Sperre mit dem Stand der Quelle
 /// (#41: „gesperrt laut Quelle, Stand Datum", nie ein Urteil der App).
-String officialStatusLine(AppLocalizations l, OfficialStatus status, String by,
-    {String? updated}) {
+String officialStatusLine(
+  AppLocalizations l,
+  OfficialStatus status,
+  String by, {
+  String? updated,
+}) {
   final at = updated == null ? null : formatIsoDate(l, updated);
   return switch (status) {
     OfficialStatus.open => l.officialStatusOpen(by),
     OfficialStatus.partlyClosed =>
-      at == null ? l.officialStatusPartly(by) : l.officialStatusPartlyAt(by, at),
+      at == null
+          ? l.officialStatusPartly(by)
+          : l.officialStatusPartlyAt(by, at),
     OfficialStatus.closed =>
-      at == null ? l.officialStatusClosed(by) : l.officialStatusClosedAt(by, at),
+      at == null
+          ? l.officialStatusClosed(by)
+          : l.officialStatusClosedAt(by, at),
   };
 }
 
 /// Das Blatt eines offiziellen Trails: was die Quelle sagt, und von wem.
 /// Keine Beiträge, keine Hinweise, kein Status eines Buddys — dafür gibt
 /// es die Trails des Netzes (Konzept offizielle Trails 5.3).
-Future<void> showOfficialTrailSheet(BuildContext context, OfficialTrail trail) =>
-    showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      isScrollControlled: true,
-      builder: (_) => _OfficialTrailSheet(trail),
-    );
+Future<void> showOfficialTrailSheet(
+  BuildContext context,
+  OfficialTrail trail,
+) => showModalBottomSheet<void>(
+  context: context,
+  showDragHandle: true,
+  isScrollControlled: true,
+  builder: (_) => _OfficialTrailSheet(trail),
+);
 
 class _OfficialTrailSheet extends ConsumerWidget {
   const _OfficialTrailSheet(this.trail);
@@ -97,7 +111,9 @@ class _OfficialTrailSheet extends ConsumerWidget {
     final url = source?.url;
     return SafeArea(
       child: ConstrainedBox(
-        constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * 0.8),
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.sizeOf(context).height * 0.8,
+        ),
         child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
           child: Column(
@@ -107,26 +123,39 @@ class _OfficialTrailSheet extends ConsumerWidget {
               Text(trail.name, style: text.titleLarge),
               const SizedBox(height: 4),
               Text(l.officialSheetKind, style: text.bodyMedium),
-              if (facts.isNotEmpty) Text(facts.join(' · '), style: text.bodyMedium),
+              if (facts.isNotEmpty)
+                Text(facts.join(' · '), style: text.bodyMedium),
               if (trail.difficulty != null)
-                Text(l.officialSheetDifficulty(trail.difficulty!),
-                    style: text.bodyMedium),
-              const SizedBox(height: 8),
-              Row(children: [
-                Icon(
-                  trail.status == OfficialStatus.open
-                      ? Icons.verified_outlined
-                      : Icons.block,
-                  size: 18,
-                  color: trail.status == OfficialStatus.open
-                      ? AppPalette.of(context).map.official
-                      : Colors.grey.shade700,
+                Text(
+                  l.officialSheetDifficulty(trail.difficulty!),
+                  style: text.bodyMedium,
                 ),
-                const SizedBox(width: 6),
-                Expanded(
-                    child: Text(officialStatusLine(l, trail.status, by, updated: trail.updated),
-                        style: text.bodyMedium)),
-              ]),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Icon(
+                    trail.status == OfficialStatus.open
+                        ? Icons.verified_outlined
+                        : Icons.block,
+                    size: 18,
+                    color: trail.status == OfficialStatus.open
+                        ? AppPalette.of(context).map.official
+                        : Colors.grey.shade700,
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      officialStatusLine(
+                        l,
+                        trail.status,
+                        by,
+                        updated: trail.updated,
+                      ),
+                      style: text.bodyMedium,
+                    ),
+                  ),
+                ],
+              ),
               if (trail.description != null) ...[
                 const SizedBox(height: 8),
                 Text(trail.description!, style: text.bodyMedium),
@@ -139,8 +168,11 @@ class _OfficialTrailSheet extends ConsumerWidget {
                 Text(
                   trail.updated == null
                       ? l.officialSheetSource(source.name, source.license)
-                      : l.officialSheetSourceAt(source.name, source.license,
-                          formatIsoDate(l, trail.updated!)),
+                      : l.officialSheetSourceAt(
+                          source.name,
+                          source.license,
+                          formatIsoDate(l, trail.updated!),
+                        ),
                   style: text.bodySmall,
                 ),
               if (url != null)
@@ -149,8 +181,10 @@ class _OfficialTrailSheet extends ConsumerWidget {
                   child: TextButton.icon(
                     icon: const Icon(Icons.open_in_new),
                     label: Text(l.officialSheetOpenSource),
-                    onPressed: () => launchUrl(Uri.parse(url),
-                        mode: LaunchMode.externalApplication),
+                    onPressed: () => launchUrl(
+                      Uri.parse(url),
+                      mode: LaunchMode.externalApplication,
+                    ),
                   ),
                 ),
             ],

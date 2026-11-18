@@ -10,9 +10,14 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  final src = File('lib/features/map/map_view/maplibre_map_view.dart').readAsStringSync();
+  final src = File(
+    'lib/features/map/map_view/maplibre_map_view.dart',
+  ).readAsStringSync();
   // Kommentare zählen nicht — dort darf der alte Weg erklärt stehen.
-  final code = src.split('\n').where((l) => !l.trimLeft().startsWith('//')).join('\n');
+  final code = src
+      .split('\n')
+      .where((l) => !l.trimLeft().startsWith('//'))
+      .join('\n');
 
   test('kein fitBounds, kein animateCamera, keine Dauer von null', () {
     expect(code, isNot(contains('.fitBounds(')));
@@ -21,10 +26,13 @@ void main() {
     expect(code, isNot(contains('Duration.zero')));
   });
 
-  test('eingepasst wird über die gemeinsame Rechnung, gesetzt über moveCamera', () {
-    expect(code, contains('cameraToFit('));
-    expect(code, contains('.moveCamera('));
-    // Die Fassade zählt in 256er-Stufen, MapLibre in 512ern.
-    expect(code, contains('zoom: zoom - 1'));
-  });
+  test(
+    'eingepasst wird über die gemeinsame Rechnung, gesetzt über moveCamera',
+    () {
+      expect(code, contains('cameraToFit('));
+      expect(code, contains('.moveCamera('));
+      // Die Fassade zählt in 256er-Stufen, MapLibre in 512ern.
+      expect(code, contains('zoom: zoom - 1'));
+    },
+  );
 }

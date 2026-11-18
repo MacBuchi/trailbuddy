@@ -10,12 +10,15 @@ Future<T?> withinOrNull<T>(Future<T> future, Duration patience) {
   final clock = Timer(patience, () {
     if (!done.isCompleted) done.complete(null);
   });
-  future.then((value) {
-    clock.cancel();
-    if (!done.isCompleted) done.complete(value);
-  }, onError: (Object error, StackTrace stackTrace) {
-    clock.cancel();
-    if (!done.isCompleted) done.completeError(error, stackTrace);
-  });
+  future.then(
+    (value) {
+      clock.cancel();
+      if (!done.isCompleted) done.complete(value);
+    },
+    onError: (Object error, StackTrace stackTrace) {
+      clock.cancel();
+      if (!done.isCompleted) done.completeError(error, stackTrace);
+    },
+  );
   return done.future;
 }

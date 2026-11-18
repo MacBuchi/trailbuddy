@@ -46,10 +46,13 @@ void main() {
   test('Routing-Kacheln: Größe und Zusammensetzen', () {
     if (dir == null) {
       // ignore: avoid_print
-      print('TB_TILES_DIR fehlt — erst `python3 tool/routing_tiles.py sample --out DIR`.');
+      print(
+        'TB_TILES_DIR fehlt — erst `python3 tool/routing_tiles.py sample --out DIR`.',
+      );
       return;
     }
-    final frames = Directory(dir).listSync().whereType<Directory>().toList()..sort((a, b) => a.path.compareTo(b.path));
+    final frames = Directory(dir).listSync().whereType<Directory>().toList()
+      ..sort((a, b) => a.path.compareTo(b.path));
     var warm = false;
     for (final f in frames) {
       final frame = _Frame.read(f);
@@ -72,16 +75,26 @@ class _Frame {
   final Map<(int, int), HeightTile> heights;
 
   static _Frame read(Directory d) {
-    final meta = jsonDecode(File('${d.path}/frame.json').readAsStringSync()) as Map<String, dynamic>;
-    final tiles = [for (final t in meta['tiles'] as List) ((t as List)[0] as int, t[1] as int)];
+    final meta =
+        jsonDecode(File('${d.path}/frame.json').readAsStringSync())
+            as Map<String, dynamic>;
+    final tiles = [
+      for (final t in meta['tiles'] as List)
+        ((t as List)[0] as int, t[1] as int),
+    ];
     Map<(int, int), Uint8List> load(String kind, String ext) => {
-          for (final t in tiles)
-            if (File('${d.path}/$kind/${t.$1}_${t.$2}.$ext').existsSync())
-              t: File('${d.path}/$kind/${t.$1}_${t.$2}.$ext').readAsBytesSync(),
-        };
+      for (final t in tiles)
+        if (File('${d.path}/$kind/${t.$1}_${t.$2}.$ext').existsSync())
+          t: File('${d.path}/$kind/${t.$1}_${t.$2}.$ext').readAsBytesSync(),
+    };
     final h = load('heights', 'bin');
-    return _Frame(meta['frame'] as String, tiles, load('roads', 'mvt'), load('ways', 'mvt'),
-        {for (final e in h.entries) e.key: HeightTile.decode(e.value)});
+    return _Frame(
+      meta['frame'] as String,
+      tiles,
+      load('roads', 'mvt'),
+      load('ways', 'mvt'),
+      {for (final e in h.entries) e.key: HeightTile.decode(e.value)},
+    );
   }
 
   /// Die mittleren [n] × [n] Kacheln.
@@ -91,29 +104,31 @@ class _Frame {
     final x0 = xs[(xs.length - n) ~/ 2], y0 = ys[(ys.length - n) ~/ 2];
     final keep = [
       for (final t in tiles)
-        if (t.$1 >= x0 && t.$1 < x0 + n && t.$2 >= y0 && t.$2 < y0 + n) t
+        if (t.$1 >= x0 && t.$1 < x0 + n && t.$2 >= y0 && t.$2 < y0 + n) t,
     ];
     return _Frame('$name-$n', keep, roads, ways, heights);
   }
 
-  RoadTileBytes road((int, int) t) => (tile: (z: _z, x: t.$1, y: t.$2), bytes: roads[t]!);
+  RoadTileBytes road((int, int) t) =>
+      (tile: (z: _z, x: t.$1, y: t.$2), bytes: roads[t]!);
 
   HeightTiles heightsAround(Iterable<(int, int)> ts) => HeightTiles({
-        for (final t in ts)
-          for (var dx = -1; dx <= 1; dx++)
-            for (var dy = -1; dy <= 1; dy++)
-              HeightTiles.keyOf(t.$1 + dx, t.$2 + dy): ?heights[(t.$1 + dx, t.$2 + dy)],
-      });
+    for (final t in ts)
+      for (var dx = -1; dx <= 1; dx++)
+        for (var dy = -1; dy <= 1; dy++)
+          HeightTiles.keyOf(t.$1 + dx, t.$2 + dy):
+              ?heights[(t.$1 + dx, t.$2 + dy)],
+  });
 
   List<RoadTileBytes> waysAround(Iterable<(int, int)> ts) {
     final want = {
       for (final t in ts)
         for (var dx = -1; dx <= 1; dx++)
-          for (var dy = -1; dy <= 1; dy++) (t.$1 + dx, t.$2 + dy)
+          for (var dy = -1; dy <= 1; dy++) (t.$1 + dx, t.$2 + dy),
     };
     return [
       for (final w in want)
-        if (ways[w] case final b?) (tile: (z: _z, x: w.$1, y: w.$2), bytes: b)
+        if (ways[w] case final b?) (tile: (z: _z, x: w.$1, y: w.$2), bytes: b),
     ];
   }
 
@@ -134,7 +149,10 @@ void _measure(_Frame f, {bool quiet = false}) {
     if (!quiet) print(s);
   }
 
-  final present = [for (final t in f.tiles) if (f.roads.containsKey(t)) t];
+  final present = [
+    for (final t in f.tiles)
+      if (f.roads.containsKey(t)) t,
+  ];
   final sw = Stopwatch()..start();
 
   // Jede Zeit ist das Beste aus [runs] Läufen — einzelne Läufe streuen
@@ -148,7 +166,10 @@ void _measure(_Frame f, {bool quiet = false}) {
     sw.reset();
     today = buildRoadGraphFrom(
       roads: [for (final t in present) f.road(t)],
-      ways: f.waysAround(present).where((w) => present.contains((w.tile.x, w.tile.y))).toList(),
+      ways: f
+          .waysAround(present)
+          .where((w) => present.contains((w.tile.x, w.tile.y)))
+          .toList(),
       heights: f.heightsAround(present),
       lat0: f.lat0,
     ).graph;
@@ -187,13 +208,21 @@ void _measure(_Frame f, {bool quiet = false}) {
   // Größen.
   int sumOf(Iterable<Uint8List> xs) => xs.fold(0, (s, b) => s + b.length);
   final raw = sumOf(pieces.values);
-  final gz = sumOf([for (final b in pieces.values) Uint8List.fromList(gzip.encode(b))]);
-  final roadsGz = sumOf([for (final t in present) Uint8List.fromList(gzip.encode(f.roads[t]!))]);
+  final gz = sumOf([
+    for (final b in pieces.values) Uint8List.fromList(gzip.encode(b)),
+  ]);
+  final roadsGz = sumOf([
+    for (final t in present) Uint8List.fromList(gzip.encode(f.roads[t]!)),
+  ]);
   final waysGz = sumOf([
     for (final t in present)
-      if (f.ways[t] case final b?) Uint8List.fromList(gzip.encode(b))
+      if (f.ways[t] case final b?) Uint8List.fromList(gzip.encode(b)),
   ]);
-  final heightsB = present.where(f.heights.containsKey).length * kHeightGrid * kHeightGrid * 2;
+  final heightsB =
+      present.where(f.heights.containsKey).length *
+      kHeightGrid *
+      kHeightGrid *
+      2;
   final sizes = [for (final b in pieces.values) gzip.encode(b).length]..sort();
   String kb(int b) => (b / 1024).toStringAsFixed(0);
   String mb(int b) => (b / (1 << 20)).toStringAsFixed(2);
@@ -202,22 +231,40 @@ void _measure(_Frame f, {bool quiet = false}) {
   out('## ${f.name}: ${present.length} Kacheln');
   out('| | heute | gestückelt |');
   out('|---|---|---|');
-  out('| Bau / Zusammensetzen (bester von $runs) | $todayMs ms | $stitchMs ms (davon dekodieren $decodeMs ms) |');
+  out(
+    '| Bau / Zusammensetzen (bester von $runs) | $todayMs ms | $stitchMs ms (davon dekodieren $decodeMs ms) |',
+  );
   out('| Knoten | ${today.nodes.length} | ${stitched.nodes.length} |');
   out('| Kanten | ${today.edges.length} | ${stitched.edges.length} |');
-  out('| Länge | ${(today.totalLength / 1000).toStringAsFixed(1)} km | ${(stitched.totalLength / 1000).toStringAsFixed(1)} km |');
-  out('| größte Komponente | ${(100 * today.largestComponentShare).toStringAsFixed(2)} % | ${(100 * stitched.largestComponentShare).toStringAsFixed(2)} % |');
-  out('| Kanten ohne Höhen | ${today.edgesWithoutHeights} | ${stitched.edgesWithoutHeights} |');
-  out('| Anstieg gesamt | ${_sum(today, (e) => e.gain + e.loss).toStringAsFixed(0)} m | ${_sum(stitched, (e) => e.gain + e.loss).toStringAsFixed(0)} m |');
-  out('| Kanten mit Wegegüte | ${today.edges.where((e) => e.way != null).length} | ${stitched.edges.where((e) => e.way != null).length} |');
+  out(
+    '| Länge | ${(today.totalLength / 1000).toStringAsFixed(1)} km | ${(stitched.totalLength / 1000).toStringAsFixed(1)} km |',
+  );
+  out(
+    '| größte Komponente | ${(100 * today.largestComponentShare).toStringAsFixed(2)} % | ${(100 * stitched.largestComponentShare).toStringAsFixed(2)} % |',
+  );
+  out(
+    '| Kanten ohne Höhen | ${today.edgesWithoutHeights} | ${stitched.edgesWithoutHeights} |',
+  );
+  out(
+    '| Anstieg gesamt | ${_sum(today, (e) => e.gain + e.loss).toStringAsFixed(0)} m | ${_sum(stitched, (e) => e.gain + e.loss).toStringAsFixed(0)} m |',
+  );
+  out(
+    '| Kanten mit Wegegüte | ${today.edges.where((e) => e.way != null).length} | ${stitched.edges.where((e) => e.way != null).length} |',
+  );
   out('');
-  out('Größe: Routing-Kacheln ${mb(raw)} MB roh, **${mb(gz)} MB gzip** '
-      '(je Kachel Median ${kb(sizes[sizes.length ~/ 2])} KB, 90 % ${kb(sizes[sizes.length * 9 ~/ 10])} KB, '
-      'größte ${kb(sizes.last)} KB); zum Vergleich Kartenkacheln gzip ${mb(roadsGz)} MB, '
-      'Wege-Archiv ${mb(waysGz)} MB, Höhen ${mb(heightsB)} MB.');
-  out('Innere Linienpunkte ${present.isEmpty ? 0 : today.edges.fold<int>(0, (s, e) => s + e.points.length - 2)}.');
-  out('Backen je Kachel: Median ${bakeMs[bakeMs.length ~/ 2]} ms, 90 % ${bakeMs[bakeMs.length * 9 ~/ 10]} ms, '
-      'Summe ${(bakeMs.fold(0, (s, v) => s + v) / 1000).toStringAsFixed(1)} s.');
+  out(
+    'Größe: Routing-Kacheln ${mb(raw)} MB roh, **${mb(gz)} MB gzip** '
+    '(je Kachel Median ${kb(sizes[sizes.length ~/ 2])} KB, 90 % ${kb(sizes[sizes.length * 9 ~/ 10])} KB, '
+    'größte ${kb(sizes.last)} KB); zum Vergleich Kartenkacheln gzip ${mb(roadsGz)} MB, '
+    'Wege-Archiv ${mb(waysGz)} MB, Höhen ${mb(heightsB)} MB.',
+  );
+  out(
+    'Innere Linienpunkte ${present.isEmpty ? 0 : today.edges.fold<int>(0, (s, e) => s + e.points.length - 2)}.',
+  );
+  out(
+    'Backen je Kachel: Median ${bakeMs[bakeMs.length ~/ 2]} ms, 90 % ${bakeMs[bakeMs.length * 9 ~/ 10]} ms, '
+    'Summe ${(bakeMs.fold(0, (s, v) => s + v) / 1000).toStringAsFixed(1)} s.',
+  );
   out(_compareEdges(today, stitched));
   out(_compareSearches(today, stitched));
   out('');
@@ -256,7 +303,8 @@ String _compareEdges(RoadGraph a, RoadGraph b) {
       '($wayLost ohne, ${(100 * lostM / gotM).toStringAsFixed(2)} % der benannten Länge), anderer Anstieg (> 0,5 m) $climb.';
 }
 
-double _sum(RoadGraph g, double Function(GraphEdge e) f) => g.edges.fold(0.0, (s, e) => s + f(e));
+double _sum(RoadGraph g, double Function(GraphEdge e) f) =>
+    g.edges.fold(0.0, (s, e) => s + f(e));
 
 /// 40 Suchen zwischen festen Knotenpaaren der größten Komponente von
 /// HEUTE; im gestückelten Graphen vom nächsten Knoten (≤ 5 m) aus.
@@ -267,10 +315,13 @@ String _compareSearches(RoadGraph a, RoadGraph b) {
   final diffs = <double>[];
   var missing = 0;
   for (var i = 0; i < 40; i++) {
-    final s = nodes[rnd.nextInt(nodes.length)], t = nodes[rnd.nextInt(nodes.length)];
+    final s = nodes[rnd.nextInt(nodes.length)],
+        t = nodes[rnd.nextInt(nodes.length)];
     final ca = dijkstra(a, s, RiderProfile.bio, target: t).costTo(t);
     final sb = b.nearestNode(a.nodes[s], 5), tb = b.nearestNode(a.nodes[t], 5);
-    final cb = sb == null || tb == null ? null : dijkstra(b, sb, RiderProfile.bio, target: tb).costTo(tb);
+    final cb = sb == null || tb == null
+        ? null
+        : dijkstra(b, sb, RiderProfile.bio, target: tb).costTo(tb);
     if (ca == null || cb == null) {
       missing++;
       continue;

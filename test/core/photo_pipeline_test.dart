@@ -26,27 +26,35 @@ void main() {
     expect(hasText(dirty, 'xmpmeta'), isTrue);
     expect(hasText(dirty, 'Trailkopf'), isTrue);
     final decoded = img.decodeJpg(dirty)!;
-    expect(decoded.exif.gpsIfd.containsKey(0x0002), isTrue,
-        reason: 'GPSLatitude steht im EXIF des Rohbilds');
+    expect(
+      decoded.exif.gpsIfd.containsKey(0x0002),
+      isTrue,
+      reason: 'GPSLatitude steht im EXIF des Rohbilds',
+    );
     expect(decoded.exif.imageIfd['Make'].toString(), 'Testphone');
   });
 
-  test('beide Ausgaben sind nackt: kein EXIF, kein XMP, kein Kommentar',
-      () {
+  test('beide Ausgaben sind nackt: kein EXIF, kein XMP, kein Kommentar', () {
     final prepared = preparePhoto(dirtyJpeg());
     for (final (name, bytes) in [
       ('Bild', prepared.full),
-      ('Vorschau', prepared.thumb)
+      ('Vorschau', prepared.thumb),
     ]) {
-      expect(jpegForeignMarkers(bytes), isEmpty,
-          reason: '$name trägt ein fremdes Segment');
+      expect(
+        jpegForeignMarkers(bytes),
+        isEmpty,
+        reason: '$name trägt ein fremdes Segment',
+      );
       expect(hasText(bytes, 'Exif'), isFalse, reason: name);
       expect(hasText(bytes, 'xmpmeta'), isFalse, reason: name);
       expect(hasText(bytes, 'Trailkopf'), isFalse, reason: name);
       expect(hasText(bytes, 'Testphone'), isFalse, reason: name);
       final decoded = img.decodeJpg(bytes)!;
-      expect(decoded.exif.gpsIfd.containsKey(0x0002), isFalse,
-          reason: '$name: GPSLatitude überlebt');
+      expect(
+        decoded.exif.gpsIfd.containsKey(0x0002),
+        isFalse,
+        reason: '$name: GPSLatitude überlebt',
+      );
       expect(decoded.exif.isEmpty, isTrue, reason: '$name: EXIF überlebt');
     }
   });
@@ -74,18 +82,32 @@ void main() {
     final image = img.decodeJpg(prepared.full)!;
     final topRight = image.getPixel(image.width - 10, 10);
     final topLeft = image.getPixel(10, 10);
-    expect(topRight.r > 240 && topRight.g > 240, isTrue,
-        reason: 'weiße Ecke oben rechts: $topRight');
-    expect(topLeft.r > 240 && topLeft.g > 240, isFalse,
-        reason: 'oben links ist nicht mehr weiß: $topLeft');
+    expect(
+      topRight.r > 240 && topRight.g > 240,
+      isTrue,
+      reason: 'weiße Ecke oben rechts: $topRight',
+    );
+    expect(
+      topLeft.r > 240 && topLeft.g > 240,
+      isFalse,
+      reason: 'oben links ist nicht mehr weiß: $topLeft',
+    );
   });
 
   test('was kein Bild ist, scheitert mit einem Satz für den Nutzer', () {
-    final says = throwsA(isA<PhotoPipelineException>()
-        .having((e) => e.unreadable, 'unreadable', isTrue)
-        .having((e) => e.userMessage(l10nDe), 'userMessage', contains('Bildformat')));
-    expect(() => preparePhoto(Uint8List.fromList(utf8.encode('kein Bild'))),
-        says);
+    final says = throwsA(
+      isA<PhotoPipelineException>()
+          .having((e) => e.unreadable, 'unreadable', isTrue)
+          .having(
+            (e) => e.userMessage(l10nDe),
+            'userMessage',
+            contains('Bildformat'),
+          ),
+    );
+    expect(
+      () => preparePhoto(Uint8List.fromList(utf8.encode('kein Bild'))),
+      says,
+    );
     // Vier Bytes: Hier antwortet der Dekodierer nicht mit `null`,
     // sondern mit einem RangeError — im Flow-Test als „Unerwarteter
     // Fehler (RangeError)" gesehen.
@@ -103,7 +125,10 @@ void main() {
       // Manche Telefone hängen dort Bewegtbild oder Tiefendaten an —
       // kein Segment, aber Daten.
       final clean = img.encodeJpg(img.Image(width: 8, height: 8));
-      final trailer = Uint8List.fromList([...clean, ...utf8.encode('MotionPhoto')]);
+      final trailer = Uint8List.fromList([
+        ...clean,
+        ...utf8.encode('MotionPhoto'),
+      ]);
       expect(jpegForeignMarkers(trailer), ['Anhang nach EOI (11 Bytes)']);
     });
 
@@ -119,11 +144,13 @@ void main() {
     });
 
     test('kein JPEG, abgeschnitten, ohne EOI', () {
-      expect(jpegForeignMarkers(Uint8List.fromList([1, 2, 3, 4])),
-          ['kein JPEG']);
+      expect(jpegForeignMarkers(Uint8List.fromList([1, 2, 3, 4])), [
+        'kein JPEG',
+      ]);
       final clean = img.encodeJpg(img.Image(width: 8, height: 8));
-      expect(jpegForeignMarkers(clean.sublist(0, clean.length - 2)),
-          ['kein EOI']);
+      expect(jpegForeignMarkers(clean.sublist(0, clean.length - 2)), [
+        'kein EOI',
+      ]);
       expect(jpegForeignMarkers(clean.sublist(0, 5)), ['abgeschnitten']);
     });
   });

@@ -48,7 +48,8 @@ const kNavMessageLeft = 'nav:left:';
 const kNavRouteFileName = 'nav_route.json';
 
 /// Die Routen-Datei unter [baseDir] (dem Pfad aus `kRideDataDir`).
-File navRouteFile(String baseDir) => File('$baseDir/${FileRideStore.dirName}/$kNavRouteFileName');
+File navRouteFile(String baseDir) =>
+    File('$baseDir/${FileRideStore.dirName}/$kNavRouteFileName');
 
 /// Was der Dienst von der Navigation wissen muss: die Linie, wo der Stand
 /// anfängt, und — sobald gelesen — das Höhenprofil für die Höhenmeter,
@@ -81,34 +82,38 @@ class NavRouteData {
   final String? selfId;
 
   NavRouteData withStart(double alongM) => NavRouteData(
-      points: points,
-      title: title,
-      startAlongM: alongM,
-      sections: sections,
-      climbDistM: climbDistM,
-      climbEleM: climbEleM,
-      leaveM: leaveM,
-      selfId: selfId);
+    points: points,
+    title: title,
+    startAlongM: alongM,
+    sections: sections,
+    climbDistM: climbDistM,
+    climbEleM: climbEleM,
+    leaveM: leaveM,
+    selfId: selfId,
+  );
 
   String encode() => jsonEncode({
-        'v': 2,
-        'title': title,
-        'start': startAlongM,
-        'pts': [
-          for (final p in points) [p.latitude, p.longitude],
-        ],
-        if (sections.trails.isNotEmpty) 'secs': sections.encode(),
-        if (climbDistM != null && climbEleM != null) 'climb': {'d': climbDistM, 'e': climbEleM},
-        if (leaveM > 0) 'leave': leaveM,
-        if (selfId != null) 'me': selfId,
-      });
+    'v': 2,
+    'title': title,
+    'start': startAlongM,
+    'pts': [
+      for (final p in points) [p.latitude, p.longitude],
+    ],
+    if (sections.trails.isNotEmpty) 'secs': sections.encode(),
+    if (climbDistM != null && climbEleM != null)
+      'climb': {'d': climbDistM, 'e': climbEleM},
+    if (leaveM > 0) 'leave': leaveM,
+    if (selfId != null) 'me': selfId,
+  });
 
   /// Null bei allem, was nicht genau so aussieht — eine halbe Route zu
   /// navigieren wäre schlimmer als keine.
   static NavRouteData? decode(String text) {
     try {
       final json = jsonDecode(text);
-      if (json is! Map<String, dynamic> || (json['v'] != 1 && json['v'] != 2)) return null;
+      if (json is! Map<String, dynamic> || (json['v'] != 1 && json['v'] != 2)) {
+        return null;
+      }
       final pts = [
         for (final p in json['pts'] as List)
           LatLng((p as List)[0] as double, p[1] as double),
@@ -141,8 +146,13 @@ class NavRouteData {
 /// Rosskopf Süd", auf dem Trail „Rosskopf Süd · noch 1,8 km · ↓240 hm" —,
 /// darunter die Rampe, ob man auf der Route ist und ob die Fahrt
 /// mitläuft (sonst stünde sie nirgends mehr). Höhenmeter nur mit Profil.
-({String title, String text}) navNotice(AppLocalizations l, NavState state, NavPhase phase,
-    {required bool recording, String? air}) {
+({String title, String text}) navNotice(
+  AppLocalizations l,
+  NavState state,
+  NavPhase phase, {
+  required bool recording,
+  String? air,
+}) {
   final rec = recording ? l.navNoticeRecording : null;
   if (state.arrived && phase.kind == NavPhaseKind.arrived) {
     return (title: l.navArrivedTitle, text: rec ?? l.navArrivedSubtitle);
@@ -151,21 +161,35 @@ class NavRouteData {
   final section = phase.section;
   final title = switch (phase.kind) {
     NavPhaseKind.onTrail => switch (phase.lossM) {
-        final loss? when loss >= 1 => l.navNoticeOnTrailLoss(section!.name, dist, loss.round()),
-        _ => l.navNoticeOnTrail(section!.name, dist),
-      },
+      final loss? when loss >= 1 => l.navNoticeOnTrailLoss(
+        section!.name,
+        dist,
+        loss.round(),
+      ),
+      _ => l.navNoticeOnTrail(section!.name, dist),
+    },
     NavPhaseKind.atHead => l.navNoticeAtHead(section!.name),
     _ => switch ((phase.climbM, section)) {
-        (final climb?, final s?) when climb >= 1 => l.navNoticeToTrailClimb(dist, climb.round(), s.name),
-        (_, final s?) => l.navNoticeToTrail(dist, s.name),
-        (final climb?, null) when climb >= 1 => l.navNoticeToGoalClimb(dist, climb.round()),
-        _ => l.navNoticeToGoal(dist),
-      },
+      (final climb?, final s?) when climb >= 1 => l.navNoticeToTrailClimb(
+        dist,
+        climb.round(),
+        s.name,
+      ),
+      (_, final s?) => l.navNoticeToTrail(dist, s.name),
+      (final climb?, null) when climb >= 1 => l.navNoticeToGoalClimb(
+        dist,
+        climb.round(),
+      ),
+      _ => l.navNoticeToGoal(dist),
+    },
   };
   final ramp = phase.ramp;
   final text = [
-    if (ramp != null && !state.offRoute) l.navRampAhead((ramp.grade * 100).round(), formatMeters(ramp.inM)),
-    state.offRoute ? l.navNoticeOffRoute(formatMeters(state.offM)) : l.navNoticeOnRoute,
+    if (ramp != null && !state.offRoute)
+      l.navRampAhead((ramp.grade * 100).round(), formatMeters(ramp.inM)),
+    state.offRoute
+        ? l.navNoticeOffRoute(formatMeters(state.offM))
+        : l.navNoticeOnRoute,
     if (phase.kind == NavPhaseKind.onTrail) ?air,
     ?rec,
   ].join(' · ');
@@ -191,7 +215,11 @@ class NavNoticeWatcher {
   NavVoiceWatcher? _voice;
 
   /// Die Ansagen zu [state]; leer ohne Route.
-  List<VoiceCue> voiceCues(NavState state, {required DateTime now, TrailValues? Function(DateTime since)? values}) {
+  List<VoiceCue> voiceCues(
+    NavState state, {
+    required DateTime now,
+    TrailValues? Function(DateTime since)? values,
+  }) {
     final data = _data;
     if (data == null) return const [];
     final voice = _voice ??= NavVoiceWatcher(selfId: data.selfId);
@@ -199,12 +227,19 @@ class NavNoticeWatcher {
   }
 
   /// Ein Fix. Null, wenn keine Route liegt (oder die Datei unlesbar ist).
-  Future<NavState?> onFix(LatLng p,
-      {required int rev, double? headingDeg, double? speedMps}) async {
+  Future<NavState?> onFix(
+    LatLng p, {
+    required int rev,
+    double? headingDeg,
+    double? speedMps,
+  }) async {
     if (rev != _rev) {
       _rev = rev;
       final data = await _read();
-      final same = data != null && _data != null && _samePoints(_data!.points, data.points);
+      final same =
+          data != null &&
+          _data != null &&
+          _samePoints(_data!.points, data.points);
       _data = data;
       if (data == null) {
         _tracker = null;
@@ -212,12 +247,18 @@ class NavNoticeWatcher {
         // Eine neue Linie fängt neu an; dieselbe (nur das Höhenprofil kam
         // dazu) behält ihren Stand.
         final route = NavRoute.of(data.points);
-        _tracker = route == null ? null : NavTracker(route, startAlongM: data.startAlongM);
+        _tracker = route == null
+            ? null
+            : NavTracker(route, startAlongM: data.startAlongM);
         _arrivedAt = null;
         _leave = NavLeaveWatch(data.leaveM);
       }
     }
-    final state = _tracker?.update(p, headingDeg: headingDeg, speedMps: speedMps);
+    final state = _tracker?.update(
+      p,
+      headingDeg: headingDeg,
+      speedMps: speedMps,
+    );
     _left = state != null && (_leave?.update(state) ?? false);
     return state;
   }
@@ -231,12 +272,12 @@ class NavNoticeWatcher {
   /// Die Phase zum Stand (9.9) — aus den Abschnitten der Routen-Datei
   /// (Fassung 2) und dem Profil; ohne Abschnitte die Anfahrt zum Ziel.
   NavPhase phaseOf(NavState state) => navPhaseOf(
-        state,
-        _data?.sections ?? NavSections.none,
-        routeLengthM: _tracker?.route.lengthM ?? 0,
-        climbDistM: _data?.climbDistM,
-        climbEleM: _data?.climbEleM,
-      );
+    state,
+    _data?.sections ?? NavSections.none,
+    routeLengthM: _tracker?.route.lengthM ?? 0,
+    climbDistM: _data?.climbDistM,
+    climbEleM: _data?.climbEleM,
+  );
 
   /// Seit wann angekommen — nach [kNavArrivedLinger] endet die Navigation
   /// auch ohne App (9.3).
@@ -270,7 +311,10 @@ typedef NavNoticeShow = Future<void> Function(String title, String text);
 
 Future<void> _show(String title, String text) async {
   // Knöpfe bleiben, wie die App sie gesetzt hat (`null` = unverändert).
-  await FlutterForegroundTask.updateService(notificationTitle: title, notificationText: text);
+  await FlutterForegroundTask.updateService(
+    notificationTitle: title,
+    notificationText: text,
+  );
 }
 
 NavNoticeWatcher? _watcher;
@@ -282,17 +326,26 @@ DateTime? _airSince;
 
 /// „Air 2,4 s (3) · …" für den laufenden Trail; null abseits oder ohne
 /// Erkennung.
-String? _airOnTrail(AppLocalizations l, NavPhase phase, DateTime now, AirtimeLog Function() events) {
+String? _airOnTrail(
+  AppLocalizations l,
+  NavPhase phase,
+  DateTime now,
+  AirtimeLog Function() events,
+) {
   final section = phase.kind == NavPhaseKind.onTrail ? phase.section : null;
   if (section == null) {
     _airSection = null;
     return null;
   }
-  if (_airSection?.startM != section.startM || _airSection?.name != section.name) {
+  if (_airSection?.startM != section.startM ||
+      _airSection?.name != section.name) {
     _airSection = section;
     _airSince = now;
   }
-  return trailValuesLine(l, TrailValues.of(events().kept, fromUs: _airSince!.microsecondsSinceEpoch));
+  return trailValuesLine(
+    l,
+    TrailValues.of(events().kept, fromUs: _airSince!.microsecondsSinceEpoch),
+  );
 }
 
 /// Ein Takt der Navigation im Dienst: rechnen, Text setzen, Stand merken.
@@ -310,30 +363,59 @@ Future<NavState?> navTick({
   VoiceSpeak? speak,
 }) async {
   try {
-    if (await FlutterForegroundTask.getData<bool>(key: kNavDataActive) != true) return null;
+    if (await FlutterForegroundTask.getData<bool>(key: kNavDataActive) !=
+        true) {
+      return null;
+    }
     final dir = await FlutterForegroundTask.getData<String>(key: kRideDataDir);
     if (dir == null) return null;
     final rev = await FlutterForegroundTask.getData<int>(key: kNavDataRev) ?? 0;
     final position = await fix();
     if (position == null) return null;
-    final watcher = _watcher?.baseDir == dir ? _watcher! : _watcher = NavNoticeWatcher(dir);
-    final state = await watcher.onFix(LatLng(position.latitude, position.longitude),
-        rev: rev, headingDeg: position.heading, speedMps: position.speed);
+    final watcher = _watcher?.baseDir == dir
+        ? _watcher!
+        : _watcher = NavNoticeWatcher(dir);
+    final state = await watcher.onFix(
+      LatLng(position.latitude, position.longitude),
+      rev: rev,
+      headingDeg: position.heading,
+      speedMps: position.speed,
+    );
     if (state == null) return null;
-    await FlutterForegroundTask.saveData(key: kNavDataAlong, value: state.alongM);
+    await FlutterForegroundTask.saveData(
+      key: kNavDataAlong,
+      value: state.alongM,
+    );
     final phase = watcher.phaseOf(state);
     final l = serviceL10n();
-    final notice = navNotice(l, state, phase,
-        recording: recording, air: _airOnTrail(l, phase, (now ?? DateTime.now)(), events ?? sensorLogEvents));
+    final notice = navNotice(
+      l,
+      state,
+      phase,
+      recording: recording,
+      air: _airOnTrail(
+        l,
+        phase,
+        (now ?? DateTime.now)(),
+        events ?? sensorLogEvents,
+      ),
+    );
     await (show ?? _show)(notice.title, notice.text);
     if (voice) {
       // Die Werte des Trails ab seinem Beginn — dieselben wie in der Leiste.
       final at = (now ?? DateTime.now)();
       final log = events ?? sensorLogEvents;
-      final cues = watcher.voiceCues(state, now: at, values: (since) {
-        final v = TrailValues.of(log().kept, fromUs: since.microsecondsSinceEpoch);
-        return v.isEmpty ? null : v;
-      });
+      final cues = watcher.voiceCues(
+        state,
+        now: at,
+        values: (since) {
+          final v = TrailValues.of(
+            log().kept,
+            fromUs: since.microsecondsSinceEpoch,
+          );
+          return v.isEmpty ? null : v;
+        },
+      );
       await speakCues(cues, speak: speak, now: at);
     }
     if (watcher.left) {
@@ -372,8 +454,11 @@ Future<void> stopNavFromService({
       if (await file.exists()) await file.delete();
     }
     _watcher = null;
-    FlutterForegroundTask.sendDataToMain(leftM == null ? kNavMessageStop : '$kNavMessageLeft${leftM.round()}');
-    final recording = await FlutterForegroundTask.getData<bool>(key: kRideDataActive) == true;
+    FlutterForegroundTask.sendDataToMain(
+      leftM == null ? kNavMessageStop : '$kNavMessageLeft${leftM.round()}',
+    );
+    final recording =
+        await FlutterForegroundTask.getData<bool>(key: kRideDataActive) == true;
     if (recording) {
       // Der Knopf kann vor dem ersten Takt eines neu gestarteten Isolates
       // kommen — die Sprache des Profils erst nachlesen (#209).
@@ -395,5 +480,8 @@ Future<void> _stopService() async {
 
 Future<void> _showRide(String title, String text) async {
   await FlutterForegroundTask.updateService(
-      notificationTitle: title, notificationText: text, notificationButtons: const []);
+    notificationTitle: title,
+    notificationText: text,
+    notificationButtons: const [],
+  );
 }

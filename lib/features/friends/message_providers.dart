@@ -30,8 +30,9 @@ class MessagesNotifier extends AsyncNotifier<List<BuddyMessage>>
   /// stehen, und das nächste Öffnen versucht es wieder.
   Future<void> markRead(String otherId) async {
     final uid = ref.read(currentUserIdProvider);
-    final unread = (state.valueOrNull ?? const <BuddyMessage>[])
-        .any((m) => m.senderId == otherId && m.isUnreadFor(uid ?? ''));
+    final unread = (state.valueOrNull ?? const <BuddyMessage>[]).any(
+      (m) => m.senderId == otherId && m.isUnreadFor(uid ?? ''),
+    );
     if (uid == null || !unread) return;
     await ref.read(messageRepositoryProvider).markRead(otherId);
     await reloadAfterWrite('Nachrichten neu laden');
@@ -45,7 +46,8 @@ class MessagesNotifier extends AsyncNotifier<List<BuddyMessage>>
 
 final messagesProvider =
     AsyncNotifierProvider<MessagesNotifier, List<BuddyMessage>>(
-        MessagesNotifier.new);
+      MessagesNotifier.new,
+    );
 
 /// Der Verlauf mit [otherId], älteste zuerst.
 ///
@@ -55,9 +57,13 @@ final messagesProvider =
 /// — der Verlauf stand im Feld auf dem Kopf, die Tests blieben grün
 /// (PilzBuddy #594). Der Fake hier liefert deshalb absichtlich verkehrt.
 List<BuddyMessage> conversationWith(
-        List<BuddyMessage> all, String uid, String otherId) =>
-    [for (final m in all) if (m.otherId(uid) == otherId) m]
-      ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+  List<BuddyMessage> all,
+  String uid,
+  String otherId,
+) => [
+  for (final m in all)
+    if (m.otherId(uid) == otherId) m,
+]..sort((a, b) => a.createdAt.compareTo(b.createdAt));
 
 /// Ungelesene je Absender.
 Map<String, int> unreadBySender(List<BuddyMessage> all, String uid) {
@@ -74,7 +80,9 @@ final unreadMessagesProvider = Provider<Map<String, int>>((ref) {
   final uid = ref.watch(currentUserIdProvider);
   if (uid == null) return const {};
   return unreadBySender(
-      ref.watch(messagesProvider).valueOrNull ?? const [], uid);
+    ref.watch(messagesProvider).valueOrNull ?? const [],
+    uid,
+  );
 });
 
 /// Wie viele Nachrichten ich [friendship] noch schreiben darf — `null`
@@ -82,15 +90,21 @@ final unreadMessagesProvider = Provider<Map<String, int>>((ref) {
 /// `app_internal.may_message`; die Datenbank hat das letzte Wort, die
 /// Zahl hier ist die Ansage vorher.
 int? messagesLeft(
-    FriendshipEntry friendship, List<BuddyMessage> all, String uid) {
+  FriendshipEntry friendship,
+  List<BuddyMessage> all,
+  String uid,
+) {
   if (friendship.isAccepted) return null;
   final other = friendship.otherId(uid);
-  final sent =
-      all.where((m) => m.senderId == uid && m.recipientId == other).length;
+  final sent = all
+      .where((m) => m.senderId == uid && m.recipientId == other)
+      .length;
   return (kPendingMessageLimit - sent).clamp(0, kPendingMessageLimit);
 }
 
 /// Die Freundschaft zu [otherId] — oder `null`, wenn es keine (mehr) gibt.
 FriendshipEntry? friendshipWith(
-        List<FriendshipEntry> all, String uid, String otherId) =>
-    all.where((f) => f.otherId(uid) == otherId).firstOrNull;
+  List<FriendshipEntry> all,
+  String uid,
+  String otherId,
+) => all.where((f) => f.otherId(uid) == otherId).firstOrNull;

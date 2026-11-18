@@ -27,6 +27,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _busy = false;
+
   /// Gesetzt, sobald das Konto angelegt ist, die Adresse aber noch
   /// bestätigt werden muss. Dann zeigt der Screen keine Felder mehr,
   /// sondern was als Nächstes zu tun ist.
@@ -47,7 +48,10 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
     super.initState();
     _settings = ref.read(settingsProvider);
     // Nach einem Neuladen im Browser zurück zur Eingabe des Codes.
-    _awaitingConfirmationFor = PendingCode.read(_settings, PendingCodeKind.signup)?.email;
+    _awaitingConfirmationFor = PendingCode.read(
+      _settings,
+      PendingCodeKind.signup,
+    )?.email;
   }
 
   @override
@@ -63,14 +67,15 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
   /// Rückmeldung auf dem Formular. Bewusst weiter eine SnackBar: Dort ist
   /// sie etabliert, und der Nutzer bleibt beim Ausfüllen im Screen.
   void _showMessage(String message) {
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   void _setNotice(String message, NoticeTone tone) => setState(() {
-        _notice = message;
-        _noticeTone = tone;
-      });
+    _notice = message;
+    _noticeTone = tone;
+  });
 
   Future<void> _signUp() async {
     final l = context.l10n;
@@ -87,12 +92,13 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
     setState(() => _busy = true);
     try {
       final email = _emailController.text.trim();
-      final needsConfirmation =
-          await ref.read(authRepositoryProvider).signUp(
-                email: email,
-                password: _passwordController.text,
-                username: username,
-              );
+      final needsConfirmation = await ref
+          .read(authRepositoryProvider)
+          .signUp(
+            email: email,
+            password: _passwordController.text,
+            username: username,
+          );
       // Erst nach erfolgreicher Registrierung darf der Passwortmanager
       // speichern.
       TextInput.finishAutofillContext();
@@ -163,54 +169,61 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
   }
 
   Widget _confirmationHint(BuildContext context, AppLocalizations l) => Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Icon(Icons.mark_email_unread_outlined,
-              size: 56, color: Theme.of(context).colorScheme.primary),
-          const SizedBox(height: 16),
-          Text(l.signupAlmostDone,
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.headlineSmall),
-          const SizedBox(height: 12),
-          Text(
-            l.signupCodeSentTo(_awaitingConfirmationFor!),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 20),
-          TextField(
-            controller: _codeController,
-            keyboardType: TextInputType.number,
-            textInputAction: TextInputAction.done,
-            onSubmitted: (_) => _busy ? null : _confirm(),
-            decoration: InputDecoration(
-              labelText: l.authCodeLabel,
-              border: const OutlineInputBorder(),
-            ),
-          ),
-          if (_notice != null) ...[
-            const SizedBox(height: 16),
-            FormNotice(message: _notice!, tone: _noticeTone),
-          ],
-          const SizedBox(height: 20),
-          FilledButton(
-            onPressed: _busy ? null : _confirm,
-            style: FilledButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 16)),
-            child: _busy
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2))
-                : Text(l.signupConfirm),
-          ),
-          ResendButton(
-            onResend: _resend,
-            enabled: !_busy,
-            label: l.signupResendMail,
-          ),
-        ],
-      );
+    mainAxisSize: MainAxisSize.min,
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      Icon(
+        Icons.mark_email_unread_outlined,
+        size: 56,
+        color: Theme.of(context).colorScheme.primary,
+      ),
+      const SizedBox(height: 16),
+      Text(
+        l.signupAlmostDone,
+        textAlign: TextAlign.center,
+        style: Theme.of(context).textTheme.headlineSmall,
+      ),
+      const SizedBox(height: 12),
+      Text(
+        l.signupCodeSentTo(_awaitingConfirmationFor!),
+        textAlign: TextAlign.center,
+      ),
+      const SizedBox(height: 20),
+      TextField(
+        controller: _codeController,
+        keyboardType: TextInputType.number,
+        textInputAction: TextInputAction.done,
+        onSubmitted: (_) => _busy ? null : _confirm(),
+        decoration: InputDecoration(
+          labelText: l.authCodeLabel,
+          border: const OutlineInputBorder(),
+        ),
+      ),
+      if (_notice != null) ...[
+        const SizedBox(height: 16),
+        FormNotice(message: _notice!, tone: _noticeTone),
+      ],
+      const SizedBox(height: 20),
+      FilledButton(
+        onPressed: _busy ? null : _confirm,
+        style: FilledButton.styleFrom(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+        ),
+        child: _busy
+            ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : Text(l.signupConfirm),
+      ),
+      ResendButton(
+        onResend: _resend,
+        enabled: !_busy,
+        label: l.signupResendMail,
+      ),
+    ],
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -232,65 +245,67 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
   }
 
   Widget _signUpForm(BuildContext context, AppLocalizations l) => Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // Siehe login_screen.dart: ohne AutofillGroup kein Autofill.
-          AutofillGroup(
-            onDisposeAction: AutofillContextAction.cancel,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                TextField(
-                  controller: _usernameController,
-                  textInputAction: TextInputAction.next,
-                  autofillHints: const [AutofillHints.newUsername],
-                  decoration: InputDecoration(
-                    labelText: l.signupUsernameLabel,
-                    helperText: l.signupUsernameHelper,
-                    border: const OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: _emailController,
-                  keyboardType: TextInputType.emailAddress,
-                  textInputAction: TextInputAction.next,
-                  autofillHints: const [AutofillHints.email],
-                  decoration: InputDecoration(
-                    labelText: l.authEmailLabel,
-                    border: const OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                PasswordField(
-                  controller: _passwordController,
-                  label: l.signupPasswordLabel(minPasswordLength),
-                  autofillHints: const [AutofillHints.newPassword],
-                  onSubmitted: (_) => _busy ? null : _signUp(),
-                ),
-              ],
+    mainAxisSize: MainAxisSize.min,
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      // Siehe login_screen.dart: ohne AutofillGroup kein Autofill.
+      AutofillGroup(
+        onDisposeAction: AutofillContextAction.cancel,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            TextField(
+              controller: _usernameController,
+              textInputAction: TextInputAction.next,
+              autofillHints: const [AutofillHints.newUsername],
+              decoration: InputDecoration(
+                labelText: l.signupUsernameLabel,
+                helperText: l.signupUsernameHelper,
+                border: const OutlineInputBorder(),
+              ),
             ),
-          ),
-          const SizedBox(height: 20),
-          FilledButton(
-            onPressed: _busy ? null : _signUp,
-            style: FilledButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 16)),
-            child: _busy
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2))
-                : Text(l.signupCreate),
-          ),
-          TextButton(
-            onPressed: () => context.go('/login'),
-            child: Text(l.signupToLogin),
-          ),
-          // Über einen Anbieter (#398) entsteht das Konto ohne
-          // Bestätigungsmail — der Anbieter hat die Adresse geprüft.
-          ProviderSignInButtons(enabled: !_busy),
-        ],
-      );
+            const SizedBox(height: 12),
+            TextField(
+              controller: _emailController,
+              keyboardType: TextInputType.emailAddress,
+              textInputAction: TextInputAction.next,
+              autofillHints: const [AutofillHints.email],
+              decoration: InputDecoration(
+                labelText: l.authEmailLabel,
+                border: const OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+            PasswordField(
+              controller: _passwordController,
+              label: l.signupPasswordLabel(minPasswordLength),
+              autofillHints: const [AutofillHints.newPassword],
+              onSubmitted: (_) => _busy ? null : _signUp(),
+            ),
+          ],
+        ),
+      ),
+      const SizedBox(height: 20),
+      FilledButton(
+        onPressed: _busy ? null : _signUp,
+        style: FilledButton.styleFrom(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+        ),
+        child: _busy
+            ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : Text(l.signupCreate),
+      ),
+      TextButton(
+        onPressed: () => context.go('/login'),
+        child: Text(l.signupToLogin),
+      ),
+      // Über einen Anbieter (#398) entsteht das Konto ohne
+      // Bestätigungsmail — der Anbieter hat die Adresse geprüft.
+      ProviderSignInButtons(enabled: !_busy),
+    ],
+  );
 }

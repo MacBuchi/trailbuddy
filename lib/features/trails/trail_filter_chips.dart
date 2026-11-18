@@ -21,8 +21,12 @@ import 'trail_traits.dart';
 const kFilterTraits = [TrailTrait.flowy, TrailTrait.jumps];
 
 class TrailFilterChips extends ConsumerWidget {
-  const TrailFilterChips(
-      {super.key, required this.showOwner, this.keyPrefix = 'trail', this.onMapChip = false});
+  const TrailFilterChips({
+    super.key,
+    required this.showOwner,
+    this.keyPrefix = 'trail',
+    this.onMapChip = false,
+  });
 
   /// „Alle / Meine / Von Buddys" nur, wenn es beides gibt — sonst hätte
   /// eine Hälfte immer „keine Trails". Steht der Schalter nicht auf
@@ -41,7 +45,8 @@ class TrailFilterChips extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final filter = ref.watch(trailListFilterProvider);
-    void set(TrailListFilter f) => ref.read(trailListFilterProvider.notifier).state = f;
+    void set(TrailListFilter f) =>
+        ref.read(trailListFilterProvider.notifier).state = f;
     final l = context.l10n;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -53,7 +58,8 @@ class TrailFilterChips extends ConsumerWidget {
             key: ValueKey('$keyPrefix-owner'),
             showSelectedIcon: false,
             segments: [
-              for (final v in TrailOwnerFilter.values) ButtonSegment(value: v, label: Text(v.label(l))),
+              for (final v in TrailOwnerFilter.values)
+                ButtonSegment(value: v, label: Text(v.label(l))),
             ],
             selected: {filter.owner},
             onSelectionChanged: (s) => set(filter.copyWith(owner: s.first)),
@@ -66,17 +72,21 @@ class TrailFilterChips extends ConsumerWidget {
             // Erst, wenn die Karte einmal stand — vorher gibt es keinen
             // Ausschnitt, und der Chip leerte nur die Liste.
             if (onMapChip &&
-                (ref.watch(trailListOnMapProvider) || ref.watch(mapVisibleBoundsProvider) != null))
+                (ref.watch(trailListOnMapProvider) ||
+                    ref.watch(mapVisibleBoundsProvider) != null))
               FilterChip(
                 key: ValueKey('$keyPrefix-filter-on-map'),
                 avatar: const Icon(Icons.crop_free, size: 18),
                 label: Text(l.filterChipOnMap),
                 selected: ref.watch(trailListOnMapProvider),
-                onSelected: (v) => ref.read(trailListOnMapProvider.notifier).state = v,
+                onSelected: (v) =>
+                    ref.read(trailListOnMapProvider.notifier).state = v,
               ),
             FilterChip(
               key: ValueKey('$keyPrefix-filter-grade'),
-              label: Text(filter.gradeActive ? filter.gradeText(l) : l.filterChipGrade),
+              label: Text(
+                filter.gradeActive ? filter.gradeText(l) : l.filterChipGrade,
+              ),
               // Kein Häkchen: Der Chip öffnet ein Blatt, er schaltet nicht.
               showCheckmark: false,
               avatar: const Icon(Icons.tune, size: 18),
@@ -96,8 +106,13 @@ class TrailFilterChips extends ConsumerWidget {
                 key: ValueKey('$keyPrefix-filter-${t.db}'),
                 label: t == TrailTrait.jumps ? l.filterChipJumps : null,
                 selected: filter.traits.contains(t),
-                onSelected: (v) => set(filter.copyWith(
-                    traits: v ? {...filter.traits, t} : ({...filter.traits}..remove(t)))),
+                onSelected: (v) => set(
+                  filter.copyWith(
+                    traits: v
+                        ? {...filter.traits, t}
+                        : ({...filter.traits}..remove(t)),
+                  ),
+                ),
               ),
             FilterChip(
               key: ValueKey('$keyPrefix-filter-reported'),
@@ -117,7 +132,8 @@ class TrailFilterChips extends ConsumerWidget {
             // die die Seite „Noch gültig?" im Profil nennt. Nur, wenn es
             // welche gibt (oder der Filter an ist): Ein Chip, der immer nur
             // „keine Trails" liefert, kostet auf dem Telefon eine Zeile.
-            if (filter.stillValidOnly || ref.watch(stillValidQuestionsProvider).isNotEmpty)
+            if (filter.stillValidOnly ||
+                ref.watch(stillValidQuestionsProvider).isNotEmpty)
               FilterChip(
                 key: ValueKey('$keyPrefix-filter-still-valid'),
                 label: Text(l.filterChipStillValid),
@@ -134,7 +150,8 @@ class TrailFilterChips extends ConsumerWidget {
 /// Das Blatt für den S-Grad-Bereich (#222): zwei Schieber über S0–S5, der
 /// Filter folgt beim Ziehen — Liste und Karte dahinter zeigen sofort, was
 /// übrig bleibt.
-Future<void> showGradeRangeSheet(BuildContext context) => showModalBottomSheet<void>(
+Future<void> showGradeRangeSheet(BuildContext context) =>
+    showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
       isScrollControlled: true,
@@ -147,10 +164,12 @@ class _GradeRangeSheet extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final filter = ref.watch(trailListFilterProvider);
-    void set(TrailListFilter f) => ref.read(trailListFilterProvider.notifier).state = f;
+    void set(TrailListFilter f) =>
+        ref.read(trailListFilterProvider.notifier).state = f;
     final theme = Theme.of(context);
     final l = context.l10n;
-    final lo = singletrailGrade(filter.minGrade), hi = singletrailGrade(filter.maxGrade);
+    final lo = singletrailGrade(filter.minGrade),
+        hi = singletrailGrade(filter.maxGrade);
     // Scrollbar: Quer auf dem Telefon ist das Blatt höher als der Platz.
     return SafeArea(
       child: SingleChildScrollView(
@@ -159,18 +178,28 @@ class _GradeRangeSheet extends ConsumerWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(l.filterGradeSheetTitle(filter.gradeText(l)),
-                key: const ValueKey('grade-range-title'), style: theme.textTheme.titleMedium),
+            Text(
+              l.filterGradeSheetTitle(filter.gradeText(l)),
+              key: const ValueKey('grade-range-title'),
+              style: theme.textTheme.titleMedium,
+            ),
             const SizedBox(height: 8),
             RangeSlider(
               key: const ValueKey('grade-range-slider'),
               min: kMinGrade.toDouble(),
               max: kMaxGrade.toDouble(),
               divisions: kMaxGrade - kMinGrade,
-              values: RangeValues(filter.minGrade.toDouble(), filter.maxGrade.toDouble()),
+              values: RangeValues(
+                filter.minGrade.toDouble(),
+                filter.maxGrade.toDouble(),
+              ),
               labels: RangeLabels(lo.label, hi.label),
-              onChanged: (v) =>
-                  set(filter.copyWith(minGrade: v.start.round(), maxGrade: v.end.round())),
+              onChanged: (v) => set(
+                filter.copyWith(
+                  minGrade: v.start.round(),
+                  maxGrade: v.end.round(),
+                ),
+              ),
             ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -203,7 +232,12 @@ class _GradeRangeSheet extends ConsumerWidget {
                 TextButton(
                   key: const ValueKey('grade-range-reset'),
                   onPressed: filter.gradeActive
-                      ? () => set(filter.copyWith(minGrade: kMinGrade, maxGrade: kMaxGrade))
+                      ? () => set(
+                          filter.copyWith(
+                            minGrade: kMinGrade,
+                            maxGrade: kMaxGrade,
+                          ),
+                        )
                       : null,
                   child: Text(l.filterGradeSheetReset),
                 ),

@@ -14,7 +14,8 @@ import '../../core/read_after_write.dart';
 import '../../core/router_branches.dart';
 import '../../l10n/l10n.dart';
 import '../friends/buddy_alias.dart';
-import '../rides/ride_split_sheet.dart' show SplitRequest, mapSplitRequestProvider;
+import '../rides/ride_split_sheet.dart'
+    show SplitRequest, mapSplitRequestProvider;
 import 'gpx.dart';
 import 'merge_proposals.dart';
 import 'trail_merge_sheet.dart' show mergePair;
@@ -28,19 +29,26 @@ final mergeProposalsProvider = Provider<List<MergeProposal>>((ref) {
 });
 
 /// Die Vorschläge, an denen [trailId] beteiligt ist — für sein Blatt.
-final mergeProposalsForProvider = Provider.family<List<MergeProposal>, String>((ref, trailId) => [
-      for (final p in ref.watch(mergeProposalsProvider))
-        if (p.involves(trailId)) p,
-    ]);
+final mergeProposalsForProvider = Provider.family<List<MergeProposal>, String>(
+  (ref, trailId) => [
+    for (final p in ref.watch(mergeProposalsProvider))
+      if (p.involves(trailId)) p,
+  ],
+);
 
 /// „Beide ansehen": Die Karte passt sich auf die beiden ein, hebt sie
 /// hervor und sagt es oben, mit X zum Beenden.
-final mapComparePairProvider = StateProvider<({String duplicate, String target})?>((ref) => null);
+final mapComparePairProvider =
+    StateProvider<({String duplicate, String target})?>((ref) => null);
 
 /// Der Vorschlag als Karte. [fromSheet]: steht im Trail-Blatt, das bei
 /// „Beide ansehen", „Kürzen" und nach dem Zusammenführen zugeht.
 class MergeProposalCard extends ConsumerStatefulWidget {
-  const MergeProposalCard({super.key, required this.proposal, this.fromSheet = false});
+  const MergeProposalCard({
+    super.key,
+    required this.proposal,
+    this.fromSheet = false,
+  });
 
   final MergeProposal proposal;
   final bool fromSheet;
@@ -57,15 +65,26 @@ class _MergeProposalCardState extends ConsumerState<MergeProposalCard> {
   String _lead(AppLocalizations l) {
     final names = ref.watch(buddyNamesViewProvider);
     String who(String userId) {
-      final d = [...p.duplicate.details, ...p.target.details].where((d) => d.userId == userId).firstOrNull;
+      final d = [
+        ...p.duplicate.details,
+        ...p.target.details,
+      ].where((d) => d.userId == userId).firstOrNull;
       return names.of(userId, d?.username);
     }
 
     final a = p.duplicate.displayName(l), b = p.target.displayName(l);
     return switch (p.source) {
-      ProposalSource.declared =>
-        l.mergeProposalDeclared(p.byUsers.length, p.byUsers.map(who).join(', '), a, b),
-      ProposalSource.overlap => l.mergeProposalOverlap(a, b, (p.share * 100).round()),
+      ProposalSource.declared => l.mergeProposalDeclared(
+        p.byUsers.length,
+        p.byUsers.map(who).join(', '),
+        a,
+        b,
+      ),
+      ProposalSource.overlap => l.mergeProposalOverlap(
+        a,
+        b,
+        (p.share * 100).round(),
+      ),
     };
   }
 
@@ -73,7 +92,14 @@ class _MergeProposalCardState extends ConsumerState<MergeProposalCard> {
     setState(() => _busy = true);
     // Vorbelegt: wohin der Buddy es gelegt hat; aus dem Abgleich der mit
     // mehr Beiträgen, sonst der ältere (`defaultKeep`, schon im Vorschlag).
-    await mergePair(context, ref, p.duplicate, p.target, preset: p.target, closeSheet: widget.fromSheet);
+    await mergePair(
+      context,
+      ref,
+      p.duplicate,
+      p.target,
+      preset: p.target,
+      closeSheet: widget.fromSheet,
+    );
     if (mounted) setState(() => _busy = false);
   }
 
@@ -87,21 +113,25 @@ class _MergeProposalCardState extends ConsumerState<MergeProposalCard> {
     setState(() => _busy = true);
     try {
       final fresh = await notifier.markDistinct(a, b);
-      messenger.showSnackBar(SnackBar(
-        content: Text(doneOrStale(l, l.mergeDistinctDone, fresh: fresh)),
-        action: SnackBarAction(
-          label: l.commonUndo,
-          onPressed: () async {
-            try {
-              await notifier.unmarkDistinct(a, b);
-            } catch (e, st) {
-              logError('Verschieden zurücknehmen', e, st);
-              messenger.showSnackBar(SnackBar(content: Text(friendlyError(l, e))));
-            }
-          },
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(doneOrStale(l, l.mergeDistinctDone, fresh: fresh)),
+          action: SnackBarAction(
+            label: l.commonUndo,
+            onPressed: () async {
+              try {
+                await notifier.unmarkDistinct(a, b);
+              } catch (e, st) {
+                logError('Verschieden zurücknehmen', e, st);
+                messenger.showSnackBar(
+                  SnackBar(content: Text(friendlyError(l, e))),
+                );
+              }
+            },
+          ),
+          persist: false,
         ),
-        persist: false,
-      ));
+      );
     } on MergeRejectedException catch (e) {
       messenger.showSnackBar(SnackBar(content: Text(friendlyError(l, e))));
     } catch (e, st) {
@@ -121,8 +151,12 @@ class _MergeProposalCardState extends ConsumerState<MergeProposalCard> {
     wish();
   }
 
-  void _compare() => _toMap(() => ref.read(mapComparePairProvider.notifier).state =
-      (duplicate: p.duplicate.id, target: p.target.id));
+  void _compare() => _toMap(
+    () => ref.read(mapComparePairProvider.notifier).state = (
+      duplicate: p.duplicate.id,
+      target: p.target.id,
+    ),
+  );
 
   /// „Auf gemeinsamen Teil kürzen": meine lange Aufzeichnung ins
   /// Zerlege-Blatt — der Teil, der auf dem anderen liegt, steht dort als
@@ -134,11 +168,16 @@ class _MergeProposalCardState extends ConsumerState<MergeProposalCard> {
       ..sort((a, b) => b.quality.compareTo(a.quality));
     final r = rec.first;
     final pts = r.reversed ? r.points.reversed.toList() : r.points;
-    final ele = r.ele == null ? null : (r.reversed ? r.ele!.reversed.toList() : r.ele!);
+    final ele = r.ele == null
+        ? null
+        : (r.reversed ? r.ele!.reversed.toList() : r.ele!);
     final request = SplitRequest(
       track: GpxTrack(
         name: own.displayName(context.l10n),
-        points: [for (var i = 0; i < pts.length; i++) TrackPoint(pts[i].latitude, pts[i].longitude, ele: ele?[i])],
+        points: [
+          for (var i = 0; i < pts.length; i++)
+            TrackPoint(pts[i].latitude, pts[i].longitude, ele: ele?[i]),
+        ],
       ),
       source: r.source,
       replacesTrailId: own.id,
@@ -159,11 +198,13 @@ class _MergeProposalCardState extends ConsumerState<MergeProposalCard> {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Row(children: [
-              const Icon(Icons.merge_type, size: 18),
-              const SizedBox(width: 6),
-              Text(l.mergeProposalTitle, style: theme.textTheme.titleSmall),
-            ]),
+            Row(
+              children: [
+                const Icon(Icons.merge_type, size: 18),
+                const SizedBox(width: 6),
+                Text(l.mergeProposalTitle, style: theme.textTheme.titleSmall),
+              ],
+            ),
             const SizedBox(height: 4),
             Text(_lead(l), style: theme.textTheme.bodySmall),
             Wrap(

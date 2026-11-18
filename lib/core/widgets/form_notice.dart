@@ -19,20 +19,20 @@ class FormNotice extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final (background, foreground, icon) = switch (tone) {
       NoticeTone.success => (
-          scheme.primaryContainer,
-          scheme.onPrimaryContainer,
-          Icons.mark_email_read_outlined,
-        ),
+        scheme.primaryContainer,
+        scheme.onPrimaryContainer,
+        Icons.mark_email_read_outlined,
+      ),
       NoticeTone.error => (
-          scheme.errorContainer,
-          scheme.onErrorContainer,
-          Icons.error_outline,
-        ),
+        scheme.errorContainer,
+        scheme.onErrorContainer,
+        Icons.error_outline,
+      ),
       NoticeTone.info => (
-          scheme.surfaceContainerHighest,
-          scheme.onSurfaceVariant,
-          Icons.info_outline,
-        ),
+        scheme.surfaceContainerHighest,
+        scheme.onSurfaceVariant,
+        Icons.info_outline,
+      ),
     };
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -48,10 +48,9 @@ class FormNotice extends StatelessWidget {
           Expanded(
             child: Text(
               message,
-              style: Theme.of(context)
-                  .textTheme
-                  .bodyMedium
-                  ?.copyWith(color: foreground),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: foreground),
             ),
           ),
         ],

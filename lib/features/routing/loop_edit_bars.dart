@@ -20,7 +20,8 @@ import '../../core/app_theme.dart' show AppFonts;
 import '../../l10n/l10n.dart';
 import '../coach/coach.dart';
 import '../help/map_tour.dart' show MapCoach;
-import '../trails/trail_providers.dart' show startPointsProvider, trailByIdProvider;
+import '../trails/trail_providers.dart'
+    show startPointsProvider, trailByIdProvider;
 import 'loop_planner.dart' show LoopEndMode;
 import 'loop_planner_controller.dart';
 import 'loop_planner_sheet.dart' show LoopStartFlag, loopHoursLabel;
@@ -33,14 +34,22 @@ enum LoopFlagHit { start, target }
 /// Gibt es im Planer etwas zu rechnen? Trails, ein Ziel (die Route von A
 /// nach B, #356) oder Zwischenpunkte (#395).
 bool loopCanCompute(LoopSession s) =>
-    !s.busy && (s.selected.isNotEmpty || s.prefs.endMode == LoopEndMode.target || s.waypoints.isNotEmpty);
+    !s.busy &&
+    (s.selected.isNotEmpty ||
+        s.prefs.endMode == LoopEndMode.target ||
+        s.waypoints.isNotEmpty);
 
 /// Was der Planer rechnet, folgt aus dem Ziel: zurück zum Start ist eine
 /// Runde, alles andere eine Route.
 bool loopIsRoute(LoopSession s) => s.prefs.endMode != LoopEndMode.loop;
 
 class LoopEditHeader extends ConsumerWidget {
-  const LoopEditHeader({super.key, required this.onAdjust, required this.onClose, this.compact = false});
+  const LoopEditHeader({
+    super.key,
+    required this.onAdjust,
+    required this.onClose,
+    this.compact = false,
+  });
 
   final VoidCallback onAdjust;
   final VoidCallback onClose;
@@ -58,42 +67,60 @@ class LoopEditHeader extends ConsumerWidget {
     final s = ref.watch(loopPlannerProvider);
     final l = context.l10n;
     final theme = Theme.of(context);
-    final targetTrail = s.targetTrailId == null ? null : ref.watch(trailByIdProvider(s.targetTrailId!));
-    final startValue = s.start == null ? l.loopHeadMine : s.startName ?? l.loopHeadPicked;
+    final targetTrail = s.targetTrailId == null
+        ? null
+        : ref.watch(trailByIdProvider(s.targetTrailId!));
+    final startValue = s.start == null
+        ? l.loopHeadMine
+        : s.startName ?? l.loopHeadPicked;
     final targetValue = switch (s.prefs.endMode) {
       LoopEndMode.loop => l.loopHeadTargetLoop,
       LoopEndMode.lastTrail => l.loopHeadTargetLast,
-      LoopEndMode.target => s.target == null
-          ? l.loopHeadTargetNone
-          : s.targetMine
-              ? l.loopHeadMine
-              : targetTrail?.displayName(l) ?? s.targetName ?? l.loopHeadPicked,
+      LoopEndMode.target =>
+        s.target == null
+            ? l.loopHeadTargetNone
+            : s.targetMine
+            ? l.loopHeadMine
+            : targetTrail?.displayName(l) ?? s.targetName ?? l.loopHeadPicked,
     };
     final budget = l.loopHeadBudget(
-        loopHoursLabel(l, s.prefs.hours), s.prefs.climbM.round(), s.profile.label(l));
+      loopHoursLabel(l, s.prefs.hours),
+      s.prefs.climbM.round(),
+      s.profile.label(l),
+    );
 
-    Widget row(String key, Widget leading, String label, String value, VoidCallback onTap) => InkWell(
-          key: ValueKey(key),
-          onTap: onTap,
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(minHeight: 44),
-            child: Row(children: [
-              SizedBox(width: 32, child: Center(child: leading)),
-              SizedBox(
-                width: 44,
-                child: Text(label, style: theme.textTheme.labelLarge),
+    Widget row(
+      String key,
+      Widget leading,
+      String label,
+      String value,
+      VoidCallback onTap,
+    ) => InkWell(
+      key: ValueKey(key),
+      onTap: onTap,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: 44),
+        child: Row(
+          children: [
+            SizedBox(width: 32, child: Center(child: leading)),
+            SizedBox(
+              width: 44,
+              child: Text(label, style: theme.textTheme.labelLarge),
+            ),
+            Expanded(
+              child: Text(
+                value,
+                key: ValueKey('$key-value'),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.bodyMedium,
               ),
-              Expanded(
-                child: Text(value,
-                    key: ValueKey('$key-value'),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodyMedium),
-              ),
-              const Icon(Icons.chevron_right, size: 20),
-            ]),
-          ),
-        );
+            ),
+            const Icon(Icons.chevron_right, size: 20),
+          ],
+        ),
+      ),
+    );
 
     final close = IconButton(
       key: const ValueKey('loop-head-close'),
@@ -103,23 +130,28 @@ class LoopEditHeader extends ConsumerWidget {
     );
 
     if (compact) {
-      Widget half(String key, Widget flag, String value, VoidCallback onTap) => Expanded(
+      Widget half(String key, Widget flag, String value, VoidCallback onTap) =>
+          Expanded(
             child: InkWell(
               key: ValueKey(key),
               onTap: onTap,
               child: ConstrainedBox(
                 constraints: const BoxConstraints(minHeight: 44),
-                child: Row(children: [
-                  flag,
-                  const SizedBox(width: 4),
-                  Expanded(
-                    child: Text(value,
+                child: Row(
+                  children: [
+                    flag,
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        value,
                         key: ValueKey('$key-value'),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.bodyMedium),
-                  ),
-                ]),
+                        style: theme.textTheme.bodyMedium,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           );
@@ -130,13 +162,27 @@ class LoopEditHeader extends ConsumerWidget {
           margin: const EdgeInsets.fromLTRB(12, 8, 12, 0),
           child: Padding(
             padding: const EdgeInsets.only(left: 8),
-            child: Row(children: [
-              half('loop-head-start', const LoopStartFlag(size: 18), startValue, () => showLoopStartChoice(context, ref)),
-              const Padding(padding: EdgeInsets.symmetric(horizontal: 4), child: Icon(Icons.arrow_forward, size: 16)),
-              half('loop-head-target', const LoopStartFlag(size: 18, finish: true), targetValue,
-                  () => showLoopTargetChoice(context, ref)),
-              close,
-            ]),
+            child: Row(
+              children: [
+                half(
+                  'loop-head-start',
+                  const LoopStartFlag(size: 18),
+                  startValue,
+                  () => showLoopStartChoice(context, ref),
+                ),
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 4),
+                  child: Icon(Icons.arrow_forward, size: 16),
+                ),
+                half(
+                  'loop-head-target',
+                  const LoopStartFlag(size: 18, finish: true),
+                  targetValue,
+                  () => showLoopTargetChoice(context, ref),
+                ),
+                close,
+              ],
+            ),
           ),
         ),
       );
@@ -149,36 +195,58 @@ class LoopEditHeader extends ConsumerWidget {
         margin: const EdgeInsets.fromLTRB(12, 8, 12, 0),
         child: Padding(
           padding: const EdgeInsets.fromLTRB(4, 2, 0, 4),
-          child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Expanded(
-              child: Column(mainAxisSize: MainAxisSize.min, children: [
-                row('loop-head-start', const LoopStartFlag(size: 20), l.loopHeadStart, startValue,
-                    () => showLoopStartChoice(context, ref)),
-                row('loop-head-target', const LoopStartFlag(size: 20, finish: true), l.loopHeadTarget, targetValue,
-                    () => showLoopTargetChoice(context, ref)),
-                Row(children: [
-                  const SizedBox(width: 32 + 44),
-                  Expanded(
-                    child: Text(budget,
-                        key: const ValueKey('loop-head-budget'),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppFonts.numbers(theme.textTheme.bodySmall)),
-                  ),
-                  CoachAnchor(
-                    id: MapCoach.loopRailButton('loop-adjust'),
-                    child: TextButton(
-                      key: const ValueKey('loop-adjust'),
-                      style: TextButton.styleFrom(minimumSize: const Size(44, 44)),
-                      onPressed: onAdjust,
-                      child: Text(l.loopHeadAdjust),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    row(
+                      'loop-head-start',
+                      const LoopStartFlag(size: 20),
+                      l.loopHeadStart,
+                      startValue,
+                      () => showLoopStartChoice(context, ref),
                     ),
-                  ),
-                ]),
-              ]),
-            ),
-            close,
-          ]),
+                    row(
+                      'loop-head-target',
+                      const LoopStartFlag(size: 20, finish: true),
+                      l.loopHeadTarget,
+                      targetValue,
+                      () => showLoopTargetChoice(context, ref),
+                    ),
+                    Row(
+                      children: [
+                        const SizedBox(width: 32 + 44),
+                        Expanded(
+                          child: Text(
+                            budget,
+                            key: const ValueKey('loop-head-budget'),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppFonts.numbers(theme.textTheme.bodySmall),
+                          ),
+                        ),
+                        CoachAnchor(
+                          id: MapCoach.loopRailButton('loop-adjust'),
+                          child: TextButton(
+                            key: const ValueKey('loop-adjust'),
+                            style: TextButton.styleFrom(
+                              minimumSize: const Size(44, 44),
+                            ),
+                            onPressed: onAdjust,
+                            child: Text(l.loopHeadAdjust),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              close,
+            ],
+          ),
         ),
       ),
     );
@@ -190,132 +258,158 @@ class LoopEditHeader extends ConsumerWidget {
 /// „aus dem Planer-Ergebnis", Konzept Startpunkte 4). [ref] gehört dem
 /// Aufrufer (Kopf, Karte): Liste und Dialog kommen NACH dem Schließen
 /// des Blatts, dessen eigener Kontext dann weg ist.
-Future<void> showLoopStartChoice(BuildContext outer, WidgetRef outerRef) => showModalBottomSheet<void>(
+Future<void> showLoopStartChoice(BuildContext outer, WidgetRef outerRef) =>
+    showModalBottomSheet<void>(
       context: outer,
       showDragHandle: true,
-      builder: (context) => Consumer(builder: (context, ref, _) {
-        final s = ref.watch(loopPlannerProvider);
-        final n = ref.read(loopPlannerProvider.notifier);
-        final l = context.l10n;
-        return SafeArea(
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            _ChoiceTile(
-              key: const ValueKey('loop-start-me'),
-              icon: Icons.my_location,
-              text: l.loopHeadMine,
-              chosen: s.start == null,
-              onTap: () {
-                Navigator.of(context).pop();
-                if (s.start != null) n.useMyPosition();
-              },
+      builder: (context) => Consumer(
+        builder: (context, ref, _) {
+          final s = ref.watch(loopPlannerProvider);
+          final n = ref.read(loopPlannerProvider.notifier);
+          final l = context.l10n;
+          return SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _ChoiceTile(
+                  key: const ValueKey('loop-start-me'),
+                  icon: Icons.my_location,
+                  text: l.loopHeadMine,
+                  chosen: s.start == null,
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    if (s.start != null) n.useMyPosition();
+                  },
+                ),
+                _ChoiceTile(
+                  key: const ValueKey('loop-pick'),
+                  icon: Icons.touch_app_outlined,
+                  text: l.loopHeadPickOnMap,
+                  chosen: s.start != null && !s.startSaved,
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    n.armStartPick();
+                  },
+                ),
+                // Immer da, wie im Einstiegsblatt (Konzept Startpunkte 5.1).
+                _ChoiceTile(
+                  key: const ValueKey('loop-start-saved'),
+                  icon: Icons.outlined_flag,
+                  text: s.startSaved
+                      ? s.startName ?? l.loopStartSaved
+                      : l.loopStartSaved,
+                  chosen: s.startSaved,
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    unawaited(pickStartPoint(outer, outerRef, asTarget: false));
+                  },
+                ),
+                if (!s.startSaved) ...[
+                  const Divider(height: 1),
+                  ListTile(
+                    key: const ValueKey('loop-start-remember'),
+                    leading: const Icon(Icons.bookmark_add_outlined),
+                    title: Text(
+                      s.start == null
+                          ? l.startPointRememberHere
+                          : l.loopStartRemember,
+                    ),
+                    onTap: () {
+                      Navigator.of(context).pop();
+                      unawaited(rememberPlannerStart(outer, outerRef));
+                    },
+                  ),
+                ],
+              ],
             ),
-            _ChoiceTile(
-              key: const ValueKey('loop-pick'),
-              icon: Icons.touch_app_outlined,
-              text: l.loopHeadPickOnMap,
-              chosen: s.start != null && !s.startSaved,
-              onTap: () {
-                Navigator.of(context).pop();
-                n.armStartPick();
-              },
-            ),
-            // Immer da, wie im Einstiegsblatt (Konzept Startpunkte 5.1).
-            _ChoiceTile(
-              key: const ValueKey('loop-start-saved'),
-              icon: Icons.outlined_flag,
-              text: s.startSaved ? s.startName ?? l.loopStartSaved : l.loopStartSaved,
-              chosen: s.startSaved,
-              onTap: () {
-                Navigator.of(context).pop();
-                unawaited(pickStartPoint(outer, outerRef, asTarget: false));
-              },
-            ),
-            if (!s.startSaved) ...[
-              const Divider(height: 1),
-              ListTile(
-                key: const ValueKey('loop-start-remember'),
-                leading: const Icon(Icons.bookmark_add_outlined),
-                title: Text(s.start == null ? l.startPointRememberHere : l.loopStartRemember),
-                onTap: () {
-                  Navigator.of(context).pop();
-                  unawaited(rememberPlannerStart(outer, outerRef));
-                },
-              ),
-            ],
-          ]),
-        );
-      }),
+          );
+        },
+      ),
     );
 
 /// Die Wahl des Ziels — aus dem Kopf und von der Zielfahne. Sie ist
 /// zugleich „Runde oder Route" (Konzept-Routing 12.6). Ein gemerkter
 /// Startpunkt ist auch ein Ziel (#543).
-Future<void> showLoopTargetChoice(BuildContext outer, WidgetRef outerRef) => showModalBottomSheet<void>(
+Future<void> showLoopTargetChoice(BuildContext outer, WidgetRef outerRef) =>
+    showModalBottomSheet<void>(
       context: outer,
       showDragHandle: true,
-      builder: (context) => Consumer(builder: (context, ref, _) {
-        final s = ref.watch(loopPlannerProvider);
-        final n = ref.read(loopPlannerProvider.notifier);
-        final l = context.l10n;
-        final hasSaved = ref.watch(startPointsProvider).isNotEmpty;
-        final mode = s.prefs.endMode;
-        void setMode(LoopEndMode m) {
-          if (mode != m) n.setPrefs(s.prefs.copyWith(endMode: m));
-        }
+      builder: (context) => Consumer(
+        builder: (context, ref, _) {
+          final s = ref.watch(loopPlannerProvider);
+          final n = ref.read(loopPlannerProvider.notifier);
+          final l = context.l10n;
+          final hasSaved = ref.watch(startPointsProvider).isNotEmpty;
+          final mode = s.prefs.endMode;
+          void setMode(LoopEndMode m) {
+            if (mode != m) n.setPrefs(s.prefs.copyWith(endMode: m));
+          }
 
-        return SafeArea(
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            _ChoiceTile(
-              key: const ValueKey('loop-end-loop'),
-              icon: Icons.loop,
-              text: l.loopHeadTargetLoop,
-              chosen: mode == LoopEndMode.loop,
-              onTap: () {
-                Navigator.of(context).pop();
-                setMode(LoopEndMode.loop);
-              },
+          return SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _ChoiceTile(
+                  key: const ValueKey('loop-end-loop'),
+                  icon: Icons.loop,
+                  text: l.loopHeadTargetLoop,
+                  chosen: mode == LoopEndMode.loop,
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    setMode(LoopEndMode.loop);
+                  },
+                ),
+                _ChoiceTile(
+                  key: const ValueKey('loop-pick-target'),
+                  icon: Icons.touch_app_outlined,
+                  text: l.loopHeadPickOnMap,
+                  chosen: mode == LoopEndMode.target && !s.targetSaved,
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    setMode(LoopEndMode.target);
+                    n.armTargetPick();
+                  },
+                ),
+                if (hasSaved)
+                  _ChoiceTile(
+                    key: const ValueKey('loop-target-saved'),
+                    icon: Icons.outlined_flag,
+                    text: mode == LoopEndMode.target && s.targetSaved
+                        ? s.targetName ?? l.loopStartSaved
+                        : l.loopStartSaved,
+                    chosen: mode == LoopEndMode.target && s.targetSaved,
+                    onTap: () {
+                      Navigator.of(context).pop();
+                      unawaited(
+                        pickStartPoint(outer, outerRef, asTarget: true),
+                      );
+                    },
+                  ),
+                _ChoiceTile(
+                  key: const ValueKey('loop-end-last'),
+                  icon: Icons.last_page,
+                  text: l.loopHeadTargetLast,
+                  chosen: mode == LoopEndMode.lastTrail,
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    setMode(LoopEndMode.lastTrail);
+                  },
+                ),
+              ],
             ),
-            _ChoiceTile(
-              key: const ValueKey('loop-pick-target'),
-              icon: Icons.touch_app_outlined,
-              text: l.loopHeadPickOnMap,
-              chosen: mode == LoopEndMode.target && !s.targetSaved,
-              onTap: () {
-                Navigator.of(context).pop();
-                setMode(LoopEndMode.target);
-                n.armTargetPick();
-              },
-            ),
-            if (hasSaved)
-              _ChoiceTile(
-                key: const ValueKey('loop-target-saved'),
-                icon: Icons.outlined_flag,
-                text: mode == LoopEndMode.target && s.targetSaved
-                    ? s.targetName ?? l.loopStartSaved
-                    : l.loopStartSaved,
-                chosen: mode == LoopEndMode.target && s.targetSaved,
-                onTap: () {
-                  Navigator.of(context).pop();
-                  unawaited(pickStartPoint(outer, outerRef, asTarget: true));
-                },
-              ),
-            _ChoiceTile(
-              key: const ValueKey('loop-end-last'),
-              icon: Icons.last_page,
-              text: l.loopHeadTargetLast,
-              chosen: mode == LoopEndMode.lastTrail,
-              onTap: () {
-                Navigator.of(context).pop();
-                setMode(LoopEndMode.lastTrail);
-              },
-            ),
-          ]),
-        );
-      }),
+          );
+        },
+      ),
     );
 
 class _ChoiceTile extends StatelessWidget {
-  const _ChoiceTile({super.key, required this.icon, required this.text, required this.chosen, required this.onTap});
+  const _ChoiceTile({
+    super.key,
+    required this.icon,
+    required this.text,
+    required this.chosen,
+    required this.onTap,
+  });
 
   final IconData icon;
   final String text;
@@ -324,12 +418,12 @@ class _ChoiceTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => ListTile(
-        leading: Icon(icon),
-        title: Text(text),
-        trailing: chosen ? const Icon(Icons.check) : null,
-        selected: chosen,
-        onTap: onTap,
-      );
+    leading: Icon(icon),
+    title: Text(text),
+    trailing: chosen ? const Icon(Icons.check) : null,
+    selected: chosen,
+    onTap: onTap,
+  );
 }
 
 /// Was die Auswahlzeile gerade meldet: ein Tipp auf einen Trail oder
@@ -337,7 +431,12 @@ class _ChoiceTile extends StatelessWidget {
 typedef LoopBarNote = ({String text, VoidCallback undo});
 
 class LoopSelectionBar extends ConsumerWidget {
-  const LoopSelectionBar({super.key, required this.onCompute, required this.onClear, this.note});
+  const LoopSelectionBar({
+    super.key,
+    required this.onCompute,
+    required this.onClear,
+    this.note,
+  });
 
   final VoidCallback onCompute;
   final VoidCallback onClear;
@@ -363,49 +462,69 @@ class LoopSelectionBar extends ConsumerWidget {
         margin: EdgeInsets.zero,
         child: Padding(
           padding: const EdgeInsets.fromLTRB(12, 6, 8, 8),
-          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-            if (note != null)
-              Row(key: const ValueKey('loop-toggled'), children: [
-                Expanded(child: Text(note.text, style: theme.textTheme.bodyMedium)),
-                TextButton(
-                  key: const ValueKey('loop-toggled-undo'),
-                  onPressed: note.undo,
-                  child: Text(l.commonUndo),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (note != null)
+                Row(
+                  key: const ValueKey('loop-toggled'),
+                  children: [
+                    Expanded(
+                      child: Text(note.text, style: theme.textTheme.bodyMedium),
+                    ),
+                    TextButton(
+                      key: const ValueKey('loop-toggled-undo'),
+                      onPressed: note.undo,
+                      child: Text(l.commonUndo),
+                    ),
+                  ],
+                )
+              else if (empty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 6),
+                  child: Text(
+                    loopIsRoute(s) ? l.mapLoopHintRoute : l.mapLoopHint,
+                    key: const ValueKey('loop-hint'),
+                    style: theme.textTheme.bodySmall,
+                  ),
+                )
+              else
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        count,
+                        key: const ValueKey('loop-bar-count'),
+                        style: AppFonts.numbers(theme.textTheme.bodyMedium),
+                      ),
+                    ),
+                    TextButton(
+                      key: const ValueKey('loop-clear'),
+                      onPressed: onClear,
+                      child: Text(l.loopBarClear),
+                    ),
+                  ],
                 ),
-              ])
-            else if (empty)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 6),
-                child: Text(
-                  loopIsRoute(s) ? l.mapLoopHintRoute : l.mapLoopHint,
-                  key: const ValueKey('loop-hint'),
-                  style: theme.textTheme.bodySmall,
+              const SizedBox(height: 4),
+              CoachAnchor(
+                id: MapCoach.loopRailButton('loop-compute'),
+                child: FilledButton.icon(
+                  key: const ValueKey('loop-compute'),
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size.fromHeight(48),
+                    backgroundColor: AppColors.brand,
+                    foregroundColor: AppColors.onBrand,
+                  ),
+                  onPressed: loopCanCompute(s) ? onCompute : null,
+                  icon: const Icon(Icons.alt_route),
+                  label: Text(
+                    loopIsRoute(s) ? l.loopRailComputeRoute : l.loopComputeLoop,
+                  ),
                 ),
-              )
-            else
-              Row(children: [
-                Expanded(
-                  child: Text(count,
-                      key: const ValueKey('loop-bar-count'), style: AppFonts.numbers(theme.textTheme.bodyMedium)),
-                ),
-                TextButton(key: const ValueKey('loop-clear'), onPressed: onClear, child: Text(l.loopBarClear)),
-              ]),
-            const SizedBox(height: 4),
-            CoachAnchor(
-              id: MapCoach.loopRailButton('loop-compute'),
-              child: FilledButton.icon(
-                key: const ValueKey('loop-compute'),
-                style: FilledButton.styleFrom(
-                  minimumSize: const Size.fromHeight(48),
-                  backgroundColor: AppColors.brand,
-                  foregroundColor: AppColors.onBrand,
-                ),
-                onPressed: loopCanCompute(s) ? onCompute : null,
-                icon: const Icon(Icons.alt_route),
-                label: Text(loopIsRoute(s) ? l.loopRailComputeRoute : l.loopComputeLoop),
               ),
-            ),
-          ]),
+            ],
+          ),
         ),
       ),
     );

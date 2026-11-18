@@ -19,37 +19,54 @@ import '../fakes/test_app.dart';
 
 /// Eine Spur nach Norden ab 48°/9°: [lengthM] lang, mit Höhe von
 /// [eleStart] nach [eleEnd], Zeiten für ~18 km/h wenn [timed].
-String gpx(String name, double lengthM,
-    {double eleStart = 600, double eleEnd = 500, bool timed = true}) {
+String gpx(
+  String name,
+  double lengthM, {
+  double eleStart = 600,
+  double eleEnd = 500,
+  bool timed = true,
+}) {
   const step = 20.0;
   final n = (lengthM / step).round();
-  final b = StringBuffer('<gpx version="1.1" xmlns="http://www.topografix.com/GPX/1/1">'
-      '<trk><name>$name</name><trkseg>');
+  final b = StringBuffer(
+    '<gpx version="1.1" xmlns="http://www.topografix.com/GPX/1/1">'
+    '<trk><name>$name</name><trkseg>',
+  );
   for (var i = 0; i <= n; i++) {
     final lat = 48.0 + i * step / 111320.0;
     final ele = eleStart + (eleEnd - eleStart) * i / n;
     final t = DateTime.utc(2026, 5, 1, 10).add(Duration(seconds: i * 4));
-    b.write('<trkpt lat="$lat" lon="9.0"><ele>$ele</ele>'
-        '${timed ? '<time>${t.toIso8601String()}</time>' : ''}</trkpt>');
+    b.write(
+      '<trkpt lat="$lat" lon="9.0"><ele>$ele</ele>'
+      '${timed ? '<time>${t.toIso8601String()}</time>' : ''}</trkpt>',
+    );
   }
   b.write('</trkseg></trk></gpx>');
   return b.toString();
 }
 
 void main() {
-  testWidgets('kurze Abfahrt wird beigesteuert, Fahrt bleibt liegen', (tester) async {
+  testWidgets('kurze Abfahrt wird beigesteuert, Fahrt bleibt liegen', (
+    tester,
+  ) async {
     final backend = FakeBackend();
     final anna = backend.addUser(username: 'anna');
     backend.signInAs(anna.id);
     final trails = FakeTrailRepository(myId: () => backend.currentUserId ?? '');
     final files = [
       PickedFile.text('wurzel.gpx', gpx('Wurzeltrail', 1200)),
-      PickedFile.text('runde.gpx', gpx('Sonntagsrunde', 12000, eleStart: 300, eleEnd: 320)),
+      PickedFile.text(
+        'runde.gpx',
+        gpx('Sonntagsrunde', 12000, eleStart: 300, eleEnd: 320),
+      ),
       PickedFile.text('kaputt.gpx', '<kml/>'),
     ];
-    await pumpApp(tester, backend, trails: trails, extraOverrides: [
-      gpxPickerProvider.overrideWithValue(() async => files),
-    ]);
+    await pumpApp(
+      tester,
+      backend,
+      trails: trails,
+      extraOverrides: [gpxPickerProvider.overrideWithValue(() async => files)],
+    );
 
     await openTab(tester, 'Trails');
     await tester.tap(find.byTooltip('GPX importieren'));
@@ -63,7 +80,10 @@ void main() {
     // kaputte Datei benannt.
     expect(find.text('2 Spuren gefunden, 1 davon als Trail'), findsOneWidget);
     expect(find.text('Wurzeltrail'), findsOneWidget);
-    expect(find.textContaining('Fahrt — auf der Karte zerlegen'), findsOneWidget);
+    expect(
+      find.textContaining('Fahrt — auf der Karte zerlegen'),
+      findsOneWidget,
+    );
     expect(find.textContaining('kaputt.gpx:'), findsOneWidget);
     expect(find.textContaining('aufgezeichnet'), findsWidgets);
 
@@ -84,7 +104,9 @@ void main() {
     expect(find.text('Wurzeltrail'), findsOneWidget);
   });
 
-  testWidgets('ohne Zeiten wird es „geplant", ein Fehlschlag wird benannt', (tester) async {
+  testWidgets('ohne Zeiten wird es „geplant", ein Fehlschlag wird benannt', (
+    tester,
+  ) async {
     final backend = FakeBackend();
     final anna = backend.addUser(username: 'anna');
     backend.signInAs(anna.id);
@@ -93,9 +115,12 @@ void main() {
       PickedFile.text('plan.gpx', gpx('Geplante Linie', 900, timed: false)),
       PickedFile.text('zwei.gpx', gpx('Zweiter', 800)),
     ];
-    await pumpApp(tester, backend, trails: trails, extraOverrides: [
-      gpxPickerProvider.overrideWithValue(() async => files),
-    ]);
+    await pumpApp(
+      tester,
+      backend,
+      trails: trails,
+      extraOverrides: [gpxPickerProvider.overrideWithValue(() async => files)],
+    );
     await openTab(tester, 'Trails');
     await tester.tap(find.byTooltip('GPX importieren'));
     await settle(tester);
@@ -117,47 +142,73 @@ void main() {
     expect(find.byType(CheckboxListTile), findsOneWidget);
   });
 
-  testWidgets('Fahrdatum für eine Datei ohne Zeiten (#120): bleibt geplant, zählt als gefahren',
-      (tester) async {
-    final backend = FakeBackend();
-    final anna = backend.addUser(username: 'anna');
-    backend.signInAs(anna.id);
-    final trails = FakeTrailRepository(myId: () => backend.currentUserId ?? '');
-    final files = [PickedFile.text('plan.gpx', gpx('Vereinslinie', 900, timed: false))];
-    await pumpApp(tester, backend, trails: trails, extraOverrides: [
-      gpxPickerProvider.overrideWithValue(() async => files),
-    ]);
-    await openTab(tester, 'Trails');
-    await tester.tap(find.byTooltip('GPX importieren'));
-    await settle(tester);
-    await tester.tap(find.text('GPX- oder Zip-Dateien wählen'));
-    await settle(tester);
-    expect(find.textContaining('geplant (keine Fahrzeiten)'), findsOneWidget);
-    expect(find.text('Gefahren am …'), findsOneWidget);
+  testWidgets(
+    'Fahrdatum für eine Datei ohne Zeiten (#120): bleibt geplant, zählt als gefahren',
+    (tester) async {
+      final backend = FakeBackend();
+      final anna = backend.addUser(username: 'anna');
+      backend.signInAs(anna.id);
+      final trails = FakeTrailRepository(
+        myId: () => backend.currentUserId ?? '',
+      );
+      final files = [
+        PickedFile.text('plan.gpx', gpx('Vereinslinie', 900, timed: false)),
+      ];
+      await pumpApp(
+        tester,
+        backend,
+        trails: trails,
+        extraOverrides: [
+          gpxPickerProvider.overrideWithValue(() async => files),
+        ],
+      );
+      await openTab(tester, 'Trails');
+      await tester.tap(find.byTooltip('GPX importieren'));
+      await settle(tester);
+      await tester.tap(find.text('GPX- oder Zip-Dateien wählen'));
+      await settle(tester);
+      expect(find.textContaining('geplant (keine Fahrzeiten)'), findsOneWidget);
+      expect(find.text('Gefahren am …'), findsOneWidget);
 
-    // Der Wähler steht auf heute, später geht nicht; „OK" nimmt heute.
-    await tester.tap(find.text('Gefahren am …'));
-    await settle(tester);
-    expect(find.text('Wann bist du ihn gefahren?'), findsOneWidget);
-    await tester.tap(find.text('OK'));
-    await settle(tester);
-    final today = DateTime.now();
-    expect(find.textContaining('gezeichnet, gefahren am ${formatRideDate(today)}'), findsOneWidget);
-    expect(find.textContaining('Gefahren am ${formatRideDate(today)} · ändern'), findsOneWidget);
+      // Der Wähler steht auf heute, später geht nicht; „OK" nimmt heute.
+      await tester.tap(find.text('Gefahren am …'));
+      await settle(tester);
+      expect(find.text('Wann bist du ihn gefahren?'), findsOneWidget);
+      await tester.tap(find.text('OK'));
+      await settle(tester);
+      final today = DateTime.now();
+      expect(
+        find.textContaining('gezeichnet, gefahren am ${formatRideDate(today)}'),
+        findsOneWidget,
+      );
+      expect(
+        find.textContaining('Gefahren am ${formatRideDate(today)} · ändern'),
+        findsOneWidget,
+      );
 
-    await tester.ensureVisible(find.text('1 beisteuern'));
-    await settle(tester);
-    await tester.tap(find.text('1 beisteuern'));
-    await settle(tester, frames: 20);
-    final rec = trails.recordings.single;
-    expect(rec.source, RecordingSource.planned, reason: 'die Linie bleibt gezeichnet');
-    expect(rec.quality, 0.1);
-    expect(rec.recordedAt, DateTime(today.year, today.month, today.day, 12).toUtc(),
-        reason: 'der Tag, 12 Uhr Ortszeit');
-    expect(rec.ridden, isTrue);
-  });
+      await tester.ensureVisible(find.text('1 beisteuern'));
+      await settle(tester);
+      await tester.tap(find.text('1 beisteuern'));
+      await settle(tester, frames: 20);
+      final rec = trails.recordings.single;
+      expect(
+        rec.source,
+        RecordingSource.planned,
+        reason: 'die Linie bleibt gezeichnet',
+      );
+      expect(rec.quality, 0.1);
+      expect(
+        rec.recordedAt,
+        DateTime(today.year, today.month, today.day, 12).toUtc(),
+        reason: 'der Tag, 12 Uhr Ortszeit',
+      );
+      expect(rec.ridden, isTrue);
+    },
+  );
 
-  testWidgets('ein Locus-Zip wird ausgepackt, ein Foto daneben benannt', (tester) async {
+  testWidgets('ein Locus-Zip wird ausgepackt, ein Foto daneben benannt', (
+    tester,
+  ) async {
     // Der Feldbefund zu v0.1.0: Auf Android waren GPX und Zip in der
     // Auswahl ausgegraut. Die Auswahl filtert dort jetzt nicht mehr, also
     // kommt auch Fremdes an — und muss mit Namen abgewiesen werden.
@@ -168,15 +219,23 @@ void main() {
     final zip = Archive()
       ..addFile(ArchiveFile.string('Tracks/eins.gpx', gpx('Erster', 700)))
       ..addFile(ArchiveFile.string('Tracks/zwei.gpx', gpx('Zweiter', 900)))
-      ..addFile(ArchiveFile.string('__MACOSX/Tracks/._eins.gpx', 'Ressourcengabel'))
+      ..addFile(
+        ArchiveFile.string('__MACOSX/Tracks/._eins.gpx', 'Ressourcengabel'),
+      )
       ..addFile(ArchiveFile.string('Tracks/liesmich.txt', 'hallo'));
     final files = [
-      PickedFile(name: 'Trails.zip', bytes: Uint8List.fromList(ZipEncoder().encode(zip)!)),
+      PickedFile(
+        name: 'Trails.zip',
+        bytes: Uint8List.fromList(ZipEncoder().encode(zip)!),
+      ),
       PickedFile.text('foto.jpg', 'kein xml'),
     ];
-    await pumpApp(tester, backend, trails: trails, extraOverrides: [
-      gpxPickerProvider.overrideWithValue(() async => files),
-    ]);
+    await pumpApp(
+      tester,
+      backend,
+      trails: trails,
+      extraOverrides: [gpxPickerProvider.overrideWithValue(() async => files)],
+    );
     await openTab(tester, 'Trails');
     await tester.tap(find.byTooltip('GPX importieren'));
     await settle(tester);
@@ -192,18 +251,24 @@ void main() {
     expect(utf8.decode(files.last.bytes), 'kein xml');
   });
 
-  testWidgets('am Tageslimit hält der Import an, der Rest bleibt für morgen', (tester) async {
+  testWidgets('am Tageslimit hält der Import an, der Rest bleibt für morgen', (
+    tester,
+  ) async {
     final backend = FakeBackend();
     final anna = backend.addUser(username: 'anna');
     backend.signInAs(anna.id);
     final trails = FakeTrailRepository(myId: () => backend.currentUserId ?? '')
       ..dailyLimit = 2;
     final files = [
-      for (var i = 1; i <= 4; i++) PickedFile.text('t$i.gpx', gpx('Trail $i', 600 + i * 50)),
+      for (var i = 1; i <= 4; i++)
+        PickedFile.text('t$i.gpx', gpx('Trail $i', 600 + i * 50)),
     ];
-    await pumpApp(tester, backend, trails: trails, extraOverrides: [
-      gpxPickerProvider.overrideWithValue(() async => files),
-    ]);
+    await pumpApp(
+      tester,
+      backend,
+      trails: trails,
+      extraOverrides: [gpxPickerProvider.overrideWithValue(() async => files)],
+    );
     await openTab(tester, 'Trails');
     await tester.tap(find.byTooltip('GPX importieren'));
     await settle(tester);
@@ -218,7 +283,13 @@ void main() {
     expect(trails.contributeCalls, 3);
     expect(find.text('2 beisteuern'), findsOneWidget);
     expect(find.byType(CheckboxListTile), findsNWidgets(2));
-    await tester.scrollUntilVisible(find.text('2 beigesteuert, 0 fehlgeschlagen.'), -200);
-    expect(find.textContaining('Für heute ist das Limit erreicht'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text('2 beigesteuert, 0 fehlgeschlagen.'),
+      -200,
+    );
+    expect(
+      find.textContaining('Für heute ist das Limit erreicht'),
+      findsOneWidget,
+    );
   });
 }

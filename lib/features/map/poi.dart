@@ -29,19 +29,19 @@ enum PoiGroup {
 
   /// Der Name im Filter (#209: aus den ARB-Dateien).
   String label(AppLocalizations l) => switch (this) {
-        food => l.poiGroupFood,
-        water => l.poiGroupWater,
-        bikeService => l.poiGroupBikeService,
-        other => l.poiGroupOther,
-      };
+    food => l.poiGroupFood,
+    water => l.poiGroupWater,
+    bikeService => l.poiGroupBikeService,
+    other => l.poiGroupOther,
+  };
 
   /// Die Beispiele unter dem Namen.
   String examples(AppLocalizations l) => switch (this) {
-        food => l.poiGroupFoodExamples,
-        water => l.poiGroupWaterExamples,
-        bikeService => l.poiGroupBikeServiceExamples,
-        other => l.poiGroupOtherExamples,
-      };
+    food => l.poiGroupFoodExamples,
+    water => l.poiGroupWaterExamples,
+    bikeService => l.poiGroupBikeServiceExamples,
+    other => l.poiGroupOtherExamples,
+  };
 
   /// Die Farbe der Stecknadel. Bewusst keine der Trail-Farben (Grün,
   /// Blau, Orange): Die sagen auf dieser Karte, was ICH mit einem Trail
@@ -112,29 +112,33 @@ enum PoiKind {
     {'amenity': 'parking'},
   ], excludeAccess: true);
 
-  const PoiKind(this.group, this.icon, this.rules,
-      {this.excludeAccess = false});
+  const PoiKind(
+    this.group,
+    this.icon,
+    this.rules, {
+    this.excludeAccess = false,
+  });
 
   final PoiGroup group;
 
   /// Der Name der Art (#209: aus den ARB-Dateien).
   String label(AppLocalizations l) => switch (this) {
-        biergarten => l.poiKindBiergarten,
-        cafe => l.poiKindCafe,
-        pub => l.poiKindPub,
-        restaurant => l.poiKindRestaurant,
-        hut => l.poiKindHut,
-        drinkingWater => l.poiKindDrinkingWater,
-        waterPoint => l.poiKindWaterPoint,
-        spring => l.poiKindSpring,
-        repairStation => l.poiKindRepairStation,
-        bikeShop => l.poiKindBikeShop,
-        eBikeCharging => l.poiKindEBikeCharging,
-        shelter => l.poiKindShelter,
-        toilets => l.poiKindToilets,
-        viewpoint => l.poiKindViewpoint,
-        parking => l.poiKindParking,
-      };
+    biergarten => l.poiKindBiergarten,
+    cafe => l.poiKindCafe,
+    pub => l.poiKindPub,
+    restaurant => l.poiKindRestaurant,
+    hut => l.poiKindHut,
+    drinkingWater => l.poiKindDrinkingWater,
+    waterPoint => l.poiKindWaterPoint,
+    spring => l.poiKindSpring,
+    repairStation => l.poiKindRepairStation,
+    bikeShop => l.poiKindBikeShop,
+    eBikeCharging => l.poiKindEBikeCharging,
+    shelter => l.poiKindShelter,
+    toilets => l.poiKindToilets,
+    viewpoint => l.poiKindViewpoint,
+    parking => l.poiKindParking,
+  };
 
   /// Das Symbol in der Nadel; null heißt gezeichnet (`PoiGlyph`).
   final IconData? icon;
@@ -227,7 +231,8 @@ List<PoiCell> poiCellsCovering(double s, double w, double n, double e) {
 
 /// Der Rahmen um eine Menge Zellen: (Süden, Westen, Norden, Osten).
 ({double s, double w, double n, double e}) poiCellsBounds(
-    Iterable<PoiCell> cells) {
+  Iterable<PoiCell> cells,
+) {
   var r0 = 1 << 30, r1 = -(1 << 30), c0 = 1 << 30, c1 = -(1 << 30);
   for (final cell in cells) {
     final parts = cell.split(',');
@@ -259,7 +264,12 @@ String poiCellFileName(PoiCell cell, PoiGroup group) =>
 /// `pois-<build>/bundle.tsv.gz`, für „Ganze Region speichern" — ein Abruf
 /// statt zehntausender. Gzip als Inhalt; [sha256] gilt für diese Bytes.
 class PoiBundle {
-  const PoiBundle({required this.file, required this.files, required this.bytes, required this.sha256});
+  const PoiBundle({
+    required this.file,
+    required this.files,
+    required this.bytes,
+    required this.sha256,
+  });
 
   /// Relativ zum Ordner des Baus.
   final String file;
@@ -273,7 +283,9 @@ class PoiBundle {
     if (j is! Map<String, dynamic>) return null;
     final file = j['file'];
     final sha = j['sha256'];
-    if (file is! String || !RegExp(r'^[a-z0-9_.-]+\.gz$').hasMatch(file)) return null;
+    if (file is! String || !RegExp(r'^[a-z0-9_.-]+\.gz$').hasMatch(file)) {
+      return null;
+    }
     if (sha is! String || !RegExp(r'^[0-9a-f]{64}$').hasMatch(sha)) return null;
     final files = j['files'], bytes = j['bytes'];
     if (files is! int || bytes is! int) return null;
@@ -282,8 +294,13 @@ class PoiBundle {
 }
 
 class PoiManifest {
-  const PoiManifest(
-      {required this.build, required this.prefix, required this.cells, this.dir = '', this.bundle});
+  const PoiManifest({
+    required this.build,
+    required this.prefix,
+    required this.cells,
+    this.dir = '',
+    this.bundle,
+  });
 
   /// Das Bündel des Baus — null bei einem Bau von vor dem 2026-10-09 oder
   /// einem Feld, das nicht passt (dann holt die ganze Region Datei für
@@ -305,7 +322,8 @@ class PoiManifest {
   /// Der Ordner des Baus unter dem Kartenhost, `[<id>/]pois-<build>`.
   String get folder => '$dir$prefix';
 
-  bool has(PoiCell cell, PoiGroup group) => cells[group]?.contains(cell) ?? false;
+  bool has(PoiCell cell, PoiGroup group) =>
+      cells[group]?.contains(cell) ?? false;
 
   /// Liest das Manifest; wirft bei allem, was nicht passt. Das Präfix
   /// wird geprüft, weil es zu einem Pfad wird. Gruppen, die diese
@@ -314,7 +332,9 @@ class PoiManifest {
     if (dir.isNotEmpty && !RegExp(r'^[a-z]{2,8}/$').hasMatch(dir)) {
       throw FormatException('Unerwarteter Regionsordner: $dir');
     }
-    if (j['format'] != 1) throw FormatException('Orte-Manifest: Format ${j['format']}');
+    if (j['format'] != 1) {
+      throw FormatException('Orte-Manifest: Format ${j['format']}');
+    }
     final prefix = j['prefix'] as String;
     if (!RegExp(r'^pois-\d{8}$').hasMatch(prefix)) {
       throw FormatException('Unerwartetes Orte-Präfix: $prefix');
@@ -338,7 +358,9 @@ class PoiManifest {
 /// still heraus; die Art selbst hat schon das Werkzeug entschieden.
 List<Poi> parsePoiFile(String body) {
   final json = jsonDecode(body) as Map<String, dynamic>;
-  if (json['format'] != 1) throw FormatException('Orte-Datei: Format ${json['format']}');
+  if (json['format'] != 1) {
+    throw FormatException('Orte-Datei: Format ${json['format']}');
+  }
   final out = <Poi>[];
   for (final el in (json['pois'] as List? ?? const [])) {
     if (el is! Map<String, dynamic>) continue;
@@ -348,14 +370,16 @@ List<Poi> parsePoiFile(String body) {
     final id = el['id'] as String?;
     if (kind == null || lat == null || lng == null || id == null) continue;
     final water = el['water'];
-    out.add(Poi(
-      id: id,
-      kind: kind,
-      position: LatLng(lat.toDouble(), lng.toDouble()),
-      name: el['name'] as String?,
-      openingHours: el['hours'] as String?,
-      drinkable: water == 'yes' ? true : (water == 'no' ? false : null),
-    ));
+    out.add(
+      Poi(
+        id: id,
+        kind: kind,
+        position: LatLng(lat.toDouble(), lng.toDouble()),
+        name: el['name'] as String?,
+        openingHours: el['hours'] as String?,
+        drinkable: water == 'yes' ? true : (water == 'no' ? false : null),
+      ),
+    );
   }
   return out;
 }

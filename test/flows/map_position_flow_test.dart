@@ -24,7 +24,9 @@ void main() {
 
   final dot = find.byKey(const ValueKey('my-position'));
 
-  testWidgets('die Karte dreht sich nicht (flutter_map-Engine)', (tester) async {
+  testWidgets('die Karte dreht sich nicht (flutter_map-Engine)', (
+    tester,
+  ) async {
     // flutter_map-Interna: hier läuft die echte Engine des Web-Pfads.
     await pumpApp(tester, backend, useRealMap: true);
     final map = tester.widget<FlutterMap>(find.byType(FlutterMap));
@@ -34,30 +36,38 @@ void main() {
     expect(flags & InteractiveFlag.drag, isNot(0));
   });
 
-  testWidgets('ohne Berechtigung: kein Punkt, und beim Start wird nicht gefragt',
-      (tester) async {
-    final fix = FakePositionFix();
-    await pumpApp(tester, backend, positionFix: fix);
-    expect(dot, findsNothing);
-    expect(fix.calls, 0);
+  testWidgets(
+    'ohne Berechtigung: kein Punkt, und beim Start wird nicht gefragt',
+    (tester) async {
+      final fix = FakePositionFix();
+      await pumpApp(tester, backend, positionFix: fix);
+      expect(dot, findsNothing);
+      expect(fix.calls, 0);
 
-    await tester.tap(find.byTooltip('Meine Position'));
-    await settle(tester);
-    expect(fix.calls, 1);
-    expect(find.textContaining('Position nicht verfügbar'), findsOneWidget);
-    await drainSnackbars(tester);
-  });
+      await tester.tap(find.byTooltip('Meine Position'));
+      await settle(tester);
+      expect(fix.calls, 1);
+      expect(find.textContaining('Position nicht verfügbar'), findsOneWidget);
+      await drainSnackbars(tester);
+    },
+  );
 
   // #400: Hat der Browser den Standort gesperrt, fragt er nie wieder von
   // selbst. Die Meldung muss sagen, wo man ihn freigibt — „für TrailBuddy
   // nicht erlaubt" schickte in die App-Einstellungen, die es im Browser
   // nicht gibt.
-  testWidgets('im Browser gesperrt: die Meldung nennt die Adressleiste',
-      (tester) async {
+  testWidgets('im Browser gesperrt: die Meldung nennt die Adressleiste', (
+    tester,
+  ) async {
     final fix = FakePositionFix();
-    await pumpApp(tester, backend,
-        positionFix: fix,
-        extraOverrides: [locationBlockedProvider.overrideWithValue(() async => true)]);
+    await pumpApp(
+      tester,
+      backend,
+      positionFix: fix,
+      extraOverrides: [
+        locationBlockedProvider.overrideWithValue(() async => true),
+      ],
+    );
 
     await tester.tap(find.byTooltip('Meine Position'));
     await settle(tester);
@@ -67,8 +77,9 @@ void main() {
     await drainSnackbars(tester);
   });
 
-  testWidgets('mit Position: Punkt auf der Karte, „Meine Position" zentriert',
-      (tester) async {
+  testWidgets('mit Position: Punkt auf der Karte, „Meine Position" zentriert', (
+    tester,
+  ) async {
     final here = fakePosition(47.2, 11.4);
     final fix = FakePositionFix(here);
     await pumpApp(tester, backend, position: here, positionFix: fix);
@@ -94,8 +105,9 @@ void main() {
   // einzelnen Fix erst mit der nächsten NEUEN Position. Wer stillstand,
   // sah 30 s nichts und dann „Position nicht verfügbar" unter dem eigenen
   // Punkt. Läuft der Punkt, gilt er.
-  testWidgets('läuft der Punkt, zentriert „Meine Position" ohne neuen Fix',
-      (tester) async {
+  testWidgets('läuft der Punkt, zentriert „Meine Position" ohne neuen Fix', (
+    tester,
+  ) async {
     final here = fakePosition(47.2, 11.4);
     final fix = FakePositionFix()..gate = Completer<Position?>();
     await pumpApp(tester, backend, position: here, positionFix: fix);

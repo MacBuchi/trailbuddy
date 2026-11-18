@@ -46,7 +46,10 @@ class UpdateBanner extends ConsumerWidget {
 }
 
 Future<void> showUpdateDialog(BuildContext context, UpdateInfo info) =>
-    showDialog<void>(context: context, builder: (_) => _UpdateDialog(info: info));
+    showDialog<void>(
+      context: context,
+      builder: (_) => _UpdateDialog(info: info),
+    );
 
 /// Release-Notes, Fortschritt und Übergabe an den System-Installer. Der
 /// Browser-Weg bleibt als Rückfalltür: der einzige ohne Zusatzberechtigung
@@ -65,9 +68,9 @@ class _UpdateDialogState extends ConsumerState<_UpdateDialog> {
   UpdateFailure? _failure;
 
   Future<void> _openInBrowser() => launchUrl(
-        Uri.parse(widget.info.downloadUrl),
-        mode: LaunchMode.externalApplication,
-      );
+    Uri.parse(widget.info.downloadUrl),
+    mode: LaunchMode.externalApplication,
+  );
 
   Future<void> _install() async {
     setState(() {
@@ -75,7 +78,9 @@ class _UpdateDialogState extends ConsumerState<_UpdateDialog> {
       _failure = null;
       _progress = null;
     });
-    final failure = await ref.read(updateInstallerProvider).downloadAndInstall(
+    final failure = await ref
+        .read(updateInstallerProvider)
+        .downloadAndInstall(
           widget.info,
           onProgress: (value) {
             if (mounted) setState(() => _progress = value);
@@ -92,7 +97,8 @@ class _UpdateDialogState extends ConsumerState<_UpdateDialog> {
     });
   }
 
-  String _failureText(AppLocalizations l, UpdateFailure failure) => switch (failure) {
+  String _failureText(AppLocalizations l, UpdateFailure failure) =>
+      switch (failure) {
         UpdateFailure.notAllowed => l.updateFailNotAllowed,
         UpdateFailure.downloadFailed => l.updateFailDownload,
         UpdateFailure.installFailed => l.updateFailInstall,
@@ -111,7 +117,11 @@ class _UpdateDialogState extends ConsumerState<_UpdateDialog> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(installer.supported ? l.updateDialogInstall : l.updateDialogBrowser),
+            Text(
+              installer.supported
+                  ? l.updateDialogInstall
+                  : l.updateDialogBrowser,
+            ),
             if (_busy) ...[
               const SizedBox(height: 16),
               LinearProgressIndicator(value: _progress),
@@ -125,11 +135,15 @@ class _UpdateDialogState extends ConsumerState<_UpdateDialog> {
             ],
             if (failure != null) ...[
               const SizedBox(height: 12),
-              FormNotice(message: _failureText(l, failure), tone: NoticeTone.error),
+              FormNotice(
+                message: _failureText(l, failure),
+                tone: NoticeTone.error,
+              ),
               if (failure == UpdateFailure.notAllowed) ...[
                 const SizedBox(height: 8),
                 OutlinedButton.icon(
-                  onPressed: () => ref.read(apkInstallerProvider).openSettings(),
+                  onPressed: () =>
+                      ref.read(apkInstallerProvider).openSettings(),
                   icon: const Icon(Icons.settings, size: 18),
                   label: Text(l.updateOpenSettings),
                 ),
@@ -137,7 +151,10 @@ class _UpdateDialogState extends ConsumerState<_UpdateDialog> {
             ],
             if (notes != null && notes.isNotEmpty) ...[
               const SizedBox(height: 12),
-              Text(l.updateWhatsNew, style: Theme.of(context).textTheme.titleSmall),
+              Text(
+                l.updateWhatsNew,
+                style: Theme.of(context).textTheme.titleSmall,
+              ),
               const SizedBox(height: 4),
               Text(notes, style: Theme.of(context).textTheme.bodySmall),
             ],

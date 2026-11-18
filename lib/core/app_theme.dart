@@ -34,30 +34,31 @@ abstract final class AppFonts {
 /// Das Theme eines Modus aus seiner Palette.
 ThemeData buildAppTheme(AppPalette p) {
   final dark = p.brightness == Brightness.dark;
-  final scheme = ColorScheme.fromSeed(
-    seedColor: AppColors.brand,
-    brightness: p.brightness,
-  ).copyWith(
-    // Primär ist die Marke als TEXT (Links, Schalter, Textknöpfe) — im
-    // Hellen darum das dunkle Grün. Gefüllte Knöpfe bekommen unten
-    // ausdrücklich Lime.
-    primary: p.accentText,
-    onPrimary: dark ? AppColors.onBrand : Colors.white,
-    primaryContainer: AppColors.brand,
-    onPrimaryContainer: AppColors.onBrand,
-    secondary: p.buddyText,
-    tertiary: p.warningText,
-    surface: p.ground,
-    onSurface: p.text,
-    onSurfaceVariant: p.muted,
-    surfaceContainerLowest: dark ? p.ground : p.surface,
-    surfaceContainerLow: p.surface,
-    surfaceContainer: p.surface,
-    surfaceContainerHigh: p.surface2,
-    surfaceContainerHighest: p.surface2,
-    outline: p.muted,
-    outlineVariant: p.line,
-  );
+  final scheme =
+      ColorScheme.fromSeed(
+        seedColor: AppColors.brand,
+        brightness: p.brightness,
+      ).copyWith(
+        // Primär ist die Marke als TEXT (Links, Schalter, Textknöpfe) — im
+        // Hellen darum das dunkle Grün. Gefüllte Knöpfe bekommen unten
+        // ausdrücklich Lime.
+        primary: p.accentText,
+        onPrimary: dark ? AppColors.onBrand : Colors.white,
+        primaryContainer: AppColors.brand,
+        onPrimaryContainer: AppColors.onBrand,
+        secondary: p.buddyText,
+        tertiary: p.warningText,
+        surface: p.ground,
+        onSurface: p.text,
+        onSurfaceVariant: p.muted,
+        surfaceContainerLowest: dark ? p.ground : p.surface,
+        surfaceContainerLow: p.surface,
+        surfaceContainer: p.surface,
+        surfaceContainerHigh: p.surface2,
+        surfaceContainerHighest: p.surface2,
+        outline: p.muted,
+        outlineVariant: p.line,
+      );
 
   final base = ThemeData(
     useMaterial3: true,
@@ -72,21 +73,26 @@ ThemeData buildAppTheme(AppPalette p) {
     extensions: [p],
   );
 
-  TextStyle? display(TextStyle? s, FontWeight w) =>
-      s?.copyWith(fontFamily: AppFonts.display, fontWeight: w, letterSpacing: 0.2);
+  TextStyle? display(TextStyle? s, FontWeight w) => s?.copyWith(
+    fontFamily: AppFonts.display,
+    fontWeight: w,
+    letterSpacing: 0.2,
+  );
   final t = base.textTheme;
-  final textTheme = t.copyWith(
-    displayLarge: display(t.displayLarge, FontWeight.w800),
-    displayMedium: display(t.displayMedium, FontWeight.w800),
-    displaySmall: display(t.displaySmall, FontWeight.w800),
-    headlineLarge: display(t.headlineLarge, FontWeight.w800),
-    headlineMedium: display(t.headlineMedium, FontWeight.w700),
-    headlineSmall: display(t.headlineSmall, FontWeight.w700),
-    titleLarge: display(t.titleLarge, FontWeight.w700),
-    titleMedium: t.titleMedium?.copyWith(fontWeight: FontWeight.w600),
-    titleSmall: t.titleSmall?.copyWith(fontWeight: FontWeight.w600),
-    labelLarge: t.labelLarge?.copyWith(fontWeight: FontWeight.w600),
-  ).apply(bodyColor: p.text, displayColor: p.text);
+  final textTheme = t
+      .copyWith(
+        displayLarge: display(t.displayLarge, FontWeight.w800),
+        displayMedium: display(t.displayMedium, FontWeight.w800),
+        displaySmall: display(t.displaySmall, FontWeight.w800),
+        headlineLarge: display(t.headlineLarge, FontWeight.w800),
+        headlineMedium: display(t.headlineMedium, FontWeight.w700),
+        headlineSmall: display(t.headlineSmall, FontWeight.w700),
+        titleLarge: display(t.titleLarge, FontWeight.w700),
+        titleMedium: t.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+        titleSmall: t.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+        labelLarge: t.labelLarge?.copyWith(fontWeight: FontWeight.w600),
+      )
+      .apply(bodyColor: p.text, displayColor: p.text);
 
   return base.copyWith(
     textTheme: textTheme,
@@ -102,10 +108,12 @@ ThemeData buildAppTheme(AppPalette p) {
     // Der Knopf bleibt in beiden Modi Lime mit dunkler Schrift.
     filledButtonTheme: FilledButtonThemeData(
       style: ButtonStyle(
-        backgroundColor: WidgetStateProperty.resolveWith((s) =>
-            s.contains(WidgetState.disabled) ? p.line : AppColors.brand),
-        foregroundColor: WidgetStateProperty.resolveWith((s) =>
-            s.contains(WidgetState.disabled) ? p.muted : AppColors.onBrand),
+        backgroundColor: WidgetStateProperty.resolveWith(
+          (s) => s.contains(WidgetState.disabled) ? p.line : AppColors.brand,
+        ),
+        foregroundColor: WidgetStateProperty.resolveWith(
+          (s) => s.contains(WidgetState.disabled) ? p.muted : AppColors.onBrand,
+        ),
       ),
     ),
     floatingActionButtonTheme: const FloatingActionButtonThemeData(
@@ -114,18 +122,23 @@ ThemeData buildAppTheme(AppPalette p) {
     ),
     segmentedButtonTheme: SegmentedButtonThemeData(
       style: ButtonStyle(
-        backgroundColor: WidgetStateProperty.resolveWith((s) =>
-            s.contains(WidgetState.selected) ? AppColors.brand : null),
-        foregroundColor: WidgetStateProperty.resolveWith((s) =>
-            s.contains(WidgetState.selected) ? AppColors.onBrand : p.text),
+        backgroundColor: WidgetStateProperty.resolveWith(
+          (s) => s.contains(WidgetState.selected) ? AppColors.brand : null,
+        ),
+        foregroundColor: WidgetStateProperty.resolveWith(
+          (s) => s.contains(WidgetState.selected) ? AppColors.onBrand : p.text,
+        ),
       ),
     ),
     navigationBarTheme: NavigationBarThemeData(
       backgroundColor: p.ground,
       surfaceTintColor: Colors.transparent,
       indicatorColor: AppColors.brand,
-      iconTheme: WidgetStateProperty.resolveWith((s) => IconThemeData(
-          color: s.contains(WidgetState.selected) ? AppColors.onBrand : p.muted)),
+      iconTheme: WidgetStateProperty.resolveWith(
+        (s) => IconThemeData(
+          color: s.contains(WidgetState.selected) ? AppColors.onBrand : p.muted,
+        ),
+      ),
     ),
     cardTheme: CardThemeData(
       color: p.surface,
@@ -153,7 +166,8 @@ ThemeData buildAppTheme(AppPalette p) {
     snackBarTheme: SnackBarThemeData(
       backgroundColor: dark ? p.surface2 : p.text,
       contentTextStyle: textTheme.bodyMedium?.copyWith(
-          color: dark ? p.text : p.ground),
+        color: dark ? p.text : p.ground,
+      ),
       actionTextColor: AppColors.brand,
     ),
     progressIndicatorTheme: ProgressIndicatorThemeData(color: p.accentText),
@@ -174,25 +188,33 @@ class AppearanceNotifier extends Notifier<ThemeMode> {
     ref
         .read(settingsProvider)
         .setAppearance(mode.name)
-        .catchError((Object e, StackTrace s) => logError('Erscheinungsbild merken', e, s));
+        .catchError(
+          (Object e, StackTrace s) => logError('Erscheinungsbild merken', e, s),
+        );
   }
 }
 
 ThemeMode parseThemeMode(String? name) =>
-    ThemeMode.values.where((m) => m.name == name).firstOrNull ?? ThemeMode.system;
+    ThemeMode.values.where((m) => m.name == name).firstOrNull ??
+    ThemeMode.system;
 
-final appearanceProvider =
-    NotifierProvider<AppearanceNotifier, ThemeMode>(AppearanceNotifier.new);
+final appearanceProvider = NotifierProvider<AppearanceNotifier, ThemeMode>(
+  AppearanceNotifier.new,
+);
 
 /// Die Lizenztexte der gebündelten Schriften in „Open-Source-Lizenzen" —
 /// die OFL verlangt, dass sie mitreisen.
 void registerFontLicenses() {
   LicenseRegistry.addLicense(() async* {
-    yield LicenseEntryWithLineBreaks(['Barlow', 'Barlow Condensed'],
-        await rootBundle.loadString('assets/fonts/Barlow-OFL.txt'));
-    yield LicenseEntryWithLineBreaks(['JetBrains Mono'],
-        await rootBundle.loadString('assets/fonts/JetBrainsMono-OFL.txt'));
-    yield LicenseEntryWithLineBreaks(['Noto Sans (Kartenbeschriftung)'],
-        await rootBundle.loadString('assets/map_glyphs/OFL.txt'));
+    yield LicenseEntryWithLineBreaks([
+      'Barlow',
+      'Barlow Condensed',
+    ], await rootBundle.loadString('assets/fonts/Barlow-OFL.txt'));
+    yield LicenseEntryWithLineBreaks([
+      'JetBrains Mono',
+    ], await rootBundle.loadString('assets/fonts/JetBrainsMono-OFL.txt'));
+    yield LicenseEntryWithLineBreaks([
+      'Noto Sans (Kartenbeschriftung)',
+    ], await rootBundle.loadString('assets/map_glyphs/OFL.txt'));
   });
 }

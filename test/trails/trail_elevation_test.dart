@@ -22,16 +22,20 @@ const _vectors = <(List<double>, double, double, double)>[
 ];
 
 /// [n] Punkte nach Norden, 10 m Abstand.
-List<LatLng> north(int n) =>
-    [for (var i = 0; i < n; i++) LatLng(48.0 + i * 10 / 111195.0, 9.0)];
+List<LatLng> north(int n) => [
+  for (var i = 0; i < n; i++) LatLng(48.0 + i * 10 / 111195.0, 9.0),
+];
 
 void main() {
   test('Hysterese: dieselben Vektoren wie tool/elevation_measure.py', () {
     for (final (ele, h, gain, loss) in _vectors) {
       final got = gainLoss(ele, h);
       expect((got.gain, got.loss), (gain, loss), reason: '$ele bei $h m');
-      expect(got.loss - got.gain, closeTo(ele.first - ele.last, 1e-9),
-          reason: 'das Nettogefälle hängt nie an der Schwelle');
+      expect(
+        got.loss - got.gain,
+        closeTo(ele.first - ele.last, 1e-9),
+        reason: 'das Nettogefälle hängt nie an der Schwelle',
+      );
     }
   });
 
@@ -40,19 +44,34 @@ void main() {
     // unter der Schwelle — roh rund 55 m „bergauf", mit der Schwelle
     // keiner. (Endet auf einem Tal, sonst bucht der Rest am Ende die
     // letzte halbe Welle als Anstieg.)
-    final ele = [for (var i = 0; i < 40; i++) 600 - i * 2.0 + (i.isEven ? 2.4 : -2.4)];
+    final ele = [
+      for (var i = 0; i < 40; i++) 600 - i * 2.0 + (i.isEven ? 2.4 : -2.4),
+    ];
     expect(gainLoss(ele, 0).gain, greaterThan(20));
     expect(gainLoss(ele, kElevationThresholdM).gain, 0);
   });
 
   test('Höhen nur, wenn jeder Punkt eine plausible hat', () {
-    expect(trackElevations(const [TrackPoint(48, 9, ele: 500), TrackPoint(48.1, 9, ele: 490)]),
-        [500, 490]);
-    expect(trackElevations(const [TrackPoint(48, 9, ele: 500), TrackPoint(48.1, 9)]), isNull);
+    expect(
+      trackElevations(const [
+        TrackPoint(48, 9, ele: 500),
+        TrackPoint(48.1, 9, ele: 490),
+      ]),
+      [500, 490],
+    );
+    expect(
+      trackElevations(const [TrackPoint(48, 9, ele: 500), TrackPoint(48.1, 9)]),
+      isNull,
+    );
     // Manche Geräte schreiben „keine Höhe" als −32768 — dann lieber ohne
     // Höhen beisteuern als an der RPC scheitern.
-    expect(trackElevations(const [TrackPoint(48, 9, ele: 500), TrackPoint(48.1, 9, ele: -32768)]),
-        isNull);
+    expect(
+      trackElevations(const [
+        TrackPoint(48, 9, ele: 500),
+        TrackPoint(48.1, 9, ele: -32768),
+      ]),
+      isNull,
+    );
   });
 
   test('Vereinfachung behält eine Welle auf gerader Linie', () {
@@ -60,13 +79,22 @@ void main() {
     // Mitte 15 m über der Geraden.
     final pts = [
       for (var i = 0; i <= 10; i++)
-        TrackPoint(48.0 + i * 10 / 111195.0, 9.0, ele: i == 5 ? 110 : 100.0 - i),
+        TrackPoint(
+          48.0 + i * 10 / 111195.0,
+          9.0,
+          ele: i == 5 ? 110 : 100.0 - i,
+        ),
     ];
     final flat = simplify(pts.map((p) => TrackPoint(p.lat, p.lon)).toList());
     expect(flat.length, 2, reason: 'ohne Höhen zählt nur die Geometrie');
     final kept = simplify(pts);
-    expect(kept.map((p) => pts.indexOf(p)), [0, 4, 5, 6, 10],
-        reason: 'dieselben Indizes wie simplify_3d im Werkzeug');
+    expect(kept.map((p) => pts.indexOf(p)), [
+      0,
+      4,
+      5,
+      6,
+      10,
+    ], reason: 'dieselben Indizes wie simplify_3d im Werkzeug');
     expect(gainLoss(trackElevations(kept)!, 3).gain, greaterThanOrEqualTo(13));
   });
 
@@ -89,18 +117,33 @@ void main() {
   test('kein Profil ohne passende Höhen', () {
     expect(ElevationProfile.of(north(3), null), isNull);
     expect(ElevationProfile.of(north(3), [1, 2]), isNull);
-    expect(ElevationProfile.of([const LatLng(48, 9), const LatLng(48, 9)], [1, 2]), isNull);
+    expect(
+      ElevationProfile.of([const LatLng(48, 9), const LatLng(48, 9)], [1, 2]),
+      isNull,
+    );
     // NaN-Länge (#356): Das Profil teilt durch sie.
-    expect(ElevationProfile.of([const LatLng(48, 9), const LatLng(double.nan, 9)], [1, 2]), isNull);
+    expect(
+      ElevationProfile.of(
+        [const LatLng(48, 9), const LatLng(double.nan, 9)],
+        [1, 2],
+      ),
+      isNull,
+    );
   });
 
   test('steilstes Stück erst ab 50 m', () {
-    expect(steepestDescentPct([0, 50, 100, 150], [100, 95, 80, 78], windowM: 100), 20);
+    expect(
+      steepestDescentPct([0, 50, 100, 150], [100, 95, 80, 78], windowM: 100),
+      20,
+    );
     expect(steepestDescentPct([0, 30], [100, 90]), isNull);
   });
 
   test('Anzeige: bergab zuerst, eben statt Null mit Vorzeichen', () {
-    expect(formatElevation(l10nDe, (gain: 35.4, loss: 419.6)), '↓ 420 Hm · ↑ 35 Hm');
+    expect(
+      formatElevation(l10nDe, (gain: 35.4, loss: 419.6)),
+      '↓ 420 Hm · ↑ 35 Hm',
+    );
     expect(formatMeanGrade(l10nDe, 14.2), 'Ø 14 % Gefälle');
     expect(formatMeanGrade(l10nDe, -3.4), 'Ø 3 % Steigung');
     expect(formatMeanGrade(l10nDe, 0.3), 'Ø eben');
@@ -108,9 +151,12 @@ void main() {
 
   test('flacher Verbinder wird nicht zur Steilwand gestreckt', () {
     final p = ElevationProfile.of(north(3), [500, 502, 504])!;
-    final pts = ElevationProfilePainter(p,
-            line: Colors.green, fill: Colors.green, grid: Colors.grey)
-        .pointsFor(const Size(200, 100));
+    final pts = ElevationProfilePainter(
+      p,
+      line: Colors.green,
+      fill: Colors.green,
+      grid: Colors.grey,
+    ).pointsFor(const Size(200, 100));
     expect(pts.first.dx, 0);
     expect(pts.last.dx, closeTo(200, 1e-6));
     // 4 m Spanne auf mindestens 20 m gestreckt: 20 % der Höhe, mittig.
@@ -118,28 +164,39 @@ void main() {
     expect(pts[1].dy, closeTo(50, 1e-6));
   });
 
-  test('Höhe an einer Stelle: zwischen zwei Punkten linear, außen geklemmt (#332)', () {
-    final p = ElevationProfile.of(north(3), [500, 520, 510])!;
-    expect(p.eleAt(-5), 500);
-    expect(p.eleAt(p.distM[1] / 2), closeTo(510, 1e-6));
-    expect(p.eleAt(p.distM[1]), closeTo(520, 1e-6));
-    expect(p.eleAt(p.lengthM + 50), 510);
-  });
+  test(
+    'Höhe an einer Stelle: zwischen zwei Punkten linear, außen geklemmt (#332)',
+    () {
+      final p = ElevationProfile.of(north(3), [500, 520, 510])!;
+      expect(p.eleAt(-5), 500);
+      expect(p.eleAt(p.distM[1] / 2), closeTo(510, 1e-6));
+      expect(p.eleAt(p.distM[1]), closeTo(520, 1e-6));
+      expect(p.eleAt(p.lengthM + 50), 510);
+    },
+  );
 
-  test('km-Skala: glatter Schritt, höchstens fünf Striche, kein Komma (#332)', () {
-    expect(axisTicks(800), [250, 500, 750]);
-    expect(axisTicks(2400), [500, 1000, 1500, 2000]);
-    expect(axisTicks(4999), [1000, 2000, 3000, 4000]);
-    expect(axisTicks(9300), [2000, 4000, 6000, 8000]);
-    expect(axisTicks(23000), [5000, 10000, 15000, 20000]);
-    for (final m in [120.0, 900.0, 3100.0, 17000.0, 61000.0, 240000.0]) {
-      expect(axisTicks(m).length, lessThanOrEqualTo(5), reason: '$m m');
-    }
-  });
+  test(
+    'km-Skala: glatter Schritt, höchstens fünf Striche, kein Komma (#332)',
+    () {
+      expect(axisTicks(800), [250, 500, 750]);
+      expect(axisTicks(2400), [500, 1000, 1500, 2000]);
+      expect(axisTicks(4999), [1000, 2000, 3000, 4000]);
+      expect(axisTicks(9300), [2000, 4000, 6000, 8000]);
+      expect(axisTicks(23000), [5000, 10000, 15000, 20000]);
+      for (final m in [120.0, 900.0, 3100.0, 17000.0, 61000.0, 240000.0]) {
+        expect(axisTicks(m).length, lessThanOrEqualTo(5), reason: '$m m');
+      }
+    },
+  );
 
   test('Stelle im Profil: Strich am Ort, auf der Höhe der Linie (#332)', () {
     final p = ElevationProfile.of(north(3), [500, 520, 510])!;
-    final painter = ElevationProfilePainter(p, line: Colors.green, fill: Colors.green, grid: Colors.grey);
+    final painter = ElevationProfilePainter(
+      p,
+      line: Colors.green,
+      fill: Colors.green,
+      grid: Colors.grey,
+    );
     const size = Size(200, 100);
     final mid = painter.pointAt(size, p.distM[1]);
     expect(mid, painter.pointsFor(size)[1]);

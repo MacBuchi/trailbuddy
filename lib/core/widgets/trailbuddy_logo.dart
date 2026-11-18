@@ -18,8 +18,8 @@ enum LogoSize { l, m, s }
 LogoSize logoSizeFor(double px) => px >= 30
     ? LogoSize.l
     : px >= 19
-        ? LogoSize.m
-        : LogoSize.s;
+    ? LogoSize.m
+    : LogoSize.s;
 
 /// Ein Endstrich: beginnt bei [c0] auf der Strecke (hinter der Mittellinie,
 /// Lücke eingerechnet), [len] lang, waagerecht ab [x1] bei [y], Breite [w].
@@ -49,10 +49,10 @@ class LogoGeometry {
   final List<double> samples;
 
   static LogoGeometry of(LogoSize size) => switch (size) {
-        LogoSize.l => _logoL,
-        LogoSize.m => _logoM,
-        LogoSize.s => _logoS,
-      };
+    LogoSize.l => _logoL,
+    LogoSize.m => _logoM,
+    LogoSize.s => _logoS,
+  };
 
   /// Die Form, die für [px] logische Pixel Kantenlänge gemacht ist.
   static LogoGeometry forPixels(double px) => of(logoSizeFor(px));
@@ -61,12 +61,18 @@ class LogoGeometry {
 
   Offset _left(int i) {
     final o = i * 6;
-    return Offset(samples[o] + samples[o + 2] * samples[o + 4], samples[o + 1] + samples[o + 3] * samples[o + 4]);
+    return Offset(
+      samples[o] + samples[o + 2] * samples[o + 4],
+      samples[o + 1] + samples[o + 3] * samples[o + 4],
+    );
   }
 
   Offset _right(int i) {
     final o = i * 6;
-    return Offset(samples[o] - samples[o + 2] * samples[o + 5], samples[o + 1] - samples[o + 3] * samples[o + 5]);
+    return Offset(
+      samples[o] - samples[o + 2] * samples[o + 5],
+      samples[o + 1] - samples[o + 3] * samples[o + 5],
+    );
   }
 
   double _halfWidth(int i) => (samples[i * 6 + 4] + samples[i * 6 + 5]) / 2;
@@ -80,27 +86,45 @@ class LogoGeometry {
     final n = _n, ds = length / n;
     if (b > 0 && a < length) {
       final i0 = (math.max(0.0, a) / ds).round().clamp(0, n - 1);
-      final i1 = math.max(i0 + 1, (math.min(length, b) / ds).round().clamp(0, n));
+      final i1 = math.max(
+        i0 + 1,
+        (math.min(length, b) / ds).round().clamp(0, n),
+      );
       final start = _left(i0);
       path.moveTo(start.dx, start.dy);
       for (var i = i0 + 1; i <= i1; i++) {
         final p = _left(i);
         path.lineTo(p.dx, p.dy);
       }
-      path.arcToPoint(_right(i1), radius: Radius.circular(_halfWidth(i1)), clockwise: false);
+      path.arcToPoint(
+        _right(i1),
+        radius: Radius.circular(_halfWidth(i1)),
+        clockwise: false,
+      );
       for (var i = i1 - 1; i >= i0; i--) {
         final p = _right(i);
         path.lineTo(p.dx, p.dy);
       }
-      path.arcToPoint(start, radius: Radius.circular(_halfWidth(i0)), clockwise: false);
+      path.arcToPoint(
+        start,
+        radius: Radius.circular(_halfWidth(i0)),
+        clockwise: false,
+      );
       path.close();
     }
     for (final d in dashes) {
       final lo = math.max(a, d.c0), hi = math.min(b, d.c0 + d.len);
       if (hi < lo) continue;
       final r = d.w / 2;
-      path.addRRect(RRect.fromLTRBR(
-          d.x1 + lo - d.c0 - r, d.y - r, d.x1 + hi - d.c0 + r, d.y + r, Radius.circular(r)));
+      path.addRRect(
+        RRect.fromLTRBR(
+          d.x1 + lo - d.c0 - r,
+          d.y - r,
+          d.x1 + hi - d.c0 + r,
+          d.y + r,
+          Radius.circular(r),
+        ),
+      );
     }
     return path;
   }
@@ -113,7 +137,10 @@ class LogoGeometry {
     final i = u.floor().clamp(0, n - 1);
     final f = u - i;
     final o = i * 6, q = o + 6;
-    return Offset(samples[o] + (samples[q] - samples[o]) * f, samples[o + 1] + (samples[q + 1] - samples[o + 1]) * f);
+    return Offset(
+      samples[o] + (samples[q] - samples[o]) * f,
+      samples[o + 1] + (samples[q + 1] - samples[o + 1]) * f,
+    );
   }
 }
 
@@ -143,9 +170,13 @@ class LogoPainter extends CustomPainter {
     final geo = geometry ?? LogoGeometry.forPixels(size.shortestSide);
     canvas.save();
     canvas.scale(size.width / 100, size.height / 100);
-    if (track != null) canvas.drawPath(geo.range(0, geo.total), Paint()..color = track!);
+    if (track != null) {
+      canvas.drawPath(geo.range(0, geo.total), Paint()..color = track!);
+    }
     final end = to ?? geo.total;
-    if (end > from) canvas.drawPath(geo.range(from, end), Paint()..color = color);
+    if (end > from) {
+      canvas.drawPath(geo.range(from, end), Paint()..color = color);
+    }
     canvas.restore();
   }
 
@@ -205,10 +236,18 @@ class TrailBuddyWordmark extends StatelessWidget {
     return Semantics(
       label: 'TrailBuddy',
       excludeSemantics: true,
-      child: Text.rich(TextSpan(style: style, children: [
-        const TextSpan(text: 'TRAIL'),
-        TextSpan(text: 'BUDDY', style: TextStyle(color: p.accentText)),
-      ])),
+      child: Text.rich(
+        TextSpan(
+          style: style,
+          children: [
+            const TextSpan(text: 'TRAIL'),
+            TextSpan(
+              text: 'BUDDY',
+              style: TextStyle(color: p.accentText),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

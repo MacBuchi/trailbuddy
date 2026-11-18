@@ -27,19 +27,28 @@ void main() {
   test('Rahmen: berührt oder nicht', () {
     final r = OfficialIndex.parse(fakeIndex()).regions.single;
     expect(r.touches(48.0, 9.0, 48.01, 9.01), isTrue, reason: 'innen');
-    expect(r.touches(47.0, 8.0, 48.0, 9.0), isTrue, reason: 'überlappt die Ecke');
+    expect(
+      r.touches(47.0, 8.0, 48.0, 9.0),
+      isTrue,
+      reason: 'überlappt die Ecke',
+    );
     expect(r.touches(46.0, 8.0, 47.0, 9.0), isFalse, reason: 'südlich davon');
     expect(r.touches(48.0, 10.0, 48.1, 11.0), isFalse, reason: 'östlich davon');
   });
 
-  test('Index: fremde Formatversion und Pfade im Dateinamen werden abgelehnt', () {
-    final j = jsonDecode(fakeIndex()) as Map<String, dynamic>;
-    expect(() => OfficialIndex.parse(jsonEncode({...j, 'version': 2})),
-        throwsFormatException);
-    final regions = j['regions'] as List;
-    (regions.single as Map)['file'] = '../shared_prefs.geojson';
-    expect(() => OfficialIndex.parse(jsonEncode(j)), throwsFormatException);
-  });
+  test(
+    'Index: fremde Formatversion und Pfade im Dateinamen werden abgelehnt',
+    () {
+      final j = jsonDecode(fakeIndex()) as Map<String, dynamic>;
+      expect(
+        () => OfficialIndex.parse(jsonEncode({...j, 'version': 2})),
+        throwsFormatException,
+      );
+      final regions = j['regions'] as List;
+      (regions.single as Map)['file'] = '../shared_prefs.geojson';
+      expect(() => OfficialIndex.parse(jsonEncode(j)), throwsFormatException);
+    },
+  );
 
   test('Region: Teile mit Status, Werte der Quelle, Kaputtes fällt weg', () {
     final trails = parseOfficialRegion(fakeRegion());
@@ -66,10 +75,14 @@ void main() {
   });
 
   test('Status und Datum sagen, von wem sie kommen', () {
-    expect(officialStatusLine(l10nDe, OfficialStatus.closed, 'Land Tirol'),
-        'Gesperrt laut Land Tirol.');
-    expect(officialStatusLine(l10nDe, OfficialStatus.open, 'Land Tirol'),
-        'Freigegeben laut Land Tirol.');
+    expect(
+      officialStatusLine(l10nDe, OfficialStatus.closed, 'Land Tirol'),
+      'Gesperrt laut Land Tirol.',
+    );
+    expect(
+      officialStatusLine(l10nDe, OfficialStatus.open, 'Land Tirol'),
+      'Freigegeben laut Land Tirol.',
+    );
     expect(formatIsoDate(l10nDe, '2026-05-19'), '19.05.2026');
     expect(formatIsoDate(l10nDe, 'Mai'), 'Mai');
   });

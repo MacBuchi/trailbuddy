@@ -28,11 +28,22 @@ import 'nearby_providers.dart';
 
 /// Zeigt die Meldung, während die App im Hintergrund ist. Im Test
 /// überschrieben; auf dem Web und ohne Kanal tut sie nichts.
-typedef NearbyBackgroundNotice = Future<void> Function({required String title, required String body, required int id});
+typedef NearbyBackgroundNotice =
+    Future<void> Function({
+      required String title,
+      required String body,
+      required int id,
+    });
 
-final nearbyBackgroundNoticeProvider = Provider<NearbyBackgroundNotice>((ref) => _platformNotice);
+final nearbyBackgroundNoticeProvider = Provider<NearbyBackgroundNotice>(
+  (ref) => _platformNotice,
+);
 
-Future<void> _platformNotice({required String title, required String body, required int id}) async {
+Future<void> _platformNotice({
+  required String title,
+  required String body,
+  required int id,
+}) async {
   if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) return;
   try {
     await initRideNotices();
@@ -83,13 +94,19 @@ class _NearbyHostState extends ConsumerState<NearbyHost> {
   @override
   void initState() {
     super.initState();
-    _engine = NearbyEngine(ref.read(nearbyRepositoryProvider), onNotice: _notice, onSightings: (list) {
-      if (mounted) ref.read(buddySightingsProvider.notifier).set(list);
-    });
+    _engine = NearbyEngine(
+      ref.read(nearbyRepositoryProvider),
+      onNotice: _notice,
+      onSightings: (list) {
+        if (mounted) ref.read(buddySightingsProvider.notifier).set(list);
+      },
+    );
     _lifecycle = AppLifecycleListener(
       onStateChange: (s) => ref
           .read(appForegroundProvider.notifier)
-          .set(s == AppLifecycleState.resumed || s == AppLifecycleState.inactive),
+          .set(
+            s == AppLifecycleState.resumed || s == AppLifecycleState.inactive,
+          ),
     );
     void watch<T>(ProviderListenable<T> p) =>
         _subs.add(ref.listenManual<T>(p, (_, _) => _sync()));
@@ -111,7 +128,9 @@ class _NearbyHostState extends ConsumerState<NearbyHost> {
     final active = pause == null && position != null && uid != null;
     final buddies = <String>{
       if (uid != null)
-        for (final f in ref.read(friendshipsProvider).valueOrNull ?? const <FriendshipEntry>[])
+        for (final f
+            in ref.read(friendshipsProvider).valueOrNull ??
+                const <FriendshipEntry>[])
           if (f.isAccepted) f.otherId(uid),
     };
     // Ohne geladene Schalter je Buddy (Start, kein Empfang) wird niemand
@@ -120,14 +139,21 @@ class _NearbyHostState extends ConsumerState<NearbyHost> {
     final ride = ref.read(rideProvider);
     // Live (#519) nur in einer Fahrt, mit dem Schalter dieser Fahrt.
     final live = active && ride != null && ref.read(liveShareProvider);
-    unawaited(_engine.sync(
-      mine: active ? NearbyCell.of(position.lat, position.lon) : null,
-      buddies: buddies,
-      muted: prefs == null ? null : {for (final p in prefs.values) if (p.muted) p.buddyId},
-      session: ride?.startedAt ?? _appSession,
-      live: live,
-      position: live ? position : null,
-    ));
+    unawaited(
+      _engine.sync(
+        mine: active ? NearbyCell.of(position.lat, position.lon) : null,
+        buddies: buddies,
+        muted: prefs == null
+            ? null
+            : {
+                for (final p in prefs.values)
+                  if (p.muted) p.buddyId,
+              },
+        session: ride?.startedAt ?? _appSession,
+        live: live,
+        position: live ? position : null,
+      ),
+    );
     // Wer mich als Homie gewählt hat, kann sich geändert haben — einmal je
     // Beginn des Teilens neu fragen.
     if (active && !_wasActive) ref.invalidate(homieOwnersProvider);
@@ -143,11 +169,16 @@ class _NearbyHostState extends ConsumerState<NearbyHost> {
   void _notice(String buddyId) {
     if (!mounted) return;
     final uid = ref.read(currentUserIdProvider);
-    final friendship = (ref.read(friendshipsProvider).valueOrNull ?? const <FriendshipEntry>[])
-        .where((f) => uid != null && f.isAccepted && f.otherId(uid) == buddyId)
-        .firstOrNull;
+    final friendship =
+        (ref.read(friendshipsProvider).valueOrNull ?? const <FriendshipEntry>[])
+            .where(
+              (f) => uid != null && f.isAccepted && f.otherId(uid) == buddyId,
+            )
+            .firstOrNull;
     if (friendship == null || uid == null) return;
-    final name = ref.read(buddyNamesViewProvider).of(buddyId, friendship.otherUsername(uid));
+    final name = ref
+        .read(buddyNamesViewProvider)
+        .of(buddyId, friendship.otherUsername(uid));
     final l = context.l10n;
     final body = l.nearbyNotice(name);
     // An der Uhr kurz vibrieren, Scheibe und Name (#526) — wenn sie da ist.
@@ -155,27 +186,37 @@ class _NearbyHostState extends ConsumerState<NearbyHost> {
     // Mit „Ansagen" (#525) und laufender Fahrt auch übers Ohr — das Handy
     // steckt dann meist in der Tasche.
     if (ref.read(voiceCuesProvider) && ref.read(rideProvider) != null) {
-      unawaited(ref.read(nearbySpeakProvider)(body, Localizations.localeOf(context)));
+      unawaited(
+        ref.read(nearbySpeakProvider)(body, Localizations.localeOf(context)),
+      );
     }
     if (!ref.read(appForegroundProvider)) {
-      unawaited(ref.read(nearbyBackgroundNoticeProvider)(
-          title: l.nearbyNoticeTitle, body: body, id: _noticeId(buddyId)));
+      unawaited(
+        ref.read(nearbyBackgroundNoticeProvider)(
+          title: l.nearbyNoticeTitle,
+          body: body,
+          id: _noticeId(buddyId),
+        ),
+      );
       return;
     }
     final messenger = ScaffoldMessenger.maybeOf(context);
     if (messenger == null) return;
     messenger.clearSnackBars();
-    messenger.showSnackBar(SnackBar(
-      key: const ValueKey('nearby-notice'),
-      content: Text(body),
-      duration: const Duration(seconds: 6),
-      persist: false,
-    ));
+    messenger.showSnackBar(
+      SnackBar(
+        key: const ValueKey('nearby-notice'),
+        content: Text(body),
+        duration: const Duration(seconds: 6),
+        persist: false,
+      ),
+    );
   }
 
   /// Eine Kennung je Buddy im Bereich der Meldungen, fern von denen der
   /// Fahrt (Trail-Fragen, Wheelies).
-  static int _noticeId(String buddyId) => 0x52600000 + (buddyId.hashCode & 0xffff);
+  static int _noticeId(String buddyId) =>
+      0x52600000 + (buddyId.hashCode & 0xffff);
 
   @override
   void dispose() {

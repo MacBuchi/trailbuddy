@@ -6,8 +6,15 @@ import 'package:trailbuddy/features/routing/start_point_pick.dart';
 import 'package:trailbuddy/models/start_point.dart';
 
 void main() {
-  StartPoint p(String owner, String id, String name, double lat, double lon) => StartPoint(
-      clientId: id, userId: owner, name: name, lat: lat, lon: lon, createdAt: DateTime.utc(2026, 11, 17));
+  StartPoint p(String owner, String id, String name, double lat, double lon) =>
+      StartPoint(
+        clientId: id,
+        userId: owner,
+        name: name,
+        lat: lat,
+        lon: lon,
+        createdAt: DateTime.utc(2026, 11, 17),
+      );
 
   const from = LatLng(47.5, 10.5);
   final near = p('me', 'a', 'Nah', 47.501, 10.5); // ~111 m
@@ -23,7 +30,12 @@ void main() {
   });
 
   test('der zuletzt gewählte oben', () {
-    final c = startPointChoices([far, mid, near], 'me', from: from, lastKey: far.key);
+    final c = startPointChoices(
+      [far, mid, near],
+      'me',
+      from: from,
+      lastKey: far.key,
+    );
     expect(c.map((x) => x.point.name), ['Fern', 'Nah', 'Mitte']);
   });
 

@@ -17,4 +17,6 @@ export 'loop_planner.dart' show RouteMode;
 /// und setzt ihn auf null.
 typedef TrailHeadRequest = ({String trailId, RouteMode? mode});
 
-final trailHeadRequestProvider = StateProvider<TrailHeadRequest?>((ref) => null);
+final trailHeadRequestProvider = StateProvider<TrailHeadRequest?>(
+  (ref) => null,
+);

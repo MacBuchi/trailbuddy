@@ -14,10 +14,11 @@ Stream<Object?> serviceWorkerMessages() {
     controller = _messages = StreamController<Object?>.broadcast();
     try {
       web.window.navigator.serviceWorker.addEventListener(
-          'message',
-          ((web.MessageEvent event) {
-            controller!.add(event.data.dartify());
-          }).toJS);
+        'message',
+        ((web.MessageEvent event) {
+          controller!.add(event.data.dartify());
+        }).toJS,
+      );
       _refreshPushWorker();
     } catch (_) {
       // Kein `navigator.serviceWorker` (unsicherer Kontext, `file://`,
@@ -35,11 +36,14 @@ Stream<Object?> serviceWorkerMessages() {
 /// nach einem Push-Ereignis und höchstens einmal am Tag. Kein Worker da
 /// ⇒ nichts zu tun.
 void _refreshPushWorker() {
-  web.window.navigator.serviceWorker.getRegistration('push/').toDart.then(
-    (registration) => registration?.update(),
-    onError: (Object _) {
-      // Nur eine Auffrischung — scheitert sie, prüft der Browser später
-      // selbst.
-    },
-  );
+  web.window.navigator.serviceWorker
+      .getRegistration('push/')
+      .toDart
+      .then(
+        (registration) => registration?.update(),
+        onError: (Object _) {
+          // Nur eine Auffrischung — scheitert sie, prüft der Browser später
+          // selbst.
+        },
+      );
 }

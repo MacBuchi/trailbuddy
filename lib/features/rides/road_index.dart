@@ -15,7 +15,8 @@ import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:latlong2/latlong.dart';
-import 'package:vector_map_tiles/vector_map_tiles.dart' show TileIdentity, ProviderException;
+import 'package:vector_map_tiles/vector_map_tiles.dart'
+    show TileIdentity, ProviderException;
 import 'package:vector_tile/vector_tile.dart';
 
 import '../../core/line_geometry.dart';
@@ -41,15 +42,27 @@ const kRoadCorridorM = kMatchCorridorM;
 /// `kind_detail == track`). Fußwege, Pfade, Steige, Radwege bleiben
 /// draußen — die SIND die Kandidaten. Schienen und Fähren ebenso: Wer
 /// neben einem Gleis fährt, fährt keinen Forstweg.
-const kRoadKinds = {'highway', 'major_road', 'medium_road', 'minor_road', 'other'};
+const kRoadKinds = {
+  'highway',
+  'major_road',
+  'medium_road',
+  'minor_road',
+  'other',
+};
 
 bool isRoadFeature({required String? kind, required String? kindDetail}) =>
-    kind != null && (kRoadKinds.contains(kind) || (kind == 'path' && kindDetail == 'track'));
+    kind != null &&
+    (kRoadKinds.contains(kind) || (kind == 'path' && kindDetail == 'track'));
 
 /// Die Straßen einer Kachel als Linien in Grad. Eine Kachel, die sich
 /// nicht lesen lässt, liefert keine Linien — der Aufrufer zählt sie als
 /// fehlend, nicht als straßenfrei.
-List<List<LatLng>> roadLinesFromTile(Uint8List mvt, {required int z, required int x, required int y}) {
+List<List<LatLng>> roadLinesFromTile(
+  Uint8List mvt, {
+  required int z,
+  required int x,
+  required int y,
+}) {
   final VectorTile tile;
   try {
     tile = VectorTile.fromBytes(bytes: mvt);
@@ -65,13 +78,16 @@ List<List<LatLng>> roadLinesFromTile(Uint8List mvt, {required int z, required in
       if (f.type != VectorTileGeomType.LINESTRING) continue;
       final props = f.decodeProperties();
       if (!isRoadFeature(
-          kind: props['kind']?.dartStringValue, kindDetail: props['kind_detail']?.dartStringValue)) {
+        kind: props['kind']?.dartStringValue,
+        kindDetail: props['kind_detail']?.dartStringValue,
+      )) {
         continue;
       }
       for (final line in f.decodeLineString()) {
         if (line.length < 2) continue;
         out.add([
-          for (final p in line) _tileToLatLng(x + p[0] / extent, y + p[1] / extent, n),
+          for (final p in line)
+            _tileToLatLng(x + p[0] / extent, y + p[1] / extent, n),
         ]);
       }
     }
@@ -91,7 +107,9 @@ double _sinh(double v) => (math.exp(v) - math.exp(-v)) / 2;
 /// Fahrt selbst — sonst wären „15 m" zwei verschiedene Längen.
 class RoadIndex {
   RoadIndex(Iterable<List<LatLng>> lines, this.projection)
-      : _grid = SegmentGrid([for (final l in lines) projection.line(l)], kRoadCorridorM);
+    : _grid = SegmentGrid([
+        for (final l in lines) projection.line(l),
+      ], kRoadCorridorM);
 
   final FlatProjection projection;
   final SegmentGrid _grid;
@@ -102,10 +120,16 @@ class RoadIndex {
 }
 
 /// Je Quelle ([key]) der erste Bereich — ohne [key] alle.
-List<StoredArea> distinctSources(List<StoredArea> areas, String Function(StoredArea area)? key) {
+List<StoredArea> distinctSources(
+  List<StoredArea> areas,
+  String Function(StoredArea area)? key,
+) {
   if (key == null) return areas;
   final seen = <String>{};
-  return [for (final a in areas) if (seen.add(key(a))) a];
+  return [
+    for (final a in areas)
+      if (seen.add(key(a))) a,
+  ];
 }
 
 /// Wie gut die gespeicherten Bereiche die Fahrt decken.
@@ -121,7 +145,12 @@ enum RoadCoverage {
   none,
 }
 
-typedef RoadLoadResult = ({RoadIndex? index, RoadCoverage coverage, int tilesNeeded, int tilesFound});
+typedef RoadLoadResult = ({
+  RoadIndex? index,
+  RoadCoverage coverage,
+  int tilesNeeded,
+  int tilesFound,
+});
 
 /// Liest die Straßen aller z13-Kacheln, die [box] (plus Korridor) berührt,
 /// aus den Bereichen, die sie tragen. [open] liefert je Bereich die
@@ -143,13 +172,22 @@ Future<RoadLoadResult> loadRoads({
     north: box.n + margin,
     east: box.e + margin * 2,
   );
-  final tiles = tilesCovering(bounds, minZoom: kRoadTileZoom, maxZoom: kRoadTileZoom);
+  final tiles = tilesCovering(
+    bounds,
+    minZoom: kRoadTileZoom,
+    maxZoom: kRoadTileZoom,
+  );
   final candidates = distinctSources([
     for (final a in areas)
       if (a.maxZoom >= kRoadTileZoom && a.bounds.intersects(bounds)) a,
   ], sourceKey);
   if (candidates.isEmpty || tiles.isEmpty) {
-    return (index: null, coverage: RoadCoverage.none, tilesNeeded: tiles.length, tilesFound: 0);
+    return (
+      index: null,
+      coverage: RoadCoverage.none,
+      tilesNeeded: tiles.length,
+      tilesFound: 0,
+    );
   }
   final opened = <ClosableVectorTileProvider>[];
   final lines = <List<LatLng>>[];
@@ -184,10 +222,12 @@ Future<RoadLoadResult> loadRoads({
   final coverage = found == 0
       ? RoadCoverage.none
       : found == tiles.length
-          ? RoadCoverage.complete
-          : RoadCoverage.partial;
+      ? RoadCoverage.complete
+      : RoadCoverage.partial;
   return (
-    index: coverage == RoadCoverage.complete ? RoadIndex(lines, projection) : null,
+    index: coverage == RoadCoverage.complete
+        ? RoadIndex(lines, projection)
+        : null,
     coverage: coverage,
     tilesNeeded: tiles.length,
     tilesFound: found,

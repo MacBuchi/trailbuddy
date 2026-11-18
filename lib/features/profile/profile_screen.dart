@@ -32,15 +32,26 @@ import '../offline_areas/area_store.dart' show visibleAreas;
 import '../offline_areas/height_tiles.dart' show kHeightsAttribution;
 import '../rides/airtime_providers.dart' show airtimeShareProvider;
 import '../rides/ride_providers.dart'
-    show rideRecordingAvailableProvider, ridesProvider, sensorLogAvailableProvider, sensorLogProvider, voiceCuesAvailableProvider, voiceCuesProvider;
+    show
+        rideRecordingAvailableProvider,
+        ridesProvider,
+        sensorLogAvailableProvider,
+        sensorLogProvider,
+        voiceCuesAvailableProvider,
+        voiceCuesProvider;
 import '../../core/geo.dart' show formatMeters;
 import '../routing/nav_providers.dart'
-    show kNavLeaveChoices, kNavReplanOfferChoices, navLeaveDistanceProvider, navReplanOfferDistanceProvider;
+    show
+        kNavLeaveChoices,
+        kNavReplanOfferChoices,
+        navLeaveDistanceProvider,
+        navReplanOfferDistanceProvider;
 import '../routing/ride_calibration.dart';
 import '../routing/ride_calibrator.dart';
 import '../routing/route_profile.dart';
 import '../trails/merge_proposal_card.dart' show mergeProposalsProvider;
-import '../trails/trail_providers.dart' show stillValidQuestionsProvider, trailCacheProvider, trailsProvider;
+import '../trails/trail_providers.dart'
+    show stillValidQuestionsProvider, trailCacheProvider, trailsProvider;
 import '../nearby/nearby_widgets.dart' show NearbySection;
 import '../garmin/watch_shelf.dart' show watchShelfProvider;
 import '../garmin/watch_shelf_actions.dart' show watchShelfAvailableProvider;
@@ -91,157 +102,170 @@ class ProfileScreen extends ConsumerWidget {
       body: CoachAnchor(
         id: ProfileCoach.list,
         child: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-        children: [
-          if (profile != null) ...[
-            _ProfileHeader(username: profile.username),
-            const SizedBox(height: 16),
-            Divider(height: 1, color: palette.line),
-            const SizedBox(height: 16),
-          ] else if (profileAsync.isLoading)
-            const Padding(
-              padding: EdgeInsets.all(16),
-              child: CenteredTrailLoader(),
-            ),
-          _ProfileRow(
-            id: 'import',
-            icon: Icons.file_download_outlined,
-            title: l.profileImportTitle,
-            value: l.profileImportValue,
-            onTap: () => context.push('/profile/import'),
-          ),
-          _ProfileRow(
-            id: 'rides',
-            icon: Icons.directions_bike,
-            title: l.profileRidesTitle,
-            value: l.profileRidesValue,
-            onTap: () => context.push('/profile/rides'),
-          ),
-          // #119: eigene Angaben, die älter als 30 Tage sind — nur, wenn
-          // es welche gibt; dann sagt der Zähler, wie viele.
-          if (stillValid > 0)
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+          children: [
+            if (profile != null) ...[
+              _ProfileHeader(username: profile.username),
+              const SizedBox(height: 16),
+              Divider(height: 1, color: palette.line),
+              const SizedBox(height: 16),
+            ] else if (profileAsync.isLoading)
+              const Padding(
+                padding: EdgeInsets.all(16),
+                child: CenteredTrailLoader(),
+              ),
             _ProfileRow(
-              id: 'still-valid',
-              icon: Icons.fact_check_outlined,
-              title: l.profileStillValidTitle,
-              value: l.profileStillValidValue(stillValid),
-              onTap: () => context.push('/profile/still-valid'),
+              id: 'import',
+              icon: Icons.file_download_outlined,
+              title: l.profileImportTitle,
+              value: l.profileImportValue,
+              onTap: () => context.push('/profile/import'),
             ),
-          // #107: „Sind das dieselben?" — nur, wenn es etwas zu prüfen gibt.
-          if (proposals > 0)
             _ProfileRow(
-              id: 'merge-proposals',
-              icon: Icons.merge_type,
-              title: l.profileMergeTitle,
-              value: l.profileMergeValue(proposals),
-              onTap: () => context.push('/profile/merge-proposals'),
+              id: 'rides',
+              icon: Icons.directions_bike,
+              title: l.profileRidesTitle,
+              value: l.profileRidesValue,
+              onTap: () => context.push('/profile/rides'),
             ),
-          _ProfileRow(
-            id: 'areas',
-            icon: Icons.map_outlined,
-            title: l.profileAreasTitle,
-            value: switch (areas == null ? null : visibleAreas(areas).length) {
-              null || 0 => l.profileAreasValue,
-              final n => l.profileAreasValueCount(n),
-            },
-            onTap: () => context.push('/profile/areas'),
-          ),
-          _ProfileRow(
-            id: 'notifications',
-            icon: Icons.notifications_outlined,
-            title: l.profileNotificationsTitle,
-            value: push ? l.profileOn : l.profileOff,
-            onTap: () => context.push('/profile/notifications'),
-          ),
-          _ProfileRow(
-            id: 'rider',
-            icon: Icons.pedal_bike_outlined,
-            title: l.profileRiderTitle,
-            value: ref.watch(riderProfileProvider).label(l),
-            onTap: () => context.push('/profile/rider'),
-          ),
-          _ProfileRow(
-            id: 'navigation',
-            icon: Icons.alt_route,
-            title: l.profileNavigationTitle,
-            value: l.profileNavigationValue(formatMeters(ref.watch(navReplanOfferDistanceProvider).toDouble()),
-                navLeaveLabel(l, ref.watch(navLeaveDistanceProvider))),
-            onTap: () => context.push('/profile/navigation'),
-          ),
-          // Die Ablage auf der Uhr (#515) — nur mit einer Garmin-Uhr.
-          if (ref.watch(watchShelfAvailableProvider))
+            // #119: eigene Angaben, die älter als 30 Tage sind — nur, wenn
+            // es welche gibt; dann sagt der Zähler, wie viele.
+            if (stillValid > 0)
+              _ProfileRow(
+                id: 'still-valid',
+                icon: Icons.fact_check_outlined,
+                title: l.profileStillValidTitle,
+                value: l.profileStillValidValue(stillValid),
+                onTap: () => context.push('/profile/still-valid'),
+              ),
+            // #107: „Sind das dieselben?" — nur, wenn es etwas zu prüfen gibt.
+            if (proposals > 0)
+              _ProfileRow(
+                id: 'merge-proposals',
+                icon: Icons.merge_type,
+                title: l.profileMergeTitle,
+                value: l.profileMergeValue(proposals),
+                onTap: () => context.push('/profile/merge-proposals'),
+              ),
             _ProfileRow(
-              id: 'watch',
-              icon: Icons.watch_outlined,
-              title: l.profileWatchTitle,
-              value: l.profileWatchValue(ref.watch(watchShelfProvider).shown.length),
-              onTap: () => context.push('/profile/watch'),
+              id: 'areas',
+              icon: Icons.map_outlined,
+              title: l.profileAreasTitle,
+              value: switch (areas == null
+                  ? null
+                  : visibleAreas(areas).length) {
+                null || 0 => l.profileAreasValue,
+                final n => l.profileAreasValueCount(n),
+              },
+              onTap: () => context.push('/profile/areas'),
             ),
-          _ProfileRow(
-            id: 'appearance',
-            icon: Icons.contrast,
-            title: l.profileAppearanceTitle,
-            value: switch (mode) {
-              ThemeMode.light => l.profileAppearanceLight,
-              ThemeMode.dark => l.profileAppearanceDark,
-              ThemeMode.system => theme.brightness == Brightness.dark
-                  ? l.profileAppearanceSystemDark
-                  : l.profileAppearanceSystemLight,
-            },
-            onTap: () => context.push('/profile/appearance'),
-          ),
-          _ProfileRow(
-            id: 'language',
-            icon: Icons.translate,
-            title: l.profileLanguageTitle,
-            value: switch (ref.watch(languageProvider)) {
-              AppLanguage.system =>
-                l.profileLanguageSystemValue(languageName(Localizations.localeOf(context))),
-              final chosen => languageName(chosen.locale!),
-            },
-            onTap: () => context.push('/profile/language'),
-          ),
-          _ProfileRow(
-            id: 'account',
-            icon: Icons.person_outline,
-            title: l.profileAccountTitle,
-            value: l.profileAccountValue,
-            onTap: () => context.push('/profile/account'),
-          ),
-          // „Entdecken" (#135): alles, was TrailBuddy kann, mit Neu-Punkt.
-          _ProfileRow(
-            id: 'discover',
-            icon: Icons.lightbulb_outline,
-            title: l.profileDiscoverTitle,
-            value: l.profileDiscoverValue,
-            badge: ref.watch(unseenHighlightCountProvider),
-            onTap: () => context.push('/profile/discover'),
-          ),
-          // Über „Über TrailBuddy" (#131): Wer eine Erklärung sucht, landet
-          // hier eher als in den Rechtstexten darunter.
-          _ProfileRow(
-            id: 'help',
-            icon: Icons.help_outline,
-            title: l.profileHelpTitle,
-            value: l.profileHelpValue,
-            onTap: () => context.push('/profile/help'),
-          ),
-          _ProfileRow(
-            id: 'about',
-            icon: Icons.info_outline,
-            title: l.profileAboutTitle,
-            value: l.profileAboutValue,
-            onTap: () => context.push('/profile/about'),
-          ),
-          const SizedBox(height: 24),
-          Text(
-            '${version == null ? '' : 'v$version · '}'
-            '${l.profileFooterMapData}',
-            key: const ValueKey('profile-footer'),
-            style: AppFonts.numbers(theme.textTheme.bodySmall).copyWith(color: palette.muted),
-          ),
-        ],
-      )),
+            _ProfileRow(
+              id: 'notifications',
+              icon: Icons.notifications_outlined,
+              title: l.profileNotificationsTitle,
+              value: push ? l.profileOn : l.profileOff,
+              onTap: () => context.push('/profile/notifications'),
+            ),
+            _ProfileRow(
+              id: 'rider',
+              icon: Icons.pedal_bike_outlined,
+              title: l.profileRiderTitle,
+              value: ref.watch(riderProfileProvider).label(l),
+              onTap: () => context.push('/profile/rider'),
+            ),
+            _ProfileRow(
+              id: 'navigation',
+              icon: Icons.alt_route,
+              title: l.profileNavigationTitle,
+              value: l.profileNavigationValue(
+                formatMeters(
+                  ref.watch(navReplanOfferDistanceProvider).toDouble(),
+                ),
+                navLeaveLabel(l, ref.watch(navLeaveDistanceProvider)),
+              ),
+              onTap: () => context.push('/profile/navigation'),
+            ),
+            // Die Ablage auf der Uhr (#515) — nur mit einer Garmin-Uhr.
+            if (ref.watch(watchShelfAvailableProvider))
+              _ProfileRow(
+                id: 'watch',
+                icon: Icons.watch_outlined,
+                title: l.profileWatchTitle,
+                value: l.profileWatchValue(
+                  ref.watch(watchShelfProvider).shown.length,
+                ),
+                onTap: () => context.push('/profile/watch'),
+              ),
+            _ProfileRow(
+              id: 'appearance',
+              icon: Icons.contrast,
+              title: l.profileAppearanceTitle,
+              value: switch (mode) {
+                ThemeMode.light => l.profileAppearanceLight,
+                ThemeMode.dark => l.profileAppearanceDark,
+                ThemeMode.system =>
+                  theme.brightness == Brightness.dark
+                      ? l.profileAppearanceSystemDark
+                      : l.profileAppearanceSystemLight,
+              },
+              onTap: () => context.push('/profile/appearance'),
+            ),
+            _ProfileRow(
+              id: 'language',
+              icon: Icons.translate,
+              title: l.profileLanguageTitle,
+              value: switch (ref.watch(languageProvider)) {
+                AppLanguage.system => l.profileLanguageSystemValue(
+                  languageName(Localizations.localeOf(context)),
+                ),
+                final chosen => languageName(chosen.locale!),
+              },
+              onTap: () => context.push('/profile/language'),
+            ),
+            _ProfileRow(
+              id: 'account',
+              icon: Icons.person_outline,
+              title: l.profileAccountTitle,
+              value: l.profileAccountValue,
+              onTap: () => context.push('/profile/account'),
+            ),
+            // „Entdecken" (#135): alles, was TrailBuddy kann, mit Neu-Punkt.
+            _ProfileRow(
+              id: 'discover',
+              icon: Icons.lightbulb_outline,
+              title: l.profileDiscoverTitle,
+              value: l.profileDiscoverValue,
+              badge: ref.watch(unseenHighlightCountProvider),
+              onTap: () => context.push('/profile/discover'),
+            ),
+            // Über „Über TrailBuddy" (#131): Wer eine Erklärung sucht, landet
+            // hier eher als in den Rechtstexten darunter.
+            _ProfileRow(
+              id: 'help',
+              icon: Icons.help_outline,
+              title: l.profileHelpTitle,
+              value: l.profileHelpValue,
+              onTap: () => context.push('/profile/help'),
+            ),
+            _ProfileRow(
+              id: 'about',
+              icon: Icons.info_outline,
+              title: l.profileAboutTitle,
+              value: l.profileAboutValue,
+              onTap: () => context.push('/profile/about'),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              '${version == null ? '' : 'v$version · '}'
+              '${l.profileFooterMapData}',
+              key: const ValueKey('profile-footer'),
+              style: AppFonts.numbers(
+                theme.textTheme.bodySmall,
+              ).copyWith(color: palette.muted),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -268,7 +292,12 @@ class _ProfileHeader extends ConsumerWidget {
     final stats = [
       if (trails != null)
         l.profileStatTrails(
-            trails.where((t) => t.pending || t.recordings.any((r) => r.userId == uid)).length),
+          trails
+              .where(
+                (t) => t.pending || t.recordings.any((r) => r.userId == uid),
+              )
+              .length,
+        ),
       if (friendships != null)
         l.profileStatBuddys(friendships.where((f) => f.isAccepted).length),
       if (rides != null) l.profileStatRides(rides.length),
@@ -286,16 +315,24 @@ class _ProfileHeader extends ConsumerWidget {
               Semantics(
                 label: username,
                 excludeSemantics: true,
-                child: Text(username.toUpperCase(),
-                    key: const ValueKey('profile-name'),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w800)),
+                child: Text(
+                  username.toUpperCase(),
+                  key: const ValueKey('profile-name'),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.headlineMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
               ),
               if (stats.isNotEmpty)
-                Text(stats.join(' · '),
-                    key: const ValueKey('profile-stats'),
-                    style: theme.textTheme.bodyMedium?.copyWith(color: palette.muted)),
+                Text(
+                  stats.join(' · '),
+                  key: const ValueKey('profile-stats'),
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: palette.muted,
+                  ),
+                ),
             ],
           ),
         ),
@@ -332,59 +369,76 @@ class _ProfileRow extends StatelessWidget {
     return CoachAnchor(
       id: ProfileCoach.row(id),
       child: Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Material(
-        key: ValueKey('profile-$id'),
-        color: palette.surface,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(14),
-          side: BorderSide(color: palette.line),
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(12, 12, 8, 12),
-            child: Row(
-              children: [
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: palette.surface2,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Icon(icon, size: 22, color: palette.accentText),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(title,
-                          style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
-                      Text(value, style: theme.textTheme.bodySmall?.copyWith(color: palette.muted)),
-                    ],
-                  ),
-                ),
-                if (badge > 0)
+        padding: const EdgeInsets.only(bottom: 8),
+        child: Material(
+          key: ValueKey('profile-$id'),
+          color: palette.surface,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+            side: BorderSide(color: palette.line),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: onTap,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(12, 12, 8, 12),
+              child: Row(
+                children: [
                   Container(
-                    key: ValueKey('profile-$id-badge'),
-                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                    width: 40,
+                    height: 40,
                     decoration: BoxDecoration(
-                      color: AppColors.brand,
+                      color: palette.surface2,
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: Text('$badge',
-                        style: AppFonts.numbers(theme.textTheme.labelSmall).copyWith(color: AppColors.onBrand)),
+                    child: Icon(icon, size: 22, color: palette.accentText),
                   ),
-                Icon(Icons.chevron_right, color: palette.muted),
-              ],
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          title,
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        Text(
+                          value,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: palette.muted,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (badge > 0)
+                    Container(
+                      key: ValueKey('profile-$id-badge'),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 7,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.brand,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        '$badge',
+                        style: AppFonts.numbers(
+                          theme.textTheme.labelSmall,
+                        ).copyWith(color: AppColors.onBrand),
+                      ),
+                    ),
+                  Icon(Icons.chevron_right, color: palette.muted),
+                ],
+              ),
             ),
           ),
         ),
       ),
-    ));
+    );
   }
 }
 
@@ -397,9 +451,9 @@ class _ProfilePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: Text(title)),
-        body: ListView(padding: const EdgeInsets.all(16), children: children),
-      );
+    appBar: AppBar(title: Text(title)),
+    body: ListView(padding: const EdgeInsets.all(16), children: children),
+  );
 }
 
 /// „Konto": Name, E-Mail, Passwort, andere Geräte — und ganz unten,
@@ -412,20 +466,23 @@ class AccountScreen extends ConsumerWidget {
     final profile = ref.watch(myProfileProvider).valueOrNull;
     ref.watch(authStateProvider);
     final external = ref.watch(authRepositoryProvider).externalProvider;
-    return _ProfilePage(title: context.l10n.profileAccountTitle, children: [
-      ChangeUsernameTile(username: profile?.username),
-      // Ein Konto über Google & Co. (#398) hat kein Passwort — beide
-      // Dialoge verlangen das aktuelle und kämen nie durch.
-      if (external != null)
-        _ExternalProviderTile(provider: external)
-      else ...[
-        const ChangeEmailTile(),
-        const _ChangePasswordTile(),
+    return _ProfilePage(
+      title: context.l10n.profileAccountTitle,
+      children: [
+        ChangeUsernameTile(username: profile?.username),
+        // Ein Konto über Google & Co. (#398) hat kein Passwort — beide
+        // Dialoge verlangen das aktuelle und kämen nie durch.
+        if (external != null)
+          _ExternalProviderTile(provider: external)
+        else ...[
+          const ChangeEmailTile(),
+          const _ChangePasswordTile(),
+        ],
+        const SignOutOtherDevicesTile(),
+        const Divider(height: 40),
+        _DeleteAccountTile(username: profile?.username),
       ],
-      const SignOutOtherDevicesTile(),
-      const Divider(height: 40),
-      _DeleteAccountTile(username: profile?.username),
-    ]);
+    );
   }
 }
 
@@ -433,37 +490,45 @@ class NotificationsScreen extends StatelessWidget {
   const NotificationsScreen({super.key});
 
   @override
-  Widget build(BuildContext context) =>
-      _ProfilePage(title: context.l10n.profileNotificationsTitle, children: const [
-        _PushSection(),
-        Divider(height: 32),
-        // Buddy in der Nähe (#526): auch eine Meldung, deshalb hier.
-        NearbySection(),
-      ]);
+  Widget build(BuildContext context) => _ProfilePage(
+    title: context.l10n.profileNotificationsTitle,
+    children: const [
+      _PushSection(),
+      Divider(height: 32),
+      // Buddy in der Nähe (#526): auch eine Meldung, deshalb hier.
+      NearbySection(),
+    ],
+  );
 }
 
 class AppearanceScreen extends StatelessWidget {
   const AppearanceScreen({super.key});
 
   @override
-  Widget build(BuildContext context) =>
-      _ProfilePage(title: context.l10n.profileAppearanceTitle, children: const [_AppearanceSection()]);
+  Widget build(BuildContext context) => _ProfilePage(
+    title: context.l10n.profileAppearanceTitle,
+    children: const [_AppearanceSection()],
+  );
 }
 
 class LanguageScreen extends StatelessWidget {
   const LanguageScreen({super.key});
 
   @override
-  Widget build(BuildContext context) =>
-      _ProfilePage(title: context.l10n.profileLanguageTitle, children: const [_LanguageSection()]);
+  Widget build(BuildContext context) => _ProfilePage(
+    title: context.l10n.profileLanguageTitle,
+    children: const [_LanguageSection()],
+  );
 }
 
 class RiderProfileScreen extends StatelessWidget {
   const RiderProfileScreen({super.key});
 
   @override
-  Widget build(BuildContext context) =>
-      _ProfilePage(title: context.l10n.profileRiderTitle, children: const [_RiderProfileSection()]);
+  Widget build(BuildContext context) => _ProfilePage(
+    title: context.l10n.profileRiderTitle,
+    children: const [_RiderProfileSection()],
+  );
 }
 
 /// Die Schwellen der Navigation (#464): ab wann „Route umplanen" steht
@@ -472,8 +537,10 @@ class NavigationSettingsScreen extends StatelessWidget {
   const NavigationSettingsScreen({super.key});
 
   @override
-  Widget build(BuildContext context) =>
-      _ProfilePage(title: context.l10n.profileNavigationTitle, children: const [_NavigationSection()]);
+  Widget build(BuildContext context) => _ProfilePage(
+    title: context.l10n.profileNavigationTitle,
+    children: const [_NavigationSection()],
+  );
 }
 
 /// „500 m", „2 km" oder „nie".
@@ -505,14 +572,19 @@ class _NavigationSection extends ConsumerWidget {
             showSelectedIcon: false,
             segments: [
               for (final m in kNavReplanOfferChoices)
-                ButtonSegment(value: m, label: FittedBox(child: Text(formatMeters(m.toDouble())))),
+                ButtonSegment(
+                  value: m,
+                  label: FittedBox(child: Text(formatMeters(m.toDouble()))),
+                ),
             ],
             selected: {replan},
             onSelectionChanged: (s) {
               final m = s.single;
               ref.read(navReplanOfferDistanceProvider.notifier).set(m);
               if (leave > 0 && leave <= m) {
-                ref.read(navLeaveDistanceProvider.notifier).set(kNavLeaveChoices.firstWhere((c) => c <= 0 || c > m));
+                ref
+                    .read(navLeaveDistanceProvider.notifier)
+                    .set(kNavLeaveChoices.firstWhere((c) => c <= 0 || c > m));
               }
             },
           ),
@@ -530,10 +602,14 @@ class _NavigationSection extends ConsumerWidget {
             segments: [
               for (final m in kNavLeaveChoices)
                 ButtonSegment(
-                    value: m, enabled: leaveAllowed(m), label: FittedBox(child: Text(navLeaveLabel(l, m)))),
+                  value: m,
+                  enabled: leaveAllowed(m),
+                  label: FittedBox(child: Text(navLeaveLabel(l, m))),
+                ),
             ],
             selected: {leave},
-            onSelectionChanged: (s) => ref.read(navLeaveDistanceProvider.notifier).set(s.single),
+            onSelectionChanged: (s) =>
+                ref.read(navLeaveDistanceProvider.notifier).set(s.single),
           ),
         ),
         // Ansagen übers Ohr (#525) — auch für die freie Fahrt, deshalb
@@ -558,8 +634,10 @@ class AboutScreen extends StatelessWidget {
   const AboutScreen({super.key});
 
   @override
-  Widget build(BuildContext context) =>
-      _ProfilePage(title: context.l10n.profileAboutTitle, children: const [_AboutSection()]);
+  Widget build(BuildContext context) => _ProfilePage(
+    title: context.l10n.profileAboutTitle,
+    children: const [_AboutSection()],
+  );
 }
 
 /// Statt „E-Mail ändern" und „Passwort ändern": über welchen Anbieter
@@ -581,14 +659,16 @@ class _ExternalProviderTile extends ConsumerWidget {
         width: 24,
         height: 24,
         colorFilter: provider.monochrome
-            ? ColorFilter.mode(Theme.of(context).colorScheme.onSurface, BlendMode.srcIn)
+            ? ColorFilter.mode(
+                Theme.of(context).colorScheme.onSurface,
+                BlendMode.srcIn,
+              )
             : null,
       ),
       title: Text(l.accountProviderTitle(provider.label)),
-      subtitle: Text([
-        ?email,
-        l.accountProviderSubtitle(provider.label),
-      ].join('\n')),
+      subtitle: Text(
+        [?email, l.accountProviderSubtitle(provider.label)].join('\n'),
+      ),
       isThreeLine: email != null,
     );
   }
@@ -650,15 +730,17 @@ class _ChangePasswordDialogState extends ConsumerState<_ChangePasswordDialog> {
     });
     final l = context.l10n;
     try {
-      await ref.read(authRepositoryProvider).changePassword(
+      await ref
+          .read(authRepositoryProvider)
+          .changePassword(
             currentPassword: _currentController.text,
             newPassword: _newController.text,
           );
       if (!mounted) return;
       Navigator.of(context).pop();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l.accountPasswordChanged)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l.accountPasswordChanged)));
     } on AuthException catch (e) {
       if (mounted) setState(() => _error = changePasswordErrorMessage(l, e));
     } catch (e, stackTrace) {
@@ -722,7 +804,8 @@ class _ChangePasswordDialogState extends ConsumerState<_ChangePasswordDialog> {
               ? const SizedBox(
                   width: 20,
                   height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2))
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
               : Text(l.commonSave),
         ),
       ],
@@ -739,7 +822,8 @@ class _DeleteAccountTile extends ConsumerWidget {
   Future<void> _confirmAndDelete(BuildContext context, WidgetRef ref) async {
     final name = username;
     if (name == null) return;
-    final confirmed = await showDialog<bool>(
+    final confirmed =
+        await showDialog<bool>(
           context: context,
           builder: (context) => _DeleteAccountDialog(username: name),
         ) ??
@@ -753,8 +837,9 @@ class _DeleteAccountTile extends ConsumerWidget {
     } catch (e, stackTrace) {
       logError('Konto löschen', e, stackTrace);
       if (context.mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(friendlyError(context.l10n, e))));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(friendlyError(context.l10n, e))));
       }
     }
   }
@@ -836,13 +921,13 @@ class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
       ),
       actions: [
         TextButton(
-          onPressed:
-              _busy ? null : () => Navigator.of(context).pop(false),
+          onPressed: _busy ? null : () => Navigator.of(context).pop(false),
           child: Text(l.commonCancel),
         ),
         FilledButton(
           style: FilledButton.styleFrom(
-              backgroundColor: Theme.of(context).colorScheme.error),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
           onPressed: (!_matches || _busy)
               ? null
               : () {
@@ -875,17 +960,20 @@ class _AppearanceSection extends ConsumerWidget {
             showSelectedIcon: false,
             segments: [
               ButtonSegment(
-                  value: ThemeMode.system,
-                  icon: const Icon(Icons.brightness_auto_outlined),
-                  label: Text(l.profileAppearanceSystem)),
+                value: ThemeMode.system,
+                icon: const Icon(Icons.brightness_auto_outlined),
+                label: Text(l.profileAppearanceSystem),
+              ),
               ButtonSegment(
-                  value: ThemeMode.light,
-                  icon: const Icon(Icons.light_mode_outlined),
-                  label: Text(l.profileAppearanceLight)),
+                value: ThemeMode.light,
+                icon: const Icon(Icons.light_mode_outlined),
+                label: Text(l.profileAppearanceLight),
+              ),
               ButtonSegment(
-                  value: ThemeMode.dark,
-                  icon: const Icon(Icons.dark_mode_outlined),
-                  label: Text(l.profileAppearanceDark)),
+                value: ThemeMode.dark,
+                icon: const Icon(Icons.dark_mode_outlined),
+                label: Text(l.profileAppearanceDark),
+              ),
             ],
             selected: {mode},
             onSelectionChanged: (s) =>
@@ -893,8 +981,10 @@ class _AppearanceSection extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: 4),
-        Text(l.profileAppearanceDeviceOnly,
-            style: Theme.of(context).textTheme.bodySmall),
+        Text(
+          l.profileAppearanceDeviceOnly,
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
       ],
     );
   }
@@ -920,17 +1010,24 @@ class _LanguageSection extends ConsumerWidget {
             segments: [
               for (final option in AppLanguage.values)
                 ButtonSegment(
-                    value: option,
-                    label: Text(option.locale == null
+                  value: option,
+                  label: Text(
+                    option.locale == null
                         ? l.profileLanguageSystem
-                        : languageName(option.locale!))),
+                        : languageName(option.locale!),
+                  ),
+                ),
             ],
             selected: {language},
-            onSelectionChanged: (s) => ref.read(languageProvider.notifier).set(s.single),
+            onSelectionChanged: (s) =>
+                ref.read(languageProvider.notifier).set(s.single),
           ),
         ),
         const SizedBox(height: 4),
-        Text(l.profileLanguageNote, style: Theme.of(context).textTheme.bodySmall),
+        Text(
+          l.profileLanguageNote,
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
       ],
     );
   }
@@ -943,7 +1040,8 @@ class _RiderProfileSection extends ConsumerStatefulWidget {
   const _RiderProfileSection();
 
   @override
-  ConsumerState<_RiderProfileSection> createState() => _RiderProfileSectionState();
+  ConsumerState<_RiderProfileSection> createState() =>
+      _RiderProfileSectionState();
 }
 
 class _RiderProfileSectionState extends ConsumerState<_RiderProfileSection> {
@@ -957,7 +1055,10 @@ class _RiderProfileSectionState extends ConsumerState<_RiderProfileSection> {
     setState(() => _learning = true);
     String text;
     try {
-      text = learnResultText(l10n, await ref.read(riderCalibrationsProvider.notifier).learn());
+      text = learnResultText(
+        l10n,
+        await ref.read(riderCalibrationsProvider.notifier).learn(),
+      );
     } catch (e, s) {
       logError('Aus Fahrten lernen', e, s);
       text = l10n.importLearnFailed;
@@ -987,39 +1088,32 @@ class _RiderProfileSectionState extends ConsumerState<_RiderProfileSection> {
             showSelectedIcon: false,
             segments: [
               ButtonSegment(
-                  value: RiderProfile.bio,
-                  icon: const Icon(Icons.pedal_bike_outlined),
-                  label: Text(RiderProfile.bio.label(l))),
+                value: RiderProfile.bio,
+                icon: const Icon(Icons.pedal_bike_outlined),
+                label: Text(RiderProfile.bio.label(l)),
+              ),
               ButtonSegment(
-                  value: RiderProfile.ebike,
-                  icon: const Icon(Icons.electric_bike_outlined),
-                  label: Text(RiderProfile.ebike.label(l))),
+                value: RiderProfile.ebike,
+                icon: const Icon(Icons.electric_bike_outlined),
+                label: Text(RiderProfile.ebike.label(l)),
+              ),
             ],
             selected: {profile},
-            onSelectionChanged: (s) => ref.read(riderProfileProvider.notifier).set(s.single),
+            onSelectionChanged: (s) =>
+                ref.read(riderProfileProvider.notifier).set(s.single),
           ),
         ),
         const SizedBox(height: 12),
-        Text(
-          l.riderProfileIntro,
-          style: text.bodyMedium,
-        ),
+        Text(l.riderProfileIntro, style: text.bodyMedium),
         const SizedBox(height: 12),
         Text(
-          '${l.riderProfileClimbLine(
-            '${params.climbTrackMPerH.round()}', learned(cal.climbTrackMPerH),
-            '${params.climbPathMPerH.round()}', learned(cal.climbPathMPerH),
-            '${params.pushRateMPerH.round()}', learned(cal.pushRateMPerH),
-          )}\n'
+          '${l.riderProfileClimbLine('${params.climbTrackMPerH.round()}', learned(cal.climbTrackMPerH), '${params.climbPathMPerH.round()}', learned(cal.climbPathMPerH), '${params.pushRateMPerH.round()}', learned(cal.pushRateMPerH))}\n'
           '${l.riderProfileFlatLine('${params.vFlatKmh.round()}', learned(cal.vFlatKmh), '${profile.pathUpFactor}', '${profile.budgetClimbM.round()}')}',
           key: const ValueKey('rider-profile-numbers'),
           style: text.bodySmall,
         ),
         const SizedBox(height: 8),
-        Text(
-          l.riderProfileDeviceOnly,
-          style: text.bodySmall,
-        ),
+        Text(l.riderProfileDeviceOnly, style: text.bodySmall),
         const SizedBox(height: 16),
         Text(l.riderProfileLearnedTitle, style: text.titleMedium),
         const SizedBox(height: 4),
@@ -1030,27 +1124,33 @@ class _RiderProfileSectionState extends ConsumerState<_RiderProfileSection> {
             style: text.bodySmall,
           ),
         const SizedBox(height: 8),
-        Wrap(spacing: 8, crossAxisAlignment: WrapCrossAlignment.center, children: [
-          FilledButton.tonalIcon(
-            key: const ValueKey('rider-learn'),
-            onPressed: _learning ? null : _learn,
-            icon: _learning
-                ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                : const Icon(Icons.school_outlined),
-            label: Text(l.riderProfileLearn),
-          ),
-          if (!cal.isEmpty)
-            TextButton(
-              key: const ValueKey('rider-reset'),
-              onPressed: () => ref.read(riderCalibrationsProvider.notifier).reset(profile),
-              child: Text(l.riderProfileReset(profile.label(l))),
+        Wrap(
+          spacing: 8,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            FilledButton.tonalIcon(
+              key: const ValueKey('rider-learn'),
+              onPressed: _learning ? null : _learn,
+              icon: _learning
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.school_outlined),
+              label: Text(l.riderProfileLearn),
             ),
-        ]),
-        const SizedBox(height: 4),
-        Text(
-          l.riderProfileLearnExplain,
-          style: text.bodySmall,
+            if (!cal.isEmpty)
+              TextButton(
+                key: const ValueKey('rider-reset'),
+                onPressed: () =>
+                    ref.read(riderCalibrationsProvider.notifier).reset(profile),
+                child: Text(l.riderProfileReset(profile.label(l))),
+              ),
+          ],
         ),
+        const SizedBox(height: 4),
+        Text(l.riderProfileLearnExplain, style: text.bodySmall),
       ],
     );
   }
@@ -1061,9 +1161,12 @@ class _RiderProfileSectionState extends ConsumerState<_RiderProfileSection> {
     final l = context.l10n;
     if (c.isEmpty) return l.riderProfileCalibDefaults(p.label(l));
     final values = [
-      if (c.climbTrackMPerH != null) l.riderProfileCalibTrack('${c.climbTrackMPerH!.round()}'),
-      if (c.climbPathMPerH != null) l.riderProfileCalibPath('${c.climbPathMPerH!.round()}'),
-      if (c.pushRateMPerH != null) l.riderProfileCalibPush('${c.pushRateMPerH!.round()}'),
+      if (c.climbTrackMPerH != null)
+        l.riderProfileCalibTrack('${c.climbTrackMPerH!.round()}'),
+      if (c.climbPathMPerH != null)
+        l.riderProfileCalibPath('${c.climbPathMPerH!.round()}'),
+      if (c.pushRateMPerH != null)
+        l.riderProfileCalibPush('${c.pushRateMPerH!.round()}'),
       if (c.vFlatKmh != null) l.riderProfileCalibFlat('${c.vFlatKmh!.round()}'),
     ].join(' · ');
     final rides = l.riderProfileCalibRides(c.rides);
@@ -1072,7 +1175,12 @@ class _RiderProfileSectionState extends ConsumerState<_RiderProfileSection> {
     return at == null
         ? l.riderProfileCalibLine(p.label(l), values, rides, climbs)
         : l.riderProfileCalibLineAsOf(
-            p.label(l), values, rides, climbs, DateFormat.yMd(l.localeName).format(at));
+            p.label(l),
+            values,
+            rides,
+            climbs,
+            DateFormat.yMd(l.localeName).format(at),
+          );
   }
 }
 
@@ -1098,11 +1206,13 @@ class _PushSection extends ConsumerWidget {
           subtitle: Text(l.pushSubtitle),
           value: enabled,
           onChanged: (value) async {
-            final problem =
-                await ref.read(pushEnabledProvider.notifier).set(l, value);
+            final problem = await ref
+                .read(pushEnabledProvider.notifier)
+                .set(l, value);
             if (!context.mounted || problem == null) return;
-            ScaffoldMessenger.of(context)
-                .showSnackBar(SnackBar(content: Text(problem)));
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(content: Text(problem)));
           },
         ),
         if (enabled)
@@ -1112,11 +1222,13 @@ class _PushSection extends ConsumerWidget {
             title: Text(l.pushTestTitle),
             subtitle: Text(l.pushTestSubtitle),
             onTap: () async {
-              final problem =
-                  await ref.read(pushEnabledProvider.notifier).sendTest(l);
+              final problem = await ref
+                  .read(pushEnabledProvider.notifier)
+                  .sendTest(l);
               if (!context.mounted) return;
-              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                  content: Text(problem ?? l.pushTestSent)));
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text(problem ?? l.pushTestSent)),
+              );
             },
           ),
       ],
@@ -1140,20 +1252,22 @@ class _AboutSection extends ConsumerWidget {
     final updateStatus = kIsWeb
         ? l.aboutWebAlwaysCurrent
         : AppDistribution.isDevBuild
-            // Dev-App (#356): kommt per Kabel vom Rechner, prüft nichts.
-            ? l.aboutDevBuild
-            : !AppDistribution.showsUpdateHints
-            // Play-Build: der Store aktualisiert selbst, die App prüft nichts.
-            ? l.aboutPlayStore
-            : updateInfo != null
-                ? l.aboutNewestVersion(updateInfo.latestVersion)
-                : l.aboutUpToDate;
+        // Dev-App (#356): kommt per Kabel vom Rechner, prüft nichts.
+        ? l.aboutDevBuild
+        : !AppDistribution.showsUpdateHints
+        // Play-Build: der Store aktualisiert selbst, die App prüft nichts.
+        ? l.aboutPlayStore
+        : updateInfo != null
+        ? l.aboutNewestVersion(updateInfo.latestVersion)
+        : l.aboutUpToDate;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(l.aboutVersionLine(version, updateStatus),
-            style: Theme.of(context).textTheme.bodySmall),
+        Text(
+          l.aboutVersionLine(version, updateStatus),
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
         // Nur wo der Update-Weg überhaupt läuft. Im Web und im Play-Build
         // zeigte der Schalter auf nichts; der Provider hält denselben
         // Riegel, hier steht er gegen einen Schalter, den man sonst
@@ -1181,14 +1295,18 @@ class _AboutSection extends ConsumerWidget {
             title: Text(l.aboutSensorLogTitle),
             // Der Satz zum Risiko (Konzept Airtime 1.3, A10: gesagt, nicht
             // gesperrt) — seit die Werte auf dem Trail stehen (#36 Schritt 5).
-            subtitle: Text('${l.aboutSensorLogSubtitle}\n${l.aboutSensorLogRisk}'),
+            subtitle: Text(
+              '${l.aboutSensorLogSubtitle}\n${l.aboutSensorLogRisk}',
+            ),
             value: ref.watch(sensorLogProvider),
-            onChanged: (value) => ref.read(sensorLogProvider.notifier).set(value),
+            onChanged: (value) =>
+                ref.read(sensorLogProvider.notifier).set(value),
           ),
         // Airtime mit Buddys teilen (#36 Schritt 6): nur unter der
         // eingeschalteten Erkennung, ab Werk aus. Ausschalten löscht auf
         // dem Server und scheitert ohne Netz sichtbar.
-        if (ref.watch(sensorLogAvailableProvider) && ref.watch(sensorLogProvider))
+        if (ref.watch(sensorLogAvailableProvider) &&
+            ref.watch(sensorLogProvider))
           SwitchListTile(
             key: const ValueKey('airtime-share-switch'),
             contentPadding: EdgeInsets.zero,
@@ -1203,7 +1321,9 @@ class _AboutSection extends ConsumerWidget {
                 await ref.read(airtimeShareProvider.notifier).set(value);
               } catch (e, s) {
                 logError('Airtime-Teilen umschalten', e, s);
-                messenger.showSnackBar(SnackBar(content: Text(l.aboutAirtimeShareOffFailed)));
+                messenger.showSnackBar(
+                  SnackBar(content: Text(l.aboutAirtimeShareOffFailed)),
+                );
               }
             },
           ),
@@ -1260,7 +1380,11 @@ class _AboutSection extends ConsumerWidget {
           leading: const Icon(Icons.warning_amber_outlined),
           title: Text(l.safetyNoteTitle),
           subtitle: Text(l.aboutSafetySubtitle),
-          onTap: () => showInfoText(context, title: l.safetyNoteTitle, text: l.safetyNote),
+          onTap: () => showInfoText(
+            context,
+            title: l.safetyNoteTitle,
+            text: l.safetyNote,
+          ),
         ),
         ListTile(
           contentPadding: EdgeInsets.zero,
@@ -1284,7 +1408,8 @@ class _AboutSection extends ConsumerWidget {
           leading: const Icon(Icons.privacy_tip_outlined),
           title: Text(l.aboutPrivacyTitle),
           subtitle: Text(l.aboutPrivacySubtitle),
-          onTap: () => _open(AppInfo.privacyUrlFor(Localizations.localeOf(context))),
+          onTap: () =>
+              _open(AppInfo.privacyUrlFor(Localizations.localeOf(context))),
         ),
         ListTile(
           contentPadding: EdgeInsets.zero,
@@ -1292,7 +1417,8 @@ class _AboutSection extends ConsumerWidget {
           leading: const Icon(Icons.info_outline),
           title: Text(l.aboutImpressumTitle),
           subtitle: Text(l.aboutImpressumSubtitle),
-          onTap: () => _open(AppInfo.impressumUrlFor(Localizations.localeOf(context))),
+          onTap: () =>
+              _open(AppInfo.impressumUrlFor(Localizations.localeOf(context))),
         ),
         ListTile(
           contentPadding: EdgeInsets.zero,
@@ -1310,10 +1436,7 @@ class _AboutSection extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: 8),
-        Text(
-          l.aboutMapData,
-          style: Theme.of(context).textTheme.bodySmall,
-        ),
+        Text(l.aboutMapData, style: Theme.of(context).textTheme.bodySmall),
         const SizedBox(height: 4),
         Text(
           l.aboutHeightData(kHeightsAttribution),

@@ -33,9 +33,9 @@ const kPocketLandingG = 3.5;
 /// Stoppie nie — in der Tasche gibt es keine Achsen des Rads, das ist das
 /// Bein. Ein Sprung nur mit harter Landung.
 bool pocketKeeps(FusionEvent event) => switch (event) {
-      WheelieEvent() || StoppieEvent() => false,
-      JumpEvent(:final landingG) => landingG >= kPocketLandingG,
-    };
+  WheelieEvent() || StoppieEvent() => false,
+  JumpEvent(:final landingG) => landingG >= kPocketLandingG,
+};
 
 /// Ein Fenster in Fahrt: Beginn (s ab dem ersten Beschleunigungswert),
 /// Drehung (rad/s), Vibration (m/s²).
@@ -51,7 +51,8 @@ class PocketWatch {
   final _acc = <(double, double)>[]; // (t, |a|)
   final _gyro = <(double, double, double, double)>[];
   final _fixes = <(double, double)>[]; // (t, m/s)
-  double _accLast = double.negativeInfinity, _gyroLast = double.negativeInfinity;
+  double _accLast = double.negativeInfinity,
+      _gyroLast = double.negativeInfinity;
   final _calm = <double>[];
 
   /// Alle Fenster in Fahrt bisher — für den Test und das Werkzeug.
@@ -130,11 +131,18 @@ class PocketWatch {
   }
 
   void _window(double t, double end) {
-    final a = [for (final s in _acc) if (s.$1 >= t && s.$1 < end) s.$2];
-    final w = [for (final s in _gyro) if (s.$1 >= t && s.$1 < end) s];
+    final a = [
+      for (final s in _acc)
+        if (s.$1 >= t && s.$1 < end) s.$2,
+    ];
+    final w = [
+      for (final s in _gyro)
+        if (s.$1 >= t && s.$1 < end) s,
+    ];
     _acc.removeWhere((s) => s.$1 < end);
     _gyro.removeWhere((s) => s.$1 < end);
-    final riding = a.length > 100 &&
+    final riding =
+        a.length > 100 &&
         w.length > 100 &&
         _kmh(t) > kPocketRidingKmh &&
         _kmh(end) > kPocketRidingKmh;
@@ -149,7 +157,9 @@ class PocketWatch {
     windows.add((startS: t, rotation: rotation, vibration: vibration));
     if (vibration < kPocketCalmVibration) _calm.add(rotation);
     if (_calm.length >= kPocketCalmWindows) {
-      state = _median(_calm.sublist(_calm.length - kPocketCalmWindows)) > kPocketRotationRad;
+      state =
+          _median(_calm.sublist(_calm.length - kPocketCalmWindows)) >
+          kPocketRotationRad;
     }
   }
 }

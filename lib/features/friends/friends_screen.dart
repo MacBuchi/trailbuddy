@@ -64,19 +64,22 @@ class _FriendsScreenState extends ConsumerState<FriendsScreen> {
     // durch ist. Wer später wieder vorbeikommt, sucht nicht denselben Namen.
     final invite = ref.read(inviteProvider);
     if (invite != null) _applyInvite(invite);
-    _unregisterScene = ref.read(coachRegistryProvider).registerScene(BuddysCoach.chat, () async {
-      final id = _firstBuddyId;
-      if (id == null || !mounted) return () {};
-      final router = GoRouter.of(context);
-      final path = '/friends/chat/$id';
-      router.go(path);
-      // Zurück nur, wenn der Verlauf noch vorne ist.
-      return () {
-        if (router.routerDelegate.currentConfiguration.uri.path == path) {
-          router.go('/friends');
-        }
-      };
-    });
+    _unregisterScene = ref.read(coachRegistryProvider).registerScene(
+      BuddysCoach.chat,
+      () async {
+        final id = _firstBuddyId;
+        if (id == null || !mounted) return () {};
+        final router = GoRouter.of(context);
+        final path = '/friends/chat/$id';
+        router.go(path);
+        // Zurück nur, wenn der Verlauf noch vorne ist.
+        return () {
+          if (router.routerDelegate.currentConfiguration.uri.path == path) {
+            router.go('/friends');
+          }
+        };
+      },
+    );
   }
 
   @override
@@ -93,15 +96,18 @@ class _FriendsScreenState extends ConsumerState<FriendsScreen> {
   /// Besuch denselben Namen.
   void _applyInvite(String name) {
     _searchController.text = name;
-    unawaited(_search().then((_) {
-      if (mounted) ref.read(inviteProvider.notifier).take();
-    }));
+    unawaited(
+      _search().then((_) {
+        if (mounted) ref.read(inviteProvider.notifier).take();
+      }),
+    );
   }
 
   void _showMessage(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   Future<void> _search() async {
@@ -131,7 +137,11 @@ class _FriendsScreenState extends ConsumerState<FriendsScreen> {
     // der nie genannt wurde.
     final profile = await ref.read(myProfileProvider.future);
     if (!mounted) return;
-    await showInviteDialog(context, username: profile?.username, shareText: _invite);
+    await showInviteDialog(
+      context,
+      username: profile?.username,
+      shareText: _invite,
+    );
   }
 
   /// Einladung teilen; wo das System-Teilen nicht verfügbar ist
@@ -176,7 +186,8 @@ class _FriendsScreenState extends ConsumerState<FriendsScreen> {
       if (!mounted) return;
       _showMessage(context.l10n.buddysRequestSent(result.username));
       setState(
-          () => _results = _results.where((r) => r.id != result.id).toList());
+        () => _results = _results.where((r) => r.id != result.id).toList(),
+      );
     } catch (e, stackTrace) {
       logError('Freundschaftsanfrage', e, stackTrace);
       // Unique-Verletzung = Paar existiert schon — die häufigste Ursache.
@@ -193,11 +204,13 @@ class _FriendsScreenState extends ConsumerState<FriendsScreen> {
         content: Text(context.l10n.buddysRemoveBody),
         actions: [
           TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: Text(context.l10n.commonCancel)),
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(context.l10n.commonCancel),
+          ),
           FilledButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              child: Text(context.l10n.buddysRemoveConfirm)),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(context.l10n.buddysRemoveConfirm),
+          ),
         ],
       ),
     );
@@ -205,7 +218,6 @@ class _FriendsScreenState extends ConsumerState<FriendsScreen> {
       await ref.read(friendshipsProvider.notifier).remove(f.id);
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -232,7 +244,9 @@ class _FriendsScreenState extends ConsumerState<FriendsScreen> {
         ref.watch(coachProvider) == null) {
       _nearbyAsked = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted && ref.read(coachProvider) == null) unawaited(askBuddiesNearbyOnce(context, ref));
+        if (mounted && ref.read(coachProvider) == null) {
+          unawaited(askBuddiesNearbyOnce(context, ref));
+        }
       });
     }
     final names = ref.watch(buddyNamesViewProvider);
@@ -244,198 +258,240 @@ class _FriendsScreenState extends ConsumerState<FriendsScreen> {
     };
 
     final requestedIds = {
-      for (final f in friendships) ...[f.requesterId, f.addresseeId]
+      for (final f in friendships) ...[f.requesterId, f.addresseeId],
     };
 
     // Das Beispiel (#136) nur während der Tour und nur ohne JEDEN Buddy.
-    final example = ref.watch(coachExamplesProvider) && accepted.isEmpty && !friendshipsAsync.isLoading;
+    final example =
+        ref.watch(coachExamplesProvider) &&
+        accepted.isEmpty &&
+        !friendshipsAsync.isLoading;
     return TabTourStarter(
       script: buddysTourScript,
       child: Scaffold(
-      appBar: AppBar(
-        toolbarHeight: 64,
-        title: Text(l.buddysTitle,
-            style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w800)),
-        actions: [
-          CoachAnchor(
-            id: BuddysCoach.invite,
-            child: IconButton(
-              key: const ValueKey('invite-button'),
-              onPressed: _showInvite,
-              icon: const Icon(Icons.share),
-              tooltip: l.buddysInvite,
+        appBar: AppBar(
+          toolbarHeight: 64,
+          title: Text(
+            l.buddysTitle,
+            style: theme.textTheme.headlineMedium?.copyWith(
+              fontWeight: FontWeight.w800,
             ),
           ),
-          const SizedBox(width: 8),
-        ],
-      ),
-      body: RefreshIndicator(
-        onRefresh: () async => ref.invalidate(friendshipsProvider),
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-          children: [
+          actions: [
             CoachAnchor(
-              id: BuddysCoach.search,
-              child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _searchController,
-                    onSubmitted: (_) => _search(),
-                    textInputAction: TextInputAction.search,
-                    decoration: InputDecoration(
-                      labelText: l.buddysSearchLabel,
-                      hintText: l.buddysSearchHint,
-                      filled: true,
-                      fillColor: palette.surface,
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(14),
-                        borderSide: BorderSide(color: palette.line),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                SizedBox.square(
-                  dimension: 56,
-                  child: _searching
-                      ? const Center(
-                          child: SizedBox.square(
-                              dimension: 20, child: CircularProgressIndicator(strokeWidth: 2)))
-                      : IconButton.outlined(
-                          onPressed: _search,
-                          icon: const Icon(Icons.search),
-                          tooltip: l.buddysSearchTooltip,
-                          style: IconButton.styleFrom(
-                            backgroundColor: palette.surface,
-                            side: BorderSide(color: palette.line),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              id: BuddysCoach.invite,
+              child: IconButton(
+                key: const ValueKey('invite-button'),
+                onPressed: _showInvite,
+                icon: const Icon(Icons.share),
+                tooltip: l.buddysInvite,
+              ),
+            ),
+            const SizedBox(width: 8),
+          ],
+        ),
+        body: RefreshIndicator(
+          onRefresh: () async => ref.invalidate(friendshipsProvider),
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+            children: [
+              CoachAnchor(
+                id: BuddysCoach.search,
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _searchController,
+                        onSubmitted: (_) => _search(),
+                        textInputAction: TextInputAction.search,
+                        decoration: InputDecoration(
+                          labelText: l.buddysSearchLabel,
+                          hintText: l.buddysSearchHint,
+                          filled: true,
+                          fillColor: palette.surface,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(14),
+                            borderSide: BorderSide(color: palette.line),
                           ),
                         ),
-                ),
-              ],
-            )),
-            if (_searched) ...[
-              const SizedBox(height: 8),
-              if (_results.isEmpty)
-                Padding(
-                  padding: const EdgeInsets.all(8),
-                  child: Text(l.buddysSearchEmpty),
-                )
-              else
-                for (final result in _results)
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: LetterAvatar(name: result.username, colorKey: result.id),
-                    title: Text(result.username,
-                        style: const TextStyle(fontWeight: FontWeight.w700)),
-                    subtitle: result.displayName != null
-                        ? Text(result.displayName!)
-                        : null,
-                    trailing: requestedIds.contains(result.id)
-                        ? Text(l.buddysAlreadyLinked)
-                        : FilledButton(
-                            onPressed: () => _sendRequest(result),
-                            child: Text(l.buddysRequest),
-                          ),
-                  ),
-            ],
-            // Airtime unter Buddys (#36 Schritt 6): nur, wer teilt.
-            const Padding(padding: EdgeInsets.only(top: 16), child: MyAirtimeCard()),
-            if (_connected case final c?) ...[
-              const SizedBox(height: 16),
-              _ConnectedCard(
-                name: c.name,
-                summary: c.summary,
-                onClose: () => setState(() => _connected = null),
-              ),
-            ],
-            // Die offenen Anfragen als EIN Anker (#136), an dich und von dir.
-            if (incoming.isNotEmpty || outgoing.isNotEmpty)
-              CoachAnchor(
-                id: BuddysCoach.requests,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-            if (incoming.isNotEmpty) ...[
-              _SectionLabel(l.buddysIncomingHeader(incoming.length)),
-              for (final f in incoming)
-                _RequestCard(
-                  name: f.otherUsername(uid),
-                  colorKey: f.otherId(uid),
-                  // Wer anfragt, darf drei Nachrichten dazulegen — und
-                  // wer angefragt wird, zurückfragen (Patch 021).
-                  message: MessageButton(otherId: f.otherId(uid)),
-                  primary: FilledButton(
-                    onPressed: () => _accept(f),
-                    style: FilledButton.styleFrom(
-                      minimumSize: const Size(0, 44),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
                     ),
-                    child: Text(l.buddysAccept),
-                  ),
-                  cancel: _SquareIconButton(
-                    onPressed: () => ref.read(friendshipsProvider.notifier).remove(f.id),
-                    icon: Icons.close,
-                    tooltip: l.buddysDecline,
-                  ),
-                ),
-            ],
-            if (outgoing.isNotEmpty) ...[
-              _SectionLabel(l.buddysOutgoingHeader(outgoing.length)),
-              for (final f in outgoing)
-                _RequestCard(
-                  name: f.otherUsername(uid),
-                  colorKey: f.otherId(uid),
-                  subtitle: l.buddysPending,
-                  message: MessageButton(otherId: f.otherId(uid)),
-                  cancel: _SquareIconButton(
-                    onPressed: () => ref.read(friendshipsProvider.notifier).remove(f.id),
-                    icon: Icons.close,
-                    tooltip: l.buddysWithdraw,
-                  ),
-                ),
-            ],
+                    const SizedBox(width: 8),
+                    SizedBox.square(
+                      dimension: 56,
+                      child: _searching
+                          ? const Center(
+                              child: SizedBox.square(
+                                dimension: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              ),
+                            )
+                          : IconButton.outlined(
+                              onPressed: _search,
+                              icon: const Icon(Icons.search),
+                              tooltip: l.buddysSearchTooltip,
+                              style: IconButton.styleFrom(
+                                backgroundColor: palette.surface,
+                                side: BorderSide(color: palette.line),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                              ),
+                            ),
+                    ),
                   ],
                 ),
               ),
-            _SectionLabel(accepted.isEmpty ? l.buddysMineHeader : l.buddysMineHeaderCount(accepted.length)),
-            if (friendshipsAsync.isLoading && friendships.isEmpty)
+              if (_searched) ...[
+                const SizedBox(height: 8),
+                if (_results.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.all(8),
+                    child: Text(l.buddysSearchEmpty),
+                  )
+                else
+                  for (final result in _results)
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: LetterAvatar(
+                        name: result.username,
+                        colorKey: result.id,
+                      ),
+                      title: Text(
+                        result.username,
+                        style: const TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                      subtitle: result.displayName != null
+                          ? Text(result.displayName!)
+                          : null,
+                      trailing: requestedIds.contains(result.id)
+                          ? Text(l.buddysAlreadyLinked)
+                          : FilledButton(
+                              onPressed: () => _sendRequest(result),
+                              child: Text(l.buddysRequest),
+                            ),
+                    ),
+              ],
+              // Airtime unter Buddys (#36 Schritt 6): nur, wer teilt.
               const Padding(
-                padding: EdgeInsets.all(16),
-                child: CenteredTrailLoader(),
-              )
-            else if (example)
-              const ExampleBuddyTile()
-            else if (accepted.isEmpty) ...[
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                child: Text(l.buddysEmpty),
+                padding: EdgeInsets.only(top: 16),
+                child: MyAirtimeCard(),
               ),
-              const SizedBox(height: 8),
-              OutlinedButton.icon(
-                onPressed: _invite,
-                icon: const Icon(Icons.share),
-                label: Text(l.buddysInvite),
-                style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
-              ),
-              const SizedBox(height: 4),
-              const HelpLinkButton(),
-            ] else
-              for (final (i, f) in accepted.indexed)
-                _BuddyRow(
-                  coach: i == 0,
-                  id: f.otherId(uid),
-                  username: f.otherUsername(uid),
-                  alias: names.aliasOf(f.otherId(uid)),
-                  shared: shared?[f.otherId(uid)] ?? (shared == null ? null : 0),
-                  onRemove: () => _confirmRemove(f, names.of(f.otherId(uid), f.otherUsername(uid))),
+              if (_connected case final c?) ...[
+                const SizedBox(height: 16),
+                _ConnectedCard(
+                  name: c.name,
+                  summary: c.summary,
+                  onClose: () => setState(() => _connected = null),
                 ),
-          ],
+              ],
+              // Die offenen Anfragen als EIN Anker (#136), an dich und von dir.
+              if (incoming.isNotEmpty || outgoing.isNotEmpty)
+                CoachAnchor(
+                  id: BuddysCoach.requests,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (incoming.isNotEmpty) ...[
+                        _SectionLabel(l.buddysIncomingHeader(incoming.length)),
+                        for (final f in incoming)
+                          _RequestCard(
+                            name: f.otherUsername(uid),
+                            colorKey: f.otherId(uid),
+                            // Wer anfragt, darf drei Nachrichten dazulegen — und
+                            // wer angefragt wird, zurückfragen (Patch 021).
+                            message: MessageButton(otherId: f.otherId(uid)),
+                            primary: FilledButton(
+                              onPressed: () => _accept(f),
+                              style: FilledButton.styleFrom(
+                                minimumSize: const Size(0, 44),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              child: Text(l.buddysAccept),
+                            ),
+                            cancel: _SquareIconButton(
+                              onPressed: () => ref
+                                  .read(friendshipsProvider.notifier)
+                                  .remove(f.id),
+                              icon: Icons.close,
+                              tooltip: l.buddysDecline,
+                            ),
+                          ),
+                      ],
+                      if (outgoing.isNotEmpty) ...[
+                        _SectionLabel(l.buddysOutgoingHeader(outgoing.length)),
+                        for (final f in outgoing)
+                          _RequestCard(
+                            name: f.otherUsername(uid),
+                            colorKey: f.otherId(uid),
+                            subtitle: l.buddysPending,
+                            message: MessageButton(otherId: f.otherId(uid)),
+                            cancel: _SquareIconButton(
+                              onPressed: () => ref
+                                  .read(friendshipsProvider.notifier)
+                                  .remove(f.id),
+                              icon: Icons.close,
+                              tooltip: l.buddysWithdraw,
+                            ),
+                          ),
+                      ],
+                    ],
+                  ),
+                ),
+              _SectionLabel(
+                accepted.isEmpty
+                    ? l.buddysMineHeader
+                    : l.buddysMineHeaderCount(accepted.length),
+              ),
+              if (friendshipsAsync.isLoading && friendships.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.all(16),
+                  child: CenteredTrailLoader(),
+                )
+              else if (example)
+                const ExampleBuddyTile()
+              else if (accepted.isEmpty) ...[
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Text(l.buddysEmpty),
+                ),
+                const SizedBox(height: 8),
+                OutlinedButton.icon(
+                  onPressed: _invite,
+                  icon: const Icon(Icons.share),
+                  label: Text(l.buddysInvite),
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size.fromHeight(48),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                const HelpLinkButton(),
+              ] else
+                for (final (i, f) in accepted.indexed)
+                  _BuddyRow(
+                    coach: i == 0,
+                    id: f.otherId(uid),
+                    username: f.otherUsername(uid),
+                    alias: names.aliasOf(f.otherId(uid)),
+                    shared:
+                        shared?[f.otherId(uid)] ?? (shared == null ? null : 0),
+                    onRemove: () => _confirmRemove(
+                      f,
+                      names.of(f.otherId(uid), f.otherUsername(uid)),
+                    ),
+                  ),
+            ],
+          ),
         ),
       ),
-    ));
+    );
   }
 }
 
@@ -447,20 +503,27 @@ class _SectionLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.only(top: 24, bottom: 8),
-        child: Text(text,
-            style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                fontWeight: FontWeight.w700,
-                letterSpacing: 1.2,
-                color: AppPalette.of(context).muted)),
-      );
+    padding: const EdgeInsets.only(top: 24, bottom: 8),
+    child: Text(
+      text,
+      style: Theme.of(context).textTheme.labelMedium?.copyWith(
+        fontWeight: FontWeight.w700,
+        letterSpacing: 1.2,
+        color: AppPalette.of(context).muted,
+      ),
+    ),
+  );
 }
 
 /// „MIT JAN VERBUNDEN" mit drei Zahlen (Design 1k). Für den
 /// Bildschirmleser der ganze Satz — dieselbe Aussage, die bis 0.39.0 in
 /// der Leiste stand.
 class _ConnectedCard extends StatelessWidget {
-  const _ConnectedCard({required this.name, required this.summary, required this.onClose});
+  const _ConnectedCard({
+    required this.name,
+    required this.summary,
+    required this.onClose,
+  });
 
   final String name;
   final ConnectSummary summary;
@@ -472,16 +535,22 @@ class _ConnectedCard extends StatelessWidget {
     final theme = Theme.of(context);
     final palette = AppPalette.of(context);
     Widget number(int n, String label, Color color) => Expanded(
-          child: Column(
-            children: [
-              Text('$n',
-                  style: AppFonts.numbers(theme.textTheme.headlineSmall).copyWith(color: color)),
-              Text(label,
-                  textAlign: TextAlign.center,
-                  style: theme.textTheme.bodySmall?.copyWith(color: palette.muted)),
-            ],
+      child: Column(
+        children: [
+          Text(
+            '$n',
+            style: AppFonts.numbers(
+              theme.textTheme.headlineSmall,
+            ).copyWith(color: color),
           ),
-        );
+          Text(
+            label,
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodySmall?.copyWith(color: palette.muted),
+          ),
+        ],
+      ),
+    );
     return Container(
       key: const ValueKey('connect-summary'),
       padding: const EdgeInsets.fromLTRB(16, 8, 4, 16),
@@ -498,12 +567,15 @@ class _ConnectedCard extends StatelessWidget {
               const ConnectMergeMark(),
               const SizedBox(width: 8),
               Expanded(
-                child: Text(l.buddysConnectedTitle(name).toUpperCase(),
-                    style: theme.textTheme.titleMedium?.copyWith(
-                        fontFamily: AppFonts.display,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 0.6,
-                        color: palette.accentText)),
+                child: Text(
+                  l.buddysConnectedTitle(name).toUpperCase(),
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontFamily: AppFonts.display,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.6,
+                    color: palette.accentText,
+                  ),
+                ),
               ),
               IconButton(
                 onPressed: onClose,
@@ -518,15 +590,31 @@ class _ConnectedCard extends StatelessWidget {
             child: summary.isEmpty
                 ? Padding(
                     padding: const EdgeInsets.only(right: 12),
-                    child: Text(summary.sentence(l, name),
-                        style: theme.textTheme.bodyMedium?.copyWith(color: palette.muted)),
+                    child: Text(
+                      summary.sentence(l, name),
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: palette.muted,
+                      ),
+                    ),
                   )
                 : Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      number(summary.shared, l.buddysConnectedShared, palette.text),
-                      number(summary.newFromBuddy, l.buddysConnectedNewFrom(name), palette.buddyText),
-                      number(summary.newForBuddy, l.buddysConnectedNewFor(name), palette.accentText),
+                      number(
+                        summary.shared,
+                        l.buddysConnectedShared,
+                        palette.text,
+                      ),
+                      number(
+                        summary.newFromBuddy,
+                        l.buddysConnectedNewFrom(name),
+                        palette.buddyText,
+                      ),
+                      number(
+                        summary.newForBuddy,
+                        l.buddysConnectedNewFor(name),
+                        palette.accentText,
+                      ),
                     ],
                   ),
           ),
@@ -551,7 +639,9 @@ class _ConnectedCard extends StatelessWidget {
     dot = 1.25 * Curves.easeOut.transform(((t - 0.55) / 0.2).clamp(0.0, 1.0));
   } else {
     // Geklemmt wie im Splash: Gleitkomma landet sonst knapp über 1.
-    dot = 1.25 - 0.25 * Curves.easeOut.transform(((t - 0.75) / 0.25).clamp(0.0, 1.0));
+    dot =
+        1.25 -
+        0.25 * Curves.easeOut.transform(((t - 0.75) / 0.25).clamp(0.0, 1.0));
   }
   return (apart: apart, dot: dot);
 }
@@ -570,8 +660,12 @@ class ConnectMergeMark extends StatefulWidget {
   State<ConnectMergeMark> createState() => _ConnectMergeMarkState();
 }
 
-class _ConnectMergeMarkState extends State<ConnectMergeMark> with SingleTickerProviderStateMixin {
-  late final _controller = AnimationController(vsync: this, duration: ConnectMergeMark.duration);
+class _ConnectMergeMarkState extends State<ConnectMergeMark>
+    with SingleTickerProviderStateMixin {
+  late final _controller = AnimationController(
+    vsync: this,
+    duration: ConnectMergeMark.duration,
+  );
   var _started = false;
 
   @override
@@ -599,7 +693,12 @@ class _ConnectMergeMarkState extends State<ConnectMergeMark> with SingleTickerPr
         key: const ValueKey('connect-merge'),
         dimension: widget.size,
         child: CustomPaint(
-          painter: _MergePainter(_controller, mine: p.brandMark, buddy: p.buddyText, dot: p.text),
+          painter: _MergePainter(
+            _controller,
+            mine: p.brandMark,
+            buddy: p.buddyText,
+            dot: p.text,
+          ),
         ),
       ),
     );
@@ -607,8 +706,12 @@ class _ConnectMergeMarkState extends State<ConnectMergeMark> with SingleTickerPr
 }
 
 class _MergePainter extends CustomPainter {
-  _MergePainter(this.animation, {required this.mine, required this.buddy, required this.dot})
-      : super(repaint: animation);
+  _MergePainter(
+    this.animation, {
+    required this.mine,
+    required this.buddy,
+    required this.dot,
+  }) : super(repaint: animation);
 
   final Animation<double> animation;
   final Color mine;
@@ -628,11 +731,14 @@ class _MergePainter extends CustomPainter {
     final dx = 28 * s.apart;
     canvas.drawLine(Offset(50 + dx, 18), Offset(50 + dx, 80), line(buddy));
     canvas.drawLine(Offset(50 - dx, 18), Offset(50 - dx, 84), line(mine));
-    if (s.dot > 0) canvas.drawCircle(const Offset(50, 84), 8 * s.dot, Paint()..color = dot);
+    if (s.dot > 0) {
+      canvas.drawCircle(const Offset(50, 84), 8 * s.dot, Paint()..color = dot);
+    }
   }
 
   @override
-  bool shouldRepaint(_MergePainter old) => old.mine != mine || old.buddy != buddy || old.dot != dot;
+  bool shouldRepaint(_MergePainter old) =>
+      old.mine != mine || old.buddy != buddy || old.dot != dot;
 }
 
 /// Eine Anfrage als Karte: Avatar, Name, rechts die Knöpfe.
@@ -674,11 +780,20 @@ class _RequestCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(name,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+                  Text(
+                    name,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                   if (subtitle != null)
-                    Text(subtitle!, style: theme.textTheme.bodySmall?.copyWith(color: palette.muted)),
+                    Text(
+                      subtitle!,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: palette.muted,
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -694,7 +809,11 @@ class _RequestCard extends StatelessWidget {
 
 /// Quadratischer Randknopf, 44 dp (Handschuh).
 class _SquareIconButton extends StatelessWidget {
-  const _SquareIconButton({required this.onPressed, required this.icon, required this.tooltip});
+  const _SquareIconButton({
+    required this.onPressed,
+    required this.icon,
+    required this.tooltip,
+  });
 
   final VoidCallback onPressed;
   final IconData icon;
@@ -759,14 +878,23 @@ class _BuddyRow extends StatelessWidget {
                 // Mit Alias steht er oben und der Name darunter — genau
                 // dafür ist er da: wissen, wer „klabuster 2" eigentlich
                 // ist.
-                Text(alias ?? username,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+                Text(
+                  alias ?? username,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
                 Wrap(
                   children: [
                     if (alias != null) Text(username, style: muted),
-                    if (alias != null && shared != null) Text(' · ', style: muted),
-                    if (shared != null) Text(context.l10n.buddysSharedCount(shared!), style: muted),
+                    if (alias != null && shared != null)
+                      Text(' · ', style: muted),
+                    if (shared != null)
+                      Text(
+                        context.l10n.buddysSharedCount(shared!),
+                        style: muted,
+                      ),
                   ],
                 ),
                 BuddyAirtimeLine(userId: id),
@@ -776,10 +904,16 @@ class _BuddyRow extends StatelessWidget {
           // Die zwei Schalter je Buddy (#526) — nur mit „Buddys unterwegs“.
           NearbyBuddyButton(buddyId: id, name: alias ?? username),
           coach
-              ? CoachAnchor(id: BuddysCoach.alias, child: AliasButton(friendId: id, username: username))
+              ? CoachAnchor(
+                  id: BuddysCoach.alias,
+                  child: AliasButton(friendId: id, username: username),
+                )
               : AliasButton(friendId: id, username: username),
           coach
-              ? CoachAnchor(id: BuddysCoach.message, child: MessageButton(otherId: id))
+              ? CoachAnchor(
+                  id: BuddysCoach.message,
+                  child: MessageButton(otherId: id),
+                )
               : MessageButton(otherId: id),
           IconButton(
             onPressed: onRemove,
@@ -805,10 +939,15 @@ class MessageButton extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final unread = ref.watch(unreadMessagesProvider)[otherId] ?? 0;
-    final icon = Icon(Icons.chat_bubble_outline, color: AppPalette.of(context).muted);
+    final icon = Icon(
+      Icons.chat_bubble_outline,
+      color: AppPalette.of(context).muted,
+    );
     return IconButton(
       key: messageButtonKey(otherId),
-      tooltip: unread == 0 ? context.l10n.buddysMessages : context.l10n.buddysUnread(unread),
+      tooltip: unread == 0
+          ? context.l10n.buddysMessages
+          : context.l10n.buddysUnread(unread),
       onPressed: () => context.go('/friends/chat/$otherId'),
       icon: unread == 0 ? icon : Badge(label: Text('$unread'), child: icon),
     );

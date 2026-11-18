@@ -26,7 +26,11 @@ class FakeRideStore implements RideStore {
   String? profile;
 
   @override
-  Future<void> begin({required String uid, required DateTime startedAt, String? profile}) async {
+  Future<void> begin({
+    required String uid,
+    required DateTime startedAt,
+    String? profile,
+  }) async {
     if (failOnBegin) throw Exception('kein Platz (Fake)');
     this.uid = uid;
     this.startedAt = startedAt;
@@ -61,9 +65,14 @@ class FakeRideStore implements RideStore {
   String? targetsUid;
 
   @override
-  Future<bool> appendConfirmEvent(ConfirmEvent event, {DateTime? rideStartedAt}) async {
+  Future<bool> appendConfirmEvent(
+    ConfirmEvent event, {
+    DateTime? rideStartedAt,
+  }) async {
     if (startedAt == null) return false;
-    if (rideStartedAt != null && !rideStartedAt.isAtSameMomentAs(startedAt!)) return false;
+    if (rideStartedAt != null && !rideStartedAt.isAtSameMomentAs(startedAt!)) {
+      return false;
+    }
     events.add(event);
     return true;
   }
@@ -84,7 +93,10 @@ class FakeRideStore implements RideStore {
       startedAt == null || this.uid != uid ? const [] : List.of(events);
 
   @override
-  Future<void> writeConfirmTargets({required String uid, required List<ConfirmTarget> targets}) async {
+  Future<void> writeConfirmTargets({
+    required String uid,
+    required List<ConfirmTarget> targets,
+  }) async {
     targetsUid = uid;
     this.targets = targets;
   }
@@ -93,7 +105,10 @@ class FakeRideStore implements RideStore {
   List<VoiceTrail> voiceTrails = const [];
 
   @override
-  Future<void> writeVoiceTrails({required String uid, required List<VoiceTrail> trails}) async {
+  Future<void> writeVoiceTrails({
+    required String uid,
+    required List<VoiceTrail> trails,
+  }) async {
     voiceTrails = trails;
   }
 
@@ -104,21 +119,26 @@ class FakeRideStore implements RideStore {
   @override
   Future<RecordedRide?> readActive({required String uid}) async {
     if (startedAt == null || this.uid != uid) return null;
-    return (startedAt: startedAt!, points: List.of(points), marks: foldRideMarks(marks));
+    return (
+      startedAt: startedAt!,
+      points: List.of(points),
+      marks: foldRideMarks(marks),
+    );
   }
 
   @override
   Future<Ride?> finish({required String uid, required DateTime endedAt}) async {
     if (startedAt == null || this.uid != uid) return null;
     final ride = Ride(
-        id: startedAt!.toIso8601String().replaceAll(RegExp(r'[-:.]'), ''),
-        startedAt: startedAt!,
-        endedAt: endedAt,
-        points: List.of(points),
-        events: List.of(events),
-        marks: foldRideMarks(marks),
-        // Wie der echte Speicher: Das Rad steht im Kopf der Datei.
-        profile: profile);
+      id: startedAt!.toIso8601String().replaceAll(RegExp(r'[-:.]'), ''),
+      startedAt: startedAt!,
+      endedAt: endedAt,
+      points: List.of(points),
+      events: List.of(events),
+      marks: foldRideMarks(marks),
+      // Wie der echte Speicher: Das Rad steht im Kopf der Datei.
+      profile: profile,
+    );
     rides.insert(0, ride);
     startedAt = null;
     points.clear();
@@ -153,13 +173,14 @@ class FakeRideStore implements RideStore {
     if (failOnPlanned) return null;
     this.uid ??= uid;
     final ride = Ride(
-        id: 'planned-${createdAt.toIso8601String().replaceAll(RegExp(r'[-:.]'), '')}',
-        startedAt: createdAt,
-        endedAt: createdAt.add(duration),
-        points: points,
-        profile: profile,
-        planned: true,
-        name: name);
+      id: 'planned-${createdAt.toIso8601String().replaceAll(RegExp(r'[-:.]'), '')}',
+      startedAt: createdAt,
+      endedAt: createdAt.add(duration),
+      points: points,
+      profile: profile,
+      planned: true,
+      name: name,
+    );
     rides.insert(0, ride);
     return ride;
   }
@@ -175,9 +196,11 @@ class FakeRideStore implements RideStore {
   }) async {
     if (failOnImport) return ImportSave.failed;
     this.uid ??= uid;
-    final id = 'imported-${points.first.at.toIso8601String().replaceAll(RegExp(r'[-:.]'), '')}';
+    final id =
+        'imported-${points.first.at.toIso8601String().replaceAll(RegExp(r'[-:.]'), '')}';
     if (rides.any((r) => r.id == id)) return ImportSave.exists;
-    rides.add(Ride(
+    rides.add(
+      Ride(
         id: id,
         startedAt: points.first.at,
         endedAt: points.last.at,
@@ -186,7 +209,9 @@ class FakeRideStore implements RideStore {
         imported: true,
         name: name,
         marks: marks,
-        source: source));
+        source: source,
+      ),
+    );
     rides.sort((a, b) => b.startedAt.compareTo(a.startedAt));
     return ImportSave.saved;
   }
@@ -197,7 +222,10 @@ class FakeRideStore implements RideStore {
   @override
   Future<List<Ride>> list({required String uid}) async {
     if (failOnList) throw Exception('Platte kaputt (Fake)');
-    return [for (final r in rides) if (this.uid == uid) r];
+    return [
+      for (final r in rides)
+        if (this.uid == uid) r,
+    ];
   }
 
   @override
@@ -216,7 +244,8 @@ class FakeRideStore implements RideStore {
   final airtimeLogs = <String, AirtimeLog>{};
 
   @override
-  Future<AirtimeLog> airtimeLog(String id) async => airtimeLogs[id] ?? AirtimeLog.empty;
+  Future<AirtimeLog> airtimeLog(String id) async =>
+      airtimeLogs[id] ?? AirtimeLog.empty;
 
   @override
   Future<bool> setProfile(String id, String profile) async {
@@ -224,15 +253,16 @@ class FakeRideStore implements RideStore {
     if (i < 0 || rides[i].planned) return false;
     final r = rides[i];
     rides[i] = Ride(
-        id: r.id,
-        startedAt: r.startedAt,
-        endedAt: r.endedAt,
-        points: r.points,
-        events: r.events,
-        marks: r.marks,
-        profile: profile,
-        imported: r.imported,
-        name: r.name);
+      id: r.id,
+      startedAt: r.startedAt,
+      endedAt: r.endedAt,
+      points: r.points,
+      events: r.events,
+      marks: r.marks,
+      profile: profile,
+      imported: r.imported,
+      name: r.name,
+    );
     return true;
   }
 }
@@ -248,8 +278,12 @@ class FakeRideServiceBridge implements RideServiceBridge {
   bool phoneInPocket = false;
 
   @override
-  Future<void> arm(
-      {required String uid, required DateTime startedAt, bool sensorLog = false, bool phoneInPocket = false}) async {
+  Future<void> arm({
+    required String uid,
+    required DateTime startedAt,
+    bool sensorLog = false,
+    bool phoneInPocket = false,
+  }) async {
     armed = true;
     this.sensorLog = sensorLog;
     this.phoneInPocket = phoneInPocket;
@@ -271,7 +305,11 @@ class FakeRideService implements RideService {
   final titles = <String>[];
 
   @override
-  Future<void> start({required String title, required String text, required Duration every}) async {
+  Future<void> start({
+    required String title,
+    required String text,
+    required Duration every,
+  }) async {
     if (!running) starts++;
     running = true;
     this.every = every;

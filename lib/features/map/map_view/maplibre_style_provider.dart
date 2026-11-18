@@ -44,7 +44,8 @@ class MapLibreStyleIo {
     if (!await target.exists() || await target.length() != data.lengthInBytes) {
       await target.create(recursive: true);
       await target.writeAsBytes(
-          data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes));
+        data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes),
+      );
     }
     return target;
   }
@@ -55,7 +56,9 @@ class MapLibreStyleIo {
   Future<String> materializeOverview() async {
     final dir = await getApplicationSupportDirectory();
     final file = await _materialize(
-        kOverviewAsset, File('${dir.path}/offline_maps/overview_dach.pmtiles'));
+      kOverviewAsset,
+      File('${dir.path}/offline_maps/overview_dach.pmtiles'),
+    );
     return file.path;
   }
 
@@ -64,8 +67,10 @@ class MapLibreStyleIo {
     final dir = await getApplicationSupportDirectory();
     for (final stack in _fontStacks) {
       for (final range in _glyphRanges) {
-        await _materialize('assets/map_glyphs/$stack/$range.pbf',
-            File('${dir.path}/map_glyphs/$stack/$range.pbf'));
+        await _materialize(
+          'assets/map_glyphs/$stack/$range.pbf',
+          File('${dir.path}/map_glyphs/$stack/$range.pbf'),
+        );
       }
     }
     return 'file://${dir.path}/map_glyphs/{fontstack}/{range}.pbf';
@@ -83,11 +88,14 @@ class MapLibreStyleIo {
   }
 }
 
-final maplibreStyleIoProvider = Provider<MapLibreStyleIo>((ref) => MapLibreStyleIo());
+final maplibreStyleIoProvider = Provider<MapLibreStyleIo>(
+  (ref) => MapLibreStyleIo(),
+);
 
 /// CSS-Farbwert für den Style — aus derselben Konstante wie die
 /// flutter_map-Engine, damit die Landflächen beider Engines gleich aussehen.
-String cssColor(int argb) => '#${(argb & 0xFFFFFF).toRadixString(16).padLeft(6, '0')}';
+String cssColor(int argb) =>
+    '#${(argb & 0xFFFFFF).toRadixString(16).padLeft(6, '0')}';
 
 List<double> _bounds(MapRegion r) => [r.box.w, r.box.s, r.box.e, r.box.n];
 
@@ -131,9 +139,11 @@ final maplibreStyleProvider = FutureProvider<String?>((ref) async {
     final watched = future.whenComplete(() => arrived = true);
     return withinOrNull(watched, kMapManifestPatience).then((value) {
       if (!arrived) {
-        unawaited(watched.then((late) {
-          if (current && late != null) ref.invalidateSelf();
-        }));
+        unawaited(
+          watched.then((late) {
+            if (current && late != null) ref.invalidateSelf();
+          }),
+        );
       }
       return value;
     });
@@ -144,48 +154,93 @@ final maplibreStyleProvider = FutureProvider<String?>((ref) async {
   // Die übrigen Regionen (#220) mit derselben Geduld: erst der Index,
   // dann je Region Karte und Wege. DACH wartet auf keine von ihnen.
   final regions = await regionsPatiently(ref);
-  final others = [for (final r in regions) if (!r.isDach) r];
-  final otherMaps = [for (final r in others) patiently(ref.watch(regionMapManifestProvider(r).future))];
-  final otherWays = [for (final r in others) patiently(ref.watch(regionWaysManifestProvider(r).future))];
+  final others = [
+    for (final r in regions)
+      if (!r.isDach) r,
+  ];
+  final otherMaps = [
+    for (final r in others)
+      patiently(ref.watch(regionMapManifestProvider(r).future)),
+  ];
+  final otherWays = [
+    for (final r in others)
+      patiently(ref.watch(regionWaysManifestProvider(r).future)),
+  ];
   final fresh = await manifestWait;
   final freshWays = await waysWait;
   final settings = ref.watch(settingsProvider);
-  final regionSources = <({MapRegion region, MapManifest? map, WaysManifest? ways, bool fresh})>[];
+  final regionSources =
+      <
+        ({MapRegion region, MapManifest? map, WaysManifest? ways, bool fresh})
+      >[];
   for (var i = 0; i < others.length; i++) {
     final region = others[i];
     final map = await otherMaps[i];
     final ways = await otherWays[i];
-    if (map != null) rememberRegionManifest(settings, region, RegionLayer.map, map.toJson());
-    if (ways != null) rememberRegionManifest(settings, region, RegionLayer.ways, ways.toJson());
+    if (map != null) {
+      rememberRegionManifest(settings, region, RegionLayer.map, map.toJson());
+    }
+    if (ways != null) {
+      rememberRegionManifest(settings, region, RegionLayer.ways, ways.toJson());
+    }
     regionSources.add((
       region: region,
-      map: map ?? rememberedRegionManifest(settings, region, RegionLayer.map, MapManifest.fromJson),
-      ways: ways ??
+      map:
+          map ??
+          rememberedRegionManifest(
+            settings,
+            region,
+            RegionLayer.map,
+            MapManifest.fromJson,
+          ),
+      ways:
+          ways ??
           (ref.watch(wayLayerEnabledProvider)
-              ? rememberedRegionManifest(settings, region, RegionLayer.ways, WaysManifest.fromJson)
+              ? rememberedRegionManifest(
+                  settings,
+                  region,
+                  RegionLayer.ways,
+                  WaysManifest.fromJson,
+                )
               : null),
       fresh: map != null,
     ));
   }
-  final manifest = fresh ?? rememberedManifest(settings.seenMapManifest, MapManifest.fromJson);
-  final ways = freshWays ??
+  final manifest =
+      fresh ??
+      rememberedManifest(settings.seenMapManifest, MapManifest.fromJson);
+  final ways =
+      freshWays ??
       (ref.watch(wayLayerEnabledProvider)
           ? rememberedManifest(settings.seenWaysManifest, WaysManifest.fromJson)
           : null);
   if (fresh != null) {
-    rememberManifest(settings.seenMapManifest, fresh.toJson(), settings.setSeenMapManifest);
+    rememberManifest(
+      settings.seenMapManifest,
+      fresh.toJson(),
+      settings.setSeenMapManifest,
+    );
   }
   if (freshWays != null) {
-    rememberManifest(settings.seenWaysManifest, freshWays.toJson(), settings.setSeenWaysManifest);
+    rememberManifest(
+      settings.seenWaysManifest,
+      freshWays.toJson(),
+      settings.setSeenWaysManifest,
+    );
   }
   final io = ref.watch(maplibreStyleIoProvider);
   // Die Quellenangabe der Behörden — nur solange die Ebene an ist und
   // eine ihrer Regionen geladen. `select` auf den Text: Der Controller
   // ändert sich bei jedem Nachladen, der Text selten.
   final officialCredits = ref.watch(officialTrailsEnabledProvider)
-      ? ref.watch(officialTrailsControllerProvider.select((s) => [
-            for (final src in s.loadedSources) '${src.attribution} (${src.license})',
-          ].join('\u0000')))
+      ? ref.watch(
+          officialTrailsControllerProvider.select(
+            (s) => [
+              for (final src in s.loadedSources)
+                '${src.attribution} (${src.license})',
+            ].join('\u0000'),
+          ),
+        )
       : '';
   try {
     final base = jsonDecode(await io.loadBaseStyle()) as Map<String, dynamic>;
@@ -198,13 +253,15 @@ final maplibreStyleProvider = FutureProvider<String?>((ref) async {
     if (noConnectivity || fresh == null) {
       final overviewPath = await io.materializeOverview();
       final overviewZoom = await io.readZoomRange(overviewPath);
-      sources.add(MapStyleSource(
-        id: 'overview',
-        url: 'file://$overviewPath',
-        minZoom: overviewZoom.min,
-        maxZoom: overviewZoom.max,
-        labelsOnTop: false,
-      ));
+      sources.add(
+        MapStyleSource(
+          id: 'overview',
+          url: 'file://$overviewPath',
+          minZoom: overviewZoom.min,
+          maxZoom: overviewZoom.max,
+          labelsOnTop: false,
+        ),
+      );
     }
     // Die gespeicherten Übersichten der Regionen (#220 Schritt 4) gleich
     // darüber, nach derselben Regel je Region: solange kein frisches
@@ -213,15 +270,22 @@ final maplibreStyleProvider = FutureProvider<String?>((ref) async {
     try {
       for (final entry in await ref.watch(areaOverviewPathsProvider.future)) {
         final region = entry.overview.region;
-        final fresh = regionSources.where((r) => r.region.id == region).firstOrNull?.fresh ?? false;
+        final fresh =
+            regionSources
+                .where((r) => r.region.id == region)
+                .firstOrNull
+                ?.fresh ??
+            false;
         if (!noConnectivity && fresh) continue;
-        sources.add(MapStyleSource(
-          id: 'overview-$region',
-          url: 'file://${entry.path}',
-          minZoom: 0,
-          maxZoom: entry.overview.maxZoom,
-          labelsOnTop: false,
-        ));
+        sources.add(
+          MapStyleSource(
+            id: 'overview-$region',
+            url: 'file://${entry.path}',
+            minZoom: 0,
+            maxZoom: entry.overview.maxZoom,
+            labelsOnTop: false,
+          ),
+        );
       }
     } catch (e, stackTrace) {
       logError('Übersichten der Regionen für den Style lesen', e, stackTrace);
@@ -231,25 +295,29 @@ final maplibreStyleProvider = FutureProvider<String?>((ref) async {
       // Zoombereich aus dem Manifest, nicht aus dem Archiv-Header: Den
       // zu lesen wäre eine Range-Anfrage, die die Engine gleich selbst
       // macht. `map-data.yml` schreibt beide aus derselben Bestellung.
-      sources.add(MapStyleSource(
-        id: 'online',
-        url: manifest.archiveUri.toString(),
-        minZoom: 0,
-        maxZoom: manifest.maxZoom,
-        bounds: _bounds(kDachRegion),
-      ));
+      sources.add(
+        MapStyleSource(
+          id: 'online',
+          url: manifest.archiveUri.toString(),
+          minZoom: 0,
+          maxZoom: manifest.maxZoom,
+          bounds: _bounds(kDachRegion),
+        ),
+      );
     }
     // Je weitere Region ihre Online-Karte, mit Rahmen (#220): MapLibre
     // fragt eine Quelle außerhalb ihres Rahmens nicht.
     for (final r in regionSources) {
       if (r.map case final map?) {
-        sources.add(MapStyleSource(
-          id: 'online-${r.region.id}',
-          url: map.archiveUri.toString(),
-          minZoom: 0,
-          maxZoom: map.maxZoom,
-          bounds: _bounds(r.region),
-        ));
+        sources.add(
+          MapStyleSource(
+            id: 'online-${r.region.id}',
+            url: map.archiveUri.toString(),
+            minZoom: 0,
+            maxZoom: map.maxZoom,
+            bounds: _bounds(r.region),
+          ),
+        );
       }
     }
     // Die gespeicherten Bereiche (Zoom 8 aufwärts) zuoberst, mit und ohne
@@ -266,12 +334,14 @@ final maplibreStyleProvider = FutureProvider<String?>((ref) async {
       // Seit 0.106.0 (#229) EINE Quelle je Region: der Kachelspeicher als
       // MBTiles, den MapLibre nativ liest — nicht mehr eine je Bereich.
       for (final entry in await ref.watch(areaMapPathsProvider.future)) {
-        sources.add(MapStyleSource(
-          id: 'area-${entry.region}',
-          url: 'mbtiles://${entry.path}',
-          minZoom: entry.minZoom,
-          maxZoom: entry.maxZoom,
-        ));
+        sources.add(
+          MapStyleSource(
+            id: 'area-${entry.region}',
+            url: 'mbtiles://${entry.path}',
+            minZoom: entry.minZoom,
+            maxZoom: entry.maxZoom,
+          ),
+        );
       }
     } catch (e, stackTrace) {
       logError('Bereiche für den Style lesen', e, stackTrace);
@@ -283,10 +353,17 @@ final maplibreStyleProvider = FutureProvider<String?>((ref) async {
     try {
       for (final entry in await ref.watch(areaWaysPathsProvider.future)) {
         final id = '$kWaysSourceId-area-${entry.region}';
-        areaWays.add(MapStyleOverlay(
-          source: MapStyleSource(id: id, url: 'mbtiles://${entry.path}', minZoom: kWaysZoom, maxZoom: kWaysZoom),
-          layers: wayStyleLayers(id, dashes: true),
-        ));
+        areaWays.add(
+          MapStyleOverlay(
+            source: MapStyleSource(
+              id: id,
+              url: 'mbtiles://${entry.path}',
+              minZoom: kWaysZoom,
+              maxZoom: kWaysZoom,
+            ),
+            layers: wayStyleLayers(id, dashes: true),
+          ),
+        );
       }
     } catch (e, stackTrace) {
       logError('Wege der Bereiche für den Style lesen', e, stackTrace);
@@ -319,11 +396,16 @@ final maplibreStyleProvider = FutureProvider<String?>((ref) async {
                 maxZoom: kWaysZoom,
                 bounds: _bounds(r.region),
               ),
-              layers: wayStyleLayers('$kWaysSourceId-region-${r.region.id}', dashes: true),
+              layers: wayStyleLayers(
+                '$kWaysSourceId-region-${r.region.id}',
+                dashes: true,
+              ),
             ),
         ...areaWays,
       ],
-      extraAttributions: officialCredits.isEmpty ? const [] : officialCredits.split('\u0000'),
+      extraAttributions: officialCredits.isEmpty
+          ? const []
+          : officialCredits.split('\u0000'),
     );
   } catch (e, stackTrace) {
     logError('MapLibre-Style bauen', e, stackTrace);

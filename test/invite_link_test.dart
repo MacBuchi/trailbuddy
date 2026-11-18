@@ -7,27 +7,70 @@ import 'package:trailbuddy/features/friends/invite_link.dart';
 
 void main() {
   test('der Link aus dem QR nennt den Namen', () {
-    expect(inviteNameFromLink(Uri.parse(
-        'https://macbuchi.github.io/trailbuddy/install.html?invite=Jan')), 'Jan');
-    expect(inviteNameFromLink(Uri.parse(
-        'https://macbuchi.github.io/trailbuddy/?invite=M%C3%BCller%20%26%20Co')), 'Müller & Co',
-        reason: 'Umlaute und Sonderzeichen im QR müssen wieder ankommen');
-    expect(inviteNameFromLink(Uri.parse(
-        'https://macbuchi.github.io/trailbuddy/?invite=  Jan  ')), 'Jan');
+    expect(
+      inviteNameFromLink(
+        Uri.parse(
+          'https://macbuchi.github.io/trailbuddy/install.html?invite=Jan',
+        ),
+      ),
+      'Jan',
+    );
+    expect(
+      inviteNameFromLink(
+        Uri.parse(
+          'https://macbuchi.github.io/trailbuddy/?invite=M%C3%BCller%20%26%20Co',
+        ),
+      ),
+      'Müller & Co',
+      reason: 'Umlaute und Sonderzeichen im QR müssen wieder ankommen',
+    );
+    expect(
+      inviteNameFromLink(
+        Uri.parse('https://macbuchi.github.io/trailbuddy/?invite=  Jan  '),
+      ),
+      'Jan',
+    );
   });
 
   test('alles andere öffnet die Buddys nicht', () {
     // Ohne Namen keine Einladung, und fremde Seiten nicht: denselben
     // Intent-Filter hat Android für jeden Link unter macbuchi.github.io.
-    expect(inviteNameFromLink(Uri.parse('https://macbuchi.github.io/trailbuddy/install.html')), null);
-    expect(inviteNameFromLink(Uri.parse('https://macbuchi.github.io/trailbuddy/?invite=')), null);
-    expect(inviteNameFromLink(Uri.parse('https://macbuchi.github.io/trailbuddy/?invite=%20')), null);
-    expect(inviteNameFromLink(Uri.parse('https://example.com/trailbuddy/?invite=Jan')), null);
-    expect(inviteNameFromLink(Uri.parse('http://macbuchi.github.io/trailbuddy/?invite=Jan')), null);
+    expect(
+      inviteNameFromLink(
+        Uri.parse('https://macbuchi.github.io/trailbuddy/install.html'),
+      ),
+      null,
+    );
+    expect(
+      inviteNameFromLink(
+        Uri.parse('https://macbuchi.github.io/trailbuddy/?invite='),
+      ),
+      null,
+    );
+    expect(
+      inviteNameFromLink(
+        Uri.parse('https://macbuchi.github.io/trailbuddy/?invite=%20'),
+      ),
+      null,
+    );
+    expect(
+      inviteNameFromLink(
+        Uri.parse('https://example.com/trailbuddy/?invite=Jan'),
+      ),
+      null,
+    );
+    expect(
+      inviteNameFromLink(
+        Uri.parse('http://macbuchi.github.io/trailbuddy/?invite=Jan'),
+      ),
+      null,
+    );
   });
 
   test('die Einladung bleibt, bis die Buddys sie holen', () {
-    launchLink = Uri.parse('https://macbuchi.github.io/trailbuddy/install.html?invite=Jan');
+    launchLink = Uri.parse(
+      'https://macbuchi.github.io/trailbuddy/install.html?invite=Jan',
+    );
     addTearDown(() => launchLink = null);
     final container = ProviderContainer();
     addTearDown(container.dispose);

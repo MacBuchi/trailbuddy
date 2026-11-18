@@ -26,7 +26,12 @@ import 'ride_service.dart';
 import 'ride_store.dart';
 import 'ride_task_handler.dart';
 import 'ride_track.dart';
-import 'sensor_log.dart' show kRideDataPhonePocket, kRideDataSensorLog, kRideDataSensorRange, readSensorRange;
+import 'sensor_log.dart'
+    show
+        kRideDataPhonePocket,
+        kRideDataSensorLog,
+        kRideDataSensorRange,
+        readSensorRange;
 import 'trail_ride_counts.dart';
 import 'trail_values.dart';
 
@@ -49,20 +54,25 @@ final sensorLogAvailableProvider = Provider<bool>((ref) => !kIsWeb);
 class SensorLogNotifier extends Notifier<bool> {
   @override
   bool build() =>
-      ref.watch(sensorLogAvailableProvider) && ref.read(settingsProvider).sensorLogEnabled;
+      ref.watch(sensorLogAvailableProvider) &&
+      ref.read(settingsProvider).sensorLogEnabled;
 
   void set(bool value) {
     state = value;
-    unawaited(ref
-        .read(settingsProvider)
-        .setSensorLogEnabled(value)
-        .catchError((Object e, StackTrace stackTrace) {
-      logError('Sensor-Rohdaten merken', e, stackTrace);
-    }));
+    unawaited(
+      ref.read(settingsProvider).setSensorLogEnabled(value).catchError((
+        Object e,
+        StackTrace stackTrace,
+      ) {
+        logError('Sensor-Rohdaten merken', e, stackTrace);
+      }),
+    );
   }
 }
 
-final sensorLogProvider = NotifierProvider<SensorLogNotifier, bool>(SensorLogNotifier.new);
+final sensorLogProvider = NotifierProvider<SensorLogNotifier, bool>(
+  SensorLogNotifier.new,
+);
 
 /// Der Mess-Takt. 5 s: Bei 20 km/h sind das 28 m zwischen zwei Punkten
 /// — für Kehren knapp, aber der Korridor des Abgleichs ist 15 m breit
@@ -87,11 +97,15 @@ final rideFixProvider = Provider<RideFix>((ref) => _platformFix);
 /// fragt — nach einem Tipp, nie beim Start.
 typedef RidePermissionCheck = Future<RideStartResult?> Function();
 
-final ridePermissionProvider = Provider<RidePermissionCheck>((ref) => _platformPermission);
+final ridePermissionProvider = Provider<RidePermissionCheck>(
+  (ref) => _platformPermission,
+);
 
 Future<RideStartResult?> _platformPermission() async {
   try {
-    if (!await Geolocator.isLocationServiceEnabled()) return RideStartResult.noService;
+    if (!await Geolocator.isLocationServiceEnabled()) {
+      return RideStartResult.noService;
+    }
     var permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
@@ -111,14 +125,17 @@ Future<RidePoint?> _platformFix() async {
   try {
     final p = await Geolocator.getCurrentPosition(
       locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.best, timeLimit: Duration(seconds: 20)),
+        accuracy: LocationAccuracy.best,
+        timeLimit: Duration(seconds: 20),
+      ),
     );
     return RidePoint(
-        lat: p.latitude,
-        lng: p.longitude,
-        at: p.timestamp.toUtc(),
-        accuracyM: p.accuracy,
-        altM: p.altitude);
+      lat: p.latitude,
+      lng: p.longitude,
+      at: p.timestamp.toUtc(),
+      accuracyM: p.accuracy,
+      altM: p.altitude,
+    );
   } catch (_) {
     return null;
   }
@@ -128,15 +145,22 @@ final rideStoreProvider = Provider<RideStore>((ref) => FileRideStore());
 
 /// Was die Erkennung auf einer Fahrt fand (#36 Schritt 5), für die Zeile
 /// in „Meine Fahrten". Leer ohne Test-Schalter.
-final rideAirtimeProvider = FutureProvider.autoDispose.family<AirtimeLog, String>(
-    (ref, id) => ref.read(rideStoreProvider).airtimeLog(id));
+final rideAirtimeProvider = FutureProvider.autoDispose
+    .family<AirtimeLog, String>(
+      (ref, id) => ref.read(rideStoreProvider).airtimeLog(id),
+    );
 
 /// Die Brücke zum Service-Isolate: scharf schalten und entschärfen.
 /// Eigene Naht, weil dahinter `path_provider` und SharedPreferences
 /// stecken — im Widget-Test gibt es beide nicht.
 abstract interface class RideServiceBridge {
   /// [sensorLog]: Rohdaten der Sensoren mitschreiben (#36, Dev-App).
-  Future<void> arm({required String uid, required DateTime startedAt, bool sensorLog = false, bool phoneInPocket = false});
+  Future<void> arm({
+    required String uid,
+    required DateTime startedAt,
+    bool sensorLog = false,
+    bool phoneInPocket = false,
+  });
   Future<void> disarm();
 }
 
@@ -144,30 +168,48 @@ class PlatformRideServiceBridge implements RideServiceBridge {
   const PlatformRideServiceBridge();
 
   @override
-  Future<void> arm(
-      {required String uid, required DateTime startedAt, bool sensorLog = false, bool phoneInPocket = false}) async {
+  Future<void> arm({
+    required String uid,
+    required DateTime startedAt,
+    bool sensorLog = false,
+    bool phoneInPocket = false,
+  }) async {
     // Der Pfad wird EINMAL hier aufgelöst: Er ist eine Konstante des
     // Geräts, und drüben je Takt einen Kanal zu bemühen wäre eine
     // Fehlerquelle mehr.
     await FlutterForegroundTask.saveData(
-        key: kRideDataDir, value: (await getApplicationSupportDirectory()).path);
+      key: kRideDataDir,
+      value: (await getApplicationSupportDirectory()).path,
+    );
     await FlutterForegroundTask.saveData(key: kRideDataUid, value: uid);
     await FlutterForegroundTask.saveData(
-        key: kRideDataStartedAt, value: startedAt.toUtc().toIso8601String());
-    await FlutterForegroundTask.saveData(key: kRideDataSensorLog, value: sensorLog);
-    await FlutterForegroundTask.saveData(key: kRideDataPhonePocket, value: sensorLog && phoneInPocket);
+      key: kRideDataStartedAt,
+      value: startedAt.toUtc().toIso8601String(),
+    );
+    await FlutterForegroundTask.saveData(
+      key: kRideDataSensorLog,
+      value: sensorLog,
+    );
+    await FlutterForegroundTask.saveData(
+      key: kRideDataPhonePocket,
+      value: sensorLog && phoneInPocket,
+    );
     // Der Kanal hängt an der Activity — drüben im Dienst gibt es ihn nicht.
     await FlutterForegroundTask.saveData(
-        key: kRideDataSensorRange, value: sensorLog ? await readSensorRange() : '');
+      key: kRideDataSensorRange,
+      value: sensorLog ? await readSensorRange() : '',
+    );
     await FlutterForegroundTask.saveData(key: kRideDataActive, value: true);
   }
 
   @override
-  Future<void> disarm() => FlutterForegroundTask.saveData(key: kRideDataActive, value: false);
+  Future<void> disarm() =>
+      FlutterForegroundTask.saveData(key: kRideDataActive, value: false);
 }
 
-final rideServiceBridgeProvider =
-    Provider<RideServiceBridge>((ref) => const PlatformRideServiceBridge());
+final rideServiceBridgeProvider = Provider<RideServiceBridge>(
+  (ref) => const PlatformRideServiceBridge(),
+);
 
 enum RideStartResult { started, noPermission, noService, failed }
 
@@ -216,8 +258,15 @@ class RideNotifier extends Notifier<RecordedRide?> {
     try {
       // Das Fahrerprofil beim Start in den Kopf der Datei — die
       // Kalibrierung (Konzept-Routing 5, Schritt 6) rechnet je Profil.
-      await ref.read(rideStoreProvider).begin(
-          uid: uid, startedAt: startedAt, profile: RiderProfile.parse(ref.read(settingsProvider).riderProfile).name);
+      await ref
+          .read(rideStoreProvider)
+          .begin(
+            uid: uid,
+            startedAt: startedAt,
+            profile: RiderProfile.parse(
+              ref.read(settingsProvider).riderProfile,
+            ).name,
+          );
     } catch (e, stackTrace) {
       logError('Fahrt beginnen', e, stackTrace);
       return RideStartResult.failed;
@@ -263,12 +312,18 @@ class RideNotifier extends Notifier<RecordedRide?> {
     final trails = ref.read(trailsProvider).valueOrNull;
     if (uid == null || trails == null) return;
     final store = ref.read(rideStoreProvider);
-    await store.writeConfirmTargets(uid: uid, targets: confirmTargetsOf(serviceL10n(), trails));
+    await store.writeConfirmTargets(
+      uid: uid,
+      targets: confirmTargetsOf(serviceL10n(), trails),
+    );
     // Die Trails der freien Fahrt (#525, F7) nur mit Ansagen — sonst liegt
     // das ganze Netz ohne Grund ein zweites Mal auf der Platte.
     await store.writeVoiceTrails(
-        uid: uid,
-        trails: ref.read(voiceCuesProvider) ? voiceTrailsOf(serviceL10n(), trails, selfId: uid) : const []);
+      uid: uid,
+      trails: ref.read(voiceCuesProvider)
+          ? voiceTrailsOf(serviceL10n(), trails, selfId: uid)
+          : const [],
+    );
   }
 
   Future<void> _sendConfirmations(Ride ride) async {
@@ -279,8 +334,13 @@ class RideNotifier extends Notifier<RecordedRide?> {
       try {
         // Vor Ort war, wer gefragt wurde: Der Dienst hat ihn im Korridor
         // der Linie gesehen. Zum Server geht nur das Ja.
-        await notifier.report(r.trailId,
-            status: r.status, condition: r.condition, onSite: true, at: r.at);
+        await notifier.report(
+          r.trailId,
+          status: r.status,
+          condition: r.condition,
+          onSite: true,
+          at: r.at,
+        );
       } catch (e, stackTrace) {
         // Ein Serverfehler bleibt sichtbar im Bericht; die Fahrt ist
         // trotzdem gespeichert.
@@ -293,11 +353,14 @@ class RideNotifier extends Notifier<RecordedRide?> {
     await ref
         .read(rideServiceBridgeProvider)
         .arm(
-            uid: uid,
-            startedAt: startedAt,
-            sensorLog: ref.read(sensorLogProvider),
-            phoneInPocket: ref.read(ridePhoneInPocketProvider));
-    await ref.read(rideServiceProvider).start(
+          uid: uid,
+          startedAt: startedAt,
+          sensorLog: ref.read(sensorLogProvider),
+          phoneInPocket: ref.read(ridePhoneInPocketProvider),
+        );
+    await ref
+        .read(rideServiceProvider)
+        .start(
           title: serviceL10n().rideNoticeTitle,
           text: serviceL10n().rideNoticeText,
           every: kRideTickInterval,
@@ -324,7 +387,11 @@ class RideNotifier extends Notifier<RecordedRide?> {
   void acceptTick(RidePoint point) {
     final current = state;
     if (current == null) return;
-    state = (startedAt: current.startedAt, points: [...current.points, point], marks: current.marks);
+    state = (
+      startedAt: current.startedAt,
+      points: [...current.points, point],
+      marks: current.marks,
+    );
   }
 
   /// Setzt die nächste Marke (#105): „Trail beginnt", solange kein
@@ -346,8 +413,14 @@ class RideNotifier extends Notifier<RecordedRide?> {
       taken.add(m);
     }
     final now = state;
-    if (now == null || !now.startedAt.isAtSameMomentAs(current.startedAt)) return false;
-    state = (startedAt: now.startedAt, points: now.points, marks: [...now.marks, ...taken]);
+    if (now == null || !now.startedAt.isAtSameMomentAs(current.startedAt)) {
+      return false;
+    }
+    state = (
+      startedAt: now.startedAt,
+      points: now.points,
+      marks: [...now.marks, ...taken],
+    );
     return taken.length == marks.length;
   }
 
@@ -355,20 +428,32 @@ class RideNotifier extends Notifier<RecordedRide?> {
     final current = state;
     if (current == null) return null;
     final mark = RideMark(
-      kind: markedTrailOpen(current.marks) ? RideMarkKind.end : RideMarkKind.start,
+      kind: markedTrailOpen(current.marks)
+          ? RideMarkKind.end
+          : RideMarkKind.start,
       at: DateTime.now().toUtc(),
     );
     if (!await ref.read(rideStoreProvider).appendMark(mark)) return null;
     final now = state;
-    if (now == null || !now.startedAt.isAtSameMomentAs(current.startedAt)) return null;
-    state = (startedAt: now.startedAt, points: now.points, marks: [...now.marks, mark]);
+    if (now == null || !now.startedAt.isAtSameMomentAs(current.startedAt)) {
+      return null;
+    }
+    state = (
+      startedAt: now.startedAt,
+      points: now.points,
+      marks: [...now.marks, mark],
+    );
     return mark;
   }
 
   /// Ein Nachtrag zum Ende [end] (#486): der Name ([name]) oder, ohne
   /// Namen und mit [discard], das Paar zurücknehmen. Wie bei
   /// [toggleMark] trägt der Zustand ihn erst, wenn die Datei ihn nahm.
-  Future<bool> annotateMark(RideMark end, {String? name, bool discard = false}) async {
+  Future<bool> annotateMark(
+    RideMark end, {
+    String? name,
+    bool discard = false,
+  }) async {
     final current = state;
     final trimmed = name?.trim();
     if (current == null || end.kind != RideMarkKind.end) return false;
@@ -378,8 +463,14 @@ class RideNotifier extends Notifier<RecordedRide?> {
         : RideMark(kind: RideMarkKind.label, at: end.at, name: trimmed);
     if (!await ref.read(rideStoreProvider).appendMark(note)) return false;
     final now = state;
-    if (now == null || !now.startedAt.isAtSameMomentAs(current.startedAt)) return false;
-    state = (startedAt: now.startedAt, points: now.points, marks: foldRideMarks([...now.marks, note]));
+    if (now == null || !now.startedAt.isAtSameMomentAs(current.startedAt)) {
+      return false;
+    }
+    state = (
+      startedAt: now.startedAt,
+      points: now.points,
+      marks: foldRideMarks([...now.marks, note]),
+    );
     return true;
   }
 
@@ -393,7 +484,9 @@ class RideNotifier extends Notifier<RecordedRide?> {
   }
 }
 
-final rideProvider = NotifierProvider<RideNotifier, RecordedRide?>(RideNotifier.new);
+final rideProvider = NotifierProvider<RideNotifier, RecordedRide?>(
+  RideNotifier.new,
+);
 
 /// Bildschirm an während einer Fahrt (#445), gemerkt auf dem Gerät; der
 /// Knopf über der Fahne schaltet ihn.
@@ -408,15 +501,17 @@ final rideKeepScreenOnProvider = NotifierProvider<RememberedFlag, bool>(
 /// Ansagen übers Ohr (#525, E7), gemerkt auf dem Gerät; Vorgabe aus.
 /// Der Dienst liest den Schalter je Takt selbst — umschalten wirkt sofort,
 /// auch mitten in der Fahrt; für die freie Fahrt legt es die Trails ab.
-final voiceCuesProvider = NotifierProvider<VoiceCuesFlag, bool>(VoiceCuesFlag.new);
+final voiceCuesProvider = NotifierProvider<VoiceCuesFlag, bool>(
+  VoiceCuesFlag.new,
+);
 
 class VoiceCuesFlag extends RememberedFlag {
   VoiceCuesFlag()
-      : super(
-          read: (s) => s.voiceCues,
-          write: (s, v) => s.setVoiceCues(v),
-          label: 'Ansagen-Schalter merken',
-        );
+    : super(
+        read: (s) => s.voiceCues,
+        write: (s, v) => s.setVoiceCues(v),
+        label: 'Ansagen-Schalter merken',
+      );
 
   @override
   void set(bool value) {
@@ -426,7 +521,9 @@ class VoiceCuesFlag extends RememberedFlag {
 }
 
 /// Gibt es Ansagen? Wie die Aufzeichnung nur mit Dienst — nicht im Web.
-final voiceCuesAvailableProvider = Provider<bool>((ref) => ref.watch(rideRecordingAvailableProvider));
+final voiceCuesAvailableProvider = Provider<bool>(
+  (ref) => ref.watch(rideRecordingAvailableProvider),
+);
 
 /// Steckt das Handy in der Tasche (#491, #517)? Gilt ab der NÄCHSTEN
 /// Fahrt — er reist beim `arm` über die Brücke in den Dienst.
@@ -439,8 +536,10 @@ final ridePhoneInPocketProvider = NotifierProvider<RememberedFlag, bool>(
 );
 
 /// Soll die Fahrt den Bildschirm gerade anlassen? Nur, solange eine läuft.
-final rideHoldsScreenProvider =
-    Provider<bool>((ref) => ref.watch(rideProvider) != null && ref.watch(rideKeepScreenOnProvider));
+final rideHoldsScreenProvider = Provider<bool>(
+  (ref) =>
+      ref.watch(rideProvider) != null && ref.watch(rideKeepScreenOnProvider),
+);
 
 /// Die gespeicherten Fahrten dieses Kontos, neueste zuerst.
 class RidesNotifier extends AsyncNotifier<List<Ride>> {
@@ -495,13 +594,16 @@ class RidesNotifier extends AsyncNotifier<List<Ride>> {
   }) async {
     final uid = ref.read(currentUserIdProvider);
     if (uid == null) return null;
-    final ride = await ref.read(rideStoreProvider).savePlanned(
-        uid: uid,
-        name: name,
-        createdAt: DateTime.now().toUtc(),
-        points: points,
-        duration: duration,
-        profile: profile);
+    final ride = await ref
+        .read(rideStoreProvider)
+        .savePlanned(
+          uid: uid,
+          name: name,
+          createdAt: DateTime.now().toUtc(),
+          points: points,
+          duration: duration,
+          profile: profile,
+        );
     if (ride != null) {
       ref.invalidateSelf();
       await future;
@@ -514,8 +616,9 @@ class RidesNotifier extends AsyncNotifier<List<Ride>> {
   /// [profile]. Was schon auf dem Gerät liegt (`rideOnDevice`, auch eine
   /// Datei derselben Startsekunde), wird übersprungen und gezählt.
   Future<ImportRidesResult> saveImported(
-      List<({String name, List<RidePoint> points, String? profile})> tracks,
-      {required String profile}) async {
+    List<({String name, List<RidePoint> points, String? profile})> tracks, {
+    required String profile,
+  }) async {
     final uid = ref.read(currentUserIdProvider);
     if (uid == null) return (saved: 0, existed: 0, failed: tracks.length);
     final store = ref.read(rideStoreProvider);
@@ -530,12 +633,23 @@ class RidesNotifier extends AsyncNotifier<List<Ride>> {
         existed++;
         continue;
       }
-      switch (await store.saveImported(uid: uid, name: t.name, points: t.points, profile: t.profile ?? profile)) {
+      switch (await store.saveImported(
+        uid: uid,
+        name: t.name,
+        points: t.points,
+        profile: t.profile ?? profile,
+      )) {
         case ImportSave.saved:
           saved++;
           // Zwei Spuren derselben Datei mit gleichem Start zählen einmal.
-          known.add(Ride(
-              id: '', startedAt: t.points.first.at, endedAt: t.points.last.at, points: t.points));
+          known.add(
+            Ride(
+              id: '',
+              startedAt: t.points.first.at,
+              endedAt: t.points.last.at,
+              points: t.points,
+            ),
+          );
         case ImportSave.exists:
           existed++;
         case ImportSave.failed:
@@ -556,8 +670,11 @@ class RidesNotifier extends AsyncNotifier<List<Ride>> {
   ///
   /// [marks] sind die Trail-Marken, die an der Uhr per LAP gesetzt wurden
   /// (Betreiber 2026-11-07) — sie gehen in die Datei wie die des Handys.
-  Future<WatchRideSave> saveFromWatch(List<RidePoint> points,
-      {required String profile, List<RideMark> marks = const []}) async {
+  Future<WatchRideSave> saveFromWatch(
+    List<RidePoint> points, {
+    required String profile,
+    List<RideMark> marks = const [],
+  }) async {
     final uid = ref.read(currentUserIdProvider);
     if (uid == null || points.length < 2) return WatchRideSave.failed;
     final store = ref.read(rideStoreProvider);
@@ -565,7 +682,13 @@ class RidesNotifier extends AsyncNotifier<List<Ride>> {
     if (rideOnDevice(points, known)) return WatchRideSave.existed;
     if (rideOverlaps(points, known)) return WatchRideSave.overlap;
     final result = await store.saveImported(
-        uid: uid, name: null, points: points, profile: profile, source: kRideSourceWatch, marks: marks);
+      uid: uid,
+      name: null,
+      points: points,
+      profile: profile,
+      source: kRideSourceWatch,
+      marks: marks,
+    );
     switch (result) {
       case ImportSave.saved:
         ref.invalidateSelf();
@@ -588,7 +711,9 @@ typedef ImportRidesResult = ({int saved, int existed, int failed});
 /// sie auf der Uhr.
 enum WatchRideSave { saved, existed, overlap, failed }
 
-final ridesProvider = AsyncNotifierProvider<RidesNotifier, List<Ride>>(RidesNotifier.new);
+final ridesProvider = AsyncNotifierProvider<RidesNotifier, List<Ride>>(
+  RidesNotifier.new,
+);
 
 /// Wie oft ich jeden Trail gefahren bin (#516 Schritt 5, Konzept-Routing
 /// 12.4, `trail_ride_counts.dart`): aus der Datei neben den Fahrten,
@@ -604,8 +729,12 @@ final trailRideCountsProvider = FutureProvider<TrailRideCounts>((ref) async {
   final trails = await ref.read(trailsProvider.future);
   // Ohne Netz (noch nicht geladen) zählte jede Fahrt dauerhaft null.
   if (trails.isEmpty) return old;
-  final next = await updateTrailRideCounts(old,
-      rides: rides, trails: trails, between: () => Future<void>.delayed(Duration.zero));
+  final next = await updateTrailRideCounts(
+    old,
+    rides: rides,
+    trails: trails,
+    between: () => Future<void>.delayed(Duration.zero),
+  );
   if (next == null) return old;
   await store.writeTrailCounts(next.encode());
   return next;
